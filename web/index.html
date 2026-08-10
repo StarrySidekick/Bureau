@@ -32,6 +32,8 @@
   --brass-2:#D9B57C;
   --shadow:0 1px 2px rgba(42,36,28,.13),0 6px 18px -10px rgba(42,36,28,.28);
   --shadow-lg:0 2px 6px rgba(42,36,28,.16),0 22px 46px -20px rgba(42,36,28,.42);
+  --board-1:#EFEADA;        /* the board, light square */
+  --board-2:#DDE5CE;        /* the board, other square — a soft green */
   --radius:5px;             /* UI chrome — pills, chips, fields */
   --radius-d:3px;           /* drawers. A drawer front is not a rounded rect. */
   --serif:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;
@@ -52,6 +54,8 @@ html[data-theme="walnut"]{
   --brass-2:#8A6A3C;
   --shadow:0 1px 2px rgba(0,0,0,.5),0 10px 30px -14px rgba(0,0,0,.8);
   --shadow-lg:0 2px 8px rgba(0,0,0,.55),0 40px 70px -28px rgba(0,0,0,.9);
+  --board-1:#201B14;
+  --board-2:#26221A;
 }
 /* Custom background/accent/outline are written as inline custom properties on
    <html> by applyLook() in section 4b — an inline property beats any selector
@@ -123,8 +127,29 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
 .scroll{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:6px 22px 120px}
 .is-phone .scroll{padding:4px 14px 110px}
 /* the desk has no toolbar — the grid is the page */
-.deskscroll{padding:14px 14px 120px}
-.is-phone .deskscroll{padding:10px 10px 110px}
+.deskscroll{padding:0 14px 120px}
+.is-phone .deskscroll{padding:0 10px 110px}
+/* reserve the scrollbar on both sides, or the grid sits off-centre */
+.scroll{scrollbar-gutter:stable both-edges}
+
+/* ---- the bar above every grid ---------------------------------------- */
+.gridbar{
+  flex:0 0 auto;display:flex;align-items:center;gap:10px;
+  padding:10px 14px 8px;
+}
+.is-phone .gridbar{padding:8px 10px 6px}
+.gridbar .where{display:flex;align-items:center;gap:7px;min-width:0;flex:1}
+.gridbar .here{font-family:var(--serif);font-size:17px;font-weight:600;letter-spacing:.005em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gridbar .trail{display:flex;align-items:center;gap:5px;min-width:0;font-size:13px;color:var(--ink-3)}
+.gridbar .trail b{font-weight:500;color:var(--ink-2);cursor:pointer;white-space:nowrap}
+.gridbar .trail b:hover{color:var(--brass)}
+.bartools{display:flex;align-items:center;gap:6px;flex:0 0 auto}
+.sqbtn{
+  width:30px;height:30px;border-radius:var(--radius);display:grid;place-items:center;
+  color:var(--ink-2);background:var(--paper-2);border:1px solid var(--rule);transition:.14s;
+}
+.sqbtn:hover{border-color:var(--brass);color:var(--ink)}
 
 /* ============================================================
    Drawers grid
@@ -159,10 +184,8 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
   margin-top:auto;padding-top:8px;display:flex;align-items:center;justify-content:center;
 }
 .pull{
-  width:54px;height:6px;border-radius:1px;flex:0 0 auto;
-  background:var(--brass);
-  box-shadow:0 1px 0 rgba(0,0,0,.28);
-  opacity:.9;transition:opacity .18s;
+  width:14px;height:14px;border-radius:50%;flex:0 0 auto;
+  background:var(--brass);opacity:.92;transition:opacity .18s;
 }
 .drawer:hover .pull{opacity:1}
 .drawer.h1{padding:9px 12px}
@@ -200,19 +223,35 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
 .pv-bars .b i{display:block;height:100%;background:var(--dink-2);border-radius:2px}
 
 /* ------------------------------------------------------------
-   arrange mode — move and resize like a window on a grid
+   the board — always visible, because the grid is the point
    ------------------------------------------------------------ */
-.grid.arranging{
-  /* the grid itself becomes visible graph paper while you arrange */
-  background-image:linear-gradient(to right,var(--rule-2) 1px,transparent 1px),
-                   linear-gradient(to bottom,var(--rule-2) 1px,transparent 1px);
-  background-size:var(--cellw,100px) var(--cellstep,114px);
-  outline:1px dashed var(--rule);outline-offset:6px;
+.grid{
+  /* a checkerboard two cells across, so the squares read as squares */
+  background-image:
+    linear-gradient(45deg, var(--board-2) 25%, transparent 25%, transparent 75%, var(--board-2) 75%),
+    linear-gradient(45deg, var(--board-2) 25%, transparent 25%, transparent 75%, var(--board-2) 75%);
+  background-size:var(--checker,160px) var(--checker,160px);
+  background-position:0 0, calc(var(--checker,160px)/2) calc(var(--checker,160px)/2);
+  background-color:var(--board-1);
+  border-radius:var(--radius);
 }
-.arranging .drawer{cursor:grab;user-select:none}
-.arranging .drawer:active{cursor:grabbing}
-.drawer.dragging{opacity:.85;z-index:40;box-shadow:var(--shadow-lg);cursor:grabbing}
+.drawer{cursor:grab;user-select:none}
+.drawer:active{cursor:grabbing}
+/* picked up: bigger, as if lifted toward you, with a small unsteady sway */
+.drawer.lifted{
+  z-index:50;transform-origin:center;
+  animation:lift .16s ease-out forwards, sway 1.1s ease-in-out .16s infinite;
+  box-shadow:var(--shadow-lg);cursor:grabbing;
+}
+@keyframes lift{ from{transform:scale(1)} to{transform:scale(1.055)} }
+@keyframes sway{
+  0%,100%{transform:scale(1.055) rotate(-.55deg)}
+  50%    {transform:scale(1.055) rotate(.55deg)}
+}
+.drawer.dragging{opacity:.92;z-index:60;box-shadow:var(--shadow-lg);cursor:grabbing;animation:none}
 .drawer.invalid{outline:2px solid #C0563F;outline-offset:-2px}
+.grid.locked .drawer{cursor:default}
+.lockmark{color:var(--ink-3);display:inline-flex;align-items:center;margin-left:6px}
 
 /* the cells a dragged/resized drawer would land on */
 .ghost{
@@ -222,29 +261,19 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
 .ghost.bad{border-color:#C0563F;background:rgba(192,86,63,.14)}
 
 /* eight handles, like a window. Bigger hit area than they look. */
-.rz{position:absolute;z-index:30;display:none}
-.arranging .rz{display:block}
+.rz{position:absolute;z-index:30;display:block}
 .rz::after{content:"";position:absolute;inset:0}
-.rz.n {top:-4px;left:10px;right:10px;height:9px;cursor:ns-resize}
-.rz.s {bottom:-4px;left:10px;right:10px;height:9px;cursor:ns-resize}
-.rz.w {left:-4px;top:10px;bottom:10px;width:9px;cursor:ew-resize}
-.rz.e {right:-4px;top:10px;bottom:10px;width:9px;cursor:ew-resize}
-.rz.nw{top:-4px;left:-4px;width:14px;height:14px;cursor:nwse-resize}
-.rz.ne{top:-4px;right:-4px;width:14px;height:14px;cursor:nesw-resize}
-.rz.sw{bottom:-4px;left:-4px;width:14px;height:14px;cursor:nesw-resize}
-.rz.se{bottom:-4px;right:-4px;width:14px;height:14px;cursor:nwse-resize}
-/* corner grips get a visible mark; edges stay invisible until hover */
-.rz.nw::before,.rz.ne::before,.rz.sw::before,.rz.se::before{
-  content:"";position:absolute;inset:3px;background:var(--dink);opacity:.5;border-radius:1px
-}
+.rz.nw{top:-5px;left:-5px;width:16px;height:16px;cursor:nwse-resize}
+.rz.ne{top:-5px;right:-5px;width:16px;height:16px;cursor:nesw-resize}
+.rz.sw{bottom:-5px;left:-5px;width:16px;height:16px;cursor:nesw-resize}
+.rz.se{bottom:-5px;right:-5px;width:16px;height:16px;cursor:nwse-resize}
+/* invisible until you go near the tile, then a small corner mark */
+.rz::before{content:"";position:absolute;inset:4px;background:var(--dink);
+  opacity:0;border-radius:1px;transition:opacity .14s}
+.drawer:hover .rz::before{opacity:.42}
 .rz:hover::before{opacity:1}
-.arranging .drawer:hover .rz.n::before,.arranging .drawer:hover .rz.s::before,
-.arranging .drawer:hover .rz.w::before,.arranging .drawer:hover .rz.e::before{
-  content:"";position:absolute;inset:3px;background:var(--dink);opacity:.28;border-radius:1px
-}
-.sizebtns{position:absolute;top:6px;right:6px;display:none;gap:3px;z-index:31}
-.arranging .sizebtns{display:flex}
-.arranging .drawer .dcount{visibility:hidden}  /* the size chip sits here instead */
+.grid.locked .rz{display:none}
+
 .sizebtns b{
   font-size:9.5px;font-weight:700;letter-spacing:.03em;padding:3px 6px;border-radius:3px;
   background:rgba(0,0,0,.42);color:var(--dink);cursor:pointer;font-variant-numeric:tabular-nums
@@ -261,12 +290,6 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
 
 /* A magic drawer should read as not-quite-solid: a dashed inner rule that
    drifts, and a faint sheen. It collects rather than holds, and looks it. */
-.drawer.magicdrawer::before{
-  content:"";position:absolute;inset:5px;border:1.5px dashed rgba(255,255,255,.42);
-  border-radius:2px;pointer-events:none;
-  animation:drift 22s linear infinite;
-}
-@keyframes drift{ to{ background-position:200px 0 } }
 .drawer.magicdrawer{
   background-image:
     radial-gradient(circle at 18% 26%, rgba(255,255,255,.30) 0 1.1px, transparent 1.6px),
@@ -291,6 +314,8 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
 .scrollentry h3.done{text-decoration:line-through;color:var(--ink-3)}
 .scrollentry .prose{font-size:14.5px;line-height:1.65}
 .scrollimg{max-width:100%;border-radius:var(--radius);margin:8px 0;display:block}
+.readtitle{font-family:var(--serif);font-size:30px;font-weight:600;margin:0 0 10px;letter-spacing:.005em}
+.prose.read{font-size:15.5px;line-height:1.7;max-width:62ch}
 .drawer.addnew{background:none;border:1.5px dashed var(--rule);box-shadow:none;align-items:center;justify-content:center;color:var(--ink-3);--dink:var(--ink-3)}
 .drawer.addnew:hover{border-color:var(--brass);color:var(--brass);filter:none}
 
@@ -313,6 +338,26 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
   background:var(--c);color:#F8F3E6;font-size:11.5px;font-weight:600}
 .tilebtn:hover{filter:brightness(1.1)}
 .tilemeta{font-size:11px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+
+/* ---- what each kind looks like on the board ---------------------------- */
+
+/* A note is a torn scrap of parchment: no binding, and a chip out of one edge */
+.drawer.otile.k-note,.drawer.otile.k-idea,.drawer.otile.k-essay,
+.drawer.otile.k-outline,.drawer.otile.k-recipe,.drawer.otile.k-script,
+.drawer.otile.k-question,.drawer.otile.k-record{
+  border-left:1px solid var(--rule);
+  background:var(--paper-2);
+  clip-path:polygon(0 0, 100% 0, 100% 62%, 96.5% 68%, 100% 74%, 100% 100%,
+                    0 100%, 0 34%, 2.5% 28%, 0 22%);
+}
+/* a task is a sliver with a point on the right, like a flag or a tab */
+.drawer.otile.k-task{
+  clip-path:polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%);
+  padding-right:20px;
+}
+.drawer.otile.k-task .dbody,.drawer.otile.k-task .dfoot{display:none}
+.drawer.otile.k-task .dtop{height:100%;align-items:center}
+.drawer.otile.k-task .dname{-webkit-line-clamp:1;font-size:13px}
 
 /* A drawer front: a name and a pull, nothing else. What's inside is inside. */
 .drawer.dtile .dtop{align-items:center}
@@ -404,10 +449,24 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
 /* ============================================================
    Object detail
    ============================================================ */
+/* On a Mac the sheet takes the right half and leaves the desk visible on the
+   left, so you can see where the thing you're editing actually lives. */
 .sheet{
   position:absolute;inset:0;z-index:40;padding-top:env(safe-area-inset-top);background:var(--paper);display:flex;flex-direction:column;
   transform:translateY(14px);opacity:0;pointer-events:none;transition:.24s cubic-bezier(.2,.9,.3,1);
 }
+.is-desk .sheet{
+  left:auto;right:0;width:50vw;min-width:420px;
+  border-left:1px solid var(--rule);box-shadow:var(--shadow-lg);
+  transform:translateX(18px);
+}
+.is-desk .sheet.open{transform:none}
+/* the half the sheet doesn't cover, dimmed so the focused object reads */
+.sheetveil{position:absolute;inset:0;right:50vw;z-index:39;background:rgba(0,0,0,.16);
+  opacity:0;pointer-events:none;transition:opacity .24s}
+.is-desk .sheetveil.on{opacity:1;pointer-events:auto}
+/* the tile being edited, centred in the left half */
+.drawer.focused{outline:2.5px solid var(--brass);outline-offset:3px;z-index:45}
 .sheet.open{transform:none;opacity:1;pointer-events:auto}
 .sheet-h{display:flex;align-items:center;gap:8px;padding:14px 20px 10px;border-bottom:1px solid var(--rule-2)}
 .is-phone .sheet-h{padding:14px}
@@ -585,7 +644,7 @@ html[data-theme="walnut"] .toast{background:var(--paper-3);color:var(--ink)}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--rule);border-bottom-width:2px;border-radius:5px;padding:1px 5px;color:var(--ink-3)}
 
-.is-desk .sheet{left:212px}
+
 .is-phone .topbar .crumbs{display:none}
 .is-phone .pill .lbl{display:none}
 .is-desk .only-phone{display:none}
@@ -702,7 +761,11 @@ const P = {
   chev:'M15 6l-6 6 6 6',
   undo:'M3 9a9 9 0 1 1 1.2 6.6M3 4v5h5',
   sun:'M12 6a6 6 0 1 0 0 12 6 6 0 0 0 0-12M12 1v2M12 21v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M1 12h2M21 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4',
-  resize:'M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7'
+  resize:'M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7',
+  gear:'M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5v.2a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1h.2a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z',
+  sort:'M4 6h13M4 12h9M4 18h5M17 14l3 3 3-3M20 17V7',
+  lock:'M6 11h12v9H6zM9 11V8a3 3 0 0 1 6 0v3',
+  book:'M4 4h7a2 2 0 0 1 2 2v14a2 2 0 0 0-2-2H4zM20 4h-7a2 2 0 0 0-2 2v14a2 2 0 0 1 2-2h7z'
 };
 function ic(n,s){ s=s||16; return `<svg viewBox="0 0 24 24" width="${s}" height="${s}" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="${P[n]||P.note}"/></svg>`; }
 
@@ -735,22 +798,22 @@ const STRUCTURAL = ['container','magic','control'];
 const USER_ATTRS = ATTRKEYS.filter(a=>!STRUCTURAL.includes(a));
 
 const BUILTIN_KINDS = {
-  drawer:  {nm:'Drawer',  ic:'folder',  c:'#7E5A38', key:'D', ds:'A container on the grid',   attrs:['container'], layout:'grid', body:'' },
-  magic:   {nm:'Magic drawer', ic:'sparkle', c:'#4A6E8F', key:'G', ds:'Collects by rule, like a smart folder', attrs:['container','magic'], layout:'grid', body:'' },
-  control: {nm:'Control',  ic:'sliders', c:'#6B6152', key:'', ds:'A Bureau button on the desk', attrs:['control'], body:'' },
-  task:    {nm:'Task',    ic:'check',   c:'#4A7C59', key:'T', ds:'A thing to do',             attrs:['text','check','date','repeat'], body:'' },
-  note:    {nm:'Note',    ic:'note',    c:'#5F7A93', key:'N', ds:'Something to remember',     attrs:['text'], body:'' },
-  idea:    {nm:'Idea',    ic:'bulb',    c:'#96652F', key:'I', ds:'A spark, unformed',         attrs:['text'], body:'**The spark —** \n\n**Why it might work —** \n\n**What it needs —** ' },
-  outline: {nm:'Outline', ic:'list',    c:'#7A6AA0', key:'O', ds:'Structure before prose',    attrs:['text'], body:'## I.\n- \n- \n\n## II.\n- \n- \n\n## III.\n- ' },
-  recipe:  {nm:'Recipe',  ic:'pot',     c:'#A55A3E', key:'R', ds:'Ingredients and method',    attrs:['text'], body:'**Serves** 2 · **Time** 30 min\n\n## Ingredients\n- \n- \n- \n\n## Method\n1. \n2. \n3. ' },
-  script:  {nm:'Script',  ic:'clapper', c:'#3F5F7A', key:'S', ds:'Scenes and dialogue',       attrs:['text'], body:'### INT. LOCATION — DAY\n\nAction line.\n\n**CHARACTER**\nDialogue.' },
-  question:{nm:'Question',ic:'help',    c:'#4A6E8F', key:'Q', ds:'Open until answered',       attrs:['text','check'], body:'**Question —** \n\n**What I know —** \n\n**Answer —** ' },
-  essay:   {nm:'Essay',   ic:'feather', c:'#5C7148', key:'E', ds:'Long-form writing',         attrs:['text'], body:'> Working thesis.\n\n' },
-  habit:   {nm:'Habit',   ic:'repeat',  c:'#3E7A6B', key:'H', ds:'Repeats, tracks a streak',  attrs:['text','streak'], body:'**Why —** ' },
-  goal:    {nm:'Goal',    ic:'target',  c:'#8A5A3F', key:'G', ds:'Long-term, has milestones', attrs:['text','progress'], body:'**Definition of done —** ' },
-  media:   {nm:'Media',   ic:'image',   c:'#6E7075', key:'M', ds:'Image, video, or audio',    attrs:['text','media'], body:'' },
+  drawer:  {nm:'Drawer',  ic:'folder',  c:'#7E5A38', key:'D', ds:'A container on the grid',   attrs:['container'], layout:'grid', size:[6,6], body:'' },
+  magic:   {nm:'Magic drawer', ic:'sparkle', c:'#4A6E8F', key:'G', ds:'Collects by rule, like a smart folder', attrs:['container','magic'], layout:'grid', size:[6,6], body:'' },
+  control: {nm:'Control',  ic:'sliders', c:'#6B6152', key:'', ds:'A Bureau button on the desk', attrs:['control'], size:[4,4], body:'' },
+  task:    {nm:'Task',    ic:'check',   c:'#4A7C59', key:'T', ds:'A thing to do',             attrs:['text','check','date','repeat'], size:[4,1], onclick:'none', body:'' },
+  note:    {nm:'Note',    ic:'note',    c:'#5F7A93', key:'N', ds:'Something to remember',     attrs:['text'], size:[4,4], onclick:'read', body:'' },
+  idea:    {nm:'Idea',    ic:'bulb',    c:'#96652F', key:'I', ds:'A spark, unformed',         size:[4,4], onclick:'read', attrs:['text'], body:'**The spark —** \n\n**Why it might work —** \n\n**What it needs —** ' },
+  outline: {nm:'Outline', ic:'list',    c:'#7A6AA0', key:'O', ds:'Structure before prose',    size:[4,4], onclick:'read', attrs:['text'], body:'## I.\n- \n- \n\n## II.\n- \n- \n\n## III.\n- ' },
+  recipe:  {nm:'Recipe',  ic:'pot',     c:'#A55A3E', key:'R', ds:'Ingredients and method',    size:[4,4], onclick:'read', attrs:['text'], body:'**Serves** 2 · **Time** 30 min\n\n## Ingredients\n- \n- \n- \n\n## Method\n1. \n2. \n3. ' },
+  script:  {nm:'Script',  ic:'clapper', c:'#3F5F7A', key:'S', ds:'Scenes and dialogue',       size:[4,4], onclick:'read', attrs:['text'], body:'### INT. LOCATION — DAY\n\nAction line.\n\n**CHARACTER**\nDialogue.' },
+  question:{nm:'Question',ic:'help',    c:'#4A6E8F', key:'Q', ds:'Open until answered',       size:[4,4], onclick:'read', attrs:['text','check'], body:'**Question —** \n\n**What I know —** \n\n**Answer —** ' },
+  essay:   {nm:'Essay',   ic:'feather', c:'#5C7148', key:'E', ds:'Long-form writing',         size:[4,4], onclick:'read', attrs:['text'], body:'> Working thesis.\n\n' },
+  habit:   {nm:'Habit',   ic:'repeat',  c:'#3E7A6B', key:'H', ds:'Repeats, tracks a streak',  size:[4,4], onclick:'read', attrs:['text','streak'], body:'**Why —** ' },
+  goal:    {nm:'Goal',    ic:'target',  c:'#8A5A3F', key:'G', ds:'Long-term, has milestones', size:[4,4], onclick:'read', attrs:['text','progress'], body:'**Definition of done —** ' },
+  media:   {nm:'Media',   ic:'image',   c:'#6E7075', key:'M', ds:'Image, video, or audio',    size:[4,4], onclick:'read', attrs:['text','media'], body:'' },
   link:    {nm:'Button',  ic:'arrow',   c:'#37687A', key:'B', ds:'A button that opens something', attrs:['button'], body:'' },
-  record:  {nm:'Record',  ic:'trophy',  c:'#9A7B2F', key:'A', ds:'Something accomplished',    attrs:['text'], body:'' }
+  record:  {nm:'Record',  ic:'trophy',  c:'#9A7B2F', key:'A', ds:'Something accomplished',    size:[4,4], onclick:'read', attrs:['text'], body:'' }
 };
 // Kinds you invent live in state alongside these; both are read through KINDS.
 let KINDS = Object.assign({}, BUILTIN_KINDS);
@@ -794,12 +857,7 @@ function seed(){
 
   // The app's own buttons live on the desk, on the grid, and move like anything
   // else. `ctl` names the action; section 20 dispatches it.
-  // Only Settings. New is "click an empty cell" and Arrange is "press and
-  // hold", so neither needs a button taking up room on the desk.
-  const controls = [
-    {id:'c_set', title:'Settings', ctl:'settings', ic:'sliders', c:'#6B6152',
-     desk:{x:7,y:13,w:4,h:4}, phone:{x:1,y:31,w:4,h:4}}
-  ].map(c=>Object.assign({kind:'control', parent:ROOT, body:'', tags:[], ord:-1, created:dz(-40)}, c));
+  const controls = [];   // no chrome on the board — the bar has the gear
 
   let n=0;
   const O = (o)=> Object.assign({
@@ -887,13 +945,14 @@ function reset(){
     device:sensedDevice(), layoutEdit:null, theme:'paper',
     view:'desk', drawerId:null, openId:null,
     arrange:false, reorder:false, listmode:'rows', kindFilter:null, tagFilter:null,
-    selDate:T, trash:null, editing:false, sel:[],
+    selDate:T, trash:null, editing:false, sel:[], readId:null,
+    deskCfg:{layout:'grid', locked:false, sort:null},
     look:defaultLook()
   };
   refreshKinds();
 }
 function defaultLook(){
-  return {bg:null, accent:null, line:null, railw:212, railHidden:false};
+  return {bg:null, accent:null, line:null, board:null};
 }
 reset();
 
@@ -905,9 +964,12 @@ const byId = id => S.objects.find(o=>o.id===id);
 /* The desk is the root container. It is never drawn as a tile — it is the grid
    everything else starts on. Giving it a real object keeps every code path that
    walks containers identical at the top level. */
-const rootObj = ()=> ({id:ROOT, kind:'drawer', title:'The Desk', c:'#7E5A38',
-                       pv:'list', filter:{}, layout:'grid', parent:null});
+const rootObj = ()=> Object.assign({id:ROOT, kind:'drawer', title:'Desk', c:'#7E5A38',
+                       pv:'list', filter:{}, layout:'grid', parent:null},
+                       S.deskCfg||{});
 const container = id => (id===ROOT||!id) ? rootObj() : byId(id);
+// The desk's own settings aren't on an object, so writes have to go to deskCfg.
+const cfgOf = id => (id===ROOT||!id) ? S.deskCfg : (byId(id)||{});
 const isContainer = o => !!o && has(o,'container');
 const containers = ()=> S.objects.filter(isContainer);
 
@@ -931,10 +993,19 @@ function inContainer(c,o){
   if(o.done) return false;             // finished things leave their drawer
   return o.parent===c.id;              // an ordinary drawer holds what is filed in it
 }
-// Children in the order the container's layout wants them.
+/* Children, in whatever order the drawer is sorted by. `sort` is null for the
+   manual order you arranged yourself, which is the default. */
+const SORTS = {
+  made:   ['Date made, newest',    (a,b)=>(b.created||'').localeCompare(a.created||'')],
+  madeup: ['Date made, oldest',    (a,b)=>(a.created||'').localeCompare(b.created||'')],
+  edited: ['Date modified',        (a,b)=>(b.edited||b.created||'').localeCompare(a.edited||a.created||'')],
+  az:     ['Alphabetical, A–Z',    (a,b)=>(a.title||'').localeCompare(b.title||'')],
+  za:     ['Alphabetical, Z–A',    (a,b)=>(b.title||'').localeCompare(a.title||'')]
+};
 function childrenOf(c){
   const list = S.objects.filter(o=>inContainer(c,o));
-  return list.sort((a,b)=>(a.ord||0)-(b.ord||0));
+  const s = c && c.sort && SORTS[c.sort];
+  return list.sort(s ? s[1] : (a,b)=>(a.ord||0)-(b.ord||0));
 }
 // Guard against a container being dragged inside itself — with recursion this
 // is a real way to lose a subtree, not a theoretical one.
@@ -1006,13 +1077,14 @@ const gridRows = (device,parentId)=> childrenOf(container(parentId||ROOT))
   .reduce((m,d)=>{const b=lay(d,device);return Math.max(m,b.y+b.h-1)},0);
 /* An object that has never been in a grid has no box. Give it one the first
    time it needs to be placed, rather than storing coordinates for everything. */
-/* New things land square. A drawer needs room for its name, a control is small,
-   everything else starts at the smallest square that can show a title. */
+/* Each kind declares the size its objects start at — a task is a wide sliver,
+   a drawer a big square. Editable per kind in the kind builder. */
+const sizeOfKind = k => (K(k).size || [4,4]);
 function ensureBox(o, device, parentId){
   const dv=device||dev();
   if(o[dv] && o[dv].w) return o[dv];
-  const n = isContainer(o) ? 6 : 4;
-  o[dv] = freeSpot(n, n, dv, parentId||o.parent);
+  const [w,h]=sizeOfKind(o.kind);
+  o[dv] = freeSpot(w, h, dv, parentId||o.parent);
   return o[dv];
 }
 
@@ -1025,9 +1097,11 @@ function applyLook(){
     el.style.setProperty('--paper-2', `color-mix(in srgb, ${L.bg} 84%, #fff)`);
     el.style.setProperty('--paper-3', `color-mix(in srgb, ${L.bg} 90%, #000)`);
   } else ['--paper','--paper-2','--paper-3'].forEach(p=>el.style.removeProperty(p));
+  if(L.board){ const [a,b]=String(L.board).split('|');
+    el.style.setProperty('--board-1', a); el.style.setProperty('--board-2', b||a); }
+  else { el.style.removeProperty('--board-1'); el.style.removeProperty('--board-2'); }
   if(L.accent) el.style.setProperty('--brass', L.accent); else el.style.removeProperty('--brass');
   if(L.line) el.style.setProperty('--line', L.line); else el.style.removeProperty('--line');
-  el.style.setProperty('--railw', (L.railw||212)+'px');
 }
 
 /* Set colours to choose from. Warm, solid, no gradients — browns, greens,
@@ -1209,14 +1283,39 @@ function drawerPreview(d, items){
   return `<div class="pv-list">${items.slice(0,5).map(o=>
     `<div class="r${o.done?' done':''}" style="--k:${K(o.kind).c}"><span class="dot"></span><span class="lbl">${esc(o.title||'Untitled')}</span></div>`).join('')}</div>`;
 }
-const HANDLES = ['nw','n','ne','e','se','s','sw','w'];
+const HANDLES = ['nw','ne','se','sw'];   // corners only — any corner resizes
+
+/* What a click on an object does. The editor is no longer the default — it
+   lives on the context menu. `onclick` is per-object, falling back to the
+   kind's, and 'read' opens the body full-width with nothing to edit. */
+const CLICKS = {
+  none:  'Nothing',
+  read:  'Open it to read',
+  edit:  'Open the editor',
+  check: 'Tick it off'
+};
+const clickOf = o => o.onclick || K(o.kind).onclick || 'none';
+function tileTap(id){
+  const o=byId(id); if(!o) return;
+  if(isContainer(o)){ S.view='drawer'; S.drawerId=id; S.kindFilter=null; render(); return; }
+  if(has(o,'control')){ if(o.ctl==='settings'){ S.view='settings'; render(); } return; }
+  switch(clickOf(o)){
+    case 'read':  S.readId=id; S.openId=null; renderSheet(); break;
+    case 'edit':  openObj(id); break;
+    case 'check': if(has(o,'check')) toggleDone(id); else openObj(id); break;
+    default: break;                      // 'none' — a task just sits there
+  }
+}
 /* Where a click on bare grid happened, so the next new object lands there. */
 let pendingCell=null;
 function placeAtPending(o){
-  if(!pendingCell){ return; }
-  const n = isContainer(o) ? 6 : 4;
-  const g=gridOf(), box={x:clamp(pendingCell.x,1,g.cols-n+1), y:pendingCell.y, w:n, h:n};
-  o[dev()] = boxOk(box, o.id, dev(), o.parent) ? box : freeSpot(n,n,dev(),o.parent);
+  const [w,h]=sizeOfKind(o.kind), dv=dev();
+  if(!pendingCell){ o[dv]=o[dv]||freeSpot(w,h,dv,o.parent); return; }
+  const g=gridOf(), box={x:clamp(pendingCell.x,1,g.cols-w+1), y:Math.max(1,pendingCell.y), w, h};
+  o[dv] = boxOk(box, o.id, dv, o.parent) ? box : freeSpot(w,h,dv,o.parent);
+  // The other device has no box yet. Leaving it null means ensureBox() picks
+  // one the first time that layout is opened, rather than inheriting a
+  // coordinate that means nothing over there.
   pendingCell=null;
 }
 
@@ -1229,12 +1328,7 @@ function gridTile(o, arr, parentId){
   const box=lay(o), cont=isContainer(o);
   const colour = o.c || K(o.kind).c;
   const handles = arr ? HANDLES.map(h=>`<i class="rz ${h}" data-rz="${h}"></i>`).join('') : '';
-  // Bureau's own buttons resize like anything else but can't be deleted —
-  // losing Settings would leave nowhere to get it back from.
-  const chips = arr
-    ? `<div class="sizebtns"><b data-size="${o.id}">${box.w}×${box.h}</b>${
-        has(o,'control')?'':`<b data-delDrawer="${o.id}">✕</b>`}</div>`
-    : '';
+  const chips='';   // no size chip, no delete cross — the menu does both
   const place = `grid-column:${box.x} / span ${box.w};grid-row:${box.y} / span ${box.h}`;
   const sel = S.sel.includes(o.id) ? ' selected' : '';
 
@@ -1250,12 +1344,10 @@ function gridTile(o, arr, parentId){
   // A drawer on a grid is just a front with a name. What is inside is behind
   // it, not printed on it — you open a drawer to find out what it holds.
   if(cont){
-    const items=childrenOf(o);
     return `<button class="drawer dtile${sel}${has(o,'magic')?' magicdrawer':''}" data-drawer="${o.id}" style="--c:${colour};${place}">
       ${chips}
       <div class="dtop"><span class="dname">${esc(o.title||'Untitled')}</span>
-        ${has(o,'magic')?`<span class="magicmark" title="Collects by rule">${ic('sparkle',11)}</span>`:''}
-        <span class="dcount">${items.length}</span></div>
+        ${has(o,'magic')?`<span class="magicmark" title="Collects by rule">${ic('sparkle',11)}</span>`:''}</div>
       <div class="dfoot"><span class="pull"></span></div>
       ${handles}
     </button>`;
@@ -1264,7 +1356,7 @@ function gridTile(o, arr, parentId){
   // An image sits on the grid like something stuck in a scrapbook.
   const img = has(o,'media') && o.media && o.media.src;
   if(img){
-    return `<button class="drawer otile imgtile${sel}" data-row="${o.id}" style="--c:${colour};${place}">
+    return `<button class="drawer otile imgtile k-${o.kind}${sel}" data-row="${o.id}" style="--c:${colour};${place}">
       ${chips}
       <img class="tileimg" src="${esc(o.media.src)}" alt="${esc(o.title||'')}" draggable="false">
       ${o.title?`<span class="imgcap">${esc(o.title)}</span>`:''}
@@ -1272,7 +1364,7 @@ function gridTile(o, arr, parentId){
     </button>`;
   }
 
-  return `<button class="drawer otile${sel}" data-row="${o.id}" style="--c:${colour};${place}">
+  return `<button class="drawer otile k-${o.kind}${sel}" data-row="${o.id}" style="--c:${colour};${place}">
     ${chips}
     <div class="dtop">
       ${has(o,'check')?`<span class="check tilecheck${o.done?' on':''}" data-check="${o.id}">${ic('check',12)}</span>`:''}
@@ -1288,29 +1380,53 @@ function gridTile(o, arr, parentId){
 
 /* The grid for one container. `id` is ROOT for the desk. */
 function gridOfContainer(cid){
-  const arr=S.arrange, g=gridOf(), c=container(cid);
+  const c=container(cid), g=gridOf();
+  // You are always arranging. A drawer can be locked to opt out of it.
+  const arr=!c.locked;
   const kids=childrenOf(c);
   // place everything first, so each one packs against real neighbours
   kids.forEach(o=>ensureBox(o, dev(), c.id));
   const tiles=kids.map(o=>gridTile(o,arr,c.id)).join('');
   const rows=gridRows(dev(),c.id)+(arr?2:0);
-  const spare=arr?freeSpot(2,1,dev(),c.id):null;
-  return `<div class="grid g-${dev()}${arr?' arranging':''}" id="drawergrid" data-gridfor="${c.id}"
+
+  return `<div class="grid g-${dev()}${arr?' arranging':''}${c.locked?' locked':''}" id="drawergrid" data-gridfor="${c.id}"
        style="--cols:${g.cols};--rowh:${g.rowh}px;grid-template-rows:repeat(${Math.max(rows,1)},${g.rowh}px)">${tiles}
-    ${arr?`<button class="drawer addnew" data-act="newdrawer" style="grid-column:${spare.x} / span 2;grid-row:${spare.y} / span 1">${ic('plus',18)}</button>`:''}
   </div>`;
 }
 
 /* The desk is nothing but the grid. There is no toolbar: New, Arrange and
    Settings are control objects sitting on it, so the grid is the whole page. */
+/* The bar every grid gets: where you are on the left, three icon buttons on the
+   right. View, sort, settings — nothing else, and no labels. */
+function gridBar(c){
+  const trail = c.id===ROOT ? [] : chainOf(c.id);
+  const view = c.layout || 'grid';
+  const views = {grid:'grid', list:'list', scroll:'book'};
+  return `<div class="gridbar">
+    <div class="where">
+      ${c.id===ROOT ? `<span class="here">Desk</span>` :
+        `<button class="iconbtn" data-act="back" title="Back">${ic('chevL',17)}</button>
+         <span class="trail"><b data-view="desk">Desk</b>${
+           trail.map((x,i)=>` ${ic('chevR',9)} ${i===trail.length-1
+             ? `<span class="here">${esc(x.title)}</span>`
+             : `<b data-drawer="${x.id}">${esc(x.title)}</b>`}`).join('')}</span>`}
+      ${has(c,'magic')?`<span class="magicmark big" title="Collects by rule">${ic('sparkle',14)}</span>`:''}
+      ${c.locked?`<span class="lockmark" title="Locked — nothing moves">${ic('lock',13)}</span>`:''}
+    </div>
+    <div class="bartools">
+      <button class="sqbtn" data-act="cycleview" data-id="${c.id}" title="View: ${view}">${ic(views[view]||'grid',16)}</button>
+      <button class="sqbtn" data-act="sortmenu" data-id="${c.id}" title="Sort">${ic('sort',16)}</button>
+      <button class="sqbtn" data-act="${c.id===ROOT?'appsettings':'drawersettings'}" data-id="${c.id}" title="Settings">${ic('gear',16)}</button>
+    </div>
+  </div>`;
+}
+
 function viewDesk(){
-  const arr=S.arrange;
   return `
   <div class="scroll deskscroll">
+    ${gridBar(rootObj())}
     ${S.layoutEdit?`<div class="banner">${ic('resize',14)} You are arranging the <b style="margin:0 3px">${S.layoutEdit==='desk'?'Mac':'iPhone'}</b> layout.
       <button data-act="stopedit">Back to this device</button></div>`:''}
-    ${arr?`<div class="mini" style="--k:var(--brass)"><span class="dot"></span>Drag to move · drag any edge or corner to resize · this only changes your <b style="color:var(--ink);margin:0 3px">${dev()==='desk'?'Mac':'iPhone'}</b> layout
-      <button class="pill solid" style="margin-left:auto" data-act="arrange">${ic('check',13)} Done</button></div>`:''}
     ${gridOfContainer(ROOT)}
   </div>`;
 }
@@ -1376,21 +1492,9 @@ function viewDrawer(){
   const f=d.filter||{};
   const defKind = (f.kinds&&f.kinds[0]) || 'task';
   const view = d.layout || 'grid';       // grid | list | scroll
-  const arr=S.arrange;
-  // the full chain, so a drawer four levels deep still tells you where you are
-  const trail=chainOf(d.id);
   return `
-  <div class="topbar">
-    <button class="iconbtn" data-act="back">${ic('chevL',18)}</button>
-    <div><div class="crumbs">${ic('grid',11)} <b data-view="desk">Desk</b> ${
-      trail.map((c,i)=> `${ic('chevR',10)} ${i===trail.length-1?esc(c.title):`<b data-drawer="${c.id}">${esc(c.title)}</b>`}`).join(' ')}</div>
-      <h1 style="color:${d.c||K(d.kind).c}">${esc(d.title)}${has(d,'magic')?` <span class="magicmark big">${ic('sparkle',15)}</span>`:''}</h1></div>
-    <div class="grow"></div>
-    ${arr?`<button class="pill solid" data-act="arrange">${ic('check',13)} Done</button>`:''}
-    ${view!=='grid'&&!has(d,'magic')?`<button class="pill${S.reorder?' solid':''}" data-act="reorder">${ic('grip',14)} <span class="lbl">${S.reorder?'Done':'Reorder'}</span></button>`:''}
-    <button class="pill" data-act="drawersettings" data-id="${d.id}">${ic('sliders',14)} <span class="lbl">Settings</span></button>
-  </div>
-  <div class="scroll">
+  ${gridBar(d)}
+  <div class="scroll${view==='grid'?' deskscroll':''}">
     ${has(d,'magic')?'':`<div class="quickadd">${ic('plus',15)}
       <input id="qa" placeholder="Add to ${esc(d.title)}…  try  /idea  #tag  !today" data-kind="${defKind}" data-drawer="${d.id}">
       <span class="k">↵</span></div>`}
@@ -1577,6 +1681,20 @@ function viewSettings(){
       ${S.look.bg?`<button class="pill" style="margin-left:6px" data-look="bg" data-val="">Reset</button>`:''}
     </div>
 
+    <div class="field" style="margin-top:12px"><label>Board</label>
+      <div class="pickgrid sw" style="margin-top:6px">${
+        [['#EFEADA|#DDE5CE','Green baize'],['#EFEADA|#E4DCC6','Sand'],['#EDE6D4|#D9E2E4','Slate'],
+         ['#F0EBDC|#E8DAD2','Clay'],['#EEE9DA|#E2E2DA','Ash'],['#EFEADA|#EFEADA','Plain']].map(([v,nm])=>{
+        const [a,b]=v.split('|');
+        return `<button data-board="${v}" title="${nm}" class="${((S.look.board||'')===v)?'on':''}"
+          style="background:linear-gradient(135deg,${a} 0 50%,${b} 50% 100%)"></button>`;}).join('')}</div>
+      <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">
+        <label class="custcol"><input type="color" data-lookinput="board1" value="${(S.look.board||'#EFEADA|#DDE5CE').split('|')[0]}"><span>Light square</span></label>
+        <label class="custcol"><input type="color" data-lookinput="board2" value="${(S.look.board||'#EFEADA|#DDE5CE').split('|')[1]}"><span>Dark square</span></label>
+      </div>
+      ${S.look.board?`<button class="pill" style="margin-top:6px" data-look="board" data-val="">Reset</button>`:''}
+    </div>
+
     <div class="field" style="margin-top:12px"><label>Accent</label>
       <div class="pickgrid sw" style="margin-top:6px">${
         [['#A9793F','Brass'],['#8A5A3F','Leather'],['#4A7C59','Fern'],['#3F5F7A','Slate'],['#8C4A38','Rust'],['#5C7148','Olive']].map(([c,nm])=>
@@ -1593,13 +1711,6 @@ function viewSettings(){
       ${S.look.line?`<button class="pill" style="margin-left:6px" data-look="line" data-val="">Reset</button>`:''}
     </div>
 
-    <div class="field" style="margin-top:12px"><label>Sidebar</label>
-      <div class="filterbar" style="padding-top:6px">
-        <button class="fchip${S.look.railHidden?'':' on'}" data-look="railHidden" data-val="">Shown</button>
-        <button class="fchip${S.look.railHidden?' on':''}" data-look="railHidden" data-val="1">Hidden</button>
-      </div>
-      <div class="mini" style="--k:var(--brass);margin-top:6px">Drag the sidebar's right edge to resize it, or drag it fully left to hide it.</div>
-    </div>
 
     <div class="section-h"><h2>Drawer layouts</h2><div class="rule"></div></div>
     <div class="mini" style="--k:var(--brass)">Each device keeps its own arrangement. You can open the other one to tidy it from here.</div>
@@ -1673,12 +1784,19 @@ function sizeGrid(){
   const grid=$('#drawergrid'); if(!grid) return;
   const g=gridOf(), w=cellW(grid,g);
   if(!(w>0)) return;
-  const cell=Math.round(w);
-  const changed = !sizing && Math.abs(CELL[dev()]-cell) > 0.5;
+  /* Do NOT round. Columns are `1fr` and therefore fractional; rounding the row
+     height to a whole pixel made rows and columns different sizes, and the
+     error accumulated across the grid — a tile at column 16 sat ~7px from
+     where the drag maths thought it was, which is why things far to the
+     bottom-right were hardest to pick up. */
+  const cell=w;
+  const changed = !sizing && Math.abs(CELL[dev()]-cell) > 0.25;
   CELL[dev()]=cell;
   grid.style.setProperty('--rowh', cell+'px');
   grid.style.setProperty('--cellw', (cell+g.gap)+'px');
   grid.style.setProperty('--cellstep', (cell+g.gap)+'px');
+  // a checker square is two cells, so the board reads at the same scale
+  grid.style.setProperty('--checker', 2*(cell+g.gap)+'px');
   grid.style.gridAutoRows = cell+'px';
   const rows=(grid.style.gridTemplateRows.match(/repeat\((\d+)/)||[])[1];
   if(rows) grid.style.gridTemplateRows=`repeat(${rows},${cell}px)`;
@@ -1688,13 +1806,52 @@ function sizeGrid(){
 /* ============================================================
    15 · detail sheet
    ============================================================ */
-function openObj(id){ S.openId=id; S.editing=false; renderSheet(); }
-function closeSheet(){ S.openId=null; renderSheet(); render(); }
+function openObj(id){ S.openId=id; S.readId=null; S.editing=false; renderSheet(); }
+function closeSheet(){ S.openId=null; S.readId=null; clearFocus(); renderSheet(); render(); }
+
+/* Centre the object being looked at in the half of the screen the sheet
+   doesn't cover, so you keep sight of where it lives. */
+function focusTile(id){
+  clearFocus();
+  const el=document.querySelector(`.grid .drawer[data-row="${id}"],.grid .drawer[data-drawer="${id}"]`);
+  if(!el) return;
+  el.classList.add('focused');
+  const scroller=el.closest('.scroll'); if(!scroller) return;
+  const er=el.getBoundingClientRect(), sr=scroller.getBoundingClientRect();
+  scroller.scrollTop += (er.top - sr.top) - (sr.height/2 - er.height/2);
+  if($('#frame').classList.contains('is-desk')){
+    const half=window.innerWidth/2;
+    scroller.scrollLeft += (er.left - sr.left) - (half/2 - er.width/2);
+  }
+}
+function clearFocus(){ $$('.drawer.focused').forEach(e=>e.classList.remove('focused')); }
 
 function renderSheet(){
   const host=$('#sheetHost');
+  // Read view: the whole body, nothing to edit. What clicking a note does.
+  if(S.readId && !S.openId){
+    const r=byId(S.readId);
+    if(!r){ S.readId=null; host.innerHTML=''; return; }
+    host.innerHTML=`<div class="sheetveil on" data-sheet="close"></div>
+    <div class="sheet open" id="sheet" style="--k:${K(r.kind).c}">
+      <div class="sheet-h">
+        <button class="iconbtn" data-sheet="close">${ic('chevL',18)}</button>
+        <span class="kindbadge">${ic(K(r.kind).ic,12)} ${K(r.kind).nm}</span>
+        <div style="flex:1"></div>
+        <button class="pill" data-act="editthis" data-id="${r.id}">${ic('edit',13)} Edit</button>
+      </div>
+      <div class="sheet-b">
+        <h1 class="readtitle">${esc(r.title||'Untitled')}</h1>
+        ${(r.tags||[]).length?`<div class="meta" style="margin-bottom:14px">${(r.tags||[]).map(t=>`<span class="mchip tag">${esc(t)}</span>`).join('')}</div>`:''}
+        ${r.media&&r.media.src?`<img class="scrollimg" src="${esc(r.media.src)}" alt="${esc(r.title||'')}">`:''}
+        <div class="prose read">${md(r.body)}</div>
+      </div>
+    </div>`;
+    focusTile(r.id);
+    return;
+  }
   const o=S.openId?byId(S.openId):null;
-  if(!o){ host.innerHTML=''; return; }
+  if(!o){ host.innerHTML=''; clearFocus(); return; }
   const k=K(o.kind);
   const drawerOpts=containers().filter(c=>c.id!==o.id&&!isAncestor(o.id,c)).map(d=>`<option value="${d.id}"${o.parent===d.id?" selected":""}>${esc(d.title)}</option>`).join('');
   const kindOpts=KEYS.map(x=>`<option value="${x}"${o.kind===x?' selected':''}>${KINDS[x].nm}</option>`).join('');
@@ -1711,6 +1868,8 @@ function renderSheet(){
     </select></div>`);
   if(has(o,'media')) fields.push(`<div class="field"><label>Media type</label><select data-f="mtype">
       ${['image','video','audio'].map(t=>`<option value="${t}"${o.media&&o.media.type===t?' selected':''}>${t}</option>`).join('')}</select></div>`);
+  if(!isContainer(o)) fields.push(`<div class="field"><label>Clicking it</label><select data-f="onclick">
+      ${Object.entries(CLICKS).map(([v,n])=>`<option value="${v}"${clickOf(o)===v?' selected':''}>${n}</option>`).join('')}</select></div>`);
   if(has(o,'container')) fields.push(`<div class="field"><label>Contents laid out as</label><select data-f="layout">
       ${[['list','List'],['grid','Grid']].map(([v,n])=>`<option value="${v}"${(o.layout||'list')===v?' selected':''}>${n}</option>`).join('')}</select></div>`);
 
@@ -1759,7 +1918,8 @@ function renderSheet(){
     ${own?`<button class="subtle-btn" data-act="attrreset" style="margin-top:8px">${ic('undo',12)} Match the ${esc(k.nm.toLowerCase())} kind again</button>`:''}
     <button class="subtle-btn" data-act="kindfromobj" style="margin-top:8px">${ic('sparkle',12)} Save these attributes as a new kind</button>`;
 
-  host.innerHTML = `<div class="sheet open" id="sheet" style="--k:${k.c}">
+  host.innerHTML = `<div class="sheetveil on" data-sheet="close"></div>
+    <div class="sheet open" id="sheet" style="--k:${k.c}">
     <div class="sheet-h">
       <button class="iconbtn" data-sheet="close">${ic('chevL',18)}</button>
       <span class="kindbadge">${ic(k.ic,12)} ${k.nm}</span>
@@ -1851,6 +2011,11 @@ function modalDrawer(id){
         [['grid','Grid'],['list','List'],['scroll','Scroll']].map(([v,n])=>
         `<button class="fchip${(d.layout||'grid')===v?' on':''}" data-dl="${v}">${n}</button>`).join('')}</div>
       <div class="mini" style="--k:var(--brass);margin-top:6px">Grid lays contents out on the grid · List is one line each · Scroll shows every word, top to bottom.</div></div>
+    <div class="field" style="margin-bottom:10px"><label>Locked</label>
+      <div class="filterbar" id="dlock" style="padding-top:6px">
+        <button class="fchip${d.locked?'':' on'}" data-dlock="">Movable</button>
+        <button class="fchip${d.locked?' on':''}" data-dlock="1">Locked</button></div>
+      <div class="mini" style="--k:var(--brass);margin-top:6px">You are always arranging. Lock a drawer when you've got it how you want it and nothing should shift.</div></div>
     <div class="field" style="margin-bottom:10px"><label>Colour</label>
       <div id="dcol" style="margin-top:6px">${swatchRows(d.c)}
         <label class="custcol"><input type="color" data-colinput value="${d.c}">
@@ -1874,7 +2039,7 @@ function modalDrawer(id){
     </div>
   </div>`);
   const m=$('#modal');
-  m._draft={c:d.c, pv:d.pv, kinds:ks.slice(), layout:d.layout||'grid', tag:(d.filter||{}).tag||''};
+  m._draft={c:d.c, pv:d.pv, kinds:ks.slice(), layout:d.layout||'grid', tag:(d.filter||{}).tag||'', locked:!!d.locked};
 }
 /* Make a kind by choosing attributes. `from` is an object whose attributes seed
    the picker — "save these attributes as a new kind" from the detail sheet. */
@@ -1892,6 +2057,13 @@ function modalNewKind(from){
       <div class="filterbar" id="kattrs" style="flex-wrap:wrap;padding-top:6px">${USER_ATTRS.map(a=>
         `<button class="fchip${seedAttrs.includes(a)?' on':''}" data-ka="${a}" title="${esc(ATTRS[a].ds)}">${ATTRS[a].nm}</button>`).join('')}</div>
       <div class="mini" style="--k:var(--brass);margin-top:6px" id="kattrsds">${esc(seedAttrs.map(a=>ATTRS[a].ds).join(' · '))}</div></div>
+    <div class="field" style="margin-bottom:10px"><label>Objects of this kind start</label>
+      <div class="filterbar" id="ksize" style="flex-wrap:wrap;padding-top:6px">${
+        [[4,1],[6,1],[2,2],[4,4],[6,4],[6,6],[8,6],[12,8]].map(([w,h])=>
+          `<button class="fchip${(from&&K(from.kind).size||[4,4]).join('x')===w+'x'+h?' on':''}" data-ksz="${w}x${h}">${w}×${h}</button>`).join('')}</div></div>
+    <div class="field" style="margin-bottom:10px"><label>Clicking one</label>
+      <div class="filterbar" id="kclick" style="flex-wrap:wrap;padding-top:6px">${
+        Object.entries(CLICKS).map(([v,n])=>`<button class="fchip${v==='read'?' on':''}" data-kclick="${v}">${n}</button>`).join('')}</div></div>
     <div class="field" style="margin-bottom:10px"><label>Colour</label>
       <div id="dcol" style="margin-top:6px">${swatchRows(c)}
         <label class="custcol"><input type="color" data-colinput value="${c}"><span>Custom colour</span></label></div></div>
@@ -1901,7 +2073,8 @@ function modalNewKind(from){
     </div>
   </div>`);
   const m=$('#modal');
-  m._draft={c, attrs:seedAttrs, ic:from?K(from.kind).ic:'note', ds:'', fromId:from&&from.id};
+  m._draft={c, attrs:seedAttrs, ic:from?K(from.kind).ic:'note', ds:'', fromId:from&&from.id,
+            size:(from&&K(from.kind).size)||[4,4], onclick:'read'};
 }
 // Anywhere this object may legally go: any container that is not itself, and
 // not inside itself — otherwise a drawer can swallow its own ancestor.
@@ -1974,7 +2147,8 @@ function openCtx(x,y,id){
   const many = sel.length>1;
   el.innerHTML=`
     ${many?`<div class="ctxhead">${sel.length} objects</div>` : ''}
-    ${many?'' : `<button data-c="open:${id}">${ic('eye',14)} Open</button>`}
+    ${many?'' : `<button data-c="read:${id}">${ic('eye',14)} Read</button>
+    <button data-c="open:${id}">${ic('edit',14)} Edit…</button>`}
     ${(!many&&(has(o,'check')||has(o,'streak')))?`<button data-c="done:${id}">${ic('check',14)} ${has(o,'streak')?'Mark today':'Complete'}</button>`:''}
     <button data-c="intodrawer:${id}">${ic('folder',14)} ${many?`Put these ${sel.length} in a new drawer`:'Put this in a new drawer'}</button>
     <button data-c="move:${id}">${ic('folder',14)} Move to drawer…</button>
@@ -2030,31 +2204,33 @@ function place(el, b){
 function onDown(e){
   if(e.button===2) return;
   const app=$('#app');
-  // any tile on a grid, container or not — they all move and resize the same
-  // any tile on a grid, whatever it is — controls carry data-id, not data-row
+  // Any tile on any unlocked grid. There is no arrange mode — everything is
+  // always movable — so a short hold arms the drag, which is the only thing
+  // keeping an ordinary click from picking the tile up.
   const dEl=e.target.closest('.grid .drawer[data-drawer],.grid .drawer[data-row],.grid .drawer[data-id]');
-  if(S.arrange && dEl && !e.target.closest('.sizebtns')){
+  if(dEl && !dEl.closest('.grid.locked')){
     const grid=dEl.closest('.grid');
     const d=byId(dEl.dataset.drawer||dEl.dataset.row||dEl.dataset.id);
     if(!d || !grid) return;
     const hEl=e.target.closest('[data-rz]'), g=gridOf();
     G={type: hEl?'resize':'move', el:dEl, id:d.id, handle:hEl?hEl.dataset.rz:null,
+       armed:!!hEl,                 // a corner grip drags at once; a tile waits
        parent:grid.dataset.gridfor||ROOT,
        box:lay(d), stepX:cellW(grid,g)+g.gap, stepY:g.rowh+g.gap,
        sx:e.clientX, sy:e.clientY, mode:null, ok:true, cand:null};
-    dEl.setPointerCapture&&dEl.setPointerCapture(e.pointerId);
+    try{ dEl.setPointerCapture&&dEl.setPointerCapture(e.pointerId); }catch(_){}
+    if(!G.armed){
+      const g=G;
+      holdTimer=setTimeout(()=>{
+        holdTimer=null;
+        if(G!==g) return;
+        G.armed=true;
+        G.el.classList.add('lifted');
+        if(navigator.vibrate) navigator.vibrate(6);
+      }, 300);
+      holdFrom={x:e.clientX,y:e.clientY};
+    }
     return;
-  }
-  // Press and hold a tile to start arranging, the way a home screen does.
-  if(!S.arrange && dEl){
-    clearTimeout(holdTimer);
-    holdTimer=setTimeout(()=>{
-      holdTimer=null;
-      S.arrange=true; S.sel=[]; render();
-      if(navigator.vibrate) navigator.vibrate(8);
-      toast('Arranging — drag to move, drag an edge to resize');
-    }, 420);
-    holdFrom={x:e.clientX,y:e.clientY};
   }
   const rEl=e.target.closest('.row[data-row]');
   if(!rEl) return;
@@ -2062,7 +2238,7 @@ function onDown(e){
   const list=rEl.closest('.rows');
   const canDrag = e.pointerType==='mouse' || (list&&list.classList.contains('reordering'));
   G={type:'row', el:rEl, wrap:rEl.parentElement, sx:e.clientX, sy:e.clientY, mode:null, canDrag, t:Date.now()};
-  rEl.setPointerCapture&&rEl.setPointerCapture(e.pointerId);
+  try{ rEl.setPointerCapture&&rEl.setPointerCapture(e.pointerId); }catch(_){}
 }
 function onMove(e){
   cancelHold(e);
@@ -2070,6 +2246,7 @@ function onMove(e){
   const dx=e.clientX-G.sx, dy=e.clientY-G.sy;
 
   if(G.type==='move' || G.type==='resize'){
+    if(!G.armed) return;             // still waiting out the hold
     if(!G.mode){
       if(Math.abs(dx)<5 && Math.abs(dy)<5) return;
       G.mode='grid';
@@ -2116,7 +2293,7 @@ function onUp(e){
   const dx=e.clientX-g.sx;
 
   if(g.mode==='grid'){
-    g.el.classList.remove('dragging','invalid');
+    g.el.classList.remove('dragging','invalid','lifted');
     g.el.style.transform='';
     if(g.ghost) g.ghost.remove();
     const d=byId(g.id);
@@ -2141,9 +2318,10 @@ function onUp(e){
     toast('Order saved');
     render(); return;
   }
+  if(g.el) g.el.classList.remove('lifted');
   if(g.mode===null && Math.abs(dx)<7){
     // a tap
-    if(g.type==='move'||g.type==='resize'){ const o=byId(g.id); if(S.arrange&&o) isContainer(o)?modalDrawer(g.id):openObj(g.id); }
+    if(g.type==='move'||g.type==='resize'){ tileTap(g.id); }
     else if(g.type==='row') openObj(g.el.dataset.row);
   }
 }
@@ -2227,14 +2405,11 @@ function doubleBoxes(objects){
 /* New, Arrange and Settings are objects on the desk now, so a desk saved before
    they existed would have no way to reach them. Put back any that are missing —
    this also rescues a desk where one was deleted by accident. */
+/* Every control object is retired. New is a click on bare grid, Arrange is
+   press-and-hold, and Settings is the gear in the bar — none of them need a
+   tile taking up room on the board. */
 function ensureControls(){
-  // New and Arrange became gestures, so retire their buttons from older desks
-  S.objects = S.objects.filter(o=>!(o.ctl==='new'||o.ctl==='arrange'));
-  if(!S.objects.some(o=>o.ctl==='settings')){
-    S.objects.push({id:'c_set', title:'Settings', ctl:'settings', ic:'sliders',
-      c:'#6B6152', kind:'control', parent:ROOT, body:'', tags:[],
-      ord:-1, created:T, desk:null, phone:null});
-  }
+  S.objects = S.objects.filter(o=>!o.ctl && o.kind!=='control');
 }
 function adopt(d){
   if(!d || !Array.isArray(d.objects)) return false;
@@ -2365,7 +2540,6 @@ function act(name, el){
   switch(name){
     case 'new': modalNewObject(); break;
     case 'newdrawer': modalDrawer(null); break;
-    case 'arrange': S.arrange=!S.arrange; render(); break;
     case 'reorder': S.reorder=!S.reorder; render(); break;
     case 'listmode': S.listmode = S.listmode==='rows'?'cards':'rows'; render(); break;
     case 'back': S.view='desk'; S.drawerId=null; S.kindFilter=null; render(); break;
@@ -2374,7 +2548,7 @@ function act(name, el){
       const id=el.dataset.id, m=$('#modal'), draft=m._draft||{};
       const title=$('#dnm').value.trim()||'Untitled drawer';
       if(id){ const d=byId(id);
-        Object.assign(d,{title,c:draft.c,pv:draft.pv,layout:draft.layout});
+        Object.assign(d,{title,c:draft.c,pv:draft.pv,layout:draft.layout,locked:!!draft.locked});
         d.filter=Object.assign({},d.filter,{kinds:draft.kinds,tag:draft.tag||undefined});
       } else {
         // a new drawer lands inside whatever container you are looking at
@@ -2409,7 +2583,8 @@ function act(name, el){
       if(!nm){ toast('Give the kind a name'); return; }
       const key=nm.toLowerCase().replace(/[^a-z0-9]+/g,'').slice(0,20)||('kind'+Date.now());
       S.kinds[key]={nm, ic:draft.ic||'note', c:draft.c, key:nm[0].toUpperCase(),
-                    ds:draft.ds||'A kind you made', attrs:draft.attrs.slice(), body:''};
+                    ds:draft.ds||'A kind you made', attrs:draft.attrs.slice(),
+                    size:draft.size||[4,4], onclick:draft.onclick||'read', body:''};
       refreshKinds();
       // the object that inspired it now simply *is* that kind
       if(draft.fromId){ const o=byId(draft.fromId); if(o){ o.kind=key; o.attrs=null; } }
@@ -2431,11 +2606,30 @@ function act(name, el){
     case 'attach': { const o=byId(S.openId); o.media={type:'image',label:'photo-2026-08.heic · 4.2 MB'}; renderSheet(); render(); toast('Media attached'); break; }
     case 'dupe': { const o=byId(S.openId); const c=Object.assign({},o,{id:uid('o'),title:o.title+' (copy)',ord:o.ord+0.1}); S.objects.push(c); openObj(c.id); render(); break; }
     case 'sched': { const o=byId(S.openId); o.due=T; renderSheet(); render(); toast('Scheduled for today'); break; }
-    case 'stopedit': S.layoutEdit=null; S.arrange=false; render(); break;
+    case 'stopedit': S.layoutEdit=null; render(); break;
     case 'export': exportBackup(); break;
     case 'import': $('#importer').click(); break;
     case 'pickimage': $('#imgpicker').click(); break;
     case 'drawersettings': modalDrawer(el.dataset.id); break;
+    case 'appsettings': S.view='settings'; render(); break;
+    case 'editthis': S.readId=null; openObj(el.dataset.id); break;
+    case 'cycleview': {
+      const c=cfgOf(el.dataset.id), order=['grid','list','scroll'];
+      c.layout = order[(order.indexOf(c.layout||'grid')+1)%order.length];
+      save(); render(); toast(c.layout+' view');
+      break;
+    }
+    case 'sortmenu': {
+      const id=el.dataset.id, cur=cfgOf(id).sort||'';
+      showModal(`<div class="modal-h"><div class="t">Sort</div>
+        <div class="s">How this drawer orders what's in it.</div></div>
+      <div class="modal-b"><div class="rows">
+        <div class="row${!cur?' on':''}" data-sortby="${id}:"><div class="body"><div class="title">However you arranged it</div></div></div>
+        ${Object.entries(SORTS).map(([k,[nm]])=>
+          `<div class="row${cur===k?' on':''}" data-sortby="${id}:${k}"><div class="body"><div class="title">${nm}</div></div></div>`).join('')}
+      </div></div>`);
+      break;
+    }
     case 'newkind': modalNewKind(null); break;
     case 'install': if(deferredInstall){ deferredInstall.prompt(); deferredInstall=null; } break;
     case 'reseed': { const th=S.theme, lk=S.look; reset(); S.theme=th; S.look=lk; applyLook(); writeNow(); render(); toast('Sample desk restored'); break; }
@@ -2455,7 +2649,8 @@ function wire(){
   frame.addEventListener('pointerdown', onDown);
   frame.addEventListener('pointermove', onMove);
   frame.addEventListener('pointerup', onUp);
-  frame.addEventListener('pointercancel', ()=>{ if(G){ if(G.el) G.el.style.transform=''; G=null; } });
+  frame.addEventListener('pointercancel', ()=>{ if(holdTimer){clearTimeout(holdTimer);holdTimer=null;}
+    if(G){ if(G.el){ G.el.style.transform=''; G.el.classList.remove('lifted','dragging','invalid'); } G=null; } });
 
   frame.addEventListener('contextmenu', e=>{
     const tile=e.target.closest('.grid .drawer');
@@ -2476,6 +2671,7 @@ function wire(){
     const c=t.closest('[data-c]');
     if(c){ const [cmd,id]=c.dataset.c.split(':'); closeCtx();
       if(cmd==='open') openObj(id);
+      else if(cmd==='read'){ S.readId=id; S.openId=null; renderSheet(); }
       else if(cmd==='done') toggleDone(id);
       else if(cmd==='today'){ byId(id).due=T; render(); toast('Scheduled today'); }
       else if(cmd==='tom'){ byId(id).due=dz(1); render(); toast('Scheduled tomorrow'); }
@@ -2489,6 +2685,11 @@ function wire(){
         else del(id);
       }
       return; }
+
+    const sb=t.closest('[data-sortby]');
+    if(sb){ const i=sb.dataset.sortby.indexOf(':');
+      cfgOf(sb.dataset.sortby.slice(0,i)).sort = sb.dataset.sortby.slice(i+1) || null;
+      hideModal(); save(); render(); return; }
 
     const mv=t.closest('[data-moveto]');
     if(mv){ const [oid,did]=mv.dataset.moveto.split(':');
@@ -2539,12 +2740,12 @@ function wire(){
     const a=t.closest('[data-act]'); if(a){ act(a.dataset.act,a); return; }
 
     const vw=t.closest('[data-view]');
-    if(vw){ S.view=vw.dataset.view; S.drawerId=null; S.kindFilter=null; S.arrange=false; render(); return; }
+    if(vw){ S.view=vw.dataset.view; S.drawerId=null; S.kindFilter=null; render(); return; }
 
     /* Clicking bare grid makes something there. The cell under the pointer is
        remembered so the new object lands where you pointed, not wherever there
        happened to be room. */
-    if(t.classList && t.classList.contains('grid') && !S.arrange){
+    if(t.classList && t.classList.contains('grid')){
       const g=gridOf(), r=t.getBoundingClientRect(), cw=cellW(t,g);
       const cx=Math.floor((e.clientX-r.left)/(cw+g.gap))+1;
       const cy=Math.floor((e.clientY-r.top)/(CELL[dev()]+g.gap))+1;
@@ -2555,13 +2756,6 @@ function wire(){
 
     // a control object on the desk
     const ctl=t.closest('[data-ctl]');
-    if(ctl && !S.arrange){
-      const a=ctl.dataset.ctl;
-      if(a==='new') modalNewObject();
-      else if(a==='arrange'){ S.arrange=true; render(); }
-      else if(a==='settings'){ S.view='settings'; render(); }
-      return;
-    }
 
     // shift/⌘ click builds a selection, Finder-style, instead of opening
     const tile=t.closest('.grid .drawer');
@@ -2576,12 +2770,17 @@ function wire(){
     if(S.sel.length && !t.closest('#ctx')) S.sel=[];
 
     const dr=t.closest('[data-drawer]');
-    if(dr && (dr.classList.contains('navitem') || dr.tagName==='B' || (dr.classList.contains('drawer') && !S.arrange))){
-      S.view='drawer'; S.drawerId=dr.dataset.drawer; S.kindFilter=null; S.reorder=false; S.arrange=false; render(); return; }
+    if(dr && (dr.tagName==='B' || dr.classList.contains('drawer'))){
+      S.view='drawer'; S.drawerId=dr.dataset.drawer; S.kindFilter=null; S.reorder=false; render(); return; }
 
     // cards, goal titles, timeline entries — anything carrying an id that isn't a swipeable row
     const ro=t.closest('[data-row]');
-    if(ro && !ro.classList.contains('row')){ openObj(ro.dataset.row); return; }
+    if(ro && !ro.classList.contains('row')){
+      // a tile on a grid obeys the object's own click behaviour; everything
+      // else (cards, timeline rows) still opens the editor
+      if(ro.closest('.grid')) tileTap(ro.dataset.row); else openObj(ro.dataset.row);
+      return;
+    }
 
     const kf=t.closest('[data-kind]');
     if(kf && kf.classList.contains('fchip')){ S.kindFilter=kf.dataset.kind||null; render(); return; }
@@ -2598,10 +2797,19 @@ function wire(){
     const dtg=t.closest('[data-dtag]');
     if(dtg){ $('#modal')._draft.tag=dtg.dataset.dtag; $$('#dtag .fchip').forEach(b=>b.classList.remove('on')); dtg.classList.add('on'); return; }
 
+    const dlk=t.closest('[data-dlock]');
+    if(dlk){ $('#modal')._draft.locked=!!dlk.dataset.dlock; $$('#dlock .fchip').forEach(b=>b.classList.remove('on')); dlk.classList.add('on'); return; }
+
     const dlay=t.closest('[data-dl]');
     if(dlay){ $('#modal')._draft.layout=dlay.dataset.dl; $$('#dlayout .fchip').forEach(b=>b.classList.remove('on')); dlay.classList.add('on'); return; }
 
     // attributes, in the new-kind modal
+    const ksz=t.closest('[data-ksz]');
+    if(ksz){ const [w,h]=ksz.dataset.ksz.split('x').map(Number);
+      $('#modal')._draft.size=[w,h]; $$('#ksize .fchip').forEach(b=>b.classList.remove('on')); ksz.classList.add('on'); return; }
+    const kcl=t.closest('[data-kclick]');
+    if(kcl){ $('#modal')._draft.onclick=kcl.dataset.kclick; $$('#kclick .fchip').forEach(b=>b.classList.remove('on')); kcl.classList.add('on'); return; }
+
     const ka=t.closest('[data-ka]');
     if(ka){ const d=$('#modal')._draft, a=ka.dataset.ka, i=d.attrs.indexOf(a);
       if(i>=0) d.attrs.splice(i,1); else d.attrs.push(a);
@@ -2619,7 +2827,7 @@ function wire(){
 
     // how a drawer lays its contents out, from the drawer's own toolbar
     const lm=t.closest('[data-layoutmode]');
-    if(lm){ const d=byId(S.drawerId); if(d){ d.layout=lm.dataset.layoutmode; S.arrange=false; save(); render(); } return; }
+    if(lm){ const d=byId(S.drawerId); if(d){ d.layout=lm.dataset.layoutmode; save(); render(); } return; }
 
     // a button object's button
     const fire=t.closest('[data-fire]');
@@ -2643,7 +2851,7 @@ function wire(){
 
     const th=t.closest('[data-theme2]'); if(th){ S.theme=th.dataset.theme2; render(); return; }
     const ly=t.closest('[data-layout]');
-    if(ly){ S.layoutEdit = ly.dataset.layout || null; S.view='desk'; S.arrange=!!S.layoutEdit; render(); return; }
+    if(ly){ S.layoutEdit = ly.dataset.layout || null; S.view='desk'; render(); return; }
 
     // the size chip still cycles presets — quicker than dragging on a phone.
     // It keeps the drawer where it is and skips any preset that would collide.
@@ -2673,6 +2881,11 @@ function wire(){
   frame.addEventListener('input', e=>{
     // colour pickers: live preview while dragging, committed on 'change'
     const li=e.target.dataset.lookinput;
+    if(li==='board1'||li==='board2'){
+      const cur=(S.look.board||'#EFEADA|#DDE5CE').split('|');
+      cur[li==='board1'?0:1]=e.target.value; S.look.board=cur.join('|');
+      applyLook(); return;
+    }
     if(li){ S.look[li]=e.target.value; applyLook(); return; }
     if(e.target.dataset.colinput!=null){
       const m=$('#modal'); if(m&&m._draft){ m._draft.c=e.target.value;
@@ -2692,6 +2905,7 @@ function wire(){
         else toast('A drawer cannot go inside itself');
       }
       else if(f==='layout'){ o.layout=e.target.value; render(); }
+      else if(f==='onclick'){ o.onclick=e.target.value; save(); render(); }
       else if(f==='linklabel'){ o.link=o.link||{}; o.link.label=e.target.value; }
       else if(f==='linktarget'){ o.link=o.link||{}; o.link.target=e.target.value; }
       else if(f==='linkurl'){ o.link=o.link||{}; if(e.target.value) o.link.target=e.target.value; }
@@ -2730,7 +2944,7 @@ function wire(){
   document.addEventListener('keydown', e=>{
     const typing = /input|textarea/i.test(document.activeElement.tagName);
     if((e.metaKey||e.ctrlKey) && e.key.toLowerCase()==='k'){ e.preventDefault(); openCmd(); return; }
-    if(e.key==='Escape'){ closeCtx(); hideModal(); closeCmd(); if(S.openId) closeSheet(); return; }
+    if(e.key==='Escape'){ closeCtx(); hideModal(); closeCmd(); if(S.openId||S.readId) closeSheet(); return; }
     if(typing) return;
     if(e.key==='n'||e.key==='N'){ e.preventDefault(); modalNewObject(); return; }
     if($('#scrim').classList.contains('open')){

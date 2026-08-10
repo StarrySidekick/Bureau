@@ -34,9 +34,9 @@ const URL = process.env.BUREAU_URL || 'http://127.0.0.1:8000/index.html';
   await page.fill('#qa', 'Order the brass pulls #bureau !today');
   await page.press('#qa', 'Enter');
   await page.waitForTimeout(400);
-  await page.click('.crumbs [data-view="desk"]');   // the tab bar is phone-only
+  await page.click('.gridbar [data-view="desk"]');   // the tab bar is phone-only
   await page.waitForTimeout(250);
-  await page.click('.grid .drawer[data-ctl="settings"]');
+  await page.click('.gridbar [data-act="appsettings"]');
   await shot('02-settings');
   await page.click('[data-theme2="walnut"]');
   await page.waitForTimeout(250);
@@ -47,7 +47,7 @@ const URL = process.env.BUREAU_URL || 'http://127.0.0.1:8000/index.html';
   const survived = await page.evaluate(() =>
     BUREAU.state.objects.some(o => (o.title||'').includes('brass pulls')));
   const themeSurvived = await page.evaluate(() => BUREAU.state.theme);
-  await page.click('.grid .drawer[data-ctl="settings"]');
+  await page.click('.gridbar [data-act="appsettings"]');
   await page.waitForTimeout(250);
   await page.click('[data-theme2="paper"]');
   await page.waitForTimeout(200);
@@ -87,23 +87,41 @@ const URL = process.env.BUREAU_URL || 'http://127.0.0.1:8000/index.html';
   await phone.waitForTimeout(350);
   await phone.screenshot({ path: 'test/shots/09-phone-drawer.png' });
 
-  // --- press and hold enters arrange, a tap does not (already on the desk)
+  // --- everything is always movable; a hold arms the drag, a tap does not
   await page.waitForTimeout(300);
-  const holdArranges = await page.evaluate(async () => {
+  const holdArms = await page.evaluate(async () => {
     const t = document.querySelector('.grid .drawer[data-drawer]');
     const r = t.getBoundingClientRect();
     const o = { bubbles:true, clientX:r.x+r.width/2, clientY:r.y+r.height/2, pointerId:9, isPrimary:true };
     t.dispatchEvent(new PointerEvent('pointerdown', o));
-    await new Promise(r2 => setTimeout(r2, 600));
-    const on = BUREAU.state.arrange;
+    await new Promise(r2 => setTimeout(r2, 420));
+    const lifted = t.classList.contains('lifted');
     t.dispatchEvent(new PointerEvent('pointerup', o));
-    return on;
+    return lifted;
   });
-  await shot('10-arrange-by-hold');
+  // every tile must sit exactly where its coordinates say, with no drift
+  const maxDrift = await page.evaluate(() => {
+    const g = document.querySelector('#drawergrid'), cs = getComputedStyle(g);
+    const cell = parseFloat(cs.getPropertyValue('--rowh')), gap = parseFloat(cs.rowGap);
+    const gr = g.getBoundingClientRect();
+    let worst = 0;
+    document.querySelectorAll('.grid .drawer').forEach(el => {
+      const id = el.dataset.row || el.dataset.drawer || el.dataset.id;
+      const o = BUREAU.state.objects.find(x => x.id === id);
+      const box = o && o[BUREAU.state.device];
+      if (!box) return;
+      const er = el.getBoundingClientRect();
+      worst = Math.max(worst,
+        Math.abs(er.left - (gr.left + (box.x-1)*(cell+gap))),
+        Math.abs(er.top  - (gr.top  + (box.y-1)*(cell+gap))));
+    });
+    return Math.round(worst * 100) / 100;
+  });
+  await shot('10-desk-board');
 
   console.log(JSON.stringify({
     errors: errs, manifestOk, swReady, survived, themeSurvived,
-    gridClass, offlineWorks, railGone, tabbarShown, holdArranges
+    gridClass, offlineWorks, railGone, tabbarShown, holdArms, maxDrift
   }, null, 2));
   await browser.close();
 })();

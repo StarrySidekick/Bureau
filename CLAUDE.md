@@ -129,10 +129,18 @@ when you're editing the *other* device's layout from this one.
 - **Cells are square and the row height is measured, never assumed.** Columns
   are fluid, so `sizeGrid()` reads the real column width after layout and caches
   it in `CELL`. Don't hardcode a row height — `GRID` deliberately has none.
-- **The desk has no toolbar and no sidebar.** New is "click a bare cell",
-  Arrange is "press and hold" (`holdTimer` in section 19), and Settings is a
-  `control` object on the grid. `ensureControls()` puts Settings back if it is
-  missing, which is the only thing stopping a deleted one from stranding you.
+- **There is no arrange mode.** Everything is always movable; a drawer can be
+  `locked` to opt out. A 300ms hold arms the drag (`G.armed`), which is the only
+  thing keeping a click from picking a tile up. Corners resize, and that's all —
+  no edge handles, no size chip, no delete cross.
+- **Never round the cell size.** Columns are `1fr` and therefore fractional.
+  Rounding the row height made rows and columns different sizes and the error
+  accumulated across the grid, so tiles at high x/y sat several pixels from
+  where the drag maths thought they were. The smoke test guards this as
+  `maxDrift`.
+- **Clicking an object is configurable** — `clickOf()`, per object then per
+  kind: nothing, read, edit, or tick. The editor is no longer the default; it is
+  on the context menu. Don't add a code path that opens the editor on click.
 - **Image bytes live in IndexedDB, never in the JSON.** Section 19c. `snapshot()`
   strips `media.src`; `hydrateAssets()` puts it back after a load. If you add a
   new place that writes objects to storage, it has to strip too.

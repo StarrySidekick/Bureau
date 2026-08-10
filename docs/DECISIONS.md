@@ -285,7 +285,35 @@ the desk, not the sidebar coming back.
 
 ---
 
-### 19. PWA before native
+### 19. There is no arrange mode
+
+Everything on a grid is always movable and resizable. A 300ms hold arms the
+drag; a drawer can be locked when you want it to stay put.
+
+*Why:* a mode you have to enter is a mode you forget you're in, and the Done
+button that ends it is chrome on a screen that is meant to be nothing but grid.
+If the answer to "can I move this?" is always yes, there is nothing to remember.
+
+*Against:* a click and a drag now differ only by 300ms, which is a real tax on
+every deliberate click, and touch users will pick things up by accident. The
+lock exists because of this, not as a feature.
+
+---
+
+### 20. Clicking an object does what the object says
+
+`onclick` is per object, falling back to per kind: nothing, read, edit, or tick.
+A note opens to read; a task does nothing. The editor moved to the context menu.
+
+*Why:* opening a full editor was too heavy an answer to a click, and the right
+answer genuinely differs by kind — you read a note and you tick a task.
+
+*Against:* a default of "nothing" means some objects appear inert until you
+learn the context menu, and there is now no single thing a click always does.
+
+---
+
+### 21. PWA before native
 
 *Why:* it satisfies "iPhone app", "Mac app" and "pretty" for one codebase and no
 developer account, and it can be used tomorrow. A wrong idea discovered in a week
