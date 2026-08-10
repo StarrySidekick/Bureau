@@ -44,9 +44,15 @@ them, this is a visual app and a passing assertion doesn't mean it looks right.
 
 ## Deploying
 
-Static hosting, any provider. Currently intended for GitHub Pages at the repo
-root. After changing `web/index.html`, bump `CACHE` in `web/sw.js` or installed
-copies will keep serving the old version from cache.
+Live at **https://starrysidekick.github.io/bureau/**. Pushing to `main` deploys
+it — `.github/workflows/pages.yml` uploads `web/` as the Pages artifact. Pages'
+branch mode can only serve the repo root or `docs/`, and `docs/` is the written
+documentation, hence the workflow.
+
+After changing `web/index.html`, bump `CACHE` in `web/sw.js` or installed copies
+will keep serving the old version from cache. This is the easiest thing in the
+project to forget and the symptom — "my change didn't deploy" — points at the
+wrong culprit.
 
 ## Layout of the code
 

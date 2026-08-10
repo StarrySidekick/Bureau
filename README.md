@@ -43,7 +43,8 @@ looks right, and this is an app where looking right is most of the point.
 
 ## Install it
 
-Deploy `web/` to any static host with HTTPS. Then:
+Live at **https://starrysidekick.github.io/bureau/**. Every push to `main`
+redeploys it. Then:
 
 - **iPhone** — open the URL in Safari, Share → Add to Home Screen. Launch from
   the icon, not the tab. On iOS the installed app has its own storage, separate
