@@ -167,9 +167,9 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
 /* Explicit x/y placement: every drawer names its column and row, so the grid is
    a coordinate space, not a flow. No auto-flow — an empty cell stays empty. */
 /* Square cells: --rowh is set from the measured column width by sizeGrid(). */
-.grid{display:grid;gap:5px;align-content:start;position:relative}
+.grid{display:grid;gap:0;align-content:start;position:relative}
 .grid.g-desk{grid-template-columns:repeat(var(--cols,24),1fr);grid-auto-rows:var(--rowh,40px)}
-.grid.g-phone{grid-template-columns:repeat(var(--cols,16),1fr);grid-auto-rows:var(--rowh,21px);gap:4px}
+.grid.g-phone{grid-template-columns:repeat(var(--cols,16),1fr);grid-auto-rows:var(--rowh,21px)}
 
 .drawer{
   position:relative;border-radius:var(--radius-d);overflow:hidden;text-align:left;
@@ -193,11 +193,6 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
 .drawer .dfoot{
   margin-top:auto;padding-top:8px;display:flex;align-items:center;justify-content:center;
 }
-.pull{
-  width:19px;height:19px;border-radius:50%;flex:0 0 auto;
-  background:var(--brass);opacity:.92;transition:opacity .18s;
-}
-.drawer:hover .pull{opacity:1}
 .drawer.h1{padding:9px 12px}
 .drawer.h1 .dbody{margin-top:5px}
 .drawer.h1 .dfoot{padding-top:5px}
@@ -248,7 +243,7 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
     var(--board-2) 0 25%, transparent 0 50%,
     var(--board-2) 0 75%, transparent 0);
   background-size:var(--checker,160px) var(--checker,160px);
-  background-position:calc(var(--halfgap, 2.5px) * -1) calc(var(--halfgap, 2.5px) * -1);
+  background-position:0 0;
 }
 .grid > *{position:relative;z-index:1}
 .rangerow{display:flex;align-items:center;gap:10px;margin-top:8px;font-size:12.5px;color:var(--ink-2)}
@@ -390,6 +385,49 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
 .drawer.otile.k-task .dbody,.drawer.otile.k-task .dfoot{display:none}
 .drawer.otile.k-task .dtop{height:100%;align-items:center}
 .drawer.otile.k-task .dname{-webkit-line-clamp:1;font-size:13px}
+
+/* ---- drawer fronts: borders and knobs -------------------------------- */
+/* Five borders, in the spirit of a Victorian chest: a bevelled panel, a
+   beaded edge, a double rule, a recessed cove, and plain. */
+.drawer.dtile{ border-width:1px }
+.drawer.dtile.bd-panel{
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.20),
+             inset 0 0 0 5px rgba(0,0,0,.16),
+             inset 0 0 0 6px rgba(255,255,255,.12), var(--shadow);
+}
+.drawer.dtile.bd-bead{
+  box-shadow:inset 0 0 0 3px rgba(0,0,0,.20),
+             inset 0 0 0 4px rgba(255,255,255,.26), var(--shadow);
+}
+.drawer.dtile.bd-double{
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.22),
+             inset 0 0 0 4px transparent,
+             inset 0 0 0 5px rgba(255,255,255,.18), var(--shadow);
+}
+.drawer.dtile.bd-cove{
+  box-shadow:inset 0 3px 7px rgba(0,0,0,.30),
+             inset 0 -2px 0 rgba(255,255,255,.14), var(--shadow);
+}
+.drawer.dtile.bd-plain{ box-shadow:var(--shadow) }
+
+/* Six knobs. The default is half-transparent white; the colour and shape are
+   both set in the drawer's settings. */
+.pull{
+  width:19px;height:19px;flex:0 0 auto;
+  background:var(--knob,rgba(255,255,255,.5));
+  opacity:.95;transition:opacity .18s;border-radius:50%;
+}
+.pull.kn-round{border-radius:50%}
+.pull.kn-teardrop{border-radius:50% 50% 50% 8px;transform:rotate(45deg)}
+.pull.kn-bar{width:34px;height:11px;border-radius:6px}
+.pull.kn-ring{border-radius:50%;background:none;border:4px solid var(--knob,rgba(255,255,255,.5))}
+.pull.kn-shield{border-radius:4px 4px 50% 50%}
+.pull.kn-square{border-radius:3px}
+.drawer:hover .pull{opacity:1}
+
+/* A magic drawer is dotted, not dashed */
+.drawer.magicdrawer{ border-style:dotted;border-width:2px;
+  border-color:color-mix(in srgb, #fff 55%, transparent) }
 
 /* A drawer front: a name and a pull, nothing else. What's inside is inside. */
 .drawer.dtile .dtop{align-items:center}
@@ -710,10 +748,13 @@ kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--rule);border
 /* colour families: small solid squares, one row each */
 .pickgrid.sw{grid-template-columns:repeat(auto-fill,minmax(34px,1fr));gap:6px;margin-bottom:6px}
 .pickgrid.sw button{height:30px;border-radius:3px;border:1px solid rgba(0,0,0,.25)}
-.custcol{display:inline-flex;align-items:center;gap:8px;margin-top:4px;cursor:pointer;
-  font-size:12.5px;color:var(--ink-2);padding:5px 9px;border:1px solid var(--rule);border-radius:var(--radius)}
+.custcol{display:inline-flex;align-items:center;gap:8px;margin-top:6px;cursor:pointer;
+  font-size:12.5px;line-height:1;color:var(--ink-2);padding:6px 10px;
+  border:1px solid var(--rule);border-radius:var(--radius);vertical-align:middle}
+.custcol span{display:inline-block;line-height:1}
 .custcol:hover{border-color:var(--brass);color:var(--ink)}
-.custcol input[type=color]{width:26px;height:22px;padding:0;border:1px solid var(--rule);border-radius:3px;background:none;cursor:pointer}
+.custcol input[type=color]{width:26px;height:22px;padding:0;margin:0;flex:0 0 auto;display:block;
+  border:1px solid var(--rule);border-radius:3px;background:none;cursor:pointer}
 .rowwrap.swiping .row{transition:none}
 .rowwrap .row{will-change:transform}
 </style>
@@ -1072,8 +1113,8 @@ function chainOf(id){
    nothing may assume a fixed row height. Twice the columns of the first
    version, which is what makes the smallest object half the size it was. */
 const GRID = {
-  desk:  {cols:24, gap:5},
-  phone: {cols:16, gap:4}
+  desk:  {cols:24, gap:0},
+  phone: {cols:16, gap:0}
 };
 const CELL = {desk:40, phone:21};   // last measured; a sane guess until then
 const gridOf = (device)=>{
@@ -1123,10 +1164,33 @@ function ensureBox(o, device, parentId){
   return o[dv];
 }
 
-/* Appearance: custom background, accent and drawer outline. Written as inline
-   custom properties on <html>, which beat both theme blocks. */
+/* Which theme is actually showing right now. */
+const themeNow = ()=> S.theme==='auto'
+  ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'walnut' : 'paper')
+  : S.theme;
+/* Custom colours are stored per theme. They used to be single values written
+   inline on <html>, which beat both theme blocks — so a background chosen in
+   Paper stayed put when you switched to Walnut and the theme looked broken. */
+function lookVal(key){
+  const v=(S.look||{})[key];
+  if(v && typeof v==='object') return v[themeNow()]||null;
+  // a plain string is the old single-value shape: it was chosen under Paper,
+  // so it applies there and nowhere else
+  return (typeof v==='string' && themeNow()==='paper') ? v : null;
+}
+function setLookVal(key, val){
+  const cur=(S.look||{})[key];
+  const obj = (cur && typeof cur==='object') ? cur : {};
+  if(cur && typeof cur==='string') obj.paper=cur;   // migrate on first write
+  obj[themeNow()] = val || null;
+  S.look[key]=obj;
+}
+
+/* Appearance: custom background, accent and drawer outline, applied as inline
+   custom properties on <html> for whichever theme is showing. */
 function applyLook(){
   const el=document.documentElement, L=S.look||defaultLook();
+  L.bg=lookVal('bg'); L.accent=lookVal('accent'); L.line=lookVal('line'); L.board=lookVal('board');
   if(L.bg){
     el.style.setProperty('--paper', L.bg);
     el.style.setProperty('--paper-2', `color-mix(in srgb, ${L.bg} 84%, #fff)`);
@@ -1286,9 +1350,10 @@ function create(kind, patch){
     o.layout = o.layout || k.layout || 'list';
     o.filter = o.filter || {};
   }
-  // route into a container whose rule will actually show it
-  const home=containers().find(d=>d.filter&&d.filter.kinds&&d.filter.kinds.includes(kind));
-  if((!patch||!patch.parent) && home) o.parent=home.id;
+  /* No auto-routing. It made sense when ordinary drawers had rules; now the
+     only drawers with rules are magic ones, which hold nothing — so routing a
+     new object into one filed it somewhere it could never appear, and it
+     vanished from the drawer you made it in. */
   S.objects.push(o);
   return o;
 }
@@ -1378,7 +1443,7 @@ function placeAtPending(o){
 function gridTile(o, arr, parentId){
   const cont=isContainer(o);
   let box;
-  if(o._flow){ box=o._flow; delete o._flow; }
+  if(FLOW.has(o.id)){ box=FLOW.get(o.id); FLOW.delete(o.id); }
   else { ensureBox(o, dev(), parentId); box=lay(o); }
   const colour = o.c || K(o.kind).c;
   const handles = arr ? HANDLES.map(h=>`<i class="rz ${h}" data-rz="${h}"></i>`).join('') : '';
@@ -1398,11 +1463,13 @@ function gridTile(o, arr, parentId){
   // A drawer on a grid is just a front with a name. What is inside is behind
   // it, not printed on it — you open a drawer to find out what it holds.
   if(cont){
-    return `<button class="drawer dtile${sel}${has(o,'magic')?' magicdrawer':''}" data-drawer="${o.id}" style="--c:${colour};${place}">
+    const bd=o.border||'panel', kn=o.knob||'round';
+    return `<button class="drawer dtile bd-${bd}${sel}${has(o,'magic')?' magicdrawer':''}" data-drawer="${o.id}"
+      style="--c:${colour};${o.knobc?`--knob:${esc(o.knobc)};`:''}${place}">
       ${chips}
       <div class="dtop"><span class="dname">${esc(o.title||'Untitled')}</span>
         ${has(o,'magic')?`<span class="magicmark" title="Collects by rule">${ic('sparkle',11)}</span>`:''}</div>
-      <div class="dfoot"><span class="pull"></span></div>
+      <div class="dfoot"><span class="pull kn-${kn}"></span></div>
       ${handles}
     </button>`;
   }
@@ -1436,6 +1503,7 @@ function gridTile(o, arr, parentId){
    from each object's stored box — otherwise choosing "A–Z" would change nothing
    you can see. The stored boxes are left alone, so switching back to Custom
    restores the arrangement you made. */
+const FLOW = new Map();   // id -> box, for one render of a sorted grid
 function flowSorted(kids, cid){
   const g=gridOf(), dv=dev(), taken=[];
   const free=(b)=> b.x+b.w-1<=g.cols && !taken.some(t=>overlaps(b,t));
@@ -1447,7 +1515,7 @@ function flowSorted(kids, cid){
     }
     put=put||{x:1,y:1,w,h};
     taken.push(put);
-    o._flow=put;                              // render-only; never persisted
+    FLOW.set(o.id, put);                      // render-only; never persisted
   });
 }
 
@@ -1457,6 +1525,7 @@ function gridOfContainer(cid){
   // You are always arranging. A drawer can be locked to opt out of it.
   const arr=!c.locked;
   const kids=childrenOf(c);
+  FLOW.clear();
   if(c.sort) flowSorted(kids, c.id);          // a sort overrides hand placement
   else kids.forEach(o=>ensureBox(o, dev(), c.id));
   const tiles=kids.map(o=>gridTile(o,arr,c.id)).join('');
@@ -1604,7 +1673,7 @@ function listTile(o){
       <span class="dname${o.done?' done':''}">${esc(o.title||'Untitled')}</span>
       ${o.body?`<span class="bandsnip">${esc(strip(o.body).slice(0,120))}</span>`:''}
       ${o.due?`<span class="mchip">${D.human(o.due)}</span>`:''}
-      ${cont?`<span class="pull"></span>`:''}
+      ${cont?`<span class="pull kn-${o.knob||'round'}"${o.knobc?` style="--knob:${esc(o.knobc)}"`:''}></span>`:''}
     </div>
   </button>`;
 }
@@ -1773,9 +1842,9 @@ function viewSettings(){
 
     <div class="field" style="margin-top:14px"><label>Background</label>
       <div class="pickgrid sw" style="margin-top:6px">${BACKDROPS.map(([c,nm])=>
-        `<button data-look="bg" data-val="${c}" title="${nm}" class="${(S.look.bg||'')===c?'on':''}" style="background:${c}"></button>`).join('')}</div>
-      <label class="custcol"><input type="color" data-lookinput="bg" value="${S.look.bg||'#E9E1CC'}"><span>Custom background</span></label>
-      ${S.look.bg?`<button class="pill" style="margin-left:6px" data-look="bg" data-val="">Reset</button>`:''}
+        `<button data-look="bg" data-val="${c}" title="${nm}" class="${(lookVal('bg')||'')===c?'on':''}" style="background:${c}"></button>`).join('')}</div>
+      <label class="custcol"><input type="color" data-lookinput="bg" value="${lookVal('bg')||'#E9E1CC'}"><span>Custom background</span></label>
+      ${lookVal('bg')?`<button class="pill" style="margin-left:6px" data-look="bg" data-val="">Reset</button>`:''}
     </div>
 
     <div class="field" style="margin-top:12px"><label>Board</label>
@@ -1783,17 +1852,17 @@ function viewSettings(){
         [['#EFEADA|#DDE5CE','Green baize'],['#EFEADA|#E4DCC6','Sand'],['#EDE6D4|#D9E2E4','Slate'],
          ['#F0EBDC|#E8DAD2','Clay'],['#EEE9DA|#E2E2DA','Ash'],['#EFEADA|#EFEADA','Plain']].map(([v,nm])=>{
         const [a,b]=v.split('|');
-        return `<button data-board="${v}" title="${nm}" class="${((S.look.board||'')===v)?'on':''}"
+        return `<button data-look="board" data-val="${v}" title="${nm}" class="${((S.look.board||'')===v)?'on':''}"
           style="background:linear-gradient(135deg,${a} 0 50%,${b} 50% 100%)"></button>`;}).join('')}</div>
       <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">
-        <label class="custcol"><input type="color" data-lookinput="board1" value="${(S.look.board||'#EFEADA|#DDE5CE').split('|')[0]}"><span>Light square</span></label>
-        <label class="custcol"><input type="color" data-lookinput="board2" value="${(S.look.board||'#EFEADA|#DDE5CE').split('|')[1]}"><span>Dark square</span></label>
+        <label class="custcol"><input type="color" data-lookinput="board1" value="${(lookVal('board')||'#EFEADA|#DDE5CE').split('|')[0]}"><span>Light square</span></label>
+        <label class="custcol"><input type="color" data-lookinput="board2" value="${(lookVal('board')||'#EFEADA|#DDE5CE').split('|')[1]}"><span>Dark square</span></label>
       </div>
       <label class="rangerow"><span>Board strength</span>
         <input type="range" min="0" max="100" step="5" data-lookrange="boardAlpha"
                value="${Math.round((S.look.boardAlpha==null?1:S.look.boardAlpha)*100)}">
         <b>${Math.round((S.look.boardAlpha==null?1:S.look.boardAlpha)*100)}%</b></label>
-      ${S.look.board?`<button class="pill" style="margin-top:6px" data-look="board" data-val="">Reset</button>`:''}
+      ${lookVal('board')?`<button class="pill" style="margin-top:6px" data-look="board" data-val="">Reset</button>`:''}
     </div>
 
     <div class="field" style="margin-top:12px"><label>Whose desk this is</label>
@@ -1804,17 +1873,17 @@ function viewSettings(){
     <div class="field" style="margin-top:12px"><label>Accent</label>
       <div class="pickgrid sw" style="margin-top:6px">${
         [['#A9793F','Brass'],['#8A5A3F','Leather'],['#4A7C59','Fern'],['#3F5F7A','Slate'],['#8C4A38','Rust'],['#5C7148','Olive']].map(([c,nm])=>
-        `<button data-look="accent" data-val="${c}" title="${nm}" class="${(S.look.accent||'')===c?'on':''}" style="background:${c}"></button>`).join('')}</div>
-      <label class="custcol"><input type="color" data-lookinput="accent" value="${S.look.accent||'#A9793F'}"><span>Custom accent</span></label>
-      ${S.look.accent?`<button class="pill" style="margin-left:6px" data-look="accent" data-val="">Reset</button>`:''}
+        `<button data-look="accent" data-val="${c}" title="${nm}" class="${(lookVal('accent')||'')===c?'on':''}" style="background:${c}"></button>`).join('')}</div>
+      <label class="custcol"><input type="color" data-lookinput="accent" value="${lookVal('accent')||'#A9793F'}"><span>Custom accent</span></label>
+      ${lookVal('accent')?`<button class="pill" style="margin-left:6px" data-look="accent" data-val="">Reset</button>`:''}
     </div>
 
     <div class="field" style="margin-top:12px"><label>Drawer outline</label>
       <div class="pickgrid sw" style="margin-top:6px">${
         [['rgba(0,0,0,.28)','Shadow'],['rgba(0,0,0,.55)','Ink'],['rgba(255,255,255,.28)','Chalk'],['#2A241C','Solid dark'],['#E9E1CC','Parchment']].map(([c,nm])=>
-        `<button data-look="line" data-val="${c}" title="${nm}" class="${(S.look.line||'')===c?'on':''}" style="background:${c}"></button>`).join('')}</div>
+        `<button data-look="line" data-val="${c}" title="${nm}" class="${(lookVal('line')||'')===c?'on':''}" style="background:${c}"></button>`).join('')}</div>
       <label class="custcol"><input type="color" data-lookinput="line" value="#2A241C"><span>Custom outline</span></label>
-      ${S.look.line?`<button class="pill" style="margin-left:6px" data-look="line" data-val="">Reset</button>`:''}
+      ${lookVal('line')?`<button class="pill" style="margin-left:6px" data-look="line" data-val="">Reset</button>`:''}
     </div>
 
 
@@ -1868,9 +1937,8 @@ function tabbar(){
 let render = function render(){
   const frame=$('#frame');
   frame.className = S.device==='desk' ? 'is-desk' : 'is-phone';
-  document.documentElement.dataset.theme = S.theme==='auto'
-    ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'walnut' : 'paper')
-    : S.theme;
+  document.documentElement.dataset.theme = themeNow();
+  applyLook();          // the custom colours are per theme, so repaint them
   const body = S.view==='desk'?viewDesk():S.view==='drawer'?viewDrawer():S.view==='today'?viewToday()
              :S.view==='keep'?viewKeep():S.view==='settings'?viewSettings():viewAll();
   // No sidebar: the desk is the navigation. Drawers are on it, ⌘K finds
@@ -1903,7 +1971,6 @@ function sizeGrid(){
   grid.style.setProperty('--cellstep', (cell+g.gap)+'px');
   // a checker square is two cells, so the board reads at the same scale
   grid.style.setProperty('--checker', 2*(cell+g.gap)+'px');
-  grid.style.setProperty('--halfgap', (g.gap/2)+'px');
   grid.style.gridAutoRows = cell+'px';
   const rows=(grid.style.gridTemplateRows.match(/repeat\((\d+)/)||[])[1];
   if(rows) grid.style.gridTemplateRows=`repeat(${rows},${cell}px)`;
@@ -2104,6 +2171,17 @@ function modalDrawer(id){
         [['grid','Grid'],['list','List'],['scroll','Scroll']].map(([v,n])=>
         `<button class="fchip${(d.layout||'grid')===v?' on':''}" data-dl="${v}">${n}</button>`).join('')}</div>
       <div class="mini" style="--k:var(--brass);margin-top:6px">Grid lays contents out on the grid · List is one line each · Scroll shows every word, top to bottom.</div></div>
+    <div class="field" style="margin-bottom:10px"><label>Border</label>
+      <div class="filterbar" id="dborder" style="flex-wrap:wrap;padding-top:6px">${
+        [['panel','Panelled'],['bead','Beaded'],['double','Double rule'],['cove','Coved'],['plain','Plain']].map(([v,n])=>
+          `<button class="fchip${(d.border||'panel')===v?' on':''}" data-dbd="${v}">${n}</button>`).join('')}</div></div>
+    <div class="field" style="margin-bottom:10px"><label>Knob</label>
+      <div class="filterbar" id="dknob" style="flex-wrap:wrap;padding-top:6px">${
+        [['round','Round'],['teardrop','Teardrop'],['bar','Bar'],['ring','Ring'],['shield','Shield'],['square','Square']].map(([v,n])=>
+          `<button class="fchip${(d.knob||'round')===v?' on':''}" data-dkn="${v}">${n}</button>`).join('')}</div>
+      <label class="custcol" style="margin-top:8px"><input type="color" data-knobinput value="${d.knobc&&d.knobc[0]==='#'?d.knobc:'#ffffff'}"><span>Knob colour</span></label>
+      ${d.knobc?`<button class="pill" style="margin-left:6px" data-dkc="">Back to white</button>`:''}
+    </div>
     <div class="field" style="margin-bottom:10px"><label>Locked</label>
       <div class="filterbar" id="dlock" style="padding-top:6px">
         <button class="fchip${d.locked?'':' on'}" data-dlock="">Movable</button>
@@ -2132,7 +2210,8 @@ function modalDrawer(id){
     </div>
   </div>`);
   const m=$('#modal');
-  m._draft={c:d.c, pv:d.pv, kinds:ks.slice(), layout:d.layout||'grid', tag:(d.filter||{}).tag||'', locked:!!d.locked};
+  m._draft={c:d.c, pv:d.pv, kinds:ks.slice(), layout:d.layout||'grid', tag:(d.filter||{}).tag||'', locked:!!d.locked,
+            border:d.border||'panel', knob:d.knob||'round', knobc:d.knobc||''};
 }
 /* Make a kind by choosing attributes. `from` is an object whose attributes seed
    the picker — "save these attributes as a new kind" from the detail sheet. */
@@ -2689,7 +2768,8 @@ function act(name, el){
       const id=el.dataset.id, m=$('#modal'), draft=m._draft||{};
       const title=$('#dnm').value.trim()||'Untitled drawer';
       if(id){ const d=byId(id);
-        Object.assign(d,{title,c:draft.c,pv:draft.pv,layout:draft.layout,locked:!!draft.locked});
+        Object.assign(d,{title,c:draft.c,pv:draft.pv,layout:draft.layout,locked:!!draft.locked,
+          border:draft.border,knob:draft.knob,knobc:draft.knobc||null});
         d.filter=Object.assign({},d.filter,{kinds:draft.kinds,tag:draft.tag||undefined});
       } else {
         // a new drawer lands inside whatever container you are looking at
@@ -2949,6 +3029,13 @@ function wire(){
     const dtg=t.closest('[data-dtag]');
     if(dtg){ $('#modal')._draft.tag=dtg.dataset.dtag; $$('#dtag .fchip').forEach(b=>b.classList.remove('on')); dtg.classList.add('on'); return; }
 
+    const dbd=t.closest('[data-dbd]');
+    if(dbd){ $('#modal')._draft.border=dbd.dataset.dbd; $$('#dborder .fchip').forEach(b=>b.classList.remove('on')); dbd.classList.add('on'); return; }
+    const dkn=t.closest('[data-dkn]');
+    if(dkn){ $('#modal')._draft.knob=dkn.dataset.dkn; $$('#dknob .fchip').forEach(b=>b.classList.remove('on')); dkn.classList.add('on'); return; }
+    const dkc=t.closest('[data-dkc]');
+    if(dkc){ $('#modal')._draft.knobc=''; return; }
+
     const dlk=t.closest('[data-dlock]');
     if(dlk){ $('#modal')._draft.locked=!!dlk.dataset.dlock; $$('#dlock .fchip').forEach(b=>b.classList.remove('on')); dlk.classList.add('on'); return; }
 
@@ -2992,8 +3079,7 @@ function wire(){
       return; }
 
     const lk=t.closest('[data-look]');
-    if(lk){ const k=lk.dataset.look, v=lk.dataset.val;
-      S.look[k] = k==='railHidden' ? !!v : (v||null);
+    if(lk){ setLookVal(lk.dataset.look, lk.dataset.val||null);
       applyLook(); save(); render(); return; }
 
     const tg=t.closest('[data-tag]');
@@ -3001,7 +3087,7 @@ function wire(){
 
     const day=t.closest('[data-day]'); if(day){ S.selDate=day.dataset.day; render(); return; }
 
-    const th=t.closest('[data-theme2]'); if(th){ S.theme=th.dataset.theme2; render(); return; }
+    const th=t.closest('[data-theme2]'); if(th){ S.theme=th.dataset.theme2; applyLook(); save(); render(); return; }
     const ly=t.closest('[data-layout]');
     if(ly){ S.layoutEdit = ly.dataset.layout || null; S.view='desk'; render(); return; }
 
@@ -3037,12 +3123,13 @@ function wire(){
       const b=e.target.parentElement.querySelector('b'); if(b) b.textContent=e.target.value+'%'; return; }
     const li=e.target.dataset.lookinput;
     if(li==='board1'||li==='board2'){
-      const cur=(S.look.board||'#EFEADA|#DDE5CE').split('|');
-      cur[li==='board1'?0:1]=e.target.value; S.look.board=cur.join('|');
+      const cur=(lookVal('board')||'#EFEADA|#DDE5CE').split('|');
+      cur[li==='board1'?0:1]=e.target.value; setLookVal('board', cur.join('|'));
       applyLook(); return;
     }
     if(li==='owner'){ S.look.owner=e.target.value; save(); return; }
-    if(li){ S.look[li]=e.target.value; applyLook(); return; }
+    if(li){ setLookVal(li, e.target.value); applyLook(); return; }
+    if(e.target.dataset.knobinput!=null){ const m=$('#modal'); if(m&&m._draft) m._draft.knobc=e.target.value; return; }
     if(e.target.dataset.colinput!=null){
       const m=$('#modal'); if(m&&m._draft){ m._draft.c=e.target.value;
         $$('#dcol button').forEach(b=>b.classList.remove('on')); }
