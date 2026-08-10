@@ -1,0 +1,21 @@
+{
+  "name": "Bureau",
+  "short_name": "Bureau",
+  "description": "A desk for everything you keep — tasks, notes, ideas, recipes, scripts, habits and goals, all as typed objects in drawers.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#EDE7DB",
+  "theme_color": "#EDE7DB",
+  "categories": ["productivity", "utilities"],
+  "icons": [
+    { "src": "icons/icon-192.png",     "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png",     "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Today",      "url": "./index.html#today" },
+    { "name": "Keeping Up", "url": "./index.html#keep" }
+  ]
+}
