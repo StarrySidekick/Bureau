@@ -129,7 +129,43 @@ miserable.
 
 ---
 
-### 10. PWA before native
+### 10. The desk is a coordinate space, and drawers never shove each other
+
+Each drawer stores `{x,y,w,h}` per device. The grid has no auto-flow, and a
+move or resize that would overlap a neighbour is **refused** — the drawer snaps
+back and you get "No room there".
+
+*Why:* the argument for drawers is that position carries meaning. If the grid
+reflows, the thing you put in the top-left corner is only there until something
+above it changes size, and the position stops meaning anything. Refusing is also
+the only rule with no surprises: nothing you arranged moves unless you move it.
+
+*Against:* you have to make room yourself before you can grow a drawer, which is
+two gestures where a packing algorithm would need one. It also permits an ugly
+desk full of holes — deliberately, since a gap is sometimes the point.
+
+*If revisited:* the softer version is push-on-collide with an undo, not reflow.
+
+---
+
+### 11. Colour is customisable, but from a set
+
+Background, accent, drawer outline and each drawer's colour can be set from a
+small palette of warm solids, or from a colour picker for anything else.
+
+*Why:* "visually customisable and pretty" was an original requirement, and a
+palette is what makes a desk of nine drawers look like one object rather than
+nine. The picker is there because one user should never be told no by their own
+app.
+
+*Against:* the picker makes it possible to build something unreadable — light
+text is hardcoded on drawer fronts, so a pale custom drawer colour will read
+badly. If that becomes a real problem, pick the text colour from the drawer
+colour's luminance rather than assuming dark.
+
+---
+
+### 12. PWA before native
 
 *Why:* it satisfies "iPhone app", "Mac app" and "pretty" for one codebase and no
 developer account, and it can be used tomorrow. A wrong idea discovered in a week

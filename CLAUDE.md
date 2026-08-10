@@ -67,6 +67,7 @@ with `grep -n "· " web/index.html`. In order:
 | 2 KINDS | The kind registry. **This is the heart of the app** — see below. |
 | 3 seed data | The sample desk a first-run user gets. Dates are relative to today. |
 | 4 state | `S`, plus `inDrawer()`, `streak()`, `goalPct()`. |
+| 4b grid + look | `GRID`, `lay()`, `boxOk()`, `freeSpot()`, `applyLook()`, and the colour palettes. Grid geometry lives here, not in the views. |
 | 5 markdown | ~35-line renderer. Headings, lists, checkboxes, quotes, bold/italic/code/links. Deliberately small. |
 | 6 mutations | `toggleDone`, `del`, `create`, `quickAdd`, repeat scheduling. |
 | 7–12b rendering | One function per view, each returning an HTML string. |
@@ -111,9 +112,16 @@ when you're editing the *other* device's layout from this one.
 
 ## Invariants that will bite you
 
-- **Layouts are stored per device.** Each drawer has both `desk: {w,h}` and
-  `phone: {w,h}`. Resizing must only touch `d[dev()]`. `dev()` returns the layout
-  currently being *edited*, which is not always the physical device.
+- **Layouts are stored per device.** Each drawer has both `desk: {x,y,w,h}` and
+  `phone: {x,y,w,h}`. Resizing must only touch `d[dev()]`. `dev()` returns the
+  layout currently being *edited*, which is not always the physical device.
+- **The grid is a coordinate space, not a flow.** `x`/`y` are 1-based cells and
+  array order positions nothing. There is no `grid-auto-flow` — an empty cell
+  stays empty. Every move and resize goes through `boxOk()`, which refuses
+  anything that would overlap or leave the columns; see section 4b.
+- **Drawer fronts are solid mid-dark colours** and everything inside them reads
+  light, via `--dink`/`--dink-2`/`--dink-3` set on `.drawer`. Don't use `--ink-*`
+  inside a drawer tile — it's the page's dark ink and will vanish.
 - **Drawers are simultaneously smart filters and real containers.** `inDrawer()`
   is the single source of truth for what appears where and the order of its checks
   is deliberate. Read the comment above it before touching it.

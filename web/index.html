@@ -19,20 +19,21 @@
    BUREAU — design tokens
    ============================================================ */
 :root{
-  --paper:#EDE7DB;
-  --paper-2:#F7F3EA;
-  --paper-3:#E3DBCB;
-  --felt:#CFC4B0;
-  --ink:#241F1A;
-  --ink-2:#6E655A;
-  --ink-3:#9B9184;
-  --rule:rgba(36,31,26,.13);
-  --rule-2:rgba(36,31,26,.07);
+  --paper:#E9E1CC;          /* parchment */
+  --paper-2:#F2ECDB;
+  --paper-3:#DCD2B9;
+  --felt:#C7BA9B;
+  --ink:#2A241C;
+  --ink-2:#6B6152;
+  --ink-3:#968B78;
+  --rule:rgba(42,36,28,.16);
+  --rule-2:rgba(42,36,28,.08);
   --brass:#A9793F;
   --brass-2:#D9B57C;
-  --shadow:0 1px 2px rgba(36,31,26,.10),0 8px 24px -12px rgba(36,31,26,.30);
-  --shadow-lg:0 2px 6px rgba(36,31,26,.12),0 30px 60px -24px rgba(36,31,26,.45);
-  --radius:14px;
+  --shadow:0 1px 2px rgba(42,36,28,.13),0 6px 18px -10px rgba(42,36,28,.28);
+  --shadow-lg:0 2px 6px rgba(42,36,28,.16),0 22px 46px -20px rgba(42,36,28,.42);
+  --radius:5px;             /* UI chrome — pills, chips, fields */
+  --radius-d:3px;           /* drawers. A drawer front is not a rounded rect. */
   --serif:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;
   --sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Inter,system-ui,sans-serif;
   --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
@@ -52,6 +53,9 @@ html[data-theme="walnut"]{
   --shadow:0 1px 2px rgba(0,0,0,.5),0 10px 30px -14px rgba(0,0,0,.8);
   --shadow-lg:0 2px 8px rgba(0,0,0,.55),0 40px 70px -28px rgba(0,0,0,.9);
 }
+/* Custom background/accent/outline are written as inline custom properties on
+   <html> by applyLook() in section 4b — an inline property beats any selector
+   here, so it overrides whichever theme is active without a third theme block. */
 
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%}
@@ -85,12 +89,37 @@ input,textarea{font:inherit;color:inherit}
    ============================================================ */
 .app{position:absolute;inset:0;display:flex;overflow:hidden;padding-top:env(safe-area-inset-top)}
 .rail{
-  width:212px;flex:0 0 212px;border-right:1px solid var(--rule);
+  position:relative;
+  width:var(--railw,212px);flex:0 0 var(--railw,212px);border-right:1px solid var(--rule);
   background:color-mix(in srgb,var(--paper-2) 55%, transparent);
-  display:flex;flex-direction:column;padding:14px 10px;gap:2px;overflow-y:auto;
+  display:flex;flex-direction:column;padding:14px 10px;gap:2px;overflow-y:auto;overflow-x:hidden;
 }
 .is-phone .rail{display:none}
-.rail .wordmark{font-family:var(--serif);font-size:21px;font-weight:600;padding:4px 10px 14px;letter-spacing:.01em}
+.rail-hidden .rail{display:none}
+/* drag the rail's right edge to resize it. The grip is a sibling of the rail,
+   not a child — inside it the rail's own overflow clips and scrolls it away. */
+.railgrip{
+  position:absolute;top:0;bottom:0;left:calc(var(--railw,212px) - 3px);
+  width:9px;cursor:ew-resize;z-index:20;
+}
+.railgrip::after{content:"";position:absolute;top:0;bottom:0;left:3px;width:2px;background:var(--brass);opacity:0;transition:opacity .15s}
+.railgrip:hover::after,.railgrip.on::after{opacity:.8}
+.is-phone .railgrip,.rail-hidden .railgrip{display:none}
+/* a drag must never turn into a text selection */
+.dragging-ui,.dragging-ui *{user-select:none!important;cursor:ew-resize}
+/* the button that brings a hidden rail back */
+.railshow{
+  position:absolute;left:8px;top:calc(env(safe-area-inset-top) + 14px);z-index:25;
+  width:28px;height:28px;border-radius:var(--radius);display:none;place-items:center;
+  color:var(--ink-2);background:var(--paper-2);border:1px solid var(--rule);
+}
+.rail-hidden .railshow{display:grid}
+.is-phone .railshow{display:none!important}
+.rail-hidden .topbar{padding-left:46px}
+.rail .wordmark{font-family:var(--serif);font-size:21px;font-weight:600;padding:4px 10px 14px;letter-spacing:.01em;
+  display:flex;align-items:center;gap:6px}
+.rail .railhide{margin-left:auto;flex:0 0 auto;opacity:0;transition:opacity .15s}
+.rail:hover .railhide{opacity:1}
 .rail .wordmark em{font-style:normal;color:var(--brass)}
 .navitem{
   display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:9px;
@@ -130,41 +159,41 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
 /* ============================================================
    Drawers grid
    ============================================================ */
-.grid{display:grid;gap:12px;align-content:start;grid-auto-flow:row dense}
-.grid.g-desk{grid-template-columns:repeat(6,1fr);grid-auto-rows:104px}
-.grid.g-phone{grid-template-columns:repeat(4,1fr);grid-auto-rows:84px;gap:10px;max-width:440px}
+/* Explicit x/y placement: every drawer names its column and row, so the grid is
+   a coordinate space, not a flow. No auto-flow — an empty cell stays empty. */
+.grid{display:grid;gap:10px;align-content:start;position:relative}
+.grid.g-desk{grid-template-columns:repeat(var(--cols,6),1fr);grid-auto-rows:var(--rowh,104px)}
+.grid.g-phone{grid-template-columns:repeat(var(--cols,4),1fr);grid-auto-rows:var(--rowh,84px);gap:8px;max-width:520px}
 
 .drawer{
-  position:relative;border-radius:var(--radius);overflow:hidden;text-align:left;
-  background:linear-gradient(178deg,var(--paper-2),var(--paper-3));
-  border:1px solid var(--rule);box-shadow:var(--shadow);
-  transition:transform .22s cubic-bezier(.2,.9,.3,1),box-shadow .22s,border-color .18s;
+  position:relative;border-radius:var(--radius-d);overflow:hidden;text-align:left;
+  background:var(--c);
+  border:1px solid var(--line,rgba(0,0,0,.28));
+  box-shadow:var(--shadow);
+  transition:box-shadow .18s,filter .18s;
   display:flex;flex-direction:column;padding:11px 13px;isolation:isolate;
+  /* Drawer fronts are solid mid-dark colours, so everything inside reads light. */
+  --dink:#F8F3E6;--dink-2:rgba(248,243,230,.76);--dink-3:rgba(248,243,230,.54);
+  color:var(--dink);
 }
-.drawer::before{ /* top light edge */
-  content:"";position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.7),transparent);opacity:.7
-}
-html[data-theme="walnut"] .drawer::before{background:linear-gradient(90deg,transparent,rgba(255,255,255,.14),transparent)}
-.drawer::after{ /* accent wash */
-  content:"";position:absolute;inset:0;z-index:-1;opacity:.16;
-  background:radial-gradient(120% 100% at 0% 0%, var(--c), transparent 62%);
-}
-.drawer:hover{transform:translateY(-3px);box-shadow:var(--shadow-lg);border-color:color-mix(in srgb,var(--c) 45%, var(--rule))}
+.drawer:hover{box-shadow:var(--shadow-lg);filter:brightness(1.07)}
+.drawer:active{filter:brightness(.96)}
 .drawer .dtop{display:flex;align-items:center;gap:7px}
-.drawer .swatch{width:9px;height:9px;border-radius:3px;background:var(--c);flex:0 0 auto;box-shadow:0 0 0 3px color-mix(in srgb,var(--c) 18%, transparent)}
-.drawer .dname{font-family:var(--serif);font-size:15.5px;font-weight:600;letter-spacing:.005em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.drawer .dcount{margin-left:auto;font-size:11px;color:var(--ink-3);font-variant-numeric:tabular-nums;background:var(--paper);border:1px solid var(--rule-2);padding:1px 7px;border-radius:20px}
+.drawer .swatch{display:none}
+.drawer .dname{font-family:var(--serif);font-size:15.5px;font-weight:600;letter-spacing:.005em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--dink)}
+.drawer .dcount{margin-left:auto;font-size:11px;color:var(--dink-2);font-variant-numeric:tabular-nums;
+  background:rgba(0,0,0,.20);border:1px solid rgba(255,255,255,.14);padding:1px 7px;border-radius:20px}
 .drawer .dbody{flex:1;min-height:0;margin-top:8px;overflow:hidden;position:relative}
 .drawer .dfoot{
   margin-top:auto;padding-top:8px;display:flex;align-items:center;justify-content:center;
 }
 .pull{
-  width:52px;height:7px;border-radius:6px;flex:0 0 auto;
-  background:linear-gradient(180deg,var(--brass-2),var(--brass));
-  box-shadow:0 1px 0 rgba(255,255,255,.35) inset,0 2px 4px rgba(0,0,0,.22);
-  opacity:.85;transition:.2s;
+  width:54px;height:6px;border-radius:1px;flex:0 0 auto;
+  background:var(--brass);
+  box-shadow:0 1px 0 rgba(0,0,0,.28);
+  opacity:.9;transition:opacity .18s;
 }
-.drawer:hover .pull{opacity:1;transform:scaleX(1.14)}
+.drawer:hover .pull{opacity:1}
 .drawer.h1{padding:9px 12px}
 .drawer.h1 .dbody{margin-top:5px}
 .drawer.h1 .dfoot{padding-top:5px}
@@ -176,44 +205,82 @@ html[data-theme="walnut"] .drawer::before{background:linear-gradient(90deg,trans
 .drawer.h1 .pv-stack .card:nth-child(n+2){display:none}
 .drawer.h1 .pv-bars{gap:4px}
 
-/* preview styles inside drawers */
+/* preview styles inside drawers — all on a solid colour, so light-on-dark */
 .pv-list{display:flex;flex-direction:column;gap:4px}
-.pv-list .r{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-2);white-space:nowrap;overflow:hidden;min-width:0}
+.pv-list .r{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--dink-2);white-space:nowrap;overflow:hidden;min-width:0}
 .pv-list .r span.lbl{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
-.pv-list .r .dot{width:5px;height:5px;border-radius:50%;background:var(--k);flex:0 0 auto}
-.pv-list .r.done{color:var(--ink-3);text-decoration:line-through}
+.pv-list .r .dot{width:5px;height:5px;border-radius:50%;background:currentColor;opacity:.75;flex:0 0 auto}
+.pv-list .r.done{color:var(--dink-3);text-decoration:line-through}
 .pv-stack{position:relative;height:100%}
 .pv-stack .card{
-  position:absolute;left:0;right:0;height:30px;border-radius:8px;background:var(--paper);
-  border:1px solid var(--rule);box-shadow:0 2px 6px rgba(0,0,0,.07);padding:7px 9px;font-size:11.5px;
-  color:var(--ink-2);overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
-  border-left:3px solid var(--k);transition:.25s;
+  position:absolute;left:0;right:0;height:30px;border-radius:2px;background:rgba(0,0,0,.22);
+  border:1px solid rgba(255,255,255,.13);padding:7px 9px;font-size:11.5px;
+  color:var(--dink-2);overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
+  border-left:3px solid rgba(255,255,255,.4);
 }
-.drawer:hover .pv-stack .card{transform:translateY(-3px) rotate(var(--rot))}
 .pv-big{display:flex;flex-direction:column;justify-content:center;height:100%}
-.pv-big .num{font-family:var(--serif);font-size:40px;line-height:1;font-weight:600;letter-spacing:-.02em}
-.pv-big .cap{font-size:11.5px;color:var(--ink-3);margin-top:3px}
+.pv-big .num{font-family:var(--serif);font-size:40px;line-height:1;font-weight:600;letter-spacing:-.02em;color:var(--dink)}
+.pv-big .cap{font-size:11.5px;color:var(--dink-3);margin-top:3px}
 .pv-thumbs{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(2,1fr);gap:5px;height:100%}
 .drawer.h1 .pv-thumbs{grid-template-rows:1fr}
-.pv-thumbs i{border-radius:6px;background:linear-gradient(135deg,color-mix(in srgb,var(--k) 55%,transparent),color-mix(in srgb,var(--k) 18%,transparent));display:block}
+.pv-thumbs i{border-radius:2px;background:rgba(0,0,0,.24);border:1px solid rgba(255,255,255,.10);display:block}
 .pv-bars{display:flex;flex-direction:column;gap:7px;justify-content:center;height:100%}
-.pv-bars .b{height:5px;border-radius:5px;background:var(--paper);overflow:hidden;border:1px solid var(--rule-2)}
-.pv-bars .b i{display:block;height:100%;background:var(--k);border-radius:5px}
+.pv-bars .b{height:5px;border-radius:2px;background:rgba(0,0,0,.26);overflow:hidden}
+.pv-bars .b i{display:block;height:100%;background:var(--dink-2);border-radius:2px}
 
-/* arrange mode */
-.arranging .drawer{cursor:grab;animation:wig 2.4s ease-in-out infinite}
-.arranging .drawer:nth-child(2n){animation-delay:-1.2s}
-@keyframes wig{0%,100%{transform:rotate(-.35deg)}50%{transform:rotate(.35deg)}}
-.drawer.dragging{opacity:.35;animation:none}
-.sizebtns{position:absolute;top:6px;right:6px;display:none;gap:3px;z-index:5}
-.arranging .sizebtns{display:flex}
-.sizebtns b{
-  font-size:9.5px;font-weight:700;letter-spacing:.03em;padding:3px 6px;border-radius:6px;background:var(--ink);color:var(--paper);opacity:.55;cursor:pointer
+/* ------------------------------------------------------------
+   arrange mode — move and resize like a window on a grid
+   ------------------------------------------------------------ */
+.grid.arranging{
+  /* the grid itself becomes visible graph paper while you arrange */
+  background-image:linear-gradient(to right,var(--rule-2) 1px,transparent 1px),
+                   linear-gradient(to bottom,var(--rule-2) 1px,transparent 1px);
+  background-size:var(--cellw,100px) var(--cellstep,114px);
+  outline:1px dashed var(--rule);outline-offset:6px;
 }
-.sizebtns b:hover{opacity:1}
-html[data-theme="walnut"] .sizebtns b{background:var(--brass);color:#1a140c}
-.drawer.addnew{background:none;border:1.5px dashed var(--rule);box-shadow:none;align-items:center;justify-content:center;color:var(--ink-3)}
-.drawer.addnew:hover{border-color:var(--brass);color:var(--brass);transform:none}
+.arranging .drawer{cursor:grab;user-select:none}
+.arranging .drawer:active{cursor:grabbing}
+.drawer.dragging{opacity:.85;z-index:40;box-shadow:var(--shadow-lg);cursor:grabbing}
+.drawer.invalid{outline:2px solid #C0563F;outline-offset:-2px}
+
+/* the cells a dragged/resized drawer would land on */
+.ghost{
+  border:1.5px dashed var(--brass);background:color-mix(in srgb,var(--brass) 14%,transparent);
+  border-radius:var(--radius-d);pointer-events:none;z-index:1;
+}
+.ghost.bad{border-color:#C0563F;background:rgba(192,86,63,.14)}
+
+/* eight handles, like a window. Bigger hit area than they look. */
+.rz{position:absolute;z-index:30;display:none}
+.arranging .rz{display:block}
+.rz::after{content:"";position:absolute;inset:0}
+.rz.n {top:-4px;left:10px;right:10px;height:9px;cursor:ns-resize}
+.rz.s {bottom:-4px;left:10px;right:10px;height:9px;cursor:ns-resize}
+.rz.w {left:-4px;top:10px;bottom:10px;width:9px;cursor:ew-resize}
+.rz.e {right:-4px;top:10px;bottom:10px;width:9px;cursor:ew-resize}
+.rz.nw{top:-4px;left:-4px;width:14px;height:14px;cursor:nwse-resize}
+.rz.ne{top:-4px;right:-4px;width:14px;height:14px;cursor:nesw-resize}
+.rz.sw{bottom:-4px;left:-4px;width:14px;height:14px;cursor:nesw-resize}
+.rz.se{bottom:-4px;right:-4px;width:14px;height:14px;cursor:nwse-resize}
+/* corner grips get a visible mark; edges stay invisible until hover */
+.rz.nw::before,.rz.ne::before,.rz.sw::before,.rz.se::before{
+  content:"";position:absolute;inset:3px;background:var(--dink);opacity:.5;border-radius:1px
+}
+.rz:hover::before{opacity:1}
+.arranging .drawer:hover .rz.n::before,.arranging .drawer:hover .rz.s::before,
+.arranging .drawer:hover .rz.w::before,.arranging .drawer:hover .rz.e::before{
+  content:"";position:absolute;inset:3px;background:var(--dink);opacity:.28;border-radius:1px
+}
+.sizebtns{position:absolute;top:6px;right:6px;display:none;gap:3px;z-index:31}
+.arranging .sizebtns{display:flex}
+.arranging .drawer .dcount{visibility:hidden}  /* the size chip sits here instead */
+.sizebtns b{
+  font-size:9.5px;font-weight:700;letter-spacing:.03em;padding:3px 6px;border-radius:3px;
+  background:rgba(0,0,0,.42);color:var(--dink);cursor:pointer;font-variant-numeric:tabular-nums
+}
+.sizebtns b:hover{background:rgba(0,0,0,.68)}
+.drawer.addnew{background:none;border:1.5px dashed var(--rule);box-shadow:none;align-items:center;justify-content:center;color:var(--ink-3);--dink:var(--ink-3)}
+.drawer.addnew:hover{border-color:var(--brass);color:var(--brass);filter:none}
 
 /* ============================================================
    Object rows
@@ -494,8 +561,15 @@ kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--rule);border
 .mini{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-2);padding:6px 2px}
 .mini .dot{width:6px;height:6px;border-radius:50%;background:var(--k);flex:0 0 auto}
 .pickgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:7px}
-.pickgrid button{height:38px;border-radius:9px;border:1px solid var(--rule);font-size:11.5px;font-weight:600}
+.pickgrid button{height:38px;border-radius:var(--radius);border:1px solid var(--rule);font-size:11.5px;font-weight:600}
 .pickgrid button.on{outline:2px solid var(--brass);outline-offset:1px}
+/* colour families: small solid squares, one row each */
+.pickgrid.sw{grid-template-columns:repeat(auto-fill,minmax(34px,1fr));gap:6px;margin-bottom:6px}
+.pickgrid.sw button{height:30px;border-radius:3px;border:1px solid rgba(0,0,0,.25)}
+.custcol{display:inline-flex;align-items:center;gap:8px;margin-top:4px;cursor:pointer;
+  font-size:12.5px;color:var(--ink-2);padding:5px 9px;border:1px solid var(--rule);border-radius:var(--radius)}
+.custcol:hover{border-color:var(--brass);color:var(--ink)}
+.custcol input[type=color]{width:26px;height:22px;padding:0;border:1px solid var(--rule);border-radius:3px;background:none;cursor:pointer}
 .rowwrap.swiping .row{transition:none}
 .rowwrap .row{will-change:transform}
 </style>
@@ -571,6 +645,7 @@ const P = {
   edit:'M4 20h4L20 8l-4-4L4 16z',
   eye:'M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6',
   arrow:'M7 17 17 7M9 7h8v8',
+  chev:'M15 6l-6 6 6 6',
   undo:'M3 9a9 9 0 1 1 1.2 6.6M3 4v5h5',
   sun:'M12 6a6 6 0 1 0 0 12 6 6 0 0 0 0-12M12 1v2M12 21v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M1 12h2M21 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4',
   resize:'M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7'
@@ -604,16 +679,18 @@ const T = D.iso(D.today());
 const dz = n => D.addISO(T,n);
 
 function seed(){
+  // x/y are 1-based grid coordinates and each layout is packed by hand, because
+  // a desk is arranged, not flowed. Desk is 6 columns wide, phone is 4.
   const drawers = [
-    {id:'d_today', nm:'Today',        c:'#4A7C59', pv:'big',    filter:{due:'today'},                    desk:{w:2,h:1}, phone:{w:4,h:1}},
-    {id:'d_in',    nm:'Inbox',        c:'#C1902B', pv:'stack',  filter:{drawer:'d_in'},                  desk:{w:2,h:2}, phone:{w:2,h:2}},
-    {id:'d_write', nm:'Writing Desk', c:'#5C7148', pv:'list',   filter:{kinds:['essay','outline','note']},desk:{w:2,h:2}, phone:{w:2,h:2}},
-    {id:'d_ideas', nm:'Idea Bin',     c:'#7A6AA0', pv:'stack',  filter:{kinds:['idea']},                 desk:{w:2,h:2}, phone:{w:4,h:2}},
-    {id:'d_studio',nm:'Studio',       c:'#4A6E8F', pv:'thumbs', filter:{kinds:['script','media']},       desk:{w:2,h:2}, phone:{w:2,h:2}},
-    {id:'d_kitch', nm:'Kitchen',      c:'#B5654A', pv:'thumbs', filter:{kinds:['recipe']},               desk:{w:2,h:1}, phone:{w:2,h:2}},
-    {id:'d_open',  nm:'Open Questions',c:'#A94E6B',pv:'list',   filter:{kinds:['question']},             desk:{w:2,h:1}, phone:{w:4,h:1}},
-    {id:'d_keep',  nm:'Keeping Up',   c:'#3E8A87', pv:'bars',   filter:{kinds:['habit','goal']},         desk:{w:2,h:2}, phone:{w:2,h:2}},
-    {id:'d_done',  nm:'Done & Dusted',c:'#9A7B2F', pv:'big',    filter:{done:true},                      desk:{w:2,h:1}, phone:{w:2,h:2}}
+    {id:'d_today', nm:'Today',        c:'#4A7C59', pv:'big',    filter:{due:'today'},                    desk:{x:1,y:1,w:2,h:1}, phone:{x:1,y:1,w:4,h:1}},
+    {id:'d_in',    nm:'Inbox',        c:'#7E5A38', pv:'stack',  filter:{drawer:'d_in'},                  desk:{x:3,y:1,w:2,h:2}, phone:{x:1,y:2,w:2,h:2}},
+    {id:'d_write', nm:'Writing Desk', c:'#5C7148', pv:'list',   filter:{kinds:['essay','outline','note']},desk:{x:5,y:1,w:2,h:2}, phone:{x:3,y:2,w:2,h:2}},
+    {id:'d_ideas', nm:'Idea Bin',     c:'#96652F', pv:'stack',  filter:{kinds:['idea']},                 desk:{x:1,y:2,w:2,h:2}, phone:{x:1,y:4,w:4,h:2}},
+    {id:'d_studio',nm:'Studio',       c:'#3F5F7A', pv:'thumbs', filter:{kinds:['script','media']},       desk:{x:3,y:3,w:2,h:2}, phone:{x:1,y:6,w:2,h:2}},
+    {id:'d_kitch', nm:'Kitchen',      c:'#A55A3E', pv:'thumbs', filter:{kinds:['recipe']},               desk:{x:5,y:3,w:2,h:1}, phone:{x:3,y:6,w:2,h:2}},
+    {id:'d_open',  nm:'Open Questions',c:'#4A6E8F',pv:'list',   filter:{kinds:['question']},             desk:{x:1,y:4,w:2,h:1}, phone:{x:1,y:8,w:4,h:1}},
+    {id:'d_keep',  nm:'Keeping Up',   c:'#3E7A6B', pv:'bars',   filter:{kinds:['habit','goal']},         desk:{x:5,y:4,w:2,h:2}, phone:{x:1,y:9,w:2,h:2}},
+    {id:'d_done',  nm:'Done & Dusted',c:'#6F5137', pv:'big',    filter:{done:true},                      desk:{x:1,y:5,w:2,h:1}, phone:{x:3,y:9,w:2,h:2}}
   ];
 
   let n=0;
@@ -696,11 +773,17 @@ function reset(){
   const s = seed();
   S = {
     drawers:s.drawers, objects:s.objects,
-    device:sensedDevice(), layoutEdit:null, theme:'auto',
+    // Paper, not auto: the parchment desk is the intended look, so a Mac in
+    // dark mode shouldn't silently serve Walnut on first run.
+    device:sensedDevice(), layoutEdit:null, theme:'paper',
     view:'desk', drawerId:null, openId:null,
     arrange:false, reorder:false, listmode:'rows', kindFilter:null, tagFilter:null,
-    selDate:T, trash:null, editing:false
+    selDate:T, trash:null, editing:false,
+    look:defaultLook()
   };
+}
+function defaultLook(){
+  return {bg:null, accent:null, line:null, railw:212, railHidden:false};
 }
 reset();
 
@@ -722,6 +805,70 @@ function inDrawer(d,o){
   return false;
 }
 const contents = d => S.objects.filter(o=>inDrawer(d,o)).sort((a,b)=>a.ord-b.ord);
+
+/* ------------------------------------------------------------
+   4b · the grid — one coordinate space per device
+   ------------------------------------------------------------
+   Drawers hold {x,y,w,h} in 1-based grid cells, per device. The grid does not
+   flow: an empty cell stays empty, because position is meant to carry meaning.
+   Two drawers may never occupy the same cell — a move or resize that would
+   overlap is refused rather than shoving a neighbour out of the way, so nothing
+   you arranged ever moves without you.                                        */
+const GRID = {
+  desk:  {cols:6, rowh:104, gap:10},
+  phone: {cols:4, rowh:84,  gap:8}
+};
+const gridOf = (device)=> GRID[device||dev()];
+// Tolerate a drawer that predates x/y, or one hand-edited into nonsense.
+function lay(d, device){
+  const g=gridOf(device), b=d[device||dev()]||{};
+  const w=clamp(b.w||2,1,g.cols), h=clamp(b.h||1,1,40);
+  return {x:clamp(b.x||1,1,g.cols-w+1), y:Math.max(1,b.y||1), w, h};
+}
+const overlaps = (a,b)=> a.x < b.x+b.w && b.x < a.x+a.w && a.y < b.y+b.h && b.y < a.y+a.h;
+// Is `box` a legal home for drawer `id`? Inside the columns, and touching nobody.
+function boxOk(box, id, device){
+  const g=gridOf(device);
+  if(box.x<1 || box.y<1 || box.w<1 || box.h<1 || box.x+box.w-1>g.cols) return false;
+  return !S.drawers.some(d=>d.id!==id && overlaps(box, lay(d,device)));
+}
+// Lowest free spot for a new drawer, scanning left-to-right then down.
+function freeSpot(w,h,device){
+  const g=gridOf(device);
+  for(let y=1;y<200;y++) for(let x=1;x<=g.cols-w+1;x++){
+    const box={x,y,w,h};
+    if(boxOk(box,null,device)) return box;
+  }
+  return {x:1,y:1,w,h};
+}
+const gridRows = (device)=> S.drawers.reduce((m,d)=>{const b=lay(d,device);return Math.max(m,b.y+b.h-1)},0);
+
+/* Appearance: custom background, accent and drawer outline. Written as inline
+   custom properties on <html>, which beat both theme blocks. */
+function applyLook(){
+  const el=document.documentElement, L=S.look||defaultLook();
+  if(L.bg){
+    el.style.setProperty('--paper', L.bg);
+    el.style.setProperty('--paper-2', `color-mix(in srgb, ${L.bg} 84%, #fff)`);
+    el.style.setProperty('--paper-3', `color-mix(in srgb, ${L.bg} 90%, #000)`);
+  } else ['--paper','--paper-2','--paper-3'].forEach(p=>el.style.removeProperty(p));
+  if(L.accent) el.style.setProperty('--brass', L.accent); else el.style.removeProperty('--brass');
+  if(L.line) el.style.setProperty('--line', L.line); else el.style.removeProperty('--line');
+  el.style.setProperty('--railw', (L.railw||212)+'px');
+}
+
+/* Set colours to choose from. Warm, solid, no gradients — browns, greens,
+   blues, and a few earth tones that sit beside them. */
+const SWATCHES = {
+  brown: [['#6F5137','Walnut'],['#7E5A38','Chestnut'],['#8A6A3C','Tobacco'],['#A0703F','Oak'],['#5A4130','Bark']],
+  green: [['#4A7C59','Fern'],['#3D6B4A','Pine'],['#5C7148','Olive'],['#6E8B4E','Moss'],['#3E7A6B','Verdigris']],
+  blue:  [['#3F5F7A','Slate'],['#4A6E8F','Denim'],['#2F4A5E','Indigo'],['#5D7E99','Haze'],['#37687A','Teal']],
+  earth: [['#A55A3E','Terracotta'],['#96652F','Ochre'],['#8C4A38','Rust'],['#9A7B2F','Brass'],['#6B4A4A','Oxblood']]
+};
+const BACKDROPS = [
+  ['#E9E1CC','Parchment'],['#EFE8D6','Vellum'],['#E2D9C0','Manila'],
+  ['#DED3B6','Kraft'],['#F1EDE0','Chalk'],['#D9D2BE','Linen']
+];
 
 function streak(o){
   const set=new Set(o.history||[]); let n=0, d=D.today();
@@ -872,17 +1019,22 @@ function drawerPreview(d, items){
   return `<div class="pv-list">${items.slice(0,5).map(o=>
     `<div class="r${o.done?' done':''}" style="--k:${K(o.kind).c}"><span class="dot"></span><span class="lbl">${esc(o.title||'Untitled')}</span></div>`).join('')}</div>`;
 }
+const HANDLES = ['nw','n','ne','e','se','s','sw','w'];
 function viewDesk(){
-  const arr=S.arrange;
+  const arr=S.arrange, g=gridOf();
   const tiles=S.drawers.map(d=>{
-    const items=contents(d), sz=d[dev()];
-    return `<button class="drawer${sz.h===1?' h1':''}" data-drawer="${d.id}" style="--c:${d.c};grid-column:span ${sz.w};grid-row:span ${sz.h}">
-      <div class="sizebtns">${arr?`<b data-size="${d.id}">${sz.w}×${sz.h}</b><b data-delDrawer="${d.id}">✕</b>`:''}</div>
-      <div class="dtop"><span class="swatch"></span><span class="dname">${esc(d.nm)}</span><span class="dcount">${items.length}</span></div>
+    const items=contents(d), b=lay(d);
+    return `<button class="drawer${b.h===1?' h1':''}" data-drawer="${d.id}"
+      style="--c:${d.c};grid-column:${b.x} / span ${b.w};grid-row:${b.y} / span ${b.h}">
+      <div class="sizebtns">${arr?`<b data-size="${d.id}">${b.w}×${b.h}</b><b data-delDrawer="${d.id}">✕</b>`:''}</div>
+      <div class="dtop"><span class="dname">${esc(d.nm)}</span><span class="dcount">${items.length}</span></div>
       <div class="dbody">${drawerPreview(d,items)}</div>
       <div class="dfoot"><span class="pull"></span></div>
+      ${arr?HANDLES.map(h=>`<i class="rz ${h}" data-rz="${h}" data-rzid="${d.id}"></i>`).join(''):''}
     </button>`;
   }).join('');
+  // one spare row past the last drawer, so there is somewhere to drag into
+  const rows = gridRows() + (arr?2:0);
   return `
   <div class="topbar">
     <div><h1>The Desk</h1><div class="sub">${S.objects.length} objects · ${S.drawers.length} drawers · ${dev()==='desk'?'Mac':'iPhone'} layout</div></div>
@@ -894,9 +1046,10 @@ function viewDesk(){
   <div class="scroll">
     ${S.layoutEdit?`<div class="banner">${ic('resize',14)} You are arranging the <b style="margin:0 3px">${S.layoutEdit==='desk'?'Mac':'iPhone'}</b> layout.
       <button data-act="stopedit">Back to this device</button></div>`:''}
-    ${arr?`<div class="mini" style="--k:var(--brass)"><span class="dot"></span>Drag drawers to reorder · tap the size chip to resize · this only changes your <b style="color:var(--ink);margin:0 3px">${dev()==='desk'?'Mac':'iPhone'}</b> layout</div>`:''}
-    <div class="grid g-${dev()}${arr?' arranging':''}" id="drawergrid">${tiles}
-      ${arr?`<button class="drawer addnew" data-act="newdrawer" style="grid-column:span 2;grid-row:span 1">${ic('plus',18)}</button>`:''}
+    ${arr?`<div class="mini" style="--k:var(--brass)"><span class="dot"></span>Drag a drawer to move it · drag any edge or corner to resize · this only changes your <b style="color:var(--ink);margin:0 3px">${dev()==='desk'?'Mac':'iPhone'}</b> layout</div>`:''}
+    <div class="grid g-${dev()}${arr?' arranging':''}" id="drawergrid"
+         style="--cols:${g.cols};--rowh:${g.rowh}px;grid-template-rows:repeat(${Math.max(rows,1)},${g.rowh}px)">${tiles}
+      ${arr?(()=>{const s=freeSpot(2,1);return `<button class="drawer addnew" data-act="newdrawer" style="grid-column:${s.x} / span 2;grid-row:${s.y} / span 1">${ic('plus',18)}</button>`;})():''}
     </div>
     ${arr?'':`<div class="section-h"><h2>Recently opened</h2><div class="rule"></div></div>
     <div class="rows">${S.objects.slice().sort((a,b)=>(b.doneAt||b.created||'').localeCompare(a.doneAt||a.created||'')).slice(0,4).map(row).join('')}</div>`}
@@ -1127,6 +1280,37 @@ function viewSettings(){
         `<button class="fchip${S.theme===v?' on':''}" data-theme2="${v}">${n}</button>`).join('')}
     </div>
 
+    <div class="field" style="margin-top:14px"><label>Background</label>
+      <div class="pickgrid sw" style="margin-top:6px">${BACKDROPS.map(([c,nm])=>
+        `<button data-look="bg" data-val="${c}" title="${nm}" class="${(S.look.bg||'')===c?'on':''}" style="background:${c}"></button>`).join('')}</div>
+      <label class="custcol"><input type="color" data-lookinput="bg" value="${S.look.bg||'#E9E1CC'}"><span>Custom background</span></label>
+      ${S.look.bg?`<button class="pill" style="margin-left:6px" data-look="bg" data-val="">Reset</button>`:''}
+    </div>
+
+    <div class="field" style="margin-top:12px"><label>Accent</label>
+      <div class="pickgrid sw" style="margin-top:6px">${
+        [['#A9793F','Brass'],['#8A5A3F','Leather'],['#4A7C59','Fern'],['#3F5F7A','Slate'],['#8C4A38','Rust'],['#5C7148','Olive']].map(([c,nm])=>
+        `<button data-look="accent" data-val="${c}" title="${nm}" class="${(S.look.accent||'')===c?'on':''}" style="background:${c}"></button>`).join('')}</div>
+      <label class="custcol"><input type="color" data-lookinput="accent" value="${S.look.accent||'#A9793F'}"><span>Custom accent</span></label>
+      ${S.look.accent?`<button class="pill" style="margin-left:6px" data-look="accent" data-val="">Reset</button>`:''}
+    </div>
+
+    <div class="field" style="margin-top:12px"><label>Drawer outline</label>
+      <div class="pickgrid sw" style="margin-top:6px">${
+        [['rgba(0,0,0,.28)','Shadow'],['rgba(0,0,0,.55)','Ink'],['rgba(255,255,255,.28)','Chalk'],['#2A241C','Solid dark'],['#E9E1CC','Parchment']].map(([c,nm])=>
+        `<button data-look="line" data-val="${c}" title="${nm}" class="${(S.look.line||'')===c?'on':''}" style="background:${c}"></button>`).join('')}</div>
+      <label class="custcol"><input type="color" data-lookinput="line" value="#2A241C"><span>Custom outline</span></label>
+      ${S.look.line?`<button class="pill" style="margin-left:6px" data-look="line" data-val="">Reset</button>`:''}
+    </div>
+
+    <div class="field" style="margin-top:12px"><label>Sidebar</label>
+      <div class="filterbar" style="padding-top:6px">
+        <button class="fchip${S.look.railHidden?'':' on'}" data-look="railHidden" data-val="">Shown</button>
+        <button class="fchip${S.look.railHidden?' on':''}" data-look="railHidden" data-val="1">Hidden</button>
+      </div>
+      <div class="mini" style="--k:var(--brass);margin-top:6px">Drag the sidebar's right edge to resize it, or drag it fully left to hide it.</div>
+    </div>
+
     <div class="section-h"><h2>Drawer layouts</h2><div class="rule"></div></div>
     <div class="mini" style="--k:var(--brass)">Each device keeps its own arrangement. You can open the other one to tidy it from here.</div>
     <div class="filterbar">
@@ -1169,7 +1353,8 @@ function rail(){
   const dueToday=S.objects.filter(o=>!o.done&&o.due&&D.parse(o.due)<=D.today()).length;
   const nav=[['desk','grid','The Desk',''],['today','calendar','Today',dueToday||''],['keep','target','Keeping Up',''],['all','archive','Everything',S.objects.length],['settings','sliders','Settings','']];
   return `<aside class="rail">
-    <div class="wordmark">Bur<em>ea</em>u</div>
+    <div class="wordmark"><span>Bur<em>ea</em>u</span>
+      <button class="iconbtn railhide" data-act="hiderail" title="Hide sidebar">${ic('chev',15)}</button></div>
     ${nav.map(([v,i,n,c])=>`<button class="navitem${S.view===v?' on':''}" data-view="${v}">
       <span class="ico">${ic(i,16)}</span>${n}${c!==''?`<span class="n">${c}</span>`:''}</button>`).join('')}
     <div class="label">Drawers</div>
@@ -1197,8 +1382,21 @@ let render = function render(){
     : S.theme;
   const body = S.view==='desk'?viewDesk():S.view==='drawer'?viewDrawer():S.view==='today'?viewToday()
              :S.view==='keep'?viewKeep():S.view==='settings'?viewSettings():viewAll();
-  $('#app').innerHTML = `${rail()}<div class="main">${body}<button class="fab" data-act="new">${ic('plus',22)}</button>${tabbar()}</div>`;
+  frame.classList.toggle('rail-hidden', !!(S.look&&S.look.railHidden));
+  $('#app').innerHTML = `${rail()}<div class="railgrip" title="Drag to resize · drag fully left to hide"></div>`
+    + `<div class="main">${body}<button class="fab" data-act="new">${ic('plus',22)}</button>${tabbar()}</div>`
+    + `<button class="railshow" data-act="showrail" title="Show sidebar">${ic('grid',15)}</button>`;
   bindSortables();
+  sizeGrid();
+}
+
+/* The graph-paper backdrop in arrange mode has to match the real column width,
+   which is fluid — so measure it after layout rather than assuming it. */
+function sizeGrid(){
+  const grid=$('#drawergrid'); if(!grid) return;
+  const g=gridOf(), w=cellW(grid,g);
+  grid.style.setProperty('--cellw', (w+g.gap)+'px');
+  grid.style.setProperty('--cellstep', (g.rowh+g.gap)+'px');
 }
 
 /* ============================================================
@@ -1308,17 +1506,26 @@ function modalNewObject(){
       <div class="nm">${KINDS[k].nm}</div><div class="ds">${KINDS[k].ds}</div></button>`).join('')}
   </div></div>`);
 }
-const SWATCHES=['#4A7C59','#5F7A93','#C1902B','#7A6AA0','#B5654A','#4A6E8F','#A94E6B','#5C7148','#3E8A87','#8A5A3F','#9A7B2F','#6E7075'];
+// The set colours, in rows by family, plus whatever custom colour is in use.
+function swatchRows(cur){
+  const known=Object.values(SWATCHES).flat().some(([c])=>c===cur);
+  return Object.entries(SWATCHES).map(([fam,list])=>
+    `<div class="pickgrid sw">${list.map(([c,nm])=>
+      `<button data-col="${c}" title="${nm}" class="${cur===c?'on':''}" style="background:${c}"></button>`).join('')}</div>`
+  ).join('') + (known?'':`<div class="pickgrid sw"><button data-col="${cur}" class="on" title="Custom" style="background:${cur}"></button></div>`);
+}
 function modalDrawer(id){
-  const d = id? drawerById(id) : {id:'', nm:'', c:SWATCHES[0], pv:'list', filter:{kinds:[]}, desk:{w:2,h:2}, phone:{w:2,h:2}};
+  const d = id? drawerById(id) : {id:'', nm:'', c:'#4A7C59', pv:'list', filter:{kinds:[]}};
   const ks=(d.filter.kinds||[]);
   showModal(`<div class="modal-h"><div class="t">${id?'Edit drawer':'New drawer'}</div>
     <div class="s">A drawer shows anything you file in it by hand, plus anything matching its rule.</div></div>
   <div class="modal-b">
     <div class="field" style="margin-bottom:10px"><label>Name</label><input id="dnm" value="${esc(d.nm)}" placeholder="Reading Pile"></div>
     <div class="field" style="margin-bottom:10px"><label>Colour</label>
-      <div class="pickgrid" id="dcol" style="margin-top:6px">${SWATCHES.map(c=>
-        `<button data-col="${c}" class="${d.c===c?'on':''}" style="background:${c};color:#fff"></button>`).join('')}</div></div>
+      <div id="dcol" style="margin-top:6px">${swatchRows(d.c)}
+        <label class="custcol"><input type="color" data-colinput value="${d.c}">
+          <span>Custom colour</span></label>
+      </div></div>
     <div class="field" style="margin-bottom:10px"><label>Automatically collects these kinds</label>
       <div class="filterbar" id="dkinds" style="flex-wrap:wrap;padding-top:6px">${KEYS.map(k=>
         `<button class="fchip${ks.includes(k)?' on':''}" data-kk="${k}" style="--k:${KINDS[k].c}">${KINDS[k].nm}</button>`).join('')}</div></div>
@@ -1390,12 +1597,54 @@ const closeCtx = ()=> $('#ctx').classList.remove('open');
    19 · gestures: swipe + drag reorder
    ============================================================ */
 let G=null;
+
+/* Width of one grid column in px, measured rather than assumed — the grid is
+   fluid (repeat(cols,1fr)) so this changes with the window and the rail. */
+function cellW(grid,g){
+  const r=grid.getBoundingClientRect();
+  return (r.width - g.gap*(g.cols-1))/g.cols;
+}
+/* Where a move/resize would land, in grid cells. Dragging an edge moves that
+   edge only; dragging a corner moves both of its edges — same as a window. */
+function candidate(g, cx, cy){
+  const b=g.box, hd=g.handle;
+  if(g.type==='move') return {x:b.x+cx, y:b.y+cy, w:b.w, h:b.h};
+  let x=b.x, y=b.y, w=b.w, h=b.h;
+  if(hd.includes('e')) w=b.w+cx;
+  if(hd.includes('w')){ x=b.x+cx; w=b.w-cx; }
+  if(hd.includes('s')) h=b.h+cy;
+  if(hd.includes('n')){ y=b.y+cy; h=b.h-cy; }
+  if(w<1){ if(hd.includes('w')) x=b.x+b.w-1; w=1; }   // never invert the box
+  if(h<1){ if(hd.includes('n')) y=b.y+b.h-1; h=1; }
+  return {x,y,w,h};
+}
+function place(el, b){
+  el.style.gridColumn=`${b.x} / span ${b.w}`;
+  el.style.gridRow=`${b.y} / span ${b.h}`;
+}
+
 function onDown(e){
   if(e.button===2) return;
   const app=$('#app');
+  // resizing the sidebar
+  if(e.target.closest('.railgrip')){
+    const rail=$('.rail'); if(!rail) return;
+    e.preventDefault();
+    G={type:'rail', el:e.target.closest('.railgrip'), w0:rail.getBoundingClientRect().width,
+       sx:e.clientX, sy:e.clientY, mode:'rail'};
+    G.el.classList.add('on');
+    document.body.classList.add('dragging-ui');
+    G.el.setPointerCapture&&G.el.setPointerCapture(e.pointerId);
+    return;
+  }
   const dEl=e.target.closest('.drawer[data-drawer]');
   if(S.arrange && dEl && !e.target.closest('.sizebtns')){
-    G={type:'drawer', el:dEl, sx:e.clientX, sy:e.clientY, mode:null};
+    const d=drawerById(dEl.dataset.drawer), grid=$('#drawergrid');
+    if(!d || !grid) return;
+    const hEl=e.target.closest('[data-rz]'), g=gridOf();
+    G={type: hEl?'resize':'move', el:dEl, id:d.id, handle:hEl?hEl.dataset.rz:null,
+       box:lay(d), stepX:cellW(grid,g)+g.gap, stepY:g.rowh+g.gap,
+       sx:e.clientX, sy:e.clientY, mode:null, ok:true, cand:null};
     dEl.setPointerCapture&&dEl.setPointerCapture(e.pointerId);
     return;
   }
@@ -1410,10 +1659,47 @@ function onDown(e){
 function onMove(e){
   if(!G) return;
   const dx=e.clientX-G.sx, dy=e.clientY-G.sy;
+
+  if(G.mode==='rail'){
+    const g=GRID.desk;
+    // snap the rail to the same column step the drawer grid uses
+    const raw=clamp(G.w0+dx, 0, 460);
+    const step=(raw<120) ? raw : Math.round(raw/24)*24;
+    document.documentElement.style.setProperty('--railw', Math.max(150,step)+'px');
+    G.railw=Math.max(150,step);
+    G.hide = raw<120;
+    $('#frame').classList.toggle('rail-hidden', G.hide);
+    return;
+  }
+
+  if(G.type==='move' || G.type==='resize'){
+    if(!G.mode){
+      if(Math.abs(dx)<5 && Math.abs(dy)<5) return;
+      G.mode='grid';
+      G.el.classList.add('dragging');
+      if(G.type==='move'){
+        G.ghost=document.createElement('div');
+        G.ghost.className='ghost';
+        place(G.ghost, G.box);
+        G.el.parentElement.appendChild(G.ghost);
+      }
+    }
+    const box=candidate(G, Math.round(dx/G.stepX), Math.round(dy/G.stepY));
+    G.cand=box; G.ok=boxOk(box, G.id);
+    G.el.classList.toggle('invalid', !G.ok);
+    if(G.type==='move'){
+      G.el.style.transform=`translate(${dx}px,${dy}px)`;
+      G.ghost.className='ghost'+(G.ok?'':' bad');
+      place(G.ghost, box);
+    } else {
+      place(G.el, box);            // live resize, like dragging a window edge
+    }
+    return;
+  }
+
   if(!G.mode){
     if(Math.abs(dx)<7 && Math.abs(dy)<7) return;
-    if(G.type==='drawer'){ G.mode='drag'; G.el.classList.add('dragging'); G.el.style.pointerEvents='none'; }
-    else if(Math.abs(dx)>Math.abs(dy)){ G.mode='swipe'; G.wrap.classList.add('swiping'); }
+    if(Math.abs(dx)>Math.abs(dy)){ G.mode='swipe'; G.wrap.classList.add('swiping'); }
     else if(G.canDrag){ G.mode='drag'; G.wrap.classList.add('dragging'); G.wrap.style.opacity='.35'; G.wrap.style.pointerEvents='none'; }
     else { G.mode='none'; }
   }
@@ -1421,21 +1707,35 @@ function onMove(e){
   else if(G.mode==='drag'){
     const under=document.elementFromPoint(e.clientX,e.clientY);
     if(!under) return;
-    if(G.type==='drawer'){
-      const t=under.closest('.drawer[data-drawer]');
-      if(t&&t!==G.el){ const p=t.parentElement, before=t.compareDocumentPosition(G.el)&Node.DOCUMENT_POSITION_FOLLOWING;
-        p.insertBefore(G.el, before? t : t.nextSibling); }
-    } else {
-      const t=under.closest('.rowwrap');
-      if(t&&t!==G.wrap){ const p=t.parentElement, before=t.compareDocumentPosition(G.wrap)&Node.DOCUMENT_POSITION_FOLLOWING;
-        p.insertBefore(G.wrap, before? t : t.nextSibling); }
-    }
+    const t=under.closest('.rowwrap');
+    if(t&&t!==G.wrap){ const p=t.parentElement, before=t.compareDocumentPosition(G.wrap)&Node.DOCUMENT_POSITION_FOLLOWING;
+      p.insertBefore(G.wrap, before? t : t.nextSibling); }
   }
 }
 function onUp(e){
   if(!G) return;
   const g=G; G=null;
   const dx=e.clientX-g.sx;
+
+  if(g.mode==='rail'){
+    g.el.classList.remove('on');
+    document.body.classList.remove('dragging-ui');
+    S.look.railHidden = !!g.hide;
+    if(!g.hide && g.railw) S.look.railw=g.railw;
+    applyLook(); save(); render(); return;
+  }
+
+  if(g.mode==='grid'){
+    g.el.classList.remove('dragging','invalid');
+    g.el.style.transform='';
+    if(g.ghost) g.ghost.remove();
+    const d=drawerById(g.id);
+    if(d && g.cand && g.ok) d[dev()]={...g.cand};
+    save(); render();
+    if(d && g.cand && !g.ok) toast('No room there');
+    return;
+  }
+
   if(g.mode==='swipe'){
     g.wrap.classList.remove('swiping');
     const id=g.el.dataset.row;
@@ -1445,22 +1745,16 @@ function onUp(e){
     return;
   }
   if(g.mode==='drag'){
-    if(g.type==='drawer'){
-      g.el.classList.remove('dragging'); g.el.style.pointerEvents='';
-      const order=$$('#drawergrid .drawer[data-drawer]').map(el=>el.dataset.drawer);
-      S.drawers.sort((a,b)=>order.indexOf(a.id)-order.indexOf(b.id));
-    } else {
-      g.wrap.classList.remove('dragging'); g.wrap.style.opacity=''; g.wrap.style.pointerEvents='';
-      const list=g.wrap.parentElement;
-      $$('[data-wrap]',list).forEach((el,i)=>{ const o=byId(el.dataset.wrap); if(o) o.ord=i; });
-      toast('Order saved');
-    }
+    g.wrap.classList.remove('dragging'); g.wrap.style.opacity=''; g.wrap.style.pointerEvents='';
+    const list=g.wrap.parentElement;
+    $$('[data-wrap]',list).forEach((el,i)=>{ const o=byId(el.dataset.wrap); if(o) o.ord=i; });
+    toast('Order saved');
     render(); return;
   }
   if(g.mode===null && Math.abs(dx)<7){
     // a tap
-    if(g.type==='drawer'){ if(S.arrange) modalDrawer(g.el.dataset.drawer); }
-    else openObj(g.el.dataset.row);
+    if(g.type==='move'||g.type==='resize'){ if(S.arrange) modalDrawer(g.id); }
+    else if(g.type==='row') openObj(g.el.dataset.row);
   }
 }
 
@@ -1474,8 +1768,8 @@ let deferredInstall = null;
 let saveTimer = null;
 
 function snapshot(){
-  return {v:1, savedAt:new Date().toISOString(), theme:S.theme, listmode:S.listmode,
-          drawers:S.drawers, objects:S.objects};
+  return {v:2, savedAt:new Date().toISOString(), theme:S.theme, listmode:S.listmode,
+          look:S.look, drawers:S.drawers, objects:S.objects};
 }
 function writeNow(){
   try{ localStorage.setItem(KEY, JSON.stringify(snapshot())); }
@@ -1484,10 +1778,31 @@ function writeNow(){
 function save(){ clearTimeout(saveTimer); saveTimer = setTimeout(writeNow, 250); }
 function storeSize(){ try{ return (localStorage.getItem(KEY)||'').length; }catch(e){ return 0; } }
 
+/* v1 → v2: drawers carried only {w,h} and were laid out by flow order. Replay
+   that same dense flow once to give every drawer real x/y coordinates, so an
+   existing desk comes back looking exactly as its owner left it. */
+function flowToCoords(drawers, device){
+  const g=GRID[device], taken=[];
+  const free=(box)=> box.x+box.w-1<=g.cols && !taken.some(t=>overlaps(box,t));
+  drawers.forEach(d=>{
+    const b=d[device]||{}, w=clamp(b.w||2,1,g.cols), h=clamp(b.h||1,1,40);
+    if(b.x&&b.y){ taken.push({x:b.x,y:b.y,w,h}); d[device]={x:b.x,y:b.y,w,h}; return; }
+    let placed=null;
+    for(let y=1;y<400&&!placed;y++) for(let x=1;x<=g.cols-w+1;x++){
+      const box={x,y,w,h};
+      if(free(box)){ placed=box; break; }
+    }
+    placed=placed||{x:1,y:1,w,h};
+    taken.push(placed); d[device]=placed;
+  });
+}
 function adopt(d){
   if(!d || !Array.isArray(d.objects) || !Array.isArray(d.drawers)) return false;
   S.objects = d.objects.map(o=>Object.assign({tags:[],history:[],milestones:[],ord:0},o));
-  S.drawers = d.drawers.map(x=>Object.assign({desk:{w:2,h:2},phone:{w:2,h:2},filter:{}},x));
+  S.drawers = d.drawers.map(x=>Object.assign({filter:{}},x));
+  flowToCoords(S.drawers,'desk');
+  flowToCoords(S.drawers,'phone');
+  S.look = Object.assign(defaultLook(), d.look||{});
   if(d.theme) S.theme = d.theme;
   if(d.listmode) S.listmode = d.listmode;
   return true;
@@ -1528,6 +1843,8 @@ function act(name, el){
     case 'new': modalNewObject(); break;
     case 'newdrawer': modalDrawer(null); break;
     case 'arrange': S.arrange=!S.arrange; render(); break;
+    case 'hiderail': S.look.railHidden=true; save(); render(); break;
+    case 'showrail': S.look.railHidden=false; save(); render(); break;
     case 'reorder': S.reorder=!S.reorder; render(); break;
     case 'listmode': S.listmode = S.listmode==='rows'?'cards':'rows'; render(); break;
     case 'back': S.view='desk'; S.drawerId=null; S.kindFilter=null; render(); break;
@@ -1536,7 +1853,8 @@ function act(name, el){
       const id=el.dataset.id, m=$('#modal'), draft=m._draft||{};
       const nm=$('#dnm').value.trim()||'Untitled drawer';
       if(id){ const d=drawerById(id); Object.assign(d,{nm,c:draft.c,pv:draft.pv}); d.filter={kinds:draft.kinds}; }
-      else S.drawers.push({id:uid('d'),nm,c:draft.c,pv:draft.pv,filter:{kinds:draft.kinds},desk:{w:2,h:2},phone:{w:2,h:2}});
+      else S.drawers.push({id:uid('d'),nm,c:draft.c,pv:draft.pv,filter:{kinds:draft.kinds},
+        desk:freeSpot(2,2,'desk'), phone:freeSpot(2,2,'phone')});
       hideModal(); render(); toast(id?'Drawer updated':'Drawer added to the desk');
       break;
     }
@@ -1559,7 +1877,7 @@ function act(name, el){
     case 'export': exportBackup(); break;
     case 'import': $('#importer').click(); break;
     case 'install': if(deferredInstall){ deferredInstall.prompt(); deferredInstall=null; } break;
-    case 'reseed': { const th=S.theme; reset(); S.theme=th; writeNow(); render(); toast('Sample desk restored'); break; }
+    case 'reseed': { const th=S.theme, lk=S.look; reset(); S.theme=th; S.look=lk; applyLook(); writeNow(); render(); toast('Sample desk restored'); break; }
     case 'wipe': {
       if(!confirm('Erase every object and drawer on this device? This cannot be undone.')) return;
       const th=S.theme; reset(); S.theme=th; S.objects=[]; S.drawers=S.drawers.slice(0,3);
@@ -1654,6 +1972,11 @@ function wire(){
     const col=t.closest('[data-col]');
     if(col){ $('#modal')._draft.c=col.dataset.col; $$('#dcol button').forEach(b=>b.classList.remove('on')); col.classList.add('on'); return; }
 
+    const lk=t.closest('[data-look]');
+    if(lk){ const k=lk.dataset.look, v=lk.dataset.val;
+      S.look[k] = k==='railHidden' ? !!v : (v||null);
+      applyLook(); save(); render(); return; }
+
     const tg=t.closest('[data-tag]');
     if(tg){ const v=tg.dataset.tag; S.tagFilter = (!v||S.tagFilter===v)?null:v; if(S.tagFilter) S.view='all'; render(); return; }
 
@@ -1663,12 +1986,18 @@ function wire(){
     const ly=t.closest('[data-layout]');
     if(ly){ S.layoutEdit = ly.dataset.layout || null; S.view='desk'; S.arrange=!!S.layoutEdit; render(); return; }
 
+    // the size chip still cycles presets — quicker than dragging on a phone.
+    // It keeps the drawer where it is and skips any preset that would collide.
     const sz=t.closest('[data-size]');
-    if(sz){ const d=drawerById(sz.dataset.size);
+    if(sz){ const d=drawerById(sz.dataset.size), g=gridOf(), cur=lay(d);
       const P = dev()==='desk' ? [[2,1],[2,2],[3,2],[4,2],[6,2]] : [[2,1],[2,2],[4,1],[4,2]];
-      const cur=d[dev()], i=P.findIndex(p=>p[0]===cur.w&&p[1]===cur.h);
-      const n=P[(i+1)%P.length]; d[dev()]={w:n[0],h:n[1]};
-      render(); return; }
+      const i=P.findIndex(p=>p[0]===cur.w&&p[1]===cur.h);
+      for(let n=1;n<=P.length;n++){
+        const [w,h]=P[(i+n)%P.length];
+        const box={x:Math.min(cur.x, g.cols-w+1), y:cur.y, w, h};
+        if(boxOk(box,d.id)){ d[dev()]=box; save(); render(); return; }
+      }
+      toast('No room to resize — move it first'); return; }
     const dd=t.closest('[data-delDrawer]');
     if(dd){ S.drawers=S.drawers.filter(x=>x.id!==dd.dataset.deldrawer); render(); return; }
 
@@ -1680,6 +2009,14 @@ function wire(){
 
   // inline field edits
   frame.addEventListener('input', e=>{
+    // colour pickers: live preview while dragging, committed on 'change'
+    const li=e.target.dataset.lookinput;
+    if(li){ S.look[li]=e.target.value; applyLook(); return; }
+    if(e.target.dataset.colinput!=null){
+      const m=$('#modal'); if(m&&m._draft){ m._draft.c=e.target.value;
+        $$('#dcol button').forEach(b=>b.classList.remove('on')); }
+      return;
+    }
     const f=e.target.dataset.f;
     if(f){
       const o=byId(S.openId); if(!o) return;
@@ -1701,6 +2038,8 @@ function wire(){
     if(e.target.id==='importer' && e.target.files && e.target.files[0]){
       importBackup(e.target.files[0]); e.target.value='';
     }
+    // re-render only once the picker closes, so it doesn't die mid-drag
+    if(e.target.dataset.lookinput){ save(); render(); }
   });
 
   frame.addEventListener('keydown', e=>{
@@ -1733,6 +2072,7 @@ function wire(){
   addML(wide, ()=>{ S.device = sensedDevice(); render(); });
   addML(window.matchMedia('(prefers-color-scheme: dark)'), ()=>{ if(S.theme==='auto') render(); });
 
+  window.addEventListener('resize', sizeGrid);
   window.addEventListener('beforeinstallprompt', e=>{ e.preventDefault(); deferredInstall=e; if(S.view==='settings') render(); });
   window.addEventListener('beforeunload', writeNow);
   document.addEventListener('visibilitychange', ()=>{ if(document.hidden) writeNow(); });
@@ -1746,6 +2086,7 @@ const hash = (location.hash||'').replace('#','');
 if(['today','keep','all','desk','settings'].includes(hash)) S.view = hash;
 $('#frame').insertAdjacentHTML('beforeend', overlayHTML());
 wire();
+applyLook();
 render();
 if(!restored) writeNow();
 

@@ -36,16 +36,38 @@ absent, and `adopt()` backfills defaults when loading a backup.
 {
   id:     "d_kitch",
   nm:     "Kitchen",
-  c:      "#B5654A",                  // accent colour
+  c:      "#A55A3E",                  // drawer front colour, solid
   pv:     "thumbs",                   // list | stack | thumbs | bars | big
   filter: { kinds: ["recipe"] },      // or {due:'today'} or {done:true} or {}
-  desk:   { w:2, h:1 },               // size in the 6-column Mac grid
-  phone:  { w:2, h:2 }                // size in the 4-column iPhone grid
+  desk:   { x:5, y:3, w:2, h:1 },     // place + size in the 6-column Mac grid
+  phone:  { x:3, y:6, w:2, h:2 }      // place + size in the 4-column iPhone grid
 }
 ```
 
-Array order is grid order. `desk` and `phone` are independent and must stay that
-way — that's the "separately customisable layouts" requirement.
+`x` and `y` are **1-based grid cells**, and they are the whole layout — array
+order no longer positions anything. The grid does not flow: an empty cell stays
+empty, because on a desk a gap is a choice. Two drawers may never overlap;
+`boxOk()` refuses a move or resize that would collide rather than pushing a
+neighbour aside, so nothing you arranged ever moves without you.
+
+`desk` and `phone` are independent and must stay that way — that's the
+"separately customisable layouts" requirement.
+
+## Appearance
+
+```js
+look: {
+  bg:         "#DED3B6" | null,   // custom background; null = use the theme's
+  accent:     "#A9793F" | null,
+  line:       "rgba(0,0,0,.28)" | null,   // drawer outline
+  railw:      212,                // sidebar width in px
+  railHidden: false
+}
+```
+
+`applyLook()` writes these as inline custom properties on `<html>`, which beat
+both theme blocks — that's why a custom background survives switching between
+Paper and Walnut. `null` means "inherit the theme", not "no colour".
 
 ## Dates
 
@@ -56,11 +78,15 @@ boundary. Section 0's `D` object is the only place that converts.
 
 ## Storage
 
-One key, `bureau.v1`:
+One key, `bureau.v1` (the key name is stable; `v` inside it is the schema):
 
 ```js
-{ v: 1, savedAt: "…ISO…", theme, listmode, drawers: [...], objects: [...] }
+{ v: 2, savedAt: "…ISO…", theme, listmode, look, drawers: [...], objects: [...] }
 ```
+
+**v1 → v2** added `x`/`y` to each drawer layout and the `look` block. `adopt()`
+migrates by replaying v1's dense flow through `flowToCoords()`, so a desk saved
+before coordinates existed comes back looking exactly as its owner left it.
 
 Written 250ms after any change (debounced), plus on `visibilitychange` and
 `beforeunload`. Reads and writes are wrapped in try/catch — private browsing and

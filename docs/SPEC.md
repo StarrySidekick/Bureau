@@ -54,12 +54,22 @@ drawers finite.
 **Preview styles** — how the tile shows its contents at a glance: list, card
 stack, thumbnails, progress bars, big number.
 
-**Sizes** — Mac grid is 6 columns × 104px rows, presets 2×1, 2×2, 3×2, 4×2, 6×2.
-iPhone grid is 4 columns × 84px rows, presets 2×1, 2×2, 4×1, 4×2. Arrange mode
-(the grid icon on the desk) enables drag-to-reorder and tap-the-chip-to-resize,
-and **only touches the layout you're currently editing**. Settings lets you open
-the other device's layout and arrange it from here, which is far easier than
-doing it with a thumb.
+**Sizes and position** — Mac grid is 6 columns × 104px rows, iPhone is 4 columns
+× 84px rows. Each drawer stores its own `x, y, w, h` per device, so the desk is
+a coordinate space: a drawer stays where you put it and an empty cell stays
+empty.
+
+Arrange mode (the grid icon on the desk) turns the grid into visible graph paper
+and gives every drawer eight handles. Drag the body to move it, drag an edge or
+a corner to resize it — the same as a window, but snapped to cells. Drawers may
+not overlap; a move or resize that would collide is refused and says so. The
+size chip still cycles presets, which is quicker with a thumb. All of it **only
+touches the layout you're currently editing** — Settings lets you open the other
+device's layout and arrange it from here.
+
+**Colour** — the background, the accent, the drawer outline, and each drawer's
+own colour are all settable, from a palette of warm solids (browns, greens,
+blues, earths) or a colour picker. Background defaults to parchment.
 
 The nine seeded drawers: Today, Inbox, Writing Desk, Idea Bin, Studio, Kitchen,
 Open Questions, Keeping Up, Done & Dusted.
