@@ -2,17 +2,28 @@
 
 ## The idea in one paragraph
 
-Every piece of content is an **object**. Every object has exactly one **kind**,
-declared when you make it and changeable afterwards. Objects live in **drawers**,
-which are shown on the home screen as a resizable grid of tiles. A drawer is a
-container you file things into by hand *and* a rule that collects matching
-objects automatically. The point is that a desk is a place, not a list — position
-carries meaning, containers are finite, and opening one is a small deliberate act.
+Everything is an **object**, every object sits in a **grid**, and a grid is
+itself an object — the thing we call a **drawer**. An object's **attributes**
+define what it can do; a named set of attributes is a **kind**, and you can
+invent kinds yourself by choosing attributes. A drawer is simply an object with
+the `container` attribute, so drawers hold objects, objects hold objects, and
+grids nest as deep as you like. A drawer is a place you file things by hand *and*
+a rule that collects matching objects automatically. The point is that a desk is
+a place, not a list — position carries meaning, containers are finite, and
+opening one is a small deliberate act.
+
+The full model is in [OBJECT-MODEL.md](OBJECT-MODEL.md).
 
 ## Kinds
 
-Twelve, each with an icon, a colour, a keyboard letter, a one-line description,
-a body template, and behaviour flags.
+Fourteen built in, plus any you make. Each has an icon, a colour, a keyboard
+letter, a one-line description, a body template, and a set of attributes. The
+attributes are what actually do the work — the table's "behaves like" column is
+just the attribute set in words.
+
+Two kinds are new and worth calling out: **Drawer** (`container`) is what every
+drawer on your desk now is, and **Button** (`button`) is an object that is just
+a button, pointing at another object, a drawer, or a URL.
 
 | Kind | Colour | Key | Behaves like |
 | --- | --- | --- | --- |
@@ -33,8 +44,15 @@ Kind is a property, not a folder. Changing an object's kind in the detail view
 swaps its fields and re-files it — an Idea that grows up becomes an Essay without
 copy-paste.
 
-**Open question:** whether Habit is really its own kind or a property of Task.
-It's seeded in the app as an actual Question object so it stays visible.
+The detail view also shows the object's attributes directly. Ticking one changes
+that object alone; "Save these attributes as a new kind" turns the combination
+into a kind you can reuse, which is how you get a kind Bureau never shipped.
+
+**Answered:** "Should a drawer be able to contain another drawer?" — yes, and so
+can any object, because containment is one recursive relationship rather than a
+special case for drawers. **Still open:** whether Habit is really its own kind or
+a Task with a `streak` attribute. Now that attributes are composable, it is one
+tick either way, which is itself most of the answer.
 
 ## Drawers
 

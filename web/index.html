@@ -282,6 +282,26 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
 .drawer.addnew{background:none;border:1.5px dashed var(--rule);box-shadow:none;align-items:center;justify-content:center;color:var(--ink-3);--dink:var(--ink-3)}
 .drawer.addnew:hover{border-color:var(--brass);color:var(--brass);filter:none}
 
+/* An object sitting directly on a grid. Same tile, no drawer front — it reads
+   as a card on the desk rather than something you open. */
+.drawer.otile{
+  background:var(--paper-2);border-color:var(--rule);
+  --dink:var(--ink);--dink-2:var(--ink-2);--dink-3:var(--ink-3);
+  border-left:3px solid var(--c);
+}
+.drawer.otile:hover{filter:none;box-shadow:var(--shadow-lg)}
+.drawer.otile .dname{font-family:var(--sans);font-size:13.5px;font-weight:600;white-space:normal;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.drawer.otile .dname.done{text-decoration:line-through;color:var(--ink-3)}
+.drawer.otile .dtop{align-items:flex-start;gap:8px}
+.tiletext{font-size:11.5px;color:var(--ink-3);line-height:1.45;overflow:hidden;
+  display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical}
+.tilecheck{flex:0 0 auto;margin-top:1px}
+.tilebtn{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:var(--radius);
+  background:var(--c);color:#F8F3E6;font-size:11.5px;font-weight:600}
+.tilebtn:hover{filter:brightness(1.1)}
+.tilemeta{font-size:11px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+
 /* ============================================================
    Object rows
    ============================================================ */
@@ -588,6 +608,7 @@ const $$ = (s,r)=> Array.from((r||document).querySelectorAll(s));
 const esc = s => String(s==null?"":s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const uid = (()=>{let n=0;return p=>`${p||'o'}${(++n).toString(36)}${(n*7919%9973).toString(36)}`})();
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const ROOT = 'root';   // the desk: the container every other object descends from
 
 const D = {
   today(){ const d=new Date(); d.setHours(0,0,0,0); return d; },
@@ -653,24 +674,53 @@ const P = {
 function ic(n,s){ s=s||16; return `<svg viewBox="0 0 24 24" width="${s}" height="${s}" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="${P[n]||P.note}"/></svg>`; }
 
 /* ============================================================
-   2 · KINDS — the heart of Bureau
-   ============================================================ */
-const KINDS = {
-  task:    {nm:'Task',    ic:'check',   c:'#4A7C59', key:'T', ds:'A thing to do',           checkable:true,  sched:true,  body:'' },
-  note:    {nm:'Note',    ic:'note',    c:'#5F7A93', key:'N', ds:'Something to remember',                    body:'' },
-  idea:    {nm:'Idea',    ic:'bulb',    c:'#C1902B', key:'I', ds:'A spark, unformed',                        body:'**The spark —** \n\n**Why it might work —** \n\n**What it needs —** ' },
-  outline: {nm:'Outline', ic:'list',    c:'#7A6AA0', key:'O', ds:'Structure before prose',                    body:'## I.\n- \n- \n\n## II.\n- \n- \n\n## III.\n- ' },
-  recipe:  {nm:'Recipe',  ic:'pot',     c:'#B5654A', key:'R', ds:'Ingredients and method',                    body:'**Serves** 2 · **Time** 30 min\n\n## Ingredients\n- \n- \n- \n\n## Method\n1. \n2. \n3. ' },
-  script:  {nm:'Script',  ic:'clapper', c:'#4A6E8F', key:'S', ds:'Scenes and dialogue',                        body:'### INT. LOCATION — DAY\n\nAction line.\n\n**CHARACTER**\nDialogue.' },
-  question:{nm:'Question',ic:'help',    c:'#A94E6B', key:'Q', ds:'Open until answered',      checkable:true,   body:'**Question —** \n\n**What I know —** \n\n**Answer —** ' },
-  essay:   {nm:'Essay',   ic:'feather', c:'#5C7148', key:'E', ds:'Long-form writing',                          body:'> Working thesis.\n\n' },
-  habit:   {nm:'Habit',   ic:'repeat',  c:'#3E8A87', key:'H', ds:'Repeats, tracks a streak',  habit:true,      body:'**Why —** ' },
-  goal:    {nm:'Goal',    ic:'target',  c:'#8A5A3F', key:'G', ds:'Long-term, has milestones', goal:true,       body:'**Definition of done —** ' },
-  media:   {nm:'Media',   ic:'image',   c:'#6E7075', key:'M', ds:'Image, video, or audio',    media:true,      body:'' },
-  record:  {nm:'Record',  ic:'trophy',  c:'#9A7B2F', key:'A', ds:'Something accomplished',                     body:'' }
+   2 · ATTRIBUTES and KINDS — the heart of Bureau
+   ============================================================
+   An attribute is a capability. A kind is a named set of attributes. Nothing
+   below this line may branch on a kind's *name* — ask has(o,'check'), never
+   o.kind==='task'. That rule is what keeps a new kind a data change.
+   See docs/OBJECT-MODEL.md.                                                 */
+const ATTRS = {
+  text:     {nm:'Text',       ds:'A markdown body. Every object has one.'},
+  check:    {nm:'Checkbox',   ds:'A box on the left that completes it'},
+  date:     {nm:'Date',       ds:'Can be scheduled, and shows up in Today'},
+  repeat:   {nm:'Repeats',    ds:'Completing it spawns the next one'},
+  button:   {nm:'Button',     ds:'A button that opens an object, a drawer, or a link'},
+  container:{nm:'Container',  ds:'Holds other objects — this is what makes a drawer'},
+  streak:   {nm:'Streak',     ds:'A daily cadence with a history, and no overdue'},
+  progress: {nm:'Milestones', ds:'Ordered steps with a progress bar'},
+  media:    {nm:'Media',      ds:'An image, video, or audio file'}
 };
-const KEYS = Object.keys(KINDS);
+const ATTRKEYS = Object.keys(ATTRS);
+
+const BUILTIN_KINDS = {
+  drawer:  {nm:'Drawer',  ic:'folder',  c:'#7E5A38', key:'D', ds:'A container on the grid',   attrs:['container'], layout:'list', body:'' },
+  task:    {nm:'Task',    ic:'check',   c:'#4A7C59', key:'T', ds:'A thing to do',             attrs:['text','check','date','repeat'], body:'' },
+  note:    {nm:'Note',    ic:'note',    c:'#5F7A93', key:'N', ds:'Something to remember',     attrs:['text'], body:'' },
+  idea:    {nm:'Idea',    ic:'bulb',    c:'#96652F', key:'I', ds:'A spark, unformed',         attrs:['text'], body:'**The spark —** \n\n**Why it might work —** \n\n**What it needs —** ' },
+  outline: {nm:'Outline', ic:'list',    c:'#7A6AA0', key:'O', ds:'Structure before prose',    attrs:['text'], body:'## I.\n- \n- \n\n## II.\n- \n- \n\n## III.\n- ' },
+  recipe:  {nm:'Recipe',  ic:'pot',     c:'#A55A3E', key:'R', ds:'Ingredients and method',    attrs:['text'], body:'**Serves** 2 · **Time** 30 min\n\n## Ingredients\n- \n- \n- \n\n## Method\n1. \n2. \n3. ' },
+  script:  {nm:'Script',  ic:'clapper', c:'#3F5F7A', key:'S', ds:'Scenes and dialogue',       attrs:['text'], body:'### INT. LOCATION — DAY\n\nAction line.\n\n**CHARACTER**\nDialogue.' },
+  question:{nm:'Question',ic:'help',    c:'#4A6E8F', key:'Q', ds:'Open until answered',       attrs:['text','check'], body:'**Question —** \n\n**What I know —** \n\n**Answer —** ' },
+  essay:   {nm:'Essay',   ic:'feather', c:'#5C7148', key:'E', ds:'Long-form writing',         attrs:['text'], body:'> Working thesis.\n\n' },
+  habit:   {nm:'Habit',   ic:'repeat',  c:'#3E7A6B', key:'H', ds:'Repeats, tracks a streak',  attrs:['text','streak'], body:'**Why —** ' },
+  goal:    {nm:'Goal',    ic:'target',  c:'#8A5A3F', key:'G', ds:'Long-term, has milestones', attrs:['text','progress'], body:'**Definition of done —** ' },
+  media:   {nm:'Media',   ic:'image',   c:'#6E7075', key:'M', ds:'Image, video, or audio',    attrs:['text','media'], body:'' },
+  link:    {nm:'Button',  ic:'arrow',   c:'#37687A', key:'B', ds:'A button that opens something', attrs:['button'], body:'' },
+  record:  {nm:'Record',  ic:'trophy',  c:'#9A7B2F', key:'A', ds:'Something accomplished',    attrs:['text'], body:'' }
+};
+// Kinds you invent live in state alongside these; both are read through KINDS.
+let KINDS = Object.assign({}, BUILTIN_KINDS);
+let KEYS = Object.keys(KINDS);
+function refreshKinds(){
+  KINDS = Object.assign({}, BUILTIN_KINDS, (S&&S.kinds)||{});
+  KEYS = Object.keys(KINDS);
+}
 const K = k => KINDS[k] || KINDS.note;
+// An object may override its kind's attributes; otherwise it inherits them.
+const attrsOf = o => (o && o.attrs) || K(o&&o.kind).attrs || ['text'];
+const has = (o,a) => attrsOf(o).includes(a);
+const kindHas = (k,a) => (K(k).attrs||[]).includes(a);
 
 /* ============================================================
    3 · seed data
@@ -679,89 +729,93 @@ const T = D.iso(D.today());
 const dz = n => D.addISO(T,n);
 
 function seed(){
-  // x/y are 1-based grid coordinates and each layout is packed by hand, because
-  // a desk is arranged, not flowed. Desk is 6 columns wide, phone is 4.
+  // Drawers are objects like everything else — kind 'drawer', parent 'root'.
+  // x/y are 1-based grid cells, packed by hand, because a desk is arranged and
+  // not flowed. The desk grid is 6 columns wide, the phone's is 4.
+  const DR = (o)=> Object.assign({kind:'drawer', parent:ROOT, title:'', body:'',
+    tags:[], layout:'list', ord:0, created:dz(-40)}, o);
   const drawers = [
-    {id:'d_today', nm:'Today',        c:'#4A7C59', pv:'big',    filter:{due:'today'},                    desk:{x:1,y:1,w:2,h:1}, phone:{x:1,y:1,w:4,h:1}},
-    {id:'d_in',    nm:'Inbox',        c:'#7E5A38', pv:'stack',  filter:{drawer:'d_in'},                  desk:{x:3,y:1,w:2,h:2}, phone:{x:1,y:2,w:2,h:2}},
-    {id:'d_write', nm:'Writing Desk', c:'#5C7148', pv:'list',   filter:{kinds:['essay','outline','note']},desk:{x:5,y:1,w:2,h:2}, phone:{x:3,y:2,w:2,h:2}},
-    {id:'d_ideas', nm:'Idea Bin',     c:'#96652F', pv:'stack',  filter:{kinds:['idea']},                 desk:{x:1,y:2,w:2,h:2}, phone:{x:1,y:4,w:4,h:2}},
-    {id:'d_studio',nm:'Studio',       c:'#3F5F7A', pv:'thumbs', filter:{kinds:['script','media']},       desk:{x:3,y:3,w:2,h:2}, phone:{x:1,y:6,w:2,h:2}},
-    {id:'d_kitch', nm:'Kitchen',      c:'#A55A3E', pv:'thumbs', filter:{kinds:['recipe']},               desk:{x:5,y:3,w:2,h:1}, phone:{x:3,y:6,w:2,h:2}},
-    {id:'d_open',  nm:'Open Questions',c:'#4A6E8F',pv:'list',   filter:{kinds:['question']},             desk:{x:1,y:4,w:2,h:1}, phone:{x:1,y:8,w:4,h:1}},
-    {id:'d_keep',  nm:'Keeping Up',   c:'#3E7A6B', pv:'bars',   filter:{kinds:['habit','goal']},         desk:{x:5,y:4,w:2,h:2}, phone:{x:1,y:9,w:2,h:2}},
-    {id:'d_done',  nm:'Done & Dusted',c:'#6F5137', pv:'big',    filter:{done:true},                      desk:{x:1,y:5,w:2,h:1}, phone:{x:3,y:9,w:2,h:2}}
+    DR({id:'d_today', title:'Today',        c:'#4A7C59', pv:'big',    filter:{due:'today'},                     desk:{x:1,y:1,w:2,h:1}, phone:{x:1,y:1,w:4,h:1}}),
+    DR({id:'d_in',    title:'Inbox',        c:'#7E5A38', pv:'stack',  filter:{},                                desk:{x:3,y:1,w:2,h:2}, phone:{x:1,y:2,w:2,h:2}}),
+    DR({id:'d_write', title:'Writing Desk', c:'#5C7148', pv:'list',   filter:{kinds:['essay','outline','note']}, desk:{x:5,y:1,w:2,h:2}, phone:{x:3,y:2,w:2,h:2}}),
+    DR({id:'d_ideas', title:'Idea Bin',     c:'#96652F', pv:'stack',  filter:{kinds:['idea']},                  desk:{x:1,y:2,w:2,h:2}, phone:{x:1,y:4,w:4,h:2}}),
+    DR({id:'d_studio',title:'Studio',       c:'#3F5F7A', pv:'thumbs', filter:{kinds:['script','media']},        desk:{x:3,y:3,w:2,h:2}, phone:{x:1,y:6,w:2,h:2}}),
+    DR({id:'d_kitch', title:'Kitchen',      c:'#A55A3E', pv:'thumbs', filter:{kinds:['recipe']},                desk:{x:5,y:3,w:2,h:1}, phone:{x:3,y:6,w:2,h:2}}),
+    DR({id:'d_open',  title:'Open Questions',c:'#4A6E8F',pv:'list',   filter:{kinds:['question']},              desk:{x:1,y:4,w:2,h:1}, phone:{x:1,y:8,w:4,h:1}}),
+    DR({id:'d_keep',  title:'Keeping Up',   c:'#3E7A6B', pv:'bars',   filter:{kinds:['habit','goal']},          desk:{x:5,y:4,w:2,h:2}, phone:{x:1,y:9,w:2,h:2}}),
+    DR({id:'d_done',  title:'Done & Dusted',c:'#6F5137', pv:'big',    filter:{done:true},                       desk:{x:1,y:5,w:2,h:1}, phone:{x:3,y:9,w:2,h:2}})
   ];
 
   let n=0;
   const O = (o)=> Object.assign({
-    id:uid('o'), kind:'note', title:'', body:'', tags:[], drawer:'d_in', done:false, doneAt:null,
-    due:null, repeat:null, history:[], milestones:[], media:null, ord:n++, created:dz(-30)
+    id:uid('o'), kind:'note', title:'', body:'', tags:[], parent:'d_in', done:false, doneAt:null,
+    due:null, repeat:null, history:[], milestones:[], media:null, ord:n++, created:dz(-30),
+    desk:null, phone:null   // filled the first time it lands in a grid
   }, o);
 
   const objects = [
-    O({kind:'task', title:'Draft the Bureau data model', due:T, drawer:'d_in', tags:['bureau'], body:'Objects, kinds, drawers. One table, one enum, one join.'}),
-    O({kind:'task', title:'Buy walnut oil + a proper straightedge', due:T, drawer:'d_in', tags:['errand']}),
-    O({kind:'task', title:'Call Mom back', due:dz(-1), drawer:'d_in', tags:['personal']}),
-    O({kind:'task', title:'Ship the drawer-resize gesture', due:dz(1), drawer:'d_in', tags:['bureau']}),
-    O({kind:'task', title:'Water the fig', repeat:'weekly', due:dz(2), drawer:'d_in', tags:['home']}),
-    O({kind:'task', title:'Pay the storage unit', repeat:'monthly', due:dz(4), drawer:'d_in', tags:['admin']}),
-    O({kind:'task', title:'Reply to Dana about the September shoot', due:dz(-2), drawer:'d_studio', tags:['work']}),
-    O({kind:'task', title:'Export the reel at 4K', done:true, doneAt:dz(-1), drawer:'d_studio', tags:['work']}),
+    O({kind:'task', title:'Draft the Bureau data model', due:T, parent:'d_in', tags:['bureau'], body:'Objects, kinds, drawers. One table, one enum, one join.'}),
+    O({kind:'task', title:'Buy walnut oil + a proper straightedge', due:T, parent:'d_in', tags:['errand']}),
+    O({kind:'task', title:'Call Mom back', due:dz(-1), parent:'d_in', tags:['personal']}),
+    O({kind:'task', title:'Ship the drawer-resize gesture', due:dz(1), parent:'d_in', tags:['bureau']}),
+    O({kind:'task', title:'Water the fig', repeat:'weekly', due:dz(2), parent:'d_in', tags:['home']}),
+    O({kind:'task', title:'Pay the storage unit', repeat:'monthly', due:dz(4), parent:'d_in', tags:['admin']}),
+    O({kind:'task', title:'Reply to Dana about the September shoot', due:dz(-2), parent:'d_studio', tags:['work']}),
+    O({kind:'task', title:'Export the reel at 4K', done:true, doneAt:dz(-1), parent:'d_studio', tags:['work']}),
 
-    O({kind:'idea', title:'A drawer that only opens on Sundays', drawer:'d_ideas', tags:['bureau'],
+    O({kind:'idea', title:'A drawer that only opens on Sundays', parent:'d_ideas', tags:['bureau'],
        body:'**The spark —** Some things should be unavailable most of the week.\n\n**Why it might work —** Scarcity makes a container feel like a place, not a list.\n\n**What it needs —** A schedule field on the drawer, and a lovely locked state.'}),
-    O({kind:'idea', title:'Objects that age — paper yellows if untouched', drawer:'d_ideas', tags:['bureau','visual']}),
-    O({kind:'idea', title:'Short film: the last video store', drawer:'d_ideas', tags:['film']}),
-    O({kind:'idea', title:'Newsletter about small tools', drawer:'d_ideas', tags:['writing']}),
+    O({kind:'idea', title:'Objects that age — paper yellows if untouched', parent:'d_ideas', tags:['bureau','visual']}),
+    O({kind:'idea', title:'Short film: the last video store', parent:'d_ideas', tags:['film']}),
+    O({kind:'idea', title:'Newsletter about small tools', parent:'d_ideas', tags:['writing']}),
 
-    O({kind:'essay', title:'Why software forgot about furniture', drawer:'d_write', tags:['writing','bureau'],
+    O({kind:'essay', title:'Why software forgot about furniture', parent:'d_write', tags:['writing','bureau'],
        body:'> Every app is a feed. Almost nothing is a *place*.\n\nA desk is not a better list. A desk is a room-sized argument about what deserves to be within reach.\n\n## The drawer as an idea\n\nA drawer is a promise: this is finite, and you decided what goes in it.\n\n- Finite space forces a judgment\n- Position encodes priority without a number\n- Opening one is a small, satisfying act\n\n## What we lost\n\nInfinite scroll removed the cost of keeping something. When keeping is free, keeping means nothing.'}),
-    O({kind:'outline', title:'Essay outline — "Furniture"', drawer:'d_write', tags:['writing'],
+    O({kind:'outline', title:'Essay outline — "Furniture"', parent:'d_write', tags:['writing'],
        body:'## I. The feed ate the room\n- Everything is chronological now\n- Chronology is not memory\n\n## II. Containers as arguments\n- The drawer, the shelf, the box\n- Finitude as a feature\n\n## III. What an app could borrow\n- Position, weight, wear\n- Opening as ritual'}),
-    O({kind:'note', title:'Reading notes — *The Design of Everyday Things*', drawer:'d_write', tags:['reading'],
+    O({kind:'note', title:'Reading notes — *The Design of Everyday Things*', parent:'d_write', tags:['reading'],
        body:'Affordances are relationships, not properties. A handle affords pulling **for a hand**.\n\n- Signifiers > affordances for screens\n- Feedback must be immediate or it reads as failure'}),
-    O({kind:'note', title:'Names considered before "Bureau"', drawer:'d_write', tags:['bureau'],
+    O({kind:'note', title:'Names considered before "Bureau"', parent:'d_write', tags:['bureau'],
        body:'- Cabinet — too governmental\n- Sideboard — too English\n- Escritoire — unpronounceable, briefly perfect\n- **Bureau** — desk *and* office. Wins.'}),
 
-    O({kind:'question', title:'Should a drawer be able to contain another drawer?', drawer:'d_open', tags:['bureau'],
+    O({kind:'question', title:'Should a drawer be able to contain another drawer?', parent:'d_open', tags:['bureau'],
        body:'**Question —** Nesting is powerful and also how Obsidian becomes a swamp.\n\n**What I know —** Two levels feels safe. Infinite depth always rots.\n\n**Answer —** '}),
-    O({kind:'question', title:'What happens to an object with no drawer?', drawer:'d_open', tags:['bureau']}),
-    O({kind:'question', title:'Is a habit a kind, or a property of a task?', drawer:'d_open', tags:['bureau']}),
+    O({kind:'question', title:'What happens to an object with no drawer?', parent:'d_open', tags:['bureau']}),
+    O({kind:'question', title:'Is a habit a kind, or a property of a task?', parent:'d_open', tags:['bureau']}),
 
-    O({kind:'recipe', title:'Sunday braise', drawer:'d_kitch', tags:['cooking'],
+    O({kind:'recipe', title:'Sunday braise', parent:'d_kitch', tags:['cooking'],
        body:'**Serves** 4 · **Time** 3 hr\n\n## Ingredients\n- 1.4 kg chuck, in big pieces\n- 2 onions, halved\n- 1 head garlic, topped\n- 400 ml red\n- Bay, thyme, a strip of orange peel\n\n## Method\n1. Salt the meat the night before.\n2. Brown hard, in batches, no crowding.\n3. Wine in, scrape, reduce by half.\n4. 150°C, lid on, 3 hours. Do not peek.'}),
-    O({kind:'recipe', title:'The only pancakes', drawer:'d_kitch', tags:['cooking']}),
-    O({kind:'recipe', title:'Cold-brew ratio that finally worked', drawer:'d_kitch', tags:['cooking']}),
+    O({kind:'recipe', title:'The only pancakes', parent:'d_kitch', tags:['cooking']}),
+    O({kind:'recipe', title:'Cold-brew ratio that finally worked', parent:'d_kitch', tags:['cooking']}),
 
-    O({kind:'script', title:'THE LAST VIDEO STORE — cold open', drawer:'d_studio', tags:['film'],
+    O({kind:'script', title:'THE LAST VIDEO STORE — cold open', parent:'d_studio', tags:['film'],
        body:'### INT. VIDEO STORE — NIGHT\n\nFluorescent hum. Shelves half empty. MARGO, 60s, alphabetizes a section that no longer needs it.\n\n**MARGO**\nWe close at nine. We closed at nine for thirty-one years.\n\nShe puts a tape back anyway.'}),
-    O({kind:'media', title:'Reference — brass drawer pulls', drawer:'d_studio', tags:['visual','bureau'], media:{type:'image', label:'12 photographs · Kodak Gold'}}),
-    O({kind:'media', title:'Room tone — kitchen, 4am', drawer:'d_studio', tags:['film'], media:{type:'audio', label:'02:14 · WAV'}}),
-    O({kind:'media', title:'Drawer-open animation test v3', drawer:'d_studio', tags:['bureau','visual'], media:{type:'video', label:'00:06 · ProRes'}}),
+    O({kind:'media', title:'Reference — brass drawer pulls', parent:'d_studio', tags:['visual','bureau'], media:{type:'image', label:'12 photographs · Kodak Gold'}}),
+    O({kind:'media', title:'Room tone — kitchen, 4am', parent:'d_studio', tags:['film'], media:{type:'audio', label:'02:14 · WAV'}}),
+    O({kind:'media', title:'Drawer-open animation test v3', parent:'d_studio', tags:['bureau','visual'], media:{type:'video', label:'00:06 · ProRes'}}),
 
-    O({kind:'habit', title:'Write 500 words', drawer:'d_keep', tags:['writing'], repeat:'daily',
+    O({kind:'habit', title:'Write 500 words', parent:'d_keep', tags:['writing'], repeat:'daily',
        history:[dz(-1),dz(-2),dz(-3),dz(-4),dz(-6),dz(-7),dz(-8),dz(-11)], body:'**Why —** The essay only exists on the days I show up.'}),
-    O({kind:'habit', title:'Walk before screens', drawer:'d_keep', tags:['health'], repeat:'daily',
+    O({kind:'habit', title:'Walk before screens', parent:'d_keep', tags:['health'], repeat:'daily',
        history:[dz(-1),dz(-2),dz(-3),dz(-5),dz(-6),dz(-9),dz(-10),dz(-12),dz(-13)]}),
-    O({kind:'habit', title:'Close the laptop by 10', drawer:'d_keep', tags:['health'], repeat:'weekdays',
+    O({kind:'habit', title:'Close the laptop by 10', parent:'d_keep', tags:['health'], repeat:'weekdays',
        history:[dz(-2),dz(-3),dz(-4),dz(-7)]}),
 
-    O({kind:'goal', title:'Ship Bureau 1.0 to the App Store', drawer:'d_keep', tags:['bureau'], due:dz(120),
+    O({kind:'goal', title:'Ship Bureau 1.0 to the App Store', parent:'d_keep', tags:['bureau'], due:dz(120),
        milestones:[{t:'Object model settled',done:true,d:dz(-20)},{t:'Drawers grid, both layouts',done:true,d:dz(-6)},
                    {t:'Sync working across devices',done:false,d:dz(30)},{t:'Beta with 10 people',done:false,d:dz(70)},
                    {t:'Submit for review',done:false,d:dz(110)}],
        body:'**Definition of done —** My own to-dos live in it for a month and I never open Things.'}),
-    O({kind:'goal', title:'Finish the essay collection', drawer:'d_keep', tags:['writing'], due:dz(240),
+    O({kind:'goal', title:'Finish the essay collection', parent:'d_keep', tags:['writing'], due:dz(240),
        milestones:[{t:'Six essays drafted',done:true,d:dz(-40)},{t:'Ten essays drafted',done:false,d:dz(60)},
                    {t:'Full read-through',done:false,d:dz(150)},{t:'Send to three readers',done:false,d:dz(200)}]}),
 
-    O({kind:'record', title:'Cut the reel from 6 min to 2:40', drawer:'d_done', done:true, doneAt:dz(-2), tags:['work']}),
-    O({kind:'record', title:'Read *Understanding Comics* cover to cover', drawer:'d_done', done:true, doneAt:dz(-5), tags:['reading']}),
-    O({kind:'record', title:'30-day streak: walk before screens', drawer:'d_done', done:true, doneAt:dz(-9), tags:['health']}),
-    O({kind:'record', title:'Named the app', drawer:'d_done', done:true, doneAt:dz(-14), tags:['bureau']})
+    O({kind:'record', title:'Cut the reel from 6 min to 2:40', parent:'d_done', done:true, doneAt:dz(-2), tags:['work']}),
+    O({kind:'record', title:'Read *Understanding Comics* cover to cover', parent:'d_done', done:true, doneAt:dz(-5), tags:['reading']}),
+    O({kind:'record', title:'30-day streak: walk before screens', parent:'d_done', done:true, doneAt:dz(-9), tags:['health']}),
+    O({kind:'record', title:'Named the app', parent:'d_done', done:true, doneAt:dz(-14), tags:['bureau']})
   ];
-  return {drawers, objects};
+  return {objects: drawers.concat(objects)};
 }
 
 /* ============================================================
@@ -772,7 +826,7 @@ const sensedDevice = ()=> window.matchMedia('(min-width: 900px)').matches ? 'des
 function reset(){
   const s = seed();
   S = {
-    drawers:s.drawers, objects:s.objects,
+    objects:s.objects, kinds:{},
     // Paper, not auto: the parchment desk is the intended look, so a Mac in
     // dark mode shouldn't silently serve Walnut on first run.
     device:sensedDevice(), layoutEdit:null, theme:'paper',
@@ -781,6 +835,7 @@ function reset(){
     selDate:T, trash:null, editing:false,
     look:defaultLook()
   };
+  refreshKinds();
 }
 function defaultLook(){
   return {bg:null, accent:null, line:null, railw:212, railHidden:false};
@@ -791,20 +846,51 @@ reset();
 // deliberately opened the other one to arrange it
 const dev = ()=> S.layoutEdit || S.device;
 const byId = id => S.objects.find(o=>o.id===id);
-const drawerById = id => S.drawers.find(d=>d.id===id);
 
-// A drawer is BOTH a smart filter and a real container: anything filed here by
-// hand shows up, plus anything matching the drawer's rule.
-function inDrawer(d,o){
-  const f=d.filter||{};
+/* The desk is the root container. It is never drawn as a tile — it is the grid
+   everything else starts on. Giving it a real object keeps every code path that
+   walks containers identical at the top level. */
+const rootObj = ()=> ({id:ROOT, kind:'drawer', title:'The Desk', c:'#7E5A38',
+                       pv:'list', filter:{}, layout:'grid', parent:null});
+const container = id => (id===ROOT||!id) ? rootObj() : byId(id);
+const isContainer = o => !!o && has(o,'container');
+const containers = ()=> S.objects.filter(isContainer);
+
+// A container is BOTH a smart filter and a real place: anything filed here by
+// hand shows up, plus anything matching its rule. Hand-filing wins — the order
+// of these checks is decision 1 in DECISIONS.md and is deliberate.
+function inContainer(c,o){
+  if(!c || o.id===c.id) return false;
+  const f=c.filter||{};
   if(f.done) return !!o.done;          // the archive drawer
-  if(o.done) return false;             // finished things leave their drawer
-  if(o.drawer===d.id) return true;     // filed by hand
+  if(o.done) return false;             // finished things leave their container
+  if(o.parent===c.id) return true;     // filed by hand
+  if(c.id===ROOT) return false;        // the desk collects nothing by rule
   if(f.due==='today') return !!o.due && D.parse(o.due)<=D.today();
   if(f.kinds) return f.kinds.includes(o.kind);
   return false;
 }
-const contents = d => S.objects.filter(o=>inDrawer(d,o)).sort((a,b)=>a.ord-b.ord);
+// Children in the order the container's layout wants them.
+function childrenOf(c){
+  const list = S.objects.filter(o=>inContainer(c,o));
+  return list.sort((a,b)=>(a.ord||0)-(b.ord||0));
+}
+// Guard against a container being dragged inside itself — with recursion this
+// is a real way to lose a subtree, not a theoretical one.
+function isAncestor(maybeAncestor, o){
+  let p = o && o.parent, n = 0;
+  while(p && p!==ROOT && n++ < 100){
+    if(p===maybeAncestor) return true;
+    const up = byId(p); p = up && up.parent;
+  }
+  return false;
+}
+// Breadcrumb chain from the desk down to this container.
+function chainOf(id){
+  const out=[]; let o=byId(id), n=0;
+  while(o && n++ < 100){ out.unshift(o); o = o.parent&&o.parent!==ROOT ? byId(o.parent) : null; }
+  return out;
+}
 
 /* ------------------------------------------------------------
    4b · the grid — one coordinate space per device
@@ -826,22 +912,37 @@ function lay(d, device){
   return {x:clamp(b.x||1,1,g.cols-w+1), y:Math.max(1,b.y||1), w, h};
 }
 const overlaps = (a,b)=> a.x < b.x+b.w && b.x < a.x+a.w && a.y < b.y+b.h && b.y < a.y+a.h;
-// Is `box` a legal home for drawer `id`? Inside the columns, and touching nobody.
-function boxOk(box, id, device){
-  const g=gridOf(device);
+/* Every check below is scoped to one container's grid. Collisions only matter
+   between siblings — two objects in different drawers can share coordinates,
+   because they are in different coordinate spaces. */
+const hasBox = (o,dv)=> !!(o && o[dv] && o[dv].w);
+function boxOk(box, id, device, parentId){
+  const g=gridOf(device), dv=device||dev();
   if(box.x<1 || box.y<1 || box.w<1 || box.h<1 || box.x+box.w-1>g.cols) return false;
-  return !S.drawers.some(d=>d.id!==id && overlaps(box, lay(d,device)));
+  // Only objects that have actually been placed can be collided with. Without
+  // this, everything unplaced reads as sitting at 1,1 and blocks the corner.
+  return !childrenOf(container(parentId||ROOT))
+    .some(d=>d.id!==id && hasBox(d,dv) && overlaps(box, lay(d,device)));
 }
-// Lowest free spot for a new drawer, scanning left-to-right then down.
-function freeSpot(w,h,device){
+// Lowest free spot in this container, scanning left-to-right then down.
+function freeSpot(w,h,device,parentId){
   const g=gridOf(device);
   for(let y=1;y<200;y++) for(let x=1;x<=g.cols-w+1;x++){
     const box={x,y,w,h};
-    if(boxOk(box,null,device)) return box;
+    if(boxOk(box,null,device,parentId)) return box;
   }
   return {x:1,y:1,w,h};
 }
-const gridRows = (device)=> S.drawers.reduce((m,d)=>{const b=lay(d,device);return Math.max(m,b.y+b.h-1)},0);
+const gridRows = (device,parentId)=> childrenOf(container(parentId||ROOT))
+  .reduce((m,d)=>{const b=lay(d,device);return Math.max(m,b.y+b.h-1)},0);
+/* An object that has never been in a grid has no box. Give it one the first
+   time it needs to be placed, rather than storing coordinates for everything. */
+function ensureBox(o, device, parentId){
+  const dv=device||dev();
+  if(o[dv] && o[dv].w) return o[dv];
+  o[dv] = freeSpot(isContainer(o)?2:2, isContainer(o)?2:1, dv, parentId||o.parent);
+  return o[dv];
+}
 
 /* Appearance: custom background, accent and drawer outline. Written as inline
    custom properties on <html>, which beat both theme blocks. */
@@ -932,14 +1033,14 @@ function nextDue(o){
 }
 function toggleDone(id){
   const o=byId(id); if(!o) return;
-  if(K(o.kind).habit){ toggleHabit(id); return; }
+  if(has(o,'streak')){ toggleHabit(id); return; }
   o.done=!o.done;
   if(o.done){
     o.doneAt=T;
     const nd=nextDue(o);
     if(nd){
       S.objects.push(Object.assign({},o,{id:uid('o'),done:false,doneAt:null,due:nd,ord:o.ord+0.5}));
-      o.kind='record'; o.drawer='d_done'; o.title=o.title;
+      o.kind='record'; o.parent='d_done'; o.title=o.title;
       toast(`Done · repeats ${D.human(nd).toLowerCase()}`);
     } else toast('Filed under Done & Dusted');
   } else { o.doneAt=null; }
@@ -967,15 +1068,24 @@ function undo(){
 function create(kind, patch){
   const k=K(kind);
   const o = Object.assign({
-    id:uid('o'), kind, title:'', body:k.body||'', tags:[], drawer:(S.view==='drawer'&&S.drawerId)||'d_in',
-    done:false, doneAt:null, due:k.sched?T:null, repeat:k.habit?'daily':null,
-    history:[], milestones:k.goal?[{t:'First milestone',done:false,d:dz(30)}]:[],
-    media:k.media?{type:'image',label:'Attach a file'}:null,
-    ord:Math.min(0,...S.objects.map(o=>o.ord))-1, created:T
+    id:uid(kindHas(kind,'container')?'d':'o'), kind, title:'', body:k.body||'', tags:[],
+    parent:(S.view==='drawer'&&S.drawerId)||ROOT,
+    done:false, doneAt:null, due:kindHas(kind,'date')?T:null,
+    repeat:kindHas(kind,'streak')?'daily':null,
+    history:[], milestones:kindHas(kind,'progress')?[{t:'First milestone',done:false,d:dz(30)}]:[],
+    media:kindHas(kind,'media')?{type:'image',label:'Attach a file'}:null,
+    link:kindHas(kind,'button')?{label:'Open',target:''}:null,
+    desk:null, phone:null,
+    ord:Math.min(0,...S.objects.map(o=>o.ord||0))-1, created:T
   }, patch||{});
-  // route into a drawer that will actually show it
-  const home=S.drawers.find(d=>d.filter&&d.filter.kinds&&d.filter.kinds.includes(kind));
-  if(!patch||!patch.drawer){ if(home) o.drawer=home.id; }
+  if(kindHas(kind,'container')){
+    o.c = o.c || k.c; o.pv = o.pv || 'list';
+    o.layout = o.layout || k.layout || 'list';
+    o.filter = o.filter || {};
+  }
+  // route into a container whose rule will actually show it
+  const home=containers().find(d=>d.filter&&d.filter.kinds&&d.filter.kinds.includes(kind));
+  if((!patch||!patch.parent) && home) o.parent=home.id;
   S.objects.push(o);
   return o;
 }
@@ -989,8 +1099,8 @@ function quickAdd(text, kind, drawerId){
   if(/!tomorrow\b/i.test(t)){ due=dz(1); t=t.replace(/!tomorrow\b/i,''); }
   if(/!week\b/i.test(t)){ due=dz(7); t=t.replace(/!week\b/i,''); }
   t=t.replace(/\s+/g,' ').trim();
-  const o=create(k,{title:t, tags, drawer:drawerId||undefined, body:''});
-  if(due) o.due=due; else if(!K(k).sched) o.due=null;
+  const o=create(k,{title:t, tags, parent:drawerId||undefined, body:''});
+  if(due) o.due=due; else if(!kindHas(k,'date')) o.due=null;
   return o;
 }
 
@@ -998,10 +1108,10 @@ function quickAdd(text, kind, drawerId){
    7 · rendering — drawers
    ============================================================ */
 function drawerPreview(d, items){
-  const c=d.c;
+  const c=d.c, f=d.filter||{};
   if(d.pv==='big'){
     const n=items.length;
-    const cap = d.filter.done ? 'accomplishments on record' : 'due today';
+    const cap = f.done ? 'accomplishments on record' : 'due today';
     return `<div class="pv-big"><div class="num">${n}</div><div class="cap">${cap}</div></div>`;
   }
   if(d.pv==='stack'){
@@ -1013,31 +1123,73 @@ function drawerPreview(d, items){
   }
   if(d.pv==='bars'){
     return `<div class="pv-bars">${items.slice(0,4).map(o=>{
-      const p = K(o.kind).goal ? goalPct(o) : clamp(streak(o)*14,6,100);
+      const p = has(o,'progress') ? goalPct(o) : clamp(streak(o)*14,6,100);
       return `<div class="b" style="--k:${K(o.kind).c}"><i style="width:${p}%"></i></div>`;}).join('')}</div>`;
   }
   return `<div class="pv-list">${items.slice(0,5).map(o=>
     `<div class="r${o.done?' done':''}" style="--k:${K(o.kind).c}"><span class="dot"></span><span class="lbl">${esc(o.title||'Untitled')}</span></div>`).join('')}</div>`;
 }
 const HANDLES = ['nw','n','ne','e','se','s','sw','w'];
-function viewDesk(){
-  const arr=S.arrange, g=gridOf();
-  const tiles=S.drawers.map(d=>{
-    const items=contents(d), b=lay(d);
-    return `<button class="drawer${b.h===1?' h1':''}" data-drawer="${d.id}"
-      style="--c:${d.c};grid-column:${b.x} / span ${b.w};grid-row:${b.y} / span ${b.h}">
-      <div class="sizebtns">${arr?`<b data-size="${d.id}">${b.w}×${b.h}</b><b data-delDrawer="${d.id}">✕</b>`:''}</div>
-      <div class="dtop"><span class="dname">${esc(d.nm)}</span><span class="dcount">${items.length}</span></div>
-      <div class="dbody">${drawerPreview(d,items)}</div>
+
+/* One tile, for anything. A container gets the drawer front and a preview of
+   what is inside it; everything else gets its attributes rendered directly.
+   This is the only place that decides how an object looks on a grid, at any
+   depth — the desk and a drawer three levels down both come through here. */
+function gridTile(o, arr, parentId){
+  const b=ensureBox(o, dev(), parentId);
+  const box=lay(o), cont=isContainer(o);
+  const colour = o.c || K(o.kind).c;
+  const handles = arr ? HANDLES.map(h=>`<i class="rz ${h}" data-rz="${h}"></i>`).join('') : '';
+  const chips = arr
+    ? `<div class="sizebtns"><b data-size="${o.id}">${box.w}×${box.h}</b><b data-delDrawer="${o.id}">✕</b></div>`
+    : '';
+  const place = `grid-column:${box.x} / span ${box.w};grid-row:${box.y} / span ${box.h}`;
+
+  if(cont){
+    const items=childrenOf(o);
+    return `<button class="drawer${box.h===1?' h1':''}" data-drawer="${o.id}" style="--c:${colour};${place}">
+      ${chips}
+      <div class="dtop"><span class="dname">${esc(o.title||'Untitled')}</span><span class="dcount">${items.length}</span></div>
+      <div class="dbody">${drawerPreview(o,items)}</div>
       <div class="dfoot"><span class="pull"></span></div>
-      ${arr?HANDLES.map(h=>`<i class="rz ${h}" data-rz="${h}" data-rzid="${d.id}"></i>`).join(''):''}
+      ${handles}
     </button>`;
-  }).join('');
-  // one spare row past the last drawer, so there is somewhere to drag into
-  const rows = gridRows() + (arr?2:0);
+  }
+  return `<button class="drawer otile${box.h===1?' h1':''}" data-row="${o.id}" style="--c:${colour};${place}">
+    ${chips}
+    <div class="dtop">
+      ${has(o,'check')?`<span class="check tilecheck${o.done?' on':''}" data-check="${o.id}">${ic('check',12)}</span>`:''}
+      <span class="dname${o.done?' done':''}">${esc(o.title||'Untitled')}</span>
+    </div>
+    ${has(o,'text')&&o.body?`<div class="dbody"><div class="tiletext">${esc(o.body).slice(0,220)}</div></div>`:'<div class="dbody"></div>'}
+    ${has(o,'button')?`<div class="dfoot"><span class="tilebtn" data-fire="${o.id}">${esc((o.link&&o.link.label)||'Open')}</span></div>`:''}
+    ${has(o,'streak')?`<div class="dfoot"><span class="tilemeta">${streak(o)}-day streak</span></div>`:''}
+    ${has(o,'progress')?`<div class="dfoot"><span class="tilemeta">${goalPct(o)}%</span></div>`:''}
+    ${handles}
+  </button>`;
+}
+
+/* The grid for one container. `id` is ROOT for the desk. */
+function gridOfContainer(cid){
+  const arr=S.arrange, g=gridOf(), c=container(cid);
+  const kids=childrenOf(c);
+  // place everything first, so each one packs against real neighbours
+  kids.forEach(o=>ensureBox(o, dev(), c.id));
+  const tiles=kids.map(o=>gridTile(o,arr,c.id)).join('');
+  const rows=gridRows(dev(),c.id)+(arr?2:0);
+  const spare=arr?freeSpot(2,1,dev(),c.id):null;
+  return `<div class="grid g-${dev()}${arr?' arranging':''}" id="drawergrid" data-gridfor="${c.id}"
+       style="--cols:${g.cols};--rowh:${g.rowh}px;grid-template-rows:repeat(${Math.max(rows,1)},${g.rowh}px)">${tiles}
+    ${arr?`<button class="drawer addnew" data-act="newdrawer" style="grid-column:${spare.x} / span 2;grid-row:${spare.y} / span 1">${ic('plus',18)}</button>`:''}
+  </div>`;
+}
+
+function viewDesk(){
+  const arr=S.arrange;
+  const nDrawers=containers().filter(d=>d.parent===ROOT).length;
   return `
   <div class="topbar">
-    <div><h1>The Desk</h1><div class="sub">${S.objects.length} objects · ${S.drawers.length} drawers · ${dev()==='desk'?'Mac':'iPhone'} layout</div></div>
+    <div><h1>The Desk</h1><div class="sub">${S.objects.length} objects · ${nDrawers} drawers · ${dev()==='desk'?'Mac':'iPhone'} layout</div></div>
     <div class="grow"></div>
     <button class="pill only-phone" data-view="settings" title="Settings">${ic('sliders',14)}</button>
     <button class="pill" data-act="arrange">${ic(arr?'check':'grid',14)} <span class="lbl">${arr?'Done':'Arrange'}</span></button>
@@ -1046,13 +1198,10 @@ function viewDesk(){
   <div class="scroll">
     ${S.layoutEdit?`<div class="banner">${ic('resize',14)} You are arranging the <b style="margin:0 3px">${S.layoutEdit==='desk'?'Mac':'iPhone'}</b> layout.
       <button data-act="stopedit">Back to this device</button></div>`:''}
-    ${arr?`<div class="mini" style="--k:var(--brass)"><span class="dot"></span>Drag a drawer to move it · drag any edge or corner to resize · this only changes your <b style="color:var(--ink);margin:0 3px">${dev()==='desk'?'Mac':'iPhone'}</b> layout</div>`:''}
-    <div class="grid g-${dev()}${arr?' arranging':''}" id="drawergrid"
-         style="--cols:${g.cols};--rowh:${g.rowh}px;grid-template-rows:repeat(${Math.max(rows,1)},${g.rowh}px)">${tiles}
-      ${arr?(()=>{const s=freeSpot(2,1);return `<button class="drawer addnew" data-act="newdrawer" style="grid-column:${s.x} / span 2;grid-row:${s.y} / span 1">${ic('plus',18)}</button>`;})():''}
-    </div>
+    ${arr?`<div class="mini" style="--k:var(--brass)"><span class="dot"></span>Drag to move · drag any edge or corner to resize · this only changes your <b style="color:var(--ink);margin:0 3px">${dev()==='desk'?'Mac':'iPhone'}</b> layout</div>`:''}
+    ${gridOfContainer(ROOT)}
     ${arr?'':`<div class="section-h"><h2>Recently opened</h2><div class="rule"></div></div>
-    <div class="rows">${S.objects.slice().sort((a,b)=>(b.doneAt||b.created||'').localeCompare(a.doneAt||a.created||'')).slice(0,4).map(row).join('')}</div>`}
+    <div class="rows">${S.objects.filter(o=>!isContainer(o)).slice().sort((a,b)=>(b.doneAt||b.created||'').localeCompare(a.doneAt||a.created||'')).slice(0,4).map(row).join('')}</div>`}
   </div>`;
 }
 
@@ -1064,15 +1213,15 @@ function row(o){
   const late=!o.done&&D.overdue(o.due);
   const meta=[];
   meta.push(`<span class="mchip k">${k.nm.toLowerCase()}</span>`);
-  if(o.due&&!k.habit) meta.push(`<span class="mchip${late?' late':''}">${ic('calendar',11)} ${D.human(o.due)}</span>`);
-  if(o.repeat&&!k.habit) meta.push(`<span class="mchip">${ic('repeat',11)} ${o.repeat}</span>`);
-  if(k.habit) meta.push(`<span class="mchip">${ic('repeat',11)} ${streak(o)}-day streak</span>`);
-  if(k.goal) meta.push(`<span class="mchip">${ic('target',11)} ${goalPct(o)}%</span>`);
+  if(o.due&&!has(o,'streak')) meta.push(`<span class="mchip${late?' late':''}">${ic('calendar',11)} ${D.human(o.due)}</span>`);
+  if(o.repeat&&!has(o,'streak')) meta.push(`<span class="mchip">${ic('repeat',11)} ${o.repeat}</span>`);
+  if(has(o,'streak')) meta.push(`<span class="mchip">${ic('repeat',11)} ${streak(o)}-day streak</span>`);
+  if(has(o,'progress')) meta.push(`<span class="mchip">${ic('target',11)} ${goalPct(o)}%</span>`);
   if(o.media) meta.push(`<span class="mchip">${ic(o.media.type==='audio'?'music':o.media.type==='video'?'film':'image',11)} ${esc(o.media.label)}</span>`);
   (o.tags||[]).slice(0,3).forEach(t=>meta.push(`<span class="mchip tag">${esc(t)}</span>`));
   const snip=strip(o.body).slice(0,90);
-  const lead = k.checkable||k.habit
-    ? `<span class="check${(k.habit? (o.history||[]).includes(T) : o.done)?' on':''}" data-check="${o.id}">${ic('check',13)}</span>`
+  const lead = has(o,'check')||has(o,'streak')
+    ? `<span class="check${(has(o,'streak')? (o.history||[]).includes(T) : o.done)?' on':''}" data-check="${o.id}">${ic('check',13)}</span>`
     : `<span class="kindmark">${ic(k.ic,13)}</span>`;
   return `<div class="rowwrap" data-wrap="${o.id}">
     <div class="swipebg"><span>${ic('check',13)} File</span><span>Delete ${ic('trash',13)}</span></div>
@@ -1107,34 +1256,50 @@ function card(o){
    9 · rendering — drawer view
    ============================================================ */
 function viewDrawer(){
-  const d=drawerById(S.drawerId); if(!d) return viewDesk();
-  let items=contents(d);
+  const d=byId(S.drawerId);
+  if(!d || !isContainer(d)) return viewDesk();
+  const all=childrenOf(d);
+  let items=all;
   if(S.kindFilter) items=items.filter(o=>o.kind===S.kindFilter);
   if(S.tagFilter) items=items.filter(o=>(o.tags||[]).includes(S.tagFilter));
-  const kinds=[...new Set(contents(d).map(o=>o.kind))];
-  const defKind = (d.filter.kinds&&d.filter.kinds[0]) || 'task';
+  const kinds=[...new Set(all.map(o=>o.kind))];
+  const f=d.filter||{};
+  const defKind = (f.kinds&&f.kinds[0]) || 'task';
+  const isGrid = d.layout==='grid';
+  const arr=S.arrange;
+  // the full chain, so a drawer four levels deep still tells you where you are
+  const trail=chainOf(d.id);
   return `
   <div class="topbar">
     <button class="iconbtn" data-act="back">${ic('chevL',18)}</button>
-    <div><div class="crumbs">${ic('grid',11)} <b>Desk</b> ${ic('chevR',10)} ${esc(d.nm)}</div>
-      <h1 style="color:${d.c}">${esc(d.nm)}</h1></div>
+    <div><div class="crumbs">${ic('grid',11)} <b data-view="desk">Desk</b> ${
+      trail.map((c,i)=> `${ic('chevR',10)} ${i===trail.length-1?esc(c.title):`<b data-drawer="${c.id}">${esc(c.title)}</b>`}`).join(' ')}</div>
+      <h1 style="color:${d.c||K(d.kind).c}">${esc(d.title)}</h1></div>
     <div class="grow"></div>
-    <button class="pill" data-act="listmode">${ic(S.listmode==='rows'?'grid':'list',14)}</button>
-    <button class="pill${S.reorder?' solid':''}" data-act="reorder">${ic('grip',14)} <span class="lbl">${S.reorder?'Done':'Reorder'}</span></button>
+    <div class="seg" title="How this drawer lays its contents out">
+      <button data-layoutmode="list" aria-pressed="${!isGrid}">List</button>
+      <button data-layoutmode="grid" aria-pressed="${isGrid}">Grid</button>
+    </div>
+    ${isGrid
+      ? `<button class="pill" data-act="arrange">${ic(arr?'check':'grid',14)} <span class="lbl">${arr?'Done':'Arrange'}</span></button>`
+      : `<button class="pill" data-act="listmode">${ic(S.listmode==='rows'?'grid':'list',14)}</button>
+         <button class="pill${S.reorder?' solid':''}" data-act="reorder">${ic('grip',14)} <span class="lbl">${S.reorder?'Done':'Reorder'}</span></button>`}
     <button class="pill solid" data-act="new">${ic('plus',14)}</button>
   </div>
   <div class="scroll">
     <div class="quickadd">${ic('plus',15)}
-      <input id="qa" placeholder="Add to ${esc(d.nm)}…  try  /idea  #tag  !today" data-kind="${defKind}" data-drawer="${d.id}">
+      <input id="qa" placeholder="Add to ${esc(d.title)}…  try  /idea  #tag  !today" data-kind="${defKind}" data-drawer="${d.id}">
       <span class="k">↵</span></div>
-    ${kinds.length>1?`<div class="filterbar">
+    ${kinds.length>1&&!isGrid?`<div class="filterbar">
       <button class="fchip${!S.kindFilter?' on':''}" data-kind="">All</button>
       ${kinds.map(k=>`<button class="fchip${S.kindFilter===k?' on':''}" data-kind="${k}" style="--k:${K(k).c}">${K(k).nm}</button>`).join('')}
     </div>`:''}
-    ${items.length? (S.listmode==='rows'
-        ? `<div class="rows${S.reorder?' reordering':''}" id="sortlist">${items.map(row).join('')}</div>`
-        : `<div class="cards">${items.map(card).join('')}</div>`)
-      : `<div class="empty"><div class="big">This drawer is empty</div>Add something above, or drag an object in.</div>`}
+    ${isGrid
+      ? gridOfContainer(d.id)
+      : (items.length? (S.listmode==='rows'
+          ? `<div class="rows${S.reorder?' reordering':''}" id="sortlist">${items.map(row).join('')}</div>`
+          : `<div class="cards">${items.map(card).join('')}</div>`)
+        : `<div class="empty"><div class="big">This drawer is empty</div>Add something above, or drag an object in.</div>`)}
   </div>`;
 }
 
@@ -1146,7 +1311,7 @@ function viewToday(){
   const sel=S.selDate;
   const due=S.objects.filter(o=>!o.done&&o.due===sel).sort((a,b)=>a.ord-b.ord);
   const over=S.objects.filter(o=>!o.done&&D.overdue(o.due)&&sel===T);
-  const habits=S.objects.filter(o=>K(o.kind).habit);
+  const habits=S.objects.filter(o=>has(o,'streak'));
   return `
   <div class="topbar">
     <div><h1>${sel===T?'Today':D.parse(sel).toLocaleDateString(undefined,{weekday:'long'})}</h1>
@@ -1184,8 +1349,8 @@ function viewToday(){
    11 · rendering — keeping up (habits, goals, record)
    ============================================================ */
 function viewKeep(){
-  const habits=S.objects.filter(o=>K(o.kind).habit);
-  const goals=S.objects.filter(o=>K(o.kind).goal);
+  const habits=S.objects.filter(o=>has(o,'streak'));
+  const goals=S.objects.filter(o=>has(o,'progress'));
   const recs=S.objects.filter(o=>o.kind==='record'||(o.done&&o.doneAt)).sort((a,b)=>(b.doneAt||'').localeCompare(a.doneAt||''));
   const groups={}; recs.forEach(r=>{ (groups[r.doneAt||'—']=groups[r.doneAt||'—']||[]).push(r); });
   return `
@@ -1321,7 +1486,7 @@ function viewSettings(){
     <div class="section-h"><h2>Your things</h2><div class="rule"></div></div>
     <div class="statline">
       <div class="s"><b>${S.objects.length}</b>objects</div>
-      <div class="s"><b>${S.drawers.length}</b>drawers</div>
+      <div class="s"><b>${containers().length}</b>drawers</div>
       <div class="s"><b>${allTags().length}</b>tags</div>
       <div class="s"><b>${bytes(storeSize())}</b>on this device</div>
     </div>
@@ -1358,8 +1523,13 @@ function rail(){
     ${nav.map(([v,i,n,c])=>`<button class="navitem${S.view===v?' on':''}" data-view="${v}">
       <span class="ico">${ic(i,16)}</span>${n}${c!==''?`<span class="n">${c}</span>`:''}</button>`).join('')}
     <div class="label">Drawers</div>
-    ${S.drawers.map(d=>`<button class="navitem${S.drawerId===d.id&&S.view==='drawer'?' on':''}" data-drawer="${d.id}">
-      <span class="ico" style="color:${d.c}">${ic('folder',15)}</span>${esc(d.nm)}<span class="n">${contents(d).length}</span></button>`).join('')}
+    ${containers().map(d=>{
+      // indent by depth, so a nested drawer reads as nested
+      const depth=Math.min(chainOf(d.id).length-1,3);
+      return `<button class="navitem${S.drawerId===d.id&&S.view==='drawer'?' on':''}" data-drawer="${d.id}"
+        style="padding-left:${10+depth*13}px">
+        <span class="ico" style="color:${d.c||K(d.kind).c}">${ic('folder',15)}</span>${esc(d.title)}<span class="n">${childrenOf(d).length}</span></button>`;
+    }).join('')}
     <div class="label">Tags</div>
     <div class="tagwrap">${allTags().slice(0,10).map(([t,n])=>
       `<button class="tagchip${S.tagFilter===t?' on':''}" data-tag="${esc(t)}">${esc(t)} <span style="opacity:.6">${n}</span></button>`).join('')}</div>
@@ -1410,27 +1580,42 @@ function renderSheet(){
   const o=S.openId?byId(S.openId):null;
   if(!o){ host.innerHTML=''; return; }
   const k=K(o.kind);
-  const drawerOpts=S.drawers.map(d=>`<option value="${d.id}"${o.drawer===d.id?' selected':''}>${esc(d.nm)}</option>`).join('');
+  const drawerOpts=containers().filter(c=>c.id!==o.id&&!isAncestor(o.id,c)).map(d=>`<option value="${d.id}"${o.parent===d.id?" selected":""}>${esc(d.title)}</option>`).join('');
   const kindOpts=KEYS.map(x=>`<option value="${x}"${o.kind===x?' selected':''}>${KINDS[x].nm}</option>`).join('');
 
+  // Every field below is gated on an attribute, never on a kind name — that is
+  // what lets an invented kind get the right fields for free.
   const fields=[];
   fields.push(`<div class="field"><label>Kind</label><select data-f="kind">${kindOpts}</select></div>`);
-  fields.push(`<div class="field"><label>Drawer</label><select data-f="drawer">${drawerOpts}</select></div>`);
-  if(!k.habit) fields.push(`<div class="field"><label>${k.goal?'Target date':'Scheduled'}</label><input type="date" data-f="due" value="${o.due||''}"></div>`);
-  fields.push(`<div class="field"><label>${k.habit?'Cadence':'Repeats'}</label><select data-f="repeat">
+  fields.push(`<div class="field"><label>Lives in</label><select data-f="parent">
+    <option value="${ROOT}"${o.parent===ROOT?' selected':''}>The Desk</option>${drawerOpts}</select></div>`);
+  if(has(o,'date')) fields.push(`<div class="field"><label>${has(o,'progress')?'Target date':'Scheduled'}</label><input type="date" data-f="due" value="${o.due||''}"></div>`);
+  if(has(o,'repeat')||has(o,'streak')) fields.push(`<div class="field"><label>${has(o,'streak')?'Cadence':'Repeats'}</label><select data-f="repeat">
       ${['','daily','weekdays','weekly','monthly'].map(r=>`<option value="${r}"${(o.repeat||'')===r?' selected':''}>${r||'Never'}</option>`).join('')}
     </select></div>`);
-  if(k.media) fields.push(`<div class="field"><label>Media type</label><select data-f="mtype">
+  if(has(o,'media')) fields.push(`<div class="field"><label>Media type</label><select data-f="mtype">
       ${['image','video','audio'].map(t=>`<option value="${t}"${o.media&&o.media.type===t?' selected':''}>${t}</option>`).join('')}</select></div>`);
+  if(has(o,'container')) fields.push(`<div class="field"><label>Contents laid out as</label><select data-f="layout">
+      ${[['list','List'],['grid','Grid']].map(([v,n])=>`<option value="${v}"${(o.layout||'list')===v?' selected':''}>${n}</option>`).join('')}</select></div>`);
 
   let extra='';
-  if(k.habit){
+  if(has(o,'button')){
+    const L=o.link||{label:'Open',target:''};
+    extra += `<div class="section-h"><h2>Button</h2><div class="rule"></div></div>
+      <div class="field" style="margin-bottom:8px"><label>Label</label><input data-f="linklabel" value="${esc(L.label||'')}" placeholder="Open"></div>
+      <div class="field"><label>Opens</label><select data-f="linktarget">
+        <option value="">Nothing yet</option>
+        <optgroup label="In Bureau">${containers().map(c=>`<option value="${c.id}"${L.target===c.id?' selected':''}>${esc(c.title)}</option>`).join('')}</optgroup>
+      </select></div>
+      <div class="field" style="margin-top:8px"><label>…or a link</label><input data-f="linkurl" value="${/^https?:/.test(L.target||'')?esc(L.target):''}" placeholder="https://"></div>`;
+  }
+  if(has(o,'streak')){
     extra += `<div class="section-h"><h2>Last 28 days</h2><div class="rule"></div><span class="n">${streak(o)}-day streak</span></div>
       <div class="dots" style="--k:${k.c};margin:0 0 6px;flex-wrap:wrap;gap:4px">
       ${[...Array(28)].map((_,i)=>{const ds=D.addISO(T,i-27);
         return `<i data-hday="${ds}" style="width:18px;height:26px;cursor:pointer" class="${(o.history||[]).includes(ds)?'on':''}${ds===T?' today':''}"></i>`}).join('')}</div>`;
   }
-  if(k.goal){
+  if(has(o,'progress')){
     extra += `<div class="section-h"><h2>Milestones</h2><div class="rule"></div><span class="n">${goalPct(o)}%</span></div>
       <div class="bar" style="--k:${k.c}"><i style="width:${goalPct(o)}%"></i></div>
       <div class="miles">${(o.milestones||[]).map((m,i)=>`
@@ -1447,13 +1632,23 @@ function renderSheet(){
       <div class="art">${ic(o.media.type==='audio'?'music':o.media.type==='video'?'film':'image',34)}</div>
       <div class="cap">${ic('folder',12)} ${esc(o.media.label||'')} <span style="margin-left:auto;color:var(--ink-3)">tap to replace</span></div></div>`;
   }
+  // What this object actually is. Toggling here overrides the kind for this one
+  // object; "Match the kind" drops the override and follows the kind again.
+  const own=!!o.attrs, mine=attrsOf(o);
+  extra += `<div class="section-h"><h2>Attributes</h2><div class="rule"></div>
+      <span class="n">${own?'this object only':'from '+k.nm.toLowerCase()}</span></div>
+    <div class="filterbar" style="flex-wrap:wrap">${ATTRKEYS.map(a=>
+      `<button class="fchip${mine.includes(a)?' on':''}" data-attr="${a}" title="${esc(ATTRS[a].ds)}">${ATTRS[a].nm}</button>`).join('')}</div>
+    <div class="mini" style="--k:var(--brass);margin-top:6px">${esc(mine.map(a=>ATTRS[a]?ATTRS[a].ds:a).join(' · '))||'Nothing yet'}</div>
+    ${own?`<button class="subtle-btn" data-act="attrreset" style="margin-top:8px">${ic('undo',12)} Match the ${esc(k.nm.toLowerCase())} kind again</button>`:''}
+    <button class="subtle-btn" data-act="kindfromobj" style="margin-top:8px">${ic('sparkle',12)} Save these attributes as a new kind</button>`;
 
   host.innerHTML = `<div class="sheet open" id="sheet" style="--k:${k.c}">
     <div class="sheet-h">
       <button class="iconbtn" data-sheet="close">${ic('chevL',18)}</button>
       <span class="kindbadge">${ic(k.ic,12)} ${k.nm}</span>
       <div style="flex:1"></div>
-      ${(k.checkable||k.habit)?`<button class="pill" data-sheet="done">${ic('check',13)} ${k.habit?((o.history||[]).includes(T)?'Done today':'Mark today'):(o.done?'Completed':'Complete')}</button>`:''}
+      ${(has(o,'check')||has(o,'streak'))?`<button class="pill" data-sheet="done">${ic('check',13)} ${has(o,'streak')?((o.history||[]).includes(T)?'Done today':'Mark today'):(o.done?'Completed':'Complete')}</button>`:''}
       <div class="seg"><button data-sheet="read" aria-pressed="${!S.editing}">Read</button><button data-sheet="write" aria-pressed="${S.editing}">Write</button></div>
       <button class="iconbtn" data-sheet="del">${ic('trash',16)}</button>
     </div>
@@ -1464,7 +1659,7 @@ function renderSheet(){
         ${(o.tags||[]).map(t=>`<span class="tagchip on">${esc(t)} <b data-untag="${esc(t)}" style="cursor:pointer;opacity:.6">✕</b></span>`).join('')}
         <button class="add" data-act="addtag">+ tag</button></div>
       ${extra}
-      <div class="section-h"><h2>${k.goal||k.habit?'Notes':'Body'}</h2><div class="rule"></div>
+      <div class="section-h"><h2>${has(o,'progress')||has(o,'streak')?'Notes':'Body'}</h2><div class="rule"></div>
         <span class="n">${(o.body||'').split(/\s+/).filter(Boolean).length} words</span></div>
       ${S.editing
         ? `<textarea class="editor" data-f="body" placeholder="Markdown welcome — # heading, **bold**, - list, - [ ] checkbox, > quote">${esc(o.body)}</textarea>`
@@ -1515,12 +1710,15 @@ function swatchRows(cur){
   ).join('') + (known?'':`<div class="pickgrid sw"><button data-col="${cur}" class="on" title="Custom" style="background:${cur}"></button></div>`);
 }
 function modalDrawer(id){
-  const d = id? drawerById(id) : {id:'', nm:'', c:'#4A7C59', pv:'list', filter:{kinds:[]}};
-  const ks=(d.filter.kinds||[]);
+  const d = id? byId(id) : {id:'', title:'', c:'#4A7C59', pv:'list', layout:'list', filter:{kinds:[]}};
+  const ks=((d.filter||{}).kinds||[]);
   showModal(`<div class="modal-h"><div class="t">${id?'Edit drawer':'New drawer'}</div>
-    <div class="s">A drawer shows anything you file in it by hand, plus anything matching its rule.</div></div>
+    <div class="s">A drawer is an object that contains other objects. It shows anything you file in it by hand, plus anything matching its rule.</div></div>
   <div class="modal-b">
-    <div class="field" style="margin-bottom:10px"><label>Name</label><input id="dnm" value="${esc(d.nm)}" placeholder="Reading Pile"></div>
+    <div class="field" style="margin-bottom:10px"><label>Name</label><input id="dnm" value="${esc(d.title||'')}" placeholder="Reading Pile"></div>
+    <div class="field" style="margin-bottom:10px"><label>Lays its contents out as</label>
+      <div class="filterbar" id="dlayout" style="padding-top:6px">${[['list','List'],['grid','Grid']].map(([v,n])=>
+        `<button class="fchip${(d.layout||'list')===v?' on':''}" data-dl="${v}">${n}</button>`).join('')}</div></div>
     <div class="field" style="margin-bottom:10px"><label>Colour</label>
       <div id="dcol" style="margin-top:6px">${swatchRows(d.c)}
         <label class="custcol"><input type="color" data-colinput value="${d.c}">
@@ -1539,13 +1737,46 @@ function modalDrawer(id){
     </div>
   </div>`);
   const m=$('#modal');
-  m._draft={c:d.c, pv:d.pv, kinds:ks.slice()};
+  m._draft={c:d.c, pv:d.pv, kinds:ks.slice(), layout:d.layout||'list'};
+}
+/* Make a kind by choosing attributes. `from` is an object whose attributes seed
+   the picker — "save these attributes as a new kind" from the detail sheet. */
+function modalNewKind(from){
+  const seedAttrs = from ? attrsOf(from).slice() : ['text'];
+  const c = (from && from.c) || '#5F7A93';
+  showModal(`<div class="modal-h"><div class="t">New kind</div>
+    <div class="s">A kind is a name for a set of attributes. Pick what objects of this kind can do.</div></div>
+  <div class="modal-b">
+    <div class="field" style="margin-bottom:10px"><label>Name</label>
+      <input id="knm" value="${from?esc(K(from.kind).nm)+' variant':''}" placeholder="Reading note"></div>
+    <div class="field" style="margin-bottom:10px"><label>Description</label>
+      <input id="kds" placeholder="What it's for, in a few words"></div>
+    <div class="field" style="margin-bottom:10px"><label>Attributes</label>
+      <div class="filterbar" id="kattrs" style="flex-wrap:wrap;padding-top:6px">${ATTRKEYS.map(a=>
+        `<button class="fchip${seedAttrs.includes(a)?' on':''}" data-ka="${a}" title="${esc(ATTRS[a].ds)}">${ATTRS[a].nm}</button>`).join('')}</div>
+      <div class="mini" style="--k:var(--brass);margin-top:6px" id="kattrsds">${esc(seedAttrs.map(a=>ATTRS[a].ds).join(' · '))}</div></div>
+    <div class="field" style="margin-bottom:10px"><label>Colour</label>
+      <div id="dcol" style="margin-top:6px">${swatchRows(c)}
+        <label class="custcol"><input type="color" data-colinput value="${c}"><span>Custom colour</span></label></div></div>
+    <div style="display:flex;gap:8px;margin-top:14px">
+      <button class="pill solid" data-act="savekind">Create kind</button>
+      <button class="pill" data-act="cancel">Cancel</button>
+    </div>
+  </div>`);
+  const m=$('#modal');
+  m._draft={c, attrs:seedAttrs, ic:from?K(from.kind).ic:'note', ds:'', fromId:from&&from.id};
+}
+// Anywhere this object may legally go: any container that is not itself, and
+// not inside itself — otherwise a drawer can swallow its own ancestor.
+function moveTargets(objId){
+  const o=byId(objId);
+  return [rootObj()].concat(containers().filter(c=>c.id!==objId && !(o&&isAncestor(objId,c))));
 }
 function modalMove(objId){
   showModal(`<div class="modal-h"><div class="t">Move to drawer</div><div class="s">Filing by hand always wins over the drawer's rule.</div></div>
-  <div class="modal-b"><div class="rows">${S.drawers.map(d=>
-    `<div class="row" data-moveto="${objId}:${d.id}" style="--k:${d.c}"><span class="kindmark">${ic('folder',13)}</span>
-      <div class="body"><div class="title">${esc(d.nm)}</div><div class="snip">${contents(d).length} objects</div></div></div>`).join('')}</div></div>`);
+  <div class="modal-b"><div class="rows">${moveTargets(objId).map(d=>
+    `<div class="row" data-moveto="${objId}:${d.id}" style="--k:${d.c||K(d.kind).c}"><span class="kindmark">${ic('folder',13)}</span>
+      <div class="body"><div class="title">${esc(d.title)}</div><div class="snip">${childrenOf(d).length} objects</div></div></div>`).join('')}</div></div>`);
 }
 
 /* ============================================================
@@ -1556,7 +1787,7 @@ function closeCmd(){ $('#cmdscrim').classList.remove('open'); if(document.active
 function cmdList(q){
   q=q.trim().toLowerCase();
   const res=[];
-  S.drawers.forEach(d=>{ if(!q||d.nm.toLowerCase().includes(q)) res.push({t:d.nm,s:'drawer',c:d.c,i:'folder',go:()=>{S.view='drawer';S.drawerId=d.id;}}); });
+  containers().forEach(d=>{ if(!q||(d.title||'').toLowerCase().includes(q)) res.push({t:d.title,s:'drawer',c:d.c||K(d.kind).c,i:'folder',go:()=>{S.view='drawer';S.drawerId=d.id;}}); });
   KEYS.forEach(k=>{ if(q&&KINDS[k].nm.toLowerCase().includes(q)) res.push({t:'All '+KINDS[k].nm.toLowerCase()+'s',s:'kind',c:KINDS[k].c,i:KINDS[k].ic,go:()=>{S.view='all';S.kindFilter=k;}}); });
   S.objects.forEach(o=>{ if(q&&((o.title||'').toLowerCase().includes(q)||(o.body||'').toLowerCase().includes(q)))
     res.push({t:o.title||'Untitled',s:K(o.kind).nm,c:K(o.kind).c,i:K(o.kind).ic,go:()=>openObj(o.id)}); });
@@ -1577,7 +1808,7 @@ function openCtx(x,y,id){
   const el=$('#ctx');
   el.innerHTML=`
     <button data-c="open:${id}">${ic('eye',14)} Open</button>
-    ${(k.checkable||k.habit)?`<button data-c="done:${id}">${ic('check',14)} ${k.habit?'Mark today':'Complete'}</button>`:''}
+    ${(has(o,'check')||has(o,'streak'))?`<button data-c="done:${id}">${ic('check',14)} ${has(o,'streak')?'Mark today':'Complete'}</button>`:''}
     <button data-c="today:${id}">${ic('calendar',14)} Schedule today</button>
     <button data-c="tom:${id}">${ic('calendar',14)} Schedule tomorrow</button>
     <div class="div"></div>
@@ -1637,12 +1868,15 @@ function onDown(e){
     G.el.setPointerCapture&&G.el.setPointerCapture(e.pointerId);
     return;
   }
-  const dEl=e.target.closest('.drawer[data-drawer]');
+  // any tile on a grid, container or not — they all move and resize the same
+  const dEl=e.target.closest('.grid .drawer[data-drawer],.grid .drawer[data-row]');
   if(S.arrange && dEl && !e.target.closest('.sizebtns')){
-    const d=drawerById(dEl.dataset.drawer), grid=$('#drawergrid');
+    const grid=dEl.closest('.grid');
+    const d=byId(dEl.dataset.drawer||dEl.dataset.row);
     if(!d || !grid) return;
     const hEl=e.target.closest('[data-rz]'), g=gridOf();
     G={type: hEl?'resize':'move', el:dEl, id:d.id, handle:hEl?hEl.dataset.rz:null,
+       parent:grid.dataset.gridfor||ROOT,
        box:lay(d), stepX:cellW(grid,g)+g.gap, stepY:g.rowh+g.gap,
        sx:e.clientX, sy:e.clientY, mode:null, ok:true, cand:null};
     dEl.setPointerCapture&&dEl.setPointerCapture(e.pointerId);
@@ -1685,7 +1919,7 @@ function onMove(e){
       }
     }
     const box=candidate(G, Math.round(dx/G.stepX), Math.round(dy/G.stepY));
-    G.cand=box; G.ok=boxOk(box, G.id);
+    G.cand=box; G.ok=boxOk(box, G.id, dev(), G.parent);
     G.el.classList.toggle('invalid', !G.ok);
     if(G.type==='move'){
       G.el.style.transform=`translate(${dx}px,${dy}px)`;
@@ -1729,7 +1963,7 @@ function onUp(e){
     g.el.classList.remove('dragging','invalid');
     g.el.style.transform='';
     if(g.ghost) g.ghost.remove();
-    const d=drawerById(g.id);
+    const d=byId(g.id);
     if(d && g.cand && g.ok) d[dev()]={...g.cand};
     save(); render();
     if(d && g.cand && !g.ok) toast('No room there');
@@ -1753,7 +1987,7 @@ function onUp(e){
   }
   if(g.mode===null && Math.abs(dx)<7){
     // a tap
-    if(g.type==='move'||g.type==='resize'){ if(S.arrange) modalDrawer(g.id); }
+    if(g.type==='move'||g.type==='resize'){ const o=byId(g.id); if(S.arrange&&o) isContainer(o)?modalDrawer(g.id):openObj(g.id); }
     else if(g.type==='row') openObj(g.el.dataset.row);
   }
 }
@@ -1768,8 +2002,8 @@ let deferredInstall = null;
 let saveTimer = null;
 
 function snapshot(){
-  return {v:2, savedAt:new Date().toISOString(), theme:S.theme, listmode:S.listmode,
-          look:S.look, drawers:S.drawers, objects:S.objects};
+  return {v:3, savedAt:new Date().toISOString(), theme:S.theme, listmode:S.listmode,
+          look:S.look, kinds:S.kinds, objects:S.objects};
 }
 function writeNow(){
   try{ localStorage.setItem(KEY, JSON.stringify(snapshot())); }
@@ -1796,15 +2030,38 @@ function flowToCoords(drawers, device){
     taken.push(placed); d[device]=placed;
   });
 }
+/* v2 → v3: drawers and objects were two arrays and a drawer could not live
+   inside anything. Fold the drawers into the object list as kind 'drawer', and
+   turn each object's `drawer` pointer into a `parent`. Ids are preserved, so
+   anything that referenced an object by id still resolves. */
+function foldDrawers(d){
+  const drawers=(d.drawers||[]).map(x=>Object.assign({
+    kind:'drawer', parent:ROOT, layout:'list', tags:[], body:'', ord:0,
+    filter:{}, pv:'list'
+  }, x, {title: x.title || x.nm || 'Untitled'}));
+  drawers.forEach(x=>{ delete x.nm; });
+  flowToCoords(drawers,'desk');
+  flowToCoords(drawers,'phone');
+  const known=new Set(drawers.map(x=>x.id));
+  const objects=(d.objects||[]).map(o=>{
+    const n=Object.assign({tags:[],history:[],milestones:[],ord:0,desk:null,phone:null},o);
+    n.parent = (o.parent && (known.has(o.parent)||o.parent===ROOT)) ? o.parent
+             : (known.has(o.drawer) ? o.drawer : ROOT);
+    delete n.drawer;
+    return n;
+  });
+  return drawers.concat(objects);
+}
 function adopt(d){
-  if(!d || !Array.isArray(d.objects) || !Array.isArray(d.drawers)) return false;
-  S.objects = d.objects.map(o=>Object.assign({tags:[],history:[],milestones:[],ord:0},o));
-  S.drawers = d.drawers.map(x=>Object.assign({filter:{}},x));
-  flowToCoords(S.drawers,'desk');
-  flowToCoords(S.drawers,'phone');
+  if(!d || !Array.isArray(d.objects)) return false;
+  S.objects = Array.isArray(d.drawers)
+    ? foldDrawers(d)                                    // v1 or v2
+    : d.objects.map(o=>Object.assign({tags:[],history:[],milestones:[],ord:0},o));
+  S.kinds = d.kinds || {};
   S.look = Object.assign(defaultLook(), d.look||{});
   if(d.theme) S.theme = d.theme;
   if(d.listmode) S.listmode = d.listmode;
+  refreshKinds();
   return true;
 }
 function load(){
@@ -1851,17 +2108,54 @@ function act(name, el){
     case 'cancel': hideModal(); break;
     case 'savedrawer': {
       const id=el.dataset.id, m=$('#modal'), draft=m._draft||{};
-      const nm=$('#dnm').value.trim()||'Untitled drawer';
-      if(id){ const d=drawerById(id); Object.assign(d,{nm,c:draft.c,pv:draft.pv}); d.filter={kinds:draft.kinds}; }
-      else S.drawers.push({id:uid('d'),nm,c:draft.c,pv:draft.pv,filter:{kinds:draft.kinds},
-        desk:freeSpot(2,2,'desk'), phone:freeSpot(2,2,'phone')});
-      hideModal(); render(); toast(id?'Drawer updated':'Drawer added to the desk');
+      const title=$('#dnm').value.trim()||'Untitled drawer';
+      if(id){ const d=byId(id);
+        Object.assign(d,{title,c:draft.c,pv:draft.pv,layout:draft.layout});
+        d.filter={kinds:draft.kinds};
+      } else {
+        // a new drawer lands inside whatever container you are looking at
+        const home=(S.view==='drawer'&&S.drawerId)||ROOT;
+        S.objects.push({id:uid('d'), kind:'drawer', title, body:'', tags:[],
+          parent:home, c:draft.c, pv:draft.pv, layout:draft.layout||'list',
+          filter:{kinds:draft.kinds}, ord:0, created:T,
+          desk:freeSpot(2,2,'desk',home), phone:freeSpot(2,2,'phone',home)});
+      }
+      hideModal(); save(); render(); toast(id?'Drawer updated':'Drawer added');
       break;
     }
     case 'deldrawer': {
       const id=el.dataset.id;
-      S.drawers=S.drawers.filter(d=>d.id!==id);
-      hideModal(); render(); toast('Drawer removed — objects kept');
+      // its children are kept — they fall back to wherever it lived
+      const d=byId(id), up=(d&&d.parent)||ROOT;
+      S.objects.forEach(o=>{ if(o.parent===id) o.parent=up; });
+      S.objects=S.objects.filter(o=>o.id!==id);
+      if(S.drawerId===id){ S.drawerId=up===ROOT?null:up; S.view=up===ROOT?'desk':'drawer'; }
+      hideModal(); save(); render(); toast('Drawer removed — its contents kept');
+      break;
+    }
+    case 'attrreset': {
+      const o=byId(S.openId); if(!o) return;
+      o.attrs=null; save(); renderSheet(); render(); toast(`Following the ${K(o.kind).nm.toLowerCase()} kind again`);
+      break;
+    }
+    case 'kindfromobj': modalNewKind(byId(S.openId)); break;
+    case 'savekind': {
+      const m=$('#modal'), draft=m._draft||{};
+      const nm=$('#knm').value.trim();
+      if(!nm){ toast('Give the kind a name'); return; }
+      const key=nm.toLowerCase().replace(/[^a-z0-9]+/g,'').slice(0,20)||('kind'+Date.now());
+      S.kinds[key]={nm, ic:draft.ic||'note', c:draft.c, key:nm[0].toUpperCase(),
+                    ds:draft.ds||'A kind you made', attrs:draft.attrs.slice(), body:''};
+      refreshKinds();
+      // the object that inspired it now simply *is* that kind
+      if(draft.fromId){ const o=byId(draft.fromId); if(o){ o.kind=key; o.attrs=null; } }
+      hideModal(); save(); render(); renderSheet(); toast(`“${nm}” is now a kind`);
+      break;
+    }
+    case 'delkind': {
+      const key=el.dataset.id;
+      if(S.objects.some(o=>o.kind===key)){ toast('Something still uses that kind'); return; }
+      delete S.kinds[key]; refreshKinds(); save(); render(); toast('Kind removed');
       break;
     }
     case 'addtag': {
@@ -1880,8 +2174,10 @@ function act(name, el){
     case 'reseed': { const th=S.theme, lk=S.look; reset(); S.theme=th; S.look=lk; applyLook(); writeNow(); render(); toast('Sample desk restored'); break; }
     case 'wipe': {
       if(!confirm('Erase every object and drawer on this device? This cannot be undone.')) return;
-      const th=S.theme; reset(); S.theme=th; S.objects=[]; S.drawers=S.drawers.slice(0,3);
-      writeNow(); render(); toast('Desk cleared'); break;
+      // keep three empty drawers so the desk isn't a blank rectangle
+      const th=S.theme, lk=S.look; reset(); S.theme=th; S.look=lk;
+      S.objects = S.objects.filter(isContainer).slice(0,3);
+      applyLook(); writeNow(); render(); toast('Desk cleared'); break;
     }
   }
 }
@@ -1916,7 +2212,9 @@ function wire(){
       return; }
 
     const mv=t.closest('[data-moveto]');
-    if(mv){ const [oid,did]=mv.dataset.moveto.split(':'); byId(oid).drawer=did; hideModal(); render(); renderSheet(); toast('Filed in '+drawerById(did).nm); return; }
+    if(mv){ const [oid,did]=mv.dataset.moveto.split(':');
+      byId(oid).parent=did; hideModal(); save(); render(); renderSheet();
+      toast('Filed in '+(did===ROOT?'The Desk':byId(did).title)); return; }
 
     const nk=t.closest('[data-new]');
     if(nk){ hideModal(); const o=create(nk.dataset.new); render(); openObj(o.id); S.editing=true; renderSheet(); return; }
@@ -1954,8 +2252,8 @@ function wire(){
     if(vw){ S.view=vw.dataset.view; S.drawerId=null; S.kindFilter=null; S.arrange=false; render(); return; }
 
     const dr=t.closest('[data-drawer]');
-    if(dr && (dr.classList.contains('navitem') || (dr.classList.contains('drawer') && !S.arrange))){
-      S.view='drawer'; S.drawerId=dr.dataset.drawer; S.kindFilter=null; S.reorder=false; render(); return; }
+    if(dr && (dr.classList.contains('navitem') || dr.tagName==='B' || (dr.classList.contains('drawer') && !S.arrange))){
+      S.view='drawer'; S.drawerId=dr.dataset.drawer; S.kindFilter=null; S.reorder=false; S.arrange=false; render(); return; }
 
     // cards, goal titles, timeline entries — anything carrying an id that isn't a swipeable row
     const ro=t.closest('[data-row]');
@@ -1971,6 +2269,41 @@ function wire(){
     if(pv){ $('#modal')._draft.pv=pv.dataset.pv; $$('#dpv .fchip').forEach(b=>b.classList.remove('on')); pv.classList.add('on'); return; }
     const col=t.closest('[data-col]');
     if(col){ $('#modal')._draft.c=col.dataset.col; $$('#dcol button').forEach(b=>b.classList.remove('on')); col.classList.add('on'); return; }
+
+    // layout of the drawer being edited in the modal
+    const dlay=t.closest('[data-dl]');
+    if(dlay){ $('#modal')._draft.layout=dlay.dataset.dl; $$('#dlayout .fchip').forEach(b=>b.classList.remove('on')); dlay.classList.add('on'); return; }
+
+    // attributes, in the new-kind modal
+    const ka=t.closest('[data-ka]');
+    if(ka){ const d=$('#modal')._draft, a=ka.dataset.ka, i=d.attrs.indexOf(a);
+      if(i>=0) d.attrs.splice(i,1); else d.attrs.push(a);
+      ka.classList.toggle('on');
+      $('#kattrsds').textContent=d.attrs.map(x=>ATTRS[x].ds).join(' · ');
+      return; }
+
+    // attributes, on one object in the detail sheet
+    const at=t.closest('[data-attr]');
+    if(at){ const o=byId(S.openId); if(!o) return;
+      const cur=attrsOf(o).slice(), a=at.dataset.attr, i=cur.indexOf(a);
+      if(i>=0) cur.splice(i,1); else cur.push(a);
+      o.attrs=cur;
+      if(a==='container'&&cur.includes('container')){ o.c=o.c||K(o.kind).c; o.pv=o.pv||'list'; o.layout=o.layout||'list'; o.filter=o.filter||{}; }
+      save(); renderSheet(); render(); return; }
+
+    // how a drawer lays its contents out, from the drawer's own toolbar
+    const lm=t.closest('[data-layoutmode]');
+    if(lm){ const d=byId(S.drawerId); if(d){ d.layout=lm.dataset.layoutmode; S.arrange=false; save(); render(); } return; }
+
+    // a button object's button
+    const fire=t.closest('[data-fire]');
+    if(fire){ const o=byId(fire.dataset.fire), tg=o&&o.link&&o.link.target;
+      if(!tg){ openObj(fire.dataset.fire); return; }
+      if(/^https?:/.test(tg)){ window.open(tg,'_blank','noopener'); return; }
+      const dest=byId(tg);
+      if(dest && isContainer(dest)){ S.view='drawer'; S.drawerId=tg; render(); }
+      else if(dest) openObj(tg);
+      return; }
 
     const lk=t.closest('[data-look]');
     if(lk){ const k=lk.dataset.look, v=lk.dataset.val;
@@ -1989,17 +2322,19 @@ function wire(){
     // the size chip still cycles presets — quicker than dragging on a phone.
     // It keeps the drawer where it is and skips any preset that would collide.
     const sz=t.closest('[data-size]');
-    if(sz){ const d=drawerById(sz.dataset.size), g=gridOf(), cur=lay(d);
+    if(sz){ const d=byId(sz.dataset.size), g=gridOf(), cur=lay(d);
       const P = dev()==='desk' ? [[2,1],[2,2],[3,2],[4,2],[6,2]] : [[2,1],[2,2],[4,1],[4,2]];
       const i=P.findIndex(p=>p[0]===cur.w&&p[1]===cur.h);
       for(let n=1;n<=P.length;n++){
         const [w,h]=P[(i+n)%P.length];
         const box={x:Math.min(cur.x, g.cols-w+1), y:cur.y, w, h};
-        if(boxOk(box,d.id)){ d[dev()]=box; save(); render(); return; }
+        if(boxOk(box,d.id,dev(),d.parent)){ d[dev()]=box; save(); render(); return; }
       }
       toast('No room to resize — move it first'); return; }
     const dd=t.closest('[data-delDrawer]');
-    if(dd){ S.drawers=S.drawers.filter(x=>x.id!==dd.dataset.deldrawer); render(); return; }
+    if(dd){ const id=dd.dataset.deldrawer, o=byId(id), up=(o&&o.parent)||ROOT;
+      S.objects.forEach(x=>{ if(x.parent===id) x.parent=up; });
+      S.objects=S.objects.filter(x=>x.id!==id); save(); render(); return; }
 
     const cr=t.closest('[data-cmd]'); if(cr){ runCmd(+cr.dataset.cmd); return; }
 
@@ -2024,9 +2359,17 @@ function wire(){
       else if(f==='body') o.body=e.target.value;
       else if(f==='due') o.due=e.target.value||null;
       else if(f==='repeat') o.repeat=e.target.value||null;
-      else if(f==='drawer') o.drawer=e.target.value;
+      else if(f==='parent'){
+        const v=e.target.value;
+        if(v!==o.id && !isAncestor(o.id, container(v))) o.parent=v;
+        else toast('A drawer cannot go inside itself');
+      }
+      else if(f==='layout'){ o.layout=e.target.value; render(); }
+      else if(f==='linklabel'){ o.link=o.link||{}; o.link.label=e.target.value; }
+      else if(f==='linktarget'){ o.link=o.link||{}; o.link.target=e.target.value; }
+      else if(f==='linkurl'){ o.link=o.link||{}; if(e.target.value) o.link.target=e.target.value; }
       else if(f==='mtype'){ o.media=o.media||{label:'untitled'}; o.media.type=e.target.value; renderSheet(); }
-      else if(f==='kind'){ o.kind=e.target.value; if(K(o.kind).goal&&!o.milestones.length) o.milestones=[{t:'First milestone',done:false,d:dz(30)}]; renderSheet(); }
+      else if(f==='kind'){ o.kind=e.target.value; if(has(o,'progress')&&!o.milestones.length) o.milestones=[{t:'First milestone',done:false,d:dz(30)}]; renderSheet(); }
       return;
     }
     if(e.target.dataset.mtext!=null){ byId(S.openId).milestones[+e.target.dataset.mtext].t=e.target.value; return; }
@@ -2072,7 +2415,14 @@ function wire(){
   addML(wide, ()=>{ S.device = sensedDevice(); render(); });
   addML(window.matchMedia('(prefers-color-scheme: dark)'), ()=>{ if(S.theme==='auto') render(); });
 
-  window.addEventListener('resize', sizeGrid);
+  // Device is sensed once at parse time, when the window may not be laid out
+  // yet (a background tab reports zero width and reads as a phone). Re-sense on
+  // resize so the desk layout appears as soon as there is a real width.
+  window.addEventListener('resize', ()=>{
+    const d=sensedDevice();
+    if(d!==S.device && !S.layoutEdit){ S.device=d; render(); }
+    else sizeGrid();
+  });
   window.addEventListener('beforeinstallprompt', e=>{ e.preventDefault(); deferredInstall=e; if(S.view==='settings') render(); });
   window.addEventListener('beforeunload', writeNow);
   document.addEventListener('visibilitychange', ()=>{ if(document.hidden) writeNow(); });

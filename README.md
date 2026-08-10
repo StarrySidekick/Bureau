@@ -9,6 +9,7 @@ backend.
 
 ```
 CLAUDE.md            start here — orientation, conventions, invariants
+docs/OBJECT-MODEL.md objects, attributes, kinds, layouts — the core model
 docs/SPEC.md         what it is and how it behaves
 docs/DECISIONS.md    what was chosen deliberately, and the case against each
 docs/DATA-MODEL.md   the schema, storage, and where media and sync would go

@@ -64,7 +64,7 @@ with `grep -n "· " web/index.html`. In order:
 | --- | --- |
 | 0 tiny helpers | `$`, `esc`, `uid`, and the `D` date object. All dates are `YYYY-MM-DD` strings in local time — never `Date` objects in state, never UTC. |
 | 1 icons | Inline SVG path strings, `ic(name, size)`. Add new icons to `P`. |
-| 2 KINDS | The kind registry. **This is the heart of the app** — see below. |
+| 2 ATTRS + KINDS | The attribute registry and the kinds built from it. **This is the heart of the app** — see below and `docs/OBJECT-MODEL.md`. |
 | 3 seed data | The sample desk a first-run user gets. Dates are relative to today. |
 | 4 state | `S`, plus `inDrawer()`, `streak()`, `goalPct()`. |
 | 4b grid + look | `GRID`, `lay()`, `boxOk()`, `freeSpot()`, `applyLook()`, and the colour palettes. Grid geometry lives here, not in the views. |
@@ -93,13 +93,17 @@ to `#frame` in section 20, dispatched on `data-*` attributes. To add an action,
 add a `data-act="thing"` attribute and a case in `act()`. Don't attach listeners
 inside render functions — they'd leak on every re-render.
 
-**Adding a kind is a one-line change** and it should stay that way. Add an entry
-to `KINDS` with a name, icon, colour, keyboard letter, one-line description, an
-optional body template, and optional behaviour flags (`checkable`, `sched`,
-`habit`, `goal`, `media`). Everything downstream — the new-object palette, filter
-chips, the detail sheet's fields, drawer rules — reads from the registry. If you
-find yourself special-casing a kind name in a view function, that's a smell; add
-a flag to the registry instead.
+**Everything is an object; a drawer is one with the `container` attribute.**
+There is one array, `S.objects`, and every object names its `parent`. `ROOT` is
+the desk. This is what makes drawers-inside-drawers a non-question — read
+`docs/OBJECT-MODEL.md` before changing any of it.
+
+**Never branch on a kind's name.** Ask `has(o,'check')`, not `o.kind==='task'`.
+Kinds are named presets of attributes, users can invent them at runtime, and a
+view that checks for `'task'` will silently ignore every kind someone makes. The
+attribute registry is `ATTRS`; the presets are `BUILTIN_KINDS` merged with
+`S.kinds`. Adding a built-in kind is still a one-line change; adding an
+*attribute* means teaching the detail sheet and the tile renderer what it draws.
 
 **CSS uses custom properties for kind colour.** `--k` is set inline on the element
 and everything inside inherits it. `--c` does the same for drawer colour. Both
@@ -122,9 +126,16 @@ when you're editing the *other* device's layout from this one.
 - **Drawer fronts are solid mid-dark colours** and everything inside them reads
   light, via `--dink`/`--dink-2`/`--dink-3` set on `.drawer`. Don't use `--ink-*`
   inside a drawer tile — it's the page's dark ink and will vanish.
-- **Drawers are simultaneously smart filters and real containers.** `inDrawer()`
-  is the single source of truth for what appears where and the order of its checks
-  is deliberate. Read the comment above it before touching it.
+- **Drawers are simultaneously smart filters and real containers.**
+  `inContainer()` is the single source of truth for what appears where and the
+  order of its checks is deliberate. Read the comment above it before touching it.
+- **Containment is recursive, so cycles are possible.** Anything that reparents
+  an object must go through `isAncestor()` first, or a drawer can be dropped
+  inside itself and take its whole subtree out of reach.
+- **Collision is per-container.** `boxOk()` takes a `parentId` and only compares
+  siblings — two objects in different drawers may share coordinates, because they
+  are in different coordinate spaces. Only objects that have actually been placed
+  can be collided with; `ensureBox()` places them on first render.
 - **Completed things leave their drawer** and appear only in the archive drawer.
   This is what keeps drawers finite, which is the entire argument for drawers.
 - **Repeating a task doesn't reuse the object.** Completing it spawns a fresh

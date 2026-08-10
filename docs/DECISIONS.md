@@ -165,7 +165,47 @@ colour's luminance rather than assuming dark.
 
 ---
 
-### 12. PWA before native
+### 12. One array, one recursion: a drawer is an object
+
+`S.drawers` and `S.objects` were merged. A drawer is an object whose kind
+carries the `container` attribute; every object names a `parent`; the desk is
+the root container. Grids nest without limit.
+
+*Why:* it collapses three special cases into one. "Can a drawer contain a
+drawer?" — the seeded Question that had been open since the start — stops being
+a feature and becomes a consequence. The desk, a drawer, and a drawer four
+levels down all render through the same function, so anything true of one is
+true of all of them.
+
+*Against:* recursion admits cycles, so every reparent has to be guarded
+(`isAncestor`), and "everything is an object" makes it possible to build an
+unnavigable nest. Obsidian's swamp is exactly this failure, and the only thing
+standing against it now is that drawers are finite and completed things leave.
+
+*Watch for:* if depth ever becomes a problem, the fix is a depth limit on
+`create`, not a retreat to two arrays.
+
+---
+
+### 13. Attributes, not behaviour flags
+
+Kinds are named sets of attributes. Attributes are the capabilities — `check`,
+`date`, `repeat`, `button`, `container`, `streak`, `progress`, `media`, `text` —
+and nothing in the app branches on a kind's *name*.
+
+*Why:* the old flags (`checkable`, `sched`, `habit`…) were already this idea,
+half-built and only editable in the source. Promoting them means a new kind is a
+thing the user makes at runtime by ticking boxes, and every view supports it
+immediately because every view asks about attributes.
+
+*Against:* an object can now carry a combination nobody designed for — a
+container that is also a checkbox, a streak with milestones. Most read fine;
+none are prevented. Prevention would mean a compatibility matrix, which is the
+kind of rule that makes a personal tool feel like someone else's product.
+
+---
+
+### 14. PWA before native
 
 *Why:* it satisfies "iPhone app", "Mac app" and "pretty" for one codebase and no
 developer account, and it can be used tomorrow. A wrong idea discovered in a week

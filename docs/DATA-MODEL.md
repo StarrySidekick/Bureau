@@ -1,6 +1,10 @@
 # Data model
 
-Two arrays, held in `S`, serialised to one localStorage key. There is no
+> The conceptual model — objects, attributes, kinds, layouts — is in
+> [OBJECT-MODEL.md](OBJECT-MODEL.md). This file is the storage detail.
+
+**One** array, `S.objects`, holding every object including drawers, serialised to
+one localStorage key. There is no
 normalisation, no indexes, no ORM. At personal scale — call it 5,000 objects —
 a linear filter over an in-memory array is microseconds, and the simplicity buys
 more than an index would.
@@ -81,12 +85,17 @@ boundary. Section 0's `D` object is the only place that converts.
 One key, `bureau.v1` (the key name is stable; `v` inside it is the schema):
 
 ```js
-{ v: 2, savedAt: "…ISO…", theme, listmode, look, drawers: [...], objects: [...] }
+{ v: 3, savedAt: "…ISO…", theme, listmode, look, kinds, objects: [...] }
 ```
 
 **v1 → v2** added `x`/`y` to each drawer layout and the `look` block. `adopt()`
 migrates by replaying v1's dense flow through `flowToCoords()`, so a desk saved
 before coordinates existed comes back looking exactly as its owner left it.
+
+**v2 → v3** folded `drawers` into `objects` and turned each object's `drawer`
+pointer into a `parent`. `foldDrawers()` does it, preserving every id, so links
+by id still resolve. A backup written by any earlier version still restores —
+`adopt()` recognises the old two-array shape by the presence of `drawers`.
 
 Written 250ms after any change (debounced), plus on `visibilitychange` and
 `beforeunload`. Reads and writes are wrapped in try/catch — private browsing and
