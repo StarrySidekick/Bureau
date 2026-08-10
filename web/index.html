@@ -1203,8 +1203,11 @@ function gridTile(o, arr, parentId){
   const box=lay(o), cont=isContainer(o);
   const colour = o.c || K(o.kind).c;
   const handles = arr ? HANDLES.map(h=>`<i class="rz ${h}" data-rz="${h}"></i>`).join('') : '';
+  // Bureau's own buttons resize like anything else but can't be deleted —
+  // losing Settings would leave nowhere to get it back from.
   const chips = arr
-    ? `<div class="sizebtns"><b data-size="${o.id}">${box.w}×${box.h}</b><b data-delDrawer="${o.id}">✕</b></div>`
+    ? `<div class="sizebtns"><b data-size="${o.id}">${box.w}×${box.h}</b>${
+        has(o,'control')?'':`<b data-delDrawer="${o.id}">✕</b>`}</div>`
     : '';
   const place = `grid-column:${box.x} / span ${box.w};grid-row:${box.y} / span ${box.h}`;
 
@@ -1981,10 +1984,11 @@ function onDown(e){
     return;
   }
   // any tile on a grid, container or not — they all move and resize the same
-  const dEl=e.target.closest('.grid .drawer[data-drawer],.grid .drawer[data-row]');
+  // any tile on a grid, whatever it is — controls carry data-id, not data-row
+  const dEl=e.target.closest('.grid .drawer[data-drawer],.grid .drawer[data-row],.grid .drawer[data-id]');
   if(S.arrange && dEl && !e.target.closest('.sizebtns')){
     const grid=dEl.closest('.grid');
-    const d=byId(dEl.dataset.drawer||dEl.dataset.row);
+    const d=byId(dEl.dataset.drawer||dEl.dataset.row||dEl.dataset.id);
     if(!d || !grid) return;
     const hEl=e.target.closest('[data-rz]'), g=gridOf();
     G={type: hEl?'resize':'move', el:dEl, id:d.id, handle:hEl?hEl.dataset.rz:null,
