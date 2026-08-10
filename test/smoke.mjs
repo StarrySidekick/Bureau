@@ -119,9 +119,17 @@ const URL = process.env.BUREAU_URL || 'http://127.0.0.1:8000/index.html';
   });
   await shot('10-desk-board');
 
+  // ids must be unique — a collision made byId() return the wrong object, so
+  // dragging one tile moved another and new objects were immovable
+  const dupIds = await page.evaluate(() => {
+    const seen = new Set(); let n = 0;
+    BUREAU.state.objects.forEach(o => { if (seen.has(o.id)) n++; seen.add(o.id); });
+    return n;
+  });
+
   console.log(JSON.stringify({
     errors: errs, manifestOk, swReady, survived, themeSurvived,
-    gridClass, offlineWorks, railGone, tabbarShown, holdArms, maxDrift
+    gridClass, offlineWorks, railGone, tabbarShown, holdArms, maxDrift, dupIds
   }, null, 2));
   await browser.close();
 })();

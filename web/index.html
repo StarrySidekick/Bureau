@@ -771,7 +771,13 @@ kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--rule);border
 const $  = (s,r)=> (r||document).querySelector(s);
 const $$ = (s,r)=> Array.from((r||document).querySelectorAll(s));
 const esc = s => String(s==null?"":s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const uid = (()=>{let n=0;return p=>`${p||'o'}${(++n).toString(36)}${(n*7919%9973).toString(36)}`})();
+/* Ids must be unique across sessions, not just within one. The old counter
+   restarted at 0 on every load, so the Nth object made today collided with the
+   Nth object made yesterday — and byId() returns the first match, so dragging
+   the newer tile moved the older object, drew the older object's outline, and
+   left the new one immovable. Time + counter + noise. */
+const uid = (()=>{let n=0;return p=>
+  `${p||'o'}${Date.now().toString(36)}${(++n).toString(36)}${Math.floor(Math.random()*1679616).toString(36)}`})();
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const ROOT = 'root';   // the desk: the container every other object descends from
 
@@ -2631,6 +2637,17 @@ function doubleBoxes(objects){
 function ensureControls(){
   S.objects = S.objects.filter(o=>!o.ctl && o.kind!=='control');
 }
+/* Anything saved before ids were unique may hold collisions. Keep the first
+   holder of an id and re-id the rest; children that pointed at the shared id
+   stay with the first, which is the best that can be recovered. */
+function dedupeIds(objects){
+  const seen=new Set(); let fixed=0;
+  objects.forEach(o=>{
+    if(!o.id || seen.has(o.id)){ o.id=uid(isContainer(o)?'d':'o'); fixed++; }
+    seen.add(o.id);
+  });
+  return fixed;
+}
 function adopt(d){
   if(!d || !Array.isArray(d.objects)) return false;
   S.objects = Array.isArray(d.drawers)
@@ -2638,6 +2655,8 @@ function adopt(d){
     : d.objects.map(o=>Object.assign({tags:[],history:[],milestones:[],ord:0},o));
   if(!(d.v>=4)) doubleBoxes(S.objects);   // 6 cols -> 12
   if(!(d.v>=5)) doubleBoxes(S.objects);   // 12 cols -> 24, so a half-cell exists
+  const fixedIds=dedupeIds(S.objects);
+  if(fixedIds) setTimeout(()=>toast(`Repaired ${fixedIds} duplicated id${fixedIds>1?'s':''}`),400);
   ensureControls();
   S.kinds = d.kinds || {};
   S.look = Object.assign(defaultLook(), d.look||{});

@@ -133,6 +133,12 @@ when you're editing the *other* device's layout from this one.
   `locked` to opt out. A 300ms hold arms the drag (`G.armed`), which is the only
   thing keeping a click from picking a tile up. Corners resize, and that's all —
   no edge handles, no size chip, no delete cross.
+- **Ids must be unique across sessions.** `uid()` once used a counter that
+  restarted at 0 on every load, so the Nth object made today collided with the
+  Nth made yesterday. `byId()` returns the first match, so a collision meant
+  dragging one tile moved a different object, drew that object's outline, and
+  left the new one immovable. `dedupeIds()` repairs old data on load; the smoke
+  test guards it as `dupIds`.
 - **Never round the cell size.** Columns are `1fr` and therefore fractional.
   Rounding the row height made rows and columns different sizes and the error
   accumulated across the grid, so tiles at high x/y sat several pixels from
