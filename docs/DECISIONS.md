@@ -241,7 +241,51 @@ properly different.
 
 ---
 
-### 16. PWA before native
+### 17. A drawer and an object are different sorts of thing — overturns 1
+
+Decision 1 made a drawer both a hand-filled container and a rule. Decision 13
+then made "container" an attribute any object could have. Both are undone here.
+
+A drawer contains; an object does not. An ordinary drawer holds exactly what is
+filed in it. A magic drawer holds nothing and shows what matches its rule. An
+object therefore lives in exactly one drawer, and appears in a second place only
+by being *collected* by a magic drawer.
+
+*Why:* "why is this here?" now has one answer per drawer instead of two, and
+"where does this live?" has exactly one answer, ever. The old model let an
+object sit in Inbox and appear in Kitchen and Writing Desk at once, which made
+counts meaningless and made moving something feel like it did nothing.
+
+*Against:* Kitchen no longer collects every recipe on its own — filing is
+manual, or you make Kitchen magic and lose the ability to put anything in it by
+hand. That is a real loss of convenience, traded for a model you can hold in
+your head.
+
+*Consequence:* `container`, `magic` and `control` are structural, not
+attributes you can tick. You cannot turn a note into a drawer.
+
+---
+
+### 18. No New button, no Arrange button, no sidebar
+
+Clicking bare grid makes something. Pressing and holding arranges. The sidebar
+is gone entirely.
+
+*Why:* every one of those was chrome sitting on top of a grid that is supposed
+to *be* the app. A home screen has taught everyone what press-and-hold means.
+
+*Against:* discoverability is now zero for anyone who isn't told. There is no
+affordance that says "hold me". For a one-person app that is an acceptable
+trade; for anyone else it would not be.
+
+*Also:* losing the sidebar cost the only route to Today, Keeping Up and
+Everything on the Mac. They survive through ⌘K and, for Today and the archive,
+as magic drawers on the desk. If that bites, the answer is more magic drawers on
+the desk, not the sidebar coming back.
+
+---
+
+### 19. PWA before native
 
 *Why:* it satisfies "iPhone app", "Mac app" and "pretty" for one codebase and no
 developer account, and it can be used tomorrow. A wrong idea discovered in a week

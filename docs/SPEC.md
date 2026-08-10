@@ -2,15 +2,14 @@
 
 ## The idea in one paragraph
 
-Everything is an **object**, every object sits in a **grid**, and a grid is
-itself an object — the thing we call a **drawer**. An object's **attributes**
-define what it can do; a named set of attributes is a **kind**, and you can
-invent kinds yourself by choosing attributes. A drawer is simply an object with
-the `container` attribute, so drawers hold objects, objects hold objects, and
-grids nest as deep as you like. A drawer is a place you file things by hand *and*
-a rule that collects matching objects automatically. The point is that a desk is
-a place, not a list — position carries meaning, containers are finite, and
-opening one is a small deliberate act.
+Everything sits on a **grid**. A **drawer** is a container on that grid which
+opens onto a grid of its own; the **desk** is the outermost one. Everything else
+is an **object**, and what an object can do is defined by its **attributes** — a
+named set of attributes is a **kind**, and you can invent kinds by choosing
+attributes. Drawers hold drawers and objects; objects hold nothing. An object
+lives in exactly one drawer, unless a **magic drawer** collects it by rule. The
+point is that a desk is a place, not a list — position carries meaning,
+containers are finite, and opening one is a small deliberate act.
 
 The full model is in [OBJECT-MODEL.md](OBJECT-MODEL.md).
 
@@ -21,9 +20,9 @@ letter, a one-line description, a body template, and a set of attributes. The
 attributes are what actually do the work — the table's "behaves like" column is
 just the attribute set in words.
 
-Two kinds are new and worth calling out: **Drawer** (`container`) is what every
-drawer on your desk now is, and **Button** (`button`) is an object that is just
-a button, pointing at another object, a drawer, or a URL.
+Three are structural rather than things you make from the menu: **Drawer**,
+**Magic drawer** and **Control** (the Settings button). **Button** is an ordinary
+object that is just a button, pointing at a drawer or a URL.
 
 | Kind | Colour | Key | Behaves like |
 | --- | --- | --- | --- |
@@ -48,29 +47,29 @@ The detail view also shows the object's attributes directly. Ticking one changes
 that object alone; "Save these attributes as a new kind" turns the combination
 into a kind you can reuse, which is how you get a kind Bureau never shipped.
 
-**Answered:** "Should a drawer be able to contain another drawer?" — yes, and so
-can any object, because containment is one recursive relationship rather than a
-special case for drawers. **Still open:** whether Habit is really its own kind or
-a Task with a `streak` attribute. Now that attributes are composable, it is one
-tick either way, which is itself most of the answer.
+**Answered:** "Should a drawer be able to contain another drawer?" — yes.
+Drawers nest without limit; objects don't nest at all. **Still open:** whether
+Habit is really its own kind or a Task with a `streak` attribute. Now that
+attributes are composable it is one tick either way, which is most of the
+answer.
 
 ## Drawers
 
-A drawer has a name, a colour, a preview style, a rule, and two sizes — one for
-Mac, one for iPhone.
+A drawer has a name, a colour, a view, and two sizes — one for Mac, one for
+iPhone. A magic drawer also has a rule.
 
-**Membership**, in evaluation order (`inDrawer()`):
+**Membership** (`inContainer()`):
 
-1. If the drawer is the archive, it shows everything completed.
-2. Otherwise, completed objects appear nowhere.
-3. Anything filed here by hand appears, whatever its kind.
-4. Anything matching the drawer's rule appears — a set of kinds, or "due today".
+- An **ordinary drawer** shows exactly the objects filed in it — those whose
+  `parent` is that drawer. Nothing else.
+- A **magic drawer** ignores parentage and shows whatever matches its rule: a set
+  of kinds, a tag, due today, or done. You cannot file into one.
+- Completed objects leave every drawer except the archive, which is what keeps
+  drawers finite.
 
-Rule 3 before rule 4 is what makes hand-filing always win. Rule 2 is what keeps
-drawers finite.
-
-**Preview styles** — how the tile shows its contents at a glance: list, card
-stack, thumbnails, progress bars, big number.
+**On the grid** a drawer shows only its name, its count and a pull — what is
+inside it is inside it. A magic drawer is marked with a sparkle and looks faintly
+unsettled, because it holds nothing.
 
 **Sizes and position** — the grid is **square**: 12 columns on the Mac, 8 on the
 iPhone, with rows as tall as a column is wide. Each object stores its own
@@ -78,11 +77,13 @@ iPhone, with rows as tall as a column is wide. Each object stores its own
 you put them and an empty cell stays empty. New objects land square — 3×3 for a
 drawer, 2×2 for anything else — and can be dragged down to a single cell.
 
-The desk has no toolbar. **New, Arrange and Settings are objects on the grid**,
-moved and resized like everything else.
+The desk has no toolbar and no sidebar. **Click a bare cell** to make something
+there; **press and hold** a tile to start arranging; **shift- or ⌘-click** to
+select several, then right-click to sweep them into a new drawer. Settings is
+the one button left, and it is an object on the grid like everything else.
 
-Arrange mode (the grid icon on the desk) turns the grid into visible graph paper
-and gives every drawer eight handles. Drag the body to move it, drag an edge or
+Arrange mode — entered by pressing and holding any tile — turns the grid into
+visible graph paper and gives every tile eight handles. Drag the body to move it, drag an edge or
 a corner to resize it — the same as a window, but snapped to cells. Drawers may
 not overlap; a move or resize that would collide is refused and says so. The
 size chip still cycles presets, which is quicker with a thumb. All of it **only

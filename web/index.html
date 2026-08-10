@@ -88,39 +88,8 @@ input,textarea{font:inherit;color:inherit}
    App shell
    ============================================================ */
 .app{position:absolute;inset:0;display:flex;overflow:hidden;padding-top:env(safe-area-inset-top)}
-.rail{
-  position:relative;
-  width:var(--railw,212px);flex:0 0 var(--railw,212px);border-right:1px solid var(--rule);
-  background:color-mix(in srgb,var(--paper-2) 55%, transparent);
-  display:flex;flex-direction:column;padding:14px 10px;gap:2px;overflow-y:auto;overflow-x:hidden;
-}
-.is-phone .rail{display:none}
-.rail-hidden .rail{display:none}
-/* drag the rail's right edge to resize it. The grip is a sibling of the rail,
-   not a child — inside it the rail's own overflow clips and scrolls it away. */
-.railgrip{
-  position:absolute;top:0;bottom:0;left:calc(var(--railw,212px) - 3px);
-  width:9px;cursor:ew-resize;z-index:20;
-}
-.railgrip::after{content:"";position:absolute;top:0;bottom:0;left:3px;width:2px;background:var(--brass);opacity:0;transition:opacity .15s}
-.railgrip:hover::after,.railgrip.on::after{opacity:.8}
-.is-phone .railgrip,.rail-hidden .railgrip{display:none}
 /* a drag must never turn into a text selection */
-.dragging-ui,.dragging-ui *{user-select:none!important;cursor:ew-resize}
-/* the button that brings a hidden rail back */
-.railshow{
-  position:absolute;left:8px;top:calc(env(safe-area-inset-top) + 14px);z-index:25;
-  width:28px;height:28px;border-radius:var(--radius);display:none;place-items:center;
-  color:var(--ink-2);background:var(--paper-2);border:1px solid var(--rule);
-}
-.rail-hidden .railshow{display:grid}
-.is-phone .railshow{display:none!important}
-.rail-hidden .topbar{padding-left:46px}
-.rail .wordmark{font-family:var(--serif);font-size:21px;font-weight:600;padding:4px 10px 14px;letter-spacing:.01em;
-  display:flex;align-items:center;gap:6px}
-.rail .railhide{margin-left:auto;flex:0 0 auto;opacity:0;transition:opacity .15s}
-.rail:hover .railhide{opacity:1}
-.rail .wordmark em{font-style:normal;color:var(--brass)}
+.dragging-ui,.dragging-ui *{user-select:none!important}
 .navitem{
   display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:9px;
   color:var(--ink-2);font-size:13.5px;font-weight:500;transition:.12s;width:100%;text-align:left;
@@ -130,11 +99,9 @@ input,textarea{font:inherit;color:inherit}
 .navitem .ico{width:17px;display:grid;place-items:center;color:var(--ink-3)}
 .navitem.on .ico{color:var(--brass)}
 .navitem .n{margin-left:auto;font-size:11.5px;color:var(--ink-3);font-variant-numeric:tabular-nums}
-.rail .label{font-size:10.5px;text-transform:uppercase;letter-spacing:.09em;color:var(--ink-3);padding:16px 10px 6px;font-weight:600}
 .tagchip{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:20px;font-size:11.5px;
   background:var(--paper-3);color:var(--ink-2);border:1px solid var(--rule-2)}
 .tagchip.on{background:color-mix(in srgb,var(--brass) 22%, transparent);color:var(--ink);border-color:transparent}
-.rail .tagwrap{display:flex;flex-wrap:wrap;gap:5px;padding:2px 8px}
 
 .main{flex:1;min-width:0;display:flex;flex-direction:column;position:relative;overflow:hidden}
 .topbar{
@@ -165,9 +132,9 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
 /* Explicit x/y placement: every drawer names its column and row, so the grid is
    a coordinate space, not a flow. No auto-flow — an empty cell stays empty. */
 /* Square cells: --rowh is set from the measured column width by sizeGrid(). */
-.grid{display:grid;gap:8px;align-content:start;position:relative}
-.grid.g-desk{grid-template-columns:repeat(var(--cols,12),1fr);grid-auto-rows:var(--rowh,82px)}
-.grid.g-phone{grid-template-columns:repeat(var(--cols,8),1fr);grid-auto-rows:var(--rowh,44px);gap:6px}
+.grid{display:grid;gap:5px;align-content:start;position:relative}
+.grid.g-desk{grid-template-columns:repeat(var(--cols,24),1fr);grid-auto-rows:var(--rowh,40px)}
+.grid.g-phone{grid-template-columns:repeat(var(--cols,16),1fr);grid-auto-rows:var(--rowh,21px);gap:4px}
 
 .drawer{
   position:relative;border-radius:var(--radius-d);overflow:hidden;text-align:left;
@@ -283,6 +250,47 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
   background:rgba(0,0,0,.42);color:var(--dink);cursor:pointer;font-variant-numeric:tabular-nums
 }
 .sizebtns b:hover{background:rgba(0,0,0,.68)}
+/* the ✕ needs a real target — a near-miss used to open the thing instead */
+.sizebtns b[data-delDrawer]{padding:4px 9px;font-size:12px;line-height:1}
+.sizebtns::before{content:"";position:absolute;inset:-8px;pointer-events:auto}
+
+/* selection, Finder-style */
+.drawer.selected{outline:2.5px solid var(--brass);outline-offset:2px}
+.drawer.selected::after{content:"";position:absolute;inset:0;background:color-mix(in srgb,var(--brass) 14%,transparent);pointer-events:none}
+.ctxhead{padding:7px 12px 5px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);font-weight:700}
+
+/* A magic drawer should read as not-quite-solid: a dashed inner rule that
+   drifts, and a faint sheen. It collects rather than holds, and looks it. */
+.drawer.magicdrawer::before{
+  content:"";position:absolute;inset:5px;border:1.5px dashed rgba(255,255,255,.42);
+  border-radius:2px;pointer-events:none;
+  animation:drift 22s linear infinite;
+}
+@keyframes drift{ to{ background-position:200px 0 } }
+.drawer.magicdrawer{
+  background-image:
+    radial-gradient(circle at 18% 26%, rgba(255,255,255,.30) 0 1.1px, transparent 1.6px),
+    radial-gradient(circle at 72% 18%, rgba(255,255,255,.22) 0 .9px, transparent 1.4px),
+    radial-gradient(circle at 46% 74%, rgba(255,255,255,.26) 0 1px,  transparent 1.5px),
+    radial-gradient(circle at 86% 62%, rgba(255,255,255,.18) 0 .8px, transparent 1.3px),
+    radial-gradient(circle at 30% 52%, rgba(255,255,255,.20) 0 .8px, transparent 1.3px);
+  animation:twinkle 6s ease-in-out infinite;
+}
+@keyframes twinkle{ 0%,100%{background-size:100% 100%} 50%{background-size:104% 104%} }
+.magicmark{color:var(--dink-2);display:inline-flex;align-items:center;margin-left:2px}
+.magicmark.big{color:var(--brass);vertical-align:middle}
+@media (prefers-reduced-motion:reduce){
+  .drawer.magicdrawer,.drawer.magicdrawer::before{animation:none}
+}
+
+/* Scroll view — a drawer read top to bottom, nothing truncated */
+.scrollview{max-width:720px}
+.scrollentry{padding:16px 0;border-bottom:1px solid var(--rule-2)}
+.scrollentry header{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+.scrollentry h3{font-family:var(--serif);font-size:19px;font-weight:600;margin:0}
+.scrollentry h3.done{text-decoration:line-through;color:var(--ink-3)}
+.scrollentry .prose{font-size:14.5px;line-height:1.65}
+.scrollimg{max-width:100%;border-radius:var(--radius);margin:8px 0;display:block}
 .drawer.addnew{background:none;border:1.5px dashed var(--rule);box-shadow:none;align-items:center;justify-content:center;color:var(--ink-3);--dink:var(--ink-3)}
 .drawer.addnew:hover{border-color:var(--brass);color:var(--brass);filter:none}
 
@@ -719,6 +727,12 @@ const ATTRS = {
   media:    {nm:'Media',      ds:'An image, video, or audio file'}
 };
 const ATTRKEYS = Object.keys(ATTRS);
+/* A drawer is not an object with an extra tick — it is a different sort of
+   thing, customised through the drawer settings rather than the attribute list.
+   These three are structural and never appear in the attribute picker, which is
+   what stops an object from being turned into a container by accident. */
+const STRUCTURAL = ['container','magic','control'];
+const USER_ATTRS = ATTRKEYS.filter(a=>!STRUCTURAL.includes(a));
 
 const BUILTIN_KINDS = {
   drawer:  {nm:'Drawer',  ic:'folder',  c:'#7E5A38', key:'D', ds:'A container on the grid',   attrs:['container'], layout:'grid', body:'' },
@@ -767,23 +781,24 @@ function seed(){
   // collect and never hold. The rest are ordinary containers you file into.
   const MG = (o)=> DR(Object.assign({kind:'magic'}, o));
   const drawers = [
-    MG({id:'d_today', title:'Today',        c:'#4A7C59', filter:{due:'today'},                     desk:{x:1,y:1,w:3,h:3},  phone:{x:1,y:1,w:4,h:3}}),
-    DR({id:'d_in',    title:'Inbox',        c:'#7E5A38', filter:{},                                desk:{x:4,y:1,w:3,h:3},  phone:{x:5,y:1,w:4,h:3}}),
-    DR({id:'d_write', title:'Writing Desk', c:'#5C7148', filter:{kinds:['essay','outline','note']}, desk:{x:7,y:1,w:3,h:3},  phone:{x:1,y:4,w:4,h:3}}),
-    DR({id:'d_ideas', title:'Idea Bin',     c:'#96652F', filter:{kinds:['idea']},                  desk:{x:10,y:1,w:3,h:3}, phone:{x:5,y:4,w:4,h:3}}),
-    DR({id:'d_studio',title:'Studio',       c:'#3F5F7A', filter:{kinds:['script','media']},        desk:{x:1,y:4,w:3,h:3},  phone:{x:1,y:7,w:4,h:3}}),
-    DR({id:'d_kitch', title:'Kitchen',      c:'#A55A3E', filter:{kinds:['recipe']},                desk:{x:4,y:4,w:3,h:3},  phone:{x:5,y:7,w:4,h:3}}),
-    MG({id:'d_open',  title:'Open Questions',c:'#4A6E8F',filter:{kinds:['question']},              desk:{x:7,y:4,w:3,h:3},  phone:{x:1,y:10,w:4,h:3}}),
-    DR({id:'d_keep',  title:'Keeping Up',   c:'#3E7A6B', filter:{kinds:['habit','goal']},          desk:{x:10,y:4,w:3,h:3}, phone:{x:5,y:10,w:4,h:3}}),
-    MG({id:'d_done',  title:'Done & Dusted',c:'#6F5137', filter:{done:true},                       desk:{x:1,y:7,w:3,h:3},  phone:{x:1,y:13,w:4,h:3}})
+    MG({id:'d_today', title:'Today',        c:'#4A7C59', filter:{due:'today'},                     desk:{x:1,y:1,w:6,h:6},  phone:{x:1,y:1,w:8,h:6}}),
+    DR({id:'d_in',    title:'Inbox',        c:'#7E5A38', desk:{x:7,y:1,w:6,h:6},  phone:{x:9,y:1,w:8,h:6}}),
+    DR({id:'d_write', title:'Writing Desk', c:'#5C7148', desk:{x:13,y:1,w:6,h:6},  phone:{x:1,y:7,w:8,h:6}}),
+    DR({id:'d_ideas', title:'Idea Bin',     c:'#96652F', desk:{x:19,y:1,w:6,h:6},  phone:{x:9,y:7,w:8,h:6}}),
+    DR({id:'d_studio',title:'Studio',       c:'#3F5F7A', desk:{x:1,y:7,w:6,h:6},  phone:{x:1,y:13,w:8,h:6}}),
+    DR({id:'d_kitch', title:'Kitchen',      c:'#A55A3E', desk:{x:7,y:7,w:6,h:6},  phone:{x:9,y:13,w:8,h:6}}),
+    MG({id:'d_open',  title:'Open Questions',c:'#4A6E8F',filter:{kinds:['question']},              desk:{x:13,y:7,w:6,h:6},  phone:{x:1,y:19,w:8,h:6}}),
+    DR({id:'d_keep',  title:'Keeping Up',   c:'#3E7A6B', desk:{x:19,y:7,w:6,h:6},  phone:{x:9,y:19,w:8,h:6}}),
+    MG({id:'d_done',  title:'Done & Dusted',c:'#6F5137', filter:{done:true},                       desk:{x:1,y:13,w:6,h:6},  phone:{x:1,y:25,w:8,h:6}})
   ];
 
   // The app's own buttons live on the desk, on the grid, and move like anything
   // else. `ctl` names the action; section 20 dispatches it.
+  // Only Settings. New is "click an empty cell" and Arrange is "press and
+  // hold", so neither needs a button taking up room on the desk.
   const controls = [
-    {id:'c_new',   title:'New',      ctl:'new',      ic:'plus',    c:'#8A5A3F', desk:{x:4,y:7,w:2,h:2}, phone:{x:1,y:16,w:2,h:2}},
-    {id:'c_arr',   title:'Arrange',  ctl:'arrange',  ic:'grid',    c:'#6B6152', desk:{x:6,y:7,w:2,h:2}, phone:{x:3,y:16,w:2,h:2}},
-    {id:'c_set',   title:'Settings', ctl:'settings', ic:'sliders', c:'#6B6152', desk:{x:8,y:7,w:2,h:2}, phone:{x:5,y:16,w:2,h:2}}
+    {id:'c_set', title:'Settings', ctl:'settings', ic:'sliders', c:'#6B6152',
+     desk:{x:7,y:13,w:4,h:4}, phone:{x:1,y:31,w:4,h:4}}
   ].map(c=>Object.assign({kind:'control', parent:ROOT, body:'', tags:[], ord:-1, created:dz(-40)}, c));
 
   let n=0;
@@ -872,7 +887,7 @@ function reset(){
     device:sensedDevice(), layoutEdit:null, theme:'paper',
     view:'desk', drawerId:null, openId:null,
     arrange:false, reorder:false, listmode:'rows', kindFilter:null, tagFilter:null,
-    selDate:T, trash:null, editing:false,
+    selDate:T, trash:null, editing:false, sel:[],
     look:defaultLook()
   };
   refreshKinds();
@@ -896,23 +911,25 @@ const container = id => (id===ROOT||!id) ? rootObj() : byId(id);
 const isContainer = o => !!o && has(o,'container');
 const containers = ()=> S.objects.filter(isContainer);
 
-// A container is BOTH a smart filter and a real place: anything filed here by
-// hand shows up, plus anything matching its rule. Hand-filing wins — the order
-// of these checks is decision 1 in DECISIONS.md and is deliberate.
+/* A drawer holds. A magic drawer collects. Nothing does both.
+   An object lives in exactly one drawer — its `parent` — and that is the only
+   thing an ordinary drawer shows. A magic drawer ignores parentage entirely and
+   shows whatever matches its rule, which is the one way an object appears in
+   more than one place at once. */
 function inContainer(c,o){
   if(!c || o.id===c.id) return false;
-  const f=c.filter||{}, magic=has(c,'magic');
-  if(f.done) return !!o.done;          // the archive drawer
-  if(o.done) return false;             // finished things leave their container
-  // A magic drawer is rule-only: filing into a smart folder means nothing, so
-  // the hand-filed check is skipped rather than made into an exclusion — an
-  // object parented here still shows if it genuinely matches the rule.
-  if(!magic && o.parent===c.id) return true;
-  if(c.id===ROOT) return false;        // the desk collects nothing by rule
-  if(f.due==='today') return !!o.due && D.parse(o.due)<=D.today();
-  if(f.tag) return (o.tags||[]).includes(f.tag);
-  if(f.kinds && f.kinds.length) return f.kinds.includes(o.kind);
-  return false;
+  if(has(c,'magic')){
+    const f=c.filter||{};
+    if(f.done) return !!o.done;        // the archive
+    if(o.done) return false;           // finished things leave everywhere else
+    if(isContainer(o)) return false;   // magic drawers collect objects, not drawers
+    if(f.due==='today') return !!o.due && D.parse(o.due)<=D.today();
+    if(f.tag) return (o.tags||[]).includes(f.tag);
+    if(f.kinds && f.kinds.length) return f.kinds.includes(o.kind);
+    return false;
+  }
+  if(o.done) return false;             // finished things leave their drawer
+  return o.parent===c.id;              // an ordinary drawer holds what is filed in it
 }
 // Children in the order the container's layout wants them.
 function childrenOf(c){
@@ -949,10 +966,10 @@ function chainOf(id){
    nothing may assume a fixed row height. Twice the columns of the first
    version, which is what makes the smallest object half the size it was. */
 const GRID = {
-  desk:  {cols:12, gap:8},
-  phone: {cols:8,  gap:6}
+  desk:  {cols:24, gap:5},
+  phone: {cols:16, gap:4}
 };
-const CELL = {desk:82, phone:44};   // last measured; a sane guess until then
+const CELL = {desk:40, phone:21};   // last measured; a sane guess until then
 const gridOf = (device)=>{
   const d=device||dev();
   return {cols:GRID[d].cols, gap:GRID[d].gap, rowh:CELL[d]};
@@ -994,7 +1011,7 @@ const gridRows = (device,parentId)=> childrenOf(container(parentId||ROOT))
 function ensureBox(o, device, parentId){
   const dv=device||dev();
   if(o[dv] && o[dv].w) return o[dv];
-  const n = isContainer(o) ? 3 : has(o,'control') ? 2 : 2;
+  const n = isContainer(o) ? 6 : 4;
   o[dv] = freeSpot(n, n, dv, parentId||o.parent);
   return o[dv];
 }
@@ -1193,6 +1210,15 @@ function drawerPreview(d, items){
     `<div class="r${o.done?' done':''}" style="--k:${K(o.kind).c}"><span class="dot"></span><span class="lbl">${esc(o.title||'Untitled')}</span></div>`).join('')}</div>`;
 }
 const HANDLES = ['nw','n','ne','e','se','s','sw','w'];
+/* Where a click on bare grid happened, so the next new object lands there. */
+let pendingCell=null;
+function placeAtPending(o){
+  if(!pendingCell){ return; }
+  const n = isContainer(o) ? 6 : 4;
+  const g=gridOf(), box={x:clamp(pendingCell.x,1,g.cols-n+1), y:pendingCell.y, w:n, h:n};
+  o[dev()] = boxOk(box, o.id, dev(), o.parent) ? box : freeSpot(n,n,dev(),o.parent);
+  pendingCell=null;
+}
 
 /* One tile, for anything. A container gets the drawer front and a preview of
    what is inside it; everything else gets its attributes rendered directly.
@@ -1210,10 +1236,11 @@ function gridTile(o, arr, parentId){
         has(o,'control')?'':`<b data-delDrawer="${o.id}">✕</b>`}</div>`
     : '';
   const place = `grid-column:${box.x} / span ${box.w};grid-row:${box.y} / span ${box.h}`;
+  const sel = S.sel.includes(o.id) ? ' selected' : '';
 
   // A control is a Bureau button that lives on the desk like anything else.
   if(has(o,'control')){
-    return `<button class="drawer ctile" data-ctl="${esc(o.ctl||'')}" data-id="${o.id}" style="--c:${colour};${place}">
+    return `<button class="drawer ctile${sel}" data-ctl="${esc(o.ctl||'')}" data-id="${o.id}" style="--c:${colour};${place}">
       ${chips}<span class="cico">${ic(K(o.kind).ic==='sliders'&&o.ic?o.ic:(o.ic||'sliders'),20)}</span>
       <span class="clabel">${esc(o.title||'')}</span>
       ${handles}
@@ -1224,7 +1251,7 @@ function gridTile(o, arr, parentId){
   // it, not printed on it — you open a drawer to find out what it holds.
   if(cont){
     const items=childrenOf(o);
-    return `<button class="drawer dtile" data-drawer="${o.id}" style="--c:${colour};${place}">
+    return `<button class="drawer dtile${sel}${has(o,'magic')?' magicdrawer':''}" data-drawer="${o.id}" style="--c:${colour};${place}">
       ${chips}
       <div class="dtop"><span class="dname">${esc(o.title||'Untitled')}</span>
         ${has(o,'magic')?`<span class="magicmark" title="Collects by rule">${ic('sparkle',11)}</span>`:''}
@@ -1237,7 +1264,7 @@ function gridTile(o, arr, parentId){
   // An image sits on the grid like something stuck in a scrapbook.
   const img = has(o,'media') && o.media && o.media.src;
   if(img){
-    return `<button class="drawer otile imgtile${box.h===1?' h1':''}" data-row="${o.id}" style="--c:${colour};${place}">
+    return `<button class="drawer otile imgtile${sel}" data-row="${o.id}" style="--c:${colour};${place}">
       ${chips}
       <img class="tileimg" src="${esc(o.media.src)}" alt="${esc(o.title||'')}" draggable="false">
       ${o.title?`<span class="imgcap">${esc(o.title)}</span>`:''}
@@ -1245,7 +1272,7 @@ function gridTile(o, arr, parentId){
     </button>`;
   }
 
-  return `<button class="drawer otile${box.h===1?' h1':''}" data-row="${o.id}" style="--c:${colour};${place}">
+  return `<button class="drawer otile${sel}" data-row="${o.id}" style="--c:${colour};${place}">
     ${chips}
     <div class="dtop">
       ${has(o,'check')?`<span class="check tilecheck${o.done?' on':''}" data-check="${o.id}">${ic('check',12)}</span>`:''}
@@ -1348,7 +1375,7 @@ function viewDrawer(){
   const kinds=[...new Set(all.map(o=>o.kind))];
   const f=d.filter||{};
   const defKind = (f.kinds&&f.kinds[0]) || 'task';
-  const isGrid = d.layout==='grid';
+  const view = d.layout || 'grid';       // grid | list | scroll
   const arr=S.arrange;
   // the full chain, so a drawer four levels deep still tells you where you are
   const trail=chainOf(d.id);
@@ -1357,33 +1384,44 @@ function viewDrawer(){
     <button class="iconbtn" data-act="back">${ic('chevL',18)}</button>
     <div><div class="crumbs">${ic('grid',11)} <b data-view="desk">Desk</b> ${
       trail.map((c,i)=> `${ic('chevR',10)} ${i===trail.length-1?esc(c.title):`<b data-drawer="${c.id}">${esc(c.title)}</b>`}`).join(' ')}</div>
-      <h1 style="color:${d.c||K(d.kind).c}">${esc(d.title)}</h1></div>
+      <h1 style="color:${d.c||K(d.kind).c}">${esc(d.title)}${has(d,'magic')?` <span class="magicmark big">${ic('sparkle',15)}</span>`:''}</h1></div>
     <div class="grow"></div>
-    <div class="seg" title="How this drawer lays its contents out">
-      <button data-layoutmode="list" aria-pressed="${!isGrid}">List</button>
-      <button data-layoutmode="grid" aria-pressed="${isGrid}">Grid</button>
-    </div>
-    ${isGrid
-      ? `<button class="pill" data-act="arrange">${ic(arr?'check':'grid',14)} <span class="lbl">${arr?'Done':'Arrange'}</span></button>`
-      : `<button class="pill" data-act="listmode">${ic(S.listmode==='rows'?'grid':'list',14)}</button>
-         <button class="pill${S.reorder?' solid':''}" data-act="reorder">${ic('grip',14)} <span class="lbl">${S.reorder?'Done':'Reorder'}</span></button>`}
-    <button class="pill solid" data-act="new">${ic('plus',14)}</button>
+    ${arr?`<button class="pill solid" data-act="arrange">${ic('check',13)} Done</button>`:''}
+    ${view!=='grid'&&!has(d,'magic')?`<button class="pill${S.reorder?' solid':''}" data-act="reorder">${ic('grip',14)} <span class="lbl">${S.reorder?'Done':'Reorder'}</span></button>`:''}
+    <button class="pill" data-act="drawersettings" data-id="${d.id}">${ic('sliders',14)} <span class="lbl">Settings</span></button>
   </div>
   <div class="scroll">
-    <div class="quickadd">${ic('plus',15)}
+    ${has(d,'magic')?'':`<div class="quickadd">${ic('plus',15)}
       <input id="qa" placeholder="Add to ${esc(d.title)}…  try  /idea  #tag  !today" data-kind="${defKind}" data-drawer="${d.id}">
-      <span class="k">↵</span></div>
-    ${kinds.length>1&&!isGrid?`<div class="filterbar">
+      <span class="k">↵</span></div>`}
+    ${kinds.length>1&&view!=='grid'?`<div class="filterbar">
       <button class="fchip${!S.kindFilter?' on':''}" data-kind="">All</button>
       ${kinds.map(k=>`<button class="fchip${S.kindFilter===k?' on':''}" data-kind="${k}" style="--k:${K(k).c}">${K(k).nm}</button>`).join('')}
     </div>`:''}
-    ${isGrid
+    ${view==='grid'
       ? gridOfContainer(d.id)
-      : (items.length? (S.listmode==='rows'
-          ? `<div class="rows${S.reorder?' reordering':''}" id="sortlist">${items.map(row).join('')}</div>`
-          : `<div class="cards">${items.map(card).join('')}</div>`)
-        : `<div class="empty"><div class="big">This drawer is empty</div>Add something above, or drag an object in.</div>`)}
+      : !items.length
+        ? `<div class="empty"><div class="big">This drawer is empty</div>${has(d,'magic')?'Nothing matches its rule yet.':'Add something above, or click a bare cell on the desk.'}</div>`
+        : view==='scroll'
+          ? `<div class="scrollview">${items.map(scrollEntry).join('')}</div>`
+          : `<div class="rows${S.reorder?' reordering':''}" id="sortlist">${items.map(row).join('')}</div>`}
   </div>`;
+}
+
+/* Scroll view: the same list, but nothing is truncated. Every object's whole
+   body, one after another, for reading a drawer rather than scanning it. */
+function scrollEntry(o){
+  const k=K(o.kind);
+  return `<article class="scrollentry" data-row="${o.id}" style="--k:${k.c}">
+    <header>
+      ${has(o,'check')?`<span class="check${o.done?' on':''}" data-check="${o.id}">${ic('check',12)}</span>`:`<span class="kindmark">${ic(k.ic,13)}</span>`}
+      <h3${o.done?' class="done"':''}>${esc(o.title||'Untitled')}</h3>
+      ${o.due?`<span class="mchip">${D.human(o.due)}</span>`:''}
+      ${(o.tags||[]).map(t=>`<span class="mchip tag">${esc(t)}</span>`).join('')}
+    </header>
+    ${has(o,'media')&&o.media&&o.media.src?`<img class="scrollimg" src="${esc(o.media.src)}" alt="${esc(o.title||'')}">`:''}
+    ${o.body?`<div class="prose">${md(o.body)}</div>`:''}
+  </article>`;
 }
 
 /* ============================================================
@@ -1397,6 +1435,7 @@ function viewToday(){
   const habits=S.objects.filter(o=>has(o,'streak'));
   return `
   <div class="topbar">
+    <button class="iconbtn" data-view="desk" title="The Desk">${ic('chevL',18)}</button>
     <div><h1>${sel===T?'Today':D.parse(sel).toLocaleDateString(undefined,{weekday:'long'})}</h1>
       <div class="sub">${D.parse(sel).toLocaleDateString(undefined,{month:'long',day:'numeric',year:'numeric'})}</div></div>
     <div class="grow"></div>
@@ -1438,6 +1477,7 @@ function viewKeep(){
   const groups={}; recs.forEach(r=>{ (groups[r.doneAt||'—']=groups[r.doneAt||'—']||[]).push(r); });
   return `
   <div class="topbar">
+    <button class="iconbtn" data-view="desk" title="The Desk">${ic('chevL',18)}</button>
     <div><h1>Keeping Up</h1><div class="sub">Habits, goals, and the record of what's already done</div></div>
     <div class="grow"></div>
     <button class="pill solid" data-act="new">${ic('plus',14)} New</button>
@@ -1494,6 +1534,7 @@ function viewAll(){
   const counts={}; S.objects.forEach(o=>counts[o.kind]=(counts[o.kind]||0)+1);
   return `
   <div class="topbar">
+    <button class="iconbtn" data-view="desk" title="The Desk">${ic('chevL',18)}</button>
     <div><h1>Everything</h1><div class="sub">${items.length} of ${S.objects.length} objects${S.tagFilter?' · #'+esc(S.tagFilter):''}</div></div>
     <div class="grow"></div>
     <button class="pill" data-act="listmode">${ic(S.listmode==='rows'?'grid':'list',14)}</button>
@@ -1518,6 +1559,7 @@ function viewSettings(){
   const standalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
   return `
   <div class="topbar">
+    <button class="iconbtn" data-view="desk" title="The Desk">${ic('chevL',18)}</button>
     <div><h1>Settings</h1><div class="sub">Bureau ${APP_VERSION} · ${standalone?'installed':'running in a browser tab'}</div></div>
   </div>
   <div class="scroll"><div style="max-width:640px">
@@ -1597,27 +1639,6 @@ function viewSettings(){
 /* ============================================================
    13 · rail + tabbar
    ============================================================ */
-function rail(){
-  const dueToday=S.objects.filter(o=>!o.done&&o.due&&D.parse(o.due)<=D.today()).length;
-  const nav=[['desk','grid','The Desk',''],['today','calendar','Today',dueToday||''],['keep','target','Keeping Up',''],['all','archive','Everything',S.objects.length],['settings','sliders','Settings','']];
-  return `<aside class="rail">
-    <div class="wordmark"><span>Bur<em>ea</em>u</span>
-      <button class="iconbtn railhide" data-act="hiderail" title="Hide sidebar">${ic('chev',15)}</button></div>
-    ${nav.map(([v,i,n,c])=>`<button class="navitem${S.view===v?' on':''}" data-view="${v}">
-      <span class="ico">${ic(i,16)}</span>${n}${c!==''?`<span class="n">${c}</span>`:''}</button>`).join('')}
-    <div class="label">Drawers</div>
-    ${containers().map(d=>{
-      // indent by depth, so a nested drawer reads as nested
-      const depth=Math.min(chainOf(d.id).length-1,3);
-      return `<button class="navitem${S.drawerId===d.id&&S.view==='drawer'?' on':''}" data-drawer="${d.id}"
-        style="padding-left:${10+depth*13}px">
-        <span class="ico" style="color:${d.c||K(d.kind).c}">${ic('folder',15)}</span>${esc(d.title)}<span class="n">${childrenOf(d).length}</span></button>`;
-    }).join('')}
-    <div class="label">Tags</div>
-    <div class="tagwrap">${allTags().slice(0,10).map(([t,n])=>
-      `<button class="tagchip${S.tagFilter===t?' on':''}" data-tag="${esc(t)}">${esc(t)} <span style="opacity:.6">${n}</span></button>`).join('')}</div>
-  </aside>`;
-}
 function tabbar(){
   const tabs=[['desk','grid','Desk'],['today','calendar','Today'],['keep','target','Keeping'],['all','archive','All']];
   return `<nav class="tabbar">${tabs.map(([v,i,n])=>
@@ -1635,10 +1656,9 @@ let render = function render(){
     : S.theme;
   const body = S.view==='desk'?viewDesk():S.view==='drawer'?viewDrawer():S.view==='today'?viewToday()
              :S.view==='keep'?viewKeep():S.view==='settings'?viewSettings():viewAll();
-  frame.classList.toggle('rail-hidden', !!(S.look&&S.look.railHidden));
-  $('#app').innerHTML = `${rail()}<div class="railgrip" title="Drag to resize · drag fully left to hide"></div>`
-    + `<div class="main">${body}<button class="fab" data-act="new">${ic('plus',22)}</button>${tabbar()}</div>`
-    + `<button class="railshow" data-act="showrail" title="Show sidebar">${ic('grid',15)}</button>`;
+  // No sidebar: the desk is the navigation. Drawers are on it, ⌘K finds
+  // anything, and the breadcrumb walks back up.
+  $('#app').innerHTML = `<div class="main">${body}${tabbar()}</div>`;
   bindSortables();
   sizeGrid();
 }
@@ -1733,7 +1753,7 @@ function renderSheet(){
   const own=!!o.attrs, mine=attrsOf(o);
   extra += `<div class="section-h"><h2>Attributes</h2><div class="rule"></div>
       <span class="n">${own?'this object only':'from '+k.nm.toLowerCase()}</span></div>
-    <div class="filterbar" style="flex-wrap:wrap">${ATTRKEYS.map(a=>
+    <div class="filterbar" style="flex-wrap:wrap">${USER_ATTRS.map(a=>
       `<button class="fchip${mine.includes(a)?' on':''}" data-attr="${a}" title="${esc(ATTRS[a].ds)}">${ATTRS[a].nm}</button>`).join('')}</div>
     <div class="mini" style="--k:var(--brass);margin-top:6px">${esc(mine.map(a=>ATTRS[a]?ATTRS[a].ds:a).join(' · '))||'Nothing yet'}</div>
     ${own?`<button class="subtle-btn" data-act="attrreset" style="margin-top:8px">${ic('undo',12)} Match the ${esc(k.nm.toLowerCase())} kind again</button>`:''}
@@ -1787,7 +1807,7 @@ function overlayHTML(){
   <input type="file" id="imgpicker" accept="image/*" class="hidden">`;
 }
 function showModal(html){ $('#modal').innerHTML=html; $('#scrim').classList.add('open'); }
-function hideModal(){ $('#scrim').classList.remove('open'); }
+function hideModal(){ $('#scrim').classList.remove('open'); pendingCell=null; }
 
 function modalNewObject(){
   // 'control' isn't offered here — Bureau's own buttons are seeded, not made.
@@ -1826,9 +1846,11 @@ function modalDrawer(id){
     <div class="s">A drawer is an object that contains other objects. It shows anything you file in it by hand, plus anything matching its rule.</div></div>
   <div class="modal-b">
     <div class="field" style="margin-bottom:10px"><label>Name</label><input id="dnm" value="${esc(d.title||'')}" placeholder="Reading Pile"></div>
-    <div class="field" style="margin-bottom:10px"><label>Lays its contents out as</label>
-      <div class="filterbar" id="dlayout" style="padding-top:6px">${[['list','List'],['grid','Grid']].map(([v,n])=>
-        `<button class="fchip${(d.layout||'list')===v?' on':''}" data-dl="${v}">${n}</button>`).join('')}</div></div>
+    <div class="field" style="margin-bottom:10px"><label>View</label>
+      <div class="filterbar" id="dlayout" style="padding-top:6px">${
+        [['grid','Grid'],['list','List'],['scroll','Scroll']].map(([v,n])=>
+        `<button class="fchip${(d.layout||'grid')===v?' on':''}" data-dl="${v}">${n}</button>`).join('')}</div>
+      <div class="mini" style="--k:var(--brass);margin-top:6px">Grid lays contents out on the grid · List is one line each · Scroll shows every word, top to bottom.</div></div>
     <div class="field" style="margin-bottom:10px"><label>Colour</label>
       <div id="dcol" style="margin-top:6px">${swatchRows(d.c)}
         <label class="custcol"><input type="color" data-colinput value="${d.c}">
@@ -1867,7 +1889,7 @@ function modalNewKind(from){
     <div class="field" style="margin-bottom:10px"><label>Description</label>
       <input id="kds" placeholder="What it's for, in a few words"></div>
     <div class="field" style="margin-bottom:10px"><label>Attributes</label>
-      <div class="filterbar" id="kattrs" style="flex-wrap:wrap;padding-top:6px">${ATTRKEYS.map(a=>
+      <div class="filterbar" id="kattrs" style="flex-wrap:wrap;padding-top:6px">${USER_ATTRS.map(a=>
         `<button class="fchip${seedAttrs.includes(a)?' on':''}" data-ka="${a}" title="${esc(ATTRS[a].ds)}">${ATTRS[a].nm}</button>`).join('')}</div>
       <div class="mini" style="--k:var(--brass);margin-top:6px" id="kattrsds">${esc(seedAttrs.map(a=>ATTRS[a].ds).join(' · '))}</div></div>
     <div class="field" style="margin-bottom:10px"><label>Colour</label>
@@ -1917,20 +1939,49 @@ function runCmd(i){ const r=(cmdList._res||[])[i]; if(!r) return; closeCmd(); r.
 /* ============================================================
    18 · context menu
    ============================================================ */
+/* Sweep the selection (or one object) into a brand-new drawer, made where they
+   already are. The drawer takes the place of the first one, which is the least
+   surprising spot for it to appear. */
+function drawerFromSelection(id){
+  const sel = S.sel.includes(id) ? S.sel.slice() : [id];
+  const objs = sel.map(byId).filter(Boolean);
+  if(!objs.length) return;
+  const home = objs[0].parent || ROOT;
+  const spot = lay(objs[0]);
+  const d = {
+    id:uid('d'), kind:'drawer', title:'New drawer', body:'', tags:[],
+    parent:home, c:'#7E5A38', pv:'list', layout:'grid', filter:{},
+    ord:0, created:T,
+    desk:null, phone:null
+  };
+  S.objects.push(d);
+  objs.forEach(o=>{ o.parent=d.id; o.desk=null; o.phone=null; });
+  // now that its contents have moved out, the first object's old spot is free
+  d[dev()] = boxOk({x:spot.x,y:spot.y,w:6,h:6}, d.id, dev(), home)
+    ? {x:spot.x,y:spot.y,w:6,h:6} : freeSpot(6,6,dev(),home);
+  S.sel=[];
+  save(); render();
+  toast(`${objs.length} filed in a new drawer`);
+  modalDrawer(d.id);
+}
+
 function openCtx(x,y,id){
   const o=byId(id); if(!o) return;
-  const k=K(o.kind);
   const el=$('#ctx');
+  // If a selection is open and this object is part of it, the menu acts on all
+  // of them — the same way a Finder context menu does.
+  const sel = S.sel.includes(id) ? S.sel.slice() : [id];
+  const many = sel.length>1;
   el.innerHTML=`
-    <button data-c="open:${id}">${ic('eye',14)} Open</button>
-    ${(has(o,'check')||has(o,'streak'))?`<button data-c="done:${id}">${ic('check',14)} ${has(o,'streak')?'Mark today':'Complete'}</button>`:''}
-    <button data-c="today:${id}">${ic('calendar',14)} Schedule today</button>
-    <button data-c="tom:${id}">${ic('calendar',14)} Schedule tomorrow</button>
-    <div class="div"></div>
+    ${many?`<div class="ctxhead">${sel.length} objects</div>` : ''}
+    ${many?'' : `<button data-c="open:${id}">${ic('eye',14)} Open</button>`}
+    ${(!many&&(has(o,'check')||has(o,'streak')))?`<button data-c="done:${id}">${ic('check',14)} ${has(o,'streak')?'Mark today':'Complete'}</button>`:''}
+    <button data-c="intodrawer:${id}">${ic('folder',14)} ${many?`Put these ${sel.length} in a new drawer`:'Put this in a new drawer'}</button>
     <button data-c="move:${id}">${ic('folder',14)} Move to drawer…</button>
-    <button data-c="dupe:${id}">${ic('archive',14)} Duplicate</button>
+    ${many?'':`<button data-c="today:${id}">${ic('calendar',14)} Schedule today</button>
+    <button data-c="dupe:${id}">${ic('archive',14)} Duplicate</button>`}
     <div class="div"></div>
-    <button class="danger" data-c="del:${id}">${ic('trash',14)} Delete</button>`;
+    <button class="danger" data-c="del:${id}">${ic('trash',14)} ${many?`Delete ${sel.length}`:'Delete'}</button>`;
   const r=$('#frame').getBoundingClientRect();
   el.classList.add('open');
   const w=el.offsetWidth,h=el.offsetHeight;
@@ -1943,6 +1994,13 @@ const closeCtx = ()=> $('#ctx').classList.remove('open');
    19 · gestures: swipe + drag reorder
    ============================================================ */
 let G=null;
+let holdTimer=null, holdFrom=null;
+// any real movement, or letting go, means it was not a press-and-hold
+function cancelHold(e){
+  if(!holdTimer) return;
+  if(e && holdFrom && Math.abs(e.clientX-holdFrom.x)<6 && Math.abs(e.clientY-holdFrom.y)<6) return;
+  clearTimeout(holdTimer); holdTimer=null;
+}
 
 /* Width of one grid column in px, measured rather than assumed — the grid is
    fluid (repeat(cols,1fr)) so this changes with the window and the rail. */
@@ -1972,17 +2030,6 @@ function place(el, b){
 function onDown(e){
   if(e.button===2) return;
   const app=$('#app');
-  // resizing the sidebar
-  if(e.target.closest('.railgrip')){
-    const rail=$('.rail'); if(!rail) return;
-    e.preventDefault();
-    G={type:'rail', el:e.target.closest('.railgrip'), w0:rail.getBoundingClientRect().width,
-       sx:e.clientX, sy:e.clientY, mode:'rail'};
-    G.el.classList.add('on');
-    document.body.classList.add('dragging-ui');
-    G.el.setPointerCapture&&G.el.setPointerCapture(e.pointerId);
-    return;
-  }
   // any tile on a grid, container or not — they all move and resize the same
   // any tile on a grid, whatever it is — controls carry data-id, not data-row
   const dEl=e.target.closest('.grid .drawer[data-drawer],.grid .drawer[data-row],.grid .drawer[data-id]');
@@ -1998,6 +2045,17 @@ function onDown(e){
     dEl.setPointerCapture&&dEl.setPointerCapture(e.pointerId);
     return;
   }
+  // Press and hold a tile to start arranging, the way a home screen does.
+  if(!S.arrange && dEl){
+    clearTimeout(holdTimer);
+    holdTimer=setTimeout(()=>{
+      holdTimer=null;
+      S.arrange=true; S.sel=[]; render();
+      if(navigator.vibrate) navigator.vibrate(8);
+      toast('Arranging — drag to move, drag an edge to resize');
+    }, 420);
+    holdFrom={x:e.clientX,y:e.clientY};
+  }
   const rEl=e.target.closest('.row[data-row]');
   if(!rEl) return;
   if(e.target.closest('[data-check],[data-del],[data-menu],[data-habit]')) return;
@@ -2007,20 +2065,9 @@ function onDown(e){
   rEl.setPointerCapture&&rEl.setPointerCapture(e.pointerId);
 }
 function onMove(e){
+  cancelHold(e);
   if(!G) return;
   const dx=e.clientX-G.sx, dy=e.clientY-G.sy;
-
-  if(G.mode==='rail'){
-    const g=GRID.desk;
-    // snap the rail to the same column step the drawer grid uses
-    const raw=clamp(G.w0+dx, 0, 460);
-    const step=(raw<120) ? raw : Math.round(raw/24)*24;
-    document.documentElement.style.setProperty('--railw', Math.max(150,step)+'px');
-    G.railw=Math.max(150,step);
-    G.hide = raw<120;
-    $('#frame').classList.toggle('rail-hidden', G.hide);
-    return;
-  }
 
   if(G.type==='move' || G.type==='resize'){
     if(!G.mode){
@@ -2063,17 +2110,10 @@ function onMove(e){
   }
 }
 function onUp(e){
+  if(holdTimer){ clearTimeout(holdTimer); holdTimer=null; }
   if(!G) return;
   const g=G; G=null;
   const dx=e.clientX-g.sx;
-
-  if(g.mode==='rail'){
-    g.el.classList.remove('on');
-    document.body.classList.remove('dragging-ui');
-    S.look.railHidden = !!g.hide;
-    if(!g.hide && g.railw) S.look.railw=g.railw;
-    applyLook(); save(); render(); return;
-  }
 
   if(g.mode==='grid'){
     g.el.classList.remove('dragging','invalid');
@@ -2124,7 +2164,7 @@ function snapshot(){
     const m=Object.assign({},o.media); delete m.src;
     return Object.assign({},o,{media:m});
   });
-  return {v:4, savedAt:new Date().toISOString(), theme:S.theme, listmode:S.listmode,
+  return {v:5, savedAt:new Date().toISOString(), theme:S.theme, listmode:S.listmode,
           look:S.look, kinds:S.kinds, objects};
 }
 function writeNow(){
@@ -2188,23 +2228,21 @@ function doubleBoxes(objects){
    they existed would have no way to reach them. Put back any that are missing —
    this also rescues a desk where one was deleted by accident. */
 function ensureControls(){
-  const want=[
-    {id:'c_new', title:'New',      ctl:'new',      ic:'plus',    c:'#8A5A3F'},
-    {id:'c_arr', title:'Arrange',  ctl:'arrange',  ic:'grid',    c:'#6B6152'},
-    {id:'c_set', title:'Settings', ctl:'settings', ic:'sliders', c:'#6B6152'}
-  ];
-  want.forEach(w=>{
-    if(S.objects.some(o=>o.ctl===w.ctl)) return;
-    S.objects.push(Object.assign({kind:'control', parent:ROOT, body:'', tags:[],
-      ord:-1, created:T, desk:null, phone:null}, w));
-  });
+  // New and Arrange became gestures, so retire their buttons from older desks
+  S.objects = S.objects.filter(o=>!(o.ctl==='new'||o.ctl==='arrange'));
+  if(!S.objects.some(o=>o.ctl==='settings')){
+    S.objects.push({id:'c_set', title:'Settings', ctl:'settings', ic:'sliders',
+      c:'#6B6152', kind:'control', parent:ROOT, body:'', tags:[],
+      ord:-1, created:T, desk:null, phone:null});
+  }
 }
 function adopt(d){
   if(!d || !Array.isArray(d.objects)) return false;
   S.objects = Array.isArray(d.drawers)
     ? foldDrawers(d)                                    // v1 or v2
     : d.objects.map(o=>Object.assign({tags:[],history:[],milestones:[],ord:0},o));
-  if(!(d.v>=4)) doubleBoxes(S.objects);
+  if(!(d.v>=4)) doubleBoxes(S.objects);   // 6 cols -> 12
+  if(!(d.v>=5)) doubleBoxes(S.objects);   // 12 cols -> 24, so a half-cell exists
   ensureControls();
   S.kinds = d.kinds || {};
   S.look = Object.assign(defaultLook(), d.look||{});
@@ -2328,8 +2366,6 @@ function act(name, el){
     case 'new': modalNewObject(); break;
     case 'newdrawer': modalDrawer(null); break;
     case 'arrange': S.arrange=!S.arrange; render(); break;
-    case 'hiderail': S.look.railHidden=true; save(); render(); break;
-    case 'showrail': S.look.railHidden=false; save(); render(); break;
     case 'reorder': S.reorder=!S.reorder; render(); break;
     case 'listmode': S.listmode = S.listmode==='rows'?'cards':'rows'; render(); break;
     case 'back': S.view='desk'; S.drawerId=null; S.kindFilter=null; render(); break;
@@ -2399,6 +2435,7 @@ function act(name, el){
     case 'export': exportBackup(); break;
     case 'import': $('#importer').click(); break;
     case 'pickimage': $('#imgpicker').click(); break;
+    case 'drawersettings': modalDrawer(el.dataset.id); break;
     case 'newkind': modalNewKind(null); break;
     case 'install': if(deferredInstall){ deferredInstall.prompt(); deferredInstall=null; } break;
     case 'reseed': { const th=S.theme, lk=S.look; reset(); S.theme=th; S.look=lk; applyLook(); writeNow(); render(); toast('Sample desk restored'); break; }
@@ -2421,6 +2458,12 @@ function wire(){
   frame.addEventListener('pointercancel', ()=>{ if(G){ if(G.el) G.el.style.transform=''; G=null; } });
 
   frame.addEventListener('contextmenu', e=>{
+    const tile=e.target.closest('.grid .drawer');
+    if(tile){
+      const id=tile.dataset.drawer||tile.dataset.row||tile.dataset.id;
+      if(id){ e.preventDefault(); openCtx(e.clientX,e.clientY,id); }
+      return;
+    }
     const r=e.target.closest('[data-row]'); if(!r) return;
     e.preventDefault(); openCtx(e.clientX,e.clientY,r.dataset.row);
   });
@@ -2438,7 +2481,13 @@ function wire(){
       else if(cmd==='tom'){ byId(id).due=dz(1); render(); toast('Scheduled tomorrow'); }
       else if(cmd==='move') modalMove(id);
       else if(cmd==='dupe'){ const o=byId(id); S.objects.push(Object.assign({},o,{id:uid('o'),title:o.title+' (copy)',ord:o.ord+0.1})); render(); }
-      else if(cmd==='del') del(id);
+      else if(cmd==='intodrawer') drawerFromSelection(id);
+      else if(cmd==='del'){
+        const sel = S.sel.includes(id) ? S.sel.slice() : [id];
+        if(sel.length>1){ sel.forEach(x=>{ const i=S.objects.findIndex(o=>o.id===x); if(i>=0) S.objects.splice(i,1); });
+          S.sel=[]; save(); render(); toast(`Deleted ${sel.length}`); }
+        else del(id);
+      }
       return; }
 
     const mv=t.closest('[data-moveto]');
@@ -2447,7 +2496,18 @@ function wire(){
       toast('Filed in '+(did===ROOT?'The Desk':byId(did).title)); return; }
 
     const nk=t.closest('[data-new]');
-    if(nk){ hideModal(); const o=create(nk.dataset.new); render(); openObj(o.id); S.editing=true; renderSheet(); return; }
+    if(nk){
+      const at=pendingCell;            // hideModal clears it, so keep it first
+      hideModal();
+      pendingCell=at;
+      const kind=nk.dataset.new;
+      const o=create(kind, at?{parent:at.parent}:undefined);
+      placeAtPending(o);
+      render();
+      // a drawer wants naming and a rule; everything else wants its body
+      if(isContainer(o)) modalDrawer(o.id);
+      else { openObj(o.id); S.editing=true; renderSheet(); }
+      return; }
 
     const ck=t.closest('[data-check]'); if(ck){ toggleDone(ck.dataset.check); return; }
     const hb=t.closest('[data-habit]'); if(hb){ toggleHabit(hb.dataset.habit); return; }
@@ -2481,6 +2541,18 @@ function wire(){
     const vw=t.closest('[data-view]');
     if(vw){ S.view=vw.dataset.view; S.drawerId=null; S.kindFilter=null; S.arrange=false; render(); return; }
 
+    /* Clicking bare grid makes something there. The cell under the pointer is
+       remembered so the new object lands where you pointed, not wherever there
+       happened to be room. */
+    if(t.classList && t.classList.contains('grid') && !S.arrange){
+      const g=gridOf(), r=t.getBoundingClientRect(), cw=cellW(t,g);
+      const cx=Math.floor((e.clientX-r.left)/(cw+g.gap))+1;
+      const cy=Math.floor((e.clientY-r.top)/(CELL[dev()]+g.gap))+1;
+      pendingCell={x:clamp(cx,1,g.cols), y:Math.max(1,cy), parent:t.dataset.gridfor||ROOT};
+      modalNewObject();
+      return;
+    }
+
     // a control object on the desk
     const ctl=t.closest('[data-ctl]');
     if(ctl && !S.arrange){
@@ -2490,6 +2562,18 @@ function wire(){
       else if(a==='settings'){ S.view='settings'; render(); }
       return;
     }
+
+    // shift/⌘ click builds a selection, Finder-style, instead of opening
+    const tile=t.closest('.grid .drawer');
+    if(tile && (e.shiftKey||e.metaKey||e.ctrlKey)){
+      const id=tile.dataset.drawer||tile.dataset.row||tile.dataset.id;
+      if(id){ const i=S.sel.indexOf(id);
+        if(i>=0) S.sel.splice(i,1); else S.sel.push(id);
+        render(); }
+      return;
+    }
+    // a plain click anywhere clears the selection before doing anything else
+    if(S.sel.length && !t.closest('#ctx')) S.sel=[];
 
     const dr=t.closest('[data-drawer]');
     if(dr && (dr.classList.contains('navitem') || dr.tagName==='B' || (dr.classList.contains('drawer') && !S.arrange))){
@@ -2531,7 +2615,6 @@ function wire(){
       const cur=attrsOf(o).slice(), a=at.dataset.attr, i=cur.indexOf(a);
       if(i>=0) cur.splice(i,1); else cur.push(a);
       o.attrs=cur;
-      if(a==='container'&&cur.includes('container')){ o.c=o.c||K(o.kind).c; o.pv=o.pv||'list'; o.layout=o.layout||'list'; o.filter=o.filter||{}; }
       save(); renderSheet(); render(); return; }
 
     // how a drawer lays its contents out, from the drawer's own toolbar
@@ -2566,8 +2649,8 @@ function wire(){
     // It keeps the drawer where it is and skips any preset that would collide.
     const sz=t.closest('[data-size]');
     if(sz){ const d=byId(sz.dataset.size), g=gridOf(), cur=lay(d);
-      const P = dev()==='desk' ? [[2,2],[3,3],[4,3],[6,4],[4,6],[12,4]]
-                               : [[2,2],[4,3],[4,4],[8,3],[8,6]];
+      const P = dev()==='desk' ? [[2,2],[4,4],[6,6],[8,6],[12,8],[6,12],[24,8]]
+                               : [[2,2],[4,4],[8,6],[8,8],[16,6],[16,12]];
       const i=P.findIndex(p=>p[0]===cur.w&&p[1]===cur.h);
       for(let n=1;n<=P.length;n++){
         const [w,h]=P[(i+n)%P.length];

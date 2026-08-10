@@ -28,12 +28,15 @@ const URL = process.env.BUREAU_URL || 'http://127.0.0.1:8000/index.html';
   const swReady = await page.evaluate(() => navigator.serviceWorker.ready.then(r => !!r.active).catch(() => false));
 
   // --- persistence: make a change, reload, check it survived
-  await page.click('.navitem[data-drawer="d_in"]');
+  // No sidebar any more: drawers are opened from the desk itself.
+  await page.click('.grid .drawer[data-drawer="d_in"]');
   await page.waitForTimeout(250);
   await page.fill('#qa', 'Order the brass pulls #bureau !today');
   await page.press('#qa', 'Enter');
   await page.waitForTimeout(400);
-  await page.click('.navitem[data-view="settings"]');
+  await page.click('.crumbs [data-view="desk"]');   // the tab bar is phone-only
+  await page.waitForTimeout(250);
+  await page.click('.grid .drawer[data-ctl="settings"]');
   await shot('02-settings');
   await page.click('[data-theme2="walnut"]');
   await page.waitForTimeout(250);
@@ -42,9 +45,9 @@ const URL = process.env.BUREAU_URL || 'http://127.0.0.1:8000/index.html';
   await page.reload();
   await page.waitForTimeout(700);
   const survived = await page.evaluate(() =>
-    BUREAU.state.objects.some(o => o.title.includes('brass pulls')));
+    BUREAU.state.objects.some(o => (o.title||'').includes('brass pulls')));
   const themeSurvived = await page.evaluate(() => BUREAU.state.theme);
-  await page.click('.navitem[data-view="settings"]');
+  await page.click('.grid .drawer[data-ctl="settings"]');
   await page.waitForTimeout(250);
   await page.click('[data-theme2="paper"]');
   await page.waitForTimeout(200);
@@ -72,7 +75,8 @@ const URL = process.env.BUREAU_URL || 'http://127.0.0.1:8000/index.html';
   await phone.goto(URL);
   await phone.waitForTimeout(700);
   await phone.screenshot({ path: 'test/shots/07-phone.png' });
-  const railHidden = await phone.evaluate(() => getComputedStyle(document.querySelector('.rail')).display === 'none');
+  // the sidebar was removed on purpose — assert it is genuinely gone
+  const railGone = await phone.evaluate(() => !document.querySelector('.rail'));
   const tabbarShown = await phone.evaluate(() => getComputedStyle(document.querySelector('.tabbar')).display !== 'none');
   await phone.click('.tabbar button >> nth=2');
   await phone.waitForTimeout(350);
@@ -83,9 +87,23 @@ const URL = process.env.BUREAU_URL || 'http://127.0.0.1:8000/index.html';
   await phone.waitForTimeout(350);
   await phone.screenshot({ path: 'test/shots/09-phone-drawer.png' });
 
+  // --- press and hold enters arrange, a tap does not (already on the desk)
+  await page.waitForTimeout(300);
+  const holdArranges = await page.evaluate(async () => {
+    const t = document.querySelector('.grid .drawer[data-drawer]');
+    const r = t.getBoundingClientRect();
+    const o = { bubbles:true, clientX:r.x+r.width/2, clientY:r.y+r.height/2, pointerId:9, isPrimary:true };
+    t.dispatchEvent(new PointerEvent('pointerdown', o));
+    await new Promise(r2 => setTimeout(r2, 600));
+    const on = BUREAU.state.arrange;
+    t.dispatchEvent(new PointerEvent('pointerup', o));
+    return on;
+  });
+  await shot('10-arrange-by-hold');
+
   console.log(JSON.stringify({
     errors: errs, manifestOk, swReady, survived, themeSurvived,
-    gridClass, offlineWorks, railHidden, tabbarShown
+    gridClass, offlineWorks, railGone, tabbarShown, holdArranges
   }, null, 2));
   await browser.close();
 })();

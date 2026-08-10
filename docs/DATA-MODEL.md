@@ -18,15 +18,18 @@ more than an index would.
   title:     "Water the fig",
   body:      "",             // markdown
   tags:      ["home"],
-  drawer:    "d_in",         // hand-filed home; beats the drawer rule
+  parent:    "d_in",         // the one drawer it lives in ("root" = the desk)
   done:      false,
   doneAt:    null,           // "YYYY-MM-DD" when completed
   due:       "2026-08-12",   // "YYYY-MM-DD" or null
   repeat:    "weekly",       // daily | weekdays | weekly | monthly | null
   history:   [],             // habits: completed dates
   milestones:[],             // goals: [{t, done, d}]
-  media:     null,           // {type: image|video|audio, label}
-  ord:       4,              // manual sort position within a drawer
+  media:     null,           // {assetId, type, w, h, label} — see Images
+  attrs:     null,           // per-object attribute override; null = use the kind's
+  desk:      {x:1,y:1,w:4,h:4},   // where it sits in its parent's grid, per device
+  phone:     null,
+  ord:       4,              // position in list and scroll views
   created:   "2026-07-11"
 }
 ```
@@ -39,12 +42,14 @@ absent, and `adopt()` backfills defaults when loading a backup.
 ```js
 {
   id:     "d_kitch",
-  nm:     "Kitchen",
+  kind:   "drawer",                   // or "magic"
+  title:  "Kitchen",
+  parent: "root",                     // drawers nest too
   c:      "#A55A3E",                  // drawer front colour, solid
-  pv:     "thumbs",                   // list | stack | thumbs | bars | big
-  filter: { kinds: ["recipe"] },      // or {due:'today'} or {done:true} or {}
-  desk:   { x:5, y:3, w:2, h:1 },     // place + size in the 6-column Mac grid
-  phone:  { x:3, y:6, w:2, h:2 }      // place + size in the 4-column iPhone grid
+  layout: "grid",                     // grid | list | scroll
+  filter: { kinds:["recipe"] },       // magic drawers only; ignored otherwise
+  desk:   { x:13, y:7, w:6, h:6 },    // place + size in the 24-column Mac grid
+  phone:  { x:9,  y:13, w:8, h:6 }    // place + size in the 16-column iPhone grid
 }
 ```
 
@@ -63,9 +68,7 @@ neighbour aside, so nothing you arranged ever moves without you.
 look: {
   bg:         "#DED3B6" | null,   // custom background; null = use the theme's
   accent:     "#A9793F" | null,
-  line:       "rgba(0,0,0,.28)" | null,   // drawer outline
-  railw:      212,                // sidebar width in px
-  railHidden: false
+  line:       "rgba(0,0,0,.28)" | null    // drawer outline
 }
 ```
 
@@ -85,7 +88,7 @@ boundary. Section 0's `D` object is the only place that converts.
 One key, `bureau.v1` (the key name is stable; `v` inside it is the schema):
 
 ```js
-{ v: 3, savedAt: "…ISO…", theme, listmode, look, kinds, objects: [...] }
+{ v: 5, savedAt: "…ISO…", theme, listmode, look, kinds, objects: [...] }
 ```
 
 **v1 → v2** added `x`/`y` to each drawer layout and the `look` block. `adopt()`
@@ -102,6 +105,11 @@ by id still resolve. A backup written by any earlier version still restores —
 its owner left it — a tile twice as wide as tall stays twice as wide as tall.
 `ensureControls()` also runs, adding the New/Arrange/Settings control objects to
 any desk saved before the toolbar became part of the grid.
+
+**v4 → v5** halved the cell again (12 → 24 columns) so a quarter-size object is
+possible; `doubleBoxes()` runs a second time. Ordinary drawers lost their rules
+in the same pass — a rule now belongs only to a magic drawer — and the New and
+Arrange control objects were retired, since both became gestures.
 
 ## Images
 
@@ -129,27 +137,17 @@ Written 250ms after any change (debounced), plus on `visibilitychange` and
 quota exhaustion both throw, and a failed save must never break the render.
 
 Export writes the same shape to `bureau-YYYY-MM-DD.json`. Import replaces the
-desk wholesale after validating it has `objects` and `drawers` arrays.
+desk wholesale after validating it has an `objects` array. Image bytes are not
+included — a restored backup keeps the metadata but the pictures only come back
+on the device that holds the IndexedDB.
 
 **Migrations.** Bump `v` and translate inside `adopt()` when the shape changes.
 Keep reading old versions — this is one person's real notes and there is no
 server-side backup.
 
-**Capacity.** localStorage caps around 5MB. The seeded desk is 13KB; a few
-thousand text objects stay well under. Real media will not fit and needs
-IndexedDB — see below.
-
-## Media, when it becomes real
-
-`media` is currently a label. The plan:
-
-- Store blobs in IndexedDB in an `assets` store, keyed by an id.
-- Object keeps `media: {assetId, type, mime, w, h, dur, label}` — metadata in the
-  main JSON, bytes in IndexedDB, so the export stays small and readable.
-- Generate a thumbnail on import (canvas for images and video frames, a waveform
-  for audio) and store it as a small blob alongside; thumbnails are what drawer
-  previews and card grids need.
-- Export gains an option to bundle assets as base64, off by default.
+**Capacity.** localStorage caps around 5MB. The seeded desk is 16KB; a few
+thousand text objects stay well under. Image bytes are in IndexedDB, so they do
+not count against it — see Images above.
 
 ## If sync happens
 

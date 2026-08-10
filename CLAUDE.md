@@ -3,11 +3,11 @@
 Bureau is Timothy's personal to-do / note / idea / writing app. It is not a
 product for other people, and design decisions should be made for one user.
 
-The organising idea: **everything is an object with a declared kind, filed in a
-drawer.** Not files, not a feed, not a database of undifferentiated "items". A
-task and a recipe and an essay are genuinely different things and the app should
-know the difference. The drawer grid is the home screen and the largest visual
-element in the app.
+The organising idea: **everything sits on a grid.** Drawers are containers on
+that grid and open onto grids of their own; objects are everything else, and
+what an object can do is defined by its attributes. Not files, not a feed, not a
+database of undifferentiated "items". The desk *is* the app — there is no
+toolbar and no sidebar, only the grid.
 
 Comparables to keep in mind: Things 3 (for task feel), Bear (for writing feel),
 Obsidian (for what to avoid — infinite nesting and file soup).
@@ -18,8 +18,9 @@ A working, installable PWA in `web/`. Single-file app, ~1,770 lines of hand-writ
 HTML/CSS/JS, no build step, no dependencies, no framework. It runs on iPhone and
 Mac, persists to local storage, and works offline.
 
-Everything in the requirements list is implemented **except**: real media files
-(placeholders only) and sync between devices (export/import JSON is the bridge).
+Everything in the requirements list is implemented **except** video and audio
+files (images are real) and sync between devices (export/import JSON is the
+bridge).
 
 Read `docs/SPEC.md` before changing behaviour and `docs/DECISIONS.md` before
 changing structure — the second one records things that were decided deliberately
@@ -66,17 +67,18 @@ with `grep -n "· " web/index.html`. In order:
 | 1 icons | Inline SVG path strings, `ic(name, size)`. Add new icons to `P`. |
 | 2 ATTRS + KINDS | The attribute registry and the kinds built from it. **This is the heart of the app** — see below and `docs/OBJECT-MODEL.md`. |
 | 3 seed data | The sample desk a first-run user gets. Dates are relative to today. |
-| 4 state | `S`, plus `inDrawer()`, `streak()`, `goalPct()`. |
+| 4 state | `S`, plus `inContainer()`, `childrenOf()`, `streak()`, `goalPct()`. |
 | 4b grid + look | `GRID`, `lay()`, `boxOk()`, `freeSpot()`, `applyLook()`, and the colour palettes. Grid geometry lives here, not in the views. |
 | 5 markdown | ~35-line renderer. Headings, lists, checkboxes, quotes, bold/italic/code/links. Deliberately small. |
 | 6 mutations | `toggleDone`, `del`, `create`, `quickAdd`, repeat scheduling. |
 | 7–12b rendering | One function per view, each returning an HTML string. |
-| 13 rail + tabbar | Sidebar (Mac) and tab bar (phone) navigation. |
+| 13 tabbar | Phone tab bar. There is no sidebar — see decision 18. |
 | 14 main render | `render()` — replaces `#app`'s innerHTML wholesale. |
 | 15 detail sheet | `renderSheet()` — rendered into `#sheetHost`, **separately** from `render()`. |
 | 16–18 overlays | Modals, command palette (⌘K), context menu. |
 | 19 gestures | Pointer-based swipe and drag-reorder. The fiddliest code in the file. |
-| 19b persistence | localStorage read/write, JSON export/import. |
+| 19b persistence | localStorage read/write, JSON export/import, migrations. |
+| 19c assets | Image bytes in IndexedDB. Never in the JSON. |
 | 20 event wiring | One delegated listener set on `#frame`. All interaction routes through here. |
 | 21 boot | Load, wire, render, register the service worker. |
 
@@ -93,9 +95,10 @@ to `#frame` in section 20, dispatched on `data-*` attributes. To add an action,
 add a `data-act="thing"` attribute and a case in `act()`. Don't attach listeners
 inside render functions — they'd leak on every re-render.
 
-**Everything is an object; a drawer is one with the `container` attribute.**
-There is one array, `S.objects`, and every object names its `parent`. `ROOT` is
-the desk. This is what makes drawers-inside-drawers a non-question — read
+**Drawers contain; objects don't.** One array, `S.objects`, holds both, and
+every object names its `parent`. `ROOT` is the desk. Drawers nest inside
+drawers; objects nest inside nothing. An object lives in exactly one drawer —
+a magic drawer is the only way it appears anywhere else. Read
 `docs/OBJECT-MODEL.md` before changing any of it.
 
 **Never branch on a kind's name.** Ask `has(o,'check')`, not `o.kind==='task'`.
@@ -126,18 +129,23 @@ when you're editing the *other* device's layout from this one.
 - **Cells are square and the row height is measured, never assumed.** Columns
   are fluid, so `sizeGrid()` reads the real column width after layout and caches
   it in `CELL`. Don't hardcode a row height — `GRID` deliberately has none.
-- **The desk has no toolbar.** New, Arrange and Settings are `control` objects
-  on the grid. `ensureControls()` puts back any that are missing on load, which
-  is the only thing stopping a deleted Settings button from stranding you.
+- **The desk has no toolbar and no sidebar.** New is "click a bare cell",
+  Arrange is "press and hold" (`holdTimer` in section 19), and Settings is a
+  `control` object on the grid. `ensureControls()` puts Settings back if it is
+  missing, which is the only thing stopping a deleted one from stranding you.
 - **Image bytes live in IndexedDB, never in the JSON.** Section 19c. `snapshot()`
   strips `media.src`; `hydrateAssets()` puts it back after a load. If you add a
   new place that writes objects to storage, it has to strip too.
 - **Drawer fronts are solid mid-dark colours** and everything inside them reads
   light, via `--dink`/`--dink-2`/`--dink-3` set on `.drawer`. Don't use `--ink-*`
   inside a drawer tile — it's the page's dark ink and will vanish.
-- **Drawers are simultaneously smart filters and real containers.**
-  `inContainer()` is the single source of truth for what appears where and the
-  order of its checks is deliberate. Read the comment above it before touching it.
+- **A drawer holds; a magic drawer collects; nothing does both.** `inContainer()`
+  is the single source of truth. An ordinary drawer shows only objects whose
+  `parent` is it; a magic drawer ignores `parent` and matches its rule. An object
+  lives in exactly one drawer — see decision 17, which overturns decision 1.
+- **`container`, `magic` and `control` are structural, not user attributes.**
+  They are in `STRUCTURAL` and excluded from `USER_ATTRS`, which is what stops a
+  note being turned into a drawer. Attribute pickers must use `USER_ATTRS`.
 - **Containment is recursive, so cycles are possible.** Anything that reparents
   an object must go through `isAncestor()` first, or a drawer can be dropped
   inside itself and take its whole subtree out of reach.

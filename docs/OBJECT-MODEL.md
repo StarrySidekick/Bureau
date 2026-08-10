@@ -1,7 +1,22 @@
 # The object model
 
-The rule, in one line: **everything is an object, every object sits in a grid,
-and a grid is itself an object.**
+Two sorts of thing, and one rule about how they nest:
+
+- A **drawer** is a container. It holds objects and other drawers. The **desk**
+  is the one drawer you never see a tile for — it is the grid everything starts
+  on.
+- An **object** is everything else. Objects hold nothing.
+
+So drawers contain drawers, drawers contain objects, and objects contain
+nothing. Recursion lives entirely on the drawer side.
+
+Drawers are customised through drawer settings — colour, view, rule. Objects are
+customised through their attributes. The two are edited in different places
+because they are different sorts of thing.
+
+**An object lives in exactly one drawer.** The single exception is a magic
+drawer, which collects by rule and can therefore show an object that lives
+somewhere else. Tags are just labels and go on anything.
 
 ## The four words
 
@@ -72,22 +87,31 @@ behaviour — if a view needs to know whether to draw a checkbox it asks
 object with `parent: "root"` sits on the desk, whether it is a drawer or a
 single note pinned to the corner.
 
-## Containment, still two ideas at once
+## Containment: hold or collect, never both
 
-`inContainer()` keeps [decision 1](DECISIONS.md): a container shows anything
-filed in it by hand (`o.parent === c.id`) **plus** anything matching its rule.
-Hand-filing still wins, completed things still leave, and the archive still
-takes everything finished.
+`inContainer()` is short on purpose:
 
-## Layout
+- An **ordinary drawer** shows exactly the objects whose `parent` is that
+  drawer. Nothing else. No rule.
+- A **magic drawer** ignores `parent` entirely and shows whatever matches its
+  rule — a kind, a tag, due today, or done. It never holds anything, so filing
+  into one does nothing.
 
-A container's `layout` is `grid` or `list`.
+This is what makes "an object is in one place" true. It replaces the original
+both-at-once design (see decision 1, and 17 which overturns it), and the cost is
+that Kitchen no longer sweeps up every recipe by itself — you file it, or you
+make Kitchen magic.
 
-- **grid** — children are placed by `{x,y,w,h}`, the same coordinate space the
-  desk uses, at any depth. **This is the default, everywhere**, including inside
-  a drawer: the grid is the app.
-- **list** — children are stacked in `ord` order. Available per container for
-  when a drawer is genuinely a list of things.
+Completed objects leave every drawer except the archive.
+
+## Views
+
+A drawer's `layout` is its view, remembered per drawer, set in drawer settings:
+
+- **grid** — children placed by `{x,y,w,h}`. The default everywhere.
+- **list** — one line each, for scanning.
+- **scroll** — the same order, but nothing truncated: every object's whole body,
+  top to bottom, for reading a drawer rather than scanning it.
 
 ## The grid itself
 
@@ -96,9 +120,23 @@ so the row height has to be measured from the real column width after layout,
 not assumed. `sizeGrid()` does that and caches it in `CELL`; nothing may
 hardcode a row height.
 
-Twelve columns rather than six means the smallest possible object is half the
-size it used to be. New objects land square: 3×3 for a drawer, 2×2 for anything
-else, 1×1 available by dragging.
+Twenty-four columns means the smallest possible object is a quarter of the
+original cell. New objects land square and comfortable — 6×6 for a drawer, 4×4
+for anything else — and can be dragged all the way down to 1×1.
+
+## Gestures
+
+There is no New button and no Arrange button, because both are gestures:
+
+- **Click a bare cell** → the new-object menu, and whatever you pick lands on
+  that cell.
+- **Press and hold a tile** (~420ms) → arrange mode.
+- **Shift- or ⌘-click** tiles → a Finder-style selection.
+- **Right-click** → act on the selection, including sweeping it into a new
+  drawer.
+
+Settings is the only button left on the desk, and it is an object on the grid
+like everything else.
 
 ## How things look on a grid
 
