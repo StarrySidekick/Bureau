@@ -39,6 +39,8 @@ a non-question.
 | `repeat` | Completing it spawns the next occurrence. |
 | `button` | A button with a customisable target — another object, a drawer, or a URL. |
 | `container` | Children, laid out on a grid or a list of its own. This is what makes a drawer. |
+| `magic` | Collects **only** by rule, never by hand — a smart folder. |
+| `control` | Runs something in Bureau. New, Arrange and Settings are these. |
 | `streak` | A daily cadence and a tickable history, with no due date and no overdue. |
 | `progress` | Ordered milestones and a progress bar. |
 | `media` | An image, video, or audio file. |
@@ -82,12 +84,33 @@ takes everything finished.
 A container's `layout` is `grid` or `list`.
 
 - **grid** — children are placed by `{x,y,w,h}`, the same coordinate space the
-  desk uses, at any depth. The desk is simply the root container in grid layout.
-- **list** — children are stacked in `ord` order, which is what you usually want
-  once you are *inside* a drawer looking at its contents.
+  desk uses, at any depth. **This is the default, everywhere**, including inside
+  a drawer: the grid is the app.
+- **list** — children are stacked in `ord` order. Available per container for
+  when a drawer is genuinely a list of things.
 
-New drawers default to `list`, because listing is the common case inside a
-drawer; the desk defaults to `grid`. Either can be switched per container.
+## The grid itself
+
+Cells are **square**. Columns are fluid — 12 across on the Mac, 8 on the phone —
+so the row height has to be measured from the real column width after layout,
+not assumed. `sizeGrid()` does that and caches it in `CELL`; nothing may
+hardcode a row height.
+
+Twelve columns rather than six means the smallest possible object is half the
+size it used to be. New objects land square: 3×3 for a drawer, 2×2 for anything
+else, 1×1 available by dragging.
+
+## How things look on a grid
+
+- A **drawer** shows its name, its count, and a pull. Nothing else — what is
+  inside it is *inside* it, and you open it to find out. Clicking one opens its
+  grid.
+- An **image** fills its box, cropped, like something pasted into a scrapbook.
+  Resize it and the crop follows.
+- Everything **else** shows what its attributes say: a checkbox if it checks, a
+  button if it buttons, a few lines of its text.
+- A **control** is one of Bureau's own buttons. They sit on the desk grid and
+  move and resize like anything else, which is why the desk has no toolbar.
 
 ## Migration, v2 → v3
 

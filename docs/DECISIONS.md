@@ -205,7 +205,43 @@ kind of rule that makes a personal tool feel like someone else's product.
 
 ---
 
-### 14. PWA before native
+### 14. The grid is square, and it is the whole page
+
+Cells are square, twice as fine as before, and the desk has no toolbar — New,
+Arrange and Settings are objects sitting on the grid.
+
+*Why:* if everything is on a grid, the app's own buttons have no business
+floating above it. Square cells make placement legible in one unit instead of
+two, and halving the cell makes small things possible — a button, a photo, a
+single-line note — without a second sizing system.
+
+*Against:* a drawer on the desk now shows only its name, so the desk tells you
+less at a glance than it did. That is deliberate — a drawer is a thing you open
+— but it is a real loss, and if the desk starts feeling inert, printing a count
+or a first line back onto the front is the fix.
+
+*Also against:* Bureau's buttons can be moved somewhere useless or deleted.
+`ensureControls()` restores missing ones on load, which is a patch over a hazard
+the design creates rather than a real answer.
+
+---
+
+### 15. Magic drawers collect but never hold
+
+A magic drawer matches by rule only. Filing something into one does nothing.
+
+*Why:* decision 1 made ordinary drawers deliberately two things at once, and
+that ambiguity is worth it for a place you put things. It is not worth it for a
+saved search. Keeping them separate means "why is this here?" has exactly one
+answer for a magic drawer.
+
+*Against:* two kinds of container that look nearly identical on the desk. The
+sparkle mark is doing a lot of work; if it isn't enough, they should look
+properly different.
+
+---
+
+### 16. PWA before native
 
 *Why:* it satisfies "iPhone app", "Mac app" and "pretty" for one codebase and no
 developer account, and it can be used tomorrow. A wrong idea discovered in a week

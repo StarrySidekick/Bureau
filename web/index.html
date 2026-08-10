@@ -155,15 +155,19 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
 .pill.solid:hover{opacity:.9}
 .scroll{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:6px 22px 120px}
 .is-phone .scroll{padding:4px 14px 110px}
+/* the desk has no toolbar — the grid is the page */
+.deskscroll{padding:14px 14px 120px}
+.is-phone .deskscroll{padding:10px 10px 110px}
 
 /* ============================================================
    Drawers grid
    ============================================================ */
 /* Explicit x/y placement: every drawer names its column and row, so the grid is
    a coordinate space, not a flow. No auto-flow — an empty cell stays empty. */
-.grid{display:grid;gap:10px;align-content:start;position:relative}
-.grid.g-desk{grid-template-columns:repeat(var(--cols,6),1fr);grid-auto-rows:var(--rowh,104px)}
-.grid.g-phone{grid-template-columns:repeat(var(--cols,4),1fr);grid-auto-rows:var(--rowh,84px);gap:8px;max-width:520px}
+/* Square cells: --rowh is set from the measured column width by sizeGrid(). */
+.grid{display:grid;gap:8px;align-content:start;position:relative}
+.grid.g-desk{grid-template-columns:repeat(var(--cols,12),1fr);grid-auto-rows:var(--rowh,82px)}
+.grid.g-phone{grid-template-columns:repeat(var(--cols,8),1fr);grid-auto-rows:var(--rowh,44px);gap:6px}
 
 .drawer{
   position:relative;border-radius:var(--radius-d);overflow:hidden;text-align:left;
@@ -301,6 +305,27 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
   background:var(--c);color:#F8F3E6;font-size:11.5px;font-weight:600}
 .tilebtn:hover{filter:brightness(1.1)}
 .tilemeta{font-size:11px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+
+/* A drawer front: a name and a pull, nothing else. What's inside is inside. */
+.drawer.dtile .dtop{align-items:center}
+.drawer.dtile .dname{white-space:normal;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;font-size:15px}
+.drawer.dtile .dcount{align-self:flex-start}
+.magicmark{color:var(--dink-2);display:inline-flex;align-items:center;margin-left:2px}
+
+/* An image on the grid, cropped to its box like something pasted in place */
+.drawer.imgtile{padding:0;overflow:hidden;background:var(--paper-3)}
+.tileimg{width:100%;height:100%;object-fit:cover;display:block;user-select:none;-webkit-user-drag:none}
+.imgcap{position:absolute;left:0;right:0;bottom:0;padding:5px 8px;font-size:11px;color:#F8F3E6;
+  background:rgba(0,0,0,.45);text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* Bureau's own buttons, living on the desk */
+.drawer.ctile{
+  background:var(--paper-2);border-color:var(--rule);align-items:center;justify-content:center;
+  gap:5px;--dink:var(--ink);color:var(--ink-2);border-left:3px solid var(--c);
+}
+.drawer.ctile:hover{filter:none;border-color:var(--brass);color:var(--ink)}
+.ctile .cico{color:var(--c);display:grid;place-items:center}
+.ctile .clabel{font-size:11.5px;font-weight:600;letter-spacing:.01em}
 
 /* ============================================================
    Object rows
@@ -687,6 +712,8 @@ const ATTRS = {
   repeat:   {nm:'Repeats',    ds:'Completing it spawns the next one'},
   button:   {nm:'Button',     ds:'A button that opens an object, a drawer, or a link'},
   container:{nm:'Container',  ds:'Holds other objects — this is what makes a drawer'},
+  magic:    {nm:'Magic',      ds:'Collects by rule instead of by hand, like a smart folder'},
+  control:  {nm:'Control',    ds:'Runs something in Bureau — a button that lives on the desk'},
   streak:   {nm:'Streak',     ds:'A daily cadence with a history, and no overdue'},
   progress: {nm:'Milestones', ds:'Ordered steps with a progress bar'},
   media:    {nm:'Media',      ds:'An image, video, or audio file'}
@@ -694,7 +721,9 @@ const ATTRS = {
 const ATTRKEYS = Object.keys(ATTRS);
 
 const BUILTIN_KINDS = {
-  drawer:  {nm:'Drawer',  ic:'folder',  c:'#7E5A38', key:'D', ds:'A container on the grid',   attrs:['container'], layout:'list', body:'' },
+  drawer:  {nm:'Drawer',  ic:'folder',  c:'#7E5A38', key:'D', ds:'A container on the grid',   attrs:['container'], layout:'grid', body:'' },
+  magic:   {nm:'Magic drawer', ic:'sparkle', c:'#4A6E8F', key:'G', ds:'Collects by rule, like a smart folder', attrs:['container','magic'], layout:'grid', body:'' },
+  control: {nm:'Control',  ic:'sliders', c:'#6B6152', key:'', ds:'A Bureau button on the desk', attrs:['control'], body:'' },
   task:    {nm:'Task',    ic:'check',   c:'#4A7C59', key:'T', ds:'A thing to do',             attrs:['text','check','date','repeat'], body:'' },
   note:    {nm:'Note',    ic:'note',    c:'#5F7A93', key:'N', ds:'Something to remember',     attrs:['text'], body:'' },
   idea:    {nm:'Idea',    ic:'bulb',    c:'#96652F', key:'I', ds:'A spark, unformed',         attrs:['text'], body:'**The spark —** \n\n**Why it might work —** \n\n**What it needs —** ' },
@@ -733,18 +762,29 @@ function seed(){
   // x/y are 1-based grid cells, packed by hand, because a desk is arranged and
   // not flowed. The desk grid is 6 columns wide, the phone's is 4.
   const DR = (o)=> Object.assign({kind:'drawer', parent:ROOT, title:'', body:'',
-    tags:[], layout:'list', ord:0, created:dz(-40)}, o);
+    tags:[], layout:'grid', ord:0, created:dz(-40)}, o);
+  // The three drawers whose whole job is a rule are magic drawers — they
+  // collect and never hold. The rest are ordinary containers you file into.
+  const MG = (o)=> DR(Object.assign({kind:'magic'}, o));
   const drawers = [
-    DR({id:'d_today', title:'Today',        c:'#4A7C59', pv:'big',    filter:{due:'today'},                     desk:{x:1,y:1,w:2,h:1}, phone:{x:1,y:1,w:4,h:1}}),
-    DR({id:'d_in',    title:'Inbox',        c:'#7E5A38', pv:'stack',  filter:{},                                desk:{x:3,y:1,w:2,h:2}, phone:{x:1,y:2,w:2,h:2}}),
-    DR({id:'d_write', title:'Writing Desk', c:'#5C7148', pv:'list',   filter:{kinds:['essay','outline','note']}, desk:{x:5,y:1,w:2,h:2}, phone:{x:3,y:2,w:2,h:2}}),
-    DR({id:'d_ideas', title:'Idea Bin',     c:'#96652F', pv:'stack',  filter:{kinds:['idea']},                  desk:{x:1,y:2,w:2,h:2}, phone:{x:1,y:4,w:4,h:2}}),
-    DR({id:'d_studio',title:'Studio',       c:'#3F5F7A', pv:'thumbs', filter:{kinds:['script','media']},        desk:{x:3,y:3,w:2,h:2}, phone:{x:1,y:6,w:2,h:2}}),
-    DR({id:'d_kitch', title:'Kitchen',      c:'#A55A3E', pv:'thumbs', filter:{kinds:['recipe']},                desk:{x:5,y:3,w:2,h:1}, phone:{x:3,y:6,w:2,h:2}}),
-    DR({id:'d_open',  title:'Open Questions',c:'#4A6E8F',pv:'list',   filter:{kinds:['question']},              desk:{x:1,y:4,w:2,h:1}, phone:{x:1,y:8,w:4,h:1}}),
-    DR({id:'d_keep',  title:'Keeping Up',   c:'#3E7A6B', pv:'bars',   filter:{kinds:['habit','goal']},          desk:{x:5,y:4,w:2,h:2}, phone:{x:1,y:9,w:2,h:2}}),
-    DR({id:'d_done',  title:'Done & Dusted',c:'#6F5137', pv:'big',    filter:{done:true},                       desk:{x:1,y:5,w:2,h:1}, phone:{x:3,y:9,w:2,h:2}})
+    MG({id:'d_today', title:'Today',        c:'#4A7C59', filter:{due:'today'},                     desk:{x:1,y:1,w:3,h:3},  phone:{x:1,y:1,w:4,h:3}}),
+    DR({id:'d_in',    title:'Inbox',        c:'#7E5A38', filter:{},                                desk:{x:4,y:1,w:3,h:3},  phone:{x:5,y:1,w:4,h:3}}),
+    DR({id:'d_write', title:'Writing Desk', c:'#5C7148', filter:{kinds:['essay','outline','note']}, desk:{x:7,y:1,w:3,h:3},  phone:{x:1,y:4,w:4,h:3}}),
+    DR({id:'d_ideas', title:'Idea Bin',     c:'#96652F', filter:{kinds:['idea']},                  desk:{x:10,y:1,w:3,h:3}, phone:{x:5,y:4,w:4,h:3}}),
+    DR({id:'d_studio',title:'Studio',       c:'#3F5F7A', filter:{kinds:['script','media']},        desk:{x:1,y:4,w:3,h:3},  phone:{x:1,y:7,w:4,h:3}}),
+    DR({id:'d_kitch', title:'Kitchen',      c:'#A55A3E', filter:{kinds:['recipe']},                desk:{x:4,y:4,w:3,h:3},  phone:{x:5,y:7,w:4,h:3}}),
+    MG({id:'d_open',  title:'Open Questions',c:'#4A6E8F',filter:{kinds:['question']},              desk:{x:7,y:4,w:3,h:3},  phone:{x:1,y:10,w:4,h:3}}),
+    DR({id:'d_keep',  title:'Keeping Up',   c:'#3E7A6B', filter:{kinds:['habit','goal']},          desk:{x:10,y:4,w:3,h:3}, phone:{x:5,y:10,w:4,h:3}}),
+    MG({id:'d_done',  title:'Done & Dusted',c:'#6F5137', filter:{done:true},                       desk:{x:1,y:7,w:3,h:3},  phone:{x:1,y:13,w:4,h:3}})
   ];
+
+  // The app's own buttons live on the desk, on the grid, and move like anything
+  // else. `ctl` names the action; section 20 dispatches it.
+  const controls = [
+    {id:'c_new',   title:'New',      ctl:'new',      ic:'plus',    c:'#8A5A3F', desk:{x:4,y:7,w:2,h:2}, phone:{x:1,y:16,w:2,h:2}},
+    {id:'c_arr',   title:'Arrange',  ctl:'arrange',  ic:'grid',    c:'#6B6152', desk:{x:6,y:7,w:2,h:2}, phone:{x:3,y:16,w:2,h:2}},
+    {id:'c_set',   title:'Settings', ctl:'settings', ic:'sliders', c:'#6B6152', desk:{x:8,y:7,w:2,h:2}, phone:{x:5,y:16,w:2,h:2}}
+  ].map(c=>Object.assign({kind:'control', parent:ROOT, body:'', tags:[], ord:-1, created:dz(-40)}, c));
 
   let n=0;
   const O = (o)=> Object.assign({
@@ -815,7 +855,7 @@ function seed(){
     O({kind:'record', title:'30-day streak: walk before screens', parent:'d_done', done:true, doneAt:dz(-9), tags:['health']}),
     O({kind:'record', title:'Named the app', parent:'d_done', done:true, doneAt:dz(-14), tags:['bureau']})
   ];
-  return {objects: drawers.concat(objects)};
+  return {objects: drawers.concat(controls, objects)};
 }
 
 /* ============================================================
@@ -861,13 +901,17 @@ const containers = ()=> S.objects.filter(isContainer);
 // of these checks is decision 1 in DECISIONS.md and is deliberate.
 function inContainer(c,o){
   if(!c || o.id===c.id) return false;
-  const f=c.filter||{};
+  const f=c.filter||{}, magic=has(c,'magic');
   if(f.done) return !!o.done;          // the archive drawer
   if(o.done) return false;             // finished things leave their container
-  if(o.parent===c.id) return true;     // filed by hand
+  // A magic drawer is rule-only: filing into a smart folder means nothing, so
+  // the hand-filed check is skipped rather than made into an exclusion — an
+  // object parented here still shows if it genuinely matches the rule.
+  if(!magic && o.parent===c.id) return true;
   if(c.id===ROOT) return false;        // the desk collects nothing by rule
   if(f.due==='today') return !!o.due && D.parse(o.due)<=D.today();
-  if(f.kinds) return f.kinds.includes(o.kind);
+  if(f.tag) return (o.tags||[]).includes(f.tag);
+  if(f.kinds && f.kinds.length) return f.kinds.includes(o.kind);
   return false;
 }
 // Children in the order the container's layout wants them.
@@ -900,11 +944,19 @@ function chainOf(id){
    Two drawers may never occupy the same cell — a move or resize that would
    overlap is refused rather than shoving a neighbour out of the way, so nothing
    you arranged ever moves without you.                                        */
+/* The grid is square: a cell is as tall as it is wide. Columns are fluid, so
+   the row height is measured after layout by sizeGrid() and cached here —
+   nothing may assume a fixed row height. Twice the columns of the first
+   version, which is what makes the smallest object half the size it was. */
 const GRID = {
-  desk:  {cols:6, rowh:104, gap:10},
-  phone: {cols:4, rowh:84,  gap:8}
+  desk:  {cols:12, gap:8},
+  phone: {cols:8,  gap:6}
 };
-const gridOf = (device)=> GRID[device||dev()];
+const CELL = {desk:82, phone:44};   // last measured; a sane guess until then
+const gridOf = (device)=>{
+  const d=device||dev();
+  return {cols:GRID[d].cols, gap:GRID[d].gap, rowh:CELL[d]};
+};
 // Tolerate a drawer that predates x/y, or one hand-edited into nonsense.
 function lay(d, device){
   const g=gridOf(device), b=d[device||dev()]||{};
@@ -937,10 +989,13 @@ const gridRows = (device,parentId)=> childrenOf(container(parentId||ROOT))
   .reduce((m,d)=>{const b=lay(d,device);return Math.max(m,b.y+b.h-1)},0);
 /* An object that has never been in a grid has no box. Give it one the first
    time it needs to be placed, rather than storing coordinates for everything. */
+/* New things land square. A drawer needs room for its name, a control is small,
+   everything else starts at the smallest square that can show a title. */
 function ensureBox(o, device, parentId){
   const dv=device||dev();
   if(o[dv] && o[dv].w) return o[dv];
-  o[dv] = freeSpot(isContainer(o)?2:2, isContainer(o)?2:1, dv, parentId||o.parent);
+  const n = isContainer(o) ? 3 : has(o,'control') ? 2 : 2;
+  o[dv] = freeSpot(n, n, dv, parentId||o.parent);
   return o[dv];
 }
 
@@ -1053,8 +1108,16 @@ function toggleHabit(id){
   if(i>=0) o.history.splice(i,1); else { o.history.push(T); toast(`${o.title} · ${streak(o)+0} day streak`); }
   render();
 }
+// Anything still in the bin when the bin is emptied is gone for good, so that
+// is the moment its picture can be freed — not the moment it was deleted,
+// which would break undo.
+function dropTrash(){
+  const t=S.trash; S.trash=null;
+  if(t && t.o && t.o.media && t.o.media.assetId) assetDel(t.o.media.assetId);
+}
 function del(id){
   const i=S.objects.findIndex(o=>o.id===id); if(i<0) return;
+  dropTrash();
   S.trash={o:S.objects[i], i};
   S.objects.splice(i,1);
   if(S.openId===id) closeSheet();
@@ -1145,16 +1208,40 @@ function gridTile(o, arr, parentId){
     : '';
   const place = `grid-column:${box.x} / span ${box.w};grid-row:${box.y} / span ${box.h}`;
 
+  // A control is a Bureau button that lives on the desk like anything else.
+  if(has(o,'control')){
+    return `<button class="drawer ctile" data-ctl="${esc(o.ctl||'')}" data-id="${o.id}" style="--c:${colour};${place}">
+      ${chips}<span class="cico">${ic(K(o.kind).ic==='sliders'&&o.ic?o.ic:(o.ic||'sliders'),20)}</span>
+      <span class="clabel">${esc(o.title||'')}</span>
+      ${handles}
+    </button>`;
+  }
+
+  // A drawer on a grid is just a front with a name. What is inside is behind
+  // it, not printed on it — you open a drawer to find out what it holds.
   if(cont){
     const items=childrenOf(o);
-    return `<button class="drawer${box.h===1?' h1':''}" data-drawer="${o.id}" style="--c:${colour};${place}">
+    return `<button class="drawer dtile" data-drawer="${o.id}" style="--c:${colour};${place}">
       ${chips}
-      <div class="dtop"><span class="dname">${esc(o.title||'Untitled')}</span><span class="dcount">${items.length}</span></div>
-      <div class="dbody">${drawerPreview(o,items)}</div>
+      <div class="dtop"><span class="dname">${esc(o.title||'Untitled')}</span>
+        ${has(o,'magic')?`<span class="magicmark" title="Collects by rule">${ic('sparkle',11)}</span>`:''}
+        <span class="dcount">${items.length}</span></div>
       <div class="dfoot"><span class="pull"></span></div>
       ${handles}
     </button>`;
   }
+
+  // An image sits on the grid like something stuck in a scrapbook.
+  const img = has(o,'media') && o.media && o.media.src;
+  if(img){
+    return `<button class="drawer otile imgtile${box.h===1?' h1':''}" data-row="${o.id}" style="--c:${colour};${place}">
+      ${chips}
+      <img class="tileimg" src="${esc(o.media.src)}" alt="${esc(o.title||'')}" draggable="false">
+      ${o.title?`<span class="imgcap">${esc(o.title)}</span>`:''}
+      ${handles}
+    </button>`;
+  }
+
   return `<button class="drawer otile${box.h===1?' h1':''}" data-row="${o.id}" style="--c:${colour};${place}">
     ${chips}
     <div class="dtop">
@@ -1184,24 +1271,17 @@ function gridOfContainer(cid){
   </div>`;
 }
 
+/* The desk is nothing but the grid. There is no toolbar: New, Arrange and
+   Settings are control objects sitting on it, so the grid is the whole page. */
 function viewDesk(){
   const arr=S.arrange;
-  const nDrawers=containers().filter(d=>d.parent===ROOT).length;
   return `
-  <div class="topbar">
-    <div><h1>The Desk</h1><div class="sub">${S.objects.length} objects · ${nDrawers} drawers · ${dev()==='desk'?'Mac':'iPhone'} layout</div></div>
-    <div class="grow"></div>
-    <button class="pill only-phone" data-view="settings" title="Settings">${ic('sliders',14)}</button>
-    <button class="pill" data-act="arrange">${ic(arr?'check':'grid',14)} <span class="lbl">${arr?'Done':'Arrange'}</span></button>
-    <button class="pill solid" data-act="new">${ic('plus',14)} <span class="lbl">New</span></button>
-  </div>
-  <div class="scroll">
+  <div class="scroll deskscroll">
     ${S.layoutEdit?`<div class="banner">${ic('resize',14)} You are arranging the <b style="margin:0 3px">${S.layoutEdit==='desk'?'Mac':'iPhone'}</b> layout.
       <button data-act="stopedit">Back to this device</button></div>`:''}
-    ${arr?`<div class="mini" style="--k:var(--brass)"><span class="dot"></span>Drag to move · drag any edge or corner to resize · this only changes your <b style="color:var(--ink);margin:0 3px">${dev()==='desk'?'Mac':'iPhone'}</b> layout</div>`:''}
+    ${arr?`<div class="mini" style="--k:var(--brass)"><span class="dot"></span>Drag to move · drag any edge or corner to resize · this only changes your <b style="color:var(--ink);margin:0 3px">${dev()==='desk'?'Mac':'iPhone'}</b> layout
+      <button class="pill solid" style="margin-left:auto" data-act="arrange">${ic('check',13)} Done</button></div>`:''}
     ${gridOfContainer(ROOT)}
-    ${arr?'':`<div class="section-h"><h2>Recently opened</h2><div class="rule"></div></div>
-    <div class="rows">${S.objects.filter(o=>!isContainer(o)).slice().sort((a,b)=>(b.doneAt||b.created||'').localeCompare(a.doneAt||a.created||'')).slice(0,4).map(row).join('')}</div>`}
   </div>`;
 }
 
@@ -1562,11 +1642,24 @@ let render = function render(){
 
 /* The graph-paper backdrop in arrange mode has to match the real column width,
    which is fluid — so measure it after layout rather than assuming it. */
+/* Measure the real column width and make the rows match it, so every cell is a
+   square. Runs after each render and on resize; if the measurement changes the
+   cached cell size, re-render so row counts and drag maths agree with it. */
+let sizing=false;
 function sizeGrid(){
   const grid=$('#drawergrid'); if(!grid) return;
   const g=gridOf(), w=cellW(grid,g);
-  grid.style.setProperty('--cellw', (w+g.gap)+'px');
-  grid.style.setProperty('--cellstep', (g.rowh+g.gap)+'px');
+  if(!(w>0)) return;
+  const cell=Math.round(w);
+  const changed = !sizing && Math.abs(CELL[dev()]-cell) > 0.5;
+  CELL[dev()]=cell;
+  grid.style.setProperty('--rowh', cell+'px');
+  grid.style.setProperty('--cellw', (cell+g.gap)+'px');
+  grid.style.setProperty('--cellstep', (cell+g.gap)+'px');
+  grid.style.gridAutoRows = cell+'px';
+  const rows=(grid.style.gridTemplateRows.match(/repeat\((\d+)/)||[])[1];
+  if(rows) grid.style.gridTemplateRows=`repeat(${rows},${cell}px)`;
+  if(changed){ sizing=true; try{ render(); } finally { sizing=false; } }
 }
 
 /* ============================================================
@@ -1687,19 +1780,33 @@ function overlayHTML(){
   <div class="toast" id="toast"></div>
   <div class="ctxmenu" id="ctx"></div>
   <div id="sheetHost"></div>
-  <input type="file" id="importer" accept="application/json,.json" class="hidden">`;
+  <input type="file" id="importer" accept="application/json,.json" class="hidden">
+  <input type="file" id="imgpicker" accept="image/*" class="hidden">`;
 }
 function showModal(html){ $('#modal').innerHTML=html; $('#scrim').classList.add('open'); }
 function hideModal(){ $('#scrim').classList.remove('open'); }
 
 function modalNewObject(){
+  // 'control' isn't offered here — Bureau's own buttons are seeded, not made.
+  const offer=KEYS.filter(k=>!kindHas(k,'control'));
   showModal(`<div class="modal-h"><div class="t">New object</div>
-    <div class="s">Pick a kind — each one comes with its own template and fields.</div></div>
+    <div class="s">Pick a kind — each one comes with its own attributes and template.</div></div>
   <div class="modal-b"><div class="kindgrid">
-    ${KEYS.map(k=>`<button class="kindtile" data-new="${k}" style="--k:${KINDS[k].c}">
-      <div style="display:flex;align-items:center;width:100%;gap:6px"><span class="ic">${ic(KINDS[k].ic,15)}</span><span class="kbd">${KINDS[k].key}</span></div>
+    ${offer.map(k=>`<button class="kindtile" data-new="${k}" style="--k:${KINDS[k].c}">
+      <div style="display:flex;align-items:center;width:100%;gap:6px"><span class="ic">${ic(KINDS[k].ic,15)}</span><span class="kbd">${KINDS[k].key||''}</span></div>
       <div class="nm">${KINDS[k].nm}</div><div class="ds">${KINDS[k].ds}</div></button>`).join('')}
-  </div></div>`);
+    <button class="kindtile" data-act="pickimage" style="--k:#6E7075">
+      <div style="display:flex;align-items:center;width:100%;gap:6px"><span class="ic">${ic('image',15)}</span></div>
+      <div class="nm">Image</div><div class="ds">Put a picture on the grid</div></button>
+    <button class="kindtile newkind" data-act="newkind" style="--k:var(--brass)">
+      <div style="display:flex;align-items:center;width:100%;gap:6px"><span class="ic">${ic('sparkle',15)}</span></div>
+      <div class="nm">New kind…</div><div class="ds">Invent one by choosing attributes</div></button>
+  </div>
+  ${Object.keys(S.kinds).length?`<div class="section-h"><h2>Your kinds</h2><div class="rule"></div></div>
+    <div class="filterbar" style="flex-wrap:wrap">${Object.keys(S.kinds).map(k=>
+      `<button class="fchip" data-act="delkind" data-id="${k}" style="--k:${KINDS[k].c}">${esc(KINDS[k].nm)} ✕</button>`).join('')}</div>
+    <div class="mini" style="--k:var(--brass);margin-top:6px">Tap one to remove it. A kind still in use can't be removed.</div>`:''}
+  </div>`);
 }
 // The set colours, in rows by family, plus whatever custom colour is in use.
 function swatchRows(cur){
@@ -1727,6 +1834,11 @@ function modalDrawer(id){
     <div class="field" style="margin-bottom:10px"><label>Automatically collects these kinds</label>
       <div class="filterbar" id="dkinds" style="flex-wrap:wrap;padding-top:6px">${KEYS.map(k=>
         `<button class="fchip${ks.includes(k)?' on':''}" data-kk="${k}" style="--k:${KINDS[k].c}">${KINDS[k].nm}</button>`).join('')}</div></div>
+    <div class="field" style="margin-bottom:10px"><label>…and anything tagged</label>
+      <div class="filterbar" id="dtag" style="flex-wrap:wrap;padding-top:6px">
+        <button class="fchip${!(d.filter||{}).tag?' on':''}" data-dtag="">Any tag</button>
+        ${allTags().slice(0,14).map(([t])=>
+          `<button class="fchip${(d.filter||{}).tag===t?' on':''}" data-dtag="${esc(t)}">#${esc(t)}</button>`).join('')}</div></div>
     <div class="field"><label>Preview style</label>
       <div class="filterbar" id="dpv" style="padding-top:6px">${[['list','List'],['stack','Card stack'],['thumbs','Thumbnails'],['bars','Progress bars'],['big','Big number']].map(([v,n])=>
         `<button class="fchip${d.pv===v?' on':''}" data-pv="${v}">${n}</button>`).join('')}</div></div>
@@ -1737,7 +1849,7 @@ function modalDrawer(id){
     </div>
   </div>`);
   const m=$('#modal');
-  m._draft={c:d.c, pv:d.pv, kinds:ks.slice(), layout:d.layout||'list'};
+  m._draft={c:d.c, pv:d.pv, kinds:ks.slice(), layout:d.layout||'grid', tag:(d.filter||{}).tag||''};
 }
 /* Make a kind by choosing attributes. `from` is an object whose attributes seed
    the picker — "save these attributes as a new kind" from the detail sheet. */
@@ -2002,8 +2114,14 @@ let deferredInstall = null;
 let saveTimer = null;
 
 function snapshot(){
-  return {v:3, savedAt:new Date().toISOString(), theme:S.theme, listmode:S.listmode,
-          look:S.look, kinds:S.kinds, objects:S.objects};
+  // image bytes live in IndexedDB — keep them out of the JSON
+  const objects = S.objects.map(o=>{
+    if(!o.media || !o.media.src) return o;
+    const m=Object.assign({},o.media); delete m.src;
+    return Object.assign({},o,{media:m});
+  });
+  return {v:4, savedAt:new Date().toISOString(), theme:S.theme, listmode:S.listmode,
+          look:S.look, kinds:S.kinds, objects};
 }
 function writeNow(){
   try{ localStorage.setItem(KEY, JSON.stringify(snapshot())); }
@@ -2052,11 +2170,38 @@ function foldDrawers(d){
   });
   return drawers.concat(objects);
 }
+/* v3 → v4: the grid went from 6 columns of 104px rows to 12 square columns, so
+   every cell is half the width it was. Doubling each box keeps a desk looking
+   the way it was arranged — a tile twice as wide as tall stays twice as wide
+   as tall — which matters more than matching the old pixel height exactly. */
+function doubleBoxes(objects){
+  objects.forEach(o=>['desk','phone'].forEach(dv=>{
+    const b=o[dv]; if(!b || !b.w) return;
+    o[dv]={x:(b.x-1)*2+1, y:(b.y-1)*2+1, w:b.w*2, h:b.h*2};
+  }));
+}
+/* New, Arrange and Settings are objects on the desk now, so a desk saved before
+   they existed would have no way to reach them. Put back any that are missing —
+   this also rescues a desk where one was deleted by accident. */
+function ensureControls(){
+  const want=[
+    {id:'c_new', title:'New',      ctl:'new',      ic:'plus',    c:'#8A5A3F'},
+    {id:'c_arr', title:'Arrange',  ctl:'arrange',  ic:'grid',    c:'#6B6152'},
+    {id:'c_set', title:'Settings', ctl:'settings', ic:'sliders', c:'#6B6152'}
+  ];
+  want.forEach(w=>{
+    if(S.objects.some(o=>o.ctl===w.ctl)) return;
+    S.objects.push(Object.assign({kind:'control', parent:ROOT, body:'', tags:[],
+      ord:-1, created:T, desk:null, phone:null}, w));
+  });
+}
 function adopt(d){
   if(!d || !Array.isArray(d.objects)) return false;
   S.objects = Array.isArray(d.drawers)
     ? foldDrawers(d)                                    // v1 or v2
     : d.objects.map(o=>Object.assign({tags:[],history:[],milestones:[],ord:0},o));
+  if(!(d.v>=4)) doubleBoxes(S.objects);
+  ensureControls();
   S.kinds = d.kinds || {};
   S.look = Object.assign(defaultLook(), d.look||{});
   if(d.theme) S.theme = d.theme;
@@ -2091,6 +2236,85 @@ function importBackup(file){
 }
 
 /* ============================================================
+   19c · assets — image bytes live in IndexedDB, never in the JSON
+   ============================================================
+   localStorage caps around 5MB and holds the whole desk, so pictures cannot go
+   in it. Objects keep {assetId, w, h, label}; the bytes sit in IndexedDB and
+   are hydrated onto `media.src` in memory after load. snapshot() strips `src`
+   again on the way out, which is what keeps a backup small and readable.      */
+const DBNAME='bureau-assets', STORE='assets';
+let _db=null;
+function db(){
+  if(_db) return _db;
+  _db = new Promise((res,rej)=>{
+    const r=indexedDB.open(DBNAME,1);
+    r.onupgradeneeded=()=>{ r.result.createObjectStore(STORE); };
+    r.onsuccess=()=>res(r.result);
+    r.onerror=()=>rej(r.error);
+  }).catch(()=>null);
+  return _db;
+}
+function assetPut(id,src){
+  return db().then(d=>d&&new Promise(res=>{
+    const tx=d.transaction(STORE,'readwrite');
+    tx.objectStore(STORE).put(src,id);
+    tx.oncomplete=()=>res(true); tx.onerror=()=>res(false);
+  })).catch(()=>false);
+}
+function assetGet(id){
+  return db().then(d=>d&&new Promise(res=>{
+    const rq=d.transaction(STORE,'readonly').objectStore(STORE).get(id);
+    rq.onsuccess=()=>res(rq.result||null); rq.onerror=()=>res(null);
+  })).catch(()=>null);
+}
+function assetDel(id){
+  return db().then(d=>d&&new Promise(res=>{
+    const tx=d.transaction(STORE,'readwrite');
+    tx.objectStore(STORE).delete(id);
+    tx.oncomplete=()=>res(true); tx.onerror=()=>res(false);
+  })).catch(()=>false);
+}
+// After a load, put the pictures back on the objects that reference them.
+function hydrateAssets(){
+  const want=S.objects.filter(o=>o.media&&o.media.assetId&&!o.media.src);
+  if(!want.length) return;
+  Promise.all(want.map(o=>assetGet(o.media.assetId).then(src=>{ if(src) o.media.src=src; })))
+    .then(()=>render());
+}
+/* Downscale on import: an untouched phone photo is several megabytes and
+   nothing on this grid needs more than about 1400px on its long edge. */
+function importImage(file){
+  if(!/^image\//.test(file.type)){ toast('That is not an image'); return; }
+  const fr=new FileReader();
+  fr.onerror=()=>toast('Could not read that file');
+  fr.onload=()=>{
+    const im=new Image();
+    im.onerror=()=>toast('Could not read that image');
+    im.onload=()=>{
+      const max=1400, s=Math.min(1, max/Math.max(im.width,im.height));
+      const cv=document.createElement('canvas');
+      cv.width=Math.max(1,Math.round(im.width*s)); cv.height=Math.max(1,Math.round(im.height*s));
+      cv.getContext('2d').drawImage(im,0,0,cv.width,cv.height);
+      let src; try{ src=cv.toDataURL('image/jpeg',0.82); }catch(e){ toast('Could not read that image'); return; }
+      const assetId=uid('a');
+      assetPut(assetId,src).then(ok=>{
+        // an image is placed, not filed: it lands on the grid you are looking
+        // at, rather than being routed to whatever drawer collects media
+        const here=(S.view==='drawer'&&S.drawerId)||ROOT;
+        const o=create('media',{title:file.name.replace(/\.[^.]+$/,''), parent:here});
+        o.media={assetId, type:'image', w:cv.width, h:cv.height, label:file.name, src};
+        // pictures land square; you stretch them to the shape you want
+        o.desk=null; o.phone=null;
+        hideModal(); save(); render();
+        toast(ok?'Image added':'Image added — it may not survive a reload');
+      });
+    };
+    im.src=fr.result;
+  };
+  fr.readAsDataURL(file);
+}
+
+/* ============================================================
    20 · event wiring
    ============================================================ */
 function bindSortables(){ /* delegation handles it; keep quick-add focused */ }
@@ -2111,13 +2335,13 @@ function act(name, el){
       const title=$('#dnm').value.trim()||'Untitled drawer';
       if(id){ const d=byId(id);
         Object.assign(d,{title,c:draft.c,pv:draft.pv,layout:draft.layout});
-        d.filter={kinds:draft.kinds};
+        d.filter=Object.assign({},d.filter,{kinds:draft.kinds,tag:draft.tag||undefined});
       } else {
         // a new drawer lands inside whatever container you are looking at
         const home=(S.view==='drawer'&&S.drawerId)||ROOT;
         S.objects.push({id:uid('d'), kind:'drawer', title, body:'', tags:[],
           parent:home, c:draft.c, pv:draft.pv, layout:draft.layout||'list',
-          filter:{kinds:draft.kinds}, ord:0, created:T,
+          filter:{kinds:draft.kinds,tag:draft.tag||undefined}, ord:0, created:T,
           desk:freeSpot(2,2,'desk',home), phone:freeSpot(2,2,'phone',home)});
       }
       hideModal(); save(); render(); toast(id?'Drawer updated':'Drawer added');
@@ -2170,6 +2394,8 @@ function act(name, el){
     case 'stopedit': S.layoutEdit=null; S.arrange=false; render(); break;
     case 'export': exportBackup(); break;
     case 'import': $('#importer').click(); break;
+    case 'pickimage': $('#imgpicker').click(); break;
+    case 'newkind': modalNewKind(null); break;
     case 'install': if(deferredInstall){ deferredInstall.prompt(); deferredInstall=null; } break;
     case 'reseed': { const th=S.theme, lk=S.look; reset(); S.theme=th; S.look=lk; applyLook(); writeNow(); render(); toast('Sample desk restored'); break; }
     case 'wipe': {
@@ -2251,6 +2477,16 @@ function wire(){
     const vw=t.closest('[data-view]');
     if(vw){ S.view=vw.dataset.view; S.drawerId=null; S.kindFilter=null; S.arrange=false; render(); return; }
 
+    // a control object on the desk
+    const ctl=t.closest('[data-ctl]');
+    if(ctl && !S.arrange){
+      const a=ctl.dataset.ctl;
+      if(a==='new') modalNewObject();
+      else if(a==='arrange'){ S.arrange=true; render(); }
+      else if(a==='settings'){ S.view='settings'; render(); }
+      return;
+    }
+
     const dr=t.closest('[data-drawer]');
     if(dr && (dr.classList.contains('navitem') || dr.tagName==='B' || (dr.classList.contains('drawer') && !S.arrange))){
       S.view='drawer'; S.drawerId=dr.dataset.drawer; S.kindFilter=null; S.reorder=false; S.arrange=false; render(); return; }
@@ -2271,6 +2507,9 @@ function wire(){
     if(col){ $('#modal')._draft.c=col.dataset.col; $$('#dcol button').forEach(b=>b.classList.remove('on')); col.classList.add('on'); return; }
 
     // layout of the drawer being edited in the modal
+    const dtg=t.closest('[data-dtag]');
+    if(dtg){ $('#modal')._draft.tag=dtg.dataset.dtag; $$('#dtag .fchip').forEach(b=>b.classList.remove('on')); dtg.classList.add('on'); return; }
+
     const dlay=t.closest('[data-dl]');
     if(dlay){ $('#modal')._draft.layout=dlay.dataset.dl; $$('#dlayout .fchip').forEach(b=>b.classList.remove('on')); dlay.classList.add('on'); return; }
 
@@ -2323,7 +2562,8 @@ function wire(){
     // It keeps the drawer where it is and skips any preset that would collide.
     const sz=t.closest('[data-size]');
     if(sz){ const d=byId(sz.dataset.size), g=gridOf(), cur=lay(d);
-      const P = dev()==='desk' ? [[2,1],[2,2],[3,2],[4,2],[6,2]] : [[2,1],[2,2],[4,1],[4,2]];
+      const P = dev()==='desk' ? [[2,2],[3,3],[4,3],[6,4],[4,6],[12,4]]
+                               : [[2,2],[4,3],[4,4],[8,3],[8,6]];
       const i=P.findIndex(p=>p[0]===cur.w&&p[1]===cur.h);
       for(let n=1;n<=P.length;n++){
         const [w,h]=P[(i+n)%P.length];
@@ -2378,6 +2618,9 @@ function wire(){
   });
 
   frame.addEventListener('change', e=>{
+    if(e.target.id==='imgpicker' && e.target.files && e.target.files[0]){
+      importImage(e.target.files[0]); e.target.value='';
+    }
     if(e.target.id==='importer' && e.target.files && e.target.files[0]){
       importBackup(e.target.files[0]); e.target.value='';
     }
@@ -2438,6 +2681,7 @@ $('#frame').insertAdjacentHTML('beforeend', overlayHTML());
 wire();
 applyLook();
 render();
+hydrateAssets();
 if(!restored) writeNow();
 
 // keep a save after every re-render, cheaply

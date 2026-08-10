@@ -97,6 +97,33 @@ pointer into a `parent`. `foldDrawers()` does it, preserving every id, so links
 by id still resolve. A backup written by any earlier version still restores —
 `adopt()` recognises the old two-array shape by the presence of `drawers`.
 
+**v3 → v4** halved the cell: 6 columns of 104px rows became 12 square columns.
+`doubleBoxes()` doubles every `{x,y,w,h}`, which keeps a desk arranged the way
+its owner left it — a tile twice as wide as tall stays twice as wide as tall.
+`ensureControls()` also runs, adding the New/Arrange/Settings control objects to
+any desk saved before the toolbar became part of the grid.
+
+## Images
+
+Bytes never go in the JSON. localStorage caps around 5MB and holds the entire
+desk, so an object keeps only metadata:
+
+```js
+media: { assetId:"a1b2", type:"image", w:1400, h:933, label:"holiday.png" }
+```
+
+The image itself is a downscaled data URL (long edge 1400px, JPEG q0.82) in
+**IndexedDB**, database `bureau-assets`, store `assets`, keyed by `assetId`.
+After a load, `hydrateAssets()` puts each one back on `media.src` in memory;
+`snapshot()` strips `src` on the way out. A desk with two images is still 16KB.
+
+A deleted object's asset is freed by `dropTrash()` — when the bin is emptied,
+not when the delete happens, because undo has to be able to bring it back.
+
+**Not yet:** video and audio are still labels. The same mechanism will carry
+them; they need a poster frame and a waveform respectively, which images did
+not.
+
 Written 250ms after any change (debounced), plus on `visibilitychange` and
 `beforeunload`. Reads and writes are wrapped in try/catch — private browsing and
 quota exhaustion both throw, and a failed save must never break the render.

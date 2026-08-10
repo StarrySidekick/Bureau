@@ -72,10 +72,14 @@ drawers finite.
 **Preview styles** — how the tile shows its contents at a glance: list, card
 stack, thumbnails, progress bars, big number.
 
-**Sizes and position** — Mac grid is 6 columns × 104px rows, iPhone is 4 columns
-× 84px rows. Each drawer stores its own `x, y, w, h` per device, so the desk is
-a coordinate space: a drawer stays where you put it and an empty cell stays
-empty.
+**Sizes and position** — the grid is **square**: 12 columns on the Mac, 8 on the
+iPhone, with rows as tall as a column is wide. Each object stores its own
+`x, y, w, h` per device, so the desk is a coordinate space: things stay where
+you put them and an empty cell stays empty. New objects land square — 3×3 for a
+drawer, 2×2 for anything else — and can be dragged down to a single cell.
+
+The desk has no toolbar. **New, Arrange and Settings are objects on the grid**,
+moved and resized like everything else.
 
 Arrange mode (the grid icon on the desk) turns the grid into visible graph paper
 and gives every drawer eight handles. Drag the body to move it, drag an edge or
@@ -168,7 +172,7 @@ decoration, and they carry information the same way a coloured file tab does.
 | Sorting into drawers | Yes, by hand and by rule |
 | Drawers as home page, sized on a grid | Yes |
 | Separate mobile and desktop drawer layouts | Yes, both editable from either device |
-| Images, video, audio in and as objects | **Placeholders only.** Real files not built |
+| Images, video, audio in and as objects | **Images are real** — picked, downscaled, stored in IndexedDB, placed and resized on the grid. Video and audio still placeholders |
 | Repeating tasks | Yes |
 | Habit tracking | Yes, with streaks |
 | Long-term goals and milestones | Yes |

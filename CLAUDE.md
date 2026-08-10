@@ -123,6 +123,15 @@ when you're editing the *other* device's layout from this one.
   array order positions nothing. There is no `grid-auto-flow` — an empty cell
   stays empty. Every move and resize goes through `boxOk()`, which refuses
   anything that would overlap or leave the columns; see section 4b.
+- **Cells are square and the row height is measured, never assumed.** Columns
+  are fluid, so `sizeGrid()` reads the real column width after layout and caches
+  it in `CELL`. Don't hardcode a row height — `GRID` deliberately has none.
+- **The desk has no toolbar.** New, Arrange and Settings are `control` objects
+  on the grid. `ensureControls()` puts back any that are missing on load, which
+  is the only thing stopping a deleted Settings button from stranding you.
+- **Image bytes live in IndexedDB, never in the JSON.** Section 19c. `snapshot()`
+  strips `media.src`; `hydrateAssets()` puts it back after a load. If you add a
+  new place that writes objects to storage, it has to strip too.
 - **Drawer fronts are solid mid-dark colours** and everything inside them reads
   light, via `--dink`/`--dink-2`/`--dink-3` set on `.drawer`. Don't use `--ink-*`
   inside a drawer tile — it's the page's dark ink and will vanish.
