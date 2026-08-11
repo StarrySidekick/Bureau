@@ -160,6 +160,12 @@ when you're editing the *other* device's layout from this one.
   dragging one tile moved a different object, drew that object's outline, and
   left the new one immovable. `dedupeIds()` repairs old data on load; the smoke
   test guards it as `dupIds`.
+- **The grid element carries no padding and no border.** `cellW()` measures
+  `.grid`'s own bounding rect, which includes both — so a border or padding on
+  it silently shifts every tile away from where the drag maths thinks it is.
+  The desk's case, its legs, and an open drawer's front and knob are therefore
+  drawn on a **wrapper** (`.shelf` / `.pulled` in `gridOfContainer`), never on
+  the grid. Anything decorative you add around a board goes on the wrapper too.
 - **Never round the cell size.** Columns are `1fr` and therefore fractional.
   Rounding the row height made rows and columns different sizes and the error
   accumulated across the grid, so tiles at high x/y sat several pixels from

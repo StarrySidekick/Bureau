@@ -25,6 +25,7 @@ function gridBar(c){
       ${has(c,'magic')?`<span class="magicmark big" title="Collects by rule">${ic('sparkle',14)}</span>`:''}
       ${c.locked?`<span class="lockmark" title="Locked — nothing moves">${ic('lock',13)}</span>`:''}
     </div>
+    ${S.device==='desk' ? pinbar('bar') : ''}
     <div class="bartools">
       <button class="sqbtn" data-act="cycleview" data-id="${c.id}" title="View: ${view}">${ic(views[view]||'grid',16)}</button>
       <button class="sqbtn" data-act="sortmenu" data-id="${c.id}" title="Sort">${ic('sort',16)}</button>
@@ -47,9 +48,11 @@ function viewDesk(){
         : `<div class="listgrid">${items.map(listTile).join('')}</div>`}
     </div>`;
   }
+  // the bar sits above the scroller, not inside it — it carries the pins now,
+  // and navigation that scrolls away is navigation you can't reach
   return `
+  ${gridBar(c)}
   <div class="scroll deskscroll">
-    ${gridBar(c)}
     ${S.layoutEdit?`<div class="banner">${ic('resize',14)} You are arranging the <b style="margin:0 3px">${S.layoutEdit==='desk'?'Mac':'iPhone'}</b> layout.
       <button data-act="stopedit">Back to this device</button></div>`:''}
     ${gridOfContainer(ROOT)}
@@ -231,11 +234,13 @@ function viewSettings(){
 
    With nothing pinned the bar isn't drawn at all, so a desk you haven't
    customised stays what decision 14 wanted: nothing but grid. */
-function pinbar(){
+/* `where` is 'bar' — riding in the grid bar beside the desk name, on a Mac —
+   or 'foot', the bottom bar on a phone. Exactly one is rendered. */
+function pinbar(where){
   const pins=pinnedDrawers();
   if(!pins.length) return '';
   const here = id => S.view==='drawer' && S.drawerId===id;
-  return `<nav class="pinbar">
+  return `<nav class="pinbar pin-${where}">
     <button class="pinbtn${S.view==='desk'?' on':''}" data-view="desk" title="${esc(deskTitle())}">
       <i class="pinmark home">${ic('grid',13)}</i><span>Desk</span></button>
     ${pins.map(d=>`<button class="pinbtn${here(d.id)?' on':''}" data-drawer="${d.id}" title="${esc(d.title||'Untitled')}">
@@ -259,9 +264,9 @@ function render(){
              : viewDesk();          // the desk is the only other place there is
   // No sidebar and no tabs: the desk is the navigation. Drawers are on it, the
   // pinned ones are one tap away, ⌘K finds anything, the breadcrumb walks up.
-  // The bar is first in the DOM on both devices; CSS drops it to the bottom on
-  // a phone, so one piece of markup serves both.
-  $('#app').innerHTML = `<div class="main">${pinbar()}${body}</div>`;
+  // On a Mac the pins ride in the grid bar (see gridBar); on a phone they get
+  // the bottom bar, which is the one place a thumb reaches.
+  $('#app').innerHTML = `<div class="main">${body}${S.device==='phone'?pinbar('foot'):''}</div>`;
   bindSortables();
   sizeGrid();
   save();   // a save after every re-render, cheaply

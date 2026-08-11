@@ -564,9 +564,12 @@
   background:var(--c,var(--felt));border:1px solid rgba(0,0,0,.28);color:rgba(248,243,230,.92)}
 .pinmark.home{background:none;border-color:var(--rule);color:var(--ink-3)}
 
-/* Mac: a strip across the top, above the grid's own bar */
-.is-desk .pinbar{padding:10px 16px 0;overflow-x:auto;scrollbar-width:none}
+/* Mac: the pins ride in the grid bar itself, between the desk's name and the
+   four tools, so the whole of the top is one row and the grid starts sooner. */
+.is-desk .pinbar.pin-bar{flex:1 1 auto;min-width:0;overflow-x:auto;scrollbar-width:none}
 .is-desk .pinbar::-webkit-scrollbar{display:none}
+/* the name gives way to the pins rather than pushing them off the end */
+.is-desk .gridbar .where{flex:0 1 auto;min-width:0}
 .is-desk .pinbtn{padding:5px 12px 5px 7px;border-radius:20px;font-size:12.5px;font-weight:500;
   background:var(--paper-2);border-color:var(--rule)}
 .is-desk .pinbtn:hover{border-color:var(--brass);color:var(--ink)}

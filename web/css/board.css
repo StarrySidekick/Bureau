@@ -245,6 +245,69 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
   background-position:0 0;
 }
 .grid > *{position:relative;z-index:1}
+
+/* ------------------------------------------------------------
+   the furniture — the case around the board
+   ------------------------------------------------------------
+   The desk is a shelf standing in a brown case on two legs; an open drawer is
+   that same case seen from above, pulled out, with its front along the bottom
+   and its knob sticking out below. Both are wrappers around `.grid` and never
+   touch it: padding or a border on the grid itself would be measured by
+   cellW() and every tile would sit a few pixels from where the drag maths
+   expects. Mac only for now — a phone hasn't the width to spend on a frame. */
+.shelf,.pulled{position:relative}
+.is-desk .shelf,.is-desk .pulled{border-radius:5px 5px 3px 3px}
+
+.is-desk .shelf{
+  --wood:#7E5A38;--wood-d:#63472B;--wood-dd:#4A331D;
+  padding:13px 13px 17px;margin-bottom:46px;
+  background:linear-gradient(var(--wood),var(--wood-d));
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.13),
+             inset 0 -3px 6px rgba(0,0,0,.22), var(--shadow-lg);
+}
+/* two legs, drawn as one strip so the desk stands on something */
+.is-desk .shelf::after{
+  content:"";position:absolute;left:0;right:0;top:100%;height:42px;pointer-events:none;
+  background-repeat:no-repeat;
+  background-image:linear-gradient(var(--wood-d),var(--wood-dd)),
+                   linear-gradient(var(--wood-d),var(--wood-dd));
+  background-size:70px 100%,70px 100%;
+  background-position:6% 0,94% 0;
+  filter:drop-shadow(0 10px 12px rgba(42,36,28,.28));
+}
+
+/* The carcass is the same wood as the desk it slid out of; only the knob keeps
+   the drawer's own colour. The bottom band is the drawer front, seen edge-on
+   because you are looking down into it. */
+.is-desk .pulled{
+  --wood:#7E5A38;--wood-d:#63472B;--wood-dd:#4A331D;
+  padding:13px 13px 46px;margin-bottom:42px;
+  background:linear-gradient(var(--wood-d),var(--wood-dd)) bottom/100% 46px no-repeat,
+             linear-gradient(var(--wood),var(--wood-d));
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.15),
+             inset 0 -2px 5px rgba(0,0,0,.3), var(--shadow-lg);
+}
+/* the knob, half sunk into the front and half proud of it */
+.is-desk .pullknob{
+  position:absolute;left:50%;bottom:-17px;transform:translateX(-50%);
+  width:50px;height:50px;border-radius:50%;
+  background:var(--knob,rgba(255,255,255,.5));
+  border:1px solid rgba(0,0,0,.34);
+  box-shadow:0 4px 8px rgba(0,0,0,.34), inset 0 2px 4px rgba(255,255,255,.34),
+             inset 0 -3px 5px rgba(0,0,0,.2);
+}
+.is-desk .pullknob.kn-square{border-radius:5px}
+.is-desk .pullknob.kn-diamond{border-radius:6px;transform:translateX(-50%) rotate(45deg)}
+.is-desk .pullknob.kn-bar{width:104px;height:22px;border-radius:99px;bottom:-9px}
+.is-desk .pullknob.kn-ring{background:none;border:8px solid var(--knob,rgba(255,255,255,.55));
+  box-shadow:0 4px 8px rgba(0,0,0,.3)}
+.is-desk .pullknob.kn-orb{
+  background:radial-gradient(circle at 34% 27%, rgba(255,255,255,.95) 0 16%, rgba(255,255,255,.28) 33%, transparent 46%),
+             radial-gradient(circle at 50% 72%, rgba(255,255,255,.32), transparent 55%),
+             var(--knob,#18A6C4)}
+/* the phone keeps the plain board; the frame would cost too much width */
+.is-phone .shelf,.is-phone .pulled{padding:0;margin:0;background:none;box-shadow:none}
+.is-phone .shelf::after,.is-phone .pullknob{display:none}
 .panel{
   position:absolute;top:52px;right:14px;z-index:44;width:290px;max-height:74vh;overflow-y:auto;
   background:var(--paper-2);border:1px solid var(--rule);border-radius:var(--radius);
