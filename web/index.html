@@ -275,6 +275,69 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
 .pchip:hover{border-color:var(--brass);color:var(--ink)}
 .pchip.on{background:color-mix(in srgb,var(--brass) 22%,transparent);color:var(--ink);border-color:transparent}
 .pslide{width:100%;accent-color:var(--brass)}
+
+/* ---- style-specific elements ------------------------------------------ */
+/* an Aero orb: a glossy sphere with a highlight */
+.pull.kn-orb{border-radius:50%;
+  background:radial-gradient(circle at 32% 26%, rgba(255,255,255,.95) 0 18%, rgba(255,255,255,.25) 34%, transparent 46%),
+             radial-gradient(circle at 50% 70%, rgba(255,255,255,.35), transparent 55%),
+             var(--knob, #18A6C4);
+  box-shadow:0 2px 6px rgba(0,0,0,.25), inset 0 -2px 4px rgba(0,0,0,.18)}
+/* an aqua border: glassy rim with an inner light */
+.drawer.dtile.bd-aqua{
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.65),
+             inset 0 6px 12px rgba(255,255,255,.35),
+             inset 0 -6px 12px rgba(0,0,0,.14), var(--shadow-lg);
+  border-color:rgba(255,255,255,.55);
+}
+/* stars texture (the starry board, back as a choice) */
+.tx-stars::after{background-image:
+  radial-gradient(circle at 18% 26%, rgba(255,255,255,.95) 0 1.6px, transparent 2.2px),
+  radial-gradient(circle at 66% 14%, rgba(255,255,255,.7) 0 1.1px, transparent 1.7px),
+  radial-gradient(circle at 42% 62%, rgba(255,255,255,.85) 0 1.4px, transparent 2px),
+  radial-gradient(circle at 86% 48%, rgba(255,255,255,.6) 0 1px, transparent 1.5px),
+  radial-gradient(circle at 12% 82%, rgba(255,255,255,.75) 0 1.2px, transparent 1.8px);
+  background-size:120px 120px;opacity:.7}
+/* sheen: the aero gloss sweep */
+.tx-sheen::after{background:linear-gradient(168deg,
+  rgba(255,255,255,.55) 0%, rgba(255,255,255,.18) 38%, transparent 42%, transparent 100%);
+  opacity:.8}
+
+/* ---- per-style chrome ------------------------------------------------- */
+html[data-style="modern"] .drawer{box-shadow:0 1px 3px rgba(0,0,0,.08)}
+html[data-style="modern"] .drawer .dname{font-weight:500;letter-spacing:0}
+html[data-style="modern"] .sqbtn{border-radius:10px}
+html[data-style="skeuo"] .drawer.dtile{
+  background-image:linear-gradient(rgba(255,255,255,.06),rgba(0,0,0,.10)),
+    repeating-linear-gradient(90deg, rgba(0,0,0,.05) 0 2px, transparent 2px 26px)}
+html[data-style="starry"] .grid::before{
+  background-image:radial-gradient(circle at 22% 31%, rgba(255,255,255,.8) 0 1.2px, transparent 1.8px),
+    radial-gradient(circle at 71% 12%, rgba(255,255,255,.5) 0 1px, transparent 1.5px),
+    radial-gradient(circle at 48% 74%, rgba(255,255,255,.65) 0 1.1px, transparent 1.6px),
+    radial-gradient(circle at 89% 57%, rgba(255,255,255,.45) 0 .9px, transparent 1.4px),
+    conic-gradient(var(--board-2) 0 25%, transparent 0 50%, var(--board-2) 0 75%, transparent 0);
+  background-size:140px 140px,140px 140px,140px 140px,140px 140px,var(--checker,160px) var(--checker,160px)}
+html[data-style="starry"] .gridbar .here{letter-spacing:.04em}
+html[data-style="aero"] .drawer{border-radius:10px}
+html[data-style="aero"] .drawer.otile:not(.cnttile):not(.spinetile):not(.chartile):not(.btntile):not(.imgtile):not(.quotetile){
+  background-image:linear-gradient(172deg, rgba(255,255,255,.7), rgba(255,255,255,0) 40%)}
+html[data-style="aero"] .sqbtn,html[data-style="aero"] .pill{
+  background-image:linear-gradient(180deg, rgba(255,255,255,.8), rgba(255,255,255,0) 55%)}
+html[data-style="aero"] .gridbar .here{color:var(--brass)}
+
+/* the style picker tiles */
+.stylegrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:6px}
+.styletile{display:flex;flex-direction:column;gap:3px;align-items:flex-start;text-align:left;
+  padding:9px 11px;border:1px solid var(--rule);border-radius:var(--radius);background:var(--paper-2)}
+.styletile.on{outline:2px solid var(--brass);outline-offset:1px}
+.styletile b{font-size:13px}
+.styletile i{font-style:normal;font-size:10.5px;color:var(--ink-3);line-height:1.3}
+.stpv{width:100%;height:34px;border-radius:4px;border:1px solid var(--rule)}
+.stpv.st-victorian{background:conic-gradient(#DDE5CE 0 25%,#EFEADA 0 50%,#DDE5CE 0 75%,#EFEADA 0);background-size:18px 18px}
+.stpv.st-modern{background:#FAFAF8}
+.stpv.st-skeuo{background:linear-gradient(135deg,#8A5C33,#5A3B22)}
+.stpv.st-starry{background:#0B0E1A;background-image:radial-gradient(circle at 30% 40%,#fff 0 1px,transparent 2px),radial-gradient(circle at 70% 60%,#fff 0 1px,transparent 2px)}
+.stpv.st-aero{background:linear-gradient(180deg,#8ADFEF,#18A6C4)}
 .rollup{margin-left:auto;font-size:11px;color:var(--dink-2);font-variant-numeric:tabular-nums;
   background:rgba(0,0,0,.20);border:1px solid rgba(255,255,255,.14);padding:1px 7px;border-radius:20px}
 .pvwrap{display:grid;place-items:center;padding:16px 10px 18px;margin-bottom:12px;
@@ -720,7 +783,7 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
 .cntnum{font-family:var(--serif);font-size:clamp(30px,52cqw,180px);line-height:1;font-weight:600;
   color:#F8F3E6;font-variant-numeric:tabular-nums;cursor:pointer}
 .cntlabel{font-size:clamp(10px,5cqw,15px);color:rgba(248,243,230,.82);overflow-wrap:anywhere;line-height:1.2;order:-1}
-.drawer.cnttile{container-type:inline-size}
+.drawer.cnttile{container-type:size}
 /* A character is a portrait with a name plate */
 .drawer.chartile{padding:0;overflow:hidden;background:var(--paper-2);align-items:stretch}
 .charface{flex:1;min-height:0;display:grid;place-items:center;background:var(--paper-3);color:var(--ink-3)}
@@ -1711,6 +1774,17 @@ function applyLook(){
   else { el.style.removeProperty('--board-1'); el.style.removeProperty('--board-2'); }
   if(L.accent) el.style.setProperty('--brass', L.accent); else el.style.removeProperty('--brass');
   if(L.line) el.style.setProperty('--line', L.line); else el.style.removeProperty('--line');
+  // The style's tokens go on last. A custom colour the user chose still wins
+  // — those slots are skipped — but everything else is the style's to set.
+  const st=STYLES[L.style]||null;
+  el.dataset.style = L.style||'victorian';
+  ['--radius','--radius-d','--serif','--ink','--ink-2','--ink-3','--rule','--rule-2']
+    .forEach(v=>el.style.removeProperty(v));
+  if(st) Object.entries(st.vars).forEach(([k,v])=>{
+    if(L.bg && k.startsWith('--paper')) return;
+    if(L.accent && k==='--brass') return;
+    el.style.setProperty(k,v);
+  });
 }
 
 /* Testing aid: drop something arbitrary onto the desk. Random kind, random
@@ -1767,11 +1841,65 @@ const PALETTES = {
     '#7A3B3C','#9A4F42','#B4674C','#C68A5E','#D8A97A',
     '#6B7A3F','#849453','#9DAE6B','#5E6B47','#47533A',
     '#8A5A3F','#A0703F','#6F5137','#5A4130','#3F3128','#C9A66B']},
+  aero: {nm:'Aero', cols:[
+    '#18A6C4','#2FBCD8','#54CFE6','#8ADFEF','#B7ECF5',
+    '#1B8FA8','#27788C','#3FAE9C','#63C6B0','#93D9C6',
+    '#4C89C8','#6FA6DB','#9BC4EA','#2B6B99','#0E4B62','#7ED4A0']},
   ink: {nm:'Ink', cols:[
     '#2A2E33','#3A4048','#4B535D','#5D6772','#707B87',
     '#3B4A52','#4C5F68','#5E747E','#718A94','#89A1A9',
     '#4A4A55','#5B5B68','#6C6C7A','#7E7E8C','#38383F','#9A9AA6']}
 };
+/* A Style is a whole aesthetic at once: tokens, palette, board, and the
+   defaults new drawers are born with. Choosing one sets the stage; every
+   individual control still works afterwards, so a style is a starting point
+   rather than a cage. See docs/STYLES.md for the guides. */
+const STYLES = {
+  victorian: {nm:'Victorian', ds:'An old desk: baize, brass, serif',
+    theme:'paper', palette:'workshop',
+    board:'#EFEADA|#DDE5CE', boardAlpha:1,
+    defaults:{knob:'round', border:'panel', texture:'none', knobtone:'light'},
+    vars:{}},
+  modern: {nm:'Modern', ds:'Flat, quiet, sans',
+    theme:'paper', palette:'ink',
+    board:'#F4F4F1|#EBEBE6', boardAlpha:.6,
+    defaults:{knob:'bar', border:'none', texture:'none', knobtone:'dark'},
+    vars:{'--radius':'8px','--radius-d':'8px',
+      '--serif':'-apple-system,BlinkMacSystemFont,"SF Pro Display",Inter,system-ui,sans-serif',
+      '--paper':'#FAFAF8','--paper-2':'#FFFFFF','--paper-3':'#EFEFEA','--brass':'#3A6E68'}},
+  skeuo: {nm:'Skeuomorphic', ds:'Wood, leather, and things that look like things',
+    theme:'paper', palette:'orchard',
+    board:'#E8DCC4|#D9C9A8', boardAlpha:1,
+    defaults:{knob:'ring', border:'heavy', texture:'weave2', knobtone:'dark'},
+    vars:{'--paper':'#EFE4CC','--paper-2':'#F7EEDA','--paper-3':'#E2D4B4','--brass':'#8A5A2B'}},
+  starry: {nm:'Starry Sidekick', ds:'A night sky with a hand-drawn heart',
+    theme:'walnut', palette:'seaside',
+    board:'#101422|#161B2E', boardAlpha:1,
+    defaults:{knob:'round', border:'plain', texture:'stars', knobtone:'light'},
+    vars:{'--paper':'#0B0E1A','--paper-2':'#141829','--paper-3':'#1D2338',
+      '--ink':'#EFE9F7','--ink-2':'#A9A3C2','--ink-3':'#6F6A8A',
+      '--brass':'#F5D76E','--rule':'rgba(239,233,247,.16)','--rule-2':'rgba(239,233,247,.08)',
+      '--serif':'"Chalkboard SE","Comic Sans MS","Segoe Print",cursive'}},
+  aero: {nm:'Aero', ds:'Teal gloss and clear skies, straight from 2006',
+    theme:'paper', palette:'aero',
+    board:'#D8F0F4|#C2E6EC', boardAlpha:.85,
+    defaults:{knob:'orb', border:'aqua', texture:'sheen', knobtone:'light'},
+    vars:{'--radius':'12px','--radius-d':'10px',
+      '--paper':'#E9F6F8','--paper-2':'#F6FCFD','--paper-3':'#D6EDF1',
+      '--ink':'#0E3A44','--ink-2':'#3E6B77','--ink-3':'#6F98A2',
+      '--brass':'#18A6C4','--rule':'rgba(14,58,68,.18)','--rule-2':'rgba(14,58,68,.09)',
+      '--serif':'"Trebuchet MS","Segoe UI",Verdana,sans-serif'}}
+};
+function applyStyle(key){
+  const st=STYLES[key]; if(!st) return;
+  S.look.style=key;
+  S.theme=st.theme;
+  S.look.palette=st.palette;
+  setLookVal('board', st.board); S.look.boardAlpha=st.boardAlpha;
+  S.look.styleDefaults=st.defaults;
+  applyLook(); save(); render();
+}
+const styleDefaults = ()=> (S.look&&S.look.styleDefaults)||STYLES.victorian.defaults;
 const paletteNow = ()=> PALETTES[(S.look&&S.look.palette)||'workshop']||PALETTES.workshop;
 // kept as a grouped map because the pickers render it in rows
 const SWATCHES = new Proxy({}, {
@@ -1904,7 +2032,10 @@ function create(kind, patch){
   }, patch||{});
   if(kindHas(kind,'container')){
     o.board = o.board || randomBoard();
-    o.c = o.c || randomFront(); o.pv = o.pv || 'list';
+    o.c = o.c || randomFront();
+    const sd=styleDefaults();
+    o.knob=o.knob||sd.knob; o.border=o.border||sd.border;
+    o.texture=o.texture||sd.texture; o.knobtone=o.knobtone||sd.knobtone; o.pv = o.pv || 'list';
     o.layout = o.layout || k.layout || 'list';
     o.filter = o.filter || {};
   }
@@ -2528,8 +2659,8 @@ function scrollEntry(o){
 function viewToday(){
   const days=[...Array(7)].map((_,i)=>D.addISO(T,i-1));
   const sel=S.selDate;
-  const due=S.objects.filter(o=>!o.done&&o.due===sel).sort((a,b)=>a.ord-b.ord);
-  const over=S.objects.filter(o=>!o.done&&D.overdue(o.due)&&sel===T);
+  const due=S.objects.filter(o=>has(o,'date')&&!o.done&&o.due===sel).sort((a,b)=>a.ord-b.ord);
+  const over=S.objects.filter(o=>has(o,'date')&&!o.done&&D.overdue(o.due)&&sel===T);
   const habits=S.objects.filter(o=>has(o,'streak'));
   return `
   <div class="topbar">
@@ -2673,6 +2804,13 @@ function viewSettings(){
         `<button data-look="bg" data-val="${c}" title="${nm}" class="${(lookVal('bg')||'')===c?'on':''}" style="background:${c}"></button>`).join('')}</div>
       <label class="custcol"><input type="color" data-lookinput="bg" value="${lookVal('bg')||'#E9E1CC'}"><span>Custom background</span></label>
       ${lookVal('bg')?`<button class="pill" style="margin-left:6px" data-look="bg" data-val="">Reset</button>`:''}
+    </div>
+
+    <div class="field" style="margin-top:14px"><label>Style</label>
+      <div class="stylegrid">${Object.entries(STYLES).map(([k,st])=>
+        `<button class="styletile${(S.look.style||'victorian')===k?' on':''}" data-style3="${k}">
+          <span class="stpv st-${k}"></span><b>${st.nm}</b><i>${st.ds}</i></button>`).join('')}</div>
+      <div class="mini" style="--k:var(--brass);margin-top:6px">A style sets everything at once — palette, board, knobs, borders, type. Every control below still works afterwards.</div>
     </div>
 
     <div class="field" style="margin-top:12px"><label>Palette</label>
@@ -2897,7 +3035,7 @@ function renderSheet(){
   const o=S.openId?byId(S.openId):null;
   if(!o){ host.innerHTML=''; clearFocus(); return; }
   const k=K(o.kind);
-  const drawerOpts=containers().filter(c=>c.id!==o.id&&!isAncestor(o.id,c)).map(d=>`<option value="${d.id}"${o.parent===d.id?" selected":""}>${esc(d.title)}</option>`).join('');
+  const drawerOpts=containers().filter(c=>c.id!==o.id&&!has(c,'magic')&&!isAncestor(o.id,c)).map(d=>`<option value="${d.id}"${o.parent===d.id?" selected":""}>${esc(d.title)}</option>`).join('');
   const kindOpts=KEYS.map(x=>`<option value="${x}"${o.kind===x?' selected':''}>${KINDS[x].nm}</option>`).join('');
 
   // Every field below is gated on an attribute, never on a kind name — that is
@@ -3126,8 +3264,8 @@ function drawerPanel(id){
     ${row('Sort', chips('sort', null, [['','Custom'],...Object.entries(SORTS).map(([k,[nm]])=>[k,nm])], cfg.sort||''))}
     ${row('Locked', chips('lock', null, [['','Movable'],['1','Locked']], cfg.locked?'1':''))}
     ${isRoot?'':`
-      ${row('Border', chips('border', null, [['panel','Panelled'],['heavy','Heavy panel'],['bar','Bar'],['plain','Plain'],['none','None']], d.border||'none'))}
-      ${row('Knob', chips('knob', null, [['round','Round'],['diamond','Diamond'],['bar','Bar'],['ring','Ring'],['square','Square']], d.knob||'round'))}
+      ${row('Border', chips('border', null, [['panel','Panelled'],['heavy','Heavy panel'],['bar','Bar'],['aqua','Aqua'],['plain','Plain'],['none','None']], d.border||'none'))}
+      ${row('Knob', chips('knob', null, [['round','Round'],['diamond','Diamond'],['bar','Bar'],['ring','Ring'],['square','Square'],['orb','Orb']], d.knob||'round'))}
       ${row('Front', `<div class="pickgrid sw">${Object.values(SWATCHES).flat().slice(0,12).map(([c,nm])=>
           `<button data-pcolour="${c}" data-id="${id}" title="${nm}" class="${d.c===c?'on':''}" style="background:${c}"></button>`).join('')}</div>`)}
       ${row('Board', `<div class="pickgrid sw">${[0,1,2,3,4,5].map(()=>randomBoard()).map(b=>{
@@ -3137,7 +3275,7 @@ function drawerPanel(id){
             style="background:var(--paper);border-style:dashed"></button></div>`)}
       ${row('Board strength', `<input class="pslide" type="range" min="0" max="100" step="5"
           value="${Math.round(((d.boardAlpha==null?1:d.boardAlpha))*100)}" data-palpha data-id="${id}">`)}
-      ${row('Texture', chips('texture', null, [['none','None'],['dots','Dots'],['grid','Graph'],['weave','Weave'],['weave2','Wide weave'],['check','Checker'],['rule','Ruled']], d.texture||'none'))}
+      ${row('Texture', chips('texture', null, [['none','None'],['dots','Dots'],['grid','Graph'],['weave','Weave'],['weave2','Wide weave'],['check','Checker'],['rule','Ruled'],['stars','Stars'],['sheen','Sheen']], d.texture||'none'))}
       ${row('Knob position', chips('knobpos', null, [['centre','Centre'],['bottom','Bottom']], d.knobpos||'centre'))}
       ${row('Knob colour', chips('knobtone', null, [['light','Lighter'],['dark','Darker']], d.knobtone||'light')
         + `<div class="pickgrid sw" style="margin-top:5px">${
@@ -3162,11 +3300,11 @@ function modalDrawer(id){
       <div class="mini" style="--k:var(--brass);margin-top:6px">Grid lays contents out on the grid · List is one line each · Scroll shows every word, top to bottom.</div></div>
     <div class="field" style="margin-bottom:10px"><label>Border</label>
       <div class="filterbar" id="dborder" style="flex-wrap:wrap;padding-top:6px">${
-        [['panel','Panelled'],['heavy','Heavy panel'],['bar','Bar'],['plain','Plain'],['none','None']].map(([v,n])=>
+        [['panel','Panelled'],['heavy','Heavy panel'],['bar','Bar'],['aqua','Aqua'],['plain','Plain'],['none','None']].map(([v,n])=>
           `<button class="fchip${(d.border||'panel')===v?' on':''}" data-dbd="${v}">${n}</button>`).join('')}</div></div>
     <div class="field" style="margin-bottom:10px"><label>Knob</label>
       <div class="filterbar" id="dknob" style="flex-wrap:wrap;padding-top:6px">${
-        [['round','Round'],['diamond','Diamond'],['bar','Bar'],['ring','Ring'],['square','Square']].map(([v,n])=>
+        [['round','Round'],['diamond','Diamond'],['bar','Bar'],['ring','Ring'],['square','Square'],['orb','Orb']].map(([v,n])=>
           `<button class="fchip${(d.knob||'round')===v?' on':''}" data-dkn="${v}">${n}</button>`).join('')}</div>
       <label class="custcol" style="margin-top:8px"><input type="color" data-knobinput value="${d.knobc&&d.knobc[0]==='#'?d.knobc:'#ffffff'}"><span>Knob colour</span></label>
       ${d.knobc?`<button class="pill" style="margin-left:6px" data-dkc="">Back to white</button>`:''}
@@ -3361,7 +3499,7 @@ function modalNewKind(from, editKey){
 // not inside itself — otherwise a drawer can swallow its own ancestor.
 function moveTargets(objId){
   const o=byId(objId);
-  return [rootObj()].concat(containers().filter(c=>c.id!==objId && !(o&&isAncestor(objId,c))));
+  return [rootObj()].concat(containers().filter(c=>c.id!==objId && !has(c,'magic') && !(o&&isAncestor(objId,c))));
 }
 function modalMove(objId){
   showModal(`<div class="modal-h"><div class="t">Move to drawer</div><div class="s">Filing by hand always wins over the drawer's rule.</div></div>
@@ -3378,6 +3516,11 @@ function closeCmd(){ $('#cmdscrim').classList.remove('open'); if(document.active
 function cmdList(q){
   q=q.trim().toLowerCase();
   const res=[];
+  [['today','Today','calendar'],['keep','Keeping Up','target'],['all','Everything','archive'],
+   ['settings','Settings','sliders'],['desk','The Desk','grid']].forEach(([v,nm,icn])=>{
+    if(!q||nm.toLowerCase().includes(q))
+      res.push({t:nm,s:'view',c:'var(--brass)',i:icn,go:()=>{S.view=v;S.drawerId=null;}});
+  });
   containers().forEach(d=>{ if(!q||(d.title||'').toLowerCase().includes(q)) res.push({t:d.title,s:'drawer',c:d.c||K(d.kind).c,i:'folder',go:()=>{S.view='drawer';S.drawerId=d.id;}}); });
   KEYS.forEach(k=>{ if(q&&KINDS[k].nm.toLowerCase().includes(q)) res.push({t:'All '+KINDS[k].nm.toLowerCase()+'s',s:'type',c:KINDS[k].c,i:KINDS[k].ic,go:()=>{S.view='all';S.kindFilter=k;}}); });
   S.objects.forEach(o=>{ if(q&&((o.title||'').toLowerCase().includes(q)||(o.body||'').toLowerCase().includes(q)))
@@ -3743,7 +3886,7 @@ function snapshot(){
     return Object.assign({},o,{media:m});
   });
   return {v:5, savedAt:new Date().toISOString(), theme:S.theme, listmode:S.listmode,
-          look:S.look, kinds:S.kinds, objects};
+          look:S.look, kinds:S.kinds, deskCfg:S.deskCfg, objects};
 }
 function writeNow(){
   try{ localStorage.setItem(KEY, JSON.stringify(snapshot())); }
@@ -3837,12 +3980,16 @@ function adopt(d){
   });
   const fixedIds=dedupeIds(S.objects);
   if(fixedIds) setTimeout(()=>toast(`Repaired ${fixedIds} duplicated id${fixedIds>1?'s':''}`),400);
-  S.objects.forEach(o=>{ if(o.kind==='record') o.kind='achievement';
+  S.objects.forEach(o=>{
+    if(Array.isArray(o.attrs)) o.attrs=o.attrs
+      .map(a=>a==='generator'||a==='field'?'spawn':a).filter(a=>a!=='control');
+    if(o.kind==='record') o.kind='achievement';
     if(o.kind==='media')
     o.kind = (o.media&&o.media.type==='audio') ? 'audio'
            : (o.media&&o.media.type==='video') ? 'video' : 'image'; });
   ensureControls();
   S.kinds = d.kinds || {};
+  if(d.deskCfg) S.deskCfg = Object.assign({layout:'grid',locked:false,sort:null}, d.deskCfg);
   S.look = Object.assign(defaultLook(), d.look||{});
   if(d.theme) S.theme = d.theme;
   if(d.listmode) S.listmode = d.listmode;
@@ -4117,7 +4264,10 @@ function act(name, el){
       const key = draft.editKey || nm.toLowerCase().replace(/[^a-z0-9]+/g,'').slice(0,20) || ('kind'+Date.now());
       const base = draft.editKey ? K(draft.editKey) : {};
       S.kinds[key]=Object.assign({}, base, {
-        nm, ic:draft.ic||base.ic||'note', c:draft.c, key:base.key||nm[0].toUpperCase(),
+        nm, ic:draft.ic||base.ic||'note', c:draft.c,
+        key: base.key || (()=>{ const used=new Set(KEYS.map(k=>K(k).key));
+          for(const ch of (nm.toUpperCase()+'ABCDEFGHIJKLMNOPQRSTUVWXYZ')) if(ch.trim()&&!used.has(ch)) return ch;
+          return ''; })(),
         ds:$('#kds').value.trim()||base.ds||'A kind you made',
         attrs:draft.attrs.slice(), size:draft.size||[4,4],
         onclick:draft.onclick||'read', body:base.body||'',
@@ -4280,6 +4430,8 @@ function wire(){
     if(st){ const [id,n]=st.dataset.star.split(':'); const o=byId(id);
       o.rating = (o.rating===+n) ? 0 : +n; save(); renderSheet(); render(); return; }
 
+    const st3=t.closest('[data-style3]');
+    if(st3){ applyStyle(st3.dataset.style3); toast(STYLES[st3.dataset.style3].nm); return; }
     const pl=t.closest('[data-palette]');
     if(pl){ S.look.palette=pl.dataset.palette; save(); render(); toast(PALETTES[pl.dataset.palette].nm); return; }
 
