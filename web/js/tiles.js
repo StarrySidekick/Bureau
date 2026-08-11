@@ -1,4 +1,4 @@
-import { esc, ic, clamp, D, md, strip, ROOT } from './util.js';
+import { esc, ic, clamp, D, md, strip } from './util.js';
 import { S, K, T, byId, has, isContainer, faceOf, shapeOf, childrenOf, container,
   rollup, streak, goalPct, dev } from './model.js';
 import { CELL, gridOf, lay, overlaps, boxOk, freeSpot, gridRows, sizeOfKind, ensureBox } from './grid.js';
@@ -388,24 +388,9 @@ function gridOfContainer(cid){
   const bd = c.board ? String(c.board).split('|') : null;
   let boardVars = bd ? `--board-1:${esc(bd[0])};--board-2:${esc(bd[1]||bd[0])};` : '';
   if(c.boardAlpha!=null) boardVars += `--board-alpha:${c.boardAlpha};`;
-  const grid = `<div class="grid g-${dev()}${arr?' arranging':''}${c.locked?' locked':''}${c.sort?' sorted':''}"
+  return `<div class="grid g-${dev()}${arr?' arranging':''}${c.locked?' locked':''}${c.sort?' sorted':''}"
        id="drawergrid" data-gridfor="${c.id}"
        style="${boardVars}--cols:${g.cols};--rowh:${g.rowh}px;grid-template-rows:repeat(${Math.max(rows,1)},${g.rowh}px)">${tiles}
-  </div>`;
-
-  /* The grid is wrapped rather than framed. A border or padding on `.grid`
-     itself would land inside cellW()'s measurement and every tile would drift
-     from where the drag maths thinks it is — the thing `maxDrift` guards. The
-     furniture therefore lives on a wrapper, and the grid keeps its own box. */
-  if(c.id===ROOT) return `<div class="shelf">${grid}</div>`;
-  // Inside a drawer you are looking down into it, pulled open: its own colour
-  // around the outside, a thick front along the bottom, and the same knob you
-  // pulled to get here sticking out below.
-  const colour = c.c || K(c.kind).c;
-  const knob = `--knob:${c.knobc ? esc(c.knobc)
-    : `color-mix(in srgb, ${colour} ${c.knobtone==='dark'?'62% , #000':'58% , #fff'})`};`;
-  return `<div class="pulled" style="--c:${colour};${knob}">
-    ${grid}<span class="pullknob kn-${c.knob||'round'}"></span>
   </div>`;
 }
 

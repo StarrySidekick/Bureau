@@ -9,6 +9,7 @@ import { render } from './views.js';
 import { overlayHTML } from './panels.js';
 import { wire } from './wire.js';
 import { load, writeNow, save, hydrateAssets, pasteObjects } from './persist.js';
+import { renderSheet } from './sheet.js';
 
 const restored = load();
 const hash = (location.hash||'').replace('#','');
@@ -32,6 +33,6 @@ if('serviceWorker' in navigator){
 window.BUREAU = {
   get state(){ return S; }, render, create, save: writeNow,
   get K(){ return KINDS; },
-  paste: pasteObjects, relate, pin: togglePin,
+  paste: pasteObjects, relate, pin: togglePin, renderSheet,
   kids: id => childrenOf(container(id)).map(o=>o.id)
 };

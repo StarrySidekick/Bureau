@@ -240,11 +240,16 @@ function pinbar(where){
   const pins=pinnedDrawers();
   if(!pins.length) return '';
   const here = id => S.view==='drawer' && S.drawerId===id;
+  /* Each pin is a little drawer front: a rectangle in the drawer's own colour,
+     light text on it, and a knob — the same language as the tiles on the desk,
+     so what's on the bar reads as the thing it opens. The desk itself isn't a
+     drawer and doesn't pretend to be one. */
   return `<nav class="pinbar pin-${where}">
-    <button class="pinbtn${S.view==='desk'?' on':''}" data-view="desk" title="${esc(deskTitle())}">
-      <i class="pinmark home">${ic('grid',13)}</i><span>Desk</span></button>
-    ${pins.map(d=>`<button class="pinbtn${here(d.id)?' on':''}" data-drawer="${d.id}" title="${esc(d.title||'Untitled')}">
-      <i class="pinmark" style="--c:${d.c||K(d.kind).c}">${has(d,'magic')?ic('sparkle',11):''}</i>
+    <button class="pinbtn home${S.view==='desk'?' on':''}" data-view="desk" title="${esc(deskTitle())}">
+      <i class="pinface">${ic('grid',12)}</i><span>Desk</span></button>
+    ${pins.map(d=>`<button class="pinbtn${here(d.id)?' on':''}${has(d,'magic')?' magic':''}"
+        data-drawer="${d.id}" style="--c:${d.c||K(d.kind).c}" title="${esc(d.title||'Untitled')}">
+      <i class="pinface">${has(d,'magic')?ic('sparkle',11):'<b class="pinknob"></b>'}</i>
       <span>${esc(d.title||'Untitled')}</span></button>`).join('')}
   </nav>`;
 }

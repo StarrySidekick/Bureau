@@ -492,8 +492,8 @@
   background:linear-gradient(135deg,color-mix(in srgb,var(--k) 62%,transparent),color-mix(in srgb,var(--k) 20%,transparent))}
 .mediablock .cap{padding:8px 12px;font-size:11.5px;color:var(--ink-3);display:flex;align-items:center;gap:7px}
 .tagrow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:14px 0}
-.tagrow .add{font-size:11.5px;color:var(--ink-3);border:1px dashed var(--rule);padding:3px 9px;border-radius:20px}
-.tagrow .add:hover{color:var(--brass);border-color:var(--brass)}
+.tagrow .add,.relrow .add{font-size:11.5px;color:var(--ink-3);border:1px dashed var(--rule);padding:3px 9px;border-radius:20px}
+.tagrow .add:hover,.relrow .add:hover{color:var(--brass);border-color:var(--brass)}
 .subtle-btn{font-size:12px;color:var(--ink-3);padding:5px 10px;border-radius:8px;border:1px solid var(--rule)}
 .subtle-btn:hover{color:var(--ink);border-color:var(--brass)}
 
@@ -553,16 +553,21 @@
 
 
 /* ---- the pin bar ------------------------------------------------------
-   One piece of markup in two shapes: a quiet strip along the top of a Mac
-   window, and the thumb-reachable bar along the bottom of a phone, where the
-   four fixed tabs used to be. Each pin wears its drawer's colour as a small
-   front, so the bar reads as a row of drawers rather than a row of icons. */
+   One piece of markup in two shapes: riding in the grid bar on a Mac, and the
+   thumb-reachable bar along the bottom of a phone. A pin is drawn as a little
+   drawer front — a rectangle in the drawer's colour, light text, a knob — so
+   what is on the bar looks like the thing it opens. `--radius-d` is the
+   drawer radius on purpose: a drawer front is not a rounded rect. */
 .pinbar{display:flex;align-items:center;gap:6px;flex:0 0 auto}
-.pinbtn{display:flex;align-items:center;gap:7px;color:var(--ink-2);transition:.14s;
-  border:1px solid transparent;white-space:nowrap}
-.pinmark{flex:0 0 auto;display:grid;place-items:center;border-radius:var(--radius-d);
-  background:var(--c,var(--felt));border:1px solid rgba(0,0,0,.28);color:rgba(248,243,230,.92)}
-.pinmark.home{background:none;border-color:var(--rule);color:var(--ink-3)}
+.pinbtn{display:flex;align-items:center;gap:7px;transition:.14s;white-space:nowrap;
+  border:1px solid rgba(0,0,0,.3);border-radius:var(--radius-d);
+  background:var(--c,var(--felt));color:#F8F3E6}
+.pinknob{display:block;border-radius:50%;background:rgba(255,255,255,.62)}
+/* a magic drawer collects rather than holds, and is dotted wherever it appears */
+.pinbtn.magic{border-style:dotted;border-width:2px;border-color:rgba(255,255,255,.5)}
+/* the desk is not a drawer and shouldn't dress as one */
+.pinbtn.home{background:none;border-color:var(--rule);color:var(--ink-2)}
+.pinbtn.home:hover{border-color:var(--brass);color:var(--ink)}
 
 /* Mac: the pins ride in the grid bar itself, between the desk's name and the
    four tools, so the whole of the top is one row and the grid starts sooner. */
@@ -570,26 +575,35 @@
 .is-desk .pinbar::-webkit-scrollbar{display:none}
 /* the name gives way to the pins rather than pushing them off the end */
 .is-desk .gridbar .where{flex:0 1 auto;min-width:0}
-.is-desk .pinbtn{padding:5px 12px 5px 7px;border-radius:20px;font-size:12.5px;font-weight:500;
-  background:var(--paper-2);border-color:var(--rule)}
-.is-desk .pinbtn:hover{border-color:var(--brass);color:var(--ink)}
-.is-desk .pinbtn.on{background:color-mix(in srgb,var(--brass) 16%,transparent);
-  border-color:transparent;color:var(--ink)}
-.is-desk .pinmark{width:16px;height:16px}
+.is-desk .pinbtn{padding:5px 11px;font-size:12.5px;font-weight:500;gap:8px;
+  box-shadow:0 1px 2px rgba(42,36,28,.2), inset 0 1px 0 rgba(255,255,255,.16)}
+.is-desk .pinbtn:hover{filter:brightness(1.08)}
+.is-desk .pinbtn.on{outline:2px solid var(--brass);outline-offset:1px}
+.is-desk .pinbtn .pinface{display:contents}     /* the button *is* the front */
+.is-desk .pinknob{width:8px;height:8px;order:2}  /* the pull, after the name */
+.is-desk .pinbtn.home .pinface{display:grid;place-items:center;color:var(--ink-3)}
 
 /* Phone: the bar along the bottom. The scroll views already reserve room for
-   it — that padding predates this and was sized for the old tab bar. */
+   it — that padding predates this and was sized for the old tab bar. The whole
+   button can't be the drawer here, so the little front sits above the label. */
 .is-phone .pinbar{
   position:absolute;left:0;right:0;bottom:0;height:calc(64px + env(safe-area-inset-bottom));
   padding-bottom:env(safe-area-inset-bottom);z-index:36;gap:0;
   border-top:1px solid var(--rule);background:var(--paper-2);
 }
 .is-phone .pinbtn{flex:1;min-width:0;flex-direction:column;gap:4px;justify-content:center;
-  padding:0 3px;font-size:9.5px;font-weight:600;letter-spacing:.02em}
+  padding:0 3px;font-size:9.5px;font-weight:600;letter-spacing:.02em;
+  background:none;border-color:transparent;color:var(--ink-3)}
 .is-phone .pinbtn span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.is-phone .pinface{
+  flex:0 0 auto;width:30px;height:21px;display:grid;place-items:center;
+  border-radius:var(--radius-d);background:var(--c,var(--felt));
+  border:1px solid rgba(0,0,0,.28);color:rgba(248,243,230,.92)}
+.is-phone .pinbtn.magic .pinface{border-style:dotted;border-color:rgba(255,255,255,.5)}
+.is-phone .pinknob{width:7px;height:7px}
+.is-phone .pinbtn.home .pinface{background:none;border-color:var(--rule);color:var(--ink-3)}
 .is-phone .pinbtn.on{color:var(--brass)}
-.is-phone .pinbtn.on .pinmark{outline:2px solid var(--brass);outline-offset:1.5px}
-.is-phone .pinmark{width:22px;height:22px}
+.is-phone .pinbtn.on .pinface{outline:2px solid var(--brass);outline-offset:1.5px}
 
 .toast{
   position:absolute;left:50%;bottom:96px;transform:translate(-50%,14px);z-index:80;

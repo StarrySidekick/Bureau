@@ -203,6 +203,30 @@ const URL = process.env.BUREAU_URL || 'http://127.0.0.1:8000/index.html';
       && back.length === 1 && back[0] === a.id;
   });
 
+  // --- the relations UI actually renders: chips, backlinks, and unlink.
+  // It existed as model + CSS + handlers with nothing drawing it for a while,
+  // which is exactly the failure this assertion is here to catch.
+  const relationsUI = await page.evaluate(async () => {
+    const S = BUREAU.state;
+    const a = S.objects.find(o => o.title === 'Book the flight');
+    const b = S.objects.find(o => o.title === 'Milk');
+    a.attrs = (a.attrs || ['text','check','date','repeat']).concat('relates');
+    S.openId = a.id; S.readId = null; BUREAU.renderSheet();
+    await new Promise(r => setTimeout(r, 120));
+    const host = document.querySelector('#sheetHost');
+    const chips = [...host.querySelectorAll('.relchip')];
+    const hasOut = chips.some(c => c.dataset.openrel === b.id);
+    const canUnlink = !!host.querySelector(`[data-unrel="${a.id}:${b.id}"]`);
+    const canAdd = !!host.querySelector('[data-act="addrel"]');
+    // and the other end shows it as a backlink, without opting in
+    S.openId = b.id; BUREAU.renderSheet();
+    await new Promise(r => setTimeout(r, 120));
+    const backChip = [...document.querySelectorAll('#sheetHost .relchip')]
+      .some(c => c.dataset.openrel === a.id);
+    S.openId = null; BUREAU.renderSheet();
+    return hasOut && canUnlink && canAdd && backChip;
+  });
+
   // --- group move: dragging one member of a selection moves the lot, keeping
   // their relative positions
   const groupMove = await page.evaluate(async () => {
@@ -245,7 +269,7 @@ const URL = process.env.BUREAU_URL || 'http://127.0.0.1:8000/index.html';
     errors: errs, manifestOk, swReady, survived, themeSurvived,
     gridClass, offlineWorks, railGone, tabsGone, pinbarShown, pinNavigates,
     pinToggles, holdArms, maxDrift,
-    pasteOk, magicOk, rollupOk, relationsOk, groupMove, dupIds
+    pasteOk, magicOk, rollupOk, relationsOk, relationsUI, groupMove, dupIds
   }, null, 2));
   await browser.close();
 })();

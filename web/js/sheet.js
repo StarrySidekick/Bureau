@@ -1,6 +1,6 @@
 import { $, $$, esc, ic, md, D, ROOT } from './util.js';
 import { S, K, KINDS, KEYS, T, byId, has, isContainer, containers, isAncestor,
-  streak, goalPct } from './model.js';
+  relatedTo, backlinksTo, streak, goalPct } from './model.js';
 import { CLICKS, clickOf, bookOf } from './tiles.js';
 import { render } from './views.js';
 
@@ -140,6 +140,25 @@ function renderSheet(){
     extra += `<div class="mediablock" style="--k:${k.c}">
       <div class="art">${ic(o.media.type==='audio'?'music':o.media.type==='video'?'film':'image',34)}</div>
       <div class="cap">${ic('folder',12)} ${esc(o.media.label||'')} <span style="margin-left:auto;color:var(--ink-3)">tap to replace</span></div></div>`;
+  }
+  /* Relations. `relates` is what makes `rel` a field a magic drawer can match
+     on, so it gates the button — but links already made, and links pointing
+     *at* this object, are shown either way. A backlink is information about
+     this object even if it never opted in, and hiding it would make the other
+     end's link look like it did nothing. */
+  const rel = relatedTo(o);
+  const back = backlinksTo(o.id).filter(x=>x.id!==o.id);
+  const chip = (x,rm)=>`<span class="relchip" style="--k:${K(x.kind).c}" data-openrel="${x.id}">
+      ${ic(K(x.kind).ic,11)} ${esc(x.title||'Untitled')}${
+      rm?`<b data-unrel="${o.id}:${x.id}" title="Unlink">✕</b>`:''}</span>`;
+  if(has(o,'relates') || rel.length || back.length){
+    extra += `<div class="section-h"><h2>Related</h2><div class="rule"></div>
+        <span class="n">${rel.length+back.length||''}</span></div>
+      <div class="relrow">${rel.map(x=>chip(x,true)).join('')}
+        ${has(o,'relates')?`<button class="add" data-act="addrel" data-id="${o.id}">+ link</button>`
+          :`<span class="mini" style="--k:var(--brass);padding:0">Tick <b>Related</b> in Attributes to link from here</span>`}</div>
+      ${back.length?`<div class="statline" style="margin:10px 0 4px"><div class="s">Pointed at by</div></div>
+        <div class="relrow">${back.map(x=>chip(x,false)).join('')}</div>`:''}`;
   }
 
 
