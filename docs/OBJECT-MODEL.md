@@ -55,7 +55,8 @@ a non-question.
 | `button` | A button with a customisable target — another object, a drawer, or a URL. |
 | `container` | Children, laid out on a grid or a list of its own. This is what makes a drawer. |
 | `magic` | Collects **only** by rule, never by hand — a smart folder. |
-| `control` | Runs something in Bureau. New, Arrange and Settings are these. |
+| `spawn` | Makes new objects — on a press, or as you type into it. |
+| `total` | Adds up a field across what it holds. |
 | `streak` | A daily cadence and a tickable history, with no due date and no overdue. |
 | `progress` | Ordered milestones and a progress bar. |
 | `media` | An image, video, or audio file. A transparent PNG stays transparent. |
@@ -123,6 +124,17 @@ Two different questions, which used to be one property and shouldn't be:
 A Checklist is `face:checklist, layout:list`. Conflating them meant a checklist
 could not also be sorted when opened, and that any new face had to be a new
 arrangement. Any container can now wear any face.
+
+## Shape
+
+How a non-container object draws itself — `card`, `note`, `idea`, `bubble`,
+`page`, `index`, `spine`, `portrait`, `ticket`, `plaque`, `tally`, `quote`,
+`verse`, `sliver`, `press`, `band`, `button`, `image`. A type declares its
+default; any object can override it. This used to be read off the type's *name*
+in both the renderer and the stylesheet, which meant an invented type could
+never look like anything but a plain card.
+
+`face` is the same idea for containers.
 
 ## Traits and fields
 

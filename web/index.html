@@ -287,35 +287,35 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
 
 /* ---- more type silhouettes ------------------------------------------- */
 /* a poem: centred, on parchment */
-.drawer.otile.k-poem{background:var(--paper-2);text-align:center;align-items:center;justify-content:center;
+.drawer.otile.sh-verse{background:var(--paper-2);text-align:center;align-items:center;justify-content:center;
   clip-path:polygon(0 0,100% 0,100% 62%,96.5% 68%,100% 74%,100% 100%,0 100%,0 34%,2.5% 28%,0 22%);
   border-left:1px solid var(--rule)}
-.drawer.otile.k-poem .dname{text-align:center;font-family:var(--serif)}
-.drawer.otile.k-poem .tiletext{text-align:center;font-family:var(--serif);font-style:italic;white-space:pre-line}
+.drawer.otile.sh-verse .dname{text-align:center;font-family:var(--serif)}
+.drawer.otile.sh-verse .tiletext{text-align:center;font-family:var(--serif);font-style:italic;white-space:pre-line}
 /* an ingredient reads like a line off a recipe card */
-.drawer.otile.k-ingredient{background:#F6F1E2;border:1px solid var(--rule);padding-left:18px;
+.drawer.otile.sh-index{background:#F6F1E2;border:1px solid var(--rule);padding-left:18px;
   background-image:linear-gradient(rgba(90,120,150,.18) 1px,transparent 1px);background-size:100% 100%}
-.drawer.otile.k-ingredient::after{content:"";position:absolute;left:11px;top:0;bottom:0;width:1px;background:rgba(180,70,60,.5)}
+.drawer.otile.sh-index::after{content:"";position:absolute;left:11px;top:0;bottom:0;width:1px;background:rgba(180,70,60,.5)}
 /* a habit is a stack of days */
-.drawer.otile.k-habit{background:var(--paper-2);border-left:3px solid var(--c)}
-.drawer.otile.k-habit::after{content:"";position:absolute;left:10px;right:10px;bottom:10px;height:8px;
+.drawer.otile.sh-habit{background:var(--paper-2);border-left:3px solid var(--c)}
+.drawer.otile.sh-habit::after{content:"";position:absolute;left:10px;right:10px;bottom:10px;height:8px;
   background-image:repeating-linear-gradient(90deg,var(--c) 0 7px,transparent 7px 11px);opacity:.55;border-radius:2px}
 /* a goal is a target with a bar */
-.drawer.otile.k-goal,.drawer.otile.k-dream{background:var(--paper-2);border-left:3px solid var(--c)}
-.drawer.otile.k-goal::after{content:"";position:absolute;left:10px;right:10px;bottom:10px;height:5px;
+.drawer.otile.sh-goal,.drawer.otile.sh-dream{background:var(--paper-2);border-left:3px solid var(--c)}
+.drawer.otile.sh-goal::after{content:"";position:absolute;left:10px;right:10px;bottom:10px;height:5px;
   border-radius:99px;background:linear-gradient(90deg,var(--c) var(--pct,30%),rgba(0,0,0,.10) var(--pct,30%))}
-.drawer.otile.k-dream{border-style:dashed;border-left-style:solid;opacity:.96}
-.drawer.otile.k-dream::after{content:"";position:absolute;right:8px;top:8px;width:14px;height:14px;
+.drawer.otile.sh-dream{border-style:dashed;border-left-style:solid;opacity:.96}
+.drawer.otile.sh-dream::after{content:"";position:absolute;right:8px;top:8px;width:14px;height:14px;
   background:var(--c);opacity:.35;clip-path:polygon(50% 0,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%)}
 /* an achievement is a plaque */
-.drawer.otile.k-achievement{
+.drawer.otile.sh-plaque{
   background:linear-gradient(#6B4E22,#8A6A3C 40%,#5E4620);color:#F6EFD8;
   border:2px solid rgba(255,255,255,.28);border-radius:3px;
   box-shadow:inset 0 0 0 4px rgba(0,0,0,.22), var(--shadow-lg);
   align-items:center;justify-content:center;text-align:center;
   --dink:#F8F2DE;--dink-2:rgba(248,242,222,.8);--dink-3:rgba(248,242,222,.6);
 }
-.drawer.otile.k-achievement .dname{font-family:var(--serif);letter-spacing:.02em;text-align:center}
+.drawer.otile.sh-plaque .dname{font-family:var(--serif);letter-spacing:.02em;text-align:center}
 /* a story is a book seen spine-on */
 .drawer.otile.spinetile{
   background:linear-gradient(90deg,color-mix(in srgb,var(--c) 68%,#000) 0 6%,var(--c) 6% 92%,color-mix(in srgb,var(--c) 70%,#000) 92%);
@@ -327,7 +327,7 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
   writing-mode:vertical-rl;transform:rotate(180deg);font-family:var(--serif);font-size:14px;
   color:#F8F3E6;letter-spacing:.03em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* a question with rounder corners */
-.drawer.otile.k-question{border-radius:18px 18px 18px 3px}
+.drawer.otile.sh-bubble{border-radius:18px 18px 18px 3px}
 /* a timeline */
 .tlwrap{position:absolute;left:12px;right:12px;top:44%;bottom:8px}
 .tlrule{position:absolute;left:0;right:0;top:6px;height:2px;background:rgba(255,255,255,.35);border-radius:2px}
@@ -432,14 +432,14 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
 .drawer.imgtile:not(.fr-none) .tileimg{border-radius:1px;box-shadow:0 1px 3px rgba(0,0,0,.35)}
 
 /* a recipe is an index card: ruled, with a red margin line */
-.drawer.otile.k-recipe{
+.drawer.otile.sh-index{
   background:#F6F1E2;clip-path:none;border:1px solid var(--rule);border-left:1px solid var(--rule);padding-left:20px;
   background-image:linear-gradient(rgba(90,120,150,.20) 1px, transparent 1px);
   background-size:100% 20px;background-position:0 30px;
 }
-.drawer.otile.k-recipe::after{content:"";position:absolute;left:12px;top:0;bottom:0;width:1px;background:rgba(180,70,60,.5)}
-.drawer.otile.k-recipe .dname{font-family:var(--serif);font-size:14px}
-.drawer.otile.k-recipe .tiletext{font-size:11px;line-height:20px}
+.drawer.otile.sh-index::after{content:"";position:absolute;left:12px;top:0;bottom:0;width:1px;background:rgba(180,70,60,.5)}
+.drawer.otile.sh-index .dname{font-family:var(--serif);font-size:14px}
+.drawer.otile.sh-index .tiletext{font-size:11px;line-height:20px}
 /* counter wheels */
 .cntnum{display:flex;gap:1px;justify-content:center;align-items:center}
 .wheel{display:block;height:1em;width:.62em;overflow:hidden;font-style:normal;line-height:1}
@@ -661,8 +661,8 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
 /* ---- what each kind looks like on the board ---------------------------- */
 
 /* A note is a torn scrap of parchment: no binding, and a chip out of one edge */
-.drawer.otile.k-note,.drawer.otile.k-essay,
-.drawer.otile.k-outline,.drawer.otile.k-record{
+.drawer.otile.sh-note,.drawer.otile.sh-note,
+.drawer.otile.sh-note,.drawer.otile.sh-plaque{
   border-left:1px solid var(--rule);
   background:var(--paper-2);
   clip-path:polygon(0 0, 100% 0, 100% 62%, 96.5% 68%, 100% 74%, 100% 100%,
@@ -671,21 +671,21 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
 /* ---- one silhouette per kind ------------------------------------------ */
 
 /* An idea has a folded corner, like a page turned down to mark it */
-.drawer.otile.k-idea{
+.drawer.otile.sh-idea{
   clip-path:polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 0 100%);
   background:var(--paper-2);border-left:3px solid var(--c);
 }
-.drawer.otile.k-idea::after{
+.drawer.otile.sh-idea::after{
   content:"";position:absolute;top:0;right:0;width:18px;height:18px;
   background:color-mix(in srgb, var(--c) 34%, var(--paper-3));
   clip-path:polygon(0 0, 100% 100%, 0 100%);
 }
 /* A question is a speech bubble, with a tail */
-.drawer.otile.k-question{
+.drawer.otile.sh-bubble{
   border-radius:12px 12px 12px 2px;background:var(--paper-2);border-left:3px solid var(--c);
 }
-.drawer.otile.k-question{border-left:1px solid var(--rule);clip-path:none}
-.drawer.otile.k-question::after{
+.drawer.otile.sh-bubble{border-left:1px solid var(--rule);clip-path:none}
+.drawer.otile.sh-bubble::after{
   content:"";position:absolute;left:14px;bottom:-10px;width:16px;height:12px;
   background:var(--paper-2);border-right:1px solid var(--rule);border-bottom:1px solid var(--rule);
   clip-path:polygon(100% 0, 100% 100%, 0 0);
@@ -716,15 +716,15 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
 .charname{padding:6px 8px;font-size:12px;font-weight:600;text-align:center;
   background:var(--c);color:#F8F3E6;overflow-wrap:anywhere}
 /* A script is a punched page in a typewriter face */
-.drawer.otile.k-script,.drawer.otile.k-scene{
+.drawer.otile.sh-page,.drawer.otile.sh-page{
   background:var(--paper-2);padding-left:22px;border-left:0;clip-path:none;
 }
-.drawer.otile.k-script::after,.drawer.otile.k-scene::after{
+.drawer.otile.sh-page::after,.drawer.otile.sh-page::after{
   content:"";position:absolute;left:8px;top:12px;bottom:12px;width:6px;
   background-image:radial-gradient(circle at 50% 50%, var(--paper) 0 2.6px, transparent 3px);
   background-size:6px 26px;opacity:.9;
 }
-.drawer.otile.k-script .tiletext,.drawer.otile.k-scene .tiletext{font-family:var(--mono);font-size:10.5px}
+.drawer.otile.sh-page .tiletext,.drawer.otile.sh-page .tiletext{font-family:var(--mono);font-size:10.5px}
 /* moodboard */
 .drawer.mbtile{padding:0;overflow:hidden;background:var(--paper-3)}
 .mbwall{position:absolute;inset:0;display:grid;grid-template-columns:repeat(3,1fr);gap:2px;padding:2px}
@@ -732,13 +732,13 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
 .mbname{position:absolute;left:0;right:0;bottom:0;padding:5px 8px;font-size:12px;font-weight:600;
   color:#F8F3E6;background:rgba(0,0,0,.5);text-align:left}
 /* a task is a sliver with a point on the right, like a flag or a tab */
-.drawer.otile.k-task{
+.drawer.otile.sh-sliver{
   clip-path:polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%);
   padding-right:20px;
 }
-.drawer.otile.k-task .dbody,.drawer.otile.k-task .dfoot{display:none}
-.drawer.otile.k-task .dtop{height:100%;align-items:center}
-.drawer.otile.k-task .dname{-webkit-line-clamp:2;font-size:13px;white-space:normal;overflow-wrap:anywhere}
+.drawer.otile.sh-sliver .dbody,.drawer.otile.sh-sliver .dfoot{display:none}
+.drawer.otile.sh-sliver .dtop{height:100%;align-items:center}
+.drawer.otile.sh-sliver .dname{-webkit-line-clamp:2;font-size:13px;white-space:normal;overflow-wrap:anywhere}
 
 /* ---- drawer fronts: borders and knobs -------------------------------- */
 /* Five borders, in the spirit of a Victorian chest: a bevelled panel, a
@@ -1216,7 +1216,6 @@ const ATTRS = {
   button:   {nm:'Button',     ds:'A button that opens an object, a drawer, or a link'},
   container:{nm:'Container',  ds:'Holds other objects — this is what makes a drawer'},
   magic:    {nm:'Magic',      ds:'Collects by rule instead of by hand, like a smart folder'},
-  control:  {nm:'Control',    ds:'Runs something in Bureau — a button that lives on the desk'},
   streak:   {nm:'Streak',     ds:'A daily cadence with a history, and no overdue'},
   progress: {nm:'Milestones', ds:'Ordered steps with a progress bar'},
   media:    {nm:'Media',      ds:'An image, video, or audio file'},
@@ -1228,8 +1227,9 @@ const ATTRS = {
   priority: {nm:'Priority',   ds:'How much it matters'},
   price:    {nm:'Price',      ds:'What it costs'},
   relates:  {nm:'Related',    ds:'Points at other objects, both ways'},
-  field:    {nm:'Entry field', ds:'Type in it and a task appears below it'},
-  generator:{nm:'Generator',   ds:'Presses out a new object of a chosen type'}
+  total:    {nm:'Total',      ds:'Adds up a field across what it holds'},
+  field:    {shape:'band', nm:'Entry field', ds:'Type in it and a task appears below it'},
+  generator:{shape:'press', nm:'Generator',   ds:'Presses out a new object of a chosen type'}
 };
 /* An attribute is a trait — what an object can do and how it is drawn. Some
    traits also carry a *field*: a named, typed value. Only fields can be sorted
@@ -1263,7 +1263,7 @@ const ATTRKEYS = Object.keys(ATTRS);
    thing, customised through the drawer settings rather than the attribute list.
    These three are structural and never appear in the attribute picker, which is
    what stops an object from being turned into a container by accident. */
-const STRUCTURAL = ['container','magic','control'];
+const STRUCTURAL = ['container','magic'];
 const USER_ATTRS = ATTRKEYS.filter(a=>!STRUCTURAL.includes(a));
 
 const BUILTIN_KINDS = {
@@ -1272,48 +1272,48 @@ const BUILTIN_KINDS = {
   checklist:{face:'checklist', nm:'Checklist', ic:'list', c:'#4A7C59', key:'K', ds:'A list of things to tick, right on the board', attrs:['container'], layout:'list', size:[6,8], body:'' },
   calendar:{face:'calendar', nm:'Calendar', ic:'calendar', c:'#5C7148', key:'C', ds:'A month, with what is due on it', attrs:['container'], layout:'grid', size:[8,8], body:'' },
   control: {nm:'Control',  ic:'sliders', c:'#6B6152', key:'', ds:'A Bureau button on the desk', attrs:['control'], size:[4,4], body:'' },
-  task:    {nm:'Task',    ic:'check',   c:'#4A7C59', key:'T', ds:'A thing to do',             attrs:['text','check','date','repeat'], size:[4,1], onclick:'none', body:'' },
-  note:    {nm:'Note',    ic:'note',    c:'#5F7A93', key:'O', ds:'Something to remember',     attrs:['text'], size:[4,4], onclick:'read', body:'' },
-  idea:    {nm:'Idea',    ic:'bulb',    c:'#96652F', key:'I', ds:'A spark, unformed',         size:[4,4], onclick:'read', attrs:['text'], body:'**The spark —** \n\n**Why it might work —** \n\n**What it needs —** ' },
+  task:    {shape:'sliver', nm:'Task',    ic:'check',   c:'#4A7C59', key:'T', ds:'A thing to do',             attrs:['text','check','date','repeat'], size:[4,1], onclick:'none', body:'' },
+  note:    {shape:'note', nm:'Note',    ic:'note',    c:'#5F7A93', key:'O', ds:'Something to remember',     attrs:['text'], size:[4,4], onclick:'read', body:'' },
+  idea:    {shape:'idea', nm:'Idea',    ic:'bulb',    c:'#96652F', key:'I', ds:'A spark, unformed',         size:[4,4], onclick:'read', attrs:['text'], body:'**The spark —** \n\n**Why it might work —** \n\n**What it needs —** ' },
   outline: {nm:'Outline', ic:'list',    c:'#7A6AA0', key:'L', ds:'Structure before prose',    size:[4,4], onclick:'read', attrs:['text'], body:'## I.\n- \n- \n\n## II.\n- \n- \n\n## III.\n- ' },
-  recipe:  {cooking:true, nm:'Recipe',  ic:'pot',     c:'#A55A3E', key:'R', ds:'Ingredients and method',    size:[4,4], onclick:'read', attrs:['text'], body:'**Serves** 2 · **Time** 30 min\n\n## Ingredients\n- \n- \n- \n\n## Method\n1. \n2. \n3. ' },
-  script:  {nm:'Script',  ic:'clapper', c:'#3F5F7A', key:'S', ds:'Scenes and dialogue',       size:[4,4], onclick:'read', attrs:['text'], body:'### INT. LOCATION — DAY\n\nAction line.\n\n**CHARACTER**\nDialogue.' },
-  question:{nm:'Question',ic:'help',    c:'#4A6E8F', key:'?', ds:'Open until answered',       size:[4,4], onclick:'read', attrs:['text','check'], body:'**Question —** \n\n**What I know —** \n\n**Answer —** ' },
-  essay:   {nm:'Essay',   ic:'feather', c:'#5C7148', key:'Y', ds:'Long-form writing',         size:[4,4], onclick:'read', attrs:['text'], body:'> Working thesis.\n\n' },
-  habit:   {nm:'Habit',   ic:'repeat',  c:'#3E7A6B', key:'A', ds:'Repeats, tracks a streak',  size:[4,4], onclick:'read', attrs:['text','streak'], body:'**Why —** ' },
-  goal:    {nm:'Goal',    ic:'target',  c:'#8A5A3F', key:'J', ds:'Long-term, has milestones', size:[4,4], onclick:'read', attrs:['text','progress'], body:'**Definition of done —** ' },
+  recipe:  {shape:'index', cooking:true, nm:'Recipe',  ic:'pot',     c:'#A55A3E', key:'R', ds:'Ingredients and method',    size:[4,4], onclick:'read', attrs:['text'], body:'**Serves** 2 · **Time** 30 min\n\n## Ingredients\n- \n- \n- \n\n## Method\n1. \n2. \n3. ' },
+  script:  {shape:'page', nm:'Script',  ic:'clapper', c:'#3F5F7A', key:'S', ds:'Scenes and dialogue',       size:[4,4], onclick:'read', attrs:['text'], body:'### INT. LOCATION — DAY\n\nAction line.\n\n**CHARACTER**\nDialogue.' },
+  question:{shape:'bubble', nm:'Question',ic:'help',    c:'#4A6E8F', key:'?', ds:'Open until answered',       size:[4,4], onclick:'read', attrs:['text','check'], body:'**Question —** \n\n**What I know —** \n\n**Answer —** ' },
+  essay:   {shape:'note', nm:'Essay',   ic:'feather', c:'#5C7148', key:'Y', ds:'Long-form writing',         size:[4,4], onclick:'read', attrs:['text'], body:'> Working thesis.\n\n' },
+  habit:   {shape:'habit', nm:'Habit',   ic:'repeat',  c:'#3E7A6B', key:'A', ds:'Repeats, tracks a streak',  size:[4,4], onclick:'read', attrs:['text','streak'], body:'**Why —** ' },
+  goal:    {shape:'goal', nm:'Goal',    ic:'target',  c:'#8A5A3F', key:'J', ds:'Long-term, has milestones', size:[4,4], onclick:'read', attrs:['text','progress'], body:'**Definition of done —** ' },
   image:   {nm:'Image',   ic:'image',   c:'#6E7075', key:'G', ds:'A picture on the board',   size:[6,4], onclick:'read', attrs:['media'], body:'' },
   audio:   {film:true, nm:'Audio',   ic:'music',   c:'#5D7E99', key:'U', ds:'Something to listen to',    size:[6,2], onclick:'read', attrs:['text','media','duration'], body:'' },
   video:   {film:true, nm:'Video',   ic:'film',    c:'#3F5F7A', key:'&', ds:'Something to watch',        size:[6,4], onclick:'read', attrs:['text','media','duration'], body:'' },
-  trip:    {nm:'Trip',    ic:'flag',    c:'#37687A', key:'P', ds:'Somewhere you are going',   size:[8,6], attrs:['container','date','duration','location'], layout:'grid', body:'' },
+  trip:    {shape:'ticket', nm:'Trip',    ic:'flag',    c:'#37687A', key:'P', ds:'Somewhere you are going',   size:[8,6], attrs:['container','date','duration','location'], layout:'grid', body:'' },
   moodboard:{face:'moodboard', nm:'Moodboard', ic:'image', c:'#6B4A4A', key:'B', ds:'Pictures, pinned together', size:[8,8], attrs:['container'], layout:'moodboard', body:'' },
-  quote:   {nm:'Quote',   ic:'book',    c:'#6F5137', key:'Z', ds:'Someone else\'s words',      size:[6,4], onclick:'read', attrs:['text','link','rating'],
+  quote:   {shape:'quote', nm:'Quote',   ic:'book',    c:'#6F5137', key:'Z', ds:'Someone else\'s words',      size:[6,4], onclick:'read', attrs:['text','link','rating'],
             body:'> \n\n— ' },
-  story:   {narrative:true, nm:'Story',   ic:'book',    c:'#5A4130', key:'M', ds:'A book on the shelf', size:[3,9], onclick:'book', attrs:['text'],
+  story:   {shape:'spine', narrative:true, nm:'Story',   ic:'book',    c:'#5A4130', key:'M', ds:'A book on the shelf', size:[3,9], onclick:'book', attrs:['text'],
             body:'' },
-  scene:   {narrative:true, film:true, nm:'Scene',   ic:'clapper', c:'#2F4A5E', key:'N', ds:'One scene, for writing',     size:[6,5], onclick:'read', attrs:['text','location','duration'],
+  scene:   {shape:'page', narrative:true, film:true, nm:'Scene',   ic:'clapper', c:'#2F4A5E', key:'N', ds:'One scene, for writing',     size:[6,5], onclick:'read', attrs:['text','location','duration'],
             body:'**Where —** \n\n**Who —** \n\n**What changes —** ' },
-  character:{narrative:true, nm:'Character', ic:'star', c:'#A0703F', key:'H', ds:'Someone in the story',       size:[4,6], onclick:'read', attrs:['text','media'],
+  character:{shape:'portrait', narrative:true, nm:'Character', ic:'star', c:'#A0703F', key:'H', ds:'Someone in the story',       size:[4,6], onclick:'read', attrs:['text','media'],
             body:'**Wants —** \n\n**Fears —** \n\n**Voice —** ' },
-  field:   {nm:'Text field', ic:'edit', c:'#6B6152', key:'/', ds:'Type in it and a task appears below', size:[8,2], onclick:'none', attrs:['field'], body:'' },
-  poem:    {parchment:true, nm:'Poem',    ic:'feather', c:'#5D7E99', key:'"', ds:'Lines, kept as written', size:[5,7], onclick:'read', attrs:['text'], body:'' },
-  place:   {nm:'Place',   ic:'flag',    c:'#6B7A3F', key:'1', ds:'Somewhere in the story',  size:[5,6], onclick:'read', attrs:['text','media'], narrative:true,
+  field:   {shape:'band', nm:'Text field', ic:'edit', c:'#6B6152', key:'/', ds:'Type in it and a task appears below', size:[8,2], onclick:'none', attrs:['spawn'], spawnBy:'type', body:'' },
+  poem:    {shape:'verse', parchment:true, nm:'Poem',    ic:'feather', c:'#5D7E99', key:'"', ds:'Lines, kept as written', size:[5,7], onclick:'read', attrs:['text'], body:'' },
+  place:   {shape:'card', nm:'Place',   ic:'flag',    c:'#6B7A3F', key:'1', ds:'Somewhere in the story',  size:[5,6], onclick:'read', attrs:['text','media'], narrative:true,
             body:'**Feels like —** \n\n**Who is there —** \n\n**What happened here —** ' },
-  event:   {nm:'Event',   ic:'clock',   c:'#8C4A38', key:'2', ds:'Something that happens',  size:[6,4], onclick:'read', attrs:['text','date'], narrative:true,
+  event:   {shape:'card', nm:'Event',   ic:'clock',   c:'#8C4A38', key:'2', ds:'Something that happens',  size:[6,4], onclick:'read', attrs:['text','date'], narrative:true,
             body:'**Before —** \n\n**The turn —** \n\n**After —** ' },
-  item:    {nm:'Item',    ic:'star',    c:'#9A7B2F', key:'3', ds:'A thing that matters',    size:[4,4], onclick:'read', attrs:['text','media'], narrative:true,
+  item:    {shape:'card', nm:'Item',    ic:'star',    c:'#9A7B2F', key:'3', ds:'A thing that matters',    size:[4,4], onclick:'read', attrs:['text','media'], narrative:true,
             body:'**What it is —** \n\n**Who wants it —** ' },
-  ingredient:{cooking:true, nm:'Ingredient', ic:'pot', c:'#A55A3E', key:'4', ds:'One line of a recipe',   size:[5,1], onclick:'check', attrs:['check','count','price'], body:'' },
-  shot:    {film:true, nm:'Shot',    ic:'clapper', c:'#2F4A5E', key:'5', ds:'One shot, for a shoot',   size:[6,1], onclick:'check', attrs:['text','check','duration','location'], body:'' },
-  generator:{nm:'Generator', ic:'plus', c:'#8A5A3F', key:'6', ds:'Press it and it makes one of something', size:[4,4], onclick:'generate', attrs:['generator'], body:'' },
+  ingredient:{shape:'index', cooking:true, nm:'Ingredient', ic:'pot', c:'#A55A3E', key:'4', ds:'One line of a recipe',   size:[5,1], onclick:'check', attrs:['check','count','price'], body:'' },
+  shot:    {shape:'sliver', film:true, nm:'Shot',    ic:'clapper', c:'#2F4A5E', key:'5', ds:'One shot, for a shoot',   size:[6,1], onclick:'check', attrs:['text','check','duration','location'], body:'' },
+  generator:{shape:'press', nm:'Generator', ic:'plus', c:'#8A5A3F', key:'6', ds:'Press it and it makes one of something', size:[4,4], onclick:'generate', attrs:['spawn'], spawnBy:'click', body:'' },
   shopping:{cooking:true, face:'checklist', nm:'Shopping list', ic:'inbox', c:'#A55A3E', key:'7', ds:'Things to buy, with a total', attrs:['container'], layout:'list', size:[6,8], body:'' },
   counter: {nm:'Counter',  ic:'target', c:'#3E7A6B', key:'X', ds:'A number, and what it counts', size:[4,4], onclick:'none', attrs:['count'], body:'' },
-  link:    {nm:'Button',  ic:'arrow',   c:'#37687A', key:'E', ds:'A button that opens something', attrs:['button'], body:'' },
-  achievement:{nm:'Achievement', ic:'trophy', c:'#9A7B2F', key:'W', ds:'Something you actually did', size:[6,3], onclick:'read', attrs:['text','date'], body:'' },
+  link:    {shape:'card', nm:'Button',  ic:'arrow',   c:'#37687A', key:'E', ds:'A button that opens something', attrs:['button'], body:'' },
+  achievement:{shape:'plaque', nm:'Achievement', ic:'trophy', c:'#9A7B2F', key:'W', ds:'Something you actually did', size:[6,3], onclick:'read', attrs:['text','date'], body:'' },
   project: {face:'checklist', nm:'Project', ic:'flag',    c:'#5C7148', key:'8', ds:'A big thing, made of tasks',   attrs:['container','date','progress'], layout:'list', size:[7,8], body:'' },
-  dream:   {nm:'Dream',   ic:'star',    c:'#5D7E99', key:'9', ds:'Far off, and probably daft',   size:[5,5], onclick:'read', attrs:['text','media'], body:'**Why it pulls at me —** ' },
+  dream:   {shape:'dream', nm:'Dream',   ic:'star',    c:'#5D7E99', key:'9', ds:'Far off, and probably daft',   size:[5,5], onclick:'read', attrs:['text','media'], body:'**Why it pulls at me —** ' },
   timeline:{face:'timeline', nm:'Timeline',ic:'clock',   c:'#6F5137', key:'0', ds:'Things in the order they happened', attrs:['container'], layout:'list', size:[10,6], body:'' },
-  appt:    {nm:'Event',   ic:'calendar',c:'#3E7A6B', key:'V', ds:'Something at a time and place', size:[6,2], onclick:'read', attrs:['text','date','duration','location'], body:'' }
+  appt:    {shape:'sliver', nm:'Event',   ic:'calendar',c:'#3E7A6B', key:'V', ds:'Something at a time and place', size:[6,2], onclick:'read', attrs:['text','date','duration','location'], body:'' }
 };
 // Kinds you invent live in state alongside these; both are read through KINDS.
 let KINDS = Object.assign({}, BUILTIN_KINDS);
@@ -1479,6 +1479,18 @@ const isContainer = o => !!o && has(o,'container');
 const FACES = {front:'Drawer front', checklist:'Checklist', calendar:'Calendar',
                moodboard:'Moodboard', timeline:'Timeline'};
 const faceOf = o => (o && o.face) || K(o&&o.kind).face || 'front';
+
+/* How a non-container object draws itself. This used to be read off the type's
+   *name* in both the renderer and the stylesheet, which is exactly what
+   CLAUDE.md forbids — an invented type could never look like anything. It is a
+   property now, defaulting to the type's, and settable per object. */
+const SHAPES = {
+  card:'Card', habit:'Streak', goal:'Progress bar', dream:'Dashed', image:'Picture', note:'Torn note', idea:'Folded corner', bubble:'Speech bubble',
+  page:'Punched page', index:'Index card', spine:'Book spine', portrait:'Portrait',
+  ticket:'Ticket', plaque:'Plaque', tally:'Tally', quote:'Quotation',
+  verse:'Verse', sliver:'Sliver', press:'Press', band:'Band'
+};
+const shapeOf = o => (o && o.shape) || K(o&&o.kind).shape || 'card';
 const containers = ()=> S.objects.filter(isContainer);
 
 /* A drawer holds. A magic drawer collects. Nothing does both.
@@ -1527,6 +1539,7 @@ function matchRule(o, r){
    to the handful that answer a real question. */
 const ROLLS = {count:'How many', sum:'Total', avg:'Average', min:'Lowest', max:'Highest', done:'Done'};
 function rollup(c){
+  if(!has(c,'total') && !(c.roll&&c.roll.fn)) return null;
   const r=c.roll; if(!r || !r.fn) return null;
   const kids=childrenOf(c);
   if(r.fn==='count') return String(kids.length);
@@ -1695,7 +1708,7 @@ function applyLook(){
 const WORDS='brass ledger cedar tide quarry lantern vellum thistle harbour ember slate poppy compass juniper marrow'.split(' ');
 function randomThing(parentId){
   const pick=a=>a[Math.floor(Math.random()*a.length)];
-  const kinds=KEYS.filter(k=>!kindHas(k,'control'));
+  const kinds=KEYS.filter(k=>true);
   const kind=pick(kinds);
   const home=parentId||(S.view==='drawer'&&S.drawerId)||ROOT;
   const o=create(kind,{parent:home,
@@ -1990,6 +2003,7 @@ const CLICKS = {
   generate: 'Make a new object'
 };
 const clickOf = o => o.onclick || K(o.kind).onclick || 'none';
+const spawnBy = o => o.spawnBy || K(o.kind).spawnBy || 'click';
 /* A generator presses out a new object beside itself, in whichever direction
    it is set to. `random` drops it wherever there is room. */
 function dispense(g){
@@ -2020,7 +2034,7 @@ function fireButton(o){
 function tileTap(id){
   const o=byId(id); if(!o) return;
   if(isContainer(o)){ S.view='drawer'; S.drawerId=id; S.kindFilter=null; render(); return; }
-  if(has(o,'control')){ if(o.ctl==='settings'){ S.view='settings'; render(); } return; }
+  if(false){ if(o.ctl==='settings'){ S.view='settings'; render(); } return; }
   switch(clickOf(o)){
     case 'generate': dispense(o); return;
     case 'book': S.readId=id; S.openId=null; S.bookMode=true; S.bookAt=0; renderSheet(); return;
@@ -2062,7 +2076,7 @@ function gridTile(o, arr, parentId){
   const sel = S.sel.includes(o.id) ? ' selected' : '';
 
   // A control is a Bureau button that lives on the desk like anything else.
-  if(has(o,'control')){
+  if(false){
     return `<button class="drawer ctile${sel}" data-ctl="${esc(o.ctl||'')}" data-id="${o.id}" style="--c:${colour};${place}">
       ${chips}<span class="cico">${ic(K(o.kind).ic==='sliders'&&o.ic?o.ic:(o.ic||'sliders'),20)}</span>
       <span class="clabel">${esc(o.title||'')}</span>
@@ -2087,7 +2101,7 @@ function gridTile(o, arr, parentId){
   }
 
   /* A trip is a ticket: a stub torn off down the right, and where to. */
-  if(cont && o.kind==='trip'){
+  if(cont && shapeOf(o)==='ticket'){
     return `<button class="drawer dtile triptile bd-${o.border||'panel'}${sel}" data-drawer="${o.id}" style="--c:${colour};${place}">
       <div class="tkmain">
         <span class="tklabel">${o.due?esc(D.human(o.due)):'Some day'}</span>
@@ -2152,7 +2166,7 @@ function gridTile(o, arr, parentId){
   // An image sits on the grid like something stuck in a scrapbook.
   const img = has(o,'media') && o.media && o.media.src;
   if(img){
-    return `<button class="drawer otile imgtile k-${o.kind}${o.media.alpha?'':' opaque'} fr-${o.frame||'none'}${sel}" data-row="${o.id}" style="--c:${colour};${place}">
+    return `<button class="drawer otile imgtile sh-image${o.media.alpha?'':' opaque'} fr-${o.frame||'none'}${sel}" data-row="${o.id}" style="--c:${colour};${place}">
       ${chips}
       <img class="tileimg" src="${esc(o.media.src)}" alt="${esc(o.title||'')}" draggable="false">
       ${handles}
@@ -2161,7 +2175,7 @@ function gridTile(o, arr, parentId){
 
   // a button object is the button: it fills its tile rather than sitting in it
   if(has(o,'button')){
-    return `<button class="drawer otile btntile bs-${o.btnshape||'rounded'}${sel}" data-row="${o.id}"
+    return `<button class="drawer otile sh-button btntile bs-${o.btnshape||'rounded'}${sel}" data-row="${o.id}"
       style="--c:${colour};${place}">
       ${chips}
       <span class="btnface" data-fire="${o.id}">${esc((o.link&&o.link.label)||o.title||'Open')}</span>
@@ -2170,17 +2184,17 @@ function gridTile(o, arr, parentId){
   }
 
   /* A counter is its number, not a title and a body. */
-  if(o.kind==='counter' || (has(o,'count') && !has(o,'text') && !has(o,'check'))){
-    return `<button class="drawer otile cnttile${sel}" data-row="${o.id}" style="--c:${colour};${place}">
+  if(shapeOf(o)==='tally'){
+    return `<button class="drawer otile sh-tally cnttile${sel}" data-row="${o.id}" style="--c:${colour};${place}">
       ${chips}
       <span class="cntlabel">${esc(o.title||'Untitled')}</span>
       <span class="cntnum" data-act="countup" data-id="${o.id}">${digitWheel(o.count||0)}</span>
       ${handles}
     </button>`;
   }
-  if(has(o,'gener'+'ator')){
+  if(has(o,'spawn') && spawnBy(o)==='click'){
     const made=K(o.genKind||'task');
-    return `<button class="drawer otile gentile${sel}" data-row="${o.id}" style="--c:${colour};${place}">
+    return `<button class="drawer otile sh-press gentile${sel}" data-row="${o.id}" style="--c:${colour};${place}">
       ${chips}
       <span class="genico">${ic(made.ic,20)}</span>
       <span class="genlabel">${esc(o.title||('New '+made.nm.toLowerCase()))}</span>
@@ -2188,15 +2202,15 @@ function gridTile(o, arr, parentId){
       ${handles}
     </button>`;
   }
-  if(has(o,'field')){
-    return `<div class="drawer otile fieldtile${sel}" data-row="${o.id}" style="--c:${colour};${place}">
+  if(has(o,'spawn') && spawnBy(o)==='type'){
+    return `<div class="drawer otile sh-band fieldtile${sel}" data-row="${o.id}" style="--c:${colour};${place}">
       ${chips}
       <input class="fieldin" data-fieldfor="${o.id}" placeholder="${esc(o.title||'Type and press return…')}">
       ${handles}
     </div>`;
   }
-  if(o.kind==='story'){
-    return `<button class="drawer otile spinetile${sel}" data-row="${o.id}" style="--c:${colour};${place}">
+  if(shapeOf(o)==='spine'){
+    return `<button class="drawer otile sh-spine spinetile${sel}" data-row="${o.id}" style="--c:${colour};${place}">
       ${chips}
       <span class="spinetop"></span>
       <span class="spinetitle">${esc(o.title||'Untitled')}</span>
@@ -2204,8 +2218,8 @@ function gridTile(o, arr, parentId){
       ${handles}
     </button>`;
   }
-  if(o.kind==='quote'){
-    return `<button class="drawer otile quotetile${sel}" data-row="${o.id}" style="--c:${colour};${place}">
+  if(shapeOf(o)==='quote'){
+    return `<button class="drawer otile sh-quote quotetile${sel}" data-row="${o.id}" style="--c:${colour};${place}">
       ${chips}
       <span class="qmark">"</span>
       <span class="qbody">${esc(strip(o.body||o.title||'').replace(/^[>\s—]+/,'')).slice(0,180)}</span>
@@ -2213,9 +2227,9 @@ function gridTile(o, arr, parentId){
       ${handles}
     </button>`;
   }
-  if(o.kind==='character'){
+  if(shapeOf(o)==='portrait'){
     const img=o.media&&o.media.src;
-    return `<button class="drawer otile chartile${sel}" data-row="${o.id}" style="--c:${colour};${place}">
+    return `<button class="drawer otile sh-portrait chartile${sel}" data-row="${o.id}" style="--c:${colour};${place}">
       ${chips}
       <span class="charface">${img?`<img src="${esc(img)}" alt="">`:ic('star',22)}</span>
       <span class="charname">${esc(o.title||'Untitled')}</span>
@@ -2231,7 +2245,7 @@ function gridTile(o, arr, parentId){
   if(has(o,'price')&&o.price) bits.push(esc(o.price));
   if(has(o,'location')&&o.loc) bits.push(esc(o.loc));
 
-  return `<button class="drawer otile k-${o.kind}${sel}${o.prio?' prio-'+o.prio:''}" data-row="${o.id}"
+  return `<button class="drawer otile sh-${shapeOf(o)}${sel}${o.prio?' prio-'+o.prio:''}" data-row="${o.id}"
     style="--c:${colour};${has(o,'progress')?`--pct:${goalPct(o)}%;`:''}${place}">
     ${chips}
     <div class="dtop">
@@ -2426,7 +2440,7 @@ function listTile(o){
   const cont=isContainer(o);
   const img = has(o,'media') && o.media && o.media.src;
   const attr = cont ? `data-drawer="${o.id}"` : `data-row="${o.id}"`;
-  return `<button class="drawer ${cont?'dtile':'otile'} k-${o.kind} listband${S.sel.includes(o.id)?' selected':''}${
+  return `<button class="drawer ${cont?'dtile':'otile'} sh-${cont?'front':shapeOf(o)} listband${S.sel.includes(o.id)?' selected':''}${
       cont&&has(o,'magic')?' magicdrawer':''}" ${attr} style="--c:${colour}">
     <div class="dtop">
       ${has(o,'check')?`<span class="check tilecheck${o.done?' on':''}" data-check="${o.id}">${ic('check',12)}</span>`:''}
@@ -2546,7 +2560,7 @@ function viewToday(){
 function viewKeep(){
   const habits=S.objects.filter(o=>has(o,'streak'));
   const goals=S.objects.filter(o=>has(o,'progress'));
-  const recs=S.objects.filter(o=>o.kind==='record'||(o.done&&o.doneAt)).sort((a,b)=>(b.doneAt||'').localeCompare(a.doneAt||''));
+  const recs=S.objects.filter(o=>shapeOf(o)==='plaque'||(o.done&&o.doneAt)).sort((a,b)=>(b.doneAt||'').localeCompare(a.doneAt||''));
   const groups={}; recs.forEach(r=>{ (groups[r.doneAt||'—']=groups[r.doneAt||'—']||[]).push(r); });
   return `
   <div class="topbar">
@@ -2984,7 +2998,7 @@ function hideModal(){ $('#scrim').classList.remove('open'); pendingCell=null; }
 
 function modalNewObject(){
   // 'control' isn't offered here — Bureau's own buttons are seeded, not made.
-  const offer=KEYS.filter(k=>!kindHas(k,'control'));
+  const offer=KEYS.filter(k=>true);
   showModal(`<div class="modal-h"><div class="t">New object</div>
     <div class="s">Pick a type — each comes with its own attributes and template. Right-click one to edit it.</div></div>
   <div class="modal-b">
@@ -3048,8 +3062,10 @@ function objectPanel(id){
   const html=`<div class="panel" id="panel">
     <div class="ptop"><b>${esc(o.title||'Untitled')}</b>
       <button class="iconbtn" data-act="panelclose" title="Close">${ic('x',15)}</button></div>
-    ${row('Type', KEYS.filter(k=>!kindHas(k,'container')&&!kindHas(k,'control')).map(k=>
+    ${row('Type', KEYS.filter(k=>!kindHas(k,'container')&&true).map(k=>
       `<button class="pchip${o.kind===k?' on':''}" data-otype="${k}" data-id="${id}">${KINDS[k].nm}</button>`).join(''))}
+    ${row('Shape', Object.entries(SHAPES).map(([v,n])=>
+      `<button class="pchip${shapeOf(o)===v?' on':''}" data-oshape="${v}" data-id="${id}">${n}</button>`).join(''))}
     ${row('Clicking it', Object.entries(CLICKS).map(([v,n])=>
       `<button class="pchip${clickOf(o)===v?' on':''}" data-oclick="${v}" data-id="${id}">${n}</button>`).join(''))}
     ${row('Colour', `<div class="pickgrid sw">${paletteNow().cols.map(c=>
@@ -3057,9 +3073,9 @@ function objectPanel(id){
     ${has(o,'media')&&o.media&&o.media.type==='image'
       ? row('Frame', [['none','None'],['mount','Mount'],['gilt','Gilt'],['walnut','Walnut'],['black','Lacquer'],['polaroid','Instant']].map(([v,n])=>
           `<button class="pchip${(o.frame||'none')===v?' on':''}" data-oframe="${v}" data-id="${id}">${n}</button>`).join('')) : ''}
-    ${(has(o,'generator')||clickOf(o)==='generate') ? row('Makes', KEYS.filter(k=>!kindHas(k,'control')&&!kindHas(k,'generator')).slice(0,14).map(k=>
+    ${(has(o,'spawn')||clickOf(o)==='generate') ? row('Makes', KEYS.filter(k=>true&&!kindHas(k,'generator')).slice(0,14).map(k=>
         `<button class="pchip${(o.genKind||'task')===k?' on':''}" data-ogen="${k}" data-id="${id}">${KINDS[k].nm}</button>`).join('')) : ''}
-    ${(has(o,'generator')||clickOf(o)==='generate') ? row('Direction', [['down','Down'],['up','Up'],['left','Left'],['right','Right'],['random','Anywhere']].map(([v,n])=>
+    ${(has(o,'spawn')||clickOf(o)==='generate') ? row('Direction', [['down','Down'],['up','Up'],['left','Left'],['right','Right'],['random','Anywhere']].map(([v,n])=>
         `<button class="pchip${(o.genDir||'down')===v?' on':''}" data-ogendir="${v}" data-id="${id}">${n}</button>`).join('')) : ''}
     ${has(o,'button')
       ? row('Button shape', [['rounded','Rounded'],['round','Round'],['square','Square']].map(([v,n])=>
@@ -3889,7 +3905,7 @@ function act(name, el){
       const me=el.dataset.id;
       showModal(`<div class="modal-h"><div class="t">Link to</div>
         <div class="s">Relations point both ways — the other object will show this one too.</div></div>
-      <div class="modal-b"><div class="rows">${S.objects.filter(x=>x.id!==me&&!has(x,'control')).slice(0,120).map(x=>
+      <div class="modal-b"><div class="rows">${S.objects.filter(x=>x.id!==me&&true).slice(0,120).map(x=>
         `<div class="row" data-dorel="${me}:${x.id}" style="--k:${K(x.kind).c}">
           <span class="kindmark">${ic(K(x.kind).ic,13)}</span>
           <div class="body"><div class="title">${esc(x.title||'Untitled')}</div>
@@ -4073,7 +4089,7 @@ function wire(){
       hideModal();
       pendingCell=at;
       const kind=nk.dataset.new;
-      if(kind==='image'){ pendingCell=at; $('#imgpicker').click(); return; }
+      if(K(kind).picksFile){ pendingCell=at; $('#imgpicker').click(); return; }
       const o=create(kind, at?{parent:at.parent}:undefined);
       placeAtPending(o);
       save(); render();
@@ -4155,7 +4171,7 @@ function wire(){
     const dtg=t.closest('[data-dtag]');
     if(dtg){ $('#modal')._draft.tag=dtg.dataset.dtag; $$('#dtag .fchip').forEach(b=>b.classList.remove('on')); dtg.classList.add('on'); return; }
 
-    const pn=t.closest('[data-pview],[data-pface],[data-psort],[data-plock],[data-pborder],[data-pknob],[data-pcolour],[data-pboard],[data-pknobc],[data-pknobtone],[data-pknobpos],[data-ptexture],[data-otype],[data-oclick],[data-ocolour],[data-oframe],[data-obtn],[data-ogen],[data-ogendir]');
+    const pn=t.closest('[data-pview],[data-pface],[data-psort],[data-plock],[data-pborder],[data-pknob],[data-pcolour],[data-pboard],[data-pknobc],[data-pknobtone],[data-pknobpos],[data-ptexture],[data-otype],[data-oclick],[data-oshape],[data-ocolour],[data-oframe],[data-obtn],[data-ogen],[data-ogendir]');
     if(pn){
       const id=pn.dataset.id, c=cfgOf(id), o=byId(id);
       if(pn.dataset.pview!=null) c.layout=pn.dataset.pview;
@@ -4172,6 +4188,7 @@ function wire(){
       else if(o && pn.dataset.ptexture!=null) o.texture=pn.dataset.ptexture;
       else if(o && pn.dataset.otype!=null){ o.kind=pn.dataset.otype; o.attrs=null; }
       else if(o && pn.dataset.oclick!=null) o.onclick=pn.dataset.oclick;
+      else if(o && pn.dataset.oshape!=null) o.shape=pn.dataset.oshape;
       else if(o && pn.dataset.ocolour!=null) o.c=pn.dataset.ocolour;
       else if(o && pn.dataset.oframe!=null) o.frame=pn.dataset.oframe;
       else if(o && pn.dataset.obtn!=null) o.btnshape=pn.dataset.obtn;
