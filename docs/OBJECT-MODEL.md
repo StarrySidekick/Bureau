@@ -58,7 +58,14 @@ a non-question.
 | `control` | Runs something in Bureau. New, Arrange and Settings are these. |
 | `streak` | A daily cadence and a tickable history, with no due date and no overdue. |
 | `progress` | Ordered milestones and a progress bar. |
-| `media` | An image, video, or audio file. |
+| `media` | An image, video, or audio file. A transparent PNG stays transparent. |
+| `link` | A web address it points at. |
+| `count` | A tally you add to. |
+| `rating` | Out of five. |
+| `location` | Where it is. |
+| `duration` | How long it takes. |
+| `priority` | How much it matters — drawn as a stripe, not a word. |
+| `price` | What it costs. |
 
 Attributes are additive and independent. Nothing reads a kind's *name* to decide
 behaviour — if a view needs to know whether to draw a checkbox it asks

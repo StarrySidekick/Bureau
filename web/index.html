@@ -186,13 +186,15 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
 .drawer:active{filter:brightness(.96)}
 .drawer .dtop{display:flex;align-items:center;gap:7px}
 .drawer .swatch{display:none}
-.drawer .dname{font-family:var(--serif);font-size:15.5px;font-weight:600;letter-spacing:.005em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--dink)}
+.drawer .dname{font-family:var(--serif);font-size:15.5px;font-weight:600;letter-spacing:.005em;
+  color:var(--dink);white-space:normal;overflow-wrap:anywhere;overflow:hidden}
 .drawer .dcount{margin-left:auto;font-size:11px;color:var(--dink-2);font-variant-numeric:tabular-nums;
   background:rgba(0,0,0,.20);border:1px solid rgba(255,255,255,.14);padding:1px 7px;border-radius:20px}
 .drawer .dbody{flex:1;min-height:0;margin-top:8px;overflow:hidden;position:relative}
 .drawer .dfoot{
   margin-top:auto;padding-top:8px;display:flex;align-items:center;justify-content:center;
 }
+.drawer.dtile .dfoot{padding-bottom:8%}
 .drawer.h1{padding:9px 12px}
 .drawer.h1 .dbody{margin-top:5px}
 .drawer.h1 .dfoot{padding-top:5px}
@@ -287,10 +289,13 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
 
 /* the cells a dragged/resized drawer would land on */
 .ghost{
-  border:1.5px dashed var(--brass);background:color-mix(in srgb,var(--brass) 14%,transparent);
-  border-radius:var(--radius-d);pointer-events:none;z-index:1;
+  border:2.5px solid var(--ink);
+  background:color-mix(in srgb,var(--ink) 26%,transparent);
+  box-shadow:0 0 0 2px rgba(255,255,255,.5), var(--shadow-lg);
+  border-radius:var(--radius-d);pointer-events:none;z-index:20;
 }
-.ghost.bad{border-color:#C0563F;background:rgba(192,86,63,.14)}
+.ghost.bad{border-color:#C0563F;background:rgba(192,86,63,.30);
+  box-shadow:0 0 0 2px rgba(255,255,255,.45), var(--shadow-lg)}
 
 /* eight handles, like a window. Bigger hit area than they look. */
 .rz{position:absolute;z-index:30;display:block}
@@ -335,11 +340,11 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
 .clcount{margin-left:auto;font-size:11px;color:var(--dink-3);font-variant-numeric:tabular-nums}
 /* checklist: the contents, tickable, on the front of the tile */
 .clist{display:flex;flex-direction:column;gap:2px;overflow:hidden;height:100%}
-.cline{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--dink-2);
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;padding:1px 0}
+.cline{display:flex;align-items:flex-start;gap:7px;font-size:12px;color:var(--dink-2);
+  cursor:pointer;padding:1px 0;overflow-wrap:anywhere;line-height:1.35}
 .cline:hover{color:var(--dink)}
 .cline.done{color:var(--dink-3);text-decoration:line-through}
-.clbox{width:13px;height:13px;flex:0 0 auto;border:1.5px solid var(--dink-3);border-radius:3px;
+.clbox{width:13px;height:13px;flex:0 0 auto;margin-top:1px;border:1.5px solid var(--dink-3);border-radius:2px;
   display:grid;place-items:center;color:var(--dink)}
 .cline.done .clbox{background:rgba(255,255,255,.22);border-color:transparent}
 .clempty{font-size:11.5px;color:var(--dink-3)}
@@ -392,15 +397,34 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
 }
 .drawer.otile:hover{filter:none;box-shadow:var(--shadow-lg)}
 .drawer.otile .dname{font-family:var(--sans);font-size:13.5px;font-weight:600;white-space:normal;
-  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
 .drawer.otile .dname.done{text-decoration:line-through;color:var(--ink-3)}
 .drawer.otile .dtop{align-items:flex-start;gap:8px}
 .tiletext{font-size:11.5px;color:var(--ink-3);line-height:1.45;overflow:hidden;
   display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical}
 .tilecheck{flex:0 0 auto;margin-top:1px}
-.tilebtn{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:var(--radius);
-  background:var(--c);color:#F8F3E6;font-size:11.5px;font-weight:600}
-.tilebtn:hover{filter:brightness(1.1)}
+/* a button object fills its tile; the shape is its own setting */
+.drawer.btntile{padding:0;background:var(--c);align-items:center;justify-content:center;border-color:transparent}
+.drawer.btntile .btnface{font-size:14px;font-weight:600;color:#F8F3E6;text-align:center;
+  padding:8px 12px;line-height:1.25;overflow-wrap:anywhere}
+.drawer.btntile:hover{filter:brightness(1.09)}
+.drawer.btntile:active{filter:brightness(.94)}
+.drawer.btntile.bs-round{border-radius:50%}
+.drawer.btntile.bs-rounded{border-radius:14px}
+.drawer.btntile.bs-square{border-radius:0}
+.drawer.btntile.bs-pill{border-radius:999px}
+.tilestars{font-size:12px;color:var(--dink);letter-spacing:1px;margin-top:2px}
+.tilestars span{opacity:.32}
+.counter{display:inline-flex;align-items:center;gap:10px}
+.counter button{width:26px;height:26px;border:1px solid var(--rule);border-radius:var(--radius);font-size:15px;color:var(--ink-2)}
+.counter b{font-variant-numeric:tabular-nums;min-width:24px;text-align:center}
+.stars{display:flex;gap:3px}
+.stars button{color:var(--ink-3)}
+.stars button.on{color:var(--brass)}
+/* priority shows as a stripe rather than a word */
+.drawer.prio-high{box-shadow:inset 4px 0 0 #C0563F}
+.drawer.prio-mid{box-shadow:inset 4px 0 0 var(--brass)}
+.drawer.prio-low{box-shadow:inset 4px 0 0 var(--ink-3)}
 .tilemeta{font-size:11px;color:var(--ink-3);font-variant-numeric:tabular-nums}
 
 /* ---- what each kind looks like on the board ---------------------------- */
@@ -421,7 +445,7 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
 }
 .drawer.otile.k-task .dbody,.drawer.otile.k-task .dfoot{display:none}
 .drawer.otile.k-task .dtop{height:100%;align-items:center}
-.drawer.otile.k-task .dname{-webkit-line-clamp:1;font-size:13px}
+.drawer.otile.k-task .dname{-webkit-line-clamp:2;font-size:13px;white-space:normal;overflow-wrap:anywhere}
 
 /* ---- drawer fronts: borders and knobs -------------------------------- */
 /* Five borders, in the spirit of a Victorian chest: a bevelled panel, a
@@ -474,8 +498,10 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
 .magicmark{color:var(--dink-2);display:inline-flex;align-items:center;margin-left:2px}
 
 /* An image on the grid, cropped to its box like something pasted in place */
-.drawer.imgtile{padding:0;overflow:hidden;background:var(--paper-3)}
+.drawer.imgtile{padding:0;overflow:hidden;background:none;border-color:transparent;box-shadow:none}
+.drawer.imgtile.opaque{background:var(--paper-3)}
 .tileimg{width:100%;height:100%;object-fit:cover;display:block;user-select:none;-webkit-user-drag:none}
+.imgtile:not(.opaque) .tileimg{object-fit:contain}
 .imgcap{position:absolute;left:0;right:0;bottom:0;padding:5px 8px;font-size:11px;color:#F8F3E6;
   background:rgba(0,0,0,.45);text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
@@ -512,7 +538,7 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
 .row.dragging{opacity:.4}
 .row.sel{border-color:var(--brass);box-shadow:0 0 0 2px color-mix(in srgb,var(--brass) 25%,transparent)}
 .check{
-  width:19px;height:19px;flex:0 0 auto;border-radius:6px;border:1.6px solid var(--ink-3);margin-top:1px;
+  width:19px;height:19px;flex:0 0 auto;border-radius:3px;border:1.8px solid var(--ink-3);margin-top:1px;
   display:grid;place-items:center;transition:.15s;
 }
 .check:hover{border-color:var(--k)}
@@ -904,7 +930,14 @@ const ATTRS = {
   control:  {nm:'Control',    ds:'Runs something in Bureau — a button that lives on the desk'},
   streak:   {nm:'Streak',     ds:'A daily cadence with a history, and no overdue'},
   progress: {nm:'Milestones', ds:'Ordered steps with a progress bar'},
-  media:    {nm:'Media',      ds:'An image, video, or audio file'}
+  media:    {nm:'Media',      ds:'An image, video, or audio file'},
+  link:     {nm:'Link',       ds:'A web address it points at'},
+  count:    {nm:'Count',      ds:'A tally you add to'},
+  rating:   {nm:'Rating',     ds:'Out of five'},
+  location: {nm:'Location',   ds:'Where it is'},
+  duration: {nm:'Duration',   ds:'How long it takes'},
+  priority: {nm:'Priority',   ds:'How much it matters'},
+  price:    {nm:'Price',      ds:'What it costs'}
 };
 const ATTRKEYS = Object.keys(ATTRS);
 /* A drawer is not an object with an extra tick — it is a different sort of
@@ -1597,7 +1630,7 @@ function gridTile(o, arr, parentId){
   // An image sits on the grid like something stuck in a scrapbook.
   const img = has(o,'media') && o.media && o.media.src;
   if(img){
-    return `<button class="drawer otile imgtile k-${o.kind}${sel}" data-row="${o.id}" style="--c:${colour};${place}">
+    return `<button class="drawer otile imgtile k-${o.kind}${o.media.alpha?'':' opaque'}${sel}" data-row="${o.id}" style="--c:${colour};${place}">
       ${chips}
       <img class="tileimg" src="${esc(o.media.src)}" alt="${esc(o.title||'')}" draggable="false">
       ${o.title?`<span class="imgcap">${esc(o.title)}</span>`:''}
@@ -1605,16 +1638,33 @@ function gridTile(o, arr, parentId){
     </button>`;
   }
 
-  return `<button class="drawer otile k-${o.kind}${sel}" data-row="${o.id}" style="--c:${colour};${place}">
+  // a button object is the button: it fills its tile rather than sitting in it
+  if(has(o,'button')){
+    return `<button class="drawer otile btntile bs-${o.btnshape||'rounded'}${sel}" data-row="${o.id}"
+      data-fire="${o.id}" style="--c:${colour};${place}">
+      ${chips}
+      <span class="btnface">${esc((o.link&&o.link.label)||o.title||'Open')}</span>
+      ${handles}
+    </button>`;
+  }
+
+  const bits=[];
+  if(has(o,'streak')) bits.push(`${streak(o)}-day streak`);
+  if(has(o,'progress')) bits.push(`${goalPct(o)}%`);
+  if(has(o,'count')) bits.push(`${o.count||0}`);
+  if(has(o,'duration')&&o.dur) bits.push(`${o.dur} min`);
+  if(has(o,'price')&&o.price) bits.push(esc(o.price));
+  if(has(o,'location')&&o.loc) bits.push(esc(o.loc));
+
+  return `<button class="drawer otile k-${o.kind}${sel}${o.prio?' prio-'+o.prio:''}" data-row="${o.id}" style="--c:${colour};${place}">
     ${chips}
     <div class="dtop">
       ${has(o,'check')?`<span class="check tilecheck${o.done?' on':''}" data-check="${o.id}">${ic('check',12)}</span>`:''}
       <span class="dname${o.done?' done':''}">${esc(o.title||'Untitled')}</span>
     </div>
+    ${has(o,'rating')&&o.rating?`<div class="tilestars">${'★'.repeat(o.rating)}<span>${'★'.repeat(5-o.rating)}</span></div>`:''}
     ${has(o,'text')&&o.body?`<div class="dbody"><div class="tiletext">${esc(o.body).slice(0,220)}</div></div>`:'<div class="dbody"></div>'}
-    ${has(o,'button')?`<div class="dfoot"><span class="tilebtn" data-fire="${o.id}">${esc((o.link&&o.link.label)||'Open')}</span></div>`:''}
-    ${has(o,'streak')?`<div class="dfoot"><span class="tilemeta">${streak(o)}-day streak</span></div>`:''}
-    ${has(o,'progress')?`<div class="dfoot"><span class="tilemeta">${goalPct(o)}%</span></div>`:''}
+    ${bits.length?`<div class="dfoot"><span class="tilemeta">${bits.join(' · ')}</span></div>`:''}
     ${handles}
   </button>`;
 }
@@ -1682,6 +1732,7 @@ function gridBar(c){
     <div class="bartools">
       <button class="sqbtn" data-act="cycleview" data-id="${c.id}" title="View: ${view}">${ic(views[view]||'grid',16)}</button>
       <button class="sqbtn" data-act="sortmenu" data-id="${c.id}" title="Sort">${ic('sort',16)}</button>
+      <button class="sqbtn" data-act="randomone" data-id="${c.id}" title="Add something at random (testing)">${ic('sparkle',16)}</button>
       <button class="sqbtn" data-act="${c.id===ROOT?'appsettings':'drawersettings'}" data-id="${c.id}" title="Settings">${ic('gear',16)}</button>
     </div>
   </div>`;
@@ -2035,10 +2086,9 @@ function viewSettings(){
 
     <div class="section-h"><h2>Testing</h2><div class="rule"></div></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <button class="pill" data-act="randomone">${ic('sparkle',13)} Add one at random</button>
-      <button class="pill" data-act="randomten">${ic('sparkle',13)} Add ten</button>
+      <button class="pill" data-act="randomten">${ic('sparkle',13)} Add ten at random</button>
     </div>
-    <div class="mini" style="--k:var(--brass);margin-top:6px">Drops objects and drawers of random kinds, sizes and colours onto the desk, for seeing how the grid copes.</div>
+    <div class="mini" style="--k:var(--brass);margin-top:6px">The sparkle in the bar adds one. Both drop objects of random kinds, sizes and colours, for seeing how the grid copes.</div>
 
     <div class="section-h"><h2>Start over</h2><div class="rule"></div></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -2167,6 +2217,18 @@ function renderSheet(){
   if(has(o,'repeat')||has(o,'streak')) fields.push(`<div class="field"><label>${has(o,'streak')?'Cadence':'Repeats'}</label><select data-f="repeat">
       ${['','daily','weekdays','weekly','monthly'].map(r=>`<option value="${r}"${(o.repeat||'')===r?' selected':''}>${r||'Never'}</option>`).join('')}
     </select></div>`);
+  if(has(o,'link')) fields.push(`<div class="field"><label>Link</label><input data-f="url" value="${esc(o.url||'')}" placeholder="https://"></div>`);
+  if(has(o,'location')) fields.push(`<div class="field"><label>Location</label><input data-f="loc" value="${esc(o.loc||'')}" placeholder="Where"></div>`);
+  if(has(o,'duration')) fields.push(`<div class="field"><label>Duration (minutes)</label><input type="number" min="0" data-f="dur" value="${o.dur||''}"></div>`);
+  if(has(o,'price')) fields.push(`<div class="field"><label>Price</label><input data-f="price" value="${esc(o.price||'')}" placeholder="12.50"></div>`);
+  if(has(o,'priority')) fields.push(`<div class="field"><label>Priority</label><select data-f="prio">
+      ${[['','—'],['low','Low'],['mid','Medium'],['high','High']].map(([v,n])=>`<option value="${v}"${(o.prio||'')===v?' selected':''}>${n}</option>`).join('')}</select></div>`);
+  if(has(o,'count')) fields.push(`<div class="field"><label>Count</label>
+      <div class="counter"><button data-act="countdown" data-id="${o.id}">−</button><b>${o.count||0}</b><button data-act="countup" data-id="${o.id}">+</button></div></div>`);
+  if(has(o,'rating')) fields.push(`<div class="field"><label>Rating</label>
+      <div class="stars">${[1,2,3,4,5].map(n=>`<button data-star="${o.id}:${n}" class="${(o.rating||0)>=n?'on':''}">${ic('star',17)}</button>`).join('')}</div></div>`);
+  if(has(o,'button')) fields.push(`<div class="field"><label>Button shape</label><select data-f="btnshape">
+      ${[['rounded','Rounded square'],['round','Round'],['square','Square'],['pill','Pill']].map(([v,n])=>`<option value="${v}"${(o.btnshape||'rounded')===v?' selected':''}>${n}</option>`).join('')}</select></div>`);
   if(has(o,'media')) fields.push(`<div class="field"><label>Media type</label><select data-f="mtype">
       ${['image','video','audio'].map(t=>`<option value="${t}"${o.media&&o.media.type===t?' selected':''}>${t}</option>`).join('')}</select></div>`);
   if(!isContainer(o)) fields.push(`<div class="field"><label>Clicking it</label><select data-f="onclick">
@@ -2485,8 +2547,11 @@ function openCtx(x,y,id){
   const many = sel.length>1;
   el.innerHTML=`
     ${many?`<div class="ctxhead">${sel.length} objects</div>` : ''}
-    ${many?'' : `<button data-c="read:${id}">${ic('eye',14)} Read</button>
-    <button data-c="open:${id}">${ic('edit',14)} Edit…</button>`}
+    ${many?'' : (isContainer(o)
+      ? `<button data-c="drawerset:${id}">${ic('sliders',14)} Drawer settings</button>
+         <button data-c="opendrawer:${id}">${ic('eye',14)} Open</button>`
+      : `<button data-c="read:${id}">${ic('eye',14)} Read</button>
+         <button data-c="open:${id}">${ic('edit',14)} Edit…</button>`)}
     ${(!many&&(has(o,'check')||has(o,'streak')))?`<button data-c="done:${id}">${ic('check',14)} ${has(o,'streak')?'Mark today':'Complete'}</button>`:''}
     <button data-c="intodrawer:${id}">${ic('folder',14)} ${many?`Put these ${sel.length} in a new drawer`:'Put this in a new drawer'}</button>
     <button data-c="move:${id}">${ic('folder',14)} Move to drawer…</button>
@@ -2891,6 +2956,16 @@ function hydrateAssets(){
 }
 /* Downscale on import: an untouched phone photo is several megabytes and
    nothing on this grid needs more than about 1400px on its long edge. */
+/* Does any pixel have a non-opaque alpha? Sampled on a grid rather than every
+   pixel — a 1400px image is two million reads and we only need a yes or no. */
+function hasAlpha(cx, cv){
+  try{
+    const d=cx.getImageData(0,0,cv.width,cv.height).data;
+    const step=Math.max(4, Math.floor(d.length/4/20000))*4;   // ~20k samples
+    for(let i=3;i<d.length;i+=step) if(d[i]<250) return true;
+    return false;
+  }catch(e){ return true; }   // tainted canvas: assume alpha and keep PNG
+}
 function importImage(file){
   if(!/^image\//.test(file.type)){ toast('That is not an image'); return; }
   const fr=new FileReader();
@@ -2902,15 +2977,22 @@ function importImage(file){
       const max=1400, s=Math.min(1, max/Math.max(im.width,im.height));
       const cv=document.createElement('canvas');
       cv.width=Math.max(1,Math.round(im.width*s)); cv.height=Math.max(1,Math.round(im.height*s));
-      cv.getContext('2d').drawImage(im,0,0,cv.width,cv.height);
-      let src; try{ src=cv.toDataURL('image/jpeg',0.82); }catch(e){ toast('Could not read that image'); return; }
+      const cx=cv.getContext('2d');
+      cx.drawImage(im,0,0,cv.width,cv.height);
+      /* JPEG has no alpha, so anything see-through came back with a black or
+         white box behind it. Keep the alpha channel when the source has one —
+         that's what lets a cut-out PNG sit on the board as a cut-out. */
+      const keepAlpha = /png|webp|gif|svg/i.test(file.type) && hasAlpha(cx, cv);
+      let src;
+      try{ src = keepAlpha ? cv.toDataURL('image/png') : cv.toDataURL('image/jpeg',0.82); }
+      catch(e){ toast('Could not read that image'); return; }
       const assetId=uid('a');
       assetPut(assetId,src).then(ok=>{
         // an image is placed, not filed: it lands on the grid you are looking
         // at, rather than being routed to whatever drawer collects media
         const here=(S.view==='drawer'&&S.drawerId)||ROOT;
         const o=create('image',{title:file.name.replace(/\.[^.]+$/,''), parent:here});
-        o.media={assetId, type:'image', w:cv.width, h:cv.height, label:file.name, src};
+        o.media={assetId, type:'image', w:cv.width, h:cv.height, label:file.name, src, alpha:keepAlpha};
         // pictures land square; you stretch them to the shape you want
         o.desk=null; o.phone=null;
         hideModal(); save(); render();
@@ -2963,6 +3045,8 @@ function act(name, el){
       hideModal(); save(); render(); toast('Drawer removed — its contents kept');
       break;
     }
+    case 'countup': { const o=byId(el.dataset.id); o.count=(o.count||0)+1; save(); renderSheet(); render(); break; }
+    case 'countdown': { const o=byId(el.dataset.id); o.count=Math.max(0,(o.count||0)-1); save(); renderSheet(); render(); break; }
     case 'attrsheet': {
       const o=byId(el.dataset.id); if(!o) return;
       const mine=attrsOf(o), own=!!o.attrs;
@@ -3046,7 +3130,7 @@ function act(name, el){
     }
     case 'newkind': modalNewKind(null); break;
     case 'install': if(deferredInstall){ deferredInstall.prompt(); deferredInstall=null; } break;
-    case 'randomone': randomThing(); save(); render(); toast('One at random'); break;
+    case 'randomone': randomThing(el.dataset.id); save(); render(); toast('One at random'); break;
     case 'randomten': { for(let i=0;i<10;i++) randomThing(); save(); render(); toast('Ten at random'); break; }
     case 'reseed': { const th=S.theme, lk=S.look; reset(); S.theme=th; S.look=lk; applyLook(); writeNow(); render(); toast('Sample desk restored'); break; }
     case 'wipe': {
@@ -3090,6 +3174,8 @@ function wire(){
     if(c){ const [cmd,id]=c.dataset.c.split(':'); closeCtx();
       if(cmd==='open') openObj(id);
       else if(cmd==='read'){ S.readId=id; S.openId=null; renderSheet(); }
+      else if(cmd==='drawerset') drawerPanel(id);
+      else if(cmd==='opendrawer'){ S.view='drawer'; S.drawerId=id; render(); }
       else if(cmd==='done') toggleDone(id);
       else if(cmd==='today'){ byId(id).due=T; render(); toast('Scheduled today'); }
       else if(cmd==='tom'){ byId(id).due=dz(1); render(); toast('Scheduled tomorrow'); }
@@ -3103,6 +3189,10 @@ function wire(){
         else del(id);
       }
       return; }
+
+    const st=t.closest('[data-star]');
+    if(st){ const [id,n]=st.dataset.star.split(':'); const o=byId(id);
+      o.rating = (o.rating===+n) ? 0 : +n; save(); renderSheet(); render(); return; }
 
     const sb=t.closest('[data-sortby]');
     if(sb){ const i=sb.dataset.sortby.indexOf(':');
@@ -3338,6 +3428,12 @@ function wire(){
       }
       else if(f==='layout'){ o.layout=e.target.value; render(); }
       else if(f==='onclick'){ o.onclick=e.target.value; save(); render(); }
+      else if(f==='url') o.url=e.target.value;
+      else if(f==='loc') o.loc=e.target.value;
+      else if(f==='dur') o.dur=e.target.value?+e.target.value:null;
+      else if(f==='price') o.price=e.target.value;
+      else if(f==='prio'){ o.prio=e.target.value||null; render(); }
+      else if(f==='btnshape'){ o.btnshape=e.target.value; render(); }
       else if(f==='linklabel'){ o.link=o.link||{}; o.link.label=e.target.value; }
       else if(f==='linktarget'){ o.link=o.link||{}; o.link.target=e.target.value; }
       else if(f==='linkurl'){ o.link=o.link||{}; if(e.target.value) o.link.target=e.target.value; }
