@@ -288,6 +288,9 @@ Everything on the Mac. They survive through ⌘K and, for Today and the archive,
 as magic drawers on the desk. If that bites, the answer is more magic drawers on
 the desk, not the sidebar coming back.
 
+*Status:* that last sentence turned out to be the whole answer — those three
+views are gone entirely and pinned drawers replace them. See decision 22.
+
 ---
 
 ### 19. There is no arrange mode
@@ -327,3 +330,36 @@ of real use is worth more than a month of Swift.
 *Against:* no widgets, no Shortcuts, no share sheet, no notifications on iOS, and
 storage that Apple could evict. Anything that depends on those needs the native
 build — see `NATIVE-PORT.md`.
+
+---
+
+### 22. Pinned drawers, not tabs — completes 18
+
+The phone had a four-tab bar: Desk, Today, Keeping Up, Everything. Three of
+those tabs are gone, along with the views behind them. What sits on the bar now
+is whatever drawers you pinned — a strip along the top on a Mac, the bar along
+the bottom on a phone, from one piece of markup.
+
+*Why:* Today was "everything due by now", Everything was "everything", Keeping
+Up was "habits and goals". Those are aggregations, and a magic drawer is the
+app's own way of expressing an aggregation. Hard-coding three of them meant the
+app shipped three fixed answers to a question it already lets you ask, and they
+could not be renamed, recoloured, reordered, or removed. A desk of nine drawers
+where four of them are unreachable except by scrolling is the actual problem the
+tabs were solving, and pinning solves it without deciding *which* four.
+
+*Against:* discoverability. A new desk arrives with four pins seeded, but the
+only way to learn you can change them is the context menu or the drawer panel —
+the same "no affordance says hold me" problem decision 18 already accepted.
+Pinning also can't be reordered yet: pins append, and the only way to move one
+is to unpin the rest. That will want fixing if the bar gets busy.
+
+*Consequences:* `S.pins` is an ordered list of ids, not a flag on the drawer,
+because nav order is its own decision and has nothing to do with desk position.
+It resolves on read, so a deleted drawer's pin disappears by itself. With
+nothing pinned the bar isn't drawn at all, which keeps decision 14's "nothing
+but grid" true for a desk you haven't customised.
+
+*What went with them:* the row list (`row()`, `card()`), and with it swipe-to-
+file and drag-to-reorder, which only ever existed inside those views. The grid
+is the only thing you drag now.

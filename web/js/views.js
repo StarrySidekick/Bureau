@@ -1,9 +1,9 @@
-import { $, esc, ic, D, ROOT } from './util.js';
-import { S, K, KEYS, T, byId, has, isContainer, containers, childrenOf, chainOf,
-  deskTitle, rootObj, shapeOf, streak, goalPct, allTags, dev } from './model.js';
+import { $, esc, ic, ROOT } from './util.js';
+import { S, K, byId, has, isContainer, containers, childrenOf, chainOf,
+  deskTitle, rootObj, pinnedDrawers, allTags, dev } from './model.js';
 import { CELL, gridOf, cellW } from './grid.js';
 import { themeNow, applyLook, lookVal, STYLES, PALETTES, paletteNow, BACKDROPS } from './look.js';
-import { gridOfContainer, row, card, listTile, scrollEntry, bookView } from './tiles.js';
+import { gridOfContainer, listTile, scrollEntry, bookView } from './tiles.js';
 import { APP_VERSION, save, storeSize, install } from './persist.js';
 
 /* The desk is nothing but the grid. There is no toolbar: New, Arrange and
@@ -65,7 +65,6 @@ function viewDrawer(){
   const all=childrenOf(d);
   let items=all;
   if(S.kindFilter) items=items.filter(o=>o.kind===S.kindFilter);
-  if(S.tagFilter) items=items.filter(o=>(o.tags||[]).includes(S.tagFilter));
   const kinds=[...new Set(all.map(o=>o.kind))];
   const f=d.filter||{};
   const defKind = (f.kinds&&f.kinds[0]) || 'task';
@@ -88,133 +87,6 @@ function viewDrawer(){
           : `<div class="listgrid">${items.map(o=>listTile(o)).join('')}</div>`}
   </div>`;
 }
-
-/* ============================================================
-   10 · rendering — today / agenda
-   ============================================================ */
-function viewToday(){
-  const days=[...Array(7)].map((_,i)=>D.addISO(T,i-1));
-  const sel=S.selDate;
-  const due=S.objects.filter(o=>has(o,'date')&&!o.done&&o.due===sel).sort((a,b)=>a.ord-b.ord);
-  const over=S.objects.filter(o=>has(o,'date')&&!o.done&&D.overdue(o.due)&&sel===T);
-  const habits=S.objects.filter(o=>has(o,'streak'));
-  return `
-  <div class="topbar">
-    <button class="iconbtn" data-view="desk" title="The Desk">${ic('chevL',18)}</button>
-    <div><h1>${sel===T?'Today':D.parse(sel).toLocaleDateString(undefined,{weekday:'long'})}</h1>
-      <div class="sub">${D.parse(sel).toLocaleDateString(undefined,{month:'long',day:'numeric',year:'numeric'})}</div></div>
-    <div class="grow"></div>
-    <button class="pill solid" data-act="new">${ic('plus',14)} New</button>
-  </div>
-  <div class="scroll">
-    <div class="weekstrip">${days.map(ds=>{
-      const d=D.parse(ds), n=S.objects.filter(o=>!o.done&&o.due===ds).length;
-      return `<button class="wday${ds===sel?' on':''}" data-day="${ds}">
-        <div class="d">${d.toLocaleDateString(undefined,{weekday:'short'})}</div>
-        <div class="n">${d.getDate()}</div>
-        <div class="pips">${[...Array(Math.min(n,3))].map(()=>'<i></i>').join('')}</div></button>`;}).join('')}
-    </div>
-    ${over.length?`<div class="section-h"><h2 style="color:#C0563F">Overdue</h2><div class="rule"></div><span class="n">${over.length}</span></div>
-      <div class="rows">${over.map(row).join('')}</div>`:''}
-    <div class="section-h"><h2>Scheduled</h2><div class="rule"></div><span class="n">${due.length}</span></div>
-    ${due.length?`<div class="rows">${due.map(row).join('')}</div>`
-      :`<div class="empty"><div class="big">Nothing scheduled</div>Drag an object onto a day, or press <kbd>N</kbd>.</div>`}
-    <div class="section-h"><h2>Habits</h2><div class="rule"></div><span class="n">${habits.filter(h=>(h.history||[]).includes(T)).length}/${habits.length}</span></div>
-    <div class="rows">${habits.map(h=>{
-      const on=(h.history||[]).includes(T);
-      return `<div class="habit" style="--k:${K('habit').c}">
-        <button class="tick-btn${on?' on':''}" data-habit="${h.id}">${ic('check',16)}</button>
-        <div><div class="nm">${esc(h.title)}</div><div class="sub">${h.repeat}</div></div>
-        <div class="dots">${[...Array(14)].map((_,i)=>{const ds=D.addISO(T,i-13);
-          return `<i class="${(h.history||[]).includes(ds)?'on':''}${ds===T?' today':''}"></i>`}).join('')}</div>
-        <div class="streak">${streak(h)}</div></div>`;}).join('')}
-    </div>
-  </div>`;
-}
-
-/* ============================================================
-   11 · rendering — keeping up (habits, goals, record)
-   ============================================================ */
-function viewKeep(){
-  const habits=S.objects.filter(o=>has(o,'streak'));
-  const goals=S.objects.filter(o=>has(o,'progress'));
-  const recs=S.objects.filter(o=>shapeOf(o)==='plaque'||(o.done&&o.doneAt)).sort((a,b)=>(b.doneAt||'').localeCompare(a.doneAt||''));
-  const groups={}; recs.forEach(r=>{ (groups[r.doneAt||'—']=groups[r.doneAt||'—']||[]).push(r); });
-  return `
-  <div class="topbar">
-    <button class="iconbtn" data-view="desk" title="The Desk">${ic('chevL',18)}</button>
-    <div><h1>Keeping Up</h1><div class="sub">Habits, goals, and the record of what's already done</div></div>
-    <div class="grow"></div>
-    <button class="pill solid" data-act="new">${ic('plus',14)} New</button>
-  </div>
-  <div class="scroll">
-    <div class="statline">
-      <div class="s"><b>${habits.filter(h=>(h.history||[]).includes(T)).length}/${habits.length}</b>habits today</div>
-      <div class="s"><b>${Math.max(0,...habits.map(streak))}</b>longest live streak</div>
-      <div class="s"><b>${goals.reduce((n,g)=>n+g.milestones.filter(m=>m.done).length,0)}</b>milestones passed</div>
-      <div class="s"><b>${recs.length}</b>on record</div>
-    </div>
-    <div class="section-h"><h2>Habits</h2><div class="rule"></div></div>
-    <div class="rows">${habits.map(h=>{
-      const on=(h.history||[]).includes(T);
-      return `<div class="habit" style="--k:${K('habit').c}">
-        <button class="tick-btn${on?' on':''}" data-habit="${h.id}">${ic('check',16)}</button>
-        <div style="cursor:pointer" data-row="${h.id}"><div class="nm">${esc(h.title)}</div><div class="sub">${h.repeat}</div></div>
-        <div class="dots">${[...Array(14)].map((_,i)=>{const ds=D.addISO(T,i-13);
-          return `<i class="${(h.history||[]).includes(ds)?'on':''}${ds===T?' today':''}"></i>`}).join('')}</div>
-        <div class="streak">${streak(h)}</div></div>`;}).join('')}
-    </div>
-    <div class="section-h"><h2>Goals</h2><div class="rule"></div></div>
-    <div class="blocks">${goals.map(g=>`
-      <div class="goal" style="--k:${K('goal').c}">
-        <div class="gh"><div class="gt" data-row="${g.id}" style="cursor:pointer">${esc(g.title)}</div>
-          <div class="gd">${g.due?'target '+D.short(g.due):''}</div></div>
-        <div class="bar"><i style="width:${goalPct(g)}%"></i></div>
-        <div class="statline"><div class="s">${g.milestones.filter(m=>m.done).length} of ${g.milestones.length} milestones · ${goalPct(g)}%</div></div>
-        <div class="miles">${g.milestones.map((m,i)=>`
-          <div class="mile${m.done?' done':''}" data-mile="${g.id}:${i}">
-            <span class="check${m.done?' on':''}" style="--k:${K('goal').c};width:16px;height:16px">${ic('check',11)}</span>
-            <span class="mt">${esc(m.t)}</span><span class="md">${D.short(m.d)}</span></div>`).join('')}</div>
-      </div>`).join('')}
-    </div>
-    <div class="section-h"><h2>On the record</h2><div class="rule"></div><span class="n">${recs.length}</span></div>
-    <div class="timeline">${Object.entries(groups).slice(0,14).map(([d,list])=>`
-      <div class="tl-item" style="--k:${K('record').c}">
-        <div class="tl-date">${D.human(d)}</div>
-        ${list.map(r=>`<div class="mini" data-row="${r.id}" style="--k:${K(r.kind).c};cursor:pointer">
-          <span class="dot"></span>${esc(r.title)}</div>`).join('')}
-      </div>`).join('')}
-    </div>
-  </div>`;
-}
-
-/* ============================================================
-   12 · rendering — all objects
-   ============================================================ */
-function viewAll(){
-  let items=S.objects.slice();
-  if(S.kindFilter) items=items.filter(o=>o.kind===S.kindFilter);
-  if(S.tagFilter) items=items.filter(o=>(o.tags||[]).includes(S.tagFilter));
-  items.sort((a,b)=>(a.kind===b.kind?a.ord-b.ord:KEYS.indexOf(a.kind)-KEYS.indexOf(b.kind)));
-  const counts={}; S.objects.forEach(o=>counts[o.kind]=(counts[o.kind]||0)+1);
-  return `
-  <div class="topbar">
-    <button class="iconbtn" data-view="desk" title="The Desk">${ic('chevL',18)}</button>
-    <div><h1>Everything</h1><div class="sub">${items.length} of ${S.objects.length} objects${S.tagFilter?' · #'+esc(S.tagFilter):''}</div></div>
-    <div class="grow"></div>
-    <button class="pill" data-act="listmode">${ic(S.listmode==='rows'?'grid':'list',14)}</button>
-    <button class="pill solid" data-act="new">${ic('plus',14)}</button>
-  </div>
-  <div class="scroll">
-    <div class="filterbar">
-      <button class="fchip${!S.kindFilter?' on':''}" data-kind="">All ${S.objects.length}</button>
-      ${KEYS.filter(k=>counts[k]).map(k=>`<button class="fchip${S.kindFilter===k?' on':''}" data-kind="${k}" style="--k:${K(k).c}">${K(k).nm} ${counts[k]}</button>`).join('')}
-    </div>
-    ${S.tagFilter?`<div class="filterbar"><button class="fchip on" data-tag="">#${esc(S.tagFilter)} ✕</button></div>`:''}
-    ${S.listmode==='rows'?`<div class="rows">${items.map(row).join('')}</div>`:`<div class="cards">${items.map(card).join('')}</div>`}
-  </div>`;
-}
-
 
 /* ============================================================
    12b · settings
@@ -348,12 +220,28 @@ function viewSettings(){
 }
 
 /* ============================================================
-   13 · rail + tabbar
-   ============================================================ */
-function tabbar(){
-  const tabs=[['desk','grid','Desk'],['today','calendar','Today'],['keep','target','Keeping'],['all','archive','All']];
-  return `<nav class="tabbar">${tabs.map(([v,i,n])=>
-    `<button class="${S.view===v||(v==='desk'&&S.view==='drawer')?'on':''}" data-view="${v}">${ic(i,20)}<span>${n}</span></button>`).join('')}</nav>`;
+   13 · the pin bar — the only navigation there is
+   ============================================================
+   There used to be four fixed tabs here: Desk, Today, Keeping Up, Everything.
+   Three of them were aggregations, which is precisely what a magic drawer
+   does, so they were three hard-coded answers to a question the app already
+   lets you ask yourself. They are gone. What is on the bar is now whatever
+   drawers you pinned — the same strip on both devices, along the top on a Mac
+   and along the bottom on a phone. See decision 22.
+
+   With nothing pinned the bar isn't drawn at all, so a desk you haven't
+   customised stays what decision 14 wanted: nothing but grid. */
+function pinbar(){
+  const pins=pinnedDrawers();
+  if(!pins.length) return '';
+  const here = id => S.view==='drawer' && S.drawerId===id;
+  return `<nav class="pinbar">
+    <button class="pinbtn${S.view==='desk'?' on':''}" data-view="desk" title="${esc(deskTitle())}">
+      <i class="pinmark home">${ic('grid',13)}</i><span>Desk</span></button>
+    ${pins.map(d=>`<button class="pinbtn${here(d.id)?' on':''}" data-drawer="${d.id}" title="${esc(d.title||'Untitled')}">
+      <i class="pinmark" style="--c:${d.c||K(d.kind).c}">${has(d,'magic')?ic('sparkle',11):''}</i>
+      <span>${esc(d.title||'Untitled')}</span></button>`).join('')}
+  </nav>`;
 }
 
 /* ============================================================
@@ -366,11 +254,14 @@ function render(){
   frame.className = S.device==='desk' ? 'is-desk' : 'is-phone';
   document.documentElement.dataset.theme = themeNow();
   applyLook();          // the custom colours are per theme, so repaint them
-  const body = S.view==='desk'?viewDesk():S.view==='drawer'?viewDrawer():S.view==='today'?viewToday()
-             :S.view==='keep'?viewKeep():S.view==='settings'?viewSettings():viewAll();
-  // No sidebar: the desk is the navigation. Drawers are on it, ⌘K finds
-  // anything, and the breadcrumb walks back up.
-  $('#app').innerHTML = `<div class="main">${body}${tabbar()}</div>`;
+  const body = S.view==='drawer' ? viewDrawer()
+             : S.view==='settings' ? viewSettings()
+             : viewDesk();          // the desk is the only other place there is
+  // No sidebar and no tabs: the desk is the navigation. Drawers are on it, the
+  // pinned ones are one tap away, ⌘K finds anything, the breadcrumb walks up.
+  // The bar is first in the DOM on both devices; CSS drops it to the bottom on
+  // a phone, so one piece of markup serves both.
+  $('#app').innerHTML = `<div class="main">${pinbar()}${body}</div>`;
   bindSortables();
   sizeGrid();
   save();   // a save after every re-render, cheaply

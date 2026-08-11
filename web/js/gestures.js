@@ -1,9 +1,8 @@
-import { $, $$, clamp, ROOT } from './util.js';
+import { $$, clamp, ROOT } from './util.js';
 import { S, byId, dev, has, isAncestor, childrenOf, container } from './model.js';
 import { CELL, gridOf, cellW, lay, boxOk, overlaps } from './grid.js';
-import { toast, del, toggleDone } from './mutations.js';
+import { toast } from './mutations.js';
 import { pending, tileTap, fireButton } from './tiles.js';
-import { openObj } from './sheet.js';
 import { modalNewObject } from './panels.js';
 import { render } from './views.js';
 import { save } from './persist.js';
@@ -42,7 +41,6 @@ function place(el, b){
 
 function onDown(e){
   if(e.button===2) return;
-  const app=$('#app');
   // Any tile on any unlocked grid. There is no arrange mode — everything is
   // always movable — so a short hold arms the drag, which is the only thing
   // keeping an ordinary click from picking the tile up.
@@ -95,13 +93,11 @@ function onDown(e){
     }
     return;
   }
-  const rEl=e.target.closest('.row[data-row]');
-  if(!rEl) return;
-  if(e.target.closest('[data-check],[data-del],[data-menu],[data-habit]')) return;
-  const list=rEl.closest('.rows');
-  const canDrag = e.pointerType==='mouse' || (list&&list.classList.contains('reordering'));
-  G={type:'row', el:rEl, wrap:rEl.parentElement, sx:e.clientX, sy:e.clientY, mode:null, canDrag, t:Date.now()};
-  try{ rEl.setPointerCapture&&rEl.setPointerCapture(e.pointerId); }catch(_){}
+  /* Swipe-to-file and drag-to-reorder used to live here, on the `.row` list
+     the Today and Everything tabs were built from. Those tabs are gone and
+     nothing renders `.row[data-row]` any more — the modals' rows carry
+     data-moveto/data-sortby/data-dorel and are plain clicks — so the whole
+     path went with them. A grid is the only thing you drag now. */
 }
 function onMove(e){
   cancelHold(e);
@@ -190,21 +186,6 @@ function onMove(e){
     }
     return;
   }
-
-  if(!G.mode){
-    if(Math.abs(dx)<7 && Math.abs(dy)<7) return;
-    if(Math.abs(dx)>Math.abs(dy)){ G.mode='swipe'; G.wrap.classList.add('swiping'); }
-    else if(G.canDrag){ G.mode='drag'; G.wrap.classList.add('dragging'); G.wrap.style.opacity='.35'; G.wrap.style.pointerEvents='none'; }
-    else { G.mode='none'; }
-  }
-  if(G.mode==='swipe'){ G.el.style.transform=`translateX(${clamp(dx,-140,140)}px)`; }
-  else if(G.mode==='drag'){
-    const under=document.elementFromPoint(e.clientX,e.clientY);
-    if(!under) return;
-    const t=under.closest('.rowwrap');
-    if(t&&t!==G.wrap){ const p=t.parentElement, before=t.compareDocumentPosition(G.wrap)&Node.DOCUMENT_POSITION_FOLLOWING;
-      p.insertBefore(G.wrap, before? t : t.nextSibling); }
-  }
 }
 function onUp(e){
   if(holdTimer){ clearTimeout(holdTimer); holdTimer=null; }
@@ -253,30 +234,11 @@ function onUp(e){
     return;
   }
 
-  if(g.mode==='swipe'){
-    g.wrap.classList.remove('swiping');
-    const id=g.el.dataset.row;
-    if(dx<-72){ g.el.style.transform='translateX(-100%)'; setTimeout(()=>del(id),140); return; }
-    if(dx>72){ g.el.style.transform='translateX(100%)'; setTimeout(()=>toggleDone(id),140); return; }
-    g.el.style.transform='';
-    return;
-  }
-  if(g.mode==='drag'){
-    g.wrap.classList.remove('dragging'); g.wrap.style.opacity=''; g.wrap.style.pointerEvents='';
-    const list=g.wrap.parentElement;
-    $$('[data-wrap]',list).forEach((el,i)=>{ const o=byId(el.dataset.wrap); if(o) o.ord=i; });
-    toast('Order saved');
-    render(); return;
-  }
   if(g.el) g.el.classList.remove('lifted');
   if(g.mode===null && Math.abs(dx)<7){
-    // a tap
-    if(g.type==='move'||g.type==='resize'){
-      // a tap on a button's face fires it; anywhere else follows the type
-      const o=byId(g.id);
-      if(o && has(o,'button') && g.startedOnFace) fireButton(o); else tileTap(g.id);
-    }
-    else if(g.type==='row') openObj(g.el.dataset.row);
+    // a tap on a button's face fires it; anywhere else follows the type
+    const o=byId(g.id);
+    if(o && has(o,'button') && g.startedOnFace) fireButton(o); else tileTap(g.id);
   }
 }
 

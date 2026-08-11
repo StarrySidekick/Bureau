@@ -2,7 +2,7 @@ import { $, $$, esc, ic, uid, clamp, ROOT } from './util.js';
 import { S, K, KINDS, KEYS, T, ATTRS, USER_ATTRS, FIELDS, fieldOf, OPS, ROLLS,
   SORTS, FACES, SHAPES, faceOf, shapeOf, byId, container, cfgOf, deskTitle,
   rootObj, containers, isContainer, isAncestor, childrenOf, has, kindHas,
-  attrsOf, allTags, dev } from './model.js';
+  attrsOf, allTags, isPinned, dev } from './model.js';
 import { lay, boxOk, freeSpot } from './grid.js';
 import { SWATCHES, paletteNow, randomBoard, randomFront } from './look.js';
 import { CLICKS, clickOf, gridTile, pending } from './tiles.js';
@@ -138,6 +138,7 @@ function drawerPanel(id){
     ${isRoot?'':row('Face', chips('face', null, Object.entries(FACES), faceOf(d)))}
     ${row('Sort', chips('sort', null, [['','Custom'],...Object.entries(SORTS).map(([k,[nm]])=>[k,nm])], cfg.sort||''))}
     ${row('Locked', chips('lock', null, [['','Movable'],['1','Locked']], cfg.locked?'1':''))}
+    ${isRoot?'':row('On the bar', chips('pin', null, [['','No'],['1','Pinned']], isPinned(id)?'1':''))}
     ${isRoot?'':`
       ${row('Border', chips('border', null, [['panel','Panelled'],['heavy','Heavy panel'],['bar','Bar'],['aqua','Aqua'],['plain','Plain'],['none','None']], d.border||'none'))}
       ${row('Knob', chips('knob', null, [['round','Round'],['diamond','Diamond'],['bar','Bar'],['ring','Ring'],['square','Square'],['orb','Orb']], d.knob||'round'))}
@@ -391,13 +392,13 @@ function closeCmd(){ $('#cmdscrim').classList.remove('open'); if(document.active
 function cmdList(q){
   q=q.trim().toLowerCase();
   const res=[];
-  [['today','Today','calendar'],['keep','Keeping Up','target'],['all','Everything','archive'],
-   ['settings','Settings','sliders'],['desk','The Desk','grid']].forEach(([v,nm,icn])=>{
+  // Only two places exist now — the desk and settings. Today, Keeping Up and
+  // Everything were aggregations; make a magic drawer if you want one back.
+  [['settings','Settings','sliders'],['desk','The Desk','grid']].forEach(([v,nm,icn])=>{
     if(!q||nm.toLowerCase().includes(q))
       res.push({t:nm,s:'view',c:'var(--brass)',i:icn,go:()=>{S.view=v;S.drawerId=null;}});
   });
   containers().forEach(d=>{ if(!q||(d.title||'').toLowerCase().includes(q)) res.push({t:d.title,s:'drawer',c:d.c||K(d.kind).c,i:'folder',go:()=>{S.view='drawer';S.drawerId=d.id;}}); });
-  KEYS.forEach(k=>{ if(q&&KINDS[k].nm.toLowerCase().includes(q)) res.push({t:'All '+KINDS[k].nm.toLowerCase()+'s',s:'type',c:KINDS[k].c,i:KINDS[k].ic,go:()=>{S.view='all';S.kindFilter=k;}}); });
   S.objects.forEach(o=>{ if(q&&((o.title||'').toLowerCase().includes(q)||(o.body||'').toLowerCase().includes(q)))
     res.push({t:o.title||'Untitled',s:K(o.kind).nm,c:K(o.kind).c,i:K(o.kind).ic,go:()=>openObj(o.id)}); });
   if(q) res.unshift({t:`Create task “${q}”`,s:'new',c:KINDS.task.c,i:'plus',go:()=>{const o=quickAdd(q,'task');openObj(o.id);}});
@@ -448,7 +449,8 @@ function openCtx(x,y,id){
     ${many?`<div class="ctxhead">${sel.length} objects</div>` : ''}
     ${many?'' : (isContainer(o)
       ? `<button data-c="drawerset:${id}">${ic('sliders',14)} Drawer settings</button>
-         <button data-c="opendrawer:${id}">${ic('eye',14)} Open</button>`
+         <button data-c="opendrawer:${id}">${ic('eye',14)} Open</button>
+         <button data-c="pin:${id}">${ic('star',14)} ${isPinned(id)?'Take off the bar':'Pin to the bar'}</button>`
       : `<button data-c="objset:${id}">${ic('sliders',14)} Object settings</button>
          <button data-c="read:${id}">${ic('eye',14)} Read</button>
          <button data-c="open:${id}">${ic('edit',14)} Edit…</button>`)}

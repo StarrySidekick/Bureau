@@ -226,7 +226,10 @@ function seed(){
     O({kind:'achievement', title:'30-day streak: walk before screens', parent:'d_done', done:true, doneAt:dz(-9), tags:['health']}),
     O({kind:'achievement', title:'Named the app', parent:'d_done', done:true, doneAt:dz(-14), tags:['bureau']})
   ];
-  return {objects: drawers.concat(controls, objects)};
+  // The drawers that start out on the bar. A first desk should show what
+  // pinning is for, and these four are the ones worth reaching in one tap.
+  return {objects: drawers.concat(controls, objects),
+          pins: ['d_today','d_in','d_keep','d_done']};
 }
 
 /* ============================================================
@@ -237,13 +240,13 @@ const sensedDevice = ()=> window.matchMedia('(min-width: 900px)').matches ? 'des
 function reset(){
   const s = seed();
   S = {
-    objects:s.objects, kinds:{},
+    objects:s.objects, kinds:{}, pins:s.pins.slice(),
     // Paper, not auto: the parchment desk is the intended look, so a Mac in
     // dark mode shouldn't silently serve Walnut on first run.
     device:sensedDevice(), layoutEdit:null, theme:'paper',
     view:'desk', drawerId:null, openId:null,
-    arrange:false, reorder:false, listmode:'rows', kindFilter:null, tagFilter:null,
-    selDate:T, trash:null, editing:false, sel:[], readId:null, bookAt:0, bookMode:false,
+    arrange:false, kindFilter:null,
+    trash:null, editing:false, sel:[], readId:null, bookAt:0, bookMode:false,
     deskCfg:{layout:'grid', locked:false, sort:null},
     look:defaultLook()
   };
@@ -290,6 +293,15 @@ const SHAPES = {
 };
 const shapeOf = o => (o && o.shape) || K(o&&o.kind).shape || 'card';
 const containers = ()=> S.objects.filter(isContainer);
+
+/* Pinned drawers are the app's whole navigation — the strip along the top on a
+   Mac, the bar along the bottom on a phone. `S.pins` is an ordered list of ids
+   rather than a flag on the drawer, because the order things sit in a nav bar
+   is its own decision and has nothing to do with where they sit on the desk.
+   It is resolved on read, so a pin whose drawer has been deleted simply stops
+   appearing — no delete path has to remember to tidy up after itself. */
+const isPinned = id => (S.pins||[]).includes(id);
+const pinnedDrawers = ()=> (S.pins||[]).map(byId).filter(o=>o && isContainer(o));
 
 /* A drawer holds. A magic drawer collects. Nothing does both.
    An object lives in exactly one drawer — its `parent` — and that is the only
@@ -408,5 +420,5 @@ const allTags = ()=>{ const m={}; S.objects.forEach(o=>(o.tags||[]).forEach(t=>m
 export { ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds, K,
   attrsOf, has, kindHas, T, dz, S, sensedDevice, reset, defaultLook, dev, byId,
   deskTitle, rootObj, container, cfgOf, isContainer, FACES, faceOf, SHAPES,
-  shapeOf, containers, OPS, ROLLS, rollup, SORTS, childrenOf, isAncestor,
+  shapeOf, containers, isPinned, pinnedDrawers, OPS, ROLLS, rollup, SORTS, childrenOf, isAncestor,
   relate, unrelate, chainOf, streak, goalPct, allTags };

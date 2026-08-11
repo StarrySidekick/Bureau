@@ -82,17 +82,42 @@ const URL = process.env.BUREAU_URL || 'http://127.0.0.1:8000/index.html';
   await phone.goto(URL);
   await phone.waitForTimeout(700);
   await phone.screenshot({ path: 'test/shots/07-phone.png' });
-  // the sidebar was removed on purpose — assert it is genuinely gone
+  // the sidebar and the four fixed tabs were both removed on purpose —
+  // assert they are genuinely gone and the pin bar took the tabs' place
   const railGone = await phone.evaluate(() => !document.querySelector('.rail'));
-  const tabbarShown = await phone.evaluate(() => getComputedStyle(document.querySelector('.tabbar')).display !== 'none');
-  await phone.click('.tabbar button >> nth=2');
+  const tabsGone = await phone.evaluate(() => !document.querySelector('.tabbar'));
+  const pinbarShown = await phone.evaluate(() => {
+    const b = document.querySelector('.pinbar');
+    if (!b) return false;
+    const s = getComputedStyle(b);
+    // it has to be the bottom bar on a phone, not a strip left at the top
+    return s.display !== 'none' && s.position === 'absolute'
+      && b.getBoundingClientRect().bottom >= window.innerHeight - 1;
+  });
+  // a pin navigates, and the bar marks where you are
+  await phone.click('.pinbar .pinbtn[data-drawer="d_keep"]');
   await phone.waitForTimeout(350);
-  await phone.screenshot({ path: 'test/shots/08-phone-keep.png' });
-  await phone.click('.tabbar button >> nth=0');
+  const pinNavigates = await phone.evaluate(() =>
+    BUREAU.state.view === 'drawer' && BUREAU.state.drawerId === 'd_keep'
+    && document.querySelector('.pinbtn[data-drawer="d_keep"]').classList.contains('on'));
+  await phone.screenshot({ path: 'test/shots/08-phone-pinned-drawer.png' });
+  await phone.click('.pinbar .pinbtn[data-view="desk"]');
   await phone.waitForTimeout(300);
   await phone.click('.drawer[data-drawer="d_write"]');
   await phone.waitForTimeout(350);
   await phone.screenshot({ path: 'test/shots/09-phone-drawer.png' });
+
+  // pinning is a round trip: on the bar, off the bar, and it survives a save
+  const pinToggles = await phone.evaluate(() => {
+    const n = () => document.querySelectorAll('.pinbar .pinbtn[data-drawer]').length;
+    const before = n();
+    BUREAU.pin('d_write');                       // the drawer we are looking at
+    const added = n() === before + 1
+      && !!document.querySelector('.pinbtn[data-drawer="d_write"]');
+    BUREAU.pin('d_write');
+    return added && n() === before
+      && !document.querySelector('.pinbtn[data-drawer="d_write"]');
+  });
 
   // --- everything is always movable; a hold arms the drag, a tap does not
   await page.waitForTimeout(300);
@@ -218,7 +243,8 @@ const URL = process.env.BUREAU_URL || 'http://127.0.0.1:8000/index.html';
 
   console.log(JSON.stringify({
     errors: errs, manifestOk, swReady, survived, themeSurvived,
-    gridClass, offlineWorks, railGone, tabbarShown, holdArms, maxDrift,
+    gridClass, offlineWorks, railGone, tabsGone, pinbarShown, pinNavigates,
+    pinToggles, holdArms, maxDrift,
     pasteOk, magicOk, rollupOk, relationsOk, groupMove, dupIds
   }, null, 2));
   await browser.close();

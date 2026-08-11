@@ -66,6 +66,21 @@ function undo(){
   S.objects.splice(S.trash.i,0,S.trash.o); S.trash=null;
   $('#toast').classList.remove('show'); render();
 }
+/* Pinning is deliberately not a property of the drawer — see the note on
+   `S.pins` in model.js. Pinning appends, so the bar fills left to right in the
+   order you chose things, and unpinning leaves the rest where they were. */
+function setPin(id, on){
+  const o=byId(id); if(!o || !isContainer(o)) return;
+  S.pins = (S.pins||[]).filter(x=>x!==id);
+  if(on) S.pins.push(id);
+  render();
+}
+function togglePin(id){
+  const o=byId(id); if(!o || !isContainer(o)) return;
+  const on = !(S.pins||[]).includes(id);
+  setPin(id, on);
+  toast(on ? `${o.title} pinned to the bar` : `${o.title} unpinned`);
+}
 function create(kind, patch){
   const k=K(kind);
   const o = Object.assign({
@@ -133,4 +148,6 @@ function randomThing(parentId){
   return o;
 }
 
-export { toast, toggleDone, toggleHabit, del, undo, create, quickAdd, randomThing };
+// toggleHabit isn't exported — a streak reaches it through toggleDone, which is
+// the one door, so nothing outside has to know a habit ticks differently.
+export { toast, toggleDone, del, undo, setPin, togglePin, create, quickAdd, randomThing };

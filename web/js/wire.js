@@ -4,7 +4,7 @@ import { S, K, KINDS, KEYS, refreshKinds, ATTRS, USER_ATTRS, attrsOf, has, SHAPE
   unrelate, sensedDevice, reset, T, dz, dev } from './model.js';
 import { gridOf, lay, boxOk, freeSpot } from './grid.js';
 import { applyLook, applyStyle, setLookVal, lookVal, STYLES, PALETTES, randomFront } from './look.js';
-import { toast, toggleDone, toggleHabit, del, undo, create, quickAdd, randomThing } from './mutations.js';
+import { toast, toggleDone, del, undo, setPin, togglePin, create, quickAdd, randomThing } from './mutations.js';
 import { spinTo, pending, placeAtPending, tileTap } from './tiles.js';
 import { render, sizeGrid } from './views.js';
 import { openObj, closeSheet, renderSheet } from './sheet.js';
@@ -18,9 +18,8 @@ function act(name, el){
   switch(name){
     case 'new': modalNewObject(); break;
     case 'newdrawer': modalDrawer(null); break;
-    case 'reorder': S.reorder=!S.reorder; render(); break;
-    case 'listmode': S.listmode = S.listmode==='rows'?'cards':'rows'; render(); break;
     case 'back': S.view='desk'; S.drawerId=null; S.kindFilter=null; render(); break;
+    case 'pin': togglePin(el.dataset.id); break;
     case 'cancel': hideModal(); break;
     case 'savedrawer': {
       const id=el.dataset.id, m=$('#modal'), draft=m._draft||{};
@@ -234,6 +233,7 @@ function wire(){
       else if(cmd==='drawerset') drawerPanel(id);
       else if(cmd==='objset') objectPanel(id);
       else if(cmd==='opendrawer'){ S.view='drawer'; S.drawerId=id; render(); }
+      else if(cmd==='pin') togglePin(id);
       else if(cmd==='done') toggleDone(id);
       else if(cmd==='today'){ byId(id).due=T; render(); toast('Scheduled today'); }
       else if(cmd==='tom'){ byId(id).due=dz(1); render(); toast('Scheduled tomorrow'); }
@@ -288,9 +288,6 @@ function wire(){
       return; }
 
     const ck=t.closest('[data-check]'); if(ck){ toggleDone(ck.dataset.check); return; }
-    const hb=t.closest('[data-habit]'); if(hb){ toggleHabit(hb.dataset.habit); return; }
-    const dl=t.closest('[data-del]'); if(dl){ del(dl.dataset.del); return; }
-    const mn=t.closest('[data-menu]'); if(mn){ const r=mn.getBoundingClientRect(); openCtx(r.left,r.bottom+4,mn.dataset.menu); return; }
 
     const ml=t.closest('[data-mile]');
     if(ml){ const [gid,i]=ml.dataset.mile.split(':'); const g=byId(gid); const m=g.milestones[+i];
@@ -334,11 +331,12 @@ function wire(){
     // a plain click anywhere clears the selection before doing anything else
     if(S.sel.length && !t.closest('#ctx')) S.sel=[];
 
+    // a breadcrumb, a tile, or a button on the pin bar — all open the drawer
     const dr=t.closest('[data-drawer]');
-    if(dr && (dr.tagName==='B' || dr.classList.contains('drawer'))){
-      S.view='drawer'; S.drawerId=dr.dataset.drawer; S.kindFilter=null; S.reorder=false; render(); return; }
+    if(dr && (dr.tagName==='B' || dr.classList.contains('drawer') || dr.classList.contains('pinbtn'))){
+      S.view='drawer'; S.drawerId=dr.dataset.drawer; S.kindFilter=null; render(); return; }
 
-    // cards, goal titles, timeline entries — anything carrying an id that isn't a swipeable row
+    // anything else carrying an id — a tile on a grid, or a mini row in a panel
     const ro=t.closest('[data-row]');
     if(ro && !ro.classList.contains('row')){
       // a tile on a grid obeys the object's own click behaviour; everything
@@ -362,10 +360,12 @@ function wire(){
     const dtg=t.closest('[data-dtag]');
     if(dtg){ $('#modal')._draft.tag=dtg.dataset.dtag; $$('#dtag .fchip').forEach(b=>b.classList.remove('on')); dtg.classList.add('on'); return; }
 
-    const pn=t.closest('[data-pview],[data-pface],[data-psort],[data-plock],[data-pborder],[data-pknob],[data-pcolour],[data-pboard],[data-pknobc],[data-pknobtone],[data-pknobpos],[data-ptexture],[data-otype],[data-oclick],[data-oshape],[data-oedge],[data-ocolour],[data-oframe],[data-obtn],[data-ogen],[data-ogendir]');
+    const pn=t.closest('[data-pview],[data-pface],[data-psort],[data-plock],[data-ppin],[data-pborder],[data-pknob],[data-pcolour],[data-pboard],[data-pknobc],[data-pknobtone],[data-pknobpos],[data-ptexture],[data-otype],[data-oclick],[data-oshape],[data-oedge],[data-ocolour],[data-oframe],[data-obtn],[data-ogen],[data-ogendir]');
     if(pn){
       const id=pn.dataset.id, c=cfgOf(id), o=byId(id);
       if(pn.dataset.pview!=null) c.layout=pn.dataset.pview;
+      else if(pn.dataset.ppin!=null) setPin(id, !!pn.dataset.ppin);   // S.pins, not the object
+
       else if(o && pn.dataset.pface!=null) o.face=pn.dataset.pface;
       else if(pn.dataset.psort!=null) c.sort=pn.dataset.psort||null;
       else if(pn.dataset.plock!=null) c.locked=!!pn.dataset.plock;
@@ -462,11 +462,6 @@ function wire(){
     const lk=t.closest('[data-look]');
     if(lk){ setLookVal(lk.dataset.look, lk.dataset.val||null);
       applyLook(); save(); render(); return; }
-
-    const tg=t.closest('[data-tag]');
-    if(tg){ const v=tg.dataset.tag; S.tagFilter = (!v||S.tagFilter===v)?null:v; if(S.tagFilter) S.view='all'; render(); return; }
-
-    const day=t.closest('[data-day]'); if(day){ S.selDate=day.dataset.day; render(); return; }
 
     const th=t.closest('[data-theme2]'); if(th){ S.theme=th.dataset.theme2; applyLook(); save(); render(); return; }
     const ly=t.closest('[data-layout]');

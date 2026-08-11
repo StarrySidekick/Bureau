@@ -77,7 +77,7 @@ clause at the bottom of each file — that list is each module's public surface.
 | `look.js` | Themes, palettes, Styles, `applyLook()`. |
 | `mutations.js` | `toggleDone`, `del`, `create`, `quickAdd`, repeat scheduling, `toast`. |
 | `tiles.js` | `gridTile()` — the one place that decides how an object looks on a grid — plus rows, cards, list bands, book/scroll entries, and what a click does (`tileTap`). |
-| `views.js` | One function per view, each returning an HTML string; `render()` replaces `#app`'s innerHTML wholesale, then saves. |
+| `views.js` | The desk, a drawer, and settings — the only three places there are. Also `pinbar()`. `render()` replaces `#app`'s innerHTML wholesale, then saves. |
 | `sheet.js` | `renderSheet()` — rendered into `#sheetHost`, **separately** from `render()`. |
 | `panels.js` | Modals, side panels, command palette (⌘K), context menu. |
 | `gestures.js` | Pointer-based drag, resize, lasso, swipe. The fiddliest code in the app. |
@@ -98,6 +98,15 @@ Don't add targeted DOM patching; it isn't the bottleneck and it would break the
 mental model. The one exception is the detail sheet, which renders into its own
 host so that typing doesn't destroy the field you're typing in — respect that
 split.
+
+**Navigation is the desk plus whatever you pinned.** There are exactly three
+views: the desk, a drawer, and settings. The four fixed tabs (Today, Keeping Up,
+Everything) are gone — they were hard-coded aggregations, which is a magic
+drawer's job. `S.pins` is an ordered list of drawer ids, resolved on read by
+`pinnedDrawers()`; the same `pinbar()` markup is a top strip on a Mac and the
+bottom bar on a phone. With nothing pinned it isn't drawn. See decision 22, and
+don't add a view without a very good reason — a magic drawer is nearly always
+the answer.
 
 **Events are delegated, not bound.** Everything hangs off the listeners attached
 to `#frame` in `wire.js`, dispatched on `data-*` attributes. To add an action,

@@ -29,7 +29,8 @@ the weakest area.
 - interactive calendar face: click a day to see/add, drag an object onto a day
   to schedule it
 - a real timeline view (inside a container, zoomable), not just the 8-node face
-- month calendar page reachable from Today
+- a full month view when you open a calendar drawer, rather than the same face
+  scaled up — this is what the Today tab used to be for, and now nothing is
 
 ## 3. Workflow completion
 
@@ -42,8 +43,11 @@ the weakest area.
 
 ## 4. Known small gaps (fold into any session)
 
-- manual reorder in list view is dead (`ord` unused, no drag)
-- tag filtering has no UI since the sidebar went
+- pins can't be reordered — pinning appends, so moving one means unpinning the
+  rest (decision 22)
+- tag filtering has no UI at all now: `S.tagFilter` went with the Everything
+  tab. The honest replacement is "make a magic drawer for this tag" as a click
+  on a tag, not a filter mode
 - rollups only render on drawer-front and checklist faces
 - accessibility: tiles are nested-interactive `<button>`s, no keyboard nav,
   no ARIA

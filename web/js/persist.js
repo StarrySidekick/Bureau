@@ -21,7 +21,10 @@ function snapshot(){
     const m=Object.assign({},o.media); delete m.src;
     return Object.assign({},o,{media:m});
   });
-  return {v:DATA_V, savedAt:new Date().toISOString(), theme:S.theme, listmode:S.listmode,
+  // a pin whose drawer has gone is dropped here rather than in every delete
+  // path; in memory it survives so undo can bring the drawer back pinned
+  const pins=(S.pins||[]).filter(id=>S.objects.some(o=>o.id===id));
+  return {v:DATA_V, savedAt:new Date().toISOString(), theme:S.theme, pins,
           look:S.look, kinds:S.kinds, deskCfg:S.deskCfg, objects};
 }
 function writeNow(){
@@ -99,7 +102,7 @@ function dedupeIds(objects){
    skips all of them, an old backup replays only what it is missing. These
    used to be ad-hoc per-load mutations inside adopt(); a new repair that
    should run once belongs here, as the next numbered step. */
-const DATA_V = 7;
+const DATA_V = 8;
 const MIGRATIONS = [
   // Drawers and objects were two arrays and a drawer could not live inside
   // anything. foldDrawers also replays the old dense flow to give v1 drawers
@@ -129,6 +132,16 @@ const MIGRATIONS = [
       });
       d.objects = d.objects.filter(o=>!o.ctl && o.kind!=='control');
     }},
+  // The Today / Keeping Up / Everything tabs are gone — they were hard-coded
+  // aggregations, which is the job a magic drawer already does. Pinned drawers
+  // replace them. Put the four that did the tabs' work on the bar if this desk
+  // still has them, so an existing desk keeps its one-tap routes; a desk built
+  // by hand starts with an empty bar and nothing but grid.
+  {v:8, up(d){
+      if(Array.isArray(d.pins)) return;
+      const live=new Set((d.objects||[]).map(o=>o.id));
+      d.pins=['d_today','d_in','d_keep','d_done'].filter(id=>live.has(id));
+    }},
 ];
 function migrate(d){
   let v = d.v||0;
@@ -145,7 +158,7 @@ function adopt(d){
   if(d.deskCfg) S.deskCfg = Object.assign({layout:'grid',locked:false,sort:null}, d.deskCfg);
   S.look = Object.assign(defaultLook(), d.look||{});
   if(d.theme) S.theme = d.theme;
-  if(d.listmode) S.listmode = d.listmode;
+  S.pins = Array.isArray(d.pins) ? d.pins.slice() : [];
   refreshKinds();
   return true;
 }

@@ -399,11 +399,6 @@
 .section-h .n{font-size:11.5px;color:var(--ink-3);font-variant-numeric:tabular-nums}
 
 .rows{display:flex;flex-direction:column;gap:5px}
-.rowwrap{position:relative;border-radius:11px;overflow:hidden}
-.rowwrap .swipebg{position:absolute;inset:0;opacity:0;transition:opacity .12s;z-index:0;display:flex;align-items:center;justify-content:space-between;padding:0 16px;font-size:12px;font-weight:600;color:#fff}
-.rowwrap.swiping .swipebg{opacity:1}
-.rowwrap .swipebg::before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,#3E8E5A 50%,#C0563F 50%);}
-.rowwrap .swipebg span{position:relative;z-index:1}
 .row{
   position:relative;display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:11px;
   background:var(--paper-2);border:1px solid var(--rule);cursor:pointer;z-index:1;
@@ -411,8 +406,6 @@
   touch-action:pan-y;
 }
 .row:hover{border-color:color-mix(in srgb,var(--k) 40%, var(--rule));background:color-mix(in srgb,var(--k) 4%, var(--paper-2))}
-.row.dragging{opacity:.4}
-.row.sel{border-color:var(--brass);box-shadow:0 0 0 2px color-mix(in srgb,var(--brass) 25%,transparent)}
 .check{
   width:19px;height:19px;flex:0 0 auto;border-radius:3px;border:1.8px solid var(--ink-3);margin-top:1px;
   display:grid;place-items:center;transition:.15s;
@@ -431,30 +424,7 @@
 .row .snip{font-size:12px;color:var(--ink-3);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .meta{display:flex;align-items:center;gap:7px;margin-top:5px;flex-wrap:wrap}
 .mchip{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--ink-3);white-space:nowrap}
-.mchip.k{color:var(--k);font-weight:600;letter-spacing:.02em;text-transform:lowercase}
-.mchip.late{color:#C0563F;font-weight:600}
 .mchip.tag{color:var(--ink-2);background:var(--paper-3);padding:1px 7px;border-radius:20px}
-.rowacts{display:flex;gap:2px;opacity:0;transition:.15s;margin-left:4px}
-.row:hover .rowacts{opacity:1}
-.is-phone .rowacts{display:none}
-.rowacts button{width:26px;height:26px;border-radius:7px;display:grid;place-items:center;color:var(--ink-3)}
-.rowacts button:hover{background:var(--paper-3);color:var(--ink)}
-.grip{color:var(--ink-3);opacity:0;cursor:grab;display:grid;place-items:center;width:16px;align-self:center}
-.row:hover .grip{opacity:.55}
-.dropline{height:2px;background:var(--brass);border-radius:2px;margin:2px 0}
-
-/* card grid view */
-.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:11px}
-.is-phone .cards{grid-template-columns:repeat(2,1fr);gap:9px}
-.ocard{
-  border-radius:12px;background:var(--paper-2);border:1px solid var(--rule);padding:12px;text-align:left;
-  min-height:118px;display:flex;flex-direction:column;gap:6px;transition:.16s;box-shadow:var(--shadow);cursor:pointer;
-  border-top:3px solid var(--k);
-}
-.ocard:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg)}
-.ocard .t{font-family:var(--serif);font-size:15px;font-weight:600;line-height:1.25}
-.ocard .s{font-size:11.5px;color:var(--ink-3);line-height:1.45;flex:1;overflow:hidden}
-.ocard .media{height:64px;border-radius:8px;background:linear-gradient(135deg,color-mix(in srgb,var(--k) 50%,transparent),color-mix(in srgb,var(--k) 14%,transparent));display:grid;place-items:center;color:#fff}
 
 /* ============================================================
    Object detail
@@ -528,28 +498,14 @@
 .subtle-btn:hover{color:var(--ink);border-color:var(--brass)}
 
 /* ============================================================
-   Habits / goals / calendar
+   Streak dots and milestones — the detail sheet is the only place these
+   appear now that the Keeping Up tab is gone
    ============================================================ */
-.habit{display:flex;align-items:center;gap:12px;padding:12px;border-radius:12px;background:var(--paper-2);border:1px solid var(--rule)}
-.habit .nm{font-weight:600;font-size:13.5px}
-.habit .sub{font-size:11.5px;color:var(--ink-3);margin-top:2px}
 .dots{display:flex;gap:3px;margin-left:auto;align-items:center}
 .dots i{width:11px;height:18px;border-radius:3px;background:var(--paper-3);display:block;border:1px solid var(--rule-2)}
 .dots i.on{background:var(--k);border-color:transparent}
 .dots i.today{outline:1.5px solid var(--brass);outline-offset:1.5px}
-.is-phone .dots i:nth-child(n+11){display:none}
-.is-phone .habit{flex-wrap:wrap;gap:9px}
-.is-phone .habit .dots{margin-left:0;order:4;flex:1}
-.is-phone .habit>div:nth-child(2){flex:1;min-width:0}
-.is-phone .streak{order:5}
-.streak{font-family:var(--serif);font-size:19px;font-weight:600;min-width:34px;text-align:right;color:var(--k)}
-.tick-btn{width:34px;height:34px;border-radius:11px;border:1.6px solid var(--ink-3);display:grid;place-items:center;flex:0 0 auto;transition:.15s}
-.tick-btn.on{background:var(--k);border-color:var(--k);color:#fff}
 
-.goal{padding:14px;border-radius:13px;background:var(--paper-2);border:1px solid var(--rule);border-left:3px solid var(--k)}
-.goal .gh{display:flex;align-items:baseline;gap:9px}
-.goal .gt{font-family:var(--serif);font-size:17px;font-weight:600}
-.goal .gd{margin-left:auto;font-size:11.5px;color:var(--ink-3)}
 .bar{height:7px;border-radius:6px;background:var(--paper-3);overflow:hidden;margin:11px 0 4px;border:1px solid var(--rule-2)}
 .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--k),color-mix(in srgb,var(--k) 55%,var(--brass)));border-radius:6px;transition:width .5s cubic-bezier(.2,.9,.3,1)}
 .miles{margin-top:11px;display:flex;flex-direction:column;gap:2px}
@@ -559,23 +515,6 @@
 .mile.done .mt{text-decoration:line-through}
 .mile .md{margin-left:auto;font-size:11px;color:var(--ink-3)}
 
-.weekstrip{display:flex;gap:6px;overflow-x:auto;padding:2px 0 8px}
-.wday{
-  flex:0 0 auto;width:52px;padding:8px 0;border-radius:11px;text-align:center;border:1px solid var(--rule);
-  background:var(--paper-2);cursor:pointer;transition:.15s
-}
-.wday:hover{border-color:var(--brass)}
-.wday.on{background:var(--ink);color:var(--paper);border-color:transparent}
-html[data-theme="walnut"] .wday.on{background:var(--brass);color:#1c1509}
-.wday .d{font-size:10px;letter-spacing:.06em;text-transform:uppercase;opacity:.62}
-.wday .n{font-family:var(--serif);font-size:19px;font-weight:600;line-height:1.2}
-.wday .pips{display:flex;gap:2px;justify-content:center;height:5px;margin-top:2px}
-.wday .pips i{width:4px;height:4px;border-radius:50%;background:currentColor;opacity:.5}
-.timeline{position:relative;padding-left:20px}
-.timeline::before{content:"";position:absolute;left:5px;top:6px;bottom:6px;width:1px;background:var(--rule)}
-.tl-item{position:relative;padding:7px 0}
-.tl-item::before{content:"";position:absolute;left:-18px;top:14px;width:7px;height:7px;border-radius:50%;background:var(--k);box-shadow:0 0 0 3px var(--paper)}
-.tl-date{font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3);font-weight:600}
 
 /* ============================================================
    Overlays: new-object palette, command bar, toast, menu
@@ -612,22 +551,42 @@ html[data-theme="walnut"] .wday.on{background:var(--brass);color:#1c1509}
 .cmdrow .ic{width:22px;height:22px;border-radius:7px;display:grid;place-items:center;background:color-mix(in srgb,var(--k) 16%,transparent);color:var(--k);flex:0 0 auto}
 .cmdrow .sub{margin-left:auto;font-size:11px;color:var(--ink-3)}
 
-.fab{
-  position:absolute;right:18px;bottom:calc(82px + env(safe-area-inset-bottom));width:52px;height:52px;border-radius:17px;z-index:35;
-  background:var(--ink);color:var(--paper);display:grid;place-items:center;box-shadow:var(--shadow-lg);transition:.18s
-}
-html[data-theme="walnut"] .fab{background:var(--brass);color:#1c1509}
-.fab:active{transform:scale(.94)}
-.is-desk .fab{display:none}
 
-.tabbar{
+/* ---- the pin bar ------------------------------------------------------
+   One piece of markup in two shapes: a quiet strip along the top of a Mac
+   window, and the thumb-reachable bar along the bottom of a phone, where the
+   four fixed tabs used to be. Each pin wears its drawer's colour as a small
+   front, so the bar reads as a row of drawers rather than a row of icons. */
+.pinbar{display:flex;align-items:center;gap:6px;flex:0 0 auto}
+.pinbtn{display:flex;align-items:center;gap:7px;color:var(--ink-2);transition:.14s;
+  border:1px solid transparent;white-space:nowrap}
+.pinmark{flex:0 0 auto;display:grid;place-items:center;border-radius:var(--radius-d);
+  background:var(--c,var(--felt));border:1px solid rgba(0,0,0,.28);color:rgba(248,243,230,.92)}
+.pinmark.home{background:none;border-color:var(--rule);color:var(--ink-3)}
+
+/* Mac: a strip across the top, above the grid's own bar */
+.is-desk .pinbar{padding:10px 16px 0;overflow-x:auto;scrollbar-width:none}
+.is-desk .pinbar::-webkit-scrollbar{display:none}
+.is-desk .pinbtn{padding:5px 12px 5px 7px;border-radius:20px;font-size:12.5px;font-weight:500;
+  background:var(--paper-2);border-color:var(--rule)}
+.is-desk .pinbtn:hover{border-color:var(--brass);color:var(--ink)}
+.is-desk .pinbtn.on{background:color-mix(in srgb,var(--brass) 16%,transparent);
+  border-color:transparent;color:var(--ink)}
+.is-desk .pinmark{width:16px;height:16px}
+
+/* Phone: the bar along the bottom. The scroll views already reserve room for
+   it — that padding predates this and was sized for the old tab bar. */
+.is-phone .pinbar{
   position:absolute;left:0;right:0;bottom:0;height:calc(64px + env(safe-area-inset-bottom));
-  padding-bottom:env(safe-area-inset-bottom);z-index:36;display:flex;align-items:center;
+  padding-bottom:env(safe-area-inset-bottom);z-index:36;gap:0;
   border-top:1px solid var(--rule);background:var(--paper-2);
 }
-.is-desk .tabbar{display:none}
-.tabbar button{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--ink-3);font-size:9.5px;font-weight:600;letter-spacing:.02em}
-.tabbar button.on{color:var(--brass)}
+.is-phone .pinbtn{flex:1;min-width:0;flex-direction:column;gap:4px;justify-content:center;
+  padding:0 3px;font-size:9.5px;font-weight:600;letter-spacing:.02em}
+.is-phone .pinbtn span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.is-phone .pinbtn.on{color:var(--brass)}
+.is-phone .pinbtn.on .pinmark{outline:2px solid var(--brass);outline-offset:1.5px}
+.is-phone .pinmark{width:22px;height:22px}
 
 .toast{
   position:absolute;left:50%;bottom:96px;transform:translate(-50%,14px);z-index:80;
@@ -660,8 +619,6 @@ kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--rule);border
 .is-desk .only-phone{display:none}
 .is-phone .topbar h1{font-size:21px;line-height:1.2}
 .is-phone .topbar .sub{font-size:11.5px}
-.reordering .row{touch-action:none;cursor:grab}
-.reordering .grip{opacity:.6}
 .quickadd{display:flex;align-items:center;gap:9px;padding:9px 12px;border-radius:11px;border:1.5px dashed var(--rule);
   background:color-mix(in srgb,var(--paper-2) 60%,transparent);margin-bottom:9px;transition:.15s}
 .quickadd:focus-within{border-style:solid;border-color:var(--brass);background:var(--paper-2)}
@@ -695,5 +652,3 @@ kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--rule);border
 .custcol:hover{border-color:var(--brass);color:var(--ink)}
 .custcol input[type=color]{width:26px;height:22px;padding:0;margin:0;flex:0 0 auto;display:block;
   border:1px solid var(--rule);border-radius:3px;background:none;cursor:pointer}
-.rowwrap.swiping .row{transition:none}
-.rowwrap .row{will-change:transform}

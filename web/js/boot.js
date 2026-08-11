@@ -3,7 +3,7 @@
    ============================================================ */
 import { $ } from './util.js';
 import { S, KINDS, childrenOf, container, relate } from './model.js';
-import { create } from './mutations.js';
+import { create, togglePin } from './mutations.js';
 import { applyLook } from './look.js';
 import { render } from './views.js';
 import { overlayHTML } from './panels.js';
@@ -12,7 +12,7 @@ import { load, writeNow, save, hydrateAssets, pasteObjects } from './persist.js'
 
 const restored = load();
 const hash = (location.hash||'').replace('#','');
-if(['today','keep','all','desk','settings'].includes(hash)) S.view = hash;
+if(['desk','settings'].includes(hash)) S.view = hash;
 $('#frame').insertAdjacentHTML('beforeend', overlayHTML());
 wire();
 applyLook();
@@ -32,6 +32,6 @@ if('serviceWorker' in navigator){
 window.BUREAU = {
   get state(){ return S; }, render, create, save: writeNow,
   get K(){ return KINDS; },
-  paste: pasteObjects, relate,
+  paste: pasteObjects, relate, pin: togglePin,
   kids: id => childrenOf(container(id)).map(o=>o.id)
 };

@@ -129,7 +129,9 @@ function tileTap(id){
     case 'book': S.readId=id; S.openId=null; S.bookMode=true; S.bookAt=0; renderSheet(); return;
     case 'read':  S.readId=id; S.openId=null; renderSheet(); break;
     case 'edit':  openObj(id); break;
-    case 'check': if(has(o,'check')) toggleDone(id); else openObj(id); break;
+    // a streak has no checkbox but is very much tickable, and since the Today
+    // tab went this is the one-tap way to mark a habit off from the board
+    case 'check': if(has(o,'check')||has(o,'streak')) toggleDone(id); else openObj(id); break;
     default: break;                      // 'none' — a task just sits there
   }
 }
@@ -392,53 +394,6 @@ function gridOfContainer(cid){
   </div>`;
 }
 
-/* ============================================================
-   8 · rendering — rows & cards
-   ============================================================ */
-function row(o){
-  const k=K(o.kind);
-  const late=!o.done&&D.overdue(o.due);
-  const meta=[];
-  meta.push(`<span class="mchip k">${k.nm.toLowerCase()}</span>`);
-  if(o.due&&!has(o,'streak')) meta.push(`<span class="mchip${late?' late':''}">${ic('calendar',11)} ${D.human(o.due)}</span>`);
-  if(o.repeat&&!has(o,'streak')) meta.push(`<span class="mchip">${ic('repeat',11)} ${o.repeat}</span>`);
-  if(has(o,'streak')) meta.push(`<span class="mchip">${ic('repeat',11)} ${streak(o)}-day streak</span>`);
-  if(has(o,'progress')) meta.push(`<span class="mchip">${ic('target',11)} ${goalPct(o)}%</span>`);
-  if(o.media) meta.push(`<span class="mchip">${ic(o.media.type==='audio'?'music':o.media.type==='video'?'film':'image',11)} ${esc(o.media.label)}</span>`);
-  (o.tags||[]).slice(0,3).forEach(t=>meta.push(`<span class="mchip tag">${esc(t)}</span>`));
-  const snip=strip(o.body).slice(0,90);
-  const lead = has(o,'check')||has(o,'streak')
-    ? `<span class="check${(has(o,'streak')? (o.history||[]).includes(T) : o.done)?' on':''}" data-check="${o.id}">${ic('check',13)}</span>`
-    : `<span class="kindmark">${ic(k.ic,13)}</span>`;
-  return `<div class="rowwrap" data-wrap="${o.id}">
-    <div class="swipebg"><span>${ic('check',13)} File</span><span>Delete ${ic('trash',13)}</span></div>
-    <div class="row${o.done?' done':''}" data-row="${o.id}" style="--k:${k.c}">
-      <span class="grip" data-grip="1">${ic('grip',14)}</span>
-      ${lead}
-      <div class="body">
-        <div class="title">${esc(o.title||'Untitled')}</div>
-        ${snip?`<div class="snip">${esc(snip)}</div>`:''}
-        <div class="meta">${meta.join('')}</div>
-      </div>
-      <div class="rowacts">
-        <button data-menu="${o.id}" title="More">${ic('more',15)}</button>
-        <button data-del="${o.id}" title="Delete">${ic('trash',15)}</button>
-      </div>
-    </div></div>`;
-}
-function card(o){
-  const k=K(o.kind);
-  return `<div class="ocard" data-row="${o.id}" style="--k:${k.c}">
-    ${o.media?`<div class="media">${ic(o.media.type==='audio'?'music':o.media.type==='video'?'film':'image',22)}</div>`:''}
-    <div style="display:flex;align-items:center;gap:6px"><span style="color:${k.c}">${ic(k.ic,13)}</span>
-      <span style="font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3);font-weight:600">${k.nm}</span></div>
-    <div class="t">${esc(o.title||'Untitled')}</div>
-    <div class="s">${esc(strip(o.body).slice(0,110))}</div>
-    <div class="meta">${(o.tags||[]).slice(0,2).map(t=>`<span class="mchip tag">${esc(t)}</span>`).join('')}
-      ${o.due?`<span class="mchip">${D.human(o.due)}</span>`:''}</div>
-  </div>`;
-}
-
 /* List view is the same tile, stretched into a band. Same silhouettes, same
    colours — a drawer still looks like a drawer, a task still comes to a point. */
 function listTile(o){
@@ -518,4 +473,4 @@ function scrollEntry(o){
 }
 
 export { spinTo, CLICKS, clickOf, fireButton, tileTap, pending, placeAtPending,
-  gridTile, gridOfContainer, row, card, listTile, scrollEntry, bookOf, bookView };
+  gridTile, gridOfContainer, listTile, scrollEntry, bookOf, bookView };
