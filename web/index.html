@@ -265,6 +265,63 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
 .pchip:hover{border-color:var(--brass);color:var(--ink)}
 .pchip.on{background:color-mix(in srgb,var(--brass) 22%,transparent);color:var(--ink);border-color:transparent}
 .pslide{width:100%;accent-color:var(--brass)}
+/* the panel's swatch grids were collapsing to one per row inside the flex row */
+.prow > div{display:flex;flex-wrap:wrap;gap:4px}
+.prow .pickgrid{display:flex;flex-wrap:wrap;gap:5px;width:100%}
+.prow .pickgrid button{width:26px;height:26px;flex:0 0 auto;border-radius:4px}
+
+/* ---- drawer textures: quiet, and drawn over the front colour ---------- */
+.drawer.dtile[class*="tx-"]::after{content:"";position:absolute;inset:0;pointer-events:none;
+  border-radius:inherit;opacity:.30}
+.drawer.dtile.tx-none::after{content:none}
+.tx-dots::after{background-image:radial-gradient(circle at 50% 50%, rgba(255,255,255,.75) 0 1.1px, transparent 1.6px);
+  background-size:14px 14px}
+.tx-starry::after{background-image:
+  radial-gradient(circle at 20% 30%, rgba(255,255,255,.9) 0 1px, transparent 1.5px),
+  radial-gradient(circle at 72% 18%, rgba(255,255,255,.7) 0 .8px, transparent 1.3px),
+  radial-gradient(circle at 46% 74%, rgba(255,255,255,.85) 0 1px, transparent 1.5px),
+  radial-gradient(circle at 88% 62%, rgba(255,255,255,.6) 0 .8px, transparent 1.2px);
+  background-size:96px 96px}
+.tx-grid::after{background-image:
+  linear-gradient(rgba(255,255,255,.5) 1px, transparent 1px),
+  linear-gradient(90deg, rgba(255,255,255,.5) 1px, transparent 1px);
+  background-size:18px 18px;opacity:.18}
+.tx-weave::after{background-image:
+  repeating-linear-gradient(45deg, rgba(255,255,255,.35) 0 1px, transparent 1px 6px),
+  repeating-linear-gradient(-45deg, rgba(255,255,255,.35) 0 1px, transparent 1px 6px);
+  opacity:.22}
+.tx-speckle::after{background-image:
+  radial-gradient(circle at 12% 22%, rgba(0,0,0,.5) 0 1px, transparent 1.4px),
+  radial-gradient(circle at 63% 41%, rgba(0,0,0,.4) 0 1.2px, transparent 1.6px),
+  radial-gradient(circle at 34% 77%, rgba(0,0,0,.45) 0 1px, transparent 1.4px),
+  radial-gradient(circle at 82% 88%, rgba(0,0,0,.35) 0 .9px, transparent 1.3px);
+  background-size:52px 52px;opacity:.35}
+.tx-rule::after{background-image:linear-gradient(rgba(255,255,255,.55) 1px, transparent 1px);
+  background-size:100% 22px;opacity:.20}
+
+/* ---- picture frames, deliberately skeuomorphic ------------------------ */
+.drawer.imgtile{border:0}
+.imgtile.fr-mount{padding:9%;background:#F3EFE3;box-shadow:var(--shadow);border-radius:2px}
+.imgtile.fr-gilt{padding:5%;border-radius:2px;
+  background:linear-gradient(135deg,#C9A24A,#EBD79A 22%,#B98F35 48%,#F0E2AE 70%,#A87F2C);
+  box-shadow:var(--shadow-lg), inset 0 0 0 3px rgba(0,0,0,.22)}
+.imgtile.fr-walnut{padding:5%;border-radius:2px;
+  background:linear-gradient(135deg,#5A3B22,#8A5C33 30%,#4A3018 60%,#7A5230);
+  box-shadow:var(--shadow-lg), inset 0 0 0 3px rgba(0,0,0,.3)}
+.imgtile.fr-black{padding:4%;border-radius:1px;background:#141210;
+  box-shadow:var(--shadow-lg), inset 0 0 0 2px rgba(255,255,255,.10)}
+.imgtile.fr-polaroid{padding:7% 7% 20%;background:#FBF8F0;border-radius:2px;box-shadow:var(--shadow-lg)}
+.imgtile[class*="fr-"]:not(.fr-none) .tileimg{border-radius:1px;box-shadow:0 1px 3px rgba(0,0,0,.35)}
+
+/* a recipe is an index card: ruled, with a red margin line */
+.drawer.otile.k-recipe{
+  background:#F6F1E2;clip-path:none;border:1px solid var(--rule);padding-left:20px;
+  background-image:linear-gradient(rgba(90,120,150,.20) 1px, transparent 1px);
+  background-size:100% 20px;background-position:0 30px;
+}
+.drawer.otile.k-recipe::after{content:"";position:absolute;left:12px;top:0;bottom:0;width:1px;background:rgba(180,70,60,.5)}
+.drawer.otile.k-recipe .dname{font-family:var(--serif);font-size:14px}
+.drawer.otile.k-recipe .tiletext{font-size:11px;line-height:20px}
 /* counter wheels */
 .cntnum{display:flex;gap:1px;justify-content:center;align-items:center}
 .wheel{display:block;height:1em;width:.62em;overflow:hidden;font-style:normal;line-height:1}
@@ -449,7 +506,19 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
 .tilecheck{flex:0 0 auto;margin-top:1px}
 /* a button object fills its tile; the shape is its own setting */
 .drawer.btntile{padding:0;background:none;border:0;box-shadow:none;align-items:stretch;justify-content:stretch}
-.drawer.btntile .btnface{margin:8%;background:var(--c);border-radius:inherit;display:grid;place-items:center;width:84%;height:84%}
+.drawer.btntile .btnface{
+  margin:8%;width:84%;height:84%;background:var(--c);border-radius:inherit;
+  display:grid;place-items:center;
+  border:1px solid rgba(0,0,0,.34);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.34),
+             inset 0 -2px 0 rgba(0,0,0,.22),
+             0 2px 0 rgba(0,0,0,.28), var(--shadow);
+  transition:transform .08s, box-shadow .08s;
+}
+.drawer.btntile:active .btnface{
+  transform:translateY(2px);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.22), inset 0 -1px 0 rgba(0,0,0,.20);
+}
 .drawer.btntile .btnface{font-size:14px;font-weight:600;color:#F8F3E6;text-align:center;
   padding:8px 12px;line-height:1.25;overflow-wrap:anywhere}
 .drawer.btntile:hover{filter:brightness(1.09)}
@@ -522,14 +591,6 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
   color:#F8F3E6;font-variant-numeric:tabular-nums;cursor:pointer}
 .cntlabel{font-size:11px;color:rgba(248,243,230,.8);padding:0 8px;overflow-wrap:anywhere;line-height:1.25}
 .drawer.cnttile{container-type:inline-size}
-/* A fragment is only its line — no title bar, no chrome */
-.drawer.fragtile{
-  background:none;border:0;border-left:2px solid var(--c);box-shadow:none;
-  justify-content:center;padding:6px 10px;
-}
-.fragline{font-family:var(--serif);font-size:14px;font-style:italic;color:var(--ink-2);
-  line-height:1.4;overflow-wrap:anywhere;
-  display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
 /* A character is a portrait with a name plate */
 .drawer.chartile{padding:0;overflow:hidden;background:var(--paper-2);align-items:stretch}
 .charface{flex:1;min-height:0;display:grid;place-items:center;background:var(--paper-3);color:var(--ink-3)}
@@ -1082,7 +1143,6 @@ const BUILTIN_KINDS = {
   video:   {nm:'Video',   ic:'film',    c:'#3F5F7A', key:'V', ds:'Something to watch',        size:[6,4], onclick:'read', attrs:['text','media','duration'], body:'' },
   trip:    {nm:'Trip',    ic:'flag',    c:'#37687A', key:'P', ds:'Somewhere you are going',   size:[8,6], attrs:['container','date','duration','location'], layout:'grid', body:'' },
   moodboard:{nm:'Moodboard', ic:'image', c:'#6B4A4A', key:'B', ds:'Pictures, pinned together', size:[8,8], attrs:['container'], layout:'moodboard', body:'' },
-  fragment:{nm:'Fragment',ic:'feather', c:'#8A6A3C', key:'F', ds:'One line worth keeping',    size:[5,2], onclick:'read', attrs:['text'], body:'' },
   quote:   {nm:'Quote',   ic:'book',    c:'#6F5137', key:'Z', ds:'Someone else\'s words',      size:[6,4], onclick:'read', attrs:['text','link','rating'],
             body:'> \n\n— ' },
   story:   {nm:'Story',   ic:'book',    c:'#5A4130', key:'M', ds:'Something told, not listed', size:[6,6], onclick:'read', attrs:['text'],
@@ -1233,7 +1293,7 @@ function reset(){
   refreshKinds();
 }
 function defaultLook(){
-  return {bg:null, accent:null, line:null, board:null, boardAlpha:1, owner:''};
+  return {bg:null, accent:null, line:null, board:null, boardAlpha:1, owner:'', palette:'workshop'};
 }
 reset();
 
@@ -1427,7 +1487,7 @@ function randomThing(parentId){
   if(has(o,'text')) o.body=Array.from({length:2+Math.floor(Math.random()*4)},()=>pick(WORDS)).join(' ')+'.';
   if(has(o,'date')&&Math.random()<0.6) o.due=dz(Math.floor(Math.random()*14)-3);
   if(has(o,'check')&&Math.random()<0.3) { o.done=true; o.doneAt=T; }
-  if(isContainer(o)){ o.c=pick(Object.values(SWATCHES).flat())[0]; o.board=randomBoard();
+  if(isContainer(o)){ o.c=randomFront(); o.board=randomBoard();
     o.knob=pick(['round','teardrop','bar','ring','shield','square']);
     o.border=pick(['none','none','panel','bead','double','cove']); }
   const g=gridOf(), dv=dev();
@@ -1439,6 +1499,9 @@ function randomThing(parentId){
 /* A board for a new drawer: one hue, two lightnesses, low saturation. Picking
    from a hue wheel rather than at random keeps it mild — nothing neon, and the
    two squares always belong to each other. */
+function randomFront(){
+  const c=paletteNow().cols; return c[Math.floor(Math.random()*c.length)];
+}
 function randomBoard(){
   const hue = Math.floor(Math.random()*360);
   const sat = 12 + Math.floor(Math.random()*10);          // 12–21%, never garish
@@ -1448,14 +1511,37 @@ function randomBoard(){
   return `${hsl(lightA)}|${hsl(lightB)}`;
 }
 
-/* Set colours to choose from. Warm, solid, no gradients — browns, greens,
-   blues, and a few earth tones that sit beside them. */
-const SWATCHES = {
-  brown: [['#6F5137','Walnut'],['#7E5A38','Chestnut'],['#8A6A3C','Tobacco'],['#A0703F','Oak'],['#5A4130','Bark']],
-  green: [['#4A7C59','Fern'],['#3D6B4A','Pine'],['#5C7148','Olive'],['#6E8B4E','Moss'],['#3E7A6B','Verdigris']],
-  blue:  [['#3F5F7A','Slate'],['#4A6E8F','Denim'],['#2F4A5E','Indigo'],['#5D7E99','Haze'],['#37687A','Teal']],
-  earth: [['#A55A3E','Terracotta'],['#96652F','Ochre'],['#8C4A38','Rust'],['#9A7B2F','Brass'],['#6B4A4A','Oxblood']]
+/* A palette is sixteen colours chosen to sit together. Everything that offers
+   a colour — drawer fronts, kind colours, the random generator — draws from
+   whichever one is selected, so a desk can't drift into a jumble. */
+const PALETTES = {
+  workshop: {nm:'Workshop', cols:[
+    '#6F5137','#7E5A38','#8A6A3C','#A0703F','#5A4130',
+    '#4A7C59','#3D6B4A','#5C7148','#6E8B4E','#3E7A6B',
+    '#3F5F7A','#4A6E8F','#2F4A5E','#5D7E99','#A55A3E','#9A7B2F']},
+  seaside: {nm:'Seaside', cols:[
+    '#2F4A5E','#37687A','#4E8395','#6FA3AE','#8FB9BE',
+    '#3E6B63','#517F6F','#6E9B7E','#93B39A','#B7C9AE',
+    '#8C7A5E','#A69375','#C2B08C','#7A6A55','#4A4238','#D6C9A8']},
+  orchard: {nm:'Orchard', cols:[
+    '#7A3B3C','#9A4F42','#B4674C','#C68A5E','#D8A97A',
+    '#6B7A3F','#849453','#9DAE6B','#5E6B47','#47533A',
+    '#8A5A3F','#A0703F','#6F5137','#5A4130','#3F3128','#C9A66B']},
+  ink: {nm:'Ink', cols:[
+    '#2A2E33','#3A4048','#4B535D','#5D6772','#707B87',
+    '#3B4A52','#4C5F68','#5E747E','#718A94','#89A1A9',
+    '#4A4A55','#5B5B68','#6C6C7A','#7E7E8C','#38383F','#9A9AA6']}
 };
+const paletteNow = ()=> PALETTES[(S.look&&S.look.palette)||'workshop']||PALETTES.workshop;
+// kept as a grouped map because the pickers render it in rows
+const SWATCHES = new Proxy({}, {
+  ownKeys(){ return ['a','b','c','d']; },
+  getOwnPropertyDescriptor(){ return {enumerable:true, configurable:true}; },
+  get(_,k){
+    const c=paletteNow().cols, i={a:0,b:4,c:8,d:12}[k];
+    return i==null ? undefined : c.slice(i,i+4).map(x=>[x,x]);
+  }
+});
 const BACKDROPS = [
   ['#E9E1CC','Parchment'],['#EFE8D6','Vellum'],['#E2D9C0','Manila'],
   ['#DED3B6','Kraft'],['#F1EDE0','Chalk'],['#D9D2BE','Linen']
@@ -1530,7 +1616,7 @@ function toggleDone(id){
     const nd=nextDue(o);
     if(nd){
       S.objects.push(Object.assign({},o,{id:uid('o'),done:false,doneAt:null,due:nd,ord:o.ord+0.5}));
-      o.kind='record'; o.parent='d_done'; o.title=o.title;
+      o.kind='record';   // the archive is a magic drawer; nothing needs moving
       toast(`Done · repeats ${D.human(nd).toLowerCase()}`);
     } else toast('Filed under Done & Dusted');
   } else { o.doneAt=null; }
@@ -1578,7 +1664,7 @@ function create(kind, patch){
   }, patch||{});
   if(kindHas(kind,'container')){
     o.board = o.board || randomBoard();
-    o.c = o.c || k.c; o.pv = o.pv || 'list';
+    o.c = o.c || randomFront(); o.pv = o.pv || 'list';
     o.layout = o.layout || k.layout || 'list';
     o.filter = o.filter || {};
   }
@@ -1778,8 +1864,8 @@ function gridTile(o, arr, parentId){
   // A drawer on a grid is just a front with a name. What is inside is behind
   // it, not printed on it — you open a drawer to find out what it holds.
   if(cont){
-    const bd=o.border||'none', kn=o.knob||'round';
-    return `<button class="drawer dtile bd-${bd}${sel}${has(o,'magic')?' magicdrawer':''}" data-drawer="${o.id}"
+    const bd=o.border||'none', kn=o.knob||'round', tx=o.texture||'none';
+    return `<button class="drawer dtile bd-${bd} tx-${tx}${sel}${has(o,'magic')?' magicdrawer':''}" data-drawer="${o.id}"
       style="--c:${colour};${o.knobc?`--knob:${esc(o.knobc)};`:''}${place}">
       ${chips}
       <div class="dtop"><span class="dname">${esc(o.title||'Untitled')}</span>
@@ -1792,7 +1878,7 @@ function gridTile(o, arr, parentId){
   // An image sits on the grid like something stuck in a scrapbook.
   const img = has(o,'media') && o.media && o.media.src;
   if(img){
-    return `<button class="drawer otile imgtile k-${o.kind}${o.media.alpha?'':' opaque'}${sel}" data-row="${o.id}" style="--c:${colour};${place}">
+    return `<button class="drawer otile imgtile k-${o.kind}${o.media.alpha?'':' opaque'} fr-${o.frame||'none'}${sel}" data-row="${o.id}" style="--c:${colour};${place}">
       ${chips}
       <img class="tileimg" src="${esc(o.media.src)}" alt="${esc(o.title||'')}" draggable="false">
       ${handles}
@@ -1802,14 +1888,14 @@ function gridTile(o, arr, parentId){
   // a button object is the button: it fills its tile rather than sitting in it
   if(has(o,'button')){
     return `<button class="drawer otile btntile bs-${o.btnshape||'rounded'}${sel}" data-row="${o.id}"
-      data-fire="${o.id}" style="--c:${colour};${place}">
+      style="--c:${colour};${place}">
       ${chips}
-      <span class="btnface">${esc((o.link&&o.link.label)||o.title||'Open')}</span>
+      <span class="btnface" data-fire="${o.id}">${esc((o.link&&o.link.label)||o.title||'Open')}</span>
       ${handles}
     </button>`;
   }
 
-  /* A counter is its number. A fragment is its line. Neither wants a title bar. */
+  /* A counter is its number, not a title and a body. */
   if(o.kind==='counter' || (has(o,'count') && !has(o,'text') && !has(o,'check'))){
     return `<button class="drawer otile cnttile${sel}" data-row="${o.id}" style="--c:${colour};${place}">
       ${chips}
@@ -1824,11 +1910,6 @@ function gridTile(o, arr, parentId){
       <input class="fieldin" data-fieldfor="${o.id}" placeholder="${esc(o.title||'Type and press return…')}">
       ${handles}
     </div>`;
-  }
-  if(o.kind==='fragment'){
-    return `<button class="drawer otile fragtile${sel}" data-row="${o.id}" style="--c:${colour};${place}">
-      ${chips}<span class="fragline">${esc(o.body||o.title||'…')}</span>${handles}
-    </button>`;
   }
   if(o.kind==='quote'){
     return `<button class="drawer otile quotetile${sel}" data-row="${o.id}" style="--c:${colour};${place}">
@@ -2257,6 +2338,14 @@ function viewSettings(){
       ${lookVal('bg')?`<button class="pill" style="margin-left:6px" data-look="bg" data-val="">Reset</button>`:''}
     </div>
 
+    <div class="field" style="margin-top:12px"><label>Palette</label>
+      <div class="filterbar" style="flex-wrap:wrap;padding-top:6px">${Object.entries(PALETTES).map(([k,p])=>
+        `<button class="fchip${((S.look.palette||'workshop')===k)?' on':''}" data-palette="${k}">${p.nm}</button>`).join('')}</div>
+      <div class="pickgrid sw" style="margin-top:8px;pointer-events:none">${paletteNow().cols.map(c=>
+        `<button style="background:${c}"></button>`).join('')}</div>
+      <div class="mini" style="--k:var(--brass);margin-top:6px">Every colour choice and every random one comes from here.</div>
+    </div>
+
     <div class="field" style="margin-top:12px"><label>Board</label>
       <div class="pickgrid sw" style="margin-top:6px">${
         [['#EFEADA|#DDE5CE','Green baize'],['#EFEADA|#E4DCC6','Sand'],['#EDE6D4|#D9E2E4','Slate'],
@@ -2456,7 +2545,7 @@ function renderSheet(){
   // Every field below is gated on an attribute, never on a kind name — that is
   // what lets an invented kind get the right fields for free.
   const fields=[];
-  fields.push(`<div class="field"><label>Kind</label><select data-f="kind">${kindOpts}</select></div>`);
+  fields.push(`<div class="field"><label>Type</label><select data-f="kind">${kindOpts}</select></div>`);
   fields.push(`<div class="field"><label>Lives in</label><select data-f="parent">
     <option value="${ROOT}"${o.parent===ROOT?' selected':''}>The Desk</option>${drawerOpts}</select></div>`);
   if(has(o,'date')) fields.push(`<div class="field"><label>${has(o,'progress')?'Target date':'Scheduled'}</label><input type="date" data-f="due" value="${o.due||''}"></div>`);
@@ -2473,6 +2562,8 @@ function renderSheet(){
       <div class="counter"><button data-act="countdown" data-id="${o.id}">−</button><b>${o.count||0}</b><button data-act="countup" data-id="${o.id}">+</button></div></div>`);
   if(has(o,'rating')) fields.push(`<div class="field"><label>Rating</label>
       <div class="stars">${[1,2,3,4,5].map(n=>`<button data-star="${o.id}:${n}" class="${(o.rating||0)>=n?'on':''}">${ic('star',17)}</button>`).join('')}</div></div>`);
+  if(has(o,'media')&&o.media&&o.media.type==='image') fields.push(`<div class="field"><label>Frame</label><select data-f="frame">
+      ${[['none','None'],['mount','Card mount'],['gilt','Gilt'],['walnut','Walnut'],['black','Black lacquer'],['polaroid','Instant photo']].map(([v,n])=>`<option value="${v}"${(o.frame||'none')===v?' selected':''}>${n}</option>`).join('')}</select></div>`);
   if(has(o,'button')) fields.push(`<div class="field"><label>Button shape</label><select data-f="btnshape">
       ${[['rounded','Rounded square'],['round','Round'],['square','Square']].map(([v,n])=>`<option value="${v}"${(o.btnshape||'rounded')===v?' selected':''}>${n}</option>`).join('')}</select></div>`);
   if(has(o,'media')) fields.push(`<div class="field"><label>Media type</label><select data-f="mtype">
@@ -2571,7 +2662,7 @@ function modalNewObject(){
   // 'control' isn't offered here — Bureau's own buttons are seeded, not made.
   const offer=KEYS.filter(k=>!kindHas(k,'control'));
   showModal(`<div class="modal-h"><div class="t">New object</div>
-    <div class="s">Pick a kind — each one comes with its own attributes and template. Right-click one to edit it.</div></div>
+    <div class="s">Pick a type — each comes with its own attributes and template. Right-click one to edit it.</div></div>
   <div class="modal-b">
     <div class="section-h"><h2>Containers</h2><div class="rule"></div><span class="n">hold other things</span></div>
     <div class="kindgrid">
@@ -2586,12 +2677,12 @@ function modalNewObject(){
       <div class="nm">${KINDS[k].nm}</div><div class="ds">${KINDS[k].ds}</div></button>`).join('')}
     <button class="kindtile newkind" data-act="newkind" style="--k:var(--brass)">
       <div style="display:flex;align-items:center;width:100%;gap:6px"><span class="ic">${ic('sparkle',15)}</span></div>
-      <div class="nm">New kind…</div><div class="ds">Invent one by choosing attributes</div></button>
+      <div class="nm">New type…</div><div class="ds">Invent one by choosing attributes</div></button>
   </div>
-  ${Object.keys(S.kinds).length?`<div class="section-h"><h2>Your kinds</h2><div class="rule"></div></div>
+  ${Object.keys(S.kinds).length?`<div class="section-h"><h2>Your types</h2><div class="rule"></div></div>
     <div class="filterbar" style="flex-wrap:wrap">${Object.keys(S.kinds).map(k=>
       `<button class="fchip" data-act="delkind" data-id="${k}" style="--k:${KINDS[k].c}">${esc(KINDS[k].nm)} ✕</button>`).join('')}</div>
-    <div class="mini" style="--k:var(--brass);margin-top:6px">Tap one to remove it. A kind still in use can't be removed.</div>`:''}
+    <div class="mini" style="--k:var(--brass);margin-top:6px">Tap one to remove it. A type still in use can't be removed.</div>`:''}
   </div>`);
 }
 // The set colours, in rows by family, plus whatever custom colour is in use.
@@ -2632,6 +2723,8 @@ function drawerPanel(id){
             style="background:var(--paper);border-style:dashed"></button></div>`)}
       ${row('Board strength', `<input class="pslide" type="range" min="0" max="100" step="5"
           value="${Math.round(((d.boardAlpha==null?1:d.boardAlpha))*100)}" data-palpha data-id="${id}">`)}
+      ${row('Texture', chips('texture', null, [['none','None'],['dots','Dots'],['starry','Starry'],
+        ['grid','Graph'],['weave','Weave'],['speckle','Speckle'],['rule','Ruled']], d.texture||'none'))}
       ${row('Knob colour', `<div class="pickgrid sw">${
           ['rgba(255,255,255,.5)','#F8F3E6','#A9793F','#2A241C','#C0563F','#3E7A6B'].map(c=>
           `<button data-pknobc="${c}" data-id="${id}" class="${d.knobc===c?'on':''}" style="background:${c}"></button>`).join('')}</div>`)}
@@ -2673,7 +2766,7 @@ function modalDrawer(id){
         <label class="custcol"><input type="color" data-colinput value="${d.c}">
           <span>Custom colour</span></label>
       </div></div>
-    <div class="field" style="margin-bottom:10px"><label>Automatically collects these kinds</label>
+    <div class="field" style="margin-bottom:10px"><label>Automatically collects these types</label>
       <div class="filterbar" id="dkinds" style="flex-wrap:wrap;padding-top:6px">${KEYS.map(k=>
         `<button class="fchip${ks.includes(k)?' on':''}" data-kk="${k}" style="--k:${KINDS[k].c}">${KINDS[k].nm}</button>`).join('')}</div></div>
     <div class="field" style="margin-bottom:10px"><label>…and anything tagged</label>
@@ -2703,8 +2796,8 @@ function modalNewKind(from, editKey){
   const ex = editKey ? K(editKey) : null;
   const seedAttrs = ex ? (ex.attrs||['text']).slice() : from ? attrsOf(from).slice() : ['text'];
   const c = (ex && ex.c) || (from && from.c) || '#5F7A93';
-  showModal(`<div class="modal-h"><div class="t">${ex?'Edit '+esc(ex.nm):'New kind'}</div>
-    <div class="s">A kind is a name for a set of attributes. Pick what objects of this kind can do.</div></div>
+  showModal(`<div class="modal-h"><div class="t">${ex?'Edit '+esc(ex.nm):'New type'}</div>
+    <div class="s">A type is a name for a set of attributes. Pick what objects of this type can do.</div></div>
   <div class="modal-b">
     <div class="field" style="margin-bottom:10px"><label>Name</label>
       <input id="knm" value="${ex?esc(ex.nm):(from?esc(K(from.kind).nm)+' variant':'')}" placeholder="Reading note"></div>
@@ -2714,7 +2807,7 @@ function modalNewKind(from, editKey){
       <div class="filterbar" id="kattrs" style="flex-wrap:wrap;padding-top:6px">${USER_ATTRS.map(a=>
         `<button class="fchip${seedAttrs.includes(a)?' on':''}" data-ka="${a}" title="${esc(ATTRS[a].ds)}">${ATTRS[a].nm}</button>`).join('')}</div>
       <div class="mini" style="--k:var(--brass);margin-top:6px" id="kattrsds">${esc(seedAttrs.map(a=>ATTRS[a].ds).join(' · '))}</div></div>
-    <div class="field" style="margin-bottom:10px"><label>Objects of this kind start</label>
+    <div class="field" style="margin-bottom:10px"><label>Objects of this type start</label>
       <div class="filterbar" id="ksize" style="flex-wrap:wrap;padding-top:6px">${
         [[4,1],[6,1],[2,2],[4,4],[6,4],[6,6],[8,6],[12,8]].map(([w,h])=>
           `<button class="fchip${((ex&&ex.size)||(from&&K(from.kind).size)||[4,4]).join('x')===w+'x'+h?' on':''}" data-ksz="${w}x${h}">${w}×${h}</button>`).join('')}</div></div>
@@ -2725,7 +2818,7 @@ function modalNewKind(from, editKey){
       <div id="dcol" style="margin-top:6px">${swatchRows(c)}
         <label class="custcol"><input type="color" data-colinput value="${c}"><span>Custom colour</span></label></div></div>
     <div style="display:flex;gap:8px;margin-top:14px">
-      <button class="pill solid" data-act="savekind" data-id="${editKey||''}">${ex?'Save':'Create kind'}</button>
+      <button class="pill solid" data-act="savekind" data-id="${editKey||''}">${ex?'Save':'Create type'}</button>
       <button class="pill" data-act="cancel">Cancel</button>
       ${ex&&S.kinds[editKey]?`<button class="pill" data-act="delkind" data-id="${editKey}" style="margin-left:auto;color:#C0563F">Delete</button>`:''}
       ${ex&&!S.kinds[editKey]?`<button class="pill" data-act="resetkind" data-id="${editKey}" style="margin-left:auto">Reset to default</button>`:''}
@@ -2759,7 +2852,7 @@ function cmdList(q){
   q=q.trim().toLowerCase();
   const res=[];
   containers().forEach(d=>{ if(!q||(d.title||'').toLowerCase().includes(q)) res.push({t:d.title,s:'drawer',c:d.c||K(d.kind).c,i:'folder',go:()=>{S.view='drawer';S.drawerId=d.id;}}); });
-  KEYS.forEach(k=>{ if(q&&KINDS[k].nm.toLowerCase().includes(q)) res.push({t:'All '+KINDS[k].nm.toLowerCase()+'s',s:'kind',c:KINDS[k].c,i:KINDS[k].ic,go:()=>{S.view='all';S.kindFilter=k;}}); });
+  KEYS.forEach(k=>{ if(q&&KINDS[k].nm.toLowerCase().includes(q)) res.push({t:'All '+KINDS[k].nm.toLowerCase()+'s',s:'type',c:KINDS[k].c,i:KINDS[k].ic,go:()=>{S.view='all';S.kindFilter=k;}}); });
   S.objects.forEach(o=>{ if(q&&((o.title||'').toLowerCase().includes(q)||(o.body||'').toLowerCase().includes(q)))
     res.push({t:o.title||'Untitled',s:K(o.kind).nm,c:K(o.kind).c,i:K(o.kind).ic,go:()=>openObj(o.id)}); });
   if(q) res.unshift({t:`Create task “${q}”`,s:'new',c:KINDS.task.c,i:'plus',go:()=>{const o=quickAdd(q,'task');openObj(o.id);}});
@@ -2784,7 +2877,7 @@ function drawerFromSelection(id){
   const spot = lay(objs[0]);
   const d = {
     id:uid('d'), kind:'drawer', title:'New drawer', body:'', tags:[],
-    parent:home, c:'#7E5A38', pv:'list', layout:'grid', filter:{}, board:randomBoard(),
+    parent:home, c:randomFront(), pv:'list', layout:'grid', filter:{}, board:randomBoard(),
     ord:0, created:T,
     desk:null, phone:null
   };
@@ -2881,7 +2974,11 @@ function onDown(e){
     return;
   }
   // a tick, a counter or a button inside a tile is its own target
-  if(e.target.closest('[data-check],[data-fire],.cntnum')) return;
+  // A tick or a counter is its own target. A button tile carries data-fire on
+  // the tile itself, so only its face counts — otherwise the whole thing would
+  // be undraggable.
+  if(e.target.closest('[data-check],.cntnum')) return;
+  if(e.target.closest('.btnface')) return;
   const dEl=e.target.closest('.grid .drawer[data-drawer],.grid .drawer[data-row],.grid .drawer[data-id]');
   if(dEl && dEl.closest('.grid.sorted')){
     toast('Sorted drawers arrange themselves — switch to Custom to move things');
@@ -3312,7 +3409,7 @@ function act(name, el){
         // a new drawer lands inside whatever container you are looking at
         const home=(S.view==='drawer'&&S.drawerId)||ROOT;
         S.objects.push({id:uid('d'), kind:'drawer', title, body:'', tags:[],
-          parent:home, c:draft.c, pv:draft.pv, layout:draft.layout||'list',
+          parent:home, c:draft.c||randomFront(), pv:draft.pv, layout:draft.layout||'list',
           filter:{kinds:draft.kinds,tag:draft.tag||undefined}, ord:0, created:T,
           desk:freeSpot(2,2,'desk',home), phone:freeSpot(2,2,'phone',home)});
       }
@@ -3339,17 +3436,17 @@ function act(name, el){
       const o=byId(el.dataset.id); if(!o) return;
       const mine=attrsOf(o), own=!!o.attrs;
       showModal(`<div class="modal-h"><div class="t">Attributes</div>
-        <div class="s">What this one object can do. ${own?'It has its own set.':'It follows the '+esc(K(o.kind).nm.toLowerCase())+' kind.'}</div></div>
+        <div class="s">What this one object can do. ${own?'It has its own set.':'It follows the '+esc(K(o.kind).nm.toLowerCase())+' type.'}</div></div>
       <div class="modal-b">
         <div class="filterbar" style="flex-wrap:wrap">${USER_ATTRS.map(a=>
           `<button class="fchip${mine.includes(a)?' on':''}" data-attr="${a}" title="${esc(ATTRS[a].ds)}">${ATTRS[a].nm}</button>`).join('')}</div>
-        ${own?`<button class="subtle-btn" data-act="attrreset" style="margin-top:12px">${ic('undo',12)} Follow the ${esc(K(o.kind).nm.toLowerCase())} kind again</button>`:''}
+        ${own?`<button class="subtle-btn" data-act="attrreset" style="margin-top:12px">${ic('undo',12)} Follow the ${esc(K(o.kind).nm.toLowerCase())} type again</button>`:''}
       </div>`);
       break;
     }
     case 'attrreset': {
       const o=byId(S.openId); if(!o) return;
-      o.attrs=null; hideModal(); save(); renderSheet(); render(); toast(`Following the ${K(o.kind).nm.toLowerCase()} kind again`);
+      o.attrs=null; hideModal(); save(); renderSheet(); render(); toast(`Following the ${K(o.kind).nm.toLowerCase()} type again`);
       break;
     }
     case 'kindfromobj': modalNewKind(byId(S.openId)); break;
@@ -3367,7 +3464,7 @@ function act(name, el){
       refreshKinds();
       // the object that inspired it now simply *is* that kind
       if(draft.fromId){ const o=byId(draft.fromId); if(o){ o.kind=key; o.attrs=null; } }
-      hideModal(); save(); render(); renderSheet(); toast(`“${nm}” is now a kind`);
+      hideModal(); save(); render(); renderSheet(); toast(`“${nm}” is now a type`);
       break;
     }
     case 'resetkind': {
@@ -3377,8 +3474,8 @@ function act(name, el){
     case 'editkind': modalNewKind(null, el.dataset.id); break;
     case 'delkind': {
       const key=el.dataset.id;
-      if(S.objects.some(o=>o.kind===key)){ toast('Something still uses that kind'); return; }
-      delete S.kinds[key]; refreshKinds(); hideModal(); save(); render(); toast('Kind removed');
+      if(S.objects.some(o=>o.kind===key)){ toast('Something still uses that type'); return; }
+      delete S.kinds[key]; refreshKinds(); hideModal(); save(); render(); toast('Type removed');
       break;
     }
     case 'addtag': {
@@ -3484,6 +3581,9 @@ function wire(){
     if(st){ const [id,n]=st.dataset.star.split(':'); const o=byId(id);
       o.rating = (o.rating===+n) ? 0 : +n; save(); renderSheet(); render(); return; }
 
+    const pl=t.closest('[data-palette]');
+    if(pl){ S.look.palette=pl.dataset.palette; save(); render(); toast(PALETTES[pl.dataset.palette].nm); return; }
+
     const sb=t.closest('[data-sortby]');
     if(sb){ const i=sb.dataset.sortby.indexOf(':');
       cfgOf(sb.dataset.sortby.slice(0,i)).sort = sb.dataset.sortby.slice(i+1) || null;
@@ -3582,7 +3682,7 @@ function wire(){
     const dtg=t.closest('[data-dtag]');
     if(dtg){ $('#modal')._draft.tag=dtg.dataset.dtag; $$('#dtag .fchip').forEach(b=>b.classList.remove('on')); dtg.classList.add('on'); return; }
 
-    const pn=t.closest('[data-pview],[data-psort],[data-plock],[data-pborder],[data-pknob],[data-pcolour],[data-pboard],[data-pknobc]');
+    const pn=t.closest('[data-pview],[data-psort],[data-plock],[data-pborder],[data-pknob],[data-pcolour],[data-pboard],[data-pknobc],[data-ptexture]');
     if(pn){
       const id=pn.dataset.id, c=cfgOf(id), o=byId(id);
       if(pn.dataset.pview!=null) c.layout=pn.dataset.pview;
@@ -3593,6 +3693,7 @@ function wire(){
       else if(o && pn.dataset.pcolour!=null) o.c=pn.dataset.pcolour;
       else if(o && pn.dataset.pboard!=null) o.board=pn.dataset.pboard||null;
       else if(o && pn.dataset.pknobc!=null) o.knobc=pn.dataset.pknobc;
+      else if(o && pn.dataset.ptexture!=null) o.texture=pn.dataset.ptexture;
       save(); render(); drawerPanel(id);      // rebuild so the marks follow
       return;
     }
@@ -3727,6 +3828,7 @@ function wire(){
       else if(f==='price') o.price=e.target.value;
       else if(f==='prio'){ o.prio=e.target.value||null; render(); }
       else if(f==='btnshape'){ o.btnshape=e.target.value; render(); }
+      else if(f==='frame'){ o.frame=e.target.value; save(); render(); }
       else if(f==='linklabel'){ o.link=o.link||{}; o.link.label=e.target.value; }
       else if(f==='linktarget'){ o.link=o.link||{}; o.link.target=e.target.value; }
       else if(f==='linkurl'){ o.link=o.link||{}; if(e.target.value) o.link.target=e.target.value; }

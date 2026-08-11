@@ -101,7 +101,7 @@ drawers; objects nest inside nothing. An object lives in exactly one drawer —
 a magic drawer is the only way it appears anywhere else. Read
 `docs/OBJECT-MODEL.md` before changing any of it.
 
-**Never branch on a kind's name.** Ask `has(o,'check')`, not `o.kind==='task'`.
+**Never branch on a type's name.** ("Kind" in the code, "type" in the interface — `KINDS` stayed put so the diff stayed readable.) Ask `has(o,'check')`, not `o.kind==='task'`.
 Kinds are named presets of attributes, users can invent them at runtime, and a
 view that checks for `'task'` will silently ignore every kind someone makes. The
 attribute registry is `ATTRS`; the presets are `BUILTIN_KINDS` merged with

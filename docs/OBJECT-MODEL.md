@@ -24,7 +24,7 @@ somewhere else. Tags are just labels and go on anything.
 | --- | --- |
 | **Object** | Anything that sits in a grid. The unit of everything. |
 | **Attribute** | A capability an object has — a checkbox, a date, a button, the ability to contain other objects. Attributes define what an object can do and how it looks. |
-| **Kind** | A named preset of attributes. "Task" is the name for `text + check + date + repeats`. Kinds are made by mixing and matching, including by hand at runtime. |
+| **Type** (`kind` in code) | A named preset of attributes. "Task" is the name for `text + check + date + repeats`. Kinds are made by mixing and matching, including by hand at runtime. |
 | **Layout** | A named preset of a grid's arrangement — which objects sit where. A template for a desk or a drawer. |
 
 A **drawer** is not a separate species. It is an object whose kind includes the
