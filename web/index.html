@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
 <title>Bureau</title>
 <link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='10' fill='%23E9E1CC'/%3E%3Crect x='9' y='12' width='46' height='40' rx='4' fill='%237E5A38'/%3E%3Crect x='13' y='16' width='38' height='32' rx='2' fill='none' stroke='%23F3E7D2' stroke-opacity='.45' stroke-width='2'/%3E%3Ccircle cx='32' cy='32' r='6' fill='%23F3E7D2' fill-opacity='.75'/%3E%3C/svg%3E">
 <meta name="theme-color" content="#EDE7DB" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#191510" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -195,10 +196,10 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
   margin-top:auto;padding-top:8px;display:flex;align-items:center;justify-content:center;
 }
 /* the knob sits in the middle of the front, like a real drawer pull */
-.drawer.dtile .dfoot{position:absolute;left:0;right:0;top:62%;bottom:0;margin:0;padding:0;
+.drawer.dtile .dfoot{position:absolute;left:0;right:0;top:0;bottom:0;margin:0;padding:0;
   align-items:center;justify-content:center;pointer-events:none}
-.drawer.dtile .dtop{position:relative;z-index:1;align-items:flex-start;justify-content:center;
-  max-height:56%;padding-bottom:4px}
+.drawer.dtile.knb-bottom .dfoot{top:auto;height:32%;bottom:0}
+.drawer.dtile .dtop{position:relative;z-index:2;align-items:flex-start;justify-content:center;padding-bottom:4px}
 /* The knob owns the middle of the front, so the name is capped at two lines
    and sits above it. Capping *lines* rather than the box's height is what
    keeps it from being sliced through the middle of a letter. */
@@ -274,6 +275,72 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
 .pchip:hover{border-color:var(--brass);color:var(--ink)}
 .pchip.on{background:color-mix(in srgb,var(--brass) 22%,transparent);color:var(--ink);border-color:transparent}
 .pslide{width:100%;accent-color:var(--brass)}
+
+/* ---- more type silhouettes ------------------------------------------- */
+/* a poem: centred, on parchment */
+.drawer.otile.k-poem{background:var(--paper-2);text-align:center;align-items:center;justify-content:center;
+  clip-path:polygon(0 0,100% 0,100% 62%,96.5% 68%,100% 74%,100% 100%,0 100%,0 34%,2.5% 28%,0 22%);
+  border-left:1px solid var(--rule)}
+.drawer.otile.k-poem .dname{text-align:center;font-family:var(--serif)}
+.drawer.otile.k-poem .tiletext{text-align:center;font-family:var(--serif);font-style:italic;white-space:pre-line}
+/* an ingredient reads like a line off a recipe card */
+.drawer.otile.k-ingredient{background:#F6F1E2;border:1px solid var(--rule);padding-left:18px;
+  background-image:linear-gradient(rgba(90,120,150,.18) 1px,transparent 1px);background-size:100% 100%}
+.drawer.otile.k-ingredient::after{content:"";position:absolute;left:11px;top:0;bottom:0;width:1px;background:rgba(180,70,60,.5)}
+/* a habit is a stack of days */
+.drawer.otile.k-habit{background:var(--paper-2);border-left:3px solid var(--c)}
+.drawer.otile.k-habit::after{content:"";position:absolute;left:10px;right:10px;bottom:10px;height:8px;
+  background-image:repeating-linear-gradient(90deg,var(--c) 0 7px,transparent 7px 11px);opacity:.55;border-radius:2px}
+/* a goal is a target with a bar */
+.drawer.otile.k-goal,.drawer.otile.k-dream{background:var(--paper-2);border-left:3px solid var(--c)}
+.drawer.otile.k-goal::after{content:"";position:absolute;left:10px;right:10px;bottom:10px;height:5px;
+  border-radius:99px;background:linear-gradient(90deg,var(--c) var(--pct,30%),rgba(0,0,0,.10) var(--pct,30%))}
+.drawer.otile.k-dream{border-style:dashed;border-left-style:solid;opacity:.96}
+.drawer.otile.k-dream::after{content:"";position:absolute;right:8px;top:8px;width:14px;height:14px;
+  background:var(--c);opacity:.35;clip-path:polygon(50% 0,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%)}
+/* an achievement is a plaque */
+.drawer.otile.k-achievement{
+  background:linear-gradient(#6B4E22,#8A6A3C 40%,#5E4620);color:#F6EFD8;
+  border:2px solid rgba(255,255,255,.28);border-radius:3px;
+  box-shadow:inset 0 0 0 4px rgba(0,0,0,.22), var(--shadow-lg);
+  align-items:center;justify-content:center;text-align:center;
+  --dink:#F8F2DE;--dink-2:rgba(248,242,222,.8);--dink-3:rgba(248,242,222,.6);
+}
+.drawer.otile.k-achievement .dname{font-family:var(--serif);letter-spacing:.02em;text-align:center}
+/* a story is a book seen spine-on */
+.drawer.otile.spinetile{
+  background:linear-gradient(90deg,color-mix(in srgb,var(--c) 68%,#000) 0 6%,var(--c) 6% 92%,color-mix(in srgb,var(--c) 70%,#000) 92%);
+  border-radius:2px 4px 4px 2px;align-items:center;justify-content:center;padding:10px 0;overflow:hidden;
+  box-shadow:var(--shadow), inset -3px 0 6px rgba(0,0,0,.25);
+}
+.spinetop,.spinefoot{width:64%;height:3px;background:rgba(255,255,255,.42);border-radius:2px;flex:0 0 auto}
+.spinetitle{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;
+  writing-mode:vertical-rl;transform:rotate(180deg);font-family:var(--serif);font-size:14px;
+  color:#F8F3E6;letter-spacing:.03em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* a question with rounder corners */
+.drawer.otile.k-question{border-radius:18px 18px 18px 3px}
+/* a timeline */
+.tlwrap{position:absolute;left:12px;right:12px;top:44%;bottom:8px}
+.tlrule{position:absolute;left:0;right:0;top:6px;height:2px;background:rgba(255,255,255,.35);border-radius:2px}
+.tlnode{position:absolute;top:0;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:2px;width:74px}
+.tlnode i{width:9px;height:9px;border-radius:50%;background:var(--dink);opacity:.9}
+.tlnode b{font-size:9.5px;font-weight:600;color:var(--dink-2);text-align:center;line-height:1.15;overflow-wrap:anywhere}
+.tlnode u{font-size:8.5px;text-decoration:none;color:var(--dink-3)}
+/* a button sits on a tile rather than floating */
+.drawer.btntile{background:var(--paper-2);border:1px solid var(--rule);box-shadow:var(--shadow)}
+/* counter digits fill the tile */
+.cntnum{font-size:clamp(30px, min(60cqw, 62cqh), 260px)}
+/* the book, floating in the middle like a real one */
+.bookscrim{position:absolute;inset:0;z-index:60;background:rgba(20,16,12,.55);backdrop-filter:blur(2px)}
+.bookstage{position:absolute;z-index:61;inset:4vh 6vw;display:flex;flex-direction:column;gap:10px;
+  align-items:center;justify-content:center;pointer-events:none}
+.bookstage > *{pointer-events:auto}
+.bookhead{display:flex;align-items:center;gap:10px;color:var(--paper);width:min(1100px,100%)}
+.bookhead b{flex:1;font-family:var(--serif);font-size:17px;color:#F4EEDD;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bookstage .book{width:min(1100px,100%)}
+.bookstage .spread{min-height:min(70vh,720px);box-shadow:0 30px 60px -20px rgba(0,0,0,.7)}
+.bookstage .bookcount{color:#E5DCC6}
 /* the lasso reads as a selection rather than a new object */
 .ghost.band{border-style:dashed}
 .ghost.picking{border-color:var(--brass);background:color-mix(in srgb,var(--brass) 18%,transparent);
@@ -649,8 +716,6 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
   background-size:6px 26px;opacity:.9;
 }
 .drawer.otile.k-script .tiletext,.drawer.otile.k-scene .tiletext{font-family:var(--mono);font-size:10.5px}
-/* A story is a bound spine */
-.drawer.otile.k-story{background:var(--paper-2);border-left:7px solid var(--c);border-radius:2px 6px 6px 2px}
 /* moodboard */
 .drawer.mbtile{padding:0;overflow:hidden;background:var(--paper-3)}
 .mbwall{position:absolute;inset:0;display:grid;grid-template-columns:repeat(3,1fr);gap:2px;padding:2px}
@@ -1174,40 +1239,44 @@ const BUILTIN_KINDS = {
   note:    {nm:'Note',    ic:'note',    c:'#5F7A93', key:'O', ds:'Something to remember',     attrs:['text'], size:[4,4], onclick:'read', body:'' },
   idea:    {nm:'Idea',    ic:'bulb',    c:'#96652F', key:'I', ds:'A spark, unformed',         size:[4,4], onclick:'read', attrs:['text'], body:'**The spark —** \n\n**Why it might work —** \n\n**What it needs —** ' },
   outline: {nm:'Outline', ic:'list',    c:'#7A6AA0', key:'L', ds:'Structure before prose',    size:[4,4], onclick:'read', attrs:['text'], body:'## I.\n- \n- \n\n## II.\n- \n- \n\n## III.\n- ' },
-  recipe:  {nm:'Recipe',  ic:'pot',     c:'#A55A3E', key:'R', ds:'Ingredients and method',    size:[4,4], onclick:'read', attrs:['text'], body:'**Serves** 2 · **Time** 30 min\n\n## Ingredients\n- \n- \n- \n\n## Method\n1. \n2. \n3. ' },
+  recipe:  {cooking:true, nm:'Recipe',  ic:'pot',     c:'#A55A3E', key:'R', ds:'Ingredients and method',    size:[4,4], onclick:'read', attrs:['text'], body:'**Serves** 2 · **Time** 30 min\n\n## Ingredients\n- \n- \n- \n\n## Method\n1. \n2. \n3. ' },
   script:  {nm:'Script',  ic:'clapper', c:'#3F5F7A', key:'S', ds:'Scenes and dialogue',       size:[4,4], onclick:'read', attrs:['text'], body:'### INT. LOCATION — DAY\n\nAction line.\n\n**CHARACTER**\nDialogue.' },
   question:{nm:'Question',ic:'help',    c:'#4A6E8F', key:'?', ds:'Open until answered',       size:[4,4], onclick:'read', attrs:['text','check'], body:'**Question —** \n\n**What I know —** \n\n**Answer —** ' },
   essay:   {nm:'Essay',   ic:'feather', c:'#5C7148', key:'Y', ds:'Long-form writing',         size:[4,4], onclick:'read', attrs:['text'], body:'> Working thesis.\n\n' },
   habit:   {nm:'Habit',   ic:'repeat',  c:'#3E7A6B', key:'A', ds:'Repeats, tracks a streak',  size:[4,4], onclick:'read', attrs:['text','streak'], body:'**Why —** ' },
   goal:    {nm:'Goal',    ic:'target',  c:'#8A5A3F', key:'J', ds:'Long-term, has milestones', size:[4,4], onclick:'read', attrs:['text','progress'], body:'**Definition of done —** ' },
   image:   {nm:'Image',   ic:'image',   c:'#6E7075', key:'G', ds:'A picture on the board',   size:[6,4], onclick:'read', attrs:['media'], body:'' },
-  audio:   {nm:'Audio',   ic:'music',   c:'#5D7E99', key:'U', ds:'Something to listen to',    size:[6,2], onclick:'read', attrs:['text','media','duration'], body:'' },
-  video:   {nm:'Video',   ic:'film',    c:'#3F5F7A', key:'V', ds:'Something to watch',        size:[6,4], onclick:'read', attrs:['text','media','duration'], body:'' },
+  audio:   {film:true, nm:'Audio',   ic:'music',   c:'#5D7E99', key:'U', ds:'Something to listen to',    size:[6,2], onclick:'read', attrs:['text','media','duration'], body:'' },
+  video:   {film:true, nm:'Video',   ic:'film',    c:'#3F5F7A', key:'&', ds:'Something to watch',        size:[6,4], onclick:'read', attrs:['text','media','duration'], body:'' },
   trip:    {nm:'Trip',    ic:'flag',    c:'#37687A', key:'P', ds:'Somewhere you are going',   size:[8,6], attrs:['container','date','duration','location'], layout:'grid', body:'' },
   moodboard:{nm:'Moodboard', ic:'image', c:'#6B4A4A', key:'B', ds:'Pictures, pinned together', size:[8,8], attrs:['container'], layout:'moodboard', body:'' },
   quote:   {nm:'Quote',   ic:'book',    c:'#6F5137', key:'Z', ds:'Someone else\'s words',      size:[6,4], onclick:'read', attrs:['text','link','rating'],
             body:'> \n\n— ' },
-  story:   {narrative:true, nm:'Story',   ic:'book',    c:'#5A4130', key:'M', ds:'Something told, not listed', size:[6,6], onclick:'read', attrs:['text'],
+  story:   {narrative:true, nm:'Story',   ic:'book',    c:'#5A4130', key:'M', ds:'A book on the shelf', size:[3,9], onclick:'book', attrs:['text'],
             body:'' },
-  scene:   {narrative:true, nm:'Scene',   ic:'clapper', c:'#2F4A5E', key:'N', ds:'One scene, for writing',     size:[6,5], onclick:'read', attrs:['text','location','duration'],
+  scene:   {narrative:true, film:true, nm:'Scene',   ic:'clapper', c:'#2F4A5E', key:'N', ds:'One scene, for writing',     size:[6,5], onclick:'read', attrs:['text','location','duration'],
             body:'**Where —** \n\n**Who —** \n\n**What changes —** ' },
   character:{narrative:true, nm:'Character', ic:'star', c:'#A0703F', key:'H', ds:'Someone in the story',       size:[4,6], onclick:'read', attrs:['text','media'],
             body:'**Wants —** \n\n**Fears —** \n\n**Voice —** ' },
   field:   {nm:'Text field', ic:'edit', c:'#6B6152', key:'/', ds:'Type in it and a task appears below', size:[8,2], onclick:'none', attrs:['field'], body:'' },
-  poem:    {nm:'Poem',    ic:'feather', c:'#5D7E99', key:'"', ds:'Lines, kept as written', size:[5,7], onclick:'read', attrs:['text'], body:'' },
+  poem:    {parchment:true, nm:'Poem',    ic:'feather', c:'#5D7E99', key:'"', ds:'Lines, kept as written', size:[5,7], onclick:'read', attrs:['text'], body:'' },
   place:   {nm:'Place',   ic:'flag',    c:'#6B7A3F', key:'1', ds:'Somewhere in the story',  size:[5,6], onclick:'read', attrs:['text','media'], narrative:true,
             body:'**Feels like —** \n\n**Who is there —** \n\n**What happened here —** ' },
   event:   {nm:'Event',   ic:'clock',   c:'#8C4A38', key:'2', ds:'Something that happens',  size:[6,4], onclick:'read', attrs:['text','date'], narrative:true,
             body:'**Before —** \n\n**The turn —** \n\n**After —** ' },
   item:    {nm:'Item',    ic:'star',    c:'#9A7B2F', key:'3', ds:'A thing that matters',    size:[4,4], onclick:'read', attrs:['text','media'], narrative:true,
             body:'**What it is —** \n\n**Who wants it —** ' },
-  ingredient:{nm:'Ingredient', ic:'pot', c:'#A55A3E', key:'4', ds:'One line of a recipe',   size:[5,1], onclick:'check', attrs:['check','count','price'], body:'' },
-  shot:    {nm:'Shot',    ic:'clapper', c:'#2F4A5E', key:'5', ds:'One shot, for a shoot',   size:[6,1], onclick:'check', attrs:['text','check','duration','location'], body:'' },
+  ingredient:{cooking:true, nm:'Ingredient', ic:'pot', c:'#A55A3E', key:'4', ds:'One line of a recipe',   size:[5,1], onclick:'check', attrs:['check','count','price'], body:'' },
+  shot:    {film:true, nm:'Shot',    ic:'clapper', c:'#2F4A5E', key:'5', ds:'One shot, for a shoot',   size:[6,1], onclick:'check', attrs:['text','check','duration','location'], body:'' },
   generator:{nm:'Generator', ic:'plus', c:'#8A5A3F', key:'6', ds:'Press it and it makes one of something', size:[4,4], onclick:'generate', attrs:['generator'], body:'' },
-  shopping:{nm:'Shopping list', ic:'inbox', c:'#A55A3E', key:'7', ds:'Things to buy, with a total', attrs:['container'], layout:'checklist', size:[6,8], body:'' },
+  shopping:{cooking:true, nm:'Shopping list', ic:'inbox', c:'#A55A3E', key:'7', ds:'Things to buy, with a total', attrs:['container'], layout:'checklist', size:[6,8], body:'' },
   counter: {nm:'Counter',  ic:'target', c:'#3E7A6B', key:'X', ds:'A number, and what it counts', size:[4,4], onclick:'none', attrs:['count'], body:'' },
   link:    {nm:'Button',  ic:'arrow',   c:'#37687A', key:'E', ds:'A button that opens something', attrs:['button'], body:'' },
-  record:  {nm:'Record',  ic:'trophy',  c:'#9A7B2F', key:'W', ds:'Something accomplished',    size:[4,4], onclick:'read', attrs:['text'], body:'' }
+  achievement:{nm:'Achievement', ic:'trophy', c:'#9A7B2F', key:'W', ds:'Something you actually did', size:[6,3], onclick:'read', attrs:['text','date'], body:'' },
+  project: {nm:'Project', ic:'flag',    c:'#5C7148', key:'8', ds:'A big thing, made of tasks',   attrs:['container','date','progress'], layout:'checklist', size:[7,8], body:'' },
+  dream:   {nm:'Dream',   ic:'star',    c:'#5D7E99', key:'9', ds:'Far off, and probably daft',   size:[5,5], onclick:'read', attrs:['text','media'], body:'**Why it pulls at me —** ' },
+  timeline:{nm:'Timeline',ic:'clock',   c:'#6F5137', key:'0', ds:'Things in the order they happened', attrs:['container'], layout:'timeline', size:[10,6], body:'' },
+  appt:    {nm:'Event',   ic:'calendar',c:'#3E7A6B', key:'V', ds:'Something at a time and place', size:[6,2], onclick:'read', attrs:['text','date','duration','location'], body:'' }
 };
 // Kinds you invent live in state alongside these; both are read through KINDS.
 let KINDS = Object.assign({}, BUILTIN_KINDS);
@@ -1317,10 +1386,10 @@ function seed(){
        milestones:[{t:'Six essays drafted',done:true,d:dz(-40)},{t:'Ten essays drafted',done:false,d:dz(60)},
                    {t:'Full read-through',done:false,d:dz(150)},{t:'Send to three readers',done:false,d:dz(200)}]}),
 
-    O({kind:'record', title:'Cut the reel from 6 min to 2:40', parent:'d_done', done:true, doneAt:dz(-2), tags:['work']}),
-    O({kind:'record', title:'Read *Understanding Comics* cover to cover', parent:'d_done', done:true, doneAt:dz(-5), tags:['reading']}),
-    O({kind:'record', title:'30-day streak: walk before screens', parent:'d_done', done:true, doneAt:dz(-9), tags:['health']}),
-    O({kind:'record', title:'Named the app', parent:'d_done', done:true, doneAt:dz(-14), tags:['bureau']})
+    O({kind:'achievement', title:'Cut the reel from 6 min to 2:40', parent:'d_done', done:true, doneAt:dz(-2), tags:['work']}),
+    O({kind:'achievement', title:'Read *Understanding Comics* cover to cover', parent:'d_done', done:true, doneAt:dz(-5), tags:['reading']}),
+    O({kind:'achievement', title:'30-day streak: walk before screens', parent:'d_done', done:true, doneAt:dz(-9), tags:['health']}),
+    O({kind:'achievement', title:'Named the app', parent:'d_done', done:true, doneAt:dz(-14), tags:['bureau']})
   ];
   return {objects: drawers.concat(controls, objects)};
 }
@@ -1669,7 +1738,7 @@ function toggleDone(id){
     const nd=nextDue(o);
     if(nd){
       S.objects.push(Object.assign({},o,{id:uid('o'),done:false,doneAt:null,due:nd,ord:o.ord+0.5}));
-      o.kind='record';   // the archive is a magic drawer; nothing needs moving
+      o.kind='achievement';   // the archive is a magic drawer; nothing needs moving
       toast(`Done · repeats ${D.human(nd).toLowerCase()}`);
     } else toast('Filed under Done & Dusted');
   } else { o.doneAt=null; }
@@ -1823,6 +1892,7 @@ const CLICKS = {
   read:     'Open it to read',
   edit:     'Open the editor',
   check:    'Tick it off',
+  book:     'Open it as a book',
   generate: 'Make a new object'
 };
 const clickOf = o => o.onclick || K(o.kind).onclick || 'none';
@@ -1859,6 +1929,7 @@ function tileTap(id){
   if(has(o,'control')){ if(o.ctl==='settings'){ S.view='settings'; render(); } return; }
   switch(clickOf(o)){
     case 'generate': dispense(o); return;
+    case 'book': S.readId=id; S.openId=null; S.bookMode=true; S.bookAt=0; renderSheet(); return;
     case 'read':  S.readId=id; S.openId=null; renderSheet(); break;
     case 'edit':  openObj(id); break;
     case 'check': if(has(o,'check')) toggleDone(id); else openObj(id); break;
@@ -1934,6 +2005,19 @@ function gridTile(o, arr, parentId){
     </button>`;
   }
 
+  /* A timeline lays its children along a rule, in date order. */
+  if(cont && o.layout==='timeline'){
+    const kids=childrenOf(o).slice().sort((a,b)=>(a.due||a.created||'').localeCompare(b.due||b.created||''));
+    return `<button class="drawer dtile tltile bd-${o.border||'panel'}${sel}" data-drawer="${o.id}" style="--c:${colour};${place}">
+      <div class="dtop"><span class="dname">${esc(o.title||'Untitled')}</span></div>
+      <div class="tlwrap"><i class="tlrule"></i>
+        ${kids.slice(0,8).map((x,i)=>`<span class="tlnode" style="left:${kids.length<2?50:(i/(Math.min(kids.length,8)-1))*100}%">
+          <i></i><b>${esc((x.title||'').slice(0,18))}</b><u>${x.due?esc(D.short(x.due)):''}</u></span>`).join('')}
+      </div>
+      ${handles}
+    </button>`;
+  }
+
   /* A moodboard shows its pictures on the front, tiled. */
   if(cont && o.layout==='moodboard'){
     const pics=childrenOf(o).filter(x=>x.media&&x.media.src).slice(0,12);
@@ -1959,7 +2043,7 @@ function gridTile(o, arr, parentId){
   // it, not printed on it — you open a drawer to find out what it holds.
   if(cont){
     const bd=o.border||'panel', kn=o.knob||'round', tx=o.texture||'none';
-    return `<button class="drawer dtile bd-${bd} tx-${tx}${sel}${has(o,'magic')?' magicdrawer':''}" data-drawer="${o.id}"
+    return `<button class="drawer dtile bd-${bd} tx-${tx} knb-${o.knobpos||'centre'}${sel}${has(o,'magic')?' magicdrawer':''}" data-drawer="${o.id}"
       style="--c:${colour};${o.knobc?`--knob:${esc(o.knobc)};`
         :`--knob:color-mix(in srgb, ${colour} ${o.knobtone==='dark'?'62% , #000':'58% , #fff'});`}${place}">
       ${chips}
@@ -2016,6 +2100,15 @@ function gridTile(o, arr, parentId){
       ${handles}
     </div>`;
   }
+  if(o.kind==='story'){
+    return `<button class="drawer otile spinetile${sel}" data-row="${o.id}" style="--c:${colour};${place}">
+      ${chips}
+      <span class="spinetop"></span>
+      <span class="spinetitle">${esc(o.title||'Untitled')}</span>
+      <span class="spinefoot"></span>
+      ${handles}
+    </button>`;
+  }
   if(o.kind==='quote'){
     return `<button class="drawer otile quotetile${sel}" data-row="${o.id}" style="--c:${colour};${place}">
       ${chips}
@@ -2043,7 +2136,8 @@ function gridTile(o, arr, parentId){
   if(has(o,'price')&&o.price) bits.push(esc(o.price));
   if(has(o,'location')&&o.loc) bits.push(esc(o.loc));
 
-  return `<button class="drawer otile k-${o.kind}${sel}${o.prio?' prio-'+o.prio:''}" data-row="${o.id}" style="--c:${colour};${place}">
+  return `<button class="drawer otile k-${o.kind}${sel}${o.prio?' prio-'+o.prio:''}" data-row="${o.id}"
+    style="--c:${colour};${has(o,'progress')?`--pct:${goalPct(o)}%;`:''}${place}">
     ${chips}
     <div class="dtop">
       ${has(o,'check')?`<span class="check tilecheck${o.done?' on':''}" data-check="${o.id}">${ic('check',12)}</span>`:''}
@@ -2641,6 +2735,17 @@ function renderSheet(){
   if(S.readId && !S.openId){
     const r=byId(S.readId);
     if(!r){ S.readId=null; host.innerHTML=''; return; }
+    if(S.bookMode){
+      host.innerHTML=`<div class="bookscrim" data-sheet="close"></div>
+        <div class="bookstage">
+          <div class="bookhead"><b>${esc(r.title||'Untitled')}</b>
+            <button class="pill" data-act="bookmode">${ic('list',13)} Plain</button>
+            <button class="pill" data-act="editthis" data-id="${r.id}">${ic('edit',13)} Edit</button>
+            <button class="iconbtn" data-sheet="close">${ic('x',16)}</button></div>
+          ${bookOf(r)}
+        </div>`;
+      return;
+    }
     host.innerHTML=`<div class="sheetveil on" data-sheet="close"></div>
     <div class="sheet open" id="sheet" style="--k:${K(r.kind).c}">
       <div class="sheet-h">
@@ -2790,7 +2895,7 @@ function modalNewObject(){
   <div class="modal-b">
     <div class="section-h"><h2>Containers</h2><div class="rule"></div><span class="n">hold other things</span></div>
     <div class="kindgrid">
-    ${offer.filter(k=>kindHas(k,'container')).map(k=>`<button class="kindtile" data-new="${k}" style="--k:${KINDS[k].c}">
+    ${offer.filter(k=>kindHas(k,'container')&&!KINDS[k].cooking).map(k=>`<button class="kindtile" data-new="${k}" style="--k:${KINDS[k].c}">
       <div style="display:flex;align-items:center;width:100%;gap:6px"><span class="ic">${ic(KINDS[k].ic,15)}</span><span class="kbd">${KINDS[k].key||''}</span></div>
       <div class="nm">${KINDS[k].nm}</div><div class="ds">${KINDS[k].ds}</div></button>`).join('')}
     </div>
@@ -2800,9 +2905,21 @@ function modalNewObject(){
       <div style="display:flex;align-items:center;width:100%;gap:6px"><span class="ic">${ic(KINDS[k].ic,15)}</span><span class="kbd">${KINDS[k].key||''}</span></div>
       <div class="nm">${KINDS[k].nm}</div><div class="ds">${KINDS[k].ds}</div></button>`).join('')}
     </div>
+    <div class="section-h"><h2>Cooking</h2><div class="rule"></div></div>
+    <div class="kindgrid">
+    ${offer.filter(k=>KINDS[k].cooking).map(k=>`<button class="kindtile" data-new="${k}" style="--k:${KINDS[k].c}">
+      <div style="display:flex;align-items:center;width:100%;gap:6px"><span class="ic">${ic(KINDS[k].ic,15)}</span><span class="kbd">${KINDS[k].key||''}</span></div>
+      <div class="nm">${KINDS[k].nm}</div><div class="ds">${KINDS[k].ds}</div></button>`).join('')}
+    </div>
+    <div class="section-h"><h2>Film</h2><div class="rule"></div></div>
+    <div class="kindgrid">
+    ${offer.filter(k=>KINDS[k].film).map(k=>`<button class="kindtile" data-new="${k}" style="--k:${KINDS[k].c}">
+      <div style="display:flex;align-items:center;width:100%;gap:6px"><span class="ic">${ic(KINDS[k].ic,15)}</span><span class="kbd">${KINDS[k].key||''}</span></div>
+      <div class="nm">${KINDS[k].nm}</div><div class="ds">${KINDS[k].ds}</div></button>`).join('')}
+    </div>
     <div class="section-h"><h2>Objects</h2><div class="rule"></div><span class="n">hold nothing</span></div>
     <div class="kindgrid">
-    ${offer.filter(k=>!kindHas(k,'container')&&!KINDS[k].narrative).map(k=>`<button class="kindtile" data-new="${k}" style="--k:${KINDS[k].c}">
+    ${offer.filter(k=>!kindHas(k,'container')&&!KINDS[k].narrative&&!KINDS[k].cooking&&!KINDS[k].film).map(k=>`<button class="kindtile" data-new="${k}" style="--k:${KINDS[k].c}">
       <div style="display:flex;align-items:center;width:100%;gap:6px"><span class="ic">${ic(KINDS[k].ic,15)}</span><span class="kbd">${KINDS[k].key||''}</span></div>
       <div class="nm">${KINDS[k].nm}</div><div class="ds">${KINDS[k].ds}</div></button>`).join('')}
     <button class="kindtile newkind" data-act="newkind" style="--k:var(--brass)">
@@ -2887,6 +3004,7 @@ function drawerPanel(id){
       ${row('Board strength', `<input class="pslide" type="range" min="0" max="100" step="5"
           value="${Math.round(((d.boardAlpha==null?1:d.boardAlpha))*100)}" data-palpha data-id="${id}">`)}
       ${row('Texture', chips('texture', null, [['none','None'],['dots','Dots'],['grid','Graph'],['weave','Weave'],['weave2','Wide weave'],['check','Checker'],['rule','Ruled']], d.texture||'none'))}
+      ${row('Knob position', chips('knobpos', null, [['centre','Centre'],['bottom','Bottom']], d.knobpos||'centre'))}
       ${row('Knob colour', chips('knobtone', null, [['light','Lighter'],['dark','Darker']], d.knobtone||'light')
         + `<div class="pickgrid sw" style="margin-top:5px">${
           ['#F8F3E6','#A9793F','#2A241C','#C0563F','#3E7A6B','#5D7E99'].map(c=>
@@ -3467,7 +3585,8 @@ function adopt(d){
   if(!(d.v>=5)) doubleBoxes(S.objects);   // 12 cols -> 24, so a half-cell exists
   const fixedIds=dedupeIds(S.objects);
   if(fixedIds) setTimeout(()=>toast(`Repaired ${fixedIds} duplicated id${fixedIds>1?'s':''}`),400);
-  S.objects.forEach(o=>{ if(o.kind==='media')
+  S.objects.forEach(o=>{ if(o.kind==='record') o.kind='achievement';
+    if(o.kind==='media')
     o.kind = (o.media&&o.media.type==='audio') ? 'audio'
            : (o.media&&o.media.type==='video') ? 'video' : 'image'; });
   ensureControls();
@@ -3899,7 +4018,7 @@ function wire(){
     const dtg=t.closest('[data-dtag]');
     if(dtg){ $('#modal')._draft.tag=dtg.dataset.dtag; $$('#dtag .fchip').forEach(b=>b.classList.remove('on')); dtg.classList.add('on'); return; }
 
-    const pn=t.closest('[data-pview],[data-psort],[data-plock],[data-pborder],[data-pknob],[data-pcolour],[data-pboard],[data-pknobc],[data-pknobtone],[data-ptexture],[data-otype],[data-oclick],[data-ocolour],[data-oframe],[data-obtn],[data-ogen],[data-ogendir]');
+    const pn=t.closest('[data-pview],[data-psort],[data-plock],[data-pborder],[data-pknob],[data-pcolour],[data-pboard],[data-pknobc],[data-pknobtone],[data-pknobpos],[data-ptexture],[data-otype],[data-oclick],[data-ocolour],[data-oframe],[data-obtn],[data-ogen],[data-ogendir]');
     if(pn){
       const id=pn.dataset.id, c=cfgOf(id), o=byId(id);
       if(pn.dataset.pview!=null) c.layout=pn.dataset.pview;
@@ -3911,6 +4030,7 @@ function wire(){
       else if(o && pn.dataset.pboard!=null) o.board=pn.dataset.pboard||null;
       else if(o && pn.dataset.pknobc!=null){ o.knobc=pn.dataset.pknobc; o.knobtone=null; }
       else if(o && pn.dataset.pknobtone!=null){ o.knobtone=pn.dataset.pknobtone; o.knobc=null; }
+      else if(o && pn.dataset.pknobpos!=null) o.knobpos=pn.dataset.pknobpos;
       else if(o && pn.dataset.ptexture!=null) o.texture=pn.dataset.ptexture;
       else if(o && pn.dataset.otype!=null){ o.kind=pn.dataset.otype; o.attrs=null; }
       else if(o && pn.dataset.oclick!=null) o.onclick=pn.dataset.oclick;
