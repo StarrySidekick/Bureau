@@ -277,6 +277,15 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
 .pslide{width:100%;accent-color:var(--brass)}
 .rollup{margin-left:auto;font-size:11px;color:var(--dink-2);font-variant-numeric:tabular-nums;
   background:rgba(0,0,0,.20);border:1px solid rgba(255,255,255,.14);padding:1px 7px;border-radius:20px}
+.pvwrap{display:grid;place-items:center;padding:16px 10px 18px;margin-bottom:12px;
+  border:1px solid var(--rule);border-radius:var(--radius);
+  background-color:var(--board-1);
+  background-image:conic-gradient(var(--board-2) 0 25%,transparent 0 50%,var(--board-2) 0 75%,transparent 0);
+  background-size:36px 36px;min-height:120px}
+.pvgrid{background:none!important;max-width:100%}
+.pvgrid::before{content:none}
+.pvgrid .drawer{cursor:default}
+.pvgrid .rz{display:none}
 .iconchip{padding:5px 8px;display:inline-flex;align-items:center}
 .iconchip.on{color:var(--ink)}
 .relrow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:4px}
@@ -3201,6 +3210,39 @@ function modalDrawer(id){
 /* Also the kind *editor*. `editKey` names an existing kind — built-in or one of
    yours — and saving writes an override into S.kinds, so a built-in can be
    changed without touching the source. */
+/* A live sample of the type being built. It goes through the same gridTile()
+   the board uses, on a throwaway object, so the preview cannot drift from what
+   you will actually get — if it renders wrong here it renders wrong there. */
+function previewObject(){
+  const d=$('#modal')&&$('#modal')._draft; if(!d) return null;
+  const nameEl=$('#knm');
+  const cont = d.sort!=='object';
+  return {
+    id:'__preview', kind:'note',
+    title:(nameEl&&nameEl.value.trim())||'Untitled',
+    body:'A line or two of whatever it holds, so you can see how it sits.',
+    attrs:d.attrs.slice(),
+    shape: cont?undefined:(d.shape||'card'),
+    face:  cont?(d.face||'front'):undefined,
+    c:d.c, parent:ROOT, tags:[], ord:0, created:T,
+    desk:{x:1,y:1,w:d.size[0],h:d.size[1]}, phone:null,
+    onclick:d.onclick, spawnBy:d.spawnBy, genKind:'task', genDir:'down',
+    due:T, count:12, rating:4, prio:'high', price:'12.50', dur:45, loc:'The shed',
+    done:false, history:[T], milestones:[{t:'One',done:true},{t:'Two',done:false}],
+    link:{label:(nameEl&&nameEl.value.trim())||'Press', target:''},
+    knob:'round', border:'panel', texture:'none', layout:'list'
+  };
+}
+function renderPreview(){
+  const host=$('#kpreview'); if(!host) return;
+  const o=previewObject(); if(!o) return;
+  const [w,h]=[o.desk.w,o.desk.h];
+  const cell=Math.max(9, Math.min(300/w, 190/h));
+  host.innerHTML=`<div class="grid g-desk pvgrid"
+      style="--cols:${w};--rowh:${cell}px;--checker:${2*cell}px;
+             grid-template-rows:repeat(${h},${cell}px);width:${w*cell}px">
+      ${gridTile(o,false,ROOT)}</div>`;
+}
 function modalNewKind(from, editKey){
   const ex = editKey ? K(editKey) : null;
   const base = ex || (from ? K(from.kind) : null);
@@ -3219,6 +3261,7 @@ function modalNewKind(from, editKey){
     <div class="s">A type is a name for a set of traits. Nothing here is special-cased — whatever you tick is what it can do.</div></div>
   <div class="modal-b">
 
+    <div class="pvwrap"><div id="kpreview"></div></div>
     <div class="field" style="margin-bottom:10px"><label>Name</label>
       <input id="knm" value="${ex?esc(ex.nm):(from?esc(K(from.kind).nm)+' variant':'')}" placeholder="Reading note"></div>
     <div class="field" style="margin-bottom:12px"><label>Description</label>
@@ -3289,6 +3332,7 @@ function modalNewKind(from, editKey){
             size, onclick:(base&&base.onclick)||'read',
             sort, shape:(base&&base.shape)||'card', face:(base&&base.face)||'front',
             spawnBy:(base&&base.spawnBy)||'click'};
+  renderPreview();
 }
 // Anywhere this object may legally go: any container that is not itself, and
 // not inside itself — otherwise a drawer can swallow its own ancestor.
@@ -4221,7 +4265,7 @@ function wire(){
     const pv=t.closest('[data-pv]');
     if(pv){ $('#modal')._draft.pv=pv.dataset.pv; $$('#dpv .fchip').forEach(b=>b.classList.remove('on')); pv.classList.add('on'); return; }
     const col=t.closest('[data-col]');
-    if(col){ $('#modal')._draft.c=col.dataset.col; $$('#dcol button').forEach(b=>b.classList.remove('on')); col.classList.add('on'); return; }
+    if(col){ $('#modal')._draft.c=col.dataset.col; $$('#dcol button').forEach(b=>b.classList.remove('on')); col.classList.add('on'); renderPreview(); return; }
 
     // layout of the drawer being edited in the modal
     const dtg=t.closest('[data-dtag]');
@@ -4282,23 +4326,23 @@ function wire(){
       $('#klookn').textContent = v==='object' ? 'shape' : 'face';
       $('#klook').innerHTML = list.map(([val,nm])=>
         `<button class="fchip${cur===val?' on':''}" data-klook="${val}">${nm}</button>`).join('');
-      return; }
+      renderPreview(); return; }
     const kl=t.closest('[data-klook]');
     if(kl){ const d=$('#modal')._draft;
       if(d.sort==='object') d.shape=kl.dataset.klook; else d.face=kl.dataset.klook;
-      $$('#klook .fchip').forEach(b=>b.classList.remove('on')); kl.classList.add('on'); return; }
+      $$('#klook .fchip').forEach(b=>b.classList.remove('on')); kl.classList.add('on'); renderPreview(); return; }
     const kic=t.closest('[data-kic]');
     if(kic){ $('#modal')._draft.ic=kic.dataset.kic;
-      $$('#kicon .fchip').forEach(b=>b.classList.remove('on')); kic.classList.add('on'); return; }
+      $$('#kicon .fchip').forEach(b=>b.classList.remove('on')); kic.classList.add('on'); renderPreview(); return; }
     const ksp=t.closest('[data-kspawn]');
     if(ksp){ $('#modal')._draft.spawnBy=ksp.dataset.kspawn;
-      $$('[data-kspawn]').forEach(b=>b.classList.remove('on')); ksp.classList.add('on'); return; }
+      $$('[data-kspawn]').forEach(b=>b.classList.remove('on')); ksp.classList.add('on'); renderPreview(); return; }
 
     const ksz=t.closest('[data-ksz]');
     if(ksz){ const [w,h]=ksz.dataset.ksz.split('x').map(Number);
-      $('#modal')._draft.size=[w,h]; $$('#ksize .fchip').forEach(b=>b.classList.remove('on')); ksz.classList.add('on'); return; }
+      $('#modal')._draft.size=[w,h]; $$('#ksize .fchip').forEach(b=>b.classList.remove('on')); ksz.classList.add('on'); renderPreview(); return; }
     const kcl=t.closest('[data-kclick]');
-    if(kcl){ $('#modal')._draft.onclick=kcl.dataset.kclick; $$('#kclick .fchip').forEach(b=>b.classList.remove('on')); kcl.classList.add('on'); return; }
+    if(kcl){ $('#modal')._draft.onclick=kcl.dataset.kclick; $$('#kclick .fchip').forEach(b=>b.classList.remove('on')); kcl.classList.add('on'); renderPreview(); return; }
 
     const ka=t.closest('[data-ka]');
     if(ka){ const d=$('#modal')._draft, a=ka.dataset.ka, i=d.attrs.indexOf(a);
@@ -4306,7 +4350,7 @@ function wire(){
       ka.classList.toggle('on');
       const sp=$('#kspawnrow'); if(sp) sp.style.display = d.attrs.includes('spawn') ? '' : 'none';
       $('#kattrsds').textContent = d.attrs.map(x=>ATTRS[x]&&ATTRS[x].ds).filter(Boolean).join(' · ') || 'Nothing yet';
-      return; }
+      renderPreview(); return; }
 
     // attributes, on one object in the detail sheet
     const at=t.closest('[data-attr]');
@@ -4381,9 +4425,10 @@ function wire(){
     if(e.target.dataset.knobinput!=null){ const m=$('#modal'); if(m&&m._draft) m._draft.knobc=e.target.value; return; }
     if(e.target.dataset.colinput!=null){
       const m=$('#modal'); if(m&&m._draft){ m._draft.c=e.target.value;
-        $$('#dcol button').forEach(b=>b.classList.remove('on')); }
+        $$('#dcol button').forEach(b=>b.classList.remove('on')); renderPreview(); }
       return;
     }
+    if(e.target.id==='knm'){ renderPreview(); return; }
     const f=e.target.dataset.f;
     if(f){
       const o=byId(S.openId); if(!o) return;
