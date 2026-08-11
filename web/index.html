@@ -196,9 +196,12 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
 }
 /* the knob sits in the middle of the front, like a real drawer pull */
 .drawer.dtile .dfoot{position:absolute;inset:0;margin:0;padding:0;align-items:center;justify-content:center;pointer-events:none}
-.drawer.dtile .dtop{position:relative;z-index:1;max-height:34%;overflow:hidden;align-items:flex-start}
-/* the knob owns the middle band, so a long name uses the top and stops */
-.drawer.dtile .dname{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.drawer.dtile .dtop{position:relative;z-index:1;align-items:flex-start}
+/* The knob owns the middle of the front, so the name is capped at two lines
+   and sits above it. Capping *lines* rather than the box's height is what
+   keeps it from being sliced through the middle of a letter. */
+.drawer.dtile .dname{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+  overflow:hidden;line-height:1.25}
 .drawer.h1{padding:9px 12px}
 .drawer.h1 .dbody{margin-top:5px}
 .drawer.h1 .dfoot{padding-top:5px}
@@ -702,8 +705,8 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
   border-color:color-mix(in srgb, #fff 55%, transparent) }
 
 /* A drawer front: a name and a pull, nothing else. What's inside is inside. */
-.drawer.dtile .dtop{align-items:center}
-.drawer.dtile .dname{white-space:normal;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;font-size:15px}
+.drawer.dtile .dtop{align-items:flex-start}
+.drawer.dtile .dname{white-space:normal;font-size:15px}
 .drawer.dtile .dcount{align-self:flex-start}
 .magicmark{color:var(--dink-2);display:inline-flex;align-items:center;margin-left:2px}
 
