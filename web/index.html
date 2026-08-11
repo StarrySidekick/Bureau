@@ -2749,6 +2749,15 @@ function viewSettings(){
       <div class="section-h"><h2>Install</h2><div class="rule"></div></div>
       <div class="mini" style="--k:var(--brass)">Share → <b style="margin:0 3px">Add to Home Screen</b> to keep Bureau in your dock and run it full screen.</div>`:''}
 
+    <div class="section-h"><h2>Paste objects</h2><div class="rule"></div></div>
+    <div class="mini" style="--k:var(--brass)">Describe what you want somewhere that can write JSON, paste it here, and it lands on the desk. Types are matched by name, anything missing gets a sensible default, and a container's <b>children</b> go inside it.</div>
+    <textarea id="pastebox" class="editor" style="min-height:130px;margin-top:8px"
+      placeholder='[{"type":"drawer","title":"Lisbon","children":[{"type":"task","title":"Book the flight","due":"2026-09-02"}]}]'></textarea>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+      <button class="pill solid" data-act="pastego">${ic('plus',13)} Add to the desk</button>
+      <button class="pill" data-act="pasteschema">${ic('help',13)} What it accepts</button>
+    </div>
+
     <div class="section-h"><h2>Testing</h2><div class="rule"></div></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <button class="pill" data-act="randomten">${ic('sparkle',13)} Add ten at random</button>
@@ -3963,6 +3972,67 @@ function importImage(file){
 }
 
 /* ============================================================
+   19d · the paste bridge — objects written elsewhere, dropped in here
+   ============================================================
+   No API and no backend: you describe what you want somewhere that can write
+   JSON, paste the result, and it lands on the board. Everything routes through
+   create() so nothing can arrive that the model would not have made itself.  */
+
+// "Magic drawer", "magic_drawer", "MAGICDRAWER" — all the same type.
+function kindFromName(n){
+  if(!n) return 'note';
+  const t=String(n).toLowerCase().replace(/[^a-z]/g,'');
+  if(KINDS[t]) return t;
+  const byName=KEYS.find(k=>K(k).nm.toLowerCase().replace(/[^a-z]/g,'')===t);
+  if(byName) return byName;
+  const partial=KEYS.find(k=>k.startsWith(t)||t.startsWith(k));
+  return partial||'note';
+}
+const SPEC_FIELDS=['body','due','done','count','rating','price','prio','loc','dur','url','repeat','rel'];
+
+function addSpec(spec, parentId, tally){
+  if(spec==null) return;
+  if(typeof spec==='string') spec={type:'task', title:spec};   // a bare line is a task
+  const asked=kindFromName(spec.type||spec.kind);
+  const kids=Array.isArray(spec.children)?spec.children:[];
+  // something with children has to be able to hold them
+  const kind = (kids.length && !kindHas(asked,'container')) ? 'drawer' : asked;
+  const o=create(kind,{parent:parentId, title:String(spec.title||spec.name||'Untitled')});
+  if(spec.tags) o.tags=[].concat(spec.tags).map(String);
+  SPEC_FIELDS.forEach(f=>{ if(spec[f]!=null) o[f]=spec[f]; });
+  if(spec.colour||spec.color) o.c=spec.colour||spec.color;
+  if(spec.shape) o.shape=spec.shape;
+  if(spec.face)  o.face=spec.face;
+  if(spec.layout) o.layout=spec.layout;
+  if(spec.onclick) o.onclick=spec.onclick;
+  const [dw,dh]=sizeOfKind(kind);
+  const w=clamp(parseInt(spec.w,10)||dw,1,gridOf().cols), h=Math.max(1,parseInt(spec.h,10)||dh);
+  o[dev()]=freeSpot(w,h,dev(),parentId);
+  tally[isContainer(o)?'drawers':'objects']++;
+  kids.forEach(c=>addSpec(c, o.id, tally));
+  return o;
+}
+
+function pasteObjects(text, parentId){
+  let raw=String(text||'').trim();
+  raw=raw.replace(/^```(?:json)?/i,'').replace(/```$/,'').trim();   // tolerate fences
+  if(!raw) return toast('Nothing to add');
+  let data;
+  try{ data=JSON.parse(raw); }
+  catch(e){ toast('That is not valid JSON — check for a stray comma'); return; }
+  const list=Array.isArray(data)?data:[data];
+  if(!list.length) return toast('Nothing to add');
+  const tally={drawers:0,objects:0};
+  try{ list.forEach(sp=>addSpec(sp, parentId||ROOT, tally)); }
+  catch(e){ toast('Could not read that: '+e.message); return; }
+  save(); render();
+  const bits=[];
+  if(tally.drawers) bits.push(`${tally.drawers} drawer${tally.drawers>1?'s':''}`);
+  if(tally.objects) bits.push(`${tally.objects} object${tally.objects>1?'s':''}`);
+  toast('Added '+(bits.join(' and ')||'nothing'));
+}
+
+/* ============================================================
    20 · event wiring
    ============================================================ */
 function bindSortables(){ /* delegation handles it; keep quick-add focused */ }
@@ -4112,6 +4182,32 @@ function act(name, el){
     }
     case 'newkind': modalNewKind(null); break;
     case 'install': if(deferredInstall){ deferredInstall.prompt(); deferredInstall=null; } break;
+    case 'pastego': { const b=$('#pastebox'); pasteObjects(b&&b.value, ROOT); if(b) b.value=''; break; }
+    case 'pasteschema': {
+      showModal(`<div class="modal-h"><div class="t">What the paste box accepts</div>
+        <div class="s">An array of objects. Only <b>title</b> really matters — everything else has a default.</div></div>
+      <div class="modal-b">
+        <div class="prose"><pre>[
+  {
+    "type": "drawer",          // any type name: task, note, recipe, magic drawer…
+    "title": "Lisbon",
+    "face": "checklist",       // drawer front | checklist | calendar | moodboard | timeline
+    "w": 8, "h": 6,            // in grid cells; omit for the type's own size
+    "colour": "#3F5F7A",
+    "children": [              // only containers keep children
+      { "type": "task", "title": "Book the flight", "due": "2026-09-02" },
+      { "type": "task", "title": "Renew passport", "done": true }
+    ]
+  },
+  { "type": "note", "title": "Pastéis de Belém", "body": "Queue is worth it.",
+    "tags": ["food"] },
+  "Milk"                       // a bare string is a task
+]</pre>
+        <p>Fields follow the attributes: <code>due, done, count, rating, price, prio, loc, dur, url, repeat</code>. Anything a type hasn't got is ignored rather than breaking.</p>
+        <p>Give a child list to something that can't hold children and it becomes a drawer instead.</p></div>
+      </div>`);
+      break;
+    }
     case 'randomone': randomThing(el.dataset.id); save(); render(); toast('One at random'); break;
     case 'randomten': { for(let i=0;i<10;i++) randomThing(); save(); render(); toast('Ten at random'); break; }
     case 'reseed': { const th=S.theme, lk=S.look; reset(); S.theme=th; S.look=lk; applyLook(); writeNow(); render(); toast('Sample desk restored'); break; }

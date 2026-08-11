@@ -149,6 +149,23 @@ server-side backup.
 thousand text objects stay well under. Image bytes are in IndexedDB, so they do
 not count against it — see Images above.
 
+## The paste bridge
+
+Objects can arrive as JSON — written anywhere that can write JSON, pasted into
+Settings. There is no API and no backend; the point is that describing what you
+want somewhere else and pasting the result costs nothing and keeps the app
+local-first.
+
+```json
+[{"type":"drawer","title":"Lisbon","face":"checklist","children":[
+   {"type":"task","title":"Book the flight","due":"2026-09-02"}]}]
+```
+
+Everything routes through `create()`, so nothing can arrive that the app could
+not have made itself. Type names are matched loosely, missing fields take the
+type's defaults, a bare string is a task, and giving children to something that
+cannot hold them turns it into a drawer. Invalid JSON adds nothing at all.
+
 ## If sync happens
 
 The realistic options, roughly in order of effort:
