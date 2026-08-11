@@ -22,6 +22,11 @@ Everything in the requirements list is implemented **except** video and audio
 files (images are real) and sync between devices (export/import JSON is the
 bridge).
 
+**Start here each session:** `docs/ROADMAP.md` holds the current plan in
+dependency order — item 1 (module split) before anything else. `docs/SPEC.md`
+is currently stale (roadmap item 4); trust `docs/OBJECT-MODEL.md` and
+`docs/STYLES.md` over it.
+
 Read `docs/SPEC.md` before changing behaviour and `docs/DECISIONS.md` before
 changing structure — the second one records things that were decided deliberately
 and shouldn't be undone by accident.

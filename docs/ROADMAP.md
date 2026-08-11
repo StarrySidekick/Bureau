@@ -1,95 +1,70 @@
 # What to build next
 
-Sequenced by what unblocks the most. Each item has a definition of done, because
-"add media" is not a task.
-
-**Before anything on this list:** use it for a week. The next real task should
-come from a week of Timothy's actual to-dos, not from this document. Everything
-below is a guess; a week of use replaces guesses with facts.
+Rewritten 2026-08-11 after the full review (bugs fixed, Styles shipped in v29).
+Sequenced by dependency, not appetite: item 1 makes everything after it safer.
 
 ---
 
-## Now
+## 1. Module split — do this first, alone, in a fresh session
 
-### 1. Update prompt
-When a new version is deployed, installed copies pick it up on the next launch
-with no indication anything changed.
+`web/index.html` is ~4,700 lines; decision 7 set the ceiling at ~3,000. The
+last several regressions were caused by global find-replace editing, which the
+size forces. Split into `<script type="module">` files (still no bundler):
+state/model · grid geometry · tile rendering · panels/modals · gestures ·
+persistence/migrations. While in there:
 
-*Done when:* the service worker detects a waiting update, the app shows a quiet
-"new version ready — tap to reload" bar, and tapping it activates and reloads.
-~10 lines in the boot section plus a `skipWaiting` message handler.
+- consolidate `adopt()`'s ad-hoc per-load mutations into ordered, versioned
+  `MIGRATIONS` steps run once each
+- add smoke assertions for the newest systems: paste bridge, magic rules,
+  rollups, relations, group move
 
-### 2. Real media
-The single biggest gap between this and a usable app. See `DATA-MODEL.md` for
-the storage plan.
+*Done when:* app boots identically, smoke passes, no file over ~800 lines,
+and a deliberate change to one module can't touch another.
 
-*Done when:* you can pick a photo, video or audio file on iPhone and Mac; it's
-stored in IndexedDB; images and video show a real thumbnail in drawer previews,
-card grids and the detail view; audio plays inline; deleting the object frees the
-blob; export still works and doesn't balloon.
+## 2. The time layer
 
-*Watch for:* iOS memory limits on large video — store the file, generate a small
-poster frame, never decode the whole thing for a preview.
+The stated goal names "visual timelines and time-based organization"; this is
+the weakest area.
 
-### 3. Backup that doesn't need remembering
-Right now backup is a button you have to think about.
+- interactive calendar face: click a day to see/add, drag an object onto a day
+  to schedule it
+- a real timeline view (inside a container, zoomable), not just the 8-node face
+- month calendar page reachable from Today
 
-*Done when:* the app keeps the last N snapshots in IndexedDB automatically, shows
-when the last one was taken, and can restore any of them. Belt and braces for the
-period before sync exists.
+## 3. Workflow completion
 
----
+- **button actions** — a button can run an app action (new object of type X in
+  container Y, toggle a lock, open the paste box), not just open things
+- **template-spawn** — generalize `spawn` to deep-copy a template object with
+  its children (weekly review, packing list)
+- **undo log** — multi-level, covering group delete, drawer delete, paste
+  import, panel changes
 
-## Next
+## 4. Known small gaps (fold into any session)
 
-### 4. Sync
-Read the options in `DATA-MODEL.md` first and pick deliberately. For two devices
-and one user, a versioned whole-document push/pull is probably enough, and
-per-object `updatedAt` is the upgrade path if it isn't.
+- manual reorder in list view is dead (`ord` unused, no drag)
+- tag filtering has no UI since the sidebar went
+- rollups only render on drawer-front and checklist faces
+- accessibility: tiles are nested-interactive `<button>`s, no keyboard nav,
+  no ARIA
+- corner-grip resize is hover-only — invisible on touch; mobile drag vs scroll
+  needs device testing
+- SPEC.md is three redesigns stale (kinds table, membership rules, quick-add,
+  themes) — rewrite it against OBJECT-MODEL.md and STYLES.md
 
-*Done when:* an object created on the phone appears on the Mac without a manual
-step, and being offline on both then reconnecting doesn't lose an edit.
+## 5. Sync — blocked on a decision, not effort
 
-*Do not start this* without deciding what happens when both devices edited the
-same object while offline. Write the answer down before writing code.
-
-### 5. Month calendar
-Today's week strip is fine for a week and useless for planning a month.
-
-*Done when:* a month grid shows scheduled objects as coloured dots by kind, you
-can drag an object onto a day to schedule it, and it's reachable from Today.
-
-### 6. Search that searches bodies properly
-⌘K does a substring match. Fine at 36 objects, weak at 500.
-
-*Done when:* results are ranked (title over body, recent over old), matched text
-is highlighted, and `kind:essay`, `#tag`, `drawer:kitchen` filter the query.
-
----
-
-## Later
-
-### 7. Drawer nesting, or a deliberate refusal
-The seeded Question "Should a drawer be able to contain another drawer?" is real.
-Two levels is probably safe; unlimited depth is how Obsidian becomes a swamp.
-Decide, write it in `DECISIONS.md`, and either build it or close it.
-
-### 8. Object links
-`[[Wikilinks]]` between objects, with a backlinks list in the detail view. The
-thing Obsidian genuinely gets right. Worth it only if the writing side of Bureau
-gets real use.
-
-### 9. Native app
-See `NATIVE-PORT.md`. Only worth doing when there's something a PWA can't do that
-you actually want: widgets, Shortcuts, share-sheet capture, notifications.
+DATA-MODEL option 3 (per-object `updatedAt`, last-write-wins) remains right.
+But it needs a transport: CloudKit means the native shell (NATIVE-PORT.md);
+anything else means revisiting decision 6 (no backend). **Decide before any
+code.** The object model is already sync-shaped: flat, id-stable, timestamped.
 
 ---
 
 ## Deliberately not doing
 
-- **Collaboration or sharing.** It's a personal desk. Sharing means accounts,
-  permissions, and a completely different app.
-- **AI features.** Nothing here needs a model. A to-do list that summarises your
-  to-dos is a to-do list with extra steps.
-- **Plugins or a theme system.** One user, two themes, edit the CSS.
-- **A web clipper.** Real if the browser habit exists; there's no evidence it does.
+- Collaboration/sharing, plugins, a web clipper (unchanged from v1)
+- **Formulas** — rollups yes, expression language no
+- **A block editor** — the body stays markdown in a textarea
+- AI *features in-app* — the paste bridge covers generation without a key,
+  a backend, or a bill
