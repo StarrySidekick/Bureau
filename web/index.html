@@ -308,14 +308,14 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
   background-image:linear-gradient(rgba(90,120,150,.18) 1px,transparent 1px);background-size:100% 100%}
 .drawer.otile.sh-index::after{content:"";position:absolute;left:11px;top:0;bottom:0;width:1px;background:rgba(180,70,60,.5)}
 /* a habit is a stack of days */
-.drawer.otile.sh-habit{background:var(--paper-2);border-left:3px solid var(--c)}
+.drawer.otile.sh-habit{background:var(--paper-2)}
 .drawer.otile.sh-habit::after{content:"";position:absolute;left:10px;right:10px;bottom:10px;height:8px;
   background-image:repeating-linear-gradient(90deg,var(--c) 0 7px,transparent 7px 11px);opacity:.55;border-radius:2px}
 /* a goal is a target with a bar */
-.drawer.otile.sh-goal,.drawer.otile.sh-dream{background:var(--paper-2);border-left:3px solid var(--c)}
+.drawer.otile.sh-goal,.drawer.otile.sh-dream{background:var(--paper-2)}
 .drawer.otile.sh-goal::after{content:"";position:absolute;left:10px;right:10px;bottom:10px;height:5px;
   border-radius:99px;background:linear-gradient(90deg,var(--c) var(--pct,30%),rgba(0,0,0,.10) var(--pct,30%))}
-.drawer.otile.sh-dream{border-style:dashed;border-left-style:solid;opacity:.96}
+.drawer.otile.sh-dream{border-style:dashed;opacity:.96}
 .drawer.otile.sh-dream::after{content:"";position:absolute;right:8px;top:8px;width:14px;height:14px;
   background:var(--c);opacity:.35;clip-path:polygon(50% 0,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%)}
 /* an achievement is a plaque */
@@ -623,8 +623,9 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
 .drawer.otile{
   background:var(--paper-2);border-color:var(--rule);
   --dink:var(--ink);--dink-2:var(--ink-2);--dink-3:var(--ink-3);
-  border-left:3px solid var(--c);
 }
+/* a coloured edge is a choice, not a default */
+.drawer.otile.edge{border-left:3px solid var(--c)}
 .drawer.otile:hover{filter:none;box-shadow:var(--shadow-lg)}
 .drawer.otile .dname{font-family:var(--sans);font-size:13.5px;font-weight:600;white-space:normal;
   overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
@@ -693,7 +694,7 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
 }
 /* A question is a speech bubble, with a tail */
 .drawer.otile.sh-bubble{
-  border-radius:12px 12px 12px 2px;background:var(--paper-2);border-left:3px solid var(--c);
+  border-radius:12px 12px 12px 2px;background:var(--paper-2);
 }
 .drawer.otile.sh-bubble{border-left:1px solid var(--rule);clip-path:none}
 .drawer.otile.sh-bubble::after{
@@ -808,7 +809,7 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
 /* Bureau's own buttons, living on the desk */
 .drawer.ctile{
   background:var(--paper-2);border-color:var(--rule);align-items:center;justify-content:center;
-  gap:5px;--dink:var(--ink);color:var(--ink-2);border-left:3px solid var(--c);
+  gap:5px;--dink:var(--ink);color:var(--ink-2);
 }
 .drawer.ctile:hover{filter:none;border-color:var(--brass);color:var(--ink)}
 .ctile .cico{color:var(--c);display:grid;place-items:center}
@@ -2255,7 +2256,7 @@ function gridTile(o, arr, parentId){
   if(has(o,'price')&&o.price) bits.push(esc(o.price));
   if(has(o,'location')&&o.loc) bits.push(esc(o.loc));
 
-  return `<button class="drawer otile sh-${shapeOf(o)}${sel}${o.prio?' prio-'+o.prio:''}" data-row="${o.id}"
+  return `<button class="drawer otile sh-${shapeOf(o)}${o.edge?' edge':''}${sel}${o.prio?' prio-'+o.prio:''}" data-row="${o.id}"
     style="--c:${colour};${has(o,'progress')?`--pct:${goalPct(o)}%;`:''}${place}">
     ${chips}
     <div class="dtop">
@@ -3076,6 +3077,8 @@ function objectPanel(id){
       `<button class="pchip${o.kind===k?' on':''}" data-otype="${k}" data-id="${id}">${KINDS[k].nm}</button>`).join(''))}
     ${row('Shape', Object.entries(SHAPES).map(([v,n])=>
       `<button class="pchip${shapeOf(o)===v?' on':''}" data-oshape="${v}" data-id="${id}">${n}</button>`).join(''))}
+    ${row('Edge', [['','None'],['1','Coloured']].map(([v,n])=>
+      `<button class="pchip${(!!o.edge===!!v)?' on':''}" data-oedge="${v}" data-id="${id}">${n}</button>`).join(''))}
     ${row('Clicking it', Object.entries(CLICKS).map(([v,n])=>
       `<button class="pchip${clickOf(o)===v?' on':''}" data-oclick="${v}" data-id="${id}">${n}</button>`).join(''))}
     ${row('Colour', `<div class="pickgrid sw">${paletteNow().cols.map(c=>
@@ -3225,7 +3228,10 @@ function previewObject(){
     shape: cont?undefined:(d.shape||'card'),
     face:  cont?(d.face||'front'):undefined,
     c:d.c, parent:ROOT, tags:[], ord:0, created:T,
-    desk:{x:1,y:1,w:d.size[0],h:d.size[1]}, phone:null,
+    // both layouts, or lay() reads the empty one on a phone-width window and
+    // ensureBox quietly fills it from the fallback kind's size instead
+    desk:{x:1,y:1,w:d.size[0],h:d.size[1]},
+    phone:{x:1,y:1,w:d.size[0],h:d.size[1]},
     onclick:d.onclick, spawnBy:d.spawnBy, genKind:'task', genDir:'down',
     due:T, count:12, rating:4, prio:'high', price:'12.50', dur:45, loc:'The shed',
     done:false, history:[T], milestones:[{t:'One',done:true},{t:'Two',done:false}],
@@ -3236,7 +3242,7 @@ function previewObject(){
 function renderPreview(){
   const host=$('#kpreview'); if(!host) return;
   const o=previewObject(); if(!o) return;
-  const [w,h]=[o.desk.w,o.desk.h];
+  const b=o[dev()]||o.desk, [w,h]=[b.w,b.h];
   const cell=Math.max(9, Math.min(300/w, 190/h));
   host.innerHTML=`<div class="grid g-desk pvgrid"
       style="--cols:${w};--rowh:${cell}px;--checker:${2*cell}px;
@@ -4271,7 +4277,7 @@ function wire(){
     const dtg=t.closest('[data-dtag]');
     if(dtg){ $('#modal')._draft.tag=dtg.dataset.dtag; $$('#dtag .fchip').forEach(b=>b.classList.remove('on')); dtg.classList.add('on'); return; }
 
-    const pn=t.closest('[data-pview],[data-pface],[data-psort],[data-plock],[data-pborder],[data-pknob],[data-pcolour],[data-pboard],[data-pknobc],[data-pknobtone],[data-pknobpos],[data-ptexture],[data-otype],[data-oclick],[data-oshape],[data-ocolour],[data-oframe],[data-obtn],[data-ogen],[data-ogendir]');
+    const pn=t.closest('[data-pview],[data-pface],[data-psort],[data-plock],[data-pborder],[data-pknob],[data-pcolour],[data-pboard],[data-pknobc],[data-pknobtone],[data-pknobpos],[data-ptexture],[data-otype],[data-oclick],[data-oshape],[data-oedge],[data-ocolour],[data-oframe],[data-obtn],[data-ogen],[data-ogendir]');
     if(pn){
       const id=pn.dataset.id, c=cfgOf(id), o=byId(id);
       if(pn.dataset.pview!=null) c.layout=pn.dataset.pview;
@@ -4289,6 +4295,7 @@ function wire(){
       else if(o && pn.dataset.otype!=null){ o.kind=pn.dataset.otype; o.attrs=null; }
       else if(o && pn.dataset.oclick!=null) o.onclick=pn.dataset.oclick;
       else if(o && pn.dataset.oshape!=null) o.shape=pn.dataset.oshape;
+      else if(o && pn.dataset.oedge!=null) o.edge=!!pn.dataset.oedge;
       else if(o && pn.dataset.ocolour!=null) o.c=pn.dataset.ocolour;
       else if(o && pn.dataset.oframe!=null) o.frame=pn.dataset.oframe;
       else if(o && pn.dataset.obtn!=null) o.btnshape=pn.dataset.obtn;
