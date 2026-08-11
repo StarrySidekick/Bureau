@@ -2256,7 +2256,7 @@ function gridTile(o, arr, parentId){
   if(has(o,'price')&&o.price) bits.push(esc(o.price));
   if(has(o,'location')&&o.loc) bits.push(esc(o.loc));
 
-  return `<button class="drawer otile sh-${shapeOf(o)}${o.edge?' edge':''}${sel}${o.prio?' prio-'+o.prio:''}" data-row="${o.id}"
+  return `<button class="drawer otile sh-${shapeOf(o)}${o.edge?' edge':''}${sel}${has(o,'priority')&&o.prio?' prio-'+o.prio:''}" data-row="${o.id}"
     style="--c:${colour};${has(o,'progress')?`--pct:${goalPct(o)}%;`:''}${place}">
     ${chips}
     <div class="dtop">
@@ -3233,8 +3233,16 @@ function previewObject(){
     desk:{x:1,y:1,w:d.size[0],h:d.size[1]},
     phone:{x:1,y:1,w:d.size[0],h:d.size[1]},
     onclick:d.onclick, spawnBy:d.spawnBy, genKind:'task', genDir:'down',
-    due:T, count:12, rating:4, prio:'high', price:'12.50', dur:45, loc:'The shed',
-    done:false, history:[T], milestones:[{t:'One',done:true},{t:'Two',done:false}],
+    ...(d.attrs.includes('date')     ? {due:T} : {}),
+    ...(d.attrs.includes('count')    ? {count:12} : {}),
+    ...(d.attrs.includes('rating')   ? {rating:4} : {}),
+    ...(d.attrs.includes('priority') ? {prio:'high'} : {}),
+    ...(d.attrs.includes('price')    ? {price:'12.50'} : {}),
+    ...(d.attrs.includes('duration') ? {dur:45} : {}),
+    ...(d.attrs.includes('location') ? {loc:'The shed'} : {}),
+    ...(d.attrs.includes('streak')   ? {history:[T]} : {history:[]}),
+    ...(d.attrs.includes('progress') ? {milestones:[{t:'One',done:true},{t:'Two',done:false}]} : {milestones:[]}),
+    done:false,
     link:{label:(nameEl&&nameEl.value.trim())||'Press', target:''},
     knob:'round', border:'panel', texture:'none', layout:'list'
   };
