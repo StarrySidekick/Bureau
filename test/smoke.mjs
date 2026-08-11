@@ -126,6 +126,88 @@ const URL = process.env.BUREAU_URL || 'http://127.0.0.1:8000/index.html';
   });
   await shot('10-desk-board');
 
+  // the holdArms tap opened a drawer; the rest of the checks live on the desk
+  await page.evaluate(() => { BUREAU.state.view = 'desk'; BUREAU.state.drawerId = null; BUREAU.render(); });
+  await page.waitForTimeout(250);
+
+  // --- the paste bridge: JSON in, a drawer with its children on the desk out
+  const pasteOk = await page.evaluate(() => {
+    const before = BUREAU.state.objects.length;
+    BUREAU.paste(JSON.stringify([
+      { type: 'drawer', title: 'Lisbon', children: [
+        { type: 'task', title: 'Book the flight', due: '2026-09-02' }, 'Milk' ] }
+    ]));
+    const d = BUREAU.state.objects.find(o => o.title === 'Lisbon');
+    const t = BUREAU.state.objects.find(o => o.title === 'Book the flight');
+    const m = BUREAU.state.objects.find(o => o.title === 'Milk');
+    return !!(d && t && m && t.parent === d.id && m.parent === d.id
+      && t.kind === 'task' && m.kind === 'task'      // a bare string is a task
+      && t.due === '2026-09-02'
+      && BUREAU.state.objects.length === before + 3);
+  });
+
+  // --- magic rules: a magic drawer collects by rule, and completed things
+  // leave their own drawer for the archive (decisions 15 and 2)
+  const magicOk = await page.evaluate(() => {
+    const S = BUREAU.state;
+    const q = S.objects.find(o => o.kind === 'question' && !o.done);
+    const done = S.objects.find(o => o.done && !BUREAU.K[o.kind].attrs.includes('container'));
+    return !!(q && BUREAU.kids('d_open').includes(q.id)       // collected by kind rule
+      && done && BUREAU.kids('d_done').includes(done.id)      // the archive collects it
+      && !BUREAU.kids(done.parent).includes(done.id));        // and its drawer lets it go
+  });
+
+  // --- rollups: a drawer totalling its children shows the number on its front
+  const rollupOk = await page.evaluate(() => {
+    const d = BUREAU.state.objects.find(o => o.title === 'Lisbon');
+    d.roll = { fn: 'count' };
+    BUREAU.render();
+    const el = document.querySelector(`[data-drawer="${d.id}"] .rollup`);
+    return !!el && el.textContent.trim() === '2';
+  });
+
+  // --- relations: stored once on one side, and the backlink is found by asking
+  const relationsOk = await page.evaluate(() => {
+    const S = BUREAU.state;
+    const a = S.objects.find(o => o.title === 'Book the flight');
+    const b = S.objects.find(o => o.title === 'Milk');
+    BUREAU.relate(a.id, b.id);
+    BUREAU.relate(a.id, b.id);                       // relating twice stores once
+    const back = S.objects.filter(o => (o.rel || []).includes(b.id)).map(o => o.id);
+    return a.rel.length === 1 && a.rel[0] === b.id
+      && back.length === 1 && back[0] === a.id;
+  });
+
+  // --- group move: dragging one member of a selection moves the lot, keeping
+  // their relative positions
+  const groupMove = await page.evaluate(async () => {
+    const S = BUREAU.state;
+    S.sel = ['d_open', 'd_keep']; BUREAU.render();
+    await new Promise(r2 => setTimeout(r2, 150));
+    const t = document.querySelector('.grid .drawer[data-drawer="d_open"]');
+    const grid = document.querySelector('#drawergrid');
+    const cell = parseFloat(getComputedStyle(grid).getPropertyValue('--rowh'));
+    const r = t.getBoundingClientRect();
+    const x = r.x + r.width / 2, y = r.y + r.height / 2;
+    const ev = (type, cx, cy) => t.dispatchEvent(new PointerEvent(type,
+      { bubbles: true, clientX: cx, clientY: cy, pointerId: 7, isPrimary: true }));
+    const dv = S.device;
+    const before = { open: { ...S.objects.find(o => o.id === 'd_open')[dv] },
+                     keep: { ...S.objects.find(o => o.id === 'd_keep')[dv] } };
+    ev('pointerdown', x, y);
+    await new Promise(r2 => setTimeout(r2, 320));     // the hold arms the drag
+    ev('pointermove', x, y + cell * 6);
+    ev('pointermove', x, y + cell * 6);
+    ev('pointerup', x, y + cell * 6);
+    await new Promise(r2 => setTimeout(r2, 150));
+    const after = { open: S.objects.find(o => o.id === 'd_open')[dv],
+                    keep: S.objects.find(o => o.id === 'd_keep')[dv] };
+    S.sel = []; BUREAU.render();
+    return after.open.y === before.open.y + 6 && after.keep.y === before.keep.y + 6
+        && after.open.x === before.open.x && after.keep.x === before.keep.x;
+  });
+  await shot('11-new-systems');
+
   // ids must be unique — a collision made byId() return the wrong object, so
   // dragging one tile moved another and new objects were immovable
   const dupIds = await page.evaluate(() => {
@@ -136,7 +218,8 @@ const URL = process.env.BUREAU_URL || 'http://127.0.0.1:8000/index.html';
 
   console.log(JSON.stringify({
     errors: errs, manifestOk, swReady, survived, themeSurvived,
-    gridClass, offlineWorks, railGone, tabbarShown, holdArms, maxDrift, dupIds
+    gridClass, offlineWorks, railGone, tabbarShown, holdArms, maxDrift,
+    pasteOk, magicOk, rollupOk, relationsOk, groupMove, dupIds
   }, null, 2));
   await browser.close();
 })();

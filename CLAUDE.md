@@ -14,16 +14,17 @@ Obsidian (for what to avoid — infinite nesting and file soup).
 
 ## Current state
 
-A working, installable PWA in `web/`. Single-file app, ~1,770 lines of hand-written
-HTML/CSS/JS, no build step, no dependencies, no framework. It runs on iPhone and
-Mac, persists to local storage, and works offline.
+A working, installable PWA in `web/`. Hand-written HTML/CSS/JS split into ES
+modules (`web/js/`) and two stylesheets (`web/css/`) — still no build step, no
+dependencies, no framework, no bundler. It runs on iPhone and Mac, persists to
+local storage, and works offline.
 
 Everything in the requirements list is implemented **except** video and audio
 files (images are real) and sync between devices (export/import JSON is the
 bridge).
 
 **Start here each session:** `docs/ROADMAP.md` holds the current plan in
-dependency order — item 1 (module split) before anything else. `docs/SPEC.md`
+dependency order — item 1 (the module split) is done. `docs/SPEC.md`
 is currently stale (roadmap item 4); trust `docs/OBJECT-MODEL.md` and
 `docs/STYLES.md` over it.
 
@@ -55,37 +56,40 @@ it — `.github/workflows/pages.yml` uploads `web/` as the Pages artifact. Pages
 branch mode can only serve the repo root or `docs/`, and `docs/` is the written
 documentation, hence the workflow.
 
-After changing `web/index.html`, bump `CACHE` in `web/sw.js` or installed copies
-will keep serving the old version from cache. This is the easiest thing in the
-project to forget and the symptom — "my change didn't deploy" — points at the
-wrong culprit.
+After changing anything in `web/` (any `js/` or `css/` file, or `index.html`),
+bump `CACHE` in `web/sw.js` or installed copies will keep serving the old
+version from cache. A **new** file must also be added to `SHELL` in `sw.js` or
+it won't work offline. This is the easiest thing in the project to forget and
+the symptom — "my change didn't deploy" — points at the wrong culprit.
 
 ## Layout of the code
 
-`web/index.html` is the whole app. One `<style>` block, one `<script>` block
-wrapped in an IIFE. The script is divided by numbered banner comments — find them
-with `grep -n "· " web/index.html`. In order:
+`web/index.html` is a thin shell: head, two stylesheet links, `#frame`, and one
+`<script type="module" src="js/boot.js">`. The app is ES modules in `web/js/`,
+loaded with no bundler. Imports are explicit and exports are the `export {…}`
+clause at the bottom of each file — that list is each module's public surface.
 
-| Section | What lives there |
+| Module | What lives there |
 | --- | --- |
-| 0 tiny helpers | `$`, `esc`, `uid`, and the `D` date object. All dates are `YYYY-MM-DD` strings in local time — never `Date` objects in state, never UTC. |
-| 1 icons | Inline SVG path strings, `ic(name, size)`. Add new icons to `P`. |
-| 2 ATTRS + KINDS | The attribute registry and the kinds built from it. **This is the heart of the app** — see below and `docs/OBJECT-MODEL.md`. |
-| 3 seed data | The sample desk a first-run user gets. Dates are relative to today. |
-| 4 state | `S`, plus `inContainer()`, `childrenOf()`, `streak()`, `goalPct()`. |
-| 4b grid + look | `GRID`, `lay()`, `boxOk()`, `freeSpot()`, `applyLook()`, and the colour palettes. Grid geometry lives here, not in the views. |
-| 5 markdown | ~35-line renderer. Headings, lists, checkboxes, quotes, bold/italic/code/links. Deliberately small. |
-| 6 mutations | `toggleDone`, `del`, `create`, `quickAdd`, repeat scheduling. |
-| 7–12b rendering | One function per view, each returning an HTML string. |
-| 13 tabbar | Phone tab bar. There is no sidebar — see decision 18. |
-| 14 main render | `render()` — replaces `#app`'s innerHTML wholesale. |
-| 15 detail sheet | `renderSheet()` — rendered into `#sheetHost`, **separately** from `render()`. |
-| 16–18 overlays | Modals, command palette (⌘K), context menu. |
-| 19 gestures | Pointer-based swipe and drag-reorder. The fiddliest code in the file. |
-| 19b persistence | localStorage read/write, JSON export/import, migrations. |
-| 19c assets | Image bytes in IndexedDB. Never in the JSON. |
-| 20 event wiring | One delegated listener set on `#frame`. All interaction routes through here. |
-| 21 boot | Load, wire, render, register the service worker. |
+| `util.js` | `$`, `esc`, `uid`, the `D` date object, icons (`ic`), markdown (`md`). All dates are `YYYY-MM-DD` strings in local time — never `Date` objects in state, never UTC. |
+| `model.js` | ATTRS + KINDS (**the heart of the app** — see below and `docs/OBJECT-MODEL.md`), seed data, `S`, `inContainer()`, `childrenOf()`, `streak()`, `goalPct()`, relations. |
+| `grid.js` | Grid geometry: `GRID`, `CELL`, `lay()`, `boxOk()`, `freeSpot()`, `ensureBox()`. Lives here, not in the views. |
+| `look.js` | Themes, palettes, Styles, `applyLook()`. |
+| `mutations.js` | `toggleDone`, `del`, `create`, `quickAdd`, repeat scheduling, `toast`. |
+| `tiles.js` | `gridTile()` — the one place that decides how an object looks on a grid — plus rows, cards, list bands, book/scroll entries, and what a click does (`tileTap`). |
+| `views.js` | One function per view, each returning an HTML string; `render()` replaces `#app`'s innerHTML wholesale, then saves. |
+| `sheet.js` | `renderSheet()` — rendered into `#sheetHost`, **separately** from `render()`. |
+| `panels.js` | Modals, side panels, command palette (⌘K), context menu. |
+| `gestures.js` | Pointer-based drag, resize, lasso, swipe. The fiddliest code in the app. |
+| `persist.js` | localStorage read/write, **versioned `MIGRATIONS`**, JSON export/import, IndexedDB image assets, the paste bridge. |
+| `wire.js` | One delegated listener set on `#frame`. All interaction routes through here — to add an action, add a `data-act` and a case in `act()`. |
+| `boot.js` | Entry point: load, wire, render, register the service worker, `window.BUREAU`. |
+
+The old numbered banner comments survive inside the files, so `grep -rn "· "
+web/js` still maps the territory. The import graph is deliberately cyclic at
+function level (views call tiles, tiles call views' `render`) — ES modules
+resolve this fine because nothing crosses a module boundary at load time. Keep
+it that way: no top-level code that *calls* another module.
 
 ## How to work in this codebase
 
@@ -96,7 +100,7 @@ host so that typing doesn't destroy the field you're typing in — respect that
 split.
 
 **Events are delegated, not bound.** Everything hangs off the listeners attached
-to `#frame` in section 20, dispatched on `data-*` attributes. To add an action,
+to `#frame` in `wire.js`, dispatched on `data-*` attributes. To add an action,
 add a `data-act="thing"` attribute and a case in `act()`. Don't attach listeners
 inside render functions — they'd leak on every re-render.
 
@@ -133,7 +137,7 @@ when you're editing the *other* device's layout from this one.
 - **The grid is a coordinate space, not a flow.** `x`/`y` are 1-based cells and
   array order positions nothing. There is no `grid-auto-flow` — an empty cell
   stays empty. Every move and resize goes through `boxOk()`, which refuses
-  anything that would overlap or leave the columns; see section 4b.
+  anything that would overlap or leave the columns; see `web/js/grid.js`.
 - **Cells are square and the row height is measured, never assumed.** Columns
   are fluid, so `sizeGrid()` reads the real column width after layout and caches
   it in `CELL`. Don't hardcode a row height — `GRID` deliberately has none.
@@ -155,7 +159,7 @@ when you're editing the *other* device's layout from this one.
 - **Clicking an object is configurable** — `clickOf()`, per object then per
   kind: nothing, read, edit, or tick. The editor is no longer the default; it is
   on the context menu. Don't add a code path that opens the editor on click.
-- **Image bytes live in IndexedDB, never in the JSON.** Section 19c. `snapshot()`
+- **Image bytes live in IndexedDB, never in the JSON.** The assets half of `persist.js`. `snapshot()`
   strips `media.src`; `hydrateAssets()` puts it back after a load. If you add a
   new place that writes objects to storage, it has to strip too.
 - **Drawer fronts are solid mid-dark colours** and everything inside them reads
@@ -183,7 +187,7 @@ when you're editing the *other* device's layout from this one.
 - **Storage may throw.** Private browsing and quota exhaustion both fail. Every
   storage call is already wrapped; keep it that way, and never let a failed save
   take down the render.
-- **No `localStorage` access outside section 19b.** All of it goes through
+- **No `localStorage` access outside `persist.js`.** All of it goes through
   `save()` / `load()` / `snapshot()` so the schema stays in one place.
 
 ## Style

@@ -1,0 +1,288 @@
+import { $, $$, clamp, ROOT } from './util.js';
+import { S, byId, dev, has, isAncestor, childrenOf, container } from './model.js';
+import { CELL, gridOf, cellW, lay, boxOk, overlaps } from './grid.js';
+import { toast, del, toggleDone } from './mutations.js';
+import { pending, tileTap, fireButton } from './tiles.js';
+import { openObj } from './sheet.js';
+import { modalNewObject } from './panels.js';
+import { render } from './views.js';
+import { save } from './persist.js';
+
+/* ============================================================
+   19 · gestures: swipe + drag reorder
+   ============================================================ */
+let G=null;
+let holdTimer=null, holdFrom=null;
+// any real movement, or letting go, means it was not a press-and-hold
+function cancelHold(e){
+  if(!holdTimer) return;
+  if(e && holdFrom && Math.abs(e.clientX-holdFrom.x)<6 && Math.abs(e.clientY-holdFrom.y)<6) return;
+  clearTimeout(holdTimer); holdTimer=null;
+}
+
+
+/* Where a move/resize would land, in grid cells. Dragging an edge moves that
+   edge only; dragging a corner moves both of its edges — same as a window. */
+function candidate(g, cx, cy){
+  const b=g.box, hd=g.handle;
+  if(g.type==='move') return {x:b.x+cx, y:b.y+cy, w:b.w, h:b.h};
+  let x=b.x, y=b.y, w=b.w, h=b.h;
+  if(hd.includes('e')) w=b.w+cx;
+  if(hd.includes('w')){ x=b.x+cx; w=b.w-cx; }
+  if(hd.includes('s')) h=b.h+cy;
+  if(hd.includes('n')){ y=b.y+cy; h=b.h-cy; }
+  if(w<1){ if(hd.includes('w')) x=b.x+b.w-1; w=1; }   // never invert the box
+  if(h<1){ if(hd.includes('n')) y=b.y+b.h-1; h=1; }
+  return {x,y,w,h};
+}
+function place(el, b){
+  el.style.gridColumn=`${b.x} / span ${b.w}`;
+  el.style.gridRow=`${b.y} / span ${b.h}`;
+}
+
+function onDown(e){
+  if(e.button===2) return;
+  const app=$('#app');
+  // Any tile on any unlocked grid. There is no arrange mode — everything is
+  // always movable — so a short hold arms the drag, which is the only thing
+  // keeping an ordinary click from picking the tile up.
+  // bare grid: start sketching a box for a new object
+  if(e.target.classList && e.target.classList.contains('grid') && !e.target.classList.contains('locked')){
+    const grid=e.target, g=gridOf(), r=grid.getBoundingClientRect(), cw=cellW(grid,g);
+    const cx=clamp(Math.floor((e.clientX-r.left)/(cw+g.gap))+1, 1, g.cols);
+    const cy=Math.max(1, Math.floor((e.clientY-r.top)/(CELL[dev()]+g.gap))+1);
+    G={type:'sketch', grid, parent:grid.dataset.gridfor||ROOT, x0:cx, y0:cy,
+       stepX:cw+g.gap, stepY:CELL[dev()]+g.gap, sx:e.clientX, sy:e.clientY, mode:null,
+       add:e.shiftKey||e.metaKey||e.ctrlKey, hits:[]};
+    return;
+  }
+  // a tick, a counter or a button inside a tile is its own target
+  // A tick or a counter is its own target. A button tile carries data-fire on
+  // the tile itself, so only its face counts — otherwise the whole thing would
+  // be undraggable.
+  if(e.target.closest('[data-check],.cntnum')) return;
+  const dEl=e.target.closest('.grid .drawer[data-drawer],.grid .drawer[data-row],.grid .drawer[data-id]');
+  if(dEl && dEl.closest('.grid.sorted')){
+    toast('Sorted drawers arrange themselves — switch to Custom to move things');
+    return;
+  }
+  if(dEl && !dEl.closest('.grid.locked')){
+    const grid=dEl.closest('.grid');
+    const d=byId(dEl.dataset.drawer||dEl.dataset.row||dEl.dataset.id);
+    if(!d || !grid) return;
+    const hEl=e.target.closest('[data-rz]'), g=gridOf();
+    G={type: hEl?'resize':'move', el:dEl, id:d.id, handle:hEl?hEl.dataset.rz:null,
+       armed:!!hEl,                 // a corner grip drags at once; a tile waits
+       startedOnFace:!!e.target.closest('.btnface'),
+       // dragging any member of a selection moves the lot, keeping their
+       // relative positions — the offsets are captured up front
+       group: (S.sel.includes(d.id) && S.sel.length>1)
+         ? S.sel.map(byId).filter(Boolean).map(o=>({id:o.id, box:lay(o)})) : null,
+       parent:grid.dataset.gridfor||ROOT,
+       box:lay(d), stepX:cellW(grid,g)+g.gap, stepY:g.rowh+g.gap,
+       sx:e.clientX, sy:e.clientY, mode:null, ok:true, cand:null};
+    try{ dEl.setPointerCapture&&dEl.setPointerCapture(e.pointerId); }catch(_){}
+    if(!G.armed){
+      const g=G;
+      holdTimer=setTimeout(()=>{
+        holdTimer=null;
+        if(G!==g) return;
+        G.armed=true;
+        G.el.classList.add('lifted');
+        if(navigator.vibrate) navigator.vibrate(6);
+      }, 200);
+      holdFrom={x:e.clientX,y:e.clientY};
+    }
+    return;
+  }
+  const rEl=e.target.closest('.row[data-row]');
+  if(!rEl) return;
+  if(e.target.closest('[data-check],[data-del],[data-menu],[data-habit]')) return;
+  const list=rEl.closest('.rows');
+  const canDrag = e.pointerType==='mouse' || (list&&list.classList.contains('reordering'));
+  G={type:'row', el:rEl, wrap:rEl.parentElement, sx:e.clientX, sy:e.clientY, mode:null, canDrag, t:Date.now()};
+  try{ rEl.setPointerCapture&&rEl.setPointerCapture(e.pointerId); }catch(_){}
+}
+function onMove(e){
+  cancelHold(e);
+  if(!G) return;
+  const dx=e.clientX-G.sx, dy=e.clientY-G.sy;
+
+  if(G.type==='sketch'){
+    if(!G.mode){
+      if(Math.abs(dx)<6 && Math.abs(dy)<6) return;
+      G.mode='sketch';
+      G.ghost=document.createElement('div');
+      G.ghost.className='ghost';
+      G.grid.appendChild(G.ghost);
+    }
+    const cx=G.x0+Math.round(dx/G.stepX), cy=G.y0+Math.round(dy/G.stepY);
+    const box={x:Math.min(G.x0,cx), y:Math.min(G.y0,cy),
+               w:Math.abs(cx-G.x0)+1, h:Math.abs(cy-G.y0)+1};
+    G.cand=box;
+    /* Anything the rubber band touches becomes the selection. If it touches
+       nothing, the same drag is sketching the size of a new object — which is
+       what stopped the two gestures from fighting each other. */
+    const hits=childrenOf(container(G.parent)).filter(o=>overlaps(box, lay(o)));
+    G.hits=hits.map(o=>o.id);
+    G.ok = !hits.length && boxOk(box,null,dev(),G.parent);
+    G.ghost.className='ghost band'+(hits.length?' picking':(G.ok?'':' bad'));
+    place(G.ghost, box);
+    $$('.grid .drawer').forEach(el=>{
+      const id=el.dataset.row||el.dataset.drawer||el.dataset.id;
+      el.classList.toggle('selected', G.hits.includes(id));
+    });
+    return;
+  }
+
+  if(G.type==='move' || G.type==='resize'){
+    if(!G.armed) return;             // still waiting out the hold
+    if(!G.mode){
+      if(Math.abs(dx)<5 && Math.abs(dy)<5) return;
+      G.mode='grid';
+      G.el.classList.add('dragging');
+      // the tile follows the pointer, so it has to stop being hit-testable or
+      // elementFromPoint only ever finds the thing being dragged
+      if(G.type==='move') G.el.style.pointerEvents='none';
+      if(G.type==='move'){
+        G.ghost=document.createElement('div');
+        G.ghost.className='ghost';
+        place(G.ghost, G.box);
+        G.el.parentElement.appendChild(G.ghost);
+      }
+    }
+    const cx=Math.round(dx/G.stepX), cy=Math.round(dy/G.stepY);
+    const box=candidate(G, cx, cy);
+    G.cand=box;
+    if(G.group){
+      // the whole set has to land legally, and only collisions with objects
+      // outside the set count
+      const ids=G.group.map(g2=>g2.id);
+      const moved=G.group.map(g2=>({id:g2.id, box:{x:g2.box.x+cx, y:g2.box.y+cy, w:g2.box.w, h:g2.box.h}}));
+      G.moved=moved;
+      const g0=gridOf();
+      G.ok = moved.every(m=>m.box.x>=1 && m.box.y>=1 && m.box.x+m.box.w-1<=g0.cols)
+        && !childrenOf(container(G.parent)).some(o=>!ids.includes(o.id) &&
+             moved.some(m=>overlaps(m.box, lay(o))));
+    } else {
+      G.ok = boxOk(box, G.id, dev(), G.parent);
+    }
+    G.el.classList.toggle('invalid', !G.ok);
+    if(G.type==='move'){
+      G.el.style.transform=`translate(${dx}px,${dy}px)`;
+      if(G.group) G.group.forEach(g2=>{
+        if(g2.id===G.id) return;
+        const el=document.querySelector(`.grid .drawer[data-row="${g2.id}"],.grid .drawer[data-drawer="${g2.id}"],.grid .drawer[data-id="${g2.id}"]`);
+        if(el){ el.style.transform=`translate(${dx}px,${dy}px)`; el.style.zIndex=49; }
+      });
+      // a drawer under the pointer is a place to file into, not a collision
+      const under=document.elementFromPoint(e.clientX,e.clientY);
+      const over=under && under.closest('.grid .drawer[data-drawer]');
+      const overId=over && over.dataset.drawer;
+      const canDrop = !G.group && overId && overId!==G.id && !isAncestor(G.id, byId(overId)) && !has(byId(overId),'magic');
+      if(G.dropOn && G.dropOn!==overId){ const p=document.querySelector(`[data-drawer="${G.dropOn}"]`); p&&p.classList.remove('dropinto'); }
+      G.dropOn = canDrop ? overId : null;
+      if(G.dropOn) over.classList.add('dropinto');
+      G.ghost.className='ghost'+(G.dropOn?' hidden':(G.ok?'':' bad'));
+      place(G.ghost, box);
+    } else {
+      place(G.el, box);            // live resize, like dragging a window edge
+    }
+    return;
+  }
+
+  if(!G.mode){
+    if(Math.abs(dx)<7 && Math.abs(dy)<7) return;
+    if(Math.abs(dx)>Math.abs(dy)){ G.mode='swipe'; G.wrap.classList.add('swiping'); }
+    else if(G.canDrag){ G.mode='drag'; G.wrap.classList.add('dragging'); G.wrap.style.opacity='.35'; G.wrap.style.pointerEvents='none'; }
+    else { G.mode='none'; }
+  }
+  if(G.mode==='swipe'){ G.el.style.transform=`translateX(${clamp(dx,-140,140)}px)`; }
+  else if(G.mode==='drag'){
+    const under=document.elementFromPoint(e.clientX,e.clientY);
+    if(!under) return;
+    const t=under.closest('.rowwrap');
+    if(t&&t!==G.wrap){ const p=t.parentElement, before=t.compareDocumentPosition(G.wrap)&Node.DOCUMENT_POSITION_FOLLOWING;
+      p.insertBefore(G.wrap, before? t : t.nextSibling); }
+  }
+}
+function onUp(e){
+  if(holdTimer){ clearTimeout(holdTimer); holdTimer=null; }
+  if(!G) return;
+  const g=G; G=null;
+  const dx=e.clientX-g.sx;
+
+  if(g.type==='sketch'){
+    if(g.ghost) g.ghost.remove();
+    if(g.hits && g.hits.length){        // it was a lasso, not a sketch
+      S.sel = g.add ? [...new Set([...S.sel, ...g.hits])] : g.hits;
+      render();
+      return;
+    }
+    if(S.sel.length){ S.sel=[]; render(); return; }   // a click on bare board clears
+    pending.cell = g.mode==='sketch' && g.ok
+      ? {x:g.cand.x, y:g.cand.y, w:g.cand.w, h:g.cand.h, parent:g.parent}
+      : {x:g.x0, y:g.y0, parent:g.parent};
+    modalNewObject();
+    return;
+  }
+
+  if(g.mode==='grid'){
+    g.el.classList.remove('dragging','invalid','lifted');
+    g.el.style.transform=''; g.el.style.pointerEvents='';
+    if(g.group) g.group.forEach(g2=>{
+      const el=document.querySelector(`.grid .drawer[data-row="${g2.id}"],.grid .drawer[data-drawer="${g2.id}"],.grid .drawer[data-id="${g2.id}"]`);
+      if(el){ el.style.transform=''; el.style.zIndex=''; }
+    });
+    if(g.ghost) g.ghost.remove();
+    $$('.dropinto').forEach(e2=>e2.classList.remove('dropinto'));
+    const d=byId(g.id);
+    if(d && g.dropOn){
+      const into=byId(g.dropOn);
+      d.parent=g.dropOn; d[dev()]=null;      // it will be placed inside on first render
+      save(); render();
+      const el=document.querySelector(`[data-drawer="${g.dropOn}"]`);
+      if(el){ el.classList.add('swallow'); setTimeout(()=>el.classList.remove('swallow'),420); }
+      toast(`Filed in ${into?into.title:'the drawer'}`);
+      return;
+    }
+    if(d && g.moved && g.ok) g.moved.forEach(m=>{ const o=byId(m.id); if(o) o[dev()]={...m.box}; });
+    else if(d && g.cand && g.ok) d[dev()]={...g.cand};
+    save(); render();
+    if(d && g.cand && !g.ok) toast('No room there');
+    return;
+  }
+
+  if(g.mode==='swipe'){
+    g.wrap.classList.remove('swiping');
+    const id=g.el.dataset.row;
+    if(dx<-72){ g.el.style.transform='translateX(-100%)'; setTimeout(()=>del(id),140); return; }
+    if(dx>72){ g.el.style.transform='translateX(100%)'; setTimeout(()=>toggleDone(id),140); return; }
+    g.el.style.transform='';
+    return;
+  }
+  if(g.mode==='drag'){
+    g.wrap.classList.remove('dragging'); g.wrap.style.opacity=''; g.wrap.style.pointerEvents='';
+    const list=g.wrap.parentElement;
+    $$('[data-wrap]',list).forEach((el,i)=>{ const o=byId(el.dataset.wrap); if(o) o.ord=i; });
+    toast('Order saved');
+    render(); return;
+  }
+  if(g.el) g.el.classList.remove('lifted');
+  if(g.mode===null && Math.abs(dx)<7){
+    // a tap
+    if(g.type==='move'||g.type==='resize'){
+      // a tap on a button's face fires it; anywhere else follows the type
+      const o=byId(g.id);
+      if(o && has(o,'button') && g.startedOnFace) fireButton(o); else tileTap(g.id);
+    }
+    else if(g.type==='row') openObj(g.el.dataset.row);
+  }
+}
+
+function onCancel(){
+  if(holdTimer){ clearTimeout(holdTimer); holdTimer=null; }
+  if(G){ if(G.el){ G.el.style.transform=''; G.el.classList.remove('lifted','dragging','invalid'); } G=null; }
+}
+
+export { onDown, onMove, onUp, onCancel };

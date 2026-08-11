@@ -5,21 +5,21 @@ Sequenced by dependency, not appetite: item 1 makes everything after it safer.
 
 ---
 
-## 1. Module split — do this first, alone, in a fresh session
+## 1. Module split — DONE (2026-08-11, v30)
 
-`web/index.html` is ~4,700 lines; decision 7 set the ceiling at ~3,000. The
-last several regressions were caused by global find-replace editing, which the
-size forces. Split into `<script type="module">` files (still no bundler):
-state/model · grid geometry · tile rendering · panels/modals · gestures ·
-persistence/migrations. While in there:
+`web/index.html` is now a thin shell over thirteen ES modules in `web/js/` and
+two stylesheets in `web/css/` — still no bundler. Largest file is ~625 lines
+(`wire.js`). Also done in the same pass:
 
-- consolidate `adopt()`'s ad-hoc per-load mutations into ordered, versioned
-  `MIGRATIONS` steps run once each
-- add smoke assertions for the newest systems: paste bridge, magic rules,
-  rollups, relations, group move
+- `adopt()`'s ad-hoc per-load mutations are now ordered, versioned `MIGRATIONS`
+  in `persist.js`, run once each and stamped into the snapshot's `v`
+  (`dedupeIds` stays an every-load repair, deliberately)
+- smoke assertions added for the paste bridge, magic rules, rollups,
+  relations, and group move
 
-*Done when:* app boots identically, smoke passes, no file over ~800 lines,
-and a deliberate change to one module can't touch another.
+The module map lives in CLAUDE.md. Note for later sessions: a *new* file in
+`web/` must be added to `SHELL` in `sw.js`, and any change still needs the
+`CACHE` bump.
 
 ## 2. The time layer
 

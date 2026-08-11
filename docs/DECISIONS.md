@@ -101,6 +101,11 @@ update, and can be read end to end in one sitting. It also drops into a native
 splitting into a few `<script type="module">` files (still no bundler) is the
 next move.
 
+*Status:* the file passed ~4,700 lines and the split happened (2026-08-11, v30):
+thirteen ES modules in `web/js/`, two stylesheets in `web/css/`, no bundler,
+still zero dependencies. "No dependencies, no build step" stands; "one file"
+served its purpose and was retired exactly as this entry planned.
+
 ---
 
 ### 8. Full re-render on every change

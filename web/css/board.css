@@ -1,0 +1,480 @@
+/* Bureau — stylesheet, part 1 of 2.
+   Split by load order only, to keep each file under ~800 lines: board.css
+   loads first, chrome.css second, and later rules deliberately override
+   earlier ones. Don't alphabetise, don't merge "duplicate" selectors, and
+   don't move rules between the files — order is load-bearing. */
+/* ============================================================
+   BUREAU — design tokens
+   ============================================================ */
+:root{
+  --paper:#E9E1CC;          /* parchment */
+  --paper-2:#F2ECDB;
+  --paper-3:#DCD2B9;
+  --felt:#C7BA9B;
+  --ink:#2A241C;
+  --ink-2:#6B6152;
+  --ink-3:#968B78;
+  --rule:rgba(42,36,28,.16);
+  --rule-2:rgba(42,36,28,.08);
+  --brass:#A9793F;
+  --brass-2:#D9B57C;
+  --shadow:0 1px 2px rgba(42,36,28,.13),0 6px 18px -10px rgba(42,36,28,.28);
+  --shadow-lg:0 2px 6px rgba(42,36,28,.16),0 22px 46px -20px rgba(42,36,28,.42);
+  --board-1:#EFEADA;        /* the board, light square */
+  --board-2:#DDE5CE;        /* the board, other square — a soft green */
+  --radius:5px;             /* UI chrome — pills, chips, fields */
+  --radius-d:3px;           /* drawers. A drawer front is not a rounded rect. */
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;
+  --sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Inter,system-ui,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+}
+html[data-theme="walnut"]{
+  --paper:#191510;
+  --paper-2:#231E18;
+  --paper-3:#2E2820;
+  --felt:#3A3228;
+  --ink:#F0E8D9;
+  --ink-2:#A29786;
+  --ink-3:#7A7062;
+  --rule:rgba(240,232,217,.14);
+  --rule-2:rgba(240,232,217,.07);
+  --brass:#D7AE72;
+  --brass-2:#8A6A3C;
+  --shadow:0 1px 2px rgba(0,0,0,.5),0 10px 30px -14px rgba(0,0,0,.8);
+  --shadow-lg:0 2px 8px rgba(0,0,0,.55),0 40px 70px -28px rgba(0,0,0,.9);
+  --board-1:#201B14;
+  --board-2:#26221A;
+}
+/* Custom background/accent/outline are written as inline custom properties on
+   <html> by applyLook() in section 4b — an inline property beats any selector
+   here, so it overrides whichever theme is active without a third theme block. */
+
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  margin:0;background:var(--paper);color:var(--ink);overscroll-behavior:none;
+  font-family:var(--sans);font-size:14px;line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+  overflow:hidden;
+}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0}
+input,textarea{font:inherit;color:inherit}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:var(--rule);border-radius:10px;border:3px solid transparent;background-clip:padding-box}
+::-webkit-scrollbar-thumb:hover{background:var(--ink-3);background-clip:padding-box;border:3px solid transparent}
+
+/* ============================================================
+   App shell
+   ============================================================ */
+#frame{position:fixed;inset:0;display:flex;flex-direction:column;overflow:hidden;background:var(--paper)}
+.seg{display:flex;background:var(--paper-3);border-radius:9px;padding:2px;gap:2px}
+.seg button{padding:4px 11px;border-radius:7px;font-size:12px;color:var(--ink-2);font-weight:500;transition:.15s}
+.seg button[aria-pressed="true"]{background:var(--paper-2);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.14)}
+.iconbtn{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;color:var(--ink-2);transition:.15s}
+.iconbtn:hover{background:var(--paper-3);color:var(--ink)}
+.banner{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:11px;font-size:12px;
+  background:color-mix(in srgb,var(--brass) 16%,transparent);color:var(--ink);margin-bottom:10px}
+.banner button{margin-left:auto;font-weight:600;color:var(--brass);white-space:nowrap}
+
+/* ============================================================
+   App shell
+   ============================================================ */
+.app{position:absolute;inset:0;display:flex;overflow:hidden;padding-top:env(safe-area-inset-top)}
+/* a drag must never turn into a text selection */
+.dragging-ui,.dragging-ui *{user-select:none!important}
+.navitem{
+  display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:9px;
+  color:var(--ink-2);font-size:13.5px;font-weight:500;transition:.12s;width:100%;text-align:left;
+}
+.navitem:hover{background:var(--paper-3);color:var(--ink)}
+.navitem.on{background:color-mix(in srgb,var(--brass) 15%, transparent);color:var(--ink)}
+.navitem .ico{width:17px;display:grid;place-items:center;color:var(--ink-3)}
+.navitem.on .ico{color:var(--brass)}
+.navitem .n{margin-left:auto;font-size:11.5px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.tagchip{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:20px;font-size:11.5px;
+  background:var(--paper-3);color:var(--ink-2);border:1px solid var(--rule-2)}
+.tagchip.on{background:color-mix(in srgb,var(--brass) 22%, transparent);color:var(--ink);border-color:transparent}
+.realtag{
+  position:relative;display:inline-flex;align-items:center;gap:6px;
+  padding:4px 10px 4px 20px;font-size:12px;color:#F8F3E6;
+  background:var(--brass);
+  clip-path:polygon(10px 0, 100% 0, 100% 100%, 10px 100%, 0 50%);
+}
+.realtag::before{content:"";position:absolute;left:11px;top:50%;transform:translateY(-50%);
+  width:4px;height:4px;border-radius:50%;background:rgba(0,0,0,.42)}
+.realtag b{cursor:pointer;opacity:.7;font-weight:400}
+.realtag b:hover{opacity:1}
+
+.main{flex:1;min-width:0;display:flex;flex-direction:column;position:relative;overflow:hidden}
+.topbar{
+  flex:0 0 auto;display:flex;align-items:center;gap:10px;padding:14px 22px 10px;
+}
+.is-phone .topbar{padding:12px 16px 8px}
+.topbar h1{font-family:var(--serif);font-size:26px;font-weight:600;margin:0;letter-spacing:.005em}
+.is-phone .topbar h1{font-size:23px}
+.topbar .sub{color:var(--ink-3);font-size:12.5px;margin-top:1px}
+.topbar .grow{flex:1}
+.pill{
+  display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:12.5px;
+  font-weight:500;background:var(--paper-2);border:1px solid var(--rule);color:var(--ink-2);transition:.15s;white-space:nowrap
+}
+.pill:hover{border-color:var(--brass);color:var(--ink)}
+.pill.solid{background:var(--ink);color:var(--paper);border-color:transparent}
+html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
+.pill.solid:hover{opacity:.9}
+.scroll{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:6px 22px 120px}
+.is-phone .scroll{padding:4px 14px 110px}
+/* the desk has no toolbar — the grid is the page */
+.deskscroll{padding:0 14px 120px}
+.is-phone .deskscroll{padding:0 10px 110px}
+/* reserve the scrollbar on both sides, or the grid sits off-centre */
+.scroll{scrollbar-gutter:stable both-edges}
+
+/* ---- the bar above every grid ---------------------------------------- */
+.gridbar{
+  flex:0 0 auto;display:flex;align-items:center;gap:10px;
+  padding:10px 14px 8px;
+}
+.is-phone .gridbar{padding:8px 10px 6px}
+.gridbar .where{display:flex;align-items:center;gap:7px;min-width:0;flex:1}
+.gridbar .here{font-family:var(--serif);font-size:17px;font-weight:600;letter-spacing:.005em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gridbar .trail{display:flex;align-items:center;gap:5px;min-width:0;font-size:13px;color:var(--ink-3)}
+.gridbar .trail b{font-weight:500;color:var(--ink-2);cursor:pointer;white-space:nowrap}
+.gridbar .trail b:hover{color:var(--brass)}
+.bartools{display:flex;align-items:center;gap:6px;flex:0 0 auto}
+.sqbtn{
+  width:30px;height:30px;border-radius:var(--radius);display:grid;place-items:center;
+  color:var(--ink-2);background:var(--paper-2);border:1px solid var(--rule);transition:.14s;
+}
+.sqbtn:hover{border-color:var(--brass);color:var(--ink)}
+
+/* ============================================================
+   Drawers grid
+   ============================================================ */
+/* Explicit x/y placement: every drawer names its column and row, so the grid is
+   a coordinate space, not a flow. No auto-flow — an empty cell stays empty. */
+/* Square cells: --rowh is set from the measured column width by sizeGrid(). */
+.grid{display:grid;gap:0;align-content:start;position:relative}
+.grid.g-desk{grid-template-columns:repeat(var(--cols,24),1fr);grid-auto-rows:var(--rowh,40px)}
+.grid.g-phone{grid-template-columns:repeat(var(--cols,16),1fr);grid-auto-rows:var(--rowh,21px)}
+
+.drawer{
+  position:relative;border-radius:var(--radius-d);overflow:hidden;text-align:left;
+  background:var(--c);
+  border:1px solid var(--line,rgba(0,0,0,.28));
+  box-shadow:var(--shadow);
+  transition:box-shadow .18s,filter .18s;
+  display:flex;flex-direction:column;padding:11px 13px;isolation:isolate;
+  /* Drawer fronts are solid mid-dark colours, so everything inside reads light. */
+  --dink:#F8F3E6;--dink-2:rgba(248,243,230,.76);--dink-3:rgba(248,243,230,.54);
+  color:var(--dink);
+}
+.drawer:hover{box-shadow:var(--shadow-lg);filter:brightness(1.07)}
+.drawer:active{filter:brightness(.96)}
+.drawer .dtop{display:flex;align-items:center;gap:7px}
+.drawer .swatch{display:none}
+.drawer .dname{font-family:var(--serif);font-size:15.5px;font-weight:600;letter-spacing:.005em;
+  color:var(--dink);white-space:normal;overflow-wrap:anywhere;overflow:hidden}
+.drawer .dcount{margin-left:auto;font-size:11px;color:var(--dink-2);font-variant-numeric:tabular-nums;
+  background:rgba(0,0,0,.20);border:1px solid rgba(255,255,255,.14);padding:1px 7px;border-radius:20px}
+.drawer .dbody{flex:1;min-height:0;margin-top:8px;overflow:hidden;position:relative}
+.drawer .dfoot{
+  margin-top:auto;padding-top:8px;display:flex;align-items:center;justify-content:center;
+}
+/* the knob sits in the middle of the front, like a real drawer pull */
+.drawer.dtile .dfoot{position:absolute;left:0;right:0;top:0;bottom:0;margin:0;padding:0;
+  align-items:center;justify-content:center;pointer-events:none}
+.drawer.dtile.knb-bottom .dfoot{top:auto;height:32%;bottom:0}
+.drawer.dtile .dtop{position:relative;z-index:2;align-items:flex-start;justify-content:center;padding-bottom:4px}
+/* The knob owns the middle of the front, so the name is capped at two lines
+   and sits above it. Capping *lines* rather than the box's height is what
+   keeps it from being sliced through the middle of a letter. */
+.drawer.dtile .dname{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;
+  overflow:hidden;line-height:1.22;text-align:center;width:100%}
+.drawer.h1{padding:9px 12px}
+.drawer.h1 .dbody{margin-top:5px}
+.drawer.h1 .dfoot{padding-top:5px}
+.drawer.h1 .pv-big{flex-direction:row;align-items:baseline;gap:7px}
+.drawer.h1 .pv-big .num{font-size:24px}
+.drawer.h1 .pv-big .cap{margin-top:0}
+.drawer.h1 .pv-list .r:nth-child(n+3){display:none}
+.drawer.h1 .pv-thumbs{grid-template-columns:repeat(6,1fr)}
+.drawer.h1 .pv-stack .card:nth-child(n+2){display:none}
+.drawer.h1 .pv-bars{gap:4px}
+
+/* preview styles inside drawers — all on a solid colour, so light-on-dark */
+.pv-list{display:flex;flex-direction:column;gap:4px}
+.pv-list .r{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--dink-2);white-space:nowrap;overflow:hidden;min-width:0}
+.pv-list .r span.lbl{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.pv-list .r .dot{width:5px;height:5px;border-radius:50%;background:currentColor;opacity:.75;flex:0 0 auto}
+.pv-list .r.done{color:var(--dink-3);text-decoration:line-through}
+.pv-stack{position:relative;height:100%}
+.pv-stack .card{
+  position:absolute;left:0;right:0;height:30px;border-radius:2px;background:rgba(0,0,0,.22);
+  border:1px solid rgba(255,255,255,.13);padding:7px 9px;font-size:11.5px;
+  color:var(--dink-2);overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
+  border-left:3px solid rgba(255,255,255,.4);
+}
+.pv-big{display:flex;flex-direction:column;justify-content:center;height:100%}
+.pv-big .num{font-family:var(--serif);font-size:40px;line-height:1;font-weight:600;letter-spacing:-.02em;color:var(--dink)}
+.pv-big .cap{font-size:11.5px;color:var(--dink-3);margin-top:3px}
+.pv-thumbs{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(2,1fr);gap:5px;height:100%}
+.drawer.h1 .pv-thumbs{grid-template-rows:1fr}
+.pv-thumbs i{border-radius:2px;background:rgba(0,0,0,.24);border:1px solid rgba(255,255,255,.10);display:block}
+.pv-bars{display:flex;flex-direction:column;gap:7px;justify-content:center;height:100%}
+.pv-bars .b{height:5px;border-radius:2px;background:rgba(0,0,0,.26);overflow:hidden}
+.pv-bars .b i{display:block;height:100%;background:var(--dink-2);border-radius:2px}
+
+/* ------------------------------------------------------------
+   the board — always visible, because the grid is the point
+   ------------------------------------------------------------ */
+.grid{
+  /* a checkerboard two cells across, so the squares read as squares */
+  border-radius:var(--radius);
+}
+.grid::before{
+  content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
+  border-radius:var(--radius);
+  opacity:var(--board-alpha,1);
+  background-color:var(--board-1);
+  background-image:conic-gradient(
+    var(--board-2) 0 25%, transparent 0 50%,
+    var(--board-2) 0 75%, transparent 0);
+  background-size:var(--checker,160px) var(--checker,160px);
+  background-position:0 0;
+}
+.grid > *{position:relative;z-index:1}
+.panel{
+  position:absolute;top:52px;right:14px;z-index:44;width:290px;max-height:74vh;overflow-y:auto;
+  background:var(--paper-2);border:1px solid var(--rule);border-radius:var(--radius);
+  box-shadow:var(--shadow-lg);padding:12px 14px 14px;
+}
+.is-phone .panel{left:10px;right:10px;width:auto}
+.panel .ptop{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.panel .ptop b{font-family:var(--serif);font-size:15px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.prow{margin-bottom:10px}
+.prow label{display:block;font-size:10px;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--ink-3);font-weight:600;margin-bottom:5px}
+.prow > div{display:flex;flex-wrap:wrap;gap:4px}
+.pchip{padding:4px 9px;border-radius:20px;font-size:11.5px;border:1px solid var(--rule);
+  color:var(--ink-2);background:var(--paper);transition:.12s}
+.pchip:hover{border-color:var(--brass);color:var(--ink)}
+.pchip.on{background:color-mix(in srgb,var(--brass) 22%,transparent);color:var(--ink);border-color:transparent}
+.pslide{width:100%;accent-color:var(--brass)}
+
+/* ---- style-specific elements ------------------------------------------ */
+/* an Aero orb: a glossy sphere with a highlight */
+.pull.kn-orb{border-radius:50%;
+  background:radial-gradient(circle at 32% 26%, rgba(255,255,255,.95) 0 18%, rgba(255,255,255,.25) 34%, transparent 46%),
+             radial-gradient(circle at 50% 70%, rgba(255,255,255,.35), transparent 55%),
+             var(--knob, #18A6C4);
+  box-shadow:0 2px 6px rgba(0,0,0,.25), inset 0 -2px 4px rgba(0,0,0,.18)}
+/* an aqua border: glassy rim with an inner light */
+.drawer.dtile.bd-aqua{
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.65),
+             inset 0 6px 12px rgba(255,255,255,.35),
+             inset 0 -6px 12px rgba(0,0,0,.14), var(--shadow-lg);
+  border-color:rgba(255,255,255,.55);
+}
+/* stars texture (the starry board, back as a choice) */
+.tx-stars::after{background-image:
+  radial-gradient(circle at 18% 26%, rgba(255,255,255,.95) 0 1.6px, transparent 2.2px),
+  radial-gradient(circle at 66% 14%, rgba(255,255,255,.7) 0 1.1px, transparent 1.7px),
+  radial-gradient(circle at 42% 62%, rgba(255,255,255,.85) 0 1.4px, transparent 2px),
+  radial-gradient(circle at 86% 48%, rgba(255,255,255,.6) 0 1px, transparent 1.5px),
+  radial-gradient(circle at 12% 82%, rgba(255,255,255,.75) 0 1.2px, transparent 1.8px);
+  background-size:120px 120px;opacity:.7}
+/* sheen: the aero gloss sweep */
+.tx-sheen::after{background:linear-gradient(168deg,
+  rgba(255,255,255,.55) 0%, rgba(255,255,255,.18) 38%, transparent 42%, transparent 100%);
+  opacity:.8}
+
+/* ---- per-style chrome ------------------------------------------------- */
+html[data-style="modern"] .drawer{box-shadow:0 1px 3px rgba(0,0,0,.08)}
+html[data-style="modern"] .drawer .dname{font-weight:500;letter-spacing:0}
+html[data-style="modern"] .sqbtn{border-radius:10px}
+html[data-style="skeuo"] .drawer.dtile{
+  background-image:linear-gradient(rgba(255,255,255,.06),rgba(0,0,0,.10)),
+    repeating-linear-gradient(90deg, rgba(0,0,0,.05) 0 2px, transparent 2px 26px)}
+html[data-style="starry"] .grid::before{
+  background-image:radial-gradient(circle at 22% 31%, rgba(255,255,255,.8) 0 1.2px, transparent 1.8px),
+    radial-gradient(circle at 71% 12%, rgba(255,255,255,.5) 0 1px, transparent 1.5px),
+    radial-gradient(circle at 48% 74%, rgba(255,255,255,.65) 0 1.1px, transparent 1.6px),
+    radial-gradient(circle at 89% 57%, rgba(255,255,255,.45) 0 .9px, transparent 1.4px),
+    conic-gradient(var(--board-2) 0 25%, transparent 0 50%, var(--board-2) 0 75%, transparent 0);
+  background-size:140px 140px,140px 140px,140px 140px,140px 140px,var(--checker,160px) var(--checker,160px)}
+html[data-style="starry"] .gridbar .here{letter-spacing:.04em}
+html[data-style="aero"] .drawer{border-radius:10px}
+html[data-style="aero"] .drawer.otile:not(.cnttile):not(.spinetile):not(.chartile):not(.btntile):not(.imgtile):not(.quotetile){
+  background-image:linear-gradient(172deg, rgba(255,255,255,.7), rgba(255,255,255,0) 40%)}
+html[data-style="aero"] .sqbtn,html[data-style="aero"] .pill{
+  background-image:linear-gradient(180deg, rgba(255,255,255,.8), rgba(255,255,255,0) 55%)}
+html[data-style="aero"] .gridbar .here{color:var(--brass)}
+
+/* the style picker tiles */
+.stylegrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:6px}
+.styletile{display:flex;flex-direction:column;gap:3px;align-items:flex-start;text-align:left;
+  padding:9px 11px;border:1px solid var(--rule);border-radius:var(--radius);background:var(--paper-2)}
+.styletile.on{outline:2px solid var(--brass);outline-offset:1px}
+.styletile b{font-size:13px}
+.styletile i{font-style:normal;font-size:10.5px;color:var(--ink-3);line-height:1.3}
+.stpv{width:100%;height:34px;border-radius:4px;border:1px solid var(--rule)}
+.stpv.st-victorian{background:conic-gradient(#DDE5CE 0 25%,#EFEADA 0 50%,#DDE5CE 0 75%,#EFEADA 0);background-size:18px 18px}
+.stpv.st-modern{background:#FAFAF8}
+.stpv.st-skeuo{background:linear-gradient(135deg,#8A5C33,#5A3B22)}
+.stpv.st-starry{background:#0B0E1A;background-image:radial-gradient(circle at 30% 40%,#fff 0 1px,transparent 2px),radial-gradient(circle at 70% 60%,#fff 0 1px,transparent 2px)}
+.stpv.st-aero{background:linear-gradient(180deg,#8ADFEF,#18A6C4)}
+.rollup{margin-left:auto;font-size:11px;color:var(--dink-2);font-variant-numeric:tabular-nums;
+  background:rgba(0,0,0,.20);border:1px solid rgba(255,255,255,.14);padding:1px 7px;border-radius:20px}
+.pvwrap{display:grid;place-items:center;padding:16px 10px 18px;margin-bottom:12px;
+  border:1px solid var(--rule);border-radius:var(--radius);
+  background-color:var(--board-1);
+  background-image:conic-gradient(var(--board-2) 0 25%,transparent 0 50%,var(--board-2) 0 75%,transparent 0);
+  background-size:36px 36px;min-height:120px}
+.pvgrid{background:none!important;max-width:100%}
+.pvgrid::before{content:none}
+.pvgrid .drawer{cursor:default}
+.pvgrid .rz{display:none}
+.iconchip{padding:5px 8px;display:inline-flex;align-items:center}
+.iconchip.on{color:var(--ink)}
+.relrow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:4px}
+.relchip{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:20px;
+  font-size:11.5px;cursor:pointer;color:var(--ink);
+  background:color-mix(in srgb,var(--k) 16%,transparent);border:1px solid color-mix(in srgb,var(--k) 40%,transparent)}
+.relchip:hover{border-color:var(--k)}
+.relchip b{opacity:.55;font-weight:400}
+.relchip b:hover{opacity:1}
+
+/* ---- more type silhouettes ------------------------------------------- */
+/* a poem: centred, on parchment */
+.drawer.otile.sh-verse{background:var(--paper-2);text-align:center;align-items:center;justify-content:center;
+  clip-path:polygon(0 0,100% 0,100% 62%,96.5% 68%,100% 74%,100% 100%,0 100%,0 34%,2.5% 28%,0 22%);
+  border-left:1px solid var(--rule)}
+.drawer.otile.sh-verse .dname{text-align:center;font-family:var(--serif)}
+.drawer.otile.sh-verse .tiletext{text-align:center;font-family:var(--serif);font-style:italic;white-space:pre-line}
+/* an ingredient reads like a line off a recipe card */
+.drawer.otile.sh-index{background:#F6F1E2;border:1px solid var(--rule);padding-left:18px;
+  background-image:linear-gradient(rgba(90,120,150,.18) 1px,transparent 1px);background-size:100% 100%}
+.drawer.otile.sh-index::after{content:"";position:absolute;left:11px;top:0;bottom:0;width:1px;background:rgba(180,70,60,.5)}
+/* a habit is a stack of days */
+.drawer.otile.sh-habit{background:var(--paper-2)}
+.drawer.otile.sh-habit::after{content:"";position:absolute;left:10px;right:10px;bottom:10px;height:8px;
+  background-image:repeating-linear-gradient(90deg,var(--c) 0 7px,transparent 7px 11px);opacity:.55;border-radius:2px}
+/* a goal is a target with a bar */
+.drawer.otile.sh-goal,.drawer.otile.sh-dream{background:var(--paper-2)}
+.drawer.otile.sh-goal::after{content:"";position:absolute;left:10px;right:10px;bottom:10px;height:5px;
+  border-radius:99px;background:linear-gradient(90deg,var(--c) var(--pct,30%),rgba(0,0,0,.10) var(--pct,30%))}
+.drawer.otile.sh-dream{border-style:dashed;opacity:.96}
+.drawer.otile.sh-dream::after{content:"";position:absolute;right:8px;top:8px;width:14px;height:14px;
+  background:var(--c);opacity:.35;clip-path:polygon(50% 0,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%)}
+/* an achievement is a plaque */
+.drawer.otile.sh-plaque{
+  background:linear-gradient(#6B4E22,#8A6A3C 40%,#5E4620);color:#F6EFD8;
+  border:2px solid rgba(255,255,255,.28);border-radius:3px;
+  box-shadow:inset 0 0 0 4px rgba(0,0,0,.22), var(--shadow-lg);
+  align-items:center;justify-content:center;text-align:center;
+  --dink:#F8F2DE;--dink-2:rgba(248,242,222,.8);--dink-3:rgba(248,242,222,.6);
+}
+.drawer.otile.sh-plaque .dname{font-family:var(--serif);letter-spacing:.02em;text-align:center}
+/* a story is a book seen spine-on */
+.drawer.otile.spinetile{
+  background:linear-gradient(90deg,color-mix(in srgb,var(--c) 68%,#000) 0 6%,var(--c) 6% 92%,color-mix(in srgb,var(--c) 70%,#000) 92%);
+  border-radius:2px 4px 4px 2px;align-items:center;justify-content:center;padding:10px 0;overflow:hidden;
+  box-shadow:var(--shadow), inset -3px 0 6px rgba(0,0,0,.25);
+}
+.spinetop,.spinefoot{width:64%;height:3px;background:rgba(255,255,255,.42);border-radius:2px;flex:0 0 auto}
+.spinetitle{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;
+  writing-mode:vertical-rl;transform:rotate(180deg);font-family:var(--serif);font-size:14px;
+  color:#F8F3E6;letter-spacing:.03em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* a question with rounder corners */
+.drawer.otile.sh-bubble{border-radius:18px 18px 18px 3px}
+/* a timeline */
+.tlwrap{position:absolute;left:12px;right:12px;top:44%;bottom:8px}
+.tlrule{position:absolute;left:0;right:0;top:6px;height:2px;background:rgba(255,255,255,.35);border-radius:2px}
+.tlnode{position:absolute;top:0;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:2px;width:74px}
+.tlnode i{width:9px;height:9px;border-radius:50%;background:var(--dink);opacity:.9}
+.tlnode b{font-size:9.5px;font-weight:600;color:var(--dink-2);text-align:center;line-height:1.15;overflow-wrap:anywhere}
+.tlnode u{font-size:8.5px;text-decoration:none;color:var(--dink-3)}
+/* a button sits on a tile rather than floating */
+.drawer.btntile{background:var(--paper-2);border:1px solid var(--rule);box-shadow:var(--shadow)}
+/* counter digits fill the tile */
+.cntnum{font-size:clamp(30px, min(60cqw, 62cqh), 260px)}
+/* the book, floating in the middle like a real one */
+.bookscrim{position:absolute;inset:0;z-index:60;background:rgba(20,16,12,.55);backdrop-filter:blur(2px)}
+.bookstage{position:absolute;z-index:61;inset:4vh 6vw;display:flex;flex-direction:column;gap:10px;
+  align-items:center;justify-content:center;pointer-events:none}
+.bookstage > *{pointer-events:auto}
+.bookhead{display:flex;align-items:center;gap:10px;color:var(--paper);width:min(1100px,100%)}
+.bookhead b{flex:1;font-family:var(--serif);font-size:17px;color:#F4EEDD;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bookstage .book{width:min(1100px,100%)}
+.bookstage .spread{min-height:min(70vh,720px);box-shadow:0 30px 60px -20px rgba(0,0,0,.7)}
+.bookstage .bookcount{color:#E5DCC6}
+/* the lasso reads as a selection rather than a new object */
+.ghost.band{border-style:dashed}
+.ghost.picking{border-color:var(--brass);background:color-mix(in srgb,var(--brass) 18%,transparent);
+  box-shadow:0 0 0 2px rgba(255,255,255,.4)}
+/* a generator: a press with an arrow */
+.drawer.gentile{background:var(--c);align-items:center;justify-content:center;gap:5px;text-align:center;
+  border-radius:8px;border-color:transparent;padding:8px;container-type:inline-size}
+.genico{color:#F8F3E6;opacity:.9}
+.genlabel{font-size:clamp(10px,6cqw,14px);font-weight:600;color:#F8F3E6;overflow-wrap:anywhere;line-height:1.2}
+.genarrow{position:absolute;right:6px;bottom:6px;color:rgba(248,243,230,.65)}
+.drawer.gentile:active{transform:scale(.97)}
+/* a counter as an old ledger totaliser */
+.drawer.cnttile{
+  background:linear-gradient(#2A241C,#211C16);border:1px solid rgba(0,0,0,.5);
+  box-shadow:inset 0 2px 6px rgba(0,0,0,.6), var(--shadow);border-radius:6px;
+}
+.cntlabel{color:rgba(233,225,204,.55);letter-spacing:.1em;text-transform:uppercase;
+  font-size:clamp(8px,4cqw,12px)}
+.cntnum{color:#E9E1CC;text-shadow:0 1px 0 rgba(0,0,0,.8)}
+.wheel{background:linear-gradient(#171310,#2E2820 18%,#3A332A 50%,#2E2820 82%,#171310);
+  border-radius:2px;margin:0 1px;box-shadow:inset 0 0 4px rgba(0,0,0,.8)}
+/* the panel's swatch grids were collapsing to one per row inside the flex row */
+.prow > div{display:flex;flex-wrap:wrap;gap:4px}
+.prow .pickgrid{display:flex;flex-wrap:wrap;gap:5px;width:100%}
+.prow .pickgrid button{width:26px;height:26px;flex:0 0 auto;border-radius:4px}
+
+/* ---- drawer textures: quiet, and drawn over the front colour ---------- */
+.drawer.dtile[class*="tx-"]::after{content:"";position:absolute;inset:0;pointer-events:none;
+  border-radius:inherit;opacity:.30}
+.drawer.dtile.tx-none::after{content:none}
+.tx-dots::after{background-image:radial-gradient(circle at 50% 50%, rgba(255,255,255,.75) 0 1.1px, transparent 1.6px);
+  background-size:14px 14px}
+.tx-starry::after{background-image:
+  radial-gradient(circle at 20% 30%, rgba(255,255,255,.95) 0 2.4px, transparent 3px),
+  radial-gradient(circle at 72% 18%, rgba(255,255,255,.8) 0 1.9px, transparent 2.5px),
+  radial-gradient(circle at 46% 74%, rgba(255,255,255,.9) 0 2.2px, transparent 2.8px),
+  radial-gradient(circle at 88% 62%, rgba(255,255,255,.7) 0 1.7px, transparent 2.3px);
+  background-size:104px 104px;opacity:.5}
+.tx-grid::after{background-image:
+  linear-gradient(rgba(255,255,255,.5) 1px, transparent 1px),
+  linear-gradient(90deg, rgba(255,255,255,.5) 1px, transparent 1px);
+  background-size:18px 18px;opacity:.18}
+.tx-weave::after{background-image:
+  repeating-linear-gradient(45deg, rgba(255,255,255,.35) 0 1px, transparent 1px 6px),
+  repeating-linear-gradient(-45deg, rgba(255,255,255,.35) 0 1px, transparent 1px 6px);
+  opacity:.22}
+.tx-weave2::after{background-image:
+  repeating-linear-gradient(45deg, rgba(255,255,255,.35) 0 1px, transparent 1px 13px),
+  repeating-linear-gradient(-45deg, rgba(255,255,255,.35) 0 1px, transparent 1px 13px);
+  opacity:.22}
+.tx-speckle::after{background-image:
+  radial-gradient(circle at 12% 18%, rgba(0,0,0,.5) 0 1.1px, transparent 1.5px),
+  radial-gradient(circle at 63% 32%, rgba(0,0,0,.5) 0 1.1px, transparent 1.5px),
+  radial-gradient(circle at 34% 66%, rgba(0,0,0,.5) 0 1.1px, transparent 1.5px),
+  radial-gradient(circle at 82% 84%, rgba(0,0,0,.5) 0 1.1px, transparent 1.5px),
+  radial-gradient(circle at 47% 8%,  rgba(0,0,0,.5) 0 1.1px, transparent 1.5px),
+  radial-gradient(circle at 6% 52%,  rgba(0,0,0,.5) 0 1.1px, transparent 1.5px),
+  radial-gradient(circle at 91% 44%, rgba(0,0,0,.5) 0 1.1px, transparent 1.5px),
+  radial-gradient(circle at 24% 92%, rgba(0,0,0,.5) 0 1.1px, transparent 1.5px);
+  background-size:34px 34px;opacity:.4}
+.tx-check::after{background-image:conic-gradient(
+    rgba(255,255,255,.5) 0 25%, transparent 0 50%,
+    rgba(255,255,255,.5) 0 75%, transparent 0);
+  background-size:28px 28px;opacity:.22}
+.tx-rule::after{background-image:linear-gradient(rgba(255,255,255,.55) 1px, transparent 1px);
+  background-size:100% 22px;opacity:.20}
+
