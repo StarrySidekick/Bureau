@@ -195,13 +195,15 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
   margin-top:auto;padding-top:8px;display:flex;align-items:center;justify-content:center;
 }
 /* the knob sits in the middle of the front, like a real drawer pull */
-.drawer.dtile .dfoot{position:absolute;inset:0;margin:0;padding:0;align-items:center;justify-content:center;pointer-events:none}
-.drawer.dtile .dtop{position:relative;z-index:1;align-items:flex-start}
+.drawer.dtile .dfoot{position:absolute;left:0;right:0;top:62%;bottom:0;margin:0;padding:0;
+  align-items:center;justify-content:center;pointer-events:none}
+.drawer.dtile .dtop{position:relative;z-index:1;align-items:flex-start;justify-content:center;
+  max-height:56%;padding-bottom:4px}
 /* The knob owns the middle of the front, so the name is capped at two lines
    and sits above it. Capping *lines* rather than the box's height is what
    keeps it from being sliced through the middle of a letter. */
-.drawer.dtile .dname{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
-  overflow:hidden;line-height:1.25}
+.drawer.dtile .dname{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;
+  overflow:hidden;line-height:1.22;text-align:center;width:100%}
 .drawer.h1{padding:9px 12px}
 .drawer.h1 .dbody{margin-top:5px}
 .drawer.h1 .dfoot{padding-top:5px}
@@ -686,15 +688,15 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
 
 /* Six knobs. The default is half-transparent white; the colour and shape are
    both set in the drawer's settings. */
-.drawer.dtile{container-type:inline-size}
+.drawer.dtile{container-type:size}
 .pull{
-  width:clamp(28px, 22cqw, 96px);height:clamp(28px, 22cqw, 96px);flex:0 0 auto;
+  width:clamp(18px, min(20cqw, 26cqh), 84px);height:clamp(18px, min(20cqw, 26cqh), 84px);flex:0 0 auto;
   background:var(--knob, color-mix(in srgb, var(--c) 62%, #fff));
   opacity:.76;transition:opacity .18s;border-radius:50%;
 }
 .pull.kn-round{border-radius:50%}
 .pull.kn-diamond{border-radius:3px;transform:rotate(45deg)}
-.pull.kn-bar{width:clamp(34px,30cqw,110px);height:clamp(10px,6cqw,22px);border-radius:99px}
+.pull.kn-bar{width:clamp(30px,min(28cqw,60cqh),120px);height:clamp(8px,min(6cqw,9cqh),20px);border-radius:99px}
 .pull.kn-ring{border-radius:50%;background:none;border:4px solid var(--knob,rgba(255,255,255,.5))}
 
 .pull.kn-square{border-radius:3px}
@@ -705,7 +707,7 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
   border-color:color-mix(in srgb, #fff 55%, transparent) }
 
 /* A drawer front: a name and a pull, nothing else. What's inside is inside. */
-.drawer.dtile .dtop{align-items:flex-start}
+
 .drawer.dtile .dname{white-space:normal;font-size:15px}
 .drawer.dtile .dcount{align-self:flex-start}
 .magicmark{color:var(--dink-2);display:inline-flex;align-items:center;margin-left:2px}
@@ -1201,7 +1203,7 @@ const BUILTIN_KINDS = {
             body:'**What it is —** \n\n**Who wants it —** ' },
   ingredient:{nm:'Ingredient', ic:'pot', c:'#A55A3E', key:'4', ds:'One line of a recipe',   size:[5,1], onclick:'check', attrs:['check','count','price'], body:'' },
   shot:    {nm:'Shot',    ic:'clapper', c:'#2F4A5E', key:'5', ds:'One shot, for a shoot',   size:[6,1], onclick:'check', attrs:['text','check','duration','location'], body:'' },
-  generator:{nm:'Generator', ic:'plus', c:'#8A5A3F', key:'6', ds:'Press it and it makes one of something', size:[4,4], onclick:'none', attrs:['generator'], body:'' },
+  generator:{nm:'Generator', ic:'plus', c:'#8A5A3F', key:'6', ds:'Press it and it makes one of something', size:[4,4], onclick:'generate', attrs:['generator'], body:'' },
   shopping:{nm:'Shopping list', ic:'inbox', c:'#A55A3E', key:'7', ds:'Things to buy, with a total', attrs:['container'], layout:'checklist', size:[6,8], body:'' },
   counter: {nm:'Counter',  ic:'target', c:'#3E7A6B', key:'X', ds:'A number, and what it counts', size:[4,4], onclick:'none', attrs:['count'], body:'' },
   link:    {nm:'Button',  ic:'arrow',   c:'#37687A', key:'E', ds:'A button that opens something', attrs:['button'], body:'' },
@@ -1817,10 +1819,11 @@ function monthGrid(o){
    lives on the context menu. `onclick` is per-object, falling back to the
    kind's, and 'read' opens the body full-width with nothing to edit. */
 const CLICKS = {
-  none:  'Nothing',
-  read:  'Open it to read',
-  edit:  'Open the editor',
-  check: 'Tick it off'
+  none:     'Nothing',
+  read:     'Open it to read',
+  edit:     'Open the editor',
+  check:    'Tick it off',
+  generate: 'Make a new object'
 };
 const clickOf = o => o.onclick || K(o.kind).onclick || 'none';
 /* A generator presses out a new object beside itself, in whichever direction
@@ -1854,8 +1857,8 @@ function tileTap(id){
   const o=byId(id); if(!o) return;
   if(isContainer(o)){ S.view='drawer'; S.drawerId=id; S.kindFilter=null; render(); return; }
   if(has(o,'control')){ if(o.ctl==='settings'){ S.view='settings'; render(); } return; }
-  if(has(o,'generator')){ dispense(o); return; }
   switch(clickOf(o)){
+    case 'generate': dispense(o); return;
     case 'read':  S.readId=id; S.openId=null; renderSheet(); break;
     case 'edit':  openObj(id); break;
     case 'check': if(has(o,'check')) toggleDone(id); else openObj(id); break;
@@ -2842,9 +2845,9 @@ function objectPanel(id){
     ${has(o,'media')&&o.media&&o.media.type==='image'
       ? row('Frame', [['none','None'],['mount','Mount'],['gilt','Gilt'],['walnut','Walnut'],['black','Lacquer'],['polaroid','Instant']].map(([v,n])=>
           `<button class="pchip${(o.frame||'none')===v?' on':''}" data-oframe="${v}" data-id="${id}">${n}</button>`).join('')) : ''}
-    ${has(o,'generator') ? row('Makes', KEYS.filter(k=>!kindHas(k,'control')&&!kindHas(k,'generator')).slice(0,14).map(k=>
+    ${(has(o,'generator')||clickOf(o)==='generate') ? row('Makes', KEYS.filter(k=>!kindHas(k,'control')&&!kindHas(k,'generator')).slice(0,14).map(k=>
         `<button class="pchip${(o.genKind||'task')===k?' on':''}" data-ogen="${k}" data-id="${id}">${KINDS[k].nm}</button>`).join('')) : ''}
-    ${has(o,'generator') ? row('Direction', [['down','Down'],['up','Up'],['left','Left'],['right','Right'],['random','Anywhere']].map(([v,n])=>
+    ${(has(o,'generator')||clickOf(o)==='generate') ? row('Direction', [['down','Down'],['up','Up'],['left','Left'],['right','Right'],['random','Anywhere']].map(([v,n])=>
         `<button class="pchip${(o.genDir||'down')===v?' on':''}" data-ogendir="${v}" data-id="${id}">${n}</button>`).join('')) : ''}
     ${has(o,'button')
       ? row('Button shape', [['rounded','Rounded'],['round','Round'],['square','Square']].map(([v,n])=>
@@ -2883,8 +2886,7 @@ function drawerPanel(id){
             style="background:var(--paper);border-style:dashed"></button></div>`)}
       ${row('Board strength', `<input class="pslide" type="range" min="0" max="100" step="5"
           value="${Math.round(((d.boardAlpha==null?1:d.boardAlpha))*100)}" data-palpha data-id="${id}">`)}
-      ${row('Texture', chips('texture', null, [['none','None'],['dots','Dots'],['starry','Starry'],
-        ['grid','Graph'],['weave','Weave'],['weave2','Wide weave'],['speckle','Speckle'],['check','Checker'],['rule','Ruled']], d.texture||'none'))}
+      ${row('Texture', chips('texture', null, [['none','None'],['dots','Dots'],['grid','Graph'],['weave','Weave'],['weave2','Wide weave'],['check','Checker'],['rule','Ruled']], d.texture||'none'))}
       ${row('Knob colour', chips('knobtone', null, [['light','Lighter'],['dark','Darker']], d.knobtone||'light')
         + `<div class="pickgrid sw" style="margin-top:5px">${
           ['#F8F3E6','#A9793F','#2A241C','#C0563F','#3E7A6B','#5D7E99'].map(c=>
@@ -3154,6 +3156,10 @@ function onDown(e){
     G={type: hEl?'resize':'move', el:dEl, id:d.id, handle:hEl?hEl.dataset.rz:null,
        armed:!!hEl,                 // a corner grip drags at once; a tile waits
        startedOnFace:!!e.target.closest('.btnface'),
+       // dragging any member of a selection moves the lot, keeping their
+       // relative positions — the offsets are captured up front
+       group: (S.sel.includes(d.id) && S.sel.length>1)
+         ? S.sel.map(byId).filter(Boolean).map(o=>({id:o.id, box:lay(o)})) : null,
        parent:grid.dataset.gridfor||ROOT,
        box:lay(d), stepX:cellW(grid,g)+g.gap, stepY:g.rowh+g.gap,
        sx:e.clientX, sy:e.clientY, mode:null, ok:true, cand:null};
@@ -3227,16 +3233,35 @@ function onMove(e){
         G.el.parentElement.appendChild(G.ghost);
       }
     }
-    const box=candidate(G, Math.round(dx/G.stepX), Math.round(dy/G.stepY));
-    G.cand=box; G.ok=boxOk(box, G.id, dev(), G.parent);
+    const cx=Math.round(dx/G.stepX), cy=Math.round(dy/G.stepY);
+    const box=candidate(G, cx, cy);
+    G.cand=box;
+    if(G.group){
+      // the whole set has to land legally, and only collisions with objects
+      // outside the set count
+      const ids=G.group.map(g2=>g2.id);
+      const moved=G.group.map(g2=>({id:g2.id, box:{x:g2.box.x+cx, y:g2.box.y+cy, w:g2.box.w, h:g2.box.h}}));
+      G.moved=moved;
+      const g0=gridOf();
+      G.ok = moved.every(m=>m.box.x>=1 && m.box.y>=1 && m.box.x+m.box.w-1<=g0.cols)
+        && !childrenOf(container(G.parent)).some(o=>!ids.includes(o.id) &&
+             moved.some(m=>overlaps(m.box, lay(o))));
+    } else {
+      G.ok = boxOk(box, G.id, dev(), G.parent);
+    }
     G.el.classList.toggle('invalid', !G.ok);
     if(G.type==='move'){
       G.el.style.transform=`translate(${dx}px,${dy}px)`;
+      if(G.group) G.group.forEach(g2=>{
+        if(g2.id===G.id) return;
+        const el=document.querySelector(`.grid .drawer[data-row="${g2.id}"],.grid .drawer[data-drawer="${g2.id}"],.grid .drawer[data-id="${g2.id}"]`);
+        if(el){ el.style.transform=`translate(${dx}px,${dy}px)`; el.style.zIndex=49; }
+      });
       // a drawer under the pointer is a place to file into, not a collision
       const under=document.elementFromPoint(e.clientX,e.clientY);
       const over=under && under.closest('.grid .drawer[data-drawer]');
       const overId=over && over.dataset.drawer;
-      const canDrop = overId && overId!==G.id && !isAncestor(G.id, byId(overId)) && !has(byId(overId),'magic');
+      const canDrop = !G.group && overId && overId!==G.id && !isAncestor(G.id, byId(overId)) && !has(byId(overId),'magic');
       if(G.dropOn && G.dropOn!==overId){ const p=document.querySelector(`[data-drawer="${G.dropOn}"]`); p&&p.classList.remove('dropinto'); }
       G.dropOn = canDrop ? overId : null;
       if(G.dropOn) over.classList.add('dropinto');
@@ -3287,6 +3312,10 @@ function onUp(e){
   if(g.mode==='grid'){
     g.el.classList.remove('dragging','invalid','lifted');
     g.el.style.transform=''; g.el.style.pointerEvents='';
+    if(g.group) g.group.forEach(g2=>{
+      const el=document.querySelector(`.grid .drawer[data-row="${g2.id}"],.grid .drawer[data-drawer="${g2.id}"],.grid .drawer[data-id="${g2.id}"]`);
+      if(el){ el.style.transform=''; el.style.zIndex=''; }
+    });
     if(g.ghost) g.ghost.remove();
     $$('.dropinto').forEach(e2=>e2.classList.remove('dropinto'));
     const d=byId(g.id);
@@ -3299,7 +3328,8 @@ function onUp(e){
       toast(`Filed in ${into?into.title:'the drawer'}`);
       return;
     }
-    if(d && g.cand && g.ok) d[dev()]={...g.cand};
+    if(d && g.moved && g.ok) g.moved.forEach(m=>{ const o=byId(m.id); if(o) o[dev()]={...m.box}; });
+    else if(d && g.cand && g.ok) d[dev()]={...g.cand};
     save(); render();
     if(d && g.cand && !g.ok) toast('No room there');
     return;
