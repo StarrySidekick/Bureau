@@ -246,6 +246,23 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
   background-position:0 0;
 }
 .grid > *{position:relative;z-index:1}
+.panel{
+  position:absolute;top:52px;right:14px;z-index:44;width:290px;max-height:74vh;overflow-y:auto;
+  background:var(--paper-2);border:1px solid var(--rule);border-radius:var(--radius);
+  box-shadow:var(--shadow-lg);padding:12px 14px 14px;
+}
+.is-phone .panel{left:10px;right:10px;width:auto}
+.panel .ptop{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.panel .ptop b{font-family:var(--serif);font-size:15px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.prow{margin-bottom:10px}
+.prow label{display:block;font-size:10px;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--ink-3);font-weight:600;margin-bottom:5px}
+.prow > div{display:flex;flex-wrap:wrap;gap:4px}
+.pchip{padding:4px 9px;border-radius:20px;font-size:11.5px;border:1px solid var(--rule);
+  color:var(--ink-2);background:var(--paper);transition:.12s}
+.pchip:hover{border-color:var(--brass);color:var(--ink)}
+.pchip.on{background:color-mix(in srgb,var(--brass) 22%,transparent);color:var(--ink);border-color:transparent}
+.pfoot{margin-top:12px;padding-top:10px;border-top:1px solid var(--rule-2)}
 .rangerow{display:flex;align-items:center;gap:10px;margin-top:8px;font-size:12.5px;color:var(--ink-2)}
 .rangerow input[type=range]{flex:1;accent-color:var(--brass)}
 .rangerow b{font-variant-numeric:tabular-nums;color:var(--ink);min-width:38px;text-align:right}
@@ -315,6 +332,26 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
   animation:twinkle 6s ease-in-out infinite;
 }
 @keyframes twinkle{ 0%,100%{background-size:100% 100%} 50%{background-size:104% 104%} }
+.clcount{margin-left:auto;font-size:11px;color:var(--dink-3);font-variant-numeric:tabular-nums}
+/* checklist: the contents, tickable, on the front of the tile */
+.clist{display:flex;flex-direction:column;gap:2px;overflow:hidden;height:100%}
+.cline{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--dink-2);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;padding:1px 0}
+.cline:hover{color:var(--dink)}
+.cline.done{color:var(--dink-3);text-decoration:line-through}
+.clbox{width:13px;height:13px;flex:0 0 auto;border:1.5px solid var(--dink-3);border-radius:3px;
+  display:grid;place-items:center;color:var(--dink)}
+.cline.done .clbox{background:rgba(255,255,255,.22);border-color:transparent}
+.clempty{font-size:11.5px;color:var(--dink-3)}
+/* calendar */
+.calgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;height:100%;align-content:start}
+.calgrid .dow{font-size:9px;color:var(--dink-3);text-align:center;font-style:normal}
+.calgrid .pad{display:block}
+.cday{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
+  font-style:normal;font-size:10px;color:var(--dink-2);border-radius:2px;padding:1px 0;min-height:0}
+.cday.today{background:rgba(255,255,255,.20);color:var(--dink)}
+.cday.has{color:var(--dink)}
+.cday u{text-decoration:none;font-size:8px;line-height:1;letter-spacing:-1px}
 .magicmark{color:var(--dink-2);display:inline-flex;align-items:center;margin-left:2px}
 .magicmark.big{color:var(--brass);vertical-align:middle}
 @media (prefers-reduced-motion:reduce){
@@ -409,6 +446,7 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
              inset 0 -2px 0 rgba(255,255,255,.14), var(--shadow);
 }
 .drawer.dtile.bd-plain{ box-shadow:var(--shadow) }
+.drawer.dtile.bd-none{ box-shadow:none;border-color:transparent }
 
 /* Six knobs. The default is half-transparent white; the colour and shape are
    both set in the drawer's settings. */
@@ -879,6 +917,8 @@ const USER_ATTRS = ATTRKEYS.filter(a=>!STRUCTURAL.includes(a));
 const BUILTIN_KINDS = {
   drawer:  {nm:'Drawer',  ic:'folder',  c:'#7E5A38', key:'D', ds:'A container on the grid',   attrs:['container'], layout:'grid', size:[6,6], body:'' },
   magic:   {nm:'Magic drawer', ic:'sparkle', c:'#4A6E8F', key:'G', ds:'Collects by rule, like a smart folder', attrs:['container','magic'], layout:'grid', size:[6,6], body:'' },
+  checklist:{nm:'Checklist', ic:'list', c:'#4A7C59', key:'L', ds:'A list of things to tick, right on the board', attrs:['container'], layout:'checklist', size:[6,8], body:'' },
+  calendar:{nm:'Calendar', ic:'calendar', c:'#5C7148', key:'C', ds:'A month, with what is due on it', attrs:['container'], layout:'calendar', size:[8,8], body:'' },
   control: {nm:'Control',  ic:'sliders', c:'#6B6152', key:'', ds:'A Bureau button on the desk', attrs:['control'], size:[4,4], body:'' },
   task:    {nm:'Task',    ic:'check',   c:'#4A7C59', key:'T', ds:'A thing to do',             attrs:['text','check','date','repeat'], size:[4,1], onclick:'none', body:'' },
   note:    {nm:'Note',    ic:'note',    c:'#5F7A93', key:'N', ds:'Something to remember',     attrs:['text'], size:[4,4], onclick:'read', body:'' },
@@ -1072,7 +1112,9 @@ function inContainer(c,o){
     if(f.kinds && f.kinds.length) return f.kinds.includes(o.kind);
     return false;
   }
-  if(o.done) return false;             // finished things leave their drawer
+  // Completed things leave a drawer (decision 2) — but not a checklist, where
+  // seeing what you've ticked is the entire point of the thing.
+  if(o.done && c.layout!=='checklist') return false;
   return o.parent===c.id;              // an ordinary drawer holds what is filed in it
 }
 /* Children, in whatever order the drawer is sorted by. `sort` is null for the
@@ -1208,6 +1250,29 @@ function applyLook(){
   else { el.style.removeProperty('--board-1'); el.style.removeProperty('--board-2'); }
   if(L.accent) el.style.setProperty('--brass', L.accent); else el.style.removeProperty('--brass');
   if(L.line) el.style.setProperty('--line', L.line); else el.style.removeProperty('--line');
+}
+
+/* Testing aid: drop something arbitrary onto the desk. Random kind, random
+   size within what the grid allows, random colour — the point is to see how
+   placement and the board cope with shapes nobody designed for. */
+const WORDS='brass ledger cedar tide quarry lantern vellum thistle harbour ember slate poppy compass juniper marrow'.split(' ');
+function randomThing(parentId){
+  const pick=a=>a[Math.floor(Math.random()*a.length)];
+  const kinds=KEYS.filter(k=>!kindHas(k,'control'));
+  const kind=pick(kinds);
+  const home=parentId||(S.view==='drawer'&&S.drawerId)||ROOT;
+  const o=create(kind,{parent:home,
+    title:`${pick(WORDS)} ${pick(WORDS)}`.replace(/^./,c=>c.toUpperCase())});
+  if(has(o,'text')) o.body=Array.from({length:2+Math.floor(Math.random()*4)},()=>pick(WORDS)).join(' ')+'.';
+  if(has(o,'date')&&Math.random()<0.6) o.due=dz(Math.floor(Math.random()*14)-3);
+  if(has(o,'check')&&Math.random()<0.3) { o.done=true; o.doneAt=T; }
+  if(isContainer(o)){ o.c=pick(Object.values(SWATCHES).flat())[0]; o.board=randomBoard();
+    o.knob=pick(['round','teardrop','bar','ring','shield','square']);
+    o.border=pick(['none','none','panel','bead','double','cove']); }
+  const g=gridOf(), dv=dev();
+  const w=1+Math.floor(Math.random()*8), h=1+Math.floor(Math.random()*8);
+  o[dv]=freeSpot(Math.min(w,g.cols), h, dv, home);
+  return o;
 }
 
 /* A board for a new drawer: one hue, two lightnesses, low saturation. Picking
@@ -1405,6 +1470,29 @@ function drawerPreview(d, items){
 }
 const HANDLES = ['nw','ne','se','sw'];   // corners only — any corner resizes
 
+/* A month for a calendar container: the weeks of `o.month`, with a mark on any
+   day something in it is due. Sized in em so it shrinks with the tile. */
+function monthGrid(o){
+  const anchor = D.parse(o.month||T) || D.today();
+  const first = new Date(anchor.getFullYear(), anchor.getMonth(), 1);
+  const lead = (first.getDay()+6)%7;                 // weeks start Monday
+  const days = new Date(anchor.getFullYear(), anchor.getMonth()+1, 0).getDate();
+  const mine = childrenOf(o);
+  const byDay = {};
+  mine.forEach(x=>{ if(x.due) byDay[x.due]=(byDay[x.due]||0)+1; });
+  const cells=[];
+  for(let i=0;i<lead;i++) cells.push('<i class="pad"></i>');
+  for(let d=1;d<=days;d++){
+    const iso=D.iso(new Date(anchor.getFullYear(), anchor.getMonth(), d));
+    const n=byDay[iso]||0;
+    cells.push(`<i class="cday${iso===T?' today':''}${n?' has':''}" data-calday="${o.id}:${iso}">
+      <b>${d}</b>${n?`<u>${n>3?'•••':'•'.repeat(n)}</u>`:''}</i>`);
+  }
+  return `<div class="calgrid">
+    ${['M','T','W','T','F','S','S'].map(d=>`<i class="dow">${d}</i>`).join('')}
+    ${cells.join('')}</div>`;
+}
+
 /* What a click on an object does. The editor is no longer the default — it
    lives on the context menu. `onclick` is per-object, falling back to the
    kind's, and 'read' opens the body full-width with nothing to edit. */
@@ -1466,10 +1554,36 @@ function gridTile(o, arr, parentId){
     </button>`;
   }
 
+  /* A checklist is a container that wears its contents on the outside: you can
+     see and tick what's in it without opening it. That is the whole difference
+     between it and a drawer. */
+  if(cont && (o.layout==='checklist')){
+    const items=childrenOf(o);
+    return `<button class="drawer dtile cltile bd-${o.border||'none'}${sel}" data-drawer="${o.id}" style="--c:${colour};${place}">
+      <div class="dtop"><span class="dname">${esc(o.title||'Untitled')}</span>
+        <span class="clcount">${items.filter(x=>x.done).length}/${items.length}</span></div>
+      <div class="dbody"><div class="clist">${items.slice(0,14).map(x=>
+        `<span class="cline${x.done?' done':''}" data-check="${x.id}">
+           <i class="clbox">${x.done?ic('check',10):''}</i>${esc(x.title||'Untitled')}</span>`).join('')
+        || '<span class="clempty">Nothing yet — open it to add</span>'}</div></div>
+      ${handles}
+    </button>`;
+  }
+
+  /* A calendar is a container showing the month its children fall in. */
+  if(cont && (o.layout==='calendar')){
+    return `<button class="drawer dtile caltile bd-${o.border||'none'}${sel}" data-drawer="${o.id}" style="--c:${colour};${place}">
+      <div class="dtop"><span class="dname">${esc(o.title||'Untitled')}</span>
+        <span class="clcount">${D.parse(o.month||T).toLocaleDateString(undefined,{month:'long'})}</span></div>
+      <div class="dbody">${monthGrid(o)}</div>
+      ${handles}
+    </button>`;
+  }
+
   // A drawer on a grid is just a front with a name. What is inside is behind
   // it, not printed on it — you open a drawer to find out what it holds.
   if(cont){
-    const bd=o.border||'panel', kn=o.knob||'round';
+    const bd=o.border||'none', kn=o.knob||'round';
     return `<button class="drawer dtile bd-${bd}${sel}${has(o,'magic')?' magicdrawer':''}" data-drawer="${o.id}"
       style="--c:${colour};${o.knobc?`--knob:${esc(o.knobc)};`:''}${place}">
       ${chips}
@@ -1919,6 +2033,13 @@ function viewSettings(){
       <div class="section-h"><h2>Install</h2><div class="rule"></div></div>
       <div class="mini" style="--k:var(--brass)">Share → <b style="margin:0 3px">Add to Home Screen</b> to keep Bureau in your dock and run it full screen.</div>`:''}
 
+    <div class="section-h"><h2>Testing</h2><div class="rule"></div></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="pill" data-act="randomone">${ic('sparkle',13)} Add one at random</button>
+      <button class="pill" data-act="randomten">${ic('sparkle',13)} Add ten</button>
+    </div>
+    <div class="mini" style="--k:var(--brass);margin-top:6px">Drops objects and drawers of random kinds, sizes and colours onto the desk, for seeing how the grid copes.</div>
+
     <div class="section-h"><h2>Start over</h2><div class="rule"></div></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <button class="pill" data-act="reseed">Reset to the sample desk</button>
@@ -2165,6 +2286,37 @@ function swatchRows(cur){
       `<button data-col="${c}" title="${nm}" class="${cur===c?'on':''}" style="background:${c}"></button>`).join('')}</div>`
   ).join('') + (known?'':`<div class="pickgrid sw"><button data-col="${cur}" class="on" title="Custom" style="background:${cur}"></button></div>`);
 }
+/* The drawer's own settings, as a panel beside the grid rather than a sheet
+   over it — everything applies as you click it, so the drawer changes while
+   you watch. The full form is still a click away for the rule and the name. */
+function closePanel(){ const p=$('#panel'); if(p) p.remove(); }
+function drawerPanel(id){
+  closePanel();
+  const d=container(id), isRoot=id===ROOT;
+  const cfg=cfgOf(id);
+  const row=(label,body)=>`<div class="prow"><label>${label}</label><div>${body}</div></div>`;
+  const chips=(name,val,list,cur)=>list.map(([v,n])=>
+    `<button class="pchip${cur===v?' on':''}" data-p${name}="${v}" data-id="${id}">${n}</button>`).join('');
+  const html=`<div class="panel" id="panel">
+    <div class="ptop"><b>${esc(isRoot?deskTitle():d.title)}</b>
+      <button class="iconbtn" data-act="panelclose" title="Close">${ic('x',15)}</button></div>
+    ${row('View', chips('view', null, [['grid','Grid'],['list','List'],['scroll','Scroll'],
+        ...(isRoot?[]:[['checklist','Checklist'],['calendar','Calendar']])], cfg.layout||'grid'))}
+    ${row('Sort', chips('sort', null, [['','Custom'],...Object.entries(SORTS).map(([k,[nm]])=>[k,nm])], cfg.sort||''))}
+    ${row('Locked', chips('lock', null, [['','Movable'],['1','Locked']], cfg.locked?'1':''))}
+    ${isRoot?'':`
+      ${row('Border', chips('border', null, [['none','None'],['panel','Panelled'],['bead','Beaded'],['double','Double'],['cove','Coved'],['plain','Plain']], d.border||'none'))}
+      ${row('Knob', chips('knob', null, [['round','Round'],['teardrop','Teardrop'],['bar','Bar'],['ring','Ring'],['shield','Shield'],['square','Square']], d.knob||'round'))}
+      ${row('Front', `<div class="pickgrid sw">${Object.values(SWATCHES).flat().slice(0,12).map(([c,nm])=>
+          `<button data-pcolour="${c}" data-id="${id}" title="${nm}" class="${d.c===c?'on':''}" style="background:${c}"></button>`).join('')}</div>`)}
+      ${row('Board', `<div class="pickgrid sw">${[0,1,2,3,4,5].map(()=>randomBoard()).map(b=>{
+          const [a,z]=b.split('|');
+          return `<button data-pboard="${b}" data-id="${id}" style="background:linear-gradient(135deg,${a} 0 50%,${z} 50% 100%)"></button>`;}).join('')}</div>`)}
+      <div class="pfoot"><button class="pill" data-act="panelmore" data-id="${id}">All settings…</button></div>`}
+  </div>`;
+  $('#frame').insertAdjacentHTML('beforeend', html);
+}
+
 function modalDrawer(id){
   const d = id? byId(id) : {id:'', title:'', c:'#4A7C59', pv:'list', layout:'list', filter:{kinds:[]}};
   const ks=((d.filter||{}).kinds||[]);
@@ -2179,8 +2331,8 @@ function modalDrawer(id){
       <div class="mini" style="--k:var(--brass);margin-top:6px">Grid lays contents out on the grid · List is one line each · Scroll shows every word, top to bottom.</div></div>
     <div class="field" style="margin-bottom:10px"><label>Border</label>
       <div class="filterbar" id="dborder" style="flex-wrap:wrap;padding-top:6px">${
-        [['panel','Panelled'],['bead','Beaded'],['double','Double rule'],['cove','Coved'],['plain','Plain']].map(([v,n])=>
-          `<button class="fchip${(d.border||'panel')===v?' on':''}" data-dbd="${v}">${n}</button>`).join('')}</div></div>
+        [['none','None'],['panel','Panelled'],['bead','Beaded'],['double','Double rule'],['cove','Coved'],['plain','Plain']].map(([v,n])=>
+          `<button class="fchip${(d.border||'none')===v?' on':''}" data-dbd="${v}">${n}</button>`).join('')}</div></div>
     <div class="field" style="margin-bottom:10px"><label>Knob</label>
       <div class="filterbar" id="dknob" style="flex-wrap:wrap;padding-top:6px">${
         [['round','Round'],['teardrop','Teardrop'],['bar','Bar'],['ring','Ring'],['shield','Shield'],['square','Square']].map(([v,n])=>
@@ -2217,7 +2369,7 @@ function modalDrawer(id){
   </div>`);
   const m=$('#modal');
   m._draft={c:d.c, pv:d.pv, kinds:ks.slice(), layout:d.layout||'grid', tag:(d.filter||{}).tag||'', locked:!!d.locked,
-            border:d.border||'panel', knob:d.knob||'round', knobc:d.knobc||''};
+            border:d.border||'none', knob:d.knob||'round', knobc:d.knobc||''};
 }
 /* Make a kind by choosing attributes. `from` is an object whose attributes seed
    the picker — "save these attributes as a new kind" from the detail sheet. */
@@ -2870,7 +3022,9 @@ function act(name, el){
     case 'export': exportBackup(); break;
     case 'import': $('#importer').click(); break;
     case 'pickimage': $('#imgpicker').click(); break;
-    case 'drawersettings': modalDrawer(el.dataset.id); break;
+    case 'drawersettings': drawerPanel(el.dataset.id); break;
+    case 'panelclose': closePanel(); break;
+    case 'panelmore': closePanel(); modalDrawer(el.dataset.id); break;
     case 'appsettings': S.view='settings'; render(); break;
     case 'editthis': S.readId=null; openObj(el.dataset.id); break;
     case 'cycleview': {
@@ -2892,6 +3046,8 @@ function act(name, el){
     }
     case 'newkind': modalNewKind(null); break;
     case 'install': if(deferredInstall){ deferredInstall.prompt(); deferredInstall=null; } break;
+    case 'randomone': randomThing(); save(); render(); toast('One at random'); break;
+    case 'randomten': { for(let i=0;i<10;i++) randomThing(); save(); render(); toast('Ten at random'); break; }
     case 'reseed': { const th=S.theme, lk=S.look; reset(); S.theme=th; S.look=lk; applyLook(); writeNow(); render(); toast('Sample desk restored'); break; }
     case 'wipe': {
       if(!confirm('Erase every object and drawer on this device? This cannot be undone.')) return;
@@ -3047,6 +3203,20 @@ function wire(){
     // layout of the drawer being edited in the modal
     const dtg=t.closest('[data-dtag]');
     if(dtg){ $('#modal')._draft.tag=dtg.dataset.dtag; $$('#dtag .fchip').forEach(b=>b.classList.remove('on')); dtg.classList.add('on'); return; }
+
+    const pn=t.closest('[data-pview],[data-psort],[data-plock],[data-pborder],[data-pknob],[data-pcolour],[data-pboard]');
+    if(pn){
+      const id=pn.dataset.id, c=cfgOf(id), o=byId(id);
+      if(pn.dataset.pview!=null) c.layout=pn.dataset.pview;
+      else if(pn.dataset.psort!=null) c.sort=pn.dataset.psort||null;
+      else if(pn.dataset.plock!=null) c.locked=!!pn.dataset.plock;
+      else if(o && pn.dataset.pborder!=null) o.border=pn.dataset.pborder;
+      else if(o && pn.dataset.pknob!=null) o.knob=pn.dataset.pknob;
+      else if(o && pn.dataset.pcolour!=null) o.c=pn.dataset.pcolour;
+      else if(o && pn.dataset.pboard!=null) o.board=pn.dataset.pboard;
+      save(); render(); drawerPanel(id);      // rebuild so the marks follow
+      return;
+    }
 
     const dbd=t.closest('[data-dbd]');
     if(dbd){ $('#modal')._draft.border=dbd.dataset.dbd; $$('#dborder .fchip').forEach(b=>b.classList.remove('on')); dbd.classList.add('on'); return; }

@@ -112,6 +112,15 @@ A drawer's `layout` is its view, remembered per drawer, set in drawer settings:
 - **list** — one line each, for scanning.
 - **scroll** — the same order, but nothing truncated: every object's whole body,
   top to bottom, for reading a drawer rather than scanning it.
+- **checklist** — the contents worn on the outside: the tile itself lists its
+  children with boxes you can tick without opening it. This is the one place
+  completed objects **stay** rather than leaving for the archive, because seeing
+  what you ticked is the whole point.
+- **calendar** — a month, with a mark on any day something inside is due.
+
+The last two are what a Checklist and a Calendar are: ordinary containers whose
+layout draws their contents on the front. Nothing else distinguishes them, so
+any drawer can become either by changing its view.
 
 ## The grid itself
 

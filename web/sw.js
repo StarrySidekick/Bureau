@@ -1,6 +1,6 @@
 /* Bureau — service worker.
    Bump CACHE when you change index.html and the next launch picks it up. */
-const CACHE = 'bureau-v11';
+const CACHE = 'bureau-v12';
 const SHELL = [
   './',
   './index.html',
