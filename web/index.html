@@ -264,6 +264,7 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
   color:var(--ink-2);background:var(--paper);transition:.12s}
 .pchip:hover{border-color:var(--brass);color:var(--ink)}
 .pchip.on{background:color-mix(in srgb,var(--brass) 22%,transparent);color:var(--ink);border-color:transparent}
+.pslide{width:100%;accent-color:var(--brass)}
 .pfoot{margin-top:12px;padding-top:10px;border-top:1px solid var(--rule-2)}
 .rangerow{display:flex;align-items:center;gap:10px;margin-top:8px;font-size:12.5px;color:var(--ink-2)}
 .rangerow input[type=range]{flex:1;accent-color:var(--brass)}
@@ -438,6 +439,78 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
   clip-path:polygon(0 0, 100% 0, 100% 62%, 96.5% 68%, 100% 74%, 100% 100%,
                     0 100%, 0 34%, 2.5% 28%, 0 22%);
 }
+/* ---- one silhouette per kind ------------------------------------------ */
+
+/* An idea has a folded corner, like a page turned down to mark it */
+.drawer.otile.k-idea{
+  clip-path:polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 0 100%);
+  background:var(--paper-2);border-left:3px solid var(--c);
+}
+.drawer.otile.k-idea::after{
+  content:"";position:absolute;top:0;right:0;width:18px;height:18px;
+  background:color-mix(in srgb, var(--c) 34%, var(--paper-3));
+  clip-path:polygon(0 0, 100% 100%, 0 100%);
+}
+/* A question is a speech bubble, with a tail */
+.drawer.otile.k-question{
+  border-radius:12px 12px 12px 2px;background:var(--paper-2);border-left:3px solid var(--c);
+}
+.drawer.otile.k-question::after{
+  content:"";position:absolute;left:-1px;bottom:-9px;width:14px;height:12px;
+  background:var(--paper-2);border-left:1px solid var(--rule);
+  clip-path:polygon(0 0, 100% 0, 0 100%);
+}
+/* A quote: big opening mark, hanging indent, set in the serif */
+.drawer.quotetile{
+  background:var(--paper-2);border:0;border-left:4px double var(--c);
+  padding:12px 14px 10px 16px;justify-content:center;overflow:hidden;
+}
+.quotetile .qmark{position:absolute;left:6px;top:-10px;font-family:var(--serif);
+  font-size:54px;color:var(--c);opacity:.28;line-height:1}
+.quotetile .qbody{font-family:var(--serif);font-size:14.5px;line-height:1.45;
+  font-style:italic;color:var(--ink);overflow-wrap:anywhere;
+  display:-webkit-box;-webkit-line-clamp:6;-webkit-box-orient:vertical;overflow:hidden}
+/* A counter is a number with a caption */
+.drawer.cnttile{
+  background:var(--c);align-items:center;justify-content:center;gap:2px;text-align:center;
+  border-radius:10px;border-color:transparent;
+}
+.cntnum{font-family:var(--serif);font-size:clamp(22px,34cqw,64px);line-height:1;font-weight:600;
+  color:#F8F3E6;font-variant-numeric:tabular-nums;cursor:pointer}
+.cntlabel{font-size:11px;color:rgba(248,243,230,.8);padding:0 8px;overflow-wrap:anywhere;line-height:1.25}
+.drawer.cnttile{container-type:inline-size}
+/* A fragment is only its line — no title bar, no chrome */
+.drawer.fragtile{
+  background:none;border:0;border-left:2px solid var(--c);box-shadow:none;
+  justify-content:center;padding:6px 10px;
+}
+.fragline{font-family:var(--serif);font-size:14px;font-style:italic;color:var(--ink-2);
+  line-height:1.4;overflow-wrap:anywhere;
+  display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+/* A character is a portrait with a name plate */
+.drawer.chartile{padding:0;overflow:hidden;background:var(--paper-2);align-items:stretch}
+.charface{flex:1;min-height:0;display:grid;place-items:center;background:var(--paper-3);color:var(--ink-3)}
+.charface img{width:100%;height:100%;object-fit:cover;display:block}
+.charname{padding:6px 8px;font-size:12px;font-weight:600;text-align:center;
+  background:var(--c);color:#F8F3E6;overflow-wrap:anywhere}
+/* A script is a punched page in a typewriter face */
+.drawer.otile.k-script,.drawer.otile.k-scene{
+  background:var(--paper-2);padding-left:22px;border-left:0;
+}
+.drawer.otile.k-script::after,.drawer.otile.k-scene::after{
+  content:"";position:absolute;left:8px;top:12px;bottom:12px;width:6px;
+  background-image:radial-gradient(circle at 50% 50%, var(--paper) 0 2.6px, transparent 3px);
+  background-size:6px 26px;opacity:.9;
+}
+.drawer.otile.k-script .tiletext,.drawer.otile.k-scene .tiletext{font-family:var(--mono);font-size:10.5px}
+/* A story is a bound spine */
+.drawer.otile.k-story{background:var(--paper-2);border-left:7px solid var(--c);border-radius:2px 6px 6px 2px}
+/* moodboard */
+.drawer.mbtile{padding:0;overflow:hidden;background:var(--paper-3)}
+.mbwall{position:absolute;inset:0;display:grid;grid-template-columns:repeat(3,1fr);gap:2px;padding:2px}
+.mbwall i{background-size:cover;background-position:center;border-radius:2px;display:block}
+.mbname{position:absolute;left:0;right:0;bottom:0;padding:5px 8px;font-size:12px;font-weight:600;
+  color:#F8F3E6;background:rgba(0,0,0,.5);text-align:left}
 /* a task is a sliver with a point on the right, like a flag or a tab */
 .drawer.otile.k-task{
   clip-path:polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%);
@@ -949,24 +1022,37 @@ const USER_ATTRS = ATTRKEYS.filter(a=>!STRUCTURAL.includes(a));
 
 const BUILTIN_KINDS = {
   drawer:  {nm:'Drawer',  ic:'folder',  c:'#7E5A38', key:'D', ds:'A container on the grid',   attrs:['container'], layout:'grid', size:[6,6], body:'' },
-  magic:   {nm:'Magic drawer', ic:'sparkle', c:'#4A6E8F', key:'G', ds:'Collects by rule, like a smart folder', attrs:['container','magic'], layout:'grid', size:[6,6], body:'' },
-  checklist:{nm:'Checklist', ic:'list', c:'#4A7C59', key:'L', ds:'A list of things to tick, right on the board', attrs:['container'], layout:'checklist', size:[6,8], body:'' },
+  magic:   {nm:'Magic drawer', ic:'sparkle', c:'#4A6E8F', key:'Q', ds:'Collects by rule, like a smart folder', attrs:['container','magic'], layout:'grid', size:[6,6], body:'' },
+  checklist:{nm:'Checklist', ic:'list', c:'#4A7C59', key:'K', ds:'A list of things to tick, right on the board', attrs:['container'], layout:'checklist', size:[6,8], body:'' },
   calendar:{nm:'Calendar', ic:'calendar', c:'#5C7148', key:'C', ds:'A month, with what is due on it', attrs:['container'], layout:'calendar', size:[8,8], body:'' },
   control: {nm:'Control',  ic:'sliders', c:'#6B6152', key:'', ds:'A Bureau button on the desk', attrs:['control'], size:[4,4], body:'' },
   task:    {nm:'Task',    ic:'check',   c:'#4A7C59', key:'T', ds:'A thing to do',             attrs:['text','check','date','repeat'], size:[4,1], onclick:'none', body:'' },
-  note:    {nm:'Note',    ic:'note',    c:'#5F7A93', key:'N', ds:'Something to remember',     attrs:['text'], size:[4,4], onclick:'read', body:'' },
+  note:    {nm:'Note',    ic:'note',    c:'#5F7A93', key:'O', ds:'Something to remember',     attrs:['text'], size:[4,4], onclick:'read', body:'' },
   idea:    {nm:'Idea',    ic:'bulb',    c:'#96652F', key:'I', ds:'A spark, unformed',         size:[4,4], onclick:'read', attrs:['text'], body:'**The spark —** \n\n**Why it might work —** \n\n**What it needs —** ' },
-  outline: {nm:'Outline', ic:'list',    c:'#7A6AA0', key:'O', ds:'Structure before prose',    size:[4,4], onclick:'read', attrs:['text'], body:'## I.\n- \n- \n\n## II.\n- \n- \n\n## III.\n- ' },
+  outline: {nm:'Outline', ic:'list',    c:'#7A6AA0', key:'L', ds:'Structure before prose',    size:[4,4], onclick:'read', attrs:['text'], body:'## I.\n- \n- \n\n## II.\n- \n- \n\n## III.\n- ' },
   recipe:  {nm:'Recipe',  ic:'pot',     c:'#A55A3E', key:'R', ds:'Ingredients and method',    size:[4,4], onclick:'read', attrs:['text'], body:'**Serves** 2 · **Time** 30 min\n\n## Ingredients\n- \n- \n- \n\n## Method\n1. \n2. \n3. ' },
   script:  {nm:'Script',  ic:'clapper', c:'#3F5F7A', key:'S', ds:'Scenes and dialogue',       size:[4,4], onclick:'read', attrs:['text'], body:'### INT. LOCATION — DAY\n\nAction line.\n\n**CHARACTER**\nDialogue.' },
-  question:{nm:'Question',ic:'help',    c:'#4A6E8F', key:'Q', ds:'Open until answered',       size:[4,4], onclick:'read', attrs:['text','check'], body:'**Question —** \n\n**What I know —** \n\n**Answer —** ' },
-  essay:   {nm:'Essay',   ic:'feather', c:'#5C7148', key:'E', ds:'Long-form writing',         size:[4,4], onclick:'read', attrs:['text'], body:'> Working thesis.\n\n' },
-  habit:   {nm:'Habit',   ic:'repeat',  c:'#3E7A6B', key:'H', ds:'Repeats, tracks a streak',  size:[4,4], onclick:'read', attrs:['text','streak'], body:'**Why —** ' },
-  goal:    {nm:'Goal',    ic:'target',  c:'#8A5A3F', key:'G', ds:'Long-term, has milestones', size:[4,4], onclick:'read', attrs:['text','progress'], body:'**Definition of done —** ' },
-  image:   {nm:'Image',   ic:'image',   c:'#6E7075', key:'P', ds:'A picture on the board',   size:[6,4], onclick:'read', attrs:['media'], body:'' },
-  media:   {nm:'Media',   ic:'film',    c:'#6E7075', key:'M', ds:'Video or audio',            size:[4,4], onclick:'read', attrs:['text','media'], body:'' },
-  link:    {nm:'Button',  ic:'arrow',   c:'#37687A', key:'B', ds:'A button that opens something', attrs:['button'], body:'' },
-  record:  {nm:'Record',  ic:'trophy',  c:'#9A7B2F', key:'A', ds:'Something accomplished',    size:[4,4], onclick:'read', attrs:['text'], body:'' }
+  question:{nm:'Question',ic:'help',    c:'#4A6E8F', key:'?', ds:'Open until answered',       size:[4,4], onclick:'read', attrs:['text','check'], body:'**Question —** \n\n**What I know —** \n\n**Answer —** ' },
+  essay:   {nm:'Essay',   ic:'feather', c:'#5C7148', key:'Y', ds:'Long-form writing',         size:[4,4], onclick:'read', attrs:['text'], body:'> Working thesis.\n\n' },
+  habit:   {nm:'Habit',   ic:'repeat',  c:'#3E7A6B', key:'A', ds:'Repeats, tracks a streak',  size:[4,4], onclick:'read', attrs:['text','streak'], body:'**Why —** ' },
+  goal:    {nm:'Goal',    ic:'target',  c:'#8A5A3F', key:'J', ds:'Long-term, has milestones', size:[4,4], onclick:'read', attrs:['text','progress'], body:'**Definition of done —** ' },
+  image:   {nm:'Image',   ic:'image',   c:'#6E7075', key:'G', ds:'A picture on the board',   size:[6,4], onclick:'read', attrs:['media'], body:'' },
+  audio:   {nm:'Audio',   ic:'music',   c:'#5D7E99', key:'U', ds:'Something to listen to',    size:[6,2], onclick:'read', attrs:['text','media','duration'], body:'' },
+  video:   {nm:'Video',   ic:'film',    c:'#3F5F7A', key:'V', ds:'Something to watch',        size:[6,4], onclick:'read', attrs:['text','media','duration'], body:'' },
+  trip:    {nm:'Trip',    ic:'flag',    c:'#37687A', key:'P', ds:'Somewhere you are going',   size:[8,6], attrs:['container','date','duration','location'], layout:'grid', body:'' },
+  moodboard:{nm:'Moodboard', ic:'image', c:'#6B4A4A', key:'B', ds:'Pictures, pinned together', size:[8,8], attrs:['container'], layout:'moodboard', body:'' },
+  fragment:{nm:'Fragment',ic:'feather', c:'#8A6A3C', key:'F', ds:'One line worth keeping',    size:[5,2], onclick:'read', attrs:['text'], body:'' },
+  quote:   {nm:'Quote',   ic:'book',    c:'#6F5137', key:'Z', ds:'Someone else\'s words',      size:[6,4], onclick:'read', attrs:['text','link','rating'],
+            body:'> \n\n— ' },
+  story:   {nm:'Story',   ic:'book',    c:'#5A4130', key:'M', ds:'Something told, not listed', size:[6,6], onclick:'read', attrs:['text'],
+            body:'' },
+  scene:   {nm:'Scene',   ic:'clapper', c:'#2F4A5E', key:'N', ds:'One scene, for writing',     size:[6,5], onclick:'read', attrs:['text','location','duration'],
+            body:'**Where —** \n\n**Who —** \n\n**What changes —** ' },
+  character:{nm:'Character', ic:'star', c:'#A0703F', key:'H', ds:'Someone in the story',       size:[4,6], onclick:'read', attrs:['text','media'],
+            body:'**Wants —** \n\n**Fears —** \n\n**Voice —** ' },
+  counter: {nm:'Counter',  ic:'target', c:'#3E7A6B', key:'X', ds:'A number, and what it counts', size:[4,4], onclick:'none', attrs:['count'], body:'' },
+  link:    {nm:'Button',  ic:'arrow',   c:'#37687A', key:'E', ds:'A button that opens something', attrs:['button'], body:'' },
+  record:  {nm:'Record',  ic:'trophy',  c:'#9A7B2F', key:'W', ds:'Something accomplished',    size:[4,4], onclick:'read', attrs:['text'], body:'' }
 };
 // Kinds you invent live in state alongside these; both are read through KINDS.
 let KINDS = Object.assign({}, BUILTIN_KINDS);
@@ -1603,6 +1689,17 @@ function gridTile(o, arr, parentId){
     </button>`;
   }
 
+  /* A moodboard shows its pictures on the front, tiled. */
+  if(cont && o.layout==='moodboard'){
+    const pics=childrenOf(o).filter(x=>x.media&&x.media.src).slice(0,12);
+    return `<button class="drawer dtile mbtile bd-${o.border||'none'}${sel}" data-drawer="${o.id}" style="--c:${colour};${place}">
+      <div class="mbwall">${pics.map(x=>`<i style="background-image:url('${esc(x.media.src)}')"></i>`).join('')
+        || '<span class="clempty">Open it and add pictures</span>'}</div>
+      <span class="mbname">${esc(o.title||'Untitled')}</span>
+      ${handles}
+    </button>`;
+  }
+
   /* A calendar is a container showing the month its children fall in. */
   if(cont && (o.layout==='calendar')){
     return `<button class="drawer dtile caltile bd-${o.border||'none'}${sel}" data-drawer="${o.id}" style="--c:${colour};${place}">
@@ -1644,6 +1741,39 @@ function gridTile(o, arr, parentId){
       data-fire="${o.id}" style="--c:${colour};${place}">
       ${chips}
       <span class="btnface">${esc((o.link&&o.link.label)||o.title||'Open')}</span>
+      ${handles}
+    </button>`;
+  }
+
+  /* A counter is its number. A fragment is its line. Neither wants a title bar. */
+  if(o.kind==='counter' || (has(o,'count') && !has(o,'text') && !has(o,'check'))){
+    return `<button class="drawer otile cnttile${sel}" data-row="${o.id}" style="--c:${colour};${place}">
+      ${chips}
+      <span class="cntnum" data-act="countup" data-id="${o.id}">${o.count||0}</span>
+      <span class="cntlabel">${esc(o.title||'Untitled')}</span>
+      ${handles}
+    </button>`;
+  }
+  if(o.kind==='fragment'){
+    return `<button class="drawer otile fragtile${sel}" data-row="${o.id}" style="--c:${colour};${place}">
+      ${chips}<span class="fragline">${esc(o.body||o.title||'…')}</span>${handles}
+    </button>`;
+  }
+  if(o.kind==='quote'){
+    return `<button class="drawer otile quotetile${sel}" data-row="${o.id}" style="--c:${colour};${place}">
+      ${chips}
+      <span class="qmark">"</span>
+      <span class="qbody">${esc(strip(o.body||o.title||'').replace(/^[>\s—]+/,'')).slice(0,180)}</span>
+      ${has(o,'rating')&&o.rating?`<span class="tilestars">${'★'.repeat(o.rating)}</span>`:''}
+      ${handles}
+    </button>`;
+  }
+  if(o.kind==='character'){
+    const img=o.media&&o.media.src;
+    return `<button class="drawer otile chartile${sel}" data-row="${o.id}" style="--c:${colour};${place}">
+      ${chips}
+      <span class="charface">${img?`<img src="${esc(img)}" alt="">`:ic('star',22)}</span>
+      <span class="charname">${esc(o.title||'Untitled')}</span>
       ${handles}
     </button>`;
   }
@@ -1703,7 +1833,8 @@ function gridOfContainer(cid){
 
   // a drawer may carry its own board, which overrides the global one
   const bd = c.board ? String(c.board).split('|') : null;
-  const boardVars = bd ? `--board-1:${esc(bd[0])};--board-2:${esc(bd[1]||bd[0])};` : '';
+  let boardVars = bd ? `--board-1:${esc(bd[0])};--board-2:${esc(bd[1]||bd[0])};` : '';
+  if(c.boardAlpha!=null) boardVars += `--board-alpha:${c.boardAlpha};`;
   return `<div class="grid g-${dev()}${arr?' arranging':''}${c.locked?' locked':''}${c.sort?' sorted':''}"
        id="drawergrid" data-gridfor="${c.id}"
        style="${boardVars}--cols:${g.cols};--rowh:${g.rowh}px;grid-template-rows:repeat(${Math.max(rows,1)},${g.rowh}px)">${tiles}
@@ -2291,7 +2422,7 @@ function renderSheet(){
       ${extra}
       <div class="section-h"><h2>${has(o,'progress')||has(o,'streak')?'Notes':'Body'}</h2><div class="rule"></div>
         <span class="n">${(o.body||'').split(/\s+/).filter(Boolean).length} words</span></div>
-      <textarea class="editor" data-f="body" placeholder="Markdown welcome — # heading, **bold**, - list, - [ ] checkbox, > quote">${esc(o.body)}</textarea>
+      <textarea class="editor" data-f="body">${esc(o.body)}</textarea>
       <div style="display:flex;gap:8px;margin-top:20px;flex-wrap:wrap">
         <button class="subtle-btn" data-act="attach">${ic('image',12)} Attach media</button>
         <button class="subtle-btn" data-act="dupe">${ic('archive',12)} Duplicate</button>
@@ -2373,7 +2504,14 @@ function drawerPanel(id){
           `<button data-pcolour="${c}" data-id="${id}" title="${nm}" class="${d.c===c?'on':''}" style="background:${c}"></button>`).join('')}</div>`)}
       ${row('Board', `<div class="pickgrid sw">${[0,1,2,3,4,5].map(()=>randomBoard()).map(b=>{
           const [a,z]=b.split('|');
-          return `<button data-pboard="${b}" data-id="${id}" style="background:linear-gradient(135deg,${a} 0 50%,${z} 50% 100%)"></button>`;}).join('')}</div>`)}
+          return `<button data-pboard="${b}" data-id="${id}" style="background:linear-gradient(135deg,${a} 0 50%,${z} 50% 100%)"></button>`;}).join('')}
+          <button data-pboard="" data-id="${id}" title="Use the desk's board" class="${d.board?'':'on'}"
+            style="background:var(--paper);border-style:dashed"></button></div>`)}
+      ${row('Board strength', `<input class="pslide" type="range" min="0" max="100" step="5"
+          value="${Math.round(((d.boardAlpha==null?1:d.boardAlpha))*100)}" data-palpha data-id="${id}">`)}
+      ${row('Knob colour', `<div class="pickgrid sw">${
+          ['rgba(255,255,255,.5)','#F8F3E6','#A9793F','#2A241C','#C0563F','#3E7A6B'].map(c=>
+          `<button data-pknobc="${c}" data-id="${id}" class="${d.knobc===c?'on':''}" style="background:${c}"></button>`).join('')}</div>`)}
       <div class="pfoot"><button class="pill" data-act="panelmore" data-id="${id}">All settings…</button></div>`}
   </div>`;
   $('#frame').insertAdjacentHTML('beforeend', html);
@@ -2874,6 +3012,9 @@ function adopt(d){
   if(!(d.v>=5)) doubleBoxes(S.objects);   // 12 cols -> 24, so a half-cell exists
   const fixedIds=dedupeIds(S.objects);
   if(fixedIds) setTimeout(()=>toast(`Repaired ${fixedIds} duplicated id${fixedIds>1?'s':''}`),400);
+  S.objects.forEach(o=>{ if(o.kind==='media')
+    o.kind = (o.media&&o.media.type==='audio') ? 'audio'
+           : (o.media&&o.media.type==='video') ? 'video' : 'image'; });
   ensureControls();
   S.kinds = d.kinds || {};
   S.look = Object.assign(defaultLook(), d.look||{});
@@ -3294,7 +3435,7 @@ function wire(){
     const dtg=t.closest('[data-dtag]');
     if(dtg){ $('#modal')._draft.tag=dtg.dataset.dtag; $$('#dtag .fchip').forEach(b=>b.classList.remove('on')); dtg.classList.add('on'); return; }
 
-    const pn=t.closest('[data-pview],[data-psort],[data-plock],[data-pborder],[data-pknob],[data-pcolour],[data-pboard]');
+    const pn=t.closest('[data-pview],[data-psort],[data-plock],[data-pborder],[data-pknob],[data-pcolour],[data-pboard],[data-pknobc]');
     if(pn){
       const id=pn.dataset.id, c=cfgOf(id), o=byId(id);
       if(pn.dataset.pview!=null) c.layout=pn.dataset.pview;
@@ -3303,7 +3444,8 @@ function wire(){
       else if(o && pn.dataset.pborder!=null) o.border=pn.dataset.pborder;
       else if(o && pn.dataset.pknob!=null) o.knob=pn.dataset.pknob;
       else if(o && pn.dataset.pcolour!=null) o.c=pn.dataset.pcolour;
-      else if(o && pn.dataset.pboard!=null) o.board=pn.dataset.pboard;
+      else if(o && pn.dataset.pboard!=null) o.board=pn.dataset.pboard||null;
+      else if(o && pn.dataset.pknobc!=null) o.knobc=pn.dataset.pknobc;
       save(); render(); drawerPanel(id);      // rebuild so the marks follow
       return;
     }
@@ -3397,6 +3539,10 @@ function wire(){
   // inline field edits
   frame.addEventListener('input', e=>{
     // colour pickers: live preview while dragging, committed on 'change'
+    if(e.target.dataset.palpha!=null){
+      const o=byId(e.target.dataset.id); if(o){ o.boardAlpha=(+e.target.value)/100; save(); render(); }
+      return;
+    }
     const lr=e.target.dataset.lookrange;
     if(lr){ S.look[lr]=(+e.target.value)/100; applyLook();
       const b=e.target.parentElement.querySelector('b'); if(b) b.textContent=e.target.value+'%'; return; }

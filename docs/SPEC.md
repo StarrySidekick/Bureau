@@ -15,7 +15,7 @@ The full model is in [OBJECT-MODEL.md](OBJECT-MODEL.md).
 
 ## Kinds
 
-Fourteen built in, plus any you make. Each has an icon, a colour, a keyboard
+Twenty-eight built in, plus any you make. Each has an icon, a colour, a keyboard
 letter, a one-line description, a body template, and a set of attributes. The
 attributes are what actually do the work — the table's "behaves like" column is
 just the attribute set in words.
