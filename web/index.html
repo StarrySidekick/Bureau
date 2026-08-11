@@ -265,6 +265,49 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
 .pchip:hover{border-color:var(--brass);color:var(--ink)}
 .pchip.on{background:color-mix(in srgb,var(--brass) 22%,transparent);color:var(--ink);border-color:transparent}
 .pslide{width:100%;accent-color:var(--brass)}
+/* counter wheels */
+.cntnum{display:flex;gap:1px;justify-content:center;align-items:center}
+.wheel{display:block;height:1em;width:.62em;overflow:hidden;font-style:normal;line-height:1}
+.wheel b{display:block;font-weight:inherit;
+  transition:transform .6s cubic-bezier(.16,1.05,.3,1)}
+.wheel b u{display:block;height:1em;line-height:1;text-decoration:none;text-align:center}
+.wheel.plain{width:auto;line-height:1}
+/* a trip is a ticket with a stub */
+.drawer.triptile{padding:0;flex-direction:row;overflow:hidden;background:var(--c);align-items:stretch}
+.triptile .tkmain{flex:1;min-width:0;padding:10px 12px;display:flex;flex-direction:column;gap:3px;justify-content:center}
+.triptile .tklabel{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--dink-3)}
+.triptile .tkloc{font-size:11.5px;color:var(--dink-2);display:flex;align-items:center;gap:4px}
+.triptile .tkstub{
+  flex:0 0 auto;width:22%;min-width:44px;display:grid;place-items:center;
+  font-family:var(--serif);font-size:clamp(13px,4cqw,26px);letter-spacing:.08em;color:var(--dink);
+  background:rgba(0,0,0,.20);
+  border-left:2px dashed rgba(255,255,255,.45);
+}
+/* a text field that makes tasks */
+.drawer.fieldtile{padding:0;background:var(--paper-2);border:1px dashed var(--rule);align-items:stretch}
+.fieldin{width:100%;height:100%;border:0;background:none;outline:none;padding:0 12px;font-size:13.5px;color:var(--ink)}
+/* dropping into a drawer */
+.drawer.dropinto{outline:3px solid var(--brass);outline-offset:-3px;filter:brightness(1.12)}
+.ghost.hidden{display:none}
+@keyframes swallow{0%{transform:scale(1)}35%{transform:scale(1.07)}100%{transform:scale(1)}}
+.drawer.swallow{animation:swallow .42s cubic-bezier(.2,.9,.3,1)}
+/* the sheet takes the left half when the object is on the right */
+.is-desk.sheet-left .sheet{right:auto;left:0;border-left:0;border-right:1px solid var(--rule)}
+.is-desk.sheet-left .sheetveil{right:auto;left:50vw}
+/* book view */
+.book{max-width:1100px;margin:0 auto}
+.spread{display:grid;grid-template-columns:1fr 1fr;gap:0;background:var(--paper-2);
+  border:1px solid var(--rule);border-radius:var(--radius);overflow:hidden;min-height:64vh}
+.is-phone .spread{grid-template-columns:1fr}
+.spread .page{padding:34px 38px 44px;position:relative;font-size:14.5px;line-height:1.75;
+  border-right:1px solid var(--rule-2)}
+.spread .page:last-child{border-right:0}
+.spread .page h2{font-family:var(--serif);font-size:20px;margin:0 0 12px}
+.spread .pno{position:absolute;bottom:14px;left:0;right:0;text-align:center;font-size:11px;color:var(--ink-3)}
+.spread .thin{color:var(--ink-3)}
+.bookbar{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:14px}
+.bookcount{font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.bookbar .pill[disabled]{opacity:.4}
 .pfoot{margin-top:12px;padding-top:10px;border-top:1px solid var(--rule-2)}
 .rangerow{display:flex;align-items:center;gap:10px;margin-top:8px;font-size:12.5px;color:var(--ink-2)}
 .rangerow input[type=range]{flex:1;accent-color:var(--brass)}
@@ -405,7 +448,8 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
   display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical}
 .tilecheck{flex:0 0 auto;margin-top:1px}
 /* a button object fills its tile; the shape is its own setting */
-.drawer.btntile{padding:0;background:var(--c);align-items:center;justify-content:center;border-color:transparent}
+.drawer.btntile{padding:0;background:none;border:0;box-shadow:none;align-items:stretch;justify-content:stretch}
+.drawer.btntile .btnface{margin:8%;background:var(--c);border-radius:inherit;display:grid;place-items:center;width:84%;height:84%}
 .drawer.btntile .btnface{font-size:14px;font-weight:600;color:#F8F3E6;text-align:center;
   padding:8px 12px;line-height:1.25;overflow-wrap:anywhere}
 .drawer.btntile:hover{filter:brightness(1.09)}
@@ -413,7 +457,6 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
 .drawer.btntile.bs-round{border-radius:50%}
 .drawer.btntile.bs-rounded{border-radius:14px}
 .drawer.btntile.bs-square{border-radius:0}
-.drawer.btntile.bs-pill{border-radius:999px}
 .tilestars{font-size:12px;color:var(--dink);letter-spacing:1px;margin-top:2px}
 .tilestars span{opacity:.32}
 .counter{display:inline-flex;align-items:center;gap:10px}
@@ -431,9 +474,8 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
 /* ---- what each kind looks like on the board ---------------------------- */
 
 /* A note is a torn scrap of parchment: no binding, and a chip out of one edge */
-.drawer.otile.k-note,.drawer.otile.k-idea,.drawer.otile.k-essay,
-.drawer.otile.k-outline,.drawer.otile.k-recipe,.drawer.otile.k-script,
-.drawer.otile.k-question,.drawer.otile.k-record{
+.drawer.otile.k-note,.drawer.otile.k-essay,
+.drawer.otile.k-outline,.drawer.otile.k-recipe,.drawer.otile.k-record{
   border-left:1px solid var(--rule);
   background:var(--paper-2);
   clip-path:polygon(0 0, 100% 0, 100% 62%, 96.5% 68%, 100% 74%, 100% 100%,
@@ -455,10 +497,11 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
 .drawer.otile.k-question{
   border-radius:12px 12px 12px 2px;background:var(--paper-2);border-left:3px solid var(--c);
 }
+.drawer.otile.k-question{border-left:1px solid var(--rule);clip-path:none}
 .drawer.otile.k-question::after{
-  content:"";position:absolute;left:-1px;bottom:-9px;width:14px;height:12px;
-  background:var(--paper-2);border-left:1px solid var(--rule);
-  clip-path:polygon(0 0, 100% 0, 0 100%);
+  content:"";position:absolute;left:14px;bottom:-10px;width:16px;height:12px;
+  background:var(--paper-2);border-right:1px solid var(--rule);border-bottom:1px solid var(--rule);
+  clip-path:polygon(100% 0, 100% 100%, 0 0);
 }
 /* A quote: big opening mark, hanging indent, set in the serif */
 .drawer.quotetile{
@@ -495,7 +538,7 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
   background:var(--c);color:#F8F3E6;overflow-wrap:anywhere}
 /* A script is a punched page in a typewriter face */
 .drawer.otile.k-script,.drawer.otile.k-scene{
-  background:var(--paper-2);padding-left:22px;border-left:0;
+  background:var(--paper-2);padding-left:22px;border-left:0;clip-path:none;
 }
 .drawer.otile.k-script::after,.drawer.otile.k-scene::after{
   content:"";position:absolute;left:8px;top:12px;bottom:12px;width:6px;
@@ -538,23 +581,20 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
              inset 0 0 0 4px transparent,
              inset 0 0 0 5px rgba(255,255,255,.18), var(--shadow);
 }
-.drawer.dtile.bd-cove{
-  box-shadow:inset 0 3px 7px rgba(0,0,0,.30),
-             inset 0 -2px 0 rgba(255,255,255,.14), var(--shadow);
-}
 .drawer.dtile.bd-plain{ box-shadow:var(--shadow) }
 .drawer.dtile.bd-none{ box-shadow:none;border-color:transparent }
 
 /* Six knobs. The default is half-transparent white; the colour and shape are
    both set in the drawer's settings. */
+.drawer.dtile{container-type:inline-size}
 .pull{
-  width:19px;height:19px;flex:0 0 auto;
+  width:clamp(20px, 13cqw, 54px);height:clamp(20px, 13cqw, 54px);flex:0 0 auto;
   background:var(--knob,rgba(255,255,255,.5));
   opacity:.95;transition:opacity .18s;border-radius:50%;
 }
 .pull.kn-round{border-radius:50%}
 .pull.kn-teardrop{border-radius:50% 50% 50% 8px;transform:rotate(45deg)}
-.pull.kn-bar{width:34px;height:11px;border-radius:6px}
+.pull.kn-bar{width:clamp(34px,30cqw,110px);height:clamp(10px,6cqw,22px);border-radius:99px}
 .pull.kn-ring{border-radius:50%;background:none;border:4px solid var(--knob,rgba(255,255,255,.5))}
 .pull.kn-shield{border-radius:4px 4px 50% 50%}
 .pull.kn-square{border-radius:3px}
@@ -1010,7 +1050,8 @@ const ATTRS = {
   location: {nm:'Location',   ds:'Where it is'},
   duration: {nm:'Duration',   ds:'How long it takes'},
   priority: {nm:'Priority',   ds:'How much it matters'},
-  price:    {nm:'Price',      ds:'What it costs'}
+  price:    {nm:'Price',      ds:'What it costs'},
+  field:    {nm:'Entry field', ds:'Type in it and a task appears below it'}
 };
 const ATTRKEYS = Object.keys(ATTRS);
 /* A drawer is not an object with an extra tick — it is a different sort of
@@ -1050,6 +1091,7 @@ const BUILTIN_KINDS = {
             body:'**Where —** \n\n**Who —** \n\n**What changes —** ' },
   character:{nm:'Character', ic:'star', c:'#A0703F', key:'H', ds:'Someone in the story',       size:[4,6], onclick:'read', attrs:['text','media'],
             body:'**Wants —** \n\n**Fears —** \n\n**Voice —** ' },
+  field:   {nm:'Text field', ic:'edit', c:'#6B6152', key:'/', ds:'Type in it and a task appears below', size:[8,2], onclick:'none', attrs:['field'], body:'' },
   counter: {nm:'Counter',  ic:'target', c:'#3E7A6B', key:'X', ds:'A number, and what it counts', size:[4,4], onclick:'none', attrs:['count'], body:'' },
   link:    {nm:'Button',  ic:'arrow',   c:'#37687A', key:'E', ds:'A button that opens something', attrs:['button'], body:'' },
   record:  {nm:'Record',  ic:'trophy',  c:'#9A7B2F', key:'W', ds:'Something accomplished',    size:[4,4], onclick:'read', attrs:['text'], body:'' }
@@ -1184,7 +1226,7 @@ function reset(){
     device:sensedDevice(), layoutEdit:null, theme:'paper',
     view:'desk', drawerId:null, openId:null,
     arrange:false, reorder:false, listmode:'rows', kindFilter:null, tagFilter:null,
-    selDate:T, trash:null, editing:false, sel:[], readId:null,
+    selDate:T, trash:null, editing:false, sel:[], readId:null, bookAt:0,
     deskCfg:{layout:'grid', locked:false, sort:null},
     look:defaultLook()
   };
@@ -1587,6 +1629,16 @@ function drawerPreview(d, items){
   return `<div class="pv-list">${items.slice(0,5).map(o=>
     `<div class="r${o.done?' done':''}" style="--k:${K(o.kind).c}"><span class="dot"></span><span class="lbl">${esc(o.title||'Untitled')}</span></div>`).join('')}</div>`;
 }
+/* A number as a stack of wheels: each column holds 0–9 and is slid to the
+   digit it should show, so changing the count spins them like a slot machine. */
+function digitWheel(n){
+  return String(n).split('').map(d=>
+    /\d/.test(d)
+      ? `<i class="wheel"><b style="transform:translateY(${-d}em)">${
+          [0,1,2,3,4,5,6,7,8,9].map(x=>`<u>${x}</u>`).join('')}</b></i>`
+      : `<i class="wheel plain">${esc(d)}</i>`).join('');
+}
+
 const HANDLES = ['nw','ne','se','sw'];   // corners only — any corner resizes
 
 /* A month for a calendar container: the weeks of `o.month`, with a mark on any
@@ -1689,6 +1741,19 @@ function gridTile(o, arr, parentId){
     </button>`;
   }
 
+  /* A trip is a ticket: a stub torn off down the right, and where to. */
+  if(cont && o.kind==='trip'){
+    return `<button class="drawer dtile triptile bd-${o.border||'none'}${sel}" data-drawer="${o.id}" style="--c:${colour};${place}">
+      <div class="tkmain">
+        <span class="tklabel">${o.due?esc(D.human(o.due)):'Some day'}</span>
+        <span class="dname">${esc(o.title||'Untitled')}</span>
+        ${o.loc?`<span class="tkloc">${ic('flag',11)} ${esc(o.loc)}</span>`:''}
+      </div>
+      <div class="tkstub">${(o.title||'??').slice(0,3).toUpperCase()}</div>
+      ${handles}
+    </button>`;
+  }
+
   /* A moodboard shows its pictures on the front, tiled. */
   if(cont && o.layout==='moodboard'){
     const pics=childrenOf(o).filter(x=>x.media&&x.media.src).slice(0,12);
@@ -1730,7 +1795,6 @@ function gridTile(o, arr, parentId){
     return `<button class="drawer otile imgtile k-${o.kind}${o.media.alpha?'':' opaque'}${sel}" data-row="${o.id}" style="--c:${colour};${place}">
       ${chips}
       <img class="tileimg" src="${esc(o.media.src)}" alt="${esc(o.title||'')}" draggable="false">
-      ${o.title?`<span class="imgcap">${esc(o.title)}</span>`:''}
       ${handles}
     </button>`;
   }
@@ -1749,10 +1813,17 @@ function gridTile(o, arr, parentId){
   if(o.kind==='counter' || (has(o,'count') && !has(o,'text') && !has(o,'check'))){
     return `<button class="drawer otile cnttile${sel}" data-row="${o.id}" style="--c:${colour};${place}">
       ${chips}
-      <span class="cntnum" data-act="countup" data-id="${o.id}">${o.count||0}</span>
+      <span class="cntnum" data-act="countup" data-id="${o.id}">${digitWheel(o.count||0)}</span>
       <span class="cntlabel">${esc(o.title||'Untitled')}</span>
       ${handles}
     </button>`;
+  }
+  if(has(o,'field')){
+    return `<div class="drawer otile fieldtile${sel}" data-row="${o.id}" style="--c:${colour};${place}">
+      ${chips}
+      <input class="fieldin" data-fieldfor="${o.id}" placeholder="${esc(o.title||'Type and press return…')}">
+      ${handles}
+    </div>`;
   }
   if(o.kind==='fragment'){
     return `<button class="drawer otile fragtile${sel}" data-row="${o.id}" style="--c:${colour};${place}">
@@ -1829,7 +1900,9 @@ function gridOfContainer(cid){
   if(c.sort) flowSorted(kids, c.id);          // a sort overrides hand placement
   else kids.forEach(o=>ensureBox(o, dev(), c.id));
   const tiles=kids.map(o=>gridTile(o,arr,c.id)).join('');
-  const rows=gridRows(dev(),c.id)+(arr?2:0);
+  // never a two-row sliver: a drawer's board is at least a screenful
+  const minRows=Math.max(12, Math.ceil((window.innerHeight-140)/Math.max(1,CELL[dev()])));
+  const rows=Math.max(gridRows(dev(),c.id)+(arr?2:0), minRows);
 
   // a drawer may carry its own board, which overrides the global one
   const bd = c.board ? String(c.board).split('|') : null;
@@ -1848,7 +1921,7 @@ function gridOfContainer(cid){
 function gridBar(c){
   const trail = c.id===ROOT ? [] : chainOf(c.id);
   const view = c.layout || 'grid';
-  const views = {grid:'grid', list:'list', scroll:'book'};
+  const views = {grid:'grid', list:'list', scroll:'feather', book:'book'};
   return `<div class="gridbar">
     <div class="where">
       ${c.id===ROOT ? `<span class="here">${esc(deskTitle())}</span>` :
@@ -1870,9 +1943,21 @@ function gridBar(c){
 }
 
 function viewDesk(){
+  const c=rootObj(), view=c.layout||'grid';
+  if(view!=='grid'){
+    const items=childrenOf(c);
+    return `
+    ${gridBar(c)}
+    <div class="scroll">
+      ${!items.length ? `<div class="empty"><div class="big">Nothing on the desk</div>Click a bare cell in grid view to make something.</div>`
+        : view==='scroll' ? `<div class="scrollview">${items.map(scrollEntry).join('')}</div>`
+        : view==='book'   ? bookView(c, items)
+        : `<div class="listgrid">${items.map(listTile).join('')}</div>`}
+    </div>`;
+  }
   return `
   <div class="scroll deskscroll">
-    ${gridBar(rootObj())}
+    ${gridBar(c)}
     ${S.layoutEdit?`<div class="banner">${ic('resize',14)} You are arranging the <b style="margin:0 3px">${S.layoutEdit==='desk'?'Mac':'iPhone'}</b> layout.
       <button data-act="stopedit">Back to this device</button></div>`:''}
     ${gridOfContainer(ROOT)}
@@ -1943,9 +2028,6 @@ function viewDrawer(){
   return `
   ${gridBar(d)}
   <div class="scroll${view==='grid'?' deskscroll':''}">
-    ${has(d,'magic')?'':`<div class="quickadd">${ic('plus',15)}
-      <input id="qa" placeholder="Add to ${esc(d.title)}…  try  /idea  #tag  !today" data-kind="${defKind}" data-drawer="${d.id}">
-      <span class="k">↵</span></div>`}
     ${kinds.length>1&&view!=='grid'?`<div class="filterbar">
       <button class="fchip${!S.kindFilter?' on':''}" data-kind="">All</button>
       ${kinds.map(k=>`<button class="fchip${S.kindFilter===k?' on':''}" data-kind="${k}" style="--k:${K(k).c}">${K(k).nm}</button>`).join('')}
@@ -1954,6 +2036,8 @@ function viewDrawer(){
       ? gridOfContainer(d.id)
       : !items.length
         ? `<div class="empty"><div class="big">This drawer is empty</div>${has(d,'magic')?'Nothing matches its rule yet.':'Add something above, or click a bare cell on the desk.'}</div>`
+        : view==='book'
+        ? bookView(d, items)
         : view==='scroll'
           ? `<div class="scrollview">${items.map(scrollEntry).join('')}</div>`
           : `<div class="listgrid">${items.map(o=>listTile(o)).join('')}</div>`}
@@ -1978,6 +2062,30 @@ function listTile(o){
       ${cont?`<span class="pull kn-${o.knob||'round'}"${o.knobc?` style="--knob:${esc(o.knobc)}"`:''}></span>`:''}
     </div>
   </button>`;
+}
+
+/* Book view: the drawer's writing set as a two-page spread you turn through.
+   Everything is concatenated, then split by how much fits on a page. */
+function bookView(c, items){
+  const pages=[];
+  items.forEach(o=>{
+    const body=(o.body||'').trim();
+    pages.push(`<h2>${esc(o.title||'Untitled')}</h2>${body?md(body):'<p class="thin">—</p>'}`);
+  });
+  if(!pages.length) pages.push('<p class="thin">Nothing written yet.</p>');
+  const at=Math.min(S.bookAt||0, Math.max(0,pages.length-1));
+  const left=pages[at]||'', right=pages[at+1]||'';
+  return `<div class="book">
+    <div class="spread">
+      <div class="page">${left}<span class="pno">${at+1}</span></div>
+      <div class="page">${right}${right?`<span class="pno">${at+2}</span>`:''}</div>
+    </div>
+    <div class="bookbar">
+      <button class="pill" data-act="bookprev"${at<=0?' disabled':''}>${ic('chevL',14)}</button>
+      <span class="bookcount">${at+1}–${Math.min(at+2,pages.length)} of ${pages.length}</span>
+      <button class="pill" data-act="booknext"${at+2>=pages.length?' disabled':''}>${ic('chevR',14)}</button>
+    </div>
+  </div>`;
 }
 
 /* Scroll view: the same list, but nothing is truncated. Every object's whole
@@ -2295,7 +2403,14 @@ function closeSheet(){ S.openId=null; S.readId=null; clearFocus(); renderSheet()
    doesn't cover, so you keep sight of where it lives. */
 function focusTile(id){
   clearFocus();
-  const el=document.querySelector(`.grid .drawer[data-row="${id}"],.grid .drawer[data-drawer="${id}"]`);
+  // put the sheet on the far side from the object, so it never covers it
+  const t=document.querySelector(`.grid .drawer[data-row="${id}"],.grid .drawer[data-drawer="${id}"]`);
+  const frame=$('#frame');
+  if(t && frame.classList.contains('is-desk')){
+    const mid=t.getBoundingClientRect().left + t.getBoundingClientRect().width/2;
+    frame.classList.toggle('sheet-left', mid > window.innerWidth/2);
+  }
+  const el=t;
   if(!el) return;
   el.classList.add('focused');
   const scroller=el.closest('.scroll'); if(!scroller) return;
@@ -2306,7 +2421,7 @@ function focusTile(id){
     scroller.scrollLeft += (er.left - sr.left) - (half/2 - er.width/2);
   }
 }
-function clearFocus(){ $$('.drawer.focused').forEach(e=>e.classList.remove('focused')); }
+function clearFocus(){ $$('.drawer.focused').forEach(e=>e.classList.remove('focused')); $('#frame').classList.remove('sheet-left'); }
 
 function renderSheet(){
   const host=$('#sheetHost');
@@ -2359,7 +2474,7 @@ function renderSheet(){
   if(has(o,'rating')) fields.push(`<div class="field"><label>Rating</label>
       <div class="stars">${[1,2,3,4,5].map(n=>`<button data-star="${o.id}:${n}" class="${(o.rating||0)>=n?'on':''}">${ic('star',17)}</button>`).join('')}</div></div>`);
   if(has(o,'button')) fields.push(`<div class="field"><label>Button shape</label><select data-f="btnshape">
-      ${[['rounded','Rounded square'],['round','Round'],['square','Square'],['pill','Pill']].map(([v,n])=>`<option value="${v}"${(o.btnshape||'rounded')===v?' selected':''}>${n}</option>`).join('')}</select></div>`);
+      ${[['rounded','Rounded square'],['round','Round'],['square','Square']].map(([v,n])=>`<option value="${v}"${(o.btnshape||'rounded')===v?' selected':''}>${n}</option>`).join('')}</select></div>`);
   if(has(o,'media')) fields.push(`<div class="field"><label>Media type</label><select data-f="mtype">
       ${['image','video','audio'].map(t=>`<option value="${t}"${o.media&&o.media.type===t?' selected':''}>${t}</option>`).join('')}</select></div>`);
   if(!isContainer(o)) fields.push(`<div class="field"><label>Clicking it</label><select data-f="onclick">
@@ -2457,8 +2572,16 @@ function modalNewObject(){
   const offer=KEYS.filter(k=>!kindHas(k,'control'));
   showModal(`<div class="modal-h"><div class="t">New object</div>
     <div class="s">Pick a kind — each one comes with its own attributes and template. Right-click one to edit it.</div></div>
-  <div class="modal-b"><div class="kindgrid">
-    ${offer.map(k=>`<button class="kindtile" data-new="${k}" style="--k:${KINDS[k].c}">
+  <div class="modal-b">
+    <div class="section-h"><h2>Containers</h2><div class="rule"></div><span class="n">hold other things</span></div>
+    <div class="kindgrid">
+    ${offer.filter(k=>kindHas(k,'container')).map(k=>`<button class="kindtile" data-new="${k}" style="--k:${KINDS[k].c}">
+      <div style="display:flex;align-items:center;width:100%;gap:6px"><span class="ic">${ic(KINDS[k].ic,15)}</span><span class="kbd">${KINDS[k].key||''}</span></div>
+      <div class="nm">${KINDS[k].nm}</div><div class="ds">${KINDS[k].ds}</div></button>`).join('')}
+    </div>
+    <div class="section-h"><h2>Objects</h2><div class="rule"></div><span class="n">hold nothing</span></div>
+    <div class="kindgrid">
+    ${offer.filter(k=>!kindHas(k,'container')).map(k=>`<button class="kindtile" data-new="${k}" style="--k:${KINDS[k].c}">
       <div style="display:flex;align-items:center;width:100%;gap:6px"><span class="ic">${ic(KINDS[k].ic,15)}</span><span class="kbd">${KINDS[k].key||''}</span></div>
       <div class="nm">${KINDS[k].nm}</div><div class="ds">${KINDS[k].ds}</div></button>`).join('')}
     <button class="kindtile newkind" data-act="newkind" style="--k:var(--brass)">
@@ -2498,7 +2621,7 @@ function drawerPanel(id){
     ${row('Sort', chips('sort', null, [['','Custom'],...Object.entries(SORTS).map(([k,[nm]])=>[k,nm])], cfg.sort||''))}
     ${row('Locked', chips('lock', null, [['','Movable'],['1','Locked']], cfg.locked?'1':''))}
     ${isRoot?'':`
-      ${row('Border', chips('border', null, [['none','None'],['panel','Panelled'],['bead','Beaded'],['double','Double'],['cove','Coved'],['plain','Plain']], d.border||'none'))}
+      ${row('Border', chips('border', null, [['none','None'],['panel','Panelled'],['bead','Beaded'],['double','Double'],['plain','Plain']], d.border||'none'))}
       ${row('Knob', chips('knob', null, [['round','Round'],['teardrop','Teardrop'],['bar','Bar'],['ring','Ring'],['shield','Shield'],['square','Square']], d.knob||'round'))}
       ${row('Front', `<div class="pickgrid sw">${Object.values(SWATCHES).flat().slice(0,12).map(([c,nm])=>
           `<button data-pcolour="${c}" data-id="${id}" title="${nm}" class="${d.c===c?'on':''}" style="background:${c}"></button>`).join('')}</div>`)}
@@ -2526,12 +2649,12 @@ function modalDrawer(id){
     <div class="field" style="margin-bottom:10px"><label>Name</label><input id="dnm" value="${esc(d.title||'')}" placeholder="Reading Pile"></div>
     <div class="field" style="margin-bottom:10px"><label>View</label>
       <div class="filterbar" id="dlayout" style="padding-top:6px">${
-        [['grid','Grid'],['list','List'],['scroll','Scroll']].map(([v,n])=>
+        [['grid','Grid'],['list','List'],['scroll','Scroll'],['book','Book']].map(([v,n])=>
         `<button class="fchip${(d.layout||'grid')===v?' on':''}" data-dl="${v}">${n}</button>`).join('')}</div>
       <div class="mini" style="--k:var(--brass);margin-top:6px">Grid lays contents out on the grid · List is one line each · Scroll shows every word, top to bottom.</div></div>
     <div class="field" style="margin-bottom:10px"><label>Border</label>
       <div class="filterbar" id="dborder" style="flex-wrap:wrap;padding-top:6px">${
-        [['none','None'],['panel','Panelled'],['bead','Beaded'],['double','Double rule'],['cove','Coved'],['plain','Plain']].map(([v,n])=>
+        [['none','None'],['panel','Panelled'],['bead','Beaded'],['double','Double rule'],['plain','Plain']].map(([v,n])=>
           `<button class="fchip${(d.border||'none')===v?' on':''}" data-dbd="${v}">${n}</button>`).join('')}</div></div>
     <div class="field" style="margin-bottom:10px"><label>Knob</label>
       <div class="filterbar" id="dknob" style="flex-wrap:wrap;padding-top:6px">${
@@ -2757,6 +2880,8 @@ function onDown(e){
        stepX:cw+g.gap, stepY:CELL[dev()]+g.gap, sx:e.clientX, sy:e.clientY, mode:null};
     return;
   }
+  // a tick, a counter or a button inside a tile is its own target
+  if(e.target.closest('[data-check],[data-fire],.cntnum')) return;
   const dEl=e.target.closest('.grid .drawer[data-drawer],.grid .drawer[data-row],.grid .drawer[data-id]');
   if(dEl && dEl.closest('.grid.sorted')){
     toast('Sorted drawers arrange themselves — switch to Custom to move things');
@@ -2834,7 +2959,15 @@ function onMove(e){
     G.el.classList.toggle('invalid', !G.ok);
     if(G.type==='move'){
       G.el.style.transform=`translate(${dx}px,${dy}px)`;
-      G.ghost.className='ghost'+(G.ok?'':' bad');
+      // a drawer under the pointer is a place to file into, not a collision
+      const under=document.elementFromPoint(e.clientX,e.clientY);
+      const over=under && under.closest('.grid .drawer[data-drawer]');
+      const overId=over && over.dataset.drawer;
+      const canDrop = overId && overId!==G.id && !isAncestor(G.id, byId(overId)) && !has(byId(overId),'magic');
+      if(G.dropOn && G.dropOn!==overId){ const p=document.querySelector(`[data-drawer="${G.dropOn}"]`); p&&p.classList.remove('dropinto'); }
+      G.dropOn = canDrop ? overId : null;
+      if(G.dropOn) over.classList.add('dropinto');
+      G.ghost.className='ghost'+(G.dropOn?' hidden':(G.ok?'':' bad'));
       place(G.ghost, box);
     } else {
       place(G.el, box);            // live resize, like dragging a window edge
@@ -2877,7 +3010,17 @@ function onUp(e){
     g.el.classList.remove('dragging','invalid','lifted');
     g.el.style.transform='';
     if(g.ghost) g.ghost.remove();
+    $$('.dropinto').forEach(e2=>e2.classList.remove('dropinto'));
     const d=byId(g.id);
+    if(d && g.dropOn){
+      const into=byId(g.dropOn);
+      d.parent=g.dropOn; d[dev()]=null;      // it will be placed inside on first render
+      save(); render();
+      const el=document.querySelector(`[data-drawer="${g.dropOn}"]`);
+      if(el){ el.classList.add('swallow'); setTimeout(()=>el.classList.remove('swallow'),420); }
+      toast(`Filed in ${into?into.title:'the drawer'}`);
+      return;
+    }
     if(d && g.cand && g.ok) d[dev()]={...g.cand};
     save(); render();
     if(d && g.cand && !g.ok) toast('No room there');
@@ -3186,7 +3329,11 @@ function act(name, el){
       hideModal(); save(); render(); toast('Drawer removed — its contents kept');
       break;
     }
-    case 'countup': { const o=byId(el.dataset.id); o.count=(o.count||0)+1; save(); renderSheet(); render(); break; }
+    case 'countup': { const o=byId(el.dataset.id); o.count=(o.count||0)+1; save();
+      // spin in place when it's a tile, so the wheels animate instead of blinking
+      const w=el.closest('.cntnum'); if(w){ w.innerHTML=digitWheel(o.count); renderSheet(); }
+      else { renderSheet(); render(); }
+      break; }
     case 'countdown': { const o=byId(el.dataset.id); o.count=Math.max(0,(o.count||0)-1); save(); renderSheet(); render(); break; }
     case 'attrsheet': {
       const o=byId(el.dataset.id); if(!o) return;
@@ -3252,8 +3399,10 @@ function act(name, el){
     case 'panelmore': closePanel(); modalDrawer(el.dataset.id); break;
     case 'appsettings': S.view='settings'; render(); break;
     case 'editthis': S.readId=null; openObj(el.dataset.id); break;
+    case 'bookprev': S.bookAt=Math.max(0,(S.bookAt||0)-2); render(); break;
+    case 'booknext': S.bookAt=(S.bookAt||0)+2; render(); break;
     case 'cycleview': {
-      const c=cfgOf(el.dataset.id), order=['grid','list','scroll'];
+      const c=cfgOf(el.dataset.id), order=['grid','list','scroll','book'];
       c.layout = order[(order.indexOf(c.layout||'grid')+1)%order.length];
       save(); render(); toast(c.layout+' view');
       break;
@@ -3354,10 +3503,8 @@ function wire(){
       if(kind==='image'){ pendingCell=at; $('#imgpicker').click(); return; }
       const o=create(kind, at?{parent:at.parent}:undefined);
       placeAtPending(o);
-      render();
-      // a drawer wants naming and a rule; everything else wants its body
-      if(isContainer(o)) modalDrawer(o.id);
-      else { openObj(o.id); S.editing=true; renderSheet(); }
+      save(); render();
+      // it lands on the board and stays there — open it when you want it
       return; }
 
     const ck=t.closest('[data-check]'); if(ck){ toggleDone(ck.dataset.check); return; }
@@ -3605,6 +3752,18 @@ function wire(){
   });
 
   frame.addEventListener('keydown', e=>{
+    if(e.target.dataset.fieldfor && e.key==='Enter'){
+      const src=byId(e.target.dataset.fieldfor), text=e.target.value.trim();
+      if(!text) return;
+      const t=create('task',{parent:src.parent, title:text});
+      // land it directly beneath the field that made it
+      const b=lay(src), g=gridOf();
+      const want={x:b.x, y:b.y+b.h, w:b.w, h:1};
+      t[dev()] = boxOk(want,t.id,dev(),src.parent) ? want : freeSpot(b.w,1,dev(),src.parent);
+      e.target.value=''; save(); render();
+      const el=document.querySelector(`[data-fieldfor="${src.id}"]`); el&&el.focus();
+      return;
+    }
     if(e.target.id==='qa' && e.key==='Enter'){
       const o=quickAdd(e.target.value, e.target.dataset.kind, e.target.dataset.drawer);
       e.target.value=''; if(o){ render(); setTimeout(()=>{const q=$('#qa'); q&&q.focus();},0); toast('Added'); }

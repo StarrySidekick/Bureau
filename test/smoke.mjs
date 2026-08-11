@@ -31,8 +31,15 @@ const URL = process.env.BUREAU_URL || 'http://127.0.0.1:8000/index.html';
   // No sidebar any more: drawers are opened from the desk itself.
   await page.click('.grid .drawer[data-drawer="d_in"]');
   await page.waitForTimeout(250);
-  await page.fill('#qa', 'Order the brass pulls #bureau !today');
-  await page.press('#qa', 'Enter');
+  // the quick-add bar is gone; a text-field object makes tasks instead
+  await page.evaluate(() => {
+    const f = BUREAU.create('field', { parent: 'd_in', title: 'Add…' });
+    f[BUREAU.state.device] = { x:1, y:1, w:8, h:2 };
+    BUREAU.render();
+  });
+  await page.waitForTimeout(250);
+  await page.fill('[data-fieldfor]', 'Order the brass pulls');
+  await page.press('[data-fieldfor]', 'Enter');
   await page.waitForTimeout(400);
   await page.click('.gridbar [data-view="desk"]');   // the tab bar is phone-only
   await page.waitForTimeout(250);
