@@ -275,6 +275,15 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
 .pchip:hover{border-color:var(--brass);color:var(--ink)}
 .pchip.on{background:color-mix(in srgb,var(--brass) 22%,transparent);color:var(--ink);border-color:transparent}
 .pslide{width:100%;accent-color:var(--brass)}
+.rollup{margin-left:auto;font-size:11px;color:var(--dink-2);font-variant-numeric:tabular-nums;
+  background:rgba(0,0,0,.20);border:1px solid rgba(255,255,255,.14);padding:1px 7px;border-radius:20px}
+.relrow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:4px}
+.relchip{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:20px;
+  font-size:11.5px;cursor:pointer;color:var(--ink);
+  background:color-mix(in srgb,var(--k) 16%,transparent);border:1px solid color-mix(in srgb,var(--k) 40%,transparent)}
+.relchip:hover{border-color:var(--k)}
+.relchip b{opacity:.55;font-weight:400}
+.relchip b:hover{opacity:1}
 
 /* ---- more type silhouettes ------------------------------------------- */
 /* a poem: centred, on parchment */
@@ -1218,9 +1227,37 @@ const ATTRS = {
   duration: {nm:'Duration',   ds:'How long it takes'},
   priority: {nm:'Priority',   ds:'How much it matters'},
   price:    {nm:'Price',      ds:'What it costs'},
+  relates:  {nm:'Related',    ds:'Points at other objects, both ways'},
   field:    {nm:'Entry field', ds:'Type in it and a task appears below it'},
   generator:{nm:'Generator',   ds:'Presses out a new object of a chosen type'}
 };
+/* An attribute is a trait — what an object can do and how it is drawn. Some
+   traits also carry a *field*: a named, typed value. Only fields can be sorted
+   or filtered on, which is what lets a magic drawer match anything at all
+   rather than the four things it used to know about. */
+const FIELDS = {
+  check:    {key:'done',   type:'bool',   nm:'Done'},
+  date:     {key:'due',    type:'date',   nm:'Due'},
+  repeat:   {key:'repeat', type:'text',   nm:'Repeats'},
+  link:     {key:'url',    type:'text',   nm:'Link'},
+  count:    {key:'count',  type:'number', nm:'Count'},
+  rating:   {key:'rating', type:'number', nm:'Rating'},
+  location: {key:'loc',    type:'text',   nm:'Location'},
+  duration: {key:'dur',    type:'number', nm:'Duration'},
+  priority: {key:'prio',   type:'enum',   nm:'Priority', opts:['low','mid','high']},
+  price:    {key:'price',  type:'money',  nm:'Price'},
+  relates:  {key:'rel',    type:'refs',   nm:'Related'}
+};
+const fieldOf = a => FIELDS[a] || null;
+// every field an object actually carries, for filters and rollups
+const fieldsOf = o => attrsOf(o).map(fieldOf).filter(Boolean);
+const valOf = (o,key)=>{
+  const v=o[key];
+  if(v==null||v==='') return null;
+  return v;
+};
+const numOf = (o,key)=>{ const v=parseFloat(String(valOf(o,key)??'').replace(/[^0-9.\-]/g,'')); return isNaN(v)?null:v; };
+
 const ATTRKEYS = Object.keys(ATTRS);
 /* A drawer is not an object with an extra tick — it is a different sort of
    thing, customised through the drawer settings rather than the attribute list.
@@ -1232,8 +1269,8 @@ const USER_ATTRS = ATTRKEYS.filter(a=>!STRUCTURAL.includes(a));
 const BUILTIN_KINDS = {
   drawer:  {nm:'Drawer',  ic:'folder',  c:'#7E5A38', key:'D', ds:'A container on the grid',   attrs:['container'], layout:'grid', size:[6,6], body:'' },
   magic:   {nm:'Magic drawer', ic:'sparkle', c:'#4A6E8F', key:'Q', ds:'Collects by rule, like a smart folder', attrs:['container','magic'], layout:'grid', size:[6,6], body:'' },
-  checklist:{nm:'Checklist', ic:'list', c:'#4A7C59', key:'K', ds:'A list of things to tick, right on the board', attrs:['container'], layout:'checklist', size:[6,8], body:'' },
-  calendar:{nm:'Calendar', ic:'calendar', c:'#5C7148', key:'C', ds:'A month, with what is due on it', attrs:['container'], layout:'calendar', size:[8,8], body:'' },
+  checklist:{face:'checklist', nm:'Checklist', ic:'list', c:'#4A7C59', key:'K', ds:'A list of things to tick, right on the board', attrs:['container'], layout:'list', size:[6,8], body:'' },
+  calendar:{face:'calendar', nm:'Calendar', ic:'calendar', c:'#5C7148', key:'C', ds:'A month, with what is due on it', attrs:['container'], layout:'grid', size:[8,8], body:'' },
   control: {nm:'Control',  ic:'sliders', c:'#6B6152', key:'', ds:'A Bureau button on the desk', attrs:['control'], size:[4,4], body:'' },
   task:    {nm:'Task',    ic:'check',   c:'#4A7C59', key:'T', ds:'A thing to do',             attrs:['text','check','date','repeat'], size:[4,1], onclick:'none', body:'' },
   note:    {nm:'Note',    ic:'note',    c:'#5F7A93', key:'O', ds:'Something to remember',     attrs:['text'], size:[4,4], onclick:'read', body:'' },
@@ -1249,7 +1286,7 @@ const BUILTIN_KINDS = {
   audio:   {film:true, nm:'Audio',   ic:'music',   c:'#5D7E99', key:'U', ds:'Something to listen to',    size:[6,2], onclick:'read', attrs:['text','media','duration'], body:'' },
   video:   {film:true, nm:'Video',   ic:'film',    c:'#3F5F7A', key:'&', ds:'Something to watch',        size:[6,4], onclick:'read', attrs:['text','media','duration'], body:'' },
   trip:    {nm:'Trip',    ic:'flag',    c:'#37687A', key:'P', ds:'Somewhere you are going',   size:[8,6], attrs:['container','date','duration','location'], layout:'grid', body:'' },
-  moodboard:{nm:'Moodboard', ic:'image', c:'#6B4A4A', key:'B', ds:'Pictures, pinned together', size:[8,8], attrs:['container'], layout:'moodboard', body:'' },
+  moodboard:{face:'moodboard', nm:'Moodboard', ic:'image', c:'#6B4A4A', key:'B', ds:'Pictures, pinned together', size:[8,8], attrs:['container'], layout:'moodboard', body:'' },
   quote:   {nm:'Quote',   ic:'book',    c:'#6F5137', key:'Z', ds:'Someone else\'s words',      size:[6,4], onclick:'read', attrs:['text','link','rating'],
             body:'> \n\n— ' },
   story:   {narrative:true, nm:'Story',   ic:'book',    c:'#5A4130', key:'M', ds:'A book on the shelf', size:[3,9], onclick:'book', attrs:['text'],
@@ -1269,13 +1306,13 @@ const BUILTIN_KINDS = {
   ingredient:{cooking:true, nm:'Ingredient', ic:'pot', c:'#A55A3E', key:'4', ds:'One line of a recipe',   size:[5,1], onclick:'check', attrs:['check','count','price'], body:'' },
   shot:    {film:true, nm:'Shot',    ic:'clapper', c:'#2F4A5E', key:'5', ds:'One shot, for a shoot',   size:[6,1], onclick:'check', attrs:['text','check','duration','location'], body:'' },
   generator:{nm:'Generator', ic:'plus', c:'#8A5A3F', key:'6', ds:'Press it and it makes one of something', size:[4,4], onclick:'generate', attrs:['generator'], body:'' },
-  shopping:{cooking:true, nm:'Shopping list', ic:'inbox', c:'#A55A3E', key:'7', ds:'Things to buy, with a total', attrs:['container'], layout:'checklist', size:[6,8], body:'' },
+  shopping:{cooking:true, face:'checklist', nm:'Shopping list', ic:'inbox', c:'#A55A3E', key:'7', ds:'Things to buy, with a total', attrs:['container'], layout:'list', size:[6,8], body:'' },
   counter: {nm:'Counter',  ic:'target', c:'#3E7A6B', key:'X', ds:'A number, and what it counts', size:[4,4], onclick:'none', attrs:['count'], body:'' },
   link:    {nm:'Button',  ic:'arrow',   c:'#37687A', key:'E', ds:'A button that opens something', attrs:['button'], body:'' },
   achievement:{nm:'Achievement', ic:'trophy', c:'#9A7B2F', key:'W', ds:'Something you actually did', size:[6,3], onclick:'read', attrs:['text','date'], body:'' },
-  project: {nm:'Project', ic:'flag',    c:'#5C7148', key:'8', ds:'A big thing, made of tasks',   attrs:['container','date','progress'], layout:'checklist', size:[7,8], body:'' },
+  project: {face:'checklist', nm:'Project', ic:'flag',    c:'#5C7148', key:'8', ds:'A big thing, made of tasks',   attrs:['container','date','progress'], layout:'list', size:[7,8], body:'' },
   dream:   {nm:'Dream',   ic:'star',    c:'#5D7E99', key:'9', ds:'Far off, and probably daft',   size:[5,5], onclick:'read', attrs:['text','media'], body:'**Why it pulls at me —** ' },
-  timeline:{nm:'Timeline',ic:'clock',   c:'#6F5137', key:'0', ds:'Things in the order they happened', attrs:['container'], layout:'timeline', size:[10,6], body:'' },
+  timeline:{face:'timeline', nm:'Timeline',ic:'clock',   c:'#6F5137', key:'0', ds:'Things in the order they happened', attrs:['container'], layout:'list', size:[10,6], body:'' },
   appt:    {nm:'Event',   ic:'calendar',c:'#3E7A6B', key:'V', ds:'Something at a time and place', size:[6,2], onclick:'read', attrs:['text','date','duration','location'], body:'' }
 };
 // Kinds you invent live in state alongside these; both are read through KINDS.
@@ -1436,6 +1473,12 @@ const container = id => (id===ROOT||!id) ? rootObj() : byId(id);
 // The desk's own settings aren't on an object, so writes have to go to deskCfg.
 const cfgOf = id => (id===ROOT||!id) ? S.deskCfg : (byId(id)||{});
 const isContainer = o => !!o && has(o,'container');
+/* A face is how a container draws itself on its parent's board. A layout is
+   how it arranges its children once opened. They used to be one property,
+   which meant a checklist could not also be sorted when you opened it. */
+const FACES = {front:'Drawer front', checklist:'Checklist', calendar:'Calendar',
+               moodboard:'Moodboard', timeline:'Timeline'};
+const faceOf = o => (o && o.face) || K(o&&o.kind).face || 'front';
 const containers = ()=> S.objects.filter(isContainer);
 
 /* A drawer holds. A magic drawer collects. Nothing does both.
@@ -1451,15 +1494,54 @@ function inContainer(c,o){
     if(o.done) return false;           // finished things leave everywhere else
     if(isContainer(o)) return false;   // magic drawers collect objects, not drawers
     if(f.due==='today') return !!o.due && D.parse(o.due)<=D.today();
-    if(f.tag) return (o.tags||[]).includes(f.tag);
-    if(f.kinds && f.kinds.length) return f.kinds.includes(o.kind);
-    return false;
+    if(f.tag && !(o.tags||[]).includes(f.tag)) return false;
+    if(f.kinds && f.kinds.length && !f.kinds.includes(o.kind)) return false;
+    if(f.rule && !matchRule(o, f.rule)) return false;
+    return !!(f.tag || (f.kinds&&f.kinds.length) || f.rule);
   }
   // Completed things leave a drawer (decision 2) — but not a checklist, where
   // seeing what you've ticked is the entire point of the thing.
-  if(o.done && c.layout!=='checklist') return false;
+  if(o.done && faceOf(c)!=='checklist') return false;
   return o.parent===c.id;              // an ordinary drawer holds what is filed in it
 }
+/* One clause: a field, a comparison, a value. Everything a magic drawer can
+   ask about an object goes through here. */
+const OPS = {is:'is', not:'is not', has:'contains', gt:'more than', lt:'less than', any:'has any'};
+function matchRule(o, r){
+  if(!r || !r.f) return true;
+  const fld=fieldOf(r.f); if(!fld) return true;
+  if(!attrsOf(o).includes(r.f)) return false;      // it hasn't got that field
+  const v=valOf(o, fld.key);
+  switch(r.op){
+    case 'any':  return Array.isArray(v) ? v.length>0 : v!=null && v!==false;
+    case 'is':   return String(v??'')===String(r.v??'');
+    case 'not':  return String(v??'')!==String(r.v??'');
+    case 'has':  return Array.isArray(v) ? v.includes(r.v) : String(v??'').toLowerCase().includes(String(r.v??'').toLowerCase());
+    case 'gt':   { const n=numOf(o,fld.key); return n!=null && n>parseFloat(r.v); }
+    case 'lt':   { const n=numOf(o,fld.key); return n!=null && n<parseFloat(r.v); }
+    default: return true;
+  }
+}
+
+/* A container can total something across its children — Notion's rollup, kept
+   to the handful that answer a real question. */
+const ROLLS = {count:'How many', sum:'Total', avg:'Average', min:'Lowest', max:'Highest', done:'Done'};
+function rollup(c){
+  const r=c.roll; if(!r || !r.fn) return null;
+  const kids=childrenOf(c);
+  if(r.fn==='count') return String(kids.length);
+  if(r.fn==='done'){ const d=kids.filter(x=>x.done).length; return `${d}/${kids.length}`; }
+  const fld=fieldOf(r.f); if(!fld) return null;
+  const nums=kids.map(x=>numOf(x, fld.key)).filter(n=>n!=null);
+  if(!nums.length) return null;
+  const money = fld.type==='money';
+  const n = r.fn==='sum' ? nums.reduce((a,b)=>a+b,0)
+          : r.fn==='avg' ? nums.reduce((a,b)=>a+b,0)/nums.length
+          : r.fn==='min' ? Math.min(...nums) : Math.max(...nums);
+  const out = Math.round(n*100)/100;
+  return money ? (String(kids.find(x=>valOf(x,fld.key))?.[fld.key]||'').replace(/[\d.,\s-]/g,'')||'') + out : String(out);
+}
+
 /* Children, in whatever order the drawer is sorted by. `sort` is null for the
    manual order you arranged yourself, which is the default. */
 const SORTS = {
@@ -1485,6 +1567,18 @@ function isAncestor(maybeAncestor, o){
   return false;
 }
 // Breadcrumb chain from the desk down to this container.
+/* Relations point both ways without being stored twice: A lists B, and B's
+   backlinks are found by asking who points at B. */
+const relatedTo = o => (o&&o.rel||[]).map(byId).filter(Boolean);
+const backlinksTo = id => S.objects.filter(o=>(o.rel||[]).includes(id));
+function relate(aId,bId){
+  const a=byId(aId); if(!a||aId===bId) return;
+  a.rel=a.rel||[]; if(!a.rel.includes(bId)) a.rel.push(bId);
+}
+function unrelate(aId,bId){
+  const a=byId(aId); if(!a||!a.rel) return;
+  a.rel=a.rel.filter(x=>x!==bId);
+}
 function chainOf(id){
   const out=[]; let o=byId(id), n=0;
   while(o && n++ < 100){ out.unshift(o); o = o.parent&&o.parent!==ROOT ? byId(o.parent) : null; }
@@ -1979,11 +2073,11 @@ function gridTile(o, arr, parentId){
   /* A checklist is a container that wears its contents on the outside: you can
      see and tick what's in it without opening it. That is the whole difference
      between it and a drawer. */
-  if(cont && (o.layout==='checklist')){
+  if(cont && faceOf(o)==='checklist'){
     const items=childrenOf(o);
     return `<button class="drawer dtile cltile bd-${o.border||'panel'}${sel}" data-drawer="${o.id}" style="--c:${colour};${place}">
       <div class="dtop"><span class="dname">${esc(o.title||'Untitled')}</span>
-        <span class="clcount">${items.filter(x=>x.done).length}/${items.length}</span></div>
+        <span class="clcount">${rollup(o) || (items.filter(x=>x.done).length+'/'+items.length)}</span></div>
       <div class="dbody"><div class="clist">${items.slice(0,14).map(x=>
         `<span class="cline${x.done?' done':''}" data-check="${x.id}">
            <i class="clbox">${x.done?ic('check',10):''}</i>${esc(x.title||'Untitled')}</span>`).join('')
@@ -2006,7 +2100,7 @@ function gridTile(o, arr, parentId){
   }
 
   /* A timeline lays its children along a rule, in date order. */
-  if(cont && o.layout==='timeline'){
+  if(cont && faceOf(o)==='timeline'){
     const kids=childrenOf(o).slice().sort((a,b)=>(a.due||a.created||'').localeCompare(b.due||b.created||''));
     return `<button class="drawer dtile tltile bd-${o.border||'panel'}${sel}" data-drawer="${o.id}" style="--c:${colour};${place}">
       <div class="dtop"><span class="dname">${esc(o.title||'Untitled')}</span></div>
@@ -2019,7 +2113,7 @@ function gridTile(o, arr, parentId){
   }
 
   /* A moodboard shows its pictures on the front, tiled. */
-  if(cont && o.layout==='moodboard'){
+  if(cont && faceOf(o)==='moodboard'){
     const pics=childrenOf(o).filter(x=>x.media&&x.media.src).slice(0,12);
     return `<button class="drawer dtile mbtile bd-${o.border||'panel'}${sel}" data-drawer="${o.id}" style="--c:${colour};${place}">
       <div class="mbwall">${pics.map(x=>`<i style="background-image:url('${esc(x.media.src)}')"></i>`).join('')
@@ -2030,7 +2124,7 @@ function gridTile(o, arr, parentId){
   }
 
   /* A calendar is a container showing the month its children fall in. */
-  if(cont && (o.layout==='calendar')){
+  if(cont && faceOf(o)==='calendar'){
     return `<button class="drawer dtile caltile bd-${o.border||'panel'}${sel}" data-drawer="${o.id}" style="--c:${colour};${place}">
       <div class="dtop"><span class="dname">${esc(o.title||'Untitled')}</span>
         <span class="clcount">${D.parse(o.month||T).toLocaleDateString(undefined,{month:'long'})}</span></div>
@@ -2048,7 +2142,8 @@ function gridTile(o, arr, parentId){
         :`--knob:color-mix(in srgb, ${colour} ${o.knobtone==='dark'?'62% , #000':'58% , #fff'});`}${place}">
       ${chips}
       <div class="dtop"><span class="dname">${esc(o.title||'Untitled')}</span>
-        ${has(o,'magic')?`<span class="magicmark" title="Collects by rule">${ic('sparkle',11)}</span>`:''}</div>
+        ${has(o,'magic')?`<span class="magicmark" title="Collects by rule">${ic('sparkle',11)}</span>`:''}
+        ${rollup(o)?`<span class="rollup">${esc(rollup(o))}</span>`:''}</div>
       <div class="dfoot"><span class="pull kn-${kn}"></span></div>
       ${handles}
     </button>`;
@@ -2989,6 +3084,7 @@ function drawerPanel(id){
       <button class="iconbtn" data-act="panelclose" title="Close">${ic('x',15)}</button></div>
     ${row('View', chips('view', null, [['grid','Grid'],['list','List'],['scroll','Scroll'],
         ...(isRoot?[]:[['checklist','Checklist'],['calendar','Calendar']])], cfg.layout||'grid'))}
+    ${isRoot?'':row('Face', chips('face', null, Object.entries(FACES), faceOf(d)))}
     ${row('Sort', chips('sort', null, [['','Custom'],...Object.entries(SORTS).map(([k,[nm]])=>[k,nm])], cfg.sort||''))}
     ${row('Locked', chips('lock', null, [['','Movable'],['1','Locked']], cfg.locked?'1':''))}
     ${isRoot?'':`
@@ -3050,6 +3146,21 @@ function modalDrawer(id){
     <div class="field" style="margin-bottom:10px"><label>Automatically collects these types</label>
       <div class="filterbar" id="dkinds" style="flex-wrap:wrap;padding-top:6px">${KEYS.map(k=>
         `<button class="fchip${ks.includes(k)?' on':''}" data-kk="${k}" style="--k:${KINDS[k].c}">${KINDS[k].nm}</button>`).join('')}</div></div>
+    <div class="field" style="margin-bottom:10px"><label>…and matching</label>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;padding-top:6px">
+        <select id="rf"><option value="">Any field</option>${Object.keys(FIELDS).map(a=>
+          `<option value="${a}"${(d.filter&&d.filter.rule&&d.filter.rule.f)===a?' selected':''}>${FIELDS[a].nm}</option>`).join('')}</select>
+        <select id="rop">${Object.entries(OPS).map(([v,n])=>
+          `<option value="${v}"${(d.filter&&d.filter.rule&&d.filter.rule.op)===v?' selected':''}>${n}</option>`).join('')}</select>
+        <input id="rv" placeholder="value" value="${esc((d.filter&&d.filter.rule&&d.filter.rule.v)||'')}" style="flex:1;min-width:90px">
+      </div></div>
+    <div class="field" style="margin-bottom:10px"><label>Show a total</label>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;padding-top:6px">
+        <select id="rlfn"><option value="">Nothing</option>${Object.entries(ROLLS).map(([v,n])=>
+          `<option value="${v}"${(d.roll&&d.roll.fn)===v?' selected':''}>${n}</option>`).join('')}</select>
+        <select id="rlf"><option value="">—</option>${Object.keys(FIELDS).map(a=>
+          `<option value="${a}"${(d.roll&&d.roll.f)===a?' selected':''}>${FIELDS[a].nm}</option>`).join('')}</select>
+      </div></div>
     <div class="field" style="margin-bottom:10px"><label>…and anything tagged</label>
       <div class="filterbar" id="dtag" style="flex-wrap:wrap;padding-top:6px">
         <button class="fchip${!(d.filter||{}).tag?' on':''}" data-dtag="">Any tag</button>
@@ -3583,6 +3694,12 @@ function adopt(d){
     : d.objects.map(o=>Object.assign({tags:[],history:[],milestones:[],ord:0},o));
   if(!(d.v>=4)) doubleBoxes(S.objects);   // 6 cols -> 12
   if(!(d.v>=5)) doubleBoxes(S.objects);   // 12 cols -> 24, so a half-cell exists
+  S.objects.forEach(o=>{
+    if(['checklist','calendar','moodboard','timeline'].includes(o.layout)){
+      o.face=o.layout;                       // it was describing the face
+      o.layout = o.face==='moodboard' ? 'grid' : 'list';
+    }
+  });
   const fixedIds=dedupeIds(S.objects);
   if(fixedIds) setTimeout(()=>toast(`Repaired ${fixedIds} duplicated id${fixedIds>1?'s':''}`),400);
   S.objects.forEach(o=>{ if(o.kind==='record') o.kind='achievement';
@@ -3738,7 +3855,9 @@ function act(name, el){
       if(id){ const d=byId(id);
         Object.assign(d,{title,c:draft.c,pv:draft.pv,layout:draft.layout,locked:!!draft.locked,
           border:draft.border,knob:draft.knob,knobc:draft.knobc||null});
-        d.filter=Object.assign({},d.filter,{kinds:draft.kinds,tag:draft.tag||undefined});
+        d.filter=Object.assign({},d.filter,{kinds:draft.kinds,tag:draft.tag||undefined,
+          rule: $('#rf').value ? {f:$('#rf').value, op:$('#rop').value, v:$('#rv').value} : undefined});
+        d.roll = $('#rlfn').value ? {fn:$('#rlfn').value, f:$('#rlf').value||undefined} : undefined;
       } else {
         // a new drawer lands inside whatever container you are looking at
         const home=(S.view==='drawer'&&S.drawerId)||ROOT;
@@ -3766,6 +3885,17 @@ function act(name, el){
       else { renderSheet(); render(); }
       break; }
     case 'countdown': { const o=byId(el.dataset.id); o.count=Math.max(0,(o.count||0)-1); save(); renderSheet(); render(); break; }
+    case 'addrel': {
+      const me=el.dataset.id;
+      showModal(`<div class="modal-h"><div class="t">Link to</div>
+        <div class="s">Relations point both ways — the other object will show this one too.</div></div>
+      <div class="modal-b"><div class="rows">${S.objects.filter(x=>x.id!==me&&!has(x,'control')).slice(0,120).map(x=>
+        `<div class="row" data-dorel="${me}:${x.id}" style="--k:${K(x.kind).c}">
+          <span class="kindmark">${ic(K(x.kind).ic,13)}</span>
+          <div class="body"><div class="title">${esc(x.title||'Untitled')}</div>
+            <div class="snip">${esc(K(x.kind).nm)}</div></div></div>`).join('')}</div></div>`);
+      break;
+    }
     case 'attrsheet': {
       const o=byId(el.dataset.id); if(!o) return;
       const mine=attrsOf(o), own=!!o.attrs;
@@ -3913,6 +4043,13 @@ function wire(){
       }
       return; }
 
+    const dr2=t.closest('[data-dorel]');
+    if(dr2){ const [a,b]=dr2.dataset.dorel.split(':'); relate(a,b); hideModal(); save(); renderSheet(); render(); return; }
+    const ur=t.closest('[data-unrel]');
+    if(ur){ const [a,b]=ur.dataset.unrel.split(':'); unrelate(a,b); save(); renderSheet(); render(); return; }
+    const or2=t.closest('[data-openrel]');
+    if(or2){ openObj(or2.dataset.openrel); return; }
+
     const st=t.closest('[data-star]');
     if(st){ const [id,n]=st.dataset.star.split(':'); const o=byId(id);
       o.rating = (o.rating===+n) ? 0 : +n; save(); renderSheet(); render(); return; }
@@ -4018,10 +4155,11 @@ function wire(){
     const dtg=t.closest('[data-dtag]');
     if(dtg){ $('#modal')._draft.tag=dtg.dataset.dtag; $$('#dtag .fchip').forEach(b=>b.classList.remove('on')); dtg.classList.add('on'); return; }
 
-    const pn=t.closest('[data-pview],[data-psort],[data-plock],[data-pborder],[data-pknob],[data-pcolour],[data-pboard],[data-pknobc],[data-pknobtone],[data-pknobpos],[data-ptexture],[data-otype],[data-oclick],[data-ocolour],[data-oframe],[data-obtn],[data-ogen],[data-ogendir]');
+    const pn=t.closest('[data-pview],[data-pface],[data-psort],[data-plock],[data-pborder],[data-pknob],[data-pcolour],[data-pboard],[data-pknobc],[data-pknobtone],[data-pknobpos],[data-ptexture],[data-otype],[data-oclick],[data-ocolour],[data-oframe],[data-obtn],[data-ogen],[data-ogendir]');
     if(pn){
       const id=pn.dataset.id, c=cfgOf(id), o=byId(id);
       if(pn.dataset.pview!=null) c.layout=pn.dataset.pview;
+      else if(o && pn.dataset.pface!=null) o.face=pn.dataset.pface;
       else if(pn.dataset.psort!=null) c.sort=pn.dataset.psort||null;
       else if(pn.dataset.plock!=null) c.locked=!!pn.dataset.plock;
       else if(o && pn.dataset.pborder!=null) o.border=pn.dataset.pborder;

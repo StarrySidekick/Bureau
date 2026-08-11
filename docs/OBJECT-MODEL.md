@@ -111,6 +111,41 @@ make Kitchen magic.
 
 Completed objects leave every drawer except the archive.
 
+## Face and layout
+
+Two different questions, which used to be one property and shouldn't be:
+
+- **`face`** — how a container draws itself on its *parent's* board: a drawer
+  front, a checklist, a calendar, a moodboard, a timeline.
+- **`layout`** — how it arranges its children once you *open* it: grid, list,
+  or scroll.
+
+A Checklist is `face:checklist, layout:list`. Conflating them meant a checklist
+could not also be sorted when opened, and that any new face had to be a new
+arrangement. Any container can now wear any face.
+
+## Traits and fields
+
+An attribute is a **trait** — what an object can do and how it is drawn. Some
+traits also carry a **field**: a named, typed value (`FIELDS`). Only fields can
+be sorted, filtered or totalled, which is what lets a magic drawer ask about
+anything rather than the four things it used to know.
+
+```js
+price:  {key:'price', type:'money'}
+prio:   {key:'prio',  type:'enum', opts:['low','mid','high']}
+```
+
+## Rules, rollups and relations
+
+- A magic drawer's `filter.rule` is one clause — field, comparison, value —
+  evaluated by `matchRule()`. "Price more than 10", "Priority is high".
+- A container's `roll` totals a field across its children: count, sum, average,
+  lowest, highest, or done-out-of. It shows on the container's face.
+- `relates` holds ids of other objects. Relations are stored once and read both
+  ways — `backlinksTo()` finds whoever points at you — which is how a Character
+  connects to a Scene without either containing the other.
+
 ## Views
 
 A drawer's `layout` is its view, remembered per drawer, set in drawer settings:
