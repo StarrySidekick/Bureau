@@ -1,9 +1,10 @@
-import { $, esc, ic, ROOT } from './util.js';
-import { S, K, byId, has, isContainer, containers, childrenOf, chainOf,
-  deskTitle, rootObj, pinnedDrawers, allTags, dev } from './model.js';
+import { $, esc, ic, D, ROOT } from './util.js';
+import { S, K, T, byId, has, isContainer, containers, childrenOf, chainOf,
+  deskTitle, rootObj, pinnedDrawers, isPinned, allTags, dev } from './model.js';
 import { CELL, gridOf, cellW } from './grid.js';
 import { themeNow, applyLook, lookVal, STYLES, PALETTES, paletteNow, BACKDROPS } from './look.js';
 import { gridOfContainer, listTile, scrollEntry, bookView } from './tiles.js';
+import { openPanel, closePanel, panelKey } from './panels.js';
 import { APP_VERSION, save, storeSize, install } from './persist.js';
 
 /* The desk is nothing but the grid. There is no toolbar: New, Arrange and
@@ -30,6 +31,8 @@ function gridBar(c){
       <button class="sqbtn" data-act="cycleview" data-id="${c.id}" title="View: ${view}">${ic(views[view]||'grid',16)}</button>
       <button class="sqbtn" data-act="sortmenu" data-id="${c.id}" title="Sort">${ic('sort',16)}</button>
       <button class="sqbtn" data-act="randomone" data-id="${c.id}" title="Add something at random (testing)">${ic('sparkle',16)}</button>
+      ${c.id===ROOT?'':`<button class="sqbtn${isPinned(c.id)?' on':''}" data-act="pin" data-id="${c.id}"
+        title="${isPinned(c.id)?'Take off the bar':'Pin to the bar'}">${ic('star',16)}</button>`}
       <button class="sqbtn" data-act="${c.id===ROOT?'appsettings':'drawersettings'}" data-id="${c.id}" title="Settings">${ic('gear',16)}</button>
     </div>
   </div>`;
@@ -60,6 +63,112 @@ function viewDesk(){
 }
 
 /* ============================================================
+   8b · rendering — the time layer
+   ============================================================
+   A calendar face on the board shows a month at tile size; opening the drawer
+   gives you the same month at full size, with what is on each day and a way to
+   add to it. A timeline drawer lays its contents along a real axis, scaled by
+   however many pixels a day is worth. Both are layouts, so any container can
+   wear one — nothing here knows what a "calendar" is. */
+function viewMonth(d, items){
+  const anchor = D.parse(d.month||T) || D.today();
+  const y=anchor.getFullYear(), m=anchor.getMonth();
+  const lead=(new Date(y,m,1).getDay()+6)%7;      // weeks start Monday
+  const days=new Date(y,m+1,0).getDate();
+  const byDay={};
+  items.forEach(x=>{ if(x.due) (byDay[x.due]=byDay[x.due]||[]).push(x); });
+  const sel=S.calDay;
+  const cells=[];
+  for(let i=0;i<lead;i++) cells.push('<div class="mcell pad"></div>');
+  for(let n=1;n<=days;n++){
+    const iso=D.iso(new Date(y,m,n));
+    const list=byDay[iso]||[];
+    cells.push(`<div class="mcell${iso===T?' today':''}${iso===sel?' sel':''}" data-calday="${d.id}:${iso}">
+      <b>${n}</b>
+      ${list.slice(0,3).map(x=>`<span class="mitem${x.done?' done':''}" style="--k:${K(x.kind).c}"
+        data-row="${x.id}" title="${esc(x.title||'Untitled')}">${esc(x.title||'Untitled')}</span>`).join('')}
+      ${list.length>3?`<u>+${list.length-3} more</u>`:''}
+    </div>`);
+  }
+  const selList = sel ? (byDay[sel]||[]) : [];
+  return `
+  <div class="monthhead">
+    <button class="sqbtn" data-act="monthstep" data-id="${d.id}" data-step="-1" title="Previous month">${ic('chevL',15)}</button>
+    <b>${anchor.toLocaleDateString(undefined,{month:'long',year:'numeric'})}</b>
+    <button class="sqbtn" data-act="monthstep" data-id="${d.id}" data-step="1" title="Next month">${ic('chevR',15)}</button>
+    <button class="pill" data-act="monthtoday" data-id="${d.id}">Today</button>
+    <span class="mhint">Drop a dated object on a day to schedule it</span>
+  </div>
+  <div class="monthgrid">
+    ${['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(x=>`<i class="dow">${x}</i>`).join('')}
+    ${cells.join('')}
+  </div>
+  ${sel?`<div class="dayp">
+    <div class="section-h"><h2>${D.parse(sel).toLocaleDateString(undefined,{weekday:'long',day:'numeric',month:'long'})}</h2>
+      <div class="rule"></div><span class="n">${selList.length}</span></div>
+    ${selList.length?`<div class="listgrid">${selList.map(listTile).join('')}</div>`
+      :`<div class="mini" style="--k:var(--brass)">Nothing on this day yet.</div>`}
+    <div class="quickadd" style="margin-top:9px">${ic('plus',14)}
+      <input data-dayadd="${d.id}:${sel}" placeholder="Add something on this day…">
+      <span class="k">return</span></div>
+  </div>`:''}`;
+}
+
+/* One day is `zoom` pixels wide. Labels would sit on top of each other at any
+   useful zoom, so each is dropped into the first lane where it clears the one
+   before it — the same trick a Gantt chart uses, and the reason this stays
+   readable when six things happen in one week. */
+function viewTimeline(d, items){
+  const zoom = d.tlzoom || 14;
+  const dated = items.map(o=>({o, iso:o.due||o.created})).filter(x=>x.iso)
+    .sort((a,b)=>a.iso.localeCompare(b.iso));
+  const slider = `<div class="tlbar">
+    <span class="s">A day is</span>
+    <input class="pslide" type="range" min="3" max="60" step="1" value="${zoom}" data-tlzoom data-id="${d.id}">
+    <b>${zoom}px</b></div>`;
+  if(!dated.length) return `${slider}
+    <div class="empty"><div class="big">Nothing to lay out</div>Objects need a date before they can sit on a timeline.</div>`;
+  const min=D.parse(dated[0].iso), max=D.parse(dated[dated.length-1].iso);
+  const at = iso => Math.round((D.parse(iso)-min)/86400000)*zoom;
+  const LANE=136, laneEnd=[];
+  const placed=dated.map(({o,iso})=>{
+    const x=at(iso);
+    let lane=0; while(laneEnd[lane]!=null && x<laneEnd[lane]) lane++;
+    laneEnd[lane]=x+LANE;
+    return {o,iso,x,lane};
+  });
+  /* Ticks by week when the whole span is a couple of months, by month when it
+     is longer — monthly ticks on a fortnight's worth of objects drew nothing
+     at all, because the range never crossed a month boundary. */
+  const spanDays=Math.max(1, Math.round((max-min)/86400000));
+  const byWeek=spanDays<=70;
+  const fmt=dt=>dt.toLocaleDateString(undefined, byWeek?{day:'numeric',month:'short'}:{month:'short',year:'2-digit'});
+  const ticks=[{x:0, label:fmt(min)}];
+  const cur=new Date(min);
+  if(byWeek){ do{ cur.setDate(cur.getDate()+1); }while(((cur.getDay()+6)%7)!==0); }
+  else cur.setMonth(cur.getMonth()+1, 1);
+  while(cur<=max){
+    const x=at(D.iso(cur));
+    if(x>6) ticks.push({x, label:fmt(cur)});
+    if(byWeek) cur.setDate(cur.getDate()+7); else cur.setMonth(cur.getMonth()+1);
+  }
+  const width=at(D.iso(max))+LANE+40;
+  const height=laneEnd.length*44+70;
+  const todayX = (D.today()>=min && D.today()<=max) ? at(T) : null;
+  return `${slider}
+  <div class="tlscroll"><div class="tlcanvas" style="width:${width}px;height:${height}px">
+    ${ticks.map(k=>`<i class="tltick" style="left:${k.x}px"><u>${k.label}</u></i>`).join('')}
+    ${todayX!=null?`<i class="tlnow" style="left:${todayX}px"><u>today</u></i>`:''}
+    <i class="tlaxis"></i>
+    ${placed.map(p=>`<span class="tlitem${p.o.done?' done':''}" data-row="${p.o.id}"
+        style="left:${p.x}px;top:${p.lane*44+46}px;--k:${K(p.o.kind).c}">
+        <i class="tldot"></i>
+        <b>${esc(p.o.title||'Untitled')}</b>
+        <u>${esc(D.short(p.iso))}</u></span>`).join('')}
+  </div></div>`;
+}
+
+/* ============================================================
    9 · rendering — drawer view
    ============================================================ */
 function viewDrawer(){
@@ -81,6 +190,10 @@ function viewDrawer(){
     </div>`:''}
     ${view==='grid'
       ? gridOfContainer(d.id)
+      : view==='calendar'
+      ? viewMonth(d, items)
+      : view==='timeline'
+      ? viewTimeline(d, items)
       : !items.length
         ? `<div class="empty"><div class="big">This drawer is empty</div>${has(d,'magic')?'Nothing matches its rule yet.':'Add something above, or click a bare cell on the desk.'}</div>`
         : view==='book'
@@ -92,18 +205,27 @@ function viewDrawer(){
 }
 
 /* ============================================================
-   12b · settings
-   ============================================================ */
+   12b · settings — a panel, not a screen
+   ============================================================
+   Settings used to be one of three views and took the whole window with it.
+   It is an ordinary panel now, like every other menu in the app: the board
+   stays visible and live behind it, so a colour or a board texture lands where
+   you can see it while you are still choosing. It is the one panel that shows
+   state it can also change, so wire() rebuilds it through refreshPanel() when
+   one of its own controls fires. */
 function bytes(n){ return n<1024? n+' B' : n<1048576? (n/1024).toFixed(1)+' KB' : (n/1048576).toFixed(2)+' MB'; }
-function viewSettings(){
-  const standalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-  return `
-  <div class="topbar">
-    <button class="iconbtn" data-view="desk" title="The Desk">${ic('chevL',18)}</button>
-    <div><h1>Settings</h1><div class="sub">Bureau ${APP_VERSION} · ${standalone?'installed':'running in a browser tab'}</div></div>
-  </div>
-  <div class="scroll"><div style="max-width:640px">
+const installed = ()=> window.matchMedia('(display-mode: standalone)').matches || !!window.navigator.standalone;
 
+function settingsPanel(){
+  openPanel({key:'settings', title:'Settings',
+    sub:`Bureau ${APP_VERSION} · ${installed()?'installed':'in a browser tab'}`,
+    body:settingsBody});
+}
+function toggleSettings(){ panelKey()==='settings' ? closePanel() : settingsPanel(); }
+
+function settingsBody(){
+  const standalone = installed();
+  return `
     <div class="section-h"><h2>Appearance</h2><div class="rule"></div></div>
     <div class="filterbar">
       ${[['auto','Match system'],['paper','Paper'],['walnut','Walnut']].map(([v,n])=>
@@ -218,8 +340,7 @@ function viewSettings(){
       <button class="pill" data-act="reseed">Reset to the sample desk</button>
       <button class="pill" data-act="wipe" style="color:#C0563F">Erase everything</button>
     </div>
-    <div style="height:40px"></div>
-  </div></div>`;
+    <div style="height:20px"></div>`;
 }
 
 /* ============================================================
@@ -264,8 +385,9 @@ function render(){
   frame.className = S.device==='desk' ? 'is-desk' : 'is-phone';
   document.documentElement.dataset.theme = themeNow();
   applyLook();          // the custom colours are per theme, so repaint them
+  // settings stopped being a view in v35; an old snapshot may still name it
+  if(S.view==='settings') S.view='desk';
   const body = S.view==='drawer' ? viewDrawer()
-             : S.view==='settings' ? viewSettings()
              : viewDesk();          // the desk is the only other place there is
   // No sidebar and no tabs: the desk is the navigation. Drawers are on it, the
   // pinned ones are one tap away, ⌘K finds anything, the breadcrumb walks up.
@@ -306,4 +428,4 @@ function sizeGrid(){
   if(changed){ sizing=true; try{ render(); } finally { sizing=false; } }
 }
 
-export { render, sizeGrid };
+export { render, sizeGrid, settingsPanel, toggleSettings };

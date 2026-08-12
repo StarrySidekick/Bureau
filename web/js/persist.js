@@ -4,7 +4,7 @@ import { GRID, overlaps, gridOf, freeSpot, sizeOfKind } from './grid.js';
 import { toast, create } from './mutations.js';
 import { render } from './views.js';
 import { renderSheet } from './sheet.js';
-import { hideModal } from './panels.js';
+import { closePanel } from './panels.js';
 
 /* ============================================================
    19b · persistence — everything stays on this device
@@ -275,7 +275,7 @@ function importImage(file){
         o.media={assetId, type:'image', w:cv.width, h:cv.height, label:file.name, src, alpha:keepAlpha};
         // pictures land square; you stretch them to the shape you want
         o.desk=null; o.phone=null;
-        hideModal(); save(); render();
+        closePanel(); save(); render();
         toast(ok?'Image added':'Image added — it may not survive a reload');
       });
     };

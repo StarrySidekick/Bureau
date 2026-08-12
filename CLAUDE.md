@@ -77,9 +77,9 @@ clause at the bottom of each file — that list is each module's public surface.
 | `look.js` | Themes, palettes, Styles, `applyLook()`. |
 | `mutations.js` | `toggleDone`, `del`, `create`, `quickAdd`, repeat scheduling, `toast`. |
 | `tiles.js` | `gridTile()` — the one place that decides how an object looks on a grid — plus rows, cards, list bands, book/scroll entries, and what a click does (`tileTap`). |
-| `views.js` | The desk, a drawer, and settings — the only three places there are. Also `pinbar()`. `render()` replaces `#app`'s innerHTML wholesale, then saves. |
+| `views.js` | The desk and a drawer — the only two places there are. Also `pinbar()`, the time layouts (`viewMonth`, `viewTimeline`) and the settings panel's body. `render()` replaces `#app`'s innerHTML wholesale, then saves. |
 | `sheet.js` | `renderSheet()` — rendered into `#sheetHost`, **separately** from `render()`. |
-| `panels.js` | Modals, side panels, command palette (⌘K), context menu. |
+| `panels.js` | `openPanel()` — **every menu in the app** — plus `openMenu()` for a popup hung off a button, the command palette (⌘K), the context menu, and `sampleObject`/`sampleTile` for drawing a type as the thing it makes. |
 | `gestures.js` | Pointer-based drag, resize, lasso, swipe. The fiddliest code in the app. |
 | `persist.js` | localStorage read/write, **versioned `MIGRATIONS`**, JSON export/import, IndexedDB image assets, the paste bridge. |
 | `wire.js` | One delegated listener set on `#frame`. All interaction routes through here — to add an action, add a `data-act` and a case in `act()`. |
@@ -99,14 +99,58 @@ mental model. The one exception is the detail sheet, which renders into its own
 host so that typing doesn't destroy the field you're typing in — respect that
 split.
 
-**Navigation is the desk plus whatever you pinned.** There are exactly three
-views: the desk, a drawer, and settings. The four fixed tabs (Today, Keeping Up,
+**A tag is a magic drawer waiting to happen.** There is no filter mode and no
+filter bar; clicking a tag anywhere calls `drawerForTag()`, which finds the
+magic drawer collecting that tag or makes one. If you are tempted to add a
+filter UI, add a drawer instead — that is the same instinct that deleted the
+tabs (decision 22).
+
+**Calendar and timeline are layouts, not kinds.** `layout` is how a container
+arranges its children when opened — `grid | list | scroll | calendar |
+timeline` — and `face` is how it draws on its parent's board. Any container can
+wear either; nothing branches on a kind called "calendar".
+
+**Navigation is the desk plus whatever you pinned.** There are exactly two
+views: the desk and a drawer. The four fixed tabs (Today, Keeping Up,
 Everything) are gone — they were hard-coded aggregations, which is a magic
 drawer's job. `S.pins` is an ordered list of drawer ids, resolved on read by
 `pinnedDrawers()`; the same `pinbar()` markup is a top strip on a Mac and the
 bottom bar on a phone. With nothing pinned it isn't drawn. See decision 22, and
 don't add a view without a very good reason — a magic drawer is nearly always
 the answer.
+
+**There are no modals — a menu is a panel.** `openPanel(spec)` in `panels.js`
+is the whole system: one panel at a time, down the right, over a desk that stays
+visible and stays live. Settings, the type picker, the type builder, the drawer
+form, Move to drawer, Link to, Attributes and object/drawer settings are all the
+same thing. Panels are appended to `#frame`, *outside* `#app`, so `render()`
+leaves them alone. See decision 23, and don't bring back a centred card on a
+scrim — a menu that covers the answer to the question it is asking is the wrong
+shape.
+
+- `spec.body` is a **function**, not a string, so `refreshPanel()` redraws from
+  state. That is why no handler rebuilds a panel by hand any more.
+- `spec.key` names which panel is up (`panelKey()`), for the two places that
+  care: the type-shortcut keys only fire over the picker, and the settings
+  auto-refresh listener only fires over settings.
+- A form's draft lives in the `PANEL` object, read with `draft()`, never on the
+  DOM node — a redraw would lose it.
+- The detail sheet claims the same side, so `renderSheet()` closes any open
+  panel. The sheet is the bigger claim.
+- The command palette (⌘K) is the one thing that kept a scrim: it is a search
+  field you summon and type into blind, not a menu about what is in front of you.
+
+**A list of choices is a popup, not a panel.** `openMenu(anchorEl, html)` borrows
+the context menu's element and hangs it under the button that opened it — that is
+what Sort does. A panel is for a form; a popup is for picking one of a handful.
+
+**A type is drawn as the thing it makes.** The type picker and the type builder
+both go through `sampleTile()`, which renders a throwaway object with the same
+`gridTile()` the board uses — at desk scale, then CSS-scaled down. Full size and
+shrunk, never drawn small: type sizes inside a tile are in px, so building one
+at 11px a cell wrapped "Drawer" onto two lines. A miniature has to be the real
+thing seen from further away or it is a preview of nothing. The sample never
+enters `S`.
 
 **Events are delegated, not bound.** Everything hangs off the listeners attached
 to `#frame` in `wire.js`, dispatched on `data-*` attributes. To add an action,

@@ -123,7 +123,6 @@ function fireButton(o){
 function tileTap(id){
   const o=byId(id); if(!o) return;
   if(isContainer(o)){ S.view='drawer'; S.drawerId=id; S.kindFilter=null; render(); return; }
-  if(false){ if(o.ctl==='settings'){ S.view='settings'; render(); } return; }
   switch(clickOf(o)){
     case 'generate': dispense(o); return;
     case 'book': S.readId=id; S.openId=null; S.bookMode=true; S.bookAt=0; renderSheet(); return;
@@ -465,7 +464,7 @@ function scrollEntry(o){
       ${has(o,'check')?`<span class="check${o.done?' on':''}" data-check="${o.id}">${ic('check',12)}</span>`:`<span class="kindmark">${ic(k.ic,13)}</span>`}
       <h3${o.done?' class="done"':''}>${esc(o.title||'Untitled')}</h3>
       ${o.due?`<span class="mchip">${D.human(o.due)}</span>`:''}
-      ${(o.tags||[]).map(t=>`<span class="mchip tag">${esc(t)}</span>`).join('')}
+      ${(o.tags||[]).map(t=>`<span class="mchip tag" data-tagdrawer="${esc(t)}">${esc(t)}</span>`).join('')}
     </header>
     ${has(o,'media')&&o.media&&o.media.src?`<img class="scrollimg" src="${esc(o.media.src)}" alt="${esc(o.title||'')}">`:''}
     ${o.body?`<div class="prose">${md(o.body)}</div>`:''}

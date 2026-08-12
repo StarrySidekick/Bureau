@@ -81,6 +81,24 @@ function togglePin(id){
   setPin(id, on);
   toast(on ? `${o.title} pinned to the bar` : `${o.title} unpinned`);
 }
+/* Tag filtering has no mode and no filter bar on purpose. A tag you care about
+   enough to filter by is a tag you care about enough to keep, and "everything
+   matching this" is exactly what a magic drawer already says — so clicking a
+   tag makes that drawer once and opens it every time after. One concept doing
+   the work instead of two. */
+function drawerForTag(tag){
+  const t=String(tag||'').replace(/^#/,'').trim();
+  if(!t) return null;
+  let d=S.objects.find(o=>isContainer(o)&&has(o,'magic')&&(o.filter||{}).tag===t);
+  if(!d){
+    d=create('magic',{title:'#'+t, parent:ROOT});
+    d.filter={tag:t};
+    toast(`Made a drawer for #${t}`);
+  }
+  S.view='drawer'; S.drawerId=d.id; S.kindFilter=null;
+  render();
+  return d;
+}
 function create(kind, patch){
   const k=K(kind);
   const o = Object.assign({
@@ -150,4 +168,4 @@ function randomThing(parentId){
 
 // toggleHabit isn't exported — a streak reaches it through toggleDone, which is
 // the one door, so nothing outside has to know a habit ticks differently.
-export { toast, toggleDone, del, undo, setPin, togglePin, create, quickAdd, randomThing };
+export { toast, toggleDone, del, undo, setPin, togglePin, drawerForTag, create, quickAdd, randomThing };

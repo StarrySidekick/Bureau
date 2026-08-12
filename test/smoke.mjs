@@ -44,6 +44,16 @@ const URL = process.env.BUREAU_URL || 'http://127.0.0.1:8000/index.html';
   await page.click('.gridbar [data-view="desk"]');   // the tab bar is phone-only
   await page.waitForTimeout(250);
   await page.click('.gridbar [data-act="appsettings"]');
+  await page.waitForTimeout(320);
+  // settings is a panel over the desk now, not a screen instead of it — the
+  // board has to still be there behind it, and there is no modal scrim left
+  const settingsIsPanel = await page.evaluate(() => {
+    const s = document.querySelector('#panel');
+    return !!s && s.dataset.panel === 'settings'
+      && s.getBoundingClientRect().width < innerWidth * 0.6
+      && !!document.querySelector('#drawergrid')
+      && !document.querySelector('#scrim');
+  });
   await shot('02-settings');
   await page.click('[data-theme2="walnut"]');
   await page.waitForTimeout(250);
@@ -67,6 +77,52 @@ const URL = process.env.BUREAU_URL || 'http://127.0.0.1:8000/index.html';
   await page.click('[data-act="stopedit"]');
   await page.waitForTimeout(300);
   await shot('05-back-to-desk');
+
+  // --- the type picker draws every type as the thing it makes
+  await page.keyboard.press('n');
+  await page.waitForTimeout(400);
+  const pickerPreviews = await page.evaluate(() => {
+    const tiles = [...document.querySelectorAll('.kindtile')];
+    return tiles.length > 20 && tiles.every(t => t.querySelector('.kpv .pvgrid .drawer'));
+  });
+  await shot('27-type-picker');
+  // the builder's preview is the same renderer on a draft object
+  await page.click('[data-act="newkind"]');
+  await page.waitForTimeout(300);
+  await page.click('[data-ksort="drawer"]');
+  await page.click('[data-klook="checklist"]');
+  await page.fill('#knm', 'Reading pile');
+  await page.waitForTimeout(250);
+  const builderPreview = await page.evaluate(() =>
+    (document.querySelector('#kpreview .drawer .dname')||{}).textContent === 'Reading pile');
+  await shot('28-type-builder');
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(250);
+
+  // --- every menu is the same panel, and the desk stays live behind it
+  const everyMenuIsAPanel = await page.evaluate(async () => {
+    const wait = () => new Promise(r => setTimeout(r, 120));
+    const out = {};
+    // drive each entry point and record which panel came up
+    const click = async sel => { const e = document.querySelector(sel); if (e) e.click(); await wait(); };
+    const key = () => { const p = document.querySelector('#panel'); return p && p.dataset.panel; };
+    await click('.gridbar [data-act="appsettings"]');  out.settings = key();
+    await click('[data-act="panelclose"]');
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'n', bubbles: true })); await wait();
+    out.newobject = key();
+    await click('[data-act="newkind"]');               out.kindform = key();
+    await click('[data-act="cancel"]');
+    // a drawer's own settings, then the form behind "Name, rule and totals…"
+    const d = BUREAU.state.objects.find(o => o.kind === 'drawer');
+    document.querySelector(`.grid .drawer[data-drawer="${d.id}"]`)
+      .dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, clientX: 200, clientY: 200 }));
+    await wait();
+    await click('[data-c^="drawerset"]');              out.drawer = (key() || '').split(':')[0];
+    await click('[data-act="panelmore"]');             out.drawerform = key();
+    await click('[data-act="cancel"]');
+    return out;
+  });
+  await page.waitForTimeout(200);
 
   // --- offline
   await ctx.setOffline(true);
@@ -227,6 +283,86 @@ const URL = process.env.BUREAU_URL || 'http://127.0.0.1:8000/index.html';
     return hasOut && canUnlink && canAdd && backChip;
   });
 
+  // --- the time layer: a calendar drawer opens as a real month, a day can be
+  // clicked and added to, and a timeline lays its contents on a scaled axis
+  const timeLayer = await page.evaluate(async () => {
+    const L = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const S = BUREAU.state;
+    const cal = BUREAU.create('calendar', { parent: 'root', title: 'A month' });
+    ['One','Two','Three'].forEach((t, i) => {
+      const o = BUREAU.create('task', { parent: cal.id, title: 'Cal ' + t });
+      o.due = L(new Date(Date.now() + (i * 3 - 3) * 86400000));
+    });
+    S.view = 'drawer'; S.drawerId = cal.id; BUREAU.render();
+    await new Promise(r => setTimeout(r, 250));
+    const isMonth = !!document.querySelector('.monthgrid')
+      && document.querySelectorAll('.mitem').length === 3;
+    // clicking a day selects it and offers a quick-add
+    document.querySelector('.mcell.today').click();
+    await new Promise(r => setTimeout(r, 200));
+    const daySelected = !!document.querySelector('.mcell.sel') && !!document.querySelector('[data-dayadd]');
+    // the same container as a timeline: items placed, and zoom widens the axis
+    cal.layout = 'timeline'; BUREAU.render();
+    await new Promise(r => setTimeout(r, 200));
+    const w0 = parseFloat(document.querySelector('.tlcanvas').style.width);
+    const marks = document.querySelectorAll('.tlitem').length;
+    const s = document.querySelector('[data-tlzoom]');
+    s.value = 40; s.dispatchEvent(new Event('input', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 220));
+    const zooms = parseFloat(document.querySelector('.tlcanvas').style.width) > w0;
+    // tidy up: a calendar left on the desk sits under later drag tests
+    S.objects = S.objects.filter(x => x.id !== cal.id && x.parent !== cal.id);
+    S.view = 'desk'; S.drawerId = null; BUREAU.render();
+    return isMonth && daySelected && marks === 3 && zooms;
+  });
+
+  // --- a tag opens the magic drawer that collects it, and only ever makes one
+  const tagDrawer = await page.evaluate(async () => {
+    const S = BUREAU.state;
+    const o = S.objects.find(x => (x.tags || []).includes('bureau'));
+    S.openId = o.id; BUREAU.renderSheet();
+    await new Promise(r => setTimeout(r, 150));
+    document.querySelector('.realtag[data-tagdrawer="bureau"]').click();
+    await new Promise(r => setTimeout(r, 250));
+    const d = S.objects.find(x => x.id === S.drawerId);
+    const madeOne = !!d && (d.filter || {}).tag === 'bureau'
+      && BUREAU.kids(d.id).length > 0
+      && BUREAU.kids(d.id).every(id => (S.objects.find(y => y.id === id).tags || []).includes('bureau'));
+    // asking again reuses it rather than piling up drawers
+    const n = S.objects.filter(x => (x.filter || {}).tag === 'bureau').length;
+    S.openId = o.id; BUREAU.renderSheet();
+    await new Promise(r => setTimeout(r, 150));
+    document.querySelector('.realtag[data-tagdrawer="bureau"]').click();
+    await new Promise(r => setTimeout(r, 200));
+    const kept = madeOne && S.objects.filter(x => (x.filter || {}).tag === 'bureau').length === n;
+    // tidy up: it lands where the group-move test wants to move to, and the
+    // grid rightly refuses to drop a drawer on top of another one
+    S.objects = S.objects.filter(x => (x.filter || {}).tag !== 'bureau');
+    S.view = 'desk'; S.drawerId = null; S.openId = null; BUREAU.render();
+    return kept;
+  });
+
+  // --- a pin can be dragged along the bar, and the drag must not also navigate
+  const pinReorder = await page.evaluate(async () => {
+    const S = BUREAU.state;
+    const before = S.pins.slice();
+    if (before.length < 2) return false;
+    const pins = [...document.querySelectorAll('.pinbar .pinbtn[data-drawer]')];
+    const first = pins[0], last = pins[pins.length - 1];
+    const fr = first.getBoundingClientRect(), lr = last.getBoundingClientRect();
+    const ev = (type, x) => first.dispatchEvent(new PointerEvent(type,
+      { bubbles: true, clientX: x, clientY: fr.y + fr.height / 2, pointerId: 5, isPrimary: true }));
+    ev('pointerdown', fr.x + fr.width / 2);
+    ev('pointermove', lr.x + lr.width);
+    ev('pointermove', lr.x + lr.width);
+    ev('pointerup', lr.x + lr.width);
+    await new Promise(r => setTimeout(r, 250));
+    const after = S.pins;
+    return after[after.length - 1] === before[0]
+      && after.slice().sort().join() === before.slice().sort().join()
+      && S.view === 'desk';                    // the reorder must not open it
+  });
+
   // --- group move: dragging one member of a selection moves the lot, keeping
   // their relative positions
   const groupMove = await page.evaluate(async () => {
@@ -269,7 +405,9 @@ const URL = process.env.BUREAU_URL || 'http://127.0.0.1:8000/index.html';
     errors: errs, manifestOk, swReady, survived, themeSurvived,
     gridClass, offlineWorks, railGone, tabsGone, pinbarShown, pinNavigates,
     pinToggles, holdArms, maxDrift,
-    pasteOk, magicOk, rollupOk, relationsOk, relationsUI, groupMove, dupIds
+    settingsIsPanel, pickerPreviews, builderPreview, everyMenuIsAPanel,
+    pasteOk, magicOk, rollupOk, relationsOk, relationsUI,
+    timeLayer, tagDrawer, pinReorder, groupMove, dupIds
   }, null, 2));
   await browser.close();
 })();

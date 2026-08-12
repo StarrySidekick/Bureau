@@ -5,7 +5,7 @@ import { $ } from './util.js';
 import { S, KINDS, childrenOf, container, relate } from './model.js';
 import { create, togglePin } from './mutations.js';
 import { applyLook } from './look.js';
-import { render } from './views.js';
+import { render, settingsPanel } from './views.js';
 import { overlayHTML } from './panels.js';
 import { wire } from './wire.js';
 import { load, writeNow, save, hydrateAssets, pasteObjects } from './persist.js';
@@ -13,11 +13,13 @@ import { renderSheet } from './sheet.js';
 
 const restored = load();
 const hash = (location.hash||'').replace('#','');
-if(['desk','settings'].includes(hash)) S.view = hash;
+if(hash==='desk') S.view = hash;
 $('#frame').insertAdjacentHTML('beforeend', overlayHTML());
 wire();
 applyLook();
 render();
+// settings is a sheet over the desk now, not a place you navigate to
+if(hash==='settings') settingsPanel();
 hydrateAssets();
 if(!restored) writeNow();
 save();

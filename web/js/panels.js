@@ -8,7 +8,7 @@ import { SWATCHES, paletteNow, randomBoard, randomFront } from './look.js';
 import { CLICKS, clickOf, gridTile, pending } from './tiles.js';
 import { quickAdd, toast } from './mutations.js';
 import { openObj, renderSheet } from './sheet.js';
-import { render } from './views.js';
+import { render, settingsPanel } from './views.js';
 import { save } from './persist.js';
 
 /* ============================================================
@@ -16,7 +16,6 @@ import { save } from './persist.js';
    ============================================================ */
 function overlayHTML(){
   return `
-  <div class="scrim" id="scrim"><div class="modal" id="modal"></div></div>
   <div class="scrim" id="cmdscrim"><div class="modal cmd">
     <input class="cmdinput" id="cmdinput" placeholder="Search objects, drawers, kinds…">
     <div class="cmdlist" id="cmdlist"></div></div></div>
@@ -26,75 +25,137 @@ function overlayHTML(){
   <input type="file" id="importer" accept="application/json,.json" class="hidden">
   <input type="file" id="imgpicker" accept="image/*" class="hidden">`;
 }
-function showModal(html){ $('#modal').innerHTML=html; $('#scrim').classList.add('open'); }
-function hideModal(){ $('#scrim').classList.remove('open'); pending.cell=null; }
 
+/* ============================================================
+   16b · the panel — the only shape a menu has
+   ============================================================
+   There are no modals left. Everything that used to be a card in the middle of
+   a dimmed screen is a panel down the right instead, because every one of them
+   asks a question about the desk and every one of them used to hide it. The
+   desk stays visible and stays live behind a panel: you can watch a colour, a
+   type or a drawer's rule land while you are still choosing it.
+
+   One at a time — opening another replaces it. `spec.body` is a function, not
+   a string, so refreshPanel() can redraw the panel from state without every
+   caller remembering how; `spec.key` names which panel is up, for the handful
+   of places that need to know. The draft a form is building lives here rather
+   than on the element, so redrawing can't lose it. */
+const PANEL = {spec:null, draft:null};
+
+function openPanel(spec){
+  PANEL.spec = spec;
+  PANEL.draft = spec.draft || null;
+  let el = $('#panel');
+  if(!el){
+    $('#frame').insertAdjacentHTML('beforeend',
+      `<aside class="panel" id="panel"><div class="ptop"></div><div class="pbody"></div></aside>`);
+    el = $('#panel');
+    // one frame late, or the transform has nothing to animate from
+    requestAnimationFrame(()=>{ const p=$('#panel'); if(p) p.classList.add('open'); });
+  }
+  el.dataset.panel = spec.key || '';
+  el.classList.toggle('wide', !!spec.wide);
+  drawPanel(true);
+  return el;
+}
+function drawPanel(fresh){
+  const s=PANEL.spec, el=$('#panel'); if(!s||!el) return;
+  el.querySelector('.ptop').innerHTML =
+    `<div class="pt"><b>${s.title}</b>${s.sub?`<i>${s.sub}</i>`:''}</div>
+     ${s.act||''}<button class="iconbtn" data-act="panelclose" title="Close">${ic('x',15)}</button>`;
+  const b=el.querySelector('.pbody'), at=fresh?0:b.scrollTop;
+  b.innerHTML = typeof s.body==='function' ? s.body() : s.body;
+  b.scrollTop = at;
+}
+/* Redraw what is open, from state. Safe to call when nothing is. */
+function refreshPanel(){ if($('#panel')) drawPanel(false); }
+const panelKey = ()=>{ const p=$('#panel'); return p ? p.dataset.panel : null; };
+function closePanel(){
+  const p=$('#panel'); if(p) p.remove();
+  PANEL.spec=null; PANEL.draft=null; pending.cell=null;
+}
+// what a form in a panel is building, before it is saved
+const draft = ()=> PANEL.draft;
+
+/* A small menu hung off the button that opened it, rather than a modal in the
+   middle of the screen. It borrows the context menu's element and its styling,
+   because a menu is a menu wherever it was summoned from. */
+function openMenu(anchor, html){
+  const el=$('#ctx');
+  el.innerHTML=html;
+  el.classList.add('open');                 // measurable only once it is shown
+  const r=$('#frame').getBoundingClientRect(), a=anchor.getBoundingClientRect();
+  el.style.left = clamp(a.right-r.left-el.offsetWidth, 6, Math.max(6, r.width-el.offsetWidth-6))+'px';
+  el.style.top  = clamp(a.bottom-r.top+6,              6, Math.max(6, r.height-el.offsetHeight-6))+'px';
+}
+
+/* Every type falls in exactly one group. `scene` used to be listed under both
+   Writing and Film, because the two filters were written independently. */
+function pickGroups(){
+  const g={Containers:[], Objects:[], Writing:[], Cooking:[], Film:[], Yours:[]};
+  KEYS.forEach(k=>{
+    // 'control' isn't offered — Bureau's own buttons are seeded, not made
+    if(k==='control') return;
+    const d=KINDS[k];
+    if(S.kinds[k])                    g.Yours.push(k);
+    else if(d.narrative)              g.Writing.push(k);
+    else if(d.cooking)                g.Cooking.push(k);
+    else if(d.film)                   g.Film.push(k);
+    else if(kindHas(k,'container'))   g.Containers.push(k);
+    else                              g.Objects.push(k);
+  });
+  const note={Containers:'hold other things', Objects:'hold nothing',
+              Writing:'for a world you are making', Yours:'ones you made'};
+  return Object.entries(g).filter(([,ks])=>ks.length)
+    .map(([nm,ks])=>({nm, ks, note:note[nm]||''}));
+}
+/* A type is shown as the thing it makes, not as an icon standing in for it.
+   The dial in the corner opens the type editor — the right-click that used to
+   be the only way in doesn't exist on a phone. */
+function kindTile(k){
+  const d=KINDS[k];
+  return `<div class="kindtile" data-new="${k}" role="button" tabindex="0"
+      style="--k:${d.c}" title="${esc(d.ds||'')}">
+    <div class="kpv">${sampleTile(kindSample(k), 146, 82)}</div>
+    <div class="krow"><span class="nm">${esc(d.nm)}</span>
+      ${d.key?`<span class="kbd">${esc(d.key)}</span>`:''}
+      <button class="kedit" data-act="editkind" data-id="${k}" title="Edit ${esc(d.nm)}">${ic('sliders',12)}</button>
+    </div>
+  </div>`;
+}
 function modalNewObject(){
-  // 'control' isn't offered here — Bureau's own buttons are seeded, not made.
-  const offer=KEYS.filter(k=>true);
-  showModal(`<div class="modal-h"><div class="t">New object</div>
-    <div class="s">Pick a type — each comes with its own attributes and template. Right-click one to edit it.</div></div>
-  <div class="modal-b">
-    <div class="section-h"><h2>Containers</h2><div class="rule"></div><span class="n">hold other things</span></div>
-    <div class="kindgrid">
-    ${offer.filter(k=>kindHas(k,'container')&&!KINDS[k].cooking).map(k=>`<button class="kindtile" data-new="${k}" style="--k:${KINDS[k].c}">
-      <div style="display:flex;align-items:center;width:100%;gap:6px"><span class="ic">${ic(KINDS[k].ic,15)}</span><span class="kbd">${KINDS[k].key||''}</span></div>
-      <div class="nm">${KINDS[k].nm}</div><div class="ds">${KINDS[k].ds}</div></button>`).join('')}
-    </div>
-    <div class="section-h"><h2>Narrative</h2><div class="rule"></div><span class="n">for writing a world</span></div>
-    <div class="kindgrid">
-    ${offer.filter(k=>!kindHas(k,'container')&&KINDS[k].narrative).map(k=>`<button class="kindtile" data-new="${k}" style="--k:${KINDS[k].c}">
-      <div style="display:flex;align-items:center;width:100%;gap:6px"><span class="ic">${ic(KINDS[k].ic,15)}</span><span class="kbd">${KINDS[k].key||''}</span></div>
-      <div class="nm">${KINDS[k].nm}</div><div class="ds">${KINDS[k].ds}</div></button>`).join('')}
-    </div>
-    <div class="section-h"><h2>Cooking</h2><div class="rule"></div></div>
-    <div class="kindgrid">
-    ${offer.filter(k=>KINDS[k].cooking).map(k=>`<button class="kindtile" data-new="${k}" style="--k:${KINDS[k].c}">
-      <div style="display:flex;align-items:center;width:100%;gap:6px"><span class="ic">${ic(KINDS[k].ic,15)}</span><span class="kbd">${KINDS[k].key||''}</span></div>
-      <div class="nm">${KINDS[k].nm}</div><div class="ds">${KINDS[k].ds}</div></button>`).join('')}
-    </div>
-    <div class="section-h"><h2>Film</h2><div class="rule"></div></div>
-    <div class="kindgrid">
-    ${offer.filter(k=>KINDS[k].film).map(k=>`<button class="kindtile" data-new="${k}" style="--k:${KINDS[k].c}">
-      <div style="display:flex;align-items:center;width:100%;gap:6px"><span class="ic">${ic(KINDS[k].ic,15)}</span><span class="kbd">${KINDS[k].key||''}</span></div>
-      <div class="nm">${KINDS[k].nm}</div><div class="ds">${KINDS[k].ds}</div></button>`).join('')}
-    </div>
-    <div class="section-h"><h2>Objects</h2><div class="rule"></div><span class="n">hold nothing</span></div>
-    <div class="kindgrid">
-    ${offer.filter(k=>!kindHas(k,'container')&&!KINDS[k].narrative&&!KINDS[k].cooking&&!KINDS[k].film).map(k=>`<button class="kindtile" data-new="${k}" style="--k:${KINDS[k].c}">
-      <div style="display:flex;align-items:center;width:100%;gap:6px"><span class="ic">${ic(KINDS[k].ic,15)}</span><span class="kbd">${KINDS[k].key||''}</span></div>
-      <div class="nm">${KINDS[k].nm}</div><div class="ds">${KINDS[k].ds}</div></button>`).join('')}
-    <button class="kindtile newkind" data-act="newkind" style="--k:var(--brass)">
-      <div style="display:flex;align-items:center;width:100%;gap:6px"><span class="ic">${ic('sparkle',15)}</span></div>
-      <div class="nm">New type…</div><div class="ds">Invent one by choosing attributes</div></button>
-  </div>
-  ${Object.keys(S.kinds).length?`<div class="section-h"><h2>Your types</h2><div class="rule"></div></div>
-    <div class="filterbar" style="flex-wrap:wrap">${Object.keys(S.kinds).map(k=>
-      `<button class="fchip" data-act="delkind" data-id="${k}" style="--k:${KINDS[k].c}">${esc(KINDS[k].nm)} ✕</button>`).join('')}</div>
-    <div class="mini" style="--k:var(--brass);margin-top:6px">Tap one to remove it. A type still in use can't be removed.</div>`:''}
-  </div>`);
+  openPanel({
+    key:'newobject', wide:true, title:'New object',
+    sub:'Every type is drawn as the thing it makes',
+    act:`<button class="pill" data-act="newkind">${ic('sparkle',13)} New type</button>`,
+    body:()=> pickGroups().map(g=>`
+      <div class="section-h"><h2>${g.nm}</h2><div class="rule"></div>${g.note?`<span class="n">${g.note}</span>`:''}</div>
+      <div class="kindgrid">${g.ks.map(kindTile).join('')}</div>`).join('')
+  });
 }
-// The set colours, in rows by family, plus whatever custom colour is in use.
-function swatchRows(cur){
-  const known=Object.values(SWATCHES).flat().some(([c])=>c===cur);
+/* The set colours, plus whatever custom colour is in use. Split into rows by
+   family where there is room for it, and run together as one block where there
+   isn't — five four-wide rows is a lot of height to spend on a colour. */
+function swatchRows(cur, flat){
+  const one=([c,nm])=>`<button data-col="${c}" title="${nm}" class="${cur===c?'on':''}" style="background:${c}"></button>`;
+  const all=Object.values(SWATCHES).flat();
+  const custom = all.some(([c])=>c===cur) ? '' : one([cur,'Custom']);
+  if(flat) return `<div class="pickgrid sw">${all.map(one).join('')}${custom}</div>`;
   return Object.entries(SWATCHES).map(([fam,list])=>
-    `<div class="pickgrid sw">${list.map(([c,nm])=>
-      `<button data-col="${c}" title="${nm}" class="${cur===c?'on':''}" style="background:${c}"></button>`).join('')}</div>`
-  ).join('') + (known?'':`<div class="pickgrid sw"><button data-col="${cur}" class="on" title="Custom" style="background:${cur}"></button></div>`);
+    `<div class="pickgrid sw">${list.map(one).join('')}</div>`).join('')
+    + (custom?`<div class="pickgrid sw">${custom}</div>`:'');
 }
-/* The drawer's own settings, as a panel beside the grid rather than a sheet
-   over it — everything applies as you click it, so the drawer changes while
-   you watch. The full form is still a click away for the rule and the name. */
-function closePanel(){ const p=$('#panel'); if(p) p.remove(); }
-/* The same idea for an object: a panel beside it rather than a sheet over it,
-   so a colour or a type change is visible the moment you click it. */
+/* An object's settings: everything applies as you click it, so the object
+   changes while you watch. The body is a function, so the marks follow a
+   change without the handler having to rebuild the panel itself. */
 function objectPanel(id){
-  closePanel();
   const o=byId(id); if(!o) return;
+  openPanel({key:'object:'+id, title:esc(o.title||'Untitled'), body:()=>objectPanelBody(id)});
+}
+function objectPanelBody(id){
+  const o=byId(id); if(!o) return '';
   const row=(label,body)=>`<div class="prow"><label>${label}</label><div>${body}</div></div>`;
-  const html=`<div class="panel" id="panel">
-    <div class="ptop"><b>${esc(o.title||'Untitled')}</b>
-      <button class="iconbtn" data-act="panelclose" title="Close">${ic('x',15)}</button></div>
+  return `
     ${row('Type', KEYS.filter(k=>!kindHas(k,'container')&&true).map(k=>
       `<button class="pchip${o.kind===k?' on':''}" data-otype="${k}" data-id="${id}">${KINDS[k].nm}</button>`).join(''))}
     ${row('Shape', Object.entries(SHAPES).map(([v,n])=>
@@ -118,23 +179,25 @@ function objectPanel(id){
     <div class="pfoot">
       <button class="pill" data-act="attrsheet" data-id="${id}">${ic('sliders',13)} Attributes</button>
       <button class="pill" data-act="editthis" data-id="${id}">${ic('edit',13)} Open editor</button>
-    </div>
-  </div>`;
-  $('#frame').insertAdjacentHTML('beforeend', html);
+    </div>`;
 }
 
+/* A drawer's own settings, beside the grid it arranges. */
 function drawerPanel(id){
-  closePanel();
+  const d=container(id); if(!d) return;
+  openPanel({key:'drawer:'+id, title:esc(id===ROOT?deskTitle():(d.title||'Untitled')),
+    body:()=>drawerPanelBody(id)});
+}
+function drawerPanelBody(id){
   const d=container(id), isRoot=id===ROOT;
+  if(!d) return '';
   const cfg=cfgOf(id);
   const row=(label,body)=>`<div class="prow"><label>${label}</label><div>${body}</div></div>`;
   const chips=(name,val,list,cur)=>list.map(([v,n])=>
     `<button class="pchip${cur===v?' on':''}" data-p${name}="${v}" data-id="${id}">${n}</button>`).join('');
-  const html=`<div class="panel" id="panel">
-    <div class="ptop"><b>${esc(isRoot?deskTitle():d.title)}</b>
-      <button class="iconbtn" data-act="panelclose" title="Close">${ic('x',15)}</button></div>
+  return `
     ${row('View', chips('view', null, [['grid','Grid'],['list','List'],['scroll','Scroll'],
-        ...(isRoot?[]:[['checklist','Checklist'],['calendar','Calendar']])], cfg.layout||'grid'))}
+        ...(isRoot?[]:[['checklist','Checklist'],['calendar','Calendar'],['timeline','Timeline']])], cfg.layout||'grid'))}
     ${isRoot?'':row('Face', chips('face', null, Object.entries(FACES), faceOf(d)))}
     ${row('Sort', chips('sort', null, [['','Custom'],...Object.entries(SORTS).map(([k,[nm]])=>[k,nm])], cfg.sort||''))}
     ${row('Locked', chips('lock', null, [['','Movable'],['1','Locked']], cfg.locked?'1':''))}
@@ -157,39 +220,19 @@ function drawerPanel(id){
         + `<div class="pickgrid sw" style="margin-top:5px">${
           ['#F8F3E6','#A9793F','#2A241C','#C0563F','#3E7A6B','#5D7E99'].map(c=>
           `<button data-pknobc="${c}" data-id="${id}" class="${d.knobc===c?'on':''}" style="background:${c}"></button>`).join('')}</div>`)}
-      <div class="pfoot"><button class="pill" data-act="panelmore" data-id="${id}">All settings…</button></div>`}
-  </div>`;
-  $('#frame').insertAdjacentHTML('beforeend', html);
+      <div class="pfoot"><button class="pill" data-act="panelmore" data-id="${id}">Name, rule and totals…</button></div>`}`;
 }
 
 function modalDrawer(id){
   const d = id? byId(id) : {id:'', title:'', c:'#4A7C59', pv:'list', layout:'list', filter:{kinds:[]}};
   const ks=((d.filter||{}).kinds||[]);
-  showModal(`<div class="modal-h"><div class="t">${id?'Edit drawer':'New drawer'}</div>
-    <div class="s">A drawer is an object that contains other objects. It shows anything you file in it by hand, plus anything matching its rule.</div></div>
-  <div class="modal-b">
+  openPanel({
+    key:'drawerform', title:id?'Edit drawer':'New drawer',
+    sub:`What it collects, and what it prints on its front`,
+    draft:{c:d.c, pv:d.pv, kinds:ks.slice(), layout:d.layout||'grid', tag:(d.filter||{}).tag||'',
+           locked:!!d.locked, border:d.border||'panel', knob:d.knob||'round', knobc:d.knobc||''},
+    body:`
     <div class="field" style="margin-bottom:10px"><label>Name</label><input id="dnm" value="${esc(d.title||'')}" placeholder="Reading Pile"></div>
-    <div class="field" style="margin-bottom:10px"><label>View</label>
-      <div class="filterbar" id="dlayout" style="padding-top:6px">${
-        [['grid','Grid'],['list','List'],['scroll','Scroll']].map(([v,n])=>
-        `<button class="fchip${(d.layout||'grid')===v?' on':''}" data-dl="${v}">${n}</button>`).join('')}</div>
-      <div class="mini" style="--k:var(--brass);margin-top:6px">Grid lays contents out on the grid · List is one line each · Scroll shows every word, top to bottom.</div></div>
-    <div class="field" style="margin-bottom:10px"><label>Border</label>
-      <div class="filterbar" id="dborder" style="flex-wrap:wrap;padding-top:6px">${
-        [['panel','Panelled'],['heavy','Heavy panel'],['bar','Bar'],['aqua','Aqua'],['plain','Plain'],['none','None']].map(([v,n])=>
-          `<button class="fchip${(d.border||'panel')===v?' on':''}" data-dbd="${v}">${n}</button>`).join('')}</div></div>
-    <div class="field" style="margin-bottom:10px"><label>Knob</label>
-      <div class="filterbar" id="dknob" style="flex-wrap:wrap;padding-top:6px">${
-        [['round','Round'],['diamond','Diamond'],['bar','Bar'],['ring','Ring'],['square','Square'],['orb','Orb']].map(([v,n])=>
-          `<button class="fchip${(d.knob||'round')===v?' on':''}" data-dkn="${v}">${n}</button>`).join('')}</div>
-      <label class="custcol" style="margin-top:8px"><input type="color" data-knobinput value="${d.knobc&&d.knobc[0]==='#'?d.knobc:'#ffffff'}"><span>Knob colour</span></label>
-      ${d.knobc?`<button class="pill" style="margin-left:6px" data-dkc="">Back to white</button>`:''}
-    </div>
-    <div class="field" style="margin-bottom:10px"><label>Locked</label>
-      <div class="filterbar" id="dlock" style="padding-top:6px">
-        <button class="fchip${d.locked?'':' on'}" data-dlock="">Movable</button>
-        <button class="fchip${d.locked?' on':''}" data-dlock="1">Locked</button></div>
-      <div class="mini" style="--k:var(--brass);margin-top:6px">You are always arranging. Lock a drawer when you've got it how you want it and nothing should shift.</div></div>
     <div class="field" style="margin-bottom:10px"><label>Colour</label>
       <div id="dcol" style="margin-top:6px">${swatchRows(d.c)}
         <label class="custcol"><input type="color" data-colinput value="${d.c}">
@@ -221,64 +264,86 @@ function modalDrawer(id){
     <div class="field"><label>Preview style</label>
       <div class="filterbar" id="dpv" style="padding-top:6px">${[['list','List'],['stack','Card stack'],['thumbs','Thumbnails'],['bars','Progress bars'],['big','Big number']].map(([v,n])=>
         `<button class="fchip${d.pv===v?' on':''}" data-pv="${v}">${n}</button>`).join('')}</div></div>
-    <div style="display:flex;gap:8px;margin-top:14px">
+    <div class="pfoot" style="display:flex;gap:8px">
       <button class="pill solid" data-act="savedrawer" data-id="${id||''}">${id?'Save':'Create drawer'}</button>
       <button class="pill" data-act="cancel">Cancel</button>
       ${id?`<button class="pill" data-act="deldrawer" data-id="${id}" style="margin-left:auto;color:#C0563F">Delete</button>`:''}
-    </div>
-  </div>`);
-  const m=$('#modal');
-  m._draft={c:d.c, pv:d.pv, kinds:ks.slice(), layout:d.layout||'grid', tag:(d.filter||{}).tag||'', locked:!!d.locked,
-            border:d.border||'panel', knob:d.knob||'round', knobc:d.knobc||''};
+    </div>`
+  });
 }
 /* Make a kind by choosing attributes. `from` is an object whose attributes seed
    the picker — "save these attributes as a new kind" from the detail sheet. */
 /* Also the kind *editor*. `editKey` names an existing kind — built-in or one of
    yours — and saving writes an override into S.kinds, so a built-in can be
    changed without touching the source. */
-/* A live sample of the type being built. It goes through the same gridTile()
-   the board uses, on a throwaway object, so the preview cannot drift from what
-   you will actually get — if it renders wrong here it renders wrong there. */
-function previewObject(){
-  const d=$('#modal')&&$('#modal')._draft; if(!d) return null;
-  const nameEl=$('#knm');
-  const cont = d.sort!=='object';
+/* A throwaway object, drawn through the same gridTile() the board uses, so a
+   preview cannot drift from what you will actually get — if it renders wrong
+   here it renders wrong there. It never enters S; only the renderer sees it. */
+function sampleObject(spec){
+  const a=(spec.attrs||['text']).slice();
+  const [w,h]=spec.size||[4,4];
   return {
-    id:'__preview', kind:'note',
-    title:(nameEl&&nameEl.value.trim())||'Untitled',
-    body:'A line or two of whatever it holds, so you can see how it sits.',
-    attrs:d.attrs.slice(),
-    shape: cont?undefined:(d.shape||'card'),
-    face:  cont?(d.face||'front'):undefined,
-    c:d.c, parent:ROOT, tags:[], ord:0, created:T,
+    id:spec.id||'__sample', kind:spec.kind||'note',
+    title:spec.title||'Untitled',
+    body:spec.body!=null?spec.body:'A line or two of whatever it holds, so you can see how it sits.',
+    attrs:a, shape:spec.shape, face:spec.face,
+    c:spec.c, parent:ROOT, tags:[], ord:0, created:T,
     // both layouts, or lay() reads the empty one on a phone-width window and
     // ensureBox quietly fills it from the fallback kind's size instead
-    desk:{x:1,y:1,w:d.size[0],h:d.size[1]},
-    phone:{x:1,y:1,w:d.size[0],h:d.size[1]},
-    onclick:d.onclick, spawnBy:d.spawnBy, genKind:'task', genDir:'down',
-    ...(d.attrs.includes('date')     ? {due:T} : {}),
-    ...(d.attrs.includes('count')    ? {count:12} : {}),
-    ...(d.attrs.includes('rating')   ? {rating:4} : {}),
-    ...(d.attrs.includes('priority') ? {prio:'high'} : {}),
-    ...(d.attrs.includes('price')    ? {price:'12.50'} : {}),
-    ...(d.attrs.includes('duration') ? {dur:45} : {}),
-    ...(d.attrs.includes('location') ? {loc:'The shed'} : {}),
-    ...(d.attrs.includes('streak')   ? {history:[T]} : {history:[]}),
-    ...(d.attrs.includes('progress') ? {milestones:[{t:'One',done:true},{t:'Two',done:false}]} : {milestones:[]}),
+    desk:{x:1,y:1,w,h}, phone:{x:1,y:1,w,h},
+    onclick:spec.onclick, spawnBy:spec.spawnBy, genKind:'task', genDir:'down',
+    ...(a.includes('date')     ? {due:T} : {}),
+    ...(a.includes('count')    ? {count:12} : {}),
+    ...(a.includes('rating')   ? {rating:4} : {}),
+    ...(a.includes('priority') ? {prio:'high'} : {}),
+    ...(a.includes('price')    ? {price:'12.50'} : {}),
+    ...(a.includes('duration') ? {dur:45} : {}),
+    ...(a.includes('location') ? {loc:'The shed'} : {}),
+    ...(a.includes('streak')   ? {history:[T]} : {history:[]}),
+    ...(a.includes('progress') ? {milestones:[{t:'One',done:true},{t:'Two',done:false}]} : {milestones:[]}),
     done:false,
-    link:{label:(nameEl&&nameEl.value.trim())||'Press', target:''},
+    link:{label:spec.title||'Press', target:''},
     knob:'round', border:'panel', texture:'none', layout:'list'
   };
+}
+/* A tile is drawn at desk scale and then shrunk to fit the box it is given,
+   rather than drawn small. Type sizes inside a tile are in px, so building it
+   at 11px a cell wrapped "Drawer" onto two lines — a miniature has to be the
+   real thing seen from further away, or it isn't a preview of anything. */
+const PV_CELL = 40;
+function sampleTile(o, maxW, maxH){
+  const b=o[dev()]||o.desk, w=b.w*PV_CELL, h=b.h*PV_CELL;
+  const k=Math.min(maxW/w, maxH/h, 1);
+  // the geometry is inline because it is computed here, not chosen
+  return `<div class="pvscale" aria-hidden="true" style="width:${w*k}px;height:${h*k}px;overflow:hidden">
+    <div style="width:${w}px;height:${h}px;transform:scale(${k});transform-origin:top left">
+      <div class="grid g-desk pvgrid"
+        style="--cols:${b.w};--rowh:${PV_CELL}px;--checker:${2*PV_CELL}px;
+               grid-template-rows:repeat(${b.h},${PV_CELL}px);width:${w}px">
+        ${gridTile(o,false,ROOT)}</div></div></div>`;
+}
+// One built-in or invented type, as an object of that type.
+const kindSample = k => { const d=K(k); return sampleObject({
+  id:'__k_'+k, kind:k, title:d.nm, attrs:d.attrs, shape:d.shape, face:d.face,
+  c:d.c, size:d.size, onclick:d.onclick, spawnBy:d.spawnBy}); };
+
+/* A live sample of the type being built, from the draft rather than a kind —
+   the kind doesn't exist until you press Create. */
+function previewObject(){
+  const d=draft(); if(!d) return null;
+  const nameEl=$('#knm');
+  const cont = d.sort!=='object';
+  return sampleObject({
+    id:'__preview', kind:'note', title:(nameEl&&nameEl.value.trim())||'Untitled',
+    attrs:d.attrs, c:d.c, size:d.size, onclick:d.onclick, spawnBy:d.spawnBy,
+    shape: cont?undefined:(d.shape||'card'),
+    face:  cont?(d.face||'front'):undefined
+  });
 }
 function renderPreview(){
   const host=$('#kpreview'); if(!host) return;
   const o=previewObject(); if(!o) return;
-  const b=o[dev()]||o.desk, [w,h]=[b.w,b.h];
-  const cell=Math.max(9, Math.min(300/w, 190/h));
-  host.innerHTML=`<div class="grid g-desk pvgrid"
-      style="--cols:${w};--rowh:${cell}px;--checker:${2*cell}px;
-             grid-template-rows:repeat(${h},${cell}px);width:${w*cell}px">
-      ${gridTile(o,false,ROOT)}</div>`;
+  host.innerHTML=sampleTile(o, 230, 170);
 }
 function modalNewKind(from, editKey){
   const ex = editKey ? K(editKey) : null;
@@ -288,87 +353,78 @@ function modalNewKind(from, editKey){
   const isCont = seedAttrs.includes('container');
   const sort = isCont ? (seedAttrs.includes('magic') ? 'magic' : 'drawer') : 'object';
   const size = (base && base.size) || [4,4];
-  const chip=(on,attrs,label,title)=>`<button class="fchip${on?' on':''}" ${attrs}${title?` title="${esc(title)}"`:''}>${label}</button>`;
+  const chip=(on,attrs,label,title)=>`<button class="pchip${on?' on':''}" ${attrs}${title?` title="${esc(title)}"`:''}>${label}</button>`;
+  // the id lands on the *inner* div, because that is what the wiring rebuilds
+  const row=(label,note,body,id,extra)=>`<div class="prow"${extra||''}>
+    <label>${label}${note?`<i>${note}</i>`:''}</label><div${id?` id="${id}"`:''}>${body}</div></div>`;
   // traits that carry a typed value are worth separating: only these can be
   // sorted, filtered or totalled
   const plain = USER_ATTRS.filter(a=>!fieldOf(a));
   const bearing = USER_ATTRS.filter(a=>fieldOf(a));
 
-  showModal(`<div class="modal-h"><div class="t">${ex?'Edit '+esc(ex.nm):'New type'}</div>
-    <div class="s">A type is a name for a set of traits. Nothing here is special-cased — whatever you tick is what it can do.</div></div>
-  <div class="modal-b">
-
-    <div class="pvwrap"><div id="kpreview"></div></div>
-    <div class="field" style="margin-bottom:10px"><label>Name</label>
-      <input id="knm" value="${ex?esc(ex.nm):(from?esc(K(from.kind).nm)+' variant':'')}" placeholder="Reading note"></div>
-    <div class="field" style="margin-bottom:12px"><label>Description</label>
-      <input id="kds" value="${ex?esc(ex.ds||''):''}" placeholder="What it's for, in a few words"></div>
-
-    <div class="section-h"><h2>What it is</h2><div class="rule"></div></div>
-    <div class="filterbar" id="ksort" style="flex-wrap:wrap">
-      ${chip(sort==='object','data-ksort="object"','Object','Holds nothing')}
-      ${chip(sort==='drawer','data-ksort="drawer"','Drawer','Holds what you file in it')}
-      ${chip(sort==='magic','data-ksort="magic"','Magic drawer','Collects by rule; holds nothing')}
+  openPanel({
+    key:'kindform', wide:true, title:ex?'Edit '+esc(ex.nm):'New type',
+    sub:'A type is a name for a set of traits',
+    draft:{c, attrs:seedAttrs, ic:(base&&base.ic)||'note', ds:'',
+           fromId:from&&from.id, editKey:editKey||null,
+           size, onclick:(base&&base.onclick)||'read',
+           sort, shape:(base&&base.shape)||'card', face:(base&&base.face)||'front',
+           spawnBy:(base&&base.spawnBy)||'click'},
+    body:`
+  <div class="kbuild">
+    <div class="kleft">
+      <div class="pvwrap"><div id="kpreview"></div></div>
+      <div class="field"><label>Name</label>
+        <input id="knm" value="${ex?esc(ex.nm):(from?esc(K(from.kind).nm)+' variant':'')}" placeholder="Reading note"></div>
+      <div class="field"><label>Description</label>
+        <input id="kds" value="${ex?esc(ex.ds||''):''}" placeholder="What it's for, in a few words"></div>
+      <div class="kacts">
+        <button class="pill solid" data-act="savekind" data-id="${editKey||''}">${ex?'Save':'Create type'}</button>
+        <button class="pill" data-act="cancel">Cancel</button>
+        ${ex&&S.kinds[editKey]?`<button class="pill" data-act="delkind" data-id="${editKey}" style="color:#C0563F">Delete</button>`:''}
+        ${ex&&!S.kinds[editKey]?`<button class="pill" data-act="resetkind" data-id="${editKey}">Reset to default</button>`:''}
+      </div>
     </div>
 
-    <div class="section-h"><h2>Look</h2><div class="rule"></div>
-      <span class="n" id="klookn">${sort==='object'?'shape':'face'}</span></div>
-    <div class="filterbar" id="klook" style="flex-wrap:wrap">
-      ${(sort==='object'?Object.entries(SHAPES):Object.entries(FACES)).map(([v,n])=>
-        chip(((base&&(sort==='object'?base.shape:base.face))||(sort==='object'?'card':'front'))===v,
-             `data-klook="${v}"`, n)).join('')}
-    </div>
+    <div class="kright">
+      ${row('What it is','',
+        chip(sort==='object','data-ksort="object"','Object','Holds nothing')+
+        chip(sort==='drawer','data-ksort="drawer"','Drawer','Holds what you file in it')+
+        chip(sort==='magic','data-ksort="magic"','Magic drawer','Collects by rule; holds nothing'),
+        'ksort')}
+      ${row('Look','<span id="klookn">'+(sort==='object'?'shape':'face')+'</span>',
+        (sort==='object'?Object.entries(SHAPES):Object.entries(FACES)).map(([v,n])=>
+          chip(((base&&(sort==='object'?base.shape:base.face))||(sort==='object'?'card':'front'))===v,
+               `data-klook="${v}"`, n)).join(''), 'klook')}
+      ${row('Traits','what it can do',
+        plain.map(a=>chip(seedAttrs.includes(a),`data-ka="${a}"`,ATTRS[a].nm,ATTRS[a].ds)).join(''), 'kattrs')}
+      ${row('Fields','typed, so they sort and total',
+        bearing.map(a=>chip(seedAttrs.includes(a),`data-ka="${a}"`,
+          `${ATTRS[a].nm} <i>${fieldOf(a).type}</i>`,ATTRS[a].ds)).join(''), 'kfields')}
+      <div class="mini" style="--k:var(--brass)" id="kattrsds">${
+        esc(seedAttrs.map(a=>ATTRS[a]&&ATTRS[a].ds).filter(Boolean).join(' · '))||'Nothing yet'}</div>
 
-    <div class="section-h"><h2>Traits</h2><div class="rule"></div><span class="n">what it can do</span></div>
-    <div class="filterbar" id="kattrs" style="flex-wrap:wrap">
-      ${plain.map(a=>chip(seedAttrs.includes(a),`data-ka="${a}"`,ATTRS[a].nm,ATTRS[a].ds)).join('')}
-    </div>
-
-    <div class="section-h"><h2>Fields</h2><div class="rule"></div>
-      <span class="n">typed values — sortable, filterable, totallable</span></div>
-    <div class="filterbar" id="kfields" style="flex-wrap:wrap">
-      ${bearing.map(a=>chip(seedAttrs.includes(a),`data-ka="${a}"`,
-        `${ATTRS[a].nm} <i style="opacity:.55;font-style:normal">${fieldOf(a).type}</i>`,ATTRS[a].ds)).join('')}
-    </div>
-    <div class="mini" style="--k:var(--brass);margin-top:6px" id="kattrsds">${
-      esc(seedAttrs.map(a=>ATTRS[a]&&ATTRS[a].ds).filter(Boolean).join(' · '))||'Nothing yet'}</div>
-
-    <div class="section-h"><h2>Behaviour</h2><div class="rule"></div></div>
-    <div class="field" style="margin-bottom:10px"><label>Clicking one</label>
-      <div class="filterbar" id="kclick" style="flex-wrap:wrap;padding-top:6px">
-        ${Object.entries(CLICKS).map(([v,n])=>chip(((base&&base.onclick)||'read')===v,`data-kclick="${v}"`,n)).join('')}</div></div>
-    <div class="field" id="kspawnrow" style="margin-bottom:10px;${seedAttrs.includes('spawn')?'':'display:none'}">
-      <label>It spawns</label>
-      <div class="filterbar" style="flex-wrap:wrap;padding-top:6px">
-        ${chip(((base&&base.spawnBy)||'click')==='click','data-kspawn="click"','When pressed')}
-        ${chip(((base&&base.spawnBy)||'click')==='type','data-kspawn="type"','As you type in it')}</div></div>
-    <div class="field" style="margin-bottom:10px"><label>Starts at</label>
-      <div class="filterbar" id="ksize" style="flex-wrap:wrap;padding-top:6px">${
+      ${row('Clicking one','',
+        Object.entries(CLICKS).map(([v,n])=>chip(((base&&base.onclick)||'read')===v,`data-kclick="${v}"`,n)).join(''),
+        'kclick')}
+      ${row('It spawns','',
+        chip(((base&&base.spawnBy)||'click')==='click','data-kspawn="click"','When pressed')+
+        chip(((base&&base.spawnBy)||'click')==='type','data-kspawn="type"','As you type in it'),
+        'kspawn', ` id="kspawnrow"${seedAttrs.includes('spawn')?'':' style="display:none"'}`)}
+      ${row('Starts at','',
         [[4,1],[6,1],[2,2],[4,4],[6,4],[6,6],[8,6],[12,8]].map(([w,h])=>
-          chip(size.join('x')===w+'x'+h,`data-ksz="${w}x${h}"`,`${w}×${h}`)).join('')}</div></div>
-
-    <div class="section-h"><h2>Colour and mark</h2><div class="rule"></div></div>
-    <div class="field" style="margin-bottom:10px">
-      <div id="dcol">${swatchRows(c)}
-        <label class="custcol"><input type="color" data-colinput value="${c}"><span>Custom colour</span></label></div></div>
-    <div class="filterbar" id="kicon" style="flex-wrap:wrap">${
-      ['note','check','list','bulb','feather','book','star','flag','clock','target','image','film','music',
-       'pot','clapper','help','folder','sparkle','trophy','archive','tag','plus','edit','inbox'].map(i=>
-        `<button class="fchip iconchip${((base&&base.ic)||'note')===i?' on':''}" data-kic="${i}" title="${i}">${ic(i,15)}</button>`).join('')}</div>
-
-    <div style="display:flex;gap:8px;margin-top:16px">
-      <button class="pill solid" data-act="savekind" data-id="${editKey||''}">${ex?'Save':'Create type'}</button>
-      <button class="pill" data-act="cancel">Cancel</button>
-      ${ex&&S.kinds[editKey]?`<button class="pill" data-act="delkind" data-id="${editKey}" style="margin-left:auto;color:#C0563F">Delete</button>`:''}
-      ${ex&&!S.kinds[editKey]?`<button class="pill" data-act="resetkind" data-id="${editKey}" style="margin-left:auto">Reset to default</button>`:''}
+          chip(size.join('x')===w+'x'+h,`data-ksz="${w}x${h}"`,`${w}×${h}`)).join(''), 'ksize')}
+      ${row('Colour','',
+        `${swatchRows(c,true)}<label class="custcol"><input type="color" data-colinput value="${c}"><span>Custom</span></label>`,
+        'dcol')}
+      ${row('Mark','',
+        ['note','check','list','bulb','feather','book','star','flag','clock','target','image','film','music',
+         'pot','clapper','help','folder','sparkle','trophy','archive','tag','plus','edit','inbox'].map(i=>
+          `<button class="pchip iconchip${((base&&base.ic)||'note')===i?' on':''}" data-kic="${i}" title="${i}">${ic(i,15)}</button>`).join(''),
+        'kicon')}
     </div>
-  </div>`);
-  const m=$('#modal');
-  m._draft={c, attrs:seedAttrs, ic:(base&&base.ic)||'note', ds:'',
-            fromId:from&&from.id, editKey:editKey||null,
-            size, onclick:(base&&base.onclick)||'read',
-            sort, shape:(base&&base.shape)||'card', face:(base&&base.face)||'front',
-            spawnBy:(base&&base.spawnBy)||'click'};
+  </div>`
+  });
   renderPreview();
 }
 // Anywhere this object may legally go: any container that is not itself, and
@@ -378,10 +434,11 @@ function moveTargets(objId){
   return [rootObj()].concat(containers().filter(c=>c.id!==objId && !has(c,'magic') && !(o&&isAncestor(objId,c))));
 }
 function modalMove(objId){
-  showModal(`<div class="modal-h"><div class="t">Move to drawer</div><div class="s">Filing by hand always wins over the drawer's rule.</div></div>
-  <div class="modal-b"><div class="rows">${moveTargets(objId).map(d=>
-    `<div class="row" data-moveto="${objId}:${d.id}" style="--k:${d.c||K(d.kind).c}"><span class="kindmark">${ic('folder',13)}</span>
-      <div class="body"><div class="title">${esc(d.title)}</div><div class="snip">${childrenOf(d).length} objects</div></div></div>`).join('')}</div></div>`);
+  openPanel({key:'move', title:'Move to drawer',
+    sub:'Filing by hand always wins over a drawer&rsquo;s rule',
+    body:()=>`<div class="rows">${moveTargets(objId).map(d=>
+      `<div class="row" data-moveto="${objId}:${d.id}" style="--k:${d.c||K(d.kind).c}"><span class="kindmark">${ic('folder',13)}</span>
+        <div class="body"><div class="title">${esc(d.title)}</div><div class="snip">${childrenOf(d).length} objects</div></div></div>`).join('')}</div>`});
 }
 
 /* ============================================================
@@ -392,12 +449,13 @@ function closeCmd(){ $('#cmdscrim').classList.remove('open'); if(document.active
 function cmdList(q){
   q=q.trim().toLowerCase();
   const res=[];
-  // Only two places exist now — the desk and settings. Today, Keeping Up and
-  // Everything were aggregations; make a magic drawer if you want one back.
-  [['settings','Settings','sliders'],['desk','The Desk','grid']].forEach(([v,nm,icn])=>{
-    if(!q||nm.toLowerCase().includes(q))
-      res.push({t:nm,s:'view',c:'var(--brass)',i:icn,go:()=>{S.view=v;S.drawerId=null;}});
-  });
+  // The desk is the only place. Settings is a sheet over it, not somewhere
+  // you go; Today, Keeping Up and Everything were aggregations, so make a
+  // magic drawer if you want one of those back.
+  if(!q||'the desk'.includes(q))
+    res.push({t:'The Desk',s:'view',c:'var(--brass)',i:'grid',go:()=>{S.view='desk';S.drawerId=null;}});
+  if(!q||'settings'.includes(q))
+    res.push({t:'Settings',s:'panel',c:'var(--brass)',i:'sliders',go:()=>settingsPanel()});
   containers().forEach(d=>{ if(!q||(d.title||'').toLowerCase().includes(q)) res.push({t:d.title,s:'drawer',c:d.c||K(d.kind).c,i:'folder',go:()=>{S.view='drawer';S.drawerId=d.id;}}); });
   S.objects.forEach(o=>{ if(q&&((o.title||'').toLowerCase().includes(q)||(o.body||'').toLowerCase().includes(q)))
     res.push({t:o.title||'Untitled',s:K(o.kind).nm,c:K(o.kind).c,i:K(o.kind).ic,go:()=>openObj(o.id)}); });
@@ -469,6 +527,7 @@ function openCtx(x,y,id){
 }
 const closeCtx = ()=> $('#ctx').classList.remove('open');
 
-export { overlayHTML, showModal, hideModal, modalNewObject, closePanel,
-  objectPanel, drawerPanel, modalDrawer, modalNewKind, renderPreview, modalMove,
+export { overlayHTML, openPanel, closePanel, refreshPanel, panelKey, draft,
+  openMenu, modalNewObject, objectPanel, drawerPanel, modalDrawer, modalNewKind,
+  renderPreview, modalMove, sampleObject, sampleTile, kindSample,
   openCmd, closeCmd, cmdList, runCmd, drawerFromSelection, openCtx, closeCtx };

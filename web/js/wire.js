@@ -1,18 +1,23 @@
-import { $, $$, esc, ic, uid, ROOT } from './util.js';
+import { $, $$, esc, ic, uid, D, ROOT } from './util.js';
 import { S, K, KINDS, KEYS, refreshKinds, ATTRS, USER_ATTRS, attrsOf, has, SHAPES,
   FACES, SORTS, byId, container, cfgOf, isContainer, isAncestor, relate,
   unrelate, sensedDevice, reset, T, dz, dev } from './model.js';
 import { gridOf, lay, boxOk, freeSpot } from './grid.js';
 import { applyLook, applyStyle, setLookVal, lookVal, STYLES, PALETTES, randomFront } from './look.js';
-import { toast, toggleDone, del, undo, setPin, togglePin, create, quickAdd, randomThing } from './mutations.js';
+import { toast, toggleDone, del, undo, setPin, togglePin, drawerForTag, create, quickAdd, randomThing } from './mutations.js';
 import { spinTo, pending, placeAtPending, tileTap } from './tiles.js';
-import { render, sizeGrid } from './views.js';
+import { render, sizeGrid, toggleSettings } from './views.js';
 import { openObj, closeSheet, renderSheet } from './sheet.js';
-import { showModal, hideModal, modalNewObject, modalDrawer, modalNewKind,
-  modalMove, renderPreview, drawerPanel, objectPanel, closePanel,
+import { openPanel, closePanel, refreshPanel, panelKey, draft, openMenu,
+  modalNewObject, modalDrawer, modalNewKind, modalMove, renderPreview,
+  drawerPanel, objectPanel,
   drawerFromSelection, openCtx, closeCtx, openCmd, closeCmd, cmdList, runCmd } from './panels.js';
-import { onDown, onMove, onUp, onCancel } from './gestures.js';
+import { onDown, onMove, onUp, onCancel, gestureFlags } from './gestures.js';
 import { save, writeNow, exportBackup, importBackup, importImage, pasteObjects, install } from './persist.js';
+
+/* Mark one chip in a group as the chosen one. The selector is deliberately
+   class-agnostic — the chips in these groups have changed class twice. */
+function only(el, sel){ $$(sel).forEach(b=>b.classList.remove('on')); el.classList.add('on'); }
 
 function act(name, el){
   switch(name){
@@ -20,25 +25,36 @@ function act(name, el){
     case 'newdrawer': modalDrawer(null); break;
     case 'back': S.view='desk'; S.drawerId=null; S.kindFilter=null; render(); break;
     case 'pin': togglePin(el.dataset.id); break;
-    case 'cancel': hideModal(); break;
+    case 'monthstep': {
+      const d=byId(el.dataset.id); if(!d) return;
+      const a=D.parse(d.month||T)||D.today();
+      a.setMonth(a.getMonth()+ (+el.dataset.step||0));
+      d.month=D.iso(new Date(a.getFullYear(), a.getMonth(), 1));
+      save(); render(); break;
+    }
+    case 'monthtoday': {
+      const d=byId(el.dataset.id); if(!d) return;
+      d.month=T; S.calDay=T; save(); render(); break;
+    }
+    case 'cancel': closePanel(); break;
     case 'savedrawer': {
-      const id=el.dataset.id, m=$('#modal'), draft=m._draft||{};
+      const id=el.dataset.id, dr=draft()||{};
       const title=$('#dnm').value.trim()||'Untitled drawer';
       if(id){ const d=byId(id);
-        Object.assign(d,{title,c:draft.c,pv:draft.pv,layout:draft.layout,locked:!!draft.locked,
-          border:draft.border,knob:draft.knob,knobc:draft.knobc||null});
-        d.filter=Object.assign({},d.filter,{kinds:draft.kinds,tag:draft.tag||undefined,
+        Object.assign(d,{title,c:dr.c,pv:dr.pv,layout:dr.layout,locked:!!dr.locked,
+          border:dr.border,knob:dr.knob,knobc:dr.knobc||null});
+        d.filter=Object.assign({},d.filter,{kinds:dr.kinds,tag:dr.tag||undefined,
           rule: $('#rf').value ? {f:$('#rf').value, op:$('#rop').value, v:$('#rv').value} : undefined});
         d.roll = $('#rlfn').value ? {fn:$('#rlfn').value, f:$('#rlf').value||undefined} : undefined;
       } else {
         // a new drawer lands inside whatever container you are looking at
         const home=(S.view==='drawer'&&S.drawerId)||ROOT;
         S.objects.push({id:uid('d'), kind:'drawer', title, body:'', tags:[],
-          parent:home, c:draft.c||randomFront(), pv:draft.pv, layout:draft.layout||'list',
-          filter:{kinds:draft.kinds,tag:draft.tag||undefined}, ord:0, created:T,
+          parent:home, c:dr.c||randomFront(), pv:dr.pv, layout:dr.layout||'list',
+          filter:{kinds:dr.kinds,tag:dr.tag||undefined}, ord:0, created:T,
           desk:freeSpot(2,2,'desk',home), phone:freeSpot(2,2,'phone',home)});
       }
-      hideModal(); save(); render(); toast(id?'Drawer updated':'Drawer added');
+      closePanel(); save(); render(); toast(id?'Drawer updated':'Drawer added');
       break;
     }
     case 'deldrawer': {
@@ -48,7 +64,7 @@ function act(name, el){
       S.objects.forEach(o=>{ if(o.parent===id) o.parent=up; });
       S.objects=S.objects.filter(o=>o.id!==id);
       if(S.drawerId===id){ S.drawerId=up===ROOT?null:up; S.view=up===ROOT?'desk':'drawer'; }
-      hideModal(); save(); render(); toast('Drawer removed — its contents kept');
+      closePanel(); save(); render(); toast('Drawer removed — its contents kept');
       break;
     }
     case 'countup': { const o=byId(el.dataset.id); o.count=(o.count||0)+1; save();
@@ -59,66 +75,70 @@ function act(name, el){
     case 'countdown': { const o=byId(el.dataset.id); o.count=Math.max(0,(o.count||0)-1); save(); renderSheet(); render(); break; }
     case 'addrel': {
       const me=el.dataset.id;
-      showModal(`<div class="modal-h"><div class="t">Link to</div>
-        <div class="s">Relations point both ways — the other object will show this one too.</div></div>
-      <div class="modal-b"><div class="rows">${S.objects.filter(x=>x.id!==me&&true).slice(0,120).map(x=>
-        `<div class="row" data-dorel="${me}:${x.id}" style="--k:${K(x.kind).c}">
-          <span class="kindmark">${ic(K(x.kind).ic,13)}</span>
-          <div class="body"><div class="title">${esc(x.title||'Untitled')}</div>
-            <div class="snip">${esc(K(x.kind).nm)}</div></div></div>`).join('')}</div></div>`);
+      openPanel({key:'addrel', title:'Link to',
+        sub:'Relations point both ways',
+        body:()=>`<div class="rows">${S.objects.filter(x=>x.id!==me).slice(0,120).map(x=>
+          `<div class="row" data-dorel="${me}:${x.id}" style="--k:${K(x.kind).c}">
+            <span class="kindmark">${ic(K(x.kind).ic,13)}</span>
+            <div class="body"><div class="title">${esc(x.title||'Untitled')}</div>
+              <div class="snip">${esc(K(x.kind).nm)}</div></div></div>`).join('')}</div>`});
       break;
     }
     case 'attrsheet': {
-      const o=byId(el.dataset.id); if(!o) return;
-      const mine=attrsOf(o), own=!!o.attrs;
-      showModal(`<div class="modal-h"><div class="t">Attributes</div>
-        <div class="s">What this one object can do. ${own?'It has its own set.':'It follows the '+esc(K(o.kind).nm.toLowerCase())+' type.'}</div></div>
-      <div class="modal-b">
-        <div class="filterbar" style="flex-wrap:wrap">${USER_ATTRS.map(a=>
-          `<button class="fchip${mine.includes(a)?' on':''}" data-attr="${a}" title="${esc(ATTRS[a].ds)}">${ATTRS[a].nm}</button>`).join('')}</div>
-        ${own?`<button class="subtle-btn" data-act="attrreset" style="margin-top:12px">${ic('undo',12)} Follow the ${esc(K(o.kind).nm.toLowerCase())} type again</button>`:''}
-      </div>`);
+      const id=el.dataset.id; if(!byId(id)) return;
+      openPanel({key:'attrs:'+id, title:'Attributes',
+        sub:'What this one object can do',
+        body:()=>{
+          const o=byId(id); if(!o) return '';
+          const mine=attrsOf(o), own=!!o.attrs;
+          return `<div class="mini" style="--k:var(--brass)">${own?'It has its own set.'
+              :'It follows the '+esc(K(o.kind).nm.toLowerCase())+' type.'}</div>
+            <div class="prow"><div>${USER_ATTRS.map(a=>
+              `<button class="pchip${mine.includes(a)?' on':''}" data-attr="${a}" data-id="${id}" title="${esc(ATTRS[a].ds)}">${ATTRS[a].nm}</button>`).join('')}</div></div>
+            ${own?`<div class="pfoot"><button class="subtle-btn" data-act="attrreset" data-id="${id}">${ic('undo',12)} Follow the ${esc(K(o.kind).nm.toLowerCase())} type again</button></div>`:''}`;
+        }});
       break;
     }
     case 'attrreset': {
-      const o=byId(S.openId); if(!o) return;
-      o.attrs=null; hideModal(); save(); renderSheet(); render(); toast(`Following the ${K(o.kind).nm.toLowerCase()} type again`);
+      const o=byId(el.dataset.id||S.openId); if(!o) return;
+      o.attrs=null; save(); refreshPanel(); renderSheet(); render();
+      toast(`Following the ${K(o.kind).nm.toLowerCase()} type again`);
       break;
     }
     case 'kindfromobj': modalNewKind(byId(S.openId)); break;
     case 'savekind': {
-      const m=$('#modal'), draft=m._draft||{};
+      const dk=draft()||{};
       const nm=$('#knm').value.trim();
       if(!nm){ toast('Give the kind a name'); return; }
-      const key = draft.editKey || nm.toLowerCase().replace(/[^a-z0-9]+/g,'').slice(0,20) || ('kind'+Date.now());
-      const base = draft.editKey ? K(draft.editKey) : {};
+      const key = dk.editKey || nm.toLowerCase().replace(/[^a-z0-9]+/g,'').slice(0,20) || ('kind'+Date.now());
+      const base = dk.editKey ? K(dk.editKey) : {};
       S.kinds[key]=Object.assign({}, base, {
-        nm, ic:draft.ic||base.ic||'note', c:draft.c,
+        nm, ic:dk.ic||base.ic||'note', c:dk.c,
         key: base.key || (()=>{ const used=new Set(KEYS.map(k=>K(k).key));
           for(const ch of (nm.toUpperCase()+'ABCDEFGHIJKLMNOPQRSTUVWXYZ')) if(ch.trim()&&!used.has(ch)) return ch;
           return ''; })(),
         ds:$('#kds').value.trim()||base.ds||'A kind you made',
-        attrs:draft.attrs.slice(), size:draft.size||[4,4],
-        onclick:draft.onclick||'read', body:base.body||'',
-        shape: draft.sort==='object' ? (draft.shape||'card') : undefined,
-        face:  draft.sort==='object' ? undefined : (draft.face||'front'),
-        layout: draft.sort==='object' ? undefined : (base.layout||'grid'),
-        spawnBy: draft.attrs.includes('spawn') ? (draft.spawnBy||'click') : undefined});
+        attrs:dk.attrs.slice(), size:dk.size||[4,4],
+        onclick:dk.onclick||'read', body:base.body||'',
+        shape: dk.sort==='object' ? (dk.shape||'card') : undefined,
+        face:  dk.sort==='object' ? undefined : (dk.face||'front'),
+        layout: dk.sort==='object' ? undefined : (base.layout||'grid'),
+        spawnBy: dk.attrs.includes('spawn') ? (dk.spawnBy||'click') : undefined});
       refreshKinds();
       // the object that inspired it now simply *is* that kind
-      if(draft.fromId){ const o=byId(draft.fromId); if(o){ o.kind=key; o.attrs=null; } }
-      hideModal(); save(); render(); renderSheet(); toast(`“${nm}” is now a type`);
+      if(dk.fromId){ const o=byId(dk.fromId); if(o){ o.kind=key; o.attrs=null; } }
+      closePanel(); save(); render(); renderSheet(); toast(`“${nm}” is now a type`);
       break;
     }
     case 'resetkind': {
-      delete S.kinds[el.dataset.id]; refreshKinds(); hideModal(); save(); render();
+      delete S.kinds[el.dataset.id]; refreshKinds(); closePanel(); save(); render();
       toast('Back to the built-in'); break;
     }
     case 'editkind': modalNewKind(null, el.dataset.id); break;
     case 'delkind': {
       const key=el.dataset.id;
       if(S.objects.some(o=>o.kind===key)){ toast('Something still uses that type'); return; }
-      delete S.kinds[key]; refreshKinds(); hideModal(); save(); render(); toast('Type removed');
+      delete S.kinds[key]; refreshKinds(); closePanel(); save(); render(); toast('Type removed');
       break;
     }
     case 'addtag': {
@@ -137,7 +157,7 @@ function act(name, el){
     case 'drawersettings': drawerPanel(el.dataset.id); break;
     case 'panelclose': closePanel(); break;
     case 'panelmore': closePanel(); modalDrawer(el.dataset.id); break;
-    case 'appsettings': S.view='settings'; render(); break;
+    case 'appsettings': toggleSettings(); break;
     case 'editthis': S.readId=null; openObj(el.dataset.id); break;
     case 'bookmode': S.bookMode=!S.bookMode; S.bookAt=0; renderSheet(); break;
     case 'bookprev': S.bookAt=Math.max(0,(S.bookAt||0)-2); renderSheet(); break;
@@ -148,24 +168,22 @@ function act(name, el){
       save(); render(); toast(c.layout+' view');
       break;
     }
+    // a menu hung off the button, not a modal in the middle of the screen
     case 'sortmenu': {
       const id=el.dataset.id, cur=cfgOf(id).sort||'';
-      showModal(`<div class="modal-h"><div class="t">Sort</div>
-        <div class="s">How this drawer orders what's in it.</div></div>
-      <div class="modal-b"><div class="rows">
-        <div class="row${!cur?' on':''}" data-sortby="${id}:"><div class="body"><div class="title">Custom</div></div></div>
+      openMenu(el, `<div class="ctxhead">Sort</div>
+        <button class="${!cur?'on':''}" data-sortby="${id}:">Custom</button>
         ${Object.entries(SORTS).map(([k,[nm]])=>
-          `<div class="row${cur===k?' on':''}" data-sortby="${id}:${k}"><div class="body"><div class="title">${nm}</div></div></div>`).join('')}
-      </div></div>`);
+          `<button class="${cur===k?'on':''}" data-sortby="${id}:${k}">${nm}</button>`).join('')}`);
       break;
     }
     case 'newkind': modalNewKind(null); break;
     case 'install': if(install.deferred){ install.deferred.prompt(); install.deferred=null; } break;
     case 'pastego': { const b=$('#pastebox'); pasteObjects(b&&b.value, ROOT); if(b) b.value=''; break; }
     case 'pasteschema': {
-      showModal(`<div class="modal-h"><div class="t">What the paste box accepts</div>
-        <div class="s">An array of objects. Only <b>title</b> really matters — everything else has a default.</div></div>
-      <div class="modal-b">
+      openPanel({key:'pasteschema', wide:true, title:'What the paste box accepts',
+        sub:'An array of objects — only <b>title</b> really matters',
+        body:`
         <div class="prose"><pre>[
   {
     "type": "drawer",          // any type name: task, note, recipe, magic drawer…
@@ -183,8 +201,7 @@ function act(name, el){
   "Milk"                       // a bare string is a task
 ]</pre>
         <p>Fields follow the attributes: <code>due, done, count, rating, price, prio, loc, dur, url, repeat</code>. Anything a type hasn't got is ignored rather than breaking.</p>
-        <p>Give a child list to something that can't hold children and it becomes a drawer instead.</p></div>
-      </div>`);
+        <p>Give a child list to something that can't hold children and it becomes a drawer instead.</p></div>`});
       break;
     }
     case 'randomone': randomThing(el.dataset.id); save(); render(); toast('One at random'); break;
@@ -222,6 +239,8 @@ function wire(){
   });
 
   frame.addEventListener('click', e=>{
+    // a gesture that ended in a drag leaves one click behind; drop it
+    if(gestureFlags.suppressClick){ gestureFlags.suppressClick=false; return; }
     const t=e.target;
     if(!t.closest('#ctx')) closeCtx();
 
@@ -249,7 +268,7 @@ function wire(){
       return; }
 
     const dr2=t.closest('[data-dorel]');
-    if(dr2){ const [a,b]=dr2.dataset.dorel.split(':'); relate(a,b); hideModal(); save(); renderSheet(); render(); return; }
+    if(dr2){ const [a,b]=dr2.dataset.dorel.split(':'); relate(a,b); closePanel(); save(); renderSheet(); render(); return; }
     const ur=t.closest('[data-unrel]');
     if(ur){ const [a,b]=ur.dataset.unrel.split(':'); unrelate(a,b); save(); renderSheet(); render(); return; }
     const or2=t.closest('[data-openrel]');
@@ -267,17 +286,18 @@ function wire(){
     const sb=t.closest('[data-sortby]');
     if(sb){ const i=sb.dataset.sortby.indexOf(':');
       cfgOf(sb.dataset.sortby.slice(0,i)).sort = sb.dataset.sortby.slice(i+1) || null;
-      hideModal(); save(); render(); return; }
+      closeCtx(); save(); render(); return; }
 
     const mv=t.closest('[data-moveto]');
     if(mv){ const [oid,did]=mv.dataset.moveto.split(':');
-      byId(oid).parent=did; hideModal(); save(); render(); renderSheet();
+      byId(oid).parent=did; closePanel(); save(); render(); renderSheet();
       toast('Filed in '+(did===ROOT?'The Desk':byId(did).title)); return; }
 
+    // the dial in a type tile's corner edits the type rather than making one
     const nk=t.closest('[data-new]');
-    if(nk){
-      const at=pending.cell;            // hideModal clears it, so keep it first
-      hideModal();
+    if(nk && !t.closest('[data-act]')){
+      const at=pending.cell;            // closePanel clears it, so keep it first
+      closePanel();
       pending.cell=at;
       const kind=nk.dataset.new;
       if(K(kind).picksFile){ pending.cell=at; $('#imgpicker').click(); return; }
@@ -286,6 +306,15 @@ function wire(){
       save(); render();
       // it lands on the board and stays there — open it when you want it
       return; }
+
+    const cd=t.closest('[data-calday]');
+    if(cd){
+      const [did,iso]=cd.dataset.calday.split(':');
+      S.calDay = S.calDay===iso ? null : iso;
+      // from a tile on the board this also opens the drawer it belongs to
+      if(S.view!=='drawer' || S.drawerId!==did){ S.view='drawer'; S.drawerId=did; S.calDay=iso; }
+      render(); return;
+    }
 
     const ck=t.closest('[data-check]'); if(ck){ toggleDone(ck.dataset.check); return; }
 
@@ -302,6 +331,10 @@ function wire(){
 
     const ut=t.closest('[data-untag]');
     if(ut){ const o=byId(S.openId); o.tags=o.tags.filter(x=>x!==ut.dataset.untag); renderSheet(); render(); return; }
+
+    // a tag opens the magic drawer that collects it, making one if need be
+    const tgd=t.closest('[data-tagdrawer]');
+    if(tgd){ closeSheet(); drawerForTag(tgd.dataset.tagdrawer); return; }
 
     const sh=t.closest('[data-sheet]');
     if(sh){ const v=sh.dataset.sheet;
@@ -348,17 +381,16 @@ function wire(){
     const kf=t.closest('[data-kind]');
     if(kf && kf.classList.contains('fchip')){ S.kindFilter=kf.dataset.kind||null; render(); return; }
     const kk=t.closest('[data-kk]');
-    if(kk){ const m=$('#modal'), k=kk.dataset.kk, i=m._draft.kinds.indexOf(k);
-      if(i>=0) m._draft.kinds.splice(i,1); else m._draft.kinds.push(k);
+    if(kk){ const d=draft(), k=kk.dataset.kk, i=d.kinds.indexOf(k);
+      if(i>=0) d.kinds.splice(i,1); else d.kinds.push(k);
       kk.classList.toggle('on'); return; }
     const pv=t.closest('[data-pv]');
-    if(pv){ $('#modal')._draft.pv=pv.dataset.pv; $$('#dpv .fchip').forEach(b=>b.classList.remove('on')); pv.classList.add('on'); return; }
+    if(pv){ draft().pv=pv.dataset.pv; only(pv,'#dpv button'); return; }
     const col=t.closest('[data-col]');
-    if(col){ $('#modal')._draft.c=col.dataset.col; $$('#dcol button').forEach(b=>b.classList.remove('on')); col.classList.add('on'); renderPreview(); return; }
+    if(col){ draft().c=col.dataset.col; only(col,'#dcol button'); renderPreview(); return; }
 
-    // layout of the drawer being edited in the modal
     const dtg=t.closest('[data-dtag]');
-    if(dtg){ $('#modal')._draft.tag=dtg.dataset.dtag; $$('#dtag .fchip').forEach(b=>b.classList.remove('on')); dtg.classList.add('on'); return; }
+    if(dtg){ draft().tag=dtg.dataset.dtag; only(dtg,'#dtag button'); return; }
 
     const pn=t.closest('[data-pview],[data-pface],[data-psort],[data-plock],[data-ppin],[data-pborder],[data-pknob],[data-pcolour],[data-pboard],[data-pknobc],[data-pknobtone],[data-pknobpos],[data-ptexture],[data-otype],[data-oclick],[data-oshape],[data-oedge],[data-ocolour],[data-oframe],[data-obtn],[data-ogen],[data-ogendir]');
     if(pn){
@@ -387,70 +419,56 @@ function wire(){
       else if(o && pn.dataset.ogen!=null) o.genKind=pn.dataset.ogen;
       else if(o && pn.dataset.ogendir!=null) o.genDir=pn.dataset.ogendir;
       save(); render();
-      (byId(id)&&!isContainer(byId(id))) ? objectPanel(id) : drawerPanel(id);   // rebuild so the marks follow
+      refreshPanel();          // rebuild from state, so the marks follow
       return;
     }
-
-    const dbd=t.closest('[data-dbd]');
-    if(dbd){ $('#modal')._draft.border=dbd.dataset.dbd; $$('#dborder .fchip').forEach(b=>b.classList.remove('on')); dbd.classList.add('on'); return; }
-    const dkn=t.closest('[data-dkn]');
-    if(dkn){ $('#modal')._draft.knob=dkn.dataset.dkn; $$('#dknob .fchip').forEach(b=>b.classList.remove('on')); dkn.classList.add('on'); return; }
-    const dkc=t.closest('[data-dkc]');
-    if(dkc){ $('#modal')._draft.knobc=''; return; }
-
-    const dlk=t.closest('[data-dlock]');
-    if(dlk){ $('#modal')._draft.locked=!!dlk.dataset.dlock; $$('#dlock .fchip').forEach(b=>b.classList.remove('on')); dlk.classList.add('on'); return; }
-
-    const dlay=t.closest('[data-dl]');
-    if(dlay){ $('#modal')._draft.layout=dlay.dataset.dl; $$('#dlayout .fchip').forEach(b=>b.classList.remove('on')); dlay.classList.add('on'); return; }
 
     // attributes, in the new-kind modal
     // what sort of thing it is decides which structural traits it carries
     const ks=t.closest('[data-ksort]');
-    if(ks){ const d=$('#modal')._draft, v=ks.dataset.ksort; d.sort=v;
+    if(ks){ const d=draft(), v=ks.dataset.ksort; d.sort=v;
       d.attrs=d.attrs.filter(a=>a!=='container'&&a!=='magic');
       if(v!=='object') d.attrs.push('container');
       if(v==='magic') d.attrs.push('magic');
-      $$('#ksort .fchip').forEach(b=>b.classList.remove('on')); ks.classList.add('on');
+      only(ks,'#ksort button');
       // the Look row swaps between shapes and faces
       const list = v==='object' ? Object.entries(SHAPES) : Object.entries(FACES);
       const cur  = v==='object' ? d.shape : d.face;
       $('#klookn').textContent = v==='object' ? 'shape' : 'face';
       $('#klook').innerHTML = list.map(([val,nm])=>
-        `<button class="fchip${cur===val?' on':''}" data-klook="${val}">${nm}</button>`).join('');
+        `<button class="pchip${cur===val?' on':''}" data-klook="${val}">${nm}</button>`).join('');
       renderPreview(); return; }
     const kl=t.closest('[data-klook]');
-    if(kl){ const d=$('#modal')._draft;
+    if(kl){ const d=draft();
       if(d.sort==='object') d.shape=kl.dataset.klook; else d.face=kl.dataset.klook;
-      $$('#klook .fchip').forEach(b=>b.classList.remove('on')); kl.classList.add('on'); renderPreview(); return; }
+      only(kl,'#klook button'); renderPreview(); return; }
     const kic=t.closest('[data-kic]');
-    if(kic){ $('#modal')._draft.ic=kic.dataset.kic;
-      $$('#kicon .fchip').forEach(b=>b.classList.remove('on')); kic.classList.add('on'); renderPreview(); return; }
+    if(kic){ draft().ic=kic.dataset.kic; only(kic,'#kicon button'); renderPreview(); return; }
     const ksp=t.closest('[data-kspawn]');
-    if(ksp){ $('#modal')._draft.spawnBy=ksp.dataset.kspawn;
-      $$('[data-kspawn]').forEach(b=>b.classList.remove('on')); ksp.classList.add('on'); renderPreview(); return; }
+    if(ksp){ draft().spawnBy=ksp.dataset.kspawn;
+      only(ksp,'[data-kspawn]'); renderPreview(); return; }
 
     const ksz=t.closest('[data-ksz]');
     if(ksz){ const [w,h]=ksz.dataset.ksz.split('x').map(Number);
-      $('#modal')._draft.size=[w,h]; $$('#ksize .fchip').forEach(b=>b.classList.remove('on')); ksz.classList.add('on'); renderPreview(); return; }
+      draft().size=[w,h]; only(ksz,'#ksize button'); renderPreview(); return; }
     const kcl=t.closest('[data-kclick]');
-    if(kcl){ $('#modal')._draft.onclick=kcl.dataset.kclick; $$('#kclick .fchip').forEach(b=>b.classList.remove('on')); kcl.classList.add('on'); renderPreview(); return; }
+    if(kcl){ draft().onclick=kcl.dataset.kclick; only(kcl,'#kclick button'); renderPreview(); return; }
 
     const ka=t.closest('[data-ka]');
-    if(ka){ const d=$('#modal')._draft, a=ka.dataset.ka, i=d.attrs.indexOf(a);
+    if(ka){ const d=draft(), a=ka.dataset.ka, i=d.attrs.indexOf(a);
       if(i>=0) d.attrs.splice(i,1); else d.attrs.push(a);
       ka.classList.toggle('on');
       const sp=$('#kspawnrow'); if(sp) sp.style.display = d.attrs.includes('spawn') ? '' : 'none';
       $('#kattrsds').textContent = d.attrs.map(x=>ATTRS[x]&&ATTRS[x].ds).filter(Boolean).join(' · ') || 'Nothing yet';
       renderPreview(); return; }
 
-    // attributes, on one object in the detail sheet
+    // attributes, on one object — from its panel or from the detail sheet
     const at=t.closest('[data-attr]');
-    if(at){ const o=byId(S.openId); if(!o) return;
+    if(at){ const o=byId(at.dataset.id||S.openId); if(!o) return;
       const cur=attrsOf(o).slice(), a=at.dataset.attr, i=cur.indexOf(a);
       if(i>=0) cur.splice(i,1); else cur.push(a);
       o.attrs=cur;
-      save(); renderSheet(); render(); return; }
+      save(); refreshPanel(); renderSheet(); render(); return; }
 
     // how a drawer lays its contents out, from the drawer's own toolbar
     const lm=t.closest('[data-layoutmode]');
@@ -465,7 +483,8 @@ function wire(){
 
     const th=t.closest('[data-theme2]'); if(th){ S.theme=th.dataset.theme2; applyLook(); save(); render(); return; }
     const ly=t.closest('[data-layout]');
-    if(ly){ S.layoutEdit = ly.dataset.layout || null; S.view='desk'; render(); return; }
+    // you chose a layout to go and arrange, so get the sheet out of the way
+    if(ly){ S.layoutEdit = ly.dataset.layout || null; S.view='desk'; closePanel(); render(); return; }
 
     // the size chip still cycles presets — quicker than dragging on a phone.
     // It keeps the drawer where it is and skips any preset that would collide.
@@ -487,13 +506,27 @@ function wire(){
 
     const cr=t.closest('[data-cmd]'); if(cr){ runCmd(+cr.dataset.cmd); return; }
 
-    if(t.id==='scrim') hideModal();
     if(t.id==='cmdscrim') closeCmd();
+  });
+
+  /* Settings shows state it can also change, so anything pressed inside it
+     leaves it stale. Rebuilding here rather than in a dozen handlers keeps its
+     controls out of act() — and this listener runs after the main one above, so
+     the change has already happened. Settings only: every other panel either
+     doesn't display what it changes, or refreshes itself where it does. */
+  frame.addEventListener('click', e=>{
+    if(panelKey()!=='settings' || !e.target.closest('#panel')) return;
+    if(e.target.closest('[data-look],[data-theme2],[data-palette],[data-style3],[data-act]'))
+      refreshPanel();
   });
 
   // inline field edits
   frame.addEventListener('input', e=>{
     // colour pickers: live preview while dragging, committed on 'change'
+    if(e.target.dataset.tlzoom!=null){
+      const o=byId(e.target.dataset.id); if(o){ o.tlzoom=+e.target.value; save(); render(); }
+      return;
+    }
     if(e.target.dataset.palpha!=null){
       const o=byId(e.target.dataset.id); if(o){ o.boardAlpha=(+e.target.value)/100; save(); render(); }
       return;
@@ -509,9 +542,8 @@ function wire(){
     }
     if(li==='owner'){ S.look.owner=e.target.value; save(); return; }
     if(li){ setLookVal(li, e.target.value); applyLook(); return; }
-    if(e.target.dataset.knobinput!=null){ const m=$('#modal'); if(m&&m._draft) m._draft.knobc=e.target.value; return; }
     if(e.target.dataset.colinput!=null){
-      const m=$('#modal'); if(m&&m._draft){ m._draft.c=e.target.value;
+      const d=draft(); if(d){ d.c=e.target.value;
         $$('#dcol button').forEach(b=>b.classList.remove('on')); renderPreview(); }
       return;
     }
@@ -557,8 +589,8 @@ function wire(){
       importBackup(e.target.files[0]); e.target.value='';
     }
     // re-render only once the picker closes, so it doesn't die mid-drag
-    if(e.target.dataset.lookinput){ save(); render(); }
-    if(e.target.dataset.lookrange){ save(); render(); }
+    if(e.target.dataset.lookinput){ save(); render(); refreshPanel(); }
+    if(e.target.dataset.lookrange){ save(); render(); refreshPanel(); }
   });
 
   frame.addEventListener('keydown', e=>{
@@ -572,6 +604,13 @@ function wire(){
       t[dev()] = boxOk(want,t.id,dev(),src.parent) ? want : freeSpot(b.w,1,dev(),src.parent);
       e.target.value=''; save(); render();
       const el=document.querySelector(`[data-fieldfor="${src.id}"]`); el&&el.focus();
+      return;
+    }
+    if(e.target.dataset.dayadd && e.key==='Enter'){
+      const [did,iso]=e.target.dataset.dayadd.split(':');
+      const o=quickAdd(e.target.value, 'task', did);
+      if(o){ o.due=iso; e.target.value=''; save(); render();
+        const el=document.querySelector(`[data-dayadd="${did}:${iso}"]`); el&&el.focus(); }
       return;
     }
     if(e.target.id==='qa' && e.key==='Enter'){
@@ -588,12 +627,13 @@ function wire(){
   document.addEventListener('keydown', e=>{
     const typing = /input|textarea/i.test(document.activeElement.tagName);
     if((e.metaKey||e.ctrlKey) && e.key.toLowerCase()==='k'){ e.preventDefault(); openCmd(); return; }
-    if(e.key==='Escape'){ closeCtx(); hideModal(); closeCmd(); if(S.openId||S.readId) closeSheet(); return; }
+    if(e.key==='Escape'){ closeCtx(); closeCmd(); closePanel();
+      if(S.openId||S.readId) closeSheet(); return; }
     if(typing) return;
     if(e.key==='n'||e.key==='N'){ e.preventDefault(); modalNewObject(); return; }
-    if($('#scrim').classList.contains('open')){
+    if(panelKey()==='newobject'){
       const k=KEYS.find(x=>KINDS[x].key.toLowerCase()===e.key.toLowerCase());
-      if(k){ hideModal(); const o=create(k); render(); openObj(o.id); S.editing=true; renderSheet(); }
+      if(k){ closePanel(); const o=create(k); render(); openObj(o.id); S.editing=true; renderSheet(); }
     }
   });
 
@@ -611,7 +651,7 @@ function wire(){
     if(d!==S.device && !S.layoutEdit){ S.device=d; render(); }
     else sizeGrid();
   });
-  window.addEventListener('beforeinstallprompt', e=>{ e.preventDefault(); install.deferred=e; if(S.view==='settings') render(); });
+  window.addEventListener('beforeinstallprompt', e=>{ e.preventDefault(); install.deferred=e; refreshPanel(); });
   window.addEventListener('beforeunload', writeNow);
   document.addEventListener('visibilitychange', ()=>{ if(document.hidden) writeNow(); });
 }

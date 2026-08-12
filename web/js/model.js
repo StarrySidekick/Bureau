@@ -68,7 +68,7 @@ const BUILTIN_KINDS = {
   drawer:  {nm:'Drawer',  ic:'folder',  c:'#7E5A38', key:'D', ds:'A container on the grid',   attrs:['container'], layout:'grid', size:[6,6], body:'' },
   magic:   {nm:'Magic drawer', ic:'sparkle', c:'#4A6E8F', key:'Q', ds:'Collects by rule, like a smart folder', attrs:['container','magic'], layout:'grid', size:[6,6], body:'' },
   checklist:{face:'checklist', nm:'Checklist', ic:'list', c:'#4A7C59', key:'K', ds:'A list of things to tick, right on the board', attrs:['container'], layout:'list', size:[6,8], body:'' },
-  calendar:{face:'calendar', nm:'Calendar', ic:'calendar', c:'#5C7148', key:'C', ds:'A month, with what is due on it', attrs:['container'], layout:'grid', size:[8,8], body:'' },
+  calendar:{face:'calendar', nm:'Calendar', ic:'calendar', c:'#5C7148', key:'C', ds:'A month, with what is due on it', attrs:['container'], layout:'calendar', size:[8,8], body:'' },
   control: {nm:'Control',  ic:'sliders', c:'#6B6152', key:'', ds:'A Bureau button on the desk', attrs:['control'], size:[4,4], body:'' },
   task:    {shape:'sliver', nm:'Task',    ic:'check',   c:'#4A7C59', key:'T', ds:'A thing to do',             attrs:['text','check','date','repeat'], size:[4,1], onclick:'none', body:'' },
   note:    {shape:'note', nm:'Note',    ic:'note',    c:'#5F7A93', key:'O', ds:'Something to remember',     attrs:['text'], size:[4,4], onclick:'read', body:'' },
@@ -110,7 +110,7 @@ const BUILTIN_KINDS = {
   achievement:{shape:'plaque', nm:'Achievement', ic:'trophy', c:'#9A7B2F', key:'W', ds:'Something you actually did', size:[6,3], onclick:'read', attrs:['text','date'], body:'' },
   project: {face:'checklist', nm:'Project', ic:'flag',    c:'#5C7148', key:'8', ds:'A big thing, made of tasks',   attrs:['container','date','progress'], layout:'list', size:[7,8], body:'' },
   dream:   {shape:'dream', nm:'Dream',   ic:'star',    c:'#5D7E99', key:'9', ds:'Far off, and probably daft',   size:[5,5], onclick:'read', attrs:['text','media'], body:'**Why it pulls at me —** ' },
-  timeline:{face:'timeline', nm:'Timeline',ic:'clock',   c:'#6F5137', key:'0', ds:'Things in the order they happened', attrs:['container'], layout:'list', size:[10,6], body:'' },
+  timeline:{face:'timeline', nm:'Timeline',ic:'clock',   c:'#6F5137', key:'0', ds:'Things in the order they happened', attrs:['container'], layout:'timeline', size:[10,6], body:'' },
   appt:    {shape:'sliver', nm:'Event',   ic:'calendar',c:'#3E7A6B', key:'V', ds:'Something at a time and place', size:[6,2], onclick:'read', attrs:['text','date','duration','location'], body:'' }
 };
 // Kinds you invent live in state alongside these; both are read through KINDS.
@@ -245,7 +245,7 @@ function reset(){
     // dark mode shouldn't silently serve Walnut on first run.
     device:sensedDevice(), layoutEdit:null, theme:'paper',
     view:'desk', drawerId:null, openId:null,
-    arrange:false, kindFilter:null,
+    arrange:false, kindFilter:null, calDay:null,
     trash:null, editing:false, sel:[], readId:null, bookAt:0, bookMode:false,
     deskCfg:{layout:'grid', locked:false, sort:null},
     look:defaultLook()

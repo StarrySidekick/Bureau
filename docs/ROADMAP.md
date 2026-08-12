@@ -21,16 +21,38 @@ The module map lives in CLAUDE.md. Note for later sessions: a *new* file in
 `web/` must be added to `SHELL` in `sw.js`, and any change still needs the
 `CACHE` bump.
 
-## 2. The time layer
+## 2. The time layer — DONE (2026-08-11, v34)
 
-The stated goal names "visual timelines and time-based organization"; this is
-the weakest area.
+`calendar` and `timeline` are **layouts**, so any container can wear one and
+nothing in the code knows what a "calendar" is:
 
-- interactive calendar face: click a day to see/add, drag an object onto a day
-  to schedule it
-- a real timeline view (inside a container, zoomable), not just the 8-node face
-- a full month view when you open a calendar drawer, rather than the same face
-  scaled up — this is what the Today tab used to be for, and now nothing is
+- a calendar drawer opens as a full month — day cells carrying what is due,
+  ‹ › to step months, Today to come back
+- clicking a day selects it and opens a panel listing that day with a quick-add
+  that dates what it makes
+- dragging a dated object onto a day cell schedules it **and** files it into
+  that drawer, because a date you can't see it on is only half the gesture
+- a timeline lays its contents on a real axis at however many pixels a day is
+  worth, packing labels into lanes so they stay readable, with week ticks on a
+  short span and month ticks on a long one
+
+*Still open:* the calendar face on a tile is read-only apart from day clicks,
+and a timeline can't be dragged to re-date (only the month can).
+
+## 2b. Every menu is a panel — DONE (2026-08-11, v36)
+
+See decision 23. There are no modals left: `openPanel(spec)` in `panels.js` is
+the one system, and settings, the type picker, the type builder, the drawer
+form, Move to drawer, Link to, Attributes, the paste schema and the object and
+drawer settings all go through it. Settings stopped being a view. Sort became a
+popup hung off its own button. The type picker draws every type as an object of
+that type; the type builder is two columns and fits one screen; the drawer form
+dropped the five controls the drawer panel already had.
+
+*Still open:* the command palette kept its scrim on purpose. Move to drawer and
+Link to are long unsearchable lists inside a panel — they want the palette's
+filtering, not more space. Panels don't stack, so "Attributes" from an object
+panel replaces it and there is no way back except reopening.
 
 ## 3. Workflow completion
 
@@ -43,11 +65,6 @@ the weakest area.
 
 ## 4. Known small gaps (fold into any session)
 
-- pins can't be reordered — pinning appends, so moving one means unpinning the
-  rest (decision 22)
-- tag filtering has no UI at all now: `S.tagFilter` went with the Everything
-  tab. The honest replacement is "make a magic drawer for this tag" as a click
-  on a tag, not a filter mode
 - rollups only render on drawer-front and checklist faces
 - accessibility: tiles are nested-interactive `<button>`s, no keyboard nav,
   no ARIA

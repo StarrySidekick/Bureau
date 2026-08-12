@@ -2,6 +2,7 @@ import { $, $$, esc, ic, md, D, ROOT } from './util.js';
 import { S, K, KINDS, KEYS, T, byId, has, isContainer, containers, isAncestor,
   relatedTo, backlinksTo, streak, goalPct } from './model.js';
 import { CLICKS, clickOf, bookOf } from './tiles.js';
+import { closePanel } from './panels.js';
 import { render } from './views.js';
 
 /* ============================================================
@@ -36,6 +37,9 @@ function clearFocus(){ $$('.drawer.focused').forEach(e=>e.classList.remove('focu
 
 function renderSheet(){
   const host=$('#sheetHost');
+  // The sheet and a panel both take the right-hand side; only one at a time,
+  // and the sheet is the bigger claim on the screen so it wins.
+  if(S.openId || S.readId) closePanel();
   // Read view: the whole body, nothing to edit. What clicking a note does.
   if(S.readId && !S.openId){
     const r=byId(S.readId);
@@ -62,7 +66,7 @@ function renderSheet(){
       </div>
       <div class="sheet-b">
         <h1 class="readtitle">${esc(r.title||'Untitled')}</h1>
-        ${(r.tags||[]).length?`<div class="meta" style="margin-bottom:14px">${(r.tags||[]).map(t=>`<span class="mchip tag">${esc(t)}</span>`).join('')}</div>`:''}
+        ${(r.tags||[]).length?`<div class="meta" style="margin-bottom:14px">${(r.tags||[]).map(t=>`<span class="mchip tag" data-tagdrawer="${esc(t)}">${esc(t)}</span>`).join('')}</div>`:''}
         ${r.media&&r.media.src?`<img class="scrollimg" src="${esc(r.media.src)}" alt="${esc(r.title||'')}">`:''}
         ${S.bookMode ? bookOf(r) : `<div class="prose read">${md(r.body)}</div>`}
       </div>
@@ -176,7 +180,7 @@ function renderSheet(){
       <textarea class="titlefield" rows="1" data-f="title" placeholder="Untitled ${k.nm.toLowerCase()}">${esc(o.title)}</textarea>
       <div class="fieldgrid">${fields.join('')}</div>
       <div class="tagrow">${ic('tag',13)}
-        ${(o.tags||[]).map(t=>`<span class="realtag">${esc(t)}<b data-untag="${esc(t)}">✕</b></span>`).join('')}
+        ${(o.tags||[]).map(t=>`<span class="realtag" data-tagdrawer="${esc(t)}" title="Open a drawer for #${esc(t)}">${esc(t)}<b data-untag="${esc(t)}">✕</b></span>`).join('')}
         <button class="add" data-act="addtag">+ tag</button></div>
       ${extra}
       <div class="section-h"><h2>${has(o,'progress')||has(o,'streak')?'Notes':'Body'}</h2><div class="rule"></div>

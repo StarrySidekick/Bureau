@@ -363,3 +363,85 @@ but grid" true for a desk you haven't customised.
 *What went with them:* the row list (`row()`, `card()`), and with it swipe-to-
 file and drag-to-reorder, which only ever existed inside those views. The grid
 is the only thing you drag now.
+
+---
+
+
+### 23. There are no modals — a menu is a panel
+
+Every menu in Bureau is the same thing now: a panel down the right-hand side,
+over a desk that stays visible and stays live. The centred card on a dimmed
+screen is gone, and so is the scrim it sat on. What went through the change:
+
+- **Settings** stopped being a view. It was one of three (`S.view==='settings'`)
+  and replaced the desk entirely.
+- **New object**, **New/Edit type**, **New/Edit drawer**, **Move to drawer**,
+  **Link to**, **Attributes** and the **paste schema** were all modals.
+- **Object settings** and **drawer settings** were already panels, but a
+  different shape — a 290px card floating at the top right.
+- **Sort** became a popup hung off the button that opened it (`openMenu`),
+  because a list of choices is a menu, not a form.
+
+*Why:* every one of these asks a question about the desk, and every one of them
+hid the desk to ask it. Picking a board colour meant choose, dismiss, look,
+reopen. The drawer panel had already proved the alternative — a colour or a knob
+lands while you watch — and once you have that, a modal is just a panel that
+covers the answer. Two panel shapes was one too many; a menu should not look
+like a different kind of thing depending on which one you opened.
+
+*Consequences:* `openPanel(spec)` in `panels.js` is the whole system. One panel
+exists at a time and opening another replaces it. `spec.body` is a **function**,
+not a string, so `refreshPanel()` can redraw from state — which is what removed
+the old "rebuild the panel so the marks follow" line from every handler in
+`wire.js` that changed something a panel was displaying. `spec.key` names which
+panel is up, for the two places that need to know (the type-shortcut keys only
+fire over the picker; the settings auto-refresh listener only fires over
+settings). A form's draft lives in the `PANEL` object rather than on the DOM
+node, so a redraw cannot lose it.
+
+Panels live outside `#app`, so `render()` leaves them alone — the same trick the
+drawer panel always used. The detail sheet also claims the right-hand side, so
+`renderSheet()` closes any panel when it opens: the sheet is the bigger claim.
+
+The command palette (⌘K) kept its scrim. It is a search field you summon and
+type into blind, not a menu about the thing in front of you, and dropping it
+down the right would make it worse.
+
+*Against:* the panel covers the right-hand quarter of the desk, which is where a
+wide drawer's right edge tends to be. Nothing dims, so it is less obvious that a
+form is open and waiting — the type builder in particular now sits quietly
+beside a desk you can still drag things around on. And a phone gets 92–96% of
+the width, which is a panel in name more than in feel; there is simply nowhere
+else for it to go.
+
+### 23b. A type is drawn as the thing it makes
+
+The type picker's tiles were an icon, a name and a blurb. Each one is now a real
+`gridTile()` on a throwaway object — a drawer front with a knob, a checklist
+with its boxes, a habit with its streak dots, a quote with its quotation mark.
+
+*Why:* the whole argument of the app is that things have shapes. Describing them
+in words, in the one place you are choosing between them, was the app failing to
+believe its own premise.
+
+*Why the scaling is backwards:* the sample is built at 40px a cell and then
+CSS-scaled down, not built at whatever cell size fits. Type sizes inside a tile
+are in px and don't scale with the grid, so the first attempt — an 11px cell —
+wrapped "Drawer" onto two lines and drew a drawer that no drawer looks like. A
+miniature has to be the real thing seen from further away.
+
+*Consequences:* a `.kindtile` is a `<div role="button">`, not a `<button>` — the
+sample inside it is itself a `<button>` and a nested one gets hoisted out of the
+DOM. The sample never enters `S`. Deleting an invented type moved from a row of
+✕ chips at the bottom of the picker into the type editor, reached by the dial in
+a tile's corner; right-click opens the same editor but doesn't exist on a phone,
+which is why the dial had to. Type groups are also mutually exclusive now —
+`scene` used to be listed under both Writing and Film, because the two filters
+were written independently.
+
+**The type builder** was a single long scroll; it is two columns with the live
+preview, the name and Create pinned on the left, and fits one screen. **The
+drawer form** lost view, border, knob, knob colour and locked, all of which were
+already in the drawer panel; it keeps name, colour, what it collects, its rule,
+its total and the preview style. Its draft is still seeded from the drawer, so
+saving preserves the fields it no longer shows.

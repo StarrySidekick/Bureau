@@ -1,4 +1,4 @@
-import { $$, clamp, ROOT } from './util.js';
+import { $$, clamp, D, ROOT } from './util.js';
 import { S, byId, dev, has, isAncestor, childrenOf, container } from './model.js';
 import { CELL, gridOf, cellW, lay, boxOk, overlaps } from './grid.js';
 import { toast } from './mutations.js';
@@ -41,6 +41,16 @@ function place(el, b){
 
 function onDown(e){
   if(e.button===2) return;
+  /* A pin can be dragged along the bar to reorder it. The bar is chrome, not a
+     grid, so it gets its own tiny path rather than going through the box
+     maths — and a plain click still has to navigate, which is why nothing
+     happens until the pointer has actually moved. */
+  const pinEl=e.target.closest('.pinbar .pinbtn[data-drawer]');
+  if(pinEl && S.device==='desk'){
+    G={type:'pin', el:pinEl, id:pinEl.dataset.drawer, bar:pinEl.parentElement,
+       sx:e.clientX, sy:e.clientY, mode:null};
+    return;
+  }
   // Any tile on any unlocked grid. There is no arrange mode — everything is
   // always movable — so a short hold arms the drag, which is the only thing
   // keeping an ordinary click from picking the tile up.
@@ -131,6 +141,21 @@ function onMove(e){
     return;
   }
 
+  if(G.type==='pin'){
+    if(!G.mode){
+      if(Math.abs(dx)<6) return;
+      G.mode='pin'; G.el.classList.add('dragging');
+    }
+    // slide past whichever neighbour the pointer has cleared the middle of
+    const sibs=[...G.bar.querySelectorAll('.pinbtn[data-drawer]')].filter(x=>x!==G.el);
+    const after=sibs.filter(x=>{ const r=x.getBoundingClientRect(); return e.clientX > r.left+r.width/2; }).pop();
+    if(after) after.after(G.el); else {
+      const firstPin=G.bar.querySelector('.pinbtn[data-drawer]');
+      if(firstPin && firstPin!==G.el) firstPin.before(G.el);
+    }
+    return;
+  }
+
   if(G.type==='move' || G.type==='resize'){
     if(!G.armed) return;             // still waiting out the hold
     if(!G.mode){
@@ -173,7 +198,16 @@ function onMove(e){
       });
       // a drawer under the pointer is a place to file into, not a collision
       const under=document.elementFromPoint(e.clientX,e.clientY);
-      const over=under && under.closest('.grid .drawer[data-drawer]');
+      /* A day cell sits inside a calendar drawer's tile, so it has to be asked
+         about first — otherwise every drop would just file into the drawer and
+         the date would be lost. */
+      // a group has no single date to set, so it only ever files, never schedules
+      const dayEl=!G.group && under && under.closest('[data-calday]');
+      if(G.dayEl && G.dayEl!==dayEl) G.dayEl.classList.remove('dropday');
+      G.dayEl=dayEl||null;
+      G.dropDay = dayEl ? dayEl.dataset.calday : null;
+      if(dayEl) dayEl.classList.add('dropday');
+      const over=!dayEl && under && under.closest('.grid .drawer[data-drawer]');
       const overId=over && over.dataset.drawer;
       const canDrop = !G.group && overId && overId!==G.id && !isAncestor(G.id, byId(overId)) && !has(byId(overId),'magic');
       if(G.dropOn && G.dropOn!==overId){ const p=document.querySelector(`[data-drawer="${G.dropOn}"]`); p&&p.classList.remove('dropinto'); }
@@ -208,6 +242,15 @@ function onUp(e){
     return;
   }
 
+  if(g.type==='pin'){
+    g.el.classList.remove('dragging');
+    if(g.mode!=='pin') return;            // it was a click; let it navigate
+    S.pins=[...g.bar.querySelectorAll('.pinbtn[data-drawer]')].map(x=>x.dataset.drawer);
+    gestureFlags.suppressClick=true;      // the drag must not also open it
+    save(); render(); toast('Bar reordered');
+    return;
+  }
+
   if(g.mode==='grid'){
     g.el.classList.remove('dragging','invalid','lifted');
     g.el.style.transform=''; g.el.style.pointerEvents='';
@@ -217,7 +260,19 @@ function onUp(e){
     });
     if(g.ghost) g.ghost.remove();
     $$('.dropinto').forEach(e2=>e2.classList.remove('dropinto'));
+    $$('.dropday').forEach(e2=>e2.classList.remove('dropday'));
     const d=byId(g.id);
+    // dropped on a day: it gets that date, and moves into the drawer showing
+    // the month, because a date it can't be seen on is only half the gesture
+    if(d && g.dropDay && !g.group){
+      const [did,iso]=g.dropDay.split(':');
+      if(has(d,'date')){
+        d.due=iso;
+        if(d.parent!==did && !isAncestor(d.id, byId(did))){ d.parent=did; d[dev()]=null; }
+        save(); render(); toast(`Scheduled ${D.human(iso).toLowerCase()}`);
+      } else { render(); toast(`${d.title||'That'} has no date to set`); }
+      return;
+    }
     if(d && g.dropOn){
       const into=byId(g.dropOn);
       d.parent=g.dropOn; d[dev()]=null;      // it will be placed inside on first render
@@ -242,9 +297,14 @@ function onUp(e){
   }
 }
 
+/* A drag ends with a click event the browser sends anyway. When the drag *was*
+   the gesture, that click has to be swallowed or reordering a pin would also
+   open the drawer. wire.js clears this on the next click it sees. */
+const gestureFlags = {suppressClick:false};
+
 function onCancel(){
   if(holdTimer){ clearTimeout(holdTimer); holdTimer=null; }
   if(G){ if(G.el){ G.el.style.transform=''; G.el.classList.remove('lifted','dragging','invalid'); } G=null; }
 }
 
-export { onDown, onMove, onUp, onCancel };
+export { onDown, onMove, onUp, onCancel, gestureFlags };
