@@ -221,6 +221,14 @@ when you're editing the *other* device's layout from this one.
   "Open it as a book" used to be a click action, which made *whether* it opens
   and *how it looks* the same question. There is one reading surface now; the
   plain half-screen read panel is gone.
+- **A reading page is US Letter and sized from the window, never the text.** It
+  was a `min-height`, so a long body grew a taller sheet and an empty one
+  collapsed. `--pageh`/`--pagew` in `chrome.css` derive from `--stage-x`/`-y`;
+  change the stage inset and the paper follows. **Pagination is measured** —
+  `pagesOf()` fills an offscreen `.bookruler` twin until a block doesn't fit,
+  and caches by object, mode, body length and window size. Anything that
+  changes the page box or its typography has to call `clearPages()`, or the
+  breaks will be from the old geometry.
 - **Image bytes live in IndexedDB, never in the JSON.** The assets half of `persist.js`. `snapshot()`
   strips `media.src`; `hydrateAssets()` puts it back after a load. If you add a
   new place that writes objects to storage, it has to strip too.

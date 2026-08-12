@@ -424,19 +424,20 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
 .cntnum{font-size:clamp(30px, min(60cqw, 62cqh), 260px)}
 /* the book, floating in the middle like a real one */
 .bookscrim{position:absolute;inset:0;z-index:60;background:rgba(20,16,12,.55);backdrop-filter:blur(2px)}
-.bookstage{position:absolute;z-index:61;inset:4vh 6vw;display:flex;flex-direction:column;gap:10px;
+/* the inset is a variable because the page size is worked out from what is
+   left over after it — see --avail-w / --avail-h in chrome.css */
+:root{--stage-x:6vw;--stage-y:4vh}
+.bookstage{position:absolute;z-index:61;inset:var(--stage-y) var(--stage-x);
+  display:flex;flex-direction:column;gap:10px;
   align-items:center;justify-content:center;pointer-events:none}
 .bookstage > *{pointer-events:auto}
 .bookhead{display:flex;align-items:center;gap:10px;color:var(--paper);width:min(1100px,100%)}
 .bookhead b{flex:1;font-family:var(--serif);font-size:17px;color:#F4EEDD;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.bookstage .book{width:min(1100px,100%)}
-.bookstage .spread{min-height:min(70vh,720px);box-shadow:0 30px 60px -20px rgba(0,0,0,.7)}
+.bookstage .spread{box-shadow:0 30px 60px -20px rgba(0,0,0,.7)}
 .bookstage .bookcount{color:#E5DCC6}
-/* a single page is a page, not half a book stretched across the screen */
-.bookstage.rm-page .book,
-.bookstage.rm-scroll .book{width:min(680px,100%)}
-.bookstage.rm-scroll .spread{min-height:0}
+/* the header is as wide as the paper under it, whichever mode is up */
+.bookhead{width:auto;min-width:min(560px,100%)}
 /* the lasso reads as a selection rather than a new object */
 .ghost.band{border-style:dashed}
 .ghost.picking{border-color:var(--brass);background:color-mix(in srgb,var(--brass) 18%,transparent);

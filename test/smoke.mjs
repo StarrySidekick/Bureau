@@ -458,7 +458,11 @@ const CHROME = process.env.BUREAU_CHROME;
   // --- reading: three views of one body, and a page that actually turns
   const readViews = await page.evaluate(async () => {
     const S = BUREAU.state, out = {};
-    const body = Array.from({ length: 9 }, (_, i) => 'Paragraph ' + (i + 1) + '.').join('\n\n');
+    // long enough to paginate: a page is a measured Letter sheet now, and a
+    // handful of short lines all land on the first one
+    const body = Array.from({ length: 30 }, (_, i) =>
+      'Paragraph ' + (i + 1) + '. ' + 'Enough words to run to a line or two of a real page. '.repeat(3)
+    ).join('\n\n');
     const o = BUREAU.create('note', { parent: 'root', title: 'Reading test', body });
     BUREAU.render();
     const open = m => { o.read = m; S.readId = o.id; S.openId = null; S.bookAt = 0; BUREAU.renderSheet(); };
@@ -506,6 +510,44 @@ const CHROME = process.env.BUREAU_CHROME;
     BUREAU.del(o.id); S.undo = [];
     return out;
   });
+
+  // --- the sheet is US Letter and the same size whatever is written on it.
+  // It used to be a min-height, so a long body grew a taller and taller page
+  // and an empty one in scroll view collapsed to a sliver.
+  const paperSize = await page.evaluate(async () => {
+    const S = BUREAU.state, out = {};
+    const p = 'Paragraph with enough words in it to take up a line or two of a real page. ';
+    const make = (n, t) => BUREAU.create('note',
+      { parent: 'root', title: t, body: Array.from({ length: n }, () => p).join('\n\n') });
+    const empty = make(0, 'Empty'), long = make(60, 'Long');
+    empty.body = '';
+    const box = (o, m) => { o.read = m; S.readId = o.id; S.openId = null; S.bookAt = 0;
+      BUREAU.renderSheet();
+      const r = document.querySelector('.bookstage .spread').getBoundingClientRect();
+      return { w: Math.round(r.width), h: Math.round(r.height) };
+    };
+    const near = (a, b) => Math.abs(a - b) <= 1;
+
+    for (const m of ['book', 'page', 'scroll']) {
+      const e = box(empty, m), l = box(long, m);
+      out[m + 'Steady'] = near(e.w, l.w) && near(e.h, l.h);
+      // one sheet is 8.5:11; a spread is two of them side by side
+      const cols = m === 'book' ? 2 : 1;
+      out[m + 'IsLetter'] = Math.abs((e.w / cols) / e.h - 8.5 / 11) < 0.02;
+    }
+    // and every mode is the same height, so switching view doesn't jump
+    out.sameHeight = near(box(long, 'book').h, box(long, 'page').h)
+      && near(box(long, 'page').h, box(long, 'scroll').h);
+    // a long body paginates rather than overflowing its page
+    box(long, 'page');
+    const pg = document.querySelector('.bookstage .spread .page');
+    out.noOverflow = pg.scrollHeight <= pg.clientHeight + 1;
+    out.paginated = +document.querySelector('.bookcount').textContent.split(' of ')[1] > 6;
+
+    S.readId = null; BUREAU.renderSheet();
+    BUREAU.delMany([empty.id, long.id]); S.undo = [];
+    return out;
+  });
   await shot('12-reading');
 
   console.log(JSON.stringify({
@@ -514,7 +556,7 @@ const CHROME = process.env.BUREAU_CHROME;
     pinToggles, holdArms, maxDrift,
     settingsIsPanel, pickerPreviews, builderPreview, everyMenuIsAPanel,
     pasteOk, magicOk, rollupOk, relationsOk, relationsUI,
-    timeLayer, tagDrawer, pinReorder, groupMove, dupIds, undoWorks, readViews
+    timeLayer, tagDrawer, pinReorder, groupMove, dupIds, undoWorks, readViews, paperSize
   }, null, 2));
   await browser.close();
 })();

@@ -417,28 +417,63 @@ function listTile(o){
    time, and a scroll is the whole thing in one column — an article rather than
    a book. Only the first two paginate.
 
-   Pagination splits on blank lines rather than measuring, so a page holds
-   whole paragraphs and never breaks one in half. It is an approximation of a
-   page, and deliberately so: measuring would mean laying the body out twice on
-   every render. */
-const PER_PAGE = 3;                       // paragraphs, not lines
+   A page is a fixed Letter-proportioned sheet, so how much goes on one is a
+   question about height, not about paragraph count. Filling by count is what
+   made a page grow or leave itself half empty depending on how long the
+   paragraphs happened to be.
+
+   So it is measured: the body goes into an offscreen twin of a real page and
+   blocks are added until one doesn't fit, which starts the next page. The
+   answer is cached against everything that could change it, so turning a page
+   costs nothing and only the first look at a body measures at all. */
+const PAGES = {key:null, list:null};
+const clearPages = ()=>{ PAGES.key=null; PAGES.list=null; };
+const headOf = o => o.media&&o.media.src
+  ? `<img class="scrollimg" src="${esc(o.media.src)}" alt="${esc(o.title||'')}">` : '';
+
 function pagesOf(o){
-  const head = o.media&&o.media.src
-    ? `<img class="scrollimg" src="${esc(o.media.src)}" alt="${esc(o.title||'')}">` : '';
-  const paras=(o.body||'').split(/\n\n+/).filter(x=>x.trim());
-  const pages=[];
-  for(let i=0;i<paras.length;i+=PER_PAGE) pages.push(md(paras.slice(i,i+PER_PAGE).join('\n\n')));
+  const two=spreadOf(o);
+  // the window is in the key because the sheet is sized from it, and a
+  // narrower window means fewer lines to a page
+  const key=[o.id, two?'two':'one', (o.body||'').length,
+             (o.media&&o.media.assetId)||'', innerWidth, innerHeight].join('|');
+  if(PAGES.key===key) return PAGES.list;
+
+  const ruler=document.createElement('div');
+  ruler.className='bookruler';
+  ruler.innerHTML=`<div class="book"><div class="spread">
+    <div class="page"></div>${two?'<div class="page"></div>':''}</div></div>`;
+  document.getElementById('frame').appendChild(ruler);
+  const cell=ruler.querySelector('.page');
+  cell.innerHTML=headOf(o)+md(o.body||'');
+
+  const blocks=[...cell.children];
+  const pages=[]; let cur=[];
+  cell.replaceChildren();
+  blocks.forEach(b=>{
+    cell.appendChild(b); cur.push(b);
+    // one block always gets a page, however tall it is — the alternative is a
+    // page that holds nothing and a body that never ends
+    if(cur.length>1 && cell.scrollHeight > cell.clientHeight+1){
+      cur.pop();
+      pages.push(cur.map(x=>x.outerHTML).join(''));
+      cur=[b]; cell.replaceChildren(b);
+    }
+  });
+  if(cur.length) pages.push(cur.map(x=>x.outerHTML).join(''));
+  ruler.remove();
   if(!pages.length) pages.push('<p class="thin">Nothing written yet.</p>');
-  if(head) pages[0]=head+pages[0];
+
+  PAGES.key=key; PAGES.list=pages;
   return pages;
 }
 function bookOf(o){
   const mode=readOf(o);
   if(mode==='scroll'){
-    const head = o.media&&o.media.src
-      ? `<img class="scrollimg" src="${esc(o.media.src)}" alt="${esc(o.title||'')}">` : '';
+    // the same sheet, the same size — the column inside it scrolls instead of
+    // the paper growing to fit what is on it
     return `<div class="book"><div class="spread scrolling">
-      <div class="page">${head}${o.body?md(o.body):'<p class="thin">Nothing written yet.</p>'}</div>
+      <div class="page">${headOf(o)}${o.body?md(o.body):'<p class="thin">Nothing written yet.</p>'}</div>
     </div></div>`;
   }
   const pages=pagesOf(o), two=spreadOf(o), step=two?2:1;
@@ -534,4 +569,4 @@ function scrollEntry(o){
 }
 
 export { spinTo, CLICKS, clickOf, fireButton, tileTap, pending, placeAtPending,
-  gridTile, gridOfContainer, listTile, scrollEntry, bookOf, bookView, turnPage };
+  gridTile, gridOfContainer, listTile, scrollEntry, bookOf, bookView, turnPage, clearPages };

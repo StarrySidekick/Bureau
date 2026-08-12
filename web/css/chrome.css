@@ -57,17 +57,40 @@
 .is-desk.sheet-left .sheetveil{right:auto;left:50vw}
 /* reading: a spread, a single page, or one column you scroll. The three differ
    by how many pages are drawn and whether the page scrolls — everything else
-   about them is the same sheet of paper. */
-.book{max-width:1100px;margin:0 auto}
+   about them is the same sheet of paper.
+
+   A page is US Letter, and its size comes from the window rather than from what
+   is written on it. It used to be a min-height, so a long body grew a taller
+   and taller sheet and an empty one in scroll view collapsed to a sliver. The
+   height is whichever is smallest of the room available, a sensible maximum,
+   and what the width allows at 8.5:11 — so the sheet is always a sheet. */
+.book{
+  --avail-w:calc(100vw - var(--stage-x) * 2);
+  --avail-h:calc(100vh - var(--stage-y) * 2 - 118px);   /* header, bar, gaps */
+  --pageh:min(var(--avail-h), 880px, calc(var(--avail-w) * 11 / 8.5));
+  --pagew:calc(var(--pageh) * 8.5 / 11);
+  width:var(--pagew);margin:0 auto}
+/* two pages side by side have half the width each to work with */
+.book:has(.spread > .page + .page){
+  --pageh:min(var(--avail-h), 880px, calc(var(--avail-w) / 2 * 11 / 8.5));
+  width:calc(var(--pagew) * 2)}
 .spread{display:grid;grid-template-columns:1fr 1fr;gap:0;background:var(--paper-2);
-  border:1px solid var(--rule);border-radius:var(--radius);overflow:hidden;min-height:64vh;
-  position:relative;perspective:2200px}
+  border:1px solid var(--rule);border-radius:var(--radius);overflow:hidden;
+  height:var(--pageh);position:relative;perspective:2200px}
 /* one page: the spread has only one child, so a single column is enough */
 .spread:has(> .page:only-child){grid-template-columns:1fr}
 .is-phone .spread{grid-template-columns:1fr}
-.spread.scrolling .page{overflow-y:auto;max-height:min(74vh,760px);padding-bottom:34px}
+/* a phone has room for one sheet; the second would be clipped, not stacked */
+.is-phone .spread > .page + .page{display:none}
+.spread.scrolling .page{overflow-y:auto}
+/* Pagination measures against this box, so anything that changes its inside
+   height has to be deterministic — an image sized by its own pixels is not. */
+.spread .scrollimg{width:100%;height:34%;object-fit:cover;margin:0 0 14px}
 .spread .page{padding:34px 38px 44px;position:relative;font-size:14.5px;line-height:1.75;
-  border-right:1px solid var(--rule-2)}
+  overflow:hidden;border-right:1px solid var(--rule-2)}
+/* offscreen twin of a page, for working out where the breaks fall */
+.bookruler{position:absolute;left:-99999px;top:0;visibility:hidden;
+  pointer-events:none;z-index:-1}
 .spread .page:last-child{border-right:0}
 .spread .page h2{font-family:var(--serif);font-size:20px;margin:0 0 12px}
 .spread .pno{position:absolute;bottom:14px;left:0;right:0;text-align:center;font-size:11px;color:var(--ink-3)}

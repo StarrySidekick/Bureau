@@ -5,7 +5,7 @@ import { S, K, KINDS, KEYS, refreshKinds, ATTRS, USER_ATTRS, attrsOf, has, SHAPE
 import { gridOf, lay, boxOk, freeSpot } from './grid.js';
 import { applyLook, applyStyle, setLookVal, lookVal, STYLES, PALETTES, randomFront } from './look.js';
 import { toast, toggleDone, del, delMany, delDrawer, undo, setPin, togglePin, drawerForTag, create, quickAdd, randomThing } from './mutations.js';
-import { spinTo, pending, placeAtPending, tileTap, turnPage } from './tiles.js';
+import { spinTo, pending, placeAtPending, tileTap, turnPage, clearPages } from './tiles.js';
 import { render, sizeGrid, toggleSettings } from './views.js';
 import { openObj, closeSheet, renderSheet } from './sheet.js';
 import { openPanel, closePanel, refreshPanel, panelKey, draft, openMenu,
@@ -640,8 +640,10 @@ function wire(){
   // resize so the desk layout appears as soon as there is a real width.
   window.addEventListener('resize', ()=>{
     const d=sensedDevice();
+    // a resized window is a resized sheet, so where the pages break moves too
+    clearPages();
     if(d!==S.device && !S.layoutEdit){ S.device=d; render(); }
-    else sizeGrid();
+    else { sizeGrid(); if(S.readId) renderSheet(); }
   });
   window.addEventListener('beforeinstallprompt', e=>{ e.preventDefault(); install.deferred=e; refreshPanel(); });
   window.addEventListener('beforeunload', writeNow);

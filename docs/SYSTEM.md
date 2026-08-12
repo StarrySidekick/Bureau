@@ -280,9 +280,19 @@ per type, defaulting to `page`:
 - **scroll** — no pagination at all: the whole body in one column you scroll,
   an article rather than a book.
 
-Only the first two paginate, on blank lines, three paragraphs to a page — an
-approximation of a page, because measuring one would mean laying the body out
-twice on every render. Turning is a real turn: the leaf is built from the DOM
+A page is **US Letter**, 8.5:11, and its size comes from the window, never from
+what is written on it — whichever is smallest of the room available, a maximum,
+and what the width allows at that ratio. All three modes are the same height, so
+switching between them doesn't resize anything. A spread is two of those sheets
+side by side, which is why book mode gets half the width per page to work with.
+
+Only the first two paginate, and they do it by **measuring**: the body goes
+into an offscreen twin of a real page and blocks are added until one doesn't
+fit, which starts the next page. The answer is cached against the object, the
+mode, the body length and the window size, so turning costs nothing and only
+the first look at a body measures at all — a resized window clears it. A block
+taller than a whole page still gets its own page rather than none. Turning is a
+real turn: the leaf is built from the DOM
 after the spread has redrawn, one page printed on each side, and rotated about
 the spine, so it works anywhere a spread is drawn. `prefers-reduced-motion`
 skips it. The type builder sets a type's default; the reading header and the
