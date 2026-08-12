@@ -433,6 +433,10 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
 .bookstage .book{width:min(1100px,100%)}
 .bookstage .spread{min-height:min(70vh,720px);box-shadow:0 30px 60px -20px rgba(0,0,0,.7)}
 .bookstage .bookcount{color:#E5DCC6}
+/* a single page is a page, not half a book stretched across the screen */
+.bookstage.rm-page .book,
+.bookstage.rm-scroll .book{width:min(680px,100%)}
+.bookstage.rm-scroll .spread{min-height:0}
 /* the lasso reads as a selection rather than a new object */
 .ghost.band{border-style:dashed}
 .ghost.picking{border-color:var(--brass);background:color-mix(in srgb,var(--brass) 18%,transparent);

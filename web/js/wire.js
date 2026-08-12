@@ -5,7 +5,7 @@ import { S, K, KINDS, KEYS, refreshKinds, ATTRS, USER_ATTRS, attrsOf, has, SHAPE
 import { gridOf, lay, boxOk, freeSpot } from './grid.js';
 import { applyLook, applyStyle, setLookVal, lookVal, STYLES, PALETTES, randomFront } from './look.js';
 import { toast, toggleDone, del, delMany, delDrawer, undo, setPin, togglePin, drawerForTag, create, quickAdd, randomThing } from './mutations.js';
-import { spinTo, pending, placeAtPending, tileTap } from './tiles.js';
+import { spinTo, pending, placeAtPending, tileTap, turnPage } from './tiles.js';
 import { render, sizeGrid, toggleSettings } from './views.js';
 import { openObj, closeSheet, renderSheet } from './sheet.js';
 import { openPanel, closePanel, refreshPanel, panelKey, draft, openMenu,
@@ -111,6 +111,7 @@ function act(name, el){
         ds:$('#kds').value.trim()||base.ds||'A kind you made',
         attrs:dk.attrs.slice(), size:dk.size||[4,4],
         onclick:dk.onclick||'read', body:base.body||'',
+        read: dk.sort==='object' ? (dk.read||'page') : undefined,
         shape: dk.sort==='object' ? (dk.shape||'card') : undefined,
         face:  dk.sort==='object' ? undefined : (dk.face||'front'),
         layout: dk.sort==='object' ? undefined : (base.layout||'grid'),
@@ -150,9 +151,10 @@ function act(name, el){
     case 'panelmore': closePanel(); modalDrawer(el.dataset.id); break;
     case 'appsettings': toggleSettings(); break;
     case 'editthis': S.readId=null; openObj(el.dataset.id); break;
-    case 'bookmode': S.bookMode=!S.bookMode; S.bookAt=0; renderSheet(); break;
-    case 'bookprev': S.bookAt=Math.max(0,(S.bookAt||0)-2); renderSheet(); break;
-    case 'booknext': S.bookAt=(S.bookAt||0)+2; renderSheet(); break;
+    // the spread redraws inside the turn, so whichever surface is showing one
+    // has to be the thing that gets redrawn
+    case 'bookprev': turnPage(-1, S.readId?renderSheet:render); break;
+    case 'booknext': turnPage( 1, S.readId?renderSheet:render); break;
     case 'cycleview': {
       const c=cfgOf(el.dataset.id), order=['grid','list','scroll'];
       c.layout = order[(order.indexOf(c.layout||'grid')+1)%order.length];
@@ -382,7 +384,7 @@ function wire(){
     const dtg=t.closest('[data-dtag]');
     if(dtg){ draft().tag=dtg.dataset.dtag; only(dtg,'#dtag button'); return; }
 
-    const pn=t.closest('[data-pview],[data-pface],[data-psort],[data-plock],[data-ppin],[data-pborder],[data-pknob],[data-pcolour],[data-pboard],[data-pknobc],[data-pknobtone],[data-pknobpos],[data-ptexture],[data-otype],[data-oclick],[data-oshape],[data-oedge],[data-ocolour],[data-oframe],[data-obtn],[data-ogen],[data-ogendir]');
+    const pn=t.closest('[data-pview],[data-pface],[data-psort],[data-plock],[data-ppin],[data-pborder],[data-pknob],[data-pcolour],[data-pboard],[data-pknobc],[data-pknobtone],[data-pknobpos],[data-ptexture],[data-otype],[data-oclick],[data-oread],[data-oshape],[data-oedge],[data-ocolour],[data-oframe],[data-obtn],[data-ogen],[data-ogendir]');
     if(pn){
       const id=pn.dataset.id, c=cfgOf(id), o=byId(id);
       if(pn.dataset.pview!=null) c.layout=pn.dataset.pview;
@@ -401,6 +403,9 @@ function wire(){
       else if(o && pn.dataset.ptexture!=null) o.texture=pn.dataset.ptexture;
       else if(o && pn.dataset.otype!=null){ o.kind=pn.dataset.otype; o.attrs=null; }
       else if(o && pn.dataset.oclick!=null) o.onclick=pn.dataset.oclick;
+      // switching how it reads restarts it at the first page — page 7 of a
+      // spread is not page 7 of a single page
+      else if(o && pn.dataset.oread!=null){ o.read=pn.dataset.oread; S.bookAt=0; renderSheet(); }
       else if(o && pn.dataset.oshape!=null) o.shape=pn.dataset.oshape;
       else if(o && pn.dataset.oedge!=null) o.edge=!!pn.dataset.oedge;
       else if(o && pn.dataset.ocolour!=null) o.c=pn.dataset.ocolour;
@@ -421,6 +426,7 @@ function wire(){
       if(v!=='object') d.attrs.push('container');
       if(v==='magic') d.attrs.push('magic');
       only(ks,'#ksort button');
+      const rr=$('#kreadrow'); if(rr) rr.style.display = v==='object' ? '' : 'none';
       // the Look row swaps between shapes and faces
       const list = v==='object' ? Object.entries(SHAPES) : Object.entries(FACES);
       const cur  = v==='object' ? d.shape : d.face;
@@ -443,6 +449,8 @@ function wire(){
       draft().size=[w,h]; only(ksz,'#ksize button'); renderPreview(); return; }
     const kcl=t.closest('[data-kclick]');
     if(kcl){ draft().onclick=kcl.dataset.kclick; only(kcl,'#kclick button'); renderPreview(); return; }
+    const krd=t.closest('[data-kread]');
+    if(krd){ draft().read=krd.dataset.kread; only(krd,'#kread button'); return; }
 
     const ka=t.closest('[data-ka]');
     if(ka){ const d=draft(), a=ka.dataset.ka, i=d.attrs.indexOf(a);

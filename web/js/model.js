@@ -87,7 +87,7 @@ const BUILTIN_KINDS = {
   moodboard:{face:'moodboard', nm:'Moodboard', ic:'image', c:'#6B4A4A', key:'B', ds:'Pictures, pinned together', size:[8,8], attrs:['container'], layout:'moodboard', body:'' },
   quote:   {shape:'quote', nm:'Quote',   ic:'book',    c:'#6F5137', key:'Z', ds:'Someone else\'s words',      size:[6,4], onclick:'read', attrs:['text','link','rating'],
             body:'> \n\n— ' },
-  story:   {shape:'spine', narrative:true, nm:'Story',   ic:'book',    c:'#5A4130', key:'M', ds:'A book on the shelf', size:[3,9], onclick:'book', attrs:['text','relates'],
+  story:   {shape:'spine', narrative:true, nm:'Story',   ic:'book',    c:'#5A4130', key:'M', ds:'A book on the shelf', size:[3,9], onclick:'read', read:'book', attrs:['text','relates'],
             body:'' },
   scene:   {shape:'page', narrative:true, film:true, nm:'Scene',   ic:'clapper', c:'#2F4A5E', key:'N', ds:'One scene, for writing',     size:[6,5], onclick:'read', attrs:['text','location','duration','relates'],
             body:'**Where —** \n\n**Who —** \n\n**What changes —** ' },
@@ -248,7 +248,7 @@ function reset(){
     device:sensedDevice(), layoutEdit:null, theme:'paper',
     view:'desk', drawerId:null, openId:null,
     arrange:false, kindFilter:null, calDay:null,
-    undo:[], editing:false, sel:[], readId:null, bookAt:0, bookMode:false,
+    undo:[], editing:false, sel:[], readId:null, bookAt:0,
     deskCfg:{layout:'grid', locked:false, sort:null},
     look:defaultLook()
   };
@@ -294,6 +294,17 @@ const SHAPES = {
   verse:'Verse', sliver:'Sliver', press:'Press', band:'Band'
 };
 const shapeOf = o => (o && o.shape) || K(o&&o.kind).shape || 'card';
+
+/* How an object opens to be read. Three ways of looking at the same body, so
+   the choice is one property rather than three click actions: a spread you
+   turn through, a single page you turn through, or one uninterrupted column.
+   Per object, falling back to its type, which is what the type builder sets.
+   A type that says nothing opens as a page. */
+const READS = {book:'Book', page:'Page', scroll:'Scroll'};
+const readOf = o => (o && o.read) || K(o&&o.kind).read || 'page';
+// A phone has no room for a spread, so book reads as page there and the page
+// step follows — otherwise turning would skip one every time.
+const spreadOf = o => readOf(o)==='book' && S.device==='desk';
 const containers = ()=> S.objects.filter(isContainer);
 
 /* Pinned drawers are the app's whole navigation — the strip along the top on a
@@ -422,5 +433,5 @@ const allTags = ()=>{ const m={}; S.objects.forEach(o=>(o.tags||[]).forEach(t=>m
 export { ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds, K,
   attrsOf, has, kindHas, T, dz, S, sensedDevice, reset, defaultLook, dev, byId,
   deskTitle, rootObj, container, cfgOf, isContainer, FACES, faceOf, SHAPES,
-  shapeOf, containers, isPinned, pinnedDrawers, OPS, ROLLS, rollup, SORTS, childrenOf, isAncestor,
+  shapeOf, READS, readOf, spreadOf, containers, isPinned, pinnedDrawers, OPS, ROLLS, rollup, SORTS, childrenOf, isAncestor,
   relatedTo, backlinksTo, relate, unrelate, chainOf, streak, goalPct, allTags };

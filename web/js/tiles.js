@@ -1,5 +1,5 @@
 import { esc, ic, clamp, D, md, strip } from './util.js';
-import { S, K, T, byId, has, isContainer, faceOf, shapeOf, childrenOf, container,
+import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, childrenOf, container,
   rollup, streak, goalPct, dev } from './model.js';
 import { CELL, gridOf, lay, overlaps, boxOk, freeSpot, gridRows, sizeOfKind, ensureBox } from './grid.js';
 import { create, toast, toggleDone } from './mutations.js';
@@ -88,7 +88,6 @@ const CLICKS = {
   read:     'Open it to read',
   edit:     'Open the editor',
   check:    'Tick it off',
-  book:     'Open it as a book',
   generate: 'Make a new object'
 };
 const clickOf = o => o.onclick || K(o.kind).onclick || 'none';
@@ -125,8 +124,8 @@ function tileTap(id){
   if(isContainer(o)){ S.view='drawer'; S.drawerId=id; S.kindFilter=null; render(); return; }
   switch(clickOf(o)){
     case 'generate': dispense(o); return;
-    case 'book': S.readId=id; S.openId=null; S.bookMode=true; S.bookAt=0; renderSheet(); return;
-    case 'read':  S.readId=id; S.openId=null; renderSheet(); break;
+    // which of the three it opens as is the object's own business — readOf()
+    case 'read':  S.readId=id; S.openId=null; S.bookAt=0; renderSheet(); break;
     case 'edit':  openObj(id); break;
     // a streak has no checkbox but is very much tickable, and since the Today
     // tab went this is the one-tap way to mark a habit off from the board
@@ -413,24 +412,87 @@ function listTile(o){
   </button>`;
 }
 
-/* Book view: the drawer's writing set as a two-page spread you turn through.
-   Everything is concatenated, then split by how much fits on a page. */
-/* One object's writing, paginated into a spread. */
-function bookOf(o){
-  const words=(o.body||'').split(/\n\n+/).filter(x=>x.trim());
-  const per=Math.max(1,Math.ceil(words.length/Math.max(1,Math.ceil(words.length/3))));
-  const pages=[]; for(let i=0;i<words.length;i+=per) pages.push(md(words.slice(i,i+per).join('\n\n')));
+/* Reading an object: three ways of looking at one body, chosen by readOf().
+   A book is a spread you turn through, a page is the same thing one leaf at a
+   time, and a scroll is the whole thing in one column — an article rather than
+   a book. Only the first two paginate.
+
+   Pagination splits on blank lines rather than measuring, so a page holds
+   whole paragraphs and never breaks one in half. It is an approximation of a
+   page, and deliberately so: measuring would mean laying the body out twice on
+   every render. */
+const PER_PAGE = 3;                       // paragraphs, not lines
+function pagesOf(o){
+  const head = o.media&&o.media.src
+    ? `<img class="scrollimg" src="${esc(o.media.src)}" alt="${esc(o.title||'')}">` : '';
+  const paras=(o.body||'').split(/\n\n+/).filter(x=>x.trim());
+  const pages=[];
+  for(let i=0;i<paras.length;i+=PER_PAGE) pages.push(md(paras.slice(i,i+PER_PAGE).join('\n\n')));
   if(!pages.length) pages.push('<p class="thin">Nothing written yet.</p>');
-  const at=Math.min(S.bookAt||0, Math.max(0,pages.length-1));
+  if(head) pages[0]=head+pages[0];
+  return pages;
+}
+function bookOf(o){
+  const mode=readOf(o);
+  if(mode==='scroll'){
+    const head = o.media&&o.media.src
+      ? `<img class="scrollimg" src="${esc(o.media.src)}" alt="${esc(o.title||'')}">` : '';
+    return `<div class="book"><div class="spread scrolling">
+      <div class="page">${head}${o.body?md(o.body):'<p class="thin">Nothing written yet.</p>'}</div>
+    </div></div>`;
+  }
+  const pages=pagesOf(o), two=spreadOf(o), step=two?2:1;
+  const at=Math.min(Math.max(0,S.bookAt||0), Math.max(0,pages.length-1));
+  const last=Math.min(at+step, pages.length);
   return `<div class="book"><div class="spread">
       <div class="page">${pages[at]||''}<span class="pno">${at+1}</span></div>
-      <div class="page">${pages[at+1]||''}${pages[at+1]?`<span class="pno">${at+2}</span>`:''}</div>
+      ${two?`<div class="page">${pages[at+1]||''}${pages[at+1]?`<span class="pno">${at+2}</span>`:''}</div>`:''}
     </div>
     <div class="bookbar">
       <button class="pill" data-act="bookprev"${at<=0?' disabled':''}>${ic('chevL',14)}</button>
-      <span class="bookcount">${at+1}–${Math.min(at+2,pages.length)} of ${pages.length}</span>
-      <button class="pill" data-act="booknext"${at+2>=pages.length?' disabled':''}>${ic('chevR',14)}</button>
+      <span class="bookcount">${two&&last>at+1?`${at+1}–${last}`:at+1} of ${pages.length}</span>
+      <button class="pill" data-act="booknext"${at+step>=pages.length?' disabled':''}>${ic('chevR',14)}</button>
     </div></div>`;
+}
+
+/* Turning a page, for real. The leaf is built from the DOM rather than from
+   the pagination, so this works for anything drawn as a spread — an object
+   being read, or a drawer wearing the book layout.
+
+   The order matters: advance and re-render first, so the destination is really
+   there, then lay a two-faced leaf over the right-hand page and rotate it about
+   the spine. One face is the page you are leaving and the other is the page
+   arriving; backface-visibility does the swap halfway through, which is what
+   makes it read as one sheet rather than two. */
+const TURN_MS = 520;
+let turning = false;
+function turnPage(dir, after){
+  const spread=document.querySelector('.book .spread');
+  const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const step = spread && spread.querySelectorAll('.page').length>1 ? 2 : 1;
+  const at = Math.max(0, (S.bookAt||0) + dir*step);
+  if(turning || !spread || still){ S.bookAt=at; after(); return; }
+
+  const pages=[...spread.querySelectorAll('.page')];
+  const leaving=(dir>0 ? pages[pages.length-1] : pages[0]).innerHTML;
+  turning=true;
+  S.bookAt=at; after();
+
+  const spread2=document.querySelector('.book .spread');
+  if(!spread2){ turning=false; return; }
+  const pages2=[...spread2.querySelectorAll('.page')];
+  const arriving=(dir>0 ? pages2[0] : pages2[pages2.length-1]).innerHTML;
+  // the leaf always occupies the right-hand page — going forward that is where
+  // it lifts from, coming back it is where it lands
+  const seat=pages2[pages2.length-1].getBoundingClientRect();
+  const box=spread2.getBoundingClientRect();
+  const leaf=document.createElement('div');
+  leaf.className='leaf '+(dir>0?'fwd':'back');
+  leaf.style.cssText=`left:${seat.left-box.left}px;width:${seat.width}px`;
+  leaf.innerHTML=`<div class="leafface front">${dir>0?leaving:arriving}</div>
+    <div class="leafface back">${dir>0?arriving:leaving}</div>`;
+  spread2.appendChild(leaf);
+  setTimeout(()=>{ leaf.remove(); turning=false; }, TURN_MS);
 }
 
 function bookView(c, items){
@@ -472,4 +534,4 @@ function scrollEntry(o){
 }
 
 export { spinTo, CLICKS, clickOf, fireButton, tileTap, pending, placeAtPending,
-  gridTile, gridOfContainer, listTile, scrollEntry, bookOf, bookView };
+  gridTile, gridOfContainer, listTile, scrollEntry, bookOf, bookView, turnPage };

@@ -102,7 +102,7 @@ function dedupeIds(objects){
    skips all of them, an old backup replays only what it is missing. These
    used to be ad-hoc per-load mutations inside adopt(); a new repair that
    should run once belongs here, as the next numbered step. */
-const DATA_V = 8;
+const DATA_V = 9;
 const MIGRATIONS = [
   // Drawers and objects were two arrays and a drawer could not live inside
   // anything. foldDrawers also replays the old dense flow to give v1 drawers
@@ -141,6 +141,14 @@ const MIGRATIONS = [
       if(Array.isArray(d.pins)) return;
       const live=new Set((d.objects||[]).map(o=>o.id));
       d.pins=['d_today','d_in','d_keep','d_done'].filter(id=>live.has(id));
+    }},
+  // Opening as a book stopped being one of the things a click can do and
+  // became how the object reads — one property with three settings, so that
+  // "open it" and "how it looks once open" are two questions again.
+  {v:9, up(d){
+      const fix=x=>{ if(x && x.onclick==='book'){ x.onclick='read'; x.read=x.read||'book'; } };
+      (d.objects||[]).forEach(fix);
+      Object.values(d.kinds||{}).forEach(fix);
     }},
 ];
 function migrate(d){

@@ -55,11 +55,17 @@
 /* the sheet takes the left half when the object is on the right */
 .is-desk.sheet-left .sheet{right:auto;left:0;border-left:0;border-right:1px solid var(--rule)}
 .is-desk.sheet-left .sheetveil{right:auto;left:50vw}
-/* book view */
+/* reading: a spread, a single page, or one column you scroll. The three differ
+   by how many pages are drawn and whether the page scrolls — everything else
+   about them is the same sheet of paper. */
 .book{max-width:1100px;margin:0 auto}
 .spread{display:grid;grid-template-columns:1fr 1fr;gap:0;background:var(--paper-2);
-  border:1px solid var(--rule);border-radius:var(--radius);overflow:hidden;min-height:64vh}
+  border:1px solid var(--rule);border-radius:var(--radius);overflow:hidden;min-height:64vh;
+  position:relative;perspective:2200px}
+/* one page: the spread has only one child, so a single column is enough */
+.spread:has(> .page:only-child){grid-template-columns:1fr}
 .is-phone .spread{grid-template-columns:1fr}
+.spread.scrolling .page{overflow-y:auto;max-height:min(74vh,760px);padding-bottom:34px}
 .spread .page{padding:34px 38px 44px;position:relative;font-size:14.5px;line-height:1.75;
   border-right:1px solid var(--rule-2)}
 .spread .page:last-child{border-right:0}
@@ -69,6 +75,29 @@
 .bookbar{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:14px}
 .bookcount{font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums}
 .bookbar .pill[disabled]{opacity:.4}
+
+/* the leaf: one sheet with a page printed on each side, hinged at the spine.
+   backface-visibility does the swap halfway through the rotation, which is
+   what makes it read as paper turning rather than two panels crossfading. */
+.leaf{position:absolute;top:0;bottom:0;transform-style:preserve-3d;
+  transform-origin:left center;z-index:5;will-change:transform;pointer-events:none}
+.leafface{position:absolute;inset:0;backface-visibility:hidden;overflow:hidden;
+  background:var(--paper-2);padding:34px 38px 44px;font-size:14.5px;line-height:1.75;
+  border-left:1px solid var(--rule-2)}
+.leafface.back{transform:rotateY(180deg)}
+/* the shadow the turning sheet throws on the page beneath it */
+.leafface::after{content:'';position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(90deg,rgba(30,22,14,.16),transparent 22%)}
+.leaf.fwd{animation:turnfwd .52s cubic-bezier(.42,.02,.32,1) forwards}
+.leaf.back{animation:turnback .52s cubic-bezier(.42,.02,.32,1) forwards}
+@keyframes turnfwd{from{transform:rotateY(0)}   to{transform:rotateY(-180deg)}}
+@keyframes turnback{from{transform:rotateY(-180deg)} to{transform:rotateY(0)}}
+@media (prefers-reduced-motion: reduce){ .leaf{display:none} }
+
+/* the three-way switch in the reading header */
+.readmodes{display:flex;gap:4px}
+.readmodes .pchip{background:rgba(255,255,255,.10);border-color:rgba(255,255,255,.22);color:#E9E1CC}
+.readmodes .pchip.on{background:var(--brass);border-color:var(--brass);color:#1B140C}
 .pfoot{margin-top:12px;padding-top:10px;border-top:1px solid var(--rule-2)}
 .rangerow{display:flex;align-items:center;gap:10px;margin-top:8px;font-size:12.5px;color:var(--ink-2)}
 .rangerow input[type=range]{flex:1;accent-color:var(--brass)}

@@ -35,6 +35,7 @@ meaning, containers are finite, and opening one is a small deliberate act.
 | **Face** | How a container draws itself on its *parent's* board. |
 | **Shape** | How a non-container object draws itself. |
 | **Layout** | How a container arranges its children once you *open* it. |
+| **Read view** | How a non-container object opens to be read: `book`, `page` or `scroll`. |
 | **Rule** | One clause — field, comparison, value — that a magic drawer matches against. |
 | **Rollup** | A number a container totals across its children, shown on its face. |
 | **Relation** | An id one object holds pointing at another. Read both ways. |
@@ -79,7 +80,7 @@ One array, `S.objects`, holds drawers and objects alike.
   phone: {x,y,w,h},
   ord,                       // where it sits in a list layout instead
   created, edited,
-  shape, face, onclick,      // per-object overrides of the type's defaults
+  shape, face, read, onclick,   // per-object overrides of the type's defaults
 
   // carried only when the matching attribute is present
   done, doneAt, due, repeat, history, milestones, media, link,
@@ -138,7 +139,8 @@ and the type is hidden from the picker.
 
 Forty built in, grouped in the picker by what they are for. Each carries an
 icon, a colour, a single-letter key, a description, a starting size, a body
-template, an attribute set, and a default shape or face.
+template, an attribute set, a default shape or face, and — for an object — how
+it opens to be read.
 
 | Group | Types |
 | --- | --- |
@@ -236,7 +238,7 @@ of four things layered over them.
 | --- | --- | --- |
 | **The grid** | The app. | `#app`, rebuilt whole by `render()` |
 | **The bar** | Where you are, the pins, and five icon buttons. Top strip on a Mac, bottom bar on a phone, one piece of markup. | inside `#app` |
-| **Detail sheet** | Reading or editing one object. | `#sheetHost`, rendered separately so typing doesn't destroy the field |
+| **Detail sheet** | Editing one object, or reading it — reading takes the middle of the screen over a dimmed desk, editing takes the side. | `#sheetHost`, rendered separately so typing doesn't destroy the field |
 | **Panel** | Every menu and every form. One at a time, down the right, over a desk that stays live. | `#frame`, outside `#app` |
 | **Popup** | Picking one of a handful — Sort, the context menu. Hangs off the button that opened it. | borrowed context-menu element |
 | **Command palette** | ⌘K. The one thing that kept a scrim, because it is a search field you type into blind. | `#frame` |
@@ -266,9 +268,25 @@ side, and the sheet wins.
 | Drag a pin | Reorders the bar |
 
 **Clicking an object is configurable** — `clickOf()`, per object then per type:
-nothing, read, open the editor, tick it off, open it as a book, or make one of
-something. The editor is not the default; it is on the context menu. A drawer
-always opens.
+nothing, read, open the editor, tick it off, or make one of something. The
+editor is not the default; it is on the context menu. A drawer always opens.
+
+**Reading is one surface with three settings.** `readOf()` — per object, then
+per type, defaulting to `page`:
+
+- **book** — a two-page spread you turn through. On a phone there is no room
+  for two, so it draws and steps as a page.
+- **page** — the same paper, one leaf at a time.
+- **scroll** — no pagination at all: the whole body in one column you scroll,
+  an article rather than a book.
+
+Only the first two paginate, on blank lines, three paragraphs to a page — an
+approximation of a page, because measuring one would mean laying the body out
+twice on every render. Turning is a real turn: the leaf is built from the DOM
+after the spread has redrawn, one page printed on each side, and rotated about
+the spine, so it works anywhere a spread is drawn. `prefers-reduced-motion`
+skips it. The type builder sets a type's default; the reading header and the
+object's settings panel override it for one object.
 
 **Keys.** `N` opens the type picker, then a single letter picks the type. `⌘K`
 searches objects, drawers and types and offers to create what you typed. `⌘Z`

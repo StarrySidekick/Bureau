@@ -1,6 +1,6 @@
 import { $, $$, esc, ic, uid, clamp, ROOT } from './util.js';
 import { S, K, KINDS, KEYS, T, ATTRS, USER_ATTRS, FIELDS, fieldOf, OPS, ROLLS,
-  SORTS, FACES, SHAPES, faceOf, shapeOf, byId, container, cfgOf, deskTitle,
+  SORTS, FACES, SHAPES, READS, faceOf, shapeOf, readOf, byId, container, cfgOf, deskTitle,
   rootObj, containers, isContainer, isAncestor, childrenOf, has, kindHas,
   attrsOf, allTags, isPinned, dev } from './model.js';
 import { lay, boxOk, freeSpot } from './grid.js';
@@ -164,6 +164,8 @@ function objectPanelBody(id){
       `<button class="pchip${(!!o.edge===!!v)?' on':''}" data-oedge="${v}" data-id="${id}">${n}</button>`).join(''))}
     ${row('Clicking it', Object.entries(CLICKS).map(([v,n])=>
       `<button class="pchip${clickOf(o)===v?' on':''}" data-oclick="${v}" data-id="${id}">${n}</button>`).join(''))}
+    ${row('Opens as', Object.entries(READS).map(([v,n])=>
+      `<button class="pchip${readOf(o)===v?' on':''}" data-oread="${v}" data-id="${id}">${n}</button>`).join(''))}
     ${row('Colour', `<div class="pickgrid sw">${paletteNow().cols.map(c=>
       `<button data-ocolour="${c}" data-id="${id}" class="${o.c===c?'on':''}" style="background:${c}"></button>`).join('')}</div>`)}
     ${has(o,'media')&&o.media&&o.media.type==='image'
@@ -367,7 +369,7 @@ function modalNewKind(from, editKey){
     sub:'A type is a name for a set of traits',
     draft:{c, attrs:seedAttrs, ic:(base&&base.ic)||'note', ds:'',
            fromId:from&&from.id, editKey:editKey||null,
-           size, onclick:(base&&base.onclick)||'read',
+           size, onclick:(base&&base.onclick)||'read', read:(base&&base.read)||'page',
            sort, shape:(base&&base.shape)||'card', face:(base&&base.face)||'front',
            spawnBy:(base&&base.spawnBy)||'click'},
     body:`
@@ -407,6 +409,9 @@ function modalNewKind(from, editKey){
       ${row('Clicking one','',
         Object.entries(CLICKS).map(([v,n])=>chip(((base&&base.onclick)||'read')===v,`data-kclick="${v}"`,n)).join(''),
         'kclick')}
+      ${row('Opens as','how one reads',
+        Object.entries(READS).map(([v,n])=>chip(((base&&base.read)||'page')===v,`data-kread="${v}"`,n)).join(''),
+        'kread', ` id="kreadrow"${sort==='object'?'':' style="display:none"'}`)}
       ${row('It spawns','',
         chip(((base&&base.spawnBy)||'click')==='click','data-kspawn="click"','When pressed')+
         chip(((base&&base.spawnBy)||'click')==='type','data-kspawn="type"','As you type in it'),

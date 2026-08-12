@@ -455,13 +455,66 @@ const CHROME = process.env.BUREAU_CHROME;
     return out;
   });
 
+  // --- reading: three views of one body, and a page that actually turns
+  const readViews = await page.evaluate(async () => {
+    const S = BUREAU.state, out = {};
+    const body = Array.from({ length: 9 }, (_, i) => 'Paragraph ' + (i + 1) + '.').join('\n\n');
+    const o = BUREAU.create('note', { parent: 'root', title: 'Reading test', body });
+    BUREAU.render();
+    const open = m => { o.read = m; S.readId = o.id; S.openId = null; S.bookAt = 0; BUREAU.renderSheet(); };
+    const pages = () => document.querySelectorAll('.bookstage .spread .page').length;
+
+    open('book');   out.bookIsSpread = pages() === 2 && !!document.querySelector('.bookstage.rm-book');
+    open('page');   out.pageIsOne = pages() === 1;
+    open('scroll'); out.scrollIsOne = pages() === 1
+      && !!document.querySelector('.spread.scrolling')
+      && !document.querySelector('.bookbar');          // nothing to turn
+
+    // the plain half-screen read panel is gone
+    out.noPlainRead = !document.querySelector('#sheet');
+
+    // turning forward advances by a spread and lays a leaf over the page.
+    // A press first: the synthetic pin drag above armed suppressClick and no
+    // real click ever came to spend it, which is the staleness onDown clears.
+    open('book');
+    document.body.dispatchEvent(new PointerEvent('pointerdown',
+      { bubbles: true, clientX: 2, clientY: 2, pointerId: 9, isPrimary: true }));
+    document.querySelector('[data-act="booknext"]').click();
+    out.turnAdvanced = S.bookAt === 2;
+    out.leafDrawn = !!document.querySelector('.book .spread .leaf');
+    await new Promise(r => setTimeout(r, 700));
+    out.leafCleared = !document.querySelector('.leaf');
+    // and back again
+    document.querySelector('[data-act="bookprev"]').click();
+    await new Promise(r => setTimeout(r, 700));
+    out.turnedBack = S.bookAt === 0;
+
+    // a page turns one at a time, not two
+    open('page');
+    document.querySelector('[data-act="booknext"]').click();
+    out.pageStepsOne = S.bookAt === 1;
+    await new Promise(r => setTimeout(r, 700));
+
+    // the type carries the default, the object overrides it
+    out.typeDefault = BUREAU.K.note.read === undefined;   // unset means page
+    delete o.read;
+    open(undefined); o.read = undefined; S.readId = o.id; BUREAU.renderSheet();
+    out.defaultsToPage = document.querySelectorAll('.bookstage .spread .page').length === 1;
+    out.storyOpensAsBook = BUREAU.K.story.read === 'book' && BUREAU.K.story.onclick === 'read';
+
+    S.readId = null; BUREAU.renderSheet();
+    BUREAU.del(o.id); S.undo = [];
+    return out;
+  });
+  await shot('12-reading');
+
   console.log(JSON.stringify({
     errors: errs, manifestOk, swReady, survived, themeSurvived,
     gridClass, offlineWorks, railGone, tabsGone, pinbarShown, pinNavigates,
     pinToggles, holdArms, maxDrift,
     settingsIsPanel, pickerPreviews, builderPreview, everyMenuIsAPanel,
     pasteOk, magicOk, rollupOk, relationsOk, relationsUI,
-    timeLayer, tagDrawer, pinReorder, groupMove, dupIds, undoWorks
+    timeLayer, tagDrawer, pinReorder, groupMove, dupIds, undoWorks, readViews
   }, null, 2));
   await browser.close();
 })();

@@ -216,6 +216,11 @@ when you're editing the *other* device's layout from this one.
 - **Clicking an object is configurable** — `clickOf()`, per object then per
   kind: nothing, read, edit, or tick. The editor is no longer the default; it is
   on the context menu. Don't add a code path that opens the editor on click.
+- **How an object reads is one property, not three click actions.** `readOf()`
+  — `book | page | scroll`, per object then per kind, defaulting to `page`.
+  "Open it as a book" used to be a click action, which made *whether* it opens
+  and *how it looks* the same question. There is one reading surface now; the
+  plain half-screen read panel is gone.
 - **Image bytes live in IndexedDB, never in the JSON.** The assets half of `persist.js`. `snapshot()`
   strips `media.src`; `hydrateAssets()` puts it back after a load. If you add a
   new place that writes objects to storage, it has to strip too.

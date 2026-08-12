@@ -41,6 +41,11 @@ function place(el, b){
 
 function onDown(e){
   if(e.button===2) return;
+  /* A drag arms suppressClick so its own trailing click can't also fire. If
+     that click never arrives — the pointer left the window, or the drag was
+     synthetic — the flag would sit there and eat somebody else's click later.
+     A new press means the old one is finished with, whatever happened to it. */
+  gestureFlags.suppressClick=false;
   /* A pin can be dragged along the bar to reorder it. The bar is chrome, not a
      grid, so it gets its own tiny path rather than going through the box
      maths — and a plain click still has to navigate, which is why nothing

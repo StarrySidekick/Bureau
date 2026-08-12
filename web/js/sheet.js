@@ -1,6 +1,6 @@
 import { $, $$, esc, ic, md, D, ROOT } from './util.js';
 import { S, K, KINDS, KEYS, T, byId, has, isContainer, containers, isAncestor,
-  relatedTo, backlinksTo, streak, goalPct } from './model.js';
+  READS, readOf, relatedTo, backlinksTo, streak, goalPct } from './model.js';
 import { CLICKS, clickOf, bookOf } from './tiles.js';
 import { closePanel } from './panels.js';
 import { render } from './views.js';
@@ -40,38 +40,23 @@ function renderSheet(){
   // The sheet and a panel both take the right-hand side; only one at a time,
   // and the sheet is the bigger claim on the screen so it wins.
   if(S.openId || S.readId) closePanel();
-  // Read view: the whole body, nothing to edit. What clicking a note does.
+  /* Reading. One surface, three modes — a spread, a single page, or a column
+     you scroll. The plain half-screen read panel is gone: it was a second way
+     of showing the same body, with settings on it that belong in the object's
+     own panel, and none of them were about reading. */
   if(S.readId && !S.openId){
     const r=byId(S.readId);
     if(!r){ S.readId=null; host.innerHTML=''; return; }
-    if(S.bookMode){
-      host.innerHTML=`<div class="bookscrim" data-sheet="close"></div>
-        <div class="bookstage">
-          <div class="bookhead"><b>${esc(r.title||'Untitled')}</b>
-            <button class="pill" data-act="bookmode">${ic('list',13)} Plain</button>
-            <button class="pill" data-act="editthis" data-id="${r.id}">${ic('edit',13)} Edit</button>
-            <button class="iconbtn" data-sheet="close">${ic('x',16)}</button></div>
-          ${bookOf(r)}
-        </div>`;
-      return;
-    }
-    host.innerHTML=`<div class="sheetveil on" data-sheet="close"></div>
-    <div class="sheet open" id="sheet" style="--k:${K(r.kind).c}">
-      <div class="sheet-h">
-        <button class="iconbtn" data-sheet="close">${ic('chevL',18)}</button>
-        <span class="kindbadge">${ic(K(r.kind).ic,12)} ${K(r.kind).nm}</span>
-        <div style="flex:1"></div>
-        <button class="pill${S.bookMode?' solid':''}" data-act="bookmode">${ic('book',13)} Book</button>
-        <button class="pill" data-act="editthis" data-id="${r.id}">${ic('edit',13)} Edit</button>
-      </div>
-      <div class="sheet-b">
-        <h1 class="readtitle">${esc(r.title||'Untitled')}</h1>
-        ${(r.tags||[]).length?`<div class="meta" style="margin-bottom:14px">${(r.tags||[]).map(t=>`<span class="mchip tag" data-tagdrawer="${esc(t)}">${esc(t)}</span>`).join('')}</div>`:''}
-        ${r.media&&r.media.src?`<img class="scrollimg" src="${esc(r.media.src)}" alt="${esc(r.title||'')}">`:''}
-        ${S.bookMode ? bookOf(r) : `<div class="prose read">${md(r.body)}</div>`}
-      </div>
-    </div>`;
-    focusTile(r.id);
+    const mode=readOf(r);
+    host.innerHTML=`<div class="bookscrim" data-sheet="close"></div>
+      <div class="bookstage rm-${mode}">
+        <div class="bookhead"><b>${esc(r.title||'Untitled')}</b>
+          <div class="readmodes">${Object.entries(READS).map(([v,n])=>
+            `<button class="pchip${mode===v?' on':''}" data-oread="${v}" data-id="${r.id}">${n}</button>`).join('')}</div>
+          <button class="pill" data-act="editthis" data-id="${r.id}">${ic('edit',13)} Edit</button>
+          <button class="iconbtn" data-sheet="close">${ic('x',16)}</button></div>
+        ${bookOf(r)}
+      </div>`;
     return;
   }
   const o=S.openId?byId(S.openId):null;
@@ -108,6 +93,8 @@ function renderSheet(){
       ${['image','video','audio'].map(t=>`<option value="${t}"${o.media&&o.media.type===t?' selected':''}>${t}</option>`).join('')}</select></div>`);
   if(!isContainer(o)) fields.push(`<div class="field"><label>Clicking it</label><select data-f="onclick">
       ${Object.entries(CLICKS).map(([v,n])=>`<option value="${v}"${clickOf(o)===v?' selected':''}>${n}</option>`).join('')}</select></div>`);
+  if(!isContainer(o)) fields.push(`<div class="field"><label>Opens as</label><select data-f="read">
+      ${Object.entries(READS).map(([v,n])=>`<option value="${v}"${readOf(o)===v?' selected':''}>${n}</option>`).join('')}</select></div>`);
   if(has(o,'container')) fields.push(`<div class="field"><label>Contents laid out as</label><select data-f="layout">
       ${[['list','List'],['grid','Grid']].map(([v,n])=>`<option value="${v}"${(o.layout||'list')===v?' selected':''}>${n}</option>`).join('')}</select></div>`);
 
