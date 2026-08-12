@@ -1,7 +1,7 @@
 # Data model
 
 > The conceptual model — objects, attributes, kinds, layouts — is in
-> [OBJECT-MODEL.md](OBJECT-MODEL.md). This file is the storage detail.
+> [SYSTEM.md](SYSTEM.md). This file is the storage detail.
 
 **One** array, `S.objects`, holding every object including drawers, serialised to
 one localStorage key. There is no

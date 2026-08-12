@@ -23,12 +23,11 @@ Everything in the requirements list is implemented **except** video and audio
 files (images are real) and sync between devices (export/import JSON is the
 bridge).
 
-**Start here each session:** `docs/ROADMAP.md` holds the current plan in
-dependency order — item 1 (the module split) is done. `docs/SPEC.md`
-is currently stale (roadmap item 4); trust `docs/OBJECT-MODEL.md` and
-`docs/STYLES.md` over it.
+**Start here each session:** `docs/SYSTEM.md` is the reference for what Bureau is
+made of — objects, attributes, types, drawers, the grid, the surfaces, storage.
+`docs/ROADMAP.md` holds the current plan in dependency order.
 
-Read `docs/SPEC.md` before changing behaviour and `docs/DECISIONS.md` before
+Read `docs/SYSTEM.md` before changing behaviour and `docs/DECISIONS.md` before
 changing structure — the second one records things that were decided deliberately
 and shouldn't be undone by accident.
 
@@ -72,7 +71,7 @@ clause at the bottom of each file — that list is each module's public surface.
 | Module | What lives there |
 | --- | --- |
 | `util.js` | `$`, `esc`, `uid`, the `D` date object, icons (`ic`), markdown (`md`). All dates are `YYYY-MM-DD` strings in local time — never `Date` objects in state, never UTC. |
-| `model.js` | ATTRS + KINDS (**the heart of the app** — see below and `docs/OBJECT-MODEL.md`), seed data, `S`, `inContainer()`, `childrenOf()`, `streak()`, `goalPct()`, relations. |
+| `model.js` | ATTRS + KINDS (**the heart of the app** — see below and `docs/SYSTEM.md`), seed data, `S`, `inContainer()`, `childrenOf()`, `streak()`, `goalPct()`, relations. |
 | `grid.js` | Grid geometry: `GRID`, `CELL`, `lay()`, `boxOk()`, `freeSpot()`, `ensureBox()`. Lives here, not in the views. |
 | `look.js` | Themes, palettes, Styles, `applyLook()`. |
 | `mutations.js` | `toggleDone`, `del`, `create`, `quickAdd`, repeat scheduling, `toast`. |
@@ -161,7 +160,7 @@ inside render functions — they'd leak on every re-render.
 every object names its `parent`. `ROOT` is the desk. Drawers nest inside
 drawers; objects nest inside nothing. An object lives in exactly one drawer —
 a magic drawer is the only way it appears anywhere else. Read
-`docs/OBJECT-MODEL.md` before changing any of it.
+`docs/SYSTEM.md` before changing any of it.
 
 **Never branch on a type's name.** Appearance goes through `shapeOf()`, faces
 through `faceOf()`, behaviour through `has()`. The only remaining `kind===`
@@ -195,7 +194,7 @@ when you're editing the *other* device's layout from this one.
   are fluid, so `sizeGrid()` reads the real column width after layout and caches
   it in `CELL`. Don't hardcode a row height — `GRID` deliberately has none.
 - **There is no arrange mode.** Everything is always movable; a drawer can be
-  `locked` to opt out. A 300ms hold arms the drag (`G.armed`), which is the only
+  `locked` to opt out. A 200ms hold arms the drag (`G.armed`), which is the only
   thing keeping a click from picking a tile up. Corners resize, and that's all —
   no edge handles, no size chip, no delete cross.
 - **Ids must be unique across sessions.** `uid()` once used a counter that

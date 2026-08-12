@@ -295,14 +295,14 @@ views are gone entirely and pinned drawers replace them. See decision 22.
 
 ### 19. There is no arrange mode
 
-Everything on a grid is always movable and resizable. A 300ms hold arms the
+Everything on a grid is always movable and resizable. A 200ms hold arms the
 drag; a drawer can be locked when you want it to stay put.
 
 *Why:* a mode you have to enter is a mode you forget you're in, and the Done
 button that ends it is chrome on a screen that is meant to be nothing but grid.
 If the answer to "can I move this?" is always yes, there is nothing to remember.
 
-*Against:* a click and a drag now differ only by 300ms, which is a real tax on
+*Against:* a click and a drag now differ only by 200ms, which is a real tax on
 every deliberate click, and touch users will pick things up by accident. The
 lock exists because of this, not as a feature.
 

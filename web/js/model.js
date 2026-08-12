@@ -6,7 +6,7 @@ import { uid, D, ROOT } from './util.js';
    An attribute is a capability. A kind is a named set of attributes. Nothing
    below this line may branch on a kind's *name* — ask has(o,'check'), never
    o.kind==='task'. That rule is what keeps a new kind a data change.
-   See docs/OBJECT-MODEL.md.                                                 */
+   See docs/SYSTEM.md.                                                 */
 const ATTRS = {
   text:     {nm:'Text',       ds:'A markdown body'},
   check:    {nm:'Checkbox',   ds:'A box on the left that completes it'},

@@ -70,8 +70,10 @@ panel replaces it and there is no way back except reopening.
   no ARIA
 - corner-grip resize is hover-only — invisible on touch; mobile drag vs scroll
   needs device testing
-- SPEC.md is three redesigns stale (kinds table, membership rules, quick-add,
-  themes) — rewrite it against OBJECT-MODEL.md and STYLES.md
+- ~~SPEC.md is three redesigns stale~~ — done (2026-08-12). SPEC.md and
+  OBJECT-MODEL.md are folded into `docs/SYSTEM.md`, one reference for what the
+  system is made of, written against the code rather than against the last
+  redesign
 
 ## 5. Sync — blocked on a decision, not effort
 
