@@ -46,25 +46,92 @@ function toggleHabit(id){
   if(i>=0) o.history.splice(i,1); else { o.history.push(T); toast(`${o.title} · ${streak(o)+0} day streak`); }
   render();
 }
-// Anything still in the bin when the bin is emptied is gone for good, so that
-// is the moment its picture can be freed — not the moment it was deleted,
-// which would break undo.
-function dropTrash(){
-  const t=S.trash; S.trash=null;
-  if(t && t.o && t.o.media && t.o.media.assetId) assetDel(t.o.media.assetId);
+/* ------------------------------------------------------------
+   6b · undo — a stack of moves, not a single bin
+   ------------------------------------------------------------
+   There used to be one slot, `S.trash`, holding one deleted object. Deleting a
+   selection or a drawer bypassed it entirely, so the two ways to lose the most
+   at once were the two with no way back. A move is a list of steps that put
+   things exactly as they were, replayed backwards:
+
+     {del:{o,i}}       an object that was removed — splice it back in at i
+     {add:id}          an object that was made — take it out again
+     {set:{id,k,v}}    a field that changed — v is what it was before
+
+   The stack is in memory only. It is not in snapshot() and it does not survive
+   a reload, which is the same promise every undo makes.                      */
+const UNDO_MAX = 20;
+
+// A picture is only unrecoverable once its move falls off the bottom of the
+// stack — not when it was deleted, which would break the undo above it.
+function reap(move){
+  (move.steps||[]).forEach(s=>{
+    const o = s.del && s.del.o;
+    if(o && o.media && o.media.assetId && !byId(o.id)) assetDel(o.media.assetId);
+  });
 }
-function del(id){
-  const i=S.objects.findIndex(o=>o.id===id); if(i<0) return;
-  dropTrash();
-  S.trash={o:S.objects[i], i};
-  S.objects.splice(i,1);
-  if(S.openId===id) closeSheet();
-  toast('Deleted', true); render();
+function pushUndo(label, steps){
+  if(!steps.length) return;
+  S.undo.push({label, steps});
+  while(S.undo.length>UNDO_MAX) reap(S.undo.shift());
 }
 function undo(){
-  if(!S.trash) return;
-  S.objects.splice(S.trash.i,0,S.trash.o); S.trash=null;
-  $('#toast').classList.remove('show'); render();
+  const m=S.undo.pop();
+  if(!m){ toast('Nothing to undo'); return; }
+  for(let i=m.steps.length-1;i>=0;i--){
+    const s=m.steps[i];
+    if(s.del) S.objects.splice(Math.min(s.del.i, S.objects.length), 0, s.del.o);
+    else if(s.add){ const j=S.objects.findIndex(o=>o.id===s.add); if(j>=0) S.objects.splice(j,1); }
+    else if(s.set){ const o=byId(s.set.id); if(o) o[s.set.k]=s.set.v; }
+  }
+  $('#toast').classList.remove('show');
+  toast(m.label ? `Undone · ${m.label}` : 'Undone');
+  render();
+}
+/* Removing several at once: take them out from the end so each recorded index
+   is still valid, and record them in that same order — undo replays a move
+   backwards, so descending removal comes back ascending and everything lands
+   where it was. */
+function removeMany(ids){
+  const steps=[];
+  ids.map(id=>S.objects.findIndex(o=>o.id===id)).filter(i=>i>=0).sort((a,b)=>b-a)
+     .forEach(i=>{ steps.push({del:{o:S.objects[i], i}}); S.objects.splice(i,1); });
+  if(ids.includes(S.openId)) closeSheet();
+  S.sel=(S.sel||[]).filter(x=>!ids.includes(x));
+  return steps;
+}
+function del(id){
+  const steps=removeMany([id]);
+  if(!steps.length) return;
+  pushUndo('Deleted', steps);
+  toast('Deleted', true); render();
+}
+function delMany(ids){
+  const steps=removeMany(ids);
+  if(!steps.length) return;
+  pushUndo(`Deleted ${steps.length}`, steps);
+  toast(`Deleted ${steps.length}`, true); render();
+}
+/* A drawer's contents are kept — they move up to wherever the drawer lived.
+   Their boxes do not come with them: {x,y,w,h} was a coordinate in the
+   drawer's own space, and the same numbers in the parent's space mean somewhere
+   else entirely, usually on top of something. Clearing them lets ensureBox()
+   find each one real room. */
+function delDrawer(id){
+  const d=byId(id); if(!d) return;
+  const up=d.parent||ROOT, steps=[];
+  S.objects.forEach(o=>{
+    if(o.parent!==id) return;
+    steps.push({set:{id:o.id, k:'parent', v:id}},
+               {set:{id:o.id, k:'desk',   v:o.desk}},
+               {set:{id:o.id, k:'phone',  v:o.phone}});
+    o.parent=up; o.desk=null; o.phone=null;
+  });
+  steps.push(...removeMany([id]));
+  if(S.drawerId===id){ S.drawerId = up===ROOT?null:up; S.view = up===ROOT?'desk':'drawer'; }
+  pushUndo('Drawer removed', steps);
+  toast('Drawer removed — its contents kept', true);
+  render();
 }
 /* Pinning is deliberately not a property of the drawer — see the note on
    `S.pins` in model.js. Pinning appends, so the bar fills left to right in the
@@ -168,4 +235,5 @@ function randomThing(parentId){
 
 // toggleHabit isn't exported — a streak reaches it through toggleDone, which is
 // the one door, so nothing outside has to know a habit ticks differently.
-export { toast, toggleDone, del, undo, setPin, togglePin, drawerForTag, create, quickAdd, randomThing };
+export { toast, toggleDone, del, delMany, delDrawer, undo, pushUndo, setPin, togglePin,
+  drawerForTag, create, quickAdd, randomThing };

@@ -219,6 +219,17 @@ when you're editing the *other* device's layout from this one.
 - **Image bytes live in IndexedDB, never in the JSON.** The assets half of `persist.js`. `snapshot()`
   strips `media.src`; `hydrateAssets()` puts it back after a load. If you add a
   new place that writes objects to storage, it has to strip too.
+- **Anything destructive pushes an undo move.** `S.undo` is a stack of up to 20,
+  each a list of `{del}` / `{add}` / `{set}` steps replayed backwards. Remove
+  objects through `del()`, `delMany()` or `delDrawer()` in `mutations.js` — a
+  bare `S.objects.splice()` in a handler is exactly how group delete came to be
+  unrecoverable. A deleted picture is only freed from IndexedDB when its move
+  falls off the bottom of the stack.
+- **A box belongs to one container's coordinate space.** Reparenting in bulk has
+  to clear `desk`/`phone` and let `ensureBox()` re-place, or the moved objects
+  land on the same numbers in a grid where those numbers mean somewhere else —
+  usually on top of something. `delDrawer()` is the one that got this wrong.
+  Guarded as `contentsReplaced` in the smoke test.
 - **Drawer fronts are solid mid-dark colours** and everything inside them reads
   light, via `--dink`/`--dink-2`/`--dink-3` set on `.drawer`. Don't use `--ink-*`
   inside a drawer tile — it's the page's dark ink and will vanish.

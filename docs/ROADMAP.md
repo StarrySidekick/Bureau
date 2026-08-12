@@ -60,8 +60,11 @@ panel replaces it and there is no way back except reopening.
   container Y, toggle a lock, open the paste box), not just open things
 - **template-spawn** — generalize `spawn` to deep-copy a template object with
   its children (weekly review, packing list)
-- **undo log** — multi-level, covering group delete, drawer delete, paste
-  import, panel changes
+- ~~**undo log**~~ — done (2026-08-12). `S.undo` is a stack of up to 20 moves,
+  each a list of steps replayed backwards (`{del}`, `{add}`, `{set}`), covering
+  single delete, group delete, drawer delete and paste import, on the Undo in
+  the toast or ⌘Z. *Still open:* panel changes aren't recorded, and there is no
+  redo
 
 ## 4. Known small gaps (fold into any session)
 

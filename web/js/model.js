@@ -201,9 +201,11 @@ function seed(){
 
     O({kind:'script', title:'THE LAST VIDEO STORE — cold open', parent:'d_studio', tags:['film'],
        body:'### INT. VIDEO STORE — NIGHT\n\nFluorescent hum. Shelves half empty. MARGO, 60s, alphabetizes a section that no longer needs it.\n\n**MARGO**\nWe close at nine. We closed at nine for thirty-one years.\n\nShe puts a tape back anyway.'}),
-    O({kind:'media', title:'Reference — brass drawer pulls', parent:'d_studio', tags:['visual','bureau'], media:{type:'image', label:'12 photographs · Kodak Gold'}}),
-    O({kind:'media', title:'Room tone — kitchen, 4am', parent:'d_studio', tags:['film'], media:{type:'audio', label:'02:14 · WAV'}}),
-    O({kind:'media', title:'Drawer-open animation test v3', parent:'d_studio', tags:['bureau','visual'], media:{type:'video', label:'00:06 · ProRes'}}),
+    // One 'media' kind became image/audio/video in migration 7; the seed kept
+    // naming the old one, so these three came back as plain notes on first run.
+    O({kind:'image', title:'Reference — brass drawer pulls', parent:'d_studio', tags:['visual','bureau'], media:{type:'image', label:'12 photographs · Kodak Gold'}}),
+    O({kind:'audio', title:'Room tone — kitchen, 4am', parent:'d_studio', tags:['film'], media:{type:'audio', label:'02:14 · WAV'}}),
+    O({kind:'video', title:'Drawer-open animation test v3', parent:'d_studio', tags:['bureau','visual'], media:{type:'video', label:'00:06 · ProRes'}}),
 
     O({kind:'habit', title:'Write 500 words', parent:'d_keep', tags:['writing'], repeat:'daily',
        history:[dz(-1),dz(-2),dz(-3),dz(-4),dz(-6),dz(-7),dz(-8),dz(-11)], body:'**Why —** The essay only exists on the days I show up.'}),
@@ -246,7 +248,7 @@ function reset(){
     device:sensedDevice(), layoutEdit:null, theme:'paper',
     view:'desk', drawerId:null, openId:null,
     arrange:false, kindFilter:null, calDay:null,
-    trash:null, editing:false, sel:[], readId:null, bookAt:0, bookMode:false,
+    undo:[], editing:false, sel:[], readId:null, bookAt:0, bookMode:false,
     deskCfg:{layout:'grid', locked:false, sort:null},
     look:defaultLook()
   };

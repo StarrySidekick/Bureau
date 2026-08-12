@@ -4,7 +4,7 @@ import { S, K, KINDS, KEYS, refreshKinds, ATTRS, USER_ATTRS, attrsOf, has, SHAPE
   unrelate, sensedDevice, reset, T, dz, dev } from './model.js';
 import { gridOf, lay, boxOk, freeSpot } from './grid.js';
 import { applyLook, applyStyle, setLookVal, lookVal, STYLES, PALETTES, randomFront } from './look.js';
-import { toast, toggleDone, del, undo, setPin, togglePin, drawerForTag, create, quickAdd, randomThing } from './mutations.js';
+import { toast, toggleDone, del, delMany, delDrawer, undo, setPin, togglePin, drawerForTag, create, quickAdd, randomThing } from './mutations.js';
 import { spinTo, pending, placeAtPending, tileTap } from './tiles.js';
 import { render, sizeGrid, toggleSettings } from './views.js';
 import { openObj, closeSheet, renderSheet } from './sheet.js';
@@ -57,16 +57,7 @@ function act(name, el){
       closePanel(); save(); render(); toast(id?'Drawer updated':'Drawer added');
       break;
     }
-    case 'deldrawer': {
-      const id=el.dataset.id;
-      // its children are kept — they fall back to wherever it lived
-      const d=byId(id), up=(d&&d.parent)||ROOT;
-      S.objects.forEach(o=>{ if(o.parent===id) o.parent=up; });
-      S.objects=S.objects.filter(o=>o.id!==id);
-      if(S.drawerId===id){ S.drawerId=up===ROOT?null:up; S.view=up===ROOT?'desk':'drawer'; }
-      closePanel(); save(); render(); toast('Drawer removed — its contents kept');
-      break;
-    }
+    case 'deldrawer': { closePanel(); delDrawer(el.dataset.id); save(); break; }
     case 'countup': { const o=byId(el.dataset.id); o.count=(o.count||0)+1; save();
       // spin in place when it's a tile, so the wheels animate instead of blinking
       const w=el.closest('.cntnum'); if(w){ spinTo(w, o.count); renderSheet(); }
@@ -261,9 +252,8 @@ function wire(){
       else if(cmd==='intodrawer') drawerFromSelection(id);
       else if(cmd==='del'){
         const sel = S.sel.includes(id) ? S.sel.slice() : [id];
-        if(sel.length>1){ sel.forEach(x=>{ const i=S.objects.findIndex(o=>o.id===x); if(i>=0) S.objects.splice(i,1); });
-          S.sel=[]; save(); render(); toast(`Deleted ${sel.length}`); }
-        else del(id);
+        if(sel.length>1) delMany(sel); else del(id);
+        save();
       }
       return; }
 
@@ -500,9 +490,7 @@ function wire(){
       }
       toast('No room to resize — move it first'); return; }
     const dd=t.closest('[data-delDrawer]');
-    if(dd){ const id=dd.dataset.deldrawer, o=byId(id), up=(o&&o.parent)||ROOT;
-      S.objects.forEach(x=>{ if(x.parent===id) x.parent=up; });
-      S.objects=S.objects.filter(x=>x.id!==id); save(); render(); return; }
+    if(dd){ delDrawer(dd.dataset.deldrawer); save(); return; }
 
     const cr=t.closest('[data-cmd]'); if(cr){ runCmd(+cr.dataset.cmd); return; }
 
@@ -613,11 +601,6 @@ function wire(){
         const el=document.querySelector(`[data-dayadd="${did}:${iso}"]`); el&&el.focus(); }
       return;
     }
-    if(e.target.id==='qa' && e.key==='Enter'){
-      const o=quickAdd(e.target.value, e.target.dataset.kind, e.target.dataset.drawer);
-      e.target.value=''; if(o){ render(); setTimeout(()=>{const q=$('#qa'); q&&q.focus();},0); toast('Added'); }
-      return;
-    }
     if(e.target.id==='cmdinput'){
       if(e.key==='Enter'){ runCmd(0); }
       if(e.key==='Escape'){ closeCmd(); }
@@ -629,7 +612,8 @@ function wire(){
     if((e.metaKey||e.ctrlKey) && e.key.toLowerCase()==='k'){ e.preventDefault(); openCmd(); return; }
     if(e.key==='Escape'){ closeCtx(); closeCmd(); closePanel();
       if(S.openId||S.readId) closeSheet(); return; }
-    if(typing) return;
+    if(typing) return;   // in a field, ⌘Z is the browser's to answer, not ours
+    if((e.metaKey||e.ctrlKey) && e.key.toLowerCase()==='z'){ e.preventDefault(); undo(); save(); return; }
     if(e.key==='n'||e.key==='N'){ e.preventDefault(); modalNewObject(); return; }
     if(panelKey()==='newobject'){
       const k=KEYS.find(x=>KINDS[x].key.toLowerCase()===e.key.toLowerCase());

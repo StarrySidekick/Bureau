@@ -1,7 +1,7 @@
 import { D, uid, clamp, ROOT } from './util.js';
 import { S, K, KINDS, KEYS, kindHas, isContainer, refreshKinds, defaultLook, dev } from './model.js';
 import { GRID, overlaps, gridOf, freeSpot, sizeOfKind } from './grid.js';
-import { toast, create } from './mutations.js';
+import { toast, create, pushUndo } from './mutations.js';
 import { render } from './views.js';
 import { renderSheet } from './sheet.js';
 import { closePanel } from './panels.js';
@@ -159,6 +159,7 @@ function adopt(d){
   S.look = Object.assign(defaultLook(), d.look||{});
   if(d.theme) S.theme = d.theme;
   S.pins = Array.isArray(d.pins) ? d.pins.slice() : [];
+  S.undo = [];   // the moves on it referred to objects this desk has never had
   refreshKinds();
   return true;
 }
@@ -322,6 +323,7 @@ function addSpec(spec, parentId, tally){
   const w=clamp(parseInt(spec.w,10)||dw,1,gridOf().cols), h=Math.max(1,parseInt(spec.h,10)||dh);
   o[dev()]=freeSpot(w,h,dev(),parentId);
   tally[isContainer(o)?'drawers':'objects']++;
+  tally.made.push(o.id);
   kids.forEach(c=>addSpec(c, o.id, tally));
   return o;
 }
@@ -335,14 +337,17 @@ function pasteObjects(text, parentId){
   catch(e){ toast('That is not valid JSON — check for a stray comma'); return; }
   const list=Array.isArray(data)?data:[data];
   if(!list.length) return toast('Nothing to add');
-  const tally={drawers:0,objects:0};
+  const tally={drawers:0,objects:0,made:[]};
   try{ list.forEach(sp=>addSpec(sp, parentId||ROOT, tally)); }
   catch(e){ toast('Could not read that: '+e.message); return; }
   save(); render();
   const bits=[];
   if(tally.drawers) bits.push(`${tally.drawers} drawer${tally.drawers>1?'s':''}`);
   if(tally.objects) bits.push(`${tally.objects} object${tally.objects>1?'s':''}`);
-  toast('Added '+(bits.join(' and ')||'nothing'));
+  // a paste is one move, however many objects it made — undoing it should not
+  // mean pressing undo forty times
+  pushUndo('Paste', tally.made.map(id=>({add:id})));
+  toast('Added '+(bits.join(' and ')||'nothing'), !!tally.made.length);
 }
 
 export { APP_VERSION, writeNow, save, storeSize, load, exportBackup,

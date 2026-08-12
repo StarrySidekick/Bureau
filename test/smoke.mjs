@@ -4,9 +4,12 @@
 // Screenshots land in test/shots/ — look at them, this is a visual app.
 import { chromium } from 'playwright';
 const URL = process.env.BUREAU_URL || 'http://127.0.0.1:8000/index.html';
+// Somewhere that already has a Chromium playwright didn't download itself:
+//   BUREAU_CHROME=/opt/pw-browsers/chromium node test/smoke.mjs
+const CHROME = process.env.BUREAU_CHROME;
 
 (async () => {
-  const browser = await chromium.launch();
+  const browser = await chromium.launch(CHROME ? { executablePath: CHROME } : {});
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   const page = await ctx.newPage();
   const errs = [];
@@ -401,13 +404,64 @@ const URL = process.env.BUREAU_URL || 'http://127.0.0.1:8000/index.html';
     return n;
   });
 
+  // --- undo covers the three ways to lose the most at once. Group delete and
+  // drawer delete used to bypass the single-slot bin entirely, so the toast
+  // said "Deleted 12" and meant it.
+  const undoWorks = await page.evaluate(async () => {
+    const S = BUREAU.state, out = {};
+    const ids = () => S.objects.map(o => o.id).join();
+
+    // a selection comes back whole, in the order it was in
+    const made = ['a', 'b', 'c'].map(n =>
+      BUREAU.create('task', { parent: 'd_in', title: 'undo ' + n }).id);
+    BUREAU.render();
+    const beforeGroup = ids();
+    BUREAU.delMany(made);
+    out.groupGone = made.every(id => !S.objects.some(o => o.id === id));
+    BUREAU.undo();
+    out.groupExact = ids() === beforeGroup;
+
+    // a drawer comes back, and so does where its contents were sitting
+    const d = BUREAU.create('drawer', { parent: 'root', title: 'Undo test' });
+    const kid = BUREAU.create('note', { parent: d.id, title: 'inside' });
+    kid.desk = { x: 1, y: 1, w: 4, h: 4 };
+    BUREAU.render();
+    const beforeDrawer = ids();
+    BUREAU.delDrawer(d.id);
+    out.drawerGone = !S.objects.some(o => o.id === d.id);
+    const orphan = S.objects.find(o => o.id === kid.id);
+    out.contentsKept = !!orphan && orphan.parent === 'root';
+    // its box was a coordinate in the drawer's space. Reused on the desk it
+    // landed on top of Today; it has to be re-placed somewhere free instead.
+    out.contentsReplaced = !!orphan.desk && !(orphan.desk.x === 1 && orphan.desk.y === 1);
+    BUREAU.undo();
+    const home = S.objects.find(o => o.id === kid.id);
+    out.drawerExact = ids() === beforeDrawer;
+    out.contentsHome = home.parent === d.id && home.desk.x === 1 && home.desk.y === 1;
+    BUREAU.delDrawer(d.id); BUREAU.del(kid.id);
+
+    // a paste is one move however many objects it made
+    const n0 = S.objects.length;
+    BUREAU.paste(JSON.stringify([{ type: 'drawer', title: 'Pasted',
+      children: [{ type: 'task', title: 'x' }, { type: 'task', title: 'y' }] }]), 'root');
+    out.pasteMade = S.objects.length === n0 + 3;
+    BUREAU.undo();
+    out.pasteUndone = S.objects.length === n0;
+
+    // an empty stack is a toast, not a crash
+    S.undo = [];
+    BUREAU.undo();
+    out.emptyStackSafe = true;
+    return out;
+  });
+
   console.log(JSON.stringify({
     errors: errs, manifestOk, swReady, survived, themeSurvived,
     gridClass, offlineWorks, railGone, tabsGone, pinbarShown, pinNavigates,
     pinToggles, holdArms, maxDrift,
     settingsIsPanel, pickerPreviews, builderPreview, everyMenuIsAPanel,
     pasteOk, magicOk, rollupOk, relationsOk, relationsUI,
-    timeLayer, tagDrawer, pinReorder, groupMove, dupIds
+    timeLayer, tagDrawer, pinReorder, groupMove, dupIds, undoWorks
   }, null, 2));
   await browser.close();
 })();

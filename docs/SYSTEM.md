@@ -271,8 +271,16 @@ something. The editor is not the default; it is on the context menu. A drawer
 always opens.
 
 **Keys.** `N` opens the type picker, then a single letter picks the type. `⌘K`
-searches objects, drawers and types and offers to create what you typed. `Esc`
-closes whatever is open.
+searches objects, drawers and types and offers to create what you typed. `⌘Z`
+undoes — except in a field, where it is the browser's to answer. `Esc` closes
+whatever is open.
+
+**Undo** is a stack of up to 20 moves in `S.undo`, in memory only. A move is a
+list of steps replayed backwards: `{del:{o,i}}` puts an object back at its
+index, `{add:id}` takes one out again, `{set:{id,k,v}}` restores a field to
+what it was. Deleting one thing, deleting a selection, deleting a drawer and
+pasting are each one move. A deleted object's picture is only freed from
+IndexedDB when its move falls off the bottom of the stack.
 
 **Making things by typing** happens in three places: a Text field object (type
 into it and a task appears below), the day panel in a calendar, and the command
@@ -345,7 +353,7 @@ resized on the grid) and **sync between devices** (export/import is the bridge).
 | The detail sheet | `sheet.js` |
 | Every menu, form, popup and the palette | `panels.js` |
 | Drag, resize, lasso, sketch, swipe | `gestures.js` |
-| Create, complete, delete, repeat, pin, tag-drawer | `mutations.js` |
+| Create, complete, delete, undo, repeat, pin, tag-drawer | `mutations.js` |
 | Storage, migrations, assets, export/import, paste | `persist.js` |
 | Themes, palettes, styles | `look.js` |
 | The one delegated listener set | `wire.js` |
