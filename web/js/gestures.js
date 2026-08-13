@@ -1,7 +1,7 @@
 import { $$, clamp, D, ROOT } from './util.js';
-import { S, byId, dev, has, isAncestor, childrenOf, container } from './model.js';
+import { S, byId, dev, has, isAncestor, childrenOf, container, gatherKind } from './model.js';
 import { CELL, gridOf, cellW, lay, boxOk, overlaps } from './grid.js';
-import { toast } from './mutations.js';
+import { toast, gather } from './mutations.js';
 import { pending, tileTap, fireButton } from './tiles.js';
 import { modalNewObject } from './panels.js';
 import { render } from './views.js';
@@ -37,6 +37,132 @@ function candidate(g, cx, cy){
 function place(el, b){
   el.style.gridColumn=`${b.x} / span ${b.w}`;
   el.style.gridRow=`${b.y} / span ${b.h}`;
+}
+// put a carried tile down: the offset the sway was composing, and the fallback
+function clearCarry(el){
+  if(!el) return;
+  el.style.removeProperty('--carryx');
+  el.style.removeProperty('--carryy');
+  el.style.transform='';
+}
+
+/* ---- where letting go would put it ------------------------------------
+   Four answers, in the order they beat each other: a day on a calendar, a
+   point along a timeline's axis, an object it can gather with, a container to
+   file into. The first two sit *inside* a container's tile, so they have to be
+   asked about first — otherwise every drop on a calendar would file into the
+   drawer and throw the date away, which is the bug that made this ordering
+   explicit rather than incidental. */
+function clearAim(g){
+  if(g.dayEl){ g.dayEl.classList.remove('dropday'); g.dayEl=null; }
+  if(g.tlEl){ g.tlEl.classList.remove('droptime');
+              delete g.tlEl.dataset.droplabel;
+              const r=g.tlEl.querySelector('.tlrule');
+              if(r) r.style.removeProperty('--dropx');
+              g.tlEl=null; }
+  if(g.gatherEl){ g.gatherEl.classList.remove('dropgather'); g.gatherEl=null; }
+  if(g.dropEl){ g.dropEl.classList.remove('dropinto'); g.dropEl=null; }
+  g.dropDay=g.dropTl=g.dropOn=g.gatherOn=g.gatherKind=null;
+}
+// Somewhere this object may legally end up: not itself, not inside itself, and
+// not a magic drawer — those collect by rule and hold nothing, so filing into
+// one would take the object out of the drawer it actually lives in.
+const canFile = (dragId, intoId) => !!intoId && intoId!==dragId
+  && !has(byId(intoId),'magic') && !isAncestor(dragId, byId(intoId));
+// The same, minus the magic rule: a magic calendar can still date something it
+// only ever borrows.
+const canDate = (dragId, intoId) => !!intoId && intoId!==dragId && !isAncestor(dragId, byId(intoId));
+
+function aimDrop(g, px, py){
+  clearAim(g);
+  const d=byId(g.id);
+  // a set has no single date, and nothing to gather with — it only ever files
+  if(!d) return;
+  const under=document.elementFromPoint(px, py);
+  if(!under) return;
+  const dated=!g.group && has(d,'date');
+
+  const dayEl = dated && under.closest('[data-calday]');
+  if(dayEl && canDate(g.id, dayEl.dataset.calday.split(':')[0])){
+    g.dayEl=dayEl; g.dropDay=dayEl.dataset.calday; dayEl.classList.add('dropday');
+    return;
+  }
+  /* A timeline's face is a date axis, so the fraction of the rule the pointer
+     is along *is* the date. The readout is drawn from --dropx and the label,
+     because you cannot aim at a day you cannot see. */
+  const tlEl = dated && under.closest('[data-tlspan]');
+  if(tlEl){
+    const [tid,min,max]=tlEl.dataset.tlspan.split(':');
+    const rule=tlEl.querySelector('.tlrule');
+    if(rule && canDate(g.id, tid)){
+      const r=rule.getBoundingClientRect();
+      const f=clamp((px-r.left)/Math.max(1,r.width), 0, 1);
+      const span=Math.max(1, Math.round((D.parse(max)-D.parse(min))/864e5));
+      const iso=D.addISO(min, Math.round(f*span));
+      g.tlEl=tlEl; g.dropTl={id:tid, iso};
+      tlEl.classList.add('droptime');
+      rule.style.setProperty('--dropx', (f*100)+'%');
+      // the date reads in the tile's corner, not at the mark: the tile being
+      // dragged is under the pointer and would sit on top of it there
+      tlEl.dataset.droplabel=D.short(iso);
+      return;
+    }
+  }
+  // two of a kind, dropped together, become the thing they add up to
+  if(!g.group){
+    const objEl=under.closest('.grid .drawer[data-row]');
+    const tgt=objEl && byId(objEl.dataset.row);
+    const gk=tgt && gatherKind(d, tgt);
+    if(gk){ g.gatherEl=objEl; g.gatherOn=tgt.id; g.gatherKind=gk; objEl.classList.add('dropgather'); return; }
+  }
+  /* A pinned drawer is a drop target too, and on a phone it is *the* drop
+     target: the bar is always on screen, so filing something three screens
+     away stops being a scroll you cannot perform while your finger is holding
+     the tile. One selector rather than a branch — the bar and the board are
+     both just places a drawer can be. */
+  const over=under.closest('.grid .drawer[data-drawer], .pinbar .pinbtn[data-drawer]');
+  if(over && !g.group && canFile(g.id, over.dataset.drawer)){
+    g.dropEl=over; g.dropOn=over.dataset.drawer; over.classList.add('dropinto');
+  }
+}
+
+/* ---- carrying a tile past the edge of the screen ----------------------
+   The drag suppresses scrolling, or the page would run away under the finger.
+   That leaves a phone desk five screens tall rearrangeable only within the one
+   screen you started on, so holding the tile near the top or bottom pans the
+   board under it — the same thing dragging a file to the edge of a window does.
+   The grab point moves with the board, or the tile would slide out from under
+   the finger by exactly as much as the board scrolled. */
+const PAN_EDGE = 68, PAN_MAX = 16;
+let panning=null;
+function stopPan(){ if(panning){ cancelAnimationFrame(panning); panning=null; } }
+function autoPan(){
+  panning=null;
+  if(!G || G.mode!=='grid' || G.type!=='move' || !G.scroller) return;
+  const sc=G.scroller, r=sc.getBoundingClientRect();
+  let v=0;
+  if(G.py < r.top+PAN_EDGE)         v = -PAN_MAX*Math.min(1,(r.top+PAN_EDGE-G.py)/PAN_EDGE);
+  else if(G.py > r.bottom-PAN_EDGE) v =  PAN_MAX*Math.min(1,(G.py-(r.bottom-PAN_EDGE))/PAN_EDGE);
+  if(v){
+    const was=sc.scrollTop;
+    sc.scrollTop += v;
+    const moved=sc.scrollTop-was;             // 0 at either end of the board
+    if(moved){
+      G.sy -= moved;
+      applyDrag(G, G.px-G.sx, G.py-G.sy);
+    }
+  }
+  panning=requestAnimationFrame(autoPan);
+}
+/* Filing on a drop clears *both* layouts, not just this device's. The object
+   has landed in a new container, which is a new coordinate space on the phone
+   as much as on the desk — leaving the other box meant it kept a position that
+   belonged to the drawer it came from, and collided the next time you opened
+   that layout. */
+function fileInto(d, intoId){
+  if(!canFile(d.id, intoId) || d.parent===intoId) return false;
+  d.parent=intoId; d.desk=null; d.phone=null;
+  return true;
 }
 
 function onDown(e){
@@ -97,13 +223,16 @@ function onDown(e){
     try{ dEl.setPointerCapture&&dEl.setPointerCapture(e.pointerId); }catch(_){}
     if(!G.armed){
       const g=G;
+      /* A finger needs longer than a mouse. 200ms is a click you held slightly
+         too long, and on touch that is most of them — but it is also the whole
+         budget for deciding this is not a scroll, so it cannot grow much. */
       holdTimer=setTimeout(()=>{
         holdTimer=null;
         if(G!==g) return;
         G.armed=true;
         G.el.classList.add('lifted');
         if(navigator.vibrate) navigator.vibrate(6);
-      }, 200);
+      }, e.pointerType==='touch' ? 300 : 200);
       holdFrom={x:e.clientX,y:e.clientY};
     }
     return;
@@ -163,20 +292,31 @@ function onMove(e){
 
   if(G.type==='move' || G.type==='resize'){
     if(!G.armed) return;             // still waiting out the hold
+    G.px=e.clientX; G.py=e.clientY;
     if(!G.mode){
       if(Math.abs(dx)<5 && Math.abs(dy)<5) return;
       G.mode='grid';
       G.el.classList.add('dragging');
-      // the tile follows the pointer, so it has to stop being hit-testable or
-      // elementFromPoint only ever finds the thing being dragged
-      if(G.type==='move') G.el.style.pointerEvents='none';
       if(G.type==='move'){
+        // the tile follows the pointer, so it has to stop being hit-testable or
+        // elementFromPoint only ever finds the thing being dragged
+        G.el.style.pointerEvents='none';
         G.ghost=document.createElement('div');
         G.ghost.className='ghost';
         place(G.ghost, G.box);
         G.el.parentElement.appendChild(G.ghost);
+        G.scroller=G.el.closest('.scroll');
+        if(!panning) panning=requestAnimationFrame(autoPan);
       }
     }
+    applyDrag(G, dx, dy);
+    return;
+  }
+}
+/* Everything a move redraws, given how far the pointer has travelled. Split out
+   because the edge pan has to redraw between pointer events — the finger is
+   holding still at the edge and the board is what moves. */
+function applyDrag(G, dx, dy){
     const cx=Math.round(dx/G.stepX), cy=Math.round(dy/G.stepY);
     const box=candidate(G, cx, cy);
     G.cand=box;
@@ -195,39 +335,29 @@ function onMove(e){
     }
     G.el.classList.toggle('invalid', !G.ok);
     if(G.type==='move'){
+      /* Both: the animation's transform composes --carryx/--carryy and wins,
+         and the inline one carries the tile if the sway never started (reduced
+         motion, or a resize grip, which is armed without ever being lifted). */
+      G.el.style.setProperty('--carryx', dx+'px');
+      G.el.style.setProperty('--carryy', dy+'px');
       G.el.style.transform=`translate(${dx}px,${dy}px)`;
       if(G.group) G.group.forEach(g2=>{
         if(g2.id===G.id) return;
         const el=document.querySelector(`.grid .drawer[data-row="${g2.id}"],.grid .drawer[data-drawer="${g2.id}"],.grid .drawer[data-id="${g2.id}"]`);
         if(el){ el.style.transform=`translate(${dx}px,${dy}px)`; el.style.zIndex=49; }
       });
-      // a drawer under the pointer is a place to file into, not a collision
-      const under=document.elementFromPoint(e.clientX,e.clientY);
-      /* A day cell sits inside a calendar drawer's tile, so it has to be asked
-         about first — otherwise every drop would just file into the drawer and
-         the date would be lost. */
-      // a group has no single date to set, so it only ever files, never schedules
-      const dayEl=!G.group && under && under.closest('[data-calday]');
-      if(G.dayEl && G.dayEl!==dayEl) G.dayEl.classList.remove('dropday');
-      G.dayEl=dayEl||null;
-      G.dropDay = dayEl ? dayEl.dataset.calday : null;
-      if(dayEl) dayEl.classList.add('dropday');
-      const over=!dayEl && under && under.closest('.grid .drawer[data-drawer]');
-      const overId=over && over.dataset.drawer;
-      const canDrop = !G.group && overId && overId!==G.id && !isAncestor(G.id, byId(overId)) && !has(byId(overId),'magic');
-      if(G.dropOn && G.dropOn!==overId){ const p=document.querySelector(`[data-drawer="${G.dropOn}"]`); p&&p.classList.remove('dropinto'); }
-      G.dropOn = canDrop ? overId : null;
-      if(G.dropOn) over.classList.add('dropinto');
-      G.ghost.className='ghost'+(G.dropOn?' hidden':(G.ok?'':' bad'));
+      // what is under the pointer is a place to land, not a collision
+      aimDrop(G, G.px, G.py);
+      const landing = G.dropDay||G.dropTl||G.dropOn||G.gatherOn;
+      G.ghost.className='ghost'+(landing?' hidden':(G.ok?'':' bad'));
       place(G.ghost, box);
     } else {
       place(G.el, box);            // live resize, like dragging a window edge
     }
-    return;
-  }
 }
 function onUp(e){
   if(holdTimer){ clearTimeout(holdTimer); holdTimer=null; }
+  stopPan();
   if(!G) return;
   const g=G; G=null;
   const dx=e.clientX-g.sx;
@@ -258,32 +388,43 @@ function onUp(e){
 
   if(g.mode==='grid'){
     g.el.classList.remove('dragging','invalid','lifted');
-    g.el.style.transform=''; g.el.style.pointerEvents='';
+    clearCarry(g.el); g.el.style.pointerEvents='';
     if(g.group) g.group.forEach(g2=>{
       const el=document.querySelector(`.grid .drawer[data-row="${g2.id}"],.grid .drawer[data-drawer="${g2.id}"],.grid .drawer[data-id="${g2.id}"]`);
       if(el){ el.style.transform=''; el.style.zIndex=''; }
     });
     if(g.ghost) g.ghost.remove();
-    $$('.dropinto').forEach(e2=>e2.classList.remove('dropinto'));
-    $$('.dropday').forEach(e2=>e2.classList.remove('dropday'));
+    const aim={day:g.dropDay, tl:g.dropTl, on:g.dropOn, gath:g.gatherOn, gk:g.gatherKind};
+    clearAim(g);
     const d=byId(g.id);
-    // dropped on a day: it gets that date, and moves into the drawer showing
+    const swallow=id=>{ const el=document.querySelector(`[data-drawer="${id}"]`);
+      if(el){ el.classList.add('swallow'); setTimeout(()=>el.classList.remove('swallow'),420); } };
+    // dropped on a day: it gets that date, and moves into the container showing
     // the month, because a date it can't be seen on is only half the gesture
-    if(d && g.dropDay && !g.group){
-      const [did,iso]=g.dropDay.split(':');
-      if(has(d,'date')){
-        d.due=iso;
-        if(d.parent!==did && !isAncestor(d.id, byId(did))){ d.parent=did; d[dev()]=null; }
-        save(); render(); toast(`Scheduled ${D.human(iso).toLowerCase()}`);
-      } else { render(); toast(`${d.title||'That'} has no date to set`); }
+    if(d && aim.day){
+      const [did,iso]=aim.day.split(':');
+      d.due=iso; fileInto(d, did);
+      save(); render(); toast(`Scheduled ${D.said(iso)}`);
       return;
     }
-    if(d && g.dropOn){
-      const into=byId(g.dropOn);
-      d.parent=g.dropOn; d[dev()]=null;      // it will be placed inside on first render
+    // dropped along a timeline: the point on the axis is the date
+    if(d && aim.tl){
+      d.due=aim.tl.iso; fileInto(d, aim.tl.id);
+      save(); render(); swallow(aim.tl.id);
+      toast(`Placed at ${D.said(aim.tl.iso)}`);
+      return;
+    }
+    // dropped on something it agrees with: the two become what they add up to
+    if(d && aim.gath){
+      const c=gather(g.id, aim.gath, aim.gk);
       save(); render();
-      const el=document.querySelector(`[data-drawer="${g.dropOn}"]`);
-      if(el){ el.classList.add('swallow'); setTimeout(()=>el.classList.remove('swallow'),420); }
+      if(c) swallow(c.id);
+      return;
+    }
+    if(d && aim.on){
+      const into=byId(aim.on);
+      fileInto(d, aim.on);                   // it will be placed inside on first render
+      save(); render(); swallow(aim.on);
       toast(`Filed in ${into?into.title:'the drawer'}`);
       return;
     }
@@ -306,10 +447,18 @@ function onUp(e){
    the gesture, that click has to be swallowed or reordering a pin would also
    open the drawer. wire.js clears this on the next click it sees. */
 const gestureFlags = {suppressClick:false};
+/* Whether a tile is currently being carried. wire.js asks, because two things
+   outside this module have to stand down while one is: the page's own scroll,
+   and the long-press context menu that iOS fires at about the same moment the
+   hold arms. */
+const dragArmed = ()=> !!(G && G.armed);
 
 function onCancel(){
   if(holdTimer){ clearTimeout(holdTimer); holdTimer=null; }
-  if(G){ if(G.el){ G.el.style.transform=''; G.el.classList.remove('lifted','dragging','invalid'); } G=null; }
+  stopPan();
+  if(G){ clearAim(G); if(G.ghost) G.ghost.remove();
+         if(G.el){ clearCarry(G.el); G.el.style.pointerEvents='';
+                   G.el.classList.remove('lifted','dragging','invalid'); } G=null; }
 }
 
-export { onDown, onMove, onUp, onCancel, gestureFlags };
+export { onDown, onMove, onUp, onCancel, gestureFlags, dragArmed };

@@ -430,6 +430,15 @@ are in px and don't scale with the grid, so the first attempt — an 11px cell �
 wrapped "Drawer" onto two lines and drew a drawer that no drawer looks like. A
 miniature has to be the real thing seen from further away.
 
+*And nothing is drawn around it:* the sample first sat inside a bordered card on
+a checkered board, with its name in a footer strip. That is a card inside a card
+— two objects where there is one, and the frame reads as part of the thing you
+are about to make. The card, the border and the board are gone; the sample sits
+on the panel exactly as it will sit on the desk, and its name floats underneath
+as a caption. Hover lifts the sample and colours the name; the edit dial is
+absolutely positioned level with the name, so it can't shove the caption off
+centre as it fades in, and can't land on top of a wide sample.
+
 *Consequences:* a `.kindtile` is a `<div role="button">`, not a `<button>` — the
 sample inside it is itself a `<button>` and a nested one gets hoisted out of the
 DOM. The sample never enters `S`. Deleting an invented type moved from a row of
@@ -445,3 +454,209 @@ drawer form** lost view, border, knob, knob colour and locked, all of which were
 already in the drawer panel; it keeps name, colour, what it collects, its rule,
 its total and the preview style. Its draft is still seeded from the drawer, so
 saving preserves the fields it no longer shows.
+
+### 24. What a drop means — four answers, and a `gathers` property
+
+Dragging used to mean two things: move a tile, or file it into a drawer. It now
+means four, tried in the order they beat each other — a day on a calendar, a
+point along a timeline's axis, an object it adds up with, a container to file
+into. The first two sit *inside* a container's tile, which is why the ordering
+is explicit in `aimDrop()` rather than incidental: ask the drawer first and
+every drop on a calendar files the object and throws the date away.
+
+*The rule that isn't a branch:* "two tasks make a checklist, two ingredients
+make a recipe, two shots make a shot list, two scenes make a story" is four
+branches on a type's name, which CLAUDE.md forbids for good reason — a type you
+invent tomorrow would get none of it. It is one property instead. `gathers`
+names the container a pile of that type becomes, `gatherKind(a,b)` says yes only
+when both agree, and the type builder offers it as a row of chips ("Two of them
+make"). Adding the behaviour to an invented type is filling in a field.
+
+*Why the container takes its own size, not the union:* the new container starts
+at the target's corner, so the pile stays where you made it, but at the size its
+type asks for. Growing to fit what it replaced made a story — a book spine, 3
+cells wide on purpose — six cells wide, which is a door.
+
+*Why a calendar is a container and not a new kind of thing:* it always was one.
+`calendar` is `attrs:['container'], layout:'calendar', face:'calendar'` — the
+layout is how it arranges what it holds when opened, the face is how it draws on
+its parent's board, and nothing branches on the name. A day is not a container:
+the day is a *field* on the object (`due`), and the month grid is how the
+container draws what it holds, arranged by that field. A magic calendar —
+`['container','magic']` with a calendar face, "everything due, drawn as a month"
+— needs no new code at all; the only difference is that dropping on one sets the
+date without reparenting, because a magic drawer holds nothing.
+
+*The timeline had to change to accept a drop.* Its face spaced children by array
+index, which drew a straight line through unequal gaps and gave the pointer no
+date to read. It is a real axis now, `data-tlspan` naming the two dates at its
+ends, labels alternating above and below the rule because a busy fortnight puts
+three of them in the same inch. An empty timeline opens out to four weeks either
+side, or you could never drop the first thing onto it.
+
+*Consequences:* a recipe is a container that holds its ingredients, and a story
+is a container that holds its scenes and wears the `spine` face — so `spine` had
+to become a face as well as a shape. `world` is new, and holds the characters,
+places, items and events that outlive any one book. A container carrying `text`
+now shows its body above what it holds, which is where a recipe's method lives
+once the ingredients have moved out of the prose. And a drawer's layout falls
+back to its *type's* layout: reading only the object meant a type that says it
+opens as a calendar did so only if something had written `layout` onto the
+object, which `create()` does and the seed does not.
+
+### 25. The phone is a column
+
+*A kind's size is written for the desk.* The desk grid is 24 columns, the phone
+16, and a phone column is about 23px against the desk's ~58. Copying the number
+across made a 4×1 task an 84×24 box holding a checkbox and a truncated word: a
+quarter of a desk row is a row, a quarter of a phone row is a stamp. `sizeOfKind`
+takes a device now — on a phone an **object** takes the full width, and a sliver
+gets two cells of height so a thumb has something to hit. **Containers** are left
+alone: two drawers across is what the phone desk looks like, and a book spine
+that fills the width is not a spine.
+
+*The grid runs to both edges.* 10px of paper each side plus a reserved scrollbar
+gutter was 40px of a 375px screen — 11% of the desk spent on nothing, and at
+23px a column that is most of two columns. The gutter is reserved on a desk,
+where the scrollbar is real, and not on a phone, where it is an overlay.
+The padding stays on list and scroll views; only the grid goes flush.
+
+*Dragging on a touch screen.* It did nothing, and the reason is that a finger
+cannot scroll the page and carry a tile at once — the browser decides which by
+the time the second `touchmove` lands, and with `touch-action:auto` it always
+chose scroll. The fix is the hold: 300ms of a stationary finger means no scroll
+has started, and that is the only window in which `preventDefault` can stop one
+from starting. So a **non-passive** `touchmove` listener preventDefaults while
+`dragArmed()`, iOS's long-press callout and context menu are suppressed for the
+same press, and the hold is 300ms on touch against 200 with a mouse.
+
+*Against:* it is one gesture arbitrating two intentions, and 6px of wobble
+during the hold can still lose the drag to a scroll. Preventing during the hold
+*window* would fix that and break flick-scrolling from a tile, which is the more
+common action — so the wobble stays.
+
+*And two ways to reach.* Blocking the scroll leaves a five-screen desk
+rearrangeable only within one screen, so carrying a tile to the top or bottom
+edge pans the board under it. Better than panning: **a pinned drawer is a drop
+target**. The bar never scrolls away, so filing something into a drawer three
+screens down is a short drag rather than a journey. One selector in `aimDrop`,
+not a branch — the bar and the board are both just places a drawer can be.
+
+### 25b. Everything is an object; containing is an attribute
+
+Not a change of code — a change of what the words mean, and the code was
+already shaped for it. The model had two names for one thing: `S.objects` holds
+everything and `container` is an ordinary entry in `ATTRS`, but the docs still
+opened with "two sorts of thing" and `model.js` still said a drawer "is a
+different sort of thing". That sentence is the seed of every future
+special-case, so it is gone.
+
+**There is one species.** A drawer is an object carrying `container`. The word
+stays in the interface, because "drawer" is what it looks like and what you do
+with it, and stays out of the code, because `isContainer(o)` is just
+`has(o,'container')` and nothing may ask more than that.
+
+`container` and `magic` remain in `STRUCTURAL`, kept out of `USER_ATTRS` and the
+attribute picker. That is not a retreat from the idea: they are dangerous to
+toggle, not different in kind. Turning a note into a drawer by brushing past a
+chip orphans whatever was inside, so the question is asked deliberately — in the
+type builder and the drawer settings — rather than never.
+
+### 26. A tile says less as it gets smaller, and at 1×1 says nothing
+
+*A cell is 40px on a desk and 23 on a phone.* Every shape in `tiles.js` was
+drawn assuming there is room for a name, so a drawer shrunk to one cell printed
+"Untit…" across its own knob and an object printed three letters and an
+ellipsis. That reads as a bug, not as a small thing.
+
+So a tile now knows how big it is. `sizeClass()` stamps three classes and the
+stylesheet only ever *takes away* what there is no longer room for — `sz-short`
+(h≤1) drops the body, `sz-narrow` (w≤3) drops the meta line and the rollup.
+Nothing moves; a tile crossing a threshold loses a line rather than rearranging
+itself, so resizing one never turns it into a different-looking thing.
+
+`sz-mini` — one cell square — is the special case, and it is handled in
+`gridTile()` rather than in CSS: the tile is the type's mark, in the object's
+colour, and the title is the tooltip. It is still a drawer front and still a
+drop target, because it is still the same object; only the content is gone.
+
+*Why the classes are stamped on afterwards.* There are fifteen branches in
+`drawTile()` and each returns one element. Threading a class string through all
+fifteen is fifteen chances to forget one, so `gridTile()` splices the size
+classes into the first `class="` of whatever comes back. Add a branch and it
+gets the behaviour for free — the same argument as `gathers` in decision 24.
+
+*Still open:* the thresholds are the same for a container and an object, and a
+6×1 drawer probably wants its knob back.
+
+### 27. A menu about one object comes up out of that object
+
+Decision 23 made every menu a panel down the right, over a desk that stays live.
+That is right for a question about the *desk* — settings, the type picker — and
+wrong for a question about one tile: you click a drawer in the bottom-left and
+answer questions about it in the top-right, looking away from the thing you are
+changing the whole time.
+
+So a panel may name an `anchor`. If the tile is on screen and either side has
+room for the panel, it comes up beside it with a tail pointing back — the same
+panel, the same header, the same handlers, only placed and animated differently.
+It grows rather than slides: something that arrives from off-screen is a drawer,
+not a bubble. Below the 900px breakpoint neither side has room and it falls back
+to the edge panel, which is the right shape on a phone anyway.
+
+`repositionPanel()` runs at the end of `render()`, because the tiles move and
+the bubble is pinned to one of them.
+
+*What is anchored:* object settings and drawer settings, from the context menu
+or from a tile. Not the gear in the bar — that opens the settings for the drawer
+you are *inside*, whose tile is nowhere on screen, and `anchorEl()` finding
+nothing is exactly the right answer there.
+
+### 28. A type's starting size is a number, not a menu of eight
+
+The type builder offered eight preset sizes. Eight is enough to pick from and
+nowhere near enough to *design* with, and the presets were desk sizes only —
+what an object did on a phone was derived by `toPhoneSize()` and could not be
+argued with. That derivation is a good guess and a bad rule: "an object goes
+full width" is right for the first task on a screen and wrong for the third
+checklist.
+
+So both grids get sliders as well as presets, and they are two views of one
+number — moving either drags the other with it. The phone pair *follows* the
+derivation until you touch it, at which point `phoneSize` is written onto the
+kind and `sizeOfKind()` prefers it. "Work it out for me" puts it back.
+
+The preview goes through `sampleObject()` and therefore through the same
+`gridTile()` the board uses, so a size you choose here cannot draw differently
+there — including at 1×1, where it draws as decision 26 says it must.
+
+*Still open:* dragging the preview's own corner to set the size, which is the
+gesture the board already uses for exactly this and would need the preview's
+scale factor threaded into a pointer path.
+
+### 29. The board stays where you left it
+
+`render()` replaces `#app` wholesale, so the scroller is a new element every
+time and started at the top. On a desk five screens tall, moving a tile down two
+rows threw you back to the first screen at the moment you let go of it — the
+gesture worked and the evidence of it scrolled away.
+
+The scroll offset is now remembered across a redraw, keyed by *where you are*.
+Same place, same offset; a different place starts at the top, because going into
+a drawer and coming back out is navigation and navigation should land at the
+top. This is not targeted DOM patching and does not open the door to it: the
+render is still a full rebuild, and this is one number carried across it.
+
+### 30. A tile keeps swaying while you carry it
+
+Picking a tile up starts a small unsteady sway. Moving it stopped the sway, and
+the reason is a cascade rule rather than an oversight: a CSS animation's
+`transform` beats an inline one, so a tile could sway *or* follow the pointer,
+and `.dragging{animation:none}` bought the second by giving up the first.
+
+The carry offset is a pair of custom properties now, `--carryx`/`--carryy`, and
+the keyframes compose it with the scale and the rotation. Both are set — the
+inline `transform` still runs as a fallback for anything that never gets the
+animation. A pin being reordered along the bar is `dragging` without ever having
+been `lifted`, so the sway is scoped to `.lifted.dragging` and the bar stays
+still.

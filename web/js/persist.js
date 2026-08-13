@@ -327,7 +327,7 @@ function addSpec(spec, parentId, tally){
   if(spec.face)  o.face=spec.face;
   if(spec.layout) o.layout=spec.layout;
   if(spec.onclick) o.onclick=spec.onclick;
-  const [dw,dh]=sizeOfKind(kind);
+  const [dw,dh]=sizeOfKind(kind, dev());
   const w=clamp(parseInt(spec.w,10)||dw,1,gridOf().cols), h=Math.max(1,parseInt(spec.h,10)||dh);
   o[dev()]=freeSpot(w,h,dev(),parentId);
   tally[isContainer(o)?'drawers':'objects']++;

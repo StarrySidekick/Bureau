@@ -1,5 +1,5 @@
 import { clamp, ROOT } from './util.js';
-import { dev, childrenOf, container, K } from './model.js';
+import { dev, childrenOf, container, K, kindHas } from './model.js';
 
 /* ------------------------------------------------------------
    4b · the grid — one coordinate space per device
@@ -55,12 +55,37 @@ const gridRows = (device,parentId)=> childrenOf(container(parentId||ROOT))
 /* An object that has never been in a grid has no box. Give it one the first
    time it needs to be placed, rather than storing coordinates for everything. */
 /* Each kind declares the size its objects start at — a task is a wide sliver,
-   a drawer a big square. Editable per kind in the kind builder. */
-const sizeOfKind = k => (K(k).size || [4,4]);
+   a drawer a big square. Editable per kind in the kind builder.
+
+   It declares it for the *desk*. The phone grid has fewer columns and they are
+   far smaller in pixels, so copying the number across made a 4×1 task an 84×24
+   box holding a checkbox and a truncated word: a quarter of a desk row is a
+   row, a quarter of a phone row is a stamp. On a phone an object takes the
+   whole width, because a phone is a column and the things in a column are rows,
+   and a sliver gets two cells of height so a thumb has something to hit.
+
+   Containers are left alone. Two drawers across is what the phone desk looks
+   like, and a book spine that fills the width is not a spine. */
+const PHONE_MIN_ROWS = 2;               // ~47px: the smallest honest tap target
+function toPhoneSize(w, h, isCont){
+  if(isCont) return [w,h];
+  return [GRID.phone.cols, h===1 ? PHONE_MIN_ROWS : Math.min(14, Math.ceil(h*1.5))];
+}
+/* A kind may also state its phone size outright, in which case the mapping
+   above is only the default it started from. The type builder writes one the
+   moment you touch the phone sliders — the derivation is a good guess and a
+   bad rule, and "full width" is wrong for the third checklist on a screen. */
+function sizeOfKind(k, device){
+  const [w,h] = K(k).size || [4,4];
+  if((device||dev())!=='phone') return [w,h];
+  const p = K(k).phoneSize;
+  if(p && p[0]) return [clamp(p[0],1,GRID.phone.cols), clamp(p[1],1,40)];
+  return toPhoneSize(w, h, kindHas(k,'container'));
+}
 function ensureBox(o, device, parentId){
   const dv=device||dev();
   if(o[dv] && o[dv].w) return o[dv];
-  const [w,h]=sizeOfKind(o.kind);
+  const [w,h]=sizeOfKind(o.kind, dv);
   o[dv] = freeSpot(w, h, dv, parentId||o.parent);
   return o[dv];
 }
@@ -72,4 +97,4 @@ function cellW(grid,g){
   return (r.width - g.gap*(g.cols-1))/g.cols;
 }
 
-export { GRID, CELL, gridOf, lay, overlaps, boxOk, freeSpot, gridRows, sizeOfKind, ensureBox, cellW };
+export { GRID, CELL, gridOf, lay, overlaps, boxOk, freeSpot, gridRows, sizeOfKind, toPhoneSize, ensureBox, cellW };

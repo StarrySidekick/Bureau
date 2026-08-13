@@ -1,7 +1,7 @@
 /* Bureau — service worker.
    Bump CACHE when you change anything in css/ or js/ (or index.html) and the
    next launch picks it up. New js/css files must also be added to SHELL. */
-const CACHE = 'bureau-v40';
+const CACHE = 'bureau-v44';
 const SHELL = [
   './',
   './index.html',
@@ -27,10 +27,15 @@ const SHELL = [
   './icons/apple-touch-icon.png'
 ];
 
+/* `cache:'reload'` makes each shell fetch go to the network instead of the
+   browser's own HTTP cache. Without it a version bump could fill the new cache
+   from the old one — this really happened: a bump landed the new stylesheet and
+   the previous grid.js side by side, so the app was half-updated and the symptom
+   pointed at the code rather than at here. */
 self.addEventListener('install', e => {
   e.waitUntil(
     caches.open(CACHE)
-      .then(c => c.addAll(SHELL))
+      .then(c => c.addAll(SHELL.map(u => new Request(u, {cache:'reload'}))))
       .then(() => self.skipWaiting())
       .catch(() => self.skipWaiting())
   );

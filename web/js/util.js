@@ -29,6 +29,10 @@ const D = {
     return d.toLocaleDateString(undefined,{month:'short',day:'numeric'});
   },
   short(s){ const d=D.parse(s); return d? d.toLocaleDateString(undefined,{month:'short',day:'numeric'}) : ""; },
+  /* For dropping a date into the middle of a sentence — "scheduled today" wants
+     lowercasing, "Scheduled Sep 4" does not, and the difference is whether the
+     phrase is a word or a date. */
+  said(s){ const h=D.human(s); return /\d/.test(h) ? h : h.toLowerCase(); },
   overdue(s){ return s && D.parse(s) < D.today(); }
 };
 

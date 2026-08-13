@@ -2,7 +2,7 @@ import { $, $$, esc, ic, uid, D, ROOT } from './util.js';
 import { S, K, KINDS, KEYS, refreshKinds, ATTRS, USER_ATTRS, attrsOf, has, SHAPES,
   FACES, SORTS, byId, container, cfgOf, isContainer, isAncestor, relate,
   unrelate, sensedDevice, reset, T, dz, dev } from './model.js';
-import { gridOf, lay, boxOk, freeSpot } from './grid.js';
+import { gridOf, lay, boxOk, freeSpot, toPhoneSize } from './grid.js';
 import { applyLook, applyStyle, setLookVal, lookVal, STYLES, PALETTES, randomFront } from './look.js';
 import { toast, toggleDone, del, delMany, delDrawer, undo, setPin, togglePin, drawerForTag, create, quickAdd, randomThing } from './mutations.js';
 import { spinTo, pending, placeAtPending, tileTap, turnPage, clearPages } from './tiles.js';
@@ -12,12 +12,30 @@ import { openPanel, closePanel, refreshPanel, panelKey, draft, openMenu,
   modalNewObject, modalDrawer, modalNewKind, modalMove, renderPreview,
   drawerPanel, objectPanel,
   drawerFromSelection, openCtx, closeCtx, openCmd, closeCmd, cmdList, runCmd } from './panels.js';
-import { onDown, onMove, onUp, onCancel, gestureFlags } from './gestures.js';
+import { onDown, onMove, onUp, onCancel, gestureFlags, dragArmed } from './gestures.js';
 import { save, writeNow, exportBackup, importBackup, importImage, pasteObjects, install } from './persist.js';
 
 /* Mark one chip in a group as the chosen one. The selector is deliberately
    class-agnostic — the chips in these groups have changed class twice. */
 function only(el, sel){ $$(sel).forEach(b=>b.classList.remove('on')); el.classList.add('on'); }
+
+/* A type's starting size is a preset *and* a pair of sliders, so whichever one
+   you move has to drag the other with it. The phone pair follows the derived
+   size until you touch it — that is the whole meaning of "Work it out for me",
+   and it has to keep following while you are still changing the Mac size. */
+function syncSize(){
+  const d=draft(); if(!d) return;
+  const put=(p,[w,h])=>{
+    const wi=$(`[data-${p}szw]`), hi=$(`[data-${p}szh]`), out=$(`#${p}szout`);
+    if(wi) wi.value=w;
+    if(hi) hi.value=h;
+    if(out) out.textContent=`${w} × ${h}`;
+  };
+  put('k', d.size);
+  put('kp', d.phoneSize || toPhoneSize(d.size[0], d.size[1], d.attrs.includes('container')));
+  $$('#ksize button').forEach(b=>b.classList.toggle('on', b.dataset.ksz===d.size.join('x')));
+  const auto=$('[data-kphauto]'); if(auto) auto.classList.toggle('on', !d.phoneSize);
+}
 
 function act(name, el){
   switch(name){
@@ -110,11 +128,15 @@ function act(name, el){
           return ''; })(),
         ds:$('#kds').value.trim()||base.ds||'A kind you made',
         attrs:dk.attrs.slice(), size:dk.size||[4,4],
+        // null, not undefined: Object.assign over `base` has to be able to
+        // *clear* an override an edited type used to carry
+        phoneSize:dk.phoneSize||null,
         onclick:dk.onclick||'read', body:base.body||'',
         read: dk.sort==='object' ? (dk.read||'page') : undefined,
         shape: dk.sort==='object' ? (dk.shape||'card') : undefined,
         face:  dk.sort==='object' ? undefined : (dk.face||'front'),
         layout: dk.sort==='object' ? undefined : (base.layout||'grid'),
+        gathers: dk.sort==='object' ? (dk.gathers||undefined) : undefined,
         spawnBy: dk.attrs.includes('spawn') ? (dk.spawnBy||'click') : undefined});
       refreshKinds();
       // the object that inspired it now simply *is* that kind
@@ -218,7 +240,18 @@ function wire(){
   frame.addEventListener('pointerup', onUp);
   frame.addEventListener('pointercancel', onCancel);
 
+  /* A finger cannot scroll the page and carry a tile at once, and the browser
+     picks which by the time the second touchmove lands. The hold keeps the
+     finger still for 300ms, so no scroll has started yet — which is the only
+     window in which preventDefault can stop one from starting. Once native
+     scrolling is under way the call is ignored, and the listener has to be
+     non-passive or it is ignored from the start. This is the whole reason
+     dragging did nothing on a phone. */
+  frame.addEventListener('touchmove', e=>{ if(dragArmed()) e.preventDefault(); }, {passive:false});
+
   frame.addEventListener('contextmenu', e=>{
+    // iOS fires this from the same long press that armed the drag
+    if(dragArmed()){ e.preventDefault(); return; }
     const kt=e.target.closest('[data-new]');
     if(kt){ e.preventDefault(); modalNewKind(null, kt.dataset.new); return; }
     const tile=e.target.closest('.grid .drawer');
@@ -433,7 +466,11 @@ function wire(){
       $('#klookn').textContent = v==='object' ? 'shape' : 'face';
       $('#klook').innerHTML = list.map(([val,nm])=>
         `<button class="pchip${cur===val?' on':''}" data-klook="${val}">${nm}</button>`).join('');
+      // only an object gathers — a container is filed into, never piled
+      const gr=$('#kgatherrow'); if(gr) gr.style.display = v==='object' ? '' : 'none';
       renderPreview(); return; }
+    const kg=t.closest('[data-kgather]');
+    if(kg){ draft().gathers=kg.dataset.kgather; only(kg,'#kgather button'); return; }
     const kl=t.closest('[data-klook]');
     if(kl){ const d=draft();
       if(d.sort==='object') d.shape=kl.dataset.klook; else d.face=kl.dataset.klook;
@@ -446,7 +483,10 @@ function wire(){
 
     const ksz=t.closest('[data-ksz]');
     if(ksz){ const [w,h]=ksz.dataset.ksz.split('x').map(Number);
-      draft().size=[w,h]; only(ksz,'#ksize button'); renderPreview(); return; }
+      draft().size=[w,h]; only(ksz,'#ksize button'); syncSize(); renderPreview(); return; }
+    // back to the derived phone size: the sliders go with it
+    const kpa=t.closest('[data-kphauto]');
+    if(kpa){ draft().phoneSize=null; only(kpa,'#kphone button'); syncSize(); renderPreview(); return; }
     const kcl=t.closest('[data-kclick]');
     if(kcl){ draft().onclick=kcl.dataset.kclick; only(kcl,'#kclick button'); renderPreview(); return; }
     const krd=t.closest('[data-kread]');
@@ -526,6 +566,17 @@ function wire(){
     if(e.target.dataset.palpha!=null){
       const o=byId(e.target.dataset.id); if(o){ o.boardAlpha=(+e.target.value)/100; save(); render(); }
       return;
+    }
+    // the type builder's size sliders — the Mac pair, then the phone pair
+    if(e.target.dataset.kszw!=null || e.target.dataset.kszh!=null){
+      const d=draft(); if(!d) return;
+      d.size=[+$('[data-kszw]').value, +$('[data-kszh]').value];
+      syncSize(); renderPreview(); return;
+    }
+    if(e.target.dataset.kpszw!=null || e.target.dataset.kpszh!=null){
+      const d=draft(); if(!d) return;
+      d.phoneSize=[+$('[data-kpszw]').value, +$('[data-kpszh]').value];
+      syncSize(); renderPreview(); return;
     }
     const lr=e.target.dataset.lookrange;
     if(lr){ S.look[lr]=(+e.target.value)/100; applyLook();

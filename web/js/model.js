@@ -57,10 +57,13 @@ const valOf = (o,key)=>{
 const numOf = (o,key)=>{ const v=parseFloat(String(valOf(o,key)??'').replace(/[^0-9.\-]/g,'')); return isNaN(v)?null:v; };
 
 const ATTRKEYS = Object.keys(ATTRS);
-/* A drawer is not an object with an extra tick — it is a different sort of
-   thing, customised through the drawer settings rather than the attribute list.
-   These three are structural and never appear in the attribute picker, which is
-   what stops an object from being turned into a container by accident. */
+/* Everything is an object and containing is an attribute like any other — but
+   these two are the ones that decide whether a thing has children at all, and
+   toggling them by accident turns a note into a drawer and orphans whatever was
+   inside. They are edited through the drawer settings and the type builder,
+   which ask the question deliberately, and kept out of the attribute picker,
+   which is a row of chips you brush past. Structural means dangerous, not
+   different. */
 const STRUCTURAL = ['container','magic'];
 const USER_ATTRS = ATTRKEYS.filter(a=>!STRUCTURAL.includes(a));
 
@@ -70,11 +73,14 @@ const BUILTIN_KINDS = {
   checklist:{face:'checklist', nm:'Checklist', ic:'list', c:'#4A7C59', key:'K', ds:'A list of things to tick, right on the board', attrs:['container'], layout:'list', size:[6,8], body:'' },
   calendar:{face:'calendar', nm:'Calendar', ic:'calendar', c:'#5C7148', key:'C', ds:'A month, with what is due on it', attrs:['container'], layout:'calendar', size:[8,8], body:'' },
   control: {nm:'Control',  ic:'sliders', c:'#6B6152', key:'', ds:'A Bureau button on the desk', attrs:['control'], size:[4,4], body:'' },
-  task:    {shape:'sliver', nm:'Task',    ic:'check',   c:'#4A7C59', key:'T', ds:'A thing to do',             attrs:['text','check','date','repeat'], size:[4,1], onclick:'none', body:'' },
+  task:    {shape:'sliver', nm:'Task',    ic:'check',   c:'#4A7C59', key:'T', ds:'A thing to do',             attrs:['text','check','date','repeat'], size:[4,1], onclick:'none', gathers:'checklist', body:'' },
   note:    {shape:'note', nm:'Note',    ic:'note',    c:'#5F7A93', key:'O', ds:'Something to remember',     attrs:['text'], size:[4,4], onclick:'read', body:'' },
   idea:    {shape:'idea', nm:'Idea',    ic:'bulb',    c:'#96652F', key:'I', ds:'A spark, unformed',         size:[4,4], onclick:'read', attrs:['text'], body:'**The spark —** \n\n**Why it might work —** \n\n**What it needs —** ' },
   outline: {nm:'Outline', ic:'list',    c:'#7A6AA0', key:'L', ds:'Structure before prose',    size:[4,4], onclick:'read', attrs:['text'], body:'## I.\n- \n- \n\n## II.\n- \n- \n\n## III.\n- ' },
-  recipe:  {shape:'index', cooking:true, nm:'Recipe',  ic:'pot',     c:'#A55A3E', key:'R', ds:'Ingredients and method',    size:[4,4], onclick:'read', attrs:['text'], body:'**Serves** 2 · **Time** 30 min\n\n## Ingredients\n- \n- \n- \n\n## Method\n1. \n2. \n3. ' },
+  // A recipe holds its ingredients rather than listing them in prose, so they
+  // can be ticked while you cook and totalled before you shop. The method stays
+  // in the body, which a container with `text` shows above what it holds.
+  recipe:  {face:'checklist', cooking:true, nm:'Recipe',  ic:'pot',     c:'#A55A3E', key:'R', ds:'Ingredients you can tick, and a method',    size:[6,7], attrs:['text','container'], layout:'list', body:'**Serves** 2 · **Time** 30 min\n\n## Method\n1. \n2. \n3. ' },
   script:  {shape:'page', nm:'Script',  ic:'clapper', c:'#3F5F7A', key:'S', ds:'Scenes and dialogue',       size:[4,4], onclick:'read', attrs:['text'], body:'### INT. LOCATION — DAY\n\nAction line.\n\n**CHARACTER**\nDialogue.' },
   question:{shape:'bubble', nm:'Question',ic:'help',    c:'#4A6E8F', key:'?', ds:'Open until answered',       size:[4,4], onclick:'read', attrs:['text','check'], body:'**Question —** \n\n**What I know —** \n\n**Answer —** ' },
   essay:   {shape:'note', nm:'Essay',   ic:'feather', c:'#5C7148', key:'Y', ds:'Long-form writing',         size:[4,4], onclick:'read', attrs:['text'], body:'> Working thesis.\n\n' },
@@ -87,22 +93,30 @@ const BUILTIN_KINDS = {
   moodboard:{face:'moodboard', nm:'Moodboard', ic:'image', c:'#6B4A4A', key:'B', ds:'Pictures, pinned together', size:[8,8], attrs:['container'], layout:'moodboard', body:'' },
   quote:   {shape:'quote', nm:'Quote',   ic:'book',    c:'#6F5137', key:'Z', ds:'Someone else\'s words',      size:[6,4], onclick:'read', attrs:['text','link','rating'],
             body:'> \n\n— ' },
-  story:   {shape:'spine', narrative:true, nm:'Story',   ic:'book',    c:'#5A4130', key:'M', ds:'A book on the shelf', size:[3,9], onclick:'read', read:'book', attrs:['text','relates'],
+  /* A story holds its scenes and reads as a book; a world holds the people,
+     places and things the stories are set in. The distinction is the whole
+     reason there are two: a character outlives the book they first appeared in.
+     Both readings of "opens as a book" apply — `layout:'book'` pages through
+     the scenes it holds, `read:'book'` pages through its own body — and they
+     are different properties, so it carries both rather than choosing. */
+  story:   {face:'spine', narrative:true, nm:'Story',   ic:'book',    c:'#5A4130', key:'M', ds:'Scenes, bound in order', size:[3,9], attrs:['text','container','relates'], layout:'book', read:'book',
             body:'' },
-  scene:   {shape:'page', narrative:true, film:true, nm:'Scene',   ic:'clapper', c:'#2F4A5E', key:'N', ds:'One scene, for writing',     size:[6,5], onclick:'read', attrs:['text','location','duration','relates'],
+  world:   {narrative:true, nm:'World',   ic:'star',    c:'#4A5E7A', key:'F', ds:'The people, places and things a story is set in', size:[8,8], attrs:['text','container'], layout:'grid', body:'' },
+  scene:   {shape:'page', narrative:true, film:true, nm:'Scene',   ic:'clapper', c:'#2F4A5E', key:'N', ds:'One scene, for writing',     size:[6,5], onclick:'read', attrs:['text','location','duration','relates'], gathers:'story',
             body:'**Where —** \n\n**Who —** \n\n**What changes —** ' },
-  character:{shape:'portrait', narrative:true, nm:'Character', ic:'star', c:'#A0703F', key:'H', ds:'Someone in the story',       size:[4,6], onclick:'read', attrs:['text','media','relates'],
+  character:{shape:'portrait', narrative:true, nm:'Character', ic:'star', c:'#A0703F', key:'H', ds:'Someone in the story',       size:[4,6], onclick:'read', attrs:['text','media','relates'], gathers:'world',
             body:'**Wants —** \n\n**Fears —** \n\n**Voice —** ' },
   field:   {shape:'band', nm:'Text field', ic:'edit', c:'#6B6152', key:'/', ds:'Type in it and a task appears below', size:[8,2], onclick:'none', attrs:['spawn'], spawnBy:'type', body:'' },
   poem:    {shape:'verse', parchment:true, nm:'Poem',    ic:'feather', c:'#5D7E99', key:'"', ds:'Lines, kept as written', size:[5,7], onclick:'read', attrs:['text'], body:'' },
-  place:   {shape:'card', nm:'Place',   ic:'flag',    c:'#6B7A3F', key:'1', ds:'Somewhere in the story',  size:[5,6], onclick:'read', attrs:['text','media','relates'], narrative:true,
+  place:   {shape:'card', nm:'Place',   ic:'flag',    c:'#6B7A3F', key:'1', ds:'Somewhere in the story',  size:[5,6], onclick:'read', attrs:['text','media','relates'], narrative:true, gathers:'world',
             body:'**Feels like —** \n\n**Who is there —** \n\n**What happened here —** ' },
-  event:   {shape:'card', nm:'Event',   ic:'clock',   c:'#8C4A38', key:'2', ds:'Something that happens',  size:[6,4], onclick:'read', attrs:['text','date','relates'], narrative:true,
+  event:   {shape:'card', nm:'Event',   ic:'clock',   c:'#8C4A38', key:'2', ds:'Something that happens',  size:[6,4], onclick:'read', attrs:['text','date','relates'], narrative:true, gathers:'world',
             body:'**Before —** \n\n**The turn —** \n\n**After —** ' },
-  item:    {shape:'card', nm:'Item',    ic:'star',    c:'#9A7B2F', key:'3', ds:'A thing that matters',    size:[4,4], onclick:'read', attrs:['text','media','relates'], narrative:true,
+  item:    {shape:'card', nm:'Item',    ic:'star',    c:'#9A7B2F', key:'3', ds:'A thing that matters',    size:[4,4], onclick:'read', attrs:['text','media','relates'], narrative:true, gathers:'world',
             body:'**What it is —** \n\n**Who wants it —** ' },
-  ingredient:{shape:'index', cooking:true, nm:'Ingredient', ic:'pot', c:'#A55A3E', key:'4', ds:'One line of a recipe',   size:[5,1], onclick:'check', attrs:['check','count','price'], body:'' },
-  shot:    {shape:'sliver', film:true, nm:'Shot',    ic:'clapper', c:'#2F4A5E', key:'5', ds:'One shot, for a shoot',   size:[6,1], onclick:'check', attrs:['text','check','duration','location'], body:'' },
+  ingredient:{shape:'index', cooking:true, nm:'Ingredient', ic:'pot', c:'#A55A3E', key:'4', ds:'One line of a recipe',   size:[5,1], onclick:'check', attrs:['check','count','price'], gathers:'recipe', body:'' },
+  shot:    {shape:'sliver', film:true, nm:'Shot',    ic:'clapper', c:'#2F4A5E', key:'5', ds:'One shot, for a shoot',   size:[6,1], onclick:'check', attrs:['text','check','duration','location'], gathers:'shotlist', body:'' },
+  shotlist:{face:'checklist', film:true, nm:'Shot list', ic:'clapper', c:'#37687A', key:';', ds:'Shots for a shoot, in order', attrs:['container'], layout:'list', size:[7,8], body:'' },
   generator:{shape:'press', nm:'Generator', ic:'plus', c:'#8A5A3F', key:'6', ds:'Press it and it makes one of something', size:[4,4], onclick:'generate', attrs:['spawn'], spawnBy:'click', body:'' },
   shopping:{cooking:true, face:'checklist', nm:'Shopping list', ic:'inbox', c:'#A55A3E', key:'7', ds:'Things to buy, with a total', attrs:['container'], layout:'list', size:[6,8], body:'' },
   counter: {nm:'Counter',  ic:'target', c:'#3E7A6B', key:'X', ds:'A number, and what it counts', size:[4,4], onclick:'none', attrs:['count'], body:'' },
@@ -194,8 +208,15 @@ function seed(){
     O({kind:'question', title:'What happens to an object with no drawer?', parent:'d_open', tags:['bureau']}),
     O({kind:'question', title:'Is a habit a kind, or a property of a task?', parent:'d_open', tags:['bureau']}),
 
-    O({kind:'recipe', title:'Sunday braise', parent:'d_kitch', tags:['cooking'],
-       body:'**Serves** 4 · **Time** 3 hr\n\n## Ingredients\n- 1.4 kg chuck, in big pieces\n- 2 onions, halved\n- 1 head garlic, topped\n- 400 ml red\n- Bay, thyme, a strip of orange peel\n\n## Method\n1. Salt the meat the night before.\n2. Brown hard, in batches, no crowding.\n3. Wine in, scrape, reduce by half.\n4. 150°C, lid on, 3 hours. Do not peek.'}),
+    // A recipe holds its ingredients now, so the seed has to show one that does
+    // — an empty checklist front is what a recipe looks like when it's wrong.
+    O({id:'o_braise', kind:'recipe', title:'Sunday braise', parent:'d_kitch', tags:['cooking'],
+       body:'**Serves** 4 · **Time** 3 hr\n\n## Method\n1. Salt the meat the night before.\n2. Brown hard, in batches, no crowding.\n3. Wine in, scrape, reduce by half.\n4. 150°C, lid on, 3 hours. Do not peek.'}),
+    O({kind:'ingredient', title:'1.4 kg chuck, in big pieces', parent:'o_braise', price:'18.40'}),
+    O({kind:'ingredient', title:'2 onions, halved', parent:'o_braise', price:'0.80'}),
+    O({kind:'ingredient', title:'1 head garlic, topped', parent:'o_braise', price:'0.60'}),
+    O({kind:'ingredient', title:'400 ml red', parent:'o_braise', price:'7.00'}),
+    O({kind:'ingredient', title:'Bay, thyme, a strip of orange peel', parent:'o_braise', price:'1.20'}),
     O({kind:'recipe', title:'The only pancakes', parent:'d_kitch', tags:['cooking']}),
     O({kind:'recipe', title:'Cold-brew ratio that finally worked', parent:'d_kitch', tags:['cooking']}),
 
@@ -222,6 +243,14 @@ function seed(){
     O({kind:'goal', title:'Finish the essay collection', parent:'d_keep', tags:['writing'], due:dz(240),
        milestones:[{t:'Six essays drafted',done:true,d:dz(-40)},{t:'Ten essays drafted',done:false,d:dz(60)},
                    {t:'Full read-through',done:false,d:dz(150)},{t:'Send to three readers',done:false,d:dz(200)}]}),
+
+    // A timeline, so a fresh desk shows one — its face is a real date axis, and
+    // an axis with nothing on it demonstrates nothing.
+    O({id:'o_reel', kind:'timeline', title:'The video store shoot', parent:'d_studio', tags:['film']}),
+    O({kind:'appt', title:'Location recce', parent:'o_reel', due:dz(-9)}),
+    O({kind:'appt', title:'Shoot days', parent:'o_reel', due:dz(3)}),
+    O({kind:'appt', title:'First assembly', parent:'o_reel', due:dz(17)}),
+    O({kind:'appt', title:'Colour and sound', parent:'o_reel', due:dz(34)}),
 
     O({kind:'achievement', title:'Cut the reel from 6 min to 2:40', parent:'d_done', done:true, doneAt:dz(-2), tags:['work']}),
     O({kind:'achievement', title:'Read *Understanding Comics* cover to cover', parent:'d_done', done:true, doneAt:dz(-5), tags:['reading']}),
@@ -280,8 +309,21 @@ const isContainer = o => !!o && has(o,'container');
    how it arranges its children once opened. They used to be one property,
    which meant a checklist could not also be sorted when you opened it. */
 const FACES = {front:'Drawer front', checklist:'Checklist', calendar:'Calendar',
-               moodboard:'Moodboard', timeline:'Timeline'};
+               moodboard:'Moodboard', timeline:'Timeline', spine:'Book spine'};
 const faceOf = o => (o && o.face) || K(o&&o.kind).face || 'front';
+
+/* What a pile of these becomes. Dropping one object on another is only a
+   gesture if both agree what they add up to — two tasks are a checklist, two
+   ingredients are a recipe — so the answer is a property of the type rather
+   than six branches on a type's name. A type you invent gets it by filling in
+   one field, which is the whole point of keeping it here. */
+const gathersOf = o => (o && o.gathers) || K(o&&o.kind).gathers || null;
+function gatherKind(a, b){
+  if(!a || !b || a.id===b.id) return null;
+  if(isContainer(a) || isContainer(b)) return null;   // a container is filed into, not piled
+  const g=gathersOf(a);
+  return g && g===gathersOf(b) && KINDS[g] ? g : null;
+}
 
 /* How a non-container object draws itself. This used to be read off the type's
    *name* in both the renderer and the stylesheet, which is exactly what
@@ -421,6 +463,20 @@ function chainOf(id){
   return out;
 }
 
+/* A timeline's axis, as two dates. Read from what it holds — but an empty
+   timeline, or one where everything happened on a Tuesday, has no span to
+   measure a drop against, so it opens out to four weeks either side. A timeline
+   you cannot drop anything on is a timeline you could never have started. */
+const TL_MIN_DAYS = 28;
+function tlSpan(c){
+  const ds=childrenOf(c).map(x=>x.due||x.created).filter(Boolean).sort();
+  const lo=ds.length?D.parse(ds[0]):D.today(), hi=ds.length?D.parse(ds[ds.length-1]):D.today();
+  const days=Math.round((hi-lo)/864e5);
+  if(days>=TL_MIN_DAYS) return {min:D.iso(lo), max:D.iso(hi), days};
+  const pad=Math.ceil((TL_MIN_DAYS-days)/2);
+  return {min:D.iso(D.add(lo,-pad)), max:D.iso(D.add(hi,pad)), days:days+pad*2};
+}
+
 function streak(o){
   const set=new Set(o.history||[]); let n=0, d=D.today();
   if(!set.has(D.iso(d))) d=D.add(d,-1);
@@ -433,5 +489,6 @@ const allTags = ()=>{ const m={}; S.objects.forEach(o=>(o.tags||[]).forEach(t=>m
 export { ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds, K,
   attrsOf, has, kindHas, T, dz, S, sensedDevice, reset, defaultLook, dev, byId,
   deskTitle, rootObj, container, cfgOf, isContainer, FACES, faceOf, SHAPES,
-  shapeOf, READS, readOf, spreadOf, containers, isPinned, pinnedDrawers, OPS, ROLLS, rollup, SORTS, childrenOf, isAncestor,
-  relatedTo, backlinksTo, relate, unrelate, chainOf, streak, goalPct, allTags };
+  shapeOf, READS, readOf, spreadOf, gathersOf, gatherKind, containers, isPinned, pinnedDrawers,
+  OPS, ROLLS, rollup, SORTS, childrenOf, isAncestor,
+  relatedTo, backlinksTo, relate, unrelate, chainOf, tlSpan, streak, goalPct, allTags };

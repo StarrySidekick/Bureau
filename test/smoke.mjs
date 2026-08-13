@@ -396,6 +396,164 @@ const CHROME = process.env.BUREAU_CHROME;
   });
   await shot('11-new-systems');
 
+  /* --- what a drop means. Dragging is the only way to reach any of this, so a
+     real press-hold-move-release is the only way to test it. */
+  const drop = async (fromSel, to) => {
+    const b = await (await page.$(fromSel)).boundingBox();
+    await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
+    await page.mouse.down();
+    await page.waitForTimeout(320);                 // the hold arms the drag
+    await page.mouse.move(to.x, to.y, { steps: 14 });
+    await page.waitForTimeout(150);
+    const aiming = await page.evaluate(() => ({
+      gather: !!document.querySelector('.dropgather'),
+      time: !!document.querySelector('.droptime'),
+      into: !!document.querySelector('.dropinto') }));
+    await page.mouse.up();
+    await page.waitForTimeout(400);
+    return aiming;
+  };
+
+  // a timeline's face is a real date axis, so a drop along it is a date
+  await page.evaluate(() => { BUREAU.state.view='drawer'; BUREAU.state.drawerId='d_studio'; BUREAU.render(); });
+  await page.waitForTimeout(320);
+  const tlSpan = await page.getAttribute('[data-tlspan]', 'data-tlspan');
+  const rb = await (await page.$('[data-tlspan] .tlrule')).boundingBox();
+  const taskSel = await page.evaluate(() => {
+    const o = BUREAU.state.objects.find(x => /Dana/.test(x.title || ''));
+    return o ? `.grid .drawer[data-row="${o.id}"]` : null;
+  });
+  const tlAim = await drop(taskSel, { x: rb.x + rb.width * 0.75, y: rb.y });
+  // 75% along a 43-day span from its first day is the day the arithmetic names
+  const droppedOnDay = await page.evaluate(span => {
+    const p = s => { const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d); };
+    const f = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const [id, min, max] = span.split(':');
+    const days = Math.round((p(max) - p(min)) / 864e5);
+    const want = p(min); want.setDate(want.getDate() + Math.round(0.75 * days));
+    const o = BUREAU.state.objects.find(x => /Dana/.test(x.title || ''));
+    return o.parent === id && o.due === f(want);
+  }, tlSpan);
+  await shot('12-timeline-drop');
+
+  // two of a kind dropped together become what they add up to
+  await page.evaluate(() => { BUREAU.state.drawerId='d_in'; BUREAU.render(); });
+  await page.waitForTimeout(320);
+  const two = await page.evaluate(() =>
+    BUREAU.state.objects.filter(o => o.kind==='task' && o.parent==='d_in' && !o.done).slice(0,2).map(o=>o.id));
+  const tb = await (await page.$(`.grid .drawer[data-row="${two[1]}"]`)).boundingBox();
+  const gatherAim = await drop(`.grid .drawer[data-row="${two[0]}"]`,
+    { x: tb.x + tb.width/2, y: tb.y + tb.height/2 });
+  const gathered = await page.evaluate(ids => {
+    const a = BUREAU.state.objects.find(o => o.id===ids[0]);
+    const c = BUREAU.state.objects.find(o => o.id===a.parent);
+    return !!c && c.kind==='checklist'
+      && BUREAU.state.objects.filter(o => o.parent===c.id).length===2;
+  }, two);
+  await shot('13-gathered');
+
+  const dropStates = { tlAim: tlAim.time, gatherAim: gatherAim.gather, droppedOnDay, gathered };
+
+  /* --- a tile shows less as it gets smaller, and at 1×1 shows no text ----
+     Text at 40px is three letters and an ellipsis, which reads as a bug.
+     Back to a desk first: the phone checks above left the window narrow, and
+     the next three things all only exist above the 900px breakpoint. */
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.waitForTimeout(300);
+  await page.evaluate(() => {
+    const S = BUREAU.state;
+    S.view = 'desk'; S.drawerId = null;
+    const kids = BUREAU.kids('root');
+    const one = S.objects.find(o => o.id === kids[0]);
+    const two = S.objects.find(o => o.id === kids[1]);
+    if (one) one[S.device] = { x:1, y:1, w:1, h:1 };
+    if (two) two[S.device] = { x:3, y:1, w:2, h:6 };
+    window.__narrow = two && two.id;   // far left, so a bubble has room to its right
+    BUREAU.render();
+  });
+  await page.waitForTimeout(200);
+  const adaptiveTiles = await page.evaluate(() => {
+    const mini = document.querySelector('.grid .drawer.sz-mini');
+    const narrow = document.querySelector('.grid .drawer.sz-narrow:not(.sz-mini)');
+    return {
+      mini: !!mini,
+      miniIsSilent: !!mini && !mini.innerText.trim(),
+      miniHasMark: !!(mini && mini.querySelector('.minimark svg,.minimark')),
+      miniStillOpens: !!(mini && (mini.dataset.drawer || mini.dataset.row)),
+      narrow: !!narrow
+    };
+  });
+  await shot('14-adaptive');
+
+  /* --- a panel about one tile comes up beside that tile, not down the edge
+     The drag tests above ended on a gesture, which leaves gestureFlags
+     .suppressClick set for the next click — by design, so a reordered pin
+     doesn't also open. Spend it on a click that does nothing. */
+  await page.evaluate(() =>
+    document.querySelector('#frame').dispatchEvent(new MouseEvent('click', { bubbles:true })));
+  await page.evaluate(() => {
+    const el = document.querySelector(`.grid .drawer[data-drawer="${window.__narrow}"]`);
+    el.dispatchEvent(new MouseEvent('contextmenu', { bubbles:true, clientX:200, clientY:200 }));
+  });
+  await page.waitForTimeout(120);
+  await page.click('#ctx button[data-c^="drawerset"]');
+  await page.waitForTimeout(320);
+  const bubblePanel = await page.evaluate(() => {
+    const p = document.querySelector('#panel');
+    if (!p) return 'no panel';
+    const r = p.getBoundingClientRect();
+    const t = document.querySelector(`.grid .drawer[data-drawer="${window.__narrow}"]`)
+      .getBoundingClientRect();
+    return { bubble: p.classList.contains('bubble'),
+             side: p.classList.contains('from-right') ? 'right'
+                 : p.classList.contains('from-left') ? 'left' : null,
+             narrow: r.width < 420,
+             besideIt: r.left > t.right && r.left - t.right < 30 };
+  });
+  await shot('15-bubble');
+  await page.keyboard.press('Escape');
+
+  /* --- the board stays where you left it ---------------------------------
+     render() replaces #app wholesale, so the scroller is new every time and
+     started at the top: moving a tile on a long desk threw you back a screen. */
+  const scrollKept = await page.evaluate(async () => {
+    const S = BUREAU.state;
+    const o = S.objects.find(x => x.id === BUREAU.kids('root')[4]);
+    if (o) o[S.device] = { x:1, y:44, w:6, h:6 };
+    BUREAU.render();
+    const sc = document.querySelector('#app .scroll');
+    sc.scrollTop = 800;
+    const asked = sc.scrollTop;
+    BUREAU.render();
+    const after = document.querySelector('#app .scroll').scrollTop;
+    // …but navigating somewhere else still lands at the top
+    S.view = 'drawer'; S.drawerId = 'd_in'; BUREAU.render();
+    const moved = document.querySelector('#app .scroll').scrollTop;
+    S.view = 'desk'; S.drawerId = null; BUREAU.render();
+    return asked > 0 && after === asked && moved === 0;
+  });
+
+  /* --- a type's size is granular, and the phone size can be stated outright
+     rather than derived. sizeOfKind() has to prefer the explicit one. */
+  const kindSizes = await page.evaluate(() => {
+    const S = BUREAU.state;
+    // straight into the live registry: S.kinds only reaches KINDS via
+    // refreshKinds(), which the test surface deliberately doesn't expose
+    BUREAU.K.smoketype = { nm:'Smoke', ic:'note', c:'#4A7C59', key:'', ds:'test',
+      attrs:['text'], size:[7,3], phoneSize:[5,4], onclick:'read', body:'' };
+    const o = BUREAU.create('smoketype');
+    // ensureBox places it on first render, and only for the layout being edited
+    S.layoutEdit = 'desk';  BUREAU.render(); const desk = { ...o.desk };
+    S.layoutEdit = 'phone'; BUREAU.render(); const phone = { ...o.phone };
+    S.layoutEdit = null;
+    S.objects = S.objects.filter(x => x.id !== o.id);
+    delete BUREAU.K.smoketype;
+    BUREAU.render();
+    // 7×3 is not one of the presets, and toPhoneSize would have said 16×5 —
+    // an explicit phoneSize has to beat the derivation
+    return desk.w === 7 && desk.h === 3 && phone.w === 5 && phone.h === 4;
+  });
+
   // ids must be unique — a collision made byId() return the wrong object, so
   // dragging one tile moved another and new objects were immovable
   const dupIds = await page.evaluate(() => {
@@ -504,7 +662,11 @@ const CHROME = process.env.BUREAU_CHROME;
     delete o.read;
     open(undefined); o.read = undefined; S.readId = o.id; BUREAU.renderSheet();
     out.defaultsToPage = document.querySelectorAll('.bookstage .spread .page').length === 1;
-    out.storyOpensAsBook = BUREAU.K.story.read === 'book' && BUREAU.K.story.onclick === 'read';
+    /* A story opens as a book in both senses, and they are different
+       properties: `layout` pages through the scenes it holds, `read` pages
+       through its own body. It used to assert `onclick === 'read'`, which a
+       container has no use for — clicking one navigates into it. */
+    out.storyOpensAsBook = BUREAU.K.story.read === 'book' && BUREAU.K.story.layout === 'book';
 
     S.readId = null; BUREAU.renderSheet();
     BUREAU.del(o.id); S.undo = [];
@@ -556,7 +718,9 @@ const CHROME = process.env.BUREAU_CHROME;
     pinToggles, holdArms, maxDrift,
     settingsIsPanel, pickerPreviews, builderPreview, everyMenuIsAPanel,
     pasteOk, magicOk, rollupOk, relationsOk, relationsUI,
-    timeLayer, tagDrawer, pinReorder, groupMove, dupIds, undoWorks, readViews, paperSize
+    timeLayer, tagDrawer, pinReorder, groupMove, dropStates,
+    adaptiveTiles, bubblePanel, scrollKept, kindSizes,
+    dupIds, undoWorks, readViews, paperSize
   }, null, 2));
   await browser.close();
 })();

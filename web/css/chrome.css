@@ -49,6 +49,27 @@
 .fieldin{width:100%;height:100%;border:0;background:none;outline:none;padding:0 12px;font-size:13.5px;color:var(--ink)}
 /* dropping into a drawer */
 .drawer.dropinto{outline:3px solid var(--brass);outline-offset:-3px;filter:brightness(1.12)}
+/* dropping one object on another it adds up with — dashed, because nothing is
+   being filed anywhere: a third thing is about to exist */
+.drawer.dropgather{outline:2.5px dashed var(--brass);outline-offset:4px;
+  box-shadow:0 0 0 8px color-mix(in srgb,var(--brass) 22%,transparent), var(--shadow-lg)}
+/* Dropping along a timeline: the rule lights up, a mark rides the pointer, and
+   the day it means reads in the tile's own corner. The mark hangs off .tlrule
+   because that is the element the drop fraction was measured against, so a
+   percentage here lands exactly where the arithmetic said. The date deliberately
+   does *not*: the tile you are dragging follows the pointer and sits right on
+   top of the mark, so a label there is a label you cannot read. */
+.drawer.droptime{outline:3px solid var(--brass);outline-offset:-3px}
+.drawer.droptime .tlrule{background:var(--brass)}
+.drawer.droptime .tlrule::before{content:'';position:absolute;left:var(--dropx);top:-150px;height:300px;
+  width:2px;margin-left:-1px;background:var(--brass);box-shadow:0 0 8px var(--brass)}
+.drawer.droptime::after{content:attr(data-droplabel);position:absolute;top:8px;right:9px;z-index:2;
+  background:var(--brass);color:#241E14;font-size:10.5px;font-weight:700;
+  padding:2px 7px;border-radius:5px;white-space:nowrap;line-height:1.4}
+/* The span in the header. It gets out of the way while you are aiming, or the
+   date chip lands beside it and reads as the far end of a changed range. */
+.tltile .clcount{white-space:nowrap}
+.drawer.droptime .clcount{visibility:hidden}
 .ghost.hidden{display:none}
 @keyframes swallow{0%{transform:scale(1)}35%{transform:scale(1.07)}100%{transform:scale(1)}}
 .drawer.swallow{animation:swallow .42s cubic-bezier(.2,.9,.3,1)}
@@ -125,7 +146,10 @@
 .rangerow{display:flex;align-items:center;gap:10px;margin-top:8px;font-size:12.5px;color:var(--ink-2)}
 .rangerow input[type=range]{flex:1;accent-color:var(--brass)}
 .rangerow b{font-variant-numeric:tabular-nums;color:var(--ink);min-width:38px;text-align:right}
-.drawer{cursor:grab;user-select:none}
+/* A long press on a tile is Bureau's "pick this up". iOS reads the same press
+   as "select this text / show me the callout", and shows the magnifier over the
+   thing you are trying to lift. */
+.drawer{cursor:grab;user-select:none;-webkit-touch-callout:none}
 .drawer:active{cursor:grabbing}
 /* picked up: bigger, as if lifted toward you, with a small unsteady sway */
 .drawer.lifted{
@@ -133,13 +157,21 @@
   animation:lift 1.5s ease-in-out infinite;
   box-shadow:var(--shadow-lg);cursor:grabbing;
 }
-/* one loop: it swells as it comes up, then keeps swaying at that size */
+/* one loop: it swells as it comes up, then keeps swaying at that size.
+   How far it has been carried rides in --carryx/--carryy rather than in an
+   inline `transform`, because an animation's transform beats an inline one:
+   the tile could either sway or follow the pointer, and it used to buy the
+   second by switching the first off the moment you moved. Composing them here
+   means it keeps swaying the whole way across the board. */
 @keyframes lift{
-  0%  {transform:scale(1.055) rotate(-.6deg)}
-  50% {transform:scale(1.055) rotate(.6deg)}
-  100%{transform:scale(1.055) rotate(-.6deg)}
+  0%  {transform:translate(var(--carryx,0px),var(--carryy,0px)) scale(1.055) rotate(-.6deg)}
+  50% {transform:translate(var(--carryx,0px),var(--carryy,0px)) scale(1.055) rotate(.6deg)}
+  100%{transform:translate(var(--carryx,0px),var(--carryy,0px)) scale(1.055) rotate(-.6deg)}
 }
 .drawer.dragging{opacity:.92;z-index:60;box-shadow:var(--shadow-lg);cursor:grabbing;animation:none}
+/* a pin being reordered is `dragging` without ever being `lifted`, so the sway
+   comes back only for a tile that was actually picked up */
+.drawer.lifted.dragging{animation:lift 1.5s ease-in-out infinite}
 .drawer.invalid{outline:2px solid #C0563F;outline-offset:-2px}
 .grid.locked .drawer{cursor:default}
 .lockmark{color:var(--ink-3);display:inline-flex;align-items:center;margin-left:6px}
@@ -234,6 +266,15 @@
 .drawer.otile.listband .bandsnip{color:var(--ink-3)}
 .bandimg{width:34px;height:34px;object-fit:cover;border-radius:3px;flex:0 0 auto}
 .scrollview{max-width:720px}
+/* A container that also has `text` shows its written part above what it holds
+   — a recipe's method has to live somewhere once the ingredients have moved
+   out of the body and become objects. */
+.contbody{max-width:720px;margin:0 0 14px;padding:0 0 13px;border-bottom:1px solid var(--rule-2);
+  font-family:var(--serif);font-size:14.5px;line-height:1.6;color:var(--ink-2)}
+.contbody h2,.contbody h3,.contbody h4{font-family:var(--sans);font-size:11px;letter-spacing:.08em;
+  text-transform:uppercase;font-weight:700;color:var(--ink-3);margin:13px 0 6px}
+.contbody p,.contbody ol,.contbody ul{margin:0 0 7px}
+.contbody ol,.contbody ul{padding-left:19px}
 .scrollentry{padding:16px 0;border-bottom:1px solid var(--rule-2)}
 .scrollentry header{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}
 .scrollentry h3{font-family:var(--serif);font-size:19px;font-weight:600;margin:0}
@@ -582,26 +623,31 @@
 
 /* ---- the type picker --------------------------------------------------
    Each type is drawn as an object of that type, through the same gridTile()
-   the board uses. The tile is a div and not a button on purpose: the sample
-   inside it is itself a <button>, and a nested one gets hoisted out. */
-.kindgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(154px,1fr));gap:8px}
-.is-phone .kindgrid{grid-template-columns:repeat(2,1fr);gap:7px}
+   the board uses. Nothing is drawn around it — no frame, no board — because a
+   card inside a card reads as two objects; the name floats underneath instead.
+   The tile is a div and not a button on purpose: the sample inside it is
+   itself a <button>, and a nested one gets hoisted out. */
+.kindgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(154px,1fr));gap:14px 8px}
+.is-phone .kindgrid{grid-template-columns:repeat(2,1fr);gap:12px 7px}
 .kindtile{
-  border-radius:10px;border:1px solid var(--rule);background:var(--paper);
-  display:flex;flex-direction:column;overflow:hidden;transition:.15s;text-align:left;cursor:pointer
+  position:relative;display:flex;flex-direction:column;align-items:center;gap:7px;
+  padding:4px 2px;border-radius:12px;cursor:pointer
 }
-.kindtile:hover,.kindtile:focus-visible{border-color:var(--k);transform:translateY(-2px);box-shadow:var(--shadow);outline:0}
+.kindtile:focus-visible{outline:2px solid var(--k);outline-offset:0}
 .kindtile .kpv{
-  height:94px;display:grid;place-items:center;overflow:hidden;pointer-events:none;
-  border-bottom:1px solid var(--rule-2);
-  background-color:var(--board-1);
-  background-image:conic-gradient(var(--board-2) 0 25%,transparent 0 50%,var(--board-2) 0 75%,transparent 0);
-  background-size:22px 22px;
+  height:88px;display:grid;place-items:center;pointer-events:none;
+  transition:transform .15s
 }
-.kindtile .krow{display:flex;align-items:center;gap:5px;padding:6px 5px 6px 9px}
-.kindtile .nm{font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.kindtile .kbd{font-family:var(--mono);font-size:9.5px;color:var(--ink-3);border:1px solid var(--rule);border-radius:4px;padding:0 4px;margin-left:auto}
-.kedit{width:22px;height:22px;flex:0 0 auto;border-radius:6px;display:grid;place-items:center;
+.kindtile:hover .kpv{transform:translateY(-3px)}
+.kindtile .krow{display:flex;align-items:center;justify-content:center;gap:5px;max-width:100%}
+.kindtile .nm{font-size:12px;font-weight:600;color:var(--ink-2);transition:color .15s;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kindtile:hover .nm{color:var(--k)}
+.kindtile .kbd{font-family:var(--mono);font-size:9.5px;color:var(--ink-3);border:1px solid var(--rule);border-radius:4px;padding:0 4px}
+/* level with the name but taken out of the flow, so it can't shove the name
+   off centre as it fades in — and never over the sample, whose width varies */
+.kedit{position:absolute;bottom:-2px;right:0;width:22px;height:22px;border-radius:6px;
+  display:grid;place-items:center;background:var(--paper);
   color:var(--ink-3);opacity:0;transition:.14s}
 .kindtile:hover .kedit,.kindtile:focus-within .kedit{opacity:1}
 .is-phone .kedit{opacity:.6}
@@ -674,6 +720,10 @@
   padding:0 3px;font-size:9.5px;font-weight:600;letter-spacing:.02em;
   background:none;border-color:transparent;color:var(--ink-3)}
 .is-phone .pinbtn span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* five pins across 390px is 78px each, and "Done & Dusted" does not fit in 78px
+   at 9.5. It doesn't fit at 8.5 either, but it loses one word instead of two. */
+.is-phone .pinbar:has(.pinbtn:nth-child(5)) .pinbtn{font-size:8.5px;letter-spacing:0}
+.is-phone .pinbar:has(.pinbtn:nth-child(7)) .pinbtn span{display:none}
 .is-phone .pinface{
   flex:0 0 auto;width:30px;height:21px;display:grid;place-items:center;
   border-radius:var(--radius-d);background:var(--c,var(--felt));
@@ -683,6 +733,13 @@
 .is-phone .pinbtn.home .pinface{background:none;border-color:var(--rule);color:var(--ink-3)}
 .is-phone .pinbtn.on{color:var(--brass)}
 .is-phone .pinbtn.on .pinface{outline:2px solid var(--brass);outline-offset:1.5px}
+/* Carrying a tile over a pinned drawer files it there. On a phone this is the
+   whole answer to "file it into something three screens away" — the bar is the
+   one thing that never scrolls off. */
+.pinbtn.dropinto{background:color-mix(in srgb,var(--brass) 22%,transparent);color:var(--ink)}
+.pinbtn.dropinto .pinface{outline:2.5px solid var(--brass);outline-offset:2px;transform:scale(1.12)}
+.is-desk .pinbtn.dropinto{outline:2.5px solid var(--brass);outline-offset:2px;filter:brightness(1.12)}
+.pinface{transition:transform .12s}
 
 .toast{
   position:absolute;left:50%;bottom:96px;transform:translate(-50%,14px);z-index:80;

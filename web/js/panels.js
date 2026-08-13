@@ -3,7 +3,7 @@ import { S, K, KINDS, KEYS, T, ATTRS, USER_ATTRS, FIELDS, fieldOf, OPS, ROLLS,
   SORTS, FACES, SHAPES, READS, faceOf, shapeOf, readOf, byId, container, cfgOf, deskTitle,
   rootObj, containers, isContainer, isAncestor, childrenOf, has, kindHas,
   attrsOf, allTags, isPinned, dev } from './model.js';
-import { lay, boxOk, freeSpot } from './grid.js';
+import { GRID, lay, boxOk, freeSpot, toPhoneSize } from './grid.js';
 import { SWATCHES, paletteNow, randomBoard, randomFront } from './look.js';
 import { CLICKS, clickOf, gridTile, pending } from './tiles.js';
 import { quickAdd, toast } from './mutations.js';
@@ -40,23 +40,75 @@ function overlayHTML(){
    caller remembering how; `spec.key` names which panel is up, for the handful
    of places that need to know. The draft a form is building lives here rather
    than on the element, so redrawing can't lose it. */
-const PANEL = {spec:null, draft:null};
+const PANEL = {spec:null, draft:null, anchor:null};
 
 function openPanel(spec){
   PANEL.spec = spec;
   PANEL.draft = spec.draft || null;
-  let el = $('#panel');
+  PANEL.anchor = spec.anchor || null;
+  let el = $('#panel'), fresh=false;
   if(!el){
     $('#frame').insertAdjacentHTML('beforeend',
       `<aside class="panel" id="panel"><div class="ptop"></div><div class="pbody"></div></aside>`);
-    el = $('#panel');
-    // one frame late, or the transform has nothing to animate from
-    requestAnimationFrame(()=>{ const p=$('#panel'); if(p) p.classList.add('open'); });
+    el = $('#panel'); fresh=true;
   }
+  /* Rebuild the class list rather than toggling, so a panel that was a bubble
+     doesn't stay one — but keep `open`, or replacing one panel with another
+     would slide the whole thing out and back in. */
+  const wasOpen = !fresh && el.classList.contains('open');
+  el.className = 'panel' + (spec.wide?' wide':'') + (wasOpen?' open':'');
+  el.removeAttribute('style');
   el.dataset.panel = spec.key || '';
-  el.classList.toggle('wide', !!spec.wide);
+  bubbleAt(el, PANEL.anchor);
+  // one frame late, or the transform has nothing to animate from
+  if(fresh) requestAnimationFrame(()=>{ const p=$('#panel'); if(p) p.classList.add('open'); });
   drawPanel(true);
   return el;
+}
+
+/* ---- a panel that is about one object comes up out of it ----------------
+   Settings is about the desk and belongs down the edge of it. A panel about
+   one tile is a different question — "this one, what about it" — and asking it
+   from the far side of the screen makes you look away from the thing you are
+   changing. So it arrives beside the tile instead, on whichever side has room,
+   with a tail pointing back at it. It is the same panel: same header, same
+   body, same handlers. Only where it sits and how it arrives change.
+
+   Below the breakpoint there is no room either side, and it falls back to the
+   edge panel — which is the right shape on a phone anyway. */
+const BUBBLE_W = 340, BUBBLE_GAP = 14;
+const anchorEl = a => !a ? null
+  : a.nodeType ? a
+  : $(`.grid .drawer[data-drawer="${a}"], .grid .drawer[data-row="${a}"]`);
+
+function bubbleAt(el, anchor){
+  const at = anchorEl(anchor);
+  if(!at || !document.body.contains(at)) return false;
+  const fr = $('#frame').getBoundingClientRect(), a = at.getBoundingClientRect();
+  const w = Math.min(BUBBLE_W, fr.width-24);
+  const side = (fr.right-a.right) >= w+BUBBLE_GAP ? 'right'
+             : (a.left-fr.left)   >= w+BUBBLE_GAP ? 'left' : null;
+  if(!side) return false;
+  const maxH = Math.min(fr.height-32, 540);
+  const top = clamp(a.top-fr.top-10, 16, Math.max(16, fr.height-maxH-16));
+  el.classList.add('bubble', 'from-'+side);
+  el.style.width = w+'px';
+  el.style.maxHeight = maxH+'px';
+  el.style.left = (side==='right' ? a.right-fr.left+BUBBLE_GAP
+                                  : a.left-fr.left-BUBBLE_GAP-w)+'px';
+  el.style.top = top+'px';
+  // the tail points at the middle of the tile, kept inside the bubble's edges
+  el.style.setProperty('--tail', clamp(a.top+a.height/2-fr.top-top, 20, maxH-20)+'px');
+  return true;
+}
+/* The tiles move on every render, and the bubble is pinned to one of them.
+   Called from render(); does nothing when no panel is up or it isn't a bubble. */
+function repositionPanel(){
+  const el=$('#panel');
+  if(!el || !PANEL.anchor) return;
+  el.classList.remove('bubble','from-left','from-right');
+  el.removeAttribute('style');
+  bubbleAt(el, PANEL.anchor);
 }
 function drawPanel(fresh){
   const s=PANEL.spec, el=$('#panel'); if(!s||!el) return;
@@ -72,7 +124,7 @@ function refreshPanel(){ if($('#panel')) drawPanel(false); }
 const panelKey = ()=>{ const p=$('#panel'); return p ? p.dataset.panel : null; };
 function closePanel(){
   const p=$('#panel'); if(p) p.remove();
-  PANEL.spec=null; PANEL.draft=null; pending.cell=null;
+  PANEL.spec=null; PANEL.draft=null; PANEL.anchor=null; pending.cell=null;
 }
 // what a form in a panel is building, before it is saved
 const draft = ()=> PANEL.draft;
@@ -109,7 +161,9 @@ function pickGroups(){
   return Object.entries(g).filter(([,ks])=>ks.length)
     .map(([nm,ks])=>({nm, ks, note:note[nm]||''}));
 }
-/* A type is shown as the thing it makes, not as an icon standing in for it.
+/* A type is shown as the thing it makes, not as an icon standing in for it —
+   the sample sits on the panel with nothing around it, and its name floats
+   underneath, because a card drawn around a card reads as two objects.
    The dial in the corner opens the type editor — the right-click that used to
    be the only way in doesn't exist on a phone. */
 function kindTile(k){
@@ -118,9 +172,8 @@ function kindTile(k){
       style="--k:${d.c}" title="${esc(d.ds||'')}">
     <div class="kpv">${sampleTile(kindSample(k), 146, 82)}</div>
     <div class="krow"><span class="nm">${esc(d.nm)}</span>
-      ${d.key?`<span class="kbd">${esc(d.key)}</span>`:''}
-      <button class="kedit" data-act="editkind" data-id="${k}" title="Edit ${esc(d.nm)}">${ic('sliders',12)}</button>
-    </div>
+      ${d.key?`<span class="kbd">${esc(d.key)}</span>`:''}</div>
+    <button class="kedit" data-act="editkind" data-id="${k}" title="Edit ${esc(d.nm)}">${ic('sliders',12)}</button>
   </div>`;
 }
 function modalNewObject(){
@@ -150,7 +203,8 @@ function swatchRows(cur, flat){
    change without the handler having to rebuild the panel itself. */
 function objectPanel(id){
   const o=byId(id); if(!o) return;
-  openPanel({key:'object:'+id, title:esc(o.title||'Untitled'), body:()=>objectPanelBody(id)});
+  openPanel({key:'object:'+id, anchor:id, title:esc(o.title||'Untitled'),
+    body:()=>objectPanelBody(id)});
 }
 function objectPanelBody(id){
   const o=byId(id); if(!o) return '';
@@ -185,9 +239,13 @@ function objectPanelBody(id){
 }
 
 /* A drawer's own settings, beside the grid it arranges. */
+/* The gear in the bar opens this for the drawer you are *inside*, whose tile is
+   nowhere on screen — anchorEl() finds nothing and it falls back to the edge
+   panel, which is right: that question is about the whole board. */
 function drawerPanel(id){
   const d=container(id); if(!d) return;
-  openPanel({key:'drawer:'+id, title:esc(id===ROOT?deskTitle():(d.title||'Untitled')),
+  openPanel({key:'drawer:'+id, anchor:id===ROOT?null:id,
+    title:esc(id===ROOT?deskTitle():(d.title||'Untitled')),
     body:()=>drawerPanelBody(id)});
 }
 function drawerPanelBody(id){
@@ -199,7 +257,7 @@ function drawerPanelBody(id){
     `<button class="pchip${cur===v?' on':''}" data-p${name}="${v}" data-id="${id}">${n}</button>`).join('');
   return `
     ${row('View', chips('view', null, [['grid','Grid'],['list','List'],['scroll','Scroll'],
-        ...(isRoot?[]:[['checklist','Checklist'],['calendar','Calendar'],['timeline','Timeline']])], cfg.layout||'grid'))}
+        ...(isRoot?[]:[['checklist','Checklist'],['book','Book'],['calendar','Calendar'],['timeline','Timeline']])], cfg.layout||'grid'))}
     ${isRoot?'':row('Face', chips('face', null, Object.entries(FACES), faceOf(d)))}
     ${row('Sort', chips('sort', null, [['','Custom'],...Object.entries(SORTS).map(([k,[nm]])=>[k,nm])], cfg.sort||''))}
     ${row('Locked', chips('lock', null, [['','Movable'],['1','Locked']], cfg.locked?'1':''))}
@@ -290,9 +348,12 @@ function sampleObject(spec){
     body:spec.body!=null?spec.body:'A line or two of whatever it holds, so you can see how it sits.',
     attrs:a, shape:spec.shape, face:spec.face,
     c:spec.c, parent:ROOT, tags:[], ord:0, created:T,
-    // both layouts, or lay() reads the empty one on a phone-width window and
-    // ensureBox quietly fills it from the fallback kind's size instead
-    desk:{x:1,y:1,w,h}, phone:{x:1,y:1,w,h},
+    /* Both layouts, or lay() reads the empty one on a phone-width window and
+       ensureBox quietly fills it from the fallback kind's size instead — and
+       the phone one goes through the same mapping a real object would, so the
+       sample stays a picture of what you are actually about to get. */
+    desk:{x:1,y:1,w,h},
+    phone:(([pw,ph])=>({x:1,y:1,w:pw,h:ph}))(spec.phoneSize || toPhoneSize(w, h, a.includes('container'))),
     onclick:spec.onclick, spawnBy:spec.spawnBy, genKind:'task', genDir:'down',
     ...(a.includes('date')     ? {due:T} : {}),
     ...(a.includes('count')    ? {count:12} : {}),
@@ -327,7 +388,7 @@ function sampleTile(o, maxW, maxH){
 // One built-in or invented type, as an object of that type.
 const kindSample = k => { const d=K(k); return sampleObject({
   id:'__k_'+k, kind:k, title:d.nm, attrs:d.attrs, shape:d.shape, face:d.face,
-  c:d.c, size:d.size, onclick:d.onclick, spawnBy:d.spawnBy}); };
+  c:d.c, size:d.size, phoneSize:d.phoneSize, onclick:d.onclick, spawnBy:d.spawnBy}); };
 
 /* A live sample of the type being built, from the draft rather than a kind —
    the kind doesn't exist until you press Create. */
@@ -337,7 +398,7 @@ function previewObject(){
   const cont = d.sort!=='object';
   return sampleObject({
     id:'__preview', kind:'note', title:(nameEl&&nameEl.value.trim())||'Untitled',
-    attrs:d.attrs, c:d.c, size:d.size, onclick:d.onclick, spawnBy:d.spawnBy,
+    attrs:d.attrs, c:d.c, size:d.size, phoneSize:d.phoneSize, onclick:d.onclick, spawnBy:d.spawnBy,
     shape: cont?undefined:(d.shape||'card'),
     face:  cont?(d.face||'front'):undefined
   });
@@ -347,6 +408,16 @@ function renderPreview(){
   const o=previewObject(); if(!o) return;
   host.innerHTML=sampleTile(o, 230, 170);
 }
+/* Two sliders and a readout, for a size the presets don't happen to contain.
+   `p` prefixes the data attributes so the same markup serves both grids — the
+   Mac's 24 columns and the phone's 16, which are different coordinate spaces
+   and were never one number. */
+function sizeSliders(p, [w,h], cols){
+  return `<div class="szrow">
+    <span class="s">W</span><input class="pslide" type="range" min="1" max="${cols}" step="1" value="${w}" data-${p}szw>
+    <span class="s">H</span><input class="pslide" type="range" min="1" max="20" step="1" value="${h}" data-${p}szh>
+    <b id="${p}szout">${w} × ${h}</b></div>`;
+}
 function modalNewKind(from, editKey){
   const ex = editKey ? K(editKey) : null;
   const base = ex || (from ? K(from.kind) : null);
@@ -355,6 +426,8 @@ function modalNewKind(from, editKey){
   const isCont = seedAttrs.includes('container');
   const sort = isCont ? (seedAttrs.includes('magic') ? 'magic' : 'drawer') : 'object';
   const size = (base && base.size) || [4,4];
+  const phoneSize = (base && base.phoneSize) || null;
+  const gathersNow = (base && base.gathers) || '';
   const chip=(on,attrs,label,title)=>`<button class="pchip${on?' on':''}" ${attrs}${title?` title="${esc(title)}"`:''}>${label}</button>`;
   // the id lands on the *inner* div, because that is what the wiring rebuilds
   const row=(label,note,body,id,extra)=>`<div class="prow"${extra||''}>
@@ -369,9 +442,10 @@ function modalNewKind(from, editKey){
     sub:'A type is a name for a set of traits',
     draft:{c, attrs:seedAttrs, ic:(base&&base.ic)||'note', ds:'',
            fromId:from&&from.id, editKey:editKey||null,
-           size, onclick:(base&&base.onclick)||'read', read:(base&&base.read)||'page',
+           size, phoneSize, onclick:(base&&base.onclick)||'read',
+           read:(base&&base.read)||'page',
            sort, shape:(base&&base.shape)||'card', face:(base&&base.face)||'front',
-           spawnBy:(base&&base.spawnBy)||'click'},
+           gathers:gathersNow, spawnBy:(base&&base.spawnBy)||'click'},
     body:`
   <div class="kbuild">
     <div class="kleft">
@@ -412,13 +486,23 @@ function modalNewKind(from, editKey){
       ${row('Opens as','how one reads',
         Object.entries(READS).map(([v,n])=>chip(((base&&base.read)||'page')===v,`data-kread="${v}"`,n)).join(''),
         'kread', ` id="kreadrow"${sort==='object'?'':' style="display:none"'}`)}
+      ${row('Two of them make','dropped on each other',
+        chip(!gathersNow,'data-kgather=""','Nothing')+
+        KEYS.filter(k=>kindHas(k,'container')&&!kindHas(k,'magic')).map(k=>
+          chip(gathersNow===k,`data-kgather="${k}"`,esc(KINDS[k].nm))).join(''),
+        'kgather', ` id="kgatherrow"${sort==='object'?'':' style="display:none"'}`)}
       ${row('It spawns','',
         chip(((base&&base.spawnBy)||'click')==='click','data-kspawn="click"','When pressed')+
         chip(((base&&base.spawnBy)||'click')==='type','data-kspawn="type"','As you type in it'),
         'kspawn', ` id="kspawnrow"${seedAttrs.includes('spawn')?'':' style="display:none"'}`)}
-      ${row('Starts at','',
-        [[4,1],[6,1],[2,2],[4,4],[6,4],[6,6],[8,6],[12,8]].map(([w,h])=>
-          chip(size.join('x')===w+'x'+h,`data-ksz="${w}x${h}"`,`${w}×${h}`)).join(''), 'ksize')}
+      ${row('Starts at','on the Mac grid, 24 columns',
+        [[1,1],[4,1],[6,1],[2,2],[4,4],[6,4],[6,6],[8,6],[12,8]].map(([w,h])=>
+          chip(size.join('x')===w+'x'+h,`data-ksz="${w}x${h}"`,`${w}×${h}`)).join('')
+        + sizeSliders('k', size, GRID.desk.cols), 'ksize')}
+      ${row('On a phone','16 columns, and far smaller ones',
+        chip(!phoneSize,'data-kphauto=""','Work it out for me',
+             'Objects go full width; containers keep the size they have')
+        + sizeSliders('kp', phoneSize||toPhoneSize(size[0],size[1],isCont), GRID.phone.cols), 'kphone')}
       ${row('Colour','',
         `${swatchRows(c,true)}<label class="custcol"><input type="color" data-colinput value="${c}"><span>Custom</span></label>`,
         'dcol')}
@@ -532,7 +616,7 @@ function openCtx(x,y,id){
 }
 const closeCtx = ()=> $('#ctx').classList.remove('open');
 
-export { overlayHTML, openPanel, closePanel, refreshPanel, panelKey, draft,
+export { overlayHTML, openPanel, closePanel, refreshPanel, repositionPanel, panelKey, draft,
   openMenu, modalNewObject, objectPanel, drawerPanel, modalDrawer, modalNewKind,
   renderPreview, modalMove, sampleObject, sampleTile, kindSample,
   openCmd, closeCmd, cmdList, runCmd, drawerFromSelection, openCtx, closeCtx };

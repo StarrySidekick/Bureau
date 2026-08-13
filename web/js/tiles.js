@@ -1,6 +1,6 @@
 import { esc, ic, clamp, D, md, strip } from './util.js';
 import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, childrenOf, container,
-  rollup, streak, goalPct, dev } from './model.js';
+  rollup, streak, goalPct, tlSpan, dev } from './model.js';
 import { CELL, gridOf, lay, overlaps, boxOk, freeSpot, gridRows, sizeOfKind, ensureBox } from './grid.js';
 import { create, toast, toggleDone } from './mutations.js';
 import { render } from './views.js';
@@ -97,7 +97,7 @@ const spawnBy = o => o.spawnBy || K(o.kind).spawnBy || 'click';
 function dispense(g){
   const kind=g.genKind||'task', dir=g.genDir||'down';
   const o=create(kind,{parent:g.parent});
-  const b=lay(g), [w,h]=sizeOfKind(kind), dv=dev();
+  const dv=dev(), b=lay(g), [w,h]=sizeOfKind(kind, dv);
   const spots={
     down:  {x:b.x,        y:b.y+b.h, w, h},
     up:    {x:b.x,        y:Math.max(1,b.y-h), w, h},
@@ -137,9 +137,9 @@ function tileTap(id){
 const pending={cell:null};   // a holder, because three modules write it
 function placeAtPending(o){
   const dv=dev();
-  if(!pending.cell){ const [w,h]=sizeOfKind(o.kind); o[dv]=o[dv]||freeSpot(w,h,dv,o.parent); return; }
+  if(!pending.cell){ const [w,h]=sizeOfKind(o.kind, dv); o[dv]=o[dv]||freeSpot(w,h,dv,o.parent); return; }
   // a sketched box wins over the kind's own size
-  const [kw,kh]=sizeOfKind(o.kind);
+  const [kw,kh]=sizeOfKind(o.kind, dv);
   const w=pending.cell.w||kw, h=pending.cell.h||kh;
   const g=gridOf(), box={x:clamp(pending.cell.x,1,g.cols-w+1), y:Math.max(1,pending.cell.y), w, h};
   o[dv] = boxOk(box, o.id, dv, o.parent) ? box : freeSpot(w,h,dv,o.parent);
@@ -149,20 +149,60 @@ function placeAtPending(o){
   pending.cell=null;
 }
 
+/* How much a tile can honestly say depends on how big it is. These classes are
+   the stylesheet's handle on that: `sz-short` has no room for a body, `sz-narrow`
+   none for a meta line. `sz-mini` — one cell square — has room for nothing at
+   all, and is drawn by gridTile() as its mark and nothing else. Text at that
+   size is three letters and an ellipsis, which reads as a bug. */
+function sizeClass(box){
+  const c=[];
+  if(box.w<=1 && box.h<=1) c.push('sz-mini');
+  if(box.h<=1) c.push('sz-short');
+  if(box.w<=3) c.push('sz-narrow');
+  return c.join(' ');
+}
+
 /* One tile, for anything. A container gets the drawer front and a preview of
    what is inside it; everything else gets its attributes rendered directly.
    This is the only place that decides how an object looks on a grid, at any
-   depth — the desk and a drawer three levels down both come through here. */
+   depth — the desk and a drawer three levels down both come through here.
+
+   The size classes are stamped on afterwards rather than threaded through
+   fifteen branches: every branch below returns one element, and its own class
+   list is the first `class="` in the string. */
 function gridTile(o, arr, parentId){
-  const cont=isContainer(o);
   let box;
   if(FLOW.has(o.id)){ box=FLOW.get(o.id); FLOW.delete(o.id); }
   else { ensureBox(o, dev(), parentId); box=lay(o); }
+  const sz=sizeClass(box);
+  const html=drawTile(o, arr, box);
+  return sz ? html.replace('class="', `class="${sz} `) : html;
+}
+function drawTile(o, arr, box){
+  const cont=isContainer(o);
   const colour = o.c || K(o.kind).c;
   const handles = arr ? HANDLES.map(h=>`<i class="rz ${h}" data-rz="${h}"></i>`).join('') : '';
   const chips='';   // no size chip, no delete cross — the menu does both
   const place = `grid-column:${box.x} / span ${box.w};grid-row:${box.y} / span ${box.h}`;
   const sel = S.sel.includes(o.id) ? ' selected' : '';
+
+  /* One cell square: the mark, and nothing else. Every shape below this line
+     assumes there is room for a name, and at 40px there isn't — a drawer front
+     shrunk to a stamp printed "Untit…" across its own knob. A mini tile keeps
+     the thing's colour and its type's mark, which is enough to recognise it,
+     and the title is the tooltip. It is still a drawer or still an object, so
+     the front styling and the drop target come along unchanged. */
+  if(box.w<=1 && box.h<=1){
+    const mark = cont && has(o,'magic') ? 'sparkle' : K(o.kind).ic;
+    return `<button class="drawer ${cont?`dtile bd-${o.border||'panel'}`:'otile'} minitile${sel}${
+        cont&&has(o,'magic')?' magicdrawer':''}"
+      ${cont?`data-drawer="${o.id}"`:`data-row="${o.id}"`} title="${esc(o.title||'Untitled')}"
+      style="--c:${colour};${place}">
+      <span class="minimark">${ic(mark,17)}</span>
+      ${has(o,'check')&&o.done?`<span class="minidone">${ic('check',11)}</span>`:''}
+      ${handles}
+    </button>`;
+  }
 
   // A control is a Bureau button that lives on the desk like anything else.
   if(false){
@@ -202,15 +242,42 @@ function gridTile(o, arr, parentId){
     </button>`;
   }
 
-  /* A timeline lays its children along a rule, in date order. */
+  /* A timeline lays its children along a real date axis — spacing used to be
+     the array index, which drew a straight line through unequal gaps and meant
+     nothing you could read a date off. Now `data-tlspan` says which two dates
+     the ends are, so a drop anywhere along it is arithmetic. Labels alternate
+     above and below the rule, because on a true axis a busy fortnight puts
+     three of them in the same inch. */
   if(cont && faceOf(o)==='timeline'){
-    const kids=childrenOf(o).slice().sort((a,b)=>(a.due||a.created||'').localeCompare(b.due||b.created||''));
-    return `<button class="drawer dtile tltile bd-${o.border||'panel'}${sel}" data-drawer="${o.id}" style="--c:${colour};${place}">
-      <div class="dtop"><span class="dname">${esc(o.title||'Untitled')}</span></div>
+    const sp=tlSpan(o), lo=D.parse(sp.min);
+    const pc = iso => ((D.parse(iso)-lo)/864e5)/Math.max(1,sp.days)*100;
+    const kids=childrenOf(o).filter(x=>x.due||x.created)
+      .sort((a,b)=>(a.due||a.created).localeCompare(b.due||b.created)).slice(0,10);
+    const nowPc = (T>=sp.min && T<=sp.max) ? pc(T) : null;
+    return `<button class="drawer dtile tltile bd-${o.border||'panel'}${sel}" data-drawer="${o.id}"
+      data-tlspan="${o.id}:${sp.min}:${sp.max}" style="--c:${colour};${place}">
+      <div class="dtop"><span class="dname">${esc(o.title||'Untitled')}</span>
+        <span class="clcount">${esc(D.short(sp.min))} – ${esc(D.short(sp.max))}</span></div>
       <div class="tlwrap"><i class="tlrule"></i>
-        ${kids.slice(0,8).map((x,i)=>`<span class="tlnode" style="left:${kids.length<2?50:(i/(Math.min(kids.length,8)-1))*100}%">
-          <i></i><b>${esc((x.title||'').slice(0,18))}</b><u>${x.due?esc(D.short(x.due)):''}</u></span>`).join('')}
+        ${nowPc!=null?`<i class="tlnowmark" style="left:${nowPc}%"></i>`:''}
+        ${kids.map((x,i)=>{
+          const iso=x.due||x.created;
+          return `<span class="tlnode ${i%2?'below':'above'}" style="left:${pc(iso)}%">
+            <i></i><b>${esc((x.title||'Untitled').slice(0,18))}</b><u>${esc(D.short(iso))}</u></span>`;
+        }).join('')}
       </div>
+      ${handles}
+    </button>`;
+  }
+
+  /* A story is a book seen spine-on, and it is also a container — the scenes
+     are inside it. Every other container face draws what it holds; a spine
+     deliberately doesn't, because a shelf shows you titles. */
+  if(cont && faceOf(o)==='spine'){
+    return `<button class="drawer dtile spinetile bd-none${sel}" data-drawer="${o.id}" style="--c:${colour};${place}">
+      <span class="spinetop"></span>
+      <span class="spinetitle">${esc(o.title||'Untitled')}</span>
+      <span class="spinefoot"></span>
       ${handles}
     </button>`;
   }
@@ -357,7 +424,7 @@ function flowSorted(kids, cid){
   const g=gridOf(), dv=dev(), taken=[];
   const free=(b)=> b.x+b.w-1<=g.cols && !taken.some(t=>overlaps(b,t));
   kids.forEach(o=>{
-    const [w,h]=(o[dv]&&o[dv].w) ? [o[dv].w,o[dv].h] : sizeOfKind(o.kind);
+    const [w,h]=(o[dv]&&o[dv].w) ? [o[dv].w,o[dv].h] : sizeOfKind(o.kind, dv);
     let put=null;
     for(let y=1;y<600&&!put;y++) for(let x=1;x<=g.cols-w+1;x++){
       const b={x,y,w,h}; if(free(b)){ put=b; break; }

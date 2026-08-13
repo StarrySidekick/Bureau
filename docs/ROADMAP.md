@@ -5,6 +5,28 @@ Sequenced by dependency, not appetite: item 1 makes everything after it safer.
 
 ---
 
+## 0. Queued 2026-08-13 — DONE in the same pass (v44)
+
+Six things asked for on 13 August; all six landed. See decisions 25b–30.
+
+- **adaptive tiles** — `sizeClass()` stamps `sz-mini`/`sz-short`/`sz-narrow` and
+  the stylesheet only takes away what there is no room for. At 1×1 the tile is
+  the type's mark and nothing else (decision 26)
+- **the board stays where you left it** — the scroll offset survives a redraw,
+  keyed by where you are (decision 29)
+- **the sway survives the drag** — `--carryx`/`--carryy` compose with the lift
+  keyframes instead of being overridden by them (decision 30)
+- **terminology** — everything is an object, containing is an attribute; the
+  docs and the one comment that still said otherwise are fixed (decision 25b)
+- **speech-bubble panels** — a panel about one tile comes up beside that tile
+  (decision 27)
+- **granular type sizes** — sliders as well as presets, on both grids, with an
+  explicit `phoneSize` override (decision 28)
+
+*Still open from that pass:* dragging the type preview's own corner to set the
+size; the size thresholds are the same for containers and objects, and a 6×1
+drawer probably wants its knob back.
+
 ## 1. Module split — DONE (2026-08-11, v30)
 
 `web/index.html` is now a thin shell over thirteen ES modules in `web/js/` and
@@ -77,6 +99,19 @@ panel replaces it and there is no way back except reopening.
   OBJECT-MODEL.md are folded into `docs/SYSTEM.md`, one reference for what the
   system is made of, written against the code rather than against the last
   redesign
+
+## 4b. Borrowing from the four comparables
+
+`docs/INFLUENCES.md` (2026-08-13) appraises Things 3, Bear, Notion and Obsidian
+and proposes six changes in order — a shared transition vocabulary, panels that
+ask one question, a markdown highlight overlay in the sheet, rollups on every
+face, a container that types what you file into it, and a keyboard layer.
+
+Two caveats worth carrying: it is an appraisal from observable behaviour, not
+sourced research, and it closes with three claims worth verifying before acting
+on them — chiefly what Bear's in-place markdown rendering actually *is*, which
+changes the cost of the biggest item by an order of magnitude. Do that check
+first if item 3 is the one that gets picked up.
 
 ## 5. Sync — blocked on a decision, not effort
 

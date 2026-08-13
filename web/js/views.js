@@ -1,10 +1,10 @@
-import { $, esc, ic, D, ROOT } from './util.js';
+import { $, esc, ic, D, md, ROOT } from './util.js';
 import { S, K, T, byId, has, isContainer, containers, childrenOf, chainOf,
   deskTitle, rootObj, pinnedDrawers, isPinned, allTags, dev } from './model.js';
 import { CELL, gridOf, cellW } from './grid.js';
 import { themeNow, applyLook, lookVal, STYLES, PALETTES, paletteNow, BACKDROPS } from './look.js';
 import { gridOfContainer, listTile, scrollEntry, bookView } from './tiles.js';
-import { openPanel, closePanel, panelKey } from './panels.js';
+import { openPanel, closePanel, panelKey, repositionPanel } from './panels.js';
 import { APP_VERSION, save, storeSize, install } from './persist.js';
 
 /* The desk is nothing but the grid. There is no toolbar: New, Arrange and
@@ -180,7 +180,11 @@ function viewDrawer(){
   const kinds=[...new Set(all.map(o=>o.kind))];
   const f=d.filter||{};
   const defKind = (f.kinds&&f.kinds[0]) || 'task';
-  const view = d.layout || 'grid';       // grid | list | scroll
+  /* grid | list | scroll | book | calendar | timeline — the object's own choice
+     first, then its type's. Falling straight to 'grid' meant a type that says
+     it opens as a calendar only did so if something had written `layout` onto
+     the object, which create() does and the seed doesn't. */
+  const view = d.layout || K(d.kind).layout || 'grid';
   return `
   ${gridBar(d)}
   <div class="scroll${view==='grid'?' deskscroll':''}">
@@ -188,6 +192,8 @@ function viewDrawer(){
       <button class="fchip${!S.kindFilter?' on':''}" data-kind="">All</button>
       ${kinds.map(k=>`<button class="fchip${S.kindFilter===k?' on':''}" data-kind="${k}" style="--k:${K(k).c}">${K(k).nm}</button>`).join('')}
     </div>`:''}
+    ${has(d,'text')&&(d.body||'').trim()
+      ? `<div class="contbody">${md(d.body)}</div>` : ''}
     ${view==='grid'
       ? gridOfContainer(d.id)
       : view==='calendar'
@@ -380,8 +386,18 @@ function pinbar(where){
    ============================================================ */
 function bindSortables(){ /* delegation handles it; keep quick-add focused */ }
 
+/* Where the board was scrolled to. render() replaces #app wholesale, so the
+   scroller is a brand-new element every time and starts at the top — which
+   meant moving a tile two rows down on a long desk threw you back to the first
+   screen, mid-gesture. Remembered per place, so *navigating* still starts at
+   the top: going into a drawer and coming back is a new view, not a redraw. */
+const SCROLL = {key:null, top:0};
+const viewKey = ()=> S.view==='drawer' ? 'drawer:'+S.drawerId : 'desk';
+
 function render(){
   const frame=$('#frame');
+  const wasKey=SCROLL.key, wasEl=$('#app .scroll');
+  if(wasEl) SCROLL.top=wasEl.scrollTop;
   frame.className = S.device==='desk' ? 'is-desk' : 'is-phone';
   document.documentElement.dataset.theme = themeNow();
   applyLook();          // the custom colours are per theme, so repaint them
@@ -394,8 +410,13 @@ function render(){
   // On a Mac the pins ride in the grid bar (see gridBar); on a phone they get
   // the bottom bar, which is the one place a thumb reaches.
   $('#app').innerHTML = `<div class="main">${body}${S.device==='phone'?pinbar('foot'):''}</div>`;
+  const key=viewKey(), now=$('#app .scroll');
+  if(key!==wasKey) SCROLL.top=0;
+  if(now) now.scrollTop=SCROLL.top;
+  SCROLL.key=key;
   bindSortables();
   sizeGrid();
+  repositionPanel();   // a bubble is pinned to a tile, and the tiles just moved
   save();   // a save after every re-render, cheaply
 }
 

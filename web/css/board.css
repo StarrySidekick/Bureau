@@ -123,12 +123,17 @@ input,textarea{font:inherit;color:inherit}
 html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
 .pill.solid:hover{opacity:.9}
 .scroll{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:6px 22px 120px}
-.is-phone .scroll{padding:4px 14px 110px}
+.is-phone .scroll{padding:4px 12px 110px}
 /* the desk has no toolbar — the grid is the page */
 .deskscroll{padding:0 14px 120px}
-.is-phone .deskscroll{padding:0 10px 110px}
+/* On a phone the grid runs to both edges. 10px of paper each side plus a
+   reserved scrollbar gutter was 40px of a 375px screen — 11% of the desk spent
+   on nothing, and a cell is only 23px wide, so it cost most of two columns. */
+.is-phone .deskscroll{padding:0 0 110px}
 /* reserve the scrollbar on both sides, or the grid sits off-centre */
 .scroll{scrollbar-gutter:stable both-edges}
+/* …but a touch scrollbar is an overlay and reserves nothing worth having */
+.is-phone .scroll{scrollbar-gutter:auto}
 
 /* ---- the bar above every grid ---------------------------------------- */
 .gridbar{
@@ -193,6 +198,24 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
    keeps it from being sliced through the middle of a letter. */
 .drawer.dtile .dname{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;
   overflow:hidden;line-height:1.22;text-align:center;width:100%}
+/* ---- a tile shows less as it gets smaller -----------------------------
+   Three thresholds, stamped on by sizeClass() in tiles.js. Nothing here moves
+   anything: each rule only takes away what there is no longer room for, so a
+   tile crossing a threshold loses a line rather than rearranging itself. */
+.drawer.sz-short{padding:7px 10px}
+.drawer.sz-short .dbody,.drawer.sz-short .tilestars{display:none}
+.drawer.sz-short.otile .dfoot{display:none}
+.drawer.sz-narrow{padding:8px 9px}
+.drawer.sz-narrow .tilemeta,.drawer.sz-narrow .rollup,
+.drawer.sz-narrow .clcount,.drawer.sz-narrow .bandsnip{display:none}
+.drawer.sz-narrow .dname{font-size:12.5px}
+.drawer.sz-narrow.dtile .dname{-webkit-line-clamp:2}
+/* one cell square: the mark, centred, and nothing else */
+.drawer.minitile{padding:0;align-items:center;justify-content:center;overflow:hidden}
+.drawer.minitile .minimark{display:grid;place-items:center;color:var(--dink);opacity:.92}
+.drawer.minitile.otile .minimark{color:var(--c)}
+.drawer.minitile .minidone{position:absolute;right:2px;bottom:1px;color:var(--dink-2)}
+.drawer.minitile .dfoot,.drawer.minitile .dtop{display:none}
 .drawer.h1{padding:9px 12px}
 .drawer.h1 .dbody{margin-top:5px}
 .drawer.h1 .dfoot{padding-top:5px}
@@ -262,6 +285,29 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
 }
 .panel.open{transform:none}
 .panel.wide{width:min(720px,96%)}
+/* A panel about one tile comes up out of that tile instead — same panel, put
+   beside the thing it is asking about, with a tail pointing back at it. Every
+   offset is set inline by bubbleAt(), because it is measured, not chosen. It
+   grows rather than slides: a bubble that arrives from off-screen is a drawer,
+   not a bubble. */
+.panel.bubble{
+  top:auto;right:auto;bottom:auto;height:auto;
+  border:1px solid var(--rule);border-radius:var(--radius);
+  transform:scale(.96);opacity:0;transform-origin:left center;
+  transition:transform .16s cubic-bezier(.2,.9,.3,1),opacity .14s ease-out;
+}
+.panel.bubble.from-left{transform-origin:right center}
+.panel.bubble.open{transform:none;opacity:1}
+.panel.bubble .ptop{padding:11px 10px 9px 14px}
+.panel.bubble .pbody{padding:10px 14px 16px}
+/* two triangles: the rule behind, the paper a pixel in front of it */
+.panel.bubble::before,.panel.bubble::after{
+  content:"";position:absolute;top:var(--tail,28px);margin-top:-9px;
+  width:0;height:0;border:9px solid transparent}
+.panel.bubble.from-right::before{left:-19px;border-right-color:var(--rule)}
+.panel.bubble.from-right::after{left:-18px;border-right-color:var(--paper-2)}
+.panel.bubble.from-left::before{right:-19px;border-left-color:var(--rule)}
+.panel.bubble.from-left::after{right:-18px;border-left-color:var(--paper-2)}
 .panel .ptop{display:flex;align-items:flex-start;gap:8px;flex:0 0 auto;
   padding:13px 12px 11px 16px;border-bottom:1px solid var(--rule-2)}
 .panel .ptop .pt{flex:1;min-width:0}
@@ -280,6 +326,12 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
 .pchip:hover{border-color:var(--brass);color:var(--ink)}
 .pchip.on{background:color-mix(in srgb,var(--brass) 22%,transparent);color:var(--ink);border-color:transparent}
 .pslide{width:100%;accent-color:var(--brass)}
+/* a size, in cells, for the sizes the presets don't happen to contain */
+.szrow{display:flex;align-items:center;gap:7px;width:100%;margin-top:6px}
+.szrow .pslide{flex:1;min-width:60px}
+.szrow .s{font-size:10px;letter-spacing:.06em;color:var(--ink-3);font-weight:700}
+.szrow b{font-size:11.5px;color:var(--ink-2);font-variant-numeric:tabular-nums;
+  min-width:46px;text-align:right;white-space:nowrap}
 
 /* ---- style-specific elements ------------------------------------------ */
 /* an Aero orb: a glossy sphere with a highlight */
@@ -399,8 +451,9 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
   --dink:#F8F2DE;--dink-2:rgba(248,242,222,.8);--dink-3:rgba(248,242,222,.6);
 }
 .drawer.otile.sh-plaque .dname{font-family:var(--serif);letter-spacing:.02em;text-align:center}
-/* a story is a book seen spine-on */
-.drawer.otile.spinetile{
+/* a story is a book seen spine-on — and a container, so this can't be scoped
+   to .otile the way the other shapes are */
+.drawer.spinetile{
   background:linear-gradient(90deg,color-mix(in srgb,var(--c) 68%,#000) 0 6%,var(--c) 6% 92%,color-mix(in srgb,var(--c) 70%,#000) 92%);
   border-radius:2px 4px 4px 2px;align-items:center;justify-content:center;padding:10px 0;overflow:hidden;
   box-shadow:var(--shadow), inset -3px 0 6px rgba(0,0,0,.25);
@@ -411,13 +464,38 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
   color:#F8F3E6;letter-spacing:.03em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* a question with rounder corners */
 .drawer.otile.sh-bubble{border-radius:18px 18px 18px 3px}
-/* a timeline */
-.tlwrap{position:absolute;left:12px;right:12px;top:44%;bottom:8px}
-.tlrule{position:absolute;left:0;right:0;top:6px;height:2px;background:rgba(255,255,255,.35);border-radius:2px}
-.tlnode{position:absolute;top:0;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:2px;width:74px}
-.tlnode i{width:9px;height:9px;border-radius:50%;background:var(--dink);opacity:.9}
-.tlnode b{font-size:9.5px;font-weight:600;color:var(--dink-2);text-align:center;line-height:1.15;overflow-wrap:anywhere}
-.tlnode u{font-size:8.5px;text-decoration:none;color:var(--dink-3)}
+/* A timeline. The rule sits in the middle of the wrap rather than at the top,
+   because labels alternate above and below it — on a real date axis a busy
+   fortnight stacks three of them in the same inch, and two lanes halves that.
+   The wrap is inset by half a label so a node at either end doesn't hang off. */
+/* Everything here is measured against the tile, not the page — .dtile is a size
+   container. A timeline is 10×6 cells on both devices, which is 580px wide on a
+   desk and 244px on a phone; fixed 44px insets and 76px labels turned the phone
+   one into four overlapping words on a 150px axis. */
+.tlwrap{position:absolute;bottom:10px;
+  left:min(44px, 14cqw);right:min(44px, 14cqw);top:min(34px, 26cqh)}
+.tlrule{position:absolute;top:50%;height:2px;margin-top:-1px;
+  left:calc(-1 * min(14px, 4cqw));right:calc(-1 * min(14px, 4cqw));
+  background:rgba(255,255,255,.35);border-radius:2px}
+.tlnowmark{position:absolute;top:0;bottom:0;width:1px;background:rgba(255,255,255,.5);
+  box-shadow:0 0 5px rgba(255,255,255,.35)}
+.tlnode{position:absolute;transform:translateX(-50%);display:flex;flex-direction:column;
+  align-items:center;gap:1px;width:min(76px, 30cqw)}
+/* the name gives way rather than wrapping onto the axis below it */
+/* .drawer.dtile .dname line-clamps to three lines in a -webkit-box, which wins
+   on specificity and wraps regardless of white-space — hence the third class. */
+.drawer.dtile.tltile .dname{display:block;white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis;min-width:0;font-size:clamp(11px, 6cqw, 15.5px)}
+.tltile .clcount{flex:0 0 auto;font-size:clamp(8px, 3.6cqw, 11px)}
+.tlnode.above{bottom:50%;padding-bottom:5px;justify-content:flex-end}
+.tlnode.below{top:50%;padding-top:5px}
+.tlnode i{width:8px;height:8px;border-radius:50%;background:var(--dink);opacity:.9;flex:0 0 auto}
+.tlnode.above i{order:3}                    /* the dot always touches the rule */
+.tlnode b{font-size:clamp(7.5px, 3.6cqw, 9.5px);font-weight:600;color:var(--dink-2);
+  text-align:center;line-height:1.15;
+  overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow-wrap:anywhere}
+.tlnode u{font-size:clamp(7px, 3.2cqw, 8.5px);text-decoration:none;color:var(--dink-3)}
+.tlnode.above b{order:1} .tlnode.above u{order:2}
 /* a button sits on a tile rather than floating */
 .drawer.btntile{background:var(--paper-2);border:1px solid var(--rule);box-shadow:var(--shadow)}
 /* counter digits fill the tile */

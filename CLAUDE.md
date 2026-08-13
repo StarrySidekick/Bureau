@@ -61,6 +61,14 @@ version from cache. A **new** file must also be added to `SHELL` in `sw.js` or
 it won't work offline. This is the easiest thing in the project to forget and
 the symptom — "my change didn't deploy" — points at the wrong culprit.
 
+Two more things about that cache, both of which have wasted a session already:
+the shell is fetched with `cache:'reload'` so a bump can't refill the new cache
+from the browser's own stale copies (it did, once, landing a new stylesheet
+beside the previous `grid.js`); and an already-open page still finishes on the
+old assets, so a bump takes effect on the **second** launch, not the first.
+`scripts/serve.sh` sends `no-store` for the same reason — that header is
+development-only and never ships.
+
 ## Layout of the code
 
 `web/index.html` is a thin shell: head, two stylesheet links, `#frame`, and one
@@ -96,7 +104,19 @@ it that way: no top-level code that *calls* another module.
 Don't add targeted DOM patching; it isn't the bottleneck and it would break the
 mental model. The one exception is the detail sheet, which renders into its own
 host so that typing doesn't destroy the field you're typing in — respect that
-split.
+split. The one thing carried *across* a rebuild is the board's scroll offset
+(`SCROLL` in `views.js`, keyed by where you are), because a new scroller starts
+at the top and moving a tile on a long desk used to throw you back to the first
+screen. That is one number, not a foothold for patching — see decision 29.
+
+**A tile shows less as it gets smaller.** `sizeClass()` in `tiles.js` stamps
+`sz-short` (h≤1), `sz-narrow` (w≤3) and `sz-mini` (1×1) onto every tile, and the
+stylesheet only ever *takes away* what there is no longer room for — a tile
+crossing a threshold loses a line rather than rearranging itself. 1×1 is handled
+in `gridTile()` rather than in CSS: the tile is the type's mark and nothing else,
+because at 40px a title is three letters and an ellipsis. The classes are spliced
+into the first `class="` of whatever `drawTile()` returns, so a new branch gets
+the behaviour without being told. See decision 26.
 
 **A tag is a magic drawer waiting to happen.** There is no filter mode and no
 filter bar; clicking a tag anywhere calls `drawerForTag()`, which finds the
@@ -105,9 +125,26 @@ filter UI, add a drawer instead — that is the same instinct that deleted the
 tabs (decision 22).
 
 **Calendar and timeline are layouts, not kinds.** `layout` is how a container
-arranges its children when opened — `grid | list | scroll | calendar |
+arranges its children when opened — `grid | list | scroll | book | calendar |
 timeline` — and `face` is how it draws on its parent's board. Any container can
-wear either; nothing branches on a kind called "calendar".
+wear either; nothing branches on a kind called "calendar". A calendar *is* a
+container: the day it draws is not a container, it's the `due` field on the
+object. A layout falls back to the *kind's* if the object hasn't got one.
+
+**A drop has four meanings, and they are ordered.** `aimDrop()` in
+`gestures.js`: a day on a calendar, a point along a timeline's axis, an object
+it gathers with, a container to file into. The first two sit inside a
+container's tile, so they must be asked about first — ask the drawer first and
+every calendar drop files the object and loses the date. Add a fifth by adding a
+branch there, in the right place in that order.
+
+**Two of a kind make a third thing, and that's a property.** `gathers` on a kind
+names the container a pile of it becomes — task→checklist, ingredient→recipe,
+shot→shotlist, scene→story, character/place/item/event→world. `gatherKind(a,b)`
+agrees only when both name the same thing. If you are tempted to write
+`if(a.kind==='task' && b.kind==='task')`, that is the instinct this property
+exists to stop: a type invented at runtime has to get the behaviour too, and
+the type builder offers it as "Two of them make".
 
 **Navigation is the desk plus whatever you pinned.** There are exactly two
 views: the desk and a drawer. The four fixed tabs (Today, Keeping Up,
@@ -138,6 +175,15 @@ shape.
   panel. The sheet is the bigger claim.
 - The command palette (⌘K) is the one thing that kept a scrim: it is a search
   field you summon and type into blind, not a menu about what is in front of you.
+- `spec.anchor` — an object id or an element — makes the panel a **bubble**
+  beside that tile instead of a slab down the edge, on whichever side has room,
+  with a tail pointing back at it. Object and drawer settings use it. A question
+  about one tile asked from the far corner of the screen makes you look away
+  from the thing you are changing; a question about the *desk* (settings, the
+  type picker) belongs on the edge and shouldn't take an anchor. With no room
+  either side — a phone — it falls back to the edge panel by itself. See
+  decision 27. `repositionPanel()` runs at the end of `render()`, because the
+  tiles move and the bubble is pinned to one.
 
 **A list of choices is a popup, not a panel.** `openMenu(anchorEl, html)` borrows
 the context menu's element and hangs it under the button that opened it — that is
@@ -156,11 +202,14 @@ to `#frame` in `wire.js`, dispatched on `data-*` attributes. To add an action,
 add a `data-act="thing"` attribute and a case in `act()`. Don't attach listeners
 inside render functions — they'd leak on every re-render.
 
-**Drawers contain; objects don't.** One array, `S.objects`, holds both, and
-every object names its `parent`. `ROOT` is the desk. Drawers nest inside
-drawers; objects nest inside nothing. An object lives in exactly one drawer —
-a magic drawer is the only way it appears anywhere else. Read
-`docs/SYSTEM.md` before changing any of it.
+**Everything is an object; containing is an attribute.** One array,
+`S.objects`, holds all of it, and every object names its `parent`. `ROOT` is the
+desk. A "drawer" is an object carrying `container` — the word is right in the
+interface and wrong in the code, so ask `isContainer(o)` (which is
+`has(o,'container')`) and never anything about a type's name. Containers nest
+inside containers; everything else nests inside nothing. An object lives in
+exactly one container — a magic drawer is the only way it appears anywhere
+else. Read `docs/SYSTEM.md` before changing any of it.
 
 **Never branch on a type's name.** Appearance goes through `shapeOf()`, faces
 through `faceOf()`, behaviour through `has()`. The only remaining `kind===`
@@ -186,6 +235,23 @@ when you're editing the *other* device's layout from this one.
 - **Layouts are stored per device.** Each drawer has both `desk: {x,y,w,h}` and
   `phone: {x,y,w,h}`. Resizing must only touch `d[dev()]`. `dev()` returns the
   layout currently being *edited*, which is not always the physical device.
+- **A kind's `size` is the desk size.** `sizeOfKind(kind, device)` maps it: on a
+  phone an object goes full width and a sliver gets two rows, containers keep
+  what they have. Never use `K(k).size` directly to place something — a 4×1 task
+  copied to a 16-column phone grid is an 84×24px stamp, which is what this
+  function exists to stop. Anything drawing a *preview* of a phone box goes
+  through `toPhoneSize()` so the preview can't drift from the placement. A kind
+  may also carry `phoneSize`, set from the type builder's second pair of
+  sliders, and `sizeOfKind()` prefers it over the derivation — the derivation is
+  a good default and a bad rule. Read the size through `sizeOfKind()` and both
+  cases come along; read `K(k).size` and neither does.
+- **On touch, the drag has to steal the scroll, and it only gets one chance.**
+  The non-passive `touchmove` listener in `wire.js` preventDefaults while
+  `dragArmed()`. That call only works because the 300ms hold kept the finger
+  still, so no native scroll had begun — once one has, preventDefault is
+  ignored. Don't make that listener passive, don't shorten the touch hold, and
+  don't preventDefault during the hold *window* (it would break flick-scrolling
+  off a tile, which is the commoner gesture).
 - **The grid is a coordinate space, not a flow.** `x`/`y` are 1-based cells and
   array order positions nothing. There is no `grid-auto-flow` — an empty cell
   stays empty. Every move and resize goes through `boxOk()`, which refuses

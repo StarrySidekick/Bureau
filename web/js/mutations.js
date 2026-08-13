@@ -1,6 +1,6 @@
 import { $, esc, uid, ROOT, D } from './util.js';
 import { S, byId, K, KEYS, kindHas, has, isContainer, streak, T, dz, dev } from './model.js';
-import { gridOf, freeSpot } from './grid.js';
+import { gridOf, freeSpot, lay, boxOk } from './grid.js';
 import { randomFront, randomBoard, styleDefaults } from './look.js';
 import { render } from './views.js';
 import { closeSheet } from './sheet.js';
@@ -195,6 +195,29 @@ function create(kind, patch){
   S.objects.push(o);
   return o;
 }
+/* Two objects dropped on each other become the container their type gathers
+   into — see gatherKind() in model.js, which decides whether they agree. The
+   new container starts at the target's corner so the pile stays where you made
+   it, but at its *own* size and not the union with what it replaced: a story
+   is a book spine, and a spine as wide as the scene it landed on is a door.
+   Both objects move inside and lose their boxes, so the container places them
+   on first render. The one the others landed on goes first, since it was
+   already there. */
+function gather(aId, bId, kind){
+  const a=byId(aId), b=byId(bId);
+  if(!a || !b || !kind) return null;
+  const dv=dev(), home=b.parent, box=lay(b);
+  const c=create(kind, {parent:home, title:K(kind).nm});
+  a.parent=c.id; b.parent=c.id;
+  a.desk=a.phone=b.desk=b.phone=null;
+  b.ord=0; a.ord=1;
+  const [kw,kh]=K(kind).size||[6,8];
+  const want={x:box.x, y:box.y, w:kw, h:kh};
+  c[dv] = boxOk(want, c.id, dv, home) ? want : freeSpot(kw, kh, dv, home);
+  toast(`Made a ${K(kind).nm.toLowerCase()}`);
+  return c;
+}
+
 function quickAdd(text, kind, drawerId){
   let t=text.trim(); if(!t) return null;
   let k=kind||'task', due=null; const tags=[];
@@ -236,4 +259,4 @@ function randomThing(parentId){
 // toggleHabit isn't exported — a streak reaches it through toggleDone, which is
 // the one door, so nothing outside has to know a habit ticks differently.
 export { toast, toggleDone, del, delMany, delDrawer, undo, pushUndo, setPin, togglePin,
-  drawerForTag, create, quickAdd, randomThing };
+  drawerForTag, create, gather, quickAdd, randomThing };

@@ -11,11 +11,20 @@ is stored. `STYLES.md` says how it looks. This file says what it *is*.
 
 ## 1. The idea
 
-Everything sits on a **grid**. A **drawer** is a container on that grid which
-opens onto a grid of its own; the **desk** is the outermost one and the only
-grid you never see a tile for. Everything else is an **object**. What an object
-can do is decided by its **attributes**, and a named set of attributes is a
-**type**. An object lives in exactly one drawer. A **magic drawer** is the only
+Everything sits on a **grid**, and **everything on it is an object**. There is
+one species and one array holding all of it. What an object can do is decided by
+its **attributes**, and a named set of attributes is a **type**.
+
+**Containing is one of those attributes.** An object carrying `container` holds
+other objects and opens onto a grid of its own; an object without it holds
+nothing. That is the entire difference, and it is why a **drawer** is not a
+second sort of thing — it is the name the interface gives an object carrying
+`container`, because "drawer" is what it looks like and what you do with it. The
+word belongs in the copy and not in the code: ask `isContainer(o)`, which is
+`has(o,'container')` and nothing more.
+
+The **desk** is the outermost container and the only grid you never see a tile
+for. An object lives in exactly one container. A **magic drawer** is the only
 thing that can show it somewhere else, and it does that by rule, not by holding.
 
 The point of all of it: a desk is a *place*, not a list. Position carries
@@ -127,7 +136,11 @@ reason an invented type works everywhere immediately.
 
 `container` and `magic` are **structural**: they are excluded from `USER_ATTRS`
 and never appear in the attribute picker, so a note cannot be ticked into a
-drawer. Everything else is yours to combine, including combinations nobody
+drawer. Structural means *dangerous to toggle*, not different in kind —
+containing is an ordinary attribute (see §1), and turning a note into a drawer
+by brushing past a chip would orphan whatever was inside it, so the question is
+asked deliberately in the type builder and the drawer settings instead of
+casually everywhere. Everything else is yours to combine, including combinations nobody
 designed for — a streak with milestones reads fine, and prevention would mean a
 compatibility matrix.
 
