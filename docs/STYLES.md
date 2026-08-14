@@ -14,7 +14,7 @@ object stores the *slot number*:
 | Slots | | What they are |
 | --- | --- | --- |
 | 0–4 | Page · Text · Lines · Accent · Glow | The app itself. `chromeTokens()` derives the whole CSS token set from these five — the softer inks are the ink walked back toward the page, the rules are the line at low alpha — so a style supplies five hexes and gets forty. |
-| 5–15 | Umber · Fern · Olive · Teal · Slate · Steel · Rust · Ochre · Clay · Plum · Stone | Colour *families*. What drawers and objects are painted in. |
+| 5–15 | Named by the style | What drawers and objects are painted in. |
 
 Because slot 9 is Slate in every style, changing style repaints every slate
 drawer in the new style's slate, and changing back puts every one of them
@@ -43,7 +43,7 @@ The app as it grew up: an old writing desk.
 | Background | parchment `#E9E1CC` (slot 0) |
 | Accent | brass `#A9793F` |
 | Display type | Iowan Old Style / Palatino (serif) |
-| Families | walnut, chestnut, fern, slate, terracotta |
+| Its eleven | Walnut · Baize · Sage · Emerald · Royal · Delft · Claret · Gilt · Oak · Regal · Pewter |
 | Drawer defaults | round knob · panelled border · no texture |
 | Signature elements | brass pulls, panelled fronts, plaque achievements, ledger counters, checkerboard baize |
 
@@ -51,26 +51,32 @@ Mood: finite, warm, deliberate. Nothing pure white, nothing pure black.
 
 ---
 
-## Modern
+## Pseudochromo
 
-Flat, quiet, out of the way.
+Near-monochrome. Professional, sleek, and not remotely colourful. Was called
+Modern until it had a stated idea rather than an absence of one; **migration 13**
+renames the stored key.
 
 | Token | Value |
 | --- | --- |
-| Board | `#F4F4F1` / `#EBEBE6` at 60% — a whisper of a checker |
-| Background | `#FAFAF8`, cards pure white |
-| Accent | calm teal-green `#3A6E68` |
+| Board | `#F6F6F7` / `#EDEEF0` at 60% — a whisper of a checker |
+| Background | `#FBFBFC`, cards near-white |
+| Accent | graphite `#4A5058` — the accent is a grey too |
 | Display type | system sans (SF Pro / Inter), weight 500 |
-| Families | greys, slate blues, muted everything |
-| Drawer defaults | bar knob · no border · no texture |
-| Radii | 8px everywhere (vs 3–5px elsewhere) |
-| Signature elements | hairline shadows, no ornament, generous whitespace |
+| Its eleven | Carbon · Graphite · Iron · Steel · Ash · Nickel · Basalt · Clay · Payne · Mauve · Silver — a lightness ramp, barely a tint in any of them |
+| Drawer defaults | bar knob · plain border · no texture |
+| Radii | **2px chrome, 0px drawers** — sharp corners are the point |
+| Signature elements | hairline shadows, no ornament, drawers told apart by weight rather than hue |
 
 Mood: a tool that disappears. The style to pick when the content is the point.
 
 ---
 
-## Skeuomorphic
+## Skeuomorphic *(parked)*
+
+The whole idea is materials that look real, and materials are images rather
+than hexes — this one waits on assets. The palette below keeps it coherent
+in the meantime; it is not the finished thing.
 
 Things that look like the things they are.
 
@@ -80,7 +86,7 @@ Things that look like the things they are.
 | Background | warm buff `#EFE4CC` |
 | Accent | saddle `#8A5A2B` |
 | Display type | serif (as Victorian) |
-| Families | clay reds, apple greens, timber browns |
+| Its eleven | Mahogany · Moss · Olive · Verdigris · Denim · Chambray · Leather · Brass · Tan · Velvet · Slate |
 | Drawer defaults | ring pull · heavy panel border · wide-weave texture |
 | Signature elements | wood-grain drawer fronts (vertical graining overlay), gilt & walnut picture frames, ticket stubs, instant-photo frames |
 
@@ -90,17 +96,19 @@ Mood: tactile. Everything casts a shadow because everything is an object.
 
 ## Starry Sidekick
 
-The night sky from timothyvlangas.com — dark, whimsical, hand-drawn.
+The night sky from timothyvlangas.com — black and white, drawn in white pencil.
+Swirly, starry, wireframe: a front is its **outline**, not its fill, so the line
+slot is white and nearly opaque and the drawer shadow goes entirely.
 
 | Token | Value |
 | --- | --- |
-| Board | `#101422` / `#161B2E` night checker **with stars scattered over it** |
-| Background | deep space `#0B0E1A` |
-| Accent | starlight gold `#F5D76E` |
+| Board | `#07080C` / `#0B0D13` night checker **with stars scattered over it** |
+| Background | pitch `#07080C` |
+| Accent | blue `#6FD3F5`, with green `#7DE8B0` as the glow — the only two colours in it |
 | Display type | Chalkboard SE / Comic Sans (hand-drawn; stands in for the site's Amatic SC without a webfont dependency) |
-| Families | moonlit teals, sages, and sands that read well on dark |
+| Its eleven | Ink · Slate night · Charcoal · Deep blue · Harbour · Pine · Fern night · Graphite · Midnight · Pitch · Ash — near-blacks that differ by a whisper of blue or green |
 | Drawer defaults | round knob · plain border · **stars texture** |
-| Signature elements | star-speckled board and drawer fronts, gold accents, playful hand-lettered headings |
+| Signature elements | white-pencil outlines, no shadows, star-speckled board, playful hand-lettered headings |
 
 Mood: cosy night-web. The early-internet charm of the site, kept legible.
 
@@ -121,7 +129,7 @@ touching the style system.
 | Accent | aqua `#18A6C4` |
 | Ink | deep teal `#0E3A44` |
 | Display type | Trebuchet MS (the 2000s UI font) |
-| Families | aquas, cyans, sky blues, one dolphin green |
+| Its eleven | Aqua · Lagoon · Meadow · Bliss · Harbour · Sky · Deep sea · Steel · Slate · Storm · Silver — no reds, browns or golds anywhere |
 | Drawer defaults | **orb knob** (glossy sphere, radial highlight) · **aqua border** (glassy rim, inner light) · **sheen texture** (diagonal gloss sweep) |
 | Radii | 10–12px, rounder than anything else |
 | Signature elements | gloss gradients on tiles and buttons, orb pulls, glass-rim drawers, the sheen sweep |

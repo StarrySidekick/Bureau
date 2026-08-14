@@ -133,7 +133,7 @@ function dedupeIds(objects){
    skips all of them, an old backup replays only what it is missing. These
    used to be ad-hoc per-load mutations inside adopt(); a new repair that
    should run once belongs here, as the next numbered step. */
-const DATA_V = 12;
+const DATA_V = 13;
 const MIGRATIONS = [
   // Drawers and objects were two arrays and a drawer could not live inside
   // anything. foldDrawers also replays the old dense flow to give v1 drawers
@@ -249,6 +249,17 @@ const MIGRATIONS = [
       if(d.deskCfg) conv(d.deskCfg);
       if(d.look){ delete d.look.palette; }
       delete d.theme;
+    }},
+  /* Modern became Pseudochromo when it stopped being "flat and quiet" and
+     became a stated idea — near-monochrome, desaturated, sharp. The key is
+     stored in `look.style` and keys the per-style slot overrides, so both move.
+     A style key is one of ours, not user text: renaming it in a migration is
+     the only place a desk can be told about it. */
+  {v:13, up(d){
+      if(!d.look) return;
+      if(d.look.style==='modern') d.look.style='pseudochromo';
+      const sl=d.look.slots;
+      if(sl && sl.modern){ sl.pseudochromo = sl.pseudochromo || sl.modern; delete sl.modern; }
     }},
 ];
 function migrate(d){

@@ -102,7 +102,7 @@ function applyLook(){
    two squares always belong to each other. */
 // A slot, not a hex: a drawer made today has to follow the style tomorrow.
 function randomFront(){
-  return OBJ0 + Math.floor(Math.random()*FAMILIES.length);
+  return OBJ0 + Math.floor(Math.random()*OBJN);
 }
 function randomBoard(){
   const hue = Math.floor(Math.random()*360);
@@ -117,7 +117,7 @@ function randomBoard(){
 }
 
 /* ============================================================
-   Sixteen slots, and a slot means the same thing in every style
+   Sixteen slots. A slot is a position, not a colour
    ============================================================
    A palette used to be a separate choice from a style, and it only decided
    what *new* objects were painted — the colour itself was stored as a hex, so
@@ -125,61 +125,94 @@ function randomBoard(){
    look changed nothing you could see.
 
    A palette belongs to a style now, and a colour is stored as the **slot
-   number**, not the hex. Slot 9 is Slate in every style, so switching from
-   Victorian to Aero repaints every slate drawer in Aero's slate, and switching
-   back puts every one of them exactly where it was. Nothing is lost in the
-   round trip because nothing was ever converted — only looked up.
+   number**. Slot 11 is a regal red on Victorian, a grey on Pseudochromo and a
+   deep harbour blue on Aero — the slot is a position in the sixteen and
+   nothing more. Switching style repaints every tile in the new style's answer
+   for whatever slot it holds; switching back puts every one of them exactly
+   where it was, because nothing is converted, only looked up.
 
-   The first five are the app's own — background, ink, line, accent, highlight
-   — and chromeTokens() derives the whole CSS token set from them. The other
-   eleven are colour *families*, in the same order in every style, and they are
-   what drawers and objects are painted in. See decision 33. */
+   That mapping is deliberately *not* by hue. A style is allowed to be about
+   four colours or about eleven, and forcing Aero to own a red so it could
+   receive Victorian's reds would have wrecked Aero to preserve a
+   correspondence nobody asked for. So each style names its own eleven, and
+   there is no universal family list to answer to. See decision 33.
+
+   The first five are the exception, because they *do* have universal jobs:
+   the page, the text on it, the lines, the accent and the highlight.
+   chromeTokens() derives the whole CSS token set from them. */
 // short, because they are labels under a 60px swatch; what each one does is
 // the sentence above them in Settings and the comment above chromeTokens()
 const ROLES = ['Page','Text','Lines','Accent','Glow'];
-const FAMILIES = ['Umber','Fern','Olive','Teal','Slate','Steel','Rust','Ochre','Clay','Plum','Stone'];
-const SLOTNAMES = ROLES.concat(FAMILIES);
 const SLOTS = 16;
 const OBJ0 = ROLES.length;          // the first slot an object may be painted in
+const OBJN = SLOTS - OBJ0;          // eleven
 
-/* A Style is a whole aesthetic at once: sixteen colours, two type choices, a
-   board, and the defaults new drawers are born with. See docs/STYLES.md. */
+/* A Style is a whole aesthetic at once: sixteen colours and the names it gives
+   the eleven, a board, a typeface, and the defaults new drawers are born with.
+   See docs/STYLES.md. */
 const STYLES = {
-  victorian: {nm:'Victorian', ds:'An old desk: baize, brass, serif',
+  /* Sage and Victorian greens, natural woods, creams, washed royal blues,
+     jewel greens, regal reds. Nothing pure white and nothing pure black. */
+  victorian: {nm:'Victorian', ds:'An old desk: baize, brass, sage and claret',
     board:'#EFEADA|#DDE5CE', boardAlpha:1,
     defaults:{knob:'round', border:'panel', texture:'none', knobtone:'light'},
     cols:['#E9E1CC','#2A241C','#4A4034','#A9793F','#D9B57C',
-          '#7E5A38','#4A7C59','#5C7148','#3E7A6B','#3F5F7A','#4A6E8F',
-          '#A55A3E','#9A7B2F','#8A5A3F','#7A6AA0','#6E7075'],
+          '#6F5137','#4A7C59','#6E7F63','#2E6B52','#4A6382','#5A7A9E',
+          '#8E3B38','#9A7B2F','#8A6A3C','#5E4A72','#6E7075'],
+    names:['Walnut','Baize','Sage','Emerald','Royal','Delft',
+           'Claret','Gilt','Oak','Regal','Pewter'],
     vars:{}},
-  modern: {nm:'Modern', ds:'Flat, quiet, sans',
-    board:'#F4F4F1|#EBEBE6', boardAlpha:.6,
-    defaults:{knob:'bar', border:'none', texture:'none', knobtone:'dark'},
-    cols:['#FAFAF8','#1C1F24','#8A9099','#3A6E68','#6FBFA8',
-          '#5B5148','#4F7A63','#6B7A5A','#3E7E7A','#41586E','#5C7A99',
-          '#B36A55','#A88B4A','#8A6B5C','#6E6790','#7A7E85'],
-    vars:{'--radius':'8px','--radius-d':'8px',
+  /* Near-monochrome and deliberately unexciting: greys, blacks, whites, sharp
+     corners. The one style where a drawer is told apart by weight rather than
+     by hue, so the eleven are a lightness ramp with barely a tint in them. */
+  pseudochromo: {nm:'Pseudochromo', ds:'Near-monochrome, desaturated, sharp',
+    board:'#F6F6F7|#EDEEF0', boardAlpha:.6,
+    defaults:{knob:'bar', border:'plain', texture:'none', knobtone:'dark'},
+    cols:['#FBFBFC','#16181C','#9AA0A8','#4A5058','#8C97A3',
+          '#22252A','#2E3238','#3A3F46','#464C54','#535A63','#616872',
+          '#42474C','#4C4A46','#3D4650','#4A4550','#70777F'],
+    names:['Carbon','Graphite','Iron','Steel','Ash','Nickel',
+           'Basalt','Clay','Payne','Mauve','Silver'],
+    vars:{'--radius':'2px','--radius-d':'0px',
       '--serif':'-apple-system,BlinkMacSystemFont,"SF Pro Display",Inter,system-ui,sans-serif'}},
+  /* Parked: the whole idea is materials that look real, and materials are
+     images, not hexes. Left coherent — wood, leather, brass — until there are
+     assets to hang on it. */
   skeuo: {nm:'Skeuomorphic', ds:'Wood, leather, and things that look like things',
     board:'#E8DCC4|#D9C9A8', boardAlpha:1,
     defaults:{knob:'ring', border:'heavy', texture:'weave2', knobtone:'dark'},
     cols:['#EFE4CC','#33261A','#8A7350','#8A5A2B','#C89B54',
           '#6B4A2A','#4C6B42','#6B7238','#3B6E63','#42566B','#55708C',
           '#9A4F42','#A87C2E','#8A5A3F','#6D5476','#6E6559'],
+    names:['Mahogany','Moss','Olive','Verdigris','Denim','Chambray',
+           'Leather','Brass','Tan','Velvet','Slate'],
     vars:{}},
-  starry: {nm:'Starry Sidekick', ds:'A night sky with a hand-drawn heart',
-    board:'#101422|#161B2E', boardAlpha:1,
+  /* Black and white, drawn in white pencil. The line slot is white, so every
+     front is outlined rather than filled — the eleven are near-blacks that
+     differ by a whisper of blue or green, which is all a wireframe needs. */
+  starry: {nm:'Starry Sidekick', ds:'White pencil on a night sky, hand-drawn',
+    board:'#07080C|#0B0D13', boardAlpha:1,
     defaults:{knob:'round', border:'plain', texture:'stars', knobtone:'light'},
-    cols:['#0B0E1A','#EFE9F7','#8A83A8','#F5D76E','#8FD8F0',
-          '#4B3B63','#2E6B57','#4A6B45','#2C6E7A','#33487A','#47639E',
-          '#9E4A5E','#B08A3C','#7A5A6E','#6A4E9E','#4A4E63'],
-    vars:{'--serif':'"Chalkboard SE","Comic Sans MS","Segoe Print",cursive'}},
+    cols:['#07080C','#F4F6F8','#F4F6F8','#6FD3F5','#7DE8B0',
+          '#14161C','#1B1E25','#23262E','#0E2733','#123544','#16443F',
+          '#1A3B2C','#2B2F38','#191D2A','#101820','#33383F'],
+    names:['Ink','Slate night','Charcoal','Deep blue','Harbour','Pine',
+           'Fern night','Graphite','Midnight','Pitch','Ash'],
+    vars:{'--serif':'"Chalkboard SE","Comic Sans MS","Segoe Print",cursive',
+      // drawn, not printed: the outline is the whole front, so it is nearly
+      // opaque rather than the 72% every other style derives
+      '--line':'rgba(244,246,248,.92)'}},
+  /* Teal, ocean, that screen green, steel and grey. Nothing warm: no reds, no
+     browns, no golds. Slots that hold a terracotta elsewhere hold a harbour
+     blue here, and that is the point of the slots being positions. */
   aero: {nm:'Aero', ds:'Teal gloss and clear skies, straight from 2006',
     board:'#D8F0F4|#C2E6EC', boardAlpha:.85,
     defaults:{knob:'orb', border:'aqua', texture:'sheen', knobtone:'light'},
-    cols:['#E9F6F8','#0E3A44','#5E93A0','#18A6C4','#7EE8F5',
-          '#8C7A6B','#2FA37E','#5FA85E','#1E9AAE','#2B6B99','#4C89C8',
-          '#D9704E','#D6A83C','#9A8272','#8A6FD1','#7E8A93'],
+    cols:['#EAF4F7','#0D3541','#5B8C9B','#18A6C4','#7EE8F5',
+          '#1E9AAE','#2FA39A','#3F8F63','#6FA83C','#2B6B99','#4C89C8',
+          '#14607A','#5E7A8A','#44515C','#33414D','#8A98A3'],
+    names:['Aqua','Lagoon','Meadow','Bliss','Harbour','Sky',
+           'Deep sea','Steel','Slate','Storm','Silver'],
     vars:{'--radius':'12px','--radius-d':'10px',
       '--serif':'"Trebuchet MS","Segoe UI",Verdana,sans-serif'}}
 };
@@ -207,8 +240,13 @@ function hexOf(c){
 }
 // What an object is actually drawn in: its own colour, else its type's.
 const objColour = o => hexOf(o && o.c!=null ? o.c : K(o&&o.kind).c);
+/* What this style calls slot `i`. The five have universal jobs and universal
+   names; the eleven are the style's own to name, because they are not the same
+   colour from one style to the next and pretending otherwise would put "Rust"
+   under a blue swatch. */
+const slotName = i => i<OBJ0 ? ROLES[i] : ((styleNow().names||[])[i-OBJ0] || ('Colour '+(i-OBJ0+1)));
 // The eleven an object may wear, as [slot, name] — the five are the app's.
-const objSlots = ()=> FAMILIES.map((nm,i)=>[OBJ0+i, nm]);
+const objSlots = ()=> Array.from({length:OBJN}, (_,i)=>[OBJ0+i, slotName(OBJ0+i)]);
 
 function applyStyle(key){
   const st=STYLES[key]; if(!st) return;
@@ -225,5 +263,5 @@ const BACKDROPS = [
 
 export { themeNow, lookVal, setLookVal, applyLook, applyStyle, styleDefaults,
   randomFront, randomBoard, STYLES, BACKDROPS,
-  SLOTS, OBJ0, SLOTNAMES, ROLES, FAMILIES, styleNow, palNow, setSlot,
+  SLOTS, OBJ0, OBJN, ROLES, slotName, styleNow, palNow, setSlot,
   hexOf, objColour, objSlots, isDark };

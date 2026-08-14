@@ -4,7 +4,7 @@ import { S, K, T, byId, has, isContainer, containers, childrenOf, chainOf,
   layoutOf, takesTyping, genKindOf, CALVIEWS, calViewOf, calCols } from './model.js';
 import { CELL, gridOf, cellW } from './grid.js';
 import { themeNow, applyLook, lookVal, STYLES, BACKDROPS,
-  palNow, setSlot, styleNow, hexOf, objColour, SLOTNAMES, ROLES, OBJ0 } from './look.js';
+  palNow, setSlot, styleNow, hexOf, objColour, slotName, OBJ0 } from './look.js';
 import { gridOfContainer, listTile, scrollEntry, bookView, calSpan } from './tiles.js';
 import { openPanel, closePanel, panelKey, repositionPanel } from './panels.js';
 import { APP_VERSION, save, storeSize, install } from './persist.js';
@@ -273,13 +273,13 @@ function settingsBody(){
     <div class="mini" style="--k:var(--brass);margin-top:6px">A style is sixteen colours, a board, a typeface, and the defaults new drawers are born with — including whether the desk is light or dark. Everything below still works afterwards.</div>
 
     <div class="field" style="margin-top:14px"><label>What ${esc(styleNow().nm)} is made of</label>
-      <div class="mini" style="--k:var(--brass);margin:2px 0 8px">The first five dress the app itself. The other eleven are what drawers and objects are painted in — and a slot means the same thing in every style, so changing style swaps them all over, and changing back puts every one of them exactly where it was.</div>
+      <div class="mini" style="--k:var(--brass);margin:2px 0 8px">The first five dress the app itself. The other eleven are what drawers and objects are painted in. A slot is a <b>position</b>, not a colour: a drawer holds slot 11, and slot 11 is a claret here and a deep sea blue in Aero. Changing style swaps every tile to that style's answer; changing back puts each one exactly where it was.</div>
       ${[[0,OBJ0,'chrome'],[OBJ0,16,'']].map(([a,b,cls])=>
         `<div class="slotgrid ${cls}">${palNow().slice(a,b).map((c,n)=>{
           const i=a+n;
-          return `<label class="slot${cls?' chrome':''}" title="${SLOTNAMES[i]}">
+          return `<label class="slot${cls?' chrome':''}" title="${slotName(i)}">
             <b style="background:${c}"><input type="color" data-slot="${i}" value="${c}"></b>
-            <span>${SLOTNAMES[i]}</span></label>`;}).join('')}</div>`).join('')}
+            <span>${slotName(i)}</span></label>`;}).join('')}</div>`).join('')}
       ${(S.look.slots&&S.look.slots[S.look.style||'victorian'])
         ? `<button class="pill" style="margin-top:8px" data-act="resetslots">${ic('undo',13)} Back to ${esc(styleNow().nm)}&rsquo;s own sixteen</button>` : ''}
     </div>

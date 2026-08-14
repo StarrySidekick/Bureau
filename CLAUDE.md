@@ -252,10 +252,12 @@ attribute registry is `ATTRS`; the presets are `BUILTIN_KINDS` merged with
 and everything inside inherits it. `--c` does the same for drawer colour. Don't
 hardcode a hex value in a component rule.
 
-**A colour is a slot, not a hex.** Every style has the same sixteen slots in
-the same order — five that dress the app (Page, Text, Lines, Accent, Glow) and
-eleven colour families — so an object stores `c: 9` and shows whatever *this*
-style calls slate. Change style and the desk repaints; change back and it is
+**A colour is a slot, and a slot is a position, not a hue.** Every style has
+the same sixteen — five that dress the app (Page, Text, Lines, Accent, Glow)
+and eleven it names itself — so an object stores `c: 11` and shows Victorian's
+claret, Aero's deep sea blue or Starry's pine depending on where you are. Don't
+try to make the eleven line up by colour across styles: Aero owns no reds and
+Pseudochromo owns no hues at all, and forcing them to would wreck both. Change style and the desk repaints; change back and it is
 exactly where it was. Never read `o.c` to paint something: go through
 `objColour(o)` in `look.js`, which falls back to the type's and resolves either
 a slot number or a literal. `hexOf()` is the same resolver for a bare value.

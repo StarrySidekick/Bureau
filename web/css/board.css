@@ -369,9 +369,9 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
   opacity:.8}
 
 /* ---- per-style chrome ------------------------------------------------- */
-html[data-style="modern"] .drawer{box-shadow:0 1px 3px rgba(0,0,0,.08)}
-html[data-style="modern"] .drawer .dname{font-weight:500;letter-spacing:0}
-html[data-style="modern"] .sqbtn{border-radius:10px}
+html[data-style="pseudochromo"] .drawer{box-shadow:0 1px 3px rgba(0,0,0,.10)}
+html[data-style="pseudochromo"] .drawer .dname{font-weight:500;letter-spacing:0}
+html[data-style="pseudochromo"] .sqbtn{border-radius:2px}
 html[data-style="skeuo"] .drawer.dtile{
   background-image:linear-gradient(rgba(255,255,255,.06),rgba(0,0,0,.10)),
     repeating-linear-gradient(90deg, rgba(0,0,0,.05) 0 2px, transparent 2px 26px)}
@@ -383,6 +383,10 @@ html[data-style="starry"] .grid::before{
     conic-gradient(var(--board-2) 0 25%, transparent 0 50%, var(--board-2) 0 75%, transparent 0);
   background-size:140px 140px,140px 140px,140px 140px,140px 140px,var(--checker,160px) var(--checker,160px)}
 html[data-style="starry"] .gridbar .here{letter-spacing:.04em}
+/* Drawn in white pencil: a front is its outline, not its fill, so the border
+   is a hair heavier and the shadow that would make it a solid object goes. */
+html[data-style="starry"] .drawer.dtile{border-width:1.5px;box-shadow:none}
+html[data-style="starry"] .drawer.dtile .pull{opacity:.85}
 html[data-style="aero"] .drawer{border-radius:10px}
 html[data-style="aero"] .drawer.otile:not(.cnttile):not(.spinetile):not(.chartile):not(.btntile):not(.imgtile):not(.quotetile){
   background-image:linear-gradient(172deg, rgba(255,255,255,.7), rgba(255,255,255,0) 40%)}

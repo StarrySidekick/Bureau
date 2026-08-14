@@ -798,11 +798,20 @@ The first five are the app itself — Page, Text, Lines, Accent, Glow — and
 ink walked back toward the page it sits on, the rules are the line at low alpha,
 the raised surfaces are the page toward white. A style therefore declares
 sixteen hexes and gets forty tokens that agree with each other, instead of
-forty hexes that agree because somebody checked. The other eleven are colour
-*families* — Umber, Fern, Olive, Teal, Slate, Steel, Rust, Ochre, Clay, Plum,
-Stone — in the same order in every style. A cool style still has to answer
-"what is your umber"; the answer may be a warm grey, but there has to be one,
-and that constraint is what makes the mapping mean anything.
+forty hexes that agree because somebody checked.
+
+**The other eleven correspond by position and not by hue.** The first cut of
+this gave them universal family names — Umber, Fern, Rust — which quietly
+demanded that every style field one of each. That is a tax the styles cannot
+pay and should not: Aero is teal, ocean, screen green, steel and grey with
+nothing warm in it at all, and Pseudochromo is a lightness ramp with no hue to
+speak of. Making them both produce a rust so they could receive somebody else's
+rust would have wrecked two styles to preserve a correspondence nobody wanted.
+So slot 11 is a claret on Victorian, a deep sea blue on Aero, a near-black pine
+on Starry Sidekick and a plain grey on Pseudochromo, and each style names its
+own eleven in `names` — which is what the picker and the settings panel label
+them with. The round trip is still exact, because the round trip never depended
+on the colours resembling each other.
 
 *What follows from it:*
 
@@ -823,6 +832,15 @@ and that constraint is what makes the mapping mean anything.
   insisting, and the right response to insisting is to leave it alone.
 - Built-in types carry slot numbers rather than hexes, so adding a style
   repaints all forty-two of them without touching `model.js`.
+- Modern became **Pseudochromo** — near-monochrome, desaturated, sharp corners
+  — when it stopped being an absence of decisions and became a stated one.
+  Migration 13 renames the stored key and its slot overrides.
+- Starry Sidekick's line slot is white and its `vars` push it to 92% opacity,
+  because that style is drawn rather than printed: a front is its outline, and
+  the derivation's 72% is right for every style that fills its fronts and wrong
+  for the one that doesn't.
+- Skeuomorphic is parked. Its whole idea is materials that look real, and
+  materials are images, not hexes.
 - The style previews in Settings draw themselves out of their own sixteen, so a
   new style needs no CSS for its swatch, and a preview cannot drift from the
   thing it previews.
@@ -833,7 +851,7 @@ and that constraint is what makes the mapping mean anything.
   in by hand and stays a literal: snapping somebody's deliberate choice to the
   nearest family would be the wrong repair.
 
-*Against:* eleven families is fewer than the sixteen free colours a palette used
-to offer, and two drawers that were different browns are now the same umber. That
-is the cost of the slots meaning anything at all — and a hand-typed hex is still
-there for the one drawer that has to be its own colour.
+*Against:* eleven is fewer than the sixteen free colours a palette used to
+offer, and two drawers that were different browns may now share a slot. That is
+the cost of a colour being able to travel at all — and a hand-typed hex is still
+there for the one drawer that has to be its own colour and no style's business.
