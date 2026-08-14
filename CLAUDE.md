@@ -236,9 +236,10 @@ when you're editing the *other* device's layout from this one.
   `phone: {x,y,w,h}`. Resizing must only touch `d[dev()]`. `dev()` returns the
   layout currently being *edited*, which is not always the physical device.
 - **A kind's `size` is the desk size.** `sizeOfKind(kind, device)` maps it: on a
-  phone an object goes full width and a sliver gets two rows, containers keep
-  what they have. Never use `K(k).size` directly to place something — a 4×1 task
-  copied to a 16-column phone grid is an 84×24px stamp, which is what this
+  phone an object goes full width at the same height, and a container is halved
+  so it keeps the fraction of the screen it had. Never use `K(k).size` directly
+  to place something — a 6×6 drawer copied straight onto an 8-column phone grid
+  is three quarters of the screen, which is what this
   function exists to stop. Anything drawing a *preview* of a phone box goes
   through `toPhoneSize()` so the preview can't drift from the placement. A kind
   may also carry `phoneSize`, set from the type builder's second pair of

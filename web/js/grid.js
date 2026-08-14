@@ -13,11 +13,16 @@ import { dev, childrenOf, container, K, kindHas } from './model.js';
    the row height is measured after layout by sizeGrid() and cached here —
    nothing may assume a fixed row height. Twice the columns of the first
    version, which is what makes the smallest object half the size it was. */
+/* The phone went from 16 columns to 8, which doubles the size of a cell: at 16
+   a cell was ~23px, and a 1×1 object was a stamp you could neither read nor
+   reliably hit. Eight columns puts a phone cell at ~47px — near enough the
+   desk's ~58 that the two grids finally describe the same sizes. Halving the
+   columns halves the rows too, because a cell is square. */
 const GRID = {
   desk:  {cols:24, gap:0},
-  phone: {cols:16, gap:0}
+  phone: {cols:8,  gap:0}
 };
-const CELL = {desk:40, phone:21};   // last measured; a sane guess until then
+const CELL = {desk:40, phone:42};   // last measured; a sane guess until then
 const gridOf = (device)=>{
   const d=device||dev();
   return {cols:GRID[d].cols, gap:GRID[d].gap, rowh:CELL[d]};
@@ -57,19 +62,23 @@ const gridRows = (device,parentId)=> childrenOf(container(parentId||ROOT))
 /* Each kind declares the size its objects start at — a task is a wide sliver,
    a drawer a big square. Editable per kind in the kind builder.
 
-   It declares it for the *desk*. The phone grid has fewer columns and they are
-   far smaller in pixels, so copying the number across made a 4×1 task an 84×24
-   box holding a checkbox and a truncated word: a quarter of a desk row is a
-   row, a quarter of a phone row is a stamp. On a phone an object takes the
-   whole width, because a phone is a column and the things in a column are rows,
-   and a sliver gets two cells of height so a thumb has something to hit.
+   It declares it for the *desk*. A phone is 8 columns to the desk's 24, so
+   copying the number across would make a 4×1 task half a screen wide and a
+   6×6 drawer three quarters of one.
 
-   Containers are left alone. Two drawers across is what the phone desk looks
-   like, and a book spine that fills the width is not a spine. */
-const PHONE_MIN_ROWS = 2;               // ~47px: the smallest honest tap target
+   An **object** takes the whole width, because a phone is a column and the
+   things in a column are rows. Its height comes across 1:1 now that a phone
+   cell (~47px) and a desk cell (~58px) are within a third of each other — the
+   old ×1.5 was there to buy back pixels from 23px cells and would now make a
+   4-tall note taller on the phone than on the desk.
+
+   A **container** is halved instead of filled, which keeps the fraction of the
+   screen it had before: two drawers across is what the phone desk looks like,
+   and a book spine that fills the width is not a spine. */
 function toPhoneSize(w, h, isCont){
-  if(isCont) return [w,h];
-  return [GRID.phone.cols, h===1 ? PHONE_MIN_ROWS : Math.min(14, Math.ceil(h*1.5))];
+  const half = n => Math.max(1, Math.round(n/2));
+  if(isCont) return [Math.min(GRID.phone.cols, half(w)), half(h)];
+  return [GRID.phone.cols, Math.min(12, Math.max(1, h))];
 }
 /* A kind may also state its phone size outright, in which case the mapping
    above is only the default it started from. The type builder writes one the

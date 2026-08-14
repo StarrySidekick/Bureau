@@ -23,6 +23,10 @@ Six things asked for on 13 August; all six landed. See decisions 25b–30.
 - **granular type sizes** — sliders as well as presets, on both grids, with an
   explicit `phoneSize` override (decision 28)
 
+- **the phone grid halved**, 16 columns to 8, so a cell is ~47px against the
+  desk's ~58 and the two grids finally mean the same thing by "one cell".
+  Migration 10 halves every stored phone box (decision 31)
+
 *Still open from that pass:* dragging the type preview's own corner to set the
 size; the size thresholds are the same for containers and objects, and a 6×1
 drawer probably wants its knob back.

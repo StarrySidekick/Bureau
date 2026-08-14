@@ -529,7 +529,7 @@ function wire(){
     const sz=t.closest('[data-size]');
     if(sz){ const d=byId(sz.dataset.size), g=gridOf(), cur=lay(d);
       const P = dev()==='desk' ? [[2,2],[4,4],[6,6],[8,6],[12,8],[6,12],[24,8]]
-                               : [[2,2],[4,4],[8,6],[8,8],[16,6],[16,12]];
+                               : [[1,1],[2,2],[4,3],[4,4],[8,3],[8,6],[8,10]];
       const i=P.findIndex(p=>p[0]===cur.w&&p[1]===cur.h);
       for(let n=1;n<=P.length;n++){
         const [w,h]=P[(i+n)%P.length];

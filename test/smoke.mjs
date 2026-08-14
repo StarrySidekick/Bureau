@@ -141,6 +141,16 @@ const CHROME = process.env.BUREAU_CHROME;
   await phone.goto(URL);
   await phone.waitForTimeout(700);
   await phone.screenshot({ path: 'test/shots/07-phone.png' });
+  /* Eight columns, not sixteen: a cell has to be a real tap target rather than
+     a 23px stamp that has to be padded into one. See decision 31. */
+  const phoneGrid = await phone.evaluate(() => {
+    const g = document.querySelector('#drawergrid');
+    const cols = +getComputedStyle(g).getPropertyValue('--cols');
+    const cell = g.getBoundingClientRect().width / cols;
+    return { cols: cols === 8, cellIsThumbSized: cell > 38 && cell < 62,
+             // and square, still: the row height must match the column width
+             square: Math.abs(cell - parseFloat(getComputedStyle(g).getPropertyValue('--rowh'))) < 1 };
+  });
   // the sidebar and the four fixed tabs were both removed on purpose —
   // assert they are genuinely gone and the pin bar took the tabs' place
   const railGone = await phone.evaluate(() => !document.querySelector('.rail'));
@@ -712,6 +722,46 @@ const CHROME = process.env.BUREAU_CHROME;
   });
   await shot('12-reading');
 
+  /* --- migration 10: a v9 desk's phone boxes are in 16-column coordinates ---
+     Halving is the inverse of the two doublings on the way up, and rounding can
+     put two neighbours in the same cell, so it also has to leave nothing
+     overlapping. A fresh context, and the snapshot is planted by an init script
+     rather than written and reloaded — the running page writes on beforeunload,
+     so a reload would put the seeded desk straight back over it. */
+  const v9desk = JSON.stringify({
+    v: 9, theme: 'paper', pins: [], look: {}, kinds: {}, deskCfg: {},
+    objects: [
+      { id:'d_a', kind:'drawer', title:'A', parent:'root', tags:[], phone:{x:1,y:1,w:8,h:6}, desk:{x:1,y:1,w:6,h:6} },
+      { id:'d_b', kind:'drawer', title:'B', parent:'root', tags:[], phone:{x:9,y:1,w:8,h:6}, desk:{x:7,y:1,w:6,h:6} },
+      // 7 and 8 both halve to 4, so these two would land on each other
+      { id:'d_c', kind:'drawer', title:'C', parent:'root', tags:[], phone:{x:1,y:7,w:7,h:6}, desk:{x:13,y:1,w:6,h:6} },
+      { id:'d_d', kind:'drawer', title:'D', parent:'root', tags:[], phone:{x:2,y:8,w:8,h:6}, desk:{x:19,y:1,w:6,h:6} }
+    ]
+  });
+  const migCtx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  await migCtx.addInitScript(snap => { localStorage.setItem('bureau.v1', snap); }, v9desk);
+  const mig = await migCtx.newPage();
+  await mig.goto(URL);
+  await mig.waitForTimeout(700);
+  const phoneMigration = await mig.evaluate(() => {
+    const b = id => (BUREAU.state.objects.find(o => o.id === id) || {}).phone;
+    const hit = (p,q)=> p.x < q.x+q.w && q.x < p.x+p.w && p.y < q.y+q.h && q.y < p.y+p.h;
+    const all = ['d_a','d_b','d_c','d_d'].map(b);
+    if (all.some(x => !x)) return { found: false };
+    let clear = true;
+    for (let i=0;i<all.length;i++) for (let j=i+1;j<all.length;j++) if (hit(all[i],all[j])) clear = false;
+    return {
+      found: true,
+      halved: b('d_a').w === 4 && b('d_a').h === 3 && b('d_b').x === 5,
+      inside: all.every(x => x.x >= 1 && x.x + x.w - 1 <= 8),
+      clear,
+      nothingElseAdded: BUREAU.state.objects.length === 4,
+      deskUntouched: BUREAU.state.objects.find(o=>o.id==='d_b').desk.x === 7
+    };
+  });
+  await mig.screenshot({ path: 'test/shots/16-migrated-phone.png' });
+  await migCtx.close();
+
   console.log(JSON.stringify({
     errors: errs, manifestOk, swReady, survived, themeSurvived,
     gridClass, offlineWorks, railGone, tabsGone, pinbarShown, pinNavigates,
@@ -720,6 +770,7 @@ const CHROME = process.env.BUREAU_CHROME;
     pasteOk, magicOk, rollupOk, relationsOk, relationsUI,
     timeLayer, tagDrawer, pinReorder, groupMove, dropStates,
     adaptiveTiles, bubblePanel, scrollKept, kindSizes,
+    phoneGrid, phoneMigration,
     dupIds, undoWorks, readViews, paperSize
   }, null, 2));
   await browser.close();

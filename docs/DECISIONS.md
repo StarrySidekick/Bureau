@@ -660,3 +660,44 @@ inline `transform` still runs as a fallback for anything that never gets the
 animation. A pin being reordered along the bar is `dragging` without ever having
 been `lifted`, so the sway is scoped to `.lifted.dragging` and the bar stays
 still.
+
+### 31. The phone grid is eight columns, not sixteen
+
+Sixteen columns on a 375px screen is a 23px cell. That number was chosen to make
+the smallest thing on the desk small — and it worked, which is the problem: a
+1×1 object was a 23px stamp you could neither read nor reliably hit, a 4×1 task
+was a quarter of a row, and every size written for the desk had to be translated
+through `toPhoneSize()` because the two grids meant genuinely different things
+by "one cell".
+
+Eight columns puts a phone cell at ~47px against the desk's ~58. The two grids
+now describe roughly the same sizes, and a cell is a real tap target rather than
+something that has to be padded into one. Rows halve with the columns, because a
+cell is square.
+
+*What follows from it:*
+
+- `toPhoneSize()` stopped multiplying heights. The ×1.5 existed to buy back
+  pixels from 23px cells; at 47px it would make a 4-tall note *taller* on a
+  phone than on the Mac. Heights come across 1:1 now.
+- `PHONE_MIN_ROWS` is gone. It existed to make a one-cell sliver into a 47px
+  tap target, and one cell is 47px.
+- **Containers are halved rather than left alone**, which reverses the letter of
+  decision 25 and keeps its intent. A 6×6 drawer left alone would be three
+  quarters of an 8-column screen; halved to 3×3 it is the same fraction of the
+  screen it was at 6/16, so two drawers across is still what the phone desk
+  looks like.
+- Every stored phone box is in the wrong coordinate space, so **migration 10**
+  halves them — the exact inverse of `doubleBoxes()`, which did this twice on
+  the way up. Rounding can push two neighbours into each other (7 and 8 both
+  halve to 4) and `lay()` clamps rather than refuses, so the migration re-places
+  per container: first to claim a spot keeps it, anything landing on top gets
+  the nearest free box. A kind's explicit `phoneSize` (decision 28) is in the
+  same space and halves with everything else.
+- The seed's phone layout is rewritten by hand rather than migrated, because a
+  first run has no snapshot to migrate.
+
+*Against:* half the columns is half the arrangements. A phone desk can no longer
+be three narrow things across, and the 16-column grid could express a sliver
+beside a square. That expressiveness was theoretical — nothing at 23px was
+usable enough to arrange deliberately.

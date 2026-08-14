@@ -499,7 +499,7 @@ function modalNewKind(from, editKey){
         [[1,1],[4,1],[6,1],[2,2],[4,4],[6,4],[6,6],[8,6],[12,8]].map(([w,h])=>
           chip(size.join('x')===w+'x'+h,`data-ksz="${w}x${h}"`,`${w}×${h}`)).join('')
         + sizeSliders('k', size, GRID.desk.cols), 'ksize')}
-      ${row('On a phone','16 columns, and far smaller ones',
+      ${row('On a phone','8 columns, and a cell about the same size',
         chip(!phoneSize,'data-kphauto=""','Work it out for me',
              'Objects go full width; containers keep the size they have')
         + sizeSliders('kp', phoneSize||toPhoneSize(size[0],size[1],isCont), GRID.phone.cols), 'kphone')}

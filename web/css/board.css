@@ -163,7 +163,13 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
 /* Square cells: --rowh is set from the measured column width by sizeGrid(). */
 .grid{display:grid;gap:0;align-content:start;position:relative}
 .grid.g-desk{grid-template-columns:repeat(var(--cols,24),1fr);grid-auto-rows:var(--rowh,40px)}
-.grid.g-phone{grid-template-columns:repeat(var(--cols,16),1fr);grid-auto-rows:var(--rowh,21px)}
+.grid.g-phone{grid-template-columns:repeat(var(--cols,8),1fr);grid-auto-rows:var(--rowh,42px)}
+/* Arranging the phone layout from a Mac. The phone grid is 8 fluid columns, so
+   in a 1440px window a cell came out 175px across and the preview stopped
+   resembling the thing being arranged. Cap it at a phone's width instead: the
+   geometry is untouched — cellW() measures the real rect — only the picture is
+   honest. */
+.is-desk .grid.g-phone{max-width:430px;margin-inline:auto}
 
 .drawer{
   position:relative;border-radius:var(--radius-d);overflow:hidden;text-align:left;

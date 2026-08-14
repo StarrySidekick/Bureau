@@ -84,6 +84,37 @@ function doubleBoxes(objects){
     o[dv]={x:(b.x-1)*2+1, y:(b.y-1)*2+1, w:b.w*2, h:b.h*2};
   }));
 }
+/* v9 → v10: the phone grid went from 16 columns to 8, so a phone cell is twice
+   the size it was and every stored phone box is in the wrong coordinate space.
+   Halving is the inverse of doubleBoxes() above and keeps each tile the same
+   fraction of the screen it occupied — which is the thing the owner actually
+   arranged.
+
+   Rounding can push two neighbours into each other (7 and 8 both halve to 4),
+   and `lay()` clamps rather than refuses, so a collision would render one tile
+   on top of another with no way to tell them apart. So each container's
+   children are re-placed in order: the first to claim a spot keeps it, and
+   anything that lands on top is dropped into the nearest free box instead. */
+function halvePhoneBoxes(objects){
+  const half = n => Math.max(1, Math.round(n/2));
+  const cols = 8;                       // GRID.phone.cols, written out: a
+  const placed = {};                    // migration must not drift with it
+  const overlap = (a,b)=> a.x < b.x+b.w && b.x < a.x+a.w && a.y < b.y+b.h && b.y < a.y+a.h;
+  objects.forEach(o=>{
+    const b=o.phone; if(!b || !b.w) return;
+    const w=Math.min(cols, half(b.w)), h=half(b.h);
+    let box={x:Math.min(half(b.x), cols-w+1), y:half(b.y), w, h};
+    const home = placed[o.parent||ROOT] = placed[o.parent||ROOT] || [];
+    if(home.some(t=>overlap(box,t))){
+      outer: for(let y=1;y<400;y++) for(let x=1;x<=cols-w+1;x++){
+        const spot={x,y,w,h};
+        if(!home.some(t=>overlap(spot,t))){ box=spot; break outer; }
+      }
+    }
+    home.push(box);
+    o.phone=box;
+  });
+}
 /* Repair, not migration: anything saved before ids were unique may hold
    collisions, and an old backup can reintroduce them at any time — so this
    runs on every load. Keep the first holder of an id and re-id the rest;
@@ -102,7 +133,7 @@ function dedupeIds(objects){
    skips all of them, an old backup replays only what it is missing. These
    used to be ad-hoc per-load mutations inside adopt(); a new repair that
    should run once belongs here, as the next numbered step. */
-const DATA_V = 9;
+const DATA_V = 10;
 const MIGRATIONS = [
   // Drawers and objects were two arrays and a drawer could not live inside
   // anything. foldDrawers also replays the old dense flow to give v1 drawers
@@ -149,6 +180,17 @@ const MIGRATIONS = [
       const fix=x=>{ if(x && x.onclick==='book'){ x.onclick='read'; x.read=x.read||'book'; } };
       (d.objects||[]).forEach(fix);
       Object.values(d.kinds||{}).forEach(fix);
+    }},
+  // The phone grid halved, 16 columns to 8, so a cell is twice the size — see
+  // decision 31. A kind's explicit phoneSize is in the same coordinate space
+  // and halves with everything else.
+  {v:10, up(d){
+      halvePhoneBoxes(d.objects||[]);
+      Object.values(d.kinds||{}).forEach(k=>{
+        if(Array.isArray(k.phoneSize) && k.phoneSize[0])
+          k.phoneSize=[Math.max(1,Math.min(8,Math.round(k.phoneSize[0]/2))),
+                       Math.max(1,Math.round(k.phoneSize[1]/2))];
+      });
     }},
 ];
 function migrate(d){

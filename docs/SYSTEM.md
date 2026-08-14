@@ -221,7 +221,9 @@ answer is a drawer.
 
 Each container is its own coordinate space, and every device has its own.
 
-- **24 columns** on a Mac, **16** on a phone. Rows are unlimited.
+- **24 columns** on a Mac, **8** on a phone. Rows are unlimited. A cell is
+  ~58px on the Mac and ~47px on a phone — near enough that the two grids
+  describe the same sizes, which is the point of the phone having so few.
 - Cells are **square**. Columns are fluid, so the row height is measured after
   layout by `sizeGrid()` and cached in `CELL`. Nothing may assume one.
 - `x`/`y` are 1-based cells. Array order positions nothing. There is no

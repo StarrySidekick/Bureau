@@ -149,22 +149,22 @@ const dz = n => D.addISO(T,n);
 function seed(){
   // Drawers are objects like everything else — kind 'drawer', parent 'root'.
   // x/y are 1-based grid cells, packed by hand, because a desk is arranged and
-  // not flowed. The desk grid is 6 columns wide, the phone's is 4.
+  // not flowed. The desk grid is 24 columns wide, the phone's is 8.
   const DR = (o)=> Object.assign({kind:'drawer', parent:ROOT, title:'', body:'',
     tags:[], layout:'grid', ord:0, created:dz(-40)}, o);
   // The three drawers whose whole job is a rule are magic drawers — they
   // collect and never hold. The rest are ordinary containers you file into.
   const MG = (o)=> DR(Object.assign({kind:'magic'}, o));
   const drawers = [
-    MG({id:'d_today', title:'Today',        c:'#4A7C59', filter:{due:'today'},                     desk:{x:1,y:1,w:6,h:6},  phone:{x:1,y:1,w:8,h:6}}),
-    DR({id:'d_in',    title:'Inbox',        c:'#7E5A38', desk:{x:7,y:1,w:6,h:6},  phone:{x:9,y:1,w:8,h:6}}),
-    DR({id:'d_write', title:'Writing Desk', c:'#5C7148', desk:{x:13,y:1,w:6,h:6},  phone:{x:1,y:7,w:8,h:6}}),
-    DR({id:'d_ideas', title:'Idea Bin',     c:'#96652F', desk:{x:19,y:1,w:6,h:6},  phone:{x:9,y:7,w:8,h:6}}),
-    DR({id:'d_studio',title:'Studio',       c:'#3F5F7A', desk:{x:1,y:7,w:6,h:6},  phone:{x:1,y:13,w:8,h:6}}),
-    DR({id:'d_kitch', title:'Kitchen',      c:'#A55A3E', desk:{x:7,y:7,w:6,h:6},  phone:{x:9,y:13,w:8,h:6}}),
-    MG({id:'d_open',  title:'Open Questions',c:'#4A6E8F',filter:{kinds:['question']},              desk:{x:13,y:7,w:6,h:6},  phone:{x:1,y:19,w:8,h:6}}),
-    DR({id:'d_keep',  title:'Keeping Up',   c:'#3E7A6B', desk:{x:19,y:7,w:6,h:6},  phone:{x:9,y:19,w:8,h:6}}),
-    MG({id:'d_done',  title:'Done & Dusted',c:'#6F5137', filter:{done:true},                       desk:{x:1,y:13,w:6,h:6},  phone:{x:1,y:25,w:8,h:6}})
+    MG({id:'d_today', title:'Today',        c:'#4A7C59', filter:{due:'today'},                     desk:{x:1,y:1,w:6,h:6},  phone:{x:1,y:1,w:4,h:3}}),
+    DR({id:'d_in',    title:'Inbox',        c:'#7E5A38', desk:{x:7,y:1,w:6,h:6},  phone:{x:5,y:1,w:4,h:3}}),
+    DR({id:'d_write', title:'Writing Desk', c:'#5C7148', desk:{x:13,y:1,w:6,h:6},  phone:{x:1,y:4,w:4,h:3}}),
+    DR({id:'d_ideas', title:'Idea Bin',     c:'#96652F', desk:{x:19,y:1,w:6,h:6},  phone:{x:5,y:4,w:4,h:3}}),
+    DR({id:'d_studio',title:'Studio',       c:'#3F5F7A', desk:{x:1,y:7,w:6,h:6},  phone:{x:1,y:7,w:4,h:3}}),
+    DR({id:'d_kitch', title:'Kitchen',      c:'#A55A3E', desk:{x:7,y:7,w:6,h:6},  phone:{x:5,y:7,w:4,h:3}}),
+    MG({id:'d_open',  title:'Open Questions',c:'#4A6E8F',filter:{kinds:['question']},              desk:{x:13,y:7,w:6,h:6},  phone:{x:1,y:10,w:4,h:3}}),
+    DR({id:'d_keep',  title:'Keeping Up',   c:'#3E7A6B', desk:{x:19,y:7,w:6,h:6},  phone:{x:5,y:10,w:4,h:3}}),
+    MG({id:'d_done',  title:'Done & Dusted',c:'#6F5137', filter:{done:true},                       desk:{x:1,y:13,w:6,h:6},  phone:{x:1,y:13,w:4,h:3}})
   ];
 
   // The app's own buttons live on the desk, on the grid, and move like anything
