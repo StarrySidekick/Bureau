@@ -68,10 +68,24 @@ const STRUCTURAL = ['container','magic'];
 const USER_ATTRS = ATTRKEYS.filter(a=>!STRUCTURAL.includes(a));
 
 const BUILTIN_KINDS = {
-  drawer:  {nm:'Drawer',  ic:'folder',  c:'#7E5A38', key:'D', ds:'A container on the grid',   attrs:['container'], layout:'grid', size:[6,6], body:'' },
-  magic:   {nm:'Magic drawer', ic:'sparkle', c:'#4A6E8F', key:'Q', ds:'Collects by rule, like a smart folder', attrs:['container','magic'], layout:'grid', size:[6,6], body:'' },
-  checklist:{face:'checklist', nm:'Checklist', ic:'list', c:'#4A7C59', key:'K', ds:'A list of things to tick, right on the board', attrs:['container'], layout:'list', size:[6,8], body:'' },
-  calendar:{face:'calendar', nm:'Calendar', ic:'calendar', c:'#5C7148', key:'C', ds:'A month, with what is due on it', attrs:['container'], layout:'calendar', size:[8,8], body:'' },
+  /* A drawer is a knob and a name. Two cells square is the smallest it can be
+     and still read as a drawer front rather than a stamp — and at that size a
+     row of them along the top of the desk is a rack of pigeonholes, which is
+     what a desk full of drawers ought to look like. The phone size is stated
+     outright: the derivation halves a container, and half of two is one, which
+     is the mini tile that has no room for a name. */
+  drawer:  {nm:'Drawer',  ic:'folder',  c:'#7E5A38', key:'D', ds:'A container on the grid',   attrs:['container'], layout:'grid', size:[2,2], phoneSize:[2,2], body:'' },
+  magic:   {nm:'Magic drawer', ic:'sparkle', c:'#4A6E8F', key:'Q', ds:'The same drawer, filled by a rule instead of by hand', attrs:['container','magic'], layout:'grid', size:[2,2], phoneSize:[2,2], body:'' },
+  /* A checklist wears its contents on the outside, so it also takes dictation:
+     `spawn` gives it a box at the top, and `genKind` says a line you type into
+     it is a task. Both are ordinary attributes — a type you invent gets the
+     same box by ticking the same trait. */
+  checklist:{face:'checklist', nm:'Checklist', ic:'list', c:'#4A7C59', key:'K', ds:'Tasks you can tick and add to without opening it', attrs:['container','spawn'], spawnBy:'type', genKind:'task', layout:'list', size:[4,6], phoneSize:[4,6], body:'' },
+  /* A calendar is a magic drawer wearing a calendar layout: it collects by rule
+     like any other, and then draws what it collected on the day each thing is
+     due. It holds nothing — the day is the `due` field on the object, not a
+     container — so its default rule is "anything with a date". */
+  calendar:{face:'calendar', nm:'Calendar', ic:'calendar', c:'#5C7148', key:'C', ds:'Whatever it collects, on the day it falls', attrs:['container','magic'], filter:{rule:{f:'date',op:'any'}}, calview:'month', layout:'calendar', size:[8,8], body:'' },
   control: {nm:'Control',  ic:'sliders', c:'#6B6152', key:'', ds:'A Bureau button on the desk', attrs:['control'], size:[4,4], body:'' },
   task:    {shape:'sliver', nm:'Task',    ic:'check',   c:'#4A7C59', key:'T', ds:'A thing to do',             attrs:['text','check','date','repeat'], size:[4,1], onclick:'none', gathers:'checklist', body:'' },
   note:    {shape:'note', nm:'Note',    ic:'note',    c:'#5F7A93', key:'O', ds:'Something to remember',     attrs:['text'], size:[4,4], onclick:'read', body:'' },
@@ -155,16 +169,19 @@ function seed(){
   // The three drawers whose whole job is a rule are magic drawers — they
   // collect and never hold. The rest are ordinary containers you file into.
   const MG = (o)=> DR(Object.assign({kind:'magic'}, o));
+  // Nine drawer fronts in a rack along the top, at the size a drawer now starts
+  // at. The rest of the desk is left clear on purpose: what a drawer holds is
+  // behind it, so a wall of them is the whole point and takes one row.
   const drawers = [
-    MG({id:'d_today', title:'Today',        c:'#4A7C59', filter:{due:'today'},                     desk:{x:1,y:1,w:6,h:6},  phone:{x:1,y:1,w:4,h:3}}),
-    DR({id:'d_in',    title:'Inbox',        c:'#7E5A38', desk:{x:7,y:1,w:6,h:6},  phone:{x:5,y:1,w:4,h:3}}),
-    DR({id:'d_write', title:'Writing Desk', c:'#5C7148', desk:{x:13,y:1,w:6,h:6},  phone:{x:1,y:4,w:4,h:3}}),
-    DR({id:'d_ideas', title:'Idea Bin',     c:'#96652F', desk:{x:19,y:1,w:6,h:6},  phone:{x:5,y:4,w:4,h:3}}),
-    DR({id:'d_studio',title:'Studio',       c:'#3F5F7A', desk:{x:1,y:7,w:6,h:6},  phone:{x:1,y:7,w:4,h:3}}),
-    DR({id:'d_kitch', title:'Kitchen',      c:'#A55A3E', desk:{x:7,y:7,w:6,h:6},  phone:{x:5,y:7,w:4,h:3}}),
-    MG({id:'d_open',  title:'Open Questions',c:'#4A6E8F',filter:{kinds:['question']},              desk:{x:13,y:7,w:6,h:6},  phone:{x:1,y:10,w:4,h:3}}),
-    DR({id:'d_keep',  title:'Keeping Up',   c:'#3E7A6B', desk:{x:19,y:7,w:6,h:6},  phone:{x:5,y:10,w:4,h:3}}),
-    MG({id:'d_done',  title:'Done & Dusted',c:'#6F5137', filter:{done:true},                       desk:{x:1,y:13,w:6,h:6},  phone:{x:1,y:13,w:4,h:3}})
+    MG({id:'d_today', title:'Today',        c:'#4A7C59', filter:{due:'today'},                     desk:{x:1,y:1,w:2,h:2},  phone:{x:1,y:1,w:2,h:2}}),
+    DR({id:'d_in',    title:'Inbox',        c:'#7E5A38', desk:{x:3,y:1,w:2,h:2},  phone:{x:3,y:1,w:2,h:2}}),
+    DR({id:'d_write', title:'Writing Desk', c:'#5C7148', desk:{x:5,y:1,w:2,h:2},  phone:{x:5,y:1,w:2,h:2}}),
+    DR({id:'d_ideas', title:'Idea Bin',     c:'#96652F', desk:{x:7,y:1,w:2,h:2},  phone:{x:7,y:1,w:2,h:2}}),
+    DR({id:'d_studio',title:'Studio',       c:'#3F5F7A', desk:{x:9,y:1,w:2,h:2},  phone:{x:1,y:3,w:2,h:2}}),
+    DR({id:'d_kitch', title:'Kitchen',      c:'#A55A3E', desk:{x:11,y:1,w:2,h:2},  phone:{x:3,y:3,w:2,h:2}}),
+    MG({id:'d_open',  title:'Open Questions',c:'#4A6E8F',filter:{kinds:['question']},              desk:{x:13,y:1,w:2,h:2},  phone:{x:5,y:3,w:2,h:2}}),
+    DR({id:'d_keep',  title:'Keeping Up',   c:'#3E7A6B', desk:{x:15,y:1,w:2,h:2},  phone:{x:7,y:3,w:2,h:2}}),
+    MG({id:'d_done',  title:'Done & Dusted',c:'#6F5137', filter:{done:true},                       desk:{x:17,y:1,w:2,h:2},  phone:{x:1,y:5,w:2,h:2}})
   ];
 
   // The app's own buttons live on the desk, on the grid, and move like anything
@@ -311,6 +328,42 @@ const isContainer = o => !!o && has(o,'container');
 const FACES = {front:'Drawer front', checklist:'Checklist', calendar:'Calendar',
                moodboard:'Moodboard', timeline:'Timeline', spine:'Book spine'};
 const faceOf = o => (o && o.face) || K(o&&o.kind).face || 'front';
+// How a container arranges what it holds, once opened. The kind's is the
+// fallback, so a type that says it opens as a calendar does even when nothing
+// has written `layout` onto the object itself.
+const layoutOf = o => (o && o.layout) || K(o&&o.kind).layout || 'grid';
+
+/* `spawn` covers two things that make objects: a press, and a box you type
+   into. Which one, and what comes out, are per object then per type — so a
+   checklist that takes dictation and a generator that presses out scenes are
+   the same trait wearing two settings, not two branches. */
+const spawnByOf = o => (o && o.spawnBy) || K(o&&o.kind).spawnBy || 'click';
+const genKindOf = o => (o && o.genKind) || K(o&&o.kind).genKind || 'task';
+// A container that takes dictation: a box at the top of it, on its front and
+// inside it, making one of whatever it collects.
+const takesTyping = c => has(c,'spawn') && spawnByOf(c)==='type';
+
+/* How much of time one screen of a calendar covers, and the two questions
+   every calendar has ever asked. Per object then per type, like everything
+   else — a calendar layout on an ordinary drawer gets them too. */
+const CALVIEWS = {month:'Month', week:'Week', day:'Day'};
+const calViewOf = o => (o && o.calview) || K(o&&o.kind).calview || 'month';
+const weekStartOf = o => (o && o.weekStart) || K(o&&o.kind).weekStart || 'mon';
+const showsWeekends = o => ((o && o.weekends) ?? K(o&&o.kind).weekends) !== false;
+/* The days of the week a calendar draws, in the order it draws them. 0 is
+   Sunday, JavaScript's own numbering, so nothing has to translate. */
+function calCols(c){
+  const order = weekStartOf(c)==='sun' ? [0,1,2,3,4,5,6] : [1,2,3,4,5,6,0];
+  return showsWeekends(c) ? order : order.filter(n=>n!==0 && n!==6);
+}
+
+/* Completed things leave their drawer (decision 2) — that is the whole
+   argument for drawers, because it is what keeps one finite. Three faces are
+   exempt, and for one reason: their job is to show what has already happened.
+   A checklist that empties itself as you tick is not a checklist, and a
+   calendar whose days clear behind you is not a record of anything. */
+const DONE_FACES = ['checklist','calendar','timeline'];
+const keepsDone = c => DONE_FACES.includes(faceOf(c));
 
 /* What a pile of these becomes. Dropping one object on another is only a
    gesture if both agree what they add up to — two tasks are a checklist, two
@@ -368,7 +421,7 @@ function inContainer(c,o){
   if(has(c,'magic')){
     const f=c.filter||{};
     if(f.done) return !!o.done;        // the archive
-    if(o.done) return false;           // finished things leave everywhere else
+    if(o.done && !keepsDone(c)) return false;   // finished things leave elsewhere
     if(isContainer(o)) return false;   // magic drawers collect objects, not drawers
     if(f.due==='today') return !!o.due && D.parse(o.due)<=D.today();
     if(f.tag && !(o.tags||[]).includes(f.tag)) return false;
@@ -376,9 +429,7 @@ function inContainer(c,o){
     if(f.rule && !matchRule(o, f.rule)) return false;
     return !!(f.tag || (f.kinds&&f.kinds.length) || f.rule);
   }
-  // Completed things leave a drawer (decision 2) — but not a checklist, where
-  // seeing what you've ticked is the entire point of the thing.
-  if(o.done && faceOf(c)!=='checklist') return false;
+  if(o.done && !keepsDone(c)) return false;
   return o.parent===c.id;              // an ordinary drawer holds what is filed in it
 }
 /* One clause: a field, a comparison, a value. Everything a magic drawer can
@@ -488,7 +539,9 @@ const allTags = ()=>{ const m={}; S.objects.forEach(o=>(o.tags||[]).forEach(t=>m
 
 export { ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds, K,
   attrsOf, has, kindHas, T, dz, S, sensedDevice, reset, defaultLook, dev, byId,
-  deskTitle, rootObj, container, cfgOf, isContainer, FACES, faceOf, SHAPES,
+  deskTitle, rootObj, container, cfgOf, isContainer, FACES, faceOf, layoutOf, SHAPES,
   shapeOf, READS, readOf, spreadOf, gathersOf, gatherKind, containers, isPinned, pinnedDrawers,
+  spawnByOf, genKindOf, takesTyping, keepsDone,
+  CALVIEWS, calViewOf, weekStartOf, showsWeekends, calCols,
   OPS, ROLLS, rollup, SORTS, childrenOf, isAncestor,
   relatedTo, backlinksTo, relate, unrelate, chainOf, tlSpan, streak, goalPct, allTags };

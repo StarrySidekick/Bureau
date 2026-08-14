@@ -133,7 +133,7 @@ function dedupeIds(objects){
    skips all of them, an old backup replays only what it is missing. These
    used to be ad-hoc per-load mutations inside adopt(); a new repair that
    should run once belongs here, as the next numbered step. */
-const DATA_V = 10;
+const DATA_V = 11;
 const MIGRATIONS = [
   // Drawers and objects were two arrays and a drawer could not live inside
   // anything. foldDrawers also replays the old dense flow to give v1 drawers
@@ -190,6 +190,27 @@ const MIGRATIONS = [
         if(Array.isArray(k.phoneSize) && k.phoneSize[0])
           k.phoneSize=[Math.max(1,Math.min(8,Math.round(k.phoneSize[0]/2))),
                        Math.max(1,Math.round(k.phoneSize[1]/2))];
+      });
+    }},
+  /* A calendar is a magic drawer now: it collects what has a date instead of
+     holding what was filed in it, which is what lets one thing sit on two
+     calendars and what makes a day a field rather than a container. Existing
+     calendars keep everything — their contents move up to where the calendar
+     itself lives, and the new rule collects them straight back onto the days
+     they were already on. Boxes are cleared because {x,y,w,h} in the calendar's
+     space means somewhere else in its parent's, usually on top of something. */
+  {v:11, up(d){
+      const objs=d.objects||[];
+      objs.filter(o=>o.kind==='calendar').forEach(c=>{
+        objs.forEach(o=>{
+          if(o.parent!==c.id) return;
+          o.parent=c.parent||ROOT; o.desk=null; o.phone=null;
+        });
+        // an object that overrode its type's attributes has to gain the trait too
+        if(Array.isArray(c.attrs) && !c.attrs.includes('magic')) c.attrs=c.attrs.concat('magic');
+        const f=c.filter||{};
+        const ruled = f.rule || f.tag || f.due || f.done || (f.kinds&&f.kinds.length);
+        if(!ruled) c.filter=Object.assign(f, {rule:{f:'date', op:'any'}});
       });
     }},
 ];

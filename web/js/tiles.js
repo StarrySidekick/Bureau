@@ -1,6 +1,7 @@
 import { esc, ic, clamp, D, md, strip } from './util.js';
 import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, childrenOf, container,
-  rollup, streak, goalPct, tlSpan, dev } from './model.js';
+  rollup, streak, goalPct, tlSpan, dev, spawnByOf, genKindOf, takesTyping,
+  calViewOf, weekStartOf, calCols } from './model.js';
 import { CELL, gridOf, lay, overlaps, boxOk, freeSpot, gridRows, sizeOfKind, ensureBox } from './grid.js';
 import { create, toast, toggleDone } from './mutations.js';
 import { render } from './views.js';
@@ -57,27 +58,43 @@ function spinTo(el, n){
 
 const HANDLES = ['nw','ne','se','sw'];   // corners only — any corner resizes
 
-/* A month for a calendar container: the weeks of `o.month`, with a mark on any
-   day something in it is due. Sized in em so it shrinks with the tile. */
-function monthGrid(o){
+/* The face of a calendar container: the span it is set to, with a mark on any
+   day something it collects is due. Sized in em so it shrinks with the tile.
+   Which days it draws — and in what order — is calCols(), so the week-start and
+   weekend settings reach the front as well as the opened view. A month is the
+   weeks its month falls in, a week is one row, a day is one square. */
+const DOWMARK = ['S','M','T','W','T','F','S'];
+function calFace(o){
+  const view = calViewOf(o), cols = calCols(o);
   const anchor = D.parse(o.month||T) || D.today();
-  const first = new Date(anchor.getFullYear(), anchor.getMonth(), 1);
-  const lead = (first.getDay()+6)%7;                 // weeks start Monday
-  const days = new Date(anchor.getFullYear(), anchor.getMonth()+1, 0).getDate();
-  const mine = childrenOf(o);
   const byDay = {};
-  mine.forEach(x=>{ if(x.due) byDay[x.due]=(byDay[x.due]||0)+1; });
+  childrenOf(o).forEach(x=>{ if(x.due) byDay[x.due]=(byDay[x.due]||0)+1; });
+  const {from, to, month} = calSpan(o, anchor, view);
   const cells=[];
-  for(let i=0;i<lead;i++) cells.push('<i class="pad"></i>');
-  for(let d=1;d<=days;d++){
-    const iso=D.iso(new Date(anchor.getFullYear(), anchor.getMonth(), d));
-    const n=byDay[iso]||0;
-    cells.push(`<i class="cday${iso===T?' today':''}${n?' has':''}" data-calday="${o.id}:${iso}">
-      <b>${d}</b>${n?`<u>${n>3?'•••':'•'.repeat(n)}</u>`:''}</i>`);
+  for(let dt=new Date(from); dt<=to; dt=D.add(dt,1)){
+    if(!cols.includes(dt.getDay())) continue;
+    const iso=D.iso(dt), n=byDay[iso]||0;
+    cells.push(`<i class="cday${iso===T?' today':''}${n?' has':''}${
+        month!=null&&dt.getMonth()!==month?' out':''}" data-calday="${o.id}:${iso}">
+      <b>${dt.getDate()}</b>${n?`<u>${n>3?'•••':'•'.repeat(n)}</u>`:''}</i>`);
   }
-  return `<div class="calgrid">
-    ${['M','T','W','T','F','S','S'].map(d=>`<i class="dow">${d}</i>`).join('')}
+  const wide = view==='day' ? 1 : cols.length;
+  return `<div class="calgrid cal-${view}" style="--dcols:${wide}">
+    ${view==='day' ? '' : cols.map(n=>`<i class="dow">${DOWMARK[n]}</i>`).join('')}
     ${cells.join('')}</div>`;
+}
+/* The first and last day one screen of a calendar covers. A month runs from the
+   start of the week its 1st falls in to the end of the week its last day falls
+   in, so every row is a full week and the days either side are real days you
+   can still drop on — they are only drawn dimmer. */
+function weekStartOn(date, sun){ return D.add(date, -(sun ? date.getDay() : (date.getDay()+6)%7)); }
+function calSpan(c, anchor, view){
+  const sun = weekStartOf(c)==='sun';
+  if(view==='day') return {from:anchor, to:anchor, month:null};
+  if(view==='week'){ const s=weekStartOn(anchor, sun); return {from:s, to:D.add(s,6), month:null}; }
+  const y=anchor.getFullYear(), m=anchor.getMonth();
+  return {from:weekStartOn(new Date(y,m,1), sun),
+          to:D.add(weekStartOn(new Date(y,m+1,0), sun), 6), month:m};
 }
 
 /* What a click on an object does. The editor is no longer the default — it
@@ -91,11 +108,10 @@ const CLICKS = {
   generate: 'Make a new object'
 };
 const clickOf = o => o.onclick || K(o.kind).onclick || 'none';
-const spawnBy = o => o.spawnBy || K(o.kind).spawnBy || 'click';
 /* A generator presses out a new object beside itself, in whichever direction
    it is set to. `random` drops it wherever there is room. */
 function dispense(g){
-  const kind=g.genKind||'task', dir=g.genDir||'down';
+  const kind=genKindOf(g), dir=g.genDir||'down';
   const o=create(kind,{parent:g.parent});
   const dv=dev(), b=lay(g), [w,h]=sizeOfKind(kind, dv);
   const spots={
@@ -214,19 +230,30 @@ function drawTile(o, arr, box){
   }
 
   /* A checklist is a container that wears its contents on the outside: you can
-     see and tick what's in it without opening it. That is the whole difference
-     between it and a drawer. */
+     see, tick, add to and take from it without opening it. That is the whole
+     difference between it and a drawer.
+
+     It is a <div> rather than a <button> when it takes typing, because an input
+     inside a button is invalid and unfocusable — the same reason the text field
+     tile is a div. Clicking it still opens it: wire.js goes by [data-drawer]
+     and the .drawer class, not by the tag. */
   if(cont && faceOf(o)==='checklist'){
     const items=childrenOf(o);
-    return `<button class="drawer dtile cltile bd-${o.border||'panel'}${sel}" data-drawer="${o.id}" style="--c:${colour};${place}">
+    const adds=takesTyping(o);
+    const made=K(genKindOf(o)).nm.toLowerCase();
+    return `<${adds?'div':'button'} class="drawer dtile cltile bd-${o.border||'panel'}${sel}" data-drawer="${o.id}"
+        ${adds?'role="button" tabindex="0"':''} style="--c:${colour};${place}">
       <div class="dtop"><span class="dname">${esc(o.title||'Untitled')}</span>
         <span class="clcount">${rollup(o) || (items.filter(x=>x.done).length+'/'+items.length)}</span></div>
+      ${adds?`<label class="cladd">${ic('plus',11)}
+        <input data-contadd="${o.id}" placeholder="Add a ${esc(made)}…"></label>`:''}
       <div class="dbody"><div class="clist">${items.slice(0,14).map(x=>
-        `<span class="cline${x.done?' done':''}" data-check="${x.id}">
+        `<span class="cline${x.done?' done':''}" data-check="${x.id}" data-pluck="${x.id}"
+           title="${esc(x.title||'Untitled')} — hold to take it out">
            <i class="clbox">${x.done?ic('check',10):''}</i>${esc(x.title||'Untitled')}</span>`).join('')
-        || '<span class="clempty">Nothing yet — open it to add</span>'}</div></div>
+        || `<span class="clempty">${adds?'Nothing yet — type above':'Nothing yet — open it to add'}</span>`}</div></div>
       ${handles}
-    </button>`;
+    </${adds?'div':'button'}>`;
   }
 
   /* A trip is a ticket: a stub torn off down the right, and where to. */
@@ -293,12 +320,18 @@ function drawTile(o, arr, box){
     </button>`;
   }
 
-  /* A calendar is a container showing the month its children fall in. */
+  /* A calendar is a container drawing what it collects on the day each thing
+     falls. It is usually a magic drawer, so the sparkle belongs on it like any
+     other — the days are what it shows, collecting is how it filled them. */
   if(cont && faceOf(o)==='calendar'){
-    return `<button class="drawer dtile caltile bd-${o.border||'panel'}${sel}" data-drawer="${o.id}" style="--c:${colour};${place}">
+    const at=D.parse(o.month||T)||D.today(), view=calViewOf(o);
+    const cap = view==='day' ? at.toLocaleDateString(undefined,{weekday:'long',day:'numeric'})
+      : at.toLocaleDateString(undefined, view==='week'?{month:'short',day:'numeric'}:{month:'long'});
+    return `<button class="drawer dtile caltile bd-${o.border||'panel'}${sel}${has(o,'magic')?' magicdrawer':''}"
+      data-drawer="${o.id}" style="--c:${colour};${place}">
       <div class="dtop"><span class="dname">${esc(o.title||'Untitled')}</span>
-        <span class="clcount">${D.parse(o.month||T).toLocaleDateString(undefined,{month:'long'})}</span></div>
-      <div class="dbody">${monthGrid(o)}</div>
+        <span class="clcount">${esc(cap)}</span></div>
+      <div class="dbody">${calFace(o)}</div>
       ${handles}
     </button>`;
   }
@@ -348,8 +381,8 @@ function drawTile(o, arr, box){
       ${handles}
     </button>`;
   }
-  if(has(o,'spawn') && spawnBy(o)==='click'){
-    const made=K(o.genKind||'task');
+  if(has(o,'spawn') && spawnByOf(o)==='click'){
+    const made=K(genKindOf(o));
     return `<button class="drawer otile sh-press gentile${sel}" data-row="${o.id}" style="--c:${colour};${place}">
       ${chips}
       <span class="genico">${ic(made.ic,20)}</span>
@@ -358,7 +391,7 @@ function drawTile(o, arr, box){
       ${handles}
     </button>`;
   }
-  if(has(o,'spawn') && spawnBy(o)==='type'){
+  if(has(o,'spawn') && spawnByOf(o)==='type'){
     return `<div class="drawer otile sh-band fieldtile${sel}" data-row="${o.id}" style="--c:${colour};${place}">
       ${chips}
       <input class="fieldin" data-fieldfor="${o.id}" placeholder="${esc(o.title||'Type and press return…')}">
@@ -636,4 +669,5 @@ function scrollEntry(o){
 }
 
 export { spinTo, CLICKS, clickOf, fireButton, tileTap, pending, placeAtPending,
-  gridTile, gridOfContainer, listTile, scrollEntry, bookOf, bookView, turnPage, clearPages };
+  gridTile, gridOfContainer, listTile, scrollEntry, bookOf, bookView, turnPage, clearPages,
+  calSpan };

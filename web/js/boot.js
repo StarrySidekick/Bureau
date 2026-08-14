@@ -3,7 +3,7 @@
    ============================================================ */
 import { $ } from './util.js';
 import { S, KINDS, childrenOf, container, relate } from './model.js';
-import { create, togglePin, del, delMany, delDrawer, undo } from './mutations.js';
+import { create, togglePin, del, delMany, delDrawer, undo, toggleDone } from './mutations.js';
 import { applyLook } from './look.js';
 import { render, settingsPanel } from './views.js';
 import { overlayHTML } from './panels.js';
@@ -36,6 +36,6 @@ window.BUREAU = {
   get state(){ return S; }, render, create, save: writeNow,
   get K(){ return KINDS; },
   paste: pasteObjects, relate, pin: togglePin, renderSheet,
-  del, delMany, delDrawer, undo,
+  del, delMany, delDrawer, undo, toggleDone,
   kids: id => childrenOf(container(id)).map(o=>o.id)
 };

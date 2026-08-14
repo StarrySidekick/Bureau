@@ -1,10 +1,10 @@
 import { $, $$, esc, ic, uid, D, ROOT } from './util.js';
 import { S, K, KINDS, KEYS, refreshKinds, ATTRS, USER_ATTRS, attrsOf, has, SHAPES,
   FACES, SORTS, byId, container, cfgOf, isContainer, isAncestor, relate,
-  unrelate, sensedDevice, reset, T, dz, dev } from './model.js';
+  unrelate, sensedDevice, reset, T, dz, dev, calViewOf } from './model.js';
 import { gridOf, lay, boxOk, freeSpot, toPhoneSize } from './grid.js';
 import { applyLook, applyStyle, setLookVal, lookVal, STYLES, PALETTES, randomFront } from './look.js';
-import { toast, toggleDone, del, delMany, delDrawer, undo, setPin, togglePin, drawerForTag, create, quickAdd, randomThing } from './mutations.js';
+import { toast, toggleDone, del, delMany, delDrawer, undo, setPin, togglePin, drawerForTag, create, quickAdd, spawnInto, randomThing } from './mutations.js';
 import { spinTo, pending, placeAtPending, tileTap, turnPage, clearPages } from './tiles.js';
 import { render, sizeGrid, toggleSettings } from './views.js';
 import { openObj, closeSheet, renderSheet } from './sheet.js';
@@ -43,11 +43,15 @@ function act(name, el){
     case 'newdrawer': modalDrawer(null); break;
     case 'back': S.view='desk'; S.drawerId=null; S.kindFilter=null; render(); break;
     case 'pin': togglePin(el.dataset.id); break;
+    // one step is one screenful, so it steps by whatever the calendar is showing
     case 'monthstep': {
       const d=byId(el.dataset.id); if(!d) return;
+      const n=+el.dataset.step||0, v=calViewOf(d);
       const a=D.parse(d.month||T)||D.today();
-      a.setMonth(a.getMonth()+ (+el.dataset.step||0));
-      d.month=D.iso(new Date(a.getFullYear(), a.getMonth(), 1));
+      if(v==='day') a.setDate(a.getDate()+n);
+      else if(v==='week') a.setDate(a.getDate()+7*n);
+      else { a.setDate(1); a.setMonth(a.getMonth()+n); }
+      d.month=D.iso(a);
       save(); render(); break;
     }
     case 'monthtoday': {
@@ -269,6 +273,11 @@ function wire(){
     if(gestureFlags.suppressClick){ gestureFlags.suppressClick=false; return; }
     const t=e.target;
     if(!t.closest('#ctx')) closeCtx();
+    /* Typing into a tile is not clicking the tile. A checklist front carries a
+       real input inside a [data-drawer], so without this, reaching for the box
+       opens the drawer out from under you. Every field in the app is driven by
+       the input/change listeners below, so nothing here wants the click. */
+    if(t.closest('input,textarea,select')) return;
 
     const undoEl=t.closest('[data-undo]'); if(undoEl){ undo(); return; }
     const c=t.closest('[data-c]');
@@ -331,6 +340,11 @@ function wire(){
       save(); render();
       // it lands on the board and stays there — open it when you want it
       return; }
+
+    // month / week / day — the same calendar over a different span
+    const cv=t.closest('[data-calview]');
+    if(cv){ const [id,v]=cv.dataset.calview.split(':');
+      const d=byId(id); if(d){ d.calview=v; S.calDay=null; save(); render(); } return; }
 
     const cd=t.closest('[data-calday]');
     if(cd){
@@ -417,12 +431,18 @@ function wire(){
     const dtg=t.closest('[data-dtag]');
     if(dtg){ draft().tag=dtg.dataset.dtag; only(dtg,'#dtag button'); return; }
 
-    const pn=t.closest('[data-pview],[data-pface],[data-psort],[data-plock],[data-ppin],[data-pborder],[data-pknob],[data-pcolour],[data-pboard],[data-pknobc],[data-pknobtone],[data-pknobpos],[data-ptexture],[data-otype],[data-oclick],[data-oread],[data-oshape],[data-oedge],[data-ocolour],[data-oframe],[data-obtn],[data-ogen],[data-ogendir]');
+    const pn=t.closest('[data-pview],[data-pface],[data-psort],[data-plock],[data-ppin],[data-pborder],[data-pknob],[data-pcolour],[data-pboard],[data-pknobc],[data-pknobtone],[data-pknobpos],[data-ptexture],[data-pcalview],[data-pweekstart],[data-pweekends],[data-pgen],[data-otype],[data-oclick],[data-oread],[data-oshape],[data-oedge],[data-ocolour],[data-oframe],[data-obtn],[data-ogen],[data-ogendir]');
     if(pn){
       const id=pn.dataset.id, c=cfgOf(id), o=byId(id);
       if(pn.dataset.pview!=null) c.layout=pn.dataset.pview;
       else if(pn.dataset.ppin!=null) setPin(id, !!pn.dataset.ppin);   // S.pins, not the object
 
+      else if(o && pn.dataset.pcalview!=null){ o.calview=pn.dataset.pcalview; S.calDay=null; }
+      else if(o && pn.dataset.pweekstart!=null) o.weekStart=pn.dataset.pweekstart;
+      // false, not undefined: the kind says weekends are shown, so hiding them
+      // has to be a value on the object rather than the absence of one
+      else if(o && pn.dataset.pweekends!=null) o.weekends=!!pn.dataset.pweekends;
+      else if(o && pn.dataset.pgen!=null) o.genKind=pn.dataset.pgen;
       else if(o && pn.dataset.pface!=null) o.face=pn.dataset.pface;
       else if(pn.dataset.psort!=null) c.sort=pn.dataset.psort||null;
       else if(pn.dataset.plock!=null) c.locked=!!pn.dataset.plock;
@@ -655,9 +675,19 @@ function wire(){
     }
     if(e.target.dataset.dayadd && e.key==='Enter'){
       const [did,iso]=e.target.dataset.dayadd.split(':');
-      const o=quickAdd(e.target.value, 'task', did);
-      if(o){ o.due=iso; e.target.value=''; save(); render();
+      const o=spawnInto(byId(did), e.target.value, {due:iso});
+      if(o){ e.target.value=''; save(); render();
         const el=document.querySelector(`[data-dayadd="${did}:${iso}"]`); el&&el.focus(); }
+      return;
+    }
+    /* The box at the top of a container that takes typing — on its front, and
+       inside it. The input is rebuilt by the render, so focus goes back to
+       whichever one is there afterwards: type, return, type, return. */
+    if(e.target.dataset.contadd && e.key==='Enter'){
+      const id=e.target.dataset.contadd, c=byId(id);
+      const o=spawnInto(c, e.target.value);
+      if(o){ e.target.value=''; save(); render();
+        const el=document.querySelector(`[data-contadd="${id}"]`); el&&el.focus(); }
       return;
     }
     if(e.target.id==='cmdinput'){

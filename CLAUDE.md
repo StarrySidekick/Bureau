@@ -127,16 +127,43 @@ tabs (decision 22).
 **Calendar and timeline are layouts, not kinds.** `layout` is how a container
 arranges its children when opened — `grid | list | scroll | book | calendar |
 timeline` — and `face` is how it draws on its parent's board. Any container can
-wear either; nothing branches on a kind called "calendar". A calendar *is* a
-container: the day it draws is not a container, it's the `due` field on the
-object. A layout falls back to the *kind's* if the object hasn't got one.
+wear either; nothing branches on a kind called "calendar". A layout falls back
+to the *kind's* if the object hasn't got one — ask `layoutOf(o)`, never
+`o.layout`.
+
+**A calendar collects; it does not hold.** The Calendar kind is a *magic*
+drawer wearing a calendar layout, defaulting to the rule "anything with a date".
+The day a thing sits on is the `due` field on the object, never a container —
+which is what lets one task appear on two calendars while still living in the
+one drawer it was filed in. Dropping on a day dates it and leaves it where it
+lives (`canDate()` ignores the magic rule on purpose). Its three settings —
+`calview` (`month|week|day`), `weekStart`, `weekends` — are per object then per
+kind, and `calCols()`/`calSpan()` answer for the front and the opened view
+together, so a calendar set to a week can't draw a month on the desk. See
+decision 32 and migration 11.
+
+**A container can take dictation, and that is an attribute.** `spawn` +
+`spawnBy:'type'` puts a box at the top of a container — on its front and inside
+it — and `genKindOf()` says what a typed line makes. A Checklist is just the
+built-in that carries them; a type you invent that ticks the same trait gets the
+same box. Ask `takesTyping(c)`, and go through `spawnInto()` rather than
+`quickAdd()` directly: a magic container holds nothing, so what you type into
+one has to be made where the container itself lives and collected back by its
+rule. That is the only reason the quick-add on a calendar day works.
+
+**Completed things leave a drawer unless its face says otherwise.**
+`keepsDone(c)` — checklist, calendar and timeline keep them, because all three
+exist to show what already happened. Everywhere else, done means gone, and that
+is what keeps a drawer finite.
 
 **A drop has four meanings, and they are ordered.** `aimDrop()` in
 `gestures.js`: a day on a calendar, a point along a timeline's axis, an object
 it gathers with, a container to file into. The first two sit inside a
 container's tile, so they must be asked about first — ask the drawer first and
 every calendar drop files the object and loses the date. Add a fifth by adding a
-branch there, in the right place in that order.
+branch there, in the right place in that order. A *plucked* line is the one
+thing dragged that isn't a tile, so it has its own aim (`aimPluck()`) with only
+the last of those four questions.
 
 **Two of a kind make a third thing, and that's a property.** `gathers` on a kind
 names the container a pile of it becomes — task→checklist, ingredient→recipe,
@@ -235,6 +262,9 @@ when you're editing the *other* device's layout from this one.
 - **Layouts are stored per device.** Each drawer has both `desk: {x,y,w,h}` and
   `phone: {x,y,w,h}`. Resizing must only touch `d[dev()]`. `dev()` returns the
   layout currently being *edited*, which is not always the physical device.
+- **A drawer starts at 2×2 and states its own `phoneSize`.** The derivation
+  halves a container, and half of two is one — the mini tile, which has no room
+  for a name. Any kind at 2×2 needs the same explicit `phoneSize`.
 - **A kind's `size` is the desk size.** `sizeOfKind(kind, device)` maps it: on a
   phone an object goes full width at the same height, and a container is halved
   so it keeps the fraction of the screen it had. Never use `K(k).size` directly
@@ -327,8 +357,9 @@ when you're editing the *other* device's layout from this one.
   siblings — two objects in different drawers may share coordinates, because they
   are in different coordinate spaces. Only objects that have actually been placed
   can be collided with; `ensureBox()` places them on first render.
-- **Completed things leave their drawer** and appear only in the archive drawer.
-  This is what keeps drawers finite, which is the entire argument for drawers.
+- **Completed things leave their drawer** and appear only in the archive — bar
+  the three faces `keepsDone()` names. This is what keeps drawers finite, which
+  is the entire argument for drawers.
 - **Repeating a task doesn't reuse the object.** Completing it spawns a fresh
   object at the next due date and converts the original into a `record`. History
   is preserved rather than overwritten.

@@ -701,3 +701,77 @@ cell is square.
 be three narrow things across, and the 16-column grid could express a sliver
 beside a square. That expressiveness was theoretical — nothing at 23px was
 usable enough to arrange deliberately.
+
+### 32. A calendar collects; a checklist takes dictation; a drawer is two cells
+
+Four types, tightened one at a time. Three of them are size and one is
+structural, and the structural one is the reason this has an entry.
+
+**A calendar is a magic drawer wearing a calendar layout.** It used to be an
+ordinary container: things were filed *into* it, and the month drew whatever it
+held. That made a day two things at once — a `due` field on the object, and a
+membership in the drawer showing that month — and the two disagreed constantly.
+Scheduling something meant moving it out of the drawer it actually lives in, so
+a task on a calendar was a task nowhere else; and a thing could only ever be on
+one calendar, because an object lives in exactly one container (decision 17).
+
+Collecting fixes both. The rule says what lands on it — "anything with a date"
+by default, but a tag, a set of types or any field clause will do — and the day
+it lands on is the `due` field, which was always the truth of the matter. One
+task now appears on the work calendar and the household one without being in
+either, and it still lives in the Inbox where you put it. Dropping on a day
+still dates it (`canDate()` deliberately ignores the magic rule), it just no
+longer files it. **Migration 11** converts an existing calendar: its contents
+move up to where the calendar itself lives, keeping their dates, and the new
+rule collects them straight back onto the days they were already on.
+
+It also grew the three settings every calendar has ever had: `calview`
+(month, week or day — one screenful, and the arrows step by that unit),
+`weekStart`, and whether weekends are drawn at all. All three are per object
+then per type, and `calCols()`/`calSpan()` serve the front and the opened view
+from the same answer, so a calendar set to a week does not draw a month on the
+desk.
+
+**A checklist takes dictation, through an attribute that already existed.**
+"A box at the top that makes a task" is `spawn` with `spawnBy:'type'` — the same
+trait the Text field object carries — and `genKind` says a line makes a task.
+Nothing about a checklist is special-cased: a type you invent that ticks the
+same trait gets the same box, on its front and inside it. A container that is
+*also* magic can't hold what you type into it, so `spawnInto()` makes it where
+the container lives and lets the rule collect it — which is what makes the
+quick-add on a calendar day work at all.
+
+The other half of "things pass through a checklist" is taking them out again.
+Holding a line on the front lifts it off as a chip you can drop on a drawer, a
+pin, or the board (`type:'pluck'` in `gestures.js`). A tap still ticks; only the
+hold plucks. This is the first gesture that carries something which is not a
+tile, which is why it is its own branch rather than a mode of the move drag.
+
+**A drawer starts at two cells square, not six.** Six was a quarter of the desk
+for something whose entire job is to be a name and a knob — a wall of nine of
+them was the whole board. Two is the smallest a front can be and still read as a
+drawer rather than a stamp, and nine of them is one row along the top: a rack of
+pigeonholes, which is what a desk full of drawers ought to look like. The seed
+is laid out that way so a first run shows it.
+
+*What follows from it:*
+
+- Drawer and Magic drawer state `phoneSize:[2,2]`. The derivation halves a
+  container (decision 31) and half of two is one, which is the mini tile
+  (decision 26) with no room for a name.
+- A drawer front at two cells is `sz-narrow`, so the size rule finally has to
+  win — `.drawer.dtile .dname` in `chrome.css` was silently outsizing it — and
+  the magic sparkle comes off the front, because at that width it and the name
+  are competing for the same inch. The dotted border already says magic.
+- `keepsDone()` replaces the checklist special case in `inContainer()`. Three
+  faces keep completed things — checklist, calendar, timeline — and they are the
+  three whose job is to show what already happened. A calendar day that clears
+  behind you is not a record of anything.
+- A kind may declare a `filter`, copied into the object by `create()`, which is
+  how a calendar arrives already collecting instead of being a magic drawer you
+  then have to explain itself to.
+
+*Against:* a calendar you cannot file into is a calendar you cannot use as a
+drawer, and "drag it onto September" no longer puts it away anywhere. That was
+never really filing — it was scheduling that happened to move the object — and
+the thing it cost was the ability to be on two calendars, which is worth more.

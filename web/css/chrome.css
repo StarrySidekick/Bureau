@@ -237,14 +237,47 @@
   display:grid;place-items:center;color:var(--dink)}
 .cline.done .clbox{background:rgba(255,255,255,.22);border-color:transparent}
 .clempty{font-size:11.5px;color:var(--dink-3)}
+/* a line lifted off the front, and the chip that carries it */
+.cline.lifted{color:var(--dink)}
+.cline.plucked{opacity:.3}
+.pluckchip{position:absolute;z-index:80;pointer-events:none;transform:translate(-12px,-50%);
+  max-width:260px;padding:5px 11px;border-radius:16px;font-size:12.5px;font-weight:500;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  background:var(--paper-2);color:var(--ink);border:1px solid var(--brass);box-shadow:var(--shadow)}
+/* the board a plucked line would land on, when it is not landing in a drawer */
+.grid.dropboard{box-shadow:inset 0 0 0 2.5px var(--brass)}
+/* the add box on a checklist front: the same dashed rule as the quick-add
+   inside a drawer, in the front's light ink rather than the page's dark one */
+/* a checklist front that takes typing is a div, not a button — an input cannot
+   live inside one — so it has to be told the two things a button knew */
+.drawer[role="button"]{cursor:pointer}
+.drawer[role="button"]:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
+.cladd{display:flex;align-items:center;gap:6px;flex:0 0 auto;margin:1px 0 5px;padding:3px 7px;
+  border-radius:7px;border:1px dashed var(--dink-3);color:var(--dink-3);cursor:text;transition:.14s}
+.cladd:focus-within{border-style:solid;border-color:var(--dink);color:var(--dink)}
+.cladd input{flex:1;min-width:0;border:0;background:none;outline:none;font:inherit;
+  font-size:11.5px;color:var(--dink)}
+.cladd input::placeholder{color:var(--dink-3)}
+.sz-short .cladd,.sz-mini .cladd{display:none}
 /* calendar */
-.calgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;height:100%;align-content:start}
+/* The weeks share out the height they are given rather than stacking at the
+   top of it — a month packed into the first third of an eight-cell tile is a
+   picture of a month with a hole under it. */
+/* one explicit row for the day letters, sized to them; the weeks after it are
+   implicit and share out what is left */
+.calgrid{display:grid;grid-template-columns:repeat(var(--dcols,7),1fr);
+  grid-template-rows:auto;gap:1px;height:100%;
+  grid-auto-rows:minmax(0,1fr);align-content:stretch}
+.calgrid.cal-week,.calgrid.cal-day{align-content:center;grid-auto-rows:auto}
+.calgrid.cal-week .cday,.calgrid.cal-day .cday{font-size:13px;padding:4px 0}
+.calgrid.cal-day .cday{font-size:22px;font-family:var(--serif)}
 .calgrid .dow{font-size:9px;color:var(--dink-3);text-align:center;font-style:normal}
 .calgrid .pad{display:block}
 .cday{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
   font-style:normal;font-size:10px;color:var(--dink-2);border-radius:2px;padding:1px 0;min-height:0}
 .cday.today{background:rgba(255,255,255,.20);color:var(--dink)}
 .cday.has{color:var(--dink)}
+.cday.out{opacity:.4}
 .cday u{text-decoration:none;font-size:8px;line-height:1;letter-spacing:-1px}
 .magicmark{color:var(--dink-2);display:inline-flex;align-items:center;margin-left:2px}
 .magicmark.big{color:var(--brass);vertical-align:middle}
@@ -463,6 +496,14 @@
 /* A drawer front: a name and a pull, nothing else. What's inside is inside. */
 
 .drawer.dtile .dname{white-space:normal;font-size:15px}
+/* A drawer starts at two cells square, so a front is usually narrow. The
+   size rule in board.css was being outsized by the line above — same
+   specificity, later file — which is why a two-cell drawer set its name in
+   full-size type and broke "Magic" across two lines. */
+.drawer.dtile.sz-narrow .dname{font-size:12.5px}
+/* and the sparkle comes off the front at that width: the name is competing
+   with it for the same inch, and the dotted border already says magic */
+.drawer.sz-narrow .magicmark{display:none}
 .drawer.dtile .dcount{align-self:flex-start}
 .magicmark{color:var(--dink-2);display:inline-flex;align-items:center;margin-left:2px}
 
@@ -634,6 +675,9 @@
   padding:4px 2px;border-radius:12px;cursor:pointer
 }
 .kindtile:focus-visible{outline:2px solid var(--k);outline-offset:0}
+/* a sample is a picture of a tile, not a tile: nothing in it is clickable, or
+   the input on a checklist front would swallow the click that makes one */
+.pvscale{pointer-events:none}
 .kindtile .kpv{
   height:88px;display:grid;place-items:center;pointer-events:none;
   transition:transform .15s
@@ -782,7 +826,8 @@ kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--rule);border
 .is-phone .topbar h1{font-size:21px;line-height:1.2}
 .is-phone .topbar .sub{font-size:11.5px}
 .quickadd{display:flex;align-items:center;gap:9px;padding:9px 12px;border-radius:11px;border:1.5px dashed var(--rule);
-  background:color-mix(in srgb,var(--paper-2) 60%,transparent);margin-bottom:9px;transition:.15s}
+  background:color-mix(in srgb,var(--paper-2) 60%,transparent);margin-bottom:9px;transition:.15s;
+  max-width:900px}   /* the same column the bands below it stand in */
 .quickadd:focus-within{border-style:solid;border-color:var(--brass);background:var(--paper-2)}
 .quickadd input{flex:1;border:0;background:none;outline:none;font-size:13.5px}
 .quickadd input::placeholder{color:var(--ink-3)}
@@ -818,13 +863,19 @@ kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--rule);border
 /* ============================================================
    The time layer — a month you can open, a timeline you can zoom
    ============================================================ */
-.monthhead{display:flex;align-items:center;gap:9px;margin:2px 0 12px}
+.monthhead{display:flex;align-items:center;gap:9px;margin:2px 0 12px;flex-wrap:wrap}
 .monthhead b{font-family:var(--serif);font-size:19px;font-weight:600;min-width:190px}
 .monthhead .mhint{margin-left:auto;font-size:11.5px;color:var(--ink-3)}
+/* month / week / day rides in the head, so it can't scroll away from the dates
+   it is describing — an inline strip, not the padded bar a filter row gets */
+.monthhead .calviews{padding:0;overflow:visible;gap:4px}
 .is-phone .monthhead .mhint{display:none}
 .is-phone .monthhead b{font-size:16px;min-width:0;flex:1}
 
-.monthgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.monthgrid{display:grid;grid-template-columns:repeat(var(--dcols,7),1fr);gap:5px}
+/* one week gets the height a whole month spends on six of them */
+.monthgrid.cal-week .mcell{min-height:220px}
+.is-phone .monthgrid.cal-week .mcell{min-height:150px}
 .monthgrid .dow{font-size:10px;letter-spacing:.07em;text-transform:uppercase;
   color:var(--ink-3);font-weight:600;font-style:normal;text-align:center;padding-bottom:2px}
 .mcell{
@@ -834,6 +885,9 @@ kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--rule);border
 }
 .is-phone .mcell{min-height:62px;padding:3px}
 .mcell.pad{background:none;border-color:transparent;cursor:default}
+/* days either side of the month: real days you can still drop on, drawn back */
+.mcell.out{background:none}
+.mcell.out > b{opacity:.45}
 .mcell:not(.pad):hover{border-color:var(--brass)}
 .mcell > b{font-size:11.5px;font-weight:600;color:var(--ink-3);font-variant-numeric:tabular-nums}
 .mcell.today > b{color:var(--brass)}

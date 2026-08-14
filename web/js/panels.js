@@ -1,9 +1,10 @@
 import { $, $$, esc, ic, uid, clamp, ROOT } from './util.js';
 import { S, K, KINDS, KEYS, T, ATTRS, USER_ATTRS, FIELDS, fieldOf, OPS, ROLLS,
-  SORTS, FACES, SHAPES, READS, faceOf, shapeOf, readOf, byId, container, cfgOf, deskTitle,
+  SORTS, FACES, SHAPES, READS, faceOf, layoutOf, shapeOf, readOf, byId, container, cfgOf, deskTitle,
   rootObj, containers, isContainer, isAncestor, childrenOf, has, kindHas,
-  attrsOf, allTags, isPinned, dev } from './model.js';
-import { GRID, lay, boxOk, freeSpot, toPhoneSize } from './grid.js';
+  attrsOf, allTags, isPinned, dev, takesTyping, genKindOf,
+  CALVIEWS, calViewOf, weekStartOf, showsWeekends } from './model.js';
+import { GRID, lay, boxOk, freeSpot, sizeOfKind, toPhoneSize } from './grid.js';
 import { SWATCHES, paletteNow, randomBoard, randomFront } from './look.js';
 import { CLICKS, clickOf, gridTile, pending } from './tiles.js';
 import { quickAdd, toast } from './mutations.js';
@@ -226,7 +227,7 @@ function objectPanelBody(id){
       ? row('Frame', [['none','None'],['mount','Mount'],['gilt','Gilt'],['walnut','Walnut'],['black','Lacquer'],['polaroid','Instant']].map(([v,n])=>
           `<button class="pchip${(o.frame||'none')===v?' on':''}" data-oframe="${v}" data-id="${id}">${n}</button>`).join('')) : ''}
     ${(has(o,'spawn')||clickOf(o)==='generate') ? row('Makes', KEYS.filter(k=>true&&!kindHas(k,'generator')).slice(0,14).map(k=>
-        `<button class="pchip${(o.genKind||'task')===k?' on':''}" data-ogen="${k}" data-id="${id}">${KINDS[k].nm}</button>`).join('')) : ''}
+        `<button class="pchip${genKindOf(o)===k?' on':''}" data-ogen="${k}" data-id="${id}">${KINDS[k].nm}</button>`).join('')) : ''}
     ${(has(o,'spawn')||clickOf(o)==='generate') ? row('Direction', [['down','Down'],['up','Up'],['left','Left'],['right','Right'],['random','Anywhere']].map(([v,n])=>
         `<button class="pchip${(o.genDir||'down')===v?' on':''}" data-ogendir="${v}" data-id="${id}">${n}</button>`).join('')) : ''}
     ${has(o,'button')
@@ -255,10 +256,20 @@ function drawerPanelBody(id){
   const row=(label,body)=>`<div class="prow"><label>${label}</label><div>${body}</div></div>`;
   const chips=(name,val,list,cur)=>list.map(([v,n])=>
     `<button class="pchip${cur===v?' on':''}" data-p${name}="${v}" data-id="${id}">${n}</button>`).join('');
+  // the desk has no type to fall back on, so it is the only one read from cfg alone
+  const view = isRoot ? (cfg.layout||'grid') : layoutOf(d);
   return `
     ${row('View', chips('view', null, [['grid','Grid'],['list','List'],['scroll','Scroll'],
-        ...(isRoot?[]:[['checklist','Checklist'],['book','Book'],['calendar','Calendar'],['timeline','Timeline']])], cfg.layout||'grid'))}
+        ...(isRoot?[]:[['checklist','Checklist'],['book','Book'],['calendar','Calendar'],['timeline','Timeline']])], view))}
     ${isRoot?'':row('Face', chips('face', null, Object.entries(FACES), faceOf(d)))}
+    ${/* only a calendar is asked what a calendar wants to know */''}
+    ${(!isRoot && (view==='calendar' || faceOf(d)==='calendar')) ? `
+      ${row('Shows', chips('calview', null, Object.entries(CALVIEWS), calViewOf(d)))}
+      ${row('Week starts', chips('weekstart', null, [['mon','Monday'],['sun','Sunday']], weekStartOf(d)))}
+      ${row('Weekends', chips('weekends', null, [['1','Shown'],['','Hidden']], showsWeekends(d)?'1':''))}` : ''}
+    ${(!isRoot && takesTyping(d)) ? row('Typing in it makes',
+      KEYS.filter(k=>!kindHas(k,'container')&&k!=='control').map(k=>
+        `<button class="pchip${genKindOf(d)===k?' on':''}" data-pgen="${k}" data-id="${id}">${KINDS[k].nm}</button>`).join('')) : ''}
     ${row('Sort', chips('sort', null, [['','Custom'],...Object.entries(SORTS).map(([k,[nm]])=>[k,nm])], cfg.sort||''))}
     ${row('Locked', chips('lock', null, [['','Movable'],['1','Locked']], cfg.locked?'1':''))}
     ${isRoot?'':row('On the bar', chips('pin', null, [['','No'],['1','Pinned']], isPinned(id)?'1':''))}
@@ -576,9 +587,11 @@ function drawerFromSelection(id){
   };
   S.objects.push(d);
   objs.forEach(o=>{ o.parent=d.id; o.desk=null; o.phone=null; });
-  // now that its contents have moved out, the first object's old spot is free
-  d[dev()] = boxOk({x:spot.x,y:spot.y,w:6,h:6}, d.id, dev(), home)
-    ? {x:spot.x,y:spot.y,w:6,h:6} : freeSpot(6,6,dev(),home);
+  // now that its contents have moved out, the first object's old spot is free —
+  // and the drawer arrives at the size a drawer starts at, not a hardcoded one
+  const [dw,dh]=sizeOfKind('drawer', dev());
+  d[dev()] = boxOk({x:spot.x,y:spot.y,w:dw,h:dh}, d.id, dev(), home)
+    ? {x:spot.x,y:spot.y,w:dw,h:dh} : freeSpot(dw,dh,dev(),home);
   S.sel=[];
   save(); render();
   toast(`${objs.length} filed in a new drawer`);

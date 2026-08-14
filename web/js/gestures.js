@@ -1,4 +1,4 @@
-import { $$, clamp, D, ROOT } from './util.js';
+import { $, $$, clamp, D, ROOT } from './util.js';
 import { S, byId, dev, has, isAncestor, childrenOf, container, gatherKind } from './model.js';
 import { CELL, gridOf, cellW, lay, boxOk, overlaps } from './grid.js';
 import { toast, gather } from './mutations.js';
@@ -72,6 +72,30 @@ const canFile = (dragId, intoId) => !!intoId && intoId!==dragId
 // The same, minus the magic rule: a magic calendar can still date something it
 // only ever borrows.
 const canDate = (dragId, intoId) => !!intoId && intoId!==dragId && !isAncestor(dragId, byId(intoId));
+
+/* Where letting a plucked line go would put it. Simpler than aimDrop: a line has
+   no box being carried and no date being aimed at, so the only question is which
+   container it lands in — a drawer under the pointer, a pin on the bar, or the
+   board itself, which is the container whose grid you are looking at. The chip
+   follows the pointer, so it has to stand aside to be seen past. */
+function aimPluck(g, px, py){
+  if(g.dropEl) g.dropEl.classList.remove('dropinto','dropboard');
+  g.dropEl=null; g.dropOn=null;
+  if(g.chip) g.chip.style.visibility='hidden';
+  const under=document.elementFromPoint(px, py);
+  if(g.chip) g.chip.style.visibility='';
+  if(!under) return;
+  const over=under.closest('.grid .drawer[data-drawer], .pinbar .pinbtn[data-drawer]');
+  if(over && canFile(g.id, over.dataset.drawer)){
+    g.dropEl=over; g.dropOn=over.dataset.drawer; over.classList.add('dropinto');
+    return;
+  }
+  const grid=under.closest('.grid');
+  if(grid){
+    const home=grid.dataset.gridfor||ROOT;
+    if(canFile(g.id, home)){ g.dropEl=grid; g.dropOn=home; grid.classList.add('dropboard'); }
+  }
+}
 
 function aimDrop(g, px, py){
   clearAim(g);
@@ -195,6 +219,28 @@ function onDown(e){
        add:e.shiftKey||e.metaKey||e.ctrlKey, hits:[]};
     return;
   }
+  /* A line on a checklist front is the object itself, so it can be taken off
+     the front. Holding one lifts it out as a chip you can drop on the board or
+     into another drawer — which is what makes a checklist somewhere things pass
+     through rather than somewhere they go to stay. A tap still ticks it: only
+     the hold plucks, and only a plucked one suppresses its own click. */
+  const plEl=e.target.closest('.cline[data-pluck]');
+  if(plEl){
+    G={type:'pluck', el:plEl, id:plEl.dataset.pluck, sx:e.clientX, sy:e.clientY,
+       px:e.clientX, py:e.clientY, mode:null, armed:false};
+    const g0=G;
+    holdTimer=setTimeout(()=>{
+      holdTimer=null;
+      if(G!==g0) return;
+      G.armed=true;
+      G.el.classList.add('lifted');
+      if(navigator.vibrate) navigator.vibrate(6);
+    }, e.pointerType==='touch' ? 300 : 200);
+    holdFrom={x:e.clientX,y:e.clientY};
+    return;
+  }
+  // a field inside a tile is for typing in, not for dragging the tile by
+  if(e.target.closest('input,textarea,select')) return;
   // a tick, a counter or a button inside a tile is its own target
   // A tick or a counter is its own target. A button tile carries data-fire on
   // the tile itself, so only its face counts — otherwise the whole thing would
@@ -290,6 +336,26 @@ function onMove(e){
     return;
   }
 
+  if(G.type==='pluck'){
+    if(!G.armed) return;             // still waiting out the hold
+    G.px=e.clientX; G.py=e.clientY;
+    if(!G.mode){
+      if(Math.abs(dx)<5 && Math.abs(dy)<5) return;
+      G.mode='pluck';
+      G.el.classList.add('plucked');
+      const o=byId(G.id);
+      G.chip=document.createElement('div');
+      G.chip.className='pluckchip';
+      G.chip.textContent=(o&&o.title)||'Untitled';
+      $('#frame').appendChild(G.chip);
+    }
+    const fr=$('#frame').getBoundingClientRect();
+    G.chip.style.left=(e.clientX-fr.left)+'px';
+    G.chip.style.top=(e.clientY-fr.top)+'px';
+    aimPluck(G, e.clientX, e.clientY);
+    return;
+  }
+
   if(G.type==='move' || G.type==='resize'){
     if(!G.armed) return;             // still waiting out the hold
     G.px=e.clientX; G.py=e.clientY;
@@ -377,6 +443,22 @@ function onUp(e){
     return;
   }
 
+  if(g.type==='pluck'){
+    if(g.chip) g.chip.remove();
+    if(g.el) g.el.classList.remove('lifted','plucked');
+    if(g.dropEl) g.dropEl.classList.remove('dropinto','dropboard');
+    if(g.mode!=='pluck') return;         // a tap; let the click tick it off
+    gestureFlags.suppressClick=true;     // the drag must not also tick it
+    const o=byId(g.id);
+    if(o && g.dropOn && g.dropOn!==o.parent){
+      o.parent=g.dropOn; o.desk=null; o.phone=null;   // a new coordinate space
+      const into=g.dropOn===ROOT?null:byId(g.dropOn);
+      save(); render();
+      toast(`Filed in ${into?into.title:'the desk'}`);
+    } else render();
+    return;
+  }
+
   if(g.type==='pin'){
     g.el.classList.remove('dragging');
     if(g.mode!=='pin') return;            // it was a click; let it navigate
@@ -457,8 +539,10 @@ function onCancel(){
   if(holdTimer){ clearTimeout(holdTimer); holdTimer=null; }
   stopPan();
   if(G){ clearAim(G); if(G.ghost) G.ghost.remove();
+         if(G.chip) G.chip.remove();
+         if(G.dropEl) G.dropEl.classList.remove('dropinto','dropboard');
          if(G.el){ clearCarry(G.el); G.el.style.pointerEvents='';
-                   G.el.classList.remove('lifted','dragging','invalid'); } G=null; }
+                   G.el.classList.remove('lifted','dragging','invalid','plucked'); } G=null; }
 }
 
 export { onDown, onMove, onUp, onCancel, gestureFlags, dragArmed };

@@ -68,8 +68,10 @@ desk ──contains──▶ drawer ──contains──▶ drawer ──contain
 - An object lives in **exactly one** drawer. Filing moves it; it never copies.
 - A magic drawer ignores `parent` and shows whatever its rule matches. That is
   the only way an object appears in two places.
-- Completed objects leave every drawer except a checklist and the archive. This
-  is what keeps a drawer finite, which is the whole argument for drawers.
+- Completed objects leave every drawer except the archive and the three faces
+  whose job is to show what already happened — checklist, calendar, timeline
+  (`keepsDone()`). Everywhere else they go, and that is what keeps a drawer
+  finite, which is the whole argument for drawers.
 - Reparenting goes through `isAncestor()` — recursion admits cycles, and a
   drawer dropped inside itself takes its subtree out of reach.
 
@@ -189,8 +191,7 @@ same settings, kept in `S.deskCfg` because it has no object to hang them on.
 
 **Face** — how it draws on its parent's board: `front` (a drawer front with a
 pull), `checklist` (its children listed with boxes you can tick without opening
-it), `calendar`, `moodboard`, `timeline`. A checklist is the one face where
-completed things stay, because seeing what you ticked is the point of it.
+it), `calendar`, `moodboard`, `timeline`.
 
 **Layout** — how it arranges its children once opened: `grid`, `list`, `scroll`
 (nothing truncated — for reading a drawer rather than scanning it), plus
@@ -198,6 +199,23 @@ completed things stay, because seeing what you ticked is the point of it.
 
 Face and layout are two properties because they are two questions. A Checklist
 is `face:checklist, layout:list`, and any container can wear any face.
+
+**A container can take dictation.** `spawn` with `spawnBy:'type'` puts a box at
+the top of it — on its front and inside it — and `genKind` says what a line you
+type makes. A Checklist is the built-in that carries them, so it is a container
+of tasks you can tick, add to and take from without opening it; any type that
+ticks the same trait gets the same box. A magic container holds nothing, so what
+you type into one is made where the container itself lives and collected back by
+its rule (`spawnInto()`).
+
+**A calendar is a magic drawer wearing a calendar layout.** It collects by rule
+like any other and then draws what it collected on the day each thing is due —
+the day is the `due` field on the object, never a container, which is why one
+task can sit on two calendars. Its default rule is "anything with a date". It
+answers three more questions, per object then per type: `calview`
+(`month | week | day` — one screenful, and the arrows step by that unit),
+`weekStart` (`mon | sun`) and `weekends` (shown or hidden, which takes two
+columns off the grid). All three reach the front as well as the opened view.
 
 **Rules.** A magic drawer matches on one clause — a field, a comparison
 (`is`, `is not`, `contains`, `more than`, `less than`, `has any`), and a value —
@@ -279,7 +297,8 @@ side, and the sheet wins.
 | Drag across bare grid | Sketch a box — the new object takes that size — or lasso tiles |
 | Shift/⌘-click | Finder-style multi-select; dragging one moves the lot |
 | Right-click | Act on the tile or the selection, including sweeping it into a new drawer |
-| Drag onto a calendar day | Dates it, and files it into the drawer showing the month |
+| Drag onto a calendar day | Dates it, and files it into the drawer showing the month — unless that drawer is magic, which dates it and leaves it where it lives |
+| Hold a line on a checklist front | Lifts it off as a chip; drop it on a drawer, a pin or the board to file it there. A tap still ticks it |
 | Drag a pin | Reorders the bar |
 
 **Clicking an object is configurable** — `clickOf()`, per object then per type:
@@ -325,10 +344,11 @@ what it was. Deleting one thing, deleting a selection, deleting a drawer and
 pasting are each one move. A deleted object's picture is only freed from
 IndexedDB when its move falls off the bottom of the stack.
 
-**Making things by typing** happens in three places: a Text field object (type
-into it and a task appears below), the day panel in a calendar, and the command
-palette. All three go through `quickAdd()`, which reads `/type` at the start,
-`#tag` anywhere, and `!today` / `!tomorrow` / `!week`.
+**Making things by typing** happens in four places: a Text field object (type
+into it and a task appears beneath it), the box at the top of any container that
+takes dictation — on its front and inside it — the day panel in a calendar, and
+the command palette. All four go through `quickAdd()`, which reads `/type` at
+the start, `#tag` anywhere, and `!today` / `!tomorrow` / `!week`.
 
 ## 11. Time, repetition, completion
 
@@ -344,7 +364,8 @@ palette. All three go through `quickAdd()`, which reads `/type` at the start,
 - Completed things go to the archive, which is a magic drawer whose rule is
   `done`. Nothing is moved to get them there.
 - `calendar` and `timeline` are layouts, not types. Nothing in the code knows
-  what a calendar is.
+  what a calendar is — the Calendar type is a magic drawer that happens to wear
+  one, and any container can wear it instead.
 
 ## 12. Storage
 

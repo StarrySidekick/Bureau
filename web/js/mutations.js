@@ -1,6 +1,6 @@
 import { $, esc, uid, ROOT, D } from './util.js';
-import { S, byId, K, KEYS, kindHas, has, isContainer, streak, T, dz, dev } from './model.js';
-import { gridOf, freeSpot, lay, boxOk } from './grid.js';
+import { S, byId, K, KEYS, kindHas, has, isContainer, genKindOf, streak, T, dz, dev } from './model.js';
+import { gridOf, freeSpot, lay, boxOk, sizeOfKind } from './grid.js';
 import { randomFront, randomBoard, styleDefaults } from './look.js';
 import { render } from './views.js';
 import { closeSheet } from './sheet.js';
@@ -186,7 +186,11 @@ function create(kind, patch){
     o.knob=o.knob||sd.knob; o.border=o.border||sd.border;
     o.texture=o.texture||sd.texture; o.knobtone=o.knobtone||sd.knobtone; o.pv = o.pv || 'list';
     o.layout = o.layout || k.layout || 'list';
-    o.filter = o.filter || {};
+    // A type may declare the rule its containers start with — a calendar
+    // collects anything dated the moment you make one, rather than being a
+    // magic drawer you then have to explain itself to. Copied, never shared:
+    // the drawer form edits this object's filter in place.
+    o.filter = o.filter || (k.filter ? JSON.parse(JSON.stringify(k.filter)) : {});
   }
   /* No auto-routing. It made sense when ordinary drawers had rules; now the
      only drawers with rules are magic ones, which hold nothing — so routing a
@@ -211,7 +215,7 @@ function gather(aId, bId, kind){
   a.parent=c.id; b.parent=c.id;
   a.desk=a.phone=b.desk=b.phone=null;
   b.ord=0; a.ord=1;
-  const [kw,kh]=K(kind).size||[6,8];
+  const [kw,kh]=sizeOfKind(kind, dv);   // never K(kind).size — a phone is 8 columns
   const want={x:box.x, y:box.y, w:kw, h:kh};
   c[dv] = boxOk(want, c.id, dv, home) ? want : freeSpot(kw, kh, dv, home);
   toast(`Made a ${K(kind).nm.toLowerCase()}`);
@@ -230,6 +234,19 @@ function quickAdd(text, kind, drawerId){
   t=t.replace(/\s+/g,' ').trim();
   const o=create(k,{title:t, tags, parent:drawerId||undefined, body:''});
   if(due) o.due=due; else if(!kindHas(k,'date')) o.due=null;
+  return o;
+}
+
+/* Typing into a container makes one of what it collects, in it. A magic
+   container holds nothing, so the new object goes where the container itself
+   lives and the rule collects it straight back — which is the only way a thing
+   you typed into a calendar can appear on the calendar. `patch` is for the
+   caller that aimed at a particular day. */
+function spawnInto(c, text, patch){
+  if(!c) return null;
+  const home = has(c,'magic') ? (c.parent||ROOT) : c.id;
+  const o = quickAdd(text, genKindOf(c), home);
+  if(o && patch) Object.assign(o, patch);
   return o;
 }
 
@@ -259,4 +276,4 @@ function randomThing(parentId){
 // toggleHabit isn't exported — a streak reaches it through toggleDone, which is
 // the one door, so nothing outside has to know a habit ticks differently.
 export { toast, toggleDone, del, delMany, delDrawer, undo, pushUndo, setPin, togglePin,
-  drawerForTag, create, gather, quickAdd, randomThing };
+  drawerForTag, create, gather, quickAdd, spawnInto, randomThing };

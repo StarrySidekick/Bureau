@@ -1,9 +1,10 @@
 import { $, esc, ic, D, md, ROOT } from './util.js';
 import { S, K, T, byId, has, isContainer, containers, childrenOf, chainOf,
-  deskTitle, rootObj, pinnedDrawers, isPinned, allTags, dev } from './model.js';
+  deskTitle, rootObj, pinnedDrawers, isPinned, allTags, dev,
+  layoutOf, takesTyping, genKindOf, CALVIEWS, calViewOf, calCols } from './model.js';
 import { CELL, gridOf, cellW } from './grid.js';
 import { themeNow, applyLook, lookVal, STYLES, PALETTES, paletteNow, BACKDROPS } from './look.js';
-import { gridOfContainer, listTile, scrollEntry, bookView } from './tiles.js';
+import { gridOfContainer, listTile, scrollEntry, bookView, calSpan } from './tiles.js';
 import { openPanel, closePanel, panelKey, repositionPanel } from './panels.js';
 import { APP_VERSION, save, storeSize, install } from './persist.js';
 
@@ -70,48 +71,74 @@ function viewDesk(){
    add to it. A timeline drawer lays its contents along a real axis, scaled by
    however many pixels a day is worth. Both are layouts, so any container can
    wear one — nothing here knows what a "calendar" is. */
-function viewMonth(d, items){
-  const anchor = D.parse(d.month||T) || D.today();
-  const y=anchor.getFullYear(), m=anchor.getMonth();
-  const lead=(new Date(y,m,1).getDay()+6)%7;      // weeks start Monday
-  const days=new Date(y,m+1,0).getDate();
-  const byDay={};
-  items.forEach(x=>{ if(x.due) (byDay[x.due]=byDay[x.due]||[]).push(x); });
-  const sel=S.calDay;
-  const cells=[];
-  for(let i=0;i<lead;i++) cells.push('<div class="mcell pad"></div>');
-  for(let n=1;n<=days;n++){
-    const iso=D.iso(new Date(y,m,n));
-    const list=byDay[iso]||[];
-    cells.push(`<div class="mcell${iso===T?' today':''}${iso===sel?' sel':''}" data-calday="${d.id}:${iso}">
-      <b>${n}</b>
-      ${list.slice(0,3).map(x=>`<span class="mitem${x.done?' done':''}" style="--k:${K(x.kind).c}"
-        data-row="${x.id}" title="${esc(x.title||'Untitled')}">${esc(x.title||'Untitled')}</span>`).join('')}
-      ${list.length>3?`<u>+${list.length-3} more</u>`:''}
-    </div>`);
-  }
-  const selList = sel ? (byDay[sel]||[]) : [];
-  return `
-  <div class="monthhead">
-    <button class="sqbtn" data-act="monthstep" data-id="${d.id}" data-step="-1" title="Previous month">${ic('chevL',15)}</button>
-    <b>${anchor.toLocaleDateString(undefined,{month:'long',year:'numeric'})}</b>
-    <button class="sqbtn" data-act="monthstep" data-id="${d.id}" data-step="1" title="Next month">${ic('chevR',15)}</button>
-    <button class="pill" data-act="monthtoday" data-id="${d.id}">Today</button>
-    <span class="mhint">Drop a dated object on a day to schedule it</span>
-  </div>
-  <div class="monthgrid">
-    ${['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(x=>`<i class="dow">${x}</i>`).join('')}
-    ${cells.join('')}
-  </div>
-  ${sel?`<div class="dayp">
-    <div class="section-h"><h2>${D.parse(sel).toLocaleDateString(undefined,{weekday:'long',day:'numeric',month:'long'})}</h2>
-      <div class="rule"></div><span class="n">${selList.length}</span></div>
-    ${selList.length?`<div class="listgrid">${selList.map(listTile).join('')}</div>`
+const DOWNAME = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const CAPS = {month:6, week:9, day:24};   // items a cell has room for, per span
+
+/* One day of a calendar, opened: what is on it, and a box to add to it. Also
+   the whole of the day view, which is this and nothing else. */
+function dayPanel(d, iso, list, named){
+  return `<div class="dayp">
+    <div class="section-h"><h2>${named?'':esc(D.parse(iso).toLocaleDateString(undefined,{weekday:'long',day:'numeric',month:'long'}))}</h2>
+      <div class="rule"></div><span class="n">${list.length}</span></div>
+    ${list.length?`<div class="listgrid">${list.map(listTile).join('')}</div>`
       :`<div class="mini" style="--k:var(--brass)">Nothing on this day yet.</div>`}
     <div class="quickadd" style="margin-top:9px">${ic('plus',14)}
-      <input data-dayadd="${d.id}:${sel}" placeholder="Add something on this day…">
+      <input data-dayadd="${d.id}:${iso}" placeholder="Add something on this day…">
       <span class="k">return</span></div>
-  </div>`:''}`;
+  </div>`;
+}
+
+/* A calendar shows a month, a week or a day of whatever it collects. All three
+   are the same cells over a different span, so a drop target, a mark and a
+   quick-add cannot drift between them — calSpan() says which days, calCols()
+   says which of them are drawn and in what order. */
+function viewCalendar(d, items){
+  const view=calViewOf(d), cols=calCols(d), cap=CAPS[view]||6;
+  const anchor = D.parse(d.month||T) || D.today();
+  const byDay={};
+  items.forEach(x=>{ if(x.due) (byDay[x.due]=byDay[x.due]||[]).push(x); });
+  const {from, to, month} = calSpan(d, anchor, view);
+  const label = view==='day'
+      ? anchor.toLocaleDateString(undefined,{weekday:'long',day:'numeric',month:'long'})
+    : view==='week'
+      ? `${from.toLocaleDateString(undefined,{day:'numeric',month:'short'})} – ${to.toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'})}`
+      : anchor.toLocaleDateString(undefined,{month:'long',year:'numeric'});
+  const head = `
+  <div class="monthhead">
+    <button class="sqbtn" data-act="monthstep" data-id="${d.id}" data-step="-1" title="Back">${ic('chevL',15)}</button>
+    <b>${esc(label)}</b>
+    <button class="sqbtn" data-act="monthstep" data-id="${d.id}" data-step="1" title="Forward">${ic('chevR',15)}</button>
+    <button class="pill" data-act="monthtoday" data-id="${d.id}">Today</button>
+    <div class="filterbar calviews">${Object.entries(CALVIEWS).map(([v,n])=>
+      `<button class="fchip${view===v?' on':''}" data-calview="${d.id}:${v}">${n}</button>`).join('')}</div>
+    <span class="mhint">Drop a dated object on a day to schedule it</span>
+  </div>`;
+  // The day view is the day panel and nothing above it — a one-square grid is
+  // a border round a list.
+  if(view==='day'){
+    const iso=D.iso(anchor);
+    // the head already says which day it is, so the panel doesn't say it again
+    return head + dayPanel(d, iso, byDay[iso]||[], true);
+  }
+  const cells=[];
+  for(let dt=new Date(from); dt<=to; dt=D.add(dt,1)){
+    if(!cols.includes(dt.getDay())) continue;
+    const iso=D.iso(dt), list=byDay[iso]||[];
+    cells.push(`<div class="mcell${month!=null&&dt.getMonth()!==month?' out':''}${
+        iso===T?' today':''}${iso===S.calDay?' sel':''}" data-calday="${d.id}:${iso}">
+      <b>${dt.getDate()}</b>
+      ${list.slice(0,cap).map(x=>`<span class="mitem${x.done?' done':''}" style="--k:${K(x.kind).c}"
+        data-row="${x.id}" title="${esc(x.title||'Untitled')}">${esc(x.title||'Untitled')}</span>`).join('')}
+      ${list.length>cap?`<u>+${list.length-cap} more</u>`:''}
+    </div>`);
+  }
+  const sel=S.calDay;
+  return `${head}
+  <div class="monthgrid cal-${view}" style="--dcols:${cols.length}">
+    ${cols.map(n=>`<i class="dow">${DOWNAME[n]}</i>`).join('')}
+    ${cells.join('')}
+  </div>
+  ${sel?dayPanel(d, sel, byDay[sel]||[]):''}`;
 }
 
 /* One day is `zoom` pixels wide. Labels would sit on top of each other at any
@@ -178,13 +205,11 @@ function viewDrawer(){
   let items=all;
   if(S.kindFilter) items=items.filter(o=>o.kind===S.kindFilter);
   const kinds=[...new Set(all.map(o=>o.kind))];
-  const f=d.filter||{};
-  const defKind = (f.kinds&&f.kinds[0]) || 'task';
   /* grid | list | scroll | book | calendar | timeline — the object's own choice
      first, then its type's. Falling straight to 'grid' meant a type that says
      it opens as a calendar only did so if something had written `layout` onto
      the object, which create() does and the seed doesn't. */
-  const view = d.layout || K(d.kind).layout || 'grid';
+  const view = layoutOf(d);
   return `
   ${gridBar(d)}
   <div class="scroll${view==='grid'?' deskscroll':''}">
@@ -194,14 +219,20 @@ function viewDrawer(){
     </div>`:''}
     ${has(d,'text')&&(d.body||'').trim()
       ? `<div class="contbody">${md(d.body)}</div>` : ''}
+    ${takesTyping(d)&&view!=='calendar' ? `<div class="quickadd">${ic('plus',14)}
+      <input data-contadd="${d.id}" placeholder="Add a ${esc(K(genKindOf(d)).nm.toLowerCase())}…">
+      <span class="k">return</span></div>` : ''}
     ${view==='grid'
       ? gridOfContainer(d.id)
       : view==='calendar'
-      ? viewMonth(d, items)
+      ? viewCalendar(d, items)
       : view==='timeline'
       ? viewTimeline(d, items)
       : !items.length
-        ? `<div class="empty"><div class="big">This drawer is empty</div>${has(d,'magic')?'Nothing matches its rule yet.':'Add something above, or click a bare cell on the desk.'}</div>`
+        ? `<div class="empty"><div class="big">This drawer is empty</div>${
+            has(d,'magic') ? 'Nothing matches its rule yet.'
+            : takesTyping(d) ? 'Type in the box above to start it off.'
+            : 'Drag something in, or click a bare cell on the desk.'}</div>`
         : view==='book'
         ? bookView(d, items)
         : view==='scroll'

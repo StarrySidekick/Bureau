@@ -296,37 +296,169 @@ const CHROME = process.env.BUREAU_CHROME;
     return hasOut && canUnlink && canAdd && backChip;
   });
 
-  // --- the time layer: a calendar drawer opens as a real month, a day can be
-  // clicked and added to, and a timeline lays its contents on a scaled axis
+  // --- the time layer: a calendar is a magic drawer that draws what it collects
+  // on the day each thing falls, in a month, a week or a day; and the same
+  // container as a timeline lays its contents on a scaled axis.
   const timeLayer = await page.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
     const L = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     const S = BUREAU.state;
     const cal = BUREAU.create('calendar', { parent: 'root', title: 'A month' });
-    ['One','Two','Three'].forEach((t, i) => {
-      const o = BUREAU.create('task', { parent: cal.id, title: 'Cal ' + t });
+    // it collects, so the tasks live on the desk — narrowed to a tag as well as
+    // a date, or every dated thing on the sample desk would land on it too
+    cal.filter = { tag: 'caltest', rule: { f: 'date', op: 'any' } };
+    const made = ['One','Two','Three'].map((t, i) => {
+      const o = BUREAU.create('task', { parent: 'root', title: 'Cal ' + t, tags: ['caltest'] });
       o.due = L(new Date(Date.now() + (i * 3 - 3) * 86400000));
+      return o;
     });
+    const collectsNotHolds = !made.some(o => o.parent === cal.id);
     S.view = 'drawer'; S.drawerId = cal.id; BUREAU.render();
-    await new Promise(r => setTimeout(r, 250));
+    await nap(250);
     const isMonth = !!document.querySelector('.monthgrid')
       && document.querySelectorAll('.mitem').length === 3;
     // clicking a day selects it and offers a quick-add
     document.querySelector('.mcell.today').click();
-    await new Promise(r => setTimeout(r, 200));
+    await nap(200);
     const daySelected = !!document.querySelector('.mcell.sel') && !!document.querySelector('[data-dayadd]');
+    // a week is seven of the same cells; a day is the panel and no grid at all
+    document.querySelector(`[data-calview="${cal.id}:week"]`).click();
+    await nap(200);
+    const isWeek = !!document.querySelector('.monthgrid.cal-week')
+      && document.querySelectorAll('.monthgrid .mcell').length === 7;
+    document.querySelector(`[data-calview="${cal.id}:day"]`).click();
+    await nap(200);
+    const isDay = !document.querySelector('.monthgrid') && !!document.querySelector('.dayp');
+    // hiding weekends takes two columns off the month, front and back
+    cal.calview = 'month'; cal.weekends = false; BUREAU.render();
+    await nap(200);
+    const noWeekends = document.querySelectorAll('.monthgrid .dow').length === 5
+      && [...document.querySelectorAll('.mcell')].every(c => {
+        const dow = new Date(c.dataset.calday.split(':')[1] + 'T00:00').getDay();
+        return dow !== 0 && dow !== 6;
+      });
     // the same container as a timeline: items placed, and zoom widens the axis
     cal.layout = 'timeline'; BUREAU.render();
-    await new Promise(r => setTimeout(r, 200));
+    await nap(200);
     const w0 = parseFloat(document.querySelector('.tlcanvas').style.width);
     const marks = document.querySelectorAll('.tlitem').length;
     const s = document.querySelector('[data-tlzoom]');
     s.value = 40; s.dispatchEvent(new Event('input', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 220));
+    await nap(220);
     const zooms = parseFloat(document.querySelector('.tlcanvas').style.width) > w0;
-    // tidy up: a calendar left on the desk sits under later drag tests
-    S.objects = S.objects.filter(x => x.id !== cal.id && x.parent !== cal.id);
+    // tidy up: a calendar left on the desk sits under later drag tests, and its
+    // contents are on the desk now rather than inside it
+    const gone = new Set([cal.id, ...made.map(o => o.id)]);
+    S.objects = S.objects.filter(x => !gone.has(x.id));
     S.view = 'desk'; S.drawerId = null; BUREAU.render();
-    return isMonth && daySelected && marks === 3 && zooms;
+    return { collectsNotHolds, isMonth, daySelected, isWeek, isDay, noWeekends,
+             marks: marks === 3, zooms };
+  });
+
+  // --- a checklist takes dictation: a box on its front makes a task inside it,
+  // ticking one leaves it there, and holding a line lifts it back out
+  const checklistBox = await page.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const S = BUREAU.state;
+    S.view = 'desk'; S.drawerId = null;
+    const cl = BUREAU.create('checklist', { parent: 'root', title: 'Pack' });
+    BUREAU.render();
+    await nap(200);
+    const tile = document.querySelector(`.drawer[data-drawer="${cl.id}"]`);
+    const box = tile && tile.querySelector('input[data-contadd]');
+    const startsRight = cl.desk.w === 4 && cl.desk.h === 6;
+    if (!box) return { hasBox: false };
+    box.value = 'Passport';
+    box.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    await nap(250);
+    const kids = S.objects.filter(o => o.parent === cl.id);
+    const made = kids.length === 1 && kids[0].kind === 'task' && kids[0].title === 'Passport';
+    const onFront = [...document.querySelectorAll(`[data-drawer="${cl.id}"] .cline`)]
+      .some(l => l.textContent.trim() === 'Passport');
+    // ticked things stay on a checklist — that is what a checklist is for
+    BUREAU.toggleDone(kids[0].id);
+    await nap(200);
+    const staysWhenDone = kids[0].done
+      && !!document.querySelector(`[data-drawer="${cl.id}"] .cline.done`);
+    // reaching for the box must not open the drawer out from under you
+    const box2 = document.querySelector(`[data-drawer="${cl.id}"] input[data-contadd]`);
+    if (box2) box2.click();
+    await nap(150);
+    const boxDoesNotOpen = S.view === 'desk';
+    S.objects = S.objects.filter(o => o.id !== cl.id && o.parent !== cl.id);
+    BUREAU.render();
+    return { hasBox: true, startsRight, made, onFront, staysWhenDone, boxDoesNotOpen };
+  });
+
+  /* --- a line on a checklist front can be taken back off it. Real pointer
+     events, because the whole point is the 200ms hold: a tap ticks the line,
+     a hold lifts it out and a drop files it somewhere else. */
+  const pluck = await page.evaluate(() => {
+    const S = BUREAU.state;
+    S.view = 'desk'; S.drawerId = null; S.sel = [];
+    const cl = BUREAU.create('checklist', { parent: 'root', title: 'Plucking' });
+    cl.desk = { x: 1, y: 4, w: 4, h: 6 };   // well inside the window: this drags for real
+    const one = BUREAU.create('task', { parent: cl.id, title: 'Take me out' });
+    const two = BUREAU.create('task', { parent: cl.id, title: 'Tick me' });
+    window.__pl = { cl: cl.id, one: one.id, two: two.id };
+    BUREAU.render();
+    const line = document.querySelector(`[data-pluck="${one.id}"]`);
+    const into = document.querySelector('.grid .drawer[data-drawer="d_in"]');
+    if (!line || !into) return null;
+    const a = line.getBoundingClientRect(), b = into.getBoundingClientRect();
+    const tick = document.querySelector(`[data-pluck="${two.id}"]`).getBoundingClientRect();
+    return { from: [a.left + a.width / 2, a.top + a.height / 2],
+             to:   [b.left + b.width / 2, b.top + b.height / 2],
+             tick: [tick.left + tick.width / 2, tick.top + tick.height / 2] };
+  });
+  const pluckWorks = await (async () => {
+    if (!pluck) return { found: false };
+    // a hold, then a drag onto the Inbox tile
+    await page.mouse.move(...pluck.from);
+    await page.mouse.down();
+    await page.waitForTimeout(320);
+    await page.mouse.move(pluck.from[0] + 20, pluck.from[1] + 10, { steps: 4 });
+    const lifted = await page.evaluate(() => !!document.querySelector('.pluckchip'));
+    await page.mouse.move(...pluck.to, { steps: 8 });
+    const aimed = await page.evaluate(() => !!document.querySelector('.drawer.dropinto'));
+    await page.mouse.up();
+    await page.waitForTimeout(250);
+    const moved = await page.evaluate(() => {
+      const p = window.__pl, S = BUREAU.state;
+      const o = S.objects.find(x => x.id === p.one);
+      return { parent: o && o.parent, boxCleared: o && !o.desk && !o.phone,
+               chipGone: !document.querySelector('.pluckchip') };
+    });
+    // and a plain tap still ticks the line rather than lifting it
+    await page.mouse.move(...pluck.tick);
+    await page.mouse.down(); await page.mouse.up();
+    await page.waitForTimeout(200);
+    const ticked = await page.evaluate(() => {
+      const p = window.__pl, S = BUREAU.state;
+      const t = S.objects.find(x => x.id === p.two);
+      const done = !!(t && t.done);
+      S.objects = S.objects.filter(x => x.id !== p.cl && x.id !== p.one && x.id !== p.two);
+      S.view = 'desk'; S.drawerId = null; BUREAU.render();
+      return done;
+    });
+    return { found: true, lifted, aimed, filed: moved.parent === 'd_in',
+             boxCleared: moved.boxCleared, chipGone: moved.chipGone, tapStillTicks: ticked };
+  })();
+
+  // --- a drawer starts at two cells square, on both grids
+  const drawerSize = await page.evaluate(() => {
+    const S = BUREAU.state;
+    const d = BUREAU.create('drawer', { parent: 'root', title: 'Small' });
+    const m = BUREAU.create('magic', { parent: 'root', title: 'Also small' });
+    BUREAU.render();
+    const ok = [d, m].every(x => x.desk.w === 2 && x.desk.h === 2);
+    // and does not derive itself down to a 1×1 stamp on the phone
+    S.layoutEdit = 'phone'; BUREAU.render();
+    const phoneOk = [d, m].every(x => x.phone.w === 2 && x.phone.h === 2);
+    S.layoutEdit = null;
+    S.objects = S.objects.filter(x => x.id !== d.id && x.id !== m.id);
+    BUREAU.render();
+    return { ok, phoneOk };
   });
 
   // --- a tag opens the magic drawer that collects it, and only ever makes one
@@ -768,7 +900,7 @@ const CHROME = process.env.BUREAU_CHROME;
     pinToggles, holdArms, maxDrift,
     settingsIsPanel, pickerPreviews, builderPreview, everyMenuIsAPanel,
     pasteOk, magicOk, rollupOk, relationsOk, relationsUI,
-    timeLayer, tagDrawer, pinReorder, groupMove, dropStates,
+    timeLayer, checklistBox, pluckWorks, drawerSize, tagDrawer, pinReorder, groupMove, dropStates,
     adaptiveTiles, bubblePanel, scrollKept, kindSizes,
     phoneGrid, phoneMigration,
     dupIds, undoWorks, readViews, paperSize
