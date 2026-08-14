@@ -5,7 +5,7 @@ import { S, K, KINDS, KEYS, T, ATTRS, USER_ATTRS, FIELDS, fieldOf, OPS, ROLLS,
   attrsOf, allTags, isPinned, dev, takesTyping, genKindOf,
   CALVIEWS, calViewOf, weekStartOf, showsWeekends } from './model.js';
 import { GRID, lay, boxOk, freeSpot, sizeOfKind, toPhoneSize } from './grid.js';
-import { SWATCHES, paletteNow, randomBoard, randomFront } from './look.js';
+import { randomBoard, randomFront, hexOf, objColour, objSlots, palNow, OBJ0 } from './look.js';
 import { CLICKS, clickOf, gridTile, pending } from './tiles.js';
 import { quickAdd, toast } from './mutations.js';
 import { openObj, renderSheet } from './sheet.js';
@@ -170,7 +170,7 @@ function pickGroups(){
 function kindTile(k){
   const d=KINDS[k];
   return `<div class="kindtile" data-new="${k}" role="button" tabindex="0"
-      style="--k:${d.c}" title="${esc(d.ds||'')}">
+      style="--k:${hexOf(d.c)}" title="${esc(d.ds||'')}">
     <div class="kpv">${sampleTile(kindSample(k), 146, 82)}</div>
     <div class="krow"><span class="nm">${esc(d.nm)}</span>
       ${d.key?`<span class="kbd">${esc(d.key)}</span>`:''}</div>
@@ -187,17 +187,19 @@ function modalNewObject(){
       <div class="kindgrid">${g.ks.map(kindTile).join('')}</div>`).join('')
   });
 }
-/* The set colours, plus whatever custom colour is in use. Split into rows by
-   family where there is room for it, and run together as one block where there
-   isn't — five four-wide rows is a lot of height to spend on a colour. */
+/* The eleven a thing may be painted in, plus whatever literal colour is in use.
+   A swatch carries the *slot*, not the hex it happens to be showing — that is
+   the whole point: what you pick follows the style. A literal is still allowed
+   (the colour input below writes one) and gets a swatch of its own at the end,
+   marked as belonging to nobody. */
 function swatchRows(cur, flat){
-  const one=([c,nm])=>`<button data-col="${c}" title="${nm}" class="${cur===c?'on':''}" style="background:${c}"></button>`;
-  const all=Object.values(SWATCHES).flat();
-  const custom = all.some(([c])=>c===cur) ? '' : one([cur,'Custom']);
-  if(flat) return `<div class="pickgrid sw">${all.map(one).join('')}${custom}</div>`;
-  return Object.entries(SWATCHES).map(([fam,list])=>
-    `<div class="pickgrid sw">${list.map(one).join('')}</div>`).join('')
-    + (custom?`<div class="pickgrid sw">${custom}</div>`:'');
+  const one=([slot,nm])=>`<button data-col="${slot}" title="${nm}" class="${cur===slot?'on':''}"
+    style="background:${hexOf(slot)}"></button>`;
+  const all=objSlots();
+  const custom = typeof cur==='string' && cur
+    ? `<button data-col="${esc(cur)}" title="Custom — this one stays put" class="on custom"
+        style="background:${esc(cur)}"></button>` : '';
+  return `<div class="pickgrid sw">${all.map(one).join('')}${custom}</div>`;
 }
 /* An object's settings: everything applies as you click it, so the object
    changes while you watch. The body is a function, so the marks follow a
@@ -221,8 +223,8 @@ function objectPanelBody(id){
       `<button class="pchip${clickOf(o)===v?' on':''}" data-oclick="${v}" data-id="${id}">${n}</button>`).join(''))}
     ${row('Opens as', Object.entries(READS).map(([v,n])=>
       `<button class="pchip${readOf(o)===v?' on':''}" data-oread="${v}" data-id="${id}">${n}</button>`).join(''))}
-    ${row('Colour', `<div class="pickgrid sw">${paletteNow().cols.map(c=>
-      `<button data-ocolour="${c}" data-id="${id}" class="${o.c===c?'on':''}" style="background:${c}"></button>`).join('')}</div>`)}
+    ${row('Colour', `<div class="pickgrid sw">${objSlots().map(([slot,nm])=>
+      `<button data-ocolour="${slot}" data-id="${id}" title="${nm}" class="${o.c===slot?'on':''}" style="background:${hexOf(slot)}"></button>`).join('')}</div>`)}
     ${has(o,'media')&&o.media&&o.media.type==='image'
       ? row('Frame', [['none','None'],['mount','Mount'],['gilt','Gilt'],['walnut','Walnut'],['black','Lacquer'],['polaroid','Instant']].map(([v,n])=>
           `<button class="pchip${(o.frame||'none')===v?' on':''}" data-oframe="${v}" data-id="${id}">${n}</button>`).join('')) : ''}
@@ -276,8 +278,8 @@ function drawerPanelBody(id){
     ${isRoot?'':`
       ${row('Border', chips('border', null, [['panel','Panelled'],['heavy','Heavy panel'],['bar','Bar'],['aqua','Aqua'],['plain','Plain'],['none','None']], d.border||'none'))}
       ${row('Knob', chips('knob', null, [['round','Round'],['diamond','Diamond'],['bar','Bar'],['ring','Ring'],['square','Square'],['orb','Orb']], d.knob||'round'))}
-      ${row('Front', `<div class="pickgrid sw">${Object.values(SWATCHES).flat().slice(0,12).map(([c,nm])=>
-          `<button data-pcolour="${c}" data-id="${id}" title="${nm}" class="${d.c===c?'on':''}" style="background:${c}"></button>`).join('')}</div>`)}
+      ${row('Front', `<div class="pickgrid sw">${objSlots().map(([slot,nm])=>
+          `<button data-pcolour="${slot}" data-id="${id}" title="${nm}" class="${d.c===slot?'on':''}" style="background:${hexOf(slot)}"></button>`).join('')}</div>`)}
       ${row('Board', `<div class="pickgrid sw">${[0,1,2,3,4,5].map(()=>randomBoard()).map(b=>{
           const [a,z]=b.split('|');
           return `<button data-pboard="${b}" data-id="${id}" style="background:linear-gradient(135deg,${a} 0 50%,${z} 50% 100%)"></button>`;}).join('')}
@@ -311,7 +313,7 @@ function modalDrawer(id){
       </div></div>
     <div class="field" style="margin-bottom:10px"><label>Automatically collects these types</label>
       <div class="filterbar" id="dkinds" style="flex-wrap:wrap;padding-top:6px">${KEYS.map(k=>
-        `<button class="fchip${ks.includes(k)?' on':''}" data-kk="${k}" style="--k:${KINDS[k].c}">${KINDS[k].nm}</button>`).join('')}</div></div>
+        `<button class="fchip${ks.includes(k)?' on':''}" data-kk="${k}" style="--k:${hexOf(KINDS[k].c)}">${KINDS[k].nm}</button>`).join('')}</div></div>
     <div class="field" style="margin-bottom:10px"><label>…and matching</label>
       <div style="display:flex;gap:6px;flex-wrap:wrap;padding-top:6px">
         <select id="rf"><option value="">Any field</option>${Object.keys(FIELDS).map(a=>
@@ -537,7 +539,7 @@ function modalMove(objId){
   openPanel({key:'move', title:'Move to drawer',
     sub:'Filing by hand always wins over a drawer&rsquo;s rule',
     body:()=>`<div class="rows">${moveTargets(objId).map(d=>
-      `<div class="row" data-moveto="${objId}:${d.id}" style="--k:${d.c||K(d.kind).c}"><span class="kindmark">${ic('folder',13)}</span>
+      `<div class="row" data-moveto="${objId}:${d.id}" style="--k:${objColour(d)}"><span class="kindmark">${ic('folder',13)}</span>
         <div class="body"><div class="title">${esc(d.title)}</div><div class="snip">${childrenOf(d).length} objects</div></div></div>`).join('')}</div>`});
 }
 
@@ -556,10 +558,10 @@ function cmdList(q){
     res.push({t:'The Desk',s:'view',c:'var(--brass)',i:'grid',go:()=>{S.view='desk';S.drawerId=null;}});
   if(!q||'settings'.includes(q))
     res.push({t:'Settings',s:'panel',c:'var(--brass)',i:'sliders',go:()=>settingsPanel()});
-  containers().forEach(d=>{ if(!q||(d.title||'').toLowerCase().includes(q)) res.push({t:d.title,s:'drawer',c:d.c||K(d.kind).c,i:'folder',go:()=>{S.view='drawer';S.drawerId=d.id;}}); });
+  containers().forEach(d=>{ if(!q||(d.title||'').toLowerCase().includes(q)) res.push({t:d.title,s:'drawer',c:objColour(d),i:'folder',go:()=>{S.view='drawer';S.drawerId=d.id;}}); });
   S.objects.forEach(o=>{ if(q&&((o.title||'').toLowerCase().includes(q)||(o.body||'').toLowerCase().includes(q)))
-    res.push({t:o.title||'Untitled',s:K(o.kind).nm,c:K(o.kind).c,i:K(o.kind).ic,go:()=>openObj(o.id)}); });
-  if(q) res.unshift({t:`Create task “${q}”`,s:'new',c:KINDS.task.c,i:'plus',go:()=>{const o=quickAdd(q,'task');openObj(o.id);}});
+    res.push({t:o.title||'Untitled',s:K(o.kind).nm,c:objColour(o),i:K(o.kind).ic,go:()=>openObj(o.id)}); });
+  if(q) res.unshift({t:`Create task “${q}”`,s:'new',c:hexOf(KINDS.task.c),i:'plus',go:()=>{const o=quickAdd(q,'task');openObj(o.id);}});
   cmdList._res=res.slice(0,40);
   $('#cmdlist').innerHTML = cmdList._res.map((r,i)=>
     `<div class="cmdrow${i===0?' on':''}" data-cmd="${i}" style="--k:${r.c}"><span class="ic">${ic(r.i,13)}</span>${esc(r.t)}<span class="sub">${r.s}</span></div>`).join('')

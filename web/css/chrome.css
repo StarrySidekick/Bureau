@@ -210,8 +210,8 @@
 .sizebtns::before{content:"";position:absolute;inset:-8px;pointer-events:auto}
 
 /* selection, Finder-style */
-.drawer.selected{outline:2.5px solid var(--brass);outline-offset:2px}
-.drawer.selected::after{content:"";position:absolute;inset:0;background:color-mix(in srgb,var(--brass) 14%,transparent);pointer-events:none}
+.drawer.selected{outline:2.5px solid var(--glow);outline-offset:2px}
+.drawer.selected::after{content:"";position:absolute;inset:0;background:color-mix(in srgb,var(--glow) 16%,transparent);pointer-events:none}
 .ctxhead{padding:7px 12px 5px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);font-weight:700}
 
 /* A magic drawer should read as not-quite-solid: a dashed inner rule that
@@ -251,7 +251,7 @@
 /* a checklist front that takes typing is a div, not a button — an input cannot
    live inside one — so it has to be told the two things a button knew */
 .drawer[role="button"]{cursor:pointer}
-.drawer[role="button"]:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
+.drawer[role="button"]:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
 .cladd{display:flex;align-items:center;gap:6px;flex:0 0 auto;margin:1px 0 5px;padding:3px 7px;
   border-radius:7px;border:1px dashed var(--dink-3);color:var(--dink-3);cursor:text;transition:.14s}
 .cladd:focus-within{border-style:solid;border-color:var(--dink);color:var(--dink)}
@@ -580,7 +580,7 @@
   opacity:0;pointer-events:none;transition:opacity .24s}
 .is-desk .sheetveil.on{opacity:1;pointer-events:auto}
 /* the tile being edited, centred in the left half */
-.drawer.focused{outline:2.5px solid var(--brass);outline-offset:3px;z-index:45}
+.drawer.focused{outline:2.5px solid var(--glow);outline-offset:3px;z-index:45}
 .sheet.open{transform:none;opacity:1;pointer-events:auto}
 .sheet-h{display:flex;align-items:center;gap:8px;padding:14px 20px 10px;border-bottom:1px solid var(--rule-2)}
 .is-phone .sheet-h{padding:14px}
@@ -747,7 +747,7 @@
 .is-desk .pinbtn{padding:5px 11px;font-size:12.5px;font-weight:500;gap:8px;
   box-shadow:0 1px 2px rgba(42,36,28,.2), inset 0 1px 0 rgba(255,255,255,.16)}
 .is-desk .pinbtn:hover{filter:brightness(1.08)}
-.is-desk .pinbtn.on{outline:2px solid var(--brass);outline-offset:1px}
+.is-desk .pinbtn.on{outline:2px solid var(--glow);outline-offset:1px}
 .is-desk .pinbtn .pinface{display:contents}     /* the button *is* the front */
 .is-desk .pinknob{width:8px;height:8px;order:2}  /* the pull, after the name */
 .is-desk .pinbtn.home .pinface{display:grid;place-items:center;color:var(--ink-3)}
@@ -776,13 +776,13 @@
 .is-phone .pinknob{width:7px;height:7px}
 .is-phone .pinbtn.home .pinface{background:none;border-color:var(--rule);color:var(--ink-3)}
 .is-phone .pinbtn.on{color:var(--brass)}
-.is-phone .pinbtn.on .pinface{outline:2px solid var(--brass);outline-offset:1.5px}
+.is-phone .pinbtn.on .pinface{outline:2px solid var(--glow);outline-offset:1.5px}
 /* Carrying a tile over a pinned drawer files it there. On a phone this is the
    whole answer to "file it into something three screens away" — the bar is the
    one thing that never scrolls off. */
 .pinbtn.dropinto{background:color-mix(in srgb,var(--brass) 22%,transparent);color:var(--ink)}
-.pinbtn.dropinto .pinface{outline:2.5px solid var(--brass);outline-offset:2px;transform:scale(1.12)}
-.is-desk .pinbtn.dropinto{outline:2.5px solid var(--brass);outline-offset:2px;filter:brightness(1.12)}
+.pinbtn.dropinto .pinface{outline:2.5px solid var(--glow);outline-offset:2px;transform:scale(1.12)}
+.is-desk .pinbtn.dropinto{outline:2.5px solid var(--glow);outline-offset:2px;filter:brightness(1.12)}
 .pinface{transition:transform .12s}
 
 .toast{
@@ -848,7 +848,7 @@ kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--rule);border
 .mini .dot{width:6px;height:6px;border-radius:50%;background:var(--k);flex:0 0 auto}
 .pickgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:7px}
 .pickgrid button{height:38px;border-radius:var(--radius);border:1px solid var(--rule);font-size:11.5px;font-weight:600}
-.pickgrid button.on{outline:2px solid var(--brass);outline-offset:1px}
+.pickgrid button.on{outline:2px solid var(--glow);outline-offset:1px}
 /* colour families: small solid squares, one row each */
 .pickgrid.sw{grid-template-columns:repeat(auto-fill,minmax(34px,1fr));gap:6px;margin-bottom:6px}
 .pickgrid.sw button{height:30px;border-radius:3px;border:1px solid rgba(0,0,0,.25)}
@@ -857,6 +857,27 @@ kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--rule);border
   border:1px solid var(--rule);border-radius:var(--radius);vertical-align:middle}
 .custcol span{display:inline-block;line-height:1}
 .custcol:hover{border-color:var(--brass);color:var(--ink)}
+/* The style's sixteen, as sixteen swatches you can repaint. The first five
+   are marked, because changing one of those changes the app rather than a
+   drawer — the colour input sits inside the swatch, so the swatch *is* the
+   control and there is no second thing to aim at. */
+.slotgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:7px;margin-top:6px}
+/* the five get a row to themselves — they are a different question from the
+   eleven, and running them together read as sixteen of the same thing */
+.slotgrid.chrome{grid-template-columns:repeat(5,1fr);margin-bottom:12px}
+.slot{display:flex;flex-direction:column;gap:3px;cursor:pointer;min-width:0}
+.slot b{position:relative;display:block;height:30px;border-radius:3px;
+  border:1px solid rgba(0,0,0,.25);overflow:hidden}
+.slot.chrome b{border-radius:50%;height:30px;width:30px;align-self:center;
+  box-shadow:0 0 0 2px var(--paper),0 0 0 3px var(--rule)}
+.slot b input[type=color]{position:absolute;inset:0;width:100%;height:100%;
+  padding:0;margin:0;border:0;background:none;opacity:0;cursor:pointer}
+.slot span{font-size:9.5px;letter-spacing:.04em;text-transform:uppercase;
+  color:var(--ink-3);text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.slot.chrome span{color:var(--brass)}
+/* a colour somebody typed in by hand: it belongs to no style and stays put */
+.pickgrid.sw button.custom{border-style:dashed;border-width:2px}
+
 .custcol input[type=color]{width:26px;height:22px;padding:0;margin:0;flex:0 0 auto;display:block;
   border:1px solid var(--rule);border-radius:3px;background:none;cursor:pointer}
 
@@ -892,7 +913,7 @@ kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--rule);border
 .mcell > b{font-size:11.5px;font-weight:600;color:var(--ink-3);font-variant-numeric:tabular-nums}
 .mcell.today > b{color:var(--brass)}
 .mcell.today{border-color:color-mix(in srgb,var(--brass) 45%,var(--rule))}
-.mcell.sel{outline:2px solid var(--brass);outline-offset:-2px;background:color-mix(in srgb,var(--brass) 8%,var(--paper-2))}
+.mcell.sel{outline:2px solid var(--glow);outline-offset:-2px;background:color-mix(in srgb,var(--glow) 12%,var(--paper-2))}
 .mitem{
   font-size:10.5px;line-height:1.3;padding:2px 5px;border-radius:3px;
   background:color-mix(in srgb,var(--k) 17%,transparent);
@@ -903,7 +924,7 @@ kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--rule);border
 .mitem.done{color:var(--ink-3);text-decoration:line-through}
 .mcell > u{font-size:9.5px;color:var(--ink-3);text-decoration:none;margin-top:1px}
 /* the day a dragged object would land on */
-.dropday{outline:2.5px solid var(--brass)!important;outline-offset:-2px;
+.dropday{outline:2.5px solid var(--glow)!important;outline-offset:-2px;
   background:color-mix(in srgb,var(--brass) 20%,transparent)!important}
 .dayp{margin-top:18px;max-width:900px}
 

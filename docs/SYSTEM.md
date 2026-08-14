@@ -371,7 +371,7 @@ the start, `#tag` anywhere, and `!today` / `!tomorrow` / `!week`.
 
 Local-first. No account, no backend, nothing transmitted.
 
-- **`localStorage['bureau.v1']`** holds the whole desk: `{v, savedAt, theme,
+- **`localStorage['bureau.v1']`** holds the whole desk: `{v, savedAt,
   pins, look, kinds, deskCfg, objects}`. Writes are debounced 250ms. All of it
   goes through `persist.js` — no other module touches localStorage.
 - **IndexedDB** (`bureau-assets`) holds image bytes. `snapshot()` strips
@@ -419,7 +419,7 @@ resized on the grid) and **sync between devices** (export/import is the bridge).
 | Drag, resize, lasso, sketch, swipe | `gestures.js` |
 | Create, complete, delete, undo, repeat, pin, tag-drawer | `mutations.js` |
 | Storage, migrations, assets, export/import, paste | `persist.js` |
-| Themes, palettes, styles | `look.js` |
+| Styles, the sixteen colour slots, tokens | `look.js` |
 | The one delegated listener set | `wire.js` |
 
 Conventions for working in it are in `CLAUDE.md`.

@@ -18,6 +18,7 @@
   --rule-2:rgba(42,36,28,.08);
   --brass:#A9793F;
   --brass-2:#D9B57C;
+  --glow:#D9B57C;      /* slot 4 — selection, the day you are on, the thing you picked */
   --shadow:0 1px 2px rgba(42,36,28,.13),0 6px 18px -10px rgba(42,36,28,.28);
   --shadow-lg:0 2px 6px rgba(42,36,28,.16),0 22px 46px -20px rgba(42,36,28,.42);
   --board-1:#EFEADA;        /* the board, light square */
@@ -40,6 +41,7 @@ html[data-theme="walnut"]{
   --rule-2:rgba(240,232,217,.07);
   --brass:#D7AE72;
   --brass-2:#8A6A3C;
+  --glow:#D7AE72;
   --shadow:0 1px 2px rgba(0,0,0,.5),0 10px 30px -14px rgba(0,0,0,.8);
   --shadow-lg:0 2px 8px rgba(0,0,0,.55),0 40px 70px -28px rgba(0,0,0,.9);
   --board-1:#201B14;
@@ -392,15 +394,15 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
 .stylegrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:6px}
 .styletile{display:flex;flex-direction:column;gap:3px;align-items:flex-start;text-align:left;
   padding:9px 11px;border:1px solid var(--rule);border-radius:var(--radius);background:var(--paper-2)}
-.styletile.on{outline:2px solid var(--brass);outline-offset:1px}
+.styletile.on{outline:2px solid var(--glow);outline-offset:1px}
 .styletile b{font-size:13px}
 .styletile i{font-style:normal;font-size:10.5px;color:var(--ink-3);line-height:1.3}
-.stpv{width:100%;height:34px;border-radius:4px;border:1px solid var(--rule)}
-.stpv.st-victorian{background:conic-gradient(#DDE5CE 0 25%,#EFEADA 0 50%,#DDE5CE 0 75%,#EFEADA 0);background-size:18px 18px}
-.stpv.st-modern{background:#FAFAF8}
-.stpv.st-skeuo{background:linear-gradient(135deg,#8A5C33,#5A3B22)}
-.stpv.st-starry{background:#0B0E1A;background-image:radial-gradient(circle at 30% 40%,#fff 0 1px,transparent 2px),radial-gradient(circle at 70% 60%,#fff 0 1px,transparent 2px)}
-.stpv.st-aero{background:linear-gradient(180deg,#8ADFEF,#18A6C4)}
+/* A style draws its own preview out of its own sixteen — the background it
+   sits on and six of its colours — so a style added to the table below needs
+   no CSS at all, and a preview can't drift from the thing it is previewing. */
+.stpv{width:100%;height:34px;border-radius:4px;border:1px solid;display:flex;
+  align-items:center;gap:3px;padding:0 6px}
+.stpv i{flex:1;height:14px;border-radius:2px}
 .rollup{margin-left:auto;font-size:11px;color:var(--dink-2);font-variant-numeric:tabular-nums;
   background:rgba(0,0,0,.20);border:1px solid rgba(255,255,255,.14);padding:1px 7px;border-radius:20px}
 .pvwrap{display:grid;place-items:center;padding:16px 10px 18px;margin-bottom:12px;

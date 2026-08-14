@@ -58,18 +58,54 @@ const CHROME = process.env.BUREAU_CHROME;
       && !document.querySelector('#scrim');
   });
   await shot('02-settings');
-  await page.click('[data-theme2="walnut"]');
-  await page.waitForTimeout(250);
-  await shot('03-walnut-settings');
+  /* --- sixteen slots, and a slot means the same thing in every style.
+     A drawer holds the slot number, not the hex, so changing style has to
+     repaint it in the new style's answer for that slot — and changing back has
+     to put it exactly where it was, because nothing was ever converted. */
+  const before = await page.evaluate(() => {
+    const S = BUREAU.state;
+    const d = S.objects.find(o => o.id === 'd_in');
+    return { slot: d.c,
+             paint: getComputedStyle(document.querySelector('[data-drawer="d_in"]')).backgroundColor,
+             ink: getComputedStyle(document.documentElement).getPropertyValue('--ink').trim() };
+  });
+  await page.click('[data-style3="starry"]');
+  await page.waitForTimeout(320);
+  const swapped = await page.evaluate(() => {
+    const S = BUREAU.state;
+    const d = S.objects.find(o => o.id === 'd_in');
+    return { slot: d.c,
+             paint: getComputedStyle(document.querySelector('[data-drawer="d_in"]')).backgroundColor,
+             ink: getComputedStyle(document.documentElement).getPropertyValue('--ink').trim(),
+             theme: document.documentElement.dataset.theme };
+  });
+  await shot('03-starry-settings');
+  await page.click('[data-style3="victorian"]');
+  await page.waitForTimeout(320);
+  const backAgain = await page.evaluate(() => ({
+    slot: BUREAU.state.objects.find(o => o.id === 'd_in').c,
+    paint: getComputedStyle(document.querySelector('[data-drawer="d_in"]')).backgroundColor,
+    ink: getComputedStyle(document.documentElement).getPropertyValue('--ink').trim()
+  }));
+  const slotColours = {
+    storedAsSlot: typeof before.slot === 'number',
+    slotUnchanged: before.slot === swapped.slot && swapped.slot === backAgain.slot,
+    repainted: before.paint !== swapped.paint,
+    chromeFollowed: before.ink !== swapped.ink,
+    darkFromStyle: swapped.theme === 'walnut',
+    exactRoundTrip: before.paint === backAgain.paint && before.ink === backAgain.ink
+  };
 
+  await page.click('[data-style3="starry"]');
+  await page.waitForTimeout(250);
   await page.reload();
   await page.waitForTimeout(700);
   const survived = await page.evaluate(() =>
     BUREAU.state.objects.some(o => (o.title||'').includes('brass pulls')));
-  const themeSurvived = await page.evaluate(() => BUREAU.state.theme);
+  const styleSurvived = await page.evaluate(() => BUREAU.state.look.style);
   await page.click('.gridbar [data-act="appsettings"]');
   await page.waitForTimeout(250);
-  await page.click('[data-theme2="paper"]');
+  await page.click('[data-style3="victorian"]');
   await page.waitForTimeout(200);
 
   // --- editing the phone layout from the desktop
@@ -895,7 +931,7 @@ const CHROME = process.env.BUREAU_CHROME;
   await migCtx.close();
 
   console.log(JSON.stringify({
-    errors: errs, manifestOk, swReady, survived, themeSurvived,
+    errors: errs, manifestOk, swReady, survived, styleSurvived, slotColours,
     gridClass, offlineWorks, railGone, tabsGone, pinbarShown, pinNavigates,
     pinToggles, holdArms, maxDrift,
     settingsIsPanel, pickerPreviews, builderPreview, everyMenuIsAPanel,

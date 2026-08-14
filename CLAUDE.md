@@ -81,7 +81,7 @@ clause at the bottom of each file — that list is each module's public surface.
 | `util.js` | `$`, `esc`, `uid`, the `D` date object, icons (`ic`), markdown (`md`). All dates are `YYYY-MM-DD` strings in local time — never `Date` objects in state, never UTC. |
 | `model.js` | ATTRS + KINDS (**the heart of the app** — see below and `docs/SYSTEM.md`), seed data, `S`, `inContainer()`, `childrenOf()`, `streak()`, `goalPct()`, relations. |
 | `grid.js` | Grid geometry: `GRID`, `CELL`, `lay()`, `boxOk()`, `freeSpot()`, `ensureBox()`. Lives here, not in the views. |
-| `look.js` | Themes, palettes, Styles, `applyLook()`. |
+| `look.js` | Styles, the sixteen colour slots, `hexOf`/`objColour`, `applyLook()`. |
 | `mutations.js` | `toggleDone`, `del`, `create`, `quickAdd`, repeat scheduling, `toast`. |
 | `tiles.js` | `gridTile()` — the one place that decides how an object looks on a grid — plus rows, cards, list bands, book/scroll entries, and what a click does (`tileTap`). |
 | `views.js` | The desk and a drawer — the only two places there are. Also `pinbar()`, the time layouts (`viewMonth`, `viewTimeline`) and the settings panel's body. `render()` replaces `#app`'s innerHTML wholesale, then saves. |
@@ -249,9 +249,26 @@ attribute registry is `ATTRS`; the presets are `BUILTIN_KINDS` merged with
 *attribute* means teaching the detail sheet and the tile renderer what it draws.
 
 **CSS uses custom properties for kind colour.** `--k` is set inline on the element
-and everything inside inherits it. `--c` does the same for drawer colour. Both
-themes are driven from the token block at the top; don't hardcode a hex value in
-a component rule.
+and everything inside inherits it. `--c` does the same for drawer colour. Don't
+hardcode a hex value in a component rule.
+
+**A colour is a slot, not a hex.** Every style has the same sixteen slots in
+the same order — five that dress the app (Page, Text, Lines, Accent, Glow) and
+eleven colour families — so an object stores `c: 9` and shows whatever *this*
+style calls slate. Change style and the desk repaints; change back and it is
+exactly where it was. Never read `o.c` to paint something: go through
+`objColour(o)` in `look.js`, which falls back to the type's and resolves either
+a slot number or a literal. `hexOf()` is the same resolver for a bare value.
+A literal string is still legal — it is somebody insisting — and travels
+between styles unchanged. `chromeTokens()` derives every CSS token from the
+five, so a new style declares sixteen hexes and nothing else. See decision 33
+and `docs/STYLES.md`.
+
+**There is no theme switch.** Light or dark is `isDark(palNow()[0])` — the
+style's own background. `themeNow()` still reports paper/walnut, because the
+CSS theme block owns the shadows and the per-theme custom colours are keyed on
+it, but nothing sets `S.theme` any more. Adding a dark style means adding a
+style, not a second axis.
 
 **`.is-desk` / `.is-phone` on `#frame`** drive responsive rules — the breakpoint is
 900px, set in JS, not a media query, because the same classes also need to apply

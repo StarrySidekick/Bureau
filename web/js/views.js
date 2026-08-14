@@ -3,7 +3,8 @@ import { S, K, T, byId, has, isContainer, containers, childrenOf, chainOf,
   deskTitle, rootObj, pinnedDrawers, isPinned, allTags, dev,
   layoutOf, takesTyping, genKindOf, CALVIEWS, calViewOf, calCols } from './model.js';
 import { CELL, gridOf, cellW } from './grid.js';
-import { themeNow, applyLook, lookVal, STYLES, PALETTES, paletteNow, BACKDROPS } from './look.js';
+import { themeNow, applyLook, lookVal, STYLES, BACKDROPS,
+  palNow, setSlot, styleNow, hexOf, objColour, SLOTNAMES, ROLES, OBJ0 } from './look.js';
 import { gridOfContainer, listTile, scrollEntry, bookView, calSpan } from './tiles.js';
 import { openPanel, closePanel, panelKey, repositionPanel } from './panels.js';
 import { APP_VERSION, save, storeSize, install } from './persist.js';
@@ -127,7 +128,7 @@ function viewCalendar(d, items){
     cells.push(`<div class="mcell${month!=null&&dt.getMonth()!==month?' out':''}${
         iso===T?' today':''}${iso===S.calDay?' sel':''}" data-calday="${d.id}:${iso}">
       <b>${dt.getDate()}</b>
-      ${list.slice(0,cap).map(x=>`<span class="mitem${x.done?' done':''}" style="--k:${K(x.kind).c}"
+      ${list.slice(0,cap).map(x=>`<span class="mitem${x.done?' done':''}" style="--k:${objColour(x)}"
         data-row="${x.id}" title="${esc(x.title||'Untitled')}">${esc(x.title||'Untitled')}</span>`).join('')}
       ${list.length>cap?`<u>+${list.length-cap} more</u>`:''}
     </div>`);
@@ -188,7 +189,7 @@ function viewTimeline(d, items){
     ${todayX!=null?`<i class="tlnow" style="left:${todayX}px"><u>today</u></i>`:''}
     <i class="tlaxis"></i>
     ${placed.map(p=>`<span class="tlitem${p.o.done?' done':''}" data-row="${p.o.id}"
-        style="left:${p.x}px;top:${p.lane*44+46}px;--k:${K(p.o.kind).c}">
+        style="left:${p.x}px;top:${p.lane*44+46}px;--k:${objColour(p.o)}">
         <i class="tldot"></i>
         <b>${esc(p.o.title||'Untitled')}</b>
         <u>${esc(D.short(p.iso))}</u></span>`).join('')}
@@ -215,7 +216,7 @@ function viewDrawer(){
   <div class="scroll${view==='grid'?' deskscroll':''}">
     ${kinds.length>1&&view!=='grid'?`<div class="filterbar">
       <button class="fchip${!S.kindFilter?' on':''}" data-kind="">All</button>
-      ${kinds.map(k=>`<button class="fchip${S.kindFilter===k?' on':''}" data-kind="${k}" style="--k:${K(k).c}">${K(k).nm}</button>`).join('')}
+      ${kinds.map(k=>`<button class="fchip${S.kindFilter===k?' on':''}" data-kind="${k}" style="--k:${hexOf(K(k).c)}">${K(k).nm}</button>`).join('')}
     </div>`:''}
     ${has(d,'text')&&(d.body||'').trim()
       ? `<div class="contbody">${md(d.body)}</div>` : ''}
@@ -263,32 +264,32 @@ function toggleSettings(){ panelKey()==='settings' ? closePanel() : settingsPane
 function settingsBody(){
   const standalone = installed();
   return `
-    <div class="section-h"><h2>Appearance</h2><div class="rule"></div></div>
-    <div class="filterbar">
-      ${[['auto','Match system'],['paper','Paper'],['walnut','Walnut']].map(([v,n])=>
-        `<button class="fchip${S.theme===v?' on':''}" data-theme2="${v}">${n}</button>`).join('')}
+    <div class="section-h"><h2>Style</h2><div class="rule"></div></div>
+    <div class="stylegrid">${Object.entries(STYLES).map(([k,st])=>
+      `<button class="styletile${(S.look.style||'victorian')===k?' on':''}" data-style3="${k}">
+        <span class="stpv" style="background:${st.cols[0]};border-color:${st.cols[2]}">${
+          [3,5,6,9,11,12].map(i=>`<i style="background:${st.cols[i]}"></i>`).join('')}</span>
+        <b>${st.nm}</b><i>${st.ds}</i></button>`).join('')}</div>
+    <div class="mini" style="--k:var(--brass);margin-top:6px">A style is sixteen colours, a board, a typeface, and the defaults new drawers are born with — including whether the desk is light or dark. Everything below still works afterwards.</div>
+
+    <div class="field" style="margin-top:14px"><label>What ${esc(styleNow().nm)} is made of</label>
+      <div class="mini" style="--k:var(--brass);margin:2px 0 8px">The first five dress the app itself. The other eleven are what drawers and objects are painted in — and a slot means the same thing in every style, so changing style swaps them all over, and changing back puts every one of them exactly where it was.</div>
+      ${[[0,OBJ0,'chrome'],[OBJ0,16,'']].map(([a,b,cls])=>
+        `<div class="slotgrid ${cls}">${palNow().slice(a,b).map((c,n)=>{
+          const i=a+n;
+          return `<label class="slot${cls?' chrome':''}" title="${SLOTNAMES[i]}">
+            <b style="background:${c}"><input type="color" data-slot="${i}" value="${c}"></b>
+            <span>${SLOTNAMES[i]}</span></label>`;}).join('')}</div>`).join('')}
+      ${(S.look.slots&&S.look.slots[S.look.style||'victorian'])
+        ? `<button class="pill" style="margin-top:8px" data-act="resetslots">${ic('undo',13)} Back to ${esc(styleNow().nm)}&rsquo;s own sixteen</button>` : ''}
     </div>
 
-    <div class="field" style="margin-top:14px"><label>Background</label>
+    <div class="section-h"><h2>Appearance</h2><div class="rule"></div></div>
+    <div class="field"><label>Background</label>
       <div class="pickgrid sw" style="margin-top:6px">${BACKDROPS.map(([c,nm])=>
         `<button data-look="bg" data-val="${c}" title="${nm}" class="${(lookVal('bg')||'')===c?'on':''}" style="background:${c}"></button>`).join('')}</div>
-      <label class="custcol"><input type="color" data-lookinput="bg" value="${lookVal('bg')||'#E9E1CC'}"><span>Custom background</span></label>
+      <label class="custcol"><input type="color" data-lookinput="bg" value="${lookVal('bg')||palNow()[0]}"><span>Custom background</span></label>
       ${lookVal('bg')?`<button class="pill" style="margin-left:6px" data-look="bg" data-val="">Reset</button>`:''}
-    </div>
-
-    <div class="field" style="margin-top:14px"><label>Style</label>
-      <div class="stylegrid">${Object.entries(STYLES).map(([k,st])=>
-        `<button class="styletile${(S.look.style||'victorian')===k?' on':''}" data-style3="${k}">
-          <span class="stpv st-${k}"></span><b>${st.nm}</b><i>${st.ds}</i></button>`).join('')}</div>
-      <div class="mini" style="--k:var(--brass);margin-top:6px">A style sets everything at once — palette, board, knobs, borders, type. Every control below still works afterwards.</div>
-    </div>
-
-    <div class="field" style="margin-top:12px"><label>Palette</label>
-      <div class="filterbar" style="flex-wrap:wrap;padding-top:6px">${Object.entries(PALETTES).map(([k,p])=>
-        `<button class="fchip${((S.look.palette||'workshop')===k)?' on':''}" data-palette="${k}">${p.nm}</button>`).join('')}</div>
-      <div class="pickgrid sw" style="margin-top:8px;pointer-events:none">${paletteNow().cols.map(c=>
-        `<button style="background:${c}"></button>`).join('')}</div>
-      <div class="mini" style="--k:var(--brass);margin-top:6px">Every colour choice and every random one comes from here.</div>
     </div>
 
     <div class="field" style="margin-top:12px"><label>Board</label>
@@ -406,7 +407,7 @@ function pinbar(where){
     <button class="pinbtn home${S.view==='desk'?' on':''}" data-view="desk" title="${esc(deskTitle())}">
       <i class="pinface">${ic('grid',12)}</i><span>Desk</span></button>
     ${pins.map(d=>`<button class="pinbtn${here(d.id)?' on':''}${has(d,'magic')?' magic':''}"
-        data-drawer="${d.id}" style="--c:${d.c||K(d.kind).c}" title="${esc(d.title||'Untitled')}">
+        data-drawer="${d.id}" style="--c:${objColour(d)}" title="${esc(d.title||'Untitled')}">
       <i class="pinface">${has(d,'magic')?ic('sparkle',11):'<b class="pinknob"></b>'}</i>
       <span>${esc(d.title||'Untitled')}</span></button>`).join('')}
   </nav>`;

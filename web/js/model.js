@@ -74,38 +74,38 @@ const BUILTIN_KINDS = {
      what a desk full of drawers ought to look like. The phone size is stated
      outright: the derivation halves a container, and half of two is one, which
      is the mini tile that has no room for a name. */
-  drawer:  {nm:'Drawer',  ic:'folder',  c:'#7E5A38', key:'D', ds:'A container on the grid',   attrs:['container'], layout:'grid', size:[2,2], phoneSize:[2,2], body:'' },
-  magic:   {nm:'Magic drawer', ic:'sparkle', c:'#4A6E8F', key:'Q', ds:'The same drawer, filled by a rule instead of by hand', attrs:['container','magic'], layout:'grid', size:[2,2], phoneSize:[2,2], body:'' },
+  drawer:  {nm:'Drawer',  ic:'folder',  c:5, key:'D', ds:'A container on the grid',   attrs:['container'], layout:'grid', size:[2,2], phoneSize:[2,2], body:'' },
+  magic:   {nm:'Magic drawer', ic:'sparkle', c:10, key:'Q', ds:'The same drawer, filled by a rule instead of by hand', attrs:['container','magic'], layout:'grid', size:[2,2], phoneSize:[2,2], body:'' },
   /* A checklist wears its contents on the outside, so it also takes dictation:
      `spawn` gives it a box at the top, and `genKind` says a line you type into
      it is a task. Both are ordinary attributes — a type you invent gets the
      same box by ticking the same trait. */
-  checklist:{face:'checklist', nm:'Checklist', ic:'list', c:'#4A7C59', key:'K', ds:'Tasks you can tick and add to without opening it', attrs:['container','spawn'], spawnBy:'type', genKind:'task', layout:'list', size:[4,6], phoneSize:[4,6], body:'' },
+  checklist:{face:'checklist', nm:'Checklist', ic:'list', c:6, key:'K', ds:'Tasks you can tick and add to without opening it', attrs:['container','spawn'], spawnBy:'type', genKind:'task', layout:'list', size:[4,6], phoneSize:[4,6], body:'' },
   /* A calendar is a magic drawer wearing a calendar layout: it collects by rule
      like any other, and then draws what it collected on the day each thing is
      due. It holds nothing — the day is the `due` field on the object, not a
      container — so its default rule is "anything with a date". */
-  calendar:{face:'calendar', nm:'Calendar', ic:'calendar', c:'#5C7148', key:'C', ds:'Whatever it collects, on the day it falls', attrs:['container','magic'], filter:{rule:{f:'date',op:'any'}}, calview:'month', layout:'calendar', size:[4,4], phoneSize:[4,4], body:'' },
-  control: {nm:'Control',  ic:'sliders', c:'#6B6152', key:'', ds:'A Bureau button on the desk', attrs:['control'], size:[4,4], body:'' },
-  task:    {shape:'sliver', nm:'Task',    ic:'check',   c:'#4A7C59', key:'T', ds:'A thing to do',             attrs:['text','check','date','repeat'], size:[4,1], onclick:'none', gathers:'checklist', body:'' },
-  note:    {shape:'note', nm:'Note',    ic:'note',    c:'#5F7A93', key:'O', ds:'Something to remember',     attrs:['text'], size:[4,4], onclick:'read', body:'' },
-  idea:    {shape:'idea', nm:'Idea',    ic:'bulb',    c:'#96652F', key:'I', ds:'A spark, unformed',         size:[4,4], onclick:'read', attrs:['text'], body:'**The spark —** \n\n**Why it might work —** \n\n**What it needs —** ' },
-  outline: {nm:'Outline', ic:'list',    c:'#7A6AA0', key:'L', ds:'Structure before prose',    size:[4,4], onclick:'read', attrs:['text'], body:'## I.\n- \n- \n\n## II.\n- \n- \n\n## III.\n- ' },
+  calendar:{face:'calendar', nm:'Calendar', ic:'calendar', c:7, key:'C', ds:'Whatever it collects, on the day it falls', attrs:['container','magic'], filter:{rule:{f:'date',op:'any'}}, calview:'month', layout:'calendar', size:[4,4], phoneSize:[4,4], body:'' },
+  control: {nm:'Control',  ic:'sliders', c:15, key:'', ds:'A Bureau button on the desk', attrs:['control'], size:[4,4], body:'' },
+  task:    {shape:'sliver', nm:'Task',    ic:'check',   c:6, key:'T', ds:'A thing to do',             attrs:['text','check','date','repeat'], size:[4,1], onclick:'none', gathers:'checklist', body:'' },
+  note:    {shape:'note', nm:'Note',    ic:'note',    c:10, key:'O', ds:'Something to remember',     attrs:['text'], size:[4,4], onclick:'read', body:'' },
+  idea:    {shape:'idea', nm:'Idea',    ic:'bulb',    c:12, key:'I', ds:'A spark, unformed',         size:[4,4], onclick:'read', attrs:['text'], body:'**The spark —** \n\n**Why it might work —** \n\n**What it needs —** ' },
+  outline: {nm:'Outline', ic:'list',    c:14, key:'L', ds:'Structure before prose',    size:[4,4], onclick:'read', attrs:['text'], body:'## I.\n- \n- \n\n## II.\n- \n- \n\n## III.\n- ' },
   // A recipe holds its ingredients rather than listing them in prose, so they
   // can be ticked while you cook and totalled before you shop. The method stays
   // in the body, which a container with `text` shows above what it holds.
-  recipe:  {face:'checklist', cooking:true, nm:'Recipe',  ic:'pot',     c:'#A55A3E', key:'R', ds:'Ingredients you can tick, and a method',    size:[6,7], attrs:['text','container'], layout:'list', body:'**Serves** 2 · **Time** 30 min\n\n## Method\n1. \n2. \n3. ' },
-  script:  {shape:'page', nm:'Script',  ic:'clapper', c:'#3F5F7A', key:'S', ds:'Scenes and dialogue',       size:[4,4], onclick:'read', attrs:['text'], body:'### INT. LOCATION — DAY\n\nAction line.\n\n**CHARACTER**\nDialogue.' },
-  question:{shape:'bubble', nm:'Question',ic:'help',    c:'#4A6E8F', key:'?', ds:'Open until answered',       size:[4,4], onclick:'read', attrs:['text','check'], body:'**Question —** \n\n**What I know —** \n\n**Answer —** ' },
-  essay:   {shape:'note', nm:'Essay',   ic:'feather', c:'#5C7148', key:'Y', ds:'Long-form writing',         size:[4,4], onclick:'read', attrs:['text'], body:'> Working thesis.\n\n' },
-  habit:   {shape:'habit', nm:'Habit',   ic:'repeat',  c:'#3E7A6B', key:'A', ds:'Repeats, tracks a streak',  size:[4,4], onclick:'read', attrs:['text','streak'], body:'**Why —** ' },
-  goal:    {shape:'goal', nm:'Goal',    ic:'target',  c:'#8A5A3F', key:'J', ds:'Long-term, has milestones', size:[4,4], onclick:'read', attrs:['text','progress'], body:'**Definition of done —** ' },
-  image:   {nm:'Image',   ic:'image',   c:'#6E7075', key:'G', ds:'A picture on the board',   size:[6,4], onclick:'read', attrs:['media'], body:'' },
-  audio:   {film:true, nm:'Audio',   ic:'music',   c:'#5D7E99', key:'U', ds:'Something to listen to',    size:[6,2], onclick:'read', attrs:['text','media','duration'], body:'' },
-  video:   {film:true, nm:'Video',   ic:'film',    c:'#3F5F7A', key:'&', ds:'Something to watch',        size:[6,4], onclick:'read', attrs:['text','media','duration'], body:'' },
-  trip:    {shape:'ticket', nm:'Trip',    ic:'flag',    c:'#37687A', key:'P', ds:'Somewhere you are going',   size:[8,6], attrs:['container','date','duration','location'], layout:'grid', body:'' },
-  moodboard:{face:'moodboard', nm:'Moodboard', ic:'image', c:'#6B4A4A', key:'B', ds:'Pictures, pinned together', size:[8,8], attrs:['container'], layout:'moodboard', body:'' },
-  quote:   {shape:'quote', nm:'Quote',   ic:'book',    c:'#6F5137', key:'Z', ds:'Someone else\'s words',      size:[6,4], onclick:'read', attrs:['text','link','rating'],
+  recipe:  {face:'checklist', cooking:true, nm:'Recipe',  ic:'pot',     c:11, key:'R', ds:'Ingredients you can tick, and a method',    size:[6,7], attrs:['text','container'], layout:'list', body:'**Serves** 2 · **Time** 30 min\n\n## Method\n1. \n2. \n3. ' },
+  script:  {shape:'page', nm:'Script',  ic:'clapper', c:9, key:'S', ds:'Scenes and dialogue',       size:[4,4], onclick:'read', attrs:['text'], body:'### INT. LOCATION — DAY\n\nAction line.\n\n**CHARACTER**\nDialogue.' },
+  question:{shape:'bubble', nm:'Question',ic:'help',    c:10, key:'?', ds:'Open until answered',       size:[4,4], onclick:'read', attrs:['text','check'], body:'**Question —** \n\n**What I know —** \n\n**Answer —** ' },
+  essay:   {shape:'note', nm:'Essay',   ic:'feather', c:7, key:'Y', ds:'Long-form writing',         size:[4,4], onclick:'read', attrs:['text'], body:'> Working thesis.\n\n' },
+  habit:   {shape:'habit', nm:'Habit',   ic:'repeat',  c:8, key:'A', ds:'Repeats, tracks a streak',  size:[4,4], onclick:'read', attrs:['text','streak'], body:'**Why —** ' },
+  goal:    {shape:'goal', nm:'Goal',    ic:'target',  c:13, key:'J', ds:'Long-term, has milestones', size:[4,4], onclick:'read', attrs:['text','progress'], body:'**Definition of done —** ' },
+  image:   {nm:'Image',   ic:'image',   c:15, key:'G', ds:'A picture on the board',   size:[6,4], onclick:'read', attrs:['media'], body:'' },
+  audio:   {film:true, nm:'Audio',   ic:'music',   c:10, key:'U', ds:'Something to listen to',    size:[6,2], onclick:'read', attrs:['text','media','duration'], body:'' },
+  video:   {film:true, nm:'Video',   ic:'film',    c:9, key:'&', ds:'Something to watch',        size:[6,4], onclick:'read', attrs:['text','media','duration'], body:'' },
+  trip:    {shape:'ticket', nm:'Trip',    ic:'flag',    c:9, key:'P', ds:'Somewhere you are going',   size:[8,6], attrs:['container','date','duration','location'], layout:'grid', body:'' },
+  moodboard:{face:'moodboard', nm:'Moodboard', ic:'image', c:13, key:'B', ds:'Pictures, pinned together', size:[8,8], attrs:['container'], layout:'moodboard', body:'' },
+  quote:   {shape:'quote', nm:'Quote',   ic:'book',    c:5, key:'Z', ds:'Someone else\'s words',      size:[6,4], onclick:'read', attrs:['text','link','rating'],
             body:'> \n\n— ' },
   /* A story holds its scenes and reads as a book; a world holds the people,
      places and things the stories are set in. The distinction is the whole
@@ -113,33 +113,33 @@ const BUILTIN_KINDS = {
      Both readings of "opens as a book" apply — `layout:'book'` pages through
      the scenes it holds, `read:'book'` pages through its own body — and they
      are different properties, so it carries both rather than choosing. */
-  story:   {face:'spine', narrative:true, nm:'Story',   ic:'book',    c:'#5A4130', key:'M', ds:'Scenes, bound in order', size:[3,9], attrs:['text','container','relates'], layout:'book', read:'book',
+  story:   {face:'spine', narrative:true, nm:'Story',   ic:'book',    c:5, key:'M', ds:'Scenes, bound in order', size:[3,9], attrs:['text','container','relates'], layout:'book', read:'book',
             body:'' },
-  world:   {narrative:true, nm:'World',   ic:'star',    c:'#4A5E7A', key:'F', ds:'The people, places and things a story is set in', size:[8,8], attrs:['text','container'], layout:'grid', body:'' },
-  scene:   {shape:'page', narrative:true, film:true, nm:'Scene',   ic:'clapper', c:'#2F4A5E', key:'N', ds:'One scene, for writing',     size:[6,5], onclick:'read', attrs:['text','location','duration','relates'], gathers:'story',
+  world:   {narrative:true, nm:'World',   ic:'star',    c:9, key:'F', ds:'The people, places and things a story is set in', size:[8,8], attrs:['text','container'], layout:'grid', body:'' },
+  scene:   {shape:'page', narrative:true, film:true, nm:'Scene',   ic:'clapper', c:9, key:'N', ds:'One scene, for writing',     size:[6,5], onclick:'read', attrs:['text','location','duration','relates'], gathers:'story',
             body:'**Where —** \n\n**Who —** \n\n**What changes —** ' },
-  character:{shape:'portrait', narrative:true, nm:'Character', ic:'star', c:'#A0703F', key:'H', ds:'Someone in the story',       size:[4,6], onclick:'read', attrs:['text','media','relates'], gathers:'world',
+  character:{shape:'portrait', narrative:true, nm:'Character', ic:'star', c:13, key:'H', ds:'Someone in the story',       size:[4,6], onclick:'read', attrs:['text','media','relates'], gathers:'world',
             body:'**Wants —** \n\n**Fears —** \n\n**Voice —** ' },
-  field:   {shape:'band', nm:'Text field', ic:'edit', c:'#6B6152', key:'/', ds:'Type in it and a task appears below', size:[8,2], onclick:'none', attrs:['spawn'], spawnBy:'type', body:'' },
-  poem:    {shape:'verse', parchment:true, nm:'Poem',    ic:'feather', c:'#5D7E99', key:'"', ds:'Lines, kept as written', size:[5,7], onclick:'read', attrs:['text'], body:'' },
-  place:   {shape:'card', nm:'Place',   ic:'flag',    c:'#6B7A3F', key:'1', ds:'Somewhere in the story',  size:[5,6], onclick:'read', attrs:['text','media','relates'], narrative:true, gathers:'world',
+  field:   {shape:'band', nm:'Text field', ic:'edit', c:15, key:'/', ds:'Type in it and a task appears below', size:[8,2], onclick:'none', attrs:['spawn'], spawnBy:'type', body:'' },
+  poem:    {shape:'verse', parchment:true, nm:'Poem',    ic:'feather', c:10, key:'"', ds:'Lines, kept as written', size:[5,7], onclick:'read', attrs:['text'], body:'' },
+  place:   {shape:'card', nm:'Place',   ic:'flag',    c:7, key:'1', ds:'Somewhere in the story',  size:[5,6], onclick:'read', attrs:['text','media','relates'], narrative:true, gathers:'world',
             body:'**Feels like —** \n\n**Who is there —** \n\n**What happened here —** ' },
-  event:   {shape:'card', nm:'Event',   ic:'clock',   c:'#8C4A38', key:'2', ds:'Something that happens',  size:[6,4], onclick:'read', attrs:['text','date','relates'], narrative:true, gathers:'world',
+  event:   {shape:'card', nm:'Event',   ic:'clock',   c:11, key:'2', ds:'Something that happens',  size:[6,4], onclick:'read', attrs:['text','date','relates'], narrative:true, gathers:'world',
             body:'**Before —** \n\n**The turn —** \n\n**After —** ' },
-  item:    {shape:'card', nm:'Item',    ic:'star',    c:'#9A7B2F', key:'3', ds:'A thing that matters',    size:[4,4], onclick:'read', attrs:['text','media','relates'], narrative:true, gathers:'world',
+  item:    {shape:'card', nm:'Item',    ic:'star',    c:12, key:'3', ds:'A thing that matters',    size:[4,4], onclick:'read', attrs:['text','media','relates'], narrative:true, gathers:'world',
             body:'**What it is —** \n\n**Who wants it —** ' },
-  ingredient:{shape:'index', cooking:true, nm:'Ingredient', ic:'pot', c:'#A55A3E', key:'4', ds:'One line of a recipe',   size:[5,1], onclick:'check', attrs:['check','count','price'], gathers:'recipe', body:'' },
-  shot:    {shape:'sliver', film:true, nm:'Shot',    ic:'clapper', c:'#2F4A5E', key:'5', ds:'One shot, for a shoot',   size:[6,1], onclick:'check', attrs:['text','check','duration','location'], gathers:'shotlist', body:'' },
-  shotlist:{face:'checklist', film:true, nm:'Shot list', ic:'clapper', c:'#37687A', key:';', ds:'Shots for a shoot, in order', attrs:['container'], layout:'list', size:[7,8], body:'' },
-  generator:{shape:'press', nm:'Generator', ic:'plus', c:'#8A5A3F', key:'6', ds:'Press it and it makes one of something', size:[4,4], onclick:'generate', attrs:['spawn'], spawnBy:'click', body:'' },
-  shopping:{cooking:true, face:'checklist', nm:'Shopping list', ic:'inbox', c:'#A55A3E', key:'7', ds:'Things to buy, with a total', attrs:['container'], layout:'list', size:[6,8], body:'' },
-  counter: {nm:'Counter',  ic:'target', c:'#3E7A6B', key:'X', ds:'A number, and what it counts', size:[4,4], onclick:'none', attrs:['count'], body:'' },
-  link:    {shape:'card', nm:'Button',  ic:'arrow',   c:'#37687A', key:'E', ds:'A button that opens something', attrs:['button'], body:'' },
-  achievement:{shape:'plaque', nm:'Achievement', ic:'trophy', c:'#9A7B2F', key:'W', ds:'Something you actually did', size:[6,3], onclick:'read', attrs:['text','date'], body:'' },
-  project: {face:'checklist', nm:'Project', ic:'flag',    c:'#5C7148', key:'8', ds:'A big thing, made of tasks',   attrs:['container','date','progress'], layout:'list', size:[7,8], body:'' },
-  dream:   {shape:'dream', nm:'Dream',   ic:'star',    c:'#5D7E99', key:'9', ds:'Far off, and probably daft',   size:[5,5], onclick:'read', attrs:['text','media'], body:'**Why it pulls at me —** ' },
-  timeline:{face:'timeline', nm:'Timeline',ic:'clock',   c:'#6F5137', key:'0', ds:'Things in the order they happened', attrs:['container'], layout:'timeline', size:[10,6], body:'' },
-  appt:    {shape:'sliver', nm:'Event',   ic:'calendar',c:'#3E7A6B', key:'V', ds:'Something at a time and place', size:[6,2], onclick:'read', attrs:['text','date','duration','location'], body:'' }
+  ingredient:{shape:'index', cooking:true, nm:'Ingredient', ic:'pot', c:11, key:'4', ds:'One line of a recipe',   size:[5,1], onclick:'check', attrs:['check','count','price'], gathers:'recipe', body:'' },
+  shot:    {shape:'sliver', film:true, nm:'Shot',    ic:'clapper', c:9, key:'5', ds:'One shot, for a shoot',   size:[6,1], onclick:'check', attrs:['text','check','duration','location'], gathers:'shotlist', body:'' },
+  shotlist:{face:'checklist', film:true, nm:'Shot list', ic:'clapper', c:9, key:';', ds:'Shots for a shoot, in order', attrs:['container'], layout:'list', size:[7,8], body:'' },
+  generator:{shape:'press', nm:'Generator', ic:'plus', c:13, key:'6', ds:'Press it and it makes one of something', size:[4,4], onclick:'generate', attrs:['spawn'], spawnBy:'click', body:'' },
+  shopping:{cooking:true, face:'checklist', nm:'Shopping list', ic:'inbox', c:11, key:'7', ds:'Things to buy, with a total', attrs:['container'], layout:'list', size:[6,8], body:'' },
+  counter: {nm:'Counter',  ic:'target', c:8, key:'X', ds:'A number, and what it counts', size:[4,4], onclick:'none', attrs:['count'], body:'' },
+  link:    {shape:'card', nm:'Button',  ic:'arrow',   c:9, key:'E', ds:'A button that opens something', attrs:['button'], body:'' },
+  achievement:{shape:'plaque', nm:'Achievement', ic:'trophy', c:12, key:'W', ds:'Something you actually did', size:[6,3], onclick:'read', attrs:['text','date'], body:'' },
+  project: {face:'checklist', nm:'Project', ic:'flag',    c:7, key:'8', ds:'A big thing, made of tasks',   attrs:['container','date','progress'], layout:'list', size:[7,8], body:'' },
+  dream:   {shape:'dream', nm:'Dream',   ic:'star',    c:10, key:'9', ds:'Far off, and probably daft',   size:[5,5], onclick:'read', attrs:['text','media'], body:'**Why it pulls at me —** ' },
+  timeline:{face:'timeline', nm:'Timeline',ic:'clock',   c:5, key:'0', ds:'Things in the order they happened', attrs:['container'], layout:'timeline', size:[10,6], body:'' },
+  appt:    {shape:'sliver', nm:'Event',   ic:'calendar',c:8, key:'V', ds:'Something at a time and place', size:[6,2], onclick:'read', attrs:['text','date','duration','location'], body:'' }
 };
 // Kinds you invent live in state alongside these; both are read through KINDS.
 let KINDS = Object.assign({}, BUILTIN_KINDS);
@@ -173,15 +173,15 @@ function seed(){
   // at. The rest of the desk is left clear on purpose: what a drawer holds is
   // behind it, so a wall of them is the whole point and takes one row.
   const drawers = [
-    MG({id:'d_today', title:'Today',        c:'#4A7C59', filter:{due:'today'},                     desk:{x:1,y:1,w:2,h:2},  phone:{x:1,y:1,w:2,h:2}}),
-    DR({id:'d_in',    title:'Inbox',        c:'#7E5A38', desk:{x:3,y:1,w:2,h:2},  phone:{x:3,y:1,w:2,h:2}}),
-    DR({id:'d_write', title:'Writing Desk', c:'#5C7148', desk:{x:5,y:1,w:2,h:2},  phone:{x:5,y:1,w:2,h:2}}),
-    DR({id:'d_ideas', title:'Idea Bin',     c:'#96652F', desk:{x:7,y:1,w:2,h:2},  phone:{x:7,y:1,w:2,h:2}}),
-    DR({id:'d_studio',title:'Studio',       c:'#3F5F7A', desk:{x:9,y:1,w:2,h:2},  phone:{x:1,y:3,w:2,h:2}}),
-    DR({id:'d_kitch', title:'Kitchen',      c:'#A55A3E', desk:{x:11,y:1,w:2,h:2},  phone:{x:3,y:3,w:2,h:2}}),
-    MG({id:'d_open',  title:'Open Questions',c:'#4A6E8F',filter:{kinds:['question']},              desk:{x:13,y:1,w:2,h:2},  phone:{x:5,y:3,w:2,h:2}}),
-    DR({id:'d_keep',  title:'Keeping Up',   c:'#3E7A6B', desk:{x:15,y:1,w:2,h:2},  phone:{x:7,y:3,w:2,h:2}}),
-    MG({id:'d_done',  title:'Done & Dusted',c:'#6F5137', filter:{done:true},                       desk:{x:17,y:1,w:2,h:2},  phone:{x:1,y:5,w:2,h:2}})
+    MG({id:'d_today', title:'Today',        c:6, filter:{due:'today'},                     desk:{x:1,y:1,w:2,h:2},  phone:{x:1,y:1,w:2,h:2}}),
+    DR({id:'d_in',    title:'Inbox',        c:5, desk:{x:3,y:1,w:2,h:2},  phone:{x:3,y:1,w:2,h:2}}),
+    DR({id:'d_write', title:'Writing Desk', c:7, desk:{x:5,y:1,w:2,h:2},  phone:{x:5,y:1,w:2,h:2}}),
+    DR({id:'d_ideas', title:'Idea Bin',     c:12, desk:{x:7,y:1,w:2,h:2},  phone:{x:7,y:1,w:2,h:2}}),
+    DR({id:'d_studio',title:'Studio',       c:9, desk:{x:9,y:1,w:2,h:2},  phone:{x:1,y:3,w:2,h:2}}),
+    DR({id:'d_kitch', title:'Kitchen',      c:11, desk:{x:11,y:1,w:2,h:2},  phone:{x:3,y:3,w:2,h:2}}),
+    MG({id:'d_open',  title:'Open Questions',c:10,filter:{kinds:['question']},              desk:{x:13,y:1,w:2,h:2},  phone:{x:5,y:3,w:2,h:2}}),
+    DR({id:'d_keep',  title:'Keeping Up',   c:8, desk:{x:15,y:1,w:2,h:2},  phone:{x:7,y:3,w:2,h:2}}),
+    MG({id:'d_done',  title:'Done & Dusted',c:5, filter:{done:true},                       desk:{x:17,y:1,w:2,h:2},  phone:{x:1,y:5,w:2,h:2}})
   ];
 
   // The app's own buttons live on the desk, on the grid, and move like anything
@@ -289,9 +289,9 @@ function reset(){
   const s = seed();
   S = {
     objects:s.objects, kinds:{}, pins:s.pins.slice(),
-    // Paper, not auto: the parchment desk is the intended look, so a Mac in
-    // dark mode shouldn't silently serve Walnut on first run.
-    device:sensedDevice(), layoutEdit:null, theme:'paper',
+    // Light or dark comes from the style now — Victorian is a parchment desk,
+    // Starry Sidekick is a night one — so there is no theme to store.
+    device:sensedDevice(), layoutEdit:null,
     view:'desk', drawerId:null, openId:null,
     arrange:false, kindFilter:null, calDay:null,
     undo:[], editing:false, sel:[], readId:null, bookAt:0,
@@ -301,7 +301,8 @@ function reset(){
   refreshKinds();
 }
 function defaultLook(){
-  return {bg:null, accent:null, line:null, board:null, boardAlpha:1, owner:'', palette:'workshop'};
+  return {bg:null, accent:null, line:null, board:null, boardAlpha:1, owner:'',
+          style:'victorian', slots:{}, styleDefaults:null};
 }
 reset();
 
@@ -315,7 +316,7 @@ const byId = id => S.objects.find(o=>o.id===id);
    walks containers identical at the top level. */
 const deskTitle = ()=>{ const n=((S.look&&S.look.owner)||'').trim();
   return n ? `${n}${/s$/i.test(n)?"'":"'s"} Desk` : 'Desk'; };
-const rootObj = ()=> Object.assign({id:ROOT, kind:'drawer', title:deskTitle(), c:'#7E5A38',
+const rootObj = ()=> Object.assign({id:ROOT, kind:'drawer', title:deskTitle(), c:5,
                        pv:'list', filter:{}, layout:'grid', parent:null},
                        S.deskCfg||{});
 const container = id => (id===ROOT||!id) ? rootObj() : byId(id);

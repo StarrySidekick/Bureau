@@ -775,3 +775,65 @@ is laid out that way so a first run shows it.
 drawer, and "drag it onto September" no longer puts it away anywhere. That was
 never really filing — it was scheduling that happened to move the object — and
 the thing it cost was the ability to be on two calendars, which is worth more.
+
+### 33. A colour is a slot, and a style owns sixteen of them
+
+A palette used to be a separate choice from a style, and it only decided what
+*new* objects were painted. The colour itself was stored as a hex, so a desk
+built under Workshop kept those hexes forever: switching palette changed the
+swatches in the picker and nothing you could see. The style, meanwhile, carried
+a `vars` block of forty hand-tuned tokens that had nothing to do with the
+palette sitting next to it. Two colour systems, neither of which reached the
+other.
+
+They are one thing now. **A style has sixteen colours, and a colour is stored
+as the slot number.** Slot 9 is Slate in every style, so an object holding `c:9`
+shows Victorian's slate on Victorian and Aero's on Aero. Change style and the
+whole desk repaints; change back and every tile is exactly where it was —
+nothing was converted, only looked up, so the round trip is lossless by
+construction rather than by care.
+
+The first five are the app itself — Page, Text, Lines, Accent, Glow — and
+`chromeTokens()` derives the whole token set from them: the softer inks are the
+ink walked back toward the page it sits on, the rules are the line at low alpha,
+the raised surfaces are the page toward white. A style therefore declares
+sixteen hexes and gets forty tokens that agree with each other, instead of
+forty hexes that agree because somebody checked. The other eleven are colour
+*families* — Umber, Fern, Olive, Teal, Slate, Steel, Rust, Ochre, Clay, Plum,
+Stone — in the same order in every style. A cool style still has to answer
+"what is your umber"; the answer may be a warm grey, but there has to be one,
+and that constraint is what makes the mapping mean anything.
+
+*What follows from it:*
+
+- **The theme switch is gone.** Light or dark is `isDark(palNow()[0])` — the
+  style's own background. Paper-on-Victorian and Walnut-on-Victorian were the
+  same question asked twice, and answering them differently gave you dark
+  shadows under parchment. `themeNow()` still reports paper/walnut because the
+  CSS block owns the shadows and the per-theme custom colours key on it, but
+  nothing sets `S.theme` any more. A dark style is a style, not an axis.
+- **The palette picker is gone too**, replaced by the style's own sixteen shown
+  as sixteen swatches you can repaint. An override is stored against *that*
+  style (`S.look.slots[style][i]`), because a rust you disliked in Victorian
+  has no business following you to Aero.
+- **Never read `o.c` to paint something.** `objColour(o)` in `look.js` falls
+  back to the type's colour and resolves either form; `hexOf()` does the same
+  for a bare value. A number is a slot, a string is a literal — and a literal
+  is still allowed, because somebody typing a hex into a colour input is
+  insisting, and the right response to insisting is to leave it alone.
+- Built-in types carry slot numbers rather than hexes, so adding a style
+  repaints all forty-two of them without touching `model.js`.
+- The style previews in Settings draw themselves out of their own sixteen, so a
+  new style needs no CSS for its swatch, and a preview cannot drift from the
+  thing it previews.
+- `randomBoard()` follows the style's lightness. A white checkerboard inside a
+  midnight desk is a hole in the page.
+- **Migration 12** names every hex the five old palettes and the built-in types
+  ever used and maps each to its family slot. A hex on neither list was typed
+  in by hand and stays a literal: snapping somebody's deliberate choice to the
+  nearest family would be the wrong repair.
+
+*Against:* eleven families is fewer than the sixteen free colours a palette used
+to offer, and two drawers that were different browns are now the same umber. That
+is the cost of the slots meaning anything at all — and a hand-typed hex is still
+there for the one drawer that has to be its own colour.

@@ -4,6 +4,7 @@ import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, chi
   calViewOf, weekStartOf, calCols } from './model.js';
 import { CELL, gridOf, lay, overlaps, boxOk, freeSpot, gridRows, sizeOfKind, ensureBox } from './grid.js';
 import { create, toast, toggleDone } from './mutations.js';
+import { hexOf, objColour } from './look.js';
 import { render } from './views.js';
 import { openObj, renderSheet } from './sheet.js';
 import { objectPanel } from './panels.js';
@@ -13,7 +14,7 @@ import { save } from './persist.js';
    7 · rendering — drawers
    ============================================================ */
 function drawerPreview(d, items){
-  const c=d.c, f=d.filter||{};
+  const c=objColour(d), f=d.filter||{};
   if(d.pv==='big'){
     const n=items.length;
     const cap = f.done ? 'accomplishments on record' : 'due today';
@@ -21,18 +22,18 @@ function drawerPreview(d, items){
   }
   if(d.pv==='stack'){
     return `<div class="pv-stack">${items.slice(0,3).map((o,i)=>
-      `<div class="card" style="--k:${K(o.kind).c};--rot:${(i-1)*0.8}deg;top:${i*34}px;z-index:${3-i}">${esc(o.title||'Untitled')}</div>`).join('')}</div>`;
+      `<div class="card" style="--k:${objColour(o)};--rot:${(i-1)*0.8}deg;top:${i*34}px;z-index:${3-i}">${esc(o.title||'Untitled')}</div>`).join('')}</div>`;
   }
   if(d.pv==='thumbs'){
-    return `<div class="pv-thumbs">${items.slice(0,6).map(o=>`<i style="--k:${K(o.kind).c}"></i>`).join('')||'<i style="--k:'+c+'"></i>'}</div>`;
+    return `<div class="pv-thumbs">${items.slice(0,6).map(o=>`<i style="--k:${objColour(o)}"></i>`).join('')||'<i style="--k:'+c+'"></i>'}</div>`;
   }
   if(d.pv==='bars'){
     return `<div class="pv-bars">${items.slice(0,4).map(o=>{
       const p = has(o,'progress') ? goalPct(o) : clamp(streak(o)*14,6,100);
-      return `<div class="b" style="--k:${K(o.kind).c}"><i style="width:${p}%"></i></div>`;}).join('')}</div>`;
+      return `<div class="b" style="--k:${objColour(o)}"><i style="width:${p}%"></i></div>`;}).join('')}</div>`;
   }
   return `<div class="pv-list">${items.slice(0,5).map(o=>
-    `<div class="r${o.done?' done':''}" style="--k:${K(o.kind).c}"><span class="dot"></span><span class="lbl">${esc(o.title||'Untitled')}</span></div>`).join('')}</div>`;
+    `<div class="r${o.done?' done':''}" style="--k:${objColour(o)}"><span class="dot"></span><span class="lbl">${esc(o.title||'Untitled')}</span></div>`).join('')}</div>`;
 }
 /* A number as a stack of wheels: each column holds 0–9 and is slid to the
    digit it should show, so changing the count spins them like a slot machine. */
@@ -196,7 +197,7 @@ function gridTile(o, arr, parentId){
 }
 function drawTile(o, arr, box){
   const cont=isContainer(o);
-  const colour = o.c || K(o.kind).c;
+  const colour = objColour(o);
   const handles = arr ? HANDLES.map(h=>`<i class="rz ${h}" data-rz="${h}"></i>`).join('') : '';
   const chips='';   // no size chip, no delete cross — the menu does both
   const place = `grid-column:${box.x} / span ${box.w};grid-row:${box.y} / span ${box.h}`;
@@ -495,7 +496,7 @@ function gridOfContainer(cid){
 /* List view is the same tile, stretched into a band. Same silhouettes, same
    colours — a drawer still looks like a drawer, a task still comes to a point. */
 function listTile(o){
-  const colour=o.c||K(o.kind).c;
+  const colour=objColour(o);
   const cont=isContainer(o);
   const img = has(o,'media') && o.media && o.media.src;
   const attr = cont ? `data-drawer="${o.id}"` : `data-row="${o.id}"`;
@@ -656,7 +657,7 @@ function bookView(c, items){
    body, one after another, for reading a drawer rather than scanning it. */
 function scrollEntry(o){
   const k=K(o.kind);
-  return `<article class="scrollentry" data-row="${o.id}" style="--k:${k.c}">
+  return `<article class="scrollentry" data-row="${o.id}" style="--k:${objColour(o)}">
     <header>
       ${has(o,'check')?`<span class="check${o.done?' on':''}" data-check="${o.id}">${ic('check',12)}</span>`:`<span class="kindmark">${ic(k.ic,13)}</span>`}
       <h3${o.done?' class="done"':''}>${esc(o.title||'Untitled')}</h3>

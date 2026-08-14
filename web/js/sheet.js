@@ -1,6 +1,7 @@
 import { $, $$, esc, ic, md, D, ROOT } from './util.js';
 import { S, K, KINDS, KEYS, T, byId, has, isContainer, containers, isAncestor,
   READS, readOf, relatedTo, backlinksTo, streak, goalPct } from './model.js';
+import { objColour } from './look.js';
 import { CLICKS, clickOf, bookOf } from './tiles.js';
 import { closePanel } from './panels.js';
 import { render } from './views.js';
@@ -139,7 +140,7 @@ function renderSheet(){
      end's link look like it did nothing. */
   const rel = relatedTo(o);
   const back = backlinksTo(o.id).filter(x=>x.id!==o.id);
-  const chip = (x,rm)=>`<span class="relchip" style="--k:${K(x.kind).c}" data-openrel="${x.id}">
+  const chip = (x,rm)=>`<span class="relchip" style="--k:${objColour(x)}" data-openrel="${x.id}">
       ${ic(K(x.kind).ic,11)} ${esc(x.title||'Untitled')}${
       rm?`<b data-unrel="${o.id}:${x.id}" title="Unlink">✕</b>`:''}</span>`;
   if(has(o,'relates') || rel.length || back.length){

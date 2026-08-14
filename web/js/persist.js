@@ -24,7 +24,7 @@ function snapshot(){
   // a pin whose drawer has gone is dropped here rather than in every delete
   // path; in memory it survives so undo can bring the drawer back pinned
   const pins=(S.pins||[]).filter(id=>S.objects.some(o=>o.id===id));
-  return {v:DATA_V, savedAt:new Date().toISOString(), theme:S.theme, pins,
+  return {v:DATA_V, savedAt:new Date().toISOString(), pins,
           look:S.look, kinds:S.kinds, deskCfg:S.deskCfg, objects};
 }
 function writeNow(){
@@ -133,7 +133,7 @@ function dedupeIds(objects){
    skips all of them, an old backup replays only what it is missing. These
    used to be ad-hoc per-load mutations inside adopt(); a new repair that
    should run once belongs here, as the next numbered step. */
-const DATA_V = 11;
+const DATA_V = 12;
 const MIGRATIONS = [
   // Drawers and objects were two arrays and a drawer could not live inside
   // anything. foldDrawers also replays the old dense flow to give v1 drawers
@@ -213,6 +213,43 @@ const MIGRATIONS = [
         if(!ruled) c.filter=Object.assign(f, {rule:{f:'date', op:'any'}});
       });
     }},
+  /* A colour stopped being a hex and became a *slot* in the style's sixteen, so
+     that changing style repaints the desk and changing back restores it exactly.
+     Every hex a desk is holding came out of one of the five old palettes or off
+     a built-in type, so those are named here — naming old things is what a
+     migration is for — and each is mapped to the family slot it belonged to.
+     A hex that is on neither list was typed into a colour input by hand, and
+     stays a literal: the new scheme still allows one, and snapping somebody's
+     deliberate choice to the nearest family would be the wrong repair.
+
+     `palette` and `theme` go with it. A palette was a separate axis and is now
+     part of the style; light-or-dark is the style's background. */
+  {v:12, up(d){
+      // family slots 5–15: Umber Fern Olive Teal Slate Steel Rust Ochre Clay Plum Stone
+      const SLOT = {};
+      const add = (slot, hexes) => hexes.split(' ').forEach(h=>SLOT[h.toUpperCase()]=slot);
+      add(5,  '#6F5137 #7E5A38 #8A6A3C #5A4130 #7A6A55 #8C7A5E #4A4238 #3F3128 #5B5B68');
+      add(6,  '#4A7C59 #3D6B4A #6E8B4E #3E6B63 #517F6F #6E9B7E #93B39A #B7C9AE');
+      add(7,  '#5C7148 #6B7A3F #849453 #9DAE6B #5E6B47 #47533A');
+      add(8,  '#3E7A6B #3FAE9C #63C6B0 #93D9C6 #7ED4A0');
+      add(9,  '#3F5F7A #2F4A5E #37687A #4E8395 #2B6B99 #0E4B62 #4A5E7A #3A4048 #2A2E33');
+      add(10, '#4A6E8F #5D7E99 #5F7A93 #6FA3AE #8FB9BE #4C89C8 #6FA6DB #9BC4EA #4B535D #5D6772 #707B87 #3B4A52 #4C5F68 #5E747E #718A94 #89A1A9');
+      add(11, '#A55A3E #8C4A38 #C0563F #7A3B3C #9A4F42 #B4674C #C68A5E #D8A97A');
+      add(12, '#9A7B2F #96652F #C9A66B #D6C9A8 #C2B08C #A69375 #18A6C4 #2FBCD8 #54CFE6 #8ADFEF #B7ECF5 #1B8FA8 #27788C');
+      add(13, '#8A5A3F #A0703F #6B4A4A');
+      add(14, '#7A6AA0 #4A4A55 #6C6C7A #7E7E8C');
+      add(15, '#6E7075 #6B6152 #38383F #9A9AA6');
+      const conv = x => {
+        if(!x || typeof x.c!=='string') return;
+        const s = SLOT[x.c.toUpperCase()];
+        if(s!=null) x.c = s;
+      };
+      (d.objects||[]).forEach(conv);
+      Object.values(d.kinds||{}).forEach(conv);
+      if(d.deskCfg) conv(d.deskCfg);
+      if(d.look){ delete d.look.palette; }
+      delete d.theme;
+    }},
 ];
 function migrate(d){
   let v = d.v||0;
@@ -228,7 +265,6 @@ function adopt(d){
   S.kinds = d.kinds || {};
   if(d.deskCfg) S.deskCfg = Object.assign({layout:'grid',locked:false,sort:null}, d.deskCfg);
   S.look = Object.assign(defaultLook(), d.look||{});
-  if(d.theme) S.theme = d.theme;
   S.pins = Array.isArray(d.pins) ? d.pins.slice() : [];
   S.undo = [];   // the moves on it referred to objects this desk has never had
   refreshKinds();

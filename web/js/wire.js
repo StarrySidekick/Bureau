@@ -3,7 +3,8 @@ import { S, K, KINDS, KEYS, refreshKinds, ATTRS, USER_ATTRS, attrsOf, has, SHAPE
   FACES, SORTS, byId, container, cfgOf, isContainer, isAncestor, relate,
   unrelate, sensedDevice, reset, T, dz, dev, calViewOf } from './model.js';
 import { gridOf, lay, boxOk, freeSpot, toPhoneSize } from './grid.js';
-import { applyLook, applyStyle, setLookVal, lookVal, STYLES, PALETTES, randomFront } from './look.js';
+import { applyLook, applyStyle, setLookVal, lookVal, STYLES, randomFront,
+  setSlot, palNow, objColour } from './look.js';
 import { toast, toggleDone, del, delMany, delDrawer, undo, setPin, togglePin, drawerForTag, create, quickAdd, spawnInto, randomThing } from './mutations.js';
 import { spinTo, pending, placeAtPending, tileTap, turnPage, clearPages } from './tiles.js';
 import { render, sizeGrid, toggleSettings } from './views.js';
@@ -36,6 +37,10 @@ function syncSize(){
   $$('#ksize button').forEach(b=>b.classList.toggle('on', b.dataset.ksz===d.size.join('x')));
   const auto=$('[data-kphauto]'); if(auto) auto.classList.toggle('on', !d.phoneSize);
 }
+
+/* A swatch carries either a slot number or a literal hex. The DOM only has
+   strings, so this is where the two are told apart again. */
+const slotVal = v => /^\d+$/.test(v) ? +v : v;
 
 function act(name, el){
   switch(name){
@@ -91,7 +96,7 @@ function act(name, el){
       openPanel({key:'addrel', title:'Link to',
         sub:'Relations point both ways',
         body:()=>`<div class="rows">${S.objects.filter(x=>x.id!==me).slice(0,120).map(x=>
-          `<div class="row" data-dorel="${me}:${x.id}" style="--k:${K(x.kind).c}">
+          `<div class="row" data-dorel="${me}:${x.id}" style="--k:${objColour(x)}">
             <span class="kindmark">${ic(K(x.kind).ic,13)}</span>
             <div class="body"><div class="title">${esc(x.title||'Untitled')}</div>
               <div class="snip">${esc(K(x.kind).nm)}</div></div></div>`).join('')}</div>`});
@@ -168,6 +173,11 @@ function act(name, el){
     case 'attach': { const o=byId(S.openId); o.media={type:'image',label:'photo-2026-08.heic · 4.2 MB'}; renderSheet(); render(); toast('Media attached'); break; }
     case 'dupe': { const o=byId(S.openId); const c=Object.assign({},o,{id:uid('o'),title:o.title+' (copy)',ord:o.ord+0.1}); S.objects.push(c); openObj(c.id); render(); break; }
     case 'sched': { const o=byId(S.openId); o.due=T; renderSheet(); render(); toast('Scheduled for today'); break; }
+    case 'resetslots': {
+      const k=(S.look.style)||'victorian';
+      if(S.look.slots) delete S.look.slots[k];
+      applyLook(); save(); render(); refreshPanel(); toast('Back to the style\u2019s own colours'); break;
+    }
     case 'stopedit': S.layoutEdit=null; render(); break;
     case 'export': exportBackup(); break;
     case 'import': $('#importer').click(); break;
@@ -225,11 +235,11 @@ function act(name, el){
     }
     case 'randomone': randomThing(el.dataset.id); save(); render(); toast('One at random'); break;
     case 'randomten': { for(let i=0;i<10;i++) randomThing(); save(); render(); toast('Ten at random'); break; }
-    case 'reseed': { const th=S.theme, lk=S.look; reset(); S.theme=th; S.look=lk; applyLook(); writeNow(); render(); toast('Sample desk restored'); break; }
+    case 'reseed': { const lk=S.look; reset(); S.look=lk; applyLook(); writeNow(); render(); toast('Sample desk restored'); break; }
     case 'wipe': {
       if(!confirm('Erase every object and drawer on this device? This cannot be undone.')) return;
       // keep three empty drawers so the desk isn't a blank rectangle
-      const th=S.theme, lk=S.look; reset(); S.theme=th; S.look=lk;
+      const lk=S.look; reset(); S.look=lk;
       S.objects = S.objects.filter(isContainer).slice(0,3);
       applyLook(); writeNow(); render(); toast('Desk cleared'); break;
     }
@@ -314,8 +324,6 @@ function wire(){
 
     const st3=t.closest('[data-style3]');
     if(st3){ applyStyle(st3.dataset.style3); toast(STYLES[st3.dataset.style3].nm); return; }
-    const pl=t.closest('[data-palette]');
-    if(pl){ S.look.palette=pl.dataset.palette; save(); render(); toast(PALETTES[pl.dataset.palette].nm); return; }
 
     const sb=t.closest('[data-sortby]');
     if(sb){ const i=sb.dataset.sortby.indexOf(':');
@@ -426,7 +434,7 @@ function wire(){
     const pv=t.closest('[data-pv]');
     if(pv){ draft().pv=pv.dataset.pv; only(pv,'#dpv button'); return; }
     const col=t.closest('[data-col]');
-    if(col){ draft().c=col.dataset.col; only(col,'#dcol button'); renderPreview(); return; }
+    if(col){ draft().c=slotVal(col.dataset.col); only(col,'#dcol button'); renderPreview(); return; }
 
     const dtg=t.closest('[data-dtag]');
     if(dtg){ draft().tag=dtg.dataset.dtag; only(dtg,'#dtag button'); return; }
@@ -448,7 +456,7 @@ function wire(){
       else if(pn.dataset.plock!=null) c.locked=!!pn.dataset.plock;
       else if(o && pn.dataset.pborder!=null) o.border=pn.dataset.pborder;
       else if(o && pn.dataset.pknob!=null) o.knob=pn.dataset.pknob;
-      else if(o && pn.dataset.pcolour!=null) o.c=pn.dataset.pcolour;
+      else if(o && pn.dataset.pcolour!=null) o.c=slotVal(pn.dataset.pcolour);
       else if(o && pn.dataset.pboard!=null) o.board=pn.dataset.pboard||null;
       else if(o && pn.dataset.pknobc!=null){ o.knobc=pn.dataset.pknobc; o.knobtone=null; }
       else if(o && pn.dataset.pknobtone!=null){ o.knobtone=pn.dataset.pknobtone; o.knobc=null; }
@@ -461,7 +469,7 @@ function wire(){
       else if(o && pn.dataset.oread!=null){ o.read=pn.dataset.oread; S.bookAt=0; renderSheet(); }
       else if(o && pn.dataset.oshape!=null) o.shape=pn.dataset.oshape;
       else if(o && pn.dataset.oedge!=null) o.edge=!!pn.dataset.oedge;
-      else if(o && pn.dataset.ocolour!=null) o.c=pn.dataset.ocolour;
+      else if(o && pn.dataset.ocolour!=null) o.c=slotVal(pn.dataset.ocolour);
       else if(o && pn.dataset.oframe!=null) o.frame=pn.dataset.oframe;
       else if(o && pn.dataset.obtn!=null) o.btnshape=pn.dataset.obtn;
       else if(o && pn.dataset.ogen!=null) o.genKind=pn.dataset.ogen;
@@ -539,7 +547,6 @@ function wire(){
     if(lk){ setLookVal(lk.dataset.look, lk.dataset.val||null);
       applyLook(); save(); render(); return; }
 
-    const th=t.closest('[data-theme2]'); if(th){ S.theme=th.dataset.theme2; applyLook(); save(); render(); return; }
     const ly=t.closest('[data-layout]');
     // you chose a layout to go and arrange, so get the sheet out of the way
     if(ly){ S.layoutEdit = ly.dataset.layout || null; S.view='desk'; closePanel(); render(); return; }
@@ -572,7 +579,7 @@ function wire(){
      doesn't display what it changes, or refreshes itself where it does. */
   frame.addEventListener('click', e=>{
     if(panelKey()!=='settings' || !e.target.closest('#panel')) return;
-    if(e.target.closest('[data-look],[data-theme2],[data-palette],[data-style3],[data-act]'))
+    if(e.target.closest('[data-look],[data-slot],[data-style3],[data-act]'))
       refreshPanel();
   });
 
@@ -601,6 +608,10 @@ function wire(){
     const lr=e.target.dataset.lookrange;
     if(lr){ S.look[lr]=(+e.target.value)/100; applyLook();
       const b=e.target.parentElement.querySelector('b'); if(b) b.textContent=e.target.value+'%'; return; }
+    // repainting one slot of the style showing — it belongs to that style
+    if(e.target.dataset.slot!=null){
+      setSlot(+e.target.dataset.slot, e.target.value); applyLook(); render(); return;
+    }
     const li=e.target.dataset.lookinput;
     if(li==='board1'||li==='board2'){
       const cur=(lookVal('board')||'#EFEADA|#DDE5CE').split('|');
@@ -714,7 +725,6 @@ function wire(){
   const wide = window.matchMedia('(min-width: 900px)');
   const addML = (mq, fn)=> mq.addEventListener ? mq.addEventListener('change', fn) : mq.addListener(fn);
   addML(wide, ()=>{ S.device = sensedDevice(); render(); });
-  addML(window.matchMedia('(prefers-color-scheme: dark)'), ()=>{ if(S.theme==='auto') render(); });
 
   // Device is sensed once at parse time, when the window may not be laid out
   // yet (a background tab reports zero width and reads as a phone). Re-sense on
