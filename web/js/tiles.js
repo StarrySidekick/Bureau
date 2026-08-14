@@ -1,6 +1,6 @@
 import { esc, ic, clamp, D, md, strip } from './util.js';
 import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, childrenOf, container,
-  rollup, streak, goalPct, tlSpan, dev, spawnByOf, genKindOf, takesTyping,
+  rollup, streak, goalPct, projectStat, tlSpan, dev, spawnByOf, genKindOf, takesTyping,
   calViewOf, weekStartOf, calCols } from './model.js';
 import { CELL, gridOf, lay, overlaps, boxOk, freeSpot, gridRows, sizeOfKind, ensureBox } from './grid.js';
 import { create, toast, toggleDone } from './mutations.js';
@@ -255,6 +255,44 @@ function drawTile(o, arr, box){
         || `<span class="clempty">${adds?'Nothing yet — type above':'Nothing yet — open it to add'}</span>`}</div></div>
       ${handles}
     </${adds?'div':'button'}>`;
+  }
+
+  /* A project is a drawer with a front page. Every other container's face
+     either lists what it holds or hides it; a project *reports* on it —
+     how far along, how much is left, what is next, and what it is made of —
+     because the question you ask a project from across the desk is "where is
+     this up to", and no list of the first fourteen things answers that.
+
+     All of it is read off one walk of everything underneath, so a project made
+     of checklists counts the ticks inside them rather than counting four
+     checklists as four undone things. */
+  if(cont && faceOf(o)==='project'){
+    const st=projectStat(o);
+    const late = o.due && st.pct<100 && D.overdue(o.due);
+    return `<${takesTyping(o)?'div':'button'} class="drawer dtile projtile bd-${o.border||'panel'}${sel}"
+        data-drawer="${o.id}" ${takesTyping(o)?'role="button" tabindex="0"':''}
+        style="--c:${colour};--pct:${st.pct}%;${place}">
+      ${st.cover?`<span class="projcover" style="background-image:url('${esc(st.cover)}')"></span>`:''}
+      <div class="dtop"><span class="dname">${esc(o.title||'Untitled')}</span>
+        ${o.due?`<span class="projdue${late?' late':''}">${esc(D.human(o.due))}</span>`:''}</div>
+      <div class="projbar"><i></i><b>${st.pct}%</b></div>
+      <div class="projline">
+        ${st.ticks?`<span>${st.done}/${st.ticks} done</span>`:`<span>${st.n||'Nothing'} inside</span>`}
+        ${st.next?`<span class="projnext">next ${esc(D.short(st.next))}</span>`:''}
+      </div>
+      <div class="projkinds">${st.kinds.slice(0,6).map(([k,n])=>
+        `<span class="projkind" style="--k:${hexOf(K(k).c)}" title="${esc(K(k).nm)}">
+          ${ic(K(k).ic,11)}<u>${n}</u></span>`).join('')
+        || '<span class="clempty">Open it and start filling it</span>'}</div>
+      <div class="projsoon">${st.soon.slice(0,3).map(x=>
+        `<span class="projitem${D.overdue(x.due)?' late':''}" data-row="${x.id}"
+           title="${esc(x.title||'Untitled')}">
+          <i style="--k:${objColour(x)}">${ic(K(x.kind).ic,10)}</i>
+          <b>${esc(x.title||'Untitled')}</b><u>${esc(D.short(x.due))}</u></span>`).join('')}</div>
+      ${takesTyping(o)?`<label class="cladd">${ic('plus',11)}
+        <input data-contadd="${o.id}" placeholder="Add a ${esc(K(genKindOf(o)).nm.toLowerCase())}…"></label>`:''}
+      ${handles}
+    </${takesTyping(o)?'div':'button'}>`;
   }
 
   /* A trip is a ticket: a stub torn off down the right, and where to. */

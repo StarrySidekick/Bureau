@@ -216,16 +216,46 @@
 
 /* A magic drawer should read as not-quite-solid: a dashed inner rule that
    drifts, and a faint sheen. It collects rather than holds, and looks it. */
+/* ---- a magic drawer is gilded -----------------------------------------
+   It used to be dotted and speckled with stars, which read as a placeholder
+   rather than as enchantment — a dotted border is what every drawing tool
+   means by "not real yet". A drawer that fills itself is *illuminated*
+   instead: a gilt rule inset from the edge the way a manuscript is ruled,
+   four corner brackets in the same leaf, and a slow band of light that
+   travels across the front and leaves it alone in between. All of it is
+   drawn in the style's own Glow, so gilt on Victorian is genuine gold leaf
+   and gilt on Starry Sidekick is a green shimmer. */
 .drawer.magicdrawer{
+  /* the moving band, and the ruled frame it moves under */
   background-image:
-    radial-gradient(circle at 18% 26%, rgba(255,255,255,.30) 0 1.1px, transparent 1.6px),
-    radial-gradient(circle at 72% 18%, rgba(255,255,255,.22) 0 .9px, transparent 1.4px),
-    radial-gradient(circle at 46% 74%, rgba(255,255,255,.26) 0 1px,  transparent 1.5px),
-    radial-gradient(circle at 86% 62%, rgba(255,255,255,.18) 0 .8px, transparent 1.3px),
-    radial-gradient(circle at 30% 52%, rgba(255,255,255,.20) 0 .8px, transparent 1.3px);
-  animation:twinkle 6s ease-in-out infinite;
+    linear-gradient(105deg, transparent 38%,
+      color-mix(in srgb, var(--glow) 26%, transparent) 47%,
+      color-mix(in srgb, var(--glow) 42%, transparent) 50%,
+      color-mix(in srgb, var(--glow) 26%, transparent) 53%, transparent 62%);
+  background-size:260% 100%;
+  background-repeat:no-repeat;
+  animation:gild 7s ease-in-out infinite;
 }
-@keyframes twinkle{ 0%,100%{background-size:100% 100%} 50%{background-size:104% 104%} }
+@keyframes gild{ 0%{background-position:150% 0} 55%,100%{background-position:-60% 0} }
+/* the ruled frame: a hairline of leaf held off the edge, with the corners
+   thickened into brackets — four gradients rather than four elements */
+.drawer.magicdrawer::before{
+  content:"";position:absolute;inset:5px;pointer-events:none;z-index:1;
+  border:1px solid color-mix(in srgb, var(--glow) 52%, transparent);
+  border-radius:1px;
+  background:
+    linear-gradient(var(--glow),var(--glow)) 0 0/9px 2px no-repeat,
+    linear-gradient(var(--glow),var(--glow)) 0 0/2px 9px no-repeat,
+    linear-gradient(var(--glow),var(--glow)) 100% 0/9px 2px no-repeat,
+    linear-gradient(var(--glow),var(--glow)) 100% 0/2px 9px no-repeat,
+    linear-gradient(var(--glow),var(--glow)) 0 100%/9px 2px no-repeat,
+    linear-gradient(var(--glow),var(--glow)) 0 100%/2px 9px no-repeat,
+    linear-gradient(var(--glow),var(--glow)) 100% 100%/9px 2px no-repeat,
+    linear-gradient(var(--glow),var(--glow)) 100% 100%/2px 9px no-repeat;
+  opacity:.8;
+}
+/* too small to rule: at one or two cells the frame would be the whole tile */
+.drawer.magicdrawer.sz-mini::before{content:none}
 .clcount{margin-left:auto;font-size:11px;color:var(--dink-3);font-variant-numeric:tabular-nums}
 /* checklist: the contents, tickable, on the front of the tile */
 .clist{display:flex;flex-direction:column;gap:2px;overflow:hidden;height:100%}
@@ -259,6 +289,49 @@
   font-size:11.5px;color:var(--dink)}
 .cladd input::placeholder{color:var(--dink-3)}
 .sz-short .cladd,.sz-mini .cladd{display:none}
+/* ---- a project's front page ------------------------------------------
+   The one container face that reports rather than lists: a cover, a bar, the
+   count, what is next, and a row of what it is made of. Everything is read
+   off one walk of the whole subtree, so a project of checklists counts the
+   ticks inside them. */
+.projtile{position:relative;overflow:hidden}
+.projcover{position:absolute;inset:0;background-size:cover;background-position:center;
+  opacity:.30;filter:saturate(.7)}
+.projtile > *{position:relative;z-index:1}
+.projtile .dtop{align-items:flex-start;justify-content:space-between;gap:6px}
+.projdue{flex:0 0 auto;font-size:10px;letter-spacing:.03em;text-transform:uppercase;
+  color:var(--dink-2);border:1px solid var(--dink-3);border-radius:20px;padding:1px 7px;white-space:nowrap}
+.projdue.late{color:var(--dink);border-color:var(--dink);background:rgba(0,0,0,.22)}
+.projbar{display:flex;align-items:center;gap:7px;margin-top:7px;flex:0 0 auto}
+.projbar i{flex:1;height:5px;border-radius:3px;background:rgba(0,0,0,.26);overflow:hidden;position:relative}
+.projbar i::after{content:"";position:absolute;inset:0 auto 0 0;width:var(--pct,0%);
+  background:var(--dink);border-radius:3px;transition:width .3s}
+.projbar b{font-size:11px;font-variant-numeric:tabular-nums;color:var(--dink-2);min-width:30px;text-align:right}
+.projline{display:flex;gap:9px;margin-top:5px;font-size:11px;color:var(--dink-2);flex:0 0 auto}
+.projnext{margin-left:auto;white-space:nowrap}
+.projkinds{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;align-content:flex-start;flex:0 0 auto}
+.projkind{display:inline-flex;align-items:center;gap:3px;padding:1px 6px 1px 4px;border-radius:20px;
+  background:rgba(0,0,0,.20);color:var(--dink-2);font-size:10.5px;
+  box-shadow:inset 2px 0 0 var(--k)}
+.projkind u{text-decoration:none;font-variant-numeric:tabular-nums}
+/* what is coming up, soonest first — the thing a project is actually asked */
+.projsoon{display:flex;flex-direction:column;gap:3px;margin-top:8px;flex:1;min-height:0;overflow:hidden}
+.projitem{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--dink-2);
+  padding:2px 6px;border-radius:5px;background:rgba(0,0,0,.16);cursor:pointer}
+.projitem:hover{color:var(--dink);background:rgba(0,0,0,.26)}
+.projitem i{flex:0 0 auto;display:inline-flex;color:var(--dink-2)}
+.projitem b{flex:1;min-width:0;font-weight:400;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.projitem u{flex:0 0 auto;text-decoration:none;font-size:10px;color:var(--dink-3);font-variant-numeric:tabular-nums}
+.projitem.late u{color:var(--dink)}
+/* the box sits at the foot of a project, not under the last thing in the list
+   — a project's front is a page, and the way in belongs at the bottom of it */
+.projtile .cladd{margin-top:auto}
+/* what a tile gives up as it shrinks — the bar and the name survive longest */
+.sz-narrow .projsoon,.sz-short .projsoon{display:none}
+.sz-narrow .projkinds,.sz-short .projkinds{display:none}
+.sz-short .projbar,.sz-short .projline,.sz-short .projcover{display:none}
+.sz-mini .projbar,.sz-mini .projline{display:none}
+
 /* calendar */
 /* The weeks share out the height they are given rather than stacking at the
    top of it — a month packed into the first third of an eight-cell tile is a
@@ -282,7 +355,8 @@
 .magicmark{color:var(--dink-2);display:inline-flex;align-items:center;margin-left:2px}
 .magicmark.big{color:var(--brass);vertical-align:middle}
 @media (prefers-reduced-motion:reduce){
-  .drawer.magicdrawer,.drawer.magicdrawer::before{animation:none}
+  /* the frame is the point; the travelling light is the flourish */
+  .drawer.magicdrawer{animation:none;background-image:none}
 }
 
 /* Scroll view — a drawer read top to bottom, nothing truncated */
@@ -375,7 +449,10 @@
 
 /* A note is a torn scrap of parchment: no binding, and a chip out of one edge */
 .drawer.otile.sh-note,.drawer.otile.sh-note,
-.drawer.otile.sh-note,.drawer.otile.sh-plaque{
+/* Torn paper, for the shapes that are paper. A plaque was in this list and
+   should never have been: it is cast metal, and the parchment edge overrode
+   the plaque styling entirely because this file loads second. */
+.drawer.otile.sh-note{
   border-left:1px solid var(--rule);
   background:var(--paper-2);
   clip-path:polygon(0 0, 100% 0, 100% 62%, 96.5% 68%, 100% 74%, 100% 100%,
@@ -445,9 +522,13 @@
 .mbname{position:absolute;left:0;right:0;bottom:0;padding:5px 8px;font-size:12px;font-weight:600;
   color:#F8F3E6;background:rgba(0,0,0,.5);text-align:left}
 /* a task is a sliver with a point on the right, like a flag or a tab */
+/* A sliver used to come to a point down its right-hand edge. It was the one
+   shape that implied a direction the object doesn't have, and it cost every
+   sliver 20px of its own width to make room for the arrow. It is a plain band
+   now, with the type's colour down the left where a tab would be. */
 .drawer.otile.sh-sliver{
-  clip-path:polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%);
-  padding-right:20px;
+  border-left:3px solid var(--c);
+  padding-right:12px;
 }
 .drawer.otile.sh-sliver .dbody,.drawer.otile.sh-sliver .dfoot{display:none}
 .drawer.otile.sh-sliver .dtop{height:100%;align-items:center}
@@ -490,8 +571,8 @@
 .drawer:hover .pull{opacity:1}
 
 /* A magic drawer is dotted, not dashed */
-.drawer.magicdrawer{ border-style:dotted;border-width:2px;
-  border-color:color-mix(in srgb, #fff 55%, transparent) }
+.drawer.magicdrawer{ border-style:solid;border-width:1px;
+  border-color:color-mix(in srgb, var(--glow) 62%, transparent) }
 
 /* A drawer front: a name and a pull, nothing else. What's inside is inside. */
 

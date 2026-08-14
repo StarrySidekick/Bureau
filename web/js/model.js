@@ -136,7 +136,14 @@ const BUILTIN_KINDS = {
   counter: {nm:'Counter',  ic:'target', c:8, key:'X', ds:'A number, and what it counts', size:[4,4], onclick:'none', attrs:['count'], body:'' },
   link:    {shape:'card', nm:'Button',  ic:'arrow',   c:9, key:'E', ds:'A button that opens something', attrs:['button'], body:'' },
   achievement:{shape:'plaque', nm:'Achievement', ic:'trophy', c:12, key:'W', ds:'Something you actually did', size:[6,3], onclick:'read', attrs:['text','date'], body:'' },
-  project: {face:'checklist', nm:'Project', ic:'flag',    c:7, key:'8', ds:'A big thing, made of tasks',   attrs:['container','date','progress'], layout:'list', size:[7,8], body:'' },
+  /* A project is a drawer with a front page. It holds everything a piece of
+     work is made of — tasks, events, goals, pictures, notes — so it opens onto
+     a board of its own rather than a list, and its front reports on what is
+     inside instead of listing the first fourteen things. `media` gives it a
+     cover; `spawn` lets you throw a task at it without opening it. */
+  project: {face:'project', nm:'Project', ic:'flag',    c:7, key:'8', ds:'A whole piece of work, and everything it is made of',
+     attrs:['text','container','date','progress','media','spawn','relates'], spawnBy:'type', genKind:'task',
+     layout:'grid', size:[5,5], phoneSize:[4,4], body:'' },
   dream:   {shape:'dream', nm:'Dream',   ic:'star',    c:10, key:'9', ds:'Far off, and probably daft',   size:[5,5], onclick:'read', attrs:['text','media'], body:'**Why it pulls at me —** ' },
   timeline:{face:'timeline', nm:'Timeline',ic:'clock',   c:5, key:'0', ds:'Things in the order they happened', attrs:['container'], layout:'timeline', size:[10,6], body:'' },
   appt:    {shape:'sliver', nm:'Event',   ic:'calendar',c:8, key:'V', ds:'Something at a time and place', size:[6,2], onclick:'read', attrs:['text','date','duration','location'], body:'' }
@@ -326,8 +333,9 @@ const isContainer = o => !!o && has(o,'container');
 /* A face is how a container draws itself on its parent's board. A layout is
    how it arranges its children once opened. They used to be one property,
    which meant a checklist could not also be sorted when you opened it. */
-const FACES = {front:'Drawer front', checklist:'Checklist', calendar:'Calendar',
-               moodboard:'Moodboard', timeline:'Timeline', spine:'Book spine'};
+const FACES = {front:'Drawer front', checklist:'Checklist', project:'Project',
+               calendar:'Calendar', moodboard:'Moodboard', timeline:'Timeline',
+               spine:'Book spine'};
 const faceOf = o => (o && o.face) || K(o&&o.kind).face || 'front';
 // How a container arranges what it holds, once opened. The kind's is the
 // fallback, so a type that says it opens as a calendar does even when nothing
@@ -363,7 +371,7 @@ function calCols(c){
    exempt, and for one reason: their job is to show what has already happened.
    A checklist that empties itself as you tick is not a checklist, and a
    calendar whose days clear behind you is not a record of anything. */
-const DONE_FACES = ['checklist','calendar','timeline'];
+const DONE_FACES = ['checklist','project','calendar','timeline'];
 const keepsDone = c => DONE_FACES.includes(faceOf(c));
 
 /* What a pile of these becomes. Dropping one object on another is only a
@@ -536,6 +544,54 @@ function streak(o){
   return n;
 }
 const goalPct = o => !o.milestones||!o.milestones.length ? 0 : Math.round(100*o.milestones.filter(m=>m.done).length/o.milestones.length);
+
+/* Everything under a container, however deep. A project is made of checklists
+   as often as of loose tasks, so counting only its direct children would report
+   a project of four full checklists as nothing done at all. Guarded against the
+   cycle a reparenting bug could still introduce, and against a magic container
+   collecting its own ancestor. */
+function allUnder(c, seen){
+  seen = seen || new Set([c && c.id]);
+  const out=[];
+  childrenOf(c).forEach(o=>{
+    if(seen.has(o.id)) return;
+    seen.add(o.id);
+    out.push(o);
+    if(isContainer(o)) out.push(...allUnder(o, seen));
+  });
+  return out;
+}
+/* How far along a thing is. An object with milestones is its milestones. A
+   container is what it holds — every tickable thing under it — because that is
+   the number you actually want off the front of a project, and it falls back to
+   its own milestones when it holds nothing tickable yet. */
+function progressOf(o){
+  if(!o) return 0;
+  if(isContainer(o)){
+    const ticks = allUnder(o).filter(x=>has(x,'check'));
+    if(ticks.length) return Math.round(100*ticks.filter(x=>x.done).length/ticks.length);
+  }
+  return goalPct(o);
+}
+/* What a container holds, counted by type, and the next thing due in it. Both
+   are read off the same walk, because a project's front asks for both at once. */
+function projectStat(c){
+  const all = allUnder(c);
+  const ticks = all.filter(x=>has(x,'check'));
+  const byKind = {};
+  all.forEach(x=>{ byKind[x.kind]=(byKind[x.kind]||0)+1; });
+  /* What is coming up, soonest first. This is the question a project is asked
+     from across the desk, and it is a different question from a checklist's
+     "what is in here" — so the front shows the next few dated things rather
+     than the first few things of any sort. Undated work is not *up next*, it is
+     just work, and it stays in the count instead. */
+  const soon = all.filter(x=>x.due && !x.done)
+    .sort((a,b)=>a.due.localeCompare(b.due));
+  const cover = (c.media&&c.media.src) || (all.find(x=>x.media&&x.media.src)||{}).media?.src || null;
+  return {n:all.length, done:ticks.filter(x=>x.done).length, ticks:ticks.length,
+          pct:progressOf(c), next:(soon[0]||{}).due||null, soon, cover,
+          kinds:Object.entries(byKind).sort((a,b)=>b[1]-a[1])};
+}
 const allTags = ()=>{ const m={}; S.objects.forEach(o=>(o.tags||[]).forEach(t=>m[t]=(m[t]||0)+1)); return Object.entries(m).sort((a,b)=>b[1]-a[1]); };
 
 export { ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds, K,
@@ -545,4 +601,5 @@ export { ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds, K,
   spawnByOf, genKindOf, takesTyping, keepsDone,
   CALVIEWS, calViewOf, weekStartOf, showsWeekends, calCols,
   OPS, ROLLS, rollup, SORTS, childrenOf, isAncestor,
-  relatedTo, backlinksTo, relate, unrelate, chainOf, tlSpan, streak, goalPct, allTags };
+  relatedTo, backlinksTo, relate, unrelate, chainOf, tlSpan, streak, goalPct,
+  allUnder, progressOf, projectStat, allTags };

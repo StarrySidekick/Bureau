@@ -855,3 +855,61 @@ on the colours resembling each other.
 offer, and two drawers that were different browns may now share a slot. That is
 the cost of a colour being able to travel at all — and a hand-typed hex is still
 there for the one drawer that has to be its own colour and no style's business.
+
+### 34. A project reports; four shapes stop pretending
+
+Four changes to how things look, one of which is really about what a type *is*.
+
+**A project is a drawer with a front page.** It was a checklist wearing a
+different name — `face:'checklist'`, a list layout, and a front that printed
+the first fourteen things inside it. But the question you ask a project from
+across the desk is not "what is in here", it is **"where is this up to"**, and
+no list answers that. So it has a face of its own: a cover, a progress bar, a
+count, what is next, and a row of what it is made of. It opens onto a **grid**
+rather than a list, because a project holds everything a piece of work is made
+of — tasks, events, goals, pictures, notes — and a grid is where you arrange
+things that are not all the same kind.
+
+The number under the bar is `progressOf()`, and for a container it is **every
+tickable thing underneath it, however deep**. A project is made of checklists
+as often as of loose tasks, and counting only direct children reported a
+project of four completed checklists as nothing done at all. Milestones are the
+fallback, for a project that holds nothing tickable yet — so `progress` still
+means what it always meant, it just isn't the only source any more.
+`projectStat()` reads the count, the makeup, the cover and what is coming up
+off one walk, because four walks of the same subtree per tile per render is
+four times the work for the same answer.
+
+*What follows from it:* `keepsDone()` gains `project` — a project that hid its
+finished work would report on a subtree it wasn't showing you. `spawn` comes
+with it, so you can throw a task at a project without opening it, and `media`
+gives it a cover.
+
+**A magic drawer is gilded, not dotted.** Dotted borders and scattered stars
+read as a placeholder — a dotted line is what every drawing tool on earth means
+by "not real yet", which is the opposite of what a drawer that fills itself
+should say. It is *illuminated* now: a gilt rule held off the edge the way a
+manuscript is ruled, the corners thickened into brackets, and a slow band of
+light that crosses the front and then leaves it alone. All of it is drawn in
+`var(--glow)` — slot 4 — so the gilt is leaf on Victorian and a green shimmer
+on Starry Sidekick, and a style added later gets an answer without being asked.
+The frame is dropped at 1×1, where it would be the whole tile.
+
+**A task is a band.** The sliver came to a point down its right-hand edge: the
+one shape implying a direction the object hasn't got, and it cost every task
+20px of its own width to make room for the arrow. It is a plain band with the
+type's colour down the left now.
+
+**An achievement is a plaque, and the plaque takes its colour from its slot.**
+Two bugs in one line: `.sh-plaque` was grouped with `.sh-note` in the
+torn-parchment rule, and because that file loads second it overrode the plaque
+styling entirely — so an achievement was a torn note wearing a plaque's
+stylesheet. And the plaque itself was three hardcoded browns, which since
+decision 33 meant an award stayed brass in a style that owns no browns. It is
+cast from `var(--c)` now: a lit top edge, the object's own colour, a shadowed
+foot, a bevel inside the frame.
+
+*Against:* the project face is the first container front that costs a subtree
+walk to draw. It is bounded by what is actually under one project and only runs
+for tiles wearing that face, but it is the first place where drawing a tile is
+not O(1), and a desk of fifty deep projects would be the thing to watch.

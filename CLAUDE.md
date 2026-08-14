@@ -151,9 +151,18 @@ same box. Ask `takesTyping(c)`, and go through `spawnInto()` rather than
 one has to be made where the container itself lives and collected back by its
 rule. That is the only reason the quick-add on a calendar day works.
 
+**A project reports; every other container lists or hides.** `face:'project'`
+is the one front that answers "where is this up to" — a bar, a count, what is
+next, and what it is made of — all read off `projectStat(c)`, which walks the
+*whole* subtree once. `progressOf(o)` is the number: a container is its ticked
+descendants, however deep, so a project made of four full checklists reads 100%
+rather than 0%; milestones are the fallback for when it holds nothing tickable
+yet. A project opens onto a **grid**, not a list, because it holds everything a
+piece of work is made of. See decision 34.
+
 **Completed things leave a drawer unless its face says otherwise.**
-`keepsDone(c)` — checklist, calendar and timeline keep them, because all three
-exist to show what already happened. Everywhere else, done means gone, and that
+`keepsDone(c)` — checklist, project, calendar and timeline keep them, because
+all four exist to show what already happened. Everywhere else, done means gone, and that
 is what keeps a drawer finite.
 
 **A drop has four meanings, and they are ordered.** `aimDrop()` in
@@ -251,6 +260,12 @@ attribute registry is `ATTRS`; the presets are `BUILTIN_KINDS` merged with
 **CSS uses custom properties for kind colour.** `--k` is set inline on the element
 and everything inside inherits it. `--c` does the same for drawer colour. Don't
 hardcode a hex value in a component rule.
+
+**A magic drawer is gilded, and the gilt is the style's Glow.** Not dotted, not
+speckled with stars — a dotted border is what every drawing tool means by "not
+real yet". `.magicdrawer` gets a ruled frame inset from the edge with corner
+brackets, and a slow band of light across the front. Never hardcode the gold:
+it is `var(--glow)`, so it is leaf on Victorian and a green shimmer on Starry.
 
 **A colour is a slot, and a slot is a position, not a hue.** Every style has
 the same sixteen — five that dress the app (Page, Text, Lines, Accent, Glow)

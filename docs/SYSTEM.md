@@ -68,9 +68,9 @@ desk ──contains──▶ drawer ──contains──▶ drawer ──contain
 - An object lives in **exactly one** drawer. Filing moves it; it never copies.
 - A magic drawer ignores `parent` and shows whatever its rule matches. That is
   the only way an object appears in two places.
-- Completed objects leave every drawer except the archive and the three faces
-  whose job is to show what already happened — checklist, calendar, timeline
-  (`keepsDone()`). Everywhere else they go, and that is what keeps a drawer
+- Completed objects leave every drawer except the archive and the four faces
+  whose job is to show what already happened — checklist, project, calendar,
+  timeline (`keepsDone()`). Everywhere else they go, and that is what keeps a drawer
   finite, which is the whole argument for drawers.
 - Reparenting goes through `isAncestor()` — recursion admits cycles, and a
   drawer dropped inside itself takes its subtree out of reach.
@@ -191,7 +191,8 @@ same settings, kept in `S.deskCfg` because it has no object to hang them on.
 
 **Face** — how it draws on its parent's board: `front` (a drawer front with a
 pull), `checklist` (its children listed with boxes you can tick without opening
-it), `calendar`, `moodboard`, `timeline`.
+it), `project` (a front page: progress, counts, what is next, what it is made
+of), `calendar`, `moodboard`, `timeline`.
 
 **Layout** — how it arranges its children once opened: `grid`, `list`, `scroll`
 (nothing truncated — for reading a drawer rather than scanning it), plus
