@@ -310,7 +310,9 @@ function reset(){
     device:sensedDevice(), layoutEdit:null,
     view:'desk', drawerId:null, openId:null,
     arrange:false, kindFilter:null, calDay:null,
-    undo:[], editing:false, sel:[], readId:null, bookAt:0,
+    // editId is the tile being typed in on the board — a double tap turns a
+    // name into a field in place. writeId is the full-screen writing surface.
+    undo:[], editing:false, sel:[], readId:null, writeId:null, editId:null, bookAt:0,
     deskCfg:{layout:'grid', locked:false, sort:null},
     look:defaultLook()
   };
@@ -407,11 +409,16 @@ const knobSizeOf = o => (o && o.knobsize) || 'sm';
 // Answered is "there is something written in the box", not a flag of its own.
 const answered = o => !!String((o&&o.answer)||'').trim();
 
+/* The four at the end are the newer answers to "what does a task look like",
+   which is a question a plain sliver only ever answered by not being anything.
+   They are ordinary shapes: any type can wear one, and a task is a `sliver`
+   until you say otherwise. */
 const SHAPES = {
   card:'Card', habit:'Streak', goal:'Progress bar', dream:'Dashed', image:'Picture', note:'Torn note', idea:'Folded corner', bubble:'Speech bubble',
   page:'Punched page', index:'Index card', spine:'Book spine', portrait:'Portrait',
   ticket:'Ticket', plaque:'Plaque', tally:'Tally', quote:'Quotation',
-  verse:'Verse', sliver:'Sliver', press:'Press', band:'Band'
+  verse:'Verse', sliver:'Sliver', press:'Press', band:'Band',
+  tab:'Filing tab', ruled:'Ruled line', chit:'Torn chit', pill:'Pill'
 };
 const shapeOf = o => (o && o.shape) || K(o&&o.kind).shape || 'card';
 
@@ -496,8 +503,7 @@ function rollup(c){
   return money ? (String(kids.find(x=>valOf(x,fld.key))?.[fld.key]||'').replace(/[\d.,\s-]/g,'')||'') + out : String(out);
 }
 
-/* Children, in whatever order the drawer is sorted by. `sort` is null for the
-   manual order you arranged yourself, which is the default. */
+/* Children, in whatever order the container is sorted by. */
 const SORTS = {
   made:   ['Date made, newest',    (a,b)=>(b.created||'').localeCompare(a.created||'')],
   madeup: ['Date made, oldest',    (a,b)=>(a.created||'').localeCompare(b.created||'')],
@@ -505,9 +511,18 @@ const SORTS = {
   az:     ['Alphabetical, A–Z',    (a,b)=>(a.title||'').localeCompare(b.title||'')],
   za:     ['Alphabetical, Z–A',    (a,b)=>(b.title||'').localeCompare(a.title||'')]
 };
+/* A sort is per object then per type, exactly like a face, a layout or a
+   colour — so a Shopping list can be born alphabetical while the Drawer type
+   stays as you arranged it. `manual` is an explicit "leave it where I put it",
+   which is what lets one container refuse a type that sorts; a container that
+   says nothing follows its type, and a type that says nothing is manual.
+   Manual is the answer for a drawer, and deliberately so: a grid is a place. */
+const MANUAL = 'manual';
+const sortOf = c => { const v=(c && c.sort) || K(c&&c.kind).sort || MANUAL;
+  return SORTS[v] ? v : null; };
 function childrenOf(c){
   const list = S.objects.filter(o=>inContainer(c,o));
-  const s = c && c.sort && SORTS[c.sort];
+  const s = SORTS[sortOf(c)];
   return list.sort(s ? s[1] : (a,b)=>(a.ord||0)-(b.ord||0));
 }
 // Guard against a container being dragged inside itself — with recursion this
@@ -617,6 +632,6 @@ export { ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds, K,
   KNOBSIZES, knobSizeOf, answered,
   spawnByOf, genKindOf, takesTyping, keepsDone,
   CALVIEWS, calViewOf, weekStartOf, showsWeekends, calCols,
-  OPS, ROLLS, rollup, SORTS, childrenOf, isAncestor,
+  OPS, ROLLS, rollup, SORTS, MANUAL, sortOf, childrenOf, isAncestor,
   relatedTo, backlinksTo, relate, unrelate, chainOf, tlSpan, streak, goalPct,
   allUnder, progressOf, projectStat, allTags };

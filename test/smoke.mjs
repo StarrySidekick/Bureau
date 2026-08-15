@@ -151,14 +151,26 @@ const CHROME = process.env.BUREAU_CHROME;
     out.newobject = key();
     await click('[data-act="newkind"]');               out.kindform = key();
     await click('[data-act="cancel"]');
-    // a drawer's own settings, then the form behind "Name, rule and totals…"
+    /* One panel for objects and containers alike — a container is an object
+       with children, so "drawer settings" and "object settings" were the same
+       question asked twice. The drawer *form* behind "Name, rule and totals…"
+       is gone with them; its three rows are a disclosure in this panel. */
     const d = BUREAU.state.objects.find(o => o.kind === 'drawer');
     document.querySelector(`.grid .drawer[data-drawer="${d.id}"]`)
       .dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, clientX: 200, clientY: 200 }));
     await wait();
-    await click('[data-c^="drawerset"]');              out.drawer = (key() || '').split(':')[0];
-    await click('[data-act="panelmore"]');             out.drawerform = key();
-    await click('[data-act="cancel"]');
+    await click('[data-c^="objset"]');                 out.drawer = (key() || '').split(':')[0];
+    out.oneName = key() === 'object:' + d.id;
+    // and every one-of-many list in it is a select, not a wall of chips
+    const p = document.querySelector('#panel');
+    out.condensed = p.querySelectorAll('.psel').length >= 8
+      && !p.querySelector('[data-otype],[data-oshape],[data-pface]');
+    await click('[data-act="panelclose"]');
+    // the same panel for an object, by the same name
+    const o = BUREAU.state.objects.find(x => x.kind === 'task');
+    BUREAU.panel(o.id); await wait();
+    out.object = (key() || '').split(':')[0];
+    await click('[data-act="panelclose"]');
     return out;
   });
   await page.waitForTimeout(200);
@@ -316,19 +328,21 @@ const CHROME = process.env.BUREAU_CHROME;
     const a = S.objects.find(o => o.title === 'Book the flight');
     const b = S.objects.find(o => o.title === 'Milk');
     a.attrs = (a.attrs || ['text','check','date','repeat']).concat('relates');
-    S.openId = a.id; S.readId = null; BUREAU.renderSheet();
+    // relations were on the detail sheet; they are a setting about one object,
+    // so they moved into that object's panel with the rest of it
+    BUREAU.panel(a.id);
     await new Promise(r => setTimeout(r, 120));
-    const host = document.querySelector('#sheetHost');
+    const host = document.querySelector('#panel');
     const chips = [...host.querySelectorAll('.relchip')];
     const hasOut = chips.some(c => c.dataset.openrel === b.id);
     const canUnlink = !!host.querySelector(`[data-unrel="${a.id}:${b.id}"]`);
     const canAdd = !!host.querySelector('[data-act="addrel"]');
     // and the other end shows it as a backlink, without opting in
-    S.openId = b.id; BUREAU.renderSheet();
+    BUREAU.panel(b.id);
     await new Promise(r => setTimeout(r, 120));
-    const backChip = [...document.querySelectorAll('#sheetHost .relchip')]
+    const backChip = [...document.querySelectorAll('#panel .relchip')]
       .some(c => c.dataset.openrel === a.id);
-    S.openId = null; BUREAU.renderSheet();
+    document.querySelector('[data-act="panelclose"]').click();
     return hasOut && canUnlink && canAdd && backChip;
   });
 
@@ -595,7 +609,7 @@ const CHROME = process.env.BUREAU_CHROME;
   const tagDrawer = await page.evaluate(async () => {
     const S = BUREAU.state;
     const o = S.objects.find(x => (x.tags || []).includes('bureau'));
-    S.openId = o.id; BUREAU.renderSheet();
+    BUREAU.panel(o.id);
     await new Promise(r => setTimeout(r, 150));
     document.querySelector('.realtag[data-tagdrawer="bureau"]').click();
     await new Promise(r => setTimeout(r, 250));
@@ -605,7 +619,7 @@ const CHROME = process.env.BUREAU_CHROME;
       && BUREAU.kids(d.id).every(id => (S.objects.find(y => y.id === id).tags || []).includes('bureau'));
     // asking again reuses it rather than piling up drawers
     const n = S.objects.filter(x => (x.filter || {}).tag === 'bureau').length;
-    S.openId = o.id; BUREAU.renderSheet();
+    BUREAU.panel(o.id);
     await new Promise(r => setTimeout(r, 150));
     document.querySelector('.realtag[data-tagdrawer="bureau"]').click();
     await new Promise(r => setTimeout(r, 200));
@@ -760,7 +774,15 @@ const CHROME = process.env.BUREAU_CHROME;
   /* --- a panel about one tile comes up beside that tile, not down the edge
      The drag tests above ended on a gesture, which leaves gestureFlags
      .suppressClick set for the next click — by design, so a reordered pin
-     doesn't also open. Spend it on a click that does nothing. */
+     doesn't also open. Spend it on a click that does nothing.
+
+     And bring this page to the front first: opening the phone page put it in
+     the background, where Chromium stops producing frames — so neither the
+     requestAnimationFrame that adds `open` nor the transform transition it
+     turns off ever runs, and the panel measures 101% off to the right of where
+     it had correctly placed itself. */
+  await page.bringToFront();
+  await page.waitForTimeout(200);
   await page.evaluate(() =>
     document.querySelector('#frame').dispatchEvent(new MouseEvent('click', { bubbles:true })));
   await page.evaluate(() => {
@@ -768,8 +790,10 @@ const CHROME = process.env.BUREAU_CHROME;
     el.dispatchEvent(new MouseEvent('contextmenu', { bubbles:true, clientX:200, clientY:200 }));
   });
   await page.waitForTimeout(120);
-  await page.click('#ctx button[data-c^="drawerset"]');
-  await page.waitForTimeout(320);
+  await page.click('#ctx button[data-c^="objset"]');
+  // a panel comes up out of the tile — measure it once the transform has run,
+  // or the number you read is a frame of the animation
+  await page.waitForTimeout(700);
   const bubblePanel = await page.evaluate(() => {
     const p = document.querySelector('#panel');
     if (!p) return 'no panel';
@@ -780,6 +804,7 @@ const CHROME = process.env.BUREAU_CHROME;
              side: p.classList.contains('from-right') ? 'right'
                  : p.classList.contains('from-left') ? 'left' : null,
              narrow: r.width < 420,
+             gap: Math.round(r.left - t.right),
              besideIt: r.left > t.right && r.left - t.right < 30 };
   });
   await shot('15-bubble');
@@ -1024,8 +1049,146 @@ const CHROME = process.env.BUREAU_CHROME;
   await mig.screenshot({ path: 'test/shots/16-migrated-phone.png' });
   await migCtx.close();
 
+  /* --- a new object has to be *seen*. A board is a coordinate space, so the
+     first free room is found scanning from the top — and on a phone, where an
+     object is full width, that is always below everything already there. Made
+     inside a drawer it landed a screen and a half down and looked exactly like
+     nothing had happened. Driven through the real path: the picker, then the
+     type's own key, which is what a keyboard and a tap both end up calling. */
+  await phone.evaluate(() => {
+    BUREAU.state.view = 'drawer'; BUREAU.state.drawerId = 'd_ideas';
+    BUREAU.state.editId = null; BUREAU.render();
+    document.querySelector('#app .scroll').scrollTop = 0;
+  });
+  await phone.waitForTimeout(300);
+  const newObjectSeen = await phone.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const before = BUREAU.state.objects.length;
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'n', bubbles: true }));
+    await nap(200);
+    const picker = !!document.querySelector('[data-new="note"]');
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'O', bubbles: true }));  // Note
+    await nap(300);
+    const made = BUREAU.state.objects[BUREAU.state.objects.length - 1];
+    const el = document.querySelector(`.grid .drawer[data-row="${made.id}"]`);
+    const r = el && el.getBoundingClientRect();
+    const out = { picker, madeOne: BUREAU.state.objects.length === before + 1,
+      inDrawer: made.parent === 'd_ideas',
+      // it was placed below the fold — that is correct — and then scrolled to
+      placedLow: made.phone.y > 8,
+      onScreen: !!r && r.top >= 0 && r.bottom <= innerHeight + 1 };
+    BUREAU.del(made.id); BUREAU.state.undo = [];
+    BUREAU.state.view = 'desk'; BUREAU.state.drawerId = null; BUREAU.render();
+    return out;
+  });
+  await phone.screenshot({ path: 'test/shots/17-phone-new-object.png' });
+
+  /* --- a double tap edits the tile where it sits. Tasks and notes are a line
+     and a paragraph; neither is worth a screen, and the old detail sheet was
+     the only way to change either of them. */
+  const inlineEdit = await page.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const S = BUREAU.state;
+    S.view = 'desk'; S.drawerId = null; S.sel = [];
+    const o = BUREAU.create('task', { parent: 'root', title: 'Before' });
+    o.desk = { x: 1, y: 34, w: 6, h: 2 };
+    BUREAU.render(); await nap(150);
+    const tile = () => document.querySelector(`.grid .drawer[data-row="${o.id}"]`);
+    tile().dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+    await nap(150);
+    const field = document.querySelector(`.inlinename[data-inline="${o.id}:title"]`);
+    const opened = !!field && S.editId === o.id;
+    // a tile being typed in is a div, not a button — an input inside one is
+    // unfocusable, the same trap the answer box hit
+    const isDiv = !!tile() && tile().tagName === 'DIV';
+    if (field) { field.value = 'After'; field.dispatchEvent(new Event('input', { bubbles: true })); }
+    await nap(80);
+    const wrote = o.title === 'After';
+    // …and typing must not rebuild the board underneath the caret
+    const caretKept = document.querySelector(`.inlinename[data-inline="${o.id}:title"]`) === field;
+    /* A task carries `text`, so the body is under the name and Return moves to
+       it rather than finishing — the same key does the same thing it does in
+       any two-field form. Escape is what puts the tile back down. */
+    if (field) field.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    await nap(120);
+    const toBody = document.activeElement
+      && document.activeElement.dataset.inline === o.id + ':body';
+    document.querySelector('[data-inline]')
+      .dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    await nap(150);
+    const closed = S.editId === null && !document.querySelector('.inlinename');
+    const survives = tile().innerText.includes('After');
+    // a container is not edited this way: two taps on a drawer opens it twice
+    const d = BUREAU.state.objects.find(x => x.id === 'd_in');
+    document.querySelector(`.grid .drawer[data-drawer="${d.id}"]`)
+      .dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+    await nap(120);
+    const containerExempt = S.editId === null;
+    S.view = 'desk'; S.drawerId = null;
+    BUREAU.del(o.id); S.undo = []; BUREAU.render();
+    return { opened, isDiv, wrote, caretKept, toBody, closed, survives, containerExempt };
+  });
+
+  /* --- a container type carries a default sort, and one container can refuse
+     it. Manual is a value, not the absence of one — which is what lets an
+     object override a type that sorts. */
+  const sortDefaults = await page.evaluate(async () => {
+    const S = BUREAU.state, out = {};
+    const d = BUREAU.create('drawer', { parent: 'root', title: 'Sorting' });
+    ['Charlie', 'Alpha', 'Bravo'].forEach(t => BUREAU.create('note', { parent: d.id, title: t }));
+    const titles = () => BUREAU.kids(d.id).map(id => S.objects.find(o => o.id === id).title);
+    // a drawer is manual, and deliberately so: a grid is a place
+    const manual = titles().join();
+    out.drawerIsManual = manual !== 'Alpha,Bravo,Charlie' && manual.split(',').length === 3;
+    BUREAU.K.sorttype = { nm:'Sorted', ic:'folder', c:5, key:'', ds:'test',
+      attrs:['container'], layout:'grid', size:[4,4], sort:'az', body:'' };
+    d.kind = 'sorttype';
+    out.typeSorts = titles().join() === 'Alpha,Bravo,Charlie';
+    d.sort = 'manual';                       // one drawer refusing its type
+    out.objectRefuses = titles().join() === manual;
+    d.sort = 'za';
+    out.objectOverrides = titles().join() === 'Charlie,Bravo,Alpha';
+    delete BUREAU.K.sorttype;
+    BUREAU.delDrawer(d.id);
+    BUREAU.state.objects = S.objects.filter(o => !['Charlie','Alpha','Bravo'].includes(o.title));
+    S.undo = []; BUREAU.render();
+    return out;
+  });
+
+  /* --- no type draws a coloured left stripe any more. A stripe is what
+     priority means; painting one on by default made every task look flagged.
+     `edge` is the opt-in, and the four new shapes are the answers instead. */
+  const taskLook = await page.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const S = BUREAU.state;
+    S.view = 'desk'; S.drawerId = null;
+    const shapes = ['sliver','tab','ruled','chit','pill'];
+    const made = shapes.map((sh, i) => {
+      const o = BUREAU.create('task', { parent: 'root', title: 'Look ' + sh });
+      o.shape = sh; o.desk = { x: 1, y: 36 + i * 2, w: 7, h: 1 };
+      return o;
+    });
+    BUREAU.render(); await nap(200);
+    const px = el => parseFloat(getComputedStyle(el).borderLeftWidth) || 0;
+    const el = o => document.querySelector(`.grid .drawer[data-row="${o.id}"]`);
+    const noStripe = made.every(o => px(el(o)) < 2);
+    const allDrawn = made.every(o => el(o) && el(o).getBoundingClientRect().height > 10);
+    // and the opt-in still works
+    made[0].edge = true; BUREAU.render(); await nap(150);
+    const edgeStillWorks = px(el(made[0])) >= 3;
+    // the tick on a tile is twice the one in a row
+    const rowBox = 19;
+    const tick = document.querySelector('.grid .tilecheck');
+    const bigCheck = !!tick && tick.getBoundingClientRect().width >= rowBox * 2 - 1;
+    BUREAU.delMany(made.map(o => o.id)); S.undo = []; BUREAU.render();
+    return { noStripe, allDrawn, edgeStillWorks, bigCheck,
+             fourNewShapes: ['tab','ruled','chit','pill'].every(s => !!BUREAU.shapes[s]) };
+  });
+  await shot('18-task-shapes');
+
   console.log(JSON.stringify({
     errors: errs, manifestOk, swReady, survived, styleSurvived, slotColours,
+    newObjectSeen, inlineEdit, sortDefaults, taskLook,
     gridClass, offlineWorks, railGone, tabsGone, pinbarShown, pinNavigates,
     pinToggles, holdArms, maxDrift,
     settingsIsPanel, pickerPreviews, builderPreview, everyMenuIsAPanel,

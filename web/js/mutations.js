@@ -96,7 +96,10 @@ function removeMany(ids){
   const steps=[];
   ids.map(id=>S.objects.findIndex(o=>o.id===id)).filter(i=>i>=0).sort((a,b)=>b-a)
      .forEach(i=>{ steps.push({del:{o:S.objects[i], i}}); S.objects.splice(i,1); });
-  if(ids.includes(S.openId)) closeSheet();
+  // whatever was open on it can't stay open — a surface, a panel, or a tile
+  // being typed in
+  if(ids.includes(S.writeId)||ids.includes(S.readId)) closeSheet();
+  if(ids.includes(S.editId)) S.editId=null;
   S.sel=(S.sel||[]).filter(x=>!ids.includes(x));
   return steps;
 }

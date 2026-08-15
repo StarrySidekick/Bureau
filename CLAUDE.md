@@ -85,7 +85,7 @@ clause at the bottom of each file — that list is each module's public surface.
 | `mutations.js` | `toggleDone`, `del`, `create`, `quickAdd`, repeat scheduling, `toast`. |
 | `tiles.js` | `gridTile()` — the one place that decides how an object looks on a grid — plus rows, cards, list bands, book/scroll entries, and what a click does (`tileTap`). |
 | `views.js` | The desk and a drawer — the only two places there are. Also `pinbar()`, the time layouts (`viewMonth`, `viewTimeline`) and the settings panel's body. `render()` replaces `#app`'s innerHTML wholesale, then saves. |
-| `sheet.js` | `renderSheet()` — rendered into `#sheetHost`, **separately** from `render()`. |
+| `sheet.js` | The two surfaces an object opens onto — reading and writing — rendered into `#sheetHost`, **separately** from `render()`. |
 | `panels.js` | `openPanel()` — **every menu in the app** — plus `openMenu()` for a popup hung off a button, the command palette (⌘K), the context menu, and `sampleObject`/`sampleTile` for drawing a type as the thing it makes. |
 | `gestures.js` | Pointer-based drag, resize, lasso, swipe. The fiddliest code in the app. |
 | `persist.js` | localStorage read/write, **versioned `MIGRATIONS`**, JSON export/import, IndexedDB image assets, the paste bridge. |
@@ -102,9 +102,9 @@ it that way: no top-level code that *calls* another module.
 
 **Rendering is full re-render.** `render()` rebuilds `#app` from `S` every time.
 Don't add targeted DOM patching; it isn't the bottleneck and it would break the
-mental model. The one exception is the detail sheet, which renders into its own
-host so that typing doesn't destroy the field you're typing in — respect that
-split. The one thing carried *across* a rebuild is the board's scroll offset
+mental model. The exceptions are the reading and writing surfaces, which render
+into their own host so typing doesn't destroy the field you're typing in, and a
+tile being edited in place, which doesn't re-render at all — respect both. The one thing carried *across* a rebuild is the board's scroll offset
 (`SCROLL` in `views.js`, keyed by where you are), because a new scroller starts
 at the top and moving a tile on a long desk used to throw you back to the first
 screen. That is one number, not a foothold for patching — see decision 29.
@@ -219,8 +219,11 @@ shape.
   auto-refresh listener only fires over settings.
 - A form's draft lives in the `PANEL` object, read with `draft()`, never on the
   DOM node — a redraw would lose it.
-- The detail sheet claims the same side, so `renderSheet()` closes any open
-  panel. The sheet is the bigger claim.
+- A surface claims the same screen, so `renderSheet()` closes any open panel.
+  A surface is the bigger claim.
+- `spec.anchor` and `S.openId`: `objectPanel(id)` sets `S.openId` to the object
+  it is about, which is what every `byId(S.openId)` handler in `wire.js` acts
+  on. `closePanel()` clears it.
 - The command palette (⌘K) is the one thing that kept a scrim: it is a search
   field you summon and type into blind, not a menu about what is in front of you.
 - `spec.anchor` — an object id or an element — makes the panel a **bubble**
@@ -258,6 +261,36 @@ interface and wrong in the code, so ask `isContainer(o)` (which is
 inside containers; everything else nests inside nothing. An object lives in
 exactly one container — a magic drawer is the only way it appears anywhere
 else. Read `docs/SYSTEM.md` before changing any of it.
+
+**There is one settings panel, and one place words are written.** A container
+is an object with children, so `objectPanel(id)` answers for objects,
+containers and the desk alike — `drawerPanel` is an alias for it and the old
+drawer *form* is gone. Everything that used to be on the detail sheet is in
+there: fields, milestones, a streak, tags, relations, traits. The words are the
+other half, and they get their own surface — `openWriter(id)` full screen, or a
+double tap on the tile for a name and a line. Don't reintroduce a form that is
+both. See decision 36.
+
+**A one-of-many list is a `<select>`; a many-of-many is chips.** Forty types and
+twenty shapes as chips were four hundred pixels you had to read like a wall. New
+settings go in as `psel()`; if a group is genuinely multi-select, put the chips
+behind a `pgroup()` disclosure.
+
+**A sort is per object then per type.** Ask `sortOf(c)`, never `c.sort`. `manual`
+is a real stored value — it is what lets one container refuse a type that sorts —
+so writing `null` to mean "unsorted" reintroduces the bug it was there to stop.
+
+**A new object has to be *seen*.** `reveal(id)` after creating one. A board is a
+coordinate space and `freeSpot()` scans from the top, so on a phone — where an
+object is full width — a new thing always lands below the fold. It looked
+exactly like nothing had happened. Don't fix it by shuffling the board: things
+you arranged don't move.
+
+**No type draws a coloured left stripe.** A stripe down the left is what
+`priority` means. `edge` is the opt-in, on any object; four shapes (`tab`,
+`ruled`, `chit`, `pill`) are the answers a task has instead. `docs/BORDERS.md`
+is the inventory of every edge in the app and which ones still belong to the
+border system rather than to a shape.
 
 **Never branch on a type's name.** Appearance goes through `shapeOf()`, faces
 through `faceOf()`, behaviour through `has()`. The only remaining `kind===`

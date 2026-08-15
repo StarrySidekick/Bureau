@@ -48,10 +48,16 @@ absent, and `adopt()` backfills defaults when loading a backup.
   c:      "#A55A3E",                  // drawer front colour, solid
   layout: "grid",                     // grid | list | scroll
   filter: { kinds:["recipe"] },       // magic drawers only; ignored otherwise
+  sort:   "manual",                   // manual | made | madeup | edited | az | za
+                                      // absent = follow the type's; see sortOf()
   desk:   { x:13, y:7, w:6, h:6 },    // place + size in the 24-column Mac grid
-  phone:  { x:9,  y:13, w:8, h:6 }    // place + size in the 16-column iPhone grid
+  phone:  { x:9,  y:13, w:8, h:6 }    // place + size in the 8-column iPhone grid
 }
 ```
+
+`sort` is a real value both ways round. `"manual"` means *this container refuses
+to sort*, which is different from saying nothing — a container that says nothing
+follows its type, and a type may say `az`. A type carries the same key.
 
 `x` and `y` are **1-based grid cells**, and they are the whole layout — array
 order no longer positions anything. The grid does not flow: an empty cell stays
@@ -71,6 +77,24 @@ look: {
   line:       "rgba(0,0,0,.28)" | null    // drawer outline
 }
 ```
+
+## What is open, and on what
+
+None of this is stored — it is `S`, in memory, and every field names an object
+by id:
+
+| Field | Means |
+| --- | --- |
+| `view` / `drawerId` | Which of the two views you are on |
+| `openId` | The object the **settings panel** is about |
+| `writeId` | The object on the **writing** surface |
+| `readId` | The object on the **reading** surface |
+| `editId` | The tile being typed in **on the board** |
+| `sel` | The Finder-style selection |
+
+`openId` used to mean "the object in the detail sheet". The sheet is gone
+(decision 36) and the name stayed, because every handler that read it wanted
+"the object being changed" and that is what the panel is.
 
 `applyLook()` writes these as inline custom properties on `<html>`, which beat
 both theme blocks — that's why a custom background survives switching between

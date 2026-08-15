@@ -5,6 +5,29 @@ Sequenced by dependency, not appetite: item 1 makes everything after it safer.
 
 ---
 
+## 0a. Queued 2026-08-15 — DONE in the same pass (v55)
+
+See decision 36 and `docs/BORDERS.md`.
+
+- **the mobile bug** — a new object made inside a drawer landed below the fold
+  and looked like nothing had happened; `reveal()` scrolls to it
+- **one settings panel** — objects, containers and the desk; the drawer form
+  and the detail sheet are gone, and everything on them moved in
+- **one writing surface** — full screen, plus a double tap to edit a tile where
+  it sits
+- **condensed** — one-of-many lists are selects; traits and collect-rules are
+  behind disclosures
+- **a default sort per container type**, with `manual` as a real value
+- **no coloured left stripe on any type**, a tick twice the size, and four new
+  task shapes to choose between
+- **a long press is Bureau's** — `-webkit-user-select:none`, `touch-action`
+
+*Still open from that pass:* the border system is still container-only, and
+picture frames are still a parallel list — `docs/BORDERS.md` §3 has the order
+to fix that in. Timothy still has to pick one of the four task shapes.
+
+---
+
 ## 0. Queued 2026-08-13 — DONE in the same pass (v44)
 
 Six things asked for on 13 August; all six landed. See decisions 25b–30.

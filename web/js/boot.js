@@ -2,14 +2,14 @@
    boot — load, wire, render, register the service worker
    ============================================================ */
 import { $ } from './util.js';
-import { S, KINDS, childrenOf, container, relate } from './model.js';
+import { S, KINDS, SHAPES, childrenOf, container, relate } from './model.js';
 import { create, togglePin, del, delMany, delDrawer, undo, toggleDone } from './mutations.js';
 import { applyLook } from './look.js';
 import { render, settingsPanel } from './views.js';
-import { overlayHTML } from './panels.js';
+import { overlayHTML, objectPanel } from './panels.js';
 import { wire } from './wire.js';
 import { load, writeNow, save, hydrateAssets, pasteObjects } from './persist.js';
-import { renderSheet } from './sheet.js';
+import { renderSheet, openWriter, openRead } from './sheet.js';
 
 const restored = load();
 const hash = (location.hash||'').replace('#','');
@@ -35,7 +35,10 @@ if('serviceWorker' in navigator){
 window.BUREAU = {
   get state(){ return S; }, render, create, save: writeNow,
   get K(){ return KINDS; },
+  get shapes(){ return SHAPES; },
   paste: pasteObjects, relate, pin: togglePin, renderSheet,
+  // the three things an object opens onto: its settings, its words, its paper
+  panel: objectPanel, write: openWriter, read: openRead,
   del, delMany, delDrawer, undo, toggleDone,
   kids: id => childrenOf(container(id)).map(o=>o.id)
 };

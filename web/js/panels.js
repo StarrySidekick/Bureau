@@ -1,14 +1,15 @@
-import { $, $$, esc, ic, uid, clamp, ROOT } from './util.js';
+import { $, $$, esc, ic, uid, clamp, D, ROOT } from './util.js';
 import { S, K, KINDS, KEYS, T, ATTRS, USER_ATTRS, FIELDS, fieldOf, OPS, ROLLS,
-  SORTS, FACES, SHAPES, READS, faceOf, layoutOf, shapeOf, readOf, byId, container, cfgOf, deskTitle,
+  SORTS, MANUAL, sortOf, FACES, SHAPES, READS, faceOf, layoutOf, shapeOf, readOf, byId, container, cfgOf, deskTitle,
   rootObj, containers, isContainer, isAncestor, childrenOf, has, kindHas,
-  attrsOf, allTags, isPinned, dev, takesTyping, genKindOf,
+  attrsOf, allTags, isPinned, dev, takesTyping, genKindOf, answered,
+  relatedTo, backlinksTo, streak, goalPct,
   CALVIEWS, calViewOf, weekStartOf, showsWeekends, KNOBSIZES, knobSizeOf } from './model.js';
 import { GRID, lay, boxOk, freeSpot, sizeOfKind, toPhoneSize } from './grid.js';
 import { randomBoard, randomFront, hexOf, objColour, objSlots, palNow, OBJ0, borderSlots } from './look.js';
 import { CLICKS, clickOf, gridTile, pending } from './tiles.js';
 import { quickAdd, toast } from './mutations.js';
-import { openObj, renderSheet } from './sheet.js';
+import { openObj, openWriter, openRead, renderSheet } from './sheet.js';
 import { render, settingsPanel } from './views.js';
 import { save } from './persist.js';
 
@@ -61,8 +62,12 @@ function openPanel(spec){
   el.removeAttribute('style');
   el.dataset.panel = spec.key || '';
   bubbleAt(el, PANEL.anchor);
-  // one frame late, or the transform has nothing to animate from
-  if(fresh) requestAnimationFrame(()=>{ const p=$('#panel'); if(p) p.classList.add('open'); });
+  /* One frame late, or the transform has nothing to animate from. Always, not
+     only when the element is fresh: `open` is what turns off the off-screen
+     transform, and a panel that opens twice inside one frame — the second call
+     rebuilding the class list before the first frame arrives — used to lose it
+     and sit 101% off to the right of where it had measured itself to. */
+  requestAnimationFrame(()=>{ const p=$('#panel'); if(p) p.classList.add('open'); });
   drawPanel(true);
   return el;
 }
@@ -126,6 +131,7 @@ const panelKey = ()=>{ const p=$('#panel'); return p ? p.dataset.panel : null; }
 function closePanel(){
   const p=$('#panel'); if(p) p.remove();
   PANEL.spec=null; PANEL.draft=null; PANEL.anchor=null; pending.cell=null;
+  S.openId=null;                 // nothing is being edited once the panel is gone
 }
 // what a form in a panel is building, before it is saved
 const draft = ()=> PANEL.draft;
@@ -201,150 +207,255 @@ function swatchRows(cur, flat){
         style="background:${esc(cur)}"></button>` : '';
   return `<div class="pickgrid sw">${all.map(one).join('')}${custom}</div>`;
 }
-/* An object's settings: everything applies as you click it, so the object
-   changes while you watch. The body is a function, so the marks follow a
-   change without the handler having to rebuild the panel itself. */
+/* ============================================================
+   16c · object settings — the one place a thing is changed
+   ============================================================
+   There used to be three of these and they overlapped: an object panel, a
+   drawer panel, a drawer *form* behind a "Name, rule and totals…" button, and
+   the detail sheet, which was a fourth settings screen with the body stapled
+   to the bottom of it. A container is an object (§1 of SYSTEM.md), so its
+   settings are an object's settings with the container rows shown — the split
+   was never in the model, only in the code.
+
+   Everything applies as you touch it, so the thing changes while you watch;
+   the body is a function, so the panel agrees with the change afterwards.
+
+   Space: a list of one-of-many is a **select**, not thirty chips. Forty types
+   and twenty shapes were four hundred pixels of chips you had to read like a
+   wall; they are two rows now. The bulky many-of-many groups — traits, what a
+   magic drawer collects — are behind a disclosure, closed until asked for. */
+const prow=(label,body,note)=>`<div class="prow"><label>${label}${note?`<i>${note}</i>`:''}</label><div>${body}</div></div>`;
+const psel=(id,key,list,cur)=>`<select class="psel" data-oset="${id}:${key}">${
+  list.map(([v,n])=>`<option value="${esc(String(v))}"${String(cur==null?'':cur)===String(v)?' selected':''}>${esc(n)}</option>`).join('')}</select>`;
+const pfield=(id,key,cur,type,ph)=>`<input class="pfield"${type?` type="${type}"`:''}
+  data-oset="${id}:${key}" value="${esc(cur==null?'':cur)}" placeholder="${esc(ph||'')}">`;
+const pgroup=(label,body,open)=>`<details class="pgroup"${open?' open':''}><summary>${esc(label)}</summary>${body}</details>`;
+const swatches=(id,key,cur)=>`<div class="pickgrid sw">${objSlots().map(([slot,nm])=>
+  `<button data-ocolour="${slot}" data-key="${key}" data-id="${id}" title="${esc(nm)}"
+     class="${cur===slot?'on':''}" style="background:${hexOf(slot)}"></button>`).join('')}</div>`;
+// forty types is a wall of chips and two rows of a select, grouped as the
+// picker groups them
+const typeOptions = cur => pickGroups().map(g=>
+  `<optgroup label="${esc(g.nm)}">${g.ks.map(k=>
+    `<option value="${k}"${cur===k?' selected':''}>${esc(KINDS[k].nm)}</option>`).join('')}</optgroup>`).join('');
+
 function objectPanel(id){
-  const o=byId(id); if(!o) return;
-  openPanel({key:'object:'+id, anchor:id, title:esc(o.title||'Untitled'),
+  const o = id===ROOT ? null : byId(id);
+  if(id!==ROOT && !o) return;
+  S.openId = id;                    // what the field handlers in wire.js act on
+  openPanel({key:'object:'+id, anchor:id===ROOT?null:id,
+    title: id===ROOT ? esc(deskTitle()) : esc(o.title||'Untitled'),
+    sub: id===ROOT ? 'The desk itself' : esc(K(o.kind).nm),
     body:()=>objectPanelBody(id)});
 }
+/* The gear in the bar opens the same panel for the container you are *inside*,
+   whose tile is nowhere on screen — anchorEl() finds nothing and it falls back
+   to the edge panel, which is right: that question is about the whole board. */
+const drawerPanel = objectPanel;
+
 function objectPanelBody(id){
-  const o=byId(id); if(!o) return '';
-  const row=(label,body)=>`<div class="prow"><label>${label}</label><div>${body}</div></div>`;
-  return `
-    ${row('Type', KEYS.filter(k=>!kindHas(k,'container')&&true).map(k=>
-      `<button class="pchip${o.kind===k?' on':''}" data-otype="${k}" data-id="${id}">${KINDS[k].nm}</button>`).join(''))}
-    ${row('Shape', Object.entries(SHAPES).map(([v,n])=>
-      `<button class="pchip${shapeOf(o)===v?' on':''}" data-oshape="${v}" data-id="${id}">${n}</button>`).join(''))}
-    ${row('Edge', [['','None'],['1','Coloured']].map(([v,n])=>
-      `<button class="pchip${(!!o.edge===!!v)?' on':''}" data-oedge="${v}" data-id="${id}">${n}</button>`).join(''))}
-    ${row('Clicking it', Object.entries(CLICKS).map(([v,n])=>
-      `<button class="pchip${clickOf(o)===v?' on':''}" data-oclick="${v}" data-id="${id}">${n}</button>`).join(''))}
-    ${row('Opens as', Object.entries(READS).map(([v,n])=>
-      `<button class="pchip${readOf(o)===v?' on':''}" data-oread="${v}" data-id="${id}">${n}</button>`).join(''))}
-    ${row('Colour', `<div class="pickgrid sw">${objSlots().map(([slot,nm])=>
-      `<button data-ocolour="${slot}" data-id="${id}" title="${nm}" class="${o.c===slot?'on':''}" style="background:${hexOf(slot)}"></button>`).join('')}</div>`)}
-    ${has(o,'media')&&o.media&&o.media.type==='image'
-      ? row('Frame', [['none','None'],['mount','Mount'],['gilt','Gilt'],['walnut','Walnut'],['black','Lacquer'],['polaroid','Instant']].map(([v,n])=>
-          `<button class="pchip${(o.frame||'none')===v?' on':''}" data-oframe="${v}" data-id="${id}">${n}</button>`).join('')) : ''}
-    ${(has(o,'spawn')||clickOf(o)==='generate') ? row('Makes', KEYS.filter(k=>true&&!kindHas(k,'generator')).slice(0,14).map(k=>
-        `<button class="pchip${genKindOf(o)===k?' on':''}" data-ogen="${k}" data-id="${id}">${KINDS[k].nm}</button>`).join('')) : ''}
-    ${(has(o,'spawn')||clickOf(o)==='generate') ? row('Direction', [['down','Down'],['up','Up'],['left','Left'],['right','Right'],['random','Anywhere']].map(([v,n])=>
-        `<button class="pchip${(o.genDir||'down')===v?' on':''}" data-ogendir="${v}" data-id="${id}">${n}</button>`).join('')) : ''}
-    ${has(o,'button')
-      ? row('Button shape', [['rounded','Rounded'],['round','Round'],['square','Square']].map(([v,n])=>
-          `<button class="pchip${(o.btnshape||'rounded')===v?' on':''}" data-obtn="${v}" data-id="${id}">${n}</button>`).join('')) : ''}
-    <div class="pfoot">
-      <button class="pill" data-act="attrsheet" data-id="${id}">${ic('sliders',13)} Attributes</button>
-      <button class="pill" data-act="editthis" data-id="${id}">${ic('edit',13)} Open editor</button>
-    </div>`;
-}
+  const isRoot = id===ROOT;
+  const o = isRoot ? null : byId(id);
+  if(!isRoot && !o) return '';
+  /* Where a write lands and what a read sees. cfgOf() is deskCfg for the desk
+     and the object itself for everything else, so one target serves both — the
+     desk is a container without a tile, not a special case. */
+  const d = isRoot ? rootObj() : o;
+  const cont = isContainer(d), magic = has(d,'magic');
+  const view = isRoot ? (cfgOf(id).layout||'grid') : layoutOf(d);
+  const cal = cont && (view==='calendar' || faceOf(d)==='calendar');
+  const img = has(d,'media') && d.media && d.media.type==='image';
+  const spawns = has(d,'spawn') || clickOf(d)==='generate';
+  const objectKinds = KEYS.filter(k=>!kindHas(k,'container') && k!=='control')
+    .map(k=>[k, KINDS[k].nm]);
 
-/* A drawer's own settings, beside the grid it arranges. */
-/* The gear in the bar opens this for the drawer you are *inside*, whose tile is
-   nowhere on screen — anchorEl() finds nothing and it falls back to the edge
-   panel, which is right: that question is about the whole board. */
-function drawerPanel(id){
-  const d=container(id); if(!d) return;
-  openPanel({key:'drawer:'+id, anchor:id===ROOT?null:id,
-    title:esc(id===ROOT?deskTitle():(d.title||'Untitled')),
-    body:()=>drawerPanelBody(id)});
-}
-function drawerPanelBody(id){
-  const d=container(id), isRoot=id===ROOT;
-  if(!d) return '';
-  const cfg=cfgOf(id);
-  const row=(label,body)=>`<div class="prow"><label>${label}</label><div>${body}</div></div>`;
-  const chips=(name,val,list,cur)=>list.map(([v,n])=>
-    `<button class="pchip${cur===v?' on':''}" data-p${name}="${v}" data-id="${id}">${n}</button>`).join('');
-  // the desk has no type to fall back on, so it is the only one read from cfg alone
-  const view = isRoot ? (cfg.layout||'grid') : layoutOf(d);
-  return `
-    ${row('View', chips('view', null, [['grid','Grid'],['list','List'],['scroll','Scroll'],
-        ...(isRoot?[]:[['checklist','Checklist'],['book','Book'],['calendar','Calendar'],['timeline','Timeline']])], view))}
-    ${isRoot?'':row('Face', chips('face', null, Object.entries(FACES), faceOf(d)))}
-    ${/* only a calendar is asked what a calendar wants to know */''}
-    ${(!isRoot && (view==='calendar' || faceOf(d)==='calendar')) ? `
-      ${row('Shows', chips('calview', null, Object.entries(CALVIEWS), calViewOf(d)))}
-      ${row('Week starts', chips('weekstart', null, [['mon','Monday'],['sun','Sunday']], weekStartOf(d)))}
-      ${row('Weekends', chips('weekends', null, [['1','Shown'],['','Hidden']], showsWeekends(d)?'1':''))}` : ''}
-    ${(!isRoot && takesTyping(d)) ? row('Typing in it makes',
-      KEYS.filter(k=>!kindHas(k,'container')&&k!=='control').map(k=>
-        `<button class="pchip${genKindOf(d)===k?' on':''}" data-pgen="${k}" data-id="${id}">${KINDS[k].nm}</button>`).join('')) : ''}
-    ${row('Sort', chips('sort', null, [['','Custom'],...Object.entries(SORTS).map(([k,[nm]])=>[k,nm])], cfg.sort||''))}
-    ${row('Locked', chips('lock', null, [['','Movable'],['1','Locked']], cfg.locked?'1':''))}
-    ${isRoot?'':row('On the bar', chips('pin', null, [['','No'],['1','Pinned']], isPinned(id)?'1':''))}
-    ${isRoot?'':`
-      ${/* an edge is a slot: the six are the same positions, named by the style */''}
-      ${row('Border', chips('border', null, borderSlots(), d.border||'panel'))}
-      ${row('Knob', chips('knob', null, [['round','Round'],['diamond','Diamond'],['bar','Bar'],['ring','Ring'],['square','Square'],['orb','Orb']], d.knob||'round'))}
-      ${row('Front', `<div class="pickgrid sw">${objSlots().map(([slot,nm])=>
-          `<button data-pcolour="${slot}" data-id="${id}" title="${nm}" class="${d.c===slot?'on':''}" style="background:${hexOf(slot)}"></button>`).join('')}</div>`)}
-      ${row('Board', `<div class="pickgrid sw">${[0,1,2,3,4,5].map(()=>randomBoard()).map(b=>{
-          const [a,z]=b.split('|');
-          return `<button data-pboard="${b}" data-id="${id}" style="background:linear-gradient(135deg,${a} 0 50%,${z} 50% 100%)"></button>`;}).join('')}
-          <button data-pboard="" data-id="${id}" title="Use the desk's board" class="${d.board?'':'on'}"
-            style="background:var(--paper);border-style:dashed"></button></div>`)}
-      ${row('Board strength', `<input class="pslide" type="range" min="0" max="100" step="5"
-          value="${Math.round(((d.boardAlpha==null?1:d.boardAlpha))*100)}" data-palpha data-id="${id}">`)}
-      ${row('Texture', chips('texture', null, [['none','None'],['dots','Dots'],['grid','Graph'],['weave','Weave'],['weave2','Wide weave'],['check','Checker'],['rule','Ruled'],['stars','Stars'],['sheen','Sheen']], d.texture||'none'))}
-      ${row('Knob size', chips('knobsize', null, Object.entries(KNOBSIZES), knobSizeOf(d)))}
-      ${row('Knob position', chips('knobpos', null, [['centre','Centre'],['bottom','Bottom']], d.knobpos||'centre'))}
-      ${row('Knob colour', chips('knobtone', null, [['light','Lighter'],['dark','Darker']], d.knobtone||'light')
-        + `<div class="pickgrid sw" style="margin-top:5px">${
-          ['#F8F3E6','#A9793F','#2A241C','#C0563F','#3E7A6B','#5D7E99'].map(c=>
-          `<button data-pknobc="${c}" data-id="${id}" class="${d.knobc===c?'on':''}" style="background:${c}"></button>`).join('')}</div>`)}
-      <div class="pfoot"><button class="pill" data-act="panelmore" data-id="${id}">Name, rule and totals…</button></div>`}`;
-}
+  const out=[];
 
-function modalDrawer(id){
-  const d = id? byId(id) : {id:'', title:'', c:'#4A7C59', pv:'list', layout:'list', filter:{kinds:[]}};
-  const ks=((d.filter||{}).kinds||[]);
-  openPanel({
-    key:'drawerform', title:id?'Edit drawer':'New drawer',
-    sub:`What it collects, and what it prints on its front`,
-    draft:{c:d.c, pv:d.pv, kinds:ks.slice(), layout:d.layout||'grid', tag:(d.filter||{}).tag||'',
-           locked:!!d.locked, border:d.border||'panel', knob:d.knob||'round', knobc:d.knobc||''},
-    body:`
-    <div class="field" style="margin-bottom:10px"><label>Name</label><input id="dnm" value="${esc(d.title||'')}" placeholder="Reading Pile"></div>
-    <div class="field" style="margin-bottom:10px"><label>Colour</label>
-      <div id="dcol" style="margin-top:6px">${swatchRows(d.c)}
-        <label class="custcol"><input type="color" data-colinput value="${d.c}">
-          <span>Custom colour</span></label>
-      </div></div>
-    <div class="field" style="margin-bottom:10px"><label>Automatically collects these types</label>
-      <div class="filterbar" id="dkinds" style="flex-wrap:wrap;padding-top:6px">${KEYS.map(k=>
-        `<button class="fchip${ks.includes(k)?' on':''}" data-kk="${k}" style="--k:${hexOf(KINDS[k].c)}">${KINDS[k].nm}</button>`).join('')}</div></div>
-    <div class="field" style="margin-bottom:10px"><label>…and matching</label>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;padding-top:6px">
-        <select id="rf"><option value="">Any field</option>${Object.keys(FIELDS).map(a=>
-          `<option value="${a}"${(d.filter&&d.filter.rule&&d.filter.rule.f)===a?' selected':''}>${FIELDS[a].nm}</option>`).join('')}</select>
-        <select id="rop">${Object.entries(OPS).map(([v,n])=>
-          `<option value="${v}"${(d.filter&&d.filter.rule&&d.filter.rule.op)===v?' selected':''}>${n}</option>`).join('')}</select>
-        <input id="rv" placeholder="value" value="${esc((d.filter&&d.filter.rule&&d.filter.rule.v)||'')}" style="flex:1;min-width:90px">
-      </div></div>
-    <div class="field" style="margin-bottom:10px"><label>Show a total</label>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;padding-top:6px">
-        <select id="rlfn"><option value="">Nothing</option>${Object.entries(ROLLS).map(([v,n])=>
-          `<option value="${v}"${(d.roll&&d.roll.fn)===v?' selected':''}>${n}</option>`).join('')}</select>
-        <select id="rlf"><option value="">—</option>${Object.keys(FIELDS).map(a=>
-          `<option value="${a}"${(d.roll&&d.roll.f)===a?' selected':''}>${FIELDS[a].nm}</option>`).join('')}</select>
-      </div></div>
-    <div class="field" style="margin-bottom:10px"><label>…and anything tagged</label>
-      <div class="filterbar" id="dtag" style="flex-wrap:wrap;padding-top:6px">
-        <button class="fchip${!(d.filter||{}).tag?' on':''}" data-dtag="">Any tag</button>
-        ${allTags().slice(0,14).map(([t])=>
-          `<button class="fchip${(d.filter||{}).tag===t?' on':''}" data-dtag="${esc(t)}">#${esc(t)}</button>`).join('')}</div></div>
-    <div class="field"><label>Preview style</label>
-      <div class="filterbar" id="dpv" style="padding-top:6px">${[['list','List'],['stack','Card stack'],['thumbs','Thumbnails'],['bars','Progress bars'],['big','Big number']].map(([v,n])=>
-        `<button class="fchip${d.pv===v?' on':''}" data-pv="${v}">${n}</button>`).join('')}</div></div>
-    <div class="pfoot" style="display:flex;gap:8px">
-      <button class="pill solid" data-act="savedrawer" data-id="${id||''}">${id?'Save':'Create drawer'}</button>
-      <button class="pill" data-act="cancel">Cancel</button>
-      ${id?`<button class="pill" data-act="deldrawer" data-id="${id}" style="margin-left:auto;color:#C0563F">Delete</button>`:''}
-    </div>`
-  });
+  /* ---- what it is ---- */
+  if(!isRoot){
+    out.push(prow('Name', pfield(id,'title', o.title, '', 'Untitled')));
+    out.push(prow('Type', `<select class="psel" data-oset="${id}:kind">${typeOptions(o.kind)}</select>`,
+      'swaps its traits, keeps its data'));
+    out.push(prow('Lives in', psel(id,'parent',
+      moveTargets(id).map(c=>[c.id, c.id===ROOT?'The Desk':(c.title||'Untitled')]), o.parent||ROOT)));
+  }
+
+  /* ---- how it looks ---- */
+  out.push(cont
+    ? prow('Face', psel(id,'face', Object.entries(FACES), faceOf(d)), 'on its parent’s board')
+    : prow('Shape', psel(id,'shape', Object.entries(SHAPES), shapeOf(d))));
+  if(!isRoot) out.push(prow(cont?'Front':'Colour', swatches(id,'c', d.c)));
+  if(!isRoot && !cont)
+    out.push(prow('Edge', psel(id,'edge',[['','None'],['1','Coloured stripe']], d.edge?'1':'')));
+  if(!isRoot && cont){
+    out.push(prow('Border', psel(id,'border', borderSlots(), d.border||'panel'), 'a slot, named by the style'));
+    out.push(prow('Knob', psel(id,'knob',
+      [['round','Round'],['diamond','Diamond'],['bar','Bar'],['ring','Ring'],['square','Square'],['orb','Orb']], d.knob||'round')
+      + psel(id,'knobsize', Object.entries(KNOBSIZES), knobSizeOf(d))
+      + psel(id,'knobpos', [['centre','Centre'],['bottom','Bottom']], d.knobpos||'centre')));
+    out.push(prow('Knob colour', psel(id,'knobtone',[['light','Lighter'],['dark','Darker']], d.knobtone||'light')
+      + `<div class="pickgrid sw" style="margin-top:5px">${
+        ['#F8F3E6','#A9793F','#2A241C','#C0563F','#3E7A6B','#5D7E99'].map(c=>
+        `<button data-pknobc="${c}" data-id="${id}" class="${d.knobc===c?'on':''}" style="background:${c}"></button>`).join('')}</div>`));
+    out.push(prow('Texture', psel(id,'texture',
+      [['none','None'],['dots','Dots'],['grid','Graph'],['weave','Weave'],['weave2','Wide weave'],
+       ['check','Checker'],['rule','Ruled'],['stars','Stars'],['sheen','Sheen']], d.texture||'none')));
+    out.push(prow('Board', `<div class="pickgrid sw">${[0,1,2,3,4,5].map(()=>randomBoard()).map(b=>{
+        const [a,z]=b.split('|');
+        return `<button data-pboard="${b}" data-id="${id}" style="background:linear-gradient(135deg,${a} 0 50%,${z} 50% 100%)"></button>`;}).join('')}
+        <button data-pboard="" data-id="${id}" title="Use the desk's board" class="${d.board?'':'on'}"
+          style="background:var(--paper);border-style:dashed"></button></div>
+      <input class="pslide" type="range" min="0" max="100" step="5"
+        value="${Math.round((d.boardAlpha==null?1:d.boardAlpha)*100)}" data-palpha data-id="${id}">`));
+  }
+  if(img) out.push(prow('Frame', psel(id,'frame',
+    [['none','None'],['mount','Mount'],['gilt','Gilt'],['walnut','Walnut'],['black','Lacquer'],['polaroid','Instant']], d.frame||'none')));
+  if(has(d,'button')) out.push(prow('Button shape', psel(id,'btnshape',
+    [['rounded','Rounded'],['round','Round'],['square','Square']], d.btnshape||'rounded')));
+
+  /* ---- how it behaves ---- */
+  if(cont){
+    out.push(prow('Opens as', psel(id,'layout',
+      [['grid','Grid'],['list','List'],['scroll','Scroll'],
+       ...(isRoot?[]:[['book','Book'],['calendar','Calendar'],['timeline','Timeline']])], view)));
+    // manual is a value, not the absence of one: a container has to be able to
+    // refuse a type that sorts
+    out.push(prow('Sorted by', psel(id,'sort',
+      [[MANUAL,'As I arranged them'], ...Object.entries(SORTS).map(([k,[nm]])=>[k,nm])],
+      sortOf(d)||MANUAL)));
+    out.push(prow('Moving things', psel(id,'locked',[['','Movable'],['1','Locked']], d.locked?'1':'')));
+    if(!isRoot) out.push(prow('On the bar', psel(id,'pin',[['','No'],['1','Pinned']], isPinned(id)?'1':'')));
+  } else if(!isRoot){
+    out.push(prow('Clicking it', psel(id,'onclick', Object.entries(CLICKS), clickOf(d))));
+    if(has(d,'text')) out.push(prow('Opens as', psel(id,'read', Object.entries(READS), readOf(d))));
+  }
+  if(cal){
+    out.push(prow('Shows', psel(id,'calview', Object.entries(CALVIEWS), calViewOf(d))
+      + psel(id,'weekStart',[['mon','Week starts Monday'],['sun','Week starts Sunday']], weekStartOf(d))
+      + psel(id,'weekends',[['1','Weekends shown'],['','Weekends hidden']], showsWeekends(d)?'1':'')));
+  }
+  if(!isRoot && cont && takesTyping(d))
+    out.push(prow('Typing in it makes', psel(id,'genKind', objectKinds, genKindOf(d))));
+  if(!isRoot && !cont && spawns){
+    out.push(prow('It makes', psel(id,'genKind', objectKinds, genKindOf(d))
+      + psel(id,'genDir',[['down','Down'],['up','Up'],['left','Left'],['right','Right'],['random','Anywhere']], d.genDir||'down')));
+  }
+
+  /* ---- the fields its traits carry. Every one is gated on an attribute,
+     never on a type's name — which is what lets an invented type get the right
+     fields the moment it ticks the trait. ---- */
+  if(!isRoot){
+    const f=[];
+    if(has(o,'date')) f.push(prow(has(o,'progress')?'Target date':'Scheduled', pfield(id,'due',o.due,'date')));
+    if(has(o,'repeat')||has(o,'streak')) f.push(prow(has(o,'streak')?'Cadence':'Repeats',
+      psel(id,'repeat',[['','Never'],['daily','Daily'],['weekdays','Weekdays'],['weekly','Weekly'],['monthly','Monthly']], o.repeat||'')));
+    if(has(o,'link')) f.push(prow('Link', pfield(id,'url',o.url,'','https://')));
+    if(has(o,'location')) f.push(prow('Location', pfield(id,'loc',o.loc,'','Where')));
+    if(has(o,'duration')) f.push(prow('Duration', pfield(id,'dur',o.dur,'number','minutes')));
+    if(has(o,'price')) f.push(prow('Price', pfield(id,'price',o.price,'','12.50')));
+    if(has(o,'priority')) f.push(prow('Priority', psel(id,'prio',
+      [['','—'],['low','Low'],['mid','Medium'],['high','High']], o.prio||'')));
+    if(has(o,'count')) f.push(prow('Count',
+      `<div class="counter"><button data-act="countdown" data-id="${id}">−</button><b>${o.count||0}</b><button data-act="countup" data-id="${id}">+</button></div>`));
+    if(has(o,'rating')) f.push(prow('Rating',
+      `<div class="stars">${[1,2,3,4,5].map(n=>`<button data-star="${id}:${n}" class="${(o.rating||0)>=n?'on':''}">${ic('star',17)}</button>`).join('')}</div>`));
+    if(has(o,'answer')) f.push(prow(`Answer${answered(o)?'':' — unanswered'}`,
+      `<textarea class="pfield tall" data-oset="${id}:answer" placeholder="What you worked out">${esc(o.answer||'')}</textarea>`));
+    if(has(o,'media')) f.push(prow('Media', psel(id,'mtype',[['image','Image'],['video','Video'],['audio','Audio']], (o.media&&o.media.type)||'image')
+      + `<button class="pill" data-act="pickimage" data-id="${id}">${ic('image',13)} ${
+          o.media&&o.media.src?'Replace the picture':'Choose a picture'}</button>`
+      + (o.media&&o.media.src
+          ? `<div class="mediablock" style="--k:${K(o.kind).c}">
+               <img class="tileimg" src="${esc(o.media.src)}" alt="">
+               <div class="cap">${esc(o.media.label||'')}</div></div>` : '')));
+    if(has(o,'button')){
+      const L=o.link||{};
+      f.push(prow('Button', pfield(id,'linklabel',L.label,'','Open')
+        + psel(id,'linktarget',[['','Nothing yet'],...containers().map(c=>[c.id, c.title||'Untitled'])], L.target||'')
+        + pfield(id,'linkurl', /^https?:/.test(L.target||'')?L.target:'', '', '…or a link')));
+    }
+    if(f.length) out.push(`<div class="section-h"><h2>Fields</h2><div class="rule"></div></div>${f.join('')}`);
+  }
+
+  /* ---- milestones, a streak, tags and relations: all four were on the old
+     detail sheet, and all four are settings about one object ---- */
+  if(!isRoot && has(o,'progress')){
+    out.push(`<div class="section-h"><h2>Milestones</h2><div class="rule"></div><span class="n">${goalPct(o)}%</span></div>
+      <div class="bar" style="--k:${K(o.kind).c}"><i style="width:${goalPct(o)}%"></i></div>
+      <div class="miles">${(o.milestones||[]).map((m,i)=>`
+        <div class="mile${m.done?' done':''}">
+          <span class="check${m.done?' on':''}" style="--k:${K(o.kind).c};width:16px;height:16px" data-mile="${id}:${i}">${ic('check',11)}</span>
+          <input value="${esc(m.t)}" data-mtext="${i}">
+          <input type="date" value="${m.d||''}" data-mdate="${i}">
+          <button data-mdel="${i}">${ic('x',13)}</button>
+        </div>`).join('')}</div>
+      <button class="subtle-btn" data-act="addmile" data-id="${id}">${ic('plus',12)} Add milestone</button>`);
+  }
+  if(!isRoot && has(o,'streak')){
+    out.push(`<div class="section-h"><h2>Last 28 days</h2><div class="rule"></div><span class="n">${streak(o)}-day streak</span></div>
+      <div class="dots" style="--k:${K(o.kind).c};flex-wrap:wrap;gap:4px">
+      ${[...Array(28)].map((_,i)=>{const ds=D.addISO(T,i-27);
+        return `<i data-hday="${ds}" class="${(o.history||[]).includes(ds)?'on':''}${ds===T?' today':''}"></i>`}).join('')}</div>`);
+  }
+  if(!isRoot){
+    out.push(`<div class="section-h"><h2>Tags</h2><div class="rule"></div></div>
+      <div class="tagrow">${(o.tags||[]).map(t=>
+        `<span class="realtag" data-tagdrawer="${esc(t)}" title="Open a drawer for #${esc(t)}">${esc(t)}<b data-untag="${esc(t)}">✕</b></span>`).join('')}
+        <button class="add" data-act="addtag" data-id="${id}">+ tag</button></div>`);
+    const rel=relatedTo(o), back=backlinksTo(id).filter(x=>x.id!==id);
+    if(has(o,'relates') || rel.length || back.length){
+      const chip=(x,rm)=>`<span class="relchip" style="--k:${objColour(x)}" data-openrel="${x.id}">
+        ${ic(K(x.kind).ic,11)} ${esc(x.title||'Untitled')}${rm?`<b data-unrel="${id}:${x.id}" title="Unlink">✕</b>`:''}</span>`;
+      out.push(`<div class="section-h"><h2>Related</h2><div class="rule"></div>
+          <span class="n">${rel.length+back.length||''}</span></div>
+        <div class="relrow">${rel.map(x=>chip(x,true)).join('')}
+          ${has(o,'relates')?`<button class="add" data-act="addrel" data-id="${id}">+ link</button>`
+            :`<span class="mini" style="--k:var(--brass);padding:0">Tick <b>Related</b> in Traits to link from here</span>`}</div>
+        ${back.length?`<div class="statline" style="margin:10px 0 4px"><div class="s">Pointed at by</div></div>
+          <div class="relrow">${back.map(x=>chip(x,false)).join('')}</div>`:''}`);
+    }
+  }
+
+  /* ---- what a magic container collects, and what any container totals.
+     This was the "Name, rule and totals…" form, which was a fourth panel for
+     three rows. Behind a disclosure, because most containers never ask. ---- */
+  if(cont && !isRoot){
+    const fl=d.filter||{}, r=fl.rule||{}, rl=d.roll||{};
+    const body = (magic ? `
+      ${prow('Collects these types',
+        `<div class="pickgrid chips">${KEYS.filter(k=>k!=='control').map(k=>
+          `<button class="fchip${(fl.kinds||[]).includes(k)?' on':''}" data-fkind="${k}" data-id="${id}"
+             style="--k:${hexOf(KINDS[k].c)}">${esc(KINDS[k].nm)}</button>`).join('')}</div>`)}
+      ${prow('…and matching', psel(id,'rule.f',[['','Any field'],...Object.keys(FIELDS).map(a=>[a,FIELDS[a].nm])], r.f||'')
+        + psel(id,'rule.op', Object.entries(OPS), r.op||'is')
+        + pfield(id,'rule.v', r.v, '', 'value'))}
+      ${prow('…and anything tagged', psel(id,'filter.tag',
+        [['','Any tag'], ...allTags().map(([t])=>[t,'#'+t])], fl.tag||''))}` : '')
+      + prow('Shows a total', psel(id,'roll.fn',[['','Nothing'],...Object.entries(ROLLS)], rl.fn||'')
+        + psel(id,'roll.f',[['','—'],...Object.keys(FIELDS).map(a=>[a,FIELDS[a].nm])], rl.f||''))
+      + prow('Front preview', psel(id,'pv',
+        [['list','List'],['stack','Card stack'],['thumbs','Thumbnails'],['bars','Progress bars'],['big','Big number']], d.pv||'list'));
+    out.push(pgroup(magic?'What it collects':'Totals and preview', body));
+  }
+
+  /* ---- traits. A many-of-many, so still chips — behind a disclosure, and
+     the structural two stay out of it (see STRUCTURAL in model.js). ---- */
+  if(!isRoot){
+    const mine=attrsOf(o);
+    out.push(pgroup('Traits', `
+      <div class="mini" style="--k:var(--brass)">${o.attrs?'It has its own set.'
+        :'It follows the '+esc(K(o.kind).nm.toLowerCase())+' type.'}</div>
+      <div class="prow"><div>${USER_ATTRS.map(a=>
+        `<button class="pchip${mine.includes(a)?' on':''}" data-attr="${a}" data-id="${id}" title="${esc(ATTRS[a].ds)}">${ATTRS[a].nm}</button>`).join('')}</div></div>
+      ${o.attrs?`<button class="subtle-btn" data-act="attrreset" data-id="${id}">${ic('undo',12)} Follow the ${esc(K(o.kind).nm.toLowerCase())} type again</button>`:''}`));
+  }
+
+  if(!isRoot) out.push(`<div class="pfoot">
+    ${has(o,'text')?`<button class="pill" data-act="editthis" data-id="${id}">${ic('edit',13)} Write</button>`:''}
+    <button class="pill" data-act="dupe" data-id="${id}">${ic('archive',13)} Duplicate</button>
+    <button class="pill" data-act="delthis" data-id="${id}" style="margin-left:auto;color:#C0563F">${ic('trash',13)} Delete</button>
+  </div>`);
+  return out.join('');
 }
 /* Make a kind by choosing attributes. `from` is an object whose attributes seed
    the picker — "save these attributes as a new kind" from the detail sheet. */
@@ -460,6 +571,7 @@ function modalNewKind(from, editKey){
            size, phoneSize, onclick:(base&&base.onclick)||'read',
            read:(base&&base.read)||'page',
            sort, shape:(base&&base.shape)||'card', face:(base&&base.face)||'front',
+           sortBy:(base&&base.sort)||MANUAL,
            gathers:gathersNow, spawnBy:(base&&base.spawnBy)||'click'},
     body:`
   <div class="kbuild">
@@ -510,6 +622,13 @@ function modalNewKind(from, editKey){
         chip(((base&&base.spawnBy)||'click')==='click','data-kspawn="click"','When pressed')+
         chip(((base&&base.spawnBy)||'click')==='type','data-kspawn="type"','As you type in it'),
         'kspawn', ` id="kspawnrow"${seedAttrs.includes('spawn')?'':' style="display:none"'}`)}
+      ${/* a container's contents have a default order, like everything else a
+           type decides. Manual is a real answer, and the one a drawer gives. */''}
+      ${row('Contents sorted by','one of these can still be set per drawer',
+        `<select class="psel" data-ksort2>${[[MANUAL,'As they were arranged'],
+          ...Object.entries(SORTS).map(([k,[nm]])=>[k,nm])].map(([v,n])=>
+          `<option value="${v}"${((base&&base.sort)||MANUAL)===v?' selected':''}>${esc(n)}</option>`).join('')}</select>`,
+        'ksortby', ` id="ksortrow"${sort==='object'?' style="display:none"':''}`)}
       ${row('Starts at','on the Mac grid, 24 columns',
         [[1,1],[4,1],[6,1],[2,2],[4,4],[6,4],[6,6],[8,6],[12,8]].map(([w,h])=>
           chip(size.join('x')===w+'x'+h,`data-ksz="${w}x${h}"`,`${w}×${h}`)).join('')
@@ -599,7 +718,7 @@ function drawerFromSelection(id){
   S.sel=[];
   save(); render();
   toast(`${objs.length} filed in a new drawer`);
-  modalDrawer(d.id);
+  objectPanel(d.id);
 }
 
 function openCtx(x,y,id){
@@ -611,13 +730,13 @@ function openCtx(x,y,id){
   const many = sel.length>1;
   el.innerHTML=`
     ${many?`<div class="ctxhead">${sel.length} objects</div>` : ''}
-    ${many?'' : (isContainer(o)
-      ? `<button data-c="drawerset:${id}">${ic('sliders',14)} Drawer settings</button>
-         <button data-c="opendrawer:${id}">${ic('eye',14)} Open</button>
-         <button data-c="pin:${id}">${ic('star',14)} ${isPinned(id)?'Take off the bar':'Pin to the bar'}</button>`
-      : `<button data-c="objset:${id}">${ic('sliders',14)} Object settings</button>
-         <button data-c="read:${id}">${ic('eye',14)} Read</button>
-         <button data-c="open:${id}">${ic('edit',14)} Edit…</button>`)}
+    ${/* one panel for both — a container is an object with children */''}
+    ${many?'' : `<button data-c="objset:${id}">${ic('sliders',14)} Object settings</button>
+      ${isContainer(o)
+        ? `<button data-c="opendrawer:${id}">${ic('eye',14)} Open</button>
+           <button data-c="pin:${id}">${ic('star',14)} ${isPinned(id)?'Take off the bar':'Pin to the bar'}</button>`
+        : `${has(o,'text')?`<button data-c="read:${id}">${ic('eye',14)} Read</button>
+             <button data-c="write:${id}">${ic('edit',14)} Write…</button>`:''}`}`}
     ${(!many&&(has(o,'check')||has(o,'streak')))?`<button data-c="done:${id}">${ic('check',14)} ${has(o,'streak')?'Mark today':'Complete'}</button>`:''}
     <button data-c="intodrawer:${id}">${ic('folder',14)} ${many?`Put these ${sel.length} in a new drawer`:'Put this in a new drawer'}</button>
     <button data-c="move:${id}">${ic('folder',14)} Move to drawer…</button>
@@ -634,6 +753,6 @@ function openCtx(x,y,id){
 const closeCtx = ()=> $('#ctx').classList.remove('open');
 
 export { overlayHTML, openPanel, closePanel, refreshPanel, repositionPanel, panelKey, draft,
-  openMenu, modalNewObject, objectPanel, drawerPanel, modalDrawer, modalNewKind,
+  openMenu, modalNewObject, objectPanel, drawerPanel, modalNewKind,
   renderPreview, modalMove, sampleObject, sampleTile, kindSample,
   openCmd, closeCmd, cmdList, runCmd, drawerFromSelection, openCtx, closeCtx };

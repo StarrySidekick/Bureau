@@ -1,13 +1,13 @@
 import { esc, ic, clamp, D, md, strip } from './util.js';
 import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, childrenOf, container,
   rollup, streak, goalPct, projectStat, tlSpan, dev, spawnByOf, genKindOf, takesTyping,
-  knobSizeOf, answered,
+  knobSizeOf, answered, sortOf,
   calViewOf, weekStartOf, calCols } from './model.js';
 import { CELL, gridOf, lay, overlaps, boxOk, freeSpot, gridRows, sizeOfKind, ensureBox } from './grid.js';
 import { create, toast, toggleDone } from './mutations.js';
 import { hexOf, objColour } from './look.js';
 import { render } from './views.js';
-import { openObj, renderSheet } from './sheet.js';
+import { openObj, openWriter, openRead, renderSheet } from './sheet.js';
 import { objectPanel } from './panels.js';
 import { save } from './persist.js';
 
@@ -105,8 +105,9 @@ function calSpan(c, anchor, view){
 const CLICKS = {
   none:     'Nothing',
   read:     'Open it to read',
-  edit:     'Open the editor',
+  edit:     'Open it to write',
   check:    'Tick it off',
+  settings: 'Open its settings',
   generate: 'Make a new object'
 };
 const clickOf = o => o.onclick || K(o.kind).onclick || 'none';
@@ -143,11 +144,14 @@ function tileTap(id){
   switch(clickOf(o)){
     case 'generate': dispense(o); return;
     // which of the three it opens as is the object's own business — readOf()
-    case 'read':  S.readId=id; S.openId=null; S.bookAt=0; renderSheet(); break;
-    case 'edit':  openObj(id); break;
+    case 'read':  openRead(id); break;
+    // the editor is the writing surface now: the body, full screen, and nothing
+    // else on it. Every *setting* is in the object's own panel.
+    case 'edit':  openWriter(id); break;
     // a streak has no checkbox but is very much tickable, and since the Today
     // tab went this is the one-tap way to mark a habit off from the board
     case 'check': if(has(o,'check')||has(o,'streak')) toggleDone(id); else openObj(id); break;
+    case 'settings': objectPanel(id); break;
     default: break;                      // 'none' — a task just sits there
   }
 }
@@ -475,23 +479,37 @@ function drawTile(o, arr, box){
   if(has(o,'location')&&o.loc) bits.push(esc(o.loc));
 
   const asks = has(o,'answer');
-  return `<${asks?'div':'button'} class="drawer otile sh-${shapeOf(o)}${o.edge?' edge':''}${sel}${
+  /* Double-tapped: the name becomes a field where it sits, and an object that
+     carries text gets its body under it. That is the whole of "simple text
+     editing" — a task and a note are a line and a paragraph, and neither is
+     worth a screen. A tile being typed in has to be a <div>, because an input
+     inside a <button> is unfocusable — the same reason the answer box does. */
+  const edit = S.editId===o.id;
+  const raw = asks || edit;
+  return `<${raw?'div':'button'} class="drawer otile sh-${shapeOf(o)}${o.edge?' edge':''}${sel}${
+      edit?' editing':''}${
       asks?(answered(o)?' answered':' unanswered'):''}${has(o,'priority')&&o.prio?' prio-'+o.prio:''}" data-row="${o.id}"
     style="--c:${colour};${has(o,'progress')?`--pct:${goalPct(o)}%;`:''}${place}">
     ${chips}
     <div class="dtop">
       ${has(o,'check')?`<span class="check tilecheck${o.done?' on':''}" data-check="${o.id}">${ic('check',12)}</span>`:''}
-      <span class="dname${o.done?' done':''}">${esc(o.title||'Untitled')}</span>
+      ${edit
+        ? `<input class="inlinename" data-inline="${o.id}:title" value="${esc(o.title||'')}"
+             placeholder="Untitled" autocomplete="off" enterkeyhint="done">`
+        : `<span class="dname${o.done?' done':''}">${esc(o.title||'Untitled')}</span>`}
     </div>
     ${has(o,'rating')&&o.rating?`<div class="tilestars">${'★'.repeat(o.rating)}<span>${'★'.repeat(5-o.rating)}</span></div>`:''}
-    ${has(o,'text')&&o.body?`<div class="dbody"><div class="tiletext">${esc(o.body).slice(0,220)}</div></div>`:'<div class="dbody"></div>'}
+    ${edit && has(o,'text')
+      ? `<div class="dbody"><textarea class="inlinebody" data-inline="${o.id}:body"
+           placeholder="Anything else…">${esc(o.body||'')}</textarea></div>`
+      : has(o,'text')&&o.body?`<div class="dbody"><div class="tiletext">${esc(o.body).slice(0,220)}</div></div>`:'<div class="dbody"></div>'}
     ${bits.length?`<div class="dfoot"><span class="tilemeta">${bits.join(' · ')}</span></div>`:''}
     ${asks?`<label class="ansbox">
       <i>${answered(o)?ic('check',11):ic('help',11)}</i>
       <input data-answer="${o.id}" value="${esc(o.answer||'')}"
         placeholder="${answered(o)?'':'Write the answer…'}"></label>`:''}
     ${handles}
-  </${asks?'div':'button'}>`;
+  </${raw?'div':'button'}>`;
 }
 
 /* When a drawer is sorted, its grid is packed in that order rather than read
@@ -520,8 +538,9 @@ function gridOfContainer(cid){
   // You are always arranging. A drawer can be locked to opt out of it.
   const arr=!c.locked;
   const kids=childrenOf(c);
+  const sorted=sortOf(c);
   FLOW.clear();
-  if(c.sort) flowSorted(kids, c.id);          // a sort overrides hand placement
+  if(sorted) flowSorted(kids, c.id);          // a sort overrides hand placement
   else kids.forEach(o=>ensureBox(o, dev(), c.id));
   const tiles=kids.map(o=>gridTile(o,arr,c.id)).join('');
   // never a two-row sliver: a drawer's board is at least a screenful
@@ -532,7 +551,7 @@ function gridOfContainer(cid){
   const bd = c.board ? String(c.board).split('|') : null;
   let boardVars = bd ? `--board-1:${esc(bd[0])};--board-2:${esc(bd[1]||bd[0])};` : '';
   if(c.boardAlpha!=null) boardVars += `--board-alpha:${c.boardAlpha};`;
-  return `<div class="grid g-${dev()}${arr?' arranging':''}${c.locked?' locked':''}${c.sort?' sorted':''}"
+  return `<div class="grid g-${dev()}${arr?' arranging':''}${c.locked?' locked':''}${sorted?' sorted':''}"
        id="drawergrid" data-gridfor="${c.id}"
        style="${boardVars}--cols:${g.cols};--rowh:${g.rowh}px;grid-template-rows:repeat(${Math.max(rows,1)},${g.rowh}px)">${tiles}
   </div>`;

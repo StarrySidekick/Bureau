@@ -1,5 +1,5 @@
 import { D, uid, clamp, ROOT } from './util.js';
-import { S, K, KINDS, KEYS, kindHas, isContainer, refreshKinds, defaultLook, dev } from './model.js';
+import { S, K, KINDS, KEYS, kindHas, has, byId, isContainer, refreshKinds, defaultLook, dev } from './model.js';
 import { GRID, overlaps, gridOf, freeSpot, sizeOfKind } from './grid.js';
 import { toast, create, pushUndo } from './mutations.js';
 import { render } from './views.js';
@@ -383,6 +383,10 @@ function hasAlpha(cx, cv){
     return false;
   }catch(e){ return true; }   // tainted canvas: assume alpha and keep PNG
 }
+/* Which object the file picker was opened for, if any. A holder rather than an
+   argument, because the picker is an <input type=file> in the overlay and the
+   file comes back on its own change event, long after the button was pressed. */
+const imgFor = {id:null};
 function importImage(file){
   if(!/^image\//.test(file.type)){ toast('That is not an image'); return; }
   const fr=new FileReader();
@@ -405,13 +409,23 @@ function importImage(file){
       catch(e){ toast('Could not read that image'); return; }
       const assetId=uid('a');
       assetPut(assetId,src).then(ok=>{
-        // an image is placed, not filed: it lands on the grid you are looking
-        // at, rather than being routed to whatever drawer collects media
-        const here=(S.view==='drawer'&&S.drawerId)||ROOT;
-        const o=create('image',{title:file.name.replace(/\.[^.]+$/,''), parent:here});
-        o.media={assetId, type:'image', w:cv.width, h:cv.height, label:file.name, src, alpha:keepAlpha};
+        /* Onto the object that asked, if one did — the Media row in an
+           object's settings picks a file *for that object*, and making a
+           second object instead was the picker answering a question nobody
+           had asked. Otherwise an image is placed, not filed: it lands on the
+           grid you are looking at rather than being routed to whatever drawer
+           collects media. */
+        const into = imgFor.id && byId(imgFor.id);
+        imgFor.id = null;
+        const o = into && has(into,'media') ? into
+          : create('image',{title:file.name.replace(/\.[^.]+$/,''),
+              parent:(S.view==='drawer'&&S.drawerId)||ROOT});
+        const was = o.media && o.media.assetId;
+        o.media={assetId, type:(o.media&&o.media.type)||'image', w:cv.width, h:cv.height,
+                 label:file.name, src, alpha:keepAlpha};
+        if(was && was!==assetId) assetDel(was);      // the picture it replaced
         // pictures land square; you stretch them to the shape you want
-        o.desk=null; o.phone=null;
+        if(o!==into){ o.desk=null; o.phone=null; }
         closePanel(); save(); render();
         toast(ok?'Image added':'Image added — it may not survive a reload');
       });
@@ -487,4 +501,4 @@ function pasteObjects(text, parentId){
 }
 
 export { APP_VERSION, writeNow, save, storeSize, load, exportBackup,
-  importBackup, assetDel, hydrateAssets, importImage, pasteObjects, install };
+  importBackup, assetDel, hydrateAssets, importImage, imgFor, pasteObjects, install };

@@ -968,3 +968,77 @@ at the corners, which is exactly what it looked like — and gained a
 has to answer for, and unlike colour it cannot be derived — four rules of real
 CSS each. That is the cost of the styles being genuinely different rather than
 one style with the hue changed.
+
+### 36. One settings panel, one writing surface, and a new thing is scrolled to
+
+Seven changes asked for on 15 August. Four of them are the same change.
+
+**There is one object settings panel now.** There were four ways to change a
+thing: an object panel, a drawer panel, a drawer *form* behind a "Name, rule
+and totals…" button, and the detail sheet — a scrolling list of every field the
+object had, with the body stapled to the bottom of it. A container is an object
+with children (§1 of `SYSTEM.md`); the split into "object settings" and "drawer
+settings" was never in the model, only in the code. `objectPanel(id)` answers
+for both and for the desk, which is a container without a tile — `cfgOf()`
+already returned `deskCfg` for it, so one target serves all three. The drawer
+form's three rows (what it collects, what it totals, its front preview) are a
+disclosure inside it, and `modalDrawer` is gone.
+
+**The detail sheet is gone with it.** It was a settings screen *and* the only
+writing surface, which made it a bad version of both — the thing you came for
+was a textarea eight fields down. Every setting on it moved into the panel;
+milestones, a streak's 28 days, tags and relations included. What is left is
+the words, and they get a surface of their own: a title and a body, full
+screen, with nothing else on it. `S.openId` kept its name and changed its
+meaning — it is the object the settings panel is about, which is what every
+`byId(S.openId)` handler already wanted.
+
+**Two ways in, sized to the job.** Double-tap a tile and its name becomes a
+field where it sits — and its body under it, if the tile is showing one. That
+is the whole of "simple text editing" for a task and a note: a line and a
+paragraph, neither worth a screen. Return moves to the body or finishes if
+there isn't one; Escape puts the tile down. Typing does **not** re-render — the
+input *is* the tile — which is the rule the answer box established. The reading
+view's Edit opens the full-screen surface for when there is real writing to do.
+
+**A one-of-many list is a select.** Forty types and twenty shapes were four
+hundred pixels of chips you had to read like a wall, and the panel now has to
+carry twice as much. Type, shape, face, layout, sort, click, read, border,
+knob, texture, frame, priority, repeat — all selects. The many-of-many groups
+(traits, what a magic drawer collects) are still chips, behind a `<details>`
+that is closed until asked for.
+
+**A container type carries a default sort.** `sort` is per object then per type
+like everything else, and `manual` is a real value rather than the absence of
+one — which is what lets one drawer refuse a type that sorts. A drawer's answer
+is manual, deliberately: a grid is a place, and a place you did not arrange is
+a list.
+
+**A new object is scrolled to.** *The bug:* made inside a drawer on a phone, a
+new object appeared to do nothing at all. It was placed correctly — a board is
+a coordinate space, so `freeSpot()` scans from the top — but on a phone an
+object is full width, so the first free room is *always* below everything
+already there, a screen and a half down. `reveal()` scrolls to it and marks it
+for a second. Not a placement change: quietly shuffling the board to make room
+at the top would move things you put where they are.
+
+**No type draws a coloured left stripe.** A stripe down the left is what
+`priority` means; painting one on by default made every task look flagged.
+Sliver, idea and quotation all carried one and none do now — `edge` is the
+opt-in, on any object. In its place, four new shapes a task can wear: a filing
+tab, a ruled line, a torn chit, a pill. And the tick on a tile is twice the size
+it was, because it sits on a drag handle and missing it picked the tile up.
+
+*Also:* a long press is Bureau's, not the text selection's — the unprefixed
+`user-select` only lands on Safari 17 and later, so `-webkit-user-select:none`
+is the rule that actually does the work on a phone, and `touch-action:
+manipulation` stops the double tap zooming instead of editing. And `openPanel`
+now schedules its `open` class every time rather than only for a fresh element:
+a panel opened twice inside one frame lost it and sat 101% to the right of
+where it had correctly measured itself to.
+
+*Against:* the settings panel is long. It is one scroll instead of four
+surfaces, which is the trade, but a note with milestones, a streak, relations
+and tags is a lot of panel — the disclosures help and more of it probably
+belongs behind them. And `S.openId` meaning something new is exactly the sort
+of rename that reads fine today and is a trap in six months.

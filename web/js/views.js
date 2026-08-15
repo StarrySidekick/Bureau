@@ -1,6 +1,6 @@
 import { $, esc, ic, D, md, ROOT } from './util.js';
 import { S, K, T, byId, has, isContainer, containers, childrenOf, chainOf,
-  deskTitle, rootObj, pinnedDrawers, isPinned, allTags, dev,
+  deskTitle, rootObj, pinnedDrawers, isPinned, allTags, dev, sortOf,
   layoutOf, takesTyping, genKindOf, CALVIEWS, calViewOf, calCols } from './model.js';
 import { CELL, gridOf, cellW } from './grid.js';
 import { themeNow, applyLook, lookVal, STYLES, BACKDROPS,
@@ -31,7 +31,8 @@ function gridBar(c){
     ${S.device==='desk' ? pinbar('bar') : ''}
     <div class="bartools">
       <button class="sqbtn" data-act="cycleview" data-id="${c.id}" title="View: ${view}">${ic(views[view]||'grid',16)}</button>
-      <button class="sqbtn" data-act="sortmenu" data-id="${c.id}" title="Sort">${ic('sort',16)}</button>
+      <button class="sqbtn${sortOf(c)?' on':''}" data-act="sortmenu" data-id="${c.id}"
+        title="${sortOf(c)?'Sorted — tap to change':'Sort'}">${ic('sort',16)}</button>
       <button class="sqbtn" data-act="randomone" data-id="${c.id}" title="Add something at random (testing)">${ic('sparkle',16)}</button>
       ${c.id===ROOT?'':`<button class="sqbtn${isPinned(c.id)?' on':''}" data-act="pin" data-id="${c.id}"
         title="${isPinned(c.id)?'Take off the bar':'Pin to the bar'}">${ic('star',16)}</button>`}
@@ -426,6 +427,30 @@ function bindSortables(){ /* delegation handles it; keep quick-add focused */ }
 const SCROLL = {key:null, top:0};
 const viewKey = ()=> S.view==='drawer' ? 'drawer:'+S.drawerId : 'desk';
 
+/* ---- show me the thing I just made -----------------------------------
+   A board is a coordinate space, so a new object goes in the first free room
+   scanning from the top. On a phone an object is full width, which means the
+   first free room is *always* below everything already there — so making
+   something inside a drawer put it a screen and a half down and looked exactly
+   like nothing had happened. It landed correctly and was never seen.
+
+   Scrolling to it is the fix, not placing it differently: a board is arranged,
+   and quietly shuffling what is on it to make room at the top would move things
+   you put where they are. SCROLL is updated too, or the next render — which
+   restores the remembered offset — would undo this. */
+function reveal(id){
+  const el=document.querySelector(`#app .grid .drawer[data-row="${id}"],#app .grid .drawer[data-drawer="${id}"]`);
+  const sc=$('#app .scroll');
+  if(!el || !sc) return;
+  const er=el.getBoundingClientRect(), sr=sc.getBoundingClientRect();
+  if(er.top < sr.top+8 || er.bottom > sr.bottom-8){
+    sc.scrollTop += (er.top - sr.top) - Math.max(12, (sr.height - er.height)/3);
+    SCROLL.top = sc.scrollTop;
+  }
+  el.classList.add('justmade');
+  setTimeout(()=>el.classList.remove('justmade'), 1200);
+}
+
 function render(){
   const frame=$('#frame');
   const wasKey=SCROLL.key, wasEl=$('#app .scroll');
@@ -481,4 +506,4 @@ function sizeGrid(){
   if(changed){ sizing=true; try{ render(); } finally { sizing=false; } }
 }
 
-export { render, sizeGrid, settingsPanel, toggleSettings };
+export { render, sizeGrid, reveal, settingsPanel, toggleSettings };

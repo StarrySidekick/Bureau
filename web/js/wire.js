@@ -1,20 +1,20 @@
 import { $, $$, esc, ic, uid, D, ROOT } from './util.js';
 import { S, K, KINDS, KEYS, refreshKinds, ATTRS, USER_ATTRS, attrsOf, has, SHAPES,
-  FACES, SORTS, byId, container, cfgOf, isContainer, isAncestor, relate,
+  FACES, SORTS, MANUAL, sortOf, byId, container, cfgOf, isContainer, isAncestor, relate,
   unrelate, sensedDevice, reset, T, dz, dev, calViewOf } from './model.js';
 import { gridOf, lay, boxOk, freeSpot, toPhoneSize } from './grid.js';
 import { applyLook, applyStyle, setLookVal, lookVal, STYLES, randomFront,
   setSlot, palNow, objColour } from './look.js';
 import { toast, toggleDone, del, delMany, delDrawer, undo, setPin, togglePin, drawerForTag, create, quickAdd, spawnInto, randomThing } from './mutations.js';
 import { spinTo, pending, placeAtPending, tileTap, turnPage, clearPages } from './tiles.js';
-import { render, sizeGrid, toggleSettings } from './views.js';
-import { openObj, closeSheet, renderSheet } from './sheet.js';
+import { render, sizeGrid, toggleSettings, reveal } from './views.js';
+import { openObj, openWriter, openRead, closeSheet, renderSheet, words } from './sheet.js';
 import { openPanel, closePanel, refreshPanel, panelKey, draft, openMenu,
-  modalNewObject, modalDrawer, modalNewKind, modalMove, renderPreview,
+  modalNewObject, modalNewKind, modalMove, renderPreview,
   drawerPanel, objectPanel,
   drawerFromSelection, openCtx, closeCtx, openCmd, closeCmd, cmdList, runCmd } from './panels.js';
 import { onDown, onMove, onUp, onCancel, gestureFlags, dragArmed } from './gestures.js';
-import { save, writeNow, exportBackup, importBackup, importImage, pasteObjects, install } from './persist.js';
+import { save, writeNow, exportBackup, importBackup, importImage, imgFor, pasteObjects, install } from './persist.js';
 
 /* Mark one chip in a group as the chosen one. The selector is deliberately
    class-agnostic — the chips in these groups have changed class twice. */
@@ -42,10 +42,72 @@ function syncSize(){
    strings, so this is where the two are told apart again. */
 const slotVal = v => /^\d+$/.test(v) ? +v : v;
 
+/* ---- one writer for the whole object settings panel --------------------
+   `data-oset` is "<id>:<key>". Where the write lands is cfgOf(), which is the
+   desk's own settings for the desk and the object itself for everything else —
+   so the desk is a container without a tile rather than a branch. A dotted key
+   is nested: `rule.f` is filter.rule.f, `roll.fn` is the rollup's function.
+   Everything else is the field of that name, with '' meaning "unset". */
+const BOOLSET = ['locked','edge','weekends'];
+function setField(el){
+  const raw=el.dataset.oset||'', i=raw.indexOf(':');
+  const id=raw.slice(0,i), key=raw.slice(i+1);
+  const o=byId(id), t=cfgOf(id);
+  if(!t) return;
+  const v=el.value;
+  switch(key){
+    case 'pin': setPin(id, !!v); break;
+    case 'kind':
+      if(!o || !KINDS[v]) break;
+      o.kind=v; o.attrs=null;
+      if(has(o,'progress') && !(o.milestones||[]).length)
+        o.milestones=[{t:'First milestone',done:false,d:dz(30)}];
+      break;
+    // a new container is a new coordinate space, so the boxes go with the move
+    case 'parent':
+      if(!o) break;
+      if(v===id || isAncestor(id, container(v))){ toast('A drawer cannot go inside itself'); break; }
+      if(o.parent!==v){ o.parent=v; o.desk=null; o.phone=null; }
+      break;
+    case 'knobtone': t.knobtone=v; t.knobc=null; break;
+    case 'dur': t.dur = v===''?null:+v; break;
+    case 'mtype': if(o) o.media=Object.assign({label:'untitled'}, o.media, {type:v}); break;
+    case 'linklabel': case 'linktarget': case 'linkurl': {
+      if(!o) break;
+      o.link=Object.assign({label:'Open',target:''}, o.link);
+      if(key==='linklabel') o.link.label=v;
+      else if(key==='linktarget'){ if(v) o.link.target=v; }
+      else if(v) o.link.target=v;
+      break;
+    }
+    case 'rule.f': case 'rule.op': case 'rule.v': {
+      if(!o) break;
+      o.filter=Object.assign({}, o.filter);
+      const r=Object.assign({op:'is'}, o.filter.rule);
+      r[key.slice(5)]=v;
+      o.filter.rule = r.f ? r : undefined;
+      break;
+    }
+    case 'filter.tag': if(o) o.filter=Object.assign({}, o.filter, {tag:v||undefined}); break;
+    case 'roll.fn': case 'roll.f': {
+      if(!o) break;
+      const r=Object.assign({}, o.roll);
+      r[key.slice(5)] = v||undefined;
+      o.roll = r.fn ? r : undefined;
+      break;
+    }
+    default:
+      if(BOOLSET.includes(key)) t[key] = !!v;
+      else t[key] = v==='' ? null : v;
+  }
+  save();
+}
+
 function act(name, el){
   switch(name){
     case 'new': modalNewObject(); break;
-    case 'newdrawer': modalDrawer(null); break;
+    // a drawer is made the way everything else is, and then talked to
+    case 'newdrawer': { const d=create('drawer',{title:'New drawer'}); save(); render(); reveal(d.id); objectPanel(d.id); break; }
     case 'back': S.view='desk'; S.drawerId=null; S.kindFilter=null; render(); break;
     case 'pin': togglePin(el.dataset.id); break;
     // one step is one screenful, so it steps by whatever the calendar is showing
@@ -64,27 +126,14 @@ function act(name, el){
       d.month=T; S.calDay=T; save(); render(); break;
     }
     case 'cancel': closePanel(); break;
-    case 'savedrawer': {
-      const id=el.dataset.id, dr=draft()||{};
-      const title=$('#dnm').value.trim()||'Untitled drawer';
-      if(id){ const d=byId(id);
-        Object.assign(d,{title,c:dr.c,pv:dr.pv,layout:dr.layout,locked:!!dr.locked,
-          border:dr.border,knob:dr.knob,knobc:dr.knobc||null});
-        d.filter=Object.assign({},d.filter,{kinds:dr.kinds,tag:dr.tag||undefined,
-          rule: $('#rf').value ? {f:$('#rf').value, op:$('#rop').value, v:$('#rv').value} : undefined});
-        d.roll = $('#rlfn').value ? {fn:$('#rlfn').value, f:$('#rlf').value||undefined} : undefined;
-      } else {
-        // a new drawer lands inside whatever container you are looking at
-        const home=(S.view==='drawer'&&S.drawerId)||ROOT;
-        S.objects.push({id:uid('d'), kind:'drawer', title, body:'', tags:[],
-          parent:home, c:dr.c||randomFront(), pv:dr.pv, layout:dr.layout||'list',
-          filter:{kinds:dr.kinds,tag:dr.tag||undefined}, ord:0, created:T,
-          desk:freeSpot(2,2,'desk',home), phone:freeSpot(2,2,'phone',home)});
-      }
-      closePanel(); save(); render(); toast(id?'Drawer updated':'Drawer added');
-      break;
+    // one Delete, whatever it is: a container keeps its contents, everything
+    // else is the ordinary undoable delete
+    case 'delthis': {
+      const id=el.dataset.id, o=byId(id); if(!o) return;
+      closePanel();
+      if(isContainer(o)) delDrawer(id); else del(id);
+      save(); break;
     }
-    case 'deldrawer': { closePanel(); delDrawer(el.dataset.id); save(); break; }
     case 'countup': { const o=byId(el.dataset.id); o.count=(o.count||0)+1; save();
       // spin in place when it's a tile, so the wheels animate instead of blinking
       const w=el.closest('.cntnum'); if(w){ spinTo(w, o.count); renderSheet(); }
@@ -100,21 +149,6 @@ function act(name, el){
             <span class="kindmark">${ic(K(x.kind).ic,13)}</span>
             <div class="body"><div class="title">${esc(x.title||'Untitled')}</div>
               <div class="snip">${esc(K(x.kind).nm)}</div></div></div>`).join('')}</div>`});
-      break;
-    }
-    case 'attrsheet': {
-      const id=el.dataset.id; if(!byId(id)) return;
-      openPanel({key:'attrs:'+id, title:'Attributes',
-        sub:'What this one object can do',
-        body:()=>{
-          const o=byId(id); if(!o) return '';
-          const mine=attrsOf(o), own=!!o.attrs;
-          return `<div class="mini" style="--k:var(--brass)">${own?'It has its own set.'
-              :'It follows the '+esc(K(o.kind).nm.toLowerCase())+' type.'}</div>
-            <div class="prow"><div>${USER_ATTRS.map(a=>
-              `<button class="pchip${mine.includes(a)?' on':''}" data-attr="${a}" data-id="${id}" title="${esc(ATTRS[a].ds)}">${ATTRS[a].nm}</button>`).join('')}</div></div>
-            ${own?`<div class="pfoot"><button class="subtle-btn" data-act="attrreset" data-id="${id}">${ic('undo',12)} Follow the ${esc(K(o.kind).nm.toLowerCase())} type again</button></div>`:''}`;
-        }});
       break;
     }
     case 'attrreset': {
@@ -145,6 +179,9 @@ function act(name, el){
         shape: dk.sort==='object' ? (dk.shape||'card') : undefined,
         face:  dk.sort==='object' ? undefined : (dk.face||'front'),
         layout: dk.sort==='object' ? undefined : (base.layout||'grid'),
+        // a container type says how its contents are ordered; manual is the
+        // answer a drawer gives, and storing it as one keeps it a real choice
+        sort: dk.sort==='object' ? undefined : (dk.sortBy||MANUAL),
         gathers: dk.sort==='object' ? (dk.gathers||undefined) : undefined,
         spawnBy: dk.attrs.includes('spawn') ? (dk.spawnBy||'click') : undefined});
       refreshKinds();
@@ -165,14 +202,18 @@ function act(name, el){
       break;
     }
     case 'addtag': {
-      const o=byId(S.openId); if(!o) return;
-      const t=prompt('Tag'); if(t){ o.tags=o.tags||[]; if(!o.tags.includes(t.trim())) o.tags.push(t.trim().replace(/^#/,'')); renderSheet(); render(); }
+      const o=byId(el.dataset.id||S.openId); if(!o) return;
+      const t=prompt('Tag'); if(t){ o.tags=o.tags||[]; const v=t.trim().replace(/^#/,'');
+        if(v && !o.tags.includes(v)) o.tags.push(v); save(); refreshPanel(); render(); }
       break;
     }
-    case 'addmile': { const o=byId(S.openId); o.milestones.push({t:'New milestone',done:false,d:dz(30)}); renderSheet(); break; }
-    case 'attach': { const o=byId(S.openId); o.media={type:'image',label:'photo-2026-08.heic · 4.2 MB'}; renderSheet(); render(); toast('Media attached'); break; }
-    case 'dupe': { const o=byId(S.openId); const c=Object.assign({},o,{id:uid('o'),title:o.title+' (copy)',ord:o.ord+0.1}); S.objects.push(c); openObj(c.id); render(); break; }
-    case 'sched': { const o=byId(S.openId); o.due=T; renderSheet(); render(); toast('Scheduled for today'); break; }
+    case 'addmile': { const o=byId(el.dataset.id||S.openId); if(!o) return;
+      o.milestones=o.milestones||[]; o.milestones.push({t:'New milestone',done:false,d:dz(30)});
+      save(); refreshPanel(); render(); break; }
+    case 'dupe': { const o=byId(el.dataset.id||S.openId); if(!o) return;
+      const c=Object.assign({},o,{id:uid(isContainer(o)?'d':'o'),title:o.title+' (copy)',
+        ord:(o.ord||0)+0.1, desk:null, phone:null});
+      S.objects.push(c); closePanel(); save(); render(); reveal(c.id); break; }
     case 'resetslots': {
       const k=(S.look.style)||'victorian';
       if(S.look.slots) delete S.look.slots[k];
@@ -181,12 +222,15 @@ function act(name, el){
     case 'stopedit': S.layoutEdit=null; render(); break;
     case 'export': exportBackup(); break;
     case 'import': $('#importer').click(); break;
-    case 'pickimage': $('#imgpicker').click(); break;
-    case 'drawersettings': drawerPanel(el.dataset.id); break;
+    // from an object's Media row the file replaces *that* object's picture;
+    // from anywhere else it makes a new one on the board you are looking at
+    case 'pickimage': imgFor.id = el.dataset.id || null; $('#imgpicker').click(); break;
+    case 'drawersettings': case 'objset': objectPanel(el.dataset.id); break;
     case 'panelclose': closePanel(); break;
-    case 'panelmore': closePanel(); modalDrawer(el.dataset.id); break;
     case 'appsettings': toggleSettings(); break;
-    case 'editthis': S.readId=null; openObj(el.dataset.id); break;
+    // the two surfaces an object opens onto, each reachable from the other
+    case 'editthis': openWriter(el.dataset.id); break;
+    case 'readthis': openRead(el.dataset.id); break;
     // the spread redraws inside the turn, so whichever surface is showing one
     // has to be the thing that gets redrawn
     case 'bookprev': turnPage(-1, S.readId?renderSheet:render); break;
@@ -199,9 +243,9 @@ function act(name, el){
     }
     // a menu hung off the button, not a modal in the middle of the screen
     case 'sortmenu': {
-      const id=el.dataset.id, cur=cfgOf(id).sort||'';
+      const id=el.dataset.id, cur=sortOf(container(id))||MANUAL;
       openMenu(el, `<div class="ctxhead">Sort</div>
-        <button class="${!cur?'on':''}" data-sortby="${id}:">Custom</button>
+        <button class="${cur===MANUAL?'on':''}" data-sortby="${id}:${MANUAL}">As I arranged them</button>
         ${Object.entries(SORTS).map(([k,[nm]])=>
           `<button class="${cur===k?'on':''}" data-sortby="${id}:${k}">${nm}</button>`).join('')}`);
       break;
@@ -263,6 +307,25 @@ function wire(){
      dragging did nothing on a phone. */
   frame.addEventListener('touchmove', e=>{ if(dragArmed()) e.preventDefault(); }, {passive:false});
 
+  /* Double tap a tile and its name becomes a field where it sits. That is all
+     "simple text editing" needs to be for a task or a note — a line and a
+     paragraph, neither of which is worth a screen. A container keeps its old
+     behaviour: two taps on a drawer opens it twice, which is what you meant.
+     `dblclick` fires from two taps on iOS as well as from a mouse, and the
+     tiles carry `touch-action:manipulation` so the second tap doesn't zoom. */
+  frame.addEventListener('dblclick', e=>{
+    if(e.target.closest('input,textarea,select')) return;
+    const tile=e.target.closest('.grid .drawer[data-row]');
+    if(!tile) return;
+    const o=byId(tile.dataset.row);
+    if(!o || isContainer(o)) return;
+    e.preventDefault();
+    S.editId=o.id; S.sel=[];
+    render();
+    const f=$(`.inlinename[data-inline="${o.id}:title"]`);
+    if(f){ f.focus(); f.setSelectionRange(f.value.length, f.value.length); }
+  });
+
   frame.addEventListener('contextmenu', e=>{
     // iOS fires this from the same long press that armed the drag
     if(dragArmed()){ e.preventDefault(); return; }
@@ -292,10 +355,9 @@ function wire(){
     const undoEl=t.closest('[data-undo]'); if(undoEl){ undo(); return; }
     const c=t.closest('[data-c]');
     if(c){ const [cmd,id]=c.dataset.c.split(':'); closeCtx();
-      if(cmd==='open') openObj(id);
-      else if(cmd==='read'){ S.readId=id; S.openId=null; renderSheet(); }
-      else if(cmd==='drawerset') drawerPanel(id);
-      else if(cmd==='objset') objectPanel(id);
+      if(cmd==='open'||cmd==='write') openWriter(id);
+      else if(cmd==='read') openRead(id);
+      else if(cmd==='drawerset'||cmd==='objset') objectPanel(id);
       else if(cmd==='opendrawer'){ S.view='drawer'; S.drawerId=id; render(); }
       else if(cmd==='pin') togglePin(id);
       else if(cmd==='done') toggleDone(id);
@@ -312,22 +374,23 @@ function wire(){
       return; }
 
     const dr2=t.closest('[data-dorel]');
-    if(dr2){ const [a,b]=dr2.dataset.dorel.split(':'); relate(a,b); closePanel(); save(); renderSheet(); render(); return; }
+    if(dr2){ const [a,b]=dr2.dataset.dorel.split(':'); relate(a,b); save(); render();
+      objectPanel(a); return; }
     const ur=t.closest('[data-unrel]');
-    if(ur){ const [a,b]=ur.dataset.unrel.split(':'); unrelate(a,b); save(); renderSheet(); render(); return; }
+    if(ur){ const [a,b]=ur.dataset.unrel.split(':'); unrelate(a,b); save(); refreshPanel(); render(); return; }
     const or2=t.closest('[data-openrel]');
     if(or2){ openObj(or2.dataset.openrel); return; }
 
     const st=t.closest('[data-star]');
     if(st){ const [id,n]=st.dataset.star.split(':'); const o=byId(id);
-      o.rating = (o.rating===+n) ? 0 : +n; save(); renderSheet(); render(); return; }
+      o.rating = (o.rating===+n) ? 0 : +n; save(); refreshPanel(); render(); return; }
 
     const st3=t.closest('[data-style3]');
     if(st3){ applyStyle(st3.dataset.style3); toast(STYLES[st3.dataset.style3].nm); return; }
 
     const sb=t.closest('[data-sortby]');
     if(sb){ const i=sb.dataset.sortby.indexOf(':');
-      cfgOf(sb.dataset.sortby.slice(0,i)).sort = sb.dataset.sortby.slice(i+1) || null;
+      cfgOf(sb.dataset.sortby.slice(0,i)).sort = sb.dataset.sortby.slice(i+1) || MANUAL;
       closeCtx(); save(); render(); return; }
 
     const mv=t.closest('[data-moveto]');
@@ -346,7 +409,11 @@ function wire(){
       const o=create(kind, at?{parent:at.parent}:undefined);
       placeAtPending(o);
       save(); render();
-      // it lands on the board and stays there — open it when you want it
+      /* …and then it is scrolled to. A board is a coordinate space, so a new
+         object goes in the first free room from the top — which on a phone,
+         where objects are full width, is always below everything you can see.
+         It landed correctly and looked like nothing had happened. */
+      reveal(o.id);
       return; }
 
     // month / week / day — the same calendar over a different span
@@ -368,20 +435,27 @@ function wire(){
     const ml=t.closest('[data-mile]');
     if(ml){ const [gid,i]=ml.dataset.mile.split(':'); const g=byId(gid); const m=g.milestones[+i];
       m.done=!m.done; if(m.done) toast('Milestone passed · '+m.t);
-      render(); if(S.openId) renderSheet(); return; }
+      save(); render(); refreshPanel(); return; }
     const mdel=t.closest('[data-mdel]');
-    if(mdel){ byId(S.openId).milestones.splice(+mdel.dataset.mdel,1); renderSheet(); render(); return; }
+    if(mdel){ const o=byId(S.openId); if(!o) return;
+      o.milestones.splice(+mdel.dataset.mdel,1); save(); refreshPanel(); render(); return; }
 
     const hd=t.closest('[data-hday]');
-    if(hd){ const o=byId(S.openId); const ds=hd.dataset.hday; const i=o.history.indexOf(ds);
-      if(i>=0) o.history.splice(i,1); else o.history.push(ds); renderSheet(); render(); return; }
+    if(hd){ const o=byId(S.openId); if(!o) return;
+      const ds=hd.dataset.hday, i=(o.history||[]).indexOf(ds);
+      if(i>=0) o.history.splice(i,1); else (o.history=o.history||[]).push(ds);
+      save(); refreshPanel(); render(); return; }
 
     const ut=t.closest('[data-untag]');
-    if(ut){ const o=byId(S.openId); o.tags=o.tags.filter(x=>x!==ut.dataset.untag); renderSheet(); render(); return; }
+    if(ut){ const o=byId(S.openId); if(!o) return;
+      o.tags=(o.tags||[]).filter(x=>x!==ut.dataset.untag); save(); refreshPanel(); render(); return; }
 
     // a tag opens the magic drawer that collects it, making one if need be
+    // a tag takes you somewhere else, so what was open about the thing you
+    // clicked it on goes with you — panel included, or a bubble is left
+    // pointing at a tile that is no longer on the screen
     const tgd=t.closest('[data-tagdrawer]');
-    if(tgd){ closeSheet(); drawerForTag(tgd.dataset.tagdrawer); return; }
+    if(tgd){ closePanel(); closeSheet(); drawerForTag(tgd.dataset.tagdrawer); return; }
 
     const sh=t.closest('[data-sheet]');
     if(sh){ const v=sh.dataset.sheet;
@@ -439,42 +513,24 @@ function wire(){
     const dtg=t.closest('[data-dtag]');
     if(dtg){ draft().tag=dtg.dataset.dtag; only(dtg,'#dtag button'); return; }
 
-    const pn=t.closest('[data-pview],[data-pface],[data-psort],[data-plock],[data-ppin],[data-pborder],[data-pknob],[data-pcolour],[data-pboard],[data-pknobc],[data-pknobtone],[data-pknobpos],[data-pknobsize],[data-ptexture],[data-pcalview],[data-pweekstart],[data-pweekends],[data-pgen],[data-otype],[data-oclick],[data-oread],[data-oshape],[data-oedge],[data-ocolour],[data-oframe],[data-obtn],[data-ogen],[data-ogendir]');
+    /* What is left of the panel's buttons once every one-of-many list became a
+       select: swatches, the knob's own colours, and the read switch in the
+       reading header — which is a header, not a panel. */
+    const pn=t.closest('[data-ocolour],[data-pboard],[data-pknobc],[data-oread],[data-fkind]');
     if(pn){
-      const id=pn.dataset.id, c=cfgOf(id), o=byId(id);
-      if(pn.dataset.pview!=null) c.layout=pn.dataset.pview;
-      else if(pn.dataset.ppin!=null) setPin(id, !!pn.dataset.ppin);   // S.pins, not the object
-
-      else if(o && pn.dataset.pcalview!=null){ o.calview=pn.dataset.pcalview; S.calDay=null; }
-      else if(o && pn.dataset.pweekstart!=null) o.weekStart=pn.dataset.pweekstart;
-      // false, not undefined: the kind says weekends are shown, so hiding them
-      // has to be a value on the object rather than the absence of one
-      else if(o && pn.dataset.pweekends!=null) o.weekends=!!pn.dataset.pweekends;
-      else if(o && pn.dataset.pgen!=null) o.genKind=pn.dataset.pgen;
-      else if(o && pn.dataset.pface!=null) o.face=pn.dataset.pface;
-      else if(pn.dataset.psort!=null) c.sort=pn.dataset.psort||null;
-      else if(pn.dataset.plock!=null) c.locked=!!pn.dataset.plock;
-      else if(o && pn.dataset.pborder!=null) o.border=pn.dataset.pborder;
-      else if(o && pn.dataset.pknob!=null) o.knob=pn.dataset.pknob;
-      else if(o && pn.dataset.pcolour!=null) o.c=slotVal(pn.dataset.pcolour);
-      else if(o && pn.dataset.pboard!=null) o.board=pn.dataset.pboard||null;
-      else if(o && pn.dataset.pknobc!=null){ o.knobc=pn.dataset.pknobc; o.knobtone=null; }
-      else if(o && pn.dataset.pknobtone!=null){ o.knobtone=pn.dataset.pknobtone; o.knobc=null; }
-      else if(o && pn.dataset.pknobpos!=null) o.knobpos=pn.dataset.pknobpos;
-      else if(o && pn.dataset.pknobsize!=null) o.knobsize=pn.dataset.pknobsize;
-      else if(o && pn.dataset.ptexture!=null) o.texture=pn.dataset.ptexture;
-      else if(o && pn.dataset.otype!=null){ o.kind=pn.dataset.otype; o.attrs=null; }
-      else if(o && pn.dataset.oclick!=null) o.onclick=pn.dataset.oclick;
+      const id=pn.dataset.id, o=byId(id) || cfgOf(id);
+      if(pn.dataset.ocolour!=null) o.c=slotVal(pn.dataset.ocolour);
+      else if(pn.dataset.pboard!=null) o.board=pn.dataset.pboard||null;
+      else if(pn.dataset.pknobc!=null){ o.knobc=pn.dataset.pknobc; o.knobtone=null; }
       // switching how it reads restarts it at the first page — page 7 of a
       // spread is not page 7 of a single page
-      else if(o && pn.dataset.oread!=null){ o.read=pn.dataset.oread; S.bookAt=0; renderSheet(); }
-      else if(o && pn.dataset.oshape!=null) o.shape=pn.dataset.oshape;
-      else if(o && pn.dataset.oedge!=null) o.edge=!!pn.dataset.oedge;
-      else if(o && pn.dataset.ocolour!=null) o.c=slotVal(pn.dataset.ocolour);
-      else if(o && pn.dataset.oframe!=null) o.frame=pn.dataset.oframe;
-      else if(o && pn.dataset.obtn!=null) o.btnshape=pn.dataset.obtn;
-      else if(o && pn.dataset.ogen!=null) o.genKind=pn.dataset.ogen;
-      else if(o && pn.dataset.ogendir!=null) o.genDir=pn.dataset.ogendir;
+      else if(pn.dataset.oread!=null){ o.read=pn.dataset.oread; S.bookAt=0; renderSheet(); }
+      else if(pn.dataset.fkind!=null){
+        o.filter=Object.assign({}, o.filter);
+        const ks=(o.filter.kinds||[]).slice(), k=pn.dataset.fkind, i=ks.indexOf(k);
+        if(i>=0) ks.splice(i,1); else ks.push(k);
+        o.filter.kinds=ks;
+      }
       save(); render();
       refreshPanel();          // rebuild from state, so the marks follow
       return;
@@ -497,6 +553,8 @@ function wire(){
         `<button class="pchip${cur===val?' on':''}" data-klook="${val}">${nm}</button>`).join('');
       // only an object gathers — a container is filed into, never piled
       const gr=$('#kgatherrow'); if(gr) gr.style.display = v==='object' ? '' : 'none';
+      // …and only a container has contents to put in an order
+      const sr=$('#ksortrow'); if(sr) sr.style.display = v==='object' ? 'none' : '';
       renderPreview(); return; }
     const kg=t.closest('[data-kgather]');
     if(kg){ draft().gathers=kg.dataset.kgather; only(kg,'#kgather button'); return; }
@@ -627,6 +685,23 @@ function wire(){
       return;
     }
     if(e.target.id==='knm'){ renderPreview(); return; }
+    /* The object settings panel. A select is answered on `change` below; a
+       field is answered here, keystroke by keystroke, and deliberately does
+       *not* refresh the panel — the input is the thing being typed in. render()
+       rebuilds #app only, so the field survives it. */
+    if(e.target.dataset.oset!=null && e.target.tagName!=='SELECT'){
+      setField(e.target); render(); return;
+    }
+    /* Typing into a tile on the board. Same rule, one step further: no render()
+       at all, because the input *is* the tile — rebuilding it would take the
+       caret with it. The next ordinary render agrees. */
+    if(e.target.dataset.inline!=null){
+      const raw=e.target.dataset.inline, i=raw.indexOf(':');
+      const o=byId(raw.slice(0,i)); if(!o) return;
+      o[raw.slice(i+1)]=e.target.value;
+      o.edited=new Date().toISOString().slice(0,10);
+      save(); return;
+    }
     /* Answering a question. No render() — the input is the thing being typed
        in, and rebuilding the board underneath would take the caret with it. The
        answered/unanswered class is toggled here instead, and the next ordinary
@@ -639,41 +714,32 @@ function wire(){
         tile.classList.toggle('answered', on); tile.classList.toggle('unanswered', !on); }
       save(); return;
     }
-    const f=e.target.dataset.f;
-    if(f){
-      const o=byId(S.openId); if(!o) return;
-      if(f==='title'){ o.title=e.target.value; e.target.style.height='auto'; e.target.style.height=e.target.scrollHeight+'px'; }
-      else if(f==='body') o.body=e.target.value;
-      else if(f==='due') o.due=e.target.value||null;
-      else if(f==='repeat') o.repeat=e.target.value||null;
-      else if(f==='parent'){
-        const v=e.target.value;
-        if(v!==o.id && !isAncestor(o.id, container(v))) o.parent=v;
-        else toast('A drawer cannot go inside itself');
-      }
-      else if(f==='layout'){ o.layout=e.target.value; render(); }
-      else if(f==='onclick'){ o.onclick=e.target.value; save(); render(); }
-      else if(f==='url') o.url=e.target.value;
-      else if(f==='loc') o.loc=e.target.value;
-      else if(f==='dur') o.dur=e.target.value?+e.target.value:null;
-      else if(f==='price') o.price=e.target.value;
-      else if(f==='answer') o.answer=e.target.value;
-      else if(f==='prio'){ o.prio=e.target.value||null; render(); }
-      else if(f==='btnshape'){ o.btnshape=e.target.value; render(); }
-      else if(f==='frame'){ o.frame=e.target.value; save(); render(); }
-      else if(f==='linklabel'){ o.link=o.link||{}; o.link.label=e.target.value; }
-      else if(f==='linktarget'){ o.link=o.link||{}; o.link.target=e.target.value; }
-      else if(f==='linkurl'){ o.link=o.link||{}; if(e.target.value) o.link.target=e.target.value; }
-      else if(f==='mtype'){ o.media=o.media||{label:'untitled'}; o.media.type=e.target.value; renderSheet(); }
-      else if(f==='kind'){ o.kind=e.target.value; if(has(o,'progress')&&!o.milestones.length) o.milestones=[{t:'First milestone',done:false,d:dz(30)}]; renderSheet(); }
-      return;
+    /* The writing surface: a title and a body, and nothing else on the screen.
+       No render() while you type — the board is behind a scrim and the word
+       count is the only thing that has anything to say. */
+    const w=e.target.dataset.w;
+    if(w){
+      const o=byId(S.writeId); if(!o) return;
+      o[w]=e.target.value;
+      o.edited=new Date().toISOString().slice(0,10);
+      if(w==='title'){ e.target.style.height='auto'; e.target.style.height=e.target.scrollHeight+'px'; }
+      else { const c=$('#wcount'); if(c) c.textContent=words(o.body)+' words'; }
+      save(); return;
     }
-    if(e.target.dataset.mtext!=null){ byId(S.openId).milestones[+e.target.dataset.mtext].t=e.target.value; return; }
-    if(e.target.dataset.mdate!=null){ byId(S.openId).milestones[+e.target.dataset.mdate].d=e.target.value; return; }
+    if(e.target.dataset.mtext!=null){ const o=byId(S.openId);
+      if(o) { o.milestones[+e.target.dataset.mtext].t=e.target.value; save(); } return; }
+    if(e.target.dataset.mdate!=null){ const o=byId(S.openId);
+      if(o) { o.milestones[+e.target.dataset.mdate].d=e.target.value; save(); } return; }
     if(e.target.id==='cmdinput'){ cmdList(e.target.value); return; }
   });
 
   frame.addEventListener('change', e=>{
+    // a select answers once, on change — and then the panel agrees with itself,
+    // because half its rows only exist depending on the answers above them
+    if(e.target.dataset.oset!=null && e.target.tagName==='SELECT'){
+      setField(e.target); render(); refreshPanel(); return;
+    }
+    if(e.target.dataset.ksort2!=null){ const d=draft(); if(d) d.sortBy=e.target.value; return; }
     if(e.target.id==='imgpicker' && e.target.files && e.target.files[0]){
       importImage(e.target.files[0]); e.target.value='';
     }
@@ -715,23 +781,53 @@ function wire(){
         const el=document.querySelector(`[data-contadd="${id}"]`); el&&el.focus(); }
       return;
     }
+    /* Finishing an inline edit. Return commits the name (and moves to the body
+       if there is one); Escape puts the tile back. The value is already in the
+       object — the input listener wrote it — so this only puts the tile down. */
+    if(e.target.dataset.inline!=null){
+      const body=$(`.inlinebody[data-inline="${S.editId}:body"]`);
+      if(e.key==='Escape'){ e.preventDefault(); S.editId=null; render(); return; }
+      if(e.key==='Enter' && e.target.classList.contains('inlinename')){
+        e.preventDefault();
+        // …but only if the tile is actually showing one. A sliver is a single
+        // band with its body hidden, and you cannot focus what isn't drawn —
+        // so on a task Return finishes, which is what it should mean there.
+        if(body && body.offsetParent) body.focus();
+        else { S.editId=null; render(); }
+        return;
+      }
+      if(e.key==='Enter' && (e.metaKey||e.ctrlKey)){ e.preventDefault(); S.editId=null; render(); }
+      return;
+    }
     if(e.target.id==='cmdinput'){
       if(e.key==='Enter'){ runCmd(0); }
       if(e.key==='Escape'){ closeCmd(); }
     }
   });
 
+  /* Tapping anywhere else puts an inline edit down. Not `blur`: moving from
+     the name to the body is a blur, and so is the keyboard closing itself. */
+  frame.addEventListener('pointerdown', e=>{
+    if(!S.editId) return;
+    if(e.target.closest(`[data-inline^="${S.editId}:"]`)) return;
+    S.editId=null;
+    setTimeout(render, 0);      // let the click that started this land first
+  }, true);
+
   document.addEventListener('keydown', e=>{
     const typing = /input|textarea/i.test(document.activeElement.tagName);
     if((e.metaKey||e.ctrlKey) && e.key.toLowerCase()==='k'){ e.preventDefault(); openCmd(); return; }
     if(e.key==='Escape'){ closeCtx(); closeCmd(); closePanel();
-      if(S.openId||S.readId) closeSheet(); return; }
+      if(S.writeId||S.readId) closeSheet();
+      else if(S.editId){ S.editId=null; render(); }
+      return; }
     if(typing) return;   // in a field, ⌘Z is the browser's to answer, not ours
     if((e.metaKey||e.ctrlKey) && e.key.toLowerCase()==='z'){ e.preventDefault(); undo(); save(); return; }
     if(e.key==='n'||e.key==='N'){ e.preventDefault(); modalNewObject(); return; }
     if(panelKey()==='newobject'){
       const k=KEYS.find(x=>KINDS[x].key.toLowerCase()===e.key.toLowerCase());
-      if(k){ closePanel(); const o=create(k); render(); openObj(o.id); S.editing=true; renderSheet(); }
+      // it lands on the board and is scrolled to, the same as picking its tile
+      if(k){ closePanel(); const o=create(k); save(); render(); reveal(o.id); }
     }
   });
 

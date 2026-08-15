@@ -228,9 +228,14 @@ today, done. An object that hasn't got the field never matches.
 average, lowest, highest, or done-out-of. It shows on the face. Rollups, not
 formulas — there is no expression language and there isn't going to be one.
 
-**Sorting.** `sort` is null for the manual order you arranged, which is the
-default. Otherwise: date made either way, date modified, or A–Z either way. A
-sorted grid arranges itself, so tiles in one can't be dragged.
+**Sorting.** `sort` is per object then per type, like every other setting —
+`sortOf(c)`. The values are `manual` (the order you arranged, which is a real
+answer and not the absence of one), date made either way, date modified, or A–Z
+either way. A type states the default its containers are born with, so a
+Shopping list can be alphabetical while a Drawer stays as you left it; a
+container may override its type with `manual`, which is why manual is stored
+rather than implied. A sorted grid arranges itself, so tiles in one can't be
+dragged.
 
 **Tags are magic drawers waiting to happen.** There is no filter mode and no
 filter bar. Clicking a tag calls `drawerForTag()`, which finds the magic drawer
@@ -273,8 +278,9 @@ of four things layered over them.
 | --- | --- | --- |
 | **The grid** | The app. | `#app`, rebuilt whole by `render()` |
 | **The bar** | Where you are, the pins, and five icon buttons. Top strip on a Mac, bottom bar on a phone, one piece of markup. | inside `#app` |
-| **Detail sheet** | Editing one object, or reading it — reading takes the middle of the screen over a dimmed desk, editing takes the side. | `#sheetHost`, rendered separately so typing doesn't destroy the field |
-| **Panel** | Every menu and every form. One at a time, down the right, over a desk that stays live. | `#frame`, outside `#app` |
+| **Reading** | An object's body as paper — a spread, a page, or a column. Over a dimmed desk. | `#sheetHost`, rendered separately from `render()` |
+| **Writing** | The same body, full screen, with nothing else on it. A title and a textarea. | `#sheetHost` |
+| **Panel** | Every menu, every form, and every setting an object has. One at a time, down the right, over a desk that stays live. | `#frame`, outside `#app` |
 | **Popup** | Picking one of a handful — Sort, the context menu. Hangs off the button that opened it. | borrowed context-menu element |
 | **Command palette** | ⌘K. The one thing that kept a scrim, because it is a search field you type into blind. | `#frame` |
 
@@ -284,8 +290,17 @@ disappears by itself; with nothing pinned the bar isn't drawn.
 
 **There are no modals.** `openPanel(spec)` is the whole system. `spec.body` is a
 function so `refreshPanel()` can redraw from state; a form's draft lives in the
-`PANEL` object, never on the DOM node. The sheet and a panel claim the same
-side, and the sheet wins.
+`PANEL` object, never on the DOM node. A surface and a panel claim the same
+screen, and the surface wins.
+
+**Everything an object can be changed to is in one panel.** `objectPanel(id)`
+answers for objects, containers and the desk alike — a container is an object
+with children, so "drawer settings" and "object settings" were the same
+question asked twice. Name, type, where it lives, look, behaviour, every field
+its traits carry, milestones, a streak, tags, relations, what a magic drawer
+collects, its traits, duplicate and delete. A list of one-of-many is a
+`<select>`; the many-of-many groups are chips behind a closed `<details>`. See
+decision 36.
 
 ## 10. Interaction
 
@@ -294,6 +309,7 @@ side, and the sheet wins.
 | Gesture | What happens |
 | --- | --- |
 | Click a tile | Whatever that object says — see below |
+| Double-tap a tile | Its name becomes a field where it sits, and its body under it if the tile shows one. Containers are exempt: two taps on a drawer opens it twice |
 | Press and hold a tile (200ms) | Arms the drag; then move it, or drag a corner to resize |
 | Click bare grid | The type picker, and what you pick lands on that cell |
 | Drag across bare grid | Sketch a box — the new object takes that size — or lasso tiles |
@@ -304,8 +320,14 @@ side, and the sheet wins.
 | Drag a pin | Reorders the bar |
 
 **Clicking an object is configurable** — `clickOf()`, per object then per type:
-nothing, read, open the editor, tick it off, or make one of something. The
-editor is not the default; it is on the context menu. A drawer always opens.
+nothing, read it, write in it, tick it off, open its settings, or make one of
+something. Writing is not the default; it is on the context menu and on the
+reading view. A drawer always opens.
+
+**A new object is scrolled to.** `reveal()` after every creation. A board is a
+coordinate space, so a new thing takes the first free room scanning from the
+top — and on a phone, where an object is full width, that is always below
+everything already there. It was placed correctly and never seen.
 
 **Reading is one surface with three settings.** `readOf()` — per object, then
 per type, defaulting to `page`:
