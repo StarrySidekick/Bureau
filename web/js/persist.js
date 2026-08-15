@@ -13,7 +13,7 @@ import { closePanel } from './panels.js';
    travel together, because "which Bureau is this phone running" is exactly the
    question you ask when a change appears not to have deployed. Shown in
    Settings, so it can be read off the device rather than guessed at. */
-const APP_VERSION = '1.2';
+const APP_VERSION = '1.3';
 const KEY = 'bureau.v1';
 const install = {deferred:null};   // the browser's install prompt, when one is on offer
 let saveTimer = null;

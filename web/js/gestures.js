@@ -1,10 +1,11 @@
 import { $, $$, clamp, D, ROOT } from './util.js';
-import { S, byId, dev, has, isAncestor, childrenOf, container, gatherKind, pinnedDrawers } from './model.js';
+import { S, byId, dev, has, isAncestor, childrenOf, container, gatherKind } from './model.js';
 import { CELL, gridOf, cellW, lay, boxOk, overlaps } from './grid.js';
 import { toast, gather } from './mutations.js';
 import { pending, tileTap, fireButton } from './tiles.js';
 import { modalNewObject, openCtx } from './panels.js';
-import { render, turnPageBy } from './views.js';
+import { render } from './views.js';
+import { pagerBegin, pagerMove, pagerEnd, pagerCancel, pagerOn } from './motion.js';
 import { save } from './persist.js';
 
 /* ============================================================
@@ -196,8 +197,40 @@ function fileInto(d, intoId){
   return true;
 }
 
+/* ---- a swipe that walks the boards ------------------------------------
+   One decision per gesture: at SWIPE_MIN, by whichever of the two distances
+   is the larger, and then held until the fingers come off — so a slightly
+   diagonal swipe turns one page rather than turning three and changing drawer
+   as well. Tracking starts from where the decision was made, not from where
+   the finger went down, or the strip would jump by the threshold the moment
+   it appeared.
+
+   `g` is whichever gesture is driving: the two-finger one, a one-finger drag
+   on a locked board, or a one-finger drag on a locked board's bare cells.
+   Fourteen pixels rather than the old forty-six, because the swipe no longer
+   *commits* at the threshold — it starts following you there, and letting go
+   without going far enough puts it back. */
+const SWIPE_MIN = 14;
+function swipeMove(g, dx, dy){
+  if(g.axis==='dead') return;
+  if(!g.axis){
+    if(Math.abs(dx)<SWIPE_MIN && Math.abs(dy)<SWIPE_MIN) return;
+    g.axis = Math.abs(dy)>=Math.abs(dx) ? 'y' : 'x';
+    /* Everything past the threshold counts, and the threshold itself doesn't:
+       tracking from the raw delta would jump by fourteen pixels the moment the
+       strip appeared, and tracking from *this* delta would throw away a flick
+       that crossed the line and kept going in the same event. */
+    g.from = SWIPE_MIN * Math.sign(g.axis==='y' ? dy : dx);
+    g.mode = 'swipe';
+    gestureFlags.suppressClick=true;      // it was a swipe, not a tap
+    if(!pagerBegin(g.axis)){ g.axis='dead'; return; }
+  }
+  pagerMove((g.axis==='y' ? dy : dx) - g.from);
+}
+
 function onDown(e){
   if(e.button===2) return;
+  if(pagerOn()) return;              // a board already in flight owns the screen
   /* A drag arms suppressClick so its own trailing click can't also fire. If
      that click never arrives — the pointer left the window, or the drag was
      synthetic — the flag would sit there and eat somebody else's click later.
@@ -224,8 +257,15 @@ function onDown(e){
   // Any tile on any unlocked grid. There is no arrange mode — everything is
   // always movable — so a short hold arms the drag, which is the only thing
   // keeping an ordinary click from picking the tile up.
-  // bare grid: start sketching a box for a new object
-  if(e.target.classList && e.target.classList.contains('grid') && !e.target.classList.contains('locked')){
+  /* Bare grid. On a board that has been locked there is nothing to sketch and
+     nothing to pick up, which frees the one finger that is otherwise always
+     busy: a plain swipe walks the pinned drawers and turns the pages. On an
+     unlocked one the same drag sketches the size of a new object. */
+  if(e.target.classList && e.target.classList.contains('grid') && e.target.classList.contains('locked')){
+    G={type:'swipe', sx:e.clientX, sy:e.clientY, mode:null, axis:null, from:0};
+    return;
+  }
+  if(e.target.classList && e.target.classList.contains('grid')){
     const grid=e.target, g=gridOf(), r=grid.getBoundingClientRect(), cw=cellW(grid,g);
     const cx=clamp(Math.floor((e.clientX-r.left)/(cw+g.gap))+1, 1, g.cols);
     const cy=Math.max(1, Math.floor((e.clientY-r.top)/(CELL[dev()]+g.gap))+1);
@@ -271,11 +311,12 @@ function onDown(e){
        this" is the one thing a phone has to be able to do to a tile it cannot
        pick up, and locking a board so you can scroll it without disturbing
        anything is exactly when you still want the menu. */
-    const stuck = grid.classList.contains('locked') || grid.classList.contains('sorted');
+    const locked = grid.classList.contains('locked');
+    const stuck = locked || grid.classList.contains('sorted');
     const hEl = stuck ? null : e.target.closest('[data-rz]');
     const g=gridOf();
     G={type: hEl?'resize':'move', el:dEl, id:d.id, handle:hEl?hEl.dataset.rz:null,
-       stuck,
+       stuck, locked, axis:null, from:0,
        armed: !stuck && !!hEl,      // a corner grip drags at once; a tile waits
        startedOnFace:!!e.target.closest('.btnface'),
        // dragging any member of a selection moves the lot, keeping their
@@ -327,6 +368,8 @@ function onMove(e){
   cancelHold(e);
   if(!G) return;
   const dx=e.clientX-G.sx, dy=e.clientY-G.sy;
+
+  if(G.type==='swipe'){ swipeMove(G, dx, dy); return; }
 
   if(G.type==='sketch'){
     if(!G.mode){
@@ -408,11 +451,14 @@ function onMove(e){
 
   if(G.type==='move' || G.type==='resize'){
     if(G.stuck){
+      /* A locked board doesn't refuse the drag any more, it *spends* it: the
+         finger that can't carry a tile walks the boards instead. A sorted one
+         still refuses, because it isn't locked — you can move things on it the
+         moment you set it back to Manual, and it has to say so. */
+      if(G.locked){ swipeMove(G, dx, dy); return; }
       if(!G.mode && (Math.abs(dx)>10 || Math.abs(dy)>10)){
         G.mode='refused';
-        toast(byId(G.id) && document.querySelector('.grid.sorted')
-          ? 'Sorted boards arrange themselves — set Manual to move things'
-          : 'The board is locked — tap the lock to move things');
+        toast('Sorted boards arrange themselves — set Manual to move things');
       }
       return;
     }
@@ -486,6 +532,12 @@ function onUp(e){
   if(!G) return;
   const g=G; G=null;
   const dx=e.clientX-g.sx;
+
+  /* A swipe that got going lets the strip settle where it is heading; one
+     that never did was a tap on a locked board, and the tile under it still
+     opens (that falls through to the bottom of this function). */
+  if(g.mode==='swipe'){ pagerEnd(); return; }
+  if(g.type==='swipe'){ if(S.sel.length){ S.sel=[]; render(); } return; }
 
   if(g.type==='sketch'){
     if(g.ghost) g.ghost.remove();
@@ -597,51 +649,39 @@ function onUp(e){
 /* ============================================================
    19b · two fingers — the board's own navigation
    ============================================================
-   One finger is already busy: it carries tiles, ticks boxes and scrolls. So
-   moving *between* boards and between pages of one is two fingers, which
-   nothing else in Bureau uses and which no tile can swallow.
+   On an *unlocked* board one finger is already busy: it carries tiles, ticks
+   boxes and scrolls. So moving between boards, and between the pages of one,
+   is two fingers, which nothing else in Bureau uses and which no tile can
+   swallow. Lock the board and one finger does the same thing, because on a
+   locked board there is nothing else for it to do — see swipeMove().
 
      up / down     the next page of this board, and the one before
      left / right  the next pinned drawer, and the one before — the shelves in
                    order, with the desk at the front of the loop
 
-   One decision per gesture: once it has been read as vertical or horizontal it
-   is done until the fingers come off, so a slightly diagonal swipe turns one
-   page rather than turning three and changing drawer. */
-const TWO_MIN = 46;
-const TWO = {on:false, x:0, y:0, spent:false};
+   The direction is the one every scrolling surface uses: what you are looking
+   at follows the fingers, so pushing the board up brings the next page in from
+   below. Both gestures go through the pager, which draws the neighbouring
+   board *beside* this one and slides the pair — so a swipe is something you
+   can do slowly, see coming, and pull back from. */
+const TWO = {on:false, x:0, y:0, axis:null, from:0, mode:null};
 function onTouchStart(e){
   if(!e.touches || e.touches.length!==2){ TWO.on=false; return; }
   const [a,b]=e.touches;
-  TWO.on=true; TWO.spent=false;
+  TWO.on=true; TWO.axis=null; TWO.from=0; TWO.mode=null;
   TWO.x=(a.clientX+b.clientX)/2; TWO.y=(a.clientY+b.clientY)/2;
   onCancel();                      // two fingers is never a drag
   gestureFlags.suppressClick=true;
 }
 function onTouchMove(e){
-  if(!TWO.on || TWO.spent || !e.touches || e.touches.length!==2) return;
+  if(!TWO.on || !e.touches || e.touches.length!==2) return;
   const [a,b]=e.touches;
-  const dx=(a.clientX+b.clientX)/2 - TWO.x, dy=(a.clientY+b.clientY)/2 - TWO.y;
-  if(Math.abs(dx)<TWO_MIN && Math.abs(dy)<TWO_MIN) return;
-  TWO.spent=true;
-  const here = S.view==='drawer' ? S.drawerId : ROOT;
-  if(Math.abs(dy) >= Math.abs(dx)){ turnPageBy(here, dy<0 ? 1 : -1); return; }
-  stepDrawer(dx<0 ? 1 : -1);
+  swipeMove(TWO, (a.clientX+b.clientX)/2 - TWO.x, (a.clientY+b.clientY)/2 - TWO.y);
 }
-function onTouchEnd(e){ if(!e.touches || e.touches.length<2) TWO.on=false; }
-/* The desk, then every pinned drawer in shelf order, as one loop. Somewhere
-   you pinned is somewhere you go back to often; somewhere you didn't is not on
-   this list, which is what keeps the loop short enough to be worth swiping. */
-function stepDrawer(d){
-  const pins=pinnedDrawers();
-  if(!pins.length) return;
-  const stops=[null, ...pins.map(p=>p.id)];
-  const at=stops.indexOf(S.view==='drawer' ? S.drawerId : null);
-  const to=stops[((at<0?0:at)+d+stops.length) % stops.length];
-  S.view = to ? 'drawer' : 'desk';
-  S.drawerId = to;
-  S.kindFilter=null;
-  render();
+function onTouchEnd(e){
+  if(e.touches && e.touches.length>=2) return;
+  if(TWO.on && TWO.mode==='swipe') pagerEnd();
+  TWO.on=false; TWO.axis=null; TWO.mode=null;
 }
 
 /* A drag ends with a click event the browser sends anyway. When the drag *was*
@@ -657,6 +697,7 @@ const dragArmed = ()=> !!(G && G.armed);
 function onCancel(){
   cancelHold();
   stopPan();
+  pagerCancel();
   if(G){ clearAim(G); if(G.ghost) G.ghost.remove();
          if(G.chip) G.chip.remove();
          if(G.dropEl) G.dropEl.classList.remove('dropinto','dropboard');

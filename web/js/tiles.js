@@ -10,6 +10,7 @@ import { hexOf, objColour } from './look.js';
 import { render, pageAt } from './views.js';
 import { openObj, openWriter, openRead, renderSheet } from './sheet.js';
 import { objectPanel } from './panels.js';
+import { openTile } from './motion.js';
 import { save } from './persist.js';
 
 /* ============================================================
@@ -139,20 +140,29 @@ function fireButton(o){
   if(dest && isContainer(dest)){ S.view='drawer'; S.drawerId=tg; render(); }
   else if(dest) openObj(tg);
 }
+/* Everything that opens goes through openTile(), which plays the movement the
+   object's `opening` asks for and then does the thing — in that order, and
+   without waiting: the state change is immediate and the animation is a copy
+   drawn over the result. See motion.js. */
 function tileTap(id){
   const o=byId(id); if(!o) return;
-  if(isContainer(o)){ S.view='drawer'; S.drawerId=id; S.kindFilter=null; render(); return; }
+  if(isContainer(o)){
+    openTile(id, ()=>{ S.view='drawer'; S.drawerId=id; S.kindFilter=null; render(); });
+    return;
+  }
   switch(clickOf(o)){
+    // a press is not an opening: a generator already has its own movement
     case 'generate': dispense(o); return;
     // which of the three it opens as is the object's own business — readOf()
-    case 'read':  openRead(id); break;
+    case 'read':  openTile(id, ()=>openRead(id)); break;
     // the editor is the writing surface now: the body, full screen, and nothing
     // else on it. Every *setting* is in the object's own panel.
-    case 'edit':  openWriter(id); break;
+    case 'edit':  openTile(id, ()=>openWriter(id)); break;
     // a streak has no checkbox but is very much tickable, and since the Today
-    // tab went this is the one-tap way to mark a habit off from the board
-    case 'check': if(has(o,'check')||has(o,'streak')) toggleDone(id); else openObj(id); break;
-    case 'settings': objectPanel(id); break;
+    // tab went this is the one-tap way to mark a habit off from the board.
+    // Ticking has a movement of its own — the pop — so it isn't an opening.
+    case 'check': if(has(o,'check')||has(o,'streak')) toggleDone(id); else openTile(id, ()=>openObj(id)); break;
+    case 'settings': openTile(id, ()=>objectPanel(id)); break;
     default: break;                      // 'none' — a task just sits there
   }
 }

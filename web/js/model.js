@@ -466,6 +466,16 @@ const shapeOf = o => (o && o.shape) || K(o&&o.kind).shape || 'card';
    A type that says nothing opens as a page. */
 const READS = {book:'Book', page:'Page', scroll:'Scroll'};
 const readOf = o => (o && o.read) || K(o&&o.kind).read || 'page';
+
+/* How a thing opens — the movement, not the destination. Same shape as
+   readOf() and clickOf(): the object's own answer, then its type's, then
+   `auto`, which asks the object what it *is* rather than what it is called.
+   Resolving auto needs the object's box and its shape, so it lives in
+   motion.js next to the animations it chooses between; this is the vocabulary
+   and the stored value, which is what the settings panel needs. */
+const OPENINGS = {auto:'However it suits', drawer:'Pulls out of the shelf',
+  cabinet:'Swings open', curl:'Curls up', lift:'Lifts', none:'Nothing'};
+const openingOf = o => (o && o.opening) || K(o&&o.kind).opening || 'auto';
 // A phone has no room for a spread, so book reads as page there and the page
 // step follows — otherwise turning would skip one every time.
 const spreadOf = o => readOf(o)==='book' && S.device==='desk';
@@ -696,7 +706,7 @@ const allTags = ()=>{ const m={}; S.objects.forEach(o=>(o.tags||[]).forEach(t=>m
 export { ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds, K,
   attrsOf, has, kindHas, T, dz, S, sensedDevice, reset, defaultLook, dev, byId,
   deskTitle, rootObj, container, cfgOf, isContainer, FACES, faceOf, layoutOf, SHAPES,
-  shapeOf, READS, readOf, spreadOf, gathersOf, gatherKind, containers,
+  shapeOf, READS, readOf, spreadOf, OPENINGS, openingOf, gathersOf, gatherKind, containers,
   SHELVES, shelfList, shelfDrawers, pinnedOn, isPinned, pinnedDrawers,
   KNOBSIZES, knobSizeOf, answered,
   spawnByOf, genKindOf, takesTyping, keepsDone,

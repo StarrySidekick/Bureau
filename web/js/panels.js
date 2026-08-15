@@ -1,6 +1,7 @@
 import { $, $$, esc, ic, uid, clamp, D, ROOT } from './util.js';
 import { S, K, KINDS, KEYS, T, ATTRS, USER_ATTRS, FIELDS, fieldOf, OPS, ROLLS,
-  SORTS, MANUAL, sortOf, FACES, SHAPES, READS, faceOf, layoutOf, shapeOf, readOf, byId, container, cfgOf, deskTitle,
+  SORTS, MANUAL, sortOf, FACES, SHAPES, READS, OPENINGS, openingOf,
+  faceOf, layoutOf, shapeOf, readOf, byId, container, cfgOf, deskTitle,
   rootObj, containers, isContainer, isAncestor, childrenOf, has, kindHas,
   attrsOf, allTags, isPinned, pinnedOn, dev, takesTyping, genKindOf, answered,
   relatedTo, backlinksTo, streak, goalPct,
@@ -11,6 +12,7 @@ import { CLICKS, clickOf, gridTile, pending } from './tiles.js';
 import { quickAdd, toast } from './mutations.js';
 import { openObj, openWriter, openRead, renderSheet } from './sheet.js';
 import { render, settingsPanel } from './views.js';
+import { openingFor } from './motion.js';
 import { save } from './persist.js';
 
 /* ============================================================
@@ -23,6 +25,8 @@ function overlayHTML(){
     <div class="cmdlist" id="cmdlist"></div></div></div>
   <div class="toast" id="toast"></div>
   <div class="ctxmenu" id="ctx"></div>
+  ${/* where every animation that outlives its tile is drawn — see motion.js */''}
+  <div id="fx"></div>
   <div id="sheetHost"></div>
   <input type="file" id="importer" accept="application/json,.json" class="hidden">
   <input type="file" id="imgpicker" accept="image/*" class="hidden">`;
@@ -225,6 +229,11 @@ function swatchRows(cur, flat){
    wall; they are two rows now. The bulky many-of-many groups — traits, what a
    magic drawer collects — are behind a disclosure, closed until asked for. */
 const prow=(label,body,note)=>`<div class="prow"><label>${label}${note?`<i>${note}</i>`:''}</label><div>${body}</div></div>`;
+/* What "however it suits" has decided, for the one row where the default is a
+   judgement rather than a value — otherwise the only way to find out which
+   animation you are getting is to tap the thing and watch. */
+const OPENING_IS = o => openingOf(o)==='auto'
+  ? 'right now, it '+OPENINGS[openingFor(o)].toLowerCase() : '';
 const psel=(id,key,list,cur)=>`<select class="psel" data-oset="${id}:${key}">${
   list.map(([v,n])=>`<option value="${esc(String(v))}"${String(cur==null?'':cur)===String(v)?' selected':''}>${esc(n)}</option>`).join('')}</select>`;
 const pfield=(id,key,cur,type,ph)=>`<input class="pfield"${type?` type="${type}"`:''}
@@ -331,6 +340,11 @@ function objectPanelBody(id){
     out.push(prow('Clicking it', psel(id,'onclick', Object.entries(CLICKS), clickOf(d))));
     if(has(d,'text')) out.push(prow('Opens as', psel(id,'read', Object.entries(READS), readOf(d))));
   }
+  /* How it opens — the movement, not the destination. Left alone it works
+     itself out: a big container swings, a small one pulls out, a sheet of
+     paper curls. This is here for when it has worked it out wrongly. */
+  if(!isRoot) out.push(prow('Opening', psel(id,'opening', Object.entries(OPENINGS), openingOf(d)),
+    esc(OPENING_IS(d))));
   if(cal){
     out.push(prow('Shows', psel(id,'calview', Object.entries(CALVIEWS), calViewOf(d))
       + psel(id,'weekStart',[['mon','Week starts Monday'],['sun','Week starts Sunday']], weekStartOf(d))

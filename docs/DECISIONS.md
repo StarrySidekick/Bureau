@@ -1112,3 +1112,78 @@ first time it is opened there. That is the cost of a board that always fits the
 screen exactly, and the alternative — a fixed page height — fits no screen. And
 a square pin drops the drawer's name; four squares in four colours are easy, and
 nine will not be.
+
+---
+
+### 38. Furniture moves, and the movement never holds the app up
+
+Bureau is a desk made of furniture, and until now none of it moved. A drawer
+opened by the screen becoming a different screen. Ticking something off made it
+vanish. A magic drawer had the one animation in the app, and it was a band of
+light on a seven-second loop that did the same thing whatever you did — which
+after a week reads as a thing blinking at you rather than as a surface.
+
+Six movements now, and one rule that matters more than any of them.
+
+**The rule: nothing here delays a state change.** A tap files, ticks or
+navigates the instant it lands, `render()` runs, and the movement is drawn
+*over* the result. The drawer front you just pulled is a copy flying over a
+board that has already changed; the strip that slides between two boards
+commits before it has finished sliding. This is why `motion.js` draws into
+`#fx` and hangs the pager off `#frame` rather than `#app` — both live outside
+the thing `render()` replaces, so a state change can land underneath a
+flourish that is still finishing its sentence. An animation that has to
+complete before the app will answer is the reason animated apps feel slow, and
+it is a very easy thing to build by accident.
+
+**How a thing opens is a property, not a branch.** `opening` — auto | drawer |
+cabinet | curl | lift | none — per object, then per type, the same shape as
+`readOf()` and `clickOf()`. `auto` asks the object what it *is*: a container
+over four cells square swings open like a cabinet, a smaller one pulls out like
+a drawer, a shape that is drawn as a sheet of paper curls up off the board, and
+everything else gives a small lift so a tap is never silent. The threshold is
+per device, because `sizeOfKind()` halves a container onto a phone and the same
+drawer has to clear the same bar on both grids. It is a judgement, so the
+settings row says which way it has gone.
+
+**A magic drawer is foil, and foil doesn't move on its own — it moves because
+you did.** The sweep is gone. `--holox` and `--holoy` live on `#frame` and mean
+"where the light is coming from"; on a phone they come from how it is tilted,
+on a Mac from where the pointer is. Nothing about the drawer animates: it is a
+material that catches light, and the light is the only moving part. iOS hands
+over the motion sensors only from inside a real gesture, which is why this is a
+button in Settings rather than something that quietly happens.
+
+**A swipe is something you can do slowly.** Walking between pinned drawers, and
+between the pages of a board, used to redraw the screen the moment the gesture
+passed forty-six pixels. It was correct and it felt like nothing: there was no
+sense of the boards being laid out beside each other, so a wrong turn was a
+surprise rather than something you could see coming and pull back from. The
+neighbour is drawn *before* you get there now, into a strip that follows your
+finger; letting go either carries it the rest of the way or puts it back. That
+is the whole trick behind an iOS home screen. Sideways the strip carries the
+whole of `.main`, because the bar says which drawer you are in; up and down it
+carries only the board, because the page dots are counting the pages and must
+not slide away with one.
+
+**On a locked board, one finger does it.** Decision 37 gave a board a lock so
+that a phone could be scrolled without disturbing what is on it. A locked board
+also has nothing for a finger to carry — so the finger walks the boards
+instead. Two fingers still work everywhere; one finger works where it cannot
+mean anything else. A tap still opens the tile under it, and the long press
+still opens the menu, which were already the two things a locked board had to
+keep.
+
+*Against:* six movements is five more than Bureau had, and every one of them is
+a thing that can be in the way when you are moving quickly. They are short
+(340–520ms) and none of them blocks anything, but the honest risk is the
+cumulative one — the second week, not the first. The `opening` row exists partly
+so any single one can be turned off per object or per type without touching
+code, and `prefers-reduced-motion` turns off the lot.
+
+*Also against:* the pager builds two whole neighbouring boards at the start of
+every swipe. On a desk of a few hundred objects that is nothing, and it happens
+once per gesture rather than per frame, but it is real work at the moment a
+gesture begins — which is the worst moment for it. If a swipe ever feels like
+it starts late, this is the cause, and the fix is to build only the board in
+the direction the finger is already going, which is already known by then.

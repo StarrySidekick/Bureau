@@ -1,8 +1,9 @@
-/* Bureau — stylesheet, part 1 of 2.
+/* Bureau — stylesheet, part 1 of 3.
    Split by load order only, to keep each file under ~800 lines: board.css
-   loads first, chrome.css second, and later rules deliberately override
-   earlier ones. Don't alphabetise, don't merge "duplicate" selectors, and
-   don't move rules between the files — order is load-bearing. */
+   loads first, chrome.css second, motion.css third, and later rules
+   deliberately override earlier ones. The first two say what things *are*;
+   motion.css says what they *do*. Don't alphabetise, don't merge "duplicate"
+   selectors, and don't move rules between the files — order is load-bearing. */
 /* ============================================================
    BUREAU — design tokens
    ============================================================ */

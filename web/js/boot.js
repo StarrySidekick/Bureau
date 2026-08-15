@@ -9,6 +9,7 @@ import { applyLook } from './look.js';
 import { render, settingsPanel, pageAt, pageCount, goPage } from './views.js';
 import { overlayHTML, objectPanel } from './panels.js';
 import { wire } from './wire.js';
+import { startMotion, openingFor } from './motion.js';
 import { load, writeNow, save, hydrateAssets, pasteObjects } from './persist.js';
 import { renderSheet, openWriter, openRead } from './sheet.js';
 
@@ -18,6 +19,7 @@ if(hash==='desk') S.view = hash;
 $('#frame').insertAdjacentHTML('beforeend', overlayHTML());
 wire();
 applyLook();
+startMotion();     // where the light is coming from — see motion.js
 render();
 // settings is a sheet over the desk now, not a place you navigate to
 if(hash==='settings') settingsPanel();
@@ -41,6 +43,9 @@ window.BUREAU = {
   // the three things an object opens onto: its settings, its words, its paper
   panel: objectPanel, write: openWriter, read: openRead,
   del, delMany, delDrawer, undo, toggleDone,
+  // which movement a thing has decided on, for a test that would otherwise
+  // have to reimplement the size rule to know what it is looking at
+  openingFor,
   kids: id => childrenOf(container(id)).map(o=>o.id),
   // paging, for the smoke test: how tall a page is and which one you are on
   get pageRows(){ return pageRows(); }, pageAt, pageCount, goPage,

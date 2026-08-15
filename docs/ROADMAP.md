@@ -5,6 +5,87 @@ Sequenced by dependency, not appetite: item 1 makes everything after it safer.
 
 ---
 
+## 0c. Queued 2026-08-15 (third pass) — animations — DONE (v57)
+
+See decision 38, `web/js/motion.js` and `web/css/motion.css`.
+
+- **a drawer pulls out of the shelf** when tapped, and a container bigger than
+  four cells square **swings open like a cabinet** instead
+- **a note curls up from the bottom**, the way a sheet pinned to a board does,
+  and the page it opens onto fades up over it rather than slamming shut on it
+- **a task pops** when it is ticked — and a ring goes out from where it stood,
+  which is the half that survives it leaving the drawer
+- **magic drawers are holographic foil** instead of a sweep, lit by how the
+  phone is tilted (or where the pointer is on a Mac)
+- **swiping between pinned drawers and pages is a pager**: the neighbouring
+  board is drawn beside this one and the strip follows your finger, iOS
+  home-screen fashion, so a swipe can be done slowly and pulled back from
+- **on a locked board one finger navigates**; two fingers still do everywhere
+- **how a thing opens is a property** (`opening`, per object then per type),
+  because the size rule is a guess and guesses need an override
+
+*Still open:* the pager builds both neighbouring boards at the start of a
+gesture rather than only the one you are heading for. Going *back* out of a
+drawer is a fade rather than the opening run backwards. And nothing yet moves
+when a tile is filed into a drawer by drag — the swallow is still the old
+scale bump.
+
+---
+
+## 0b-next. Queued animations — not started
+
+Suggested 2026-08-15, in rough order of how much they'd be felt. Nothing here
+is started; pick from it.
+
+**Things that would be felt every day**
+
+1. **Filing lands.** Dropping a tile into a drawer currently plays `swallow`,
+   a 7% scale bump on the *drawer*. The tile itself should shrink and fall into
+   the drawer's mouth — same trick as the drawer front flying, run backwards.
+2. **A new object arrives from where it was made.** `reveal()` flashes
+   `justmade`; it could instead grow out of the shelf, the picker tile, or the
+   cell you sketched — so "where did that go" is answered by watching.
+3. **Undo runs the delete backwards.** Deleting fades a tile out; the toast's
+   Undo pops it straight back. It should fall back onto the board from the
+   direction it left.
+4. **The board turns pages with weight.** Now that boards slide, the *tiles*
+   could lag very slightly behind the strip and settle — the difference between
+   a screenshot moving and a tray of objects moving.
+5. **A drawer knob presses.** A tile you are holding a finger on already
+   lifts; the knob itself could depress a pixel first, so a press is a press
+   before it is a drag.
+
+**Things that would be felt at the edges**
+
+6. **A checklist line ticks with a stroke**, the box drawing rather than
+   appearing, and the line drawn through the words left to right.
+7. **A count spins to its new number.** The counter wheels already do this;
+   rollups, streaks and the project bar all snap.
+8. **The project bar fills rather than jumps** when something under it is
+   ticked — it already has a width transition, but the number above it snaps.
+9. **A magic drawer catches something.** When its rule picks up a new object,
+   the foil could flare once from the corner the object came from.
+10. **The lasso closes.** The selection band vanishes at the end of the drag;
+    the tiles it caught could pull together a pixel or two, so a selection is
+    a thing that happened rather than a set of outlines.
+11. **A page turn on the reading surface for a single page.** The leaf turns
+    for a spread; `page` mode just swaps.
+12. **The panel tail draws.** A bubble panel scales up whole; the tail could
+    shoot out of the tile first, so the panel is visibly *from* that thing.
+
+**Things that are mostly showing off**
+
+13. **A drawer you cannot open shakes its head** — a locked board's refusal, a
+    drop that has no room.
+14. **The desk settles on load**: tiles falling into place from the top-left,
+    once, on a cold start only.
+15. **Paper on paper.** A note dropped onto another note could push it aside
+    with a shove rather than refusing the box outright.
+16. **Style changes cross-fade** rather than repainting — sixteen slots moving
+    at once is the one place a transition is genuinely descriptive.
+
+---
+
 ## 0b. Queued 2026-08-15 (second pass) — DONE (v56)
 
 See decision 37.

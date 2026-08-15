@@ -1370,6 +1370,154 @@ const CHROME = process.env.BUREAU_CHROME;
   });
   await phone.screenshot({ path: 'test/shots/19-phone-shelves.png' });
 
+  /* --- movement. Every animation in Bureau is an overlay over a state change
+     that has already happened, so what is checked here is that the state moves
+     *immediately* and that the flourish exists beside it — never that anything
+     waits for a keyframe. See motion.js. */
+  await page.bringToFront();
+  await page.evaluate(() => { const S = BUREAU.state;
+    S.view='desk'; S.drawerId=null; S.deskCfg.locked=false; BUREAU.render(); });
+  await page.waitForTimeout(300);
+  const movement = await page.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const S = BUREAU.state, out = {};
+
+    /* how a thing opens is worked out from what it is, and can be overruled */
+    const d = S.objects.find(o => o.id === 'd_in');
+    d.desk = { ...d.desk, w:4, h:4 };
+    out.smallIsADrawer = BUREAU.openingFor(d) === 'drawer';
+    d.desk = { ...d.desk, w:6, h:6 };
+    out.bigIsACabinet = BUREAU.openingFor(d) === 'cabinet';
+    d.opening = 'curl';
+    out.overrideWins = BUREAU.openingFor(d) === 'curl';
+    delete d.opening;
+    d.desk = { ...d.desk, w:4, h:4 };
+    const note = S.objects.find(o => o.kind === 'note');
+    out.paperCurls = BUREAU.openingFor(note) === 'curl';
+    out.aTaskJustLifts = BUREAU.openingFor(S.objects.find(o => o.kind === 'task')) === 'lift';
+    BUREAU.render(); await nap(160);
+
+    // opening a drawer: there *and then*, with the front flying over the top
+    document.querySelector('.grid .drawer[data-drawer="d_in"]').click();
+    out.arrivesAtOnce = S.view === 'drawer' && S.drawerId === 'd_in';
+    out.frontFlies = !!document.querySelector('#fx .fxopen.fx-drawer .fxfront');
+    out.boardArrives = !!document.querySelector('#app .main.in-drawer');
+    await nap(560);
+    out.ghostClearsItselfUp = !document.querySelector('#fx .fxopen');
+    S.view='desk'; S.drawerId=null; BUREAU.render(); await nap(160);
+
+    // a sheet of paper curls, and the page it opens is not instant either
+    note.parent = 'root'; note.desk = BUREAU.free(5, 4, 'root');
+    BUREAU.render(); await nap(150);
+    document.querySelector(`.grid .drawer[data-row="${note.id}"]`).click();
+    out.paperLifts = !!document.querySelector('.drawer.curling .curlshade');
+    out.readOpensAtOnce = S.readId === note.id;
+    await nap(600);
+    out.curlClearsItselfUp = !document.querySelector('.curling,.curlshade');
+    BUREAU.state.readId = null; BUREAU.renderSheet();
+
+    // ticking pops, and the ring survives the thing leaving the drawer
+    const t = BUREAU.create('task', { parent:'root', title:'Pop' });
+    t.desk = BUREAU.free(4, 2, 'root'); BUREAU.render(); await nap(150);
+    document.querySelector(`.grid .drawer[data-row="${t.id}"] [data-check]`).click();
+    out.tickedAtOnce = t.done === true;
+    out.popsWhereItStood = !!document.querySelector('#fx .fxring');
+    await nap(620);
+    out.ringClearsItselfUp = !document.querySelector('#fx .fxring');
+    BUREAU.del(t.id); S.undo = [];
+
+    /* a magic drawer is foil, not a sweep: nothing about it animates, and the
+       light it catches is two numbers on #frame that a tilt or a pointer moves */
+    const md = S.objects.find(o => BUREAU.state.objects.includes(o) && o.kind === 'magic');
+    BUREAU.render(); await nap(150);
+    const mt = document.querySelector('.drawer.magicdrawer');
+    out.foilDoesNotAnimate = !!mt && getComputedStyle(mt).animationName === 'none';
+    out.foilIsLit = !!mt && /gradient/.test(getComputedStyle(mt).backgroundImage);
+    const before = getComputedStyle(mt).backgroundPosition;
+    document.querySelector('#frame').style.setProperty('--holox', '0.05');
+    out.lightMoves = getComputedStyle(mt).backgroundPosition !== before;
+    document.querySelector('#frame').style.removeProperty('--holox');
+    return out;
+  });
+
+  /* --- the pager: the board either side of this one, drawn before you get
+     there, following the finger and settling when you let go. */
+  await phone.bringToFront();
+  await phone.evaluate(() => { const S = BUREAU.state;
+    S.view='desk'; S.drawerId=null; S.deskCfg.locked=false; BUREAU.render(); });
+  await phone.waitForTimeout(350);
+  const pager = await phone.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const S = BUREAU.state, out = {};
+    const el = document.querySelector('#frame');
+    const T = (x,y,i) => ({ identifier:i, target:el, clientX:x, clientY:y });
+    const mk = (t,l) => { const e = new Event(t, {bubbles:true, cancelable:true});
+      e.touches=l; e.targetTouches=l; e.changedTouches=l; return e; };
+    const drag = async (dx, steps) => {
+      el.dispatchEvent(mk('touchstart', [T(300,500,1), T(330,500,2)]));
+      for (let i=1;i<=steps;i++){
+        el.dispatchEvent(mk('touchmove', [T(300+dx*i,500,1), T(330+dx*i,500,2)]));
+        await nap(16);
+      }
+    };
+    const letGo = () => el.dispatchEvent(mk('touchend', []));
+
+    await drag(-13, 12);
+    const p = document.querySelector('.pager');
+    out.threeBoardsInAStrip = !!p && p.querySelectorAll('.pane').length === 3;
+    out.itFollowsTheFinger = !!p && /matrix|translate/.test(getComputedStyle(p.querySelector('.track')).transform);
+    // it is beside #app, not inside it: a render would take it away mid-slide
+    out.outsideTheBoard = !!p && p.parentElement.id === 'frame';
+    out.onlyOneDrawergrid = document.querySelectorAll('#drawergrid').length === 1;
+    letGo(); await nap(60);
+    out.landsBeforeItStops = S.view === 'drawer';    // committed, still sliding
+    await nap(400);
+    out.stripClearsItselfUp = !document.querySelector('.pager');
+
+    // …and a swipe that does not go far enough is put back
+    S.view='desk'; S.drawerId=null; BUREAU.render(); await nap(200);
+    await drag(-4, 10); letGo(); await nap(420);
+    out.shortSwipeIsPulledBack = S.view === 'desk' && !document.querySelector('.pager');
+
+    /* Locked, one finger does the same thing — a board that refuses to be
+       rearranged has a spare finger. It works from a tile and from bare cells
+       alike, which are two different paths through onDown, so both are driven
+       here rather than trusting whatever happens to be under a coordinate. */
+    S.deskCfg.locked = true; BUREAU.render(); await nap(200);
+    const oneFinger = async (from, id) => {
+      const r = from.getBoundingClientRect();
+      const x = r.left + r.width/2, y = r.top + Math.min(r.height/2, 60);
+      const o = { bubbles:true, cancelable:true, pointerId:id, pointerType:'touch', isPrimary:true };
+      from.dispatchEvent(new PointerEvent('pointerdown', {...o, clientX:x, clientY:y}));
+      for (let i=1;i<=14;i++){
+        from.dispatchEvent(new PointerEvent('pointermove', {...o, clientX:x-i*16, clientY:y}));
+        await nap(16);
+      }
+      const up = !!document.querySelector('.pager');
+      from.dispatchEvent(new PointerEvent('pointerup', {...o, clientX:x-224, clientY:y}));
+      await nap(420);
+      return up;
+    };
+    out.oneFingerFromATile = await oneFinger(document.querySelector('.grid.locked .drawer'), 21);
+    out.lockedSwipeArrives = S.view === 'drawer';
+    S.view='desk'; S.drawerId=null; BUREAU.render(); await nap(200);
+    out.oneFingerFromBareBoard = await oneFinger(document.querySelector('#drawergrid'), 23);
+
+    S.view='desk'; S.drawerId=null; BUREAU.render(); await nap(180);
+    const tile = document.querySelector('.grid .drawer[data-drawer]');
+    const id = tile.dataset.drawer, tr = tile.getBoundingClientRect();
+    const tp = { bubbles:true, cancelable:true, pointerId:22, pointerType:'touch', isPrimary:true,
+                 clientX:tr.left+tr.width/2, clientY:tr.top+tr.height/2 };
+    tile.dispatchEvent(new PointerEvent('pointerdown', tp));
+    await nap(80);
+    tile.dispatchEvent(new PointerEvent('pointerup', tp));
+    await nap(200);
+    out.lockedTapStillOpens = S.view === 'drawer' && S.drawerId === id;
+    S.deskCfg.locked = false; S.view='desk'; S.drawerId=null; BUREAU.render();
+    return out;
+  });
+  await phone.screenshot({ path: 'test/shots/20-phone-pager.png' });
+
   console.log(JSON.stringify({
     errors: errs, manifestOk, swReady, survived, styleSurvived, slotColours,
     newObjectSeen, inlineEdit, sortDefaults, taskLook,
@@ -1381,7 +1529,7 @@ const CHROME = process.env.BUREAU_CHROME;
     timeLayer, checklistBox, pluckWorks, answering, seedAndKnobs, longPress, drawerSize, tagDrawer, pinReorder, groupMove, dropStates,
     adaptiveTiles, bubblePanel, scrollKept, kindSizes,
     phoneGrid, phoneMigration,
-    dupIds, undoWorks, readViews, paperSize
+    dupIds, undoWorks, readViews, paperSize, movement, pager
   }, null, 2));
   await browser.close();
 })();

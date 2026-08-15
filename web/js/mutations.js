@@ -4,6 +4,7 @@ import { S, byId, K, KINDS, KEYS, kindHas, has, isContainer, genKindOf, streak, 
 import { gridOf, freeSpot, lay, boxOk, sizeOfKind } from './grid.js';
 import { randomFront, randomBoard, styleDefaults } from './look.js';
 import { render } from './views.js';
+import { tileRect, pop } from './motion.js';
 import { closeSheet } from './sheet.js';
 import { assetDel } from './persist.js';
 
@@ -28,6 +29,10 @@ function nextDue(o){
 function toggleDone(id){
   const o=byId(id); if(!o) return;
   if(has(o,'streak')){ toggleHabit(id); return; }
+  /* Where it was standing, taken before the board redraws — because "done"
+     usually means the thing leaves the drawer it was in, and a pop you can
+     only see when it survives is a pop you mostly never see. */
+  const was=tileRect(id);
   o.done=!o.done;
   if(o.done){
     o.doneAt=T;
@@ -39,6 +44,7 @@ function toggleDone(id){
     } else toast('Filed under Done & Dusted');
   } else { o.doneAt=null; }
   render();
+  if(o.done) pop(id, was);
 }
 function toggleHabit(id){
   const o=byId(id); if(!o) return;

@@ -15,6 +15,7 @@ import { openPanel, closePanel, refreshPanel, panelKey, draft, openMenu,
   drawerFromSelection, openCtx, closeCtx, openCmd, closeCmd, cmdList, runCmd } from './panels.js';
 import { onDown, onMove, onUp, onCancel, onTouchStart, onTouchMove, onTouchEnd,
   gestureFlags, dragArmed } from './gestures.js';
+import { enter, askTilt, pagerOn } from './motion.js';
 import { save, writeNow, exportBackup, importBackup, importImage, imgFor, pasteObjects, install } from './persist.js';
 
 /* Mark one chip in a group as the chosen one. The selector is deliberately
@@ -109,7 +110,19 @@ function act(name, el){
     case 'new': modalNewObject(); break;
     // a drawer is made the way everything else is, and then talked to
     case 'newdrawer': { const d=create('drawer',{title:'New drawer'}); save(); render(); reveal(d.id); objectPanel(d.id); break; }
-    case 'back': S.view='desk'; S.drawerId=null; S.kindFilter=null; render(); break;
+    // coming out of a drawer is the opening run backwards
+    case 'back': S.view='desk'; S.drawerId=null; S.kindFilter=null; render(); enter('back'); break;
+    /* iOS hands over the motion sensors only from inside a real gesture, which
+       is why the holographic foil is a button you press rather than something
+       that simply happens. Pressing it again holds the light still. */
+    case 'tilt': {
+      const r=askTilt();
+      toast(r==='off' ? 'The light holds still now'
+        : r==='none' ? 'This device has no motion sensor'
+        : r==='on'   ? 'Magic drawers follow how it moves'
+        : 'Asked for motion access');
+      break;
+    }
     case 'pin': togglePin(el.dataset.id); break;
     // one step is one screenful, so it steps by whatever the calendar is showing
     case 'monthstep': {
@@ -316,7 +329,10 @@ function wire(){
      scrolling is under way the call is ignored, and the listener has to be
      non-passive or it is ignored from the start. This is the whole reason
      dragging did nothing on a phone. */
-  frame.addEventListener('touchmove', e=>{ if(dragArmed()) e.preventDefault(); }, {passive:false});
+  /* …and the same is true of a one-finger swipe on a locked board: once the
+     strip is following the finger, a native scroll underneath it would be two
+     things moving at once. */
+  frame.addEventListener('touchmove', e=>{ if(dragArmed()||pagerOn()) e.preventDefault(); }, {passive:false});
 
   /* Two fingers: pages up and down, pinned drawers left and right. Non-passive
      because a two-finger swipe that also scrolls the page underneath reads as
@@ -501,7 +517,9 @@ function wire(){
     const a=t.closest('[data-act]'); if(a){ act(a.dataset.act,a); return; }
 
     const vw=t.closest('[data-view]');
-    if(vw){ S.view=vw.dataset.view; S.drawerId=null; S.kindFilter=null; render(); return; }
+    if(vw){ const back = S.view!=='desk';
+      S.view=vw.dataset.view; S.drawerId=null; S.kindFilter=null; render();
+      if(back) enter('back'); return; }
 
     // a control object on the desk
     const ctl=t.closest('[data-ctl]');
@@ -521,6 +539,16 @@ function wire(){
     // a breadcrumb, a tile, or a button on the pin bar — all open the drawer
     const dr=t.closest('[data-drawer]');
     if(dr && (dr.tagName==='B' || dr.classList.contains('drawer') || dr.classList.contains('pinbtn'))){
+      /* A tap on a tile is answered on pointerup, by tileTap — which plays the
+         opening and then navigates. The browser sends a click afterwards
+         anyway, and it lands here; redrawing the board a second time is
+         invisible except that it throws away the arriving board's animation
+         with the element carrying it. So: if we are already there, we are
+         already there. */
+      if(S.view==='drawer' && S.drawerId===dr.dataset.drawer) return;
+      // …and a tile that gets here without a tap behind it — the keyboard, or
+      // anything synthetic — still opens the way a tile opens
+      if(dr.closest('.grid')){ tileTap(dr.dataset.drawer); return; }
       S.view='drawer'; S.drawerId=dr.dataset.drawer; S.kindFilter=null; render(); return; }
 
     // anything else carrying an id — a tile on a grid, or a mini row in a panel

@@ -92,6 +92,7 @@ One array, `S.objects`, holds drawers and objects alike.
   ord,                       // where it sits in a list layout instead
   created, edited,
   shape, face, read, onclick,   // per-object overrides of the type's defaults
+  opening,                      // and how it moves when it is opened
 
   // carried only when the matching attribute is present
   done, doneAt, due, repeat, history, milestones, media, link,
@@ -342,6 +343,25 @@ per type, defaulting to `page`:
 - **page** — the same paper, one leaf at a time.
 - **scroll** — no pagination at all: the whole body in one column you scroll,
   an article rather than a book.
+
+**How a thing opens is one property too.** `openingFor()` in `motion.js` — per
+object, then per type, defaulting to `auto`, which asks the object what it is:
+
+- **drawer** — the front pulls out of the shelf, toward you and past you, and
+  the board inside it comes up behind. What a container smaller than four cells
+  square gets.
+- **cabinet** — the front is two doors hinged at the outer edges and they swing
+  open. What a container bigger than that gets. The threshold is per device,
+  because a container is halved onto a phone.
+- **curl** — the sheet curls up off the board from its bottom edge, the way
+  something pinned at the top does. What a paper shape gets: note, idea, verse,
+  quote, index card, page, chit.
+- **lift** — a small nod, so a tap is never silent. Everything else.
+- **none** — nothing.
+
+None of it delays anything. The tap files, ticks or navigates immediately and
+the movement is drawn over the result, in `#fx`, outside what `render()`
+replaces. See decision 38.
 
 A page is **US Letter**, 8.5:11, and its size comes from the window, never from
 what is written on it — whichever is smallest of the room available, a maximum,

@@ -8,6 +8,7 @@ import { themeNow, applyLook, lookVal, STYLES, BACKDROPS,
   palNow, setSlot, styleNow, hexOf, objColour, slotName, OBJ0 } from './look.js';
 import { gridOfContainer, listTile, scrollEntry, bookView, calSpan } from './tiles.js';
 import { openPanel, closePanel, panelKey, repositionPanel } from './panels.js';
+import { tiltOn } from './motion.js';
 import { APP_VERSION, DATA_V, save, storeSize, install } from './persist.js';
 
 /* The desk is nothing but the grid. There is no toolbar: New, Arrange and
@@ -368,6 +369,12 @@ function settingsBody(){
     </div>
 
 
+    <div class="field" style="margin-top:12px"><label>Holographic light</label>
+      <button class="pill${tiltOn()?' solid':''}" data-act="tilt">${ic('sparkle',13)} ${
+        tiltOn() ? 'Following how this device moves' : 'Let Bureau feel the device move'}</button>
+      <div class="mini" style="--k:var(--brass);margin-top:6px">A magic drawer is foil rather than paint, so it needs to know where the light is coming from. On a Mac that is wherever the pointer is and this button changes nothing. On an iPhone it is how you tilt it, which iOS will only tell an app that asks — and it will only let it ask from a button like this one.</div>
+    </div>
+
     <div class="section-h"><h2>Drawer layouts</h2><div class="rule"></div></div>
     <div class="mini" style="--k:var(--brass)">Each device keeps its own arrangement. You can open the other one to tidy it from here.</div>
     <div class="filterbar">
@@ -485,7 +492,6 @@ function goPage(cid, n){
   if(p === pageAt(cid)) return false;
   PAGE[cid]=p; render(); return true;
 }
-const turnPageBy = (cid, d)=> goPage(cid, pageAt(cid)+d);
 
 /* ---- show me the thing I just made -----------------------------------
    A board is a coordinate space, so a new object goes in the first free room
@@ -516,6 +522,44 @@ function reveal(id){
   }
 }
 
+/* The whole of what `#app` holds, as a string, for wherever S says you are.
+   No sidebar and no tabs: the desk is the navigation. Drawers are on it, the
+   pinned ones are one tap away, ⌘K finds anything, the breadcrumb walks up.
+   On a Mac the pins ride in the grid bar (see gridBar); on a phone they get
+   the bottom bar, which is the one place a thumb reaches — and there it is a
+   real flex child of .main rather than something floating over the board,
+   which is what makes the board end exactly where the shelf begins with
+   nothing to scroll past. */
+function viewHTML(){
+  const body = S.view==='drawer' ? viewDrawer()
+             : viewDesk();          // the desk is the only other place there is
+  return `<div class="main">${body}${S.device==='phone'?shelfStrip('bottom'):''}</div>`;
+}
+
+/* The same thing, for somewhere you are *not*. The pager slides the board you
+   are on off the screen and the neighbouring one on, so it needs that
+   neighbour drawn before you have gone there — which means building it with S
+   pointed somewhere else for the length of one string, and putting S back.
+   `at` is {view, drawerId} and optionally {page}.
+
+   Two things it must not leave behind: the id on the grid, because there would
+   momentarily be two elements called #drawergrid and sizeGrid() measures the
+   first one it finds; and the remembered page, which is per container and not
+   the pager's to change until the swipe is committed. */
+function previewHTML(at){
+  const was={view:S.view, drawerId:S.drawerId, kindFilter:S.kindFilter};
+  const cid = at.drawerId || ROOT, wasPage = PAGE[cid];
+  S.view=at.view; S.drawerId=at.drawerId||null; S.kindFilter=null;
+  if(at.page!=null) PAGE[cid]=at.page;
+  let html='';
+  try{ html=viewHTML(); }
+  finally{
+    S.view=was.view; S.drawerId=was.drawerId; S.kindFilter=was.kindFilter;
+    if(at.page!=null){ if(wasPage==null) delete PAGE[cid]; else PAGE[cid]=wasPage; }
+  }
+  return html.replace(/ id="drawergrid"/g, '');
+}
+
 function render(){
   const frame=$('#frame');
   const wasKey=SCROLL.key, wasEl=$('#app .scroll');
@@ -525,16 +569,7 @@ function render(){
   applyLook();          // the custom colours are per theme, so repaint them
   // settings stopped being a view in v35; an old snapshot may still name it
   if(S.view==='settings') S.view='desk';
-  const body = S.view==='drawer' ? viewDrawer()
-             : viewDesk();          // the desk is the only other place there is
-  // No sidebar and no tabs: the desk is the navigation. Drawers are on it, the
-  // pinned ones are one tap away, ⌘K finds anything, the breadcrumb walks up.
-  // On a Mac the pins ride in the grid bar (see gridBar); on a phone they get
-  // the bottom bar, which is the one place a thumb reaches.
-  // On a phone the bottom shelf is a real flex child of .main rather than
-  // something floating over the board — that is what makes the board end
-  // exactly where the shelf begins, with nothing to scroll past.
-  $('#app').innerHTML = `<div class="main">${body}${S.device==='phone'?shelfStrip('bottom'):''}</div>`;
+  $('#app').innerHTML = viewHTML();
   const key=viewKey(), now=$('#app .scroll');
   if(key!==wasKey) SCROLL.top=0;
   if(now) now.scrollTop=SCROLL.top;
@@ -585,6 +620,6 @@ function sizeGrid(){
   if(changed){ sizing=true; try{ render(); } finally { sizing=false; } }
 }
 
-export { render, sizeGrid, reveal, shelfStrip,
-  pageAt, pageCount, goPage, turnPageBy,
+export { render, sizeGrid, reveal, shelfStrip, viewHTML, previewHTML,
+  pageAt, pageCount, goPage,
   settingsPanel, toggleSettings };

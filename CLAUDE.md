@@ -15,7 +15,7 @@ Obsidian (for what to avoid — infinite nesting and file soup).
 ## Current state
 
 A working, installable PWA in `web/`. Hand-written HTML/CSS/JS split into ES
-modules (`web/js/`) and two stylesheets (`web/css/`) — still no build step, no
+modules (`web/js/`) and three stylesheets (`web/css/`) — still no build step, no
 dependencies, no framework, no bundler. It runs on iPhone and Mac, persists to
 local storage, and works offline.
 
@@ -73,7 +73,7 @@ development-only and never ships.
 
 ## Layout of the code
 
-`web/index.html` is a thin shell: head, two stylesheet links, `#frame`, and one
+`web/index.html` is a thin shell: head, three stylesheet links, `#frame`, and one
 `<script type="module" src="js/boot.js">`. The app is ES modules in `web/js/`,
 loaded with no bundler. Imports are explicit and exports are the `export {…}`
 clause at the bottom of each file — that list is each module's public surface.
@@ -90,6 +90,7 @@ clause at the bottom of each file — that list is each module's public surface.
 | `sheet.js` | The two surfaces an object opens onto — reading and writing — rendered into `#sheetHost`, **separately** from `render()`. |
 | `panels.js` | `openPanel()` — **every menu in the app** — plus `openMenu()` for a popup hung off a button, the command palette (⌘K), the context menu, and `sampleObject`/`sampleTile` for drawing a type as the thing it makes. |
 | `gestures.js` | Pointer-based drag, resize, lasso, swipe. The fiddliest code in the app. |
+| `motion.js` | Every movement: `openTile()` (drawer, cabinet, curl, lift), `pop()`, the holographic light (`--holox`/`--holoy`), and the pager that slides between boards. Nothing in it ever delays a state change. |
 | `persist.js` | localStorage read/write, **versioned `MIGRATIONS`**, JSON export/import, IndexedDB image assets, the paste bridge. |
 | `wire.js` | One delegated listener set on `#frame`. All interaction routes through here — to add an action, add a `data-act` and a case in `act()`. |
 | `boot.js` | Entry point: load, wire, render, register the service worker, `window.BUREAU`. |
@@ -119,6 +120,28 @@ in `gridTile()` rather than in CSS: the tile is the type's mark and nothing else
 because at 40px a title is three letters and an ellipsis. The classes are spliced
 into the first `class="` of whatever `drawTile()` returns, so a new branch gets
 the behaviour without being told. See decision 26.
+
+**An animation never holds anything up.** This is the one rule in `motion.js`
+and it is easy to break by accident. A tap files, ticks or navigates the
+*instant* it lands, `render()` runs, and the movement is drawn over the result
+— which is why the flying drawer front goes into `#fx` and the pager hangs off
+`#frame`, both outside the element `render()` replaces. Never `setTimeout(…,
+300)` around a state change to "let the animation finish": that is how an
+animated app becomes a slow one, and it breaks every test that reads state
+after a click. See decision 38.
+
+**How a thing opens is a property.** `openingFor(o)` in `motion.js` — `auto |
+drawer | cabinet | curl | lift | none`, per object then per type. `auto` asks
+what the object *is*: a container over four cells square swings open, a smaller
+one pulls out, a paper shape curls, everything else lifts. Don't add a branch on
+a kind's name to get a different movement; add a value, or set `opening` on the
+type.
+
+**The desk catches light, and light is the only thing that moves.** `--holox`
+and `--holoy` on `#frame` say where it is coming from — tilt on a phone,
+pointer on a Mac — and a magic drawer's foil is drawn from them in `chrome.css`.
+There is no keyframe. If you want a surface to shimmer, read those two numbers;
+don't add a loop.
 
 **A tag is a magic drawer waiting to happen.** There is no filter mode and no
 filter bar; clicking a tag anywhere calls `drawerForTag()`, which finds the
@@ -195,6 +218,12 @@ agrees only when both name the same thing. If you are tempted to write
 `if(a.kind==='task' && b.kind==='task')`, that is the instinct this property
 exists to stop: a type invented at runtime has to get the behaviour too, and
 the type builder offers it as "Two of them make".
+
+**Two fingers navigate; on a locked board, one does.** Both go through the
+pager in `motion.js`, which draws the board either side of this one and slides
+the strip with your finger rather than committing at a threshold. A locked board
+has nothing for a finger to carry, so the finger walks the boards — while a tap
+still opens the tile and the long press still opens the menu. See decision 38.
 
 **Navigation is the desk plus whatever you pinned.** There are exactly two
 views: the desk and a drawer. The four fixed tabs (Today, Keeping Up,
@@ -333,11 +362,14 @@ attribute registry is `ATTRS`; the presets are `BUILTIN_KINDS` merged with
 and everything inside inherits it. `--c` does the same for drawer colour. Don't
 hardcode a hex value in a component rule.
 
-**A magic drawer is gilded, and the gilt is the style's Glow.** Not dotted, not
-speckled with stars — a dotted border is what every drawing tool means by "not
-real yet". `.magicdrawer` gets a ruled frame inset from the edge with corner
-brackets, and a slow band of light across the front. Never hardcode the gold:
-it is `var(--glow)`, so it is leaf on Victorian and a green shimmer on Starry.
+**A magic drawer is gilded, and the gilt is foil.** Not dotted, not speckled
+with stars — a dotted border is what every drawing tool means by "not real yet".
+`.magicdrawer` gets a ruled frame inset from the edge with corner brackets, and
+a holographic wash that shifts as the light moves. The band of light that used
+to travel across it on a seven-second loop is gone; see decision 38. Never
+hardcode the gold: the highlight is `var(--glow)`, so it is leaf on Victorian
+and a green shimmer on Starry. The spectrum under it is the one place in the app
+that names hues outright, deliberately — a foil that is one hue is not a foil.
 
 **An edge is a slot too.** The six `bd-*` classes are positions, not
 descriptions — `bd-panel` is a Victorian moulding, a Pseudochromo hairline, a
