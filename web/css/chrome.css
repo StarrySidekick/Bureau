@@ -1010,29 +1010,41 @@ html[data-style="aero"] .drawer.dtile.bd-bar{
 .is-desk .pinknob{width:8px;height:8px;order:2}  /* the pull, after the name */
 .is-desk .pinbtn.home .pinface{display:grid;place-items:center;color:var(--ink-3)}
 
-/* Phone: the bar along the bottom. The scroll views already reserve room for
-   it — that padding predates this and was sized for the old tab bar. The whole
-   button can't be the drawer here, so the little front sits above the label. */
-.is-phone .pinbar{
-  position:absolute;left:0;right:0;bottom:0;height:calc(64px + env(safe-area-inset-bottom));
-  padding-bottom:env(safe-area-inset-bottom);z-index:36;gap:0;
+/* ---- the bottom shelf, on a phone -------------------------------------
+   A real flex child of .main rather than something floating over the board:
+   that is what makes the board end exactly where the shelf begins, with
+   nothing left to scroll past. Each pin is a **square**, the same square as
+   the tools on the top shelf, in the drawer's own colour with its mark on it.
+   It used to be a little front with a name under it, which gave each of five
+   pins 78px and fitted "Done & Dusted" into none of them. */
+.is-phone .shelf-bottom{
+  flex:0 0 auto;z-index:36;gap:8px;justify-content:flex-start;
+  padding:7px 10px calc(7px + env(safe-area-inset-bottom));
   border-top:1px solid var(--rule);background:var(--paper-2);
+  overflow-x:auto;scrollbar-width:none;
+  /* the swipe up that opens the new-object menu has to reach this element
+     rather than being eaten by a sideways scroll */
+  touch-action:pan-x;
 }
-.is-phone .pinbtn{flex:1;min-width:0;flex-direction:column;gap:4px;justify-content:center;
-  padding:0 3px;font-size:9.5px;font-weight:600;letter-spacing:.02em;
-  background:none;border-color:transparent;color:var(--ink-3)}
-.is-phone .pinbtn span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-/* five pins across 390px is 78px each, and "Done & Dusted" does not fit in 78px
-   at 9.5. It doesn't fit at 8.5 either, but it loses one word instead of two. */
-.is-phone .pinbar:has(.pinbtn:nth-child(5)) .pinbtn{font-size:8.5px;letter-spacing:0}
-.is-phone .pinbar:has(.pinbtn:nth-child(7)) .pinbtn span{display:none}
-.is-phone .pinface{
-  flex:0 0 auto;width:30px;height:21px;display:grid;place-items:center;
-  border-radius:var(--radius-d);background:var(--c,var(--felt));
-  border:1px solid rgba(0,0,0,.28);color:rgba(248,243,230,.92)}
-.is-phone .pinbtn.magic .pinface{border-style:dotted;border-color:rgba(255,255,255,.5)}
-.is-phone .pinknob{width:7px;height:7px}
-.is-phone .pinbtn.home .pinface{background:none;border-color:var(--rule);color:var(--ink-3)}
+.is-phone .shelf-bottom::-webkit-scrollbar{display:none}
+.is-phone .shelf-bottom .pinbtn{
+  flex:0 0 auto;width:46px;height:46px;padding:0;gap:0;
+  display:grid;place-items:center;border-radius:var(--radius-d);
+  background:var(--c,var(--felt));border:1px solid rgba(0,0,0,.3);
+  box-shadow:0 1px 2px rgba(42,36,28,.22), inset 0 1px 0 rgba(255,255,255,.16);
+  color:#F8F3E6}
+.is-phone .shelf-bottom .pinbtn span{display:none}   /* the mark is the label */
+.is-phone .shelf-bottom .pinbtn.on{outline:2px solid var(--glow);outline-offset:2px}
+.is-phone .shelf-bottom .pinbtn.magic{border-color:color-mix(in srgb,var(--glow) 62%,transparent)}
+.is-phone .shelf-bottom .pinface{display:grid;place-items:center}
+/* the desk is not a drawer and shouldn't dress as one */
+.is-phone .shelf-bottom .pinbtn.home{background:var(--paper);border-color:var(--rule);color:var(--ink-2)}
+.is-phone .shelf-bottom .pinbtn.home.on{color:var(--brass)}
+/* a hint that the shelf is a drawer you pull open */
+.is-phone .shelf-bottom::before{
+  content:"";position:absolute;left:50%;top:3px;width:34px;height:3px;margin-left:-17px;
+  border-radius:3px;background:var(--rule);pointer-events:none}
+.is-phone .shelf-bottom{position:relative}
 .is-phone .pinbtn.on{color:var(--brass)}
 .is-phone .pinbtn.on .pinface{outline:2px solid var(--glow);outline-offset:1.5px}
 /* Carrying a tile over a pinned drawer files it there. On a phone this is the
@@ -1345,3 +1357,69 @@ kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--rule);border
    something to replace on the screen */
 .pbody .mediablock{width:100%;margin-top:6px}
 .pbody .mediablock .tileimg{width:100%;height:auto;max-height:170px;object-fit:contain;background:var(--paper-3)}
+
+/* ============================================================
+   Shelves, pages, and a phone that does not scroll
+   ============================================================ */
+/* The top shelf is the grid bar: where you are, the tools, and on a Mac the
+   pins in between. Its buttons are toggles rather than menus, so each one has
+   to say which state it is in — hence the lit `on` and the sort's own glyph. */
+.sortletter{font-family:var(--serif);font-size:15px;font-weight:700;line-height:1;letter-spacing:.02em}
+.sqbtn.locked{color:var(--brass)}
+/* which page of the board you are on. Two fingers turn them; these are also
+   targets, because a dot you can see is a dot you will try to press. */
+.pagemark{display:inline-flex;align-items:center;gap:5px;margin-left:8px;flex:0 0 auto}
+.pagemark i{width:7px;height:7px;border-radius:50%;background:var(--rule);
+  cursor:pointer;transition:.14s;display:block}
+.pagemark i:hover{background:var(--ink-3)}
+.pagemark i.on{background:var(--brass);transform:scale(1.25)}
+.pagemark b{font-size:11.5px;font-variant-numeric:tabular-nums;color:var(--brass);font-weight:700}
+.pagemark b u{text-decoration:none;color:var(--ink-3);font-weight:400}
+
+/* A phone board is exactly the room between the two shelves and never scrolls:
+   what does not fit is on the next page. `overflow:hidden` is the assertion —
+   if the row arithmetic in sizeGrid() is ever wrong, a tile is clipped rather
+   than quietly reintroducing the scroll this replaced. */
+.is-phone .scroll.deskscroll{overflow:hidden;padding:0}
+.is-phone .main{overflow:hidden}
+
+/* ---- a menu on a phone comes up out of the bottom ----------------------
+   Down the right is a Mac's shape: there is room beside the desk there. On a
+   phone a panel from the right covers the whole board, so it comes up from the
+   bottom instead and leaves the top half of the grid visible and live behind
+   it — the same argument that made panels replace modals in the first place. */
+.is-phone .panel,
+.is-phone .panel.bubble{
+  left:0;right:0;bottom:0;top:auto;
+  width:auto!important;max-height:none!important;
+  height:min(70vh, 620px);
+  border:0;border-top:1px solid var(--rule);
+  border-radius:16px 16px 0 0;
+  box-shadow:0 -14px 40px -12px rgba(0,0,0,.45);
+  transform:translateY(101%);
+  transition:transform .24s cubic-bezier(.2,.9,.3,1);
+  padding-top:0;
+}
+.is-phone .panel.open,.is-phone .panel.bubble.open{transform:none;opacity:1}
+.is-phone .panel.wide{height:min(82vh, 760px)}
+/* no tail: it is not pointing at anything any more */
+.is-phone .panel.bubble::before,.is-phone .panel.bubble::after{content:none}
+/* the grab bar, so it reads as something you pulled up */
+.is-phone .panel .ptop{padding-top:16px;position:relative}
+.is-phone .panel .ptop::before{
+  content:"";position:absolute;left:50%;top:6px;width:38px;height:4px;margin-left:-19px;
+  border-radius:4px;background:var(--rule)}
+
+/* ---- a corner you can actually hit with a thumb ------------------------
+   16px is a mouse's idea of a grip. A finger is nearer 44, and the corner of a
+   tile is where two of them meet — so on a phone the grip is bigger, and its
+   mark is always drawn rather than waiting for a hover that never comes. */
+.is-phone .rz{width:34px;height:34px}
+.is-phone .rz.nw{top:-8px;left:-8px}
+.is-phone .rz.ne{top:-8px;right:-8px}
+.is-phone .rz.sw{bottom:-8px;left:-8px}
+.is-phone .rz.se{bottom:-8px;right:-8px}
+.is-phone .rz::before{inset:12px;opacity:.22;border-radius:2px}
+.is-phone .rz.nw::before{inset:auto auto 11px 11px;left:9px;top:9px}
+.is-phone .grid.arranging .rz::before{opacity:.22}
+.is-phone .drawer.lifted .rz::before,.is-phone .rz:active::before{opacity:1}

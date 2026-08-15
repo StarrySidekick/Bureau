@@ -3,10 +3,11 @@ import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, chi
   rollup, streak, goalPct, projectStat, tlSpan, dev, spawnByOf, genKindOf, takesTyping,
   knobSizeOf, answered, sortOf,
   calViewOf, weekStartOf, calCols } from './model.js';
-import { CELL, gridOf, lay, overlaps, boxOk, freeSpot, gridRows, sizeOfKind, ensureBox } from './grid.js';
+import { CELL, gridOf, lay, overlaps, boxOk, freeSpot, gridRows, sizeOfKind, ensureBox,
+  pageRows } from './grid.js';
 import { create, toast, toggleDone } from './mutations.js';
 import { hexOf, objColour } from './look.js';
-import { render } from './views.js';
+import { render, pageAt } from './views.js';
 import { openObj, openWriter, openRead, renderSheet } from './sheet.js';
 import { objectPanel } from './panels.js';
 import { save } from './persist.js';
@@ -192,10 +193,15 @@ function sizeClass(box){
    The size classes are stamped on afterwards rather than threaded through
    fifteen branches: every branch below returns one element, and its own class
    list is the first `class="` in the string. */
+/* How far up the page being drawn has pushed the board. A holder rather than an
+   argument because gridTile() is also called by the type picker's samples, which
+   are on no page at all. Only the CSS placement uses it. */
+const PAGESHIFT = {n:0};
 function gridTile(o, arr, parentId){
   let box;
   if(FLOW.has(o.id)){ box=FLOW.get(o.id); FLOW.delete(o.id); }
   else { ensureBox(o, dev(), parentId); box=lay(o); }
+  if(PAGESHIFT.n) box={...box, y:box.y-PAGESHIFT.n};
   const sz=sizeClass(box);
   const html=drawTile(o, arr, box);
   return sz ? html.replace('class="', `class="${sz} `) : html;
@@ -518,10 +524,14 @@ function drawTile(o, arr, box){
    restores the arrangement you made. */
 const FLOW = new Map();   // id -> box, for one render of a sorted grid
 function flowSorted(kids, cid){
-  const g=gridOf(), dv=dev(), taken=[];
-  const free=(b)=> b.x+b.w-1<=g.cols && !taken.some(t=>overlaps(b,t));
+  const g=gridOf(), dv=dev(), taken=[], per=pageRows(dv);
+  const free=(b)=> b.x+b.w-1<=g.cols && !taken.some(t=>overlaps(b,t))
+    // a packed board respects the page break too, or the sort would produce
+    // the straddling tiles the drag is not allowed to make
+    && (!per || Math.floor((b.y-1)/per)===Math.floor((b.y+b.h-2)/per));
   kids.forEach(o=>{
-    const [w,h]=(o[dv]&&o[dv].w) ? [o[dv].w,o[dv].h] : sizeOfKind(o.kind, dv);
+    let [w,h]=(o[dv]&&o[dv].w) ? [o[dv].w,o[dv].h] : sizeOfKind(o.kind, dv);
+    if(per) h=Math.min(h,per);
     let put=null;
     for(let y=1;y<600&&!put;y++) for(let x=1;x<=g.cols-w+1;x++){
       const b={x,y,w,h}; if(free(b)){ put=b; break; }
@@ -532,20 +542,45 @@ function flowSorted(kids, cid){
   });
 }
 
-/* The grid for one container. `id` is ROOT for the desk. */
+/* The grid for one container. `id` is ROOT for the desk.
+
+   On a paged board (a phone) this draws **one page**: the objects whose boxes
+   fall in this window of rows, shifted up so the page starts at row 1. The
+   boxes are untouched — `y` is still one continuous coordinate space, and a
+   page is only which slice of it you are looking at. Everything that does
+   arithmetic on a box — the drag, the drop, freeSpot() — carries on in the
+   real coordinates and needs to know nothing about pages. */
 function gridOfContainer(cid){
   const c=container(cid), g=gridOf();
-  // You are always arranging. A drawer can be locked to opt out of it.
+  // You are always arranging. A container can be locked to opt out of it.
   const arr=!c.locked;
-  const kids=childrenOf(c);
   const sorted=sortOf(c);
+  const per=pageRows(), pg=per?pageAt(c.id):0, from=pg*per;
+  let kids=childrenOf(c);
   FLOW.clear();
   if(sorted) flowSorted(kids, c.id);          // a sort overrides hand placement
   else kids.forEach(o=>ensureBox(o, dev(), c.id));
+  if(per){
+    /* A box from before this board had pages — or from a phone whose pages
+       were a different height — can straddle a break, and half a tile on each
+       of two screens is a tile you can read neither half of. Re-place it, once:
+       the same licence ensureBox() takes to place an object that has never been
+       in a grid. boxOk() stops any *new* box from straddling. */
+    const dv=dev();
+    if(!sorted) kids.forEach(o=>{
+      const b=lay(o);
+      if(b.h<=per && Math.floor((b.y-1)/per)===Math.floor((b.y+b.h-2)/per)) return;
+      o[dv]=null;
+      o[dv]=freeSpot(b.w, Math.min(b.h,per), dv, c.id);
+    });
+    kids = kids.filter(o=>{ const b=FLOW.get(o.id)||lay(o); return b.y>from && b.y<=from+per; });
+    PAGESHIFT.n = from;                       // gridTile subtracts it as it draws
+  } else PAGESHIFT.n = 0;
   const tiles=kids.map(o=>gridTile(o,arr,c.id)).join('');
-  // never a two-row sliver: a drawer's board is at least a screenful
+  PAGESHIFT.n = 0;
+  // a page is exactly the rows that fit; a scrolling board is at least a screen
   const minRows=Math.max(12, Math.ceil((window.innerHeight-140)/Math.max(1,CELL[dev()])));
-  const rows=Math.max(gridRows(dev(),c.id)+(arr?2:0), minRows);
+  const rows = per ? per : Math.max(gridRows(dev(),c.id)+(arr?2:0), minRows);
 
   // a drawer may carry its own board, which overrides the global one
   const bd = c.board ? String(c.board).split('|') : null;
@@ -733,6 +768,6 @@ function scrollEntry(o){
   </article>`;
 }
 
-export { spinTo, CLICKS, clickOf, fireButton, tileTap, pending, placeAtPending,
+export { spinTo, CLICKS, clickOf, fireButton, tileTap, pending, placeAtPending, PAGESHIFT,
   gridTile, gridOfContainer, listTile, scrollEntry, bookOf, bookView, turnPage, clearPages,
   calSpan };

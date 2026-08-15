@@ -1042,3 +1042,73 @@ surfaces, which is the trade, but a note with milestones, a streak, relations
 and tags is a lot of panel — the disclosures help and more of it probably
 belongs behind them. And `S.openId` meaning something new is exactly the sort
 of rename that reads fine today and is a trap in six months.
+
+### 37. Two shelves, pages instead of scrolling, and buttons that say what they are
+
+A phone pass. Everything here is the same argument in a different place: a
+phone has one thumb, no right button, no hover and no room for a menu that
+asks a question you could have answered by pressing the button again.
+
+**The bar is two shelves.** A shelf is a strip of things you can reach without
+going anywhere. The **top** one holds the tools — view, sort, lock, random,
+settings — and the **bottom** one is where drawers pin by default; you can pin
+to either. On a Mac both are drawn along the top, because a desk has no bottom
+edge worth reserving. A pin is a **square** now, the same square as the tools,
+in the drawer's own colour with its mark on it: the old little-front-with-a-name
+gave each of five pins 78px and fitted "Done & Dusted" into none of them.
+`S.pins` kept its name and became the bottom shelf, so no desk needs migrating.
+
+**Every tool on the top shelf is a toggle.** The sort was a popup; it is one
+button cycling seven states, wearing the one it is on — **M** for manual, **A**
+and **Z** for the alphabet, and an arrow for each of the four directions of
+made-and-modified. The lock is new and is the answer to a real problem: on a
+phone the only way to *not* move something was to be careful. Locked refuses
+moves and resizes; the long press still opens the menu either way, because
+"tell me about this" is the one thing you must be able to do to a tile you
+cannot pick up.
+
+**A phone board does not scroll. It has pages.** The bottom row used to hang
+half a cell past the bottom bar, which is the entire reason the board scrolled
+at all — the row count was a `ceil`. It is a `floor` of the room between the two
+shelves now, so the board ends flush, and everything past it is on the next
+page. Two fingers up and down turn pages; two fingers left and right walk the
+pinned drawers, with the desk at the front of the loop. Two fingers because one
+is already carrying tiles.
+
+A page is **not stored**. `y` is still one continuous coordinate space per
+container and a page is a window of *n* rows onto it, measured per device — so
+a phone with a taller screen simply has taller pages, drag and drop keep working
+on plain arithmetic, and turning paging off would put every board back exactly
+as it is. The one new rule is that nothing may straddle a page break, enforced
+in `boxOk()`, which is the one place every box already passes through.
+
+**The way in is a swipe up off the bottom shelf.** Tapping bare board opened the
+type picker and was triggered by accident far more than on purpose — a board is
+a surface you put a finger on to scroll, to steady something, or to miss a tile.
+Dragging a size out on bare board still works, on both devices, because that one
+is deliberate. And on a phone every menu comes up from the bottom rather than in
+from the right: a panel from the right covers the whole board, and the argument
+that made panels replace modals (decision 23) says a menu should not hide the
+thing it is asking about.
+
+**Also:** the version is in Settings, because "which Bureau is this phone
+running" is exactly the question you ask when a change appears not to have
+deployed, and it should be readable off the device rather than guessed at. The
+resize grips are 34px on a phone against a mouse's 16, and their marks are drawn
+rather than waiting for a hover that never comes. The default knob is medium.
+The sample desk now carries one of every built-in type, named after itself,
+generated from `KEYS` so a type added tomorrow appears without anyone
+remembering — under the rack, from row 10, leaving six clear rows that every
+hand-made object and every test fixture lands in first.
+
+**And the long press finally stops selecting text.** `user-select:none` is
+supposed to prevent it and demonstrably doesn't on iOS. Refusing `selectstart`
+outright does, with an exception list for the places there is genuinely
+something to select — a field, a page of prose, the writing surface.
+
+*Against:* the page height is measured, so it is not the same number on two
+phones, and a board arranged on one will have been re-packed for the other the
+first time it is opened there. That is the cost of a board that always fits the
+screen exactly, and the alternative — a fixed page height — fits no screen. And
+a square pin drops the drawer's name; four squares in four colours are easy, and
+nine will not be.

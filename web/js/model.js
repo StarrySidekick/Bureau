@@ -290,9 +290,44 @@ function seed(){
     O({kind:'achievement', title:'30-day streak: walk before screens', parent:'d_done', done:true, doneAt:dz(-9), tags:['health']}),
     O({kind:'achievement', title:'Named the app', parent:'d_done', done:true, doneAt:dz(-14), tags:['bureau']})
   ];
-  // The drawers that start out on the bar. A first desk should show what
-  // pinning is for, and these four are the ones worth reaching in one tap.
-  return {objects: drawers.concat(controls, objects),
+
+  /* ---- one of everything, on the desk -------------------------------------
+     A sample of every built-in type, named after itself, laid out in a block
+     under the drawer rack. It is the fastest way to see a change across the
+     whole app at once — a border, a shape, a size class, a style — and it is
+     generated from KEYS rather than written out, so a type added tomorrow
+     appears here without anyone remembering to add it.
+
+     Placed left to right, wrapping when the row runs out, on the desk grid;
+     the phone box is left null so ensureBox() lays them out in phone
+     coordinates the first time that layout is opened. Containers are given a
+     child apiece, because an empty checklist is a picture of a checklist that
+     is wrong. */
+  // the desk grid's width. Not imported from grid.js on purpose: grid.js
+  // imports this file, and a cycle evaluated at load time is a real one.
+  const GRID_COLS = 24;
+  /* Row 10 down. The rack is rows 1–2 and the six rows under it are left
+     clear on purpose — a desk you can put something on, and the space every
+     test fixture and every hand-made object lands in first. */
+  const museum=[]; let mx=1, my=10, rowH=0;
+  KEYS.filter(k=>k!=='control').forEach(k=>{
+    const d=KINDS[k], [w,h]=d.size||[4,4];
+    if(mx+w-1 > GRID_COLS){ mx=1; my+=rowH; rowH=0; }
+    rowH=Math.max(rowH,h);
+    const id='k_'+k;
+    museum.push(O({id, kind:k, title:d.nm, parent:ROOT, tags:['sampler'],
+      body: kindHas(k,'text') ? (d.body||'A sample '+d.nm.toLowerCase()+', so you can see one.') : '',
+      desk:{x:mx, y:my, w, h}, phone:null}));
+    if(kindHas(k,'container') && !kindHas(k,'magic'))
+      // the kind's own answer, read straight off the table: genKindOf() is
+      // declared further down this file and seed() runs before it exists
+      ['One','Two','Three'].forEach(t=>museum.push(O({kind:d.genKind||'task', title:t, parent:id})));
+    mx+=w;
+  });
+
+  // The drawers that start out on the shelves. A first desk should show what
+  // pinning is for, and these are the ones worth reaching in one tap.
+  return {objects: drawers.concat(controls, objects, museum),
           pins: ['d_today','d_in','d_keep','d_done']};
 }
 
@@ -405,7 +440,9 @@ function gatherKind(a, b){
 /* How big the pull is. A drawer front is mostly knob at 2×2 and mostly name at
    8×8, so the one size that suited both was a compromise at each. */
 const KNOBSIZES = {sm:'Small', md:'Medium', lg:'Large'};
-const knobSizeOf = o => (o && o.knobsize) || 'sm';
+// medium: a front is mostly knob at 2x2 and mostly name at 8x8, and small
+// was the compromise that read as neither
+const knobSizeOf = o => (o && o.knobsize) || 'md';
 // Answered is "there is something written in the box", not a flag of its own.
 const answered = o => !!String((o&&o.answer)||'').trim();
 
@@ -434,14 +471,34 @@ const readOf = o => (o && o.read) || K(o&&o.kind).read || 'page';
 const spreadOf = o => readOf(o)==='book' && S.device==='desk';
 const containers = ()=> S.objects.filter(isContainer);
 
-/* Pinned drawers are the app's whole navigation — the strip along the top on a
-   Mac, the bar along the bottom on a phone. `S.pins` is an ordered list of ids
-   rather than a flag on the drawer, because the order things sit in a nav bar
-   is its own decision and has nothing to do with where they sit on the desk.
-   It is resolved on read, so a pin whose drawer has been deleted simply stops
-   appearing — no delete path has to remember to tidy up after itself. */
-const isPinned = id => (S.pins||[]).includes(id);
-const pinnedDrawers = ()=> (S.pins||[]).map(byId).filter(o=>o && isContainer(o));
+/* ---- the two shelves ---------------------------------------------------
+   A shelf is a strip of things you can reach without going anywhere. There are
+   two, and what is on them is what "the bar" used to be:
+
+     top     the tools — view, sort, lock, random, settings — plus anything you
+             pin up there
+     bottom  where drawers pin by default
+
+   On a phone the top shelf is along the top and the bottom shelf along the
+   bottom, which is the half a thumb reaches. On a Mac both are along the top,
+   because there is no bottom edge worth reserving on a desk.
+
+   Each shelf is an ordered list of ids, resolved on read — a pin whose drawer
+   has been deleted simply stops appearing, so no delete path has to tidy up
+   after itself. The order in a shelf is its own decision and has nothing to do
+   with where the drawer sits on the desk.
+
+   `S.pins` kept its name and its meaning (the bottom shelf) so old desks and
+   old backups need no migration; `S.pinsTop` is the new one. */
+const SHELVES = {bottom:'pins', top:'pinsTop'};
+const shelfList = where => S[SHELVES[where]||'pins'] || [];
+// 'top' | 'bottom' | null — where this drawer is pinned, if anywhere
+const pinnedOn = id => (S.pinsTop||[]).includes(id) ? 'top'
+                     : (S.pins||[]).includes(id) ? 'bottom' : null;
+const isPinned = id => !!pinnedOn(id);
+const shelfDrawers = where => shelfList(where).map(byId).filter(o=>o && isContainer(o));
+// every pinned drawer, top then bottom — what a two-finger swipe walks through
+const pinnedDrawers = ()=> shelfDrawers('top').concat(shelfDrawers('bottom'));
 
 /* A drawer holds. A magic drawer collects. Nothing does both.
    An object lives in exactly one drawer — its `parent` — and that is the only
@@ -504,12 +561,18 @@ function rollup(c){
 }
 
 /* Children, in whatever order the container is sorted by. */
+/* Each also carries the mark the shelf button wears, because the sort is a
+   toggle you cycle rather than a menu you open — so the button has to say which
+   of the seven it is on in one glyph. A letter where a letter is the answer
+   (Manual, A–Z, Z–A) and an arrow where a direction is (made and modified,
+   each way). SORT_CYCLE is the order the button steps through. */
 const SORTS = {
-  made:   ['Date made, newest',    (a,b)=>(b.created||'').localeCompare(a.created||'')],
-  madeup: ['Date made, oldest',    (a,b)=>(a.created||'').localeCompare(b.created||'')],
-  edited: ['Date modified',        (a,b)=>(b.edited||b.created||'').localeCompare(a.edited||a.created||'')],
-  az:     ['Alphabetical, A–Z',    (a,b)=>(a.title||'').localeCompare(b.title||'')],
-  za:     ['Alphabetical, Z–A',    (a,b)=>(b.title||'').localeCompare(a.title||'')]
+  az:       ['Alphabetical, A–Z',      (a,b)=>(a.title||'').localeCompare(b.title||''),                                 'A'],
+  za:       ['Alphabetical, Z–A',      (a,b)=>(b.title||'').localeCompare(a.title||''),                                 'Z'],
+  made:     ['Newest made first',      (a,b)=>(b.created||'').localeCompare(a.created||''),                             'arrowR'],
+  madeup:   ['Oldest made first',      (a,b)=>(a.created||'').localeCompare(b.created||''),                             'arrowL'],
+  edited:   ['Newest changed first',   (a,b)=>(b.edited||b.created||'').localeCompare(a.edited||a.created||''),         'arrowU'],
+  editedup: ['Oldest changed first',   (a,b)=>(a.edited||a.created||'').localeCompare(b.edited||b.created||''),         'arrowD']
 };
 /* A sort is per object then per type, exactly like a face, a layout or a
    colour — so a Shopping list can be born alphabetical while the Drawer type
@@ -520,6 +583,11 @@ const SORTS = {
 const MANUAL = 'manual';
 const sortOf = c => { const v=(c && c.sort) || K(c&&c.kind).sort || MANUAL;
   return SORTS[v] ? v : null; };
+// what the shelf's sort button steps through, manual first
+const SORT_CYCLE = [MANUAL, ...Object.keys(SORTS)];
+const sortMark = k => (SORTS[k] && SORTS[k][2]) || 'M';
+const nextSort = c => { const cur=sortOf(c)||MANUAL;
+  return SORT_CYCLE[(SORT_CYCLE.indexOf(cur)+1) % SORT_CYCLE.length]; };
 function childrenOf(c){
   const list = S.objects.filter(o=>inContainer(c,o));
   const s = SORTS[sortOf(c)];
@@ -628,10 +696,11 @@ const allTags = ()=>{ const m={}; S.objects.forEach(o=>(o.tags||[]).forEach(t=>m
 export { ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds, K,
   attrsOf, has, kindHas, T, dz, S, sensedDevice, reset, defaultLook, dev, byId,
   deskTitle, rootObj, container, cfgOf, isContainer, FACES, faceOf, layoutOf, SHAPES,
-  shapeOf, READS, readOf, spreadOf, gathersOf, gatherKind, containers, isPinned, pinnedDrawers,
+  shapeOf, READS, readOf, spreadOf, gathersOf, gatherKind, containers,
+  SHELVES, shelfList, shelfDrawers, pinnedOn, isPinned, pinnedDrawers,
   KNOBSIZES, knobSizeOf, answered,
   spawnByOf, genKindOf, takesTyping, keepsDone,
   CALVIEWS, calViewOf, weekStartOf, showsWeekends, calCols,
-  OPS, ROLLS, rollup, SORTS, MANUAL, sortOf, childrenOf, isAncestor,
+  OPS, ROLLS, rollup, SORTS, MANUAL, SORT_CYCLE, sortMark, nextSort, sortOf, childrenOf, isAncestor,
   relatedTo, backlinksTo, relate, unrelate, chainOf, tlSpan, streak, goalPct,
   allUnder, progressOf, projectStat, allTags };

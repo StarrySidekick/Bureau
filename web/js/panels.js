@@ -2,7 +2,7 @@ import { $, $$, esc, ic, uid, clamp, D, ROOT } from './util.js';
 import { S, K, KINDS, KEYS, T, ATTRS, USER_ATTRS, FIELDS, fieldOf, OPS, ROLLS,
   SORTS, MANUAL, sortOf, FACES, SHAPES, READS, faceOf, layoutOf, shapeOf, readOf, byId, container, cfgOf, deskTitle,
   rootObj, containers, isContainer, isAncestor, childrenOf, has, kindHas,
-  attrsOf, allTags, isPinned, dev, takesTyping, genKindOf, answered,
+  attrsOf, allTags, isPinned, pinnedOn, dev, takesTyping, genKindOf, answered,
   relatedTo, backlinksTo, streak, goalPct,
   CALVIEWS, calViewOf, weekStartOf, showsWeekends, KNOBSIZES, knobSizeOf } from './model.js';
 import { GRID, lay, boxOk, freeSpot, sizeOfKind, toPhoneSize } from './grid.js';
@@ -324,7 +324,9 @@ function objectPanelBody(id){
       [[MANUAL,'As I arranged them'], ...Object.entries(SORTS).map(([k,[nm]])=>[k,nm])],
       sortOf(d)||MANUAL)));
     out.push(prow('Moving things', psel(id,'locked',[['','Movable'],['1','Locked']], d.locked?'1':'')));
-    if(!isRoot) out.push(prow('On the bar', psel(id,'pin',[['','No'],['1','Pinned']], isPinned(id)?'1':'')));
+    if(!isRoot) out.push(prow('On a shelf', psel(id,'pin',
+      [['','Not pinned'],['top','Top shelf'],['bottom','Bottom shelf']], pinnedOn(id)||''),
+      'the bottom one is where drawers live'));
   } else if(!isRoot){
     out.push(prow('Clicking it', psel(id,'onclick', Object.entries(CLICKS), clickOf(d))));
     if(has(d,'text')) out.push(prow('Opens as', psel(id,'read', Object.entries(READS), readOf(d))));
@@ -734,7 +736,7 @@ function openCtx(x,y,id){
     ${many?'' : `<button data-c="objset:${id}">${ic('sliders',14)} Object settings</button>
       ${isContainer(o)
         ? `<button data-c="opendrawer:${id}">${ic('eye',14)} Open</button>
-           <button data-c="pin:${id}">${ic('star',14)} ${isPinned(id)?'Take off the bar':'Pin to the bar'}</button>`
+           <button data-c="pin:${id}">${ic('star',14)} ${isPinned(id)?'Take off the shelf':'Pin to the shelf'}</button>`
         : `${has(o,'text')?`<button data-c="read:${id}">${ic('eye',14)} Read</button>
              <button data-c="write:${id}">${ic('edit',14)} Write…</button>`:''}`}`}
     ${(!many&&(has(o,'check')||has(o,'streak')))?`<button data-c="done:${id}">${ic('check',14)} ${has(o,'streak')?'Mark today':'Complete'}</button>`:''}

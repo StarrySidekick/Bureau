@@ -1,10 +1,10 @@
 import { $, $$, clamp, D, ROOT } from './util.js';
-import { S, byId, dev, has, isAncestor, childrenOf, container, gatherKind } from './model.js';
+import { S, byId, dev, has, isAncestor, childrenOf, container, gatherKind, pinnedDrawers } from './model.js';
 import { CELL, gridOf, cellW, lay, boxOk, overlaps } from './grid.js';
 import { toast, gather } from './mutations.js';
 import { pending, tileTap, fireButton } from './tiles.js';
 import { modalNewObject, openCtx } from './panels.js';
-import { render } from './views.js';
+import { render, turnPageBy } from './views.js';
 import { save } from './persist.js';
 
 /* ============================================================
@@ -207,6 +207,14 @@ function onDown(e){
      grid, so it gets its own tiny path rather than going through the box
      maths — and a plain click still has to navigate, which is why nothing
      happens until the pointer has actually moved. */
+  /* The bottom shelf is where things come out of. A press on it that travels
+     upward opens the new-object menu; one that doesn't is a plain tap and the
+     pin under it navigates as usual. */
+  const shelfEl = S.device!=='desk' && e.target.closest('.shelf-bottom');
+  if(shelfEl){
+    G={type:'shelf', el:shelfEl, sx:e.clientX, sy:e.clientY, mode:null};
+    return;
+  }
   const pinEl=e.target.closest('.pinbar .pinbtn[data-drawer]');
   if(pinEl && S.device==='desk'){
     G={type:'pin', el:pinEl, id:pinEl.dataset.drawer, bar:pinEl.parentElement,
@@ -254,44 +262,50 @@ function onDown(e){
   // be undraggable.
   if(e.target.closest('[data-check],.cntnum')) return;
   const dEl=e.target.closest('.grid .drawer[data-drawer],.grid .drawer[data-row],.grid .drawer[data-id]');
-  if(dEl && dEl.closest('.grid.sorted')){
-    toast('Sorted drawers arrange themselves — switch to Custom to move things');
-    return;
-  }
-  if(dEl && !dEl.closest('.grid.locked')){
+  if(dEl){
     const grid=dEl.closest('.grid');
     const d=byId(dEl.dataset.drawer||dEl.dataset.row||dEl.dataset.id);
     if(!d || !grid) return;
-    const hEl=e.target.closest('[data-rz]'), g=gridOf();
+    /* A locked board — or a sorted one, which arranges itself — refuses to be
+       moved or resized. It does **not** refuse the long press: "tell me about
+       this" is the one thing a phone has to be able to do to a tile it cannot
+       pick up, and locking a board so you can scroll it without disturbing
+       anything is exactly when you still want the menu. */
+    const stuck = grid.classList.contains('locked') || grid.classList.contains('sorted');
+    const hEl = stuck ? null : e.target.closest('[data-rz]');
+    const g=gridOf();
     G={type: hEl?'resize':'move', el:dEl, id:d.id, handle:hEl?hEl.dataset.rz:null,
-       armed:!!hEl,                 // a corner grip drags at once; a tile waits
+       stuck,
+       armed: !stuck && !!hEl,      // a corner grip drags at once; a tile waits
        startedOnFace:!!e.target.closest('.btnface'),
        // dragging any member of a selection moves the lot, keeping their
        // relative positions — the offsets are captured up front
-       group: (S.sel.includes(d.id) && S.sel.length>1)
+       group: (!stuck && S.sel.includes(d.id) && S.sel.length>1)
          ? S.sel.map(byId).filter(Boolean).map(o=>({id:o.id, box:lay(o)})) : null,
        parent:grid.dataset.gridfor||ROOT,
        box:lay(d), stepX:cellW(grid,g)+g.gap, stepY:g.rowh+g.gap,
        sx:e.clientX, sy:e.clientY, mode:null, ok:true, cand:null};
     try{ dEl.setPointerCapture&&dEl.setPointerCapture(e.pointerId); }catch(_){}
     if(!G.armed){
-      const g=G;
+      const g0=G;
       /* A finger needs longer than a mouse. 200ms is a click you held slightly
          too long, and on touch that is most of them — but it is also the whole
          budget for deciding this is not a scroll, so it cannot grow much. */
       const touch = e.pointerType==='touch';
       holdTimer=setTimeout(()=>{
         holdTimer=null;
-        if(G!==g) return;
-        G.armed=true;
-        G.el.classList.add('lifted');
-        if(navigator.vibrate) navigator.vibrate(6);
+        if(G!==g0) return;
+        if(!g0.stuck){
+          G.armed=true;
+          G.el.classList.add('lifted');
+          if(navigator.vibrate) navigator.vibrate(6);
+        }
         // keep holding without moving and it becomes the menu. Touch only: a
         // mouse already has a right button, and a slow click is still a click.
         if(!touch) return;
         menuTimer=setTimeout(()=>{
           menuTimer=null;
-          if(G!==g || G.mode) return;        // it started moving: it is a drag
+          if(G!==g0 || G.mode) return;       // it started moving: it is a drag
           const el=G.el, id=G.id, r=el.getBoundingClientRect();
           if(navigator.vibrate) navigator.vibrate([4,40,10]);
           onCancel();                        // put the tile back down cleanly
@@ -376,7 +390,32 @@ function onMove(e){
     return;
   }
 
+  if(G.type==='shelf'){
+    /* Up off the bottom shelf opens the new-object menu. Tapping bare board
+       used to do it and was triggered by accident more than on purpose — the
+       board is a place you put things down, not a button. The shelf is where
+       the menu comes from, and the menu comes up out of it. */
+    if(G.mode) return;
+    if(dy < -40 && Math.abs(dy) > Math.abs(dx)){
+      G.mode='shelf';
+      gestureFlags.suppressClick=true;
+      pending.cell=null;
+      if(navigator.vibrate) navigator.vibrate(6);
+      modalNewObject();
+    }
+    return;
+  }
+
   if(G.type==='move' || G.type==='resize'){
+    if(G.stuck){
+      if(!G.mode && (Math.abs(dx)>10 || Math.abs(dy)>10)){
+        G.mode='refused';
+        toast(byId(G.id) && document.querySelector('.grid.sorted')
+          ? 'Sorted boards arrange themselves — set Manual to move things'
+          : 'The board is locked — tap the lock to move things');
+      }
+      return;
+    }
     if(!G.armed) return;             // still waiting out the hold
     G.px=e.clientX; G.py=e.clientY;
     if(!G.mode){
@@ -456,12 +495,22 @@ function onUp(e){
       return;
     }
     if(S.sel.length){ S.sel=[]; render(); return; }   // a click on bare board clears
-    pending.cell = g.mode==='sketch' && g.ok
+    /* A *tap* on bare board does nothing on a phone. It used to open the type
+       picker and was triggered by accident far more than on purpose — a board
+       is a surface you put a finger on to scroll, steady a thing, or miss a
+       tile. The way in is a swipe up off the bottom shelf. Sketching a size by
+       dragging still works, on both devices, because that is deliberate. */
+    if(g.mode!=='sketch'){
+      if(S.device!=='desk') return;
+      pending.cell={x:g.x0, y:g.y0, parent:g.parent};
+    } else pending.cell = g.ok
       ? {x:g.cand.x, y:g.cand.y, w:g.cand.w, h:g.cand.h, parent:g.parent}
       : {x:g.x0, y:g.y0, parent:g.parent};
     modalNewObject();
     return;
   }
+
+  if(g.type==='shelf') return;     // a tap; the pin under it navigates
 
   if(g.type==='pluck'){
     if(g.chip) g.chip.remove();
@@ -545,6 +594,56 @@ function onUp(e){
   }
 }
 
+/* ============================================================
+   19b · two fingers — the board's own navigation
+   ============================================================
+   One finger is already busy: it carries tiles, ticks boxes and scrolls. So
+   moving *between* boards and between pages of one is two fingers, which
+   nothing else in Bureau uses and which no tile can swallow.
+
+     up / down     the next page of this board, and the one before
+     left / right  the next pinned drawer, and the one before — the shelves in
+                   order, with the desk at the front of the loop
+
+   One decision per gesture: once it has been read as vertical or horizontal it
+   is done until the fingers come off, so a slightly diagonal swipe turns one
+   page rather than turning three and changing drawer. */
+const TWO_MIN = 46;
+const TWO = {on:false, x:0, y:0, spent:false};
+function onTouchStart(e){
+  if(!e.touches || e.touches.length!==2){ TWO.on=false; return; }
+  const [a,b]=e.touches;
+  TWO.on=true; TWO.spent=false;
+  TWO.x=(a.clientX+b.clientX)/2; TWO.y=(a.clientY+b.clientY)/2;
+  onCancel();                      // two fingers is never a drag
+  gestureFlags.suppressClick=true;
+}
+function onTouchMove(e){
+  if(!TWO.on || TWO.spent || !e.touches || e.touches.length!==2) return;
+  const [a,b]=e.touches;
+  const dx=(a.clientX+b.clientX)/2 - TWO.x, dy=(a.clientY+b.clientY)/2 - TWO.y;
+  if(Math.abs(dx)<TWO_MIN && Math.abs(dy)<TWO_MIN) return;
+  TWO.spent=true;
+  const here = S.view==='drawer' ? S.drawerId : ROOT;
+  if(Math.abs(dy) >= Math.abs(dx)){ turnPageBy(here, dy<0 ? 1 : -1); return; }
+  stepDrawer(dx<0 ? 1 : -1);
+}
+function onTouchEnd(e){ if(!e.touches || e.touches.length<2) TWO.on=false; }
+/* The desk, then every pinned drawer in shelf order, as one loop. Somewhere
+   you pinned is somewhere you go back to often; somewhere you didn't is not on
+   this list, which is what keeps the loop short enough to be worth swiping. */
+function stepDrawer(d){
+  const pins=pinnedDrawers();
+  if(!pins.length) return;
+  const stops=[null, ...pins.map(p=>p.id)];
+  const at=stops.indexOf(S.view==='drawer' ? S.drawerId : null);
+  const to=stops[((at<0?0:at)+d+stops.length) % stops.length];
+  S.view = to ? 'drawer' : 'desk';
+  S.drawerId = to;
+  S.kindFilter=null;
+  render();
+}
+
 /* A drag ends with a click event the browser sends anyway. When the drag *was*
    the gesture, that click has to be swallowed or reordering a pin would also
    open the drawer. wire.js clears this on the next click it sees. */
@@ -565,4 +664,5 @@ function onCancel(){
                    G.el.classList.remove('lifted','dragging','invalid','plucked'); } G=null; }
 }
 
-export { onDown, onMove, onUp, onCancel, gestureFlags, dragArmed };
+export { onDown, onMove, onUp, onCancel, onTouchStart, onTouchMove, onTouchEnd,
+  gestureFlags, dragArmed };

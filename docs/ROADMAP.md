@@ -5,6 +5,29 @@ Sequenced by dependency, not appetite: item 1 makes everything after it safer.
 
 ---
 
+## 0b. Queued 2026-08-15 (second pass) — DONE (v56)
+
+See decision 37.
+
+- **two shelves** — tools on the top, drawers pinned to the bottom, both along
+  the top on a Mac; a pin is a square in the drawer's colour
+- **toggles, not menus** — the sort cycles seven states and wears the one it is
+  on; a lock button that refuses moves but never the long press
+- **pages, not scrolling** — a phone board is exactly the room between the two
+  shelves and turns with two fingers; two fingers sideways walks the pins
+- **a swipe up off the bottom shelf** opens the new-object menu, and menus on a
+  phone come up from the bottom
+- **the version is in Settings**, medium knobs, thumb-sized resize grips, and
+  one of every type on the sample desk
+- **the long press stops selecting text** — `selectstart` is refused outright
+
+*Still open:* the page height is measured per device, so a board arranged on
+one phone is re-packed on a different-sized one. And the leftover under the
+last row (never more than one cell) sits at the bottom rather than being shared
+out — squares or flush, pick one.
+
+---
+
 ## 0a. Queued 2026-08-15 — DONE in the same pass (v55)
 
 See decision 36 and `docs/BORDERS.md`.

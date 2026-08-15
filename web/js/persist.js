@@ -9,7 +9,11 @@ import { closePanel } from './panels.js';
 /* ============================================================
    19b · persistence — everything stays on this device
    ============================================================ */
-const APP_VERSION = '1.0';
+/* The version, by hand, and bumped with the cache in web/sw.js — the two
+   travel together, because "which Bureau is this phone running" is exactly the
+   question you ask when a change appears not to have deployed. Shown in
+   Settings, so it can be read off the device rather than guessed at. */
+const APP_VERSION = '1.2';
 const KEY = 'bureau.v1';
 const install = {deferred:null};   // the browser's install prompt, when one is on offer
 let saveTimer = null;
@@ -23,8 +27,9 @@ function snapshot(){
   });
   // a pin whose drawer has gone is dropped here rather than in every delete
   // path; in memory it survives so undo can bring the drawer back pinned
-  const pins=(S.pins||[]).filter(id=>S.objects.some(o=>o.id===id));
-  return {v:DATA_V, savedAt:new Date().toISOString(), pins,
+  const live = id => S.objects.some(o=>o.id===id);
+  const pins=(S.pins||[]).filter(live), pinsTop=(S.pinsTop||[]).filter(live);
+  return {v:DATA_V, savedAt:new Date().toISOString(), pins, pinsTop,
           look:S.look, kinds:S.kinds, deskCfg:S.deskCfg, objects};
 }
 function writeNow(){
@@ -295,6 +300,7 @@ function adopt(d){
   if(d.deskCfg) S.deskCfg = Object.assign({layout:'grid',locked:false,sort:null}, d.deskCfg);
   S.look = Object.assign(defaultLook(), d.look||{});
   S.pins = Array.isArray(d.pins) ? d.pins.slice() : [];
+  S.pinsTop = Array.isArray(d.pinsTop) ? d.pinsTop.slice() : [];
   S.undo = [];   // the moves on it referred to objects this desk has never had
   refreshKinds();
   return true;
@@ -500,5 +506,5 @@ function pasteObjects(text, parentId){
   toast('Added '+(bits.join(' and ')||'nothing'), !!tally.made.length);
 }
 
-export { APP_VERSION, writeNow, save, storeSize, load, exportBackup,
+export { APP_VERSION, DATA_V, writeNow, save, storeSize, load, exportBackup,
   importBackup, assetDel, hydrateAssets, importImage, imgFor, pasteObjects, install };

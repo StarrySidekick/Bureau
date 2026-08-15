@@ -56,8 +56,10 @@ branch mode can only serve the repo root or `docs/`, and `docs/` is the written
 documentation, hence the workflow.
 
 After changing anything in `web/` (any `js/` or `css/` file, or `index.html`),
-bump `CACHE` in `web/sw.js` or installed copies will keep serving the old
-version from cache. A **new** file must also be added to `SHELL` in `sw.js` or
+bump `CACHE` in `web/sw.js` **and** `APP_VERSION` in `web/js/persist.js` — the
+two travel together, and the second is what Settings prints, so "which Bureau is
+this phone running" can be read off the device instead of guessed at. Without
+the cache bump, installed copies keep serving the old version. A **new** file must also be added to `SHELL` in `sw.js` or
 it won't work offline. This is the easiest thing in the project to forget and
 the symptom — "my change didn't deploy" — points at the wrong culprit.
 
@@ -197,11 +199,36 @@ the type builder offers it as "Two of them make".
 **Navigation is the desk plus whatever you pinned.** There are exactly two
 views: the desk and a drawer. The four fixed tabs (Today, Keeping Up,
 Everything) are gone — they were hard-coded aggregations, which is a magic
-drawer's job. `S.pins` is an ordered list of drawer ids, resolved on read by
-`pinnedDrawers()`; the same `pinbar()` markup is a top strip on a Mac and the
-bottom bar on a phone. With nothing pinned it isn't drawn. See decision 22, and
-don't add a view without a very good reason — a magic drawer is nearly always
-the answer.
+drawer's job. Don't add a view without a very good reason — a magic drawer is
+nearly always the answer. See decision 22.
+
+**There are two shelves, and a shelf is a strip you can reach from anywhere.**
+The **top** one carries the tools and rides in the grid bar; the **bottom** one
+is where drawers pin by default and is its own strip along the bottom of a
+phone. On a Mac both are drawn along the top. `S.pins` is the bottom shelf and
+`S.pinsTop` the top — ask `pinnedOn(id)`, and render either with
+`shelfStrip(where)`. `pins` kept its name so no desk needs a migration.
+
+**Every tool on the top shelf is a toggle, not a menu.** The sort cycles seven
+states and *wears the one it is on*; the lock is a lock, open or shut. A phone
+has no room for a popup asking a question you could answer by pressing the
+button again. A locked board refuses moves and resizes and **never** refuses the
+long press — see `G.stuck` in `gestures.js`.
+
+**A phone board has pages; it does not scroll.** It is exactly as many whole
+square cells as fit between the two shelves (`PAGEROWS`, measured by
+`sizeGrid()` — a `floor`, and the `ceil` it replaced is the entire reason the
+board used to scroll). A page is *not stored*: `y` is one continuous coordinate
+space per container and a page is a window of *n* rows onto it, so drag, drop
+and `freeSpot()` know nothing about pages. The one rule is that nothing may
+straddle a break, enforced in `boxOk()`. Two fingers up and down turn pages;
+two fingers left and right walk the pins. See decision 37.
+
+**Tapping bare board does nothing on a phone.** The way in is a swipe up off
+the bottom shelf. Dragging a size out on bare board still makes something, on
+both devices, because that one is deliberate. And on a phone every panel comes
+up from the bottom rather than in from the right — a panel from the right covers
+the whole board, which is the thing decision 23 exists to prevent.
 
 **There are no modals — a menu is a panel.** `openPanel(spec)` in `panels.js`
 is the whole system: one panel at a time, down the right, over a desk that stays

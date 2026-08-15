@@ -204,12 +204,17 @@ const CHROME = process.env.BUREAU_CHROME;
   const railGone = await phone.evaluate(() => !document.querySelector('.rail'));
   const tabsGone = await phone.evaluate(() => !document.querySelector('.tabbar'));
   const pinbarShown = await phone.evaluate(() => {
-    const b = document.querySelector('.pinbar');
-    if (!b) return false;
-    const s = getComputedStyle(b);
-    // it has to be the bottom bar on a phone, not a strip left at the top
-    return s.display !== 'none' && s.position === 'absolute'
-      && b.getBoundingClientRect().bottom >= window.innerHeight - 1;
+    /* The bottom shelf. It is a real flex child of .main now rather than
+       something floating over the board — that is what makes the board end
+       exactly where the shelf begins, with nothing left to scroll past. */
+    const b = document.querySelector('.shelf-bottom');
+    const sc = document.querySelector('#app .scroll');
+    if (!b || !sc) return false;
+    const r = b.getBoundingClientRect();
+    return getComputedStyle(b).display !== 'none'
+      && r.bottom >= window.innerHeight - 1
+      && Math.abs(sc.getBoundingClientRect().bottom - r.top) < 2   // flush
+      && !!b.querySelector('.pinbtn[data-drawer]');
   });
   // a pin navigates, and the bar marks where you are
   await phone.click('.pinbar .pinbtn[data-drawer="d_keep"]');
@@ -447,7 +452,9 @@ const CHROME = process.env.BUREAU_CHROME;
     const S = BUREAU.state;
     S.view = 'desk'; S.drawerId = null; S.sel = [];
     const cl = BUREAU.create('checklist', { parent: 'root', title: 'Plucking' });
-    cl.desk = { x: 1, y: 4, w: 4, h: 6 };   // well inside the window: this drags for real
+    // the six rows under the drawer rack are left clear by the seed, and this
+    // gesture is a real mouse drag, so it has to happen where the mouse can see
+    cl.desk = { x: 1, y: 4, w: 4, h: 6 };
     const one = BUREAU.create('task', { parent: cl.id, title: 'Take me out' });
     const two = BUREAU.create('task', { parent: cl.id, title: 'Tick me' });
     window.__pl = { cl: cl.id, one: one.id, two: two.id };
@@ -504,7 +511,7 @@ const CHROME = process.env.BUREAU_CHROME;
     const S = BUREAU.state;
     S.view = 'desk'; S.drawerId = null;
     const q = BUREAU.create('question', { parent: 'root', title: 'Answer me' });
-    q.desk = { x: 1, y: 20, w: 5, h: 4 };
+    q.desk = BUREAU.free(5, 4);
     BUREAU.render(); await nap(200);
     const tile = () => document.querySelector(`.drawer[data-row="${q.id}"]`);
     const noTick = !tile().querySelector('[data-check]');
@@ -527,7 +534,7 @@ const CHROME = process.env.BUREAU_CHROME;
     const nap = n => new Promise(r => setTimeout(r, n));
     const S = BUREAU.state;
     const pr = BUREAU.create('project', { parent: 'root', title: 'Seeded' });
-    pr.desk = { x: 1, y: 26, w: 5, h: 5 };
+    pr.desk = BUREAU.free(5, 5);
     const kids = S.objects.filter(o => o.parent === pr.id);
     const seeded = kids.length === 1 && kids[0].kind === 'field'
       && kids[0].desk.x === 1 && kids[0].desk.y === 1;
@@ -536,7 +543,7 @@ const CHROME = process.env.BUREAU_CHROME;
     const noRunaway = kids.length === 1;
     const sizes = ['sm','md','lg'].map(k => {
       const d = BUREAU.create('drawer', { parent:'root', title:k });
-      d.knobsize = k; d.desk = { x: 7 + ['sm','md','lg'].indexOf(k)*4, y: 26, w: 4, h: 4 };
+      d.knobsize = k; d.desk = BUREAU.free(4, 4);
       return d;
     });
     BUREAU.render(); await nap(250);
@@ -1091,7 +1098,7 @@ const CHROME = process.env.BUREAU_CHROME;
     const S = BUREAU.state;
     S.view = 'desk'; S.drawerId = null; S.sel = [];
     const o = BUREAU.create('task', { parent: 'root', title: 'Before' });
-    o.desk = { x: 1, y: 34, w: 6, h: 2 };
+    o.desk = BUREAU.free(6, 2);
     BUREAU.render(); await nap(150);
     const tile = () => document.querySelector(`.grid .drawer[data-row="${o.id}"]`);
     tile().dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
@@ -1165,7 +1172,7 @@ const CHROME = process.env.BUREAU_CHROME;
     const shapes = ['sliver','tab','ruled','chit','pill'];
     const made = shapes.map((sh, i) => {
       const o = BUREAU.create('task', { parent: 'root', title: 'Look ' + sh });
-      o.shape = sh; o.desk = { x: 1, y: 36 + i * 2, w: 7, h: 1 };
+      o.shape = sh; o.desk = BUREAU.free(7, 1);
       return o;
     });
     BUREAU.render(); await nap(200);
@@ -1186,9 +1193,187 @@ const CHROME = process.env.BUREAU_CHROME;
   });
   await shot('18-task-shapes');
 
+  /* --- the top shelf's buttons are toggles, not menus. A phone has no room
+     for a popup that asks a question you could answer by pressing the button
+     again — so each one has to *say* which state it is in. */
+  const shelfTools = await page.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const S = BUREAU.state, out = {};
+    S.view = 'desk'; S.drawerId = null; BUREAU.render(); await nap(150);
+    const btn = sel => document.querySelector('.gridbar ' + sel);
+    // the lock: one button, and the icon says which way round it is
+    out.startsUnlocked = !S.deskCfg.locked && !!btn('[data-act="togglelock"]');
+    const openShackle = btn('[data-act="togglelock"]').innerHTML;
+    btn('[data-act="togglelock"]').click(); await nap(200);
+    out.locks = !!S.deskCfg.locked
+      && btn('[data-act="togglelock"]').innerHTML !== openShackle
+      && !!document.querySelector('.grid.locked');
+    // a locked board refuses the drag and still gives you the menu
+    const tile = () => document.querySelector('.grid .drawer[data-drawer="d_in"]');
+    const r = tile().getBoundingClientRect();
+    const ev = (t, o) => tile().dispatchEvent(new PointerEvent(t, Object.assign(
+      { bubbles:true, cancelable:true, pointerId:3, pointerType:'touch',
+        clientX:r.left+r.width/2, clientY:r.top+r.height/2 }, o)));
+    const before = { ...BUREAU.state.objects.find(o => o.id === 'd_in')[S.device] };
+    ev('pointerdown');
+    await nap(360);
+    out.lockedDoesNotLift = !document.querySelector('.drawer.lifted');
+    ev('pointermove', { clientX: r.left + r.width/2 + 2, clientY: r.top + r.height/2 + 2 });
+    await nap(320);
+    out.lockedStillMenus = !!document.querySelector('#ctx.open');
+    ev('pointerup');
+    document.querySelector('#ctx').classList.remove('open');
+    document.querySelector('#frame').dispatchEvent(new MouseEvent('click', { bubbles:true }));
+    const after = BUREAU.state.objects.find(o => o.id === 'd_in')[S.device];
+    out.lockedDoesNotMove = after.x === before.x && after.y === before.y;
+    btn('[data-act="togglelock"]').click(); await nap(200);
+    out.unlocks = !S.deskCfg.locked;
+
+    /* The sort steps through its seven and wears the one it is on — a letter
+       where a letter is the answer, an arrow where a direction is. Seven
+       presses come back round to where they started. */
+    const seen = [], glyphs = [];
+    for (let i = 0; i < 7; i++) {
+      seen.push(S.deskCfg.sort || 'manual');
+      const b = btn('[data-act="sortnext"]');
+      glyphs.push(b.textContent.trim() || (b.querySelector('svg') ? 'svg' : ''));
+      b.click();
+      await nap(90);
+    }
+    out.sortCycles = new Set(seen).size === 7 && (S.deskCfg.sort || 'manual') === 'manual';
+    out.everyStateHasAMark = glyphs.every(Boolean)
+      && glyphs.filter(g => g === 'svg').length === 4        // four directions
+      && ['M','A','Z'].every(l => glyphs.includes(l));       // three letters
+    out.noSortPopup = !document.querySelector('[data-sortby]');
+    return out;
+  });
+
+  /* --- two shelves. The tools live on the top one, drawers pin to the bottom,
+     and on a Mac both are drawn along the top because there is no bottom edge
+     worth reserving on a desk. */
+  const shelves = await page.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const S = BUREAU.state, out = {};
+    out.bothOnDesk = document.querySelectorAll('.gridbar .shelf-top, .gridbar .shelf-bottom').length >= 1
+      && !!document.querySelector('.gridbar .shelf-bottom .pinbtn[data-drawer]');
+    const d = S.objects.find(o => o.kind === 'drawer' && !S.pins.includes(o.id));
+    BUREAU.setPin(d.id, 'top'); await nap(200);
+    out.pinsToTop = S.pinsTop.includes(d.id) && !S.pins.includes(d.id)
+      && !!document.querySelector(`.shelf-top .pinbtn[data-drawer="${d.id}"]`);
+    BUREAU.setPin(d.id, 'bottom'); await nap(200);
+    out.movesShelf = S.pins.includes(d.id) && !S.pinsTop.includes(d.id);
+    BUREAU.setPin(d.id, null); await nap(150);
+    out.unpins = !S.pins.includes(d.id) && !S.pinsTop.includes(d.id);
+    return out;
+  });
+
+  // --- the version is readable off the device, not guessed at
+  await page.click('.gridbar [data-act="appsettings"]');
+  await page.waitForTimeout(320);
+  const versionShown = await page.evaluate(() => {
+    const p = document.querySelector('#panel');
+    return /\d+\.\d+/.test(p.querySelector('.pbody .statline').textContent)
+      && /Bureau \d+\.\d+/.test(p.querySelector('.ptop').textContent);
+  });
+  await page.keyboard.press('Escape');
+
+  // --- one of every type on the desk, named after itself
+  const sampler = await page.evaluate(() => {
+    const S = BUREAU.state;
+    const kinds = Object.keys(BUREAU.K).filter(k => k !== 'control');
+    const onDesk = S.objects.filter(o => o.parent === 'root' && (o.tags||[]).includes('sampler'));
+    return { one: kinds.every(k => onDesk.some(o => o.kind === k)),
+             named: onDesk.every(o => o.title === BUREAU.K[o.kind].nm),
+             // and the rack plus six clear rows above them
+             clearTop: onDesk.every(o => o.desk.y >= 10),
+             knobIsMedium: BUREAU.K.drawer.knobsize === undefined
+               && getComputedStyle(document.querySelector('.grid .dtile .pull')).width !== '' };
+  });
+
+  /* --- a phone board is pages, not scrolling. It is exactly as tall as the
+     room between the two shelves; what does not fit is on the next page, and
+     two fingers walk through them. */
+  await phone.bringToFront();
+  await phone.evaluate(() => { BUREAU.state.view='desk'; BUREAU.state.drawerId=null; BUREAU.render(); });
+  await phone.waitForTimeout(400);
+  const paging = await phone.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const out = {};
+    const g = () => document.querySelector('#drawergrid');
+    const sc = () => document.querySelector('#app .scroll');
+    const shelf = document.querySelector('.shelf-bottom');
+    out.rowsMeasured = BUREAU.pageRows >= 4;
+    out.exactlyOnePage = /repeat\((\d+),/.exec(g().style.gridTemplateRows)[1] === String(BUREAU.pageRows);
+    out.neverScrolls = sc().scrollHeight <= sc().clientHeight + 1
+      && getComputedStyle(sc()).overflowY === 'hidden';
+    // and it stops above the shelf rather than half a cell past it
+    out.endsAboveTheShelf = g().getBoundingClientRect().bottom <= shelf.getBoundingClientRect().top + 1;
+    out.morePages = BUREAU.pageCount('root') > 1;
+    // nothing may straddle a break: half a tile on each of two screens is a
+    // tile you can read neither half of
+    const per = BUREAU.pageRows;
+    out.nothingStraddles = BUREAU.kids('root').every(id => {
+      const b = BUREAU.state.objects.find(o => o.id === id).phone;
+      return !b || (b.h <= per && Math.floor((b.y-1)/per) === Math.floor((b.y+b.h-2)/per));
+    });
+    // two fingers up and down
+    const el = document.querySelector('#frame');
+    const T = (x,y,i) => ({identifier:i, target:el, clientX:x, clientY:y});
+    const mk = (t,list) => { const e = new Event(t,{bubbles:true,cancelable:true});
+      e.touches=list; e.targetTouches=list; e.changedTouches=list; return e; };
+    const swipe = (dx,dy) => { el.dispatchEvent(mk('touchstart',[T(200,500,1),T(240,500,2)]));
+      el.dispatchEvent(mk('touchmove',[T(200+dx,500+dy,1),T(240+dx,500+dy,2)]));
+      el.dispatchEvent(mk('touchend',[])); };
+    swipe(0,-120); await nap(220);
+    out.twoFingersTurnPage = BUREAU.pageAt('root') === 1;
+    swipe(0,120); await nap(220);
+    out.andBack = BUREAU.pageAt('root') === 0;
+    // two fingers sideways walks the pinned drawers
+    swipe(-140,0); await nap(260);
+    out.twoFingersWalkDrawers = BUREAU.state.view === 'drawer';
+    swipe(140,0); await nap(260);
+    out.andBackToDesk = BUREAU.state.view === 'desk';
+    return out;
+  });
+
+  /* --- and the way in is a swipe up off the bottom shelf. Tapping bare board
+     used to open the picker and was triggered by accident more than on
+     purpose; a board is a surface you put things on, not a button. */
+  const shelfSwipe = await phone.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const out = {};
+    const grid = document.querySelector('#drawergrid');
+    const gr = grid.getBoundingClientRect();
+    const bare = { x: gr.left + gr.width/2, y: gr.bottom - 12 };
+    const tap = (el,x,y,type) => el.dispatchEvent(new PointerEvent(type,
+      { bubbles:true, cancelable:true, pointerId:11, pointerType:'touch', clientX:x, clientY:y }));
+    tap(grid, bare.x, bare.y, 'pointerdown'); tap(grid, bare.x, bare.y, 'pointerup');
+    await nap(200);
+    out.bareBoardDoesNothing = !document.querySelector('#panel');
+    const shelf = document.querySelector('.shelf-bottom');
+    const r = shelf.getBoundingClientRect();
+    const x = r.right - 30, y = r.top + r.height/2;
+    tap(shelf, x, y, 'pointerdown');
+    tap(shelf, x, y - 60, 'pointermove');
+    tap(shelf, x, y - 120, 'pointermove');
+    tap(shelf, x, y - 120, 'pointerup');
+    await nap(300);
+    const p = document.querySelector('#panel');
+    out.swipeUpOpensThePicker = !!p && p.dataset.panel === 'newobject';
+    // …and on a phone a menu comes up out of the bottom, so the board is still
+    // visible and still live above it
+    const pr = p && p.getBoundingClientRect();
+    out.comesFromTheBottom = !!pr && pr.left < 2 && pr.right > innerWidth - 2
+      && pr.bottom >= innerHeight - 1 && pr.top > innerHeight * 0.1;
+    document.querySelector('[data-act="panelclose"]').click();
+    return out;
+  });
+  await phone.screenshot({ path: 'test/shots/19-phone-shelves.png' });
+
   console.log(JSON.stringify({
     errors: errs, manifestOk, swReady, survived, styleSurvived, slotColours,
     newObjectSeen, inlineEdit, sortDefaults, taskLook,
+    shelfTools, shelves, versionShown, sampler, paging, shelfSwipe,
     gridClass, offlineWorks, railGone, tabsGone, pinbarShown, pinNavigates,
     pinToggles, holdArms, maxDrift,
     settingsIsPanel, pickerPreviews, builderPreview, everyMenuIsAPanel,

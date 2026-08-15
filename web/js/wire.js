@@ -1,19 +1,20 @@
 import { $, $$, esc, ic, uid, D, ROOT } from './util.js';
 import { S, K, KINDS, KEYS, refreshKinds, ATTRS, USER_ATTRS, attrsOf, has, SHAPES,
-  FACES, SORTS, MANUAL, sortOf, byId, container, cfgOf, isContainer, isAncestor, relate,
+  FACES, SORTS, MANUAL, sortOf, nextSort, byId, container, cfgOf, isContainer, isAncestor, relate,
   unrelate, sensedDevice, reset, T, dz, dev, calViewOf } from './model.js';
 import { gridOf, lay, boxOk, freeSpot, toPhoneSize } from './grid.js';
 import { applyLook, applyStyle, setLookVal, lookVal, STYLES, randomFront,
   setSlot, palNow, objColour } from './look.js';
 import { toast, toggleDone, del, delMany, delDrawer, undo, setPin, togglePin, drawerForTag, create, quickAdd, spawnInto, randomThing } from './mutations.js';
 import { spinTo, pending, placeAtPending, tileTap, turnPage, clearPages } from './tiles.js';
-import { render, sizeGrid, toggleSettings, reveal } from './views.js';
+import { render, sizeGrid, toggleSettings, reveal, goPage } from './views.js';
 import { openObj, openWriter, openRead, closeSheet, renderSheet, words } from './sheet.js';
 import { openPanel, closePanel, refreshPanel, panelKey, draft, openMenu,
   modalNewObject, modalNewKind, modalMove, renderPreview,
   drawerPanel, objectPanel,
   drawerFromSelection, openCtx, closeCtx, openCmd, closeCmd, cmdList, runCmd } from './panels.js';
-import { onDown, onMove, onUp, onCancel, gestureFlags, dragArmed } from './gestures.js';
+import { onDown, onMove, onUp, onCancel, onTouchStart, onTouchMove, onTouchEnd,
+  gestureFlags, dragArmed } from './gestures.js';
 import { save, writeNow, exportBackup, importBackup, importImage, imgFor, pasteObjects, install } from './persist.js';
 
 /* Mark one chip in a group as the chosen one. The selector is deliberately
@@ -56,7 +57,7 @@ function setField(el){
   if(!t) return;
   const v=el.value;
   switch(key){
-    case 'pin': setPin(id, !!v); break;
+    case 'pin': setPin(id, v||null); break;   // '', 'top' or 'bottom'
     case 'kind':
       if(!o || !KINDS[v]) break;
       o.kind=v; o.attrs=null;
@@ -242,12 +243,22 @@ function act(name, el){
       break;
     }
     // a menu hung off the button, not a modal in the middle of the screen
-    case 'sortmenu': {
-      const id=el.dataset.id, cur=sortOf(container(id))||MANUAL;
-      openMenu(el, `<div class="ctxhead">Sort</div>
-        <button class="${cur===MANUAL?'on':''}" data-sortby="${id}:${MANUAL}">As I arranged them</button>
-        ${Object.entries(SORTS).map(([k,[nm]])=>
-          `<button class="${cur===k?'on':''}" data-sortby="${id}:${k}">${nm}</button>`).join('')}`);
+    /* Sort is a toggle, not a popup. Seven states and the button wears the one
+       it is on — a letter where a letter is the answer, an arrow where a
+       direction is — so pressing it again is both "change this" and "what is
+       it now", which is the only shape that fits a phone's top shelf. */
+    case 'sortnext': {
+      const id=el.dataset.id, next=nextSort(container(id));
+      cfgOf(id).sort = next;
+      save(); render();
+      toast(next===MANUAL ? 'As you arranged them' : SORTS[next][0]);
+      break;
+    }
+    // locked refuses moves and resizes; the long press still opens the menu
+    case 'togglelock': {
+      const id=el.dataset.id, c=cfgOf(id);
+      c.locked=!c.locked; save(); render();
+      toast(c.locked?'Board locked':'Board unlocked');
       break;
     }
     case 'newkind': modalNewKind(null); break;
@@ -306,6 +317,29 @@ function wire(){
      non-passive or it is ignored from the start. This is the whole reason
      dragging did nothing on a phone. */
   frame.addEventListener('touchmove', e=>{ if(dragArmed()) e.preventDefault(); }, {passive:false});
+
+  /* Two fingers: pages up and down, pinned drawers left and right. Non-passive
+     because a two-finger swipe that also scrolls the page underneath reads as
+     two things happening at once. */
+  frame.addEventListener('touchstart', onTouchStart, {passive:true});
+  frame.addEventListener('touchmove', e=>{
+    if(e.touches && e.touches.length===2) e.preventDefault();
+    onTouchMove(e);
+  }, {passive:false});
+  frame.addEventListener('touchend', onTouchEnd, {passive:true});
+  frame.addEventListener('touchcancel', onTouchEnd, {passive:true});
+
+  /* iOS reads a long press on ordinary text as "select this", and puts a
+     magnifier over the tile you are trying to lift. `user-select:none` is
+     supposed to stop it and demonstrably doesn't do so reliably — so refuse
+     the selection outright, and let it through only where there is genuinely
+     something to select: a field, a page of prose, the writing surface. */
+  frame.addEventListener('selectstart', e=>{
+    if(e.target.closest && e.target.closest(
+      'input,textarea,[contenteditable],.prose,.contbody,.spread .page,.writepaper,.pbody'))
+      return;
+    e.preventDefault();
+  });
 
   /* Double tap a tile and its name becomes a field where it sits. That is all
      "simple text editing" needs to be for a task or a note — a line and a
@@ -388,10 +422,9 @@ function wire(){
     const st3=t.closest('[data-style3]');
     if(st3){ applyStyle(st3.dataset.style3); toast(STYLES[st3.dataset.style3].nm); return; }
 
-    const sb=t.closest('[data-sortby]');
-    if(sb){ const i=sb.dataset.sortby.indexOf(':');
-      cfgOf(sb.dataset.sortby.slice(0,i)).sort = sb.dataset.sortby.slice(i+1) || MANUAL;
-      closeCtx(); save(); render(); return; }
+    // the page dots in the top shelf: two fingers turn pages, and so do these
+    const gp=t.closest('[data-gopage]');
+    if(gp){ goPage(S.view==='drawer'?S.drawerId:ROOT, +gp.dataset.gopage); return; }
 
     const mv=t.closest('[data-moveto]');
     if(mv){ const [oid,did]=mv.dataset.moveto.split(':');

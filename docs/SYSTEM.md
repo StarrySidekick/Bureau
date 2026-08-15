@@ -229,7 +229,9 @@ average, lowest, highest, or done-out-of. It shows on the face. Rollups, not
 formulas — there is no expression language and there isn't going to be one.
 
 **Sorting.** `sort` is per object then per type, like every other setting —
-`sortOf(c)`. The values are `manual` (the order you arranged, which is a real
+`sortOf(c)`. It is a **toggle** in the top shelf rather than a menu: one button
+cycling seven states and wearing the one it is on, `M`/`A`/`Z` where a letter
+is the answer and an arrow where a direction is. The values are `manual` (the order you arranged, which is a real
 answer and not the absence of one), date made either way, date modified, or A–Z
 either way. A type states the default its containers are born with, so a
 Shopping list can be alphabetical while a Drawer stays as you left it; a
@@ -309,6 +311,9 @@ decision 36.
 | Gesture | What happens |
 | --- | --- |
 | Click a tile | Whatever that object says — see below |
+| Two fingers up / down | The next page of this board, and the one before |
+| Two fingers left / right | The next pinned drawer, and the one before |
+| Swipe up off the bottom shelf | The new-object menu (a phone; bare board does nothing) |
 | Double-tap a tile | Its name becomes a field where it sits, and its body under it if the tile shows one. Containers are exempt: two taps on a drawer opens it twice |
 | Press and hold a tile (200ms) | Arms the drag; then move it, or drag a corner to resize |
 | Click bare grid | The type picker, and what you pick lands on that cell |

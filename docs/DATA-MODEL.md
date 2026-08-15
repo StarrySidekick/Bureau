@@ -92,6 +92,15 @@ by id:
 | `editId` | The tile being typed in **on the board** |
 | `sel` | The Finder-style selection |
 
+Which **page** of a board you are on is in memory too, and deliberately not
+stored — `y` is one continuous coordinate space per container, and a page is a
+window of *n* rows onto it, where *n* is measured from this device's screen.
+Nothing about a box changes when it moves between pages.
+
+`S.pins` is the **bottom** shelf and `S.pinsTop` the top one; both are ordered
+lists of container ids, resolved on read. `pins` kept its old name so no desk
+needs migrating.
+
 `openId` used to mean "the object in the detail sheet". The sheet is gone
 (decision 36) and the name stayed, because every handler that read it wanted
 "the object being changed" and that is what the panel is.

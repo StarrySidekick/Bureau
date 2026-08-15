@@ -3,9 +3,10 @@
    ============================================================ */
 import { $ } from './util.js';
 import { S, KINDS, SHAPES, childrenOf, container, relate } from './model.js';
-import { create, togglePin, del, delMany, delDrawer, undo, toggleDone } from './mutations.js';
+import { pageRows, freeSpot } from './grid.js';
+import { create, setPin, togglePin, del, delMany, delDrawer, undo, toggleDone } from './mutations.js';
 import { applyLook } from './look.js';
-import { render, settingsPanel } from './views.js';
+import { render, settingsPanel, pageAt, pageCount, goPage } from './views.js';
 import { overlayHTML, objectPanel } from './panels.js';
 import { wire } from './wire.js';
 import { load, writeNow, save, hydrateAssets, pasteObjects } from './persist.js';
@@ -36,9 +37,13 @@ window.BUREAU = {
   get state(){ return S; }, render, create, save: writeNow,
   get K(){ return KINDS; },
   get shapes(){ return SHAPES; },
-  paste: pasteObjects, relate, pin: togglePin, renderSheet,
+  paste: pasteObjects, relate, pin: togglePin, setPin, renderSheet,
   // the three things an object opens onto: its settings, its words, its paper
   panel: objectPanel, write: openWriter, read: openRead,
   del, delMany, delDrawer, undo, toggleDone,
-  kids: id => childrenOf(container(id)).map(o=>o.id)
+  kids: id => childrenOf(container(id)).map(o=>o.id),
+  // paging, for the smoke test: how tall a page is and which one you are on
+  get pageRows(){ return pageRows(); }, pageAt, pageCount, goPage,
+  // somewhere free to put a fixture, so a test needn't hardcode a coordinate
+  free: (w,h,parent)=> freeSpot(w,h,S.device,parent||'root')
 };

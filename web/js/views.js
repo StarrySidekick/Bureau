@@ -1,23 +1,39 @@
-import { $, esc, ic, D, md, ROOT } from './util.js';
+import { $, esc, ic, D, md, clamp, ROOT } from './util.js';
 import { S, K, T, byId, has, isContainer, containers, childrenOf, chainOf,
-  deskTitle, rootObj, pinnedDrawers, isPinned, allTags, dev, sortOf,
+  deskTitle, rootObj, shelfDrawers, pinnedDrawers, isPinned, allTags, dev,
+  sortOf, SORTS, MANUAL, sortMark,
   layoutOf, takesTyping, genKindOf, CALVIEWS, calViewOf, calCols } from './model.js';
-import { CELL, gridOf, cellW } from './grid.js';
+import { CELL, PAGEROWS, pageRows, pageOfBox, lastPage, lay, gridOf, cellW } from './grid.js';
 import { themeNow, applyLook, lookVal, STYLES, BACKDROPS,
   palNow, setSlot, styleNow, hexOf, objColour, slotName, OBJ0 } from './look.js';
 import { gridOfContainer, listTile, scrollEntry, bookView, calSpan } from './tiles.js';
 import { openPanel, closePanel, panelKey, repositionPanel } from './panels.js';
-import { APP_VERSION, save, storeSize, install } from './persist.js';
+import { APP_VERSION, DATA_V, save, storeSize, install } from './persist.js';
 
 /* The desk is nothing but the grid. There is no toolbar: New, Arrange and
    Settings are control objects sitting on it, so the grid is the whole page. */
-/* The bar every grid gets: where you are on the left, three icon buttons on the
-   right. View, sort, settings — nothing else, and no labels. */
+/* ---- the top shelf ------------------------------------------------------
+   Where you are on the left, the tools on the right, and on a Mac whatever is
+   pinned in between. Every tool is a toggle you press rather than a menu you
+   open: the view cycles, the sort cycles through its seven and *says which one*
+   in one glyph, and the lock is a lock that is open or shut. A phone has no
+   room for a popup that asks a question you could have answered by pressing
+   the button again. */
+const SORTLABEL = k => k===MANUAL ? 'As I arranged them' : SORTS[k][0];
+function sortButton(c){
+  const cur = sortOf(c) || MANUAL;
+  const mark = cur===MANUAL
+    ? `<b class="sortletter">M</b>`
+    : /^arrow/.test(sortMark(cur)) ? ic(sortMark(cur),16) : `<b class="sortletter">${sortMark(cur)}</b>`;
+  return `<button class="sqbtn${cur!==MANUAL?' on':''}" data-act="sortnext" data-id="${c.id}"
+    title="Sorted: ${esc(SORTLABEL(cur))} — tap for the next">${mark}</button>`;
+}
 function gridBar(c){
   const trail = c.id===ROOT ? [] : chainOf(c.id);
   const view = c.layout || 'grid';
   const views = {grid:'grid', list:'list', scroll:'feather'};
-  return `<div class="gridbar">
+  const pages = pageCount(c.id);
+  return `<div class="gridbar shelf shelf-top">
     <div class="where">
       ${c.id===ROOT ? `<span class="here">${esc(deskTitle())}</span>` :
         `<button class="iconbtn" data-act="back" title="Back">${ic('chevL',17)}</button>
@@ -26,16 +42,27 @@ function gridBar(c){
              ? `<span class="here">${esc(x.title)}</span>`
              : `<b data-drawer="${x.id}">${esc(x.title)}</b>`}`).join('')}</span>`}
       ${has(c,'magic')?`<span class="magicmark big" title="Collects by rule">${ic('sparkle',14)}</span>`:''}
-      ${c.locked?`<span class="lockmark" title="Locked — nothing moves">${ic('lock',13)}</span>`:''}
+      ${/* Dots while they fit; a count once they don't — nine dots is already
+           more than you can aim at, and thirty is a texture. */''}
+      ${pages>1?`<span class="pagemark" title="Two fingers up and down turn the page">${
+        pages<=9
+          ? [...Array(pages)].map((_,i)=>`<i class="${i===pageAt(c.id)?'on':''}" data-gopage="${i}"></i>`).join('')
+          : `<b>${pageAt(c.id)+1}<u>/${pages}</u></b>`}</span>`:''}
     </div>
-    ${S.device==='desk' ? pinbar('bar') : ''}
+    ${/* A Mac has no bottom edge worth reserving, so both shelves ride up here
+         — the top one first, then whatever is pinned to the bottom. */''}
+    ${shelfStrip('top')}${S.device==='desk' ? shelfStrip('bottom') : ''}
     <div class="bartools">
       <button class="sqbtn" data-act="cycleview" data-id="${c.id}" title="View: ${view}">${ic(views[view]||'grid',16)}</button>
-      <button class="sqbtn${sortOf(c)?' on':''}" data-act="sortmenu" data-id="${c.id}"
-        title="${sortOf(c)?'Sorted — tap to change':'Sort'}">${ic('sort',16)}</button>
+      ${sortButton(c)}
+      ${/* a phone has no right button and no room for an arrange mode, so the
+           lock is a button. Locked refuses moves and resizes; the long press
+           still opens the menu either way. */''}
+      <button class="sqbtn${c.locked?' on locked':''}" data-act="togglelock" data-id="${c.id}"
+        title="${c.locked?'Locked — tap to unlock':'Unlocked — tap to lock'}">${ic(c.locked?'lock':'unlock',16)}</button>
       <button class="sqbtn" data-act="randomone" data-id="${c.id}" title="Add something at random (testing)">${ic('sparkle',16)}</button>
       ${c.id===ROOT?'':`<button class="sqbtn${isPinned(c.id)?' on':''}" data-act="pin" data-id="${c.id}"
-        title="${isPinned(c.id)?'Take off the bar':'Pin to the bar'}">${ic('star',16)}</button>`}
+        title="${isPinned(c.id)?'Take off the shelf':'Pin to the bottom shelf'}">${ic('star',16)}</button>`}
       <button class="sqbtn" data-act="${c.id===ROOT?'appsettings':'drawersettings'}" data-id="${c.id}" title="Settings">${ic('gear',16)}</button>
     </div>
   </div>`;
@@ -265,6 +292,14 @@ function toggleSettings(){ panelKey()==='settings' ? closePanel() : settingsPane
 function settingsBody(){
   const standalone = installed();
   return `
+    <div class="section-h"><h2>Version</h2><div class="rule"></div></div>
+    <div class="statline">
+      <div class="s"><b>${esc(APP_VERSION)}</b>Bureau</div>
+      <div class="s"><b>${DATA_V}</b>data format</div>
+      <div class="s"><b>${standalone?'Installed':'Browser'}</b>running as</div>
+    </div>
+    <div class="mini" style="--k:var(--brass);margin-top:6px">An installed copy serves itself from its own cache, so it can be a version behind until its second launch. This is the one that is running right now.</div>
+
     <div class="section-h"><h2>Style</h2><div class="rule"></div></div>
     <div class="stylegrid">${Object.entries(STYLES).map(([k,st])=>
       `<button class="styletile${(S.look.style||'victorian')===k?' on':''}" data-style3="${k}">
@@ -394,22 +429,30 @@ function settingsBody(){
 
    With nothing pinned the bar isn't drawn at all, so a desk you haven't
    customised stays what decision 14 wanted: nothing but grid. */
-/* `where` is 'bar' — riding in the grid bar beside the desk name, on a Mac —
-   or 'foot', the bottom bar on a phone. Exactly one is rendered. */
-function pinbar(where){
-  const pins=pinnedDrawers();
-  if(!pins.length) return '';
+/* One renderer for both shelves. `where` is 'top' or 'bottom'.
+
+   On a Mac both are drawn inside the grid bar, because a desk has no bottom
+   edge worth reserving; on a phone the top shelf rides in the grid bar and the
+   bottom one is its own strip along the bottom, which is the half of the screen
+   a thumb reaches.
+
+   A pin is a **square** now, the same square as the tools above it, in the
+   drawer's own colour with its mark on it. It used to be a little drawer front
+   with a name under it, which meant five of them across a phone gave each one
+   78px and "Done & Dusted" fitted in none of them. A square and a bigger mark
+   say which drawer it is from further away than eight-point type ever did. */
+function shelfStrip(where){
+  const pins=shelfDrawers(where);
+  const home = where==='bottom' || S.device==='desk';
+  if(!pins.length && !(home && S.device!=='desk')) return '';
   const here = id => S.view==='drawer' && S.drawerId===id;
-  /* Each pin is a little drawer front: a rectangle in the drawer's own colour,
-     light text on it, and a knob — the same language as the tiles on the desk,
-     so what's on the bar reads as the thing it opens. The desk itself isn't a
-     drawer and doesn't pretend to be one. */
-  return `<nav class="pinbar pin-${where}">
-    <button class="pinbtn home${S.view==='desk'?' on':''}" data-view="desk" title="${esc(deskTitle())}">
-      <i class="pinface">${ic('grid',12)}</i><span>Desk</span></button>
+  return `<nav class="shelf shelf-${where} pinbar" data-shelf="${where}">
+    ${home && S.device!=='desk'
+      ? `<button class="pinbtn home${S.view==='desk'?' on':''}" data-view="desk" title="${esc(deskTitle())}">
+           <i class="pinface">${ic('grid',20)}</i></button>` : ''}
     ${pins.map(d=>`<button class="pinbtn${here(d.id)?' on':''}${has(d,'magic')?' magic':''}"
         data-drawer="${d.id}" style="--c:${objColour(d)}" title="${esc(d.title||'Untitled')}">
-      <i class="pinface">${has(d,'magic')?ic('sparkle',11):'<b class="pinknob"></b>'}</i>
+      <i class="pinface">${ic(has(d,'magic')?'sparkle':K(d.kind).ic, 20)}</i>
       <span>${esc(d.title||'Untitled')}</span></button>`).join('')}
   </nav>`;
 }
@@ -427,6 +470,23 @@ function bindSortables(){ /* delegation handles it; keep quick-add focused */ }
 const SCROLL = {key:null, top:0};
 const viewKey = ()=> S.view==='drawer' ? 'drawer:'+S.drawerId : 'desk';
 
+/* ---- which page of a board you are on ---------------------------------
+   Remembered per container, in memory, so walking into a drawer and back
+   doesn't lose your place — and never stored, because which screen of a board
+   you happened to be looking at is not a fact about the desk.
+
+   A board always offers one page past the last thing on it, so there is
+   somewhere to drag to and somewhere for a new object to land. */
+const PAGE = {};
+const pageCount = cid => lastPage(dev(), cid) + (pageRows() ? 2 : 1);
+const pageAt = cid => Math.min(PAGE[cid]||0, pageCount(cid)-1);
+function goPage(cid, n){
+  const p = clamp(n, 0, pageCount(cid)-1);
+  if(p === pageAt(cid)) return false;
+  PAGE[cid]=p; render(); return true;
+}
+const turnPageBy = (cid, d)=> goPage(cid, pageAt(cid)+d);
+
 /* ---- show me the thing I just made -----------------------------------
    A board is a coordinate space, so a new object goes in the first free room
    scanning from the top. On a phone an object is full width, which means the
@@ -439,16 +499,21 @@ const viewKey = ()=> S.view==='drawer' ? 'drawer:'+S.drawerId : 'desk';
    you put where they are. SCROLL is updated too, or the next render — which
    restores the remembered offset — would undo this. */
 function reveal(id){
+  const o=byId(id);
+  // paged boards don't scroll — the thing to do is turn to the page it is on
+  if(o && pageRows()){
+    const cid = o.parent||ROOT;
+    if(S.view==='drawer' ? S.drawerId===cid : cid===ROOT) goPage(cid, pageOfBox(lay(o), dev()));
+  }
   const el=document.querySelector(`#app .grid .drawer[data-row="${id}"],#app .grid .drawer[data-drawer="${id}"]`);
   const sc=$('#app .scroll');
+  if(el){ el.classList.add('justmade'); setTimeout(()=>el.classList.remove('justmade'), 1200); }
   if(!el || !sc) return;
   const er=el.getBoundingClientRect(), sr=sc.getBoundingClientRect();
   if(er.top < sr.top+8 || er.bottom > sr.bottom-8){
     sc.scrollTop += (er.top - sr.top) - Math.max(12, (sr.height - er.height)/3);
     SCROLL.top = sc.scrollTop;
   }
-  el.classList.add('justmade');
-  setTimeout(()=>el.classList.remove('justmade'), 1200);
 }
 
 function render(){
@@ -466,7 +531,10 @@ function render(){
   // pinned ones are one tap away, ⌘K finds anything, the breadcrumb walks up.
   // On a Mac the pins ride in the grid bar (see gridBar); on a phone they get
   // the bottom bar, which is the one place a thumb reaches.
-  $('#app').innerHTML = `<div class="main">${body}${S.device==='phone'?pinbar('foot'):''}</div>`;
+  // On a phone the bottom shelf is a real flex child of .main rather than
+  // something floating over the board — that is what makes the board end
+  // exactly where the shelf begins, with nothing to scroll past.
+  $('#app').innerHTML = `<div class="main">${body}${S.device==='phone'?shelfStrip('bottom'):''}</div>`;
   const key=viewKey(), now=$('#app .scroll');
   if(key!==wasKey) SCROLL.top=0;
   if(now) now.scrollTop=SCROLL.top;
@@ -487,6 +555,17 @@ function sizeGrid(){
   const grid=$('#drawergrid'); if(!grid) return;
   const g=gridOf(), w=cellW(grid,g);
   if(!(w>0)) return;
+  /* How many whole square cells fit between the two shelves. It has to be a
+     *floor*: the old count was `ceil((innerHeight-140)/cell)`, which is why the
+     bottom row hung half a cell past the bottom shelf and the board had to
+     scroll to reach it. The cell is fixed by the width — eight fluid columns —
+     so this is the only free number, and rounding it down is what makes the
+     board end flush. Zero on a Mac: a desk scrolls. */
+  const sc=grid.parentElement;
+  if(dev()==='phone' && sc){
+    const rows=Math.max(4, Math.floor(sc.clientHeight / Math.max(1,w)));
+    if(rows!==PAGEROWS.phone){ PAGEROWS.phone=rows; if(!sizing){ sizing=true; try{ render(); } finally { sizing=false; } return; } }
+  } else PAGEROWS.desk = 0;
   /* Do NOT round. Columns are `1fr` and therefore fractional; rounding the row
      height to a whole pixel made rows and columns different sizes, and the
      error accumulated across the grid — a tile at column 16 sat ~7px from
@@ -506,4 +585,6 @@ function sizeGrid(){
   if(changed){ sizing=true; try{ render(); } finally { sizing=false; } }
 }
 
-export { render, sizeGrid, reveal, settingsPanel, toggleSettings };
+export { render, sizeGrid, reveal, shelfStrip,
+  pageAt, pageCount, goPage, turnPageBy,
+  settingsPanel, toggleSettings };

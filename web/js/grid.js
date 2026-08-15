@@ -27,6 +27,29 @@ const gridOf = (device)=>{
   const d=device||dev();
   return {cols:GRID[d].cols, gap:GRID[d].gap, rowh:CELL[d]};
 };
+
+/* ---- pages, not scrolling ---------------------------------------------
+   A phone board does not scroll. It is exactly as tall as the room between
+   the two shelves, and everything past that is on the **next page** — two
+   fingers up and down walk through them.
+
+   A page is not stored. `y` is still one continuous coordinate space per
+   container, and a page is a window of `PAGEROWS.phone` rows onto it: page 0
+   is rows 1…n, page 1 is rows n+1…2n. Nothing about a box changes when it
+   moves between pages, drag and drop keep working on plain arithmetic, and
+   turning paging off would put the board back exactly as it is.
+
+   Measured, like the cell size, by sizeGrid() — it is however many square
+   cells fit between the shelves on this particular phone. 0 means no paging
+   at all, which is what a Mac says: a desk has room and a mouse has a wheel. */
+const PAGEROWS = {desk:0, phone:0};
+const pageRows = device => PAGEROWS[device||dev()] || 0;
+const pageOfBox = (b, device)=>{ const n=pageRows(device); return n ? Math.floor((b.y-1)/n) : 0; };
+const lastPage = (device,parentId)=>{ const n=pageRows(device);
+  if(!n) return 0;
+  return childrenOf(container(parentId||ROOT))
+    .reduce((m,d)=>Math.max(m, pageOfBox(lay(d,device),device)), 0);
+};
 // Tolerate a drawer that predates x/y, or one hand-edited into nonsense.
 function lay(d, device){
   const g=gridOf(device), b=d[device||dev()]||{};
@@ -41,6 +64,12 @@ const hasBox = (o,dv)=> !!(o && o[dv] && o[dv].w);
 function boxOk(box, id, device, parentId){
   const g=gridOf(device), dv=device||dev();
   if(box.x<1 || box.y<1 || box.w<1 || box.h<1 || box.x+box.w-1>g.cols) return false;
+  /* Nothing may straddle a page break. A page is a screen, and half a tile on
+     each of two screens is a tile you can read neither of — refusing it here
+     means the drag, the resize, freeSpot() and the paste bridge all get the
+     rule for free, in the one place every box already has to pass through. */
+  const n=pageRows(dv);
+  if(n && (box.h>n || Math.floor((box.y-1)/n) !== Math.floor((box.y+box.h-2)/n))) return false;
   // Only objects that have actually been placed can be collided with. Without
   // this, everything unplaced reads as sitting at 1,1 and blocks the corner.
   return !childrenOf(container(parentId||ROOT))
@@ -48,7 +77,8 @@ function boxOk(box, id, device, parentId){
 }
 // Lowest free spot in this container, scanning left-to-right then down.
 function freeSpot(w,h,device,parentId){
-  const g=gridOf(device);
+  const g=gridOf(device), n=pageRows(device);
+  if(n) h=Math.min(h,n);              // nothing taller than a page exists there
   for(let y=1;y<200;y++) for(let x=1;x<=g.cols-w+1;x++){
     const box={x,y,w,h};
     if(boxOk(box,null,device,parentId)) return box;
@@ -106,4 +136,5 @@ function cellW(grid,g){
   return (r.width - g.gap*(g.cols-1))/g.cols;
 }
 
-export { GRID, CELL, gridOf, lay, overlaps, boxOk, freeSpot, gridRows, sizeOfKind, toPhoneSize, ensureBox, cellW };
+export { GRID, CELL, PAGEROWS, pageRows, pageOfBox, lastPage,
+  gridOf, lay, overlaps, boxOk, freeSpot, gridRows, sizeOfKind, toPhoneSize, ensureBox, cellW };
