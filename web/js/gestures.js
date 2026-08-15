@@ -3,7 +3,7 @@ import { S, byId, dev, has, isAncestor, childrenOf, container, gatherKind } from
 import { CELL, gridOf, cellW, lay, boxOk, overlaps } from './grid.js';
 import { toast, gather } from './mutations.js';
 import { pending, tileTap, fireButton } from './tiles.js';
-import { modalNewObject } from './panels.js';
+import { modalNewObject, openCtx } from './panels.js';
 import { render } from './views.js';
 import { save } from './persist.js';
 
@@ -11,12 +11,19 @@ import { save } from './persist.js';
    19 · gestures: swipe + drag reorder
    ============================================================ */
 let G=null;
-let holdTimer=null, holdFrom=null;
+let holdTimer=null, menuTimer=null, holdFrom=null;
+/* Two lengths of press, and the difference between them is whether you moved.
+   A touch that holds for 300ms has picked the tile up. A touch that is *still*
+   holding it 250ms later, and has not moved further than a thumb wobbles, did
+   not mean to move it at all — that is the long press every phone uses to mean
+   "tell me about this", so it becomes the context menu instead. Six pixels of
+   slack, because a finger resting on glass is never perfectly still. */
+const HOLD_TOUCH = 300, HOLD_MOUSE = 200, MENU_AFTER = 250, WOBBLE = 6;
 // any real movement, or letting go, means it was not a press-and-hold
 function cancelHold(e){
-  if(!holdTimer) return;
-  if(e && holdFrom && Math.abs(e.clientX-holdFrom.x)<6 && Math.abs(e.clientY-holdFrom.y)<6) return;
-  clearTimeout(holdTimer); holdTimer=null;
+  if(e && holdFrom && Math.abs(e.clientX-holdFrom.x)<WOBBLE && Math.abs(e.clientY-holdFrom.y)<WOBBLE) return;
+  if(holdTimer){ clearTimeout(holdTimer); holdTimer=null; }
+  if(menuTimer){ clearTimeout(menuTimer); menuTimer=null; }
 }
 
 
@@ -272,13 +279,26 @@ function onDown(e){
       /* A finger needs longer than a mouse. 200ms is a click you held slightly
          too long, and on touch that is most of them — but it is also the whole
          budget for deciding this is not a scroll, so it cannot grow much. */
+      const touch = e.pointerType==='touch';
       holdTimer=setTimeout(()=>{
         holdTimer=null;
         if(G!==g) return;
         G.armed=true;
         G.el.classList.add('lifted');
         if(navigator.vibrate) navigator.vibrate(6);
-      }, e.pointerType==='touch' ? 300 : 200);
+        // keep holding without moving and it becomes the menu. Touch only: a
+        // mouse already has a right button, and a slow click is still a click.
+        if(!touch) return;
+        menuTimer=setTimeout(()=>{
+          menuTimer=null;
+          if(G!==g || G.mode) return;        // it started moving: it is a drag
+          const el=G.el, id=G.id, r=el.getBoundingClientRect();
+          if(navigator.vibrate) navigator.vibrate([4,40,10]);
+          onCancel();                        // put the tile back down cleanly
+          gestureFlags.suppressClick=true;   // and swallow the tap that follows
+          openCtx(r.left+r.width/2, r.top+Math.min(r.height/2, 60), id);
+        }, MENU_AFTER);
+      }, touch ? HOLD_TOUCH : HOLD_MOUSE);
       holdFrom={x:e.clientX,y:e.clientY};
     }
     return;
@@ -422,7 +442,7 @@ function applyDrag(G, dx, dy){
     }
 }
 function onUp(e){
-  if(holdTimer){ clearTimeout(holdTimer); holdTimer=null; }
+  cancelHold();
   stopPan();
   if(!G) return;
   const g=G; G=null;
@@ -536,7 +556,7 @@ const gestureFlags = {suppressClick:false};
 const dragArmed = ()=> !!(G && G.armed);
 
 function onCancel(){
-  if(holdTimer){ clearTimeout(holdTimer); holdTimer=null; }
+  cancelHold();
   stopPan();
   if(G){ clearAim(G); if(G.ghost) G.ghost.remove();
          if(G.chip) G.chip.remove();

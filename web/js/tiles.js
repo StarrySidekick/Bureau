@@ -1,6 +1,7 @@
 import { esc, ic, clamp, D, md, strip } from './util.js';
 import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, childrenOf, container,
   rollup, streak, goalPct, projectStat, tlSpan, dev, spawnByOf, genKindOf, takesTyping,
+  knobSizeOf, answered,
   calViewOf, weekStartOf, calCols } from './model.js';
 import { CELL, gridOf, lay, overlaps, boxOk, freeSpot, gridRows, sizeOfKind, ensureBox } from './grid.js';
 import { create, toast, toggleDone } from './mutations.js';
@@ -379,7 +380,7 @@ function drawTile(o, arr, box){
   // it, not printed on it — you open a drawer to find out what it holds.
   if(cont){
     const bd=o.border||'panel', kn=o.knob||'round', tx=o.texture||'none';
-    return `<button class="drawer dtile bd-${bd} tx-${tx} knb-${o.knobpos||'centre'}${sel}${has(o,'magic')?' magicdrawer':''}" data-drawer="${o.id}"
+    return `<button class="drawer dtile bd-${bd} tx-${tx} ks-${knobSizeOf(o)} knb-${o.knobpos||'centre'}${sel}${has(o,'magic')?' magicdrawer':''}" data-drawer="${o.id}"
       style="--c:${colour};${o.knobc?`--knob:${esc(o.knobc)};`
         :`--knob:color-mix(in srgb, ${colour} ${o.knobtone==='dark'?'62% , #000':'58% , #fff'});`}${place}">
       ${chips}
@@ -473,7 +474,9 @@ function drawTile(o, arr, box){
   if(has(o,'price')&&o.price) bits.push(esc(o.price));
   if(has(o,'location')&&o.loc) bits.push(esc(o.loc));
 
-  return `<button class="drawer otile sh-${shapeOf(o)}${o.edge?' edge':''}${sel}${has(o,'priority')&&o.prio?' prio-'+o.prio:''}" data-row="${o.id}"
+  const asks = has(o,'answer');
+  return `<${asks?'div':'button'} class="drawer otile sh-${shapeOf(o)}${o.edge?' edge':''}${sel}${
+      asks?(answered(o)?' answered':' unanswered'):''}${has(o,'priority')&&o.prio?' prio-'+o.prio:''}" data-row="${o.id}"
     style="--c:${colour};${has(o,'progress')?`--pct:${goalPct(o)}%;`:''}${place}">
     ${chips}
     <div class="dtop">
@@ -483,8 +486,12 @@ function drawTile(o, arr, box){
     ${has(o,'rating')&&o.rating?`<div class="tilestars">${'★'.repeat(o.rating)}<span>${'★'.repeat(5-o.rating)}</span></div>`:''}
     ${has(o,'text')&&o.body?`<div class="dbody"><div class="tiletext">${esc(o.body).slice(0,220)}</div></div>`:'<div class="dbody"></div>'}
     ${bits.length?`<div class="dfoot"><span class="tilemeta">${bits.join(' · ')}</span></div>`:''}
+    ${asks?`<label class="ansbox">
+      <i>${answered(o)?ic('check',11):ic('help',11)}</i>
+      <input data-answer="${o.id}" value="${esc(o.answer||'')}"
+        placeholder="${answered(o)?'':'Write the answer…'}"></label>`:''}
     ${handles}
-  </button>`;
+  </${asks?'div':'button'}>`;
 }
 
 /* When a drawer is sorted, its grid is packed in that order rather than read

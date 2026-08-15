@@ -151,6 +151,18 @@ same box. Ask `takesTyping(c)`, and go through `spawnInto()` rather than
 one has to be made where the container itself lives and collected back by its
 rule. That is the only reason the quick-add on a calendar day works.
 
+**A type can be born with things inside it.** `seed:[{kind,title}]` on a kind
+makes those children when the container is created, placed at the top of its
+board rather than left to `ensureBox()`. One level only — a seeded child's own
+seed is ignored, because two types seeding each other would fill the desk. This
+is why a project has no add-box bolted to its front: it is born holding a Text
+field, which is the type that already turns typing into tasks.
+
+**Answering is writing, not ticking.** The `answer` attribute puts a box on the
+front and `answered(o)` is "is there anything in it". Typing in it must not
+`render()` — the input is the thing being typed in, so wire.js toggles the
+`answered`/`unanswered` class in place and lets the next ordinary render agree.
+
 **A project reports; every other container lists or hides.** `face:'project'`
 is the one front that answers "where is this up to" — a bar, a count, what is
 next, and what it is made of — all read off `projectStat(c)`, which walks the
@@ -267,6 +279,13 @@ real yet". `.magicdrawer` gets a ruled frame inset from the edge with corner
 brackets, and a slow band of light across the front. Never hardcode the gold:
 it is `var(--glow)`, so it is leaf on Victorian and a green shimmer on Starry.
 
+**An edge is a slot too.** The six `bd-*` classes are positions, not
+descriptions — `bd-panel` is a Victorian moulding, a Pseudochromo hairline, a
+white-pencil rule on Starry and a lit glass sill on Aero. A style names its own
+six in `borders:[…]`; only the four dressed ones need per-style CSS, because
+plain and none mean the same thing everywhere. Same rule as colour: never
+hardcode what an edge is made of outside the style that owns it.
+
 **A colour is a slot, and a slot is a position, not a hue.** Every style has
 the same sixteen — five that dress the app (Page, Text, Lines, Accent, Glow)
 and eleven it names itself — so an object stores `c: 11` and shows Victorian's
@@ -310,6 +329,11 @@ when you're editing the *other* device's layout from this one.
   sliders, and `sizeOfKind()` prefers it over the derivation — the derivation is
   a good default and a bad rule. Read the size through `sizeOfKind()` and both
   cases come along; read `K(k).size` and neither does.
+- **Two lengths of press, and the difference is whether you moved.** 300ms arms
+  the drag; a touch still holding 250ms later, within 6px, becomes the context
+  menu instead (`menuTimer` in `gestures.js`). Touch only — a mouse has a right
+  button. Anything driving two gestures in a row must re-query the tile between
+  them: a completed drag re-renders, and the old node is detached.
 - **On touch, the drag has to steal the scroll, and it only gets one chance.**
   The non-passive `touchmove` listener in `wire.js` preventDefaults while
   `dragArmed()`. That call only works because the 300ms hold kept the finger

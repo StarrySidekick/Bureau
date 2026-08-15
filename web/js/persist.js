@@ -133,7 +133,7 @@ function dedupeIds(objects){
    skips all of them, an old backup replays only what it is missing. These
    used to be ad-hoc per-load mutations inside adopt(); a new repair that
    should run once belongs here, as the next numbered step. */
-const DATA_V = 13;
+const DATA_V = 14;
 const MIGRATIONS = [
   // Drawers and objects were two arrays and a drawer could not live inside
   // anything. foldDrawers also replays the old dense flow to give v1 drawers
@@ -260,6 +260,24 @@ const MIGRATIONS = [
       if(d.look.style==='modern') d.look.style='pseudochromo';
       const sl=d.look.slots;
       if(sl && sl.modern){ sl.pseudochromo = sl.pseudochromo || sl.modern; delete sl.modern; }
+    }},
+  /* Two renames and a retirement.
+     `aqua` was the one border named after the style that owned it, back when a
+     border belonged to a style rather than being a slot every style answers —
+     it is `gloss` now, position four, and each style says what its own is.
+     And a question stopped being ticked: it carries `answer` instead of
+     `check`, because the point of keeping a question is the thing you worked
+     out, and a tick only ever recorded that you had stopped thinking about it.
+     A question that was ticked and never written up keeps its `done` — it is
+     still in the archive, and inventing an answer for it would be a lie. */
+  {v:14, up(d){
+      (d.objects||[]).forEach(o=>{ if(o.border==='aqua') o.border='gloss'; });
+      const swap = x => { if(!Array.isArray(x.attrs)) return;
+        if(!x.attrs.includes('check')) return;
+        x.attrs = x.attrs.filter(a=>a!=='check');
+        if(!x.attrs.includes('answer')) x.attrs.push('answer'); };
+      (d.objects||[]).filter(o=>o.kind==='question').forEach(swap);
+      Object.entries(d.kinds||{}).forEach(([k,v])=>{ if(k==='question') swap(v); });
     }},
 ];
 function migrate(d){

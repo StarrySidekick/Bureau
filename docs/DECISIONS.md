@@ -913,3 +913,58 @@ foot, a bevel inside the frame.
 walk to draw. It is bounded by what is actually under one project and only runs
 for tiles wearing that face, but it is the first place where drawing a tile is
 not O(1), and a desk of fifty deep projects would be the thing to watch.
+
+### 35. An edge is a slot, a question is answered, and a type can be born full
+
+Five changes, three of which extend rules that already existed rather than
+adding new ones.
+
+**An edge is a slot, exactly as a colour is (decision 33).** The six borders
+were Victorian mouldings wearing generic names, so every other style got a
+bevelled chest front whether it suited it or not. `bd-panel` is position one
+now, and what position one is *made of* is the style's business: a moulding on
+Victorian, a hairline on Pseudochromo, a white-pencil rule on Starry Sidekick,
+a lit glass sill on Aero. A drawer keeps its stored border through a style swap
+and comes back to the moulding when you come back. Only the four dressed slots
+need per-style CSS — plain and none mean the same thing everywhere — and `aqua`
+became `gloss`, because it was the one slot named after the style that owned it.
+
+**A question is answered, not ticked.** A checkbox on a question only ever
+recorded that you had stopped thinking about it. The `answer` attribute puts a
+box on the front instead, and answered is "there is something written in it" —
+so the thing you worked out is on the tile, which is the entire value of
+keeping a question. Typing into it deliberately does **not** re-render: the
+input is the thing being typed in, so the state class is toggled in place. The
+seeded Open Questions drawer collects on `answer is ""`, which needed no new
+operator — `is` against an empty value was already "has nothing in it".
+
+**A type can be born with things already inside it.** `seed` on a kind creates
+children with the container. It exists because the project had grown an add-box
+bolted to its front, and Bureau already *has* the type that turns typing into
+tasks — so a project is born holding a Text field rather than growing a second
+one of its own. That is the same instinct as decision 22 (a magic drawer, not a
+filter bar) and decision 32 (spawn is an attribute, not a checklist feature):
+when the app can already do the thing, put the thing in rather than reimplement
+it on a front. Seeded children are placed at the top of the board rather than
+left to `ensureBox()`, because a seeded thing is the way *in*. One level only.
+
+**A long press is two presses.** 300ms arms the drag, as before. A touch still
+holding 250ms later — and inside six pixels, because a finger on glass is never
+still — did not mean to move it at all, and gets the context menu, which is what
+the long press means on every phone. Touch only: a mouse already has a right
+button, and a slow click is still a click.
+
+**Three knob sizes**, because a front is mostly knob at 2×2 and mostly name at
+8×8, and one size was a compromise at both. The pull is already measured against
+the tile rather than the page, so a size is one multiplier over the whole clamp.
+
+*Also:* the speech bubble's three rounded corners went from 12px to 28px and the
+fourth stays square, because that is the one the tail comes out of. A note lost
+its border — `clip-path` cuts a border off at the notches and leaves it hanging
+at the corners, which is exactly what it looked like — and gained a
+`drop-shadow`, since `clip-path` slices a `box-shadow` off too.
+
+*Against:* per-style borders are the second thing after colour that a new style
+has to answer for, and unlike colour it cannot be derived — four rules of real
+CSS each. That is the cost of the styles being genuinely different rather than
+one style with the hue changed.

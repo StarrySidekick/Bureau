@@ -439,7 +439,7 @@ function wire(){
     const dtg=t.closest('[data-dtag]');
     if(dtg){ draft().tag=dtg.dataset.dtag; only(dtg,'#dtag button'); return; }
 
-    const pn=t.closest('[data-pview],[data-pface],[data-psort],[data-plock],[data-ppin],[data-pborder],[data-pknob],[data-pcolour],[data-pboard],[data-pknobc],[data-pknobtone],[data-pknobpos],[data-ptexture],[data-pcalview],[data-pweekstart],[data-pweekends],[data-pgen],[data-otype],[data-oclick],[data-oread],[data-oshape],[data-oedge],[data-ocolour],[data-oframe],[data-obtn],[data-ogen],[data-ogendir]');
+    const pn=t.closest('[data-pview],[data-pface],[data-psort],[data-plock],[data-ppin],[data-pborder],[data-pknob],[data-pcolour],[data-pboard],[data-pknobc],[data-pknobtone],[data-pknobpos],[data-pknobsize],[data-ptexture],[data-pcalview],[data-pweekstart],[data-pweekends],[data-pgen],[data-otype],[data-oclick],[data-oread],[data-oshape],[data-oedge],[data-ocolour],[data-oframe],[data-obtn],[data-ogen],[data-ogendir]');
     if(pn){
       const id=pn.dataset.id, c=cfgOf(id), o=byId(id);
       if(pn.dataset.pview!=null) c.layout=pn.dataset.pview;
@@ -461,6 +461,7 @@ function wire(){
       else if(o && pn.dataset.pknobc!=null){ o.knobc=pn.dataset.pknobc; o.knobtone=null; }
       else if(o && pn.dataset.pknobtone!=null){ o.knobtone=pn.dataset.pknobtone; o.knobc=null; }
       else if(o && pn.dataset.pknobpos!=null) o.knobpos=pn.dataset.pknobpos;
+      else if(o && pn.dataset.pknobsize!=null) o.knobsize=pn.dataset.pknobsize;
       else if(o && pn.dataset.ptexture!=null) o.texture=pn.dataset.ptexture;
       else if(o && pn.dataset.otype!=null){ o.kind=pn.dataset.otype; o.attrs=null; }
       else if(o && pn.dataset.oclick!=null) o.onclick=pn.dataset.oclick;
@@ -626,6 +627,18 @@ function wire(){
       return;
     }
     if(e.target.id==='knm'){ renderPreview(); return; }
+    /* Answering a question. No render() — the input is the thing being typed
+       in, and rebuilding the board underneath would take the caret with it. The
+       answered/unanswered class is toggled here instead, and the next ordinary
+       render agrees with it. */
+    if(e.target.dataset.answer!=null){
+      const o=byId(e.target.dataset.answer); if(!o) return;
+      o.answer=e.target.value;
+      const tile=e.target.closest('.drawer');
+      if(tile){ const on=!!o.answer.trim();
+        tile.classList.toggle('answered', on); tile.classList.toggle('unanswered', !on); }
+      save(); return;
+    }
     const f=e.target.dataset.f;
     if(f){
       const o=byId(S.openId); if(!o) return;
@@ -644,6 +657,7 @@ function wire(){
       else if(f==='loc') o.loc=e.target.value;
       else if(f==='dur') o.dur=e.target.value?+e.target.value:null;
       else if(f==='price') o.price=e.target.value;
+      else if(f==='answer') o.answer=e.target.value;
       else if(f==='prio'){ o.prio=e.target.value||null; render(); }
       else if(f==='btnshape'){ o.btnshape=e.target.value; render(); }
       else if(f==='frame'){ o.frame=e.target.value; save(); render(); }

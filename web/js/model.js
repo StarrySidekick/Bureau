@@ -25,6 +25,7 @@ const ATTRS = {
   duration: {nm:'Duration',   ds:'How long it takes'},
   priority: {nm:'Priority',   ds:'How much it matters'},
   price:    {nm:'Price',      ds:'What it costs'},
+  answer:   {nm:'Answerable', ds:'A box to answer it in — filled means answered'},
   relates:  {nm:'Related',    ds:'Points at other objects, both ways'},
   total:    {nm:'Total',      ds:'Adds up a field across what it holds'},
   spawn:    {nm:'Spawns',     ds:'Makes new objects — on a press, or as you type into it'}
@@ -44,6 +45,7 @@ const FIELDS = {
   duration: {key:'dur',    type:'number', nm:'Duration'},
   priority: {key:'prio',   type:'enum',   nm:'Priority', opts:['low','mid','high']},
   price:    {key:'price',  type:'money',  nm:'Price'},
+  answer:   {key:'answer', type:'text',   nm:'Answer'},
   relates:  {key:'rel',    type:'refs',   nm:'Related'}
 };
 const fieldOf = a => FIELDS[a] || null;
@@ -96,7 +98,10 @@ const BUILTIN_KINDS = {
   // in the body, which a container with `text` shows above what it holds.
   recipe:  {face:'checklist', cooking:true, nm:'Recipe',  ic:'pot',     c:11, key:'R', ds:'Ingredients you can tick, and a method',    size:[6,7], attrs:['text','container'], layout:'list', body:'**Serves** 2 · **Time** 30 min\n\n## Method\n1. \n2. \n3. ' },
   script:  {shape:'page', nm:'Script',  ic:'clapper', c:9, key:'S', ds:'Scenes and dialogue',       size:[4,4], onclick:'read', attrs:['text'], body:'### INT. LOCATION — DAY\n\nAction line.\n\n**CHARACTER**\nDialogue.' },
-  question:{shape:'bubble', nm:'Question',ic:'help',    c:10, key:'?', ds:'Open until answered',       size:[4,4], onclick:'read', attrs:['text','check'], body:'**Question —** \n\n**What I know —** \n\n**Answer —** ' },
+  /* Open until answered — and answering it is writing the answer down, not
+     ticking a box. A tick says "dealt with"; a question wants the thing you
+     worked out, and having it on the front is the whole value of keeping one. */
+  question:{shape:'bubble', nm:'Question',ic:'help',    c:10, key:'?', ds:'Open until you have written the answer', size:[4,4], onclick:'read', attrs:['text','answer'], body:'**What I know —** \n\n' },
   essay:   {shape:'note', nm:'Essay',   ic:'feather', c:7, key:'Y', ds:'Long-form writing',         size:[4,4], onclick:'read', attrs:['text'], body:'> Working thesis.\n\n' },
   habit:   {shape:'habit', nm:'Habit',   ic:'repeat',  c:8, key:'A', ds:'Repeats, tracks a streak',  size:[4,4], onclick:'read', attrs:['text','streak'], body:'**Why —** ' },
   goal:    {shape:'goal', nm:'Goal',    ic:'target',  c:13, key:'J', ds:'Long-term, has milestones', size:[4,4], onclick:'read', attrs:['text','progress'], body:'**Definition of done —** ' },
@@ -142,7 +147,11 @@ const BUILTIN_KINDS = {
      inside instead of listing the first fourteen things. `media` gives it a
      cover; `spawn` lets you throw a task at it without opening it. */
   project: {face:'project', nm:'Project', ic:'flag',    c:7, key:'8', ds:'A whole piece of work, and everything it is made of',
-     attrs:['text','container','date','progress','media','spawn','relates'], spawnBy:'type', genKind:'task',
+     attrs:['text','container','date','progress','media','relates'],
+     // born with a text field inside it rather than a box bolted to its front:
+     // the type that makes tasks out of typing already exists, so a project
+     // gets one put in it instead of growing a second one of its own
+     seed:[{kind:'field', title:'Add to this project…'}],
      layout:'grid', size:[5,5], phoneSize:[4,4], body:'' },
   dream:   {shape:'dream', nm:'Dream',   ic:'star',    c:10, key:'9', ds:'Far off, and probably daft',   size:[5,5], onclick:'read', attrs:['text','media'], body:'**Why it pulls at me —** ' },
   timeline:{face:'timeline', nm:'Timeline',ic:'clock',   c:5, key:'0', ds:'Things in the order they happened', attrs:['container'], layout:'timeline', size:[10,6], body:'' },
@@ -186,7 +195,7 @@ function seed(){
     DR({id:'d_ideas', title:'Idea Bin',     c:12, desk:{x:7,y:1,w:2,h:2},  phone:{x:7,y:1,w:2,h:2}}),
     DR({id:'d_studio',title:'Studio',       c:9, desk:{x:9,y:1,w:2,h:2},  phone:{x:1,y:3,w:2,h:2}}),
     DR({id:'d_kitch', title:'Kitchen',      c:11, desk:{x:11,y:1,w:2,h:2},  phone:{x:3,y:3,w:2,h:2}}),
-    MG({id:'d_open',  title:'Open Questions',c:10,filter:{kinds:['question']},              desk:{x:13,y:1,w:2,h:2},  phone:{x:5,y:3,w:2,h:2}}),
+    MG({id:'d_open',  title:'Open Questions',c:10,filter:{kinds:['question'], rule:{f:'answer',op:'is',v:''}},              desk:{x:13,y:1,w:2,h:2},  phone:{x:5,y:3,w:2,h:2}}),
     DR({id:'d_keep',  title:'Keeping Up',   c:8, desk:{x:15,y:1,w:2,h:2},  phone:{x:7,y:3,w:2,h:2}}),
     MG({id:'d_done',  title:'Done & Dusted',c:5, filter:{done:true},                       desk:{x:17,y:1,w:2,h:2},  phone:{x:1,y:5,w:2,h:2}})
   ];
@@ -391,6 +400,13 @@ function gatherKind(a, b){
    *name* in both the renderer and the stylesheet, which is exactly what
    CLAUDE.md forbids — an invented type could never look like anything. It is a
    property now, defaulting to the type's, and settable per object. */
+/* How big the pull is. A drawer front is mostly knob at 2×2 and mostly name at
+   8×8, so the one size that suited both was a compromise at each. */
+const KNOBSIZES = {sm:'Small', md:'Medium', lg:'Large'};
+const knobSizeOf = o => (o && o.knobsize) || 'sm';
+// Answered is "there is something written in the box", not a flag of its own.
+const answered = o => !!String((o&&o.answer)||'').trim();
+
 const SHAPES = {
   card:'Card', habit:'Streak', goal:'Progress bar', dream:'Dashed', image:'Picture', note:'Torn note', idea:'Folded corner', bubble:'Speech bubble',
   page:'Punched page', index:'Index card', spine:'Book spine', portrait:'Portrait',
@@ -598,6 +614,7 @@ export { ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds, K,
   attrsOf, has, kindHas, T, dz, S, sensedDevice, reset, defaultLook, dev, byId,
   deskTitle, rootObj, container, cfgOf, isContainer, FACES, faceOf, layoutOf, SHAPES,
   shapeOf, READS, readOf, spreadOf, gathersOf, gatherKind, containers, isPinned, pinnedDrawers,
+  KNOBSIZES, knobSizeOf, answered,
   spawnByOf, genKindOf, takesTyping, keepsDone,
   CALVIEWS, calViewOf, weekStartOf, showsWeekends, calCols,
   OPS, ROLLS, rollup, SORTS, childrenOf, isAncestor,

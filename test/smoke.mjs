@@ -481,6 +481,100 @@ const CHROME = process.env.BUREAU_CHROME;
              boxCleared: moved.boxCleared, chipGone: moved.chipGone, tapStillTicks: ticked };
   })();
 
+  /* --- a question is answered by writing the answer, not by ticking a box.
+     Typing must not re-render the board: the input is the thing being typed in,
+     and rebuilding it would take the caret with it — so the state class is
+     toggled in place and the next ordinary render agrees with it. */
+  const answering = await page.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const S = BUREAU.state;
+    S.view = 'desk'; S.drawerId = null;
+    const q = BUREAU.create('question', { parent: 'root', title: 'Answer me' });
+    q.desk = { x: 1, y: 20, w: 5, h: 4 };
+    BUREAU.render(); await nap(200);
+    const tile = () => document.querySelector(`.drawer[data-row="${q.id}"]`);
+    const noTick = !tile().querySelector('[data-check]');
+    const box = tile().querySelector('input[data-answer]');
+    const startsOpen = !!box && tile().classList.contains('unanswered');
+    box.value = 'Because it is a property, not a species.';
+    box.dispatchEvent(new Event('input', { bubbles: true }));
+    await nap(150);
+    const nowAnswered = tile().classList.contains('answered') && !!q.answer;
+    const caretKept = document.querySelector(`input[data-answer="${q.id}"]`) === box;
+    BUREAU.render(); await nap(150);
+    const survivesRender = tile().classList.contains('answered');
+    S.objects = S.objects.filter(o => o.id !== q.id);
+    BUREAU.render();
+    return { noTick, startsOpen, nowAnswered, caretKept, survivesRender };
+  });
+
+  /* --- a type can be born with things already inside it, and three knob sizes */
+  const seedAndKnobs = await page.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const S = BUREAU.state;
+    const pr = BUREAU.create('project', { parent: 'root', title: 'Seeded' });
+    pr.desk = { x: 1, y: 26, w: 5, h: 5 };
+    const kids = S.objects.filter(o => o.parent === pr.id);
+    const seeded = kids.length === 1 && kids[0].kind === 'field'
+      && kids[0].desk.x === 1 && kids[0].desk.y === 1;
+    // and a seeded child does not seed in turn (the test made one of its own
+    // earlier, so count only what this project put inside itself)
+    const noRunaway = kids.length === 1;
+    const sizes = ['sm','md','lg'].map(k => {
+      const d = BUREAU.create('drawer', { parent:'root', title:k });
+      d.knobsize = k; d.desk = { x: 7 + ['sm','md','lg'].indexOf(k)*4, y: 26, w: 4, h: 4 };
+      return d;
+    });
+    BUREAU.render(); await nap(250);
+    const w = sizes.map(d =>
+      document.querySelector(`[data-drawer="${d.id}"] .pull`).getBoundingClientRect().width);
+    const gone = new Set([pr.id, ...kids.map(o=>o.id), ...sizes.map(d=>d.id)]);
+    S.objects = S.objects.filter(o => !gone.has(o.id));
+    BUREAU.render();
+    return { seeded, noRunaway, growsWithSize: w[0] < w[1] && w[1] < w[2] };
+  });
+
+  /* --- on a phone, holding still past the drag opens the menu instead.
+     Synthetic pointer events, because the difference is entirely in the timing
+     and a real tap can't be held. A wobble inside the slack must not cancel it. */
+  const longPress = await page.evaluate(async () => {
+    /* Re-queried each time on purpose: a completed drag re-renders, which
+       replaces #app wholesale — dispatching the second press on the node from
+       the first would be dispatching at a detached element that reaches
+       nothing. This is the same trap any test driving two gestures will hit. */
+    const tile = () => document.querySelector('.grid .drawer[data-drawer="d_in"]');
+    if (!tile()) return { found: false };
+    const at = () => { const r = tile().getBoundingClientRect();
+      return [r.left + r.width/2, r.top + r.height/2]; };
+    let [x, y] = at();
+    const ev = (t, o) => tile().dispatchEvent(new PointerEvent(t, Object.assign(
+      { bubbles:true, cancelable:true, pointerId:1, pointerType:'touch', clientX:x, clientY:y }, o)));
+    // held, then let go quickly: a drag, no menu
+    ev('pointerdown');
+    await new Promise(r2 => setTimeout(r2, 360));
+    const armed = !!document.querySelector('.drawer.lifted');
+    ev('pointermove', { clientX: x + 40, clientY: y });      // a real move
+    await new Promise(r2 => setTimeout(r2, 300));
+    const movedNoMenu = !document.querySelector('#ctx.open');
+    ev('pointerup');
+    await new Promise(r2 => setTimeout(r2, 400));
+    // held still through both: the menu
+    [x, y] = at();
+    ev('pointerdown');
+    await new Promise(r2 => setTimeout(r2, 360));
+    ev('pointermove', { clientX: x + 2, clientY: y + 2 });   // a thumb wobble
+    await new Promise(r2 => setTimeout(r2, 300));
+    const menu = !!document.querySelector('#ctx.open');
+    const putDown = !document.querySelector('.drawer.lifted');
+    ev('pointerup');
+    document.querySelector('#ctx').classList.remove('open');
+    /* A gesture that ended in the menu arms suppressClick, by design — a real
+       touch always sends a click after pointerup and spends it. Synthetic
+       events don't, so spend it here or it eats the next test's click. */
+    document.querySelector('#frame').dispatchEvent(new MouseEvent('click', { bubbles:true }));
+    return { found: true, armed, movedNoMenu, menu, putDown };
+  });
+
   // --- a drawer starts at two cells square, on both grids
   const drawerSize = await page.evaluate(() => {
     const S = BUREAU.state;
@@ -936,7 +1030,7 @@ const CHROME = process.env.BUREAU_CHROME;
     pinToggles, holdArms, maxDrift,
     settingsIsPanel, pickerPreviews, builderPreview, everyMenuIsAPanel,
     pasteOk, magicOk, rollupOk, relationsOk, relationsUI,
-    timeLayer, checklistBox, pluckWorks, drawerSize, tagDrawer, pinReorder, groupMove, dropStates,
+    timeLayer, checklistBox, pluckWorks, answering, seedAndKnobs, longPress, drawerSize, tagDrawer, pinReorder, groupMove, dropStates,
     adaptiveTiles, bubblePanel, scrollKept, kindSizes,
     phoneGrid, phoneMigration,
     dupIds, undoWorks, readViews, paperSize

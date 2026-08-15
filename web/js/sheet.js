@@ -1,6 +1,6 @@
 import { $, $$, esc, ic, md, D, ROOT } from './util.js';
 import { S, K, KINDS, KEYS, T, byId, has, isContainer, containers, isAncestor,
-  READS, readOf, relatedTo, backlinksTo, streak, goalPct } from './model.js';
+  READS, readOf, relatedTo, backlinksTo, streak, goalPct, answered } from './model.js';
 import { objColour } from './look.js';
 import { CLICKS, clickOf, bookOf } from './tiles.js';
 import { closePanel } from './panels.js';
@@ -79,6 +79,8 @@ function renderSheet(){
   if(has(o,'link')) fields.push(`<div class="field"><label>Link</label><input data-f="url" value="${esc(o.url||'')}" placeholder="https://"></div>`);
   if(has(o,'location')) fields.push(`<div class="field"><label>Location</label><input data-f="loc" value="${esc(o.loc||'')}" placeholder="Where"></div>`);
   if(has(o,'duration')) fields.push(`<div class="field"><label>Duration (minutes)</label><input type="number" min="0" data-f="dur" value="${o.dur||''}"></div>`);
+  if(has(o,'answer')) fields.push(`<div class="field"><label>Answer${
+    answered(o)?'':' <i style="font-style:normal;color:var(--ink-3)">— unanswered</i>'}</label><textarea data-f="answer" class="editor" style="min-height:80px" placeholder="What you worked out">${esc(o.answer||'')}</textarea></div>`);
   if(has(o,'price')) fields.push(`<div class="field"><label>Price</label><input data-f="price" value="${esc(o.price||'')}" placeholder="12.50"></div>`);
   if(has(o,'priority')) fields.push(`<div class="field"><label>Priority</label><select data-f="prio">
       ${[['','—'],['low','Low'],['mid','Medium'],['high','High']].map(([v,n])=>`<option value="${v}"${(o.prio||'')===v?' selected':''}>${n}</option>`).join('')}</select></div>`);

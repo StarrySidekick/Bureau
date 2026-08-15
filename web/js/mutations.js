@@ -1,5 +1,5 @@
 import { $, esc, uid, ROOT, D } from './util.js';
-import { S, byId, K, KEYS, kindHas, has, isContainer, genKindOf, streak, T, dz, dev } from './model.js';
+import { S, byId, K, KINDS, KEYS, kindHas, has, isContainer, genKindOf, streak, T, dz, dev } from './model.js';
 import { gridOf, freeSpot, lay, boxOk, sizeOfKind } from './grid.js';
 import { randomFront, randomBoard, styleDefaults } from './look.js';
 import { render } from './views.js';
@@ -197,6 +197,23 @@ function create(kind, patch){
      new object into one filed it somewhere it could never appear, and it
      vanished from the drawer you made it in. */
   S.objects.push(o);
+  /* A type may be born with things already inside it. A project needs a way to
+     add to it, and the type that turns typing into tasks already exists — so it
+     gets one *put in it* rather than growing a second one of its own on its
+     front. One level only: a seeded child's own seed is ignored, because two
+     types that seed each other would fill the desk forever. */
+  if(!(patch&&patch.noSeed)) (k.seed||[]).forEach((sp,i)=>{
+    if(!KINDS[sp.kind]) return;
+    const child = create(sp.kind, {parent:o.id, title:sp.title||'', noSeed:true});
+    /* Placed rather than left to ensureBox: a seeded thing is the way *in*, so
+       it belongs at the top of the board and not wherever the ordering happens
+       to drop it. Both devices, because either could be opened first. */
+    ['desk','phone'].forEach(dv=>{
+      const [w,h]=sizeOfKind(sp.kind, dv);
+      child[dv]={x:1, y:1+i*h, w, h};
+    });
+  });
+  delete o.noSeed;
   return o;
 }
 /* Two objects dropped on each other become the container their type gathers

@@ -143,6 +143,14 @@ function randomBoard(){
 // short, because they are labels under a 60px swatch; what each one does is
 // the sentence above them in Settings and the comment above chromeTokens()
 const ROLES = ['Page','Text','Lines','Accent','Glow'];
+/* An edge is a slot as much as a colour is. Six positions, the same in every
+   style, and each style says what its own are made of — a bevelled Victorian
+   moulding, a Pseudochromo hairline and an Aero glass rim are all slot 1. The
+   class stays `bd-panel` and so on, because a slot's *name* is per style but
+   its position has to be stable for a stored value to survive a swap. */
+const BORDER_SLOTS = ['panel','heavy','bar','gloss','plain','none'];
+const borderNames = ()=> styleNow().borders || BORDER_SLOTS.map(k=>k[0].toUpperCase()+k.slice(1));
+const borderSlots = ()=> BORDER_SLOTS.map((k,i)=>[k, borderNames()[i]||k]);
 const SLOTS = 16;
 const OBJ0 = ROLES.length;          // the first slot an object may be painted in
 const OBJN = SLOTS - OBJ0;          // eleven
@@ -155,6 +163,7 @@ const STYLES = {
      jewel greens, regal reds. Nothing pure white and nothing pure black. */
   victorian: {nm:'Victorian', ds:'An old desk: baize, brass, sage and claret',
     board:'#EFEADA|#DDE5CE', boardAlpha:1,
+    borders:['Panelled','Heavy panel','Bar','Beaded','Plain','None'],
     defaults:{knob:'round', border:'panel', texture:'none', knobtone:'light'},
     cols:['#E9E1CC','#2A241C','#4A4034','#A9793F','#D9B57C',
           '#6F5137','#4A7C59','#6E7F63','#2E6B52','#4A6382','#5A7A9E',
@@ -167,6 +176,7 @@ const STYLES = {
      by hue, so the eleven are a lightness ramp with barely a tint in them. */
   pseudochromo: {nm:'Pseudochromo', ds:'Near-monochrome, desaturated, sharp',
     board:'#F6F6F7|#EDEEF0', boardAlpha:.6,
+    borders:['Hairline','Inset rule','Top rule','Card','Plain','None'],
     defaults:{knob:'bar', border:'plain', texture:'none', knobtone:'dark'},
     cols:['#FBFBFC','#16181C','#9AA0A8','#4A5058','#8C97A3',
           '#22252A','#2E3238','#3A3F46','#464C54','#535A63','#616872',
@@ -180,6 +190,7 @@ const STYLES = {
      assets to hang on it. */
   skeuo: {nm:'Skeuomorphic', ds:'Wood, leather, and things that look like things',
     board:'#E8DCC4|#D9C9A8', boardAlpha:1,
+    borders:['Moulding','Deep moulding','Inlay','Beading','Plain','None'],
     defaults:{knob:'ring', border:'heavy', texture:'weave2', knobtone:'dark'},
     cols:['#EFE4CC','#33261A','#8A7350','#8A5A2B','#C89B54',
           '#6B4A2A','#4C6B42','#6B7238','#3B6E63','#42566B','#55708C',
@@ -192,13 +203,17 @@ const STYLES = {
      differ by a whisper of blue or green, which is all a wireframe needs. */
   starry: {nm:'Starry Sidekick', ds:'White pencil on a night sky, hand-drawn',
     board:'#07080C|#0B0D13', boardAlpha:1,
+    borders:['Ruled','Double rule','Underline','Sketched','Plain','None'],
     defaults:{knob:'round', border:'plain', texture:'stars', knobtone:'light'},
     cols:['#07080C','#F4F6F8','#F4F6F8','#6FD3F5','#7DE8B0',
           '#14161C','#1B1E25','#23262E','#0E2733','#123544','#16443F',
           '#1A3B2C','#2B2F38','#191D2A','#101820','#33383F'],
     names:['Ink','Slate night','Charcoal','Deep blue','Harbour','Pine',
            'Fern night','Graphite','Midnight','Pitch','Ash'],
-    vars:{'--serif':'"Chalkboard SE","Comic Sans MS","Segoe Print",cursive',
+    // Illustration-coded but grown up. Comic Sans reads as a joke about
+    // hand-drawn rather than the thing itself; Optima and Gill Sans are what
+    // hand-lettered book jackets and map legends were actually set in.
+    vars:{'--serif':'"Optima","Gill Sans","Gill Sans MT","Avenir Next","Trebuchet MS",sans-serif',
       // drawn, not printed: the outline is the whole front, so it is nearly
       // opaque rather than the 72% every other style derives
       '--line':'rgba(244,246,248,.92)'}},
@@ -207,6 +222,7 @@ const STYLES = {
      blue here, and that is the point of the slots being positions. */
   aero: {nm:'Aero', ds:'Teal gloss and clear skies, straight from 2006',
     board:'#D8F0F4|#C2E6EC', boardAlpha:.85,
+    borders:['Bevel','Deep bevel','Sill','Glass','Plain','None'],
     defaults:{knob:'orb', border:'aqua', texture:'sheen', knobtone:'light'},
     cols:['#EAF4F7','#0D3541','#5B8C9B','#18A6C4','#7EE8F5',
           '#1E9AAE','#2FA39A','#3F8F63','#6FA83C','#2B6B99','#4C89C8',
@@ -214,7 +230,10 @@ const STYLES = {
     names:['Aqua','Lagoon','Meadow','Bliss','Harbour','Sky',
            'Deep sea','Steel','Slate','Storm','Silver'],
     vars:{'--radius':'12px','--radius-d':'10px',
-      '--serif':'"Trebuchet MS","Segoe UI",Verdana,sans-serif'}}
+      // Segoe UI is the face Aero actually shipped with; Lucida Grande is what
+      // the other 2006 desktop was set in, and it is the better fallback here
+      // than Trebuchet, which belongs to the version before this one.
+      '--serif':'"Segoe UI","Lucida Grande","Lucida Sans Unicode",Tahoma,sans-serif'}}
 };
 const styleNow = ()=> STYLES[(S.look&&S.look.style)] || STYLES.victorian;
 /* The sixteen showing right now. A slot the user repainted is stored per style
@@ -264,4 +283,5 @@ const BACKDROPS = [
 export { themeNow, lookVal, setLookVal, applyLook, applyStyle, styleDefaults,
   randomFront, randomBoard, STYLES, BACKDROPS,
   SLOTS, OBJ0, OBJN, ROLES, slotName, styleNow, palNow, setSlot,
+  BORDER_SLOTS, borderSlots,
   hexOf, objColour, objSlots, isDark };

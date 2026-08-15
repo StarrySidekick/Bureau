@@ -3,9 +3,9 @@ import { S, K, KINDS, KEYS, T, ATTRS, USER_ATTRS, FIELDS, fieldOf, OPS, ROLLS,
   SORTS, FACES, SHAPES, READS, faceOf, layoutOf, shapeOf, readOf, byId, container, cfgOf, deskTitle,
   rootObj, containers, isContainer, isAncestor, childrenOf, has, kindHas,
   attrsOf, allTags, isPinned, dev, takesTyping, genKindOf,
-  CALVIEWS, calViewOf, weekStartOf, showsWeekends } from './model.js';
+  CALVIEWS, calViewOf, weekStartOf, showsWeekends, KNOBSIZES, knobSizeOf } from './model.js';
 import { GRID, lay, boxOk, freeSpot, sizeOfKind, toPhoneSize } from './grid.js';
-import { randomBoard, randomFront, hexOf, objColour, objSlots, palNow, OBJ0 } from './look.js';
+import { randomBoard, randomFront, hexOf, objColour, objSlots, palNow, OBJ0, borderSlots } from './look.js';
 import { CLICKS, clickOf, gridTile, pending } from './tiles.js';
 import { quickAdd, toast } from './mutations.js';
 import { openObj, renderSheet } from './sheet.js';
@@ -276,7 +276,8 @@ function drawerPanelBody(id){
     ${row('Locked', chips('lock', null, [['','Movable'],['1','Locked']], cfg.locked?'1':''))}
     ${isRoot?'':row('On the bar', chips('pin', null, [['','No'],['1','Pinned']], isPinned(id)?'1':''))}
     ${isRoot?'':`
-      ${row('Border', chips('border', null, [['panel','Panelled'],['heavy','Heavy panel'],['bar','Bar'],['aqua','Aqua'],['plain','Plain'],['none','None']], d.border||'none'))}
+      ${/* an edge is a slot: the six are the same positions, named by the style */''}
+      ${row('Border', chips('border', null, borderSlots(), d.border||'panel'))}
       ${row('Knob', chips('knob', null, [['round','Round'],['diamond','Diamond'],['bar','Bar'],['ring','Ring'],['square','Square'],['orb','Orb']], d.knob||'round'))}
       ${row('Front', `<div class="pickgrid sw">${objSlots().map(([slot,nm])=>
           `<button data-pcolour="${slot}" data-id="${id}" title="${nm}" class="${d.c===slot?'on':''}" style="background:${hexOf(slot)}"></button>`).join('')}</div>`)}
@@ -288,6 +289,7 @@ function drawerPanelBody(id){
       ${row('Board strength', `<input class="pslide" type="range" min="0" max="100" step="5"
           value="${Math.round(((d.boardAlpha==null?1:d.boardAlpha))*100)}" data-palpha data-id="${id}">`)}
       ${row('Texture', chips('texture', null, [['none','None'],['dots','Dots'],['grid','Graph'],['weave','Weave'],['weave2','Wide weave'],['check','Checker'],['rule','Ruled'],['stars','Stars'],['sheen','Sheen']], d.texture||'none'))}
+      ${row('Knob size', chips('knobsize', null, Object.entries(KNOBSIZES), knobSizeOf(d)))}
       ${row('Knob position', chips('knobpos', null, [['centre','Centre'],['bottom','Bottom']], d.knobpos||'centre'))}
       ${row('Knob colour', chips('knobtone', null, [['light','Lighter'],['dark','Darker']], d.knobtone||'light')
         + `<div class="pickgrid sw" style="margin-top:5px">${

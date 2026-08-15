@@ -134,6 +134,7 @@ reason an invented type works everywhere immediately.
 | `duration` | How long it takes. | `dur` number |
 | `priority` | How much it matters — a stripe, not a word. | `prio` low/mid/high |
 | `price` | What it costs. | `price` money |
+| `answer` | A box on the front to answer it in. Filled means answered. | `answer` text |
 | `relates` | Points at other objects, both ways. | `rel` refs |
 
 `container` and `magic` are **structural**: they are excluded from `USER_ATTRS`
