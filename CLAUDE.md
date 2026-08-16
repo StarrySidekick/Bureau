@@ -305,6 +305,13 @@ you *duck into*, and ducking in with no way out but the back button is half a
 gesture. A tile on a board is not a toggle: only a pin, because only a pin is
 somewhere you go from anywhere.
 
+**A pinned thing is a 1×1 tile, not a pin.** `pinTile()` draws it through the
+same `gridTile()` the board uses, from a clone with a 1×1 box, so it is the
+type's mark on the thing's own colour filling its slot exactly — whatever a 1×1
+object looks like is what the shelf holds. There was a bespoke pin shape for one
+version; inventing a second kind of object for one row is how an app grows a
+second visual language.
+
 **Pinning is a drag onto the shelf, and it does not move the thing.** Carry any
 tile onto `.pinrow` and let go: `setPin(id,'pin')`, and `parent`, `desk` and
 `phone` are all untouched, because pinning is about reach and not about where a
@@ -321,14 +328,25 @@ button again. A locked board refuses moves and resizes and **never** refuses the
 long press — see `G.stuck` in `gestures.js`. How a board is laid out is not a
 tool: it is the "Opens as" row in the board's own settings.
 
-**A phone board is nine columns of square cells, plus the shelf.** The cell is
-the measured column width — ~43px — on both devices; the free number is how many
-rows fit between the bar and the shelf (`PAGEROWS`, a `floor`, about seventeen
-on a 390 × 844 screen). Nine by a *stated* thirteen rows cannot be square on a
-phone-shaped screen and the square cell wins: it is what makes every stated size
-in `KINDS` mean what it says. The column count is the one number that sets the
-cell size — see the table at the top of `grid.js` — and the bar is as thin as it
-goes, because every pixel of it is a row of board. A page is *not stored*: `y` is one continuous
+**A phone board is a chosen number of columns of square cells, plus the
+shelf.** `S.look.grid` is `small` (8) | `extra` (9) | `large` (10), Small by
+default, and the column count is the *only* number it changes — the width is the
+width, so the columns set the cell, the cell is square so it sets the rows, and
+the last row is always the shelf. The free number is how many rows fit
+(`PAGEROWS`, a `floor`, about fifteen at Small on a 390 × 844 screen). A stated
+row count cannot be square on a phone-shaped screen and the square cell wins: it
+is what makes every stated size in `KINDS` mean what it says. **A column count
+is a coordinate space**, so `setGridSize()` rescales every stored phone box the
+way a migration does — rounding half *down*, and scaling the left edge rather
+than the column number, which is what makes eight to ten and back the
+arrangement you started with. See decision 48.
+
+**The board is exactly as tall as its rows.** `.deskscroll` is `flex:0 0 auto`
+on a phone, so the few pixels the screen has left over fall *below* the shelf
+rather than above the board — which is both where they are useful and what keeps
+the shelf's end slots clear of the rounded corners of the screen. `sizeGrid()`
+measures the room from `.main` less the bar less the shelf, never from the
+scroller's own height. A page is *not stored*: `y` is one continuous
 coordinate space per container and a page is a window of *n* rows onto it, so
 drag, drop and `freeSpot()` know nothing about pages. The one rule is that
 nothing may straddle a break, enforced in `boxOk()`. Two fingers up and down

@@ -1051,6 +1051,11 @@ html[data-style="aero"] .drawer.dtile.bd-bar{
   display:grid;grid-template-columns:repeat(var(--cols,9),1fr);
   grid-template-rows:var(--rowh,43px);
   height:var(--rowh,43px);
+  /* it carries `pinbar` too, because several selectors ask "is this the shelf"
+     by that name — but pinbar is a *flex* row with a gap and centred items, and
+     every one of those would shrink a tile away from the cell it is meant to
+     fill. A grid item stretches, and that is the whole point of it. */
+  align-items:stretch;justify-items:stretch;gap:0;
   padding:0;margin:0;
   /* the split: one line, and a breath of shadow under it so the row reads as
      sitting in front of the board rather than as part of the same surface */
@@ -1069,26 +1074,14 @@ html[data-style="aero"] .drawer.dtile.bd-bar{
   background-size:var(--checkerx,86px) var(--checkery,86px);
 }
 .is-phone .pinrow > *{position:relative;z-index:1}
-/* a pinned thing fills its cell, drawn as a front the way a drawer tile is */
-.is-phone .pinrow .pinbtn{
-  grid-row:1;margin:3px;padding:0;gap:1px;
-  display:grid;grid-auto-rows:min-content;align-content:center;justify-items:center;
-  border-radius:var(--radius-d);
-  background:var(--c,var(--felt));border:1px solid rgba(0,0,0,.32);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.20), 0 1px 2px rgba(42,36,28,.3);
-  color:#F8F3E6;min-width:0;overflow:hidden}
-.is-phone .pinrow .pinbtn span{
-  display:block;max-width:100%;padding:0 2px;font-size:8px;font-weight:600;letter-spacing:.01em;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center;
-  color:rgba(248,243,230,.86)}
-.is-phone .pinrow .pinface{display:grid;place-items:center}
-.is-phone .pinrow .pinface svg{width:16px;height:16px}
-/* Lit on the *outside*. It was `outline-offset:-2px`, which draws the ring
-   inside the button — and a button this small is mostly its mark, so the ring
-   read as a box around the icon rather than as the slot being lit. The 3px
-   margin on the button is what leaves room for it. */
-.is-phone .pinrow .pinbtn.on{outline:2px solid var(--glow);outline-offset:1px}
-.is-phone .pinrow .pinbtn.magic{border-color:color-mix(in srgb,var(--glow) 62%,transparent)}
+/* A pinned thing **is a tile**: the same one cell square that gridTile() draws
+   on the board, filling its slot exactly, with no bespoke pin shape at all.
+   It only has to be told to stay on row one — the clone it is drawn from puts
+   it in a column, and the row is the shelf's own. */
+.is-phone .pinrow .drawer.pinned{grid-row:1}
+/* Lit round the slot, on the tile's own edge — which is the outside of the
+   thing, not a box drawn around its mark. */
+.is-phone .pinrow .drawer.pinned.on{outline:2px solid var(--glow);outline-offset:-2px}
 /* carrying something over the shelf: the whole row lights, because the row is
    the target — which cell it lands in is the shelf's business, not yours */
 .pinrow.dropshelf{box-shadow:inset 0 0 0 2px var(--glow)}
@@ -1429,13 +1422,11 @@ kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--rule);border
    what does not fit is on the next page. `overflow:hidden` is the assertion —
    if the row arithmetic in sizeGrid() is ever wrong, a tile is clipped rather
    than quietly reintroducing the scroll this replaced. */
-/* The board is a whole number of cells and the room between the bar and the
-   shelf is not, so there are a few pixels left over. They go at the *top*,
-   under the bar, so the last row of the board sits flush on the shelf — which
-   is what makes the shelf read as the next row down rather than as a strip
-   that happens to be nearby. */
-.is-phone .scroll.deskscroll{overflow:hidden;padding:0;
-  display:flex;flex-direction:column;justify-content:flex-end}
+/* The board is exactly as tall as its rows — no growing, no absorbing. The few
+   pixels the screen has left over therefore fall *below* the shelf rather than
+   above the board, which is both where they are useful and what keeps the end
+   slots of the shelf clear of the rounded corners of the screen. */
+.is-phone .scroll.deskscroll{overflow:hidden;padding:0;flex:0 0 auto}
 .is-phone .main{overflow:hidden}
 
 /* ---- a menu on a phone comes up out of the bottom ----------------------

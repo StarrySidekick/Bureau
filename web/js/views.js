@@ -4,10 +4,11 @@ import { S, K, T, byId, has, isContainer, containers, container, childrenOf, cha
   sortOf, SORTS, MANUAL, sortMark,
   layoutOf, takesTyping, genKindOf, CALVIEWS, calViewOf, calCols,
   spanOf, coversDay, lastDay } from './model.js';
-import { CELL, COLW, PAGEROWS, pageRows, pageOfBox, lastPage, lay, gridOf, cellW, ensureBox } from './grid.js';
+import { GRID, PHONE_GRIDS, CELL, COLW, PAGEROWS, pageRows, pageOfBox, lastPage,
+  lay, gridOf, cellW, ensureBox } from './grid.js';
 import { themeNow, applyLook, lookVal, STYLES, BACKDROPS, DARKMODES, darkMode, hasDark,
   palNow, setSlot, styleNow, hexOf, objColour, slotName, OBJ0 } from './look.js';
-import { gridOfContainer, listTile, scrollEntry, bookView, calSpan } from './tiles.js';
+import { gridOfContainer, gridTile, listTile, scrollEntry, bookView, calSpan } from './tiles.js';
 import { openPanel, closePanel, panelKey, repositionPanel } from './panels.js';
 import { APP_VERSION, DATA_V, save, storeSize, install } from './persist.js';
 
@@ -404,6 +405,18 @@ function settingsBody(){
       ${lookVal('board')?`<button class="pill" style="margin-top:6px" data-look="board" data-val="">Reset</button>`:''}
     </div>
 
+    ${/* Three sizes to try on, and the only number that changes is how many
+         columns a phone board has — the width is the width, so the columns set
+         the cell and the cell sets everything else. Switching rescales every
+         stored phone box, the way a migration would. See decision 48. */''}
+    <div class="field" style="margin-top:12px"><label>iPhone grid</label>
+      <div class="filterbar">${Object.entries(PHONE_GRIDS).map(([k,n])=>
+        `<button class="fchip${(S.look.grid||'small')===k?' on':''}" data-gridsize="${k}">${
+          k[0].toUpperCase()+k.slice(1)} · ${n} across</button>`).join('')}</div>
+      <div class="mini" style="--k:var(--brass);margin-top:6px">Fewer columns, bigger cells. The rows are whatever fits — a cell is square, so the columns decide both — and the last one is always the shelf.${
+        S.device==='phone' ? ` Right now: <b>${GRID.phone.cols} × ${pageRows('phone')} +1</b>.` : ''}</div>
+    </div>
+
     <div class="field" style="margin-top:12px"><label>Whose desk this is</label>
       <input data-lookinput="owner" value="${esc(S.look.owner||'')}" placeholder="Your name">
       <div class="mini" style="--k:var(--brass);margin-top:6px">Used for the title at the top of the desk.</div>
@@ -499,17 +512,31 @@ function settingsBody(){
    with a name under it, which meant five of them across a phone gave each one
    78px and "Done & Dusted" fitted in none of them. A square and a bigger mark
    say which drawer it is from further away than eight-point type ever did. */
-function pinBtn(d, on, col){
-  /* A pinned thing carries the id it opens under whichever attribute names it:
-     a container is `data-drawer`, because every path that opens a drawer looks
-     for that; anything else is `data-row`, and clicking it does whatever its
-     type says clicking it does. */
+/* On a Mac the shelf rides in the grid bar, where it is a row of buttons in a
+   toolbar and looks like one: a little front with its name beside the mark. */
+function pinBtn(d, on){
   const key = isContainer(d) ? 'data-drawer' : 'data-row';
   return `<button class="pinbtn${on?' on':''}${has(d,'magic')?' magic':''}"
       ${key}="${d.id}" data-pin="${d.id}"
-      style="--c:${objColour(d)}${col?`;grid-column:${col}`:''}" title="${esc(d.title||'Untitled')}">
+      style="--c:${objColour(d)}" title="${esc(d.title||'Untitled')}">
     <i class="pinface">${ic(has(d,'magic')?'sparkle':K(d.kind).ic, 20)}</i>
     <span>${esc(d.title||'Untitled')}</span></button>`;
+}
+/* …and on a phone it is **the object itself, one cell square** — the same tile
+   `gridTile()` would draw if you put it on the board at 1×1, which is the type's
+   mark on the thing's own colour. There was a bespoke pin shape here for a
+   version: rounded, labelled, and not quite anything else in the app. The shelf
+   is a row of the grid, so what sits in it is a tile; inventing a second kind of
+   object for one row is how an app grows a second visual language.
+
+   The box is a clone, not the real one — a thing on the shelf is *also*
+   somewhere on a board, and its own coordinates are none of the shelf's
+   business. See decision 46. */
+function pinTile(o, on, col){
+  const box={x:col, y:1, w:1, h:1};
+  return gridTile({...o, desk:box, phone:box}, false, o.parent||ROOT)
+    .replace('class="', `class="pinned${on?' on':''} `)
+    .replace('style="', `data-pin="${o.id}" style="`);
 }
 /* One shelf, and anything may sit on it. It used to be the row of desks, with
    a second strip up top for whatever you had pinned on the desk you happened
@@ -542,7 +569,7 @@ function shelfStrip(){
   const g=gridOf('phone'), cell=CELL.phone, colw=COLW.phone;
   return `<nav class="pinrow pinbar" data-shelf="pins"
       style="--cols:${g.cols};--rowh:${cell}px;--checkerx:${2*colw}px;--checkery:${2*cell}px">
-    ${pins.slice(0, g.cols).map((d,i)=>pinBtn(d, here(d.id), i+1)).join('')}
+    ${pins.slice(0, g.cols).map((d,i)=>pinTile(d, here(d.id), i+1)).join('')}
   </nav>`;
 }
 
@@ -717,9 +744,21 @@ function sizeGrid(){
      whole cells fit between the bar and the shelf. `ceil` was what made the
      bottom row hang half a cell past the shelf and forced the board to scroll
      to reach it. Zero on a Mac: a desk scrolls. */
-  const sc=grid.parentElement;
-  if(dev()==='phone' && sc){
-    const rows=Math.max(4, Math.floor(sc.clientHeight / Math.max(1,w)));
+  /* How many rows fit, measured from the room the board actually has: the
+     whole column, less the bar and less the shelf. It used to divide the
+     scroller's own height, which worked only while the scroller was the thing
+     absorbing the leftover — and that put the spare pixels *above* the board,
+     which is the dead strip under the title in the screenshot. The scroller is
+     the height of its rows now (`flex:0 0 auto`), so the shelf rides up
+     directly beneath the last row and the spare falls below it, clear of the
+     rounded corners of the screen. */
+  const sc=grid.parentElement, main=grid.closest('.main');
+  if(dev()==='phone' && main){
+    const bar=main.querySelector('.gridbar'), pin=main.querySelector('.pinrow');
+    const below = pin ? pin.getBoundingClientRect().height
+                      + (parseFloat(getComputedStyle(pin).marginBottom)||0) : 0;
+    const avail = main.clientHeight - (bar?bar.getBoundingClientRect().height:0) - below;
+    const rows=Math.max(4, Math.floor(avail / Math.max(1,w)));
     if(rows!==PAGEROWS.phone){ PAGEROWS.phone=rows; if(!sizing){ sizing=true; try{ render(); } finally { sizing=false; } return; } }
   } else PAGEROWS.desk = 0;
   /* Do NOT round. Columns are `1fr` and therefore fractional; rounding the row

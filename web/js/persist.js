@@ -1,6 +1,6 @@
 import { D, uid, clamp, ROOT } from './util.js';
 import { S, K, KINDS, KEYS, kindHas, has, byId, isContainer, refreshKinds, defaultLook, dev } from './model.js';
-import { GRID, overlaps, gridOf, freeSpot, sizeOfKind } from './grid.js';
+import { GRID, PHONE_GRIDS, overlaps, gridOf, freeSpot, sizeOfKind } from './grid.js';
 import { toast, create, pushUndo } from './mutations.js';
 import { render } from './views.js';
 import { renderSheet } from './sheet.js';
@@ -9,15 +9,15 @@ import { closePanel } from './panels.js';
 /* ============================================================
    19b · persistence — everything stays on this device
    ============================================================ */
-/* The version **is the commit count**, as `0.NN`: the fifty-fourth commit is
-   0.54 and the hundredth will be 1.00, which is the first honest claim to a
+/* The version **is the commit count**, as `0.NN`: the fifty-fifth commit is
+   0.55 and the hundredth will be 1.00, which is the first honest claim to a
    1.0 this app will have made. It used to be a number chosen by hand, which
    meant it said nothing you could check.
    Bumped with the cache in web/sw.js — the two travel together, because "which
    Bureau is this phone running" is exactly the question you ask when a change
    appears not to have deployed. Shown in Settings, so it can be read off the
    device rather than guessed at. */
-const APP_VERSION = '0.54';
+const APP_VERSION = '0.55';
 const KEY = 'bureau.v1';
 const install = {deferred:null};   // the browser's install prompt, when one is on offer
 let saveTimer = null;
@@ -151,13 +151,26 @@ function dedupeIds(objects){
    into the nearest free box instead. The column counts are passed in and
    written out at the call site — a migration must not drift with GRID. */
 function rescalePhone(d, from, cols){
-  const up = n => Math.max(1, Math.round(n*cols/from));
+  const r = cols/from;
+  /* Rounding **half down**, and scaling the left *edge* rather than the
+     1-based column number. Both matter more than they look.
+
+     Half up grew a two-cell drawer front into three every time the grid got
+     finer (2 × 1.25 = 2.5), which broke the rack apart and then could not put
+     it back. Half down keeps it two in both directions — 2 × 1.25 → 2 and
+     2 × 0.8 → 2 — so eight columns to ten and back is the arrangement you
+     started with, and a full-width tile still maps exactly (8 × 1.25 = 10).
+     Scaling the edge is what makes the gaps between tiles scale too: column 3
+     is two cells in from the left, not three. */
+  const half = v => Math.ceil(v - 0.5);
+  const up = n => Math.max(1, half(n*r));
   const placed = {};
   const overlap = (a,b)=> a.x < b.x+b.w && b.x < a.x+a.w && a.y < b.y+b.h && b.y < a.y+a.h;
   (d.objects||[]).forEach(o=>{
     const b=o.phone; if(!b || !b.w) return;
     const w=Math.min(cols, up(b.w));
-    let box={x:Math.min(up(b.x), cols-w+1), y:Math.max(1,b.y), w, h:Math.max(1,b.h)};
+    const x=Math.max(1, half((b.x-1)*r) + 1);
+    let box={x:Math.min(x, cols-w+1), y:Math.max(1,b.y), w, h:Math.max(1,b.h)};
     const home = placed[o.parent||ROOT] = placed[o.parent||ROOT] || [];
     if(home.some(t=>overlap(box,t))){
       outer: for(let y=1;y<400;y++) for(let x=1;x<=cols-w+1;x++){
@@ -178,7 +191,7 @@ function rescalePhone(d, from, cols){
    skips all of them, an old backup replays only what it is missing. These
    used to be ad-hoc per-load mutations inside adopt(); a new repair that
    should run once belongs here, as the next numbered step. */
-const DATA_V = 19;
+const DATA_V = 20;
 const MIGRATIONS = [
   // Drawers and objects were two arrays and a drawer could not live inside
   // anything. foldDrawers also replays the old dense flow to give v1 drawers
@@ -401,6 +414,13 @@ const MIGRATIONS = [
      before, in the other direction: x and w by 9/10, and anything that rounds
      onto a neighbour is re-placed rather than left to render on top of it. */
   {v:19, up(d){ rescalePhone(d, 10, 9); }},
+  /* Three grid sizes to choose between, and the default is the smallest number
+     of columns — the biggest cells. A desk that has never been asked comes to
+     Small from the nine columns it was on. See decision 48. */
+  {v:20, up(d){
+      d.look = d.look || {};
+      if(!d.look.grid){ d.look.grid='small'; rescalePhone(d, 9, 8); }
+    }},
 ];
 function migrate(d){
   let v = d.v||0;
@@ -416,6 +436,9 @@ function adopt(d){
   S.kinds = d.kinds || {};
   if(d.deskCfg) S.deskCfg = Object.assign({layout:'grid',locked:false,sort:null}, d.deskCfg);
   S.look = Object.assign(defaultLook(), d.look||{});
+  // the grid size is a coordinate space, so it has to be in place before
+  // anything is laid out — every stored phone box is in its columns
+  GRID.phone.cols = PHONE_GRIDS[S.look.grid] || PHONE_GRIDS.small;
   S.desks = Array.isArray(d.desks) && d.desks.length ? d.desks.slice() : [ROOT];
   if(!S.desks.includes(ROOT)) S.desks.unshift(ROOT);   // home is always in the row
   // the shelf holds drawers only: home is walked to, not pinned
@@ -625,5 +648,5 @@ function pasteObjects(text, parentId){
   toast('Added '+(bits.join(' and ')||'nothing'), !!tally.made.length);
 }
 
-export { APP_VERSION, DATA_V, writeNow, save, storeSize, load, exportBackup,
+export { APP_VERSION, DATA_V, rescalePhone, writeNow, save, storeSize, load, exportBackup,
   importBackup, assetDel, hydrateAssets, importImage, imgFor, pasteObjects, install };

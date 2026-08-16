@@ -5,7 +5,7 @@ import { S, K, KINDS, KEYS, refreshKinds, ATTRS, USER_ATTRS, attrsOf, has, SHAPE
 import { gridOf, lay, boxOk, freeSpot, toPhoneSize } from './grid.js';
 import { applyLook, applyStyle, setLookVal, lookVal, STYLES, randomFront,
   setSlot, palNow, objColour, darkMode } from './look.js';
-import { toast, toggleDone, del, delMany, delDrawer, undo, setPin, togglePin, drawerForTag, create, quickAdd, spawnInto, randomThing } from './mutations.js';
+import { toast, setGridSize, toggleDone, del, delMany, delDrawer, undo, setPin, togglePin, drawerForTag, create, quickAdd, spawnInto, randomThing } from './mutations.js';
 import { spinTo, pending, placeAtPending, tileTap, turnPage, clearPages } from './tiles.js';
 import { render, sizeGrid, toggleSettings, reveal, goPage, deskMap } from './views.js';
 import { openObj, openWriter, openRead, closeSheet, renderSheet, words } from './sheet.js';
@@ -439,6 +439,9 @@ function wire(){
     if(st){ const [id,n]=st.dataset.star.split(':'); const o=byId(id);
       o.rating = (o.rating===+n) ? 0 : +n; save(); refreshPanel(); render(); return; }
 
+    const gz=t.closest('[data-gridsize]');
+    if(gz){ setGridSize(gz.dataset.gridsize); refreshPanel(); return; }
+
     const st3=t.closest('[data-style3]');
     if(st3){ applyStyle(st3.dataset.style3); toast(STYLES[st3.dataset.style3].nm); return; }
 
@@ -550,7 +553,7 @@ function wire(){
     // a breadcrumb, a tile, or a button on the shelf — all open the drawer
     const dr=t.closest('[data-drawer]');
     if(dr && (dr.tagName==='B' || dr.classList.contains('drawer') || dr.classList.contains('pinbtn'))){
-      const isPin = dr.classList.contains('pinbtn');
+      const isPin = !!dr.closest('.pinbar');
       /* A tap on a tile is answered on pointerup, by tileTap — which plays the
          opening and then navigates. The browser sends a click afterwards
          anyway, and it lands here; redrawing the board a second time is

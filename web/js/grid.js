@@ -13,37 +13,42 @@ import { dev, childrenOf, container, K, kindHas } from './model.js';
    the row height is measured after layout by sizeGrid() and cached here —
    nothing may assume a fixed row height. Twice the columns of the first
    version, which is what makes the smallest object half the size it was. */
-/* The phone is **nine columns**, and a cell is **square**. The column count is
-   the only thing that sets the size of a cell — the width is the width — so it
-   is the one number to turn:
+/* The phone grid comes in **three sizes**, and the only number that changes is
+   the column count — the width is the width, so the columns set the cell and
+   the cell sets everything else:
 
-     columns   cell on a 390pt phone   rows that fit
-        8            48.8                  ~15
-        9            43.3                  ~17
-       10            39.0                  ~19
+     name     columns   cell on a 390pt phone   rows that fit   "+1"
+     Small       8              48.8                 ~14         the shelf
+     Extra       9              43.3                 ~16         is always
+     Large      10              39.0                 ~18         the last row
 
-   Nine is the bigger space, one step back from ten. The row count is *not*
-   stated: it is whatever fits, because stating it too would mean giving up the
-   square cell, and a square cell is what makes a size mean something — a 2×2
-   drawer front is a square, a 4×1 task is a sliver four times as long as it is
-   deep. Ten by a stated fourteen rows was tried for exactly one version and
-   made a cell a third taller than it was wide, which quietly rescaled every one
-   of those judgements. See decision 44. */
+   Small is the default: the fewest cells and therefore the biggest ones. The
+   row count is *not* stated — it is whatever fits — because stating it too
+   would mean giving up the square cell, and a square cell is what makes a size
+   mean something: a 2×2 drawer front is a square, a 4×1 task is a sliver four
+   times as long as it is deep. Ten by a stated fourteen rows was tried for
+   exactly one version and made a cell a third taller than it was wide, which
+   quietly rescaled every one of those judgements. See decision 44.
+
+   `GRID.phone.cols` is therefore the one mutable field in here: it is set from
+   `S.look.grid` on load, and changing it rescales every stored phone box, the
+   way a migration would. See setGridSize() in mutations.js and decision 48. */
+const PHONE_GRIDS = {small:8, extra:9, large:10};
 const GRID = {
   desk:  {cols:24, gap:0},
-  phone: {cols:9, gap:0}
+  phone: {cols:PHONE_GRIDS.small, gap:0}
 };
 /* A tile taller than a screenful cannot be seen at all, so nothing derived is
    allowed to ask for one. Not the page height — that is measured — just a cap
    on what the size mapping and a type's stated phone size may claim. */
 const PHONE_MAX_H = 14;
-const CELL = {desk:40, phone:39};   // the cell, square, last measured
+const CELL = {desk:40, phone:48};   // the cell, square, last measured
 /* The column width, which on both devices is now the same number as the cell.
    Kept separate because it is *measured* separately — the one caller that has
    to guess before the grid exists writes the checker squares into the grid's
    style attribute as it is built, so a board is drawn at the right scale on
    its first frame instead of flashing the CSS fallback and snapping back. */
-const COLW = {desk:40, phone:39};
+const COLW = {desk:40, phone:48};
 const gridOf = (device)=>{
   const d=device||dev();
   return {cols:GRID[d].cols, gap:GRID[d].gap, rowh:CELL[d]};
@@ -158,5 +163,5 @@ function cellW(grid,g){
   return (r.width - g.gap*(g.cols-1))/g.cols;
 }
 
-export { GRID, PHONE_MAX_H, CELL, COLW, PAGEROWS, pageRows, pageOfBox, lastPage,
+export { GRID, PHONE_GRIDS, PHONE_MAX_H, CELL, COLW, PAGEROWS, pageRows, pageOfBox, lastPage,
   gridOf, lay, overlaps, boxOk, freeSpot, gridRows, sizeOfKind, toPhoneSize, ensureBox, cellW };

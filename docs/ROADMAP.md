@@ -5,6 +5,24 @@ Sequenced by dependency, not appetite: item 1 makes everything after it safer.
 
 ---
 
+## 0g. Queued 2026-08-16 (seventh pass) — sizes to try on — DONE (v0.55)
+
+See decision 48.
+
+- **three grid sizes**: Small (8 across), Extra (9), Large (10), default Small.
+  The column count is the only number any of them changes, and switching
+  rescales every stored phone box the way a migration does — rounding half down
+  and scaling the left edge, so eight to ten and back is where you started
+- **a pinned thing is a 1×1 tile**, drawn by the same `gridTile()` the board
+  uses. The bespoke pin shape is gone
+- **the board is exactly as tall as its rows**, so the spare pixels fall below
+  the shelf instead of above the board — no more dead strip under the title, and
+  the shelf's end slots are clear of the screen's rounded corners
+
+*Still open:* the space below the shelf is empty and has no job yet.
+
+---
+
 ## 0f. Queued 2026-08-16 (sixth pass) — the shelf becomes a row — DONE (v0.54)
 
 Three corrections to the fifth pass. See decisions 45–47.

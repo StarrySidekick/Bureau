@@ -30,17 +30,17 @@ function cancelHold(e){
 
 
 /* ---- pulling the new-object drawer out of the shelf --------------------
-   Three numbers and an element. PULL_START is how far the finger travels
-   before the drawer is showing at all — enough to rule out a tap and a
-   sideways scroll, not enough to feel like a delay. PULL_OPEN is the pull
-   itself, and it is deliberately long: a quarter of a phone screen is a stroke
-   you have to commit to, which is the entire fix. HOME_EDGE is the strip along
-   the very bottom that belongs to iOS, and it is left alone. */
-/* HOME_EDGE is the strip along the very bottom that iOS keeps for its own home
-   swipe. It is small because the shelf is now one grid cell tall — about 43px —
-   and a guard half that deep would leave nothing to pull from. On a real phone
-   the shelf already sits *above* the home indicator (`margin-bottom` is the
-   safe-area inset), so this is the belt to that pair of braces. */
+   Three numbers and an element. PULL_START is how far the finger travels before
+   the drawer is showing at all — enough to rule out a tap and a sideways
+   scroll, not enough to feel like a delay. PULL_OPEN is the pull itself, and it
+   is deliberately long: a quarter of a phone screen is a stroke you have to
+   commit to, which is the entire fix.
+
+   HOME_EDGE is the strip along the very bottom that iOS keeps for its own home
+   swipe. It is small because the shelf is one grid cell tall, and a guard half
+   that deep would leave nothing to pull from — and on a real phone the shelf
+   sits above the home indicator anyway (its `margin-bottom` is the safe-area
+   inset, and the spare rows now fall below it too). Belt, and braces. */
 const PULL_START = 12, HOME_EDGE = 14;
 const PULL_OPEN = ()=> Math.round(Math.min(200, Math.max(110, innerHeight*0.26)));
 function makePull(){
@@ -322,7 +322,7 @@ function onDown(e){
      pin under it navigates as usual. */
   /* Bare shelf — not one of the things on it, which are buttons and answer a
      tap and a hold of their own. */
-  const shelfEl = S.device!=='desk' && !e.target.closest('.pinbtn')
+  const shelfEl = S.device!=='desk' && !e.target.closest('.pinned')
     && e.target.closest('.pinrow');
   if(shelfEl){
     /* …unless the finger went down in the last few millimetres of the screen,
@@ -387,7 +387,7 @@ function onDown(e){
   /* A pinned thing on the shelf. It is not on a grid, so it has no box to
      carry — but it still has to be able to answer "what is this, and how do I
      get it off the shelf", which is what the long press is everywhere else. */
-  const pinEl2=e.target.closest('.pinrow .pinbtn');
+  const pinEl2=e.target.closest('.pinrow .pinned');
   if(pinEl2){
     G={type:'pinpress', el:pinEl2, id:pinEl2.dataset.pin, sx:e.clientX, sy:e.clientY, mode:null};
     const g0=G;

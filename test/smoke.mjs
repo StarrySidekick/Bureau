@@ -204,7 +204,7 @@ const CHROME = process.env.BUREAU_CHROME;
     const cols = +getComputedStyle(g).getPropertyValue('--cols');
     const colw = g.getBoundingClientRect().width / cols;
     const rowh = parseFloat(getComputedStyle(g).getPropertyValue('--rowh'));
-    return { cols: cols === 9,
+    return { cols: cols === 8,           // Small, the default of the three
              cellIsThumbSized: colw > 36 && colw < 62,
              square: Math.abs(colw - rowh) < 1,
              // and the bar is thin enough to leave a real page of them
@@ -222,17 +222,22 @@ const CHROME = process.env.BUREAU_CHROME;
     const sc = document.querySelector('#app .scroll');
     if (!b || !sc) return false;
     const r = b.getBoundingClientRect();
+    /* Flush under the last row of the board, and *near* the bottom rather than
+       hard against it: the board is a whole number of cells, so the few pixels
+       the screen has left over fall below the shelf — which is what keeps its
+       end slots clear of the rounded corners of the screen. */
     return getComputedStyle(b).display === 'grid'
-      && r.bottom >= window.innerHeight - 1
       && Math.abs(sc.getBoundingClientRect().bottom - r.top) < 2   // flush
-      && !!b.querySelector('.pinbtn[data-drawer]');
+      && r.bottom < window.innerHeight
+      && window.innerHeight - r.bottom < 80
+      && !!b.querySelector('.drawer[data-drawer]');
   });
   // a pin navigates, and the shelf marks where you are
-  await phone.click('.pinrow .pinbtn[data-drawer="d_today"]');
+  await phone.click('.pinrow .drawer[data-drawer="d_today"]');
   await phone.waitForTimeout(350);
   const pinNavigates = await phone.evaluate(() =>
     BUREAU.state.view === 'drawer' && BUREAU.state.drawerId === 'd_today'
-    && document.querySelector('.pinrow .pinbtn[data-drawer="d_today"]').classList.contains('on'));
+    && document.querySelector('.pinrow .drawer[data-drawer="d_today"]').classList.contains('on'));
   /* …and it is a **toggle**: pressing the pin you are already in goes back to
      whatever the pin interrupted. Something you keep to hand is something you
      duck into, and ducking in with no way out but the back button is half a
@@ -242,7 +247,7 @@ const CHROME = process.env.BUREAU_CHROME;
   const pinToggle = await phone.evaluate(async () => {
     const nap = n => new Promise(r => setTimeout(r, n));
     const S = BUREAU.state, out = {};
-    const tap = id => document.querySelector(`.pinrow .pinbtn[data-drawer="${id}"]`).click();
+    const tap = id => document.querySelector(`.pinrow .drawer[data-drawer="${id}"]`).click();
     tap('d_today'); await nap(360);                 // already there: back out
     out.togglesBackToTheDesk = S.view === 'desk';
     S.view='drawer'; S.drawerId='d_ideas'; BUREAU.render(); await nap(200);
@@ -251,9 +256,13 @@ const CHROME = process.env.BUREAU_CHROME;
     tap('d_all'); await nap(360);
     out.andBackToWhereYouWere = S.view==='drawer' && S.drawerId === 'd_ideas';
     tap('d_today'); await nap(360);
-    const lit = document.querySelector('.pinrow .pinbtn.on');
-    out.ringIsOutside = !!lit && getComputedStyle(lit).outlineOffset === '1px'
-      && getComputedStyle(lit.querySelector('.pinface')).outlineStyle === 'none';
+    /* A pinned thing is the same tile gridTile() draws on the board, one cell
+       square, filling its slot exactly — no bespoke pin shape. So the lit ring
+       is on the tile's own edge, which is the outside of the thing, and there
+       is no separate mark element for it to be drawn around. */
+    const lit = document.querySelector('.pinrow .drawer.on');
+    out.ringIsOutside = !!lit && getComputedStyle(lit).outlineOffset === '-2px'
+      && lit.classList.contains('minitile') && !lit.querySelector('.pinface');
     S.view='desk'; S.drawerId=null; BUREAU.render();
     return out;
   });
@@ -270,16 +279,16 @@ const CHROME = process.env.BUREAU_CHROME;
   // may go there
   const pinToggles = await phone.evaluate(() => {
     const S = BUREAU.state;
-    const n = () => document.querySelectorAll('.pinrow .pinbtn[data-drawer]').length;
+    const n = () => document.querySelectorAll('.pinrow .drawer[data-drawer]').length;
     const d = S.objects.find(o => o.kind === 'drawer' && !S.desks.includes(o.id)
       && !(S.pins||[]).includes(o.id));
     const before = n();
     BUREAU.setPin(d.id, 'pin');
     const added = n() === before + 1 && S.pins.includes(d.id)
-      && !!document.querySelector(`.pinrow .pinbtn[data-drawer="${d.id}"]`);
+      && !!document.querySelector(`.pinrow .drawer[data-drawer="${d.id}"]`);
     BUREAU.setPin(d.id, null);
     return added && n() === before && !S.pins.includes(d.id)
-      && !document.querySelector(`.pinrow .pinbtn[data-drawer="${d.id}"]`);
+      && !document.querySelector(`.pinrow .drawer[data-drawer="${d.id}"]`);
   });
 
   /* --- everything is always movable; a hold arms the drag, a tap does not.
@@ -1076,11 +1085,12 @@ const CHROME = process.env.BUREAU_CHROME;
   });
   await shot('12-reading');
 
-  /* --- migrations 10, 17 and 19: a v9 desk's phone boxes are in 16-column
-     coordinates, and the phone grid has been 8, then 10, and is now 9. Halving
-     and then rescaling twice is the inverse of what the grid did, and rounding
-     can put two neighbours in the same cell each time, so every step also has
-     to leave nothing overlapping. A fresh context, and the snapshot is planted by an init script
+  /* --- migrations 10, 17, 19 and 20: a v9 desk's phone boxes are in
+     16-column coordinates, and the phone grid has been 8, 10, 9, and is now 8
+     again — Small, the first of three sizes to choose between. Halving and then
+     rescaling three times is the inverse of what the grid did, and rounding can
+     put two neighbours in the same cell each time, so every step also has to
+     leave nothing overlapping. A fresh context, and the snapshot is planted by an init script
      rather than written and reloaded — the running page writes on beforeunload,
      so a reload would put the seeded desk straight back over it. */
   const v9desk = JSON.stringify({
@@ -1112,8 +1122,8 @@ const CHROME = process.env.BUREAU_CHROME;
          first is asserted by number — the rest of the row cannot fit beside it
          at nine columns, so they are re-placed, and what is checked there is
          that they are re-placed *legally* rather than left on top of it. */
-      rescaled: b('d_a').w === 5 && b('d_a').h === 3 && b('d_a').x === 1,
-      inside: all.every(x => x.x >= 1 && x.x + x.w - 1 <= 9),
+      rescaled: b('d_a').w === 4 && b('d_a').h === 3 && b('d_a').x === 1,
+      inside: all.every(x => x.x >= 1 && x.x + x.w - 1 <= 8),
       clear,
       nothingElseAdded: BUREAU.state.objects.length === 4,
       deskUntouched: BUREAU.state.objects.find(o=>o.id==='d_b').desk.x === 7
@@ -1329,6 +1339,39 @@ const CHROME = process.env.BUREAU_CHROME;
     return out;
   });
 
+  /* --- three grid sizes to try on. The only number that changes is how many
+     columns a phone board has; the cell is square, so the columns set its size
+     and the rows are whatever fits. Switching rescales every stored phone box —
+     a column count is a coordinate space — and the rounding is half *down* so a
+     two-cell drawer front does not grow into three on a finer grid, which is
+     what makes eight to ten and back the arrangement you started with. */
+  const gridSizes = await phone.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const S = BUREAU.state, out = {};
+    const g = () => document.querySelector('#drawergrid');
+    const cols = () => +getComputedStyle(g()).getPropertyValue('--cols');
+    const rack = () => ['d_today','d_in','d_all','d_ideas'].map(id => {
+      const b = S.objects.find(o => o.id === id).phone;
+      return `${b.x},${b.y},${b.w}x${b.h}`; }).join('|');
+    const square = () => Math.abs(g().getBoundingClientRect().width/cols()
+      - parseFloat(getComputedStyle(g()).getPropertyValue('--rowh'))) < 1;
+    const was = rack();
+    out.smallIsTheDefault = S.look.grid === 'small' && cols() === 8;
+    BUREAU.setGrid('extra'); await nap(400);
+    out.extraIsNine = cols() === 9 && square();
+    BUREAU.setGrid('large'); await nap(400);
+    out.largeIsTen = cols() === 10 && square();
+    // …and the cells get smaller as the columns get more, which is the point
+    const big = 390/8, small = 390/10;
+    out.moreColumnsSmallerCells = big > small;
+    BUREAU.setGrid('small'); await nap(400);
+    out.backIsWhereYouWere = cols() === 8 && rack() === was;
+    // the shelf is still the last row of it, whatever size that is
+    out.shelfFollows = +getComputedStyle(document.querySelector('.pinrow'))
+      .getPropertyValue('--cols') === 8;
+    return out;
+  });
+
   /* --- one shelf, and it is the catch-all. There were two: the desks along
      the bottom and this desk's own pins along the top, which was two answers to
      "what can I reach from here" at opposite ends of the screen. The desks came
@@ -1409,7 +1452,7 @@ const CHROME = process.env.BUREAU_CHROME;
     const shelf = document.querySelector('.pinrow');
     out.rowsMeasured = BUREAU.pageRows >= 12;
     out.shelfIsAGridRow = !!shelf
-      && +getComputedStyle(shelf).getPropertyValue('--cols') === 9
+      && +getComputedStyle(shelf).getPropertyValue('--cols') === 8
       && Math.abs(parseFloat(getComputedStyle(shelf).getPropertyValue('--rowh'))
                 - parseFloat(getComputedStyle(g()).getPropertyValue('--rowh'))) < 0.5;
     out.exactlyOnePage = /repeat\((\d+),/.exec(g().style.gridTemplateRows)[1] === String(BUREAU.pageRows);
@@ -1783,7 +1826,7 @@ const CHROME = process.env.BUREAU_CHROME;
   console.log(JSON.stringify({
     errors: errs, manifestOk, swReady, survived, styleSurvived, slotColours,
     newObjectSeen, inlineEdit, sortDefaults, taskLook,
-    shelfTools, shelves, versionShown, sampler, paging, shelfSwipe,
+    shelfTools, gridSizes, shelves, versionShown, sampler, paging, shelfSwipe,
     gridClass, offlineWorks, railGone, tabsGone, pinbarShown, pinNavigates,
     pinToggle, pinToggles, holdArms, maxDrift,
     settingsIsPanel, pickerPreviews, builderPreview, everyMenuIsAPanel,

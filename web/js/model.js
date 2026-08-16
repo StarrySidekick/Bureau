@@ -404,7 +404,9 @@ function reset(){
 function defaultLook(){
   return {bg:null, accent:null, line:null, board:null, boardAlpha:1, owner:'',
           // light or dark follows the device unless you insist otherwise
-          dark:'auto', style:'victorian', slots:{}, styleDefaults:null};
+          dark:'auto',
+          // small | extra | large — how many columns a phone board has
+          grid:'small', style:'victorian', slots:{}, styleDefaults:null};
 }
 reset();
 

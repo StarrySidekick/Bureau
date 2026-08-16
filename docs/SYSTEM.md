@@ -253,9 +253,10 @@ answer is a drawer.
 Each container is its own coordinate space, and every device has its own.
 
 - **24 columns** on a Mac, with unlimited rows and a board that scrolls.
-  **9 columns** on a phone, where the board is pages rather than a scroller, and
-  the last row is the shelf: nine by however many fit, plus one.
-- Cells are **square** on both, ~58px on a Mac and ~43px on a phone. Columns are
+  On a phone the count is a **setting** — Small (8), Extra (9), Large (10),
+  `S.look.grid`, Small by default — the board is pages rather than a scroller,
+  and the last row is the shelf: *n* by however many fit, plus one.
+- Cells are **square** on both, ~58px on a Mac and ~49px on a phone at Small. Columns are
   fluid, so `sizeGrid()` measures the column width after layout, caches it in
   `COLW`, and makes the row height (`CELL`) match. Nothing may assume either.
   How many rows a phone page holds is the measured leftover — about seventeen —

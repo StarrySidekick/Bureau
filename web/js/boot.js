@@ -4,7 +4,7 @@
 import { $ } from './util.js';
 import { S, KINDS, SHAPES, childrenOf, container, relate } from './model.js';
 import { pageRows, freeSpot } from './grid.js';
-import { create, setPin, togglePin, del, delMany, delDrawer, undo, toggleDone } from './mutations.js';
+import { create, setPin, togglePin, del, delMany, delDrawer, undo, toggleDone, setGridSize } from './mutations.js';
 import { applyLook } from './look.js';
 import { render, settingsPanel, pageAt, pageCount, goPage } from './views.js';
 import { overlayHTML, objectPanel } from './panels.js';
@@ -39,6 +39,8 @@ window.BUREAU = {
   get K(){ return KINDS; },
   get shapes(){ return SHAPES; },
   paste: pasteObjects, relate, pin: togglePin, setPin, renderSheet,
+  // small | extra | large — the three phone grids, for trying on
+  setGrid: setGridSize,
   // the three things an object opens onto: its settings, its words, its paper
   panel: objectPanel, write: openWriter, read: openRead,
   del, delMany, delDrawer, undo, toggleDone,

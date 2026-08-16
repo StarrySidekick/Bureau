@@ -1524,3 +1524,45 @@ without the caret being destroyed.
 next (menu, drag, or nothing), which is more than any other gesture in the app
 carries. It is only defensible because it is the gesture iOS itself uses, and it
 would not be worth inventing.
+
+---
+
+### 48. Three grid sizes, and the columns are the only number
+
+A phone board has been eight columns, then ten, then nine, in three consecutive
+versions, each chosen by argument rather than by looking at it. It is a setting
+now — **Small** (8), **Extra** (9), **Large** (10) — so the question can be
+answered by living with each of them for a day.
+
+The column count is the only number any of them changes. The width is the
+width, so the columns set the cell; the cell is square (decision 44), so the
+cell sets the rows; and the last row is the shelf whatever the size (decision
+46). Fewer columns therefore means bigger cells and fewer of them, which is why
+Small is the fewest columns rather than the smallest tiles. Small is the
+default.
+
+A column count is a **coordinate space** — every stored phone box is measured
+in it — so switching runs the same rescale a migration does, live, on the
+objects in memory. Each tile keeps the fraction of the screen it had.
+
+Two details in that rescale earn their place, both learnt the hard way:
+
+- **Round half down.** Half up grew a two-cell drawer front into three every
+  time the grid got finer (2 × 1.25 = 2.5 → 3), which broke the rack apart and
+  then could not put it back — flipping Small → Large → Small returned a
+  different desk from the one you left. Half down keeps it two in both
+  directions, and a full-width tile still maps exactly (8 × 1.25 = 10).
+- **Scale the left edge, not the column number.** Column 3 is *two cells in
+  from the left*, not three, and scaling the 1-based number instead of the
+  offset slides everything right as the grid gets finer.
+
+Together those make eight to ten and back the arrangement you started with, for
+the sizes that matter. It is not guaranteed in general — two roundings can
+still land a box a cell from where it began — which is why this is a setting you
+choose from rather than something a gesture does.
+
+*Against:* three sizes is three things to test, and the phone grid is now the
+one coordinate space in the app that a *setting* can change. That is a real
+sharp edge: anything that stores a phone box has to accept that the space it
+was measured in may be replaced under it. Nothing does, today, because every
+box goes through `lay()` — which clamps — and `boxOk()`, which refuses.

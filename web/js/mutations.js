@@ -1,12 +1,12 @@
 import { $, esc, uid, ROOT, D } from './util.js';
 import { S, byId, K, KINDS, KEYS, kindHas, has, isContainer, genKindOf, streak, T, dz, dev,
   deskIds, deskHere, placeOf, cfgOf } from './model.js';
-import { gridOf, freeSpot, lay, boxOk, sizeOfKind } from './grid.js';
+import { GRID, PHONE_GRIDS, gridOf, freeSpot, lay, boxOk, sizeOfKind } from './grid.js';
 import { randomFront, randomBoard, styleDefaults } from './look.js';
 import { render } from './views.js';
 import { tileRect, pop } from './motion.js';
 import { closeSheet } from './sheet.js';
-import { assetDel } from './persist.js';
+import { assetDel, rescalePhone, save } from './persist.js';
 
 /* ============================================================
    6 · mutations
@@ -143,6 +143,31 @@ function delDrawer(id){
   toast('Drawer removed — its contents kept', true);
   render();
 }
+/* ---- changing the size of the phone grid -------------------------------
+   The three sizes are three column counts, and a column count is a coordinate
+   space: every stored phone box is measured in it. So switching is a migration
+   run live — the same rescale the numbered ones do, on the objects in memory
+   rather than on a snapshot — and each tile keeps the fraction of the screen it
+   had. Rounding can push two neighbours into each other, which rescalePhone()
+   repairs by re-placing whichever lands second.
+
+   It is not reversible to the pixel: going Small → Large → Small rounds twice
+   and a box may come back a cell wider than it went. That is the honest cost of
+   trying sizes on, and it is why this is a setting rather than a gesture.
+   See decision 48. */
+function setGridSize(key){
+  const cols = PHONE_GRIDS[key];
+  if(!cols) return;
+  const from = GRID.phone.cols;
+  S.look.grid = key;
+  if(cols!==from){
+    rescalePhone({objects:S.objects, kinds:S.kinds}, from, cols);
+    GRID.phone.cols = cols;
+  }
+  save(); render();
+  toast(`${key[0].toUpperCase()+key.slice(1)} — ${cols} across`);
+}
+
 /* Where a drawer is kept, which is deliberately not a property of the drawer —
    see the note on the shelf in model.js. `where` is:
 
@@ -348,5 +373,5 @@ function randomThing(parentId){
 
 // toggleHabit isn't exported — a streak reaches it through toggleDone, which is
 // the one door, so nothing outside has to know a habit ticks differently.
-export { toast, toggleDone, del, delMany, delDrawer, undo, pushUndo, setPin, togglePin,
+export { toast, setGridSize, toggleDone, del, delMany, delDrawer, undo, pushUndo, setPin, togglePin,
   drawerForTag, create, gather, quickAdd, spawnInto, randomThing };
