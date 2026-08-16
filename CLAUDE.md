@@ -149,6 +149,19 @@ magic drawer collecting that tag or makes one. If you are tempted to add a
 filter UI, add a drawer instead — that is the same instinct that deleted the
 tabs (decision 22).
 
+**A thing that lasts is not a thing with a date.** `date` is the day something
+falls on; `span` adds `till`, the last day, inclusive. Ask `spanOf(o)` (null
+unless it has both, in order) and `coversDay(o,iso)` — never `o.due===iso`, or
+a trip disappears from every day but its first. A backwards span is ignored
+rather than drawn wrong. Moving a spanning thing carries its length: go through
+`reschedule()` in `gestures.js`.
+
+**A layout that runs on time collects containers; a grid one doesn't.** A magic
+drawer refuses containers — a rack of drawers inside another drawer is a desk
+with two of everything on it — except when it is laid out along time, because
+the thing happening that week is very often a container. `showsContainers(c)`,
+by face or by layout.
+
 **Calendar and timeline are layouts, not kinds.** `layout` is how a container
 arranges its children when opened — `grid | list | scroll | book | calendar |
 timeline` — and `face` is how it draws on its parent's board. Any container can
@@ -231,12 +244,28 @@ Everything) are gone — they were hard-coded aggregations, which is a magic
 drawer's job. Don't add a view without a very good reason — a magic drawer is
 nearly always the answer. See decision 22.
 
+**There is more than one desk, and a desk is a drawer with a place of its own.**
+`S.desks` is the master space: an ordered row of container ids with `ROOT` among
+them. A container in it is somewhere you can *be* — the breadcrumb roots there
+(`chainOf` stops at a desk), the top shelf belongs to it, and a sideways swipe
+walks the row. Everything else is a drawer, somewhere you went *into*. Ask
+`isDesk(id)` and `deskOf(o)`; promote with `setPin(id,'desk')`. The row does
+**not** wrap — a space you can walk off the end of is a space you can learn.
+See decision 39.
+
+**A magic drawer sees its own desk unless it says otherwise.** `filter.scope` is
+`desk` (the default) | `all` | `some` + `filter.scopeDesks`. Without it, a rule
+on the Exercise desk answers with screenplay scenes. `inScope()` is checked
+before every other clause in `inContainer()`, so it applies to the archive and
+to every rule alike.
+
 **There are two shelves, and a shelf is a strip you can reach from anywhere.**
-The **top** one carries the tools and rides in the grid bar; the **bottom** one
-is where drawers pin by default and is its own strip along the bottom of a
-phone. On a Mac both are drawn along the top. `S.pins` is the bottom shelf and
-`S.pinsTop` the top — ask `pinnedOn(id)`, and render either with
-`shelfStrip(where)`. `pins` kept its name so no desk needs a migration.
+The **bottom** one *is* the master space — the row of desks, home included, in
+its own order. The **top** one carries the tools and whatever you pinned **on
+this desk**, and rides in the grid bar. On a Mac both are drawn along the top;
+on a phone the bottom one is its own strip along the bottom, which is the half a
+thumb reaches. Ask `placeOf(id)`, `shelfHere()`, and render either with
+`shelfStrip(where)`.
 
 **Every tool on the top shelf is a toggle, not a menu.** The sort cycles seven
 states and *wears the one it is on*; the lock is a lock, open or shut. A phone

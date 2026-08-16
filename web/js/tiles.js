@@ -1,7 +1,7 @@
 import { esc, ic, clamp, D, md, strip } from './util.js';
 import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, childrenOf, container,
   rollup, streak, goalPct, projectStat, tlSpan, dev, spawnByOf, genKindOf, takesTyping,
-  knobSizeOf, answered, sortOf,
+  knobSizeOf, answered, sortOf, spanOf, coversDay,
   calViewOf, weekStartOf, calCols } from './model.js';
 import { CELL, gridOf, lay, overlaps, boxOk, freeSpot, gridRows, sizeOfKind, ensureBox,
   pageRows } from './grid.js';
@@ -60,6 +60,12 @@ function spinTo(el, n){
   });
 }
 
+/* A date, said the way the object means it. One day is "Tomorrow"; a week is
+   "4 – 11 Sep", because "Tomorrow" for something that runs for a week answers
+   a question nobody asked. */
+const dateSaid = o => { const sp=spanOf(o);
+  return sp ? `${D.short(sp.from)} – ${D.short(sp.to)}` : D.human(o.due); };
+
 const HANDLES = ['nw','ne','se','sw'];   // corners only — any corner resizes
 
 /* The face of a calendar container: the span it is set to, with a mark on any
@@ -71,9 +77,13 @@ const DOWMARK = ['S','M','T','W','T','F','S'];
 function calFace(o){
   const view = calViewOf(o), cols = calCols(o);
   const anchor = D.parse(o.month||T) || D.today();
-  const byDay = {};
-  childrenOf(o).forEach(x=>{ if(x.due) byDay[x.due]=(byDay[x.due]||0)+1; });
   const {from, to, month} = calSpan(o, anchor, view);
+  // a thing that lasts marks every day it covers, the same as it does inside
+  const kids=childrenOf(o), byDay={};
+  for(let dt=new Date(from); dt<=to; dt=D.add(dt,1)){
+    const iso=D.iso(dt);
+    byDay[iso]=kids.filter(x=>coversDay(x, iso)).length;
+  }
   const cells=[];
   for(let dt=new Date(from); dt<=to; dt=D.add(dt,1)){
     if(!cols.includes(dt.getDay())) continue;
@@ -295,7 +305,7 @@ function drawTile(o, arr, box){
         style="--c:${colour};--pct:${st.pct}%;${place}">
       ${st.cover?`<span class="projcover" style="background-image:url('${esc(st.cover)}')"></span>`:''}
       <div class="dtop"><span class="dname">${esc(o.title||'Untitled')}</span>
-        ${o.due?`<span class="projdue${late?' late':''}">${esc(D.human(o.due))}</span>`:''}</div>
+        ${o.due?`<span class="projdue${late?' late':''}">${esc(dateSaid(o))}</span>`:''}</div>
       <div class="projbar"><i></i><b>${st.pct}%</b></div>
       <div class="projline">
         ${st.ticks?`<span>${st.done}/${st.ticks} done</span>`:`<span>${st.n||'Nothing'} inside</span>`}
@@ -320,7 +330,7 @@ function drawTile(o, arr, box){
   if(cont && shapeOf(o)==='ticket'){
     return `<button class="drawer dtile triptile bd-${o.border||'panel'}${sel}" data-drawer="${o.id}" style="--c:${colour};${place}">
       <div class="tkmain">
-        <span class="tklabel">${o.due?esc(D.human(o.due)):'Some day'}</span>
+        <span class="tklabel">${o.due?esc(dateSaid(o)):'Some day'}</span>
         <span class="dname">${esc(o.title||'Untitled')}</span>
         ${o.loc?`<span class="tkloc">${ic('flag',11)} ${esc(o.loc)}</span>`:''}
       </div>
@@ -340,6 +350,8 @@ function drawTile(o, arr, box){
     const pc = iso => ((D.parse(iso)-lo)/864e5)/Math.max(1,sp.days)*100;
     const kids=childrenOf(o).filter(x=>x.due||x.created)
       .sort((a,b)=>(a.due||a.created).localeCompare(b.due||b.created)).slice(0,10);
+    const runOf = x => { const sp=spanOf(x);
+      return sp ? Math.max(1, pc(sp.to)-pc(sp.from)) : 0; };
     const nowPc = (T>=sp.min && T<=sp.max) ? pc(T) : null;
     return `<button class="drawer dtile tltile bd-${o.border||'panel'}${sel}" data-drawer="${o.id}"
       data-tlspan="${o.id}:${sp.min}:${sp.max}" style="--c:${colour};${place}">
@@ -348,8 +360,9 @@ function drawTile(o, arr, box){
       <div class="tlwrap"><i class="tlrule"></i>
         ${nowPc!=null?`<i class="tlnowmark" style="left:${nowPc}%"></i>`:''}
         ${kids.map((x,i)=>{
-          const iso=x.due||x.created;
-          return `<span class="tlnode ${i%2?'below':'above'}" style="left:${pc(iso)}%">
+          const iso=x.due||x.created, run=runOf(x);
+          return `<span class="tlnode ${i%2?'below':'above'}${run?' lasts':''}"
+            style="left:${pc(iso)}%${run?`;--run:${run}%`:''}">
             <i></i><b>${esc((x.title||'Untitled').slice(0,18))}</b><u>${esc(D.short(iso))}</u></span>`;
         }).join('')}
       </div>
@@ -616,7 +629,7 @@ function listTile(o){
       ${img?`<img class="bandimg" src="${esc(o.media.src)}" alt="">`:''}
       <span class="dname${o.done?' done':''}">${esc(o.title||'Untitled')}</span>
       ${o.body?`<span class="bandsnip">${esc(strip(o.body).slice(0,120))}</span>`:''}
-      ${o.due?`<span class="mchip">${D.human(o.due)}</span>`:''}
+      ${o.due?`<span class="mchip">${esc(dateSaid(o))}</span>`:''}
       ${cont?`<span class="pull kn-${o.knob||'round'}"${o.knobc?` style="--knob:${esc(o.knobc)}"`:''}></span>`:''}
     </div>
   </button>`;
@@ -770,7 +783,7 @@ function scrollEntry(o){
     <header>
       ${has(o,'check')?`<span class="check${o.done?' on':''}" data-check="${o.id}">${ic('check',12)}</span>`:`<span class="kindmark">${ic(k.ic,13)}</span>`}
       <h3${o.done?' class="done"':''}>${esc(o.title||'Untitled')}</h3>
-      ${o.due?`<span class="mchip">${D.human(o.due)}</span>`:''}
+      ${o.due?`<span class="mchip">${esc(dateSaid(o))}</span>`:''}
       ${(o.tags||[]).map(t=>`<span class="mchip tag" data-tagdrawer="${esc(t)}">${esc(t)}</span>`).join('')}
     </header>
     ${has(o,'media')&&o.media&&o.media.src?`<img class="scrollimg" src="${esc(o.media.src)}" alt="${esc(o.title||'')}">`:''}

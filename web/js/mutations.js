@@ -1,6 +1,6 @@
 import { $, esc, uid, ROOT, D } from './util.js';
 import { S, byId, K, KINDS, KEYS, kindHas, has, isContainer, genKindOf, streak, T, dz, dev,
-  SHELVES, pinnedOn } from './model.js';
+  deskIds, deskHere, placeOf, cfgOf } from './model.js';
 import { gridOf, freeSpot, lay, boxOk, sizeOfKind } from './grid.js';
 import { randomFront, randomBoard, styleDefaults } from './look.js';
 import { render } from './views.js';
@@ -143,23 +143,38 @@ function delDrawer(id){
   toast('Drawer removed — its contents kept', true);
   render();
 }
-/* Pinning is deliberately not a property of the drawer — see the note on the
-   shelves in model.js. `where` is 'top', 'bottom' or null for not pinned at
-   all; a drawer is on at most one shelf, so pinning to one takes it off the
-   other. Pinning appends, so a shelf fills left to right in the order you
-   chose things, and unpinning leaves the rest where they were. */
+/* Where a drawer is kept, which is deliberately not a property of the drawer —
+   see the note on desks and shelves in model.js. `where` is:
+
+     desk    out in the master space, somewhere you can be
+     shelf   to hand on the desk you are on now, somewhere you can reach
+     null    neither: an ordinary drawer, on the board where it lives
+
+   A drawer is in at most one of them, so asking for one takes it out of the
+   other. Both append, so a row fills left to right in the order you chose
+   things, and taking one out leaves the rest where they were. */
 function setPin(id, where){
   const o=byId(id); if(!o || !isContainer(o)) return;
-  const to = where===true ? 'bottom' : (where||null);
-  Object.values(SHELVES).forEach(k=>{ S[k]=(S[k]||[]).filter(x=>x!==id); });
-  if(to && SHELVES[to]) (S[SHELVES[to]] = S[SHELVES[to]]||[]).push(id);
+  const to = where===true ? 'desk' : (where||null);
+  S.desks = (S.desks||[ROOT]).filter(x=>x!==id);
+  // out of every shelf, not just this desk's — a drawer promoted from one desk
+  // and demoted on another would otherwise leave a dead entry behind
+  deskIds().forEach(did=>{ const c=cfgOf(did);
+    if(Array.isArray(c.shelf)) c.shelf=c.shelf.filter(x=>x!==id); });
+  if(to==='desk') S.desks.push(id);
+  else if(to==='shelf'){ const c=cfgOf(deskHere()); c.shelf=[...(c.shelf||[]), id]; }
   render();
 }
+/* The star in the bar. It promotes, because that is the interesting half of
+   the question — and it says what promoting costs, since a drawer that becomes
+   a desk drops out of what every rule on every *other* desk can see, and that
+   is the one consequence you would not guess. */
 function togglePin(id){
   const o=byId(id); if(!o || !isContainer(o)) return;
-  const to = pinnedOn(id) ? null : 'bottom';    // drawers pin to the bottom shelf
-  setPin(id, to);
-  toast(to ? `${o.title} on the bottom shelf` : `${o.title} off the shelf`);
+  const was = placeOf(id)==='desk';
+  setPin(id, was ? null : 'desk');
+  toast(was ? `${o.title} is an ordinary drawer again`
+            : `${o.title} is a desk — rules on other desks stop seeing inside it`);
 }
 /* Tag filtering has no mode and no filter bar on purpose. A tag you care about
    enough to filter by is a tag you care about enough to keep, and "everything

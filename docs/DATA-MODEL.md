@@ -97,9 +97,13 @@ stored — `y` is one continuous coordinate space per container, and a page is a
 window of *n* rows onto it, where *n* is measured from this device's screen.
 Nothing about a box changes when it moves between pages.
 
-`S.pins` is the **bottom** shelf and `S.pinsTop` the top one; both are ordered
-lists of container ids, resolved on read. `pins` kept its old name so no desk
-needs migrating.
+`S.desks` is the **master space**: an ordered list of container ids with `root`
+among them, resolved on read, which the bottom shelf draws and a sideways swipe
+walks. A container in it is a *desk* — somewhere you can be — and everything
+else is an ordinary drawer. The **top** shelf is per desk, stored as `shelf` on
+the desk's own config (`cfgOf(deskId).shelf`), because what you keep to hand is
+a different answer on each of them. Migration 15 folded the old `pins` and
+`pinsTop` into the home desk's shelf and promoted nothing.
 
 `openId` used to mean "the object in the detail sheet". The sheet is gone
 (decision 36) and the name stayed, because every handler that read it wanted

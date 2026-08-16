@@ -91,6 +91,8 @@ function setField(el){
       break;
     }
     case 'filter.tag': if(o) o.filter=Object.assign({}, o.filter, {tag:v||undefined}); break;
+    // how far a magic drawer can see — its own desk, all of them, or a chosen few
+    case 'filter.scope': if(o) o.filter=Object.assign({}, o.filter, {scope:v||undefined}); break;
     case 'roll.fn': case 'roll.f': {
       if(!o) break;
       const r=Object.assign({}, o.roll);
@@ -110,8 +112,15 @@ function act(name, el){
     case 'new': modalNewObject(); break;
     // a drawer is made the way everything else is, and then talked to
     case 'newdrawer': { const d=create('drawer',{title:'New drawer'}); save(); render(); reveal(d.id); objectPanel(d.id); break; }
-    // coming out of a drawer is the opening run backwards
-    case 'back': S.view='desk'; S.drawerId=null; S.kindFilter=null; render(); enter('back'); break;
+    /* Back goes up one, not all the way home. With more than one desk the top
+       of the tree is wherever you are working, so walking to the root every
+       time was walking past the thing you meant to get back to. */
+    case 'back': {
+      const o=byId(el.dataset.id), up=(o&&o.parent)||ROOT;
+      S.view = up===ROOT ? 'desk' : 'drawer';
+      S.drawerId = up===ROOT ? null : up;
+      S.kindFilter=null; render(); enter('back'); break;
+    }
     /* iOS hands over the motion sensors only from inside a real gesture, which
        is why the holographic foil is a button you press rather than something
        that simply happens. Pressing it again holds the light still. */
@@ -577,7 +586,7 @@ function wire(){
     /* What is left of the panel's buttons once every one-of-many list became a
        select: swatches, the knob's own colours, and the read switch in the
        reading header — which is a header, not a panel. */
-    const pn=t.closest('[data-ocolour],[data-pboard],[data-pknobc],[data-oread],[data-fkind]');
+    const pn=t.closest('[data-ocolour],[data-pboard],[data-pknobc],[data-oread],[data-fkind],[data-fdesk]');
     if(pn){
       const id=pn.dataset.id, o=byId(id) || cfgOf(id);
       if(pn.dataset.ocolour!=null) o.c=slotVal(pn.dataset.ocolour);
@@ -586,6 +595,12 @@ function wire(){
       // switching how it reads restarts it at the first page — page 7 of a
       // spread is not page 7 of a single page
       else if(pn.dataset.oread!=null){ o.read=pn.dataset.oread; S.bookAt=0; renderSheet(); }
+      else if(pn.dataset.fdesk!=null){
+        o.filter=Object.assign({}, o.filter);
+        const ds=(o.filter.scopeDesks||[]).slice(), k=pn.dataset.fdesk, i=ds.indexOf(k);
+        if(i>=0) ds.splice(i,1); else ds.push(k);
+        o.filter.scopeDesks=ds;
+      }
       else if(pn.dataset.fkind!=null){
         o.filter=Object.assign({}, o.filter);
         const ks=(o.filter.kinds||[]).slice(), k=pn.dataset.fkind, i=ks.indexOf(k);

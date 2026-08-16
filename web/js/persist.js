@@ -13,7 +13,7 @@ import { closePanel } from './panels.js';
    travel together, because "which Bureau is this phone running" is exactly the
    question you ask when a change appears not to have deployed. Shown in
    Settings, so it can be read off the device rather than guessed at. */
-const APP_VERSION = '1.3';
+const APP_VERSION = '1.4';
 const KEY = 'bureau.v1';
 const install = {deferred:null};   // the browser's install prompt, when one is on offer
 let saveTimer = null;
@@ -25,11 +25,12 @@ function snapshot(){
     const m=Object.assign({},o.media); delete m.src;
     return Object.assign({},o,{media:m});
   });
-  // a pin whose drawer has gone is dropped here rather than in every delete
-  // path; in memory it survives so undo can bring the drawer back pinned
-  const live = id => S.objects.some(o=>o.id===id);
-  const pins=(S.pins||[]).filter(live), pinsTop=(S.pinsTop||[]).filter(live);
-  return {v:DATA_V, savedAt:new Date().toISOString(), pins, pinsTop,
+  // a desk whose drawer has gone is dropped here rather than in every delete
+  // path; in memory it survives so undo can bring the drawer back as a desk.
+  // Home is always in the row and is not an object, so it is never filtered.
+  const live = id => id===ROOT || S.objects.some(o=>o.id===id);
+  const desks=(S.desks||[ROOT]).filter(live);
+  return {v:DATA_V, savedAt:new Date().toISOString(), desks,
           look:S.look, kinds:S.kinds, deskCfg:S.deskCfg, objects};
 }
 function writeNow(){
@@ -138,7 +139,7 @@ function dedupeIds(objects){
    skips all of them, an old backup replays only what it is missing. These
    used to be ad-hoc per-load mutations inside adopt(); a new repair that
    should run once belongs here, as the next numbered step. */
-const DATA_V = 14;
+const DATA_V = 15;
 const MIGRATIONS = [
   // Drawers and objects were two arrays and a drawer could not live inside
   // anything. foldDrawers also replays the old dense flow to give v1 drawers
@@ -284,6 +285,20 @@ const MIGRATIONS = [
       (d.objects||[]).filter(o=>o.kind==='question').forEach(swap);
       Object.entries(d.kinds||{}).forEach(([k,v])=>{ if(k==='question') swap(v); });
     }},
+  /* Desks, and the master space they sit in.
+     The bottom shelf used to be a list of favourites; it is the row of desks
+     now. Nobody's existing pins ever claimed to be a desk, so this promotes
+     none of them — both old shelves fold into the *home* desk's shelf, in the
+     order they were in, and the row starts as home alone. Everything is where
+     it was and looks how it looked; the difference is that there is now
+     somewhere else to put things. Promoting a drawer is a deliberate act, and
+     it should stay one. See decision 39. */
+  {v:15, up(d){
+      d.desks = [ROOT];
+      d.deskCfg = Object.assign({layout:'grid', locked:false, sort:null}, d.deskCfg);
+      d.deskCfg.shelf = [...(d.pinsTop||[]), ...(d.pins||[])];
+      delete d.pins; delete d.pinsTop;
+    }},
 ];
 function migrate(d){
   let v = d.v||0;
@@ -299,8 +314,8 @@ function adopt(d){
   S.kinds = d.kinds || {};
   if(d.deskCfg) S.deskCfg = Object.assign({layout:'grid',locked:false,sort:null}, d.deskCfg);
   S.look = Object.assign(defaultLook(), d.look||{});
-  S.pins = Array.isArray(d.pins) ? d.pins.slice() : [];
-  S.pinsTop = Array.isArray(d.pinsTop) ? d.pinsTop.slice() : [];
+  S.desks = Array.isArray(d.desks) && d.desks.length ? d.desks.slice() : [ROOT];
+  if(!S.desks.includes(ROOT)) S.desks.unshift(ROOT);   // home is always in the row
   S.undo = [];   // the moves on it referred to objects this desk has never had
   refreshKinds();
   return true;

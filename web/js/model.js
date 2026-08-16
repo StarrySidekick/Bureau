@@ -11,6 +11,7 @@ const ATTRS = {
   text:     {nm:'Text',       ds:'A markdown body'},
   check:    {nm:'Checkbox',   ds:'A box on the left that completes it'},
   date:     {nm:'Date',       ds:'Can be scheduled, and shows up in Today'},
+  span:     {nm:'Lasts',      ds:'Runs from its date to another one — a trip, a shoot, a term'},
   repeat:   {nm:'Repeats',    ds:'Completing it spawns the next one'},
   button:   {nm:'Button',     ds:'A button that opens an object, a drawer, or a link'},
   container:{nm:'Container',  ds:'Holds other objects — this is what makes a drawer'},
@@ -37,6 +38,7 @@ const ATTRS = {
 const FIELDS = {
   check:    {key:'done',   type:'bool',   nm:'Done'},
   date:     {key:'due',    type:'date',   nm:'Due'},
+  span:     {key:'till',   type:'date',   nm:'Runs until'},
   repeat:   {key:'repeat', type:'text',   nm:'Repeats'},
   link:     {key:'url',    type:'text',   nm:'Link'},
   count:    {key:'count',  type:'number', nm:'Count'},
@@ -108,7 +110,7 @@ const BUILTIN_KINDS = {
   image:   {nm:'Image',   ic:'image',   c:15, key:'G', ds:'A picture on the board',   size:[6,4], onclick:'read', attrs:['media'], body:'' },
   audio:   {film:true, nm:'Audio',   ic:'music',   c:10, key:'U', ds:'Something to listen to',    size:[6,2], onclick:'read', attrs:['text','media','duration'], body:'' },
   video:   {film:true, nm:'Video',   ic:'film',    c:9, key:'&', ds:'Something to watch',        size:[6,4], onclick:'read', attrs:['text','media','duration'], body:'' },
-  trip:    {shape:'ticket', nm:'Trip',    ic:'flag',    c:9, key:'P', ds:'Somewhere you are going',   size:[8,6], attrs:['container','date','duration','location'], layout:'grid', body:'' },
+  trip:    {shape:'ticket', nm:'Trip',    ic:'flag',    c:9, key:'P', ds:'Somewhere you are going',   size:[8,6], attrs:['container','date','span','location'], layout:'grid', body:'' },
   moodboard:{face:'moodboard', nm:'Moodboard', ic:'image', c:13, key:'B', ds:'Pictures, pinned together', size:[8,8], attrs:['container'], layout:'moodboard', body:'' },
   quote:   {shape:'quote', nm:'Quote',   ic:'book',    c:5, key:'Z', ds:'Someone else\'s words',      size:[6,4], onclick:'read', attrs:['text','link','rating'],
             body:'> \n\n— ' },
@@ -189,7 +191,7 @@ function seed(){
   // at. The rest of the desk is left clear on purpose: what a drawer holds is
   // behind it, so a wall of them is the whole point and takes one row.
   const drawers = [
-    MG({id:'d_today', title:'Today',        c:6, filter:{due:'today'},                     desk:{x:1,y:1,w:2,h:2},  phone:{x:1,y:1,w:2,h:2}}),
+    MG({id:'d_today', title:'Today',        c:6, filter:{due:'today', scope:'all'},                     desk:{x:1,y:1,w:2,h:2},  phone:{x:1,y:1,w:2,h:2}}),
     DR({id:'d_in',    title:'Inbox',        c:5, desk:{x:3,y:1,w:2,h:2},  phone:{x:3,y:1,w:2,h:2}}),
     DR({id:'d_write', title:'Writing Desk', c:7, desk:{x:5,y:1,w:2,h:2},  phone:{x:5,y:1,w:2,h:2}}),
     DR({id:'d_ideas', title:'Idea Bin',     c:12, desk:{x:7,y:1,w:2,h:2},  phone:{x:7,y:1,w:2,h:2}}),
@@ -197,7 +199,7 @@ function seed(){
     DR({id:'d_kitch', title:'Kitchen',      c:11, desk:{x:11,y:1,w:2,h:2},  phone:{x:3,y:3,w:2,h:2}}),
     MG({id:'d_open',  title:'Open Questions',c:10,filter:{kinds:['question'], rule:{f:'answer',op:'is',v:''}},              desk:{x:13,y:1,w:2,h:2},  phone:{x:5,y:3,w:2,h:2}}),
     DR({id:'d_keep',  title:'Keeping Up',   c:8, desk:{x:15,y:1,w:2,h:2},  phone:{x:7,y:3,w:2,h:2}}),
-    MG({id:'d_done',  title:'Done & Dusted',c:5, filter:{done:true},                       desk:{x:17,y:1,w:2,h:2},  phone:{x:1,y:5,w:2,h:2}})
+    MG({id:'d_done',  title:'Done & Dusted',c:5, filter:{done:true, scope:'all'},                       desk:{x:17,y:1,w:2,h:2},  phone:{x:1,y:5,w:2,h:2}})
   ];
 
   // The app's own buttons live on the desk, on the grid, and move like anything
@@ -328,7 +330,13 @@ function seed(){
   // The drawers that start out on the shelves. A first desk should show what
   // pinning is for, and these are the ones worth reaching in one tap.
   return {objects: drawers.concat(controls, objects, museum),
-          pins: ['d_today','d_in','d_keep','d_done']};
+          /* Two of the drawers start as desks of their own, because one desk
+             holding a life is exactly the thing desks exist to stop — and a
+             sample desk that never demonstrates the master space is a sample
+             of the old app. The rest stay on the home desk's shelf, which is
+             what the bottom shelf used to be for. */
+          desks: [ROOT, 'd_write', 'd_kitch'],
+          shelf: ['d_today','d_in','d_keep','d_done']};
 }
 
 /* ============================================================
@@ -339,7 +347,7 @@ const sensedDevice = ()=> window.matchMedia('(min-width: 900px)').matches ? 'des
 function reset(){
   const s = seed();
   S = {
-    objects:s.objects, kinds:{}, pins:s.pins.slice(),
+    objects:s.objects, kinds:{}, desks:s.desks.slice(),
     // Light or dark comes from the style now — Victorian is a parchment desk,
     // Starry Sidekick is a night one — so there is no theme to store.
     device:sensedDevice(), layoutEdit:null,
@@ -348,7 +356,7 @@ function reset(){
     // editId is the tile being typed in on the board — a double tap turns a
     // name into a field in place. writeId is the full-screen writing surface.
     undo:[], editing:false, sel:[], readId:null, writeId:null, editId:null, bookAt:0,
-    deskCfg:{layout:'grid', locked:false, sort:null},
+    deskCfg:{layout:'grid', locked:false, sort:null, shelf:s.shelf.slice()},
     look:defaultLook()
   };
   refreshKinds();
@@ -419,6 +427,9 @@ function calCols(c){
    calendar whose days clear behind you is not a record of anything. */
 const DONE_FACES = ['checklist','project','calendar','timeline'];
 const keepsDone = c => DONE_FACES.includes(faceOf(c));
+// laid out along time rather than in a grid — by face, or by how it opens
+const TIME_FACES = ['calendar','timeline'];
+const showsContainers = c => TIME_FACES.includes(faceOf(c)) || TIME_FACES.includes(layoutOf(c));
 
 /* What a pile of these becomes. Dropping one object on another is only a
    gesture if both agree what they add up to — two tasks are a checklist, two
@@ -481,47 +492,101 @@ const openingOf = o => (o && o.opening) || K(o&&o.kind).opening || 'auto';
 const spreadOf = o => readOf(o)==='book' && S.device==='desk';
 const containers = ()=> S.objects.filter(isContainer);
 
-/* ---- the two shelves ---------------------------------------------------
-   A shelf is a strip of things you can reach without going anywhere. There are
-   two, and what is on them is what "the bar" used to be:
+/* ---- desks, and the master space they sit in --------------------------
+   There used to be one desk and everything was under it. That works until the
+   desk is asked to be a life: finances, a screenplay, what to eat, who to ring
+   — all of it landing on one board, all of it visible from everywhere at once.
 
-     top     the tools — view, sort, lock, random, settings — plus anything you
-             pin up there
-     bottom  where drawers pin by default
+   So a **desk** is a drawer that has been given a place in the master space: an
+   ordered row, with home in it like everything else, that you walk left and
+   right. A drawer that has not been given a place is an ordinary drawer, and
+   the difference between the two is only that one is somewhere you can *be*
+   and the other is somewhere you *went into*. That is why the breadcrumb roots
+   at the nearest desk, why the top shelf belongs to the desk you are on, and
+   why a magic drawer collects from its own desk unless told otherwise.
+
+   `S.desks` is that row, ids in order, ROOT among them. It is resolved on read
+   — a desk whose drawer has been deleted simply stops appearing, so no delete
+   path has to tidy up after itself. The row does not wrap: a space you can walk
+   off the end of is a space you can learn, and a loop with a seam in it is not
+   spatial. See decision 39. */
+const deskIds = ()=> (S.desks||[ROOT]).filter(id=>id===ROOT || (byId(id)&&isContainer(byId(id))));
+const deskList = ()=> deskIds().map(container).filter(Boolean);
+const isDesk = id => deskIds().includes(id||ROOT);
+/* Which desk something is on — the nearest ancestor that is one. ROOT is always
+   a desk, so this always terminates somewhere. */
+function deskOf(o){
+  let x = typeof o==='string' ? container(o) : o, n=0;
+  while(x && n++ < 100){
+    if(isDesk(x.id)) return x.id;
+    x = x.parent ? container(x.parent) : null;
+  }
+  return ROOT;
+}
+// which desk you are looking at, whichever board of it you are on
+const deskHere = ()=> deskOf(S.view==='drawer' && S.drawerId ? S.drawerId : ROOT);
+
+/* ---- the two shelves ---------------------------------------------------
+   A shelf is a strip of things you can reach without going anywhere.
+
+     bottom  the desks — the master space itself, in its own order
+     top     whatever you pinned *on this desk*, beside the tools
 
    On a phone the top shelf is along the top and the bottom shelf along the
    bottom, which is the half a thumb reaches. On a Mac both are along the top,
    because there is no bottom edge worth reserving on a desk.
 
-   Each shelf is an ordered list of ids, resolved on read — a pin whose drawer
-   has been deleted simply stops appearing, so no delete path has to tidy up
-   after itself. The order in a shelf is its own decision and has nothing to do
-   with where the drawer sits on the desk.
-
-   `S.pins` kept its name and its meaning (the bottom shelf) so old desks and
-   old backups need no migration; `S.pinsTop` is the new one. */
-const SHELVES = {bottom:'pins', top:'pinsTop'};
-const shelfList = where => S[SHELVES[where]||'pins'] || [];
-// 'top' | 'bottom' | null — where this drawer is pinned, if anywhere
-const pinnedOn = id => (S.pinsTop||[]).includes(id) ? 'top'
-                     : (S.pins||[]).includes(id) ? 'bottom' : null;
-const isPinned = id => !!pinnedOn(id);
-const shelfDrawers = where => shelfList(where).map(byId).filter(o=>o && isContainer(o));
-// every pinned drawer, top then bottom — what a two-finger swipe walks through
-const pinnedDrawers = ()=> shelfDrawers('top').concat(shelfDrawers('bottom'));
+   The bottom shelf stopped being a list of favourites and became the row of
+   desks, which is the same strip doing a job it was already halfway doing. The
+   top one moved the other way: it lives on the desk it belongs to, because
+   "what I keep to hand" is a different answer in Finance than in a screenplay. */
+const shelfOf = id => (cfgOf(isDesk(id)?id:deskOf(id)).shelf) || [];
+const shelfHere = ()=> shelfOf(deskHere());
+const shelfDrawers = where => (where==='bottom' ? deskIds().filter(id=>id!==ROOT) : shelfHere())
+  .map(byId).filter(o=>o && isContainer(o));
+// 'desk' | 'shelf' | null — how this drawer is kept, if at all
+const placeOf = id => isDesk(id) && id!==ROOT ? 'desk'
+                    : shelfHere().includes(id) ? 'shelf' : null;
 
 /* A drawer holds. A magic drawer collects. Nothing does both.
    An object lives in exactly one drawer — its `parent` — and that is the only
    thing an ordinary drawer shows. A magic drawer ignores parentage entirely and
    shows whatever matches its rule, which is the one way an object appears in
    more than one place at once. */
+/* How far a magic drawer can see. A rule with nothing bounding it matches
+   across every desk there is, which is right for an inbox and wrong for
+   everything else: "anything due this week" on the Exercise desk should not
+   answer with a screenplay scene. So a magic drawer collects from its own desk
+   unless it says otherwise, and saying otherwise is two values —
+
+     desk   the desk this drawer is on (the default)
+     all    every desk there is, which is what an inbox or a Today wants
+     some   the desks named in `scopeDesks`
+
+   For a desk that has never been split up this changes nothing: everything is
+   on the home desk, so "this desk" and "everywhere" are the same answer. It
+   starts mattering the moment you promote a drawer, which is the moment you
+   wanted it to. See decision 39. */
+function inScope(c, o){
+  const f=c.filter||{};
+  if(f.scope==='all') return true;
+  const want = (f.scope==='some' && (f.scopeDesks||[]).length) ? f.scopeDesks : [deskOf(c)];
+  return want.includes(deskOf(o));
+}
 function inContainer(c,o){
   if(!c || o.id===c.id) return false;
   if(has(c,'magic')){
     const f=c.filter||{};
+    if(!inScope(c,o)) return false;    // before anything else: it cannot see it
     if(f.done) return !!o.done;        // the archive
     if(o.done && !keepsDone(c)) return false;   // finished things leave elsewhere
-    if(isContainer(o)) return false;   // magic drawers collect objects, not drawers
+    // A magic drawer collects objects, not drawers: a rack of drawers appearing
+    // inside another drawer is a desk with two of everything on it. The one
+    // exception is a face that lays things out in *time*, because a thing that
+    // happens on a day is very often a container — a trip holds its plan, a
+    // shoot holds its shots — and a calendar that can show neither is a
+    // calendar that cannot answer "what is happening that week".
+    if(isContainer(o) && !showsContainers(c)) return false;
     if(f.due==='today') return !!o.due && D.parse(o.due)<=D.today();
     if(f.tag && !(o.tags||[]).includes(f.tag)) return false;
     if(f.kinds && f.kinds.length && !f.kinds.includes(o.kind)) return false;
@@ -626,11 +691,41 @@ function unrelate(aId,bId){
   const a=byId(aId); if(!a||!a.rel) return;
   a.rel=a.rel.filter(x=>x!==bId);
 }
+/* The breadcrumb, from the desk you are on down to here. It stops at the desk
+   rather than walking all the way to the root, because a desk is somewhere you
+   *are*: "Finance › Bills" is where you are, and "Desk › Finance › Bills" is a
+   path back to a house you have not lived in since there was more than one. */
 function chainOf(id){
   const out=[]; let o=byId(id), n=0;
-  while(o && n++ < 100){ out.unshift(o); o = o.parent&&o.parent!==ROOT ? byId(o.parent) : null; }
+  while(o && n++ < 100){
+    out.unshift(o);
+    if(isDesk(o.id)) break;
+    o = o.parent&&o.parent!==ROOT ? byId(o.parent) : null;
+  }
   return out;
 }
+
+/* ---- a thing that lasts more than a day -------------------------------
+   `date` is the day something falls on. A trip, a shoot week or a term does
+   not fall on a day, it *occupies* days — and the difference is not cosmetic:
+   a calendar has to mark all of them, a timeline has to draw a bar rather than
+   a dot, and dragging one to a new day has to carry its length with it.
+
+   So `span` is an attribute of its own rather than a second meaning for
+   `date`: it needs a date to start from, everything dated does not last, and
+   an attribute is the only thing in Bureau that a type can be given without
+   anything being told about it. `till` is the last day, inclusive — a trip
+   from the 4th to the 11th is on the desk on the 11th. */
+function spanOf(o){
+  if(!o || !has(o,'span') || !o.due || !o.till) return null;
+  if(o.till < o.due) return null;               // ISO strings sort as dates
+  return {from:o.due, to:o.till,
+          days:Math.round((D.parse(o.till)-D.parse(o.due))/864e5)+1};
+}
+// every day a thing sits on: the span if it has one, otherwise the one day
+const coversDay = (o, iso) => { const s=spanOf(o);
+  return s ? (iso>=s.from && iso<=s.to) : o.due===iso; };
+const lastDay = o => { const s=spanOf(o); return s ? s.to : (o&&o.due)||null; };
 
 /* A timeline's axis, as two dates. Read from what it holds — but an empty
    timeline, or one where everything happened on a Tuesday, has no span to
@@ -638,7 +733,8 @@ function chainOf(id){
    you cannot drop anything on is a timeline you could never have started. */
 const TL_MIN_DAYS = 28;
 function tlSpan(c){
-  const ds=childrenOf(c).map(x=>x.due||x.created).filter(Boolean).sort();
+  // both ends of everything, so a trip's last day is inside the axis too
+  const ds=childrenOf(c).flatMap(x=>[x.due||x.created, lastDay(x)]).filter(Boolean).sort();
   const lo=ds.length?D.parse(ds[0]):D.today(), hi=ds.length?D.parse(ds[ds.length-1]):D.today();
   const days=Math.round((hi-lo)/864e5);
   if(days>=TL_MIN_DAYS) return {min:D.iso(lo), max:D.iso(hi), days};
@@ -707,9 +803,11 @@ export { ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds, K,
   attrsOf, has, kindHas, T, dz, S, sensedDevice, reset, defaultLook, dev, byId,
   deskTitle, rootObj, container, cfgOf, isContainer, FACES, faceOf, layoutOf, SHAPES,
   shapeOf, READS, readOf, spreadOf, OPENINGS, openingOf, gathersOf, gatherKind, containers,
-  SHELVES, shelfList, shelfDrawers, pinnedOn, isPinned, pinnedDrawers,
+  deskIds, deskList, isDesk, deskOf, deskHere,
+  shelfOf, shelfHere, shelfDrawers, placeOf,
+  spanOf, coversDay, lastDay,
   KNOBSIZES, knobSizeOf, answered,
-  spawnByOf, genKindOf, takesTyping, keepsDone,
+  spawnByOf, genKindOf, takesTyping, keepsDone, showsContainers,
   CALVIEWS, calViewOf, weekStartOf, showsWeekends, calCols,
   OPS, ROLLS, rollup, SORTS, MANUAL, SORT_CYCLE, sortMark, nextSort, sortOf, childrenOf, isAncestor,
   relatedTo, backlinksTo, relate, unrelate, chainOf, tlSpan, streak, goalPct,

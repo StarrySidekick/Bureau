@@ -1,5 +1,6 @@
 import { $, $$, clamp, D, ROOT } from './util.js';
-import { S, byId, dev, has, isAncestor, childrenOf, container, gatherKind } from './model.js';
+import { S, byId, dev, has, isAncestor, childrenOf, container, gatherKind, spanOf,
+  cfgOf, deskHere } from './model.js';
 import { CELL, gridOf, cellW, lay, boxOk, overlaps } from './grid.js';
 import { toast, gather } from './mutations.js';
 import { pending, tileTap, fireButton } from './tiles.js';
@@ -186,6 +187,14 @@ function autoPan(){
   }
   panning=requestAnimationFrame(autoPan);
 }
+/* Moving a dated thing to a new day. A thing that *lasts* keeps its length —
+   dragging a week in Lisbon to the following Monday means the whole week, not
+   a trip that now ends before it began. */
+function reschedule(d, iso){
+  const sp=spanOf(d);
+  d.due=iso;
+  if(sp) d.till=D.addISO(iso, sp.days-1);
+}
 /* Filing on a drop clears *both* layouts, not just this device's. The object
    has landed in a new container, which is a new coordinate space on the phone
    as much as on the desk — leaving the other box meant it kept a position that
@@ -248,7 +257,8 @@ function onDown(e){
     G={type:'shelf', el:shelfEl, sx:e.clientX, sy:e.clientY, mode:null};
     return;
   }
-  const pinEl=e.target.closest('.pinbar .pinbtn[data-drawer]');
+  // home is draggable too — where it sits in the row is a thing you can change
+  const pinEl=e.target.closest('.pinbar .pinbtn');
   if(pinEl && S.device==='desk'){
     G={type:'pin', el:pinEl, id:pinEl.dataset.drawer, bar:pinEl.parentElement,
        sx:e.clientX, sy:e.clientY, mode:null};
@@ -404,10 +414,10 @@ function onMove(e){
       G.mode='pin'; G.el.classList.add('dragging');
     }
     // slide past whichever neighbour the pointer has cleared the middle of
-    const sibs=[...G.bar.querySelectorAll('.pinbtn[data-drawer]')].filter(x=>x!==G.el);
+    const sibs=[...G.bar.querySelectorAll('.pinbtn')].filter(x=>x!==G.el);
     const after=sibs.filter(x=>{ const r=x.getBoundingClientRect(); return e.clientX > r.left+r.width/2; }).pop();
     if(after) after.after(G.el); else {
-      const firstPin=G.bar.querySelector('.pinbtn[data-drawer]');
+      const firstPin=G.bar.querySelector('.pinbtn');
       if(firstPin && firstPin!==G.el) firstPin.before(G.el);
     }
     return;
@@ -583,9 +593,14 @@ function onUp(e){
   if(g.type==='pin'){
     g.el.classList.remove('dragging');
     if(g.mode!=='pin') return;            // it was a click; let it navigate
-    S.pins=[...g.bar.querySelectorAll('.pinbtn[data-drawer]')].map(x=>x.dataset.drawer);
+    /* Read the new order straight off the bar. The bottom one is the row of
+       desks, and home is in it — it has no data-drawer, so it reads as ROOT
+       rather than being quietly dropped out of its own master space. */
+    const ids=[...g.bar.querySelectorAll('.pinbtn')].map(x=>x.dataset.drawer||ROOT);
+    if(g.bar.dataset.shelf==='bottom') S.desks=ids;
+    else cfgOf(deskHere()).shelf=ids.filter(x=>x!==ROOT);
     gestureFlags.suppressClick=true;      // the drag must not also open it
-    save(); render(); toast('Bar reordered');
+    save(); render(); toast(g.bar.dataset.shelf==='bottom'?'Desks reordered':'Shelf reordered');
     return;
   }
 
@@ -606,13 +621,13 @@ function onUp(e){
     // the month, because a date it can't be seen on is only half the gesture
     if(d && aim.day){
       const [did,iso]=aim.day.split(':');
-      d.due=iso; fileInto(d, did);
+      reschedule(d, iso); fileInto(d, did);
       save(); render(); toast(`Scheduled ${D.said(iso)}`);
       return;
     }
     // dropped along a timeline: the point on the axis is the date
     if(d && aim.tl){
-      d.due=aim.tl.iso; fileInto(d, aim.tl.id);
+      reschedule(d, aim.tl.iso); fileInto(d, aim.tl.id);
       save(); render(); swallow(aim.tl.id);
       toast(`Placed at ${D.said(aim.tl.iso)}`);
       return;

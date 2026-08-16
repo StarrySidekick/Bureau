@@ -5,6 +5,36 @@ Sequenced by dependency, not appetite: item 1 makes everything after it safer.
 
 ---
 
+## 0d. Queued 2026-08-16 (fourth pass) — desks, scope, spans — DONE (v58)
+
+See decision 39, `S.desks` in `model.js`, migration 15.
+
+The question was how to keep Bureau usable across many unrelated jobs — a
+to-do list, a screenplay, a travel plan, finances, exercise — without one board
+turning into a wall. The answer was not more features: nearly all of it was
+already expressible. It was that everything lived in one coordinate space with
+no notion of context.
+
+- **more than one desk.** A drawer given a place in the master space is
+  somewhere you can *be*: the breadcrumb roots there, the top shelf belongs to
+  it, and a sideways swipe walks the row without wrapping
+- **the bottom shelf is the master space**; the top one is per desk
+- **scope on magic drawers** — this desk (default), every desk, or a chosen few
+- **spans**: `till` alongside `due`, so a trip occupies days rather than
+  falling on one. Calendars mark every day, timelines draw a bar, and dragging
+  one carries its length
+- **a time layout collects containers**, so a calendar can show a trip — which
+  it could not before, because a trip is a container
+
+*Held off:* "save this drawer as a template" — Timothy has another idea for it.
+
+*Still open:* `deskOf()` walks the parent chain inside `inContainer()`, so it
+runs per object per container per render; fine at this size, unmeasured at a
+big one. There is no way to see all the desks at once — the row is the only
+view of the master space, which will stop working somewhere north of six.
+
+---
+
 ## 0c. Queued 2026-08-15 (third pass) — animations — DONE (v57)
 
 See decision 38, `web/js/motion.js` and `web/css/motion.css`.

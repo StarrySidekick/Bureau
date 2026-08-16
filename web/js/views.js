@@ -1,8 +1,9 @@
 import { $, esc, ic, D, md, clamp, ROOT } from './util.js';
-import { S, K, T, byId, has, isContainer, containers, childrenOf, chainOf,
-  deskTitle, rootObj, shelfDrawers, pinnedDrawers, isPinned, allTags, dev,
+import { S, K, T, byId, has, isContainer, containers, container, childrenOf, chainOf,
+  deskTitle, rootObj, shelfDrawers, deskIds, deskHere, deskOf, isDesk, allTags, dev,
   sortOf, SORTS, MANUAL, sortMark,
-  layoutOf, takesTyping, genKindOf, CALVIEWS, calViewOf, calCols } from './model.js';
+  layoutOf, takesTyping, genKindOf, CALVIEWS, calViewOf, calCols,
+  spanOf, coversDay, lastDay } from './model.js';
 import { CELL, PAGEROWS, pageRows, pageOfBox, lastPage, lay, gridOf, cellW } from './grid.js';
 import { themeNow, applyLook, lookVal, STYLES, BACKDROPS,
   palNow, setSlot, styleNow, hexOf, objColour, slotName, OBJ0 } from './look.js';
@@ -29,19 +30,31 @@ function sortButton(c){
   return `<button class="sqbtn${cur!==MANUAL?' on':''}" data-act="sortnext" data-id="${c.id}"
     title="Sorted: ${esc(SORTLABEL(cur))} — tap for the next">${mark}</button>`;
 }
+/* What a container is called at the top of its own board. Home has no title of
+   its own — it is whoever's desk this is. */
+const boardName = o => !o || o.id===ROOT ? deskTitle() : (o.title||'Untitled');
+
+/* The breadcrumb runs from the desk you are on, not from home: "Finance ›
+   Bills" is where you are, and "Desk › Finance › Bills" is a path back to a
+   house nobody has lived in since there was more than one of them. chainOf()
+   already stops at a desk; a drawer on the *home* desk stops short of it,
+   because home is not an object, so it is put back on the front here. */
 function gridBar(c){
-  const trail = c.id===ROOT ? [] : chainOf(c.id);
+  let trail = chainOf(c.id);
+  if(!(trail[0] && isDesk(trail[0].id))) trail = [container(deskOf(c.id)), ...trail];
+  const atDesk = trail.length<=1;
   const view = c.layout || 'grid';
   const views = {grid:'grid', list:'list', scroll:'feather'};
   const pages = pageCount(c.id);
   return `<div class="gridbar shelf shelf-top">
     <div class="where">
-      ${c.id===ROOT ? `<span class="here">${esc(deskTitle())}</span>` :
-        `<button class="iconbtn" data-act="back" title="Back">${ic('chevL',17)}</button>
-         <span class="trail"><b data-view="desk">Desk</b>${
-           trail.map((x,i)=>` ${ic('chevR',9)} ${i===trail.length-1
-             ? `<span class="here">${esc(x.title)}</span>`
-             : `<b data-drawer="${x.id}">${esc(x.title)}</b>`}`).join('')}</span>`}
+      ${atDesk ? `<span class="here">${esc(boardName(trail[0]))}</span>` :
+        `<button class="iconbtn" data-act="back" data-id="${c.id}" title="Back">${ic('chevL',17)}</button>
+         <span class="trail">${
+           trail.map((x,i)=>`${i?` ${ic('chevR',9)} `:''}${i===trail.length-1
+             ? `<span class="here">${esc(boardName(x))}</span>`
+             : x.id===ROOT ? `<b data-view="desk">${esc(deskTitle())}</b>`
+             : `<b data-drawer="${x.id}">${esc(boardName(x))}</b>`}`).join('')}</span>`}
       ${has(c,'magic')?`<span class="magicmark big" title="Collects by rule">${ic('sparkle',14)}</span>`:''}
       ${/* Dots while they fit; a count once they don't — nine dots is already
            more than you can aim at, and thirty is a texture. */''}
@@ -51,8 +64,9 @@ function gridBar(c){
           : `<b>${pageAt(c.id)+1}<u>/${pages}</u></b>`}</span>`:''}
     </div>
     ${/* A Mac has no bottom edge worth reserving, so both shelves ride up here
-         — the top one first, then whatever is pinned to the bottom. */''}
-    ${shelfStrip('top')}${S.device==='desk' ? shelfStrip('bottom') : ''}
+         — this desk's own pins first, then the row of desks. A phone has room
+         for neither: see below. */''}
+    ${S.device==='desk' ? shelfStrip('top')+shelfStrip('bottom') : ''}
     <div class="bartools">
       <button class="sqbtn" data-act="cycleview" data-id="${c.id}" title="View: ${view}">${ic(views[view]||'grid',16)}</button>
       ${sortButton(c)}
@@ -62,11 +76,21 @@ function gridBar(c){
       <button class="sqbtn${c.locked?' on locked':''}" data-act="togglelock" data-id="${c.id}"
         title="${c.locked?'Locked — tap to unlock':'Unlocked — tap to lock'}">${ic(c.locked?'lock':'unlock',16)}</button>
       <button class="sqbtn" data-act="randomone" data-id="${c.id}" title="Add something at random (testing)">${ic('sparkle',16)}</button>
-      ${c.id===ROOT?'':`<button class="sqbtn${isPinned(c.id)?' on':''}" data-act="pin" data-id="${c.id}"
-        title="${isPinned(c.id)?'Take off the shelf':'Pin to the bottom shelf'}">${ic('star',16)}</button>`}
+      ${/* The star promotes: a drawer becomes a desk of its own, out in the
+           master space, and stops being somewhere you went into. The shelf is
+           the quieter half of the same question and lives in the panel. */''}
+      ${c.id===ROOT?'':`<button class="sqbtn${isDesk(c.id)?' on':''}" data-act="pin" data-id="${c.id}"
+        title="${isDesk(c.id)?'Make it an ordinary drawer again':'Give it a place of its own'}">${ic('star',16)}</button>`}
       <button class="sqbtn" data-act="${c.id===ROOT?'appsettings':'drawersettings'}" data-id="${c.id}" title="Settings">${ic('gear',16)}</button>
     </div>
-  </div>`;
+  </div>
+  ${/* On a phone this desk's own pins get a row of their own under the bar.
+       They were in the bar and lost: the name of the desk, the page count and
+       five tools already fill 390px, and squeezing a title down to one letter
+       to fit two more buttons answers neither question. A row costs one row of
+       board — sizeGrid() measures what is left, so the page simply gets
+       shorter — and only when the desk you are on has anything pinned. */''}
+  ${S.device==='desk' ? '' : shelfStrip('top')}`;
 }
 
 function viewDesk(){
@@ -125,9 +149,19 @@ function dayPanel(d, iso, list, named){
 function viewCalendar(d, items){
   const view=calViewOf(d), cols=calCols(d), cap=CAPS[view]||6;
   const anchor = D.parse(d.month||T) || D.today();
-  const byDay={};
-  items.forEach(x=>{ if(x.due) (byDay[x.due]=byDay[x.due]||[]).push(x); });
   const {from, to, month} = calSpan(d, anchor, view);
+  /* A thing that lasts is on every day it covers, not only the one it starts
+     on — a trip you can't see on the Thursday is a trip you'd double-book. It
+     is named on its first visible day and drawn as a continuing bar after
+     that, which is how a week reads as one thing rather than seven. */
+  const byDay={};
+  for(let dt=new Date(from); dt<=to; dt=D.add(dt,1)){
+    const iso=D.iso(dt);
+    items.forEach(x=>{ if(coversDay(x, iso)){
+      const s=spanOf(x);
+      (byDay[iso]=byDay[iso]||[]).push({o:x, run:!!s, head:!s || x.due===iso});
+    }});
+  }
   const label = view==='day'
       ? anchor.toLocaleDateString(undefined,{weekday:'long',day:'numeric',month:'long'})
     : view==='week'
@@ -148,7 +182,7 @@ function viewCalendar(d, items){
   if(view==='day'){
     const iso=D.iso(anchor);
     // the head already says which day it is, so the panel doesn't say it again
-    return head + dayPanel(d, iso, byDay[iso]||[], true);
+    return head + dayPanel(d, iso, (byDay[iso]||[]).map(x=>x.o), true);
   }
   const cells=[];
   for(let dt=new Date(from); dt<=to; dt=D.add(dt,1)){
@@ -157,8 +191,10 @@ function viewCalendar(d, items){
     cells.push(`<div class="mcell${month!=null&&dt.getMonth()!==month?' out':''}${
         iso===T?' today':''}${iso===S.calDay?' sel':''}" data-calday="${d.id}:${iso}">
       <b>${dt.getDate()}</b>
-      ${list.slice(0,cap).map(x=>`<span class="mitem${x.done?' done':''}" style="--k:${objColour(x)}"
-        data-row="${x.id}" title="${esc(x.title||'Untitled')}">${esc(x.title||'Untitled')}</span>`).join('')}
+      ${list.slice(0,cap).map(({o,run,head})=>`<span class="mitem${o.done?' done':''}${
+          run?(head?' runs':' runs cont'):''}" style="--k:${objColour(o)}"
+        data-row="${o.id}" title="${esc(o.title||'Untitled')}">${
+          head?esc(o.title||'Untitled'):''}</span>`).join('')}
       ${list.length>cap?`<u>+${list.length-cap} more</u>`:''}
     </div>`);
   }
@@ -168,7 +204,7 @@ function viewCalendar(d, items){
     ${cols.map(n=>`<i class="dow">${DOWNAME[n]}</i>`).join('')}
     ${cells.join('')}
   </div>
-  ${sel?dayPanel(d, sel, byDay[sel]||[]):''}`;
+  ${sel?dayPanel(d, sel, (byDay[sel]||[]).map(x=>x.o)):''}`;
 }
 
 /* One day is `zoom` pixels wide. Labels would sit on top of each other at any
@@ -185,13 +221,18 @@ function viewTimeline(d, items){
     <b>${zoom}px</b></div>`;
   if(!dated.length) return `${slider}
     <div class="empty"><div class="big">Nothing to lay out</div>Objects need a date before they can sit on a timeline.</div>`;
-  const min=D.parse(dated[0].iso), max=D.parse(dated[dated.length-1].iso);
+  const min=D.parse(dated[0].iso);
+  // the axis has to reach the *end* of the last thing, not the start of it
+  const maxIso=dated.map(x=>lastDay(x.o)||x.iso).sort().pop();
+  const max=D.parse(maxIso);
   const at = iso => Math.round((D.parse(iso)-min)/86400000)*zoom;
   const LANE=136, laneEnd=[];
   const placed=dated.map(({o,iso})=>{
-    const x=at(iso);
+    const x=at(iso), sp=spanOf(o);
+    // a bar is as wide as it is long, so it reserves its own lane for that far
+    const w=Math.max(LANE, sp ? (sp.days-1)*zoom + LANE : 0);
     let lane=0; while(laneEnd[lane]!=null && x<laneEnd[lane]) lane++;
-    laneEnd[lane]=x+LANE;
+    laneEnd[lane]=x+w;
     return {o,iso,x,lane};
   });
   /* Ticks by week when the whole span is a couple of months, by month when it
@@ -217,11 +258,13 @@ function viewTimeline(d, items){
     ${ticks.map(k=>`<i class="tltick" style="left:${k.x}px"><u>${k.label}</u></i>`).join('')}
     ${todayX!=null?`<i class="tlnow" style="left:${todayX}px"><u>today</u></i>`:''}
     <i class="tlaxis"></i>
-    ${placed.map(p=>`<span class="tlitem${p.o.done?' done':''}" data-row="${p.o.id}"
-        style="left:${p.x}px;top:${p.lane*44+46}px;--k:${objColour(p.o)}">
-        <i class="tldot"></i>
+    ${placed.map(p=>{
+      const sp=spanOf(p.o), w=sp ? Math.max(6,(sp.days-1)*zoom) : 0;
+      return `<span class="tlitem${p.o.done?' done':''}${sp?' lasts':''}" data-row="${p.o.id}"
+        style="left:${p.x}px;top:${p.lane*44+46}px;--k:${objColour(p.o)}${sp?`;--run:${w}px`:''}">
+        ${sp?'<i class="tlbar"></i>':'<i class="tldot"></i>'}
         <b>${esc(p.o.title||'Untitled')}</b>
-        <u>${esc(D.short(p.iso))}</u></span>`).join('')}
+        <u>${esc(sp?`${D.short(sp.from)} – ${D.short(sp.to)}`:D.short(p.iso))}</u></span>`;}).join('')}
   </div></div>`;
 }
 
@@ -448,19 +491,37 @@ function settingsBody(){
    with a name under it, which meant five of them across a phone gave each one
    78px and "Done & Dusted" fitted in none of them. A square and a bigger mark
    say which drawer it is from further away than eight-point type ever did. */
+function pinBtn(d, on){
+  return `<button class="pinbtn${on?' on':''}${has(d,'magic')?' magic':''}"
+      data-drawer="${d.id}" style="--c:${objColour(d)}" title="${esc(d.title||'Untitled')}">
+    <i class="pinface">${ic(has(d,'magic')?'sparkle':K(d.kind).ic, 20)}</i>
+    <span>${esc(d.title||'Untitled')}</span></button>`;
+}
 function shelfStrip(where){
-  const pins=shelfDrawers(where);
-  const home = where==='bottom' || S.device==='desk';
-  if(!pins.length && !(home && S.device!=='desk')) return '';
+  /* The bottom shelf *is* the master space: the row of desks in its own order,
+     home among them rather than bolted to the front, because home is a desk
+     like the others and its place in the row is a thing you can change. The
+     one you are on is lit, which on a phone is the only page indicator the
+     row gets. */
+  if(where==='bottom'){
+    const ids=deskIds(), at=deskHere();
+    // a Mac with nowhere else to go has no use for a row of one
+    if(ids.length<2 && S.device==='desk') return '';
+    return `<nav class="shelf shelf-bottom pinbar" data-shelf="bottom">
+      ${ids.map(id=>{
+        if(id!==ROOT){ const d=byId(id); return d ? pinBtn(d, at===id) : ''; }
+        return `<button class="pinbtn home${at===ROOT?' on':''}" data-view="desk" title="${esc(deskTitle())}">
+            <i class="pinface">${ic('grid',20)}</i><span>${esc(deskTitle())}</span></button>`;
+      }).join('')}
+    </nav>`;
+  }
+  // …and the top shelf belongs to the desk you are on, because what you keep to
+  // hand is a different answer in Finance than it is in a screenplay
+  const pins=shelfDrawers('top');
+  if(!pins.length) return '';
   const here = id => S.view==='drawer' && S.drawerId===id;
-  return `<nav class="shelf shelf-${where} pinbar" data-shelf="${where}">
-    ${home && S.device!=='desk'
-      ? `<button class="pinbtn home${S.view==='desk'?' on':''}" data-view="desk" title="${esc(deskTitle())}">
-           <i class="pinface">${ic('grid',20)}</i></button>` : ''}
-    ${pins.map(d=>`<button class="pinbtn${here(d.id)?' on':''}${has(d,'magic')?' magic':''}"
-        data-drawer="${d.id}" style="--c:${objColour(d)}" title="${esc(d.title||'Untitled')}">
-      <i class="pinface">${ic(has(d,'magic')?'sparkle':K(d.kind).ic, 20)}</i>
-      <span>${esc(d.title||'Untitled')}</span></button>`).join('')}
+  return `<nav class="shelf shelf-top pinbar" data-shelf="top">
+    ${pins.map(d=>pinBtn(d, here(d.id))).join('')}
   </nav>`;
 }
 

@@ -3,7 +3,8 @@ import { S, K, KINDS, KEYS, T, ATTRS, USER_ATTRS, FIELDS, fieldOf, OPS, ROLLS,
   SORTS, MANUAL, sortOf, FACES, SHAPES, READS, OPENINGS, openingOf,
   faceOf, layoutOf, shapeOf, readOf, byId, container, cfgOf, deskTitle,
   rootObj, containers, isContainer, isAncestor, childrenOf, has, kindHas,
-  attrsOf, allTags, isPinned, pinnedOn, dev, takesTyping, genKindOf, answered,
+  attrsOf, allTags, placeOf, deskList, deskOf, isDesk, spanOf,
+  dev, takesTyping, genKindOf, answered,
   relatedTo, backlinksTo, streak, goalPct,
   CALVIEWS, calViewOf, weekStartOf, showsWeekends, KNOBSIZES, knobSizeOf } from './model.js';
 import { GRID, lay, boxOk, freeSpot, sizeOfKind, toPhoneSize } from './grid.js';
@@ -232,6 +233,8 @@ const prow=(label,body,note)=>`<div class="prow"><label>${label}${note?`<i>${not
 /* What "however it suits" has decided, for the one row where the default is a
    judgement rather than a value — otherwise the only way to find out which
    animation you are getting is to tap the thing and watch. */
+// what a desk is called — home has no title of its own
+const deskName = id => id===ROOT ? deskTitle() : ((byId(id)||{}).title || 'Untitled');
 const OPENING_IS = o => openingOf(o)==='auto'
   ? 'right now, it '+OPENINGS[openingFor(o)].toLowerCase() : '';
 const psel=(id,key,list,cur)=>`<select class="psel" data-oset="${id}:${key}">${
@@ -333,9 +336,25 @@ function objectPanelBody(id){
       [[MANUAL,'As I arranged them'], ...Object.entries(SORTS).map(([k,[nm]])=>[k,nm])],
       sortOf(d)||MANUAL)));
     out.push(prow('Moving things', psel(id,'locked',[['','Movable'],['1','Locked']], d.locked?'1':'')));
-    if(!isRoot) out.push(prow('On a shelf', psel(id,'pin',
-      [['','Not pinned'],['top','Top shelf'],['bottom','Bottom shelf']], pinnedOn(id)||''),
-      'the bottom one is where drawers live'));
+    if(!isRoot) out.push(prow('Where it is kept', psel(id,'pin',
+      [['','On the board it lives on'],['desk','A desk of its own'],['shelf','On this desk’s shelf']],
+      placeOf(id)||''),
+      'a desk is somewhere you can be'));
+    /* What a magic drawer can see. The default is its own desk, which for a
+       desk that has never been split up is everything — so this row only
+       starts mattering once there is more than one place to look. */
+    if(has(d,'magic')){
+      const sc=(d.filter||{}).scope||'desk';
+      out.push(prow('Collects from', psel(id,'filter.scope',
+        [['desk','This desk'],['all','Every desk'],['some','The desks I choose']], sc),
+        sc==='desk' ? esc(deskName(deskOf(id))) : ''));
+      if(sc==='some'){
+        const on=((d.filter||{}).scopeDesks)||[];
+        out.push(pgroup('Which desks', `<div>${deskList().map(k=>
+          `<button class="pchip${on.includes(k.id)?' on':''}" data-fdesk="${k.id}" data-id="${id}">${
+            esc(deskName(k.id))}</button>`).join('')}</div>`, true));
+      }
+    }
   } else if(!isRoot){
     out.push(prow('Clicking it', psel(id,'onclick', Object.entries(CLICKS), clickOf(d))));
     if(has(d,'text')) out.push(prow('Opens as', psel(id,'read', Object.entries(READS), readOf(d))));
@@ -363,6 +382,12 @@ function objectPanelBody(id){
   if(!isRoot){
     const f=[];
     if(has(o,'date')) f.push(prow(has(o,'progress')?'Target date':'Scheduled', pfield(id,'due',o.due,'date')));
+    /* A last day, inclusive: a trip from the 4th to the 11th is still on the
+       desk on the 11th. It needs a date to run from, so it says so rather than
+       drawing a lone field that means nothing on its own. */
+    if(has(o,'span')) f.push(prow('Runs until', pfield(id,'till',o.till,'date'),
+      o.due ? (spanOf(o) ? `${spanOf(o).days} days` : 'must not be before the date it starts')
+            : 'give it a date first'));
     if(has(o,'repeat')||has(o,'streak')) f.push(prow(has(o,'streak')?'Cadence':'Repeats',
       psel(id,'repeat',[['','Never'],['daily','Daily'],['weekdays','Weekdays'],['weekly','Weekly'],['monthly','Monthly']], o.repeat||'')));
     if(has(o,'link')) f.push(prow('Link', pfield(id,'url',o.url,'','https://')));
@@ -750,7 +775,7 @@ function openCtx(x,y,id){
     ${many?'' : `<button data-c="objset:${id}">${ic('sliders',14)} Object settings</button>
       ${isContainer(o)
         ? `<button data-c="opendrawer:${id}">${ic('eye',14)} Open</button>
-           <button data-c="pin:${id}">${ic('star',14)} ${isPinned(id)?'Take off the shelf':'Pin to the shelf'}</button>`
+           <button data-c="pin:${id}">${ic('star',14)} ${isDesk(id)?'Make it a drawer again':'Make it a desk'}</button>`
         : `${has(o,'text')?`<button data-c="read:${id}">${ic('eye',14)} Read</button>
              <button data-c="write:${id}">${ic('edit',14)} Write…</button>`:''}`}`}
     ${(!many&&(has(o,'check')||has(o,'streak')))?`<button data-c="done:${id}">${ic('check',14)} ${has(o,'streak')?'Mark today':'Complete'}</button>`:''}

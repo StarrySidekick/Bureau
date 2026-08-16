@@ -48,7 +48,9 @@ meaning, containers are finite, and opening one is a small deliberate act.
 | **Rule** | One clause — field, comparison, value — that a magic drawer matches against. |
 | **Rollup** | A number a container totals across its children, shown on its face. |
 | **Relation** | An id one object holds pointing at another. Read both ways. |
-| **Pin** | A drawer put on the navigation bar. An ordered list, `S.pins`. |
+| **Desk** | A drawer given a place in the master space — somewhere you can *be*, rather than somewhere you went into. An ordered list, `S.desks`, with `root` among them. |
+| **Master space** | The row the desks sit in. It does not wrap. |
+| **Pin** | A drawer kept to hand on the desk you are on. Per desk, `cfgOf(deskId).shelf`. |
 | **Panel** | The one menu shape: a strip down the right, over a live desk. |
 
 "Kind" in the code, "type" in the interface. `KINDS` kept its name so diffs
@@ -287,9 +289,13 @@ of four things layered over them.
 | **Popup** | Picking one of a handful — Sort, the context menu. Hangs off the button that opened it. | borrowed context-menu element |
 | **Command palette** | ⌘K. The one thing that kept a scrim, because it is a search field you type into blind. | `#frame` |
 
-**Navigation is the desk plus whatever you pinned.** There are no tabs. `S.pins`
-is an ordered list of drawer ids, resolved on read, so a deleted drawer's pin
-disappears by itself; with nothing pinned the bar isn't drawn.
+**Navigation is the desks plus whatever you pinned on the one you are on.**
+There are no tabs. `S.desks` is the row of desks and the bottom shelf draws it,
+home included; `cfgOf(deskId).shelf` is what is kept to hand *on that desk* and
+the top shelf draws that. Both are ordered lists of ids resolved on read, so a
+deleted drawer disappears from them by itself. The breadcrumb roots at the desk
+you are on rather than at home, and a sideways swipe walks the row without
+wrapping. See decision 39.
 
 **There are no modals.** `openPanel(spec)` is the whole system. `spec.body` is a
 function so `refreshPanel()` can redraw from state; a form's draft lives in the

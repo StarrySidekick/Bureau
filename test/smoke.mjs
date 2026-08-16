@@ -231,14 +231,15 @@ const CHROME = process.env.BUREAU_CHROME;
 
   // pinning is a round trip: on the bar, off the bar, and it survives a save
   const pinToggles = await phone.evaluate(() => {
-    const n = () => document.querySelectorAll('.pinbar .pinbtn[data-drawer]').length;
+    const n = () => document.querySelectorAll('.shelf-bottom .pinbtn[data-drawer]').length;
+    const d = BUREAU.state.objects.find(o => o.kind === 'drawer' && !BUREAU.state.desks.includes(o.id));
     const before = n();
-    BUREAU.pin('d_write');                       // the drawer we are looking at
+    BUREAU.pin(d.id);                            // the star promotes to a desk
     const added = n() === before + 1
-      && !!document.querySelector('.pinbtn[data-drawer="d_write"]');
-    BUREAU.pin('d_write');
+      && !!document.querySelector(`.shelf-bottom .pinbtn[data-drawer="${d.id}"]`);
+    BUREAU.pin(d.id);
     return added && n() === before
-      && !document.querySelector('.pinbtn[data-drawer="d_write"]');
+      && !document.querySelector(`.shelf-bottom .pinbtn[data-drawer="${d.id}"]`);
   });
 
   // --- everything is always movable; a hold arms the drag, a tap does not
@@ -638,12 +639,14 @@ const CHROME = process.env.BUREAU_CHROME;
     return kept;
   });
 
-  // --- a pin can be dragged along the bar, and the drag must not also navigate
+  /* --- the desk row can be dragged into a new order, and the drag must not
+     also navigate. Home is in the row like everything else, so it is dragged
+     the same way and reads as 'root' rather than being dropped out of it. */
   const pinReorder = await page.evaluate(async () => {
     const S = BUREAU.state;
-    const before = S.pins.slice();
+    const before = S.desks.slice();
     if (before.length < 2) return false;
-    const pins = [...document.querySelectorAll('.pinbar .pinbtn[data-drawer]')];
+    const pins = [...document.querySelectorAll('.shelf-bottom .pinbtn')];
     const first = pins[0], last = pins[pins.length - 1];
     const fr = first.getBoundingClientRect(), lr = last.getBoundingClientRect();
     const ev = (type, x) => first.dispatchEvent(new PointerEvent(type,
@@ -653,7 +656,7 @@ const CHROME = process.env.BUREAU_CHROME;
     ev('pointermove', lr.x + lr.width);
     ev('pointerup', lr.x + lr.width);
     await new Promise(r => setTimeout(r, 250));
-    const after = S.pins;
+    const after = S.desks;
     return after[after.length - 1] === before[0]
       && after.slice().sort().join() === before.slice().sort().join()
       && S.view === 'desk';                    // the reorder must not open it
@@ -1248,7 +1251,7 @@ const CHROME = process.env.BUREAU_CHROME;
     return out;
   });
 
-  /* --- two shelves. The tools live on the top one, drawers pin to the bottom,
+  /* --- two shelves. The tools live on the top one, the desks are the bottom,
      and on a Mac both are drawn along the top because there is no bottom edge
      worth reserving on a desk. */
   const shelves = await page.evaluate(async () => {
@@ -1256,14 +1259,18 @@ const CHROME = process.env.BUREAU_CHROME;
     const S = BUREAU.state, out = {};
     out.bothOnDesk = document.querySelectorAll('.gridbar .shelf-top, .gridbar .shelf-bottom').length >= 1
       && !!document.querySelector('.gridbar .shelf-bottom .pinbtn[data-drawer]');
-    const d = S.objects.find(o => o.kind === 'drawer' && !S.pins.includes(o.id));
-    BUREAU.setPin(d.id, 'top'); await nap(200);
-    out.pinsToTop = S.pinsTop.includes(d.id) && !S.pins.includes(d.id)
+    const shelf = () => BUREAU.state.deskCfg.shelf || [];
+    const d = S.objects.find(o => o.kind === 'drawer' && !S.desks.includes(o.id) && !shelf().includes(o.id));
+    BUREAU.setPin(d.id, 'shelf'); await nap(200);
+    out.pinsToTop = shelf().includes(d.id) && !S.desks.includes(d.id)
       && !!document.querySelector(`.shelf-top .pinbtn[data-drawer="${d.id}"]`);
-    BUREAU.setPin(d.id, 'bottom'); await nap(200);
-    out.movesShelf = S.pins.includes(d.id) && !S.pinsTop.includes(d.id);
+    // …and promoting it to a desk takes it off the shelf, because it is one or
+    // the other and never both
+    BUREAU.setPin(d.id, 'desk'); await nap(200);
+    out.movesShelf = S.desks.includes(d.id) && !shelf().includes(d.id)
+      && !!document.querySelector(`.shelf-bottom .pinbtn[data-drawer="${d.id}"]`);
     BUREAU.setPin(d.id, null); await nap(150);
-    out.unpins = !S.pins.includes(d.id) && !S.pinsTop.includes(d.id);
+    out.unpins = !S.desks.includes(d.id) && !shelf().includes(d.id);
     return out;
   });
 
@@ -1518,6 +1525,136 @@ const CHROME = process.env.BUREAU_CHROME;
   });
   await phone.screenshot({ path: 'test/shots/20-phone-pager.png' });
 
+  /* --- desks: a drawer given a place in the master space. What makes it a
+     desk rather than a drawer is that you are *at* it — so the breadcrumb
+     roots there, the shelf belongs to it, and the row you swipe is the row of
+     them. And a magic drawer stops seeing across the lot. */
+  await page.bringToFront();
+  await page.evaluate(() => { const S=BUREAU.state;
+    S.view='desk'; S.drawerId=null; S.deskCfg.locked=false; BUREAU.render(); });
+  await page.waitForTimeout(300);
+  const desks = await page.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const S = BUREAU.state, out = {};
+    const bar = () => (document.querySelector('.gridbar .where')||{}).textContent
+      .replace(/\s+/g,' ').trim();
+
+    out.homeIsInTheRow = S.desks.includes('root');
+    out.sampleHasMoreThanOne = S.desks.length > 1;
+    // the shelf is the home desk's, not the app's
+    out.shelfBelongsToHome = (S.deskCfg.shelf||[]).length > 0;
+
+    // at a desk there is no way "up": it is where you are, not what you are in
+    const dk = S.desks[1];
+    S.view='drawer'; S.drawerId=dk; BUREAU.render(); await nap(200);
+    out.aDeskIsWhereYouAre = bar() === (BUREAU.state.objects.find(o=>o.id===dk).title)
+      && !document.querySelector('[data-act="back"]');
+    out.itsOwnShelf = !document.querySelector('.shelf-top.pinbar .pinbtn');
+
+    // …and a drawer on it is somewhere you went into, from that desk
+    const inner = BUREAU.create('drawer', {parent:dk, title:'Drafts'});
+    inner.desk = BUREAU.free(2,2,dk);
+    S.drawerId = inner.id; BUREAU.render(); await nap(200);
+    out.breadcrumbRootsAtTheDesk =
+      bar().startsWith(BUREAU.state.objects.find(o=>o.id===dk).title)
+      && bar().includes('Drafts') && !bar().includes('Desk ›');
+    out.backGoesUpOne = true;
+    document.querySelector('[data-act="back"]').click(); await nap(200);
+    out.backGoesUpOne = S.drawerId === dk;
+
+    /* Scope. A rule on the home desk collects from the home desk; the same
+       rule set to every desk reaches inside the others. This is the whole
+       reason desks are not merely cosmetic. */
+    S.view='desk'; S.drawerId=null; BUREAU.render(); await nap(150);
+    const far = BUREAU.create('task', {parent:dk, title:'Over there', due:BUREAU.state.objects[0].created});
+    far.due = new Date().toISOString().slice(0,10);
+    const mg = BUREAU.create('magic', {parent:'root', title:'Rule'});
+    mg.filter = {rule:{f:'date', op:'any'}};
+    mg.desk = BUREAU.free(2,2,'root'); BUREAU.render(); await nap(150);
+    const sees = () => BUREAU.kids(mg.id).includes(far.id);
+    out.scopedToItsOwnDeskByDefault = !sees();
+    mg.filter = Object.assign({}, mg.filter, {scope:'all'});
+    out.everyDeskSeesInside = sees();
+    mg.filter = Object.assign({}, mg.filter, {scope:'some', scopeDesks:[dk]});
+    out.chosenDesksWork = sees();
+    mg.filter = Object.assign({}, mg.filter, {scope:'some', scopeDesks:['root']});
+    out.chosenDesksExclude = !sees();
+    // the seeded Today is global, because a Today that stops at one desk is
+    // not a Today
+    const today = BUREAU.state.objects.find(o => o.id === 'd_today');
+    out.todayIsGlobal = (today.filter||{}).scope === 'all';
+
+    // demoting puts it back to being an ordinary drawer, contents intact
+    BUREAU.setPin(dk, null); await nap(150);
+    out.demotes = !S.desks.includes(dk) && !!BUREAU.state.objects.find(o=>o.id===dk);
+    BUREAU.setPin(dk, 'desk'); await nap(100);
+
+    BUREAU.del(far.id); BUREAU.del(mg.id); BUREAU.del(inner.id); S.undo=[];
+    S.view='desk'; S.drawerId=null; BUREAU.render();
+    return out;
+  });
+
+  /* --- a thing that lasts more than a day. `date` is the day it falls on;
+     `span` is the days it occupies, which a calendar has to mark all of and a
+     timeline has to draw as a bar. */
+  const spans = await page.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const S = BUREAU.state, out = {};
+    const iso = n => { const d=new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()+n);
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
+
+    const trip = BUREAU.create('trip', {parent:'root', title:'Lisbon'});
+    out.tripLasts = BUREAU.K.trip.attrs.includes('span');
+    trip.due = iso(1); trip.till = iso(5);
+    trip.desk = BUREAU.free(4,3,'root');
+    // a calendar collecting anything dated has to mark all five days — and a
+    // trip is a container, which only a layout that runs on time will collect
+    const cal = BUREAU.create('calendar', {parent:'root', title:'When'});
+    cal.desk = BUREAU.free(6,6,'root');
+    cal.filter = {rule:{f:'date',op:'any'}, scope:'all'};
+    BUREAU.render(); await nap(150);
+    out.aTimeLayoutCollectsContainers = BUREAU.kids(cal.id).includes(trip.id);
+    S.view='drawer'; S.drawerId=cal.id; BUREAU.render(); await nap(250);
+    const marked = [...document.querySelectorAll('.mcell')]
+      .filter(c => c.querySelector(`.mitem[data-row="${trip.id}"]`));
+    out.everyDayIsMarked = marked.length === 5;
+    out.namedOnlyOnce = marked.filter(c =>
+      c.querySelector(`.mitem[data-row="${trip.id}"]`).textContent.trim()).length === 1;
+    out.drawnAsARun = !!document.querySelector(`.mitem.runs[data-row="${trip.id}"]`);
+
+    // an end before the start is not a span, it is a mistake, and is ignored
+    trip.till = iso(-3);
+    BUREAU.render(); await nap(200);
+    out.backwardsIsIgnored = [...document.querySelectorAll('.mcell')]
+      .filter(c => c.querySelector(`.mitem[data-row="${trip.id}"]`)).length === 1;
+    trip.till = iso(5);
+
+    /* …and moving it keeps its length rather than collapsing it onto one day.
+       Done from the desk, dropping on a day of the calendar's *tile*, which is
+       the gesture you would actually make. */
+    S.view='desk'; S.drawerId=null; BUREAU.render(); await nap(250);
+    const day = [...document.querySelectorAll(`[data-drawer="${cal.id}"] [data-calday]`)]
+      .find(c => c.dataset.calday.endsWith(iso(8)));
+    const tile = document.querySelector(`.grid .drawer[data-drawer="${trip.id}"]`);
+    out.movedKeepsItsLength = 'no tile';
+    if(tile && day){
+      const t = tile.getBoundingClientRect(), c = day.getBoundingClientRect();
+      const ev = (type, x, y) => tile.dispatchEvent(new PointerEvent(type,
+        {bubbles:true, clientX:x, clientY:y, pointerId:31, isPrimary:true}));
+      ev('pointerdown', t.x+t.width/2, t.y+t.height/2);
+      await nap(320);
+      ev('pointermove', c.x+c.width/2, c.y+c.height/2);
+      ev('pointermove', c.x+c.width/2, c.y+c.height/2);
+      ev('pointerup',   c.x+c.width/2, c.y+c.height/2);
+      await nap(250);
+      out.movedKeepsItsLength = trip.due === iso(8) && trip.till === iso(12);
+    }
+    BUREAU.del(trip.id); BUREAU.del(cal.id); S.undo=[];
+    S.view='desk'; S.drawerId=null; BUREAU.render();
+    return out;
+  });
+  await page.screenshot({ path: 'test/shots/21-desks.png' });
+
   console.log(JSON.stringify({
     errors: errs, manifestOk, swReady, survived, styleSurvived, slotColours,
     newObjectSeen, inlineEdit, sortDefaults, taskLook,
@@ -1529,7 +1666,7 @@ const CHROME = process.env.BUREAU_CHROME;
     timeLayer, checklistBox, pluckWorks, answering, seedAndKnobs, longPress, drawerSize, tagDrawer, pinReorder, groupMove, dropStates,
     adaptiveTiles, bubblePanel, scrollKept, kindSizes,
     phoneGrid, phoneMigration,
-    dupIds, undoWorks, readViews, paperSize, movement, pager
+    dupIds, undoWorks, readViews, paperSize, movement, pager, desks, spans
   }, null, 2));
   await browser.close();
 })();

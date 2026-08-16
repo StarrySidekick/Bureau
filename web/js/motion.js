@@ -1,5 +1,5 @@
 import { $, clamp, ROOT } from './util.js';
-import { S, byId, isContainer, shapeOf, openingOf, dev, pinnedDrawers } from './model.js';
+import { S, byId, isContainer, shapeOf, openingOf, dev, deskIds, deskOf } from './model.js';
 import { lay } from './grid.js';
 import { objColour } from './look.js';
 import { render, previewHTML, pageAt, pageCount, goPage } from './views.js';
@@ -271,20 +271,19 @@ let PG=null;
 
 const pagerOn = ()=> !!PG;
 
-/* The desk, then every pinned drawer in shelf order, as one loop. Somewhere
-   you pinned is somewhere you go back to often; somewhere you didn't is not on
-   this list, which is what keeps the loop short enough to be worth swiping. */
-function drawerStops(){
-  const pins=pinnedDrawers();
-  return [null, ...pins.map(p=>p.id)];
-}
+/* The desks, in the order they sit in the master space. It does **not** wrap:
+   a row you can walk off the end of is a row you can learn — "Finance is two
+   to the right of home" only means something if two to the right of the last
+   desk is nothing at all. A loop with a seam in it is not a space. */
+function drawerStops(){ return deskIds(); }
 function stepDrawer(d){
   const stops=drawerStops();
   if(stops.length<2) return false;
-  const at2=stops.indexOf(S.view==='drawer' ? S.drawerId : null);
-  const to=stops[((at2<0?0:at2)+d+stops.length) % stops.length];
-  S.view = to ? 'drawer' : 'desk';
-  S.drawerId = to;
+  const at2=Math.max(0, stops.indexOf(deskOf(S.view==='drawer' ? S.drawerId : ROOT)));
+  const to=stops[at2+d];
+  if(to==null) return false;                 // the end of the row
+  S.view = to===ROOT ? 'desk' : 'drawer';
+  S.drawerId = to===ROOT ? null : to;
   S.kindFilter=null;
   render();
   return true;
@@ -312,10 +311,13 @@ function pagerBegin(axis){
   if(axis==='x'){
     const stops=drawerStops();
     if(stops.length<2) return false;
-    const i=Math.max(0, stops.indexOf(S.view==='drawer' ? S.drawerId : null));
-    const to=d=>{ const id=stops[(i+d+stops.length)%stops.length];
-                  return {view:id?'drawer':'desk', drawerId:id}; };
-    prev=to(-1); next=to(1);
+    const i=Math.max(0, stops.indexOf(deskOf(S.view==='drawer' ? S.drawerId : ROOT)));
+    // undefined at either end of the row, which is what makes the strip give
+    // rather than carry you round to the other side of the desk
+    const to=n=>{ const id=stops[n];
+      return id==null ? null : {view:id===ROOT?'desk':'drawer', drawerId:id===ROOT?null:id}; };
+    prev=to(i-1); next=to(i+1);
+    if(!prev && !next) return false;
   } else {
     const n=pageAt(here), last=pageCount(here)-1;
     if(last<1) return false;

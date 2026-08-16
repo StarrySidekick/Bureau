@@ -1187,3 +1187,83 @@ once per gesture rather than per frame, but it is real work at the moment a
 gesture begins — which is the worst moment for it. If a swipe ever feels like
 it starts late, this is the cause, and the fix is to build only the board in
 the direction the finger is already going, which is already known by then.
+
+---
+
+### 39. More than one desk, and a rule that knows which one it is on
+
+One desk works until the desk is asked to be a life. Finances, a screenplay,
+what to eat, who to ring, when to run — all of it landing on one board, all of
+it visible from everywhere at once. Adding a life area cost a row of the same
+board and made every aggregation on it slightly less true, which is a cost that
+grows linearly and never stops.
+
+**A desk is a drawer that has been given a place in the master space.** The
+master space is an ordered row with home in it like anything else. A drawer in
+the row is somewhere you can *be*; a drawer that isn't is somewhere you went
+*into*. That is the whole of the distinction, and it shows up in exactly three
+places: the breadcrumb roots at the nearest desk rather than walking home
+(`chainOf` stops at one), the top shelf belongs to the desk you are on rather
+than to the app, and a sideways swipe walks the row.
+
+Deliberately *not* a new noun. A desk is a drawer, `S.desks` is a list of ids,
+and promoting one is `setPin(id,'desk')`. If those three behaviours had not
+earned it, the honest answer would have been that desks and drawers are the
+same thing with different names — and they nearly are. What earns it is the
+first one: "am I inside something, or am I somewhere" is most of how a place
+feels, and a breadcrumb reading `Desk › Finance › Bills` is a path back to a
+house nobody has lived in since there was more than one of them.
+
+**The row does not wrap.** The old two-finger swipe looped through the pins, so
+walking right from the last one arrived at the desk. A space you can walk off
+the end of is a space you can learn — "Finance is two to the right of home"
+only means anything if two to the right of the last desk is nothing at all.
+Rubber-banding at the ends was already in the pager; the loop was the only
+thing making it unreachable.
+
+**The bottom shelf became the master space, and the top one became per desk.**
+The bottom shelf was a list of favourites, which is halfway to being a list of
+places already. The top one moved the other way for the same reason the
+breadcrumb did: what you keep to hand is a different answer in Finance than in
+a screenplay.
+
+**A magic drawer collects from its own desk unless it says otherwise.** This is
+the half that makes desks structural rather than cosmetic. A rule with nothing
+bounding it matches across everything there is, which is right for an inbox and
+wrong for everything else — "anything due this week" on the Exercise desk
+answering with a screenplay scene is the mess desks exist to stop. `scope` is
+`desk` (the default), `all`, or `some` plus a chosen list, and it is checked
+before every other clause so the archive obeys it too. For a desk that has
+never been split up it changes nothing: everything is on the home desk, so
+"this desk" and "everywhere" are the same answer. It starts mattering at the
+moment you promote a drawer, which is the moment you wanted it to — and the
+toast on promoting says so, because it is the one consequence you would not
+guess.
+
+**And a thing that lasts is not a thing with a date.** `date` is the day
+something falls on. A trip, a shoot week or a term *occupies* days, and the
+difference is not cosmetic: a calendar has to mark all of them, a timeline has
+to draw a bar rather than a dot, and dragging one to a new day has to carry its
+length with it. `span` is an attribute of its own rather than a second meaning
+for `date`, because everything dated does not last, and an attribute is the one
+thing a type can be given without anything else being told about it.
+
+That change surfaced a real one underneath it: a magic drawer refused to
+collect containers at all, so a calendar could never show a trip — and a trip
+is a container, because it holds the plan. The refusal is right for a grid (a
+rack of drawers inside another drawer is a desk with two of everything on it)
+and wrong for a layout that runs on time, where the thing happening that week
+is very often a container. `showsContainers(c)` is the exception, by face or by
+layout, and it is the same shape as `keepsDone(c)`.
+
+*Against:* two shelves that mean different things is a thing to learn, and the
+star in the bar now promotes rather than pins — the quieter half of the
+question moved into the panel, where it is less discoverable than it was.
+`deskOf()` walks the parent chain on every `inContainer()` call, which is every
+object against every container on every render; it is a depth-3 walk on a
+personal desk and it has not been measured on a big one. And migration 15
+promotes nothing, so an existing desk gains the machinery and none of the
+benefit until a drawer is deliberately pushed out into the row. That is the
+right default — promoting somebody's drawers for them would rearrange their
+life — but it does mean the feature is invisible on first launch, which is why
+the sample desk ships with two.
