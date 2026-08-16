@@ -330,6 +330,7 @@ decision 36.
 | Hold a bare cell | Lights it; drag to size a box, let go for the picker — on a locked board too |
 | Hold a tile, then move | The menu goes and the tile is in your hand, iOS-style — and the board unlocks |
 | Carry a tile onto the shelf | Pins it. Nothing moves: `parent` and both boxes are untouched |
+| Tap a pin you are already in | Back to whatever the pin interrupted — a pin is a toggle |
 | Hold a pin | The menu, including the way back off the shelf |
 | Hold a band in a list | Reorder it, under Manual sort only — it writes `ord` |
 | Double-tap a tile | Its name becomes a field where it sits, and its body under it if the tile shows one. Containers are exempt: two taps on a drawer opens it twice |

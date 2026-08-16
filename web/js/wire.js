@@ -310,6 +310,12 @@ function act(name, el){
   }
 }
 
+/* Where a pin took you *from*. A pin is a toggle — press it again and you go
+   back — so the one thing it has to remember is the place it interrupted.
+   In memory and never stored: where you happened to be standing a moment ago
+   is not a fact about the desk. */
+const PLACE = {view:null, drawerId:null};
+
 function wire(){
   const frame=$('#frame');
 
@@ -541,16 +547,31 @@ function wire(){
     // a plain click anywhere clears the selection before doing anything else
     if(S.sel.length && !t.closest('#ctx')) S.sel=[];
 
-    // a breadcrumb, a tile, or a button on the pin bar — all open the drawer
+    // a breadcrumb, a tile, or a button on the shelf — all open the drawer
     const dr=t.closest('[data-drawer]');
     if(dr && (dr.tagName==='B' || dr.classList.contains('drawer') || dr.classList.contains('pinbtn'))){
+      const isPin = dr.classList.contains('pinbtn');
       /* A tap on a tile is answered on pointerup, by tileTap — which plays the
          opening and then navigates. The browser sends a click afterwards
          anyway, and it lands here; redrawing the board a second time is
          invisible except that it throws away the arriving board's animation
          with the element carrying it. So: if we are already there, we are
-         already there. */
-      if(S.view==='drawer' && S.drawerId===dr.dataset.drawer) return;
+         already there.
+
+         A pin is the exception, because a pin is a **toggle**: press it and you
+         are in Today, press it again and you are back where Today interrupted.
+         Something you keep to hand is something you duck into, and ducking in
+         with no way but the back button to duck out again is half a gesture. */
+      if(S.view==='drawer' && S.drawerId===dr.dataset.drawer){
+        if(!isPin) return;
+        const back = (PLACE.view==='drawer' && byId(PLACE.drawerId))
+          ? {view:'drawer', drawerId:PLACE.drawerId} : {view:'desk', drawerId:null};
+        PLACE.view=null; PLACE.drawerId=null;
+        S.view=back.view; S.drawerId=back.drawerId; S.kindFilter=null;
+        render(); enter('back'); return;
+      }
+      // …and going *in* by a pin is what records the place to come back to
+      if(isPin){ PLACE.view=S.view; PLACE.drawerId=S.drawerId; }
       // …and a tile that gets here without a tap behind it — the keyboard, or
       // anything synthetic — still opens the way a tile opens
       if(dr.closest('.grid')){ tileTap(dr.dataset.drawer); return; }

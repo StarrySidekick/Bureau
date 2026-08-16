@@ -233,6 +233,30 @@ const CHROME = process.env.BUREAU_CHROME;
   const pinNavigates = await phone.evaluate(() =>
     BUREAU.state.view === 'drawer' && BUREAU.state.drawerId === 'd_today'
     && document.querySelector('.pinrow .pinbtn[data-drawer="d_today"]').classList.contains('on'));
+  /* …and it is a **toggle**: pressing the pin you are already in goes back to
+     whatever the pin interrupted. Something you keep to hand is something you
+     duck into, and ducking in with no way out but the back button is half a
+     gesture. The lit ring is on the outside of the slot, not around the mark —
+     a button this small is mostly its mark, so an inset ring read as a box
+     drawn round the icon. */
+  const pinToggle = await phone.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const S = BUREAU.state, out = {};
+    const tap = id => document.querySelector(`.pinrow .pinbtn[data-drawer="${id}"]`).click();
+    tap('d_today'); await nap(360);                 // already there: back out
+    out.togglesBackToTheDesk = S.view === 'desk';
+    S.view='drawer'; S.drawerId='d_ideas'; BUREAU.render(); await nap(200);
+    tap('d_all'); await nap(360);
+    out.duckIn = S.drawerId === 'd_all';
+    tap('d_all'); await nap(360);
+    out.andBackToWhereYouWere = S.view==='drawer' && S.drawerId === 'd_ideas';
+    tap('d_today'); await nap(360);
+    const lit = document.querySelector('.pinrow .pinbtn.on');
+    out.ringIsOutside = !!lit && getComputedStyle(lit).outlineOffset === '1px'
+      && getComputedStyle(lit.querySelector('.pinface')).outlineStyle === 'none';
+    S.view='desk'; S.drawerId=null; BUREAU.render();
+    return out;
+  });
   await phone.screenshot({ path: 'test/shots/08-phone-pinned-drawer.png' });
   // home is not on the shelf any more — desks are walked to, so this is the
   // back button, which from a desk's own drawer is the desk
@@ -1761,7 +1785,7 @@ const CHROME = process.env.BUREAU_CHROME;
     newObjectSeen, inlineEdit, sortDefaults, taskLook,
     shelfTools, shelves, versionShown, sampler, paging, shelfSwipe,
     gridClass, offlineWorks, railGone, tabsGone, pinbarShown, pinNavigates,
-    pinToggles, holdArms, maxDrift,
+    pinToggle, pinToggles, holdArms, maxDrift,
     settingsIsPanel, pickerPreviews, builderPreview, everyMenuIsAPanel,
     pasteOk, magicOk, rollupOk, relationsOk, relationsUI,
     timeLayer, checklistBox, pluckWorks, answering, seedAndKnobs, longPress, drawerSize, tagDrawer, pinReorder, groupMove, dropStates,

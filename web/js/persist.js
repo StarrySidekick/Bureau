@@ -9,15 +9,15 @@ import { closePanel } from './panels.js';
 /* ============================================================
    19b · persistence — everything stays on this device
    ============================================================ */
-/* The version **is the commit count**, as `0.NN`: the fifty-third commit is
-   0.53 and the hundredth will be 1.00, which is the first honest claim to a
+/* The version **is the commit count**, as `0.NN`: the fifty-fourth commit is
+   0.54 and the hundredth will be 1.00, which is the first honest claim to a
    1.0 this app will have made. It used to be a number chosen by hand, which
    meant it said nothing you could check.
    Bumped with the cache in web/sw.js — the two travel together, because "which
    Bureau is this phone running" is exactly the question you ask when a change
    appears not to have deployed. Shown in Settings, so it can be read off the
    device rather than guessed at. */
-const APP_VERSION = '0.53';
+const APP_VERSION = '0.54';
 const KEY = 'bureau.v1';
 const install = {deferred:null};   // the browser's install prompt, when one is on offer
 let saveTimer = null;

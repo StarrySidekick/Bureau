@@ -5,7 +5,7 @@ Sequenced by dependency, not appetite: item 1 makes everything after it safer.
 
 ---
 
-## 0f. Queued 2026-08-16 (sixth pass) — the shelf becomes a row — DONE (v0.53)
+## 0f. Queued 2026-08-16 (sixth pass) — the shelf becomes a row — DONE (v0.54)
 
 Three corrections to the fifth pass. See decisions 45–47.
 
@@ -23,6 +23,8 @@ Three corrections to the fifth pass. See decisions 45–47.
 - **two long presses on a locked board.** Holding a bare cell lights it and
   opens the picker there; holding a tile opens the menu, and moving from there
   takes the tile and unlocks the board, the way the iPhone home screen does
+- **a pin is a toggle** — press the one you are in and you go back where it
+  interrupted — and the lit ring is round the slot rather than round the mark
 
 *Still open:* nine slots is the whole shelf and the tenth pin is refused rather
 than scrolling. And on a desk where most things are loose — the sample desk,

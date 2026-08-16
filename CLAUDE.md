@@ -298,6 +298,13 @@ plus one — "9 × 13 +1". It never turns with the pages and never changes with 
 desk. On a Mac it rides in the grid bar instead. Ask `placeOf(id)` —
 `desk | pin | null` — and render with `shelfStrip()`. See decisions 41 and 46.
 
+**A pin is a toggle.** Pressing the pin you are already in goes back to
+whatever it interrupted — `PLACE` in `wire.js`, set on the way in and cleared on
+the way out, in memory and never stored. Something you keep to hand is something
+you *duck into*, and ducking in with no way out but the back button is half a
+gesture. A tile on a board is not a toggle: only a pin, because only a pin is
+somewhere you go from anywhere.
+
 **Pinning is a drag onto the shelf, and it does not move the thing.** Carry any
 tile onto `.pinrow` and let go: `setPin(id,'pin')`, and `parent`, `desk` and
 `phone` are all untouched, because pinning is about reach and not about where a

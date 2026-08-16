@@ -1083,7 +1083,11 @@ html[data-style="aero"] .drawer.dtile.bd-bar{
   color:rgba(248,243,230,.86)}
 .is-phone .pinrow .pinface{display:grid;place-items:center}
 .is-phone .pinrow .pinface svg{width:16px;height:16px}
-.is-phone .pinrow .pinbtn.on{outline:2px solid var(--glow);outline-offset:-2px}
+/* Lit on the *outside*. It was `outline-offset:-2px`, which draws the ring
+   inside the button — and a button this small is mostly its mark, so the ring
+   read as a box around the icon rather than as the slot being lit. The 3px
+   margin on the button is what leaves room for it. */
+.is-phone .pinrow .pinbtn.on{outline:2px solid var(--glow);outline-offset:1px}
 .is-phone .pinrow .pinbtn.magic{border-color:color-mix(in srgb,var(--glow) 62%,transparent)}
 /* carrying something over the shelf: the whole row lights, because the row is
    the target — which cell it lands in is the shelf's business, not yours */
