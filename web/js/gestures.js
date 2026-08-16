@@ -1,6 +1,6 @@
 import { $, $$, clamp, D, ROOT } from './util.js';
 import { S, byId, dev, has, isAncestor, childrenOf, container, gatherKind, spanOf,
-  cfgOf, deskHere } from './model.js';
+  sortOf } from './model.js';
 import { CELL, gridOf, cellW, lay, boxOk, overlaps } from './grid.js';
 import { toast, gather } from './mutations.js';
 import { pending, tileTap, fireButton } from './tiles.js';
@@ -28,6 +28,27 @@ function cancelHold(e){
   if(menuTimer){ clearTimeout(menuTimer); menuTimer=null; }
 }
 
+
+/* ---- pulling the new-object drawer out of the shelf --------------------
+   Three numbers and an element. PULL_START is how far the finger travels
+   before the drawer is showing at all — enough to rule out a tap and a
+   sideways scroll, not enough to feel like a delay. PULL_OPEN is the pull
+   itself, and it is deliberately long: a quarter of a phone screen is a stroke
+   you have to commit to, which is the entire fix. HOME_EDGE is the strip along
+   the very bottom that belongs to iOS, and it is left alone. */
+const PULL_START = 12, HOME_EDGE = 26;
+const PULL_OPEN = ()=> Math.round(Math.min(200, Math.max(110, innerHeight*0.26)));
+function makePull(){
+  const el=document.createElement('div');
+  el.className='shelfpull';
+  el.innerHTML=`<div class="pullfront"><i class="pullknob"></i><b>New object</b></div>`;
+  // it comes out *of* the shelf, so it stands on the shelf's top edge rather
+  // than covering it — the strip is the thing it is being pulled from
+  const sh=$('.shelf-bottom'), fr=$('#frame').getBoundingClientRect();
+  el.style.bottom = (sh ? fr.bottom - sh.getBoundingClientRect().top : 0) + 'px';
+  $('#frame').appendChild(el);
+  return el;
+}
 
 /* Where a move/resize would land, in grid cells. Dragging an edge moves that
    edge only; dragging a corner moves both of its edges — same as a window. */
@@ -254,7 +275,12 @@ function onDown(e){
      pin under it navigates as usual. */
   const shelfEl = S.device!=='desk' && e.target.closest('.shelf-bottom');
   if(shelfEl){
-    G={type:'shelf', el:shelfEl, sx:e.clientX, sy:e.clientY, mode:null};
+    /* …unless the finger went down in the last few millimetres of the screen,
+       which is iOS's own home gesture and not ours. Sharing that strip is how
+       the new-object menu kept appearing on the way out of the app. */
+    G = (innerHeight - e.clientY) < HOME_EDGE
+      ? {type:'homeedge'}
+      : {type:'shelf', el:shelfEl, sx:e.clientX, sy:e.clientY, mode:null, pull:null};
     return;
   }
   // home is draggable too — where it sits in the row is a thing you can change
@@ -304,6 +330,33 @@ function onDown(e){
     holdFrom={x:e.clientX,y:e.clientY};
     return;
   }
+  /* A list you arranged is a list you can rearrange. A grid has coordinates and
+     a list has an order, and `ord` is that order — so holding a band and moving
+     it writes a new one, exactly as dragging a tile writes a new box.
+     Only under Manual: a board that sorts itself arranges itself, and letting
+     you shuffle an A–Z list would be a gesture whose result vanished on the
+     next render. The bar says which sort it is on, so there is nowhere for this
+     to be a surprise. */
+  const bandEl = e.target.closest('.listgrid[data-listfor] .listband');
+  if(bandEl && !e.target.closest('[data-check]')){
+    const list=bandEl.parentElement;
+    const cid=list.dataset.listfor;
+    if(cid && !sortOf(container(cid))){
+      G={type:'band', el:bandEl, list, cid, id:bandEl.dataset.row||bandEl.dataset.drawer,
+         sx:e.clientX, sy:e.clientY, mode:null, armed:false};
+      const g0=G;
+      holdTimer=setTimeout(()=>{
+        holdTimer=null;
+        if(G!==g0) return;
+        G.armed=true;
+        G.el.classList.add('lifted');
+        if(navigator.vibrate) navigator.vibrate(6);
+      }, e.pointerType==='touch' ? HOLD_TOUCH : HOLD_MOUSE);
+      holdFrom={x:e.clientX,y:e.clientY};
+      return;
+    }
+  }
+
   // a field inside a tile is for typing in, not for dragging the tile by
   if(e.target.closest('input,textarea,select')) return;
   // a tick, a counter or a button inside a tile is its own target
@@ -423,6 +476,22 @@ function onMove(e){
     return;
   }
 
+  if(G.type==='band'){
+    if(!G.armed) return;             // still waiting out the hold
+    if(!G.mode){
+      if(Math.abs(dy)<5) return;
+      G.mode='band'; G.el.classList.add('dragging');
+    }
+    // slide past whichever neighbour the pointer has cleared the middle of —
+    // the same trick the pin bar uses, turned ninety degrees
+    const sibs=[...G.list.querySelectorAll('.listband')].filter(x=>x!==G.el);
+    const after=sibs.filter(x=>{ const r=x.getBoundingClientRect(); return e.clientY > r.top+r.height/2; }).pop();
+    if(after) after.after(G.el);
+    else { const first=G.list.querySelector('.listband');
+           if(first && first!==G.el) first.before(G.el); }
+    return;
+  }
+
   if(G.type==='pluck'){
     if(!G.armed) return;             // still waiting out the hold
     G.px=e.clientX; G.py=e.clientY;
@@ -443,19 +512,36 @@ function onMove(e){
     return;
   }
 
+  if(G.type==='homeedge') return;      // iOS owns that strip; keep out of it
+
   if(G.type==='shelf'){
     /* Up off the bottom shelf opens the new-object menu. Tapping bare board
        used to do it and was triggered by accident more than on purpose — the
        board is a place you put things down, not a button. The shelf is where
-       the menu comes from, and the menu comes up out of it. */
-    if(G.mode) return;
-    if(dy < -40 && Math.abs(dy) > Math.abs(dx)){
-      G.mode='shelf';
+       the menu comes from, and the menu comes up out of it.
+
+       Then *this* kept happening by accident too: forty pixels and it fired,
+       committed, with nothing on the screen until it was already done — so a
+       flick, a sideways scroll along the shelf, and every swipe up out of the
+       app to the home screen all opened it. It is a real pull now. A drawer
+       front rises out of the shelf and follows the finger the whole way, and
+       it only opens if you carried it PULL_OPEN — a quarter of the screen —
+       which is a distance you cannot travel without meaning to. Let go short
+       and it drops back. Nothing is decided until you let go. */
+    if(G.mode==='dead') return;
+    if(!G.pull){
+      // sideways first means the shelf is being scrolled, and that is that
+      if(Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 6){ G.mode='dead'; return; }
+      if(dy > -PULL_START) return;
+      G.pull=makePull();
+      G.mode='pull';
       gestureFlags.suppressClick=true;
-      pending.cell=null;
-      if(navigator.vibrate) navigator.vibrate(6);
-      modalNewObject();
     }
+    const open=PULL_OPEN();
+    const up=clamp(-dy - PULL_START, 0, open*1.25);
+    G.at=up;
+    G.pull.style.setProperty('--pull', up+'px');
+    G.pull.classList.toggle('ready', up >= open);
     return;
   }
 
@@ -572,7 +658,38 @@ function onUp(e){
     return;
   }
 
-  if(g.type==='shelf') return;     // a tap; the pin under it navigates
+  if(g.type==='homeedge') return;
+  if(g.type==='shelf'){
+    if(!g.pull) return;            // a tap; the pin under it navigates
+    const open = g.at >= PULL_OPEN();
+    const el=g.pull;
+    el.classList.remove('ready');
+    el.classList.add('settling');
+    el.style.setProperty('--pull', open ? (PULL_OPEN()*1.35)+'px' : '0px');
+    setTimeout(()=>el.remove(), 260);
+    if(open){
+      if(navigator.vibrate) navigator.vibrate(6);
+      pending.cell=null;
+      modalNewObject();
+    }
+    return;
+  }
+
+  if(g.type==='band'){
+    g.el.classList.remove('lifted','dragging');
+    if(g.mode!=='band') return;          // a tap; let the click open it
+    gestureFlags.suppressClick=true;     // the drag must not also open it
+    /* Read the new order straight off the list. `ord` is what childrenOf()
+       falls back to when nothing sorts, so writing indexes into it is the whole
+       of the change — and the boxes are untouched, because a thing's place on a
+       grid is a different fact from its place in a list. */
+    [...g.list.querySelectorAll('.listband')].forEach((el,i)=>{
+      const o=byId(el.dataset.row||el.dataset.drawer);
+      if(o) o.ord=i;
+    });
+    save(); render(); toast('Reordered');
+    return;
+  }
 
   if(g.type==='pluck'){
     if(g.chip) g.chip.remove();
@@ -593,14 +710,10 @@ function onUp(e){
   if(g.type==='pin'){
     g.el.classList.remove('dragging');
     if(g.mode!=='pin') return;            // it was a click; let it navigate
-    /* Read the new order straight off the bar. The bottom one is the row of
-       desks, and home is in it — it has no data-drawer, so it reads as ROOT
-       rather than being quietly dropped out of its own master space. */
-    const ids=[...g.bar.querySelectorAll('.pinbtn')].map(x=>x.dataset.drawer||ROOT);
-    if(g.bar.dataset.shelf==='bottom') S.desks=ids;
-    else cfgOf(deskHere()).shelf=ids.filter(x=>x!==ROOT);
+    // Read the new order straight off the shelf. One strip, one list.
+    S.pins=[...g.bar.querySelectorAll('.pinbtn')].map(x=>x.dataset.drawer).filter(Boolean);
     gestureFlags.suppressClick=true;      // the drag must not also open it
-    save(); render(); toast(g.bar.dataset.shelf==='bottom'?'Desks reordered':'Shelf reordered');
+    save(); render(); toast('Shelf reordered');
     return;
   }
 
@@ -715,6 +828,7 @@ function onCancel(){
   pagerCancel();
   if(G){ clearAim(G); if(G.ghost) G.ghost.remove();
          if(G.chip) G.chip.remove();
+         if(G.pull) G.pull.remove();
          if(G.dropEl) G.dropEl.classList.remove('dropinto','dropboard');
          if(G.el){ clearCarry(G.el); G.el.style.pointerEvents='';
                    G.el.classList.remove('lifted','dragging','invalid','plucked'); } G=null; }

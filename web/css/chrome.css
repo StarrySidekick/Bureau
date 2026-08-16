@@ -215,7 +215,7 @@
 .drawer.selected::after{content:"";position:absolute;inset:0;background:color-mix(in srgb,var(--glow) 16%,transparent);pointer-events:none}
 .ctxhead{padding:7px 12px 5px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);font-weight:700}
 
-/* ---- a magic drawer is gilded, and the gilt is foil -------------------
+/* ---- a magic drawer is gilded, and the gilt is leaf -------------------
    It used to be dotted and speckled with stars, which read as a placeholder
    rather than as enchantment — a dotted border is what every drawing tool
    means by "not real yet". A drawer that fills itself is *illuminated*
@@ -223,35 +223,21 @@
    four corner brackets in the same leaf, drawn in the style's own Glow so it
    is genuine gold on Victorian and a green shimmer on Starry Sidekick.
 
-   The band of light that used to travel across the front on a seven-second
-   loop is gone. It was the same sweep whatever you did, which after a week
-   reads as a thing blinking at you rather than as a surface — and a magic
-   drawer is meant to look like a *material*. So it is holographic foil now,
-   and foil doesn't move on its own: it moves because you did. --holox and
-   --holoy are set on #frame by motion.js, from how the phone is tilted or
-   from where the pointer is, and mean "where the light is coming from".
-   Nothing here animates; the whole movement is those two numbers changing.
+   Between those two there was a third answer, and it was worse than either: a
+   holographic foil — a rainbow spectrum under a specular highlight, both
+   sliding about with how the phone was tilted. It was tacky. A drawer is
+   furniture, and furniture does not shimmer at you; the spectrum was also the
+   one place in the app that named hues outright, which made it the one thing
+   on the desk that belonged to no style. Gone, and the whole tilt apparatus
+   with it — see the note at the top of motion.js and decision 42.
 
-   The spectrum is the one place in the app that names colours outright, and
-   deliberately: a foil that is one hue is not a foil, and the eleven slots
-   are positions rather than hues so there is nothing to ask for. The
-   *highlight* is still var(--glow), so it belongs to the style it is in. */
+   What is left is the gilt, and the gilt does not move. */
 .drawer.magicdrawer{
-  background-image:
-    /* the specular highlight, in the style's own leaf */
-    radial-gradient(115% 85% at calc(var(--holox,.5)*100%) calc(var(--holoy,.5)*100%),
-      color-mix(in srgb, var(--glow) 38%, transparent) 0%,
-      color-mix(in srgb, var(--glow) 12%, transparent) 32%,
-      transparent 64%),
-    /* the foil under it: a spectrum that slides the other way, so the two
-       shear against each other and the drawer looks lit rather than painted */
-    repeating-linear-gradient(calc(84deg + var(--holox,.5) * 44deg),
-      rgba(255,116,164,.13) 0 7%,  rgba(255,206,116,.13) 7% 14%,
-      rgba(150,240,190,.13) 14% 21%, rgba(126,186,255,.13) 21% 28%,
-      rgba(198,142,255,.13) 28% 35%);
-  background-size:100% 100%, 250% 100%;
-  background-position:0 0, calc((1 - var(--holox,.5)) * 100%) 0;
-  background-repeat:no-repeat;
+  /* leaf laid on the front, not light playing across it: one wash from the
+     style's own Glow, held to the top edge where a lamp would put it */
+  background-image:linear-gradient(178deg,
+    color-mix(in srgb, var(--glow) 13%, transparent) 0%,
+    transparent 46%);
 }
 /* the ruled frame: a hairline of leaf held off the edge, with the corners
    thickened into brackets — four gradients rather than four elements */
@@ -370,10 +356,8 @@
 .cday u{text-decoration:none;font-size:8px;line-height:1;letter-spacing:-1px}
 .magicmark{color:var(--dink-2);display:inline-flex;align-items:center;margin-left:2px}
 .magicmark.big{color:var(--brass);vertical-align:middle}
-/* The foil doesn't animate, so there is nothing here to switch off for
-   reduced motion any more — it is a surface, not a movement. What it needs
-   instead is somewhere for the light to sit when nothing is driving it, and
-   that is what the .5 fallbacks in the two calc()s above are: dead centre. */
+/* Nothing on a magic drawer animates and nothing tracks the pointer, so there
+   is nothing here to switch off for reduced motion: it is a surface. */
 
 /* Scroll view — a drawer read top to bottom, nothing truncated */
 .listgrid{display:flex;flex-direction:column;gap:6px;max-width:900px}
@@ -481,11 +465,25 @@
 /* No border. The clip-path already cuts the chipped edge, and a rule drawn
    around it is sliced off at the notches and left hanging at the corners —
    which is exactly what it looked like. */
+/* It does have a border — and the border follows the *real* edge of the note,
+   round the chipped segments and all. A `border` cannot: it is drawn on the
+   box, and clip-path then slices it off at the notches and leaves it hanging
+   at the corners, which is exactly what it used to look like and why it was
+   set to 0.
+
+   So the outline is drawn from the shape's own silhouette instead: four
+   zero-blur drop-shadows, one per direction, each offset by a hairline. A
+   drop-shadow is computed from the element's alpha *after* the clip, so the
+   line traces whatever the clip-path cut — the torn ends, the chip out of each
+   side, all of it. Then the real shadows go on top of the same filter chain,
+   which is also what stopped the sheet from floating with no shadow at all. */
 .drawer.otile.sh-note{
   border:0;
-  /* a drop-shadow rather than a box-shadow: clip-path cuts the box one off
-     with the corners, so the torn sheet had no shadow at all and floated */
-  filter:drop-shadow(0 1px 2px rgba(0,0,0,.14)) drop-shadow(0 5px 12px rgba(0,0,0,.10));
+  --tornline:var(--line,rgba(0,0,0,.28));
+  filter:
+    drop-shadow(1px 0 0 var(--tornline)) drop-shadow(-1px 0 0 var(--tornline))
+    drop-shadow(0 1px 0 var(--tornline)) drop-shadow(0 -1px 0 var(--tornline))
+    drop-shadow(0 1px 2px rgba(0,0,0,.14)) drop-shadow(0 5px 12px rgba(0,0,0,.10));
   box-shadow:none;
   background:var(--paper-2);
   clip-path:polygon(0 0, 100% 0, 100% 62%, 96.5% 68%, 100% 74%, 100% 100%,
@@ -774,7 +772,13 @@ html[data-style="aero"] .drawer.dtile.bd-bar{
    size rule in board.css was being outsized by the line above — same
    specificity, later file — which is why a two-cell drawer set its name in
    full-size type and broke "Magic" across two lines. */
-.drawer.dtile.sz-narrow .dname{font-size:12.5px}
+/* …and a narrow front gives its name the room instead of its margins. At two
+   phone cells the padding was taking half the width, so "Everything" broke as
+   "Everythin / g" — a word snapped mid-letter reads as a rendering bug. Tighter
+   sides and a hair smaller, and it fits on one line; hyphens are asked for as
+   well, for the words that still don't. */
+.drawer.dtile.sz-narrow{padding:8px 7px}
+.drawer.dtile.sz-narrow .dname{font-size:11.5px;hyphens:auto;-webkit-hyphens:auto}
 /* and the sparkle comes off the front at that width: the name is competing
    with it for the same inch, and the dotted border already says magic */
 .drawer.sz-narrow .magicmark{display:none}
@@ -1033,32 +1037,68 @@ html[data-style="aero"] .drawer.dtile.bd-bar{
    the tools on the top shelf, in the drawer's own colour with its mark on it.
    It used to be a little front with a name under it, which gave each of five
    pins 78px and fitted "Done & Dusted" into none of them. */
+/* …and it is drawn as a shelf: a board with a lip along the front and a row of
+   slots cut into it, each holding one pinned thing. It was a strip with some
+   buttons on it, which is what every tab bar looks like — and a tab bar is
+   precisely the thing decision 22 deleted. A shelf says the same thing as a
+   drawer front does: this is furniture, and what is on it, you put there.
+
+   The left and right padding is bigger than it looks like it needs to be. The
+   leftmost slot was a couple of millimetres off the edge of the glass, which on
+   a phone with a curved screen is a button you press with the side of your
+   thumb. */
 .is-phone .shelf-bottom{
-  flex:0 0 auto;z-index:36;gap:8px;justify-content:flex-start;
-  padding:7px 10px calc(7px + env(safe-area-inset-bottom));
-  border-top:1px solid var(--rule);background:var(--paper-2);
+  flex:0 0 auto;z-index:36;gap:10px;justify-content:flex-start;
+  padding:9px calc(18px + env(safe-area-inset-left)) calc(9px + env(safe-area-inset-bottom))
+          calc(18px + env(safe-area-inset-right));
+  border-top:1px solid var(--rule);
+  /* the board of the shelf: grain from the page it sits on, lighter at the
+     back edge where the light lands and darker toward the lip */
+  background:
+    linear-gradient(var(--paper-3), var(--paper-2) 34%, var(--paper-3));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,#fff 28%,transparent),
+             inset 0 -3px 6px -3px rgba(0,0,0,.28);
   overflow-x:auto;scrollbar-width:none;
-  /* the swipe up that opens the new-object menu has to reach this element
-     rather than being eaten by a sideways scroll */
+  /* the pull that opens the new-object menu has to reach this element rather
+     than being eaten by a sideways scroll */
   touch-action:pan-x;
 }
+/* the front lip, so the shelf has a thickness rather than being a painted band */
+.is-phone .shelf-bottom::after{
+  content:"";position:absolute;left:0;right:0;bottom:0;height:calc(3px + env(safe-area-inset-bottom));
+  background:linear-gradient(color-mix(in srgb,var(--ink) 22%,transparent), transparent 70%);
+  pointer-events:none}
 .is-phone .shelf-bottom::-webkit-scrollbar{display:none}
-/* Both strips, because the top one carries this desk's own pins now and four
-   named buttons plus the tools plus the title is more than a phone has. The
-   top ones are smaller: they share the bar with everything else, where the
-   bottom shelf has a strip to itself. */
+/* One pinned thing, in its slot. The slot is the shadow: a socket sunk into the
+   shelf board, with the front standing in it and catching the light at the top.
+   Three shadows and no extra element, because the drag that reorders the shelf
+   reads `.pinbtn` siblings straight off the DOM — a wrapper round each one
+   would have to be dragged instead, and the reorder is not worth complicating
+   for a rebate. */
 .is-phone .pinbar .pinbtn{
   flex:0 0 auto;width:46px;height:46px;padding:0;gap:0;
   display:grid;place-items:center;border-radius:var(--radius-d);
-  background:var(--c,var(--felt));border:1px solid rgba(0,0,0,.3);
-  box-shadow:0 1px 2px rgba(42,36,28,.22), inset 0 1px 0 rgba(255,255,255,.16);
+  background:var(--c,var(--felt));border:1px solid rgba(0,0,0,.32);
+  box-shadow:
+    /* the socket the front stands in */
+    0 0 0 3px color-mix(in srgb,var(--ink) 9%,transparent),
+    0 0 0 3.5px color-mix(in srgb,#fff 22%,transparent),
+    /* and the front itself, lit from above and sitting proud of it */
+    inset 0 1px 0 rgba(255,255,255,.20), inset 0 -4px 7px -5px rgba(0,0,0,.5),
+    0 2px 3px -1px rgba(42,36,28,.34);
   color:#F8F3E6}
-.is-phone .shelf-top.pinbar .pinbtn{width:38px;height:38px;border-radius:var(--radius-d)}
-.is-phone .shelf-top.pinbar .pinface svg{width:19px;height:19px}
-.is-phone .shelf-top.pinbar{gap:6px;overflow-x:auto;scrollbar-width:none;
-  flex:0 0 auto;padding:0 10px 6px;touch-action:pan-x}
-.is-phone .shelf-top.pinbar::-webkit-scrollbar{display:none}
-.is-phone .pinbar .pinbtn span{display:none}   /* the mark is the label */
+/* …and it is labelled. It was the mark alone, on the grounds that eight-point
+   type under five pins says nothing — but two magic drawers wear the same
+   sparkle, so Today and Everything were the same button in two colours. A slot
+   is wider than it is tall and there are only ever a handful, so there is room
+   for a word. */
+.is-phone .pinbar .pinbtn{
+  width:62px;height:52px;grid-auto-rows:min-content;align-content:center;gap:3px}
+.is-phone .pinbar .pinbtn span{
+  display:block;max-width:54px;font-size:9px;font-weight:600;letter-spacing:.02em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center;
+  color:rgba(248,243,230,.86)}
+.is-phone .pinbar .pinface svg{width:18px;height:18px}
 .is-phone .pinbar .pinbtn.on{outline:2px solid var(--glow);outline-offset:2px}
 .is-phone .pinbar .pinbtn.magic{border-color:color-mix(in srgb,var(--glow) 62%,transparent)}
 .is-phone .pinbar .pinface{display:grid;place-items:center}
@@ -1468,3 +1508,77 @@ kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--rule);border
 .tlnode.lasts{transform:none;align-items:flex-start;text-align:left;
   width:auto;min-width:min(76px,30cqw)}
 .tlnode.lasts i{width:var(--run,8px);min-width:6px;height:5px;border-radius:3px}
+
+
+/* ============================================================
+   The drawer you pull out of the shelf
+   ============================================================
+   Swiping up off the bottom shelf opens the new-object menu, and it used to
+   fire the instant the finger had travelled forty pixels — committed, with
+   nothing drawn until it was already done. So a flick, a sideways scroll along
+   the shelf, and every swipe up out of the app to the iPhone home screen all
+   opened it.
+
+   It is a real pull now: a drawer front rises out of the shelf and follows the
+   finger the whole way, `--pull` being however far it has come, and it only
+   opens if you carried it about a third of the screen. Nothing is decided
+   until you let go — short of that it drops back — and the last few
+   millimetres above the bottom edge are left to iOS, which owns them. See
+   gestures.js and decision 43. */
+.shelfpull{
+  position:absolute;left:14px;right:14px;z-index:38;pointer-events:none;
+  height:var(--pull,0px);overflow:hidden;
+  display:flex;align-items:flex-end;
+}
+.shelfpull.settling{transition:height .22s cubic-bezier(.22,1,.3,1)}
+.pullfront{
+  flex:1;height:var(--pull,0px);min-height:0;
+  border-radius:var(--radius-d) var(--radius-d) 0 0;
+  background:var(--felt);border:1px solid var(--line,rgba(0,0,0,.28));border-bottom:0;
+  box-shadow:0 -8px 22px -10px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.16);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+  color:#F8F3E6;
+}
+.pullknob{
+  width:44px;height:7px;border-radius:99px;flex:0 0 auto;
+  background:color-mix(in srgb,#F8F3E6 58%,transparent);transition:.16s}
+.pullfront b{font-size:13px;font-weight:500;letter-spacing:.01em;opacity:.72;transition:.16s}
+/* far enough to open: the front says so before you let go, which is the whole
+   point of drawing it at all */
+.shelfpull.ready .pullknob{background:var(--glow);width:64px}
+.shelfpull.ready .pullfront b{opacity:1}
+.shelfpull.ready .pullfront{border-color:color-mix(in srgb,var(--glow) 60%,transparent)}
+
+/* ============================================================
+   Every desk, laid out
+   ============================================================
+   Desks are walked sideways, which means the row needs a map — and the map is
+   what the name at the top left opens. Each desk is drawn small: its own board
+   under the boxes that are on it, in the desk grid's own 24 columns. Boxes and
+   not tiles, on purpose — the question a map answers is about *shape*, and
+   forty real tiles at 3% would be a smear that cost a render. */
+.deskmapgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px}
+.deskcard{
+  display:flex;flex-direction:column;gap:5px;align-items:stretch;text-align:left;
+  padding:9px;border:1px solid var(--rule);border-radius:var(--radius);
+  background:var(--paper-2);transition:.15s;cursor:pointer}
+.deskcard:hover{border-color:var(--brass)}
+.deskcard.on{border-color:var(--brass);box-shadow:inset 0 0 0 2px var(--brass)}
+.deskcard.on u{color:var(--brass);font-weight:600}
+.deskcard b{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.deskcard u{text-decoration:none;font-size:10.5px;color:var(--ink-3)}
+.deskmini{
+  display:grid;grid-template-columns:repeat(var(--dcols,24),1fr);
+  grid-template-rows:repeat(var(--drows,8),1fr);
+  aspect-ratio:16/10;gap:1px;border-radius:3px;overflow:hidden;
+  background-color:var(--board-1);
+  background-image:conic-gradient(var(--board-2) 0 25%,transparent 0 50%,var(--board-2) 0 75%,transparent 0);
+  background-size:14px 14px}
+.deskmini i{display:block;background:var(--k);border-radius:1px;opacity:.92;min-width:0;min-height:0}
+
+/* ---- a list you arranged is a list you can rearrange -------------------
+   Manual sort only: a board that sorts itself arranges itself, and shuffling
+   an A–Z list would be a gesture whose result vanished on the next render. */
+.drawer.listband.lifted{box-shadow:0 6px 18px -6px rgba(0,0,0,.4);z-index:3}
+.drawer.listband.dragging{opacity:.92;outline:2px solid var(--glow);outline-offset:1px;
+  transform:scale(1.01)}

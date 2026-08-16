@@ -1,6 +1,6 @@
 import { $, esc, uid, ROOT, D } from './util.js';
 import { S, byId, K, KINDS, KEYS, kindHas, has, isContainer, genKindOf, streak, T, dz, dev,
-  deskIds, deskHere, placeOf, cfgOf } from './model.js';
+  deskIds, deskHere, placeOf, cfgOf, inboxId } from './model.js';
 import { gridOf, freeSpot, lay, boxOk, sizeOfKind } from './grid.js';
 import { randomFront, randomBoard, styleDefaults } from './look.js';
 import { render } from './views.js';
@@ -144,37 +144,56 @@ function delDrawer(id){
   render();
 }
 /* Where a drawer is kept, which is deliberately not a property of the drawer —
-   see the note on desks and shelves in model.js. `where` is:
+   see the note on the shelf in model.js. `where` is:
 
      desk    out in the master space, somewhere you can be
-     shelf   to hand on the desk you are on now, somewhere you can reach
+     pin     on the shelf, to hand from wherever you are
      null    neither: an ordinary drawer, on the board where it lives
 
    A drawer is in at most one of them, so asking for one takes it out of the
    other. Both append, so a row fills left to right in the order you chose
-   things, and taking one out leaves the rest where they were. */
+   things, and taking one out leaves the rest where they were.
+
+   Becoming a desk is a **move**, not a label. A desk is somewhere you can be,
+   and a thing cannot be both a place you go to and a front sitting on somebody
+   else's board — so promoting takes the drawer off the board it was on
+   entirely, and demoting puts it back where it came from. Its boxes go with
+   it, because it is a new coordinate space either way. See decision 40. */
 function setPin(id, where){
   const o=byId(id); if(!o || !isContainer(o)) return;
   const to = where===true ? 'desk' : (where||null);
+  const was = placeOf(id);
   S.desks = (S.desks||[ROOT]).filter(x=>x!==id);
-  // out of every shelf, not just this desk's — a drawer promoted from one desk
-  // and demoted on another would otherwise leave a dead entry behind
-  deskIds().forEach(did=>{ const c=cfgOf(did);
-    if(Array.isArray(c.shelf)) c.shelf=c.shelf.filter(x=>x!==id); });
-  if(to==='desk') S.desks.push(id);
-  else if(to==='shelf'){ const c=cfgOf(deskHere()); c.shelf=[...(c.shelf||[]), id]; }
+  S.pins = (S.pins||[]).filter(x=>x!==id);
+  if(to==='desk'){
+    S.desks.push(id);
+    if(was!=='desk'){
+      // remember where it stood, so demoting is a return and not a guess
+      o.wasIn = o.parent||ROOT;
+      o.parent=null; o.desk=null; o.phone=null;
+    }
+  } else {
+    if(to==='pin') S.pins.push(id);
+    if(was==='desk'){
+      o.parent = (o.wasIn && (o.wasIn===ROOT || byId(o.wasIn))) ? o.wasIn : ROOT;
+      delete o.wasIn; o.desk=null; o.phone=null;
+      // whoever was looking at it as a desk has to be put somewhere real
+      if(S.view==='drawer' && S.drawerId===id){ S.view='desk'; S.drawerId=null; }
+    }
+  }
   render();
 }
 /* The star in the bar. It promotes, because that is the interesting half of
    the question — and it says what promoting costs, since a drawer that becomes
-   a desk drops out of what every rule on every *other* desk can see, and that
-   is the one consequence you would not guess. */
+   a desk leaves the board it was on and drops out of what every rule on every
+   *other* desk can see. Both are consequences you would not guess. */
 function togglePin(id){
   const o=byId(id); if(!o || !isContainer(o)) return;
   const was = placeOf(id)==='desk';
+  const home = was ? null : (byId(o.parent)||{}).title || 'the desk';
   setPin(id, was ? null : 'desk');
   toast(was ? `${o.title} is an ordinary drawer again`
-            : `${o.title} is a desk — rules on other desks stop seeing inside it`);
+            : `${o.title} is a desk of its own — it has left ${home}`);
 }
 /* Tag filtering has no mode and no filter bar on purpose. A tag you care about
    enough to filter by is a tag you care about enough to keep, and "everything
@@ -198,7 +217,13 @@ function create(kind, patch){
   const k=K(kind);
   const o = Object.assign({
     id:uid(kindHas(kind,'container')?'d':'o'), kind, title:'', body:k.body||'', tags:[],
-    parent:(S.view==='drawer'&&S.drawerId)||ROOT,
+    /* Where it lands when nobody said. Inside a drawer, that drawer — you are
+       looking at it, so you meant it. On a desk it is the **inbox**: a thing
+       made from the shelf with no cell aimed at is a thing you have not decided
+       where to keep, and the whole point of an inbox is to be the answer to
+       that. Aiming at a bare cell says where, and that comes through `patch`,
+       which wins. */
+    parent:(S.view==='drawer'&&S.drawerId)||inboxId()||ROOT,
     done:false, doneAt:null, due:kindHas(kind,'date')?T:null,
     repeat:kindHas(kind,'streak')?'daily':null,
     history:[], milestones:kindHas(kind,'progress')?[{t:'First milestone',done:false,d:dz(30)}]:[],

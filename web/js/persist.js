@@ -9,11 +9,15 @@ import { closePanel } from './panels.js';
 /* ============================================================
    19b · persistence — everything stays on this device
    ============================================================ */
-/* The version, by hand, and bumped with the cache in web/sw.js — the two
-   travel together, because "which Bureau is this phone running" is exactly the
-   question you ask when a change appears not to have deployed. Shown in
-   Settings, so it can be read off the device rather than guessed at. */
-const APP_VERSION = '1.4';
+/* The version **is the commit count**, as `0.NN`: the fifty-first commit is
+   0.51 and the hundredth will be 1.00, which is the first honest claim to a
+   1.0 this app will have made. It used to be a number chosen by hand, which
+   meant it said nothing you could check.
+   Bumped with the cache in web/sw.js — the two travel together, because "which
+   Bureau is this phone running" is exactly the question you ask when a change
+   appears not to have deployed. Shown in Settings, so it can be read off the
+   device rather than guessed at. */
+const APP_VERSION = '0.51';
 const KEY = 'bureau.v1';
 const install = {deferred:null};   // the browser's install prompt, when one is on offer
 let saveTimer = null;
@@ -30,7 +34,8 @@ function snapshot(){
   // Home is always in the row and is not an object, so it is never filtered.
   const live = id => id===ROOT || S.objects.some(o=>o.id===id);
   const desks=(S.desks||[ROOT]).filter(live);
-  return {v:DATA_V, savedAt:new Date().toISOString(), desks,
+  const pins=(S.pins||[]).filter(live);
+  return {v:DATA_V, savedAt:new Date().toISOString(), desks, pins, inbox:S.inbox,
           look:S.look, kinds:S.kinds, deskCfg:S.deskCfg, objects};
 }
 function writeNow(){
@@ -139,7 +144,7 @@ function dedupeIds(objects){
    skips all of them, an old backup replays only what it is missing. These
    used to be ad-hoc per-load mutations inside adopt(); a new repair that
    should run once belongs here, as the next numbered step. */
-const DATA_V = 15;
+const DATA_V = 17;
 const MIGRATIONS = [
   // Drawers and objects were two arrays and a drawer could not live inside
   // anything. foldDrawers also replays the old dense flow to give v1 drawers
@@ -299,6 +304,60 @@ const MIGRATIONS = [
       d.deskCfg.shelf = [...(d.pinsTop||[]), ...(d.pins||[])];
       delete d.pins; delete d.pinsTop;
     }},
+  /* One shelf, and a desk that is somewhere rather than something.
+     The top shelf is gone: every per-desk shelf folds into one global list of
+     pins, home first out of it because home is walked to and never pinned. And
+     a drawer that had been promoted to a desk stops being a front on whatever
+     board it was on — it *is* the place now — so its parent is remembered in
+     `wasIn` and cleared, which is exactly what setPin() does from here on.
+     See decisions 40 and 41. */
+  {v:16, up(d){
+      const objs=d.objects||[];
+      const seen=new Set(), pins=[];
+      const take=list=>(list||[]).forEach(id=>{ if(id!==ROOT && !seen.has(id)){ seen.add(id); pins.push(id); } });
+      take(d.deskCfg && d.deskCfg.shelf);
+      objs.forEach(o=>{ if(Array.isArray(o.shelf)) { take(o.shelf); delete o.shelf; } });
+      if(d.deskCfg) delete d.deskCfg.shelf;
+      d.pins = pins;
+      // an inbox, if this desk still has the one the sample started with
+      if(!d.inbox && objs.some(o=>o.id==='d_in')) d.inbox='d_in';
+      (d.desks||[]).forEach(id=>{
+        const o=objs.find(x=>x.id===id);
+        if(!o || o.parent==null) return;
+        o.wasIn=o.parent; o.parent=null; o.desk=null; o.phone=null;
+      });
+    }},
+  /* A phone page is a stated 10 × 14. It was 8 columns of measured square
+     cells, so every stored phone box is in the wrong coordinate space by a
+     quarter — scale x and w by 10/8 and keep each tile the same fraction of the
+     screen it occupied, which is the thing that was actually arranged.
+     Rows are left alone: y was already a continuous coordinate and nothing
+     depended on how many of them fitted. Anything that ends up straddling a
+     page break is re-placed by gridOfContainer() on the first render, which is
+     the same repair it already does for a box that predates paging. */
+  {v:17, up(d){
+      const cols=10, from=8;                 // written out: a migration must
+      const up=n=>Math.max(1, Math.round(n*cols/from));   // not drift with GRID
+      const placed={};
+      const overlap=(a,b)=> a.x < b.x+b.w && b.x < a.x+a.w && a.y < b.y+b.h && b.y < a.y+a.h;
+      (d.objects||[]).forEach(o=>{
+        const b=o.phone; if(!b || !b.w) return;
+        const w=Math.min(cols, up(b.w));
+        let box={x:Math.min(up(b.x), cols-w+1), y:Math.max(1,b.y), w, h:Math.max(1,b.h)};
+        const home = placed[o.parent||ROOT] = placed[o.parent||ROOT] || [];
+        if(home.some(t=>overlap(box,t))){
+          outer: for(let y=1;y<400;y++) for(let x=1;x<=cols-w+1;x++){
+            const spot={x, y, w, h:box.h};
+            if(!home.some(t=>overlap(spot,t))){ box=spot; break outer; }
+          }
+        }
+        home.push(box); o.phone=box;
+      });
+      Object.values(d.kinds||{}).forEach(k=>{
+        if(Array.isArray(k.phoneSize) && k.phoneSize[0])
+          k.phoneSize=[Math.min(cols, up(k.phoneSize[0])), Math.max(1, k.phoneSize[1])];
+      });
+    }},
 ];
 function migrate(d){
   let v = d.v||0;
@@ -316,6 +375,9 @@ function adopt(d){
   S.look = Object.assign(defaultLook(), d.look||{});
   S.desks = Array.isArray(d.desks) && d.desks.length ? d.desks.slice() : [ROOT];
   if(!S.desks.includes(ROOT)) S.desks.unshift(ROOT);   // home is always in the row
+  // the shelf holds drawers only: home is walked to, not pinned
+  S.pins = (Array.isArray(d.pins) ? d.pins : []).filter(id=>id!==ROOT);
+  S.inbox = d.inbox || null;
   S.undo = [];   // the moves on it referred to objects this desk has never had
   refreshKinds();
   return true;

@@ -1267,3 +1267,148 @@ benefit until a drawer is deliberately pushed out into the row. That is the
 right default — promoting somebody's drawers for them would rearrange their
 life — but it does mean the feature is invisible on first launch, which is why
 the sample desk ships with two.
+
+---
+
+### 40. A desk is somewhere, so it stops being something
+
+Promoting a drawer to a desk used to be a label. The drawer stayed exactly where
+it was — a front on somebody's board — and also appeared in the row of desks,
+so the same container was both a place you walked to and an object you looked
+at. Opening it from the board and arriving at it by swiping were two routes to
+one screen with two different meanings, and the breadcrumb had to pick one.
+
+So promoting is a **move**. `setPin(id,'desk')` remembers where the drawer stood
+in `wasIn`, clears its `parent` and both its boxes, and the drawer leaves the
+board it was on. Demoting is the return trip: it goes back to `wasIn`, or to the
+desk if that container has since gone. A container with a null parent is in no
+coordinate space at all, which is what a desk is — `inContainer()` never matches
+it, `chainOf()` stops at it, and `deskOf()` still walks up through it for
+everything inside.
+
+*Why:* a place and a thing are different, and the app had been saying so
+everywhere else — the breadcrumb roots at a desk, the row is walked sideways,
+`chainOf` stops there. Leaving the front behind was the one place that said the
+opposite, and the cost was a drawer you could delete from a board while standing
+inside it as a desk.
+
+*Against:* promoting now removes something from a board you were looking at,
+which is a bigger act than a star usually implies — so the toast says where it
+went. And `wasIn` is a second piece of location state on the object, which is
+exactly the kind of thing that goes stale; it is only read on demote and only
+trusted if the container still exists.
+
+---
+
+### 41. One shelf, and the desks came off it
+
+There were two shelves. The bottom one was the master space — the row of desks —
+and the top one was whatever you had pinned on the desk you happened to be
+standing on. Two strips, at opposite ends of the screen, both answering "what
+can I reach from here".
+
+The desks did not need a strip. They are laid out in space: a sideways swipe
+walks the row, and pressing the name at the top left opens **all of them at
+once**, drawn small, to jump. That is a map, which is what a space wants, and it
+costs nothing when you are not looking at it. So the desks came off the shelf,
+the top shelf went, and what is left is one strip along the bottom holding
+anything at all — a drawer, a magic drawer, a project, a film. `S.pins`, global
+rather than per desk, because something kept to hand is kept to hand wherever
+you are standing.
+
+It is drawn as a shelf now rather than as a row of buttons: a board with a lip
+along the front and a slot cut for each pinned thing. A strip of buttons along
+the bottom of a phone is a tab bar, and a tab bar is precisely what decision 22
+deleted.
+
+*Why:* the top shelf cost a row of board on every screen and answered a question
+the bottom one was already answering. And a desk with a button is a desk you
+navigate to rather than a place you walk to, which undoes most of decision 39.
+
+*Against:* a desk is now one press further away than a drawer you pinned, which
+is backwards if you spend all day moving between desks — you can pin a desk's
+contents, but not the desk. Watch for that; the fix is to allow a desk on the
+shelf too, not to bring the second strip back.
+
+---
+
+### 42. The magic foil was tacky
+
+A magic drawer was holographic: a rainbow spectrum under a specular highlight,
+both driven off two numbers on `#frame` that came from how the phone was tilted
+or from where the pointer was. It replaced a band of light that travelled across
+the front on a seven-second loop, and it was a real improvement on that — a
+surface that moves because *you* did rather than because a timer said so.
+
+It was still wrong. A drawer that fills itself is *illuminated*, which is a
+manuscript idea; a foil is a trading card. The spectrum was also the one place
+in the app that named hues outright, which made it the one thing on the desk
+belonging to no style. And it cost a `deviceorientation` listener, an iOS
+permission prompt, a Settings button to ask for it, and an easing loop.
+
+What is left is the gilt: a ruled frame inset from the edge with corner
+brackets, and one wash of the style's own Glow held to the top edge where a lamp
+would put it. It does not move. `--holox`/`--holoy` are gone and nothing
+replaced them.
+
+*Against:* the desk lost the one thing that reacted to the phone in your hand,
+and that was genuinely delightful the first ten times. If it comes back it
+should come back on a surface that has a reason to be lit — glass, water, an
+actual foil — rather than on every container with a rule.
+
+---
+
+### 43. The new-object menu is pulled, not flicked
+
+Swiping up off the bottom shelf opens the type picker. It used to fire the
+instant the finger had travelled forty pixels — committed, with nothing on the
+screen until it was already done. So a flick opened it, a sideways scroll along
+the shelf opened it, and every swipe up out of the app to the iPhone home screen
+opened it, which is the one that made this unbearable.
+
+It is a real pull now. A drawer front rises out of the shelf after twelve pixels
+and follows the finger the whole way; it opens only if you carry it about a
+quarter of the screen, and letting go short of that drops it back. Nothing is
+decided until you let go. The last 26 pixels above the bottom edge are left
+alone entirely, because they belong to iOS.
+
+*Why:* a gesture that commits at a threshold with no feedback is a gesture you
+cannot aim, and this one shared its strip with the operating system's own. The
+same argument made the pager follow your finger (decision 38); this is that
+argument applied to the one gesture that was still a threshold.
+
+*Against:* it is a longer stroke than it was, and on a big phone it is a real
+reach. The distance is a proportion of the screen rather than a constant, which
+helps, but "make something" is now a deliberate act rather than a flick — which
+is the point, and will still be annoying on the day you want six things.
+
+---
+
+### 44. A phone page is a stated 10 × 14
+
+A phone board was eight fluid columns of square cells, with however many rows
+happened to fit between the shelves. The cell was square and the page was
+whatever the handset made it: fourteen rows on one phone, twelve on another, so
+an arrangement was not portable and "the bottom row" was not a place.
+
+It is ten columns by fourteen rows now, stated, and the row height is the room
+between the shelves divided by fourteen. The cell stops being square — about 39
+across and 52 down on a 390pt screen — and that is the trade. A stated page is
+worth more than a square cell: you can arrange to 10 × 14 knowing that is what
+there is, on any phone, and a layout made on one is the layout on another.
+
+The desk is untouched: 24 fluid columns, square rows, and it scrolls, so there
+is no page to state.
+
+*Why:* every other thing in Bureau that is arranged is arranged into a *stated*
+space. The phone page was the one measured one, and it was measured off the
+device rather than off the design.
+
+*Against:* the cell is a third taller than it is wide, so a "square" tile isn't
+one and `sz-mini` is a tall stamp rather than a square one. Nothing in the
+renderer assumed square — `cellW()` and `--rowh` were always separate numbers —
+but the checkerboard needed two sizes instead of one, and any future geometry
+has to keep asking for both. Migration 17 rescales every stored phone box by
+five quarters, and rounding can push two neighbours into each other, so it
+re-places anything that collides — the same repair migration 10 already had to
+make.

@@ -58,7 +58,11 @@ documentation, hence the workflow.
 After changing anything in `web/` (any `js/` or `css/` file, or `index.html`),
 bump `CACHE` in `web/sw.js` **and** `APP_VERSION` in `web/js/persist.js` — the
 two travel together, and the second is what Settings prints, so "which Bureau is
-this phone running" can be read off the device instead of guessed at. Without
+this phone running" can be read off the device instead of guessed at.
+`APP_VERSION` **is the commit count**, written `0.NN`: the fifty-first commit is
+`0.51` and the hundredth is `1.00`, which will be the first honest claim to a
+1.0 this app has made. `git log --oneline | wc -l`, plus the commit you are
+about to make. Without
 the cache bump, installed copies keep serving the old version. A **new** file must also be added to `SHELL` in `sw.js` or
 it won't work offline. This is the easiest thing in the project to forget and
 the symptom — "my change didn't deploy" — points at the wrong culprit.
@@ -90,7 +94,7 @@ clause at the bottom of each file — that list is each module's public surface.
 | `sheet.js` | The two surfaces an object opens onto — reading and writing — rendered into `#sheetHost`, **separately** from `render()`. |
 | `panels.js` | `openPanel()` — **every menu in the app** — plus `openMenu()` for a popup hung off a button, the command palette (⌘K), the context menu, and `sampleObject`/`sampleTile` for drawing a type as the thing it makes. |
 | `gestures.js` | Pointer-based drag, resize, lasso, swipe. The fiddliest code in the app. |
-| `motion.js` | Every movement: `openTile()` (drawer, cabinet, curl, lift), `pop()`, the holographic light (`--holox`/`--holoy`), and the pager that slides between boards. Nothing in it ever delays a state change. |
+| `motion.js` | Every movement: `openTile()` (drawer, cabinet, curl, lift), `pop()`, and the pager that slides between boards. Nothing in it ever delays a state change. |
 | `persist.js` | localStorage read/write, **versioned `MIGRATIONS`**, JSON export/import, IndexedDB image assets, the paste bridge. |
 | `wire.js` | One delegated listener set on `#frame`. All interaction routes through here — to add an action, add a `data-act` and a case in `act()`. |
 | `boot.js` | Entry point: load, wire, render, register the service worker, `window.BUREAU`. |
@@ -137,11 +141,11 @@ one pulls out, a paper shape curls, everything else lifts. Don't add a branch on
 a kind's name to get a different movement; add a value, or set `opening` on the
 type.
 
-**The desk catches light, and light is the only thing that moves.** `--holox`
-and `--holoy` on `#frame` say where it is coming from — tilt on a phone,
-pointer on a Mac — and a magic drawer's foil is drawn from them in `chrome.css`.
-There is no keyframe. If you want a surface to shimmer, read those two numbers;
-don't add a loop.
+**Nothing on the desk shimmers.** A magic drawer used to be holographic foil,
+lit from `--holox`/`--holoy` on `#frame` — the phone's tilt, or the pointer.
+It was tacky, and it is gone along with the whole tilt apparatus. Furniture does
+not react to being held. If you want a surface to catch light, give it a reason
+first and read decision 42.
 
 **A tag is a magic drawer waiting to happen.** There is no filter mode and no
 filter bar; clicking a tag anywhere calls `drawerForTag()`, which finds the
@@ -232,6 +236,12 @@ agrees only when both name the same thing. If you are tempted to write
 exists to stop: a type invented at runtime has to get the behaviour too, and
 the type builder offers it as "Two of them make".
 
+**A desk starts locked, and so does every drawer in the sample.** A board you
+arranged is one you want to look at rather than nudge, and on a locked board one
+finger walks the boards, which is the gesture a phone is actually for. A drawer
+you make yourself starts unlocked, because you made it in order to arrange it —
+`create()` sets nothing, the seed sets `locked:true`.
+
 **Two fingers navigate; on a locked board, one does.** Both go through the
 pager in `motion.js`, which draws the board either side of this one and slides
 the strip with your finger rather than committing at a threshold. A locked board
@@ -242,16 +252,36 @@ still opens the tile and the long press still opens the menu. See decision 38.
 views: the desk and a drawer. The four fixed tabs (Today, Keeping Up,
 Everything) are gone — they were hard-coded aggregations, which is a magic
 drawer's job. Don't add a view without a very good reason — a magic drawer is
-nearly always the answer. See decision 22.
+nearly always the answer. See decision 22. The three that ship pinned are
+exactly those aggregations done properly: **Today** (anything due, every desk),
+**Inbox** (an ordinary drawer, and where a new object lands when nobody said),
+**Everything** (every unfinished task, every desk).
 
-**There is more than one desk, and a desk is a drawer with a place of its own.**
+**One drawer is the inbox, and it is a fact about the desk.** `S.inbox` names
+it; `inboxId()` resolves it, refusing a magic drawer, because one holds nothing.
+`create()` falls back to it when there is no `patch.parent` and you are not
+inside a drawer — so a thing made by pulling the shelf open goes to the inbox,
+and a thing made by aiming at a bare cell goes where you aimed. Nominated from
+any ordinary drawer's settings.
+
+**There is more than one desk, and a desk is somewhere rather than something.**
 `S.desks` is the master space: an ordered row of container ids with `ROOT` among
 them. A container in it is somewhere you can *be* — the breadcrumb roots there
-(`chainOf` stops at a desk), the top shelf belongs to it, and a sideways swipe
-walks the row. Everything else is a drawer, somewhere you went *into*. Ask
-`isDesk(id)` and `deskOf(o)`; promote with `setPin(id,'desk')`. The row does
-**not** wrap — a space you can walk off the end of is a space you can learn.
-See decision 39.
+(`chainOf` stops at a desk) — and a sideways swipe walks the row. Everything
+else is a drawer, somewhere you went *into*. Ask `isDesk(id)` and `deskOf(o)`;
+promote with `setPin(id,'desk')`. The row does **not** wrap — a space you can
+walk off the end of is a space you can learn. See decision 39.
+
+**Promoting a drawer to a desk takes it off the board it was on.** It is a
+move, not a label: `setPin()` remembers `wasIn`, clears `parent` and both boxes,
+and demoting is the return trip. A container with a null parent is in no
+coordinate space at all, which is exactly what a desk is. Don't reintroduce a
+front that is also a place. See decision 40.
+
+**The name at the top left opens every desk at once.** Desks are laid out in
+space, so the row needs a map rather than a strip of buttons — `deskMap()` in
+`views.js` draws each desk small, its boxes on its own board, and pressing one
+goes there. That is why there is no desk on the shelf.
 
 **A magic drawer sees its own desk unless it says otherwise.** `filter.scope` is
 `desk` (the default) | `all` | `some` + `filter.scopeDesks`. Without it, a rule
@@ -259,31 +289,41 @@ on the Exercise desk answers with screenplay scenes. `inScope()` is checked
 before every other clause in `inContainer()`, so it applies to the archive and
 to every rule alike.
 
-**There are two shelves, and a shelf is a strip you can reach from anywhere.**
-The **bottom** one *is* the master space — the row of desks, home included, in
-its own order. The **top** one carries the tools and whatever you pinned **on
-this desk**, and rides in the grid bar. On a Mac both are drawn along the top;
-on a phone the bottom one is its own strip along the bottom, which is the half a
-thumb reaches. Ask `placeOf(id)`, `shelfHere()`, and render either with
-`shelfStrip(where)`.
+**There is one shelf, and anything may sit on it.** `S.pins` is a single global
+ordered list — global, not per desk, because something kept to hand is kept to
+hand wherever you are standing. It rides in the grid bar on a Mac and has its
+own strip along the bottom of a phone, which is the half a thumb reaches, drawn
+as a shelf board with a slot cut for each pinned thing. Ask `placeOf(id)` —
+`desk | pin | null` — and render with `shelfStrip()`. There was a second shelf
+along the top for this desk's own pins; it cost a row of board on every screen
+and answered a question this one already answers. See decision 41.
 
-**Every tool on the top shelf is a toggle, not a menu.** The sort cycles seven
-states and *wears the one it is on*; the lock is a lock, open or shut. A phone
+**Every tool in the grid bar is a toggle, not a menu, and the lock is first.**
+It decides what every other gesture on the board means, so it is the leftmost;
+then the sort, which cycles seven states and *wears the one it is on*. A phone
 has no room for a popup asking a question you could answer by pressing the
 button again. A locked board refuses moves and resizes and **never** refuses the
-long press — see `G.stuck` in `gestures.js`.
+long press — see `G.stuck` in `gestures.js`. How a board is laid out is not a
+tool: it is the "Opens as" row in the board's own settings.
 
-**A phone board has pages; it does not scroll.** It is exactly as many whole
-square cells as fit between the two shelves (`PAGEROWS`, measured by
-`sizeGrid()` — a `floor`, and the `ceil` it replaced is the entire reason the
-board used to scroll). A page is *not stored*: `y` is one continuous coordinate
-space per container and a page is a window of *n* rows onto it, so drag, drop
-and `freeSpot()` know nothing about pages. The one rule is that nothing may
-straddle a break, enforced in `boxOk()`. Two fingers up and down turn pages;
-two fingers left and right walk the pins. See decision 37.
+**A phone page is a stated 10 × 14, and it does not scroll.** `GRID.phone.cols`
+is 10 and `PHONE_ROWS` is 14; `sizeGrid()` divides the room between the bar and
+the shelf by fourteen to get the row height, rather than measuring a square cell
+and counting how many fit. So the cell is **not square** on a phone — about 39
+across and 52 down — and anything doing geometry needs both `COLW[dev()]` and
+`CELL[dev()]`. A stated page is worth more than a square cell: an arrangement is
+the same arrangement on any handset. A page is *not stored*: `y` is one
+continuous coordinate space per container and a page is a window of *n* rows
+onto it, so drag, drop and `freeSpot()` know nothing about pages. The one rule
+is that nothing may straddle a break, enforced in `boxOk()`. Two fingers up and
+down turn pages; two fingers left and right walk the desks. See decision 44. See decision 37.
 
-**Tapping bare board does nothing on a phone.** The way in is a swipe up off
-the bottom shelf. Dragging a size out on bare board still makes something, on
+**Tapping bare board does nothing on a phone.** The way in is **pulling** the
+shelf open: a drawer front rises out of it and follows your finger, and it opens
+the type picker only if you carry it about a quarter of the screen. It was a
+40px flick that committed with nothing drawn, which is why iOS's own home swipe
+kept opening it. Nothing is decided until you let go — see `PULL_OPEN` and
+`HOME_EDGE` in `gestures.js`, and decision 43. Dragging a size out on bare board still makes something, on
 both devices, because that one is deliberate. And on a phone every panel comes
 up from the bottom rather than in from the right — a panel from the right covers
 the whole board, which is the thing decision 23 exists to prevent.
@@ -361,6 +401,14 @@ twenty shapes as chips were four hundred pixels you had to read like a wall. New
 settings go in as `psel()`; if a group is genuinely multi-select, put the chips
 behind a `pgroup()` disclosure.
 
+**A list under Manual can be dragged into order; under any other sort it
+can't.** `ord` is what `childrenOf()` falls back to when nothing sorts, so
+holding a `.listband` and moving it writes indexes into `ord` — the boxes are
+untouched, because a thing's place on a grid is a different fact from its place
+in a list. The gesture only arms when `sortOf(container)` is manual: a board
+that sorts itself arranges itself, and shuffling an A–Z list would be a gesture
+whose result vanished on the next render. The list carries `data-listfor`.
+
 **A sort is per object then per type.** Ask `sortOf(c)`, never `c.sort`. `manual`
 is a real stored value — it is what lets one container refuse a type that sorts —
 so writing `null` to mean "unsorted" reintroduces the bug it was there to stop.
@@ -370,6 +418,14 @@ coordinate space and `freeSpot()` scans from the top, so on a phone — where an
 object is full width — a new thing always lands below the fold. It looked
 exactly like nothing had happened. Don't fix it by shuffling the board: things
 you arranged don't move.
+
+**A shape with a torn edge still has a border, and it follows the tear.** A
+`border` is drawn on the box, so `clip-path` slices it off at the notches and
+leaves it hanging at the corners — which is why `sh-note` had `border:0`. The
+outline comes from four zero-blur `drop-shadow`s instead, one per direction:
+a drop-shadow is computed from the element's alpha *after* the clip, so the line
+traces whatever the clip cut. Same filter chain as the real shadows, which is
+also what stops a clipped tile from floating with none.
 
 **No type draws a coloured left stripe.** A stripe down the left is what
 `priority` means. `edge` is the opt-in, on any object; four shapes (`tab`,
@@ -391,14 +447,12 @@ attribute registry is `ATTRS`; the presets are `BUILTIN_KINDS` merged with
 and everything inside inherits it. `--c` does the same for drawer colour. Don't
 hardcode a hex value in a component rule.
 
-**A magic drawer is gilded, and the gilt is foil.** Not dotted, not speckled
-with stars — a dotted border is what every drawing tool means by "not real yet".
-`.magicdrawer` gets a ruled frame inset from the edge with corner brackets, and
-a holographic wash that shifts as the light moves. The band of light that used
-to travel across it on a seven-second loop is gone; see decision 38. Never
-hardcode the gold: the highlight is `var(--glow)`, so it is leaf on Victorian
-and a green shimmer on Starry. The spectrum under it is the one place in the app
-that names hues outright, deliberately — a foil that is one hue is not a foil.
+**A magic drawer is gilded, and the gilt does not move.** Not dotted, not
+speckled with stars — a dotted border is what every drawing tool means by "not
+real yet". `.magicdrawer` gets a ruled frame inset from the edge with corner
+brackets and one wash of leaf held to the top edge. It was holographic foil for
+a while, which was worse than either; see decision 42. Never hardcode the gold:
+it is `var(--glow)`, so it is leaf on Victorian and a green shimmer on Starry.
 
 **An edge is a slot too.** The six `bd-*` classes are positions, not
 descriptions — `bd-panel` is a Victorian moulding, a Pseudochromo hairline, a
@@ -442,7 +496,7 @@ when you're editing the *other* device's layout from this one.
 - **A kind's `size` is the desk size.** `sizeOfKind(kind, device)` maps it: on a
   phone an object goes full width at the same height, and a container is halved
   so it keeps the fraction of the screen it had. Never use `K(k).size` directly
-  to place something — a 6×6 drawer copied straight onto an 8-column phone grid
+  to place something — a 6×6 drawer copied straight onto a 10-column phone grid
   is three quarters of the screen, which is what this
   function exists to stop. Anything drawing a *preview* of a phone box goes
   through `toPhoneSize()` so the preview can't drift from the placement. A kind
@@ -466,9 +520,16 @@ when you're editing the *other* device's layout from this one.
   array order positions nothing. There is no `grid-auto-flow` — an empty cell
   stays empty. Every move and resize goes through `boxOk()`, which refuses
   anything that would overlap or leave the columns; see `web/js/grid.js`.
-- **Cells are square and the row height is measured, never assumed.** Columns
-  are fluid, so `sizeGrid()` reads the real column width after layout and caches
-  it in `CELL`. Don't hardcode a row height — `GRID` deliberately has none.
+- **The row height is measured, never assumed — and on a phone it is not the
+  column width.** `sizeGrid()` reads the real column width after layout into
+  `COLW` and works the row height out into `CELL`: the same number on a desk,
+  where the cell is square and the board scrolls, and one fourteenth of the
+  board on a phone, where the page is stated. Don't hardcode either — `GRID`
+  deliberately has no row height. The one place that has to *guess* before the
+  grid exists is `gridOfContainer()`, which writes `--checkerx`/`--checkery`
+  into the grid's own style from the last measurement, so a new board is drawn
+  at the right scale on its first frame instead of flashing the CSS fallback
+  and snapping back.
 - **There is no arrange mode.** Everything is always movable; a drawer can be
   `locked` to opt out. A 200ms hold arms the drag (`G.armed`), which is the only
   thing keeping a click from picking a tile up. Corners resize, and that's all —

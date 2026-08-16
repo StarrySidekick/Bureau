@@ -150,6 +150,12 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
 .gridbar .trail{display:flex;align-items:center;gap:5px;min-width:0;font-size:13px;color:var(--ink-3)}
 .gridbar .trail b{font-weight:500;color:var(--ink-2);cursor:pointer;white-space:nowrap}
 .gridbar .trail b:hover{color:var(--brass)}
+/* The name of the desk is a button: it opens every desk at once, drawn small.
+   It is not styled as one — a title that looks like a control is a toolbar, and
+   there isn't one — but it says so when you reach for it. */
+.deskname{cursor:pointer;font:inherit;color:inherit;transition:color .14s}
+.gridbar .here .deskname{border-bottom:1.5px dotted color-mix(in srgb,var(--ink-3) 60%,transparent)}
+.deskname:hover{color:var(--brass)}
 .bartools{display:flex;align-items:center;gap:6px;flex:0 0 auto}
 .sqbtn{
   width:30px;height:30px;border-radius:var(--radius);display:grid;place-items:center;
@@ -163,11 +169,13 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
    ============================================================ */
 /* Explicit x/y placement: every drawer names its column and row, so the grid is
    a coordinate space, not a flow. No auto-flow — an empty cell stays empty. */
-/* Square cells: --rowh is set from the measured column width by sizeGrid(). */
+/* --rowh is set by sizeGrid(): the measured column width on a desk, where the
+   cell is square, and one fourteenth of the board on a phone, where the page is
+   a stated 10 × 14 and the cell is very slightly taller than it is wide. */
 .grid{display:grid;gap:0;align-content:start;position:relative}
 .grid.g-desk{grid-template-columns:repeat(var(--cols,24),1fr);grid-auto-rows:var(--rowh,40px)}
-.grid.g-phone{grid-template-columns:repeat(var(--cols,8),1fr);grid-auto-rows:var(--rowh,42px)}
-/* Arranging the phone layout from a Mac. The phone grid is 8 fluid columns, so
+.grid.g-phone{grid-template-columns:repeat(var(--cols,10),1fr);grid-auto-rows:var(--rowh,44px)}
+/* Arranging the phone layout from a Mac. The phone grid is 10 fluid columns, so
    in a 1440px window a cell came out 175px across and the preview stopped
    resembling the thing being arranged. Cap it at a phone's width instead: the
    geometry is untouched — cellW() measures the real rect — only the picture is
@@ -274,7 +282,12 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
   background-image:conic-gradient(
     var(--board-2) 0 25%, transparent 0 50%,
     var(--board-2) 0 75%, transparent 0);
-  background-size:var(--checker,160px) var(--checker,160px);
+  /* Two cells across and two down, and on a phone those are no longer the same
+     number — 10 fluid columns against 14 stated rows. Both are written into
+     the grid's style attribute as it is built (see gridOfContainer), so a new
+     board is drawn at the right scale on its first frame instead of flashing
+     this fallback and snapping back to size. */
+  background-size:var(--checkerx,var(--checker,160px)) var(--checkery,var(--checker,160px));
   background-position:0 0;
 }
 .grid > *{position:relative;z-index:1}
@@ -382,7 +395,8 @@ html[data-style="starry"] .grid::before{
     radial-gradient(circle at 48% 74%, rgba(255,255,255,.65) 0 1.1px, transparent 1.6px),
     radial-gradient(circle at 89% 57%, rgba(255,255,255,.45) 0 .9px, transparent 1.4px),
     conic-gradient(var(--board-2) 0 25%, transparent 0 50%, var(--board-2) 0 75%, transparent 0);
-  background-size:140px 140px,140px 140px,140px 140px,140px 140px,var(--checker,160px) var(--checker,160px)}
+  background-size:140px 140px,140px 140px,140px 140px,140px 140px,
+    var(--checkerx,var(--checker,160px)) var(--checkery,var(--checker,160px))}
 html[data-style="starry"] .gridbar .here{letter-spacing:.04em}
 /* Drawn in white pencil: a front is its outline, not its fill, so the border
    is a hair heavier and the shadow that would make it a solid object goes. */

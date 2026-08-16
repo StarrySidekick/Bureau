@@ -50,8 +50,9 @@ absent, and `adopt()` backfills defaults when loading a backup.
   filter: { kinds:["recipe"] },       // magic drawers only; ignored otherwise
   sort:   "manual",                   // manual | made | madeup | edited | az | za
                                       // absent = follow the type's; see sortOf()
+  locked: true,                       // a board you arranged, not one you nudge
   desk:   { x:13, y:7, w:6, h:6 },    // place + size in the 24-column Mac grid
-  phone:  { x:9,  y:13, w:8, h:6 }    // place + size in the 8-column iPhone grid
+  phone:  { x:5,  y:13, w:4, h:6 }    // …and in the iPhone's stated 10 × 14 page
 }
 ```
 
@@ -94,16 +95,20 @@ by id:
 
 Which **page** of a board you are on is in memory too, and deliberately not
 stored — `y` is one continuous coordinate space per container, and a page is a
-window of *n* rows onto it, where *n* is measured from this device's screen.
-Nothing about a box changes when it moves between pages.
+window of *n* rows onto it, where *n* is a stated fourteen on a phone and zero
+(no paging) on a desk. Nothing about a box changes when it moves between pages.
 
 `S.desks` is the **master space**: an ordered list of container ids with `root`
-among them, resolved on read, which the bottom shelf draws and a sideways swipe
-walks. A container in it is a *desk* — somewhere you can be — and everything
-else is an ordinary drawer. The **top** shelf is per desk, stored as `shelf` on
-the desk's own config (`cfgOf(deskId).shelf`), because what you keep to hand is
-a different answer on each of them. Migration 15 folded the old `pins` and
-`pinsTop` into the home desk's shelf and promoted nothing.
+among them, resolved on read, which a sideways swipe walks and which the name at
+the top left lays out all at once. A container in it is a *desk* — somewhere you
+can be — and a desk has **no parent**: promoting takes the drawer off the board
+it was on, remembering where it stood in `wasIn` so demoting is a return.
+
+`S.pins` is the **shelf**: one global ordered list of container ids, anything at
+all, drawn along the bottom of a phone and in the grid bar on a Mac. It used to
+be two strips — the desks along the bottom and a per-desk shelf along the top —
+and migration 16 folded every per-desk shelf into this one list. `S.inbox` names
+the drawer a new object goes to when nothing else says where.
 
 `openId` used to mean "the object in the detail sheet". The sheet is gone
 (decision 36) and the name stayed, because every handler that read it wanted

@@ -9,7 +9,7 @@ import { applyLook } from './look.js';
 import { render, settingsPanel, pageAt, pageCount, goPage } from './views.js';
 import { overlayHTML, objectPanel } from './panels.js';
 import { wire } from './wire.js';
-import { startMotion, openingFor } from './motion.js';
+import { openingFor } from './motion.js';
 import { load, writeNow, save, hydrateAssets, pasteObjects } from './persist.js';
 import { renderSheet, openWriter, openRead } from './sheet.js';
 
@@ -19,7 +19,6 @@ if(hash==='desk') S.view = hash;
 $('#frame').insertAdjacentHTML('beforeend', overlayHTML());
 wire();
 applyLook();
-startMotion();     // where the light is coming from — see motion.js
 render();
 // settings is a sheet over the desk now, not a place you navigate to
 if(hash==='settings') settingsPanel();

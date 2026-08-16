@@ -337,9 +337,15 @@ function objectPanelBody(id){
       sortOf(d)||MANUAL)));
     out.push(prow('Moving things', psel(id,'locked',[['','Movable'],['1','Locked']], d.locked?'1':'')));
     if(!isRoot) out.push(prow('Where it is kept', psel(id,'pin',
-      [['','On the board it lives on'],['desk','A desk of its own'],['shelf','On this desk’s shelf']],
+      [['','On the board it lives on'],['desk','A desk of its own'],['pin','On the shelf']],
       placeOf(id)||''),
-      'a desk is somewhere you can be'));
+      'a desk leaves the board it was on'));
+    /* Which drawer is the inbox. One at a time, and only an ordinary one — a
+       magic drawer holds nothing, so nominating one would file everything you
+       made into a container that could never keep it. */
+    if(!isRoot && !magic) out.push(prow('New things land here',
+      psel(id,'inbox',[['','No'],['1','Yes — this is the inbox']], S.inbox===id?'1':''),
+      S.inbox && S.inbox!==id ? esc('now: '+((byId(S.inbox)||{}).title||'nowhere')) : ''));
     /* What a magic drawer can see. The default is its own desk, which for a
        desk that has never been split up is everything — so this row only
        starts mattering once there is more than one place to look. */

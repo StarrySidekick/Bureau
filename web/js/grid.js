@@ -13,16 +13,29 @@ import { dev, childrenOf, container, K, kindHas } from './model.js';
    the row height is measured after layout by sizeGrid() and cached here —
    nothing may assume a fixed row height. Twice the columns of the first
    version, which is what makes the smallest object half the size it was. */
-/* The phone went from 16 columns to 8, which doubles the size of a cell: at 16
-   a cell was ~23px, and a 1×1 object was a stamp you could neither read nor
-   reliably hit. Eight columns puts a phone cell at ~47px — near enough the
-   desk's ~58 that the two grids finally describe the same sizes. Halving the
-   columns halves the rows too, because a cell is square. */
+/* The phone is **ten columns by fourteen rows**, and that is the whole screen:
+   one page of a board is exactly that grid and never anything else. It was
+   eight columns of measured square cells, with however many rows happened to
+   fit — which made the page a different shape on every handset and meant a
+   layout arranged on one phone was not the layout on another.
+
+   Stating both numbers costs the square cell: at 390pt a column is ~39px and a
+   row is ~44. Near enough that nothing looks stretched, and a *stated* page is
+   worth more than a square one — you can arrange to 10×14 knowing that is what
+   there is. The desk keeps its 24 fluid columns and scrolls, so its rows stay
+   square (PAGEROWS.desk is 0, which is what "no paging" means). */
 const GRID = {
   desk:  {cols:24, gap:0},
-  phone: {cols:8,  gap:0}
+  phone: {cols:10, gap:0}
 };
-const CELL = {desk:40, phone:42};   // last measured; a sane guess until then
+const PHONE_ROWS = 14;              // a phone page, stated rather than measured
+const CELL = {desk:40, phone:44};   // the *row height*, last measured
+/* …and the column width, which is no longer the same number. Cached for the
+   one caller that has to guess before the grid exists: the checker squares are
+   written into the grid's style attribute as it is built, so the board is
+   drawn at the right scale on its very first frame instead of flashing the
+   CSS fallback and snapping back. */
+const COLW = {desk:40, phone:39};
 const gridOf = (device)=>{
   const d=device||dev();
   return {cols:GRID[d].cols, gap:GRID[d].gap, rowh:CELL[d]};
@@ -39,10 +52,11 @@ const gridOf = (device)=>{
    moves between pages, drag and drop keep working on plain arithmetic, and
    turning paging off would put the board back exactly as it is.
 
-   Measured, like the cell size, by sizeGrid() — it is however many square
-   cells fit between the shelves on this particular phone. 0 means no paging
-   at all, which is what a Mac says: a desk has room and a mouse has a wheel. */
-const PAGEROWS = {desk:0, phone:0};
+   Stated, not measured: fourteen rows is a phone page wherever the phone is
+   from, and sizeGrid() divides the room between the shelves by it to get the
+   row height rather than the other way round. 0 means no paging at all, which
+   is what a Mac says: a desk has room and a mouse has a wheel. */
+const PAGEROWS = {desk:0, phone:PHONE_ROWS};
 const pageRows = device => PAGEROWS[device||dev()] || 0;
 const pageOfBox = (b, device)=>{ const n=pageRows(device); return n ? Math.floor((b.y-1)/n) : 0; };
 const lastPage = (device,parentId)=>{ const n=pageRows(device);
@@ -97,10 +111,9 @@ const gridRows = (device,parentId)=> childrenOf(container(parentId||ROOT))
    6×6 drawer three quarters of one.
 
    An **object** takes the whole width, because a phone is a column and the
-   things in a column are rows. Its height comes across 1:1 now that a phone
-   cell (~47px) and a desk cell (~58px) are within a third of each other — the
-   old ×1.5 was there to buy back pixels from 23px cells and would now make a
-   4-tall note taller on the phone than on the desk.
+   things in a column are rows. Its height comes across 1:1 — a phone row
+   (~44px) and a desk cell (~58px) are within a third of each other — and is
+   capped at a page, because nothing taller than a page can be seen at all.
 
    A **container** is halved instead of filled, which keeps the fraction of the
    screen it had before: two drawers across is what the phone desk looks like,
@@ -108,7 +121,7 @@ const gridRows = (device,parentId)=> childrenOf(container(parentId||ROOT))
 function toPhoneSize(w, h, isCont){
   const half = n => Math.max(1, Math.round(n/2));
   if(isCont) return [Math.min(GRID.phone.cols, half(w)), half(h)];
-  return [GRID.phone.cols, Math.min(12, Math.max(1, h))];
+  return [GRID.phone.cols, Math.min(PHONE_ROWS, Math.max(1, h))];
 }
 /* A kind may also state its phone size outright, in which case the mapping
    above is only the default it started from. The type builder writes one the
@@ -118,7 +131,7 @@ function sizeOfKind(k, device){
   const [w,h] = K(k).size || [4,4];
   if((device||dev())!=='phone') return [w,h];
   const p = K(k).phoneSize;
-  if(p && p[0]) return [clamp(p[0],1,GRID.phone.cols), clamp(p[1],1,40)];
+  if(p && p[0]) return [clamp(p[0],1,GRID.phone.cols), clamp(p[1],1,PHONE_ROWS)];
   return toPhoneSize(w, h, kindHas(k,'container'));
 }
 function ensureBox(o, device, parentId){
@@ -136,5 +149,5 @@ function cellW(grid,g){
   return (r.width - g.gap*(g.cols-1))/g.cols;
 }
 
-export { GRID, CELL, PAGEROWS, pageRows, pageOfBox, lastPage,
+export { GRID, PHONE_ROWS, CELL, COLW, PAGEROWS, pageRows, pageOfBox, lastPage,
   gridOf, lay, overlaps, boxOk, freeSpot, gridRows, sizeOfKind, toPhoneSize, ensureBox, cellW };

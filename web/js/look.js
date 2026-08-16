@@ -168,6 +168,13 @@ const STYLES = {
     cols:['#E9E1CC','#2A241C','#4A4034','#A9793F','#D9B57C',
           '#6F5137','#4A7C59','#6E7F63','#2E6B52','#4A6382','#5A7A9E',
           '#8E3B38','#9A7B2F','#8A6A3C','#5E4A72','#6E7075'],
+    /* The same desk after dark: the parchment becomes the walnut it was always
+       sitting on, and the eleven deepen rather than change. A slot is a
+       position, so nothing is converted — slot 11 is Victorian's claret in
+       both, one lit by a window and one by a lamp. */
+    dark:['#241C14','#EDE3CE','#6B5942','#C89B54','#E4C68A',
+          '#5A4130','#3D6B4A','#5A6B52','#265843','#3E5470','#4A6784',
+          '#78302E','#836828','#755A33','#4F3E60','#5C5E63'],
     names:['Walnut','Baize','Sage','Emerald','Royal','Delft',
            'Claret','Gilt','Oak','Regal','Pewter'],
     vars:{}},
@@ -236,13 +243,38 @@ const STYLES = {
       '--serif':'"Segoe UI","Lucida Grande","Lucida Sans Unicode",Tahoma,sans-serif'}}
 };
 const styleNow = ()=> STYLES[(S.look&&S.look.style)] || STYLES.victorian;
+
+/* ---- light and dark ---------------------------------------------------
+   There is still no theme switch in the old sense: light or dark is a fact
+   about the style you are in, and a style that has only one answer keeps it.
+   What a style *may* now carry is a second set of sixteen — Victorian's walnut
+   — and which of the two is showing is `S.look.dark`:
+
+     auto    whatever the phone is set to, which is the answer you want
+     light   this style's daylight sixteen
+     dark    its after-dark sixteen, if it has one
+
+   `auto` is the default, and it is why this is a media query rather than a
+   button: the desk should already be dark when you pick the phone up at night.
+   A style with no dark set simply ignores all three. */
+const DARKMODES = {auto:'Follow this device', light:'Always light', dark:'Always dark'};
+const systemDark = ()=> window.matchMedia('(prefers-color-scheme: dark)').matches;
+const darkMode = ()=> (S.look&&S.look.dark) || 'auto';
+const wantsDark = ()=> { const m=darkMode(); return m==='dark' || (m==='auto' && systemDark()); };
+// whether the choice means anything here — Starry is night and nothing else
+const hasDark = ()=> !!styleNow().dark;
+const darkNow = ()=> hasDark() && wantsDark();
+
 /* The sixteen showing right now. A slot the user repainted is stored per style
    in `S.look.slots`, so overriding Victorian's rust doesn't follow you to Aero
-   — the override belongs to the style, exactly as the colour it replaces does. */
+   — the override belongs to the style, exactly as the colour it replaces does.
+   The override is per style and not per light-or-dark: a colour you insisted on
+   is a colour you insisted on. */
 function palNow(){
   const st=styleNow(), own=((S.look&&S.look.slots)||{})[(S.look&&S.look.style)||'victorian'];
-  if(!own) return st.cols;
-  return st.cols.map((c,i)=> own[i] || c);
+  const base = darkNow() ? st.dark : st.cols;
+  if(!own) return base;
+  return base.map((c,i)=> own[i] || c);
 }
 function setSlot(i, hex){
   const key=(S.look&&S.look.style)||'victorian';
@@ -281,6 +313,7 @@ const BACKDROPS = [
 ];
 
 export { themeNow, lookVal, setLookVal, applyLook, applyStyle, styleDefaults,
+  DARKMODES, darkMode, hasDark, darkNow, systemDark,
   randomFront, randomBoard, STYLES, BACKDROPS,
   SLOTS, OBJ0, OBJN, ROLES, slotName, styleNow, palNow, setSlot,
   BORDER_SLOTS, borderSlots,

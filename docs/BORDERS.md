@@ -54,7 +54,7 @@ because they mean the same thing in every style.
 
 ### 2b. Edges that belong to a shape, and should stay there
 
-`sh-note` and `sh-verse` (torn paper: `border:0` + `clip-path` + `drop-shadow`),
+`sh-note` and `sh-verse` (torn paper: `clip-path` + `drop-shadow`),
 `sh-idea` (folded corner), `sh-index` (the red margin rule of a record card),
 `sh-page` (punch holes), `sh-tab` (the coloured divider tab), `sh-chit` (torn
 ends and a perforation), `sh-plaque` (a cast bevel), `spinetile` (the boards of
@@ -108,3 +108,35 @@ the app's furniture. They take their line from `--rule` and are out of scope.
 
 None of this is done. Item 1 is a few selectors and would pay for itself
 immediately; items 2–4 are each an afternoon and a migration.
+
+
+---
+
+## 4. One thing since: a torn edge can carry a line after all
+
+`sh-note` was listed above as an edge that belongs to its shape, with `border:0`
+because a border on the box is sliced off at the notches and left hanging at the
+corners. That was the right diagnosis and the wrong conclusion — the note does
+want an outline; it wants one that follows the tear.
+
+It has one now, and not from `border`. Four zero-blur `drop-shadow`s, one per
+direction, each offset by a hairline of `var(--line)`:
+
+```css
+filter:
+  drop-shadow( 1px 0 0 var(--tornline)) drop-shadow(-1px 0 0 var(--tornline))
+  drop-shadow( 0 1px 0 var(--tornline)) drop-shadow( 0 -1px 0 var(--tornline))
+  drop-shadow(0 1px 2px rgba(0,0,0,.14)) drop-shadow(0 5px 12px rgba(0,0,0,.10));
+```
+
+A drop-shadow is computed from the element's alpha **after** the clip, so the
+line traces whatever `clip-path` cut — the chip out of each side, the corners,
+all of it. The real shadows ride on the same chain, which is what already
+stopped a clipped tile from floating with no shadow at all.
+
+This matters beyond one shape. It means item 1 in the list above — moving the six
+slots from `.dtile` to `.drawer` — no longer has to skip the clipped shapes: a
+torn note *can* wear a hairline, a moulding or a rule, drawn this way. The cost
+is that the filter chain is per shape rather than per slot, so a slot's material
+would have to be expressible as a colour and a weight. Four of the six already
+are.

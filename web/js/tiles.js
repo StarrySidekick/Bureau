@@ -3,7 +3,7 @@ import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, chi
   rollup, streak, goalPct, projectStat, tlSpan, dev, spawnByOf, genKindOf, takesTyping,
   knobSizeOf, answered, sortOf, spanOf, coversDay,
   calViewOf, weekStartOf, calCols } from './model.js';
-import { CELL, gridOf, lay, overlaps, boxOk, freeSpot, gridRows, sizeOfKind, ensureBox,
+import { CELL, COLW, gridOf, lay, overlaps, boxOk, freeSpot, gridRows, sizeOfKind, ensureBox,
   pageRows } from './grid.js';
 import { create, toast, toggleDone } from './mutations.js';
 import { hexOf, objColour } from './look.js';
@@ -609,9 +609,17 @@ function gridOfContainer(cid){
   const bd = c.board ? String(c.board).split('|') : null;
   let boardVars = bd ? `--board-1:${esc(bd[0])};--board-2:${esc(bd[1]||bd[0])};` : '';
   if(c.boardAlpha!=null) boardVars += `--board-alpha:${c.boardAlpha};`;
+  /* The checker squares are written here, from the cell size measured last
+     time, rather than left to sizeGrid() after layout. They were: the CSS
+     fallback is 160px and every new board drew one frame of enormous squares
+     before snapping back — which is what "the background grid gets bigger for a
+     second" was. A board is a coordinate space, so the last measurement is
+     always the right first guess, and sizeGrid() corrects it in the same frame
+     if the window has changed underneath. */
+  const colw = COLW[dev()];   // last measured; cellW() re-measures after layout
   return `<div class="grid g-${dev()}${arr?' arranging':''}${c.locked?' locked':''}${sorted?' sorted':''}"
        id="drawergrid" data-gridfor="${c.id}"
-       style="${boardVars}--cols:${g.cols};--rowh:${g.rowh}px;grid-template-rows:repeat(${Math.max(rows,1)},${g.rowh}px)">${tiles}
+       style="${boardVars}--cols:${g.cols};--rowh:${g.rowh}px;--checkerx:${2*colw}px;--checkery:${2*g.rowh}px;grid-template-rows:repeat(${Math.max(rows,1)},${g.rowh}px)">${tiles}
   </div>`;
 }
 

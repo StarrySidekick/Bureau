@@ -4,12 +4,11 @@ import { S, K, T, byId, has, isContainer, containers, container, childrenOf, cha
   sortOf, SORTS, MANUAL, sortMark,
   layoutOf, takesTyping, genKindOf, CALVIEWS, calViewOf, calCols,
   spanOf, coversDay, lastDay } from './model.js';
-import { CELL, PAGEROWS, pageRows, pageOfBox, lastPage, lay, gridOf, cellW } from './grid.js';
-import { themeNow, applyLook, lookVal, STYLES, BACKDROPS,
+import { CELL, COLW, pageRows, pageOfBox, lastPage, lay, gridOf, cellW, ensureBox } from './grid.js';
+import { themeNow, applyLook, lookVal, STYLES, BACKDROPS, DARKMODES, darkMode, hasDark,
   palNow, setSlot, styleNow, hexOf, objColour, slotName, OBJ0 } from './look.js';
 import { gridOfContainer, listTile, scrollEntry, bookView, calSpan } from './tiles.js';
 import { openPanel, closePanel, panelKey, repositionPanel } from './panels.js';
-import { tiltOn } from './motion.js';
 import { APP_VERSION, DATA_V, save, storeSize, install } from './persist.js';
 
 /* The desk is nothing but the grid. There is no toolbar: New, Arrange and
@@ -39,21 +38,26 @@ const boardName = o => !o || o.id===ROOT ? deskTitle() : (o.title||'Untitled');
    house nobody has lived in since there was more than one of them. chainOf()
    already stops at a desk; a drawer on the *home* desk stops short of it,
    because home is not an object, so it is put back on the front here. */
+/* The name at the top left is the way to every other desk. Desks are not on
+   the shelf any more — they are laid out in space, walked sideways with a
+   swipe — so the one thing that has to exist is a way of seeing the whole row
+   at once and jumping. That is this: press where you are, and every desk opens
+   out, drawn small. See decision 41. */
 function gridBar(c){
   let trail = chainOf(c.id);
   if(!(trail[0] && isDesk(trail[0].id))) trail = [container(deskOf(c.id)), ...trail];
   const atDesk = trail.length<=1;
-  const view = c.layout || 'grid';
-  const views = {grid:'grid', list:'list', scroll:'feather'};
   const pages = pageCount(c.id);
+  const deskBtn = (label)=>`<b class="deskname" data-act="deskmap"
+    title="Every desk, laid out">${esc(label)}</b>`;
   return `<div class="gridbar shelf shelf-top">
     <div class="where">
-      ${atDesk ? `<span class="here">${esc(boardName(trail[0]))}</span>` :
+      ${atDesk ? `<span class="here">${deskBtn(boardName(trail[0]))}</span>` :
         `<button class="iconbtn" data-act="back" data-id="${c.id}" title="Back">${ic('chevL',17)}</button>
          <span class="trail">${
            trail.map((x,i)=>`${i?` ${ic('chevR',9)} `:''}${i===trail.length-1
              ? `<span class="here">${esc(boardName(x))}</span>`
-             : x.id===ROOT ? `<b data-view="desk">${esc(deskTitle())}</b>`
+             : i===0 ? deskBtn(x.id===ROOT ? deskTitle() : boardName(x))
              : `<b data-drawer="${x.id}">${esc(boardName(x))}</b>`}`).join('')}</span>`}
       ${has(c,'magic')?`<span class="magicmark big" title="Collects by rule">${ic('sparkle',14)}</span>`:''}
       ${/* Dots while they fit; a count once they don't — nine dots is already
@@ -63,34 +67,32 @@ function gridBar(c){
           ? [...Array(pages)].map((_,i)=>`<i class="${i===pageAt(c.id)?'on':''}" data-gopage="${i}"></i>`).join('')
           : `<b>${pageAt(c.id)+1}<u>/${pages}</u></b>`}</span>`:''}
     </div>
-    ${/* A Mac has no bottom edge worth reserving, so both shelves ride up here
-         — this desk's own pins first, then the row of desks. A phone has room
-         for neither: see below. */''}
-    ${S.device==='desk' ? shelfStrip('top')+shelfStrip('bottom') : ''}
+    ${/* A Mac has no bottom edge worth reserving, so the one shelf rides up
+         here beside the tools. On a phone it is its own strip along the
+         bottom, which is the half a thumb reaches — see viewHTML(). */''}
+    ${S.device==='desk' ? shelfStrip() : ''}
     <div class="bartools">
-      <button class="sqbtn" data-act="cycleview" data-id="${c.id}" title="View: ${view}">${ic(views[view]||'grid',16)}</button>
-      ${sortButton(c)}
-      ${/* a phone has no right button and no room for an arrange mode, so the
-           lock is a button. Locked refuses moves and resizes; the long press
-           still opens the menu either way. */''}
+      ${/* The lock comes first, because it is the one that changes what every
+           other gesture on the board means — and on a locked board it is the
+           button you reach for before you can do anything else. A phone has no
+           right button and no room for an arrange mode, so the lock is a
+           button; locked refuses moves and resizes, and the long press still
+           opens the menu either way. */''}
       <button class="sqbtn${c.locked?' on locked':''}" data-act="togglelock" data-id="${c.id}"
         title="${c.locked?'Locked — tap to unlock':'Unlocked — tap to lock'}">${ic(c.locked?'lock':'unlock',16)}</button>
-      <button class="sqbtn" data-act="randomone" data-id="${c.id}" title="Add something at random (testing)">${ic('sparkle',16)}</button>
+      ${sortButton(c)}
+      ${/* How a board is laid out is a thing you set once and then live with,
+           which is a settings question and not a tool. It is the "Opens as"
+           row in the board's own panel now, and the bar is shorter for it. */''}
       ${/* The star promotes: a drawer becomes a desk of its own, out in the
-           master space, and stops being somewhere you went into. The shelf is
-           the quieter half of the same question and lives in the panel. */''}
+           master space, and stops being on the board it was on at all. The
+           shelf is the quieter half of the same question and lives in the
+           panel. */''}
       ${c.id===ROOT?'':`<button class="sqbtn${isDesk(c.id)?' on':''}" data-act="pin" data-id="${c.id}"
         title="${isDesk(c.id)?'Make it an ordinary drawer again':'Give it a place of its own'}">${ic('star',16)}</button>`}
       <button class="sqbtn" data-act="${c.id===ROOT?'appsettings':'drawersettings'}" data-id="${c.id}" title="Settings">${ic('gear',16)}</button>
     </div>
-  </div>
-  ${/* On a phone this desk's own pins get a row of their own under the bar.
-       They were in the bar and lost: the name of the desk, the page count and
-       five tools already fill 390px, and squeezing a title down to one letter
-       to fit two more buttons answers neither question. A row costs one row of
-       board — sizeGrid() measures what is left, so the page simply gets
-       shorter — and only when the desk you are on has anything pinned. */''}
-  ${S.device==='desk' ? '' : shelfStrip('top')}`;
+  </div>`;
 }
 
 function viewDesk(){
@@ -103,7 +105,7 @@ function viewDesk(){
       ${!items.length ? `<div class="empty"><div class="big">Nothing on the desk</div>Click a bare cell in grid view to make something.</div>`
         : view==='scroll' ? `<div class="scrollview">${items.map(scrollEntry).join('')}</div>`
         : view==='book'   ? bookView(c, items)
-        : `<div class="listgrid">${items.map(listTile).join('')}</div>`}
+        : `<div class="listgrid" data-listfor="${c.id}">${items.map(listTile).join('')}</div>`}
     </div>`;
   }
   // the bar sits above the scroller, not inside it — it carries the pins now,
@@ -310,7 +312,7 @@ function viewDrawer(){
         ? bookView(d, items)
         : view==='scroll'
           ? `<div class="scrollview">${items.map(scrollEntry).join('')}</div>`
-          : `<div class="listgrid">${items.map(o=>listTile(o)).join('')}</div>`}
+          : `<div class="listgrid" data-listfor="${d.id}">${items.map(o=>listTile(o)).join('')}</div>`}
   </div>`;
 }
 
@@ -350,7 +352,19 @@ function settingsBody(){
         <span class="stpv" style="background:${st.cols[0]};border-color:${st.cols[2]}">${
           [3,5,6,9,11,12].map(i=>`<i style="background:${st.cols[i]}"></i>`).join('')}</span>
         <b>${st.nm}</b><i>${st.ds}</i></button>`).join('')}</div>
-    <div class="mini" style="--k:var(--brass);margin-top:6px">A style is sixteen colours, a board, a typeface, and the defaults new drawers are born with — including whether the desk is light or dark. Everything below still works afterwards.</div>
+    <div class="mini" style="--k:var(--brass);margin-top:6px">A style is sixteen colours, a board, a typeface, and the defaults new drawers are born with. Everything below still works afterwards.</div>
+
+    ${/* Light or dark is still not a second axis: it is a second set of
+         sixteen that a style may carry, and Victorian is the one that does.
+         The default follows the phone, because the desk should already be
+         dark when you pick it up at night. */''}
+    <div class="field" style="margin-top:12px"><label>Light and dark</label>
+      <select class="psel" data-darkmode>${Object.entries(DARKMODES).map(([v,n])=>
+        `<option value="${v}"${darkMode()===v?' selected':''}>${n}</option>`).join('')}</select>
+      <div class="mini" style="--k:var(--brass);margin-top:6px">${hasDark()
+        ? `${esc(styleNow().nm)} has a walnut set of its own — the same sixteen slots after dark, so every drawer keeps the colour you gave it.`
+        : `${esc(styleNow().nm)} is one light and has no dark set, so this changes nothing here. Victorian does.`}</div>
+    </div>
 
     <div class="field" style="margin-top:14px"><label>What ${esc(styleNow().nm)} is made of</label>
       <div class="mini" style="--k:var(--brass);margin:2px 0 8px">The first five dress the app itself. The other eleven are what drawers and objects are painted in. A slot is a <b>position</b>, not a colour: a drawer holds slot 11, and slot 11 is a claret here and a deep sea blue in Aero. Changing style swaps every tile to that style's answer; changing back puts each one exactly where it was.</div>
@@ -412,12 +426,6 @@ function settingsBody(){
     </div>
 
 
-    <div class="field" style="margin-top:12px"><label>Holographic light</label>
-      <button class="pill${tiltOn()?' solid':''}" data-act="tilt">${ic('sparkle',13)} ${
-        tiltOn() ? 'Following how this device moves' : 'Let Bureau feel the device move'}</button>
-      <div class="mini" style="--k:var(--brass);margin-top:6px">A magic drawer is foil rather than paint, so it needs to know where the light is coming from. On a Mac that is wherever the pointer is and this button changes nothing. On an iPhone it is how you tilt it, which iOS will only tell an app that asks — and it will only let it ask from a button like this one.</div>
-    </div>
-
     <div class="section-h"><h2>Drawer layouts</h2><div class="rule"></div></div>
     <div class="mini" style="--k:var(--brass)">Each device keeps its own arrangement. You can open the other one to tidy it from here.</div>
     <div class="filterbar">
@@ -457,7 +465,7 @@ function settingsBody(){
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <button class="pill" data-act="randomten">${ic('sparkle',13)} Add ten at random</button>
     </div>
-    <div class="mini" style="--k:var(--brass);margin-top:6px">The sparkle in the bar adds one. Both drop objects of random kinds, sizes and colours, for seeing how the grid copes.</div>
+    <div class="mini" style="--k:var(--brass);margin-top:6px">Objects of random kinds, sizes and colours, for seeing how the grid copes. It used to have a twin in the grid bar, which was a testing button on the furniture.</div>
 
     <div class="section-h"><h2>Start over</h2><div class="rule"></div></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -497,32 +505,54 @@ function pinBtn(d, on){
     <i class="pinface">${ic(has(d,'magic')?'sparkle':K(d.kind).ic, 20)}</i>
     <span>${esc(d.title||'Untitled')}</span></button>`;
 }
-function shelfStrip(where){
-  /* The bottom shelf *is* the master space: the row of desks in its own order,
-     home among them rather than bolted to the front, because home is a desk
-     like the others and its place in the row is a thing you can change. The
-     one you are on is lit, which on a phone is the only page indicator the
-     row gets. */
-  if(where==='bottom'){
-    const ids=deskIds(), at=deskHere();
-    // a Mac with nowhere else to go has no use for a row of one
-    if(ids.length<2 && S.device==='desk') return '';
-    return `<nav class="shelf shelf-bottom pinbar" data-shelf="bottom">
-      ${ids.map(id=>{
-        if(id!==ROOT){ const d=byId(id); return d ? pinBtn(d, at===id) : ''; }
-        return `<button class="pinbtn home${at===ROOT?' on':''}" data-view="desk" title="${esc(deskTitle())}">
-            <i class="pinface">${ic('grid',20)}</i><span>${esc(deskTitle())}</span></button>`;
-      }).join('')}
-    </nav>`;
-  }
-  // …and the top shelf belongs to the desk you are on, because what you keep to
-  // hand is a different answer in Finance than it is in a screenplay
-  const pins=shelfDrawers('top');
+/* One shelf, and anything may sit on it. It used to be the row of desks, with
+   a second strip up top for whatever you had pinned on the desk you happened
+   to be standing on — two answers to one question, at opposite ends of the
+   screen. The desks came off it (they are walked to, and the title lays them
+   all out); what is left is the catch-all: a drawer, a magic drawer, a
+   project, a film, kept to hand from wherever you are. See decision 41. */
+function shelfStrip(){
+  const pins=shelfDrawers();
   if(!pins.length) return '';
   const here = id => S.view==='drawer' && S.drawerId===id;
-  return `<nav class="shelf shelf-top pinbar" data-shelf="top">
+  return `<nav class="shelf shelf-bottom pinbar" data-shelf="pins">
     ${pins.map(d=>pinBtn(d, here(d.id))).join('')}
   </nav>`;
+}
+
+/* ---- every desk, laid out ---------------------------------------------
+   The row of desks is a space you walk, and a space you walk needs a map. The
+   name at the top left opens it: each desk drawn small — its own board colour,
+   its name, and the boxes on it at a fiftieth of the size — in the order they
+   sit in the row, with the one you are on lit. Press one and you are there.
+
+   The miniature is drawn from the boxes rather than from tiles, on purpose: a
+   desk map is about *shape* — where the rack is, how full the board is — and
+   forty real tiles at 3% would be a smear that costs a render. */
+function deskCard(id){
+  const c=container(id), on=deskHere()===id;
+  const g=gridOf('desk'), kids=childrenOf(c);
+  /* Anything that has never been on this layout has no box, and lay() answers
+     1,1 for all of them — which drew every unvisited desk as one square. Place
+     them, which is exactly what opening the desk would do a moment later. */
+  kids.forEach(o=>ensureBox(o, 'desk', id));
+  const rows=Math.max(8, kids.reduce((m,o)=>{const b=lay(o,'desk');return Math.max(m,b.y+b.h-1)},0));
+  const bd=c.board ? String(c.board).split('|') : null;
+  return `<button class="deskcard${on?' on':''}" data-deskgo="${id}">
+    <span class="deskmini" style="--dcols:${g.cols};--drows:${rows}${
+        bd?`;--board-1:${esc(bd[0])};--board-2:${esc(bd[1]||bd[0])}`:''}">
+      ${kids.map(o=>{ const b=lay(o,'desk');
+        return `<i style="--k:${objColour(o)};grid-column:${b.x}/span ${b.w};grid-row:${b.y}/span ${b.h}"></i>`;
+      }).join('')}</span>
+    <b>${esc(id===ROOT?deskTitle():(c.title||'Untitled'))}</b>
+    <u>${on?'you are here · ':''}${kids.length} on it</u>
+  </button>`;
+}
+function deskMap(){
+  openPanel({key:'deskmap', wide:true, title:'Desks',
+    sub:'Swipe sideways to walk them — or jump',
+    body:()=>`<div class="deskmapgrid">${deskIds().map(deskCard).join('')}</div>
+      <div class="mini" style="--k:var(--brass);margin-top:10px">A desk is somewhere you can be. Promote any drawer with the star in its bar and it leaves the board it was on and joins this row.</div>`});
 }
 
 /* ============================================================
@@ -594,7 +624,7 @@ function reveal(id){
 function viewHTML(){
   const body = S.view==='drawer' ? viewDrawer()
              : viewDesk();          // the desk is the only other place there is
-  return `<div class="main">${body}${S.device==='phone'?shelfStrip('bottom'):''}</div>`;
+  return `<div class="main">${body}${S.device==='phone'?shelfStrip():''}</div>`;
 }
 
 /* The same thing, for somewhere you are *not*. The pager slides the board you
@@ -651,36 +681,36 @@ function sizeGrid(){
   const grid=$('#drawergrid'); if(!grid) return;
   const g=gridOf(), w=cellW(grid,g);
   if(!(w>0)) return;
-  /* How many whole square cells fit between the two shelves. It has to be a
-     *floor*: the old count was `ceil((innerHeight-140)/cell)`, which is why the
-     bottom row hung half a cell past the bottom shelf and the board had to
-     scroll to reach it. The cell is fixed by the width — eight fluid columns —
-     so this is the only free number, and rounding it down is what makes the
-     board end flush. Zero on a Mac: a desk scrolls. */
+  /* A phone page is a **stated** 10 × 14, so the row height is the room
+     between the shelves divided by fourteen rather than a copy of the column
+     width. The cell stops being square — ~39 across and ~44 down — and that is
+     the trade: a page you can arrange to, on any handset, instead of a square
+     cell and a row count that depended on the model of phone.
+
+     A desk still measures: 24 fluid columns, square rows, and it scrolls, so
+     PAGEROWS.desk stays 0 and there is nothing to divide. */
   const sc=grid.parentElement;
-  if(dev()==='phone' && sc){
-    const rows=Math.max(4, Math.floor(sc.clientHeight / Math.max(1,w)));
-    if(rows!==PAGEROWS.phone){ PAGEROWS.phone=rows; if(!sizing){ sizing=true; try{ render(); } finally { sizing=false; } return; } }
-  } else PAGEROWS.desk = 0;
-  /* Do NOT round. Columns are `1fr` and therefore fractional; rounding the row
-     height to a whole pixel made rows and columns different sizes, and the
-     error accumulated across the grid — a tile at column 16 sat ~7px from
-     where the drag maths thought it was, which is why things far to the
-     bottom-right were hardest to pick up. */
-  const cell=w;
-  const changed = !sizing && Math.abs(CELL[dev()]-cell) > 0.25;
-  CELL[dev()]=cell;
+  const per=pageRows();
+  /* Do NOT round either number. Columns are `1fr` and therefore fractional;
+     rounding made rows and columns disagree and the error accumulated across
+     the grid — a tile at column 16 sat ~7px from where the drag maths thought
+     it was, which is why things far to the bottom-right were hardest to pick
+     up. */
+  const cell = (per && sc && sc.clientHeight>0) ? sc.clientHeight/per : w;
+  const changed = !sizing && (Math.abs(CELL[dev()]-cell) > 0.25 || Math.abs(COLW[dev()]-w) > 0.25);
+  CELL[dev()]=cell; COLW[dev()]=w;
   grid.style.setProperty('--rowh', cell+'px');
-  grid.style.setProperty('--cellw', (cell+g.gap)+'px');
+  grid.style.setProperty('--cellw', (w+g.gap)+'px');
   grid.style.setProperty('--cellstep', (cell+g.gap)+'px');
-  // a checker square is two cells, so the board reads at the same scale
-  grid.style.setProperty('--checker', 2*(cell+g.gap)+'px');
+  // a checker square is two cells each way, and the two are no longer the same
+  grid.style.setProperty('--checkerx', 2*(w+g.gap)+'px');
+  grid.style.setProperty('--checkery', 2*(cell+g.gap)+'px');
   grid.style.gridAutoRows = cell+'px';
   const rows=(grid.style.gridTemplateRows.match(/repeat\((\d+)/)||[])[1];
   if(rows) grid.style.gridTemplateRows=`repeat(${rows},${cell}px)`;
   if(changed){ sizing=true; try{ render(); } finally { sizing=false; } }
 }
 
-export { render, sizeGrid, reveal, shelfStrip, viewHTML, previewHTML,
+export { render, sizeGrid, reveal, shelfStrip, deskMap, viewHTML, previewHTML,
   pageAt, pageCount, goPage,
   settingsPanel, toggleSettings };

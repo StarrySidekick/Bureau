@@ -123,6 +123,24 @@ const BUILTIN_KINDS = {
   story:   {face:'spine', narrative:true, nm:'Story',   ic:'book',    c:5, key:'M', ds:'Scenes, bound in order', size:[3,9], attrs:['text','container','relates'], layout:'book', read:'book',
             body:'' },
   world:   {narrative:true, nm:'World',   ic:'star',    c:9, key:'F', ds:'The people, places and things a story is set in', size:[8,8], attrs:['text','container'], layout:'grid', body:'' },
+  /* Four things that are made of other things, and were being kept as notes
+     because no type could hold anything. A film is a piece of work with a date
+     and a shape, so it reports like a project; a novel and a short story are
+     bound, so they wear a spine and open as a book; an album is a running
+     order, so it is a list you can dictate tracks into. None of them needed new
+     machinery — they are four rows of attributes, which is the whole argument
+     for attributes. */
+  film:    {face:'project', film:true, nm:'Film', ic:'clapper', c:9, key:'!', ds:'A film, and everything it is made of',
+     attrs:['text','container','date','progress','media','relates'],
+     seed:[{kind:'field', title:'Add to this film…'}],
+     layout:'grid', size:[5,5], phoneSize:[5,5], body:'' },
+  novel:   {face:'spine', narrative:true, nm:'Novel', ic:'book', c:11, key:'#', ds:'Chapters, bound in order',
+     attrs:['text','container','relates'], layout:'book', read:'book', size:[3,9], phoneSize:[2,6], body:'' },
+  shortstory:{face:'spine', narrative:true, nm:'Short story', ic:'feather', c:14, key:'$', ds:'One story, its scenes in order',
+     attrs:['text','container','relates'], layout:'book', read:'book', size:[3,7], phoneSize:[2,5], body:'' },
+  album:   {film:true, nm:'Album', ic:'music', c:10, key:'%', ds:'Tracks, in the order they play',
+     attrs:['text','container','media','spawn'], spawnBy:'type', genKind:'audio',
+     layout:'list', size:[4,6], phoneSize:[4,5], body:'' },
   scene:   {shape:'page', narrative:true, film:true, nm:'Scene',   ic:'clapper', c:9, key:'N', ds:'One scene, for writing',     size:[6,5], onclick:'read', attrs:['text','location','duration','relates'], gathers:'story',
             body:'**Where —** \n\n**Who —** \n\n**What changes —** ' },
   character:{shape:'portrait', narrative:true, nm:'Character', ic:'star', c:13, key:'H', ds:'Someone in the story',       size:[4,6], onclick:'read', attrs:['text','media','relates'], gathers:'world',
@@ -182,24 +200,36 @@ function seed(){
   // Drawers are objects like everything else — kind 'drawer', parent 'root'.
   // x/y are 1-based grid cells, packed by hand, because a desk is arranged and
   // not flowed. The desk grid is 24 columns wide, the phone's is 8.
+  /* Locked, all of them. A desk you have arranged is a desk you want to look at
+     rather than one you want to nudge every time your thumb lands on a front —
+     and on a locked board one finger walks the boards, which is the gesture the
+     phone is actually for. A drawer you make yourself starts unlocked, because
+     you made it in order to arrange it. */
   const DR = (o)=> Object.assign({kind:'drawer', parent:ROOT, title:'', body:'',
-    tags:[], layout:'grid', ord:0, created:dz(-40)}, o);
-  // The three drawers whose whole job is a rule are magic drawers — they
-  // collect and never hold. The rest are ordinary containers you file into.
+    tags:[], layout:'grid', locked:true, ord:0, created:dz(-40)}, o);
+  // The drawers whose whole job is a rule are magic drawers — they collect and
+  // never hold. The rest are ordinary containers you file into.
   const MG = (o)=> DR(Object.assign({kind:'magic'}, o));
-  // Nine drawer fronts in a rack along the top, at the size a drawer now starts
-  // at. The rest of the desk is left clear on purpose: what a drawer holds is
-  // behind it, so a wall of them is the whole point and takes one row.
+  /* Ten drawer fronts in a rack along the top, at the size a drawer now starts
+     at. The rest of the desk is left clear on purpose: what a drawer holds is
+     behind it, so a wall of them is the whole point and takes one row.
+     The first three are the ones that start out pinned — see below. */
+  /* A desk has no box and no parent: it *is* somewhere, so it is not also a
+     front sitting on somebody else's board. See decision 40. */
+  const DESK = (o)=> DR(Object.assign({parent:null, desk:null, phone:null}, o));
   const drawers = [
-    MG({id:'d_today', title:'Today',        c:6, filter:{due:'today', scope:'all'},                     desk:{x:1,y:1,w:2,h:2},  phone:{x:1,y:1,w:2,h:2}}),
-    DR({id:'d_in',    title:'Inbox',        c:5, desk:{x:3,y:1,w:2,h:2},  phone:{x:3,y:1,w:2,h:2}}),
-    DR({id:'d_write', title:'Writing Desk', c:7, desk:{x:5,y:1,w:2,h:2},  phone:{x:5,y:1,w:2,h:2}}),
+    MG({id:'d_today', title:'Today',        c:6, layout:'list', filter:{due:'today', scope:'all'},      desk:{x:1,y:1,w:2,h:2},  phone:{x:1,y:1,w:2,h:2}}),
+    DR({id:'d_in',    title:'Inbox',        c:5, layout:'list', desk:{x:3,y:1,w:2,h:2},  phone:{x:3,y:1,w:2,h:2}}),
+    // everything still to do, wherever it lives — the drawer that answers "what
+    // is outstanding" without caring which desk or project it is outstanding on
+    MG({id:'d_all',   title:'Everything',   c:9, layout:'list', filter:{kinds:['task'], scope:'all'},   desk:{x:5,y:1,w:2,h:2},  phone:{x:5,y:1,w:2,h:2}}),
     DR({id:'d_ideas', title:'Idea Bin',     c:12, desk:{x:7,y:1,w:2,h:2},  phone:{x:7,y:1,w:2,h:2}}),
-    DR({id:'d_studio',title:'Studio',       c:9, desk:{x:9,y:1,w:2,h:2},  phone:{x:1,y:3,w:2,h:2}}),
-    DR({id:'d_kitch', title:'Kitchen',      c:11, desk:{x:11,y:1,w:2,h:2},  phone:{x:3,y:3,w:2,h:2}}),
-    MG({id:'d_open',  title:'Open Questions',c:10,filter:{kinds:['question'], rule:{f:'answer',op:'is',v:''}},              desk:{x:13,y:1,w:2,h:2},  phone:{x:5,y:3,w:2,h:2}}),
-    DR({id:'d_keep',  title:'Keeping Up',   c:8, desk:{x:15,y:1,w:2,h:2},  phone:{x:7,y:3,w:2,h:2}}),
-    MG({id:'d_done',  title:'Done & Dusted',c:5, filter:{done:true, scope:'all'},                       desk:{x:17,y:1,w:2,h:2},  phone:{x:1,y:5,w:2,h:2}})
+    DR({id:'d_studio',title:'Studio',       c:9, desk:{x:9,y:1,w:2,h:2},  phone:{x:9,y:1,w:2,h:2}}),
+    MG({id:'d_open',  title:'Open Questions',c:10,filter:{kinds:['question'], rule:{f:'answer',op:'is',v:''}},              desk:{x:11,y:1,w:2,h:2},  phone:{x:1,y:3,w:2,h:2}}),
+    DR({id:'d_keep',  title:'Keeping Up',   c:8, desk:{x:13,y:1,w:2,h:2},  phone:{x:3,y:3,w:2,h:2}}),
+    MG({id:'d_done',  title:'Done & Dusted',c:5, filter:{done:true, scope:'all'},                       desk:{x:15,y:1,w:2,h:2},  phone:{x:5,y:3,w:2,h:2}}),
+    DESK({id:'d_write', title:'Writing Desk', c:7}),
+    DESK({id:'d_kitch', title:'Kitchen',      c:11})
   ];
 
   // The app's own buttons live on the desk, on the grid, and move like anything
@@ -327,16 +357,19 @@ function seed(){
     mx+=w;
   });
 
-  // The drawers that start out on the shelves. A first desk should show what
-  // pinning is for, and these are the ones worth reaching in one tap.
+  /* Three drawers on the shelf, and they are the three every desk wants:
+     what is due today, where things land when you don't say, and everything
+     still outstanding anywhere. A first desk should show what pinning is for,
+     and these are the ones worth reaching in one tap. */
   return {objects: drawers.concat(controls, objects, museum),
           /* Two of the drawers start as desks of their own, because one desk
              holding a life is exactly the thing desks exist to stop — and a
              sample desk that never demonstrates the master space is a sample
-             of the old app. The rest stay on the home desk's shelf, which is
-             what the bottom shelf used to be for. */
+             of the old app. A desk is not on the shelf: it is somewhere you
+             walk to, and the title at the top left lays them all out. */
           desks: [ROOT, 'd_write', 'd_kitch'],
-          shelf: ['d_today','d_in','d_keep','d_done']};
+          pins: ['d_today','d_in','d_all'],
+          inbox: 'd_in'};
 }
 
 /* ============================================================
@@ -348,6 +381,9 @@ function reset(){
   const s = seed();
   S = {
     objects:s.objects, kinds:{}, desks:s.desks.slice(),
+    // one shelf, one list: anything at all may be kept on it, and it is the
+    // same list wherever you are standing
+    pins:s.pins.slice(), inbox:s.inbox,
     // Light or dark comes from the style now — Victorian is a parchment desk,
     // Starry Sidekick is a night one — so there is no theme to store.
     device:sensedDevice(), layoutEdit:null,
@@ -356,14 +392,16 @@ function reset(){
     // editId is the tile being typed in on the board — a double tap turns a
     // name into a field in place. writeId is the full-screen writing surface.
     undo:[], editing:false, sel:[], readId:null, writeId:null, editId:null, bookAt:0,
-    deskCfg:{layout:'grid', locked:false, sort:null, shelf:s.shelf.slice()},
+    // a desk you have arranged is one you want to look at, so it starts locked
+    deskCfg:{layout:'grid', locked:true, sort:null},
     look:defaultLook()
   };
   refreshKinds();
 }
 function defaultLook(){
   return {bg:null, accent:null, line:null, board:null, boardAlpha:1, owner:'',
-          style:'victorian', slots:{}, styleDefaults:null};
+          // light or dark follows the device unless you insist otherwise
+          dark:'auto', style:'victorian', slots:{}, styleDefaults:null};
 }
 reset();
 
@@ -526,27 +564,30 @@ function deskOf(o){
 // which desk you are looking at, whichever board of it you are on
 const deskHere = ()=> deskOf(S.view==='drawer' && S.drawerId ? S.drawerId : ROOT);
 
-/* ---- the two shelves ---------------------------------------------------
-   A shelf is a strip of things you can reach without going anywhere.
+/* ---- the shelf ---------------------------------------------------------
+   There was briefly a second one. The bottom strip held the row of desks and
+   the top strip held whatever you had pinned on the desk you were standing on,
+   which meant two answers to one question — "what can I reach from here" —
+   living at opposite ends of the screen, and a desk needing two ways of being
+   got to.
 
-     bottom  the desks — the master space itself, in its own order
-     top     whatever you pinned *on this desk*, beside the tools
+   A desk does not need a button. Desks are laid out in space: you swipe
+   sideways to walk the row, and the title at the top left opens all of them at
+   once to jump. So the desks came off the strip, the top shelf went, and what
+   is left is **one shelf**, along the bottom where a thumb reaches, holding
+   anything at all — a drawer, a magic drawer, a project, a film. See decision
+   41.
 
-   On a phone the top shelf is along the top and the bottom shelf along the
-   bottom, which is the half a thumb reaches. On a Mac both are along the top,
-   because there is no bottom edge worth reserving on a desk.
-
-   The bottom shelf stopped being a list of favourites and became the row of
-   desks, which is the same strip doing a job it was already halfway doing. The
-   top one moved the other way: it lives on the desk it belongs to, because
-   "what I keep to hand" is a different answer in Finance than in a screenplay. */
-const shelfOf = id => (cfgOf(isDesk(id)?id:deskOf(id)).shelf) || [];
-const shelfHere = ()=> shelfOf(deskHere());
-const shelfDrawers = where => (where==='bottom' ? deskIds().filter(id=>id!==ROOT) : shelfHere())
-  .map(byId).filter(o=>o && isContainer(o));
-// 'desk' | 'shelf' | null — how this drawer is kept, if at all
+   `S.pins` is that list, ids in order, global rather than per desk: something
+   you keep to hand is something you want to hand from wherever you are. */
+const pinIds = ()=> (S.pins||[]).filter(id=>byId(id)&&isContainer(byId(id)));
+const shelfDrawers = ()=> pinIds().map(byId);
+// 'desk' | 'pin' | null — how this drawer is kept, if at all
 const placeOf = id => isDesk(id) && id!==ROOT ? 'desk'
-                    : shelfHere().includes(id) ? 'shelf' : null;
+                    : pinIds().includes(id) ? 'pin' : null;
+/* Where a new object goes when nothing else says. A drawer you nominate as the
+   inbox, if it is still there; otherwise the board you are on. */
+const inboxId = ()=> { const o=S.inbox&&byId(S.inbox); return o&&isContainer(o)&&!has(o,'magic') ? o.id : null; };
 
 /* A drawer holds. A magic drawer collects. Nothing does both.
    An object lives in exactly one drawer — its `parent` — and that is the only
@@ -804,7 +845,7 @@ export { ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds, K,
   deskTitle, rootObj, container, cfgOf, isContainer, FACES, faceOf, layoutOf, SHAPES,
   shapeOf, READS, readOf, spreadOf, OPENINGS, openingOf, gathersOf, gatherKind, containers,
   deskIds, deskList, isDesk, deskOf, deskHere,
-  shelfOf, shelfHere, shelfDrawers, placeOf,
+  pinIds, shelfDrawers, placeOf, inboxId,
   spanOf, coversDay, lastDay,
   KNOBSIZES, knobSizeOf, answered,
   spawnByOf, genKindOf, takesTyping, keepsDone, showsContainers,

@@ -4,10 +4,10 @@ import { S, K, KINDS, KEYS, refreshKinds, ATTRS, USER_ATTRS, attrsOf, has, SHAPE
   unrelate, sensedDevice, reset, T, dz, dev, calViewOf } from './model.js';
 import { gridOf, lay, boxOk, freeSpot, toPhoneSize } from './grid.js';
 import { applyLook, applyStyle, setLookVal, lookVal, STYLES, randomFront,
-  setSlot, palNow, objColour } from './look.js';
+  setSlot, palNow, objColour, darkMode } from './look.js';
 import { toast, toggleDone, del, delMany, delDrawer, undo, setPin, togglePin, drawerForTag, create, quickAdd, spawnInto, randomThing } from './mutations.js';
 import { spinTo, pending, placeAtPending, tileTap, turnPage, clearPages } from './tiles.js';
-import { render, sizeGrid, toggleSettings, reveal, goPage } from './views.js';
+import { render, sizeGrid, toggleSettings, reveal, goPage, deskMap } from './views.js';
 import { openObj, openWriter, openRead, closeSheet, renderSheet, words } from './sheet.js';
 import { openPanel, closePanel, refreshPanel, panelKey, draft, openMenu,
   modalNewObject, modalNewKind, modalMove, renderPreview,
@@ -15,7 +15,7 @@ import { openPanel, closePanel, refreshPanel, panelKey, draft, openMenu,
   drawerFromSelection, openCtx, closeCtx, openCmd, closeCmd, cmdList, runCmd } from './panels.js';
 import { onDown, onMove, onUp, onCancel, onTouchStart, onTouchMove, onTouchEnd,
   gestureFlags, dragArmed } from './gestures.js';
-import { enter, askTilt, pagerOn } from './motion.js';
+import { enter, pagerOn } from './motion.js';
 import { save, writeNow, exportBackup, importBackup, importImage, imgFor, pasteObjects, install } from './persist.js';
 
 /* Mark one chip in a group as the chosen one. The selector is deliberately
@@ -58,7 +58,7 @@ function setField(el){
   if(!t) return;
   const v=el.value;
   switch(key){
-    case 'pin': setPin(id, v||null); break;   // '', 'top' or 'bottom'
+    case 'pin': setPin(id, v||null); break;   // '', 'desk' or 'pin'
     case 'kind':
       if(!o || !KINDS[v]) break;
       o.kind=v; o.attrs=null;
@@ -71,6 +71,9 @@ function setField(el){
       if(v===id || isAncestor(id, container(v))){ toast('A drawer cannot go inside itself'); break; }
       if(o.parent!==v){ o.parent=v; o.desk=null; o.phone=null; }
       break;
+    /* The inbox is a fact about the desk, not about the drawer — one drawer
+       at a time, and saying no clears it rather than leaving a second one. */
+    case 'inbox': S.inbox = v ? id : (S.inbox===id ? null : S.inbox); break;
     case 'knobtone': t.knobtone=v; t.knobc=null; break;
     case 'dur': t.dur = v===''?null:+v; break;
     case 'mtype': if(o) o.media=Object.assign({label:'untitled'}, o.media, {type:v}); break;
@@ -111,7 +114,8 @@ function act(name, el){
   switch(name){
     case 'new': modalNewObject(); break;
     // a drawer is made the way everything else is, and then talked to
-    case 'newdrawer': { const d=create('drawer',{title:'New drawer'}); save(); render(); reveal(d.id); objectPanel(d.id); break; }
+    case 'newdrawer': { const d=create('drawer',{title:'New drawer',
+      parent:(S.view==='drawer'&&S.drawerId)||ROOT}); save(); render(); reveal(d.id); objectPanel(d.id); break; }
     /* Back goes up one, not all the way home. With more than one desk the top
        of the tree is wherever you are working, so walking to the root every
        time was walking past the thing you meant to get back to. */
@@ -121,18 +125,9 @@ function act(name, el){
       S.drawerId = up===ROOT ? null : up;
       S.kindFilter=null; render(); enter('back'); break;
     }
-    /* iOS hands over the motion sensors only from inside a real gesture, which
-       is why the holographic foil is a button you press rather than something
-       that simply happens. Pressing it again holds the light still. */
-    case 'tilt': {
-      const r=askTilt();
-      toast(r==='off' ? 'The light holds still now'
-        : r==='none' ? 'This device has no motion sensor'
-        : r==='on'   ? 'Magic drawers follow how it moves'
-        : 'Asked for motion access');
-      break;
-    }
     case 'pin': togglePin(el.dataset.id); break;
+    // the name at the top left: every desk at once, small, to jump to
+    case 'deskmap': deskMap(); break;
     // one step is one screenful, so it steps by whatever the calendar is showing
     case 'monthstep': {
       const d=byId(el.dataset.id); if(!d) return;
@@ -258,12 +253,6 @@ function act(name, el){
     // has to be the thing that gets redrawn
     case 'bookprev': turnPage(-1, S.readId?renderSheet:render); break;
     case 'booknext': turnPage( 1, S.readId?renderSheet:render); break;
-    case 'cycleview': {
-      const c=cfgOf(el.dataset.id), order=['grid','list','scroll'];
-      c.layout = order[(order.indexOf(c.layout||'grid')+1)%order.length];
-      save(); render(); toast(c.layout+' view');
-      break;
-    }
     // a menu hung off the button, not a modal in the middle of the screen
     /* Sort is a toggle, not a popup. Seven states and the button wears the one
        it is on — a letter where a letter is the answer, an arrow where a
@@ -310,7 +299,6 @@ function act(name, el){
         <p>Give a child list to something that can't hold children and it becomes a drawer instead.</p></div>`});
       break;
     }
-    case 'randomone': randomThing(el.dataset.id); save(); render(); toast('One at random'); break;
     case 'randomten': { for(let i=0;i<10;i++) randomThing(); save(); render(); toast('Ten at random'); break; }
     case 'reseed': { const lk=S.look; reset(); S.look=lk; applyLook(); writeNow(); render(); toast('Sample desk restored'); break; }
     case 'wipe': {
@@ -447,6 +435,13 @@ function wire(){
     const st3=t.closest('[data-style3]');
     if(st3){ applyStyle(st3.dataset.style3); toast(STYLES[st3.dataset.style3].nm); return; }
 
+    // the desk map: every desk drawn small, and pressing one goes there
+    const dg=t.closest('[data-deskgo]');
+    if(dg){ const id=dg.dataset.deskgo; closePanel();
+      S.view = id===ROOT ? 'desk' : 'drawer';
+      S.drawerId = id===ROOT ? null : id;
+      S.kindFilter=null; render(); enter('back'); return; }
+
     // the page dots in the top shelf: two fingers turn pages, and so do these
     const gp=t.closest('[data-gopage]');
     if(gp){ goPage(S.view==='drawer'?S.drawerId:ROOT, +gp.dataset.gopage); return; }
@@ -467,6 +462,11 @@ function wire(){
       const o=create(kind, at?{parent:at.parent}:undefined);
       placeAtPending(o);
       save(); render();
+      /* Made without aiming at a cell, it goes to the inbox — which is right,
+         and invisible if you are standing somewhere else. So say where it
+         went; reveal() below can only scroll to something on this board. */
+      const home = (S.view==='drawer'&&S.drawerId)||ROOT;
+      if(o.parent!==home) toast('Filed in '+((byId(o.parent)||{}).title||'the desk'));
       /* …and then it is scrolled to. A board is a coordinate space, so a new
          object goes in the first free room from the top — which on a phone,
          where objects are full width, is always below everything you can see.
@@ -815,6 +815,11 @@ function wire(){
     if(e.target.dataset.oset!=null && e.target.tagName==='SELECT'){
       setField(e.target); render(); refreshPanel(); return;
     }
+    /* Light or dark. Not a theme switch: it chooses which of a style's sets of
+       sixteen is showing, and `auto` hands the question to the phone. */
+    if(e.target.dataset.darkmode!=null){
+      S.look.dark=e.target.value; applyLook(); save(); render(); refreshPanel(); return;
+    }
     if(e.target.dataset.ksort2!=null){ const d=draft(); if(d) d.sortBy=e.target.value; return; }
     if(e.target.id==='imgpicker' && e.target.files && e.target.files[0]){
       importImage(e.target.files[0]); e.target.value='';
@@ -907,10 +912,17 @@ function wire(){
     }
   });
 
-  // the device decides which layout you see; the OS decides the default theme
+  // the device decides which layout you see; the OS decides light or dark
   const wide = window.matchMedia('(min-width: 900px)');
   const addML = (mq, fn)=> mq.addEventListener ? mq.addEventListener('change', fn) : mq.addListener(fn);
   addML(wide, ()=>{ S.device = sensedDevice(); render(); });
+  /* The desk should already be dark when you pick the phone up at night, so
+     the default follows the device and repaints the moment the device changes
+     its mind. Only when the answer is `auto` — an insisted-on light or dark is
+     insisted on. */
+  addML(window.matchMedia('(prefers-color-scheme: dark)'), ()=>{
+    if(darkMode()==='auto'){ applyLook(); render(); refreshPanel(); }
+  });
 
   // Device is sensed once at parse time, when the window may not be laid out
   // yet (a background tab reports zero width and reads as a phone). Re-sense on

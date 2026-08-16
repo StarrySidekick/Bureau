@@ -5,6 +5,42 @@ Sequenced by dependency, not appetite: item 1 makes everything after it safer.
 
 ---
 
+## 0e. Queued 2026-08-16 (fifth pass) — a bugfix and tweak pass — DONE (v0.51)
+
+Nineteen small things, most of them corrections to the fourth pass. See
+decisions 40–44, and `APP_VERSION`, which is the commit count from here on.
+
+- **a desk stops being where it was.** Promoting is a move, not a label: the
+  drawer leaves the board it stood on, and demoting is the return trip
+- **one shelf.** The top strip went; `S.pins` is a single global list of
+  anything at all, drawn as a shelf with a slot per thing, with more padding at
+  the ends than a curved screen was giving the leftmost one
+- **the name at the top left opens every desk at once**, drawn small — which is
+  the "no way to see all the desks" note left open by the fourth pass
+- **the phone page is a stated 10 × 14**, so an arrangement is portable
+- **the new-object menu is pulled, not flicked** — a front follows your finger
+  and only opens if you carry it a quarter of the screen, and the strip iOS
+  uses for its own home swipe is left alone
+- **the foil is gone.** A magic drawer is gilt, and the gilt does not move
+- **a walnut Victorian**, following the phone's own light-or-dark by default
+- **every default desk and drawer starts locked**; one you make starts open
+- **the lock is the leftmost tool**, the view cycler moved into the board's own
+  settings, and the random button came off the bar
+- **four container types**: film, novel, short story, album
+- **a torn note has a border again**, and it follows the tear
+- **a list under Manual can be dragged into order**
+- **Today, Inbox and Everything ship pinned**, and the inbox is where a new
+  object goes when nothing else says where
+- **the board no longer flashes a bigger checkerboard** on the first frame of
+  every new grid
+
+*Still open:* a desk cannot be pinned to the shelf, only walked to — right for
+now, wrong if you spend all day moving between them. And `--holox`/`--holoy`
+are gone with nothing replacing them, so nothing on the desk reacts to how the
+phone is held.
+
+---
+
 ## 0d. Queued 2026-08-16 (fourth pass) — desks, scope, spans — DONE (v58)
 
 See decision 39, `S.desks` in `model.js`, migration 15.
@@ -32,6 +68,8 @@ no notion of context.
 runs per object per container per render; fine at this size, unmeasured at a
 big one. There is no way to see all the desks at once — the row is the only
 view of the master space, which will stop working somewhere north of six.
+*(Both of the shelf notes above were overturned by the fifth pass, and the
+"all the desks at once" gap was closed by it.)*
 
 ---
 

@@ -48,9 +48,10 @@ meaning, containers are finite, and opening one is a small deliberate act.
 | **Rule** | One clause — field, comparison, value — that a magic drawer matches against. |
 | **Rollup** | A number a container totals across its children, shown on its face. |
 | **Relation** | An id one object holds pointing at another. Read both ways. |
-| **Desk** | A drawer given a place in the master space — somewhere you can *be*, rather than somewhere you went into. An ordered list, `S.desks`, with `root` among them. |
-| **Master space** | The row the desks sit in. It does not wrap. |
-| **Pin** | A drawer kept to hand on the desk you are on. Per desk, `cfgOf(deskId).shelf`. |
+| **Desk** | A drawer given a place in the master space — somewhere you can *be*, rather than somewhere you went into. It has no parent: promoting takes it off the board it was on. An ordered list, `S.desks`, with `root` among them. |
+| **Master space** | The row the desks sit in. It does not wrap. The name at the top left lays it all out at once. |
+| **Pin** | Anything kept to hand on the shelf. One global ordered list, `S.pins`. |
+| **Inbox** | The drawer a new object goes to when nothing says where. `S.inbox`. |
 | **Panel** | The one menu shape: a strip down the right, over a live desk. |
 
 "Kind" in the code, "type" in the interface. `KINDS` kept its name so diffs
@@ -232,7 +233,7 @@ average, lowest, highest, or done-out-of. It shows on the face. Rollups, not
 formulas — there is no expression language and there isn't going to be one.
 
 **Sorting.** `sort` is per object then per type, like every other setting —
-`sortOf(c)`. It is a **toggle** in the top shelf rather than a menu: one button
+`sortOf(c)`. It is a **toggle** in the grid bar rather than a menu: one button
 cycling seven states and wearing the one it is on, `M`/`A`/`Z` where a letter
 is the answer and an arrow where a direction is. The values are `manual` (the order you arranged, which is a real
 answer and not the absence of one), date made either way, date modified, or A–Z
@@ -251,11 +252,14 @@ answer is a drawer.
 
 Each container is its own coordinate space, and every device has its own.
 
-- **24 columns** on a Mac, **8** on a phone. Rows are unlimited. A cell is
-  ~58px on the Mac and ~47px on a phone — near enough that the two grids
-  describe the same sizes, which is the point of the phone having so few.
-- Cells are **square**. Columns are fluid, so the row height is measured after
-  layout by `sizeGrid()` and cached in `CELL`. Nothing may assume one.
+- **24 columns** on a Mac, with unlimited rows and a board that scrolls.
+  **10 × 14** on a phone, and that is a whole page: stated rather than measured,
+  so an arrangement is the same arrangement on any handset.
+- On a Mac a cell is **square** (~58px): columns are fluid, so `sizeGrid()`
+  measures the column width after layout and makes the row height match. On a
+  phone it is **not** — the row height is the board divided by fourteen, about
+  39 across and 52 down. `COLW[dev()]` is the column width and `CELL[dev()]` is
+  the row height; nothing may assume they are the same number.
 - `x`/`y` are 1-based cells. Array order positions nothing. There is no
   auto-flow: an empty cell stays empty.
 - Two objects may never overlap. A move or resize that would collide is
@@ -282,20 +286,22 @@ of four things layered over them.
 | Surface | What it is for | Where it lives |
 | --- | --- | --- |
 | **The grid** | The app. | `#app`, rebuilt whole by `render()` |
-| **The bar** | Where you are, the pins, and five icon buttons. Top strip on a Mac, bottom bar on a phone, one piece of markup. | inside `#app` |
+| **The bar** | Where you are — pressing it opens every desk at once — plus the pins on a Mac and three icon buttons: lock, sort, settings (and the star inside a drawer). | inside `#app` |
+| **The shelf** | Whatever you pinned, drawn as a shelf with a slot per thing. In the bar on a Mac, its own strip along the bottom on a phone. | inside `#app` |
 | **Reading** | An object's body as paper — a spread, a page, or a column. Over a dimmed desk. | `#sheetHost`, rendered separately from `render()` |
 | **Writing** | The same body, full screen, with nothing else on it. A title and a textarea. | `#sheetHost` |
 | **Panel** | Every menu, every form, and every setting an object has. One at a time, down the right, over a desk that stays live. | `#frame`, outside `#app` |
 | **Popup** | Picking one of a handful — Sort, the context menu. Hangs off the button that opened it. | borrowed context-menu element |
 | **Command palette** | ⌘K. The one thing that kept a scrim, because it is a search field you type into blind. | `#frame` |
 
-**Navigation is the desks plus whatever you pinned on the one you are on.**
-There are no tabs. `S.desks` is the row of desks and the bottom shelf draws it,
-home included; `cfgOf(deskId).shelf` is what is kept to hand *on that desk* and
-the top shelf draws that. Both are ordered lists of ids resolved on read, so a
+**Navigation is the desks plus one shelf.** There are no tabs. `S.desks` is the
+row of desks, walked with a sideways swipe and laid out all at once by pressing
+the name at the top left; `S.pins` is one global list of whatever you keep to
+hand, drawn as the shelf. Both are ordered lists of ids resolved on read, so a
 deleted drawer disappears from them by itself. The breadcrumb roots at the desk
-you are on rather than at home, and a sideways swipe walks the row without
-wrapping. See decision 39.
+you are on rather than at home, and the row does not wrap. There was briefly a
+second shelf, per desk, along the top — two answers to one question at opposite
+ends of the screen. See decisions 39 and 41.
 
 **There are no modals.** `openPanel(spec)` is the whole system. `spec.body` is a
 function so `refreshPanel()` can redraw from state; a form's draft lives in the
@@ -320,7 +326,8 @@ decision 36.
 | Click a tile | Whatever that object says — see below |
 | Two fingers up / down | The next page of this board, and the one before |
 | Two fingers left / right | The next pinned drawer, and the one before |
-| Swipe up off the bottom shelf | The new-object menu (a phone; bare board does nothing) |
+| Pull up off the shelf | A drawer front follows your finger; carry it a quarter of the screen and it opens the new-object menu. A phone; bare board does nothing |
+| Hold a band in a list | Reorder it, under Manual sort only — it writes `ord` |
 | Double-tap a tile | Its name becomes a field where it sits, and its body under it if the tile shows one. Containers are exempt: two taps on a drawer opens it twice |
 | Press and hold a tile (200ms) | Arms the drag; then move it, or drag a corner to resize |
 | Click bare grid | The type picker, and what you pick lands on that cell |
@@ -427,13 +434,13 @@ the start, `#tag` anywhere, and `!today` / `!tomorrow` / `!week`.
 Local-first. No account, no backend, nothing transmitted.
 
 - **`localStorage['bureau.v1']`** holds the whole desk: `{v, savedAt,
-  pins, look, kinds, deskCfg, objects}`. Writes are debounced 250ms. All of it
+  desks, pins, inbox, look, kinds, deskCfg, objects}`. Writes are debounced 250ms. All of it
   goes through `persist.js` — no other module touches localStorage.
 - **IndexedDB** (`bureau-assets`) holds image bytes. `snapshot()` strips
   `media.src` on the way out and `hydrateAssets()` puts it back after a load, so
   a backup stays small and readable. Anything new that writes objects to storage
   has to strip too.
-- **Migrations** are ordered and versioned (`DATA_V`, currently 8). The
+- **Migrations** are ordered and versioned (`DATA_V`, currently 17). The
   snapshot's `v` records the last step applied, so each runs once per desk.
   `dedupeIds()` is a repair, not a migration, and runs on every load, because an
   old backup can reintroduce colliding ids at any time.

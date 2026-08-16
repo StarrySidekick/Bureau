@@ -3,7 +3,6 @@ import { S, byId, isContainer, shapeOf, openingOf, dev, deskIds, deskOf } from '
 import { lay } from './grid.js';
 import { objColour } from './look.js';
 import { render, previewHTML, pageAt, pageCount, goPage } from './views.js';
-import { save } from './persist.js';
 
 /* ============================================================
    20 · motion — the movements the desk makes
@@ -152,102 +151,25 @@ function pop(id, was){
 }
 
 /* ============================================================
-   20b · holographic — the desk reacts to how the phone is held
+   20b · the holographic foil, and why it is gone
    ============================================================
-   Magic drawers used to carry a band of light that travelled across them on a
-   seven-second loop. It was the same sweep whatever you did, which after a
-   week reads as a thing blinking at you rather than as a surface. A foil
-   doesn't move on its own: it moves because *you* did.
+   A magic drawer used to be holographic: a rainbow foil under a specular
+   highlight, both driven off two numbers — --holox and --holoy on #frame —
+   that came from how the phone was tilted, or from where the pointer was.
 
-   So two numbers, --holox and --holoy, live on #frame and mean "where the
-   light is coming from", 0 to 1 in each direction. On a phone they come from
-   how the phone is tilted; on a Mac, from where the pointer is. chrome.css
-   does the rest — nothing else in the app knows this exists.
+   It was clever and it was tacky. A drawer that fills itself is *illuminated*,
+   which is a manuscript idea, not a trading-card one; the spectrum was the one
+   place in the app that named hues outright and it read as a sticker stuck on
+   the furniture. So the foil is gone, and with it the whole tilt apparatus —
+   the deviceorientation listener, the iOS permission prompt, the easing loop
+   and the Settings button that asked for all three. What is left is the gilt:
+   a ruled frame inset from the edge with corner brackets, drawn in the style's
+   own Glow. See decision 42.
 
-   The values are eased toward rather than written straight through: a
-   deviceorientation stream is noisy enough that a foil driven raw off it
-   twitches. */
-const HOLO={x:.5, y:.5, tx:.5, ty:.5, raf:0};
-function holoTo(x, y){
-  HOLO.tx=clamp(x,0,1); HOLO.ty=clamp(y,0,1);
-  if(!HOLO.raf) HOLO.raf=requestAnimationFrame(holoStep);
-}
-function holoStep(){
-  HOLO.raf=0;
-  HOLO.x += (HOLO.tx-HOLO.x)*0.16;
-  HOLO.y += (HOLO.ty-HOLO.y)*0.16;
-  const f=$('#frame'); if(!f) return;
-  f.style.setProperty('--holox', HOLO.x.toFixed(3));
-  f.style.setProperty('--holoy', HOLO.y.toFixed(3));
-  if(Math.abs(HOLO.tx-HOLO.x)>0.002 || Math.abs(HOLO.ty-HOLO.y)>0.002)
-    HOLO.raf=requestAnimationFrame(holoStep);
-}
+   Nothing replaced --holox/--holoy. If a surface ever wants to react to how a
+   phone is held again, it starts here and it starts from a stated reason.
 
-/* Beta is how far the phone is tilted away from you, and there is no such
-   thing as a neutral value for it — everybody holds a phone at their own
-   angle. So the first reading *is* neutral, and everything after it is
-   measured from there. Gamma has a real zero (flat on its side either way),
-   so it doesn't need one. */
-const TILT={on:false, base:null};
-function onTilt(e){
-  if(e.gamma==null && e.beta==null) return;
-  if(TILT.base==null) TILT.base=e.beta||0;
-  const g=clamp((e.gamma||0)/38, -1, 1);
-  const b=clamp(((e.beta||0)-TILT.base)/34, -1, 1);
-  holoTo(.5+g*.5, .5+b*.5);
-}
-function listenTilt(){
-  if(TILT.on) return;
-  TILT.on=true; TILT.base=null;
-  window.addEventListener('deviceorientation', onTilt);
-}
-function stopTilt(){
-  if(!TILT.on) return;
-  TILT.on=false; TILT.base=null;
-  window.removeEventListener('deviceorientation', onTilt);
-  holoTo(.5,.5);
-}
-const needsAsking = ()=> typeof DeviceOrientationEvent!=='undefined'
-  && typeof DeviceOrientationEvent.requestPermission==='function';
-
-/* The Settings button. iOS will only hand over the motion sensors from inside
-   a real gesture, which is exactly what pressing a button is — and it is the
-   reason this is a button at all rather than something that just happens. */
-function askTilt(){
-  if(TILT.on){ stopTilt(); S.look.tilt=false; save(); return 'off'; }
-  if(typeof DeviceOrientationEvent==='undefined') return 'none';
-  if(!needsAsking()){ S.look.tilt=true; save(); listenTilt(); return 'on'; }
-  DeviceOrientationEvent.requestPermission().then(r=>{
-    S.look.tilt = r==='granted';
-    save();
-    if(r==='granted') listenTilt();
-  }).catch(()=>{});
-  return 'asked';
-}
-const tiltOn = ()=> TILT.on;
-
-/* Once granted, iOS answers requestPermission() again without a dialog — but
-   only from a gesture, so the first press anywhere in the app is where a desk
-   that had it last time picks it back up. Once, then never again. */
-function armTilt(){
-  const go=()=>{
-    document.removeEventListener('pointerdown', go, true);
-    if(S.look.tilt) askTilt();
-  };
-  document.addEventListener('pointerdown', go, true);
-}
-function startMotion(){
-  // a mouse is a light source too — the same foil, lit from where you point
-  $('#frame').addEventListener('pointermove', e=>{
-    if(e.pointerType && e.pointerType!=='mouse') return;
-    holoTo(e.clientX/Math.max(1,innerWidth), e.clientY/Math.max(1,innerHeight));
-  }, {passive:true});
-  if(typeof DeviceOrientationEvent==='undefined') return;
-  if(!needsAsking()){ if(S.look.tilt!==false) listenTilt(); return; }
-  if(S.look.tilt) armTilt();
-}
-
-/* ============================================================
+   ============================================================
    20c · the pager — boards that slide
    ============================================================
    Walking between pinned drawers, and between the pages of one board, used to
@@ -427,5 +349,4 @@ function pagerCancel(){
 }
 
 export { still, tileOf, tileRect, openingFor, openTile, enter, pop,
-  startMotion, askTilt, tiltOn,
   pagerBegin, pagerMove, pagerEnd, pagerCancel, pagerOn, stepDrawer };
