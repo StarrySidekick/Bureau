@@ -499,9 +499,15 @@ function settingsBody(){
    with a name under it, which meant five of them across a phone gave each one
    78px and "Done & Dusted" fitted in none of them. A square and a bigger mark
    say which drawer it is from further away than eight-point type ever did. */
-function pinBtn(d, on){
+function pinBtn(d, on, col){
+  /* A pinned thing carries the id it opens under whichever attribute names it:
+     a container is `data-drawer`, because every path that opens a drawer looks
+     for that; anything else is `data-row`, and clicking it does whatever its
+     type says clicking it does. */
+  const key = isContainer(d) ? 'data-drawer' : 'data-row';
   return `<button class="pinbtn${on?' on':''}${has(d,'magic')?' magic':''}"
-      data-drawer="${d.id}" style="--c:${objColour(d)}" title="${esc(d.title||'Untitled')}">
+      ${key}="${d.id}" data-pin="${d.id}"
+      style="--c:${objColour(d)}${col?`;grid-column:${col}`:''}" title="${esc(d.title||'Untitled')}">
     <i class="pinface">${ic(has(d,'magic')?'sparkle':K(d.kind).ic, 20)}</i>
     <span>${esc(d.title||'Untitled')}</span></button>`;
 }
@@ -510,13 +516,33 @@ function pinBtn(d, on){
    to be standing on — two answers to one question, at opposite ends of the
    screen. The desks came off it (they are walked to, and the title lays them
    all out); what is left is the catch-all: a drawer, a magic drawer, a
-   project, a film, kept to hand from wherever you are. See decision 41. */
+   project, a film, a note — kept to hand from wherever you are. Decision 41.
+
+   On a phone it is **the last row of the grid**: same nine columns, same
+   square cell, same board under it, divided from the board by one hairline.
+   Nine columns of thirteen-ish rows plus one — "9×13 +1". It was a strip of
+   chrome bolted under the board, which made the shelf a different kind of
+   thing from everything it held; a row of the grid is a shelf you can *drop
+   onto*, and dropping something on it is what pinning now is. Decision 46.
+
+   It does not turn with the pages and it does not change with the desk. That
+   is the whole point of it: the board moves, the shelf stays. */
 function shelfStrip(){
   const pins=shelfDrawers();
-  if(!pins.length) return '';
   const here = id => S.view==='drawer' && S.drawerId===id;
-  return `<nav class="shelf shelf-bottom pinbar" data-shelf="pins">
-    ${pins.map(d=>pinBtn(d, here(d.id))).join('')}
+  if(S.device==='desk'){
+    if(!pins.length) return '';
+    return `<nav class="shelf shelf-bottom pinbar" data-shelf="pins">
+      ${pins.map(d=>pinBtn(d, here(d.id))).join('')}
+    </nav>`;
+  }
+  /* The cell comes from the last measurement, written inline, so the row is
+     the right height on its first frame — the same reason gridOfContainer()
+     writes the checker squares. sizeGrid() corrects both after layout. */
+  const g=gridOf('phone'), cell=CELL.phone, colw=COLW.phone;
+  return `<nav class="pinrow pinbar" data-shelf="pins"
+      style="--cols:${g.cols};--rowh:${cell}px;--checkerx:${2*colw}px;--checkery:${2*cell}px">
+    ${pins.slice(0, g.cols).map((d,i)=>pinBtn(d, here(d.id), i+1)).join('')}
   </nav>`;
 }
 
@@ -711,6 +737,16 @@ function sizeGrid(){
   // as two, because the two are measured separately and one may drift first
   grid.style.setProperty('--checkerx', 2*(w+g.gap)+'px');
   grid.style.setProperty('--checkery', 2*(cell+g.gap)+'px');
+  /* The shelf is the last row of the same grid, so it is the same cell. It is
+     a sibling element rather than a fourteenth row of this one — the board's
+     coordinate space stays exactly what it was, and boxOk(), freeSpot() and
+     the pager go on knowing nothing about it. */
+  const pr=$('.pinrow');
+  if(pr){
+    pr.style.setProperty('--rowh', cell+'px');
+    pr.style.setProperty('--checkerx', 2*(w+g.gap)+'px');
+    pr.style.setProperty('--checkery', 2*(cell+g.gap)+'px');
+  }
   grid.style.gridAutoRows = cell+'px';
   const rows=(grid.style.gridTemplateRows.match(/repeat\((\d+)/)||[])[1];
   if(rows) grid.style.gridTemplateRows=`repeat(${rows},${cell}px)`;

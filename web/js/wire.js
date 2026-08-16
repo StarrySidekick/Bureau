@@ -71,9 +71,6 @@ function setField(el){
       if(v===id || isAncestor(id, container(v))){ toast('A drawer cannot go inside itself'); break; }
       if(o.parent!==v){ o.parent=v; o.desk=null; o.phone=null; }
       break;
-    /* The inbox is a fact about the desk, not about the drawer — one drawer
-       at a time, and saying no clears it rather than leaving a second one. */
-    case 'inbox': S.inbox = v ? id : (S.inbox===id ? null : S.inbox); break;
     case 'knobtone': t.knobtone=v; t.knobc=null; break;
     case 'dur': t.dur = v===''?null:+v; break;
     case 'mtype': if(o) o.media=Object.assign({label:'untitled'}, o.media, {type:v}); break;
@@ -94,6 +91,8 @@ function setField(el){
       break;
     }
     case 'filter.tag': if(o) o.filter=Object.assign({}, o.filter, {tag:v||undefined}); break;
+    // loose: on a desk rather than filed in anything — what an inbox collects
+    case 'filter.loose': if(o) o.filter=Object.assign({}, o.filter, {loose:v?true:undefined}); break;
     // how far a magic drawer can see — its own desk, all of them, or a chosen few
     case 'filter.scope': if(o) o.filter=Object.assign({}, o.filter, {scope:v||undefined}); break;
     case 'roll.fn': case 'roll.f': {
@@ -407,6 +406,8 @@ function wire(){
       else if(cmd==='drawerset'||cmd==='objset') objectPanel(id);
       else if(cmd==='opendrawer'){ S.view='drawer'; S.drawerId=id; render(); }
       else if(cmd==='pin') togglePin(id);
+      else if(cmd==='unpin'){ setPin(id, null); save(); toast('Off the shelf'); }
+      else if(cmd==='topin'){ setPin(id, 'pin'); save(); toast('On the shelf'); }
       else if(cmd==='done') toggleDone(id);
       else if(cmd==='today'){ byId(id).due=T; render(); toast('Scheduled today'); }
       else if(cmd==='tom'){ byId(id).due=dz(1); render(); toast('Scheduled tomorrow'); }
@@ -462,11 +463,6 @@ function wire(){
       const o=create(kind, at?{parent:at.parent}:undefined);
       placeAtPending(o);
       save(); render();
-      /* Made without aiming at a cell, it goes to the inbox — which is right,
-         and invisible if you are standing somewhere else. So say where it
-         went; reveal() below can only scroll to something on this board. */
-      const home = (S.view==='drawer'&&S.drawerId)||ROOT;
-      if(o.parent!==home) toast('Filed in '+((byId(o.parent)||{}).title||'the desk'));
       /* …and then it is scrolled to. A board is a coordinate space, so a new
          object goes in the first free room from the top — which on a phone,
          where objects are full width, is always below everything you can see.

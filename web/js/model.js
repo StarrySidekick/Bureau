@@ -219,15 +219,19 @@ function seed(){
   const DESK = (o)=> DR(Object.assign({parent:null, desk:null, phone:null}, o));
   const drawers = [
     MG({id:'d_today', title:'Today',        c:6, layout:'list', filter:{due:'today', scope:'all'},      desk:{x:1,y:1,w:2,h:2},  phone:{x:1,y:1,w:2,h:2}}),
-    DR({id:'d_in',    title:'Inbox',        c:5, layout:'list', desk:{x:3,y:1,w:2,h:2},  phone:{x:3,y:1,w:2,h:2}}),
+    /* The inbox **collects**; it does not hold. Everything loose on a desk —
+       made and not yet put away — shows up in it, and stays exactly where it
+       was made. A drawer that took what you made would be filing your desk for
+       you, which is the one thing the desk is for. See decision 45. */
+    MG({id:'d_in',    title:'Inbox',        c:5, layout:'list', filter:{loose:true, scope:'all'}, desk:{x:3,y:1,w:2,h:2},  phone:{x:3,y:1,w:2,h:2}}),
     // everything still to do, wherever it lives — the drawer that answers "what
     // is outstanding" without caring which desk or project it is outstanding on
     MG({id:'d_all',   title:'Everything',   c:9, layout:'list', filter:{kinds:['task'], scope:'all'},   desk:{x:5,y:1,w:2,h:2},  phone:{x:5,y:1,w:2,h:2}}),
     DR({id:'d_ideas', title:'Idea Bin',     c:12, desk:{x:7,y:1,w:2,h:2},  phone:{x:7,y:1,w:2,h:2}}),
-    DR({id:'d_studio',title:'Studio',       c:9, desk:{x:9,y:1,w:2,h:2},  phone:{x:9,y:1,w:2,h:2}}),
-    MG({id:'d_open',  title:'Open Questions',c:10,filter:{kinds:['question'], rule:{f:'answer',op:'is',v:''}},              desk:{x:11,y:1,w:2,h:2},  phone:{x:1,y:3,w:2,h:2}}),
-    DR({id:'d_keep',  title:'Keeping Up',   c:8, desk:{x:13,y:1,w:2,h:2},  phone:{x:3,y:3,w:2,h:2}}),
-    MG({id:'d_done',  title:'Done & Dusted',c:5, filter:{done:true, scope:'all'},                       desk:{x:15,y:1,w:2,h:2},  phone:{x:5,y:3,w:2,h:2}}),
+    DR({id:'d_studio',title:'Studio',       c:9, desk:{x:9,y:1,w:2,h:2},  phone:{x:1,y:3,w:2,h:2}}),
+    MG({id:'d_open',  title:'Open Questions',c:10,filter:{kinds:['question'], rule:{f:'answer',op:'is',v:''}},              desk:{x:11,y:1,w:2,h:2},  phone:{x:3,y:3,w:2,h:2}}),
+    DR({id:'d_keep',  title:'Keeping Up',   c:8, desk:{x:13,y:1,w:2,h:2},  phone:{x:5,y:3,w:2,h:2}}),
+    MG({id:'d_done',  title:'Done & Dusted',c:5, filter:{done:true, scope:'all'},                       desk:{x:15,y:1,w:2,h:2},  phone:{x:7,y:3,w:2,h:2}}),
     DESK({id:'d_write', title:'Writing Desk', c:7}),
     DESK({id:'d_kitch', title:'Kitchen',      c:11})
   ];
@@ -238,18 +242,18 @@ function seed(){
 
   let n=0;
   const O = (o)=> Object.assign({
-    id:uid('o'), kind:'note', title:'', body:'', tags:[], parent:'d_in', done:false, doneAt:null,
+    id:uid('o'), kind:'note', title:'', body:'', tags:[], parent:ROOT, done:false, doneAt:null,
     due:null, repeat:null, history:[], milestones:[], media:null, ord:n++, created:dz(-30),
     desk:null, phone:null   // filled the first time it lands in a grid
   }, o);
 
   const objects = [
-    O({kind:'task', title:'Draft the Bureau data model', due:T, parent:'d_in', tags:['bureau'], body:'Objects, kinds, drawers. One table, one enum, one join.'}),
-    O({kind:'task', title:'Buy walnut oil + a proper straightedge', due:T, parent:'d_in', tags:['errand']}),
-    O({kind:'task', title:'Call Mom back', due:dz(-1), parent:'d_in', tags:['personal']}),
-    O({kind:'task', title:'Ship the drawer-resize gesture', due:dz(1), parent:'d_in', tags:['bureau']}),
-    O({kind:'task', title:'Water the fig', repeat:'weekly', due:dz(2), parent:'d_in', tags:['home']}),
-    O({kind:'task', title:'Pay the storage unit', repeat:'monthly', due:dz(4), parent:'d_in', tags:['admin']}),
+    O({kind:'task', title:'Draft the Bureau data model', due:T, parent:ROOT, tags:['bureau'], body:'Objects, kinds, drawers. One table, one enum, one join.'}),
+    O({kind:'task', title:'Buy walnut oil + a proper straightedge', due:T, parent:ROOT, tags:['errand']}),
+    O({kind:'task', title:'Call Mom back', due:dz(-1), parent:ROOT, tags:['personal']}),
+    O({kind:'task', title:'Ship the drawer-resize gesture', due:dz(1), parent:ROOT, tags:['bureau']}),
+    O({kind:'task', title:'Water the fig', repeat:'weekly', due:dz(2), parent:ROOT, tags:['home']}),
+    O({kind:'task', title:'Pay the storage unit', repeat:'monthly', due:dz(4), parent:ROOT, tags:['admin']}),
     O({kind:'task', title:'Reply to Dana about the September shoot', due:dz(-2), parent:'d_studio', tags:['work']}),
     O({kind:'task', title:'Export the reel at 4K', done:true, doneAt:dz(-1), parent:'d_studio', tags:['work']}),
 
@@ -368,8 +372,7 @@ function seed(){
              of the old app. A desk is not on the shelf: it is somewhere you
              walk to, and the title at the top left lays them all out. */
           desks: [ROOT, 'd_write', 'd_kitch'],
-          pins: ['d_today','d_in','d_all'],
-          inbox: 'd_in'};
+          pins: ['d_today','d_in','d_all']};
 }
 
 /* ============================================================
@@ -383,7 +386,7 @@ function reset(){
     objects:s.objects, kinds:{}, desks:s.desks.slice(),
     // one shelf, one list: anything at all may be kept on it, and it is the
     // same list wherever you are standing
-    pins:s.pins.slice(), inbox:s.inbox,
+    pins:s.pins.slice(),
     // Light or dark comes from the style now — Victorian is a parchment desk,
     // Starry Sidekick is a night one — so there is no theme to store.
     device:sensedDevice(), layoutEdit:null,
@@ -580,14 +583,13 @@ const deskHere = ()=> deskOf(S.view==='drawer' && S.drawerId ? S.drawerId : ROOT
 
    `S.pins` is that list, ids in order, global rather than per desk: something
    you keep to hand is something you want to hand from wherever you are. */
-const pinIds = ()=> (S.pins||[]).filter(id=>byId(id)&&isContainer(byId(id)));
+// Anything at all: a drawer, a magic drawer, a project — or a plain object,
+// because a note you are living in this week is a thing to keep to hand too.
+const pinIds = ()=> (S.pins||[]).filter(byId);
 const shelfDrawers = ()=> pinIds().map(byId);
 // 'desk' | 'pin' | null — how this drawer is kept, if at all
 const placeOf = id => isDesk(id) && id!==ROOT ? 'desk'
                     : pinIds().includes(id) ? 'pin' : null;
-/* Where a new object goes when nothing else says. A drawer you nominate as the
-   inbox, if it is still there; otherwise the board you are on. */
-const inboxId = ()=> { const o=S.inbox&&byId(S.inbox); return o&&isContainer(o)&&!has(o,'magic') ? o.id : null; };
 
 /* A drawer holds. A magic drawer collects. Nothing does both.
    An object lives in exactly one drawer — its `parent` — and that is the only
@@ -629,10 +631,16 @@ function inContainer(c,o){
     // calendar that cannot answer "what is happening that week".
     if(isContainer(o) && !showsContainers(c)) return false;
     if(f.due==='today') return !!o.due && D.parse(o.due)<=D.today();
+    /* Loose: on a desk rather than filed in anything. This is what an inbox
+       actually is — the things you have made and not yet put away — and it is
+       a *rule*, so the inbox collects them where they lie rather than taking
+       them. A drawer that swallowed everything you made would file your desk
+       for you, which is the one thing the desk is for. */
+    if(f.loose && !isDesk(o.parent||ROOT)) return false;
     if(f.tag && !(o.tags||[]).includes(f.tag)) return false;
     if(f.kinds && f.kinds.length && !f.kinds.includes(o.kind)) return false;
     if(f.rule && !matchRule(o, f.rule)) return false;
-    return !!(f.tag || (f.kinds&&f.kinds.length) || f.rule);
+    return !!(f.tag || (f.kinds&&f.kinds.length) || f.rule || f.loose);
   }
   if(o.done && !keepsDone(c)) return false;
   return o.parent===c.id;              // an ordinary drawer holds what is filed in it
@@ -845,7 +853,7 @@ export { ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds, K,
   deskTitle, rootObj, container, cfgOf, isContainer, FACES, faceOf, layoutOf, SHAPES,
   shapeOf, READS, readOf, spreadOf, OPENINGS, openingOf, gathersOf, gatherKind, containers,
   deskIds, deskList, isDesk, deskOf, deskHere,
-  pinIds, shelfDrawers, placeOf, inboxId,
+  pinIds, shelfDrawers, placeOf,
   spanOf, coversDay, lastDay,
   KNOBSIZES, knobSizeOf, answered,
   spawnByOf, genKindOf, takesTyping, keepsDone, showsContainers,

@@ -5,6 +5,32 @@ Sequenced by dependency, not appetite: item 1 makes everything after it safer.
 
 ---
 
+## 0f. Queued 2026-08-16 (sixth pass) — the shelf becomes a row — DONE (v0.53)
+
+Three corrections to the fifth pass. See decisions 45–47.
+
+- **an inbox collects; it does not hold.** `create()` briefly routed anything
+  made without a stated place *into* the inbox, so a thing you made on the desk
+  vanished off it. The inbox is a magic drawer now, carrying the one rule an
+  inbox has — `loose`, meaning on a desk rather than filed in anything — and
+  nothing is moved into it ever again. `S.inbox` is gone
+- **nine columns, and the shelf is the last row of the grid.** Same cell, same
+  texture, one hairline between: "9 × 13 +1". It does not turn with the pages
+  and does not change with the desk
+- **pinning is a drag.** Carry a tile onto the shelf and let go; the object does
+  not move, because pinning is about reach. The long press on a pin takes it
+  back off
+- **two long presses on a locked board.** Holding a bare cell lights it and
+  opens the picker there; holding a tile opens the menu, and moving from there
+  takes the tile and unlocks the board, the way the iPhone home screen does
+
+*Still open:* nine slots is the whole shelf and the tenth pin is refused rather
+than scrolling. And on a desk where most things are loose — the sample desk,
+where the whole type museum sits on the board — the Inbox collects nearly all of
+it, which is true but noisy.
+
+---
+
 ## 0e. Queued 2026-08-16 (fifth pass) — a bugfix and tweak pass — DONE (v0.52)
 
 Nineteen small things, most of them corrections to the fourth pass. See

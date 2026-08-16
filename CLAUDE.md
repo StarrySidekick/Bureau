@@ -257,12 +257,12 @@ exactly those aggregations done properly: **Today** (anything due, every desk),
 **Inbox** (an ordinary drawer, and where a new object lands when nobody said),
 **Everything** (every unfinished task, every desk).
 
-**One drawer is the inbox, and it is a fact about the desk.** `S.inbox` names
-it; `inboxId()` resolves it, refusing a magic drawer, because one holds nothing.
-`create()` falls back to it when there is no `patch.parent` and you are not
-inside a drawer — so a thing made by pulling the shelf open goes to the inbox,
-and a thing made by aiming at a bare cell goes where you aimed. Nominated from
-any ordinary drawer's settings.
+**An inbox collects; it does not hold.** It is a magic drawer carrying
+`filter.loose` — "on a desk rather than filed in anything" — so a new object
+appears in it and stays exactly where you made it. `create()` never routes
+anywhere but the board you are looking at. For one version it filed into a
+nominated inbox instead, which meant a thing you made on the desk vanished off
+the desk; `S.inbox` is gone with it. See decision 45.
 
 **There is more than one desk, and a desk is somewhere rather than something.**
 `S.desks` is the master space: an ordered row of container ids with `ROOT` among
@@ -289,14 +289,22 @@ on the Exercise desk answers with screenplay scenes. `inScope()` is checked
 before every other clause in `inContainer()`, so it applies to the archive and
 to every rule alike.
 
-**There is one shelf, and anything may sit on it.** `S.pins` is a single global
-ordered list — global, not per desk, because something kept to hand is kept to
-hand wherever you are standing. It rides in the grid bar on a Mac and has its
-own strip along the bottom of a phone, which is the half a thumb reaches, drawn
-as a shelf board with a slot cut for each pinned thing. Ask `placeOf(id)` —
-`desk | pin | null` — and render with `shelfStrip()`. There was a second shelf
-along the top for this desk's own pins; it cost a row of board on every screen
-and answered a question this one already answers. See decision 41.
+**There is one shelf, and it is the last row of the grid.** `S.pins` is a
+single global ordered list — global, not per desk, because something kept to
+hand is kept to hand wherever you are standing, and anything at all may be on
+it. On a phone it is drawn as **a row of the board**: same nine columns, same
+square cell, same texture, one hairline between. Nine by however many rows fit,
+plus one — "9 × 13 +1". It never turns with the pages and never changes with the
+desk. On a Mac it rides in the grid bar instead. Ask `placeOf(id)` —
+`desk | pin | null` — and render with `shelfStrip()`. See decisions 41 and 46.
+
+**Pinning is a drag onto the shelf, and it does not move the thing.** Carry any
+tile onto `.pinrow` and let go: `setPin(id,'pin')`, and `parent`, `desk` and
+`phone` are all untouched, because pinning is about reach and not about where a
+thing lives. Taking it off is the long press on the pin. The shelf holds
+`GRID.phone.cols` things and refuses the next one — a shelf that scrolls is not
+a row. The row is a **sibling** of `#drawergrid`, not a fourteenth row of it, so
+`boxOk()`, `freeSpot()`, `pageOfBox()` and the pager know nothing about it.
 
 **Every tool in the grid bar is a toggle, not a menu, and the lock is first.**
 It decides what every other gesture on the board means, so it is the leftmost;
@@ -306,25 +314,35 @@ button again. A locked board refuses moves and resizes and **never** refuses the
 long press — see `G.stuck` in `gestures.js`. How a board is laid out is not a
 tool: it is the "Opens as" row in the board's own settings.
 
-**A phone board is ten columns of square cells, and it does not scroll.** The
-cell is the measured column width — ~39px — on both devices; the free number is
-how many rows fit between the bar and the shelf (`PAGEROWS`, a `floor`, about
-nineteen on a 390 × 844 screen). Ten by a *stated* fourteen rows was tried and
-reverted: it made a page the same shape on every handset at the cost of a cell a
-third taller than it was wide, and a square cell is what makes every stated size
-in `KINDS` mean what it says. Both bars are as thin as they go, because every
-pixel of either is a row of board. A page is *not stored*: `y` is one continuous
+**A phone board is nine columns of square cells, plus the shelf.** The cell is
+the measured column width — ~43px — on both devices; the free number is how many
+rows fit between the bar and the shelf (`PAGEROWS`, a `floor`, about seventeen
+on a 390 × 844 screen). Nine by a *stated* thirteen rows cannot be square on a
+phone-shaped screen and the square cell wins: it is what makes every stated size
+in `KINDS` mean what it says. The column count is the one number that sets the
+cell size — see the table at the top of `grid.js` — and the bar is as thin as it
+goes, because every pixel of it is a row of board. A page is *not stored*: `y` is one continuous
 coordinate space per container and a page is a window of *n* rows onto it, so
 drag, drop and `freeSpot()` know nothing about pages. The one rule is that
 nothing may straddle a break, enforced in `boxOk()`. Two fingers up and down
 turn pages; two fingers left and right walk the desks. See decision 44. See decision 37.
 
-**Tapping bare board does nothing on a phone.** The way in is **pulling** the
-shelf open: a drawer front rises out of it and follows your finger, and it opens
-the type picker only if you carry it about a quarter of the screen. It was a
-40px flick that committed with nothing drawn, which is why iOS's own home swipe
-kept opening it. Nothing is decided until you let go — see `PULL_OPEN` and
-`HOME_EDGE` in `gestures.js`, and decision 43. Dragging a size out on bare board still makes something, on
+**Tapping bare board does nothing on a phone; holding it makes something
+there.** Two ways in. **Pulling** the shelf open — a drawer front rises out of
+it and follows your finger, and it opens the type picker only if you carry it
+about a quarter of the screen (`PULL_OPEN`, `HOME_EDGE`, decision 43). And
+**holding a bare cell**, which lights that cell, sizes a box as you drag, and
+opens the picker on it when you let go. On a locked board the difference is
+purely *when you move*: move first and the finger walks the boards, hold first
+and it sketches. See decision 47.
+
+**Holding a tile opens the menu, and moving from there takes the tile — and
+unlocks the board.** The iPhone home screen's gesture, and the gesture is no
+longer cancelled when the menu appears: `G.menu` stays set, and the first real
+movement closes the menu, lifts the tile and calls `unlockBoard()`. That writes
+state and patches the grid's `locked` class and the bar's padlock **without
+rendering**, because the tile is under the finger and `render()` would replace
+it — the drop at the end renders and everything agrees then. See decision 47. Dragging a size out on bare board still makes something, on
 both devices, because that one is deliberate. And on a phone every panel comes
 up from the bottom rather than in from the right — a panel from the right covers
 the whole board, which is the thing decision 23 exists to prevent.

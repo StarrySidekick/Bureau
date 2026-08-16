@@ -51,7 +51,7 @@ meaning, containers are finite, and opening one is a small deliberate act.
 | **Desk** | A drawer given a place in the master space — somewhere you can *be*, rather than somewhere you went into. It has no parent: promoting takes it off the board it was on. An ordered list, `S.desks`, with `root` among them. |
 | **Master space** | The row the desks sit in. It does not wrap. The name at the top left lays it all out at once. |
 | **Pin** | Anything kept to hand on the shelf. One global ordered list, `S.pins`. |
-| **Inbox** | The drawer a new object goes to when nothing says where. `S.inbox`. |
+| **Inbox** | A magic drawer whose rule is `loose`: everything on a desk rather than filed in something. It collects; nothing is moved into it. |
 | **Panel** | The one menu shape: a strip down the right, over a live desk. |
 
 "Kind" in the code, "type" in the interface. `KINDS` kept its name so diffs
@@ -253,12 +253,13 @@ answer is a drawer.
 Each container is its own coordinate space, and every device has its own.
 
 - **24 columns** on a Mac, with unlimited rows and a board that scrolls.
-  **10 columns** on a phone, where the board is pages rather than a scroller.
-- Cells are **square** on both, ~58px on a Mac and ~39px on a phone. Columns are
+  **9 columns** on a phone, where the board is pages rather than a scroller, and
+  the last row is the shelf: nine by however many fit, plus one.
+- Cells are **square** on both, ~58px on a Mac and ~43px on a phone. Columns are
   fluid, so `sizeGrid()` measures the column width after layout, caches it in
   `COLW`, and makes the row height (`CELL`) match. Nothing may assume either.
-  How many rows a phone page holds is the measured leftover — about nineteen —
-  and both bars are kept thin because every pixel of them is a row.
+  How many rows a phone page holds is the measured leftover — about seventeen —
+  and the bar is kept thin because every pixel of it is a row.
 - `x`/`y` are 1-based cells. Array order positions nothing. There is no
   auto-flow: an empty cell stays empty.
 - Two objects may never overlap. A move or resize that would collide is
@@ -325,7 +326,11 @@ decision 36.
 | Click a tile | Whatever that object says — see below |
 | Two fingers up / down | The next page of this board, and the one before |
 | Two fingers left / right | The next pinned drawer, and the one before |
-| Pull up off the shelf | A drawer front follows your finger; carry it a quarter of the screen and it opens the new-object menu. A phone; bare board does nothing |
+| Pull up off the shelf | A drawer front follows your finger; carry it a quarter of the screen and it opens the new-object menu. A phone; a *tap* on bare board does nothing |
+| Hold a bare cell | Lights it; drag to size a box, let go for the picker — on a locked board too |
+| Hold a tile, then move | The menu goes and the tile is in your hand, iOS-style — and the board unlocks |
+| Carry a tile onto the shelf | Pins it. Nothing moves: `parent` and both boxes are untouched |
+| Hold a pin | The menu, including the way back off the shelf |
 | Hold a band in a list | Reorder it, under Manual sort only — it writes `ord` |
 | Double-tap a tile | Its name becomes a field where it sits, and its body under it if the tile shows one. Containers are exempt: two taps on a drawer opens it twice |
 | Press and hold a tile (200ms) | Arms the drag; then move it, or drag a corner to resize |

@@ -1,6 +1,6 @@
 import { $, esc, uid, ROOT, D } from './util.js';
 import { S, byId, K, KINDS, KEYS, kindHas, has, isContainer, genKindOf, streak, T, dz, dev,
-  deskIds, deskHere, placeOf, cfgOf, inboxId } from './model.js';
+  deskIds, deskHere, placeOf, cfgOf } from './model.js';
 import { gridOf, freeSpot, lay, boxOk, sizeOfKind } from './grid.js';
 import { randomFront, randomBoard, styleDefaults } from './look.js';
 import { render } from './views.js';
@@ -160,8 +160,11 @@ function delDrawer(id){
    entirely, and demoting puts it back where it came from. Its boxes go with
    it, because it is a new coordinate space either way. See decision 40. */
 function setPin(id, where){
-  const o=byId(id); if(!o || !isContainer(o)) return;
+  const o=byId(id); if(!o) return;
   const to = where===true ? 'desk' : (where||null);
+  // only a container can be a desk — a desk is a place, and a place holds
+  // things. Anything at all can go on the shelf.
+  if(to==='desk' && !isContainer(o)) return;
   const was = placeOf(id);
   S.desks = (S.desks||[ROOT]).filter(x=>x!==id);
   S.pins = (S.pins||[]).filter(x=>x!==id);
@@ -217,13 +220,13 @@ function create(kind, patch){
   const k=K(kind);
   const o = Object.assign({
     id:uid(kindHas(kind,'container')?'d':'o'), kind, title:'', body:k.body||'', tags:[],
-    /* Where it lands when nobody said. Inside a drawer, that drawer — you are
-       looking at it, so you meant it. On a desk it is the **inbox**: a thing
-       made from the shelf with no cell aimed at is a thing you have not decided
-       where to keep, and the whole point of an inbox is to be the answer to
-       that. Aiming at a bare cell says where, and that comes through `patch`,
-       which wins. */
-    parent:(S.view==='drawer'&&S.drawerId)||inboxId()||ROOT,
+    /* Where it lands when nobody said: the board you are looking at. Nowhere
+       else. It was routed to the inbox for one version, and that was wrong —
+       a drawer that takes what you make is a drawer that files your desk for
+       you. The inbox *collects* instead: it is a magic drawer whose rule is
+       "loose on a desk", so a new object shows up in it while staying exactly
+       where you made it. See inContainer() and decision 45. */
+    parent:(S.view==='drawer'&&S.drawerId)||ROOT,
     done:false, doneAt:null, due:kindHas(kind,'date')?T:null,
     repeat:kindHas(kind,'streak')?'daily':null,
     history:[], milestones:kindHas(kind,'progress')?[{t:'First milestone',done:false,d:dz(30)}]:[],

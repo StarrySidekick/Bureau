@@ -1037,87 +1037,64 @@ html[data-style="aero"] .drawer.dtile.bd-bar{
    the tools on the top shelf, in the drawer's own colour with its mark on it.
    It used to be a little front with a name under it, which gave each of five
    pins 78px and fitted "Done & Dusted" into none of them. */
-/* …and it is drawn as a shelf: a board with a lip along the front and a row of
-   slots cut into it, each holding one pinned thing. It was a strip with some
-   buttons on it, which is what every tab bar looks like — and a tab bar is
-   precisely the thing decision 22 deleted. A shelf says the same thing as a
-   drawer front does: this is furniture, and what is on it, you put there.
+/* ---- the shelf is the last row of the grid ----------------------------
+   Nine columns of however-many rows, plus one: the board above, one hairline,
+   and then a row exactly like the rest of them holding what you pinned. It was
+   a strip of chrome bolted under the board — which made the shelf a different
+   kind of thing from everything it held, and meant pinning was a menu rather
+   than a gesture. A row of the grid is a shelf you can drop onto. Decision 46.
 
-   The left and right padding is bigger than it looks like it needs to be. The
-   leftmost slot was a couple of millimetres off the edge of the glass, which on
-   a phone with a curved screen is a button you press with the side of your
-   thumb. */
-.is-phone .shelf-bottom{
-  flex:0 0 auto;z-index:36;gap:10px;justify-content:flex-start;
-  /* One slot deep and no deeper. Every pixel here is a pixel of board, and the
-     cell is square (decision 44), so a shelf that is one slot plus a little air
-     is what buys the extra row back. */
-  padding:6px calc(18px + env(safe-area-inset-left)) calc(6px + env(safe-area-inset-bottom))
-          calc(18px + env(safe-area-inset-right));
+   Same cell, same nine columns, same board texture underneath, so an empty
+   slot reads as a place a thing could go rather than as blank chrome. */
+.is-phone .pinrow{
+  flex:0 0 auto;z-index:36;position:relative;
+  display:grid;grid-template-columns:repeat(var(--cols,9),1fr);
+  grid-template-rows:var(--rowh,43px);
+  height:var(--rowh,43px);
+  padding:0;margin:0;
+  /* the split: one line, and a breath of shadow under it so the row reads as
+     sitting in front of the board rather than as part of the same surface */
   border-top:1px solid var(--rule);
-  /* the board of the shelf: grain from the page it sits on, lighter at the
-     back edge where the light lands and darker toward the lip */
-  background:
-    linear-gradient(var(--paper-3), var(--paper-2) 34%, var(--paper-3));
-  box-shadow:inset 0 1px 0 color-mix(in srgb,#fff 28%,transparent),
-             inset 0 -3px 6px -3px rgba(0,0,0,.28);
-  overflow-x:auto;scrollbar-width:none;
-  /* the pull that opens the new-object menu has to reach this element rather
-     than being eaten by a sideways scroll */
-  touch-action:pan-x;
+  box-shadow:0 -3px 6px -5px rgba(0,0,0,.35);
+  margin-bottom:env(safe-area-inset-bottom);
 }
-/* the front lip, so the shelf has a thickness rather than being a painted band */
-.is-phone .shelf-bottom::after{
-  content:"";position:absolute;left:0;right:0;bottom:0;height:calc(3px + env(safe-area-inset-bottom));
-  background:linear-gradient(color-mix(in srgb,var(--ink) 22%,transparent), transparent 70%);
-  pointer-events:none}
-.is-phone .shelf-bottom::-webkit-scrollbar{display:none}
-/* One pinned thing, in its slot. The slot is the shadow: a socket sunk into the
-   shelf board, with the front standing in it and catching the light at the top.
-   Three shadows and no extra element, because the drag that reorders the shelf
-   reads `.pinbtn` siblings straight off the DOM — a wrapper round each one
-   would have to be dragged instead, and the reorder is not worth complicating
-   for a rebate. */
-.is-phone .pinbar .pinbtn{
-  flex:0 0 auto;width:46px;height:46px;padding:0;gap:0;
-  display:grid;place-items:center;border-radius:var(--radius-d);
+/* the board texture continues under it — it is the same grid */
+.is-phone .pinrow::before{
+  content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
+  opacity:var(--board-alpha,1);
+  background-color:var(--board-1);
+  background-image:conic-gradient(
+    var(--board-2) 0 25%, transparent 0 50%,
+    var(--board-2) 0 75%, transparent 0);
+  background-size:var(--checkerx,86px) var(--checkery,86px);
+}
+.is-phone .pinrow > *{position:relative;z-index:1}
+/* a pinned thing fills its cell, drawn as a front the way a drawer tile is */
+.is-phone .pinrow .pinbtn{
+  grid-row:1;margin:3px;padding:0;gap:1px;
+  display:grid;grid-auto-rows:min-content;align-content:center;justify-items:center;
+  border-radius:var(--radius-d);
   background:var(--c,var(--felt));border:1px solid rgba(0,0,0,.32);
-  box-shadow:
-    /* the socket the front stands in */
-    0 0 0 3px color-mix(in srgb,var(--ink) 9%,transparent),
-    0 0 0 3.5px color-mix(in srgb,#fff 22%,transparent),
-    /* and the front itself, lit from above and sitting proud of it */
-    inset 0 1px 0 rgba(255,255,255,.20), inset 0 -4px 7px -5px rgba(0,0,0,.5),
-    0 2px 3px -1px rgba(42,36,28,.34);
-  color:#F8F3E6}
-/* …and it is labelled. It was the mark alone, on the grounds that eight-point
-   type under five pins says nothing — but two magic drawers wear the same
-   sparkle, so Today and Everything were the same button in two colours. A slot
-   is wider than it is tall and there are only ever a handful, so there is room
-   for a word. */
-.is-phone .pinbar .pinbtn{
-  width:60px;height:44px;grid-auto-rows:min-content;align-content:center;gap:2px}
-.is-phone .pinbar .pinbtn span{
-  display:block;max-width:54px;font-size:9px;font-weight:600;letter-spacing:.02em;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.20), 0 1px 2px rgba(42,36,28,.3);
+  color:#F8F3E6;min-width:0;overflow:hidden}
+.is-phone .pinrow .pinbtn span{
+  display:block;max-width:100%;padding:0 2px;font-size:8px;font-weight:600;letter-spacing:.01em;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center;
   color:rgba(248,243,230,.86)}
-.is-phone .pinbar .pinface svg{width:16px;height:16px}
-.is-phone .pinbar .pinbtn.on{outline:2px solid var(--glow);outline-offset:2px}
-.is-phone .pinbar .pinbtn.magic{border-color:color-mix(in srgb,var(--glow) 62%,transparent)}
-.is-phone .pinbar .pinface{display:grid;place-items:center}
-/* the desk is not a drawer and shouldn't dress as one */
-.is-phone .pinbar .pinbtn.home{background:var(--paper);border-color:var(--rule);color:var(--ink-2)}
-.is-phone .pinbar .pinbtn.home.on{color:var(--brass)}
-/* a hint that the shelf is a drawer you pull open */
-.is-phone .shelf-bottom::before{
-  content:"";position:absolute;left:50%;top:3px;width:34px;height:3px;margin-left:-17px;
-  border-radius:3px;background:var(--rule);pointer-events:none}
-.is-phone .shelf-bottom{position:relative}
-.is-phone .pinbtn.on{color:var(--brass)}
-.is-phone .pinbtn.on .pinface{outline:2px solid var(--glow);outline-offset:1.5px}
-/* Carrying a tile over a pinned drawer files it there. On a phone this is the
-   whole answer to "file it into something three screens away" — the bar is the
-   one thing that never scrolls off. */
+.is-phone .pinrow .pinface{display:grid;place-items:center}
+.is-phone .pinrow .pinface svg{width:16px;height:16px}
+.is-phone .pinrow .pinbtn.on{outline:2px solid var(--glow);outline-offset:-2px}
+.is-phone .pinrow .pinbtn.magic{border-color:color-mix(in srgb,var(--glow) 62%,transparent)}
+/* carrying something over the shelf: the whole row lights, because the row is
+   the target — which cell it lands in is the shelf's business, not yours */
+.pinrow.dropshelf{box-shadow:inset 0 0 0 2px var(--glow)}
+.pinrow.dropshelf::after{
+  content:"Pin it here";position:absolute;inset:0;display:grid;place-items:center;
+  font-size:11px;font-weight:600;color:var(--ink-2);pointer-events:none;
+  background:color-mix(in srgb,var(--glow) 16%,transparent)}
+/* Carrying a tile over a pinned drawer files it there — on a Mac, where the
+   shelf is a row of buttons in the bar. On a phone the shelf is a grid row and
+   dropping on it *pins*, which is a different question; see .dropshelf above. */
 .pinbtn.dropinto{background:color-mix(in srgb,var(--brass) 22%,transparent);color:var(--ink)}
 .pinbtn.dropinto .pinface{outline:2.5px solid var(--glow);outline-offset:2px;transform:scale(1.12)}
 .is-desk .pinbtn.dropinto{outline:2.5px solid var(--glow);outline-offset:2px;filter:brightness(1.12)}
@@ -1448,7 +1425,13 @@ kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--rule);border
    what does not fit is on the next page. `overflow:hidden` is the assertion —
    if the row arithmetic in sizeGrid() is ever wrong, a tile is clipped rather
    than quietly reintroducing the scroll this replaced. */
-.is-phone .scroll.deskscroll{overflow:hidden;padding:0}
+/* The board is a whole number of cells and the room between the bar and the
+   shelf is not, so there are a few pixels left over. They go at the *top*,
+   under the bar, so the last row of the board sits flush on the shelf — which
+   is what makes the shelf read as the next row down rather than as a strip
+   that happens to be nearby. */
+.is-phone .scroll.deskscroll{overflow:hidden;padding:0;
+  display:flex;flex-direction:column;justify-content:flex-end}
 .is-phone .main{overflow:hidden}
 
 /* ---- a menu on a phone comes up out of the bottom ----------------------

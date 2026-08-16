@@ -204,10 +204,10 @@ const CHROME = process.env.BUREAU_CHROME;
     const cols = +getComputedStyle(g).getPropertyValue('--cols');
     const colw = g.getBoundingClientRect().width / cols;
     const rowh = parseFloat(getComputedStyle(g).getPropertyValue('--rowh'));
-    return { cols: cols === 10,
-             cellIsThumbSized: colw > 30 && colw < 62,
+    return { cols: cols === 9,
+             cellIsThumbSized: colw > 36 && colw < 62,
              square: Math.abs(colw - rowh) < 1,
-             // and the bars are thin enough to leave a real page of them
+             // and the bar is thin enough to leave a real page of them
              rowsFit: BUREAU.pageRows >= 12 };
   });
   // the sidebar and the four fixed tabs were both removed on purpose —
@@ -215,24 +215,24 @@ const CHROME = process.env.BUREAU_CHROME;
   const railGone = await phone.evaluate(() => !document.querySelector('.rail'));
   const tabsGone = await phone.evaluate(() => !document.querySelector('.tabbar'));
   const pinbarShown = await phone.evaluate(() => {
-    /* The bottom shelf. It is a real flex child of .main now rather than
-       something floating over the board — that is what makes the board end
-       exactly where the shelf begins, with nothing left to scroll past. */
-    const b = document.querySelector('.shelf-bottom');
+    /* The shelf. It is the last row of the grid now — same nine columns, same
+       square cell, one hairline between it and the board — rather than a strip
+       of chrome bolted underneath. See decision 46. */
+    const b = document.querySelector('.pinrow');
     const sc = document.querySelector('#app .scroll');
     if (!b || !sc) return false;
     const r = b.getBoundingClientRect();
-    return getComputedStyle(b).display !== 'none'
+    return getComputedStyle(b).display === 'grid'
       && r.bottom >= window.innerHeight - 1
       && Math.abs(sc.getBoundingClientRect().bottom - r.top) < 2   // flush
       && !!b.querySelector('.pinbtn[data-drawer]');
   });
   // a pin navigates, and the shelf marks where you are
-  await phone.click('.pinbar .pinbtn[data-drawer="d_today"]');
+  await phone.click('.pinrow .pinbtn[data-drawer="d_today"]');
   await phone.waitForTimeout(350);
   const pinNavigates = await phone.evaluate(() =>
     BUREAU.state.view === 'drawer' && BUREAU.state.drawerId === 'd_today'
-    && document.querySelector('.pinbtn[data-drawer="d_today"]').classList.contains('on'));
+    && document.querySelector('.pinrow .pinbtn[data-drawer="d_today"]').classList.contains('on'));
   await phone.screenshot({ path: 'test/shots/08-phone-pinned-drawer.png' });
   // home is not on the shelf any more — desks are walked to, so this is the
   // back button, which from a desk's own drawer is the desk
@@ -246,16 +246,16 @@ const CHROME = process.env.BUREAU_CHROME;
   // may go there
   const pinToggles = await phone.evaluate(() => {
     const S = BUREAU.state;
-    const n = () => document.querySelectorAll('.shelf-bottom .pinbtn[data-drawer]').length;
+    const n = () => document.querySelectorAll('.pinrow .pinbtn[data-drawer]').length;
     const d = S.objects.find(o => o.kind === 'drawer' && !S.desks.includes(o.id)
       && !(S.pins||[]).includes(o.id));
     const before = n();
     BUREAU.setPin(d.id, 'pin');
     const added = n() === before + 1 && S.pins.includes(d.id)
-      && !!document.querySelector(`.shelf-bottom .pinbtn[data-drawer="${d.id}"]`);
+      && !!document.querySelector(`.pinrow .pinbtn[data-drawer="${d.id}"]`);
     BUREAU.setPin(d.id, null);
     return added && n() === before && !S.pins.includes(d.id)
-      && !document.querySelector(`.shelf-bottom .pinbtn[data-drawer="${d.id}"]`);
+      && !document.querySelector(`.pinrow .pinbtn[data-drawer="${d.id}"]`);
   });
 
   /* --- everything is always movable; a hold arms the drag, a tap does not.
@@ -481,7 +481,9 @@ const CHROME = process.env.BUREAU_CHROME;
     window.__pl = { cl: cl.id, one: one.id, two: two.id };
     BUREAU.render();
     const line = document.querySelector(`[data-pluck="${one.id}"]`);
-    const into = document.querySelector('.grid .drawer[data-drawer="d_in"]');
+    // an ordinary drawer: the Inbox collects by rule now and holds nothing,
+    // so nothing can be filed into it — see decision 45
+    const into = document.querySelector('.grid .drawer[data-drawer="d_ideas"]');
     if (!line || !into) return null;
     const a = line.getBoundingClientRect(), b = into.getBoundingClientRect();
     const tick = document.querySelector(`[data-pluck="${two.id}"]`).getBoundingClientRect();
@@ -491,7 +493,7 @@ const CHROME = process.env.BUREAU_CHROME;
   });
   const pluckWorks = await (async () => {
     if (!pluck) return { found: false };
-    // a hold, then a drag onto the Inbox tile
+    // a hold, then a drag onto an ordinary drawer's tile
     await page.mouse.move(...pluck.from);
     await page.mouse.down();
     await page.waitForTimeout(320);
@@ -519,7 +521,7 @@ const CHROME = process.env.BUREAU_CHROME;
       S.view = 'desk'; S.drawerId = null; BUREAU.render();
       return done;
     });
-    return { found: true, lifted, aimed, filed: moved.parent === 'd_in',
+    return { found: true, lifted, aimed, filed: moved.parent === 'd_ideas',
              boxCleared: moved.boxCleared, chipGone: moved.chipGone, tapStillTicks: ticked };
   })();
 
@@ -757,14 +759,15 @@ const CHROME = process.env.BUREAU_CHROME;
   await shot('12-timeline-drop');
 
   // two of a kind dropped together become what they add up to
-  // the Inbox opens as a list, and a gesture that drops one tile on another
-  // needs a board — so it is looked at as one for the length of this check
+  /* Two of a kind, on the desk. The seeded tasks are *loose* now — the Inbox
+     collects them where they lie rather than holding them (decision 45) — so
+     this is the desk's own board, unlocked, which is where you would do it. */
   await page.evaluate(() => { const S=BUREAU.state;
-    const d=S.objects.find(o=>o.id==='d_in'); d.layout='grid'; d.locked=false;
-    S.drawerId='d_in'; BUREAU.render(); });
+    S.view='desk'; S.drawerId=null; S.deskCfg.locked=false; BUREAU.render(); });
   await page.waitForTimeout(320);
   const two = await page.evaluate(() =>
-    BUREAU.state.objects.filter(o => o.kind==='task' && o.parent==='d_in' && !o.done).slice(0,2).map(o=>o.id));
+    BUREAU.state.objects.filter(o => o.kind==='task' && o.parent==='root' && !o.done
+      && !(o.tags||[]).includes('sampler')).slice(0,2).map(o=>o.id));
   const tb = await (await page.$(`.grid .drawer[data-row="${two[1]}"]`)).boundingBox();
   const gatherAim = await drop(`.grid .drawer[data-row="${two[0]}"]`,
     { x: tb.x + tb.width/2, y: tb.y + tb.height/2 });
@@ -908,7 +911,7 @@ const CHROME = process.env.BUREAU_CHROME;
 
     // a selection comes back whole, in the order it was in
     const made = ['a', 'b', 'c'].map(n =>
-      BUREAU.create('task', { parent: 'd_in', title: 'undo ' + n }).id);
+      BUREAU.create('task', { parent: 'd_ideas', title: 'undo ' + n }).id);
     BUREAU.render();
     const beforeGroup = ids();
     BUREAU.delMany(made);
@@ -1049,11 +1052,11 @@ const CHROME = process.env.BUREAU_CHROME;
   });
   await shot('12-reading');
 
-  /* --- migrations 10 and 17: a v9 desk's phone boxes are in 16-column
-     coordinates, and the phone grid has been 8 and is now 10. Halving and then
-     scaling by five quarters is the inverse of what the grid did, and rounding
-     can put two neighbours in the same cell either time, so both steps also
-     have to leave nothing overlapping. A fresh context, and the snapshot is planted by an init script
+  /* --- migrations 10, 17 and 19: a v9 desk's phone boxes are in 16-column
+     coordinates, and the phone grid has been 8, then 10, and is now 9. Halving
+     and then rescaling twice is the inverse of what the grid did, and rounding
+     can put two neighbours in the same cell each time, so every step also has
+     to leave nothing overlapping. A fresh context, and the snapshot is planted by an init script
      rather than written and reloaded — the running page writes on beforeunload,
      so a reload would put the seeded desk straight back over it. */
   const v9desk = JSON.stringify({
@@ -1080,8 +1083,13 @@ const CHROME = process.env.BUREAU_CHROME;
     for (let i=0;i<all.length;i++) for (let j=i+1;j<all.length;j++) if (hit(all[i],all[j])) clear = false;
     return {
       found: true,
-      rescaled: b('d_a').w === 5 && b('d_a').h === 3 && b('d_b').x === 6,
-      inside: all.every(x => x.x >= 1 && x.x + x.w - 1 <= 10),
+      /* 16 → 8 halves it, 8 → 10 adds a quarter, 10 → 9 takes a tenth off:
+         a 8-wide box in sixteen columns comes out 5 wide in nine. Only the
+         first is asserted by number — the rest of the row cannot fit beside it
+         at nine columns, so they are re-placed, and what is checked there is
+         that they are re-placed *legally* rather than left on top of it. */
+      rescaled: b('d_a').w === 5 && b('d_a').h === 3 && b('d_a').x === 1,
+      inside: all.every(x => x.x >= 1 && x.x + x.w - 1 <= 9),
       clear,
       nothingElseAdded: BUREAU.state.objects.length === 4,
       deskUntouched: BUREAU.state.objects.find(o=>o.id==='d_b').desk.x === 7
@@ -1373,13 +1381,20 @@ const CHROME = process.env.BUREAU_CHROME;
     const out = {};
     const g = () => document.querySelector('#drawergrid');
     const sc = () => document.querySelector('#app .scroll');
-    const shelf = document.querySelector('.shelf-bottom');
+    // the shelf is a row of the grid now, not a strip of chrome under it
+    const shelf = document.querySelector('.pinrow');
     out.rowsMeasured = BUREAU.pageRows >= 12;
+    out.shelfIsAGridRow = !!shelf
+      && +getComputedStyle(shelf).getPropertyValue('--cols') === 9
+      && Math.abs(parseFloat(getComputedStyle(shelf).getPropertyValue('--rowh'))
+                - parseFloat(getComputedStyle(g()).getPropertyValue('--rowh'))) < 0.5;
     out.exactlyOnePage = /repeat\((\d+),/.exec(g().style.gridTemplateRows)[1] === String(BUREAU.pageRows);
     out.neverScrolls = sc().scrollHeight <= sc().clientHeight + 1
       && getComputedStyle(sc()).overflowY === 'hidden';
-    // and it stops above the shelf rather than half a cell past it
-    out.endsAboveTheShelf = g().getBoundingClientRect().bottom <= shelf.getBoundingClientRect().top + 1;
+    // …and the last row of the board sits flush on it, so the shelf reads as
+    // the next row down rather than as a strip that happens to be nearby
+    out.endsFlushOnTheShelf =
+      Math.abs(g().getBoundingClientRect().bottom - shelf.getBoundingClientRect().top) < 1.5;
     out.morePages = BUREAU.pageCount('root') > 1;
     // nothing may straddle a break: half a tile on each of two screens is a
     // tile you can read neither half of
@@ -1427,9 +1442,11 @@ const CHROME = process.env.BUREAU_CHROME;
        quarter of the screen. Forty pixels used to do it, committed, with
        nothing drawn — which is why it kept happening by accident, including on
        the way out of the app. See decision 43. */
-    const shelf = document.querySelector('.shelf-bottom');
+    const shelf = document.querySelector('.pinrow');
     const r = shelf.getBoundingClientRect();
-    const x = r.right - 30, y = r.top + 14;
+    // bare shelf, past the last pin: the pins are buttons and answer for
+    // themselves. High in the row, clear of the strip iOS keeps for itself.
+    const x = r.right - 24, y = r.top + 10;
     tap(shelf, x, y, 'pointerdown');
     tap(shelf, x, y - 60, 'pointermove');
     await nap(20);

@@ -340,12 +340,6 @@ function objectPanelBody(id){
       [['','On the board it lives on'],['desk','A desk of its own'],['pin','On the shelf']],
       placeOf(id)||''),
       'a desk leaves the board it was on'));
-    /* Which drawer is the inbox. One at a time, and only an ordinary one — a
-       magic drawer holds nothing, so nominating one would file everything you
-       made into a container that could never keep it. */
-    if(!isRoot && !magic) out.push(prow('New things land here',
-      psel(id,'inbox',[['','No'],['1','Yes — this is the inbox']], S.inbox===id?'1':''),
-      S.inbox && S.inbox!==id ? esc('now: '+((byId(S.inbox)||{}).title||'nowhere')) : ''));
     /* What a magic drawer can see. The default is its own desk, which for a
        desk that has never been split up is everything — so this row only
        starts mattering once there is more than one place to look. */
@@ -477,7 +471,13 @@ function objectPanelBody(id){
         + psel(id,'rule.op', Object.entries(OPS), r.op||'is')
         + pfield(id,'rule.v', r.v, '', 'value'))}
       ${prow('…and anything tagged', psel(id,'filter.tag',
-        [['','Any tag'], ...allTags().map(([t])=>[t,'#'+t])], fl.tag||''))}` : '')
+        [['','Any tag'], ...allTags().map(([t])=>[t,'#'+t])], fl.tag||''))}
+      ${/* An inbox is not a rule about a field — it is a rule about *where a
+           thing is*: loose on a desk, not put away in anything. On its own it
+           is the whole of what an inbox collects. */''}
+      ${prow('Where they are', psel(id,'filter.loose',
+        [['','Anywhere'],['1','Loose on a desk — not filed in anything']], fl.loose?'1':''),
+        'an inbox is this and nothing else')}` : '')
       + prow('Shows a total', psel(id,'roll.fn',[['','Nothing'],...Object.entries(ROLLS)], rl.fn||'')
         + psel(id,'roll.f',[['','—'],...Object.keys(FIELDS).map(a=>[a,FIELDS[a].nm])], rl.f||''))
       + prow('Front preview', psel(id,'pv',
@@ -785,6 +785,11 @@ function openCtx(x,y,id){
         : `${has(o,'text')?`<button data-c="read:${id}">${ic('eye',14)} Read</button>
              <button data-c="write:${id}">${ic('edit',14)} Write…</button>`:''}`}`}
     ${(!many&&(has(o,'check')||has(o,'streak')))?`<button data-c="done:${id}">${ic('check',14)} ${has(o,'streak')?'Mark today':'Complete'}</button>`:''}
+    ${/* Pinning is a drag onto the shelf; taking it off again has to be
+         somewhere, and the menu is where every other "about this one" lives. */''}
+    ${many?'' : placeOf(id)==='pin'
+      ? `<button data-c="unpin:${id}">${ic('star',14)} Take off the shelf</button>`
+      : `<button data-c="topin:${id}">${ic('star',14)} Keep on the shelf</button>`}
     <button data-c="intodrawer:${id}">${ic('folder',14)} ${many?`Put these ${sel.length} in a new drawer`:'Put this in a new drawer'}</button>
     <button data-c="move:${id}">${ic('folder',14)} Move to drawer…</button>
     ${many?'':`<button data-c="today:${id}">${ic('calendar',14)} Schedule today</button>

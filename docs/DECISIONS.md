@@ -1422,3 +1422,105 @@ handset. Migration 17 rescales every stored phone box from eight columns to ten
 by five quarters, and rounding can push two neighbours into each other, so it
 re-places anything that collides — the same repair migration 10 already had to
 make.
+
+---
+
+### 45. An inbox collects; it does not hold
+
+For exactly one version, `create()` routed anything made without a stated place
+*into* a nominated inbox drawer. It was the wrong shape, and obviously so once
+it was running: a thing you made on the desk vanished off the desk. A drawer
+that takes what you make is a drawer that files your desk for you, and the desk
+is the one thing in Bureau that is yours to arrange.
+
+So the inbox is a **magic drawer**, and its rule is the only one an inbox
+actually has: *loose on a desk* — parented to a desk rather than filed inside
+anything. `filter.loose`, checked in `inContainer()` alongside the rest. A new
+object appears in the inbox the moment you make it and stays exactly where you
+made it; filing it into any drawer takes it out of the inbox, because it is no
+longer loose. Nothing moves. Nothing is taken.
+
+That is also what makes the inbox agree with decision 17: a drawer holds, a
+magic drawer collects, and nothing does both. The inbox was briefly trying to be
+both — a container you filed into *and* the default destination — which is the
+combination decision 1 was overturned for.
+
+`S.inbox` is gone with it. There is nothing to nominate: any drawer can carry
+the rule, and a drawer that carries it is an inbox.
+
+*Against:* on a desk where most things are loose — the sample desk, where the
+whole type museum sits directly on the board — the inbox collects nearly
+everything. That is a true statement about that desk rather than a bug, but it
+does make the shipped sample's Inbox a long list. Narrowing it with a kind or a
+tag is one row in the drawer's own settings.
+
+---
+
+### 46. The shelf is the last row of the grid
+
+The shelf was a strip of chrome bolted under the board: its own background, its
+own padding, its own idea of how big a thing on it should be. Which meant the
+shelf was a different *kind of thing* from everything it held, and pinning was
+consequently a menu — you opened a drawer's settings and told it where to live.
+
+It is a row of the grid now. Same nine columns, same square cell, same board
+texture underneath, divided from the board by one hairline: nine by however many
+rows fit, plus one. **9 × 13 +1**, in the shape it was asked for. It does not
+turn with the pages and it does not change when you walk to another desk — the
+board moves, the shelf stays, which is the whole point of a shelf.
+
+And because it is a row of the grid, it is somewhere you can *carry* something.
+Pinning is a drag now: pick a thing up and put it on the shelf. The object does
+not move — `parent` and both boxes are untouched — because pinning is about
+reach, not about where a thing lives. Taking it off again is the long press,
+which is where every other question about one thing already lives.
+
+It is a sibling element rather than a literal fourteenth row of `#drawergrid`,
+and that is deliberate: the board's coordinate space stays exactly what it was,
+so `boxOk()`, `freeSpot()`, `pageOfBox()` and the pager go on knowing nothing
+about the shelf. Nine columns and one row of the same measured cell is all it
+takes to look like part of the grid, and nothing has to be special-cased to keep
+a tile out of it.
+
+*Against:* nine slots is the whole shelf, and the tenth pin is refused with a
+toast rather than scrolling — a scrolling shelf would stop being a row. A pinned
+thing is also small: one cell, about 43px, with an eight-point label under the
+mark. That is a dock, not a list, and if you pin nine things you will be reading
+them by colour.
+
+---
+
+### 47. Hold to make, hold to take — the locked board's two long presses
+
+A locked board had one finger free and spent it entirely on navigation: a drag
+walked the boards, a tap opened a tile, and that was the whole vocabulary. So a
+locked board could not make anything on a particular cell, and could not move
+anything at all without first finding the padlock.
+
+Both are long presses now, and which one you get depends on what is under your
+finger.
+
+**Bare board.** Move first and the finger walks the boards, exactly as before.
+*Hold* first and the cell lights up: drag to size the box, let go and the type
+picker opens on it. That is the missing half of decision 43 — pulling the shelf
+makes a thing with nowhere in mind, and holding a cell makes one *there*, which
+is what a grid is for and which a phone previously had no way of saying.
+
+**A tile.** The hold opens the context menu, as it always did — but the gesture
+is no longer cancelled when it appears. Keep holding and move, and the menu goes
+away and the tile is in your hand: the iPhone home screen's gesture, which is
+where every phone user has already learnt it. And because you have just
+demonstrated that you want to rearrange the board, the board **unlocks**. Making
+you find the padlock after that would be asking a question you have already
+answered.
+
+The unlock writes state and patches the two elements that display it — the grid's
+`locked` class and the bar's padlock — without rendering, because the tile is
+under your finger and `render()` would replace it. The drop at the end renders,
+and everything agrees then. That is the same rule that lets you type into a tile
+without the caret being destroyed.
+
+*Against:* the tile long press now has three outcomes depending on what happens
+next (menu, drag, or nothing), which is more than any other gesture in the app
+carries. It is only defensible because it is the gesture iOS itself uses, and it
+would not be worth inventing.

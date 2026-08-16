@@ -9,15 +9,15 @@ import { closePanel } from './panels.js';
 /* ============================================================
    19b · persistence — everything stays on this device
    ============================================================ */
-/* The version **is the commit count**, as `0.NN`: the fifty-second commit is
-   0.52 and the hundredth will be 1.00, which is the first honest claim to a
+/* The version **is the commit count**, as `0.NN`: the fifty-third commit is
+   0.53 and the hundredth will be 1.00, which is the first honest claim to a
    1.0 this app will have made. It used to be a number chosen by hand, which
    meant it said nothing you could check.
    Bumped with the cache in web/sw.js — the two travel together, because "which
    Bureau is this phone running" is exactly the question you ask when a change
    appears not to have deployed. Shown in Settings, so it can be read off the
    device rather than guessed at. */
-const APP_VERSION = '0.52';
+const APP_VERSION = '0.53';
 const KEY = 'bureau.v1';
 const install = {deferred:null};   // the browser's install prompt, when one is on offer
 let saveTimer = null;
@@ -35,7 +35,7 @@ function snapshot(){
   const live = id => id===ROOT || S.objects.some(o=>o.id===id);
   const desks=(S.desks||[ROOT]).filter(live);
   const pins=(S.pins||[]).filter(live);
-  return {v:DATA_V, savedAt:new Date().toISOString(), desks, pins, inbox:S.inbox,
+  return {v:DATA_V, savedAt:new Date().toISOString(), desks, pins,
           look:S.look, kinds:S.kinds, deskCfg:S.deskCfg, objects};
 }
 function writeNow(){
@@ -139,12 +139,46 @@ function dedupeIds(objects){
   });
   return fixed;
 }
+/* The phone grid has changed width three times — 16 to 8, then 8 to 10, then
+   10 to 9 — and every time, each stored phone box is in the wrong coordinate
+   space by the ratio. Scaling x and w by it keeps each tile the same fraction of the
+   screen it occupied, which is the thing that was actually arranged.
+
+   Rounding can push two neighbours into each other, and `lay()` clamps rather
+   than refuses, so a collision would render one tile on top of another with no
+   way to tell them apart. Each container's children are therefore re-placed in
+   order: the first to claim a spot keeps it, and anything landing on top drops
+   into the nearest free box instead. The column counts are passed in and
+   written out at the call site — a migration must not drift with GRID. */
+function rescalePhone(d, from, cols){
+  const up = n => Math.max(1, Math.round(n*cols/from));
+  const placed = {};
+  const overlap = (a,b)=> a.x < b.x+b.w && b.x < a.x+a.w && a.y < b.y+b.h && b.y < a.y+a.h;
+  (d.objects||[]).forEach(o=>{
+    const b=o.phone; if(!b || !b.w) return;
+    const w=Math.min(cols, up(b.w));
+    let box={x:Math.min(up(b.x), cols-w+1), y:Math.max(1,b.y), w, h:Math.max(1,b.h)};
+    const home = placed[o.parent||ROOT] = placed[o.parent||ROOT] || [];
+    if(home.some(t=>overlap(box,t))){
+      outer: for(let y=1;y<400;y++) for(let x=1;x<=cols-w+1;x++){
+        const spot={x, y, w, h:box.h};
+        if(!home.some(t=>overlap(spot,t))){ box=spot; break outer; }
+      }
+    }
+    home.push(box); o.phone=box;
+  });
+  Object.values(d.kinds||{}).forEach(k=>{
+    if(Array.isArray(k.phoneSize) && k.phoneSize[0])
+      k.phoneSize=[Math.min(cols, up(k.phoneSize[0])), Math.max(1, k.phoneSize[1])];
+  });
+}
+
 /* Migrations, ordered and versioned. The snapshot's `v` records the last step
    already applied, so each step runs exactly once per desk — a current desk
    skips all of them, an old backup replays only what it is missing. These
    used to be ad-hoc per-load mutations inside adopt(); a new repair that
    should run once belongs here, as the next numbered step. */
-const DATA_V = 17;
+const DATA_V = 19;
 const MIGRATIONS = [
   // Drawers and objects were two arrays and a drawer could not live inside
   // anything. foldDrawers also replays the old dense flow to give v1 drawers
@@ -319,8 +353,6 @@ const MIGRATIONS = [
       objs.forEach(o=>{ if(Array.isArray(o.shelf)) { take(o.shelf); delete o.shelf; } });
       if(d.deskCfg) delete d.deskCfg.shelf;
       d.pins = pins;
-      // an inbox, if this desk still has the one the sample started with
-      if(!d.inbox && objs.some(o=>o.id==='d_in')) d.inbox='d_in';
       (d.desks||[]).forEach(id=>{
         const o=objs.find(x=>x.id===id);
         if(!o || o.parent==null) return;
@@ -335,29 +367,40 @@ const MIGRATIONS = [
      depended on how many of them fitted. Anything that ends up straddling a
      page break is re-placed by gridOfContainer() on the first render, which is
      the same repair it already does for a box that predates paging. */
-  {v:17, up(d){
-      const cols=10, from=8;                 // written out: a migration must
-      const up=n=>Math.max(1, Math.round(n*cols/from));   // not drift with GRID
-      const placed={};
-      const overlap=(a,b)=> a.x < b.x+b.w && b.x < a.x+a.w && a.y < b.y+b.h && b.y < a.y+a.h;
-      (d.objects||[]).forEach(o=>{
-        const b=o.phone; if(!b || !b.w) return;
-        const w=Math.min(cols, up(b.w));
-        let box={x:Math.min(up(b.x), cols-w+1), y:Math.max(1,b.y), w, h:Math.max(1,b.h)};
-        const home = placed[o.parent||ROOT] = placed[o.parent||ROOT] || [];
-        if(home.some(t=>overlap(box,t))){
-          outer: for(let y=1;y<400;y++) for(let x=1;x<=cols-w+1;x++){
-            const spot={x, y, w, h:box.h};
-            if(!home.some(t=>overlap(spot,t))){ box=spot; break outer; }
-          }
-        }
-        home.push(box); o.phone=box;
+  {v:17, up(d){ rescalePhone(d, 8, 10); }},
+  /* An inbox collects; it does not hold.
+     For one version `create()` routed anything made without a stated place
+     *into* the nominated inbox, which meant a drawer quietly took what you
+     made and filed your desk for you. It is a magic drawer now, with the one
+     rule an inbox actually has — loose on a desk, not put away in anything —
+     so a new object shows up in it while staying exactly where you made it.
+
+     Whatever the old inbox was holding moves up to where the inbox itself
+     lives, and the new rule collects it straight back: it was loose before it
+     was filed there, and it is loose again. Boxes are cleared because {x,y,w,h}
+     in the drawer's space means somewhere else in its parent's, usually on top
+     of something — the same repair migration 11 made for calendars.
+     See decision 45. */
+  {v:18, up(d){
+      const objs=d.objects||[];
+      const id = d.inbox || 'd_in';
+      const inbox = objs.find(o=>o.id===id);
+      delete d.inbox;
+      if(!inbox) return;
+      objs.forEach(o=>{
+        if(o.parent!==inbox.id) return;
+        o.parent = inbox.parent||ROOT; o.desk=null; o.phone=null;
       });
-      Object.values(d.kinds||{}).forEach(k=>{
-        if(Array.isArray(k.phoneSize) && k.phoneSize[0])
-          k.phoneSize=[Math.min(cols, up(k.phoneSize[0])), Math.max(1, k.phoneSize[1])];
-      });
+      if(inbox.kind==='drawer') inbox.kind='magic';
+      // an object that overrode its type's attributes has to gain the trait too
+      if(Array.isArray(inbox.attrs) && !inbox.attrs.includes('magic'))
+        inbox.attrs=inbox.attrs.concat('magic');
+      inbox.filter = Object.assign({}, inbox.filter, {loose:true, scope:'all'});
     }},
+  /* Ten columns to nine, so the cell is bigger. Same rescale as the step
+     before, in the other direction: x and w by 9/10, and anything that rounds
+     onto a neighbour is re-placed rather than left to render on top of it. */
+  {v:19, up(d){ rescalePhone(d, 10, 9); }},
 ];
 function migrate(d){
   let v = d.v||0;
@@ -377,7 +420,6 @@ function adopt(d){
   if(!S.desks.includes(ROOT)) S.desks.unshift(ROOT);   // home is always in the row
   // the shelf holds drawers only: home is walked to, not pinned
   S.pins = (Array.isArray(d.pins) ? d.pins : []).filter(id=>id!==ROOT);
-  S.inbox = d.inbox || null;
   S.undo = [];   // the moves on it referred to objects this desk has never had
   refreshKinds();
   return true;

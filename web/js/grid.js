@@ -13,22 +13,25 @@ import { dev, childrenOf, container, K, kindHas } from './model.js';
    the row height is measured after layout by sizeGrid() and cached here —
    nothing may assume a fixed row height. Twice the columns of the first
    version, which is what makes the smallest object half the size it was. */
-/* The phone is **ten columns**, up from eight, and a cell is **square**.
-   Both numbers were tried the other way round for a version: ten columns by a
-   stated fourteen rows, which made a page the same shape on every handset at
-   the cost of a cell a third taller than it was wide. It was the wrong trade.
-   A square cell is what makes a size mean something — a 2×2 drawer front is a
-   square, a 4×1 task is a sliver four times as long as it is deep — and a grid
-   whose cells are not square quietly rescales every one of those judgements.
+/* The phone is **nine columns**, and a cell is **square**. The column count is
+   the only thing that sets the size of a cell — the width is the width — so it
+   is the one number to turn:
 
-   So the row height follows the column width, as it always did on the desk,
-   and however many rows fit between the bar and the shelf is however many rows
-   there are. Both bars were slimmed to buy more of them back: the top one
-   carries no pins any more, so it is a thin strip with the title and three
-   buttons, and the shelf is one slot deep. */
+     columns   cell on a 390pt phone   rows that fit
+        8            48.8                  ~15
+        9            43.3                  ~17
+       10            39.0                  ~19
+
+   Nine is the bigger space, one step back from ten. The row count is *not*
+   stated: it is whatever fits, because stating it too would mean giving up the
+   square cell, and a square cell is what makes a size mean something — a 2×2
+   drawer front is a square, a 4×1 task is a sliver four times as long as it is
+   deep. Ten by a stated fourteen rows was tried for exactly one version and
+   made a cell a third taller than it was wide, which quietly rescaled every one
+   of those judgements. See decision 44. */
 const GRID = {
   desk:  {cols:24, gap:0},
-  phone: {cols:10, gap:0}
+  phone: {cols:9, gap:0}
 };
 /* A tile taller than a screenful cannot be seen at all, so nothing derived is
    allowed to ask for one. Not the page height — that is measured — just a cap
