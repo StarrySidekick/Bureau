@@ -143,7 +143,15 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
   flex:0 0 auto;display:flex;align-items:center;gap:10px;
   padding:10px 14px 8px;
 }
-.is-phone .gridbar{padding:8px 10px 6px}
+/* A thin strip on a phone: the title, and three buttons. It used to carry this
+   desk's pins as well, and before that a second shelf under it — both are gone,
+   so what is left is as short as it can be and every pixel of it is a row of
+   board. See decision 44: the cell is square, so the only free number is how
+   many rows fit, and this is where they come from. */
+.is-phone .gridbar{padding:4px 10px 3px;gap:6px}
+.is-phone .gridbar .sqbtn{width:27px;height:27px}
+.is-phone .gridbar .here{font-size:15.5px}
+.is-phone .bartools{gap:4px}
 .gridbar .where{display:flex;align-items:center;gap:7px;min-width:0;flex:1}
 .gridbar .here{font-family:var(--serif);font-size:17px;font-weight:600;letter-spacing:.005em;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}

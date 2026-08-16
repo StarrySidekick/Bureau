@@ -13,28 +13,33 @@ import { dev, childrenOf, container, K, kindHas } from './model.js';
    the row height is measured after layout by sizeGrid() and cached here —
    nothing may assume a fixed row height. Twice the columns of the first
    version, which is what makes the smallest object half the size it was. */
-/* The phone is **ten columns by fourteen rows**, and that is the whole screen:
-   one page of a board is exactly that grid and never anything else. It was
-   eight columns of measured square cells, with however many rows happened to
-   fit — which made the page a different shape on every handset and meant a
-   layout arranged on one phone was not the layout on another.
+/* The phone is **ten columns**, up from eight, and a cell is **square**.
+   Both numbers were tried the other way round for a version: ten columns by a
+   stated fourteen rows, which made a page the same shape on every handset at
+   the cost of a cell a third taller than it was wide. It was the wrong trade.
+   A square cell is what makes a size mean something — a 2×2 drawer front is a
+   square, a 4×1 task is a sliver four times as long as it is deep — and a grid
+   whose cells are not square quietly rescales every one of those judgements.
 
-   Stating both numbers costs the square cell: at 390pt a column is ~39px and a
-   row is ~44. Near enough that nothing looks stretched, and a *stated* page is
-   worth more than a square one — you can arrange to 10×14 knowing that is what
-   there is. The desk keeps its 24 fluid columns and scrolls, so its rows stay
-   square (PAGEROWS.desk is 0, which is what "no paging" means). */
+   So the row height follows the column width, as it always did on the desk,
+   and however many rows fit between the bar and the shelf is however many rows
+   there are. Both bars were slimmed to buy more of them back: the top one
+   carries no pins any more, so it is a thin strip with the title and three
+   buttons, and the shelf is one slot deep. */
 const GRID = {
   desk:  {cols:24, gap:0},
   phone: {cols:10, gap:0}
 };
-const PHONE_ROWS = 14;              // a phone page, stated rather than measured
-const CELL = {desk:40, phone:44};   // the *row height*, last measured
-/* …and the column width, which is no longer the same number. Cached for the
-   one caller that has to guess before the grid exists: the checker squares are
-   written into the grid's style attribute as it is built, so the board is
-   drawn at the right scale on its very first frame instead of flashing the
-   CSS fallback and snapping back. */
+/* A tile taller than a screenful cannot be seen at all, so nothing derived is
+   allowed to ask for one. Not the page height — that is measured — just a cap
+   on what the size mapping and a type's stated phone size may claim. */
+const PHONE_MAX_H = 14;
+const CELL = {desk:40, phone:39};   // the cell, square, last measured
+/* The column width, which on both devices is now the same number as the cell.
+   Kept separate because it is *measured* separately — the one caller that has
+   to guess before the grid exists writes the checker squares into the grid's
+   style attribute as it is built, so a board is drawn at the right scale on
+   its first frame instead of flashing the CSS fallback and snapping back. */
 const COLW = {desk:40, phone:39};
 const gridOf = (device)=>{
   const d=device||dev();
@@ -52,11 +57,12 @@ const gridOf = (device)=>{
    moves between pages, drag and drop keep working on plain arithmetic, and
    turning paging off would put the board back exactly as it is.
 
-   Stated, not measured: fourteen rows is a phone page wherever the phone is
-   from, and sizeGrid() divides the room between the shelves by it to get the
-   row height rather than the other way round. 0 means no paging at all, which
-   is what a Mac says: a desk has room and a mouse has a wheel. */
-const PAGEROWS = {desk:0, phone:PHONE_ROWS};
+   Measured, like the cell: it is however many whole square cells fit between
+   the bar and the shelf on this particular phone. A *floor*, so the last row
+   ends flush above the shelf rather than hanging half a cell past it. 0 means
+   no paging at all, which is what a Mac says: a desk has room and a mouse has
+   a wheel. */
+const PAGEROWS = {desk:0, phone:0};
 const pageRows = device => PAGEROWS[device||dev()] || 0;
 const pageOfBox = (b, device)=>{ const n=pageRows(device); return n ? Math.floor((b.y-1)/n) : 0; };
 const lastPage = (device,parentId)=>{ const n=pageRows(device);
@@ -111,9 +117,9 @@ const gridRows = (device,parentId)=> childrenOf(container(parentId||ROOT))
    6×6 drawer three quarters of one.
 
    An **object** takes the whole width, because a phone is a column and the
-   things in a column are rows. Its height comes across 1:1 — a phone row
-   (~44px) and a desk cell (~58px) are within a third of each other — and is
-   capped at a page, because nothing taller than a page can be seen at all.
+   things in a column are rows. Its height comes across 1:1 — a phone cell
+   (~39px) and a desk cell (~58px) are within a third of each other — and is
+   capped, because nothing taller than a screenful can be seen at all.
 
    A **container** is halved instead of filled, which keeps the fraction of the
    screen it had before: two drawers across is what the phone desk looks like,
@@ -121,7 +127,7 @@ const gridRows = (device,parentId)=> childrenOf(container(parentId||ROOT))
 function toPhoneSize(w, h, isCont){
   const half = n => Math.max(1, Math.round(n/2));
   if(isCont) return [Math.min(GRID.phone.cols, half(w)), half(h)];
-  return [GRID.phone.cols, Math.min(PHONE_ROWS, Math.max(1, h))];
+  return [GRID.phone.cols, Math.min(PHONE_MAX_H, Math.max(1, h))];
 }
 /* A kind may also state its phone size outright, in which case the mapping
    above is only the default it started from. The type builder writes one the
@@ -131,7 +137,7 @@ function sizeOfKind(k, device){
   const [w,h] = K(k).size || [4,4];
   if((device||dev())!=='phone') return [w,h];
   const p = K(k).phoneSize;
-  if(p && p[0]) return [clamp(p[0],1,GRID.phone.cols), clamp(p[1],1,PHONE_ROWS)];
+  if(p && p[0]) return [clamp(p[0],1,GRID.phone.cols), clamp(p[1],1,PHONE_MAX_H)];
   return toPhoneSize(w, h, kindHas(k,'container'));
 }
 function ensureBox(o, device, parentId){
@@ -149,5 +155,5 @@ function cellW(grid,g){
   return (r.width - g.gap*(g.cols-1))/g.cols;
 }
 
-export { GRID, PHONE_ROWS, CELL, COLW, PAGEROWS, pageRows, pageOfBox, lastPage,
+export { GRID, PHONE_MAX_H, CELL, COLW, PAGEROWS, pageRows, pageOfBox, lastPage,
   gridOf, lay, overlaps, boxOk, freeSpot, gridRows, sizeOfKind, toPhoneSize, ensureBox, cellW };

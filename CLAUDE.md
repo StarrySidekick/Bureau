@@ -306,17 +306,18 @@ button again. A locked board refuses moves and resizes and **never** refuses the
 long press — see `G.stuck` in `gestures.js`. How a board is laid out is not a
 tool: it is the "Opens as" row in the board's own settings.
 
-**A phone page is a stated 10 × 14, and it does not scroll.** `GRID.phone.cols`
-is 10 and `PHONE_ROWS` is 14; `sizeGrid()` divides the room between the bar and
-the shelf by fourteen to get the row height, rather than measuring a square cell
-and counting how many fit. So the cell is **not square** on a phone — about 39
-across and 52 down — and anything doing geometry needs both `COLW[dev()]` and
-`CELL[dev()]`. A stated page is worth more than a square cell: an arrangement is
-the same arrangement on any handset. A page is *not stored*: `y` is one
-continuous coordinate space per container and a page is a window of *n* rows
-onto it, so drag, drop and `freeSpot()` know nothing about pages. The one rule
-is that nothing may straddle a break, enforced in `boxOk()`. Two fingers up and
-down turn pages; two fingers left and right walk the desks. See decision 44. See decision 37.
+**A phone board is ten columns of square cells, and it does not scroll.** The
+cell is the measured column width — ~39px — on both devices; the free number is
+how many rows fit between the bar and the shelf (`PAGEROWS`, a `floor`, about
+nineteen on a 390 × 844 screen). Ten by a *stated* fourteen rows was tried and
+reverted: it made a page the same shape on every handset at the cost of a cell a
+third taller than it was wide, and a square cell is what makes every stated size
+in `KINDS` mean what it says. Both bars are as thin as they go, because every
+pixel of either is a row of board. A page is *not stored*: `y` is one continuous
+coordinate space per container and a page is a window of *n* rows onto it, so
+drag, drop and `freeSpot()` know nothing about pages. The one rule is that
+nothing may straddle a break, enforced in `boxOk()`. Two fingers up and down
+turn pages; two fingers left and right walk the desks. See decision 44. See decision 37.
 
 **Tapping bare board does nothing on a phone.** The way in is **pulling** the
 shelf open: a drawer front rises out of it and follows your finger, and it opens
@@ -520,16 +521,14 @@ when you're editing the *other* device's layout from this one.
   array order positions nothing. There is no `grid-auto-flow` — an empty cell
   stays empty. Every move and resize goes through `boxOk()`, which refuses
   anything that would overlap or leave the columns; see `web/js/grid.js`.
-- **The row height is measured, never assumed — and on a phone it is not the
-  column width.** `sizeGrid()` reads the real column width after layout into
-  `COLW` and works the row height out into `CELL`: the same number on a desk,
-  where the cell is square and the board scrolls, and one fourteenth of the
-  board on a phone, where the page is stated. Don't hardcode either — `GRID`
-  deliberately has no row height. The one place that has to *guess* before the
-  grid exists is `gridOfContainer()`, which writes `--checkerx`/`--checkery`
-  into the grid's own style from the last measurement, so a new board is drawn
-  at the right scale on its first frame instead of flashing the CSS fallback
-  and snapping back.
+- **Cells are square and the row height is measured, never assumed.** Columns
+  are fluid, so `sizeGrid()` reads the real column width after layout and caches
+  it in `COLW`, then makes `CELL` match. Don't hardcode a row height — `GRID`
+  deliberately has none. The one place that has to *guess* before the grid
+  exists is `gridOfContainer()`, which writes `--checkerx`/`--checkery` into the
+  grid's own style from the last measurement, so a new board is drawn at the
+  right scale on its first frame instead of flashing the CSS fallback and
+  snapping back to size.
 - **There is no arrange mode.** Everything is always movable; a drawer can be
   `locked` to opt out. A 200ms hold arms the drag (`G.armed`), which is the only
   thing keeping a click from picking a tile up. Corners resize, and that's all —

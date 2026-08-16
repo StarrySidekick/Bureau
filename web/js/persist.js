@@ -9,15 +9,15 @@ import { closePanel } from './panels.js';
 /* ============================================================
    19b · persistence — everything stays on this device
    ============================================================ */
-/* The version **is the commit count**, as `0.NN`: the fifty-first commit is
-   0.51 and the hundredth will be 1.00, which is the first honest claim to a
+/* The version **is the commit count**, as `0.NN`: the fifty-second commit is
+   0.52 and the hundredth will be 1.00, which is the first honest claim to a
    1.0 this app will have made. It used to be a number chosen by hand, which
    meant it said nothing you could check.
    Bumped with the cache in web/sw.js — the two travel together, because "which
    Bureau is this phone running" is exactly the question you ask when a change
    appears not to have deployed. Shown in Settings, so it can be read off the
    device rather than guessed at. */
-const APP_VERSION = '0.51';
+const APP_VERSION = '0.52';
 const KEY = 'bureau.v1';
 const install = {deferred:null};   // the browser's install prompt, when one is on offer
 let saveTimer = null;
@@ -327,10 +327,10 @@ const MIGRATIONS = [
         o.wasIn=o.parent; o.parent=null; o.desk=null; o.phone=null;
       });
     }},
-  /* A phone page is a stated 10 × 14. It was 8 columns of measured square
-     cells, so every stored phone box is in the wrong coordinate space by a
-     quarter — scale x and w by 10/8 and keep each tile the same fraction of the
-     screen it occupied, which is the thing that was actually arranged.
+  /* The phone grid went from 8 columns to 10, so every stored phone box is in
+     the wrong coordinate space by a quarter — scale x and w by 10/8 and keep
+     each tile the same fraction of the screen it occupied, which is the thing
+     that was actually arranged.
      Rows are left alone: y was already a continuous coordinate and nothing
      depended on how many of them fitted. Anything that ends up straddling a
      page break is re-placed by gridOfContainer() on the first render, which is

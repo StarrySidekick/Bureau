@@ -5,7 +5,7 @@ Sequenced by dependency, not appetite: item 1 makes everything after it safer.
 
 ---
 
-## 0e. Queued 2026-08-16 (fifth pass) — a bugfix and tweak pass — DONE (v0.51)
+## 0e. Queued 2026-08-16 (fifth pass) — a bugfix and tweak pass — DONE (v0.52)
 
 Nineteen small things, most of them corrections to the fourth pass. See
 decisions 40–44, and `APP_VERSION`, which is the commit count from here on.
@@ -17,7 +17,10 @@ decisions 40–44, and `APP_VERSION`, which is the commit count from here on.
   the ends than a curved screen was giving the leftmost one
 - **the name at the top left opens every desk at once**, drawn small — which is
   the "no way to see all the desks" note left open by the fourth pass
-- **the phone page is a stated 10 × 14**, so an arrangement is portable
+- **the phone grid is ten columns**, up from eight, and the cell stays square —
+  ten by a stated fourteen rows was tried and reverted, because a cell a third
+  taller than it is wide rescales every size in `KINDS`. Both bars were slimmed
+  to buy the rows back instead
 - **the new-object menu is pulled, not flicked** — a front follows your finger
   and only opens if you carry it a quarter of the screen, and the strip iOS
   uses for its own home swipe is left alone

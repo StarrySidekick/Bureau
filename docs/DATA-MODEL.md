@@ -52,7 +52,7 @@ absent, and `adopt()` backfills defaults when loading a backup.
                                       // absent = follow the type's; see sortOf()
   locked: true,                       // a board you arranged, not one you nudge
   desk:   { x:13, y:7, w:6, h:6 },    // place + size in the 24-column Mac grid
-  phone:  { x:5,  y:13, w:4, h:6 }    // …and in the iPhone's stated 10 × 14 page
+  phone:  { x:5,  y:13, w:4, h:6 }    // …and in the iPhone's 10-column grid
 }
 ```
 
@@ -95,8 +95,8 @@ by id:
 
 Which **page** of a board you are on is in memory too, and deliberately not
 stored — `y` is one continuous coordinate space per container, and a page is a
-window of *n* rows onto it, where *n* is a stated fourteen on a phone and zero
-(no paging) on a desk. Nothing about a box changes when it moves between pages.
+window of *n* rows onto it, where *n* is however many square cells fit between
+the bar and the shelf on a phone, and zero (no paging) on a desk. Nothing about a box changes when it moves between pages.
 
 `S.desks` is the **master space**: an ordered list of container ids with `root`
 among them, resolved on read, which a sideways swipe walks and which the name at

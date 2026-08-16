@@ -253,13 +253,12 @@ answer is a drawer.
 Each container is its own coordinate space, and every device has its own.
 
 - **24 columns** on a Mac, with unlimited rows and a board that scrolls.
-  **10 × 14** on a phone, and that is a whole page: stated rather than measured,
-  so an arrangement is the same arrangement on any handset.
-- On a Mac a cell is **square** (~58px): columns are fluid, so `sizeGrid()`
-  measures the column width after layout and makes the row height match. On a
-  phone it is **not** — the row height is the board divided by fourteen, about
-  39 across and 52 down. `COLW[dev()]` is the column width and `CELL[dev()]` is
-  the row height; nothing may assume they are the same number.
+  **10 columns** on a phone, where the board is pages rather than a scroller.
+- Cells are **square** on both, ~58px on a Mac and ~39px on a phone. Columns are
+  fluid, so `sizeGrid()` measures the column width after layout, caches it in
+  `COLW`, and makes the row height (`CELL`) match. Nothing may assume either.
+  How many rows a phone page holds is the measured leftover — about nineteen —
+  and both bars are kept thin because every pixel of them is a row.
 - `x`/`y` are 1-based cells. Array order positions nothing. There is no
   auto-flow: an empty cell stays empty.
 - Two objects may never overlap. A move or resize that would collide is

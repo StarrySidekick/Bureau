@@ -193,23 +193,22 @@ const CHROME = process.env.BUREAU_CHROME;
   await phone.goto(URL);
   await phone.waitForTimeout(700);
   await phone.screenshot({ path: 'test/shots/07-phone.png' });
-  /* Ten columns by fourteen rows, and both are *stated*: a page of a phone
-     board is that grid on every handset, which is what makes an arrangement
-     portable. The cell stops being square — see decision 44 — but stays a real
-     tap target in both directions. */
+  /* Ten columns, and the cell is **square**. It was briefly ten by a stated
+     fourteen rows, which made a page the same shape on every handset at the
+     cost of a cell a third taller than it was wide — the wrong trade, because a
+     square cell is what makes a stated size mean anything. So the row height
+     follows the column width and the row *count* is the measured number. See
+     decision 44. */
   const phoneGrid = await phone.evaluate(() => {
     const g = document.querySelector('#drawergrid');
     const cols = +getComputedStyle(g).getPropertyValue('--cols');
     const colw = g.getBoundingClientRect().width / cols;
     const rowh = parseFloat(getComputedStyle(g).getPropertyValue('--rowh'));
-    return { cols: cols === 10, rows: BUREAU.pageRows === 14,
-             cellIsThumbSized: colw > 30 && colw < 62 && rowh > 30 && rowh < 62,
-             /* Not square any more. A stated page and a square cell cannot
-                both be true on a screen that is not 10:14, and the page is
-                worth more — so a cell is a third taller than it is wide, which
-                is a proportion and not a stretch. */
-             cellShape: Math.round((colw / rowh) * 100) / 100,
-             notWildlyOff: colw / rowh > 0.6 && colw / rowh < 1.4 };
+    return { cols: cols === 10,
+             cellIsThumbSized: colw > 30 && colw < 62,
+             square: Math.abs(colw - rowh) < 1,
+             // and the bars are thin enough to leave a real page of them
+             rowsFit: BUREAU.pageRows >= 12 };
   });
   // the sidebar and the four fixed tabs were both removed on purpose —
   // assert they are genuinely gone and the pin bar took the tabs' place
@@ -1375,7 +1374,7 @@ const CHROME = process.env.BUREAU_CHROME;
     const g = () => document.querySelector('#drawergrid');
     const sc = () => document.querySelector('#app .scroll');
     const shelf = document.querySelector('.shelf-bottom');
-    out.rowsAreStated = BUREAU.pageRows === 14;
+    out.rowsMeasured = BUREAU.pageRows >= 12;
     out.exactlyOnePage = /repeat\((\d+),/.exec(g().style.gridTemplateRows)[1] === String(BUREAU.pageRows);
     out.neverScrolls = sc().scrollHeight <= sc().clientHeight + 1
       && getComputedStyle(sc()).overflowY === 'hidden';

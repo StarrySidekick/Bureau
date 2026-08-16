@@ -1049,7 +1049,10 @@ html[data-style="aero"] .drawer.dtile.bd-bar{
    thumb. */
 .is-phone .shelf-bottom{
   flex:0 0 auto;z-index:36;gap:10px;justify-content:flex-start;
-  padding:9px calc(18px + env(safe-area-inset-left)) calc(9px + env(safe-area-inset-bottom))
+  /* One slot deep and no deeper. Every pixel here is a pixel of board, and the
+     cell is square (decision 44), so a shelf that is one slot plus a little air
+     is what buys the extra row back. */
+  padding:6px calc(18px + env(safe-area-inset-left)) calc(6px + env(safe-area-inset-bottom))
           calc(18px + env(safe-area-inset-right));
   border-top:1px solid var(--rule);
   /* the board of the shelf: grain from the page it sits on, lighter at the
@@ -1093,12 +1096,12 @@ html[data-style="aero"] .drawer.dtile.bd-bar{
    is wider than it is tall and there are only ever a handful, so there is room
    for a word. */
 .is-phone .pinbar .pinbtn{
-  width:62px;height:52px;grid-auto-rows:min-content;align-content:center;gap:3px}
+  width:60px;height:44px;grid-auto-rows:min-content;align-content:center;gap:2px}
 .is-phone .pinbar .pinbtn span{
   display:block;max-width:54px;font-size:9px;font-weight:600;letter-spacing:.02em;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center;
   color:rgba(248,243,230,.86)}
-.is-phone .pinbar .pinface svg{width:18px;height:18px}
+.is-phone .pinbar .pinface svg{width:16px;height:16px}
 .is-phone .pinbar .pinbtn.on{outline:2px solid var(--glow);outline-offset:2px}
 .is-phone .pinbar .pinbtn.magic{border-color:color-mix(in srgb,var(--glow) 62%,transparent)}
 .is-phone .pinbar .pinface{display:grid;place-items:center}

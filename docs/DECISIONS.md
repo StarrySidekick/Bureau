@@ -1384,31 +1384,41 @@ is the point, and will still be annoying on the day you want six things.
 
 ---
 
-### 44. A phone page is a stated 10 × 14
+### 44. Ten columns on a phone, and the cell stays square
 
-A phone board was eight fluid columns of square cells, with however many rows
-happened to fit between the shelves. The cell was square and the page was
-whatever the handset made it: fourteen rows on one phone, twelve on another, so
-an arrangement was not portable and "the bottom row" was not a place.
+A phone board was eight columns. It is ten now — the cell goes from ~48px to
+~39px, which is still a real tap target and gives a board that can hold a rack
+of five drawer fronts across instead of four.
 
-It is ten columns by fourteen rows now, stated, and the row height is the room
-between the shelves divided by fourteen. The cell stops being square — about 39
-across and 52 down on a 390pt screen — and that is the trade. A stated page is
-worth more than a square cell: you can arrange to 10 × 14 knowing that is what
-there is, on any phone, and a layout made on one is the layout on another.
+Ten by a **stated fourteen rows** was tried first, and reverted. Stating both
+numbers makes a page the same shape on every handset — an arrangement made on
+one phone is the arrangement on another, which is a genuinely good property —
+but it costs the square cell: 390pt over ten columns is 39px across, while the
+board over fourteen rows is ~52px down. A cell a third taller than it is wide
+quietly rescales every size judgement in the app. A 2×2 drawer front stops being
+a square, a 4×1 task stops being four times as long as it is deep, and `sz-mini`
+stops being a stamp and becomes a domino. Every stated size in `KINDS` was
+chosen against a square cell, and none of them were re-chosen.
 
-The desk is untouched: 24 fluid columns, square rows, and it scrolls, so there
-is no page to state.
+So: the row height is the measured column width, on both devices, and the free
+number is how many rows fit — a floor, so the last one ends flush above the
+shelf. About nineteen on a 390 × 844 screen, about seventeen once iOS takes its
+insets.
 
-*Why:* every other thing in Bureau that is arranged is arranged into a *stated*
-space. The phone page was the one measured one, and it was measured off the
-device rather than off the design.
+Both bars were slimmed to buy rows back, which is where the height came from.
+The top one carries no pins any more (decision 41), so it is a thin strip with
+the title, the lock, the sort and the gear — 34px. The shelf is one slot deep
+and no deeper — 44px of slot and six of air. Every pixel taken out of either is
+a pixel of board.
 
-*Against:* the cell is a third taller than it is wide, so a "square" tile isn't
-one and `sz-mini` is a tall stamp rather than a square one. Nothing in the
-renderer assumed square — `cellW()` and `--rowh` were always separate numbers —
-but the checkerboard needed two sizes instead of one, and any future geometry
-has to keep asking for both. Migration 17 rescales every stored phone box by
-five quarters, and rounding can push two neighbours into each other, so it
+*Why:* a square cell is the thing that makes a size a size. Portability between
+handsets is worth less than that, and it was only ever portability of the *page
+break* anyway — `y` is one continuous coordinate space, so a layout already
+survives a different row count; it just falls across pages differently.
+
+*Against:* the number of rows still depends on the phone, so "the bottom row" is
+not a place and a board can break across pages differently on a different
+handset. Migration 17 rescales every stored phone box from eight columns to ten
+by five quarters, and rounding can push two neighbours into each other, so it
 re-places anything that collides — the same repair migration 10 already had to
 make.

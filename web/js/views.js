@@ -4,7 +4,7 @@ import { S, K, T, byId, has, isContainer, containers, container, childrenOf, cha
   sortOf, SORTS, MANUAL, sortMark,
   layoutOf, takesTyping, genKindOf, CALVIEWS, calViewOf, calCols,
   spanOf, coversDay, lastDay } from './model.js';
-import { CELL, COLW, pageRows, pageOfBox, lastPage, lay, gridOf, cellW, ensureBox } from './grid.js';
+import { CELL, COLW, PAGEROWS, pageRows, pageOfBox, lastPage, lay, gridOf, cellW, ensureBox } from './grid.js';
 import { themeNow, applyLook, lookVal, STYLES, BACKDROPS, DARKMODES, darkMode, hasDark,
   palNow, setSlot, styleNow, hexOf, objColour, slotName, OBJ0 } from './look.js';
 import { gridOfContainer, listTile, scrollEntry, bookView, calSpan } from './tiles.js';
@@ -681,28 +681,34 @@ function sizeGrid(){
   const grid=$('#drawergrid'); if(!grid) return;
   const g=gridOf(), w=cellW(grid,g);
   if(!(w>0)) return;
-  /* A phone page is a **stated** 10 × 14, so the row height is the room
-     between the shelves divided by fourteen rather than a copy of the column
-     width. The cell stops being square — ~39 across and ~44 down — and that is
-     the trade: a page you can arrange to, on any handset, instead of a square
-     cell and a row count that depended on the model of phone.
+  /* The cell is **square**: the row height is the measured column width, on
+     both devices. It was briefly the board divided by a stated fourteen rows,
+     which made a page the same shape on every handset and a cell a third taller
+     than it was wide — the wrong trade, because a square cell is what makes a
+     stated size mean anything.
 
-     A desk still measures: 24 fluid columns, square rows, and it scrolls, so
-     PAGEROWS.desk stays 0 and there is nothing to divide. */
+     So the free number is the row *count*, and it is a floor: however many
+     whole cells fit between the bar and the shelf. `ceil` was what made the
+     bottom row hang half a cell past the shelf and forced the board to scroll
+     to reach it. Zero on a Mac: a desk scrolls. */
   const sc=grid.parentElement;
-  const per=pageRows();
-  /* Do NOT round either number. Columns are `1fr` and therefore fractional;
-     rounding made rows and columns disagree and the error accumulated across
-     the grid — a tile at column 16 sat ~7px from where the drag maths thought
-     it was, which is why things far to the bottom-right were hardest to pick
-     up. */
-  const cell = (per && sc && sc.clientHeight>0) ? sc.clientHeight/per : w;
-  const changed = !sizing && (Math.abs(CELL[dev()]-cell) > 0.25 || Math.abs(COLW[dev()]-w) > 0.25);
+  if(dev()==='phone' && sc){
+    const rows=Math.max(4, Math.floor(sc.clientHeight / Math.max(1,w)));
+    if(rows!==PAGEROWS.phone){ PAGEROWS.phone=rows; if(!sizing){ sizing=true; try{ render(); } finally { sizing=false; } return; } }
+  } else PAGEROWS.desk = 0;
+  /* Do NOT round. Columns are `1fr` and therefore fractional; rounding the row
+     height to a whole pixel made rows and columns different sizes, and the
+     error accumulated across the grid — a tile at column 16 sat ~7px from
+     where the drag maths thought it was, which is why things far to the
+     bottom-right were hardest to pick up. */
+  const cell = w;
+  const changed = !sizing && Math.abs(CELL[dev()]-cell) > 0.25;
   CELL[dev()]=cell; COLW[dev()]=w;
   grid.style.setProperty('--rowh', cell+'px');
   grid.style.setProperty('--cellw', (w+g.gap)+'px');
   grid.style.setProperty('--cellstep', (cell+g.gap)+'px');
-  // a checker square is two cells each way, and the two are no longer the same
+  // a checker square is two cells each way — the same number now, but written
+  // as two, because the two are measured separately and one may drift first
   grid.style.setProperty('--checkerx', 2*(w+g.gap)+'px');
   grid.style.setProperty('--checkery', 2*(cell+g.gap)+'px');
   grid.style.gridAutoRows = cell+'px';
