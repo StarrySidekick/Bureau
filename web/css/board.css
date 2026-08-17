@@ -35,7 +35,8 @@
      rendering fault rather than as furniture. A style may overrule them in its
      own `vars` if it is made of something else. */
   --wood:#3A2C1E;
-  --wood-2:#241A11;         /* the shadowed edge where the surface meets it */
+  /* derived, so a desk that names its own wood gets the shaded edge with it */
+  --wood-2:color-mix(in srgb, var(--wood) 62%, #000);
   --serif:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;
   --sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Inter,system-ui,sans-serif;
   --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
@@ -153,15 +154,37 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
   flex:0 0 auto;display:flex;align-items:center;gap:10px;
   padding:10px 14px 8px;
 }
-/* A thin strip on a phone: the title, and three buttons. It used to carry this
-   desk's pins as well, and before that a second shelf under it — both are gone,
-   so what is left is as short as it can be and every pixel of it is a row of
-   board. See decision 44: the cell is square, so the only free number is how
-   many rows fit, and this is where they come from. */
-.is-phone .gridbar{padding:4px 10px 3px;gap:6px}
-.is-phone .gridbar .sqbtn{width:27px;height:27px}
-.is-phone .gridbar .here{font-size:15.5px}
-.is-phone .bartools{gap:4px}
+/* On a phone the bar is **part of the carcass**. The wood used to start below
+   it, which drew a line across the top of the screen between two pieces of the
+   same piece of furniture — the notch strip read as a separate bar sitting on
+   top of the real one. Everything above the board is one surface now: the
+   inset, the bar, and the reveal under it, all wood, with the board set into
+   it. Nothing divides them because there is nothing to divide.
+
+   It is also a little taller than it was. It was squeezed to the pixel when the
+   shelf was eating a row of the board; the shelf is gone, the row came back,
+   and a title crammed against a board is not worth the third of a row that
+   buys. See decisions 55 and 57. */
+.is-phone .gridbar{
+  padding:6px 12px 6px;gap:7px;
+  background:var(--wood);
+  /* light on dark, the same trick a drawer front plays with --dink: the tokens
+     are overridden for the bar's own subtree and nothing outside it changes */
+  --ink:#F4EEE0;
+  --ink-2:rgba(244,238,224,.74);
+  --ink-3:rgba(244,238,224,.52);
+  --rule:rgba(244,238,224,.20);
+  --rule-2:rgba(244,238,224,.10);
+  --paper-2:rgba(255,255,255,.08);
+  --paper-3:rgba(255,255,255,.14);
+  /* the accent has to read *on* the wood, so it is the style's Glow up here —
+     brass on walnut is two browns and the lit dot disappears into the grain */
+  --brass:var(--glow);
+  color:var(--ink);
+}
+.is-phone .gridbar .sqbtn{width:29px;height:29px}
+.is-phone .gridbar .here{font-size:16.5px}
+.is-phone .bartools{gap:5px}
 .gridbar .where{display:flex;align-items:center;gap:7px;min-width:0;flex:1}
 .gridbar .here{font-family:var(--serif);font-size:17px;font-weight:600;letter-spacing:.005em;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -617,10 +640,16 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
    over the knobs — grain across a brass handle, which is a texture printed on
    the wrong layer. The z-indexes on a front, bottom to top: the texture (0),
    the knobs (1), the name (2), the mark and the seam (3). */
-.drawer.dtile[class*="tx-"]::after{content:"";position:absolute;inset:0;pointer-events:none;
+/* The selector names both things a texture can be printed on: a drawer front,
+   and the desk's own drawer along the bottom of a phone. The individual `tx-*`
+   rules below are already unscoped, so a texture invented for one is available
+   to the other without being told. */
+.drawer.dtile[class*="tx-"]::after,
+.deskrail[class*="tx-"]::after{content:"";position:absolute;inset:0;pointer-events:none;
   border-radius:inherit;opacity:.30;z-index:0}
+.drawer.dtile.tx-none::after,.deskrail.tx-none::after{content:none}
 .drawer.dtile .dfoot{z-index:1}
-.drawer.dtile.tx-none::after{content:none}
+.deskrail .railknob{position:relative;z-index:1}
 .tx-dots::after{background-image:radial-gradient(circle at 50% 50%, rgba(255,255,255,.75) 0 1.1px, transparent 1.6px);
   background-size:14px 14px}
 .tx-starry::after{background-image:

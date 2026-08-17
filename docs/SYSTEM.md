@@ -310,7 +310,7 @@ of four things layered over them.
 | --- | --- | --- |
 | **The grid** | The app. | `#app`, rebuilt whole by `render()` |
 | **The bar** | Where you are — pressing it opens every desk at once — a dot per desk with the one you are on lit, and three icon buttons: the lock, this board's editor (a brush), and the app's settings (a gear, on a desk only). Inside a drawer the gear's place is the star, which promotes it to a desk. | inside `#app` |
-| **The carcass** | The wood the app is made of: a rail above the bar, and along the bottom of a phone the desk's own drawer front. It holds nothing. Tap its knob to come out a level; pull it up for the type picker. | inside `#app` |
+| **The carcass** | The wood the app is made of. Everything above the board is one piece of it — the notch strip, the bar and the reveal under it — and along the bottom of a phone is the desk's own drawer front. It holds nothing. Tap its knob to come out a level; pull it up for the type picker. Its knob, texture and colour are rows in that desk's editor. | inside `#app` |
 | **Reading** | An object's body as paper — a spread, a page, or a column. Over a dimmed desk. | `#sheetHost`, rendered separately from `render()` |
 | **Writing** | The same body, full screen, with nothing else on it. A title and a textarea. | `#sheetHost` |
 | **The picture** | What something made of an image opens onto: the image as large as the window allows, and — when there isn't one — the empty mount, which *is* the button that chooses a file. Replace and Remove in the head. | `#sheetHost` |

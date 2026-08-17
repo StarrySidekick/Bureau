@@ -248,6 +248,13 @@ const CHROME = process.env.BUREAU_CHROME;
     /* …and the bar has room to breathe: the board is inset into the carcass,
        so there is a reveal above it as well as below. */
     out.theBarBreathes = parseFloat(getComputedStyle(sc).marginTop) >= 7;
+    /* …and the wood is **continuous**: the strip above the bar, the bar itself
+       and the reveal under it are one piece of furniture, so nothing draws a
+       line across the top of the screen between two halves of the same thing.
+       The board is the only paper up there. */
+    const bar = document.querySelector('.gridbar');
+    out.theBarIsOnTheWood = getComputedStyle(bar).backgroundColor === wood
+      && getComputedStyle(document.querySelector('#app .main')).backgroundColor === wood;
     return out;
   });
   // a tile on the board navigates, the same as it always did
@@ -1522,6 +1529,79 @@ const CHROME = process.env.BUREAU_CHROME;
     return out;
   });
 
+  /* --- the desk's drawer is furniture, so it is asked the same questions a
+     drawer front is — and from the same panel that asks about the board it is
+     set into. The keys are prefixed because for every desk but home that
+     object is itself a drawer with a knob and a texture of its own. */
+  const railIsFurniture = await phone.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const S = BUREAU.state, out = {};
+    S.view='desk'; S.drawerId=null; BUREAU.render(); await nap(200);
+    const rail = () => document.querySelector('.deskrail');
+    const knob = () => document.querySelector('.railknob');
+    // the knob *is* a drawer pull: same class, so every shape and the light on
+    // it are the ones the board already has
+    out.theKnobIsAPull = knob().classList.contains('pull');
+    const wasW = parseFloat(getComputedStyle(knob()).width);
+    const set = (k,v) => { S.deskCfg[k]=v; BUREAU.render(); };
+    set('railknob','bar'); await nap(150);
+    out.theShapeFollows = knob().classList.contains('kn-bar')
+      && parseFloat(getComputedStyle(knob()).width) > wasW;
+    set('railknob','round'); set('railknobsize','lg'); await nap(150);
+    out.theSizeFollows = parseFloat(getComputedStyle(knob()).width) > wasW;
+    set('railknobsize','sm'); set('railtexture','weave'); await nap(150);
+    out.theTextureFollows = rail().classList.contains('tx-weave')
+      && getComputedStyle(rail(), '::after').backgroundImage !== 'none';
+    // …and the texture goes *under* the knob, the same as on a front
+    out.andPrintsUnderTheKnob = (+getComputedStyle(rail(), '::after').zIndex || 0)
+      < (+getComputedStyle(knob()).zIndex || 0);
+    set('railtexture','none');
+    /* The wood is per desk and it is the **whole** carcass, not just the rail:
+       one piece of furniture, so recolouring it repaints the bar too. */
+    set('wood','#4A3524'); await nap(150);
+    const woodOf = el => { const i=document.createElement('i');
+      i.style.color='var(--wood)'; el.appendChild(i);
+      const c=getComputedStyle(i).color; i.remove(); return c; };
+    out.theWoodIsPerDesk = woodOf(rail()) === 'rgb(74, 53, 36)'
+      && getComputedStyle(document.querySelector('.gridbar')).backgroundColor === 'rgb(74, 53, 36)';
+    delete S.deskCfg.wood; delete S.deskCfg.railknob;
+    delete S.deskCfg.railknobsize; delete S.deskCfg.railtexture;
+    BUREAU.render(); await nap(150);
+    out.andTheAppsOwnWalnutComesBack = woodOf(rail()) === 'rgb(58, 44, 30)';
+    return out;
+  });
+
+  /* --- the board being slid in beside you arrives *in position*. Both the
+     reveal above the board and the depth of the drawer below it are measured
+     after layout, and they used to be written onto the elements only then — so
+     a previewed neighbour arrived at the CSS floor, sat a little high, and
+     clicked down to position the moment the swipe committed. */
+  const pagerLandsFlat = await phone.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const S = BUREAU.state, out = {};
+    S.view='desk'; S.drawerId=null; BUREAU.render(); await nap(250);
+    const grid = document.querySelector('#drawergrid');
+    const gr = grid.getBoundingClientRect();
+    const x = gr.left + gr.width - 30, y = gr.top + gr.height - 30;
+    const ev = (t,cx) => grid.dispatchEvent(new PointerEvent(t,
+      { bubbles:true, cancelable:true, pointerId:77, pointerType:'touch', clientX:cx, clientY:y }));
+    ev('pointerdown', x);
+    for (let i=1;i<=5;i++){ ev('pointermove', x - i*30); await nap(16); }
+    const px = sel => { const e=document.querySelector(sel); return e && getComputedStyle(e); };
+    const cur = px('.pane.cur .scroll'), next = px('.pane.next .scroll');
+    const curRail = px('.pane.cur .deskrail'), nextRail = px('.pane.next .deskrail');
+    out.thePagerIsUp = !!document.querySelector('.pager') && !!next;
+    out.theNextBoardStartsWhereThisOneDoes = !!next && next.marginTop === cur.marginTop;
+    out.andItsDrawerIsAsDeep = !!nextRail && nextRail.height === curRail.height;
+    ev('pointerup', x - 150); await nap(500);
+    /* A swipe arms suppressClick so its own trailing click can't also fire.
+       Nothing sends that click here, so it is consumed by hand — otherwise the
+       flag sits there and eats the next test's first tap. */
+    document.querySelector('#frame').dispatchEvent(new MouseEvent('click', {bubbles:true}));
+    S.view='desk'; S.drawerId=null; BUREAU.render(); await nap(150);
+    return out;
+  });
+
   /* --- the dots by the title are the desks, not the pages. A row you walk
      sideways is a row you can be lost in, and "third of five" is the one thing
      a strip of dots says better than anything else. */
@@ -2079,7 +2159,8 @@ const CHROME = process.env.BUREAU_CHROME;
     errors: errs, manifestOk, swReady, survived, styleSurvived, slotColours,
     newObjectSeen, inlineEdit, sortDefaults, taskLook,
     shelfTools, gridSizes, keeping, versionShown, sampler, paging,
-    makingOnAPhone, railDrawer, deskDots, listSwipe, shadows, textureDepth,
+    makingOnAPhone, railDrawer, railIsFurniture, pagerLandsFlat, deskDots,
+    listSwipe, shadows, textureDepth,
     gridClass, offlineWorks, railGone, tabsGone, shelfGone, tileNavigates,
     holdArms, maxDrift,
     settingsIsPanel, pickerPreviews, builderPreview, everyMenuIsAPanel,

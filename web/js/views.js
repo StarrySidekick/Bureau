@@ -1,6 +1,6 @@
 import { $, esc, ic, D, md, clamp, ROOT } from './util.js';
 import { S, K, T, byId, has, isContainer, containers, container, childrenOf, chainOf,
-  deskTitle, rootObj, deskIds, deskHere, deskOf, isDesk, allTags, dev,
+  deskTitle, rootObj, cfgOf, deskIds, deskHere, deskOf, isDesk, allTags, dev,
   layoutOf, takesTyping, genKindOf, CALVIEWS, calViewOf, calCols,
   spanOf, coversDay, lastDay } from './model.js';
 import { GRID, PHONE_GRIDS, CELL, COLW, PAGEROWS, pageRows, pageOfBox, lastPage,
@@ -107,6 +107,21 @@ function gridBar(c){
   </div>`;
 }
 
+/* ---- the reveal, from the last measurement ----------------------------
+   How far the board sits below the bar, and how deep the drawer under it is.
+   Both are computed by sizeGrid() *after* layout, and both used to be written
+   onto the elements only then — which is fine for the board you are looking at
+   and wrong for the one being slid in beside it. The pager builds its
+   neighbours from previewHTML(), so they arrived at the CSS floor (a 7px gap
+   and the rail's own minimum), sat a little high, and clicked down to position
+   the moment the swipe committed and render() measured them.
+
+   So the numbers are held here and written into the markup as it is built, the
+   same way gridOfContainer() writes the checker squares from the last measured
+   cell. A board drawn off-screen is drawn at the size it will be. */
+const REVEAL = {gap:7, rail:30};
+const revealStyle = ()=> S.device==='phone' ? ` style="margin-top:${REVEAL.gap}px"` : '';
+
 function viewDesk(){
   const c=rootObj(), view=c.layout||'grid';
   if(view!=='grid'){
@@ -124,7 +139,7 @@ function viewDesk(){
   // and navigation that scrolls away is navigation you can't reach
   return `
   ${gridBar(c)}
-  <div class="scroll deskscroll">
+  <div class="scroll deskscroll"${revealStyle()}>
     ${S.layoutEdit?`<div class="banner">${ic('resize',14)} You are arranging the <b style="margin:0 3px">${S.layoutEdit==='desk'?'Mac':'iPhone'}</b> layout.
       <button data-act="stopedit">Back to this device</button></div>`:''}
     ${gridOfContainer(ROOT)}
@@ -299,7 +314,7 @@ function viewDrawer(){
   const view = layoutOf(d);
   return `
   ${gridBar(d)}
-  <div class="scroll${view==='grid'?' deskscroll':''}">
+  <div class="scroll${view==='grid'?' deskscroll':''}"${view==='grid'?revealStyle():''}>
     ${kinds.length>1&&view!=='grid'?`<div class="filterbar">
       <button class="fchip${!S.kindFilter?' on':''}" data-kind="">All</button>
       ${kinds.map(k=>`<button class="fchip${S.kindFilter===k?' on':''}" data-kind="${k}" style="--k:${hexOf(K(k).c)}">${K(k).nm}</button>`).join('')}
@@ -649,9 +664,22 @@ function reveal(id){
    Its height is set by sizeGrid(), because it is also where the leftover goes:
    a board is a whole number of square cells and the few pixels the screen has
    over are the drawer being a little deeper, not a gap. */
+/* What the desk's drawer is made of, read off the desk you are standing on —
+   so it is the same question, and the same panel, as what colour that desk's
+   board is. The keys are prefixed because for every desk but home `cfgOf()` is
+   the drawer's own object, which already has a `knob` and a `texture` of its
+   own for the tile it draws on its parent's board. */
+function railCfg(){
+  const c = cfgOf(deskHere()) || {};
+  return {knob:c.railknob||'round', size:c.railknobsize||'sm',
+          tex:c.railtexture||'none', knobc:c.railknobc||''};
+}
 function deskRail(){
-  return `<nav class="deskrail" data-rail>
-    <i class="railknob" data-act="railout" title="Back — and pull up to make something"></i>
+  const r=railCfg();
+  return `<nav class="deskrail tx-${r.tex} ks-${r.size}" data-rail style="height:${REVEAL.rail}px">
+    <i class="pull railknob kn-${r.knob}" data-act="railout"
+      ${r.knobc?`style="--knob:${esc(r.knobc)}"`:''}
+      title="Back — and pull up to make something"></i>
   </nav>`;
 }
 
@@ -696,6 +724,12 @@ function render(){
   frame.className = S.device==='desk' ? 'is-desk' : 'is-phone';
   document.documentElement.dataset.theme = themeNow();
   applyLook();          // the custom colours are per theme, so repaint them
+  /* The wood is per desk, and it is the whole carcass rather than the rail: the
+     strip above the bar, the bar, the reveal and the drawer are one piece of
+     furniture, so the token goes on the frame and everything made of it
+     follows. `--wood-2` derives from it in CSS, so the shaded edge comes too. */
+  const wood = (cfgOf(deskHere())||{}).wood;
+  if(wood) frame.style.setProperty('--wood', wood); else frame.style.removeProperty('--wood');
   // settings stopped being a view in v35; an old snapshot may still name it
   if(S.view==='settings') S.view='desk';
   $('#app').innerHTML = viewHTML();
@@ -758,8 +792,10 @@ function sizeGrid(){
     const rows=Math.max(4, Math.floor(room / Math.max(1,w)));
     if(rows!==PAGEROWS.phone){ PAGEROWS.phone=rows; if(!sizing){ sizing=true; try{ render(); } finally { sizing=false; } return; } }
     const over = Math.max(0, room - rows*w);
-    sc.style.marginTop = (gapMin + Math.floor(over/2)) + 'px';
-    if(rail) rail.style.height = (railMin + Math.ceil(over/2)) + 'px';
+    REVEAL.gap = gapMin + Math.floor(over/2);
+    REVEAL.rail = railMin + Math.ceil(over/2);
+    sc.style.marginTop = REVEAL.gap + 'px';
+    if(rail) rail.style.height = REVEAL.rail + 'px';
   } else PAGEROWS.desk = 0;
   /* Do NOT round. Columns are `1fr` and therefore fractional; rounding the row
      height to a whole pixel made rows and columns different sizes, and the

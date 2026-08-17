@@ -631,7 +631,7 @@ function wire(){
     /* What is left of the panel's buttons once every one-of-many list became a
        select: swatches, the knob's own colours, and the read switch in the
        reading header — which is a header, not a panel. */
-    const pn=t.closest('[data-ocolour],[data-oic],[data-pboard],[data-pknobc],[data-oread],[data-fkind],[data-fdesk]');
+    const pn=t.closest('[data-ocolour],[data-oic],[data-pboard],[data-pknobc],[data-pwood],[data-prailknobc],[data-oread],[data-fkind],[data-fdesk]');
     if(pn){
       const id=pn.dataset.id, o=byId(id) || cfgOf(id);
       if(pn.dataset.ocolour!=null) o.c=slotVal(pn.dataset.ocolour);
@@ -639,6 +639,9 @@ function wire(){
       else if(pn.dataset.oic!=null) o.ic=pn.dataset.oic||null;
       else if(pn.dataset.pboard!=null) o.board=pn.dataset.pboard||null;
       else if(pn.dataset.pknobc!=null){ o.knobc=pn.dataset.pknobc; o.knobtone=null; }
+      // the carcass, per desk: the wood, and the knob on the drawer below it
+      else if(pn.dataset.pwood!=null) o.wood=pn.dataset.pwood||null;
+      else if(pn.dataset.prailknobc!=null) o.railknobc=pn.dataset.prailknobc||null;
       // switching how it reads restarts it at the first page — page 7 of a
       // spread is not page 7 of a single page
       else if(pn.dataset.oread!=null){ o.read=pn.dataset.oread; S.bookAt=0; renderSheet(); }

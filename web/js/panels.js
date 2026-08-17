@@ -402,10 +402,35 @@ function objectPanelBody(id){
       [[MANUAL,'As I arranged them'], ...Object.entries(SORTS).map(([k,[nm]])=>[k,nm])],
       sortOf(d)||MANUAL)));
     out.push(prow('Moving things', psel(id,'locked',[['','Movable'],['1','Locked']], d.locked?'1':'')));
-    /* A desk is somewhere you stand, so its editor is also where the shape of
-       the space it is drawn in is asked about. It is the one row here that is
-       not this desk's alone, and it says so. */
-    if(isRoot || isDesk(id)) out.push(gridSizeField());
+    /* A desk is somewhere you stand, so its editor is also where the carcass it
+       is drawn in is asked about: the wood, and the drawer along the bottom of
+       a phone that you tap to come out of and pull to make something. It is a
+       piece of furniture like any other, so it is asked the same questions a
+       drawer front is — and the keys are prefixed, because for every desk but
+       home this object *is* a drawer with a knob and a texture of its own for
+       the tile it draws on its parent's board. */
+    if(isRoot || isDesk(id)){
+      out.push(prow('The desk itself', `<div class="pickgrid sw">${
+        ['#3A2C1E','#4A3524','#5A4632','#2E2A24','#3B3A36','#2A3038'].map(c=>
+        `<button data-pwood="${c}" data-id="${id}" class="${d.wood===c?'on':''}" style="background:${c}"></button>`).join('')}
+        <button data-pwood="" data-id="${id}" title="The app's own walnut" class="${d.wood?'':'on'}"
+          style="background:var(--paper);border-style:dashed"></button></div>`,
+        'the wood above the bar and below the board'));
+      out.push(prow('Its drawer', psel(id,'railknob',
+          [['round','Round'],['diamond','Diamond'],['bar','Bar'],['ring','Ring'],['square','Square'],['orb','Orb']],
+          d.railknob||'round')
+        + psel(id,'railknobsize', Object.entries(KNOBSIZES), d.railknobsize||'sm')
+        + psel(id,'railtexture',
+          [['none','None'],['dots','Dots'],['grid','Graph'],['weave','Weave'],['weave2','Wide weave'],
+           ['check','Checker'],['rule','Ruled'],['stars','Stars'],['sheen','Sheen']], d.railtexture||'none')
+        + `<div class="pickgrid sw" style="margin-top:5px">
+          <button data-prailknobc="" data-id="${id}" title="Follow the wood" class="${d.railknobc?'':'on'}"
+            style="background:var(--paper);border-style:dashed"></button>${
+          ['#F8F3E6','#A9793F','#2A241C','#C0563F','#3E7A6B','#5D7E99'].map(c=>
+          `<button data-prailknobc="${c}" data-id="${id}" class="${d.railknobc===c?'on':''}" style="background:${c}"></button>`).join('')}</div>`,
+        'a phone'));
+      out.push(gridSizeField());
+    }
     if(!isRoot) out.push(prow('Where it is kept', psel(id,'pin',
       [['','On the board it lives on'],['desk','A desk of its own']],
       placeOf(id)||''),

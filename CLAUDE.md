@@ -377,6 +377,32 @@ picker**, which is decision 43's gesture given back the thing it comes out of.
 The wood is the same in light and dark and is deliberately not derived from the
 style's five — a desk is walnut at midday too. See decision 55.
 
+**Everything above the board is one piece of wood, the bar included.** The inset,
+the bar and the reveal under it are one surface, because a change of material
+across the top of the screen reads as two bars rather than one. `.main` is
+therefore the carcass and the grid paints its own paper; a layout that isn't a
+grid asks for paper explicitly. The bar overrides `--ink`, `--ink-2`, `--rule`
+and friends for its own subtree — the same trick `.drawer` plays with `--dink`,
+so light-on-dark is local — and it takes the style's **Glow** as its accent,
+because brass on walnut is two browns. See decision 57.
+
+**The carcass is furniture you can change, per desk.** Knob shape, size and
+colour, the texture, and the wood itself are rows in the desk's own editor —
+`railknob`, `railknobsize`, `railknobc`, `railtexture` and `wood` on the desk's
+config. Prefixed, because for every desk but home `cfgOf()` is the drawer's own
+object and it already has a `knob` and a `texture` for its tile. The rail knob
+carries `.pull`, so a shape or a shading added for a drawer front is added for
+the desk at the same time. `render()` writes `--wood` onto `#frame`, not onto
+the rail: it is one piece of furniture.
+
+**Anything measured after layout has to be readable at build time.** `REVEAL` in
+`views.js` holds the gap above the board and the depth of the drawer below, and
+`viewDesk()`/`deskRail()` write them inline as the markup is built — the same
+thing `gridOfContainer()` does with the checker squares. `sizeGrid()` measures
+and updates them. Without it, a board drawn *off-screen* — a pager pane, a
+preview — is drawn at the CSS floor and clicks into position the moment the
+swipe commits. See decision 58.
+
 **The rail's height is written by `sizeGrid()`, and so is the gap under the
 bar.** A board is a whole number of square cells and a screen is not, so the
 leftover is split evenly between the reveal above the board and the depth of the

@@ -1432,8 +1432,12 @@ kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--rule);border
 .psel{cursor:pointer;max-width:100%}
 .psel:focus,.pfield:focus{outline:none;border-color:var(--brass)}
 .pfield.tall{min-height:62px;resize:vertical;line-height:1.45}
-/* two selects on one row share it rather than stacking */
-.prow > div > .psel + .psel,.prow > div > .psel + .pfield{flex:1 1 45%}
+/* Selects on one row share it rather than stacking — and the *first* one is
+   given a basis as well, or three of them squeeze it to the width of its own
+   arrow while the other two take the row. A basis with wrapping is what makes
+   two sit side by side and three fall to two-and-one. */
+.prow > div > .psel{flex:1 1 45%;min-width:104px}
+.prow > div > .psel + .pfield{flex:1 1 45%}
 .pgroup{border:1px solid var(--rule);border-radius:var(--radius);
   background:var(--paper);margin:12px 0}
 .pgroup > summary{
@@ -1540,9 +1544,17 @@ input,textarea,select,[contenteditable],
    with nothing above the bar there is nothing to draw, which is right. */
 .is-phone #frame{background:var(--wood)}
 .is-phone .app{background:var(--wood)}
-.is-phone .main{background:var(--paper);
-  /* the surface is set *into* the carcass, so the wood shades where they meet */
-  box-shadow:inset 0 3px 5px -3px var(--wood-2)}
+/* Everything above the board is one piece of wood — the inset, the bar, and the
+   reveal under it — and everything below it is the drawer. `.main` is therefore
+   the carcass, not the surface: the board draws its own paper (the grid paints
+   its checker), and the layouts that are not a grid ask for theirs. */
+.is-phone .main{background:var(--wood)}
+.is-phone .scroll:not(.deskscroll){background:var(--paper)}
+/* The surface is set *into* the carcass, so there is a shadow line where the
+   wood meets it. Outside the board rather than inset: the grid fills the
+   scroller exactly and an inset shadow would be painted under it. */
+.is-phone .scroll.deskscroll{box-shadow:0 0 0 1px var(--wood-2),
+  0 -3px 5px -3px rgba(0,0,0,.5)}
 
 /* ---- …and the bottom one is a drawer front ----------------------------
    It holds nothing — it is the front of the desk itself. A round knob you can
@@ -1551,9 +1563,18 @@ input,textarea,select,[contenteditable],
    whole rows leave over; the safe-area inset rides inside it, so the knob sits
    above the home indicator rather than under it. */
 .is-phone .deskrail{
-  flex:0 0 auto;position:relative;z-index:20;
-  min-height:calc(env(safe-area-inset-bottom) + 30px);
-  padding-bottom:env(safe-area-inset-bottom);
+  flex:0 0 auto;position:relative;z-index:20;overflow:hidden;
+  /* a size container, so the knob can be sized off the depth of the drawer it
+     is set into rather than off the width of the screen — a percentage width
+     here resolves against 390px and lands on its own cap every time */
+  container-type:size;
+  min-height:calc(env(safe-area-inset-bottom) + 34px);
+  /* Only *half* the home-indicator inset is reserved. Reserving all of it put
+     the knob in the top third of the drawer front on a phone that has one —
+     centred in the content box, which is not where the eye reads the middle of
+     a piece of wood. Half keeps it clear of the indicator and puts it where it
+     looks centred, which is the thing that was actually asked for. */
+  padding-bottom:calc(env(safe-area-inset-bottom) * 0.5);
   display:flex;align-items:center;justify-content:center;
   background:linear-gradient(180deg,
     color-mix(in srgb, var(--wood) 88%, #fff) 0 1px,
@@ -1561,23 +1582,23 @@ input,textarea,select,[contenteditable],
     var(--wood-2) 100%);
   box-shadow:inset 0 5px 8px -6px rgba(0,0,0,.55);
 }
-/* The knob is **round**, and turned out of the same wood as the rail — lit from
-   the upper left with a shaded underside and a contact shadow, exactly as every
-   drawer pull on the board is, so the desk and the things standing on it are
-   made of the same material under the same lamp. It grows with the rail up to
-   the point where a knob stops being a knob and becomes a plate. */
+/* The knob **is a drawer pull**: it carries `.pull`, so all six shapes, the
+   three sizes and the light on it are the ones every knob on the board already
+   has — the desk and the things standing on it are made of the same material
+   under the same lamp, and a shape added for one is added for both. What is
+   overridden here is only how big it is, because the rail is a strip rather
+   than a tile and the `cq` sizing on `.pull` is measured against a front. */
+.is-phone .deskrail{--knob:var(--wood);--kscale:1}
+.is-phone .deskrail.ks-md{--kscale:1.2}
+.is-phone .deskrail.ks-lg{--kscale:1.45}
 .is-phone .railknob{
-  width:clamp(20px, 54%, 30px);aspect-ratio:1;height:auto;border-radius:50%;flex:0 0 auto;
-  background:radial-gradient(circle at 34% 28%,
-    color-mix(in srgb, var(--wood) 74%, #fff) 0%,
-    color-mix(in srgb, var(--wood) 92%, #fff) 34%,
-    var(--wood) 62%,
-    color-mix(in srgb, var(--wood) 72%, #000) 100%);
-  box-shadow:
-    inset 0 1px 1px rgba(255,255,255,.22),
-    inset 0 -2px 3px rgba(0,0,0,.34),
-    0 1px 3px rgba(0,0,0,.45);
-  transition:filter .14s;
+  width:calc(clamp(26px, 74cqh, 38px) * var(--kscale,1));
+  aspect-ratio:1;height:auto;
+  transition:filter .14s;opacity:1;
+}
+.is-phone .railknob.kn-bar{
+  width:calc(clamp(52px, 26cqw, 110px) * var(--kscale,1));
+  aspect-ratio:auto;height:calc(clamp(8px, 24cqh, 15px) * var(--kscale,1));
 }
 .is-phone .railknob:active{filter:brightness(1.14)}
 

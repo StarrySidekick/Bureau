@@ -1845,3 +1845,76 @@ The page count is still worth knowing and is now a number rather than a place �
 *Against:* a board with fifteen pages says so in four characters and no longer
 lets you jump to page seven by aiming at a dot. Two fingers still walk them, and
 aiming at the seventh of fifteen dots was never really a thing you could do.
+
+---
+
+### 57. The bar is part of the carcass, and the carcass is one piece
+
+Decision 55 made the strips above and below the board out of wood. It left the
+bar itself on paper, which drew a line straight across the top of the screen
+between the notch strip and the bar — two pieces of the same piece of furniture,
+divided by a change of material. The wood read as a second bar sitting on top of
+the real one.
+
+So everything above the board is now one surface: the safe-area inset, the bar,
+and the reveal under it. The board is the only paper up there, and it is set into
+the wood with a shadow line where they meet. `.main` is the carcass rather than
+the surface — the grid paints its own board, and the layouts that are not a grid
+ask for paper explicitly. The bar overrides `--ink`, `--rule` and friends for its
+own subtree, the way a drawer front does with `--dink`, so light-on-dark is a
+local fact and nothing outside it changes. Its accent becomes the style's **Glow**
+rather than its Brass, because brass on walnut is two browns and the lit dot for
+the desk you are on disappears into the grain.
+
+The bar is also about a fifth taller than it was. It had been squeezed to the
+pixel while the shelf was eating a row of the board; the shelf is gone, the row
+came back, and a title crammed against a grid is not worth the third of a row
+that buys.
+
+**And the wood is furniture you can change.** Knob shape, knob size, knob colour,
+texture and the wood itself are rows in the desk's own editor — the same panel,
+and the same questions, a drawer front is asked. The knob carries `.pull`, so all
+six shapes and the light on it are the ones every knob on the board already has;
+a shape added for one is added for both. The keys are prefixed (`railknob`,
+`railtexture`, `wood`) because for every desk but home `cfgOf()` is the drawer's
+*own* object, which already has a `knob` and a `texture` for the tile it draws on
+its parent's board.
+
+The wood is per desk and it is the whole carcass, not just the rail — one piece
+of furniture, so `render()` writes `--wood` onto `#frame` and the strip, the bar
+and the drawer all follow. `--wood-2` derives from it, so the shaded edge comes
+along.
+
+*Against:* the bar is now the one place in the app where the ink tokens are
+inverted, and anything new dropped into it has to survive that. The rule is the
+same one `.drawer` has lived under since the beginning — don't reach for
+`--ink-*` inside a dark surface — but it is a second place to remember it.
+
+---
+
+### 58. A board drawn off-screen is drawn at the size it will be
+
+The reveal above the board and the depth of the drawer below it are computed by
+`sizeGrid()` *after* layout, because both depend on the measured cell. They were
+written onto the elements at that moment and nowhere else — which is correct for
+the board you are looking at, and wrong for the one being slid in beside it.
+
+The pager builds its neighbours from `previewHTML()`, a string. That string had
+no inline reveal, so an incoming desk arrived at the CSS floor: the board sat a
+few pixels high and the drawer under it was shallow, and the whole thing clicked
+down into position the instant the swipe committed and `render()` measured it.
+A swipe that ends with a jolt reads as the app catching up with you.
+
+So the numbers are held in a `REVEAL` holder and written into the markup **as it
+is built**, exactly as `gridOfContainer()` already writes the checker squares
+from the last measured cell. `sizeGrid()` keeps them up to date; the first frame
+of a brand-new board uses the last measurement, which is right within a pixel,
+and the measurement that follows agrees with it.
+
+This is the general rule and it is worth stating once: anything measured after
+layout that affects *where things sit* has to be readable at build time, or every
+surface drawn off-screen — a pager pane, a stage, a preview — is drawn wrong and
+corrects itself in front of you.
+
+*Against:* two more numbers living in module state between renders. They are
+derived, never stored, and stale by at most one frame.

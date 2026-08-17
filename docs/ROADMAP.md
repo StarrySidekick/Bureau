@@ -5,6 +5,26 @@ Sequenced by dependency, not appetite: item 1 makes everything after it safer.
 
 ---
 
+## 0j. Queued 2026-08-17 (tenth pass) — one piece of furniture — DONE (v0.59)
+
+See decisions 57 and 58.
+
+- **the bar is part of the carcass.** Everything above the board is one piece of
+  wood now — the notch strip, the bar and the reveal under it — rather than wood
+  with a paper bar sitting on it. The bar inverts its own ink tokens and takes
+  the style's Glow as its accent
+- **and it is a fifth taller**, which the row the shelf gave back pays for
+- **the desk's drawer is furniture you can change**: knob shape, size and
+  colour, texture, and the wood itself, per desk, from the desk's own editor.
+  The rail knob carries `.pull`, so it gets every shape a drawer front has
+- **the knob is bigger and sits lower** — only half the home-indicator inset is
+  reserved, so it reads as centred in the wood rather than high in it
+- **a board slid in beside you arrives in position.** The reveal and the drawer
+  depth are written into the markup as it is built, so a previewed neighbour is
+  drawn at the size it will be instead of clicking down on commit
+
+---
+
 ## 0i. Queued 2026-08-17 (ninth pass) — the carcass — DONE (v0.58)
 
 See decisions 55 and 56.
