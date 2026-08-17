@@ -5,6 +5,28 @@ Sequenced by dependency, not appetite: item 1 makes everything after it safer.
 
 ---
 
+## 0k. Queued 2026-08-17 (eleventh pass) — tightening the swipe — DONE (v0.60)
+
+See decision 59. Walking sideways between desks was laggy in three places, none
+of which was the animation.
+
+- **a pass may remember.** `childrenOf()` is memoised for the length of one
+  string build, so drawing a board asks "what is in this?" once per container
+  instead of once per caller. First visit to a desk: 74ms → 13ms
+- **rendering laid the board out twice** — once to measure, once for the writes
+  that followed. `sizeGrid()` writes only what changed, two of the properties it
+  was writing were read by nobody, and `scrollTop` is only restored when there
+  is something to restore
+- **the rebuild moved off the settle frame.** `renderSoon()` — the state still
+  changes immediately, only the DOM waits a frame, under the strip
+- **the pager spreads its work.** The gesture frame builds one neighbour and
+  carries the real board; the next frame builds the far one and the picture
+
+Release cost went from ~22ms to under 1ms, and the gesture frame from three
+boards of layout to one.
+
+---
+
 ## 0j. Queued 2026-08-17 (tenth pass) — one piece of furniture — DONE (v0.59)
 
 See decisions 57 and 58.

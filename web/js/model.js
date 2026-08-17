@@ -724,10 +724,35 @@ const SORTS = {
 const MANUAL = 'manual';
 const sortOf = c => { const v=(c && c.sort) || K(c&&c.kind).sort || MANUAL;
   return SORTS[v] ? v : null; };
+/* ---- what a container shows, and the one place it is worth remembering ----
+   `childrenOf()` walks **every object in the desk** and asks inContainer() about
+   each — which for a magic drawer means running its rule — and then sorts what
+   is left. That is the right shape for a question that has to be able to change
+   its mind, and it is fine once. Drawing one board asks it once for the board
+   and then again for every container on it: a checklist lists its lines, a
+   moodboard its pictures, a calendar walks its days, and `projectStat()` walks
+   an entire subtree calling it at every level. Fifty calls over two hundred
+   objects is ten thousand rule evaluations to draw one screen, and the pager
+   draws three of them.
+
+   So a **pass** may remember. `beginPass()` opens the memo and `endPass()`
+   closes it, and it is only ever open for the length of one synchronous string
+   build — viewHTML() and previewHTML() are the two, and nothing mutates
+   membership inside either. Outside a pass the map is null and every call is
+   the honest walk it always was, which is what keeps this from being a cache
+   that can be wrong. Placing a box during a pass is fine: ensureBox() changes
+   where a thing sits, never which container it is in. */
+let KIDS = null;
+const beginPass = ()=>{ KIDS = new Map(); };
+const endPass   = ()=>{ KIDS = null; };
 function childrenOf(c){
+  if(!c) return [];
+  if(KIDS){ const hit=KIDS.get(c.id); if(hit) return hit; }
   const list = S.objects.filter(o=>inContainer(c,o));
   const s = SORTS[sortOf(c)];
-  return list.sort(s ? s[1] : (a,b)=>(a.ord||0)-(b.ord||0));
+  list.sort(s ? s[1] : (a,b)=>(a.ord||0)-(b.ord||0));
+  if(KIDS) KIDS.set(c.id, list);
+  return list;
 }
 // Guard against a container being dragged inside itself — with recursion this
 // is a real way to lose a subtree, not a theoretical one.
@@ -870,6 +895,6 @@ export { ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds, K,
   KNOBSIZES, knobSizeOf, answered, iconOf, TSIZES, textSizeOf, mediaTypeOf, isPicture,
   spawnByOf, genKindOf, takesTyping, keepsDone, showsContainers,
   CALVIEWS, calViewOf, weekStartOf, showsWeekends, calCols,
-  OPS, ROLLS, rollup, SORTS, MANUAL, sortOf, childrenOf, isAncestor,
+  OPS, ROLLS, rollup, SORTS, MANUAL, sortOf, childrenOf, beginPass, endPass, isAncestor,
   relatedTo, backlinksTo, relate, unrelate, chainOf, tlSpan, streak, goalPct,
   allUnder, progressOf, projectStat, allTags };

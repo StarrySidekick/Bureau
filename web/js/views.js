@@ -1,6 +1,7 @@
 import { $, esc, ic, D, md, clamp, ROOT } from './util.js';
 import { S, K, T, byId, has, isContainer, containers, container, childrenOf, chainOf,
   deskTitle, rootObj, cfgOf, deskIds, deskHere, deskOf, isDesk, allTags, dev,
+  beginPass, endPass,
   layoutOf, takesTyping, genKindOf, CALVIEWS, calViewOf, calCols,
   spanOf, coversDay, lastDay } from './model.js';
 import { GRID, PHONE_GRIDS, CELL, COLW, PAGEROWS, pageRows, pageOfBox, lastPage,
@@ -615,10 +616,12 @@ const viewKey = ()=> S.view==='drawer' ? 'drawer:'+S.drawerId : 'desk';
 const PAGE = {};
 const pageCount = cid => lastPage(dev(), cid) + (pageRows() ? 2 : 1);
 const pageAt = cid => Math.min(PAGE[cid]||0, pageCount(cid)-1);
-function goPage(cid, n){
+function goPage(cid, n, soon){
   const p = clamp(n, 0, pageCount(cid)-1);
   if(p === pageAt(cid)) return false;
-  PAGE[cid]=p; render(); return true;
+  PAGE[cid]=p;
+  if(soon) renderSoon(); else render();
+  return true;
 }
 
 /* ---- show me the thing I just made -----------------------------------
@@ -688,9 +691,16 @@ function deskRail(){
    it, a sideways swipe walks the desks, the title lays them all out, ⌘K finds
    anything, and the breadcrumb walks up. */
 function viewHTML(){
-  const body = S.view==='drawer' ? viewDrawer()
-             : viewDesk();          // the desk is the only other place there is
-  return `<div class="main">${body}${S.device==='phone'?deskRail():''}</div>`;
+  /* One pass, so the boards and every container drawn on them share one answer
+     to "what is in this?" rather than each walking the whole desk again. It is
+     opened and closed around the string build and nothing else — see
+     childrenOf() in model.js. */
+  beginPass();
+  try{
+    const body = S.view==='drawer' ? viewDrawer()
+               : viewDesk();        // the desk is the only other place there is
+    return `<div class="main">${body}${S.device==='phone'?deskRail():''}</div>`;
+  } finally { endPass(); }
 }
 
 /* The same thing, for somewhere you are *not*. The pager slides the board you
@@ -717,7 +727,26 @@ function previewHTML(at){
   return html.replace(/ id="drawergrid"/g, '');
 }
 
+/* ---- rendering one frame later, on purpose -----------------------------
+   The rule in motion.js is that nothing delays a **state change** — a tap files
+   or navigates the instant it lands. This does not delay one: it moves the
+   *rebuild* to the next frame while the state has already changed.
+
+   It exists for the pager. Letting go of a sideways swipe changed which desk
+   you are on and rebuilt the board in the same instant — fifteen milliseconds
+   of string, parse and layout landing on exactly the frame the settle
+   transition was supposed to start on, so the strip stuttered as it came to
+   rest. The strip is opaque and it is already drawing the board you are
+   arriving at, so there is nothing to see underneath it for that one frame.
+
+   A direct render() supersedes a pending one, so nothing can render twice. */
+let soonId=0;
+function renderSoon(){
+  if(soonId) return;
+  soonId = requestAnimationFrame(()=>{ soonId=0; render(); });
+}
 function render(){
+  if(soonId){ cancelAnimationFrame(soonId); soonId=0; }
   const frame=$('#frame');
   const wasKey=SCROLL.key, wasEl=$('#app .scroll');
   if(wasEl) SCROLL.top=wasEl.scrollTop;
@@ -735,7 +764,15 @@ function render(){
   $('#app').innerHTML = viewHTML();
   const key=viewKey(), now=$('#app .scroll');
   if(key!==wasKey) SCROLL.top=0;
-  if(now) now.scrollTop=SCROLL.top;
+  /* Only when there is something to restore. Writing `scrollTop` on an element
+     that was inserted a moment ago forces the browser to lay the whole board
+     out then and there so it can work out the scroll range — nine milliseconds
+     of every render, to put a scroller back to the top it already starts at. A
+     phone board never scrolls at all (`overflow:hidden`, and the pages are the
+     scrolling), and a board you have just navigated to starts at zero, so the
+     write is skipped in both of the common cases and the layout happens once,
+     where it belongs: at paint. */
+  if(now && SCROLL.top) now.scrollTop=SCROLL.top;
   SCROLL.key=key;
   bindSortables();
   sizeGrid();
@@ -791,11 +828,16 @@ function sizeGrid(){
     const room = main.clientHeight - barH - gapMin - railMin;
     const rows=Math.max(4, Math.floor(room / Math.max(1,w)));
     if(rows!==PAGEROWS.phone){ PAGEROWS.phone=rows; if(!sizing){ sizing=true; try{ render(); } finally { sizing=false; } return; } }
+    /* Written only when they have actually changed. The markup already carries
+       last render's numbers (see REVEAL), so on an ordinary render these agree
+       and nothing is touched — and a style write that changes nothing is still
+       a style write, which dirties layout and buys the board a second one
+       before it can be painted. Rendering was doing two layouts to draw one
+       screen. */
     const over = Math.max(0, room - rows*w);
-    REVEAL.gap = gapMin + Math.floor(over/2);
-    REVEAL.rail = railMin + Math.ceil(over/2);
-    sc.style.marginTop = REVEAL.gap + 'px';
-    if(rail) rail.style.height = REVEAL.rail + 'px';
+    const gap = gapMin + Math.floor(over/2), deep = railMin + Math.ceil(over/2);
+    if(gap!==REVEAL.gap){ REVEAL.gap=gap; sc.style.marginTop = gap+'px'; }
+    if(rail && deep!==REVEAL.rail){ REVEAL.rail=deep; rail.style.height = deep+'px'; }
   } else PAGEROWS.desk = 0;
   /* Do NOT round. Columns are `1fr` and therefore fractional; rounding the row
      height to a whole pixel made rows and columns different sizes, and the
@@ -803,21 +845,28 @@ function sizeGrid(){
      where the drag maths thought it was, which is why things far to the
      bottom-right were hardest to pick up. */
   const cell = w;
+  /* Same again, and this is the one that mattered: gridOfContainer() builds the
+     board from the *last* measurement, so on any render where the window has
+     not moved the measurement agrees with what is already on the element and
+     there is nothing to write. `--cellw` and `--cellstep` used to be written
+     here too and were read by nobody — two style writes per render for a value
+     no rule has ever asked for. */
+  const same = CELL[dev()]===cell && COLW[dev()]===w;
   const changed = !sizing && Math.abs(CELL[dev()]-cell) > 0.25;
-  CELL[dev()]=cell; COLW[dev()]=w;
-  grid.style.setProperty('--rowh', cell+'px');
-  grid.style.setProperty('--cellw', (w+g.gap)+'px');
-  grid.style.setProperty('--cellstep', (cell+g.gap)+'px');
-  // a checker square is two cells each way — the same number now, but written
-  // as two, because the two are measured separately and one may drift first
-  grid.style.setProperty('--checkerx', 2*(w+g.gap)+'px');
-  grid.style.setProperty('--checkery', 2*(cell+g.gap)+'px');
-  grid.style.gridAutoRows = cell+'px';
-  const rows=(grid.style.gridTemplateRows.match(/repeat\((\d+)/)||[])[1];
-  if(rows) grid.style.gridTemplateRows=`repeat(${rows},${cell}px)`;
+  if(!same){
+    CELL[dev()]=cell; COLW[dev()]=w;
+    grid.style.setProperty('--rowh', cell+'px');
+    // a checker square is two cells each way — the same number now, but written
+    // as two, because the two are measured separately and one may drift first
+    grid.style.setProperty('--checkerx', 2*(w+g.gap)+'px');
+    grid.style.setProperty('--checkery', 2*(cell+g.gap)+'px');
+    grid.style.gridAutoRows = cell+'px';
+    const rr=(grid.style.gridTemplateRows.match(/repeat\((\d+)/)||[])[1];
+    if(rr) grid.style.gridTemplateRows=`repeat(${rr},${cell}px)`;
+  }
   if(changed){ sizing=true; try{ render(); } finally { sizing=false; } }
 }
 
-export { render, sizeGrid, reveal, deskMap, viewHTML, previewHTML,
+export { render, renderSoon, sizeGrid, reveal, deskMap, viewHTML, previewHTML,
   pageAt, pageCount, goPage, gridSizeField,
   settingsPanel, toggleSettings };

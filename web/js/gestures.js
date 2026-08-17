@@ -303,7 +303,9 @@ function swipeMove(g, dx, dy){
     g.from = SWIPE_MIN * Math.sign(g.axis==='y' ? dy : dx);
     g.mode = 'swipe';
     gestureFlags.suppressClick=true;      // it was a swipe, not a tap
-    if(!pagerBegin(g.axis)){ g.axis='dead'; return; }
+    // the sign says which way you are going, so the pager can build that board
+    // first and leave the one behind you for the next frame
+    if(!pagerBegin(g.axis, Math.sign(g.axis==='y' ? dy : dx))){ g.axis='dead'; return; }
   }
   pagerMove((g.axis==='y' ? dy : dx) - g.from);
 }

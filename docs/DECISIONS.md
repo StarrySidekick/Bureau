@@ -1918,3 +1918,75 @@ corrects itself in front of you.
 
 *Against:* two more numbers living in module state between renders. They are
 derived, never stored, and stale by at most one frame.
+
+---
+
+### 59. A pass may remember, and a rebuild may wait a frame
+
+Walking sideways between desks was laggy, in three separate places. None of
+them was the animation.
+
+**Drawing a board asked the same question fifty times.** `childrenOf()` walks
+every object on the desk and asks `inContainer()` about each — for a magic
+drawer that means running its rule — and then sorts what is left. That is the
+right shape for a question that has to be able to change its mind. But drawing
+one board asks it for the board and then again for every container on it: a
+checklist lists its lines, a calendar walks its days, `projectStat()` walks a
+whole subtree calling it at every level, and `freeSpot()` calls it once per
+candidate cell while placing a board nobody has visited yet. Two hundred
+objects and fifty calls is ten thousand rule evaluations to draw one screen.
+
+So a **pass** may remember. `beginPass()` opens a memo and `endPass()` closes
+it, and it is only ever open for the length of one synchronous string build —
+`viewHTML()` and `previewHTML()` are the two. Outside a pass the map is null and
+every call is the honest walk it always was, which is what keeps this from being
+a cache that can go stale: there is no invalidation to get wrong, because it
+does not survive the statement that opened it. Placing a box during a pass is
+fine — `ensureBox()` changes where a thing sits, never which container it is in.
+
+The first visit to a desk went from 74ms to 13.
+
+**Rendering laid the board out twice.** `sizeGrid()` measures after layout and
+then writes what it measured — `--rowh`, the checker squares, the row template,
+the reveal above the board, the depth of the drawer below. Every one of those
+was written on every render, whether or not it had changed, and a style write
+that changes nothing is still a style write: the board was laid out once for the
+measurement and again for the writes, before a single pixel could be painted.
+The markup already carries last render's numbers (decision 58), so on any render
+where the window has not moved the measurement agrees with what is on the
+element and there is nothing to write. Two of those properties — `--cellw` and
+`--cellstep` — turned out to be read by no rule at all.
+
+Restoring `scrollTop` was a third forced layout, paid on every render to put a
+scroller back to a top it already starts at. It is skipped when there is nothing
+to restore, which on a phone is always: a phone board does not scroll.
+
+**And the rebuild landed on the frame the settle started on.** Letting go of a
+swipe changed desk *and* rebuilt the board in the same instant — fifteen
+milliseconds of string, parse and layout on exactly the frame the transition was
+meant to begin, so the strip stuttered to a halt instead of gliding to one.
+
+`renderSoon()` moves the rebuild to the next frame. This is not the thing
+motion.js forbids: **the state change still happens immediately** — where you
+are changes in the same call — and it is only the DOM that waits, under an
+opaque strip that is already drawing the board you are arriving at. Nothing
+waits for a keyframe to *finish*, which is the rule.
+
+The pager itself was doing all its work on the frame the gesture is recognised
+in: two neighbouring boards built and laid out, plus a clone of the one already
+on the screen. It is spread over two frames now. The frame that has to feel
+instant builds only the neighbour you are moving **towards** — the other one
+cannot be seen until you reverse past the middle, which takes longer than a
+frame — and for that first frame the strip is transparent and carries the
+**real** board, which costs nothing because it is already laid out. The picture
+of it, and the far neighbour, are made on the next frame while your finger is
+still moving; the real board steps out of the strip the moment its picture
+exists, because letting go rebuilds `#app` and the real one would turn into the
+board you arrived at while it was still sliding away.
+
+*Against:* the pager now has a state it passes through — carrying the live board
+— and a board that is hidden rather than absent while the strip owns it. If a
+render happens mid-gesture, before the picture exists, the middle of the strip
+is empty for the rest of the swipe. Nothing renders mid-gesture today (the drag
+deliberately doesn't, and `unlockBoard()` patches rather than renders), but that
+is now a thing to keep true.

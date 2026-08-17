@@ -480,6 +480,16 @@ the start, `#tag` anywhere, and `!today` / `!tomorrow` / `!week`.
   what a calendar is — the Calendar type is a magic drawer that happens to wear
   one, and any container can wear it instead.
 
+**Rendering is one pass.** `render()` rebuilds `#app` from `S` every time, and
+the string build is wrapped in `beginPass()`/`endPass()` so that every container
+drawn shares one answer to "what is in this?" rather than each walking the whole
+desk again. The memo lives for that one synchronous build and no longer.
+`sizeGrid()` measures after layout and writes only what changed, because the
+markup already carries the last measurement — a write that changes nothing still
+costs the board a second layout. And `renderSoon()` puts the rebuild on the next
+frame for the one caller that needs it: the pager, where it used to land on the
+frame the settle began on. The *state* change is never deferred. See decision 59.
+
 ## 12. Storage
 
 Local-first. No account, no backend, nothing transmitted.

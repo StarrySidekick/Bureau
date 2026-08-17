@@ -687,7 +687,7 @@ function gridOfContainer(cid){
   const colw = COLW[dev()];   // last measured; cellW() re-measures after layout
   return `<div class="grid g-${dev()}${arr?' arranging':''}${c.locked?' locked':''}${sorted?' sorted':''}"
        id="drawergrid" data-gridfor="${c.id}"
-       style="${boardVars}--cols:${g.cols};--rowh:${g.rowh}px;--checkerx:${2*colw}px;--checkery:${2*g.rowh}px;grid-template-rows:repeat(${Math.max(rows,1)},${g.rowh}px)">${tiles}
+       style="${boardVars}--cols:${g.cols};--rowh:${g.rowh}px;--checkerx:${2*colw}px;--checkery:${2*g.rowh}px;grid-auto-rows:${g.rowh}px;grid-template-rows:repeat(${Math.max(rows,1)},${g.rowh}px)">${tiles}
   </div>`;
 }
 

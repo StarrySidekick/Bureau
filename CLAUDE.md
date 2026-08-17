@@ -395,6 +395,39 @@ carries `.pull`, so a shape or a shading added for a drawer front is added for
 the desk at the same time. `render()` writes `--wood` onto `#frame`, not onto
 the rail: it is one piece of furniture.
 
+**One render is one pass, and a pass may remember.** `childrenOf()` walks every
+object and runs every magic rule, and drawing a board asks it fifty times — for
+the board, for every container on it, once per level of `projectStat()`, and
+once per candidate cell in `freeSpot()`. `beginPass()`/`endPass()` in `model.js`
+open a memo for the length of one **synchronous string build**, and `viewHTML()`
+and `previewHTML()` are the only two that open one. Outside a pass the map is
+null and every call is the honest walk — there is no invalidation to get wrong,
+which is the whole point. Don't hold a pass open across anything asynchronous,
+and don't add a mutation inside one. See decision 59.
+
+**`sizeGrid()` writes only what changed.** It measures after layout and then
+writes what it measured, and every one of those writes dirties layout again — so
+rendering laid the board out twice, once for the measurement and once for the
+writes. The markup already carries last render's numbers, so on an ordinary
+render there is nothing to write. Same for `scrollTop`: restoring it on a fresh
+element forces a full layout, and it is skipped when there is nothing to restore
+(on a phone, always).
+
+**`renderSoon()` rebuilds on the next frame, and that is not a delayed state
+change.** Where you are changes immediately; only the DOM waits, and only while
+an opaque strip is over it. It exists for the pager, where the rebuild used to
+land on the very frame the settle transition began on. `render()` supersedes a
+pending one, so nothing renders twice.
+
+**The pager spreads its work over two frames.** The frame the gesture is
+recognised in builds only the neighbour you are moving *towards* and carries the
+**real** board in the middle of the strip — free, because it is already laid
+out. The next frame builds the far neighbour and a still picture of the board
+you are leaving, and the real one steps out and hides. It has to become a
+picture before you let go, because letting go rebuilds `#app`. If you ever make
+something render mid-gesture, that picture won't exist and the middle of the
+strip will be empty.
+
 **Anything measured after layout has to be readable at build time.** `REVEAL` in
 `views.js` holds the gap above the board and the depth of the drawer below, and
 `viewDesk()`/`deskRail()` write them inline as the markup is built — the same

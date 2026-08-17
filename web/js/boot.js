@@ -6,10 +6,10 @@ import { S, KINDS, SHAPES, childrenOf, container, relate, deskOf } from './model
 import { pageRows, freeSpot } from './grid.js';
 import { create, setPin, togglePin, del, delMany, delDrawer, undo, toggleDone, setGridSize } from './mutations.js';
 import { applyLook } from './look.js';
-import { render, settingsPanel, pageAt, pageCount, goPage } from './views.js';
+import { render, sizeGrid, viewHTML, settingsPanel, pageAt, pageCount, goPage } from './views.js';
 import { overlayHTML, objectPanel } from './panels.js';
 import { wire } from './wire.js';
-import { openingFor } from './motion.js';
+import { openingFor, stepDrawer } from './motion.js';
 import { load, writeNow, save, hydrateAssets, pasteObjects } from './persist.js';
 import { renderSheet, openWriter, openRead, openViewer } from './sheet.js';
 
@@ -48,6 +48,11 @@ window.BUREAU = {
   // which movement a thing has decided on, for a test that would otherwise
   // have to reimplement the size rule to know what it is looking at
   openingFor,
+  // walking the row of desks, for measuring what a swipe actually costs
+  /* Walking the desks, building one board as a string, and the measurement
+     after layout — the three seams a performance pass needs to time separately,
+     because "the swipe feels slow" is three different costs in a trench coat. */
+  step: stepDrawer, viewHTML, sizeGrid,
   kids: id => childrenOf(container(id)).map(o=>o.id),
   // which desk something is on — the dots by the title answer with it
   deskOf,

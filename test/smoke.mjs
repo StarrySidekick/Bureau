@@ -1588,9 +1588,13 @@ const CHROME = process.env.BUREAU_CHROME;
     ev('pointerdown', x);
     for (let i=1;i<=5;i++){ ev('pointermove', x - i*30); await nap(16); }
     const px = sel => { const e=document.querySelector(sel); return e && getComputedStyle(e); };
-    const cur = px('.pane.cur .scroll'), next = px('.pane.next .scroll');
-    const curRail = px('.pane.cur .deskrail'), nextRail = px('.pane.next .deskrail');
+    /* The neighbour is measured against the live board in #app, which is what
+       the strip carried on its first frame and what the middle pane is a
+       picture of by now. */
+    const cur = px('#app .scroll'), next = px('.pane.next .scroll');
+    const curRail = px('#app .deskrail'), nextRail = px('.pane.next .deskrail');
     out.thePagerIsUp = !!document.querySelector('.pager') && !!next;
+    out.theMiddleIsAPicture = !!document.querySelector('.pane.cur .main');
     out.theNextBoardStartsWhereThisOneDoes = !!next && next.marginTop === cur.marginTop;
     out.andItsDrawerIsAsDeep = !!nextRail && nextRail.height === curRail.height;
     ev('pointerup', x - 150); await nap(500);
@@ -1598,6 +1602,9 @@ const CHROME = process.env.BUREAU_CHROME;
        Nothing sends that click here, so it is consumed by hand — otherwise the
        flag sits there and eats the next test's first tap. */
     document.querySelector('#frame').dispatchEvent(new MouseEvent('click', {bubbles:true}));
+    // the live board is the real one, so it has to be handed back untouched
+    const m = document.querySelector('#app .main');
+    out.andTheBoardIsPutBack = !m.style.transform && !m.style.willChange;
     S.view='desk'; S.drawerId=null; BUREAU.render(); await nap(150);
     return out;
   });
@@ -1751,7 +1758,17 @@ const CHROME = process.env.BUREAU_CHROME;
 
     await drag(-13, 12);
     const p = document.querySelector('.pager');
+    /* Two panes and the real board between them. The middle used to be a copy
+       of what was already on the screen — cheap to clone and thirteen
+       milliseconds to lay out, on the frame the gesture is recognised in. The
+       strip carries the live one now and the panes are only the neighbours. */
+    /* Three boards again by the time you have moved twice — but the picture of
+       the one you are leaving is made on the *second* frame, not the frame the
+       gesture is recognised in, and until it exists the strip carries the real
+       board. So the work is spread rather than landing all at once. */
     out.threeBoardsInAStrip = !!p && p.querySelectorAll('.pane').length === 3;
+    out.andTheRealBoardStoodDown =
+      getComputedStyle(document.querySelector('#app .main')).visibility === 'hidden';
     out.itFollowsTheFinger = !!p && /matrix|translate/.test(getComputedStyle(p.querySelector('.track')).transform);
     // it is beside #app, not inside it: a render would take it away mid-slide
     out.outsideTheBoard = !!p && p.parentElement.id === 'frame';
@@ -1764,7 +1781,15 @@ const CHROME = process.env.BUREAU_CHROME;
     // …and a swipe that does not go far enough is put back
     S.view='desk'; S.drawerId=null; BUREAU.render(); await nap(200);
     await drag(-4, 10); letGo(); await nap(420);
-    out.shortSwipeIsPulledBack = S.view === 'desk' && !document.querySelector('.pager');
+    /* Pulled back: nothing moved, and — the thing that would otherwise be left
+       behind — the real board is visible again. It is hidden the moment its
+       picture takes over in the strip, and a swipe that commits gets a fresh
+       one from the render; a swipe that doesn't has to be handed this one back
+       exactly as it was found. */
+    const live = document.querySelector('#app .main');
+    out.shortSwipeIsPulledBack = S.view === 'desk' && !document.querySelector('.pager')
+      && getComputedStyle(live).visibility === 'visible'
+      && !live.style.transform && !live.style.willChange;
 
     /* Locked, one finger does the same thing — a board that refuses to be
        rearranged has a spare finger. It works from a tile and from bare cells

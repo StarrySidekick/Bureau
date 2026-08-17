@@ -178,8 +178,12 @@
    Sideways it carries the whole of .main, because the bar at the top says
    which drawer you are in. Up and down it carries only the board, because the
    page dots are counting the pages and must not slide away with one. */
-.pager{position:absolute;z-index:38;overflow:hidden;pointer-events:none;
-  background:var(--paper)}
+/* Transparent: the middle of the strip is the real board, showing through from
+   #app underneath and carrying the same transform. Only the two neighbours are
+   drawn in here, and each brings its own paper. At either end of the row the
+   damped give exposes the carcass behind, which is the desk saying "this is the
+   end" in the material it is made of. */
+.pager{position:absolute;z-index:38;overflow:hidden;pointer-events:none}
 .pager .track{position:absolute;inset:0;will-change:transform}
 .pager .pane{position:absolute;inset:0;display:flex;flex-direction:column;
   overflow:hidden;background:var(--paper)}
