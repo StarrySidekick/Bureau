@@ -211,62 +211,36 @@ const CHROME = process.env.BUREAU_CHROME;
              rowsFit: BUREAU.pageRows >= 12 };
   });
   // the sidebar and the four fixed tabs were both removed on purpose —
-  // assert they are genuinely gone and the pin bar took the tabs' place
+  // assert they are genuinely gone, and so is the shelf that replaced them
   const railGone = await phone.evaluate(() => !document.querySelector('.rail'));
   const tabsGone = await phone.evaluate(() => !document.querySelector('.tabbar'));
-  const pinbarShown = await phone.evaluate(() => {
-    /* The shelf. It is the last row of the grid now — same nine columns, same
-       square cell, one hairline between it and the board — rather than a strip
-       of chrome bolted underneath. See decision 46. */
-    const b = document.querySelector('.pinrow');
+  /* --- the shelf is out, and the row it was taking went back to the grid.
+     It was the last row of the phone board, holding whatever you kept to hand;
+     the desks, the magic drawers and ⌘K already answer "what can I reach from
+     here" between them, and none of the three costs a row of every board on
+     every desk. See decision 53. */
+  const shelfGone = await phone.evaluate(() => {
+    const out = {};
+    out.noShelf = !document.querySelector('.pinrow') && !document.querySelector('.pinbar');
+    /* …and the app sits a few millimetres up off the bottom edge instead. A
+       phone screen is a rounded rectangle and a row running into the curve
+       loses its first and last tile to it, so `.main` carries the inset the
+       shelf used to hold — and sizeGrid() counts rows inside it, so the board
+       never reaches for the room that was reserved. */
+    const main = document.querySelector('#app .main');
     const sc = document.querySelector('#app .scroll');
-    if (!b || !sc) return false;
-    const r = b.getBoundingClientRect();
-    /* Flush under the last row of the board, and *near* the bottom rather than
-       hard against it: the board is a whole number of cells, so the few pixels
-       the screen has left over fall below the shelf — which is what keeps its
-       end slots clear of the rounded corners of the screen. */
-    return getComputedStyle(b).display === 'grid'
-      && Math.abs(sc.getBoundingClientRect().bottom - r.top) < 2   // flush
-      && r.bottom < window.innerHeight
-      && window.innerHeight - r.bottom < 80
-      && !!b.querySelector('.drawer[data-drawer]');
-  });
-  // a pin navigates, and the shelf marks where you are
-  await phone.click('.pinrow .drawer[data-drawer="d_today"]');
-  await phone.waitForTimeout(350);
-  const pinNavigates = await phone.evaluate(() =>
-    BUREAU.state.view === 'drawer' && BUREAU.state.drawerId === 'd_today'
-    && document.querySelector('.pinrow .drawer[data-drawer="d_today"]').classList.contains('on'));
-  /* …and it is a **toggle**: pressing the pin you are already in goes back to
-     whatever the pin interrupted. Something you keep to hand is something you
-     duck into, and ducking in with no way out but the back button is half a
-     gesture. The lit ring is on the outside of the slot, not around the mark —
-     a button this small is mostly its mark, so an inset ring read as a box
-     drawn round the icon. */
-  const pinToggle = await phone.evaluate(async () => {
-    const nap = n => new Promise(r => setTimeout(r, n));
-    const S = BUREAU.state, out = {};
-    const tap = id => document.querySelector(`.pinrow .drawer[data-drawer="${id}"]`).click();
-    tap('d_today'); await nap(360);                 // already there: back out
-    out.togglesBackToTheDesk = S.view === 'desk';
-    S.view='drawer'; S.drawerId='d_ideas'; BUREAU.render(); await nap(200);
-    tap('d_all'); await nap(360);
-    out.duckIn = S.drawerId === 'd_all';
-    tap('d_all'); await nap(360);
-    out.andBackToWhereYouWere = S.view==='drawer' && S.drawerId === 'd_ideas';
-    tap('d_today'); await nap(360);
-    /* A pinned thing is the same tile gridTile() draws on the board, one cell
-       square, filling its slot exactly — no bespoke pin shape. So the lit ring
-       is on the tile's own edge, which is the outside of the thing, and there
-       is no separate mark element for it to be drawn around. */
-    const lit = document.querySelector('.pinrow .drawer.on');
-    out.ringIsOutside = !!lit && getComputedStyle(lit).outlineOffset === '-2px'
-      && lit.classList.contains('minitile') && !lit.querySelector('.pinface');
-    S.view='desk'; S.drawerId=null; BUREAU.render();
+    const pad = parseFloat(getComputedStyle(main).paddingBottom);
+    out.ridesUpOffTheBottom = pad >= 10;
+    out.andTheBoardStaysInsideIt =
+      sc.getBoundingClientRect().bottom <= main.getBoundingClientRect().bottom - pad + 1;
     return out;
   });
-  await phone.screenshot({ path: 'test/shots/08-phone-pinned-drawer.png' });
+  // a tile on the board navigates, the same as it always did
+  await phone.click('.grid .drawer[data-drawer="d_today"]');
+  await phone.waitForTimeout(400);
+  const tileNavigates = await phone.evaluate(() =>
+    BUREAU.state.view === 'drawer' && BUREAU.state.drawerId === 'd_today');
+  await phone.screenshot({ path: 'test/shots/08-phone-drawer-open.png' });
   // home is not on the shelf any more — desks are walked to, so this is the
   // back button, which from a desk's own drawer is the desk
   await phone.evaluate(() => { const S=BUREAU.state; S.view='desk'; S.drawerId=null; BUREAU.render(); });
@@ -274,22 +248,6 @@ const CHROME = process.env.BUREAU_CHROME;
   await phone.click('.drawer[data-drawer="d_ideas"]');
   await phone.waitForTimeout(350);
   await phone.screenshot({ path: 'test/shots/09-phone-drawer.png' });
-
-  // pinning is a round trip: on the shelf, off the shelf, and anything at all
-  // may go there
-  const pinToggles = await phone.evaluate(() => {
-    const S = BUREAU.state;
-    const n = () => document.querySelectorAll('.pinrow .drawer[data-drawer]').length;
-    const d = S.objects.find(o => o.kind === 'drawer' && !S.desks.includes(o.id)
-      && !(S.pins||[]).includes(o.id));
-    const before = n();
-    BUREAU.setPin(d.id, 'pin');
-    const added = n() === before + 1 && S.pins.includes(d.id)
-      && !!document.querySelector(`.pinrow .drawer[data-drawer="${d.id}"]`);
-    BUREAU.setPin(d.id, null);
-    return added && n() === before && !S.pins.includes(d.id)
-      && !document.querySelector(`.pinrow .drawer[data-drawer="${d.id}"]`);
-  });
 
   /* --- everything is always movable; a hold arms the drag, a tap does not.
      "Movable" is the *unlocked* state, and a desk now starts locked — one you
@@ -692,29 +650,6 @@ const CHROME = process.env.BUREAU_CHROME;
     S.objects = S.objects.filter(x => (x.filter || {}).tag !== 'bureau');
     S.view = 'desk'; S.drawerId = null; S.openId = null; BUREAU.render();
     return kept;
-  });
-
-  /* --- the shelf can be dragged into a new order, and the drag must not also
-     navigate. It is the pins now: the desks came off it, because a desk is
-     walked to rather than pressed. */
-  const pinReorder = await page.evaluate(async () => {
-    const S = BUREAU.state;
-    const before = (S.pins||[]).slice();
-    if (before.length < 2) return false;
-    const pins = [...document.querySelectorAll('.shelf-bottom .pinbtn')];
-    const first = pins[0], last = pins[pins.length - 1];
-    const fr = first.getBoundingClientRect(), lr = last.getBoundingClientRect();
-    const ev = (type, x) => first.dispatchEvent(new PointerEvent(type,
-      { bubbles: true, clientX: x, clientY: fr.y + fr.height / 2, pointerId: 5, isPrimary: true }));
-    ev('pointerdown', fr.x + fr.width / 2);
-    ev('pointermove', lr.x + lr.width);
-    ev('pointermove', lr.x + lr.width);
-    ev('pointerup', lr.x + lr.width);
-    await new Promise(r => setTimeout(r, 250));
-    const after = S.pins;
-    return after[after.length - 1] === before[0]
-      && after.slice().sort().join() === before.slice().sort().join()
-      && S.view === 'desk';                    // the reorder must not open it
   });
 
   // --- group move: dragging one member of a selection moves the lot, keeping
@@ -1311,27 +1246,29 @@ const CHROME = process.env.BUREAU_CHROME;
     btn('[data-act="togglelock"]').click(); await nap(200);
     out.unlocks = !S.deskCfg.locked;
 
-    /* The sort steps through its seven and wears the one it is on — a letter
-       where a letter is the answer, an arrow where a direction is. Seven
-       presses come back round to where they started. */
-    const seen = [], glyphs = [];
-    for (let i = 0; i < 7; i++) {
-      seen.push(S.deskCfg.sort || 'manual');
-      const b = btn('[data-act="sortnext"]');
-      glyphs.push(b.textContent.trim() || (b.querySelector('svg') ? 'svg' : ''));
-      b.click();
-      await nap(90);
-    }
-    out.sortCycles = new Set(seen).size === 7 && (S.deskCfg.sort || 'manual') === 'manual';
-    out.everyStateHasAMark = glyphs.every(Boolean)
-      && glyphs.filter(g => g === 'svg').length === 4        // four directions
-      && ['M','A','Z'].every(l => glyphs.includes(l));       // three letters
+    /* The sort tool is gone from the bar. How a board arranges itself is
+       something you decide once and then live with, which is a settings
+       question; a tool is for what you change while you are working. It is the
+       "Sorted by" row of the board's own editor now. */
+    out.noSortTool = !document.querySelector('[data-act="sortnext"]');
     out.noSortPopup = !document.querySelector('[data-sortby]');
     // the lock is the leftmost of them, because it decides what every other
     // gesture on the board means
     const tools = [...document.querySelectorAll('.bartools .sqbtn')];
-    out.lockIsLeftmost = tools[0] && tools[0].dataset.act === 'togglelock'
-      && tools[1] && tools[1].dataset.act === 'sortnext';
+    out.lockIsLeftmost = tools[0] && tools[0].dataset.act === 'togglelock';
+    /* …and the desk has an editor of its own — the same panel a drawer opens,
+       for the board you are standing on. The gear beside it is the *app*, which
+       is a different question, and it is only offered from a desk. */
+    out.deskHasAnEditor = tools.some(t => t.dataset.act === 'drawersettings'
+      && t.dataset.id === 'root');
+    out.andTheGearIsStillTheApp = tools.some(t => t.dataset.act === 'appsettings');
+    document.querySelector('.bartools [data-act="drawersettings"]').click(); await nap(280);
+    const body = document.querySelector('#panel .pbody');
+    out.theDeskEditorSorts = /Sorted by/.test(body.textContent)
+      && !!body.querySelector('[data-oset="root:sort"]');
+    out.andPaintsThisDeskAlone = !!body.querySelector('[data-pboard][data-id="root"]');
+    out.andSaysHowWideTheGridIs = !!body.querySelector('[data-gridsize]');
+    document.querySelector('[data-act="panelclose"]').click(); await nap(150);
     // and the view cycler is gone: how a board is laid out is a settings
     // question, not a tool
     out.noViewButton = !document.querySelector('[data-act="cycleview"]');
@@ -1366,44 +1303,38 @@ const CHROME = process.env.BUREAU_CHROME;
     out.moreColumnsSmallerCells = big > small;
     BUREAU.setGrid('small'); await nap(400);
     out.backIsWhereYouWere = cols() === 8 && rack() === was;
-    // the shelf is still the last row of it, whatever size that is
-    out.shelfFollows = +getComputedStyle(document.querySelector('.pinrow'))
-      .getPropertyValue('--cols') === 8;
+    /* The whole board is rows now, not rows-less-a-shelf: 8x13, 9x14, 10x15 on
+       a 390pt handset, give or take whatever this one's height rounds to. */
+    out.everyRowIsTheBoards = BUREAU.pageRows >= 13;
     return out;
   });
 
-  /* --- one shelf, and it is the catch-all. There were two: the desks along
-     the bottom and this desk's own pins along the top, which was two answers to
-     "what can I reach from here" at opposite ends of the screen. The desks came
-     off it — they are walked to, and the title lays them all out — and the top
-     one went. See decision 41. */
-  const shelves = await page.evaluate(async () => {
+  /* --- where a container is kept. There is one answer left: a drawer is
+     either a desk out in the master space, or it is on the board it lives on.
+     The shelf was the third and it is out (decision 53) — but nothing anybody
+     put on it is lost, because `S.pins` is still loaded and saved untouched. */
+  const keeping = await page.evaluate(async () => {
     const nap = n => new Promise(r => setTimeout(r, n));
     const S = BUREAU.state, out = {};
-    out.oneShelfOnDesk = !document.querySelector('.shelf-top.pinbar')
-      && !!document.querySelector('.gridbar .shelf-bottom .pinbtn[data-drawer]');
-    // it is global rather than per desk: something kept to hand is kept to
-    // hand wherever you are standing
-    out.pinsAreGlobal = Array.isArray(S.pins) && !('shelf' in S.deskCfg);
-    const d = S.objects.find(o => o.kind === 'drawer' && !S.desks.includes(o.id)
-      && !(S.pins||[]).includes(o.id));
+    out.noShelfAnywhere = !document.querySelector('.pinbar,.pinrow,.shelf-bottom');
+    out.pinsAreStillStored = Array.isArray(S.pins);
+    const d = S.objects.find(o => o.kind === 'drawer' && !S.desks.includes(o.id));
     const stood = d.parent;
-    BUREAU.setPin(d.id, 'pin'); await nap(200);
-    out.pinsToTheShelf = S.pins.includes(d.id) && !S.desks.includes(d.id)
-      && !!document.querySelector(`.shelf-bottom .pinbtn[data-drawer="${d.id}"]`);
-    /* …and promoting it to a desk takes it off the shelf — it is one or the
-       other and never both — *and* off the board it was standing on, because a
-       desk is somewhere you go rather than a front you look at. See decision
-       40. */
+    /* Promoting takes it off the board it was standing on, because a desk is
+       somewhere you go rather than a front you look at. See decision 40. */
     BUREAU.setPin(d.id, 'desk'); await nap(200);
-    out.movesToTheRow = S.desks.includes(d.id) && !S.pins.includes(d.id);
+    out.movesToTheRow = S.desks.includes(d.id);
     out.leavesTheBoardItWasOn = d.parent == null
       && !BUREAU.kids(stood).includes(d.id)
       && !document.querySelector(`.grid .drawer[data-drawer="${d.id}"]`);
     // and demoting is a return, not a guess: it goes back where it stood
     BUREAU.setPin(d.id, null); await nap(150);
-    out.unpins = !S.desks.includes(d.id) && !S.pins.includes(d.id);
+    out.unpins = !S.desks.includes(d.id);
     out.demotingPutsItBack = d.parent === stood;
+    // asking for the shelf leaves it exactly where it lives, and draws nothing
+    BUREAU.setPin(d.id, 'pin'); await nap(150);
+    out.askingForTheShelfIsHarmless = d.parent === stood && !S.desks.includes(d.id)
+      && !!document.querySelector(`.grid .drawer[data-drawer="${d.id}"]`);
 
     // the desk map: every desk drawn small, and pressing one goes there
     document.querySelector('.gridbar .deskname').click(); await nap(250);
@@ -1438,7 +1369,7 @@ const CHROME = process.env.BUREAU_CHROME;
   });
 
   /* --- a phone board is pages, not scrolling. It is exactly as tall as the
-     room between the two shelves; what does not fit is on the next page, and
+     rows that fit under the bar; what does not fit is on the next page, and
      two fingers walk through them. */
   await phone.bringToFront();
   await phone.evaluate(() => { BUREAU.state.view='desk'; BUREAU.state.drawerId=null; BUREAU.render(); });
@@ -1448,20 +1379,17 @@ const CHROME = process.env.BUREAU_CHROME;
     const out = {};
     const g = () => document.querySelector('#drawergrid');
     const sc = () => document.querySelector('#app .scroll');
-    // the shelf is a row of the grid now, not a strip of chrome under it
-    const shelf = document.querySelector('.pinrow');
-    out.rowsMeasured = BUREAU.pageRows >= 12;
-    out.shelfIsAGridRow = !!shelf
-      && +getComputedStyle(shelf).getPropertyValue('--cols') === 8
-      && Math.abs(parseFloat(getComputedStyle(shelf).getPropertyValue('--rowh'))
-                - parseFloat(getComputedStyle(g()).getPropertyValue('--rowh'))) < 0.5;
+    // every row of it is the board's now — the shelf used to take the last one
+    out.rowsMeasured = BUREAU.pageRows >= 13;
     out.exactlyOnePage = /repeat\((\d+),/.exec(g().style.gridTemplateRows)[1] === String(BUREAU.pageRows);
     out.neverScrolls = sc().scrollHeight <= sc().clientHeight + 1
       && getComputedStyle(sc()).overflowY === 'hidden';
-    // …and the last row of the board sits flush on it, so the shelf reads as
-    // the next row down rather than as a strip that happens to be nearby
-    out.endsFlushOnTheShelf =
-      Math.abs(g().getBoundingClientRect().bottom - shelf.getBoundingClientRect().top) < 1.5;
+    /* …and the board stops short of the bottom edge by the inset `.main`
+       carries, so the last row is clear of the rounded corners of the screen. */
+    const main = document.querySelector('#app .main');
+    const pad = parseFloat(getComputedStyle(main).paddingBottom);
+    out.clearsTheCurveOfTheScreen = pad >= 10
+      && g().getBoundingClientRect().bottom <= innerHeight - pad + 1;
     out.morePages = BUREAU.pageCount('root') > 1;
     // nothing may straddle a break: half a tile on each of two screens is a
     // tile you can read neither half of
@@ -1490,47 +1418,33 @@ const CHROME = process.env.BUREAU_CHROME;
     return out;
   });
 
-  /* --- and the way in is a swipe up off the bottom shelf. Tapping bare board
-     used to open the picker and was triggered by accident more than on
-     purpose; a board is a surface you put things on, not a button. */
-  const shelfSwipe = await phone.evaluate(async () => {
+  /* --- the way in on a phone. There were two: pulling a drawer front up out
+     of the shelf, and holding a bare cell. The shelf is gone and so is the
+     pull that came out of it — holding a cell is the one that is left, and it
+     is the better half: pulling made a thing with nowhere in mind, holding a
+     cell makes one *there*, which is what a grid is for. See decision 47. */
+  const makingOnAPhone = await phone.evaluate(async () => {
     const nap = n => new Promise(r => setTimeout(r, n));
     const out = {};
     const grid = document.querySelector('#drawergrid');
     const gr = grid.getBoundingClientRect();
-    const bare = { x: gr.left + gr.width/2, y: gr.bottom - 12 };
+    const cell = parseFloat(getComputedStyle(grid).getPropertyValue('--rowh'));
+    // a bare cell, low on the board where the seed leaves room
+    const bare = { x: gr.left + cell/2, y: gr.bottom - cell/2 };
     const tap = (el,x,y,type) => el.dispatchEvent(new PointerEvent(type,
       { bubbles:true, cancelable:true, pointerId:11, pointerType:'touch', clientX:x, clientY:y }));
     tap(grid, bare.x, bare.y, 'pointerdown'); tap(grid, bare.x, bare.y, 'pointerup');
     await nap(200);
     out.bareBoardDoesNothing = !document.querySelector('#panel');
-    /* Pulling the drawer out of the shelf. It is a real pull now, not a flick:
-       the front follows the finger and only opens if you carry it about a
-       quarter of the screen. Forty pixels used to do it, committed, with
-       nothing drawn — which is why it kept happening by accident, including on
-       the way out of the app. See decision 43. */
-    const shelf = document.querySelector('.pinrow');
-    const r = shelf.getBoundingClientRect();
-    // bare shelf, past the last pin: the pins are buttons and answer for
-    // themselves. High in the row, clear of the strip iOS keeps for itself.
-    const x = r.right - 24, y = r.top + 10;
-    tap(shelf, x, y, 'pointerdown');
-    tap(shelf, x, y - 60, 'pointermove');
-    await nap(20);
-    // far enough to be showing, nowhere near far enough to open
-    out.aFlickDoesNotOpenIt = !!document.querySelector('.shelfpull')
-      && !document.querySelector('.shelfpull.ready') && !document.querySelector('#panel');
-    tap(shelf, x, y - 60, 'pointerup');
-    await nap(300);
-    out.andItDropsBack = !document.querySelector('#panel');
-    // …and the whole way does
-    tap(shelf, x, y, 'pointerdown');
-    for (let i = 1; i <= 8; i++){ tap(shelf, x, y - i*40, 'pointermove'); await nap(12); }
-    out.itFollowsTheFinger = !!document.querySelector('.shelfpull.ready');
-    tap(shelf, x, y - 320, 'pointerup');
+    out.noPullLeftBehind = !document.querySelector('.shelfpull');
+    // …and holding it lights the cell and opens the picker on that cell
+    tap(grid, bare.x, bare.y, 'pointerdown');
+    await nap(420);
+    out.holdingLightsTheCell = !!document.querySelector('.grid .ghost.band');
+    tap(grid, bare.x, bare.y, 'pointerup');
     await nap(320);
     const p = document.querySelector('#panel');
-    out.pullingOpensThePicker = !!p && p.dataset.panel === 'newobject';
+    out.andOpensThePicker = !!p && p.dataset.panel === 'newobject';
     // …and on a phone a menu comes up out of the bottom, so the board is still
     // visible and still live above it
     const pr = p && p.getBoundingClientRect();
@@ -1539,7 +1453,33 @@ const CHROME = process.env.BUREAU_CHROME;
     document.querySelector('[data-act="panelclose"]').click();
     return out;
   });
-  await phone.screenshot({ path: 'test/shots/19-phone-shelves.png' });
+
+  /* --- a board that isn't a grid can still be swiped off. The one-finger
+     sideways swipe that walks the desks started from the bare cells of a
+     locked grid, which a desk set to List, Scroll or Book hasn't got — so a
+     desk laid out as a list was one you could not swipe off. The scroller is
+     the surface those layouts do have. Sideways only: up and down is the
+     list's own scrolling. */
+  const listSwipe = await phone.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const S = BUREAU.state, out = {};
+    S.view='desk'; S.drawerId=null; S.deskCfg.layout='list'; BUREAU.render(); await nap(250);
+    const sc = document.querySelector('#app .scroll');
+    out.aListDeskHasNoGrid = !!sc && !sc.querySelector('.grid');
+    const r = sc.getBoundingClientRect();
+    const y = r.top + 30, x = r.left + r.width - 24;
+    const ev = (type, cx, cy) => sc.dispatchEvent(new PointerEvent(type,
+      { bubbles:true, cancelable:true, pointerId:23, pointerType:'touch', clientX:cx, clientY:cy }));
+    ev('pointerdown', x, y);
+    for (let i=1;i<=6;i++){ ev('pointermove', x - i*40, y); await nap(16); }
+    out.sidewaysStartsThePager = !!document.querySelector('.pager');
+    ev('pointerup', x - 240, y);
+    await nap(450);
+    out.andLandsOnTheNextDesk = S.drawerId === S.desks[1];
+    S.view='desk'; S.drawerId=null; S.deskCfg.layout='grid'; BUREAU.render(); await nap(200);
+    return out;
+  });
+  await phone.screenshot({ path: 'test/shots/19-phone-board.png' });
 
   /* --- movement. Every animation in Bureau is an overlay over a state change
      that has already happened, so what is checked here is that the state moves
@@ -1553,12 +1493,16 @@ const CHROME = process.env.BUREAU_CHROME;
     const nap = n => new Promise(r => setTimeout(r, n));
     const S = BUREAU.state, out = {};
 
-    /* how a thing opens is worked out from what it is, and can be overruled */
+    /* how a thing opens is worked out from what it is, and can be overruled.
+       Which way round it is, not how big: a square is a drawer at any size, and
+       it takes standing up taller than it is wide to be a cabinet. */
     const d = S.objects.find(o => o.id === 'd_in');
     d.desk = { ...d.desk, w:4, h:4 };
-    out.smallIsADrawer = BUREAU.openingFor(d) === 'drawer';
+    out.squareIsADrawer = BUREAU.openingFor(d) === 'drawer';
     d.desk = { ...d.desk, w:6, h:6 };
-    out.bigIsACabinet = BUREAU.openingFor(d) === 'cabinet';
+    out.andSoIsABigSquare = BUREAU.openingFor(d) === 'drawer';
+    d.desk = { ...d.desk, w:4, h:6 };
+    out.standingIsACabinet = BUREAU.openingFor(d) === 'cabinet';
     d.opening = 'curl';
     out.overrideWins = BUREAU.openingFor(d) === 'curl';
     delete d.opening;
@@ -1869,31 +1813,48 @@ const CHROME = process.env.BUREAU_CHROME;
     const mk = (nm,w,h) => { const d = BUREAU.create('drawer', {title:nm, parent:'root'});
       d[S.device] = Object.assign(BUREAU.free(w,h,'root'), {w,h}); return d; };
     const tall = mk('Standing', 2, 4);      // taller than wide: a cabinet
-    const wide = mk('Lying',    4, 3);      // wider than tall and small: a drawer
+    const wide = mk('Lying',    4, 3);      // wider than tall: a drawer, at any size
+    const big  = mk('Chest',    6, 5);      // …and still one, however big it gets
     const flat = mk('Sliver',   4, 1);      // one cell tall: no room for a name
-    const thin = mk('Column',   1, 4);      // one cell wide: the same
+    const thin = mk('Column',   1, 4);      // one cell wide: a spine
     BUREAU.render(); await nap(150);
     const knobs = d => document.querySelectorAll(`.grid .drawer[data-drawer="${d.id}"] .pull`).length;
     out.standingSwings   = BUREAU.openingFor(tall) === 'cabinet';
     out.andWearsTwoKnobs = knobs(tall) === 2;
     out.lyingStillPulls  = BUREAU.openingFor(wide) === 'drawer';
     out.andWearsOne      = knobs(wide) === 1;
+    /* Which way round it is, not how big it is. A second clause used to put
+       doors on anything over a given area, which is what gave a 4x3 — a front
+       half again as wide as it is tall — two of them. */
+    out.sizeIsNotTheQuestion = BUREAU.openingFor(big) === 'drawer' && knobs(big) === 1;
     // it follows openingFor(), not a size test of its own: say "pulls out" and
     // the second door goes with it
     tall.opening = 'drawer'; BUREAU.render(); await nap(120);
     out.overrideTakesADoorOff = knobs(tall) === 1;
     tall.opening = null;
+    BUREAU.render(); await nap(120);
+    /* The seam runs the whole height of the front and past the border at both
+       ends — it is the gap between two doors, not a scratch on one panel. */
+    const seam = document.querySelector(`.grid .drawer[data-drawer="${tall.id}"] .dseam`);
+    const tr = document.querySelector(`.grid .drawer[data-drawer="${tall.id}"]`).getBoundingClientRect();
+    const sr = seam && seam.getBoundingClientRect();
+    out.theSeamCutsTheWholeFace = !!sr && sr.top <= tr.top + 0.5 && sr.bottom >= tr.bottom - 0.5;
     // no room for a name: the mark, over the knob
     const shows = d => { const t = document.querySelector(`.grid .drawer[data-drawer="${d.id}"]`);
       const m = t && t.querySelector('.dmark'), n = t && t.querySelector('.dtop');
       return { mark: !!m && getComputedStyle(m).display !== 'none',
                name: !!n && getComputedStyle(n).display !== 'none' }; };
-    BUREAU.render(); await nap(120);
-    const f = shows(flat), t2 = shows(thin), w2 = shows(wide);
+    const f = shows(flat), w2 = shows(wide);
     out.shortWearsItsMark = f.mark && !f.name;
-    out.thinWearsItsMark  = t2.mark && !t2.name;
     out.roomyKeepsItsName = !w2.mark && w2.name;
-    [tall,wide,flat,thin].forEach(d => BUREAU.delDrawer(d.id));
+    /* One cell wide is a **spine**: the title runs up the tile. It used to drop
+       its name for its mark, which said it was a drawer and nothing about which
+       drawer — and a book seen spine-on is the shape that already solved that. */
+    const col = document.querySelector(`.grid .drawer[data-drawer="${thin.id}"]`);
+    const ttl = col && col.querySelector('.spinetitle');
+    out.oneCellWideIsASpine = !!ttl && ttl.textContent.trim() === 'Column'
+      && /vertical/.test(getComputedStyle(ttl).writingMode);
+    [tall,wide,big,flat,thin].forEach(d => BUREAU.delDrawer(d.id));
     S.undo=[]; BUREAU.render();
     return out;
   });
@@ -1986,12 +1947,13 @@ const CHROME = process.env.BUREAU_CHROME;
   console.log(JSON.stringify({
     errors: errs, manifestOk, swReady, survived, styleSurvived, slotColours,
     newObjectSeen, inlineEdit, sortDefaults, taskLook,
-    shelfTools, gridSizes, shelves, versionShown, sampler, paging, shelfSwipe,
-    gridClass, offlineWorks, railGone, tabsGone, pinbarShown, pinNavigates,
-    pinToggle, pinToggles, holdArms, maxDrift,
+    shelfTools, gridSizes, keeping, versionShown, sampler, paging,
+    makingOnAPhone, listSwipe,
+    gridClass, offlineWorks, railGone, tabsGone, shelfGone, tileNavigates,
+    holdArms, maxDrift,
     settingsIsPanel, pickerPreviews, builderPreview, everyMenuIsAPanel,
     pasteOk, magicOk, rollupOk, relationsOk, relationsUI,
-    timeLayer, checklistBox, pluckWorks, answering, seedAndKnobs, longPress, drawerSize, tagDrawer, pinReorder, groupMove, dropStates,
+    timeLayer, checklistBox, pluckWorks, answering, seedAndKnobs, longPress, drawerSize, tagDrawer, groupMove, dropStates,
     adaptiveTiles, bubblePanel, scrollKept, kindSizes,
     phoneGrid, phoneMigration,
     dupIds, undoWorks, readViews, paperSize, movement, pager, desks, spans,

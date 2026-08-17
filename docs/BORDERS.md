@@ -62,6 +62,13 @@ a book), `triptile`'s `.tkstub` (a ticket perforation), `cnttile`, `gentile`,
 `btntile`, `imgtile`. These are silhouettes. A border is a treatment of the
 *same* rectangle; a clip-path is a different rectangle.
 
+`.dseam` belongs here too, and it is the one edge that deliberately **crosses**
+the border rather than sitting inside it. It is the gap between a cabinet's two
+doors, so it runs the full height of the front and overshoots by the front's own
+border width at both ends — a seam that stops short of the edge is a scratch on
+one panel rather than the place two of them meet. It is drawn over `bd-*`,
+whatever the style has made of that slot, on purpose.
+
 ### 2c. Edges that are state, and correctly outside
 
 `.selected`, `.dropinto`, `.dropgather`, `.droptime`, `.dropday`, `.dropboard`,

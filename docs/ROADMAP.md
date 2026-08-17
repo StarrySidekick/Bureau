@@ -5,6 +5,36 @@ Sequenced by dependency, not appetite: item 1 makes everything after it safer.
 
 ---
 
+## 0h. Queued 2026-08-17 (eighth pass) — the shelf comes out — DONE (v0.57)
+
+See decisions 53 and 54.
+
+- **the shelf is gone**, and the row it was taking went back to the grid: 8×13,
+  9×14, 10×15. Pinning, the pull that opened the type picker, and the pin-as-a-
+  toggle went with it. `S.pins` is still stored, so putting it back is putting
+  back two render functions and two drop branches
+- **the whole app rides up off the bottom edge** by the safe-area inset plus a
+  little, so the last row is clear of the screen's rounded corners. `sizeGrid()`
+  counts rows inside that padding
+- **the desk has an editor.** The brush in the bar opens `objectPanel(ROOT)` —
+  the same panel a drawer gets — so one desk's board, layout, sort and lock are
+  that desk's rather than the app's. The sort came off the bar to live in it
+- **a cabinet is which way round it is, not how big.** The area threshold gave
+  doors to a 4×3; it is gone, and `standing()` is the whole test. The two knobs
+  moved in towards the seam, and the seam runs the full height of the front and
+  through the border at both ends
+- **a container one cell wide is a spine**, with the title running up it, rather
+  than a nameless front wearing its mark
+- **a knob is the front's own colour, shaded** — lit from the upper left with a
+  shaded underside, so it reads as turned rather than painted on
+- **a body fills the face it is printed on.** The four-line clamp is gone
+- **an object's words follow the style's typeface**, the same as a drawer's do.
+  They were pinned to the system sans
+- **a board that isn't a grid can be swiped off** to the next desk — a List desk
+  had no bare cells for the gesture to start from
+
+---
+
 ## 0g. Queued 2026-08-16 (seventh pass) — sizes to try on — DONE (v0.55)
 
 See decision 48.
@@ -19,7 +49,8 @@ See decision 48.
   the shelf instead of above the board — no more dead strip under the title, and
   the shelf's end slots are clear of the screen's rounded corners
 
-*Still open:* the space below the shelf is empty and has no job yet.
+*Superseded by 0h:* the shelf itself came out, and the space below it is now
+the inset that keeps the board clear of the screen's rounded corners.
 
 ---
 

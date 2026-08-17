@@ -90,7 +90,7 @@ clause at the bottom of each file — that list is each module's public surface.
 | `look.js` | Styles, the sixteen colour slots, `hexOf`/`objColour`, `applyLook()`. |
 | `mutations.js` | `toggleDone`, `del`, `create`, `quickAdd`, repeat scheduling, `toast`. |
 | `tiles.js` | `gridTile()` — the one place that decides how an object looks on a grid — plus rows, cards, list bands, book/scroll entries, and what a click does (`tileTap`). |
-| `views.js` | The desk and a drawer — the only two places there are. Also `pinbar()`, the time layouts (`viewMonth`, `viewTimeline`) and the settings panel's body. `render()` replaces `#app`'s innerHTML wholesale, then saves. |
+| `views.js` | The desk and a drawer — the only two places there are. Also the time layouts (`viewMonth`, `viewTimeline`), the desk map and the settings panel's body. `render()` replaces `#app`'s innerHTML wholesale, then saves. |
 | `sheet.js` | The three surfaces an object opens onto — reading, writing, and the picture — rendered into `#sheetHost`, **separately** from `render()`. |
 | `panels.js` | `openPanel()` — **every menu in the app** — plus `openMenu()` for a popup hung off a button, the command palette (⌘K), the context menu, and `sampleObject`/`sampleTile` for drawing a type as the thing it makes. |
 | `gestures.js` | Pointer-based drag, resize, lasso, swipe. The fiddliest code in the app. |
@@ -122,12 +122,22 @@ every tile, and the stylesheet only ever *takes away* what there is no longer
 room for — a tile crossing a threshold loses a line rather than rearranging
 itself. 1×1 is handled in `gridTile()` rather than in CSS: the tile is the type's
 mark and nothing else, because at 40px a title is three letters and an ellipsis.
-A drawer front at `sz-short` or `sz-thin` reaches the same answer from the other
-side — the name goes and the mark sits over the knob — and it does it in CSS,
-off a `.dmark` the plain front always renders, so the rule cannot take the name
-off a checklist that happens to be short. The classes are spliced into the first
-`class="` of whatever `drawTile()` returns, so a new branch gets the behaviour
-without being told. See decisions 26 and 50.
+A drawer front at `sz-short` reaches the same answer from the other side — the
+name goes and the mark sits over the knob — and it does it in CSS, off a
+`.dmark` the plain front always renders, so the rule cannot take the name off a
+checklist that happens to be short. At `sz-thin` a container is a spine instead,
+which keeps the name. The classes are spliced into the first `class="` of
+whatever `drawTile()` returns, so a new branch gets the behaviour without being
+told. See decisions 26 and 50.
+
+**A body fills the face it is printed on.** `.tiletext` is `height:100%` inside
+a `.dbody` that is `flex:1;overflow:hidden`, so the tile's own height is what
+decides how much shows. It carried `-webkit-line-clamp:4` for a while, which is
+why a note six cells tall printed four lines and left the bottom half of its own
+paper blank — the clamp was doing a job the box already does. `BODY_ON_FACE` in
+`tiles.js` is the character cut, and it is deliberately larger than any face can
+show. Cut the text *then* escape it: slicing the escaped string cuts through an
+`&amp;` and prints the entity.
 
 **An animation never holds anything up.** This is the one rule in `motion.js`
 and it is easy to break by accident. A tap files, ticks or navigates the
@@ -146,17 +156,52 @@ or more, a smaller one pulls out, a paper shape curls, everything else lifts.
 Don't add a branch on a kind's name to get a different movement; add a value, or
 set `opening` on the type.
 
-A cabinet wears **two knobs**, one either side of the seam, and a drawer wears
+A container is a **cabinet when it stands** — taller than it is wide, at least
+two cells across — and a drawer at any other shape, however big. Which way round
+it is, not how big: an area threshold used to give doors to a 4×3, which is a
+drawer in every piece of furniture ever built. See decision 54.
+
+A cabinet wears **two knobs**, close in either side of the seam, and a drawer wears
 one — `tiles.js` asks `openingFor(o, box)` rather than repeating the size test,
 so setting a tall drawer to "pulls out" puts the single knob back. Pass the box
 being drawn: a sorted board packs tiles into flowed boxes `lay()` knows nothing
-about. See decision 50.
+about. See decisions 50 and 54.
+
+**The seam is the tile's, not the knob strip's.** `<i class="dseam">` hangs off
+the tile and runs `top:-1px` to `bottom:-1px` — the whole height, overshooting by
+the front's own border width so the line cuts *through* the border at both ends.
+It is the gap between two doors and a gap goes all the way; it used to live on
+`.dfoot::before`, which on a `knb-bottom` front is the bottom third of the tile,
+so the seam was a scratch down one panel.
+
+**A knob is turned out of the same wood as the front.** `--knob` defaults to the
+drawer's own colour and what makes it a knob is the *light on it* — a radial
+highlight at the upper left, a shaded underside, a contact shadow — all in
+`.pull`, so every shape gets it. It used to be a flat disc of a lighter shade,
+which is a sticker rather than a handle and gave every drawer a colour nobody
+had chosen. `knobtone` (lighter/darker) and `knobc` (a colour outright) still
+override, in that order.
 
 **Nothing on the desk shimmers.** A magic drawer used to be holographic foil,
 lit from `--holox`/`--holoy` on `#frame` — the phone's tilt, or the pointer.
 It was tacky, and it is gone along with the whole tilt apparatus. Furniture does
 not react to being held. If you want a surface to catch light, give it a reason
 first and read decision 42.
+
+**A container one cell wide is a spine, whatever face it asked for.** The title
+runs up the tile, the way it does on a book on a shelf — `box.w<=1` is part of
+the spine branch's own condition in `drawTile()`, which is why it sits above the
+checklist and the calendar rather than after them. One cell *square* is still the
+mark and nothing else, handled earlier: at 40px a spine has no length to set a
+name along. A magic one gets `magicspine`, which gilds the two bands it already
+has rather than the frame every other magic front wears — inset 5px on a tile one
+cell wide is the whole tile.
+
+**A style is a typeface, and that includes an object's words.** `--serif` is
+whatever the style declares; `.dname`, `.tiletext` and both inline editors are
+set in it. They were pinned to `--sans` — the system face — which meant a note
+and a task were the one thing on the desk not wearing the style, and Starry's
+Optima drawer sat next to a San Francisco note.
 
 **A tag is a magic drawer waiting to happen.** There is no filter mode and no
 filter bar; clicking a tag anywhere calls `drawerForTag()`, which finds the
@@ -271,14 +316,13 @@ the strip with your finger rather than committing at a threshold. A locked board
 has nothing for a finger to carry, so the finger walks the boards — while a tap
 still opens the tile and the long press still opens the menu. See decision 38.
 
-**Navigation is the desk plus whatever you pinned.** There are exactly two
-views: the desk and a drawer. The four fixed tabs (Today, Keeping Up,
-Everything) are gone — they were hard-coded aggregations, which is a magic
-drawer's job. Don't add a view without a very good reason — a magic drawer is
-nearly always the answer. See decision 22. The three that ship pinned are
-exactly those aggregations done properly: **Today** (anything due, every desk),
-**Inbox** (an ordinary drawer, and where a new object lands when nobody said),
-**Everything** (every unfinished task, every desk).
+**Navigation is the desks, and nothing else.** There are exactly two views: the
+desk and a drawer. The four fixed tabs (Today, Keeping Up, Everything) are gone
+— they were hard-coded aggregations, which is a magic drawer's job. Don't add a
+view without a very good reason — a magic drawer is nearly always the answer.
+See decision 22. The three that used to be pinned still ship, as ordinary
+drawers on the desk: **Today** (anything due, every desk), **Inbox** (where a
+new object lands when nobody said), **Everything** (every unfinished task).
 
 **An inbox collects; it does not hold.** It is a magic drawer carrying
 `filter.loose` — "on a desk rather than filed in anything" — so a new object
@@ -304,7 +348,7 @@ front that is also a place. See decision 40.
 **The name at the top left opens every desk at once.** Desks are laid out in
 space, so the row needs a map rather than a strip of buttons — `deskMap()` in
 `views.js` draws each desk small, its boxes on its own board, and pressing one
-goes there. That is why there is no desk on the shelf.
+goes there. Desks are laid out in space, not listed in a strip.
 
 **A magic drawer sees its own desk unless it says otherwise.** `filter.scope` is
 `desk` (the default) | `all` | `some` + `filter.scopeDesks`. Without it, a rule
@@ -312,51 +356,40 @@ on the Exercise desk answers with screenplay scenes. `inScope()` is checked
 before every other clause in `inContainer()`, so it applies to the archive and
 to every rule alike.
 
-**There is one shelf, and it is the last row of the grid.** `S.pins` is a
-single global ordered list — global, not per desk, because something kept to
-hand is kept to hand wherever you are standing, and anything at all may be on
-it. On a phone it is drawn as **a row of the board**: same nine columns, same
-square cell, same texture, one hairline between. Nine by however many rows fit,
-plus one — "9 × 13 +1". It never turns with the pages and never changes with the
-desk. On a Mac it rides in the grid bar instead. Ask `placeOf(id)` —
-`desk | pin | null` — and render with `shelfStrip()`. See decisions 41 and 46.
+**There is no shelf.** There was: one global row along the bottom of a phone,
+drawn as the last row of the grid, holding whatever you kept to hand. It cost a
+row of every board on every desk to answer a question the desks, the magic
+drawers and ⌘K already answer between them, so it is out and the row went back
+to the board — 8×13, 9×14, 10×15. `S.pins` is still loaded, filtered and saved
+untouched, and `placeOf()` still returns `desk | null`; `setPin(id,'pin')` is
+accepted and means "not a desk". Putting the shelf back means putting back
+`shelfStrip()` and `pinTile()` in `views.js`, the two drop branches in
+`gestures.js` and the `.pinrow` block in `chrome.css`. **Don't reintroduce it by
+accident** — if something needs to be to hand from everywhere, that is a magic
+drawer on a desk. See decision 53.
 
-**A pin is a toggle.** Pressing the pin you are already in goes back to
-whatever it interrupted — `PLACE` in `wire.js`, set on the way in and cleared on
-the way out, in memory and never stored. Something you keep to hand is something
-you *duck into*, and ducking in with no way out but the back button is half a
-gesture. A tile on a board is not a toggle: only a pin, because only a pin is
-somewhere you go from anywhere.
+**A tool in the grid bar is something you change while you are working;
+everything else is a settings row.** The lock is leftmost, because it decides
+what every other gesture on the board means. Then the **brush**, which opens
+*this board's* editor — `objectPanel(id)` for a drawer and `objectPanel(ROOT)`
+for the desk, which is the same panel: the desk is a container without a tile,
+not a special case, so it gets its own board colour, its own layout, its own
+sort and its own lock rather than borrowing the app's. Then the **gear**, which
+is the app, and only on a desk. Inside a drawer the gear's place is the star,
+which promotes it. A locked board refuses moves and resizes and **never**
+refuses the long press — see `G.stuck` in `gestures.js`.
 
-**A pinned thing is a 1×1 tile, not a pin.** `pinTile()` draws it through the
-same `gridTile()` the board uses, from a clone with a 1×1 box, so it is the
-type's mark on the thing's own colour filling its slot exactly — whatever a 1×1
-object looks like is what the shelf holds. There was a bespoke pin shape for one
-version; inventing a second kind of object for one row is how an app grows a
-second visual language.
+How a board is laid out and how it sorts itself are *not* tools: they are the
+"Opens as" and "Sorted by" rows of that editor. The sort was a bar toggle
+cycling seven states for a while; a thing you set once and then live with does
+not earn a permanent button on a phone.
 
-**Pinning is a drag onto the shelf, and it does not move the thing.** Carry any
-tile onto `.pinrow` and let go: `setPin(id,'pin')`, and `parent`, `desk` and
-`phone` are all untouched, because pinning is about reach and not about where a
-thing lives. Taking it off is the long press on the pin. The shelf holds
-`GRID.phone.cols` things and refuses the next one — a shelf that scrolls is not
-a row. The row is a **sibling** of `#drawergrid`, not a fourteenth row of it, so
-`boxOk()`, `freeSpot()`, `pageOfBox()` and the pager know nothing about it.
-
-**Every tool in the grid bar is a toggle, not a menu, and the lock is first.**
-It decides what every other gesture on the board means, so it is the leftmost;
-then the sort, which cycles seven states and *wears the one it is on*. A phone
-has no room for a popup asking a question you could answer by pressing the
-button again. A locked board refuses moves and resizes and **never** refuses the
-long press — see `G.stuck` in `gestures.js`. How a board is laid out is not a
-tool: it is the "Opens as" row in the board's own settings.
-
-**A phone board is a chosen number of columns of square cells, plus the
-shelf.** `S.look.grid` is `small` (8) | `extra` (9) | `large` (10), Small by
-default, and the column count is the *only* number it changes — the width is the
-width, so the columns set the cell, the cell is square so it sets the rows, and
-the last row is always the shelf. The free number is how many rows fit
-(`PAGEROWS`, a `floor`, about fifteen at Small on a 390 × 844 screen). A stated
+**A phone board is a chosen number of columns of square cells.**
+`S.look.grid` is `small` (8) | `extra` (9) | `large` (10), Small by default, and
+the column count is the *only* number it changes — the width is the width, so
+the columns set the cell and the cell is square so it sets the rows. The free
+number is how many rows fit (`PAGEROWS`, a `floor`): about 8×13, 9×14 and 10×15
+on a 390 × 844 screen. A stated
 row count cannot be square on a phone-shaped screen and the square cell wins: it
 is what makes every stated size in `KINDS` mean what it says. **A column count
 is a coordinate space**, so `setGridSize()` rescales every stored phone box the
@@ -364,25 +397,35 @@ way a migration does — rounding half *down*, and scaling the left edge rather
 than the column number, which is what makes eight to ten and back the
 arrangement you started with. See decision 48.
 
-**The board is exactly as tall as its rows.** `.deskscroll` is `flex:0 0 auto`
-on a phone, so the few pixels the screen has left over fall *below* the shelf
-rather than above the board — which is both where they are useful and what keeps
-the shelf's end slots clear of the rounded corners of the screen. `sizeGrid()`
-measures the room from `.main` less the bar less the shelf, never from the
-scroller's own height. A page is *not stored*: `y` is one continuous
+**The board is exactly as tall as its rows, and it rides up off the bottom of
+the screen.** `.deskscroll` is `flex:0 0 auto` on a phone, so the few pixels the
+screen has left over fall *below* the board rather than above it. `.main`
+carries a bottom padding of the safe-area inset plus a little, because a phone
+screen is a rounded rectangle and a row that runs into the curve loses its first
+and last tile to it — the shelf used to hold that space and now nothing does.
+`sizeGrid()` measures the room from `.main` less the bar less **that padding**,
+never from the scroller's own height; forget the padding and the last row is
+sized into pixels it cannot be seen in. A page is *not stored*: `y` is one continuous
 coordinate space per container and a page is a window of *n* rows onto it, so
 drag, drop and `freeSpot()` know nothing about pages. The one rule is that
 nothing may straddle a break, enforced in `boxOk()`. Two fingers up and down
 turn pages; two fingers left and right walk the desks. See decision 44. See decision 37.
 
 **Tapping bare board does nothing on a phone; holding it makes something
-there.** Two ways in. **Pulling** the shelf open — a drawer front rises out of
-it and follows your finger, and it opens the type picker only if you carry it
-about a quarter of the screen (`PULL_OPEN`, `HOME_EDGE`, decision 43). And
-**holding a bare cell**, which lights that cell, sizes a box as you drag, and
-opens the picker on it when you let go. On a locked board the difference is
-purely *when you move*: move first and the finger walks the boards, hold first
-and it sketches. See decision 47.
+there.** One way in, and it is the good one: **holding a bare cell** lights that
+cell, sizes a box as you drag, and opens the picker on it when you let go. On a
+locked board the difference is purely *when you move*: move first and the finger
+walks the boards, hold first and it sketches. There was a second — pulling a
+drawer front up out of the shelf (decision 43) — and it went with the shelf,
+which is no loss: pulling made a thing with nowhere in mind, and holding a cell
+makes one *there*, which is what a grid is for. See decisions 47 and 53.
+
+**A board that isn't a grid can still be swiped off.** The one-finger sideways
+swipe starts from the bare cells of a locked grid, which a List, Scroll, Book,
+Calendar or Timeline board hasn't got — so a desk set to List was a desk you
+could not walk off. A press on the `.scroll` background of a gridless board is
+`type:'swipe'` with `xonly`, and `swipeMove()` kills the gesture if the finger
+picks the vertical axis: up and down belongs to the list.
 
 **Holding a tile opens the menu, and moving from there takes the tile — and
 unlocks the board.** The iPhone home screen's gesture, and the gesture is no

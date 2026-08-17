@@ -1702,3 +1702,80 @@ yours.
 *Against:* selecting text in the interface is now impossible outside those
 exemptions, on a Mac as much as on a phone. Copying a drawer's name off its
 front is not a thing you can do. That is the trade the magnifier was worth.
+
+---
+
+### 53. The shelf comes out, and the row goes back to the grid
+
+The shelf was one global row along the bottom of a phone board — the last row of
+the grid, same nine columns, same square cell — holding whatever you wanted to
+hand from wherever you were standing (decisions 41 and 46). It is out.
+
+*Why:* it was the third answer to "what can I reach from here" and the app
+already had two better ones. Desks are laid out in space and walked sideways,
+and the name at the top left opens all of them at once. A magic drawer collects
+anything you can describe, from one desk or from every desk, and pinning one of
+those is what "keep Today to hand" actually means. ⌘K finds the rest. Against
+those three, the shelf's contribution was reach — and it charged a **row of every
+board on every desk** for it, on the one device where rows are scarce. Eight by
+thirteen plus one is eight by fourteen with a row spent on navigation.
+
+So the row goes back to the board: 8×13, 9×14 and 10×15 at the three sizes, and
+the last row of a board is a row you can put something on. The space the shelf
+used to hold at the bottom of the screen — its `margin-bottom` was the safe-area
+inset — moves onto `.main` as padding, because a phone screen is a rounded
+rectangle and a grid that runs into the curve loses its first and last tile to
+it. `sizeGrid()` subtracts that padding before counting rows, so the board never
+reaches for room that was reserved.
+
+Three things went with it, and they are the cost:
+
+- **Pinning.** Carrying a tile onto the shelf, and the long press that took it
+  off again. `setPin(id,'pin')` is still accepted and now means "not a desk"; the
+  panel offers the board or a desk of its own, and nothing else.
+- **The pull.** A drawer front rising up out of the shelf to open the type picker
+  (decision 43). It came out *of* the shelf, so there is nowhere for it to come
+  from. Holding a bare cell (decision 47) is the way in now, and it was always
+  the better half — pulling made a thing with nowhere in mind, holding a cell
+  makes one *there*, which is what a grid is for.
+- **The toggle.** Pressing the pin you were already in went back to whatever it
+  interrupted. Nothing else in the app is somewhere you duck into, so `PLACE`
+  went with the shelf.
+
+`S.pins` is still loaded, filtered and saved exactly as before, and `placeOf()`
+still knows the word. Nothing anybody put on a shelf is lost, and putting it back
+is putting back `shelfStrip()`, `pinTile()` and the two drop branches in
+`gestures.js` — which is why this is written down rather than deleted quietly.
+
+*Against:* something genuinely kept to hand — the drawer you are living in this
+week — is now a tile on a board like everything else, and reaching it from three
+desks away is a swipe rather than a thumb. If that turns out to matter more than
+a row does, the shelf comes back and this decision is the thing to reverse.
+
+---
+
+### 54. A cabinet is which way round it is, not how big it is
+
+`openingFor()` gave doors to a container that **stands** — taller than it is
+wide, at least two cells across — *or* to one over a certain area: sixteen cells
+on a desk, four on a phone.
+
+The second clause was wrong and it was wrong loudly. A 4×3 drawer — a front half
+again as wide as it is tall — is twelve cells, which cleared the phone threshold
+three times over, so the commonest shape of drawer on a phone board swung open
+like a wardrobe. No piece of furniture ever built puts doors on something wider
+than it is tall; that is a drawer, and it pulls.
+
+So the area test is gone and `standing()` is the whole of it. Size is not the
+question. A 6×5 chest is a drawer, a 2×3 is a cabinet, and the front says which
+before you touch it — one knob or two, either side of a seam.
+
+The seam grew up with it. It ran from 6% to 94% of the knob strip's height,
+which on a `knb-bottom` front was 6% of the bottom third — a scratch down one
+panel rather than the place two of them meet. It hangs off the tile now, top to
+bottom, overshooting by the front's own border width so it cuts through the
+border at both ends. Two doors have a gap between them and the gap goes all the
+way.
+
+*Against:* a large square container no longer swings, and the cabinet movement
+is now rarer than it was. That is the price of the front telling the truth.

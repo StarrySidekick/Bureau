@@ -1,6 +1,6 @@
 import { $, $$, esc, ic, uid, D, ROOT } from './util.js';
 import { S, K, KINDS, KEYS, refreshKinds, ATTRS, USER_ATTRS, attrsOf, has, SHAPES,
-  FACES, SORTS, MANUAL, sortOf, nextSort, byId, container, cfgOf, isContainer, isAncestor, relate,
+  FACES, MANUAL, byId, container, cfgOf, isContainer, isAncestor, relate,
   unrelate, sensedDevice, reset, T, dz, dev, calViewOf } from './model.js';
 import { gridOf, lay, boxOk, freeSpot, toPhoneSize } from './grid.js';
 import { applyLook, applyStyle, setLookVal, lookVal, STYLES, randomFront,
@@ -268,18 +268,10 @@ function act(name, el){
     // has to be the thing that gets redrawn
     case 'bookprev': turnPage(-1, S.readId?renderSheet:render); break;
     case 'booknext': turnPage( 1, S.readId?renderSheet:render); break;
-    // a menu hung off the button, not a modal in the middle of the screen
-    /* Sort is a toggle, not a popup. Seven states and the button wears the one
-       it is on — a letter where a letter is the answer, an arrow where a
-       direction is — so pressing it again is both "change this" and "what is
-       it now", which is the only shape that fits a phone's top shelf. */
-    case 'sortnext': {
-      const id=el.dataset.id, next=nextSort(container(id));
-      cfgOf(id).sort = next;
-      save(); render();
-      toast(next===MANUAL ? 'As you arranged them' : SORTS[next][0]);
-      break;
-    }
+    /* Sort used to be a toggle in the bar, cycling seven states and wearing
+       the one it was on. It is the "Sorted by" row of the board's own editor
+       now: how a board arranges itself is something you decide once, and a
+       tool is for what you change while you are working. */
     // locked refuses moves and resizes; the long press still opens the menu
     case 'togglelock': {
       const id=el.dataset.id, c=cfgOf(id);
@@ -325,12 +317,6 @@ function act(name, el){
     }
   }
 }
-
-/* Where a pin took you *from*. A pin is a toggle — press it again and you go
-   back — so the one thing it has to remember is the place it interrupted.
-   In memory and never stored: where you happened to be standing a moment ago
-   is not a fact about the desk. */
-const PLACE = {view:null, drawerId:null};
 
 function wire(){
   const frame=$('#frame');
@@ -438,8 +424,6 @@ function wire(){
       else if(cmd==='drawerset'||cmd==='objset') objectPanel(id);
       else if(cmd==='opendrawer'){ S.view='drawer'; S.drawerId=id; render(); }
       else if(cmd==='pin') togglePin(id);
-      else if(cmd==='unpin'){ setPin(id, null); save(); toast('Off the shelf'); }
-      else if(cmd==='topin'){ setPin(id, 'pin'); save(); toast('On the shelf'); }
       else if(cmd==='done') toggleDone(id);
       else if(cmd==='today'){ byId(id).due=T; render(); toast('Scheduled today'); }
       else if(cmd==='tom'){ byId(id).due=dz(1); render(); toast('Scheduled tomorrow'); }
@@ -576,10 +560,9 @@ function wire(){
     // a plain click anywhere clears the selection before doing anything else
     if(S.sel.length && !t.closest('#ctx')) S.sel=[];
 
-    // a breadcrumb, a tile, or a button on the shelf — all open the drawer
+    // a breadcrumb or a tile — both open the drawer
     const dr=t.closest('[data-drawer]');
-    if(dr && (dr.tagName==='B' || dr.classList.contains('drawer') || dr.classList.contains('pinbtn'))){
-      const isPin = !!dr.closest('.pinbar');
+    if(dr && (dr.tagName==='B' || dr.classList.contains('drawer'))){
       /* A tap on a tile is answered on pointerup, by tileTap — which plays the
          opening and then navigates. The browser sends a click afterwards
          anyway, and it lands here; redrawing the board a second time is
@@ -587,20 +570,10 @@ function wire(){
          with the element carrying it. So: if we are already there, we are
          already there.
 
-         A pin is the exception, because a pin is a **toggle**: press it and you
-         are in Today, press it again and you are back where Today interrupted.
-         Something you keep to hand is something you duck into, and ducking in
-         with no way but the back button to duck out again is half a gesture. */
-      if(S.view==='drawer' && S.drawerId===dr.dataset.drawer){
-        if(!isPin) return;
-        const back = (PLACE.view==='drawer' && byId(PLACE.drawerId))
-          ? {view:'drawer', drawerId:PLACE.drawerId} : {view:'desk', drawerId:null};
-        PLACE.view=null; PLACE.drawerId=null;
-        S.view=back.view; S.drawerId=back.drawerId; S.kindFilter=null;
-        render(); enter('back'); return;
-      }
-      // …and going *in* by a pin is what records the place to come back to
-      if(isPin){ PLACE.view=S.view; PLACE.drawerId=S.drawerId; }
+         The shelf used to be the exception — a pin was a toggle you ducked into
+         and back out of. There is no shelf, so there is nothing to duck into
+         and nothing here that isn't a place you walked to. */
+      if(S.view==='drawer' && S.drawerId===dr.dataset.drawer) return;
       // …and a tile that gets here without a tap behind it — the keyboard, or
       // anything synthetic — still opens the way a tile opens
       if(dr.closest('.grid')){ tileTap(dr.dataset.drawer); return; }
@@ -774,7 +747,9 @@ function wire(){
       return;
     }
     if(e.target.dataset.palpha!=null){
-      const o=byId(e.target.dataset.id); if(o){ o.boardAlpha=(+e.target.value)/100; save(); render(); }
+      // cfgOf() for the desk, which is a container without an object behind it
+      const o=byId(e.target.dataset.id) || cfgOf(e.target.dataset.id);
+      if(o){ o.boardAlpha=(+e.target.value)/100; save(); render(); }
       return;
     }
     // the type builder's size sliders — the Mac pair, then the phone pair

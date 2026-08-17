@@ -176,15 +176,13 @@ function setGridSize(key){
 }
 
 /* Where a drawer is kept, which is deliberately not a property of the drawer —
-   see the note on the shelf in model.js. `where` is:
+   see the note in model.js. `where` is:
 
      desk    out in the master space, somewhere you can be
-     pin     on the shelf, to hand from wherever you are
-     null    neither: an ordinary drawer, on the board where it lives
+     null    an ordinary drawer, on the board where it lives
 
-   A drawer is in at most one of them, so asking for one takes it out of the
-   other. Both append, so a row fills left to right in the order you chose
-   things, and taking one out leaves the rest where they were.
+   The row appends, so it fills left to right in the order you chose things, and
+   taking one out leaves the rest where they were.
 
    Becoming a desk is a **move**, not a label. A desk is somewhere you can be,
    and a thing cannot be both a place you go to and a front sitting on somebody
@@ -193,13 +191,16 @@ function setGridSize(key){
    it, because it is a new coordinate space either way. See decision 40. */
 function setPin(id, where){
   const o=byId(id); if(!o) return;
-  const to = where===true ? 'desk' : (where||null);
-  // only a container can be a desk — a desk is a place, and a place holds
-  // things. Anything at all can go on the shelf.
+  /* 'pin' is still accepted and still means "not a desk": the shelf is out for
+     now (decision 53) and there is nowhere for a pinned thing to be drawn, so
+     asking for it takes the drawer off the desk row and leaves it on its board.
+     Old data keeps its `S.pins` list, untouched, for whenever the shelf comes
+     back. */
+  const to = where===true ? 'desk' : (where==='pin' ? null : (where||null));
+  // only a container can be a desk — a desk is a place, and a place holds things
   if(to==='desk' && !isContainer(o)) return;
   const was = placeOf(id);
   S.desks = (S.desks||[ROOT]).filter(x=>x!==id);
-  S.pins = (S.pins||[]).filter(x=>x!==id);
   if(to==='desk'){
     S.desks.push(id);
     if(was!=='desk'){
@@ -208,7 +209,6 @@ function setPin(id, where){
       o.parent=null; o.desk=null; o.phone=null;
     }
   } else {
-    if(to==='pin') S.pins.push(id);
     if(was==='desk'){
       o.parent = (o.wasIn && (o.wasIn===ROOT || byId(o.wasIn))) ? o.wasIn : ROOT;
       delete o.wasIn; o.desk=null; o.phone=null;

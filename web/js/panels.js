@@ -13,7 +13,7 @@ import { randomBoard, randomFront, hexOf, objColour, objSlots, palNow, OBJ0, bor
 import { CLICKS, clickOf, gridTile, pending } from './tiles.js';
 import { quickAdd, toast } from './mutations.js';
 import { openObj, openWriter, openRead, renderSheet } from './sheet.js';
-import { render, settingsPanel } from './views.js';
+import { render, settingsPanel, gridSizeField } from './views.js';
 import { openingFor } from './motion.js';
 import { save } from './persist.js';
 
@@ -328,7 +328,11 @@ function objectPanelBody(id){
   }
 
   /* ---- how it looks ---- */
-  out.push(cont
+  /* A face is how a container draws itself on its parent's board, and the desk
+     has no parent and no tile — asking it which front to wear is asking about
+     a thing that does not exist. Everything below this line does apply to it:
+     a desk is a container, and what it is made of is its own question. */
+  if(!isRoot) out.push(cont
     ? prow('Face', psel(id,'face', Object.entries(FACES), faceOf(d)), 'on its parent’s board')
     : prow('Shape', psel(id,'shape', Object.entries(SHAPES), shapeOf(d))));
   if(!isRoot) out.push(prow(cont?'Front':'Colour', swatches(id,'c', d.c)));
@@ -353,20 +357,34 @@ function objectPanelBody(id){
       [['round','Round'],['diamond','Diamond'],['bar','Bar'],['ring','Ring'],['square','Square'],['orb','Orb']], d.knob||'round')
       + psel(id,'knobsize', Object.entries(KNOBSIZES), knobSizeOf(d))
       + psel(id,'knobpos', [['centre','Centre'],['bottom','Bottom']], d.knobpos||'centre')));
-    out.push(prow('Knob colour', psel(id,'knobtone',[['light','Lighter'],['dark','Darker']], d.knobtone||'light')
-      + `<div class="pickgrid sw" style="margin-top:5px">${
+    /* A knob is turned out of the same wood as the front, so by default that is
+       what it is: the drawer's own colour, told apart by the light on it rather
+       than by being a different colour. Lighter and darker are still there for
+       a brass handle on a walnut front — and so is a colour outright. The first
+       swatch is the way back to the front's own. */
+    out.push(prow('Knob colour', psel(id,'knobtone',
+        [['','Same as the front'],['light','Lighter'],['dark','Darker']], d.knobc?'':(d.knobtone||''))
+      + `<div class="pickgrid sw" style="margin-top:5px">
+        <button data-pknobc="" data-id="${id}" title="Follow the front" class="${d.knobc?'':'on'}"
+          style="background:var(--paper);border-style:dashed"></button>${
         ['#F8F3E6','#A9793F','#2A241C','#C0563F','#3E7A6B','#5D7E99'].map(c=>
         `<button data-pknobc="${c}" data-id="${id}" class="${d.knobc===c?'on':''}" style="background:${c}"></button>`).join('')}</div>`));
     out.push(prow('Texture', psel(id,'texture',
       [['none','None'],['dots','Dots'],['grid','Graph'],['weave','Weave'],['weave2','Wide weave'],
        ['check','Checker'],['rule','Ruled'],['stars','Stars'],['sheen','Sheen']], d.texture||'none')));
+  }
+  /* What the board underneath is made of. The desk gets this too — it is a
+     container like any other, and repainting *this* desk used to be impossible
+     without repainting every one of them from the app's settings. */
+  if(cont){
     out.push(prow('Board', `<div class="pickgrid sw">${[0,1,2,3,4,5].map(()=>randomBoard()).map(b=>{
         const [a,z]=b.split('|');
         return `<button data-pboard="${b}" data-id="${id}" style="background:linear-gradient(135deg,${a} 0 50%,${z} 50% 100%)"></button>`;}).join('')}
-        <button data-pboard="" data-id="${id}" title="Use the desk's board" class="${d.board?'':'on'}"
+        <button data-pboard="" data-id="${id}" title="${isRoot?'Use the app’s board':'Use the desk’s board'}" class="${d.board?'':'on'}"
           style="background:var(--paper);border-style:dashed"></button></div>
       <input class="pslide" type="range" min="0" max="100" step="5"
-        value="${Math.round((d.boardAlpha==null?1:d.boardAlpha)*100)}" data-palpha data-id="${id}">`));
+        value="${Math.round((d.boardAlpha==null?1:d.boardAlpha)*100)}" data-palpha data-id="${id}">`,
+      isRoot?'this desk only':''));
   }
   if(img) out.push(prow('Frame', psel(id,'frame',
     [['none','None'],['mount','Mount'],['gilt','Gilt'],['walnut','Walnut'],['black','Lacquer'],['polaroid','Instant']], d.frame||'none')));
@@ -384,8 +402,12 @@ function objectPanelBody(id){
       [[MANUAL,'As I arranged them'], ...Object.entries(SORTS).map(([k,[nm]])=>[k,nm])],
       sortOf(d)||MANUAL)));
     out.push(prow('Moving things', psel(id,'locked',[['','Movable'],['1','Locked']], d.locked?'1':'')));
+    /* A desk is somewhere you stand, so its editor is also where the shape of
+       the space it is drawn in is asked about. It is the one row here that is
+       not this desk's alone, and it says so. */
+    if(isRoot || isDesk(id)) out.push(gridSizeField());
     if(!isRoot) out.push(prow('Where it is kept', psel(id,'pin',
-      [['','On the board it lives on'],['desk','A desk of its own'],['pin','On the shelf']],
+      [['','On the board it lives on'],['desk','A desk of its own']],
       placeOf(id)||''),
       'a desk leaves the board it was on'));
     /* What a magic drawer can see. The default is its own desk, which for a
@@ -836,11 +858,6 @@ function openCtx(x,y,id){
            ${has(o,'text')?`<button data-c="read:${id}">${ic('eye',14)} Read</button>
              <button data-c="write:${id}">${ic('edit',14)} Write…</button>`:''}`}`}
     ${(!many&&(has(o,'check')||has(o,'streak')))?`<button data-c="done:${id}">${ic('check',14)} ${has(o,'streak')?'Mark today':'Complete'}</button>`:''}
-    ${/* Pinning is a drag onto the shelf; taking it off again has to be
-         somewhere, and the menu is where every other "about this one" lives. */''}
-    ${many?'' : placeOf(id)==='pin'
-      ? `<button data-c="unpin:${id}">${ic('star',14)} Take off the shelf</button>`
-      : `<button data-c="topin:${id}">${ic('star',14)} Keep on the shelf</button>`}
     <button data-c="intodrawer:${id}">${ic('folder',14)} ${many?`Put these ${sel.length} in a new drawer`:'Put this in a new drawer'}</button>
     <button data-c="move:${id}">${ic('folder',14)} Move to drawer…</button>
     ${many?'':`<button data-c="today:${id}">${ic('calendar',14)} Schedule today</button>

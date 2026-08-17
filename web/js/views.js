@@ -1,7 +1,6 @@
 import { $, esc, ic, D, md, clamp, ROOT } from './util.js';
 import { S, K, T, byId, has, isContainer, containers, container, childrenOf, chainOf,
-  deskTitle, rootObj, shelfDrawers, deskIds, deskHere, deskOf, isDesk, allTags, dev,
-  sortOf, SORTS, MANUAL, sortMark,
+  deskTitle, rootObj, deskIds, deskHere, deskOf, isDesk, allTags, dev,
   layoutOf, takesTyping, genKindOf, CALVIEWS, calViewOf, calCols,
   spanOf, coversDay, lastDay } from './model.js';
 import { GRID, PHONE_GRIDS, CELL, COLW, PAGEROWS, pageRows, pageOfBox, lastPage,
@@ -15,21 +14,13 @@ import { APP_VERSION, DATA_V, save, storeSize, install } from './persist.js';
 /* The desk is nothing but the grid. There is no toolbar: New, Arrange and
    Settings are control objects sitting on it, so the grid is the whole page. */
 /* ---- the top shelf ------------------------------------------------------
-   Where you are on the left, the tools on the right, and on a Mac whatever is
-   pinned in between. Every tool is a toggle you press rather than a menu you
-   open: the view cycles, the sort cycles through its seven and *says which one*
-   in one glyph, and the lock is a lock that is open or shut. A phone has no
-   room for a popup that asks a question you could have answered by pressing
-   the button again. */
-const SORTLABEL = k => k===MANUAL ? 'As I arranged them' : SORTS[k][0];
-function sortButton(c){
-  const cur = sortOf(c) || MANUAL;
-  const mark = cur===MANUAL
-    ? `<b class="sortletter">M</b>`
-    : /^arrow/.test(sortMark(cur)) ? ic(sortMark(cur),16) : `<b class="sortletter">${sortMark(cur)}</b>`;
-  return `<button class="sqbtn${cur!==MANUAL?' on':''}" data-act="sortnext" data-id="${c.id}"
-    title="Sorted: ${esc(SORTLABEL(cur))} — tap for the next">${mark}</button>`;
-}
+   Where you are on the left, the tools on the right. Every tool is a toggle you
+   press rather than a menu you open: the lock is a lock that is open or shut,
+   and the star is a place or not a place. A phone has no room for a popup that
+   asks a question you could have answered by pressing the button again — and no
+   room for a tool that isn't one. How a board sorts itself is a thing you set
+   once and then live with, so it is the "Sorted by" row of the board's own
+   editor now and the bar is shorter for it. */
 /* What a container is called at the top of its own board. Home has no title of
    its own — it is whoever's desk this is. */
 const boardName = o => !o || o.id===ROOT ? deskTitle() : (o.title||'Untitled');
@@ -68,10 +59,6 @@ function gridBar(c){
           ? [...Array(pages)].map((_,i)=>`<i class="${i===pageAt(c.id)?'on':''}" data-gopage="${i}"></i>`).join('')
           : `<b>${pageAt(c.id)+1}<u>/${pages}</u></b>`}</span>`:''}
     </div>
-    ${/* A Mac has no bottom edge worth reserving, so the one shelf rides up
-         here beside the tools. On a phone it is its own strip along the
-         bottom, which is the half a thumb reaches — see viewHTML(). */''}
-    ${S.device==='desk' ? shelfStrip() : ''}
     <div class="bartools">
       ${/* The lock comes first, because it is the one that changes what every
            other gesture on the board means — and on a locked board it is the
@@ -81,23 +68,27 @@ function gridBar(c){
            opens the menu either way. */''}
       <button class="sqbtn${c.locked?' on locked':''}" data-act="togglelock" data-id="${c.id}"
         title="${c.locked?'Locked — tap to unlock':'Unlocked — tap to lock'}">${ic(c.locked?'lock':'unlock',16)}</button>
-      ${sortButton(c)}
-      ${/* How a board is laid out is a thing you set once and then live with,
-           which is a settings question and not a tool. It is the "Opens as"
-           row in the board's own panel now, and the bar is shorter for it. */''}
+      ${/* How a board is laid out and how it sorts itself are things you set
+           once and then live with, which is a settings question and not a
+           tool. Both are rows in the board's own editor now. */''}
       ${/* The star promotes: a drawer becomes a desk of its own, out in the
-           master space, and stops being on the board it was on at all. The
-           shelf is the quieter half of the same question and lives in the
-           panel. */''}
+           master space, and stops being on the board it was on at all. */''}
       ${c.id===ROOT?'':`<button class="sqbtn${isDesk(c.id)?' on':''}" data-act="pin" data-id="${c.id}"
         title="${isDesk(c.id)?'Make it an ordinary drawer again':'Give it a place of its own'}">${ic('star',16)}</button>`}
-      ${/* The gear is the *app's* settings and belongs to the desk. Inside a
-           drawer the same slot asks about the drawer, which is an object, and
-           that is the object editor — a brush, because what it mostly changes
-           is how the thing looks, and because a gear standing for two different
-           questions in the same corner of the same bar is one icon too few. */''}
-      <button class="sqbtn" data-act="${c.id===ROOT?'appsettings':'drawersettings'}" data-id="${c.id}"
-        title="${c.id===ROOT?'Settings':'Object editor'}">${ic(c.id===ROOT?'gear':'brush',16)}</button>
+      ${/* The brush is *this board*, whichever board it is. A drawer is an
+           object and opens its object editor; a desk is a container without a
+           tile and opens the same editor for itself — how it is laid out, what
+           it sorts by, what colour its board is. It used to be that the desk
+           had no editor at all and the gear stood in for one, which meant the
+           only way to repaint one desk was a setting that repainted them all.
+           A brush, because what it mostly changes is how the thing looks. */''}
+      <button class="sqbtn" data-act="drawersettings" data-id="${c.id}"
+        title="${c.id===ROOT?'This desk':'Object editor'}">${ic('brush',16)}</button>
+      ${/* …and the gear is the *app*, which is a different question and only
+           worth asking from a desk. Two icons rather than one standing for
+           both. */''}
+      ${c.id===ROOT?`<button class="sqbtn" data-act="appsettings" data-id="${c.id}"
+        title="Settings">${ic('gear',16)}</button>`:''}
     </div>
   </div>`;
 }
@@ -333,6 +324,28 @@ function viewDrawer(){
    state it can also change, so wire() rebuilds it through refreshPanel() when
    one of its own controls fires. */
 function bytes(n){ return n<1024? n+' B' : n<1048576? (n/1024).toFixed(1)+' KB' : (n/1048576).toFixed(2)+' MB'; }
+
+/* ---- how many columns a phone board has -------------------------------
+   Three sizes to try on, and the only number that changes is the column count
+   — the width is the width, so the columns set the cell and the cell sets
+   everything else. Switching rescales every stored phone box, the way a
+   migration would. See decision 48.
+
+   It lives in two panels: the app's settings, and the editor for whichever
+   desk you are standing on. It is the same one number in both, and it says so
+   — a column count is a **coordinate space**, and one desk drawn eight across
+   while its neighbour is drawn ten is two spaces, not two looks. Everything
+   else in the desk's editor is that desk's alone; this is the one row that
+   isn't, so it is the one row that admits to it. */
+function gridSizeField(){
+  return `<div class="field" style="margin-top:12px"><label>iPhone grid</label>
+      <div class="filterbar">${Object.entries(PHONE_GRIDS).map(([k,n])=>
+        `<button class="fchip${(S.look.grid||'small')===k?' on':''}" data-gridsize="${k}">${
+          k[0].toUpperCase()+k.slice(1)} · ${n} across</button>`).join('')}</div>
+      <div class="mini" style="--k:var(--brass);margin-top:6px">Fewer columns, bigger cells. The rows are whatever fits — a cell is square, so the columns decide both. This sets every board on every desk, because a column count is where things are rather than how they look.${
+        S.device==='phone' ? ` Right now: <b>${GRID.phone.cols} × ${pageRows('phone')}</b>.` : ''}</div>
+    </div>`;
+}
 const installed = ()=> window.matchMedia('(display-mode: standalone)').matches || !!window.navigator.standalone;
 
 function settingsPanel(){
@@ -411,17 +424,7 @@ function settingsBody(){
       ${lookVal('board')?`<button class="pill" style="margin-top:6px" data-look="board" data-val="">Reset</button>`:''}
     </div>
 
-    ${/* Three sizes to try on, and the only number that changes is how many
-         columns a phone board has — the width is the width, so the columns set
-         the cell and the cell sets everything else. Switching rescales every
-         stored phone box, the way a migration would. See decision 48. */''}
-    <div class="field" style="margin-top:12px"><label>iPhone grid</label>
-      <div class="filterbar">${Object.entries(PHONE_GRIDS).map(([k,n])=>
-        `<button class="fchip${(S.look.grid||'small')===k?' on':''}" data-gridsize="${k}">${
-          k[0].toUpperCase()+k.slice(1)} · ${n} across</button>`).join('')}</div>
-      <div class="mini" style="--k:var(--brass);margin-top:6px">Fewer columns, bigger cells. The rows are whatever fits — a cell is square, so the columns decide both — and the last one is always the shelf.${
-        S.device==='phone' ? ` Right now: <b>${GRID.phone.cols} × ${pageRows('phone')} +1</b>.` : ''}</div>
-    </div>
+    ${gridSizeField()}
 
     <div class="field" style="margin-top:12px"><label>Whose desk this is</label>
       <input data-lookinput="owner" value="${esc(S.look.owner||'')}" placeholder="Your name">
@@ -495,89 +498,25 @@ function settingsBody(){
 }
 
 /* ============================================================
-   13 · the pin bar — the only navigation there is
+   13 · the shelf — taken out, for now
    ============================================================
    There used to be four fixed tabs here: Desk, Today, Keeping Up, Everything.
    Three of them were aggregations, which is precisely what a magic drawer
    does, so they were three hard-coded answers to a question the app already
-   lets you ask yourself. They are gone. What is on the bar is now whatever
-   drawers you pinned — the same strip on both devices, along the top on a Mac
-   and along the bottom on a phone. See decision 22.
+   lets you ask yourself (decision 22). What replaced them was the shelf: one
+   global row of whatever you kept to hand, drawn as the last row of the phone
+   grid (decision 46).
 
-   With nothing pinned the bar isn't drawn at all, so a desk you haven't
-   customised stays what decision 14 wanted: nothing but grid. */
-/* One renderer for both shelves. `where` is 'top' or 'bottom'.
+   That row is gone too. It cost a row of every board on every desk for a
+   navigation the app already has three of — the desks are walked sideways and
+   laid out by the title, a magic drawer collects anything you can describe,
+   and ⌘K finds the rest. The board it was taking a row from is the app. So it
+   comes out and the row goes back to the grid, which is what makes the three
+   sizes 8×13, 9×14 and 10×15 rather than a row less each.
 
-   On a Mac both are drawn inside the grid bar, because a desk has no bottom
-   edge worth reserving; on a phone the top shelf rides in the grid bar and the
-   bottom one is its own strip along the bottom, which is the half of the screen
-   a thumb reaches.
-
-   A pin is a **square** now, the same square as the tools above it, in the
-   drawer's own colour with its mark on it. It used to be a little drawer front
-   with a name under it, which meant five of them across a phone gave each one
-   78px and "Done & Dusted" fitted in none of them. A square and a bigger mark
-   say which drawer it is from further away than eight-point type ever did. */
-/* On a Mac the shelf rides in the grid bar, where it is a row of buttons in a
-   toolbar and looks like one: a little front with its name beside the mark. */
-function pinBtn(d, on){
-  const key = isContainer(d) ? 'data-drawer' : 'data-row';
-  return `<button class="pinbtn${on?' on':''}${has(d,'magic')?' magic':''}"
-      ${key}="${d.id}" data-pin="${d.id}"
-      style="--c:${objColour(d)}" title="${esc(d.title||'Untitled')}">
-    <i class="pinface">${ic(has(d,'magic')?'sparkle':K(d.kind).ic, 20)}</i>
-    <span>${esc(d.title||'Untitled')}</span></button>`;
-}
-/* …and on a phone it is **the object itself, one cell square** — the same tile
-   `gridTile()` would draw if you put it on the board at 1×1, which is the type's
-   mark on the thing's own colour. There was a bespoke pin shape here for a
-   version: rounded, labelled, and not quite anything else in the app. The shelf
-   is a row of the grid, so what sits in it is a tile; inventing a second kind of
-   object for one row is how an app grows a second visual language.
-
-   The box is a clone, not the real one — a thing on the shelf is *also*
-   somewhere on a board, and its own coordinates are none of the shelf's
-   business. See decision 46. */
-function pinTile(o, on, col){
-  const box={x:col, y:1, w:1, h:1};
-  return gridTile({...o, desk:box, phone:box}, false, o.parent||ROOT)
-    .replace('class="', `class="pinned${on?' on':''} `)
-    .replace('style="', `data-pin="${o.id}" style="`);
-}
-/* One shelf, and anything may sit on it. It used to be the row of desks, with
-   a second strip up top for whatever you had pinned on the desk you happened
-   to be standing on — two answers to one question, at opposite ends of the
-   screen. The desks came off it (they are walked to, and the title lays them
-   all out); what is left is the catch-all: a drawer, a magic drawer, a
-   project, a film, a note — kept to hand from wherever you are. Decision 41.
-
-   On a phone it is **the last row of the grid**: same nine columns, same
-   square cell, same board under it, divided from the board by one hairline.
-   Nine columns of thirteen-ish rows plus one — "9×13 +1". It was a strip of
-   chrome bolted under the board, which made the shelf a different kind of
-   thing from everything it held; a row of the grid is a shelf you can *drop
-   onto*, and dropping something on it is what pinning now is. Decision 46.
-
-   It does not turn with the pages and it does not change with the desk. That
-   is the whole point of it: the board moves, the shelf stays. */
-function shelfStrip(){
-  const pins=shelfDrawers();
-  const here = id => S.view==='drawer' && S.drawerId===id;
-  if(S.device==='desk'){
-    if(!pins.length) return '';
-    return `<nav class="shelf shelf-bottom pinbar" data-shelf="pins">
-      ${pins.map(d=>pinBtn(d, here(d.id))).join('')}
-    </nav>`;
-  }
-  /* The cell comes from the last measurement, written inline, so the row is
-     the right height on its first frame — the same reason gridOfContainer()
-     writes the checker squares. sizeGrid() corrects both after layout. */
-  const g=gridOf('phone'), cell=CELL.phone, colw=COLW.phone;
-  return `<nav class="pinrow pinbar" data-shelf="pins"
-      style="--cols:${g.cols};--rowh:${cell}px;--checkerx:${2*colw}px;--checkery:${2*cell}px">
-    ${pins.slice(0, g.cols).map((d,i)=>pinTile(d, here(d.id), i+1)).join('')}
-  </nav>`;
-}
+   `S.pins` is still read and written by storage, and `placeOf()` still knows
+   the word — nothing about anyone's data changes, and putting the shelf back
+   means putting these two functions back. See decision 53. */
 
 /* ---- every desk, laid out ---------------------------------------------
    The row of desks is a space you walk, and a space you walk needs a map. The
@@ -673,17 +612,13 @@ function reveal(id){
 }
 
 /* The whole of what `#app` holds, as a string, for wherever S says you are.
-   No sidebar and no tabs: the desk is the navigation. Drawers are on it, the
-   pinned ones are one tap away, ⌘K finds anything, the breadcrumb walks up.
-   On a Mac the pins ride in the grid bar (see gridBar); on a phone they get
-   the bottom bar, which is the one place a thumb reaches — and there it is a
-   real flex child of .main rather than something floating over the board,
-   which is what makes the board end exactly where the shelf begins with
-   nothing to scroll past. */
+   No sidebar, no tabs and no shelf: the desk is the navigation. Drawers are on
+   it, a sideways swipe walks the desks, the title lays them all out, ⌘K finds
+   anything, and the breadcrumb walks up. */
 function viewHTML(){
   const body = S.view==='drawer' ? viewDrawer()
              : viewDesk();          // the desk is the only other place there is
-  return `<div class="main">${body}${S.device==='phone'?shelfStrip():''}</div>`;
+  return `<div class="main">${body}</div>`;
 }
 
 /* The same thing, for somewhere you are *not*. The pager slides the board you
@@ -751,18 +686,21 @@ function sizeGrid(){
      bottom row hang half a cell past the shelf and forced the board to scroll
      to reach it. Zero on a Mac: a desk scrolls. */
   /* How many rows fit, measured from the room the board actually has: the
-     whole column, less the bar and less the shelf. It used to divide the
-     scroller's own height, which worked only while the scroller was the thing
-     absorbing the leftover — and that put the spare pixels *above* the board,
-     which is the dead strip under the title in the screenshot. The scroller is
-     the height of its rows now (`flex:0 0 auto`), so the shelf rides up
-     directly beneath the last row and the spare falls below it, clear of the
-     rounded corners of the screen. */
+     whole column, less the bar. It used to divide the scroller's own height,
+     which worked only while the scroller was the thing absorbing the leftover
+     — and that put the spare pixels *above* the board, which is a dead strip
+     under the title. The scroller is the height of its rows now
+     (`flex:0 0 auto`), so the spare falls below the last row instead.
+
+     `clientHeight` counts the padding, and the bottom one is the strip the
+     phone's own rounded corners and home bar are eating — so it comes off
+     here, or the last row would be sized into pixels it can't be seen in.
+     That inset is what took the shelf's place: the board stops a few
+     millimetres up rather than running into the curve of the screen. */
   const sc=grid.parentElement, main=grid.closest('.main');
   if(dev()==='phone' && main){
-    const bar=main.querySelector('.gridbar'), pin=main.querySelector('.pinrow');
-    const below = pin ? pin.getBoundingClientRect().height
-                      + (parseFloat(getComputedStyle(pin).marginBottom)||0) : 0;
+    const bar=main.querySelector('.gridbar');
+    const below = parseFloat(getComputedStyle(main).paddingBottom)||0;
     const avail = main.clientHeight - (bar?bar.getBoundingClientRect().height:0) - below;
     const rows=Math.max(4, Math.floor(avail / Math.max(1,w)));
     if(rows!==PAGEROWS.phone){ PAGEROWS.phone=rows; if(!sizing){ sizing=true; try{ render(); } finally { sizing=false; } return; } }
@@ -782,22 +720,12 @@ function sizeGrid(){
   // as two, because the two are measured separately and one may drift first
   grid.style.setProperty('--checkerx', 2*(w+g.gap)+'px');
   grid.style.setProperty('--checkery', 2*(cell+g.gap)+'px');
-  /* The shelf is the last row of the same grid, so it is the same cell. It is
-     a sibling element rather than a fourteenth row of this one — the board's
-     coordinate space stays exactly what it was, and boxOk(), freeSpot() and
-     the pager go on knowing nothing about it. */
-  const pr=$('.pinrow');
-  if(pr){
-    pr.style.setProperty('--rowh', cell+'px');
-    pr.style.setProperty('--checkerx', 2*(w+g.gap)+'px');
-    pr.style.setProperty('--checkery', 2*(cell+g.gap)+'px');
-  }
   grid.style.gridAutoRows = cell+'px';
   const rows=(grid.style.gridTemplateRows.match(/repeat\((\d+)/)||[])[1];
   if(rows) grid.style.gridTemplateRows=`repeat(${rows},${cell}px)`;
   if(changed){ sizing=true; try{ render(); } finally { sizing=false; } }
 }
 
-export { render, sizeGrid, reveal, shelfStrip, deskMap, viewHTML, previewHTML,
-  pageAt, pageCount, goPage,
+export { render, sizeGrid, reveal, deskMap, viewHTML, previewHTML,
+  pageAt, pageCount, goPage, gridSizeField,
   settingsPanel, toggleSettings };

@@ -592,29 +592,19 @@ function deskOf(o){
 // which desk you are looking at, whichever board of it you are on
 const deskHere = ()=> deskOf(S.view==='drawer' && S.drawerId ? S.drawerId : ROOT);
 
-/* ---- the shelf ---------------------------------------------------------
-   There was briefly a second one. The bottom strip held the row of desks and
-   the top strip held whatever you had pinned on the desk you were standing on,
-   which meant two answers to one question — "what can I reach from here" —
-   living at opposite ends of the screen, and a desk needing two ways of being
-   got to.
+/* ---- where a container is kept -----------------------------------------
+   There was a shelf: one global row along the bottom of a phone, holding
+   whatever you wanted to hand from wherever you were standing. It is out for
+   now — it cost a row of every board on every desk for a navigation the desks,
+   the magic drawers and ⌘K already do between them. See decision 53.
 
-   A desk does not need a button. Desks are laid out in space: you swipe
-   sideways to walk the row, and the title at the top left opens all of them at
-   once to jump. So the desks came off the strip, the top shelf went, and what
-   is left is **one shelf**, along the bottom where a thumb reaches, holding
-   anything at all — a drawer, a magic drawer, a project, a film. See decision
-   41.
-
-   `S.pins` is that list, ids in order, global rather than per desk: something
-   you keep to hand is something you want to hand from wherever you are. */
-// Anything at all: a drawer, a magic drawer, a project — or a plain object,
-// because a note you are living in this week is a thing to keep to hand too.
-const pinIds = ()=> (S.pins||[]).filter(byId);
-const shelfDrawers = ()=> pinIds().map(byId);
-// 'desk' | 'pin' | null — how this drawer is kept, if at all
-const placeOf = id => isDesk(id) && id!==ROOT ? 'desk'
-                    : pinIds().includes(id) ? 'pin' : null;
+   So there is one answer left. A container is either a **desk** — somewhere in
+   the master space you can stand — or it is on the board it lives on, like
+   everything else. `S.pins` is still loaded and saved untouched, so nothing
+   anybody put on the shelf is lost and putting it back is putting these few
+   lines back. */
+// 'desk' | null — how this container is kept, if at all
+const placeOf = id => isDesk(id) && id!==ROOT ? 'desk' : null;
 
 /* A drawer holds. A magic drawer collects. Nothing does both.
    An object lives in exactly one drawer — its `parent` — and that is the only
@@ -732,11 +722,6 @@ const SORTS = {
 const MANUAL = 'manual';
 const sortOf = c => { const v=(c && c.sort) || K(c&&c.kind).sort || MANUAL;
   return SORTS[v] ? v : null; };
-// what the shelf's sort button steps through, manual first
-const SORT_CYCLE = [MANUAL, ...Object.keys(SORTS)];
-const sortMark = k => (SORTS[k] && SORTS[k][2]) || 'M';
-const nextSort = c => { const cur=sortOf(c)||MANUAL;
-  return SORT_CYCLE[(SORT_CYCLE.indexOf(cur)+1) % SORT_CYCLE.length]; };
 function childrenOf(c){
   const list = S.objects.filter(o=>inContainer(c,o));
   const s = SORTS[sortOf(c)];
@@ -878,11 +863,11 @@ export { ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds, K,
   deskTitle, rootObj, container, cfgOf, isContainer, FACES, faceOf, layoutOf, SHAPES,
   shapeOf, READS, readOf, spreadOf, OPENINGS, openingOf, gathersOf, gatherKind, containers,
   deskIds, deskList, isDesk, deskOf, deskHere,
-  pinIds, shelfDrawers, placeOf,
+  placeOf,
   spanOf, coversDay, lastDay,
   KNOBSIZES, knobSizeOf, answered, iconOf, TSIZES, textSizeOf, mediaTypeOf, isPicture,
   spawnByOf, genKindOf, takesTyping, keepsDone, showsContainers,
   CALVIEWS, calViewOf, weekStartOf, showsWeekends, calCols,
-  OPS, ROLLS, rollup, SORTS, MANUAL, SORT_CYCLE, sortMark, nextSort, sortOf, childrenOf, isAncestor,
+  OPS, ROLLS, rollup, SORTS, MANUAL, sortOf, childrenOf, isAncestor,
   relatedTo, backlinksTo, relate, unrelate, chainOf, tlSpan, streak, goalPct,
   allUnder, progressOf, projectStat, allTags };

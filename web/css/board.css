@@ -217,7 +217,13 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
 .drawer.dtile .dfoot{position:absolute;left:0;right:0;top:0;bottom:0;margin:0;padding:0;
   align-items:center;justify-content:center;pointer-events:none}
 .drawer.dtile.knb-bottom .dfoot{top:auto;height:32%;bottom:0}
-.drawer.dtile .dtop{position:relative;z-index:2;align-items:flex-start;justify-content:center;padding-bottom:4px}
+/* The name sits a few pixels down from the top edge rather than against it: a
+   front is a piece of furniture, and a label pressed into the seam where the
+   panel meets the carcass reads as having slipped. The padding is the tile's
+   and the offset is the name's, so a border slot with a deep inset ring gets
+   the same breathing room without being told. */
+.drawer.dtile .dtop{position:relative;z-index:2;align-items:flex-start;justify-content:center;
+  margin-top:5px;padding-bottom:4px}
 /* The knob owns the middle of the front, so the name is capped at two lines
    and sits above it. Capping *lines* rather than the box's height is what
    keeps it from being sliced through the middle of a letter. */
@@ -503,6 +509,15 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
   box-shadow:var(--shadow), inset -3px 0 6px rgba(0,0,0,.25);
 }
 .spinetop,.spinefoot{width:64%;height:3px;background:rgba(255,255,255,.42);border-radius:2px;flex:0 0 auto}
+/* A spine that collects rather than holds. The gilt frame every other magic
+   front wears is inset 5px, which on a tile one cell wide is the whole tile —
+   so a spine says it in the two bands it already has, which is where a real
+   gilded one says everything anyway. */
+.drawer.spinetile.magicspine .spinetop,
+.drawer.spinetile.magicspine .spinefoot{background:var(--glow);height:4px;opacity:.9}
+/* One cell wide is the commonest spine there is now, so it gets the padding
+   rather than inheriting the narrow front's. */
+.drawer.dtile.spinetile.sz-thin,.drawer.dtile.spinetile.sz-narrow{padding:9px 0}
 .spinetitle{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;
   writing-mode:vertical-rl;transform:rotate(180deg);font-family:var(--serif);font-size:14px;
   color:#F8F3E6;letter-spacing:.03em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

@@ -50,32 +50,30 @@ function faceOf(el){
 }
 
 /* ---- how a thing opens ------------------------------------------------
-   `auto` asks the object what it is. A container wide and deep enough to have
-   doors gets doors; anything smaller is a drawer that pulls out. The threshold
-   is per device because sizeOfKind() halves a container onto a phone — the
-   same drawer has to clear the same bar on both grids, and 4×4 on the desk is
-   2×2 there. Everything else is paper: the shapes that are drawn as a sheet
-   curl up off the board, and the rest give a small lift to say they were hit.
+   `auto` asks the object what it is. Everything that is not a container is
+   paper: the shapes drawn as a sheet curl up off the board, and the rest give a
+   small lift to say they were hit.
 
-   A **standing** container gets doors at any size. A drawer is a thing you pull
-   horizontally out of a carcass, and a front that is taller than it is wide has
-   never been one — 2×3 and 2×4 are a cabinet at a glance, and pulling them
-   towards you read as the wrong piece of furniture. Two cells of width is the
-   floor, because two doors inside one cell is not a cabinet either.
+   A container is a cabinet when it **stands** — taller than it is wide, and at
+   least two cells across — and a drawer otherwise. That is the whole test. A
+   drawer is a thing you pull horizontally out of a carcass, and a front taller
+   than it is wide has never been one; two doors inside a single cell is not a
+   cabinet either, which is what the width floor is for.
+
+   It used to have a second clause: anything over a certain *area* swung open
+   too. That is what put doors on a 4×3 — a front half again as wide as it is
+   tall, which is a drawer in every piece of furniture ever built. Size is not
+   the question; which way round it is, is.
 
    `box` is passed by the tile renderer, which already has the box it is drawing
    into — including the flowed box a sorted board packs an object into, which
    lay() knows nothing about. Left out, it asks lay() the same as before. */
-const CABINET_OVER = {desk:16, phone:4};
 const PAPER = ['note','idea','verse','quote','index','page','chit'];
 const standing = b => b.w>=2 && b.h>b.w;
 function openingFor(o, box){
   const how = openingOf(o);
   if(how!=='auto') return how;
-  if(isContainer(o)){
-    const b=box||lay(o);
-    return (standing(b) || b.w*b.h > CABINET_OVER[dev()]) ? 'cabinet' : 'drawer';
-  }
+  if(isContainer(o)) return standing(box||lay(o)) ? 'cabinet' : 'drawer';
   return PAPER.includes(shapeOf(o)) ? 'curl' : 'lift';
 }
 

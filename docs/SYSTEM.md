@@ -50,7 +50,6 @@ meaning, containers are finite, and opening one is a small deliberate act.
 | **Relation** | An id one object holds pointing at another. Read both ways. |
 | **Desk** | A drawer given a place in the master space — somewhere you can *be*, rather than somewhere you went into. It has no parent: promoting takes it off the board it was on. An ordered list, `S.desks`, with `root` among them. |
 | **Master space** | The row the desks sit in. It does not wrap. The name at the top left lays it all out at once. |
-| **Pin** | Anything kept to hand on the shelf. One global ordered list, `S.pins`. |
 | **Inbox** | A magic drawer whose rule is `loose`: everything on a desk rather than filed in something. It collects; nothing is moved into it. |
 | **Panel** | The one menu shape: a strip down the right, over a live desk. |
 
@@ -213,6 +212,14 @@ of), `calendar`, `moodboard`, `timeline`.
 Face and layout are two properties because they are two questions. A Checklist
 is `face:checklist, layout:list`, and any container can wear any face.
 
+**A container one cell wide is a spine, whatever face it asked for.** The title
+runs up the tile, the way it does on a book on a shelf. A front that thin used
+to drop its name and show its mark instead, which said it was a drawer and
+nothing about *which* drawer; a spine is the shape that already solved this, and
+it is what makes a container adapt to any shape rather than run out of them. One
+cell **square** is still the mark and nothing else — at 40px a spine has no
+length to set a name along either.
+
 **A container can take dictation.** `spawn` with `spawnBy:'type'` puts a box at
 the top of it — on its front and inside it — and `genKind` says what a line you
 type makes. A Checklist is the built-in that carries them, so it is a container
@@ -240,9 +247,11 @@ average, lowest, highest, or done-out-of. It shows on the face. Rollups, not
 formulas — there is no expression language and there isn't going to be one.
 
 **Sorting.** `sort` is per object then per type, like every other setting —
-`sortOf(c)`. It is a **toggle** in the grid bar rather than a menu: one button
-cycling seven states and wearing the one it is on, `M`/`A`/`Z` where a letter
-is the answer and an arrow where a direction is. The values are `manual` (the order you arranged, which is a real
+`sortOf(c)`. It is the **"Sorted by" row of the board's own editor**: how a
+board arranges itself is a thing you decide once and then live with, which is a
+settings question, and a tool in the bar is for what you change while you are
+working. It was a toggle up there for a while, cycling seven states and wearing
+the one it was on. The values are `manual` (the order you arranged, which is a real
 answer and not the absence of one), date made either way, date modified, or A–Z
 either way. A type states the default its containers are born with, so a
 Shopping list can be alphabetical while a Drawer stays as you left it; a
@@ -261,13 +270,18 @@ Each container is its own coordinate space, and every device has its own.
 
 - **24 columns** on a Mac, with unlimited rows and a board that scrolls.
   On a phone the count is a **setting** — Small (8), Extra (9), Large (10),
-  `S.look.grid`, Small by default — the board is pages rather than a scroller,
-  and the last row is the shelf: *n* by however many fit, plus one.
+  `S.look.grid`, Small by default — and the board is pages rather than a
+  scroller: *n* by however many rows fit, all of them the board's. About
+  8×13, 9×14 and 10×15 on a 390pt handset. The last row used to be the shelf;
+  see decision 53.
 - Cells are **square** on both, ~58px on a Mac and ~49px on a phone at Small. Columns are
   fluid, so `sizeGrid()` measures the column width after layout, caches it in
   `COLW`, and makes the row height (`CELL`) match. Nothing may assume either.
-  How many rows a phone page holds is the measured leftover — about seventeen —
-  and the bar is kept thin because every pixel of it is a row.
+  How many rows a phone page holds is the measured leftover, and the bar is kept
+  thin because every pixel of it is a row. `.main` carries a bottom inset —
+  the safe-area plus a little — because a phone screen is a rounded rectangle
+  and a row that runs into the curve loses its end tiles to it; `sizeGrid()`
+  subtracts that inset before counting, so the board never reaches for it.
 - `x`/`y` are 1-based cells. Array order positions nothing. There is no
   auto-flow: an empty cell stays empty.
 - Two objects may never overlap. A move or resize that would collide is
@@ -294,8 +308,7 @@ of four things layered over them.
 | Surface | What it is for | Where it lives |
 | --- | --- | --- |
 | **The grid** | The app. | `#app`, rebuilt whole by `render()` |
-| **The bar** | Where you are — pressing it opens every desk at once — plus the pins on a Mac and three icon buttons: lock, sort, settings (and the star inside a drawer). | inside `#app` |
-| **The shelf** | Whatever you pinned, drawn as a shelf with a slot per thing. In the bar on a Mac, its own strip along the bottom on a phone. | inside `#app` |
+| **The bar** | Where you are — pressing it opens every desk at once — plus three icon buttons: the lock, this board's editor (a brush), and the app's settings (a gear, on a desk only). Inside a drawer the gear's place is the star, which promotes it to a desk. | inside `#app` |
 | **Reading** | An object's body as paper — a spread, a page, or a column. Over a dimmed desk. | `#sheetHost`, rendered separately from `render()` |
 | **Writing** | The same body, full screen, with nothing else on it. A title and a textarea. | `#sheetHost` |
 | **The picture** | What something made of an image opens onto: the image as large as the window allows, and — when there isn't one — the empty mount, which *is* the button that chooses a file. Replace and Remove in the head. | `#sheetHost` |
@@ -303,14 +316,15 @@ of four things layered over them.
 | **Popup** | Picking one of a handful — Sort, the context menu. Hangs off the button that opened it. | borrowed context-menu element |
 | **Command palette** | ⌘K. The one thing that kept a scrim, because it is a search field you type into blind. | `#frame` |
 
-**Navigation is the desks plus one shelf.** There are no tabs. `S.desks` is the
-row of desks, walked with a sideways swipe and laid out all at once by pressing
-the name at the top left; `S.pins` is one global list of whatever you keep to
-hand, drawn as the shelf. Both are ordered lists of ids resolved on read, so a
-deleted drawer disappears from them by itself. The breadcrumb roots at the desk
-you are on rather than at home, and the row does not wrap. There was briefly a
-second shelf, per desk, along the top — two answers to one question at opposite
-ends of the screen. See decisions 39 and 41.
+**Navigation is the desks, and nothing else.** There are no tabs and no shelf.
+`S.desks` is the row of desks, walked with a sideways swipe and laid out all at
+once by pressing the name at the top left — an ordered list of ids resolved on
+read, so a deleted drawer disappears from it by itself. The breadcrumb roots at
+the desk you are on rather than at home, and the row does not wrap. A magic
+drawer is how you keep anything else to hand. There was briefly a strip of
+pinned drawers along the bottom as well; it cost a row of every board on every
+desk and it is out. `S.pins` is still stored, untouched. See decisions 39, 41
+and 53.
 
 **There are no modals.** `openPanel(spec)` is the whole system. `spec.body` is a
 function so `refreshPanel()` can redraw from state; a form's draft lives in the
@@ -343,13 +357,10 @@ decision 51.
 | --- | --- |
 | Click a tile | Whatever that object says — see below |
 | Two fingers up / down | The next page of this board, and the one before |
-| Two fingers left / right | The next pinned drawer, and the one before |
-| Pull up off the shelf | A drawer front follows your finger; carry it a quarter of the screen and it opens the new-object menu. A phone; a *tap* on bare board does nothing |
-| Hold a bare cell | Lights it; drag to size a box, let go for the picker — on a locked board too |
+| Two fingers left / right | The next desk, and the one before |
+| Swipe sideways on a board that isn't a grid | The next desk. A list, a scroll, a book or a calendar has no bare cells to start the one-finger swipe from, so the scroller is the surface — sideways only, because up and down is its own scrolling |
+| Hold a bare cell | Lights it; drag to size a box, let go for the picker — on a locked board too. A *tap* on bare board does nothing. This is the way in on a phone |
 | Hold a tile, then move | The menu goes and the tile is in your hand, iOS-style — and the board unlocks |
-| Carry a tile onto the shelf | Pins it. Nothing moves: `parent` and both boxes are untouched |
-| Tap a pin you are already in | Back to whatever the pin interrupted — a pin is a toggle |
-| Hold a pin | The menu, including the way back off the shelf |
 | Hold a band in a list | Reorder it, under Manual sort only — it writes `ord` |
 | Double-tap a tile | Its name becomes a field where it sits, and its body under it if the tile shows one. Containers are exempt: two taps on a drawer opens it twice |
 | Press and hold a tile (200ms) | Arms the drag; then move it, or drag a corner to resize |
@@ -358,8 +369,7 @@ decision 51.
 | Shift/⌘-click | Finder-style multi-select; dragging one moves the lot |
 | Right-click | Act on the tile or the selection, including sweeping it into a new drawer |
 | Drag onto a calendar day | Dates it, and files it into the drawer showing the month — unless that drawer is magic, which dates it and leaves it where it lives |
-| Hold a line on a checklist front | Lifts it off as a chip; drop it on a drawer, a pin or the board to file it there. A tap still ticks it |
-| Drag a pin | Reorders the bar |
+| Hold a line on a checklist front | Lifts it off as a chip; drop it on a drawer or the board to file it there. A tap still ticks it |
 
 **Clicking an object is configurable** — `clickOf()`, per object then per type:
 nothing, read it, write in it, tick it off, open its editor, or make one of
@@ -391,16 +401,18 @@ per type, defaulting to `page`:
 **How a thing opens is one property too.** `openingFor()` in `motion.js` — per
 object, then per type, defaulting to `auto`, which asks the object what it is:
 
-- **drawer** — the front pulls out of the shelf, toward you and past you, and
-  the board inside it comes up behind. What a container smaller than four cells
-  square, and no taller than it is wide, gets. One knob.
+- **drawer** — the front pulls out of the carcass, toward you and past you, and
+  the board inside it comes up behind. What every container that is not standing
+  gets, **at any size**: a 6×5 chest is a drawer. One knob.
 - **cabinet** — the front is two doors hinged at the outer edges and they swing
-  open. What a container bigger than that gets, and what any container **taller
-  than it is wide** gets at any size, down to two cells of width. The area
-  threshold is per device, because a container is halved onto a phone. **Two
-  knobs**, either side of the seam: a front says which movement it is about to
-  make, and the count follows `openingFor()` rather than repeating the size
-  test — say "pulls out" and the second door goes with it. See decision 50.
+  open. What a container **taller than it is wide** gets, down to two cells of
+  width; two doors inside one cell is not a cabinet. Which way round it is, not
+  how big — an area threshold used to put doors on a 4×3, which is a drawer in
+  every piece of furniture ever built. **Two knobs**, close in either side of the
+  seam, and the seam runs the whole height of the front and through the border at
+  both ends, because it is the gap between two doors. The knob count follows
+  `openingFor()` rather than repeating the size test — say "pulls out" and the
+  second door goes with it. See decisions 50 and 54.
 - **curl** — the sheet curls up off the board from its bottom edge, the way
   something pinned at the top does. What a paper shape gets: note, idea, verse,
   quote, index card, page, chit.

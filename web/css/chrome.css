@@ -402,12 +402,22 @@
 /* a coloured edge is a choice, not a default */
 .drawer.otile.edge{border-left:3px solid var(--c)}
 .drawer.otile:hover{filter:none;box-shadow:var(--shadow-lg)}
-.drawer.otile .dname{font-family:var(--sans);font-size:13.5px;font-weight:600;white-space:normal;
+/* A style is sixteen colours, a board, and **a typeface** — and an object was
+   the one thing on the desk not set in it. A note and a task were pinned to the
+   system sans while the drawer beside them followed the style, which read as
+   two apps sharing a board. `--serif` is the style's face (Optima on Starry,
+   Segoe on Aero, a system sans on Pseudochromo, Iowan on Victorian); a name on
+   a tile is set in it, the same as a drawer's is. */
+.drawer.otile .dname{font-family:var(--serif);font-size:13.5px;font-weight:600;white-space:normal;
   overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
 .drawer.otile .dname.done{text-decoration:line-through;color:var(--ink-3)}
 .drawer.otile .dtop{align-items:flex-start;gap:8px}
-.tiletext{font-size:11.5px;color:var(--ink-3);line-height:1.45;overflow:hidden;
-  display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical}
+/* The body fills the face. It was clamped at four lines, so a note six cells
+   tall printed four lines and left the bottom half of its own paper blank — the
+   clamp was doing a job `.dbody` already does properly, which is to be the room
+   that is left and to hide whatever runs past it. */
+.tiletext{font-family:var(--serif);font-size:11.5px;color:var(--ink-3);line-height:1.45;
+  overflow:hidden;height:100%}
 /* Twice the 19px a checkbox is everywhere else. A tick on a tile is a target
    you hit with a thumb while the tile under it is also a drag handle, and 19px
    was small enough that missing it picked the task up instead. A one-row tile
@@ -736,28 +746,51 @@ html[data-style="aero"] .drawer.dtile.bd-heavy{
 html[data-style="aero"] .drawer.dtile.bd-bar{
   box-shadow:inset 0 7px 12px rgba(255,255,255,.42), var(--shadow) }
 
-/* Six knobs. The default is half-transparent white; the colour and shape are
-   both set in the drawer's settings. */
-/* Three knob sizes. The pull is already measured against the tile rather than
-   the page, so a size is one multiplier over the whole clamp — small stays
-   exactly what it always was, and the other two scale with the front instead
-   of fighting it. */
+/* Six knobs. Three knob sizes. The pull is already measured against the tile
+   rather than the page, so a size is one multiplier over the whole clamp —
+   small stays exactly what it always was, and the other two scale with the
+   front instead of fighting it. */
 .drawer.dtile{container-type:size;--kscale:1}
 .drawer.dtile.ks-md{--kscale:1.5}
 .drawer.dtile.ks-lg{--kscale:2.1}
+/* ---- a knob is turned out of the same wood as the front ----------------
+   `--knob` is the drawer's own colour unless it has been told otherwise (see
+   tiles.js), and what makes it read as a knob is the **light on it**: lit from
+   the upper left, falling away to a shaded underside, with a soft contact
+   shadow where it meets the front. It was a flat disc of a lighter shade of
+   the front, which is a sticker rather than a handle — and it made every
+   drawer wear a colour it had never been given.
+
+   The gradient is on the base rule, so all six shapes get it; a bar is the
+   same sphere stretched into a cylinder, which is what a bar handle is. */
 .pull{
   width:calc(clamp(18px, min(20cqw, 26cqh), 84px) * var(--kscale,1));
   height:calc(clamp(18px, min(20cqw, 26cqh), 84px) * var(--kscale,1));flex:0 0 auto;
-  background:var(--knob, color-mix(in srgb, var(--c) 62%, #fff));
-  opacity:.76;transition:opacity .18s;border-radius:50%;
+  background:
+    radial-gradient(circle at 34% 28%,
+      color-mix(in srgb, var(--knob, var(--c)) 62%, #fff) 0%,
+      color-mix(in srgb, var(--knob, var(--c)) 88%, #fff) 32%,
+      var(--knob, var(--c)) 58%,
+      color-mix(in srgb, var(--knob, var(--c)) 66%, #000) 100%);
+  box-shadow:
+    inset 0 1px 1px rgba(255,255,255,.28),
+    inset 0 -2px 3px rgba(0,0,0,.30),
+    0 1px 2px rgba(0,0,0,.34);
+  opacity:.92;transition:opacity .18s;border-radius:50%;
 }
 .pull.kn-round{border-radius:50%}
 .pull.kn-diamond{border-radius:3px;transform:rotate(45deg)}
 .pull.kn-bar{width:calc(clamp(30px,min(28cqw,60cqh),120px) * var(--kscale,1));
-  height:calc(clamp(8px,min(6cqw,9cqh),20px) * var(--kscale,1));border-radius:99px}
-.pull.kn-ring{border-width:calc(4px * var(--kscale,1))}
-.pull.kn-ring{border-radius:50%;background:none;border:4px solid var(--knob,rgba(255,255,255,.5))}
-
+  height:calc(clamp(8px,min(6cqw,9cqh),20px) * var(--kscale,1));border-radius:99px;
+  /* a cylinder is lit along its length, not from a point on it */
+  background:linear-gradient(180deg,
+    color-mix(in srgb, var(--knob, var(--c)) 58%, #fff) 0%,
+    var(--knob, var(--c)) 52%,
+    color-mix(in srgb, var(--knob, var(--c)) 64%, #000) 100%)}
+/* a ring is a rim, so it is lit round its edge and has no body to shade */
+.pull.kn-ring{border-radius:50%;background:none;
+  border:calc(4px * var(--kscale,1)) solid var(--knob, var(--c));
+  box-shadow:inset 0 1px 1px rgba(255,255,255,.30), 0 1px 2px rgba(0,0,0,.30)}
 .pull.kn-square{border-radius:3px}
 .drawer:hover .pull{opacity:1}
 
@@ -768,16 +801,26 @@ html[data-style="aero"] .drawer.dtile.bd-bar{
    which movement you were about to get was to tap it and watch. Now the front
    says. Which fronts these are is openingFor()'s answer, not a size test
    repeated here: set a tall drawer to pull out and it goes back to one knob.
-   The seam is a hairline down the middle, lit on the left of it and shaded on
-   the right, so it reads as two panels meeting rather than a scratch. */
-.drawer.dtile .dfoot.doors{gap:26%}
-.drawer.dtile .dfoot.doors::before{
-  content:"";position:absolute;top:6%;bottom:6%;left:50%;width:2px;margin-left:-1px;
-  background:linear-gradient(90deg, rgba(255,255,255,.16) 0 50%, rgba(0,0,0,.26) 50% 100%);
-  border-radius:2px;
+
+   The two handles sit **close in** to the seam, the way a real pair of doors
+   wears them: a quarter of the front apart was two knobs on one panel rather
+   than one knob on each of two. */
+.drawer.dtile .dfoot.doors{gap:9%}
+/* ---- …and the seam runs the whole height of it ------------------------
+   It is the gap between two doors, so it goes from the top edge to the bottom
+   one and *through* the border on the way — a line that stops a few percent
+   short at both ends is a scratch on one panel, not the place where two of
+   them meet. That is why it hangs off the tile rather than off the strip the
+   knobs sit in: `.dfoot` is inset by the knob position, and on a `knb-bottom`
+   front it is only the bottom third. The 1px overshoot at each end is exactly
+   `.drawer.dtile`'s border width, so the line crosses it and stops. */
+.drawer.dtile .dseam{
+  position:absolute;top:-1px;bottom:-1px;left:50%;width:2px;margin-left:-1px;
+  z-index:3;pointer-events:none;
+  background:linear-gradient(90deg, rgba(255,255,255,.18) 0 50%, rgba(0,0,0,.34) 50% 100%);
 }
-/* the seam belongs to the whole front, not to the strip the knobs sit in */
-.drawer.dtile.knb-bottom .dfoot.doors::before{top:auto;bottom:6%;height:280%}
+/* a spine and a mini tile clip their own contents; neither is ever a cabinet */
+.drawer.dtile.cabinet{overflow:visible}
 
 /* ---- a front with no room for a name wears its mark -------------------
    At one cell of height, or one of width, the name is three letters and an
@@ -1053,103 +1096,12 @@ html[data-style="aero"] .drawer.dtile.bd-bar{
 .cmdrow .sub{margin-left:auto;font-size:11px;color:var(--ink-3)}
 
 
-/* ---- the pin bar ------------------------------------------------------
-   One piece of markup in two shapes: riding in the grid bar on a Mac, and the
-   thumb-reachable bar along the bottom of a phone. A pin is drawn as a little
-   drawer front — a rectangle in the drawer's colour, light text, a knob — so
-   what is on the bar looks like the thing it opens. `--radius-d` is the
-   drawer radius on purpose: a drawer front is not a rounded rect. */
-.pinbar{display:flex;align-items:center;gap:6px;flex:0 0 auto}
-.pinbtn{display:flex;align-items:center;gap:7px;transition:.14s;white-space:nowrap;
-  border:1px solid rgba(0,0,0,.3);border-radius:var(--radius-d);
-  background:var(--c,var(--felt));color:#F8F3E6}
-.pinknob{display:block;border-radius:50%;background:rgba(255,255,255,.62)}
-/* a magic drawer collects rather than holds, and is dotted wherever it appears */
-.pinbtn.magic{border-style:dotted;border-width:2px;border-color:rgba(255,255,255,.5)}
-/* the desk is not a drawer and shouldn't dress as one */
-.pinbtn.home{background:none;border-color:var(--rule);color:var(--ink-2)}
-.pinbtn.home:hover{border-color:var(--brass);color:var(--ink)}
-
-/* Mac: the pins ride in the grid bar itself, between the desk's name and the
-   four tools, so the whole of the top is one row and the grid starts sooner. */
-.is-desk .pinbar.pin-bar{flex:1 1 auto;min-width:0;overflow-x:auto;scrollbar-width:none}
-.is-desk .pinbar::-webkit-scrollbar{display:none}
-/* the name gives way to the pins rather than pushing them off the end */
-.is-desk .gridbar .where{flex:0 1 auto;min-width:0}
-.is-desk .pinbtn{padding:5px 11px;font-size:12.5px;font-weight:500;gap:8px;
-  box-shadow:0 1px 2px rgba(42,36,28,.2), inset 0 1px 0 rgba(255,255,255,.16)}
-.is-desk .pinbtn:hover{filter:brightness(1.08)}
-.is-desk .pinbtn.on{outline:2px solid var(--glow);outline-offset:1px}
-.is-desk .pinbtn .pinface{display:contents}     /* the button *is* the front */
-.is-desk .pinknob{width:8px;height:8px;order:2}  /* the pull, after the name */
-.is-desk .pinbtn.home .pinface{display:grid;place-items:center;color:var(--ink-3)}
-
-/* ---- the bottom shelf, on a phone -------------------------------------
-   A real flex child of .main rather than something floating over the board:
-   that is what makes the board end exactly where the shelf begins, with
-   nothing left to scroll past. Each pin is a **square**, the same square as
-   the tools on the top shelf, in the drawer's own colour with its mark on it.
-   It used to be a little front with a name under it, which gave each of five
-   pins 78px and fitted "Done & Dusted" into none of them. */
-/* ---- the shelf is the last row of the grid ----------------------------
-   Nine columns of however-many rows, plus one: the board above, one hairline,
-   and then a row exactly like the rest of them holding what you pinned. It was
-   a strip of chrome bolted under the board — which made the shelf a different
-   kind of thing from everything it held, and meant pinning was a menu rather
-   than a gesture. A row of the grid is a shelf you can drop onto. Decision 46.
-
-   Same cell, same nine columns, same board texture underneath, so an empty
-   slot reads as a place a thing could go rather than as blank chrome. */
-.is-phone .pinrow{
-  flex:0 0 auto;z-index:36;position:relative;
-  display:grid;grid-template-columns:repeat(var(--cols,9),1fr);
-  grid-template-rows:var(--rowh,43px);
-  height:var(--rowh,43px);
-  /* it carries `pinbar` too, because several selectors ask "is this the shelf"
-     by that name — but pinbar is a *flex* row with a gap and centred items, and
-     every one of those would shrink a tile away from the cell it is meant to
-     fill. A grid item stretches, and that is the whole point of it. */
-  align-items:stretch;justify-items:stretch;gap:0;
-  padding:0;margin:0;
-  /* the split: one line, and a breath of shadow under it so the row reads as
-     sitting in front of the board rather than as part of the same surface */
-  border-top:1px solid var(--rule);
-  box-shadow:0 -3px 6px -5px rgba(0,0,0,.35);
-  margin-bottom:env(safe-area-inset-bottom);
-}
-/* the board texture continues under it — it is the same grid */
-.is-phone .pinrow::before{
-  content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
-  opacity:var(--board-alpha,1);
-  background-color:var(--board-1);
-  background-image:conic-gradient(
-    var(--board-2) 0 25%, transparent 0 50%,
-    var(--board-2) 0 75%, transparent 0);
-  background-size:var(--checkerx,86px) var(--checkery,86px);
-}
-.is-phone .pinrow > *{position:relative;z-index:1}
-/* A pinned thing **is a tile**: the same one cell square that gridTile() draws
-   on the board, filling its slot exactly, with no bespoke pin shape at all.
-   It only has to be told to stay on row one — the clone it is drawn from puts
-   it in a column, and the row is the shelf's own. */
-.is-phone .pinrow .drawer.pinned{grid-row:1}
-/* Lit round the slot, on the tile's own edge — which is the outside of the
-   thing, not a box drawn around its mark. */
-.is-phone .pinrow .drawer.pinned.on{outline:2px solid var(--glow);outline-offset:-2px}
-/* carrying something over the shelf: the whole row lights, because the row is
-   the target — which cell it lands in is the shelf's business, not yours */
-.pinrow.dropshelf{box-shadow:inset 0 0 0 2px var(--glow)}
-.pinrow.dropshelf::after{
-  content:"Pin it here";position:absolute;inset:0;display:grid;place-items:center;
-  font-size:11px;font-weight:600;color:var(--ink-2);pointer-events:none;
-  background:color-mix(in srgb,var(--glow) 16%,transparent)}
-/* Carrying a tile over a pinned drawer files it there — on a Mac, where the
-   shelf is a row of buttons in the bar. On a phone the shelf is a grid row and
-   dropping on it *pins*, which is a different question; see .dropshelf above. */
-.pinbtn.dropinto{background:color-mix(in srgb,var(--brass) 22%,transparent);color:var(--ink)}
-.pinbtn.dropinto .pinface{outline:2.5px solid var(--glow);outline-offset:2px;transform:scale(1.12)}
-.is-desk .pinbtn.dropinto{outline:2.5px solid var(--glow);outline-offset:2px;filter:brightness(1.12)}
-.pinface{transition:transform .12s}
+/* ---- the shelf ---------------------------------------------------------
+   Taken out. It was one global row along the bottom of a phone, drawn as the
+   last row of the grid, holding whatever you kept to hand — and it cost a row
+   of every board on every desk to do a job the desks, the magic drawers and ⌘K
+   already share between them. The row goes back to the grid. See decision 53,
+   and views.js for what would have to come back with it. */
 
 .toast{
   position:absolute;left:50%;bottom:96px;transform:translate(-50%,14px);z-index:80;
@@ -1199,6 +1151,9 @@ kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--rule);border
 .quickadd input::placeholder{color:var(--ink-3)}
 .quickadd .k{font-size:10.5px;color:var(--ink-3);font-family:var(--mono)}
 .filterbar{display:flex;gap:6px;overflow-x:auto;padding:2px 0 10px;align-items:center}
+/* …but inside a panel there is nothing off to the right to scroll to, and a
+   chip half off the edge reads as a chip that is broken. Wrap instead. */
+.panel .filterbar{flex-wrap:wrap;overflow-x:visible}
 .filterbar::-webkit-scrollbar{display:none}
 .fchip{flex:0 0 auto;padding:4px 11px;border-radius:20px;font-size:11.5px;font-weight:500;border:1px solid var(--rule);
   background:var(--paper-2);color:var(--ink-2);white-space:nowrap;transition:.14s;cursor:pointer}
@@ -1336,15 +1291,17 @@ kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--rule);border
      go with a tile both stand down */
   user-select:text;-webkit-user-select:text;
 }
+/* Typing into a tile has to be set in what the tile is set in, or the words
+   change face the moment you touch them. Both follow the style, the same as
+   .dname and .tiletext above. */
 .inlinename{
   flex:1;min-width:0;border:0;background:none;outline:none;padding:0;
-  font-family:var(--sans);font-size:13.5px;font-weight:600;color:var(--ink);
+  font-family:var(--serif);font-size:13.5px;font-weight:600;color:var(--ink);
   letter-spacing:.003em;
 }
-.sh-ruled .inlinename,.sh-verse .inlinename,.sh-quote .inlinename{font-family:var(--serif)}
 .inlinebody{
   width:100%;height:100%;border:0;background:none;outline:none;resize:none;padding:0;
-  font-family:var(--sans);font-size:11.5px;line-height:1.45;color:var(--ink-3);
+  font-family:var(--serif);font-size:11.5px;line-height:1.45;color:var(--ink-3);
 }
 .inlinename::placeholder,.inlinebody::placeholder{color:var(--ink-3);opacity:.6}
 /* A shape that hides its body — a sliver is one band — shows one while you are
@@ -1505,7 +1462,7 @@ kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--rule);border
    Refusing at the top and exempting downwards is the same rule stated the way
    round that closes by default: the exceptions are countable and the surfaces
    are not. */
-#frame,.drawer,.pinbar,.gridbar,.ctxmenu,.panel .ptop{
+#frame,.drawer,.gridbar,.ctxmenu,.panel .ptop{
   -webkit-user-select:none;user-select:none;
   -webkit-touch-callout:none;
 }
@@ -1531,7 +1488,6 @@ input,textarea,select,[contenteditable],
 /* The top shelf is the grid bar: where you are, the tools, and on a Mac the
    pins in between. Its buttons are toggles rather than menus, so each one has
    to say which state it is in — hence the lit `on` and the sort's own glyph. */
-.sortletter{font-family:var(--serif);font-size:15px;font-weight:700;line-height:1;letter-spacing:.02em}
 .sqbtn.locked{color:var(--brass)}
 /* which page of the board you are on. Two fingers turn them; these are also
    targets, because a dot you can see is a dot you will try to press. */
@@ -1543,16 +1499,24 @@ input,textarea,select,[contenteditable],
 .pagemark b{font-size:11.5px;font-variant-numeric:tabular-nums;color:var(--brass);font-weight:700}
 .pagemark b u{text-decoration:none;color:var(--ink-3);font-weight:400}
 
-/* A phone board is exactly the room between the two shelves and never scrolls:
-   what does not fit is on the next page. `overflow:hidden` is the assertion —
-   if the row arithmetic in sizeGrid() is ever wrong, a tile is clipped rather
-   than quietly reintroducing the scroll this replaced. */
-/* The board is exactly as tall as its rows — no growing, no absorbing. The few
-   pixels the screen has left over therefore fall *below* the shelf rather than
-   above the board, which is both where they are useful and what keeps the end
-   slots of the shelf clear of the rounded corners of the screen. */
+/* A phone board is exactly the room under the bar and never scrolls: what does
+   not fit is on the next page. `overflow:hidden` is the assertion — if the row
+   arithmetic in sizeGrid() is ever wrong, a tile is clipped rather than quietly
+   reintroducing the scroll this replaced. */
+/* The board is exactly as tall as its rows — no growing, no absorbing — so the
+   few pixels the screen has left over fall *below* it rather than above. */
 .is-phone .scroll.deskscroll{overflow:hidden;padding:0;flex:0 0 auto}
-.is-phone .main{overflow:hidden}
+/* ---- and the whole app sits a few millimetres up off the bottom -----------
+   A phone screen is a rounded rectangle, and the last row of a grid that runs
+   to the very edge of it loses its first and last tile to the curve — the two
+   corners eat exactly the cells a nine-column row has least to spare. The
+   shelf used to hold that space (its `margin-bottom` was the safe-area inset);
+   with the shelf gone the board would have run straight into the curve, so the
+   inset moves onto `.main` itself and the whole app rides up off the bottom
+   edge. `sizeGrid()` subtracts this padding before counting rows, so the room
+   it reserves is room the board never tries to use. */
+.is-phone .main{overflow:hidden;
+  padding-bottom:calc(env(safe-area-inset-bottom) + 10px)}
 
 /* ---- a menu on a phone comes up out of the bottom ----------------------
    Down the right is a Mac's shape: there is room beside the desk there. On a
@@ -1615,45 +1579,6 @@ input,textarea,select,[contenteditable],
   width:auto;min-width:min(76px,30cqw)}
 .tlnode.lasts i{width:var(--run,8px);min-width:6px;height:5px;border-radius:3px}
 
-
-/* ============================================================
-   The drawer you pull out of the shelf
-   ============================================================
-   Swiping up off the bottom shelf opens the new-object menu, and it used to
-   fire the instant the finger had travelled forty pixels — committed, with
-   nothing drawn until it was already done. So a flick, a sideways scroll along
-   the shelf, and every swipe up out of the app to the iPhone home screen all
-   opened it.
-
-   It is a real pull now: a drawer front rises out of the shelf and follows the
-   finger the whole way, `--pull` being however far it has come, and it only
-   opens if you carried it about a third of the screen. Nothing is decided
-   until you let go — short of that it drops back — and the last few
-   millimetres above the bottom edge are left to iOS, which owns them. See
-   gestures.js and decision 43. */
-.shelfpull{
-  position:absolute;left:14px;right:14px;z-index:38;pointer-events:none;
-  height:var(--pull,0px);overflow:hidden;
-  display:flex;align-items:flex-end;
-}
-.shelfpull.settling{transition:height .22s cubic-bezier(.22,1,.3,1)}
-.pullfront{
-  flex:1;height:var(--pull,0px);min-height:0;
-  border-radius:var(--radius-d) var(--radius-d) 0 0;
-  background:var(--felt);border:1px solid var(--line,rgba(0,0,0,.28));border-bottom:0;
-  box-shadow:0 -8px 22px -10px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.16);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
-  color:#F8F3E6;
-}
-.pullknob{
-  width:44px;height:7px;border-radius:99px;flex:0 0 auto;
-  background:color-mix(in srgb,#F8F3E6 58%,transparent);transition:.16s}
-.pullfront b{font-size:13px;font-weight:500;letter-spacing:.01em;opacity:.72;transition:.16s}
-/* far enough to open: the front says so before you let go, which is the whole
-   point of drawing it at all */
-.shelfpull.ready .pullknob{background:var(--glow);width:64px}
-.shelfpull.ready .pullfront b{opacity:1}
-.shelfpull.ready .pullfront{border-color:color-mix(in srgb,var(--glow) 60%,transparent)}
 
 /* ============================================================
    Every desk, laid out

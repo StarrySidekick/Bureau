@@ -1,6 +1,6 @@
 import { $, $$, clamp, D, ROOT } from './util.js';
 import { S, byId, dev, has, isAncestor, childrenOf, container, gatherKind, spanOf,
-  sortOf, cfgOf, pinIds } from './model.js';
+  sortOf, cfgOf } from './model.js';
 import { GRID, CELL, gridOf, cellW, lay, boxOk, overlaps } from './grid.js';
 import { toast, gather, setPin } from './mutations.js';
 import { pending, tileTap, fireButton } from './tiles.js';
@@ -43,31 +43,12 @@ function cancelHold(e){
 }
 
 
-/* ---- pulling the new-object drawer out of the shelf --------------------
-   Three numbers and an element. PULL_START is how far the finger travels before
-   the drawer is showing at all — enough to rule out a tap and a sideways
-   scroll, not enough to feel like a delay. PULL_OPEN is the pull itself, and it
-   is deliberately long: a quarter of a phone screen is a stroke you have to
-   commit to, which is the entire fix.
-
-   HOME_EDGE is the strip along the very bottom that iOS keeps for its own home
-   swipe. It is small because the shelf is one grid cell tall, and a guard half
-   that deep would leave nothing to pull from — and on a real phone the shelf
-   sits above the home indicator anyway (its `margin-bottom` is the safe-area
-   inset, and the spare rows now fall below it too). Belt, and braces. */
-const PULL_START = 12, HOME_EDGE = 14;
-const PULL_OPEN = ()=> Math.round(Math.min(200, Math.max(110, innerHeight*0.26)));
-function makePull(){
-  const el=document.createElement('div');
-  el.className='shelfpull';
-  el.innerHTML=`<div class="pullfront"><i class="pullknob"></i><b>New object</b></div>`;
-  // it comes out *of* the shelf, so it stands on the shelf's top edge rather
-  // than covering it — the strip is the thing it is being pulled from
-  const sh=$('.pinrow'), fr=$('#frame').getBoundingClientRect();
-  el.style.bottom = (sh ? fr.bottom - sh.getBoundingClientRect().top : 0) + 'px';
-  $('#frame').appendChild(el);
-  return el;
-}
+/* ---- making something on a phone --------------------------------------
+   There used to be two ways in: pulling a drawer front up out of the shelf,
+   and holding a bare cell. The shelf is gone (decision 53) and so is the pull
+   that came out of it; holding a cell is the one that is left, and it is the
+   better half anyway — pulling made a thing with nowhere in mind, holding a
+   cell makes one *there*, which is what a grid is for. */
 
 /* ---- opening a locked board with the tile already in your hand -----------
    The iPhone home screen's gesture: hold an icon, the menu comes up, and if you
@@ -128,7 +109,6 @@ function clearCarry(el){
    drawer and throw the date away, which is the bug that made this ordering
    explicit rather than incidental. */
 function clearAim(g){
-  if(g.shelfEl){ g.shelfEl.classList.remove('dropshelf'); g.shelfEl=null; }
   if(g.dayEl){ g.dayEl.classList.remove('dropday'); g.dayEl=null; }
   if(g.tlEl){ g.tlEl.classList.remove('droptime');
               delete g.tlEl.dataset.droplabel;
@@ -137,7 +117,7 @@ function clearAim(g){
               g.tlEl=null; }
   if(g.gatherEl){ g.gatherEl.classList.remove('dropgather'); g.gatherEl=null; }
   if(g.dropEl){ g.dropEl.classList.remove('dropinto'); g.dropEl=null; }
-  g.dropDay=g.dropTl=g.dropOn=g.gatherOn=g.gatherKind=g.pinIt=null;
+  g.dropDay=g.dropTl=g.dropOn=g.gatherOn=g.gatherKind=null;
 }
 // Somewhere this object may legally end up: not itself, not inside itself, and
 // not a magic drawer — those collect by rule and hold nothing, so filing into
@@ -154,19 +134,13 @@ const canDate = (dragId, intoId) => !!intoId && intoId!==dragId && !isAncestor(d
    board itself, which is the container whose grid you are looking at. The chip
    follows the pointer, so it has to stand aside to be seen past. */
 function aimPluck(g, px, py){
-  if(g.shelfEl){ g.shelfEl.classList.remove('dropshelf'); g.shelfEl=null; }
   if(g.dropEl) g.dropEl.classList.remove('dropinto','dropboard');
-  g.dropEl=null; g.dropOn=null; g.pinIt=null;
+  g.dropEl=null; g.dropOn=null;
   if(g.chip) g.chip.style.visibility='hidden';
   const under=document.elementFromPoint(px, py);
   if(g.chip) g.chip.style.visibility='';
   if(!under) return;
-  // the shelf first: a line lifted off a checklist can be kept to hand too
-  const shelf=under.closest('.pinrow');
-  if(shelf && !pinIds().includes(g.id)){
-    g.shelfEl=shelf; g.pinIt=true; shelf.classList.add('dropshelf'); return;
-  }
-  const over=under.closest('.grid .drawer[data-drawer], .pinbar .pinbtn[data-drawer]');
+  const over=under.closest('.grid .drawer[data-drawer]');
   if(over && canFile(g.id, over.dataset.drawer)){
     g.dropEl=over; g.dropOn=over.dataset.drawer; over.classList.add('dropinto');
     return;
@@ -186,16 +160,6 @@ function aimDrop(g, px, py){
   const under=document.elementFromPoint(px, py);
   if(!under) return;
   const dated=!g.group && has(d,'date');
-
-  /* The shelf is a row of the grid now, so it is somewhere you can *carry*
-     something — and carrying a thing onto the shelf is what pinning is. It is
-     asked about first, because the shelf is not a container and every other
-     answer below is about which container a thing lands in. */
-  const shelf = !g.group && under.closest('.pinrow');
-  if(shelf && !pinIds().includes(g.id)){
-    g.shelfEl=shelf; g.pinIt=true; shelf.classList.add('dropshelf');
-    return;
-  }
 
   const dayEl = dated && under.closest('[data-calday]');
   if(dayEl && canDate(g.id, dayEl.dataset.calday.split(':')[0])){
@@ -230,12 +194,7 @@ function aimDrop(g, px, py){
     const gk=tgt && gatherKind(d, tgt);
     if(gk){ g.gatherEl=objEl; g.gatherOn=tgt.id; g.gatherKind=gk; objEl.classList.add('dropgather'); return; }
   }
-  /* A pinned drawer is a drop target too, and on a phone it is *the* drop
-     target: the bar is always on screen, so filing something three screens
-     away stops being a scroll you cannot perform while your finger is holding
-     the tile. One selector rather than a branch — the bar and the board are
-     both just places a drawer can be. */
-  const over=under.closest('.grid .drawer[data-drawer], .pinbar .pinbtn[data-drawer]');
+  const over=under.closest('.grid .drawer[data-drawer]');
   if(over && !g.group && canFile(g.id, over.dataset.drawer)){
     g.dropEl=over; g.dropOn=over.dataset.drawer; over.classList.add('dropinto');
   }
@@ -307,6 +266,8 @@ function swipeMove(g, dx, dy){
   if(!g.axis){
     if(Math.abs(dx)<SWIPE_MIN && Math.abs(dy)<SWIPE_MIN) return;
     g.axis = Math.abs(dy)>=Math.abs(dx) ? 'y' : 'x';
+    // a scrolling board offers the sideways half only; the other way is its own
+    if(g.xonly && g.axis==='y'){ g.axis='dead'; return; }
     /* Everything past the threshold counts, and the threshold itself doesn't:
        tracking from the raw delta would jump by fourteen pixels the moment the
        strip appeared, and tracking from *this* delta would throw away a flick
@@ -327,33 +288,6 @@ function onDown(e){
      synthetic — the flag would sit there and eat somebody else's click later.
      A new press means the old one is finished with, whatever happened to it. */
   gestureFlags.suppressClick=false;
-  /* A pin can be dragged along the bar to reorder it. The bar is chrome, not a
-     grid, so it gets its own tiny path rather than going through the box
-     maths — and a plain click still has to navigate, which is why nothing
-     happens until the pointer has actually moved. */
-  /* The bottom shelf is where things come out of. A press on it that travels
-     upward opens the new-object menu; one that doesn't is a plain tap and the
-     pin under it navigates as usual. */
-  /* Bare shelf — not one of the things on it, which are buttons and answer a
-     tap and a hold of their own. */
-  const shelfEl = S.device!=='desk' && !e.target.closest('.pinned')
-    && e.target.closest('.pinrow');
-  if(shelfEl){
-    /* …unless the finger went down in the last few millimetres of the screen,
-       which is iOS's own home gesture and not ours. Sharing that strip is how
-       the new-object menu kept appearing on the way out of the app. */
-    G = (innerHeight - e.clientY) < HOME_EDGE
-      ? {type:'homeedge'}
-      : {type:'shelf', el:shelfEl, sx:e.clientX, sy:e.clientY, mode:null, pull:null};
-    return;
-  }
-  // home is draggable too — where it sits in the row is a thing you can change
-  const pinEl=e.target.closest('.pinbar .pinbtn');
-  if(pinEl && S.device==='desk'){
-    G={type:'pin', el:pinEl, id:pinEl.dataset.drawer, bar:pinEl.parentElement,
-       sx:e.clientX, sy:e.clientY, mode:null};
-    return;
-  }
   // Any tile on any unlocked grid. There is no arrange mode — everything is
   // always movable — so a short hold arms the drag, which is the only thing
   // keeping an ordinary click from picking the tile up.
@@ -398,27 +332,6 @@ function onDown(e){
     holdFrom={x:e.clientX,y:e.clientY};
     return;
   }
-  /* A pinned thing on the shelf. It is not on a grid, so it has no box to
-     carry — but it still has to be able to answer "what is this, and how do I
-     get it off the shelf", which is what the long press is everywhere else. */
-  const pinEl2=e.target.closest('.pinrow .pinned');
-  if(pinEl2){
-    G={type:'pinpress', el:pinEl2, id:pinEl2.dataset.pin, sx:e.clientX, sy:e.clientY, mode:null};
-    const g0=G;
-    holdTimer=setTimeout(()=>{
-      holdTimer=null;
-      if(G!==g0) return;
-      dropSelection();
-      const r=g0.el.getBoundingClientRect();
-      if(navigator.vibrate) navigator.vibrate([4,40,10]);
-      G.menu=true;
-      gestureFlags.suppressClick=true;
-      openCtx(r.left+r.width/2, r.top, g0.id);
-    }, e.pointerType==='touch' ? HOLD_TOUCH+MENU_AFTER : HOLD_MOUSE+MENU_AFTER);
-    holdFrom={x:e.clientX,y:e.clientY};
-    return;
-  }
-
   /* A line on a checklist front is the object itself, so it can be taken off
      the front. Holding one lifts it out as a chip you can drop on the board or
      into another drawer — which is what makes a checklist somewhere things pass
@@ -543,6 +456,21 @@ function onDown(e){
     }
     return;
   }
+  /* ---- walking the desks off a board that isn't a grid ------------------
+     A one-finger sideways swipe walks the row of desks, and it started from the
+     bare cells of a locked grid — which a board set to List, Scroll, Book,
+     Calendar or Timeline hasn't got. So a desk laid out as a list was a desk
+     you could not swipe off, and the only way out of it was the title. The
+     scroller is the surface those layouts do have, so the swipe starts there.
+
+     Sideways only, and that is the whole of `xonly`: up and down is the list's
+     own scrolling, which is the commoner gesture by a long way and not one to
+     spend on turning pages a list doesn't have. */
+  const sc = e.target.closest('#app .scroll');
+  if(sc && !sc.querySelector('.grid')){
+    G={type:'swipe', sx:e.clientX, sy:e.clientY, mode:null, axis:null, from:0, xonly:true};
+    return;
+  }
   /* Swipe-to-file and drag-to-reorder used to live here, on the `.row` list
      the Today and Everything tabs were built from. Those tabs are gone and
      nothing renders `.row[data-row]` any more — the modals' rows carry
@@ -585,29 +513,13 @@ function onMove(e){
     return;
   }
 
-  if(G.type==='pin'){
-    if(!G.mode){
-      if(Math.abs(dx)<6) return;
-      G.mode='pin'; G.el.classList.add('dragging');
-    }
-    // slide past whichever neighbour the pointer has cleared the middle of
-    const sibs=[...G.bar.querySelectorAll('.pinbtn')].filter(x=>x!==G.el);
-    const after=sibs.filter(x=>{ const r=x.getBoundingClientRect(); return e.clientX > r.left+r.width/2; }).pop();
-    if(after) after.after(G.el); else {
-      const firstPin=G.bar.querySelector('.pinbtn');
-      if(firstPin && firstPin!==G.el) firstPin.before(G.el);
-    }
-    return;
-  }
-
   if(G.type==='band'){
     if(!G.armed) return;             // still waiting out the hold
     if(!G.mode){
       if(Math.abs(dy)<5) return;
       G.mode='band'; G.el.classList.add('dragging');
     }
-    // slide past whichever neighbour the pointer has cleared the middle of —
-    // the same trick the pin bar uses, turned ninety degrees
+    // slide past whichever neighbour the pointer has cleared the middle of
     const sibs=[...G.list.querySelectorAll('.listband')].filter(x=>x!==G.el);
     const after=sibs.filter(x=>{ const r=x.getBoundingClientRect(); return e.clientY > r.top+r.height/2; }).pop();
     if(after) after.after(G.el);
@@ -633,39 +545,6 @@ function onMove(e){
     G.chip.style.left=(e.clientX-fr.left)+'px';
     G.chip.style.top=(e.clientY-fr.top)+'px';
     aimPluck(G, e.clientX, e.clientY);
-    return;
-  }
-
-  if(G.type==='homeedge') return;      // iOS owns that strip; keep out of it
-
-  if(G.type==='shelf'){
-    /* Up off the bottom shelf opens the new-object menu. Tapping bare board
-       used to do it and was triggered by accident more than on purpose — the
-       board is a place you put things down, not a button. The shelf is where
-       the menu comes from, and the menu comes up out of it.
-
-       Then *this* kept happening by accident too: forty pixels and it fired,
-       committed, with nothing on the screen until it was already done — so a
-       flick, a sideways scroll along the shelf, and every swipe up out of the
-       app to the home screen all opened it. It is a real pull now. A drawer
-       front rises out of the shelf and follows the finger the whole way, and
-       it only opens if you carried it PULL_OPEN — a quarter of the screen —
-       which is a distance you cannot travel without meaning to. Let go short
-       and it drops back. Nothing is decided until you let go. */
-    if(G.mode==='dead') return;
-    if(!G.pull){
-      // sideways first means the shelf is being scrolled, and that is that
-      if(Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 6){ G.mode='dead'; return; }
-      if(dy > -PULL_START) return;
-      G.pull=makePull();
-      G.mode='pull';
-      gestureFlags.suppressClick=true;
-    }
-    const open=PULL_OPEN();
-    const up=clamp(-dy - PULL_START, 0, open*1.25);
-    G.at=up;
-    G.pull.style.setProperty('--pull', up+'px');
-    G.pull.classList.toggle('ready', up >= open);
     return;
   }
 
@@ -798,24 +677,6 @@ function onUp(e){
     return;
   }
 
-  if(g.type==='pinpress') return;     // a tap navigates; the menu is the hold
-  if(g.type==='homeedge') return;
-  if(g.type==='shelf'){
-    if(!g.pull) return;            // a tap; the pin under it navigates
-    const open = g.at >= PULL_OPEN();
-    const el=g.pull;
-    el.classList.remove('ready');
-    el.classList.add('settling');
-    el.style.setProperty('--pull', open ? (PULL_OPEN()*1.35)+'px' : '0px');
-    setTimeout(()=>el.remove(), 260);
-    if(open){
-      if(navigator.vibrate) navigator.vibrate(6);
-      pending.cell=null;
-      modalNewObject();
-    }
-    return;
-  }
-
   if(g.type==='band'){
     g.el.classList.remove('lifted','dragging');
     if(g.mode!=='band') return;          // a tap; let the click open it
@@ -835,31 +696,16 @@ function onUp(e){
   if(g.type==='pluck'){
     if(g.chip) g.chip.remove();
     if(g.el) g.el.classList.remove('lifted','plucked');
-    if(g.shelfEl) g.shelfEl.classList.remove('dropshelf');
     if(g.dropEl) g.dropEl.classList.remove('dropinto','dropboard');
     if(g.mode!=='pluck') return;         // a tap; let the click tick it off
     gestureFlags.suppressClick=true;     // the drag must not also tick it
     const o=byId(g.id);
-    if(o && g.pinIt){
-      if(pinIds().length>=GRID.phone.cols){ render(); toast('The shelf is full'); return; }
-      setPin(g.id,'pin'); save(); toast(`${o.title||'It'} is on the shelf`); return;
-    }
     if(o && g.dropOn && g.dropOn!==o.parent){
       o.parent=g.dropOn; o.desk=null; o.phone=null;   // a new coordinate space
       const into=g.dropOn===ROOT?null:byId(g.dropOn);
       save(); render();
       toast(`Filed in ${into?into.title:'the desk'}`);
     } else render();
-    return;
-  }
-
-  if(g.type==='pin'){
-    g.el.classList.remove('dragging');
-    if(g.mode!=='pin') return;            // it was a click; let it navigate
-    // Read the new order straight off the shelf. One strip, one list.
-    S.pins=[...g.bar.querySelectorAll('.pinbtn')].map(x=>x.dataset.drawer).filter(Boolean);
-    gestureFlags.suppressClick=true;      // the drag must not also open it
-    save(); render(); toast('Shelf reordered');
     return;
   }
 
@@ -871,21 +717,9 @@ function onUp(e){
       if(el){ el.style.transform=''; el.style.zIndex=''; }
     });
     if(g.ghost) g.ghost.remove();
-    const aim={day:g.dropDay, tl:g.dropTl, on:g.dropOn, gath:g.gatherOn, gk:g.gatherKind,
-               pin:g.pinIt};
+    const aim={day:g.dropDay, tl:g.dropTl, on:g.dropOn, gath:g.gatherOn, gk:g.gatherKind};
     clearAim(g);
     const d=byId(g.id);
-    /* Carried onto the shelf: it is pinned, and it does not move. Pinning is
-       about reach, not about where a thing lives — the object stays on the
-       board it was on, in the box it was in, which is why nothing here touches
-       `parent` or the layout. */
-    if(d && aim.pin){
-      const cols=GRID.phone.cols;
-      if(pinIds().length>=cols){ render(); toast('The shelf is full — take something off it first'); return; }
-      setPin(g.id, 'pin'); save();
-      toast(`${d.title||'It'} is on the shelf`);
-      return;
-    }
     const swallow=id=>{ const el=document.querySelector(`[data-drawer="${id}"]`);
       if(el){ el.classList.add('swallow'); setTimeout(()=>el.classList.remove('swallow'),420); } };
     // dropped on a day: it gets that date, and moves into the container showing
@@ -987,7 +821,6 @@ function onCancel(){
   stopPan();
   pagerCancel();
   if(G){ clearAim(G); if(G.ghost) G.ghost.remove();
-         if(G.shelfEl) G.shelfEl.classList.remove('dropshelf');
          if(G.chip) G.chip.remove();
          if(G.pull) G.pull.remove();
          if(G.dropEl) G.dropEl.classList.remove('dropinto','dropboard');

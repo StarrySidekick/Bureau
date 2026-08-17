@@ -68,6 +68,14 @@ const dateSaid = o => { const sp=spanOf(o);
 
 const HANDLES = ['nw','ne','se','sw'];   // corners only — any corner resizes
 
+/* How much of a body is printed on a tile's face. Enough to fill the tallest
+   one there is: it was 220 characters against a four-line clamp, which is where
+   a note that stopped halfway down its own paper came from. The tile hides
+   whatever runs past its own height, so the only job of a number here is to be
+   larger than any face can show. Cut the text *then* escape it — slicing the
+   escaped string cuts through an `&amp;` and prints the entity. */
+const BODY_ON_FACE = 1200;
+
 /* The face of a calendar container: the span it is set to, with a mark on any
    day something it collects is due. Sized in em so it shrinks with the tile.
    Which days it draws — and in what order — is calCols(), so the week-start and
@@ -275,6 +283,27 @@ function drawTile(o, arr, box){
     </button>`;
   }
 
+  /* A story is a book seen spine-on, and it is also a container — the scenes
+     are inside it. Every other container face draws what it holds; a spine
+     deliberately doesn't, because a shelf shows you titles.
+
+     **And so is any container one cell wide.** A name set down a column one
+     letter wide is not a name, so a front that thin used to drop its name and
+     wear its mark instead — which told you it was a drawer and nothing about
+     *which* drawer. A spine is the shape that already solved this: the title
+     runs up the tile, and it is a book on a shelf rather than a drawer that has
+     run out of room. One cell square is still the mark and nothing else, above:
+     at 40px a spine has no length to set a name along either. */
+  if(cont && (faceOf(o)==='spine' || box.w<=1)){
+    return `<button class="drawer dtile spinetile bd-none${sel}${
+        has(o,'magic')?' magicspine':''}" data-drawer="${o.id}" style="--c:${colour};${place}">
+      <span class="spinetop"></span>
+      <span class="spinetitle">${esc(o.title||'Untitled')}</span>
+      <span class="spinefoot"></span>
+      ${handles}
+    </button>`;
+  }
+
   /* A checklist is a container that wears its contents on the outside: you can
      see, tick, add to and take from it without opening it. That is the whole
      difference between it and a drawer.
@@ -384,18 +413,6 @@ function drawTile(o, arr, box){
     </button>`;
   }
 
-  /* A story is a book seen spine-on, and it is also a container — the scenes
-     are inside it. Every other container face draws what it holds; a spine
-     deliberately doesn't, because a shelf shows you titles. */
-  if(cont && faceOf(o)==='spine'){
-    return `<button class="drawer dtile spinetile bd-none${sel}" data-drawer="${o.id}" style="--c:${colour};${place}">
-      <span class="spinetop"></span>
-      <span class="spinetitle">${esc(o.title||'Untitled')}</span>
-      <span class="spinefoot"></span>
-      ${handles}
-    </button>`;
-  }
-
   /* A moodboard shows its pictures on the front, tiled. */
   if(cont && faceOf(o)==='moodboard'){
     const pics=childrenOf(o).filter(x=>x.media&&x.media.src).slice(0,12);
@@ -437,10 +454,23 @@ function drawTile(o, arr, box){
   if(cont){
     const bd=o.border||'panel', kn=o.knob||'round', tx=o.texture||'none';
     const doors = openingFor(o, box)==='cabinet';
-    return `<button class="drawer dtile bd-${bd} tx-${tx} ks-${knobSizeOf(o)} knb-${o.knobpos||'centre'}${sel}${has(o,'magic')?' magicdrawer':''}" data-drawer="${o.id}"
-      style="--c:${colour};${o.knobc?`--knob:${esc(o.knobc)};`
-        :`--knob:color-mix(in srgb, ${colour} ${o.knobtone==='dark'?'62% , #000':'58% , #fff'});`}${place}">
+    /* A knob is turned out of the same wood as the front, so unless it has been
+       told otherwise it *is* the front's colour — what makes it a knob is the
+       light on it, not a lighter shade painted where it sits. Lighter and
+       darker are still a choice, and so is a colour outright; the shading is in
+       the stylesheet, on `--knob`, so all three get it. */
+    const knob = o.knobc ? esc(o.knobc)
+      : o.knobtone==='dark' ? `color-mix(in srgb, ${colour} 78%, #000)`
+      : o.knobtone==='light' ? `color-mix(in srgb, ${colour} 74%, #fff)`
+      : colour;
+    return `<button class="drawer dtile bd-${bd} tx-${tx} ks-${knobSizeOf(o)} knb-${o.knobpos||'centre'}${
+        doors?' cabinet':''}${sel}${has(o,'magic')?' magicdrawer':''}" data-drawer="${o.id}"
+      style="--c:${colour};--knob:${knob};${place}">
       ${chips}
+      ${/* The seam is the tile's, not the knob strip's: two doors meet down the
+           whole front and the gap between them runs past the border at both
+           ends, the way it does on a real one. */''}
+      ${doors?`<i class="dseam"></i>`:''}
       <span class="dmark">${ic(has(o,'magic')?'sparkle':iconOf(o),18)}</span>
       <div class="dtop"><span class="dname">${esc(o.title||'Untitled')}</span>
         ${has(o,'magic')?`<span class="magicmark" title="Collects by rule">${ic('sparkle',11)}</span>`:''}
@@ -569,7 +599,7 @@ function drawTile(o, arr, box){
     ${edit && has(o,'text')
       ? `<div class="dbody"><textarea class="inlinebody" data-inline="${o.id}:body"
            placeholder="Anything else…">${esc(o.body||'')}</textarea></div>`
-      : has(o,'text')&&o.body?`<div class="dbody"><div class="tiletext">${esc(o.body).slice(0,220)}</div></div>`:'<div class="dbody"></div>'}
+      : has(o,'text')&&o.body?`<div class="dbody"><div class="tiletext">${esc(String(o.body).slice(0,BODY_ON_FACE))}</div></div>`:'<div class="dbody"></div>'}
     ${bits.length?`<div class="dfoot"><span class="tilemeta">${bits.join(' · ')}</span></div>`:''}
     ${asks?`<label class="ansbox">
       <i>${answered(o)?ic('check',11):ic('help',11)}</i>
