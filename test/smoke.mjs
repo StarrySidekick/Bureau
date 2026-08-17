@@ -222,17 +222,32 @@ const CHROME = process.env.BUREAU_CHROME;
   const shelfGone = await phone.evaluate(() => {
     const out = {};
     out.noShelf = !document.querySelector('.pinrow') && !document.querySelector('.pinbar');
-    /* …and the app sits a few millimetres up off the bottom edge instead. A
-       phone screen is a rounded rectangle and a row running into the curve
-       loses its first and last tile to it, so `.main` carries the inset the
-       shelf used to hold — and sizeGrid() counts rows inside it, so the board
-       never reaches for the room that was reserved. */
+    /* What is along the bottom now is the desk's own drawer front — the carcass
+       the board is set into, not a shelf, because it holds nothing. It is wood
+       in light and dark alike, it has a round knob, and the board stops on top
+       of it, clear of the curve of the screen. */
     const main = document.querySelector('#app .main');
     const sc = document.querySelector('#app .scroll');
-    const pad = parseFloat(getComputedStyle(main).paddingBottom);
-    out.ridesUpOffTheBottom = pad >= 10;
-    out.andTheBoardStaysInsideIt =
-      sc.getBoundingClientRect().bottom <= main.getBoundingClientRect().bottom - pad + 1;
+    const rail = document.querySelector('.deskrail');
+    out.theresARailInstead = !!rail && !!rail.querySelector('.railknob');
+    /* Wood, and the same wood in light and dark: `--wood` is deliberately not
+       derived from the style's five, because a desk is walnut at midday too.
+       The computed gradient is in rgb(), so the token is resolved the same way
+       rather than compared as a hex string. */
+    const probe = document.createElement('i');
+    probe.style.color = 'var(--wood)';
+    rail.appendChild(probe);
+    const wood = getComputedStyle(probe).color;
+    probe.remove();
+    out.itIsMadeOfWood = getComputedStyle(rail).backgroundImage.includes(wood);
+    const [r,g,bl] = wood.match(/\d+/g).map(Number);
+    out.andItIsDeep = (r*0.299 + g*0.587 + bl*0.114) < 90;
+    const rr = rail.getBoundingClientRect();
+    out.itIsTheBottomOfTheColumn = Math.abs(rr.bottom - main.getBoundingClientRect().bottom) < 1.5;
+    out.andTheBoardStopsOnIt = Math.abs(sc.getBoundingClientRect().bottom - rr.top) < 1.5;
+    /* …and the bar has room to breathe: the board is inset into the carcass,
+       so there is a reveal above it as well as below. */
+    out.theBarBreathes = parseFloat(getComputedStyle(sc).marginTop) >= 7;
     return out;
   });
   // a tile on the board navigates, the same as it always did
@@ -1384,12 +1399,18 @@ const CHROME = process.env.BUREAU_CHROME;
     out.exactlyOnePage = /repeat\((\d+),/.exec(g().style.gridTemplateRows)[1] === String(BUREAU.pageRows);
     out.neverScrolls = sc().scrollHeight <= sc().clientHeight + 1
       && getComputedStyle(sc()).overflowY === 'hidden';
-    /* …and the board stops short of the bottom edge by the inset `.main`
-       carries, so the last row is clear of the rounded corners of the screen. */
+    /* …and the column adds up exactly — bar, the reveal, the rows, the rail —
+       so the board never runs into the curve at the bottom of the screen and
+       there is nothing left hanging anywhere. */
     const main = document.querySelector('#app .main');
-    const pad = parseFloat(getComputedStyle(main).paddingBottom);
-    out.clearsTheCurveOfTheScreen = pad >= 10
-      && g().getBoundingClientRect().bottom <= innerHeight - pad + 1;
+    const bar = document.querySelector('.gridbar');
+    const rail = document.querySelector('.deskrail');
+    const h = e => e.getBoundingClientRect().height;
+    const gap = parseFloat(getComputedStyle(sc()).marginTop);
+    out.theColumnAddsUp =
+      Math.abs(h(bar) + gap + h(sc()) + h(rail) - main.clientHeight) < 1.5;
+    out.clearsTheCurveOfTheScreen = h(rail) >= 30
+      && g().getBoundingClientRect().bottom <= innerHeight - 30;
     out.morePages = BUREAU.pageCount('root') > 1;
     // nothing may straddle a break: half a tile on each of two screens is a
     // tile you can read neither half of
@@ -1451,6 +1472,75 @@ const CHROME = process.env.BUREAU_CHROME;
     out.comesFromTheBottom = !!pr && pr.left < 2 && pr.right > innerWidth - 2
       && pr.bottom >= innerHeight - 1 && pr.top > innerHeight * 0.1;
     document.querySelector('[data-act="panelclose"]').click();
+    return out;
+  });
+
+  /* --- the desk's own drawer front. Two things start on it and the difference
+     is whether you moved: a tap on the knob takes you out, and a pull opens the
+     new-object picker. The pull came out of the shelf until the shelf went; it
+     comes out of real furniture now. See decisions 43 and 53. */
+  const railDrawer = await phone.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const S = BUREAU.state, out = {};
+    S.view='desk'; S.drawerId=null; BUREAU.render(); await nap(200);
+    const rail = () => document.querySelector('.deskrail');
+    const knob = () => document.querySelector('.railknob');
+    // the knob is round, and it is the wood the rail is made of
+    const ks = getComputedStyle(knob());
+    out.theKnobIsRound = ks.borderRadius.startsWith('50%')
+      && Math.abs(parseFloat(ks.width) - parseFloat(ks.height)) < 1;
+    // tapping it from inside a drawer comes back out to the desk
+    S.view='drawer'; S.drawerId='d_ideas'; BUREAU.render(); await nap(220);
+    knob().click(); await nap(400);
+    out.theKnobTakesYouOut = S.view === 'desk' && !S.drawerId;
+
+    /* A real pull, not a flick: the front follows the finger and only opens if
+       you carry it about a quarter of the screen. Forty pixels used to do it,
+       committed, with nothing drawn — which is why it kept happening by
+       accident, including on the way out of the app. */
+    const r = rail().getBoundingClientRect();
+    const x = r.left + 24, y = r.top + 8;      // clear of the knob and of iOS's strip
+    const tap = (el,cx,cy,type) => el.dispatchEvent(new PointerEvent(type,
+      { bubbles:true, cancelable:true, pointerId:31, pointerType:'touch', clientX:cx, clientY:cy }));
+    tap(rail(), x, y, 'pointerdown');
+    tap(rail(), x, y - 60, 'pointermove');
+    await nap(20);
+    out.aFlickDoesNotOpenIt = !!document.querySelector('.shelfpull')
+      && !document.querySelector('.shelfpull.ready') && !document.querySelector('#panel');
+    tap(rail(), x, y - 60, 'pointerup');
+    await nap(320);
+    out.andItDropsBack = !document.querySelector('#panel');
+    // …and the whole way does
+    tap(rail(), x, y, 'pointerdown');
+    for (let i = 1; i <= 8; i++){ tap(rail(), x, y - i*40, 'pointermove'); await nap(12); }
+    out.itFollowsTheFinger = !!document.querySelector('.shelfpull.ready');
+    tap(rail(), x, y - 320, 'pointerup');
+    await nap(320);
+    const p = document.querySelector('#panel');
+    out.pullingOpensThePicker = !!p && p.dataset.panel === 'newobject';
+    document.querySelector('[data-act="panelclose"]').click(); await nap(150);
+    return out;
+  });
+
+  /* --- the dots by the title are the desks, not the pages. A row you walk
+     sideways is a row you can be lost in, and "third of five" is the one thing
+     a strip of dots says better than anything else. */
+  const deskDots = await phone.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const S = BUREAU.state, out = {};
+    S.view='desk'; S.drawerId=null; BUREAU.render(); await nap(200);
+    const dots = () => [...document.querySelectorAll('.deskmark i')];
+    out.oneDotPerDesk = dots().length === S.desks.length;
+    out.theOneYouAreOnIsLit = dots().findIndex(d => d.classList.contains('on'))
+      === S.desks.indexOf('root');
+    // …and inside a drawer it still says which desk that drawer is on
+    S.view='drawer'; S.drawerId='d_ideas'; BUREAU.render(); await nap(200);
+    out.itFollowsYouIntoADrawer = dots().findIndex(d => d.classList.contains('on'))
+      === S.desks.indexOf(BUREAU.deskOf('d_ideas'));
+    // pressing one goes there
+    dots()[1].click(); await nap(300);
+    out.pressingOneGoesThere = S.drawerId === S.desks[1];
+    S.view='desk'; S.drawerId=null; BUREAU.render(); await nap(150);
     return out;
   });
 
@@ -1859,6 +1949,47 @@ const CHROME = process.env.BUREAU_CHROME;
     return out;
   });
 
+  /* --- shadows are a switch. Every tile casts one onto whatever is under it,
+     which is most of what makes a board read as things lying *on* a surface —
+     and it is also the loudest thing in the app, so it is worth being able to
+     see the desk without it. A **zero** shadow rather than `none`: half the
+     border slots write `box-shadow: inset …, var(--shadow)`, and `none` is only
+     legal as the sole value — it would take the inset rings down with it. */
+  const shadows = await page.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const S = BUREAU.state, out = {};
+    const root = document.documentElement;
+    const tile = () => document.querySelector('.grid .drawer.dtile');
+    const tok = () => getComputedStyle(root).getPropertyValue('--shadow').trim();
+    out.onByDefault = S.look.shadows !== false && /rgba\(42/.test(tok());
+    S.look.shadows = false; BUREAU.render(); await nap(160);
+    out.offIsZeroNotNone = tok() === '0 0 0 rgba(0,0,0,0)';
+    out.andNothingIsCast = !/0px 6px 18px/.test(getComputedStyle(tile()).boxShadow);
+    // the border slot's own inset rings must survive it
+    out.theBorderSurvives = /inset/.test(getComputedStyle(tile()).boxShadow);
+    S.look.shadows = true; BUREAU.render(); await nap(160);
+    out.andBackAgain = /rgba\(42/.test(tok());
+    return out;
+  });
+
+  /* --- a texture is printed on the front, so it goes *under* what is standing
+     on it. A generated ::after is the last child of the tile, so with nothing
+     said about depth it painted over the knobs — grain across a brass handle. */
+  const textureDepth = await page.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const S = BUREAU.state, out = {};
+    const d = BUREAU.create('drawer', { parent:'root', title:'Grained' });
+    d.texture = 'weave'; d.desk = Object.assign(BUREAU.free(4,4,'root'), {w:4,h:4});
+    BUREAU.render(); await nap(200);
+    const tile = document.querySelector(`.grid .drawer[data-drawer="${d.id}"]`);
+    const z = (el, pseudo) => +getComputedStyle(el, pseudo||null).zIndex || 0;
+    out.theTextureIsAtTheBottom = z(tile, '::after') === 0;
+    out.theKnobsAreOverIt = z(tile.querySelector('.dfoot')) > z(tile, '::after');
+    out.andTheNameIsOverThose = z(tile.querySelector('.dtop')) > z(tile.querySelector('.dfoot'));
+    BUREAU.delDrawer(d.id); S.undo=[]; BUREAU.render();
+    return out;
+  });
+
   /* --- the object editor: the thing itself, while you change it ---------- */
   const editor = await page.evaluate(async () => {
     const nap = ms => new Promise(r => setTimeout(r, ms));
@@ -1948,7 +2079,7 @@ const CHROME = process.env.BUREAU_CHROME;
     errors: errs, manifestOk, swReady, survived, styleSurvived, slotColours,
     newObjectSeen, inlineEdit, sortDefaults, taskLook,
     shelfTools, gridSizes, keeping, versionShown, sampler, paging,
-    makingOnAPhone, listSwipe,
+    makingOnAPhone, railDrawer, deskDots, listSwipe, shadows, textureDepth,
     gridClass, offlineWorks, railGone, tabsGone, shelfGone, tileNavigates,
     holdArms, maxDrift,
     settingsIsPanel, pickerPreviews, builderPreview, everyMenuIsAPanel,

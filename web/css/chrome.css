@@ -763,20 +763,26 @@ html[data-style="aero"] .drawer.dtile.bd-bar{
 
    The gradient is on the base rule, so all six shapes get it; a bar is the
    same sphere stretched into a cylinder, which is what a bar handle is. */
+/* The light is a **highlight**, not a coat of paint. The first pass ran from
+   62% knob + 38% white at the centre out to 88% at a third of the radius, which
+   is most of the face of the knob lightened — so a knob read as a paler disc of
+   the front's colour, which is the sticker this was supposed to replace. The
+   lit spot is small and off to the upper left now, the body of the knob *is*
+   the front's colour, and the far side falls away into shade. */
 .pull{
   width:calc(clamp(18px, min(20cqw, 26cqh), 84px) * var(--kscale,1));
   height:calc(clamp(18px, min(20cqw, 26cqh), 84px) * var(--kscale,1));flex:0 0 auto;
   background:
     radial-gradient(circle at 34% 28%,
-      color-mix(in srgb, var(--knob, var(--c)) 62%, #fff) 0%,
-      color-mix(in srgb, var(--knob, var(--c)) 88%, #fff) 32%,
-      var(--knob, var(--c)) 58%,
-      color-mix(in srgb, var(--knob, var(--c)) 66%, #000) 100%);
+      color-mix(in srgb, var(--knob, var(--c)) 84%, #fff) 0%,
+      var(--knob, var(--c)) 30%,
+      color-mix(in srgb, var(--knob, var(--c)) 84%, #000) 72%,
+      color-mix(in srgb, var(--knob, var(--c)) 62%, #000) 100%);
   box-shadow:
-    inset 0 1px 1px rgba(255,255,255,.28),
+    inset 0 1px 1px rgba(255,255,255,.14),
     inset 0 -2px 3px rgba(0,0,0,.30),
     0 1px 2px rgba(0,0,0,.34);
-  opacity:.92;transition:opacity .18s;border-radius:50%;
+  opacity:.96;transition:opacity .18s;border-radius:50%;
 }
 .pull.kn-round{border-radius:50%}
 .pull.kn-diamond{border-radius:3px;transform:rotate(45deg)}
@@ -784,9 +790,9 @@ html[data-style="aero"] .drawer.dtile.bd-bar{
   height:calc(clamp(8px,min(6cqw,9cqh),20px) * var(--kscale,1));border-radius:99px;
   /* a cylinder is lit along its length, not from a point on it */
   background:linear-gradient(180deg,
-    color-mix(in srgb, var(--knob, var(--c)) 58%, #fff) 0%,
-    var(--knob, var(--c)) 52%,
-    color-mix(in srgb, var(--knob, var(--c)) 64%, #000) 100%)}
+    color-mix(in srgb, var(--knob, var(--c)) 76%, #fff) 0%,
+    var(--knob, var(--c)) 46%,
+    color-mix(in srgb, var(--knob, var(--c)) 72%, #000) 100%)}
 /* a ring is a rim, so it is lit round its edge and has no body to shade */
 .pull.kn-ring{border-radius:50%;background:none;
   border:calc(4px * var(--kscale,1)) solid var(--knob, var(--c));
@@ -1491,6 +1497,16 @@ input,textarea,select,[contenteditable],
 .sqbtn.locked{color:var(--brass)}
 /* which page of the board you are on. Two fingers turn them; these are also
    targets, because a dot you can see is a dot you will try to press. */
+/* The dots are the desks, laid out left to right the way the desks themselves
+   are. Same shape as the page dots they replaced, one size up: this is the
+   thing you glance at to know where you are standing. */
+.deskmark{display:inline-flex;align-items:center;gap:5px;margin-left:8px;flex:0 0 auto}
+.deskmark i{width:7px;height:7px;border-radius:50%;background:var(--rule);
+  transition:.14s;cursor:pointer;flex:0 0 auto}
+.deskmark i:hover{background:var(--ink-3)}
+.deskmark i.on{background:var(--brass);transform:scale(1.3)}
+.deskmark b{font-size:11.5px;font-variant-numeric:tabular-nums;color:var(--brass);font-weight:700}
+.deskmark b u{text-decoration:none;color:var(--ink-3);font-weight:400}
 .pagemark{display:inline-flex;align-items:center;gap:5px;margin-left:8px;flex:0 0 auto}
 .pagemark i{width:7px;height:7px;border-radius:50%;background:var(--rule);
   cursor:pointer;transition:.14s;display:block}
@@ -1503,20 +1519,67 @@ input,textarea,select,[contenteditable],
    not fit is on the next page. `overflow:hidden` is the assertion — if the row
    arithmetic in sizeGrid() is ever wrong, a tile is clipped rather than quietly
    reintroducing the scroll this replaced. */
-/* The board is exactly as tall as its rows — no growing, no absorbing — so the
-   few pixels the screen has left over fall *below* it rather than above. */
-.is-phone .scroll.deskscroll{overflow:hidden;padding:0;flex:0 0 auto}
-/* ---- and the whole app sits a few millimetres up off the bottom -----------
-   A phone screen is a rounded rectangle, and the last row of a grid that runs
-   to the very edge of it loses its first and last tile to the curve — the two
-   corners eat exactly the cells a nine-column row has least to spare. The
-   shelf used to hold that space (its `margin-bottom` was the safe-area inset);
-   with the shelf gone the board would have run straight into the curve, so the
-   inset moves onto `.main` itself and the whole app rides up off the bottom
-   edge. `sizeGrid()` subtracts this padding before counting rows, so the room
-   it reserves is room the board never tries to use. */
-.is-phone .main{overflow:hidden;
-  padding-bottom:calc(env(safe-area-inset-bottom) + 10px)}
+/* The board is exactly as tall as its rows — no growing, no absorbing — and the
+   few pixels the screen has left over go into the rail below it. The margin is
+   the bar's breathing room: a board pressed up against the title reads as one
+   surface with a heading, rather than as a board set into a desk. */
+.is-phone .scroll.deskscroll{overflow:hidden;padding:0;flex:0 0 auto;
+  --gapmin:7px;margin-top:var(--gapmin)}
+.is-phone .main{overflow:hidden}
+
+/* ============================================================
+   The carcass: the wood the desk is made of
+   ============================================================
+   A phone screen has two strips the board cannot use — the notch above the bar,
+   and the curve of the bottom corners below the last row. They were paper, so
+   they read as a board that had failed to reach the edges. They are the desk
+   itself now: the rail above and the drawer below, in `--wood`, which is a deep
+   walnut in light and dark alike because a desk is walnut at midday too.
+
+   The top one is `.app`'s own padding — the safe-area inset — so on a phone
+   with nothing above the bar there is nothing to draw, which is right. */
+.is-phone #frame{background:var(--wood)}
+.is-phone .app{background:var(--wood)}
+.is-phone .main{background:var(--paper);
+  /* the surface is set *into* the carcass, so the wood shades where they meet */
+  box-shadow:inset 0 3px 5px -3px var(--wood-2)}
+
+/* ---- …and the bottom one is a drawer front ----------------------------
+   It holds nothing — it is the front of the desk itself. A round knob you can
+   tap to come back out, and pull up to make something (see gestures.js). Its
+   height is written by sizeGrid(), which gives it the minimum plus whatever the
+   whole rows leave over; the safe-area inset rides inside it, so the knob sits
+   above the home indicator rather than under it. */
+.is-phone .deskrail{
+  flex:0 0 auto;position:relative;z-index:20;
+  min-height:calc(env(safe-area-inset-bottom) + 30px);
+  padding-bottom:env(safe-area-inset-bottom);
+  display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(180deg,
+    color-mix(in srgb, var(--wood) 88%, #fff) 0 1px,
+    var(--wood) 1px 62%,
+    var(--wood-2) 100%);
+  box-shadow:inset 0 5px 8px -6px rgba(0,0,0,.55);
+}
+/* The knob is **round**, and turned out of the same wood as the rail — lit from
+   the upper left with a shaded underside and a contact shadow, exactly as every
+   drawer pull on the board is, so the desk and the things standing on it are
+   made of the same material under the same lamp. It grows with the rail up to
+   the point where a knob stops being a knob and becomes a plate. */
+.is-phone .railknob{
+  width:clamp(20px, 54%, 30px);aspect-ratio:1;height:auto;border-radius:50%;flex:0 0 auto;
+  background:radial-gradient(circle at 34% 28%,
+    color-mix(in srgb, var(--wood) 74%, #fff) 0%,
+    color-mix(in srgb, var(--wood) 92%, #fff) 34%,
+    var(--wood) 62%,
+    color-mix(in srgb, var(--wood) 72%, #000) 100%);
+  box-shadow:
+    inset 0 1px 1px rgba(255,255,255,.22),
+    inset 0 -2px 3px rgba(0,0,0,.34),
+    0 1px 3px rgba(0,0,0,.45);
+  transition:filter .14s;
+}
+.is-phone .railknob:active{filter:brightness(1.14)}
 
 /* ---- a menu on a phone comes up out of the bottom ----------------------
    Down the right is a Mac's shape: there is room beside the desk there. On a
@@ -1579,6 +1642,46 @@ input,textarea,select,[contenteditable],
   width:auto;min-width:min(76px,30cqw)}
 .tlnode.lasts i{width:var(--run,8px);min-width:6px;height:5px;border-radius:3px}
 
+
+/* ============================================================
+   The drawer you pull out of the desk
+   ============================================================
+   Pulling the rail along the bottom opens the new-object picker. It used to
+   fire the instant the finger had travelled forty pixels — committed, with
+   nothing drawn until it was already done — so a flick, a sideways scroll and
+   every swipe up out of the app to the iPhone home screen all opened it.
+
+   It is a real pull: a drawer front rises out of the rail and follows the
+   finger the whole way, `--pull` being however far it has come, and it only
+   opens if you carried it about a quarter of the screen. Nothing is decided
+   until you let go — short of that it drops back — and the last few millimetres
+   above the bottom edge are left to iOS, which owns them. It came out of the
+   shelf until the shelf went; the rail is better furniture for it, because a
+   drawer is a thing you pull open and that one is drawn as one. See gestures.js
+   and decisions 43 and 53. */
+.shelfpull{
+  position:absolute;left:14px;right:14px;z-index:38;pointer-events:none;
+  height:var(--pull,0px);overflow:hidden;
+  display:flex;align-items:flex-end;
+}
+.shelfpull.settling{transition:height .22s cubic-bezier(.22,1,.3,1)}
+.pullfront{
+  flex:1;height:var(--pull,0px);min-height:0;
+  border-radius:var(--radius-d) var(--radius-d) 0 0;
+  background:var(--wood);border:1px solid var(--line,rgba(0,0,0,.28));border-bottom:0;
+  box-shadow:0 -8px 22px -10px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.16);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+  color:#F8F3E6;
+}
+.pullknob{
+  width:44px;height:7px;border-radius:99px;flex:0 0 auto;
+  background:color-mix(in srgb,#F8F3E6 58%,transparent);transition:.16s}
+.pullfront b{font-size:13px;font-weight:500;letter-spacing:.01em;opacity:.72;transition:.16s}
+/* far enough to open: the front says so before you let go, which is the whole
+   point of drawing it at all */
+.shelfpull.ready .pullknob{background:var(--glow);width:64px}
+.shelfpull.ready .pullfront b{opacity:1}
+.shelfpull.ready .pullfront{border-color:color-mix(in srgb,var(--glow) 60%,transparent)}
 
 /* ============================================================
    Every desk, laid out

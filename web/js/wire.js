@@ -1,6 +1,6 @@
 import { $, $$, esc, ic, uid, D, ROOT } from './util.js';
 import { S, K, KINDS, KEYS, refreshKinds, ATTRS, USER_ATTRS, attrsOf, has, SHAPES,
-  FACES, MANUAL, byId, container, cfgOf, isContainer, isAncestor, relate,
+  FACES, MANUAL, byId, container, cfgOf, isContainer, isAncestor, relate, deskOf,
   unrelate, sensedDevice, reset, T, dz, dev, calViewOf } from './model.js';
 import { gridOf, lay, boxOk, freeSpot, toPhoneSize } from './grid.js';
 import { applyLook, applyStyle, setLookVal, lookVal, STYLES, randomFront,
@@ -258,6 +258,25 @@ function act(name, el){
       save(); render(); renderSheet(); refreshPanel(); toast('Picture removed', true);
       break;
     }
+    /* The knob on the desk's own drawer. It takes you **out**: out of a drawer
+       to the desk it stands on, and from a desk to the home desk. Nothing when
+       you are already home — a button that goes where you already are is a
+       button that reads as broken. Pulling the same rail makes something; see
+       gestures.js. */
+    case 'railout': {
+      if(S.view==='drawer' && S.drawerId){
+        const up = deskOf(S.drawerId);
+        if(up && up!==S.drawerId){
+          S.view = up===ROOT ? 'desk' : 'drawer';
+          S.drawerId = up===ROOT ? null : up;
+          S.kindFilter=null; render(); enter('back'); break;
+        }
+      }
+      if(!(S.view==='desk' && !S.drawerId)){
+        S.view='desk'; S.drawerId=null; S.kindFilter=null; render(); enter('back');
+      }
+      break;
+    }
     case 'drawersettings': case 'objset': objectPanel(el.dataset.id); break;
     case 'panelclose': closePanel(); break;
     case 'appsettings': toggleSettings(); break;
@@ -451,6 +470,13 @@ function wire(){
 
     const gz=t.closest('[data-gridsize]');
     if(gz){ setGridSize(gz.dataset.gridsize); refreshPanel(); return; }
+
+    /* Shadows on or off. Not per theme, unlike the custom colours: whether
+       things on a desk cast a shadow is a fact about the desk, not about the
+       light it is under. */
+    const shd=t.closest('[data-shadows]');
+    if(shd){ S.look.shadows = !!shd.dataset.shadows;
+      applyLook(); save(); render(); refreshPanel(); return; }
 
     const st3=t.closest('[data-style3]');
     if(st3){ applyStyle(st3.dataset.style3); toast(STYLES[st3.dataset.style3].nm); return; }

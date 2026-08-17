@@ -141,12 +141,28 @@ manually): `orb` knob, `aqua` border, `sheen` texture, `stars` texture.
 
 ---
 
+## Two things a style does not own
+
+**The wood.** `--wood` and `--wood-2` are the carcass — the rail above the bar
+and the drawer front along the bottom of a phone. They are a deep walnut in
+light and dark alike and are deliberately *not* derived from the sixteen: a desk
+is walnut at midday as much as at midnight, and paper laid on pale wood reads as
+a rendering fault rather than as furniture. A style that is genuinely made of
+something else may overrule them in its own `vars`, but it should have a reason.
+
+**The shadow.** Whether things on a desk cast one is `S.look.shadows`, a switch
+in the app's settings rather than a property of the style. Off writes a *zero*
+shadow into `--shadow` and `--shadow-lg` — never `none`, because half the border
+slots write `box-shadow: inset …, var(--shadow)` and `none` is only legal as the
+sole value of the property.
+
 ## Adding a style
 
 1. Add an entry to `STYLES`: name, `cols` (all sixteen, in slot order — the
    five first), board pair, `defaults{knob,border,texture,knobtone}`, and a
-   `vars` map for the handful of things a colour can't say (radius, typeface).
-   Light or dark follows from `cols[0]`; there is nothing else to declare.
+   `vars` map for the handful of things a colour can't say (radius, typeface,
+   and the wood if it is genuinely not wood). Light or dark follows from
+   `cols[0]`; there is nothing else to declare.
 2. Optional chrome: a `html[data-style="…"]` CSS block for anything tokens
    can't express.
 3. Optional new elements (knobs/borders/textures) — add the CSS class and the

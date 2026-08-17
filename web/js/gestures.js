@@ -43,12 +43,40 @@ function cancelHold(e){
 }
 
 
-/* ---- making something on a phone --------------------------------------
-   There used to be two ways in: pulling a drawer front up out of the shelf,
-   and holding a bare cell. The shelf is gone (decision 53) and so is the pull
-   that came out of it; holding a cell is the one that is left, and it is the
-   better half anyway — pulling made a thing with nowhere in mind, holding a
-   cell makes one *there*, which is what a grid is for. */
+/* ---- pulling the new-object drawer out of the desk ---------------------
+   Two ways in on a phone, and they answer different questions. **Holding a bare
+   cell** makes a thing *there*, which is what a grid is for. **Pulling the rail
+   along the bottom** makes one with nowhere in mind, which is what you want
+   when the thought arrives before the place for it does — and it is the gesture
+   your thumb is already resting on.
+
+   It came out of the shelf until the shelf went (decision 53); it comes out of
+   the desk's own drawer front now, which is better furniture for it — a drawer
+   is a thing you pull open, and this one is drawn as one.
+
+   Three numbers and an element. PULL_START is how far the finger travels before
+   the drawer is showing at all — enough to rule out a tap and a sideways
+   scroll, not enough to feel like a delay. PULL_OPEN is the pull itself, and it
+   is deliberately long: a quarter of a phone screen is a stroke you have to
+   commit to, which is what stops a flick, a scroll or a swipe up out of the app
+   from opening it by accident.
+
+   HOME_EDGE is the strip along the very bottom that iOS keeps for its own home
+   swipe. The rail sits above the home indicator — the safe-area inset is inside
+   it — so this is belt and braces. */
+const PULL_START = 12, HOME_EDGE = 14;
+const PULL_OPEN = ()=> Math.round(Math.min(200, Math.max(110, innerHeight*0.26)));
+function makePull(){
+  const el=document.createElement('div');
+  el.className='shelfpull';
+  el.innerHTML=`<div class="pullfront"><i class="pullknob"></i><b>New object</b></div>`;
+  // it comes out *of* the rail, so it stands on the rail's top edge rather than
+  // covering it — the front is the thing it is being pulled from
+  const rail=$('.deskrail'), fr=$('#frame').getBoundingClientRect();
+  el.style.bottom = (rail ? fr.bottom - rail.getBoundingClientRect().top : 0) + 'px';
+  $('#frame').appendChild(el);
+  return el;
+}
 
 /* ---- opening a locked board with the tile already in your hand -----------
    The iPhone home screen's gesture: hold an icon, the menu comes up, and if you
@@ -288,6 +316,20 @@ function onDown(e){
      synthetic — the flag would sit there and eat somebody else's click later.
      A new press means the old one is finished with, whatever happened to it. */
   gestureFlags.suppressClick=false;
+  /* The rail along the bottom of a phone: the desk's own drawer front. A press
+     that travels up pulls it open onto the new-object picker; one that doesn't
+     is a tap, and the knob under it takes you back out. Both start here, which
+     is how a real drawer works — you take hold of the knob and then decide. */
+  const railEl = S.device!=='desk' && e.target.closest('.deskrail');
+  if(railEl){
+    /* …unless the finger went down in the last few millimetres of the screen,
+       which is iOS's own home gesture and not ours. */
+    G = (innerHeight - e.clientY) < HOME_EDGE
+      ? {type:'homeedge'}
+      : {type:'rail', el:railEl, onKnob:!!e.target.closest('.railknob'),
+         sx:e.clientX, sy:e.clientY, mode:null, pull:null};
+    return;
+  }
   // Any tile on any unlocked grid. There is no arrange mode — everything is
   // always movable — so a short hold arms the drag, which is the only thing
   // keeping an ordinary click from picking the tile up.
@@ -548,6 +590,30 @@ function onMove(e){
     return;
   }
 
+  if(G.type==='homeedge') return;      // iOS owns that strip; keep out of it
+
+  if(G.type==='rail'){
+    /* A real pull: the front rises out of the rail and follows the finger the
+       whole way, and it only opens if you carried it PULL_OPEN — a quarter of
+       the screen, which is a distance you cannot travel without meaning to. Let
+       go short and it drops back. Nothing is decided until you let go. */
+    if(G.mode==='dead') return;
+    if(!G.pull){
+      // sideways first means something else entirely, and that is that
+      if(Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 6){ G.mode='dead'; return; }
+      if(dy > -PULL_START) return;
+      G.pull=makePull();
+      G.mode='pull';
+      gestureFlags.suppressClick=true;
+    }
+    const open=PULL_OPEN();
+    const up=clamp(-dy - PULL_START, 0, open*1.25);
+    G.at=up;
+    G.pull.style.setProperty('--pull', up+'px');
+    G.pull.classList.toggle('ready', up >= open);
+    return;
+  }
+
   if(G.type==='move' || G.type==='resize'){
     /* The menu is up and the finger has moved: iOS home-screen behaviour. The
        menu goes, the tile comes up into your hand — and if the board was locked
@@ -674,6 +740,24 @@ function onUp(e){
       ? {x:g.cand.x, y:g.cand.y, w:g.cand.w, h:g.cand.h, parent:g.parent}
       : {x:g.x0, y:g.y0, parent:g.parent};
     modalNewObject();
+    return;
+  }
+
+  if(g.type==='homeedge') return;
+  if(g.type==='rail'){
+    // a tap: the knob takes you out, and bare rail does nothing at all
+    if(!g.pull) return;
+    const open = g.at >= PULL_OPEN();
+    const el=g.pull;
+    el.classList.remove('ready');
+    el.classList.add('settling');
+    el.style.setProperty('--pull', open ? (PULL_OPEN()*1.35)+'px' : '0px');
+    setTimeout(()=>el.remove(), 260);
+    if(open){
+      if(navigator.vibrate) navigator.vibrate(6);
+      pending.cell=null;               // no cell in mind: wherever there is room
+      modalNewObject();
+    }
     return;
   }
 

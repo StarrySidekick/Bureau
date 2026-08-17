@@ -5,6 +5,29 @@ Sequenced by dependency, not appetite: item 1 makes everything after it safer.
 
 ---
 
+## 0i. Queued 2026-08-17 (ninth pass) — the carcass — DONE (v0.58)
+
+See decisions 55 and 56.
+
+- **the app is a piece of furniture.** The notch strip above the bar and the
+  curve below the last row are the desk itself now: `--wood` above, and along
+  the bottom a drawer front with a round knob. Deep walnut in light and dark
+  alike, and not derived from the style's five
+- **the knob takes you out** one level, and **pulling the rail opens the type
+  picker** — decision 43's gesture given back the thing it comes out of
+- **the leftover is split** between the reveal above the board and the depth of
+  the drawer below, so the bar has room to breathe and neither end gets a whole
+  spare cell
+- **the dots by the title are the desks**, not the pages, with the one you are
+  standing on lit and pressing one going there. The page is a number now
+- **shadows are a switch** in the app's settings — a zero shadow rather than
+  `none`, so the border slots' inset rings survive it
+- **the knob's highlight is a highlight**, not a coat of paint: the body of it
+  is the front's own colour
+- **textures render under the knobs**, not over them
+
+---
+
 ## 0h. Queued 2026-08-17 (eighth pass) — the shelf comes out — DONE (v0.57)
 
 See decisions 53 and 54.

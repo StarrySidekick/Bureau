@@ -1779,3 +1779,69 @@ way.
 
 *Against:* a large square container no longer swings, and the cabinet movement
 is now rarer than it was. That is the price of the front telling the truth.
+
+---
+
+### 55. The app is a piece of furniture, and the board is set into it
+
+A phone screen has two strips the board cannot use: the notch above the bar, and
+the curve of the bottom corners below the last row. They were paper, so they
+read as a board that had failed to reach the edges of the screen — and the
+bottom one had just lost the shelf that used to occupy it (decision 53).
+
+They are the desk itself now. `--wood` and `--wood-2`: a deep walnut above the
+bar, and along the bottom a **drawer front** with a round knob on it. The board
+is the surface set into that carcass, with a shaded reveal where the two meet.
+
+Three things follow from it being real furniture rather than a margin.
+
+- **The wood is the same in light and dark**, and it is deliberately *not*
+  derived from the style's five. A desk is walnut at midday as much as at
+  midnight, and paper laid on pale wood reads as a rendering fault. A style may
+  overrule it in its own `vars` if it is made of something else.
+- **The knob takes you out** — out of a drawer to the desk it stands on, and
+  from a desk to the home desk. Nothing when you are already home.
+- **Pulling it opens the new-object picker**, which is decision 43's gesture
+  given back the thing it comes out of. It went with the shelf and it was
+  missed: holding a bare cell makes a thing *there*, and pulling makes one with
+  nowhere in mind, which is what you want when the thought arrives before the
+  place for it does. A drawer is a thing you pull open, and this one is drawn as
+  one — which is better furniture for the gesture than the shelf ever was.
+
+The rail's height is written by `sizeGrid()`, because it is also where half the
+leftover goes. A board is a whole number of square cells and a screen is not, so
+there are always a few pixels over; they are split evenly between the reveal
+above the board and the depth of the drawer below it. Giving the lot to one end
+was tried both ways and neither survives a screen whose height divides badly —
+all of it below is a drawer front two rows deep, and all of it above is the dead
+strip under the title that decision 44 spent a version removing. Half each is at
+most half a cell of either, and the board ends up centred in its carcass, which
+is what a surface set into a frame looks like anyway.
+
+*Against:* the rail costs about thirty points of screen that used to be
+nothing — less than a row, but not nothing. And two gestures now start on the
+same strip, told apart by whether you moved; that is the same bargain the tile
+long-press makes, and it is a bargain rather than a free lunch.
+
+---
+
+### 56. The dots by the title are the desks, not the pages
+
+They counted the pages of the board you were on. Position in the wrong axis: how
+far down you have scrolled is a thing the board itself tells you by what is on
+it, and it changes every time you flick.
+
+The row of desks is the thing you can genuinely be lost in — it is walked
+sideways, it does not wrap, and there is nothing on screen that says how far
+along it you are. "Third of five" is exactly what a strip of dots says better
+than anything else, which is why every home screen ever made uses one for
+precisely this. So the dots are the desks, in the order they sit in the master
+space, with the one you are standing on lit; they follow you into a drawer,
+because a drawer is on a desk; and pressing one goes there.
+
+The page count is still worth knowing and is now a number rather than a place —
+`2/3`, only when there is more than one.
+
+*Against:* a board with fifteen pages says so in four characters and no longer
+lets you jump to page seven by aiming at a dot. Two fingers still walk them, and
+aiming at the seventh of fifteen dots was never really a thing you could do.

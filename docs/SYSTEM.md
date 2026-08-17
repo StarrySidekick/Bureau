@@ -278,10 +278,11 @@ Each container is its own coordinate space, and every device has its own.
   fluid, so `sizeGrid()` measures the column width after layout, caches it in
   `COLW`, and makes the row height (`CELL`) match. Nothing may assume either.
   How many rows a phone page holds is the measured leftover, and the bar is kept
-  thin because every pixel of it is a row. `.main` carries a bottom inset —
-  the safe-area plus a little — because a phone screen is a rounded rectangle
-  and a row that runs into the curve loses its end tiles to it; `sizeGrid()`
-  subtracts that inset before counting, so the board never reaches for it.
+  thin because every pixel of it is a row. The board is **set into the carcass**:
+  the wood above the bar and the drawer front below take the strips a rounded
+  screen won't let a row have, and the pixels the whole rows leave over are split
+  evenly between the reveal above and the depth of the drawer below. `sizeGrid()`
+  writes both. See decision 55.
 - `x`/`y` are 1-based cells. Array order positions nothing. There is no
   auto-flow: an empty cell stays empty.
 - Two objects may never overlap. A move or resize that would collide is
@@ -308,7 +309,8 @@ of four things layered over them.
 | Surface | What it is for | Where it lives |
 | --- | --- | --- |
 | **The grid** | The app. | `#app`, rebuilt whole by `render()` |
-| **The bar** | Where you are — pressing it opens every desk at once — plus three icon buttons: the lock, this board's editor (a brush), and the app's settings (a gear, on a desk only). Inside a drawer the gear's place is the star, which promotes it to a desk. | inside `#app` |
+| **The bar** | Where you are — pressing it opens every desk at once — a dot per desk with the one you are on lit, and three icon buttons: the lock, this board's editor (a brush), and the app's settings (a gear, on a desk only). Inside a drawer the gear's place is the star, which promotes it to a desk. | inside `#app` |
+| **The carcass** | The wood the app is made of: a rail above the bar, and along the bottom of a phone the desk's own drawer front. It holds nothing. Tap its knob to come out a level; pull it up for the type picker. | inside `#app` |
 | **Reading** | An object's body as paper — a spread, a page, or a column. Over a dimmed desk. | `#sheetHost`, rendered separately from `render()` |
 | **Writing** | The same body, full screen, with nothing else on it. A title and a textarea. | `#sheetHost` |
 | **The picture** | What something made of an image opens onto: the image as large as the window allows, and — when there isn't one — the empty mount, which *is* the button that chooses a file. Replace and Remove in the head. | `#sheetHost` |
@@ -359,7 +361,9 @@ decision 51.
 | Two fingers up / down | The next page of this board, and the one before |
 | Two fingers left / right | The next desk, and the one before |
 | Swipe sideways on a board that isn't a grid | The next desk. A list, a scroll, a book or a calendar has no bare cells to start the one-finger swipe from, so the scroller is the surface — sideways only, because up and down is its own scrolling |
-| Hold a bare cell | Lights it; drag to size a box, let go for the picker — on a locked board too. A *tap* on bare board does nothing. This is the way in on a phone |
+| Hold a bare cell | Lights it; drag to size a box, let go for the picker — on a locked board too. A *tap* on bare board does nothing |
+| Pull up the rail along the bottom | A drawer front follows your finger; carry it a quarter of the screen and it opens the type picker, with nowhere in mind. A phone |
+| Tap the knob on that rail | Out one level: out of a drawer to its desk, from a desk to home |
 | Hold a tile, then move | The menu goes and the tile is in your hand, iOS-style — and the board unlocks |
 | Hold a band in a list | Reorder it, under Manual sort only — it writes `ord` |
 | Double-tap a tile | Its name becomes a field where it sits, and its body under it if the tile shows one. Containers are exempt: two taps on a drawer opens it twice |

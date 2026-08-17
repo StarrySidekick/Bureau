@@ -2,7 +2,7 @@
    boot — load, wire, render, register the service worker
    ============================================================ */
 import { $ } from './util.js';
-import { S, KINDS, SHAPES, childrenOf, container, relate } from './model.js';
+import { S, KINDS, SHAPES, childrenOf, container, relate, deskOf } from './model.js';
 import { pageRows, freeSpot } from './grid.js';
 import { create, setPin, togglePin, del, delMany, delDrawer, undo, toggleDone, setGridSize } from './mutations.js';
 import { applyLook } from './look.js';
@@ -49,6 +49,8 @@ window.BUREAU = {
   // have to reimplement the size rule to know what it is looking at
   openingFor,
   kids: id => childrenOf(container(id)).map(o=>o.id),
+  // which desk something is on — the dots by the title answer with it
+  deskOf,
   // paging, for the smoke test: how tall a page is and which one you are on
   get pageRows(){ return pageRows(); }, pageAt, pageCount, goPage,
   // somewhere free to put a fixture, so a test needn't hardcode a coordinate

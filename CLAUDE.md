@@ -182,6 +182,18 @@ which is a sticker rather than a handle and gave every drawer a colour nobody
 had chosen. `knobtone` (lighter/darker) and `knobc` (a colour outright) still
 override, in that order.
 
+The light is a **highlight, not a coat of paint**: the lit spot is small and the
+body of the knob *is* the front's colour, falling away into shade on the far
+side. The first pass ran the white mix out to a third of the radius, which is
+most of the face lightened — and a knob that is a paler disc of the front is the
+sticker this was meant to replace, wearing a gradient.
+
+**A texture is printed on the front, so it goes under what stands on it.** The
+depths on a drawer front, bottom to top: the texture's `::after` (0), the knobs
+(1), the name (2), the mark and the seam (3). A generated `::after` is the last
+child of the tile, so with nothing said about depth it painted grain across the
+brass handle.
+
 **Nothing on the desk shimmers.** A magic drawer used to be holographic foil,
 lit from `--holox`/`--holoy` on `#frame` — the phone's tilt, or the pointer.
 It was tacky, and it is gone along with the whole tilt apparatus. Furniture does
@@ -355,6 +367,35 @@ goes there. Desks are laid out in space, not listed in a strip.
 on the Exercise desk answers with screenplay scenes. `inScope()` is checked
 before every other clause in `inContainer()`, so it applies to the archive and
 to every rule alike.
+
+**The app is furniture, and the board is set into it.** A phone screen has two
+strips the board cannot use — the notch above the bar and the curve of the
+bottom corners — and both are the desk itself: `--wood` above, and along the
+bottom a **drawer front** with a round knob. Tapping the knob takes you out (out
+of a drawer to its desk, from a desk to home); **pulling it up opens the type
+picker**, which is decision 43's gesture given back the thing it comes out of.
+The wood is the same in light and dark and is deliberately not derived from the
+style's five — a desk is walnut at midday too. See decision 55.
+
+**The rail's height is written by `sizeGrid()`, and so is the gap under the
+bar.** A board is a whole number of square cells and a screen is not, so the
+leftover is split evenly between the reveal above the board and the depth of the
+drawer below it — at most half a cell of either, and the board ends up centred
+in its carcass. Give it all to one end and you get either a drawer two rows deep
+or the dead strip under the title that decision 44 removed. `--gapmin` on
+`.deskscroll` is the floor for the top half; `min-height` on `.deskrail` is the
+floor for the bottom, and the safe-area inset rides inside it.
+
+**The dots by the title are the desks, not the pages.** In the order they sit in
+the master space, the one you are standing on lit, following you into a drawer
+because a drawer is on a desk, and pressing one goes there. They counted pages
+once, which is position in the wrong axis. The page is a number now — `2/3`,
+only when there is more than one. See decision 56.
+
+**Shadows are a switch.** `S.look.shadows`, in the app's settings. Off writes a
+**zero** shadow into `--shadow`/`--shadow-lg`, never `none`: half the border
+slots write `box-shadow: inset …, var(--shadow)`, and `none` is only legal as
+the sole value of the property — it would take the inset rings down with it.
 
 **There is no shelf.** There was: one global row along the bottom of a phone,
 drawn as the last row of the grid, holding whatever you kept to hand. It cost a

@@ -407,7 +407,9 @@ function defaultLook(){
           // light or dark follows the device unless you insist otherwise
           dark:'auto',
           // small | extra | large — how many columns a phone board has
-          grid:'small', style:'victorian', slots:{}, styleDefaults:null};
+          grid:'small', style:'victorian', slots:{}, styleDefaults:null,
+          // things on a surface cast a shadow onto it; false lays them flat
+          shadows:true};
 }
 reset();
 

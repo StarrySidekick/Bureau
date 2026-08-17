@@ -40,6 +40,7 @@ function gridBar(c){
   if(!(trail[0] && isDesk(trail[0].id))) trail = [container(deskOf(c.id)), ...trail];
   const atDesk = trail.length<=1;
   const pages = pageCount(c.id);
+  const desks = deskIds(), here = deskHere();
   const deskBtn = (label)=>`<b class="deskname" data-act="deskmap"
     title="Every desk, laid out">${esc(label)}</b>`;
   return `<div class="gridbar shelf shelf-top">
@@ -52,12 +53,25 @@ function gridBar(c){
              : i===0 ? deskBtn(x.id===ROOT ? deskTitle() : boardName(x))
              : `<b data-drawer="${x.id}">${esc(boardName(x))}</b>`}`).join('')}</span>`}
       ${has(c,'magic')?`<span class="magicmark big" title="Collects by rule">${ic('sparkle',14)}</span>`:''}
-      ${/* Dots while they fit; a count once they don't — nine dots is already
-           more than you can aim at, and thirty is a texture. */''}
-      ${pages>1?`<span class="pagemark" title="Two fingers up and down turn the page">${
-        pages<=9
-          ? [...Array(pages)].map((_,i)=>`<i class="${i===pageAt(c.id)?'on':''}" data-gopage="${i}"></i>`).join('')
-          : `<b>${pageAt(c.id)+1}<u>/${pages}</u></b>`}</span>`:''}
+      ${/* The dots are the **desks**, in the order they sit in the master
+           space, with the one you are standing on lit. A row you walk sideways
+           is a row you can be lost in, and "third of five" is the one thing a
+           strip of dots says better than anything else — which is what they are
+           for on every home screen ever made. They used to count the pages of
+           this board, which is a fact about how far down you have scrolled and
+           reads as position in exactly the wrong axis. Pressing one goes there.
+
+           Dots while they fit; a count once they don't — nine is already more
+           than you can aim at, and thirty is a texture. */''}
+      ${desks.length>1?`<span class="deskmark" title="Which desk you are on — swipe sideways to walk them">${
+        desks.length<=9
+          ? desks.map(id=>`<i class="${id===here?'on':''}" data-deskgo="${id}"
+              title="${esc(boardName(container(id)))}"></i>`).join('')
+          : `<b>${desks.indexOf(here)+1}<u>/${desks.length}</u></b>`}</span>`:''}
+      ${/* …and the page, which is a number rather than a place. It only says
+           anything when there is more than one. */''}
+      ${pages>1?`<span class="pagemark" title="Two fingers up and down turn the page"
+        ><b>${pageAt(c.id)+1}<u>/${pages}</u></b></span>`:''}
     </div>
     <div class="bartools">
       ${/* The lock comes first, because it is the one that changes what every
@@ -424,6 +438,16 @@ function settingsBody(){
       ${lookVal('board')?`<button class="pill" style="margin-top:6px" data-look="board" data-val="">Reset</button>`:''}
     </div>
 
+    ${/* Every tile casts a shadow onto whatever is under it, which is most of
+         what makes a board read as things lying *on* a surface rather than as
+         coloured rectangles. It is also the single loudest thing in the app, so
+         it is worth being able to see the desk with it off. */''}
+    <div class="field" style="margin-top:12px"><label>Shadows</label>
+      <div class="filterbar">${[['1','Things cast a shadow'],['','Laid flat']].map(([v,n])=>
+        `<button class="fchip${(S.look.shadows===false?'':'1')===v?' on':''}" data-shadows="${v}">${n}</button>`).join('')}</div>
+      <div class="mini" style="--k:var(--brass);margin-top:6px">Off, a tile is the colour and the border and nothing else — flatter, quieter, and easier to read a crowded board off.</div>
+    </div>
+
     ${gridSizeField()}
 
     <div class="field" style="margin-top:12px"><label>Whose desk this is</label>
@@ -611,6 +635,26 @@ function reveal(id){
   }
 }
 
+/* ---- the desk's own drawer --------------------------------------------
+   The strip along the bottom of a phone. It is not a shelf and holds nothing:
+   it is the front of the desk itself, the carcass the board is set into, in
+   the wood the app is made of rather than in the style's paper.
+
+   It does the two things a drawer front does. **Tap the knob** and it takes you
+   out — out of a drawer to the desk it is on, and from a desk to the home desk.
+   **Pull it up** and the new-object picker comes out of it, which is the
+   gesture the shelf used to carry (decision 43) and the reason it is worth
+   having a piece of furniture down there at all rather than a margin.
+
+   Its height is set by sizeGrid(), because it is also where the leftover goes:
+   a board is a whole number of square cells and the few pixels the screen has
+   over are the drawer being a little deeper, not a gap. */
+function deskRail(){
+  return `<nav class="deskrail" data-rail>
+    <i class="railknob" data-act="railout" title="Back — and pull up to make something"></i>
+  </nav>`;
+}
+
 /* The whole of what `#app` holds, as a string, for wherever S says you are.
    No sidebar, no tabs and no shelf: the desk is the navigation. Drawers are on
    it, a sideways swipe walks the desks, the title lays them all out, ⌘K finds
@@ -618,7 +662,7 @@ function reveal(id){
 function viewHTML(){
   const body = S.view==='drawer' ? viewDrawer()
              : viewDesk();          // the desk is the only other place there is
-  return `<div class="main">${body}</div>`;
+  return `<div class="main">${body}${S.device==='phone'?deskRail():''}</div>`;
 }
 
 /* The same thing, for somewhere you are *not*. The pager slides the board you
@@ -685,25 +729,37 @@ function sizeGrid(){
      whole cells fit between the bar and the shelf. `ceil` was what made the
      bottom row hang half a cell past the shelf and forced the board to scroll
      to reach it. Zero on a Mac: a desk scrolls. */
-  /* How many rows fit, measured from the room the board actually has: the
-     whole column, less the bar. It used to divide the scroller's own height,
-     which worked only while the scroller was the thing absorbing the leftover
-     — and that put the spare pixels *above* the board, which is a dead strip
-     under the title. The scroller is the height of its rows now
-     (`flex:0 0 auto`), so the spare falls below the last row instead.
+  /* How many rows fit, measured from the room the board actually has: the whole
+     column, less the bar, less the gap that lets the bar breathe, less the rail
+     along the bottom. It used to divide the scroller's own height, which worked
+     only while the scroller was the thing absorbing the leftover — and that put
+     the spare pixels *above* the board, which is a dead strip under the title.
+     The scroller is the height of its rows now (`flex:0 0 auto`).
 
-     `clientHeight` counts the padding, and the bottom one is the strip the
-     phone's own rounded corners and home bar are eating — so it comes off
-     here, or the last row would be sized into pixels it can't be seen in.
-     That inset is what took the shelf's place: the board stops a few
-     millimetres up rather than running into the curve of the screen. */
+     Both the gap and the rail have a **minimum**, and the pixels the whole rows
+     leave over are split between them — so the board is a surface set into the
+     carcass with an even reveal above and below, and the column adds up exactly:
+     bar + gap + rows×cell + rail = the screen. Giving the whole leftover to one
+     of them was tried both ways round and neither survives a screen whose height
+     divides badly: all of it below is a drawer front the depth of two rows, and
+     all of it above is the dead strip under the title that decision 44 spent a
+     version getting rid of. Half each is at most half a cell of either.
+
+     The safe-area inset rides inside the rail's own minimum, which is what
+     keeps the last row of the board clear of the curve of the screen. */
   const sc=grid.parentElement, main=grid.closest('.main');
   if(dev()==='phone' && main){
-    const bar=main.querySelector('.gridbar');
-    const below = parseFloat(getComputedStyle(main).paddingBottom)||0;
-    const avail = main.clientHeight - (bar?bar.getBoundingClientRect().height:0) - below;
-    const rows=Math.max(4, Math.floor(avail / Math.max(1,w)));
+    const bar=main.querySelector('.gridbar'), rail=main.querySelector('.deskrail');
+    const barH = bar ? bar.getBoundingClientRect().height : 0;
+    // read the floor, not the margin — the margin is what this writes
+    const gapMin = parseFloat(getComputedStyle(sc).getPropertyValue('--gapmin'))||0;
+    const railMin = rail ? (parseFloat(getComputedStyle(rail).minHeight)||0) : 0;
+    const room = main.clientHeight - barH - gapMin - railMin;
+    const rows=Math.max(4, Math.floor(room / Math.max(1,w)));
     if(rows!==PAGEROWS.phone){ PAGEROWS.phone=rows; if(!sizing){ sizing=true; try{ render(); } finally { sizing=false; } return; } }
+    const over = Math.max(0, room - rows*w);
+    sc.style.marginTop = (gapMin + Math.floor(over/2)) + 'px';
+    if(rail) rail.style.height = (railMin + Math.ceil(over/2)) + 'px';
   } else PAGEROWS.desk = 0;
   /* Do NOT round. Columns are `1fr` and therefore fractional; rounding the row
      height to a whole pixel made rows and columns different sizes, and the

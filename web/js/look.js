@@ -73,7 +73,7 @@ function applyLook(){
   // the style writes the whole chrome set; a stale override from a style that
   // is no longer showing must not survive the swap
   CHROME_VARS.forEach(v=>el.style.removeProperty(v));
-  ['--radius','--radius-d','--serif'].forEach(v=>el.style.removeProperty(v));
+  ['--radius','--radius-d','--serif','--wood','--wood-2'].forEach(v=>el.style.removeProperty(v));
   Object.entries(chromeTokens(cols)).forEach(([k,v])=>el.style.setProperty(k,v));
   const st=STYLES[L.style];
   if(st && st.vars) Object.entries(st.vars).forEach(([k,v])=>el.style.setProperty(k,v));
@@ -92,6 +92,18 @@ function applyLook(){
   else { el.style.removeProperty('--board-1'); el.style.removeProperty('--board-2'); }
   if(L.accent) el.style.setProperty('--brass', L.accent);
   if(L.line) el.style.setProperty('--line', L.line);
+  /* Shadows off. Every tile in the app casts one onto whatever is under it,
+     which is what makes the board read as things *on* a surface — and it is
+     also the single biggest difference between "furniture" and "flat", so it
+     is worth being able to see the desk without it.
+
+     A **zero** shadow rather than `none`: half the border slots write
+     `box-shadow: inset …, var(--shadow)`, and `none` is only legal as the sole
+     value of the property — it would take the inset rings down with it. */
+  if(L.shadows===false){
+    el.style.setProperty('--shadow', '0 0 0 rgba(0,0,0,0)');
+    el.style.setProperty('--shadow-lg', '0 0 0 rgba(0,0,0,0)');
+  } else { el.style.removeProperty('--shadow'); el.style.removeProperty('--shadow-lg'); }
   // the theme block still owns the shadows, and which one is showing is the
   // style's background rather than a switch of its own
   document.documentElement.dataset.theme = themeNow();
