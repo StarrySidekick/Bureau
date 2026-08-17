@@ -761,6 +761,44 @@ html[data-style="aero"] .drawer.dtile.bd-bar{
 .pull.kn-square{border-radius:3px}
 .drawer:hover .pull{opacity:1}
 
+/* ---- a cabinet wears two knobs ----------------------------------------
+   A front that swings open has two doors, so it has two handles, one either
+   side of the seam where they meet. It had one in the middle — which is a
+   drawer's pull, on a thing that does not pull — and the only way to find out
+   which movement you were about to get was to tap it and watch. Now the front
+   says. Which fronts these are is openingFor()'s answer, not a size test
+   repeated here: set a tall drawer to pull out and it goes back to one knob.
+   The seam is a hairline down the middle, lit on the left of it and shaded on
+   the right, so it reads as two panels meeting rather than a scratch. */
+.drawer.dtile .dfoot.doors{gap:26%}
+.drawer.dtile .dfoot.doors::before{
+  content:"";position:absolute;top:6%;bottom:6%;left:50%;width:2px;margin-left:-1px;
+  background:linear-gradient(90deg, rgba(255,255,255,.16) 0 50%, rgba(0,0,0,.26) 50% 100%);
+  border-radius:2px;
+}
+/* the seam belongs to the whole front, not to the strip the knobs sit in */
+.drawer.dtile.knb-bottom .dfoot.doors::before{top:auto;bottom:6%;height:280%}
+
+/* ---- a front with no room for a name wears its mark -------------------
+   At one cell of height, or one of width, the name is three letters and an
+   ellipsis printed across the knob — which reads as a rendering fault rather
+   than as a small drawer. So it drops the name and shows the type's mark over
+   the knob, which is the answer the 1×1 tile already gives, arrived at from
+   the other side. Only the plain drawer front renders a .dmark, so the sibling
+   rule cannot take the name off a checklist or a project that happens to be
+   short — they have contents to show and no knob to put a mark on. */
+.drawer.dtile .dmark{
+  display:none;position:absolute;inset:0;place-items:center;z-index:3;
+  color:var(--dink);opacity:.9;pointer-events:none;
+  filter:drop-shadow(0 1px 1px rgba(0,0,0,.35));
+}
+.drawer.dtile.sz-short .dmark,.drawer.dtile.sz-thin .dmark{display:grid}
+.drawer.dtile.sz-short .dmark ~ .dtop,.drawer.dtile.sz-thin .dmark ~ .dtop{display:none}
+/* and the knob gets out from under it a little, so the mark reads as sitting
+   on the knob rather than fighting it */
+.drawer.dtile.sz-short .pull,.drawer.dtile.sz-thin .pull{opacity:.5}
+.drawer.dtile.sz-thin{padding:4px}
+
 /* A magic drawer is dotted, not dashed */
 .drawer.magicdrawer{ border-style:solid;border-width:1px;
   border-color:color-mix(in srgb, var(--glow) 62%, transparent) }
@@ -792,6 +830,22 @@ html[data-style="aero"] .drawer.dtile.bd-bar{
 .imgtile:not(.opaque) .tileimg{object-fit:contain}
 .imgcap{position:absolute;left:0;right:0;bottom:0;padding:5px 8px;font-size:11px;color:#F8F3E6;
   background:rgba(0,0,0,.45);text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* An empty mount. A dashed edge is the one place in Bureau it is right: this
+   is genuinely a thing that is not there yet, which is exactly what every
+   drawing tool means by it. */
+.drawer.imgtile.empty{
+  background:color-mix(in srgb, var(--c) 10%, transparent);
+  border:1.5px dashed color-mix(in srgb, var(--c) 55%, transparent);
+  align-items:center;justify-content:center;padding:8px;
+}
+.drawer.imgtile.empty:hover{border-color:var(--c);background:color-mix(in srgb, var(--c) 17%, transparent)}
+.imgempty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
+  color:var(--c);text-align:center;min-width:0;max-width:100%}
+.imgempty b{font-family:var(--serif);font-size:12.5px;font-weight:600;color:var(--ink-2);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.drawer.imgtile.empty.sz-short .imgempty b,
+.drawer.imgtile.empty.sz-narrow .imgempty b{display:none}
+.drawer.imgtile.empty.sz-short .imgempty{flex-direction:row}
 
 /* Bureau's own buttons, living on the desk */
 .drawer.ctile{
@@ -1339,6 +1393,67 @@ kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--rule);border
 .is-phone .writebody{font-size:15.5px}
 .writetitle::placeholder,.writebody::placeholder{color:var(--ink-3);opacity:.55}
 
+/* ---- the picture surface: the image, and the way to put one there -----
+   The third surface. Reading is what you do to words; an object whose whole
+   content is a photograph was being sent to the paper surface, which drew an
+   empty page with the picture pasted at the top and offered no way at all to
+   choose one. It borrows the writing surface's stage — same scrim, same head,
+   same dark room — because it is the same claim on the screen; what changes is
+   what is on the paper.
+
+   No paper, in fact: an image is shown against the dark, matted rather than
+   mounted, because paper behind a photograph is a second frame around a thing
+   that already has one on the board. */
+.viewscrim{position:absolute;inset:0;z-index:60;background:rgba(16,13,10,.78);backdrop-filter:blur(4px)}
+.viewstage{
+  position:absolute;z-index:61;inset:var(--stage-y) var(--stage-x);
+  display:flex;flex-direction:column;gap:12px;
+  padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);
+}
+.is-phone .viewstage{inset:0;padding:10px 10px calc(10px + env(safe-area-inset-bottom))}
+.viewhead{display:flex;align-items:center;gap:9px;flex:0 0 auto;
+  width:min(1100px,100%);margin:0 auto;color:#F4EEDD}
+.viewhead .kindbadge{background:rgba(255,255,255,.12);color:#F4EEDD;border-color:transparent;
+  min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* one row, always: the labels go and the marks stay */
+.is-phone .viewhead{gap:5px}
+.is-phone .viewhead .pill span{display:none}
+.is-phone .viewhead .pill{padding:6px 8px}
+.viewhead .pill{background:rgba(255,255,255,.10);border-color:rgba(255,255,255,.22);color:#E9E1CC}
+.viewhead .pill:hover{border-color:var(--brass);color:#fff}
+.viewhead .iconbtn{color:rgba(244,238,221,.75)}
+.viewhead .iconbtn:hover{background:rgba(255,255,255,.14);color:#fff}
+.viewpaper{
+  flex:1;min-height:0;width:min(1100px,100%);margin:0 auto;
+  display:flex;align-items:center;justify-content:center;
+}
+/* contain, never cover: a picture you came to look at is not a texture, and
+   cropping the thing on the surface built for looking at it is absurd */
+.viewimg{
+  max-width:100%;max-height:100%;object-fit:contain;display:block;border-radius:3px;
+  box-shadow:0 30px 70px -22px rgba(0,0,0,.85);
+  -webkit-user-drag:none;user-select:none;
+}
+/* Nothing in it yet: the empty mount *is* the button, because "add image" as a
+   line of text beside an empty rectangle asks you to find the small target
+   rather than press the obvious one. */
+.viewdrop{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;
+  width:min(560px,100%);aspect-ratio:4/3;max-height:100%;
+  border:2px dashed rgba(244,238,221,.34);border-radius:var(--radius);
+  background:rgba(255,255,255,.04);color:#E9E1CC;transition:.16s;padding:20px;
+}
+.viewdrop:hover{border-color:var(--brass);background:rgba(255,255,255,.08)}
+.viewdrop .vdmark{color:rgba(244,238,221,.55);display:grid;place-items:center}
+.viewdrop:hover .vdmark{color:var(--brass)}
+.viewdrop b{font-family:var(--serif);font-size:19px;font-weight:600}
+.viewdrop i{font-style:normal;font-size:12.5px;color:rgba(244,238,221,.6)}
+.viewfoot{
+  flex:0 0 auto;width:min(1100px,100%);margin:0 auto;display:flex;gap:12px;
+  font-size:11.5px;color:rgba(244,238,221,.62);
+}
+.viewfoot .dim{font-variant-numeric:tabular-nums;opacity:.75}
+
 /* ============================================================
    The object settings panel — one panel, condensed
    ============================================================
@@ -1384,17 +1499,27 @@ kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--rule);border
    one is the rule that actually does the work on a phone; and `touch-action`
    has to allow panning while refusing the double-tap zoom, or the double tap
    that starts an inline edit zooms the board instead. */
-.drawer,.pinbar,.gridbar,.ctxmenu,.panel .ptop{
+/* The list used to be the handful of things a long press was known to land on,
+   which meant every new one — a stage, a picture surface, a mark over a knob —
+   arrived selectable and had to be found out about by holding it on a phone.
+   Refusing at the top and exempting downwards is the same rule stated the way
+   round that closes by default: the exceptions are countable and the surfaces
+   are not. */
+#frame,.drawer,.pinbar,.gridbar,.ctxmenu,.panel .ptop{
   -webkit-user-select:none;user-select:none;
   -webkit-touch-callout:none;
 }
 .drawer{touch-action:manipulation}
-/* …but everything you are meant to be able to select or type into is exempt */
-.drawer input,.drawer textarea,
-.prose,.contbody,.spread .page,.scrollentry .prose,
-.writepaper,.pbody input,.pbody textarea,.pbody select{
+/* …but everything you are meant to be able to select or type into is exempt.
+   Not the whole panel body: its labels are furniture, and a long press that
+   lands on the word "Colour" and highlights it is the same magnifier over the
+   same finger. Only the fields. */
+input,textarea,select,[contenteditable],
+.prose,.contbody,.spread .page,.scrollentry .prose,.writepaper{
   -webkit-user-select:text;user-select:text;-webkit-touch-callout:default;
 }
+/* …and a field inside something being dragged is not being typed into */
+.dragging-ui input,.dragging-ui textarea{-webkit-user-select:none;user-select:none}
 /* the picture an object already has, in its settings, so "replace" has
    something to replace on the screen */
 .pbody .mediablock{width:100%;margin-top:6px}
@@ -1563,3 +1688,64 @@ kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--rule);border
 .drawer.listband.lifted{box-shadow:0 6px 18px -6px rgba(0,0,0,.4);z-index:3}
 .drawer.listband.dragging{opacity:.92;outline:2px solid var(--glow);outline-offset:1px;
   transform:scale(1.01)}
+
+/* ============================================================
+   Text size — one multiplier over whatever each rule decided
+   ============================================================
+   `--tscale` comes off the object, through the placement string every branch of
+   drawTile() ends its style attribute with, so nothing had to be threaded
+   through fifteen renderers. It multiplies rather than replaces: a name is
+   already 15.5px on a card, 11.5px on a narrow drawer front and 11px on an
+   index card, and those are three separate facts about the line that survive
+   being read from closer. Which is why these rules restate each size instead of
+   setting one — and why they sit at the end of the file, after every rule they
+   are multiplying, at one class more than each. */
+.drawer.otile .dname{font-size:calc(15.5px * var(--tscale,1))}
+.drawer.otile.sz-narrow .dname{font-size:calc(12.5px * var(--tscale,1))}
+.drawer.dtile .dname{font-size:calc(15px * var(--tscale,1))}
+.drawer.dtile.sz-narrow .dname{font-size:calc(11.5px * var(--tscale,1))}
+.drawer .tiletext{font-size:calc(11.5px * var(--tscale,1))}
+.drawer.otile.sh-index .tiletext{font-size:calc(11px * var(--tscale,1))}
+.drawer.otile.sh-page .tiletext{font-size:calc(10.5px * var(--tscale,1))}
+.drawer .quotetile .qbody,.drawer.quotetile .qbody{font-size:calc(14.5px * var(--tscale,1))}
+.drawer .tilemeta{font-size:calc(11px * var(--tscale,1))}
+/* the words on a checklist's front are the same words, so they scale too */
+.drawer .cline{font-size:calc(12px * var(--tscale,1))}
+
+/* ============================================================
+   The object editor's stage
+   ============================================================
+   The thing itself, at the top of the panel that changes it. Every row already
+   wrote straight to the object and re-rendered the board — but the board is
+   behind the panel, and on a phone the panel *is* the screen, so "it updates
+   live" was a promise you could only keep by closing what you were using.
+
+   The floor is a checkerboard scrolling diagonally: the board's own two colours
+   and its own cell, moved. A pattern in motion says "this is a model of a
+   thing, not a place you are standing" — which is the whole job, and it is the
+   convention every game that shows you an item in a box has settled on. It
+   holds still for anyone who has asked for less movement. */
+.objstage{
+  position:sticky;top:-12px;z-index:5;margin:-12px -16px 12px;padding:16px 16px 14px;
+  display:grid;place-items:center;min-height:120px;overflow:hidden;
+  border-bottom:1px solid var(--rule-2);background:var(--paper-3,var(--paper));
+}
+.panel.bubble .objstage{margin:-10px -14px 10px;padding:12px 14px}
+.objstage::after{
+  content:"";position:absolute;inset:0;z-index:2;pointer-events:none;
+  box-shadow:inset 0 8px 14px -10px rgba(0,0,0,.45), inset 0 -8px 14px -10px rgba(0,0,0,.35);
+}
+.objstage .stagefloor{
+  position:absolute;inset:-60px;z-index:0;opacity:.75;
+  background-color:var(--board-1);
+  background-image:conic-gradient(var(--board-2) 0 25%, transparent 0 50%,
+                                  var(--board-2) 0 75%, transparent 0);
+  background-size:34px 34px;
+  animation:stagedrift 9s linear infinite;
+}
+@keyframes stagedrift{ from{background-position:0 0} to{background-position:34px 34px} }
+.objstage .stagetile{position:relative;z-index:1;filter:drop-shadow(0 10px 20px rgba(0,0,0,.35))}
+/* the sample is a picture of the object, not a second copy you can act on */
+.objstage .pvgrid,.objstage .pvgrid *{pointer-events:none}
+.objstage .pvgrid::before{display:none}
+@media (prefers-reduced-motion: reduce){ .objstage .stagefloor{animation:none} }

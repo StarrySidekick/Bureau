@@ -6,7 +6,8 @@ import { S, K, KINDS, KEYS, T, ATTRS, USER_ATTRS, FIELDS, fieldOf, OPS, ROLLS,
   attrsOf, allTags, placeOf, deskList, deskOf, isDesk, spanOf,
   dev, takesTyping, genKindOf, answered,
   relatedTo, backlinksTo, streak, goalPct,
-  CALVIEWS, calViewOf, weekStartOf, showsWeekends, KNOBSIZES, knobSizeOf } from './model.js';
+  CALVIEWS, calViewOf, weekStartOf, showsWeekends, KNOBSIZES, knobSizeOf,
+  TSIZES, textSizeOf, mediaTypeOf, isPicture } from './model.js';
 import { GRID, lay, boxOk, freeSpot, sizeOfKind, toPhoneSize } from './grid.js';
 import { randomBoard, randomFront, hexOf, objColour, objSlots, palNow, OBJ0, borderSlots } from './look.js';
 import { CLICKS, clickOf, gridTile, pending } from './tiles.js';
@@ -230,6 +231,12 @@ function swatchRows(cur, flat){
    wall; they are two rows now. The bulky many-of-many groups — traits, what a
    magic drawer collects — are behind a disclosure, closed until asked for. */
 const prow=(label,body,note)=>`<div class="prow"><label>${label}${note?`<i>${note}</i>`:''}</label><div>${body}</div></div>`;
+/* The marks on offer, in one list, because a type and an object are choosing
+   from the same drawer of stamps — two lists would drift the first time one
+   gained an icon. */
+const MARKS = ['note','check','list','bulb','feather','book','star','flag','clock','target',
+  'image','film','music','pot','clapper','help','folder','sparkle','trophy','archive',
+  'tag','plus','edit','inbox','brush','eye','calendar','repeat','lock','gear'];
 /* What "however it suits" has decided, for the one row where the default is a
    judgement rather than a value — otherwise the only way to find out which
    animation you are getting is to tap the thing and watch. */
@@ -251,13 +258,40 @@ const typeOptions = cur => pickGroups().map(g=>
   `<optgroup label="${esc(g.nm)}">${g.ks.map(k=>
     `<option value="${k}"${cur===k?' selected':''}>${esc(KINDS[k].nm)}</option>`).join('')}</optgroup>`).join('');
 
+/* ---- the stage: the thing itself, while you change it -------------------
+   Every row below writes to the object and re-renders, so the desk behind the
+   panel already agreed with what you were doing — as long as the tile happened
+   to be on the screen, unobscured, and on the page you were looking at. Often
+   it is none of the three: the panel covers it, a phone panel covers the whole
+   board, and the object you opened the editor from may be a page away.
+
+   So the object is drawn at the top of its own editor, through the same
+   gridTile() the board uses, on the floor a video game puts a model on: a
+   checkerboard scrolling diagonally, which reads as "this is the thing, not the
+   place". The clone is what is drawn — a second element carrying the real id
+   would be a duplicate the drag, the bubble anchor and tileOf() could all pick
+   up — and both boxes are set from lay(), so the preview is this device's
+   arrangement rather than a size invented for it. */
+function objectStage(id){
+  const o=byId(id); if(!o) return '';
+  /* Its size, at the origin. The preview grid is only as wide as the tile, so a
+     box carrying the object's real x and y is placed in columns that grid does
+     not have — the tile lands in an implicit column off to the right and the
+     stage draws an empty checkerboard. Same reason sampleObject() has always
+     said {x:1,y:1}. */
+  const b=lay(o), at={x:1, y:1, w:b.w, h:b.h};
+  const twin=Object.assign({}, o, {id:'__stage', desk:at, phone:at});
+  return `<div class="objstage"><i class="stagefloor"></i>
+    <div class="stagetile">${sampleTile(twin, 300, 176)}</div></div>`;
+}
+
 function objectPanel(id){
   const o = id===ROOT ? null : byId(id);
   if(id!==ROOT && !o) return;
   S.openId = id;                    // what the field handlers in wire.js act on
   openPanel({key:'object:'+id, anchor:id===ROOT?null:id,
     title: id===ROOT ? esc(deskTitle()) : esc(o.title||'Untitled'),
-    sub: id===ROOT ? 'The desk itself' : esc(K(o.kind).nm),
+    sub: id===ROOT ? 'The desk itself' : esc(K(o.kind).nm)+' · editor',
     body:()=>objectPanelBody(id)});
 }
 /* The gear in the bar opens the same panel for the container you are *inside*,
@@ -276,7 +310,7 @@ function objectPanelBody(id){
   const cont = isContainer(d), magic = has(d,'magic');
   const view = isRoot ? (cfgOf(id).layout||'grid') : layoutOf(d);
   const cal = cont && (view==='calendar' || faceOf(d)==='calendar');
-  const img = has(d,'media') && d.media && d.media.type==='image';
+  const img = isPicture(d);
   const spawns = has(d,'spawn') || clickOf(d)==='generate';
   const objectKinds = KEYS.filter(k=>!kindHas(k,'container') && k!=='control')
     .map(k=>[k, KINDS[k].nm]);
@@ -285,6 +319,7 @@ function objectPanelBody(id){
 
   /* ---- what it is ---- */
   if(!isRoot){
+    out.push(objectStage(id));
     out.push(prow('Name', pfield(id,'title', o.title, '', 'Untitled')));
     out.push(prow('Type', `<select class="psel" data-oset="${id}:kind">${typeOptions(o.kind)}</select>`,
       'swaps its traits, keeps its data'));
@@ -297,6 +332,19 @@ function objectPanelBody(id){
     ? prow('Face', psel(id,'face', Object.entries(FACES), faceOf(d)), 'on its parent’s board')
     : prow('Shape', psel(id,'shape', Object.entries(SHAPES), shapeOf(d))));
   if(!isRoot) out.push(prow(cont?'Front':'Colour', swatches(id,'c', d.c)));
+  /* The mark, per object. A type carries one and every object of that type wore
+     it, which is right until two drawers of the same type sit side by side and
+     the only thing telling them apart is a name too small to read. Follows the
+     type until you pick, and the first chip is the way back. */
+  if(!isRoot) out.push(prow('Mark', `<button class="pchip iconchip${d.ic?'':' on'}"
+      data-oic="" data-id="${id}" title="Follow the ${esc(K(d.kind).nm.toLowerCase())} type">${ic('undo',15)}</button>`
+    + MARKS.map(i=>`<button class="pchip iconchip${d.ic===i?' on':''}" data-oic="${i}" data-id="${id}"
+        title="${esc(i)}">${ic(i,15)}</button>`).join(''),
+    d.ic ? 'its own' : esc(K(d.kind).nm)));
+  /* How big the words on its face are. A note you want to read from across the
+     desk and a note that is a label are the same object at two sizes, and
+     resizing the tile was the only answer the app had. */
+  if(!isRoot) out.push(prow('Text size', psel(id,'tsize', TSIZES, String(textSizeOf(d)))));
   if(!isRoot && !cont)
     out.push(prow('Edge', psel(id,'edge',[['','None'],['1','Coloured stripe']], d.edge?'1':'')));
   if(!isRoot && cont){
@@ -402,11 +450,12 @@ function objectPanelBody(id){
       `<div class="stars">${[1,2,3,4,5].map(n=>`<button data-star="${id}:${n}" class="${(o.rating||0)>=n?'on':''}">${ic('star',17)}</button>`).join('')}</div>`));
     if(has(o,'answer')) f.push(prow(`Answer${answered(o)?'':' — unanswered'}`,
       `<textarea class="pfield tall" data-oset="${id}:answer" placeholder="What you worked out">${esc(o.answer||'')}</textarea>`));
-    if(has(o,'media')) f.push(prow('Media', psel(id,'mtype',[['image','Image'],['video','Video'],['audio','Audio']], (o.media&&o.media.type)||'image')
+    if(has(o,'media')) f.push(prow('Media', psel(id,'mtype',[['image','Image'],['video','Video'],['audio','Audio']], mediaTypeOf(o))
       + `<button class="pill" data-act="pickimage" data-id="${id}">${ic('image',13)} ${
           o.media&&o.media.src?'Replace the picture':'Choose a picture'}</button>`
       + (o.media&&o.media.src
-          ? `<div class="mediablock" style="--k:${K(o.kind).c}">
+          ? `<button class="pill" data-act="dropimage" data-id="${id}">${ic('trash',13)} Remove</button>
+             <div class="mediablock" style="--k:${K(o.kind).c}">
                <img class="tileimg" src="${esc(o.media.src)}" alt="">
                <div class="cap">${esc(o.media.label||'')}</div></div>` : '')));
     if(has(o,'button')){
@@ -548,7 +597,9 @@ function sampleObject(spec){
    real thing seen from further away, or it isn't a preview of anything. */
 const PV_CELL = 40;
 function sampleTile(o, maxW, maxH){
-  const b=o[dev()]||o.desk, w=b.w*PV_CELL, h=b.h*PV_CELL;
+  // a real object may not have been placed on this device yet, and a sample is
+  // not the place to invent a box for one — lay() answers for both
+  const b=o[dev()]||o.desk||o.phone||lay(o), w=b.w*PV_CELL, h=b.h*PV_CELL;
   const k=Math.min(maxW/w, maxH/h, 1);
   // the geometry is inline because it is computed here, not chosen
   return `<div class="pvscale" aria-hidden="true" style="width:${w*k}px;height:${h*k}px;overflow:hidden">
@@ -687,9 +738,7 @@ function modalNewKind(from, editKey){
       ${row('Colour','',
         `${swatchRows(c,true)}<label class="custcol"><input type="color" data-colinput value="${c}"><span>Custom</span></label>`,
         'dcol')}
-      ${row('Mark','',
-        ['note','check','list','bulb','feather','book','star','flag','clock','target','image','film','music',
-         'pot','clapper','help','folder','sparkle','trophy','archive','tag','plus','edit','inbox'].map(i=>
+      ${row('Mark','', MARKS.map(i=>
           `<button class="pchip iconchip${((base&&base.ic)||'note')===i?' on':''}" data-kic="${i}" title="${i}">${ic(i,15)}</button>`).join(''),
         'kicon')}
     </div>
@@ -778,11 +827,13 @@ function openCtx(x,y,id){
   el.innerHTML=`
     ${many?`<div class="ctxhead">${sel.length} objects</div>` : ''}
     ${/* one panel for both — a container is an object with children */''}
-    ${many?'' : `<button data-c="objset:${id}">${ic('sliders',14)} Object settings</button>
+    ${many?'' : `<button data-c="objset:${id}">${ic('brush',14)} Object editor</button>
       ${isContainer(o)
         ? `<button data-c="opendrawer:${id}">${ic('eye',14)} Open</button>
            <button data-c="pin:${id}">${ic('star',14)} ${isDesk(id)?'Make it a drawer again':'Make it a desk'}</button>`
-        : `${has(o,'text')?`<button data-c="read:${id}">${ic('eye',14)} Read</button>
+        : `${isPicture(o)?`<button data-c="view:${id}">${ic('image',14)} ${
+               o.media&&o.media.src?'View picture':'Add a picture'}</button>`:''}
+           ${has(o,'text')?`<button data-c="read:${id}">${ic('eye',14)} Read</button>
              <button data-c="write:${id}">${ic('edit',14)} Write…</button>`:''}`}`}
     ${(!many&&(has(o,'check')||has(o,'streak')))?`<button data-c="done:${id}">${ic('check',14)} ${has(o,'streak')?'Mark today':'Complete'}</button>`:''}
     ${/* Pinning is a drag onto the shelf; taking it off again has to be

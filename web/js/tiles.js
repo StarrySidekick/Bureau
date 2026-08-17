@@ -1,16 +1,16 @@
 import { esc, ic, clamp, D, md, strip } from './util.js';
 import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, childrenOf, container,
   rollup, streak, goalPct, projectStat, tlSpan, dev, spawnByOf, genKindOf, takesTyping,
-  knobSizeOf, answered, sortOf, spanOf, coversDay,
+  knobSizeOf, answered, sortOf, spanOf, coversDay, iconOf, textSizeOf, isPicture,
   calViewOf, weekStartOf, calCols } from './model.js';
 import { CELL, COLW, gridOf, lay, overlaps, boxOk, freeSpot, gridRows, sizeOfKind, ensureBox,
   pageRows } from './grid.js';
 import { create, toast, toggleDone } from './mutations.js';
 import { hexOf, objColour } from './look.js';
 import { render, pageAt } from './views.js';
-import { openObj, openWriter, openRead, renderSheet } from './sheet.js';
+import { openObj, openWriter, openRead, openViewer, renderSheet } from './sheet.js';
 import { objectPanel } from './panels.js';
-import { openTile } from './motion.js';
+import { openTile, openingFor } from './motion.js';
 import { save } from './persist.js';
 
 /* ============================================================
@@ -163,8 +163,12 @@ function tileTap(id){
   switch(clickOf(o)){
     // a press is not an opening: a generator already has its own movement
     case 'generate': dispense(o); return;
-    // which of the three it opens as is the object's own business — readOf()
-    case 'read':  openTile(id, ()=>openRead(id)); break;
+    /* Which of the three it opens as is the object's own business — readOf().
+       Unless there is nothing to read: a picture opens onto the picture, which
+       is its own surface. Reading is what you do to words, and an image object
+       sent to the book surface got a blank sheet of paper with a photograph
+       pasted at the top of it. */
+    case 'read':  openTile(id, ()=> isPicture(o) ? openViewer(id) : openRead(id)); break;
     // the editor is the writing surface now: the body, full screen, and nothing
     // else on it. Every *setting* is in the object's own panel.
     case 'edit':  openTile(id, ()=>openWriter(id)); break;
@@ -201,6 +205,10 @@ function sizeClass(box){
   const c=[];
   if(box.w<=1 && box.h<=1) c.push('sz-mini');
   if(box.h<=1) c.push('sz-short');
+  // one cell of width, however tall. A name set down a column one letter wide
+  // is not a name, so a front this thin shows its mark instead — the same
+  // answer sz-short reaches for at one cell of height.
+  if(box.w<=1) c.push('sz-thin');
   if(box.w<=3) c.push('sz-narrow');
   return c.join(' ');
 }
@@ -231,7 +239,13 @@ function drawTile(o, arr, box){
   const colour = objColour(o);
   const handles = arr ? HANDLES.map(h=>`<i class="rz ${h}" data-rz="${h}"></i>`).join('') : '';
   const chips='';   // no size chip, no delete cross — the menu does both
-  const place = `grid-column:${box.x} / span ${box.w};grid-row:${box.y} / span ${box.h}`;
+  /* How big this one's words are, folded into the placement so every branch
+     below carries it without being told: `place` is the tail of every tile's
+     style attribute. The stylesheet multiplies its own sizes by it, so a tile
+     that already shrinks its name at three cells wide still does — smaller,
+     larger, and narrow are three separate facts about the same line. */
+  const ts = textSizeOf(o);
+  const place = `${ts!==1?`--tscale:${ts};`:''}grid-column:${box.x} / span ${box.w};grid-row:${box.y} / span ${box.h}`;
   const sel = S.sel.includes(o.id) ? ' selected' : '';
 
   /* One cell square: the mark, and nothing else. Every shape below this line
@@ -241,7 +255,7 @@ function drawTile(o, arr, box){
      and the title is the tooltip. It is still a drawer or still an object, so
      the front styling and the drop target come along unchanged. */
   if(box.w<=1 && box.h<=1){
-    const mark = cont && has(o,'magic') ? 'sparkle' : K(o.kind).ic;
+    const mark = cont && has(o,'magic') ? 'sparkle' : iconOf(o);
     return `<button class="drawer ${cont?`dtile bd-${o.border||'panel'}`:'otile'} minitile${sel}${
         cont&&has(o,'magic')?' magicdrawer':''}"
       ${cont?`data-drawer="${o.id}"`:`data-row="${o.id}"`} title="${esc(o.title||'Untitled')}"
@@ -409,18 +423,30 @@ function drawTile(o, arr, box){
     </button>`;
   }
 
-  // A drawer on a grid is just a front with a name. What is inside is behind
-  // it, not printed on it — you open a drawer to find out what it holds.
+  /* A drawer on a grid is just a front with a name. What is inside is behind
+     it, not printed on it — you open a drawer to find out what it holds.
+
+     Two things the front has to admit to. A container that **swings** open is a
+     cabinet, so it wears two knobs either side of the seam rather than one in
+     the middle: the front says which movement it is about to make, the way a
+     real one does. And a front with no room for a name — one cell tall or one
+     cell wide — drops the name and wears its mark over the knob instead, which
+     is the same answer the 1×1 tile already gives, arrived at from the other
+     side. The mark is rendered always and revealed by the size classes, so
+     nothing here has to know which threshold it crossed. */
   if(cont){
     const bd=o.border||'panel', kn=o.knob||'round', tx=o.texture||'none';
+    const doors = openingFor(o, box)==='cabinet';
     return `<button class="drawer dtile bd-${bd} tx-${tx} ks-${knobSizeOf(o)} knb-${o.knobpos||'centre'}${sel}${has(o,'magic')?' magicdrawer':''}" data-drawer="${o.id}"
       style="--c:${colour};${o.knobc?`--knob:${esc(o.knobc)};`
         :`--knob:color-mix(in srgb, ${colour} ${o.knobtone==='dark'?'62% , #000':'58% , #fff'});`}${place}">
       ${chips}
+      <span class="dmark">${ic(has(o,'magic')?'sparkle':iconOf(o),18)}</span>
       <div class="dtop"><span class="dname">${esc(o.title||'Untitled')}</span>
         ${has(o,'magic')?`<span class="magicmark" title="Collects by rule">${ic('sparkle',11)}</span>`:''}
         ${rollup(o)?`<span class="rollup">${esc(rollup(o))}</span>`:''}</div>
-      <div class="dfoot"><span class="pull kn-${kn}"></span></div>
+      <div class="dfoot${doors?' doors':''}"><span class="pull kn-${kn}"></span>${
+        doors?`<span class="pull kn-${kn}"></span>`:''}</div>
       ${handles}
     </button>`;
   }
@@ -431,6 +457,18 @@ function drawTile(o, arr, box){
     return `<button class="drawer otile imgtile sh-image${o.media.alpha?'':' opaque'} fr-${o.frame||'none'}${sel}" data-row="${o.id}" style="--c:${colour};${place}">
       ${chips}
       <img class="tileimg" src="${esc(o.media.src)}" alt="${esc(o.title||'')}" draggable="false">
+      ${handles}
+    </button>`;
+  }
+  /* …and a picture with nothing in it yet is an empty mount, not a card with a
+     title and a blank body. It said "Untitled" and did nothing, which is how a
+     new Image object came to look broken rather than unfilled. Tapping it opens
+     the picture surface, which is where a file is chosen. */
+  if(isPicture(o) && !has(o,'text')){
+    return `<button class="drawer otile imgtile empty fr-${o.frame||'none'}${sel}" data-row="${o.id}"
+      title="${esc(o.title||'')} — tap to add a picture" style="--c:${colour};${place}">
+      ${chips}
+      <span class="imgempty">${ic('image',24)}<b>${esc(o.title||'Add a picture')}</b></span>
       ${handles}
     </button>`;
   }

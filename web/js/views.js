@@ -91,7 +91,13 @@ function gridBar(c){
            panel. */''}
       ${c.id===ROOT?'':`<button class="sqbtn${isDesk(c.id)?' on':''}" data-act="pin" data-id="${c.id}"
         title="${isDesk(c.id)?'Make it an ordinary drawer again':'Give it a place of its own'}">${ic('star',16)}</button>`}
-      <button class="sqbtn" data-act="${c.id===ROOT?'appsettings':'drawersettings'}" data-id="${c.id}" title="Settings">${ic('gear',16)}</button>
+      ${/* The gear is the *app's* settings and belongs to the desk. Inside a
+           drawer the same slot asks about the drawer, which is an object, and
+           that is the object editor — a brush, because what it mostly changes
+           is how the thing looks, and because a gear standing for two different
+           questions in the same corner of the same bar is one icon too few. */''}
+      <button class="sqbtn" data-act="${c.id===ROOT?'appsettings':'drawersettings'}" data-id="${c.id}"
+        title="${c.id===ROOT?'Settings':'Object editor'}">${ic(c.id===ROOT?'gear':'brush',16)}</button>
     </div>
   </div>`;
 }

@@ -80,6 +80,10 @@ const P = {
   resize:'M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7',
   gear:'M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5v.2a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1h.2a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z',
   sort:'M4 6h13M4 12h9M4 18h5M17 14l3 3 3-3M20 17V7',
+  /* The object editor's mark. A round brush held at an angle: ferrule, handle,
+     and the loaded tip that says it changes how a thing looks rather than what
+     it does — which is the difference between it and the gear. */
+  brush:'M15.5 3.5a2.1 2.1 0 0 1 3 3L11 14l-3.5.5L8 11zM6.5 14.5c-1.7 0-3 1.3-3 3 0 .9-.3 1.7-1 2.3 1 .5 2 .7 3 .7 2.2 0 4-1.8 4-4 0-1.1-1.3-2-3-2',
   lock:'M6 11h12v9H6zM9 11V8a3 3 0 0 1 6 0v3',
   // the shackle swung open and clear of the body, so the two read apart at 16px
   unlock:'M6 11h12v9H6zM9 11V8a3 3 0 0 1 5.6-1.6',

@@ -5,10 +5,10 @@ import { S, K, KINDS, KEYS, refreshKinds, ATTRS, USER_ATTRS, attrsOf, has, SHAPE
 import { gridOf, lay, boxOk, freeSpot, toPhoneSize } from './grid.js';
 import { applyLook, applyStyle, setLookVal, lookVal, STYLES, randomFront,
   setSlot, palNow, objColour, darkMode } from './look.js';
-import { toast, setGridSize, toggleDone, del, delMany, delDrawer, undo, setPin, togglePin, drawerForTag, create, quickAdd, spawnInto, randomThing } from './mutations.js';
+import { toast, setGridSize, toggleDone, del, delMany, delDrawer, undo, pushUndo, setPin, togglePin, drawerForTag, create, quickAdd, spawnInto, randomThing } from './mutations.js';
 import { spinTo, pending, placeAtPending, tileTap, turnPage, clearPages } from './tiles.js';
 import { render, sizeGrid, toggleSettings, reveal, goPage, deskMap } from './views.js';
-import { openObj, openWriter, openRead, closeSheet, renderSheet, words } from './sheet.js';
+import { openObj, openWriter, openRead, openViewer, closeSheet, renderSheet, words } from './sheet.js';
 import { openPanel, closePanel, refreshPanel, panelKey, draft, openMenu,
   modalNewObject, modalNewKind, modalMove, renderPreview,
   drawerPanel, objectPanel,
@@ -73,6 +73,9 @@ function setField(el){
       break;
     case 'knobtone': t.knobtone=v; t.knobc=null; break;
     case 'dur': t.dur = v===''?null:+v; break;
+    // normal is the absence of an answer, not the number 1 stored on every
+    // object that was ever looked at in the editor
+    case 'tsize': t.tsize = (v==='' || +v===1) ? null : +v; break;
     case 'mtype': if(o) o.media=Object.assign({label:'untitled'}, o.media, {type:v}); break;
     case 'linklabel': case 'linktarget': case 'linkurl': {
       if(!o) break;
@@ -242,6 +245,19 @@ function act(name, el){
     // from an object's Media row the file replaces *that* object's picture;
     // from anywhere else it makes a new one on the board you are looking at
     case 'pickimage': imgFor.id = el.dataset.id || null; $('#imgpicker').click(); break;
+    /* Taking the picture back out. Destructive, so it is a move on the undo
+       stack like any other — and the bytes are *not* freed here: the move holds
+       the assetId and reap() lets go of it when the move falls off the bottom
+       of the stack, which is the same bargain a deleted object's picture gets.
+       Freeing it now would make undo restore a media object pointing at
+       nothing. */
+    case 'dropimage': {
+      const o=byId(el.dataset.id||S.openId); if(!o||!o.media||!o.media.src) return;
+      pushUndo('Picture removed', [{set:{id:o.id, k:'media', v:o.media}}]);
+      o.media=Object.assign({}, o.media, {assetId:null, src:null, w:null, h:null, label:null});
+      save(); render(); renderSheet(); refreshPanel(); toast('Picture removed', true);
+      break;
+    }
     case 'drawersettings': case 'objset': objectPanel(el.dataset.id); break;
     case 'panelclose': closePanel(); break;
     case 'appsettings': toggleSettings(); break;
@@ -351,11 +367,20 @@ function wire(){
      magnifier over the tile you are trying to lift. `user-select:none` is
      supposed to stop it and demonstrably doesn't do so reliably — so refuse
      the selection outright, and let it through only where there is genuinely
-     something to select: a field, a page of prose, the writing surface. */
+     something to select: a field, a page of prose, the writing surface.
+
+     `.pbody` used to be on that list, which exempted an entire panel — every
+     label, every chip and every row of it — so a long press anywhere in the
+     object editor still highlighted. The fields inside it are covered by the
+     first two selectors, which is all that was ever meant.
+
+     A `selectstart` that is refused after a selection already exists leaves the
+     old one on the screen, so anything that begins a press also drops whatever
+     was highlighted; see dropSelection() in gestures.js. */
+  const SELECTABLE = 'input,textarea,select,[contenteditable],'+
+    '.prose,.contbody,.spread .page,.scrollentry .prose,.writepaper';
   frame.addEventListener('selectstart', e=>{
-    if(e.target.closest && e.target.closest(
-      'input,textarea,[contenteditable],.prose,.contbody,.spread .page,.writepaper,.pbody'))
-      return;
+    if(e.target.closest && e.target.closest(SELECTABLE)) return;
     e.preventDefault();
   });
 
@@ -409,6 +434,7 @@ function wire(){
     if(c){ const [cmd,id]=c.dataset.c.split(':'); closeCtx();
       if(cmd==='open'||cmd==='write') openWriter(id);
       else if(cmd==='read') openRead(id);
+      else if(cmd==='view') openViewer(id);
       else if(cmd==='drawerset'||cmd==='objset') objectPanel(id);
       else if(cmd==='opendrawer'){ S.view='drawer'; S.drawerId=id; render(); }
       else if(cmd==='pin') togglePin(id);
@@ -606,10 +632,12 @@ function wire(){
     /* What is left of the panel's buttons once every one-of-many list became a
        select: swatches, the knob's own colours, and the read switch in the
        reading header — which is a header, not a panel. */
-    const pn=t.closest('[data-ocolour],[data-pboard],[data-pknobc],[data-oread],[data-fkind],[data-fdesk]');
+    const pn=t.closest('[data-ocolour],[data-oic],[data-pboard],[data-pknobc],[data-oread],[data-fkind],[data-fdesk]');
     if(pn){
       const id=pn.dataset.id, o=byId(id) || cfgOf(id);
       if(pn.dataset.ocolour!=null) o.c=slotVal(pn.dataset.ocolour);
+      // an empty mark is the way back to the type's own
+      else if(pn.dataset.oic!=null) o.ic=pn.dataset.oic||null;
       else if(pn.dataset.pboard!=null) o.board=pn.dataset.pboard||null;
       else if(pn.dataset.pknobc!=null){ o.knobc=pn.dataset.pknobc; o.knobtone=null; }
       // switching how it reads restarts it at the first page — page 7 of a
@@ -919,7 +947,7 @@ function wire(){
     const typing = /input|textarea/i.test(document.activeElement.tagName);
     if((e.metaKey||e.ctrlKey) && e.key.toLowerCase()==='k'){ e.preventDefault(); openCmd(); return; }
     if(e.key==='Escape'){ closeCtx(); closeCmd(); closePanel();
-      if(S.writeId||S.readId) closeSheet();
+      if(S.writeId||S.readId||S.viewId) closeSheet();
       else if(S.editId){ S.editId=null; render(); }
       return; }
     if(typing) return;   // in a field, ⌘Z is the browser's to answer, not ours

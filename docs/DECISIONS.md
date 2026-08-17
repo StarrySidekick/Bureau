@@ -1566,3 +1566,139 @@ one coordinate space in the app that a *setting* can change. That is a real
 sharp edge: anything that stores a phone box has to accept that the space it
 was measured in may be replaced under it. Nothing does, today, because every
 box goes through `lay()` — which clamps — and `boxOk()`, which refuses.
+
+### 49. A picture opens onto the picture
+
+An object made of an image opened onto the reading surface, because "read" was
+the only thing a click had ever needed to mean. So an Image object gave you a
+sheet of US Letter with a photograph gummed along the top of it and a blank page
+underneath — and, worse, no way at all to *put a picture in*. Choosing a file
+lived in one row of the settings panel, which you had to know was there.
+
+There is a third surface now. It is the same stage the writing surface uses —
+same scrim, same head, same dark room — with the image on it as large as the
+window allows, matted rather than mounted. Replace and Remove are in the head,
+because that is where you are looking at the thing you want to change. And when
+there is nothing in it, the empty mount **is** the button: "Add image" as a line
+of text beside an empty rectangle asks you to find the small target instead of
+pressing the obvious one.
+
+Which objects go there is a property, not a type name: `isPicture(o)` is "it
+carries media, and that media is an image". The media *type* now falls back to
+the type's own `mediaType`, so an empty Audio object is still for audio rather
+than being guessed at as a photograph that hasn't arrived. An image that also
+carries text keeps a Read button in the head; reading is a thing you do to
+words, and it is still there for the words.
+
+The empty tile changed with it. A picture with nothing in it fell through every
+branch of `drawTile()` to the ordinary card — a title, an empty body, and no
+indication that anything was missing or that pressing it would help. It is a
+dashed mount now, which is the one place in Bureau a dashed edge is honest:
+this is genuinely a thing that is not there yet.
+
+*Against:* a fourth thing on the screen to keep consistent, and `openRead()` is
+now something the *caller* routes around rather than a single door. Routing at
+the tap — `tileTap`, `openObj`, the context menu — keeps `openRead` meaning one
+thing, at the cost of three call sites knowing about the choice.
+
+### 50. A cabinet wears two knobs, and a front with no room for a name wears its mark
+
+Two admissions a drawer front had to make.
+
+**Standing containers swing.** `openingFor()` gave doors to anything over
+sixteen cells and a pull-out drawer to everything else, which is a rule about
+*area* answering a question about *shape*. A 2×3 or a 2×4 front is a cabinet at
+a glance — a tall narrow thing with a door on it — and pulling it toward you
+read as the wrong piece of furniture. Taller than wide, at two cells of width or
+more, now swings; two doors inside one cell of width is not a cabinet either,
+which is where the floor comes from.
+
+And a front that swings open wears **two** knobs, one either side of the seam.
+It had one in the middle — a drawer's pull, on a thing that does not pull — so
+the only way to find out which movement you were about to get was to tap it and
+watch. The knob count follows `openingFor()` rather than repeating the size
+test, so setting a tall drawer to "pulls out" puts the single knob back. That is
+the same discipline as every other look in the app: ask the property, never the
+dimensions.
+
+**A front too small for a name shows its mark instead.** At one cell of height,
+or one of width, a name is three letters and an ellipsis printed across the
+knob, which reads as a rendering fault rather than as a small drawer. The 1×1
+tile already had the answer — the type's mark and nothing else — and this is the
+same answer arrived at from the other side. `sz-thin` joins `sz-short` and
+`sz-narrow`, the mark is rendered on every plain front and revealed by the size
+class, and the stylesheet still only ever *takes away*.
+
+*Against:* the two-knob rule changes fronts nobody complained about — every
+container over sixteen cells has grown a second knob, because it was already
+swinging open and lying about it. That is the point, and it is still a change
+you did not ask for on a desk you had arranged.
+
+### 51. The object editor, and the thing itself on a moving floor
+
+Object settings became the **object editor**: same panel, same rows, one
+addition and a different mark on the button that opens it.
+
+Everything in that panel already wrote straight to the object and re-rendered
+the board, so it was live — as long as the tile happened to be on the screen,
+unobscured, and on the page you were looking at. Often it is none of the three:
+the panel covers it, a phone panel covers the whole board, and the tile you
+opened the editor from may be a page away. "It updates live" was a promise you
+could only keep by closing the thing you were using.
+
+So the object is drawn at the top of its own editor, through the same
+`gridTile()` the board uses, on the floor a video game puts a model on: a
+checkerboard scrolling diagonally. The motion is the whole message — a pattern
+that moves says *this is the thing, not the place it lives* — and it holds still
+for anyone who has asked for less movement. What is drawn is a **clone** with a
+throwaway id and its box moved to the origin: a second element carrying the real
+id is one the drag, the bubble's anchor and `tileOf()` could all pick up instead
+of the tile, and a box carrying the object's real `x` lands in a column the
+preview grid hasn't got.
+
+The button is a **paintbrush** now, not a gear. Inside a drawer the bar's gear
+opened that drawer's settings while the same gear on the desk opened the app's,
+which is one icon standing for two questions in the same corner of the same bar.
+The desk keeps the gear; everything about one object gets the brush.
+
+Two settings arrived with it, both of which had been type-level only:
+
+- **Text size**, per object — a multiplier rather than a size, so a name that is
+  15.5px on a card, 11.5px on a narrow front and 11px on an index card keeps all
+  three answers, multiplied. Making a note readable from across the desk used to
+  mean resizing the tile.
+- **The mark**, per object. A type carries one and every object of that type
+  wore it, which is right until two drawers of the same type sit side by side
+  and the only thing telling them apart is a name too small to read. The first
+  chip is the way back to the type's own.
+
+*Against:* the stage is a second live rendering of a tile, and a second place a
+tile can be drawn wrong. It goes through `gridTile()` precisely so it cannot
+drift — if it renders wrong there it renders wrong on the board — but it is
+still one more thing to keep true.
+
+### 52. Refuse the selection at the top, exempt downwards
+
+iOS reads a long press on ordinary text as "select this", and puts a magnifier
+over the tile you are trying to lift. The defence was a list of the places a
+long press was *known* to land — `.drawer`, `.pinbar`, `.gridbar`, the context
+menu, a panel's header — which meant every surface added since arrived
+selectable and had to be found out about by holding it on a phone.
+
+Stated the other way round it closes by default: `#frame` refuses, and the
+exemptions are the handful of things there is genuinely something to select in —
+a field, a page of prose, the writing surface. The exceptions are countable and
+the surfaces are not.
+
+Two holes closed with it. `.pbody` was on the exempt list, which exempted an
+entire panel — every label, every chip, every row — when only its fields were
+ever meant. And refusing `selectstart` does nothing about a selection that
+*already exists*: Safari keeps a highlight, and the callout that goes with it,
+from a press two gestures ago, so the next hold anywhere near it grows the
+magnifier again. Every press that turns into one of Bureau's own gestures now
+drops whatever was selected first — never inside a field, where the selection is
+yours.
+
+*Against:* selecting text in the interface is now impossible outside those
+exemptions, on a Mac as much as on a phone. Copying a drawer's name off its
+front is not a thing you can do. That is the trade the magnifier was worth.

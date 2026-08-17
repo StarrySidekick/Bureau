@@ -55,13 +55,27 @@ function faceOf(el){
    is per device because sizeOfKind() halves a container onto a phone — the
    same drawer has to clear the same bar on both grids, and 4×4 on the desk is
    2×2 there. Everything else is paper: the shapes that are drawn as a sheet
-   curl up off the board, and the rest give a small lift to say they were hit. */
+   curl up off the board, and the rest give a small lift to say they were hit.
+
+   A **standing** container gets doors at any size. A drawer is a thing you pull
+   horizontally out of a carcass, and a front that is taller than it is wide has
+   never been one — 2×3 and 2×4 are a cabinet at a glance, and pulling them
+   towards you read as the wrong piece of furniture. Two cells of width is the
+   floor, because two doors inside one cell is not a cabinet either.
+
+   `box` is passed by the tile renderer, which already has the box it is drawing
+   into — including the flowed box a sorted board packs an object into, which
+   lay() knows nothing about. Left out, it asks lay() the same as before. */
 const CABINET_OVER = {desk:16, phone:4};
 const PAPER = ['note','idea','verse','quote','index','page','chit'];
-function openingFor(o){
+const standing = b => b.w>=2 && b.h>b.w;
+function openingFor(o, box){
   const how = openingOf(o);
   if(how!=='auto') return how;
-  if(isContainer(o)){ const b=lay(o); return (b.w*b.h) > CABINET_OVER[dev()] ? 'cabinet' : 'drawer'; }
+  if(isContainer(o)){
+    const b=box||lay(o);
+    return (standing(b) || b.w*b.h > CABINET_OVER[dev()]) ? 'cabinet' : 'drawer';
+  }
   return PAPER.includes(shapeOf(o)) ? 'curl' : 'lift';
 }
 

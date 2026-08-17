@@ -21,6 +21,20 @@ let holdTimer=null, menuTimer=null, holdFrom=null;
    "tell me about this", so it becomes the context menu instead. Six pixels of
    slack, because a finger resting on glass is never perfectly still. */
 const HOLD_TOUCH = 300, HOLD_MOUSE = 200, MENU_AFTER = 250, WOBBLE = 6;
+
+/* Refusing `selectstart` stops a *new* selection; it does nothing about one
+   that is already on the screen. Safari will happily keep a highlight — and the
+   callout bubble that goes with it — from a press two gestures ago, so a hold
+   that lands anywhere near it grows a magnifier over the tile again. So every
+   press that turns into one of Bureau's own gestures drops whatever was
+   selected first. Never inside a field: the whole point of one is that the
+   selection in it is yours. */
+function dropSelection(){
+  const a=document.activeElement;
+  if(a && a.closest && a.closest('input,textarea,[contenteditable]')) return;
+  const s=window.getSelection && window.getSelection();
+  if(s && !s.isCollapsed && s.removeAllRanges) s.removeAllRanges();
+}
 // any real movement, or letting go, means it was not a press-and-hold
 function cancelHold(e){
   if(e && holdFrom && Math.abs(e.clientX-holdFrom.x)<WOBBLE && Math.abs(e.clientY-holdFrom.y)<WOBBLE) return;
@@ -394,6 +408,7 @@ function onDown(e){
     holdTimer=setTimeout(()=>{
       holdTimer=null;
       if(G!==g0) return;
+      dropSelection();
       const r=g0.el.getBoundingClientRect();
       if(navigator.vibrate) navigator.vibrate([4,40,10]);
       G.menu=true;
@@ -417,6 +432,7 @@ function onDown(e){
     holdTimer=setTimeout(()=>{
       holdTimer=null;
       if(G!==g0) return;
+      dropSelection();
       G.armed=true;
       G.el.classList.add('lifted');
       if(navigator.vibrate) navigator.vibrate(6);
@@ -442,6 +458,7 @@ function onDown(e){
       holdTimer=setTimeout(()=>{
         holdTimer=null;
         if(G!==g0) return;
+        dropSelection();
         G.armed=true;
         G.el.classList.add('lifted');
         if(navigator.vibrate) navigator.vibrate(6);
@@ -493,6 +510,7 @@ function onDown(e){
       holdTimer=setTimeout(()=>{
         holdTimer=null;
         if(G!==g0) return;
+        dropSelection();          // before iOS decides the hold was about text
         if(!g0.stuck){
           G.armed=true;
           G.el.classList.add('lifted');
@@ -510,6 +528,7 @@ function onDown(e){
         menuTimer=setTimeout(()=>{
           menuTimer=null;
           if(G!==g0 || G.mode) return;       // it started moving: it is a drag
+          dropSelection();
           const el=G.el, id=G.id, r=el.getBoundingClientRect();
           if(navigator.vibrate) navigator.vibrate([4,40,10]);
           G.menu=true;

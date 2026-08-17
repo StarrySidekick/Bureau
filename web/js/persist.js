@@ -17,7 +17,7 @@ import { closePanel } from './panels.js';
    Bureau is this phone running" is exactly the question you ask when a change
    appears not to have deployed. Shown in Settings, so it can be read off the
    device rather than guessed at. */
-const APP_VERSION = '0.55';
+const APP_VERSION = '0.56';
 const KEY = 'bureau.v1';
 const install = {deferred:null};   // the browser's install prompt, when one is on offer
 let saveTimer = null;
@@ -575,6 +575,9 @@ function importImage(file){
         // pictures land square; you stretch them to the shape you want
         if(o!==into){ o.desk=null; o.phone=null; }
         closePanel(); save(); render();
+        // the picture surface may be the thing that asked for the file, and it
+        // is showing an empty mount until it is told
+        renderSheet();
         toast(ok?'Image added':'Image added — it may not survive a reload');
       });
     };

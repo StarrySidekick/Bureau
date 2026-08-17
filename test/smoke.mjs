@@ -1823,6 +1823,166 @@ const CHROME = process.env.BUREAU_CHROME;
   });
   await page.screenshot({ path: 'test/shots/21-desks.png' });
 
+  /* --- the picture surface, and a front that says how it opens ------------
+     Three things that were each the app answering the wrong question. An
+     object made of an image opened onto paper, because "read" was the only
+     thing a click knew how to mean. A container taller than it is wide swung
+     open like a cabinet while wearing a single drawer pull. And a front with
+     one cell of height printed its name across its own knob. */
+  const picture = await page.evaluate(async () => {
+    const nap = ms => new Promise(r => setTimeout(r, ms));
+    const S = BUREAU.state, out = {};
+    const o = BUREAU.create('image', {title:'Kitchen wall', parent:'root'});
+    o[S.device] = Object.assign(BUREAU.free(6,4,'root'), {w:6,h:4});
+    BUREAU.render(); await nap(120);
+    // nothing in it yet: an empty mount, not a card with a title and no body
+    const tile = () => document.querySelector(`.grid .drawer[data-row="${o.id}"]`);
+    out.emptyIsAMount = !!tile() && tile().classList.contains('empty')
+      && !!tile().querySelector('.imgempty') && !tile().querySelector('.dbody');
+    // and it opens onto the picture rather than onto a blank page
+    BUREAU.view(o.id); await nap(150);
+    out.opensAsAPicture = !!document.querySelector('.viewstage') && !document.querySelector('.bookstage');
+    out.offersToAddOne  = !!document.querySelector('.viewdrop[data-act="pickimage"]');
+    // with a picture in it: the image, and the two ways to change it
+    o.media = {assetId:'a_test', type:'image', w:2, h:2, label:'wall.png',
+      src:'data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==',
+      alpha:false};
+    BUREAU.renderSheet(); BUREAU.render(); await nap(150);
+    out.showsTheImage  = !!document.querySelector('.viewstage .viewimg');
+    out.canReplaceIt   = !!document.querySelector('.viewhead [data-act="pickimage"]');
+    out.canRemoveIt    = !!document.querySelector('.viewhead [data-act="dropimage"]');
+    out.tileIsThePicture = !!document.querySelector(`.grid .drawer[data-row="${o.id}"] img.tileimg`);
+    // audio is media too, and is not a picture: it still opens onto paper
+    const a = BUREAU.create('audio', {title:'Take 3', parent:'root'});
+    a[S.device] = Object.assign(BUREAU.free(6,2,'root'), {w:6,h:2});
+    BUREAU.render(); await nap(120);
+    out.soundIsNotAPicture = !document.querySelector(`.grid .drawer[data-row="${a.id}"].imgtile`);
+    S.viewId=null; BUREAU.renderSheet();
+    BUREAU.del(a.id); BUREAU.del(o.id); S.undo=[];
+    BUREAU.render();
+    return out;
+  });
+
+  const fronts = await page.evaluate(async () => {
+    const nap = ms => new Promise(r => setTimeout(r, ms));
+    const S = BUREAU.state, out = {};
+    const mk = (nm,w,h) => { const d = BUREAU.create('drawer', {title:nm, parent:'root'});
+      d[S.device] = Object.assign(BUREAU.free(w,h,'root'), {w,h}); return d; };
+    const tall = mk('Standing', 2, 4);      // taller than wide: a cabinet
+    const wide = mk('Lying',    4, 3);      // wider than tall and small: a drawer
+    const flat = mk('Sliver',   4, 1);      // one cell tall: no room for a name
+    const thin = mk('Column',   1, 4);      // one cell wide: the same
+    BUREAU.render(); await nap(150);
+    const knobs = d => document.querySelectorAll(`.grid .drawer[data-drawer="${d.id}"] .pull`).length;
+    out.standingSwings   = BUREAU.openingFor(tall) === 'cabinet';
+    out.andWearsTwoKnobs = knobs(tall) === 2;
+    out.lyingStillPulls  = BUREAU.openingFor(wide) === 'drawer';
+    out.andWearsOne      = knobs(wide) === 1;
+    // it follows openingFor(), not a size test of its own: say "pulls out" and
+    // the second door goes with it
+    tall.opening = 'drawer'; BUREAU.render(); await nap(120);
+    out.overrideTakesADoorOff = knobs(tall) === 1;
+    tall.opening = null;
+    // no room for a name: the mark, over the knob
+    const shows = d => { const t = document.querySelector(`.grid .drawer[data-drawer="${d.id}"]`);
+      const m = t && t.querySelector('.dmark'), n = t && t.querySelector('.dtop');
+      return { mark: !!m && getComputedStyle(m).display !== 'none',
+               name: !!n && getComputedStyle(n).display !== 'none' }; };
+    BUREAU.render(); await nap(120);
+    const f = shows(flat), t2 = shows(thin), w2 = shows(wide);
+    out.shortWearsItsMark = f.mark && !f.name;
+    out.thinWearsItsMark  = t2.mark && !t2.name;
+    out.roomyKeepsItsName = !w2.mark && w2.name;
+    [tall,wide,flat,thin].forEach(d => BUREAU.delDrawer(d.id));
+    S.undo=[]; BUREAU.render();
+    return out;
+  });
+
+  /* --- the object editor: the thing itself, while you change it ---------- */
+  const editor = await page.evaluate(async () => {
+    const nap = ms => new Promise(r => setTimeout(r, ms));
+    const S = BUREAU.state, out = {};
+    const n = BUREAU.create('note', {title:'Read me', body:'A line of it.', parent:'root'});
+    n[S.device] = Object.assign(BUREAU.free(6,4,'root'), {w:6,h:4});
+    BUREAU.render(); await nap(150);
+    BUREAU.panel(n.id); await nap(250);
+    const stage = () => document.querySelector('#panel .objstage');
+    const shown = () => stage() && stage().querySelector('.stagetile .drawer');
+    out.theThingIsOnTheStage = !!shown();
+    // …and inside it: a box carrying the object's real x lands in a column the
+    // preview grid hasn't got, and the stage draws an empty floor
+    out.andActuallyInsideIt = (() => { const t = shown(); if(!t) return false;
+      const a = t.getBoundingClientRect(), b = stage().getBoundingClientRect();
+      return a.width > 10 && a.left >= b.left-1 && a.right <= b.right+1; })();
+    out.onAMovingFloor = !!stage() &&
+      getComputedStyle(stage().querySelector('.stagefloor')).animationName === 'stagedrift';
+    // it is a clone: a second element with the real id is one the drag, the
+    // bubble's anchor and tileOf() could all pick up instead of the tile
+    out.itIsACloneNotACopy = !document.querySelector(`#panel [data-row="${n.id}"]`);
+    // text size: a multiplier over whatever each rule decided
+    const sel = document.querySelector(`#panel [data-oset="${n.id}:tsize"]`);
+    out.textSizeIsOffered = !!sel;
+    if(sel){ sel.value='1.6'; sel.dispatchEvent(new Event('change',{bubbles:true})); }
+    await nap(220);
+    const tile = () => document.querySelector(`.grid .drawer[data-row="${n.id}"]`);
+    out.wordsGetBigger = !!tile() && tile().style.getPropertyValue('--tscale')==='1.6'
+      && parseFloat(getComputedStyle(tile().querySelector('.dname')).fontSize) > 20;
+    const s2 = document.querySelector(`#panel [data-oset="${n.id}:tsize"]`);
+    if(s2){ s2.value='1'; s2.dispatchEvent(new Event('change',{bubbles:true})); }
+    await nap(200);
+    out.normalIsNotStored = n.tsize == null;
+    // the mark, per object, with the way back to the type's
+    const chip = v => document.querySelector(`#panel [data-oic="${v}"]`);
+    out.markIsOffered = !!chip('feather');
+    if(chip('feather')) chip('feather').click();
+    await nap(220);
+    out.markIsKept = n.ic === 'feather';
+    if(chip('')) chip('').click();
+    await nap(200);
+    out.markGoesBackToTheType = n.ic == null;
+    BUREAU.del(n.id); S.undo=[]; BUREAU.render();
+    return out;
+  });
+  await page.screenshot({ path: 'test/shots/22-editor.png' });
+
+  /* --- nothing highlights under a long press ---------------------------- */
+  const noSelecting = await page.evaluate(() => {
+    const out = {}, css = el => getComputedStyle(el).webkitUserSelect;
+    out.theFrameRefuses = css(document.querySelector('#frame')) === 'none';
+    out.aTileRefuses    = css(document.querySelector('.grid .drawer')) === 'none';
+    const fire = el => { const e = new Event('selectstart',{bubbles:true,cancelable:true});
+      el.dispatchEvent(e); return e.defaultPrevented; };
+    out.selectstartRefused = fire(document.querySelector('.grid .drawer .dname'));
+    BUREAU.panel('d_ideas');
+    return new Promise(r => setTimeout(() => {
+      // a panel's labels are furniture; only its fields are text
+      out.panelLabelRefuses = css(document.querySelector('#panel .prow label')) === 'none';
+      out.panelFieldAllows  = css(document.querySelector('#panel input.pfield')) === 'text';
+      out.fieldSelectstartAllowed = !fire(document.querySelector('#panel input.pfield'));
+      document.querySelector('#panel [data-act="panelclose"]').click();
+      r(out);
+    }, 260));
+  });
+  /* …and a highlight left over from a previous press is dropped by the next
+     hold, because refusing selectstart does nothing about one that already
+     exists — which is how the magnifier kept coming back. */
+  const selectionDropped = await page.evaluate(async () => {
+    const nap = ms => new Promise(r => setTimeout(r, ms));
+    const el = document.querySelector('.grid .drawer .dname');
+    const rg = document.createRange(); rg.selectNodeContents(el);
+    const s = getSelection(); s.removeAllRanges(); s.addRange(rg);
+    const b = el.getBoundingClientRect();
+    el.dispatchEvent(new PointerEvent('pointerdown', {bubbles:true, pointerType:'touch',
+      pointerId:41, isPrimary:true, clientX:b.left+4, clientY:b.top+4}));
+    await nap(700);
+    const gone = getSelection().isCollapsed;
+    el.dispatchEvent(new PointerEvent('pointerup', {bubbles:true, pointerType:'touch',
+      pointerId:41, isPrimary:true, clientX:b.left+4, clientY:b.top+4}));
+    await nap(120);
+    document.querySelector('#ctx').classList.remove('open');
+    return gone;
+  });
+
   console.log(JSON.stringify({
     errors: errs, manifestOk, swReady, survived, styleSurvived, slotColours,
     newObjectSeen, inlineEdit, sortDefaults, taskLook,
@@ -1834,7 +1994,8 @@ const CHROME = process.env.BUREAU_CHROME;
     timeLayer, checklistBox, pluckWorks, answering, seedAndKnobs, longPress, drawerSize, tagDrawer, pinReorder, groupMove, dropStates,
     adaptiveTiles, bubblePanel, scrollKept, kindSizes,
     phoneGrid, phoneMigration,
-    dupIds, undoWorks, readViews, paperSize, movement, pager, desks, spans
+    dupIds, undoWorks, readViews, paperSize, movement, pager, desks, spans,
+    picture, fronts, editor, noSelecting, selectionDropped
   }, null, 2));
   await browser.close();
 })();

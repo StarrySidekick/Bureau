@@ -91,7 +91,7 @@ clause at the bottom of each file — that list is each module's public surface.
 | `mutations.js` | `toggleDone`, `del`, `create`, `quickAdd`, repeat scheduling, `toast`. |
 | `tiles.js` | `gridTile()` — the one place that decides how an object looks on a grid — plus rows, cards, list bands, book/scroll entries, and what a click does (`tileTap`). |
 | `views.js` | The desk and a drawer — the only two places there are. Also `pinbar()`, the time layouts (`viewMonth`, `viewTimeline`) and the settings panel's body. `render()` replaces `#app`'s innerHTML wholesale, then saves. |
-| `sheet.js` | The two surfaces an object opens onto — reading and writing — rendered into `#sheetHost`, **separately** from `render()`. |
+| `sheet.js` | The three surfaces an object opens onto — reading, writing, and the picture — rendered into `#sheetHost`, **separately** from `render()`. |
 | `panels.js` | `openPanel()` — **every menu in the app** — plus `openMenu()` for a popup hung off a button, the command palette (⌘K), the context menu, and `sampleObject`/`sampleTile` for drawing a type as the thing it makes. |
 | `gestures.js` | Pointer-based drag, resize, lasso, swipe. The fiddliest code in the app. |
 | `motion.js` | Every movement: `openTile()` (drawer, cabinet, curl, lift), `pop()`, and the pager that slides between boards. Nothing in it ever delays a state change. |
@@ -117,13 +117,17 @@ at the top and moving a tile on a long desk used to throw you back to the first
 screen. That is one number, not a foothold for patching — see decision 29.
 
 **A tile shows less as it gets smaller.** `sizeClass()` in `tiles.js` stamps
-`sz-short` (h≤1), `sz-narrow` (w≤3) and `sz-mini` (1×1) onto every tile, and the
-stylesheet only ever *takes away* what there is no longer room for — a tile
-crossing a threshold loses a line rather than rearranging itself. 1×1 is handled
-in `gridTile()` rather than in CSS: the tile is the type's mark and nothing else,
-because at 40px a title is three letters and an ellipsis. The classes are spliced
-into the first `class="` of whatever `drawTile()` returns, so a new branch gets
-the behaviour without being told. See decision 26.
+`sz-short` (h≤1), `sz-thin` (w≤1), `sz-narrow` (w≤3) and `sz-mini` (1×1) onto
+every tile, and the stylesheet only ever *takes away* what there is no longer
+room for — a tile crossing a threshold loses a line rather than rearranging
+itself. 1×1 is handled in `gridTile()` rather than in CSS: the tile is the type's
+mark and nothing else, because at 40px a title is three letters and an ellipsis.
+A drawer front at `sz-short` or `sz-thin` reaches the same answer from the other
+side — the name goes and the mark sits over the knob — and it does it in CSS,
+off a `.dmark` the plain front always renders, so the rule cannot take the name
+off a checklist that happens to be short. The classes are spliced into the first
+`class="` of whatever `drawTile()` returns, so a new branch gets the behaviour
+without being told. See decisions 26 and 50.
 
 **An animation never holds anything up.** This is the one rule in `motion.js`
 and it is easy to break by accident. A tap files, ticks or navigates the
@@ -134,12 +138,19 @@ and it is easy to break by accident. A tap files, ticks or navigates the
 animated app becomes a slow one, and it breaks every test that reads state
 after a click. See decision 38.
 
-**How a thing opens is a property.** `openingFor(o)` in `motion.js` — `auto |
-drawer | cabinet | curl | lift | none`, per object then per type. `auto` asks
-what the object *is*: a container over four cells square swings open, a smaller
-one pulls out, a paper shape curls, everything else lifts. Don't add a branch on
-a kind's name to get a different movement; add a value, or set `opening` on the
-type.
+**How a thing opens is a property, and the front says which.** `openingFor(o,
+box)` in `motion.js` — `auto | drawer | cabinet | curl | lift | none`, per object
+then per type. `auto` asks what the object *is*: a container over four cells
+square swings open, so does one **taller than it is wide** at two cells of width
+or more, a smaller one pulls out, a paper shape curls, everything else lifts.
+Don't add a branch on a kind's name to get a different movement; add a value, or
+set `opening` on the type.
+
+A cabinet wears **two knobs**, one either side of the seam, and a drawer wears
+one — `tiles.js` asks `openingFor(o, box)` rather than repeating the size test,
+so setting a tall drawer to "pulls out" puts the single knob back. Pass the box
+being drawn: a sorted board packs tiles into flowed boxes `lay()` knows nothing
+about. See decision 50.
 
 **Nothing on the desk shimmers.** A magic drawer used to be holographic foil,
 lit from `--holox`/`--holoy` on `#frame` — the phone's tilt, or the pointer.
@@ -152,6 +163,18 @@ filter bar; clicking a tag anywhere calls `drawerForTag()`, which finds the
 magic drawer collecting that tag or makes one. If you are tempted to add a
 filter UI, add a drawer instead — that is the same instinct that deleted the
 tabs (decision 22).
+
+**A picture opens onto the picture, and so does an empty one.** `isPicture(o)`
+in `model.js` — it carries `media`, and `mediaTypeOf(o)` is `image`. That is a
+property, so an Audio type states `mediaType:'audio'` rather than an empty media
+field being guessed at as a photograph that hasn't arrived. The surface is
+`openViewer(id)` / `S.viewId` in `sheet.js`, beside reading and writing; the
+routing is at the **tap** — `tileTap`, `openObj`, the context menu — so
+`openRead()` still means one thing and the Read button on a picture with words
+in it doesn't bounce. An empty picture is a dashed mount on the board and the
+file picker itself on the surface; `importImage()` calls `renderSheet()` when
+the file lands, because the file comes back long after the button was pressed.
+See decision 49.
 
 **A thing that lasts is not a thing with a date.** `date` is the day something
 falls on; `span` adds `till`, the last day, inclusive. Ask `spanOf(o)` (null
@@ -431,14 +454,33 @@ inside containers; everything else nests inside nothing. An object lives in
 exactly one container — a magic drawer is the only way it appears anywhere
 else. Read `docs/SYSTEM.md` before changing any of it.
 
-**There is one settings panel, and one place words are written.** A container
-is an object with children, so `objectPanel(id)` answers for objects,
-containers and the desk alike — `drawerPanel` is an alias for it and the old
-drawer *form* is gone. Everything that used to be on the detail sheet is in
-there: fields, milestones, a streak, tags, relations, traits. The words are the
-other half, and they get their own surface — `openWriter(id)` full screen, or a
-double tap on the tile for a name and a line. Don't reintroduce a form that is
-both. See decision 36.
+**There is one object editor, and one place words are written.** A container is
+an object with children, so `objectPanel(id)` answers for objects, containers
+and the desk alike — `drawerPanel` is an alias for it and the old drawer *form*
+is gone. Everything that used to be on the detail sheet is in there: fields,
+milestones, a streak, tags, relations, traits, its mark, how big its words are.
+The words are the other half, and they get their own surface — `openWriter(id)`
+full screen, or a double tap on the tile for a name and a line. Don't
+reintroduce a form that is both. See decision 36.
+
+Its button is a **paintbrush** (`ic('brush')`); the gear is the *app's* settings
+and belongs to the desk alone. At the top of the body is `objectStage(id)` — the
+object drawn through the same `gridTile()` the board uses, on a checkerboard
+scrolling diagonally, because a panel covers the tile it is asking about and on
+a phone it covers the board. It draws a **clone**: id `__stage`, box moved to
+`{x:1,y:1}`. A second element carrying the real id is one the drag, `anchorEl()`
+and `tileOf()` could all pick up instead of the tile, and a box at the object's
+real `x` lands in a column the preview grid hasn't got — which draws an empty
+floor and looks like the stage is broken. See decision 51.
+
+**A mark and a text size are per object, then per type.** `iconOf(o)` and
+`textSizeOf(o)`, next to `shapeOf` and `colour`. Never read `K(o.kind).ic` to
+draw an object — that is the same mistake as reading `o.c`. Text size is a
+*multiplier* written into the tile's style as `--tscale` (folded into `place`,
+so every branch of `drawTile()` carries it), and the stylesheet restates each
+size times it at the end of `chrome.css` — a name is 15.5px on a card, 11.5px on
+a narrow front and 11px on an index card, and all three survive being read from
+closer.
 
 **A one-of-many list is a `<select>`; a many-of-many is chips.** Forty types and
 twenty shapes as chips were four hundred pixels you had to read like a wall. New
@@ -611,12 +653,21 @@ when you're editing the *other* device's layout from this one.
 - **Image bytes live in IndexedDB, never in the JSON.** The assets half of `persist.js`. `snapshot()`
   strips `media.src`; `hydrateAssets()` puts it back after a load. If you add a
   new place that writes objects to storage, it has to strip too.
+- **Nothing on a board may be selected, and the exemptions are the list.**
+  `#frame` refuses `user-select` and `selectstart`; fields, prose, a page and
+  the writing surface are exempt, and nothing else is — not a panel's labels,
+  which are furniture. Refusing `selectstart` does nothing about a highlight
+  that already exists, so `dropSelection()` in `gestures.js` clears one at the
+  start of every hold that becomes a Bureau gesture. Never inside a field. See
+  decision 52.
 - **Anything destructive pushes an undo move.** `S.undo` is a stack of up to 20,
   each a list of `{del}` / `{add}` / `{set}` steps replayed backwards. Remove
   objects through `del()`, `delMany()` or `delDrawer()` in `mutations.js` — a
   bare `S.objects.splice()` in a handler is exactly how group delete came to be
-  unrecoverable. A deleted picture is only freed from IndexedDB when its move
-  falls off the bottom of the stack.
+  unrecoverable. A picture is only freed from IndexedDB when the move
+  holding it falls off the bottom of the stack — which `reap()` now checks for a
+  `{set:{k:'media'}}` step as well as a deleted object, because taking a picture
+  *out* of an object that is still on the desk is the same bargain.
 - **A box belongs to one container's coordinate space.** Reparenting in bulk has
   to clear `desk`/`phone` and let `ensureBox()` re-place, or the moved objects
   land on the same numbers in a grid where those numbers mean somewhere else —

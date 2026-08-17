@@ -75,6 +75,13 @@ function reap(move){
   (move.steps||[]).forEach(s=>{
     const o = s.del && s.del.o;
     if(o && o.media && o.media.assetId && !byId(o.id)) assetDel(o.media.assetId);
+    /* A picture taken *out* of an object that is still on the desk. The move
+       held the old media so undo could put it back; once the move has gone,
+       nothing points at those bytes — unless something else adopted the same
+       asset in the meantime, which a duplicate does. */
+    const m = s.set && s.set.k==='media' && s.set.v;
+    if(m && m.assetId && !S.objects.some(x=>x.media && x.media.assetId===m.assetId))
+      assetDel(m.assetId);
   });
 }
 function pushUndo(label, steps){
@@ -105,7 +112,7 @@ function removeMany(ids){
      .forEach(i=>{ steps.push({del:{o:S.objects[i], i}}); S.objects.splice(i,1); });
   // whatever was open on it can't stay open — a surface, a panel, or a tile
   // being typed in
-  if(ids.includes(S.writeId)||ids.includes(S.readId)) closeSheet();
+  if(ids.includes(S.writeId)||ids.includes(S.readId)||ids.includes(S.viewId)) closeSheet();
   if(ids.includes(S.editId)) S.editId=null;
   S.sel=(S.sel||[]).filter(x=>!ids.includes(x));
   return steps;

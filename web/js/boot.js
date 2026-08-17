@@ -11,7 +11,7 @@ import { overlayHTML, objectPanel } from './panels.js';
 import { wire } from './wire.js';
 import { openingFor } from './motion.js';
 import { load, writeNow, save, hydrateAssets, pasteObjects } from './persist.js';
-import { renderSheet, openWriter, openRead } from './sheet.js';
+import { renderSheet, openWriter, openRead, openViewer } from './sheet.js';
 
 const restored = load();
 const hash = (location.hash||'').replace('#','');
@@ -41,8 +41,9 @@ window.BUREAU = {
   paste: pasteObjects, relate, pin: togglePin, setPin, renderSheet,
   // small | extra | large — the three phone grids, for trying on
   setGrid: setGridSize,
-  // the three things an object opens onto: its settings, its words, its paper
-  panel: objectPanel, write: openWriter, read: openRead,
+  // the four things an object opens onto: its editor, its words, its paper,
+  // and — for something made of an image — the picture
+  panel: objectPanel, write: openWriter, read: openRead, view: openViewer,
   del, delMany, delDrawer, undo, toggleDone,
   // which movement a thing has decided on, for a test that would otherwise
   // have to reimplement the size rule to know what it is looking at

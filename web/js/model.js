@@ -108,8 +108,8 @@ const BUILTIN_KINDS = {
   habit:   {shape:'habit', nm:'Habit',   ic:'repeat',  c:8, key:'A', ds:'Repeats, tracks a streak',  size:[4,4], onclick:'read', attrs:['text','streak'], body:'**Why —** ' },
   goal:    {shape:'goal', nm:'Goal',    ic:'target',  c:13, key:'J', ds:'Long-term, has milestones', size:[4,4], onclick:'read', attrs:['text','progress'], body:'**Definition of done —** ' },
   image:   {nm:'Image',   ic:'image',   c:15, key:'G', ds:'A picture on the board',   size:[6,4], onclick:'read', attrs:['media'], body:'' },
-  audio:   {film:true, nm:'Audio',   ic:'music',   c:10, key:'U', ds:'Something to listen to',    size:[6,2], onclick:'read', attrs:['text','media','duration'], body:'' },
-  video:   {film:true, nm:'Video',   ic:'film',    c:9, key:'&', ds:'Something to watch',        size:[6,4], onclick:'read', attrs:['text','media','duration'], body:'' },
+  audio:   {film:true, nm:'Audio',   ic:'music',   c:10, key:'U', ds:'Something to listen to',    size:[6,2], onclick:'read', attrs:['text','media','duration'], mediaType:'audio', body:'' },
+  video:   {film:true, nm:'Video',   ic:'film',    c:9, key:'&', ds:'Something to watch',        size:[6,4], onclick:'read', attrs:['text','media','duration'], mediaType:'video', body:'' },
   trip:    {shape:'ticket', nm:'Trip',    ic:'flag',    c:9, key:'P', ds:'Somewhere you are going',   size:[8,6], attrs:['container','date','span','location'], layout:'grid', body:'' },
   moodboard:{face:'moodboard', nm:'Moodboard', ic:'image', c:13, key:'B', ds:'Pictures, pinned together', size:[8,8], attrs:['container'], layout:'moodboard', body:'' },
   quote:   {shape:'quote', nm:'Quote',   ic:'book',    c:5, key:'Z', ds:'Someone else\'s words',      size:[6,4], onclick:'read', attrs:['text','link','rating'],
@@ -394,7 +394,8 @@ function reset(){
     arrange:false, kindFilter:null, calDay:null,
     // editId is the tile being typed in on the board — a double tap turns a
     // name into a field in place. writeId is the full-screen writing surface.
-    undo:[], editing:false, sel:[], readId:null, writeId:null, editId:null, bookAt:0,
+    // viewId is the picture surface: what an object made of an image opens onto
+    undo:[], editing:false, sel:[], readId:null, writeId:null, viewId:null, editId:null, bookAt:0,
     // a desk you have arranged is one you want to look at, so it starts locked
     deskCfg:{layout:'grid', locked:true, sort:null},
     look:defaultLook()
@@ -499,6 +500,28 @@ const KNOBSIZES = {sm:'Small', md:'Medium', lg:'Large'};
 const knobSizeOf = o => (o && o.knobsize) || 'md';
 // Answered is "there is something written in the box", not a flag of its own.
 const answered = o => !!String((o&&o.answer)||'').trim();
+
+/* An object's mark. A type carries one; an object may insist on another —
+   the same object-then-type shape as its colour and its shape, so the icon on
+   a tile is never read straight off K(o.kind).ic again. */
+const iconOf = o => (o && o.ic) || K(o&&o.kind).ic || 'note';
+
+/* How big the words on a face are: a multiplier, not a size. A tile's type is
+   already measured against the tile, so 1.4 is the same note read from closer
+   rather than a second design — and every rule that sets a size keeps its own
+   answer, multiplied. Per object, then per type, then 1. */
+const TSIZES = [['0.8','Smaller'],['1','Normal'],['1.25','Larger'],
+                ['1.6','Large'],['2','Largest']];
+const textSizeOf = o => +(((o && o.tsize) || K(o&&o.kind).tsize || 1)) || 1;
+
+/* Which sort of media a thing holds. The object's own answer first, then the
+   type's — an Audio object with nothing in it yet is still for audio, and
+   guessing "image" from an empty field is how an empty sound file came to be
+   drawn as a missing photograph. */
+const mediaTypeOf = o => (o && o.media && o.media.type) || K(o&&o.kind).mediaType || 'image';
+/* A picture: something that carries media, and whose media is an image. This is
+   what opens onto the picture surface rather than onto paper. */
+const isPicture = o => has(o,'media') && mediaTypeOf(o)==='image';
 
 /* The four at the end are the newer answers to "what does a task look like",
    which is a question a plain sliver only ever answered by not being anything.
@@ -857,7 +880,7 @@ export { ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds, K,
   deskIds, deskList, isDesk, deskOf, deskHere,
   pinIds, shelfDrawers, placeOf,
   spanOf, coversDay, lastDay,
-  KNOBSIZES, knobSizeOf, answered,
+  KNOBSIZES, knobSizeOf, answered, iconOf, TSIZES, textSizeOf, mediaTypeOf, isPicture,
   spawnByOf, genKindOf, takesTyping, keepsDone, showsContainers,
   CALVIEWS, calViewOf, weekStartOf, showsWeekends, calCols,
   OPS, ROLLS, rollup, SORTS, MANUAL, SORT_CYCLE, sortMark, nextSort, sortOf, childrenOf, isAncestor,

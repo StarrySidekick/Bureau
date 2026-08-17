@@ -96,6 +96,7 @@ One array, `S.objects`, holds drawers and objects alike.
   created, edited,
   shape, face, read, onclick,   // per-object overrides of the type's defaults
   opening,                      // and how it moves when it is opened
+  ic, tsize,                    // its own mark, and how big the words on it are
 
   // carried only when the matching attribute is present
   done, doneAt, due, repeat, history, milestones, media, link,
@@ -130,7 +131,7 @@ reason an invented type works everywhere immediately.
 | `total` | Adds a field up across what it holds. | — |
 | `streak` | A daily cadence and a tickable history. No due date, no overdue. | — |
 | `progress` | Ordered milestones and a progress bar. | — |
-| `media` | An image, video or audio file. A transparent PNG stays transparent. | — |
+| `media` | An image, video or audio file. A transparent PNG stays transparent. An image opens onto the picture surface. | — |
 | `link` | A web address it points at. | `url` text |
 | `count` | A tally you add to. | `count` number |
 | `rating` | Out of five. | `rating` number |
@@ -173,6 +174,12 @@ it opens to be read.
 
 Plus **Control**, which is seeded rather than made and does not appear in the
 picker.
+
+A type also states `mediaType` where it means one — Audio is for audio and
+Video for video — so an object that carries `media` and has nothing in it yet is
+still known to be for sound rather than guessed at as a photograph that has not
+arrived. `mediaTypeOf(o)` is the object's own answer then the type's; `isPicture(o)`
+is that answer being `image`, and it is what decides which surface it opens onto.
 
 A type is a preset, not a category. Changing an object's type swaps which
 attributes it has and leaves its data alone, so an Idea becomes an Essay without
@@ -291,7 +298,8 @@ of four things layered over them.
 | **The shelf** | Whatever you pinned, drawn as a shelf with a slot per thing. In the bar on a Mac, its own strip along the bottom on a phone. | inside `#app` |
 | **Reading** | An object's body as paper — a spread, a page, or a column. Over a dimmed desk. | `#sheetHost`, rendered separately from `render()` |
 | **Writing** | The same body, full screen, with nothing else on it. A title and a textarea. | `#sheetHost` |
-| **Panel** | Every menu, every form, and every setting an object has. One at a time, down the right, over a desk that stays live. | `#frame`, outside `#app` |
+| **The picture** | What something made of an image opens onto: the image as large as the window allows, and — when there isn't one — the empty mount, which *is* the button that chooses a file. Replace and Remove in the head. | `#sheetHost` |
+| **Panel** | Every menu, every form, and every setting an object has — the object editor among them. One at a time, down the right, over a desk that stays live. | `#frame`, outside `#app` |
 | **Popup** | Picking one of a handful — Sort, the context menu. Hangs off the button that opened it. | borrowed context-menu element |
 | **Command palette** | ⌘K. The one thing that kept a scrim, because it is a search field you type into blind. | `#frame` |
 
@@ -309,14 +317,23 @@ function so `refreshPanel()` can redraw from state; a form's draft lives in the
 `PANEL` object, never on the DOM node. A surface and a panel claim the same
 screen, and the surface wins.
 
-**Everything an object can be changed to is in one panel.** `objectPanel(id)`
-answers for objects, containers and the desk alike — a container is an object
-with children, so "drawer settings" and "object settings" were the same
-question asked twice. Name, type, where it lives, look, behaviour, every field
-its traits carry, milestones, a streak, tags, relations, what a magic drawer
-collects, its traits, duplicate and delete. A list of one-of-many is a
-`<select>`; the many-of-many groups are chips behind a closed `<details>`. See
-decision 36.
+**Everything an object can be changed to is in one panel — the object editor.**
+`objectPanel(id)` answers for objects, containers and the desk alike — a
+container is an object with children, so "drawer settings" and "object settings"
+were the same question asked twice. Name, type, where it lives, its mark, how
+big its words are, look, behaviour, every field its traits carry, milestones, a
+streak, tags, relations, what a magic drawer collects, its traits, duplicate and
+delete. A list of one-of-many is a `<select>`; the many-of-many groups are chips
+behind a closed `<details>`. See decision 36.
+
+At the top of it is **the thing itself**, drawn through the same `gridTile()`
+the board uses, on a checkerboard scrolling diagonally. Every row was already
+live; the stage is what makes that visible when the panel is covering the tile,
+which on a phone it always is. What is drawn is a clone with a throwaway id and
+its box at the origin — a second element carrying the real id is one the drag,
+the bubble's anchor and `tileOf()` could pick up instead of the tile. The button
+that opens it is a **paintbrush**; the desk's own settings keep the gear. See
+decision 51.
 
 ## 10. Interaction
 
@@ -345,14 +362,22 @@ decision 36.
 | Drag a pin | Reorders the bar |
 
 **Clicking an object is configurable** — `clickOf()`, per object then per type:
-nothing, read it, write in it, tick it off, open its settings, or make one of
+nothing, read it, write in it, tick it off, open its editor, or make one of
 something. Writing is not the default; it is on the context menu and on the
-reading view. A drawer always opens.
+reading view. A drawer always opens. "Read" on something whose content is an
+image means the picture surface, not paper — the routing is at the tap, so
+`openRead()` keeps meaning one thing.
 
 **A new object is scrolled to.** `reveal()` after every creation. A board is a
 coordinate space, so a new thing takes the first free room scanning from the
 top — and on a phone, where an object is full width, that is always below
 everything already there. It was placed correctly and never seen.
+
+**A picture opens onto the picture.** `isPicture(o)` — it carries media, and
+that media is an image — and the surface is the image at whatever size the
+window allows, with Replace, Remove and, if it also carries words, Read. Nothing
+in it yet means an empty mount that is itself the file picker, on the surface
+and on the board alike. See decision 49.
 
 **Reading is one surface with three settings.** `readOf()` — per object, then
 per type, defaulting to `page`:
@@ -368,10 +393,14 @@ object, then per type, defaulting to `auto`, which asks the object what it is:
 
 - **drawer** — the front pulls out of the shelf, toward you and past you, and
   the board inside it comes up behind. What a container smaller than four cells
-  square gets.
+  square, and no taller than it is wide, gets. One knob.
 - **cabinet** — the front is two doors hinged at the outer edges and they swing
-  open. What a container bigger than that gets. The threshold is per device,
-  because a container is halved onto a phone.
+  open. What a container bigger than that gets, and what any container **taller
+  than it is wide** gets at any size, down to two cells of width. The area
+  threshold is per device, because a container is halved onto a phone. **Two
+  knobs**, either side of the seam: a front says which movement it is about to
+  make, and the count follows `openingFor()` rather than repeating the size
+  test — say "pulls out" and the second door goes with it. See decision 50.
 - **curl** — the sheet curls up off the board from its bottom edge, the way
   something pinned at the top does. What a paper shape gets: note, idea, verse,
   quote, index card, page, chit.
@@ -471,8 +500,8 @@ paste bridge covers generation without a key or a bill. No filter bar, no
 sidebar, no tabs, no modals, no arrange mode.
 
 Everything on the original requirements list is built except **video and audio
-files** (images are real: picked, downscaled, stored in IndexedDB, placed and
-resized on the grid) and **sync between devices** (export/import is the bridge).
+files** (images are real: picked from the picture surface or the object editor,
+downscaled, stored in IndexedDB, placed and resized on the grid) and **sync between devices** (export/import is the bridge).
 
 ## 14. Where each part lives
 
