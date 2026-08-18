@@ -1990,3 +1990,108 @@ render happens mid-gesture, before the picture exists, the middle of the strip
 is empty for the rest of the swipe. Nothing renders mid-gesture today (the drag
 deliberately doesn't, and `unlockBoard()` patches rather than renders), but that
 is now a thing to keep true.
+
+---
+
+### 60. How fine a board's grid is belongs to the board, and a new thing is small
+
+The three phone grid sizes were one global setting. That is the wrong scope for
+what they are: a column count is how a *board* is cut up, and a desk you keep
+six big drawers on and a checklist you keep forty lines in do not want the same
+grain. So `grid` is a property of a container, `S.look.grid` is the app's
+default, and a board with nothing to say follows the desk it is on.
+
+Two levels of fallback rather than one, because a desk set to Large is a desk
+whose drawers should match, and a drawer that has been asked the question
+directly should outrank both. `colsOf(cid)` is the resolver and `GRID.phone.cols`
+is now the default and nothing else — reading it as "the columns" is the mistake
+this decision exists to prevent.
+
+Changing one rescales the boxes **on that board only**, the way a migration
+would; changing the app's default rescales every board that was following it and
+leaves the ones with an answer of their own alone.
+
+The measurement had to change with it. `sizeGrid()` now measures exactly two
+numbers — how wide a board is, and how much vertical room it has — and every
+other number is arithmetic on those plus a column count: the cell is the width
+over the columns, the rows are the room over the cell. Boards differ only in
+columns, so the geometry of a board that is nowhere near the screen — a pager
+pane, the drawer you are about to drop something into — is answerable without
+measuring it. `PAGEROWS`, which was a stored number per device, is a function of
+a board now.
+
+**And a new object arrives no bigger than three cells either way.** An object
+used to come out at the full width of the phone board, which is a first object
+that has decided the board is about it: you made a note and there was nowhere
+left to put the next thing. Three cells is a tile you can read from across the
+room with room for two more beside it, and dragging a corner is one gesture
+away. It trims a type's *stated* phone size too — a stated size is a preference
+about proportion, and three cells is the room there is to have a preference in.
+
+The desk's own sizes are untouched: 24 columns is a desk, and three cells there
+is a postage stamp. `PHONE_MAX_NEW` is one constant if that turns out to be the
+wrong call.
+
+*Against:* two boards side by side can now be measured in different units, which
+is a thing you can get confused by — drag a 3×2 tile from an eight-column drawer
+into a ten-column one and it is the same three cells and a different size. That
+was already true between the desk and the phone; it is now true within a device.
+
+---
+
+### 61. A name is a thing you can tap, and a list is a board
+
+Two gaps, and they turn out to be the same gap.
+
+**The name.** Editing was a double tap on a tile. That is a gesture you have to
+be told about, it is one a phone spends on zooming, and it worked only for a
+tile on a grid — so the words on a checklist front, which is where most of the
+short text in the app actually lives, could not be corrected at all without
+opening the drawer. Now the words *are* the target: tap them and they become a
+field, wherever they are drawn.
+
+Only on an **unlocked** board. Locked is the state a board is in when you are
+reading it rather than working on it — one finger navigates there and a tap
+opens what it lands on — so the rule is the same one the lock already carried
+and there is nothing new to learn. `nameField()` in tiles.js is the whole of it
+on the drawing side, `data-edit` on the wiring side.
+
+On a checklist front this moves the tick onto the **box**. Tapping the line used
+to tick it, which is why there was no way to fix a typo; the box is what a
+checkbox is for and the words are what words are for.
+
+**The list.** A list had the tiles and none of the controls. You could look at
+things on one, and tapping anything opened the object editor — including a task,
+which is a short string of text with `onclick:'none'` and no use for a page of
+paper. So a list obeys the object's own click behaviour now, exactly as a grid
+does, and it has the rest of the handful too:
+
+    tap the words      change them
+    tap the box        tick it
+    swipe left         delete it
+    swipe right        put it on today — offered only to something with a day
+    hold, then move    reorder, under Manual sort
+    hold still         the menu, which is everything else
+
+Same two lengths of press as a tile, for the same reason. Sideways starts
+immediately rather than after a hold, because a swipe you have to hold for first
+is a swipe nobody finds; up and down waits the hold out, because up and down on a
+list is the list scrolling.
+
+The action is drawn behind the row in **one borrowed element**, not a strip built
+into every band. A list is the one place in the app that can hold two hundred of
+something, and two hundred copies of a thing you only ever see one of at a time
+is two hundred you should not have built — the same argument as the drag chip and
+the pull.
+
+One thing fell out of it. A hold is three hundred milliseconds long and a render
+that lands inside one replaces `#app` wholesale, so the node the press started on
+is detached and the drag afterwards happens to something nobody can see. Putting
+an inline edit down renders on the next tick, and since a name became something
+you *tap* there is very often one open when the next press starts. The arming
+callbacks look their element up again by id now (`refind()`), which makes the
+drag survive any render rather than the ones we happened to think of.
+
+*Against:* a tap on a drawer's name no longer opens the drawer on an unlocked
+board — it renames it. That is the trade, and the lock is the answer: a board you
+are reading is a board you lock, and that is the state it starts in.

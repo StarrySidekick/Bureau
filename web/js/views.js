@@ -4,7 +4,8 @@ import { S, K, T, byId, has, isContainer, containers, container, childrenOf, cha
   beginPass, endPass,
   layoutOf, takesTyping, genKindOf, CALVIEWS, calViewOf, calCols,
   spanOf, coversDay, lastDay } from './model.js';
-import { GRID, PHONE_GRIDS, CELL, COLW, PAGEROWS, pageRows, pageOfBox, lastPage,
+import { GRID, PHONE_GRIDS, CELL, COLW, MEASURE, colsOf, gridKeyOf,
+  pageRows, pageOfBox, lastPage,
   lay, gridOf, cellW, ensureBox } from './grid.js';
 import { themeNow, applyLook, lookVal, STYLES, BACKDROPS, DARKMODES, darkMode, hasDark,
   palNow, setSlot, styleNow, hexOf, objColour, slotName, OBJ0 } from './look.js';
@@ -355,25 +356,30 @@ function viewDrawer(){
    one of its own controls fires. */
 function bytes(n){ return n<1024? n+' B' : n<1048576? (n/1024).toFixed(1)+' KB' : (n/1048576).toFixed(2)+' MB'; }
 
-/* ---- how many columns a phone board has -------------------------------
-   Three sizes to try on, and the only number that changes is the column count
-   — the width is the width, so the columns set the cell and the cell sets
-   everything else. Switching rescales every stored phone box, the way a
-   migration would. See decision 48.
+/* ---- how many columns a board has -------------------------------------
+   Three sizes to try on, and the only number that changes is the column count —
+   the width is the width, so the columns set the cell and the cell sets
+   everything else. Switching rescales the boxes on that board, the way a
+   migration would. See decisions 48 and 60.
 
-   It lives in two panels: the app's settings, and the editor for whichever
-   desk you are standing on. It is the same one number in both, and it says so
-   — a column count is a **coordinate space**, and one desk drawn eight across
-   while its neighbour is drawn ten is two spaces, not two looks. Everything
-   else in the desk's editor is that desk's alone; this is the one row that
-   isn't, so it is the one row that admits to it. */
-function gridSizeField(){
-  return `<div class="field" style="margin-top:12px"><label>iPhone grid</label>
+   `cid` names the board. Left out it is the **app's default**: what every board
+   follows until it is asked directly, which is where a drawer you have never
+   thought about gets its answer from. The two readings live in the same field
+   because they are the same question at two scopes, and the copy says which. */
+function gridSizeField(cid){
+  const app = cid==null;
+  const now = app ? (S.look.grid||'small') : gridKeyOf(cid);
+  const own = app ? null : (cfgOf(cid)||{}).grid;
+  return `<div class="field" style="margin-top:12px"><label>${app?'iPhone grid':'This board'}</label>
       <div class="filterbar">${Object.entries(PHONE_GRIDS).map(([k,n])=>
-        `<button class="fchip${(S.look.grid||'small')===k?' on':''}" data-gridsize="${k}">${
-          k[0].toUpperCase()+k.slice(1)} · ${n} across</button>`).join('')}</div>
-      <div class="mini" style="--k:var(--brass);margin-top:6px">Fewer columns, bigger cells. The rows are whatever fits — a cell is square, so the columns decide both. This sets every board on every desk, because a column count is where things are rather than how they look.${
-        S.device==='phone' ? ` Right now: <b>${GRID.phone.cols} × ${pageRows('phone')}</b>.` : ''}</div>
+        `<button class="fchip${now===k?' on':''}${!app&&own!==k?' inherited':''}"
+          data-gridsize="${k}"${app?'':` data-gridfor="${cid}"`}>${
+          k[0].toUpperCase()+k.slice(1)} · ${n} across</button>`).join('')}
+        ${app||!own?'':`<button class="fchip" data-gridsize="" data-gridfor="${cid}">Follow the desk</button>`}</div>
+      <div class="mini" style="--k:var(--brass);margin-top:6px">Fewer columns, bigger cells. The rows are whatever fits — a cell is square, so the columns decide both. ${
+        app ? 'Every board that has not been asked this question itself.'
+            : (own ? 'This board only.' : 'Following the desk — pick one to give this board its own.')}${
+        S.device==='phone' ? ` Right now: <b>${colsOf(app?null:cid, 'phone')} × ${pageRows('phone', app?null:cid)}</b>.` : ''}</div>
     </div>`;
 }
 const installed = ()=> window.matchMedia('(display-mode: standalone)').matches || !!window.navigator.standalone;
@@ -464,7 +470,7 @@ function settingsBody(){
       <div class="mini" style="--k:var(--brass);margin-top:6px">Off, a tile is the colour and the border and nothing else — flatter, quieter, and easier to read a crowded board off.</div>
     </div>
 
-    ${gridSizeField()}
+    ${gridSizeField(null)}
 
     <div class="field" style="margin-top:12px"><label>Whose desk this is</label>
       <input data-lookinput="owner" value="${esc(S.look.owner||'')}" placeholder="Your name">
@@ -614,7 +620,7 @@ const viewKey = ()=> S.view==='drawer' ? 'drawer:'+S.drawerId : 'desk';
    A board always offers one page past the last thing on it, so there is
    somewhere to drag to and somewhere for a new object to land. */
 const PAGE = {};
-const pageCount = cid => lastPage(dev(), cid) + (pageRows() ? 2 : 1);
+const pageCount = cid => lastPage(dev(), cid) + (pageRows(dev(), cid) ? 2 : 1);
 const pageAt = cid => Math.min(PAGE[cid]||0, pageCount(cid)-1);
 function goPage(cid, n, soon){
   const p = clamp(n, 0, pageCount(cid)-1);
@@ -638,9 +644,10 @@ function goPage(cid, n, soon){
 function reveal(id){
   const o=byId(id);
   // paged boards don't scroll — the thing to do is turn to the page it is on
-  if(o && pageRows()){
-    const cid = o.parent||ROOT;
-    if(S.view==='drawer' ? S.drawerId===cid : cid===ROOT) goPage(cid, pageOfBox(lay(o), dev()));
+  const home = o && (o.parent||ROOT);
+  if(o && pageRows(dev(), home)){
+    if(S.view==='drawer' ? S.drawerId===home : home===ROOT)
+      goPage(home, pageOfBox(lay(o), dev(), home));
   }
   const el=document.querySelector(`#app .grid .drawer[data-row="${id}"],#app .grid .drawer[data-drawer="${id}"]`);
   const sc=$('#app .scroll');
@@ -818,7 +825,14 @@ function sizeGrid(){
 
      The safe-area inset rides inside the rail's own minimum, which is what
      keeps the last row of the board clear of the curve of the screen. */
+  /* Two numbers are measured and everything else is derived from them: how wide
+     a board is, and how much vertical room it has. Boards differ from one
+     another only in how many columns they cut that width into, so the cell and
+     the row count of a board that is nowhere near the screen — a pager pane, the
+     drawer you are about to drop something into — are arithmetic rather than
+     another measurement. See decision 60. */
   const sc=grid.parentElement, main=grid.closest('.main');
+  const cid = grid.dataset.gridfor || ROOT;
   if(dev()==='phone' && main){
     const bar=main.querySelector('.gridbar'), rail=main.querySelector('.deskrail');
     const barH = bar ? bar.getBoundingClientRect().height : 0;
@@ -826,8 +840,13 @@ function sizeGrid(){
     const gapMin = parseFloat(getComputedStyle(sc).getPropertyValue('--gapmin'))||0;
     const railMin = rail ? (parseFloat(getComputedStyle(rail).minHeight)||0) : 0;
     const room = main.clientHeight - barH - gapMin - railMin;
-    const rows=Math.max(4, Math.floor(room / Math.max(1,w)));
-    if(rows!==PAGEROWS.phone){ PAGEROWS.phone=rows; if(!sizing){ sizing=true; try{ render(); } finally { sizing=false; } return; } }
+    const boardW = w * g.cols;
+    const was = pageRows('phone', cid);
+    if(MEASURE.phone.room!==room || Math.abs(MEASURE.phone.w-boardW)>0.5){
+      MEASURE.phone.room=room; MEASURE.phone.w=boardW;
+    }
+    const rows=pageRows('phone', cid);
+    if(rows!==was && !sizing){ sizing=true; try{ render(); } finally { sizing=false; } return; }
     /* Written only when they have actually changed. The markup already carries
        last render's numbers (see REVEAL), so on an ordinary render these agree
        and nothing is touched — and a style write that changes nothing is still
@@ -838,7 +857,7 @@ function sizeGrid(){
     const gap = gapMin + Math.floor(over/2), deep = railMin + Math.ceil(over/2);
     if(gap!==REVEAL.gap){ REVEAL.gap=gap; sc.style.marginTop = gap+'px'; }
     if(rail && deep!==REVEAL.rail){ REVEAL.rail=deep; rail.style.height = deep+'px'; }
-  } else PAGEROWS.desk = 0;
+  } else if(dev()!=='phone'){ MEASURE.desk.room=0; MEASURE.desk.w=w*g.cols; }
   /* Do NOT round. Columns are `1fr` and therefore fractional; rounding the row
      height to a whole pixel made rows and columns different sizes, and the
      error accumulated across the grid — a tile at column 16 sat ~7px from

@@ -484,12 +484,28 @@ How a board is laid out and how it sorts itself are *not* tools: they are the
 cycling seven states for a while; a thing you set once and then live with does
 not earn a permanent button on a phone.
 
-**A phone board is a chosen number of columns of square cells.**
-`S.look.grid` is `small` (8) | `extra` (9) | `large` (10), Small by default, and
-the column count is the *only* number it changes — the width is the width, so
-the columns set the cell and the cell is square so it sets the rows. The free
-number is how many rows fit (`PAGEROWS`, a `floor`): about 8×13, 9×14 and 10×15
-on a 390 × 844 screen. A stated
+**A phone board is a chosen number of columns of square cells, and the choice
+is the board's.** `small` (8) | `extra` (9) | `large` (10). `S.look.grid` is the
+app's **default**; a container may carry a `grid` of its own, and a board with
+nothing to say follows the desk it is on. Ask `colsOf(cid)` — reading
+`GRID.phone.cols` as "the columns" is the mistake decision 60 exists to stop.
+The column count is the *only* number a size changes: the width is the width, so
+the columns set the cell and the cell is square so it sets the rows. About 8×13,
+9×14 and 10×15 on a 390 × 844 screen.
+
+**Two numbers are measured and the rest is arithmetic.** `MEASURE[device]` holds
+how wide a board is and how much vertical room it has, and that is all
+`sizeGrid()` works out. Boards differ from each other only in columns, so the
+cell (`width/cols`) and the row count (`room/cell`, floored) of a board that is
+nowhere near the screen — a pager pane, the drawer you are about to drop into —
+are answerable without measuring it. `pageRows(device, cid)` is a function, not
+a stored number.
+
+**Nothing new arrives bigger than three cells either way.** `PHONE_MAX_NEW` in
+`grid.js`, applied in `sizeOfKind()` — to the derivation *and* to a type's stated
+`phoneSize`. An object used to come out at the full width of the board, which is
+a first object that has decided the board is about it. The desk's stated sizes
+are untouched: 24 columns is a desk. A stated
 row count cannot be square on a phone-shaped screen and the square cell wins: it
 is what makes every stated size in `KINDS` mean what it says. **A column count
 is a coordinate space**, so `setGridSize()` rescales every stored phone box the
@@ -629,6 +645,28 @@ closer.
 twenty shapes as chips were four hundred pixels you had to read like a wall. New
 settings go in as `psel()`; if a group is genuinely multi-select, put the chips
 behind a `pgroup()` disclosure.
+
+**A name is a thing you can tap, on an unlocked board.** `nameField()` in
+`tiles.js` draws every name — a tile's, a list band's, a checklist line's — and
+draws it as an `<input>` when it is the one being edited, so a thing that is not
+a tile on a board can still be typed in. `data-edit` is the wiring; wire.js
+checks the board's lock and calls `startEdit()`. Locked is for reading, so there
+a tap opens what it lands on and a name is only a name. On a checklist front this
+puts the tick on the **box** — the words are how you change it. See decision 61.
+
+**A list is a board.** Same controls a grid has: the words edit, the box ticks,
+swipe left deletes, swipe right puts it on today (offered only to something
+carrying `date`), a hold reorders and a longer hold is the menu. A band obeys
+`clickOf()` like a tile — a list used to open the object editor for everything on
+it, which sent a task to a page of paper it has no use for. The swipe's backing
+is **one** borrowed `#rowact` element positioned over the row that is moving, not
+a strip in every band: a list is the one place that can hold two hundred of
+something.
+
+**A hold is 300ms and a render inside one detaches the tile.** The arming
+callbacks call `refind(g)`, which looks the element up again by id — putting an
+inline edit down renders on the next tick, and since a name became something you
+tap there is very often one open when the next press starts.
 
 **A list under Manual can be dragged into order; under any other sort it
 can't.** `ord` is what `childrenOf()` falls back to when nothing sorts, so

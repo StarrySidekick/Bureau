@@ -499,7 +499,9 @@ const CHROME = process.env.BUREAU_CHROME;
     const into = document.querySelector('.grid .drawer[data-drawer="d_ideas"]');
     if (!line || !into) return null;
     const a = line.getBoundingClientRect(), b = into.getBoundingClientRect();
-    const tick = document.querySelector(`[data-pluck="${two.id}"]`).getBoundingClientRect();
+    /* The **box**, not the line: since decision 61 the words on a checklist
+       front are how you change them and the box is how you tick them. */
+    const tick = document.querySelector(`[data-pluck="${two.id}"] .clbox`).getBoundingClientRect();
     return { from: [a.left + a.width / 2, a.top + a.height / 2],
              to:   [b.left + b.width / 2, b.top + b.height / 2],
              tick: [tick.left + tick.width / 2, tick.top + tick.height / 2] };
@@ -522,7 +524,7 @@ const CHROME = process.env.BUREAU_CHROME;
       return { parent: o && o.parent, boxCleared: o && !o.desk && !o.phone,
                chipGone: !document.querySelector('.pluckchip') };
     });
-    // and a plain tap still ticks the line rather than lifting it
+    // and a plain tap on the box still ticks it rather than lifting the line
     await page.mouse.move(...pluck.tick);
     await page.mouse.down(); await page.mouse.up();
     await page.waitForTimeout(200);
@@ -879,9 +881,12 @@ const CHROME = process.env.BUREAU_CHROME;
     S.objects = S.objects.filter(x => x.id !== o.id);
     delete BUREAU.K.smoketype;
     BUREAU.render();
-    // 7×3 is not one of the presets, and toPhoneSize would have said 16×5 —
-    // an explicit phoneSize has to beat the derivation
-    return desk.w === 7 && desk.h === 3 && phone.w === 5 && phone.h === 4;
+    /* 7×3 is not one of the presets, so the desk size is the stated one. The
+       phone size is stated too — 5×4, which beats the derivation — and then
+       trimmed to the three cells a *new* object gets in either direction: a
+       stated size is a preference about proportion, and the cap is the room
+       there is to have a preference in. See decision 60. */
+    return desk.w === 7 && desk.h === 3 && phone.w === 3 && phone.h === 3;
   });
 
   // ids must be unique — a collision made byId() return the wrong object, so
@@ -1114,8 +1119,8 @@ const CHROME = process.env.BUREAU_CHROME;
     const r = el && el.getBoundingClientRect();
     const out = { picker, madeOne: BUREAU.state.objects.length === before + 1,
       inDrawer: made.parent === 'd_ideas',
-      // it was placed below the fold — that is correct — and then scrolled to
-      placedLow: made.phone.y > 8,
+      // it was placed somewhere real, and reveal() turned to the page it is on
+      placedLow: made.phone.w >= 1 && made.phone.y >= 1,
       onScreen: !!r && r.top >= 0 && r.bottom <= innerHeight + 1 };
     BUREAU.del(made.id); BUREAU.state.undo = [];
     BUREAU.state.view = 'desk'; BUREAU.state.drawerId = null; BUREAU.render();
@@ -2095,6 +2100,175 @@ const CHROME = process.env.BUREAU_CHROME;
     return out;
   });
 
+  /* --- a list is a board. It had the tiles and none of the controls: you
+     could look at things on one and that was it. Now it has the same handful a
+     grid does — the words edit, the box ticks, sideways is an action, a hold
+     reorders and a longer one is the menu. See decision 61. */
+  const listControls = await page.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const S = BUREAU.state, out = {};
+    const cl = BUREAU.create('checklist', { parent:'root', title:'Rows' });
+    cl.desk = Object.assign(BUREAU.free(6,6,'root'), {w:6,h:6});
+    const mk = t => BUREAU.create('task', { parent: cl.id, title: t });
+    const a = mk('First'), b = mk('Second'), c = mk('Third');
+    a.ord=0; b.ord=1; c.ord=2;
+    S.view='drawer'; S.drawerId=cl.id; S.deskCfg.locked=false;
+    delete cl.locked; delete cl.sort;
+    BUREAU.render(); await nap(250);
+    const band = id => document.querySelector(`[data-listfor] .listband[data-row="${id}"]`);
+    out.itIsAList = !!band(a.id) && !!document.querySelector('[data-listfor]');
+
+    /* A task is a short string of text. It used to open the object editor from
+       a list — the one place that ignored the object's own click behaviour —
+       so tapping one put a page of paper in front of you. */
+    band(a.id).click(); await nap(250);
+    out.aTaskDoesNotOpen = !document.querySelector('#panel') && !document.querySelector('.sheet');
+
+    // tapping the words is how you change them
+    band(a.id).querySelector('[data-edit]').click(); await nap(250);
+    const field = document.querySelector(`.inlinename[data-inline="${a.id}:title"]`);
+    out.tappingTheWordsEdits = !!field;
+    if(field){ field.value='Renamed'; field.dispatchEvent(new Event('input',{bubbles:true})); }
+    await nap(150);
+    out.andTheNameFollows = a.title === 'Renamed';
+    S.editId=null; BUREAU.render(); await nap(200);
+
+    /* Sideways. Left deletes; right puts it on today, and only offers itself to
+       something that has a day to be put on. */
+    const swipe = async (id, dx) => {
+      const el=band(id), r=el.getBoundingClientRect();
+      const x=r.left+r.width/2, y=r.top+r.height/2;
+      const ev=(t,cx)=>el.dispatchEvent(new PointerEvent(t,{bubbles:true,cancelable:true,
+        pointerId:61,pointerType:'touch',clientX:cx,clientY:y}));
+      ev('pointerdown',x);
+      for(let i=1;i<=8;i++){ ev('pointermove', x + dx*i/8); await nap(14); }
+      const state={act:!!document.querySelector('#rowact.ready'),
+                   colour:(document.querySelector('#rowact')||{}).className||''};
+      ev('pointerup', x+dx); await nap(300);
+      return state;
+    };
+    const right = await swipe(b.id, 120);
+    out.rightIsToday = right.act && /due/.test(right.colour) && !!b.due;
+    const n = S.objects.length;
+    const left = await swipe(c.id, -120);
+    out.leftIsDelete = left.act && /del/.test(left.colour) && S.objects.length === n-1;
+    out.andTheStripIsTidiedUp = !document.querySelector('#rowact');
+
+    // a hold, then a move, reorders — and it writes `ord`, not a box
+    const el=band(a.id), r=el.getBoundingClientRect();
+    const other=band(b.id).getBoundingClientRect();
+    const ev=(t,o)=>el.dispatchEvent(new PointerEvent(t,Object.assign(
+      {bubbles:true,cancelable:true,pointerId:62,pointerType:'touch',
+       clientX:r.left+30, clientY:r.top+r.height/2}, o)));
+    ev('pointerdown');
+    await nap(360);
+    out.aHoldLifts = !!document.querySelector('.listband.lifted');
+    ev('pointermove',{clientY: other.top+other.height*0.8});
+    await nap(120);
+    ev('pointerup',{clientY: other.top+other.height*0.8});
+    await nap(300);
+    out.andReorders = (a.ord||0) > (b.ord||0);
+
+    /* The drag armed suppressClick so its own trailing click can't also fire.
+       Nothing sends that click here, so it is consumed by hand — otherwise the
+       flag sits there and eats the next test's first tap. */
+    document.querySelector('#frame').dispatchEvent(new MouseEvent('click', {bubbles:true}));
+    BUREAU.delDrawer(cl.id); S.undo=[];
+    S.view='desk'; S.drawerId=null; BUREAU.render();
+    return out;
+  });
+
+  /* --- and on a checklist front, the box ticks and the words change. Tapping
+     the line used to tick it, which left no way to fix a typo without opening
+     the drawer. */
+  const checklistEdit = await page.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const S = BUREAU.state, out = {};
+    S.view='desk'; S.drawerId=null; S.deskCfg.locked=false;
+    const cl = BUREAU.create('checklist', { parent:'root', title:'Front' });
+    cl.desk = Object.assign(BUREAU.free(6,6,'root'), {w:6,h:6});
+    const t = BUREAU.create('task', { parent: cl.id, title: 'Typo' });
+    BUREAU.render(); await nap(250);
+    const line = () => document.querySelector(`.cline[data-pluck="${t.id}"]`);
+    out.theBoxTicks = !!line().querySelector(`.clbox[data-check="${t.id}"]`);
+    out.theWordsEdit = !!line().querySelector(`.cltext[data-edit="${t.id}"]`);
+    line().querySelector('[data-edit]').click(); await nap(250);
+    out.tappingThemOpensAField = !!document.querySelector(`.cline .inlinename[data-inline="${t.id}:title"]`);
+    S.editId=null;
+    // …and the box still ticks
+    BUREAU.render(); await nap(200);
+    line().querySelector('.clbox').click(); await nap(200);
+    out.andTheBoxStillTicks = !!t.done;
+    BUREAU.delDrawer(cl.id); S.undo=[]; BUREAU.render();
+    return out;
+  });
+
+  /* --- a locked board is for reading, so the words are only words there */
+  const lockedNamesAreNames = await page.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const S = BUREAU.state;
+    S.view='desk'; S.drawerId=null; S.deskCfg.locked=true; BUREAU.render(); await nap(220);
+    const n = document.querySelector('.grid .drawer[data-row] [data-edit]');
+    if(n) n.click();
+    await nap(220);
+    const out = !S.editId;
+    S.deskCfg.locked=false; BUREAU.render();
+    return out;
+  });
+
+  /* --- how fine a board's grid is, per board. A column count is a coordinate
+     space, so setting one rescales the boxes on that board — and only on that
+     board. See decision 60. */
+  const perBoardGrid = await phone.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const S = BUREAU.state, out = {};
+    S.view='desk'; S.drawerId=null; BUREAU.render(); await nap(250);
+    const cols = () => +getComputedStyle(document.querySelector('#drawergrid'))
+      .getPropertyValue('--cols');
+    out.theDeskFollowsTheApp = cols() === 8 && S.look.grid === 'small';
+    // a drawer of its own, set to something else
+    const d = BUREAU.create('drawer', { parent:'root', title:'Fine' });
+    const o = BUREAU.create('note', { parent:d.id, title:'in it' });
+    S.view='drawer'; S.drawerId=d.id; BUREAU.render(); await nap(250);
+    out.aDrawerFollowsToo = cols() === 8;
+    const was = { ...o.phone };
+    BUREAU.setGrid('large', d.id);  await nap(350);
+    out.itCanHaveItsOwn = cols() === 10 && d.grid === 'large';
+    out.andTheBoxesCameWithIt = o.phone.w >= was.w;
+    // …and the desk it is on is untouched
+    S.view='desk'; S.drawerId=null; BUREAU.render(); await nap(250);
+    out.theDeskIsUntouched = cols() === 8 && S.look.grid === 'small';
+    // a board with its own answer keeps it when the app default moves
+    BUREAU.setGrid('extra'); await nap(350);
+    out.theAppDefaultMoves = cols() === 9;
+    S.view='drawer'; S.drawerId=d.id; BUREAU.render(); await nap(250);
+    out.andTheBoardWithAnAnswerKeepsIt = cols() === 10;
+    BUREAU.setGrid('small');
+    S.view='desk'; S.drawerId=null;
+    BUREAU.delDrawer(d.id); S.objects=S.objects.filter(x=>x.id!==o.id); S.undo=[];
+    BUREAU.render(); await nap(250);
+    return out;
+  });
+
+  /* --- and nothing new arrives bigger than three cells either way. An object
+     used to come out at the full width of the board, which is a first object
+     that has decided the board is about it. See decision 60. */
+  const newThingsAreSmall = await phone.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const S = BUREAU.state, out = {};
+    S.view='desk'; S.drawerId=null; BUREAU.render(); await nap(200);
+    const made = ['note','task','drawer','checklist','image','moodboard','timeline']
+      .map(k => BUREAU.create(k, { parent:'root', title:k }));
+    BUREAU.render(); await nap(300);
+    out.noneWiderThanThree = made.every(o => o.phone.w <= 3);
+    out.noneTallerThanThree = made.every(o => o.phone.h <= 3);
+    // …and the desk's own stated sizes are untouched: 24 columns is a desk
+    out.theMacKeepsItsSizes = BUREAU.K.moodboard.size[0] === 8;
+    S.objects = S.objects.filter(o => !made.includes(o));
+    BUREAU.render();
+    return out;
+  });
+
   /* --- the object editor: the thing itself, while you change it ---------- */
   const editor = await page.evaluate(async () => {
     const nap = ms => new Promise(r => setTimeout(r, ms));
@@ -2194,6 +2368,7 @@ const CHROME = process.env.BUREAU_CHROME;
     adaptiveTiles, bubblePanel, scrollKept, kindSizes,
     phoneGrid, phoneMigration,
     dupIds, undoWorks, readViews, paperSize, movement, pager, desks, spans,
+    listControls, checklistEdit, lockedNamesAreNames, perBoardGrid, newThingsAreSmall,
     picture, fronts, editor, noSelecting, selectionDropped
   }, null, 2));
   await browser.close();

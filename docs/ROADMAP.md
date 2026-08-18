@@ -5,6 +5,26 @@ Sequenced by dependency, not appetite: item 1 makes everything after it safer.
 
 ---
 
+## 0l. Queued 2026-08-17 (twelfth pass) — a list is a board — DONE (v0.61)
+
+See decisions 60 and 61.
+
+- **a name is a thing you can tap**, on an unlocked board — a tile's, a list
+  band's, a line on a checklist front. The double tap still works
+- **a list has the controls a grid has**: swipe left to delete, swipe right to
+  put it on today, hold to reorder, hold longer for the menu, and a tap obeys
+  the object's own click behaviour rather than always opening the editor
+- **on a checklist front the box ticks and the words change**
+- **how fine a board's grid is belongs to the board.** Every container's editor
+  has the row; `S.look.grid` is the app's default and a board follows the desk
+  it is on until it is asked directly
+- **nothing new arrives bigger than three cells** either way on a phone
+
+*Still open:* whether the three-cell cap wants to apply to the desk's 24 columns
+too — `PHONE_MAX_NEW` is one constant.
+
+---
+
 ## 0k. Queued 2026-08-17 (eleventh pass) — tightening the swipe — DONE (v0.60)
 
 See decision 59. Walking sideways between desks was laggy in three places, none

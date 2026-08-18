@@ -269,11 +269,15 @@ answer is a drawer.
 Each container is its own coordinate space, and every device has its own.
 
 - **24 columns** on a Mac, with unlimited rows and a board that scrolls.
-  On a phone the count is a **setting** — Small (8), Extra (9), Large (10),
-  `S.look.grid`, Small by default — and the board is pages rather than a
-  scroller: *n* by however many rows fit, all of them the board's. About
-  8×13, 9×14 and 10×15 on a 390pt handset. The last row used to be the shelf;
-  see decision 53.
+  On a phone the count is a **setting on the board** — Small (8), Extra (9),
+  Large (10). `S.look.grid` is the app's default; a container may carry its own
+  `grid`, and a board with nothing to say follows the desk it is on. Ask
+  `colsOf(cid)`. The board is pages rather than a scroller: *n* by however many
+  rows fit, all of them the board's. About 8×13, 9×14 and 10×15 on a 390pt
+  handset. The last row used to be the shelf; see decisions 53 and 60.
+- A **new object** is never bigger than three cells either way on a phone
+  (`PHONE_MAX_NEW`), which trims a type's stated phone size as well as the
+  derivation. The desk's stated sizes are untouched.
 - Cells are **square** on both, ~58px on a Mac and ~49px on a phone at Small. Columns are
   fluid, so `sizeGrid()` measures the column width after layout, caches it in
   `COLW`, and makes the row height (`CELL`) match. Nothing may assume either.
@@ -365,7 +369,10 @@ decision 51.
 | Pull up the rail along the bottom | A drawer front follows your finger; carry it a quarter of the screen and it opens the type picker, with nowhere in mind. A phone |
 | Tap the knob on that rail | Out one level: out of a drawer to its desk, from a desk to home |
 | Hold a tile, then move | The menu goes and the tile is in your hand, iOS-style — and the board unlocks |
-| Hold a band in a list | Reorder it, under Manual sort only — it writes `ord` |
+| Tap the words on anything | They become a field — on an **unlocked** board only. A tile, a list band, a line on a checklist front |
+| Tap a checklist line's box | Ticks it. The words are how you change it |
+| Swipe a list row left / right | Delete it; put it on today — the second only for something with a day |
+| Hold a band in a list | Reorder it, under Manual sort only — it writes `ord`. Hold still and it is the menu |
 | Double-tap a tile | Its name becomes a field where it sits, and its body under it if the tile shows one. Containers are exempt: two taps on a drawer opens it twice |
 | Press and hold a tile (200ms) | Arms the drag; then move it, or drag a corner to resize |
 | Click bare grid | The type picker, and what you pick lands on that cell |

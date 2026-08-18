@@ -402,6 +402,11 @@ function objectPanelBody(id){
       [[MANUAL,'As I arranged them'], ...Object.entries(SORTS).map(([k,[nm]])=>[k,nm])],
       sortOf(d)||MANUAL)));
     out.push(prow('Moving things', psel(id,'locked',[['','Movable'],['1','Locked']], d.locked?'1':'')));
+    /* How fine this board's grid is. Every container gets the row, because
+       every container opens onto a board — a desk you keep six big drawers on
+       and a checklist you keep forty lines in do not want the same grain. See
+       decision 60. */
+    out.push(gridSizeField(id));
     /* A desk is somewhere you stand, so its editor is also where the carcass it
        is drawn in is asked about: the wood, and the drawer along the bottom of
        a phone that you tap to come out of and pull to make something. It is a
@@ -429,7 +434,6 @@ function objectPanelBody(id){
           ['#F8F3E6','#A9793F','#2A241C','#C0563F','#3E7A6B','#5D7E99'].map(c=>
           `<button data-prailknobc="${c}" data-id="${id}" class="${d.railknobc===c?'on':''}" style="background:${c}"></button>`).join('')}</div>`,
         'a phone'));
-      out.push(gridSizeField());
     }
     if(!isRoot) out.push(prow('Where it is kept', psel(id,'pin',
       [['','On the board it lives on'],['desk','A desk of its own']],

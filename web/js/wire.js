@@ -389,6 +389,17 @@ function wire(){
     e.preventDefault();
   });
 
+  /* Turn a name into a field and put the caret at the end of it. One place,
+     because three gestures reach it now: a tap on the words, a double tap on
+     the tile it was always, and the menu. */
+  function startEdit(id){
+    const o=byId(id); if(!o) return;
+    S.editId=o.id; S.sel=[];
+    render();
+    const f=$(`.inlinename[data-inline="${o.id}:title"]`);
+    if(f){ f.focus(); f.setSelectionRange(f.value.length, f.value.length); }
+  }
+
   /* Double tap a tile and its name becomes a field where it sits. That is all
      "simple text editing" needs to be for a task or a note — a line and a
      paragraph, neither of which is worth a screen. A container keeps its old
@@ -402,10 +413,7 @@ function wire(){
     const o=byId(tile.dataset.row);
     if(!o || isContainer(o)) return;
     e.preventDefault();
-    S.editId=o.id; S.sel=[];
-    render();
-    const f=$(`.inlinename[data-inline="${o.id}:title"]`);
-    if(f){ f.focus(); f.setSelectionRange(f.value.length, f.value.length); }
+    startEdit(o.id);
   });
 
   frame.addEventListener('contextmenu', e=>{
@@ -413,7 +421,7 @@ function wire(){
     if(dragArmed()){ e.preventDefault(); return; }
     const kt=e.target.closest('[data-new]');
     if(kt){ e.preventDefault(); modalNewKind(null, kt.dataset.new); return; }
-    const tile=e.target.closest('.grid .drawer');
+    const tile=e.target.closest('.grid .drawer, [data-listfor] .listband');
     if(tile){
       const id=tile.dataset.drawer||tile.dataset.row||tile.dataset.id;
       if(id){ e.preventDefault(); openCtx(e.clientX,e.clientY,id); }
@@ -434,6 +442,23 @@ function wire(){
        the input/change listeners below, so nothing here wants the click. */
     if(t.closest('input,textarea,select')) return;
 
+    /* ---- tapping the words is how you change them --------------------
+       On an **unlocked** board, and only there: locked is the state a board is
+       in when you are reading it rather than working on it, and there one
+       finger navigates and a tap opens what it lands on. Which board is asked
+       of the markup — the grid or the list says which container it is drawing —
+       so a checklist line and a list band get this without either of them being
+       a tile on a board. See decision 61. */
+    const ed=t.closest('[data-edit]');
+    if(ed){
+      const board=t.closest('[data-gridfor],[data-listfor]');
+      const bid = board ? (board.dataset.gridfor||board.dataset.listfor) : null;
+      const locked = bid!=null ? !!(cfgOf(bid)||{}).locked : false;
+      if(!locked){
+        startEdit(ed.dataset.edit);
+        return;
+      }
+    }
     const undoEl=t.closest('[data-undo]'); if(undoEl){ undo(); return; }
     const c=t.closest('[data-c]');
     if(c){ const [cmd,id]=c.dataset.c.split(':'); closeCtx();
@@ -468,8 +493,18 @@ function wire(){
     if(st){ const [id,n]=st.dataset.star.split(':'); const o=byId(id);
       o.rating = (o.rating===+n) ? 0 : +n; save(); refreshPanel(); render(); return; }
 
+    /* Three sizes, for the app's default or for one board — `data-gridfor`
+       says which. An empty size on a board takes its own answer away again and
+       puts it back to following the desk. */
     const gz=t.closest('[data-gridsize]');
-    if(gz){ setGridSize(gz.dataset.gridsize); refreshPanel(); return; }
+    if(gz){
+      const board=gz.dataset.gridfor;
+      if(board!=null && !gz.dataset.gridsize){
+        const c=cfgOf(board); if(c) delete c.grid;
+        save(); render();
+      } else setGridSize(gz.dataset.gridsize, board!=null?board:undefined);
+      refreshPanel(); return;
+    }
 
     /* Shadows on or off. Not per theme, unlike the custom colours: whether
        things on a desk cast a shadow is a fact about the desk, not about the
@@ -605,12 +640,16 @@ function wire(){
       if(dr.closest('.grid')){ tileTap(dr.dataset.drawer); return; }
       S.view='drawer'; S.drawerId=dr.dataset.drawer; S.kindFilter=null; render(); return; }
 
-    // anything else carrying an id — a tile on a grid, or a mini row in a panel
+    // anything else carrying an id — a tile on a grid, a band in a list, or a
+    // mini row in a panel
     const ro=t.closest('[data-row]');
     if(ro && !ro.classList.contains('row')){
-      // a tile on a grid obeys the object's own click behaviour; everything
-      // else (cards, timeline rows) still opens the editor
-      if(ro.closest('.grid')) tileTap(ro.dataset.row); else openObj(ro.dataset.row);
+      /* A board obeys the object's own click behaviour, whichever shape that
+         board is. A list used to open the editor for everything on it, which
+         meant a task — a short string of text with `onclick:'none'` — opened
+         onto a page of paper it has no use for. A list is a board. */
+      if(ro.closest('.grid') || ro.closest('[data-listfor]')) tileTap(ro.dataset.row);
+      else openObj(ro.dataset.row);
       return;
     }
 

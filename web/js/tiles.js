@@ -76,6 +76,26 @@ const HANDLES = ['nw','ne','se','sw'];   // corners only — any corner resizes
    escaped string cuts through an `&amp;` and prints the entity. */
 const BODY_ON_FACE = 1200;
 
+/* ---- a name is a thing you can tap ------------------------------------
+   On an unlocked board, tapping the words *is* how you change them. It was a
+   double tap on the whole tile, which is a gesture you have to be told about
+   and which a phone spends on zooming; the words are the obvious target and
+   they are the only part of a tile that means anything to edit.
+
+   `data-edit` is the whole of the wiring — wire.js turns it into `S.editId`
+   after checking the board is unlocked, so a locked board still opens what you
+   tap and nothing has to know where it was tapped from. `nameField()` is the
+   other half: wherever a name is drawn, it becomes a field when it is the one
+   being edited, which is what lets a checklist line and a list band be typed
+   in without either of them being a tile on a board. See decision 61. */
+function nameField(o, cls, extra){
+  const t=o.title||'';
+  if(S.editId===o.id)
+    return `<input class="inlinename ${cls||''}" data-inline="${o.id}:title" value="${esc(t)}"
+      placeholder="Untitled" autocomplete="off" enterkeyhint="done">`;
+  return `<span class="${cls||'dname'}${o.done?' done':''}" data-edit="${o.id}">${esc(t||'Untitled')}</span>`;
+}
+
 /* The face of a calendar container: the span it is set to, with a mark on any
    day something it collects is due. Sized in em so it shrinks with the tile.
    Which days it draws — and in what order — is calCols(), so the week-start and
@@ -136,7 +156,7 @@ const clickOf = o => o.onclick || K(o.kind).onclick || 'none';
 function dispense(g){
   const kind=genKindOf(g), dir=g.genDir||'down';
   const o=create(kind,{parent:g.parent});
-  const dv=dev(), b=lay(g), [w,h]=sizeOfKind(kind, dv);
+  const dv=dev(), b=lay(g), [w,h]=sizeOfKind(kind, dv, g.parent);
   const spots={
     down:  {x:b.x,        y:b.y+b.h, w, h},
     up:    {x:b.x,        y:Math.max(1,b.y-h), w, h},
@@ -192,11 +212,11 @@ function tileTap(id){
 const pending={cell:null};   // a holder, because three modules write it
 function placeAtPending(o){
   const dv=dev();
-  if(!pending.cell){ const [w,h]=sizeOfKind(o.kind, dv); o[dv]=o[dv]||freeSpot(w,h,dv,o.parent); return; }
+  if(!pending.cell){ const [w,h]=sizeOfKind(o.kind, dv, o.parent); o[dv]=o[dv]||freeSpot(w,h,dv,o.parent); return; }
   // a sketched box wins over the kind's own size
-  const [kw,kh]=sizeOfKind(o.kind, dv);
+  const [kw,kh]=sizeOfKind(o.kind, dv, pending.cell.parent);
   const w=pending.cell.w||kw, h=pending.cell.h||kh;
-  const g=gridOf(), box={x:clamp(pending.cell.x,1,g.cols-w+1), y:Math.max(1,pending.cell.y), w, h};
+  const g=gridOf(undefined, pending.cell.parent), box={x:clamp(pending.cell.x,1,g.cols-w+1), y:Math.max(1,pending.cell.y), w, h};
   o[dv] = boxOk(box, o.id, dv, o.parent) ? box : freeSpot(w,h,dv,o.parent);
   // The other device has no box yet. Leaving it null means ensureBox() picks
   // one the first time that layout is opened, rather than inheriting a
@@ -318,14 +338,19 @@ function drawTile(o, arr, box){
     const made=K(genKindOf(o)).nm.toLowerCase();
     return `<${adds?'div':'button'} class="drawer dtile cltile bd-${o.border||'panel'}${sel}" data-drawer="${o.id}"
         ${adds?'role="button" tabindex="0"':''} style="--c:${colour};${place}">
-      <div class="dtop"><span class="dname">${esc(o.title||'Untitled')}</span>
+      <div class="dtop">${nameField(o)}
         <span class="clcount">${rollup(o) || (items.filter(x=>x.done).length+'/'+items.length)}</span></div>
       ${adds?`<label class="cladd">${ic('plus',11)}
         <input data-contadd="${o.id}" placeholder="Add a ${esc(made)}…"></label>`:''}
+      ${/* The **box** ticks it and the **words** change it. Tapping anywhere on
+            the line used to tick it, which left no way to fix a typo without
+            opening the drawer — and a checklist you cannot correct in place is
+            a checklist you stop trusting. Holding it still plucks it out. */''}
       <div class="dbody"><div class="clist">${items.slice(0,14).map(x=>
-        `<span class="cline${x.done?' done':''}" data-check="${x.id}" data-pluck="${x.id}"
+        `<span class="cline${x.done?' done':''}" data-pluck="${x.id}"
            title="${esc(x.title||'Untitled')} — hold to take it out">
-           <i class="clbox">${x.done?ic('check',10):''}</i>${esc(x.title||'Untitled')}</span>`).join('')
+           <i class="clbox" data-check="${x.id}">${x.done?ic('check',10):''}</i>${
+           nameField(x, 'cltext')}</span>`).join('')
         || `<span class="clempty">${adds?'Nothing yet — type above':'Nothing yet — open it to add'}</span>`}</div></div>
       ${handles}
     </${adds?'div':'button'}>`;
@@ -472,7 +497,7 @@ function drawTile(o, arr, box){
            ends, the way it does on a real one. */''}
       ${doors?`<i class="dseam"></i>`:''}
       <span class="dmark">${ic(has(o,'magic')?'sparkle':iconOf(o),18)}</span>
-      <div class="dtop"><span class="dname">${esc(o.title||'Untitled')}</span>
+      <div class="dtop">${nameField(o)}
         ${has(o,'magic')?`<span class="magicmark" title="Collects by rule">${ic('sparkle',11)}</span>`:''}
         ${rollup(o)?`<span class="rollup">${esc(rollup(o))}</span>`:''}</div>
       <div class="dfoot${doors?' doors':''}"><span class="pull kn-${kn}"></span>${
@@ -590,10 +615,7 @@ function drawTile(o, arr, box){
     ${chips}
     <div class="dtop">
       ${has(o,'check')?`<span class="check tilecheck${o.done?' on':''}" data-check="${o.id}">${ic('check',12)}</span>`:''}
-      ${edit
-        ? `<input class="inlinename" data-inline="${o.id}:title" value="${esc(o.title||'')}"
-             placeholder="Untitled" autocomplete="off" enterkeyhint="done">`
-        : `<span class="dname${o.done?' done':''}">${esc(o.title||'Untitled')}</span>`}
+      ${nameField(o)}
     </div>
     ${has(o,'rating')&&o.rating?`<div class="tilestars">${'★'.repeat(o.rating)}<span>${'★'.repeat(5-o.rating)}</span></div>`:''}
     ${edit && has(o,'text')
@@ -615,13 +637,14 @@ function drawTile(o, arr, box){
    restores the arrangement you made. */
 const FLOW = new Map();   // id -> box, for one render of a sorted grid
 function flowSorted(kids, cid){
-  const g=gridOf(), dv=dev(), taken=[], per=pageRows(dv);
+  const g=gridOf(undefined, cid), dv=dev(), taken=[], per=pageRows(dv, cid);
   const free=(b)=> b.x+b.w-1<=g.cols && !taken.some(t=>overlaps(b,t))
     // a packed board respects the page break too, or the sort would produce
     // the straddling tiles the drag is not allowed to make
     && (!per || Math.floor((b.y-1)/per)===Math.floor((b.y+b.h-2)/per));
   kids.forEach(o=>{
-    let [w,h]=(o[dv]&&o[dv].w) ? [o[dv].w,o[dv].h] : sizeOfKind(o.kind, dv);
+    let [w,h]=(o[dv]&&o[dv].w) ? [o[dv].w,o[dv].h] : sizeOfKind(o.kind, dv, cid);
+    w=Math.min(w, g.cols);
     if(per) h=Math.min(h,per);
     let put=null;
     for(let y=1;y<600&&!put;y++) for(let x=1;x<=g.cols-w+1;x++){
@@ -642,11 +665,11 @@ function flowSorted(kids, cid){
    arithmetic on a box — the drag, the drop, freeSpot() — carries on in the
    real coordinates and needs to know nothing about pages. */
 function gridOfContainer(cid){
-  const c=container(cid), g=gridOf();
+  const c=container(cid), g=gridOf(undefined, c.id);
   // You are always arranging. A container can be locked to opt out of it.
   const arr=!c.locked;
   const sorted=sortOf(c);
-  const per=pageRows(), pg=per?pageAt(c.id):0, from=pg*per;
+  const per=pageRows(undefined, c.id), pg=per?pageAt(c.id):0, from=pg*per;
   let kids=childrenOf(c);
   FLOW.clear();
   if(sorted) flowSorted(kids, c.id);          // a sort overrides hand placement
@@ -684,7 +707,9 @@ function gridOfContainer(cid){
      second" was. A board is a coordinate space, so the last measurement is
      always the right first guess, and sizeGrid() corrects it in the same frame
      if the window has changed underneath. */
-  const colw = COLW[dev()];   // last measured; cellW() re-measures after layout
+  // this board's own cell, derived from the measured width and its columns —
+  // not the cell of whichever board happened to be measured last
+  const colw = g.rowh;
   return `<div class="grid g-${dev()}${arr?' arranging':''}${c.locked?' locked':''}${sorted?' sorted':''}"
        id="drawergrid" data-gridfor="${c.id}"
        style="${boardVars}--cols:${g.cols};--rowh:${g.rowh}px;--checkerx:${2*colw}px;--checkery:${2*g.rowh}px;grid-auto-rows:${g.rowh}px;grid-template-rows:repeat(${Math.max(rows,1)},${g.rowh}px)">${tiles}
@@ -693,22 +718,37 @@ function gridOfContainer(cid){
 
 /* List view is the same tile, stretched into a band. Same silhouettes, same
    colours — a drawer still looks like a drawer, a task still comes to a point. */
+/* One row of a list. The same tile stretched into a band — same silhouettes,
+   same colours, so a drawer still looks like a drawer and a task still comes to
+   a point — and, since decision 61, the same controls a tile on a grid has:
+
+     tap the words      change them, on an unlocked board
+     tap the box        tick it
+     swipe left         delete it
+     swipe right        put it on today, if it is the sort of thing that has a day
+     hold, then move    reorder, under Manual sort
+     hold still         the menu, which is everything else
+
+   A list was a place you could look at things and not much else; that is the
+   gap this closes. See gestures.js for the three that are gestures. */
 function listTile(o){
   const colour=objColour(o);
   const cont=isContainer(o);
   const img = has(o,'media') && o.media && o.media.src;
   const attr = cont ? `data-drawer="${o.id}"` : `data-row="${o.id}"`;
-  return `<button class="drawer ${cont?'dtile':'otile'} sh-${cont?'front':shapeOf(o)} listband${S.sel.includes(o.id)?' selected':''}${
-      cont&&has(o,'magic')?' magicdrawer':''}" ${attr} style="--c:${colour}">
+  // a row being typed in is a div: an input inside a button is unfocusable
+  const raw = S.editId===o.id;
+  return `<${raw?'div':'button'} class="drawer ${cont?'dtile':'otile'} sh-${cont?'front':shapeOf(o)} listband${S.sel.includes(o.id)?' selected':''}${
+      raw?' editing':''}${cont&&has(o,'magic')?' magicdrawer':''}" ${attr} style="--c:${colour}">
     <div class="dtop">
       ${has(o,'check')?`<span class="check tilecheck${o.done?' on':''}" data-check="${o.id}">${ic('check',12)}</span>`:''}
       ${img?`<img class="bandimg" src="${esc(o.media.src)}" alt="">`:''}
-      <span class="dname${o.done?' done':''}">${esc(o.title||'Untitled')}</span>
+      ${nameField(o)}
       ${o.body?`<span class="bandsnip">${esc(strip(o.body).slice(0,120))}</span>`:''}
       ${o.due?`<span class="mchip">${esc(dateSaid(o))}</span>`:''}
       ${cont?`<span class="pull kn-${o.knob||'round'}"${o.knobc?` style="--knob:${esc(o.knobc)}"`:''}></span>`:''}
     </div>
-  </button>`;
+  </${raw?'div':'button'}>`;
 }
 
 /* Reading an object: three ways of looking at one body, chosen by readOf().

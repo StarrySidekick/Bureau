@@ -1798,3 +1798,44 @@ input,textarea,select,[contenteditable],
 .objstage .pvgrid,.objstage .pvgrid *{pointer-events:none}
 .objstage .pvgrid::before{display:none}
 @media (prefers-reduced-motion: reduce){ .objstage .stagefloor{animation:none} }
+
+/* ---- what a row is being swiped into ----------------------------------
+   Behind the band, in the drawer's own hand: red for the one that cannot be
+   taken back without an undo, brass for the one that only moves a date. It is
+   one borrowed element positioned over whichever row is moving — a list is the
+   one place in the app that can hold two hundred of something, and two hundred
+   copies of a thing you only ever see one of is two hundred you should not
+   have built. Same argument as the drag chip and the pull. See decision 61. */
+#rowact{
+  position:absolute;z-index:5;pointer-events:none;border-radius:var(--radius);
+  display:flex;align-items:center;justify-content:flex-start;
+  padding:0 18px;font-size:12.5px;font-weight:600;letter-spacing:.02em;
+  color:#F8F3E6;background:var(--felt);opacity:.9;transition:filter .12s;
+}
+#rowact.del{background:#9B4436;justify-content:flex-end}
+#rowact.due{background:var(--brass)}
+#rowact.ready{filter:brightness(1.18)}
+/* the band rides over it, and stops obeying the list's own transition while it
+   is under a finger — a row that eases towards your thumb lags behind it */
+.listband.swiping{position:relative;z-index:6;transition:none;
+  box-shadow:var(--shadow-lg)}
+
+/* ---- a name you can tap ------------------------------------------------
+   The words are the target, so they say so: a little room around them on an
+   unlocked board, and nothing at all on a locked one, where a tap opens the
+   thing and the name is only a name. */
+.grid:not(.locked) [data-edit],
+[data-listfor] [data-edit],
+.cline [data-edit]{cursor:text;border-radius:3px;transition:background .12s}
+.grid:not(.locked) .dname[data-edit]:hover,
+[data-listfor] .dname[data-edit]:hover{
+  background:color-mix(in srgb,var(--brass) 14%,transparent)}
+/* a checklist line: the box ticks, the words change */
+.cline .clbox{cursor:pointer}
+.cline .cltext{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.cline:hover .cltext{text-decoration:underline;text-decoration-style:dotted;
+  text-underline-offset:2px}
+.cline .inlinename{font-size:inherit;font-weight:inherit;color:var(--dink);
+  font-family:inherit;flex:1;min-width:0}
+/* …and a band being typed in keeps the row's shape while it is a field */
+.listband .inlinename{flex:1;min-width:0;max-width:none}

@@ -17,7 +17,7 @@ import { closePanel } from './panels.js';
    Bureau is this phone running" is exactly the question you ask when a change
    appears not to have deployed. Shown in Settings, so it can be read off the
    device rather than guessed at. */
-const APP_VERSION = '0.60';
+const APP_VERSION = '0.61';
 const KEY = 'bureau.v1';
 const install = {deferred:null};   // the browser's install prompt, when one is on offer
 let saveTimer = null;
@@ -150,23 +150,25 @@ function dedupeIds(objects){
    order: the first to claim a spot keeps it, and anything landing on top drops
    into the nearest free box instead. The column counts are passed in and
    written out at the call site — a migration must not drift with GRID. */
-function rescalePhone(d, from, cols){
-  const r = cols/from;
-  /* Rounding **half down**, and scaling the left *edge* rather than the
-     1-based column number. Both matter more than they look.
+/* The rounding rule both rescales share.
 
-     Half up grew a two-cell drawer front into three every time the grid got
-     finer (2 × 1.25 = 2.5), which broke the rack apart and then could not put
-     it back. Half down keeps it two in both directions — 2 × 1.25 → 2 and
-     2 × 0.8 → 2 — so eight columns to ten and back is the arrangement you
-     started with, and a full-width tile still maps exactly (8 × 1.25 = 10).
-     Scaling the edge is what makes the gaps between tiles scale too: column 3
-     is two cells in from the left, not three. */
+   Rounding **half down**, and scaling the left *edge* rather than the 1-based
+   column number. Both matter more than they look.
+
+   Half up grew a two-cell drawer front into three every time the grid got finer
+   (2 × 1.25 = 2.5), which broke the rack apart and then could not put it back.
+   Half down keeps it two in both directions — 2 × 1.25 → 2 and 2 × 0.8 → 2 — so
+   eight columns to ten and back is the arrangement you started with, and a
+   full-width tile still maps exactly (8 × 1.25 = 10). Scaling the edge is what
+   makes the gaps between tiles scale too: column 3 is two cells in from the
+   left, not three. */
+function rescaleBoxes(objects, from, cols){
+  const r = cols/from;
   const half = v => Math.ceil(v - 0.5);
   const up = n => Math.max(1, half(n*r));
   const placed = {};
   const overlap = (a,b)=> a.x < b.x+b.w && b.x < a.x+a.w && a.y < b.y+b.h && b.y < a.y+a.h;
-  (d.objects||[]).forEach(o=>{
+  objects.forEach(o=>{
     const b=o.phone; if(!b || !b.w) return;
     const w=Math.min(cols, up(b.w));
     const x=Math.max(1, half((b.x-1)*r) + 1);
@@ -180,6 +182,16 @@ function rescalePhone(d, from, cols){
     }
     home.push(box); o.phone=box;
   });
+}
+/* One board's worth: what changing *this* drawer's grain costs. The boxes on a
+   board are measured in that board's columns and nowhere else, so nothing
+   outside it is touched. */
+function rescaleOneBoard(objects, cid, from, cols){
+  rescaleBoxes(objects.filter(o=>(o.parent||ROOT)===cid), from, cols);
+}
+function rescalePhone(d, from, cols){
+  rescaleBoxes(d.objects||[], from, cols);
+  const up = n => Math.max(1, Math.ceil(n*(cols/from) - 0.5));
   Object.values(d.kinds||{}).forEach(k=>{
     if(Array.isArray(k.phoneSize) && k.phoneSize[0])
       k.phoneSize=[Math.min(cols, up(k.phoneSize[0])), Math.max(1, k.phoneSize[1])];
@@ -651,5 +663,5 @@ function pasteObjects(text, parentId){
   toast('Added '+(bits.join(' and ')||'nothing'), !!tally.made.length);
 }
 
-export { APP_VERSION, DATA_V, rescalePhone, writeNow, save, storeSize, load, exportBackup,
+export { APP_VERSION, DATA_V, rescalePhone, rescaleOneBoard, rescaleBoxes, writeNow, save, storeSize, load, exportBackup,
   importBackup, assetDel, hydrateAssets, importImage, imgFor, pasteObjects, install };

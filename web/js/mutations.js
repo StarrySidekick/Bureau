@@ -1,12 +1,12 @@
 import { $, esc, uid, ROOT, D } from './util.js';
 import { S, byId, K, KINDS, KEYS, kindHas, has, isContainer, genKindOf, streak, T, dz, dev,
   deskIds, deskHere, placeOf, cfgOf } from './model.js';
-import { GRID, PHONE_GRIDS, gridOf, freeSpot, lay, boxOk, sizeOfKind } from './grid.js';
+import { GRID, PHONE_GRIDS, colsOf, gridOf, freeSpot, lay, boxOk, sizeOfKind } from './grid.js';
 import { randomFront, randomBoard, styleDefaults } from './look.js';
 import { render } from './views.js';
 import { tileRect, pop } from './motion.js';
 import { closeSheet } from './sheet.js';
-import { assetDel, rescalePhone, save } from './persist.js';
+import { assetDel, rescalePhone, rescaleOneBoard, rescaleBoxes, save } from './persist.js';
 
 /* ============================================================
    6 · mutations
@@ -150,27 +150,51 @@ function delDrawer(id){
   toast('Drawer removed — its contents kept', true);
   render();
 }
-/* ---- changing the size of the phone grid -------------------------------
+/* ---- changing how fine a board's grid is -------------------------------
    The three sizes are three column counts, and a column count is a coordinate
-   space: every stored phone box is measured in it. So switching is a migration
+   space: every box on that board is measured in it. So switching is a migration
    run live — the same rescale the numbered ones do, on the objects in memory
-   rather than on a snapshot — and each tile keeps the fraction of the screen it
-   had. Rounding can push two neighbours into each other, which rescalePhone()
+   rather than on a snapshot — and each tile keeps the fraction of the board it
+   had. Rounding can push two neighbours into each other, which the rescale
    repairs by re-placing whichever lands second.
+
+   `cid` names the board. Without one it is the **app's default**, which is what
+   every board follows until it is asked directly — and changing the default has
+   to rescale every board that was following it, which is all of them except the
+   ones that have an answer of their own.
 
    It is not reversible to the pixel: going Small → Large → Small rounds twice
    and a box may come back a cell wider than it went. That is the honest cost of
    trying sizes on, and it is why this is a setting rather than a gesture.
-   See decision 48. */
-function setGridSize(key){
+   See decisions 48 and 60. */
+function setGridSize(key, cid){
   const cols = PHONE_GRIDS[key];
   if(!cols) return;
-  const from = GRID.phone.cols;
-  S.look.grid = key;
-  if(cols!==from){
-    rescalePhone({objects:S.objects, kinds:S.kinds}, from, cols);
-    GRID.phone.cols = cols;
+  if(cid!=null){
+    const t = cfgOf(cid); if(!t) return;
+    const from = colsOf(cid, 'phone');
+    if(cols!==from){ rescaleOneBoard(S.objects, cid, from, cols); }
+    t.grid = key;
+    save(); render();
+    toast(`This board — ${cols} across`);
+    return;
   }
+  /* The app's default. Every board that has not been asked the question is
+     measured in it, so each of them is rescaled from whatever it was showing —
+     which is the old default for all of them, since a board with its own answer
+     is skipped. */
+  const from = GRID.phone.cols;
+  if(cols!==from){
+    const followers = new Set([ROOT, ...S.objects.filter(isContainer).map(o=>o.id)]
+      .filter(id=>{
+        const own=(cfgOf(id)||{}).grid;
+        return !(own && PHONE_GRIDS[own]) && colsOf(id,'phone')===from;
+      }));
+    // …and the objects on them, which is every object whose home is a follower
+    rescaleBoxes(S.objects.filter(o=>followers.has(o.parent||ROOT)), from, cols);
+  }
+  S.look.grid = key;
+  GRID.phone.cols = cols;
   save(); render();
   toast(`${key[0].toUpperCase()+key.slice(1)} — ${cols} across`);
 }
@@ -297,7 +321,7 @@ function create(kind, patch){
        it belongs at the top of the board and not wherever the ordering happens
        to drop it. Both devices, because either could be opened first. */
     ['desk','phone'].forEach(dv=>{
-      const [w,h]=sizeOfKind(sp.kind, dv);
+      const [w,h]=sizeOfKind(sp.kind, dv, o.id);
       child[dv]={x:1, y:1+i*h, w, h};
     });
   });
@@ -320,7 +344,7 @@ function gather(aId, bId, kind){
   a.parent=c.id; b.parent=c.id;
   a.desk=a.phone=b.desk=b.phone=null;
   b.ord=0; a.ord=1;
-  const [kw,kh]=sizeOfKind(kind, dv);   // never K(kind).size — a phone is 8 columns
+  const [kw,kh]=sizeOfKind(kind, dv, home);   // never K(kind).size — a board states its own columns
   const want={x:box.x, y:box.y, w:kw, h:kh};
   c[dv] = boxOk(want, c.id, dv, home) ? want : freeSpot(kw, kh, dv, home);
   toast(`Made a ${K(kind).nm.toLowerCase()}`);
@@ -372,7 +396,7 @@ function randomThing(parentId){
   if(isContainer(o)){ o.c=randomFront(); o.board=randomBoard();
     o.knob=pick(['round','diamond','bar','ring','square']);
     o.border=pick(['panel','panel','heavy','bar','plain','none']); }
-  const g=gridOf(), dv=dev();
+  const g=gridOf(undefined, home), dv=dev();
   const w=1+Math.floor(Math.random()*8), h=1+Math.floor(Math.random()*8);
   o[dv]=freeSpot(Math.min(w,g.cols), h, dv, home);
   return o;

@@ -1,8 +1,8 @@
 import { $, $$, clamp, D, ROOT } from './util.js';
 import { S, byId, dev, has, isAncestor, childrenOf, container, gatherKind, spanOf,
-  sortOf, cfgOf } from './model.js';
+  sortOf, cfgOf, T } from './model.js';
 import { GRID, CELL, gridOf, cellW, lay, boxOk, overlaps } from './grid.js';
-import { toast, gather, setPin } from './mutations.js';
+import { toast, gather, setPin, del } from './mutations.js';
 import { pending, tileTap, fireButton } from './tiles.js';
 import { modalNewObject, openCtx, closeCtx } from './panels.js';
 import { render } from './views.js';
@@ -35,6 +35,26 @@ function dropSelection(){
   const s=window.getSelection && window.getSelection();
   if(s && !s.isCollapsed && s.removeAllRanges) s.removeAllRanges();
 }
+/* ---- the element under the finger, found again -------------------------
+   A hold is three hundred milliseconds long, and a render that lands inside it
+   replaces `#app` wholesale — so the node the press started on is detached and
+   everything after it (the lift, the drag, the drop) is happening to something
+   nobody can see. Putting an inline edit down is the common way in: it renders
+   on the next tick, and since a name became something you can *tap* there is
+   very often one open when the next press starts.
+
+   So the arming callbacks look the element up again by id rather than trusting
+   the one they captured. Cheap, and it makes the drag survive any render at
+   all rather than the ones we happened to think of. */
+function refind(g){
+  if(!g || !g.id) return;
+  const el = document.querySelector(
+    `#app .grid .drawer[data-drawer="${g.id}"], #app .grid .drawer[data-row="${g.id}"], `+
+    `#app .grid .drawer[data-id="${g.id}"], #app [data-listfor] .listband[data-row="${g.id}"], `+
+    `#app [data-listfor] .listband[data-drawer="${g.id}"], #app .cline[data-pluck="${g.id}"]`);
+  if(el && el!==g.el && document.body.contains(el)) g.el=el;
+}
+
 // any real movement, or letting go, means it was not a press-and-hold
 function cancelHold(e){
   if(e && holdFrom && Math.abs(e.clientX-holdFrom.x)<WOBBLE && Math.abs(e.clientY-holdFrom.y)<WOBBLE) return;
@@ -76,6 +96,34 @@ function makePull(){
   el.style.bottom = (rail ? fr.bottom - rail.getBoundingClientRect().top : 0) + 'px';
   $('#frame').appendChild(el);
   return el;
+}
+
+/* ---- the two things a row can be swiped into --------------------------
+   Left is **delete**, right is **today**, and the second only offers itself to
+   something that has a day to be put on — a drawer has no due date and a swipe
+   that lit up for it would be a promise the row can't keep. ROW_DO is how far
+   you have to carry it, and it is a third of the row rather than a fixed number
+   of pixels so it means the same thing on any width.
+
+   The action is drawn *behind* the row, in one borrowed element rather than a
+   strip built into every band: a list is the one place in the app that can hold
+   two hundred of something, and two hundred of anything you only ever see one
+   of at a time is two hundred you should not have built. Same argument as the
+   drag chip and the pull. */
+const ROW_MAX = 150, ROW_DO = 78;
+const canSchedule = id => { const o=byId(id); return !!o && has(o,'date'); };
+function rowAction(band){
+  let el=$('#rowact');
+  if(!el){ el=document.createElement('i'); el.id='rowact'; $('#frame').appendChild(el); }
+  const r=band.getBoundingClientRect(), fr=$('#frame').getBoundingClientRect();
+  el.style.cssText=`left:${r.left-fr.left}px;top:${r.top-fr.top}px;`+
+    `width:${r.width}px;height:${r.height}px`;
+  el.className='rowact';
+  return el;
+}
+function clearRow(g){
+  const el=$('#rowact'); if(el) el.remove();
+  if(g && g.el){ g.el.classList.remove('swiping'); g.el.style.transform=''; }
 }
 
 /* ---- opening a locked board with the tile already in your hand -----------
@@ -352,11 +400,12 @@ function onDown(e){
      with nowhere in mind; holding a cell makes one *there*, which is the thing
      a grid is for and which a phone had no way of saying. */
   if(e.target.classList && e.target.classList.contains('grid')){
-    const grid=e.target, g=gridOf(), r=grid.getBoundingClientRect(), cw=cellW(grid,g);
+    const grid=e.target, home=grid.dataset.gridfor||ROOT;
+    const g=gridOf(undefined, home), r=grid.getBoundingClientRect(), cw=cellW(grid,g);
     const cx=clamp(Math.floor((e.clientX-r.left)/(cw+g.gap))+1, 1, g.cols);
     const cy=Math.max(1, Math.floor((e.clientY-r.top)/(CELL[dev()]+g.gap))+1);
     const locked=grid.classList.contains('locked');
-    G={type:'sketch', grid, parent:grid.dataset.gridfor||ROOT, x0:cx, y0:cy,
+    G={type:'sketch', grid, parent:home, x0:cx, y0:cy,
        stepX:cw+g.gap, stepY:CELL[dev()]+g.gap, sx:e.clientX, sy:e.clientY, mode:null,
        add:e.shiftKey||e.metaKey||e.ctrlKey, hits:[],
        locked, axis:null, from:0, canSketch:!locked, held:false};
@@ -389,7 +438,7 @@ function onDown(e){
     holdTimer=setTimeout(()=>{
       holdTimer=null;
       if(G!==g0) return;
-      dropSelection();
+      dropSelection(); refind(G);
       G.armed=true;
       G.el.classList.add('lifted');
       if(navigator.vibrate) navigator.vibrate(6);
@@ -404,25 +453,42 @@ function onDown(e){
      you shuffle an A–Z list would be a gesture whose result vanished on the
      next render. The bar says which sort it is on, so there is nowhere for this
      to be a surprise. */
-  const bandEl = e.target.closest('.listgrid[data-listfor] .listband');
-  if(bandEl && !e.target.closest('[data-check]')){
-    const list=bandEl.parentElement;
+  const bandEl = e.target.closest('[data-listfor] .listband');
+  if(bandEl && !e.target.closest('[data-check],[data-edit]')){
+    const list=bandEl.closest('[data-listfor]');
     const cid=list.dataset.listfor;
-    if(cid && !sortOf(container(cid))){
-      G={type:'band', el:bandEl, list, cid, id:bandEl.dataset.row||bandEl.dataset.drawer,
-         sx:e.clientX, sy:e.clientY, mode:null, armed:false};
-      const g0=G;
-      holdTimer=setTimeout(()=>{
-        holdTimer=null;
-        if(G!==g0) return;
-        dropSelection();
+    const id=bandEl.dataset.row||bandEl.dataset.drawer;
+    G={type:'band', el:bandEl, list, cid, id,
+       // a sorted list arranges itself, so there is nothing to reorder on one
+       canOrder: !sortOf(container(cid)),
+       sx:e.clientX, sy:e.clientY, mode:null, armed:false, at:0};
+    const g0=G;
+    holdTimer=setTimeout(()=>{
+      holdTimer=null;
+      if(G!==g0) return;
+      dropSelection(); refind(G);
+      if(g0.canOrder){
         G.armed=true;
         G.el.classList.add('lifted');
         if(navigator.vibrate) navigator.vibrate(6);
-      }, e.pointerType==='touch' ? HOLD_TOUCH : HOLD_MOUSE);
-      holdFrom={x:e.clientX,y:e.clientY};
-      return;
-    }
+      }
+      // …and keep holding, without moving, and it is the menu — the same two
+      // lengths of press a tile has, for the same reasons. Touch only.
+      if(e.pointerType!=='touch') return;
+      menuTimer=setTimeout(()=>{
+        menuTimer=null;
+        if(G!==g0 || G.mode) return;
+        dropSelection();
+        const r=G.el.getBoundingClientRect();
+        if(navigator.vibrate) navigator.vibrate([4,40,10]);
+        G.menu=true; G.armed=false;
+        G.el.classList.remove('lifted');
+        gestureFlags.suppressClick=true;
+        openCtx(r.left+Math.min(r.width/2,140), r.top+r.height/2, g0.id);
+      }, MENU_AFTER);
+    }, e.pointerType==='touch' ? HOLD_TOUCH : HOLD_MOUSE);
+    holdFrom={x:e.clientX,y:e.clientY};
+    return;
   }
 
   // a field inside a tile is for typing in, not for dragging the tile by
@@ -445,7 +511,7 @@ function onDown(e){
     const locked = grid.classList.contains('locked');
     const stuck = locked || grid.classList.contains('sorted');
     const hEl = stuck ? null : e.target.closest('[data-rz]');
-    const g=gridOf();
+    const g=gridOf(undefined, grid.dataset.gridfor||ROOT);
     G={type: hEl?'resize':'move', el:dEl, id:d.id, handle:hEl?hEl.dataset.rz:null,
        stuck, locked, axis:null, from:0,
        armed: !stuck && !!hEl,      // a corner grip drags at once; a tile waits
@@ -468,6 +534,7 @@ function onDown(e){
         holdTimer=null;
         if(G!==g0) return;
         dropSelection();          // before iOS decides the hold was about text
+        refind(G);                // a render may have landed inside the hold
         if(!g0.stuck){
           G.armed=true;
           G.el.classList.add('lifted');
@@ -558,6 +625,44 @@ function onMove(e){
   }
 
   if(G.type==='band'){
+    /* ---- a row has two axes and they mean different things -------------
+       Sideways is an **action** and it starts immediately, because a swipe you
+       have to hold for first is a swipe nobody finds. Up and down is the
+       reorder, and it waits out the hold — before that, up and down is the
+       list scrolling, which is what a finger on a list is usually doing.
+
+       One decision per gesture, like every other swipe in the app: whichever
+       distance is larger first decides, and it is held until you let go. */
+    if(G.mode==='dead') return;
+    if(!G.mode && !G.armed && !G.menu){
+      if(Math.abs(dx)<SWIPE_MIN && Math.abs(dy)<SWIPE_MIN) return;
+      if(Math.abs(dy)>=Math.abs(dx)){ G.mode='dead'; return; }   // the list's own
+      G.mode='rowswipe';
+      G.from=SWIPE_MIN*Math.sign(dx);
+      gestureFlags.suppressClick=true;
+      G.el.classList.add('swiping');
+      G.back=rowAction(G.el);
+    }
+    if(G.mode==='rowswipe'){
+      const v=clamp(dx-G.from, -ROW_MAX, ROW_MAX);
+      G.at=v;
+      const act = v<0 ? 'del' : (canSchedule(G.id) ? 'due' : null);
+      // nothing to do that way: it gives a third as much, which is how a
+      // surface says "not this direction"
+      const show = act ? v : v*0.32;
+      G.act = Math.abs(show) >= ROW_DO ? act : null;
+      G.el.style.transform=`translateX(${show}px)`;
+      if(G.back){
+        G.back.className='rowact'+(act==='del'?' del':act==='due'?' due':'')+(G.act?' ready':'');
+        G.back.innerHTML = act==='del' ? 'Delete' : act==='due' ? 'Today' : '';
+      }
+      return;
+    }
+    if(G.menu){
+      if(Math.abs(dx)<WOBBLE && Math.abs(dy)<WOBBLE) return;
+      G.menu=false; closeCtx();
+      if(G.canOrder){ G.armed=true; G.el.classList.add('lifted'); }
+    }
     if(!G.armed) return;             // still waiting out the hold
     if(!G.mode){
       if(Math.abs(dy)<5) return;
@@ -765,6 +870,18 @@ function onUp(e){
 
   if(g.type==='band'){
     g.el.classList.remove('lifted','dragging');
+    if(g.mode==='rowswipe'){
+      const act=g.act, id=g.id;
+      clearRow(g);
+      if(act==='del'){ del(id); return; }
+      if(act==='due'){
+        const o=byId(id);
+        if(o){ o.due=T; save(); render(); toast('Scheduled today', true); }
+        return;
+      }
+      render();                          // put it back where it came from
+      return;
+    }
     if(g.mode!=='band') return;          // a tap; let the click open it
     gestureFlags.suppressClick=true;     // the drag must not also open it
     /* Read the new order straight off the list. `ord` is what childrenOf()
@@ -904,6 +1021,7 @@ const dragArmed = ()=> !!(G && G.armed);
 
 function onCancel(){
   cancelHold();
+  if(G && G.type==='band') clearRow(G);
   stopPan();
   pagerCancel();
   if(G){ clearAim(G); if(G.ghost) G.ghost.remove();
