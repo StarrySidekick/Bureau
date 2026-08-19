@@ -1,7 +1,8 @@
-import { esc, ic, clamp, D, md, strip } from './util.js';
+import { esc, ic, clamp, D, md, plain, oneline } from './util.js';
 import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, childrenOf, container,
   rollup, streak, goalPct, projectStat, tlSpan, dev, spawnByOf, genKindOf, takesTyping,
-  knobSizeOf, answered, sortOf, spanOf, coversDay, iconOf, textSizeOf, isPicture,
+  knobSizeOf, answered, sortOf, spanOf, coversDay, lateOn, isLate, iconOf, textSizeOf,
+  isPicture, isMedia, isPlayable, mediaTypeOf,
   calViewOf, weekStartOf, calCols } from './model.js';
 import { CELL, COLW, gridOf, lay, overlaps, boxOk, freeSpot, gridRows, sizeOfKind, ensureBox,
   pageRows } from './grid.js';
@@ -65,6 +66,19 @@ function spinTo(el, n){
    a question nobody asked. */
 const dateSaid = o => { const sp=spanOf(o);
   return sp ? `${D.short(sp.from)} – ${D.short(sp.to)}` : D.human(o.due); };
+
+/* The deadline, said as a deadline. Only for something carrying one and only
+   when it is set — the day a thing *sits* on is already said by dateSaid(), and
+   printing both when they agree is the same fact twice. */
+const deadSaid = o => has(o,'deadline') && o.dead
+  ? `due ${D.said(o.dead)}` : '';
+
+/* Every face can show what it totals. It used to be two of them — a drawer
+   front and a checklist — so whether a container told you what it was worth
+   depended on which coat it had on. `rollup()` answers null unless the
+   container asked for one, so this is safe to hang on anything. */
+const rollTag = c => { const r=rollup(c);
+  return r ? `<span class="rollup">${esc(r)}</span>` : ''; };
 
 const HANDLES = ['nw','ne','se','sw'];   // corners only — any corner resizes
 
@@ -196,7 +210,7 @@ function tileTap(id){
        is its own surface. Reading is what you do to words, and an image object
        sent to the book surface got a blank sheet of paper with a photograph
        pasted at the top of it. */
-    case 'read':  openTile(id, ()=> isPicture(o) ? openViewer(id) : openRead(id)); break;
+    case 'read':  openTile(id, ()=> isMedia(o) ? openViewer(id) : openRead(id)); break;
     // the editor is the writing surface now: the body, full screen, and nothing
     // else on it. Every *setting* is in the object's own panel.
     case 'edit':  openTile(id, ()=>openWriter(id)); break;
@@ -319,7 +333,9 @@ function drawTile(o, arr, box){
         has(o,'magic')?' magicspine':''}" data-drawer="${o.id}" style="--c:${colour};${place}">
       <span class="spinetop"></span>
       <span class="spinetitle">${esc(o.title||'Untitled')}</span>
-      <span class="spinefoot"></span>
+      ${/* A spine has no width for a chip, so what it totals is set at the foot
+           the way a volume number is on a real one. */''}
+      <span class="spinefoot">${rollup(o)?`<u class="spineroll">${esc(rollup(o))}</u>`:''}</span>
       ${handles}
     </button>`;
   }
@@ -367,13 +383,14 @@ function drawTile(o, arr, box){
      checklists as four undone things. */
   if(cont && faceOf(o)==='project'){
     const st=projectStat(o);
-    const late = o.due && st.pct<100 && D.overdue(o.due);
+    const late = st.pct<100 && isLate(o);
     return `<${takesTyping(o)?'div':'button'} class="drawer dtile projtile bd-${o.border||'panel'}${sel}"
         data-drawer="${o.id}" ${takesTyping(o)?'role="button" tabindex="0"':''}
         style="--c:${colour};--pct:${st.pct}%;${place}">
       ${st.cover?`<span class="projcover" style="background-image:url('${esc(st.cover)}')"></span>`:''}
       <div class="dtop"><span class="dname">${esc(o.title||'Untitled')}</span>
-        ${o.due?`<span class="projdue${late?' late':''}">${esc(dateSaid(o))}</span>`:''}</div>
+        ${rollTag(o)}
+        ${lateOn(o)?`<span class="projdue${late?' late':''}">${esc(deadSaid(o)||dateSaid(o))}</span>`:''}</div>
       <div class="projbar"><i></i><b>${st.pct}%</b></div>
       <div class="projline">
         ${st.ticks?`<span>${st.done}/${st.ticks} done</span>`:`<span>${st.n||'Nothing'} inside</span>`}
@@ -384,7 +401,7 @@ function drawTile(o, arr, box){
           ${ic(K(k).ic,11)}<u>${n}</u></span>`).join('')
         || '<span class="clempty">Open it and start filling it</span>'}</div>
       <div class="projsoon">${st.soon.slice(0,3).map(x=>
-        `<span class="projitem${D.overdue(x.due)?' late':''}" data-row="${x.id}"
+        `<span class="projitem${isLate(x)?' late':''}" data-row="${x.id}"
            title="${esc(x.title||'Untitled')}">
           <i style="--k:${objColour(x)}">${ic(K(x.kind).ic,10)}</i>
           <b>${esc(x.title||'Untitled')}</b><u>${esc(D.short(x.due))}</u></span>`).join('')}</div>
@@ -398,7 +415,7 @@ function drawTile(o, arr, box){
   if(cont && shapeOf(o)==='ticket'){
     return `<button class="drawer dtile triptile bd-${o.border||'panel'}${sel}" data-drawer="${o.id}" style="--c:${colour};${place}">
       <div class="tkmain">
-        <span class="tklabel">${o.due?esc(dateSaid(o)):'Some day'}</span>
+        <span class="tklabel">${o.due?esc(dateSaid(o)):'Some day'}${rollTag(o)}</span>
         <span class="dname">${esc(o.title||'Untitled')}</span>
         ${o.loc?`<span class="tkloc">${ic('flag',11)} ${esc(o.loc)}</span>`:''}
       </div>
@@ -424,6 +441,7 @@ function drawTile(o, arr, box){
     return `<button class="drawer dtile tltile bd-${o.border||'panel'}${sel}" data-drawer="${o.id}"
       data-tlspan="${o.id}:${sp.min}:${sp.max}" style="--c:${colour};${place}">
       <div class="dtop"><span class="dname">${esc(o.title||'Untitled')}</span>
+        ${rollTag(o)}
         <span class="clcount">${esc(D.short(sp.min))} – ${esc(D.short(sp.max))}</span></div>
       <div class="tlwrap"><i class="tlrule"></i>
         ${nowPc!=null?`<i class="tlnowmark" style="left:${nowPc}%"></i>`:''}
@@ -444,7 +462,7 @@ function drawTile(o, arr, box){
     return `<button class="drawer dtile mbtile bd-${o.border||'panel'}${sel}" data-drawer="${o.id}" style="--c:${colour};${place}">
       <div class="mbwall">${pics.map(x=>`<i style="background-image:url('${esc(x.media.src)}')"></i>`).join('')
         || '<span class="clempty">Open it and add pictures</span>'}</div>
-      <span class="mbname">${esc(o.title||'Untitled')}</span>
+      <span class="mbname">${esc(o.title||'Untitled')}${rollTag(o)}</span>
       ${handles}
     </button>`;
   }
@@ -459,6 +477,7 @@ function drawTile(o, arr, box){
     return `<button class="drawer dtile caltile bd-${o.border||'panel'}${sel}${has(o,'magic')?' magicdrawer':''}"
       data-drawer="${o.id}" style="--c:${colour};${place}">
       <div class="dtop"><span class="dname">${esc(o.title||'Untitled')}</span>
+        ${rollTag(o)}
         <span class="clcount">${esc(cap)}</span></div>
       <div class="dbody">${calFace(o)}</div>
       ${handles}
@@ -506,8 +525,11 @@ function drawTile(o, arr, box){
     </button>`;
   }
 
-  // An image sits on the grid like something stuck in a scrapbook.
-  const img = has(o,'media') && o.media && o.media.src;
+  /* An image sits on the grid like something stuck in a scrapbook. `isPicture`
+     rather than "carries media", or a sound with a file in it matched here and
+     was drawn as a photograph of nothing — which is the same mistake decision 49
+     fixed at the *tap* and this branch was still making at the tile. */
+  const img = isPicture(o) && o.media && o.media.src;
   if(img){
     return `<button class="drawer otile imgtile sh-image${o.media.alpha?'':' opaque'} fr-${o.frame||'none'}${sel}" data-row="${o.id}" style="--c:${colour};${place}">
       ${chips}
@@ -519,11 +541,30 @@ function drawTile(o, arr, box){
      title and a blank body. It said "Untitled" and did nothing, which is how a
      new Image object came to look broken rather than unfilled. Tapping it opens
      the picture surface, which is where a file is chosen. */
-  if(isPicture(o) && !has(o,'text')){
+  if(isMedia(o) && !has(o,'text')){
+    const kind=mediaTypeOf(o);
+    const mark=kind==='audio'?'music':kind==='video'?'film':'image';
+    const say =kind==='audio'?'Add a sound':kind==='video'?'Add a video':'Add a picture';
     return `<button class="drawer otile imgtile empty fr-${o.frame||'none'}${sel}" data-row="${o.id}"
-      title="${esc(o.title||'')} — tap to add a picture" style="--c:${colour};${place}">
+      title="${esc(o.title||'')} — tap to choose a file" style="--c:${colour};${place}">
       ${chips}
-      <span class="imgempty">${ic('image',24)}<b>${esc(o.title||'Add a picture')}</b></span>
+      <span class="imgempty">${ic(mark,24)}<b>${esc(o.title||say)}</b></span>
+      ${handles}
+    </button>`;
+  }
+  /* A sound or a video that *has* a file, on the board: its mark, its name and
+     how long it runs. Not a player — a tile is a face, and forty of them each
+     holding a decoded media element is a board that will not scroll. Tapping it
+     opens the surface, which is where it plays. See decision 71. */
+  if(isPlayable(o) && o.media && o.media.src){
+    const kind=mediaTypeOf(o);
+    return `<button class="drawer otile mediatile sh-${shapeOf(o)}${sel}" data-row="${o.id}"
+      style="--c:${colour};${place}">
+      ${chips}
+      <span class="medmark">${ic(kind==='audio'?'music':'film',20)}</span>
+      <div class="dtop">${nameField(o)}</div>
+      <div class="dfoot"><span class="tilemeta">${
+        [K(o.kind).nm, has(o,'duration')&&o.dur?`${o.dur} min`:''].filter(Boolean).join(' · ')}</span></div>
       ${handles}
     </button>`;
   }
@@ -577,7 +618,7 @@ function drawTile(o, arr, box){
     return `<button class="drawer otile sh-quote quotetile${sel}" data-row="${o.id}" style="--c:${colour};${place}">
       ${chips}
       <span class="qmark">"</span>
-      <span class="qbody">${esc(strip(o.body||o.title||'').replace(/^[>\s—]+/,'')).slice(0,180)}</span>
+      <span class="qbody">${esc(oneline(o.body||o.title||'').replace(/^[—\s]+/,'')).slice(0,180)}</span>
       ${has(o,'rating')&&o.rating?`<span class="tilestars">${'★'.repeat(o.rating)}</span>`:''}
       ${handles}
     </button>`;
@@ -593,6 +634,11 @@ function drawTile(o, arr, box){
   }
 
   const bits=[];
+  /* A deadline is said on the face, because the whole point of separating it
+     from the day a thing sits on is that you can see both. It is only printed
+     when it is set — an object that carries the trait and hasn't used it has
+     nothing to say. */
+  if(deadSaid(o)) bits.push(`<span class="deadchip${isLate(o)?' late':''}">${esc(deadSaid(o))}</span>`);
   if(has(o,'streak')) bits.push(`${streak(o)}-day streak`);
   if(has(o,'progress')) bits.push(`${goalPct(o)}%`);
   if(has(o,'count')) bits.push(`${o.count||0}`);
@@ -621,7 +667,7 @@ function drawTile(o, arr, box){
     ${edit && has(o,'text')
       ? `<div class="dbody"><textarea class="inlinebody" data-inline="${o.id}:body"
            placeholder="Anything else…">${esc(o.body||'')}</textarea></div>`
-      : has(o,'text')&&o.body?`<div class="dbody"><div class="tiletext">${esc(String(o.body).slice(0,BODY_ON_FACE))}</div></div>`:'<div class="dbody"></div>'}
+      : has(o,'text')&&o.body?`<div class="dbody"><div class="tiletext">${esc(plain(o.body).slice(0,BODY_ON_FACE))}</div></div>`:'<div class="dbody"></div>'}
     ${bits.length?`<div class="dfoot"><span class="tilemeta">${bits.join(' · ')}</span></div>`:''}
     ${asks?`<label class="ansbox">
       <i>${answered(o)?ic('check',11):ic('help',11)}</i>
@@ -744,8 +790,10 @@ function listTile(o){
       ${has(o,'check')?`<span class="check tilecheck${o.done?' on':''}" data-check="${o.id}">${ic('check',12)}</span>`:''}
       ${img?`<img class="bandimg" src="${esc(o.media.src)}" alt="">`:''}
       ${nameField(o)}
-      ${o.body?`<span class="bandsnip">${esc(strip(o.body).slice(0,120))}</span>`:''}
+      ${o.body?`<span class="bandsnip">${esc(oneline(o.body).slice(0,120))}</span>`:''}
       ${o.due?`<span class="mchip">${esc(dateSaid(o))}</span>`:''}
+      ${deadSaid(o)?`<span class="mchip deadchip${isLate(o)?' late':''}">${esc(deadSaid(o))}</span>`:''}
+      ${cont&&rollup(o)?`<span class="mchip">${esc(rollup(o))}</span>`:''}
       ${cont?`<span class="pull kn-${o.knob||'round'}"${o.knobc?` style="--knob:${esc(o.knobc)}"`:''}></span>`:''}
     </div>
   </${raw?'div':'button'}>`;
@@ -900,6 +948,7 @@ function scrollEntry(o){
       ${has(o,'check')?`<span class="check${o.done?' on':''}" data-check="${o.id}">${ic('check',12)}</span>`:`<span class="kindmark">${ic(k.ic,13)}</span>`}
       <h3${o.done?' class="done"':''}>${esc(o.title||'Untitled')}</h3>
       ${o.due?`<span class="mchip">${esc(dateSaid(o))}</span>`:''}
+      ${deadSaid(o)?`<span class="mchip deadchip${isLate(o)?' late':''}">${esc(deadSaid(o))}</span>`:''}
       ${(o.tags||[]).map(t=>`<span class="mchip tag" data-tagdrawer="${esc(t)}">${esc(t)}</span>`).join('')}
     </header>
     ${has(o,'media')&&o.media&&o.media.src?`<img class="scrollimg" src="${esc(o.media.src)}" alt="${esc(o.title||'')}">`:''}

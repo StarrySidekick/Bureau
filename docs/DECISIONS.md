@@ -2095,3 +2095,265 @@ drag survive any render rather than the ones we happened to think of.
 *Against:* a tap on a drawer's name no longer opens the drawer on an unlocked
 board — it renames it. That is the trade, and the lock is the answer: a board you
 are reading is a board you lock, and that is the state it starts in.
+
+---
+
+### 62. When it sits is not when it is late
+
+Things 3's central idea and the one thing in it Bureau had not got. `due` was
+carrying two jobs: the day a thing *sits* on — what a calendar draws it on, what
+Today collects, what a drag onto a day cell writes — and the day it is *late*.
+An app that stores one of those makes you lie about the other. Put a task on
+Monday because that is when you meant to start it and it is overdue on Tuesday;
+give it Friday because that is when it is owed and it is invisible all week.
+
+So `deadline` is an attribute of its own, carrying the field `dead`.
+
+- `date`/`due` is unchanged and still means the day it sits on.
+- `deadline`/`dead` means the day it is owed.
+- `lateOn(o)` says which of the two decides: the deadline when there is one,
+  otherwise the day it sits on — which is exactly what everything did before
+  this existed. `isLate(o)` is that date being in the past, and a finished
+  thing is never late.
+
+**Opt-in, and not on Task by default.** Nothing already on a desk changes, no
+migration is needed, and a thing merely *scheduled* for Friday stays a different
+thing from a thing *owed* on Friday. Tick Deadline in an object's traits, or in
+the type builder, and the field appears; leave it and the app is what it was.
+
+It is a field, so a magic drawer can rule on it for free — "anything owed this
+week" is two clauses and no new machinery (decision 63).
+
+*Against:* two dates on one object is one more thing to explain, and most tasks
+will never want the second. That is why it is a trait rather than a field on
+Task: the ones that want it ask, and the rest never see it.
+
+---
+
+### 63. Two clauses, ANDed, and no OR
+
+A magic drawer's shorthands already stacked — types AND tag AND loose AND the
+rule, in sequence — but there was exactly **one free field clause**, so:
+
+- "due after Monday and before Friday" could not be said, and neither could
+  "due this week", which is the same sentence;
+- "high priority *and* has a duration" could not be said;
+- more than one tag could not be said.
+
+`filter.rules` is an array now, ANDed, capped at three, drawn as a row each with
+one empty row on the end — which is how you add one without a button that has to
+know how many there are. Clearing a row's field removes that clause and the list
+compacts, so "clear the first of two" leaves one clause rather than a hole.
+
+**There is no OR and there is not going to be one.** An OR needs groups, groups
+need a builder, and a builder is a query UI — which is precisely the thing
+tags-becoming-drawers exists to avoid (decision 22). Two clauses covers what a
+desk actually asks; if you want a union, that is two drawers, and two drawers on
+a board is a thing you can see.
+
+Two smaller repairs came with it, both of which had made date rules useless:
+
+- **A date is compared as a date.** `numOf()` strips everything but digits, dots
+  and minus signs, so `"2026-08-19"` came out of it as `2026` — every "due
+  before" rule was an assertion about the year. ISO dates sort as strings, which
+  is the whole reason they are stored as strings.
+- **A date written into a rule goes stale.** So five words are resolved when the
+  rule *runs* rather than when it was written: `today`, `tomorrow`, `week`,
+  `month`, `year`. "Before next week" keeps meaning it on Monday.
+
+`rule` is still read where `rules` is absent, so a backup made before migration
+21 collects exactly what it always did.
+
+---
+
+### 64. A render is not a change
+
+`render()` ended with `save()` and a comment saying "cheaply". At the size
+Bureau is used at, the comment was right: 0.4ms. At three thousand objects it is
+**35ms** — the most expensive thing in the frame — and it fired for renders that
+changed nothing at all: walking to the next desk, turning a page, opening a
+drawer, closing a panel. On the 250ms debounce, while you are dragging.
+
+Every mutation already says `save()` for itself. The only thing a *render*
+writes is a box invented by `ensureBox()` for an object appearing in a layout
+for the first time — so placement says so, with a counter (`PLACED.n`) that
+render() reads either side of the build. Everything else goes through
+`saveIfDirty()`, which writes only when a real change is waiting.
+
+A counter rather than a call into `persist.js`, because a module that answers
+questions about coordinates has no business knowing what a disk is.
+
+The debounce changed shape at the same time. It used to `clearTimeout` on every
+call, so a change every 200ms — which is what a drag is — pushed the write
+further away each time and nothing reached storage until you let go. It is a
+**ceiling** now: the first change starts a 250ms clock and later ones ride it,
+so a write lands at least that often however busy it is. Safer as well as
+faster.
+
+---
+
+### 65. Undo covers everything, and there is a redo
+
+`pushUndo` was called from four places, all of them deletions. A panel edit, a
+drag, a resize, a type change, a colour, a reparent — none of it was on the
+stack, and ⌘Z after one of them did nothing, silently. That is worse than having
+no undo at all, because you try it.
+
+Three additions and no new machinery:
+
+- **`pushSet`** records one field going back to what it was, and **coalesces**:
+  a set touching the same field of the same object within 1.5s rides the move on
+  top rather than pushing another, keeping the *first* value — which is what
+  "before I started typing" means. Without it a ten-letter rename is ten moves
+  and the stack is full of one edit.
+- **`pushSets`** records several fields of several objects as one move, which is
+  what a drop is: a reparent carries both boxes, a scheduled drop carries both
+  dates, a group drag carries every tile in it.
+- **`redo`** is a second stack. `applyMove()` replays a move backwards *and*
+  returns the move that would replay it — so redo is not a special case, it is
+  the same function pointed the other way. A new move clears the redo stack,
+  because keeping it across an edit is how a redo comes to reinstate a change on
+  top of a desk it no longer fits.
+
+One thing is deliberately left out: the **desk's own settings**, which live in
+`S.deskCfg` and have no id for a step to point at. Giving them one would mean
+inventing an object for the one container that deliberately hasn't got one.
+
+---
+
+### 66. A panel asks one question
+
+The object editor was nineteen rows in one column — name, type, where it lives,
+shape, colour, a wall of thirty marks, text size, edge, border, knob, knob
+colour, texture, board, click, opening, reading, every field its traits carry,
+milestones, a streak, tags, relations, traits, duplicate, delete. Settings was
+seventeen sections with a *Testing* button among them and "erase everything"
+three scrolls past the thing you came for. Everything an object can be asked was
+in one place, which was the point, and it made changing a colour a scroll past
+everything an object can be asked. On a phone the panel covers the board, so
+that scroll is the whole screen.
+
+Both are a short list of **doors** now. The object editor's top is what you came
+for — the thing itself on its stage, its name, its type, where it lives — and
+under it: Look, Behaviour, Fields, Collects, Tags and links, Traits. Settings
+is Style, Appearance, Your things, Paste in, About.
+
+Each door is the **same panel under the same key**, so a section replaces rather
+than stacks. `spec.back` is the way out — a chevron in the head — and it is the
+one thing a replaced panel never had, which is why this had been sitting open on
+the roadmap since INFLUENCES.md named it.
+
+*Against:* everything is one press further away than it was. That is the trade,
+and it is the right way round: the rows you reach for most are on the top level,
+and the twelve you touch once a year are behind a word that says which is which.
+
+---
+
+### 67. The picker leads with what you use
+
+Forty types in six sections, every time, on every device, wherever you were. The
+most beautiful screen in the app and a catalogue.
+
+It leads with a handful now — five, counted off `S.objects` — and every type is
+behind one more press. Counted rather than stored, because a frequency you keep
+is a frequency that goes stale and needs migrating; the count is three lines and
+answers from the desk in front of you.
+
+And a container that says what it makes goes **first**, whatever the tally says.
+`genKind` already existed for the typing box; opening the picker *inside* a
+Recipe is a stronger signal about what you are about to make than anything a
+count across the whole desk knows. This is Notion's schema idea on machinery
+Bureau already had.
+
+---
+
+### 68. Make the textarea behave; don't fake the paper
+
+INFLUENCES.md recommended a syntax-highlight overlay behind a transparent
+textarea — "80% of the feel for a fraction of the risk". **That is withdrawn**,
+and the reason is structural rather than fiddly: the overlay has to share the
+textarea's metrics exactly, and a textarea has one font at one size for all of
+its text. So an overlay can change colour and can never change size or weight,
+and a heading that is not bigger is not a heading. Bear's effect is a custom
+text engine on a native text view; its own team built a second editor around
+that behaviour rather than getting it from a control.
+
+`contenteditable` can do it properly, is real work, is famously bad on iOS, and
+is the first step down the road to a block editor, which is on the never list.
+
+So the paper is left alone and the **typing** is made good, which is what people
+actually miss:
+
+    Return in a list     continues it — a bullet, a number, an emptied box
+    Return on an empty   ends the list, rather than making another empty one
+    ⌘B / ⌘I              wraps what is selected, and again takes it off
+
+All of it goes through `insertText` where the browser has it, because that is
+what keeps the textarea's own undo working — and ⌘Z inside a field is the
+browser's to answer.
+
+Bureau already has the other half. The reading surface did not exist when
+INFLUENCES was written, and it is better paper than any editor's preview.
+
+**And one object comes out as markdown.** Export was a whole-desk JSON button in
+Settings — the right shape for a backup and no shape at all for "send me that
+note". Copy is on the writing surface, the reading surface and the editor's
+foot: the title as a heading, the body, the tags. Obsidian earns its trust by
+being inspectable, and a store you can only get out of all at once is a store
+you hope about.
+
+---
+
+### 69. The palette answers to the keyboard
+
+⌘K opened a search field, and `Enter` ran result **zero**. The one list in the
+app you summon with the keyboard and type into blind was the one list you had to
+finish with the mouse. Arrows move the lit row now, and it wraps.
+
+It also did not search **tags**, in an app whose entire filing story is that a
+tag is a magic drawer waiting to happen. Now a tag matches as itself — running
+it opens the drawer that collects it, which is what pressing a tag anywhere else
+already does — and an object matches on its tags as well as its title and body.
+
+---
+
+### 70. The cursor on the board is the selection
+
+There was no keyboard on the board at all: no way between tiles, no way to open
+one, no way to delete one. That is also the accessibility gap the roadmap has
+carried since the module split, approached from the side that has a payoff you
+can see.
+
+The arrows do not introduce a second idea of "the current tile" — they move the
+**selection**, which already exists, already draws itself, and is already what
+the context menu and a group drag act on. Space or Return opens what is
+selected, ⌘⌫ deletes it, Escape puts it down.
+
+Nearest in the direction pressed, weighing distance *across* the axis double, so
+Right from a tall tile finds the thing beside it rather than the thing three rows
+down that happens to be marginally closer.
+
+---
+
+### 71. Two types that could not do their one job
+
+Audio and Video were real types with a mark, a size, a `mediaType` and a place in
+the picker — and the file input was `accept="image/*"`. So they existed in order
+to tell you they were not implemented, which is a promise the desk makes and
+does not keep.
+
+- The picker is told what to show, per object (`acceptFor`).
+- A sound or a video is stored as the **Blob itself**, not as a data URL: base64
+  is a third bigger, and a third bigger on a phone recording is tens of megabytes
+  for nothing. `hydrateAssets()` makes an object URL on the way out. A picture
+  stays a data URL — it is small after downscaling and it survives an export.
+- There is a **ceiling**, 60MB. IndexedDB will accept a file that then makes the
+  desk slow to open, and a refusal you can read beats a desk that has quietly
+  become sluggish.
+- The media surface **plays** them, with the browser's own transport. A player
+  is a control nobody should be reimplementing.
+- On the board they are a face — a mark, a name, how long it runs — and not a
+  player. Forty decoded media elements is a board that will not scroll.
+
+`isMedia(o)` is anything carrying a file and is what routes to the surface;
+`isPicture(o)` still means the image case, and `isPlayable(o)` is the other two.

@@ -2,16 +2,16 @@
    boot — load, wire, render, register the service worker
    ============================================================ */
 import { $ } from './util.js';
-import { S, KINDS, SHAPES, childrenOf, container, relate, deskOf } from './model.js';
+import { S, KINDS, SHAPES, childrenOf, container, relate, deskOf, has, lateOn, isLate } from './model.js';
 import { pageRows, freeSpot } from './grid.js';
-import { create, setPin, togglePin, del, delMany, delDrawer, undo, toggleDone, setGridSize } from './mutations.js';
+import { create, setPin, togglePin, del, delMany, delDrawer, undo, redo, toggleDone, setGridSize } from './mutations.js';
 import { applyLook } from './look.js';
 import { render, sizeGrid, viewHTML, settingsPanel, pageAt, pageCount, goPage } from './views.js';
-import { overlayHTML, objectPanel } from './panels.js';
+import { overlayHTML, objectPanel, modalNewObject } from './panels.js';
 import { wire } from './wire.js';
 import { openingFor, stepDrawer } from './motion.js';
-import { load, writeNow, save, hydrateAssets, pasteObjects } from './persist.js';
-import { renderSheet, openWriter, openRead, openViewer } from './sheet.js';
+import { load, writeNow, save, saveIfDirty, hydrateAssets, pasteObjects } from './persist.js';
+import { renderSheet, openWriter, openRead, openViewer, closeSheet, asMarkdown } from './sheet.js';
 
 const restored = load();
 const hash = (location.hash||'').replace('#','');
@@ -35,7 +35,7 @@ if('serviceWorker' in navigator){
 // The console/test surface. `kids` answers "what does this container show?",
 // which is the membership question the magic-drawer rules decide.
 window.BUREAU = {
-  get state(){ return S; }, render, create, save: writeNow,
+  get state(){ return S; }, render, create, save: writeNow, saveSoon: save,
   get K(){ return KINDS; },
   get shapes(){ return SHAPES; },
   paste: pasteObjects, relate, pin: togglePin, setPin, renderSheet,
@@ -44,7 +44,15 @@ window.BUREAU = {
   // the four things an object opens onto: its editor, its words, its paper,
   // and — for something made of an image — the picture
   panel: objectPanel, write: openWriter, read: openRead, view: openViewer,
-  del, delMany, delDrawer, undo, toggleDone,
+  del, delMany, delDrawer, undo, redo, toggleDone,
+  closeSheet,
+  // the type picker, so a test can open the thing rather than the gesture
+  pick: modalNewObject,
+  // what an object looks like on its way out — see decision 68
+  asMarkdown,
+  // the two questions a date can be asked: which day it sits on, and whether
+  // it is late — see decision 62
+  has, lateOn, isLate,
   // which movement a thing has decided on, for a test that would otherwise
   // have to reimplement the size rule to know what it is looking at
   openingFor,

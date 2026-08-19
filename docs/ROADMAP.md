@@ -5,57 +5,66 @@ Sequenced by dependency, not appetite: item 1 makes everything after it safer.
 
 ---
 
-## 0m. Queued 2026-08-19 (thirteenth pass) — not started
+## 0m. Queued 2026-08-19 (thirteenth pass) — DONE (v0.62)
 
-From `docs/DIAGNOSTIC.md`, which is the whole review — findings, measurements,
-and what Bear, Things 3 and Notion are worth taking now. This is the plan half
-of it, in dependency order. Three passes, then a decision.
+The whole of `docs/DIAGNOSTIC.md`, built in one pass. Decisions 62–71.
 
-**13 — the words on the board.** All visible, all cheap, no migration.
+**13 — the words on the board.**
 
-1. **A tile prints words, not source.** `gridTile()` escapes the raw body, so
-   every type that ships with a markdown template puts `**` and `##` on the
-   desk. A `plain()` reduction beside `md()` in `util.js` — not `md()` itself,
-   because a face is not a page. Twenty lines, and it changes every screen
-2. **The writing surface behaves like an editor**: Return continues a list,
-   `**` wraps a selection, `#` at the start of a line, ⌘B. *Not* the markdown
-   overlay INFLUENCES recommended — see the correction in DIAGNOSTIC §4
-3. **Copy one object out as markdown.** Export is all-or-nothing JSON today
-4. **The picker leads with what this desk uses**, the other thirty-five behind
-   "more". A frequency count over `S.objects`, stored nowhere
-5. **⌘K takes arrow keys and searches tags.** It runs result zero or nothing
+- **a tile prints words, not source.** `plain()` in `util.js` takes the marks
+  off and keeps the writing, and `.tiletext` is `pre-line`, so a note printed on
+  a tile has the paragraphs it was written with. Every type shipping a body
+  template was putting `**` and `##` on the desk. `strip()` is gone with it — it
+  replaced every hyphen with a space, so "twenty-one" printed as two words
+- **the writing surface behaves like an editor**: Return continues the list you
+  are in, Return on an empty item ends it, ⌘B and ⌘I wrap what is selected. All
+  of it through `insertText`, so the textarea's own undo still works. *Not* the
+  markdown overlay INFLUENCES recommended — see decision 68 for why it cannot
+  work at all
+- **one object comes out as markdown**, from the writing surface, the reading
+  surface and the editor's foot
+- **the picker leads with a handful** — five, counted off the desk — and a
+  container that says what it makes goes first, whatever the tally says
+- **⌘K takes arrow keys and searches tags**, and a tag match opens the drawer
+  that collects it
 
 **14 — the drawer knows what it holds.**
 
-6. **Two-clause rules**, ANDed, with the migration. The shorthands already
-   stack; what there is exactly one of is the free field clause, so "due this
-   week" cannot be said. No OR — that needs groups, and groups are a query UI
-7. **`genKind` reaches the picker and the sketched box**, not just the typing
-   box — Notion's schema idea, on machinery that already exists
-8. **Rollups on every face**, not the two that have them
-9. **Panels that ask one question.** The object editor is nineteen rows and
-   settings is seventeen sections; INFLUENCES said this and it is still true
+- **up to three clauses, ANDed**, with migration 21. And two repairs that had
+  made every date rule useless: a date compares as a date rather than as the
+  year, and five words — `today`, `tomorrow`, `week`, `month`, `year` — resolve
+  when the rule runs rather than when it was written
+- **rollups on every face**, not the two that had them
+- **panels that ask one question.** The object editor is a stage, a name, a type,
+  where it lives, and six doors; settings is five. `spec.back` is the way out,
+  which is the thing a replaced panel never had
 
 **15 — repair and keys.**
 
-10. **Undo covers edits, moves and reparents, and there is a redo.** The stack
-    only knows about deletion
-11. **A dirty flag**, so `render()` stops serialising a desk that did not
-    change — 35ms per save at 3,000 objects, for renders that changed nothing
-12. **Arrow keys on the board**, space to open, ⌘⌫ to delete. Also the
-    accessibility gap in §4, approached from the side with a visible payoff
-13. **Wire audio and video, or take them out of the picker.** They are types
-    that cannot do their one job
+- **undo covers everything and there is a redo.** Every editor row, every drag,
+  every drop, every reparent. Typing coalesces, so a rename is one move
+- **a render is not a change.** `render()` was serialising the whole desk after
+  every rebuild — 35ms at three thousand objects, on a 250ms timer, while you
+  drag. It saves what changed now, and the debounce is a ceiling rather than a
+  quiet-period
+- **the board has a keyboard**: the arrows move the selection, space opens, ⌘⌫
+  deletes, Escape puts it down
+- **audio and video work.** The picker is told what to show, the file is stored
+  as a blob rather than base64, and the surface plays it. Two bugs fell out on
+  the way: `create()` stamped `type:'image'` on every media object at birth, so
+  an Audio declared itself a photograph, and the tile branch tested "carries
+  media" rather than "is a picture", so a sound with a file in it was drawn as
+  a photograph of nothing
 
-*Then a decision, not a pass:* sync (§5), and whether the native shell is worth
-it for reminders and widgets. Neither is work to start speculatively.
+**And Things 3's central idea, which was the ask:** `deadline` is an attribute
+of its own. `date`/`due` is the day a thing **sits** on; `deadline`/`dead` is the
+day it is **late**. Opt-in, so nothing already on a desk changes. `lateOn(o)`
+says which decides and `isLate(o)` is the answer — never `D.overdue(o.due)`.
 
-*Also queued from the same review, unsequenced:* a `deadline` attribute, so
-"when I will do it" and "when it is late" stop being one date (Things 3's
-central idea, and the one thing in it Bureau has not got); nested tags, so
-`#film/shoots` makes a magic drawer inside the one for `#film`; and
-template-spawn, which has been item 3 below since v30 and is the Notion feature
-that fits Bureau best.
+*Still open from this pass:* nested tags (`#film/shoots` making a drawer inside
+the one for `#film`), template-spawn, and the animation list in §0b-next, none
+of which were started. The desk's own settings are still outside undo, because
+`S.deskCfg` has no id for a step to point at.
 
 ---
 
@@ -508,9 +517,11 @@ panel replaces it and there is no way back except reopening.
 
 ## 4. Known small gaps (fold into any session)
 
-- rollups only render on drawer-front and checklist faces
-- accessibility: tiles are nested-interactive `<button>`s, no keyboard nav,
-  no ARIA
+- ~~rollups only render on drawer-front and checklist faces~~ — done in the
+  thirteenth pass; every face shows what a container totals
+- accessibility: tiles are nested-interactive `<button>`s and there is no ARIA.
+  Keyboard navigation landed in the thirteenth pass (the arrows move the
+  selection, space opens, ⌘⌫ deletes) — the labelling half is still open
 - corner-grip resize is hover-only — invisible on touch; mobile drag vs scroll
   needs device testing
 - ~~SPEC.md is three redesigns stale~~ — done (2026-08-12). SPEC.md and
@@ -521,15 +532,18 @@ panel replaces it and there is no way back except reopening.
 ## 4b. Borrowing from the four comparables
 
 `docs/INFLUENCES.md` (2026-08-13) appraises Things 3, Bear, Notion and Obsidian
-and proposes six changes in order — a shared transition vocabulary, panels that
-ask one question, a markdown highlight overlay in the sheet, rollups on every
-face, a container that types what you file into it, and a keyboard layer.
+and proposes six changes in order. Five of the six landed in the thirteenth pass
+— panels that ask one question, rollups on every face, a container that says what
+it makes, a keyboard layer, and the writing item in a different form.
 
-Two caveats worth carrying: it is an appraisal from observable behaviour, not
-sourced research, and it closes with three claims worth verifying before acting
-on them — chiefly what Bear's in-place markdown rendering actually *is*, which
-changes the cost of the biggest item by an order of magnitude. Do that check
-first if item 3 is the one that gets picked up.
+**Item 3 is withdrawn rather than done.** The markdown overlay cannot work: it
+must share the textarea's metrics exactly, and a textarea has one font at one
+size, so an overlay can colour and can never resize. See decision 68 and
+DIAGNOSTIC §4 for the replacement, which is to make the typing good and let the
+reading surface be the paper.
+
+**Item 1, a shared transition vocabulary, is the one still open**, along with the
+whole animation list in §0b-next.
 
 ## 5. Sync — blocked on a decision, not effort
 

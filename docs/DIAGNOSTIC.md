@@ -1,5 +1,12 @@
 # Diagnostic — 19 August 2026
 
+> **All of it was built the same day, in v0.62.** Every item in §6 landed, plus
+> the `deadline` attribute from §4. See ROADMAP §0m for what shipped and
+> decisions 62–71 for why each one is the shape it is. What is *still* open is
+> at the foot of that roadmap entry: nested tags, template-spawn, and the
+> animation list. This file is kept as written — a diagnostic that gets edited
+> to agree with what was done afterwards is not a diagnostic.
+
 The thirteenth pass is not written yet; this is the look at the app that decides
 what it should be. Read with `ROADMAP.md`, which carries the plan this proposes,
 and `INFLUENCES.md`, which this corrects in one place.
@@ -27,8 +34,15 @@ idea that got built halfway and stopped*.
 
 `test/scale-probe.mjs` — new, run by hand, not part of the smoke test. It pours
 objects onto the sample desk and times a render, the string build inside it, and
-a full save. Headless Chromium on a fast machine, so read it as *shape*, not as
-milliseconds on an iPhone; a real handset is roughly two to four times slower.
+a full save. Headless Chromium, so read it as *shape*, not as milliseconds on an
+iPhone; a real handset is roughly two to four times slower.
+
+**And read it against itself, not across runs.** Re-running these numbers after
+the pass gave figures 30–50% higher at *every* size, including 145 objects where
+almost nothing changed — and `save`, whose code path was not touched at all,
+went from 0.4ms to 1.2ms on the same 42 KB. That is the machine, not the app.
+A timing comparison across a session is worth nothing here; what a change did
+has to be shown some other way, which is what the smoke test is for.
 
 | Objects | Mac render | Mac build | Mac save | Phone render | Phone build | Tiles drawn (Mac / phone) | Stored |
 | ---: | ---: | ---: | ---: | ---: | ---: | :---: | ---: |
@@ -64,6 +78,12 @@ The debounce means it lands once per 250ms rather than per render, which is
 exactly the interval at which you would notice it while dragging. A dirty flag
 set by the mutations and cleared by `writeNow()` is about six lines and removes
 the whole class.
+
+> **Fixed in v0.62** (decision 64), and guarded as a *count* rather than a
+> time: `savesOnlyChanges.idleRendersDoNotWrite` in the smoke test wraps
+> `localStorage.setItem`, renders six times, and requires zero writes. A count
+> is the honest way to assert this — it says the thing that was actually wrong,
+> and it does not move when the machine does.
 
 **Storage has a ceiling and it is further away than it feels.** About 260 bytes
 an object. `localStorage` is ~5MB, so the hard wall is around 19,000 objects;

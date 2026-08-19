@@ -11,6 +11,13 @@ const ATTRS = {
   text:     {nm:'Text',       ds:'A markdown body'},
   check:    {nm:'Checkbox',   ds:'A box on the left that completes it'},
   date:     {nm:'Date',       ds:'Can be scheduled, and shows up in Today'},
+  /* When you will do it and when it is actually late are two different facts,
+     and an app that stores one makes you lie about the other. `date` is the day
+     a thing *sits* on — what a calendar draws it on and what Today collects.
+     `deadline` is the day it is *late*. Opt-in, so nothing already on the desk
+     changes and a thing merely scheduled for Friday stays a different thing
+     from a thing owed on Friday. See decision 62. */
+  deadline: {nm:'Deadline',   ds:'The day it is late — separate from the day you have put it on'},
   span:     {nm:'Lasts',      ds:'Runs from its date to another one — a trip, a shoot, a term'},
   repeat:   {nm:'Repeats',    ds:'Completing it spawns the next one'},
   button:   {nm:'Button',     ds:'A button that opens an object, a drawer, or a link'},
@@ -37,7 +44,8 @@ const ATTRS = {
    rather than the four things it used to know about. */
 const FIELDS = {
   check:    {key:'done',   type:'bool',   nm:'Done'},
-  date:     {key:'due',    type:'date',   nm:'Due'},
+  date:     {key:'due',    type:'date',   nm:'On'},
+  deadline: {key:'dead',   type:'date',   nm:'Due by'},
   span:     {key:'till',   type:'date',   nm:'Runs until'},
   repeat:   {key:'repeat', type:'text',   nm:'Repeats'},
   link:     {key:'url',    type:'text',   nm:'Link'},
@@ -395,7 +403,7 @@ function reset(){
     // editId is the tile being typed in on the board — a double tap turns a
     // name into a field in place. writeId is the full-screen writing surface.
     // viewId is the picture surface: what an object made of an image opens onto
-    undo:[], editing:false, sel:[], readId:null, writeId:null, viewId:null, editId:null, bookAt:0,
+    undo:[], redo:[], editing:false, sel:[], readId:null, writeId:null, viewId:null, editId:null, bookAt:0,
     // a desk you have arranged is one you want to look at, so it starts locked
     deskCfg:{layout:'grid', locked:true, sort:null},
     look:defaultLook()
@@ -524,6 +532,16 @@ const mediaTypeOf = o => (o && o.media && o.media.type) || K(o&&o.kind).mediaTyp
 /* A picture: something that carries media, and whose media is an image. This is
    what opens onto the picture surface rather than onto paper. */
 const isPicture = o => has(o,'media') && mediaTypeOf(o)==='image';
+/* …and the other two. Audio and Video were real types with a mark, a size and a
+   place in the picker, and the file input was `accept="image/*"` — so they
+   existed in order to tell you they were not implemented, which is a promise
+   the desk makes and does not keep. `isMedia(o)` is anything that carries a
+   file at all, and it is what decides which things open onto the media surface
+   rather than onto paper. See decision 71. */
+const isMedia = o => has(o,'media');
+const isPlayable = o => isMedia(o) && mediaTypeOf(o)!=='image';
+/* What the file picker should be willing to show for it. */
+const acceptFor = o => ({image:'image/*', audio:'audio/*', video:'video/*'})[mediaTypeOf(o)] || 'image/*';
 
 /* The four at the end are the newer answers to "what does a task look like",
    which is a question a plain sliver only ever answered by not being anything.
@@ -656,24 +674,67 @@ function inContainer(c,o){
     if(f.loose && !isDesk(o.parent||ROOT)) return false;
     if(f.tag && !(o.tags||[]).includes(f.tag)) return false;
     if(f.kinds && f.kinds.length && !f.kinds.includes(o.kind)) return false;
-    if(f.rule && !matchRule(o, f.rule)) return false;
-    return !!(f.tag || (f.kinds&&f.kinds.length) || f.rule || f.loose);
+    const rs=rulesOf(f);
+    if(rs.length && !rs.every(r=>matchRule(o,r))) return false;
+    return !!(f.tag || (f.kinds&&f.kinds.length) || rs.length || f.loose);
   }
   if(o.done && !keepsDone(c)) return false;
   return o.parent===c.id;              // an ordinary drawer holds what is filed in it
 }
+/* ---- clauses ----------------------------------------------------------
+   A magic drawer used to carry exactly one `filter.rule`. The shorthands
+   already stacked — kinds AND tag AND loose AND the rule — but the *free*
+   clause was one, so "due after Monday and before Friday" could not be said,
+   and neither could "high priority and has a duration".
+
+   `filter.rules` is an array now, ANDed, capped at RULE_MAX. There is no OR
+   and there is not going to be one: an OR needs groups, groups need a rule
+   builder, and a rule builder is a query UI — which is the thing
+   tags-become-drawers exists to avoid. Two clauses covers what a desk asks.
+
+   `rule` is still read so an old snapshot works before migration 18 runs, and
+   so does anything that writes one by hand. See decision 63. */
+const RULE_MAX = 3;
+const rulesOf = f => {
+  const rs = (f && f.rules) || (f && f.rule ? [f.rule] : []);
+  return rs.filter(r=>r && r.f);
+};
 /* One clause: a field, a comparison, a value. Everything a magic drawer can
    ask about an object goes through here. */
-const OPS = {is:'is', not:'is not', has:'contains', gt:'more than', lt:'less than', any:'has any'};
+const OPS = {is:'is', not:'is not', has:'contains', gt:'after / more than', lt:'before / less than', any:'has any'};
+/* A date written into a rule as a fixed day goes stale the morning after, so
+   "due this week" would have to be rewritten every Monday. These five words
+   are resolved when the rule is *matched* rather than when it is written, so a
+   drawer that says "before next week" keeps meaning it. Anything else is read
+   as the ISO date it looks like. */
+const WHENS = {today:'today', tomorrow:'tomorrow', week:'in a week', month:'in a month', year:'in a year'};
+const whenISO = v => {
+  const s=String(v??'').trim().toLowerCase();
+  if(s==='today') return T;
+  if(s==='tomorrow') return D.addISO(T,1);
+  if(s==='week') return D.addISO(T,7);
+  if(s==='month') return D.addISO(T,30);
+  if(s==='year') return D.addISO(T,365);
+  return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : null;
+};
 function matchRule(o, r){
   if(!r || !r.f) return true;
   const fld=fieldOf(r.f); if(!fld) return true;
   if(!attrsOf(o).includes(r.f)) return false;      // it hasn't got that field
   const v=valOf(o, fld.key);
+  /* A date is compared as a date. `numOf` strips everything but digits, dots
+     and minus signs, so "2026-08-19" came out of it as 2026 — which made every
+     "due before" rule an assertion about the year. ISO dates sort as strings,
+     which is the whole reason they are stored as strings. */
+  if(fld.type==='date' && (r.op==='gt' || r.op==='lt')){
+    const a=whenISO(v), b=whenISO(r.v);
+    if(!a || !b) return false;
+    return r.op==='gt' ? a>b : a<b;
+  }
   switch(r.op){
     case 'any':  return Array.isArray(v) ? v.length>0 : v!=null && v!==false;
-    case 'is':   return String(v??'')===String(r.v??'');
-    case 'not':  return String(v??'')!==String(r.v??'');
+    case 'is':   return String(v??'')===String(fld.type==='date' ? (whenISO(r.v)??r.v) : r.v ?? '');
+    case 'not':  return String(v??'')!==String(fld.type==='date' ? (whenISO(r.v)??r.v) : r.v ?? '');
     case 'has':  return Array.isArray(v) ? v.includes(r.v) : String(v??'').toLowerCase().includes(String(r.v??'').toLowerCase());
     case 'gt':   { const n=numOf(o,fld.key); return n!=null && n>parseFloat(r.v); }
     case 'lt':   { const n=numOf(o,fld.key); return n!=null && n<parseFloat(r.v); }
@@ -813,6 +874,26 @@ const coversDay = (o, iso) => { const s=spanOf(o);
   return s ? (iso>=s.from && iso<=s.to) : o.due===iso; };
 const lastDay = o => { const s=spanOf(o); return s ? s.to : (o&&o.due)||null; };
 
+/* ---- when it sits, and when it is late --------------------------------
+   Two different facts, and for a long time `due` was carrying both. It still
+   answers the first — the day a thing is drawn on, the day Today collects it,
+   the day a drag onto a calendar cell writes. `dead` answers the second, and
+   only for something carrying the attribute.
+
+   `lateOn(o)` is which of them decides lateness: the deadline when there is
+   one, otherwise the day it sits on, which is what everything did before this
+   existed. So nothing already on a desk changes, and the moment you give
+   something a deadline the two questions come apart: a task put on Monday with
+   a deadline of Friday is not late on Tuesday, and it used to be.
+
+   A thing that is finished is never late. See decision 62. */
+const lateOn = o => {
+  if(!o || o.done) return null;
+  if(has(o,'deadline') && o.dead) return o.dead;
+  return lastDay(o);
+};
+const isLate = o => { const d=lateOn(o); return !!d && D.overdue(d); };
+
 /* A timeline's axis, as two dates. Read from what it holds — but an empty
    timeline, or one where everything happened on a Tuesday, has no span to
    measure a drop against, so it opens out to four weeks either side. A timeline
@@ -891,10 +972,12 @@ export { ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds, K,
   shapeOf, READS, readOf, spreadOf, OPENINGS, openingOf, gathersOf, gatherKind, containers,
   deskIds, deskList, isDesk, deskOf, deskHere,
   placeOf,
-  spanOf, coversDay, lastDay,
+  spanOf, coversDay, lastDay, lateOn, isLate,
   KNOBSIZES, knobSizeOf, answered, iconOf, TSIZES, textSizeOf, mediaTypeOf, isPicture,
+  isMedia, isPlayable, acceptFor,
   spawnByOf, genKindOf, takesTyping, keepsDone, showsContainers,
   CALVIEWS, calViewOf, weekStartOf, showsWeekends, calCols,
-  OPS, ROLLS, rollup, SORTS, MANUAL, sortOf, childrenOf, beginPass, endPass, isAncestor,
+  OPS, WHENS, whenISO, RULE_MAX, rulesOf, matchRule,
+  ROLLS, rollup, SORTS, MANUAL, sortOf, childrenOf, beginPass, endPass, isAncestor,
   relatedTo, backlinksTo, relate, unrelate, chainOf, tlSpan, streak, goalPct,
   allUnder, progressOf, projectStat, allTags };

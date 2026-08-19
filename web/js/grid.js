@@ -218,12 +218,27 @@ function sizeOfKind(k, device, cid){
   const [pw,ph] = toPhoneSize(w, h, kindHas(k,'container'));
   return [Math.min(pw, cols), ph];
 }
+/* Rendering is the one thing that writes state without being a mutation:
+   `ensureBox()` invents a box the first time an object appears in a layout, and
+   that is a fact worth keeping. `render()` used to cover it by saving after
+   every single rebuild — which at three thousand objects is 35ms of
+   serialising a desk that in almost every case had not changed at all, on the
+   250ms debounce, while you are dragging.
+
+   So placement says so. `PLACED.n` goes up only when a box is actually
+   invented; render() compares it either side of the build and saves for real
+   when it moved, and asks storage to save only what is dirty otherwise. A
+   counter rather than a call into persist.js, because a module that answers
+   questions about coordinates has no business knowing what a disk is.
+   See decision 64. */
+const PLACED = {n:0};
 function ensureBox(o, device, parentId){
   const dv=device||dev();
   const home = parentId||o.parent||ROOT;
   if(o[dv] && o[dv].w) return o[dv];
   const [w,h]=sizeOfKind(o.kind, dv, home);
   o[dv] = freeSpot(w, h, dv, home);
+  PLACED.n++;
   return o[dv];
 }
 
@@ -236,4 +251,5 @@ function cellW(grid,g){
 
 export { GRID, PHONE_GRIDS, PHONE_MAX_H, PHONE_MAX_NEW, CELL, COLW, MEASURE,
   colsOf, gridKeyOf, pageRows, pageOfBox, lastPage,
-  gridOf, lay, overlaps, boxOk, freeSpot, gridRows, sizeOfKind, toPhoneSize, ensureBox, cellW };
+  gridOf, lay, overlaps, boxOk, freeSpot, gridRows, sizeOfKind, toPhoneSize, ensureBox, cellW,
+  PLACED };

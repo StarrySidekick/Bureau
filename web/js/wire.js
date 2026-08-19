@@ -1,22 +1,24 @@
 import { $, $$, esc, ic, uid, D, ROOT } from './util.js';
 import { S, K, KINDS, KEYS, refreshKinds, ATTRS, USER_ATTRS, attrsOf, has, SHAPES,
   FACES, MANUAL, byId, container, cfgOf, isContainer, isAncestor, relate, deskOf,
-  unrelate, sensedDevice, reset, T, dz, dev, calViewOf } from './model.js';
+  unrelate, sensedDevice, reset, T, dz, dev, calViewOf, RULE_MAX, acceptFor } from './model.js';
 import { gridOf, lay, boxOk, freeSpot, toPhoneSize } from './grid.js';
 import { applyLook, applyStyle, setLookVal, lookVal, STYLES, randomFront,
   setSlot, palNow, objColour, darkMode } from './look.js';
-import { toast, setGridSize, toggleDone, del, delMany, delDrawer, undo, pushUndo, setPin, togglePin, drawerForTag, create, quickAdd, spawnInto, randomThing } from './mutations.js';
+import { toast, setGridSize, toggleDone, del, delMany, delDrawer, undo, redo, pushUndo,
+  pushSet, pushSets, setPin, togglePin, drawerForTag, create, quickAdd, spawnInto, randomThing } from './mutations.js';
 import { spinTo, pending, placeAtPending, tileTap, turnPage, clearPages } from './tiles.js';
-import { render, sizeGrid, toggleSettings, reveal, goPage, deskMap } from './views.js';
-import { openObj, openWriter, openRead, openViewer, closeSheet, renderSheet, words } from './sheet.js';
-import { openPanel, closePanel, refreshPanel, panelKey, draft, openMenu,
+import { render, sizeGrid, toggleSettings, settingsPanel, reveal, goPage, deskMap } from './views.js';
+import { openObj, openWriter, openRead, openViewer, closeSheet, renderSheet, words,
+  mdKey, copyObject } from './sheet.js';
+import { openPanel, closePanel, refreshPanel, panelKey, panelBack, draft, openMenu,
   modalNewObject, modalNewKind, modalMove, renderPreview,
   drawerPanel, objectPanel,
-  drawerFromSelection, openCtx, closeCtx, openCmd, closeCmd, cmdList, runCmd } from './panels.js';
+  drawerFromSelection, openCtx, closeCtx, openCmd, closeCmd, cmdList, cmdMove, cmdAt, runCmd } from './panels.js';
 import { onDown, onMove, onUp, onCancel, onTouchStart, onTouchMove, onTouchEnd,
   gestureFlags, dragArmed } from './gestures.js';
 import { enter, pagerOn } from './motion.js';
-import { save, writeNow, exportBackup, importBackup, importImage, imgFor, pasteObjects, install } from './persist.js';
+import { save, writeNow, exportBackup, importBackup, importFile, imgFor, pasteObjects, install } from './persist.js';
 
 /* Mark one chip in a group as the chosen one. The selector is deliberately
    class-agnostic — the chips in these groups have changed class twice. */
@@ -51,12 +53,57 @@ const slotVal = v => /^\d+$/.test(v) ? +v : v;
    is nested: `rule.f` is filter.rule.f, `roll.fn` is the rollup's function.
    Everything else is the field of that name, with '' meaning "unset". */
 const BOOLSET = ['locked','edge','weekends'];
+/* Which *top-level* field of the object a row actually writes. A nested key
+   like `rule.1.op` changes one letter of `filter`, and undo puts fields back
+   whole — so the step has to name `filter`, not the fragment. Anything not
+   listed writes the field of its own name. */
+const UNDOKEY = {
+  'filter.tag':'filter', 'filter.loose':'filter', 'filter.scope':'filter',
+  'roll.fn':'roll', 'roll.f':'roll',
+  'linklabel':'link', 'linktarget':'link', 'linkurl':'link',
+  'mtype':'media'
+};
+const clone = v => (v && typeof v==='object') ? JSON.parse(JSON.stringify(v)) : v;
 function setField(el){
   const raw=el.dataset.oset||'', i=raw.indexOf(':');
   const id=raw.slice(0,i), key=raw.slice(i+1);
   const o=byId(id), t=cfgOf(id);
   if(!t) return;
   const v=el.value;
+  /* Every row in the editor is undoable now. Only for a real object, though:
+     the desk's own settings live in `S.deskCfg`, which has no id for a step to
+     point at, and giving it one would mean inventing an object for the one
+     container that deliberately hasn't got one. `parent` carries its two boxes,
+     because moving to another container clears them; `kind` carries its
+     attributes and whatever milestones it was given on the way past.
+     See decision 65. */
+  if(o && t===o && key!=='pin'){
+    if(key==='parent') pushSets('Moved', [[id,'parent',o.parent],[id,'desk',clone(o.desk)],[id,'phone',clone(o.phone)]]);
+    else if(key==='kind') pushSets('Type changed', [[id,'kind',o.kind],[id,'attrs',clone(o.attrs)],[id,'milestones',clone(o.milestones)]]);
+    else if(key==='knobtone') pushSets('Changed', [[id,'knobtone',o.knobtone],[id,'knobc',o.knobc]]);
+    else { const uk = UNDOKEY[key] || (/^rule\./.test(key) ? 'filter' : key);
+           pushSet('Changed', id, uk, clone(o[uk])); }
+  }
+  /* `rule.<n>.<f|op|v>` — one clause of a list of them, ANDed. Before the
+     switch, because the key carries an index and a `case` cannot match a
+     pattern. A clause that loses its field is dropped rather than left as an
+     empty row matching everything, and the list is compacted afterwards, so
+     clearing the first of two leaves one clause rather than a hole. The old
+     single `rule` is folded in on first touch, for a desk restored from a
+     backup made before migration 21. See decision 63. */
+  const ix = key.match(/^rule\.(\d+)\.(\w+)$/);
+  if(ix){
+    if(!o) return;
+    const f=Object.assign({}, o.filter);
+    const rs=(f.rules || (f.rule ? [f.rule] : [])).map(r=>Object.assign({}, r));
+    delete f.rule;
+    while(rs.length <= +ix[1]) rs.push({op:'is'});
+    rs[+ix[1]][ix[2]] = v;
+    f.rules = rs.filter(r=>r && r.f).slice(0, RULE_MAX);
+    o.filter = f;
+    save();
+    return;
+  }
   switch(key){
     case 'pin': setPin(id, v||null); break;   // '', 'desk' or 'pin'
     case 'kind':
@@ -83,14 +130,6 @@ function setField(el){
       if(key==='linklabel') o.link.label=v;
       else if(key==='linktarget'){ if(v) o.link.target=v; }
       else if(v) o.link.target=v;
-      break;
-    }
-    case 'rule.f': case 'rule.op': case 'rule.v': {
-      if(!o) break;
-      o.filter=Object.assign({}, o.filter);
-      const r=Object.assign({op:'is'}, o.filter.rule);
-      r[key.slice(5)]=v;
-      o.filter.rule = r.f ? r : undefined;
       break;
     }
     case 'filter.tag': if(o) o.filter=Object.assign({}, o.filter, {tag:v||undefined}); break;
@@ -244,7 +283,17 @@ function act(name, el){
     case 'import': $('#importer').click(); break;
     // from an object's Media row the file replaces *that* object's picture;
     // from anywhere else it makes a new one on the board you are looking at
-    case 'pickimage': imgFor.id = el.dataset.id || null; $('#imgpicker').click(); break;
+    /* One picker, told what to show. It was `accept="image/*"` in the markup,
+       which is why an Audio object could be made and never filled — it opened a
+       picker that refused to show it a sound. See decision 71. */
+    case 'pickimage': {
+      const who = el.dataset.id ? byId(el.dataset.id) : null;
+      imgFor.id = el.dataset.id || null;
+      const p=$('#imgpicker');
+      p.accept = who ? acceptFor(who) : 'image/*,audio/*,video/*';
+      p.click();
+      break;
+    }
     /* Taking the picture back out. Destructive, so it is a move on the undo
        stack like any other — and the bytes are *not* freed here: the move holds
        the assetId and reap() lets go of it when the move falls off the bottom
@@ -279,6 +328,9 @@ function act(name, el){
     }
     case 'drawersettings': case 'objset': objectPanel(el.dataset.id); break;
     case 'panelclose': closePanel(); break;
+    case 'panelback': panelBack(); break;
+    // one object out as words — see decision 68
+    case 'copymd': copyObject(el.dataset.id || S.openId); break;
     case 'appsettings': toggleSettings(); break;
     // the two surfaces an object opens onto, each reachable from the other
     case 'editthis': openWriter(el.dataset.id); break;
@@ -526,6 +578,12 @@ function wire(){
     // the page dots in the top shelf: two fingers turn pages, and so do these
     const gp=t.closest('[data-gopage]');
     if(gp){ goPage(S.view==='drawer'?S.drawerId:ROOT, +gp.dataset.gopage); return; }
+
+    // a door in the object editor — the same panel, one question of it
+    const os=t.closest('[data-osec]');
+    if(os){ const [oid,name]=os.dataset.osec.split(':'); objectPanel(oid, name); return; }
+    const ss=t.closest('[data-ssec]');
+    if(ss){ settingsPanel(ss.dataset.ssec); return; }
 
     const mv=t.closest('[data-moveto]');
     if(mv){ const [oid,did]=mv.dataset.moveto.split(':');
@@ -913,7 +971,7 @@ function wire(){
     }
     if(e.target.dataset.ksort2!=null){ const d=draft(); if(d) d.sortBy=e.target.value; return; }
     if(e.target.id==='imgpicker' && e.target.files && e.target.files[0]){
-      importImage(e.target.files[0]); e.target.value='';
+      importFile(e.target.files[0]); e.target.value='';
     }
     if(e.target.id==='importer' && e.target.files && e.target.files[0]){
       importBackup(e.target.files[0]); e.target.value='';
@@ -924,6 +982,10 @@ function wire(){
   });
 
   frame.addEventListener('keydown', e=>{
+    /* The writing surface behaves like an editor: Return continues the list you
+       are in, ⌘B and ⌘I wrap what you selected. sheet.js answers or it doesn't,
+       and when it does the browser is kept out of it. See decision 68. */
+    if(e.target.dataset.w==='body' && mdKey(e, e.target)){ e.preventDefault(); return; }
     if(e.target.dataset.fieldfor && e.key==='Enter'){
       const src=byId(e.target.dataset.fieldfor), text=e.target.value.trim();
       if(!text) return;
@@ -971,8 +1033,14 @@ function wire(){
       if(e.key==='Enter' && (e.metaKey||e.ctrlKey)){ e.preventDefault(); S.editId=null; render(); }
       return;
     }
+    /* The palette is summoned with the keyboard and typed into blind, so it has
+       to be finishable with the keyboard: Enter used to run result *zero*, which
+       meant reaching for the mouse for everything else in the list.
+       See decision 69. */
     if(e.target.id==='cmdinput'){
-      if(e.key==='Enter'){ runCmd(0); }
+      if(e.key==='ArrowDown'){ e.preventDefault(); cmdMove(1); return; }
+      if(e.key==='ArrowUp'){ e.preventDefault(); cmdMove(-1); return; }
+      if(e.key==='Enter'){ e.preventDefault(); runCmd(cmdAt()); return; }
       if(e.key==='Escape'){ closeCmd(); }
     }
   });
@@ -986,21 +1054,88 @@ function wire(){
     setTimeout(render, 0);      // let the click that started this land first
   }, true);
 
+  /* ---- the board, from the keyboard -------------------------------------
+     There was no keyboard on the board at all: no way between tiles, no way to
+     open one, no way to delete one — which is also the accessibility gap the
+     roadmap has carried since the module split, approached from the side that
+     has a payoff you can see.
+
+     The cursor is the **selection**, which already exists, already draws itself,
+     and is already what the context menu and a group drag act on. So the arrows
+     do not introduce a second idea of "the current tile": they move the one
+     Bureau has. Nearest in the direction you pressed, weighing distance across
+     the axis double, so Right from a tall tile finds the thing beside it rather
+     than the thing three rows down that happens to be marginally closer.
+     See decision 70. */
+  const ARROWS = {ArrowLeft:[-1,0], ArrowRight:[1,0], ArrowUp:[0,-1], ArrowDown:[0,1]};
+  function boardTiles(){
+    return $$('#app .grid > .drawer, #app [data-listfor] > .listband').map(el=>{
+      const id = el.dataset.drawer || el.dataset.row || el.dataset.id;
+      const r = el.getBoundingClientRect();
+      return id && r.width ? {id, x:r.left+r.width/2, y:r.top+r.height/2} : null;
+    }).filter(Boolean);
+  }
+  function boardKey(e){
+    // a surface or a field owns the keys while it is up; so does an open panel's
+    // own list, which answers for itself
+    if(S.readId||S.writeId||S.viewId||S.editId) return false;
+    const dir=ARROWS[e.key];
+    const tiles=dir||S.sel.length ? boardTiles() : null;
+    if(dir){
+      if(!tiles.length) return false;
+      e.preventDefault();
+      const cur = S.sel.length===1 && tiles.find(t=>t.id===S.sel[0]);
+      /* Nothing selected: start at the top left, not at whatever happens to be
+         first in the DOM. Array order positions nothing on a grid (decision 10),
+         so "the first tile" is a fact about `S.objects`, and starting from the
+         far right meant the first arrow press had nowhere to go. */
+      if(!cur){
+        const home = tiles.slice().sort((a,b)=>(a.y-b.y) || (a.x-b.x))[0];
+        S.sel=[home.id]; render(); reveal(home.id); return true;
+      }
+      const [dx,dy]=dir;
+      const best = tiles.filter(t=>t.id!==cur.id)
+        .map(t=>({t, along:(t.x-cur.x)*dx + (t.y-cur.y)*dy,
+                     across:Math.abs((t.x-cur.x)*dy + (t.y-cur.y)*dx)}))
+        .filter(o=>o.along > 2)
+        .sort((p,q)=>(p.along + p.across*2) - (q.along + q.across*2))[0];
+      if(best){ S.sel=[best.t.id]; render(); reveal(best.t.id); }
+      return true;
+    }
+    if(!S.sel.length) return false;
+    if(e.key===' ' || e.key==='Enter'){ e.preventDefault(); tileTap(S.sel[0]); return true; }
+    if(e.key==='Backspace' || e.key==='Delete'){
+      e.preventDefault();
+      const sel=S.sel.slice();
+      if(sel.length>1) delMany(sel); else del(sel[0]);
+      return true;
+    }
+    return false;
+  }
+
   document.addEventListener('keydown', e=>{
     const typing = /input|textarea/i.test(document.activeElement.tagName);
     if((e.metaKey||e.ctrlKey) && e.key.toLowerCase()==='k'){ e.preventDefault(); openCmd(); return; }
     if(e.key==='Escape'){ closeCtx(); closeCmd(); closePanel();
       if(S.writeId||S.readId||S.viewId) closeSheet();
       else if(S.editId){ S.editId=null; render(); }
+      // …and a selection is a thing that is up, so Escape puts it down too
+      else if(S.sel.length){ S.sel=[]; render(); }
       return; }
     if(typing) return;   // in a field, ⌘Z is the browser's to answer, not ours
-    if((e.metaKey||e.ctrlKey) && e.key.toLowerCase()==='z'){ e.preventDefault(); undo(); save(); return; }
-    if(e.key==='n'||e.key==='N'){ e.preventDefault(); modalNewObject(); return; }
+    if((e.metaKey||e.ctrlKey) && e.key.toLowerCase()==='z'){
+      e.preventDefault();
+      // ⇧⌘Z is redo everywhere a Mac has an undo, and there is one now
+      if(e.shiftKey) redo(); else undo();
+      save(); return;
+    }
     if(panelKey()==='newobject'){
       const k=KEYS.find(x=>KINDS[x].key.toLowerCase()===e.key.toLowerCase());
       // it lands on the board and is scrolled to, the same as picking its tile
-      if(k){ closePanel(); const o=create(k); save(); render(); reveal(o.id); }
+      if(k){ closePanel(); const o=create(k); save(); render(); reveal(o.id); return; }
     }
+    if(e.key==='n'||e.key==='N'){ e.preventDefault(); modalNewObject(); return; }
+    if(boardKey(e)) return;
   });
 
   // the device decides which layout you see; the OS decides light or dark

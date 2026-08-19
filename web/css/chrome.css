@@ -416,8 +416,13 @@
    tall printed four lines and left the bottom half of its own paper blank — the
    clamp was doing a job `.dbody` already does properly, which is to be the room
    that is left and to hide whatever runs past it. */
+/* `pre-line` because plain() keeps the writing's own line structure — a note
+   with three paragraphs in it should look like a note with three paragraphs in
+   it, and collapsing them into one run is what made every body on the board
+   read as a wall. Runs of blank lines are already reduced to one by plain(),
+   so this cannot open a gap the writing didn't ask for. */
 .tiletext{font-family:var(--serif);font-size:11.5px;color:var(--ink-3);line-height:1.45;
-  overflow:hidden;height:100%}
+  overflow:hidden;height:100%;white-space:pre-line}
 /* Twice the 19px a checkbox is everywhere else. A tick on a tile is a target
    you hit with a thumb while the tile under it is also a drag handle, and 19px
    was small enough that missing it picked the task up instead. A one-row tile
@@ -921,6 +926,12 @@ html[data-style="aero"] .drawer.dtile.bd-bar{
   touch-action:pan-y;
 }
 .row:hover{border-color:color-mix(in srgb,var(--k) 40%, var(--rule));background:color-mix(in srgb,var(--k) 4%, var(--paper-2))}
+/* The doors of the object editor: one question each, and a chevron that says
+   the row goes somewhere rather than setting something. See decision 66. */
+.osecs{margin-top:12px}
+.osecs .row{align-items:center}
+.osecs .rowgo{margin-left:auto;color:var(--ink-3);display:flex}
+.osecs .kindmark{color:var(--brass)}
 .check{
   width:19px;height:19px;flex:0 0 auto;border-radius:3px;border:1.8px solid var(--ink-3);margin-top:1px;
   display:grid;place-items:center;transition:.15s;
@@ -940,6 +951,24 @@ html[data-style="aero"] .drawer.dtile.bd-bar{
 .meta{display:flex;align-items:center;gap:7px;margin-top:5px;flex-wrap:wrap}
 .mchip{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--ink-3);white-space:nowrap}
 .mchip.tag{color:var(--ink-2);background:var(--paper-3);padding:1px 7px;border-radius:20px}
+/* A deadline says it is a deadline. Not a stripe and not a colour of its own —
+   the same chip everything else wears, ruled underneath, because "due by" is
+   the day a thing is *owed*, and going past it is the only state worth
+   shouting. See decision 62. */
+.deadchip{border-bottom:1px solid currentColor;padding-bottom:1px}
+.deadchip.late{color:var(--bad,#B2543F);font-weight:600}
+.drawer.dtile .deadchip.late{color:var(--dink)}
+.spineroll{display:block;font-size:9px;font-style:normal;text-decoration:none;
+  color:var(--dink-3);letter-spacing:.04em}
+/* A sound or a video on the board is its mark and its name, not a player:
+   forty decoded media elements is a board that will not scroll. See
+   decision 71. */
+.drawer.otile.mediatile{justify-content:flex-end;gap:4px}
+.drawer.otile.mediatile .medmark{position:absolute;top:9px;right:10px;color:var(--c);opacity:.75}
+/* Every type at once is a catalogue; the handful you use is a picker. The rest
+   stay one press away. See decision 67. */
+.pgroup.allkinds{margin-top:14px}
+.pgroup.allkinds > summary{font-size:12px}
 
 /* ============================================================
    Object detail
@@ -1407,6 +1436,19 @@ kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--rule);border
   background:rgba(255,255,255,.04);color:#E9E1CC;transition:.16s;padding:20px;
 }
 .viewdrop:hover{border-color:var(--brass);background:rgba(255,255,255,.08)}
+/* A sound has nothing to look at, so the surface gives it the mark it wears on
+   the board and the browser's own transport underneath — a player is a control
+   nobody should be reimplementing. A video is an image that moves and takes
+   `.viewimg` unchanged. See decision 71. */
+.viewsound{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
+  width:min(560px,100%);padding:32px 24px;
+  border:1px solid rgba(244,238,221,.22);border-radius:var(--radius);
+  background:rgba(255,255,255,.05);
+}
+.viewsound .vdmark{color:rgba(244,238,221,.5);display:grid;place-items:center}
+.viewplayer{width:100%}
+video.viewimg{background:#000}
 .viewdrop .vdmark{color:rgba(244,238,221,.55);display:grid;place-items:center}
 .viewdrop:hover .vdmark{color:var(--brass)}
 .viewdrop b{font-family:var(--serif);font-size:19px;font-weight:600}

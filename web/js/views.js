@@ -6,12 +6,12 @@ import { S, K, T, byId, has, isContainer, containers, container, childrenOf, cha
   spanOf, coversDay, lastDay } from './model.js';
 import { GRID, PHONE_GRIDS, CELL, COLW, MEASURE, colsOf, gridKeyOf,
   pageRows, pageOfBox, lastPage,
-  lay, gridOf, cellW, ensureBox } from './grid.js';
+  lay, gridOf, cellW, ensureBox, PLACED } from './grid.js';
 import { themeNow, applyLook, lookVal, STYLES, BACKDROPS, DARKMODES, darkMode, hasDark,
   palNow, setSlot, styleNow, hexOf, objColour, slotName, OBJ0 } from './look.js';
 import { gridOfContainer, gridTile, listTile, scrollEntry, bookView, calSpan } from './tiles.js';
 import { openPanel, closePanel, panelKey, repositionPanel } from './panels.js';
-import { APP_VERSION, DATA_V, save, storeSize, install } from './persist.js';
+import { APP_VERSION, DATA_V, save, saveIfDirty, storeSize, install } from './persist.js';
 
 /* The desk is nothing but the grid. There is no toolbar: New, Arrange and
    Settings are control objects sitting on it, so the grid is the whole page. */
@@ -384,24 +384,48 @@ function gridSizeField(cid){
 }
 const installed = ()=> window.matchMedia('(display-mode: standalone)').matches || !!window.navigator.standalone;
 
-function settingsPanel(){
-  openPanel({key:'settings', title:'Settings',
-    sub:`Bureau ${APP_VERSION} · ${installed()?'installed':'in a browser tab'}`,
-    body:settingsBody});
+/* ---- settings, in the shape of the questions it asks ------------------
+   Seventeen sections in one column, with a *Testing* button among them and
+   "erase everything" three scrolls below the thing you came for. Same argument
+   as the object editor and the same shape of answer: the top is a short list of
+   doors, each one is the same panel under the same key, and `spec.back` is the
+   way out. See decision 66. */
+const SETSECS = {
+  style:  ['Style',      'palette', 'the sixteen colours, light and dark'],
+  look:   ['Appearance', 'brush',   'the board, the shadows, the grid'],
+  things: ['Your things','archive', 'how much there is, and getting it out'],
+  paste:  ['Paste in',   'plus',    'objects described as JSON'],
+  about:  ['About',      'help',    'which Bureau this is, and starting over']
+};
+function settingsPanel(sec){
+  const s = SETSECS[sec] ? sec : null;
+  openPanel({key:'settings', title: s ? SETSECS[s][0] : 'Settings',
+    sub: s ? 'Settings' : `Bureau ${APP_VERSION} · ${installed()?'installed':'in a browser tab'}`,
+    back: s ? (()=>settingsPanel()) : null,
+    body:()=>settingsBody(s)});
 }
 function toggleSettings(){ panelKey()==='settings' ? closePanel() : settingsPanel(); }
 
-function settingsBody(){
+function settingsBody(sec){
   const standalone = installed();
-  return `
+  const at = s => sec===s;
+  if(!sec) return `<div class="rows osecs">${Object.entries(SETSECS).map(([k,[nm,icon,note]])=>
+      `<div class="row" data-ssec="${k}">
+        <span class="kindmark">${ic(icon,13)}</span>
+        <div class="body"><div class="title">${esc(nm)}</div><div class="snip">${esc(note)}</div></div>
+        <span class="rowgo">${ic('chevR',13)}</span></div>`).join('')}</div>
+    <div class="mini" style="--k:var(--brass);margin-top:10px">This board's own colour, layout and lock are in <b>its</b> editor — the brush in the bar — not here. See decision 53.</div>`;
+  return [
+    at('about') ? `
+
     <div class="section-h"><h2>Version</h2><div class="rule"></div></div>
     <div class="statline">
       <div class="s"><b>${esc(APP_VERSION)}</b>Bureau</div>
       <div class="s"><b>${DATA_V}</b>data format</div>
       <div class="s"><b>${standalone?'Installed':'Browser'}</b>running as</div>
     </div>
-    <div class="mini" style="--k:var(--brass);margin-top:6px">An installed copy serves itself from its own cache, so it can be a version behind until its second launch. This is the one that is running right now.</div>
-
+    <div class="mini" style="--k:var(--brass);margin-top:6px">An installed copy serves itself from its own cache, so it can be a version behind until its second launch. This is the one that is running right now.</div>` : '',
+    at('style') ? `
     <div class="section-h"><h2>Style</h2><div class="rule"></div></div>
     <div class="stylegrid">${Object.entries(STYLES).map(([k,st])=>
       `<button class="styletile${(S.look.style||'victorian')===k?' on':''}" data-style3="${k}">
@@ -432,8 +456,8 @@ function settingsBody(){
             <span>${slotName(i)}</span></label>`;}).join('')}</div>`).join('')}
       ${(S.look.slots&&S.look.slots[S.look.style||'victorian'])
         ? `<button class="pill" style="margin-top:8px" data-act="resetslots">${ic('undo',13)} Back to ${esc(styleNow().nm)}&rsquo;s own sixteen</button>` : ''}
-    </div>
-
+    </div>` : '',
+    at('look') ? `
     <div class="section-h"><h2>Appearance</h2><div class="rule"></div></div>
     <div class="field"><label>Background</label>
       <div class="pickgrid sw" style="margin-top:6px">${BACKDROPS.map(([c,nm])=>
@@ -499,8 +523,8 @@ function settingsBody(){
     <div class="filterbar">
       ${[['','This device ('+(S.device==='desk'?'Mac':'iPhone')+')'],['desk','Arrange Mac layout'],['phone','Arrange iPhone layout']].map(([v,n])=>
         `<button class="fchip${(S.layoutEdit||'')===v?' on':''}" data-layout="${v}">${n}</button>`).join('')}
-    </div>
-
+    </div>` : '',
+    at('things') ? `
     <div class="section-h"><h2>Your things</h2><div class="rule"></div></div>
     <div class="statline">
       <div class="s"><b>${S.objects.length}</b>objects</div>
@@ -512,14 +536,14 @@ function settingsBody(){
       <button class="pill" data-act="export">${ic('archive',13)} Export a backup</button>
       <button class="pill" data-act="import">${ic('undo',13)} Restore from a backup</button>
     </div>
-    <div class="mini" style="--k:var(--brass);margin-top:6px">Everything lives on this device only. Export moves a desk between devices by hand — real sync comes later.</div>
-
+    <div class="mini" style="--k:var(--brass);margin-top:6px">Everything lives on this device only. Export moves a desk between devices by hand — real sync comes later.</div>` : '',
+    at('about') ? `
     ${install.deferred?`<div class="section-h"><h2>Install</h2><div class="rule"></div></div>
       <button class="pill solid" data-act="install">${ic('plus',13)} Install Bureau</button>`:''}
     ${(!standalone && /iPad|iPhone|iPod/.test(navigator.userAgent))?`
       <div class="section-h"><h2>Install</h2><div class="rule"></div></div>
-      <div class="mini" style="--k:var(--brass)">Share → <b style="margin:0 3px">Add to Home Screen</b> to keep Bureau in your dock and run it full screen.</div>`:''}
-
+      <div class="mini" style="--k:var(--brass)">Share → <b style="margin:0 3px">Add to Home Screen</b> to keep Bureau in your dock and run it full screen.</div>`:''}` : '',
+    at('paste') ? `
     <div class="section-h"><h2>Paste objects</h2><div class="rule"></div></div>
     <div class="mini" style="--k:var(--brass)">Describe what you want somewhere that can write JSON, paste it here, and it lands on the desk. Types are matched by name, anything missing gets a sensible default, and a container's <b>children</b> go inside it.</div>
     <textarea id="pastebox" class="editor" style="min-height:130px;margin-top:8px"
@@ -527,8 +551,8 @@ function settingsBody(){
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
       <button class="pill solid" data-act="pastego">${ic('plus',13)} Add to the desk</button>
       <button class="pill" data-act="pasteschema">${ic('help',13)} What it accepts</button>
-    </div>
-
+    </div>` : '',
+    at('about') ? `
     <div class="section-h"><h2>Testing</h2><div class="rule"></div></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <button class="pill" data-act="randomten">${ic('sparkle',13)} Add ten at random</button>
@@ -539,8 +563,9 @@ function settingsBody(){
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <button class="pill" data-act="reseed">Reset to the sample desk</button>
       <button class="pill" data-act="wipe" style="color:#C0563F">Erase everything</button>
-    </div>
-    <div style="height:20px"></div>`;
+    </div>` : '',
+    `<div style="height:20px"></div>`
+  ].join('');
 }
 
 /* ============================================================
@@ -768,6 +793,7 @@ function render(){
   if(wood) frame.style.setProperty('--wood', wood); else frame.style.removeProperty('--wood');
   // settings stopped being a view in v35; an old snapshot may still name it
   if(S.view==='settings') S.view='desk';
+  const placed = PLACED.n;      // ensureBox() may invent boxes as this builds
   $('#app').innerHTML = viewHTML();
   const key=viewKey(), now=$('#app .scroll');
   if(key!==wasKey) SCROLL.top=0;
@@ -784,7 +810,13 @@ function render(){
   bindSortables();
   sizeGrid();
   repositionPanel();   // a bubble is pinned to a tile, and the tiles just moved
-  save();   // a save after every re-render, cheaply
+  /* A render is not a change. Every mutation already says `save()` for itself,
+     so all this has to catch is the one thing a *render* writes — a box
+     invented by ensureBox() for an object seen in a layout for the first time.
+     It used to save unconditionally, which at three thousand objects meant
+     35ms of serialising an unchanged desk every 250ms while you dragged.
+     See decision 64. */
+  if(PLACED.n!==placed) save(); else saveIfDirty();
 }
 
 /* The graph-paper backdrop in arrange mode has to match the real column width,

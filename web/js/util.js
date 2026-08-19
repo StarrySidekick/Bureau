@@ -126,6 +126,47 @@ function md(src){
   close();
   return out.join('');
 }
-const strip = s => String(s||'').replace(/[#>*`\-\[\]]/g,' ').replace(/\s+/g,' ').trim();
+/* ---- markdown as *words* ----------------------------------------------
+   `md()` makes a page; a tile is a face. What a face wants is the writing with
+   the marks taken off — no asterisks, no hashes, no bullet, and a link showing
+   its words rather than its URL. Not `md()` cut short: headings and lists have
+   no business inside a tile, and a `<ul>` in a 40px band is a bullet and half
+   a word.
 
-export { $, $$, esc, uid, clamp, ROOT, D, ic, md, strip };
+   Line structure survives, because a note printed on a tile is still a note
+   with paragraphs in it — but a run of blank lines is one break, not four.
+   `.tiletext` carries `white-space:pre-line` to honour that.
+
+   `strip()` was the old answer and it was doing damage: it replaced every `-`
+   with a space, so "twenty-one" printed as "twenty one" and a date came out in
+   pieces. Nothing uses it now. */
+function plain(src){
+  if(!src) return '';
+  const inline = t => String(t)
+    .replace(/!\[([^\]]*)\]\([^)]*\)/g,'$1')        // an image is its alt text
+    .replace(/\[([^\]]+)\]\([^)]*\)/g,'$1')         // a link is its words
+    .replace(/`([^`]+)`/g,'$1')
+    .replace(/\*\*([^*]+)\*\*/g,'$1')
+    .replace(/(^|\W)\*([^*\n]+)\*/g,'$1$2')
+    // `_` only between non-word characters, or snake_case_names lose their spine
+    .replace(/(^|\W)_([^_\n]+)_(?=\W|$)/g,'$1$2');
+  const out=[];
+  String(src).split(/\r?\n/).forEach(raw=>{
+    let l=raw.trim();
+    if(!l){ if(out.length && out[out.length-1]!=='') out.push(''); return; }
+    if(/^([-*_]\s*){3,}$/.test(l)) return;           // a rule is a mark, not words
+    l = l.replace(/^#{1,6}\s+/,'')
+         .replace(/^>\s?/,'')
+         .replace(/^[-*+]\s+\[[ xX]\]\s+/,'')        // a task box
+         .replace(/^[-*+]\s+/,'')                    // a bullet
+         .replace(/^\d+[.)]\s+/,'');                 // a number
+    l = inline(l).trim();
+    if(l) out.push(l);
+  });
+  while(out.length && out[out.length-1]==='') out.pop();
+  return out.join('\n');
+}
+/* The same thing on one line, for a band that has room for a sentence. */
+const oneline = s => plain(s).replace(/\s+/g,' ').trim();
+
+export { $, $$, esc, uid, clamp, ROOT, D, ic, md, plain, oneline };

@@ -2,7 +2,7 @@ import { $, $$, clamp, D, ROOT } from './util.js';
 import { S, byId, dev, has, isAncestor, childrenOf, container, gatherKind, spanOf,
   sortOf, cfgOf, T } from './model.js';
 import { GRID, CELL, gridOf, cellW, lay, boxOk, overlaps } from './grid.js';
-import { toast, gather, setPin, del } from './mutations.js';
+import { toast, gather, setPin, del, pushSets } from './mutations.js';
 import { pending, tileTap, fireButton } from './tiles.js';
 import { modalNewObject, openCtx, closeCtx } from './panels.js';
 import { render } from './views.js';
@@ -923,6 +923,24 @@ function onUp(e){
     const aim={day:g.dropDay, tl:g.dropTl, on:g.dropOn, gath:g.gatherOn, gk:g.gatherKind};
     clearAim(g);
     const d=byId(g.id);
+    /* ---- so that ⌘Z means something after a drag ------------------------
+       Undo used to know about deletion and nothing else, so carrying a tile to
+       the wrong drawer — or across a calendar, which re-dates *and* re-files
+       it — was a thing you had to put right by hand. One move per drop, taken
+       before anything is written, covering every object the drop touches: the
+       whole selection when a group moved, and both dates when a span did.
+       Gathering is left out on purpose — it makes a container, and `gather()`
+       records that itself. See decision 65. */
+    const was = [];
+    const keep = (o, ks) => { if(o) ks.forEach(k=>was.push([o.id, k, o[k] && typeof o[k]==='object' ? {...o[k]} : o[k]])); };
+    if(d && !aim.gath){
+      const dv=dev();
+      if(aim.day || aim.tl) keep(d, ['due','till','parent','desk','phone']);
+      else if(aim.on)       keep(d, ['parent','desk','phone']);
+      else if(g.moved)      g.moved.forEach(m=>keep(byId(m.id), [dv]));
+      else if(g.cand)       keep(d, [dv]);
+      if(was.length) pushSets(aim.day||aim.tl ? 'Scheduled' : aim.on ? 'Filed' : 'Moved', was);
+    }
     const swallow=id=>{ const el=document.querySelector(`[data-drawer="${id}"]`);
       if(el){ el.classList.add('swallow'); setTimeout(()=>el.classList.remove('swallow'),420); } };
     // dropped on a day: it gets that date, and moves into the container showing

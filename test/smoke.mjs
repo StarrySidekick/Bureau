@@ -61,6 +61,14 @@ const CHROME = process.env.BUREAU_CHROME;
       && !!document.querySelector('#drawergrid')
       && !document.querySelector('#scrim');
   });
+  /* Settings is five doors rather than seventeen sections in one column, so
+     everything below is one press further in. See decision 66. */
+  const settingsHasDoors = await page.evaluate(() =>
+    document.querySelectorAll('#panel [data-ssec]').length >= 4
+    && !document.querySelector('#panel [data-style3]'));
+  await page.click('#panel [data-ssec="style"]');
+  await page.waitForTimeout(260);
+  const settingsBack = await page.evaluate(() => !!document.querySelector('#panel [data-act="panelback"]'));
   await shot('02-settings');
   /* --- sixteen slots, and a slot means the same thing in every style.
      A drawer holds the slot number, not the hex, so changing style has to
@@ -109,10 +117,17 @@ const CHROME = process.env.BUREAU_CHROME;
   const styleSurvived = await page.evaluate(() => BUREAU.state.look.style);
   await page.click('.gridbar [data-act="appsettings"]');
   await page.waitForTimeout(250);
+  await page.click('#panel [data-ssec="style"]');
+  await page.waitForTimeout(220);
   await page.click('[data-style3="victorian"]');
   await page.waitForTimeout(200);
 
-  // --- editing the phone layout from the desktop
+  // --- editing the phone layout from the desktop. Which device's arrangement
+  // you are tidying is an Appearance question, one door in.
+  await page.click('#panel [data-act="panelback"]');
+  await page.waitForTimeout(220);
+  await page.click('#panel [data-ssec="look"]');
+  await page.waitForTimeout(260);
   await page.click('[data-layout="phone"]');
   await page.waitForTimeout(400);
   await shot('04-edit-phone-layout');
@@ -165,10 +180,16 @@ const CHROME = process.env.BUREAU_CHROME;
     await wait();
     await click('[data-c^="objset"]');                 out.drawer = (key() || '').split(':')[0];
     out.oneName = key() === 'object:' + d.id;
-    // and every one-of-many list in it is a select, not a wall of chips
+    /* The editor's top is name, type, where it lives and a row of doors; the
+       rows are one press in. Every one-of-many list in them is still a select
+       rather than a wall of chips. See decision 66. */
+    out.doors = document.querySelectorAll('#panel [data-osec]').length >= 4;
+    BUREAU.panel(d.id, 'look'); await wait();
     const p = document.querySelector('#panel');
-    out.condensed = p.querySelectorAll('.psel').length >= 8
+    out.wayBack = !!p.querySelector('[data-act="panelback"]');
+    out.condensed = p.querySelectorAll('.psel').length >= 6
       && !p.querySelector('[data-otype],[data-oshape],[data-pface]');
+    BUREAU.panel(d.id); await wait();
     await click('[data-act="panelclose"]');
     // the same panel for an object, by the same name
     const o = BUREAU.state.objects.find(x => x.kind === 'task');
@@ -369,7 +390,7 @@ const CHROME = process.env.BUREAU_CHROME;
     a.attrs = (a.attrs || ['text','check','date','repeat']).concat('relates');
     // relations were on the detail sheet; they are a setting about one object,
     // so they moved into that object's panel with the rest of it
-    BUREAU.panel(a.id);
+    BUREAU.panel(a.id, 'tags');
     await new Promise(r => setTimeout(r, 120));
     const host = document.querySelector('#panel');
     const chips = [...host.querySelectorAll('.relchip')];
@@ -377,7 +398,7 @@ const CHROME = process.env.BUREAU_CHROME;
     const canUnlink = !!host.querySelector(`[data-unrel="${a.id}:${b.id}"]`);
     const canAdd = !!host.querySelector('[data-act="addrel"]');
     // and the other end shows it as a backlink, without opting in
-    BUREAU.panel(b.id);
+    BUREAU.panel(b.id, 'tags');
     await new Promise(r => setTimeout(r, 120));
     const backChip = [...document.querySelectorAll('#panel .relchip')]
       .some(c => c.dataset.openrel === a.id);
@@ -654,7 +675,7 @@ const CHROME = process.env.BUREAU_CHROME;
   const tagDrawer = await page.evaluate(async () => {
     const S = BUREAU.state;
     const o = S.objects.find(x => (x.tags || []).includes('bureau'));
-    BUREAU.panel(o.id);
+    BUREAU.panel(o.id, 'tags');
     await new Promise(r => setTimeout(r, 150));
     document.querySelector('.realtag[data-tagdrawer="bureau"]').click();
     await new Promise(r => setTimeout(r, 250));
@@ -664,7 +685,7 @@ const CHROME = process.env.BUREAU_CHROME;
       && BUREAU.kids(d.id).every(id => (S.objects.find(y => y.id === id).tags || []).includes('bureau'));
     // asking again reuses it rather than piling up drawers
     const n = S.objects.filter(x => (x.filter || {}).tag === 'bureau').length;
-    BUREAU.panel(o.id);
+    BUREAU.panel(o.id, 'tags');
     await new Promise(r => setTimeout(r, 150));
     document.querySelector('.realtag[data-tagdrawer="bureau"]').click();
     await new Promise(r => setTimeout(r, 200));
@@ -1290,11 +1311,17 @@ const CHROME = process.env.BUREAU_CHROME;
       && t.dataset.id === 'root');
     out.andTheGearIsStillTheApp = tools.some(t => t.dataset.act === 'appsettings');
     document.querySelector('.bartools [data-act="drawersettings"]').click(); await nap(280);
-    const body = document.querySelector('#panel .pbody');
+    // …and it asks one question at a time now: how a board sorts and how fine
+    // its grid is are Behaviour, what it is painted in is Look. See decision 66.
+    out.theDeskHasDoors = document.querySelectorAll('#panel [data-osec]').length >= 2;
+    BUREAU.panel('root', 'does'); await nap(220);
+    let body = document.querySelector('#panel .pbody');
     out.theDeskEditorSorts = /Sorted by/.test(body.textContent)
       && !!body.querySelector('[data-oset="root:sort"]');
-    out.andPaintsThisDeskAlone = !!body.querySelector('[data-pboard][data-id="root"]');
     out.andSaysHowWideTheGridIs = !!body.querySelector('[data-gridsize]');
+    BUREAU.panel('root', 'look'); await nap(220);
+    body = document.querySelector('#panel .pbody');
+    out.andPaintsThisDeskAlone = !!body.querySelector('[data-pboard][data-id="root"]');
     document.querySelector('[data-act="panelclose"]').click(); await nap(150);
     // and the view cycler is gone: how a board is laid out is a settings
     // question, not a tool
@@ -1372,14 +1399,17 @@ const CHROME = process.env.BUREAU_CHROME;
     return out;
   });
 
-  // --- the version is readable off the device, not guessed at
+  // --- the version is readable off the device, not guessed at. It is on the
+  // index's own head, and in full behind the About door.
   await page.click('.gridbar [data-act="appsettings"]');
   await page.waitForTimeout(320);
-  const versionShown = await page.evaluate(() => {
-    const p = document.querySelector('#panel');
-    return /\d+\.\d+/.test(p.querySelector('.pbody .statline').textContent)
-      && /Bureau \d+\.\d+/.test(p.querySelector('.ptop').textContent);
-  });
+  const versionOnTheHead = await page.evaluate(() =>
+    /Bureau \d+\.\d+/.test(document.querySelector('#panel .ptop').textContent));
+  await page.click('#panel [data-ssec="about"]');
+  await page.waitForTimeout(280);
+  const versionInFull = await page.evaluate(() =>
+    /\d+\.\d+/.test(document.querySelector('#panel .pbody .statline').textContent));
+  const versionShown = versionOnTheHead && versionInFull;
   await page.keyboard.press('Escape');
 
   // --- one of every type on the desk, named after itself
@@ -2290,6 +2320,8 @@ const CHROME = process.env.BUREAU_CHROME;
     // it is a clone: a second element with the real id is one the drag, the
     // bubble's anchor and tileOf() could all pick up instead of the tile
     out.itIsACloneNotACopy = !document.querySelector(`#panel [data-row="${n.id}"]`);
+    // …and the rows themselves are one door in: Look
+    BUREAU.panel(n.id, 'look'); await nap(220);
     // text size: a multiplier over whatever each rule decided
     const sel = document.querySelector(`#panel [data-oset="${n.id}:tsize"]`);
     out.textSizeIsOffered = !!sel;
@@ -2354,6 +2386,339 @@ const CHROME = process.env.BUREAU_CHROME;
     return gone;
   });
 
+  /* =====================================================================
+     the thirteenth pass — see docs/DIAGNOSTIC.md and decisions 62–71
+     ===================================================================== */
+
+  /* --- a tile prints words, not markdown source ----------------------- */
+  const wordsNotSource = await page.evaluate(async () => {
+    const nap = ms => new Promise(r => setTimeout(r, ms));
+    const S = BUREAU.state, out = {};
+    const n = BUREAU.create('note', {parent:'root',
+      title:'Reading notes',
+      body:'## A heading\n\nA handle affords **pulling**.\n\n- [ ] one\n- two\n\n[a link](https://x.test)'});
+    n[S.device] = Object.assign(BUREAU.free(6,4,'root'), {w:6,h:4});
+    BUREAU.render(); await nap(150);
+    const t = document.querySelector(`.grid .drawer[data-row="${n.id}"] .tiletext`);
+    const printed = t ? t.textContent : '';
+    out.noMarks   = !!printed && !/[*#\[\]]/.test(printed);
+    out.keptWords = /A heading/.test(printed) && /affords pulling/.test(printed)
+                 && /one/.test(printed) && /a link/.test(printed);
+    // …and the line structure survives, because a note has paragraphs in it
+    out.keptLines = getComputedStyle(t).whiteSpace === 'pre-line' && /\n/.test(printed);
+    // a hyphenated word keeps its hyphen — the old strip() replaced every one
+    n.body = 'twenty-one of them'; BUREAU.render(); await nap(120);
+    out.hyphenSurvives = /twenty-one/.test(
+      document.querySelector(`.grid .drawer[data-row="${n.id}"] .tiletext`).textContent);
+    BUREAU.del(n.id); S.undo=[]; S.redo=[]; BUREAU.render();
+    return out;
+  });
+
+  /* --- when it sits and when it is late are two facts ------------------ */
+  const deadlines = await page.evaluate(async () => {
+    const S = BUREAU.state, out = {};
+    const iso = n => { const d=new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()+n);
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
+    const t = BUREAU.create('task', {parent:'root', title:'Owed on Friday'});
+    // nothing carries a deadline unless it asks: the desk is unchanged by this
+    out.optIn = !BUREAU.has(t, 'deadline');
+    t.due = iso(-1);
+    out.dueAloneStillMeansLate = BUREAU.isLate(t);
+    t.attrs = ['text','check','date','repeat','deadline'];
+    t.due = iso(-1); t.dead = iso(3);
+    // …and the trait puts a field in the editor to fill in, or it is a trait
+    // you can tick and never use
+    BUREAU.panel(t.id, 'fields');
+    await new Promise(r => setTimeout(r, 220));
+    out.hasAField = !!document.querySelector(`#panel [data-oset="${t.id}:dead"]`);
+    document.querySelector('#panel [data-act="panelclose"]').click();
+    // put on Monday, owed on Friday: on Tuesday it is not late, and it used to be
+    out.deadlineWins = !BUREAU.isLate(t) && BUREAU.lateOn(t) === t.dead;
+    t.dead = iso(-2);
+    out.pastDeadlineIsLate = BUREAU.isLate(t);
+    // and nothing finished is ever late
+    t.done = true;
+    out.doneIsNeverLate = !BUREAU.isLate(t);
+    BUREAU.del(t.id); S.undo=[]; S.redo=[]; BUREAU.render();
+    return out;
+  });
+
+  /* --- a magic drawer can ask more than one question ------------------- */
+  const twoClauses = await page.evaluate(async () => {
+    const S = BUREAU.state, out = {};
+    const iso = n => { const d=new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()+n);
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
+    const soon = BUREAU.create('task', {parent:'root', title:'This week'});   soon.due = iso(2);
+    const late = BUREAU.create('task', {parent:'root', title:'Next month'});  late.due = iso(40);
+    const back = BUREAU.create('task', {parent:'root', title:'Last week'});   back.due = iso(-6);
+    const d = BUREAU.create('magic', {parent:'root', title:'Due this week'});
+    // "after today and before next week" — two clauses on one field, which is
+    // the thing one clause could never say
+    d.filter = {scope:'all', kinds:['task'],
+                rules:[{f:'date',op:'gt',v:'today'},{f:'date',op:'lt',v:'week'}]};
+    const inIt = BUREAU.kids(d.id);
+    out.bothClausesApply = inIt.includes(soon.id) && !inIt.includes(late.id) && !inIt.includes(back.id);
+    // a date value is compared as a date: numOf() read "2026-08-19" as 2026
+    d.filter.rules = [{f:'date',op:'lt',v:iso(1)}];
+    out.datesCompareAsDates = BUREAU.kids(d.id).includes(back.id)
+      && !BUREAU.kids(d.id).includes(soon.id);
+    // …and the words are resolved when the rule runs, not when it was written
+    d.filter.rules = [{f:'date',op:'lt',v:'today'}];
+    out.whenWordsAreLive = BUREAU.kids(d.id).includes(back.id);
+    // one clause still means exactly what it meant
+    d.filter.rules = [{f:'date',op:'gt',v:'today'}];
+    out.oneStillWorks = BUREAU.kids(d.id).includes(soon.id) && BUREAU.kids(d.id).includes(late.id);
+    // and the old single `rule` is still read, for a backup made before v21
+    d.filter = {scope:'all', kinds:['task'], rule:{f:'date',op:'lt',v:'today'}};
+    out.oldShapeStillReads = BUREAU.kids(d.id).includes(back.id);
+    [soon,late,back,d].forEach(o=>BUREAU.del(o.id));
+    S.undo=[]; S.redo=[]; BUREAU.render();
+    return out;
+  });
+
+  /* --- undo covers more than deletion, and there is a redo ------------- */
+  const undoEverything = await page.evaluate(async () => {
+    const nap = ms => new Promise(r => setTimeout(r, ms));
+    const S = BUREAU.state, out = {};
+    S.undo = []; S.redo = [];
+    const o = BUREAU.create('note', {parent:'root', title:'Before'});
+    BUREAU.render(); await nap(120);
+    S.undo = [];
+    // a panel edit
+    BUREAU.panel(o.id); await nap(200);
+    const f = document.querySelector(`#panel [data-oset="${o.id}:title"]`);
+    f.value = 'After'; f.dispatchEvent(new Event('input', {bubbles:true}));
+    await nap(60);
+    out.editRecorded = S.undo.length === 1 && o.title === 'After';
+    // typing is one move, not one per keystroke
+    f.value = 'After a bit more'; f.dispatchEvent(new Event('input', {bubbles:true}));
+    await nap(60);
+    out.typingCoalesces = S.undo.length === 1;
+    BUREAU.undo(); await nap(120);
+    out.undoPutsItBack = o.title === 'Before';
+    out.redoIsWaiting = S.redo.length === 1;
+    BUREAU.redo(); await nap(120);
+    out.redoPutsItForward = o.title === 'After a bit more';
+    // a move is one move
+    S.undo = []; S.redo = [];
+    const was = Object.assign({}, o[S.device]);
+    BUREAU.panel(o.id); await nap(150);
+    const sel = document.querySelector(`#panel [data-oset="${o.id}:parent"]`);
+    sel.value = 'd_ideas'; sel.dispatchEvent(new Event('change', {bubbles:true}));
+    await nap(200);
+    out.reparentRecorded = o.parent === 'd_ideas' && S.undo.length >= 1;
+    BUREAU.undo(); await nap(150);
+    out.reparentUndone = o.parent === 'root' && !!o[S.device]
+      && o[S.device].x === was.x && o[S.device].y === was.y;
+    // a new move ends the branch you undid out of
+    S.redo = [{label:'x', steps:[]}];
+    BUREAU.del(o.id);
+    out.newMoveClearsRedo = S.redo.length === 0;
+    S.undo = []; S.redo = []; S.openId = null;
+    document.querySelector('#panel [data-act="panelclose"]') &&
+      document.querySelector('#panel [data-act="panelclose"]').click();
+    BUREAU.render();
+    return out;
+  });
+
+  /* --- a render is not a change --------------------------------------- */
+  const savesOnlyChanges = await page.evaluate(async () => {
+    const nap = ms => new Promise(r => setTimeout(r, ms));
+    const out = {};
+    let writes = 0;
+    const real = localStorage.setItem.bind(localStorage);
+    localStorage.setItem = (k, v) => { if (k === 'bureau.v1') writes++; return real(k, v); };
+    BUREAU.save();                     // flush anything already pending (writeNow)
+    await nap(400);
+    writes = 0;
+    for (let i = 0; i < 6; i++) { BUREAU.render(); await nap(80); }
+    await nap(400);
+    out.idleRendersDoNotWrite = writes === 0;
+    BUREAU.state.objects[0].title = BUREAU.state.objects[0].title + '';
+    BUREAU.create('note', {parent:'root', title:'Dirty'});
+    BUREAU.render();
+    await nap(400);
+    out.aChangeStillWrites = writes > 0;
+    const made = BUREAU.state.objects.find(o => o.title === 'Dirty');
+    if (made) BUREAU.del(made.id);
+    BUREAU.state.undo = []; BUREAU.state.redo = [];
+    localStorage.setItem = real;
+    BUREAU.render();
+    return out;
+  });
+
+  /* --- the palette answers to the keyboard, and knows about tags ------- */
+  const paletteKeys = await page.evaluate(async () => {
+    const nap = ms => new Promise(r => setTimeout(r, ms));
+    const out = {};
+    document.dispatchEvent(new KeyboardEvent('keydown', {key:'k', metaKey:true, bubbles:true}));
+    await nap(120);
+    const input = document.querySelector('#cmdinput');
+    out.opens = !!input && document.querySelector('#cmdscrim').classList.contains('open');
+    input.value = 'bureau'; input.dispatchEvent(new Event('input', {bubbles:true}));
+    await nap(80);
+    const rows = () => [...document.querySelectorAll('#cmdlist .cmdrow')];
+    out.findsTheTag = rows().some(r => r.textContent.includes('#bureau'));
+    const litAt = () => rows().findIndex(r => r.classList.contains('on'));
+    out.startsAtTheTop = litAt() === 0;
+    input.dispatchEvent(new KeyboardEvent('keydown', {key:'ArrowDown', bubbles:true}));
+    await nap(60);
+    out.arrowsMove = litAt() === 1;
+    input.dispatchEvent(new KeyboardEvent('keydown', {key:'ArrowUp', bubbles:true}));
+    input.dispatchEvent(new KeyboardEvent('keydown', {key:'ArrowUp', bubbles:true}));
+    await nap(60);
+    out.arrowsWrap = litAt() === rows().length - 1;
+    document.querySelector('#cmdscrim').classList.remove('open');
+    return out;
+  });
+
+  /* --- the textarea behaves like an editor ----------------------------- */
+  const editorKeys = await page.evaluate(async () => {
+    const nap = ms => new Promise(r => setTimeout(r, ms));
+    const S = BUREAU.state, out = {};
+    const n = BUREAU.create('note', {parent:'root', title:'Writing', body:''});
+    BUREAU.write(n.id); await nap(220);
+    const ta = document.querySelector('.writebody');
+    out.opens = !!ta;
+    const type = t => { ta.focus(); ta.setRangeText(t, ta.selectionStart, ta.selectionEnd, 'end');
+      ta.dispatchEvent(new Event('input', {bubbles:true})); };
+    const key = (k, mods) => { const e = new KeyboardEvent('keydown',
+      Object.assign({key:k, bubbles:true, cancelable:true}, mods||{}));
+      ta.dispatchEvent(e); return e.defaultPrevented; };
+    type('- one');
+    out.returnContinues = key('Enter') && /- one\n- $/.test(ta.value);
+    type('two');
+    key('Enter');
+    out.keptGoing = /- two\n- $/.test(ta.value);
+    // an empty item ends the list rather than making another one
+    out.emptyEnds = key('Enter') && !/- $/.test(ta.value);
+    ta.value = '1. first'; ta.dispatchEvent(new Event('input', {bubbles:true}));
+    ta.setSelectionRange(ta.value.length, ta.value.length);
+    key('Enter');
+    out.numbersCount = /\n2\. $/.test(ta.value);
+    // ⌘B wraps what is selected, and again takes it off
+    ta.value = 'make this bold'; ta.dispatchEvent(new Event('input', {bubbles:true}));
+    ta.setSelectionRange(10, 14);
+    out.boldWraps = key('b', {metaKey:true}) && ta.value === 'make this **bold**';
+    out.boldUnwraps = key('b', {metaKey:true}) && ta.value === 'make this bold';
+    // Return outside a list is the browser's
+    ta.value = 'plain'; ta.setSelectionRange(5,5);
+    out.plainReturnIsNotOurs = !key('Enter');
+    // …and one object comes out as the markdown it was written in
+    n.body = '- one\n- two'; n.tags = ['bureau'];
+    const md = BUREAU.asMarkdown(n);
+    out.copiesAsMarkdown = /^# Writing/.test(md) && /- one/.test(md) && /#bureau/.test(md);
+    BUREAU.closeSheet(); BUREAU.del(n.id); S.undo=[]; S.redo=[]; BUREAU.render();
+    return out;
+  });
+
+  /* --- the picker leads with what this desk uses ----------------------- */
+  const pickerLeads = await page.evaluate(async () => {
+    const nap = ms => new Promise(r => setTimeout(r, ms));
+    const S = BUREAU.state, out = {};
+    S.view = 'desk'; S.drawerId = null; BUREAU.render(); await nap(120);
+    document.querySelector('.deskrail') || true;
+    BUREAU.pick(); await nap(220);
+    const panel = document.querySelector('#panel');
+    out.opens = !!panel && panel.dataset.panel === 'newobject';
+    const first = [...panel.querySelectorAll('.kindgrid')][0];
+    out.aHandful = !!first && first.children.length <= 5;
+    out.restBehindOneMore = !!panel.querySelector('details.allkinds');
+    out.everythingIsStillThere = panel.querySelectorAll('.kindtile').length > 20;
+    document.querySelector('#panel [data-act="panelclose"]').click();
+    // …and inside a container that says what it makes, that type comes first
+    await nap(120);
+    S.view = 'drawer'; S.drawerId = S.objects.find(o => o.kind === 'checklist').id;
+    BUREAU.render(); await nap(150);
+    BUREAU.pick(); await nap(220);
+    const lead = document.querySelector('#panel .kindgrid .kindtile');
+    out.containerLeads = !!lead && lead.dataset.new === 'task';
+    document.querySelector('#panel [data-act="panelclose"]').click();
+    S.view = 'desk'; S.drawerId = null; BUREAU.render();
+    return out;
+  });
+
+  /* --- what a container is worth, on whichever face it wears ----------- */
+  const rollupsEverywhere = await page.evaluate(async () => {
+    const nap = ms => new Promise(r => setTimeout(r, ms));
+    const S = BUREAU.state, out = {};
+    const c = BUREAU.create('drawer', {parent:'root', title:'Counted'});
+    c[S.device] = Object.assign(BUREAU.free(6,6,'root'), {w:6,h:6});
+    BUREAU.create('task', {parent:c.id, title:'a'});
+    BUREAU.create('task', {parent:c.id, title:'b'});
+    c.roll = {fn:'count'};
+    const seen = {};
+    for (const face of ['front','project','calendar','timeline','moodboard']) {
+      c.face = face; BUREAU.render(); await nap(120);
+      const el = document.querySelector(`.grid .drawer[data-drawer="${c.id}"]`);
+      seen[face] = !!el && !!el.querySelector('.rollup');
+    }
+    out.onEveryFace = Object.values(seen).every(Boolean);
+    out.which = seen;
+    BUREAU.delDrawer(c.id); S.undo=[]; S.redo=[]; BUREAU.render();
+    return out;
+  });
+
+  /* --- two types that can now do their one job ------------------------- */
+  const soundAndVision = await page.evaluate(async () => {
+    const nap = ms => new Promise(r => setTimeout(r, ms));
+    const S = BUREAU.state, out = {};
+    const a = BUREAU.create('audio', {parent:'root', title:'A take'});
+    a[S.device] = Object.assign(BUREAU.free(6,2,'root'), {w:6,h:2});
+    BUREAU.render(); await nap(150);
+    // the picker it opens is willing to show it a sound
+    document.querySelector(`.grid .drawer[data-row="${a.id}"]`).click();
+    await nap(250);
+    out.opensOntoTheSurface = !!document.querySelector('.viewstage');
+    document.querySelector('.viewstage [data-act="pickimage"]').click();
+    await nap(80);
+    out.pickerAcceptsSound = document.querySelector('#imgpicker').accept === 'audio/*';
+    BUREAU.closeSheet(); await nap(150);
+    // a file that has arrived plays rather than being shown as a still
+    a.media = {assetId:'x', type:'audio', label:'take.m4a',
+               src:'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA='};
+    BUREAU.view(a.id); await nap(220);
+    out.itPlays = !!document.querySelector('.viewstage audio.viewplayer');
+    BUREAU.closeSheet(); BUREAU.render(); await nap(150);
+    // …and on the board it is a face, not forty decoded players
+    const tile = document.querySelector(`.grid .drawer[data-row="${a.id}"]`);
+    out.tileIsAFace = !!tile && !tile.querySelector('audio') && !!tile.querySelector('.medmark');
+    BUREAU.del(a.id); S.undo=[]; S.redo=[]; BUREAU.render();
+    return out;
+  });
+
+  /* --- the board, from the keyboard ------------------------------------ */
+  const keyboardBoard = await page.evaluate(async () => {
+    const nap = ms => new Promise(r => setTimeout(r, ms));
+    const S = BUREAU.state, out = {};
+    S.view = 'desk'; S.drawerId = null; S.sel = []; BUREAU.render(); await nap(150);
+    const press = k => document.dispatchEvent(new KeyboardEvent('keydown',
+      {key:k, bubbles:true, cancelable:true}));
+    press('ArrowRight'); await nap(150);
+    out.arrowStartsSomewhere = S.sel.length === 1;
+    const first = S.sel[0];
+    press('ArrowRight'); await nap(150);
+    out.arrowMovesOn = S.sel.length === 1 && S.sel[0] !== first;
+    const at = S.sel[0];
+    press('ArrowLeft'); await nap(150);
+    out.andComesBack = S.sel[0] === first;
+    // Escape puts a selection down, the same as it puts everything else down
+    press('Escape'); await nap(120);
+    out.escapeClears = S.sel.length === 0;
+    // ⌘⌫ deletes what is selected, and ⌘Z brings it back
+    const n = BUREAU.create('note', {parent:'root', title:'Delete me by key'});
+    BUREAU.render(); await nap(150);
+    S.sel = [n.id]; S.undo = []; BUREAU.render(); await nap(120);
+    press('Backspace'); await nap(180);
+    out.deleteKeyDeletes = !BUREAU.state.objects.some(o => o.id === n.id);
+    BUREAU.undo(); await nap(150);
+    out.andUndoBringsItBack = BUREAU.state.objects.some(o => o.id === n.id);
+    const back = BUREAU.state.objects.find(o => o.id === n.id);
+    if (back) BUREAU.del(back.id);
+    S.sel = []; S.undo = []; S.redo = []; BUREAU.render();
+    return out;
+  });
+
   console.log(JSON.stringify({
     errors: errs, manifestOk, swReady, survived, styleSurvived, slotColours,
     newObjectSeen, inlineEdit, sortDefaults, taskLook,
@@ -2369,7 +2734,10 @@ const CHROME = process.env.BUREAU_CHROME;
     phoneGrid, phoneMigration,
     dupIds, undoWorks, readViews, paperSize, movement, pager, desks, spans,
     listControls, checklistEdit, lockedNamesAreNames, perBoardGrid, newThingsAreSmall,
-    picture, fronts, editor, noSelecting, selectionDropped
+    picture, fronts, editor, noSelecting, selectionDropped,
+    settingsHasDoors, settingsBack,
+    wordsNotSource, deadlines, twoClauses, undoEverything, savesOnlyChanges,
+    paletteKeys, editorKeys, pickerLeads, rollupsEverywhere, soundAndVision, keyboardBoard
   }, null, 2));
   await browser.close();
 })();

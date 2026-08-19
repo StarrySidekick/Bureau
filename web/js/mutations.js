@@ -86,20 +86,72 @@ function reap(move){
 }
 function pushUndo(label, steps){
   if(!steps.length) return;
-  S.undo.push({label, steps});
+  S.undo.push({label, steps, at:Date.now()});
+  /* A new move ends the branch you undid your way out of. Keeping the redo
+     stack across an edit is how an undo history comes to offer a redo that
+     reinstates a change on top of a desk it no longer fits. */
+  S.redo.length = 0;
   while(S.undo.length>UNDO_MAX) reap(S.undo.shift());
+}
+/* ---- a field going back to what it was ---------------------------------
+   Undo used to know about deletion and nothing else: a panel edit, a drag, a
+   type change, a reparent were all silent, and ⌘Z after one of them did
+   nothing at all — which is worse than having no undo, because you try it.
+
+   Typing is the case that needs care. An input fires per keystroke, so a
+   ten-letter name is ten moves and the stack is full of one rename. A set is
+   therefore **coalesced** into the move on top when it touches the same field
+   of the same object within COALESCE ms, and the value kept is the *first*
+   one — which is what "before I started typing" means. See decision 65. */
+const COALESCE = 1500;
+function pushSet(label, id, k, was){
+  const top=S.undo[S.undo.length-1], now=Date.now();
+  if(top && now-(top.at||0)<COALESCE && top.steps.length===1 && top.steps[0].set
+     && top.steps[0].set.id===id && top.steps[0].set.k===k){
+    top.at=now; S.redo.length=0; return;
+  }
+  pushUndo(label, [{set:{id, k, v:was}}]);
+}
+/* Several fields of several objects at once — a drag that moved a selection, a
+   reparent, a group of boxes cleared. One move, so one ⌘Z takes all of it. */
+function pushSets(label, sets){
+  pushUndo(label, sets.filter(Boolean).map(([id,k,v])=>({set:{id,k,v}})));
+}
+
+/* Replay a move backwards, and hand back the move that would replay *it*
+   backwards — which is what makes redo a second stack rather than a special
+   case. Steps run in reverse index order; each one is turned into its own
+   inverse as it goes, collected in the order they ran, and that collection
+   read in reverse index order is the way back. */
+function applyMove(steps){
+  const back=[];
+  for(let i=steps.length-1;i>=0;i--){
+    const s=steps[i];
+    if(s.del){ S.objects.splice(Math.min(s.del.i, S.objects.length), 0, s.del.o); back.push({add:s.del.o.id}); }
+    else if(s.add){ const j=S.objects.findIndex(o=>o.id===s.add);
+      if(j>=0){ back.push({del:{o:S.objects[j], i:j}}); S.objects.splice(j,1); } }
+    else if(s.set){ const o=byId(s.set.id);
+      if(o){ back.push({set:{id:s.set.id, k:s.set.k, v:o[s.set.k]}}); o[s.set.k]=s.set.v; } }
+  }
+  return back;
 }
 function undo(){
   const m=S.undo.pop();
   if(!m){ toast('Nothing to undo'); return; }
-  for(let i=m.steps.length-1;i>=0;i--){
-    const s=m.steps[i];
-    if(s.del) S.objects.splice(Math.min(s.del.i, S.objects.length), 0, s.del.o);
-    else if(s.add){ const j=S.objects.findIndex(o=>o.id===s.add); if(j>=0) S.objects.splice(j,1); }
-    else if(s.set){ const o=byId(s.set.id); if(o) o[s.set.k]=s.set.v; }
-  }
+  S.redo.push({label:m.label, steps:applyMove(m.steps)});
+  while(S.redo.length>UNDO_MAX) S.redo.shift();
   $('#toast').classList.remove('show');
   toast(m.label ? `Undone · ${m.label}` : 'Undone');
+  render();
+}
+function redo(){
+  const m=S.redo.pop();
+  if(!m){ toast('Nothing to redo'); return; }
+  // straight onto the undo stack, without pushUndo(), which would clear redo
+  S.undo.push({label:m.label, steps:applyMove(m.steps), at:Date.now()});
+  while(S.undo.length>UNDO_MAX) reap(S.undo.shift());
+  $('#toast').classList.remove('show');
+  toast(m.label ? `Redone · ${m.label}` : 'Redone');
   render();
 }
 /* Removing several at once: take them out from the end so each recorded index
@@ -286,7 +338,14 @@ function create(kind, patch){
     done:false, doneAt:null, due:kindHas(kind,'date')?T:null,
     repeat:kindHas(kind,'streak')?'daily':null,
     history:[], milestones:kindHas(kind,'progress')?[{t:'First milestone',done:false,d:dz(30)}]:[],
-    media:kindHas(kind,'media')?{type:'image',label:'Attach a file'}:null,
+    /* Media, with **no type stamped on it**. It used to be born saying
+       `type:'image'`, so an Audio object declared itself a photograph the
+       moment it existed — and `mediaTypeOf()` asks the object first, which is
+       the whole point of it. The same mistake as storing tsize:1 on everything
+       ever looked at: normal is the absence of an answer, not a value written
+       everywhere. The type's own `mediaType` answers until something says
+       otherwise. See decisions 49 and 71. */
+    media:kindHas(kind,'media')?{label:'Attach a file'}:null,
     link:kindHas(kind,'button')?{label:'Open',target:''}:null,
     desk:null, phone:null,
     ord:Math.min(0,...S.objects.map(o=>o.ord||0))-1, created:T
@@ -404,5 +463,6 @@ function randomThing(parentId){
 
 // toggleHabit isn't exported — a streak reaches it through toggleDone, which is
 // the one door, so nothing outside has to know a habit ticks differently.
-export { toast, setGridSize, toggleDone, del, delMany, delDrawer, undo, pushUndo, setPin, togglePin,
+export { toast, setGridSize, toggleDone, del, delMany, delDrawer, undo, redo,
+  pushUndo, pushSet, pushSets, setPin, togglePin,
   drawerForTag, create, gather, quickAdd, spawnInto, randomThing };

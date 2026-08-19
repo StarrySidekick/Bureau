@@ -17,7 +17,7 @@ import { closePanel } from './panels.js';
    Bureau is this phone running" is exactly the question you ask when a change
    appears not to have deployed. Shown in Settings, so it can be read off the
    device rather than guessed at. */
-const APP_VERSION = '0.61';
+const APP_VERSION = '0.62';
 const KEY = 'bureau.v1';
 const install = {deferred:null};   // the browser's install prompt, when one is on offer
 let saveTimer = null;
@@ -38,11 +38,30 @@ function snapshot(){
   return {v:DATA_V, savedAt:new Date().toISOString(), desks, pins,
           look:S.look, kinds:S.kinds, deskCfg:S.deskCfg, objects};
 }
+/* ---- writing, and only when there is something to write ----------------
+   `save()` means "something changed": it marks the desk dirty and asks for a
+   write. `saveIfDirty()` means "I have finished a render" — it writes only if
+   a real change is waiting, which is what stops walking between desks,
+   turning a page or closing a panel from serialising the whole desk.
+
+   The debounce is also a *ceiling* now rather than a quiet-period. It used to
+   `clearTimeout` on every call, so a change every 200ms — which is what a drag
+   is — pushed the write further away each time and nothing reached storage
+   until you let go. Now the first change starts a 250ms clock and later ones
+   ride it, so a write lands at least that often however busy it is.
+   See decision 64. */
+let dirty = false;
 function writeNow(){
+  dirty = false;
   try{ localStorage.setItem(KEY, JSON.stringify(snapshot())); }
   catch(e){ console.warn('Bureau could not save:', e.message); }
 }
-function save(){ clearTimeout(saveTimer); saveTimer = setTimeout(writeNow, 250); }
+function save(){
+  dirty = true;
+  if(saveTimer) return;
+  saveTimer = setTimeout(()=>{ saveTimer=null; writeNow(); }, 250);
+}
+function saveIfDirty(){ if(dirty) save(); }
 function storeSize(){ try{ return (localStorage.getItem(KEY)||'').length; }catch(e){ return 0; } }
 
 /* v1 → v2: drawers carried only {w,h} and were laid out by flow order. Replay
@@ -203,7 +222,7 @@ function rescalePhone(d, from, cols){
    skips all of them, an old backup replays only what it is missing. These
    used to be ad-hoc per-load mutations inside adopt(); a new repair that
    should run once belongs here, as the next numbered step. */
-const DATA_V = 20;
+const DATA_V = 21;
 const MIGRATIONS = [
   // Drawers and objects were two arrays and a drawer could not live inside
   // anything. foldDrawers also replays the old dense flow to give v1 drawers
@@ -433,6 +452,21 @@ const MIGRATIONS = [
       d.look = d.look || {};
       if(!d.look.grid){ d.look.grid='small'; rescalePhone(d, 9, 8); }
     }},
+  /* One clause becomes a list of them. `filter.rule` was a single object; it is
+     `filter.rules`, an array, ANDed. The old key is *left in place* rather than
+     deleted — rulesOf() reads `rules` first and falls back to `rule`, so a
+     snapshot restored from a backup made before this still collects, and a
+     desk that never opens its rules again is untouched either way. Nothing
+     about what any existing drawer collects changes: one clause in a list of
+     one matches exactly what one clause matched. See decision 63. */
+  {v:21, up(d){
+      (d.objects||[]).forEach(o=>{
+        const f=o.filter;
+        if(!f || !f.rule || Array.isArray(f.rules)) return;
+        f.rules = f.rule.f ? [f.rule] : [];
+        delete f.rule;
+      });
+    }},
 ];
 function migrate(d){
   let v = d.v||0;
@@ -528,8 +562,14 @@ function assetDel(id){
 function hydrateAssets(){
   const want=S.objects.filter(o=>o.media&&o.media.assetId&&!o.media.src);
   if(!want.length) return;
-  Promise.all(want.map(o=>assetGet(o.media.assetId).then(src=>{ if(src) o.media.src=src; })))
-    .then(()=>render());
+  /* A picture is stored as a data URL and comes back ready to use; a sound or a
+     video is stored as the Blob itself, because base64 is a third bigger and a
+     third bigger on a phone recording is tens of megabytes for nothing. A blob
+     needs a URL made for it. See decision 71. */
+  Promise.all(want.map(o=>assetGet(o.media.assetId).then(v=>{
+    if(!v) return;
+    o.media.src = (typeof v==='string') ? v : URL.createObjectURL(v);
+  }))).then(()=>render());
 }
 /* Downscale on import: an untouched phone photo is several megabytes and
    nothing on this grid needs more than about 1400px on its long edge. */
@@ -547,6 +587,50 @@ function hasAlpha(cx, cv){
    argument, because the picker is an <input type=file> in the overlay and the
    file comes back on its own change event, long after the button was pressed. */
 const imgFor = {id:null};
+
+/* ---- sound and moving pictures ----------------------------------------
+   Not an image, so none of the downscaling above applies and none of it is
+   wanted: a recording is the recording. Two differences from the picture path
+   and the rest is the same bargain.
+
+   It is stored as a **Blob**, not as a data URL. Base64 is a third bigger, and
+   a third bigger on a phone recording is tens of megabytes for nothing; the
+   asset store holds whatever it is given, and `hydrateAssets()` turns a blob
+   back into an object URL on the way out. And there is a **ceiling**, because
+   IndexedDB will accept a file that then makes the desk slow to open, and a
+   refusal you can read beats a desk that has quietly become sluggish.
+   See decision 71. */
+const MEDIA_MAX = 60 * 1024 * 1024;
+function importMedia(file){
+  const kind = /^audio\//.test(file.type) ? 'audio'
+             : /^video\//.test(file.type) ? 'video' : null;
+  if(!kind){ toast('That is not a sound or a video'); return; }
+  if(file.size > MEDIA_MAX){
+    toast(`Too big — ${Math.round(file.size/1048576)}MB, and the limit is ${MEDIA_MAX/1048576}MB`);
+    return;
+  }
+  const assetId=uid('a');
+  assetPut(assetId, file).then(ok=>{
+    const into = imgFor.id && byId(imgFor.id);
+    imgFor.id = null;
+    const o = into && has(into,'media') ? into
+      : create(kind, {title:file.name.replace(/\.[^.]+$/,''),
+          parent:(S.view==='drawer'&&S.drawerId)||ROOT});
+    const was = o.media && o.media.assetId;
+    o.media={assetId, type:kind, label:file.name, src:URL.createObjectURL(file), size:file.size};
+    if(was && was!==assetId) assetDel(was);
+    if(o!==into){ o.desk=null; o.phone=null; }
+    closePanel(); save(); render(); renderSheet();
+    toast(ok ? (kind==='audio'?'Sound added':'Video added')
+             : 'Added — it may not survive a reload');
+  });
+}
+/* One door for the picker, whichever sort of file came back through it. */
+function importFile(file){
+  if(!file) return;
+  if(/^image\//.test(file.type)) importImage(file);
+  else importMedia(file);
+}
 function importImage(file){
   if(!/^image\//.test(file.type)){ toast('That is not an image'); return; }
   const fr=new FileReader();
@@ -581,7 +665,7 @@ function importImage(file){
           : create('image',{title:file.name.replace(/\.[^.]+$/,''),
               parent:(S.view==='drawer'&&S.drawerId)||ROOT});
         const was = o.media && o.media.assetId;
-        o.media={assetId, type:(o.media&&o.media.type)||'image', w:cv.width, h:cv.height,
+        o.media={assetId, type:'image', w:cv.width, h:cv.height,
                  label:file.name, src, alpha:keepAlpha};
         if(was && was!==assetId) assetDel(was);      // the picture it replaced
         // pictures land square; you stretch them to the shape you want
@@ -663,5 +747,6 @@ function pasteObjects(text, parentId){
   toast('Added '+(bits.join(' and ')||'nothing'), !!tally.made.length);
 }
 
-export { APP_VERSION, DATA_V, rescalePhone, rescaleOneBoard, rescaleBoxes, writeNow, save, storeSize, load, exportBackup,
-  importBackup, assetDel, hydrateAssets, importImage, imgFor, pasteObjects, install };
+export { APP_VERSION, DATA_V, rescalePhone, rescaleOneBoard, rescaleBoxes, writeNow, save, saveIfDirty, storeSize, load, exportBackup,
+  importBackup, assetDel, hydrateAssets, importImage, importMedia, importFile, imgFor,
+  pasteObjects, install };

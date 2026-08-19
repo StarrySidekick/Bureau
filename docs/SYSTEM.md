@@ -113,7 +113,7 @@ you have never looked at.
 
 ## 5. Attributes
 
-Twenty of them. Additive, independent, and never inferred from a type's name —
+Twenty-one of them. Additive, independent, and never inferred from a type's name —
 the app asks `has(o,'check')`, never `o.kind==='task'`. That rule is the whole
 reason an invented type works everywhere immediately.
 
@@ -121,7 +121,8 @@ reason an invented type works everywhere immediately.
 | --- | --- | --- |
 | `text` | A markdown body. The default; a bare object is just this. | — |
 | `check` | A checkbox. Ticking it completes the object. | `done` bool |
-| `date` | A due date. | `due` date |
+| `date` | The day it sits on — what a calendar draws it on, what Today collects. | `due` date |
+| `deadline` | The day it is **late**, which is a different fact. Opt-in. | `dead` date |
 | `repeat` | Completing it spawns the next occurrence. | `repeat` text |
 | `button` | A button pointing at an object, a drawer, or a URL. | — |
 | `container` | Children, on a grid or a list of its own. **This is what makes a drawer.** | — |
@@ -130,7 +131,7 @@ reason an invented type works everywhere immediately.
 | `total` | Adds a field up across what it holds. | — |
 | `streak` | A daily cadence and a tickable history. No due date, no overdue. | — |
 | `progress` | Ordered milestones and a progress bar. | — |
-| `media` | An image, video or audio file. A transparent PNG stays transparent. An image opens onto the picture surface. | — |
+| `media` | An image, video or audio file — all three real. A transparent PNG stays transparent. Any of them opens onto the media surface. | — |
 | `link` | A web address it points at. | `url` text |
 | `count` | A tally you add to. | `count` number |
 | `rating` | Out of five. | `rating` number |
@@ -237,14 +238,29 @@ answers three more questions, per object then per type: `calview`
 `weekStart` (`mon | sun`) and `weekends` (shown or hidden, which takes two
 columns off the grid). All three reach the front as well as the opened view.
 
-**Rules.** A magic drawer matches on one clause — a field, a comparison
-(`is`, `is not`, `contains`, `more than`, `less than`, `has any`), and a value —
-or on one of the shorthands the seeded drawers use: a tag, a set of types, due
-today, done. An object that hasn't got the field never matches.
+**Rules.** A magic drawer matches on **up to three clauses**, ANDed — each a
+field, a comparison (`is`, `is not`, `contains`, `after / more than`,
+`before / less than`, `has any`) and a value — plus the shorthands the seeded
+drawers use: a tag, a set of types, loose, due today, done. All of them AND
+together. An object that hasn't got the field never matches. Ask `rulesOf(f)`,
+never `filter.rule`, which is the old single-clause shape and is still read for
+a snapshot restored from before migration 21.
+
+There is **no OR**, deliberately: an OR needs groups, groups need a builder, and
+a builder is a query UI — which is the thing tags-becoming-drawers exists to
+avoid. A union is two drawers, and two drawers on a board is a thing you can see.
+
+A date clause compares as a date, and its value may be one of five **words** —
+`today`, `tomorrow`, `week`, `month`, `year` — resolved when the rule runs
+rather than when it was written, so "before next week" keeps meaning it. See
+decision 63.
 
 **Rollups.** A container can total a field across its children: how many, total,
-average, lowest, highest, or done-out-of. It shows on the face. Rollups, not
-formulas — there is no expression language and there isn't going to be one.
+average, lowest, highest, or done-out-of. It shows on **every** face it can
+wear — a front, a checklist, a project, a calendar, a timeline, a moodboard, a
+spine — because whether a container tells you what it is worth should not depend
+on which coat it has on. Rollups, not formulas: there is no expression language
+and there isn't going to be one.
 
 **Sorting.** `sort` is per object then per type, like every other setting —
 `sortOf(c)`. It is the **"Sorted by" row of the board's own editor**: how a
@@ -317,8 +333,8 @@ of four things layered over them.
 | **The carcass** | The wood the app is made of. Everything above the board is one piece of it — the notch strip, the bar and the reveal under it — and along the bottom of a phone is the desk's own drawer front. It holds nothing. Tap its knob to come out a level; pull it up for the type picker. Its knob, texture and colour are rows in that desk's editor. | inside `#app` |
 | **Reading** | An object's body as paper — a spread, a page, or a column. Over a dimmed desk. | `#sheetHost`, rendered separately from `render()` |
 | **Writing** | The same body, full screen, with nothing else on it. A title and a textarea. | `#sheetHost` |
-| **The picture** | What something made of an image opens onto: the image as large as the window allows, and — when there isn't one — the empty mount, which *is* the button that chooses a file. Replace and Remove in the head. | `#sheetHost` |
-| **Panel** | Every menu, every form, and every setting an object has — the object editor among them. One at a time, down the right, over a desk that stays live. | `#frame`, outside `#app` |
+| **The media** | What something made of a file opens onto: a picture as large as the window allows, a sound or a video with the browser's own transport, and — when there isn't one yet — the empty mount, which *is* the button that chooses a file. Replace and Remove in the head. | `#sheetHost` |
+| **Panel** | Every menu, every form, and every setting an object has — the object editor among them. One at a time, down the right, over a desk that stays live. A long one is a short list of **doors**: each section is the same panel under the same key, with `spec.back` as the way out. | `#frame`, outside `#app` |
 | **Popup** | Picking one of a handful — Sort, the context menu. Hangs off the button that opened it. | borrowed context-menu element |
 | **Command palette** | ⌘K. The one thing that kept a scrim, because it is a search field you type into blind. | `#frame` |
 
@@ -338,13 +354,22 @@ function so `refreshPanel()` can redraw from state; a form's draft lives in the
 screen, and the surface wins.
 
 **Everything an object can be changed to is in one panel — the object editor.**
-`objectPanel(id)` answers for objects, containers and the desk alike — a
+`objectPanel(id, sec)` answers for objects, containers and the desk alike — a
 container is an object with children, so "drawer settings" and "object settings"
-were the same question asked twice. Name, type, where it lives, its mark, how
-big its words are, look, behaviour, every field its traits carry, milestones, a
-streak, tags, relations, what a magic drawer collects, its traits, duplicate and
-delete. A list of one-of-many is a `<select>`; the many-of-many groups are chips
-behind a closed `<details>`. See decision 36.
+were the same question asked twice.
+
+**And it asks one question at a time.** The top of it is what you came for — the
+thing itself on its stage, its name, its type, where it lives — and under that a
+row of doors: **Look** (shape, colour, mark, edges, board), **Behaviour** (what
+a click does, how it opens, how it sorts), **Fields** (everything its traits
+carry, plus milestones and a streak), **Collects** (what fills a magic drawer,
+what any container totals), **Tags and links**, **Traits**. Settings is the same
+shape: Style, Appearance, Your things, Paste in, About.
+
+A door is the *same panel under the same key*, so it replaces rather than
+stacks, and `spec.back` puts a chevron in the head — the way out that a replaced
+panel never had. A list of one-of-many is a `<select>`; the many-of-many groups
+are chips behind a closed `<details>`. See decisions 36 and 66.
 
 At the top of it is **the thing itself**, drawn through the same `gridTile()`
 the board uses, on a checkerboard scrolling diagonally. Every row was already
@@ -394,11 +419,16 @@ coordinate space, so a new thing takes the first free room scanning from the
 top — and on a phone, where an object is full width, that is always below
 everything already there. It was placed correctly and never seen.
 
-**A picture opens onto the picture.** `isPicture(o)` — it carries media, and
-that media is an image — and the surface is the image at whatever size the
-window allows, with Replace, Remove and, if it also carries words, Read. Nothing
-in it yet means an empty mount that is itself the file picker, on the surface
-and on the board alike. See decision 49.
+**Anything made of a file opens onto the media surface.** `isMedia(o)` — it
+carries media — and the surface shows it the way it wants to be shown: a picture
+at whatever size the window allows, a sound or a video with the browser's own
+transport. Replace, Remove and, if it also carries words, Read. Nothing in it
+yet means an empty mount that is itself the file picker, on the surface and on
+the board alike, and the picker is told what sort of file to offer
+(`acceptFor`). `isPicture(o)` still means the image case and `isPlayable(o)` the
+other two. On the *board* a sound or a video is a face — a mark, a name — never
+a player: forty decoded media elements is a board that will not scroll. See
+decisions 49 and 71.
 
 **Reading is one surface with three settings.** `readOf()` — per object, then
 per type, defaulting to `page`:
@@ -453,16 +483,37 @@ skips it. The type builder sets a type's default; the reading header and the
 object's settings panel override it for one object.
 
 **Keys.** `N` opens the type picker, then a single letter picks the type. `⌘K`
-searches objects, drawers and types and offers to create what you typed. `⌘Z`
-undoes — except in a field, where it is the browser's to answer. `Esc` closes
-whatever is open.
+searches objects, drawers, **tags** and types and offers to create what you
+typed; the arrows move the lit row and Return runs it. `⌘Z` undoes and `⇧⌘Z`
+redoes — except in a field, where both are the browser's to answer. `Esc` closes
+whatever is open, and puts a selection down.
 
-**Undo** is a stack of up to 20 moves in `S.undo`, in memory only. A move is a
-list of steps replayed backwards: `{del:{o,i}}` puts an object back at its
-index, `{add:id}` takes one out again, `{set:{id,k,v}}` restores a field to
-what it was. Deleting one thing, deleting a selection, deleting a drawer and
-pasting are each one move. A deleted object's picture is only freed from
-IndexedDB when its move falls off the bottom of the stack.
+**And the board has a keyboard.** The arrows move the **selection**, which is
+the cursor Bureau already had — nearest tile in the direction pressed, weighing
+distance across the axis double. Space or Return opens what is selected; `⌘⌫`
+deletes it. See decision 70.
+
+In the writing surface the textarea behaves like an editor: Return continues the
+list you are in, Return on an empty item ends it, `⌘B` and `⌘I` wrap what is
+selected. There is no markdown overlay and there is not going to be one — a
+textarea has one font at one size, so an overlay can colour and can never
+resize. See decision 68.
+
+**Undo** is a stack of up to 20 moves in `S.undo`, in memory only, and **`S.redo`
+is the other one**. A move is a list of steps replayed backwards: `{del:{o,i}}`
+puts an object back at its index, `{add:id}` takes one out again, `{set:{id,k,v}}`
+restores a field to what it was. `applyMove()` replays a move *and* returns the
+move that would replay it, which is what makes redo the same function pointed
+the other way rather than a special case; a new move clears the redo stack.
+
+It covers **everything**, not only deletion: every row of the object editor,
+every drag, every drop that files or re-dates, every reparent and type change.
+Typing is coalesced — a set touching the same field of the same object within
+1.5s rides the move on top, keeping the first value — or a ten-letter rename
+would be ten moves. The one thing left out is the desk's own settings, which
+live in `S.deskCfg` and have no id for a step to point at. A deleted object's
+picture is only freed from IndexedDB when its move falls off the bottom of the
+stack. See decision 65.
 
 **Making things by typing** happens in four places: a Text field object (type
 into it and a task appears beneath it), the box at the top of any container that
@@ -472,8 +523,14 @@ the start, `#tag` anywhere, and `!today` / `!tomorrow` / `!week`.
 
 ## 11. Time, repetition, completion
 
-- A task has a due date and an optional repeat: daily, weekdays, weekly,
+- A task has a day it sits on and an optional repeat: daily, weekdays, weekly,
   monthly.
+- **When it sits and when it is late are two facts.** `date`/`due` is the day it
+  is drawn on; `deadline`/`dead` is the day it is owed, and it is an opt-in
+  trait. `lateOn(o)` says which one decides — the deadline where there is one,
+  otherwise the day it sits on, which is what everything did before the trait
+  existed — and `isLate(o)` is that date being past. A finished thing is never
+  late. Never read `D.overdue(o.due)` directly. See decision 62.
 - **Completing a repeating task does not reuse the object.** It spawns a fresh
   one at the next due date and turns the original into an `achievement`, so
   eleven waterings are eleven dated records rather than one counter.
@@ -504,10 +561,17 @@ Local-first. No account, no backend, nothing transmitted.
 - **`localStorage['bureau.v1']`** holds the whole desk: `{v, savedAt,
   desks, pins, inbox, look, kinds, deskCfg, objects}`. Writes are debounced 250ms. All of it
   goes through `persist.js` — no other module touches localStorage.
-- **IndexedDB** (`bureau-assets`) holds image bytes. `snapshot()` strips
-  `media.src` on the way out and `hydrateAssets()` puts it back after a load, so
-  a backup stays small and readable. Anything new that writes objects to storage
-  has to strip too.
+- **IndexedDB** (`bureau-assets`) holds media bytes — a picture as a data URL
+  after downscaling, a sound or a video as the **Blob itself**, because base64
+  is a third bigger and a third bigger on a phone recording is tens of megabytes
+  for nothing. `snapshot()` strips `media.src` on the way out and
+  `hydrateAssets()` puts it back after a load, making an object URL for a blob.
+  A file over 60MB is refused. Anything new that writes objects to storage has
+  to strip too.
+- **A render is not a change.** `save()` marks the desk dirty and asks for a
+  write; `saveIfDirty()` is what a finished render calls, so walking between
+  desks or closing a panel doesn't serialise the whole desk. The debounce is a
+  ceiling rather than a quiet-period. See decision 64.
 - **Migrations** are ordered and versioned (`DATA_V`, currently 17). The
   snapshot's `v` records the last step applied, so each runs once per desk.
   `dedupeIds()` is a repair, not a migration, and runs on every load, because an
@@ -532,9 +596,10 @@ block editor — the body is markdown in a textarea. No AI features in-app; the
 paste bridge covers generation without a key or a bill. No filter bar, no
 sidebar, no tabs, no modals, no arrange mode.
 
-Everything on the original requirements list is built except **video and audio
-files** (images are real: picked from the picture surface or the object editor,
-downscaled, stored in IndexedDB, placed and resized on the grid) and **sync between devices** (export/import is the bridge).
+Everything on the original requirements list is built except **sync between
+devices** (export/import is the bridge). Images, sound and video are all real:
+picked from the media surface or the object editor, stored in IndexedDB, played
+or shown on a surface and drawn as a face on the board. See decision 71.
 
 ## 14. Where each part lives
 

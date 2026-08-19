@@ -19,9 +19,9 @@ modules (`web/js/`) and three stylesheets (`web/css/`) — still no build step, 
 dependencies, no framework, no bundler. It runs on iPhone and Mac, persists to
 local storage, and works offline.
 
-Everything in the requirements list is implemented **except** video and audio
-files (images are real) and sync between devices (export/import JSON is the
-bridge).
+Everything in the requirements list is implemented **except** sync between
+devices (export/import JSON is the bridge). Images, sound and video are all
+real.
 
 **Start here each session:** `docs/SYSTEM.md` is the reference for what Bureau is
 made of — objects, attributes, types, drawers, the grid, the surfaces, storage.
@@ -141,6 +141,15 @@ which keeps the name. The classes are spliced into the first `class="` of
 whatever `drawTile()` returns, so a new branch gets the behaviour without being
 told. See decisions 26 and 50.
 
+**A tile prints words, not markdown source.** `plain()` in `util.js` takes the
+marks off and keeps the writing — not `md()`, because a face is not a page and
+a `<ul>` in a 40px band is a bullet and half a word. `.tiletext` is `pre-line`,
+so a note printed on a tile keeps the paragraphs it was written with. This was
+wrong for a long time and every type that ships a body template was putting
+`**` and `##` on the desk. `oneline()` is the same thing flattened, for a band.
+Titles are *not* reduced: a name is edited in place as raw text, and showing it
+differently from what you type in is worse than an asterisk. See decision 68.
+
 **A body fills the face it is printed on.** `.tiletext` is `height:100%` inside
 a `.dbody` that is `flex:1;overflow:hidden`, so the tile's own height is what
 decides how much shows. It carried `-webkit-line-clamp:4` for a while, which is
@@ -226,11 +235,32 @@ set in it. They were pinned to `--sans` — the system face — which meant a no
 and a task were the one thing on the desk not wearing the style, and Starry's
 Optima drawer sat next to a San Francisco note.
 
+**A magic drawer asks up to three questions, ANDed.** `filter.rules` is an
+array; ask `rulesOf(f)`, never `filter.rule`, which is the old single-clause
+shape still read for a pre-migration-21 backup. There is no OR and there is not
+going to be one — an OR needs groups, groups need a builder, and a builder is a
+query UI, which is the thing tags-become-drawers exists to avoid. A date clause
+compares as a *date* (`numOf` read "2026-08-19" as 2026) and its value may be
+one of five words — `today`, `tomorrow`, `week`, `month`, `year` — resolved when
+the rule runs, so "before next week" keeps meaning it. See decision 63.
+
 **A tag is a magic drawer waiting to happen.** There is no filter mode and no
 filter bar; clicking a tag anywhere calls `drawerForTag()`, which finds the
 magic drawer collecting that tag or makes one. If you are tempted to add a
 filter UI, add a drawer instead — that is the same instinct that deleted the
 tabs (decision 22).
+
+**Anything made of a file opens onto the media surface — sound and video
+included.** `isMedia(o)` routes; `isPicture(o)` is still the image case and
+`isPlayable(o)` the other two, and `acceptFor(o)` tells the one file input what
+to offer. A picture is stored as a downscaled data URL, a sound or a video as
+the **Blob itself** (base64 is a third bigger), with a 60MB ceiling;
+`hydrateAssets()` makes an object URL for a blob. On the *board* a sound or a
+video is a face — a mark and a name — never a player: forty decoded media
+elements is a board that will not scroll. `create()` deliberately stores **no**
+`media.type`, so an object follows its kind's `mediaType` until told otherwise —
+it used to stamp `type:'image'` at birth, which made every Audio a photograph.
+See decision 71.
 
 **A picture opens onto the picture, and so does an empty one.** `isPicture(o)`
 in `model.js` — it carries `media`, and `mediaTypeOf(o)` is `image`. That is a
@@ -243,6 +273,15 @@ in it doesn't bounce. An empty picture is a dashed mount on the board and the
 file picker itself on the surface; `importImage()` calls `renderSheet()` when
 the file lands, because the file comes back long after the button was pressed.
 See decision 49.
+
+**When a thing sits and when it is late are two facts.** `date`/`due` is the day
+it is drawn on — what a calendar shows it on, what Today collects, what a drag
+onto a day cell writes. `deadline`/`dead` is the day it is *late*, and it is an
+opt-in trait, so nothing that hasn't asked for it changes. Ask `lateOn(o)` for
+which one decides (the deadline where there is one, otherwise the day it sits
+on) and `isLate(o)` for the answer; never `D.overdue(o.due)`, or a task put on
+Monday with a deadline of Friday is overdue on Tuesday. A finished thing is
+never late. See decision 62.
 
 **A thing that lasts is not a thing with a date.** `date` is the day something
 falls on; `span` adds `till`, the last day, inclusive. Ask `spanOf(o)` (null
@@ -565,6 +604,14 @@ both devices, because that one is deliberate. And on a phone every panel comes
 up from the bottom rather than in from the right — a panel from the right covers
 the whole board, which is the thing decision 23 exists to prevent.
 
+**A panel asks one question.** A long one is a short list of **doors**:
+`objectPanel(id, sec)` and `settingsPanel(sec)` are the *same panel under the
+same key*, so a section replaces rather than stacks, and `spec.back` puts a
+chevron in the head — the way out a replaced panel never had. The object
+editor's top is the thing itself, its name, its type and where it lives; the
+rest is Look, Behaviour, Fields, Collects, Tags and links, Traits. Don't add a
+row to the top level unless it is one you reach for constantly. See decision 66.
+
 **There are no modals — a menu is a panel.** `openPanel(spec)` in `panels.js`
 is the whole system: one panel at a time, down the right, over a desk that stays
 visible and stays live. Settings, the type picker, the type builder, the drawer
@@ -852,7 +899,24 @@ when you're editing the *other* device's layout from this one.
   that already exists, so `dropSelection()` in `gestures.js` clears one at the
   start of every hold that becomes a Bureau gesture. Never inside a field. See
   decision 52.
-- **Anything destructive pushes an undo move.** `S.undo` is a stack of up to 20,
+- **Anything that changes a field pushes an undo move.** Not just deletion — that
+was the whole of it for a long time, and ⌘Z after a panel edit or a drag did
+nothing, silently. `pushSet(label, id, key, was)` records one field and
+**coalesces** (a set on the same field within 1.5s rides the move on top,
+keeping the first value, or a ten-letter rename is ten moves); `pushSets` records
+several at once, which is what a drop is. `S.redo` is the other stack and
+`applyMove()` returns the move that undoes what it just did, so redo is the same
+function pointed the other way. The desk's own settings are outside it: they
+live in `S.deskCfg` and have no id for a step to point at. See decision 65.
+
+**A render is not a change.** `render()` used to end with `save()` — 35ms of
+serialising an unchanged desk at three thousand objects, on the 250ms debounce,
+while you drag. Mutations say `save()` for themselves; a finished render calls
+`saveIfDirty()`. The one thing a render legitimately writes is a box invented by
+`ensureBox()`, which is why `PLACED.n` exists and why render() compares it either
+side of the build. Don't put `save()` back in render(). See decision 64.
+
+**Anything destructive pushes an undo move.** `S.undo` is a stack of up to 20,
   each a list of `{del}` / `{add}` / `{set}` steps replayed backwards. Remove
   objects through `del()`, `delMany()` or `delDrawer()` in `mutations.js` — a
   bare `S.objects.splice()` in a handler is exactly how group delete came to be
