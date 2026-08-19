@@ -2,6 +2,27 @@
 
 Written 2026-08-13, as scoping for roadmap item 6.
 
+> **Revisited 2026-08-19.** `docs/DIAGNOSTIC.md` §4 goes over this list with the
+> app as it now stands. Two things to carry back here before reading on:
+>
+> - **All six recommendations below are still open.** A dozen passes have
+>   shipped since this was written and none of them was one of these six.
+> - **Item 3 is wrong about the overlay, and I withdraw it.** "80% of the feel
+>   for a fraction of the risk" is too generous. The overlay must share the
+>   textarea's metrics exactly, and a textarea has *one font at one size for all
+>   of its text* — so an overlay can change colour and cannot change size or
+>   weight. Bear's actual effect (the heading is already a heading, the syntax
+>   fades when the cursor leaves the line) is a custom text engine on a native
+>   text view; its own team built a second editor around that behaviour rather
+>   than getting it from a control. The replacement recommendation is to make
+>   the textarea *behave* — list continuation, wrap-selection, ⌘B — and let the
+>   reading surface, which did not exist when this was written, be the "already
+>   a heading" half. See DIAGNOSTIC §4.
+>
+> The diagnostic also adds four borrowings this appraisal missed: Things' split
+> between *when* and *deadline*, Bear's nested tags, getting one object out as
+> markdown, and Notion's template-spawn.
+
 **What this is and isn't.** This is an appraisal of four apps from the outside —
 what they visibly do, what that costs to build, and which of it Bureau could
 take. It is not sourced research: nothing here comes from a published post-mortem,

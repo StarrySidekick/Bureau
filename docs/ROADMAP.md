@@ -5,6 +5,60 @@ Sequenced by dependency, not appetite: item 1 makes everything after it safer.
 
 ---
 
+## 0m. Queued 2026-08-19 (thirteenth pass) — not started
+
+From `docs/DIAGNOSTIC.md`, which is the whole review — findings, measurements,
+and what Bear, Things 3 and Notion are worth taking now. This is the plan half
+of it, in dependency order. Three passes, then a decision.
+
+**13 — the words on the board.** All visible, all cheap, no migration.
+
+1. **A tile prints words, not source.** `gridTile()` escapes the raw body, so
+   every type that ships with a markdown template puts `**` and `##` on the
+   desk. A `plain()` reduction beside `md()` in `util.js` — not `md()` itself,
+   because a face is not a page. Twenty lines, and it changes every screen
+2. **The writing surface behaves like an editor**: Return continues a list,
+   `**` wraps a selection, `#` at the start of a line, ⌘B. *Not* the markdown
+   overlay INFLUENCES recommended — see the correction in DIAGNOSTIC §4
+3. **Copy one object out as markdown.** Export is all-or-nothing JSON today
+4. **The picker leads with what this desk uses**, the other thirty-five behind
+   "more". A frequency count over `S.objects`, stored nowhere
+5. **⌘K takes arrow keys and searches tags.** It runs result zero or nothing
+
+**14 — the drawer knows what it holds.**
+
+6. **Two-clause rules**, ANDed, with the migration. The shorthands already
+   stack; what there is exactly one of is the free field clause, so "due this
+   week" cannot be said. No OR — that needs groups, and groups are a query UI
+7. **`genKind` reaches the picker and the sketched box**, not just the typing
+   box — Notion's schema idea, on machinery that already exists
+8. **Rollups on every face**, not the two that have them
+9. **Panels that ask one question.** The object editor is nineteen rows and
+   settings is seventeen sections; INFLUENCES said this and it is still true
+
+**15 — repair and keys.**
+
+10. **Undo covers edits, moves and reparents, and there is a redo.** The stack
+    only knows about deletion
+11. **A dirty flag**, so `render()` stops serialising a desk that did not
+    change — 35ms per save at 3,000 objects, for renders that changed nothing
+12. **Arrow keys on the board**, space to open, ⌘⌫ to delete. Also the
+    accessibility gap in §4, approached from the side with a visible payoff
+13. **Wire audio and video, or take them out of the picker.** They are types
+    that cannot do their one job
+
+*Then a decision, not a pass:* sync (§5), and whether the native shell is worth
+it for reminders and widgets. Neither is work to start speculatively.
+
+*Also queued from the same review, unsequenced:* a `deadline` attribute, so
+"when I will do it" and "when it is late" stop being one date (Things 3's
+central idea, and the one thing in it Bureau has not got); nested tags, so
+`#film/shoots` makes a magic drawer inside the one for `#film`; and
+template-spawn, which has been item 3 below since v30 and is the Notion feature
+that fits Bureau best.
+
+---
+
 ## 0l. Queued 2026-08-17 (twelfth pass) — a list is a board — DONE (v0.61)
 
 See decisions 60 and 61.

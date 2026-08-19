@@ -25,7 +25,9 @@ bridge).
 
 **Start here each session:** `docs/SYSTEM.md` is the reference for what Bureau is
 made of — objects, attributes, types, drawers, the grid, the surfaces, storage.
-`docs/ROADMAP.md` holds the current plan in dependency order.
+`docs/ROADMAP.md` holds the current plan in dependency order, and
+`docs/DIAGNOSTIC.md` is the last full review — what is wrong, what it measures
+at, and what is worth taking from Bear, Things 3 and Notion.
 
 Read `docs/SYSTEM.md` before changing behaviour and `docs/DECISIONS.md` before
 changing structure — the second one records things that were decided deliberately
@@ -36,6 +38,7 @@ and shouldn't be undone by accident.
 ```bash
 scripts/serve.sh              # http://localhost:8000
 node test/smoke.mjs           # headless browser check, needs the server running
+node test/scale-probe.mjs     # what a render costs as the desk fills up
 ```
 
 Open it over http, never as a `file://` URL — the service worker won't register
@@ -47,6 +50,14 @@ drawers, quick-add, the detail sheet, habits and goals, both layouts, persistenc
 across a reload, and an offline reload. **Run it after any non-trivial change and
 before saying you're done.** It writes screenshots to `test/shots/` — look at
 them, this is a visual app and a passing assertion doesn't mean it looks right.
+
+`test/scale-probe.mjs` is not a test and nothing gates on it — it pours objects
+onto the sample desk and times a render, the string build inside it, and a full
+save, so "is this getting slow" has an answer rather than an opinion. Run it
+after anything that touches `render()`, `childrenOf()` or the grid maths. The
+numbers as of v0.61 are in `docs/DIAGNOSTIC.md` §2; the short version is that
+growth is linear, the phone pages and the Mac doesn't, and the most expensive
+thing in a big frame is the save.
 
 ## Deploying
 
