@@ -1,20 +1,22 @@
 import { $, $$, esc, ic, uid, D, ROOT } from './util.js';
 import { S, K, KINDS, KEYS, refreshKinds, ATTRS, USER_ATTRS, attrsOf, has, SHAPES,
   FACES, MANUAL, byId, container, cfgOf, isContainer, isAncestor, relate, deskOf,
-  unrelate, sensedDevice, reset, T, dz, dev, calViewOf, RULE_MAX, acceptFor } from './model.js';
+  unrelate, sensedDevice, reset, T, dz, dev, calViewOf, RULE_MAX, acceptFor,
+  boardLocked, repeatOf, repeats } from './model.js';
 import { gridOf, lay, boxOk, freeSpot, toPhoneSize } from './grid.js';
 import { applyLook, applyStyle, setLookVal, lookVal, STYLES, randomFront,
   setSlot, palNow, objColour, darkMode } from './look.js';
-import { toast, setGridSize, toggleDone, del, delMany, delDrawer, undo, redo, pushUndo,
+import { toast, setGridSize, toggleDone, spawnNext, del, delMany, delDrawer, undo, redo, pushUndo,
   pushSet, pushSets, setPin, togglePin, drawerForTag, create, quickAdd, spawnInto, randomThing } from './mutations.js';
 import { spinTo, pending, placeAtPending, tileTap, turnPage, clearPages } from './tiles.js';
-import { render, sizeGrid, toggleSettings, settingsPanel, reveal, goPage, deskMap } from './views.js';
+import { render, renderSoon, sizeGrid, toggleSettings, settingsPanel, reveal, goPage, deskMap } from './views.js';
 import { openObj, openWriter, openRead, openViewer, closeSheet, renderSheet, words,
   mdKey, copyObject } from './sheet.js';
 import { openPanel, closePanel, refreshPanel, panelKey, panelBack, draft, openMenu,
   modalNewObject, modalNewKind, modalMove, renderPreview,
   drawerPanel, objectPanel,
-  drawerFromSelection, openCtx, closeCtx, openCmd, closeCmd, cmdList, cmdMove, cmdAt, runCmd } from './panels.js';
+  drawerFromSelection, openCtx, closeCtx, openCmd, closeCmd, cmdList, cmdMove, cmdAt, runCmd,
+  schedulePanel, quickISO, SCHED } from './panels.js';
 import { onDown, onMove, onUp, onCancel, onTouchStart, onTouchMove, onTouchEnd,
   gestureFlags, dragArmed } from './gestures.js';
 import { enter, pagerOn } from './motion.js';
@@ -81,8 +83,10 @@ function setField(el){
     if(key==='parent') pushSets('Moved', [[id,'parent',o.parent],[id,'desk',clone(o.desk)],[id,'phone',clone(o.phone)]]);
     else if(key==='kind') pushSets('Type changed', [[id,'kind',o.kind],[id,'attrs',clone(o.attrs)],[id,'milestones',clone(o.milestones)]]);
     else if(key==='knobtone') pushSets('Changed', [[id,'knobtone',o.knobtone],[id,'knobc',o.knobc]]);
-    else { const uk = UNDOKEY[key] || (/^rule\./.test(key) ? 'filter' : key);
-           pushSet('Changed', id, uk, clone(o[uk])); }
+    else if(!/^rep\./.test(key)){       // the repeat writer records its own
+      const uk = UNDOKEY[key] || (/^rule\./.test(key) ? 'filter' : key);
+      pushSet('Changed', id, uk, clone(o[uk]));
+    }
   }
   /* `rule.<n>.<f|op|v>` — one clause of a list of them, ANDed. Before the
      switch, because the key carries an index and a `case` cannot match a
@@ -91,6 +95,34 @@ function setField(el){
      clearing the first of two leaves one clause rather than a hole. The old
      single `rule` is folded in on first touch, for a desk restored from a
      backup made before migration 21. See decision 63. */
+  /* ---- the repeat rule ------------------------------------------------
+     One writer for every row of it, because they all edit one object and a
+     half-written rule should never reach the model. `rep.on` turns it on and
+     off; everything else edits what is already there. See decision 73. */
+  if(key.startsWith('rep.')){
+    if(!o) return;
+    const part = key.slice(4);
+    const was = clone(o.repeat);
+    const r = repeatOf(o) || {every:1, unit:'day', days:[], from:'date', ends:null, paused:false, made:0};
+    if(part==='on'){
+      o.repeat = v ? r : null;
+    } else {
+      const n = Object.assign({}, r, {days:(r.days||[]).slice(),
+                                      ends:r.ends?Object.assign({},r.ends):null});
+      if(part==='every')    n.every = Math.max(1, Math.min(99, parseInt(v,10)||1));
+      else if(part==='unit'){ n.unit = v; if(v!=='week') n.days=[]; }
+      else if(part==='from'){ n.from = v; if(v==='done') n.days=[]; }
+      else if(part==='paused') n.paused = !!v;
+      else if(part==='endkind') n.ends = v==='after' ? {after:(n.ends&&n.ends.after)||10}
+                                       : v==='on'    ? {on:(n.ends&&n.ends.on)||''} : null;
+      else if(part==='after')   n.ends = {after: Math.max(1, parseInt(v,10)||1)};
+      else if(part==='on_date') n.ends = v ? {on:v} : null;
+      o.repeat = n;
+    }
+    pushSet('Repeat', id, 'repeat', was);
+    save();
+    return;
+  }
   const ix = key.match(/^rule\.(\d+)\.(\w+)$/);
   if(ix){
     if(!o) return;
@@ -329,6 +361,20 @@ function act(name, el){
     case 'drawersettings': case 'objset': objectPanel(el.dataset.id); break;
     case 'panelclose': closePanel(); break;
     case 'panelback': panelBack(); break;
+    // the little calendar — reachable from the swipe, the menu and a key
+    case 'schedule': schedulePanel(el.dataset.id || S.openId); break;
+    /* "give it a deadline as well" — the trait, ticked from the one place the
+       question comes up. It is an attribute like any other, so this is the same
+       write the Traits chips make. */
+    case 'wantdeadline': {
+      const o=byId(el.dataset.id || S.openId); if(!o) break;
+      const a=attrsOf(o);
+      if(!a.includes('deadline')){ pushSet('Deadline', o.id, 'attrs', o.attrs); o.attrs=a.concat('deadline'); }
+      save(); render(); refreshPanel();
+      break;
+    }
+    // Things 3.23's "create next copy" — a head start on the next one
+    case 'nextcopy': spawnNext(el.dataset.id || S.openId); refreshPanel(); break;
     // one object out as words — see decision 68
     case 'copymd': copyObject(el.dataset.id || S.openId); break;
     case 'appsettings': toggleSettings(); break;
@@ -344,10 +390,14 @@ function act(name, el){
        now: how a board arranges itself is something you decide once, and a
        tool is for what you change while you are working. */
     // locked refuses moves and resizes; the long press still opens the menu
+    /* One lock for everything. A lock is not a property of a board, it is which
+       mode you are in — reading your desks, or arranging them — and unlocking
+       each drawer as you walked into it was arrange-mode by another name.
+       See decision 74. */
     case 'togglelock': {
-      const id=el.dataset.id, c=cfgOf(id);
-      c.locked=!c.locked; save(); render();
-      toast(c.locked?'Board locked':'Board unlocked');
+      S.look.locked = !boardLocked();
+      save(); render(); refreshPanel();
+      toast(boardLocked()?'Locked':'Unlocked — everything can be moved');
       break;
     }
     case 'newkind': modalNewKind(null); break;
@@ -373,7 +423,7 @@ function act(name, el){
     "tags": ["food"] },
   "Milk"                       // a bare string is a task
 ]</pre>
-        <p>Fields follow the attributes: <code>due, done, count, rating, price, prio, loc, dur, url, repeat</code>. Anything a type hasn't got is ignored rather than breaking.</p>
+        <p>Fields follow the attributes: <code>due, dead, till, done, count, rating, price, prio, loc, dur, url, repeat</code>. Anything a type hasn't got is ignored rather than breaking.</p>
         <p>Give a child list to something that can't hold children and it becomes a drawer instead.</p></div>`});
       break;
     }
@@ -502,15 +552,7 @@ function wire(){
        so a checklist line and a list band get this without either of them being
        a tile on a board. See decision 61. */
     const ed=t.closest('[data-edit]');
-    if(ed){
-      const board=t.closest('[data-gridfor],[data-listfor]');
-      const bid = board ? (board.dataset.gridfor||board.dataset.listfor) : null;
-      const locked = bid!=null ? !!(cfgOf(bid)||{}).locked : false;
-      if(!locked){
-        startEdit(ed.dataset.edit);
-        return;
-      }
-    }
+    if(ed && !boardLocked()){ startEdit(ed.dataset.edit); return; }
     const undoEl=t.closest('[data-undo]'); if(undoEl){ undo(); return; }
     const c=t.closest('[data-c]');
     if(c){ const [cmd,id]=c.dataset.c.split(':'); closeCtx();
@@ -521,8 +563,10 @@ function wire(){
       else if(cmd==='opendrawer'){ S.view='drawer'; S.drawerId=id; render(); }
       else if(cmd==='pin') togglePin(id);
       else if(cmd==='done') toggleDone(id);
-      else if(cmd==='today'){ byId(id).due=T; render(); toast('Scheduled today'); }
-      else if(cmd==='tom'){ byId(id).due=dz(1); render(); toast('Scheduled tomorrow'); }
+      else if(cmd==='when') schedulePanel(id);
+      else if(cmd==='nextcopy') spawnNext(id);
+      else if(cmd==='today'){ const o=byId(id); pushSet('Scheduled',id,'due',o.due); o.due=T; save(); render(); toast('Scheduled today'); }
+      else if(cmd==='tom'){ const o=byId(id); pushSet('Scheduled',id,'due',o.due); o.due=dz(1); save(); render(); toast('Scheduled tomorrow'); }
       else if(cmd==='move') modalMove(id);
       else if(cmd==='dupe'){ const o=byId(id); S.objects.push(Object.assign({},o,{id:uid('o'),title:o.title+' (copy)',ord:o.ord+0.1})); render(); }
       else if(cmd==='intodrawer') drawerFromSelection(id);
@@ -565,6 +609,11 @@ function wire(){
     if(shd){ S.look.shadows = !!shd.dataset.shadows;
       applyLook(); save(); render(); refreshPanel(); return; }
 
+    // laid flat on the board, or pinned to it — see decision 75
+    const pnb=t.closest('[data-pinned]');
+    if(pnb){ S.look.pinned = !!pnb.dataset.pinned;
+      save(); render(); refreshPanel(); return; }
+
     const st3=t.closest('[data-style3]');
     if(st3){ applyStyle(st3.dataset.style3); toast(STYLES[st3.dataset.style3].nm); return; }
 
@@ -578,6 +627,30 @@ function wire(){
     // the page dots in the top shelf: two fingers turn pages, and so do these
     const gp=t.closest('[data-gopage]');
     if(gp){ goPage(S.view==='drawer'?S.drawerId:ROOT, +gp.dataset.gopage); return; }
+
+    /* The little calendar. A day sets the day it sits on; a quick pill is the
+       same write with the arithmetic done for you; the arrows walk the month
+       without touching anything. See decision 78. */
+    const sd=t.closest('[data-schedday]');
+    if(sd){ const [oid,iso]=sd.dataset.schedday.split(':');
+      const o=byId(oid); if(o){
+        pushSet('Scheduled', oid, 'due', o.due);
+        o.due = o.due===iso ? null : iso;
+        save(); render(); refreshPanel();
+        toast(o.due?`On ${D.human(o.due).toLowerCase()}`:'No date');
+      }
+      return; }
+    const sm=t.closest('[data-schedmon]');
+    if(sm){ SCHED.month = sm.dataset.schedmon.split(':')[1]; refreshPanel(); return; }
+    const sq=t.closest('[data-schedset]');
+    if(sq){ const [oid,which]=sq.dataset.schedset.split(':');
+      const o=byId(oid); if(o){
+        pushSet('Scheduled', oid, 'due', o.due);
+        o.due = quickISO(which);
+        save(); render(); refreshPanel();
+        toast(o.due?`On ${D.human(o.due).toLowerCase()}`:'No date');
+      }
+      return; }
 
     // a door in the object editor — the same panel, one question of it
     const os=t.closest('[data-osec]');
@@ -728,10 +801,28 @@ function wire(){
     /* What is left of the panel's buttons once every one-of-many list became a
        select: swatches, the knob's own colours, and the read switch in the
        reading header — which is a header, not a panel. */
-    const pn=t.closest('[data-ocolour],[data-oic],[data-pboard],[data-pknobc],[data-pwood],[data-prailknobc],[data-oread],[data-fkind],[data-fdesk]');
+    const pn=t.closest('[data-ocolour],[data-oic],[data-pboard],[data-pknobc],[data-pwood],[data-prailknobc],[data-oread],[data-fkind],[data-fdesk],[data-prio],[data-repday]');
     if(pn){
       const id=pn.dataset.id, o=byId(id) || cfgOf(id);
-      if(pn.dataset.ocolour!=null) o.c=slotVal(pn.dataset.ocolour);
+      /* An empty one is the way back to the type's own, and it has to be
+         **null**: objColour() tests `o.c!=null`, so an empty string is an
+         answer that resolves to the fallback slot rather than to the type. */
+      if(pn.dataset.ocolour!=null){ pushSet('Colour', id, 'c', o.c);
+        o.c = pn.dataset.ocolour==='' ? null : slotVal(pn.dataset.ocolour); }
+      /* 0 is a real answer and '' is the absence of one, so the empty string
+         has to be tested for rather than falsiness. See decision 72. */
+      else if(pn.dataset.prio!=null){
+        pushSet('Priority', id, 'prio', o.prio);
+        o.prio = pn.dataset.prio==='' ? null : +pn.dataset.prio;
+      }
+      else if(pn.dataset.repday!=null){
+        const was=clone(o.repeat);
+        const r=repeatOf(o); if(!r) return;
+        const days=(r.days||[]).slice(), n=+pn.dataset.repday, i=days.indexOf(n);
+        if(i>=0) days.splice(i,1); else days.push(n);
+        o.repeat=Object.assign({}, r, {days:days.sort((a,b)=>a-b)});
+        pushSet('Repeat', id, 'repeat', was);
+      }
       // an empty mark is the way back to the type's own
       else if(pn.dataset.oic!=null) o.ic=pn.dataset.oic||null;
       else if(pn.dataset.pboard!=null) o.board=pn.dataset.pboard||null;
@@ -867,6 +958,18 @@ function wire(){
 
   // inline field edits
   frame.addEventListener('input', e=>{
+    /* A colour of your own. Live while the picker is open — you are choosing
+       against the desk behind it — and one undo move for the whole drag, which
+       is what pushSet's coalescing is for. See decision 76. */
+    if(e.target.dataset.ocolinput!=null){
+      const id=e.target.dataset.id, o=byId(id)||cfgOf(id);
+      /* renderSoon, not render: a colour input fires on every pixel of the
+         drag, and one rebuild per frame is enough. The panel is deliberately
+         *not* refreshed — rebuilding the input would close the picker you are
+         still holding open. */
+      if(o){ pushSet('Colour', id, 'c', o.c); o.c=e.target.value; save(); renderSoon(); }
+      return;
+    }
     // colour pickers: live preview while dragging, committed on 'change'
     if(e.target.dataset.tlzoom!=null){
       const o=byId(e.target.dataset.id); if(o){ o.tlzoom=+e.target.value; save(); render(); }

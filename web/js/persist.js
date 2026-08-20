@@ -17,7 +17,7 @@ import { closePanel } from './panels.js';
    Bureau is this phone running" is exactly the question you ask when a change
    appears not to have deployed. Shown in Settings, so it can be read off the
    device rather than guessed at. */
-const APP_VERSION = '0.62';
+const APP_VERSION = '0.63';
 const KEY = 'bureau.v1';
 const install = {deferred:null};   // the browser's install prompt, when one is on offer
 let saveTimer = null;
@@ -222,7 +222,7 @@ function rescalePhone(d, from, cols){
    skips all of them, an old backup replays only what it is missing. These
    used to be ad-hoc per-load mutations inside adopt(); a new repair that
    should run once belongs here, as the next numbered step. */
-const DATA_V = 21;
+const DATA_V = 22;
 const MIGRATIONS = [
   // Drawers and objects were two arrays and a drawer could not live inside
   // anything. foldDrawers also replays the old dense flow to give v1 drawers
@@ -467,6 +467,48 @@ const MIGRATIONS = [
         delete f.rule;
       });
     }},
+  /* Three shapes at once, because all three are the same kind of change: a
+     value that was a word becomes a value that can be reasoned about.
+
+     **Priority** was low | mid | high and is a rank of 0–5 (decision 72). The
+     three map onto 2, 3 and 4 — the middle of the range, leaving room above
+     and below, because "high" never meant "the most important thing I have",
+     it meant "more than the others".
+
+     **Repeat** was one of four words and is a rule object (decision 73).
+     `repeatOf()` still reads the words, so this is tidying rather than repair —
+     but a stored rule is one you can edit, and a stored word is not.
+
+     **Locked** was per container and is one switch (decision 74). The desk's
+     own answer becomes everybody's, which for a desk that was never unlocked
+     is the locked it already was. */
+  {v:22, up(d){
+      const PRIO = {low:2, mid:3, high:4};
+      const REPEAT = {
+        daily:    {every:1, unit:'day',  days:[],          from:'date'},
+        weekly:   {every:1, unit:'week', days:[],          from:'date'},
+        monthly:  {every:1, unit:'month',days:[],          from:'date'},
+        yearly:   {every:1, unit:'year', days:[],          from:'date'},
+        weekdays: {every:1, unit:'week', days:[1,2,3,4,5], from:'date'}
+      };
+      let lockedSomewhere = false, sawALock = false;
+      (d.objects||[]).forEach(o=>{
+        if(typeof o.prio === 'string' && o.prio in PRIO) o.prio = PRIO[o.prio];
+        else if(typeof o.prio === 'string' && /^[0-5]$/.test(o.prio)) o.prio = +o.prio;
+        else if(typeof o.prio === 'string') delete o.prio;
+        if(typeof o.repeat === 'string'){
+          const r = REPEAT[o.repeat];
+          o.repeat = r ? Object.assign({ends:null, paused:false, made:0}, r) : null;
+        }
+        if('locked' in o){ sawALock=true; if(o.locked) lockedSomewhere=true; delete o.locked; }
+      });
+      d.look = d.look || {};
+      const deskLock = d.deskCfg && d.deskCfg.locked;
+      if(d.deskCfg) delete d.deskCfg.locked;
+      if(d.look.locked === undefined)
+        d.look.locked = deskLock !== undefined ? !!deskLock
+                      : sawALock ? lockedSomewhere : true;
+    }},
 ];
 function migrate(d){
   let v = d.v||0;
@@ -699,7 +741,7 @@ function kindFromName(n){
   const partial=KEYS.find(k=>k.startsWith(t)||t.startsWith(k));
   return partial||'note';
 }
-const SPEC_FIELDS=['body','due','done','count','rating','price','prio','loc','dur','url','repeat','rel'];
+const SPEC_FIELDS=['body','due','dead','till','done','count','rating','price','prio','loc','dur','url','repeat','rel'];
 
 function addSpec(spec, parentId, tally){
   if(spec==null) return;

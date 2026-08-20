@@ -5,6 +5,63 @@ Sequenced by dependency, not appetite: item 1 makes everything after it safer.
 
 ---
 
+## 0n. Queued 2026-08-20 (fourteenth pass) — DONE (v0.63)
+
+Eight changes Timothy asked for. Decisions 72–78, migration 22.
+
+- **priority is a rank, 0 to 5**, and it is *importance*, not urgency — urgency
+  is a deadline coming up, which is what `deadline` is for. 0 is "a dream,
+  nothing to act on", which is the answer every other list app makes you delete.
+  Six buttons rather than a select, because the point is that you can see the
+  scale. It sorts and a magic drawer collects on it. **0 is a real answer**, so
+  `prioOf(o)` returns null or a number and `o.prio || …` is the bug this invites
+- **repeating is a rule**, not one of four words: how often, on which weekdays,
+  until when, paused or not — and **counted from the day it is due or the day
+  you finish it**, which is the change Things 3.23 shipped the same day and the
+  half that matters. Finishing early needed no special case: completing already
+  spawns a fresh object, so the tick is just the tick. Plus a head start ("make
+  the next one now") and a glyph on copies a rule made
+- **one lock, not one per board.** A lock is which mode you are in, not a fact
+  about a drawer, and unlocking each drawer as you walked into it was
+  arrange-mode by another name. The row is out of the object editor
+- **a colour of your own**: a picker under the eleven slots, writing a literal
+  hex that ignores the style and stays put when it changes. Its own labelled row
+  rather than a twelfth swatch, because it does something different
+- **the add box is a choice** — turn it off for one more line of what a
+  checklist holds — and it goes by itself at two cells tall, where the line is
+  worth more as an item
+- **swiping right opens the little calendar**: today, tomorrow, this weekend,
+  next week, no date, a month you can press a day on, and the deadline beside
+  the date rather than three sections down another panel. Also on the context
+  menu, since a Mac has no row swipe
+- **pinned or laid flat**, a setting: a little air around each tile and one to
+  three degrees of tilt, off a hash of the object's own id so the angle never
+  changes between renders. A margin on the tile, never a gap on the grid — the
+  grid is a coordinate space
+
+Two bugs fell out: `clamp` was never imported into `model.js`, so any priority
+rule threw; and the priority class used `o.prio ? …`, which drew nothing for a
+rank of 0.
+
+*Still open — and it needs a decision rather than work.* Timothy raised a third
+axis: a mark for something that causes **real problems if it is not done at a
+specific time**, which is neither importance (priority) nor simply having a
+deadline. Two ways to go, and I would take the first:
+
+1. **A trait on the deadline**, `hard:true` — "missing this costs something".
+   Cheap, sits exactly where the fact belongs, and reads as *this deadline is
+   real* rather than as a fourth field to keep up to date. A name: **binding**.
+   "A binding deadline" says it without inventing a word.
+2. **A `stakes` field**, 0–2, independent of both. More expressive, another
+   thing to maintain, and it starts to look like a spreadsheet.
+
+Not built either way, because naming it *is* the decision.
+
+Also still open from the thirteenth pass: nested tags, template-spawn, and the
+animation list in §0b-next.
+
+---
+
 ## 0m. Queued 2026-08-19 (thirteenth pass) — DONE (v0.62)
 
 The whole of `docs/DIAGNOSTIC.md`, built in one pass. Decisions 62–71.

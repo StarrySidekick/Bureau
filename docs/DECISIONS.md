@@ -2357,3 +2357,206 @@ does not keep.
 
 `isMedia(o)` is anything carrying a file and is what routes to the surface;
 `isPicture(o)` still means the image case, and `isPlayable(o)` is the other two.
+
+---
+
+### 72. Priority is a rank, 0 to 5, and it is not urgency
+
+Low, mid, high is a shape you outgrow the moment you have more than a handful
+of important things, because "high" stops telling you *which* high thing to do.
+Six levels do, and each one says what it means rather than leaving it to the
+reader:
+
+    0  Not now       a dream — nothing to act on yet
+    1  Barely        barely a task; the least of it
+    2  Taking hold   starting to take precedence
+    3  Decent        worth an afternoon
+    4  Important     solidly important
+    5  The one       the most important thing in the docket
+
+**It is about how much a thing matters, not how soon it is needed.** Urgency is
+a deadline coming up and consequences for missing it, and that is `deadline`'s
+job (decision 62). An app that folds the two together makes you answer neither:
+the tax return is urgent and dull, the novel is important and has no date at
+all, and one number cannot hold both. Two fields can.
+
+0 is the interesting end. Every list app makes you either delete a thing you are
+not going to do or feel bad about it; a rank of zero is a third answer — kept,
+visible, and explicitly not asking anything of you.
+
+**Stored as a number, and 0 is a real answer**, so `prioOf(o)` returns null or a
+number and every read has to check for null. `o.prio || 3` would turn "not now"
+into "decent", which is the exact bug this shape invites; the tile's own class
+had it (`o.prio ? …` drew nothing for 0) and the test now guards it.
+
+It is a field, so a magic drawer can collect on it — "more than 3" is a drawer
+of what matters — and it sorts, which is what a ranking is for.
+
+*Still open:* Timothy raised a third thing — a mark for something that causes
+real problems if it is not done at a specific time, which is neither importance
+nor a plain deadline. It is not built, because it has not been named. My
+suggestion is in ROADMAP §0n.
+
+---
+
+### 73. Repeating is a rule, and "after completion" is half of it
+
+`repeat` was one of four words — daily, weekdays, weekly, monthly. Every three
+days, the first Monday, three days *after I finish it*: none of them could be
+said at all.
+
+It is an object now: `{every, unit, days, from, ends, paused, made}`. The row
+that matters is **`from`**, and it is the change Things 3.23 shipped on the day
+this was written, after years of people asking:
+
+- `from:'date'` — a **fixed schedule**, counted from the day it was due. The
+  bins go out on Tuesday whether or not you did it last Tuesday.
+- `from:'done'` — counted from the day you **actually finished it**. You water
+  the plant a week after you last watered it.
+
+A single fixed schedule makes the second one a lie that accumulates: skip two
+weeks of watering and a fixed rule insists you are two waterings behind, which
+is not a fact about the plant.
+
+Bureau already had the better half of this and keeps it. Completing a repeating
+thing **spawns a fresh object** at the next date and turns the original into a
+record (decision 5), so eleven waterings are eleven dated things rather than one
+counter — and *that is why finishing early needs no special case*. The tick is
+the tick; a fixed rule counts from the due date and an after-completion rule
+counts from today, which is what each of them already means. Things 3 needed a
+change to allow early completion at all; here it fell out of the model.
+
+Taken from 3.23 as well:
+
+- **A head start.** "Make the next one now" produces the copy without ticking
+  anything, for something you want to fill in ahead of time.
+- **A copy says it is one.** `fromRepeat` puts a small repeat glyph on the tile:
+  the difference between "I wrote this down" and "this comes round".
+- **Pause.** A paused rule keeps its shape and stops producing, which is not the
+  same as deleting it and is the thing you actually want in a quiet fortnight.
+
+Deliberately **not** taken: 3.23's prompt asking "make an exception or update the
+rule?" when you drag a repeating thing to a new day. Bureau's answer is that
+dragging always moves *this one* — it is an object, and moving an object moves
+that object — and the rule is changed where rules live, in the editor. A
+question every time you drag is a modal in a shape decision 23 already refused.
+
+A string is still read (`repeatOf`), so a backup from before migration 22 works.
+
+---
+
+### 74. One lock, not one per board
+
+Every container carried its own `locked`, and the padlock toggled whichever
+board you were standing on. That is the same shape as every other setting in
+Bureau — per object, then per type — and it was still wrong, because **a lock is
+not a property of a board. It is which mode you are in.** You are either reading
+your desks or arranging them. Having to unlock each drawer as you walk into it
+is arrange-mode by another name, which is the thing decision 19 refused.
+
+`S.look.locked`, default locked. The padlock in the bar is the switch and it is
+the only one; the "Moving things" row is out of the object editor, because it
+was never a fact about one drawer.
+
+Everything else about the lock stands: a locked board refuses moves and resizes,
+never refuses the long press, and one finger walks the boards on it (decision
+47). Holding a tile and moving still unlocks — you have demonstrated what you
+want — and now it unlocks everywhere at once, which is what you meant.
+
+Migration 22 deletes the per-object field and takes the desk's own answer as
+everybody's.
+
+---
+
+### 75. Pinned to the board, or laid flat on it
+
+A setting, off by default, and the only one in the app that is purely about
+mood — which is reason enough to have it. On: a little air around every tile,
+and one to three degrees of tilt, as though a pin went through one of its top
+corners.
+
+Three things make it read as furniture rather than as a bug:
+
+- **The angle never changes.** It is derived from a hash of the object's own id,
+  so a tile tilts the same way on every render, on every device, forever. A
+  random number would jitter on every rebuild, which is the one thing that would
+  make this unbearable.
+- **The angle is small.** Past about four degrees it stops reading as "pinned"
+  and starts reading as "broken".
+- **The origin is a top corner**, alternating left and right off the same hash,
+  because paper hangs from its pin.
+
+The gap is a **margin on the tile**, never `gap` on the grid: the grid is a
+coordinate space and `cellW()` measures its own rect, so changing its geometry
+would move every tile out from under the drag maths. A margin shrinks the tile
+inside a cell that has not moved at all.
+
+Two things were tried and taken out. A drawn **pin head** is clipped by the
+tile's own `overflow`, and un-clipping it would take the torn edge off every
+`clip-path` shape — forty brass dots is also a lot of brass. And a **shadow** of
+its own replaces the whole `box-shadow` property, which half the border slots
+use for their inset moulding, and would survive Shadows being switched off — a
+switch that means what it says (decision 58). The tilt is the whole idea; the
+rest was decoration that cost something.
+
+A tile straightens while you carry it, because you are holding it.
+
+---
+
+### 76. A colour of your own
+
+A slot is a *position*, not a hue (decision 33): store 11 and you get
+Victorian's claret or Aero's deep sea blue, and changing style repaints the desk
+without converting anything. That is the right default and it is not always what
+somebody wants.
+
+The model has always allowed a literal — `objColour()` resolves either — and
+there was simply no way to type one in. There is now: a colour picker under the
+eleven, writing a hex. It does not follow the style, it does not change when the
+style does, and it travels between styles unchanged.
+
+**Its own labelled row rather than a twelfth swatch**, and that is the point
+rather than a compromise: it does something different from the eleven above it,
+and a swatch that looked like theirs would say it did the same thing. There is a
+way back to the style's own, and taking it writes **null** rather than `''` —
+`objColour()` tests `o.c != null`, so an empty string is an answer that resolves
+to the fallback slot instead of to the type.
+
+---
+
+### 77. The add box is a choice, and it goes by itself when there is no room
+
+`spawn` + `spawnBy:'type'` puts a box at the top of a container, on its front
+and inside it. On a checklist five cells tall that box is one line, and one line
+is one item you could have seen instead.
+
+So `showsAddBox(c, box)` answers separately from `takesTyping(c)`, and says no
+for two reasons: you turned it off, or **the front is two cells tall or less**.
+At two cells a front is a name, a count and about two lines, and spending one of
+them on a way to add a tenth thing you cannot see is the wrong trade. Automatic,
+so nobody has to notice.
+
+Inside the container the box is always there. That board has room, and for a
+magic container it is the only way in at all.
+
+---
+
+### 78. Swiping right opens the little calendar
+
+Right on a list row meant one thing: today. That is the commonest answer and it
+is not the only one, and a gesture that can say one thing makes you open the
+editor to say "tomorrow".
+
+It opens a panel now: the handful of answers worth a button (today, tomorrow,
+this weekend, next week, no date), a month you can press a day on, the date
+itself, and — for anything carrying the trait — **the deadline**, which is the
+other date and belongs beside the first rather than three sections down a
+different panel. Things 3's when-popover, in Bureau's one menu shape.
+
+It is a panel rather than a popup because it asks more than one question
+(decision 23's rule), and it takes an anchor, so on a Mac it comes up out of the
+tile and on a phone it falls back to the edge. Pressing the day a thing is
+already on clears it, which is the same toggle every calendar cell in the app
+already is.
+
+A Mac has no row swipe, so the context menu has **When…** as well.

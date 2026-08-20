@@ -687,3 +687,46 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
 .tx-rule::after{background-image:linear-gradient(rgba(255,255,255,.55) 1px, transparent 1px);
   background-size:100% 22px;opacity:.20}
 
+
+/* ============================================================
+   pinned to a board — see decision 75
+   ============================================================
+   A setting, off by default. Two things at once: a little air around every
+   tile, and a degree or two of tilt as though a pin went through one of its
+   top corners.
+
+   The gap is a **margin on the tile**, never `gap` on the grid: the grid is a
+   coordinate space and cellW() measures its own rect, so changing its geometry
+   would move every tile out from under the drag maths. A margin shrinks the
+   tile inside a cell that has not moved at all.
+
+   `--tilt` and `--pinx` are written into the tile's style by drawTile() from a
+   hash of the object's id, so the angle never changes between renders. A random
+   number here would jitter on every rebuild. */
+.grid.pinboard > .drawer{
+  margin:3px;
+  transform:rotate(var(--tilt,0deg));
+  transform-origin:var(--pinx,0%) 0%;
+  transition:transform .18s cubic-bezier(.2,.9,.3,1), box-shadow .18s;
+}
+/* No drawn pin, and no shadow of its own. Both were tried and both were wrong:
+
+   - a **pin head** at the corner is clipped by the tile's own `overflow`, and
+     un-clipping it would take the torn edge off every `clip-path` shape. Forty
+     brass dots is also a lot of brass. The *origin* is the pin; the tilt is
+     what says so.
+   - a **shadow** written here replaces the whole `box-shadow` property, and
+     half the border slots are `inset … , var(--shadow)` — so a moulding would
+     vanish the moment you pinned the board. It would also survive Shadows being
+     switched off, which is a switch that means what it says (decision 58). The
+     shadow every tile already casts is the right one.
+*/
+/* Held, or being arranged: it straightens up. You are holding it, and a tilted
+   tile under the finger fights the drag maths for your attention. The inline
+   transform a drag writes already wins; this is for the hover. */
+.grid.pinboard > .drawer.lifted,
+.grid.pinboard > .drawer.dragging,
+.grid.pinboard > .drawer.selected{ transform:rotate(0deg) }
+@media (prefers-reduced-motion: reduce){
+  .grid.pinboard > .drawer{ transition:none }
+}

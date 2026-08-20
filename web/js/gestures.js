@@ -1,10 +1,10 @@
 import { $, $$, clamp, D, ROOT } from './util.js';
 import { S, byId, dev, has, isAncestor, childrenOf, container, gatherKind, spanOf,
-  sortOf, cfgOf, T } from './model.js';
+  sortOf, cfgOf, boardLocked, T } from './model.js';
 import { GRID, CELL, gridOf, cellW, lay, boxOk, overlaps } from './grid.js';
 import { toast, gather, setPin, del, pushSets } from './mutations.js';
 import { pending, tileTap, fireButton } from './tiles.js';
-import { modalNewObject, openCtx, closeCtx } from './panels.js';
+import { modalNewObject, openCtx, closeCtx, schedulePanel } from './panels.js';
 import { render } from './views.js';
 import { pagerBegin, pagerMove, pagerEnd, pagerCancel, pagerOn } from './motion.js';
 import { save } from './persist.js';
@@ -138,9 +138,8 @@ function clearRow(g){
    at the end of the drag renders, and everything agrees then — the same rule
    that lets you type into a tile. */
 function unlockBoard(g){
-  const c=cfgOf(g.parent);
-  if(!c || !c.locked) return;
-  c.locked=false;
+  if(!boardLocked()) return;
+  S.look.locked=false;                   // one switch, not one per board — 74
   const grid=g.el && g.el.closest('.grid');
   if(grid) grid.classList.remove('locked');
   const btn=$('.bartools [data-act="togglelock"]');
@@ -148,7 +147,7 @@ function unlockBoard(g){
   g.locked=false;
   g.stuck = grid ? grid.classList.contains('sorted') : false;
   save();
-  toast('Board unlocked');
+  toast('Unlocked');
 }
 
 /* Where a move/resize would land, in grid cells. Dragging an edge moves that
@@ -654,7 +653,7 @@ function onMove(e){
       G.el.style.transform=`translateX(${show}px)`;
       if(G.back){
         G.back.className='rowact'+(act==='del'?' del':act==='due'?' due':'')+(G.act?' ready':'');
-        G.back.innerHTML = act==='del' ? 'Delete' : act==='due' ? 'Today' : '';
+        G.back.innerHTML = act==='del' ? 'Delete' : act==='due' ? 'When…' : '';
       }
       return;
     }
@@ -874,11 +873,11 @@ function onUp(e){
       const act=g.act, id=g.id;
       clearRow(g);
       if(act==='del'){ del(id); return; }
-      if(act==='due'){
-        const o=byId(id);
-        if(o){ o.due=T; save(); render(); toast('Scheduled today', true); }
-        return;
-      }
+      /* Right opens the little calendar rather than jumping to today. Today
+         is the commonest answer and it is not the only one, and the swipe was
+         the only way to reach *any* of them without opening the editor.
+         See decision 78. */
+      if(act==='due'){ render(); schedulePanel(id); return; }
       render();                          // put it back where it came from
       return;
     }

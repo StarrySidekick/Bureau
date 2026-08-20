@@ -2,12 +2,13 @@
    boot — load, wire, render, register the service worker
    ============================================================ */
 import { $ } from './util.js';
-import { S, KINDS, SHAPES, childrenOf, container, relate, deskOf, has, lateOn, isLate } from './model.js';
+import { S, KINDS, SHAPES, SORTS, childrenOf, container, relate, deskOf, has, lateOn, isLate,
+  prioOf, repeatOf, repeatSaid, nextRepeat, boardLocked } from './model.js';
 import { pageRows, freeSpot } from './grid.js';
-import { create, setPin, togglePin, del, delMany, delDrawer, undo, redo, toggleDone, setGridSize } from './mutations.js';
+import { create, setPin, togglePin, del, delMany, delDrawer, undo, redo, toggleDone, spawnNext, setGridSize } from './mutations.js';
 import { applyLook } from './look.js';
 import { render, sizeGrid, viewHTML, settingsPanel, pageAt, pageCount, goPage } from './views.js';
-import { overlayHTML, objectPanel, modalNewObject } from './panels.js';
+import { overlayHTML, objectPanel, modalNewObject, schedulePanel } from './panels.js';
 import { wire } from './wire.js';
 import { openingFor, stepDrawer } from './motion.js';
 import { load, writeNow, save, saveIfDirty, hydrateAssets, pasteObjects } from './persist.js';
@@ -44,7 +45,11 @@ window.BUREAU = {
   // the four things an object opens onto: its editor, its words, its paper,
   // and — for something made of an image — the picture
   panel: objectPanel, write: openWriter, read: openRead, view: openViewer,
-  del, delMany, delDrawer, undo, redo, toggleDone,
+  del, delMany, delDrawer, undo, redo, toggleDone, spawnNext,
+  // the little calendar, and how a thing comes round — decisions 72, 73, 78
+  schedule: schedulePanel, applyLook,
+  get sorts(){ return SORTS; },
+  prioOf, repeatOf, repeatSaid, nextRepeat, boardLocked,
   closeSheet,
   // the type picker, so a test can open the thing rather than the gesture
   pick: modalNewObject,

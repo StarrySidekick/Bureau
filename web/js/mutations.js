@@ -1,9 +1,10 @@
 import { $, esc, uid, ROOT, D } from './util.js';
 import { S, byId, K, KINDS, KEYS, kindHas, has, isContainer, genKindOf, streak, T, dz, dev,
+  repeatOf, repeats, nextRepeat,
   deskIds, deskHere, placeOf, cfgOf } from './model.js';
 import { GRID, PHONE_GRIDS, colsOf, gridOf, freeSpot, lay, boxOk, sizeOfKind } from './grid.js';
 import { randomFront, randomBoard, styleDefaults } from './look.js';
-import { render } from './views.js';
+import { render, reveal } from './views.js';
 import { tileRect, pop } from './motion.js';
 import { closeSheet } from './sheet.js';
 import { assetDel, rescalePhone, rescaleOneBoard, rescaleBoxes, save } from './persist.js';
@@ -17,14 +18,37 @@ function toast(msg,undo){
   t.classList.add('show');
   clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove('show'),3400);
 }
-function nextDue(o){
-  if(!o.repeat||!o.due) return null;
-  const r=o.repeat;
-  if(r==='daily') return D.addISO(o.due,1);
-  if(r==='weekly') return D.addISO(o.due,7);
-  if(r==='monthly'){ const d=D.parse(o.due); d.setMonth(d.getMonth()+1); return D.iso(d); }
-  if(r==='weekdays'){ let d=D.parse(o.due); do{ d=D.add(d,1);}while(d.getDay()===0||d.getDay()===6); return D.iso(d); }
-  return null;
+/* ---- the next one ------------------------------------------------------
+   The rule decides, and `nextRepeat()` in model.js is where it lives. Two
+   things this does *not* do any more, both of which were wrong:
+
+   - it no longer requires a due date. An after-completion rule counts from the
+     day you finished it, so "three days after I do it" works on something that
+     was never scheduled at all.
+   - it no longer needs a special case for finishing early. The tick is the
+     tick; a fixed schedule counts from the day it was due and an
+     after-completion one from today, which is exactly what each of them means.
+
+   See decision 73. */
+const nextDue = o => nextRepeat(o, T);
+
+/* Make the next one now, before this one is done — Things 3.23's "create next
+   copy", which is for getting a head start on something you want to fill in
+   ahead of time. The copy is a real object at the next date; the original keeps
+   its own, so this is not a reschedule. */
+function spawnNext(id){
+  const o=byId(id); if(!o) return null;
+  const nd=nextDue(o);
+  if(!nd){ toast(repeats(o) ? 'That rule has run out' : 'It does not repeat'); return null; }
+  const r=repeatOf(o);
+  const copy=Object.assign({}, o, {id:uid('o'), done:false, doneAt:null, due:nd,
+    ord:(o.ord||0)+0.5, fromRepeat:true, desk:null, phone:null});
+  S.objects.push(copy);
+  if(r && typeof o.repeat==='object') o.repeat=Object.assign({}, r, {made:(r.made||0)+1});
+  pushUndo('Next one made', [{add:copy.id}]);
+  save(); render(); reveal && reveal(copy.id);
+  toast(`Next one · ${D.human(nd).toLowerCase()}`);
+  return copy;
 }
 function toggleDone(id){
   const o=byId(id); if(!o) return;
@@ -38,10 +62,18 @@ function toggleDone(id){
     o.doneAt=T;
     const nd=nextDue(o);
     if(nd){
-      S.objects.push(Object.assign({},o,{id:uid('o'),done:false,doneAt:null,due:nd,ord:o.ord+0.5}));
+      const r=repeatOf(o);
+      /* `fromRepeat` marks a copy as one — Things 3.23 puts a small repeat glyph
+         on generated to-dos, and it is worth having: it tells you the thing in
+         front of you came from a rule rather than from you, which is the
+         difference between "I wrote this down" and "this comes round". */
+      S.objects.push(Object.assign({},o,{id:uid('o'), done:false, doneAt:null, due:nd,
+        ord:o.ord+0.5, fromRepeat:true,
+        repeat: (r && typeof o.repeat==='object')
+          ? Object.assign({}, r, {made:(r.made||0)+1}) : o.repeat}));
       o.kind='achievement';   // the archive is a magic drawer; nothing needs moving
       toast(`Done · repeats ${D.human(nd).toLowerCase()}`);
-    } else toast('Filed under Done & Dusted');
+    } else toast(repeats(o) ? 'Done · that was the last one' : 'Filed under Done & Dusted');
   } else { o.doneAt=null; }
   render();
   if(o.done) pop(id, was);
@@ -336,7 +368,7 @@ function create(kind, patch){
        where you made it. See inContainer() and decision 45. */
     parent:(S.view==='drawer'&&S.drawerId)||ROOT,
     done:false, doneAt:null, due:kindHas(kind,'date')?T:null,
-    repeat:kindHas(kind,'streak')?'daily':null,
+    repeat:kindHas(kind,'streak')?{every:1,unit:'day',days:[],from:'date',ends:null,paused:false,made:0}:null,
     history:[], milestones:kindHas(kind,'progress')?[{t:'First milestone',done:false,d:dz(30)}]:[],
     /* Media, with **no type stamped on it**. It used to be born saying
        `type:'image'`, so an Audio object declared itself a photograph the
@@ -463,6 +495,6 @@ function randomThing(parentId){
 
 // toggleHabit isn't exported — a streak reaches it through toggleDone, which is
 // the one door, so nothing outside has to know a habit ticks differently.
-export { toast, setGridSize, toggleDone, del, delMany, delDrawer, undo, redo,
+export { toast, setGridSize, toggleDone, spawnNext, del, delMany, delDrawer, undo, redo,
   pushUndo, pushSet, pushSets, setPin, togglePin,
   drawerForTag, create, gather, quickAdd, spawnInto, randomThing };

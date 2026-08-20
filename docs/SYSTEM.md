@@ -45,7 +45,8 @@ meaning, containers are finite, and opening one is a small deliberate act.
 | **Shape** | How a non-container object draws itself. |
 | **Layout** | How a container arranges its children once you *open* it. |
 | **Read view** | How a non-container object opens to be read: `book`, `page` or `scroll`. |
-| **Rule** | One clause — field, comparison, value — that a magic drawer matches against. |
+| **Rule** | One clause — field, comparison, value — that a magic drawer matches against. Up to three, ANDed. |
+| **Repeat rule** | How a thing comes round: how often, counted from its date or from the day you finish it, and when it stops. |
 | **Rollup** | A number a container totals across its children, shown on its face. |
 | **Relation** | An id one object holds pointing at another. Read both ways. |
 | **Desk** | A drawer given a place in the master space — somewhere you can *be*, rather than somewhere you went into. It has no parent: promoting takes it off the board it was on. An ordered list, `S.desks`, with `root` among them. |
@@ -123,7 +124,7 @@ reason an invented type works everywhere immediately.
 | `check` | A checkbox. Ticking it completes the object. | `done` bool |
 | `date` | The day it sits on — what a calendar draws it on, what Today collects. | `due` date |
 | `deadline` | The day it is **late**, which is a different fact. Opt-in. | `dead` date |
-| `repeat` | Completing it spawns the next occurrence. | `repeat` text |
+| `repeat` | Comes round on a rule. Completing it spawns the next occurrence. | `repeat` rule |
 | `button` | A button pointing at an object, a drawer, or a URL. | — |
 | `container` | Children, on a grid or a list of its own. **This is what makes a drawer.** | — |
 | `magic` | Collects by rule only, never by hand. | — |
@@ -137,7 +138,7 @@ reason an invented type works everywhere immediately.
 | `rating` | Out of five. | `rating` number |
 | `location` | Where it is. | `loc` text |
 | `duration` | How long it takes. | `dur` number |
-| `priority` | How much it matters — a stripe, not a word. | `prio` low/mid/high |
+| `priority` | How much it matters to you, 0–5 — a stripe whose weight is the rank. Not urgency: that is `deadline`. | `prio` 0–5 |
 | `price` | What it costs. | `price` money |
 | `answer` | A box on the front to answer it in. Filled means answered. | `answer` text |
 | `relates` | Points at other objects, both ways. | `rel` refs |
@@ -192,8 +193,9 @@ object, built at desk scale and CSS-scaled down, never drawn small.
 
 ## 7. Drawers
 
-A drawer has a name, a colour, a board, a front style, a face, a layout, a sort,
-a lock, and two sizes. A magic drawer also has a rule. The desk has all of the
+A drawer has a name, a colour, a board, a front style, a face, a layout, a sort
+and two sizes. It has no lock of its own — locking is one switch for the whole
+app (decision 74). A magic drawer also has a rule. The desk has all of the
 same settings, kept in `S.deskCfg` because it has no object to hang them on.
 
 **Hold or collect, never both.**
@@ -221,8 +223,13 @@ it is what makes a container adapt to any shape rather than run out of them. One
 cell **square** is still the mark and nothing else — at 40px a spine has no
 length to set a name along either.
 
-**A container can take dictation.** `spawn` with `spawnBy:'type'` puts a box at
-the top of it — on its front and inside it — and `genKind` says what a line you
+**A container can take dictation, and the box is a choice.** `spawn` with
+`spawnBy:'type'` puts a box at the top of it — on its front and inside it. Ask
+`showsAddBox(c, box)` for whether it is drawn on the *front*: it says no when
+you turned it off (`addbox:'hide'`, one line back for one more item you can see)
+and no when the front is **two cells tall or less**, where a line spent on
+adding a tenth thing you cannot see is the wrong trade. Inside the container it
+is always there. See decision 77. Otherwise: and `genKind` says what a line you
 type makes. A Checklist is the built-in that carries them, so it is a container
 of tasks you can tick, add to and take from without opening it; any type that
 ticks the same trait gets the same box. A magic container holds nothing, so what
@@ -312,6 +319,15 @@ Each container is its own coordinate space, and every device has its own.
 - Layouts are stored per device, `desk` and `phone`, and both are editable from
   either device. `dev()` returns the one being edited, which is not always the
   one you are holding.
+- **Locking is one switch for every board there is** — `S.look.locked`, asked
+  with `boardLocked()`, and the padlock in the bar is it. A lock is not a
+  property of a board; it is which mode you are in, reading or arranging. See
+  decision 74.
+- A board can be **laid flat or pinned**: `S.look.pinned` gives every tile a
+  little air and one to three degrees of tilt, off a hash of the object's own id
+  so the angle never changes between renders. The gap is a margin on the tile,
+  never `gap` on the grid — the grid is a coordinate space and moving it would
+  move every tile out from under the drag maths. See decision 75.
 - The grid element carries no padding and no border, because `cellW()` measures
   its own rect. Decoration goes on a wrapper.
 - The cell size is never rounded. Columns are `1fr` and therefore fractional;
@@ -396,8 +412,9 @@ decision 51.
 | Hold a tile, then move | The menu goes and the tile is in your hand, iOS-style — and the board unlocks |
 | Tap the words on anything | They become a field — on an **unlocked** board only. A tile, a list band, a line on a checklist front |
 | Tap a checklist line's box | Ticks it. The words are how you change it |
-| Swipe a list row left / right | Delete it; put it on today — the second only for something with a day |
+| Swipe a list row left | Delete it |
 | Hold a band in a list | Reorder it, under Manual sort only — it writes `ord`. Hold still and it is the menu |
+| Swipe a list row right | The little calendar: today, tomorrow, this weekend, next week, no date, a month to press a day on, and the deadline. See decision 78 |
 | Double-tap a tile | Its name becomes a field where it sits, and its body under it if the tile shows one. Containers are exempt: two taps on a drawer opens it twice |
 | Press and hold a tile (200ms) | Arms the drag; then move it, or drag a corner to resize |
 | Click bare grid | The type picker, and what you pick lands on that cell |
@@ -523,17 +540,32 @@ the start, `#tag` anywhere, and `!today` / `!tomorrow` / `!week`.
 
 ## 11. Time, repetition, completion
 
-- A task has a day it sits on and an optional repeat: daily, weekdays, weekly,
-  monthly.
+- A task has a day it sits on and an optional **repeat rule**.
 - **When it sits and when it is late are two facts.** `date`/`due` is the day it
   is drawn on; `deadline`/`dead` is the day it is owed, and it is an opt-in
   trait. `lateOn(o)` says which one decides — the deadline where there is one,
   otherwise the day it sits on, which is what everything did before the trait
   existed — and `isLate(o)` is that date being past. A finished thing is never
   late. Never read `D.overdue(o.due)` directly. See decision 62.
+- **A repeat is a rule**, not a word: `{every, unit, days, from, ends, paused,
+  made}`. Ask `repeatOf(o)` — it still reads the four old words — `repeatSaid(o)`
+  for it in English, and `nextRepeat(o, doneOn)` for the next day.
+  **`from` is the one that matters**: `date` is a fixed schedule counted from the
+  day it was due (the bins go out on Tuesday either way) and `done` is counted
+  from the day you actually finished it (you water the plant a week after you
+  last watered it). A single fixed schedule makes the second one a lie that
+  accumulates. See decision 73.
 - **Completing a repeating task does not reuse the object.** It spawns a fresh
-  one at the next due date and turns the original into an `achievement`, so
-  eleven waterings are eleven dated records rather than one counter.
+  one at the next date and turns the original into an `achievement`, so eleven
+  waterings are eleven dated records rather than one counter — which is also why
+  finishing early needs no special case at all. The copy carries `fromRepeat`
+  and wears a small repeat glyph: a thing that comes round, not a thing you
+  wrote down.
+- **Priority is a rank of 0–5**, and it is *importance*, not urgency — urgency
+  is a deadline coming up (decision 62). 0 is "a dream, nothing to act on yet",
+  which is the answer every other list app makes you delete. Read it with
+  `prioOf(o)`, which returns null or a number: **0 is a real answer** and
+  `o.prio || …` folds it into the wrong one. See decision 72.
 - A habit has `streak` instead of `check`: a history of dates, a streak counted
   back from today, and no overdue — which is the guilt-generating pattern that
   makes habit trackers unpleasant.

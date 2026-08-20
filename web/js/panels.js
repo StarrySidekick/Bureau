@@ -6,6 +6,7 @@ import { S, K, KINDS, KEYS, T, ATTRS, USER_ATTRS, FIELDS, fieldOf, OPS, ROLLS,
   rootObj, containers, isContainer, isAncestor, childrenOf, has, kindHas,
   attrsOf, allTags, placeOf, deskList, deskOf, isDesk, spanOf,
   dev, takesTyping, genKindOf, answered, isLate,
+  PRIOS, prioOf, prioName, REPEAT_UNITS, repeatOf, repeats, repeatSaid,
   relatedTo, backlinksTo, streak, goalPct,
   CALVIEWS, calViewOf, weekStartOf, showsWeekends, KNOBSIZES, knobSizeOf,
   TSIZES, textSizeOf, mediaTypeOf, isPicture, isMedia } from './model.js';
@@ -291,9 +292,38 @@ const psel=(id,key,list,cur)=>`<select class="psel" data-oset="${id}:${key}">${
 const pfield=(id,key,cur,type,ph)=>`<input class="pfield"${type?` type="${type}"`:''}
   data-oset="${id}:${key}" value="${esc(cur==null?'':cur)}" placeholder="${esc(ph||'')}">`;
 const pgroup=(label,body,open)=>`<details class="pgroup"${open?' open':''}><summary>${esc(label)}</summary>${body}</details>`;
-const swatches=(id,key,cur)=>`<div class="pickgrid sw">${objSlots().map(([slot,nm])=>
-  `<button data-ocolour="${slot}" data-key="${key}" data-id="${id}" title="${esc(nm)}"
-     class="${cur===slot?'on':''}" style="background:${hexOf(slot)}"></button>`).join('')}</div>`;
+/* ---- eleven slots, and one colour of your own --------------------------
+   A slot is a *position*, not a hue: store 11 and you get Victorian's claret or
+   Aero's deep sea blue depending on where you are, and changing style repaints
+   the desk without converting anything (decision 33). That is the right default
+   and it is not always what someone wants.
+
+   So under the eleven there is a **colour picker**, and what it writes is a
+   literal hex. A literal is somebody insisting: it does not follow the style, it
+   does not change when the style does, and it travels between them unchanged.
+   The model has always allowed one — `objColour()` resolves either — and there
+   was simply no way to type one in.
+
+   It is a labelled row of its own rather than a twelfth swatch, and that is the
+   point rather than a compromise: it does something *different* from the eleven
+   above it, and a swatch that looked like theirs would say it did the same
+   thing. See decision 76. */
+const swatches=(id,key,cur)=>{
+  const literal = typeof cur==='string' && cur ? cur : '';
+  return `<div class="pickgrid sw">${objSlots().map(([slot,nm])=>
+    `<button data-ocolour="${slot}" data-key="${key}" data-id="${id}" title="${esc(nm)}"
+       class="${cur===slot?'on':''}" style="background:${hexOf(slot)}"></button>`).join('')}</div>
+    <div class="ownrow">
+      <label class="custcol${literal?' on':''}" title="It stays put when the style changes">
+        <input type="color" data-ocolinput="${key}" data-id="${id}"
+          value="${esc(literal || hexOf(cur==null?11:cur))}">
+        <span>${literal ? 'Your own · '+esc(literal) : 'A colour of your own'}</span>
+      </label>
+      ${literal?`<button class="pill" data-ocolour="" data-key="${key}" data-id="${id}"
+        title="Follow the style again">${ic('undo',12)} Back to the style</button>`:''}
+    </div>
+    ${literal?`<div class="mini" style="--k:var(--brass);margin-top:5px">A colour of your own is not one of the style's sixteen, so it stays exactly this when you change style.</div>`:''}`;
+};
 // forty types is a wall of chips and two rows of a select, grouped as the
 // picker groups them
 const typeOptions = cur => pickGroups().map(g=>
@@ -490,7 +520,9 @@ function objectPanelBody(id, sec){
     out.push(prow('Sorted by', psel(id,'sort',
       [[MANUAL,'As I arranged them'], ...Object.entries(SORTS).map(([k,[nm]])=>[k,nm])],
       sortOf(d)||MANUAL)));
-    out.push(prow('Moving things', psel(id,'locked',[['','Movable'],['1','Locked']], d.locked?'1':'')));
+    /* Not here any more: locking is one switch for everything, and it is the
+       padlock in the bar. A lock is which mode you are in, not a fact about one
+       board. See decision 74. */
     /* How fine this board's grid is. Every container gets the row, because
        every container opens onto a board — a desk you keep six big drawers on
        and a checklist you keep forty lines in do not want the same grain. See
@@ -542,8 +574,16 @@ function objectPanelBody(id, sec){
       + psel(id,'weekStart',[['mon','Week starts Monday'],['sun','Week starts Sunday']], weekStartOf(d))
       + psel(id,'weekends',[['1','Weekends shown'],['','Weekends hidden']], showsWeekends(d)?'1':'')));
   }
-  if(!isRoot && cont && takesTyping(d))
+  if(!isRoot && cont && takesTyping(d)){
     out.push(prow('Typing in it makes', psel(id,'genKind', objectKinds, genKindOf(d))));
+    /* The add box costs a line of the front, and on a checklist that is one
+       item you could have seen instead. Off is a real answer; inside the
+       drawer the box is there either way. See decision 77. */
+    out.push(prow('The add box', psel(id,'addbox',
+      [['','On its front and inside it'],['hide','Inside it only — more room on the front']],
+      d.addbox==='hide'?'hide':''),
+      'it goes by itself at two cells tall'));
+  }
   if(!isRoot && !cont && spawns){
     out.push(prow('It makes', psel(id,'genKind', objectKinds, genKindOf(d))
       + psel(id,'genDir',[['down','Down'],['up','Up'],['left','Left'],['right','Right'],['random','Anywhere']], d.genDir||'down')));
@@ -571,14 +611,64 @@ function objectPanelBody(id, sec){
     if(has(o,'span')) f.push(prow('Runs until', pfield(id,'till',o.till,'date'),
       o.due ? (spanOf(o) ? `${spanOf(o).days} days` : 'must not be before the date it starts')
             : 'give it a date first'));
-    if(has(o,'repeat')||has(o,'streak')) f.push(prow(has(o,'streak')?'Cadence':'Repeats',
-      psel(id,'repeat',[['','Never'],['daily','Daily'],['weekdays','Weekdays'],['weekly','Weekly'],['monthly','Monthly']], o.repeat||'')));
+    /* ---- how it comes round -------------------------------------------
+       A rule rather than one of four words, and the row that matters is
+       **counted from**: "every week" and "a week after I finish it" are
+       different promises, and only one of them survives a week you skipped.
+       See decision 73. */
+    if(has(o,'repeat')||has(o,'streak')){
+      const r = repeatOf(o);
+      const DOW=['S','M','T','W','T','F','S'];
+      f.push(prow(has(o,'streak')?'Cadence':'Repeats',
+        psel(id,'rep.on', [['','Never'],['1','Yes — on a rule']], r?'1':''),
+        r ? esc(repeatSaid(o)) : ''));
+      if(r){
+        f.push(prow('Every',
+          `<input class="pfield num" type="number" min="1" max="99" data-oset="${id}:rep.every" value="${r.every||1}">`
+          + psel(id,'rep.unit', REPEAT_UNITS.map(([u,pl])=>[u, (r.every>1?pl:u)]), r.unit)));
+        f.push(prow('Counted from', psel(id,'rep.from',
+          [['date','The day it is due — a fixed schedule'],
+           ['done','The day I finish it']], r.from||'date'),
+          r.from==='done' ? 'skip a week and it does not pile up'
+                          : 'the bins go out on Tuesday either way'));
+        if(r.unit==='week' && r.from!=='done')
+          f.push(prow('On', `<div class="pickgrid chips dowchips">${DOW.map((d,i)=>
+            `<button class="fchip${(r.days||[]).includes(i)?' on':''}" data-repday="${i}" data-id="${id}"
+               title="${['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][i]}">${d}</button>`).join('')}</div>`,
+            (r.days||[]).length ? '' : 'the day it already falls on'));
+        f.push(prow('Until', psel(id,'rep.endkind',
+            [['','It just keeps going'],['after','A number of times'],['on','A date']],
+            r.ends && r.ends.after ? 'after' : r.ends && r.ends.on ? 'on' : '')
+          + (r.ends && r.ends.after
+              ? `<input class="pfield num" type="number" min="1" max="999" data-oset="${id}:rep.after" value="${r.ends.after}">`
+              : r.ends && r.ends.on
+              ? pfield(id,'rep.on_date', r.ends.on, 'date') : ''),
+          r.ends && r.ends.after ? `${r.made||0} made so far` : ''));
+        f.push(prow('Running', psel(id,'rep.paused',
+          [['','Making the next one'],['1','Paused — keeps its rule, stops making']], r.paused?'1':''),
+          `<button class="pill" data-act="nextcopy" data-id="${id}">${ic('plus',12)} Make the next one now</button>`));
+      }
+    }
     if(has(o,'link')) f.push(prow('Link', pfield(id,'url',o.url,'','https://')));
     if(has(o,'location')) f.push(prow('Location', pfield(id,'loc',o.loc,'','Where')));
     if(has(o,'duration')) f.push(prow('Duration', pfield(id,'dur',o.dur,'number','minutes')));
     if(has(o,'price')) f.push(prow('Price', pfield(id,'price',o.price,'','12.50')));
-    if(has(o,'priority')) f.push(prow('Priority', psel(id,'prio',
-      [['','—'],['low','Low'],['mid','Medium'],['high','High']], o.prio||'')));
+    /* ---- how much it matters, 0 to 5 ----------------------------------
+       A rank, not three words. Six buttons rather than a select, because the
+       whole point is that you can see the scale — and each one says what it
+       means, so "3" is a decision rather than a number you invented. This is
+       *importance*; urgency is the deadline row above. See decision 72. */
+    if(has(o,'priority')){
+      const p = prioOf(o);
+      f.push(prow('Priority',
+        `<div class="priorow">
+          <button class="priobtn${p==null?' on':''}" data-prio="" data-id="${id}" title="Unranked">–</button>
+          ${PRIOS.map(([n,nm,ds])=>
+            `<button class="priobtn p${n}${p===n?' on':''}" data-prio="${n}" data-id="${id}"
+               title="${esc(nm)} — ${esc(ds)}">${n}</button>`).join('')}
+        </div>`,
+        p==null ? 'how much it matters, not how urgent' : esc(prioName(p))));
+    }
     if(has(o,'count')) f.push(prow('Count',
       `<div class="counter"><button data-act="countdown" data-id="${id}">−</button><b>${o.count||0}</b><button data-act="countup" data-id="${id}">+</button></div>`));
     if(has(o,'rating')) f.push(prow('Rating',
@@ -948,6 +1038,96 @@ function modalMove(objId){
 }
 
 /* ============================================================
+   16d · scheduling — the little calendar
+   ============================================================
+   Swiping a row right used to mean one thing: today. That is the commonest
+   answer and it is not the only one, and a gesture that can only say one thing
+   makes you open the editor for "tomorrow".
+
+   So it opens this: the handful of answers worth a button, a month you can
+   press a day on, and — for anything carrying the trait — the deadline, which
+   is the *other* date and belongs beside the first one rather than three
+   sections down a different panel. Things 3's when-popover, in Bureau's one
+   menu shape. See decisions 62 and 78.
+
+   It is a panel rather than a popup because it asks more than one question,
+   and on a phone a panel comes up from the bottom where the thumb is. */
+const WHENS_QUICK = [
+  ['today',    'Today',        0],
+  ['tomorrow', 'Tomorrow',     1],
+  ['weekend',  'This weekend', null],
+  ['week',     'Next week',    null],
+  ['clear',    'No date',      null]
+];
+function quickISO(which){
+  if(which==='today') return T;
+  if(which==='tomorrow') return D.addISO(T,1);
+  if(which==='weekend'){                 // the coming Saturday, today if it is one
+    const d=D.today(); const add=(6-d.getDay()+7)%7;
+    return D.addISO(T, add);
+  }
+  if(which==='week'){                    // the coming Monday
+    const d=D.today(); const add=((8-d.getDay())%7)||7;
+    return D.addISO(T, add);
+  }
+  return null;
+}
+/* One month of squares, with what is already on each day marked — the same
+   thing the calendar face draws, at the size a menu can hold. */
+function schedMonth(o, anchorISO){
+  const at = D.parse(anchorISO || o.due || T) || D.today();
+  const first = new Date(at.getFullYear(), at.getMonth(), 1);
+  const lead = (first.getDay()+6)%7;               // weeks start Monday here
+  const start = D.add(first, -lead);
+  const cells=[];
+  for(let i=0;i<42;i++){
+    const d=D.add(start,i), iso=D.iso(d);
+    const out = d.getMonth()!==at.getMonth();
+    const on = o.due===iso, dead = has(o,'deadline') && o.dead===iso;
+    cells.push(`<button class="sday${out?' out':''}${iso===T?' today':''}${on?' on':''}${dead?' dead':''}"
+      data-schedday="${o.id}:${iso}">${d.getDate()}</button>`);
+  }
+  return `<div class="schedmonth">
+    <div class="schedhead">
+      <button class="iconbtn" data-schedmon="${o.id}:${D.iso(new Date(at.getFullYear(), at.getMonth()-1, 1))}">${ic('chevL',14)}</button>
+      <b>${at.toLocaleDateString(undefined,{month:'long', year:'numeric'})}</b>
+      <button class="iconbtn" data-schedmon="${o.id}:${D.iso(new Date(at.getFullYear(), at.getMonth()+1, 1))}">${ic('chevR',14)}</button>
+    </div>
+    <div class="schedgrid">
+      ${['M','T','W','T','F','S','S'].map(x=>`<i class="dow">${x}</i>`).join('')}
+      ${cells.join('')}
+    </div></div>`;
+}
+const SCHED = {month:null};
+function schedulePanel(id){
+  const o=byId(id); if(!o || !has(o,'date')) return;
+  SCHED.month = null;
+  S.openId = id;
+  openPanel({key:'schedule:'+id, anchor:id,
+    title:'When', sub:esc(o.title||'Untitled'),
+    body:()=>{
+      const ob=byId(id); if(!ob) return '';
+      const deadline = has(ob,'deadline');
+      return `<div class="schedquick">${WHENS_QUICK.map(([k,nm])=>{
+          const iso=quickISO(k);
+          return `<button class="pill${(k==='clear'?!ob.due:ob.due===iso)?' solid':''}"
+            data-schedset="${id}:${k}">${nm}${iso?`<u>${esc(D.short(iso))}</u>`:''}</button>`;
+        }).join('')}</div>
+        ${schedMonth(ob, SCHED.month)}
+        ${prow('On', pfield(id,'due', ob.due, 'date'), 'the day it sits on')}
+        ${deadline
+          ? prow('Due by', pfield(id,'dead', ob.dead, 'date'),
+              ob.dead ? (isLate(ob)?'late':'what makes it late') : 'the day it is owed')
+          : `<button class="subtle-btn" data-act="wantdeadline" data-id="${id}">${ic('plus',12)} Give it a deadline as well</button>
+             <div class="mini" style="--k:var(--brass)">A deadline is a different fact from the day you have put it on — see decision 62.</div>`}
+        ${has(ob,'span') ? prow('Runs until', pfield(id,'till', ob.till,'date')) : ''}
+        ${has(ob,'repeat') ? `<div class="mini" style="--k:var(--brass);margin-top:10px">${
+          repeats(ob) ? 'Repeats '+esc(repeatSaid(ob))+' — the rule is in the object editor.'
+                      : 'Set it to repeat in the object editor.'}</div>` : ''}`;
+    }});
+}
+
+/* ============================================================
    17 · command palette
    ============================================================ */
 /* Which row is lit. ⌘K is summoned with the keyboard and typed into blind, and
@@ -1046,6 +1226,8 @@ function openCtx(x,y,id){
                    :mediaTypeOf(o)==='video'?'Add a video':'Add a picture')}</button>`:''}
            ${has(o,'text')?`<button data-c="read:${id}">${ic('eye',14)} Read</button>
              <button data-c="write:${id}">${ic('edit',14)} Write…</button>`:''}`}`}
+    ${(!many&&has(o,'date'))?`<button data-c="when:${id}">${ic('calendar',14)} When…</button>`:''}
+    ${(!many&&repeats(o))?`<button data-c="nextcopy:${id}">${ic('repeat',14)} Make the next one</button>`:''}
     ${(!many&&(has(o,'check')||has(o,'streak')))?`<button data-c="done:${id}">${ic('check',14)} ${has(o,'streak')?'Mark today':'Complete'}</button>`:''}
     <button data-c="intodrawer:${id}">${ic('folder',14)} ${many?`Put these ${sel.length} in a new drawer`:'Put this in a new drawer'}</button>
     <button data-c="move:${id}">${ic('folder',14)} Move to drawer…</button>
@@ -1064,4 +1246,5 @@ const closeCtx = ()=> $('#ctx').classList.remove('open');
 export { overlayHTML, openPanel, closePanel, refreshPanel, repositionPanel, panelKey, panelBack, draft,
   openMenu, modalNewObject, objectPanel, drawerPanel, modalNewKind,
   renderPreview, modalMove, sampleObject, sampleTile, kindSample,
-  openCmd, closeCmd, cmdList, cmdMove, cmdAt, runCmd, drawerFromSelection, openCtx, closeCtx };
+  openCmd, closeCmd, cmdList, cmdMove, cmdAt, runCmd, drawerFromSelection, openCtx, closeCtx,
+  schedulePanel, quickISO, SCHED };

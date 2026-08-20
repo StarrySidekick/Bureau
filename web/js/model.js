@@ -1,4 +1,4 @@
-import { uid, D, ROOT } from './util.js';
+import { uid, clamp, D, ROOT } from './util.js';
 
 /* ============================================================
    2 · ATTRIBUTES and KINDS — the heart of Bureau
@@ -31,7 +31,7 @@ const ATTRS = {
   rating:   {nm:'Rating',     ds:'Out of five'},
   location: {nm:'Location',   ds:'Where it is'},
   duration: {nm:'Duration',   ds:'How long it takes'},
-  priority: {nm:'Priority',   ds:'How much it matters'},
+  priority: {nm:'Priority',   ds:'How much it matters to you — 0 to 5, not how urgent it is'},
   price:    {nm:'Price',      ds:'What it costs'},
   answer:   {nm:'Answerable', ds:'A box to answer it in — filled means answered'},
   relates:  {nm:'Related',    ds:'Points at other objects, both ways'},
@@ -47,13 +47,13 @@ const FIELDS = {
   date:     {key:'due',    type:'date',   nm:'On'},
   deadline: {key:'dead',   type:'date',   nm:'Due by'},
   span:     {key:'till',   type:'date',   nm:'Runs until'},
-  repeat:   {key:'repeat', type:'text',   nm:'Repeats'},
+  repeat:   {key:'repeat', type:'repeat', nm:'Repeats'},
   link:     {key:'url',    type:'text',   nm:'Link'},
   count:    {key:'count',  type:'number', nm:'Count'},
   rating:   {key:'rating', type:'number', nm:'Rating'},
   location: {key:'loc',    type:'text',   nm:'Location'},
   duration: {key:'dur',    type:'number', nm:'Duration'},
-  priority: {key:'prio',   type:'enum',   nm:'Priority', opts:['low','mid','high']},
+  priority: {key:'prio',   type:'level',  nm:'Priority', opts:[0,1,2,3,4,5]},
   price:    {key:'price',  type:'money',  nm:'Price'},
   answer:   {key:'answer', type:'text',   nm:'Answer'},
   relates:  {key:'rel',    type:'refs',   nm:'Related'}
@@ -214,7 +214,7 @@ function seed(){
      phone is actually for. A drawer you make yourself starts unlocked, because
      you made it in order to arrange it. */
   const DR = (o)=> Object.assign({kind:'drawer', parent:ROOT, title:'', body:'',
-    tags:[], layout:'grid', locked:true, ord:0, created:dz(-40)}, o);
+    tags:[], layout:'grid', ord:0, created:dz(-40)}, o);
   // The drawers whose whole job is a rule are magic drawers — they collect and
   // never hold. The rest are ordinary containers you file into.
   const MG = (o)=> DR(Object.assign({kind:'magic'}, o));
@@ -260,8 +260,8 @@ function seed(){
     O({kind:'task', title:'Buy walnut oil + a proper straightedge', due:T, parent:ROOT, tags:['errand']}),
     O({kind:'task', title:'Call Mom back', due:dz(-1), parent:ROOT, tags:['personal']}),
     O({kind:'task', title:'Ship the drawer-resize gesture', due:dz(1), parent:ROOT, tags:['bureau']}),
-    O({kind:'task', title:'Water the fig', repeat:'weekly', due:dz(2), parent:ROOT, tags:['home']}),
-    O({kind:'task', title:'Pay the storage unit', repeat:'monthly', due:dz(4), parent:ROOT, tags:['admin']}),
+    O({kind:'task', title:'Water the fig', repeat:{every:1, unit:'week', days:[], from:'date', ends:null, paused:false, made:0}, due:dz(2), parent:ROOT, tags:['home']}),
+    O({kind:'task', title:'Pay the storage unit', repeat:{every:1, unit:'month', days:[], from:'date', ends:null, paused:false, made:0}, due:dz(4), parent:ROOT, tags:['admin']}),
     O({kind:'task', title:'Reply to Dana about the September shoot', due:dz(-2), parent:'d_studio', tags:['work']}),
     O({kind:'task', title:'Export the reel at 4K', done:true, doneAt:dz(-1), parent:'d_studio', tags:['work']}),
 
@@ -305,11 +305,11 @@ function seed(){
     O({kind:'audio', title:'Room tone — kitchen, 4am', parent:'d_studio', tags:['film'], media:{type:'audio', label:'02:14 · WAV'}}),
     O({kind:'video', title:'Drawer-open animation test v3', parent:'d_studio', tags:['bureau','visual'], media:{type:'video', label:'00:06 · ProRes'}}),
 
-    O({kind:'habit', title:'Write 500 words', parent:'d_keep', tags:['writing'], repeat:'daily',
+    O({kind:'habit', title:'Write 500 words', parent:'d_keep', tags:['writing'], repeat:{every:1, unit:'day', days:[], from:'date', ends:null, paused:false, made:0},
        history:[dz(-1),dz(-2),dz(-3),dz(-4),dz(-6),dz(-7),dz(-8),dz(-11)], body:'**Why —** The essay only exists on the days I show up.'}),
-    O({kind:'habit', title:'Walk before screens', parent:'d_keep', tags:['health'], repeat:'daily',
+    O({kind:'habit', title:'Walk before screens', parent:'d_keep', tags:['health'], repeat:{every:1, unit:'day', days:[], from:'date', ends:null, paused:false, made:0},
        history:[dz(-1),dz(-2),dz(-3),dz(-5),dz(-6),dz(-9),dz(-10),dz(-12),dz(-13)]}),
-    O({kind:'habit', title:'Close the laptop by 10', parent:'d_keep', tags:['health'], repeat:'weekdays',
+    O({kind:'habit', title:'Close the laptop by 10', parent:'d_keep', tags:['health'], repeat:{every:1, unit:'week', days:[1,2,3,4,5], from:'date', ends:null, paused:false, made:0},
        history:[dz(-2),dz(-3),dz(-4),dz(-7)]}),
 
     O({kind:'goal', title:'Ship Bureau 1.0 to the App Store', parent:'d_keep', tags:['bureau'], due:dz(120),
@@ -405,7 +405,7 @@ function reset(){
     // viewId is the picture surface: what an object made of an image opens onto
     undo:[], redo:[], editing:false, sel:[], readId:null, writeId:null, viewId:null, editId:null, bookAt:0,
     // a desk you have arranged is one you want to look at, so it starts locked
-    deskCfg:{layout:'grid', locked:true, sort:null},
+    deskCfg:{layout:'grid', sort:null},
     look:defaultLook()
   };
   refreshKinds();
@@ -417,7 +417,15 @@ function defaultLook(){
           // small | extra | large — how many columns a phone board has
           grid:'small', style:'victorian', slots:{}, styleDefaults:null,
           // things on a surface cast a shadow onto it; false lays them flat
-          shadows:true};
+          shadows:true,
+          /* One lock for every board there is — see decision 74. Locked by
+             default, because a desk you have arranged is one you want to look
+             at, and on a locked board one finger walks the boards. */
+          locked:true,
+          /* Pinned to a board rather than laid flat on one: a little air around
+             each tile and a degree or two of tilt. Off by default — see
+             decision 75. */
+          pinned:false};
 }
 reset();
 
@@ -721,7 +729,12 @@ function matchRule(o, r){
   if(!r || !r.f) return true;
   const fld=fieldOf(r.f); if(!fld) return true;
   if(!attrsOf(o).includes(r.f)) return false;      // it hasn't got that field
-  const v=valOf(o, fld.key);
+  /* A repeat is an object, so "contains week" has to compare against how it
+     would be *said*; a level is a number, so 0 is a value and not an absence.
+     See decisions 72 and 73. */
+  const v = fld.type==='repeat' ? (repeatSaid(o)||null)
+          : fld.type==='level'  ? prioOf(o)
+          : valOf(o, fld.key);
   /* A date is compared as a date. `numOf` strips everything but digits, dots
      and minus signs, so "2026-08-19" came out of it as 2026 — which made every
      "due before" rule an assertion about the year. ISO dates sort as strings,
@@ -736,8 +749,10 @@ function matchRule(o, r){
     case 'is':   return String(v??'')===String(fld.type==='date' ? (whenISO(r.v)??r.v) : r.v ?? '');
     case 'not':  return String(v??'')!==String(fld.type==='date' ? (whenISO(r.v)??r.v) : r.v ?? '');
     case 'has':  return Array.isArray(v) ? v.includes(r.v) : String(v??'').toLowerCase().includes(String(r.v??'').toLowerCase());
-    case 'gt':   { const n=numOf(o,fld.key); return n!=null && n>parseFloat(r.v); }
-    case 'lt':   { const n=numOf(o,fld.key); return n!=null && n<parseFloat(r.v); }
+    case 'gt':   { const n = fld.type==='level' ? v : numOf(o,fld.key);
+                   return n!=null && n>parseFloat(r.v); }
+    case 'lt':   { const n = fld.type==='level' ? v : numOf(o,fld.key);
+                   return n!=null && n<parseFloat(r.v); }
     default: return true;
   }
 }
@@ -771,6 +786,11 @@ function rollup(c){
 const SORTS = {
   az:       ['Alphabetical, A–Z',      (a,b)=>(a.title||'').localeCompare(b.title||''),                                 'A'],
   za:       ['Alphabetical, Z–A',      (a,b)=>(b.title||'').localeCompare(a.title||''),                                 'Z'],
+  /* Most important first, which is the sort a ranking exists for. Anything
+     without a priority sorts to the bottom rather than to zero — "not ranked"
+     and "not now" are different answers and 0 is a real one. */
+  prio:     ['Most important first', (a,b)=>((prioOf(b)??-1)-(prioOf(a)??-1)),                          'arrowU'],
+  prioup:   ['Least important first',(a,b)=>((prioOf(a)??99)-(prioOf(b)??99)),                          'arrowD'],
   made:     ['Newest made first',      (a,b)=>(b.created||'').localeCompare(a.created||''),                             'arrowR'],
   madeup:   ['Oldest made first',      (a,b)=>(a.created||'').localeCompare(b.created||''),                             'arrowL'],
   edited:   ['Newest changed first',   (a,b)=>(b.edited||b.created||'').localeCompare(a.edited||a.created||''),         'arrowU'],
@@ -894,6 +914,184 @@ const lateOn = o => {
 };
 const isLate = o => { const d=lateOn(o); return !!d && D.overdue(d); };
 
+/* ---- locked is one switch, not one per board --------------------------
+   Every container carried its own `locked`, and the padlock in the bar toggled
+   whichever board you were standing on. In principle that is the same shape as
+   every other setting in Bureau — per object, then per type. In practice a lock
+   is not a property of a board, it is a **mode you are in**: you are either
+   reading your desks or arranging them, and having to unlock each drawer as you
+   walk into it is the arrange-mode-by-another-name that decision 19 refused.
+
+   So it is one switch. `S.look.locked`, default locked, because a desk you have
+   arranged is one you want to look at — and on a locked board one finger walks
+   the boards, which is the gesture a phone is actually for.
+
+   Per-board `locked` is deleted by migration 22 and read by nothing.
+   See decision 74. */
+const boardLocked = ()=> S.look.locked !== false;
+
+/* ---- the box at the top of a container that takes dictation ------------
+   `takesTyping(c)` says a container *can* be typed into; `showsAddBox(c, box)`
+   says whether the box is drawn on its **front**. Two reasons it might not be:
+
+   - you turned it off, because a checklist five cells tall showing nine lines
+     is worth more than one showing eight and an empty field; and
+   - there is no room. At two cells the front is a name, a count and about two
+     lines, and spending one of them on a way to add a tenth thing you cannot
+     see is the wrong trade. Automatic, so nobody has to notice.
+
+   Inside the container the box is always there — that board has room, and it is
+   the only way in for a magic one. See decision 77. */
+const showsAddBox = (c, box)=>
+  takesTyping(c) && c.addbox!=='hide' && !(box && box.h<=2);
+
+/* ---- how much it matters, 0 to 5 --------------------------------------
+   Priority was three words — low, mid, high — which is a shape you outgrow the
+   moment you have more than a handful of important things, because "high" stops
+   telling you which high thing to do. A ranking does: six levels, and what each
+   one means is stated rather than left to the reader.
+
+   It is about **how much it matters to you**, not how urgent it is. Urgency is
+   a deadline coming up, and that is `deadline`'s job (decision 62) — the two
+   are different questions and an app that folds them together makes you answer
+   neither. 0 is the interesting end: a thing you want to keep but do not want
+   to act on, which every list app makes you either delete or feel bad about.
+
+   Stored as a **number**, and 0 is a real answer, so read it with `prioOf(o)`
+   and check for `null` — `o.prio || 5` would turn "not now" into "the one".
+   See decision 72. */
+const PRIOS = [
+  [0, 'Not now',      'a dream — nothing to act on yet'],
+  [1, 'Barely',       'barely a task; the least of it'],
+  [2, 'Taking hold',  'starting to take precedence'],
+  [3, 'Decent',       'worth an afternoon'],
+  [4, 'Important',    'solidly important'],
+  [5, 'The one',      'the most important thing in the docket']
+];
+const prioOf = o => {
+  if(!o || !has(o,'priority')) return null;
+  const v = o.prio;
+  if(v==null || v==='') return null;
+  const n = Number(v);
+  return isNaN(n) ? null : clamp(Math.round(n), 0, 5);
+};
+const prioName = n => (PRIOS.find(p=>p[0]===n)||[])[1] || '';
+
+/* ============================================================
+   2c · repeating — a rule, not a word
+   ============================================================
+   `repeat` was one of four words: daily, weekdays, weekly, monthly. Anything
+   else — every three days, the first Monday, three days *after I finish it* —
+   could not be said at all.
+
+   It is an object now:
+
+     {every, unit, days, from, ends, paused, made}
+
+     every   a number: every 2 weeks
+     unit    day | week | month | year
+     days    weekday numbers (0=Sun), `unit:'week'` only. Empty means "the
+             weekday the date already falls on"
+     from    'date' — a fixed schedule, counted from the day it was due
+             'done' — counted from the day you actually finished it
+     ends    null, {on:iso} or {after:n}
+     paused  it keeps its rule and stops producing
+     made    how many it has produced, for `ends.after`
+
+   **`from` is the one that matters**, and it is the change Things 3.23 shipped
+   after years of people asking. "Every week" and "a week after I finish it" are
+   different promises: the bins go out on Tuesday whether or not you did it last
+   Tuesday, and you water the plant a week after you last watered it. A single
+   fixed schedule makes the second one a lie that accumulates.
+
+   Bureau already had the better half of this and keeps it: completing a
+   repeating thing **spawns a fresh object** at the next date and turns the
+   original into a record, so eleven waterings are eleven dated things rather
+   than one counter (decision 5). Which means "complete it early" needs no
+   special case at all — the tick is the tick, and the next one is made from the
+   rule from wherever you are.
+
+   A string is still read, so nothing written before migration 22 breaks.
+   See decision 73. */
+const REPEAT_UNITS = [['day','days'],['week','weeks'],['month','months'],['year','years']];
+const LEGACY_REPEAT = {
+  daily:    {every:1, unit:'day',  from:'date'},
+  weekly:   {every:1, unit:'week', from:'date'},
+  monthly:  {every:1, unit:'month',from:'date'},
+  yearly:   {every:1, unit:'year', from:'date'},
+  weekdays: {every:1, unit:'week', days:[1,2,3,4,5], from:'date'}
+};
+function repeatOf(o){
+  const r = o && o.repeat;
+  if(!r) return null;
+  if(typeof r === 'string'){
+    const l = LEGACY_REPEAT[r];
+    return l ? Object.assign({days:[], ends:null, paused:false, made:0}, l) : null;
+  }
+  if(typeof r !== 'object' || !r.unit) return null;
+  return Object.assign({every:1, unit:'day', days:[], from:'date', ends:null,
+                        paused:false, made:0}, r);
+}
+const repeats = o => !!repeatOf(o);
+/* Said the way you would say it, which is also what a magic drawer matches on
+   when it is asked whether something "contains week". */
+function repeatSaid(o){
+  const r=repeatOf(o); if(!r) return '';
+  const DOW=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const unit=(REPEAT_UNITS.find(u=>u[0]===r.unit)||['day','days']);
+  const n = r.every>1 ? `every ${r.every} ${unit[1]}` : `every ${unit[0]}`;
+  let out = r.from==='done' ? `${r.every||1} ${r.every>1?unit[1]:unit[0]} after it is done` : n;
+  if(r.unit==='week' && (r.days||[]).length){
+    const d=r.days.slice().sort();
+    out = d.length===5 && d.join()==='1,2,3,4,5' ? (r.every>1?`${n}, weekdays`:'every weekday')
+        : `${n} on ${d.map(x=>DOW[x]).join(', ')}`;
+  }
+  if(r.ends && r.ends.on) out += `, until ${r.ends.on}`;
+  if(r.ends && r.ends.after) out += `, ${r.ends.after} times`;
+  if(r.paused) out += ' (paused)';
+  return out;
+}
+/* Has it produced everything it was going to? A rule that has run out keeps its
+   shape — you can see what it was and start it again — it just stops making. */
+function repeatSpent(r, madeNow){
+  if(!r || !r.ends) return false;
+  if(r.ends.after) return (madeNow!=null?madeNow:(r.made||0)) >= r.ends.after;
+  return false;
+}
+/* The next day this should fall on. `from` decides what it counts from: a fixed
+   schedule counts from the day it was due, so a week of not doing it does not
+   push the bins to Thursday; an after-completion rule counts from today, which
+   is the day you actually finished it. */
+function nextRepeat(o, doneOn){
+  const r=repeatOf(o); if(!r || r.paused) return null;
+  if(repeatSpent(r)) return null;
+  const base = r.from==='done' ? (doneOn || T) : (o.due || doneOn || T);
+  const every = Math.max(1, Math.round(r.every||1));
+  let iso;
+  if(r.unit==='week' && (r.days||[]).length && r.from!=='done'){
+    /* A set of weekdays: step one day at a time to the next one that is named,
+       and only jump the extra weeks once the week itself has turned over. */
+    const days=r.days.slice().sort((a,b)=>a-b);
+    let d=D.add(D.parse(base), 1), guard=0;
+    while(!days.includes(d.getDay()) && guard++ < 400) d=D.add(d,1);
+    if(every>1 && d.getDay() <= days[0]) d=D.add(d, 7*(every-1));
+    iso=D.iso(d);
+  } else if(r.unit==='day'){
+    iso = D.addISO(base, every);
+  } else if(r.unit==='week'){
+    iso = D.addISO(base, 7*every);
+  } else {
+    const d=D.parse(base), day=d.getDate();
+    if(r.unit==='month') d.setMonth(d.getMonth()+every);
+    else d.setFullYear(d.getFullYear()+every);
+    // 31 January + one month is 28 February, not 3 March
+    if(d.getDate()!==day) d.setDate(0);
+    iso=D.iso(d);
+  }
+  if(r.ends && r.ends.on && iso > r.ends.on) return null;
+  return iso;
+}
+
 /* A timeline's axis, as two dates. Read from what it holds — but an empty
    timeline, or one where everything happened on a Tuesday, has no span to
    measure a drop against, so it opens out to four weeks either side. A timeline
@@ -973,9 +1171,12 @@ export { ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds, K,
   deskIds, deskList, isDesk, deskOf, deskHere,
   placeOf,
   spanOf, coversDay, lastDay, lateOn, isLate,
+  boardLocked,
+  PRIOS, prioOf, prioName,
+  REPEAT_UNITS, repeatOf, repeats, repeatSaid, repeatSpent, nextRepeat,
   KNOBSIZES, knobSizeOf, answered, iconOf, TSIZES, textSizeOf, mediaTypeOf, isPicture,
   isMedia, isPlayable, acceptFor,
-  spawnByOf, genKindOf, takesTyping, keepsDone, showsContainers,
+  spawnByOf, genKindOf, takesTyping, showsAddBox, keepsDone, showsContainers,
   CALVIEWS, calViewOf, weekStartOf, showsWeekends, calCols,
   OPS, WHENS, whenISO, RULE_MAX, rulesOf, matchRule,
   ROLLS, rollup, SORTS, MANUAL, sortOf, childrenOf, beginPass, endPass, isAncestor,

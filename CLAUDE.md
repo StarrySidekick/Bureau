@@ -244,6 +244,12 @@ compares as a *date* (`numOf` read "2026-08-19" as 2026) and its value may be
 one of five words — `today`, `tomorrow`, `week`, `month`, `year` — resolved when
 the rule runs, so "before next week" keeps meaning it. See decision 63.
 
+**The add box is a choice and it can go by itself.** Ask `showsAddBox(c, box)`
+for the front, not `takesTyping(c)` — that answers whether a container takes
+dictation at all. The box is off when you said so and off at two cells tall or
+less, where the line is worth more as an item. Inside the container it is always
+there. See decision 77.
+
 **A tag is a magic drawer waiting to happen.** There is no filter mode and no
 filter bar; clicking a tag anywhere calls `drawerForTag()`, which finds the
 magic drawer collecting that tag or makes one. If you are tempted to add a
@@ -273,6 +279,27 @@ in it doesn't bounce. An empty picture is a dashed mount on the board and the
 file picker itself on the surface; `importImage()` calls `renderSheet()` when
 the file lands, because the file comes back long after the button was pressed.
 See decision 49.
+
+**Priority is a rank of 0–5, and 0 is a real answer.** `prioOf(o)` returns null
+or a number — never `o.prio || …`, which folds "a dream, nothing to act on" into
+whatever the fallback is. It is *importance*, not urgency: urgency is a deadline
+coming up, which is `deadline`'s job. The stripe's **weight** is the rank rather
+than three named colours. See decision 72.
+
+**A repeat is a rule, and `from` is the half that matters.** `repeatOf(o)`
+normalises (it still reads the four old words), `repeatSaid(o)` says it in
+English, `nextRepeat(o, doneOn)` gives the next day. `from:'date'` counts from
+the day it was due — the bins go out on Tuesday either way; `from:'done'` counts
+from the day you finished it — you water the plant a week after you last watered
+it. Because completing spawns a fresh object (decision 5), finishing early needs
+no special case. A generated copy carries `fromRepeat` and wears the glyph. See
+decision 73.
+
+**Locking is one switch, not one per board.** `boardLocked()`, backed by
+`S.look.locked`. A lock is which mode you are in — reading or arranging — not a
+fact about one drawer, and unlocking each drawer as you walked into it was
+arrange-mode by another name. Nothing carries its own `locked` any more. See
+decision 74.
 
 **When a thing sits and when it is late are two facts.** `date`/`due` is the day
 it is drawn on — what a calendar shows it on, what Today collects, what a drag
@@ -785,6 +812,20 @@ white-pencil rule on Starry and a lit glass sill on Aero. A style names its own
 six in `borders:[…]`; only the four dressed ones need per-style CSS, because
 plain and none mean the same thing everywhere. Same rule as colour: never
 hardcode what an edge is made of outside the style that owns it.
+
+**A literal colour is somebody insisting, and there is now a picker for one.**
+Under the eleven slots is a colour input writing a hex, in its own labelled row —
+it does something different from the slots, so it must not look like one. The way
+back writes **null**, never `''`: `objColour()` tests `o.c != null`. See decision
+76.
+
+**The board can be pinned rather than laid flat.** `S.look.pinned` — a margin on
+each tile and one to three degrees of tilt, from `tiltOf(id)`, a hash of the
+object's own id so the angle is the same on every render forever. Never `gap` on
+the grid: `cellW()` measures the grid's own rect and moving it moves every tile
+out from under the drag maths. Don't add a drawn pin head (the tile's overflow
+clips it) or a `box-shadow` here (it replaces the border slots' inset moulding
+and outlives the Shadows switch). See decision 75.
 
 **A colour is a slot, and a slot is a position, not a hue.** Every style has
 the same sixteen — five that dress the app (Page, Text, Lines, Accent, Glow)

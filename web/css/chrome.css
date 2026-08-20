@@ -464,10 +464,90 @@
 .stars{display:flex;gap:3px}
 .stars button{color:var(--ink-3)}
 .stars button.on{color:var(--brass)}
-/* priority shows as a stripe rather than a word */
-.drawer.prio-high{box-shadow:inset 4px 0 0 #C0563F}
-.drawer.prio-mid{box-shadow:inset 4px 0 0 var(--brass)}
-.drawer.prio-low{box-shadow:inset 4px 0 0 var(--ink-3)}
+/* ---- priority, 0 to 5 — see decision 72 --------------------------------
+   A stripe whose *weight* is the rank rather than three named colours: the
+   point of a ranking is that you can see the order without reading it, and
+   three hues in an app whose whole colour story is slots would be three hues
+   nobody chose. 0 is a dashed ghost — a thing you are keeping and not acting
+   on — and 5 is the only one that is solid all the way down. */
+.drawer[class*="prio-"]{box-shadow:inset 4px 0 0 var(--priostripe,transparent)}
+.drawer.prio-0{--priostripe:transparent;
+  background-image:linear-gradient(var(--ink-3) 33%, transparent 0);
+  background-size:2px 7px;background-repeat:repeat-y;background-position:left top}
+.drawer.prio-1{--priostripe:color-mix(in srgb, var(--ink-3) 45%, transparent)}
+.drawer.prio-2{--priostripe:var(--ink-3)}
+.drawer.prio-3{--priostripe:var(--brass)}
+.drawer.prio-4{--priostripe:color-mix(in srgb, #C0563F 70%, var(--brass))}
+.drawer.prio-5{--priostripe:#C0563F}
+/* …and the one at the top says so, because "the most important thing in the
+   docket" is worth more than a slightly redder line. */
+.drawer.prio-5::after{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;
+  background:#C0563F;box-shadow:0 0 9px rgba(192,86,63,.6);pointer-events:none}
+
+/* the six buttons in the editor: the scale, visible */
+.priorow{display:flex;gap:4px;align-items:center}
+.priobtn{
+  width:30px;height:30px;border-radius:8px;border:1px solid var(--rule);
+  background:var(--paper-2);color:var(--ink-2);font-size:12.5px;font-weight:600;
+  display:grid;place-items:center;transition:.14s;
+}
+.priobtn:hover{border-color:var(--brass)}
+.priobtn.on{border-color:var(--ink);color:var(--paper);background:var(--ink)}
+.priobtn.p0.on{background:var(--ink-3)}
+.priobtn.p3.on{background:var(--brass);border-color:var(--brass)}
+.priobtn.p4.on{background:color-mix(in srgb,#C0563F 70%,var(--brass));border-color:transparent}
+.priobtn.p5.on{background:#C0563F;border-color:#C0563F}
+
+/* a repeat rule: a number beside a unit, and seven day chips */
+.pfield.num{width:74px;flex:0 0 auto}
+.dowchips .fchip{min-width:30px;padding:5px 0;text-align:center}
+/* a copy a rule made, rather than one you wrote — see decision 73 */
+.repeatmark{color:var(--ink-3);opacity:.75;display:inline-flex;margin-left:4px}
+.drawer.dtile .repeatmark{color:var(--dink-3)}
+
+/* ---- the little calendar — see decision 78 -----------------------------
+   The handful of answers worth a button, then a month you can press a day on.
+   Deliberately not a popup: it asks more than one question. */
+.schedquick{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.schedquick .pill u{text-decoration:none;color:var(--ink-3);margin-left:6px;font-size:11px}
+.schedquick .pill.solid u{color:rgba(255,255,255,.72)}
+.schedmonth{border:1px solid var(--rule);border-radius:11px;padding:8px;background:var(--paper-2)}
+.schedhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.schedhead b{font-family:var(--serif);font-size:14px}
+.schedgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.schedgrid .dow{font-size:9.5px;color:var(--ink-3);text-align:center;font-style:normal;
+  letter-spacing:.08em;padding-bottom:2px}
+.sday{
+  aspect-ratio:1;border-radius:7px;border:1px solid transparent;background:transparent;
+  font-size:12px;color:var(--ink-2);display:grid;place-items:center;transition:.12s;
+}
+.sday:hover{border-color:var(--brass)}
+.sday.out{color:var(--ink-3);opacity:.45}
+.sday.today{font-weight:700;color:var(--brass)}
+.sday.on{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+/* a deadline is ruled underneath, the same as the chip on a tile */
+.sday.dead{border-bottom:2px solid #C0563F}
+.sday.on.dead{border-bottom-color:var(--paper)}
+
+/* ---- a colour of your own, under the eleven — decision 76 ---------------
+   Its own labelled row rather than a twelfth swatch, because it does something
+   different from the slots above it: it writes a literal, and a literal does
+   not follow the style. Marked when it holds one.
+
+   The overrides are not decoration: `.prow label` (board.css) makes *any* label
+   inside a row a block of 10px uppercase, which is right for the row's own
+   caption and wrong for a control that happens to be a label. Specificity is
+   the whole of the fix. */
+.ownrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:2px;width:100%}
+.prow .ownrow .custcol,
+.ownrow .custcol{
+  display:inline-flex;align-items:center;gap:8px;width:auto;margin:0;
+  font-size:12.5px;text-transform:none;letter-spacing:0;font-weight:500;
+  color:var(--ink-2);line-height:1;
+}
+.ownrow .custcol span{text-transform:none;letter-spacing:0;font-size:12.5px}
+.ownrow .custcol.on{border-color:var(--ink);color:var(--ink);font-weight:600}
+.ownrow .pill{height:auto}
 .tilemeta{font-size:11px;color:var(--ink-3);font-variant-numeric:tabular-nums}
 
 /* ---- what each kind looks like on the board ---------------------------- */

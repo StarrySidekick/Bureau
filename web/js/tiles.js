@@ -1,8 +1,8 @@
 import { esc, ic, clamp, D, md, plain, oneline } from './util.js';
 import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, childrenOf, container,
-  rollup, streak, goalPct, projectStat, tlSpan, dev, spawnByOf, genKindOf, takesTyping,
+  rollup, streak, goalPct, projectStat, tlSpan, dev, spawnByOf, genKindOf, takesTyping, showsAddBox,
   knobSizeOf, answered, sortOf, spanOf, coversDay, lateOn, isLate, iconOf, textSizeOf,
-  isPicture, isMedia, isPlayable, mediaTypeOf,
+  isPicture, isMedia, isPlayable, mediaTypeOf, boardLocked, prioOf, repeatSaid,
   calViewOf, weekStartOf, calCols } from './model.js';
 import { CELL, COLW, gridOf, lay, overlaps, boxOk, freeSpot, gridRows, sizeOfKind, ensureBox,
   pageRows } from './grid.js';
@@ -79,6 +79,39 @@ const deadSaid = o => has(o,'deadline') && o.dead
    container asked for one, so this is safe to hang on anything. */
 const rollTag = c => { const r=rollup(c);
   return r ? `<span class="rollup">${esc(r)}</span>` : ''; };
+
+/* ---- pinned to a board, rather than laid flat on one ------------------
+   A setting, off by default. It gives every tile a little air around it and
+   tilts it a degree or two, as though a pin went through one of its top
+   corners — which is what a real board of things looks like and what a grid of
+   flush rectangles deliberately does not.
+
+   Three things make it work rather than look like a bug:
+
+   - **the tilt is small.** One to three degrees. Past about four it stops
+     reading as "pinned" and starts reading as "broken".
+   - **it never changes.** The angle is derived from the object's own id, so a
+     tile tilts the same way every render, on every device, forever. A random
+     number would jitter on every rebuild, which is the thing that would make
+     this unbearable.
+   - **the origin is a top corner**, alternating left and right off the same
+     hash, because a pin goes through the top of a piece of paper and the sheet
+     hangs from it.
+
+   The gap is a **margin on the tile**, not a `gap` on the grid: the grid is a
+   coordinate space and `cellW()` measures it, so changing its geometry would
+   move every tile out from under the drag maths. A margin shrinks the tile
+   inside a cell that has not moved.
+
+   During a drag the inline transform wins and the tile straightens, which is
+   the right thing — you are holding it. See decision 75. */
+const tiltOf = id => {
+  let h=0;
+  for(let i=0;i<id.length;i++) h=(h*31 + id.charCodeAt(i)) >>> 0;
+  // 1.0° to 3.0°, either way, off a corner chosen by the same hash
+  const deg = 1 + (h % 21) / 10;
+  return {deg: (h & 1) ? deg : -deg, right: !!(h & 2)};
+};
 
 const HANDLES = ['nw','ne','se','sw'];   // corners only — any corner resizes
 
@@ -287,7 +320,14 @@ function drawTile(o, arr, box){
      that already shrinks its name at three cells wide still does — smaller,
      larger, and narrow are three separate facts about the same line. */
   const ts = textSizeOf(o);
-  const place = `${ts!==1?`--tscale:${ts};`:''}grid-column:${box.x} / span ${box.w};grid-row:${box.y} / span ${box.h}`;
+  /* The tilt rides in `place`, which is the tail of every tile's style
+     attribute — so a branch of drawTile() nobody has thought about gets it too,
+     the same way --tscale does. The stylesheet only uses it under `.pinboard`;
+     off, the two custom properties sit there costing nothing. */
+  const tilt = S.look.pinned ? tiltOf(o.id) : null;
+  const place = `${ts!==1?`--tscale:${ts};`:''}${
+    tilt?`--tilt:${tilt.deg}deg;--pinx:${tilt.right?'100%':'0%'};`:''
+  }grid-column:${box.x} / span ${box.w};grid-row:${box.y} / span ${box.h}`;
   const sel = S.sel.includes(o.id) ? ' selected' : '';
 
   /* One cell square: the mark, and nothing else. Every shape below this line
@@ -350,7 +390,10 @@ function drawTile(o, arr, box){
      and the .drawer class, not by the tag. */
   if(cont && faceOf(o)==='checklist'){
     const items=childrenOf(o);
-    const adds=takesTyping(o);
+    /* Whether the *box* is drawn, which is not the same question as whether the
+       container takes typing: it is off when you turned it off, and off when the
+       front is too short to spare a line for it. See decision 77. */
+    const adds=showsAddBox(o, box);
     const made=K(genKindOf(o)).nm.toLowerCase();
     return `<${adds?'div':'button'} class="drawer dtile cltile bd-${o.border||'panel'}${sel}" data-drawer="${o.id}"
         ${adds?'role="button" tabindex="0"':''} style="--c:${colour};${place}">
@@ -405,7 +448,7 @@ function drawTile(o, arr, box){
            title="${esc(x.title||'Untitled')}">
           <i style="--k:${objColour(x)}">${ic(K(x.kind).ic,10)}</i>
           <b>${esc(x.title||'Untitled')}</b><u>${esc(D.short(x.due))}</u></span>`).join('')}</div>
-      ${takesTyping(o)?`<label class="cladd">${ic('plus',11)}
+      ${showsAddBox(o, box)?`<label class="cladd">${ic('plus',11)}
         <input data-contadd="${o.id}" placeholder="Add a ${esc(K(genKindOf(o)).nm.toLowerCase())}…"></label>`:''}
       ${handles}
     </${takesTyping(o)?'div':'button'}>`;
@@ -656,12 +699,16 @@ function drawTile(o, arr, box){
   const raw = asks || edit;
   return `<${raw?'div':'button'} class="drawer otile sh-${shapeOf(o)}${o.edge?' edge':''}${sel}${
       edit?' editing':''}${
-      asks?(answered(o)?' answered':' unanswered'):''}${has(o,'priority')&&o.prio?' prio-'+o.prio:''}" data-row="${o.id}"
+      asks?(answered(o)?' answered':' unanswered'):''}${prioOf(o)!=null?' prio-'+prioOf(o):''}" data-row="${o.id}"
     style="--c:${colour};${has(o,'progress')?`--pct:${goalPct(o)}%;`:''}${place}">
     ${chips}
     <div class="dtop">
       ${has(o,'check')?`<span class="check tilecheck${o.done?' on':''}" data-check="${o.id}">${ic('check',12)}</span>`:''}
       ${nameField(o)}
+      ${/* A copy a rule made, not a thing you wrote down — Things 3.23 puts the
+           same small glyph on generated to-dos, and it is the difference between
+           "I decided this" and "this comes round". See decision 73. */''}
+      ${o.fromRepeat?`<span class="repeatmark" title="${esc(repeatSaid(o)||'made by a repeat')}">${ic('repeat',10)}</span>`:''}
     </div>
     ${has(o,'rating')&&o.rating?`<div class="tilestars">${'★'.repeat(o.rating)}<span>${'★'.repeat(5-o.rating)}</span></div>`:''}
     ${edit && has(o,'text')
@@ -712,8 +759,9 @@ function flowSorted(kids, cid){
    real coordinates and needs to know nothing about pages. */
 function gridOfContainer(cid){
   const c=container(cid), g=gridOf(undefined, c.id);
-  // You are always arranging. A container can be locked to opt out of it.
-  const arr=!c.locked;
+  // You are always arranging, unless the one lock says otherwise — see
+  // decision 74. It used to be `c.locked`, per board.
+  const arr=!boardLocked();
   const sorted=sortOf(c);
   const per=pageRows(undefined, c.id), pg=per?pageAt(c.id):0, from=pg*per;
   let kids=childrenOf(c);
@@ -756,7 +804,7 @@ function gridOfContainer(cid){
   // this board's own cell, derived from the measured width and its columns —
   // not the cell of whichever board happened to be measured last
   const colw = g.rowh;
-  return `<div class="grid g-${dev()}${arr?' arranging':''}${c.locked?' locked':''}${sorted?' sorted':''}"
+  return `<div class="grid g-${dev()}${arr?' arranging':''}${boardLocked()?' locked':''}${sorted?' sorted':''}${S.look.pinned?' pinboard':''}"
        id="drawergrid" data-gridfor="${c.id}"
        style="${boardVars}--cols:${g.cols};--rowh:${g.rowh}px;--checkerx:${2*colw}px;--checkery:${2*g.rowh}px;grid-auto-rows:${g.rowh}px;grid-template-rows:repeat(${Math.max(rows,1)},${g.rowh}px)">${tiles}
   </div>`;

@@ -3,7 +3,7 @@ import { S, K, T, byId, has, isContainer, containers, container, childrenOf, cha
   deskTitle, rootObj, cfgOf, deskIds, deskHere, deskOf, isDesk, allTags, dev,
   beginPass, endPass,
   layoutOf, takesTyping, genKindOf, CALVIEWS, calViewOf, calCols,
-  spanOf, coversDay, lastDay } from './model.js';
+  spanOf, coversDay, lastDay, boardLocked } from './model.js';
 import { GRID, PHONE_GRIDS, CELL, COLW, MEASURE, colsOf, gridKeyOf,
   pageRows, pageOfBox, lastPage,
   lay, gridOf, cellW, ensureBox, PLACED } from './grid.js';
@@ -82,8 +82,10 @@ function gridBar(c){
            right button and no room for an arrange mode, so the lock is a
            button; locked refuses moves and resizes, and the long press still
            opens the menu either way. */''}
-      <button class="sqbtn${c.locked?' on locked':''}" data-act="togglelock" data-id="${c.id}"
-        title="${c.locked?'Locked — tap to unlock':'Unlocked — tap to lock'}">${ic(c.locked?'lock':'unlock',16)}</button>
+      ${/* One switch for every board there is, not one per board. See
+           decision 74. */''}
+      <button class="sqbtn${boardLocked()?' on locked':''}" data-act="togglelock"
+        title="${boardLocked()?'Everything is locked — tap to unlock':'Everything is unlocked — tap to lock'}">${ic(boardLocked()?'lock':'unlock',16)}</button>
       ${/* How a board is laid out and how it sorts itself are things you set
            once and then live with, which is a settings question and not a
            tool. Both are rows in the board's own editor now. */''}
@@ -488,6 +490,16 @@ function settingsBody(sec){
          what makes a board read as things lying *on* a surface rather than as
          coloured rectangles. It is also the single loudest thing in the app, so
          it is worth being able to see the desk with it off. */''}
+    ${/* Pinned rather than laid flat — a little air and a degree or two of
+         tilt, off a hash of each object's id so it never changes. It is the one
+         setting in the app that is purely about mood, which is reason enough to
+         have it. See decision 75. */''}
+    <div class="field" style="margin-top:12px"><label>How things sit</label>
+      <div class="filterbar">${[['','Laid flat on the board'],['1','Pinned to it']].map(([v,n])=>
+        `<button class="fchip${(S.look.pinned?'1':'')===v?' on':''}" data-pinned="${v}">${n}</button>`).join('')}</div>
+      <div class="mini" style="--k:var(--brass);margin-top:6px">Pinned gives every tile a little room around it and tilts it a degree or two, as though a pin went through one of its top corners. The angle comes from the object itself, so nothing moves between renders — and a tile straightens while you carry it.</div>
+    </div>
+
     <div class="field" style="margin-top:12px"><label>Shadows</label>
       <div class="filterbar">${[['1','Things cast a shadow'],['','Laid flat']].map(([v,n])=>
         `<button class="fchip${(S.look.shadows===false?'':'1')===v?' on':''}" data-shadows="${v}">${n}</button>`).join('')}</div>

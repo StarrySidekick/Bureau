@@ -297,7 +297,7 @@ const CHROME = process.env.BUREAU_CHROME;
      arranged is one you want to look at — so this unlocks it first, which is
      exactly what you would do before rearranging anything. */
   await page.evaluate(() => { const S = BUREAU.state;
-    S.view='desk'; S.drawerId=null; S.deskCfg.locked=false; BUREAU.render(); });
+    S.view='desk'; S.drawerId=null; S.look.locked=false; BUREAU.render(); });
   await page.waitForTimeout(300);
   const holdArms = await page.evaluate(async () => {
     const t = document.querySelector('.grid .drawer[data-drawer]');
@@ -749,7 +749,7 @@ const CHROME = process.env.BUREAU_CHROME;
   // …unlocked first: every seeded drawer starts locked now, and a locked board
   // refuses to be rearranged, which is the whole point of it
   await page.evaluate(() => { const S=BUREAU.state;
-    S.objects.find(o=>o.id==='d_studio').locked=false;
+    S.look.locked=false;      // one switch now — see decision 74
     S.view='drawer'; S.drawerId='d_studio'; BUREAU.render(); });
   await page.waitForTimeout(320);
   const tlSpan = await page.getAttribute('[data-tlspan]', 'data-tlspan');
@@ -776,7 +776,7 @@ const CHROME = process.env.BUREAU_CHROME;
      collects them where they lie rather than holding them (decision 45) — so
      this is the desk's own board, unlocked, which is where you would do it. */
   await page.evaluate(() => { const S=BUREAU.state;
-    S.view='desk'; S.drawerId=null; S.deskCfg.locked=false; BUREAU.render(); });
+    S.view='desk'; S.drawerId=null; S.look.locked=false; BUREAU.render(); });
   await page.waitForTimeout(320);
   const two = await page.evaluate(() =>
     BUREAU.state.objects.filter(o => o.kind==='task' && o.parent==='root' && !o.done
@@ -1264,14 +1264,14 @@ const CHROME = process.env.BUREAU_CHROME;
     /* A desk starts *locked*: one you arranged is one you want to look at, not
        one you nudge every time a thumb lands on a front. So the round trip
        starts from shut. */
-    S.deskCfg.locked = true; BUREAU.render(); await nap(150);
-    out.startsLocked = !!S.deskCfg.locked && !!btn('[data-act="togglelock"]');
+    S.look.locked = true; BUREAU.render(); await nap(150);
+    out.startsLocked = !!S.look.locked && !!btn('[data-act="togglelock"]');
     const shutShackle = btn('[data-act="togglelock"]').innerHTML;
     btn('[data-act="togglelock"]').click(); await nap(200);
-    out.unlocksFromTheBar = !S.deskCfg.locked
+    out.unlocksFromTheBar = !S.look.locked
       && btn('[data-act="togglelock"]').innerHTML !== shutShackle;
     btn('[data-act="togglelock"]').click(); await nap(200);
-    out.locks = !!S.deskCfg.locked
+    out.locks = !!S.look.locked
       && !!document.querySelector('.grid.locked');
     // a locked board refuses the drag and still gives you the menu
     const tile = () => document.querySelector('.grid .drawer[data-drawer="d_in"]');
@@ -1292,7 +1292,7 @@ const CHROME = process.env.BUREAU_CHROME;
     const after = BUREAU.state.objects.find(o => o.id === 'd_in')[S.device];
     out.lockedDoesNotMove = after.x === before.x && after.y === before.y;
     btn('[data-act="togglelock"]').click(); await nap(200);
-    out.unlocks = !S.deskCfg.locked;
+    out.unlocks = !S.look.locked;
 
     /* The sort tool is gone from the bar. How a board arranges itself is
        something you decide once and then live with, which is a settings
@@ -1699,7 +1699,7 @@ const CHROME = process.env.BUREAU_CHROME;
      waits for a keyframe. See motion.js. */
   await page.bringToFront();
   await page.evaluate(() => { const S = BUREAU.state;
-    S.view='desk'; S.drawerId=null; S.deskCfg.locked=false; BUREAU.render(); });
+    S.view='desk'; S.drawerId=null; S.look.locked=false; BUREAU.render(); });
   await page.waitForTimeout(300);
   const movement = await page.evaluate(async () => {
     const nap = n => new Promise(r => setTimeout(r, n));
@@ -1773,7 +1773,7 @@ const CHROME = process.env.BUREAU_CHROME;
      there, following the finger and settling when you let go. */
   await phone.bringToFront();
   await phone.evaluate(() => { const S = BUREAU.state;
-    S.view='desk'; S.drawerId=null; S.deskCfg.locked=false; BUREAU.render(); });
+    S.view='desk'; S.drawerId=null; S.look.locked=false; BUREAU.render(); });
   await phone.waitForTimeout(350);
   const pager = await phone.evaluate(async () => {
     const nap = n => new Promise(r => setTimeout(r, n));
@@ -1830,7 +1830,7 @@ const CHROME = process.env.BUREAU_CHROME;
        rearranged has a spare finger. It works from a tile and from bare cells
        alike, which are two different paths through onDown, so both are driven
        here rather than trusting whatever happens to be under a coordinate. */
-    S.deskCfg.locked = true; BUREAU.render(); await nap(200);
+    S.look.locked = true; BUREAU.render(); await nap(200);
     const oneFinger = async (from, id) => {
       const r = from.getBoundingClientRect();
       const x = r.left + r.width/2, y = r.top + Math.min(r.height/2, 60);
@@ -1860,7 +1860,7 @@ const CHROME = process.env.BUREAU_CHROME;
     tile.dispatchEvent(new PointerEvent('pointerup', tp));
     await nap(200);
     out.lockedTapStillOpens = S.view === 'drawer' && S.drawerId === id;
-    S.deskCfg.locked = false; S.view='desk'; S.drawerId=null; BUREAU.render();
+    S.look.locked = false; S.view='desk'; S.drawerId=null; BUREAU.render();
     return out;
   });
   await phone.screenshot({ path: 'test/shots/20-phone-pager.png' });
@@ -1871,7 +1871,7 @@ const CHROME = process.env.BUREAU_CHROME;
      them. And a magic drawer stops seeing across the lot. */
   await page.bringToFront();
   await page.evaluate(() => { const S=BUREAU.state;
-    S.view='desk'; S.drawerId=null; S.deskCfg.locked=false; BUREAU.render(); });
+    S.view='desk'; S.drawerId=null; S.look.locked=false; BUREAU.render(); });
   await page.waitForTimeout(300);
   const desks = await page.evaluate(async () => {
     const nap = n => new Promise(r => setTimeout(r, n));
@@ -2142,7 +2142,7 @@ const CHROME = process.env.BUREAU_CHROME;
     const mk = t => BUREAU.create('task', { parent: cl.id, title: t });
     const a = mk('First'), b = mk('Second'), c = mk('Third');
     a.ord=0; b.ord=1; c.ord=2;
-    S.view='drawer'; S.drawerId=cl.id; S.deskCfg.locked=false;
+    S.view='drawer'; S.drawerId=cl.id; S.look.locked=false;
     delete cl.locked; delete cl.sort;
     BUREAU.render(); await nap(250);
     const band = id => document.querySelector(`[data-listfor] .listband[data-row="${id}"]`);
@@ -2214,7 +2214,7 @@ const CHROME = process.env.BUREAU_CHROME;
   const checklistEdit = await page.evaluate(async () => {
     const nap = n => new Promise(r => setTimeout(r, n));
     const S = BUREAU.state, out = {};
-    S.view='desk'; S.drawerId=null; S.deskCfg.locked=false;
+    S.view='desk'; S.drawerId=null; S.look.locked=false;
     const cl = BUREAU.create('checklist', { parent:'root', title:'Front' });
     cl.desk = Object.assign(BUREAU.free(6,6,'root'), {w:6,h:6});
     const t = BUREAU.create('task', { parent: cl.id, title: 'Typo' });
@@ -2237,12 +2237,12 @@ const CHROME = process.env.BUREAU_CHROME;
   const lockedNamesAreNames = await page.evaluate(async () => {
     const nap = n => new Promise(r => setTimeout(r, n));
     const S = BUREAU.state;
-    S.view='desk'; S.drawerId=null; S.deskCfg.locked=true; BUREAU.render(); await nap(220);
+    S.view='desk'; S.drawerId=null; S.look.locked=true; BUREAU.render(); await nap(220);
     const n = document.querySelector('.grid .drawer[data-row] [data-edit]');
     if(n) n.click();
     await nap(220);
     const out = !S.editId;
-    S.deskCfg.locked=false; BUREAU.render();
+    S.look.locked=false; BUREAU.render();
     return out;
   });
 
@@ -2719,6 +2719,264 @@ const CHROME = process.env.BUREAU_CHROME;
     return out;
   });
 
+  /* =====================================================================
+     the fourteenth pass — decisions 72–78
+     ===================================================================== */
+
+  /* --- priority is a rank, and 0 is a real answer ---------------------- */
+  const ranking = await page.evaluate(async () => {
+    const nap = ms => new Promise(r => setTimeout(r, ms));
+    const S = BUREAU.state, out = {};
+    const t = BUREAU.create('task', {parent:'root', title:'Rank me'});
+    t.attrs = ['text','check','date','repeat','priority'];
+    BUREAU.render(); await nap(150);
+    BUREAU.panel(t.id, 'fields'); await nap(250);
+    const btn = n => document.querySelector(`#panel [data-prio="${n}"]`);
+    out.sixLevels = [0,1,2,3,4,5].every(n => !!btn(n)) && !!document.querySelector('#panel [data-prio=""]');
+    btn(5).click(); await nap(200);
+    out.setsIt = t.prio === 5;
+    const tile = () => document.querySelector(`.grid .drawer[data-row="${t.id}"]`);
+    out.showsOnTheTile = !!tile() && tile().classList.contains('prio-5');
+    /* 0 is "a dream, not something to act on", which is a different answer from
+       "not ranked" — and every falsy test in the app would have folded them. */
+    btn(0).click(); await nap(200);
+    out.zeroIsAnAnswer = t.prio === 0 && !!tile() && tile().classList.contains('prio-0');
+    document.querySelector('#panel [data-prio=""]').click(); await nap(200);
+    out.canBeUnranked = t.prio == null && !!tile() && !tile().className.includes('prio-');
+    // …and a drawer can collect by it, which is what a rank is for
+    t.prio = 4;
+    const d = BUREAU.create('magic', {parent:'root', title:'Important'});
+    d.filter = {scope:'all', rules:[{f:'priority', op:'gt', v:'3'}]};
+    out.collectsByRank = BUREAU.kids(d.id).includes(t.id);
+    t.prio = 1;
+    out.andExcludes = !BUREAU.kids(d.id).includes(t.id);
+    // and sorts by it
+    out.sortsByIt = !!BUREAU.sorts && !!BUREAU.sorts.prio;
+    BUREAU.del(t.id); BUREAU.del(d.id); S.undo=[]; S.redo=[]; BUREAU.render();
+    return out;
+  });
+
+  /* --- repeating is a rule, and the two modes are different promises --- */
+  const repeating = await page.evaluate(async () => {
+    const nap = ms => new Promise(r => setTimeout(r, ms));
+    const S = BUREAU.state, out = {};
+    const iso = n => { const d=new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()+n);
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
+    const t = BUREAU.create('task', {parent:'root', title:'Bins'});
+    // a fixed schedule counts from the day it was due, however late you are
+    t.due = iso(-10);
+    t.repeat = {every:1, unit:'week', days:[], from:'date', ends:null, paused:false, made:0};
+    out.fixedCountsFromDue = BUREAU.nextRepeat(t) === iso(-3);
+    // …and an after-completion one counts from today, which is the whole point
+    t.repeat = Object.assign({}, t.repeat, {from:'done'});
+    out.afterDoneCountsFromToday = BUREAU.nextRepeat(t, iso(0)) === iso(7);
+    // every N
+    t.repeat = {every:3, unit:'day', days:[], from:'date', ends:null, paused:false, made:0};
+    t.due = iso(0);
+    out.everyN = BUREAU.nextRepeat(t) === iso(3);
+    // named weekdays
+    t.repeat = {every:1, unit:'week', days:[1,3,5], from:'date', ends:null, paused:false, made:0};
+    const nd = BUREAU.nextRepeat(t);
+    out.namedDays = [1,3,5].includes(new Date(nd+'T00:00:00').getDay());
+    // months keep the day, and a short month does not spill into the next
+    t.repeat = {every:1, unit:'month', days:[], from:'date', ends:null, paused:false, made:0};
+    t.due = '2026-01-31';
+    out.shortMonthClamps = BUREAU.nextRepeat(t) === '2026-02-28';
+    // paused keeps its rule and stops making
+    t.due = iso(0);
+    t.repeat = {every:1, unit:'day', days:[], from:'date', ends:null, paused:true, made:0};
+    out.pausedMakesNothing = BUREAU.nextRepeat(t) === null && !!BUREAU.repeatOf(t);
+    // an ending rule runs out
+    t.repeat = {every:1, unit:'day', days:[], from:'date', ends:{after:2}, paused:false, made:2};
+    out.endsAfterN = BUREAU.nextRepeat(t) === null;
+    // ticking it makes the next one, marked as a copy
+    t.repeat = {every:1, unit:'day', days:[], from:'date', ends:null, paused:false, made:0};
+    t.due = iso(0);
+    const before = S.objects.length;
+    BUREAU.toggleDone(t.id); await nap(200);
+    const made = S.objects.filter(o => o.title === 'Bins' && !o.done && o.id !== t.id);
+    out.tickMakesTheNext = S.objects.length === before + 1 && made.length === 1
+      && made[0].due === iso(1) && made[0].fromRepeat === true;
+    // …and the head start makes one without ticking anything
+    const head = made[0];
+    const n2 = S.objects.length;
+    BUREAU.spawnNext(head.id); await nap(200);
+    out.headStart = S.objects.length === n2 + 1 && !head.done;
+    // it is a trait, so a drawer can collect what repeats
+    const d = BUREAU.create('magic', {parent:'root', title:'Comes round'});
+    d.filter = {scope:'all', rules:[{f:'repeat', op:'any'}]};
+    out.collectsRepeating = BUREAU.kids(d.id).includes(head.id);
+    out.saidInWords = /every day/.test(BUREAU.repeatSaid(head));
+    S.objects = S.objects.filter(o => o.title !== 'Bins' && o.id !== d.id);
+    S.undo=[]; S.redo=[]; BUREAU.render();
+    return out;
+  });
+
+  /* --- one lock for everything ----------------------------------------- */
+  const oneLock = await page.evaluate(async () => {
+    const nap = ms => new Promise(r => setTimeout(r, ms));
+    const S = BUREAU.state, out = {};
+    S.view='desk'; S.drawerId=null; S.look.locked=true; BUREAU.render(); await nap(200);
+    out.deskLocked = !!document.querySelector('.grid.locked');
+    // walking into a drawer keeps the answer — it used to be per board, so a
+    // drawer you had never unlocked came up locked whatever the desk said
+    S.view='drawer'; S.drawerId='d_studio'; BUREAU.render(); await nap(200);
+    out.andSoIsTheDrawer = !!document.querySelector('.grid.locked');
+    document.querySelector('.bartools [data-act="togglelock"]').click(); await nap(250);
+    out.unlocksEverywhere = S.look.locked === false && !document.querySelector('.grid.locked');
+    S.view='desk'; S.drawerId=null; BUREAU.render(); await nap(200);
+    out.stillUnlockedOnTheDesk = !document.querySelector('.grid.locked');
+    // and the row is out of the object editor, because it is not a fact about
+    // one board any more
+    BUREAU.panel('d_studio', 'does'); await nap(220);
+    out.noPerBoardRow = !document.querySelector('#panel [data-oset$=":locked"]');
+    document.querySelector('#panel [data-act="panelclose"]').click();
+    // nothing carries its own any more
+    out.nothingStoresItsOwn = !S.objects.some(o => 'locked' in o);
+    S.look.locked=false; BUREAU.render();
+    return out;
+  });
+
+  /* --- swiping right opens the little calendar ------------------------- */
+  const scheduling = await page.evaluate(async () => {
+    const nap = ms => new Promise(r => setTimeout(r, ms));
+    const S = BUREAU.state, out = {};
+    const t = S.objects.find(o => o.kind === 'task' && o.parent === 'root');
+    BUREAU.schedule(t.id); await nap(250);
+    const p = document.querySelector('#panel');
+    out.opens = !!p && (p.dataset.panel||'').startsWith('schedule:');
+    out.hasQuickAnswers = p.querySelectorAll('[data-schedset]').length >= 4;
+    out.hasAMonth = p.querySelectorAll('[data-schedday]').length === 42;
+    // a quick answer writes the day it sits on
+    const iso = n => { const d=new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()+n);
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
+    p.querySelector('[data-schedset$=":tomorrow"]').click(); await nap(220);
+    out.quickSets = t.due === iso(1);
+    // a day in the month does too, and pressing the same one again clears it
+    const day = document.querySelector(`#panel [data-schedday$=":${iso(3)}"]`);
+    day.click(); await nap(220);
+    out.aDaySets = t.due === iso(3);
+    document.querySelector(`#panel [data-schedday$=":${iso(3)}"]`).click(); await nap(220);
+    out.pressingAgainClears = t.due == null;
+    // the arrows walk the month without touching the object
+    const wasHead = document.querySelector('#panel .schedhead b').textContent;
+    document.querySelector('#panel [data-schedmon]').click(); await nap(200);
+    out.monthWalks = document.querySelector('#panel .schedhead b').textContent !== wasHead
+      && t.due == null;
+    // and the deadline is offered here, because it is the other date
+    out.offersADeadline = !!document.querySelector('#panel [data-act="wantdeadline"]');
+    document.querySelector('#panel [data-act="wantdeadline"]').click(); await nap(250);
+    out.deadlineArrives = BUREAU.has(t, 'deadline')
+      && !!document.querySelector(`#panel [data-oset="${t.id}:dead"]`);
+    t.attrs = null; t.due = iso(0);
+    document.querySelector('#panel [data-act="panelclose"]').click();
+    S.undo=[]; S.redo=[]; BUREAU.render();
+    return out;
+  });
+
+  /* --- a colour of your own, which the style cannot move --------------- */
+  const ownColour = await page.evaluate(async () => {
+    const nap = ms => new Promise(r => setTimeout(r, ms));
+    const S = BUREAU.state, out = {};
+    const d = S.objects.find(o => o.id === 'd_ideas');
+    const wasStyle = S.look.style;
+    BUREAU.panel(d.id, 'look'); await nap(250);
+    const inp = document.querySelector(`#panel [data-ocolinput][data-id="${d.id}"]`);
+    out.thereIsAPicker = !!inp;
+    inp.value = '#7d2f5b';
+    inp.dispatchEvent(new Event('input', {bubbles:true}));
+    await nap(250);
+    out.writesALiteral = d.c === '#7d2f5b' && typeof d.c === 'string';
+    const paint = () => getComputedStyle(document.querySelector(`[data-drawer="${d.id}"]`)).backgroundColor;
+    const before = paint();
+    // the whole point: a slot follows the style, a literal does not
+    BUREAU.state.look.style = 'starry'; BUREAU.applyLook(); BUREAU.render(); await nap(250);
+    out.survivesAStyleChange = d.c === '#7d2f5b' && paint() === before;
+    S.look.style = wasStyle; BUREAU.applyLook(); BUREAU.render(); await nap(200);
+    // …and there is a way back to the style's own
+    BUREAU.panel(d.id, 'look'); await nap(250);
+    const back = document.querySelector(`#panel [data-ocolour=""][data-id="${d.id}"]`);
+    out.wayBackToTheStyle = !!back;
+    back.click(); await nap(200);
+    out.backIsTheTypes = d.c == null;
+    d.c = 12;
+    document.querySelector('#panel [data-act="panelclose"]') &&
+      document.querySelector('#panel [data-act="panelclose"]').click();
+    S.undo=[]; S.redo=[]; BUREAU.render();
+    return out;
+  });
+
+  /* --- the add box is a choice, and it goes by itself when short ------- */
+  const addBox = await page.evaluate(async () => {
+    const nap = ms => new Promise(r => setTimeout(r, ms));
+    const S = BUREAU.state, out = {};
+    const c = BUREAU.create('checklist', {parent:'root', title:'Room for one more'});
+    c[S.device] = Object.assign(BUREAU.free(4,6,'root'), {w:4,h:6});
+    BUREAU.render(); await nap(200);
+    const front = () => document.querySelector(`.grid .drawer[data-drawer="${c.id}"]`);
+    out.boxIsThere = !!front() && !!front().querySelector('.cladd');
+    // turned off: more room for what it holds
+    c.addbox = 'hide'; BUREAU.render(); await nap(200);
+    out.canBeTurnedOff = !front().querySelector('.cladd');
+    // …but inside it the box is always there, because that board has room
+    S.view='drawer'; S.drawerId=c.id; BUREAU.render(); await nap(220);
+    out.insideItAlways = !!document.querySelector(`[data-contadd="${c.id}"]`);
+    S.view='desk'; S.drawerId=null;
+    // and it goes by itself at two cells tall, without being asked
+    c.addbox = ''; c[S.device] = Object.assign({}, c[S.device], {h:2});
+    BUREAU.render(); await nap(200);
+    out.goesWhenShort = !!front() && !front().querySelector('.cladd');
+    c[S.device] = Object.assign({}, c[S.device], {h:6});
+    BUREAU.render(); await nap(200);
+    out.comesBackWhenTall = !!front().querySelector('.cladd');
+    BUREAU.delDrawer(c.id); S.undo=[]; S.redo=[]; BUREAU.render();
+    return out;
+  });
+
+  /* --- pinned to the board rather than laid flat on it ----------------- */
+  const pinboard = await page.evaluate(async () => {
+    const nap = ms => new Promise(r => setTimeout(r, ms));
+    const S = BUREAU.state, out = {};
+    S.view='desk'; S.drawerId=null; S.look.pinned=false; BUREAU.render(); await nap(200);
+    const tile = () => document.querySelector('.grid .drawer[data-drawer="d_in"]');
+    out.offByDefault = !document.querySelector('.grid.pinboard')
+      && getComputedStyle(tile()).transform === 'none';
+    const flatBox = tile().getBoundingClientRect();
+    S.look.pinned = true; BUREAU.render(); await nap(250);
+    out.turnsOn = !!document.querySelector('.grid.pinboard');
+    const t1 = getComputedStyle(tile()).transform;
+    out.tilts = t1 !== 'none' && /matrix/.test(t1);
+    // 1–3 degrees, either way. Any more and it reads as broken rather than pinned
+    const m = t1.match(/matrix\(([^,]+),\s*([^,]+)/);
+    const deg = Math.abs(Math.atan2(parseFloat(m[2]), parseFloat(m[1])) * 180 / Math.PI);
+    out.smallAngle = deg >= 0.9 && deg <= 3.1;
+    /* It must not change between renders. A random angle would jitter on every
+       rebuild, which is the one thing that would make this unbearable. */
+    BUREAU.render(); await nap(150);
+    out.neverMoves = getComputedStyle(tile()).transform === t1;
+    // …and different objects get different angles, or it is a skewed board
+    const all = [...document.querySelectorAll('.grid.pinboard > .drawer')]
+      .map(e => getComputedStyle(e).transform);
+    out.eachItsOwn = new Set(all).size > 3;
+    // the tile is inset rather than the grid re-spaced: the coordinate space
+    // must not move, or every drag lands in the wrong cell
+    const pinBox = tile().getBoundingClientRect();
+    out.sameCell = Math.abs(pinBox.left - flatBox.left) < 6
+      && Math.abs(pinBox.width - flatBox.width) < 14;
+    out.gridUnmoved = (() => {
+      const g = document.querySelector('#drawergrid');
+      return getComputedStyle(g).gap === 'normal' || parseFloat(getComputedStyle(g).gap||0) === 0;
+    })();
+    /* A border slot is `inset …, var(--shadow)`, so anything that writes the
+       whole box-shadow property here takes the moulding off every front. */
+    out.keepsItsMoulding = (() => {
+      const d = document.querySelector('.grid.pinboard > .drawer.bd-panel');
+      return !d || /inset/.test(getComputedStyle(d).boxShadow);
+    })();
+    S.look.pinned = false; BUREAU.render();
+    return out;
+  });
+
   console.log(JSON.stringify({
     errors: errs, manifestOk, swReady, survived, styleSurvived, slotColours,
     newObjectSeen, inlineEdit, sortDefaults, taskLook,
@@ -2737,7 +2995,8 @@ const CHROME = process.env.BUREAU_CHROME;
     picture, fronts, editor, noSelecting, selectionDropped,
     settingsHasDoors, settingsBack,
     wordsNotSource, deadlines, twoClauses, undoEverything, savesOnlyChanges,
-    paletteKeys, editorKeys, pickerLeads, rollupsEverywhere, soundAndVision, keyboardBoard
+    paletteKeys, editorKeys, pickerLeads, rollupsEverywhere, soundAndVision, keyboardBoard,
+    ranking, repeating, oneLock, scheduling, ownColour, addBox, pinboard
   }, null, 2));
   await browser.close();
 })();
