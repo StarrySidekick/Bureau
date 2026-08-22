@@ -32,6 +32,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      # The activities are CSVs in activinator/packs/, and js/activities.js is
+      # built from them. Building here rather than trusting the committed copy
+      # is what makes editing a CSV — on github.com from a phone, or by pushing
+      # a spreadsheet export over it — enough to change the live app. A CSV the
+      # build refuses fails the deploy instead of shipping a broken deck.
+      - name: Build the activity packs
+        working-directory: activinator
+        run: |
+          cp js/activities.js /tmp/committed.js
+          node scripts/build-activities.mjs
+          if ! cmp -s js/activities.js /tmp/committed.js; then
+            echo "::notice::js/activities.js was rebuilt from packs/ — the committed copy was out of date. Run 'node scripts/build-activities.mjs' and commit it."
+          fi
       - name: Assemble the site
         run: |
           mkdir -p _site
