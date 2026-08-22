@@ -22,8 +22,10 @@ activinator/         a second, separate app — see activinator/README.md
 
 `activinator/` is not part of Bureau. It is a card deck of things to go and do,
 started here for convenience and self-contained so it can be moved to its own
-repository with a single `git mv`. It shares no code, and Bureau's Pages
-workflow does not deploy it.
+repository. It shares no code with Bureau — but it is deployed beside it, at
+`/activinator/`, which puts it inside Bureau's service worker scope and its
+origin's cache store. `test/deploy.mjs` guards that seam; read
+`activinator/README.md` before touching either service worker.
 
 ## Run it
 

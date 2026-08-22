@@ -78,6 +78,17 @@ the cache bump, installed copies keep serving the old version. A **new** file mu
 it won't work offline. This is the easiest thing in the project to forget and
 the symptom — "my change didn't deploy" — points at the wrong culprit.
 
+**A second app is deployed beside Bureau, and it shares the origin.**
+`activinator/` goes out at `/activinator/` — inside this service worker's scope
+and inside the same cache store, because a cache store belongs to the origin and
+not to a scope. Two consequences, both of which were real: the usual
+`filter(k => k !== CACHE)` on activate means "delete every cache anybody else
+put here", so each app wiped the other's shell; and the navigation branch stores
+whatever it fetched as *Bureau's* `./index.html`, so one visit to the other app
+left Bureau opening into it offline. `sw.js` therefore reaps only `bureau-`
+caches and skips `/activinator/` entirely. `test/deploy.mjs` runs against the
+assembled site and guards both. Don't undo either without reading it.
+
 Two more things about that cache, both of which have wasted a session already:
 the shell is fetched with `cache:'reload'` so a bump can't refill the new cache
 from the browser's own stale copies (it did, once, landing a new stylesheet

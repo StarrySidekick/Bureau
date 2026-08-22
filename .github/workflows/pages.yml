@@ -1,6 +1,11 @@
-# Publishes web/ to GitHub Pages on every push to main.
+# Publishes web/ to GitHub Pages on every push to main, with activinator/
+# alongside it at /activinator/.
 # The app lives in web/, and Pages' branch mode only serves the repo root or
 # docs/ — docs/ is the written documentation, so we deploy an artifact instead.
+#
+# Activinator is a separate app that happens to live in this repository. It is
+# served from a path inside Bureau's service worker scope, which is why that
+# worker skips /activinator/ — see the guard in web/sw.js.
 name: Deploy to Pages
 
 on:
@@ -27,8 +32,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
+      - name: Assemble the site
+        run: |
+          mkdir -p _site
+          cp -r web/. _site/
+          cp -r activinator _site/activinator
+          rm -rf _site/activinator/test _site/activinator/scripts
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: web
+          path: _site
       - id: deployment
         uses: actions/deploy-pages@v4

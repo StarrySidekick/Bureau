@@ -1,7 +1,7 @@
 /* Bureau — service worker.
    Bump CACHE when you change anything in css/ or js/ (or index.html) and the
    next launch picks it up. New js/css files must also be added to SHELL. */
-const CACHE = 'bureau-v71';
+const CACHE = 'bureau-v72';
 const SHELL = [
   './',
   './index.html',
@@ -43,10 +43,17 @@ self.addEventListener('install', e => {
   );
 });
 
+// Only ever delete Bureau's own old caches. A cache store belongs to the whole
+// origin, not to a scope, so `k !== CACHE` reads as "everything anybody else
+// put here" — and with activinator/ served from this origin that is exactly
+// what it did: one visit there wiped Bureau's shell, and the next launch
+// rebuilt it from whatever that page happened to request.
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
+      .then(keys => Promise.all(keys
+        .filter(k => k.startsWith('bureau-') && k !== CACHE)
+        .map(k => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
@@ -56,6 +63,12 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET') return;
+
+  // A second app is served from a path inside this scope (activinator/), and
+  // this worker must keep its hands off it. The navigation branch below stores
+  // whatever it fetched as Bureau's own shell, so without this Bureau would
+  // open into the other app the next time it was launched offline.
+  if (new URL(req.url).pathname.includes('/activinator/')) return;
 
   if (req.mode === 'navigate') {
     e.respondWith(
