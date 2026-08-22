@@ -37,7 +37,7 @@ jobs:
           mkdir -p _site
           cp -r web/. _site/
           cp -r activinator _site/activinator
-          rm -rf _site/activinator/test _site/activinator/scripts
+          rm -rf _site/activinator/test _site/activinator/scripts _site/activinator/packs
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
