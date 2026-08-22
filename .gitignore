@@ -1,5 +1,5 @@
 node_modules/
-test/shots/
+**/test/shots/
 *.txt
 .DS_Store
 .claude/settings.local.json

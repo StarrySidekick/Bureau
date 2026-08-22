@@ -17,7 +17,13 @@ docs/NATIVE-PORT.md  the Swift route, if and when it's worth it
 web/                 the app — index.html is the entire thing
 test/smoke.mjs       headless browser check
 scripts/serve.sh     local server
+activinator/         a second, separate app — see activinator/README.md
 ```
+
+`activinator/` is not part of Bureau. It is a card deck of things to go and do,
+started here for convenience and self-contained so it can be moved to its own
+repository with a single `git mv`. It shares no code, and Bureau's Pages
+workflow does not deploy it.
 
 ## Run it
 
