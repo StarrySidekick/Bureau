@@ -361,17 +361,19 @@ same box. Ask `takesTyping(c)`, and go through `spawnInto()` rather than
 one has to be made where the container itself lives and collected back by its
 rule. That is the only reason the quick-add on a calendar day works.
 
-**A type can be born with things inside it.** `seed:[{kind,title}]` on a kind
-makes those children when the container is created, placed at the top of its
-board rather than left to `ensureBox()`. One level only — a seeded child's own
-seed is ignored, because two types seeding each other would fill the desk. This
-is why a project has no add-box bolted to its front: it is born holding a Text
-field, which is the type that already turns typing into tasks.
-
-**Answering is writing, not ticking.** The `answer` attribute puts a box on the
-front and `answered(o)` is "is there anything in it". Typing in it must not
-`render()` — the input is the thing being typed in, so wire.js toggles the
-`answered`/`unanswered` class in place and lets the next ordinary render agree.
+**A type can be born already arranged, and a layout is a saved board.**
+`layout` on a kind *names* one — `LAYOUTS` is `BUILTIN_LAYOUTS` merged with
+`S.layouts`, exactly the way `KINDS` is merged, so one you save and one Bureau
+ships are the same kind of thing. It travels both ways: `applyLayout(container,
+id)` pours one onto a board, `layoutFromBoard(cid, nm)` keeps a board as one.
+A layout records the **columns it was drawn at**, and `fitBox()` moves a box
+between two widths — `x` and `w` only, because `y` and `h` are rows and a row is
+a row on any board. Anything that will not fit falls back to `freeSpot()` and an
+item naming a type you deleted is skipped: a layout is a starting arrangement,
+not a promise about a board it has never seen. One level only — a laid-out
+child's own layout is not applied, or two types naming each other's would fill
+the desk forever. This replaced `seed`, which was the same idea one level deep
+with no coordinates. See decision 81.
 
 **A project reports; every other container lists or hides.** `face:'project'`
 is the one front that answers "where is this up to" — a bar, a count, what is

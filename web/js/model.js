@@ -139,7 +139,7 @@ const BUILTIN_KINDS = {
      for attributes. */
   film:    {face:'project', film:true, nm:'Film', ic:'clapper', c:9, key:'!', ds:'A film, and everything it is made of',
      attrs:['text','container','date','progress','media','relates'],
-     seed:[{kind:'field', title:'Add to this film…'}],
+     layout:'film',
      opens:'grid', size:[5,5], phoneSize:[5,5], body:'' },
   novel:   {face:'spine', narrative:true, nm:'Novel', ic:'book', c:11, key:'#', ds:'Chapters, bound in order',
      attrs:['text','container','relates'], opens:'book', read:'book', size:[3,9], phoneSize:[2,6], body:'' },
@@ -176,18 +176,92 @@ const BUILTIN_KINDS = {
      // born with a text field inside it rather than a box bolted to its front:
      // the type that makes tasks out of typing already exists, so a project
      // gets one put in it instead of growing a second one of its own
-     seed:[{kind:'field', title:'Add to this project…'}],
+     layout:'addbox',
      opens:'grid', size:[5,5], phoneSize:[4,4], body:'' },
   dream:   {face:'dream', nm:'Dream',   ic:'star',    c:10, key:'9', ds:'Far off, and probably daft',   size:[5,5], onclick:'read', attrs:['text','media'], body:'**Why it pulls at me —** ' },
   timeline:{face:'timeline', nm:'Timeline',ic:'clock',   c:5, key:'0', ds:'Things in the order they happened', attrs:['container'], opens:'timeline', size:[10,6], body:'' },
   appt:    {face:'sliver', nm:'Appointment', ic:'calendar',c:8, key:'V', ds:'Something at a time and place', size:[6,2], onclick:'read', attrs:['text','date','duration','location'], body:'' }
 };
+/* ============================================================
+   2b · LAYOUTS — a saved board
+   ============================================================
+   A **layout** is a board with objects already on it: a stated number of
+   columns, and a list of things at real coordinates. It is a value like any
+   other — nameable, saveable, shareable — and a type may name one, which is
+   what lets a type be born already arranged rather than born empty.
+
+   This replaces `seed`, which was the first draft of the same idea and shows
+   why it needed replacing: one level deep, `{kind, title}` only, and placed by
+   a loop rather than at coordinates. It could answer "a project comes with a
+   text field in it" and nothing larger.
+
+   The point of the shape is that a layout is **data**. Film is not new
+   machinery — it is a project that names a layout holding a screenplay, a
+   shoot calendar, a shot list and a gear checklist, arranged the way you
+   actually want to look at them. Ten types like that are ten layouts.
+
+   `cols` records the boards it was drawn on, so applying it to a board of a
+   different width is arithmetic rather than a guess. See decision 81. */
+const LAYOUT_FIELDS = ['kind','title','body','face','c','ic','opens','filter','tsize','onclick'];
+const BUILTIN_LAYOUTS = {
+  /* The way *in* to a container, and nothing else: the type that turns typing
+     into tasks, across the top. What `seed` used to do for a project, said as
+     a layout so it is the same mechanism as everything below it. */
+  addbox: {nm:'Add box', ds:'A text field across the top, and nothing else',
+    cols:{desk:24, phone:8},
+    items:[{kind:'field', title:'Add to this…', desk:{x:1,y:1,w:8,h:2}, phone:{x:1,y:1,w:8,h:2}}]},
+
+  /* A film, as a board rather than as a type with more code in it. */
+  film: {nm:'Film', ds:'A screenplay, a shoot calendar, a shot list and the gear',
+    cols:{desk:24, phone:8},
+    items:[
+      {kind:'field',    title:'Add to this film…', desk:{x:1,y:1,w:10,h:2},  phone:{x:1,y:1,w:8,h:2}},
+      {kind:'script',   title:'Screenplay',        desk:{x:1,y:3,w:5,h:6},   phone:{x:1,y:3,w:4,h:5}},
+      {kind:'calendar', title:'Shoot',             desk:{x:6,y:3,w:5,h:5},   phone:{x:5,y:3,w:4,h:4}},
+      {kind:'shotlist', title:'Shot list',         desk:{x:11,y:1,w:5,h:8},  phone:{x:1,y:8,w:4,h:6}},
+      {kind:'checklist',title:'Gear',              desk:{x:16,y:1,w:4,h:6},  phone:{x:5,y:8,w:4,h:6}}
+    ]},
+
+  /* A piece of writing, with the thinking kept beside it rather than in it. */
+  writing: {nm:'Writing desk', ds:'A draft, an outline, and somewhere for the offcuts',
+    cols:{desk:24, phone:8},
+    items:[
+      {kind:'outline', title:'Outline',   desk:{x:1,y:1,w:5,h:6},  phone:{x:1,y:1,w:4,h:5}},
+      {kind:'essay',   title:'Draft',     desk:{x:6,y:1,w:6,h:8},  phone:{x:5,y:1,w:4,h:5}},
+      {kind:'drawer',  title:'Offcuts',   desk:{x:12,y:1,w:3,h:3}, phone:{x:1,y:6,w:2,h:2}},
+      {kind:'quote',   title:'',          desk:{x:12,y:4,w:4,h:4}, phone:{x:3,y:6,w:6,h:4}}
+    ]}
+};
+// Layouts you save live in state alongside these; both are read through LAYOUTS.
+let LAYOUTS = Object.assign({}, BUILTIN_LAYOUTS);
+function refreshLayouts(){
+  LAYOUTS = Object.assign({}, BUILTIN_LAYOUTS, (S&&S.layouts)||{});
+}
+const L = id => LAYOUTS[id] || null;
+// The layout a type names, if it names one that still exists.
+const layoutFor = kind => L(K(kind).layout);
+const layoutIds = ()=> Object.keys(LAYOUTS);
+const isBuiltinLayout = id => !!BUILTIN_LAYOUTS[id];
+/* One box, moved from the board it was drawn on to the board it is going onto.
+   Only the horizontal changes: `y` and `h` are rows, and a row is a row on any
+   board, while `x` and `w` are a fraction of a width that has just changed.
+   Rounding half down, the same way setGridSize() does, so a layout drawn at 24
+   and applied at 8 comes back to where it started when applied at 24 again. */
+function fitBox(box, from, to){
+  if(!box || !from || from===to) return box ? {...box} : null;
+  const r = to/from, half = v => Math.ceil(v - 0.5);
+  const w = Math.max(1, Math.min(to, half(box.w*r)));
+  const x = Math.max(1, Math.min(half((box.x-1)*r) + 1, to-w+1));
+  return {x, y:Math.max(1, box.y), w, h:Math.max(1, box.h)};
+}
+
 // Kinds you invent live in state alongside these; both are read through KINDS.
 let KINDS = Object.assign({}, BUILTIN_KINDS);
 let KEYS = Object.keys(KINDS);
 function refreshKinds(){
   KINDS = Object.assign({}, BUILTIN_KINDS, (S&&S.kinds)||{});
   KEYS = Object.keys(KINDS);
+  refreshLayouts();
 }
 const K = k => KINDS[k] || KINDS.note;
 // An object may override its kind's attributes; otherwise it inherits them.
@@ -388,7 +462,7 @@ const sensedDevice = ()=> window.matchMedia('(min-width: 900px)').matches ? 'des
 function reset(){
   const s = seed();
   S = {
-    objects:s.objects, kinds:{}, desks:s.desks.slice(),
+    objects:s.objects, kinds:{}, layouts:{}, desks:s.desks.slice(),
     // one shelf, one list: anything at all may be kept on it, and it is the
     // same list wherever you are standing
     pins:s.pins.slice(),
@@ -1235,7 +1309,8 @@ const allTags = ()=>{ const m={}; S.objects.forEach(o=>(o.tags||[]).forEach(t=>m
 
 export { ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds, K,
   attrsOf, has, kindHas, T, dz, S, sensedDevice, reset, defaultLook, dev, byId,
-  deskTitle, rootObj, container, cfgOf, isContainer, isItem, FACES, FACEKEYS, faceOf, defaultFace, opensOf, mediaOf, READS, readOf, spreadOf, OPENINGS, openingOf, gathersOf, gatherKind, containers,
+  deskTitle, rootObj, container, cfgOf, isContainer, isItem, FACES, FACEKEYS, faceOf, defaultFace, opensOf, mediaOf, READS,
+  LAYOUTS, BUILTIN_LAYOUTS, LAYOUT_FIELDS, L, layoutFor, layoutIds, isBuiltinLayout, refreshLayouts, fitBox, readOf, spreadOf, OPENINGS, openingOf, gathersOf, gatherKind, containers,
   deskIds, deskList, isDesk, deskOf, deskHere,
   placeOf,
   spanOf, coversDay, lastDay, lateOn, isLate,

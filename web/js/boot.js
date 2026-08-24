@@ -2,10 +2,11 @@
    boot — load, wire, render, register the service worker
    ============================================================ */
 import { $ } from './util.js';
-import { S, KINDS, FACES, SORTS, childrenOf, container, relate, deskOf, has, lateOn, isLate,
+import { S, KINDS, FACES, SORTS, L, LAYOUTS, refreshKinds, childrenOf, container, relate, deskOf, has, lateOn, isLate,
   prioOf, repeatOf, repeatSaid, nextRepeat, boardLocked } from './model.js';
 import { pageRows, freeSpot } from './grid.js';
-import { create, setPin, togglePin, del, delMany, delDrawer, undo, redo, toggleDone, spawnNext, setGridSize } from './mutations.js';
+import { create, setPin, togglePin, del, delMany, delDrawer, undo, redo, toggleDone, spawnNext, setGridSize,
+  applyLayout, layoutFromBoard, delLayout } from './mutations.js';
 import { applyLook } from './look.js';
 import { render, sizeGrid, viewHTML, settingsPanel, pageAt, pageCount, goPage } from './views.js';
 import { overlayHTML, objectPanel, modalNewObject, schedulePanel } from './panels.js';
@@ -39,6 +40,8 @@ window.BUREAU = {
   get state(){ return S; }, render, create, save: writeNow, saveSoon: save,
   get K(){ return KINDS; },
   get faces(){ return FACES; },
+  // layouts: a saved board, and the two directions it travels
+  get layouts(){ return LAYOUTS; }, L, applyLayout, layoutFromBoard, delLayout, refreshKinds,
   paste: pasteObjects, relate, pin: togglePin, setPin, renderSheet,
   // small | extra | large — the three phone grids, for trying on
   setGrid: setGridSize,

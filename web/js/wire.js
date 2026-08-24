@@ -1,13 +1,14 @@
 import { $, $$, esc, ic, uid, D, ROOT } from './util.js';
 import { S, K, KINDS, KEYS, refreshKinds, ATTRS, USER_ATTRS, attrsOf, has,
-  FACES, MANUAL, byId, container, cfgOf, isContainer, isAncestor, relate, deskOf,
+  FACES, MANUAL, byId, container, cfgOf, isContainer, isAncestor, relate, deskOf, L,
   unrelate, sensedDevice, reset, T, dz, dev, calViewOf, RULE_MAX, acceptFor,
   boardLocked, repeatOf, repeats } from './model.js';
 import { gridOf, lay, boxOk, freeSpot, toPhoneSize } from './grid.js';
 import { applyLook, applyStyle, setLookVal, lookVal, STYLES, randomFront,
   setSlot, palNow, objColour, darkMode } from './look.js';
 import { toast, setGridSize, toggleDone, spawnNext, del, delMany, delDrawer, undo, redo, pushUndo,
-  pushSet, pushSets, setPin, togglePin, drawerForTag, create, quickAdd, spawnInto, randomThing } from './mutations.js';
+  pushSet, pushSets, setPin, togglePin, drawerForTag, create, quickAdd, spawnInto, randomThing,
+  applyLayout, layoutFromBoard, delLayout } from './mutations.js';
 import { spinTo, pending, placeAtPending, tileTap, turnPage, clearPages } from './tiles.js';
 import { render, renderSoon, sizeGrid, toggleSettings, settingsPanel, reveal, goPage, deskMap } from './views.js';
 import { openObj, openWriter, openRead, openViewer, closeSheet, renderSheet, words,
@@ -268,6 +269,8 @@ function act(name, el){
         onclick:dk.onclick||'read', body:base.body||'',
         read: dk.sort==='object' ? (dk.read||'page') : undefined,
         face:  dk.face || (dk.sort==='object' ? 'card' : 'front'),
+        // a type may be born already arranged; an object type has no board
+        layout: dk.sort==='object' ? undefined : (dk.layout || undefined),
         opens: dk.sort==='object' ? undefined : (base.opens||'grid'),
         // a container type says how its contents are ordered; manual is the
         // answer a drawer gives, and storing it as one keeps it a real choice
@@ -862,7 +865,13 @@ function wire(){
          what is inside are offered to a container alone. If the face it was
          wearing isn't on offer any more, it falls back. See decision 80. */
       const list = faceChoices({attrs: v==='object' ? [] : ['container']});
-      if(!list.some(([val])=>val===d.face)) d.face = v==='object' ? 'card' : 'front';
+      /* Two reasons the face moves when you change what the type *is*: it is no
+         longer on offer (a checklist face on something that holds nothing), or
+         it was only ever the other sort's default — say "Drawer" and you expect
+         a drawer front, not the card an object starts on. Anything you picked
+         deliberately is left alone. */
+      const was = v==='object' ? 'front' : 'card', now = v==='object' ? 'card' : 'front';
+      if(!list.some(([val])=>val===d.face) || d.face===was) d.face = now;
       const cur = d.face;
       $('#klook').innerHTML = list.map(([val,nm])=>
         `<button class="pchip${cur===val?' on':''}" data-klook="${val}">${nm}</button>`).join('');
@@ -870,6 +879,8 @@ function wire(){
       const gr=$('#kgatherrow'); if(gr) gr.style.display = v==='object' ? '' : 'none';
       // …and only a container has contents to put in an order
       const sr=$('#ksortrow'); if(sr) sr.style.display = v==='object' ? 'none' : '';
+      // …or a board for a layout to be poured onto
+      const lr=$('#klayoutrow'); if(lr) lr.style.display = v==='object' ? 'none' : '';
       renderPreview(); return; }
     const kg=t.closest('[data-kgather]');
     if(kg){ draft().gathers=kg.dataset.kgather; only(kg,'#kgather button'); return; }
@@ -916,6 +927,36 @@ function wire(){
 
     // a button object's button
 
+
+    /* ---- layouts: a board kept, and a board poured out --------------------
+       Saving reads this board as it stands; adding pours one onto it beside
+       what is already here. Both re-open the panel rather than closing it,
+       because you are very often doing the second straight after the first. */
+    const sl=t.closest('[data-savelayout]');
+    if(sl){
+      const cid=sl.dataset.savelayout, c=container(cid);
+      const nm=prompt('Name this layout', (c.title||'Untitled')+' layout');
+      if(nm===null) return;
+      const id=layoutFromBoard(cid, nm);
+      toast(`Kept as “${L(id).nm}”`);
+      refreshPanel(); return;
+    }
+    const al=t.closest('[data-applylayout]');
+    if(al){
+      const cid=al.dataset.applylayout, pick=$('#playpick');
+      const lid=pick && pick.value; if(!lid) return;
+      const n=applyLayout(byId(cid)||container(cid), lid);
+      toast(n ? `Added ${n} thing${n===1?'':'s'}` : 'Nothing to add');
+      render(); refreshPanel(); return;
+    }
+    const dl=t.closest('[data-dellayout]');
+    if(dl){
+      const lid=dl.dataset.dellayout, l=L(lid);
+      if(l && confirm(`Delete the layout “${l.nm}”? Any type wearing it starts empty instead.`)){
+        delLayout(lid); refreshPanel();
+      }
+      return;
+    }
 
     const lk=t.closest('[data-look]');
     if(lk){ setLookVal(lk.dataset.look, lk.dataset.val||null);
@@ -1074,6 +1115,7 @@ function wire(){
       S.look.dark=e.target.value; applyLook(); save(); render(); refreshPanel(); return;
     }
     if(e.target.dataset.ksort2!=null){ const d=draft(); if(d) d.sortBy=e.target.value; return; }
+    if(e.target.dataset.klayout!=null){ const d=draft(); if(d) d.layout=e.target.value; return; }
     if(e.target.id==='imgpicker' && e.target.files && e.target.files[0]){
       importFile(e.target.files[0]); e.target.value='';
     }

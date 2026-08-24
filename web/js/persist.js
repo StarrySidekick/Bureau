@@ -17,7 +17,7 @@ import { closePanel } from './panels.js';
    Bureau is this phone running" is exactly the question you ask when a change
    appears not to have deployed. Shown in Settings, so it can be read off the
    device rather than guessed at. */
-const APP_VERSION = '0.76';
+const APP_VERSION = '0.77';
 const KEY = 'bureau.v1';
 const install = {deferred:null};   // the browser's install prompt, when one is on offer
 let saveTimer = null;
@@ -36,7 +36,7 @@ function snapshot(){
   const desks=(S.desks||[ROOT]).filter(live);
   const pins=(S.pins||[]).filter(live);
   return {v:DATA_V, savedAt:new Date().toISOString(), desks, pins,
-          look:S.look, kinds:S.kinds, deskCfg:S.deskCfg, objects};
+          look:S.look, kinds:S.kinds, layouts:S.layouts, deskCfg:S.deskCfg, objects};
 }
 /* ---- writing, and only when there is something to write ----------------
    `save()` means "something changed": it marks the desk dirty and asks for a
@@ -222,7 +222,7 @@ function rescalePhone(d, from, cols){
    skips all of them, an old backup replays only what it is missing. These
    used to be ad-hoc per-load mutations inside adopt(); a new repair that
    should run once belongs here, as the next numbered step. */
-const DATA_V = 24;
+const DATA_V = 25;
 const MIGRATIONS = [
   // Drawers and objects were two arrays and a drawer could not live inside
   // anything. foldDrawers also replays the old dense flow to give v1 drawers
@@ -558,6 +558,38 @@ const MIGRATIONS = [
       d.objects = (d.objects||[]).filter(o=>o.kind!=='control');
       if(d.kinds){ delete d.kinds.item; delete d.kinds.control; }
     }},
+  /* `seed` becomes a layout.
+
+     A type could be born with things inside it — `seed:[{kind,title}]`, one
+     level deep, placed by a loop. A **layout** is the same idea said properly:
+     a stated number of columns and things at real coordinates, saveable and
+     nameable on its own, so a type can be born already *arranged* rather than
+     merely non-empty.
+
+     Every invented type that carried a seed gets a layout of its own holding
+     the same things, stacked down the left the way the seed loop placed them.
+     Nothing is lost and nothing has to be re-made by hand. See decision 81. */
+  {v:25, up(d){
+      d.layouts = d.layouts || {};
+      Object.entries(d.kinds||{}).forEach(([key,k])=>{
+        if(!Array.isArray(k.seed) || !k.seed.length){ delete k.seed; return; }
+        const id = 'lay_seed_'+key;
+        let y = 1;
+        d.layouts[id] = {
+          nm: (k.nm||key)+' layout',
+          ds: 'Made from what this type used to be born with',
+          cols: {desk:24, phone:8},
+          items: k.seed.filter(sp=>sp&&sp.kind).map(sp=>{
+            const it = {kind:sp.kind, title:sp.title||'',
+              desk:{x:1, y, w:8, h:2}, phone:{x:1, y, w:8, h:2}};
+            y += 2;
+            return it;
+          })
+        };
+        k.layout = id;
+        delete k.seed;
+      });
+    }},
 ];
 function migrate(d){
   let v = d.v||0;
@@ -571,6 +603,7 @@ function adopt(d){
   const fixedIds=dedupeIds(S.objects);
   if(fixedIds) setTimeout(()=>toast(`Repaired ${fixedIds} duplicated id${fixedIds>1?'s':''}`),400);
   S.kinds = d.kinds || {};
+  S.layouts = d.layouts || {};
   if(d.deskCfg) S.deskCfg = Object.assign({opens:'grid',locked:false,sort:null}, d.deskCfg);
   S.look = Object.assign(defaultLook(), d.look||{});
   // the grid size is a coordinate space, so it has to be in place before

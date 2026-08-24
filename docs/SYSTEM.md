@@ -45,7 +45,7 @@ meaning, containers are finite, and opening one is a small deliberate act.
 | **Desk** | The root container, id `root`. Never drawn as a tile. |
 | **Face** | How an object draws itself on its *parent's* board, and what that drawing displays. One vocabulary for containers and items alike — a type is very nearly defined by its face. The list-view band is derived from the face at one cell of height. |
 | **Opens as** (`opens` in code) | How a container arranges its children once you *open* it: `grid`, `list`, `scroll`, `book`, `calendar`, `timeline`. Called `layout` until decision 81. |
-| **Layout** | A saved board — a grid of a stated size with objects already placed on it. Saveable, shareable, and nameable by a type, so a type can be born already arranged. |
+| **Layout** | A saved board — a stated number of columns and objects at real coordinates. Lives in `S.layouts` beside `S.kinds`; a type *names* one (`layout:'film'`) and is born wearing it. Kept from a board with `layoutFromBoard()`, poured onto one with `applyLayout()`. |
 | **Read view** | How a non-container object opens to be read: `book`, `page` or `scroll`. |
 | **Rule** | One clause — field, comparison, value — that a magic drawer matches against. Up to three, ANDed. |
 | **Repeat rule** | How a thing comes round: how often, counted from its date or from the day you finish it, and when it stops. |

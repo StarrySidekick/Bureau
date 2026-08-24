@@ -2674,3 +2674,32 @@ types like that are ten layouts, not ten branches. That is the whole argument
 for attributes, applied one level up — and it is the point at which describing
 what you want and having it built for you becomes a small feature rather than a
 research project, because a layout is data.
+
+**Built, and it travels both ways.** `applyLayout()` pours one onto a board and
+`layoutFromBoard()` keeps a board as one, which is what makes a layout something
+you *make* rather than something that ships. Saved ones live in `S.layouts`
+beside `S.kinds`, read through `LAYOUTS` the same way types are read through
+`KINDS` — so a layout you invent and a layout Bureau ships are the same kind of
+thing, which is the test every other part of this app has had to pass.
+
+A type **names** a layout rather than containing one. Film is still a type; what
+makes it Film is a project's attributes plus `layout:'film'`. One layout can
+then be worn by several types, and shared without dragging a type along with it.
+
+Three things the shape has to get right:
+
+**A layout records the columns it was drawn at.** A board is a coordinate space,
+and 24 columns on a Mac is not 8 on a phone. `fitBox()` moves a box between two
+widths — only `x` and `w`, because `y` and `h` are rows and a row is a row on
+any board. Rounding half down, the same way `setGridSize()` does, so a layout
+drawn at 24 and applied at 8 comes back to where it started when applied at 24
+again.
+
+**It is a starting arrangement, not a promise.** Anything that will not fit
+falls back to `freeSpot()` rather than being dropped or drawn on top of
+something, and an item naming a type you have since deleted is skipped rather
+than throwing. A layout is advice about a board it has never seen.
+
+**One level only.** A laid-out child does not apply its own layout, for exactly
+the reason `seed` had the same rule: two types naming each other's layouts would
+fill the desk forever.

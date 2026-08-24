@@ -2977,6 +2977,121 @@ const CHROME = process.env.BUREAU_CHROME;
     return out;
   });
 
+
+  /* Decision 81: a layout is a saved board, and a type may name one — which is
+     what makes Film a type rather than a special case. Both directions, and
+     the rescale between two boards of different widths. */
+  const layouts = await page.evaluate(async () => {
+    const nap = ms => new Promise(r => setTimeout(r, ms));
+    const S = BUREAU.state, out = {};
+    const spread = list => { const bs=list.map(o=>o.desk).filter(Boolean);
+      for(let i=0;i<bs.length;i++) for(let j=i+1;j<bs.length;j++){ const a=bs[i],c=bs[j];
+        if(a.x<c.x+c.w && c.x<a.x+a.w && a.y<c.y+c.h && c.y<a.y+a.h) return false; } return true; };
+
+    // a type that names a layout is born already arranged
+    const f = BUREAU.create('film', {parent:'root', title:'Smoke film'});
+    BUREAU.render(); await nap(150);
+    const kids = S.objects.filter(o => o.parent === f.id);
+    out.bornArranged = kids.length === 5;
+    out.holdsTheRightThings = ['calendar','checklist','field','script','shotlist']
+      .every(k => kids.some(x => x.kind === k));
+    out.placedWhereItSays = kids.every(k => k.desk && k.desk.w);
+    out.nothingOverlaps = spread(kids);
+    // one level only, or two types naming each other would fill the desk
+    const sl = kids.find(k => k.kind === 'shotlist');
+    out.oneLevelOnly = !S.objects.some(o => o.parent === sl.id);
+
+    // …and a board you arranged can be kept as one
+    const lid = BUREAU.layoutFromBoard(f.id, 'Smoke rig');
+    out.keptTheBoard = !!BUREAU.L(lid) && BUREAU.L(lid).items.length === 5;
+    out.recordsItsColumns = BUREAU.L(lid).cols.desk === 24;
+    out.livesInState = !!(S.layouts && S.layouts[lid]);
+
+    // poured onto another board, it lands in the same places
+    const d = BUREAU.create('drawer', {parent:'root', title:'Smoke target'});
+    out.pouredIn = BUREAU.applyLayout(d, lid) === 5;
+    const got = S.objects.filter(o => o.parent === d.id);
+    const key = list => list.map(o => `${o.kind}@${o.desk.x},${o.desk.y}`).sort().join('|');
+    out.landsWhereItSat = key(got) === key(kids);
+
+    // the phone board is narrower, so the boxes are squeezed rather than dropped
+    out.phoneFits = got.every(o => o.phone && o.phone.x >= 1 && o.phone.x + o.phone.w - 1 <= 8);
+    const pb = got.map(o => o.phone);
+    out.phoneNoOverlap = (() => { for(let i=0;i<pb.length;i++) for(let j=i+1;j<pb.length;j++){
+      const a=pb[i], c=pb[j];
+      if(a.x<c.x+c.w && c.x<a.x+a.w && a.y<c.y+c.h && c.y<a.y+a.h) return false; } return true; })();
+
+    // it survives being written down
+    BUREAU.save();
+    const raw = JSON.parse(localStorage.getItem('bureau.v1'));
+    out.persists = !!(raw.layouts && raw.layouts[lid]);
+
+    // a built-in cannot be deleted; a saved one can, and comes off any type
+    out.builtinIsSafe = BUREAU.delLayout('film') === false && !!BUREAU.L('film');
+    out.savedCanGo = BUREAU.delLayout(lid) === true && !BUREAU.L(lid);
+
+    // a layout naming a type you deleted skips it rather than throwing
+    S.layouts = S.layouts || {};
+    S.layouts.lay_broken = {nm:'Broken', cols:{desk:24,phone:8},
+      items:[{kind:'nosuchtype', title:'Ghost', desk:{x:1,y:1,w:4,h:2}, phone:{x:1,y:1,w:4,h:2}},
+             {kind:'note', title:'Real', desk:{x:5,y:1,w:4,h:4}, phone:{x:5,y:1,w:4,h:4}}]};
+    BUREAU.refreshKinds();
+    const d2 = BUREAU.create('drawer', {parent:'root', title:'Smoke broken'});
+    out.skipsMissingTypes = BUREAU.applyLayout(d2, 'lay_broken') === 1;
+    delete S.layouts.lay_broken; BUREAU.refreshKinds();
+
+    BUREAU.render(); await nap(150);
+    return out;
+  });
+  await shot('29-layouts');
+
+
+  /* The type builder, after the face merge: one Look row for both sorts, the
+     five container-only faces offered to a container alone, and the face
+     following the default when you change what the type is — unless you picked
+     one deliberately, which is the whole difference. Plus the Born holding row,
+     which is what makes Film a type rather than a special case. */
+  const builderFaces = await page.evaluate(async () => {
+    const nap = ms => new Promise(r => setTimeout(r, ms));
+    const out = {};
+    BUREAU.pick(); await nap(250);
+    document.querySelector('[data-act="newkind"]').click(); await nap(400);
+    const on = () => { const e = document.querySelector('#klook .pchip.on'); return e ? e.textContent.trim() : ''; };
+    const sort = v => document.querySelector(`[data-ksort="${v}"]`).click();
+    const face = v => document.querySelector(`[data-klook="${v}"]`).click();
+    const offered = () => [...document.querySelectorAll('#klook .pchip')].map(e => e.textContent.trim());
+
+    out.startsOnCard = on() === 'Card';
+    // an object is not offered the five that draw what is inside
+    out.itemRefusedContFaces = !['Checklist','Project','Calendar','Timeline','Moodboard']
+      .some(n => offered().includes(n));
+    out.itemGetsItemFaces = offered().includes('Torn note') && offered().includes('Sliver');
+    sort('drawer'); await nap(200);
+    out.followsToFront = on() === 'Drawer front';
+    out.containerGetsContFaces = ['Checklist','Project','Calendar'].every(n => offered().includes(n));
+    // a container may still wear an item's face — Trip has always worn Ticket
+    out.containerKeepsItemFaces = offered().includes('Ticket') && offered().includes('Quotation');
+    sort('object'); await nap(200);
+    out.followsBackToCard = on() === 'Card';
+    // …but a face you chose on purpose is not moved out from under you
+    face('quote'); await nap(150); sort('drawer'); await nap(200);
+    out.deliberateFaceSurvives = on() === 'Quotation';
+    // …and a container-only face cannot follow you back to an object
+    face('checklist'); await nap(150); sort('object'); await nap(200);
+    out.contOnlyFaceDropped = on() === 'Card';
+
+    // born holding: containers only
+    sort('drawer'); await nap(200);
+    const row = document.querySelector('#klayoutrow');
+    out.bornHoldingShows = !!row && getComputedStyle(row).display !== 'none';
+    out.offersEveryLayout = [...row.querySelectorAll('option')].length === BUREAU.layouts
+      ? true : [...row.querySelectorAll('option')].length === Object.keys(BUREAU.layouts).length + 1;
+    sort('object'); await nap(200);
+    out.bornHoldingHiddenForItems = getComputedStyle(document.querySelector('#klayoutrow')).display === 'none';
+    document.querySelector('[data-act="closepanel"],[data-close]')?.click();
+    return out;
+  });
+
   console.log(JSON.stringify({
     errors: errs, manifestOk, swReady, survived, styleSurvived, slotColours,
     newObjectSeen, inlineEdit, sortDefaults, taskLook,
@@ -2996,7 +3111,7 @@ const CHROME = process.env.BUREAU_CHROME;
     settingsHasDoors, settingsBack,
     wordsNotSource, deadlines, twoClauses, undoEverything, savesOnlyChanges,
     paletteKeys, editorKeys, pickerLeads, rollupsEverywhere, soundAndVision, keyboardBoard,
-    ranking, repeating, oneLock, scheduling, ownColour, addBox, pinboard
+    ranking, repeating, oneLock, scheduling, ownColour, addBox, pinboard, layouts, builderFaces
   }, null, 2));
   await browser.close();
 })();

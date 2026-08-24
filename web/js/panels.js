@@ -3,6 +3,7 @@ import { S, K, KINDS, KEYS, T, ATTRS, USER_ATTRS, FIELDS, fieldOf, OPS, ROLLS,
   WHENS, whenISO, RULE_MAX, rulesOf,
   SORTS, MANUAL, sortOf, FACES, READS, OPENINGS, openingOf,
   faceOf, opensOf, readOf, byId, container, cfgOf, deskTitle,
+  L, layoutIds, isBuiltinLayout, layoutFor,
   rootObj, containers, isContainer, isAncestor, childrenOf, has, kindHas,
   attrsOf, allTags, placeOf, deskList, deskOf, isDesk, spanOf,
   dev, takesTyping, genKindOf, answered, isLate,
@@ -13,7 +14,7 @@ import { S, K, KINDS, KEYS, T, ATTRS, USER_ATTRS, FIELDS, fieldOf, OPS, ROLLS,
 import { GRID, lay, boxOk, freeSpot, sizeOfKind, toPhoneSize } from './grid.js';
 import { randomBoard, randomFront, hexOf, objColour, objSlots, palNow, OBJ0, borderSlots } from './look.js';
 import { CLICKS, clickOf, gridTile, pending } from './tiles.js';
-import { quickAdd, toast, drawerForTag } from './mutations.js';
+import { quickAdd, toast, drawerForTag, applyLayout, layoutFromBoard, delLayout } from './mutations.js';
 import { openObj, openWriter, openRead, renderSheet } from './sheet.js';
 import { render, settingsPanel, gridSizeField } from './views.js';
 import { openingFor } from './motion.js';
@@ -381,7 +382,8 @@ const OBJSECS = {
   fields: ['Fields',    'list',     'what its traits carry'],
   collect:['Collects',  'sparkle',  'what fills it, and what it totals'],
   tags:   ['Tags and links','tag',  'what it is filed under, what it points at'],
-  traits: ['Traits',    'gear',     'what it can do at all']
+  traits: ['Traits',    'gear',     'what it can do at all'],
+  layout: ['Layout',    'grid',     'this board, kept — and what to put on it']
 };
 function objectPanel(id, sec){
   const o = id===ROOT ? null : byId(id);
@@ -433,8 +435,9 @@ function objectPanelBody(id, sec){
   /* …and the doors. Which ones there are depends on what the thing is: only a
      container collects, and the desk has no traits of its own to tick. */
   if(!sec){
-    const doors = ['look','does','fields','collect','tags','traits'].filter(s=>
+    const doors = ['look','does','layout','fields','collect','tags','traits'].filter(s=>
         (s!=='collect' || (cont && !isRoot))
+     && (s!=='layout'  || cont)
      && (s!=='fields'  || !isRoot)
      && (s!=='tags'    || !isRoot)
      && (s!=='traits'  || !isRoot));
@@ -597,6 +600,43 @@ function objectPanelBody(id, sec){
       + psel(id,'genDir',[['down','Down'],['up','Up'],['left','Left'],['right','Right'],['random','Anywhere']], d.genDir||'down')));
   }
 
+  }
+
+  if(at('layout') && cont) {
+  /* ---- this board, kept ----
+     A layout is a saved board: what is on this one, where it is, and how many
+     columns it was drawn at. Two directions, and they are the whole feature —
+     keep this board as one, or pour one onto this board. A type names one to
+     be born already arranged; that choice is in the type builder, because it
+     is a fact about the type rather than about this drawer. */
+  const kids = childrenOf(container(id)).filter(x=>!x.done);
+  out.push(`<div class="mini" style="--k:var(--brass)">A layout is this board,
+    kept: what is on it and where it sits. Name one and any type can be born
+    wearing it.</div>`);
+  out.push(prow('Keep this board',
+    `<button class="pchip" data-savelayout="${id}"${kids.length?'':' disabled'}>${
+      ic('plus',11)} Save as a layout</button>`,
+    kids.length ? `${kids.length} thing${kids.length===1?'':'s'} on it`
+                : 'nothing on it yet'));
+  const ids = layoutIds();
+  if(ids.length){
+    out.push(prow('Put one on this board',
+      `<select class="psel" id="playpick">${
+        ids.map(v=>`<option value="${esc(v)}">${esc(L(v).nm||v)}</option>`).join('')}</select>
+       <button class="pchip" data-applylayout="${id}">${ic('plus',11)} Add</button>`,
+      'made where it says, beside what is already here'));
+    out.push(`<div class="rows">${ids.map(v=>{
+      const l=L(v), n=(l.items||[]).length, built=isBuiltinLayout(v);
+      const users=KEYS.filter(k=>K(k).layout===v).map(k=>K(k).nm);
+      return `<div class="row">
+        <span class="kindmark">${ic('grid',13)}</span>
+        <div class="body"><div class="title">${esc(l.nm||v)}</div>
+          <div class="snip">${n} thing${n===1?'':'s'}${
+            users.length?` · worn by ${esc(users.join(', '))}`:''}</div></div>
+        ${built?`<span class="rowgo" title="Built in">${ic('lock',12)}</span>`
+              :`<button class="pchip" data-dellayout="${esc(v)}" title="Delete this layout">${ic('trash',11)}</button>`}
+      </div>`;}).join('')}</div>`);
+  }
   }
 
   if(at('fields')) {
@@ -953,6 +993,7 @@ function modalNewKind(from, editKey){
            size, phoneSize, onclick:(base&&base.onclick)||'read',
            read:(base&&base.read)||'page',
            sort, face:(base&&base.face)||(sort==='object'?'card':'front'),
+           layout:(base&&base.layout)||'',
            sortBy:(base&&base.sort)||MANUAL,
            gathers:gathersNow, spawnBy:(base&&base.spawnBy)||'click'},
     body:`
@@ -1004,6 +1045,16 @@ function modalNewKind(from, editKey){
         chip(((base&&base.spawnBy)||'click')==='click','data-kspawn="click"','When pressed')+
         chip(((base&&base.spawnBy)||'click')==='type','data-kspawn="type"','As you type in it'),
         'kspawn', ` id="kspawnrow"${seedAttrs.includes('spawn')?'':' style="display:none"'}`)}
+      ${/* A type may be born already arranged. This is the row that makes Film
+           a type rather than a special case: a project that names a layout
+           holding a screenplay, a shoot calendar, a shot list and the gear.
+           Containers only — an item has no board to lay anything out on. */''}
+      ${row('Born holding','a saved board, poured in when you make one',
+        `<select class="psel" data-klayout>${
+          [['','Nothing — it starts empty'], ...layoutIds().map(v=>[v, L(v).nm||v])]
+          .map(([v,n])=>`<option value="${esc(v)}"${
+            ((base&&base.layout)||'')===v?' selected':''}>${esc(n)}</option>`).join('')}</select>`,
+        'klayout', ` id="klayoutrow"${sort==='object'?' style="display:none"':''}`)}
       ${/* a container's contents have a default order, like everything else a
            type decides. Manual is a real answer, and the one a drawer gives. */''}
       ${row('Contents sorted by','one of these can still be set per drawer',

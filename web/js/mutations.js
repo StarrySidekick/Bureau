@@ -1,6 +1,7 @@
 import { $, esc, uid, ROOT, D } from './util.js';
 import { S, byId, K, KINDS, KEYS, kindHas, has, isContainer, genKindOf, streak, T, dz, dev,
-  repeatOf, repeats, nextRepeat,
+  repeatOf, repeats, nextRepeat, container, childrenOf,
+  L, LAYOUT_FIELDS, refreshLayouts, isBuiltinLayout, fitBox,
   deskIds, deskHere, placeOf, cfgOf } from './model.js';
 import { GRID, PHONE_GRIDS, colsOf, gridOf, freeSpot, lay, boxOk, sizeOfKind } from './grid.js';
 import { randomFront, randomBoard, styleDefaults } from './look.js';
@@ -400,25 +401,85 @@ function create(kind, patch){
      new object into one filed it somewhere it could never appear, and it
      vanished from the drawer you made it in. */
   S.objects.push(o);
-  /* A type may be born with things already inside it. A project needs a way to
-     add to it, and the type that turns typing into tasks already exists — so it
-     gets one *put in it* rather than growing a second one of its own on its
-     front. One level only: a seeded child's own seed is ignored, because two
-     types that seed each other would fill the desk forever. */
-  if(!(patch&&patch.noSeed)) (k.seed||[]).forEach((sp,i)=>{
-    if(!KINDS[sp.kind]) return;
-    const child = create(sp.kind, {parent:o.id, title:sp.title||'', noSeed:true});
-    /* Placed rather than left to ensureBox: a seeded thing is the way *in*, so
-       it belongs at the top of the board and not wherever the ordering happens
-       to drop it. Both devices, because either could be opened first. */
-    ['desk','phone'].forEach(dv=>{
-      const [w,h]=sizeOfKind(sp.kind, dv, o.id);
-      child[dv]={x:1, y:1+i*h, w, h};
-    });
-  });
+  /* A type may be born already arranged. `layout` names a saved board — a
+     stated number of columns and things at real coordinates — so a project
+     comes with a way to add to it and a film comes with a screenplay, a shoot
+     calendar, a shot list and the gear, without either being a special case in
+     the code. One level only: a laid-out child's own layout is not applied,
+     because two types naming each other's layouts would fill the desk forever.
+     See decision 81. */
+  if(!(patch&&patch.noSeed) && kindHas(kind,'container')) applyLayout(o, K(kind).layout);
   delete o.noSeed;
   return o;
 }
+/* Put a layout's contents into a container. Every item is made where it says
+   it goes, on both devices, rescaled from the board the layout was drawn on to
+   the board it is landing on — `x` and `w` are a fraction of a width that may
+   have changed, `y` and `h` are rows and a row is a row anywhere.
+
+   Anything that will not fit falls back to freeSpot() rather than being dropped
+   or drawn on top of something: a layout is a good starting arrangement, not a
+   promise about a board it has never seen. Returns how many it made. */
+function applyLayout(container, layoutId, opts){
+  const lay = L(layoutId);
+  if(!container || !lay || !Array.isArray(lay.items)) return 0;
+  const from = lay.cols || {desk:24, phone:8};
+  let made = 0;
+  lay.items.forEach(it=>{
+    if(!it || !KINDS[it.kind]) return;     // a layout naming a type you deleted
+    const patch = {parent:container.id, noSeed:true};
+    LAYOUT_FIELDS.forEach(f=>{ if(f!=='kind' && it[f]!=null) patch[f]=it[f]; });
+    // a filter is copied, never shared: the drawer edits its own in place
+    if(patch.filter) patch.filter = JSON.parse(JSON.stringify(patch.filter));
+    const child = create(it.kind, patch);
+    ['desk','phone'].forEach(dv=>{
+      const cols = gridOf(dv, container.id).cols;
+      const [kw,kh] = sizeOfKind(it.kind, dv, container.id);
+      const want = fitBox(it[dv], (from[dv]||cols), cols) || {x:1,y:1,w:kw,h:kh};
+      child[dv] = boxOk(want, child.id, dv, container.id)
+        ? want : freeSpot(want.w, want.h, dv, container.id);
+    });
+    made++;
+  });
+  if(made && !(opts&&opts.quiet)) save();
+  return made;
+}
+
+/* The other direction: a board you arranged, kept as a layout. This is what
+   makes a layout a thing you *make* rather than a thing that ships — arrange a
+   project the way you want one, save it, and the next type you invent can name
+   it. Reads the boxes as they are on each device and records the columns they
+   were drawn at, so applying it anywhere else is arithmetic. */
+function layoutFromBoard(cid, nm, ds){
+  const kids = childrenOf(container(cid)).filter(o=>!o.done);
+  const id = 'lay_'+uid();
+  const keep = o => {
+    const it = {kind:o.kind};
+    LAYOUT_FIELDS.forEach(f=>{ if(f!=='kind' && o[f]!=null && o[f]!=='') it[f]=o[f]; });
+    ['desk','phone'].forEach(dv=>{ const b=o[dv]; if(b&&b.w) it[dv]={x:b.x,y:b.y,w:b.w,h:b.h}; });
+    return it;
+  };
+  S.layouts = S.layouts || {};
+  S.layouts[id] = {
+    nm: (nm||'').trim() || (container(cid).title||'Untitled')+' layout',
+    ds: (ds||'').trim() || undefined,
+    cols: {desk:gridOf('desk',cid).cols, phone:gridOf('phone',cid).cols},
+    items: kids.map(keep)
+  };
+  refreshLayouts(); save();
+  return id;
+}
+
+/* Deleting one. A built-in cannot be deleted; a saved one is taken off any type
+   that names it, or the type would be born pointing at nothing. */
+function delLayout(id){
+  if(isBuiltinLayout(id) || !(S.layouts&&S.layouts[id])) return false;
+  delete S.layouts[id];
+  Object.values(S.kinds||{}).forEach(k=>{ if(k.layout===id) delete k.layout; });
+  refreshLayouts(); save();
+  return true;
+}
+
 /* Two objects dropped on each other become the container their type gathers
    into — see gatherKind() in model.js, which decides whether they agree. The
    new container starts at the target's corner so the pile stays where you made
@@ -497,4 +558,5 @@ function randomThing(parentId){
 // the one door, so nothing outside has to know a habit ticks differently.
 export { toast, setGridSize, toggleDone, spawnNext, del, delMany, delDrawer, undo, redo,
   pushUndo, pushSet, pushSets, setPin, togglePin,
-  drawerForTag, create, gather, quickAdd, spawnInto, randomThing };
+  drawerForTag, create, gather, quickAdd, spawnInto, randomThing,
+  applyLayout, layoutFromBoard, delLayout };
