@@ -1231,7 +1231,7 @@ const CHROME = process.env.BUREAU_CHROME;
     const shapes = ['sliver','tab','ruled','chit','pill'];
     const made = shapes.map((sh, i) => {
       const o = BUREAU.create('task', { parent: 'root', title: 'Look ' + sh });
-      o.shape = sh; o.desk = BUREAU.free(7, 1);
+      o.face = sh; o.desk = BUREAU.free(7, 1);
       return o;
     });
     BUREAU.render(); await nap(200);
@@ -1248,7 +1248,7 @@ const CHROME = process.env.BUREAU_CHROME;
     const bigCheck = !!tick && tick.getBoundingClientRect().width >= rowBox * 2 - 1;
     BUREAU.delMany(made.map(o => o.id)); S.undo = []; BUREAU.render();
     return { noStripe, allDrawn, edgeStillWorks, bigCheck,
-             fourNewShapes: ['tab','ruled','chit','pill'].every(s => !!BUREAU.shapes[s]) };
+             fourNewShapes: ['tab','ruled','chit','pill'].every(s => !!BUREAU.faces[s]) };
   });
   await shot('18-task-shapes');
 

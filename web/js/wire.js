@@ -1,5 +1,5 @@
 import { $, $$, esc, ic, uid, D, ROOT } from './util.js';
-import { S, K, KINDS, KEYS, refreshKinds, ATTRS, USER_ATTRS, attrsOf, has, SHAPES,
+import { S, K, KINDS, KEYS, refreshKinds, ATTRS, USER_ATTRS, attrsOf, has,
   FACES, MANUAL, byId, container, cfgOf, isContainer, isAncestor, relate, deskOf,
   unrelate, sensedDevice, reset, T, dz, dev, calViewOf, RULE_MAX, acceptFor,
   boardLocked, repeatOf, repeats } from './model.js';
@@ -14,7 +14,7 @@ import { openObj, openWriter, openRead, openViewer, closeSheet, renderSheet, wor
   mdKey, copyObject } from './sheet.js';
 import { openPanel, closePanel, refreshPanel, panelKey, panelBack, draft, openMenu,
   modalNewObject, modalNewKind, modalMove, renderPreview,
-  drawerPanel, objectPanel,
+  drawerPanel, objectPanel, faceChoices,
   drawerFromSelection, openCtx, closeCtx, openCmd, closeCmd, cmdList, cmdMove, cmdAt, runCmd,
   schedulePanel, quickISO, SCHED } from './panels.js';
 import { onDown, onMove, onUp, onCancel, onTouchStart, onTouchMove, onTouchEnd,
@@ -267,8 +267,7 @@ function act(name, el){
         phoneSize:dk.phoneSize||null,
         onclick:dk.onclick||'read', body:base.body||'',
         read: dk.sort==='object' ? (dk.read||'page') : undefined,
-        shape: dk.sort==='object' ? (dk.shape||'card') : undefined,
-        face:  dk.sort==='object' ? undefined : (dk.face||'front'),
+        face:  dk.face || (dk.sort==='object' ? 'card' : 'front'),
         opens: dk.sort==='object' ? undefined : (base.opens||'grid'),
         // a container type says how its contents are ordered; manual is the
         // answer a drawer gives, and storing it as one keeps it a real choice
@@ -859,10 +858,12 @@ function wire(){
       if(v==='magic') d.attrs.push('magic');
       only(ks,'#ksort button');
       const rr=$('#kreadrow'); if(rr) rr.style.display = v==='object' ? '' : 'none';
-      // the Look row swaps between shapes and faces
-      const list = v==='object' ? Object.entries(SHAPES) : Object.entries(FACES);
-      const cur  = v==='object' ? d.shape : d.face;
-      $('#klookn').textContent = v==='object' ? 'shape' : 'face';
+      /* One vocabulary now — what changes is only that the five faces drawing
+         what is inside are offered to a container alone. If the face it was
+         wearing isn't on offer any more, it falls back. See decision 80. */
+      const list = faceChoices({attrs: v==='object' ? [] : ['container']});
+      if(!list.some(([val])=>val===d.face)) d.face = v==='object' ? 'card' : 'front';
+      const cur = d.face;
       $('#klook').innerHTML = list.map(([val,nm])=>
         `<button class="pchip${cur===val?' on':''}" data-klook="${val}">${nm}</button>`).join('');
       // only an object gathers — a container is filed into, never piled
@@ -874,7 +875,7 @@ function wire(){
     if(kg){ draft().gathers=kg.dataset.kgather; only(kg,'#kgather button'); return; }
     const kl=t.closest('[data-klook]');
     if(kl){ const d=draft();
-      if(d.sort==='object') d.shape=kl.dataset.klook; else d.face=kl.dataset.klook;
+      d.face=kl.dataset.klook;
       only(kl,'#klook button'); renderPreview(); return; }
     const kic=t.closest('[data-kic]');
     if(kic){ draft().ic=kic.dataset.kic; only(kic,'#kicon button'); renderPreview(); return; }

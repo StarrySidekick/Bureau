@@ -1,8 +1,8 @@
 import { $, $$, esc, ic, uid, clamp, D, ROOT } from './util.js';
 import { S, K, KINDS, KEYS, T, ATTRS, USER_ATTRS, FIELDS, fieldOf, OPS, ROLLS,
   WHENS, whenISO, RULE_MAX, rulesOf,
-  SORTS, MANUAL, sortOf, FACES, SHAPES, READS, OPENINGS, openingOf,
-  faceOf, opensOf, shapeOf, readOf, byId, container, cfgOf, deskTitle,
+  SORTS, MANUAL, sortOf, FACES, READS, OPENINGS, openingOf,
+  faceOf, opensOf, readOf, byId, container, cfgOf, deskTitle,
   rootObj, containers, isContainer, isAncestor, childrenOf, has, kindHas,
   attrsOf, allTags, placeOf, deskList, deskOf, isDesk, spanOf,
   dev, takesTyping, genKindOf, answered, isLate,
@@ -168,8 +168,6 @@ function openMenu(anchor, html){
 function pickGroups(){
   const g={Containers:[], Objects:[], Writing:[], Cooking:[], Film:[], Yours:[]};
   KEYS.forEach(k=>{
-    // 'control' isn't offered — Bureau's own buttons are seeded, not made
-    if(k==='control') return;
     const d=KINDS[k];
     if(S.kinds[k])                    g.Yours.push(k);
     else if(d.narrative)              g.Writing.push(k);
@@ -211,7 +209,7 @@ function kindTile(k){
 const HANDFUL = 5;
 function oftenUsed(homeId){
   const n={};
-  S.objects.forEach(o=>{ if(KINDS[o.kind] && o.kind!=='control') n[o.kind]=(n[o.kind]||0)+1; });
+  S.objects.forEach(o=>{ if(KINDS[o.kind]) n[o.kind]=(n[o.kind]||0)+1; });
   const home = homeId && byId(homeId);
   const first = home && isContainer(home) && takesTyping(home) ? genKindOf(home) : null;
   const rest = Object.keys(n).filter(k=>k!==first).sort((a,b)=>n[b]-n[a]);
@@ -287,6 +285,12 @@ const MARKS = ['note','check','list','bulb','feather','book','star','flag','cloc
 const deskName = id => id===ROOT ? deskTitle() : ((byId(id)||{}).title || 'Untitled');
 const OPENING_IS = o => openingOf(o)==='auto'
   ? 'right now, it '+OPENINGS[openingFor(o)].toLowerCase() : '';
+/* Which faces this object may wear. Everything in the list, less the five that
+   draw what is inside — an item has no children to list, report on, or lay
+   along an axis, and offering it "Calendar" is offering it an empty box. */
+const faceChoices = o => Object.entries(FACES)
+  .filter(([,f]) => !f.cont || isContainer(o))
+  .map(([v,f]) => [v, f.nm]);
 const psel=(id,key,list,cur)=>`<select class="psel" data-oset="${id}:${key}">${
   list.map(([v,n])=>`<option value="${esc(String(v))}"${String(cur==null?'':cur)===String(v)?' selected':''}>${esc(n)}</option>`).join('')}</select>`;
 const pfield=(id,key,cur,type,ph)=>`<input class="pfield"${type?` type="${type}"`:''}
@@ -411,7 +415,7 @@ function objectPanelBody(id, sec){
   const cal = cont && (view==='calendar' || faceOf(d)==='calendar');
   const img = isPicture(d);
   const spawns = has(d,'spawn') || clickOf(d)==='generate';
-  const objectKinds = KEYS.filter(k=>!kindHas(k,'container') && k!=='control')
+  const objectKinds = KEYS.filter(k=>!kindHas(k,'container'))
     .map(k=>[k, KINDS[k].nm]);
 
   const out=[];
@@ -444,13 +448,17 @@ function objectPanelBody(id, sec){
 
   if(at('look')) {
   /* ---- how it looks ---- */
-  /* A face is how a container draws itself on its parent's board, and the desk
+  /* A face is how an object draws itself on its parent's board, and the desk
      has no parent and no tile — asking it which front to wear is asking about
      a thing that does not exist. Everything below this line does apply to it:
-     a desk is a container, and what it is made of is its own question. */
-  if(!isRoot) out.push(cont
-    ? prow('Face', psel(id,'face', Object.entries(FACES), faceOf(d)), 'on its parent’s board')
-    : prow('Shape', psel(id,'shape', Object.entries(SHAPES), shapeOf(d))));
+     a desk is a container, and what it is made of is its own question.
+
+     **One row, not two.** It used to be Face for a container and Shape for
+     everything else, which made the answer depend on a checkbox rather than on
+     what you wanted the thing to look like. The five faces that draw what is
+     inside are the only ones a container gets to itself. See decision 80. */
+  if(!isRoot) out.push(prow('Face',
+    psel(id,'face', faceChoices(d), faceOf(d)), 'on its parent’s board'));
   if(!isRoot) out.push(prow(cont?'Front':'Colour', swatches(id,'c', d.c)));
   /* The mark, per object. A type carries one and every object of that type wore
      it, which is right until two drawers of the same type sit side by side and
@@ -785,7 +793,7 @@ function objectPanelBody(id, sec){
             esc(deskName(k.id))}</button>`).join('')}</div>`, true) : '');
     const body = (magic ? scope + `
       ${prow('Collects these types',
-        `<div class="pickgrid chips">${KEYS.filter(k=>k!=='control').map(k=>
+        `<div class="pickgrid chips">${KEYS.map(k=>
           `<button class="fchip${(fl.kinds||[]).includes(k)?' on':''}" data-fkind="${k}" data-id="${id}"
              style="--k:${hexOf(KINDS[k].c)}">${esc(KINDS[k].nm)}</button>`).join('')}</div>`)}
       ${clauses}
@@ -845,7 +853,7 @@ function sampleObject(spec){
     id:spec.id||'__sample', kind:spec.kind||'note',
     title:spec.title||'Untitled',
     body:spec.body!=null?spec.body:'A line or two of whatever it holds, so you can see how it sits.',
-    attrs:a, shape:spec.shape, face:spec.face,
+    attrs:a, face:spec.face,
     c:spec.c, parent:ROOT, tags:[], ord:0, created:T,
     /* Both layouts, or lay() reads the empty one on a phone-width window and
        ensureBox quietly fills it from the fallback kind's size instead — and
@@ -888,7 +896,7 @@ function sampleTile(o, maxW, maxH){
 }
 // One built-in or invented type, as an object of that type.
 const kindSample = k => { const d=K(k); return sampleObject({
-  id:'__k_'+k, kind:k, title:d.nm, attrs:d.attrs, shape:d.shape, face:d.face,
+  id:'__k_'+k, kind:k, title:d.nm, attrs:d.attrs, face:d.face,
   c:d.c, size:d.size, phoneSize:d.phoneSize, onclick:d.onclick, spawnBy:d.spawnBy}); };
 
 /* A live sample of the type being built, from the draft rather than a kind —
@@ -900,8 +908,7 @@ function previewObject(){
   return sampleObject({
     id:'__preview', kind:'note', title:(nameEl&&nameEl.value.trim())||'Untitled',
     attrs:d.attrs, c:d.c, size:d.size, phoneSize:d.phoneSize, onclick:d.onclick, spawnBy:d.spawnBy,
-    shape: cont?undefined:(d.shape||'card'),
-    face:  cont?(d.face||'front'):undefined
+    face: d.face || (cont?'front':'card')
   });
 }
 function renderPreview(){
@@ -945,7 +952,7 @@ function modalNewKind(from, editKey){
            fromId:from&&from.id, editKey:editKey||null,
            size, phoneSize, onclick:(base&&base.onclick)||'read',
            read:(base&&base.read)||'page',
-           sort, shape:(base&&base.shape)||'card', face:(base&&base.face)||'front',
+           sort, face:(base&&base.face)||(sort==='object'?'card':'front'),
            sortBy:(base&&base.sort)||MANUAL,
            gathers:gathersNow, spawnBy:(base&&base.spawnBy)||'click'},
     body:`
@@ -970,9 +977,9 @@ function modalNewKind(from, editKey){
         chip(sort==='drawer','data-ksort="drawer"','Drawer','Holds what you file in it')+
         chip(sort==='magic','data-ksort="magic"','Magic drawer','Collects by rule; holds nothing'),
         'ksort')}
-      ${row('Look','<span id="klookn">'+(sort==='object'?'shape':'face')+'</span>',
-        (sort==='object'?Object.entries(SHAPES):Object.entries(FACES)).map(([v,n])=>
-          chip(((base&&(sort==='object'?base.shape:base.face))||(sort==='object'?'card':'front'))===v,
+      ${row('Look','<span id="klookn">face</span>',
+        faceChoices({attrs: sort==='object'?[]:['container']}).map(([v,n])=>
+          chip(((base&&base.face)||(sort==='object'?'card':'front'))===v,
                `data-klook="${v}"`, n)).join(''), 'klook')}
       ${row('Traits','what it can do',
         plain.map(a=>chip(seedAttrs.includes(a),`data-ka="${a}"`,ATTRS[a].nm,ATTRS[a].ds)).join(''), 'kattrs')}
@@ -1245,6 +1252,6 @@ const closeCtx = ()=> $('#ctx').classList.remove('open');
 
 export { overlayHTML, openPanel, closePanel, refreshPanel, repositionPanel, panelKey, panelBack, draft,
   openMenu, modalNewObject, objectPanel, drawerPanel, modalNewKind,
-  renderPreview, modalMove, sampleObject, sampleTile, kindSample,
+  renderPreview, modalMove, sampleObject, sampleTile, kindSample, faceChoices,
   openCmd, closeCmd, cmdList, cmdMove, cmdAt, runCmd, drawerFromSelection, openCtx, closeCtx,
   schedulePanel, quickISO, SCHED };

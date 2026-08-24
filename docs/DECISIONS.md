@@ -2578,6 +2578,16 @@ one sort of media, and the media it is made of decides what it can do.
 This is a rename with a purpose, not tidying. "Non-container" is a definition by
 subtraction, and you cannot build a picker, a filter or a sentence out of one.
 
+**What an item is made of is inferred, not stored.** `mediaOf(o)` reads the
+attributes — a second field saying "this is a sound" could disagree with the
+attributes that make it one, and then two things are true at once.
+
+**And the type called Item is gone.** One word cannot mean both "every object
+that is not a container" and "a thing that matters in a story". The general
+sense is the one you say every day, so the type gave way: migration 24 turns its
+objects into notes carrying their old attributes written on, so nothing they
+held is lost and only the name changes.
+
 ---
 
 ### 80. One face, not a face and a shape
@@ -2609,6 +2619,27 @@ depending on one checkbox.
 
 `shape` survives as a stored key that a migration reads once, and nowhere else.
 The `sh-` CSS prefix stays: renaming three hundred selectors buys nothing.
+
+Two things fell out of doing it that were not visible from outside.
+
+**Four faces were unreachable.** `press`, `band`, `button` and `image` were
+chosen by an *attribute* rather than by the face property, so setting one on a
+type did nothing — and `button` was not in the face list at all. They are
+ordinary faces now, and `defaultFace()` still infers them from the attribute, so
+a type that ticks `spawn` and says nothing about its face gets the right one.
+That inference is also what fixed **Counter**, which had declared no face at all
+and drew as a plain card while the tally face it was written for sat unused.
+
+**Every branch has to ask which hook it hangs on.** A container is opened by
+`[data-drawer]` and an item is picked up by `[data-row]`, and once a container
+can wear any item's face, a branch that writes `data-row` by hand draws a
+perfect tile that cannot be opened. `tcls` and `hook` are computed once at the
+top of `drawTile()` so no branch can forget.
+
+**And `control` went with it.** Migration 13 had already deleted every control
+object, the picker and the palette both excluded it, and its tile branch had
+been switched off with `if(false)`. It survived only because nothing ever asked
+it anything. A type nothing can make is not a type.
 
 A face has a size it wants — a spine is tall and thin, a sliver is one cell
 high, a plaque is wide. That is advice, not law: the **default size stays a

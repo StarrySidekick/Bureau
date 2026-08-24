@@ -29,11 +29,11 @@ for (const style of ['victorian', 'starry']) {
     S.view = 'desk'; S.drawerId = null; S.deskCfg.opens = 'grid';
     shapes.forEach(([sh, label], i) => {
       const o = BUREAU.create('task', { parent: 'root', title: label });
-      o.shape = sh;
+      o.face = sh;
       o.desk = { x: 2, y: 2 + i * 3, w: 11, h: 1 };
       // the same shape narrow, since a task is often half a desk wide
       const n = BUREAU.create('task', { parent: 'root', title: 'Water the fig' });
-      n.shape = sh; n.c = 6 + i;
+      n.face = sh; n.c = 6 + i;
       n.desk = { x: 15, y: 2 + i * 3, w: 6, h: 1 };
     });
     BUREAU.render();

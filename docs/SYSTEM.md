@@ -38,7 +38,7 @@ meaning, containers are finite, and opening one is a small deliberate act.
 | **Container** | An object carrying `container`. It holds other objects, including other containers. |
 | **Item** | An object that is not a container. Made of one sort of media — text, image, audio or video — and that is what decides what it can do. |
 | **Attribute** | One capability — a checkbox, a date, the ability to contain. Attributes decide what an object can do and how it draws. |
-| **Type** (`kind` in code) | A named preset of attributes, plus a colour, an icon, a key, a starting size and a body template. Forty built in; you can invent more at runtime. |
+| **Type** (`kind` in code) | A named preset of attributes, plus a face, a colour, an icon, a key, a starting size and a body template. Forty-four built in; you can invent more at runtime. |
 | **Field** | The named, typed value some attributes carry (`due`, `price`, `prio`). Only fields can be sorted, filtered or totalled. |
 | **Drawer** | An object whose type carries `container`. It holds other objects, including other drawers. |
 | **Magic drawer** | A drawer that carries `magic` as well. It holds nothing and shows whatever matches its rule. |
@@ -96,7 +96,7 @@ One array, `S.objects`, holds drawers and objects alike.
   phone: {x,y,w,h},
   ord,                       // where it sits in a list layout instead
   created, edited,
-  shape, face, read, onclick,   // per-object overrides of the type's defaults
+  face, read, onclick,          // per-object overrides of the type's defaults
   opening,                      // and how it moves when it is opened
   ic, tsize,                    // its own mark, and how big the words on it are
 
@@ -155,16 +155,18 @@ casually everywhere. Everything else is yours to combine, including combinations
 designed for — a streak with milestones reads fine, and prevention would mean a
 compatibility matrix.
 
-The `control` type still declares an attribute of that name, left over from when
-Bureau's own buttons sat on the board. Nothing reads it, migration 7 strips it,
-and the type is hidden from the picker.
+There is no longer a `control` type or a `control` attribute. Migration 13 had
+already deleted every control object and the picker excluded it, so decision 80
+took the last of it out: a type nothing can make is not a type.
 
 ## 6. Types
 
-Forty built in, grouped in the picker by what they are for. Each carries an
-icon, a colour, a single-letter key, a description, a starting size, a body
-template, an attribute set, a default shape or face, and — for an object — how
-it opens to be read.
+Forty-four built in, grouped in the picker by what they are for. Each carries a
+**face**, an icon, a colour, a single-letter key, a description, a starting
+size, a body template, an attribute set, and — for an item — how it opens to be
+read. A type is very nearly *defined* by its face: a checklist is a container
+whose face lists what is inside and lets you tick it, and a novel is text whose
+face is a spine.
 
 | Group | Types |
 | --- | --- |
@@ -641,7 +643,7 @@ or shown on a surface and drawn as a face on the board. See decision 71.
 | --- | --- |
 | Attributes, fields, types, state, containment, rules, rollups, relations | `model.js` |
 | Coordinate space, collision, placement | `grid.js` |
-| Faces, shapes, tiles, what a click does | `tiles.js` |
+| Faces, tiles, what a click does | `tiles.js` |
 | The desk, a drawer, the bar, calendar and timeline layouts | `views.js` |
 | The detail sheet | `sheet.js` |
 | Every menu, form, popup and the palette | `panels.js` |

@@ -17,7 +17,7 @@ import { closePanel } from './panels.js';
    Bureau is this phone running" is exactly the question you ask when a change
    appears not to have deployed. Shown in Settings, so it can be read off the
    device rather than guessed at. */
-const APP_VERSION = '0.75';
+const APP_VERSION = '0.76';
 const KEY = 'bureau.v1';
 const install = {deferred:null};   // the browser's install prompt, when one is on offer
 let saveTimer = null;
@@ -222,7 +222,7 @@ function rescalePhone(d, from, cols){
    skips all of them, an old backup replays only what it is missing. These
    used to be ad-hoc per-load mutations inside adopt(); a new repair that
    should run once belongs here, as the next numbered step. */
-const DATA_V = 23;
+const DATA_V = 24;
 const MIGRATIONS = [
   // Drawers and objects were two arrays and a drawer could not live inside
   // anything. foldDrawers also replays the old dense flow to give v1 drawers
@@ -521,6 +521,43 @@ const MIGRATIONS = [
       Object.values(d.kinds||{}).forEach(move);
       move(d.deskCfg);
     }},
+  /* One face, and two types retired.
+
+     `shape` and `face` were one mechanism split by whether the thing contained
+     anything, so they fold into `face` — objects and invented types alike. A
+     container-only face on an item is dropped rather than carried, because
+     faceOf() would refuse it anyway and a stored value nothing reads is a lie
+     waiting to be found.
+
+     **Item** is gone as a type: "item" now names every object that isn't a
+     container, and one word cannot mean both. Its objects become notes carrying
+     their old attributes outright, so a thing you wrote keeps its pictures and
+     its relations and only stops being called by a word that was taken.
+
+     **Control** is gone too, and was already: migration 13 deleted every control
+     object, the picker and the palette both excluded it, and its tile branch had
+     been switched off. A type nothing can make is not a type. See decisions
+     79 and 80. */
+  {v:24, up(d){
+      const CONTONLY = ['checklist','project','calendar','timeline','moodboard'];
+      const holds = o => (o.attrs||[]).includes('container');
+      const fold = o => {
+        if(o && o.shape != null){ if(o.face == null) o.face = o.shape; delete o.shape; }
+        if(o && o.face && CONTONLY.includes(o.face) && !holds(o)) delete o.face;
+      };
+      (d.objects||[]).forEach(o=>{
+        if(o.kind==='item'){
+          o.kind='note';
+          // its own attributes, written on, so nothing it held is lost
+          if(!Array.isArray(o.attrs)) o.attrs=['text','media','relates'];
+          if(o.face==null && o.shape==null) o.face='card';
+        }
+        fold(o);
+      });
+      Object.values(d.kinds||{}).forEach(fold);
+      d.objects = (d.objects||[]).filter(o=>o.kind!=='control');
+      if(d.kinds){ delete d.kinds.item; delete d.kinds.control; }
+    }},
 ];
 function migrate(d){
   let v = d.v||0;
@@ -766,8 +803,7 @@ function addSpec(spec, parentId, tally){
   if(spec.tags) o.tags=[].concat(spec.tags).map(String);
   SPEC_FIELDS.forEach(f=>{ if(spec[f]!=null) o[f]=spec[f]; });
   if(spec.colour||spec.color) o.c=spec.colour||spec.color;
-  if(spec.shape) o.shape=spec.shape;
-  if(spec.face)  o.face=spec.face;
+  if(spec.face||spec.shape) o.face=spec.face||spec.shape;
   if(spec.opens||spec.layout) o.opens=spec.opens||spec.layout;
   if(spec.onclick) o.onclick=spec.onclick;
   const [dw,dh]=sizeOfKind(kind, dev());

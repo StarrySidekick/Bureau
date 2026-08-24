@@ -729,7 +729,7 @@ real `x` lands in a column the preview grid hasn't got — which draws an empty
 floor and looks like the stage is broken. See decision 51.
 
 **A mark and a text size are per object, then per type.** `iconOf(o)` and
-`textSizeOf(o)`, next to `shapeOf` and `colour`. Never read `K(o.kind).ic` to
+`textSizeOf(o)`, next to `faceOf` and `colour`. Never read `K(o.kind).ic` to
 draw an object — that is the same mistake as reading `o.c`. Text size is a
 *multiplier* written into the tile's style as `--tscale` (folded into `place`,
 so every branch of `drawTile()` carries it), and the stylesheet restates each
@@ -782,7 +782,7 @@ object is full width — a new thing always lands below the fold. It looked
 exactly like nothing had happened. Don't fix it by shuffling the board: things
 you arranged don't move.
 
-**A shape with a torn edge still has a border, and it follows the tear.** A
+**A face with a torn edge still has a border, and it follows the tear.** A
 `border` is drawn on the box, so `clip-path` slices it off at the notches and
 leaves it hanging at the corners — which is why `sh-note` had `border:0`. The
 outline comes from four zero-blur `drop-shadow`s instead, one per direction:
@@ -791,13 +791,35 @@ traces whatever the clip cut. Same filter chain as the real shadows, which is
 also what stops a clipped tile from floating with none.
 
 **No type draws a coloured left stripe.** A stripe down the left is what
-`priority` means. `edge` is the opt-in, on any object; four shapes (`tab`,
+`priority` means. `edge` is the opt-in, on any object; four faces (`tab`,
 `ruled`, `chit`, `pill`) are the answers a task has instead. `docs/BORDERS.md`
 is the inventory of every edge in the app and which ones still belong to the
-border system rather than to a shape.
+border system rather than to a face.
 
-**Never branch on a type's name.** Appearance goes through `shapeOf()`, faces
-through `faceOf()`, behaviour through `has()`. The only remaining `kind===`
+**An object is a container or an item, and a face is one vocabulary for both.**
+`isContainer(o)` and `isItem(o)`; `faceOf(o)` answers for either. There is no
+`shapeOf` and no `SHAPES` any more — `face` and `shape` were one mechanism split
+by a question nobody asks, and Trip proved it by being a container wearing
+`ticket` years before the merge. `FACES` is the thirty-two, and the five that
+draw what is inside (`checklist`, `project`, `calendar`, `timeline`,
+`moodboard`) carry `cont:true`: `faceOf()` refuses them to an item rather than
+drawing an empty box, and `faceChoices()` doesn't offer them. A type that says
+nothing gets `defaultFace(o)`, which asks what it *is* — a container is a front,
+something holding a file is its picture or its player, something that makes
+objects is the press or the box you type into. See decision 80.
+
+**Every branch of `drawTile()` uses `tcls` and `hook`, never `otile` and
+`data-row` written out.** A container may wear any item's face, and wire.js
+opens by `[data-drawer]` — so a drawer wearing `quote` that hardcoded `data-row`
+draws perfectly and cannot be opened. Both are computed once at the top.
+
+**What an item is made of is inferred, not stored.** `mediaOf(o)` → `text`,
+`image`, `audio`, `video`, or null for the machinery. A stored field could
+disagree with the attributes that make it what it is, and then two things are
+true at once. See decision 79.
+
+**Never branch on a type's name.** Appearance goes through `faceOf()`,
+behaviour through `has()`. The only remaining `kind===`
 comparisons are inside migrations, where naming an old type is the whole point.
  ("Kind" in the code, "type" in the interface — `KINDS` stayed put so the diff stayed readable.) Ask `has(o,'check')`, not `o.kind==='task'`.
 Kinds are named presets of attributes, users can invent them at runtime, and a
@@ -988,7 +1010,7 @@ side of the build. Don't put `save()` back in render(). See decision 64.
   is the single source of truth. An ordinary drawer shows only objects whose
   `parent` is it; a magic drawer ignores `parent` and matches its rule. An object
   lives in exactly one drawer — see decision 17, which overturns decision 1.
-- **`container`, `magic` and `control` are structural, not user attributes.**
+- **`container` and `magic` are structural, not user attributes.**
   They are in `STRUCTURAL` and excluded from `USER_ATTRS`, which is what stops a
   note being turned into a drawer. Attribute pickers must use `USER_ATTRS`.
 - **Containment is recursive, so cycles are possible.** Anything that reparents

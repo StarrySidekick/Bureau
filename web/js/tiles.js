@@ -1,8 +1,8 @@
 import { esc, ic, clamp, D, md, plain, oneline } from './util.js';
-import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, childrenOf, container,
-  rollup, streak, goalPct, projectStat, tlSpan, dev, spawnByOf, genKindOf, takesTyping, showsAddBox,
+import { S, K, T, byId, has, isContainer, faceOf, readOf, spreadOf, childrenOf, container,
+  rollup, streak, goalPct, projectStat, tlSpan, dev, genKindOf, takesTyping, showsAddBox,
   knobSizeOf, answered, sortOf, spanOf, coversDay, lateOn, isLate, iconOf, textSizeOf,
-  isPicture, isMedia, isPlayable, mediaTypeOf, boardLocked, prioOf, repeatSaid,
+  isMedia, mediaOf, boardLocked, prioOf, repeatSaid,
   calViewOf, weekStartOf, calCols } from './model.js';
 import { CELL, COLW, gridOf, lay, overlaps, boxOk, freeSpot, gridRows, sizeOfKind, ensureBox,
   pageRows } from './grid.js';
@@ -311,6 +311,18 @@ function gridTile(o, arr, parentId){
 }
 function drawTile(o, arr, box){
   const cont=isContainer(o);
+  /* One question, asked once. Every branch below dispatches on this rather than
+     on whether the thing contains anything — a container may wear an item's
+     face (Trip has always worn `ticket`) and the five that need children are
+     refused to an item by faceOf() itself. See decision 80. */
+  const face=faceOf(o);
+  /* Which of the two hooks this tile hangs on. A container is *opened* — wire.js
+     goes by [data-drawer] — and an item is picked up by [data-row]. Since a
+     container may now wear any item's face, every branch below has to ask
+     rather than assume, or a drawer wearing `quote` draws correctly and cannot
+     be opened. Computed once so no branch can forget. */
+  const tcls = cont?'dtile':'otile';
+  const hook = cont?`data-drawer="${o.id}"`:`data-row="${o.id}"`;
   const colour = objColour(o);
   const handles = arr ? HANDLES.map(h=>`<i class="rz ${h}" data-rz="${h}"></i>`).join('') : '';
   const chips='';   // no size chip, no delete cross — the menu does both
@@ -340,7 +352,7 @@ function drawTile(o, arr, box){
     const mark = cont && has(o,'magic') ? 'sparkle' : iconOf(o);
     return `<button class="drawer ${cont?`dtile bd-${o.border||'panel'}`:'otile'} minitile${sel}${
         cont&&has(o,'magic')?' magicdrawer':''}"
-      ${cont?`data-drawer="${o.id}"`:`data-row="${o.id}"`} title="${esc(o.title||'Untitled')}"
+      ${hook} title="${esc(o.title||'Untitled')}"
       style="--c:${colour};${place}">
       <span class="minimark">${ic(mark,17)}</span>
       ${has(o,'check')&&o.done?`<span class="minidone">${ic('check',11)}</span>`:''}
@@ -348,14 +360,6 @@ function drawTile(o, arr, box){
     </button>`;
   }
 
-  // A control is a Bureau button that lives on the desk like anything else.
-  if(false){
-    return `<button class="drawer ctile${sel}" data-ctl="${esc(o.ctl||'')}" data-id="${o.id}" style="--c:${colour};${place}">
-      ${chips}<span class="cico">${ic(K(o.kind).ic==='sliders'&&o.ic?o.ic:(o.ic||'sliders'),20)}</span>
-      <span class="clabel">${esc(o.title||'')}</span>
-      ${handles}
-    </button>`;
-  }
 
   /* A story is a book seen spine-on, and it is also a container — the scenes
      are inside it. Every other container face draws what it holds; a spine
@@ -368,14 +372,15 @@ function drawTile(o, arr, box){
      runs up the tile, and it is a book on a shelf rather than a drawer that has
      run out of room. One cell square is still the mark and nothing else, above:
      at 40px a spine has no length to set a name along either. */
-  if(cont && (faceOf(o)==='spine' || box.w<=1)){
-    return `<button class="drawer dtile spinetile bd-none${sel}${
-        has(o,'magic')?' magicspine':''}" data-drawer="${o.id}" style="--c:${colour};${place}">
+  if(face==='spine' || (cont && box.w<=1)){
+    return `<button class="drawer ${tcls} spinetile bd-none${sel}${
+        cont&&has(o,'magic')?' magicspine':''}" ${
+        cont?`data-drawer="${o.id}"`:`data-row="${o.id}"`} style="--c:${colour};${place}">
       <span class="spinetop"></span>
       <span class="spinetitle">${esc(o.title||'Untitled')}</span>
       ${/* A spine has no width for a chip, so what it totals is set at the foot
            the way a volume number is on a real one. */''}
-      <span class="spinefoot">${rollup(o)?`<u class="spineroll">${esc(rollup(o))}</u>`:''}</span>
+      <span class="spinefoot">${cont&&rollup(o)?`<u class="spineroll">${esc(rollup(o))}</u>`:''}</span>
       ${handles}
     </button>`;
   }
@@ -388,7 +393,7 @@ function drawTile(o, arr, box){
      inside a button is invalid and unfocusable — the same reason the text field
      tile is a div. Clicking it still opens it: wire.js goes by [data-drawer]
      and the .drawer class, not by the tag. */
-  if(cont && faceOf(o)==='checklist'){
+  if(face==='checklist'){
     const items=childrenOf(o);
     /* Whether the *box* is drawn, which is not the same question as whether the
        container takes typing: it is off when you turned it off, and off when the
@@ -424,7 +429,7 @@ function drawTile(o, arr, box){
      All of it is read off one walk of everything underneath, so a project made
      of checklists counts the ticks inside them rather than counting four
      checklists as four undone things. */
-  if(cont && faceOf(o)==='project'){
+  if(face==='project'){
     const st=projectStat(o);
     const late = st.pct<100 && isLate(o);
     return `<${takesTyping(o)?'div':'button'} class="drawer dtile projtile bd-${o.border||'panel'}${sel}"
@@ -454,9 +459,12 @@ function drawTile(o, arr, box){
     </${takesTyping(o)?'div':'button'}>`;
   }
 
-  /* A trip is a ticket: a stub torn off down the right, and where to. */
-  if(cont && shapeOf(o)==='ticket'){
-    return `<button class="drawer dtile triptile bd-${o.border||'panel'}${sel}" data-drawer="${o.id}" style="--c:${colour};${place}">
+  /* A trip is a ticket: a stub torn off down the right, and where to. The first
+     face a container ever wore out of the item vocabulary, back when that was
+     supposed to be impossible — which is half of why decision 80 exists. */
+  if(face==='ticket'){
+    return `<button class="drawer ${tcls} triptile bd-${o.border||'panel'}${sel}" ${
+      cont?`data-drawer="${o.id}"`:`data-row="${o.id}"`} style="--c:${colour};${place}">
       <div class="tkmain">
         <span class="tklabel">${o.due?esc(dateSaid(o)):'Some day'}${rollTag(o)}</span>
         <span class="dname">${esc(o.title||'Untitled')}</span>
@@ -473,7 +481,7 @@ function drawTile(o, arr, box){
      the ends are, so a drop anywhere along it is arithmetic. Labels alternate
      above and below the rule, because on a true axis a busy fortnight puts
      three of them in the same inch. */
-  if(cont && faceOf(o)==='timeline'){
+  if(face==='timeline'){
     const sp=tlSpan(o), lo=D.parse(sp.min);
     const pc = iso => ((D.parse(iso)-lo)/864e5)/Math.max(1,sp.days)*100;
     const kids=childrenOf(o).filter(x=>x.due||x.created)
@@ -500,7 +508,7 @@ function drawTile(o, arr, box){
   }
 
   /* A moodboard shows its pictures on the front, tiled. */
-  if(cont && faceOf(o)==='moodboard'){
+  if(face==='moodboard'){
     const pics=childrenOf(o).filter(x=>x.media&&x.media.src).slice(0,12);
     return `<button class="drawer dtile mbtile bd-${o.border||'panel'}${sel}" data-drawer="${o.id}" style="--c:${colour};${place}">
       <div class="mbwall">${pics.map(x=>`<i style="background-image:url('${esc(x.media.src)}')"></i>`).join('')
@@ -513,7 +521,7 @@ function drawTile(o, arr, box){
   /* A calendar is a container drawing what it collects on the day each thing
      falls. It is usually a magic drawer, so the sparkle belongs on it like any
      other — the days are what it shows, collecting is how it filled them. */
-  if(cont && faceOf(o)==='calendar'){
+  if(face==='calendar'){
     const at=D.parse(o.month||T)||D.today(), view=calViewOf(o);
     const cap = view==='day' ? at.toLocaleDateString(undefined,{weekday:'long',day:'numeric'})
       : at.toLocaleDateString(undefined, view==='week'?{month:'short',day:'numeric'}:{month:'long'});
@@ -538,7 +546,7 @@ function drawTile(o, arr, box){
      is the same answer the 1×1 tile already gives, arrived at from the other
      side. The mark is rendered always and revealed by the size classes, so
      nothing here has to know which threshold it crossed. */
-  if(cont){
+  if(face==='front'){
     const bd=o.border||'panel', kn=o.knob||'round', tx=o.texture||'none';
     const doors = openingFor(o, box)==='cabinet';
     /* A knob is turned out of the same wood as the front, so unless it has been
@@ -568,40 +576,40 @@ function drawTile(o, arr, box){
     </button>`;
   }
 
-  /* An image sits on the grid like something stuck in a scrapbook. `isPicture`
-     rather than "carries media", or a sound with a file in it matched here and
-     was drawn as a photograph of nothing — which is the same mistake decision 49
-     fixed at the *tap* and this branch was still making at the tile. */
-  const img = isPicture(o) && o.media && o.media.src;
-  if(img){
-    return `<button class="drawer otile imgtile sh-image${o.media.alpha?'':' opaque'} fr-${o.frame||'none'}${sel}" data-row="${o.id}" style="--c:${colour};${place}">
-      ${chips}
-      <img class="tileimg" src="${esc(o.media.src)}" alt="${esc(o.title||'')}" draggable="false">
-      ${handles}
-    </button>`;
-  }
-  /* …and a picture with nothing in it yet is an empty mount, not a card with a
-     title and a blank body. It said "Untitled" and did nothing, which is how a
-     new Image object came to look broken rather than unfilled. Tapping it opens
-     the picture surface, which is where a file is chosen. */
-  if(isMedia(o) && !has(o,'text')){
-    const kind=mediaTypeOf(o);
-    const mark=kind==='audio'?'music':kind==='video'?'film':'image';
-    const say =kind==='audio'?'Add a sound':kind==='video'?'Add a video':'Add a picture';
-    return `<button class="drawer otile imgtile empty fr-${o.frame||'none'}${sel}" data-row="${o.id}"
-      title="${esc(o.title||'')} — tap to choose a file" style="--c:${colour};${place}">
-      ${chips}
-      <span class="imgempty">${ic(mark,24)}<b>${esc(o.title||say)}</b></span>
-      ${handles}
-    </button>`;
-  }
-  /* A sound or a video that *has* a file, on the board: its mark, its name and
-     how long it runs. Not a player — a tile is a face, and forty of them each
-     holding a decoded media element is a board that will not scroll. Tapping it
-     opens the surface, which is where it plays. See decision 71. */
-  if(isPlayable(o) && o.media && o.media.src){
-    const kind=mediaTypeOf(o);
-    return `<button class="drawer otile mediatile sh-${shapeOf(o)}${sel}" data-row="${o.id}"
+  /* An image sits on the grid like something stuck in a scrapbook, and a sound
+     or a video is a face — a mark, a name and how long it runs — never a player.
+     Forty decoded media elements is a board that will not scroll. See 71. */
+  if(face==='image' || face==='media'){
+    const src = o.media && o.media.src;
+    /* Nothing in it yet: an empty mount, not a card with a title and a blank
+       body. This used to be gated on `isMedia(o) && !has(o,'text')`, so only
+       Image ever reached it — Audio and Video carry `text` and drew as plain
+       cards, which is a new sound file looking broken rather than unfilled.
+       The face answers it now, so all three behave the same way. */
+    if(!src){
+      const kind=mediaOf(o);
+      const mark=kind==='audio'?'music':kind==='video'?'film':'image';
+      const say =kind==='audio'?'Add a sound':kind==='video'?'Add a video':'Add a picture';
+      return `<button class="drawer ${tcls} mounttile empty${
+        face==='image'?' imgtile':''} fr-${o.frame||'none'}${sel}" ${
+        cont?`data-drawer="${o.id}"`:`data-row="${o.id}"`}
+        title="${esc(o.title||'')} — tap to choose a file" style="--c:${colour};${place}">
+        ${chips}
+        <span class="imgempty">${ic(mark,24)}<b>${esc(o.title||say)}</b></span>
+        ${handles}
+      </button>`;
+    }
+    if(face==='image'){
+      return `<button class="drawer ${tcls} imgtile sh-image${o.media.alpha?'':' opaque'} fr-${o.frame||'none'}${sel}" ${
+        cont?`data-drawer="${o.id}"`:`data-row="${o.id}"`} style="--c:${colour};${place}">
+        ${chips}
+        <img class="tileimg" src="${esc(src)}" alt="${esc(o.title||'')}" draggable="false">
+        ${handles}
+      </button>`;
+    }
+    const kind=mediaOf(o);
+    return `<button class="drawer ${tcls} mediatile sh-media${sel}" ${
+      cont?`data-drawer="${o.id}"`:`data-row="${o.id}"`}
       style="--c:${colour};${place}">
       ${chips}
       <span class="medmark">${ic(kind==='audio'?'music':'film',20)}</span>
@@ -612,9 +620,11 @@ function drawTile(o, arr, box){
     </button>`;
   }
 
-  // a button object is the button: it fills its tile rather than sitting in it
-  if(has(o,'button')){
-    return `<button class="drawer otile sh-button btntile bs-${o.btnshape||'rounded'}${sel}" data-row="${o.id}"
+  /* A button object is the button: it fills its tile rather than sitting in
+     it. Chosen by the face, which defaultFace() infers from the attribute — so
+     a type that ticks `button` and says nothing still gets this. */
+  if(face==='button'){
+    return `<button class="drawer ${tcls} sh-button btntile bs-${o.btnshape||'rounded'}${sel}" ${hook}
       style="--c:${colour};${place}">
       ${chips}
       <span class="btnface" data-fire="${o.id}">${esc((o.link&&o.link.label)||o.title||'Open')}</span>
@@ -623,17 +633,17 @@ function drawTile(o, arr, box){
   }
 
   /* A counter is its number, not a title and a body. */
-  if(shapeOf(o)==='tally'){
-    return `<button class="drawer otile sh-tally cnttile${sel}" data-row="${o.id}" style="--c:${colour};${place}">
+  if(face==='tally'){
+    return `<button class="drawer ${tcls} sh-tally cnttile${sel}" ${hook} style="--c:${colour};${place}">
       ${chips}
       <span class="cntlabel">${esc(o.title||'Untitled')}</span>
       <span class="cntnum" data-act="countup" data-id="${o.id}">${digitWheel(o.count||0)}</span>
       ${handles}
     </button>`;
   }
-  if(has(o,'spawn') && spawnByOf(o)==='click'){
+  if(face==='press'){
     const made=K(genKindOf(o));
-    return `<button class="drawer otile sh-press gentile${sel}" data-row="${o.id}" style="--c:${colour};${place}">
+    return `<button class="drawer ${tcls} sh-press gentile${sel}" ${hook} style="--c:${colour};${place}">
       ${chips}
       <span class="genico">${ic(made.ic,20)}</span>
       <span class="genlabel">${esc(o.title||('New '+made.nm.toLowerCase()))}</span>
@@ -641,24 +651,15 @@ function drawTile(o, arr, box){
       ${handles}
     </button>`;
   }
-  if(has(o,'spawn') && spawnByOf(o)==='type'){
-    return `<div class="drawer otile sh-band fieldtile${sel}" data-row="${o.id}" style="--c:${colour};${place}">
+  if(face==='band'){
+    return `<div class="drawer ${tcls} sh-band fieldtile${sel}" ${hook} style="--c:${colour};${place}">
       ${chips}
       <input class="fieldin" data-fieldfor="${o.id}" placeholder="${esc(o.title||'Type and press return…')}">
       ${handles}
     </div>`;
   }
-  if(shapeOf(o)==='spine'){
-    return `<button class="drawer otile sh-spine spinetile${sel}" data-row="${o.id}" style="--c:${colour};${place}">
-      ${chips}
-      <span class="spinetop"></span>
-      <span class="spinetitle">${esc(o.title||'Untitled')}</span>
-      <span class="spinefoot"></span>
-      ${handles}
-    </button>`;
-  }
-  if(shapeOf(o)==='quote'){
-    return `<button class="drawer otile sh-quote quotetile${sel}" data-row="${o.id}" style="--c:${colour};${place}">
+  if(face==='quote'){
+    return `<button class="drawer ${tcls} sh-quote quotetile${sel}" ${hook} style="--c:${colour};${place}">
       ${chips}
       <span class="qmark">"</span>
       <span class="qbody">${esc(oneline(o.body||o.title||'').replace(/^[—\s]+/,'')).slice(0,180)}</span>
@@ -666,9 +667,9 @@ function drawTile(o, arr, box){
       ${handles}
     </button>`;
   }
-  if(shapeOf(o)==='portrait'){
+  if(face==='portrait'){
     const img=o.media&&o.media.src;
-    return `<button class="drawer otile sh-portrait chartile${sel}" data-row="${o.id}" style="--c:${colour};${place}">
+    return `<button class="drawer ${tcls} sh-portrait chartile${sel}" ${hook} style="--c:${colour};${place}">
       ${chips}
       <span class="charface">${img?`<img src="${esc(img)}" alt="">`:ic('star',22)}</span>
       <span class="charname">${esc(o.title||'Untitled')}</span>
@@ -697,9 +698,10 @@ function drawTile(o, arr, box){
      inside a <button> is unfocusable — the same reason the answer box does. */
   const edit = S.editId===o.id;
   const raw = asks || edit;
-  return `<${raw?'div':'button'} class="drawer otile sh-${shapeOf(o)}${o.edge?' edge':''}${sel}${
+  return `<${raw?'div':'button'} class="drawer ${tcls} sh-${face}${o.edge?' edge':''}${sel}${
       edit?' editing':''}${
-      asks?(answered(o)?' answered':' unanswered'):''}${prioOf(o)!=null?' prio-'+prioOf(o):''}" data-row="${o.id}"
+      asks?(answered(o)?' answered':' unanswered'):''}${prioOf(o)!=null?' prio-'+prioOf(o):''}" ${
+      cont?`data-drawer="${o.id}"`:`data-row="${o.id}"`}
     style="--c:${colour};${has(o,'progress')?`--pct:${goalPct(o)}%;`:''}${place}">
     ${chips}
     <div class="dtop">
@@ -832,7 +834,7 @@ function listTile(o){
   const attr = cont ? `data-drawer="${o.id}"` : `data-row="${o.id}"`;
   // a row being typed in is a div: an input inside a button is unfocusable
   const raw = S.editId===o.id;
-  return `<${raw?'div':'button'} class="drawer ${cont?'dtile':'otile'} sh-${cont?'front':shapeOf(o)} listband${S.sel.includes(o.id)?' selected':''}${
+  return `<${raw?'div':'button'} class="drawer ${cont?'dtile':'otile'} sh-${faceOf(o)} listband${S.sel.includes(o.id)?' selected':''}${
       raw?' editing':''}${cont&&has(o,'magic')?' magicdrawer':''}" ${attr} style="--c:${colour}">
     <div class="dtop">
       ${has(o,'check')?`<span class="check tilecheck${o.done?' on':''}" data-check="${o.id}">${ic('check',12)}</span>`:''}

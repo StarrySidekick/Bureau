@@ -2,7 +2,7 @@
    boot — load, wire, render, register the service worker
    ============================================================ */
 import { $ } from './util.js';
-import { S, KINDS, SHAPES, SORTS, childrenOf, container, relate, deskOf, has, lateOn, isLate,
+import { S, KINDS, FACES, SORTS, childrenOf, container, relate, deskOf, has, lateOn, isLate,
   prioOf, repeatOf, repeatSaid, nextRepeat, boardLocked } from './model.js';
 import { pageRows, freeSpot } from './grid.js';
 import { create, setPin, togglePin, del, delMany, delDrawer, undo, redo, toggleDone, spawnNext, setGridSize } from './mutations.js';
@@ -38,7 +38,7 @@ if('serviceWorker' in navigator){
 window.BUREAU = {
   get state(){ return S; }, render, create, save: writeNow, saveSoon: save,
   get K(){ return KINDS; },
-  get shapes(){ return SHAPES; },
+  get faces(){ return FACES; },
   paste: pasteObjects, relate, pin: togglePin, setPin, renderSheet,
   // small | extra | large — the three phone grids, for trying on
   setGrid: setGridSize,

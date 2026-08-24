@@ -1,5 +1,5 @@
 import { $, clamp, ROOT } from './util.js';
-import { S, byId, isContainer, shapeOf, openingOf, dev, deskIds, deskOf } from './model.js';
+import { S, byId, isContainer, faceOf, openingOf, dev, deskIds, deskOf } from './model.js';
 import { lay } from './grid.js';
 import { objColour } from './look.js';
 import { render, renderSoon, previewHTML, pageAt, pageCount, goPage } from './views.js';
@@ -38,8 +38,9 @@ function at(el, r){
 }
 
 /* A copy of a tile that can live outside a grid: its cell placement, its
-   handles and any id that would now be a duplicate all go. */
-function faceOf(el){
+   handles and any id that would now be a duplicate all go. Named for what it
+   returns — an element — because `faceOf` is an object's face, from model.js. */
+function faceEl(el){
   const c=el.cloneNode(true);
   c.style.gridColumn=''; c.style.gridRow='';
   c.style.position='absolute'; c.style.inset='0'; c.style.margin='0';
@@ -74,7 +75,7 @@ function openingFor(o, box){
   const how = openingOf(o);
   if(how!=='auto') return how;
   if(isContainer(o)) return standing(box||lay(o)) ? 'cabinet' : 'drawer';
-  return PAPER.includes(shapeOf(o)) ? 'curl' : 'lift';
+  return PAPER.includes(faceOf(o)) ? 'curl' : 'lift';
 }
 
 /* Opening something. `go` is the thing that actually happens — navigating into
@@ -116,10 +117,10 @@ function openTile(id, go){
     ghost.innerHTML=`<i class="fxcave"></i>
       <div class="fxleaf l"><div class="fxhalf"></div></div>
       <div class="fxleaf r"><div class="fxhalf"></div></div>`;
-    ghost.querySelectorAll('.fxhalf').forEach(h=>h.appendChild(faceOf(el)));
+    ghost.querySelectorAll('.fxhalf').forEach(h=>h.appendChild(faceEl(el)));
   } else {
     ghost.innerHTML=`<i class="fxcave"></i><div class="fxfront"></div>`;
-    ghost.querySelector('.fxfront').appendChild(faceOf(el));
+    ghost.querySelector('.fxfront').appendChild(faceEl(el));
   }
   fx().appendChild(ghost);
   go();

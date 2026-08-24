@@ -476,7 +476,7 @@ function spawnInto(c, text, patch){
 const WORDS='brass ledger cedar tide quarry lantern vellum thistle harbour ember slate poppy compass juniper marrow'.split(' ');
 function randomThing(parentId){
   const pick=a=>a[Math.floor(Math.random()*a.length)];
-  const kinds=KEYS.filter(k=>!kindHas(k,'control'));
+  const kinds=KEYS.slice();
   const kind=pick(kinds);
   const home=parentId||(S.view==='drawer'&&S.drawerId)||ROOT;
   const o=create(kind,{parent:home,

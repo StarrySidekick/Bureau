@@ -98,29 +98,28 @@ const BUILTIN_KINDS = {
      due. It holds nothing — the day is the `due` field on the object, not a
      container — so its default rule is "anything with a date". */
   calendar:{face:'calendar', nm:'Calendar', ic:'calendar', c:7, key:'C', ds:'Whatever it collects, on the day it falls', attrs:['container','magic'], filter:{rule:{f:'date',op:'any'}}, calview:'month', opens:'calendar', size:[4,4], phoneSize:[4,4], body:'' },
-  control: {nm:'Control',  ic:'sliders', c:15, key:'', ds:'A Bureau button on the desk', attrs:['control'], size:[4,4], body:'' },
-  task:    {shape:'sliver', nm:'Task',    ic:'check',   c:6, key:'T', ds:'A thing to do',             attrs:['text','check','date','repeat'], size:[4,1], onclick:'none', gathers:'checklist', body:'' },
-  note:    {shape:'note', nm:'Note',    ic:'note',    c:10, key:'O', ds:'Something to remember',     attrs:['text'], size:[4,4], onclick:'read', body:'' },
-  idea:    {shape:'idea', nm:'Idea',    ic:'bulb',    c:12, key:'I', ds:'A spark, unformed',         size:[4,4], onclick:'read', attrs:['text'], body:'**The spark —** \n\n**Why it might work —** \n\n**What it needs —** ' },
+  task:    {face:'sliver', nm:'Task',    ic:'check',   c:6, key:'T', ds:'A thing to do',             attrs:['text','check','date','repeat'], size:[4,1], onclick:'none', gathers:'checklist', body:'' },
+  note:    {face:'note', nm:'Note',    ic:'note',    c:10, key:'O', ds:'Something to remember',     attrs:['text'], size:[4,4], onclick:'read', body:'' },
+  idea:    {face:'idea', nm:'Idea',    ic:'bulb',    c:12, key:'I', ds:'A spark, unformed',         size:[4,4], onclick:'read', attrs:['text'], body:'**The spark —** \n\n**Why it might work —** \n\n**What it needs —** ' },
   outline: {nm:'Outline', ic:'list',    c:14, key:'L', ds:'Structure before prose',    size:[4,4], onclick:'read', attrs:['text'], body:'## I.\n- \n- \n\n## II.\n- \n- \n\n## III.\n- ' },
   // A recipe holds its ingredients rather than listing them in prose, so they
   // can be ticked while you cook and totalled before you shop. The method stays
   // in the body, which a container with `text` shows above what it holds.
   recipe:  {face:'checklist', cooking:true, nm:'Recipe',  ic:'pot',     c:11, key:'R', ds:'Ingredients you can tick, and a method',    size:[6,7], attrs:['text','container'], opens:'list', body:'**Serves** 2 · **Time** 30 min\n\n## Method\n1. \n2. \n3. ' },
-  script:  {shape:'page', nm:'Script',  ic:'clapper', c:9, key:'S', ds:'Scenes and dialogue',       size:[4,4], onclick:'read', attrs:['text'], body:'### INT. LOCATION — DAY\n\nAction line.\n\n**CHARACTER**\nDialogue.' },
+  script:  {face:'page', nm:'Script',  ic:'clapper', c:9, key:'S', ds:'Scenes and dialogue',       size:[4,4], onclick:'read', attrs:['text'], body:'### INT. LOCATION — DAY\n\nAction line.\n\n**CHARACTER**\nDialogue.' },
   /* Open until answered — and answering it is writing the answer down, not
      ticking a box. A tick says "dealt with"; a question wants the thing you
      worked out, and having it on the front is the whole value of keeping one. */
-  question:{shape:'bubble', nm:'Question',ic:'help',    c:10, key:'?', ds:'Open until you have written the answer', size:[4,4], onclick:'read', attrs:['text','answer'], body:'**What I know —** \n\n' },
-  essay:   {shape:'note', nm:'Essay',   ic:'feather', c:7, key:'Y', ds:'Long-form writing',         size:[4,4], onclick:'read', attrs:['text'], body:'> Working thesis.\n\n' },
-  habit:   {shape:'habit', nm:'Habit',   ic:'repeat',  c:8, key:'A', ds:'Repeats, tracks a streak',  size:[4,4], onclick:'read', attrs:['text','streak'], body:'**Why —** ' },
-  goal:    {shape:'goal', nm:'Goal',    ic:'target',  c:13, key:'J', ds:'Long-term, has milestones', size:[4,4], onclick:'read', attrs:['text','progress'], body:'**Definition of done —** ' },
+  question:{face:'bubble', nm:'Question',ic:'help',    c:10, key:'?', ds:'Open until you have written the answer', size:[4,4], onclick:'read', attrs:['text','answer'], body:'**What I know —** \n\n' },
+  essay:   {face:'note', nm:'Essay',   ic:'feather', c:7, key:'Y', ds:'Long-form writing',         size:[4,4], onclick:'read', attrs:['text'], body:'> Working thesis.\n\n' },
+  habit:   {face:'habit', nm:'Habit',   ic:'repeat',  c:8, key:'A', ds:'Repeats, tracks a streak',  size:[4,4], onclick:'read', attrs:['text','streak'], body:'**Why —** ' },
+  goal:    {face:'goal', nm:'Goal',    ic:'target',  c:13, key:'J', ds:'Long-term, has milestones', size:[4,4], onclick:'read', attrs:['text','progress'], body:'**Definition of done —** ' },
   image:   {nm:'Image',   ic:'image',   c:15, key:'G', ds:'A picture on the board',   size:[6,4], onclick:'read', attrs:['media'], body:'' },
   audio:   {film:true, nm:'Audio',   ic:'music',   c:10, key:'U', ds:'Something to listen to',    size:[6,2], onclick:'read', attrs:['text','media','duration'], mediaType:'audio', body:'' },
   video:   {film:true, nm:'Video',   ic:'film',    c:9, key:'&', ds:'Something to watch',        size:[6,4], onclick:'read', attrs:['text','media','duration'], mediaType:'video', body:'' },
-  trip:    {shape:'ticket', nm:'Trip',    ic:'flag',    c:9, key:'P', ds:'Somewhere you are going',   size:[8,6], attrs:['container','date','span','location'], opens:'grid', body:'' },
+  trip:    {face:'ticket', nm:'Trip',    ic:'flag',    c:9, key:'P', ds:'Somewhere you are going',   size:[8,6], attrs:['container','date','span','location'], opens:'grid', body:'' },
   moodboard:{face:'moodboard', nm:'Moodboard', ic:'image', c:13, key:'B', ds:'Pictures, pinned together', size:[8,8], attrs:['container'], opens:'moodboard', body:'' },
-  quote:   {shape:'quote', nm:'Quote',   ic:'book',    c:5, key:'Z', ds:'Someone else\'s words',      size:[6,4], onclick:'read', attrs:['text','link','rating'],
+  quote:   {face:'quote', nm:'Quote',   ic:'book',    c:5, key:'Z', ds:'Someone else\'s words',      size:[6,4], onclick:'read', attrs:['text','link','rating'],
             body:'> \n\n— ' },
   /* A story holds its scenes and reads as a book; a world holds the people,
      places and things the stories are set in. The distinction is the whole
@@ -149,26 +148,24 @@ const BUILTIN_KINDS = {
   album:   {film:true, nm:'Album', ic:'music', c:10, key:'%', ds:'Tracks, in the order they play',
      attrs:['text','container','media','spawn'], spawnBy:'type', genKind:'audio',
      opens:'list', size:[4,6], phoneSize:[4,5], body:'' },
-  scene:   {shape:'page', narrative:true, film:true, nm:'Scene',   ic:'clapper', c:9, key:'N', ds:'One scene, for writing',     size:[6,5], onclick:'read', attrs:['text','location','duration','relates'], gathers:'story',
+  scene:   {face:'page', narrative:true, film:true, nm:'Scene',   ic:'clapper', c:9, key:'N', ds:'One scene, for writing',     size:[6,5], onclick:'read', attrs:['text','location','duration','relates'], gathers:'story',
             body:'**Where —** \n\n**Who —** \n\n**What changes —** ' },
-  character:{shape:'portrait', narrative:true, nm:'Character', ic:'star', c:13, key:'H', ds:'Someone in the story',       size:[4,6], onclick:'read', attrs:['text','media','relates'], gathers:'world',
+  character:{face:'portrait', narrative:true, nm:'Character', ic:'star', c:13, key:'H', ds:'Someone in the story',       size:[4,6], onclick:'read', attrs:['text','media','relates'], gathers:'world',
             body:'**Wants —** \n\n**Fears —** \n\n**Voice —** ' },
-  field:   {shape:'band', nm:'Text field', ic:'edit', c:15, key:'/', ds:'Type in it and a task appears below', size:[8,2], onclick:'none', attrs:['spawn'], spawnBy:'type', body:'' },
-  poem:    {shape:'verse', parchment:true, nm:'Poem',    ic:'feather', c:10, key:'"', ds:'Lines, kept as written', size:[5,7], onclick:'read', attrs:['text'], body:'' },
-  place:   {shape:'card', nm:'Place',   ic:'flag',    c:7, key:'1', ds:'Somewhere in the story',  size:[5,6], onclick:'read', attrs:['text','media','relates'], narrative:true, gathers:'world',
+  field:   {face:'band', nm:'Text field', ic:'edit', c:15, key:'/', ds:'Type in it and a task appears below', size:[8,2], onclick:'none', attrs:['spawn'], spawnBy:'type', body:'' },
+  poem:    {face:'verse', parchment:true, nm:'Poem',    ic:'feather', c:10, key:'"', ds:'Lines, kept as written', size:[5,7], onclick:'read', attrs:['text'], body:'' },
+  place:   {face:'card', nm:'Place',   ic:'flag',    c:7, key:'1', ds:'Somewhere in the story',  size:[5,6], onclick:'read', attrs:['text','media','relates'], narrative:true, gathers:'world',
             body:'**Feels like —** \n\n**Who is there —** \n\n**What happened here —** ' },
-  event:   {shape:'card', nm:'Event',   ic:'clock',   c:11, key:'2', ds:'Something that happens',  size:[6,4], onclick:'read', attrs:['text','date','relates'], narrative:true, gathers:'world',
+  event:   {face:'card', nm:'Event',   ic:'clock',   c:11, key:'2', ds:'Something that happens',  size:[6,4], onclick:'read', attrs:['text','date','relates'], narrative:true, gathers:'world',
             body:'**Before —** \n\n**The turn —** \n\n**After —** ' },
-  item:    {shape:'card', nm:'Item',    ic:'star',    c:12, key:'3', ds:'A thing that matters',    size:[4,4], onclick:'read', attrs:['text','media','relates'], narrative:true, gathers:'world',
-            body:'**What it is —** \n\n**Who wants it —** ' },
-  ingredient:{shape:'index', cooking:true, nm:'Ingredient', ic:'pot', c:11, key:'4', ds:'One line of a recipe',   size:[5,1], onclick:'check', attrs:['check','count','price'], gathers:'recipe', body:'' },
-  shot:    {shape:'sliver', film:true, nm:'Shot',    ic:'clapper', c:9, key:'5', ds:'One shot, for a shoot',   size:[6,1], onclick:'check', attrs:['text','check','duration','location'], gathers:'shotlist', body:'' },
+  ingredient:{face:'index', cooking:true, nm:'Ingredient', ic:'pot', c:11, key:'4', ds:'One line of a recipe',   size:[5,1], onclick:'check', attrs:['check','count','price'], gathers:'recipe', body:'' },
+  shot:    {face:'sliver', film:true, nm:'Shot',    ic:'clapper', c:9, key:'5', ds:'One shot, for a shoot',   size:[6,1], onclick:'check', attrs:['text','check','duration','location'], gathers:'shotlist', body:'' },
   shotlist:{face:'checklist', film:true, nm:'Shot list', ic:'clapper', c:9, key:';', ds:'Shots for a shoot, in order', attrs:['container'], opens:'list', size:[7,8], body:'' },
-  generator:{shape:'press', nm:'Generator', ic:'plus', c:13, key:'6', ds:'Press it and it makes one of something', size:[4,4], onclick:'generate', attrs:['spawn'], spawnBy:'click', body:'' },
+  generator:{face:'press', nm:'Generator', ic:'plus', c:13, key:'6', ds:'Press it and it makes one of something', size:[4,4], onclick:'generate', attrs:['spawn'], spawnBy:'click', body:'' },
   shopping:{cooking:true, face:'checklist', nm:'Shopping list', ic:'inbox', c:11, key:'7', ds:'Things to buy, with a total', attrs:['container'], opens:'list', size:[6,8], body:'' },
-  counter: {nm:'Counter',  ic:'target', c:8, key:'X', ds:'A number, and what it counts', size:[4,4], onclick:'none', attrs:['count'], body:'' },
-  link:    {shape:'card', nm:'Button',  ic:'arrow',   c:9, key:'E', ds:'A button that opens something', attrs:['button'], body:'' },
-  achievement:{shape:'plaque', nm:'Achievement', ic:'trophy', c:12, key:'W', ds:'Something you actually did', size:[6,3], onclick:'read', attrs:['text','date'], body:'' },
+  counter: {face:'tally', nm:'Counter',  ic:'target', c:8, key:'X', ds:'A number, and what it counts', size:[4,4], onclick:'none', attrs:['count'], body:'' },
+  link:    {face:'button', nm:'Button',  ic:'arrow',   c:9, key:'E', ds:'A button that opens something', attrs:['button'], body:'' },
+  achievement:{face:'plaque', nm:'Achievement', ic:'trophy', c:12, key:'W', ds:'Something you actually did', size:[6,3], onclick:'read', attrs:['text','date'], body:'' },
   /* A project is a drawer with a front page. It holds everything a piece of
      work is made of — tasks, events, goals, pictures, notes — so it opens onto
      a board of its own rather than a list, and its front reports on what is
@@ -181,9 +178,9 @@ const BUILTIN_KINDS = {
      // gets one put in it instead of growing a second one of its own
      seed:[{kind:'field', title:'Add to this project…'}],
      opens:'grid', size:[5,5], phoneSize:[4,4], body:'' },
-  dream:   {shape:'dream', nm:'Dream',   ic:'star',    c:10, key:'9', ds:'Far off, and probably daft',   size:[5,5], onclick:'read', attrs:['text','media'], body:'**Why it pulls at me —** ' },
+  dream:   {face:'dream', nm:'Dream',   ic:'star',    c:10, key:'9', ds:'Far off, and probably daft',   size:[5,5], onclick:'read', attrs:['text','media'], body:'**Why it pulls at me —** ' },
   timeline:{face:'timeline', nm:'Timeline',ic:'clock',   c:5, key:'0', ds:'Things in the order they happened', attrs:['container'], opens:'timeline', size:[10,6], body:'' },
-  appt:    {shape:'sliver', nm:'Event',   ic:'calendar',c:8, key:'V', ds:'Something at a time and place', size:[6,2], onclick:'read', attrs:['text','date','duration','location'], body:'' }
+  appt:    {face:'sliver', nm:'Appointment', ic:'calendar',c:8, key:'V', ds:'Something at a time and place', size:[6,2], onclick:'read', attrs:['text','date','duration','location'], body:'' }
 };
 // Kinds you invent live in state alongside these; both are read through KINDS.
 let KINDS = Object.assign({}, BUILTIN_KINDS);
@@ -354,7 +351,7 @@ function seed(){
      clear on purpose — a desk you can put something on, and the space every
      test fixture and every hand-made object lands in first. */
   const museum=[]; let mx=1, my=10, rowH=0;
-  KEYS.filter(k=>k!=='control').forEach(k=>{
+  KEYS.forEach(k=>{
     const d=KINDS[k], [w,h]=d.size||[4,4];
     if(mx+w-1 > GRID_COLS){ mx=1; my+=rowH; rowH=0; }
     rowH=Math.max(rowH,h);
@@ -446,14 +443,99 @@ const container = id => (id===ROOT||!id) ? rootObj() : byId(id);
 // The desk's own settings aren't on an object, so writes have to go to deskCfg.
 const cfgOf = id => (id===ROOT||!id) ? S.deskCfg : (byId(id)||{});
 const isContainer = o => !!o && has(o,'container');
+/* Everything is an object; an object is a **container or an item**. "Container"
+   already had a word and everything else was called "an object", which is the
+   word for both of them — and you cannot build a picker, a filter or a sentence
+   out of a definition by subtraction. See decision 79. */
+const isItem = o => !!o && !isContainer(o);
+/* What an item is made of. Inferred rather than stored: a second field saying
+   "this is a sound" could disagree with the attributes that make it one, and
+   then two things are true at once. Null for the machinery — a button, a press
+   and a typing box are made of nothing. */
+function mediaOf(o){
+  if(has(o,'media')) return mediaTypeOf(o);
+  if(has(o,'text'))  return 'text';
+  return null;
+}
 /* A face is how an object draws itself on its parent's board and what that
-   drawing displays — containers and items alike, one vocabulary (decision 80).
-   How a container *opens* is a different question and a different property.
-   They used to be one, which meant a checklist could not also be sorted. */
-const FACES = {front:'Drawer front', checklist:'Checklist', project:'Project',
-               calendar:'Calendar', moodboard:'Moodboard', timeline:'Timeline',
-               spine:'Book spine'};
-const faceOf = o => (o && o.face) || K(o&&o.kind).face || 'front';
+   drawing displays. **One vocabulary, containers and items alike** — there used
+   to be two, `face` for a container and `shape` for everything else, and the
+   story was that a face displays and a shape merely looks. That was never true
+   of the code: ten of the twenty-four shapes had their own branch in drawTile()
+   and changed what was drawn, while `front` — the plain face — changed nothing
+   but the silhouette. Trip settled it by being a container wearing `ticket`.
+   So: one list, and drawTile() asks what the face is before it asks whether the
+   thing contains anything. See decision 80.
+
+   `cont:true` marks the five that can only be worn by a container, because they
+   draw what is inside — an item has no children to list, report on or lay along
+   an axis. Everything else either kind of object may wear. */
+const FACES = {
+  // containers
+  front:    {nm:'Drawer front'},
+  checklist:{nm:'Checklist',    cont:true},
+  project:  {nm:'Project',      cont:true},
+  calendar: {nm:'Calendar',     cont:true},
+  timeline: {nm:'Timeline',     cont:true},
+  moodboard:{nm:'Moodboard',    cont:true},
+  // bound, and worn by containers and items alike
+  spine:    {nm:'Book spine'},
+  ticket:   {nm:'Ticket'},
+  // paper
+  card:     {nm:'Card'},
+  note:     {nm:'Torn note'},
+  idea:     {nm:'Folded corner'},
+  page:     {nm:'Punched page'},
+  index:    {nm:'Index card'},
+  verse:    {nm:'Verse'},
+  quote:    {nm:'Quotation'},
+  bubble:   {nm:'Speech bubble'},
+  chit:     {nm:'Torn chit'},
+  // lines
+  sliver:   {nm:'Sliver'},
+  tab:      {nm:'Filing tab'},
+  ruled:    {nm:'Ruled line'},
+  pill:     {nm:'Pill'},
+  // marks
+  plaque:   {nm:'Plaque'},
+  portrait: {nm:'Portrait'},
+  dream:    {nm:'Dashed'},
+  // meters
+  habit:    {nm:'Streak'},
+  goal:     {nm:'Progress bar'},
+  // instruments — these four used to be chosen by an *attribute* rather than by
+  // the face property, which is why `press` and `band` could be set on a type
+  // and do nothing. They are ordinary faces now, and defaultFace() below still
+  // infers them from the attribute so a type that ticks `spawn` and says
+  // nothing about its face gets the right one.
+  tally:    {nm:'Tally'},
+  press:    {nm:'Press'},
+  band:     {nm:'Band'},
+  button:   {nm:'Button'},
+  image:    {nm:'Picture'},
+  media:    {nm:'Player'}
+};
+const FACEKEYS = Object.keys(FACES);
+/* The face an object gets when it has not asked for one: what it *is* rather
+   than what it is called. A container is a front, something holding a file is
+   its picture or its player, something that makes objects is the press or the
+   box you type into, and everything else is a card. */
+function defaultFace(o){
+  if(isContainer(o)) return 'front';
+  if(has(o,'button')) return 'button';
+  if(has(o,'media'))  return mediaOf(o)==='image' ? 'image' : 'media';
+  if(has(o,'spawn'))  return spawnByOf(o)==='type' ? 'band' : 'press';
+  return 'card';
+}
+/* Per object, then per type, then what it is. `shape` is read once more here
+   for data written before decision 80 and for a pack that still says it — the
+   migration moves it, so nothing new should ever write one. A container-only
+   face asked for by an item is refused rather than drawn empty. */
+function faceOf(o){
+  const f = (o && (o.face || o.shape)) || K(o&&o.kind).face || K(o&&o.kind).shape;
+  if(f && FACES[f] && !(FACES[f].cont && !isContainer(o))) return f;
+  return defaultFace(o);
+}
 // How a container arranges what it holds, once opened — the "Opens as" row.
 // Called `layout` until decision 81, which gave that word to a saved board.
 // The kind's is the fallback, so a type that says it opens as a calendar does
@@ -508,10 +590,7 @@ function gatherKind(a, b){
   return g && g===gathersOf(b) && KINDS[g] ? g : null;
 }
 
-/* How a non-container object draws itself. This used to be read off the type's
-   *name* in both the renderer and the stylesheet, which is exactly what
-   CLAUDE.md forbids — an invented type could never look like anything. It is a
-   property now, defaulting to the type's, and settable per object. */
+
 /* How big the pull is. A drawer front is mostly knob at 2×2 and mostly name at
    8×8, so the one size that suited both was a compromise at each. */
 const KNOBSIZES = {sm:'Small', md:'Medium', lg:'Large'};
@@ -553,18 +632,6 @@ const isPlayable = o => isMedia(o) && mediaTypeOf(o)!=='image';
 /* What the file picker should be willing to show for it. */
 const acceptFor = o => ({image:'image/*', audio:'audio/*', video:'video/*'})[mediaTypeOf(o)] || 'image/*';
 
-/* The four at the end are the newer answers to "what does a task look like",
-   which is a question a plain sliver only ever answered by not being anything.
-   They are ordinary shapes: any type can wear one, and a task is a `sliver`
-   until you say otherwise. */
-const SHAPES = {
-  card:'Card', habit:'Streak', goal:'Progress bar', dream:'Dashed', image:'Picture', note:'Torn note', idea:'Folded corner', bubble:'Speech bubble',
-  page:'Punched page', index:'Index card', spine:'Book spine', portrait:'Portrait',
-  ticket:'Ticket', plaque:'Plaque', tally:'Tally', quote:'Quotation',
-  verse:'Verse', sliver:'Sliver', press:'Press', band:'Band',
-  tab:'Filing tab', ruled:'Ruled line', chit:'Torn chit', pill:'Pill'
-};
-const shapeOf = o => (o && o.shape) || K(o&&o.kind).shape || 'card';
 
 /* How an object opens to be read. Three ways of looking at the same body, so
    the choice is one property rather than three click actions: a spread you
@@ -1168,8 +1235,7 @@ const allTags = ()=>{ const m={}; S.objects.forEach(o=>(o.tags||[]).forEach(t=>m
 
 export { ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds, K,
   attrsOf, has, kindHas, T, dz, S, sensedDevice, reset, defaultLook, dev, byId,
-  deskTitle, rootObj, container, cfgOf, isContainer, FACES, faceOf, opensOf, SHAPES,
-  shapeOf, READS, readOf, spreadOf, OPENINGS, openingOf, gathersOf, gatherKind, containers,
+  deskTitle, rootObj, container, cfgOf, isContainer, isItem, FACES, FACEKEYS, faceOf, defaultFace, opensOf, mediaOf, READS, readOf, spreadOf, OPENINGS, openingOf, gathersOf, gatherKind, containers,
   deskIds, deskList, isDesk, deskOf, deskHere,
   placeOf,
   spanOf, coversDay, lastDay, lateOn, isLate,
