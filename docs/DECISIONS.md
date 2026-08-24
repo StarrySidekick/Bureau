@@ -2560,3 +2560,86 @@ already on clears it, which is the same toggle every calendar cell in the app
 already is.
 
 A Mac has no row swipe, so the context menu has **When…** as well.
+
+---
+
+### 79. An object is a container or an item
+
+Everything is an object; that has always been true and is not changing. What
+was missing was a word for the other half. "Container" had one — `container` is
+an attribute, `isContainer()` asks — and everything that wasn't one was called
+"an object", which is the word for both of them.
+
+So: an object is a **container** or an **item**. `isItem(o)` is
+`!isContainer(o)`, and it earns its place the moment anything is true of items
+as a class rather than of one type. Two things already are: an item is made of
+one sort of media, and the media it is made of decides what it can do.
+
+This is a rename with a purpose, not tidying. "Non-container" is a definition by
+subtraction, and you cannot build a picker, a filter or a sentence out of one.
+
+---
+
+### 80. One face, not a face and a shape
+
+A container had a `face` — how it draws on its parent's board — chosen from
+seven. An item had a `shape`, chosen from twenty-four. They were described as
+different things: a face was what a container *displays*, a shape was what an
+item *looks like*.
+
+That was never true of the code. Ten of the twenty-four shapes have their own
+branch in `drawTile()` — `spine`, `quote`, `portrait`, `tally`, `press`,
+`band`, `image`, `media`, `button`, `ticket` — and each of them changes what is
+drawn, not only the silhouette. A tally draws a count. A band draws a typing
+box. A press draws a button. Meanwhile `front`, the plain face, changes nothing
+but the silhouette. The two vocabularies were doing one job, split by a question
+nobody was asking: is this thing a container?
+
+So there is **one** face. `faceOf(o)` answers for everything, the thirty-odd
+values are one list, and `drawTile()` dispatches on the face first and on
+containment second. A face is *how an object looks and what its face displays* —
+both halves, for both kinds of object.
+
+What this buys, immediately: a type is now very nearly *defined* by its face. A
+checklist is a container whose face lists what is inside it and lets you tick
+it. A novel is text whose face is a spine. Say that in the type builder and you
+have made the type — which is what a type builder ought to be, and what two
+vocabularies made impossible, because half the answers were greyed out
+depending on one checkbox.
+
+`shape` survives as a stored key that a migration reads once, and nowhere else.
+The `sh-` CSS prefix stays: renaming three hundred selectors buys nothing.
+
+A face has a size it wants — a spine is tall and thin, a sliver is one cell
+high, a plaque is wide. That is advice, not law: the **default size stays a
+parameter of the type** (`size` / `phoneSize`), because two types can wear one
+face at different sizes and both be right. The face declares a suggested box and
+the type builder starts you there.
+
+---
+
+### 81. A layout is a saved board; how a container opens is `opens`
+
+`layout` meant "how a container arranges its children once opened" — grid, list,
+scroll, book, calendar, timeline. Its row in the editor has always been labelled
+**Opens as**, which is the honest name, so the property is `opens` now and the
+label finally matches the thing.
+
+That frees the word for what it should always have meant. A **layout** is a
+saved board: a grid of a stated size with objects already placed on it, at real
+coordinates, ready to be dropped into a container. It is a value like any other
+— saveable, shareable, exportable — and a type may name one, so a type can be
+born already arranged.
+
+`seed` was the first draft of this and shows why it needed replacing: one level
+deep, `{kind, title}` only, placed by a loop rather than at coordinates. It
+answered "a project should come with a text field in it" and could not answer
+anything larger.
+
+The case that makes it worth building: a **Film** type is not new machinery. It
+is a project whose layout holds a script, a shoot calendar, a shot list, a gear
+checklist and a budget, arranged the way you actually want to look at them. Ten
+types like that are ten layouts, not ten branches. That is the whole argument
+for attributes, applied one level up — and it is the point at which describing
+what you want and having it built for you becomes a small feature rather than a
+research project, because a layout is data.

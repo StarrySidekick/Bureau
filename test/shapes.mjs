@@ -26,7 +26,7 @@ for (const style of ['victorian', 'starry']) {
     S.look.style = style;
     S.objects = S.objects.filter(o => o.id === 'root');
     S.desks = ['root']; S.deskCfg.shelf = [];
-    S.view = 'desk'; S.drawerId = null; S.deskCfg.layout = 'grid';
+    S.view = 'desk'; S.drawerId = null; S.deskCfg.opens = 'grid';
     shapes.forEach(([sh, label], i) => {
       const o = BUREAU.create('task', { parent: 'root', title: label });
       o.shape = sh;

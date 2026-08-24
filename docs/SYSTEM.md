@@ -34,16 +34,18 @@ meaning, containers are finite, and opening one is a small deliberate act.
 
 | Word | What it is |
 | --- | --- |
-| **Object** | Anything that sits on a grid. The unit of everything. |
+| **Object** | Anything that sits on a grid. The unit of everything. Every object is a container or an item. |
+| **Container** | An object carrying `container`. It holds other objects, including other containers. |
+| **Item** | An object that is not a container. Made of one sort of media — text, image, audio or video — and that is what decides what it can do. |
 | **Attribute** | One capability — a checkbox, a date, the ability to contain. Attributes decide what an object can do and how it draws. |
 | **Type** (`kind` in code) | A named preset of attributes, plus a colour, an icon, a key, a starting size and a body template. Forty built in; you can invent more at runtime. |
 | **Field** | The named, typed value some attributes carry (`due`, `price`, `prio`). Only fields can be sorted, filtered or totalled. |
 | **Drawer** | An object whose type carries `container`. It holds other objects, including other drawers. |
 | **Magic drawer** | A drawer that carries `magic` as well. It holds nothing and shows whatever matches its rule. |
 | **Desk** | The root container, id `root`. Never drawn as a tile. |
-| **Face** | How a container draws itself on its *parent's* board. |
-| **Shape** | How a non-container object draws itself. |
-| **Layout** | How a container arranges its children once you *open* it. |
+| **Face** | How an object draws itself on its *parent's* board, and what that drawing displays. One vocabulary for containers and items alike — a type is very nearly defined by its face. The list-view band is derived from the face at one cell of height. |
+| **Opens as** (`opens` in code) | How a container arranges its children once you *open* it: `grid`, `list`, `scroll`, `book`, `calendar`, `timeline`. Called `layout` until decision 81. |
+| **Layout** | A saved board — a grid of a stated size with objects already placed on it. Saveable, shareable, and nameable by a type, so a type can be born already arranged. |
 | **Read view** | How a non-container object opens to be read: `book`, `page` or `scroll`. |
 | **Rule** | One clause — field, comparison, value — that a magic drawer matches against. Up to three, ANDed. |
 | **Repeat rule** | How a thing comes round: how often, counted from its date or from the day you finish it, and when it stops. |

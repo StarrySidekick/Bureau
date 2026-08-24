@@ -2,7 +2,7 @@ import { $, esc, ic, D, md, clamp, ROOT } from './util.js';
 import { S, K, T, byId, has, isContainer, containers, container, childrenOf, chainOf,
   deskTitle, rootObj, cfgOf, deskIds, deskHere, deskOf, isDesk, allTags, dev,
   beginPass, endPass,
-  layoutOf, takesTyping, genKindOf, CALVIEWS, calViewOf, calCols,
+  opensOf, takesTyping, genKindOf, CALVIEWS, calViewOf, calCols,
   spanOf, coversDay, lastDay, boardLocked } from './model.js';
 import { GRID, PHONE_GRIDS, CELL, COLW, MEASURE, colsOf, gridKeyOf,
   pageRows, pageOfBox, lastPage,
@@ -127,7 +127,7 @@ const REVEAL = {gap:7, rail:30};
 const revealStyle = ()=> S.device==='phone' ? ` style="margin-top:${REVEAL.gap}px"` : '';
 
 function viewDesk(){
-  const c=rootObj(), view=c.layout||'grid';
+  const c=rootObj(), view=c.opens||'grid';
   if(view!=='grid'){
     const items=childrenOf(c);
     return `
@@ -315,7 +315,7 @@ function viewDrawer(){
      first, then its type's. Falling straight to 'grid' meant a type that says
      it opens as a calendar only did so if something had written `layout` onto
      the object, which create() does and the seed doesn't. */
-  const view = layoutOf(d);
+  const view = opensOf(d);
   return `
   ${gridBar(d)}
   <div class="scroll${view==='grid'?' deskscroll':''}"${view==='grid'?revealStyle():''}>

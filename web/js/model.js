@@ -86,18 +86,18 @@ const BUILTIN_KINDS = {
      what a desk full of drawers ought to look like. The phone size is stated
      outright: the derivation halves a container, and half of two is one, which
      is the mini tile that has no room for a name. */
-  drawer:  {nm:'Drawer',  ic:'folder',  c:5, key:'D', ds:'A container on the grid',   attrs:['container'], layout:'grid', size:[2,2], phoneSize:[2,2], body:'' },
-  magic:   {nm:'Magic drawer', ic:'sparkle', c:10, key:'Q', ds:'The same drawer, filled by a rule instead of by hand', attrs:['container','magic'], layout:'grid', size:[2,2], phoneSize:[2,2], body:'' },
+  drawer:  {nm:'Drawer',  ic:'folder',  c:5, key:'D', ds:'A container on the grid',   attrs:['container'], opens:'grid', size:[2,2], phoneSize:[2,2], body:'' },
+  magic:   {nm:'Magic drawer', ic:'sparkle', c:10, key:'Q', ds:'The same drawer, filled by a rule instead of by hand', attrs:['container','magic'], opens:'grid', size:[2,2], phoneSize:[2,2], body:'' },
   /* A checklist wears its contents on the outside, so it also takes dictation:
      `spawn` gives it a box at the top, and `genKind` says a line you type into
      it is a task. Both are ordinary attributes — a type you invent gets the
      same box by ticking the same trait. */
-  checklist:{face:'checklist', nm:'Checklist', ic:'list', c:6, key:'K', ds:'Tasks you can tick and add to without opening it', attrs:['container','spawn'], spawnBy:'type', genKind:'task', layout:'list', size:[4,6], phoneSize:[4,6], body:'' },
+  checklist:{face:'checklist', nm:'Checklist', ic:'list', c:6, key:'K', ds:'Tasks you can tick and add to without opening it', attrs:['container','spawn'], spawnBy:'type', genKind:'task', opens:'list', size:[4,6], phoneSize:[4,6], body:'' },
   /* A calendar is a magic drawer wearing a calendar layout: it collects by rule
      like any other, and then draws what it collected on the day each thing is
      due. It holds nothing — the day is the `due` field on the object, not a
      container — so its default rule is "anything with a date". */
-  calendar:{face:'calendar', nm:'Calendar', ic:'calendar', c:7, key:'C', ds:'Whatever it collects, on the day it falls', attrs:['container','magic'], filter:{rule:{f:'date',op:'any'}}, calview:'month', layout:'calendar', size:[4,4], phoneSize:[4,4], body:'' },
+  calendar:{face:'calendar', nm:'Calendar', ic:'calendar', c:7, key:'C', ds:'Whatever it collects, on the day it falls', attrs:['container','magic'], filter:{rule:{f:'date',op:'any'}}, calview:'month', opens:'calendar', size:[4,4], phoneSize:[4,4], body:'' },
   control: {nm:'Control',  ic:'sliders', c:15, key:'', ds:'A Bureau button on the desk', attrs:['control'], size:[4,4], body:'' },
   task:    {shape:'sliver', nm:'Task',    ic:'check',   c:6, key:'T', ds:'A thing to do',             attrs:['text','check','date','repeat'], size:[4,1], onclick:'none', gathers:'checklist', body:'' },
   note:    {shape:'note', nm:'Note',    ic:'note',    c:10, key:'O', ds:'Something to remember',     attrs:['text'], size:[4,4], onclick:'read', body:'' },
@@ -106,7 +106,7 @@ const BUILTIN_KINDS = {
   // A recipe holds its ingredients rather than listing them in prose, so they
   // can be ticked while you cook and totalled before you shop. The method stays
   // in the body, which a container with `text` shows above what it holds.
-  recipe:  {face:'checklist', cooking:true, nm:'Recipe',  ic:'pot',     c:11, key:'R', ds:'Ingredients you can tick, and a method',    size:[6,7], attrs:['text','container'], layout:'list', body:'**Serves** 2 · **Time** 30 min\n\n## Method\n1. \n2. \n3. ' },
+  recipe:  {face:'checklist', cooking:true, nm:'Recipe',  ic:'pot',     c:11, key:'R', ds:'Ingredients you can tick, and a method',    size:[6,7], attrs:['text','container'], opens:'list', body:'**Serves** 2 · **Time** 30 min\n\n## Method\n1. \n2. \n3. ' },
   script:  {shape:'page', nm:'Script',  ic:'clapper', c:9, key:'S', ds:'Scenes and dialogue',       size:[4,4], onclick:'read', attrs:['text'], body:'### INT. LOCATION — DAY\n\nAction line.\n\n**CHARACTER**\nDialogue.' },
   /* Open until answered — and answering it is writing the answer down, not
      ticking a box. A tick says "dealt with"; a question wants the thing you
@@ -118,19 +118,19 @@ const BUILTIN_KINDS = {
   image:   {nm:'Image',   ic:'image',   c:15, key:'G', ds:'A picture on the board',   size:[6,4], onclick:'read', attrs:['media'], body:'' },
   audio:   {film:true, nm:'Audio',   ic:'music',   c:10, key:'U', ds:'Something to listen to',    size:[6,2], onclick:'read', attrs:['text','media','duration'], mediaType:'audio', body:'' },
   video:   {film:true, nm:'Video',   ic:'film',    c:9, key:'&', ds:'Something to watch',        size:[6,4], onclick:'read', attrs:['text','media','duration'], mediaType:'video', body:'' },
-  trip:    {shape:'ticket', nm:'Trip',    ic:'flag',    c:9, key:'P', ds:'Somewhere you are going',   size:[8,6], attrs:['container','date','span','location'], layout:'grid', body:'' },
-  moodboard:{face:'moodboard', nm:'Moodboard', ic:'image', c:13, key:'B', ds:'Pictures, pinned together', size:[8,8], attrs:['container'], layout:'moodboard', body:'' },
+  trip:    {shape:'ticket', nm:'Trip',    ic:'flag',    c:9, key:'P', ds:'Somewhere you are going',   size:[8,6], attrs:['container','date','span','location'], opens:'grid', body:'' },
+  moodboard:{face:'moodboard', nm:'Moodboard', ic:'image', c:13, key:'B', ds:'Pictures, pinned together', size:[8,8], attrs:['container'], opens:'moodboard', body:'' },
   quote:   {shape:'quote', nm:'Quote',   ic:'book',    c:5, key:'Z', ds:'Someone else\'s words',      size:[6,4], onclick:'read', attrs:['text','link','rating'],
             body:'> \n\n— ' },
   /* A story holds its scenes and reads as a book; a world holds the people,
      places and things the stories are set in. The distinction is the whole
      reason there are two: a character outlives the book they first appeared in.
-     Both readings of "opens as a book" apply — `layout:'book'` pages through
+     Both readings of "opens as a book" apply — `opens:'book'` pages through
      the scenes it holds, `read:'book'` pages through its own body — and they
      are different properties, so it carries both rather than choosing. */
-  story:   {face:'spine', narrative:true, nm:'Story',   ic:'book',    c:5, key:'M', ds:'Scenes, bound in order', size:[3,9], attrs:['text','container','relates'], layout:'book', read:'book',
+  story:   {face:'spine', narrative:true, nm:'Story',   ic:'book',    c:5, key:'M', ds:'Scenes, bound in order', size:[3,9], attrs:['text','container','relates'], opens:'book', read:'book',
             body:'' },
-  world:   {narrative:true, nm:'World',   ic:'star',    c:9, key:'F', ds:'The people, places and things a story is set in', size:[8,8], attrs:['text','container'], layout:'grid', body:'' },
+  world:   {narrative:true, nm:'World',   ic:'star',    c:9, key:'F', ds:'The people, places and things a story is set in', size:[8,8], attrs:['text','container'], opens:'grid', body:'' },
   /* Four things that are made of other things, and were being kept as notes
      because no type could hold anything. A film is a piece of work with a date
      and a shape, so it reports like a project; a novel and a short story are
@@ -141,14 +141,14 @@ const BUILTIN_KINDS = {
   film:    {face:'project', film:true, nm:'Film', ic:'clapper', c:9, key:'!', ds:'A film, and everything it is made of',
      attrs:['text','container','date','progress','media','relates'],
      seed:[{kind:'field', title:'Add to this film…'}],
-     layout:'grid', size:[5,5], phoneSize:[5,5], body:'' },
+     opens:'grid', size:[5,5], phoneSize:[5,5], body:'' },
   novel:   {face:'spine', narrative:true, nm:'Novel', ic:'book', c:11, key:'#', ds:'Chapters, bound in order',
-     attrs:['text','container','relates'], layout:'book', read:'book', size:[3,9], phoneSize:[2,6], body:'' },
+     attrs:['text','container','relates'], opens:'book', read:'book', size:[3,9], phoneSize:[2,6], body:'' },
   shortstory:{face:'spine', narrative:true, nm:'Short story', ic:'feather', c:14, key:'$', ds:'One story, its scenes in order',
-     attrs:['text','container','relates'], layout:'book', read:'book', size:[3,7], phoneSize:[2,5], body:'' },
+     attrs:['text','container','relates'], opens:'book', read:'book', size:[3,7], phoneSize:[2,5], body:'' },
   album:   {film:true, nm:'Album', ic:'music', c:10, key:'%', ds:'Tracks, in the order they play',
      attrs:['text','container','media','spawn'], spawnBy:'type', genKind:'audio',
-     layout:'list', size:[4,6], phoneSize:[4,5], body:'' },
+     opens:'list', size:[4,6], phoneSize:[4,5], body:'' },
   scene:   {shape:'page', narrative:true, film:true, nm:'Scene',   ic:'clapper', c:9, key:'N', ds:'One scene, for writing',     size:[6,5], onclick:'read', attrs:['text','location','duration','relates'], gathers:'story',
             body:'**Where —** \n\n**Who —** \n\n**What changes —** ' },
   character:{shape:'portrait', narrative:true, nm:'Character', ic:'star', c:13, key:'H', ds:'Someone in the story',       size:[4,6], onclick:'read', attrs:['text','media','relates'], gathers:'world',
@@ -163,9 +163,9 @@ const BUILTIN_KINDS = {
             body:'**What it is —** \n\n**Who wants it —** ' },
   ingredient:{shape:'index', cooking:true, nm:'Ingredient', ic:'pot', c:11, key:'4', ds:'One line of a recipe',   size:[5,1], onclick:'check', attrs:['check','count','price'], gathers:'recipe', body:'' },
   shot:    {shape:'sliver', film:true, nm:'Shot',    ic:'clapper', c:9, key:'5', ds:'One shot, for a shoot',   size:[6,1], onclick:'check', attrs:['text','check','duration','location'], gathers:'shotlist', body:'' },
-  shotlist:{face:'checklist', film:true, nm:'Shot list', ic:'clapper', c:9, key:';', ds:'Shots for a shoot, in order', attrs:['container'], layout:'list', size:[7,8], body:'' },
+  shotlist:{face:'checklist', film:true, nm:'Shot list', ic:'clapper', c:9, key:';', ds:'Shots for a shoot, in order', attrs:['container'], opens:'list', size:[7,8], body:'' },
   generator:{shape:'press', nm:'Generator', ic:'plus', c:13, key:'6', ds:'Press it and it makes one of something', size:[4,4], onclick:'generate', attrs:['spawn'], spawnBy:'click', body:'' },
-  shopping:{cooking:true, face:'checklist', nm:'Shopping list', ic:'inbox', c:11, key:'7', ds:'Things to buy, with a total', attrs:['container'], layout:'list', size:[6,8], body:'' },
+  shopping:{cooking:true, face:'checklist', nm:'Shopping list', ic:'inbox', c:11, key:'7', ds:'Things to buy, with a total', attrs:['container'], opens:'list', size:[6,8], body:'' },
   counter: {nm:'Counter',  ic:'target', c:8, key:'X', ds:'A number, and what it counts', size:[4,4], onclick:'none', attrs:['count'], body:'' },
   link:    {shape:'card', nm:'Button',  ic:'arrow',   c:9, key:'E', ds:'A button that opens something', attrs:['button'], body:'' },
   achievement:{shape:'plaque', nm:'Achievement', ic:'trophy', c:12, key:'W', ds:'Something you actually did', size:[6,3], onclick:'read', attrs:['text','date'], body:'' },
@@ -180,9 +180,9 @@ const BUILTIN_KINDS = {
      // the type that makes tasks out of typing already exists, so a project
      // gets one put in it instead of growing a second one of its own
      seed:[{kind:'field', title:'Add to this project…'}],
-     layout:'grid', size:[5,5], phoneSize:[4,4], body:'' },
+     opens:'grid', size:[5,5], phoneSize:[4,4], body:'' },
   dream:   {shape:'dream', nm:'Dream',   ic:'star',    c:10, key:'9', ds:'Far off, and probably daft',   size:[5,5], onclick:'read', attrs:['text','media'], body:'**Why it pulls at me —** ' },
-  timeline:{face:'timeline', nm:'Timeline',ic:'clock',   c:5, key:'0', ds:'Things in the order they happened', attrs:['container'], layout:'timeline', size:[10,6], body:'' },
+  timeline:{face:'timeline', nm:'Timeline',ic:'clock',   c:5, key:'0', ds:'Things in the order they happened', attrs:['container'], opens:'timeline', size:[10,6], body:'' },
   appt:    {shape:'sliver', nm:'Event',   ic:'calendar',c:8, key:'V', ds:'Something at a time and place', size:[6,2], onclick:'read', attrs:['text','date','duration','location'], body:'' }
 };
 // Kinds you invent live in state alongside these; both are read through KINDS.
@@ -214,7 +214,7 @@ function seed(){
      phone is actually for. A drawer you make yourself starts unlocked, because
      you made it in order to arrange it. */
   const DR = (o)=> Object.assign({kind:'drawer', parent:ROOT, title:'', body:'',
-    tags:[], layout:'grid', ord:0, created:dz(-40)}, o);
+    tags:[], opens:'grid', ord:0, created:dz(-40)}, o);
   // The drawers whose whole job is a rule are magic drawers — they collect and
   // never hold. The rest are ordinary containers you file into.
   const MG = (o)=> DR(Object.assign({kind:'magic'}, o));
@@ -226,15 +226,15 @@ function seed(){
      front sitting on somebody else's board. See decision 40. */
   const DESK = (o)=> DR(Object.assign({parent:null, desk:null, phone:null}, o));
   const drawers = [
-    MG({id:'d_today', title:'Today',        c:6, layout:'list', filter:{due:'today', scope:'all'},      desk:{x:1,y:1,w:2,h:2},  phone:{x:1,y:1,w:2,h:2}}),
+    MG({id:'d_today', title:'Today',        c:6, opens:'list', filter:{due:'today', scope:'all'},      desk:{x:1,y:1,w:2,h:2},  phone:{x:1,y:1,w:2,h:2}}),
     /* The inbox **collects**; it does not hold. Everything loose on a desk —
        made and not yet put away — shows up in it, and stays exactly where it
        was made. A drawer that took what you made would be filing your desk for
        you, which is the one thing the desk is for. See decision 45. */
-    MG({id:'d_in',    title:'Inbox',        c:5, layout:'list', filter:{loose:true, scope:'all'}, desk:{x:3,y:1,w:2,h:2},  phone:{x:3,y:1,w:2,h:2}}),
+    MG({id:'d_in',    title:'Inbox',        c:5, opens:'list', filter:{loose:true, scope:'all'}, desk:{x:3,y:1,w:2,h:2},  phone:{x:3,y:1,w:2,h:2}}),
     // everything still to do, wherever it lives — the drawer that answers "what
     // is outstanding" without caring which desk or project it is outstanding on
-    MG({id:'d_all',   title:'Everything',   c:9, layout:'list', filter:{kinds:['task'], scope:'all'},   desk:{x:5,y:1,w:2,h:2},  phone:{x:5,y:1,w:2,h:2}}),
+    MG({id:'d_all',   title:'Everything',   c:9, opens:'list', filter:{kinds:['task'], scope:'all'},   desk:{x:5,y:1,w:2,h:2},  phone:{x:5,y:1,w:2,h:2}}),
     DR({id:'d_ideas', title:'Idea Bin',     c:12, desk:{x:7,y:1,w:2,h:2},  phone:{x:7,y:1,w:2,h:2}}),
     DR({id:'d_studio',title:'Studio',       c:9, desk:{x:9,y:1,w:2,h:2},  phone:{x:1,y:3,w:2,h:2}}),
     MG({id:'d_open',  title:'Open Questions',c:10,filter:{kinds:['question'], rule:{f:'answer',op:'is',v:''}},              desk:{x:11,y:1,w:2,h:2},  phone:{x:3,y:3,w:2,h:2}}),
@@ -405,7 +405,7 @@ function reset(){
     // viewId is the picture surface: what an object made of an image opens onto
     undo:[], redo:[], editing:false, sel:[], readId:null, writeId:null, viewId:null, editId:null, bookAt:0,
     // a desk you have arranged is one you want to look at, so it starts locked
-    deskCfg:{layout:'grid', sort:null},
+    deskCfg:{opens:'grid', sort:null},
     look:defaultLook()
   };
   refreshKinds();
@@ -440,23 +440,25 @@ const byId = id => S.objects.find(o=>o.id===id);
 const deskTitle = ()=>{ const n=((S.look&&S.look.owner)||'').trim();
   return n ? `${n}${/s$/i.test(n)?"'":"'s"} Desk` : 'Desk'; };
 const rootObj = ()=> Object.assign({id:ROOT, kind:'drawer', title:deskTitle(), c:5,
-                       pv:'list', filter:{}, layout:'grid', parent:null},
+                       pv:'list', filter:{}, opens:'grid', parent:null},
                        S.deskCfg||{});
 const container = id => (id===ROOT||!id) ? rootObj() : byId(id);
 // The desk's own settings aren't on an object, so writes have to go to deskCfg.
 const cfgOf = id => (id===ROOT||!id) ? S.deskCfg : (byId(id)||{});
 const isContainer = o => !!o && has(o,'container');
-/* A face is how a container draws itself on its parent's board. A layout is
-   how it arranges its children once opened. They used to be one property,
-   which meant a checklist could not also be sorted when you opened it. */
+/* A face is how an object draws itself on its parent's board and what that
+   drawing displays — containers and items alike, one vocabulary (decision 80).
+   How a container *opens* is a different question and a different property.
+   They used to be one, which meant a checklist could not also be sorted. */
 const FACES = {front:'Drawer front', checklist:'Checklist', project:'Project',
                calendar:'Calendar', moodboard:'Moodboard', timeline:'Timeline',
                spine:'Book spine'};
 const faceOf = o => (o && o.face) || K(o&&o.kind).face || 'front';
-// How a container arranges what it holds, once opened. The kind's is the
-// fallback, so a type that says it opens as a calendar does even when nothing
-// has written `layout` onto the object itself.
-const layoutOf = o => (o && o.layout) || K(o&&o.kind).layout || 'grid';
+// How a container arranges what it holds, once opened — the "Opens as" row.
+// Called `layout` until decision 81, which gave that word to a saved board.
+// The kind's is the fallback, so a type that says it opens as a calendar does
+// even when nothing has written `opens` onto the object itself.
+const opensOf = o => (o && o.opens) || K(o&&o.kind).opens || 'grid';
 
 /* `spawn` covers two things that make objects: a press, and a box you type
    into. Which one, and what comes out, are per object then per type — so a
@@ -491,7 +493,7 @@ const DONE_FACES = ['checklist','project','calendar','timeline'];
 const keepsDone = c => DONE_FACES.includes(faceOf(c));
 // laid out along time rather than in a grid — by face, or by how it opens
 const TIME_FACES = ['calendar','timeline'];
-const showsContainers = c => TIME_FACES.includes(faceOf(c)) || TIME_FACES.includes(layoutOf(c));
+const showsContainers = c => TIME_FACES.includes(faceOf(c)) || TIME_FACES.includes(opensOf(c));
 
 /* What a pile of these becomes. Dropping one object on another is only a
    gesture if both agree what they add up to — two tasks are a checklist, two
@@ -1166,7 +1168,7 @@ const allTags = ()=>{ const m={}; S.objects.forEach(o=>(o.tags||[]).forEach(t=>m
 
 export { ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds, K,
   attrsOf, has, kindHas, T, dz, S, sensedDevice, reset, defaultLook, dev, byId,
-  deskTitle, rootObj, container, cfgOf, isContainer, FACES, faceOf, layoutOf, SHAPES,
+  deskTitle, rootObj, container, cfgOf, isContainer, FACES, faceOf, opensOf, SHAPES,
   shapeOf, READS, readOf, spreadOf, OPENINGS, openingOf, gathersOf, gatherKind, containers,
   deskIds, deskList, isDesk, deskOf, deskHere,
   placeOf,

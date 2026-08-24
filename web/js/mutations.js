@@ -388,7 +388,7 @@ function create(kind, patch){
     const sd=styleDefaults();
     o.knob=o.knob||sd.knob; o.border=o.border||sd.border;
     o.texture=o.texture||sd.texture; o.knobtone=o.knobtone||sd.knobtone; o.pv = o.pv || 'list';
-    o.layout = o.layout || k.layout || 'list';
+    o.opens = o.opens || k.opens || 'list';
     // A type may declare the rule its containers start with — a calendar
     // collects anything dated the moment you make one, rather than being a
     // magic drawer you then have to explain itself to. Copied, never shared:

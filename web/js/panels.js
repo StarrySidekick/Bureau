@@ -2,7 +2,7 @@ import { $, $$, esc, ic, uid, clamp, D, ROOT } from './util.js';
 import { S, K, KINDS, KEYS, T, ATTRS, USER_ATTRS, FIELDS, fieldOf, OPS, ROLLS,
   WHENS, whenISO, RULE_MAX, rulesOf,
   SORTS, MANUAL, sortOf, FACES, SHAPES, READS, OPENINGS, openingOf,
-  faceOf, layoutOf, shapeOf, readOf, byId, container, cfgOf, deskTitle,
+  faceOf, opensOf, shapeOf, readOf, byId, container, cfgOf, deskTitle,
   rootObj, containers, isContainer, isAncestor, childrenOf, has, kindHas,
   attrsOf, allTags, placeOf, deskList, deskOf, isDesk, spanOf,
   dev, takesTyping, genKindOf, answered, isLate,
@@ -407,7 +407,7 @@ function objectPanelBody(id, sec){
      desk is a container without a tile, not a special case. */
   const d = isRoot ? rootObj() : o;
   const cont = isContainer(d), magic = has(d,'magic');
-  const view = isRoot ? (cfgOf(id).layout||'grid') : layoutOf(d);
+  const view = isRoot ? (cfgOf(id).opens||'grid') : opensOf(d);
   const cal = cont && (view==='calendar' || faceOf(d)==='calendar');
   const img = isPicture(d);
   const spawns = has(d,'spawn') || clickOf(d)==='generate';
@@ -512,7 +512,7 @@ function objectPanelBody(id, sec){
   if(at('does')) {
   /* ---- how it behaves ---- */
   if(cont){
-    out.push(prow('Opens as', psel(id,'layout',
+    out.push(prow('Opens as', psel(id,'opens',
       [['grid','Grid'],['list','List'],['scroll','Scroll'],
        ...(isRoot?[]:[['book','Book'],['calendar','Calendar'],['timeline','Timeline']])], view)));
     // manual is a value, not the absence of one: a container has to be able to
@@ -865,7 +865,7 @@ function sampleObject(spec){
     ...(a.includes('progress') ? {milestones:[{t:'One',done:true},{t:'Two',done:false}]} : {milestones:[]}),
     done:false,
     link:{label:spec.title||'Press', target:''},
-    knob:'round', border:'panel', texture:'none', layout:'list'
+    knob:'round', border:'panel', texture:'none', opens:'list'
   };
 }
 /* A tile is drawn at desk scale and then shrunk to fit the box it is given,
@@ -1187,7 +1187,7 @@ function drawerFromSelection(id){
   const spot = lay(objs[0]);
   const d = {
     id:uid('d'), kind:'drawer', title:'New drawer', body:'', tags:[],
-    parent:home, c:randomFront(), pv:'list', layout:'grid', filter:{}, board:randomBoard(),
+    parent:home, c:randomFront(), pv:'list', opens:'grid', filter:{}, board:randomBoard(),
     ord:0, created:T,
     desk:null, phone:null
   };

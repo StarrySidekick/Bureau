@@ -269,7 +269,7 @@ function act(name, el){
         read: dk.sort==='object' ? (dk.read||'page') : undefined,
         shape: dk.sort==='object' ? (dk.shape||'card') : undefined,
         face:  dk.sort==='object' ? undefined : (dk.face||'front'),
-        layout: dk.sort==='object' ? undefined : (base.layout||'grid'),
+        opens: dk.sort==='object' ? undefined : (base.opens||'grid'),
         // a container type says how its contents are ordered; manual is the
         // answer a drawer gives, and storing it as one keeps it a real choice
         sort: dk.sort==='object' ? undefined : (dk.sortBy||MANUAL),
@@ -911,7 +911,7 @@ function wire(){
 
     // how a drawer lays its contents out, from the drawer's own toolbar
     const lm=t.closest('[data-layoutmode]');
-    if(lm){ const d=byId(S.drawerId); if(d){ d.layout=lm.dataset.layoutmode; save(); render(); } return; }
+    if(lm){ const d=byId(S.drawerId); if(d){ d.opens=lm.dataset.layoutmode; save(); render(); } return; }
 
     // a button object's button
 

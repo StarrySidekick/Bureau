@@ -17,7 +17,7 @@ import { closePanel } from './panels.js';
    Bureau is this phone running" is exactly the question you ask when a change
    appears not to have deployed. Shown in Settings, so it can be read off the
    device rather than guessed at. */
-const APP_VERSION = '0.64';
+const APP_VERSION = '0.75';
 const KEY = 'bureau.v1';
 const install = {deferred:null};   // the browser's install prompt, when one is on offer
 let saveTimer = null;
@@ -222,7 +222,7 @@ function rescalePhone(d, from, cols){
    skips all of them, an old backup replays only what it is missing. These
    used to be ad-hoc per-load mutations inside adopt(); a new repair that
    should run once belongs here, as the next numbered step. */
-const DATA_V = 22;
+const DATA_V = 23;
 const MIGRATIONS = [
   // Drawers and objects were two arrays and a drawer could not live inside
   // anything. foldDrawers also replays the old dense flow to give v1 drawers
@@ -509,6 +509,18 @@ const MIGRATIONS = [
         d.look.locked = deskLock !== undefined ? !!deskLock
                       : sawALock ? lockedSomewhere : true;
     }},
+  /* `layout` meant "how a container arranges its children once opened", and its
+     row in the editor has always been labelled **Opens as**. That word is
+     needed for a saved board — a grid with objects already placed on it — so
+     the property is `opens` now and the label finally matches the thing.
+     Objects, invented types and the desk's own config all carry one.
+     See decision 81. */
+  {v:23, up(d){
+      const move = o => { if(o && o.layout != null){ if(o.opens == null) o.opens = o.layout; delete o.layout; } };
+      (d.objects||[]).forEach(move);
+      Object.values(d.kinds||{}).forEach(move);
+      move(d.deskCfg);
+    }},
 ];
 function migrate(d){
   let v = d.v||0;
@@ -522,7 +534,7 @@ function adopt(d){
   const fixedIds=dedupeIds(S.objects);
   if(fixedIds) setTimeout(()=>toast(`Repaired ${fixedIds} duplicated id${fixedIds>1?'s':''}`),400);
   S.kinds = d.kinds || {};
-  if(d.deskCfg) S.deskCfg = Object.assign({layout:'grid',locked:false,sort:null}, d.deskCfg);
+  if(d.deskCfg) S.deskCfg = Object.assign({opens:'grid',locked:false,sort:null}, d.deskCfg);
   S.look = Object.assign(defaultLook(), d.look||{});
   // the grid size is a coordinate space, so it has to be in place before
   // anything is laid out — every stored phone box is in its columns
@@ -756,7 +768,7 @@ function addSpec(spec, parentId, tally){
   if(spec.colour||spec.color) o.c=spec.colour||spec.color;
   if(spec.shape) o.shape=spec.shape;
   if(spec.face)  o.face=spec.face;
-  if(spec.layout) o.layout=spec.layout;
+  if(spec.opens||spec.layout) o.opens=spec.opens||spec.layout;
   if(spec.onclick) o.onclick=spec.onclick;
   const [dw,dh]=sizeOfKind(kind, dev());
   const w=clamp(parseInt(spec.w,10)||dw,1,gridOf().cols), h=Math.max(1,parseInt(spec.h,10)||dh);

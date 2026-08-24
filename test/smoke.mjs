@@ -448,7 +448,7 @@ const CHROME = process.env.BUREAU_CHROME;
         return dow !== 0 && dow !== 6;
       });
     // the same container as a timeline: items placed, and zoom widens the axis
-    cal.layout = 'timeline'; BUREAU.render();
+    cal.opens = 'timeline'; BUREAU.render();
     await nap(200);
     const w0 = parseFloat(document.querySelector('.tlcanvas').style.width);
     const marks = document.querySelectorAll('.tlitem').length;
@@ -1022,7 +1022,7 @@ const CHROME = process.env.BUREAU_CHROME;
        properties: `layout` pages through the scenes it holds, `read` pages
        through its own body. It used to assert `onclick === 'read'`, which a
        container has no use for — clicking one navigates into it. */
-    out.storyOpensAsBook = BUREAU.K.story.read === 'book' && BUREAU.K.story.layout === 'book';
+    out.storyOpensAsBook = BUREAU.K.story.read === 'book' && BUREAU.K.story.opens === 'book';
 
     S.readId = null; BUREAU.renderSheet();
     BUREAU.del(o.id); S.undo = [];
@@ -1207,7 +1207,7 @@ const CHROME = process.env.BUREAU_CHROME;
     const manual = titles().join();
     out.drawerIsManual = manual !== 'Alpha,Bravo,Charlie' && manual.split(',').length === 3;
     BUREAU.K.sorttype = { nm:'Sorted', ic:'folder', c:5, key:'', ds:'test',
-      attrs:['container'], layout:'grid', size:[4,4], sort:'az', body:'' };
+      attrs:['container'], opens:'grid', size:[4,4], sort:'az', body:'' };
     d.kind = 'sorttype';
     out.typeSorts = titles().join() === 'Alpha,Bravo,Charlie';
     d.sort = 'manual';                       // one drawer refusing its type
@@ -1675,7 +1675,7 @@ const CHROME = process.env.BUREAU_CHROME;
   const listSwipe = await phone.evaluate(async () => {
     const nap = n => new Promise(r => setTimeout(r, n));
     const S = BUREAU.state, out = {};
-    S.view='desk'; S.drawerId=null; S.deskCfg.layout='list'; BUREAU.render(); await nap(250);
+    S.view='desk'; S.drawerId=null; S.deskCfg.opens='list'; BUREAU.render(); await nap(250);
     const sc = document.querySelector('#app .scroll');
     out.aListDeskHasNoGrid = !!sc && !sc.querySelector('.grid');
     const r = sc.getBoundingClientRect();
@@ -1688,7 +1688,7 @@ const CHROME = process.env.BUREAU_CHROME;
     ev('pointerup', x - 240, y);
     await nap(450);
     out.andLandsOnTheNextDesk = S.drawerId === S.desks[1];
-    S.view='desk'; S.drawerId=null; S.deskCfg.layout='grid'; BUREAU.render(); await nap(200);
+    S.view='desk'; S.drawerId=null; S.deskCfg.opens='grid'; BUREAU.render(); await nap(200);
     return out;
   });
   await phone.screenshot({ path: 'test/shots/19-phone-board.png' });
