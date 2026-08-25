@@ -1,0 +1,57 @@
+# Publishes the app to GitHub Pages on every push to main.
+#
+# The activities are CSVs in packs/, and js/activities.js is built from them.
+# Building here rather than trusting the committed copy is what makes editing a
+# CSV — on github.com from a phone, or by pushing a spreadsheet export over it —
+# enough to change the live app. A CSV the build refuses fails the deploy
+# instead of shipping a broken deck.
+name: Deploy to Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Let a running deploy finish; queue at most one behind it.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - name: Build the activity packs
+        run: |
+          cp js/activities.js /tmp/committed.js
+          node scripts/build-activities.mjs
+          if ! cmp -s js/activities.js /tmp/committed.js; then
+            echo "::notice::js/activities.js was rebuilt from packs/ — the committed copy was out of date. Run 'node scripts/build-activities.mjs' and commit it."
+          fi
+      # Assembled outside the tree and moved in: `cp -r . _site/` with _site
+      # already inside the tree copies _site into itself.
+      - name: Assemble the site
+        run: |
+          rm -rf /tmp/site && mkdir -p /tmp/site
+          cp -r . /tmp/site/
+          rm -rf /tmp/site/.git /tmp/site/.github /tmp/site/test /tmp/site/scripts \
+                 /tmp/site/packs /tmp/site/node_modules /tmp/site/CLAUDE.md \
+                 /tmp/site/package.json /tmp/site/package-lock.json /tmp/site/.gitignore
+          mv /tmp/site _site
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4

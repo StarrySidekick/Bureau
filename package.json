@@ -1,0 +1,15 @@
+{
+  "name": "activinator",
+  "private": true,
+  "description": "A deck of things to actually go and do.",
+  "scripts": {
+    "build": "node scripts/build-activities.mjs",
+    "check": "node scripts/build-activities.mjs --check",
+    "serve": "scripts/serve.sh",
+    "test": "node test/smoke.mjs && node test/upgrade.mjs && node scripts/build-activities.mjs --check",
+    "marks": "node test/marks.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.62.1"
+  }
+}

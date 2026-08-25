@@ -8,27 +8,27 @@ permanently, keeping some of the deck outside what it thinks you are like.
 The point is a scroll where every card is a launchpad off the phone. Same
 thumb, opposite direction.
 
-It lives in this repository for now because it was started from a phone. It is
-self-contained in `activinator/` — no imports from Bureau, no shared files — so
-moving it to its own repository is `git mv activinator ../activinator` plus
-undoing two things: the assemble step in `.github/workflows/pages.yml`, and the
-`/activinator/` guard in `web/sw.js`. Both are marked.
+It started inside another repository — Bureau — because it was begun from a
+phone, and it kept its history through the move. Nothing is shared with Bureau
+any more except a hostname, which still matters: see the cache note under
+Deploying.
 
 ## Running it
 
 ```bash
+npm install                             # playwright, for the tests
 scripts/serve.sh                        # http://localhost:8010
 node scripts/build-activities.mjs       # packs/*.csv → js/activities.js
 node test/smoke.mjs                     # headless check, needs the server running
 node test/upgrade.mjs                   # boots from old saved states
+npm test                                # all of it
 ```
 
 Open it over http, never as a `file://` URL — the service worker won't register
 and the manifest won't load, so you'd be testing a different app than the one
 that ships.
 
-`test/smoke.mjs` needs Playwright (`npm i playwright` at the repo root, which is
-already a dependency there). `test/upgrade.mjs` is the other half, and the more important one: it boots the
+`test/smoke.mjs` needs Playwright (`npm install`). `test/upgrade.mjs` is the other half, and the more important one: it boots the
 app from the shapes a phone that has had it installed for a while actually has
 saved. That path only ever runs on somebody's real device, it was not tested,
 and it broke — a `ctx` saved under the old vocabulary said `where:'any'`, the
@@ -49,9 +49,9 @@ right.
 
 ## Deploying
 
-Live at **https://starrysidekick.github.io/bureau/activinator/**. Pushing to
-`main` deploys it — `.github/workflows/pages.yml` assembles `web/` at the root
-with `activinator/` beside it, minus `test/` and `scripts/`.
+Live at **https://starrysidekick.github.io/activinator/**. Pushing to `main`
+deploys it — `.github/workflows/pages.yml` builds the packs, then uploads the
+repository minus `test/`, `scripts/`, `packs/` and its own machinery.
 
 After changing anything in `js/`, `css/` or `index.html`, bump `CACHE` in
 `sw.js` **and** `APP_VERSION` in `js/state.js`. Without the cache bump an
@@ -60,20 +60,22 @@ didn't deploy" — points at the wrong culprit. A new file must also be added to
 `SHELL` in `sw.js` or it won't be there offline. An already-open page finishes
 on the old assets, so a bump takes effect on the **second** launch.
 
-**It shares an origin with Bureau, and a cache store belongs to the origin
-rather than to a service worker's scope.** Both workers therefore see each
-other's caches in `caches.keys()`, and the usual `filter(k => k !== CACHE)` on
-activate reads as "delete everything anybody else put here". It did exactly
-that: one visit to Activinator wiped Bureau's entire shell, and Bureau's next
-launch quietly rebuilt a partial one from whatever that page happened to
-request. Both workers now reap **only their own prefix**. In the same vein,
-Bureau's worker skips `/activinator/` altogether — its navigation branch stores
-whatever it fetched as Bureau's own shell, so without that guard opening this
-app once left Bureau opening into this app whenever it was offline.
+**It still shares an origin with Bureau, and a cache store belongs to the
+origin rather than to a service worker's scope.** Both are served from
+`starrysidekick.github.io`, so both workers see each other's caches in
+`caches.keys()` — even now that neither app is inside the other's scope. The
+usual `filter(k => k !== CACHE)` on activate therefore reads as "delete
+everything anybody else put here", and it did exactly that: one visit to
+Activinator wiped Bureau's entire shell, and Bureau's next launch quietly
+rebuilt a partial one from whatever that page happened to request. This worker
+reaps **only `activinator-` caches**, and Bureau's reaps only its own. Do not
+"tidy" that back into `k !== CACHE`.
 
-`test/deploy.mjs` at the repository root is the guard on both of those. It is
-the one test that has to run against the assembled site rather than either app
-alone.
+Being on a path of its own does fix the other half of it: Bureau's worker used
+to store whatever it fetched at `/bureau/activinator/` as Bureau's own shell,
+so opening this app once left Bureau opening into this app offline. Nothing is
+served under Bureau's scope any more but a redirect from the old address, which
+Bureau's worker still skips for that reason.
 
 ## Where the activities live
 
@@ -289,7 +291,7 @@ didn't deploy" — points at the wrong culprit. A new file must also be added to
 
 ## Not yet
 
-- Sync between devices. Export/import JSON is the bridge, as in Bureau.
+- Sync between devices. Export/import JSON is the bridge.
 - Anything that phones home. There is no server and there is not going to be
   one; the whole model is a few dozen numbers in localStorage.
 - Time of day and weather as context. Both are obvious and both need care —
