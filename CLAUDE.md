@@ -78,16 +78,22 @@ the cache bump, installed copies keep serving the old version. A **new** file mu
 it won't work offline. This is the easiest thing in the project to forget and
 the symptom — "my change didn't deploy" — points at the wrong culprit.
 
-**A second app is deployed beside Bureau, and it shares the origin.**
-`activinator/` goes out at `/activinator/` — inside this service worker's scope
-and inside the same cache store, because a cache store belongs to the origin and
-not to a scope. Two consequences, both of which were real: the usual
-`filter(k => k !== CACHE)` on activate means "delete every cache anybody else
-put here", so each app wiped the other's shell; and the navigation branch stores
-whatever it fetched as *Bureau's* `./index.html`, so one visit to the other app
-left Bureau opening into it offline. `sw.js` therefore reaps only `bureau-`
-caches and skips `/activinator/` entirely. `test/deploy.mjs` runs against the
-assembled site and guards both. Don't undo either without reading it.
+**A second app used to be deployed beside Bureau, and it still shares the
+origin.** Activinator lives in its own repository now
+(StarrySidekick/Activinator, deployed at `/activinator/`), but project sites
+share `starrysidekick.github.io`, and a cache store belongs to the origin and
+not to a scope — the usual `filter(k => k !== CACHE)` on activate means
+"delete every cache anybody else put here", and when the two apps did that to
+each other it wiped both shells. `sw.js` therefore reaps only `bureau-` caches,
+and that must outlive the move. What remains in this repository is
+`web/activinator/`, the **hand-off stub** at the old `/bureau/activinator/`
+address: an index.html that redirects to the new home, and a self-destructing
+sw.js that takes down the worker an installed copy is still running. Bureau's
+worker skips `/activinator/` entirely — its navigation branch stores whatever
+it fetched as *Bureau's* `./index.html`, so without the guard one visit to that
+path left Bureau opening into it offline, and the stub's sw.js must be fetched
+fresh to do its job. `test/deploy.mjs` runs against `web/` as deployed and
+guards all of it. Don't undo any of this without reading it.
 
 Two more things about that cache, both of which have wasted a session already:
 the shell is fetched with `cache:'reload'` so a bump can't refill the new cache

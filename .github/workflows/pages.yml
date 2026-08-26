@@ -1,11 +1,12 @@
-# Publishes web/ to GitHub Pages on every push to main, with activinator/
-# alongside it at /activinator/.
+# Publishes web/ to GitHub Pages on every push to main.
 # The app lives in web/, and Pages' branch mode only serves the repo root or
 # docs/ — docs/ is the written documentation, so we deploy an artifact instead.
 #
-# Activinator is a separate app that happens to live in this repository. It is
-# served from a path inside Bureau's service worker scope, which is why that
-# worker skips /activinator/ — see the guard in web/sw.js.
+# web/activinator/ is not an app: it is the hand-off stub for Activinator,
+# which used to be served from this repository at /activinator/ and lives in
+# StarrySidekick/Activinator now. The stub redirects, and its sw.js takes down
+# the worker an installed copy is still running. See the guard in web/sw.js
+# and test/deploy.mjs before touching it.
 name: Deploy to Pages
 
 on:
@@ -32,29 +33,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
-      - uses: actions/setup-node@v4
-        with: { node-version: '20' }
-      # The activities are CSVs in activinator/packs/, and js/activities.js is
-      # built from them. Building here rather than trusting the committed copy
-      # is what makes editing a CSV — on github.com from a phone, or by pushing
-      # a spreadsheet export over it — enough to change the live app. A CSV the
-      # build refuses fails the deploy instead of shipping a broken deck.
-      - name: Build the activity packs
-        working-directory: activinator
-        run: |
-          cp js/activities.js /tmp/committed.js
-          node scripts/build-activities.mjs
-          if ! cmp -s js/activities.js /tmp/committed.js; then
-            echo "::notice::js/activities.js was rebuilt from packs/ — the committed copy was out of date. Run 'node scripts/build-activities.mjs' and commit it."
-          fi
-      - name: Assemble the site
-        run: |
-          mkdir -p _site
-          cp -r web/. _site/
-          cp -r activinator _site/activinator
-          rm -rf _site/activinator/test _site/activinator/scripts _site/activinator/packs
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: _site
+          path: web
       - id: deployment
         uses: actions/deploy-pages@v4

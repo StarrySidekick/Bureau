@@ -17,15 +17,14 @@ docs/NATIVE-PORT.md  the Swift route, if and when it's worth it
 web/                 the app — index.html is the entire thing
 test/smoke.mjs       headless browser check
 scripts/serve.sh     local server
-activinator/         a second, separate app — see activinator/README.md
 ```
 
-`activinator/` is not part of Bureau. It is a card deck of things to go and do,
-started here for convenience and self-contained so it can be moved to its own
-repository. It shares no code with Bureau — but it is deployed beside it, at
-`/activinator/`, which puts it inside Bureau's service worker scope and its
-origin's cache store. `test/deploy.mjs` guards that seam; read
-`activinator/README.md` before touching either service worker.
+Activinator — a card deck of things to go and do — started life in this
+repository and lives in its own now: StarrySidekick/Activinator. What remains
+here is `web/activinator/`, a hand-off stub at its old address that sends an
+installed copy to the new one, and the fact that the two apps still share the
+`starrysidekick.github.io` origin — so Bureau's service worker still reaps only
+its own `bureau-` caches. `test/deploy.mjs` guards both.
 
 ## Run it
 
