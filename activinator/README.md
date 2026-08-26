@@ -49,7 +49,7 @@ right.
 
 ## Deploying
 
-Live at **https://starrysidekick.github.io/bureau/activinator/**. Pushing to
+Live at **https://starrysidekick.github.io/Bureau/activinator/**. Pushing to
 `main` deploys it — `.github/workflows/pages.yml` assembles `web/` at the root
 with `activinator/` beside it, minus `test/` and `scripts/`.
 

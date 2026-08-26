@@ -61,7 +61,7 @@ thing in a big frame is the save.
 
 ## Deploying
 
-Live at **https://starrysidekick.github.io/bureau/**. Pushing to `main` deploys
+Live at **https://starrysidekick.github.io/Bureau/**. Pushing to `main` deploys
 it — `.github/workflows/pages.yml` uploads `web/` as the Pages artifact. Pages'
 branch mode can only serve the repo root or `docs/`, and `docs/` is the written
 documentation, hence the workflow.
