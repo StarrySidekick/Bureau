@@ -50,7 +50,7 @@ looks right, and this is an app where looking right is most of the point.
 
 ## Install it
 
-Live at **https://starrysidekick.github.io/bureau/**. Every push to `main`
+Live at **https://starrysidekick.github.io/Bureau/**. Every push to `main`
 redeploys it. Then:
 
 - **iPhone** — open the URL in Safari, Share → Add to Home Screen. Launch from

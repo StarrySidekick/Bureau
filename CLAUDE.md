@@ -61,7 +61,7 @@ thing in a big frame is the save.
 
 ## Deploying
 
-Live at **https://starrysidekick.github.io/bureau/**. Pushing to `main` deploys
+Live at **https://starrysidekick.github.io/Bureau/**. Pushing to `main` deploys
 it — `.github/workflows/pages.yml` uploads `web/` as the Pages artifact. Pages'
 branch mode can only serve the repo root or `docs/`, and `docs/` is the written
 documentation, hence the workflow.
@@ -80,13 +80,13 @@ the symptom — "my change didn't deploy" — points at the wrong culprit.
 
 **A second app used to be deployed beside Bureau, and it still shares the
 origin.** Activinator lives in its own repository now
-(StarrySidekick/Activinator, deployed at `/activinator/`), but project sites
+(StarrySidekick/Activinator, deployed at `/Activinator/`), but project sites
 share `starrysidekick.github.io`, and a cache store belongs to the origin and
 not to a scope — the usual `filter(k => k !== CACHE)` on activate means
 "delete every cache anybody else put here", and when the two apps did that to
 each other it wiped both shells. `sw.js` therefore reaps only `bureau-` caches,
 and that must outlive the move. What remains in this repository is
-`web/activinator/`, the **hand-off stub** at the old `/bureau/activinator/`
+`web/activinator/`, the **hand-off stub** at the old `/Bureau/activinator/`
 address: an index.html that redirects to the new home, and a self-destructing
 sw.js that takes down the worker an installed copy is still running. Bureau's
 worker skips `/activinator/` entirely — its navigation branch stores whatever

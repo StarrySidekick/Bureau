@@ -13,7 +13,7 @@
 import { chromium } from 'playwright';
 const URL = process.env.SITE_URL || 'http://127.0.0.1:8020';
 const CHROME = process.env.BUREAU_CHROME;
-const NEW_HOME = 'https://starrysidekick.github.io/activinator/';
+const NEW_HOME = 'https://starrysidekick.github.io/Activinator/';
 
 // A cache store belongs to the origin, not to a service worker's scope, so
 // every worker on the origin can reap every cache. Count them all.
