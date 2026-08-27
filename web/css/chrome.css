@@ -273,15 +273,25 @@
 .drawer.dtile.cltile{padding:0;background-color:var(--paper-2);
   --dink:var(--ink);--dink-2:var(--ink-2);--dink-3:var(--ink-3)}
 .drawer.dtile.cltile:hover{filter:none}
+/* The gilt wears differently on paper than on a drawer front. The wash goes —
+   leaf laid across paper reads as a stain, not light — and the ruled frame
+   moves out to the edge: inset 5px it stole 5px of every row, and the whole
+   point of these rows is that the box stands exactly where a task tile's
+   does. At the edge the hairline and the glow border read as one gilt rim,
+   with the corner brackets on it. */
+.drawer.dtile.cltile{background-image:none}
+.drawer.dtile.cltile::before{inset:0;border-radius:inherit}
 .drawer.dtile.cltile .dbody{margin-top:0}
 .drawer.dtile.cltile.clidle{padding:11px 13px}
 /* one cell tall is exactly one task — the body is the whole face, so the
    sz-short rule that hides a body it has no room for doesn't apply here */
 .drawer.sz-short.cltile .dbody{display:block}
 .clist{display:flex;flex-direction:column;overflow:hidden;height:100%}
+/* 10px at the sides — the task tile's own one-row padding (sz-short), so the
+   box on a line and the box on a loose task stand at the same x */
 .cline{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--dink);
   font-family:var(--serif);font-weight:600;
-  cursor:pointer;padding:0 12px;overflow:hidden;overflow-wrap:anywhere;line-height:1.25;
+  cursor:pointer;padding:0 10px;overflow:hidden;overflow-wrap:anywhere;line-height:1.25;
   flex:0 0 calc(100%/var(--clrows,4));min-height:0}
 .cline + .cline,.cladd + .cline{border-top:1px solid var(--rule)}
 .cline:hover{background:color-mix(in srgb, var(--ink) 5%, transparent)}
@@ -313,7 +323,7 @@
 .cladd:focus-within{border-style:solid;border-color:var(--dink);color:var(--dink)}
 /* on a checklist face the box is a row of the stack — one task-sized line,
    a dashed rule underneath instead of a pill of its own */
-.cltile .cladd{flex:0 0 calc(100%/var(--clrows,4));margin:0;padding:0 12px;border:0;
+.cltile .cladd{flex:0 0 calc(100%/var(--clrows,4));margin:0;padding:0 10px;border:0;
   border-bottom:1px dashed var(--dink-3);border-radius:0;min-height:0}
 .cltile .cladd:focus-within{border-bottom-style:solid}
 /* what you type becomes a row, so the field is set like one */
