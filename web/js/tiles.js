@@ -214,6 +214,19 @@ function calSoon(o, n){
   const later=kids.filter(x=>due(x)>T).sort(byDue);
   return [...late, ...today, ...later].slice(0,n);
 }
+/* A small calendar face wears its border at the **edge**, the way a checklist
+   does: the gilt held off by five pixels is five pixels taken out of every row
+   of an agenda, and on a tile this size a ruled frame sitting inside a
+   moulding ring reads as two borders, the inner one grey. So up to three cells
+   a side the frame goes to the rim and the border slot sits out — on a magic
+   calendar, which is nearly all of them, the gilt *is* the border there. Every
+   face below the month gets it whatever its height, because a two-by-six
+   agenda is the same edge-to-edge rows a two-by-two one is; the month keeps
+   both once it is bigger than three cells a side, where there is room for
+   them. See decisions 79 and 80. */
+const calBorder = (o, snug) => `${snug?' calsnug':''}${has(o,'magic')?' magicdrawer':''}${
+  snug && has(o,'magic') ? '' : ` bd-${o.border||'panel'}`}`;
+
 /* An agenda row: when first, then what — a calendar's own order of asking. */
 const calRow = x => `<span class="calrow${isLate(x)&&!coversDay(x,T)?' late':''}" data-row="${x.id}"
   title="${esc(x.title||'Untitled')}">
@@ -373,8 +386,8 @@ function drawTile(o, arr, box){
     /* A calendar at one cell is still a calendar: the tear-off day pad — the
        month small, today big — not an anonymous mark. See decision 80. */
     if(cont && faceOf(o)==='calendar'){
-      return `<button class="drawer dtile caltile calpad1 bd-${o.border||'panel'}${sel}${
-          has(o,'magic')?' magicdrawer':''}" data-drawer="${o.id}" title="${esc(o.title||'Untitled')}"
+      return `<button class="drawer dtile caltile calpad1${sel}${calBorder(o,true)}"
+        data-drawer="${o.id}" title="${esc(o.title||'Untitled')}"
         style="--c:${colour};--crows:1;${place}">
         ${calPad(o)}
         ${handles}
@@ -592,11 +605,10 @@ function drawTile(o, arr, box){
      titles the way a wall calendar does. Below the month the name rides on
      the tooltip, the same as the checklist's. */
   if(cont && faceOf(o)==='calendar'){
-    const magic = has(o,'magic')?' magicdrawer':'';
     // one cell tall: the pad, and the next thing or two beside it
     if(box.h<=1){
       const soon=calSoon(o, box.w>=3?2:1);
-      return `<button class="drawer dtile caltile calstrip bd-${o.border||'panel'}${sel}${magic}"
+      return `<button class="drawer dtile caltile calstrip${sel}${calBorder(o,true)}"
           data-drawer="${o.id}" title="${esc(o.title||'Untitled')}" style="--c:${colour};--crows:1;${place}">
         ${calPad(o)}
         <span class="calnext">${soon.map(calRow).join('') || '<span class="calquiet">Nothing coming up</span>'}</span>
@@ -607,7 +619,7 @@ function drawTile(o, arr, box){
     // what whole rows fit under the pad — a half row is worse than a blank.
     if(box.w<3 || box.h<3){
       const soon=calSoon(o, Math.max(1, Math.floor((box.h-1)*2.2)));
-      return `<button class="drawer dtile caltile calagenda bd-${o.border||'panel'}${sel}${magic}"
+      return `<button class="drawer dtile caltile calagenda${sel}${calBorder(o,true)}"
           data-drawer="${o.id}" title="${esc(o.title||'Untitled')}" style="--c:${colour};--crows:${box.h};${place}">
         <div class="calagtop">${calPad(o)}
           <span class="calagcap">${esc(D.today().toLocaleDateString(undefined,{weekday:'long'}))}</span></div>
@@ -622,7 +634,7 @@ function drawTile(o, arr, box){
     const at=D.parse(o.month||T)||D.today(), view=calViewOf(o);
     const cap = view==='day' ? at.toLocaleDateString(undefined,{weekday:'long',day:'numeric'})
       : at.toLocaleDateString(undefined, view==='week'?{month:'short',day:'numeric'}:{month:'long'});
-    return `<button class="drawer dtile caltile bd-${o.border||'panel'}${sel}${magic}"
+    return `<button class="drawer dtile caltile${sel}${calBorder(o, box.w<=3 && box.h<=3)}"
       data-drawer="${o.id}" style="--c:${colour};${place}">
       <div class="dtop"><span class="dname">${esc(o.title||'Untitled')}</span>
         ${rollTag(o)}

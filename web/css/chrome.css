@@ -402,6 +402,14 @@ html .drawer.dtile.cltile{background-image:none}
    Below the month the face is a desk calendar: the tear-off day pad, then as
    much of the agenda as the box affords. --crows is the box's height in
    cells, so the pad's numeral and the top row size to one cell of it. */
+/* A small face wears its border at the edge, the way a checklist does — the
+   gilt held off by five pixels is five pixels out of every agenda row, and on
+   a tile this size a ruled frame inside a moulding ring is two borders. The
+   slot is left off in tiles.js on a magic one, so this is the whole border. */
+.drawer.dtile.caltile.calsnug::before{inset:0;border-radius:inherit}
+/* …and one cell square is no longer too small to rule, because at the rim the
+   frame is the tile's own edge rather than a second one drawn inside it */
+.drawer.dtile.caltile.calsnug.sz-mini::before{content:""}
 .calpad{display:flex;flex-direction:column;align-items:center;justify-content:center;
   height:100%;aspect-ratio:1;flex:0 0 auto;color:var(--dink);cursor:pointer}
 .calpad u{text-decoration:none;font-size:9px;line-height:1.7;letter-spacing:.18em;

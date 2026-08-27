@@ -2998,6 +2998,13 @@ const CHROME = process.env.BUREAU_CHROME;
     await set(3,3);
     out.monthAtThree = !!face().querySelector('.calgrid')
       && !face().querySelector('.calgrid.cal-titles');
+    /* …and up to three cells a side the border is at the edge, the way a
+       checklist's is: the gilt is the border and the slot sits out. */
+    const slotted = () => [...face().classList].some(c => c.startsWith('bd-'));
+    out.snugToThreeCells = face().classList.contains('calsnug') && !slotted()
+      && getComputedStyle(face(), '::before').insetBlockStart === '0px';
+    await set(4,4);
+    out.roomForBothAtFour = !face().classList.contains('calsnug') && slotted();
     await set(12,6);
     out.plannerWritesTitles = !!face().querySelector('.calgrid.cal-titles')
       && [...face().querySelectorAll('.cday em')].some(e => e.textContent === 'Dentist');

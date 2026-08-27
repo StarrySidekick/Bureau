@@ -364,7 +364,9 @@ The face adapts to the box it is drawn in: one cell square is the tear-off day
 pad (the month small, today large), one cell tall is the pad plus the next
 thing or two, two wide or two tall is the pad over an agenda, three cells a
 side earns the month grid, and twelve wide by six tall earns the planner —
-titles printed in the day cells, the rest summed. The pad always shows today
+titles printed in the day cells, the rest summed. Up to three cells a side the
+gilt sits at the **rim** and the border slot sits out, the way a checklist's
+does — `calBorder(o, snug)` in tiles.js writes both decisions. The pad always shows today
 and carries today's `data-calday`, so a drop on a small calendar still dates
 the thing; below the month the name rides on the tooltip, like the
 checklist's. `calSoon()` in tiles.js is the agenda's order: late first, then

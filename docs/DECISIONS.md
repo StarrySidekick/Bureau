@@ -2620,6 +2620,15 @@ So the face is adaptive, by the box it is drawn in:
   title needs; a phone board is at most ten columns, so the planner is a desk
   face by arithmetic rather than by rule.
 
+Up to **three cells a side** the border goes to the rim, the way a
+checklist's does (decision 79): the gilt held off by five pixels is five
+pixels out of every agenda row, and on a tile that size a ruled frame inside a
+moulding ring reads as two borders, the inner one grey. The border slot sits
+out there, so on a magic calendar — which is nearly all of them — the gilt
+*is* the border. Every face below the month gets it whatever its height, since
+a two-by-six agenda is the same edge-to-edge rows a two-by-two one is; from
+four cells a side the month has room for both and keeps them.
+
 The pad always shows **today** — paging months is the month face's job — and
 it carries today's `data-calday`, so dropping a thing on a small calendar
 still dates it. Below the month the calendar's name rides on the tooltip,
