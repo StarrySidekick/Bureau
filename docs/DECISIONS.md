@@ -2634,3 +2634,94 @@ it carries today's `data-calday`, so dropping a thing on a small calendar
 still dates it. Below the month the calendar's name rides on the tooltip,
 exactly as the checklist's does (decision 79): the pad is the identity, and
 a label would cost the one row the face has.
+
+---
+
+### 81. A locked board opens for one thing at a time, and shuts behind it
+
+The lock is which mode you are in — reading the desk, or arranging it
+(decision 74). Holding a tile on a locked board and dragging it opens the
+board, because you have already answered the question the padlock asks. What
+was wrong was what happened next: the board **stayed** open. One deliberate
+nudge on a locked desk turned every later tap into a tile you could shove by
+accident, and putting it back meant noticing the padlock had changed. The
+unlock now lasts exactly as long as your finger does: `relock` is set when the
+board opens and `onUp()` shuts it before the drop renders. No toast either
+way — you did not ask for a mode, you moved one thing.
+
+Two attributes are the standing version of the same exception, per object
+rather than per gesture. `movable` keeps an object's drag on a locked board
+and `resizable` keeps its corners; a sorted board still refuses both, because
+it isn't locked — it arranges itself, so a move there has nowhere to land.
+Neither is on by default. Each says so on its own tile: a **pin** at the top
+left for one you can still pick up, a **bracket** at the bottom right for one
+you can still resize. Both ride along with the resize grips, which is the one
+thing every branch of `drawTile()` already renders, so a face nobody has
+thought about gets them without being told.
+
+That made `arr` three answers instead of two. `true` is an unlocked board,
+`'locked'` is a locked one, and `false` is not a board at all — a sample in
+the type picker, the stage in an editor. A locked board draws the grips of a
+`resizable` object and the marks of both traits; a sample draws neither,
+because it is a picture of a tile rather than a tile.
+
+**A grip is bigger than the mark that advertises it.** A corner you have to
+hit dead-on is a corner you miss, so the target reaches well past the little
+square: 22px on a desk, 40px on a phone, and the square keeps its size and its
+place because the dot is positioned inside the grip in pixels rather than
+being an inset of it. Capped at a third of the tile, which also fixes
+something that had been true all along — four 34px corners on a 1×1 phone tile
+were the whole tile, so a mini tile could not be picked up at all.
+
+**And a new object drops onto the board.** It falls in from above, bounces
+once and settles, rather than being there on the next frame. A thing that
+appears has to be found; a thing that lands has been watched all the way down
+— which is the job `reveal()` was doing with a ring of light, and the ring
+stays, because the drop says where and the glow says which. State first,
+movement after, as always: the object is made, placed and saved before any of
+it draws. The tilt rides in every step, so a thing made on a pinned board
+lands at the angle it is going to keep.
+
+---
+
+### 82. The page you are reading is the page you write on
+
+Reading and writing were two surfaces. Changing one word meant leaving the
+paper, arriving at a screen holding the same words in a different face,
+fixing it, and coming back — the long way round for something that is, on a
+note, a line and a paragraph.
+
+Tapping the paper puts a caret in it now, in the page's own typography, so
+the words do not move when the caret arrives. The whole body is the field
+however the page happens to be broken up, because a page is where a paragraph
+*landed* rather than a thing you edit one of; the breaks are re-measured
+(`clearPages()`) when you put it down. The full-screen writing surface stays —
+it is the right shape for something long — but it is no longer the toll gate
+in front of a typo.
+
+That freed the header, which was a title, three mode chips, and two pill
+buttons. It is three things now:
+
+- **the mode**, as one button that cycles book → page → scroll and wears the
+  one it is on. Three chips meant two were always the wrong answer and the
+  third was saying what the paper in front of you already said.
+- **copy**, as the universal two-sheets glyph. It is the same verb everywhere
+  and it does not need a word.
+- **Edit**, which now means the *object editor* — everything about the thing
+  that isn't its words. With the words editable on the page, that is the only
+  editing left to send you anywhere.
+
+---
+
+### 83. A tick box is a fact about the desk
+
+Six shapes: rounded square, circle, sharp square, fills-in, ballot box, dot.
+One is picked in Settings and every box in the app wears it — the 38px one on
+a task tile, the 19px one in a list row, the line on a checklist front.
+
+Per desk rather than per type, and deliberately: a task ticked one way and a
+checklist line ticked another are two apps sharing a board. It lives in `look`
+beside the shadows and the grid, is written once onto the root element by
+`applyLook()` as `data-checks`, and the stylesheet answers for every box off
+that — the same trick `data-style` plays. An unrecognised value falls back to
+the default rather than leaving the desk with no boxes at all.

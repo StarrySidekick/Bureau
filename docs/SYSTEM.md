@@ -414,6 +414,7 @@ decision 51.
 | Pull up the rail along the bottom | A drawer front follows your finger; carry it a quarter of the screen and it opens the type picker, with nowhere in mind. A phone |
 | Tap the knob on that rail | Out one level: out of a drawer to its desk, from a desk to home |
 | Hold a tile, then move | The menu goes and the tile is in your hand, iOS-style — and the board unlocks |
+| Tap a page while reading | The paper becomes the field — the body, in the page's own face. Decision 82 |
 | Tap the words on anything | They become a field — on an **unlocked** board only. A tile, a list band, a line on a checklist front |
 | Tap a checklist line's box | Ticks it. The words are how you change it |
 | Swipe a list row left | Delete it |

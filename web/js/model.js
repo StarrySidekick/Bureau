@@ -36,7 +36,13 @@ const ATTRS = {
   answer:   {nm:'Answerable', ds:'A box to answer it in — filled means answered'},
   relates:  {nm:'Related',    ds:'Points at other objects, both ways'},
   total:    {nm:'Total',      ds:'Adds up a field across what it holds'},
-  spawn:    {nm:'Spawns',     ds:'Makes new objects — on a press, or as you type into it'}
+  spawn:    {nm:'Spawns',     ds:'Makes new objects — on a press, or as you type into it'},
+  /* Two ways out of a locked board, one object at a time. A lock is which
+     mode you are in (decision 74) and these do not change that — they are a
+     standing exception for the handful of things you fiddle with constantly,
+     and each says so on its own tile. See decision 81. */
+  movable:  {nm:'Movable when locked',   ds:'Can be picked up on a locked board — wears a pin'},
+  resizable:{nm:'Resizable when locked', ds:'Corners still work on a locked board — wears a bracket'}
 };
 /* An attribute is a trait — what an object can do and how it is drawn. Some
    traits also carry a *field*: a named, typed value. Only fields can be sorted

@@ -65,6 +65,22 @@ function chromeTokens(cols){
 }
 const CHROME_VARS = Object.keys(chromeTokens(['#000','#fff','#888','#888','#888']));
 
+/* ---- what a tick box looks like ---------------------------------------
+   Six shapes, one of them the default. It is a fact about the whole desk
+   rather than about a type, so it lives in `look` beside the shadows and the
+   grid — a task ticked one way and a checklist line ticked another would be
+   two apps sharing a board. The shapes themselves are in chrome.css off
+   `[data-checks]`; this is the list the picker draws and the guard that stops
+   an unknown value from leaving the desk with no boxes at all. */
+const CHECKS = {
+  square:  'Rounded square',
+  circle:  'Circle',
+  hard:    'Sharp square',
+  fill:    'Fills in',
+  ballot:  'Ballot box',
+  dot:     'Dot'
+};
+
 /* Appearance: the style's five, then whatever the user overrode on top. */
 function applyLook(){
   const el=document.documentElement, L=S.look||defaultLook();
@@ -104,6 +120,11 @@ function applyLook(){
     el.style.setProperty('--shadow', '0 0 0 rgba(0,0,0,0)');
     el.style.setProperty('--shadow-lg', '0 0 0 rgba(0,0,0,0)');
   } else { el.style.removeProperty('--shadow'); el.style.removeProperty('--shadow-lg'); }
+  /* What a tick box looks like, everywhere one is drawn — a tile, a row, a
+     line on a checklist front. One attribute on the root and the stylesheet
+     does the rest, the same trick `data-style` plays: the box is one shape in
+     six places and it would be six rules to change otherwise. */
+  el.dataset.checks = CHECKS[L.check] ? L.check : 'square';
   // the theme block still owns the shadows, and which one is showing is the
   // style's background rather than a switch of its own
   document.documentElement.dataset.theme = themeNow();
@@ -328,5 +349,5 @@ export { themeNow, lookVal, setLookVal, applyLook, applyStyle, styleDefaults,
   DARKMODES, darkMode, hasDark, darkNow, systemDark,
   randomFront, randomBoard, STYLES, BACKDROPS,
   SLOTS, OBJ0, OBJN, ROLES, slotName, styleNow, palNow, setSlot,
-  BORDER_SLOTS, borderSlots,
+  BORDER_SLOTS, borderSlots, CHECKS,
   hexOf, objColour, objSlots, isDark };

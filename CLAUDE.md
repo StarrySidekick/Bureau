@@ -669,13 +669,38 @@ could not walk off. A press on the `.scroll` background of a gridless board is
 `type:'swipe'` with `xonly`, and `swipeMove()` kills the gesture if the finger
 picks the vertical axis: up and down belongs to the list.
 
+**A locked board opens for one tile and shuts behind it.** The hold-and-drag
+still opens it — you have answered the padlock's question — but `relock` is set
+and `onUp()` shuts it before the drop renders, so one deliberate nudge doesn't
+leave arrange mode on behind you. Two attributes are the standing version of
+the same exception: `movable` keeps an object's drag on a locked board,
+`resizable` keeps its corners, and each says so on the tile — a pin top left, a
+bracket bottom right, both riding along with the resize grips in `handles`.
+That makes `arr` three answers, not two: `true` unlocked, `'locked'` locked,
+`false` not a board at all (a sample). A grip is a bigger target than the mark
+that advertises it — 22px desk, 40px phone, capped at a third of the tile so
+four corners can't swallow a 1×1. A new object **drops in from above** and
+settles (`.justmade`), the ring of light still saying which. See decision 81.
+
+**The page you read is the page you write on.** Tapping the paper puts a caret
+in it — the whole body, in the page's own face, however the page is broken up;
+`clearPages()` when you put it down. The reading head is three things: the mode
+as **one cycling button**, copy as a glyph, and Edit meaning the *object
+editor*. See decision 82.
+
+**A tick box is a fact about the desk, not about a type.** Six shapes,
+`S.look.check`, written onto the root as `data-checks` by `applyLook()` and
+answered in CSS for `.check` and `.clbox` alike. A task ticked one way and a
+checklist line ticked another are two apps sharing a board. See decision 83.
+
 **Holding a tile opens the menu, and moving from there takes the tile — and
-unlocks the board.** The iPhone home screen's gesture, and the gesture is no
+unlocks the board, for as long as you hold it.** The iPhone home screen's gesture, and the gesture is no
 longer cancelled when the menu appears: `G.menu` stays set, and the first real
 movement closes the menu, lifts the tile and calls `unlockBoard()`. That writes
 state and patches the grid's `locked` class and the bar's padlock **without
 rendering**, because the tile is under the finger and `render()` would replace
-it — the drop at the end renders and everything agrees then. See decision 47. Dragging a size out on bare board still makes something, on
+it — the drop at the end renders and everything agrees then, with the lock back
+on. See decisions 47 and 81. Dragging a size out on bare board still makes something, on
 both devices, because that one is deliberate. And on a phone every panel comes
 up from the bottom rather than in from the right — a panel from the right covers
 the whole board, which is the thing decision 23 exists to prevent.

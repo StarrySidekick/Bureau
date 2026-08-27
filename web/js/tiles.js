@@ -115,6 +115,16 @@ const tiltOf = id => {
 
 const HANDLES = ['nw','ne','se','sw'];   // corners only — any corner resizes
 
+/* An object let out of a locked board says so on its own tile: a pin at the
+   top left for one you can still pick up, a bracket at the bottom right for
+   one you can still resize. They ride along with the resize handles, which is
+   the one thing every branch of drawTile() already renders — so a face nobody
+   has thought about gets them without being told, the same way `place` carries
+   the tilt. See decision 81. */
+const freeMarks = o =>
+  (has(o,'movable')   ? `<i class="freepin" title="Movable on a locked board">${ic('pin',11)}</i>` : '')
++ (has(o,'resizable') ? `<i class="freegrip" title="Resizable on a locked board"></i>` : '');
+
 /* How much of a body is printed on a tile's face. Enough to fill the tallest
    one there is: it was 220 characters against a four-line clamp, which is where
    a note that stopped halfway down its own paper came from. The tile hides
@@ -351,14 +361,25 @@ function gridTile(o, arr, parentId){
   if(FLOW.has(o.id)){ box=FLOW.get(o.id); FLOW.delete(o.id); }
   else { ensureBox(o, dev(), parentId); box=lay(o); }
   if(PAGESHIFT.n) box={...box, y:box.y-PAGESHIFT.n};
-  const sz=sizeClass(box);
+  /* Stamped on the same way the size classes are — the first `class="` of
+     whatever drawTile() returns — so the two traits that let an object out of
+     a locked board reach every face without one of them being told. */
+  const sz=[sizeClass(box),
+    has(o,'movable')   ? 'freemovable' : '',
+    has(o,'resizable') ? 'freesizable' : ''].filter(Boolean).join(' ');
   const html=drawTile(o, arr, box);
   return sz ? html.replace('class="', `class="${sz} `) : html;
 }
 function drawTile(o, arr, box){
   const cont=isContainer(o);
   const colour = objColour(o);
-  const handles = arr ? HANDLES.map(h=>`<i class="rz ${h}" data-rz="${h}"></i>`).join('') : '';
+  /* Grips are for arranging, so an unlocked board has them on everything and
+     a locked one only on an object whose corners the lock has let out. The
+     marks are a different question — they say what this tile will still do —
+     so they show on any real board, locked or not, and on no sample. */
+  const grips = arr===true || (arr && has(o,'resizable'));
+  const handles = (grips ? HANDLES.map(h=>`<i class="rz ${h}" data-rz="${h}"></i>`).join('') : '')
+    + (arr ? freeMarks(o) : '');
   const chips='';   // no size chip, no delete cross — the menu does both
   /* How big this one's words are, folded into the placement so every branch
      below carries it without being told: `place` is the tail of every tile's
@@ -876,9 +897,16 @@ function flowSorted(kids, cid){
    real coordinates and needs to know nothing about pages. */
 function gridOfContainer(cid){
   const c=container(cid), g=gridOf(undefined, c.id);
-  // You are always arranging, unless the one lock says otherwise — see
-  // decision 74. It used to be `c.locked`, per board.
-  const arr=!boardLocked();
+  /* You are always arranging, unless the one lock says otherwise — see
+     decision 74. It used to be `c.locked`, per board.
+
+     Three answers, not two, since decision 81: `true` is an unlocked board,
+     `'locked'` is a locked one, and `false` is not a board at all — a sample
+     in the type picker or the stage in an editor. A locked board still draws
+     the corner grips of an object carrying `resizable`, and still draws the
+     marks that say which objects the lock has let out; a sample draws
+     neither, because it is a picture of a tile rather than a tile. */
+  const arr = boardLocked() ? 'locked' : true;
   const sorted=sortOf(c);
   const per=pageRows(undefined, c.id), pg=per?pageAt(c.id):0, from=pg*per;
   let kids=childrenOf(c);
@@ -905,7 +933,7 @@ function gridOfContainer(cid){
   PAGESHIFT.n = 0;
   // a page is exactly the rows that fit; a scrolling board is at least a screen
   const minRows=Math.max(12, Math.ceil((window.innerHeight-140)/Math.max(1,CELL[dev()])));
-  const rows = per ? per : Math.max(gridRows(dev(),c.id)+(arr?2:0), minRows);
+  const rows = per ? per : Math.max(gridRows(dev(),c.id)+(arr===true?2:0), minRows);
 
   // a drawer may carry its own board, which overrides the global one
   const bd = c.board ? String(c.board).split('|') : null;
@@ -921,7 +949,7 @@ function gridOfContainer(cid){
   // this board's own cell, derived from the measured width and its columns —
   // not the cell of whichever board happened to be measured last
   const colw = g.rowh;
-  return `<div class="grid g-${dev()}${arr?' arranging':''}${boardLocked()?' locked':''}${sorted?' sorted':''}${S.look.pinned?' pinboard':''}"
+  return `<div class="grid g-${dev()}${arr===true?' arranging':''}${boardLocked()?' locked':''}${sorted?' sorted':''}${S.look.pinned?' pinboard':''}"
        id="drawergrid" data-gridfor="${c.id}"
        style="${boardVars}--cols:${g.cols};--rowh:${g.rowh}px;--checkerx:${2*colw}px;--checkery:${2*g.rowh}px;grid-auto-rows:${g.rowh}px;grid-template-rows:repeat(${Math.max(rows,1)},${g.rowh}px)">${tiles}
   </div>`;

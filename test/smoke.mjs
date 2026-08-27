@@ -3012,6 +3012,116 @@ const CHROME = process.env.BUREAU_CHROME;
     return out;
   });
 
+  /* --- a locked board lets one tile out and shuts again -----------------
+     Holding a tile on a locked board and dragging it still opens the board,
+     because you have demonstrated what you want — but it closes on the drop
+     rather than leaving arrange mode on behind you. And two traits are a
+     standing exception, one object at a time: `movable` keeps its drag,
+     `resizable` keeps its corners, and each says so on the tile. Decision 81. */
+  const lockedBoard = await phone.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const S = BUREAU.state, out = {};
+    S.view='desk'; S.drawerId=null; S.look.locked=true; S.sel=[];
+    const t = BUREAU.create('task', { parent:'root', title:'Hold me' });
+    t.phone = Object.assign(BUREAU.free(3,1,'root'), {w:3,h:1});
+    BUREAU.render(); await nap(250);
+    const el = () => document.querySelector(`.grid .drawer[data-row="${t.id}"]`);
+    const r = el().getBoundingClientRect();
+    const cx = r.left + r.width/2, cy = r.top + r.height/2;
+    const ev = (type,x,y) => el().dispatchEvent(new PointerEvent(type,
+      { bubbles:true, cancelable:true, pointerId:91, pointerType:'touch', clientX:x, clientY:y }));
+    ev('pointerdown', cx, cy);
+    await nap(650);                       // past the 300ms hold and the 250ms menu
+    // on the tile, not on document: the listeners are delegated from #frame,
+    // which an event dispatched above it never reaches
+    ev('pointermove', cx+60, cy+40);
+    await nap(60);
+    out.opensWhileYouHoldIt = S.look.locked === false;
+    ev('pointerup', cx+60, cy+40);
+    await nap(300);
+    out.shutsAgainOnTheDrop = S.look.locked === true;
+    out.andTheBoardAgrees = !!document.querySelector('.grid.locked');
+    BUREAU.del(t.id); S.undo=[]; S.redo=[]; BUREAU.render();
+    return out;
+  });
+
+  const freeTraits = await page.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const S = BUREAU.state, out = {};
+    S.view='desk'; S.drawerId=null; S.look.locked=true;
+    const free = BUREAU.create('task', { parent:'root', title:'Let out' });
+    free.attrs = ['text','check','movable','resizable'];
+    free.desk = Object.assign(BUREAU.free(4,2,'root'), {w:4,h:2});
+    const plain = BUREAU.create('task', { parent:'root', title:'Held down' });
+    plain.desk = Object.assign(BUREAU.free(4,2,'root'), {w:4,h:2});
+    BUREAU.render(); await nap(250);
+    const F = () => document.querySelector(`.grid .drawer[data-row="${free.id}"]`);
+    const P = () => document.querySelector(`.grid .drawer[data-row="${plain.id}"]`);
+    out.wearsAPin = !!F().querySelector('.freepin');
+    out.wearsABracket = !!F().querySelector('.freegrip');
+    out.keepsItsCornersWhenLocked = !!F().querySelector('.rz.se');
+    out.aPlainOneHasNeither = !P().querySelector('.freepin,.freegrip,.rz');
+    // …and the grip is a bigger target than the mark that advertises it
+    S.look.locked = false; BUREAU.render(); await nap(200);
+    const grip = document.querySelector(`.grid .drawer[data-row="${plain.id}"] .rz.se`);
+    out.gripIsBiggerThanItLooks = grip.getBoundingClientRect().width >= 20;
+    S.look.locked = true;
+    // a sample is a picture of a tile, so it wears neither
+    out.samplesStayClean = !document.querySelector('#panel .freepin');
+    BUREAU.del(free.id); BUREAU.del(plain.id); S.undo=[]; S.redo=[]; BUREAU.render();
+    return out;
+  });
+
+  /* --- the page you read is the page you write on ----------------------
+     Tapping the paper puts a caret in it rather than sending you to a second
+     surface holding the same words; the head is one cycling mode button, a
+     copy glyph, and an Edit that now means the object editor. Decision 81. */
+  const pageWrites = await page.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const S = BUREAU.state, out = {};
+    const n = BUREAU.create('note', { parent:'root', title:'Read me', body:'# Hi\n\nWords.' });
+    BUREAU.read(n.id); await nap(300);
+    out.oneModeButtonNotThree = document.querySelectorAll('.bookhead .readmode').length === 1
+      && !document.querySelector('.bookhead .readmodes');
+    out.copyIsAGlyph = !!document.querySelector('.bookhead .iconbtn[data-act="copymd"]');
+    out.editMeansTheEditor = !!document.querySelector('.bookhead [data-act="objset"]');
+    document.querySelector('.bookstage .page').click(); await nap(250);
+    out.tappingThePaperOpensAField = !!document.querySelector('.page > .pagebody');
+    const ta = document.querySelector('.pagebody');
+    ta.value = 'Rewritten.'; ta.dispatchEvent(new Event('input', { bubbles:true }));
+    await nap(150);
+    out.andTypingLands = S.objects.find(x => x.id === n.id).body === 'Rewritten.';
+    document.querySelector('[data-act="pagedone"]').click(); await nap(250);
+    out.doneGivesTheePaperBack = !document.querySelector('.pagebody')
+      && !!document.querySelector('.bookstage .page');
+    // the mode button cycles rather than setting one of three
+    document.querySelector('.bookhead .readmode').click(); await nap(250);
+    out.theModeCycles = BUREAU.state.objects.find(x => x.id === n.id).read === 'scroll';
+    BUREAU.closeSheet(); BUREAU.del(n.id); S.undo=[]; S.redo=[]; BUREAU.render();
+    return out;
+  });
+
+  /* --- six tick boxes, and the desk picks one -------------------------- */
+  const tickBoxes = await page.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const S = BUREAU.state, out = {};
+    const root = document.documentElement;
+    out.defaultsToSquare = (root.dataset.checks || '') === 'square';
+    S.look.check = 'circle'; BUREAU.applyLook(); BUREAU.render(); await nap(200);
+    out.theDeskWearsIt = root.dataset.checks === 'circle';
+    const t = BUREAU.create('task', { parent:'root', title:'Ticked' });
+    t.desk = Object.assign(BUREAU.free(4,1,'root'), {w:4,h:1});
+    BUREAU.render(); await nap(200);
+    const box = document.querySelector(`.grid .drawer[data-row="${t.id}"] .tilecheck`);
+    out.andSoDoesEveryBox = getComputedStyle(box).borderRadius.startsWith('50%');
+    // an unknown value cannot leave the desk with no boxes at all
+    S.look.check = 'nonsense'; BUREAU.applyLook();
+    out.nonsenseFallsBack = root.dataset.checks === 'square';
+    S.look.check = 'square'; BUREAU.applyLook();
+    BUREAU.del(t.id); S.undo=[]; S.redo=[]; BUREAU.render();
+    return out;
+  });
+
   /* --- pinned to the board rather than laid flat on it ----------------- */
   const pinboard = await page.evaluate(async () => {
     const nap = ms => new Promise(r => setTimeout(r, ms));
@@ -3075,7 +3185,8 @@ const CHROME = process.env.BUREAU_CHROME;
     settingsHasDoors, settingsBack,
     wordsNotSource, deadlines, twoClauses, undoEverything, savesOnlyChanges,
     paletteKeys, editorKeys, pickerLeads, rollupsEverywhere, soundAndVision, keyboardBoard,
-    ranking, repeating, oneLock, scheduling, ownColour, addBox, calFaces, pinboard
+    ranking, repeating, oneLock, scheduling, ownColour, addBox, calFaces,
+    lockedBoard, freeTraits, pageWrites, tickBoxes, pinboard
   }, null, 2));
   await browser.close();
 })();

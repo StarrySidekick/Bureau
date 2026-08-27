@@ -385,6 +385,11 @@ function act(name, el){
     // has to be the thing that gets redrawn
     case 'bookprev': turnPage(-1, S.readId?renderSheet:render); break;
     case 'booknext': turnPage( 1, S.readId?renderSheet:render); break;
+    /* Put the page down. The breaks were measured against the old words, so
+       they are thrown away here rather than at the next render — pagesOf()
+       caches by body length and two edits of the same length would otherwise
+       come back to a stale set of breaks. See decision 82. */
+    case 'pagedone': S.readEdit=false; clearPages(); renderSheet(); render(); break;
     /* Sort used to be a toggle in the bar, cycling seven states and wearing
        the one it was on. It is the "Sorted by" row of the board's own editor
        now: how a board arranges itself is something you decide once, and a
@@ -544,6 +549,16 @@ function wire(){
        the input/change listeners below, so nothing here wants the click. */
     if(t.closest('input,textarea,select')) return;
 
+    /* The page you are reading is the page you write on: a tap on the paper
+       puts a caret in it. Not a second surface holding the same words in a
+       different face — a note is a line and a paragraph, and crossing a screen
+       to fix one word was the long way round. The buttons under it turn pages,
+       so only the paper itself answers. See decision 82. */
+    if(S.readId && !S.readEdit && t.closest('.bookstage .page')
+       && !t.closest('a,button,[data-act]')){
+      S.readEdit=true; renderSheet(); return;
+    }
+
     /* ---- tapping the words is how you change them --------------------
        On an **unlocked** board, and only there: locked is the state a board is
        in when you are reading it rather than working on it, and there one
@@ -607,6 +622,13 @@ function wire(){
        light it is under. */
     const shd=t.closest('[data-shadows]');
     if(shd){ S.look.shadows = !!shd.dataset.shadows;
+      applyLook(); save(); render(); refreshPanel(); return; }
+
+    /* Which tick box the whole desk wears. The sample inside each option
+       carries the same attribute, so a button is drawn as the thing it picks
+       — the type picker's rule, applied to a shape rather than a type. */
+    const chk=t.closest('button[data-checks]');
+    if(chk){ S.look.check = chk.dataset.checks;
       applyLook(); save(); render(); refreshPanel(); return; }
 
     // laid flat on the board, or pinned to it — see decision 75
@@ -1047,7 +1069,8 @@ function wire(){
        count is the only thing that has anything to say. */
     const w=e.target.dataset.w;
     if(w){
-      const o=byId(S.writeId); if(!o) return;
+      // the writing surface, or the page being written on where it lies
+      const o=byId(S.writeId || S.readId); if(!o) return;
       o[w]=e.target.value;
       o.edited=new Date().toISOString().slice(0,10);
       if(w==='title'){ e.target.style.height='auto'; e.target.style.height=e.target.scrollHeight+'px'; }

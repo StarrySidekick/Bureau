@@ -8,7 +8,7 @@ import { GRID, PHONE_GRIDS, CELL, COLW, MEASURE, colsOf, gridKeyOf,
   pageRows, pageOfBox, lastPage,
   lay, gridOf, cellW, ensureBox, PLACED } from './grid.js';
 import { themeNow, applyLook, lookVal, STYLES, BACKDROPS, DARKMODES, darkMode, hasDark,
-  palNow, setSlot, styleNow, hexOf, objColour, slotName, OBJ0 } from './look.js';
+  palNow, setSlot, styleNow, hexOf, objColour, slotName, OBJ0, CHECKS } from './look.js';
 import { gridOfContainer, gridTile, listTile, scrollEntry, bookView, calSpan } from './tiles.js';
 import { openPanel, closePanel, panelKey, repositionPanel } from './panels.js';
 import { APP_VERSION, DATA_V, save, saveIfDirty, storeSize, install } from './persist.js';
@@ -498,6 +498,16 @@ function settingsBody(sec){
       <div class="filterbar">${[['','Laid flat on the board'],['1','Pinned to it']].map(([v,n])=>
         `<button class="fchip${(S.look.pinned?'1':'')===v?' on':''}" data-pinned="${v}">${n}</button>`).join('')}</div>
       <div class="mini" style="--k:var(--brass);margin-top:6px">Pinned gives every tile a little room around it and tilts it a degree or two, as though a pin went through one of its top corners. The angle comes from the object itself, so nothing moves between renders — and a tile straightens while you carry it.</div>
+    </div>
+
+    ${/* Six tick boxes, each drawn as itself — ticked, because what a box
+          looks like when it is ticked is the half you actually live with. */''}
+    <div class="field" style="margin-top:12px"><label>Tick boxes</label>
+      <div class="checkpick">${Object.entries(CHECKS).map(([v,n])=>
+        `<button class="checkopt${(S.look.check||'square')===v?' on':''}" data-checks="${v}" title="${n}">
+          <span data-checks="${v}"><i class="check on" style="--k:var(--brass)">${ic('check',12)}</i></span>
+          <u>${n}</u></button>`).join('')}</div>
+      <div class="mini" style="--k:var(--brass);margin-top:6px">Everywhere a box is drawn — a task on the board, a row in a list, a line on a checklist front. Tasks and checklists follow the desk rather than each carrying their own.</div>
     </div>
 
     <div class="field" style="margin-top:12px"><label>Shadows</label>

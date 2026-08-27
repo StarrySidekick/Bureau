@@ -36,7 +36,7 @@ function openWriter(id){
 }
 function openRead(id){
   const o=byId(id); if(!o) return;
-  S.readId=id; S.writeId=null; S.viewId=null; S.editId=null; S.bookAt=0;
+  S.readId=id; S.writeId=null; S.viewId=null; S.editId=null; S.bookAt=0; S.readEdit=false;
   renderSheet();
 }
 function openViewer(id){
@@ -57,7 +57,7 @@ function openObj(id){
   else objectPanel(id);
 }
 function closeSheet(){
-  S.writeId=null; S.readId=null; S.viewId=null; S.editId=null;
+  S.writeId=null; S.readId=null; S.viewId=null; S.editId=null; S.readEdit=false;
   clearFocus(); renderSheet(); render();
 }
 function clearFocus(){
@@ -291,23 +291,45 @@ function renderSheet(){
     return;
   }
 
-  /* Reading. One surface, three modes — a spread, a single page, or a column
-     you scroll. Edit opens the writing surface, which is the same body with
-     the paper taken away. */
+  /* Reading, and writing on the page you are reading. One surface, three
+     modes — a spread, a single page, or a column you scroll.
+
+     **The page is the field.** Tapping the paper puts a caret in it, in the
+     page's own typography, rather than sending you to a second screen that
+     holds the same words in a different face: a note is a line and a
+     paragraph, and crossing a surface to change one word was the long way
+     round. The whole body is the field however the page is broken up, because
+     a page is where a paragraph *landed* and not a thing you edit one of —
+     the breaks are re-measured (`clearPages()`) when you put it down.
+
+     That frees the head. Three buttons: the mode, as one button that cycles
+     rather than three chips of which two are always wrong; copy, which is a
+     glyph because it is the same verb everywhere; and Edit, which now means
+     the object editor — everything about the thing that isn't its words.
+     See decision 82. */
   if(S.readId){
     const r=byId(S.readId);
     if(!r){ S.readId=null; host.innerHTML=''; return; }
-    const mode=readOf(r);
+    const mode=readOf(r), modes=Object.keys(READS);
+    const next=modes[(modes.indexOf(mode)+1)%modes.length];
+    const editing=!!S.readEdit;
     host.innerHTML=`<div class="bookscrim" data-sheet="close"></div>
-      <div class="bookstage rm-${mode}">
+      <div class="bookstage rm-${mode}${editing?' writingon':''}">
         <div class="bookhead"><b>${esc(r.title||'Untitled')}</b>
-          <div class="readmodes">${Object.entries(READS).map(([v,n])=>
-            `<button class="pchip${mode===v?' on':''}" data-oread="${v}" data-id="${r.id}">${n}</button>`).join('')}</div>
-          <button class="pill" data-act="copymd" data-id="${r.id}" title="Copy as markdown">${ic('archive',13)} Copy</button>
-          <button class="pill" data-act="editthis" data-id="${r.id}">${ic('edit',13)} Edit</button>
+          <button class="pchip readmode" data-oread="${next}" data-id="${r.id}"
+            title="Reading as a ${READS[mode].toLowerCase()} — tap for ${READS[next].toLowerCase()}">
+            ${ic(mode==='scroll'?'feather':'book',13)}<span>${READS[mode]}</span></button>
+          <button class="iconbtn" data-act="copymd" data-id="${r.id}" title="Copy as markdown">${ic('copy',15)}</button>
+          <button class="pill" data-act="objset" data-id="${r.id}" title="Everything about it but the words">${ic('brush',13)} Edit</button>
           <button class="iconbtn" data-sheet="close">${ic('x',16)}</button></div>
-        ${bookOf(r)}
+        ${editing
+          ? `<div class="book"><div class="spread"><div class="page">
+              <textarea class="pagebody" data-w="body"
+                placeholder="Write.">${esc(r.body||'')}</textarea></div></div>
+             <div class="bookbar"><button class="pill" data-act="pagedone">${ic('check',13)} Done</button></div></div>`
+          : bookOf(r)}
       </div>`;
+    if(editing){ const b=$('.pagebody',host); if(b) setTimeout(()=>b.focus(),20); }
     return;
   }
   host.innerHTML=''; clearFocus();

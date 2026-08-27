@@ -136,7 +136,14 @@ function clearRow(g){
    It writes the state and patches the two elements that show it, and does not
    render: the tile is under the finger, and render() would replace it. The drop
    at the end of the drag renders, and everything agrees then — the same rule
-   that lets you type into a tile. */
+   that lets you type into a tile.
+
+   And it lasts **exactly as long as your finger does**. It used to leave the
+   board open behind you, so one deliberate nudge on a locked desk turned every
+   later tap into a tile you could shove by accident — you had to notice the
+   padlock had changed and put it back. Insisting on one tile is not the same
+   as asking to rearrange the board, so the lock comes back on the drop:
+   `relock` is the flag and onUp() is where it lands. See decision 81. */
 function unlockBoard(g){
   if(!boardLocked()) return;
   S.look.locked=false;                   // one switch, not one per board — 74
@@ -145,9 +152,16 @@ function unlockBoard(g){
   const btn=$('.bartools [data-act="togglelock"]');
   if(btn) btn.classList.remove('on','locked');
   g.locked=false;
+  g.relock=true;                         // …and it goes back when you let go
   g.stuck = grid ? grid.classList.contains('sorted') : false;
   save();
-  toast('Unlocked');
+}
+/* The other half: the board was only ever open for the length of that drag.
+   No toast — you did not ask for a mode, you moved one thing. */
+function relockBoard(){
+  if(boardLocked()) return;
+  S.look.locked=true;
+  save();
 }
 
 /* Where a move/resize would land, in grid cells. Dragging an edge moves that
@@ -507,9 +521,15 @@ function onDown(e){
        this" is the one thing a phone has to be able to do to a tile it cannot
        pick up, and locking a board so you can scroll it without disturbing
        anything is exactly when you still want the menu. */
+    /* Two traits are a standing exception to the lock, one object at a time:
+       `movable` keeps its drag and `resizable` keeps its corners. A sorted
+       board still refuses both, because it isn't locked — it arranges itself,
+       so a move there has nowhere to land. See decision 81. */
     const locked = grid.classList.contains('locked');
-    const stuck = locked || grid.classList.contains('sorted');
-    const hEl = stuck ? null : e.target.closest('[data-rz]');
+    const sorted = grid.classList.contains('sorted');
+    const hEl = (sorted || (locked && !has(d,'resizable')))
+      ? null : e.target.closest('[data-rz]');
+    const stuck = hEl ? false : (sorted || (locked && !has(d,'movable')));
     const g=gridOf(undefined, grid.dataset.gridfor||ROOT);
     G={type: hEl?'resize':'move', el:dEl, id:d.id, handle:hEl?hEl.dataset.rz:null,
        stuck, locked, axis:null, from:0,
@@ -818,6 +838,10 @@ function onUp(e){
   if(!G) return;
   const g=G; G=null;
   const dx=e.clientX-g.sx;
+
+  /* A board that opened to let one tile move closes again now. Before any of
+     the branches below, so whichever one renders draws the padlock shut. */
+  if(g.relock) relockBoard();
 
   /* A swipe that got going lets the strip settle where it is heading; one
      that never did was a tap on a locked board, and the tile under it still
