@@ -207,7 +207,9 @@ same settings, kept in `S.deskCfg` because it has no object to hang them on.
 pull), `checklist` (a stack of task-sized lines — one per cell of height, boxes
 you can tick without opening it; ticking one refills the face from inside the
 drawer, see decision 79), `project` (a front page: progress, counts, what is
-next, what it is made of), `calendar`, `moodboard`, `timeline`.
+next, what it is made of), `calendar` (adaptive: a day pad at one cell, pad
+plus agenda below three cells a side, the month grid from there, titles in the
+cells at twelve by six — see decision 80), `moodboard`, `timeline`.
 
 **Layout** — how it arranges its children once opened: `grid`, `list`, `scroll`
 (nothing truncated — for reading a drawer rather than scanning it), plus

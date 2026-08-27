@@ -278,8 +278,11 @@
    moves out to the edge: inset 5px it stole 5px of every row, and the whole
    point of these rows is that the box stands exactly where a task tile's
    does. At the edge the hairline and the glow border read as one gilt rim,
-   with the corner brackets on it. */
-.drawer.dtile.cltile{background-image:none}
+   with the corner brackets on it. The border *slot* doesn't apply here —
+   tiles.js emits no bd- class on this face — because a moulding ring inside
+   the gilt read as a second, grey border under the gold. */
+/* html-prefixed to outweigh the styles' own dtile dressings (skeuo's grain) */
+html .drawer.dtile.cltile{background-image:none}
 .drawer.dtile.cltile::before{inset:0;border-radius:inherit}
 .drawer.dtile.cltile .dbody{margin-top:0}
 .drawer.dtile.cltile.clidle{padding:11px 13px}
@@ -395,6 +398,49 @@
 .cday.has{color:var(--dink)}
 .cday.out{opacity:.4}
 .cday u{text-decoration:none;font-size:8px;line-height:1;letter-spacing:-1px}
+/* ---- the small calendar faces — decision 80 ---------------------------
+   Below the month the face is a desk calendar: the tear-off day pad, then as
+   much of the agenda as the box affords. --crows is the box's height in
+   cells, so the pad's numeral and the top row size to one cell of it. */
+.calpad{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  height:100%;aspect-ratio:1;flex:0 0 auto;color:var(--dink);cursor:pointer}
+.calpad u{text-decoration:none;font-size:9px;line-height:1.7;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--dink-2)}
+.calpad b{font-family:var(--serif);font-weight:600;line-height:1;
+  font-size:min(30px, calc(52cqh / var(--crows,1)))}
+/* one cell square: the pad is the whole face */
+.drawer.dtile.caltile.calpad1{padding:0}
+.calpad1 .calpad{width:100%;aspect-ratio:auto}
+/* one cell tall: the pad left, the next thing or two beside it */
+.drawer.dtile.caltile.calstrip{flex-direction:row;align-items:stretch;padding:0}
+.calnext{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;
+  padding:2px 9px;overflow:hidden}
+.calstrip .calnext{border-left:1px solid rgba(255,255,255,.16)}
+/* two wide or two tall: the pad on top, the agenda under it */
+.drawer.dtile.caltile.calagenda{padding:0}
+.calagtop{flex:0 0 calc(100%/var(--crows,3));display:flex;align-items:center;gap:2px;
+  border-bottom:1px solid rgba(255,255,255,.16)}
+.calagcap{font-size:11px;color:var(--dink-2);min-width:0;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.calagenda .calnext{justify-content:flex-start;padding:4px 9px}
+/* an agenda row: when first, then what — the calendar's own order */
+.calrow{display:flex;align-items:baseline;gap:6px;font-size:11.5px;
+  padding:2px 0;min-width:0;cursor:pointer}
+.calrow u{flex:0 0 auto;text-decoration:none;font-size:9px;letter-spacing:.04em;
+  color:var(--dink-3);font-variant-numeric:tabular-nums;text-transform:uppercase}
+.calrow b{flex:1;min-width:0;font-weight:500;color:var(--dink);overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.calrow.late u{color:var(--dink);font-weight:700}
+.calquiet{font-size:11px;color:var(--dink-3)}
+/* two cells across, the chip eats half the line: the title is the row */
+@container (max-width: 150px){ .calrow u{display:none} }
+/* the planner: a month whose cells are big enough for words. The number goes
+   to the corner and the first titles print under it, summed past two. */
+.calgrid.cal-titles .cday{align-items:stretch;text-align:left;padding:3px 6px;gap:1px}
+.calgrid.cal-titles .cday b{font-size:10.5px}
+.calgrid.cal-titles .cday em{font-style:normal;font-size:10px;line-height:1.4;color:var(--dink);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
+.calgrid.cal-titles .cday u{font-size:9px;letter-spacing:0;color:var(--dink-3)}
 .magicmark{color:var(--dink-2);display:inline-flex;align-items:center;margin-left:2px}
 .magicmark.big{color:var(--brass);vertical-align:middle}
 /* Nothing on a magic drawer animates and nothing tracks the pointer, so there

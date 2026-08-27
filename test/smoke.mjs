@@ -2965,6 +2965,46 @@ const CHROME = process.env.BUREAU_CHROME;
     return out;
   });
 
+  /* --- a calendar face is a desk calendar until it is big enough to be a
+     wall one: a day pad at one cell, pad plus agenda below three cells a
+     side, the month from there, titles in the cells at twelve by six. See
+     decision 80. */
+  const calFaces = await page.evaluate(async () => {
+    const nap = ms => new Promise(r => setTimeout(r, ms));
+    const S = BUREAU.state, out = {};
+    S.view='desk'; S.drawerId=null;
+    const p2 = n => String(n).padStart(2, '0');
+    const iso = d => { const x = new Date(); x.setDate(x.getDate()+d);
+      return `${x.getFullYear()}-${p2(x.getMonth()+1)}-${p2(x.getDate())}`; };
+    const t = BUREAU.create('task', { parent:'root', title:'Dentist' });
+    t.due = iso(1); t.tags = ['calface'];
+    t.desk = Object.assign(BUREAU.free(2,1,'root'), {w:2,h:1});
+    const c = BUREAU.create('calendar', { parent:'root', title:'Faces' });
+    // collect by tag, so the seed's own dated things don't crowd the one row
+    c.filter = { tag:'calface' };
+    c.desk = Object.assign(BUREAU.free(12,6,'root'), {w:1,h:1});
+    const face = () => document.querySelector(`.grid .drawer[data-drawer="${c.id}"]`);
+    const set = async (w,h) => { c.desk = Object.assign({}, c.desk, {w,h}); BUREAU.render(); await nap(150); };
+    await set(1,1);
+    out.padAtOneCell = !!face().querySelector('.calpad')
+      && face().textContent.includes(String(new Date().getDate()));
+    // …and the pad is today's drop target, so a drop still dates the thing
+    out.padTakesToday = !!face().querySelector(`[data-calday="${c.id}:${iso(0)}"]`);
+    await set(2,1);
+    out.stripAtOneTall = face().classList.contains('calstrip')
+      && [...face().querySelectorAll('.calrow b')].some(b => b.textContent === 'Dentist');
+    await set(2,2);
+    out.agendaAtTwo = face().classList.contains('calagenda');
+    await set(3,3);
+    out.monthAtThree = !!face().querySelector('.calgrid')
+      && !face().querySelector('.calgrid.cal-titles');
+    await set(12,6);
+    out.plannerWritesTitles = !!face().querySelector('.calgrid.cal-titles')
+      && [...face().querySelectorAll('.cday em')].some(e => e.textContent === 'Dentist');
+    BUREAU.delDrawer(c.id); BUREAU.del(t.id); S.undo=[]; S.redo=[]; BUREAU.render();
+    return out;
+  });
+
   /* --- pinned to the board rather than laid flat on it ----------------- */
   const pinboard = await page.evaluate(async () => {
     const nap = ms => new Promise(r => setTimeout(r, ms));
@@ -3028,7 +3068,7 @@ const CHROME = process.env.BUREAU_CHROME;
     settingsHasDoors, settingsBack,
     wordsNotSource, deadlines, twoClauses, undoEverything, savesOnlyChanges,
     paletteKeys, editorKeys, pickerLeads, rollupsEverywhere, soundAndVision, keyboardBoard,
-    ranking, repeating, oneLock, scheduling, ownColour, addBox, pinboard
+    ranking, repeating, oneLock, scheduling, ownColour, addBox, calFaces, pinboard
   }, null, 2));
   await browser.close();
 })();

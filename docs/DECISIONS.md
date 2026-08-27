@@ -2593,3 +2593,35 @@ State first, movement after, as always: the tick renders instantly and
 `clRefill()` in motion.js draws the shuffle over the result. A face with
 nothing left to show is a label again — name and a quiet line — because a
 stack of zero lines is an anonymous coloured square.
+
+---
+
+### 80. A calendar face is a desk calendar until it is big enough to be a wall one
+
+The month grid drew at every size, which below about three cells a side is a
+smear of dots — columns two letters wide, day numbers nobody can read, marks
+that could mean anything. A face that cannot say anything at its size should
+say something smaller instead.
+
+So the face is adaptive, by the box it is drawn in:
+
+- **One cell square** is the tear-off day pad — the month small, today large —
+  the way a desk calendar is. Not the anonymous mark every other 1×1 wears:
+  a calendar has one thing it can always say, and that is what day it is.
+- **One cell tall** is the pad on the left and the next thing or two beside
+  it. Two cells across, the date chip goes and the title is the row.
+- **Two wide or two tall** is the pad on top and the agenda under it — the
+  late things first, then today's, then the next by date, one row each.
+- **Three cells a side** earns the month — the grid exactly as it was, with
+  `calview`, week start and weekends still deciding what it spans.
+- **Twelve wide and six tall** earns words: the planner prints the first two
+  titles in each day cell the way a wall calendar does, and sums the rest.
+  Twelve desk cells across seven days is about 90px a day, which is what a
+  title needs; a phone board is at most ten columns, so the planner is a desk
+  face by arithmetic rather than by rule.
+
+The pad always shows **today** — paging months is the month face's job — and
+it carries today's `data-calday`, so dropping a thing on a small calendar
+still dates it. Below the month the calendar's name rides on the tooltip,
+exactly as the checklist's does (decision 79): the pad is the identity, and
+a label would cost the one row the face has.

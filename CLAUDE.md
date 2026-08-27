@@ -359,6 +359,17 @@ with two of everything on it — except when it is laid out along time, because
 the thing happening that week is very often a container. `showsContainers(c)`,
 by face or by layout.
 
+**A calendar face is a desk calendar until it is big enough to be a wall one.**
+The face adapts to the box it is drawn in: one cell square is the tear-off day
+pad (the month small, today large), one cell tall is the pad plus the next
+thing or two, two wide or two tall is the pad over an agenda, three cells a
+side earns the month grid, and twelve wide by six tall earns the planner —
+titles printed in the day cells, the rest summed. The pad always shows today
+and carries today's `data-calday`, so a drop on a small calendar still dates
+the thing; below the month the name rides on the tooltip, like the
+checklist's. `calSoon()` in tiles.js is the agenda's order: late first, then
+today, then next by date. See decision 80.
+
 **Calendar and timeline are layouts, not kinds.** `layout` is how a container
 arranges its children when opened — `grid | list | scroll | book | calendar |
 timeline` — and `face` is how it draws on its parent's board. Any container can

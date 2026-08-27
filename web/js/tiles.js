@@ -149,7 +149,7 @@ function nameField(o, cls, extra){
    weekend settings reach the front as well as the opened view. A month is the
    weeks its month falls in, a week is one row, a day is one square. */
 const DOWMARK = ['S','M','T','W','T','F','S'];
-function calFace(o){
+function calFace(o, titles){
   const view = calViewOf(o), cols = calCols(o);
   const anchor = D.parse(o.month||T) || D.today();
   const {from, to, month} = calSpan(o, anchor, view);
@@ -157,18 +157,24 @@ function calFace(o){
   const kids=childrenOf(o), byDay={};
   for(let dt=new Date(from); dt<=to; dt=D.add(dt,1)){
     const iso=D.iso(dt);
-    byDay[iso]=kids.filter(x=>coversDay(x, iso)).length;
+    byDay[iso]=kids.filter(x=>coversDay(x, iso));
   }
   const cells=[];
   for(let dt=new Date(from); dt<=to; dt=D.add(dt,1)){
     if(!cols.includes(dt.getDay())) continue;
-    const iso=D.iso(dt), n=byDay[iso]||0;
+    const iso=D.iso(dt), on=byDay[iso]||[], n=on.length;
+    /* A big face earns words: the planner prints the first titles in the cell
+       the way a wall calendar does, and sums the rest. See decision 80. */
+    const said = titles
+      ? on.slice(0,2).map(x=>`<em>${esc(x.title||'Untitled')}</em>`).join('')
+        + (n>2?`<u>+${n-2}</u>`:'')
+      : n?`<u>${n>3?'•••':'•'.repeat(n)}</u>`:'';
     cells.push(`<i class="cday${iso===T?' today':''}${n?' has':''}${
         month!=null&&dt.getMonth()!==month?' out':''}" data-calday="${o.id}:${iso}">
-      <b>${dt.getDate()}</b>${n?`<u>${n>3?'•••':'•'.repeat(n)}</u>`:''}</i>`);
+      <b>${dt.getDate()}</b>${said}</i>`);
   }
   const wide = view==='day' ? 1 : cols.length;
-  return `<div class="calgrid cal-${view}" style="--dcols:${wide}">
+  return `<div class="calgrid cal-${view}${titles?' cal-titles':''}" style="--dcols:${wide}">
     ${view==='day' ? '' : cols.map(n=>`<i class="dow">${DOWMARK[n]}</i>`).join('')}
     ${cells.join('')}</div>`;
 }
@@ -185,6 +191,33 @@ function calSpan(c, anchor, view){
   return {from:weekStartOn(new Date(y,m,1), sun),
           to:D.add(weekStartOn(new Date(y,m+1,0), sun), 6), month:m};
 }
+
+/* ---- the small calendar faces — decision 80 ---------------------------
+   Below the month a calendar face is a desk calendar: the tear-off day pad,
+   then as much of the agenda as the box affords. The pad is always *today* —
+   paging months is the month face's job — and it carries today's data-calday,
+   so a drop on a small calendar still dates the thing. */
+function calPad(o){
+  const now=D.today();
+  return `<span class="calpad" data-calday="${o.id}:${T}">
+    <u>${esc(now.toLocaleDateString(undefined,{month:'short'}))}</u>
+    <b>${now.getDate()}</b></span>`;
+}
+/* What a small face lists: the things it collects that still want doing —
+   the late ones first, then today's, then the next by date. */
+function calSoon(o, n){
+  const kids=childrenOf(o).filter(x=>!x.done);
+  const due=x=>x.due||'';
+  const byDue=(a,b)=>due(a).localeCompare(due(b));
+  const today=kids.filter(x=>coversDay(x,T));
+  const late=kids.filter(x=>isLate(x) && !coversDay(x,T)).sort(byDue);
+  const later=kids.filter(x=>due(x)>T).sort(byDue);
+  return [...late, ...today, ...later].slice(0,n);
+}
+/* An agenda row: when first, then what — a calendar's own order of asking. */
+const calRow = x => `<span class="calrow${isLate(x)&&!coversDay(x,T)?' late':''}" data-row="${x.id}"
+  title="${esc(x.title||'Untitled')}">
+  <u>${coversDay(x,T)?'Today':esc(D.short(x.due))}</u><b>${esc(x.title||'Untitled')}</b></span>`;
 
 /* What a click on an object does. The editor is no longer the default — it
    lives on the context menu. `onclick` is per-object, falling back to the
@@ -337,6 +370,16 @@ function drawTile(o, arr, box){
      and the title is the tooltip. It is still a drawer or still an object, so
      the front styling and the drop target come along unchanged. */
   if(box.w<=1 && box.h<=1){
+    /* A calendar at one cell is still a calendar: the tear-off day pad — the
+       month small, today big — not an anonymous mark. See decision 80. */
+    if(cont && faceOf(o)==='calendar'){
+      return `<button class="drawer dtile caltile calpad1 bd-${o.border||'panel'}${sel}${
+          has(o,'magic')?' magicdrawer':''}" data-drawer="${o.id}" title="${esc(o.title||'Untitled')}"
+        style="--c:${colour};--crows:1;${place}">
+        ${calPad(o)}
+        ${handles}
+      </button>`;
+    }
     const mark = cont && has(o,'magic') ? 'sparkle' : iconOf(o);
     return `<button class="drawer ${cont?`dtile bd-${o.border||'panel'}`:'otile'} minitile${sel}${
         cont&&has(o,'magic')?' magicdrawer':''}"
@@ -415,14 +458,14 @@ function drawTile(o, arr, box){
     /* With nothing to show the front is a label again: a stack of zero lines
        is an anonymous coloured square — and so is the picker's sample. */
     if(!shown.length && !adds){
-      return `<button class="drawer dtile cltile clidle magicdrawer bd-${o.border||'panel'}${sel}" data-drawer="${o.id}"
+      return `<button class="drawer dtile cltile clidle magicdrawer${sel}" data-drawer="${o.id}"
           style="--c:${colour};${place}">
         <div class="dtop">${nameField(o)}</div>
         <div class="dbody"><span class="clempty">${items.length?'All done':'Nothing yet — open it to add'}</span></div>
         ${handles}
       </button>`;
     }
-    return `<${adds?'div':'button'} class="drawer dtile cltile magicdrawer bd-${o.border||'panel'}${sel}" data-drawer="${o.id}"
+    return `<${adds?'div':'button'} class="drawer dtile cltile magicdrawer${sel}" data-drawer="${o.id}"
         ${adds?'role="button" tabindex="0"':''} title="${esc(o.title||'Untitled')}"
         style="--c:${colour};--clrows:${rows};${place}">
       ${/* The **box** ticks it and the **words** change it. Tapping anywhere on
@@ -539,17 +582,52 @@ function drawTile(o, arr, box){
 
   /* A calendar is a container drawing what it collects on the day each thing
      falls. It is usually a magic drawer, so the sparkle belongs on it like any
-     other — the days are what it shows, collecting is how it filled them. */
+     other — the days are what it shows, collecting is how it filled them.
+
+     The face is adaptive (decision 80). Below the month it is a desk calendar
+     — the day pad, then as much of the agenda as the box affords — because a
+     month squeezed under three cells a side is marks nobody can read. The
+     month is earned at three cells a side, with calview still deciding what
+     it spans, and a big face earns words in its cells: the planner prints
+     titles the way a wall calendar does. Below the month the name rides on
+     the tooltip, the same as the checklist's. */
   if(cont && faceOf(o)==='calendar'){
+    const magic = has(o,'magic')?' magicdrawer':'';
+    // one cell tall: the pad, and the next thing or two beside it
+    if(box.h<=1){
+      const soon=calSoon(o, box.w>=3?2:1);
+      return `<button class="drawer dtile caltile calstrip bd-${o.border||'panel'}${sel}${magic}"
+          data-drawer="${o.id}" title="${esc(o.title||'Untitled')}" style="--c:${colour};--crows:1;${place}">
+        ${calPad(o)}
+        <span class="calnext">${soon.map(calRow).join('') || '<span class="calquiet">Nothing coming up</span>'}</span>
+        ${handles}
+      </button>`;
+    }
+    // two wide or two tall: the pad on top, the agenda under it. The count is
+    // what whole rows fit under the pad — a half row is worse than a blank.
+    if(box.w<3 || box.h<3){
+      const soon=calSoon(o, Math.max(1, Math.floor((box.h-1)*2.2)));
+      return `<button class="drawer dtile caltile calagenda bd-${o.border||'panel'}${sel}${magic}"
+          data-drawer="${o.id}" title="${esc(o.title||'Untitled')}" style="--c:${colour};--crows:${box.h};${place}">
+        <div class="calagtop">${calPad(o)}
+          <span class="calagcap">${esc(D.today().toLocaleDateString(undefined,{weekday:'long'}))}</span></div>
+        <div class="calnext">${soon.map(calRow).join('') || '<span class="calquiet">Nothing coming up</span>'}</div>
+        ${handles}
+      </button>`;
+    }
+    /* Words need a day cell about 90px wide: twelve desk cells across seven
+       days. A phone board is at most ten columns, so the planner is a desk
+       face by arithmetic rather than by rule. */
+    const planner = box.w>=12 && box.h>=6;
     const at=D.parse(o.month||T)||D.today(), view=calViewOf(o);
     const cap = view==='day' ? at.toLocaleDateString(undefined,{weekday:'long',day:'numeric'})
       : at.toLocaleDateString(undefined, view==='week'?{month:'short',day:'numeric'}:{month:'long'});
-    return `<button class="drawer dtile caltile bd-${o.border||'panel'}${sel}${has(o,'magic')?' magicdrawer':''}"
+    return `<button class="drawer dtile caltile bd-${o.border||'panel'}${sel}${magic}"
       data-drawer="${o.id}" style="--c:${colour};${place}">
       <div class="dtop"><span class="dname">${esc(o.title||'Untitled')}</span>
         ${rollTag(o)}
         <span class="clcount">${esc(cap)}</span></div>
-      <div class="dbody">${calFace(o)}</div>
+      <div class="dbody">${calFace(o, planner)}</div>
       ${handles}
     </button>`;
   }
