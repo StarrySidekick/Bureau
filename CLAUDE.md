@@ -263,8 +263,12 @@ the rule runs, so "before next week" keeps meaning it. See decision 63.
 
 **A checklist face is a stack of task-sized lines, and it refills itself.** One
 line per cell of height, counted out by `--clrows` from the box being drawn — a
-checklist three cells tall shows three tasks the way three task tiles would, and
-the tile's border is what says the stack is one thing. Done lines don't print:
+checklist three cells tall shows three tasks the way three task tiles would.
+Each line is drawn the way the task tile is — paper and ink (the same `--dink`
+remap `.otile` does), the task's own 38px box and name type — and what says the
+stack is one thing rather than three loose tasks is the **magic drawer's gilt
+frame**, worn by every checklist face because a face that refills itself has
+earned it. Done lines don't print:
 the front is the next few things to do, not a record (inside, `keepsDone()`
 still keeps them), so ticking a line pulls the ones under it up a row and the
 next thing inside steps onto the bottom — `clRefill()` in motion.js draws that

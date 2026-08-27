@@ -386,14 +386,17 @@ function drawTile(o, arr, box){
 
      The face is a **stack of task-sized lines**: one line per cell of height,
      counted out by `--clrows` from the box being drawn, so a checklist three
-     cells tall shows three tasks the way three task tiles would — and the
-     border is what says the stack is one thing rather than three. Done lines
-     don't print: the front is the next few things to do, not a record, so
-     ticking one refills the face from the drawer below it — the lines under
-     the gap move up a row and the next thing inside steps onto the bottom
-     (clRefill() in motion.js draws that shuffle, after the render). The name
-     rides on the tooltip and inside the drawer; a front spending a line on a
-     label is a front showing one less task. See decision 79.
+     cells tall shows three tasks the way three task tiles would. Each line is
+     drawn the way the task tile is — paper and ink, the same 38px box, the
+     same name type — and what says the stack is one thing rather than three
+     loose tasks is the magic drawer's gilt frame, worn here because a face
+     that refills itself has earned it. Done lines don't print: the front is
+     the next few things to do, not a record, so ticking one refills the face
+     from the drawer below it — the lines under the gap move up a row and the
+     next thing inside steps onto the bottom (clRefill() in motion.js draws
+     that shuffle, after the render). The name rides on the tooltip and inside
+     the drawer; a front spending a line on a label is a front showing one
+     less task. See decision 79.
 
      It is a <div> rather than a <button> when it takes typing, because an input
      inside a button is invalid and unfocusable — the same reason the text field
@@ -412,14 +415,14 @@ function drawTile(o, arr, box){
     /* With nothing to show the front is a label again: a stack of zero lines
        is an anonymous coloured square — and so is the picker's sample. */
     if(!shown.length && !adds){
-      return `<button class="drawer dtile cltile clidle bd-${o.border||'panel'}${sel}" data-drawer="${o.id}"
+      return `<button class="drawer dtile cltile clidle magicdrawer bd-${o.border||'panel'}${sel}" data-drawer="${o.id}"
           style="--c:${colour};${place}">
         <div class="dtop">${nameField(o)}</div>
         <div class="dbody"><span class="clempty">${items.length?'All done':'Nothing yet — open it to add'}</span></div>
         ${handles}
       </button>`;
     }
-    return `<${adds?'div':'button'} class="drawer dtile cltile bd-${o.border||'panel'}${sel}" data-drawer="${o.id}"
+    return `<${adds?'div':'button'} class="drawer dtile cltile magicdrawer bd-${o.border||'panel'}${sel}" data-drawer="${o.id}"
         ${adds?'role="button" tabindex="0"':''} title="${esc(o.title||'Untitled')}"
         style="--c:${colour};--clrows:${rows};${place}">
       ${/* The **box** ticks it and the **words** change it. Tapping anywhere on
