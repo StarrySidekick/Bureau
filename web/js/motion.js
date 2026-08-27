@@ -162,6 +162,29 @@ function pop(id, was){
   setTimeout(()=>ring.remove(), 560);
 }
 
+/* ---- a checklist face refilling itself --------------------------------
+   Ticking a line takes it off the front — the render this runs after already
+   has — and the lines that were under it move up a row, so the next thing
+   waiting inside the drawer slides in over the bottom edge. State first,
+   movement after, like everything in here: the lines start displaced down by
+   one of their own heights and settle to where the render actually put them,
+   and the clip on .clist is what makes the last one arrive "out of" the
+   drawer. `idx` is the ticked line's place among the undone children, taken
+   before the tick; everything at that index and after is a mover. */
+function clRefill(cid, idx){
+  if(still()) return;
+  const tile=document.querySelector(`#app .grid .drawer[data-drawer="${cid}"]`);
+  if(!tile) return;
+  const move=[...tile.querySelectorAll('.cline')].slice(Math.max(0, idx));
+  if(!move.length) return;
+  const h=move[0].getBoundingClientRect().height;
+  if(!h) return;
+  move.forEach(el=>{ el.style.transition='none'; el.style.transform=`translateY(${h}px)`; });
+  void tile.offsetWidth;   // commit the start positions before they move
+  move.forEach(el=>{ el.style.transition='transform .3s cubic-bezier(.2,.8,.3,1)'; el.style.transform=''; });
+  setTimeout(()=>move.forEach(el=>{ el.style.transition=''; }), 340);
+}
+
 /* ============================================================
    20b · the holographic foil, and why it is gone
    ============================================================
@@ -442,5 +465,5 @@ function pagerCancel(){
   letGo(g);
 }
 
-export { still, tileOf, tileRect, openingFor, openTile, enter, pop,
+export { still, tileOf, tileRect, openingFor, openTile, enter, pop, clRefill,
   pagerBegin, pagerMove, pagerEnd, pagerCancel, pagerOn, stepDrawer };

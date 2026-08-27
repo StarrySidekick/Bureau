@@ -1,11 +1,11 @@
 import { $, esc, uid, ROOT, D } from './util.js';
 import { S, byId, K, KINDS, KEYS, kindHas, has, isContainer, genKindOf, streak, T, dz, dev,
-  repeatOf, repeats, nextRepeat,
+  repeatOf, repeats, nextRepeat, faceOf, childrenOf,
   deskIds, deskHere, placeOf, cfgOf } from './model.js';
 import { GRID, PHONE_GRIDS, colsOf, gridOf, freeSpot, lay, boxOk, sizeOfKind } from './grid.js';
 import { randomFront, randomBoard, styleDefaults } from './look.js';
 import { render, reveal } from './views.js';
-import { tileRect, pop } from './motion.js';
+import { tileRect, pop, clRefill } from './motion.js';
 import { closeSheet } from './sheet.js';
 import { assetDel, rescalePhone, rescaleOneBoard, rescaleBoxes, save } from './persist.js';
 
@@ -57,6 +57,14 @@ function toggleDone(id){
      usually means the thing leaves the drawer it was in, and a pop you can
      only see when it survives is a pop you mostly never see. */
   const was=tileRect(id);
+  /* And where this line stands on its parent's checklist face, also taken
+     before — after the tick the line is off the face, and the lines that were
+     under it are about to move up a row. clRefill() draws that shuffle over
+     the rendered result; the index is into the undone children, which is the
+     order the face prints. See decision 79. */
+  const par=byId(o.parent);
+  const clAt = (!o.done && par && faceOf(par)==='checklist')
+    ? childrenOf(par).filter(x=>!x.done).findIndex(x=>x.id===id) : -1;
   o.done=!o.done;
   if(o.done){
     o.doneAt=T;
@@ -77,6 +85,7 @@ function toggleDone(id){
   } else { o.doneAt=null; }
   render();
   if(o.done) pop(id, was);
+  if(o.done && clAt>=0) clRefill(o.parent, clAt);
 }
 function toggleHabit(id){
   const o=byId(id); if(!o) return;

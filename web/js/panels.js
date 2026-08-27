@@ -576,13 +576,13 @@ function objectPanelBody(id, sec){
   }
   if(!isRoot && cont && takesTyping(d)){
     out.push(prow('Typing in it makes', psel(id,'genKind', objectKinds, genKindOf(d))));
-    /* The add box costs a line of the front, and on a checklist that is one
-       item you could have seen instead. Off is a real answer; inside the
-       drawer the box is there either way. See decision 77. */
+    /* The add box costs a task-sized line of the front, so showing it is the
+       opt-in and every line showing an item is the default; inside the drawer
+       the box is there either way. See decisions 77 and 79. */
     out.push(prow('The add box', psel(id,'addbox',
-      [['','On its front and inside it'],['hide','Inside it only — more room on the front']],
-      d.addbox==='hide'?'hide':''),
-      'it goes by itself at two cells tall'));
+      [['','Inside it only — every line shows an item'],['show','On its front too — it takes a line']],
+      d.addbox==='show'?'show':''),
+      'even shown, it goes by itself at two cells tall'));
   }
   if(!isRoot && !cont && spawns){
     out.push(prow('It makes', psel(id,'genKind', objectKinds, genKindOf(d))

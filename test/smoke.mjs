@@ -465,8 +465,9 @@ const CHROME = process.env.BUREAU_CHROME;
              marks: marks === 3, zooms };
   });
 
-  // --- a checklist takes dictation: a box on its front makes a task inside it,
-  // ticking one leaves it there, and holding a line lifts it back out
+  // --- a checklist face is a stack of task-sized lines: the add box is opt-in,
+  // one line per cell of height, and ticking a line refills the face from
+  // inside the drawer — the record stays inside. See decision 79.
   const checklistBox = await page.evaluate(async () => {
     const nap = n => new Promise(r => setTimeout(r, n));
     const S = BUREAU.state;
@@ -474,30 +475,53 @@ const CHROME = process.env.BUREAU_CHROME;
     const cl = BUREAU.create('checklist', { parent: 'root', title: 'Pack' });
     BUREAU.render();
     await nap(200);
-    const tile = document.querySelector(`.drawer[data-drawer="${cl.id}"]`);
-    const box = tile && tile.querySelector('input[data-contadd]');
+    const front = () => document.querySelector(`.drawer[data-drawer="${cl.id}"]`);
     const startsRight = cl.desk.w === 4 && cl.desk.h === 6;
-    if (!box) return { hasBox: false };
+    // the box is opt-in now: a line of the front is a task you could have seen
+    const offByDefault = !!front() && !front().querySelector('input[data-contadd]');
+    cl.addbox = 'show'; BUREAU.render(); await nap(200);
+    const box = front() && front().querySelector('input[data-contadd]');
+    if (!box) return { hasBox: false, offByDefault };
     box.value = 'Passport';
     box.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
     await nap(250);
     const kids = S.objects.filter(o => o.parent === cl.id);
     const made = kids.length === 1 && kids[0].kind === 'task' && kids[0].title === 'Passport';
-    const onFront = [...document.querySelectorAll(`[data-drawer="${cl.id}"] .cline`)]
-      .some(l => l.textContent.trim() === 'Passport');
-    // ticked things stay on a checklist — that is what a checklist is for
-    BUREAU.toggleDone(kids[0].id);
+    const lines = () => [...front().querySelectorAll('.cline')];
+    const onFront = lines().some(l => l.textContent.trim() === 'Passport');
+    // one line per cell of height, less the row the add box is standing on
+    for (const t of ['Socks', 'Charger', 'Boots', 'Hat', 'Map', 'Torch']) {
+      const b = front().querySelector('input[data-contadd]');
+      b.value = t;
+      b.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      await nap(80);
+    }
     await nap(200);
-    const staysWhenDone = kids[0].done
-      && !!document.querySelector(`[data-drawer="${cl.id}"] .cline.done`);
+    const before = lines().map(l => l.textContent.trim());
+    const linesFitTheHeight = before.length === cl.desk.h - 1;
+    /* Ticking a shown line takes it off the face, keeps the task inside the
+       drawer, and the next thing waiting inside steps onto the bottom of the
+       stack. The top line is the newest made — create() orders newest first —
+       so the one that surfaces is the oldest still hidden. */
+    const topId = lines()[0].getAttribute('data-pluck');
+    BUREAU.toggleDone(topId);
+    await nap(450);
+    const after = lines().map(l => l.textContent.trim());
+    const t0 = S.objects.find(o => o.id === topId);
+    const leavesTheFace = t0.done && !after.includes(before[0]);
+    const staysInside = t0.parent === cl.id;
+    const surfaced = after[after.length - 1];
+    const refillsFromBelow = after.length === before.length
+      && !!surfaced && !before.includes(surfaced);
     // reaching for the box must not open the drawer out from under you
-    const box2 = document.querySelector(`[data-drawer="${cl.id}"] input[data-contadd]`);
+    const box2 = front() && front().querySelector('input[data-contadd]');
     if (box2) box2.click();
     await nap(150);
     const boxDoesNotOpen = S.view === 'desk';
     S.objects = S.objects.filter(o => o.id !== cl.id && o.parent !== cl.id);
     BUREAU.render();
-    return { hasBox: true, startsRight, made, onFront, staysWhenDone, boxDoesNotOpen };
+    return { hasBox: true, offByDefault, startsRight, made, onFront,
+             linesFitTheHeight, leavesTheFace, staysInside, refillsFromBelow, boxDoesNotOpen };
   });
 
   /* --- a line on a checklist front can be taken back off it. Real pointer
@@ -545,8 +569,16 @@ const CHROME = process.env.BUREAU_CHROME;
       return { parent: o && o.parent, boxCleared: o && !o.desk && !o.phone,
                chipGone: !document.querySelector('.pluckchip') };
     });
-    // and a plain tap on the box still ticks it rather than lifting the line
-    await page.mouse.move(...pluck.tick);
+    /* And a plain tap on the box still ticks it rather than lifting the line.
+       Re-measured after the pluck: the face is a stack of task-sized lines
+       now, so the remaining line moved up a whole row when the first left. */
+    const tick2 = await page.evaluate(() => {
+      const b = document.querySelector(`[data-pluck="${window.__pl.two}"] .clbox`);
+      if (!b) return null;
+      const r = b.getBoundingClientRect();
+      return [r.left + r.width / 2, r.top + r.height / 2];
+    });
+    await page.mouse.move(...(tick2 || pluck.tick));
     await page.mouse.down(); await page.mouse.up();
     await page.waitForTimeout(200);
     const ticked = await page.evaluate(() => {
@@ -2906,7 +2938,7 @@ const CHROME = process.env.BUREAU_CHROME;
     return out;
   });
 
-  /* --- the add box is a choice, and it goes by itself when short ------- */
+  /* --- the add box is opt-in, and even then it goes by itself when short - */
   const addBox = await page.evaluate(async () => {
     const nap = ms => new Promise(r => setTimeout(r, ms));
     const S = BUREAU.state, out = {};
@@ -2914,16 +2946,16 @@ const CHROME = process.env.BUREAU_CHROME;
     c[S.device] = Object.assign(BUREAU.free(4,6,'root'), {w:4,h:6});
     BUREAU.render(); await nap(200);
     const front = () => document.querySelector(`.grid .drawer[data-drawer="${c.id}"]`);
-    out.boxIsThere = !!front() && !!front().querySelector('.cladd');
-    // turned off: more room for what it holds
-    c.addbox = 'hide'; BUREAU.render(); await nap(200);
-    out.canBeTurnedOff = !front().querySelector('.cladd');
-    // …but inside it the box is always there, because that board has room
-    S.view='drawer'; S.drawerId=c.id; BUREAU.render(); await nap(220);
+    // off unless asked: every line of the front is a task you could have seen
+    out.offByDefault = !!front() && !front().querySelector('.cladd');
+    c.addbox = 'show'; BUREAU.render(); await nap(200);
+    out.canBeAskedFor = !!front().querySelector('.cladd');
+    // …and inside it the box is always there, asked for or not
+    c.addbox = ''; S.view='drawer'; S.drawerId=c.id; BUREAU.render(); await nap(220);
     out.insideItAlways = !!document.querySelector(`[data-contadd="${c.id}"]`);
     S.view='desk'; S.drawerId=null;
-    // and it goes by itself at two cells tall, without being asked
-    c.addbox = ''; c[S.device] = Object.assign({}, c[S.device], {h:2});
+    // even asked for, it goes by itself at two cells tall
+    c.addbox = 'show'; c[S.device] = Object.assign({}, c[S.device], {h:2});
     BUREAU.render(); await nap(200);
     out.goesWhenShort = !!front() && !front().querySelector('.cladd');
     c[S.device] = Object.assign({}, c[S.device], {h:6});

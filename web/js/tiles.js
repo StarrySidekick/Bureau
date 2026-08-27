@@ -384,6 +384,17 @@ function drawTile(o, arr, box){
      see, tick, add to and take from it without opening it. That is the whole
      difference between it and a drawer.
 
+     The face is a **stack of task-sized lines**: one line per cell of height,
+     counted out by `--clrows` from the box being drawn, so a checklist three
+     cells tall shows three tasks the way three task tiles would — and the
+     border is what says the stack is one thing rather than three. Done lines
+     don't print: the front is the next few things to do, not a record, so
+     ticking one refills the face from the drawer below it — the lines under
+     the gap move up a row and the next thing inside steps onto the bottom
+     (clRefill() in motion.js draws that shuffle, after the render). The name
+     rides on the tooltip and inside the drawer; a front spending a line on a
+     label is a front showing one less task. See decision 79.
+
      It is a <div> rather than a <button> when it takes typing, because an input
      inside a button is invalid and unfocusable — the same reason the text field
      tile is a div. Clicking it still opens it: wire.js goes by [data-drawer]
@@ -391,26 +402,39 @@ function drawTile(o, arr, box){
   if(cont && faceOf(o)==='checklist'){
     const items=childrenOf(o);
     /* Whether the *box* is drawn, which is not the same question as whether the
-       container takes typing: it is off when you turned it off, and off when the
-       front is too short to spare a line for it. See decision 77. */
+       container takes typing: it is opt-in now — every line of this front is a
+       task you could have seen — and off regardless when the front is too short
+       to spare a line for it. See decisions 77 and 79. */
     const adds=showsAddBox(o, box);
     const made=K(genKindOf(o)).nm.toLowerCase();
+    const rows=Math.max(1, box.h|0);
+    const shown=items.filter(x=>!x.done).slice(0, Math.max(1, rows-(adds?1:0)));
+    /* With nothing to show the front is a label again: a stack of zero lines
+       is an anonymous coloured square — and so is the picker's sample. */
+    if(!shown.length && !adds){
+      return `<button class="drawer dtile cltile clidle bd-${o.border||'panel'}${sel}" data-drawer="${o.id}"
+          style="--c:${colour};${place}">
+        <div class="dtop">${nameField(o)}</div>
+        <div class="dbody"><span class="clempty">${items.length?'All done':'Nothing yet — open it to add'}</span></div>
+        ${handles}
+      </button>`;
+    }
     return `<${adds?'div':'button'} class="drawer dtile cltile bd-${o.border||'panel'}${sel}" data-drawer="${o.id}"
-        ${adds?'role="button" tabindex="0"':''} style="--c:${colour};${place}">
-      <div class="dtop">${nameField(o)}
-        <span class="clcount">${rollup(o) || (items.filter(x=>x.done).length+'/'+items.length)}</span></div>
-      ${adds?`<label class="cladd">${ic('plus',11)}
-        <input data-contadd="${o.id}" placeholder="Add a ${esc(made)}…"></label>`:''}
+        ${adds?'role="button" tabindex="0"':''} title="${esc(o.title||'Untitled')}"
+        style="--c:${colour};--clrows:${rows};${place}">
       ${/* The **box** ticks it and the **words** change it. Tapping anywhere on
             the line used to tick it, which left no way to fix a typo without
             opening the drawer — and a checklist you cannot correct in place is
             a checklist you stop trusting. Holding it still plucks it out. */''}
-      <div class="dbody"><div class="clist">${items.slice(0,14).map(x=>
-        `<span class="cline${x.done?' done':''}" data-pluck="${x.id}"
+      <div class="dbody"><div class="clist">
+        ${adds?`<label class="cladd">${ic('plus',11)}
+          <input data-contadd="${o.id}" placeholder="Add a ${esc(made)}…"></label>`:''}
+        ${shown.map(x=>
+        `<span class="cline" data-pluck="${x.id}"
            title="${esc(x.title||'Untitled')} — hold to take it out">
-           <i class="clbox" data-check="${x.id}">${x.done?ic('check',10):''}</i>${
+           <i class="clbox" data-check="${x.id}"></i>${
            nameField(x, 'cltext')}</span>`).join('')
-        || `<span class="clempty">${adds?'Nothing yet — type above':'Nothing yet — open it to add'}</span>`}</div></div>
+        || `<span class="clempty">Nothing yet — type above</span>`}</div></div>
       ${handles}
     </${adds?'div':'button'}>`;
   }

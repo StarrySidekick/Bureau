@@ -261,11 +261,23 @@ compares as a *date* (`numOf` read "2026-08-19" as 2026) and its value may be
 one of five words — `today`, `tomorrow`, `week`, `month`, `year` — resolved when
 the rule runs, so "before next week" keeps meaning it. See decision 63.
 
-**The add box is a choice and it can go by itself.** Ask `showsAddBox(c, box)`
-for the front, not `takesTyping(c)` — that answers whether a container takes
-dictation at all. The box is off when you said so and off at two cells tall or
-less, where the line is worth more as an item. Inside the container it is always
-there. See decision 77.
+**A checklist face is a stack of task-sized lines, and it refills itself.** One
+line per cell of height, counted out by `--clrows` from the box being drawn — a
+checklist three cells tall shows three tasks the way three task tiles would, and
+the tile's border is what says the stack is one thing. Done lines don't print:
+the front is the next few things to do, not a record (inside, `keepsDone()`
+still keeps them), so ticking a line pulls the ones under it up a row and the
+next thing inside steps onto the bottom — `clRefill()` in motion.js draws that
+shuffle *after* the render, never instead of it. A face with nothing to show is
+a label again — name and a quiet line — which is also what the type picker's
+sample is. See decision 79.
+
+**The add box is opt-in, and even then it can go by itself.** Ask
+`showsAddBox(c, box)` for the front, not `takesTyping(c)` — that answers whether
+a container takes dictation at all. The box is off unless `addbox` says
+`'show'` — on a checklist face it costs a whole task-sized line — and off
+regardless at two cells tall or less, where the line is worth more as an item.
+Inside the container it is always there. See decisions 77 and 79.
 
 **A tag is a magic drawer waiting to happen.** There is no filter mode and no
 filter bar; clicking a tag anywhere calls `drawerForTag()`, which finds the

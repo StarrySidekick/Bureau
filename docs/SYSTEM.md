@@ -204,9 +204,10 @@ same settings, kept in `S.deskCfg` because it has no object to hang them on.
 - A magic drawer shows whatever matches, and filing into one does nothing.
 
 **Face** — how it draws on its parent's board: `front` (a drawer front with a
-pull), `checklist` (its children listed with boxes you can tick without opening
-it), `project` (a front page: progress, counts, what is next, what it is made
-of), `calendar`, `moodboard`, `timeline`.
+pull), `checklist` (a stack of task-sized lines — one per cell of height, boxes
+you can tick without opening it; ticking one refills the face from inside the
+drawer, see decision 79), `project` (a front page: progress, counts, what is
+next, what it is made of), `calendar`, `moodboard`, `timeline`.
 
 **Layout** — how it arranges its children once opened: `grid`, `list`, `scroll`
 (nothing truncated — for reading a drawer rather than scanning it), plus
@@ -223,12 +224,13 @@ it is what makes a container adapt to any shape rather than run out of them. One
 cell **square** is still the mark and nothing else — at 40px a spine has no
 length to set a name along either.
 
-**A container can take dictation, and the box is a choice.** `spawn` with
-`spawnBy:'type'` puts a box at the top of it — on its front and inside it. Ask
-`showsAddBox(c, box)` for whether it is drawn on the *front*: it says no when
-you turned it off (`addbox:'hide'`, one line back for one more item you can see)
-and no when the front is **two cells tall or less**, where a line spent on
-adding a tenth thing you cannot see is the wrong trade. Inside the container it
+**A container can take dictation, and the box is opt-in.** `spawn` with
+`spawnBy:'type'` puts a box at the top of it — inside it always, and on its
+front only when asked. Ask `showsAddBox(c, box)` for whether it is drawn on the
+*front*: it says no unless you asked for it (`addbox:'show'` — on a checklist
+face the box costs a whole task-sized line, see decision 79) and no when the
+front is **two cells tall or less**, where a line spent on adding a tenth thing
+you cannot see is the wrong trade. Inside the container it
 is always there. See decision 77. Otherwise: and `genKind` says what a line you
 type makes. A Checklist is the built-in that carries them, so it is a container
 of tasks you can tick, add to and take from without opening it; any type that

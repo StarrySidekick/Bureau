@@ -2560,3 +2560,36 @@ already on clears it, which is the same toggle every calendar cell in the app
 already is.
 
 A Mac has no row swipe, so the context menu has **When…** as well.
+
+---
+
+### 79. A checklist face is a stack of task-sized lines, and it refills itself
+
+The front of a checklist used to be furniture with a list printed on it: a
+name, a count, an add box, and however many compact lines fit under them —
+fourteen at most, at whatever height the text happened to take.
+
+It is the tasks now. One line per cell of height, so a checklist one cell tall
+shows one task and three cells tall shows three, each line the size the task
+would be as a tile of its own — and the border is what says the stack is one
+thing rather than three tasks in a column. The name comes off the face (it is
+the tooltip, and the drawer wears it inside); the add box becomes opt-in
+(`addbox:'show'`), because it now costs a whole task-sized line — decision
+77's trade with the price marked up; and done lines don't print at all.
+
+That last one is the point. The face shows the next few things to do, not a
+record: ticking a line takes it off the front, the lines under it move up a
+row, and the next thing waiting inside the drawer slides in over the bottom
+edge. A checklist refills itself from its own depth, which is what a drawer
+full of tasks is *for* — the fourth or fifth thing on the list was always in
+there; now it surfaces the moment there is a line free to show it on.
+
+This refines what the face **shows**, not what the drawer **holds**: done
+things still stay inside (`keepsDone()` is untouched), so the record is in
+the drawer, where a record belongs — a checklist that *emptied* itself as you
+ticked would still not be a checklist.
+
+State first, movement after, as always: the tick renders instantly and
+`clRefill()` in motion.js draws the shuffle over the result. A face with
+nothing left to show is a label again — name and a quiet line — because a
+stack of zero lines is an anonymous coloured square.
