@@ -3166,6 +3166,70 @@ const CHROME = process.env.BUREAU_CHROME;
     return out;
   });
 
+  /* --- a new object drops onto the board -------------------------------
+     Guarded because this was **dead in production** and nothing noticed: a
+     stray comment terminator left the CSS parser recovering across the whole
+     `@keyframes justmade` block, so the name resolved to nothing and
+     `animation` was a no-op. Asserting the class is on the tile would have
+     passed happily. So assert the animation is *running*, and that it starts
+     big and high — which is the whole of what makes it read as a drop.
+     See decision 81.
+
+     The keyframe roll-call underneath is the general form of the same guard:
+     an invalid rule is simply absent from the CSSOM, so a name the app
+     animates by that no longer exists is a silent nothing. */
+  const dropsIn = await page.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const S = BUREAU.state, out = {};
+    S.view='desk'; S.drawerId=null; S.look.locked=false;
+    const n = BUREAU.create('note', { parent:'root', title:'Dropped' });
+    n.desk = Object.assign(BUREAU.free(4,3,'root'), {w:4,h:3});
+    BUREAU.render(); await nap(150);
+    const el = () => document.querySelector(`.grid .drawer[data-row="${n.id}"]`);
+    el().classList.remove('justmade'); void el().offsetWidth;
+    el().classList.add('justmade');
+    const names = el().getAnimations().map(a => a.animationName);
+    out.itActuallyAnimates = names.includes('justmade');
+    const scaleNow = () => {
+      const m = getComputedStyle(el()).transform.match(/matrix\(([-\d.]+)/);
+      return m ? +m[1] : 1;
+    };
+    const yNow = () => {
+      const m = getComputedStyle(el()).transform.match(/matrix\((?:[-\d.]+,\s*){5}([-\d.]+)\)/);
+      return m ? +m[1] : 0;
+    };
+    // it starts big — "close to you" — and above where it will land
+    const startScale = scaleNow(), startY = yNow();
+    out.startsBig = startScale > 1.3;
+    out.startsHigh = startY < -20;
+    await nap(380);
+    const midScale = scaleNow(), midY = yNow();
+    // measured against where it began rather than a magic number, so retuning
+    // the curve doesn't break the test that says it is a fall
+    out.shrinksAsItFalls = midScale < startScale - 0.1 && midScale > 1;
+    out.andComesDown = midY > startY && midY < 0;
+    await nap(800);
+    out.settlesAtItsOwnSize = Math.abs(scaleNow() - 1) < 0.01 && Math.abs(yNow()) < 1;
+    BUREAU.del(n.id); S.undo=[]; S.redo=[]; BUREAU.render();
+    return out;
+  });
+
+  const keyframesRegistered = await page.evaluate(() => {
+    const names = new Set();
+    for (const sheet of document.styleSheets) {
+      let rules; try { rules = sheet.cssRules; } catch (_) { continue; }
+      const walk = rs => { for (const r of rs) {
+        if (r.type === CSSRule.KEYFRAMES_RULE) names.add(r.name);
+        else if (r.cssRules) walk(r.cssRules);
+      } };
+      walk(rules);
+    }
+    // every animation the app drives by name, and none of them may go missing
+    return ['justmade','justmadein','poptick','popmark','swallow','stagedrift',
+            'turnfwd','turnback']
+      .every(n => names.has(n));
+  });
+
   /* --- pinned to the board rather than laid flat on it ----------------- */
   const pinboard = await page.evaluate(async () => {
     const nap = ms => new Promise(r => setTimeout(r, ms));
@@ -3230,7 +3294,8 @@ const CHROME = process.env.BUREAU_CHROME;
     wordsNotSource, deadlines, twoClauses, undoEverything, savesOnlyChanges,
     paletteKeys, editorKeys, pickerLeads, rollupsEverywhere, soundAndVision, keyboardBoard,
     ranking, repeating, oneLock, scheduling, ownColour, addBox, calFaces,
-    lockedBoard, freeTraits, pageWrites, tickBoxes, readerFits, pinboard
+    lockedBoard, freeTraits, pageWrites, tickBoxes, readerFits,
+    dropsIn, keyframesRegistered, pinboard
   }, null, 2));
   await browser.close();
 })();

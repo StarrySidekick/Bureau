@@ -2673,14 +2673,39 @@ being an inset of it. Capped at a third of the tile, which also fixes
 something that had been true all along — four 34px corners on a 1×1 phone tile
 were the whole tile, so a mini tile could not be picked up at all.
 
-**And a new object drops onto the board.** It falls in from above, bounces
-once and settles, rather than being there on the next frame. A thing that
-appears has to be found; a thing that lands has been watched all the way down
-— which is the job `reveal()` was doing with a ring of light, and the ring
-stays, because the drop says where and the glow says which. State first,
-movement after, as always: the object is made, placed and saved before any of
-it draws. The tilt rides in every step, so a thing made on a pinned board
-lands at the angle it is going to keep.
+**And a new object drops onto the board.** It falls in from above and settles,
+rather than being there on the next frame. A thing that appears has to be
+found; a thing that lands has been watched all the way down — which is the job
+`reveal()` was doing with a ring of light, and the ring stays, because the drop
+says where and the glow says which. State first, movement after, as always: the
+object is made, placed and saved before any of it draws. The tilt rides in
+every step, so a thing made on a pinned board lands at the angle it is going to
+keep.
+
+Two things make it read as a *drop* rather than a nudge. It **starts big** —
+half again its size, which is what "close to you" looks like — and shrinks to
+its real size as it falls away onto the board; a tile that only slides down a
+few pixels is a tile that twitched. And it **accelerates**: the fall eases
+*in*, the way something under gravity does, then gives a little on impact and
+comes back. An ease-out is the classic mistake here, and was the first attempt:
+it spends all the movement in the first fifty milliseconds and leaves the rest
+of the second doing nothing at all.
+
+The glow is an `outline`, not a `box-shadow`. Half the border slots write
+`box-shadow: inset …, var(--shadow)`, so animating that property takes the
+moulding off the front for the length of the drop and snaps it back at the end
+— the same reason decision 75 keeps box-shadow off a pinned tile. An outline
+follows the border radius and collides with nothing. The fade-in is its own
+short animation, because a keyframe that only set opacity would cut the fall
+into two easing segments and the tile would decelerate halfway down.
+
+**It shipped dead, and that is the part worth remembering.** A stray comment
+terminator left the CSS parser recovering across the whole `@keyframes`
+block, so the name resolved to nothing and `animation` was a no-op — an
+invalid rule is simply absent from the CSSOM, and nothing anywhere says so.
+The smoke test asserts the animation is *running* rather than that the class
+is on the tile, and keeps a roll-call of every keyframe name the app drives
+by, because "the class is there" would have passed the whole time.
 
 ---
 

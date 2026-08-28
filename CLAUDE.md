@@ -680,7 +680,10 @@ That makes `arr` three answers, not two: `true` unlocked, `'locked'` locked,
 `false` not a board at all (a sample). A grip is a bigger target than the mark
 that advertises it — 22px desk, 40px phone, capped at a third of the tile so
 four corners can't swallow a 1×1. A new object **drops in from above** and
-settles (`.justmade`), the ring of light still saying which. See decision 81.
+settles (`.justmade`) — starting half again its size and easing *in*, because a
+tile that only slides a few pixels reads as a twitch; the glow is an `outline`
+so it can't take a border slot's moulding with it. The ring of light still says
+which. See decision 81.
 
 **The reader is one column, and the keyboard is not a resize.** `--paperw` is
 computed on `.bookstage` — not on `.book`, which is a sibling the title and the

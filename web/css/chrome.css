@@ -1673,35 +1673,64 @@ kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--rule);border
    Return finishes there instead of moving to a field that isn't drawn. */
 .drawer.otile.editing:not(.sz-short):not(.sz-mini) .dbody{display:block}
 /* ---- a new object arrives ---------------------------------------------
-   It **drops onto the board** from above and settles, rather than simply
-   being there on the next frame. A thing that appears has to be found; a
-   thing that lands has been watched all the way down, which is the whole job
-   `reveal()` was doing with a ring of light. The ring stays — the drop says
-   where, the glow says which — and the two run on one class.
+   It **drops onto the board** from above and settles, rather than simply being
+   there on the next frame. A thing that appears has to be found; a thing that
+   lands has been watched all the way down, which is the whole job `reveal()`
+   was doing with a ring of light. The ring stays — the drop says where, the
+   glow says which — and the two run on one class.
+
+   It reads as a drop because of two things together. It **starts big**, which
+   is what "close to you" looks like, and shrinks to its real size as it falls
+   away onto the board — a tile that only slides down a few pixels reads as a
+   nudge, not a fall. And it **accelerates**: the fall eases *in*, the way
+   something under gravity does, then gives a little on impact and comes back.
+   An ease-out here is the classic mistake — it puts all the movement in the
+   first fifty milliseconds and leaves the rest of the second doing nothing.
+
+   The glow is an `outline`, not a `box-shadow`. Half the border slots write
+   `box-shadow: inset …, var(--shadow)`, so animating that property takes the
+   moulding off the front for the length of the drop and snaps it back at the
+   end — the same reason decision 75 keeps box-shadow off a pinned tile. An
+   outline follows the border radius and collides with nothing.
+
+   The tilt rides in every step, so a thing made on a pinned board lands at the
+   angle it is going to keep rather than snapping to it afterwards.
 
    State first, movement after, like everything else: the object is already
-   made, placed and saved before this draws, and the animation is over the
-   result. See decision 81. */
-   The tilt rides in every step, so a thing made on a pinned board lands at
-   the angle it is going to keep rather than snapping to it afterwards. */
+   made, placed and saved before any of this draws. See decision 81. */
 @keyframes justmade{
-  0%  {transform:translateY(-64px) rotate(var(--tilt,0deg)) scale(1.03);opacity:0;
-       box-shadow:0 0 0 3px var(--glow), var(--shadow-lg)}
-  40% {opacity:1}
-  55% {transform:translateY(0) rotate(var(--tilt,0deg)) scale(1);
-       box-shadow:0 0 0 3px var(--glow), var(--shadow-lg)}
-  67% {transform:translateY(-5px) rotate(var(--tilt,0deg)) scale(1)}   /* the bounce */
-  78%,86%{transform:translateY(0) rotate(var(--tilt,0deg)) scale(1);
-       box-shadow:0 0 0 3px var(--glow), var(--shadow-lg)}
-  100%{transform:translateY(0) rotate(var(--tilt,0deg)) scale(1);
-       box-shadow:0 0 0 0 transparent, var(--shadow)}
+  /* the fall: big and high, gathering speed */
+  0%  {transform:translateY(-54px) scale(1.5) rotate(var(--tilt,0deg));
+       outline-color:var(--glow);
+       animation-timing-function:cubic-bezier(.5,0,.78,.36)}
+  46% {transform:translateY(0) scale(1) rotate(var(--tilt,0deg));
+       outline-color:var(--glow);
+       animation-timing-function:cubic-bezier(.3,0,.25,1)}
+  /* the give, and the come-back */
+  57% {transform:translateY(0) scale(.955) rotate(var(--tilt,0deg))}
+  70% {transform:translateY(0) scale(1.015) rotate(var(--tilt,0deg))}
+  80% {transform:translateY(0) scale(1) rotate(var(--tilt,0deg));
+       outline-color:var(--glow)}
+  100%{transform:translateY(0) scale(1) rotate(var(--tilt,0deg));
+       outline-color:transparent}
 }
-.drawer.justmade{animation:justmade 1.1s cubic-bezier(.25,.9,.3,1);z-index:12}
+/* The fade is its own animation, and deliberately: a keyframe that only sets
+   opacity would also cut the fall into two easing segments, so the tile would
+   decelerate halfway down and set off again. On its own timeline it is over in
+   a fifth of a second and the fall keeps one curve — you watch a solid thing
+   drop rather than a faint one materialise. */
+@keyframes justmadein{ from{opacity:0} to{opacity:1} }
+.drawer.justmade{
+  animation:justmade 1s cubic-bezier(.3,0,.25,1),
+            justmadein .2s ease-out;
+  outline:3px solid transparent;outline-offset:0;
+  z-index:12;
+}
 /* Asked for less movement: the glow alone, which is what this was before. */
 @media (prefers-reduced-motion: reduce){
   @keyframes justmade{
-    0%,70%{box-shadow:0 0 0 3px var(--glow), var(--shadow-lg)}
-    100%  {box-shadow:0 0 0 0 transparent, var(--shadow)}
+    0%,70%{outline-color:var(--glow)}
+    100%  {outline-color:transparent}
   }
 }
 
