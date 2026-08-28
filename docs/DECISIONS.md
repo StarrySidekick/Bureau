@@ -2725,3 +2725,59 @@ beside the shadows and the grid, is written once onto the root element by
 `applyLook()` as `data-checks`, and the stylesheet answers for every box off
 that — the same trick `data-style` plays. An unrecognised value falls back to
 the default rather than leaving the desk with no boxes at all.
+
+---
+
+### 84. One bar under the paper, and the keyboard is not a resize
+
+Two faults in the reading surface, from opposite ends of it.
+
+**The header.** It carried the title and four buttons, and it was sized
+`width:auto; min-width:min(560px,100%)`. That 560px floor is wider than a
+phone, so on a 390px screen the header came out **605px wide**, centred over a
+343px sheet: the title's first words were cut off the left edge and Edit and
+the close button were entirely off the right one. There was no way to shut the
+reader from its own header. The comment above the rule said *"the header is as
+wide as the paper under it"* — which was the right idea, written in a comment
+and nowhere else, because `--pagew` was computed on `.book`, a **sibling**, so
+the header structurally could not see the number it was supposed to match.
+
+The numbers live on the stage now, `--paperw` is the one width, and the title,
+the sheet and the bar are one column that cannot disagree. And the header is
+**only the title** — two lines and then it clips, because a title is identity
+rather than the text, and a long one must never push the paper down the screen.
+
+Every control moved into **one bar under the sheet**, where the page turns
+already were. The sheet had controls at both ends and now has them at one: the
+tools left, the turns centred under the paper, the way out right — three
+columns rather than a flex row, so the turns stay centred whatever the tools
+weigh. Scroll mode gets the bar too, with nothing in the middle; the controls
+are not the page turns' guests. It is also the end of the sheet a thumb can
+reach, which is the argument that put the desk's knob at the bottom of a phone.
+Nothing in it may shrink or wrap — a pill wrapping its own label onto two lines
+was the other half of the jumbling.
+
+**The keyboard.** `100vh` on iOS is the *large* viewport and deliberately
+ignores the software keyboard, so the sheet stayed full height with half the
+screen gone and Safari shoved the whole thing upward to chase the caret — which
+is how the page you were typing on ended up above the top of the screen. `dvh`
+does not help: it tracks the browser's own chrome, not the keyboard.
+`visualViewport` is the only honest number, so boot.js writes its height and
+its offset onto the root as `--vvh`/`--vvt`, the way `sizeGrid()` writes what
+it measures, and the stylesheet does the rest.
+
+Sizing was only half of it. A stage that still spans the layout viewport
+centres a correctly-sized sheet in 844px, so the paper came out the right shape
+and sat below the keyboard anyway. Both stages are bounded by the visual
+viewport now — anchored at `--vvt`, `--vvh` tall — so centring happens in the
+room there really is. The paper keeps its **Letter proportions throughout**: what
+it gives back to a keyboard is a smaller sheet, never a different shape. On a
+phone, writing also hides the title, pulls the stage's inset in and brings the
+page's margins down, because a page's margins are set for reading and at that
+width they are most of it.
+
+One trap worth naming: the pagination **ruler** is an offscreen twin that lives
+on `#frame`, not inside the stage, because it has to work before the stage is
+drawn. Hoisting the geometry without taking the ruler along left it with no
+`--pageh`, so nothing ever overflowed it and a whole book measured as a single
+page. It carries the same numbers, and must.

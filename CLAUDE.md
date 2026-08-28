@@ -682,6 +682,20 @@ that advertises it — 22px desk, 40px phone, capped at a third of the tile so
 four corners can't swallow a 1×1. A new object **drops in from above** and
 settles (`.justmade`), the ring of light still saying which. See decision 81.
 
+**The reader is one column, and the keyboard is not a resize.** `--paperw` is
+computed on `.bookstage` — not on `.book`, which is a sibling the title and the
+bar cannot read — so the title, the sheet and the bar are one width that cannot
+disagree. The header is **only the title**, two lines then clipped; every
+control is in **one bar under the paper** (tools left, page turns centred, the
+way out right, three grid columns so the turns stay centred). The paper is
+sized and positioned from `--vvh`/`--vvt`, the *visual* viewport written onto
+the root by `watchViewport()` in boot.js — `100vh` on iOS ignores the software
+keyboard and `dvh` tracks browser chrome, not the keyboard. Letter proportions
+are kept throughout: a keyboard gets a smaller sheet, never a different shape.
+**The pagination ruler lives on `#frame`, not in the stage**, so it has to be
+named in the same rule as `.bookstage` — without `--pageh` nothing overflows it
+and a whole book measures as one page. See decision 84.
+
 **The page you read is the page you write on.** Tapping the paper puts a caret
 in it — the whole body, in the page's own face, however the page is broken up;
 `clearPages()` when you put it down. The reading head is three things: the mode
@@ -996,7 +1010,8 @@ when you're editing the *other* device's layout from this one.
   "Open it as a book" used to be a click action, which made *whether* it opens
   and *how it looks* the same question. There is one reading surface now; the
   plain half-screen read panel is gone.
-- **A reading page is US Letter and sized from the window, never the text.** It
+- **A reading page is US Letter and sized from the *visual* viewport, never the
+  text.** It
   was a `min-height`, so a long body grew a taller sheet and an empty one
   collapsed. `--pageh`/`--pagew` in `chrome.css` derive from `--stage-x`/`-y`;
   change the stage inset and the paper follows. **Pagination is measured** —

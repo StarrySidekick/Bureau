@@ -313,21 +313,28 @@ function renderSheet(){
     const mode=readOf(r), modes=Object.keys(READS);
     const next=modes[(modes.indexOf(mode)+1)%modes.length];
     const editing=!!S.readEdit;
+    /* The tools, for the bar under the paper. Glyphs, all of them: the row has
+       to hold five things and a page count on a 343px sheet, and a word costs
+       three times what a mark does. The mode keeps its name where there is
+       room for it — the stylesheet takes it off on a phone. */
+    const tools = editing
+      ? `<button class="pill" data-act="pagedone">${ic('check',13)}<span>Done</span></button>`
+      : `<button class="iconbtn readmode" data-oread="${next}" data-id="${r.id}"
+           title="Reading as a ${READS[mode].toLowerCase()} — tap for ${READS[next].toLowerCase()}">
+           ${ic(mode==='scroll'?'feather':'book',15)}<span>${READS[mode]}</span></button>
+         <button class="iconbtn" data-act="copymd" data-id="${r.id}" title="Copy as markdown">${ic('copy',15)}</button>
+         <button class="iconbtn" data-act="objset" data-id="${r.id}" title="Everything about it but the words">${ic('brush',15)}</button>`;
+    const out = `<button class="iconbtn" data-sheet="close" title="Close">${ic('x',16)}</button>`;
     host.innerHTML=`<div class="bookscrim" data-sheet="close"></div>
       <div class="bookstage rm-${mode}${editing?' writingon':''}">
-        <div class="bookhead"><b>${esc(r.title||'Untitled')}</b>
-          <button class="pchip readmode" data-oread="${next}" data-id="${r.id}"
-            title="Reading as a ${READS[mode].toLowerCase()} — tap for ${READS[next].toLowerCase()}">
-            ${ic(mode==='scroll'?'feather':'book',13)}<span>${READS[mode]}</span></button>
-          <button class="iconbtn" data-act="copymd" data-id="${r.id}" title="Copy as markdown">${ic('copy',15)}</button>
-          <button class="pill" data-act="objset" data-id="${r.id}" title="Everything about it but the words">${ic('brush',13)} Edit</button>
-          <button class="iconbtn" data-sheet="close">${ic('x',16)}</button></div>
+        <div class="bookhead"><b>${esc(r.title||'Untitled')}</b></div>
         ${editing
           ? `<div class="book"><div class="spread"><div class="page">
               <textarea class="pagebody" data-w="body"
                 placeholder="Write.">${esc(r.body||'')}</textarea></div></div>
-             <div class="bookbar"><button class="pill" data-act="pagedone">${ic('check',13)} Done</button></div></div>`
-          : bookOf(r)}
+             <div class="bookbar"><span class="bktools">${tools}</span>
+               <span class="bkturn"></span><span class="bkout">${out}</span></div></div>`
+          : bookOf(r, tools, out)}
       </div>`;
     if(editing){ const b=$('.pagebody',host); if(b) setTimeout(()=>b.focus(),20); }
     return;

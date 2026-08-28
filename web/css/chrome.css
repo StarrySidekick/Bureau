@@ -86,16 +86,34 @@
    and taller sheet and an empty one in scroll view collapsed to a sliver. The
    height is whichever is smallest of the room available, a sensible maximum,
    and what the width allows at 8.5:11 — so the sheet is always a sheet. */
-.book{
+/* The numbers live on the **stage**, not on the paper, because the title above
+   the sheet and the bar below it both have to be exactly as wide as the paper
+   is — and `.book` is their sibling, so anything computed in there is a number
+   they cannot see. That was the whole cause of a header 605px wide over a
+   343px sheet: the intent was written in a comment and nowhere else. Now
+   `--paperw` is the one width, and everything in the column takes it.
+
+   `--vvh` is the **visual** viewport, written by boot.js. `100vh` on iOS is
+   the large viewport and deliberately ignores the software keyboard, so a
+   sheet sized in vh stayed full height with half the screen gone and the
+   browser shoved it all upward to chase the caret. See decision 84. */
+/* The **ruler** carries the same numbers, and must: it is an offscreen twin of
+   a page that pagination fills until a block stops fitting, and it lives on
+   #frame rather than inside the stage (it has to work before the stage is
+   drawn). Left out of this rule it inherits no --pageh, the twin has no
+   height, nothing ever overflows it, and a whole book measures as one page. */
+.bookstage,.bookruler{
+  --pages:1;
   --avail-w:calc(100vw - var(--stage-x) * 2);
-  --avail-h:calc(100vh - var(--stage-y) * 2 - 118px);   /* header, bar, gaps */
-  --pageh:min(var(--avail-h), 880px, calc(var(--avail-w) * 11 / 8.5));
+  --avail-h:calc(var(--vvh, 100vh) - var(--stage-y) * 2 - var(--bookchrome, 112px));
+  --pageh:min(var(--avail-h), 880px, calc(var(--avail-w) / var(--pages) * 11 / 8.5));
   --pagew:calc(var(--pageh) * 8.5 / 11);
-  width:var(--pagew);margin:0 auto}
+  --paperw:calc(var(--pagew) * var(--pages));
+}
 /* two pages side by side have half the width each to work with */
-.book:has(.spread > .page + .page){
-  --pageh:min(var(--avail-h), 880px, calc(var(--avail-w) / 2 * 11 / 8.5));
-  width:calc(var(--pagew) * 2)}
+.bookstage:has(.spread > .page + .page),
+.bookruler:has(.spread > .page + .page){ --pages:2 }
+.book{width:var(--paperw);margin:0 auto}
 .spread{display:grid;grid-template-columns:1fr 1fr;gap:0;background:var(--paper-2);
   border:1px solid var(--rule);border-radius:var(--radius);overflow:hidden;
   height:var(--pageh);position:relative;perspective:2200px}
@@ -117,9 +135,35 @@
 .spread .page h2{font-family:var(--serif);font-size:20px;margin:0 0 12px}
 .spread .pno{position:absolute;bottom:14px;left:0;right:0;text-align:center;font-size:11px;color:var(--ink-3)}
 .spread .thin{color:var(--ink-3)}
-.bookbar{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:14px}
-.bookcount{font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums}
-.bookbar .pill[disabled]{opacity:.4}
+/* ---- one bar under the paper — decision 84 ---------------------------
+   Everything you can press, in one row, at the end of the sheet a thumb
+   reaches. Three columns rather than a flex row: the tools weigh whatever they
+   weigh on the left, the way out sits at the right, and the page turns stay
+   **centred under the sheet** regardless — which a flex row with `auto`
+   margins cannot promise unless both ends happen to match.
+
+   It is the width of the paper, so nothing in it can drift off the screen: the
+   thing that went wrong with the header it replaced. */
+.bookbar{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;
+  gap:10px;margin-top:12px;width:var(--paperw);max-width:100%;margin-inline:auto}
+.bktools{display:flex;align-items:center;gap:4px;min-width:0}
+.bkturn{display:flex;align-items:center;justify-content:center;gap:8px;flex:0 0 auto}
+.bkout{display:flex;align-items:center;justify-content:flex-end}
+/* nothing in the bar may squash or wrap — that was the other half of the
+   jumbling, a pill with room for six letters wrapping its label onto two */
+.bookbar > span > *{flex:0 0 auto;white-space:nowrap}
+.bookcount{font-size:12px;color:#E5DCC6;font-variant-numeric:tabular-nums}
+.bookbar .iconbtn{color:rgba(244,238,221,.8)}
+.bookbar .iconbtn:hover{background:rgba(255,255,255,.14);color:#fff}
+.bookbar .iconbtn[disabled]{opacity:.35;pointer-events:none}
+.bookbar .pill{background:rgba(255,255,255,.10);border-color:rgba(255,255,255,.22);color:#E9E1CC}
+.bookbar .pill:hover{border-color:var(--brass);color:#fff}
+/* the mode wears its name where there is room, and its mark where there isn't */
+.bookbar .readmode{display:inline-flex;align-items:center;gap:5px;width:auto;
+  padding:0 9px;border-radius:var(--radius)}
+.is-phone .bookbar .readmode span{display:none}
+.is-phone .bookbar .readmode{padding:0;width:30px}
+.is-phone .bookbar{gap:6px}
 
 /* the leaf: one sheet with a page printed on each side, hinged at the spine.
    backface-visibility does the swap halfway through the rotation, which is
@@ -146,9 +190,6 @@
 .readmodes{display:flex;gap:4px}
 .readmodes .pchip{background:rgba(255,255,255,.10);border-color:rgba(255,255,255,.22);color:#E9E1CC}
 .readmodes .pchip.on{background:var(--brass);border-color:var(--brass);color:#1B140C}
-.bookhead .readmode{display:inline-flex;align-items:center;gap:5px;
-  background:rgba(255,255,255,.10);border-color:rgba(255,255,255,.22);color:#E9E1CC}
-.bookhead .readmode:hover{background:rgba(255,255,255,.18)}
 
 /* ---- writing on the page you are reading — decision 82 ----------------
    The field is the paper: the same box, the same face, the same measure, so
@@ -161,6 +202,14 @@
 /* while it is a field the paper stops pretending to be a spread */
 .bookstage.writingon .spread{grid-template-columns:1fr}
 .bookstage.writingon .spread .page{border-right:0}
+/* Writing on a phone: the title has no job while you are typing, and the
+   stage's generous inset is room the keyboard has already taken. Both go back
+   to the paper — which keeps its Letter proportions, so what it gives back is
+   a smaller sheet rather than a different shape. The margins come in too: a
+   page's margins are set for reading, and at this width they are most of it. */
+.is-phone .bookstage.writingon{--stage-y:10px;--bookchrome:58px}
+.is-phone .bookstage.writingon .bookhead{display:none}
+.is-phone .bookstage.writingon .spread .page{padding:16px 18px 20px}
 /* and the paper says it can be written on, quietly, before you touch it */
 .bookstage:not(.writingon) .spread .page{cursor:text}
 .pfoot{margin-top:12px;padding-top:10px;border-top:1px solid var(--rule-2)}
@@ -1658,12 +1707,18 @@ kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--rule);border
 
 /* ---- the writing surface: the body, full screen, and nothing else ----- */
 .writescrim{position:absolute;inset:0;z-index:60;background:rgba(20,16,12,.62);backdrop-filter:blur(3px)}
+/* Same as the reading stage: bounded by the visual viewport, because this one
+   is a textarea with nothing else on the screen and the keyboard is up for all
+   of its working life. See decision 84. */
 .writestage{
-  position:absolute;z-index:61;inset:var(--stage-y) var(--stage-x);
+  position:absolute;z-index:61;
+  top:calc(var(--vvt, 0px) + var(--stage-y));left:var(--stage-x);right:var(--stage-x);
+  height:calc(var(--vvh, 100vh) - var(--stage-y) * 2);
   display:flex;flex-direction:column;gap:12px;
   padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);
 }
-.is-phone .writestage{inset:0;padding:10px 10px calc(10px + env(safe-area-inset-bottom))}
+.is-phone .writestage{--stage-x:0px;--stage-y:0px;
+  padding:10px 10px calc(10px + env(safe-area-inset-bottom))}
 .writehead{display:flex;align-items:center;gap:9px;flex:0 0 auto;
   width:min(880px,100%);margin:0 auto;color:#F4EEDD}
 .writehead .kindbadge{background:rgba(255,255,255,.12);color:#F4EEDD;border-color:transparent}

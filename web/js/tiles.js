@@ -1047,27 +1047,50 @@ function pagesOf(o){
   PAGES.key=key; PAGES.list=pages;
   return pages;
 }
-function bookOf(o){
+/* One bar under the paper, holding everything you can press.
+
+   The sheet used to have controls at both ends: a header above it carrying the
+   title and four buttons, and this bar below it carrying the page turns. The
+   header was the half that broke — it was sized to a 560px floor rather than
+   to the paper, so on a phone it was 605px wide on a 390px screen and hung off
+   both edges, with Edit and the close button entirely off the screen. There
+   was no way to shut the reader from its own header.
+
+   So the header is the title and nothing else, and every control lives in this
+   one row: the tools on the left, the page turns centred under the sheet where
+   they belong, and the way out at the right. Three columns rather than a flex
+   row, so the turns stay centred whatever the tools weigh — and the whole bar
+   is the width of the paper, which is what stops any of it from drifting off.
+   It is also the end of the sheet a thumb can actually reach. See decision 84.
+
+   `left` and `right` are the slots the reading surface fills; scroll mode gets
+   the bar too, with nothing in the middle, because the controls are not the
+   page turns' guests any more. */
+function bookOf(o, left, right){
   const mode=readOf(o);
+  const bar = mid => `<div class="bookbar">
+    <span class="bktools">${left||''}</span>
+    <span class="bkturn">${mid}</span>
+    <span class="bkout">${right||''}</span></div>`;
   if(mode==='scroll'){
     // the same sheet, the same size — the column inside it scrolls instead of
     // the paper growing to fit what is on it
     return `<div class="book"><div class="spread scrolling">
       <div class="page">${headOf(o)}${o.body?md(o.body):'<p class="thin">Nothing written yet.</p>'}</div>
-    </div></div>`;
+    </div>${bar('')}</div>`;
   }
   const pages=pagesOf(o), two=spreadOf(o), step=two?2:1;
   const at=Math.min(Math.max(0,S.bookAt||0), Math.max(0,pages.length-1));
   const last=Math.min(at+step, pages.length);
+  // one page is not a book: nothing to turn, so nothing to press
+  const turn = pages.length<=1 ? '' :
+    `<button class="iconbtn" data-act="bookprev" title="Back"${at<=0?' disabled':''}>${ic('chevL',15)}</button>
+     <span class="bookcount">${two&&last>at+1?`${at+1}–${last}`:at+1} of ${pages.length}</span>
+     <button class="iconbtn" data-act="booknext" title="On"${at+step>=pages.length?' disabled':''}>${ic('chevR',15)}</button>`;
   return `<div class="book"><div class="spread">
       <div class="page">${pages[at]||''}<span class="pno">${at+1}</span></div>
       ${two?`<div class="page">${pages[at+1]||''}${pages[at+1]?`<span class="pno">${at+2}</span>`:''}</div>`:''}
-    </div>
-    <div class="bookbar">
-      <button class="pill" data-act="bookprev"${at<=0?' disabled':''}>${ic('chevL',14)}</button>
-      <span class="bookcount">${two&&last>at+1?`${at+1}–${last}`:at+1} of ${pages.length}</span>
-      <button class="pill" data-act="booknext"${at+step>=pages.length?' disabled':''}>${ic('chevR',14)}</button>
-    </div></div>`;
+    </div>${bar(turn)}</div>`;
 }
 
 /* Turning a page, for real. The leaf is built from the DOM rather than from

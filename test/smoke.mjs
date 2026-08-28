@@ -1016,9 +1016,13 @@ const CHROME = process.env.BUREAU_CHROME;
 
     open('book');   out.bookIsSpread = pages() === 2 && !!document.querySelector('.bookstage.rm-book');
     open('page');   out.pageIsOne = pages() === 1;
+    /* Scroll has the bar too now — it holds every control, not just the page
+       turns, so it is not the turns' guest any more. What it has not got is
+       anything to turn. See decision 84. */
     open('scroll'); out.scrollIsOne = pages() === 1
       && !!document.querySelector('.spread.scrolling')
-      && !document.querySelector('.bookbar');          // nothing to turn
+      && !!document.querySelector('.bookbar')
+      && !document.querySelector('[data-act="booknext"]');
 
     // the plain half-screen read panel is gone
     out.noPlainRead = !document.querySelector('#sheet');
@@ -3081,10 +3085,14 @@ const CHROME = process.env.BUREAU_CHROME;
     const S = BUREAU.state, out = {};
     const n = BUREAU.create('note', { parent:'root', title:'Read me', body:'# Hi\n\nWords.' });
     BUREAU.read(n.id); await nap(300);
-    out.oneModeButtonNotThree = document.querySelectorAll('.bookhead .readmode').length === 1
-      && !document.querySelector('.bookhead .readmodes');
-    out.copyIsAGlyph = !!document.querySelector('.bookhead .iconbtn[data-act="copymd"]');
-    out.editMeansTheEditor = !!document.querySelector('.bookhead [data-act="objset"]');
+    out.oneModeButtonNotThree = document.querySelectorAll('.bookbar .readmode').length === 1
+      && !document.querySelector('.readmodes');
+    out.copyIsAGlyph = !!document.querySelector('.bookbar .iconbtn[data-act="copymd"]');
+    out.editMeansTheEditor = !!document.querySelector('.bookbar [data-act="objset"]');
+    /* One bar under the paper holds everything you can press, and the header
+       is the title alone — so nothing in it can drift off a phone. Decision 84. */
+    out.theHeadIsOnlyTheTitle = !document.querySelector('.bookhead button');
+    out.everythingIsInTheBar = !!document.querySelector('.bookbar .bkout [data-sheet="close"]');
     document.querySelector('.bookstage .page').click(); await nap(250);
     out.tappingThePaperOpensAField = !!document.querySelector('.page > .pagebody');
     const ta = document.querySelector('.pagebody');
@@ -3095,7 +3103,7 @@ const CHROME = process.env.BUREAU_CHROME;
     out.doneGivesTheePaperBack = !document.querySelector('.pagebody')
       && !!document.querySelector('.bookstage .page');
     // the mode button cycles rather than setting one of three
-    document.querySelector('.bookhead .readmode').click(); await nap(250);
+    document.querySelector('.bookbar .readmode').click(); await nap(250);
     out.theModeCycles = BUREAU.state.objects.find(x => x.id === n.id).read === 'scroll';
     BUREAU.closeSheet(); BUREAU.del(n.id); S.undo=[]; S.redo=[]; BUREAU.render();
     return out;
@@ -3119,6 +3127,42 @@ const CHROME = process.env.BUREAU_CHROME;
     out.nonsenseFallsBack = root.dataset.checks === 'square';
     S.look.check = 'square'; BUREAU.applyLook();
     BUREAU.del(t.id); S.undo=[]; S.redo=[]; BUREAU.render();
+    return out;
+  });
+
+  /* --- the reader fits the screen it is on, and the keyboard it is under
+     The header used to be sized to a 560px floor rather than to the paper, so
+     on a 390px phone it was 605px wide, hung off both edges and put the close
+     button off the screen. And the paper was sized in `vh`, which on iOS
+     ignores the software keyboard entirely. See decision 84. */
+  const readerFits = await phone.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const S = BUREAU.state, out = {};
+    const n = BUREAU.create('note', { parent:'root',
+      title:'Notes towards a longer title than the header expects',
+      body:'# Heading\n\nSome words, and enough of them to fill a little of it.' });
+    BUREAU.read(n.id); await nap(400);
+    const w = el => Math.round(document.querySelector(el).getBoundingClientRect().width);
+    // the title, the paper and the bar are one column of the same width
+    out.oneColumn = w('.bookhead') === w('.book') && w('.bookbar') === w('.book');
+    const box = s => document.querySelector(s).getBoundingClientRect();
+    out.nothingHangsOff = ['.bookhead','.bookbar','.book']
+      .every(s => box(s).left >= -0.5 && box(s).right <= innerWidth + 0.5);
+    out.theWayOutIsReachable = (() => {
+      const c = box('.bkout [data-sheet="close"]');
+      return c.left >= 0 && c.right <= innerWidth && c.width > 20;
+    })();
+    // …and under a keyboard the whole reader sits in what is left of the screen
+    document.querySelector('.bookstage .page').click(); await nap(250);
+    const root = document.documentElement.style;
+    root.setProperty('--vvh', '380px'); root.setProperty('--vvt', '0px');
+    await nap(300);
+    const sp = box('.spread'), bar = box('.bookbar');
+    out.fitsAboveTheKeyboard = sp.top >= 0 && bar.bottom <= 381;
+    // and it is still a sheet of Letter paper, just a smaller one
+    out.stillLetter = Math.abs((sp.height / sp.width) - (11 / 8.5)) < 0.03;
+    root.removeProperty('--vvh'); root.removeProperty('--vvt');
+    BUREAU.closeSheet(); BUREAU.del(n.id); S.undo=[]; S.redo=[]; BUREAU.render();
     return out;
   });
 
@@ -3186,7 +3230,7 @@ const CHROME = process.env.BUREAU_CHROME;
     wordsNotSource, deadlines, twoClauses, undoEverything, savesOnlyChanges,
     paletteKeys, editorKeys, pickerLeads, rollupsEverywhere, soundAndVision, keyboardBoard,
     ranking, repeating, oneLock, scheduling, ownColour, addBox, calFaces,
-    lockedBoard, freeTraits, pageWrites, tickBoxes, pinboard
+    lockedBoard, freeTraits, pageWrites, tickBoxes, readerFits, pinboard
   }, null, 2));
   await browser.close();
 })();

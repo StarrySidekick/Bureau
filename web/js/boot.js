@@ -14,11 +14,41 @@ import { openingFor, stepDrawer } from './motion.js';
 import { load, writeNow, save, saveIfDirty, hydrateAssets, pasteObjects } from './persist.js';
 import { renderSheet, openWriter, openRead, openViewer, closeSheet, asMarkdown } from './sheet.js';
 
+/* ---- the keyboard is not a resize — decision 84 ------------------------
+   `100vh` on iOS is the *large* viewport and deliberately ignores the software
+   keyboard: a surface sized in vh stays full height while half the screen is a
+   keyboard, and Safari then shoves the whole thing upward to get the caret on
+   screen — which is how the page you were typing on ended up above the top of
+   it. `dvh` does not help; it tracks the browser's own chrome, not the
+   keyboard. `visualViewport` is the only honest number there is.
+
+   One custom property on the root, written the way sizeGrid() writes what it
+   measures, so the stylesheet does the rest and nothing has to be told. The
+   fallback in the CSS is `100vh`, so a browser without visualViewport gets
+   exactly what it got before. */
+function watchViewport(){
+  const vv = window.visualViewport;
+  if(!vv) return;
+  /* Both numbers: the height it has left, and how far down the layout viewport
+     that window has slid. Safari scrolls the page under a fixed shell to chase
+     a caret, so a surface anchored at `top:0` can end up above the screen even
+     when it is the right height. */
+  const write = ()=>{
+    const el=document.documentElement.style;
+    el.setProperty('--vvh', vv.height+'px');
+    el.setProperty('--vvt', (vv.offsetTop||0)+'px');
+  };
+  vv.addEventListener('resize', write);
+  vv.addEventListener('scroll', write);
+  write();
+}
+
 const restored = load();
 const hash = (location.hash||'').replace('#','');
 if(hash==='desk') S.view = hash;
 $('#frame').insertAdjacentHTML('beforeend', overlayHTML());
 wire();
+watchViewport();
 applyLook();
 render();
 // settings is a sheet over the desk now, not a place you navigate to
