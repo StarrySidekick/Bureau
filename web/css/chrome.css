@@ -982,17 +982,35 @@ html .drawer.dtile.cltile{background-image:none}
    stored border through a style swap and comes back to a Victorian moulding
    when you come back. Only the four dressed ones differ; plain and none mean
    the same thing everywhere. */
-/* drawn, not moulded: rules in white pencil, held off the edge */
-html[data-style="starry"] .drawer.dtile.bd-panel{
-  box-shadow:inset 0 0 0 4px transparent, inset 0 0 0 5px color-mix(in srgb,var(--ink) 50%,transparent) }
-html[data-style="starry"] .drawer.dtile.bd-heavy{
-  box-shadow:inset 0 0 0 3px transparent, inset 0 0 0 4px color-mix(in srgb,var(--ink) 70%,transparent),
-             inset 0 0 0 8px transparent, inset 0 0 0 9px color-mix(in srgb,var(--ink) 40%,transparent) }
-html[data-style="starry"] .drawer.dtile.bd-bar{
-  box-shadow:inset 0 -4px 0 color-mix(in srgb,var(--ink) 60%,transparent) }
-html[data-style="starry"] .drawer.dtile.bd-gloss{
-  box-shadow:inset 0 0 0 5px transparent, inset 0 0 0 6px color-mix(in srgb,var(--ink) 34%,transparent);
-  border-style:dashed }
+/* **Starful Gothic has one edge, and it is a drawn line.**
+
+   This aesthetic sits further from the others than they sit from each other:
+   there is no moulding anywhere in it, no bevel, no gilt, no relief. A shape
+   is *outlined* — one clean hand-drawn line round the structure, wandering,
+   taking the tooth of the paper and chipped where the surface did not hold it.
+   So the four dressed slots do not each become a different ornament here.
+   They become the **same line**, and what a slot changes is only how heavy it
+   is drawn — which is the only thing a pencil can honestly vary.
+
+   The tile's own border carries it (not a box-shadow, which cannot be
+   filtered independently of the tile), and `.dpanel` carries the filter — see
+   the drawn-line block below for why it must never go on anything holding
+   text. See decision 96. */
+html[data-style="starry"] .drawer.dtile{ box-shadow:none;border-color:transparent }
+html[data-style="starry"] .drawer.dtile.bd-panel .dpanel,
+html[data-style="starry"] .drawer.dtile.bd-heavy .dpanel,
+html[data-style="starry"] .drawer.dtile.bd-bar   .dpanel,
+html[data-style="starry"] .drawer.dtile.bd-gloss .dpanel,
+html[data-style="starry"] .drawer.dtile.bd-plain .dpanel{
+  border-color:color-mix(in srgb,var(--ink) 62%,transparent);
+  filter:url(#pencilchip) }
+/* the only thing a slot varies: how hard the pencil was pressed */
+html[data-style="starry"] .drawer.dtile.bd-heavy .dpanel{ border-width:2.5px }
+html[data-style="starry"] .drawer.dtile.bd-bar   .dpanel{ border-width:1px;
+  border-color:color-mix(in srgb,var(--ink) 40%,transparent) }
+html[data-style="starry"] .drawer.dtile.bd-gloss .dpanel{ border-width:1px;
+  border-color:color-mix(in srgb,var(--ink) 34%,transparent) }
+html[data-style="starry"] .drawer.dtile.bd-none .dpanel{ border-color:transparent }
 
 /* ============================================================
    An aesthetic reaches the chrome as well as the board — decision 92
@@ -1059,6 +1077,84 @@ html[data-style="starry"] .panel{
 html[data-style="starry"] .sqbtn{
   border-color:color-mix(in srgb,var(--ink) 34%,transparent);background:transparent }
 
+/* ============================================================
+   A knob is a slot too — decision 96
+   ============================================================
+   Five positions, named and dressed by each aesthetic, exactly as an edge and
+   a panelling are. Everything below only *adds* to `.pull`: the base already
+   turns the knob out of the front's own wood and lights it from the upper
+   left, which is the one light the whole app works to, so an aesthetic says
+   what its knobs are made of rather than re-lighting them. */
+
+/* Girando: position 0 is a **volute**, because the spiral is the aesthetic's
+   whole motif and its default knob should be it. An archimedean curl of two
+   and a half turns, struck as a path so the turns are even — a hand-drawn coil
+   reads as wire — and carried as a data URI because a spiral is the one shape
+   CSS itself cannot draw. Two strokes: the groove in shadow, and a lighter one
+   offset up and left, which is the same relief the rest of the app gets. */
+html[data-style="girando"] .pull.kn-round{
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath d='M24.0,5.0 26.8,5.4 29.5,6.1 32.0,7.3 34.3,8.8 36.3,10.6 38.1,12.6 39.5,14.9 40.5,17.4 41.2,19.9 41.4,22.5 41.3,25.1 40.8,27.6 39.9,30.0 38.7,32.2 37.2,34.2 35.5,35.9 33.5,37.4 31.3,38.5 29.1,39.3 26.7,39.7 24.4,39.8 22.0,39.5 19.8,38.9 17.7,38.0 15.8,36.8 14.1,35.3 12.6,33.6 11.5,31.8 10.6,29.8 10.0,27.7 9.8,25.5 9.9,23.4 10.3,21.4 10.9,19.4 11.9,17.6 13.1,16.0 14.5,14.6 16.1,13.4 17.8,12.5 19.7,11.8 21.5,11.5 23.4,11.4 25.3,11.6 27.1,12.1 28.7,12.8 30.3,13.8 31.6,14.9 32.8,16.2 33.7,17.7 34.4,19.3 34.8,20.9 35.0,22.5 34.9,24.2 34.6,25.8 34.1,27.3 33.4,28.7 32.5,29.9 31.4,31.0 30.2,31.9 28.9,32.6 27.5,33.1 26.1,33.4 24.6,33.4 23.3,33.2 21.9,32.9 20.7,32.3 19.6,31.6 18.6,30.8 17.8,29.8 17.1,28.7 16.6,27.6 16.3,26.4 16.2,25.2 16.2,24.0 16.5,22.9 16.9,21.9 17.4,20.9 18.1,20.0 18.8,19.3 19.7,18.7 20.6,18.3 21.5,18.0 22.5,17.8 23.4,17.8 24.3,17.9 25.2,18.2 26.0,18.6 26.7,19.1 27.3,19.6 27.8,20.3 28.2,21.0 28.5,21.7 28.6,22.4 28.6,23.2 28.6,23.9 28.4,24.5 28.1,25.1 27.8,25.7 27.3,26.1 26.9,26.5 26.4,26.8 25.9,27.0 25.3,27.1 24.8,27.1 24.3,27.0 23.9,26.9 23.5,26.7 23.2,26.4 22.9,26.2 22.7,25.8' fill='none' stroke='rgba%280,0,0,.42%29' stroke-width='4.6' stroke-linecap='round'/%3E%3Cpath d='M24.0,5.0 26.8,5.4 29.5,6.1 32.0,7.3 34.3,8.8 36.3,10.6 38.1,12.6 39.5,14.9 40.5,17.4 41.2,19.9 41.4,22.5 41.3,25.1 40.8,27.6 39.9,30.0 38.7,32.2 37.2,34.2 35.5,35.9 33.5,37.4 31.3,38.5 29.1,39.3 26.7,39.7 24.4,39.8 22.0,39.5 19.8,38.9 17.7,38.0 15.8,36.8 14.1,35.3 12.6,33.6 11.5,31.8 10.6,29.8 10.0,27.7 9.8,25.5 9.9,23.4 10.3,21.4 10.9,19.4 11.9,17.6 13.1,16.0 14.5,14.6 16.1,13.4 17.8,12.5 19.7,11.8 21.5,11.5 23.4,11.4 25.3,11.6 27.1,12.1 28.7,12.8 30.3,13.8 31.6,14.9 32.8,16.2 33.7,17.7 34.4,19.3 34.8,20.9 35.0,22.5 34.9,24.2 34.6,25.8 34.1,27.3 33.4,28.7 32.5,29.9 31.4,31.0 30.2,31.9 28.9,32.6 27.5,33.1 26.1,33.4 24.6,33.4 23.3,33.2 21.9,32.9 20.7,32.3 19.6,31.6 18.6,30.8 17.8,29.8 17.1,28.7 16.6,27.6 16.3,26.4 16.2,25.2 16.2,24.0 16.5,22.9 16.9,21.9 17.4,20.9 18.1,20.0 18.8,19.3 19.7,18.7 20.6,18.3 21.5,18.0 22.5,17.8 23.4,17.8 24.3,17.9 25.2,18.2 26.0,18.6 26.7,19.1 27.3,19.6 27.8,20.3 28.2,21.0 28.5,21.7 28.6,22.4 28.6,23.2 28.6,23.9 28.4,24.5 28.1,25.1 27.8,25.7 27.3,26.1 26.9,26.5 26.4,26.8 25.9,27.0 25.3,27.1 24.8,27.1 24.3,27.0 23.9,26.9 23.5,26.7 23.2,26.4 22.9,26.2 22.7,25.8' fill='none' stroke='rgba%28255,255,255,.30%29' stroke-width='2' stroke-linecap='round' transform='translate%28-0.9,-0.9%29'/%3E%3C/svg%3E"),
+    radial-gradient(circle at 34% 28%,
+      color-mix(in srgb, var(--knob, var(--c)) 84%, #fff) 0%,
+      var(--knob, var(--c)) 30%,
+      color-mix(in srgb, var(--knob, var(--c)) 84%, #000) 72%,
+      color-mix(in srgb, var(--knob, var(--c)) 62%, #000) 100%);
+  background-size:100% 100%, 100% 100%;
+}
+/* a lozenge rather than a diamond: baroque corners are cut, not pointed */
+html[data-style="girando"] .pull.kn-diamond{border-radius:40% 8% 40% 8%;transform:none}
+
+/* Carca: position 3 is a **gear**, which is what the workshop half of this
+   city has instead of a ring pull. The teeth are a conic gradient — twelve
+   hard steps round the rim — masked to the outer band so the hub stays turned
+   wood. */
+html[data-style="carca"] .pull.kn-ring{
+  border:0;background:
+    repeating-conic-gradient(from 0deg,
+      color-mix(in srgb, var(--knob, var(--c)) 74%, #000) 0deg 15deg,
+      color-mix(in srgb, var(--knob, var(--c)) 96%, #fff) 15deg 30deg);
+  box-shadow:inset 0 0 0 22% var(--knob, var(--c)),
+             inset 0 1px 1px rgba(255,255,255,.2), 0 1px 2px rgba(0,0,0,.34);
+}
+/* a boss is squarer than a knob — dressed stone, not turned wood */
+html[data-style="carca"] .pull.kn-round{border-radius:34%}
+
+/* Golf 97: every knob is a **button**, and a button that decade is flat with
+   two hard steps. No radial highlight at all — moulded plastic under a CRT has
+   no specular to speak of. */
+html[data-style="golf97"] .pull{
+  border-radius:0;background:var(--knob, var(--c));
+  box-shadow:inset 2px 2px 0 rgba(255,255,255,.55), inset -2px -2px 0 rgba(0,0,0,.40),
+             0 0 0 1px rgba(0,0,0,.45);
+}
+html[data-style="golf97"] .pull.kn-round{border-radius:0}
+html[data-style="golf97"] .pull.kn-ring{border-radius:50%;border:0}
+/* the slider is the one that is pressed in */
+html[data-style="golf97"] .pull.kn-bar{
+  box-shadow:inset -2px -2px 0 rgba(255,255,255,.45), inset 2px 2px 0 rgba(0,0,0,.45),
+             0 0 0 1px rgba(0,0,0,.45)}
+
+/* Stelaine: a knob is lit from *inside*. The body stays the front's colour and
+   the glow is the aesthetic's own accent, which is what makes it a crystal
+   rather than a bead. */
+html[data-style="stelaine"] .pull{
+  box-shadow:inset 0 1px 1px rgba(255,255,255,.20),
+             inset 0 -2px 3px rgba(0,0,0,.30),
+             0 0 10px -2px color-mix(in srgb,var(--brass) 60%,transparent)}
+html[data-style="stelaine"] .pull.kn-diamond{border-radius:2px}
+
+/* Aeros: glass, so the highlight is a hard crescent across the top rather than
+   a soft spot — which is the one thing that separates 2006 gloss from a bead */
+html[data-style="aero"] .pull{
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.55) 0%, rgba(255,255,255,.06) 46%,
+      rgba(255,255,255,0) 47%),
+    radial-gradient(circle at 34% 28%,
+      color-mix(in srgb, var(--knob, var(--c)) 84%, #fff) 0%,
+      var(--knob, var(--c)) 30%,
+      color-mix(in srgb, var(--knob, var(--c)) 84%, #000) 72%,
+      color-mix(in srgb, var(--knob, var(--c)) 62%, #000) 100%)}
+
 /* ---- the drawn line, on the one aesthetic that is drawn -----------------
    Starful Gothic is white pencil on a night sky, and a box-shadow is the
    straightest line a computer can make. The filter in index.html bends it —
@@ -1074,7 +1170,7 @@ html[data-style="starry"] .sqbtn{
 html[data-style="starry"] .drawer.dtile .dpanel{
   inset:4px;border-radius:5px;
   border:1.5px solid color-mix(in srgb,var(--ink) 52%,transparent);
-  filter:url(#pencil);
+  filter:url(#pencilchip);
 }
 html[data-style="starry"] .drawer.dtile.bd-gilt::before{ filter:url(#pencil) }
 /* One cell square is the type's mark and nothing else, and a 40px box with a

@@ -60,6 +60,42 @@
     <feDisplacementMap in="bent" in2="tooth" scale="1.1"
                        xChannelSelector="R" yChannelSelector="G"/>
   </filter>
+  <!-- …and the same line, weathered. Starful Gothic's edge is not a moulding
+       at all — it is one drawn outline, the way a line on stone or on old
+       paper is: it wanders, it takes the tooth of the sheet, and it is
+       **chipped**, with bits simply missing where the surface did not take.
+
+       The chipping is a second noise field turned into an alpha mask and
+       composited `in`: `feColorMatrix` moves one channel of the turbulence
+       into alpha, `feComponentTransfer` with a *discrete* table drops one band
+       in fourteen to zero, and the line is drawn only where the mask survives.
+       Discrete rather than a ramp, because a chip is a chip and not a fade.
+
+       The **grain is fine on purpose**: at a long wavelength the gaps are
+       longer than the line is thick and the whole thing reads as a dashed
+       stroke rather than a chipped one. A chip has to be smaller than the
+       stroke it is taken out of — so the noise is short and the drops are
+       few, and what you get is a line that nibbles at its own edges.
+       See decision 96. -->
+  <filter id="pencilchip" x="-8%" y="-8%" width="116%" height="116%"
+          color-interpolation-filters="sRGB">
+    <feTurbulence type="fractalNoise" baseFrequency="0.045" numOctaves="2"
+                  seed="7" stitchTiles="stitch" result="wander"/>
+    <feDisplacementMap in="SourceGraphic" in2="wander" scale="3.2"
+                       xChannelSelector="R" yChannelSelector="G" result="bent"/>
+    <feTurbulence type="fractalNoise" baseFrequency="0.34" numOctaves="1"
+                  seed="19" stitchTiles="stitch" result="tooth"/>
+    <feDisplacementMap in="bent" in2="tooth" scale="1.1"
+                       xChannelSelector="R" yChannelSelector="G" result="drawn"/>
+    <feTurbulence type="fractalNoise" baseFrequency="0.42" numOctaves="1"
+                  seed="41" stitchTiles="stitch" result="grit"/>
+    <feColorMatrix in="grit" type="matrix" result="gritA"
+                   values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  1 0 0 0 0"/>
+    <feComponentTransfer in="gritA" result="chips">
+      <feFuncA type="discrete" tableValues="1 1 1 1 1 1 0 1 1 1 1 1 1 1"/>
+    </feComponentTransfer>
+    <feComposite in="drawn" in2="chips" operator="in"/>
+  </filter>
 </svg>
 <div id="frame" class="is-desk"><div class="app" id="app"></div></div>
 <!-- The app is ES modules, no bundler: js/boot.js pulls in the rest. The

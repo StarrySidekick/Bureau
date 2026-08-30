@@ -1,4 +1,4 @@
-import { S, K, defaultLook, PANELS, PANEL_SLOTS } from './model.js';
+import { S, K, defaultLook, PANELS, PANEL_SLOTS, KNOBS, KNOB_SLOTS } from './model.js';
 import { save } from './persist.js';
 import { render } from './views.js';
 
@@ -243,6 +243,8 @@ const borderSlots = ()=> BORDER_SLOTS.map((k,i)=>[k, borderNames()[i]||k]);
    while the choice you made about each one survives. See decision 93. */
 const panelNames = ()=> styleNow().panels || PANEL_SLOTS.map(k=>PANELS[k]);
 const panelSlots = ()=> PANEL_SLOTS.map((k,i)=>[k, panelNames()[i]||PANELS[k]]);
+const knobNames = ()=> styleNow().knobs || KNOB_SLOTS.map(k=>KNOBS[k]);
+const knobSlots = ()=> KNOB_SLOTS.map((k,i)=>[k, knobNames()[i]||KNOBS[k]]);
 const SLOTS = 16;
 const OBJ0 = ROLES.length;          // the first slot an object may be painted in
 const OBJN = SLOTS - OBJ0;          // eleven
@@ -257,6 +259,7 @@ const STYLES = {
     board:'#EFEADA|#DDE5CE', boardAlpha:1,
     borders:['Panelled','Heavy panel','Bar','Beaded','Gilt frame','Plain','None'],
     panels:['Flat front','Cockbead','Raised panel','Reeded','Ogee panel'],
+    knobs:['Round','Diamond','Bar','Ring','Square'],
     defaults:{knob:'round', border:'panel', texture:'none', knobtone:'light', panel:'cockbead'},
     cols:['#E9E1CC','#2A241C','#4A4034','#A9793F','#D9B57C',
           '#6F5137','#4A7C59','#6E7F63','#2E6B52','#4A6382','#5A7A9E',
@@ -281,6 +284,7 @@ const STYLES = {
     board:'#EAE5D4|#DBDCC6', boardAlpha:1,
     borders:['Ashlar','Rampart','Course','Vine','Inlay','Plain','None'],
     panels:['Dressed flat','Chamfer','Ashlar block','Fluting','Tracery'],
+    knobs:['Boss','Faceted','Bar handle','Gear','Stud'],
     defaults:{knob:'ring', border:'panel', texture:'grid', knobtone:'light', panel:'fielded'},
     cols:['#E8E4D6','#22303F','#7E8B96','#A87A3C','#D4B872',
           '#77808A','#2E5B84','#5D82AE','#5E8B4C','#3C6B49','#7A6E9E',
@@ -300,7 +304,8 @@ const STYLES = {
     board:'#171233|#1D1740', boardAlpha:1,
     borders:['Filigree','Astral rule','Horizon','Facet','Sigil frame','Plain','None'],
     panels:['Unworked','Crystal rim','Floating slab','Ribbing','Astral inlay'],
-    defaults:{knob:'orb', border:'panel', texture:'starry', knobtone:'light', panel:'ogee'},
+    knobs:['Orb','Shard','Bar','Halo','Crystal'],
+    defaults:{knob:'round', border:'panel', texture:'starry', knobtone:'light', panel:'ogee'},
     cols:['#120E20','#EDE7FA','#6E5F96','#9A6BD8','#E3C98A',
           '#4C3A78','#6E4C9E','#2E2A55','#3A5A9E','#2F6E86','#3E8AA0',
           '#9A3F86','#9E4A3A','#8A6D2E','#3F7A5E','#5A5470'],
@@ -319,6 +324,7 @@ const STYLES = {
     board:'#262119|#2E2820', boardAlpha:1,
     borders:['Volute','Cartouche','Cornice','Vine','Gilt cartouche','Plain','None'],
     panels:['Uncarved','Bead','Cartouche','Rustication','Volute panel'],
+    knobs:['Volute','Lozenge','Bar','Ring','Block'],
     defaults:{knob:'round', border:'panel', texture:'speckle', knobtone:'dark', panel:'ogee'},
     cols:['#211E1A','#EDE4D2','#7A6E5E','#B98846','#E0C782',
           '#3A342E','#8A7B63','#2F6E92','#3F7A5F','#5B7A46','#A65E3C',
@@ -339,6 +345,7 @@ const STYLES = {
     board:'#CFD8B8|#C0CBA6', boardAlpha:1,
     borders:['Outset','Deep outset','Sunken','Groove','Marquee','Plain','None'],
     panels:['Flat','Plastic edge','Group box','Scanlines','CRT bezel'],
+    knobs:['Button','Tee','Slider','Dial','Keycap'],
     defaults:{knob:'square', border:'panel', texture:'check', knobtone:'light', panel:'plain'},
     cols:['#D6D3C4','#2A2A24','#8A8878','#12736E','#C8A63C',
           '#6E8F5A','#4F6B44','#A79A6E','#A89663','#8A3F42','#4A6B8A',
@@ -357,6 +364,7 @@ const STYLES = {
     board:'#07080C|#0B0D13', boardAlpha:1,
     borders:['Ruled','Double rule','Underline','Sketched','Chalk frame','Plain','None'],
     panels:['Unlined','Pencil rim','Sketched panel','Hatching','Doodle frame'],
+    knobs:['Circle','Diamond','Bar','Ring','Square'],
     defaults:{knob:'round', border:'plain', texture:'stars', knobtone:'light', panel:'plain'},
     cols:['#07080C','#F4F6F8','#F4F6F8','#6FD3F5','#7DE8B0',
           '#14161C','#1B1E25','#23262E','#0E2733','#123544','#16443F',
@@ -379,7 +387,8 @@ const STYLES = {
     board:'#D8F0F4|#C2E6EC', boardAlpha:.85,
     borders:['Bevel','Deep bevel','Sill','Glass','Chrome frame','Plain','None'],
     panels:['Clear','Glass edge','Glass panel','Ribbed glass','Aqua inlay'],
-    defaults:{knob:'orb', border:'aqua', texture:'sheen', knobtone:'light', panel:'plain'},
+    knobs:['Orb','Gem','Bar','Halo','Chiclet'],
+    defaults:{knob:'round', border:'aqua', texture:'sheen', knobtone:'light', panel:'plain'},
     cols:['#EAF4F7','#0D3541','#5B8C9B','#18A6C4','#7EE8F5',
           '#1E9AAE','#2FA39A','#3F8F63','#6FA83C','#2B6B99','#4C89C8',
           '#14607A','#5E7A8A','#44515C','#33414D','#8A98A3'],
@@ -466,5 +475,5 @@ export { themeNow, lookVal, setLookVal, applyLook, applyStyle, styleDefaults,
   DARKMODES, darkMode, hasDark, darkNow, systemDark,
   randomFront, randomBoard, randomLook, STYLES, BACKDROPS,
   SLOTS, OBJ0, OBJN, ROLES, slotName, styleNow, palNow, setSlot,
-  BORDER_SLOTS, borderSlots, panelSlots, CHECKS,
+  BORDER_SLOTS, borderSlots, panelSlots, knobSlots, CHECKS,
   hexOf, objColour, objSlots, isDark };

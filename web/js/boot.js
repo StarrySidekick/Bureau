@@ -2,11 +2,11 @@
    boot — load, wire, render, register the service worker
    ============================================================ */
 import { $ } from './util.js';
-import { S, KINDS, SHAPES, SORTS, childrenOf, container, relate, deskOf, has, lateOn, isLate,
+import { S, KINDS, SHAPES, SORTS, childrenOf, container, relate, deskOf, has, lateOn, isLate, knobOf,
   prioOf, repeatOf, repeatSaid, nextRepeat, boardLocked, BINDINGS, bindingOf, PANELS, panelOf } from './model.js';
 import { pageRows, freeSpot, boxOk } from './grid.js';
 import { create, setPin, togglePin, del, delMany, delDrawer, undo, redo, toggleDone, spawnNext, setGridSize } from './mutations.js';
-import { applyLook, applyStyle, STYLES, panelSlots, borderSlots, randomLook } from './look.js';
+import { applyLook, applyStyle, STYLES, panelSlots, borderSlots, knobSlots, randomLook } from './look.js';
 import { render, sizeGrid, viewHTML, reveal, settingsPanel, pageAt, pageCount, goPage } from './views.js';
 import { overlayHTML, objectPanel, modalNewObject, schedulePanel } from './panels.js';
 import { wire } from './wire.js';
@@ -77,7 +77,7 @@ window.BUREAU = {
   // alpha and the defaults new drawers are born with
   setStyle: applyStyle,
   // the five workings, named by whichever aesthetic is showing
-  panelSlots, borderSlots,
+  panelSlots, borderSlots, knobSlots, knobOf,
   // the roll a new drawer's look comes from, so a test can sample the
   // generator rather than infer its weighting from twenty objects
   randomLook,

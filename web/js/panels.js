@@ -10,9 +10,9 @@ import { S, K, KINDS, KEYS, T, ATTRS, USER_ATTRS, FIELDS, fieldOf, OPS, ROLLS,
   relatedTo, backlinksTo, streak, goalPct,
   CALVIEWS, calViewOf, weekStartOf, showsWeekends, KNOBSIZES, knobSizeOf,
   TSIZES, textSizeOf, mediaTypeOf, isPicture, isMedia, isDecor,
-  BINDINGS, bindingOf, panelOf } from './model.js';
+  BINDINGS, bindingOf, panelOf, knobOf } from './model.js';
 import { GRID, lay, boxOk, freeSpot, sizeOfKind, toPhoneSize } from './grid.js';
-import { randomBoard, randomFront, hexOf, objColour, objSlots, palNow, OBJ0, borderSlots, panelSlots } from './look.js';
+import { randomBoard, randomFront, hexOf, objColour, objSlots, palNow, OBJ0, borderSlots, panelSlots, knobSlots } from './look.js';
 import { CLICKS, clickOf, gridTile, pending } from './tiles.js';
 import { DECOR, DECOR_KEYS, decorOf, decorSVG } from './decor.js';
 import { quickAdd, toast, drawerForTag } from './mutations.js';
@@ -479,8 +479,7 @@ function objectPanelBody(id, sec){
     out.push(prow('Edge', psel(id,'edge',[['','None'],['1','Coloured stripe']], d.edge?'1':'')));
   if(!isRoot && cont){
     out.push(prow('Border', psel(id,'border', borderSlots(), d.border||'panel'), 'a slot, named by the aesthetic'));
-    out.push(prow('Knob', psel(id,'knob',
-      [['round','Round'],['diamond','Diamond'],['bar','Bar'],['ring','Ring'],['square','Square'],['orb','Orb']], d.knob||'round')
+    out.push(prow('Knob', psel(id,'knob', knobSlots(), knobOf(d))
       + psel(id,'knobsize', Object.entries(KNOBSIZES), knobSizeOf(d))
       + psel(id,'knobpos', [['centre','Centre'],['bottom','Bottom']], d.knobpos||'centre')));
     /* A knob is turned out of the same wood as the front, so by default that is

@@ -3417,3 +3417,61 @@ the material and not a heuristic: it prints on cream stock.
 it, as is the `spineReads` block, which guarded an invariant now deliberately
 retired. Removing a test because it fails is bad; removing one because the
 thing it protects is no longer a rule is the honest half of changing your mind.
+
+---
+
+## 96. A knob is a slot, and Starful Gothic has one edge
+
+*2026-08-30*
+
+### Knobs are the fourth slot system
+
+Colours, edges and panellings are all positions an aesthetic names and dresses
+(decisions 33, 88, 93). Knobs were the last per-container look property that
+was not — five fixed shapes, the same in every aesthetic. They are positions
+now: **Round · Diamond · Bar · Ring · Square** in Victoria, **Boss · Faceted ·
+Bar handle · Gear · Stud** in Carca, **Volute · Lozenge · Bar · Ring · Block**
+in Girando, **Button · Tee · Slider · Dial · Keycap** in Golf 97.
+
+Everything an aesthetic adds only *adds* to `.pull`: the base already turns the
+knob out of the front's own wood and lights it from the upper left, which is
+the one light the whole app works to (decision 88). An aesthetic says what its
+knobs are made of; it does not re-light them. Carca puts twelve hard conic
+steps round position 3 and it is a gear. Golf 97 throws the radial highlight
+away entirely — moulded plastic under a CRT has no specular worth drawing —
+and gives every knob two flat steps, inverted on the slider. Stelaine lights
+its from inside.
+
+**Girando's position 0 is a volute**, so its default knob is a spiral without
+anything being special-cased: it defaults to position 0 like everything else,
+and position 0 in Girando is a carved scroll. An archimedean curl of two and a
+half turns, struck as a path and carried as a data URI, because a spiral is the
+one shape CSS cannot draw. Two strokes — the groove in shadow and a lighter one
+offset up and left — which is the same relief everything else gets.
+
+**`orb` was never a position.** It was offered in the knob picker and had no
+CSS behind it at all, so choosing it quietly gave you a plain round knob — and
+two aesthetics named it as their default, which therefore did nothing. It is
+gone; `knobOf()` falls back rather than stamping a class nothing styles.
+
+### Starful Gothic has one edge, and it is a drawn line
+
+This aesthetic sits further from the others than they sit from each other.
+There is no moulding anywhere in it: no bevel, no gilt, no relief. A shape is
+**outlined** — one clean hand-drawn line round the structure, wandering, taking
+the tooth of the paper, and chipped where the surface did not hold it, the way
+a line on stone or old paper is.
+
+So its four dressed border slots do not each become a different ornament. They
+become the **same line**, and what a slot varies is only how hard the pencil
+was pressed — which is the only thing a pencil can honestly vary. The tile's
+own ring is switched off entirely and the line lives on `.dpanel`, because a
+`box-shadow` cannot be filtered independently of the tile it is on and the
+filter must never touch anything holding text.
+
+**The chip grain has to be finer than the stroke.** The first pass used a
+long-wavelength noise, which made gaps longer than the line was thick and
+turned the whole thing into a *dashed* stroke rather than a chipped one. A chip
+is by definition smaller than the thing it is taken out of, so the noise is
+short and the drops are few — one band in fourteen — and what comes out is a
+line that nibbles at its own edges instead of breaking.

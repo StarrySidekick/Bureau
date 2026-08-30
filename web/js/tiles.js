@@ -3,7 +3,7 @@ import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, chi
   rollup, streak, goalPct, projectStat, tlSpan, dev, spawnByOf, genKindOf, takesTyping, showsAddBox,
   knobSizeOf, answered, sortOf, spanOf, coversDay, lateOn, isLate, iconOf, textSizeOf,
   isPicture, isMedia, isPlayable, isDecor, mediaTypeOf, boardLocked, prioOf, repeatSaid,
-  calViewOf, weekStartOf, calCols, bindingOf, panelOf } from './model.js';
+  calViewOf, weekStartOf, calCols, bindingOf, panelOf, knobOf } from './model.js';
 import { CELL, COLW, gridOf, lay, overlaps, boxOk, freeSpot, gridRows, sizeOfKind, ensureBox,
   pageRows } from './grid.js';
 import { create, toast, toggleDone } from './mutations.js';
@@ -684,7 +684,7 @@ function drawTile(o, arr, box){
      side. The mark is rendered always and revealed by the size classes, so
      nothing here has to know which threshold it crossed. */
   if(cont){
-    const bd=o.border||'panel', kn=o.knob||'round', tx=o.texture||'none';
+    const bd=o.border||'panel', kn=knobOf(o), tx=o.texture||'none';
     const doors = openingFor(o, box)==='cabinet';
     /* A knob is turned out of the same wood as the front, so unless it has been
        told otherwise it *is* the front's colour — what makes it a knob is the
@@ -1027,7 +1027,7 @@ function listTile(o){
       ${o.due?`<span class="mchip">${esc(dateSaid(o))}</span>`:''}
       ${deadSaid(o)?`<span class="mchip deadchip${isLate(o)?' late':''}">${esc(deadSaid(o))}</span>`:''}
       ${cont&&rollup(o)?`<span class="mchip">${esc(rollup(o))}</span>`:''}
-      ${cont?`<span class="pull kn-${o.knob||'round'}"${o.knobc?` style="--knob:${esc(o.knobc)}"`:''}></span>`:''}
+      ${cont?`<span class="pull kn-${knobOf(o)}"${o.knobc?` style="--knob:${esc(o.knobc)}"`:''}></span>`:''}
     </div>
   </${raw?'div':'button'}>`;
 }

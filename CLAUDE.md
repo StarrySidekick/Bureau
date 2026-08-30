@@ -257,6 +257,25 @@ side. The first pass ran the white mix out to a third of the radius, which is
 most of the face lightened — and a knob that is a paler disc of the front is the
 sticker this was meant to replace, wearing a gradient.
 
+**A knob is a slot, like an edge, a panelling and a colour.** `knobOf(o)` —
+five positions, named by `knobSlots()` and dressed per aesthetic. Everything an
+aesthetic adds only *adds* to `.pull`, which already turns the knob out of the
+front's own wood and lights it from the upper left; say what it is made of, do
+not re-light it. Girando's position 0 is a **volute**, which is how its default
+knob is a spiral without a special case. `orb` is not a position — it was in
+the picker with no CSS behind it for a long time and quietly gave you a round
+one. See decision 96.
+
+**Starful Gothic has one edge, and it is a drawn line.** It sits further from
+the other aesthetics than they sit from each other: no moulding, no bevel, no
+relief anywhere. Its four dressed border slots are the **same** hand-drawn
+outline and vary only in weight — the tile's own ring is switched off and the
+line lives on `.dpanel`, because a box-shadow cannot be filtered on its own and
+the filter must never touch anything holding text. The chips come from
+`#pencilchip`, and **the chip grain must be finer than the stroke**: at a long
+wavelength the gaps outrun the line's thickness and it reads as dashed rather
+than weathered.
+
 **A drawer front is worked, and the working is a *slot*.** `panelOf(o)` — per
 object then per type — stamps `pn-<name>` and the rest is CSS. The five keys
 (`plain`, `cockbead`, `fielded`, `reeded`, `ogee`) are **positions**, not

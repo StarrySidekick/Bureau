@@ -3343,6 +3343,39 @@ const CHROME = process.env.BUREAU_CHROME;
     /* the two new ornaments, which the `decorations` block above already holds
        to the tight-box and flush-to-the-floor rules along with the other ten */
     out.gearworkAndVolute = !!BUREAU.decor.cog && !!BUREAU.decor.volute;
+    /* **A knob is a slot too** (decision 96) — five positions, named and
+       dressed by each aesthetic, so a stored knob re-dresses on a switch the
+       way an edge and a panelling do. `orb` was offered in the picker with no
+       CSS behind it at all, which quietly gave you a plain round one; it is
+       not a position and falls back rather than stamping a dead class. */
+    const kn = Object.values(BUREAU.styles).map(st => st.knobs);
+    out.everyAestheticNamesFiveKnobs = kn.every(k => Array.isArray(k) && k.length === 5);
+    out.andGirandosFirstIsAVolute = BUREAU.styles.girando.knobs[0] === 'Volute';
+    // …and its default is that position, so a Girando drawer is born spiralled
+    out.soItsDefaultKnobIsOne = BUREAU.styles.girando.defaults.knob === 'round';
+    out.orbIsNotAPosition = BUREAU.knobOf({ knob:'orb' }) === 'round';
+    BUREAU.setStyle('girando'); await nap(140);
+    const vk = BUREAU.create('drawer', { parent:'root', title:'Volute' });
+    vk.knob = 'round'; BUREAU.render(); await nap(200);
+    out.andItIsActuallyDrawn = /svg/.test(getComputedStyle(
+      document.querySelector(`.grid .drawer[data-drawer="${vk.id}"] .pull`)).backgroundImage);
+    BUREAU.delDrawer(vk.id);
+    /* **Starful Gothic has one edge.** It sits further from the others than
+       they sit from each other — no moulding anywhere — so the four dressed
+       slots become the *same drawn line* and vary only in weight. What proves
+       it is that the tile itself stops casting any ring at all. */
+    BUREAU.setStyle('starry'); await nap(160);
+    const sg = BUREAU.create('drawer', { parent:'root', title:'Drawn', border:'panel' });
+    BUREAU.render(); await nap(200);
+    const st = document.querySelector(`.grid .drawer[data-drawer="${sg.id}"]`);
+    out.noMouldingAnywhere = getComputedStyle(st).boxShadow === 'none';
+    const line = getComputedStyle(st.querySelector('.dpanel'));
+    out.oneDrawnLineInstead = /px/.test(line.borderTopWidth)
+      && parseFloat(line.borderTopWidth) > 0;
+    out.andItIsWeathered = /pencilchip/.test(line.filter);
+    BUREAU.delDrawer(sg.id);
+    BUREAU.setStyle('victorian'); await nap(140);
+
     /* **The gilt frame is an edge, not a privilege** (decision 94). It used to
        appear on a magic drawer by fiat — the one ornament nobody could choose
        and nobody could decline. */

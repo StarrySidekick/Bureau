@@ -514,6 +514,24 @@ const PANELS = {
   ogee:     'Ogee panel'
 };
 const PANEL_SLOTS = Object.keys(PANELS);
+/* A knob is a slot too, and for the same reason: what you store is the
+   *position*, and what position 0 is made of is the aesthetic's business — a
+   turned Victorian knob, a Carca gear, a Golf 97 button, a Girando volute.
+   `orb` used to be offered in the picker and had no CSS at all, so picking it
+   quietly gave you a plain round one; it is not a position and `knobOf()`
+   falls back rather than stamping a class nothing styles. See decision 96. */
+const KNOBS = {
+  round:   'Round',
+  diamond: 'Diamond',
+  bar:     'Bar',
+  ring:    'Ring',
+  square:  'Square'
+};
+const KNOB_SLOTS = Object.keys(KNOBS);
+const knobOf = o => {
+  const k = (o && o.knob) || K(o&&o.kind).knob;
+  return KNOBS[k] ? k : 'round';
+};
 /* Cockbead is the default rather than flat: it is on very nearly every drawer
    of the period, it is one moulding rather than an ornament, and a flat
    rectangle is the thing this exists to stop being. Unknown names fall back,
@@ -1253,7 +1271,7 @@ export { ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds, K,
   boardLocked,
   PRIOS, prioOf, prioName,
   REPEAT_UNITS, repeatOf, repeats, repeatSaid, repeatSpent, nextRepeat,
-  BINDINGS, bindingOf, PANELS, PANEL_SLOTS, panelOf,
+  BINDINGS, bindingOf, PANELS, PANEL_SLOTS, panelOf, KNOBS, KNOB_SLOTS, knobOf,
   KNOBSIZES, knobSizeOf, answered, iconOf, TSIZES, textSizeOf, mediaTypeOf, isPicture,
   isMedia, isPlayable, acceptFor, isDecor,
   spawnByOf, genKindOf, takesTyping, showsAddBox, keepsDone, showsContainers,
