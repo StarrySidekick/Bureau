@@ -39,6 +39,7 @@ and shouldn't be undone by accident.
 scripts/serve.sh              # http://localhost:8000
 node test/smoke.mjs           # headless browser check, needs the server running
 node test/scale-probe.mjs     # what a render costs as the desk fills up
+node scripts/catalogue.mjs out.html   # every visual option, on one page
 ```
 
 Open it over http, never as a `file://` URL — the service worker won't register
@@ -50,6 +51,17 @@ drawers, quick-add, the detail sheet, habits and goals, both layouts, persistenc
 across a reload, and an offline reload. **Run it after any non-trivial change and
 before saying you're done.** It writes screenshots to `test/shots/` — look at
 them, this is a visual app and a passing assertion doesn't mean it looks right.
+
+`scripts/catalogue.mjs` is the **specimen book**: every visual option there is —
+seven aesthetics by six slot families, plus the sixteen colours, the shapes, the
+tick boxes and the decorations — as one page you can look at. It needs the
+server running, and it draws every tile through the app's own `sampleTile()`
+rather than writing markup of its own, because a second renderer drifts from the
+first the day a slot gains a rule. Re-run it after changing a slot. The one
+thing it works around is that the *chrome* rules are still keyed on
+`html[data-style]` and cannot be on a page showing seven aesthetics at once, so
+it duplicates each of them onto a `[data-sty]` wrapper — wholesale, because
+choosing which ones mattered is how you miss one.
 
 `test/scale-probe.mjs` is not a test and nothing gates on it — it pours objects
 onto the sample desk and times a render, the string build inside it, and a full

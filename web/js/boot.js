@@ -8,14 +8,16 @@ import { S, KINDS, SHAPES, SORTS, childrenOf, container, relate, deskOf, has, la
 import { pageRows, freeSpot, boxOk } from './grid.js';
 import { create, setPin, togglePin, del, delMany, delDrawer, undo, redo, toggleDone, spawnNext, setGridSize } from './mutations.js';
 import { applyLook, applyStyle, STYLES, panelSlots, borderSlots, knobSlots, textureSlots,
-  bindingSlots, stockSlots, famSlots, famAll, dress, styleKey, stockNow, randomLook } from './look.js';
+  bindingSlots, stockSlots, famSlots, famAll, dress, styleKey, stockNow, randomLook,
+  palNow, CHECKS } from './look.js';
 import { render, sizeGrid, viewHTML, reveal, settingsPanel, pageAt, pageCount, goPage } from './views.js';
-import { overlayHTML, objectPanel, modalNewObject, schedulePanel } from './panels.js';
+import { overlayHTML, objectPanel, modalNewObject, schedulePanel,
+  sampleObject, sampleTile } from './panels.js';
 import { wire } from './wire.js';
 import { openingFor, stepDrawer, spray, sprayAt, sprayCount, sprayNow, sprayMark, SPRAYS } from './motion.js';
 import { load, writeNow, save, saveIfDirty, hydrateAssets, pasteObjects, migrate } from './persist.js';
 import { renderSheet, openWriter, openRead, openViewer, closeSheet, asMarkdown } from './sheet.js';
-import { DECOR, DECOR_KEYS, decorSuits, decorFor, decorRest } from './decor.js';
+import { DECOR, DECOR_KEYS, decorSVG, decorSuits, decorFor, decorRest } from './decor.js';
 
 /* ---- the keyboard is not a resize — decision 84 ------------------------
    `100vh` on iOS is the *large* viewport and deliberately ignores the software
@@ -96,9 +98,16 @@ window.BUREAU = {
   // the four things an object opens onto: its editor, its words, its paper,
   // and — for something made of an image — the picture
   panel: objectPanel, write: openWriter, read: openRead, view: openViewer,
+  /* A thing drawn as the thing it makes — the type picker's own primitive
+     (decision 51). Exposed so anything outside the app that wants to *show* a
+     tile draws the real one rather than a copy of it: `scripts/catalogue.mjs`
+     builds the specimen book from these, and a copy would drift the first
+     time a slot gained a rule. */
+  sampleObject, sampleTile,
   del, delMany, delDrawer, undo, redo, toggleDone, spawnNext,
   // the little calendar, and how a thing comes round — decisions 72, 73, 78
-  schedule: schedulePanel, applyLook,
+  schedule: schedulePanel, applyLook, palNow,
+  get CHECKS(){ return CHECKS; }, decorSVG,
   get sorts(){ return SORTS; },
   prioOf, repeatOf, repeatSaid, nextRepeat, boardLocked,
   closeSheet,
