@@ -1046,10 +1046,10 @@ and outlives the Shadows switch). See decision 75.
 
 **A style is called an *Aesthetic* in the interface.** The stored key is still
 `style` and the CSS hook is still `data-style` — renaming those buys nothing
-and costs a migration — but every word a person reads says Aesthetics. The list
-is **Victoria**, **Starful Gothic** and **Aeros**, and will be seven: Carca,
-Golf 97, Stelaine and Girando are named but not yet defined, and will come from
-the Aesthetics repository rather than being invented here. **Skeuomorphic and
+and costs a migration — but every word a person reads says Aesthetics. The
+seven are **Victoria**, **Carca**, **Stelaine**, **Girando**, **Golf 97**,
+**Starful Gothic** and **Aeros**; `docs/STYLES.md` says what each is made of.
+**Skeuomorphic and
 Pseudochromo are gone** — the first because Victoria became the thing it was
 waiting to be, the second because it is not in the new list. Removing one needs
 a migration even though `styleNow()` falls back: the fallback means a desk left
@@ -1069,6 +1069,24 @@ A literal string is still legal — it is somebody insisting — and travels
 between styles unchanged. `chromeTokens()` derives every CSS token from the
 five, so a new style declares sixteen hexes and nothing else. See decision 33
 and `docs/STYLES.md`.
+
+**An override is stored per theme, and `applyLook()` must not write it back.**
+`bg`, `accent`, `line` and `board` live as `{paper, walnut}` and are read with
+`lookVal()`. Assigning the resolved string back into `S.look` collapses the
+object, and `lookVal()`'s string branch only answers for paper — so the next
+call returns null and the value is silently dropped. There is always a next
+call: `applyStyle()` runs `applyLook()` and then `render()`, which runs it
+again. That bug meant **no dark aesthetic ever showed its own board** — Starful
+Gothic fell back to the CSS default from the day it was written, and it took a
+second dark aesthetic before anyone could see it. Read into locals. Anything
+comparing one of these to a string wants `lookVal()`, not `S.look.<key>`. See
+decision 91.
+
+**An aesthetic's `defaults` are what a new container is born with** — knob,
+border, texture, knobtone **and panel**. Add a new per-container look property
+and it belongs in that set, or the aesthetics cannot speak for it: panelling
+shipped without it, which left the one thing separating a Victorian drawer from
+a Windows 95 button as the one thing an aesthetic could not say.
 
 **There is no theme switch.** Light or dark is `isDark(palNow()[0])` — the
 style's own background. `themeNow()` still reports paper/walnut, because the

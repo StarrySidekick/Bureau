@@ -396,7 +396,13 @@ function create(kind, patch){
     o.c = o.c || randomFront();
     const sd=styleDefaults();
     o.knob=o.knob||sd.knob; o.border=o.border||sd.border;
-    o.texture=o.texture||sd.texture; o.knobtone=o.knobtone||sd.knobtone; o.pv = o.pv || 'list';
+    o.texture=o.texture||sd.texture; o.knobtone=o.knobtone||sd.knobtone;
+    /* …and how the front is worked. Panelling arrived (decision 88) after the
+       aesthetics already carried knob, border and texture, and was left out of
+       the set — which meant the one thing that decides whether a front reads as
+       a Victorian drawer or a Windows 95 button was the one thing an aesthetic
+       could not say. It is a default like the other four. See decision 91. */
+    o.panel=o.panel||sd.panel; o.pv = o.pv || 'list';
     o.layout = o.layout || k.layout || 'list';
     // A type may declare the rule its containers start with — a calendar
     // collects anything dated the moment you make one, rather than being a

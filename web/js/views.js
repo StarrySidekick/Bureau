@@ -477,7 +477,11 @@ function settingsBody(sec){
         [['#EFEADA|#DDE5CE','Green baize'],['#EFEADA|#E4DCC6','Sand'],['#EDE6D4|#D9E2E4','Slate'],
          ['#F0EBDC|#E8DAD2','Clay'],['#EEE9DA|#E2E2DA','Ash'],['#EFEADA|#EFEADA','Plain']].map(([v,nm])=>{
         const [a,b]=v.split('|');
-        return `<button data-look="board" data-val="${v}" title="${nm}" class="${((S.look.board||'')===v)?'on':''}"
+        /* `lookVal`, not `S.look.board`: a board is stored per theme as
+           {paper, walnut}, and comparing the object to a string marks nothing
+           as chosen. This read only ever worked because applyLook() used to
+           collapse the object on its way past — see decision 91. */
+        return `<button data-look="board" data-val="${v}" title="${nm}" class="${(lookVal('board')||'')===v?'on':''}"
           style="background:linear-gradient(135deg,${a} 0 50%,${b} 50% 100%)"></button>`;}).join('')}</div>
       <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">
         <label class="custcol"><input type="color" data-lookinput="board1" value="${(lookVal('board')||'#EFEADA|#DDE5CE').split('|')[0]}"><span>Light square</span></label>

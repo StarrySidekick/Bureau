@@ -27,6 +27,40 @@
 <link rel="stylesheet" href="css/motion.css">
 </head>
 <body>
+<!-- The drawn line, taken from Tilemakers' Workshop. There the wobble is
+     applied to the *picture* rather than the paths: a sprite is rendered clean
+     and every pixel is then looked up a small, smoothly-varying distance from
+     where it should be, which bends every edge at once the way a nib wanders.
+     Redrawing two thousand path calls with hand-wobble is a rewrite that never
+     ends; displacing the result is one pass.
+
+     None of that is possible on a box-shadow — but it is the same operation an
+     SVG filter does natively, and `feTurbulence` + `feDisplacementMap` *is*
+     smooth-noise displacement of a rendered picture. So the technique carries
+     over exactly; only the implementation changes.
+
+     Two passes, matching their two: a long-wavelength **wander** that bends a
+     line, and a short-wavelength **tooth** that gives its edge the grain of
+     the paper. Their numbers are fractions of a tile (wobble 0.9% at a 12%
+     wavelength, tooth 0.22% at 3.2%); at Bureau's tile sizes that lands near
+     these, and a fixed grain across the board is right anyway — it is all the
+     same sheet of paper. `stitchTiles` keeps the noise continuous so a tile's
+     edge doesn't crawl, and the filter is only ever applied to layers that
+     hold no text. See decision 91. -->
+<svg width="0" height="0" aria-hidden="true" focusable="false"
+     style="position:absolute;pointer-events:none">
+  <filter id="pencil" x="-6%" y="-6%" width="112%" height="112%"
+          color-interpolation-filters="sRGB">
+    <feTurbulence type="fractalNoise" baseFrequency="0.045" numOctaves="2"
+                  seed="7" stitchTiles="stitch" result="wander"/>
+    <feDisplacementMap in="SourceGraphic" in2="wander" scale="3.2"
+                       xChannelSelector="R" yChannelSelector="G" result="bent"/>
+    <feTurbulence type="fractalNoise" baseFrequency="0.34" numOctaves="1"
+                  seed="19" stitchTiles="stitch" result="tooth"/>
+    <feDisplacementMap in="bent" in2="tooth" scale="1.1"
+                       xChannelSelector="R" yChannelSelector="G"/>
+  </filter>
+</svg>
 <div id="frame" class="is-desk"><div class="app" id="app"></div></div>
 <!-- The app is ES modules, no bundler: js/boot.js pulls in the rest. The
      section map lives in CLAUDE.md; the old numbered banners are now files. -->

@@ -994,6 +994,111 @@ html[data-style="starry"] .drawer.dtile.bd-gloss{
   box-shadow:inset 0 0 0 5px transparent, inset 0 0 0 6px color-mix(in srgb,var(--ink) 34%,transparent);
   border-style:dashed }
 
+/* ---- the drawn line, on the one aesthetic that is drawn -----------------
+   Starful Gothic is white pencil on a night sky, and a box-shadow is the
+   straightest line a computer can make. The filter in index.html bends it —
+   the Tilemakers' Workshop trick, which displaces the rendered *picture*
+   rather than the paths, so every edge in it wavers at once.
+
+   **It is only ever put on a layer that holds no text.** `.dpanel` is the
+   moulding layer (decision 88): a real element inside every drawer front that
+   draws lines and nothing else, which is exactly the surface a hand-drawn
+   outline wants and exactly why it must not go on the tile — displacing a
+   drawer's name would be smudging the label, not drawing the box. The gilt
+   frame on a magic front is the same kind of layer, so it takes it too. */
+html[data-style="starry"] .drawer.dtile .dpanel{
+  inset:4px;border-radius:5px;
+  border:1.5px solid color-mix(in srgb,var(--ink) 52%,transparent);
+  filter:url(#pencil);
+}
+html[data-style="starry"] .drawer.dtile.magicdrawer::before{ filter:url(#pencil) }
+/* One cell square is the type's mark and nothing else, and a 40px box with a
+   3px wander on it is a scribble rather than a line. */
+html[data-style="starry"] .drawer.dtile.sz-mini .dpanel{display:none}
+
+/* ashlar: cut stone. A course line held off the edge and a chamfer above it,
+   because a dressed block is bedded rather than framed. Slot 4 is the vine. */
+html[data-style="carca"] .drawer.dtile.bd-panel{
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.22), inset 0 0 0 4px rgba(0,0,0,.13),
+             inset 0 0 0 5px rgba(255,255,255,.10), var(--shadow) }
+html[data-style="carca"] .drawer.dtile.bd-heavy{
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.24), inset 0 0 0 9px rgba(0,0,0,.16),
+             inset 0 0 0 11px rgba(255,255,255,.12), var(--shadow-lg) }
+html[data-style="carca"] .drawer.dtile.bd-bar{
+  box-shadow:inset 0 7px 0 rgba(0,0,0,.13), inset 0 8px 0 rgba(255,255,255,.14), var(--shadow) }
+html[data-style="carca"] .drawer.dtile.bd-gloss{
+  box-shadow:inset 0 0 0 3px color-mix(in srgb,var(--glow) 34%,transparent),
+             inset 0 0 0 4px rgba(0,0,0,.16), var(--shadow) }
+
+/* filigree: thin drawn metal, held well off the edge and doubled. Nothing here
+   is a moulding — an elven rim is a line, not a lip. */
+html[data-style="stelaine"] .drawer.dtile.bd-panel{
+  box-shadow:inset 0 0 0 4px transparent,
+             inset 0 0 0 5px color-mix(in srgb,var(--glow) 46%,transparent), var(--shadow) }
+html[data-style="stelaine"] .drawer.dtile.bd-heavy{
+  box-shadow:inset 0 0 0 3px transparent,
+             inset 0 0 0 4px color-mix(in srgb,var(--glow) 58%,transparent),
+             inset 0 0 0 7px transparent,
+             inset 0 0 0 8px color-mix(in srgb,var(--glow) 28%,transparent), var(--shadow) }
+html[data-style="stelaine"] .drawer.dtile.bd-bar{
+  box-shadow:inset 0 5px 0 color-mix(in srgb,var(--brass) 40%,transparent), var(--shadow) }
+/* a facet: light off one shoulder of a crystal and shade off the other */
+html[data-style="stelaine"] .drawer.dtile.bd-gloss{
+  box-shadow:inset 2px 2px 0 rgba(255,255,255,.20), inset -2px -2px 0 rgba(0,0,0,.28),
+             inset 0 0 0 5px transparent,
+             inset 0 0 0 6px color-mix(in srgb,var(--glow) 30%,transparent), var(--shadow-lg) }
+
+/* volute and cartouche: baroque is a *carved* edge — deep, gilded on its lit
+   face and dark in the hollow, and never the same depth twice round. */
+html[data-style="girando"] .drawer.dtile.bd-panel{
+  box-shadow:inset 0 0 0 2px rgba(0,0,0,.26),
+             inset 0 0 0 3px color-mix(in srgb,var(--glow) 40%,transparent),
+             inset 0 2px 0 4px rgba(0,0,0,.16), var(--shadow) }
+html[data-style="girando"] .drawer.dtile.bd-heavy{
+  box-shadow:inset 0 0 0 3px rgba(0,0,0,.30),
+             inset 0 0 0 5px color-mix(in srgb,var(--glow) 46%,transparent),
+             inset 0 0 0 10px rgba(0,0,0,.22),
+             inset 0 0 0 11px color-mix(in srgb,var(--glow) 22%,transparent), var(--shadow-lg) }
+html[data-style="girando"] .drawer.dtile.bd-bar{
+  box-shadow:inset 0 6px 0 rgba(0,0,0,.24),
+             inset 0 7px 0 color-mix(in srgb,var(--glow) 34%,transparent), var(--shadow) }
+html[data-style="girando"] .drawer.dtile.bd-gloss{
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--glow) 55%,transparent),
+             inset 0 0 0 6px rgba(0,0,0,.20),
+             inset 0 0 0 7px color-mix(in srgb,var(--glow) 26%,transparent), var(--shadow-lg) }
+
+/* 1997 chrome, and it is the one edge in the app that is *hard*: two flat
+   steps, light at the top left and dark at the bottom right, no blur and no
+   gradient. Sunken is the same thing turned over, which is exactly how that
+   decade drew a pressed button — and it is the same one light this app already
+   uses for its knobs and its mouldings (decision 88), a century apart. */
+/* Four px rather than the two a real one had: that bevel was drawn on a 90px
+   button and these tiles are five times that, so two reads as a hairline. The
+   *proportion* is what carries the decade, not the pixel count. */
+html[data-style="golf97"] .drawer.dtile.bd-panel{
+  box-shadow:inset 4px 4px 0 rgba(255,255,255,.50), inset -4px -4px 0 rgba(0,0,0,.42),
+             inset 0 0 0 1px rgba(0,0,0,.45), var(--shadow) }
+html[data-style="golf97"] .drawer.dtile.bd-heavy{
+  box-shadow:inset 4px 4px 0 rgba(255,255,255,.52), inset -4px -4px 0 rgba(0,0,0,.30),
+             inset 8px 8px 0 rgba(255,255,255,.22), inset -8px -8px 0 rgba(0,0,0,.46),
+             inset 0 0 0 1px rgba(0,0,0,.45), var(--shadow) }
+/* the same two steps turned over, which is how that decade drew a pressed one */
+html[data-style="golf97"] .drawer.dtile.bd-bar{
+  box-shadow:inset -4px -4px 0 rgba(255,255,255,.40), inset 4px 4px 0 rgba(0,0,0,.46),
+             inset 0 0 0 1px rgba(0,0,0,.45), var(--shadow) }
+html[data-style="golf97"] .drawer.dtile.bd-gloss{
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.50),
+             inset 3px 3px 0 1px rgba(255,255,255,.42), inset -3px -3px 0 1px rgba(0,0,0,.34),
+             inset 7px 7px 0 1px rgba(0,0,0,.26), inset -7px -7px 0 1px rgba(255,255,255,.18),
+             var(--shadow) }
+/* A cockbead is cabinetwork and 1997 has none: a front here is a *panel*, flat
+   inside its bevel, so the moulding layer stands down. The border slot is
+   doing the whole job, which is exactly what it did on that desktop. */
+html[data-style="golf97"] .drawer.dtile .dpanel{display:none}
+/* square, because nothing in 1997 had a radius — including the tick boxes */
+html[data-style="golf97"] .drawer,html[data-style="golf97"] .sqbtn,
+html[data-style="golf97"] .check,html[data-style="golf97"] .clbox{border-radius:0}
+
 /* glass: a lit sill along the top, and slot 4 is the full aqua rim */
 html[data-style="aero"] .drawer.dtile.bd-panel{
   box-shadow:inset 0 0 0 1px rgba(255,255,255,.5), inset 0 8px 14px rgba(255,255,255,.28), var(--shadow) }

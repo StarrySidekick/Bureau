@@ -3162,3 +3162,57 @@ Still to come: **Carca**, **Golf 97**, **Stelaine** and **Girando**. They are
 named but not defined, and an aesthetic is sixteen colours, a board, six border
 names, a typeface and a set of drawer defaults — inventing that from a name is
 work the repository would only overwrite. The list is three until they arrive.
+
+---
+
+## 91. Four more aesthetics, and three things they turned up
+
+*2026-08-30*
+
+**Carca**, **Stelaine**, **Girando** and **Golf 97** join Victoria, Starful
+Gothic and Aeros; `docs/STYLES.md` is the reference for what each is made of.
+Building them turned up three things worth writing down, because two of them
+were bugs that had been sitting there and the third is a rule.
+
+### Every dark aesthetic had lost its board
+
+`applyLook()` read the per-theme overrides and assigned the resolved values
+**back into `S.look`** — `L.board = lookVal('board')`. Those are stored as
+`{paper, walnut}` objects; writing the resolved string back collapses the
+object, and the string branch of `lookVal()` only answers for paper. So the
+*second* call returned null and dropped the value. There is always a second
+call: `applyStyle()` runs `applyLook()` and then `render()`, which runs it
+again.
+
+The result is that **no dark aesthetic has ever shown its own board**. Starful
+Gothic has been falling back to the CSS default since the day it was written,
+and nobody noticed because it was the only dark one — you need two side by side
+before "that isn't its board" is a thought you can have. Fixed by reading into
+locals and never writing back. One caller depended on the collapse (the board
+swatch in Settings compared `S.look.board` to a string to know which was
+chosen) and now uses `lookVal()`, which the two colour inputs beside it were
+already using.
+
+### An aesthetic could not say how its fronts are worked
+
+Panelling (decision 88) arrived after the aesthetics already carried knob,
+border and texture, and was never added to the set — which left the one
+property that decides whether a front reads as a Victorian drawer or a Windows
+95 button as the one thing an aesthetic could not state. It is a default like
+the other four now, and Golf 97 is the case that makes it obvious: a cockbead
+is cabinetwork, and 1997 has none.
+
+### One light, ninety-odd years apart
+
+Golf 97's outset bevel and Victoria's cockbead are **the same lighting model**:
+light from the upper left, shade to the lower right, on a rim of fixed
+thickness. The only difference is that one is a gradient and the other is two
+flat steps. The rule from decision 88 — that the app has one light source and
+everything shaped obeys it — turns out to carry a Victorian drawer front and a
+Windows 95 button equally well, which is a decent sign it is the right rule
+rather than a Victorian one.
+
+**Four pixels, not two.** A real Win95 bevel is 2px because it was drawn on a
+90px button; Bureau's tiles are five times that, where 2px reads as a hairline.
+The *proportion* carries the decade, not the pixel count — the same lesson as
+decision 88's px thicknesses, pointing the other way.

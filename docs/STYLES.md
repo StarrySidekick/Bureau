@@ -11,8 +11,8 @@ Aesthetics repository; the stored key is still `style` and the CSS hook is
 still `data-style`, because renaming those buys nothing and costs a migration.
 See decision 90.
 
-The list is **Victoria**, **Starful Gothic** and **Aeros** today, and will be
-seven: Carca, Golf 97, Stelaine and Girando are named but not yet defined.
+The seven are **Victoria**, **Carca**, **Stelaine**, **Girando**, **Golf 97**,
+**Starful Gothic** and **Aeros**.
 
 ## The sixteen
 
@@ -60,6 +60,92 @@ Mood: finite, warm, deliberate. Nothing pure white, nothing pure black.
 
 ---
 
+## Carca
+
+Carcassonne: a walled French city in tile-sized pieces, with the war long over
+and its machines turned to tinkering. Flowers and overgrowth on the ramparts,
+brass and copper in the works.
+
+| Token | Value |
+| --- | --- |
+| Board | `#EAE5D4` / `#DBDCC6` — and this is the one aesthetic where the checker reads as exactly what it is: a table of laid tiles |
+| Background | limestone `#E8E4D6`, ink a blue-black `#22303F` |
+| Accent | brass `#A87A3C`, glow pale gilt `#D4B872` |
+| Display type | Hoefler Text / Baskerville — old-style, with a French cut |
+| Its eleven | Rampart · Woad · Cornflower · Meadow · Ivy · Wisteria · Rose · Brass · Copper · Verdigris · Tufa |
+| Drawer defaults | ring pull · ashlar border · grid texture · **fielded panel** |
+| Radii | 6px chrome, 2px drawers — masonry, not cabinetwork |
+| Signature elements | a course line held off the edge with a chamfer above it, because a dressed block is bedded rather than framed |
+
+Mood: heraldry that has relaxed. Stone and meadow, with something ticking.
+
+---
+
+## Stelaine
+
+A floating island under a sky that drops its stars as crystal. Violets and
+cosmic blues rather than black space, elven gold on top of them — rich, not
+merely dark. The astronomers keep the tower and the information; everyone else
+mines what falls.
+
+| Token | Value |
+| --- | --- |
+| Board | `#171233` / `#1D1740` — a violet night |
+| Background | void indigo `#120E20`, ink starlight `#EDE7FA` |
+| Accent | arcane violet `#9A6BD8`, glow elven gold `#E3C98A` |
+| Display type | Didot / Bodoni 72 — elven is high-contrast and thin-stroked, not blackletter |
+| Its eleven | Nebula · Amethyst · Void · Astral · Aether · Starcrystal · Arcane · Ember · Eldergold · Nether · Slate |
+| Drawer defaults | orb pull · filigree border · starry texture · **ogee panel** |
+| Radii | 11px chrome, 4px drawers — nothing here was cut |
+| Signature elements | filigree held well off the edge and doubled; slot 4 is a crystal **facet**, lit off one shoulder and shaded off the other |
+
+Mood: somebody else knows where the next one lands.
+
+---
+
+## Girando
+
+The underside of a landmass that will not hold still: Sicilian baroque seen
+from below, in volcanic stone and majolica, gold on the ornament and vines
+through everything. The motif is the **spiral** — the volute of a scroll, and
+the turn of the rock itself.
+
+| Token | Value |
+| --- | --- |
+| Board | `#262119` / `#2E2820` — basalt in shadow |
+| Background | dark warm stone `#211E1A`, ink limestone `#EDE4D2` |
+| Accent | terracotta gold `#B98846`, glow pale gold `#E0C782` |
+| Display type | Bodoni 72 — Italian, and the face baroque plates were re-set in |
+| Its eleven | Basalt · Tufa · Majolica · Verde · Acanthus · Terracotta · Sangue · Ochre · Lapis · Aubergine · Cenere |
+| Drawer defaults | round pull · volute border · speckle texture · **ogee panel** |
+| Radii | 14px chrome, 5px drawers — the roundest here, because a volute has no corners |
+| Signature elements | a *carved* edge: deep, gilded on its lit face and dark in the hollow, never the same depth twice round |
+
+Mood: labyrinthine. You are underneath it and it is moving.
+
+---
+
+## Golf 97
+
+1997, on a television. Washed fairway greens, the beige of golf slacks, maroon
+polo, distressed leather, and the grey and teal of the desktop it was all
+running beside.
+
+| Token | Value |
+| --- | --- |
+| Board | `#CFD8B8` / `#C0CBA6` — the checker is the mown fairway |
+| Background | `#D6D3C4`, ink near-black `#2A2A24` |
+| Accent | desktop teal `#12736E`, glow ad-gold `#C8A63C` |
+| Display type | Tahoma / Verdana — the faces this actually happened in |
+| Its eleven | Fairway · Rough · Khaki · Sand · Polo · Cadet · Teal · Mustard · Leather · Plum · Silver |
+| Drawer defaults | square pull · outset border · check texture · **flat panel** |
+| Radii | **0px everywhere** — nothing in 1997 had one, tick boxes included |
+| Signature elements | the only *hard* edge in the app: two flat steps, light at the top left and dark at the bottom right, no blur and no gradient. Sunken is the same thing turned over. Four pixels rather than the two a real one had, because that bevel was drawn on a 90px button and these tiles are five times that |
+
+Mood: a driving range at four in the afternoon, on a CRT.
+
+---
+
 ## Starful Gothic
 
 The night sky from timothyvlangas.com — black and white, drawn in white pencil.
@@ -73,8 +159,28 @@ slot is white and nearly opaque and the drawer shadow goes entirely.
 | Accent | blue `#6FD3F5`, with green `#7DE8B0` as the glow — the only two colours in it |
 | Display type | Chalkboard SE / Comic Sans (hand-drawn; stands in for the site's Amatic SC without a webfont dependency) |
 | Its eleven | Ink · Slate night · Charcoal · Deep blue · Harbour · Pine · Fern night · Graphite · Midnight · Pitch · Ash — near-blacks that differ by a whisper of blue or green |
-| Drawer defaults | round knob · plain border · **stars texture** |
-| Signature elements | white-pencil outlines, no shadows, star-speckled board, playful hand-lettered headings |
+| Drawer defaults | round knob · plain border · **stars texture** · flat panel |
+| Signature elements | white-pencil outlines that **actually waver** — see below — no shadows, star-speckled board |
+
+**The drawn line.** Taken from Tilemakers' Workshop, where the wobble is applied
+to the *picture* rather than the paths: a sprite is rendered clean and every
+pixel is then looked up a small, smoothly-varying distance from where it should
+be, which bends every edge at once the way a nib wanders. Redrawing two
+thousand path calls with hand-wobble is a rewrite that never ends; displacing
+the result is one pass.
+
+A `box-shadow` cannot be displaced — but that operation is exactly what an SVG
+filter does natively, and `feTurbulence` + `feDisplacementMap` *is*
+smooth-noise displacement of a rendered picture. So the technique carries over
+whole; only the implementation changes. Two passes, matching theirs: a
+long-wavelength **wander** that bends a line, and a short-wavelength **tooth**
+that gives its edge the grain of the paper.
+
+It is only ever applied to a layer that holds **no text** — `.dpanel`, the
+moulding layer, and the gilt frame on a magic front. Displacing a drawer's name
+would be smudging the label, not drawing the box. It costs nothing at composite
+time: the filtered layer rasterises once and caches, and a full phone board
+scrolls at the same 16.7ms per frame as Victoria's.
 
 Mood: cosy night-web. The early-internet charm of the site, kept legible.
 

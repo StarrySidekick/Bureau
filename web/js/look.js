@@ -106,20 +106,31 @@ function applyLook(){
   const st=STYLES[L.style];
   if(st && st.vars) Object.entries(st.vars).forEach(([k,v])=>el.style.setProperty(k,v));
 
-  // and then the hand overrides, which still beat the style — a style is a
-  // starting point, not a cage
-  L.bg=lookVal('bg'); L.accent=lookVal('accent'); L.line=lookVal('line'); L.board=lookVal('board');
-  if(L.bg){
-    el.style.setProperty('--paper', L.bg);
-    el.style.setProperty('--paper-2', mix(L.bg, 91, '#fff'));
-    el.style.setProperty('--paper-3', isDark(L.bg) ? mix(L.bg, 84, '#fff') : mix(L.bg, 92, '#000'));
+  /* And then the hand overrides, which still beat the aesthetic — one is a
+     starting point, not a cage.
+
+     **Read into locals, never back into `S.look`.** These are stored per theme
+     as `{paper, walnut}` and `lookVal()` resolves one of them; writing the
+     resolved string back collapses the object, and the *string* branch of
+     `lookVal()` only answers for paper — so the next call returns null and the
+     value is dropped. applyLook() runs twice on every style change (once
+     itself, once from the render that follows), so the collapse always
+     happened, and it cost every **dark** aesthetic its board: Starful Gothic
+     has been falling back to the CSS default since the day it was written,
+     because no one had put two dark ones side by side to notice. See
+     decision 91. */
+  const bg=lookVal('bg'), accent=lookVal('accent'), line=lookVal('line'), board=lookVal('board');
+  if(bg){
+    el.style.setProperty('--paper', bg);
+    el.style.setProperty('--paper-2', mix(bg, 91, '#fff'));
+    el.style.setProperty('--paper-3', isDark(bg) ? mix(bg, 84, '#fff') : mix(bg, 92, '#000'));
   }
   el.style.setProperty('--board-alpha', L.boardAlpha==null?1:L.boardAlpha);
-  if(L.board){ const [a,b]=String(L.board).split('|');
+  if(board){ const [a,b]=String(board).split('|');
     el.style.setProperty('--board-1', a); el.style.setProperty('--board-2', b||a); }
   else { el.style.removeProperty('--board-1'); el.style.removeProperty('--board-2'); }
-  if(L.accent) el.style.setProperty('--brass', L.accent);
-  if(L.line) el.style.setProperty('--line', L.line);
+  if(accent) el.style.setProperty('--brass', accent);
+  if(line) el.style.setProperty('--line', line);
   /* Shadows off. Every tile in the app casts one onto whatever is under it,
      which is what makes the board read as things *on* a surface — and it is
      also the single biggest difference between "furniture" and "flat", so it
@@ -209,7 +220,7 @@ const STYLES = {
   victorian: {nm:'Victoria', ds:'An old desk: baize, brass, sage and claret',
     board:'#EFEADA|#DDE5CE', boardAlpha:1,
     borders:['Panelled','Heavy panel','Bar','Beaded','Plain','None'],
-    defaults:{knob:'round', border:'panel', texture:'none', knobtone:'light'},
+    defaults:{knob:'round', border:'panel', texture:'none', knobtone:'light', panel:'cockbead'},
     cols:['#E9E1CC','#2A241C','#4A4034','#A9793F','#D9B57C',
           '#6F5137','#4A7C59','#6E7F63','#2E6B52','#4A6382','#5A7A9E',
           '#8E3B38','#9A7B2F','#8A6A3C','#5E4A72','#6E7075'],
@@ -223,13 +234,83 @@ const STYLES = {
     names:['Walnut','Baize','Sage','Emerald','Royal','Delft',
            'Claret','Gilt','Oak','Regal','Pewter'],
     vars:{}},
+  /* Carcassonne: a walled French city in tile-sized pieces — heraldic woad,
+     limestone, meadow — with the war long over and its machines turned to
+     tinkering. Flowers and overgrowth on the ramparts, brass and copper in the
+     works. The board is a *checker* already, which is the one aesthetic where
+     that reads as exactly what it is: a table of laid tiles. */
+  carca: {nm:'Carca', ds:'A walled city in tiles, its war machines turned to tinkering',
+    board:'#EAE5D4|#DBDCC6', boardAlpha:1,
+    borders:['Ashlar','Rampart','Course','Vine','Plain','None'],
+    defaults:{knob:'ring', border:'panel', texture:'grid', knobtone:'light', panel:'fielded'},
+    cols:['#E8E4D6','#22303F','#7E8B96','#A87A3C','#D4B872',
+          '#77808A','#2E5B84','#5D82AE','#5E8B4C','#3C6B49','#7A6E9E',
+          '#A8555C','#A6803C','#9A6440','#4E8478','#8C8574'],
+    names:['Rampart','Woad','Cornflower','Meadow','Ivy','Wisteria',
+           'Rose','Brass','Copper','Verdigris','Tufa'],
+    // an old-style face with a French cut to it, and corners squarer than
+    // Victoria's because this is masonry rather than cabinetwork
+    vars:{'--radius':'6px','--radius-d':'2px',
+      '--serif':'"Hoefler Text","Baskerville","Palatino Linotype",Palatino,Georgia,serif'}},
+  /* A floating island under a sky that drops its stars as crystal. Violets and
+     cosmic blues rather than black space, and elven gold on top of them —
+     rich, not merely dark. The astronomers keep the tower and the information;
+     everyone else mines what falls. */
+  stelaine: {nm:'Stelaine', ds:'Crystal stars falling on a floating island, and who owns the sky',
+    board:'#171233|#1D1740', boardAlpha:1,
+    borders:['Filigree','Astral rule','Horizon','Facet','Plain','None'],
+    defaults:{knob:'orb', border:'panel', texture:'starry', knobtone:'light', panel:'ogee'},
+    cols:['#120E20','#EDE7FA','#6E5F96','#9A6BD8','#E3C98A',
+          '#4C3A78','#6E4C9E','#2E2A55','#3A5A9E','#2F6E86','#3E8AA0',
+          '#9A3F86','#9E4A3A','#8A6D2E','#3F7A5E','#5A5470'],
+    names:['Nebula','Amethyst','Void','Astral','Aether','Starcrystal',
+           'Arcane','Ember','Eldergold','Nether','Slate'],
+    // a didone, because elven is high-contrast and thin-stroked rather than
+    // blackletter — and the radii are generous, since nothing here was cut
+    vars:{'--radius':'11px','--radius-d':'4px',
+      '--serif':'"Didot","Bodoni 72","Playfair Display",Georgia,serif'}},
+  /* The underside of a landmass that will not hold still: Sicilian baroque
+     seen from below, in volcanic stone and majolica, with gold on the
+     ornament and vines through everything. The motif is the **spiral** — the
+     volute of a scroll, and the turn of the rock itself. */
+  girando: {nm:'Girando', ds:'The turning underside of a Sicilian rock, in baroque and vine',
+    board:'#262119|#2E2820', boardAlpha:1,
+    borders:['Volute','Cartouche','Cornice','Vine','Plain','None'],
+    defaults:{knob:'round', border:'panel', texture:'speckle', knobtone:'dark', panel:'ogee'},
+    cols:['#211E1A','#EDE4D2','#7A6E5E','#B98846','#E0C782',
+          '#3A342E','#8A7B63','#2F6E92','#3F7A5F','#5B7A46','#A65E3C',
+          '#8A3A38','#A8823A','#3B4E86','#5E3D5C','#6B655C'],
+    names:['Basalt','Tufa','Majolica','Verde','Acanthus','Terracotta',
+           'Sangue','Ochre','Lapis','Aubergine','Cenere'],
+    // Bodoni is Italian and it is the face baroque plates were re-set in;
+    // the radii are the roundest here, because a volute has no corners
+    vars:{'--radius':'14px','--radius-d':'5px',
+      '--serif':'"Bodoni 72","Didot","Baskerville",Georgia,serif'}},
+  /* 1997, on a television: washed fairway greens, the beige of golf slacks,
+     maroon polo, distressed leather, and the grey and teal of the desktop it
+     was all running beside. The board's checker is the mown fairway, and the
+     border slots are the outset and sunken bevels of that decade's chrome —
+     which the panelling already knows how to light, from the upper left. */
+  golf97: {nm:'Golf 97', ds:'Late-nineties fairway, distressed leather and desktop grey',
+    board:'#CFD8B8|#C0CBA6', boardAlpha:1,
+    borders:['Outset','Deep outset','Sunken','Groove','Plain','None'],
+    defaults:{knob:'square', border:'panel', texture:'check', knobtone:'light', panel:'plain'},
+    cols:['#D6D3C4','#2A2A24','#8A8878','#12736E','#C8A63C',
+          '#6E8F5A','#4F6B44','#A79A6E','#A89663','#8A3F42','#4A6B8A',
+          '#2C7A76','#A88A32','#7A5334','#6E4A66','#8C8C84'],
+    names:['Fairway','Rough','Khaki','Sand','Polo','Cadet',
+           'Teal','Mustard','Leather','Plum','Silver'],
+    // Tahoma and Verdana are the faces this actually happened in, and the
+    // corners are square because nothing in 1997 had a radius
+    vars:{'--radius':'0px','--radius-d':'0px',
+      '--serif':'Tahoma,Verdana,Geneva,"MS Sans Serif",sans-serif'}},
   /* Black and white, drawn in white pencil. The line slot is white, so every
      front is outlined rather than filled — the eleven are near-blacks that
      differ by a whisper of blue or green, which is all a wireframe needs. */
   starry: {nm:'Starful Gothic', ds:'White pencil on a night sky, hand-drawn',
     board:'#07080C|#0B0D13', boardAlpha:1,
     borders:['Ruled','Double rule','Underline','Sketched','Plain','None'],
-    defaults:{knob:'round', border:'plain', texture:'stars', knobtone:'light'},
+    defaults:{knob:'round', border:'plain', texture:'stars', knobtone:'light', panel:'plain'},
     cols:['#07080C','#F4F6F8','#F4F6F8','#6FD3F5','#7DE8B0',
           '#14161C','#1B1E25','#23262E','#0E2733','#123544','#16443F',
           '#1A3B2C','#2B2F38','#191D2A','#101820','#33383F'],
@@ -248,7 +329,7 @@ const STYLES = {
   aero: {nm:'Aeros', ds:'Teal gloss and clear skies, straight from 2006',
     board:'#D8F0F4|#C2E6EC', boardAlpha:.85,
     borders:['Bevel','Deep bevel','Sill','Glass','Plain','None'],
-    defaults:{knob:'orb', border:'aqua', texture:'sheen', knobtone:'light'},
+    defaults:{knob:'orb', border:'aqua', texture:'sheen', knobtone:'light', panel:'plain'},
     cols:['#EAF4F7','#0D3541','#5B8C9B','#18A6C4','#7EE8F5',
           '#1E9AAE','#2FA39A','#3F8F63','#6FA83C','#2B6B99','#4C89C8',
           '#14607A','#5E7A8A','#44515C','#33414D','#8A98A3'],
