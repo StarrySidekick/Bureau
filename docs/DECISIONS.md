@@ -3013,6 +3013,16 @@ dark cover and deepened to a bronze on a pale one, so a tooled spine is still
 tooled and still gilt. The letter still carries its debossed impression, dark
 under a light letter and light under a dark one.
 
+**A vertical title has to be told to centre**, and this is a third thing the
+writing mode charges for. The flex box centres the *box*, which is already full
+height; where the line sits inside it is `text-align`, whose default `start` is
+the top of a `vertical-rl` box — and `rotate(180deg)` flips that to the bottom.
+A short title on a tall spine therefore sat on the tail, up to 135px below
+centre. No amount of `align-items` reaches it. Worth noting that the fit
+measurements taken when the type was enlarged could not have caught this: they
+compared the text run's *length* against its box and never its *position*, so
+`everyTitleIsCentred` now measures the centre.
+
 **It takes the best candidate, never the first that passes a threshold**, and
 this took two goes to get right. A pass/fail test picks the fallback the moment
 the preferred colour misses, and on a *mid* cover the fallback is worse than

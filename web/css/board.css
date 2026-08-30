@@ -679,6 +679,13 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
      the box stayed auto, the line overflowed both ends and the clip took the
      first letter off instead of the last. */
   height:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  /* …and that same fact is why the title has to be told to centre. The flex box
+     around it centres the *box*, which is already full height; where the line
+     sits **inside** it is `text-align`, and the default `start` is the top of a
+     `vertical-rl` box — which `rotate(180deg)` then flips to the bottom. So a
+     short title on a tall spine sat on the tail rather than in the middle, and
+     no amount of `align-items` could reach it. */
+  text-align:center;
   text-shadow:0 1px 0 rgba(0,0,0,.35)}
 /* A pasted label is cream paper whatever the cover under it is, so its
    lettering is the page's own ink on every ground — two classes deep so the

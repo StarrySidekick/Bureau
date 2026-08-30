@@ -3275,6 +3275,20 @@ const CHROME = process.env.BUREAU_CHROME;
        one should not be — that is the whole reason the panels are the size
        they are and the panelled lettering is a step smaller. */
     out.everyTitleFits = made.every(o => run(o).scrollHeight <= run(o).getBoundingClientRect().height + 1);
+    /* …and it sits in the middle of that room. The flex box centres the *box*,
+       which is already full height; where the line sits inside it is
+       `text-align`, and the default `start` is the top of a `vertical-rl` box —
+       which `rotate(180deg)` flips to the bottom. Without `text-align:center` a
+       short title on a tall spine sits on the tail, and a fit test cannot see
+       it because the length is right and only the position is wrong. Measured
+       against the title's own box, so the label — whose panel deliberately
+       rides above the middle — is centred on its label rather than the spine. */
+    out.everyTitleIsCentred = made.every(o => {
+      const box = tile(o).querySelector('.spinetitle').getBoundingClientRect();
+      const rng = document.createRange(); rng.selectNodeContents(run(o));
+      const txt = rng.getBoundingClientRect();
+      return Math.abs((txt.top + txt.height/2) - (box.top + box.height/2)) <= 2;
+    });
     // a binding is per object then per type, like every other look
     out.perObjectThenPerType = BUREAU.bindingOf({ kind: 'novel', binding: 'plain' }) === 'plain'
       && BUREAU.bindingOf({ kind: 'novel' }) === 'tooled';

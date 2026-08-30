@@ -329,6 +329,15 @@ cannot answer "can this be read". `spineInk()` in tiles.js hands the stylesheet
 primitives. It burnishes the gilt **bright** on a dark cover and deepens it to a
 **bronze** on a pale one — the metal changes, not the design.
 
+**A vertical title has to be told to centre.** `text-align:center` on the `<b>`,
+and it is not optional: the flex box around it centres the *box*, which is
+already full height, but where the line sits **inside** that box is
+`text-align` — and the default `start` is the *top* of a `vertical-rl` box,
+which `rotate(180deg)` then flips to the bottom. So a short title on a tall
+spine sat on the tail, and no `align-items` could reach it. A fit test cannot
+see this: the length is right and only the position is wrong, which is why
+`everyTitleIsCentred` measures the text run's centre and not just its length.
+
 **Take the best candidate, never the first that passes a threshold**, and never
 narrow the candidate set by a side test first — both are the same bug, and both
 shipped once. A pass/fail test swaps cream for near-black on a mid cover and
