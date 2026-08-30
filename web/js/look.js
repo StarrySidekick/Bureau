@@ -1,6 +1,6 @@
 import { S, K, defaultLook, PANELS, PANEL_SLOTS, KNOBS, KNOB_SLOTS,
-  BINDINGS, BINDING_SLOTS, BORDER_SLOTS, TEXTURE_SLOTS,
-  slotKey, slotSrc, borderOf, textureOf, panelOf, knobOf, bindingOf } from './model.js';
+  BINDINGS, BINDING_SLOTS, BORDER_SLOTS, TEXTURE_SLOTS, STOCKS, STOCK_SLOTS,
+  slotKey, slotRaw, slotSrc, borderOf, textureOf, panelOf, knobOf, bindingOf, stockOf } from './model.js';
 import { save } from './persist.js';
 import { render } from './views.js';
 
@@ -137,7 +137,12 @@ function applyLook(){
      line on a checklist front. One attribute on the root and the stylesheet
      does the rest, the same trick `data-style` plays: the box is one shape in
      six places and it would be six rules to change otherwise. */
-  el.dataset.checks = CHECKS[L.check] ? L.check : 'square';
+  /* A tick box is a fact about the desk and not about a type (decision 83),
+     and it stays one — but an aesthetic gets to say what shape it starts as,
+     the way it says what paper is made of. Unset follows the aesthetic and
+     re-dresses on a switch; picked one stays picked, everywhere. See
+     decision 100. */
+  el.dataset.checks = CHECKS[L.check] ? L.check : (CHECKS[styleNow().check] ? styleNow().check : 'square');
   // the theme block still owns the shadows, and which one is showing is the
   // style's background rather than a switch of its own
   document.documentElement.dataset.theme = themeNow();
@@ -172,7 +177,15 @@ const pickOf = a => a[Math.floor(Math.random()*a.length)];
    a position is offered it here without being told. `none` is dropped from
    every bag: it is a deliberate "take the edge off this one" and not a thing
    to be handed out at random. */
-const bagOf = fam => FAMS[fam].slots.filter(k=>k!=='none');
+/* A family says which of its positions are not handed out. `none` never is,
+   in any family: it is a deliberate "take the edge off this one" rather than a
+   thing to be given at random. **`gilt` is not either**, and for the same
+   reason from the other direction — it is a statement, and a frame nobody
+   chose is the thing decision 94 took off the magic drawer in the first place.
+   That one came back the moment the bag was rebuilt from the family table
+   rather than from the old hand-written list; the smoke test caught it as a
+   magic drawer that had grown a frame again. */
+const bagOf = fam => FAMS[fam].slots.filter(k=>!(FAMS[fam].never||['none']).includes(k));
 const leaning = (mine, fam) => pickOf([mine, mine, mine, ...bagOf(fam)]);
 function randomLook(){
   const sd = styleDefaults();
@@ -250,7 +263,7 @@ const FAMS = {
      they mean the same thing in every aesthetic. */
   bd: {prop:'border',  slots:BORDER_SLOTS,  says:'borders',
        words:['Panelled','Heavy panel','Bar','Beaded','Gilt frame','Plain','None'],
-       read:borderOf},
+       never:['gilt','none'], read:borderOf},
   /* Five workings of a front. The object stores position 2 and gets Victoria's
      fielded panel here, Carca's ashlar block there and Golf 97's group box in
      1997 — so a switch re-dresses every front you own while the choice you
@@ -265,8 +278,27 @@ const FAMS = {
   tx: {prop:'texture', slots:TEXTURE_SLOTS, says:'textures',
        words:['None','Grain','Weave','Ruled','Speckle','Damask'], read:textureOf},
   bn: {prop:'binding', slots:BINDING_SLOTS, says:'bindings',
-       words:BINDING_SLOTS.map(k=>BINDINGS[k]), read:bindingOf}
+       words:BINDING_SLOTS.map(k=>BINDINGS[k]), read:bindingOf},
+  /* The object's half of a panelling: what the *sheet* is, as against what is
+     printed on it. Five positions, and 0 is the flat paper the app has always
+     drawn. See decision 99. */
+  st: {prop:'stock',   slots:STOCK_SLOTS,   says:'stocks',
+       words:STOCK_SLOTS.map(k=>STOCKS[k]), read:stockNow}
 };
+/* A drawer is *given* its look at birth — a roll from this aesthetic's
+   vocabulary, written onto the object, because furniture in one room came from
+   different decades and different hands (decision 92). A sheet of paper is not
+   like that: it comes off one pad. So a stock is never rolled and never
+   written; an object with nothing said about it wears whatever *this*
+   aesthetic makes paper out of, and re-dresses the moment you switch. That
+   asymmetry is the difference between wood and paper, and it is why `stock`
+   is the one family whose fallback is the aesthetic's rather than the
+   vocabulary's. See decision 99. */
+function stockNow(o){
+  if(slotKey(slotRaw(o,'stock'))) return stockOf(o);
+  const said = (styleNow().defaults||{}).stock;
+  return STOCKS[said] ? said : 'plain';
+}
 /* What one aesthetic calls a family's positions. Falls back word by word, so
    an aesthetic that names four of five still gets a name for the fifth. */
 function famNames(fam, styleK){
@@ -281,6 +313,7 @@ const panelSlots  = ()=> famSlots('pn');
 const knobSlots   = ()=> famSlots('kn');
 const textureSlots= ()=> famSlots('tx');
 const bindingSlots= ()=> famSlots('bn');
+const stockSlots  = ()=> famSlots('st');
 
 /* ---- who dresses this slot --------------------------------------------
    A stored value may be pinned to the aesthetic it was borrowed from
@@ -329,7 +362,10 @@ const STYLES = {
     panels:['Flat front','Cockbead','Raised panel','Reeded','Ogee panel'],
     knobs:['Round','Diamond','Bar','Ring','Square'],
     textures:['None','Grain','Weave','Ruled','Speckle','Damask'],
-    defaults:{knob:'round', border:'panel', texture:'none', knobtone:'light', panel:'cockbead'},
+    stocks:['Plain','Laid','Wove','Card','Aged'],
+    bindings:['Plain cloth','Gilt rules','Raised bands','Tooled and gilt','Paper label'],
+    check:'square',
+    defaults:{knob:'round', border:'panel', texture:'none', knobtone:'light', panel:'cockbead', stock:'laid'},
     cols:['#E9E1CC','#2A241C','#4A4034','#A9793F','#D9B57C',
           '#6F5137','#4A7C59','#6E7F63','#2E6B52','#4A6382','#5A7A9E',
           '#8E3B38','#9A7B2F','#8A6A3C','#5E4A72','#6E7075'],
@@ -355,7 +391,10 @@ const STYLES = {
     panels:['Dressed flat','Chamfer','Ashlar block','Fluting','Tracery'],
     knobs:['Boss','Faceted','Bar handle','Gear','Stud'],
     textures:['None','Ashlar','Basketweave','Coursing','Aggregate','Millefleur'],
-    defaults:{knob:'ring', border:'panel', texture:'ruled', knobtone:'light', panel:'fielded'},
+    stocks:['Plain','Parchment','Linen','Slate','Weathered'],
+    bindings:['Vellum','Ruled bands','Cords','Blind-tooled','Pasted label'],
+    check:'hard',
+    defaults:{knob:'ring', border:'panel', texture:'ruled', knobtone:'light', panel:'fielded', stock:'laid'},
     cols:['#E8E4D6','#22303F','#7E8B96','#A87A3C','#D4B872',
           '#77808A','#2E5B84','#5D82AE','#5E8B4C','#3C6B49','#7A6E9E',
           '#A8555C','#A6803C','#9A6440','#4E8478','#8C8574'],
@@ -376,7 +415,10 @@ const STYLES = {
     panels:['Unworked','Crystal rim','Floating slab','Ribbing','Astral inlay'],
     knobs:['Orb','Shard','Bar','Halo','Crystal'],
     textures:['None','Stardust','Nebula','Ley lines','Crystal dust','Constellation'],
-    defaults:{knob:'round', border:'panel', texture:'speckle', knobtone:'light', panel:'ogee'},
+    stocks:['Plain','Starcloth','Silk','Shard','Faded'],
+    bindings:['Starcloth','Astral rules','Ribs','Sigil panel','Vellum label'],
+    check:'circle',
+    defaults:{knob:'round', border:'panel', texture:'speckle', knobtone:'light', panel:'ogee', stock:'laid'},
     cols:['#120E20','#EDE7FA','#6E5F96','#9A6BD8','#E3C98A',
           '#4C3A78','#6E4C9E','#2E2A55','#3A5A9E','#2F6E86','#3E8AA0',
           '#9A3F86','#9E4A3A','#8A6D2E','#3F7A5E','#5A5470'],
@@ -397,7 +439,10 @@ const STYLES = {
     panels:['Uncarved','Bead','Cartouche','Rustication','Volute panel'],
     knobs:['Volute','Lozenge','Bar','Ring','Block'],
     textures:['None','Tufa','Cane','Rustication','Volcanic','Majolica'],
-    defaults:{knob:'round', border:'panel', texture:'speckle', knobtone:'dark', panel:'ogee'},
+    stocks:['Plain','Fresco','Canvas','Terracotta','Sun-bleached'],
+    bindings:['Buckram','Gilt fillets','Raised cords','Volute panel','Pasted title'],
+    check:'circle',
+    defaults:{knob:'round', border:'panel', texture:'speckle', knobtone:'dark', panel:'ogee', stock:'laid'},
     cols:['#211E1A','#EDE4D2','#7A6E5E','#B98846','#E0C782',
           '#3A342E','#8A7B63','#2F6E92','#3F7A5F','#5B7A46','#A65E3C',
           '#8A3A38','#A8823A','#3B4E86','#5E3D5C','#6B655C'],
@@ -419,7 +464,10 @@ const STYLES = {
     panels:['Flat','Plastic edge','Group box','Scanlines','CRT bezel'],
     knobs:['Button','Tee','Slider','Dial','Keycap'],
     textures:['None','Dither','Weave','Scanlines','Static','Argyle'],
-    defaults:{knob:'square', border:'panel', texture:'fine', knobtone:'light', panel:'plain'},
+    stocks:['Plain','Window','Dialog','Readout','Printout'],
+    bindings:['Jewel case','Spine label','Ribbed case','Boxed art','Sticker'],
+    check:'ballot',
+    defaults:{knob:'square', border:'panel', texture:'fine', knobtone:'light', panel:'plain', stock:'wove'},
     cols:['#D6D3C4','#2A2A24','#8A8878','#12736E','#C8A63C',
           '#6E8F5A','#4F6B44','#A79A6E','#A89663','#8A3F42','#4A6B8A',
           '#2C7A76','#A88A32','#7A5334','#6E4A66','#8C8C84'],
@@ -439,7 +487,10 @@ const STYLES = {
     panels:['Unlined','Pencil rim','Sketched panel','Hatching','Doodle frame'],
     knobs:['Circle','Diamond','Bar','Ring','Square'],
     textures:['None','Tooth','Crosshatch','Ruled','Stipple','Stars'],
-    defaults:{knob:'round', border:'plain', texture:'fine', knobtone:'light', panel:'plain'},
+    stocks:['Plain','Ruled leaf','Tracing','Board','Foxed'],
+    bindings:['Cloth','Drawn rules','Drawn bands','Drawn panel','Pasted label'],
+    check:'hard',
+    defaults:{knob:'round', border:'plain', texture:'fine', knobtone:'light', panel:'plain', stock:'plain'},
     cols:['#07080C','#F4F6F8','#F4F6F8','#6FD3F5','#7DE8B0',
           '#14161C','#1B1E25','#23262E','#0E2733','#123544','#16443F',
           '#1A3B2C','#2B2F38','#191D2A','#101820','#33383F'],
@@ -463,7 +514,10 @@ const STYLES = {
     panels:['Clear','Glass edge','Glass panel','Ribbed glass','Aqua inlay'],
     knobs:['Orb','Gem','Bar','Halo','Chiclet'],
     textures:['None','Frost','Brushed','Ripple','Bubbles','Sheen'],
-    defaults:{knob:'round', border:'gloss', texture:'fine', knobtone:'light', panel:'plain'},
+    stocks:['Plain','Frosted','Satin','Acrylic','Sunlit'],
+    bindings:['Frosted case','Chrome rules','Ribs','Etched panel','Label'],
+    check:'fill',
+    defaults:{knob:'round', border:'gloss', texture:'fine', knobtone:'light', panel:'plain', stock:'laid'},
     cols:['#EAF4F7','#0D3541','#5B8C9B','#18A6C4','#7EE8F5',
           '#1E9AAE','#2FA39A','#3F8F63','#6FA83C','#2B6B99','#4C89C8',
           '#14607A','#5E7A8A','#44515C','#33414D','#8A98A3'],
@@ -540,7 +594,12 @@ function applyStyle(key){
   S.look.styleDefaults=st.defaults;
   applyLook(); save(); render();
 }
-const styleDefaults = ()=> (S.look&&S.look.styleDefaults)||STYLES.victorian.defaults;
+/* Read live rather than from `S.look.styleDefaults`. That cache was only ever
+   written by applyStyle(), so an aesthetic that *gained* a default — as all
+   seven just did with `stock` — went unheard on any desk that had not switched
+   aesthetic since. The cache is still written, because a backup carries it and
+   migration 24 reads it, but nothing reads it to decide anything. */
+const styleDefaults = ()=> styleNow().defaults || STYLES.victorian.defaults;
 const BACKDROPS = [
   ['#E9E1CC','Parchment'],['#EFE8D6','Vellum'],['#E2D9C0','Manila'],
   ['#DED3B6','Kraft'],['#F1EDE0','Chalk'],['#D9D2BE','Linen']
@@ -550,6 +609,6 @@ export { themeNow, lookVal, setLookVal, applyLook, applyStyle, styleDefaults,
   DARKMODES, darkMode, hasDark, darkNow, systemDark,
   randomFront, randomBoard, randomLook, STYLES, BACKDROPS,
   SLOTS, OBJ0, OBJN, ROLES, slotName, styleNow, palNow, setSlot,
-  BORDER_SLOTS, borderSlots, panelSlots, knobSlots, textureSlots, bindingSlots,
+  BORDER_SLOTS, borderSlots, panelSlots, knobSlots, textureSlots, bindingSlots, stockSlots, stockNow,
   FAMS, famSlots, famNames, famAll, styleKey, styleFor, dress, dressAs, CHECKS,
   hexOf, objColour, objSlots, isDark };

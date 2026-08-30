@@ -8,14 +8,14 @@ import { S, KINDS, SHAPES, SORTS, childrenOf, container, relate, deskOf, has, la
 import { pageRows, freeSpot, boxOk } from './grid.js';
 import { create, setPin, togglePin, del, delMany, delDrawer, undo, redo, toggleDone, spawnNext, setGridSize } from './mutations.js';
 import { applyLook, applyStyle, STYLES, panelSlots, borderSlots, knobSlots, textureSlots,
-  bindingSlots, famSlots, famAll, dress, styleKey, randomLook } from './look.js';
+  bindingSlots, stockSlots, famSlots, famAll, dress, styleKey, stockNow, randomLook } from './look.js';
 import { render, sizeGrid, viewHTML, reveal, settingsPanel, pageAt, pageCount, goPage } from './views.js';
 import { overlayHTML, objectPanel, modalNewObject, schedulePanel } from './panels.js';
 import { wire } from './wire.js';
 import { openingFor, stepDrawer, spray, sprayAt, sprayCount, sprayNow, sprayMark, SPRAYS } from './motion.js';
 import { load, writeNow, save, saveIfDirty, hydrateAssets, pasteObjects, migrate } from './persist.js';
 import { renderSheet, openWriter, openRead, openViewer, closeSheet, asMarkdown } from './sheet.js';
-import { DECOR } from './decor.js';
+import { DECOR, DECOR_KEYS, decorSuits, decorFor, decorRest } from './decor.js';
 
 /* ---- the keyboard is not a resize — decision 84 ------------------------
    `100vh` on iOS is the *large* viewport and deliberately ignores the software
@@ -79,8 +79,10 @@ window.BUREAU = {
   // alpha and the defaults new drawers are born with
   setStyle: applyStyle,
   // the five workings, named by whichever aesthetic is showing
-  panelSlots, borderSlots, knobSlots, textureSlots, bindingSlots, famSlots, famAll,
-  dress, styleKey, knobOf, isContainer, faceOf,
+  panelSlots, borderSlots, knobSlots, textureSlots, bindingSlots, stockSlots, famSlots, famAll,
+  dress, styleKey, stockNow, knobOf, isContainer, faceOf,
+  // a decoration is tagged rather than dressed — decision 100
+  get decorKeys(){ return DECOR_KEYS; }, decorSuits, decorFor, decorRest,
   // the roll a new drawer's look comes from, so a test can sample the
   // generator rather than infer its weighting from twenty objects
   randomLook,

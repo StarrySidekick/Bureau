@@ -5,130 +5,40 @@ Sequenced by dependency, not appetite: item 1 makes everything after it safer.
 
 ---
 
-## 0o. Queued 2026-08-30 — everything joins the aesthetic system — NOT STARTED
+## 0o. Queued 2026-08-30 — everything joins the aesthetic system — DONE (v1.07)
 
 From the coverage audit in `docs/STYLES.md`. Five stages, sequenced by
 dependency: **A is the foundation and everything else is cheaper after it.**
+All five shipped; decisions 98, 99 and 100 are the write-up.
 
----
+**A — a slot knows which aesthetic dresses it.** A stored value may be pinned
+(`golf97/fielded`) and the per-aesthetic tile rules are keyed on a `<fam>sty-`
+class the renderer writes, rather than on `html[data-style]`. The chrome stays
+where it was. Five families read through one table; the picker shows your
+aesthetic's answers with everyone else's behind a disclosure. `slotScoping`
+guards it, because a selector that did not get converted fails silently.
 
-### A. Slot scoping — the foundation
+**B — objects join.** `.otile` had one per-aesthetic rule in the whole
+stylesheet. It wears an edge, a grain and a **stock** now, the last of which is
+never written and falls back to the aesthetic's own paper. Two layers had to
+become real elements (`.dpanel`, `.dgrain`) because an object's pseudo-elements
+are spent on what it *is*.
 
-Today a slot's dressing is keyed on the *desk*: `html[data-style="carca"]
-.drawer.dtile.pn-fielded`. That works only while every slot on a tile follows
-the same aesthetic, which is exactly the assumption the hyper-customisation
-feature breaks.
+**C — grains became slots.** Eleven global picture names into six positions,
+named and drawn by each aesthetic. Migration 24.
 
-**The change.** Every family gets its own scope class on the tile, written by
-the renderer: `bdsty-`, `pnsty-`, `knsty-`, `txsty-`. Normally all four say the
-current aesthetic and nothing at all looks different. A **pinned** value says
-something else, and only that family moves.
+**D — knobs finished, bindings slotted.** All seven aesthetics dress all five
+knobs; all seven name their five bindings and the three that are not
+nineteenth-century books dress them.
 
-    <!-- ordinary: everything follows Carca -->
-    class="drawer dtile bd-panel bdsty-carca pn-fielded pnsty-carca …"
-    <!-- panelling pinned to Golf 97; the edge is still Carca's -->
-    class="drawer dtile bd-panel bdsty-carca pn-fielded pnsty-golf97 …"
+**E — what cannot be a slot is tagged.** Decorations carry the aesthetics they
+belong on and the picker leads with those; the tick box takes the aesthetic's
+default until you pick one.
 
-**Storage.** A bare value follows (`panel:'fielded'`); a qualified one pins
-(`panel:'golf97/fielded'`). One helper parses both, so `panelOf()` and friends
-keep their shape and old data needs no migration — a value with no slash is
-what everything already stores.
-
-**CSS.** ~90 rules move from `html[data-style="x"] .drawer.dtile.SLOT` to
-`.drawer.dtile.<fam>sty-x.SLOT`. **Watch the specificity**: the base rules are
-(0,3,0), so the scoped ones must stay at four classes or they silently stop
-winning. Chrome — `.panel`, `.sqbtn`, `.gridbar`, and the `vars` — stays on
-`html[data-style]`, because those always follow the desk you are standing on.
-
-**Picker.** You see **your current aesthetic's options and only those**. Under
-them, a disclosure — "From other aesthetics" — lists all seven sets grouped by
-name, and picking one pins it. That is the whole customisation surface: normal
-use never sees another aesthetic's vocabulary, and switching aesthetics still
-swaps every unpinned slot to the corresponding one.
-
-*Risk:* a missed selector stops being dressed and nothing errors. Mitigated by
-a test that walks every family × every aesthetic and asserts the rendered value
-actually differs from the base.
-
----
-
-### B. Objects join the system  *(the big one — audit item 1)*
-
-`.otile` has **one** per-aesthetic rule in the whole stylesheet. A note, task,
-quote or index card changes colour, typeface and radius on a switch, and
-nothing else — half the desk is outside the system.
-
-A drawer front is wood: colour · edge · panelling · knob · grain. An object is
-paper, so it takes the same set minus the hardware:
-
-| | Drawer | Object |
-| --- | --- | --- |
-| colour | slot ✓ | slot ✓ |
-| edge | `bd-` ✓ | **`bd-` — extend to `.otile`** |
-| working | `pn-` ✓ | **`stock` — new, 5 slots** |
-| grain | `tx-` (global) | **`tx-` as slots, both** |
-| hardware | `kn-` ✓ | — (paper has none) |
-
-**`stock` is the new one**: what the paper *is*. Five positions, named per
-aesthetic — Victoria laid/wove/card/aged/vellum; Golf 97 window/dialog/
-readout/printout/floppy label; Stelaine shard/leaf/etched/vellum/starmap;
-Starful Gothic all five drawn.
-
-**Shapes stay global.** `sh-note`, `sh-index`, `sh-quote` and the other 21 say
-what a thing *is*, like a face does — a quote is a quote in every aesthetic.
-Stock is the material; shape is the object.
-
----
-
-### C. Textures become slots  *(audit item 2)*
-
-Eleven global names, identical everywhere. Collapse to **six positions**:
-none · fine · weave · ruled · speckle · pattern. Then
-
-- Victoria: None · Grain · Weave · Ruled · Speckle · Damask
-- Carca: None · Ashlar · Basketweave · Coursing · Aggregate · Millefleur
-- Stelaine: None · Stardust · Nebula · Ley lines · Crystal dust · Constellation
-- Girando: None · Tufa · Cane · Rustication · Volcanic · Majolica
-- Golf 97: None · Dither · Weave · Scanlines · Static · Argyle
-- Starful Gothic: None · Tooth · Crosshatch · Ruled · Stipple · Stars
-- Aeros: None · Frost · Brushed · Ripple · Bubbles · Sheen
-
-*Needs a migration:* eleven names down to six positions, so a stored `weave2`
-has to land somewhere. One map, written once.
-
----
-
-### D. Finishing what is half-done  *(audit items 3 and 4)*
-
-- **Knobs.** Structurally a slot system already, but **Starful Gothic and Aeros
-  dress none of the five** and the rest dress one to three. Fill in all seven ×
-  five.
-- **Bindings.** Five fixed bookbinding terms, global. Make them slots: a Golf
-  97 spine should be a jewel case, a Stelaine one a crystal sliver.
-
----
-
-### E. The rest  *(audit items 5, 6, 8)*
-
-- **Decorations.** Fourteen pieces, one global set; they recolour but the same
-  aspidistra appears in all seven. Tag each with the aesthetics it suits and
-  show those first, "all" behind the same disclosure as A. New pieces per
-  aesthetic after that, as artwork rather than as system work.
-- **Tick boxes.** Stay desk-wide (decision 83 — a task and a checklist line
-  must never disagree), but an aesthetic supplies the *default*.
-- **Spray.** The aesthetic already picks a default shape; making the shape
-  *list* per aesthetic is possible and low value. Do it last or not at all.
-
----
-
-### Not recommended: marks as slots  *(audit item 7)*
-
-The ~30 marks are **semantic**, not decorative: a clock means a clock and a
-sparkle means "collects by rule". Re-drawing them per aesthetic would make the
-one vocabulary that has to stay constant the one that moves, and it is thirty
-icons × seven. If the goal is that Starful Gothic's marks look drawn rather
-than printed, the cheap answer is per-aesthetic **stroke weight and cap** on
-the existing set — one rule each, not two hundred drawings.
+**Left deliberately undone: marks as a slot.** Thirty icons times seven
+aesthetics is two hundred drawings, and a mark is a *semantic* vocabulary — a
+clock means a time — rather than a material one. If it is ever wanted, the
+honest smaller version is a per-aesthetic stroke weight and cap.
 
 ---
 

@@ -13,9 +13,9 @@ import { S, K, KINDS, KEYS, T, ATTRS, USER_ATTRS, FIELDS, fieldOf, OPS, ROLLS,
   BINDINGS, bindingOf, panelOf, knobOf, borderOf, textureOf, slotRaw } from './model.js';
 import { GRID, lay, boxOk, freeSpot, sizeOfKind, toPhoneSize } from './grid.js';
 import { randomBoard, randomFront, hexOf, objColour, objSlots, palNow, OBJ0,
-  famSlots, famAll, FAMS, styleKey } from './look.js';
+  famSlots, famAll, FAMS, styleKey, stockNow } from './look.js';
 import { CLICKS, clickOf, gridTile, pending } from './tiles.js';
-import { DECOR, DECOR_KEYS, decorOf, decorSVG } from './decor.js';
+import { DECOR, DECOR_KEYS, decorOf, decorSVG, decorFor, decorRest } from './decor.js';
 import { quickAdd, toast, drawerForTag } from './mutations.js';
 import { openObj, openWriter, openRead, renderSheet } from './sheet.js';
 import { render, settingsPanel, gridSizeField } from './views.js';
@@ -516,8 +516,17 @@ function objectPanelBody(id, sec){
      desk and a note that is a label are the same object at two sizes, and
      resizing the tile was the only answer the app had. */
   if(!isRoot) out.push(prow('Text size', psel(id,'tsize', TSIZES, String(textSizeOf(d)))));
-  if(!isRoot && !cont)
-    out.push(prow('Edge', psel(id,'edge',[['','None'],['1','Coloured stripe']], d.edge?'1':'')));
+  /* An object is paper, so it wears the same families a drawer front does
+     minus the hardware: an edge, a grain, and what the sheet itself is made
+     of. It was the one thing on the desk outside the aesthetic system — every
+     note in Golf 97 looked exactly like every note in Victoria. See decision
+     99. */
+  if(!isRoot && !cont){
+    out.push(slotRow('Border', id, 'bd', slotRaw(d,'border')||borderOf(d), 'a slot, named by the aesthetic'));
+    out.push(slotRow('Stock', id, 'st', slotRaw(d,'stock')||stockNow(d), 'what the sheet is made of'));
+    out.push(slotRow('Texture', id, 'tx', slotRaw(d,'texture')||textureOf(d), 'what is printed on it'));
+    out.push(prow('Coloured stripe', psel(id,'edge',[['','None'],['1','Down the left']], d.edge?'1':'')));
+  }
   if(!isRoot && cont){
     out.push(slotRow('Border', id, 'bd', slotRaw(d,'border')||borderOf(d), 'a slot, named by the aesthetic'));
     out.push(slotRow('Knob', id, 'kn', slotRaw(d,'knob')||knobOf(d)));
@@ -726,13 +735,22 @@ function objectPanelBody(id, sec){
        imagine what you were choosing. See decision 86. */
     if(isDecor(o)){
       const own = o.media && o.media.src;
-      f.push(prow('Which one', `<div class="decpick">${
-        DECOR_KEYS.map(k=>`<button class="decopt${!own&&decorOf(o)===k?' on':''}"
+      const opt = k=>`<button class="decopt${!own&&decorOf(o)===k?' on':''}"
           data-decor="${id}:${k}" title="${esc(DECOR[k].nm)}">
           <span style="--c:${objColour(o)}">${decorSVG(k)}</span>
-          <u>${esc(DECOR[k].nm)}</u></button>`).join('')}</div>`,
+          <u>${esc(DECOR[k].nm)}</u></button>`;
+      /* Led by the ones that belong here. A decoration is a made object rather
+         than a slot — a mantel clock cannot be re-dressed into a gearwork — so
+         it is tagged and ordered rather than converted, and the rest sit behind
+         the same disclosure every slot family has. See decision 100. */
+      const here = decorFor(styleKey()), rest = decorRest(styleKey());
+      const showing = !own && rest.includes(decorOf(o));
+      f.push(prow('Which one',
+        `<div class="decpick">${here.map(opt).join('')}</div>`
+        + (rest.length ? pgroup('From other aesthetics',
+            `<div class="decpick">${rest.map(opt).join('')}</div>`, showing) : ''),
         own ? 'a file of your own is showing — remove it below to use one of these'
-            : 'they take this object’s colour and the style’s'));
+            : 'they take this object’s colour and the aesthetic’s'));
     }
     if(has(o,'media')){
       const mt=mediaTypeOf(o), src=o.media&&o.media.src;

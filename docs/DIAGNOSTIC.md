@@ -51,6 +51,18 @@ has to be shown some other way, which is what the smoke test is for.
 | 1,145 | 42ms | 7.5ms | 3.4ms | 17ms | 6.2ms | 559 / 143 | 292 KB |
 | 3,145 | 111ms | 18.5ms | 35.5ms | 28ms | 13.8ms | 1,559 / 203 | 800 KB |
 
+**Re-measured at v1.07**, after every tile grew a moulding layer and, when it
+has a grain, a grain layer (decision 99). At the size Bureau is actually used
+it is unchanged — 13.5ms before, 13.6ms after on a Mac; 8.3 to 8.1 on a phone.
+At three thousand objects, where a Mac is drawing fifteen hundred tiles at
+once, it is 120ms to 137ms. Two extra elements per tile is a linear cost paid
+in layout, and the string build is *faster* than before, so nothing about the
+shape of the curve changed. The grain layer is skipped when there is no grain,
+which is what brought the ship-size number back to parity; the moulding layer
+is unconditional on purpose — which aesthetics put something on it is the
+stylesheet's business, and encoding that list in the renderer is the
+silent-failure coupling decision 98 exists to avoid.
+
 Four things fall out of that, and only one of them is a worry.
 
 **The memo works, and decision 8 survives.** Growth is linear, not quadratic.

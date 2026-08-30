@@ -659,7 +659,9 @@ function wire(){
       return; }
 
     const chk=t.closest('button[data-checks]');
-    if(chk){ S.look.check = chk.dataset.checks;
+    // an empty value is the way back to the aesthetic's own, and it has to
+    // be deleted rather than stored as '' — applyLook() tests the key
+    if(chk){ if(chk.dataset.checks) S.look.check = chk.dataset.checks; else delete S.look.check;
       applyLook(); save(); render(); refreshPanel(); return; }
 
     /* What comes out of a new object as it lands — off, one of the shapes, or

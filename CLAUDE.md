@@ -276,11 +276,41 @@ the filter must never touch anything holding text. The chips come from
 wavelength the gaps outrun the line's thickness and it reads as dashed rather
 than weathered.
 
+**A slot may be pinned to the aesthetic it came from.** Every look slot stores
+a *position* and the aesthetic says what the position is made of — that is the
+whole system, and its one sharp edge is that a Golf 97 group box you liked
+becomes a Victorian raised panel the moment you switch. So a stored value may
+be **pinned**, written `golf97/fielded`; a bare one follows the desk and
+re-dresses on every switch, which stays the default. `slotKey()`/`slotFrom()`
+in model.js parse it and `slotRaw(o, prop)` reads it per object then per type.
+Nothing needed a migration, because every value written before this is bare.
+
+The renderer stamps `<fam>sty-<aesthetic>` beside each slot class — ask
+`dress(o, fam)` in look.js, never write `bd-${o.border}` by hand — and the
+per-aesthetic **tile** rules are keyed on that (`.drawer.dtile.pn-fielded
+.pnsty-carca`) rather than on `html[data-style]`, so four families on one tile
+can be dressed by four different aesthetics. **The chrome stays on
+`html[data-style]`**: panels, buttons, the bar, the wood, the typeface, the
+radii — none of it is a slot and none of it can be pinned. Two traps: the old
+selectors carried an attribute and beat the base rules on *specificity*, so the
+new ones must sit **after** the base block in the same stylesheet; and a
+selector that does not get converted fails **silently** — the tile renders,
+just undressed, which is what `slotScoping` in the smoke test exists to catch.
+See decision 98.
+
+**Five families, one table.** `FAMS` in look.js — `bd` border, `pn` panelling,
+`kn` knob, `tx` grain, `bn` binding, `st` stock — each naming the property it
+is stored under, its positions, its fallback words, the key an aesthetic names
+its own under, and the reader. `famSlots(fam, style)` is the picker's list and
+`famAll(fam)` is every other aesthetic's, grouped. Add a family here and the
+pickers, the pins and the scope classes all come along; add it anywhere else
+and none of them do.
+
 **A drawer front is worked, and the working is a *slot*.** `panelOf(o)` — per
 object then per type — stamps `pn-<name>` and the rest is CSS. The five keys
 (`plain`, `cockbead`, `fielded`, `reeded`, `ogee`) are **positions**, not
-descriptions, exactly as the six `bd-*` are: what is stored is the position, and
-each aesthetic names and dresses its own. Position 2 is Victoria's raised panel,
+descriptions, exactly as the seven `bd-*` are: what is stored is the position,
+and each aesthetic names and dresses its own. Position 2 is Victoria's raised panel,
 Carca's ashlar block, Golf 97's group box and Stelaine's floating slab — so a
 front re-dresses on a switch and is itself again when you come back. Ask
 `panelSlots()` for the names, never `PANELS` (that is the fallback and it is
@@ -306,11 +336,22 @@ pseudo-elements are taken on a drawer tile (magic frame `::before`, texture
 purpose, and a magic front asking for an ogee gives up its gilt lines: two gilt
 frames on one drawer is a picture frame shop. See decision 88.
 
+**A grain is a slot, and it lives on an element.** Six positions — `none`,
+`fine`, `weave`, `ruled`, `speckle`, `pattern` — named and drawn by each
+aesthetic (Victoria's damask, Carca's millefleur, Golf 97's argyle, Aeros'
+gloss sweep). There were eleven global names for a long time, which is a list
+of *pictures* rather than a vocabulary and meant cut stone and a 1997 dialog
+wore the same graph paper; migration 24 folds the eleven in. Ask `textureOf(o)`.
+
+It is drawn on `<i class="dgrain">`, not on the tile's `::after`, because an
+object cannot spare that pseudo-element — half the object shapes are already
+spending it. The weight travels as `--txo`: the container rule is three classes
+and used to win the argument outright, so every opacity written on a `tx-` rule
+was dead from the day it was written.
+
 **A texture is printed on the front, so it goes under what stands on it.** The
-depths on a drawer front, bottom to top: the texture's `::after` (0), the knobs
-(1), the name (2), the mark and the seam (3). A generated `::after` is the last
-child of the tile, so with nothing said about depth it painted grain across the
-brass handle.
+depths on a drawer front, bottom to top: `.dpanel` and `.dgrain` (0), the knobs
+(1), the name (2), the mark and the seam (3).
 
 **Nothing on the desk shimmers.** A magic drawer used to be holographic foil,
 lit from `--holox`/`--holoy` on `#frame` — the phone's tilt, or the pointer.
@@ -376,6 +417,41 @@ whatever the style declares; `.dname`, `.tiletext` and both inline editors are
 set in it. They were pinned to `--sans` — the system face — which meant a note
 and a task were the one thing on the desk not wearing the style, and Starry's
 Optima drawer sat next to a San Francisco note.
+
+**An object is paper, and paper is in the system.** `.otile` had exactly one
+per-aesthetic rule in the whole stylesheet: every note in Golf 97 was the same
+tile as every note in Victoria. A drawer is wood — colour, edge, panelling,
+knob, grain; an object is the same list minus the hardware, plus a **stock**,
+which is what the sheet *is* as against what is printed on it. Ask `paper(o)`
+in tiles.js for the three classes. `borderOf()` falls back to `panel` for a
+container and `plain` for an object, which is structural rather than a branch
+on a type's name.
+
+**A stock is never written, and its fallback is the aesthetic's.** `stockNow()`
+in look.js: an object with nothing said wears whatever `defaults.stock` this
+aesthetic makes paper out of, so it re-dresses on a switch with nothing stored.
+That asymmetry is the point — a drawer is *given* a rolled look at birth because
+furniture in one room came from different hands (decision 92), and paper comes
+off one pad. Don't add `stock` to `randomLook()`. Shapes stay global: `sh-note`
+and `sh-index` say what a thing *is*, the way a face does.
+
+**Two layers under every tile, and they are real elements.** `<i class="dpanel">`
+(the moulding on a front, the mount on an object) and `<i class="dgrain">` (the
+grain), spliced into whatever `drawTile()` returned — the same trick the size
+classes use, so a branch nobody has thought about gets them. They had to become
+elements because a tile's own `::before` and `::after` are spoken for several
+times over on an object: the gilt frame takes one, and the index card's red
+margin, the habit's bar, the idea's folded corner, the tab and the chit take the
+other. They are also the only surfaces the drawn-line filter may touch. See
+decision 99.
+
+**What cannot be a slot is tagged.** A decoration is a made object — a mantel
+clock cannot be re-dressed into a gearwork the way a knob is re-dressed into a
+boss — so each carries `aes:[…]` and the picker leads with `decorFor(style)`,
+the rest behind the same "From other aesthetics" disclosure every slot family
+has. A tick box stays a fact about the desk (decision 83) and takes the
+aesthetic's `check` until you pick one; the way back **deletes** the key rather
+than storing `''`. See decision 100.
 
 **A magic drawer asks up to three questions, ANDed.** `filter.rules` is an
 array; ask `rulesOf(f)`, never `filter.rule`, which is the old single-clause

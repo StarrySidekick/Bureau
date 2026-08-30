@@ -3501,3 +3501,160 @@ or `tileOf()` can pick it up instead of the real tile.
 
 The desk still gets none, and that is correct rather than an omission: a desk
 is a container *without* a tile, so there is nothing to draw.
+
+---
+
+## 98. A slot knows which aesthetic dresses it
+
+*2026-08-30*
+
+A slot is a position and the aesthetic says what the position is made of
+(decision 33). That is the right default and it has one sharp edge: a Golf 97
+group box you fell in love with becomes a Victorian raised panel the moment you
+switch, and there was no way at all to say *not that one, keep it*.
+
+So a stored value may be **pinned** to the aesthetic it was borrowed from,
+written `golf97/fielded`. A bare value still follows the desk and re-dresses on
+every switch — that stays the default and it is what nearly everything holds.
+No migration, because every value written before this is bare and a bare value
+means exactly what it always meant.
+
+The cost is in the stylesheet. The per-aesthetic rules were keyed on
+`html[data-style="carca"] .drawer.dtile.pn-fielded`, which assumes every slot on
+a tile follows the desk — precisely what a pin breaks. So the renderer stamps
+`<fam>sty-<aesthetic>` beside each slot class and the ~90 rules are keyed on
+that: `.drawer.dtile.pn-fielded.pnsty-carca`. Four families on one tile can then
+be dressed by four different aesthetics, which is what a pin is for and what an
+`html[data-style]` selector cannot express.
+
+**The chrome stays on `html[data-style]`** — panels, buttons, the bar, the wood,
+the typeface, the radii. None of it is a slot and none of it can be pinned, so
+scoping it would be ceremony.
+
+Two things about the conversion that will bite anyone repeating it. The old
+selectors carried an attribute, so they beat the base rules on **specificity**;
+the new ones match at the same weight and win on **order**, which means the
+per-aesthetic block has to sit after the base one in the same stylesheet. The
+knob block did not, and had been getting away with it — it moved.
+
+And the failure mode is silent: a selector that does not get converted simply
+stops matching and the drawer keeps rendering, just undressed. `slotScoping`
+guards it by walking every family in every aesthetic and insisting the positions
+come out different from each other.
+
+**The picker shows this aesthetic's answers and nothing else**, with every other
+aesthetic's behind a "From other aesthetics" disclosure that writes the pin. One
+select and one disclosure rather than a select with optgroups in it, because the
+pin is a different *kind* of answer — "always this one", not "position three" —
+and a picker that hides that distinction inside a scroll is a picker that pins
+things by accident.
+
+**A grain is a slot too, and was the last one that wasn't.** There were eleven
+global texture names — dots, graph, weave, wide weave, checker, ruled, stars,
+starry, speckle, sheen — which is a list of *pictures* rather than a vocabulary.
+A picture cannot be answered by an aesthetic, so cut stone, glass, cathedral
+paper and a 1997 dialog all wore the same sheet of graph paper. Six positions
+instead — nothing, the fine tooth of the surface, a weave, a ruling, a scatter,
+a pattern — and migration 24 folds the eleven in. Eleven into six is a fold, so
+some pairs land together; nothing is lost that a picker cannot get back.
+
+Two bugs fell out of validating the new vocabulary. Aeros stated `aqua` as its
+border, which was never one of the seven positions, so `bd-aqua` styled nothing
+and every drawer born on an Aero desk had no edge at all. And every `opacity`
+written on a `tx-` rule had been dead since the day it was written, because the
+container rule was three classes and won the argument outright — the weight
+travels as `--txo` now.
+
+---
+
+## 99. An object is paper, and paper is in the system
+
+*2026-08-30*
+
+`.otile` had exactly **one** per-aesthetic rule in the whole stylesheet. Every
+drawer front was wood that changed with the aesthetic — colour, edge, panelling,
+knob, grain — and every note beside it was the same tile in a different colour
+in all seven. The half of the desk you actually write on was outside the thing
+the aesthetics are for.
+
+A drawer is wood; an object is **paper**. Same families minus the hardware, plus
+one of its own:
+
+- an **edge**, the same seven positions, drawn in ink and rule and held to the
+  rim rather than in worked wood — a moulding inset five pixels is a mount round
+  a postcard, and on a four-cell tile it is most of the tile;
+- a **grain**, the same six positions;
+- a **stock**, five positions, which is what the sheet *is* as against what is
+  printed on it: how it takes the light, how thick it is, how its edge is cut.
+  Victoria's laid and wove and card, Golf 97's window and dialog and green
+  readout, Stelaine's starcloth, Aeros' frosted acrylic.
+
+**A stock is the one family whose fallback is the aesthetic's rather than the
+vocabulary's, and it is never written.** That asymmetry is the difference
+between wood and paper. A drawer is *given* its look at birth — a roll from the
+aesthetic's vocabulary, stored on the object, because furniture in one room came
+from different decades and different hands (decision 92). Paper comes off one
+pad: every sheet on the desk is the same sheet, and it should change when the
+desk does. So nothing is stored, and a note re-dresses the moment you switch.
+
+Shapes stay global. `sh-note`, `sh-quote`, `sh-index` say what a thing *is*,
+the way a face does, and an aesthetic has no business turning an index card into
+something else.
+
+**Two layers, and they had to become real elements.** A tile's own `::before`
+and `::after` are spoken for several times over on an object — the gilt frame
+takes one, and half the *shapes* take the other: the index card's red margin,
+the habit's bar, the idea's folded corner, the tab, the chit. So the two
+surfaces that sit under the contents and hold no text are elements: `.dpanel`,
+which is the moulding on a front (decision 88) and the mount on an object, and
+`.dgrain`, which is the grain and used to be the drawer tile's own `::after`.
+They are spliced into whatever `drawTile()` returned — the same trick the size
+classes use — so a branch nobody has thought about gets them too.
+
+That the grain moved off the tile is the one thing here that is not additive.
+It is worth it: one texture system serving a drawer, an object and the desk's
+own rail beats the tile keeping a pseudo-element it was not short of.
+
+Both layers are also the only surfaces the drawn-line filter may touch, for the
+reason it has always been true: displacing a name is smudging the label rather
+than drawing the box.
+
+---
+
+## 100. What cannot be a slot is tagged instead
+
+*2026-08-30*
+
+Three loose ends, and what they have in common is that none of them is a slot,
+so none of them re-dresses.
+
+**Every aesthetic named all five knobs and several dressed only one or two.** A
+knob picker offered "Faceted" and "Stud" and handed you the same Victorian
+diamond and square either way. A slot that is named and not made is worse than
+one that is neither, because it promises. All seven answer all five now — Carca's
+faceted stone and driven stud, Stelaine's grown crystal, Girando's wrought hoop,
+Golf 97's tee and keycap, Aeros' gem and chiclet, and Starful Gothic's, which
+are **drawn**: an outline with nothing inside it, no relief and no highlight,
+because a lit sphere sitting on a pencil drawing is the one thing that would
+give the aesthetic away.
+
+**A binding is a slot and now says so.** All seven name their five; the two that
+are not made of paper at all dress them — Golf 97's jewel case, with the hinge
+down one side and the printed insert behind it, and Starful Gothic's, where
+every ornament on the spine is a line. The rest sit close enough to Victoria's
+shelf of nineteenth-century books to take the base, which is what a fallback is
+for.
+
+**A decoration is a made object and cannot be a slot.** A mantel clock cannot be
+re-dressed into a gearwork the way a knob is re-dressed into a boss, and
+pretending otherwise would mean fourteen drawings times seven aesthetics. So it
+is **tagged**: each says which aesthetics it belongs on, the picker leads with
+those, and the rest sit behind the same "From other aesthetics" disclosure every
+slot family has. Nothing is hidden and nothing is converted — the order is the
+whole of it.
+
+**A tick box stays a fact about the desk** (decision 83) and gains an aesthetic
+default. Unset follows the aesthetic and changes with it — Golf 97's ballot box,
+Carca's cut square, Stelaine's circle; picked stays picked, everywhere. The way
+back deletes the key rather than storing `''`, because `applyLook()` tests the
+key.

@@ -43,7 +43,7 @@
 const DECOR = {
 
   /* ---- plants ---------------------------------------------------------- */
-  plant: { c:6, nm:'Aspidistra', vb:'3.5 2.5 81 97.5', size:[4,5], svg:`
+  plant: { c:6, nm:'Aspidistra', aes:['victorian','carca','girando','aero'], vb:'3.5 2.5 81 97.5', size:[4,5], svg:`
     <path d="M44 74C44 52 32 34 6 24c-6 26 12 48 38 52Z" fill="currentColor"/>
     <path d="M44 74C44 52 32 34 6 24c14 22 26 34 38 50Z" fill="#000" opacity=".13"/>
     <path d="M44 72c0-24 12-42 38-52 6 26-12 48-38 52Z" fill="currentColor" opacity=".86"/>
@@ -57,7 +57,7 @@ const DECOR = {
     <path d="M23 78h42M24 86h40" stroke="var(--glow)" stroke-width="1.6" opacity=".55"/>
     <path d="M25 96h38l-.6 4H25.6Z" fill="#000" opacity=".22"/>` },
 
-  fern: { c:7, nm:'Fern', vb:'5 1.5 82 98.5', size:[4,5], svg:`
+  fern: { c:7, nm:'Fern', aes:['victorian','carca','girando'], vb:'5 1.5 82 98.5', size:[4,5], svg:`
     <g stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round">
       <path d="M46 62C42 44 30 28 8 20"/><path d="M46 62c4-18 16-34 38-42"/>
       <path d="M46 58C44 40 36 20 24 6"/><path d="M46 58c2-18 10-38 22-52"/>
@@ -80,7 +80,7 @@ const DECOR = {
     <path d="M22 58h48v2.6H22Z" fill="#fff" opacity=".32"/>
     <path d="M29 96h34l-.5 4H29.5Z" fill="#000" opacity=".2"/>` },
 
-  palm: { c:8, nm:'Parlour palm', vb:'2.5 -1.5 79 101.5', size:[3,4], svg:`
+  palm: { c:8, nm:'Parlour palm', aes:['victorian','girando','aero'], vb:'2.5 -1.5 79 101.5', size:[3,4], svg:`
     <g stroke="var(--brass)" stroke-width="2.6" fill="none" stroke-linecap="round" opacity=".8">
       <path d="M42 64V22"/><path d="M42 46C38 34 30 26 16 22"/><path d="M42 42c4-12 12-20 26-24"/>
     </g>
@@ -97,7 +97,7 @@ const DECOR = {
     <path d="M29 96h26l-.4 4H29.4Z" fill="#000" opacity=".22"/>` },
 
   /* ---- clocks ---------------------------------------------------------- */
-  clock: { c:5, nm:'Mantel clock', vb:'-1 0.5 78 99.5', size:[3,4], svg:`
+  clock: { c:5, nm:'Mantel clock', aes:['victorian','golf97'], vb:'-1 0.5 78 99.5', size:[3,4], svg:`
     <path d="M38 2c2 0 3 1 3 3s-1 3-3 3-3-1-3-3 1-3 3-3Z" fill="var(--brass)"/>
     <path d="M37 8h2v6h-2Z" fill="var(--brass)"/>
     <path d="M10 40a28 28 0 0 1 56 0v46H10Z" fill="currentColor"/>
@@ -120,7 +120,7 @@ const DECOR = {
     <path d="M0 94h76v6H0Z" fill="var(--brass)"/>
     <path d="M0 94h76v6H0Z" fill="#000" opacity=".2"/>` },
 
-  carriage: { c:13, nm:'Carriage clock', vb:'0.5 -1.7 71 101.7', size:[3,4], svg:`
+  carriage: { c:13, nm:'Carriage clock', aes:['victorian','carca'], vb:'0.5 -1.7 71 101.7', size:[3,4], svg:`
     <path d="M22 12c0-8 6-12 14-12s14 4 14 12" stroke="var(--brass)" stroke-width="3.4"
       fill="none" stroke-linecap="round"/>
     <path d="M8 16h56v6H8Z" fill="var(--brass)"/>
@@ -142,7 +142,7 @@ const DECOR = {
     <path d="M2 92h68v8H2Z" fill="var(--brass)"/>
     <path d="M2 92h68v8H2Z" fill="#000" opacity=".18"/>` },
 
-  dome: { c:11, nm:'Under glass', vb:'-1 8.5 72 91.5', size:[3,4], svg:`
+  dome: { c:11, nm:'Under glass', aes:['victorian','stelaine','starry'], vb:'-1 8.5 72 91.5', size:[3,4], svg:`
     <path d="M35 40c0-9 6-15 6-22" stroke="var(--brass)" stroke-width="2" fill="none" opacity=".7"/>
     <path d="M27 56h9c1 8 2 16 1 22H26c-1-6 0-14 1-22Z" fill="var(--brass)"/>
     <path d="M27 56h3.4c-.6 8-1.2 16-.6 22H26c-1-6 0-14 1-22Z" fill="#fff" opacity=".28"/>
@@ -167,7 +167,7 @@ const DECOR = {
     <path d="M0 92h70v8H0Z" fill="#000" opacity=".2"/>` },
 
   /* ---- figures --------------------------------------------------------- */
-  bust: { c:15, nm:'Bust', vb:'0.5 5.5 61 94.5', size:[2,3], svg:`
+  bust: { c:15, nm:'Bust', aes:['victorian','carca','girando'], vb:'0.5 5.5 61 94.5', size:[2,3], svg:`
     <path d="M31 8c8 0 13 6 13 15 0 7-2 12-5 15 4 2 7 5 8 9H15c1-4 4-7 8-9-3-3-5-8-5-15 0-9 5-15 13-15Z" fill="currentColor"/>
     <path d="M31 8c-8 0-13 6-13 15 0 7 2 12 5 15-4 2-7 5-8 9h8V8Z" fill="#fff" opacity=".14"/>
     <path d="M18 21c0-9 5-14 13-14 4 0 7 1 9 4-3 6-13 9-22 10Z" fill="#000" opacity=".12"/>
@@ -182,7 +182,7 @@ const DECOR = {
     <path d="M2 92h58v2.4H2Z" fill="#fff" opacity=".3"/>
     <path d="M2 96h58v4H2Z" fill="#000" opacity=".2"/>` },
 
-  figurine: { c:14, nm:'Figurine', vb:'0.5 0.8 53 99.2', size:[2,4], svg:`
+  figurine: { c:14, nm:'Figurine', aes:['victorian','girando','carca'], vb:'0.5 0.8 53 99.2', size:[2,4], svg:`
     <circle cx="27" cy="12" r="8" fill="currentColor"/>
     <circle cx="27" cy="12" r="8" fill="#fff" opacity=".16"/>
     <path d="M22 6c2-4 8-5 11-2 2 2 2 5 1 7-3-3-8-5-12-5Z" fill="#000" opacity=".14"/>
@@ -201,7 +201,7 @@ const DECOR = {
     <path d="M2 92h50v8H2Z" fill="#000" opacity=".2"/>` },
 
   /* ---- light and vessels ----------------------------------------------- */
-  candle: { c:3, nm:'Candlestick', vb:'3.5 2.5 35 97.5', size:[2,5], svg:`
+  candle: { c:3, nm:'Candlestick', aes:['victorian','starry','stelaine'], vb:'3.5 2.5 35 97.5', size:[2,5], svg:`
     <path d="M22 4c3 4 4.5 7 4.5 9.5A4.5 4.5 0 0 1 22 18a4.5 4.5 0 0 1-4.5-4.5C17.5 11 19 8 22 4Z" fill="var(--glow)"/>
     <path d="M22 8c1.4 2 2 3.4 2 4.6A2 2 0 0 1 22 15a2 2 0 0 1-2-2.4c0-1.2.6-2.6 2-4.6Z" fill="#fff" opacity=".7"/>
     <path d="M22 19v3" stroke="#000" stroke-width="1.6" opacity=".45"/>
@@ -218,7 +218,7 @@ const DECOR = {
     <path d="M8 84h7c-1.4 5-2 10-2 16H5c0-6 1-11 3-16Z" fill="#fff" opacity=".26"/>
     <path d="M5 96h34v4H5Z" fill="#000" opacity=".2"/>` },
 
-  lamp: { c:12, nm:'Oil lamp', vb:'3.5 6.5 49 93.5', size:[2,4], svg:`
+  lamp: { c:12, nm:'Oil lamp', aes:['victorian','starry','stelaine'], vb:'3.5 6.5 49 93.5', size:[2,4], svg:`
     ${/* the chimney: a narrow throat that flares at the lip, the way a duplex
           burner's does — a bulb reads as a light bulb */''}
     <path d="M20 42c0-6 1.5-10 3-13-2-4-2.5-8 0-12 1.5-2.5 4-4 6-5 2 1 4.5 2.5 6 5
@@ -242,7 +242,7 @@ const DECOR = {
     <path d="M8 80h8c-1.6 6-2.4 13-2.4 20H5c0-7 1-14 3-20Z" fill="#fff" opacity=".26"/>
     <path d="M5 96h48v4H5Z" fill="#000" opacity=".2"/>` },
 
-  vase: { c:9, nm:'Dried stems', vb:'12.5 -3 51 103', size:[2,4], svg:`
+  vase: { c:9, nm:'Dried stems', aes:['victorian','girando','aero'], vb:'12.5 -3 51 103', size:[2,4], svg:`
     <g stroke="var(--brass)" stroke-width="2" fill="none" stroke-linecap="round" opacity=".85">
       <path d="M38 56V14"/><path d="M38 34c0-9 6-16 15-19"/><path d="M38 42c0-9-6-16-15-19"/>
       <path d="M38 26c0-6 4-12 9-15"/>
@@ -271,7 +271,7 @@ const DECOR = {
      each tooth a trapezoid struck between a root circle and a tip circle, and
      the two meshed at the pitch line rather than merely placed near each other.
      See decision 92. */
-  cog: { c:12, nm:'Gearwork', vb:'8 8 92 88', size:[4,4], svg:`
+  cog: { c:12, nm:'Gearwork', aes:['carca','golf97','girando'], vb:'8 8 92 88', size:[4,4], svg:`
     ${/* the pinion goes behind, so the great wheel reads as the near one */''}
     <path d="M88.9 71.3 L92.6 73.5 L91.0 78.0 L86.7 77.3 L85.1 79.3 L86.5 83.4 L82.4 85.8 L79.5 82.5 L77.0 83.0 L75.4 87.0 L70.7 86.2 L70.6 81.8 L68.4 80.6 L64.6 82.6 L61.6 79.0 L64.3 75.6 L63.4 73.2 L59.2 72.4 L59.2 67.6 L63.4 66.8 L64.3 64.4 L61.6 61.0 L64.6 57.4 L68.4 59.4 L70.6 58.2 L70.7 53.8 L75.4 53.0 L77.0 57.0 L79.5 57.5 L82.4 54.2 L86.5 56.6 L85.1 60.7 L86.7 62.7 L91.0 62.0 L92.6 66.5 L88.9 68.7 Z" fill="var(--brass)" opacity=".82"/>
     <circle cx="76" cy="70" r="9" fill="currentColor" opacity=".5"/>
@@ -301,7 +301,7 @@ const DECOR = {
      it. The spiral itself is struck as an archimedean path of two and a half
      turns whose radius tapers as it goes — even turns, tightening to the eye —
      because a hand-drawn coil reads as wire. See decision 92. */
-  volute: { c:12, nm:'Volute', vb:'20 6 64 92', size:[3,5], svg:`
+  volute: { c:12, nm:'Volute', aes:['girando','victorian','carca'], vb:'20 6 64 92', size:[3,5], svg:`
     ${/* the plinth it stands on */''}
     <path d="M30 98h44v-9H30Z" fill="currentColor" opacity=".92"/>
     <path d="M30 89h44v2.4H30Z" fill="#fff" opacity=".18"/>
@@ -322,7 +322,7 @@ const DECOR = {
     <path d="M52.0 10.0 L54.2 10.3 L56.4 10.8 L58.5 11.5 L60.5 12.4 L62.3 13.6 L64.0 15.0 L65.5 16.5 L66.8 18.2 L68.0 20.0 L68.9 21.9 L69.5 23.9 L70.0 25.9 L70.2 27.9 L70.2 30.0 L70.0 32.0 L69.5 34.0 L68.8 35.9 L67.9 37.7 L66.9 39.3 L65.6 40.9 L64.2 42.2 L62.7 43.4 L61.1 44.4 L59.3 45.2 L57.5 45.8 L55.7 46.2 L53.9 46.4 L52.0 46.4 L50.2 46.2 L48.4 45.7 L46.7 45.1 L45.1 44.3 L43.6 43.3 L42.3 42.2 L41.0 41.0 L40.0 39.6 L39.1 38.1 L38.4 36.6 L37.9 34.9 L37.5 33.3 L37.4 31.6 L37.4 30.0 L37.6 28.4 L38.0 26.8 L38.6 25.3 L39.3 23.9 L40.2 22.6 L41.2 21.4 L42.3 20.3 L43.5 19.4 L44.8 18.6 L46.2 18.0 L47.6 17.6 L49.1 17.3 L50.6 17.2 L52.0 17.2 L53.4 17.4 L54.8 17.8 L56.1 18.3 L57.3 18.9 L58.5 19.7 L59.5 20.6 L60.4 21.6 L61.2 22.7 L61.9 23.8 L62.4 25.0 L62.7 26.2 L63.0 27.5 L63.1 28.8 L63.0 30.0 L62.8 31.2 L62.5 32.4 L62.0 33.5 L61.4 34.5 L60.8 35.5 L60.0 36.4 L59.1 37.1 L58.2 37.8 L57.2 38.3 L56.2 38.8 L55.2 39.0 L54.1 39.2 L53.0 39.3 L52.0 39.2 L51.0 39.0 L50.0 38.7 L49.1 38.3 L48.2 37.8 L47.4 37.2 L46.7 36.6 L46.1 35.9 L45.6 35.1 L45.2 34.3 L44.9 33.4 L44.7 32.6 L44.5 31.7 L44.5 30.8 L44.6 30.0 L44.8 29.2 L45.0 28.4 L45.4 27.7 L45.8 27.0 L46.3 26.4 L46.8 25.9 L47.4 25.4 L48.0 25.0 L48.7 24.7 L49.3 24.5 L50.0 24.4 L50.7 24.3 L51.4 24.3 L52.0 24.4 L52.6 24.6 L53.2 24.8 L53.7 25.1 L54.2 25.4 L54.6 25.8 L55.0 26.2 L55.3 26.7 L55.6 27.1 L55.8 27.6 L55.9 28.1 L56.0 28.6 L56.0 29.1 L55.9 29.6 L55.8 30.0 L55.6 30.4 L55.5 30.8 L55.2 31.1 L55.0 31.4 L54.7 31.7 L54.4 31.9 L54.1 32.1 L53.7 32.2 L53.4 32.2 L53.1 32.3 L52.8 32.3 L52.5 32.2 L52.2 32.1 L52.0 32.0" fill="none" stroke="var(--glow)" stroke-width="2.4"
       stroke-linecap="round" opacity=".72"/>
     <circle cx="52" cy="30" r="2.6" fill="var(--glow)" opacity=".85"/>` },
-  bookend: { c:11, nm:'Bookend', vb:'2.5 11.5 93 88.5', size:[4,4], svg:`
+  bookend: { c:11, nm:'Bookend', aes:['victorian','carca','golf97','starry'], vb:'2.5 11.5 93 88.5', size:[4,4], svg:`
     <path d="M12 34h8v58h-8Z" fill="var(--brass)"/>
     <path d="M12 34h3v58h-3Z" fill="#fff" opacity=".34"/>
     <path d="M12 84h46v8H12Z" fill="var(--brass)"/>
@@ -349,6 +349,17 @@ const DECOR = {
 };
 
 const DECOR_KEYS = Object.keys(DECOR);
+/* ---- which ones suit where — decision 100 ------------------------------
+   A decoration is a *made object*, not a slot: a mantel clock cannot be
+   re-dressed into a gearwork the way a knob is re-dressed into a boss, and
+   pretending otherwise would mean fourteen drawings times seven aesthetics.
+   So it is **tagged** instead — each says which aesthetics it belongs on, the
+   picker leads with those, and the rest are behind the same "From other
+   aesthetics" disclosure every slot family has. Nothing is hidden and nothing
+   is converted; the order is the whole of it. */
+const decorSuits = (k, sty) => (DECOR[k] && DECOR[k].aes || []).includes(sty);
+const decorFor = sty => DECOR_KEYS.filter(k=>decorSuits(k, sty));
+const decorRest = sty => DECOR_KEYS.filter(k=>!decorSuits(k, sty));
 const decorOf = o => (DECOR[o && o.decor] ? o.decor : 'plant');
 /* The artwork, as markup. Each states its own viewBox, tight to itself, and
    `xMidYMax` stands it on the floor of whatever box it is drawn into — so a
@@ -361,4 +372,4 @@ function decorSVG(name){
     aria-hidden="true">${d.svg}</svg>`;
 }
 
-export { DECOR, DECOR_KEYS, decorOf, decorSVG };
+export { DECOR, DECOR_KEYS, decorOf, decorSVG, decorSuits, decorFor, decorRest };

@@ -221,22 +221,31 @@ manually): `orb` knob, `aqua` border, `sheen` texture, `stars` texture.
 
 ## What an aesthetic controls — a coverage map
 
-*Audited 2026-08-30.* This is the honest state of it: what changes when you
-switch, what does not, and where the thin patches are.
+*Audited 2026-08-30, rebuilt the same day (decisions 98–100).* This is the
+honest state of it: what changes when you switch, what does not, and where the
+thin patches are.
 
-### The four slot systems
+### The six slot systems
 
 A slot is a **position**. The object stores the position; the aesthetic decides
 what that position is made of. This is what makes a switch re-dress everything
 you own while your individual choices survive — and switch back and every one
 of them is itself again.
 
-| System | Positions | Every aesthetic names them? | Dressed in CSS by |
-| --- | --- | --- | --- |
-| **Colour** | 16 (5 chrome + 11 objects) | yes | all — it is the `cols` array |
-| **Border / edge** | 7 | yes | all six non-default (4 slots each; Starful Gothic 10 rules) |
-| **Panelling** | 5 | yes | all six (5–6 rules each) |
-| **Knob** | 5 | yes | **only four, thinly** — Golf 97 ×3, Carca ×2, Girando ×2, Stelaine ×1, **Starful Gothic and Aeros: none** |
+| System | Positions | Worn by | Every aesthetic names them? | Dressed in CSS by |
+| --- | --- | --- | --- | --- |
+| **Colour** | 16 (5 chrome + 11 objects) | everything | yes | all — it is the `cols` array |
+| **Border / edge** | 7 | drawers **and objects** | yes | all seven, both halves |
+| **Panelling** | 5 | drawer fronts | yes | all seven |
+| **Knob** | 5 | drawer fronts, the desk rail | yes | all seven × all five |
+| **Grain / texture** | 6 | drawers, objects, the rail | yes | all seven |
+| **Stock** | 5 | objects | yes | all seven |
+| **Binding** | 5 | book spines | yes | Golf 97, Starful Gothic and Aeros dress; the rest take Victoria's shelf |
+
+Every one of them can be **pinned** to an aesthetic other than the one you are
+in — `golf97/fielded` — which is the "hyper-customisation" escape hatch: the
+picker shows your five, and every other aesthetic's five sit behind a
+disclosure. A bare value follows the desk; a pinned one does not.
 
 ### What else an aesthetic declares
 
@@ -245,41 +254,36 @@ of them is itself again.
 | `cols` + `names` | sixteen hexes and what it calls its eleven |
 | `dark` | an optional second sixteen — **only Victoria has one** |
 | `board` + `boardAlpha` | the checker under everything |
-| `defaults` | knob · border · texture · knobtone · panel — what a new drawer leans toward |
+| `borders` · `panels` · `knobs` · `textures` · `stocks` · `bindings` | what it calls each family's positions |
+| `defaults` | knob · border · texture · knobtone · panel — what a new drawer leans toward — and `stock`, which is what a *sheet* is made of and is never written to an object |
+| `check` | which tick box an unset preference follows |
 | `spray` | which burst shape an unset preference follows |
 | `vars` | `--wood` (the carcass, and the status bar with it), `--radius`, `--radius-d`, `--serif`, `--line` |
 
 Plus per-aesthetic CSS for `.panel` and `.sqbtn` — one menu system and one
 button, so two rules reach every menu in the app — and `.gridbar`.
 
+### What is tagged rather than dressed
+
+A **decoration** is a made object: a mantel clock cannot be re-dressed into a
+gearwork the way a knob is re-dressed into a boss, and pretending otherwise
+would mean fourteen drawings times seven aesthetics. So each carries `aes:[…]`
+saying where it belongs, the picker leads with those, and the rest sit behind
+the same disclosure the slot families use. Nothing is hidden and nothing is
+converted; the order is the whole of it.
+
 ### What does **not** change between aesthetics
 
-Ranked by how much it costs.
-
-1. **Object tiles.** There is exactly **one** per-aesthetic rule for `.otile`
-   in the whole stylesheet (Aeros'). A note, a task, a quote or an index card
-   changes colour, typeface and corner radius on a switch and nothing else.
-   Every slot system so far is scoped to `.drawer.dtile` — the *containers*.
-   This is the biggest gap by a distance.
-2. **Textures.** One global list of eleven (`dots`, `weave`, `speckle`,
-   `starry`, `check`, `rule`…), the same names and the same look in all seven.
-   A Golf 97 drawer and a Stelaine drawer pick their grain from identical
-   vocabulary. The obvious candidate for the fifth slot system.
-3. **Knobs, in practice.** They *are* a slot system, but two aesthetics dress
-   none of the five positions and the rest dress one to three. Structurally
-   done, visually half-finished.
-4. **Bindings** (book spines). Five fixed bookbinding terms — plain, banded,
-   ribbed, tooled, label — global, not a slot. A Golf 97 spine is still a
-   nineteenth-century half-leather binding.
-5. **Decorations.** Fourteen pieces, one global set. They recolour through
-   `currentColor` and `--brass`, so they belong to the palette, but the same
-   aspidistra and the same gearwork appear in all seven.
-6. **Tick boxes.** Six shapes, but desk-wide (`S.look.check`) rather than per
-   aesthetic — deliberately, by decision 83, so that a task and a checklist
-   line never disagree. Could still take an aesthetic's *default*.
-7. **Marks / icons.** One global set of about thirty.
-8. **Spray shapes.** The list is global; an aesthetic only picks which is the
+1. **Marks / icons.** One global set of about thirty. They are a *semantic*
+   vocabulary — a clock means a time, a feather means writing — and thirty
+   icons times seven aesthetics is two hundred drawings for a distinction
+   nobody is asking a mark to make. The honest smaller version, if it is ever
+   wanted, is a per-aesthetic stroke weight and cap.
+2. **Spray shapes.** The list is global; an aesthetic only picks which is the
    default.
+3. **Tick boxes.** Six shapes, desk-wide (`S.look.check`) rather than per
+   object — deliberately, by decision 83, so a task and a checklist line never
+   disagree. An aesthetic supplies the *default*, and picking one keeps it.
 
 ### What *should* not change, and does not
 
@@ -287,36 +291,6 @@ Faces and layouts (`front`, `checklist`, `project`, `calendar`, `timeline`,
 `spine`; `grid`, `list`, `book`, `scroll`) are **structural** — they say what a
 container *is* and how it arranges what it holds. An aesthetic saying a
 checklist is a calendar would not be a style, it would be a different app.
-Likewise the grid, paging, locking, shadows and the pinned board: those are
-facts about the desk, not about the look.
-
----
-
-## Two things an aesthetic does not own
-
-**The wood.** `--wood` and `--wood-2` are the carcass — the rail above the bar
-and the drawer front along the bottom of a phone. They are a deep walnut in
-light and dark alike and are deliberately *not* derived from the sixteen: a desk
-is walnut at midday as much as at midnight, and paper laid on pale wood reads as
-a rendering fault rather than as furniture. A style that is genuinely made of
-something else may overrule them in its own `vars`, but it should have a reason.
-
-**The shadow.** Whether things on a desk cast one is `S.look.shadows`, a switch
-in the app's settings rather than a property of the style. Off writes a *zero*
-shadow into `--shadow` and `--shadow-lg` — never `none`, because half the border
-slots write `box-shadow: inset …, var(--shadow)` and `none` is only legal as the
-sole value of the property.
-
-## Adding an aesthetic
-
-1. Add an entry to `STYLES`: name, `cols` (all sixteen, in slot order — the
-   five first), board pair, `defaults{knob,border,texture,knobtone}`, and a
-   `vars` map for the handful of things a colour can't say (radius, typeface,
-   and the wood if it is genuinely not wood). Light or dark follows from
-   `cols[0]`; there is nothing else to declare.
-2. Optional chrome: a `html[data-style="…"]` CSS block for anything tokens
-   can't express.
-3. Optional new elements (knobs/borders/textures) — add the CSS class and the
-   option to the pickers; they become available to all styles.
-4. Write a section here. The picker tile needs no CSS — it draws itself out of
-   the style's own sixteen.
+Likewise object *shapes* — `sh-note`, `sh-index`, `sh-quote` say what a thing
+is, the way a face does. And the grid, paging, locking, shadows and the pinned
+board: those are facts about the desk, not about the look.

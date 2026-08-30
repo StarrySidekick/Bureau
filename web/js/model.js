@@ -564,9 +564,39 @@ const knobOf = o => {
    decision 94 and plain and none last because they mean the same thing
    everywhere. */
 const BORDER_SLOTS = ['panel','heavy','bar','gloss','gilt','plain','none'];
+/* A front with nothing said about it is *panelled* — a drawer is a piece of
+   worked wood and a flat rectangle is the thing all this exists to stop being.
+   An object is a piece of paper, and a moulding round a note is a mount round
+   a note, so it starts plain: this is the one place the two halves of the
+   system honestly want different defaults, and it is structural rather than a
+   branch on a type's name. See decision 99. */
 const borderOf = o => {
   const b = slotKey(slotRaw(o,'border'));
-  return BORDER_SLOTS.includes(b) ? b : 'panel';
+  return BORDER_SLOTS.includes(b) ? b : (isContainer(o) ? 'panel' : 'plain');
+};
+/* ---- what the sheet is made of ----------------------------------------
+   A drawer is wood: colour, edge, panelling, knob, grain. An object is
+   **paper**, and the same five minus the hardware — with one of its own,
+   because what a sheet *is* is not a pattern printed on it. A texture is
+   the grain of the surface; a stock is the body of it: how it takes the
+   light, how thick it is, how its edge is cut.
+
+   Five positions, and 0 is the flat sheet the app has always drawn, so
+   nothing changes for an object that hasn't asked. The names below are
+   Victoria's and the fallback; each aesthetic answers for its own — Golf
+   97's window and dialog, Stelaine's starcloth, Aeros' frosted acrylic.
+   See decision 99. */
+const STOCKS = {
+  plain: 'Plain',
+  laid:  'Laid',
+  wove:  'Wove',
+  card:  'Card',
+  aged:  'Aged'
+};
+const STOCK_SLOTS = Object.keys(STOCKS);
+const stockOf = o => {
+  const st = slotKey(slotRaw(o,'stock'));
+  return STOCKS[st] ? st : 'plain';
 };
 /* Six positions of grain: nothing, the fine tooth of the surface, a weave, a
    ruling, a scatter, and an outright pattern. Eleven global names became six
@@ -1318,7 +1348,7 @@ export { ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds, K,
   REPEAT_UNITS, repeatOf, repeats, repeatSaid, repeatSpent, nextRepeat,
   slotKey, slotFrom, slotRaw, slotSrc,
   BINDINGS, BINDING_SLOTS, bindingOf, PANELS, PANEL_SLOTS, panelOf, KNOBS, KNOB_SLOTS, knobOf,
-  BORDER_SLOTS, borderOf, TEXTURE_SLOTS, textureOf,
+  BORDER_SLOTS, borderOf, TEXTURE_SLOTS, textureOf, STOCKS, STOCK_SLOTS, stockOf,
   KNOBSIZES, knobSizeOf, answered, iconOf, TSIZES, textSizeOf, mediaTypeOf, isPicture,
   isMedia, isPlayable, acceptFor, isDecor,
   spawnByOf, genKindOf, takesTyping, showsAddBox, keepsDone, showsContainers,

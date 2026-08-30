@@ -511,11 +511,11 @@ function settingsBody(sec){
     ${/* Six tick boxes, each drawn as itself — ticked, because what a box
           looks like when it is ticked is the half you actually live with. */''}
     <div class="field" style="margin-top:12px"><label>Tick boxes</label>
-      <div class="checkpick">${Object.entries(CHECKS).map(([v,n])=>
-        `<button class="checkopt${(S.look.check||'square')===v?' on':''}" data-checks="${v}" title="${n}">
-          <span data-checks="${v}"><i class="check on" style="--k:var(--brass)">${ic('check',12)}</i></span>
+      <div class="checkpick">${[['','However the aesthetic ticks'], ...Object.entries(CHECKS)].map(([v,n])=>
+        `<button class="checkopt${(S.look.check||'')===v?' on':''}" data-checks="${v}" title="${n}">
+          <span data-checks="${v||(styleNow().check||'square')}"><i class="check on" style="--k:var(--brass)">${ic('check',12)}</i></span>
           <u>${n}</u></button>`).join('')}</div>
-      <div class="mini" style="--k:var(--brass);margin-top:6px">Everywhere a box is drawn — a task on the board, a row in a list, a line on a checklist front. Tasks and checklists follow the desk rather than each carrying their own.</div>
+      <div class="mini" style="--k:var(--brass);margin-top:6px">Everywhere a box is drawn — a task on the board, a row in a list, a line on a checklist front. Tasks and checklists follow the desk rather than each carrying their own. The first follows the aesthetic and changes with it; the rest stay where you put them.</div>
     </div>
 
     ${/* Things that come out of a tile when a new one lands. Real physics
@@ -776,6 +776,7 @@ function railCfg(){
 function deskRail(){
   const r=railCfg();
   return `<nav class="deskrail ${dressAs('tx',r.tex)} ks-${r.size}" data-rail style="height:${REVEAL.rail}px">
+    <i class="dgrain"></i>
     <i class="pull railknob ${dressAs('kn',r.knob)}" data-act="railout"
       ${r.knobc?`style="--knob:${esc(r.knobc)}"`:''}
       title="Back — and pull up to make something"></i>

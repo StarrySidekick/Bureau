@@ -1625,10 +1625,13 @@ const CHROME = process.env.BUREAU_CHROME;
     set('railknob','round'); set('railknobsize','lg'); await nap(150);
     out.theSizeFollows = parseFloat(getComputedStyle(knob()).width) > wasW;
     set('railknobsize','sm'); set('railtexture','weave'); await nap(150);
+    /* The grain is a real element now, not the rail's `::after` — an object
+       cannot spare that pseudo-element, and one texture system serving both is
+       worth more than the tile keeping it. See decision 99. */
     out.theTextureFollows = rail().classList.contains('tx-weave')
-      && getComputedStyle(rail(), '::after').backgroundImage !== 'none';
+      && getComputedStyle(rail().querySelector('.dgrain')).backgroundImage !== 'none';
     // …and the texture goes *under* the knob, the same as on a front
-    out.andPrintsUnderTheKnob = (+getComputedStyle(rail(), '::after').zIndex || 0)
+    out.andPrintsUnderTheKnob = (+getComputedStyle(rail().querySelector('.dgrain')).zIndex || 0)
       < (+getComputedStyle(knob()).zIndex || 0);
     set('railtexture','none');
     /* The wood is per desk and it is the **whole** carcass, not just the rail:
@@ -3299,7 +3302,11 @@ const CHROME = process.env.BUREAU_CHROME;
     if(!c) return out;
     const keep = {border:c.border, panel:c.panel, knob:c.knob, texture:c.texture};
     // everything a slot can reasonably change, on the element that wears it
+    /* A layer that isn't there is a state of its own, not a crash: the grain
+       layer is only rendered when there *is* a grain, so `tx-none` reads as a
+       missing element. */
     const look = el => {
+      if(!el) return 'no layer';
       const cs = getComputedStyle(el), b = getComputedStyle(el,'::before'),
             a = getComputedStyle(el,'::after');
       const of = x => [x.boxShadow, x.borderWidth, x.borderColor, x.borderRadius,
@@ -3308,7 +3315,7 @@ const CHROME = process.env.BUREAU_CHROME;
     };
     const wear = {bd:'border', pn:'panel', kn:'knob', tx:'texture'};
     const pick = {bd:t=>t, pn:t=>t.querySelector('.dpanel'),
-                  kn:t=>t.querySelector('.pull'), tx:t=>t};
+                  kn:t=>t.querySelector('.pull'), tx:t=>t.querySelector('.dgrain')};
     const thin = {};
     for(const fam of Object.keys(wear)){
       thin[fam] = {};
@@ -3352,6 +3359,114 @@ const CHROME = process.env.BUREAU_CHROME;
     if(keep.border == null) delete c.border;
     if(keep.panel == null) delete c.panel;
     S.look.style = was; BUREAU.applyLook(); BUREAU.render(); await nap(120);
+    return out;
+  });
+
+  /* --- an object is paper, and paper is in the system — decision 99 ------
+     `.otile` had exactly one per-aesthetic rule in the whole stylesheet: a
+     note in Golf 97 and a note in Victoria were the same tile in two colours.
+     It wears three families now — an edge, a grain, and a **stock**, which is
+     what the sheet *is* as against what is printed on it. */
+  const objectsDressed = await page.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const S = BUREAU.state, out = {}, was = S.look.style;
+    /* One that is actually on the board being drawn — an object filed inside a
+       drawer has no tile to read a computed style off. */
+    const el = document.querySelector('.grid .drawer.otile[data-row]');
+    const o = el && S.objects.find(x => x.id === el.dataset.row);
+    out.foundAnObject = !!o;
+    if(!o) return out;
+    const tile = () => document.querySelector(`.grid [data-row="${o.id}"]`);
+    BUREAU.render();
+    /* The two layers that hold no text. A tile's own pseudo-elements are spent
+       several times over on an object — the gilt frame, and half the shapes —
+       so the mount and the grain are real elements, spliced into whatever
+       drawTile() returned. */
+    o.texture = 'weave'; BUREAU.render();
+    out.wearsBothLayers = !!tile().querySelector(':scope > .dpanel')
+      && !!tile().querySelector(':scope > .dgrain');
+    // …and the grain layer is not rendered at all when there is no grain, which
+    // is what keeps two extra elements per tile off a desk that isn't using them
+    o.texture = 'none'; BUREAU.render();
+    out.andNoGrainLayerWithoutAGrain = !tile().querySelector(':scope > .dgrain');
+    delete o.texture; BUREAU.render();
+    // …and here too: no grain layer at all is what `tx-none` looks like
+    const look = el => { if(!el) return 'no layer'; const c = getComputedStyle(el);
+      return [c.boxShadow, c.backgroundImage, c.borderColor, c.filter, c.inset].join('|'); };
+    const prop = {bd:'border', st:'stock', tx:'texture'};
+    const thin = {};
+    for(const fam of Object.keys(prop)){
+      thin[fam] = {};
+      for(const sty of Object.keys(BUREAU.styles)){
+        const seen = new Set();
+        for(const [slot] of BUREAU.famSlots(fam, sty)){
+          o[prop[fam]] = sty + '/' + slot; BUREAU.render();
+          const t = tile();
+          seen.add(look(t) + '~' + look(t.querySelector('.dpanel')) + '~' + look(t.querySelector('.dgrain')));
+        }
+        thin[fam][sty] = seen.size;
+      }
+      delete o[prop[fam]];
+    }
+    out.counts = thin;
+    /* Starful Gothic is the same deliberate exception it is on a drawer: its
+       dressed edges are one drawn line at four weights, not four ornaments. */
+    out.everyFamilyIsDressed = Object.entries(thin).every(([fam, byStyle]) =>
+      Object.entries(byStyle).every(([sty, n]) =>
+        n >= (fam === 'bd' && sty === 'starry' ? 3 : BUREAU.famSlots(fam, sty).length - 1)));
+    BUREAU.render();
+    /* A stock is the one family whose fallback is the *aesthetic's* rather
+       than the vocabulary's, and it is never written — so a note re-dresses on
+       a switch without anything being stored on it. A drawer's look is rolled
+       and written at birth, because furniture in one room came from different
+       hands; paper comes off one pad. */
+    const paper = {};
+    for(const sty of Object.keys(BUREAU.styles)){ BUREAU.setStyle(sty); paper[sty] = BUREAU.stockNow(o); }
+    out.everyAestheticSaysWhatPaperIs = Object.keys(BUREAU.styles)
+      .every(k => !!BUREAU.styles[k].defaults.stock);
+    out.andItFollowsTheAesthetic = new Set(Object.values(paper)).size > 1;
+    out.nothingIsStoredForIt = !('stock' in o);
+    // …and every aesthetic names all five, so a picker is never short of a word
+    out.allSevenNameAllFive = Object.keys(BUREAU.styles).every(k =>
+      BUREAU.famSlots('st', k).length === 5 && BUREAU.famSlots('st', k).every(([, n]) => n && n.length));
+    out.andEachSaysItsOwn = new Set(Object.keys(BUREAU.styles)
+      .map(k => BUREAU.famSlots('st', k).slice(1).map(([, n]) => n).join('|'))).size === 7;
+    S.look.style = was; BUREAU.applyLook(); BUREAU.render(); await nap(120);
+    return out;
+  });
+
+  /* --- what cannot be a slot is tagged instead — decision 100 ------------ */
+  const tagged = await page.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const S = BUREAU.state, out = {}, was = S.look.style, wasCheck = S.look.check;
+    /* A tick box stays a fact about the desk (decision 83) and gains an
+       aesthetic default: unset follows the aesthetic, picked stays picked. */
+    delete S.look.check;
+    const per = {};
+    for(const k of Object.keys(BUREAU.styles)){ BUREAU.setStyle(k); per[k] = document.documentElement.dataset.checks; }
+    out.everyAestheticTicksItsOwnWay = new Set(Object.values(per)).size > 2
+      && Object.keys(BUREAU.styles).every(k => !!BUREAU.styles[k].check);
+    S.look.check = 'dot'; BUREAU.applyLook();
+    out.aPickedOneStays = document.documentElement.dataset.checks === 'dot';
+    delete S.look.check; BUREAU.setStyle('victorian'); await nap(60);
+    out.andTheWayBackIsTheAesthetic = document.documentElement.dataset.checks === 'square';
+    /* A binding is a slot: all seven name all five, and they are not the same
+       five words — Golf 97's shelf is jewel cases, not calf. */
+    out.everyAestheticBinds = Object.keys(BUREAU.styles).every(k =>
+      BUREAU.famSlots('bn', k).length === 5
+      && BUREAU.famSlots('bn', k).every(([, n]) => n && n.length));
+    out.andEachBindsItsOwnWay = new Set(Object.keys(BUREAU.styles)
+      .map(k => BUREAU.famSlots('bn', k).map(([, n]) => n).join('|'))).size === 7;
+    /* A decoration is a made object and cannot be a slot, so it is tagged.
+       Every aesthetic has to have some, and every decoration has to belong
+       somewhere — an untagged one would fall off the end of every picker. */
+    out.everyAestheticHasSome = Object.keys(BUREAU.styles).every(k => BUREAU.decorFor(k).length >= 2);
+    out.everyDecorationBelongsSomewhere = BUREAU.decorKeys
+      .every(k => Object.keys(BUREAU.styles).some(s => BUREAU.decorSuits(k, s)));
+    out.andTheTwoListsAreTheWhole = Object.keys(BUREAU.styles).every(k =>
+      BUREAU.decorFor(k).length + BUREAU.decorRest(k).length === BUREAU.decorKeys.length);
+    S.look.style = was; if(wasCheck) S.look.check = wasCheck;
+    BUREAU.applyLook(); BUREAU.render(); await nap(120);
     return out;
   });
 
@@ -3512,6 +3627,14 @@ const CHROME = process.env.BUREAU_CHROME;
        appear on a magic drawer by fiat — the one ornament nobody could choose
        and nobody could decline. */
     out.giltIsASlot = BUREAU.borderSlots().some(([k]) => k === 'gilt');
+    /* …and it is never *rolled*. `none` is a deliberate absence and gilt is a
+       deliberate statement, so neither goes in the bag a new drawer's look is
+       picked from — a frame nobody chose is exactly what this decision took
+       off the magic drawer. It came straight back the day the bag was rebuilt
+       from the family table instead of the old hand-written list, which is why
+       this is asserted rather than left to the two drawers below. */
+    out.andIsNeverHandedOut = Array.from({length:400}, () => BUREAU.randomLook().border)
+      .every(b => b !== 'gilt' && b !== 'none');
     const mg = BUREAU.create('drawer', { parent:'root', title:'Collects',
       attrs:['container','magic'], filter:{ rules:[] } });
     const gl = BUREAU.create('drawer', { parent:'root', title:'Gilt', border:'gilt' });
@@ -3910,7 +4033,7 @@ const CHROME = process.env.BUREAU_CHROME;
     paletteKeys, editorKeys, pickerLeads, rollupsEverywhere, soundAndVision, keyboardBoard,
     ranking, repeating, oneLock, scheduling, ownColour, addBox, calFaces,
     lockedBoard, freeTraits, pageWrites, tickBoxes, readerFits,
-    dropsIn, keyframesRegistered, aesthetics, slotScoping, grainSlots, deeper, lookStage, statusBar, bindings, panelling, theSpray, tappingIsQuiet, decorations, pinboard
+    dropsIn, keyframesRegistered, aesthetics, slotScoping, objectsDressed, grainSlots, tagged, deeper, lookStage, statusBar, bindings, panelling, theSpray, tappingIsQuiet, decorations, pinboard
   }, null, 2));
   await browser.close();
 })();

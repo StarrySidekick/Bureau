@@ -593,6 +593,273 @@ html .drawer.dtile.cltile{background-image:none}
   background:var(--paper-2);border-color:var(--rule);
   --dink:var(--ink);--dink-2:var(--ink-2);--dink-3:var(--ink-3);
 }
+
+/* ---- an object is paper, and paper has an edge — decision 99 -----------
+   A drawer front wears the same seven positions in worked wood: a moulding
+   inset five pixels, lit from the upper left. On a note that is a mount round
+   a postcard, and at four cells it is most of the tile — so the object's half
+   of the family is drawn in **ink and rule**, held to the rim, and a shade
+   lighter than the wood. Same slots, same order, same names; a different
+   material, which is exactly what a slot is for.
+
+   `plain` is what an object has always looked like, and it is the default an
+   object with nothing said falls to (`borderOf` in model.js) — so nothing
+   moves for a desk that never asks. */
+.drawer.otile.bd-plain{ border-color:var(--rule);box-shadow:var(--shadow) }
+.drawer.otile.bd-none{ border-color:transparent;box-shadow:none }
+/* a ruled mount, the way a print is mounted: a line held off the edge */
+.drawer.otile.bd-panel{
+  box-shadow:inset 0 0 0 4px var(--paper-2), inset 0 0 0 5px var(--rule-2), var(--shadow) }
+.drawer.otile.bd-heavy{
+  box-shadow:inset 0 0 0 7px var(--paper-2), inset 0 0 0 9px var(--rule), var(--shadow) }
+/* a bar is the mat board itself — a wide plain margin and no line at all */
+.drawer.otile.bd-bar{
+  box-shadow:inset 0 0 0 6px var(--paper-3), var(--shadow) }
+/* the flourish: a double rule, which is what a Victorian card had printed on it */
+.drawer.otile.bd-gloss{
+  box-shadow:inset 0 0 0 3px var(--paper-2), inset 0 0 0 4px var(--rule-2),
+             inset 0 0 0 6px var(--paper-2), inset 0 0 0 7px var(--rule-2), var(--shadow) }
+
+/* ---- and what the sheet is made of ------------------------------------
+   A texture is printed *on* the surface; a stock is the surface. Five
+   positions, and 0 is the flat paper the app has always drawn — so an object
+   that hasn't asked is unchanged. Everything here is a `background-image`
+   layered under whatever a shape or a texture puts on top, plus, for card, the
+   one thing a sheet's weight actually looks like: a thicker edge. */
+.drawer.otile.st-laid{
+  background-image:repeating-linear-gradient(0deg,
+    rgba(0,0,0,.05) 0 1px, transparent 1px 5px),
+    linear-gradient(160deg, rgba(255,255,255,.5), rgba(0,0,0,.03)) }
+.drawer.otile.st-wove{
+  background-image:radial-gradient(120% 90% at 30% 12%,
+    rgba(255,255,255,.75), rgba(0,0,0,.05) 78%) }
+/* card: a sheet you can see the thickness of, so it stands a little higher and
+   the bottom edge is its own cut rather than a shadow */
+.drawer.otile.st-card{
+  background-image:linear-gradient(180deg, rgba(255,255,255,.45), rgba(0,0,0,.04));
+  box-shadow:inset 0 -3px 0 rgba(0,0,0,.10), inset 0 -4px 0 rgba(255,255,255,.35),
+             0 3px 5px rgba(0,0,0,.16) }
+/* aged: foxed at the corners and warm toward the edges, which is what a sheet
+   left in a drawer for thirty years actually does */
+.drawer.otile.st-aged{
+  background-image:
+    radial-gradient(circle at 8% 10%, rgba(150,110,60,.26) 0 8%, transparent 34%),
+    radial-gradient(circle at 92% 88%, rgba(150,110,60,.22) 0 7%, transparent 30%),
+    radial-gradient(circle at 88% 14%, rgba(150,110,60,.14) 0 5%, transparent 24%),
+    radial-gradient(140% 140% at 50% 50%, transparent 42%, rgba(140,100,55,.22)) }
+
+/* ---- the same edges and stocks, answered by each aesthetic ------------
+   The four dressed edges and the four stocks above are Victoria's, and the
+   fallback for anything that does not care. An object keeps the *slot* it was
+   given through a switch, exactly as a drawer front does — so a note you made
+   a card stays a card here, a slate block in Carca and a 1997 dialog in
+   1997. Only the dressed positions need answering: `plain` and `none` mean
+   the same thing everywhere, and stock 0 is a flat sheet in every aesthetic
+   because its whole job is to be nothing. */
+
+/* ---- Carca: paper is what you write on when you have run out of stone -- */
+.drawer.otile.bd-panel.bdsty-carca{
+  box-shadow:inset 0 0 0 3px var(--paper-3), inset 0 0 0 4px var(--line), var(--shadow) }
+.drawer.otile.bd-heavy.bdsty-carca{
+  box-shadow:inset 0 0 0 5px var(--paper-3), inset 0 0 0 7px var(--line), var(--shadow) }
+.drawer.otile.bd-bar.bdsty-carca{
+  box-shadow:inset 0 -4px 0 rgba(0,0,0,.14), inset 0 0 0 5px var(--paper-3), var(--shadow) }
+/* the vine: a rule broken at intervals, which is a border with things growing through it */
+.drawer.otile.bd-gloss.bdsty-carca .dpanel{
+  inset:4px;border-radius:3px;
+  border:1px dashed color-mix(in srgb,var(--brass) 70%,transparent) }
+.drawer.otile.st-laid.ststy-carca{ background-image:
+  radial-gradient(120% 100% at 20% 0%, rgba(190,170,120,.20), transparent 60%),
+  radial-gradient(90% 120% at 90% 100%, rgba(150,130,90,.18), transparent 55%) }
+.drawer.otile.st-wove.ststy-carca{ background-image:
+  repeating-linear-gradient(0deg, rgba(0,0,0,.05) 0 1px, transparent 1px 3px),
+  repeating-linear-gradient(90deg, rgba(0,0,0,.05) 0 1px, transparent 1px 3px) }
+/* slate: a dark cool ground with the cleave of the stone across it */
+.drawer.otile.st-card.ststy-carca{ background-image:
+  linear-gradient(168deg, rgba(40,50,60,.30), rgba(20,26,34,.42));
+  box-shadow:inset 0 -3px 0 rgba(0,0,0,.30), 0 3px 5px rgba(0,0,0,.20);
+  --dink:#F2F4F6;--dink-2:rgba(242,244,246,.72);--dink-3:rgba(242,244,246,.5) }
+.drawer.otile.st-aged.ststy-carca{ background-image:
+  radial-gradient(circle at 14% 88%, rgba(90,110,70,.28) 0 9%, transparent 40%),
+  radial-gradient(circle at 86% 18%, rgba(120,105,60,.22) 0 7%, transparent 34%),
+  radial-gradient(150% 130% at 50% 40%, transparent 38%, rgba(60,60,50,.24)) }
+
+/* ---- Stelaine: the sheet is a piece of the sky ------------------------ */
+.drawer.otile.bd-panel.bdsty-stelaine{
+  box-shadow:inset 0 0 0 4px var(--paper-2),
+             inset 0 0 0 5px color-mix(in srgb,var(--glow) 60%,transparent), var(--shadow) }
+.drawer.otile.bd-heavy.bdsty-stelaine{
+  box-shadow:inset 0 0 0 4px var(--paper-2),
+             inset 0 0 0 5px color-mix(in srgb,var(--glow) 70%,transparent),
+             inset 0 0 0 8px var(--paper-2),
+             inset 0 0 0 9px color-mix(in srgb,var(--glow) 40%,transparent), var(--shadow) }
+.drawer.otile.bd-bar.bdsty-stelaine{
+  box-shadow:inset 0 0 0 6px var(--paper-3),
+             inset 0 0 14px -4px color-mix(in srgb,var(--glow) 70%,transparent), var(--shadow) }
+/* a facet: the light catches two corners of it and not the other two */
+.drawer.otile.bd-gloss.bdsty-stelaine .dpanel{
+  inset:3px;border-radius:2px;
+  border-top:1px solid rgba(255,255,255,.55);border-left:1px solid rgba(255,255,255,.4);
+  border-right:1px solid rgba(0,0,0,.22);border-bottom:1px solid rgba(0,0,0,.3) }
+/* Starcloth is a *ground*, not a texture: it sits behind writing, and on a dark
+   aesthetic a bright point at full strength competes with the words in front of
+   it far more than the same point does on paper. Sparse and dim — the grain
+   slot is where you go if you want stars you can count. */
+.drawer.otile.st-laid.ststy-stelaine{ background-image:
+  radial-gradient(circle at 22% 24%, rgba(255,255,255,.30) 0 .9px, transparent 1.4px),
+  radial-gradient(circle at 74% 62%, rgba(255,255,255,.20) 0 .7px, transparent 1.2px),
+  linear-gradient(168deg, rgba(255,255,255,.14), transparent 62%);
+  background-size:64px 64px, 88px 88px, 100% 100% }
+.drawer.otile.st-wove.ststy-stelaine{ background-image:
+  linear-gradient(114deg, rgba(255,255,255,.16) 0%, transparent 34%,
+    rgba(255,255,255,.09) 58%, transparent 84%) }
+/* shard: a cleaved face, so the light runs in flat planes across it */
+.drawer.otile.st-card.ststy-stelaine{ background-image:
+  linear-gradient(126deg, rgba(255,255,255,.16) 0 32%, rgba(0,0,0,.10) 32% 58%,
+    rgba(255,255,255,.10) 58% 78%, rgba(0,0,0,.14) 78%);
+  box-shadow:inset 0 -3px 0 rgba(0,0,0,.14), 0 3px 6px rgba(0,0,0,.18) }
+.drawer.otile.st-aged.ststy-stelaine{ background-image:
+  radial-gradient(150% 130% at 50% 20%, rgba(255,255,255,.12), transparent 58%),
+  linear-gradient(180deg, transparent 40%, color-mix(in srgb,var(--paper) 60%,transparent)) }
+
+/* ---- Girando: plaster, canvas and fired earth ------------------------- */
+.drawer.otile.bd-panel.bdsty-girando{
+  box-shadow:inset 0 0 0 3px var(--paper-2), inset 0 0 0 4px rgba(0,0,0,.18),
+             inset 0 0 0 5px rgba(255,255,255,.4), var(--shadow) }
+.drawer.otile.bd-heavy.bdsty-girando{
+  box-shadow:inset 0 0 0 4px var(--paper-2), inset 0 0 0 6px rgba(0,0,0,.20),
+             inset 0 0 0 8px rgba(255,255,255,.42), var(--shadow) }
+.drawer.otile.bd-bar.bdsty-girando{
+  box-shadow:inset 0 6px 0 rgba(0,0,0,.10), inset 0 0 0 5px var(--paper-3), var(--shadow) }
+/* a cartouche: the double rule with the corners taken off */
+.drawer.otile.bd-gloss.bdsty-girando .dpanel{
+  inset:4px;border-radius:10px / 6px;
+  border:1px solid color-mix(in srgb,var(--glow) 78%,transparent);
+  outline:1px solid color-mix(in srgb,var(--glow) 46%,transparent);outline-offset:2px }
+/* A stock is a **ground**, and Girando's is a dark one. The first pass was
+   written at paper strengths — a half-opaque white blotch reads as mottled
+   plaster on cream and as a hole burnt through the tile on charcoal, and it
+   took the note's own words with it. Everything here is a tenth rather than a
+   half; the grain slot is where you go for something you can see. */
+/* fresco: lime plaster, which is mottled and never quite one colour */
+.drawer.otile.st-laid.ststy-girando{ background-image:
+  radial-gradient(circle at 24% 30%, rgba(255,255,255,.13) 0 16%, transparent 52%),
+  radial-gradient(circle at 78% 66%, rgba(0,0,0,.10) 0 18%, transparent 54%),
+  radial-gradient(circle at 60% 12%, rgba(255,255,255,.08) 0 12%, transparent 44%) }
+.drawer.otile.st-wove.ststy-girando{ background-image:
+  repeating-linear-gradient(0deg, rgba(0,0,0,.06) 0 1px, transparent 1px 4px),
+  repeating-linear-gradient(90deg, rgba(0,0,0,.06) 0 1px, transparent 1px 4px),
+  linear-gradient(180deg, rgba(255,255,255,.10), transparent 50%) }
+/* terracotta: fired earth is warm all the way through and rough on top */
+.drawer.otile.st-card.ststy-girando{ background-image:
+  radial-gradient(circle at 30% 40%, rgba(0,0,0,.10) 0 1px, transparent 1.6px),
+  linear-gradient(180deg, rgba(190,105,60,.22), rgba(150,72,42,.30));
+  background-size:9px 9px, 100% 100%;
+  box-shadow:inset 0 -3px 0 rgba(0,0,0,.18), 0 3px 5px rgba(0,0,0,.18) }
+.drawer.otile.st-aged.ststy-girando{ background-image:
+  linear-gradient(184deg, rgba(255,255,255,.14), transparent 46%),
+  radial-gradient(140% 120% at 50% 0%, rgba(255,240,200,.12), transparent 60%) }
+
+/* ---- Golf 97: everything is a control ---------------------------------- */
+/* the outset bevel, at four pixels — two is right on a 90px button and a
+   hairline on a tile, and it is the *proportion* that carries the decade */
+.drawer.otile.bd-panel.bdsty-golf97{
+  border-color:transparent;
+  box-shadow:inset 2px 2px 0 rgba(255,255,255,.85), inset -2px -2px 0 rgba(0,0,0,.35),
+             inset 4px 4px 0 rgba(255,255,255,.4), inset -4px -4px 0 rgba(0,0,0,.16),
+             0 0 0 1px rgba(0,0,0,.5) }
+.drawer.otile.bd-heavy.bdsty-golf97{
+  border-color:transparent;
+  box-shadow:inset 4px 4px 0 rgba(255,255,255,.85), inset -4px -4px 0 rgba(0,0,0,.4),
+             inset 7px 7px 0 rgba(255,255,255,.35), inset -7px -7px 0 rgba(0,0,0,.14),
+             0 0 0 1px rgba(0,0,0,.5) }
+/* sunken: the same bevel turned inside out, which is what a text field was */
+.drawer.otile.bd-bar.bdsty-golf97{
+  border-color:transparent;
+  box-shadow:inset 2px 2px 0 rgba(0,0,0,.4), inset -2px -2px 0 rgba(255,255,255,.85),
+             0 0 0 1px rgba(0,0,0,.45) }
+/* the marquee: a dotted focus rectangle, held one pixel off the edge */
+.drawer.otile.bd-gloss.bdsty-golf97 .dpanel{
+  inset:3px;border:1px dotted rgba(0,0,0,.6) }
+/* window: the title bar, which is the one thing everybody remembers */
+.drawer.otile.st-laid.ststy-golf97{ background-image:
+  linear-gradient(90deg, #0A246A, #A6CAF0) ;background-size:100% 5px;
+  background-repeat:no-repeat;box-shadow:inset 0 5px 0 rgba(0,0,0,.15) }
+/* dialog: flat grey, no gradient at all, because there were none */
+.drawer.otile.st-wove.ststy-golf97{ background-image:
+  linear-gradient(0deg, rgba(160,160,160,.30), rgba(160,160,160,.30)) }
+/* readout: the green screen */
+.drawer.otile.st-card.ststy-golf97{ background-image:
+  repeating-linear-gradient(180deg, rgba(0,0,0,.3) 0 1px, transparent 1px 3px),
+  linear-gradient(180deg, rgba(8,42,20,.92), rgba(4,26,12,.95));
+  --dink:#7CFFA0;--dink-2:rgba(124,255,160,.72);--dink-3:rgba(124,255,160,.5) }
+/* printout: tractor feed and the alternating green bands */
+.drawer.otile.st-aged.ststy-golf97{ background-image:
+  repeating-linear-gradient(180deg, rgba(120,180,130,.22) 0 12px, transparent 12px 24px),
+  radial-gradient(circle at 4px 50%, rgba(0,0,0,.35) 0 2px, transparent 2.6px);
+  background-size:100% 24px, 10px 14px }
+
+/* ---- Starful Gothic: one drawn line, and paper that shows it ---------- */
+/* Same as the drawer front: the four dressed edges are the *same* line at four
+   weights, and it lives on `.dpanel` because a box-shadow cannot be filtered
+   on its own and the filter must never touch anything holding text. */
+.drawer.otile.bdsty-starry{ border-color:transparent;box-shadow:none }
+.drawer.otile.bd-panel.bdsty-starry .dpanel,
+.drawer.otile.bd-heavy.bdsty-starry .dpanel,
+.drawer.otile.bd-bar.bdsty-starry   .dpanel,
+.drawer.otile.bd-gloss.bdsty-starry .dpanel,
+.drawer.otile.bd-plain.bdsty-starry .dpanel{
+  inset:3px;border-radius:4px;
+  border:1.5px solid color-mix(in srgb,var(--ink) 52%,transparent);
+  filter:url(#pencilchip) }
+.drawer.otile.bd-heavy.bdsty-starry .dpanel{ border-width:2.5px }
+.drawer.otile.bd-bar.bdsty-starry   .dpanel{ border-width:1px;
+  border-color:color-mix(in srgb,var(--ink) 38%,transparent) }
+.drawer.otile.bd-gloss.bdsty-starry .dpanel{ border-width:1px;
+  border-color:color-mix(in srgb,var(--ink) 30%,transparent) }
+.drawer.otile.bd-none.bdsty-starry .dpanel{ border-color:transparent }
+.drawer.otile.sz-mini.bdsty-starry .dpanel{ display:none }
+.drawer.otile.st-laid.ststy-starry{ background-image:
+  repeating-linear-gradient(0deg, transparent 0 17px,
+    color-mix(in srgb,var(--ink) 22%,transparent) 17px 18px) }
+.drawer.otile.st-wove.ststy-starry{ background-image:
+  linear-gradient(0deg, rgba(255,255,255,.10), rgba(255,255,255,.10));opacity:.9 }
+.drawer.otile.st-card.ststy-starry{ background-image:
+  linear-gradient(180deg, rgba(255,255,255,.10), rgba(0,0,0,.16));
+  box-shadow:inset 0 -3px 0 rgba(0,0,0,.28), 0 3px 5px rgba(0,0,0,.3) }
+.drawer.otile.st-aged.ststy-starry{ background-image:
+  radial-gradient(circle at 12% 16%, rgba(170,140,90,.30) 0 7%, transparent 32%),
+  radial-gradient(circle at 84% 78%, rgba(170,140,90,.24) 0 6%, transparent 28%) }
+
+/* ---- Aeros: glass, and what is behind it ------------------------------ */
+.drawer.otile.bd-panel.bdsty-aero{
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.75), inset 0 4px 10px rgba(255,255,255,.4),
+             inset 0 -4px 10px rgba(0,0,0,.08), var(--shadow) }
+.drawer.otile.bd-heavy.bdsty-aero{
+  box-shadow:inset 0 0 0 2px rgba(255,255,255,.85), inset 0 7px 14px rgba(255,255,255,.45),
+             inset 0 -7px 14px rgba(0,0,0,.10), var(--shadow-lg) }
+/* the sill: lit along its bottom edge, the way a pane sits in a frame */
+.drawer.otile.bd-bar.bdsty-aero{
+  box-shadow:inset 0 -5px 0 rgba(255,255,255,.55), inset 0 -6px 0 rgba(0,0,0,.10),
+             var(--shadow) }
+/* chrome: a hard bright rim with the reflection turned round on the underside */
+.drawer.otile.bd-gloss.bdsty-aero .dpanel{
+  inset:2px;border-radius:8px;
+  border-top:1.5px solid rgba(255,255,255,.9);border-left:1.5px solid rgba(255,255,255,.6);
+  border-right:1.5px solid rgba(255,255,255,.6);border-bottom:1.5px solid rgba(255,255,255,.35) }
+.drawer.otile.st-laid.ststy-aero{ background-image:
+  linear-gradient(180deg, rgba(255,255,255,.55), rgba(255,255,255,.05) 52%, rgba(255,255,255,.2)) }
+.drawer.otile.st-wove.ststy-aero{ background-image:
+  linear-gradient(96deg, rgba(255,255,255,.4), transparent 40%, rgba(255,255,255,.25) 72%, transparent) }
+/* acrylic: a thick sheet, so the edge is a lit band rather than a shadow */
+.drawer.otile.st-card.ststy-aero{ background-image:
+  linear-gradient(180deg, rgba(255,255,255,.42), rgba(255,255,255,.06));
+  box-shadow:inset 0 -4px 0 rgba(255,255,255,.5), inset 0 -5px 0 rgba(0,0,0,.10),
+             0 3px 6px rgba(0,0,0,.16) }
+.drawer.otile.st-aged.ststy-aero{ background-image:
+  radial-gradient(120% 90% at 78% 6%, rgba(255,246,200,.5), transparent 62%),
+  linear-gradient(180deg, rgba(255,255,255,.3), transparent 44%) }
+
 /* a coloured edge is a choice, not a default */
 .drawer.otile.edge{border-left:3px solid var(--c)}
 .drawer.otile:hover{filter:none;box-shadow:var(--shadow-lg)}
@@ -1324,6 +1591,134 @@ html[data-style="golf97"] .check,html[data-style="golf97"] .clbox{border-radius:
       color-mix(in srgb, var(--knob, var(--c)) 84%, #000) 72%,
       color-mix(in srgb, var(--knob, var(--c)) 62%, #000) 100%)}
 
+
+/* ---- filling in the five, everywhere — decision 100 --------------------
+   Every aesthetic *names* all five positions and several dressed only one or
+   two of them, which meant a knob picker offered "Faceted" and "Stud" and
+   handed you the same Victorian diamond and square either way. A slot that is
+   named and not made is worse than one that is neither: it promises. */
+
+/* Carca: cut stone and the brass works inside it. Position 0 is the boss and
+   position 3 the gear, both above; these are the rest. */
+/* faceted: a stone knocked to a hexagon rather than turned round */
+.pull.kn-diamond.knsty-carca{
+  border-radius:0;transform:none;
+  clip-path:polygon(50% 0%,93% 25%,93% 75%,50% 100%,7% 75%,7% 25%) }
+/* a bar handle on stone is an iron strap, so it is squared and bolted */
+.pull.kn-bar.knsty-carca{
+  border-radius:2px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.28), inset 0 -2px 3px rgba(0,0,0,.35),
+             0 1px 2px rgba(0,0,0,.4) }
+/* a stud is driven in, so it sits proud and casts a hard little shadow */
+.pull.kn-square.knsty-carca{
+  border-radius:2px;
+  box-shadow:inset 1px 1px 0 rgba(255,255,255,.35), inset -1px -2px 2px rgba(0,0,0,.4),
+             0 2px 2px rgba(0,0,0,.45) }
+
+/* Stelaine: everything here is lit from inside, and the family rule above
+   already does that — these say what shape the light is in. */
+/* an orb has no flat side at all, so the highlight is a small hard spot */
+.pull.kn-round.knsty-stelaine{
+  border-radius:50%;
+  background:radial-gradient(circle at 32% 26%, rgba(255,255,255,.9) 0 12%, transparent 34%),
+    radial-gradient(circle at 50% 55%,
+      color-mix(in srgb, var(--knob, var(--c)) 70%, #fff) 0%,
+      var(--knob, var(--c)) 52%,
+      color-mix(in srgb, var(--knob, var(--c)) 60%, #000) 100%) }
+/* a halo is a rim with nothing in it and the light behind it */
+.pull.kn-ring.knsty-stelaine{
+  border-width:calc(2.5px * var(--kscale,1));
+  border-color:color-mix(in srgb,var(--glow) 80%,transparent);
+  box-shadow:0 0 12px -1px color-mix(in srgb,var(--glow) 80%,transparent),
+             inset 0 0 8px -2px color-mix(in srgb,var(--glow) 60%,transparent) }
+/* a crystal is grown rather than cut, so its corners are uneven */
+.pull.kn-square.knsty-stelaine{
+  border-radius:1px;
+  clip-path:polygon(18% 0%,100% 12%,86% 100%,4% 82%) }
+/* a bar of this material is a shard laid on its side */
+.pull.kn-bar.knsty-stelaine{
+  border-radius:1px;
+  clip-path:polygon(0% 40%,6% 0%,96% 8%,100% 62%,92% 100%,4% 90%) }
+
+/* Girando: carved volcanic rock and wrought iron. Position 0 is the volute
+   and position 1 the lozenge, both above. */
+/* a bar here is a wrought handle, thicker in the middle than at its ends */
+.pull.kn-bar.knsty-girando{
+  border-radius:99px;
+  clip-path:polygon(0% 34%,10% 12%,90% 12%,100% 34%,100% 66%,90% 88%,10% 88%,0% 66%) }
+/* a ring on ironwork is a drop handle: a hoop with a boss above it */
+.pull.kn-ring.knsty-girando{
+  border-width:calc(5px * var(--kscale,1));
+  box-shadow:inset 0 2px 2px rgba(255,255,255,.30), inset 0 -2px 3px rgba(0,0,0,.4),
+             0 2px 3px rgba(0,0,0,.35) }
+/* a block is cut stone: square, chamfered, and lit on two faces only */
+.pull.kn-square.knsty-girando{
+  border-radius:2px;
+  box-shadow:inset 3px 3px 0 -1px rgba(255,255,255,.24),
+             inset -3px -3px 0 -1px rgba(0,0,0,.34),
+             0 2px 3px rgba(0,0,0,.35) }
+
+/* Golf 97: position 0 is the button, 2 the slider and 3 the dial, all above. */
+/* a tee is the little three-dimensional grip handle of a resizable window */
+.pull.kn-diamond.knsty-golf97{
+  transform:none;border-radius:0;
+  background:repeating-linear-gradient(135deg,
+    rgba(255,255,255,.75) 0 2px, transparent 2px 4px,
+    rgba(0,0,0,.35) 4px 6px, transparent 6px 8px), var(--knob, var(--c));
+  box-shadow:inset 2px 2px 0 rgba(255,255,255,.55), inset -2px -2px 0 rgba(0,0,0,.40),
+             0 0 0 1px rgba(0,0,0,.45) }
+/* a keycap is dished, so its top is a shade lighter than its skirt */
+.pull.kn-square.knsty-golf97{
+  border-radius:0;
+  background:linear-gradient(180deg,
+    color-mix(in srgb, var(--knob, var(--c)) 80%, #fff) 0 62%,
+    color-mix(in srgb, var(--knob, var(--c)) 88%, #000) 62%);
+  box-shadow:inset 2px 2px 0 rgba(255,255,255,.6), inset -2px -3px 0 rgba(0,0,0,.42),
+             0 0 0 1px rgba(0,0,0,.5) }
+
+/* Starful Gothic: a knob is **drawn**, like everything else here — an outline
+   with nothing inside it, at the same weight as the line round the tile. No
+   relief, no highlight, no body: this is the aesthetic that does not model
+   light, and a lit sphere sitting on a pencil drawing is the one thing that
+   would give it away. The filter is safe here for the reason it is safe on
+   `.dpanel` — a knob holds no text. */
+.pull.knsty-starry{
+  background:none;
+  border:1.5px solid color-mix(in srgb,var(--ink) 62%,transparent);
+  box-shadow:none;filter:url(#pencil) }
+.pull.kn-round.knsty-starry{border-radius:50%}
+.pull.kn-diamond.knsty-starry{border-radius:2px;transform:rotate(45deg)}
+.pull.kn-bar.knsty-starry{border-radius:99px}
+/* the ring is the one that is drawn twice, because that is all a ring can be
+   when the first line is already hollow */
+.pull.kn-ring.knsty-starry{
+  border-width:1.5px;border-color:color-mix(in srgb,var(--ink) 62%,transparent);
+  box-shadow:inset 0 0 0 2.5px transparent, inset 0 0 0 4px color-mix(in srgb,var(--ink) 45%,transparent) }
+.pull.kn-square.knsty-starry{border-radius:2px}
+
+/* Aeros: position 0 is the orb and 2 the bar, both from the family rule. */
+/* a gem is faceted, so the light breaks across it rather than sliding over it */
+.pull.kn-diamond.knsty-aero{
+  transform:none;border-radius:2px;
+  clip-path:polygon(50% 0%,100% 38%,50% 100%,0% 38%);
+  background:linear-gradient(200deg, rgba(255,255,255,.75) 0 30%, transparent 31%),
+    radial-gradient(circle at 44% 30%,
+      color-mix(in srgb, var(--knob, var(--c)) 78%, #fff) 0%,
+      var(--knob, var(--c)) 44%,
+      color-mix(in srgb, var(--knob, var(--c)) 66%, #000) 100%) }
+/* a halo is a lit rim of glass, so the light is on the ring and not behind it */
+.pull.kn-ring.knsty-aero{
+  background:none;border-width:calc(4px * var(--kscale,1));
+  border-color:color-mix(in srgb, var(--knob, var(--c)) 70%, #fff);
+  box-shadow:inset 0 1px 2px rgba(255,255,255,.7),
+             0 0 10px -2px color-mix(in srgb,var(--brass) 70%,transparent) }
+/* a chiclet is a rounded rectangle with the gloss sweep across its top half */
+.pull.kn-square.knsty-aero{
+  border-radius:5px;
+  background:linear-gradient(180deg, rgba(255,255,255,.7) 0 44%, rgba(255,255,255,.05) 45%),
+    linear-gradient(180deg,
+      color-mix(in srgb, var(--knob, var(--c)) 82%, #fff),
+      color-mix(in srgb, var(--knob, var(--c)) 84%, #000)) }
 
 /* ---- a cabinet wears two knobs ----------------------------------------
    A front that swings open has two doors, so it has two handles, one either
