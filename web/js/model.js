@@ -143,7 +143,7 @@ const BUILTIN_KINDS = {
      Both readings of "opens as a book" apply — `layout:'book'` pages through
      the scenes it holds, `read:'book'` pages through its own body — and they
      are different properties, so it carries both rather than choosing. */
-  story:   {face:'spine', narrative:true, nm:'Story',   ic:'book',    c:5, key:'M', ds:'Scenes, bound in order', size:[3,9], attrs:['text','container','relates'], layout:'book', read:'book',
+  story:   {face:'spine', binding:'ribbed', narrative:true, nm:'Story',   ic:'book',    c:5, key:'M', ds:'Scenes, bound in order', size:[3,9], attrs:['text','container','relates'], layout:'book', read:'book',
             body:'' },
   world:   {narrative:true, nm:'World',   ic:'star',    c:9, key:'F', ds:'The people, places and things a story is set in', size:[8,8], attrs:['text','container'], layout:'grid', body:'' },
   /* Four things that are made of other things, and were being kept as notes
@@ -157,9 +157,9 @@ const BUILTIN_KINDS = {
      attrs:['text','container','date','progress','media','relates'],
      seed:[{kind:'field', title:'Add to this film…'}],
      layout:'grid', size:[5,5], phoneSize:[5,5], body:'' },
-  novel:   {face:'spine', narrative:true, nm:'Novel', ic:'book', c:11, key:'#', ds:'Chapters, bound in order',
+  novel:   {face:'spine', binding:'tooled', narrative:true, nm:'Novel', ic:'book', c:11, key:'#', ds:'Chapters, bound in order',
      attrs:['text','container','relates'], layout:'book', read:'book', size:[3,9], phoneSize:[2,6], body:'' },
-  shortstory:{face:'spine', narrative:true, nm:'Short story', ic:'feather', c:14, key:'$', ds:'One story, its scenes in order',
+  shortstory:{face:'spine', binding:'label', narrative:true, nm:'Short story', ic:'feather', c:14, key:'$', ds:'One story, its scenes in order',
      attrs:['text','container','relates'], layout:'book', read:'book', size:[3,7], phoneSize:[2,5], body:'' },
   album:   {film:true, nm:'Album', ic:'music', c:10, key:'%', ds:'Tracks, in the order they play',
      attrs:['text','container','media','spawn'], spawnBy:'type', genKind:'audio',
@@ -464,6 +464,29 @@ const isContainer = o => !!o && has(o,'container');
 /* A face is how a container draws itself on its parent's board. A layout is
    how it arranges its children once opened. They used to be one property,
    which meant a checklist could not also be sorted when you opened it. */
+/* ---- how a book is bound ----------------------------------------------
+   A spine is the one face that is a *made object* rather than a layout — it
+   is the outside of a book, and the outside of a book is the binder's work.
+   Five, in the order a shelf acquires them: the plain cloth case, the gilt
+   rules a publisher put on it, the raised hubs of a hand-sewn leather back,
+   the full tooled panel, and the paper label somebody pasted on. Per object
+   then per type, like a border or a knob — ask `bindingOf(o)`. See
+   decision 87. */
+const BINDINGS = {
+  plain:  'Plain cloth',
+  banded: 'Gilt rules',
+  ribbed: 'Raised bands',
+  tooled: 'Tooled and gilt',
+  label:  'Paper label'
+};
+/* A name that isn't one of the five falls back rather than being stamped onto
+   the tile: `bn-` plus whatever was stored styles nothing, so a typo in an
+   imported backup would silently give a spine no binding at all. */
+const bindingOf = o => {
+  const b = (o && o.binding) || K(o&&o.kind).binding;
+  return BINDINGS[b] ? b : 'banded';
+};
+
 const FACES = {front:'Drawer front', checklist:'Checklist', project:'Project',
                calendar:'Calendar', moodboard:'Moodboard', timeline:'Timeline',
                spine:'Book spine'};
@@ -1194,6 +1217,7 @@ export { ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds, K,
   boardLocked,
   PRIOS, prioOf, prioName,
   REPEAT_UNITS, repeatOf, repeats, repeatSaid, repeatSpent, nextRepeat,
+  BINDINGS, bindingOf,
   KNOBSIZES, knobSizeOf, answered, iconOf, TSIZES, textSizeOf, mediaTypeOf, isPicture,
   isMedia, isPlayable, acceptFor, isDecor,
   spawnByOf, genKindOf, takesTyping, showsAddBox, keepsDone, showsContainers,

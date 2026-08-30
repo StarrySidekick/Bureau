@@ -263,6 +263,27 @@ name along. A magic one gets `magicspine`, which gilds the two bands it already
 has rather than the frame every other magic front wears — inset 5px on a tile one
 cell wide is the whole tile.
 
+**A spine is bound, and the binding is five choices.** `bindingOf(o)` — per
+object then per type, like a knob or a border slot — stamps `bn-<name>` and the
+rest is CSS: `plain` (cloth), `banded` (gilt rules, the default), `ribbed`
+(raised hubs), `tooled` (a double-ruled panel) and `label` (paper pasted on).
+Under all five the back is **round**, which is seven stops of one horizontal
+gradient and most of what makes it a book rather than a coloured rectangle.
+**Ornaments are a fixed thickness and a proportional position** — a cord is the
+same width on a pamphlet as on a folio, so every thickness is px and every
+position %; 5.5% hubs were four grey belts across a tall spine.
+
+The part that breaks is the *lettering*, not the ornament. The title runs
+vertically inside a `<b>` whose height is its inline length, and that `<b>` is
+the measuring frame — without a definite height `text-overflow` has nothing to
+measure. **Both places that draw a spine must wrap the title** (the container's
+face and the `sh-spine` object shape); one that forgets prints its title across
+the book. The three panelled bindings shorten that box, so their lettering is a
+step smaller — which is true of the real thing and is what lets a title that
+fills a plain spine still fit between two hubs. Gilt lettering carries a dark
+impression with it, because gold is a mid tone and several of the eleven slots
+are pale. See decision 87.
+
 **A style is a typeface, and that includes an object's words.** `--serif` is
 whatever the style declares; `.dname`, `.tiletext` and both inline editors are
 set in it. They were pinned to `--sans` — the system face — which meant a note

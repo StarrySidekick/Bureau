@@ -3,7 +3,7 @@ import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, chi
   rollup, streak, goalPct, projectStat, tlSpan, dev, spawnByOf, genKindOf, takesTyping, showsAddBox,
   knobSizeOf, answered, sortOf, spanOf, coversDay, lateOn, isLate, iconOf, textSizeOf,
   isPicture, isMedia, isPlayable, isDecor, mediaTypeOf, boardLocked, prioOf, repeatSaid,
-  calViewOf, weekStartOf, calCols } from './model.js';
+  calViewOf, weekStartOf, calCols, bindingOf } from './model.js';
 import { CELL, COLW, gridOf, lay, overlaps, boxOk, freeSpot, gridRows, sizeOfKind, ensureBox,
   pageRows } from './grid.js';
 import { create, toast, toggleDone } from './mutations.js';
@@ -463,10 +463,15 @@ function drawTile(o, arr, box){
      run out of room. One cell square is still the mark and nothing else, above:
      at 40px a spine has no length to set a name along either. */
   if(cont && (faceOf(o)==='spine' || box.w<=1)){
-    return `<button class="drawer dtile spinetile bd-none${sel}${
+    /* How it is bound is a property, the way a border or a knob is — five
+       answers, all of them CSS off one class. The three elements below are
+       what every binding has to work with: a head band, the title, and a tail
+       band; a binding that doesn't want a band hides it rather than the tile
+       rendering something different. See decision 87. */
+    return `<button class="drawer dtile spinetile bn-${bindingOf(o)} bd-none${sel}${
         has(o,'magic')?' magicspine':''}" data-drawer="${o.id}" style="--c:${colour};${place}">
       <span class="spinetop"></span>
-      <span class="spinetitle">${esc(o.title||'Untitled')}</span>
+      <span class="spinetitle"><b>${esc(o.title||'Untitled')}</b></span>
       ${/* A spine has no width for a chip, so what it totals is set at the foot
            the way a volume number is on a real one. */''}
       <span class="spinefoot">${rollup(o)?`<u class="spineroll">${esc(rollup(o))}</u>`:''}</span>
@@ -826,10 +831,14 @@ function drawTile(o, arr, box){
     </div>`;
   }
   if(shapeOf(o)==='spine'){
+    /* The `<b>` is the measuring frame, the same as on a container's spine —
+       the vertical writing mode lives on it, so a spine without one prints its
+       title across the book. A binding is a container's, so this one wears no
+       `bn-` class and keeps the head and tail bands it has always had. */
     return `<button class="drawer otile sh-spine spinetile${sel}" data-row="${o.id}" style="--c:${colour};${place}">
       ${chips}
       <span class="spinetop"></span>
-      <span class="spinetitle">${esc(o.title||'Untitled')}</span>
+      <span class="spinetitle"><b>${esc(o.title||'Untitled')}</b></span>
       <span class="spinefoot"></span>
       ${handles}
     </button>`;

@@ -9,7 +9,8 @@ import { S, K, KINDS, KEYS, T, ATTRS, USER_ATTRS, FIELDS, fieldOf, OPS, ROLLS,
   PRIOS, prioOf, prioName, REPEAT_UNITS, repeatOf, repeats, repeatSaid,
   relatedTo, backlinksTo, streak, goalPct,
   CALVIEWS, calViewOf, weekStartOf, showsWeekends, KNOBSIZES, knobSizeOf,
-  TSIZES, textSizeOf, mediaTypeOf, isPicture, isMedia, isDecor } from './model.js';
+  TSIZES, textSizeOf, mediaTypeOf, isPicture, isMedia, isDecor,
+  BINDINGS, bindingOf } from './model.js';
 import { GRID, lay, boxOk, freeSpot, sizeOfKind, toPhoneSize } from './grid.js';
 import { randomBoard, randomFront, hexOf, objColour, objSlots, palNow, OBJ0, borderSlots } from './look.js';
 import { CLICKS, clickOf, gridTile, pending } from './tiles.js';
@@ -451,6 +452,10 @@ function objectPanelBody(id, sec){
      a desk is a container, and what it is made of is its own question. */
   if(!isRoot) out.push(cont
     ? prow('Face', psel(id,'face', Object.entries(FACES), faceOf(d)), 'on its parent’s board')
+      + (faceOf(d)==='spine' || (d[dev()]||{}).w<=1
+          ? prow('Binding', psel(id,'binding', Object.entries(BINDINGS), bindingOf(d)),
+              'how the book is bound — the spine is the one face that is a made object')
+          : '')
     : prow('Shape', psel(id,'shape', Object.entries(SHAPES), shapeOf(d))));
   if(!isRoot) out.push(prow(cont?'Front':'Colour', swatches(id,'c', d.c)));
   /* The mark, per object. A type carries one and every object of that type wore

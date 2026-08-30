@@ -2926,3 +2926,66 @@ Rasterising one is the single thing that throws away what an SVG is for — it
 would come back resampled at whatever size it happened to be, and a decoration
 is a thing you stretch. The source is stored as the asset; a PNG still goes
 through the existing downscale, keeping its alpha.
+
+---
+
+## 87. A spine is bound, and the binding is five choices
+
+*2026-08-30*
+
+The spine face — a container one cell wide, or one that asks for it — had been
+a coloured rectangle with two gold bands and the title running up it. That is
+a reasonable book from ten feet away and nothing at all from two, which is the
+distance a phone is held at.
+
+**The back is round.** A book seen spine-on is a cylinder, not a card: the
+hinge is in shadow, the crown catches the light about a third of the way
+across, and the outer edge falls away again. That is seven stops of one
+horizontal gradient, and it is doing most of the work — it is the whole
+difference between a book and a coloured rectangle, and it is under all five
+bindings.
+
+**Five bindings, in the order a shelf acquires them.** `binding` on the object,
+then on the type, read through `bindingOf(o)`, exactly like a knob or a border
+slot; it stamps `bn-<name>` on the tile and everything else is CSS.
+
+- **Plain cloth** — the case and the lettering, nothing else.
+- **Gilt rules** — a pair blocked at head and tail. The default, and what the
+  old spine was.
+- **Raised bands** — the hubs of a hand-sewn leather back, four of them, each
+  lit along the top and shaded under, with gilt fillets either side. The title
+  sits in the wide middle panel, where a binder puts it.
+- **Tooled and gilt** — a double-ruled panel around the title, the head and
+  tail rules outside it. The double rule is a `border` plus an `outline` at an
+  `outline-offset`, which holds two hairlines a fixed distance apart at any
+  size; four background gradients could not, and read as scattered dust.
+- **Paper label** — cream stock pasted on, above the middle where a spine is
+  read at eye level, with the title in the page's own dark ink. The one
+  binding whose lettering is not light.
+
+Three of them draw on `::before`, which is free on a spine — the gilt frame is
+`.magicspine` and the textures are on `::after`.
+
+**An ornament is a fixed thickness and a proportional position.** A cord under
+the leather and a wheel run along it are the same width on a pamphlet as on a
+folio; only *where* they fall scales with the book. So every thickness is in
+px and every position in %. The first pass had 5.5% hubs, which on a tall
+spine were four grey belts across it.
+
+**The lettering is the part that breaks, not the ornament.** The title runs in
+a vertical writing mode inside a `<b>` whose *height* is its inline length —
+so the box needs a definite height for `text-overflow` to have anything to
+measure, and the `<b>` exists precisely to be that frame while the flex box
+around it does the centring. Three of the five shorten that box to a panel
+between the ornaments, which is why panelled lettering is a step smaller than
+lettering run the length of a spine: it is true of the real thing, and it is
+what lets a title that fills a plain spine still fit between two hubs. Both
+places that draw a spine must wrap the title — the container's face and the
+`sh-spine` object shape — and a spine that forgets prints its title across the
+book rather than up it.
+
+**Gilt is a mid tone, so it carries its own impression.** Gold lettering
+disappears on a pale cover, and several of the eleven slots are pale. Real
+gilt is stamped into the cloth and sits in a debossed letter, so the type
+carries that shadow with it and reads on a light ground as well as a dark one
+— rather than the app picking a different colour behind the user's back.

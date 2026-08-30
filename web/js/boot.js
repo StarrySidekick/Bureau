@@ -3,7 +3,7 @@
    ============================================================ */
 import { $ } from './util.js';
 import { S, KINDS, SHAPES, SORTS, childrenOf, container, relate, deskOf, has, lateOn, isLate,
-  prioOf, repeatOf, repeatSaid, nextRepeat, boardLocked } from './model.js';
+  prioOf, repeatOf, repeatSaid, nextRepeat, boardLocked, BINDINGS, bindingOf } from './model.js';
 import { pageRows, freeSpot, boxOk } from './grid.js';
 import { create, setPin, togglePin, del, delMany, delDrawer, undo, redo, toggleDone, spawnNext, setGridSize } from './mutations.js';
 import { applyLook } from './look.js';
@@ -102,6 +102,8 @@ window.BUREAU = {
   get SPRAYS(){ return SPRAYS; },
   // the ten that ship, so a test can walk them without importing the module
   get decor(){ return DECOR; }, boxOk,
+  // how a book is bound — decision 87
+  get BINDINGS(){ return BINDINGS; }, bindingOf,
   kids: id => childrenOf(container(id)).map(o=>o.id),
   // which desk something is on — the dots by the title answer with it
   deskOf,

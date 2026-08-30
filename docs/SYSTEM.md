@@ -227,6 +227,15 @@ it is what makes a container adapt to any shape rather than run out of them. One
 cell **square** is still the mark and nothing else — at 40px a spine has no
 length to set a name along either.
 
+**And a spine is bound.** `binding`, per object then per type, read through
+`bindingOf(o)`: **Plain cloth**, **Gilt rules** (the default), **Raised bands**,
+**Tooled and gilt**, **Paper label**. It stamps `bn-<name>` on the tile and
+every difference between the five is CSS, the way a border slot is. Under all
+of them the back is round — a horizontal gradient with the hinge in shadow, the
+crown lit a third of the way across and the outer edge falling away. The row
+sits in the object editor under Look, and only for a container that is drawing
+as a spine. See decision 87.
+
 **A container can take dictation, and the box is opt-in.** `spawn` with
 `spawnBy:'type'` puts a box at the top of it — inside it always, and on its
 front only when asked. Ask `showsAddBox(c, box)` for whether it is drawn on the

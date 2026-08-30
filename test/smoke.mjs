@@ -2118,8 +2118,13 @@ const CHROME = process.env.BUREAU_CHROME;
        drawer — and a book seen spine-on is the shape that already solved that. */
     const col = document.querySelector(`.grid .drawer[data-drawer="${thin.id}"]`);
     const ttl = col && col.querySelector('.spinetitle');
-    out.oneCellWideIsASpine = !!ttl && ttl.textContent.trim() === 'Column'
-      && /vertical/.test(getComputedStyle(ttl).writingMode);
+    /* The writing mode is on the `<b>` inside, not on the box — the box is the
+       flex frame that gives the rotated line a definite length to be measured
+       and ellipsised against. A spine whose markup forgets the wrapper prints
+       its title across the book, so the wrapper is what this asks for. */
+    const run = ttl && ttl.querySelector('b');
+    out.oneCellWideIsASpine = !!run && run.textContent.trim() === 'Column'
+      && /vertical/.test(getComputedStyle(run).writingMode);
     [tall,wide,big,flat,thin].forEach(d => BUREAU.delDrawer(d.id));
     S.undo=[]; BUREAU.render();
     return out;
@@ -3230,6 +3235,56 @@ const CHROME = process.env.BUREAU_CHROME;
       .every(n => names.has(n));
   });
 
+  /* --- how a book is bound — decision 87 --------------------------------
+     Five bindings, all of them CSS off one class. What can actually go wrong
+     here is not the ornament — it is the *title*: a spine's lettering runs in
+     a vertical writing mode inside a box whose length is the tile's height, and
+     three of the five shorten that box to a panel between the ornaments. So
+     this asks that every binding draws, and that the title still fits inside
+     the room its binding left it. */
+  const bindings = await page.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const S = BUREAU.state, out = {};
+    const names = Object.keys(BUREAU.BINDINGS);
+    out.fiveOfThem = names.length === 5;
+    const made = names.map((bn, i) => {
+      const o = { id: 'bind' + i, kind: 'drawer', title: 'The Wide Sargasso Sea',
+        parent: 'root', face: 'spine', binding: bn, c: 4,
+        desk: BUREAU.free(1, 6, 'root') };
+      o.desk.w = 1; o.desk.h = 6; S.objects.push(o); return o;
+    });
+    BUREAU.render(); await nap(150);
+    const tile = o => document.querySelector(`.grid .drawer[data-drawer="${o.id}"]`);
+    // each one says which binding it is, and the front is a spine
+    out.eachSaysWhichItIs = made.every((o, i) =>
+      tile(o) && tile(o).classList.contains('bn-' + names[i]));
+    /* The ornaments are drawn on `::before` for three of the five, so what is
+       measurable is that those three put something there and the other two
+       do not — an empty `::before` would be a binding that draws nothing. */
+    const drawn = o => { const cs = getComputedStyle(tile(o), '::before');
+      return cs.content !== 'none' && cs.width !== 'auto'; };
+    out.threeCarryOrnament = ['ribbed','tooled','label']
+      .every(bn => drawn(made[names.indexOf(bn)]));
+    out.andTwoAreBare = ['plain','banded']
+      .every(bn => !drawn(made[names.indexOf(bn)]));
+    // the title runs up the spine, in every one of them
+    const run = o => tile(o) && tile(o).querySelector('.spinetitle b');
+    out.everyTitleRunsUp = made.every(o => run(o)
+      && /vertical/.test(getComputedStyle(run(o)).writingMode));
+    /* A title longer than its box is ellipsised, and on a six-cell spine this
+       one should not be — that is the whole reason the panels are the size
+       they are and the panelled lettering is a step smaller. */
+    out.everyTitleFits = made.every(o => run(o).scrollHeight <= run(o).getBoundingClientRect().height + 1);
+    // a binding is per object then per type, like every other look
+    out.perObjectThenPerType = BUREAU.bindingOf({ kind: 'novel', binding: 'plain' }) === 'plain'
+      && BUREAU.bindingOf({ kind: 'novel' }) === 'tooled';
+    // nonsense falls back rather than stamping a class nothing styles
+    out.nonsenseFallsBack = BUREAU.bindingOf({ binding: 'crocodile' }) === 'banded';
+    made.forEach(o => BUREAU.delDrawer(o.id));
+    S.undo = []; BUREAU.render();
+    return out;
+  });
+
   /* --- things come out of a tile when you touch it ----------------------
      Real physics on a canvas rather than a keyframe, so what is asserted is
      that bits exist, that they move, and that they clear up after themselves
@@ -3405,7 +3460,7 @@ const CHROME = process.env.BUREAU_CHROME;
     paletteKeys, editorKeys, pickerLeads, rollupsEverywhere, soundAndVision, keyboardBoard,
     ranking, repeating, oneLock, scheduling, ownColour, addBox, calFaces,
     lockedBoard, freeTraits, pageWrites, tickBoxes, readerFits,
-    dropsIn, keyframesRegistered, theSpray, decorations, pinboard
+    dropsIn, keyframesRegistered, bindings, theSpray, decorations, pinboard
   }, null, 2));
   await browser.close();
 })();

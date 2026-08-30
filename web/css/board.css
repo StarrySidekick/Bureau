@@ -536,24 +536,154 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
 .drawer.otile.sh-plaque .dname{font-family:var(--serif);letter-spacing:.02em;text-align:center}
 /* a story is a book seen spine-on — and a container, so this can't be scoped
    to .otile the way the other shapes are */
+/* ---- a book, seen spine-on — decision 87 ------------------------------
+   The **back is round**, so the light does not fall on it evenly: the hinge at
+   the left is in shadow, the crown catches the light a third of the way
+   across, and the outer edge falls away again. That curve is the whole
+   difference between a book and a coloured rectangle, and it is four stops of
+   one gradient rather than the two flat edges it used to be. */
 .drawer.spinetile{
-  background:linear-gradient(90deg,color-mix(in srgb,var(--c) 68%,#000) 0 6%,var(--c) 6% 92%,color-mix(in srgb,var(--c) 70%,#000) 92%);
-  border-radius:2px 4px 4px 2px;align-items:center;justify-content:center;padding:10px 0;overflow:hidden;
-  box-shadow:var(--shadow), inset -3px 0 6px rgba(0,0,0,.25);
+  background:linear-gradient(90deg,
+    color-mix(in srgb, var(--c) 58%, #000) 0 3%,
+    color-mix(in srgb, var(--c) 78%, #000) 3% 12%,
+    var(--c) 34%,
+    color-mix(in srgb, var(--c) 90%, #fff) 42%,
+    var(--c) 62%,
+    color-mix(in srgb, var(--c) 74%, #000) 88%,
+    color-mix(in srgb, var(--c) 52%, #000) 96% 100%);
+  border-radius:3px 5px 5px 3px;align-items:center;justify-content:center;
+  padding:10px 0;overflow:hidden;
+  box-shadow:var(--shadow), inset 0 1px 0 rgba(255,255,255,.14);
 }
-.spinetop,.spinefoot{width:64%;height:3px;background:rgba(255,255,255,.42);border-radius:2px;flex:0 0 auto}
+/* the head and tail bands every binding starts from */
+.spinetop,.spinefoot{width:62%;height:2px;background:var(--glow);opacity:.85;
+  border-radius:1px;flex:0 0 auto}
 /* A spine that collects rather than holds. The gilt frame every other magic
    front wears is inset 5px, which on a tile one cell wide is the whole tile —
    so a spine says it in the two bands it already has, which is where a real
    gilded one says everything anyway. */
 .drawer.spinetile.magicspine .spinetop,
-.drawer.spinetile.magicspine .spinefoot{background:var(--glow);height:4px;opacity:.9}
+.drawer.spinetile.magicspine .spinefoot{background:var(--glow);height:4px;opacity:1;
+  box-shadow:0 0 6px color-mix(in srgb,var(--glow) 60%,transparent)}
+
+/* ---- the five bindings ------------------------------------------------
+   All of it is CSS off one class, the same way a border slot is: the tile
+   renders a head band, a title and a tail band, and each binding decides what
+   those are and what else is drawn behind them. `::before` is free on a spine
+   — the gilt frame is `.magicspine` here and the textures use `::after`. */
+
+/* An ornament is a fixed thickness, never a fraction of the spine. A hub is a
+   cord under the leather and a rule is a wheel run along it: both are the same
+   width on a pamphlet and on a folio, and only *where* they fall scales with
+   the book. Every thickness below is therefore in px and every position in %.
+   The first pass had 5.5% hubs, which on a tall spine were four grey belts. */
+
+/* Plain cloth: the case and the lettering, nothing else. */
+.bn-plain .spinetop,.bn-plain .spinefoot{display:none}
+
+/* Gilt rules: a pair at head and tail, the way a publisher's cloth is
+   blocked. This is the one it starts with. */
+.bn-banded .spinetop,.bn-banded .spinefoot{
+  width:64%;height:0;border-top:1.5px solid var(--glow);
+  border-bottom:1.5px solid var(--glow);padding:2.5px 0;background:none;opacity:.9}
+
+/* Raised bands: the hubs of a hand-sewn back, where the cords sit under the
+   leather. Four of them, each lit along the top and shaded under — a hub is a
+   ridge, so a flat line will not do, but the lit part is a *highlight* and the
+   body of the band is still the leather's own colour. Gilt fillets run either
+   side of each, which is what a binder tools once the bands are on. The title
+   sits in the wide middle panel, which is where it sits on a real one. */
+.bn-ribbed::before{
+  content:"";position:absolute;left:0;right:0;top:0;bottom:0;
+  pointer-events:none;z-index:1;
+  --hub:linear-gradient(180deg,
+    rgba(0,0,0,.26) 0 1px,
+    rgba(255,255,255,.26) 1px 30%,
+    rgba(255,255,255,.06) 30% 52%,
+    rgba(0,0,0,.16) 52% 82%,
+    rgba(0,0,0,.34) 82% calc(100% - 1px),
+    rgba(0,0,0,.10) calc(100% - 1px));
+  --fillet:linear-gradient(var(--glow),var(--glow));
+  background:
+    var(--hub) 0 5%/100% 9px no-repeat,
+    var(--hub) 0 15%/100% 9px no-repeat,
+    var(--hub) 0 85%/100% 9px no-repeat,
+    var(--hub) 0 95%/100% 9px no-repeat,
+    var(--fillet) 50% calc(5% - 4px)/60% 1px no-repeat,
+    var(--fillet) 50% calc(15% + 4px)/60% 1px no-repeat,
+    var(--fillet) 50% calc(85% - 4px)/60% 1px no-repeat,
+    var(--fillet) 50% calc(95% + 4px)/60% 1px no-repeat;
+}
+.bn-ribbed .spinetop,.bn-ribbed .spinefoot{display:none}
+/* the panel between the second and third hub, which is the title's */
+.bn-ribbed .spinetitle{position:absolute;left:0;right:0;top:19%;bottom:19%}
+
+/* Tooled and gilt: a double-ruled panel around the title, with the head and
+   tail bands outside it. The double rule is a border and an outline offset
+   from it — two hairlines a fixed distance apart at any size, which is what
+   four background gradients could not manage. */
+.bn-tooled .spinetop,.bn-tooled .spinefoot{
+  width:70%;height:0;border-top:1px solid var(--glow);border-bottom:2px solid var(--glow);
+  padding:3px 0;background:none;opacity:.95}
+.bn-tooled::before{
+  content:"";position:absolute;left:14%;right:14%;top:11%;bottom:11%;
+  pointer-events:none;z-index:1;border-radius:1px;
+  border:1px solid var(--glow);
+  outline:1px solid var(--glow);outline-offset:3px;
+  opacity:.85;
+}
+.bn-tooled .spinetitle{position:absolute;left:0;right:0;top:15%;bottom:15%}
+
+/* A paper label, pasted on: cream stock with a hairline rule, the title in
+   the page's own ink rather than in gilt. Labels sit above the middle — the
+   part of a spine you read at eye level on a shelf — so it is not centred, and
+   the title is positioned to match rather than left to find its own way. */
+.bn-label::before{
+  content:"";position:absolute;left:11%;right:11%;top:12%;bottom:24%;z-index:1;
+  pointer-events:none;background:var(--paper-2,#F1EBDA);
+  box-shadow:0 1px 3px rgba(0,0,0,.28), inset 0 0 0 1px rgba(0,0,0,.14);
+  border-radius:1px;
+}
+.bn-label .spinetitle{position:absolute;left:0;right:0;top:15%;bottom:27%}
+.bn-label .spinetop,.bn-label .spinefoot{width:50%;opacity:.55}
+
+/* Taking the title out of the flow leaves the head and tail bands as the only
+   two flex items, and a centred flex box stacks them in the middle — which put
+   a double gilt rule straight through the lettering. They belong at the ends.
+   Two classes deep, because `.drawer.spinetile` is what centres them. */
+.drawer.spinetile.bn-tooled,
+.drawer.spinetile.bn-label{justify-content:space-between}
+
+/* Lettering inside a panel is smaller than lettering run the length of a
+   spine — that is true of the real thing, and it is what lets a title that
+   fills a plain spine still fit between two hubs. */
+.bn-ribbed .spinetitle b,.bn-tooled .spinetitle b,
+.bn-label .spinetitle b{font-size:13px}
 /* One cell wide is the commonest spine there is now, so it gets the padding
    rather than inheriting the narrow front's. */
 .drawer.dtile.spinetile.sz-thin,.drawer.dtile.spinetile.sz-narrow{padding:9px 0}
-.spinetitle{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;
-  writing-mode:vertical-rl;transform:rotate(180deg);font-family:var(--serif);font-size:14px;
-  color:#F8F3E6;letter-spacing:.03em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* The title runs up the spine. `<b>` inside carries the type so the flex box
+   can stay the measuring frame — a rotated element that is also the ellipsis
+   container clips at the wrong end. */
+.spinetitle{flex:1;min-height:0;min-width:0;z-index:2;position:relative;
+  display:flex;align-items:center;justify-content:center;overflow:hidden}
+.spinetitle b{writing-mode:vertical-rl;transform:rotate(180deg);
+  font-family:var(--serif);font-size:14px;font-weight:600;
+  color:#F8F3E6;letter-spacing:.045em;
+  /* In vertical writing the *inline* axis is the height, so a definite height
+     is what gives `text-overflow` a length to measure against. With max-height
+     the box stayed auto, the line overflowed both ends and the clip took the
+     first letter off instead of the last. */
+  height:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  text-shadow:0 1px 0 rgba(0,0,0,.35)}
+.bn-label .spinetitle b{color:var(--ink,#2A2118);text-shadow:none;font-weight:600}
+/* Gilt lettering on the bindings that have gilt on them. Gold is a *mid* tone,
+   so on a pale cover it disappears — and the eleven slots include several. Real
+   gilt is stamped into the cloth and sits in its own impression, so the letter
+   carries that shadow with it and reads on a light ground as well as a dark. */
+.bn-banded .spinetitle b,.bn-tooled .spinetitle b{
+  color:var(--glow);
+  text-shadow:0 1px 0 rgba(0,0,0,.55), 0 0 2px rgba(0,0,0,.4)}
 /* a question with rounder corners */
 .drawer.otile.sh-bubble{border-radius:18px 18px 18px 3px}
 /* A timeline. The rule sits in the middle of the wrap rather than at the top,
