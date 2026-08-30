@@ -632,8 +632,12 @@ const CHROME = process.env.BUREAU_CHROME;
     // and a seeded child does not seed in turn (the test made one of its own
     // earlier, so count only what this project put inside itself)
     const noRunaway = kids.length === 1;
+    /* One shape across the three, because the claim is about knob *size*. A
+       new drawer rolls its own knob now (decision 92) and a bar is far wider
+       than a round one, so leaving the shape to chance compares two things at
+       once and fails on the shape rather than the size. */
     const sizes = ['sm','md','lg'].map(k => {
-      const d = BUREAU.create('drawer', { parent:'root', title:k });
+      const d = BUREAU.create('drawer', { parent:'root', title:k, knob:'round' });
       d.knobsize = k; d.desk = BUREAU.free(4, 4);
       return d;
     });
@@ -1793,15 +1797,20 @@ const CHROME = process.env.BUREAU_CHROME;
        — a rainbow foil under a highlight, both sliding about with how the phone
        was tilted — and it was tacky: furniture does not shimmer at you. Gone,
        along with the two numbers on #frame that drove it. See decision 42. */
+    /* `.bd-gilt`, not `.magicdrawer`: the gilt is a border slot now and no
+       longer arrives with a drawer's behaviour (decision 94). The claim is
+       about the *gilt* either way — that it is laid on and does not move. */
+    const gt = BUREAU.create('drawer', { parent:'root', title:'Gilt', border:'gilt' });
     BUREAU.render(); await nap(150);
-    const mt = document.querySelector('.drawer.magicdrawer');
+    const mt = document.querySelector(`.grid .drawer[data-drawer="${gt.id}"]`);
     out.giltDoesNotAnimate = !!mt && getComputedStyle(mt).animationName === 'none';
     out.stillGilded = !!mt && /gradient/.test(getComputedStyle(mt).backgroundImage);
-    const before = getComputedStyle(mt).backgroundImage;
+    const before = mt ? getComputedStyle(mt).backgroundImage : '';
     document.querySelector('#frame').style.setProperty('--holox', '0.05');
-    out.nothingTracksTheLight = getComputedStyle(mt).backgroundImage === before
+    out.nothingTracksTheLight = !!mt && getComputedStyle(mt).backgroundImage === before
       && !/repeating-linear-gradient/.test(before);
     document.querySelector('#frame').style.removeProperty('--holox');
+    BUREAU.delDrawer(gt.id); S.undo=[]; S.redo=[]; BUREAU.render();
     return out;
   });
 
@@ -3314,17 +3323,42 @@ const CHROME = process.env.BUREAU_CHROME;
     out.grainsVary  = spread('texture') > 1;
     out.panelsVary  = spread('panel')   > 1;
     out.coloursVary = spread('c')       > 1;
-    // …and it still reads as this aesthetic: the stated default is the mode
-    const commonest = k => { const n = {};
-      made.forEach(o => { n[o[k]] = (n[o[k]]||0) + 1; });
-      return Object.keys(n).sort((a,b)=>n[b]-n[a])[0]; };
+    /* …and it still reads as this aesthetic. **Sampled from the generator, not
+       from twenty objects.** The first version of this took the *mode* of
+       twenty and asked for the aesthetic's own answer — which a three-in-seven
+       weighting does not reliably win, and it duly failed one run in three.
+       Weighting is a claim about a distribution, so it has to be asked of one:
+       four hundred draws puts the default's share far above the one-in-five a
+       uniform pick would give, with no run-to-run luck left in it. */
     const sd = BUREAU.styles.victorian.defaults;
-    out.stillLeansToTheAesthetic = commonest('knob') === sd.knob
-      && commonest('panel') === sd.panel;
+    const N = 400, tally = { knob:0, panel:0, border:0, texture:0 };
+    for (let i = 0; i < N; i++) { const r = BUREAU.randomLook();
+      Object.keys(tally).forEach(k => { if (r[k] === sd[k]) tally[k]++; }); }
+    out.stillLeansToTheAesthetic =
+      Object.keys(tally).every(k => tally[k] / N > 0.30);
+    // …and never so far that it is the only answer
+    out.butIsNotTheOnlyAnswer =
+      Object.keys(tally).every(k => tally[k] / N < 0.75);
     made.forEach(o => BUREAU.delDrawer(o.id));
     /* the two new ornaments, which the `decorations` block above already holds
        to the tight-box and flush-to-the-floor rules along with the other ten */
     out.gearworkAndVolute = !!BUREAU.decor.cog && !!BUREAU.decor.volute;
+    /* **The gilt frame is an edge, not a privilege** (decision 94). It used to
+       appear on a magic drawer by fiat — the one ornament nobody could choose
+       and nobody could decline. */
+    out.giltIsASlot = BUREAU.borderSlots().some(([k]) => k === 'gilt');
+    const mg = BUREAU.create('drawer', { parent:'root', title:'Collects',
+      attrs:['container','magic'], filter:{ rules:[] } });
+    const gl = BUREAU.create('drawer', { parent:'root', title:'Gilt', border:'gilt' });
+    BUREAU.render(); await nap(200);
+    const framed = id => getComputedStyle(
+      document.querySelector(`.grid .drawer[data-drawer="${id}"]`), '::before').content !== 'none';
+    out.magicNoLongerTakesIt = !framed(mg.id);
+    // …but it still says what it is, which is a fact about behaviour
+    out.andStillSaysItCollects =
+      !!document.querySelector(`.grid .drawer[data-drawer="${mg.id}"] .magicmark`);
+    out.anyFrontMayWearIt = framed(gl.id);
+    [mg, gl].forEach(o => BUREAU.delDrawer(o.id));
     /* **A panelling is a slot, like an edge and a colour** (decision 93). Every
        aesthetic names all five in its own vocabulary, and what is stored is the
        *position* — so a front you made a raised panel is an ashlar block in
@@ -3522,14 +3556,19 @@ const CHROME = process.env.BUREAU_CHROME;
     out.cockbeadByDefault = BUREAU.panelOf({ kind:'drawer' }) === 'cockbead';
     out.nonsenseFallsBack = BUREAU.panelOf({ panel:'walnut' }) === 'cockbead';
     out.perObject = BUREAU.panelOf({ kind:'drawer', panel:'ogee' }) === 'ogee';
-    /* A magic front already wears a ruled gilt frame inset 5px. Two gilt
-       frames on one drawer is a picture frame shop, so the ogee gives up its
-       lines and keeps its sunk ground. */
-    const m = S.objects.find(o => BUREAU.has(o,'magic') && o.parent==='root');
-    if (m) { const was = m.panel; m.panel='ogee'; BUREAU.render(); await nap(200);
-      out.oneGiltFramePerDrawer =
-        getComputedStyle(tile(m).querySelector('.dpanel'),'::after').content === 'none';
-      m.panel = was; }
+    /* A gilt-edged front already wears a ruled frame inset 5px. Two gilt frames
+       on one drawer is a picture frame shop, so the ogee gives up its lines and
+       keeps its sunk ground. Asked of a drawer wearing the **gilt edge**, not a
+       magic one: the frame is a border slot now and a magic drawer no longer
+       gets it for free (decision 94), so keying this on behaviour would be
+       asserting the old rule. */
+    const gm = { id:'panGilt', kind:'drawer', title:'Gilt', parent:'root',
+      border:'gilt', panel:'ogee', c:6,
+      desk:Object.assign(BUREAU.free(3,3,'root'), {w:3,h:3}) };
+    S.objects.push(gm); BUREAU.render(); await nap(200);
+    out.oneGiltFramePerDrawer =
+      getComputedStyle(tile(gm).querySelector('.dpanel'),'::after').content === 'none';
+    BUREAU.delDrawer(gm.id);
     made.forEach(d => BUREAU.delDrawer(d.id));
     S.undo=[]; S.redo=[]; BUREAU.render();
     return out;

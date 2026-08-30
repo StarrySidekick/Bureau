@@ -331,7 +331,7 @@
    with it — see the note at the top of motion.js and decision 42.
 
    What is left is the gilt, and the gilt does not move. */
-.drawer.magicdrawer{
+.drawer.bd-gilt{
   /* leaf laid on the front, not light playing across it: one wash from the
      style's own Glow, held to the top edge where a lamp would put it */
   background-image:linear-gradient(178deg,
@@ -340,7 +340,7 @@
 }
 /* the ruled frame: a hairline of leaf held off the edge, with the corners
    thickened into brackets — four gradients rather than four elements */
-.drawer.magicdrawer::before{
+.drawer.bd-gilt::before{
   content:"";position:absolute;inset:5px;pointer-events:none;z-index:1;
   border:1px solid color-mix(in srgb, var(--glow) 52%, transparent);
   border-radius:1px;
@@ -356,7 +356,7 @@
   opacity:.8;
 }
 /* too small to rule: at one or two cells the frame would be the whole tile */
-.drawer.magicdrawer.sz-mini::before{content:none}
+.drawer.bd-gilt.sz-mini::before{content:none}
 .clcount{margin-left:auto;font-size:11px;color:var(--dink-3);font-variant-numeric:tabular-nums}
 /* checklist: the contents, tickable, on the front of the tile.
    The face is a stack of task-sized lines — one per cell of height, counted
@@ -1076,7 +1076,7 @@ html[data-style="starry"] .drawer.dtile .dpanel{
   border:1.5px solid color-mix(in srgb,var(--ink) 52%,transparent);
   filter:url(#pencil);
 }
-html[data-style="starry"] .drawer.dtile.magicdrawer::before{ filter:url(#pencil) }
+html[data-style="starry"] .drawer.dtile.bd-gilt::before{ filter:url(#pencil) }
 /* One cell square is the type's mark and nothing else, and a 40px box with a
    3px wander on it is a scribble rather than a line. */
 html[data-style="starry"] .drawer.dtile.sz-mini .dpanel{display:none}
@@ -1276,8 +1276,8 @@ html[data-style="aero"] .drawer.dtile.bd-bar{
 .drawer.dtile.sz-short .pull,.drawer.dtile.sz-thin .pull{opacity:.5}
 .drawer.dtile.sz-thin{padding:4px}
 
-/* A magic drawer is dotted, not dashed */
-.drawer.magicdrawer{ border-style:solid;border-width:1px;
+/* the gilt edge carries its own hairline, in leaf rather than in the line slot */
+.drawer.bd-gilt{ border-style:solid;border-width:1px;
   border-color:color-mix(in srgb, var(--glow) 62%, transparent) }
 
 /* A drawer front: a name and a pull, nothing else. What's inside is inside. */

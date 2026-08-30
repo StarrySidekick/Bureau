@@ -235,7 +235,7 @@ function calSoon(o, n){
    agenda is the same edge-to-edge rows a two-by-two one is; the month keeps
    both once it is bigger than three cells a side, where there is room for
    them. See decisions 79 and 80. */
-const calBorder = (o, snug) => `${snug?' calsnug':''}${has(o,'magic')?' magicdrawer':''}${
+const calBorder = (o, snug) => `${snug?' calsnug':''}${
   snug && has(o,'magic') ? '' : ` bd-${o.border||'panel'}`}`;
 
 /* An agenda row: when first, then what — a calendar's own order of asking. */
@@ -458,7 +458,7 @@ function drawTile(o, arr, box){
     }
     const mark = cont && has(o,'magic') ? 'sparkle' : iconOf(o);
     return `<button class="drawer ${cont?`dtile bd-${o.border||'panel'}`:'otile'} minitile${sel}${
-        cont&&has(o,'magic')?' magicdrawer':''}"
+        ''}"
       ${cont?`data-drawer="${o.id}"`:`data-row="${o.id}"`} title="${esc(o.title||'Untitled')}"
       style="--c:${colour};${place}">
       <span class="minimark">${ic(mark,17)}</span>
@@ -494,9 +494,9 @@ function drawTile(o, arr, box){
        band; a binding that doesn't want a band hides it rather than the tile
        rendering something different. See decision 87. */
     const si = spineInk(colour);
-    return `<button class="drawer dtile spinetile bn-${bindingOf(o)} bd-none${sel}${
-        si.dark?' spineinked':''}${
-        has(o,'magic')?' magicspine':''}" data-drawer="${o.id}"
+    return `<button class="drawer dtile spinetile bn-${bindingOf(o)} bd-${
+        (o.border==='gilt')?'gilt':'none'}${sel}${
+        si.dark?' spineinked':''}" data-drawer="${o.id}"
       style="--c:${colour};--spineink:${si.ink};--spinegilt:${si.metal};${place}">
       <span class="spinetop"></span>
       <span class="spinetitle"><b>${esc(o.title||'Untitled')}</b></span>
@@ -542,14 +542,14 @@ function drawTile(o, arr, box){
     /* With nothing to show the front is a label again: a stack of zero lines
        is an anonymous coloured square — and so is the picker's sample. */
     if(!shown.length && !adds){
-      return `<button class="drawer dtile cltile clidle magicdrawer${sel}" data-drawer="${o.id}"
+      return `<button class="drawer dtile cltile clidle bd-gilt${sel}" data-drawer="${o.id}"
           style="--c:${colour};${place}">
         <div class="dtop">${nameField(o)}</div>
         <div class="dbody"><span class="clempty">${items.length?'All done':'Nothing yet — open it to add'}</span></div>
         ${handles}
       </button>`;
     }
-    return `<${adds?'div':'button'} class="drawer dtile cltile magicdrawer${sel}" data-drawer="${o.id}"
+    return `<${adds?'div':'button'} class="drawer dtile cltile bd-gilt${sel}" data-drawer="${o.id}"
         ${adds?'role="button" tabindex="0"':''} title="${esc(o.title||'Untitled')}"
         style="--c:${colour};--clrows:${rows};${place}">
       ${/* The **box** ticks it and the **words** change it. Tapping anywhere on
@@ -739,7 +739,7 @@ function drawTile(o, arr, box){
       : o.knobtone==='light' ? `color-mix(in srgb, ${colour} 74%, #fff)`
       : colour;
     return `<button class="drawer dtile bd-${bd} tx-${tx} ks-${knobSizeOf(o)} knb-${o.knobpos||'centre'}${
-        doors?' cabinet':''} pn-${panelOf(o)}${sel}${has(o,'magic')?' magicdrawer':''}" data-drawer="${o.id}"
+        doors?' cabinet':''} pn-${panelOf(o)}${sel}" data-drawer="${o.id}"
       style="--c:${colour};--knob:${knob};${place}">
       ${chips}
       ${/* The wood the front is cut from. Both pseudo-elements are spoken for
@@ -1062,7 +1062,7 @@ function listTile(o){
   // a row being typed in is a div: an input inside a button is unfocusable
   const raw = S.editId===o.id;
   return `<${raw?'div':'button'} class="drawer ${cont?'dtile':'otile'} sh-${cont?'front':shapeOf(o)} listband${S.sel.includes(o.id)?' selected':''}${
-      raw?' editing':''}${cont&&has(o,'magic')?' magicdrawer':''}" ${attr} style="--c:${colour}">
+      raw?' editing':''}" ${attr} style="--c:${colour}">
     <div class="dtop">
       ${has(o,'check')?`<span class="check tilecheck${o.done?' on':''}" data-check="${o.id}">${ic('check',12)}</span>`:''}
       ${img?`<img class="bandimg" src="${esc(o.media.src)}" alt="">`:''}

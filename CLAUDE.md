@@ -1022,10 +1022,14 @@ attribute registry is `ATTRS`; the presets are `BUILTIN_KINDS` merged with
 and everything inside inherits it. `--c` does the same for drawer colour. Don't
 hardcode a hex value in a component rule.
 
-**A magic drawer is gilded, and the gilt does not move.** Not dotted, not
-speckled with stars — a dotted border is what every drawing tool means by "not
-real yet". `.magicdrawer` gets a ruled frame inset from the edge with corner
-brackets and one wash of leaf held to the top edge. It was holographic foil for
+**The gilt frame is an edge, not a privilege.** `bd-gilt` is the seventh border
+slot — a ruled frame inset from the edge with corner brackets and one wash of
+leaf held to the top. It used to appear on a *magic* drawer automatically,
+which made it the one ornament nobody could choose and nobody could decline;
+now anyone can wear it and a magic drawer needn't. A magic drawer still carries
+the **sparkle mark**, because that is a fact about behaviour rather than
+decoration. A checklist face still wears the frame (decision 79) and now says
+so as `bd-gilt` rather than by borrowing a class. See decision 94. It was holographic foil for
 a while, which was worse than either; see decision 42. Never hardcode the gold:
 it is `var(--glow)`, so it is leaf on Victorian and a green shimmer on Starry.
 

@@ -239,7 +239,13 @@ const ROLES = ['Page','Text','Lines','Accent','Glow'];
    moulding and an Aeros glass rim are both slot 1. The
    class stays `bd-panel` and so on, because a slot's *name* is per style but
    its position has to be stable for a stored value to survive a swap. */
-const BORDER_SLOTS = ['panel','heavy','bar','gloss','plain','none'];
+/* Seven positions. `gilt` was for a long time not a slot at all: it was the
+   ruled leaf frame a *magic* drawer wore automatically, which made the one
+   ornament in the app that nobody could choose and nobody could decline. It is
+   an edge like the others now — pick it on anything, take it off a magic
+   drawer. See decision 94. `plain` and `none` stay last, because they mean the
+   same thing in every aesthetic. */
+const BORDER_SLOTS = ['panel','heavy','bar','gloss','gilt','plain','none'];
 const borderNames = ()=> styleNow().borders || BORDER_SLOTS.map(k=>k[0].toUpperCase()+k.slice(1));
 const borderSlots = ()=> BORDER_SLOTS.map((k,i)=>[k, borderNames()[i]||k]);
 /* …and the five panellings, the same way. A front's working is a slot exactly
@@ -261,7 +267,7 @@ const STYLES = {
      jewel greens, regal reds. Nothing pure white and nothing pure black. */
   victorian: {nm:'Victoria', ds:'An old desk: baize, brass, sage and claret',
     board:'#EFEADA|#DDE5CE', boardAlpha:1,
-    borders:['Panelled','Heavy panel','Bar','Beaded','Plain','None'],
+    borders:['Panelled','Heavy panel','Bar','Beaded','Gilt frame','Plain','None'],
     panels:['Flat front','Cockbead','Raised panel','Reeded','Ogee panel'],
     defaults:{knob:'round', border:'panel', texture:'none', knobtone:'light', panel:'cockbead'},
     cols:['#E9E1CC','#2A241C','#4A4034','#A9793F','#D9B57C',
@@ -285,7 +291,7 @@ const STYLES = {
      that reads as exactly what it is: a table of laid tiles. */
   carca: {nm:'Carca', ds:'A walled city in tiles, its war machines turned to tinkering',
     board:'#EAE5D4|#DBDCC6', boardAlpha:1,
-    borders:['Ashlar','Rampart','Course','Vine','Plain','None'],
+    borders:['Ashlar','Rampart','Course','Vine','Inlay','Plain','None'],
     panels:['Dressed flat','Chamfer','Ashlar block','Fluting','Tracery'],
     defaults:{knob:'ring', border:'panel', texture:'grid', knobtone:'light', panel:'fielded'},
     cols:['#E8E4D6','#22303F','#7E8B96','#A87A3C','#D4B872',
@@ -304,7 +310,7 @@ const STYLES = {
      everyone else mines what falls. */
   stelaine: {nm:'Stelaine', ds:'Crystal stars falling on a floating island, and who owns the sky',
     board:'#171233|#1D1740', boardAlpha:1,
-    borders:['Filigree','Astral rule','Horizon','Facet','Plain','None'],
+    borders:['Filigree','Astral rule','Horizon','Facet','Sigil frame','Plain','None'],
     panels:['Unworked','Crystal rim','Floating slab','Ribbing','Astral inlay'],
     defaults:{knob:'orb', border:'panel', texture:'starry', knobtone:'light', panel:'ogee'},
     cols:['#120E20','#EDE7FA','#6E5F96','#9A6BD8','#E3C98A',
@@ -323,7 +329,7 @@ const STYLES = {
      volute of a scroll, and the turn of the rock itself. */
   girando: {nm:'Girando', ds:'The turning underside of a Sicilian rock, in baroque and vine',
     board:'#262119|#2E2820', boardAlpha:1,
-    borders:['Volute','Cartouche','Cornice','Vine','Plain','None'],
+    borders:['Volute','Cartouche','Cornice','Vine','Gilt cartouche','Plain','None'],
     panels:['Uncarved','Bead','Cartouche','Rustication','Volute panel'],
     defaults:{knob:'round', border:'panel', texture:'speckle', knobtone:'dark', panel:'ogee'},
     cols:['#211E1A','#EDE4D2','#7A6E5E','#B98846','#E0C782',
@@ -343,7 +349,7 @@ const STYLES = {
      which the panelling already knows how to light, from the upper left. */
   golf97: {nm:'Golf 97', ds:'Late-nineties fairway, distressed leather and desktop grey',
     board:'#CFD8B8|#C0CBA6', boardAlpha:1,
-    borders:['Outset','Deep outset','Sunken','Groove','Plain','None'],
+    borders:['Outset','Deep outset','Sunken','Groove','Marquee','Plain','None'],
     panels:['Flat','Plastic edge','Group box','Scanlines','CRT bezel'],
     defaults:{knob:'square', border:'panel', texture:'check', knobtone:'light', panel:'plain'},
     cols:['#D6D3C4','#2A2A24','#8A8878','#12736E','#C8A63C',
@@ -361,7 +367,7 @@ const STYLES = {
      differ by a whisper of blue or green, which is all a wireframe needs. */
   starry: {nm:'Starful Gothic', ds:'White pencil on a night sky, hand-drawn',
     board:'#07080C|#0B0D13', boardAlpha:1,
-    borders:['Ruled','Double rule','Underline','Sketched','Plain','None'],
+    borders:['Ruled','Double rule','Underline','Sketched','Chalk frame','Plain','None'],
     panels:['Unlined','Pencil rim','Sketched panel','Hatching','Doodle frame'],
     defaults:{knob:'round', border:'plain', texture:'stars', knobtone:'light', panel:'plain'},
     cols:['#07080C','#F4F6F8','#F4F6F8','#6FD3F5','#7DE8B0',
@@ -383,7 +389,7 @@ const STYLES = {
      blue here, and that is the point of the slots being positions. */
   aero: {nm:'Aeros', ds:'Teal gloss and clear skies, straight from 2006',
     board:'#D8F0F4|#C2E6EC', boardAlpha:.85,
-    borders:['Bevel','Deep bevel','Sill','Glass','Plain','None'],
+    borders:['Bevel','Deep bevel','Sill','Glass','Chrome frame','Plain','None'],
     panels:['Clear','Glass edge','Glass panel','Ribbed glass','Aqua inlay'],
     defaults:{knob:'orb', border:'aqua', texture:'sheen', knobtone:'light', panel:'plain'},
     cols:['#EAF4F7','#0D3541','#5B8C9B','#18A6C4','#7EE8F5',

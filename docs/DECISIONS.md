@@ -3340,3 +3340,41 @@ One thing had to be undone for this: decision 92 hid `.dpanel` entirely under
 Golf 97, on the argument that 1997 has no cabinetwork. That was right for
 exactly as long as Golf 97 had no panellings of its own. It has five now, and
 hiding the layer would have hidden the group box with them.
+
+---
+
+## 94. The gilt frame is an edge, not a privilege
+
+*2026-08-30*
+
+A magic drawer wore a ruled leaf frame automatically. That made it the one
+ornament in the app that **nobody could choose and nobody could decline** —
+every other edge is a slot you pick (decision 33), and this one appeared by
+fiat because of what a drawer *did* rather than how you wanted it to look. The
+gap only became obvious once the other six edges and the five panellings were
+both proper slot systems (decisions 88, 93): the frame was the last thing
+dressing a tile from outside the system.
+
+So `gilt` is the seventh border slot, sitting before `plain` and `none` because
+those two mean the same thing everywhere. Each aesthetic names it: **Gilt
+frame**, Carca's **Inlay**, Stelaine's **Sigil frame**, Girando's **Gilt
+cartouche**, Golf 97's **Marquee**, Starful Gothic's **Chalk frame**, Aeros'
+**Chrome frame**. Pick it on anything; take it off a magic drawer.
+
+**A magic drawer still says it collects** — the sparkle mark stays. That is a
+fact about *behaviour*, not decoration, and it is the only thing on the tile
+telling you why objects appear in a drawer nothing was filed into. What went is
+the visual privilege, not the label.
+
+**A checklist face keeps the frame**, because decision 79's argument still
+stands: a face that refills itself has earned an edge that says the stack is
+one thing rather than three loose tasks. It now says so in the border system's
+own words — `bd-gilt` — instead of borrowing the magic drawer's class, which is
+what made the two look related when they never were.
+
+**Existing magic drawers lose the frame.** They keep whatever border slot they
+already carry, which for most is the aesthetic's default, so they will look
+like ordinary drawers — and the gilt is one row of the object editor away. That
+is the point of the change rather than a cost of it: a deliberate frame on the
+three drawers you want framed reads as a choice, and a frame on all of them
+read as a system message.

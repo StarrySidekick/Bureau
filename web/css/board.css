@@ -552,19 +552,19 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
 /* the head and tail bands every binding starts from */
 .spinetop,.spinefoot{width:62%;height:2px;background:var(--glow);opacity:.85;
   border-radius:1px;flex:0 0 auto}
-/* A spine that collects rather than holds. The gilt frame every other magic
-   front wears is inset 5px, which on a tile one cell wide is the whole tile —
-   so a spine says it in the two bands it already has, which is where a real
-   gilded one says everything anyway. */
-.drawer.spinetile.magicspine .spinetop,
-.drawer.spinetile.magicspine .spinefoot{background:var(--glow);height:4px;opacity:1;
+/* A spine wearing the gilt edge. The ruled frame the slot draws elsewhere is
+   inset 5px, which on a tile one cell wide is the whole tile — so a spine says
+   it in the two bands it already has, brightened and given a glow, which is
+   where a real gilded one says everything anyway. */
+.drawer.spinetile.bd-gilt .spinetop,
+.drawer.spinetile.bd-gilt .spinefoot{background:var(--glow);height:4px;opacity:1;
   box-shadow:0 0 6px color-mix(in srgb,var(--glow) 60%,transparent)}
 
 /* ---- the five bindings ------------------------------------------------
    All of it is CSS off one class, the same way a border slot is: the tile
    renders a head band, a title and a tail band, and each binding decides what
    those are and what else is drawn behind them. `::before` is free on a spine
-   — the gilt frame is `.magicspine` here and the textures use `::after`. */
+   — the gilt edge is `.bd-gilt` here and the textures use `::after`. */
 
 /* An ornament is a fixed thickness, never a fraction of the spine. A hub is a
    cord under the leather and a rule is a wheel run along it: both are the same
@@ -915,10 +915,10 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
   opacity:.72;
   filter:drop-shadow(0 1px 0 rgba(0,0,0,.45));
 }
-/* A magic front already wears a ruled gilt frame inset 5px, and two gilt
+/* A gilt-edged front already wears a ruled frame inset 5px, and two gilt
    frames on one drawer is a picture frame shop. The panel keeps its sunk
    ground and gives up its lines. */
-.drawer.magicdrawer.pn-ogee .dpanel::after{content:none}
+.drawer.bd-gilt.pn-ogee .dpanel::after{content:none}
 
 /* ---- the same five workings, answered by each aesthetic — decision 93 --
    A panelling is a slot exactly as an edge and a colour are. The five rules
