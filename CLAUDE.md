@@ -179,7 +179,7 @@ paper blank — the clamp was doing a job the box already does. `BODY_ON_FACE` i
 show. Cut the text *then* escape it: slicing the escaped string cuts through an
 `&amp;` and prints the entity.
 
-**Things come out of a tile when you touch it, and that one is physics.**
+**Things come out of a new object as it lands, and that one is physics.**
 `spray(x, y, id)` / `sprayAt(id)` in motion.js: stars, rings, spirals and bars
 thrown outward and pulled down, on **one canvas** in `#fx` that is made on the
 first burst and removed when the last bit dies. The only canvas in the app, and
@@ -189,9 +189,24 @@ and the root's `--glow`/`--brass`, never a palette of its own. `S.look.spray`
 is **which shape** (stars by default; sparkles, spirals, squares, hearts,
 confetti, a mix, or nothing) and each preset carries its own count and scale.
 Every option in Settings is drawn by the same `bitPath()` the burst uses, so a
-sample can't drift from the thing it makes. One event is one burst: a
-second call within 120ms is dropped, because a tap that ticks a box reaches
-both `tileTap()` and `pop()`. See decision 85.
+sample can't drift from the thing it makes.
+
+**A burst belongs to a new object and to nothing else.** There is exactly one
+caller — `reveal()` in views.js, 450ms after the drop begins. It used to come
+out of anything you touched, which made every tap on a busy desk a small
+firework and made the app feel like it was congratulating you for opening a
+drawer. Arriving is the event worth marking; touching is not. Ticking still
+answers with `pop()`'s **ring**, which is a different thing and stays. Don't
+put a `spray()` call back on a tap path — and if you add a second caller, it
+had better be an arrival. See decision 85.
+
+**A star is drawn, not stamped.** `roundPoly()` rounds every one of the ten
+corners into the path itself, because canvas's `lineJoin:'round'` only rounds a
+*stroke* and these are filled; and every star and sparkle carries an
+**outline** in `SPRAY.line`, which is the style's own `--ink` — dark on paper,
+light on a dark style, named nowhere. It is passed into `bitPath()` rather than
+read off `strokeStyle`, because two of the shapes stroke themselves in their
+own colour and Settings draws its samples through the same function.
 
 **An animation never holds anything up.** This is the one rule in `motion.js`
 and it is easy to break by accident. A tap files, ticks or navigates the

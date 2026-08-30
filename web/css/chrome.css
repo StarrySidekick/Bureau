@@ -2249,6 +2249,13 @@ input,textarea,select,[contenteditable],
 .drawer .tilemeta{font-size:calc(11px * var(--tscale,1))}
 /* the words on a checklist's front are the same words, so they scale too */
 .drawer .cline{font-size:calc(13px * var(--tscale,1))}
+/* A title set along a spine is read at arm's length on a shelf, so it is the
+   biggest thing on any tile — it has the whole height of a book to run in and
+   nothing to share it with. The three panelled bindings shorten that run to
+   the space between their ornaments, so their lettering is a step down. */
+.spinetitle b{font-size:calc(17.5px * var(--tscale,1))}
+.bn-ribbed .spinetitle b,.bn-tooled .spinetitle b,
+.bn-label .spinetitle b{font-size:calc(15.5px * var(--tscale,1))}
 
 /* ============================================================
    The object editor's stage

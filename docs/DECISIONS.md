@@ -2809,11 +2809,28 @@ page. It carries the same numbers, and must.
 
 ---
 
-### 85. Things come out of a tile when you touch it
+### 85. Things come out of a new object as it lands
 
-Stars, rings, spirals and little bars of confetti, thrown out of whatever you
-tapped and then pulled down by gravity. Again when a new object lands on the
-board, so the drop (decision 81) ends in something rather than just stopping.
+Stars, rings, spirals and little bars of confetti, thrown out of a new object
+as it arrives and then pulled down by gravity, so the drop (decision 81) ends
+in something rather than just stopping.
+
+*Amended 2026-08-30.* It used to come out of **anything you touched** as well,
+and that was too much. On a busy desk every tap was a small firework, and an
+app that throws confetti when you open a drawer is congratulating you for
+using it. Arriving is the event worth marking and touching is not, so there is
+now exactly one caller — `reveal()` — and a `spray()` on a tap path is a bug.
+Ticking still answers with `pop()`'s **ring**, which is a different thing and
+a quieter one.
+
+*Also amended:* a star is **drawn rather than stamped**. All ten of its corners
+are rounded into the path itself — canvas's `lineJoin:'round'` only rounds a
+stroke, and these are filled — and it carries an **outline** in the style's own
+`--ink`, so it is dark on paper and light on a dark style without either being
+named. The outline is passed into `bitPath()` rather than read off
+`strokeStyle`, because two of the shapes stroke themselves in their own colour
+and Settings draws its samples through the same function: a sample that left
+the outline out would be a picture of a different star from the one you get.
 
 **It is physics, not a keyframe**, and it has to be. Every other movement in
 the app is a CSS animation, which is a path decided in advance — the whole

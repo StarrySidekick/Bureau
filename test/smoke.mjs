@@ -3323,20 +3323,59 @@ const CHROME = process.env.BUREAU_CHROME;
     out.everyShapeDraws = Object.values(BUREAU.SPRAYS)
       .flatMap(v => v[3])
       .every(k => BUREAU.sprayMark(k, '#000', 16).startsWith('data:image/png'));
-    /* Tapping a tile throws from the tile. Ticking one goes through pop() as
-       well, and the two must not double up — spray() drops a second call in
-       the same instant. */
+    // two calls in the same instant are still one burst
+    BUREAU.spray(700,400,null);
+    const once = BUREAU.sprayCount();
+    BUREAU.spray(700,400,null);
+    out.oneEventIsOneBurst = BUREAU.sprayCount() === once;
+    await nap(1500);
+    /* **A burst belongs to a new object, and to nothing else.** It used to come
+       out of anything you touched, which made every tap on a busy desk a small
+       firework — so touching is quiet now and arriving is not. Ticking goes
+       through pop(), which still draws its ring; the ring is the answer to a
+       tick and the spray is the answer to a new thing. */
     const t = BUREAU.create('task', { parent:'root', title:'Touch me' });
     t.desk = Object.assign(BUREAU.free(4,2,'root'), {w:4,h:2});
     BUREAU.render(); await nap(200);
-    BUREAU.sprayAt(t.id);
-    const once = BUREAU.sprayCount();
-    BUREAU.sprayAt(t.id);
-    out.oneEventIsOneBurst = BUREAU.sprayCount() === once;
+    BUREAU.toggleDone(t.id); await nap(120);
+    out.tickingIsQuiet = BUREAU.sprayCount() === 0;
+    out.butStillRings = !!document.querySelector('#fx .fxring');
+    await nap(700);
+    // …and landing on the board is what throws
+    const n = BUREAU.create('note', { parent:'root', title:'Arrived' });
+    n.desk = Object.assign(BUREAU.free(4,3,'root'), {w:4,h:3});
+    BUREAU.render(); await nap(120);
+    BUREAU.reveal(n.id);
+    await nap(600);
+    out.arrivingThrows = BUREAU.sprayCount() > 0;
     await nap(1500);
-    BUREAU.del(t.id); S.undo=[]; S.redo=[]; BUREAU.render();
+    [t,n].forEach(o => BUREAU.del(o.id)); S.undo=[]; S.redo=[]; BUREAU.render();
     return out;
   });
+
+  /* A real tap, through the gesture the app actually uses — the assertions
+     above go in through BUREAU, and what is checked here is that the tap path
+     no longer reaches spray() at all. Pointer events dispatched on the element,
+     the way the drag tests do it: Playwright's own click waits for the tile to
+     be actionable, and a tap that navigates replaces the element under it. */
+  const tappingIsQuiet = await page.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const S = BUREAU.state;
+    S.view='desk'; S.drawerId=null; S.look.locked=false; S.look.spray='stars';
+    BUREAU.render(); await nap(200);
+    const t = document.querySelector('.grid .drawer[data-drawer]');
+    const r = t.getBoundingClientRect();
+    const o = { bubbles:true, clientX:r.x+r.width/2, clientY:r.y+r.height/2,
+                pointerId:11, isPrimary:true };
+    t.dispatchEvent(new PointerEvent('pointerdown', o));
+    await nap(60);                       // short: a hold would arm the drag
+    t.dispatchEvent(new PointerEvent('pointerup', o));
+    await nap(200);
+    const quiet = BUREAU.sprayCount() === 0;
+    S.view='desk'; S.drawerId=null; BUREAU.render();
+    return quiet;
+  });
+  await page.waitForTimeout(200);
 
   /* --- a decoration stands on the board rather than in it ---------------
      The one thing allowed to overlap, and the one nothing makes room for.
@@ -3460,7 +3499,7 @@ const CHROME = process.env.BUREAU_CHROME;
     paletteKeys, editorKeys, pickerLeads, rollupsEverywhere, soundAndVision, keyboardBoard,
     ranking, repeating, oneLock, scheduling, ownColour, addBox, calFaces,
     lockedBoard, freeTraits, pageWrites, tickBoxes, readerFits,
-    dropsIn, keyframesRegistered, bindings, theSpray, decorations, pinboard
+    dropsIn, keyframesRegistered, bindings, theSpray, tappingIsQuiet, decorations, pinboard
   }, null, 2));
   await browser.close();
 })();

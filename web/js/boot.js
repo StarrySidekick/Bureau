@@ -7,7 +7,7 @@ import { S, KINDS, SHAPES, SORTS, childrenOf, container, relate, deskOf, has, la
 import { pageRows, freeSpot, boxOk } from './grid.js';
 import { create, setPin, togglePin, del, delMany, delDrawer, undo, redo, toggleDone, spawnNext, setGridSize } from './mutations.js';
 import { applyLook } from './look.js';
-import { render, sizeGrid, viewHTML, settingsPanel, pageAt, pageCount, goPage } from './views.js';
+import { render, sizeGrid, viewHTML, reveal, settingsPanel, pageAt, pageCount, goPage } from './views.js';
 import { overlayHTML, objectPanel, modalNewObject, schedulePanel } from './panels.js';
 import { wire } from './wire.js';
 import { openingFor, stepDrawer, spray, sprayAt, sprayCount, sprayNow, sprayMark, SPRAYS } from './motion.js';
@@ -97,8 +97,9 @@ window.BUREAU = {
      after layout — the three seams a performance pass needs to time separately,
      because "the swipe feels slow" is three different costs in a trench coat. */
   step: stepDrawer, viewHTML, sizeGrid,
-  // the spray, so a test can watch the physics rather than the class
-  spray, sprayAt, sprayCount, sprayNow, sprayMark,
+  // the spray, so a test can watch the physics rather than the class — and
+  // the reveal, which is now the only thing in the app that sets one off
+  spray, sprayAt, sprayCount, sprayNow, sprayMark, reveal,
   get SPRAYS(){ return SPRAYS; },
   // the ten that ship, so a test can walk them without importing the module
   get decor(){ return DECOR; }, boxOk,

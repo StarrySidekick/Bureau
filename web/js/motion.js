@@ -160,9 +160,6 @@ function pop(id, was){
     `width:${s}px;height:${s}px;--k:${o?objColour(o):'var(--brass)'}`;
   fx().appendChild(ring);
   setTimeout(()=>ring.remove(), 560);
-  // …and a handful of things go out with it. Finishing something is the tap
-  // most worth marking, and the ring alone was a quiet way to say so.
-  spray(r.left+r.width/2, r.top+r.height/2, id);
 }
 
 /* ============================================================
@@ -187,7 +184,7 @@ function pop(id, was){
    pine and green shimmer on Starry. Same rule as everything else that draws
    — go through objColour(), and read the chrome from the root. See
    decision 85. */
-const SPRAY = { el:null, ctx:null, bits:[], raf:0, t:0, at:0 };
+const SPRAY = { el:null, ctx:null, bits:[], raf:0, t:0, at:0, line:'' };
 
 /* **Which shape comes out**, which is the only question worth asking: how many
    and how big always move together with it, so each preset carries its own
@@ -214,7 +211,35 @@ const DRAG    = 2.1;       // air, per second: the sideways throw dies first
 const LIFE    = [.55,.95]; // seconds
 
 /* ---- the shapes, each drawn at the origin so the caller owns the maths --- */
-function bitPath(ctx, kind, r){
+/* Round the corners of a polygon given as a flat list of points: cut each
+   vertex back by `d` along both its edges and curve through where the corner
+   was. Canvas's `lineJoin:'round'` only rounds a *stroke*, so a filled star
+   with sharp points needs the rounding built into the path itself. */
+function roundPoly(ctx, pts, d){
+  const n=pts.length;
+  for(let i=0;i<n;i++){
+    const p=pts[i], a=pts[(i+n-1)%n], b=pts[(i+1)%n];
+    const cut=(q)=>{ const dx=q[0]-p[0], dy=q[1]-p[1];
+      const L=Math.hypot(dx,dy)||1, k=Math.min(d, L/2)/L;
+      return [p[0]+dx*k, p[1]+dy*k]; };
+    const from=cut(a), to=cut(b);
+    i ? ctx.lineTo(from[0],from[1]) : ctx.moveTo(from[0],from[1]);
+    ctx.quadraticCurveTo(p[0], p[1], to[0], to[1]);
+  }
+  ctx.closePath();
+}
+/* A star wears an outline, which is what makes it read as a drawn thing rather
+   than a coloured blob — `line` is the style's own ink, passed in rather than
+   taken from `strokeStyle`, because two of the shapes stroke themselves in
+   their own colour and the sample in Settings uses the same path. */
+function outline(ctx, line, w){
+  if(!line) return;
+  const prev=ctx.strokeStyle;
+  ctx.strokeStyle=line; ctx.lineWidth=w; ctx.lineJoin='round';
+  ctx.stroke();
+  ctx.strokeStyle=prev;
+}
+function bitPath(ctx, kind, r, line){
   ctx.beginPath();
   if(kind==='circle'){ ctx.arc(0,0,r,0,6.284); ctx.fill(); return; }
   if(kind==='ring'){ ctx.lineWidth=Math.max(1,r*.34); ctx.arc(0,0,r*.8,0,6.284); ctx.stroke(); return; }
@@ -226,16 +251,18 @@ function bitPath(ctx, kind, r){
     return;
   }
   if(kind==='twinkle'){
-    // a four-pointed sparkle: the sides curve *in* towards the middle, which
-    // is the whole difference between a sparkle and a plus sign
+    /* A four-pointed sparkle: the sides curve *in* towards the middle, which
+       is the whole difference between a sparkle and a plus sign. The waist is
+       .18 rather than .13 — a fatter sparkle takes an outline without the two
+       sides of a point closing up into a single line. */
     for(let i=0;i<4;i++){
       const a=i*Math.PI/2, b=a+Math.PI/2;
       const x=Math.cos(a)*r, y=Math.sin(a)*r;
       i ? ctx.lineTo(x,y) : ctx.moveTo(x,y);
-      ctx.quadraticCurveTo(Math.cos(a+Math.PI/4)*r*.13, Math.sin(a+Math.PI/4)*r*.13,
+      ctx.quadraticCurveTo(Math.cos(a+Math.PI/4)*r*.18, Math.sin(a+Math.PI/4)*r*.18,
                            Math.cos(b)*r, Math.sin(b)*r);
     }
-    ctx.closePath(); ctx.fill(); return;
+    ctx.closePath(); ctx.fill(); outline(ctx, line, Math.max(1, r*.15)); return;
   }
   if(kind==='heart'){
     const d=r*.95;
@@ -256,16 +283,20 @@ function bitPath(ctx, kind, r){
       a ? ctx.lineTo(x,y) : ctx.moveTo(x,y); }
     ctx.stroke(); return;
   }
-  /* A five-pointed star, the default. The inner radius is a half rather than
-     the .38 a "correct" pentagram uses: fatter points read as friendly, and
-     thin ones read as a compass rose. Rounded joins for the same reason. */
-  ctx.lineJoin='round';
+  /* A five-pointed star, the default. The inner radius is .54 rather than the
+     .38 a "correct" pentagram uses: fatter points read as friendly, and thin
+     ones read as a compass rose. And the corners are *rounded* — every one of
+     the ten, so the points are blunt and the valleys between them are soft,
+     which is the difference between a sticker and a sheriff's badge. The cut
+     is a fraction of the radius, so it is the same star at any size. */
+  const pts=[];
   for(let i=0;i<10;i++){
-    const a=(i*Math.PI)/5 - Math.PI/2, rr=i%2 ? r*.5 : r;
-    const x=Math.cos(a)*rr, y=Math.sin(a)*rr;
-    i ? ctx.lineTo(x,y) : ctx.moveTo(x,y);
+    const a=(i*Math.PI)/5 - Math.PI/2, rr=i%2 ? r*.54 : r;
+    pts.push([Math.cos(a)*rr, Math.sin(a)*rr]);
   }
-  ctx.closePath(); ctx.fill();
+  roundPoly(ctx, pts, r*.26);
+  ctx.fill();
+  outline(ctx, line, Math.max(1, r*.15));
 }
 
 function sprayCanvas(){
@@ -302,7 +333,7 @@ function sprayFrame(now){
     ctx.translate(b.x*dpr, b.y*dpr);
     ctx.rotate(b.rot);
     ctx.fillStyle=b.c; ctx.strokeStyle=b.c;
-    bitPath(ctx, b.kind, b.r*dpr);
+    bitPath(ctx, b.kind, b.r*dpr, SPRAY.line);
     ctx.restore();
   }
   if(SPRAY.bits.length) SPRAY.raf=requestAnimationFrame(sprayFrame);
@@ -336,6 +367,11 @@ function spray(x, y, id, force){
   const pick=[ o ? objColour(o) : root.getPropertyValue('--brass'),
                root.getPropertyValue('--glow'),
                root.getPropertyValue('--brass') ].map(s=>String(s).trim()).filter(Boolean);
+  /* The line a star is drawn with is the style's own ink, so it is dark on
+     paper and light on a dark style without either being named here — the same
+     rule the rest of the app follows. Read once per burst rather than per bit;
+     a burst is over long before a style could change under it. */
+  SPRAY.line=String(root.getPropertyValue('--ink')||'').trim();
   const px=x-f.left, py=y-f.top;
   const count=Math.round(n*(force||1));
   for(let i=0;i<count;i++){
@@ -372,8 +408,8 @@ const sprayCount = ()=> SPRAY.bits.length;
    cannot drift from what you actually get. Cached: the settings panel redraws
    on every keystroke in it. */
 const MARKS = {};
-function sprayMark(kind, colour, px){
-  const key=kind+'|'+colour+'|'+(px||22);
+function sprayMark(kind, colour, px, line){
+  const key=kind+'|'+colour+'|'+(px||22)+'|'+(line||'');
   if(MARKS[key]) return MARKS[key];
   const d=px||22, dpr=2;
   const c=document.createElement('canvas');
@@ -381,7 +417,10 @@ function sprayMark(kind, colour, px){
   const x=c.getContext('2d');
   x.translate(d*dpr/2, d*dpr/2);
   x.fillStyle=colour; x.strokeStyle=colour;
-  bitPath(x, kind, d*dpr*.42);
+  /* The outline goes into the sample too — a sample that leaves it out is a
+     picture of a different star from the one you get. It is inset a little so
+     the stroke isn't clipped by the edge of a 20px canvas. */
+  bitPath(x, kind, d*dpr*.40, line);
   return (MARKS[key]=c.toDataURL());
 }
 
