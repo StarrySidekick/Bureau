@@ -180,7 +180,7 @@ function pop(id, was){
    no canvas on it and no frame loop running.
 
    The colours are the **object's own** and the style's, never a palette of
-   its own: a burst off a claret drawer is claret and leaf on Victorian, and
+   its own: a burst off a claret drawer is claret and leaf on Victoria, and
    pine and green shimmer on Starry. Same rule as everything else that draws
    — go through objColour(), and read the chrome from the root. See
    decision 85. */

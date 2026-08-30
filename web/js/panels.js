@@ -246,7 +246,7 @@ function modalNewObject(){
 }
 /* The eleven a thing may be painted in, plus whatever literal colour is in use.
    A swatch carries the *slot*, not the hex it happens to be showing — that is
-   the whole point: what you pick follows the style. A literal is still allowed
+   the whole point: what you pick follows the aesthetic. A literal is still allowed
    (the colour input below writes one) and gets a swatch of its own at the end,
    marked as belonging to nobody. */
 function swatchRows(cur, flat){
@@ -295,14 +295,15 @@ const pfield=(id,key,cur,type,ph)=>`<input class="pfield"${type?` type="${type}"
   data-oset="${id}:${key}" value="${esc(cur==null?'':cur)}" placeholder="${esc(ph||'')}">`;
 const pgroup=(label,body,open)=>`<details class="pgroup"${open?' open':''}><summary>${esc(label)}</summary>${body}</details>`;
 /* ---- eleven slots, and one colour of your own --------------------------
-   A slot is a *position*, not a hue: store 11 and you get Victorian's claret or
+   A slot is a *position*, not a hue: store 11 and you get Victoria's claret or
    Aero's deep sea blue depending on where you are, and changing style repaints
    the desk without converting anything (decision 33). That is the right default
    and it is not always what someone wants.
 
    So under the eleven there is a **colour picker**, and what it writes is a
-   literal hex. A literal is somebody insisting: it does not follow the style, it
-   does not change when the style does, and it travels between them unchanged.
+   literal hex. A literal is somebody insisting: it does not follow the aesthetic,
+   it does not change when the aesthetic does, and it travels between them
+   unchanged.
    The model has always allowed one — `objColour()` resolves either — and there
    was simply no way to type one in.
 
@@ -316,15 +317,15 @@ const swatches=(id,key,cur)=>{
     `<button data-ocolour="${slot}" data-key="${key}" data-id="${id}" title="${esc(nm)}"
        class="${cur===slot?'on':''}" style="background:${hexOf(slot)}"></button>`).join('')}</div>
     <div class="ownrow">
-      <label class="custcol${literal?' on':''}" title="It stays put when the style changes">
+      <label class="custcol${literal?' on':''}" title="It stays put when the aesthetic changes">
         <input type="color" data-ocolinput="${key}" data-id="${id}"
           value="${esc(literal || hexOf(cur==null?11:cur))}">
         <span>${literal ? 'Your own · '+esc(literal) : 'A colour of your own'}</span>
       </label>
       ${literal?`<button class="pill" data-ocolour="" data-key="${key}" data-id="${id}"
-        title="Follow the style again">${ic('undo',12)} Back to the style</button>`:''}
+        title="Follow the aesthetic again">${ic('undo',12)} Back to the aesthetic</button>`:''}
     </div>
-    ${literal?`<div class="mini" style="--k:var(--brass);margin-top:5px">A colour of your own is not one of the style's sixteen, so it stays exactly this when you change style.</div>`:''}`;
+    ${literal?`<div class="mini" style="--k:var(--brass);margin-top:5px">A colour of your own is not one of the aesthetic's sixteen, so it stays exactly this when you change aesthetic.</div>`:''}`;
 };
 // forty types is a wall of chips and two rows of a select, grouped as the
 // picker groups them
@@ -477,7 +478,7 @@ function objectPanelBody(id, sec){
   if(!isRoot && !cont)
     out.push(prow('Edge', psel(id,'edge',[['','None'],['1','Coloured stripe']], d.edge?'1':'')));
   if(!isRoot && cont){
-    out.push(prow('Border', psel(id,'border', borderSlots(), d.border||'panel'), 'a slot, named by the style'));
+    out.push(prow('Border', psel(id,'border', borderSlots(), d.border||'panel'), 'a slot, named by the aesthetic'));
     out.push(prow('Knob', psel(id,'knob',
       [['round','Round'],['diamond','Diamond'],['bar','Bar'],['ring','Ring'],['square','Square'],['orb','Orb']], d.knob||'round')
       + psel(id,'knobsize', Object.entries(KNOBSIZES), knobSizeOf(d))

@@ -3122,3 +3122,43 @@ stylesheet owns it and two copies drift.
 
 Guarded as `statusBar`, which is the only way to see this at all — a screenshot
 of the page cannot show a strip the page does not draw.
+
+---
+
+## 90. Style is Aesthetics, and two of the five are gone
+
+*2026-08-30*
+
+Ahead of the shared definitions coming from the **Aesthetics** repository, the
+word in the interface is now **Aesthetics** rather than Style, and the list is
+being cut back to what will actually be in it.
+
+**Skeuomorphic is gone**, and it is the interesting removal. It was parked from
+the day it was written — the whole idea was materials that look real, and
+materials are images rather than hexes, so it sat there as a coherent palette
+waiting for assets that were never going to come. What happened instead is that
+**Victoria became the thing it was waiting to be**: turned knobs lit from the
+upper left (decision 55), mouldings and cockbeaded fronts (decision 88), bound
+spines with raised bands (decision 87), textures printed under the hardware.
+Two answers to one question is one too many, and the answer that got there by
+being made of the app's own tokens is the one to keep.
+
+**Pseudochromo is gone** because it is not in the new list.
+
+**The stored key is still `style` and the CSS hook is still `data-style`.** The
+names that changed are the ones a person reads — Victorian → Victoria, Starry
+Sidekick → Starful Gothic, Aero → Aeros. Renaming the keys buys nothing, costs
+a migration, and would touch every `html[data-style="…"]` block in two
+stylesheets.
+
+**A departed aesthetic is the dangerous kind of removal.** `styleNow()` already
+falls back for an unknown name, so a desk left on Skeuomorphic would have gone
+on *looking* right while storing a name that no longer resolves — the kind of
+thing that surfaces a year later as "why did my export not load". Migration 23
+carries both to Victoria and deletes their **slot overrides**, which are stored
+per aesthetic and would otherwise be a key nothing can reach.
+
+Still to come: **Carca**, **Golf 97**, **Stelaine** and **Girando**. They are
+named but not defined, and an aesthetic is sixteen colours, a board, six border
+names, a typeface and a set of drawer defaults — inventing that from a name is
+work the repository would only overwrite. The list is three until they arrive.

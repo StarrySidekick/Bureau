@@ -1044,7 +1044,19 @@ out from under the drag maths. Don't add a drawn pin head (the tile's overflow
 clips it) or a `box-shadow` here (it replaces the border slots' inset moulding
 and outlives the Shadows switch). See decision 75.
 
-**A colour is a slot, and a slot is a position, not a hue.** Every style has
+**A style is called an *Aesthetic* in the interface.** The stored key is still
+`style` and the CSS hook is still `data-style` — renaming those buys nothing
+and costs a migration — but every word a person reads says Aesthetics. The list
+is **Victoria**, **Starful Gothic** and **Aeros**, and will be seven: Carca,
+Golf 97, Stelaine and Girando are named but not yet defined, and will come from
+the Aesthetics repository rather than being invented here. **Skeuomorphic and
+Pseudochromo are gone** — the first because Victoria became the thing it was
+waiting to be, the second because it is not in the new list. Removing one needs
+a migration even though `styleNow()` falls back: the fallback means a desk left
+on it *looks* right while storing a name that no longer resolves, and its slot
+overrides are stored per aesthetic and become unreachable. See decision 90.
+
+**A colour is a slot, and a slot is a position, not a hue.** Every aesthetic has
 the same sixteen — five that dress the app (Page, Text, Lines, Accent, Glow)
 and eleven it names itself — so an object stores `c: 11` and shows Victorian's
 claret, Aero's deep sea blue or Starry's pine depending on where you are. Don't

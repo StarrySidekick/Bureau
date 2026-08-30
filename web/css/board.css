@@ -430,12 +430,6 @@ html[data-style="aero"] .drawer.dtile.bd-gloss{
   opacity:.8}
 
 /* ---- per-style chrome ------------------------------------------------- */
-html[data-style="pseudochromo"] .drawer{box-shadow:0 1px 3px rgba(0,0,0,.10)}
-html[data-style="pseudochromo"] .drawer .dname{font-weight:500;letter-spacing:0}
-html[data-style="pseudochromo"] .sqbtn{border-radius:2px}
-html[data-style="skeuo"] .drawer.dtile{
-  background-image:linear-gradient(rgba(255,255,255,.06),rgba(0,0,0,.10)),
-    repeating-linear-gradient(90deg, rgba(0,0,0,.05) 0 2px, transparent 2px 26px)}
 html[data-style="starry"] .grid::before{
   background-image:radial-gradient(circle at 22% 31%, rgba(255,255,255,.8) 0 1.2px, transparent 1.8px),
     radial-gradient(circle at 71% 12%, rgba(255,255,255,.5) 0 1px, transparent 1.5px),

@@ -6,12 +6,12 @@ import { S, KINDS, SHAPES, SORTS, childrenOf, container, relate, deskOf, has, la
   prioOf, repeatOf, repeatSaid, nextRepeat, boardLocked, BINDINGS, bindingOf, PANELS, panelOf } from './model.js';
 import { pageRows, freeSpot, boxOk } from './grid.js';
 import { create, setPin, togglePin, del, delMany, delDrawer, undo, redo, toggleDone, spawnNext, setGridSize } from './mutations.js';
-import { applyLook } from './look.js';
+import { applyLook, STYLES } from './look.js';
 import { render, sizeGrid, viewHTML, reveal, settingsPanel, pageAt, pageCount, goPage } from './views.js';
 import { overlayHTML, objectPanel, modalNewObject, schedulePanel } from './panels.js';
 import { wire } from './wire.js';
 import { openingFor, stepDrawer, spray, sprayAt, sprayCount, sprayNow, sprayMark, SPRAYS } from './motion.js';
-import { load, writeNow, save, saveIfDirty, hydrateAssets, pasteObjects } from './persist.js';
+import { load, writeNow, save, saveIfDirty, hydrateAssets, pasteObjects, migrate } from './persist.js';
 import { renderSheet, openWriter, openRead, openViewer, closeSheet, asMarkdown } from './sheet.js';
 import { DECOR } from './decor.js';
 
@@ -70,6 +70,13 @@ window.BUREAU = {
   get state(){ return S; }, render, create, save: writeNow, saveSoon: save,
   get K(){ return KINDS; },
   get shapes(){ return SHAPES; },
+  // every aesthetic there is, so a test can walk them all rather than
+  // hardcode a list that goes stale the moment one is added or dropped
+  get styles(){ return STYLES; },
+  /* Run the migration chain over a fixture and hand it back. A departed
+     aesthetic is the dangerous kind of removal — the fallback hides it — so a
+     test has to be able to load an old desk rather than trust the list. */
+  migrated(d){ migrate(d); return d; },
   paste: pasteObjects, relate, pin: togglePin, setPin, renderSheet,
   // small | extra | large — the three phone grids, for trying on
   setGrid: setGridSize,

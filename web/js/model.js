@@ -410,7 +410,7 @@ function reset(){
     // one shelf, one list: anything at all may be kept on it, and it is the
     // same list wherever you are standing
     pins:s.pins.slice(),
-    // Light or dark comes from the style now — Victorian is a parchment desk,
+    // Light or dark comes from the aesthetic now — Victoria is a parchment desk,
     // Starry Sidekick is a night one — so there is no theme to store.
     device:sensedDevice(), layoutEdit:null,
     view:'desk', drawerId:null, openId:null,

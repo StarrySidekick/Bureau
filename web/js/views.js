@@ -397,7 +397,7 @@ const installed = ()=> window.matchMedia('(display-mode: standalone)').matches |
    doors, each one is the same panel under the same key, and `spec.back` is the
    way out. See decision 66. */
 const SETSECS = {
-  style:  ['Style',      'palette', 'the sixteen colours, light and dark'],
+  style:  ['Aesthetics', 'palette', 'the sixteen colours, light and dark'],
   look:   ['Appearance', 'brush',   'the board, the shadows, the grid'],
   things: ['Your things','archive', 'how much there is, and getting it out'],
   paste:  ['Paste in',   'plus',    'objects described as JSON'],
@@ -432,16 +432,16 @@ function settingsBody(sec){
     </div>
     <div class="mini" style="--k:var(--brass);margin-top:6px">An installed copy serves itself from its own cache, so it can be a version behind until its second launch. This is the one that is running right now.</div>` : '',
     at('style') ? `
-    <div class="section-h"><h2>Style</h2><div class="rule"></div></div>
+    <div class="section-h"><h2>Aesthetics</h2><div class="rule"></div></div>
     <div class="stylegrid">${Object.entries(STYLES).map(([k,st])=>
       `<button class="styletile${(S.look.style||'victorian')===k?' on':''}" data-style3="${k}">
         <span class="stpv" style="background:${st.cols[0]};border-color:${st.cols[2]}">${
           [3,5,6,9,11,12].map(i=>`<i style="background:${st.cols[i]}"></i>`).join('')}</span>
         <b>${st.nm}</b><i>${st.ds}</i></button>`).join('')}</div>
-    <div class="mini" style="--k:var(--brass);margin-top:6px">A style is sixteen colours, a board, a typeface, and the defaults new drawers are born with. Everything below still works afterwards.</div>
+    <div class="mini" style="--k:var(--brass);margin-top:6px">An aesthetic is sixteen colours, a board, a typeface, and the defaults new drawers are born with. Everything below still works afterwards.</div>
 
     ${/* Light or dark is still not a second axis: it is a second set of
-         sixteen that a style may carry, and Victorian is the one that does.
+         sixteen that an aesthetic may carry, and Victoria is the one that does.
          The default follows the phone, because the desk should already be
          dark when you pick it up at night. */''}
     <div class="field" style="margin-top:12px"><label>Light and dark</label>
@@ -449,11 +449,11 @@ function settingsBody(sec){
         `<option value="${v}"${darkMode()===v?' selected':''}>${n}</option>`).join('')}</select>
       <div class="mini" style="--k:var(--brass);margin-top:6px">${hasDark()
         ? `${esc(styleNow().nm)} has a walnut set of its own — the same sixteen slots after dark, so every drawer keeps the colour you gave it.`
-        : `${esc(styleNow().nm)} is one light and has no dark set, so this changes nothing here. Victorian does.`}</div>
+        : `${esc(styleNow().nm)} is one light and has no dark set, so this changes nothing here. Victoria does.`}</div>
     </div>
 
     <div class="field" style="margin-top:14px"><label>What ${esc(styleNow().nm)} is made of</label>
-      <div class="mini" style="--k:var(--brass);margin:2px 0 8px">The first five dress the app itself. The other eleven are what drawers and objects are painted in. A slot is a <b>position</b>, not a colour: a drawer holds slot 11, and slot 11 is a claret here and a deep sea blue in Aero. Changing style swaps every tile to that style's answer; changing back puts each one exactly where it was.</div>
+      <div class="mini" style="--k:var(--brass);margin:2px 0 8px">The first five dress the app itself. The other eleven are what drawers and objects are painted in. A slot is a <b>position</b>, not a colour: a drawer holds slot 11, and slot 11 is a claret here and a deep sea blue in Aeros. Changing aesthetic swaps every tile to that aesthetic's answer; changing back puts each one exactly where it was.</div>
       ${[[0,OBJ0,'chrome'],[OBJ0,16,'']].map(([a,b,cls])=>
         `<div class="slotgrid ${cls}">${palNow().slice(a,b).map((c,n)=>{
           const i=a+n;
@@ -531,7 +531,7 @@ function settingsBody(sec){
               : `<i class="spraynone"></i>`}</span>
             <u>${esc(nm)}</u></button>`).join('');
       })()}</div>
-      <div class="mini" style="--k:var(--brass);margin-top:6px">Thrown out of a new object as it lands on the board, and then pulled down. They take its colour and the style's own accent, so a burst belongs to the desk it happened on.</div>
+      <div class="mini" style="--k:var(--brass);margin-top:6px">Thrown out of a new object as it lands on the board, and then pulled down. They take its colour and the aesthetic's own accent, so a burst belongs to the desk it happened on.</div>
     </div>
 
     <div class="field" style="margin-top:12px"><label>Shadows</label>

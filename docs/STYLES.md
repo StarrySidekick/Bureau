@@ -1,39 +1,48 @@
-# Style guides
+# Aesthetics
 
-A **Style** is the whole aesthetic at once: **sixteen colours**, a board, a
+An **Aesthetic** is the whole look at once: **sixteen colours**, a board, a
 typeface, whether the desk is light or dark, and the defaults every new drawer
-is born with (knob, border, texture). Choosing one is a starting point, not a
-cage — every individual control keeps working afterwards.
+is born with (knob, border, texture, panelling). Choosing one is a starting
+point, not a cage — every individual control keeps working afterwards.
+
+It was called a *Style* until 2026-08-30. The word is now **Aesthetics**
+throughout the interface, ahead of the shared definitions coming from the
+Aesthetics repository; the stored key is still `style` and the CSS hook is
+still `data-style`, because renaming those buys nothing and costs a migration.
+See decision 90.
+
+The list is **Victoria**, **Starful Gothic** and **Aeros** today, and will be
+seven: Carca, Golf 97, Stelaine and Girando are named but not yet defined.
 
 ## The sixteen
 
 A palette is not a separate choice any more, and a colour is not stored as a
-hex. Every style has the same sixteen **slots**, in the same order, and an
+hex. Every aesthetic has the same sixteen **slots**, in the same order, and an
 object stores the *slot number*:
 
 | Slots | | What they are |
 | --- | --- | --- |
-| 0–4 | Page · Text · Lines · Accent · Glow | The app itself. `chromeTokens()` derives the whole CSS token set from these five — the softer inks are the ink walked back toward the page, the rules are the line at low alpha — so a style supplies five hexes and gets forty. |
-| 5–15 | Named by the style | What drawers and objects are painted in. |
+| 0–4 | Page · Text · Lines · Accent · Glow | The app itself. `chromeTokens()` derives the whole CSS token set from these five — the softer inks are the ink walked back toward the page, the rules are the line at low alpha — so an aesthetic supplies five hexes and gets forty. |
+| 5–15 | Named by the aesthetic | What drawers and objects are painted in. |
 
-Because slot 9 is Slate in every style, changing style repaints every slate
-drawer in the new style's slate, and changing back puts every one of them
-exactly where it was — nothing is converted, only looked up. A style that runs
+Because slot 9 is Slate in every aesthetic, changing aesthetic repaints every
+slate drawer in the new one's slate, and changing back puts every one of them
+exactly where it was — nothing is converted, only looked up. An aesthetic that runs
 cool still has to answer "what is your umber"; the answer is allowed to be a
 warm grey, but it has to be *an* answer.
 
-Repainting a slot in Settings stores the override against **that style**
-(`S.look.slots[style][i]`), so a rust you disliked in Victorian doesn't follow
-you to Aero. A literal hex typed into a colour input is still allowed on one
-object; it belongs to no style and stays put through every switch.
+Repainting a slot in Settings stores the override against **that aesthetic**
+(`S.look.slots[style][i]`), so a rust you disliked in Victoria doesn't follow
+you to Aeros. A literal hex typed into a colour input is still allowed on one
+object; it belongs to no aesthetic and stays put through every switch.
 
 Implementation: `STYLES` in `web/js/look.js`, applied by `applyStyle()` →
-`data-style` on `<html>` + inline tokens. Per-style chrome lives in CSS blocks
+`data-style` on `<html>` + inline tokens. Per-aesthetic chrome lives in CSS blocks
 keyed on `html[data-style="…"]`.
 
 ---
 
-## Victorian *(default)*
+## Victoria *(default)*
 
 The app as it grew up: an old writing desk.
 
@@ -51,50 +60,7 @@ Mood: finite, warm, deliberate. Nothing pure white, nothing pure black.
 
 ---
 
-## Pseudochromo
-
-Near-monochrome. Professional, sleek, and not remotely colourful. Was called
-Modern until it had a stated idea rather than an absence of one; **migration 13**
-renames the stored key.
-
-| Token | Value |
-| --- | --- |
-| Board | `#F6F6F7` / `#EDEEF0` at 60% — a whisper of a checker |
-| Background | `#FBFBFC`, cards near-white |
-| Accent | graphite `#4A5058` — the accent is a grey too |
-| Display type | system sans (SF Pro / Inter), weight 500 |
-| Its eleven | Carbon · Graphite · Iron · Steel · Ash · Nickel · Basalt · Clay · Payne · Mauve · Silver — a lightness ramp, barely a tint in any of them |
-| Drawer defaults | bar knob · plain border · no texture |
-| Radii | **2px chrome, 0px drawers** — sharp corners are the point |
-| Signature elements | hairline shadows, no ornament, drawers told apart by weight rather than hue |
-
-Mood: a tool that disappears. The style to pick when the content is the point.
-
----
-
-## Skeuomorphic *(parked)*
-
-The whole idea is materials that look real, and materials are images rather
-than hexes — this one waits on assets. The palette below keeps it coherent
-in the meantime; it is not the finished thing.
-
-Things that look like the things they are.
-
-| Token | Value |
-| --- | --- |
-| Board | `#E8DCC4` / `#D9C9A8` — sanded pine |
-| Background | warm buff `#EFE4CC` |
-| Accent | saddle `#8A5A2B` |
-| Display type | serif (as Victorian) |
-| Its eleven | Mahogany · Moss · Olive · Verdigris · Denim · Chambray · Leather · Brass · Tan · Velvet · Slate |
-| Drawer defaults | ring pull · heavy panel border · wide-weave texture |
-| Signature elements | wood-grain drawer fronts (vertical graining overlay), gilt & walnut picture frames, ticket stubs, instant-photo frames |
-
-Mood: tactile. Everything casts a shadow because everything is an object.
-
----
-
-## Starry Sidekick
+## Starful Gothic
 
 The night sky from timothyvlangas.com — black and white, drawn in white pencil.
 Swirly, starry, wireframe: a front is its **outline**, not its fill, so the line
@@ -118,7 +84,7 @@ touching the style system.
 
 ---
 
-## Aero
+## Aeros
 
 2006 in the best way: teal gloss, clear skies, everything slightly wet.
 
@@ -141,7 +107,7 @@ manually): `orb` knob, `aqua` border, `sheen` texture, `stars` texture.
 
 ---
 
-## Two things a style does not own
+## Two things an aesthetic does not own
 
 **The wood.** `--wood` and `--wood-2` are the carcass — the rail above the bar
 and the drawer front along the bottom of a phone. They are a deep walnut in
@@ -156,7 +122,7 @@ shadow into `--shadow` and `--shadow-lg` — never `none`, because half the bord
 slots write `box-shadow: inset …, var(--shadow)` and `none` is only legal as the
 sole value of the property.
 
-## Adding a style
+## Adding an aesthetic
 
 1. Add an entry to `STYLES`: name, `cols` (all sixteen, in slot order — the
    five first), board pair, `defaults{knob,border,texture,knobtone}`, and a

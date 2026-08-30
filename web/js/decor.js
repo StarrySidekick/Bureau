@@ -13,7 +13,7 @@
    crisp at any size a tile can be, and — the real one — being in the DOM lets
    them read the style's own custom properties. A decoration is drawn in
    `currentColor` (the object's own colour), `--brass` and `--glow`, so the
-   same jardinière is terracotta and leaf on Victorian and pine and green
+   same jardinière is terracotta and leaf on Victoria and pine and green
    shimmer on Starry, exactly like everything else that draws. Never hardcode
    a hue in here that isn't a genuine highlight or a shadow.
 

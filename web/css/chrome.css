@@ -380,7 +380,7 @@
    with the corner brackets on it. The border *slot* doesn't apply here —
    tiles.js emits no bd- class on this face — because a moulding ring inside
    the gilt read as a second, grey border under the gold. */
-/* html-prefixed to outweigh the styles' own dtile dressings (skeuo's grain) */
+/* html-prefixed to outweigh the aesthetics' own dtile dressings */
 html .drawer.dtile.cltile{background-image:none}
 .drawer.dtile.cltile::before{inset:0;border-radius:inherit}
 .drawer.dtile.cltile .dbody{margin-top:0}
@@ -600,7 +600,7 @@ html .drawer.dtile.cltile{background-image:none}
    the one thing on the desk not set in it. A note and a task were pinned to the
    system sans while the drawer beside them followed the style, which read as
    two apps sharing a board. `--serif` is the style's face (Optima on Starry,
-   Segoe on Aero, a system sans on Pseudochromo, Iowan on Victorian); a name on
+   Segoe on Aeros, Iowan on Victoria); a name on
    a tile is set in it, the same as a drawer's is. */
 .drawer.otile .dname{font-family:var(--serif);font-size:13.5px;font-weight:600;white-space:normal;
   overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
@@ -982,15 +982,6 @@ html .drawer.dtile.cltile{background-image:none}
    stored border through a style swap and comes back to a Victorian moulding
    when you come back. Only the four dressed ones differ; plain and none mean
    the same thing everywhere. */
-html[data-style="pseudochromo"] .drawer.dtile.bd-panel{
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,.16), 0 1px 3px rgba(0,0,0,.10) }
-html[data-style="pseudochromo"] .drawer.dtile.bd-heavy{
-  box-shadow:inset 0 0 0 3px rgba(0,0,0,.30), 0 1px 3px rgba(0,0,0,.10) }
-html[data-style="pseudochromo"] .drawer.dtile.bd-bar{
-  box-shadow:inset 0 5px 0 rgba(255,255,255,.14), 0 1px 3px rgba(0,0,0,.10) }
-html[data-style="pseudochromo"] .drawer.dtile.bd-gloss{
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,.24), 0 0 0 1px rgba(0,0,0,.07), 0 3px 8px rgba(0,0,0,.14) }
-
 /* drawn, not moulded: rules in white pencil, held off the edge */
 html[data-style="starry"] .drawer.dtile.bd-panel{
   box-shadow:inset 0 0 0 4px transparent, inset 0 0 0 5px color-mix(in srgb,var(--ink) 50%,transparent) }
@@ -1002,19 +993,6 @@ html[data-style="starry"] .drawer.dtile.bd-bar{
 html[data-style="starry"] .drawer.dtile.bd-gloss{
   box-shadow:inset 0 0 0 5px transparent, inset 0 0 0 6px color-mix(in srgb,var(--ink) 34%,transparent);
   border-style:dashed }
-
-/* deeper mouldings, and an inlay that reads as a different timber */
-html[data-style="skeuo"] .drawer.dtile.bd-panel{
-  box-shadow:inset 0 2px 0 rgba(255,255,255,.26), inset 0 0 0 6px rgba(0,0,0,.22),
-             inset 0 0 0 8px rgba(255,255,255,.14), var(--shadow-lg) }
-html[data-style="skeuo"] .drawer.dtile.bd-heavy{
-  box-shadow:inset 0 2px 0 rgba(255,255,255,.28), inset 0 0 0 12px rgba(0,0,0,.26),
-             inset 0 0 0 15px rgba(255,255,255,.16), var(--shadow-lg) }
-html[data-style="skeuo"] .drawer.dtile.bd-bar{
-  box-shadow:inset 0 0 0 8px rgba(0,0,0,.20), inset 0 0 0 9px rgba(255,255,255,.18), var(--shadow) }
-html[data-style="skeuo"] .drawer.dtile.bd-gloss{
-  box-shadow:inset 0 0 0 3px rgba(255,255,255,.22), inset 0 0 0 4px rgba(0,0,0,.26),
-             inset 0 0 0 6px color-mix(in srgb,var(--brass) 55%,transparent), var(--shadow-lg) }
 
 /* glass: a lit sill along the top, and slot 4 is the full aqua rim */
 html[data-style="aero"] .drawer.dtile.bd-panel{

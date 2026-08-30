@@ -4,7 +4,7 @@ import { render } from './views.js';
 
 /* Light or dark is the *style's* answer now, not a separate switch: a style
    carries the background it is drawn on, so asking for Walnut on top of
-   Victorian was asking for dark shadows under parchment. It is still reported
+   Victoria was asking for dark shadows under parchment. It is still reported
    as paper/walnut, because the theme block owns the shadows and because the
    custom colours below are stored against one or the other. See decision 33. */
 const themeNow = ()=> isDark(palNow()[0]) ? 'walnut' : 'paper';
@@ -170,15 +170,15 @@ function randomBoard(){
    look changed nothing you could see.
 
    A palette belongs to a style now, and a colour is stored as the **slot
-   number**. Slot 11 is a regal red on Victorian, a grey on Pseudochromo and a
-   deep harbour blue on Aero — the slot is a position in the sixteen and
+   number**. Slot 11 is a regal red on Victoria and a
+   deep harbour blue on Aeros — the slot is a position in the sixteen and
    nothing more. Switching style repaints every tile in the new style's answer
    for whatever slot it holds; switching back puts every one of them exactly
    where it was, because nothing is converted, only looked up.
 
    That mapping is deliberately *not* by hue. A style is allowed to be about
-   four colours or about eleven, and forcing Aero to own a red so it could
-   receive Victorian's reds would have wrecked Aero to preserve a
+   four colours or about eleven, and forcing Aeros to own a red so it could
+   receive Victoria's reds would have wrecked Aeros to preserve a
    correspondence nobody asked for. So each style names its own eleven, and
    there is no universal family list to answer to. See decision 33.
 
@@ -189,8 +189,8 @@ function randomBoard(){
 // the sentence above them in Settings and the comment above chromeTokens()
 const ROLES = ['Page','Text','Lines','Accent','Glow'];
 /* An edge is a slot as much as a colour is. Six positions, the same in every
-   style, and each style says what its own are made of — a bevelled Victorian
-   moulding, a Pseudochromo hairline and an Aero glass rim are all slot 1. The
+   aesthetic, and each says what its own are made of — a bevelled Victoria
+   moulding and an Aeros glass rim are both slot 1. The
    class stays `bd-panel` and so on, because a slot's *name* is per style but
    its position has to be stable for a stored value to survive a swap. */
 const BORDER_SLOTS = ['panel','heavy','bar','gloss','plain','none'];
@@ -206,7 +206,7 @@ const OBJN = SLOTS - OBJ0;          // eleven
 const STYLES = {
   /* Sage and Victorian greens, natural woods, creams, washed royal blues,
      jewel greens, regal reds. Nothing pure white and nothing pure black. */
-  victorian: {nm:'Victorian', ds:'An old desk: baize, brass, sage and claret',
+  victorian: {nm:'Victoria', ds:'An old desk: baize, brass, sage and claret',
     board:'#EFEADA|#DDE5CE', boardAlpha:1,
     borders:['Panelled','Heavy panel','Bar','Beaded','Plain','None'],
     defaults:{knob:'round', border:'panel', texture:'none', knobtone:'light'},
@@ -215,7 +215,7 @@ const STYLES = {
           '#8E3B38','#9A7B2F','#8A6A3C','#5E4A72','#6E7075'],
     /* The same desk after dark: the parchment becomes the walnut it was always
        sitting on, and the eleven deepen rather than change. A slot is a
-       position, so nothing is converted — slot 11 is Victorian's claret in
+       position, so nothing is converted — slot 11 is Victoria's claret in
        both, one lit by a window and one by a lamp. */
     dark:['#241C14','#EDE3CE','#6B5942','#C89B54','#E4C68A',
           '#5A4130','#3D6B4A','#5A6B52','#265843','#3E5470','#4A6784',
@@ -223,37 +223,10 @@ const STYLES = {
     names:['Walnut','Baize','Sage','Emerald','Royal','Delft',
            'Claret','Gilt','Oak','Regal','Pewter'],
     vars:{}},
-  /* Near-monochrome and deliberately unexciting: greys, blacks, whites, sharp
-     corners. The one style where a drawer is told apart by weight rather than
-     by hue, so the eleven are a lightness ramp with barely a tint in them. */
-  pseudochromo: {nm:'Pseudochromo', ds:'Near-monochrome, desaturated, sharp',
-    board:'#F6F6F7|#EDEEF0', boardAlpha:.6,
-    borders:['Hairline','Inset rule','Top rule','Card','Plain','None'],
-    defaults:{knob:'bar', border:'plain', texture:'none', knobtone:'dark'},
-    cols:['#FBFBFC','#16181C','#9AA0A8','#4A5058','#8C97A3',
-          '#22252A','#2E3238','#3A3F46','#464C54','#535A63','#616872',
-          '#42474C','#4C4A46','#3D4650','#4A4550','#70777F'],
-    names:['Carbon','Graphite','Iron','Steel','Ash','Nickel',
-           'Basalt','Clay','Payne','Mauve','Silver'],
-    vars:{'--radius':'2px','--radius-d':'0px',
-      '--serif':'-apple-system,BlinkMacSystemFont,"SF Pro Display",Inter,system-ui,sans-serif'}},
-  /* Parked: the whole idea is materials that look real, and materials are
-     images, not hexes. Left coherent — wood, leather, brass — until there are
-     assets to hang on it. */
-  skeuo: {nm:'Skeuomorphic', ds:'Wood, leather, and things that look like things',
-    board:'#E8DCC4|#D9C9A8', boardAlpha:1,
-    borders:['Moulding','Deep moulding','Inlay','Beading','Plain','None'],
-    defaults:{knob:'ring', border:'heavy', texture:'weave2', knobtone:'dark'},
-    cols:['#EFE4CC','#33261A','#8A7350','#8A5A2B','#C89B54',
-          '#6B4A2A','#4C6B42','#6B7238','#3B6E63','#42566B','#55708C',
-          '#9A4F42','#A87C2E','#8A5A3F','#6D5476','#6E6559'],
-    names:['Mahogany','Moss','Olive','Verdigris','Denim','Chambray',
-           'Leather','Brass','Tan','Velvet','Slate'],
-    vars:{}},
   /* Black and white, drawn in white pencil. The line slot is white, so every
      front is outlined rather than filled — the eleven are near-blacks that
      differ by a whisper of blue or green, which is all a wireframe needs. */
-  starry: {nm:'Starry Sidekick', ds:'White pencil on a night sky, hand-drawn',
+  starry: {nm:'Starful Gothic', ds:'White pencil on a night sky, hand-drawn',
     board:'#07080C|#0B0D13', boardAlpha:1,
     borders:['Ruled','Double rule','Underline','Sketched','Plain','None'],
     defaults:{knob:'round', border:'plain', texture:'stars', knobtone:'light'},
@@ -272,7 +245,7 @@ const STYLES = {
   /* Teal, ocean, that screen green, steel and grey. Nothing warm: no reds, no
      browns, no golds. Slots that hold a terracotta elsewhere hold a harbour
      blue here, and that is the point of the slots being positions. */
-  aero: {nm:'Aero', ds:'Teal gloss and clear skies, straight from 2006',
+  aero: {nm:'Aeros', ds:'Teal gloss and clear skies, straight from 2006',
     board:'#D8F0F4|#C2E6EC', boardAlpha:.85,
     borders:['Bevel','Deep bevel','Sill','Glass','Plain','None'],
     defaults:{knob:'orb', border:'aqua', texture:'sheen', knobtone:'light'},
@@ -292,7 +265,7 @@ const styleNow = ()=> STYLES[(S.look&&S.look.style)] || STYLES.victorian;
 /* ---- light and dark ---------------------------------------------------
    There is still no theme switch in the old sense: light or dark is a fact
    about the style you are in, and a style that has only one answer keeps it.
-   What a style *may* now carry is a second set of sixteen — Victorian's walnut
+   What an aesthetic *may* now carry is a second set of sixteen — Victoria's walnut
    — and which of the two is showing is `S.look.dark`:
 
      auto    whatever the phone is set to, which is the answer you want
@@ -311,7 +284,7 @@ const hasDark = ()=> !!styleNow().dark;
 const darkNow = ()=> hasDark() && wantsDark();
 
 /* The sixteen showing right now. A slot the user repainted is stored per style
-   in `S.look.slots`, so overriding Victorian's rust doesn't follow you to Aero
+   in `S.look.slots`, so overriding Victoria's rust doesn't follow you to Aeros
    — the override belongs to the style, exactly as the colour it replaces does.
    The override is per style and not per light-or-dark: a colour you insisted on
    is a colour you insisted on. */

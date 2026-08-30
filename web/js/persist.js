@@ -17,7 +17,7 @@ import { closePanel } from './panels.js';
    Bureau is this phone running" is exactly the question you ask when a change
    appears not to have deployed. Shown in Settings, so it can be read off the
    device rather than guessed at. */
-const APP_VERSION = '0.95';
+const APP_VERSION = '0.96';
 const KEY = 'bureau.v1';
 const install = {deferred:null};   // the browser's install prompt, when one is on offer
 let saveTimer = null;
@@ -222,7 +222,7 @@ function rescalePhone(d, from, cols){
    skips all of them, an old backup replays only what it is missing. These
    used to be ad-hoc per-load mutations inside adopt(); a new repair that
    should run once belongs here, as the next numbered step. */
-const DATA_V = 22;
+const DATA_V = 23;
 const MIGRATIONS = [
   // Drawers and objects were two arrays and a drawer could not live inside
   // anything. foldDrawers also replays the old dense flow to give v1 drawers
@@ -509,6 +509,28 @@ const MIGRATIONS = [
         d.look.locked = deskLock !== undefined ? !!deskLock
                       : sawALock ? lockedSomewhere : true;
     }},
+  /* Style became **Aesthetics**, and two of the five went with the renaming.
+
+     **Skeuomorphic** was parked from the start — the whole idea was materials
+     that look real, and materials are images rather than hexes — and Victoria
+     has since become the thing it was waiting to be: turned knobs, mouldings,
+     cockbeaded fronts, bound spines. Two answers to one question is one too
+     many. **Pseudochromo** goes because it is not in the new list.
+
+     `styleNow()` already falls back for an unknown name, so a desk left on
+     either would have *looked* right while going on storing an aesthetic that
+     no longer exists — the kind of thing that surfaces a year later as "why
+     did my export not load". Written down instead.
+
+     A **slot override** is stored per aesthetic, so the departed ones take
+     their own overrides with them rather than leaving a key nothing can
+     reach. See decision 90. */
+  {v:23, up(d){
+    const gone = {skeuo:1, pseudochromo:1};
+    if(d.look && gone[d.look.style]) d.look.style = 'victorian';
+    const sl = d.look && d.look.slots;
+    if(sl) Object.keys(gone).forEach(k=>{ delete sl[k]; });
+  }},
 ];
 function migrate(d){
   let v = d.v||0;
@@ -822,6 +844,6 @@ function pasteObjects(text, parentId){
   toast('Added '+(bits.join(' and ')||'nothing'), !!tally.made.length);
 }
 
-export { APP_VERSION, DATA_V, rescalePhone, rescaleOneBoard, rescaleBoxes, writeNow, save, saveIfDirty, storeSize, load, exportBackup,
+export { APP_VERSION, DATA_V, migrate, rescalePhone, rescaleOneBoard, rescaleBoxes, writeNow, save, saveIfDirty, storeSize, load, exportBackup,
   importBackup, assetDel, hydrateAssets, importImage, importMedia, importFile, imgFor,
   pasteObjects, install };

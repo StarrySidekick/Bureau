@@ -3235,6 +3235,35 @@ const CHROME = process.env.BUREAU_CHROME;
       .every(n => names.has(n));
   });
 
+  /* --- Style became Aesthetics, and two of the five went — decision 90 ---
+     A departed aesthetic is the dangerous kind of removal: `styleNow()` falls
+     back for an unknown name, so a desk left on one would look right while
+     going on storing something that no longer exists. */
+  const aesthetics = await page.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const S = BUREAU.state, out = {}, was = S.look.style;
+    const names = Object.keys(BUREAU.styles);
+    out.theDepartedAreGone = !names.includes('skeuo') && !names.includes('pseudochromo');
+    out.theRestAreHere = ['victorian','starry','aero'].every(k => names.includes(k));
+    // the keys are unchanged on purpose — renaming them buys nothing and costs
+    // a migration, and the CSS is written against them
+    const nm = k => BUREAU.styles[k].nm;
+    out.renamedNotRekeyed = nm('victorian')==='Victoria'
+      && nm('starry')==='Starful Gothic' && nm('aero')==='Aeros';
+    // and a desk sitting on a departed one is carried across rather than left
+    // pointing at nothing
+    const moved = BUREAU.migrated({ v:22, objects:[],
+      look:{ style:'skeuo', slots:{ skeuo:{1:'#fff'}, victorian:{1:'#eee'} } } });
+    const moved2 = BUREAU.migrated({ v:22, objects:[],
+      look:{ style:'pseudochromo', slots:{} } });
+    out.skeuoLandsOnVictoria = moved.look.style === 'victorian';
+    out.pseudochromoLandsToo = moved2.look.style === 'victorian';
+    out.andTakesItsOverridesWithIt =
+      !moved.look.slots.skeuo && !!moved.look.slots.victorian;
+    S.look.style = was; BUREAU.applyLook(); BUREAU.render(); await nap(120);
+    return out;
+  });
+
   /* --- the status bar is the top of the carcass — decision 89 -----------
      Painted by the system from `theme-color`, so it is the one piece of the
      app's furniture CSS cannot reach — and the only way to see it is to ask
@@ -3327,8 +3356,8 @@ const CHROME = process.env.BUREAU_CHROME;
 
   /* A spine's title is the one piece of type printed straight onto an object's
      own colour, so its legibility is not a fact about one style — it is eleven
-     slots times four styles, and gilt is a mid tone that hides on the middle of
-     that range. This walks the whole product and asks for a contrast ratio,
+     slots times every aesthetic there is, and gilt is a mid tone that hides on
+     the middle of that range. This walks the whole product and asks for a contrast ratio,
      because a screenshot of one desk cannot see it. */
   const spineReads = await page.evaluate(async () => {
     const nap = n => new Promise(r => setTimeout(r, n));
@@ -3343,7 +3372,7 @@ const CHROME = process.env.BUREAU_CHROME;
       made.push(o); S.objects.push(o);
     }
     let worst = 99, worstAt = '';
-    for (const st of ['victorian','pseudochromo','starry','aero']) {
+    for (const st of Object.keys(BUREAU.styles)) {
       S.look.style = st; BUREAU.applyLook(); BUREAU.render(); await nap(180);
       for (const o of made) {
         const t = document.querySelector(`.grid .drawer[data-drawer="${o.id}"]`);
@@ -3634,7 +3663,7 @@ const CHROME = process.env.BUREAU_CHROME;
     paletteKeys, editorKeys, pickerLeads, rollupsEverywhere, soundAndVision, keyboardBoard,
     ranking, repeating, oneLock, scheduling, ownColour, addBox, calFaces,
     lockedBoard, freeTraits, pageWrites, tickBoxes, readerFits,
-    dropsIn, keyframesRegistered, statusBar, bindings, spineReads, panelling, theSpray, tappingIsQuiet, decorations, pinboard
+    dropsIn, keyframesRegistered, aesthetics, statusBar, bindings, spineReads, panelling, theSpray, tappingIsQuiet, decorations, pinboard
   }, null, 2));
   await browser.close();
 })();
