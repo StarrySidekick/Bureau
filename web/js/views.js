@@ -527,8 +527,15 @@ function settingsBody(sec){
         const ink=cs.getPropertyValue('--brass').trim()||'#A9793F';
         const line=cs.getPropertyValue('--ink').trim();
         const here=sprayNow();
-        return Object.entries(SPRAYS).map(([v,[nm,,,kinds]])=>
-          `<button class="checkopt sprayopt${here===v?' on':''}" data-spray="${v}" title="${esc(nm)}">
+        /* The first chip is the way back: an unset preference follows the
+           aesthetic, and once you have picked one there has to be a way to
+           stop. It draws the shape the current aesthetic suggests, so it is
+           still a picture of what you would get. */
+        const auto = !SPRAYS[S.look.spray];
+        const rows = [[ '', ['Follows ' + styleNow().nm, 0, 0, SPRAYS[here][3]] ],
+                      ...Object.entries(SPRAYS)];
+        return rows.map(([v,[nm,,,kinds]])=>
+          `<button class="checkopt sprayopt${v==='' ? (auto?' on':'') : (!auto&&here===v?' on':'')}" data-spray="${v}" title="${esc(nm)}">
             <span>${kinds.length
               ? [...new Set(kinds)].slice(0,3).map(k=>
                   `<img src="${sprayMark(k, ink, 20, line)}" alt="" width="20" height="20">`).join('')

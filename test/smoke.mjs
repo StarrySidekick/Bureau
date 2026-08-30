@@ -2146,8 +2146,16 @@ const CHROME = process.env.BUREAU_CHROME;
     S.look.shadows = false; BUREAU.render(); await nap(160);
     out.offIsZeroNotNone = tok() === '0 0 0 rgba(0,0,0,0)';
     out.andNothingIsCast = !/0px 6px 18px/.test(getComputedStyle(tile()).boxShadow);
-    // the border slot's own inset rings must survive it
-    out.theBorderSurvives = /inset/.test(getComputedStyle(tile()).boxShadow);
+    /* The border slot's own inset rings must survive it — asked of a tile
+       whose slot actually *has* rings, not of whichever is first. `bd-plain`
+       legitimately has none, and since a new drawer rolls its edge from the
+       aesthetic's vocabulary (decision 92) the first tile on the board is
+       sometimes a plain one. The claim is about the border system, so the
+       fixture has to be a bordered tile. */
+    const dressed = document.querySelector(
+      '.grid .drawer.dtile.bd-panel, .grid .drawer.dtile.bd-heavy,'
+      + '.grid .drawer.dtile.bd-bar, .grid .drawer.dtile.bd-gloss');
+    out.theBorderSurvives = !!dressed && /inset/.test(getComputedStyle(dressed).boxShadow);
     S.look.shadows = true; BUREAU.render(); await nap(160);
     out.andBackAgain = /rgba\(42/.test(tok());
     return out;
@@ -3264,6 +3272,64 @@ const CHROME = process.env.BUREAU_CHROME;
     return out;
   });
 
+  /* --- an aesthetic reaches further in — decision 92 --------------------- */
+  const deeper = await page.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const S = BUREAU.state, out = {}, was = S.look.style;
+    /* **The carcass is the aesthetic's.** It frames the whole app, and it now
+       carries the status bar with it (decision 89), so this is the single
+       widest thing an aesthetic says. */
+    const woods = {};
+    for (const k of Object.keys(BUREAU.styles)) {
+      BUREAU.setStyle(k); await nap(140);
+      woods[k] = getComputedStyle(document.getElementById('frame'))
+        .getPropertyValue('--wood').trim().toLowerCase();
+    }
+    out.everyAestheticItsOwnWood = new Set(Object.values(woods)).size
+      === Object.keys(woods).length;
+    out.andTheStatusBarFollows =
+      document.querySelector('meta[name="theme-color"]').content.trim().toLowerCase()
+      === woods[Object.keys(woods)[Object.keys(woods).length-1]];
+    /* **The burst follows the aesthetic until you pick one.** */
+    delete S.look.spray;
+    BUREAU.setStyle('girando'); await nap(120);
+    out.unsetFollowsTheAesthetic = BUREAU.sprayNow() === 'spirals';
+    BUREAU.setStyle('golf97'); await nap(120);
+    out.andChangesWithIt = BUREAU.sprayNow() === 'squares';
+    S.look.spray = 'hearts';
+    out.butAChoiceWins = BUREAU.sprayNow() === 'hearts';
+    delete S.look.spray;
+    out.andCanBeHandedBack = BUREAU.sprayNow() === 'squares';
+    /* **A new drawer is its own piece of furniture** — its look is rolled from
+       this aesthetic's vocabulary rather than stamped from one default, so a
+       run of them varies. Leaning three-to-one on the aesthetic's own answer
+       means a handful could in principle come out identical; twenty will not,
+       and that is the property worth asserting. */
+    BUREAU.setStyle('victorian'); await nap(120);
+    const made = [];
+    for (let i = 0; i < 20; i++) made.push(BUREAU.create('drawer', { parent:'root', title:'R'+i }));
+    const spread = k => new Set(made.map(o => o[k])).size;
+    out.knobsVary   = spread('knob')    > 1;
+    out.edgesVary   = spread('border')  > 1;
+    out.grainsVary  = spread('texture') > 1;
+    out.panelsVary  = spread('panel')   > 1;
+    out.coloursVary = spread('c')       > 1;
+    // …and it still reads as this aesthetic: the stated default is the mode
+    const commonest = k => { const n = {};
+      made.forEach(o => { n[o[k]] = (n[o[k]]||0) + 1; });
+      return Object.keys(n).sort((a,b)=>n[b]-n[a])[0]; };
+    const sd = BUREAU.styles.victorian.defaults;
+    out.stillLeansToTheAesthetic = commonest('knob') === sd.knob
+      && commonest('panel') === sd.panel;
+    made.forEach(o => BUREAU.delDrawer(o.id));
+    /* the two new ornaments, which the `decorations` block above already holds
+       to the tight-box and flush-to-the-floor rules along with the other ten */
+    out.gearworkAndVolute = !!BUREAU.decor.cog && !!BUREAU.decor.volute;
+    S.look.style = was; BUREAU.setStyle(was);
+    S.undo=[]; S.redo=[]; BUREAU.render(); await nap(120);
+    return out;
+  });
+
   /* --- the status bar is the top of the carcass — decision 89 -----------
      Painted by the system from `theme-color`, so it is the one piece of the
      app's furniture CSS cannot reach — and the only way to see it is to ask
@@ -3663,7 +3729,7 @@ const CHROME = process.env.BUREAU_CHROME;
     paletteKeys, editorKeys, pickerLeads, rollupsEverywhere, soundAndVision, keyboardBoard,
     ranking, repeating, oneLock, scheduling, ownColour, addBox, calFaces,
     lockedBoard, freeTraits, pageWrites, tickBoxes, readerFits,
-    dropsIn, keyframesRegistered, aesthetics, statusBar, bindings, spineReads, panelling, theSpray, tappingIsQuiet, decorations, pinboard
+    dropsIn, keyframesRegistered, aesthetics, deeper, statusBar, bindings, spineReads, panelling, theSpray, tappingIsQuiet, decorations, pinboard
   }, null, 2));
   await browser.close();
 })();

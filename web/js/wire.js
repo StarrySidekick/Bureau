@@ -662,10 +662,15 @@ function wire(){
     if(chk){ S.look.check = chk.dataset.checks;
       applyLook(); save(); render(); refreshPanel(); return; }
 
-    /* What comes out of a tile when you touch it — off, or one of three
-       flavours. See decision 85. */
+    /* What comes out of a new object as it lands — off, one of the shapes, or
+       the empty string, which *unsets* the preference so it follows the
+       aesthetic again. Deleted rather than stored as '': `sprayNow()` asks
+       whether the stored name is a real shape, and an empty string is not one,
+       but leaving it there would put a meaningless key in every backup.
+       See decisions 85 and 92. */
     const spr=t.closest('[data-spray]');
-    if(spr){ S.look.spray = spr.dataset.spray;
+    if(spr){ const v = spr.dataset.spray;
+      if(v) S.look.spray = v; else delete S.look.spray;
       save(); render(); refreshPanel(); return; }
 
     // laid flat on the board, or pinned to it — see decision 75

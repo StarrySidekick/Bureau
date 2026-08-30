@@ -160,6 +160,41 @@ function applyLook(){
 function randomFront(){
   return OBJ0 + Math.floor(Math.random()*OBJN);
 }
+/* ---- a new drawer is a new piece of furniture --------------------------
+   Every drawer used to be born wearing the aesthetic's stated defaults, which
+   made a desk a row of identical fronts in eleven colours. Real furniture is
+   not like that: the drawers in one room came from different decades and
+   different hands. So a new container picks its own knob, edge, grain and
+   panelling as well as its colour.
+
+   **Randomly, but from this aesthetic's vocabulary, and weighted to its own
+   answer.** The stated default goes into the bag several times over, so a
+   Victoria desk still reads as Victoria and a Golf 97 desk still reads as
+   1997 — what varies is the individual piece, not the room. Uniform picks
+   across every option would make every aesthetic look like the same jumble,
+   which is the opposite of what an aesthetic is for.
+
+   `none` is not in any bag: it is a deliberate "take the edge off this one"
+   and not a thing to be handed at random. See decision 92. */
+const KNOB_SHAPES = ['round','diamond','bar','ring','square'];
+const EDGE_SHAPES = ['panel','heavy','bar','gloss','plain'];
+const GRAINS = ['none','dots','grid','weave','weave2','speckle','rule','check'];
+const PANEL_SHAPES = ['plain','cockbead','fielded','reeded','ogee'];
+const pickOf = a => a[Math.floor(Math.random()*a.length)];
+/* Three of the aesthetic's own to one of anything else, per property. */
+const leaning = (mine, all) => pickOf([mine, mine, mine, ...all]);
+function randomLook(){
+  const sd = styleDefaults();
+  return {
+    knob:     leaning(sd.knob     || 'round',    KNOB_SHAPES),
+    border:   leaning(sd.border   || 'panel',    EDGE_SHAPES),
+    texture:  leaning(sd.texture  || 'none',     GRAINS),
+    panel:    leaning(sd.panel    || 'cockbead', PANEL_SHAPES),
+    // a knob turned out of the front's own wood is the default and stays the
+    // commonest; lighter and darker are the occasional piece
+    knobtone: pickOf([sd.knobtone, sd.knobtone, sd.knobtone, null, 'light', 'dark'])
+  };
+}
 function randomBoard(){
   const hue = Math.floor(Math.random()*360);
   const sat = 12 + Math.floor(Math.random()*10);          // 12–21%, never garish
@@ -233,7 +268,8 @@ const STYLES = {
           '#78302E','#836828','#755A33','#4F3E60','#5C5E63'],
     names:['Walnut','Baize','Sage','Emerald','Royal','Delft',
            'Claret','Gilt','Oak','Regal','Pewter'],
-    vars:{}},
+    spray:'stars',
+    vars:{'--wood':'#3A2C1E'}},
   /* Carcassonne: a walled French city in tile-sized pieces — heraldic woad,
      limestone, meadow — with the war long over and its machines turned to
      tinkering. Flowers and overgrowth on the ramparts, brass and copper in the
@@ -250,7 +286,8 @@ const STYLES = {
            'Rose','Brass','Copper','Verdigris','Tufa'],
     // an old-style face with a French cut to it, and corners squarer than
     // Victoria's because this is masonry rather than cabinetwork
-    vars:{'--radius':'6px','--radius-d':'2px',
+    spray:'spirals',
+    vars:{'--radius':'6px','--radius-d':'2px','--wood':'#3E4A55',
       '--serif':'"Hoefler Text","Baskerville","Palatino Linotype",Palatino,Georgia,serif'}},
   /* A floating island under a sky that drops its stars as crystal. Violets and
      cosmic blues rather than black space, and elven gold on top of them —
@@ -267,7 +304,8 @@ const STYLES = {
            'Arcane','Ember','Eldergold','Nether','Slate'],
     // a didone, because elven is high-contrast and thin-stroked rather than
     // blackletter — and the radii are generous, since nothing here was cut
-    vars:{'--radius':'11px','--radius-d':'4px',
+    spray:'twinkles',
+    vars:{'--radius':'11px','--radius-d':'4px','--wood':'#241C3E',
       '--serif':'"Didot","Bodoni 72","Playfair Display",Georgia,serif'}},
   /* The underside of a landmass that will not hold still: Sicilian baroque
      seen from below, in volcanic stone and majolica, with gold on the
@@ -284,7 +322,8 @@ const STYLES = {
            'Sangue','Ochre','Lapis','Aubergine','Cenere'],
     // Bodoni is Italian and it is the face baroque plates were re-set in;
     // the radii are the roundest here, because a volute has no corners
-    vars:{'--radius':'14px','--radius-d':'5px',
+    spray:'spirals',
+    vars:{'--radius':'14px','--radius-d':'5px','--wood':'#2C2620',
       '--serif':'"Bodoni 72","Didot","Baskerville",Georgia,serif'}},
   /* 1997, on a television: washed fairway greens, the beige of golf slacks,
      maroon polo, distressed leather, and the grey and teal of the desktop it
@@ -302,7 +341,8 @@ const STYLES = {
            'Teal','Mustard','Leather','Plum','Silver'],
     // Tahoma and Verdana are the faces this actually happened in, and the
     // corners are square because nothing in 1997 had a radius
-    vars:{'--radius':'0px','--radius-d':'0px',
+    spray:'squares',
+    vars:{'--radius':'0px','--radius-d':'0px','--wood':'#8E8F80',
       '--serif':'Tahoma,Verdana,Geneva,"MS Sans Serif",sans-serif'}},
   /* Black and white, drawn in white pencil. The line slot is white, so every
      front is outlined rather than filled — the eleven are near-blacks that
@@ -319,7 +359,9 @@ const STYLES = {
     // Illustration-coded but grown up. Comic Sans reads as a joke about
     // hand-drawn rather than the thing itself; Optima and Gill Sans are what
     // hand-lettered book jackets and map legends were actually set in.
-    vars:{'--serif':'"Optima","Gill Sans","Gill Sans MT","Avenir Next","Trebuchet MS",sans-serif',
+    spray:'stars',
+    vars:{'--wood':'#0C0E14',
+      '--serif':'"Optima","Gill Sans","Gill Sans MT","Avenir Next","Trebuchet MS",sans-serif',
       // drawn, not printed: the outline is the whole front, so it is nearly
       // opaque rather than the 72% every other style derives
       '--line':'rgba(244,246,248,.92)'}},
@@ -335,7 +377,8 @@ const STYLES = {
           '#14607A','#5E7A8A','#44515C','#33414D','#8A98A3'],
     names:['Aqua','Lagoon','Meadow','Bliss','Harbour','Sky',
            'Deep sea','Steel','Slate','Storm','Silver'],
-    vars:{'--radius':'12px','--radius-d':'10px',
+    spray:'twinkles',
+    vars:{'--radius':'12px','--radius-d':'10px','--wood':'#25505E',
       // Segoe UI is the face Aero actually shipped with; Lucida Grande is what
       // the other 2006 desktop was set in, and it is the better fallback here
       // than Trebuchet, which belongs to the version before this one.
@@ -413,7 +456,7 @@ const BACKDROPS = [
 
 export { themeNow, lookVal, setLookVal, applyLook, applyStyle, styleDefaults,
   DARKMODES, darkMode, hasDark, darkNow, systemDark,
-  randomFront, randomBoard, STYLES, BACKDROPS,
+  randomFront, randomBoard, randomLook, STYLES, BACKDROPS,
   SLOTS, OBJ0, OBJN, ROLES, slotName, styleNow, palNow, setSlot,
   BORDER_SLOTS, borderSlots, CHECKS,
   hexOf, objColour, objSlots, isDark, lum, contrast, readsOn };

@@ -3216,3 +3216,77 @@ rather than a Victorian one.
 90px button; Bureau's tiles are five times that, where 2px reads as a hairline.
 The *proportion* carries the decade, not the pixel count — the same lesson as
 decision 88's px thicknesses, pointing the other way.
+
+---
+
+## 92. An aesthetic goes all the way down, and a drawer is its own piece
+
+*2026-08-30*
+
+Four things, all of them the same idea: the difference between two aesthetics
+should be felt everywhere, and a desk should look like a room rather than a
+catalogue.
+
+### The carcass is the aesthetic's
+
+`--wood` was one walnut for the whole app, overridable per desk. It is now
+stated by each aesthetic — Carca's slate-blue bench, Stelaine's void violet,
+Girando's basalt, Golf 97's desktop grey, Starful Gothic's near-black. This is
+the widest thing an aesthetic can say, because the carcass frames everything:
+the strip above the bar, the bar, the reveal, the drawer along the bottom —
+**and the status bar**, which follows it for free through decision 89. A desk
+override still beats it.
+
+### Every menu in the app is dressed too
+
+`chromeTokens()` already gave the panels their colours, so two aesthetics were
+recognisably different on the board and nearly identical the moment you opened
+Settings. What they lacked was *materials*. One `.panel` rule and one `.sqbtn`
+rule per aesthetic is almost all of it, because there is one menu system and
+one button (decision 23) — a dressed slab with a course line for Carca, a gilt
+hairline and a violet bloom for Stelaine, a carved gilded cornice for Girando,
+a hard outset dialog for Golf 97 whose buttons *invert* when pressed, a pencil
+rule for Starful Gothic.
+
+### The burst is the aesthetic's suggestion until you say otherwise
+
+Girando's core motif is a spiral and the spray already drew one; it was absurd
+that they never met. An aesthetic names a shape and an unset preference takes
+it, so a desk that has never been told changes its burst when you change
+aesthetic, the way its colours and its wood do. Choosing one in Settings pins
+it across all of them, and a first chip — "Follows Girando", drawn as the shape
+you would actually get — hands it back. Unsetting **deletes** the key rather
+than storing `''`, so a backup carries no meaningless value.
+
+### A new drawer is a new piece of furniture
+
+Every container was born wearing its aesthetic's stated defaults, which made a
+desk a row of identical fronts in eleven colours. Real furniture is not like
+that — the drawers in one room came from different decades and different hands.
+So a new container now rolls its own knob, edge, grain and panelling as well as
+its colour.
+
+**Randomly, but from this aesthetic's vocabulary and weighted to its own
+answer.** The stated default goes into the bag three times over, so a Victoria
+desk still reads as Victoria and a Golf 97 desk still reads as 1997: what
+varies is the individual piece, not the room. Uniform picks across every option
+would make every aesthetic look like the same jumble, which is the opposite of
+what an aesthetic is for. `none` is in no bag — it is a deliberate "take the
+edge off this one", not a thing to hand out at random.
+
+### Two ornaments
+
+**Gearwork** for Carca and a **Volute** for Girando, both inline SVG like the
+other twelve so they take the object's colour and the aesthetic's brass and
+gilt (decision 86). The gear is the one ornament whose geometry has to be
+*right* — teeth eyeballed as a dozen little rectangles read as a cartoon sun —
+so both wheels are generated: twelve teeth and nine, each a trapezoid struck
+between a root circle and a tip circle, meshed at the pitch line, with a hub,
+a rim and four spokes, because that is how one is cast and it is the only
+reason a gear reads as machined rather than as a cut-out star.
+
+A volute is likewise not a spiral on a post: it is the top of a **console
+bracket**, the thing actually holding up a Sicilian balcony. So the scroll —
+an archimedean path of two and a half turns whose radius tapers as it goes,
+because a hand-drawn coil reads as wire — sits on a flared S-profile body with
+an acanthus down its face and a plinth under it.

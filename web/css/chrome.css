@@ -994,6 +994,71 @@ html[data-style="starry"] .drawer.dtile.bd-gloss{
   box-shadow:inset 0 0 0 5px transparent, inset 0 0 0 6px color-mix(in srgb,var(--ink) 34%,transparent);
   border-style:dashed }
 
+/* ============================================================
+   An aesthetic reaches the chrome as well as the board — decision 92
+   ============================================================
+   Everything above dresses a *tile*. But the desk is only half the app: every
+   menu in it is `.panel` (decision 23), every tool is `.sqbtn`, and until now
+   those took only the five derived tokens — so two aesthetics could differ
+   wildly on the board and be indistinguishable the moment you opened
+   Settings. `chromeTokens()` already gives them their colours; what they were
+   missing is their **materials**.
+
+   One `.panel` rule and one `.sqbtn` rule per aesthetic is nearly all of it,
+   because there is one menu system and one button. Radii and typeface come
+   from the aesthetic's own `vars` and are already doing their work here. */
+
+/* Carca: cut stone. A panel is a dressed slab with a course line down its
+   opening edge, and a tool is a small block bedded in it. */
+html[data-style="carca"] .panel{
+  border-left:2px solid color-mix(in srgb,var(--brass) 40%,transparent);
+  box-shadow:inset 3px 0 0 rgba(0,0,0,.07), var(--shadow-lg) }
+html[data-style="carca"] .sqbtn{
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.5), inset 0 -1px 0 rgba(0,0,0,.10) }
+
+/* Stelaine: nothing is bedded, it is *hung*. A gilt hairline down the opening
+   edge and a violet bloom behind the panel, because the tower glows. */
+html[data-style="stelaine"] .panel{
+  border-left:1px solid color-mix(in srgb,var(--glow) 42%,transparent);
+  box-shadow:-14px 0 40px -12px color-mix(in srgb,var(--brass) 45%,transparent),
+             var(--shadow-lg) }
+html[data-style="stelaine"] .sqbtn{
+  border-color:color-mix(in srgb,var(--glow) 26%,transparent);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.05) }
+html[data-style="stelaine"] .sqbtn.on{
+  box-shadow:0 0 12px -2px color-mix(in srgb,var(--brass) 60%,transparent) }
+
+/* Girando: carved. The panel edge is a gilded cornice and a tool is a boss —
+   lit on the upper left, hollow beneath, like every other shaped thing here. */
+html[data-style="girando"] .panel{
+  border-left:1px solid color-mix(in srgb,var(--glow) 55%,transparent);
+  box-shadow:inset 4px 0 0 rgba(0,0,0,.22),
+             inset 6px 0 0 color-mix(in srgb,var(--glow) 22%,transparent), var(--shadow-lg) }
+html[data-style="girando"] .sqbtn{
+  box-shadow:inset 1px 1px 0 rgba(255,255,255,.16), inset -1px -1px 0 rgba(0,0,0,.30) }
+
+/* Golf 97: a dialog box. Hard outset on the panel and on every tool, the same
+   two flat steps the drawer fronts get, and square because the decade was. */
+html[data-style="golf97"] .panel{
+  border-left:0;
+  box-shadow:inset 2px 0 0 rgba(255,255,255,.65), inset 3px 0 0 rgba(0,0,0,.10),
+             -3px 0 0 rgba(0,0,0,.30) }
+html[data-style="golf97"] .sqbtn{
+  border-color:rgba(0,0,0,.45);
+  box-shadow:inset 2px 2px 0 rgba(255,255,255,.75), inset -2px -2px 0 rgba(0,0,0,.34) }
+/* pressed, which in 1997 means the bevel turns over */
+html[data-style="golf97"] .sqbtn.on{
+  box-shadow:inset -2px -2px 0 rgba(255,255,255,.55), inset 2px 2px 0 rgba(0,0,0,.40) }
+html[data-style="golf97"] .panel,html[data-style="golf97"] .prow input,
+html[data-style="golf97"] .psel,html[data-style="golf97"] .pfield{border-radius:0}
+
+/* Starful Gothic: the panel is drawn too — a pencil rule down its edge rather
+   than a printed one, and the tools are sketched boxes. */
+html[data-style="starry"] .panel{
+  border-left:1.5px solid color-mix(in srgb,var(--ink) 38%,transparent) }
+html[data-style="starry"] .sqbtn{
+  border-color:color-mix(in srgb,var(--ink) 34%,transparent);background:transparent }
+
 /* ---- the drawn line, on the one aesthetic that is drawn -----------------
    Starful Gothic is white pencil on a night sky, and a box-shadow is the
    straightest line a computer can make. The filter in index.html bends it —

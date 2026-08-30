@@ -3,7 +3,7 @@ import { S, byId, K, KINDS, KEYS, kindHas, has, isContainer, genKindOf, streak, 
   repeatOf, repeats, nextRepeat, faceOf, childrenOf,
   deskIds, deskHere, placeOf, cfgOf } from './model.js';
 import { GRID, PHONE_GRIDS, colsOf, gridOf, freeSpot, lay, boxOk, sizeOfKind } from './grid.js';
-import { randomFront, randomBoard, styleDefaults } from './look.js';
+import { randomFront, randomBoard, randomLook, styleDefaults } from './look.js';
 import { render, reveal } from './views.js';
 import { tileRect, pop, clRefill } from './motion.js';
 import { closeSheet } from './sheet.js';
@@ -395,14 +395,16 @@ function create(kind, patch){
     o.board = o.board || randomBoard();
     o.c = o.c || randomFront();
     const sd=styleDefaults();
-    o.knob=o.knob||sd.knob; o.border=o.border||sd.border;
-    o.texture=o.texture||sd.texture; o.knobtone=o.knobtone||sd.knobtone;
-    /* …and how the front is worked. Panelling arrived (decision 88) after the
-       aesthetics already carried knob, border and texture, and was left out of
-       the set — which meant the one thing that decides whether a front reads as
-       a Victorian drawer or a Windows 95 button was the one thing an aesthetic
-       could not say. It is a default like the other four. See decision 91. */
-    o.panel=o.panel||sd.panel; o.pv = o.pv || 'list';
+    /* Its own knob, edge, grain and panelling — picked from this aesthetic's
+       vocabulary and weighted heavily to its stated answer, so a desk is a
+       room of related furniture rather than a row of identical fronts. See
+       decision 92. `sd` is still the fallback for anything the roll leaves
+       undecided, and an explicit `patch` always wins over both. */
+    const rl = randomLook();
+    o.knob=o.knob||rl.knob||sd.knob; o.border=o.border||rl.border||sd.border;
+    o.texture=o.texture||rl.texture||sd.texture;
+    o.knobtone=o.knobtone||rl.knobtone||undefined;
+    o.panel=o.panel||rl.panel||sd.panel; o.pv = o.pv || 'list';
     o.layout = o.layout || k.layout || 'list';
     // A type may declare the rule its containers start with — a calendar
     // collects anything dated the moment you make one, rather than being a
@@ -499,9 +501,9 @@ function randomThing(parentId){
   if(has(o,'text')) o.body=Array.from({length:2+Math.floor(Math.random()*4)},()=>pick(WORDS)).join(' ')+'.';
   if(has(o,'date')&&Math.random()<0.6) o.due=dz(Math.floor(Math.random()*14)-3);
   if(has(o,'check')&&Math.random()<0.3) { o.done=true; o.doneAt=T; }
-  if(isContainer(o)){ o.c=randomFront(); o.board=randomBoard();
-    o.knob=pick(['round','diamond','bar','ring','square']);
-    o.border=pick(['panel','panel','heavy','bar','plain','none']); }
+  // create() gives a container its own look now (decision 92), so this only
+  // rerolls the two that make a sample desk worth looking at
+  if(isContainer(o)){ o.c=randomFront(); o.board=randomBoard(); }
   const g=gridOf(undefined, home), dv=dev();
   const w=1+Math.floor(Math.random()*8), h=1+Math.floor(Math.random()*8);
   o[dv]=freeSpot(Math.min(w,g.cols), h, dv, home);

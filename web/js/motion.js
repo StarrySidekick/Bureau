@@ -1,7 +1,7 @@
 import { $, clamp, ROOT } from './util.js';
 import { S, byId, isContainer, shapeOf, openingOf, dev, deskIds, deskOf } from './model.js';
 import { lay } from './grid.js';
-import { objColour } from './look.js';
+import { objColour, styleNow } from './look.js';
 import { render, renderSoon, previewHTML, pageAt, pageCount, goPage } from './views.js';
 
 /* ============================================================
@@ -204,7 +204,16 @@ const SPRAYS = {
   mixed:    ['A mix',      18, 1,
              ['star','twinkle','spiral','square','heart','ring','bar','circle']]
 };
-const sprayNow = ()=> SPRAYS[S.look.spray] ? S.look.spray : 'stars';
+/* **What comes out is the aesthetic's suggestion until you say otherwise.**
+   Girando's whole motif is a spiral and the burst already draws one; Golf 97
+   should throw squares and Stelaine sparkles. So an aesthetic names a shape,
+   and an unset preference takes it — which also means a desk that has never
+   been told changes its burst when you change aesthetic, the way its colours
+   and its wood do. Choosing one in Settings pins it across all of them, and
+   "Follows the aesthetic" is how you hand it back. An unknown name still falls
+   to stars rather than to a desk that throws nothing. See decision 92. */
+const sprayNow = ()=> SPRAYS[S.look.spray] ? S.look.spray
+  : (SPRAYS[styleNow().spray] ? styleNow().spray : 'stars');
 
 const GRAVITY = 1500;      // px/s² — heavy enough to arc inside half a second
 const DRAG    = 2.1;       // air, per second: the sideways throw dies first

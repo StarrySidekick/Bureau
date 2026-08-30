@@ -264,6 +264,64 @@ const DECOR = {
     <path d="M25 97h26l-.4 3H25.4Z" fill="#000" opacity=".22"/>
     <path d="M20 92h36v4H20Z" fill="var(--brass)" opacity=".8"/>` },
 
+  /* Carca's half of the story: the war is over and the machines tinker now.
+     A gear is the one ornament here whose geometry has to be *right* — teeth
+     eyeballed as a dozen little rectangles read as a cartoon sun — so the two
+     wheels are generated: twelve teeth on the great one and nine on the pinion,
+     each tooth a trapezoid struck between a root circle and a tip circle, and
+     the two meshed at the pitch line rather than merely placed near each other.
+     See decision 92. */
+  cog: { c:12, nm:'Gearwork', vb:'8 8 92 88', size:[4,4], svg:`
+    ${/* the pinion goes behind, so the great wheel reads as the near one */''}
+    <path d="M88.9 71.3 L92.6 73.5 L91.0 78.0 L86.7 77.3 L85.1 79.3 L86.5 83.4 L82.4 85.8 L79.5 82.5 L77.0 83.0 L75.4 87.0 L70.7 86.2 L70.6 81.8 L68.4 80.6 L64.6 82.6 L61.6 79.0 L64.3 75.6 L63.4 73.2 L59.2 72.4 L59.2 67.6 L63.4 66.8 L64.3 64.4 L61.6 61.0 L64.6 57.4 L68.4 59.4 L70.6 58.2 L70.7 53.8 L75.4 53.0 L77.0 57.0 L79.5 57.5 L82.4 54.2 L86.5 56.6 L85.1 60.7 L86.7 62.7 L91.0 62.0 L92.6 66.5 L88.9 68.7 Z" fill="var(--brass)" opacity=".82"/>
+    <circle cx="76" cy="70" r="9" fill="currentColor" opacity=".5"/>
+    <circle cx="76" cy="70" r="3.4" fill="var(--brass)" opacity=".7"/>
+    <path d="M73.9 43.8 L79.6 46.7 L78.0 52.8 L71.6 52.4 L69.8 55.5 L73.3 60.9 L68.9 65.3 L63.5 61.8 L60.4 63.6 L60.8 70.0 L54.7 71.6 L51.8 65.9 L48.2 65.9 L45.3 71.6 L39.2 70.0 L39.6 63.6 L36.5 61.8 L31.1 65.3 L26.7 60.9 L30.2 55.5 L28.4 52.4 L22.0 52.8 L20.4 46.7 L26.1 43.8 L26.1 40.2 L20.4 37.3 L22.0 31.2 L28.4 31.6 L30.2 28.5 L26.7 23.1 L31.1 18.7 L36.5 22.2 L39.6 20.4 L39.2 14.0 L45.3 12.4 L48.2 18.1 L51.8 18.1 L54.7 12.4 L60.8 14.0 L60.4 20.4 L63.5 22.2 L68.9 18.7 L73.3 23.1 L69.8 28.5 L71.6 31.6 L78.0 31.2 L79.6 37.3 L73.9 40.2 Z" fill="currentColor"/>
+    <path d="M73.9 43.8 L79.6 46.7 L78.0 52.8 L71.6 52.4 L69.8 55.5 L73.3 60.9 L68.9 65.3 L63.5 61.8 L60.4 63.6 L60.8 70.0 L54.7 71.6 L51.8 65.9 L48.2 65.9 L45.3 71.6 L39.2 70.0 L39.6 63.6 L36.5 61.8 L31.1 65.3 L26.7 60.9 L30.2 55.5 L28.4 52.4 L22.0 52.8 L20.4 46.7 L26.1 43.8 L26.1 40.2 L20.4 37.3 L22.0 31.2 L28.4 31.6 L30.2 28.5 L26.7 23.1 L31.1 18.7 L36.5 22.2 L39.6 20.4 L39.2 14.0 L45.3 12.4 L48.2 18.1 L51.8 18.1 L54.7 12.4 L60.8 14.0 L60.4 20.4 L63.5 22.2 L68.9 18.7 L73.3 23.1 L69.8 28.5 L71.6 31.6 L78.0 31.2 L79.6 37.3 L73.9 40.2 Z" fill="none" stroke="var(--brass)" stroke-width="1.5" opacity=".55"/>
+    ${/* the web of the wheel: a hub, a rim and four spokes, which is how one
+         is cast and the only reason a gear reads as machined rather than as a
+         cut-out star */''}
+    <circle cx="50" cy="42" r="19" fill="var(--brass)" opacity=".22"/>
+    <circle cx="50" cy="42" r="19" fill="none" stroke="var(--brass)" stroke-width="1.6" opacity=".6"/>
+    <g stroke="var(--brass)" stroke-width="5" opacity=".85" stroke-linecap="round">
+      <path d="M50 27v30M35 42h30M39.6 31.6 60.4 52.4M60.4 31.6 39.6 52.4"/>
+    </g>
+    <circle cx="50" cy="42" r="8" fill="var(--brass)"/>
+    <circle cx="50" cy="42" r="8" fill="none" stroke="#000" stroke-opacity=".28" stroke-width="1"/>
+    <circle cx="50" cy="42" r="3.6" fill="#000" opacity=".42"/>
+    <circle cx="46.5" cy="38.5" r="2.6" fill="#fff" opacity=".34"/>
+    ${/* a bench block, so the works stand on the shelf rather than float */''}
+    <path d="M30 88h40l-3-6H33Z" fill="currentColor" opacity=".85"/>
+    <path d="M30 88h40v6H30Z" fill="var(--brass)" opacity=".5"/>
+    <path d="M30 92h40v2H30Z" fill="#000" opacity=".3"/>` },
+  /* Girando's, and the core motif of it: a volute — but a volute is not a
+     spiral on a post, it is the top of a **console bracket**, which is the
+     thing actually holding up a Sicilian balcony. So the scroll sits on a
+     flared S-profile body with an acanthus down its face and a plinth under
+     it. The spiral itself is struck as an archimedean path of two and a half
+     turns whose radius tapers as it goes — even turns, tightening to the eye —
+     because a hand-drawn coil reads as wire. See decision 92. */
+  volute: { c:12, nm:'Volute', vb:'20 6 64 92', size:[3,5], svg:`
+    ${/* the plinth it stands on */''}
+    <path d="M30 98h44v-9H30Z" fill="currentColor" opacity=".92"/>
+    <path d="M30 89h44v2.4H30Z" fill="#fff" opacity=".18"/>
+    <path d="M32 89h40v-4H32Z" fill="currentColor" opacity=".7"/>
+    ${/* the bracket: flared at the top, gathered at the waist, flared again */''}
+    <path d="M38 85C38 68 34 58 40 46L64 46C70 58 66 68 66 85Z"
+      fill="currentColor" opacity=".62"/>
+    <path d="M40 46C34 58 38 68 38 85h4C42 68 38 59 44 46Z" fill="#fff" opacity=".13"/>
+    ${/* acanthus down the face of it, which is what a bare bracket lacks */''}
+    <g fill="none" stroke="var(--glow)" stroke-width="1.9" opacity=".5" stroke-linecap="round">
+      <path d="M52 50v32M52 58c-4-3-7-3-9-1M52 58c4-3 7-3 9-1
+               M52 68c-4-3-7-3-9-1M52 68c4-3 7-3 9-1
+               M52 78c-3-3-6-3-8-1M52 78c3-3 6-3 8-1"/>
+    </g>
+    ${/* and the scroll on top */''}
+    <path d="M52.0 10.0 L54.2 10.3 L56.4 10.8 L58.5 11.5 L60.5 12.4 L62.3 13.6 L64.0 15.0 L65.5 16.5 L66.8 18.2 L68.0 20.0 L68.9 21.9 L69.5 23.9 L70.0 25.9 L70.2 27.9 L70.2 30.0 L70.0 32.0 L69.5 34.0 L68.8 35.9 L67.9 37.7 L66.9 39.3 L65.6 40.9 L64.2 42.2 L62.7 43.4 L61.1 44.4 L59.3 45.2 L57.5 45.8 L55.7 46.2 L53.9 46.4 L52.0 46.4 L50.2 46.2 L48.4 45.7 L46.7 45.1 L45.1 44.3 L43.6 43.3 L42.3 42.2 L41.0 41.0 L40.0 39.6 L39.1 38.1 L38.4 36.6 L37.9 34.9 L37.5 33.3 L37.4 31.6 L37.4 30.0 L37.6 28.4 L38.0 26.8 L38.6 25.3 L39.3 23.9 L40.2 22.6 L41.2 21.4 L42.3 20.3 L43.5 19.4 L44.8 18.6 L46.2 18.0 L47.6 17.6 L49.1 17.3 L50.6 17.2 L52.0 17.2 L53.4 17.4 L54.8 17.8 L56.1 18.3 L57.3 18.9 L58.5 19.7 L59.5 20.6 L60.4 21.6 L61.2 22.7 L61.9 23.8 L62.4 25.0 L62.7 26.2 L63.0 27.5 L63.1 28.8 L63.0 30.0 L62.8 31.2 L62.5 32.4 L62.0 33.5 L61.4 34.5 L60.8 35.5 L60.0 36.4 L59.1 37.1 L58.2 37.8 L57.2 38.3 L56.2 38.8 L55.2 39.0 L54.1 39.2 L53.0 39.3 L52.0 39.2 L51.0 39.0 L50.0 38.7 L49.1 38.3 L48.2 37.8 L47.4 37.2 L46.7 36.6 L46.1 35.9 L45.6 35.1 L45.2 34.3 L44.9 33.4 L44.7 32.6 L44.5 31.7 L44.5 30.8 L44.6 30.0 L44.8 29.2 L45.0 28.4 L45.4 27.7 L45.8 27.0 L46.3 26.4 L46.8 25.9 L47.4 25.4 L48.0 25.0 L48.7 24.7 L49.3 24.5 L50.0 24.4 L50.7 24.3 L51.4 24.3 L52.0 24.4 L52.6 24.6 L53.2 24.8 L53.7 25.1 L54.2 25.4 L54.6 25.8 L55.0 26.2 L55.3 26.7 L55.6 27.1 L55.8 27.6 L55.9 28.1 L56.0 28.6 L56.0 29.1 L55.9 29.6 L55.8 30.0 L55.6 30.4 L55.5 30.8 L55.2 31.1 L55.0 31.4 L54.7 31.7 L54.4 31.9 L54.1 32.1 L53.7 32.2 L53.4 32.2 L53.1 32.3 L52.8 32.3 L52.5 32.2 L52.2 32.1 L52.0 32.0" fill="none" stroke="currentColor" stroke-width="10"
+      stroke-linecap="round" opacity=".95"/>
+    <path d="M52.0 10.0 L54.2 10.3 L56.4 10.8 L58.5 11.5 L60.5 12.4 L62.3 13.6 L64.0 15.0 L65.5 16.5 L66.8 18.2 L68.0 20.0 L68.9 21.9 L69.5 23.9 L70.0 25.9 L70.2 27.9 L70.2 30.0 L70.0 32.0 L69.5 34.0 L68.8 35.9 L67.9 37.7 L66.9 39.3 L65.6 40.9 L64.2 42.2 L62.7 43.4 L61.1 44.4 L59.3 45.2 L57.5 45.8 L55.7 46.2 L53.9 46.4 L52.0 46.4 L50.2 46.2 L48.4 45.7 L46.7 45.1 L45.1 44.3 L43.6 43.3 L42.3 42.2 L41.0 41.0 L40.0 39.6 L39.1 38.1 L38.4 36.6 L37.9 34.9 L37.5 33.3 L37.4 31.6 L37.4 30.0 L37.6 28.4 L38.0 26.8 L38.6 25.3 L39.3 23.9 L40.2 22.6 L41.2 21.4 L42.3 20.3 L43.5 19.4 L44.8 18.6 L46.2 18.0 L47.6 17.6 L49.1 17.3 L50.6 17.2 L52.0 17.2 L53.4 17.4 L54.8 17.8 L56.1 18.3 L57.3 18.9 L58.5 19.7 L59.5 20.6 L60.4 21.6 L61.2 22.7 L61.9 23.8 L62.4 25.0 L62.7 26.2 L63.0 27.5 L63.1 28.8 L63.0 30.0 L62.8 31.2 L62.5 32.4 L62.0 33.5 L61.4 34.5 L60.8 35.5 L60.0 36.4 L59.1 37.1 L58.2 37.8 L57.2 38.3 L56.2 38.8 L55.2 39.0 L54.1 39.2 L53.0 39.3 L52.0 39.2 L51.0 39.0 L50.0 38.7 L49.1 38.3 L48.2 37.8 L47.4 37.2 L46.7 36.6 L46.1 35.9 L45.6 35.1 L45.2 34.3 L44.9 33.4 L44.7 32.6 L44.5 31.7 L44.5 30.8 L44.6 30.0 L44.8 29.2 L45.0 28.4 L45.4 27.7 L45.8 27.0 L46.3 26.4 L46.8 25.9 L47.4 25.4 L48.0 25.0 L48.7 24.7 L49.3 24.5 L50.0 24.4 L50.7 24.3 L51.4 24.3 L52.0 24.4 L52.6 24.6 L53.2 24.8 L53.7 25.1 L54.2 25.4 L54.6 25.8 L55.0 26.2 L55.3 26.7 L55.6 27.1 L55.8 27.6 L55.9 28.1 L56.0 28.6 L56.0 29.1 L55.9 29.6 L55.8 30.0 L55.6 30.4 L55.5 30.8 L55.2 31.1 L55.0 31.4 L54.7 31.7 L54.4 31.9 L54.1 32.1 L53.7 32.2 L53.4 32.2 L53.1 32.3 L52.8 32.3 L52.5 32.2 L52.2 32.1 L52.0 32.0" fill="none" stroke="var(--glow)" stroke-width="2.4"
+      stroke-linecap="round" opacity=".72"/>
+    <circle cx="52" cy="30" r="2.6" fill="var(--glow)" opacity=".85"/>` },
   bookend: { c:11, nm:'Bookend', vb:'2.5 11.5 93 88.5', size:[4,4], svg:`
     <path d="M12 34h8v58h-8Z" fill="var(--brass)"/>
     <path d="M12 34h3v58h-3Z" fill="#fff" opacity=".34"/>

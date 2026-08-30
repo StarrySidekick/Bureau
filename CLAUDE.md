@@ -1088,6 +1088,23 @@ and it belongs in that set, or the aesthetics cannot speak for it: panelling
 shipped without it, which left the one thing separating a Victorian drawer from
 a Windows 95 button as the one thing an aesthetic could not say.
 
+**A new drawer rolls its own look, from this aesthetic's vocabulary.**
+`randomLook()` in look.js: knob, edge, grain and panelling, each picked with
+the aesthetic's stated default in the bag **three times over**, so a desk is a
+room of related furniture rather than a row of identical fronts — and still
+reads as the aesthetic it is in. Uniform picks would make every aesthetic look
+like the same jumble. `none` is in no bag: it is a deliberate choice, not a
+thing to hand out. See decision 92.
+
+**An aesthetic states its own `--wood`, and that is the widest thing it says.**
+The carcass frames everything — the strip above the bar, the bar, the reveal,
+the drawer along the bottom, and the status bar, which follows it through
+decision 89. A desk's own `wood` still beats it. It also names a **spray**
+shape, which an unset `S.look.spray` takes, so the burst changes with the
+aesthetic until you pick one; unsetting deletes the key rather than storing
+`''`. And each dresses `.panel` and `.sqbtn` — one menu system and one button
+(decision 23), so two rules per aesthetic reach every menu in the app.
+
 **There is no theme switch.** Light or dark is `isDark(palNow()[0])` — the
 style's own background. `themeNow()` still reports paper/walnut, because the
 CSS theme block owns the shadows and the per-theme custom colours are keyed on
