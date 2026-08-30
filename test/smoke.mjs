@@ -3283,6 +3283,47 @@ const CHROME = process.env.BUREAU_CHROME;
     return out;
   });
 
+  /* --- a decoration stands on the board rather than in it ---------------
+     The one thing allowed to overlap, and the one nothing makes room for.
+     See decision 86. */
+  const decorations = await page.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const S = BUREAU.state, out = {};
+    S.view='desk'; S.drawerId=null; S.look.locked=false;
+    out.tenOfThem = Object.keys(BUREAU.decor).length === 10;
+    const d = BUREAU.create('decoration', { parent:'root', title:'Plant' });
+    out.carriesTheTrait = BUREAU.has(d, 'decor');
+    // stand it deliberately on top of a drawer that is already there
+    const on = S.objects.find(o => o.kind==='drawer' && o.parent==='root' && o.desk);
+    d.desk = { x:on.desk.x, y:on.desk.y, w:2, h:2 };
+    BUREAU.render(); await nap(300);
+    const el = () => document.querySelector(`.grid .drawer[data-row="${d.id}"]`);
+    out.itMayOverlap = !!el();
+    const cs = getComputedStyle(el());
+    out.noTileAtAll = cs.backgroundColor === 'rgba(0, 0, 0, 0)'
+      && cs.borderTopWidth === '0px' && cs.boxShadow === 'none';
+    out.aboveTheTiles = +cs.zIndex >= 6;
+    out.drawnInline = !!el().querySelector('svg.decart');
+    // …and nothing has to make room for one: the drawer under it is untouched
+    out.nothingMovedForIt = on.desk.x === d.desk.x && on.desk.y === d.desk.y;
+    /* A real tile may still be placed where a decoration stands — measured
+       on bare board, so the only thing that could refuse is the decoration
+       itself rather than whatever it was standing in front of. */
+    const bare = BUREAU.free(2,2,'root');
+    d.desk = { x:bare.x, y:bare.y, w:2, h:2 };
+    BUREAU.render(); await nap(200);
+    out.aTileMayGoUnderIt = BUREAU.boxOk({x:bare.x, y:bare.y, w:2, h:2},
+      'nobody', S.device, 'root') === true;
+    // on a locked board it is scenery — a cut-out must not swallow taps meant
+    // for what it is standing in front of
+    S.look.locked = true; BUREAU.render(); await nap(250);
+    out.sceneryWhenLocked = getComputedStyle(el()).pointerEvents === 'none';
+    S.look.locked = false; BUREAU.render(); await nap(200);
+    out.pickUpAgainWhenUnlocked = getComputedStyle(el()).pointerEvents !== 'none';
+    BUREAU.del(d.id); S.undo=[]; S.redo=[]; BUREAU.render();
+    return out;
+  });
+
   /* --- pinned to the board rather than laid flat on it ----------------- */
   const pinboard = await page.evaluate(async () => {
     const nap = ms => new Promise(r => setTimeout(r, ms));
@@ -3348,7 +3389,7 @@ const CHROME = process.env.BUREAU_CHROME;
     paletteKeys, editorKeys, pickerLeads, rollupsEverywhere, soundAndVision, keyboardBoard,
     ranking, repeating, oneLock, scheduling, ownColour, addBox, calFaces,
     lockedBoard, freeTraits, pageWrites, tickBoxes, readerFits,
-    dropsIn, keyframesRegistered, theSpray, pinboard
+    dropsIn, keyframesRegistered, theSpray, decorations, pinboard
   }, null, 2));
   await browser.close();
 })();

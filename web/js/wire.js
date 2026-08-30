@@ -9,6 +9,7 @@ import { applyLook, applyStyle, setLookVal, lookVal, STYLES, randomFront,
 import { toast, setGridSize, toggleDone, spawnNext, del, delMany, delDrawer, undo, redo, pushUndo,
   pushSet, pushSets, setPin, togglePin, drawerForTag, create, quickAdd, spawnInto, randomThing } from './mutations.js';
 import { spinTo, pending, placeAtPending, tileTap, turnPage, clearPages } from './tiles.js';
+import { DECOR } from './decor.js';
 import { render, renderSoon, sizeGrid, toggleSettings, settingsPanel, reveal, goPage, deskMap } from './views.js';
 import { openObj, openWriter, openRead, openViewer, closeSheet, renderSheet, words,
   mdKey, copyObject } from './sheet.js';
@@ -20,7 +21,7 @@ import { openPanel, closePanel, refreshPanel, panelKey, panelBack, draft, openMe
 import { onDown, onMove, onUp, onCancel, onTouchStart, onTouchMove, onTouchEnd,
   gestureFlags, dragArmed } from './gestures.js';
 import { enter, pagerOn } from './motion.js';
-import { save, writeNow, exportBackup, importBackup, importFile, imgFor, pasteObjects, install } from './persist.js';
+import { save, writeNow, exportBackup, importBackup, importFile, imgFor, pasteObjects, install , assetDel } from './persist.js';
 
 /* Mark one chip in a group as the chosen one. The selector is deliberately
    class-agnostic — the chips in these groups have changed class twice. */
@@ -627,6 +628,20 @@ function wire(){
     /* Which tick box the whole desk wears. The sample inside each option
        carries the same attribute, so a button is drawn as the thing it picks
        — the type picker's rule, applied to a shape rather than a type. */
+    /* Which of the ten a decoration is. It clears any file of your own —
+       two answers to one question is a picker that lies about what is
+       showing. See decision 86. */
+    const dec=t.closest('[data-decor]');
+    if(dec){ const [id,name]=dec.dataset.decor.split(':');
+      const o=byId(id);
+      if(o){ pushSet('Decoration', id, 'decor', o.decor); o.decor=name;
+        // its suggested colour, but never over one you chose yourself
+        if(o.c==null && DECOR[name] && DECOR[name].c!=null) o.c=DECOR[name].c;
+        if(o.media && o.media.src){ const was=o.media.assetId; o.media=null;
+          if(was) assetDel(was); }
+        save(); render(); refreshPanel(); }
+      return; }
+
     const chk=t.closest('button[data-checks]');
     if(chk){ S.look.check = chk.dataset.checks;
       applyLook(); save(); render(); refreshPanel(); return; }

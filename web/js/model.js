@@ -41,6 +41,11 @@ const ATTRS = {
      mode you are in (decision 74) and these do not change that — they are a
      standing exception for the handful of things you fiddle with constantly,
      and each says so on its own tile. See decision 81. */
+  /* The one thing on the board that is *not* information. A decoration holds
+     nothing and says nothing — it is the plant in front of the books — so it
+     is also the one thing allowed to overlap, and the one nothing has to make
+     room for. See decision 86. */
+  decor:    {nm:'Decoration', ds:'Stands above the board rather than in it — it may overlap anything, and nothing makes room for it'},
   movable:  {nm:'Movable when locked',   ds:'Can be picked up on a locked board — wears a pin'},
   resizable:{nm:'Resizable when locked', ds:'Corners still work on a locked board — wears a bracket'}
 };
@@ -122,6 +127,10 @@ const BUILTIN_KINDS = {
   habit:   {shape:'habit', nm:'Habit',   ic:'repeat',  c:8, key:'A', ds:'Repeats, tracks a streak',  size:[4,4], onclick:'read', attrs:['text','streak'], body:'**Why —** ' },
   goal:    {shape:'goal', nm:'Goal',    ic:'target',  c:13, key:'J', ds:'Long-term, has milestones', size:[4,4], onclick:'read', attrs:['text','progress'], body:'**Definition of done —** ' },
   image:   {nm:'Image',   ic:'image',   c:15, key:'G', ds:'A picture on the board',   size:[6,4], onclick:'read', attrs:['media'], body:'' },
+  /* Something standing on the shelf rather than filed on it. It carries
+     `media` like a picture — you can put your own cut-out PNG or SVG on the
+     desk — and ships with ten of its own, drawn in the style's colours. */
+  decoration:{shape:'decor', nm:'Decoration', ic:'plant', c:6, key:'', ds:'Something to stand on the shelf — a plant, a bookend, a little figure', attrs:['decor','media'], size:[3,3], phoneSize:[2,2], mediaType:'image', onclick:'none', decor:'plant', body:'' },
   audio:   {film:true, nm:'Audio',   ic:'music',   c:10, key:'U', ds:'Something to listen to',    size:[6,2], onclick:'read', attrs:['text','media','duration'], mediaType:'audio', body:'' },
   video:   {film:true, nm:'Video',   ic:'film',    c:9, key:'&', ds:'Something to watch',        size:[6,4], onclick:'read', attrs:['text','media','duration'], mediaType:'video', body:'' },
   trip:    {shape:'ticket', nm:'Trip',    ic:'flag',    c:9, key:'P', ds:'Somewhere you are going',   size:[8,6], attrs:['container','date','span','location'], layout:'grid', body:'' },
@@ -548,6 +557,11 @@ const mediaTypeOf = o => (o && o.media && o.media.type) || K(o&&o.kind).mediaTyp
 /* A picture: something that carries media, and whose media is an image. This is
    what opens onto the picture surface rather than onto paper. */
 const isPicture = o => has(o,'media') && mediaTypeOf(o)==='image';
+/* A decoration is above the board rather than in it: it may overlap anything,
+   nothing makes room for it, and it wears no tile chrome at all. Ask this,
+   never the kind's name — a type you invent that ticks the trait is a
+   decoration too. See decision 86. */
+const isDecor = o => has(o,'decor');
 /* …and the other two. Audio and Video were real types with a mark, a size and a
    place in the picker, and the file input was `accept="image/*"` — so they
    existed in order to tell you they were not implemented, which is a promise
@@ -1181,7 +1195,7 @@ export { ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds, K,
   PRIOS, prioOf, prioName,
   REPEAT_UNITS, repeatOf, repeats, repeatSaid, repeatSpent, nextRepeat,
   KNOBSIZES, knobSizeOf, answered, iconOf, TSIZES, textSizeOf, mediaTypeOf, isPicture,
-  isMedia, isPlayable, acceptFor,
+  isMedia, isPlayable, acceptFor, isDecor,
   spawnByOf, genKindOf, takesTyping, showsAddBox, keepsDone, showsContainers,
   CALVIEWS, calViewOf, weekStartOf, showsWeekends, calCols,
   OPS, WHENS, whenISO, RULE_MAX, rulesOf, matchRule,

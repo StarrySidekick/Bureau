@@ -9,10 +9,11 @@ import { S, K, KINDS, KEYS, T, ATTRS, USER_ATTRS, FIELDS, fieldOf, OPS, ROLLS,
   PRIOS, prioOf, prioName, REPEAT_UNITS, repeatOf, repeats, repeatSaid,
   relatedTo, backlinksTo, streak, goalPct,
   CALVIEWS, calViewOf, weekStartOf, showsWeekends, KNOBSIZES, knobSizeOf,
-  TSIZES, textSizeOf, mediaTypeOf, isPicture, isMedia } from './model.js';
+  TSIZES, textSizeOf, mediaTypeOf, isPicture, isMedia, isDecor } from './model.js';
 import { GRID, lay, boxOk, freeSpot, sizeOfKind, toPhoneSize } from './grid.js';
 import { randomBoard, randomFront, hexOf, objColour, objSlots, palNow, OBJ0, borderSlots } from './look.js';
 import { CLICKS, clickOf, gridTile, pending } from './tiles.js';
+import { DECOR, DECOR_KEYS, decorOf, decorSVG } from './decor.js';
 import { quickAdd, toast, drawerForTag } from './mutations.js';
 import { openObj, openWriter, openRead, renderSheet } from './sheet.js';
 import { render, settingsPanel, gridSizeField } from './views.js';
@@ -33,7 +34,7 @@ function overlayHTML(){
   <div id="fx"></div>
   <div id="sheetHost"></div>
   <input type="file" id="importer" accept="application/json,.json" class="hidden">
-  <input type="file" id="imgpicker" accept="image/*,audio/*,video/*" class="hidden">`;
+  <input type="file" id="imgpicker" accept="image/*,.svg,audio/*,video/*" class="hidden">`;
 }
 
 /* ============================================================
@@ -675,13 +676,28 @@ function objectPanelBody(id, sec){
       `<div class="stars">${[1,2,3,4,5].map(n=>`<button data-star="${id}:${n}" class="${(o.rating||0)>=n?'on':''}">${ic('star',17)}</button>`).join('')}</div>`));
     if(has(o,'answer')) f.push(prow(`Answer${answered(o)?'':' — unanswered'}`,
       `<textarea class="pfield tall" data-oset="${id}:answer" placeholder="What you worked out">${esc(o.answer||'')}</textarea>`));
+    /* A decoration picks one of the ten that ship with the app, or a file of
+       your own. The ten are drawn as themselves — a decoration *is* a picture,
+       so a list of names would be the one picker in the app that made you
+       imagine what you were choosing. See decision 86. */
+    if(isDecor(o)){
+      const own = o.media && o.media.src;
+      f.push(prow('Which one', `<div class="decpick">${
+        DECOR_KEYS.map(k=>`<button class="decopt${!own&&decorOf(o)===k?' on':''}"
+          data-decor="${id}:${k}" title="${esc(DECOR[k].nm)}">
+          <span style="--c:${objColour(o)}">${decorSVG(k)}</span>
+          <u>${esc(DECOR[k].nm)}</u></button>`).join('')}</div>`,
+        own ? 'a file of your own is showing — remove it below to use one of these'
+            : 'they take this object’s colour and the style’s'));
+    }
     if(has(o,'media')){
       const mt=mediaTypeOf(o), src=o.media&&o.media.src;
       const noun = mt==='audio' ? 'sound' : mt==='video' ? 'video' : 'picture';
       const mark = mt==='audio' ? 'music' : mt==='video' ? 'film' : 'image';
-      f.push(prow('Media', psel(id,'mtype',[['image','Image'],['video','Video'],['audio','Audio']], mt)
+      f.push(prow(isDecor(o)?'Or one of your own':'Media',
+        (isDecor(o) ? '' : psel(id,'mtype',[['image','Image'],['video','Video'],['audio','Audio']], mt))
         + `<button class="pill" data-act="pickimage" data-id="${id}">${ic(mark,13)} ${
-            src?`Replace the ${noun}`:`Choose a ${noun}`}</button>`
+            src?`Replace the ${noun}`:(isDecor(o)?'Choose a PNG or SVG':`Choose a ${noun}`)}</button>`
         + (src
             ? `<button class="pill" data-act="dropimage" data-id="${id}">${ic('trash',13)} Remove</button>
                <div class="mediablock" style="--k:${K(o.kind).c}">${
@@ -689,7 +705,7 @@ function objectPanelBody(id, sec){
                : mt==='video' ? `<video src="${esc(src)}" controls preload="metadata" playsinline style="width:100%"></video>`
                : `<img class="tileimg" src="${esc(src)}" alt="">`}
                  <div class="cap">${esc(o.media.label||'')}</div></div>` : ''),
-        'what it is for, then the file'));
+        isDecor(o) ? 'a cut-out PNG or an SVG stands best' : 'what it is for, then the file'));
     }
     if(has(o,'button')){
       const L=o.link||{};

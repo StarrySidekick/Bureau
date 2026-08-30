@@ -17,7 +17,7 @@ import { closePanel } from './panels.js';
    Bureau is this phone running" is exactly the question you ask when a change
    appears not to have deployed. Shown in Settings, so it can be read off the
    device rather than guessed at. */
-const APP_VERSION = '0.87';
+const APP_VERSION = '0.88';
 const KEY = 'bureau.v1';
 const install = {deferred:null};   // the browser's install prompt, when one is on offer
 let saveTimer = null;
@@ -667,6 +667,34 @@ function importMedia(file){
              : 'Added — it may not survive a reload');
   });
 }
+/* An SVG, kept as itself. Read as text and stored as a data URL so it travels
+   through the same asset store, the same export and the same <img> as a
+   bitmap does — the only difference is that nothing has resampled it. */
+function importSVG(file){
+  const fr=new FileReader();
+  fr.onerror=()=>toast('Could not read that file');
+  fr.onload=()=>{
+    const text=String(fr.result||'');
+    if(!/<svg[\s>]/i.test(text)){ toast('That file is not an SVG'); return; }
+    const src='data:image/svg+xml;base64,'+btoa(unescape(encodeURIComponent(text)));
+    const assetId=uid('a');
+    assetPut(assetId,src).then(ok=>{
+      const into = imgFor.id && byId(imgFor.id);
+      imgFor.id = null;
+      const o = into && has(into,'media') ? into
+        : create('image',{title:file.name.replace(/\.[^.]+$/,''),
+            parent:(S.view==='drawer'&&S.drawerId)||ROOT});
+      const was = o.media && o.media.assetId;
+      o.media={assetId, type:'image', label:file.name, src, alpha:true, svg:true};
+      if(was && was!==assetId) assetDel(was);
+      if(o!==into){ o.desk=null; o.phone=null; }
+      closePanel(); save(); render(); renderSheet();
+      toast(ok?'Added':'Added — it may not survive a reload');
+    });
+  };
+  fr.readAsText(file);
+}
+
 /* One door for the picker, whichever sort of file came back through it. */
 function importFile(file){
   if(!file) return;
@@ -675,6 +703,11 @@ function importFile(file){
 }
 function importImage(file){
   if(!/^image\//.test(file.type)){ toast('That is not an image'); return; }
+  /* An SVG is **not** put through the canvas. Drawing one into a bitmap is
+     the one thing that throws away what an SVG is for — it would come back
+     rasterised at whatever size it happened to be, and a decoration is a thing
+     you stretch. The source is the asset. See decision 86. */
+  if(/svg/i.test(file.type)) return importSVG(file);
   const fr=new FileReader();
   fr.onerror=()=>toast('Could not read that file');
   fr.onload=()=>{

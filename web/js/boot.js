@@ -4,7 +4,7 @@
 import { $ } from './util.js';
 import { S, KINDS, SHAPES, SORTS, childrenOf, container, relate, deskOf, has, lateOn, isLate,
   prioOf, repeatOf, repeatSaid, nextRepeat, boardLocked } from './model.js';
-import { pageRows, freeSpot } from './grid.js';
+import { pageRows, freeSpot, boxOk } from './grid.js';
 import { create, setPin, togglePin, del, delMany, delDrawer, undo, redo, toggleDone, spawnNext, setGridSize } from './mutations.js';
 import { applyLook } from './look.js';
 import { render, sizeGrid, viewHTML, settingsPanel, pageAt, pageCount, goPage } from './views.js';
@@ -13,6 +13,7 @@ import { wire } from './wire.js';
 import { openingFor, stepDrawer, spray, sprayAt, sprayCount, sprayNow, sprayMark, SPRAYS } from './motion.js';
 import { load, writeNow, save, saveIfDirty, hydrateAssets, pasteObjects } from './persist.js';
 import { renderSheet, openWriter, openRead, openViewer, closeSheet, asMarkdown } from './sheet.js';
+import { DECOR } from './decor.js';
 
 /* ---- the keyboard is not a resize — decision 84 ------------------------
    `100vh` on iOS is the *large* viewport and deliberately ignores the software
@@ -99,6 +100,8 @@ window.BUREAU = {
   // the spray, so a test can watch the physics rather than the class
   spray, sprayAt, sprayCount, sprayNow, sprayMark,
   get SPRAYS(){ return SPRAYS; },
+  // the ten that ship, so a test can walk them without importing the module
+  get decor(){ return DECOR; }, boxOk,
   kids: id => childrenOf(container(id)).map(o=>o.id),
   // which desk something is on — the dots by the title answer with it
   deskOf,

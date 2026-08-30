@@ -2,11 +2,12 @@ import { esc, ic, clamp, D, md, plain, oneline } from './util.js';
 import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, childrenOf, container,
   rollup, streak, goalPct, projectStat, tlSpan, dev, spawnByOf, genKindOf, takesTyping, showsAddBox,
   knobSizeOf, answered, sortOf, spanOf, coversDay, lateOn, isLate, iconOf, textSizeOf,
-  isPicture, isMedia, isPlayable, mediaTypeOf, boardLocked, prioOf, repeatSaid,
+  isPicture, isMedia, isPlayable, isDecor, mediaTypeOf, boardLocked, prioOf, repeatSaid,
   calViewOf, weekStartOf, calCols } from './model.js';
 import { CELL, COLW, gridOf, lay, overlaps, boxOk, freeSpot, gridRows, sizeOfKind, ensureBox,
   pageRows } from './grid.js';
 import { create, toast, toggleDone } from './mutations.js';
+import { DECOR, DECOR_KEYS, decorOf, decorSVG } from './decor.js';
 import { hexOf, objColour } from './look.js';
 import { render, pageAt } from './views.js';
 import { openObj, openWriter, openRead, openViewer, renderSheet } from './sheet.js';
@@ -718,6 +719,28 @@ function drawTile(o, arr, box){
         ${rollup(o)?`<span class="rollup">${esc(rollup(o))}</span>`:''}</div>
       <div class="dfoot${doors?' doors':''}"><span class="pull kn-${kn}"></span>${
         doors?`<span class="pull kn-${kn}"></span>`:''}</div>
+      ${handles}
+    </button>`;
+  }
+
+  /* ---- a decoration ------------------------------------------------------
+     No tile at all: no paper, no border, no shadow, no name — the artwork and
+     nothing else, standing on the floor of its box the way an ornament stands
+     on a shelf. It is the one thing on the board drawn *above* the tiles, and
+     the one thing that may overlap them; both of those are what make it read
+     as an object on the desk rather than a card in the grid.
+
+     A built-in is inlined so it can take the style's own colours; a file you
+     chose is an <img>, because a picture somebody picked has no business
+     being repainted. See decision 86. */
+  if(isDecor(o)){
+    const own = o.media && o.media.src;
+    return `<button class="drawer otile dectile${sel}" data-row="${o.id}"
+      title="${esc(o.title||DECOR[decorOf(o)]?.nm||'Decoration')}"
+      style="--c:${colour};${place}">
+      ${own
+        ? `<img class="decart" src="${esc(own)}" alt="${esc(o.title||'')}" draggable="false">`
+        : decorSVG(decorOf(o))}
       ${handles}
     </button>`;
   }

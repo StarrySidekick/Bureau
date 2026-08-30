@@ -1,5 +1,5 @@
 import { clamp, ROOT } from './util.js';
-import { S, dev, childrenOf, container, cfgOf, deskOf, K, kindHas } from './model.js';
+import { S, dev, byId, has, childrenOf, container, cfgOf, deskOf, K, kindHas } from './model.js';
 
 /* ------------------------------------------------------------
    4b · the grid — one coordinate space per device
@@ -157,10 +157,19 @@ function boxOk(box, id, device, parentId){
      rule for free, in the one place every box already has to pass through. */
   const n=pageRows(dv, parentId||ROOT);
   if(n && (box.h>n || Math.floor((box.y-1)/n) !== Math.floor((box.y+box.h-2)/n))) return false;
+  /* A **decoration** is above the board rather than in it, so collision does
+     not apply to it in either direction: it may stand anywhere, including in
+     front of something, and nothing has to make room for one. The board is
+     still a coordinate space and a decoration still has a box in it — it
+     snaps, it drags, it pages — it is only the overlap rule that lets go.
+     See decision 86. */
+  const me = id && byId(id);
+  if(me && has(me,'decor')) return true;
   // Only objects that have actually been placed can be collided with. Without
   // this, everything unplaced reads as sitting at 1,1 and blocks the corner.
   return !childrenOf(container(parentId||ROOT))
-    .some(d=>d.id!==id && hasBox(d,dv) && overlaps(box, lay(d,device,parentId||ROOT)));
+    .some(d=>d.id!==id && !has(d,'decor') && hasBox(d,dv)
+             && overlaps(box, lay(d,device,parentId||ROOT)));
 }
 // Lowest free spot in this container, scanning left-to-right then down.
 function freeSpot(w,h,device,parentId){

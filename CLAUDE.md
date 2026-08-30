@@ -306,6 +306,21 @@ magic drawer collecting that tag or makes one. If you are tempted to add a
 filter UI, add a drawer instead — that is the same instinct that deleted the
 tabs (decision 22).
 
+**A decoration stands on the board rather than in it.** `isDecor(o)` —
+`has(o,'decor')` — is the one thing exempt from collision: `boxOk()` returns
+true for it outright *and* filters decorations out of the obstacles it checks
+everything else against, so a drawer can be placed where a plant is standing
+and the plant doesn't move. It is still on the grid — box, snap, drag, resize,
+pages — it is only the overlap rule that lets go. It wears no tile at all (no
+paper, border, shadow or name), is drawn above the tiles, and on a **locked**
+board takes no pointer events, because a cut-out's transparent corners would
+otherwise swallow taps meant for what it stands in front of. The ten built-ins
+are inline SVG in `decor.js` so they can read the style — `currentColor` is the
+object's colour, plus `--brass`/`--glow` — and each suggests the slot it looks
+best in. An uploaded **SVG is never put through the canvas**; rasterising is
+the one thing that throws away what an SVG is for. New file → add it to `SHELL`
+in `sw.js`. See decision 86.
+
 **Anything made of a file opens onto the media surface — sound and video
 included.** `isMedia(o)` routes; `isPicture(o)` is still the image case and
 `isPlayable(o)` the other two, and `acceptFor(o)` tells the one file input what

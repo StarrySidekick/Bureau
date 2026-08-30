@@ -2856,3 +2856,57 @@ Two things it is careful about. It respects reduced motion like everything else
 in `motion.js`. And **one event is one burst**: a tap that ticks a box arrives
 at both `tileTap()` and `pop()`, so a second call within 120ms is dropped
 rather than doubling the handful — which also protects any caller added later.
+
+---
+
+### 86. A decoration stands on the board rather than in it
+
+Everything on a Bureau desk has been information: a thing to do, a thing to
+read, a thing that holds other things. A **decoration** is the first that
+isn't. It is the plant on the bookcase, the brass bookend, the little cat
+nobody remembers buying — it holds nothing, says nothing, and is there because
+the desk looks better with it. A desk with nothing on it but work is an
+inbox.
+
+That is what earns it the one exemption in the whole grid. **It may overlap,
+and nothing makes room for it.** A plant standing in front of a row of books
+is what a shelf looks like; a grid that refuses that is a spreadsheet.
+`boxOk()` returns true for a decoration outright, and filters decorations out
+of the obstacles it checks anything else against — so a drawer may be placed
+where a plant is standing, and the plant does not move. Both halves matter:
+one without the other is a thing that floats or a thing that blocks.
+
+It is still **on the grid**. It has a box, it snaps, it drags, it resizes, it
+lives on a page. "Everything sits on a grid" is the first line of the project's
+own notes, and a decoration is not the exception to that — it is the exception
+to *collision*, which is a different rule. Two decorations may land on the same
+spot when both are new, and that is left alone deliberately: a shelf is exactly
+the place where things stand in front of each other.
+
+It wears **no tile**. No paper, no border, no shadow, no padding, no name —
+the artwork, standing on the floor of its box the way an ornament stands on a
+shelf, with `overflow:visible` so it can lean out of its own box. And it is
+drawn *above* the tiles, which together with the overlap is what makes it read
+as an object on the desk rather than a card in it.
+
+**On a locked board it stops taking pointer events.** A decoration is scenery,
+and the transparent corners of a cut-out PNG are still a rectangle that would
+swallow taps meant for whatever it stands in front of. Unlock the board and it
+is a thing you can pick up again — which is the sentence the lock already means
+everywhere else (decision 74).
+
+Ten ship with it: a plant, a bookend, a cat, a candle, a stack of books, a
+toadstool, dried stems in a vase, a mantel clock, a cluster of crystals and a
+bird. They are **inline SVG rather than files**, and that is the interesting
+part: being in the DOM lets them read the style's own custom properties, so a
+decoration is drawn in `currentColor` — the object's own colour — plus
+`--brass` and `--glow`, and repaints with the style like everything else
+(decision 33). Each names the slot it looks best in, taken only when the object
+has never been given a colour of its own: a fern-green plant, a claret
+toadstool, a walnut cat. A starting point, not a cage.
+
+Your own file works too, and an **SVG is never put through the canvas**.
+Rasterising one is the single thing that throws away what an SVG is for — it
+would come back resampled at whatever size it happened to be, and a decoration
+is a thing you stretch. The source is stored as the asset; a PNG still goes
+through the existing downscale, keeping its alpha.

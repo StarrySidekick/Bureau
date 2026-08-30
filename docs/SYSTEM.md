@@ -128,6 +128,7 @@ reason an invented type works everywhere immediately.
 | `button` | A button pointing at an object, a drawer, or a URL. | — |
 | `container` | Children, on a grid or a list of its own. **This is what makes a drawer.** | — |
 | `magic` | Collects by rule only, never by hand. | — |
+| `decor` | Stands **above** the board: it may overlap anything, nothing makes room for it, and it wears no tile. Decision 86 | — |
 | `spawn` | Makes new objects — on a press, or as you type into it. | — |
 | `total` | Adds a field up across what it holds. | — |
 | `streak` | A daily cadence and a tickable history. No due date, no overdue. | — |

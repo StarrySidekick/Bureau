@@ -1274,6 +1274,19 @@ html[data-style="aero"] .drawer.dtile.bd-bar{
 .sprayopt > span{display:flex;align-items:center;gap:3px}
 .sprayopt img{display:block;opacity:.9}
 .spraynone{width:18px;height:2px;background:var(--ink-3);border-radius:2px}
+
+/* the ten that ship: each drawn as itself, because a decoration *is* a
+   picture and a list of names would make you imagine what you were choosing */
+.decpick{display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:8px;margin-top:6px}
+.decopt{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 6px 6px;
+  border:1px solid var(--rule);border-radius:var(--radius);background:var(--paper-2);
+  cursor:pointer;transition:.14s}
+.decopt:hover{border-color:var(--brass)}
+.decopt.on{border-color:var(--brass);box-shadow:inset 0 0 0 1px var(--brass)}
+.decopt > span{display:block;width:100%;height:46px;color:var(--c)}
+.decopt .decart{width:100%;height:100%}
+.decopt u{text-decoration:none;font-size:10.5px;color:var(--ink-3);text-align:center}
+.decopt.on u{color:var(--ink)}
 .kindmark{
   width:22px;height:22px;flex:0 0 auto;border-radius:7px;display:grid;place-items:center;margin-top:0px;
   background:color-mix(in srgb,var(--k) 17%, transparent);color:var(--k);
@@ -1677,6 +1690,34 @@ kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--rule);border
    typing in it, if the tile has a row to spare. At one row it doesn't, and
    Return finishes there instead of moving to a field that isn't drawn. */
 .drawer.otile.editing:not(.sz-short):not(.sz-mini) .dbody{display:block}
+/* ---- a decoration — decision 86 ---------------------------------------
+   The artwork and nothing else: no paper, no border, no shadow, no padding,
+   and `overflow:visible` so a shape may lean out of its own box the way a
+   plant leans off a shelf. It sits **above** the tiles, which together with
+   the collision exemption in boxOk() is what makes it an ornament standing on
+   the board rather than a card in it.
+
+   On a **locked** board it stops taking pointer events. A decoration is
+   scenery, and the transparent corners of a cut-out PNG were still a rectangle
+   swallowing taps meant for whatever it was standing in front of. Unlock the
+   board and it is a thing you can pick up again — which is the same sentence
+   the lock already means everywhere else (decision 74). */
+.drawer.otile.dectile{
+  background:none;border:0;box-shadow:none;padding:0;overflow:visible;
+  z-index:6;align-items:stretch;justify-content:stretch;
+  /* `currentColor` inside the artwork is the **object's** colour. .otile
+     remaps --dink to the page's ink, so without this every decoration was
+     drawn in near-black and the whole set read as silhouettes. */
+  color:var(--c);
+}
+.drawer.otile.dectile:hover{box-shadow:none;filter:brightness(1.06)}
+.grid.locked .dectile{pointer-events:none}
+/* it stands on the floor of its box rather than floating in the middle */
+.dectile .decart{width:100%;height:100%;display:block;object-fit:contain;object-position:center bottom}
+.dectile.selected{outline:2px solid var(--brass);outline-offset:3px}
+/* the grips need something to sit against on a tile with no edges of its own */
+.dectile .rz::before{background:var(--ink)}
+
 /* The spray's canvas: one element over the whole frame, made on the first
    burst and taken down when the last bit dies. It sits in #fx with the rest of
    the overlays, so render() never sees it and nothing on the board can be hit
