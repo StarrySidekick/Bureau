@@ -778,6 +778,135 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
 .prow .pickgrid{display:flex;flex-wrap:wrap;gap:5px;width:100%}
 .prow .pickgrid button{width:26px;height:26px;flex:0 0 auto;border-radius:4px}
 
+/* ---- how a drawer front is worked — decision 88 -----------------------
+   Five mouldings, all of them CSS off one `pn-` class, the same way a binding
+   or a border slot is. The shading is the spine's lesson applied to furniture:
+   a **multi-stop gradient across a narrow band reads as a half-round**, and a
+   moulding is a **fixed thickness at any size**, so every thickness here is px
+   and only the insets are proportional.
+
+   Everything is lit from the **upper left**, because that is where `.pull`
+   puts its highlight — a front lit from anywhere else is a knob sitting on
+   somebody else's wood. Nothing here invents a colour: the wood is `--c` and
+   the light and shade are white and black at low alpha over it, so a front
+   repaints with the style like everything else.
+
+   `.dpanel` is a real element because both pseudo-elements are taken on a
+   drawer tile (magic frame `::before`, texture `::after`) — which leaves it
+   two of its own for the bindings that need three layers. */
+.drawer.dtile .dpanel{position:absolute;inset:0;pointer-events:none;z-index:0;
+  border-radius:inherit;
+  /* the inset the panelled ones work from, small enough to survive a short
+     front — a fielded panel on a one-cell tile is mostly frame otherwise */
+  --pin:9px}
+.drawer.dtile.sz-short .dpanel,.drawer.dtile.sz-narrow .dpanel{--pin:6px}
+/* One cell square is the type's mark and nothing else, so there is no front
+   left to work — see decision 26. */
+.drawer.dtile.sz-mini .dpanel{display:none}
+
+/* Flat front: a board. The one that is not a moulding. */
+.pn-plain .dpanel{background:none}
+
+/* Cockbead: the small half-round run round the rim of very nearly every drawer
+   of the period, standing proud of the front.
+
+   **Four sides, four gradients** — this is the part that has to be right. One
+   profile turned two ways is what a first pass does, and it lights the bottom
+   and right beads on their *outer* faces, which is a rim lit from four
+   directions at once: it reads as glass, not wood. There is one light, at the
+   upper left, so the top bead is lit along its top and the bottom bead is lit
+   along its top *too* — which on that band is the inner edge. Each side also
+   carries the **quirk**, the shadow line where the bead meets the field, and
+   the quirk is always on the inner edge. Hence four. */
+.pn-cockbead .dpanel{
+  /* lit at the outer edge, quirk at the inner */
+  --bt:linear-gradient(180deg, rgba(255,255,255,.20) 0 2px,
+    rgba(255,255,255,.11) 2px 40%, rgba(0,0,0,.07) 40% 70%, rgba(0,0,0,.26) 70%);
+  --bl:linear-gradient(90deg, rgba(255,255,255,.16) 0 2px,
+    rgba(255,255,255,.09) 2px 40%, rgba(0,0,0,.05) 40% 70%, rgba(0,0,0,.20) 70%);
+  /* quirk at the inner edge, lit face next to it, shaded away from the light */
+  --bb:linear-gradient(180deg, rgba(0,0,0,.24) 0 1px,
+    rgba(255,255,255,.14) 1px 34%, rgba(0,0,0,.06) 34% 62%, rgba(0,0,0,.22) 62%);
+  --br:linear-gradient(90deg, rgba(0,0,0,.20) 0 1px,
+    rgba(255,255,255,.10) 1px 34%, rgba(0,0,0,.05) 34% 62%, rgba(0,0,0,.19) 62%);
+  background:
+    var(--bt) 0 0    /100% 6px no-repeat,
+    var(--bb) 0 100% /100% 6px no-repeat,
+    var(--bl) 0 0    /6px 100% no-repeat,
+    var(--br) 100% 0 /6px 100% no-repeat;
+}
+
+/* Raised and fielded: a centre panel standing proud of its frame, reached by a
+   chamfer. Two layers — `::before` is the chamfer, one 152deg ramp so it is
+   lit at the top left and shaded at the bottom right; `::after` is the field,
+   a shallower ramp of the same wood with a hairline under it so it reads as
+   standing off the chamfer rather than painted on it. */
+.pn-fielded .dpanel::before{
+  content:"";position:absolute;inset:calc(var(--pin) * .55);border-radius:3px;
+  background:linear-gradient(152deg,
+    color-mix(in srgb, var(--c) 84%, #fff),
+    var(--c) 46%,
+    color-mix(in srgb, var(--c) 84%, #000));
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.10);
+}
+.pn-fielded .dpanel::after{
+  content:"";position:absolute;inset:var(--pin);border-radius:2px;
+  background:linear-gradient(152deg,
+    color-mix(in srgb, var(--c) 93%, #fff),
+    var(--c) 52%,
+    color-mix(in srgb, var(--c) 95%, #000));
+  box-shadow:
+    -1px -1px 0 rgba(255,255,255,.16),
+     1px  1px 0 rgba(0,0,0,.20),
+     inset 0 1px 0 rgba(255,255,255,.13);
+}
+
+/* Reeded: the round back of a book, repeated across a front. One reed is the
+   same six stops as a cockbead turned on its side, and `repeating-linear-
+   gradient` does the rest — so the reeds are a fixed 11px whatever the tile
+   is, which is what makes a wide drawer read as *more reeds* rather than
+   fatter ones. */
+.pn-reeded .dpanel{
+  background:repeating-linear-gradient(90deg,
+    rgba(255,255,255,.16) 0 1px,
+    rgba(255,255,255,.08) 1px 4px,
+    rgba(0,0,0,.02) 4px 7px,
+    rgba(0,0,0,.12) 7px 10px,
+    rgba(0,0,0,.04) 10px 11px);
+}
+/* the reeds stop short of the rim, the way they are stopped on a real one */
+.pn-reeded .dpanel::after{
+  content:"";position:absolute;inset:0;border-radius:inherit;
+  box-shadow:inset 0 0 0 5px var(--c);
+}
+
+/* The ogee panel: a sunk panel with a gilt double line, the ornate one. The
+   double rule is a border plus an outline at an offset — the same pair the
+   tooled spine uses, and for the same reason: two hairlines a fixed distance
+   apart at any size. The gilt carries a dark impression under it because gold
+   is a mid tone and several of the eleven slots are pale. */
+.pn-ogee .dpanel::before{
+  content:"";position:absolute;inset:var(--pin);
+  /* an ogee is taller in its corners than it is wide — two radii, not one */
+  border-radius:9px / 13px;
+  background:linear-gradient(158deg, rgba(0,0,0,.20), rgba(0,0,0,0) 44%,
+    rgba(255,255,255,.11));
+  box-shadow:inset 0 2px 5px rgba(0,0,0,.30), inset 0 -1px 0 rgba(255,255,255,.10),
+             0 1px 0 rgba(255,255,255,.14);
+}
+.pn-ogee .dpanel::after{
+  content:"";position:absolute;inset:calc(var(--pin) + 3px);
+  border-radius:7px / 11px;
+  border:1px solid var(--glow);
+  outline:1px solid var(--glow);outline-offset:2px;
+  opacity:.72;
+  filter:drop-shadow(0 1px 0 rgba(0,0,0,.45));
+}
+/* A magic front already wears a ruled gilt frame inset 5px, and two gilt
+   frames on one drawer is a picture frame shop. The panel keeps its sunk
+   ground and gives up its lines. */
+.drawer.magicdrawer.pn-ogee .dpanel::after{content:none}
+
 /* ---- drawer textures: quiet, and drawn over the front colour ----------
    Over the *colour*, and under everything standing on it. A generated `::after`
    is the last child of the tile, so with nothing said about depth it painted

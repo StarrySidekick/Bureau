@@ -3285,6 +3285,58 @@ const CHROME = process.env.BUREAU_CHROME;
     return out;
   });
 
+  /* --- how a drawer front is worked — decision 88 -----------------------
+     The cabinetmaker's half of the bindings. Same shape of test: every one
+     draws, each says which it is, and the two that must not collide don't. */
+  const panelling = await page.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const S = BUREAU.state, out = {};
+    S.view='desk'; S.drawerId=null;
+    const names = Object.keys(BUREAU.PANELS);
+    out.fiveOfThem = names.length === 5;
+    const made = names.map((pn, i) => {
+      const d = { id:'pan'+i, kind:'drawer', title:'Front', parent:'root',
+        panel:pn, c:6, desk:Object.assign(BUREAU.free(3,3,'root'), {w:3,h:3}) };
+      S.objects.push(d); return d;
+    });
+    BUREAU.render(); await nap(200);
+    const tile = d => document.querySelector(`.grid .drawer[data-drawer="${d.id}"]`);
+    out.eachSaysWhichItIs = made.every((d,i) =>
+      tile(d) && tile(d).classList.contains('pn-' + names[i]));
+    /* The moulding is a real element, because both pseudo-elements are taken
+       on a drawer tile — a front that has lost it has lost every panelling
+       there is, silently. */
+    out.everyFrontHasTheElement = made.every(d => !!tile(d).querySelector('.dpanel'));
+    /* …and it sits under the texture: grain is printed on shaped wood. Both
+       are z-index 0, so what decides it is document order — the texture is an
+       `::after` and therefore last. */
+    out.underTheTexture = getComputedStyle(tile(made[1]).querySelector('.dpanel')).zIndex === '0';
+    // four of the five put something on the wood; flat is the one that doesn't
+    const worked = d => { const el = tile(d).querySelector('.dpanel');
+      const cs = getComputedStyle(el);
+      const bg = cs.backgroundImage !== 'none';
+      const be = getComputedStyle(el,'::before').content !== 'none';
+      return bg || be; };
+    out.fourAreWorked = ['cockbead','fielded','reeded','ogee']
+      .every(pn => worked(made[names.indexOf(pn)]));
+    out.andFlatIsFlat = !worked(made[names.indexOf('plain')]);
+    // per object then per type, and nonsense falls back rather than stamping
+    out.cockbeadByDefault = BUREAU.panelOf({ kind:'drawer' }) === 'cockbead';
+    out.nonsenseFallsBack = BUREAU.panelOf({ panel:'walnut' }) === 'cockbead';
+    out.perObject = BUREAU.panelOf({ kind:'drawer', panel:'ogee' }) === 'ogee';
+    /* A magic front already wears a ruled gilt frame inset 5px. Two gilt
+       frames on one drawer is a picture frame shop, so the ogee gives up its
+       lines and keeps its sunk ground. */
+    const m = S.objects.find(o => BUREAU.has(o,'magic') && o.parent==='root');
+    if (m) { const was = m.panel; m.panel='ogee'; BUREAU.render(); await nap(200);
+      out.oneGiltFramePerDrawer =
+        getComputedStyle(tile(m).querySelector('.dpanel'),'::after').content === 'none';
+      m.panel = was; }
+    made.forEach(d => BUREAU.delDrawer(d.id));
+    S.undo=[]; S.redo=[]; BUREAU.render();
+    return out;
+  });
+
   /* --- things come out of a tile when you touch it ----------------------
      Real physics on a canvas rather than a keyframe, so what is asserted is
      that bits exist, that they move, and that they clear up after themselves
@@ -3499,7 +3551,7 @@ const CHROME = process.env.BUREAU_CHROME;
     paletteKeys, editorKeys, pickerLeads, rollupsEverywhere, soundAndVision, keyboardBoard,
     ranking, repeating, oneLock, scheduling, ownColour, addBox, calFaces,
     lockedBoard, freeTraits, pageWrites, tickBoxes, readerFits,
-    dropsIn, keyframesRegistered, bindings, theSpray, tappingIsQuiet, decorations, pinboard
+    dropsIn, keyframesRegistered, bindings, panelling, theSpray, tappingIsQuiet, decorations, pinboard
   }, null, 2));
   await browser.close();
 })();

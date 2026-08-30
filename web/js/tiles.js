@@ -3,7 +3,7 @@ import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, chi
   rollup, streak, goalPct, projectStat, tlSpan, dev, spawnByOf, genKindOf, takesTyping, showsAddBox,
   knobSizeOf, answered, sortOf, spanOf, coversDay, lateOn, isLate, iconOf, textSizeOf,
   isPicture, isMedia, isPlayable, isDecor, mediaTypeOf, boardLocked, prioOf, repeatSaid,
-  calViewOf, weekStartOf, calCols, bindingOf } from './model.js';
+  calViewOf, weekStartOf, calCols, bindingOf, panelOf } from './model.js';
 import { CELL, COLW, gridOf, lay, overlaps, boxOk, freeSpot, gridRows, sizeOfKind, ensureBox,
   pageRows } from './grid.js';
 import { create, toast, toggleDone } from './mutations.js';
@@ -695,9 +695,15 @@ function drawTile(o, arr, box){
       : o.knobtone==='light' ? `color-mix(in srgb, ${colour} 74%, #fff)`
       : colour;
     return `<button class="drawer dtile bd-${bd} tx-${tx} ks-${knobSizeOf(o)} knb-${o.knobpos||'centre'}${
-        doors?' cabinet':''}${sel}${has(o,'magic')?' magicdrawer':''}" data-drawer="${o.id}"
+        doors?' cabinet':''} pn-${panelOf(o)}${sel}${has(o,'magic')?' magicdrawer':''}" data-drawer="${o.id}"
       style="--c:${colour};--knob:${knob};${place}">
       ${chips}
+      ${/* The wood the front is cut from. Both pseudo-elements are spoken for
+           on a drawer tile — the magic frame is `::before` and the texture is
+           `::after` — so the moulding is a real element, which gives it two of
+           its own. It sits under the texture on purpose: grain is printed on
+           shaped wood, not the other way round. */''}
+      <i class="dpanel"></i>
       ${/* The seam is the tile's, not the knob strip's: two doors meet down the
            whole front and the gap between them runs past the border at both
            ends, the way it does on a real one. */''}

@@ -227,6 +227,15 @@ it is what makes a container adapt to any shape rather than run out of them. One
 cell **square** is still the mark and nothing else — at 40px a spine has no
 length to set a name along either.
 
+**A drawer front is worked.** `panel`, per object then per type, read through
+`panelOf(o)`: **Flat front**, **Cockbead** (the default), **Raised panel**,
+**Reeded**, **Ogee panel**. It stamps `pn-<name>` and every difference between
+the five is CSS. All of them are mouldings lit from the **upper left**, which
+is where the knob's highlight is; thicknesses are px and insets proportional,
+so a moulding is the same moulding at any tile size. The row sits in the
+object editor under Look, for a container drawing as a plain front. See
+decision 88.
+
 **And a spine is bound.** `binding`, per object then per type, read through
 `bindingOf(o)`: **Plain cloth**, **Gilt rules** (the default), **Raised bands**,
 **Tooled and gilt**, **Paper label**. It stamps `bn-<name>` on the tile and

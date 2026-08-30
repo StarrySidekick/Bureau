@@ -3006,3 +3006,54 @@ disappears on a pale cover, and several of the eleven slots are pale. Real
 gilt is stamped into the cloth and sits in a debossed letter, so the type
 carries that shadow with it and reads on a light ground as well as a dark one
 — rather than the app picking a different colour behind the user's back.
+
+---
+
+## 88. A drawer front is worked, and the working is five choices
+
+*2026-08-30*
+
+The cabinetmaker's half of decision 87. A drawer front was a solid rectangle of
+colour with a knob on it, and the knob was doing all the work — it was the only
+thing on the tile that had been *shaped*. So the front is shaped too:
+`panel` on the object then on the type, read through `panelOf(o)`, stamping
+`pn-<name>` with everything else in CSS.
+
+- **Flat front** — a board. The one that is not a moulding.
+- **Cockbead** — the small half-round run round the rim of very nearly every
+  drawer of the period, standing proud of the front. **The default**, because
+  it is one moulding rather than an ornament, and because a flat rectangle is
+  the thing this exists to stop being.
+- **Raised panel** — a centre panel standing proud of its frame, reached by a
+  chamfer. Two layers: the chamfer ramp, then the field on top of it.
+- **Reeded** — the round back of a book, repeated across a front.
+- **Ogee panel** — a sunk panel with a gilt double line. The ornate one.
+
+**The shading strategy is the spine's, generalised.** Two rules carry all five:
+a **multi-stop gradient across a narrow band reads as a half-round**, and a
+**moulding is a fixed thickness at any size** — so every thickness here is px
+and only the insets are proportional. A wide drawer therefore gets *more*
+reeds, not fatter ones, and a bead is the same bead on a 2×1 and an 8×6.
+
+**One light, at the upper left**, because that is where `.pull` puts its
+highlight. This is the rule that cost the most to learn: the first cockbead
+used one gradient profile turned two ways, which lights the bottom and right
+beads on their *outer* faces — a rim lit from four directions at once, which
+reads as glass rather than wood. There is one light, so the bottom bead is lit
+along its **top** edge, which on that band is the inner one. Four sides, four
+gradients. Each also carries the **quirk** — the shadow line where the bead
+meets the field — and the quirk is always on the inner edge.
+
+**Nothing here invents a colour.** The wood is `--c` and the light and shade
+are white and black at low alpha over it, so a front repaints with the style
+like everything else (decision 33). The ogee's gilt is `var(--glow)` and
+carries a dark impression under it, for the same reason the spine's lettering
+does.
+
+**The moulding is a real element.** Both pseudo-elements are already spoken for
+on a drawer tile — the magic frame is `::before` and the texture is `::after` —
+so `.dpanel` is in the markup, which also gives it two of its own for the
+bindings that need three layers. It sits **under** the texture on purpose:
+grain is printed on shaped wood, not the other way round. And a magic front
+that asks for an ogee gives up its gilt lines and keeps its sunk ground: two
+gilt frames on one drawer is a picture frame shop.

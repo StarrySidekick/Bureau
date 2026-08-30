@@ -257,6 +257,30 @@ side. The first pass ran the white mix out to a third of the radius, which is
 most of the face lightened — and a knob that is a paler disc of the front is the
 sticker this was meant to replace, wearing a gradient.
 
+**A drawer front is worked, and the working is five choices.** `panelOf(o)` —
+per object then per type — stamps `pn-<name>` and the rest is CSS: `plain`
+(flat), `cockbead` (**the default**, a half-round round the rim), `fielded` (a
+raised panel and its chamfer), `reeded`, and `ogee` (a sunk panel with gilt).
+Two rules carry all five, and they are the spine's generalised: **a multi-stop
+gradient across a narrow band reads as a half-round**, and **a moulding is a
+fixed thickness at any size** — px thicknesses, proportional insets, so a wide
+drawer gets more reeds rather than fatter ones.
+
+**One light, at the upper left**, because that is where `.pull` puts its
+highlight. A cockbead therefore needs **four gradients, not one turned two
+ways**: the bottom bead is lit along its *top* edge and the right bead along
+its *left*, and one profile mirrored lights them on their outer faces instead —
+a rim lit from four directions, which reads as glass. Each side also carries
+the **quirk**, the shadow line where the bead meets the field, always on the
+inner edge. Nothing here invents a colour: the wood is `--c` and the light and
+shade are white and black at low alpha over it.
+
+The moulding is `<i class="dpanel">`, **a real element**, because both
+pseudo-elements are taken on a drawer tile (magic frame `::before`, texture
+`::after`) — which leaves it two of its own. It sits under the texture on
+purpose, and a magic front asking for an ogee gives up its gilt lines: two gilt
+frames on one drawer is a picture frame shop. See decision 88.
+
 **A texture is printed on the front, so it goes under what stands on it.** The
 depths on a drawer front, bottom to top: the texture's `::after` (0), the knobs
 (1), the name (2), the mark and the seam (3). A generated `::after` is the last

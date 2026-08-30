@@ -487,6 +487,33 @@ const bindingOf = o => {
   return BINDINGS[b] ? b : 'banded';
 };
 
+/* ---- how a drawer front is worked ------------------------------------
+   The cabinetmaker's half of the same idea as a binding. A drawer front is a
+   piece of shaped wood, and what makes it read as one is not its colour but
+   the *light on its edges* — so all five are mouldings, and every one of them
+   is lit from the **upper left**, which is where `.pull` puts its highlight.
+   A front lit from somewhere else is a knob sitting on somebody else's wood.
+
+   Five, in the order a workshop adds them: the flat board, the cockbead round
+   its rim, the raised-and-fielded panel, a reeded face, and the sunk ogee
+   panel with gilt. Per object then per type, like a knob or a border — ask
+   `panelOf(o)`. See decision 88. */
+const PANELS = {
+  plain:    'Flat front',
+  cockbead: 'Cockbead',
+  fielded:  'Raised panel',
+  reeded:   'Reeded',
+  ogee:     'Ogee panel'
+};
+/* Cockbead is the default rather than flat: it is on very nearly every drawer
+   of the period, it is one moulding rather than an ornament, and a flat
+   rectangle is the thing this exists to stop being. Unknown names fall back,
+   the same way a binding does. */
+const panelOf = o => {
+  const p = (o && o.panel) || K(o&&o.kind).panel;
+  return PANELS[p] ? p : 'cockbead';
+};
+
 const FACES = {front:'Drawer front', checklist:'Checklist', project:'Project',
                calendar:'Calendar', moodboard:'Moodboard', timeline:'Timeline',
                spine:'Book spine'};
@@ -1217,7 +1244,7 @@ export { ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds, K,
   boardLocked,
   PRIOS, prioOf, prioName,
   REPEAT_UNITS, repeatOf, repeats, repeatSaid, repeatSpent, nextRepeat,
-  BINDINGS, bindingOf,
+  BINDINGS, bindingOf, PANELS, panelOf,
   KNOBSIZES, knobSizeOf, answered, iconOf, TSIZES, textSizeOf, mediaTypeOf, isPicture,
   isMedia, isPlayable, acceptFor, isDecor,
   spawnByOf, genKindOf, takesTyping, showsAddBox, keepsDone, showsContainers,
