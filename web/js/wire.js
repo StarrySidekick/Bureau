@@ -634,12 +634,28 @@ function wire(){
     const dec=t.closest('[data-decor]');
     if(dec){ const [id,name]=dec.dataset.decor.split(':');
       const o=byId(id);
-      if(o){ pushSet('Decoration', id, 'decor', o.decor); o.decor=name;
+      if(o && DECOR[name]){
+        const d=DECOR[name], dv=dev(), b=o[dv];
+        pushSets('Decoration', [[id,'decor',o.decor],[id,'c',o.c],
+          [id,dv,b?{...b}:null]]);
+        o.decor=name;
         // its suggested colour, but never over one you chose yourself
-        if(o.c==null && DECOR[name] && DECOR[name].c!=null) o.c=DECOR[name].c;
+        if(o.c==null && d.c!=null) o.c=d.c;
+        /* …and its shape, always: a candlestick is not a bookend, and leaving
+           a tall thing in a wide tile is where the empty space either side
+           came from. The top-left corner stays put so it doesn't wander off
+           the shelf you put it on. See decision 86. */
+        if(b && d.size){
+          const cap = dv==='phone' ? 3 : 24;
+          const k = dv==='phone' ? .6 : 1;
+          const w = Math.max(1, Math.min(cap, Math.round(d.size[0]*k)));
+          const h = Math.max(1, Math.min(cap, Math.round(d.size[1]*k)));
+          o[dv] = {...b, w, h};
+        }
         if(o.media && o.media.src){ const was=o.media.assetId; o.media=null;
           if(was) assetDel(was); }
-        save(); render(); refreshPanel(); }
+        save(); render(); refreshPanel();
+      }
       return; }
 
     const chk=t.closest('button[data-checks]');

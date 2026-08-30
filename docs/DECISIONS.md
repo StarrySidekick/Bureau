@@ -2895,10 +2895,26 @@ swallow taps meant for whatever it stands in front of. Unlock the board and it
 is a thing you can pick up again — which is the sentence the lock already means
 everywhere else (decision 74).
 
-Ten ship with it: a plant, a bookend, a cat, a candle, a stack of books, a
-toadstool, dried stems in a vase, a mantel clock, a cluster of crystals and a
-bird. They are **inline SVG rather than files**, and that is the interesting
-part: being in the DOM lets them read the style's own custom properties, so a
+A dozen ship with it, and they are Victorian parlour things rather than
+cartoons: three plants (an aspidistra, a fern, a parlour palm), three clocks
+and cases (a mantel clock, a carriage clock, a specimen under a glass dome),
+two figures (a bust on a plinth, a porcelain figurine), a brass candlestick, an
+oil lamp, dried stems in a vase, and a bookend. Turned profiles, finials,
+fluting and beading; brass and gilt as thin highlights rather than slabs; tone
+built out of layered opacity rather than outlines.
+
+**Two rules about the box**, and both are the difference between an ornament
+and a sticker. Each states its **own viewBox, tight to its own artwork**, and
+its own **size** — the tile shape it wants — so a narrow candlestick is not
+drawn down the middle of a square with a third of the tile empty either side.
+Picking one re-proportions the tile, because choosing a different ornament is
+choosing a different shape. And **the artwork touches the bottom edge**: no
+ground-shadow ellipse below the object and no rounding-up, so with `xMidYMax`
+it stands on the floor of its tile and a row of them lines up along one shelf.
+Where a piece wants a contact shadow it gets a dark band on its own underside,
+which is part of the object rather than space beneath it.
+
+They are **inline SVG rather than files**, and that is the interesting part: being in the DOM lets them read the style's own custom properties, so a
 decoration is drawn in `currentColor` — the object's own colour — plus
 `--brass` and `--glow`, and repaints with the style like everything else
 (decision 33). Each names the slot it looks best in, taken only when the object

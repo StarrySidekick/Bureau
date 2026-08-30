@@ -130,7 +130,7 @@ const BUILTIN_KINDS = {
   /* Something standing on the shelf rather than filed on it. It carries
      `media` like a picture — you can put your own cut-out PNG or SVG on the
      desk — and ships with ten of its own, drawn in the style's colours. */
-  decoration:{shape:'decor', nm:'Decoration', ic:'plant', c:6, key:'', ds:'Something to stand on the shelf — a plant, a bookend, a little figure', attrs:['decor','media'], size:[3,3], phoneSize:[2,2], mediaType:'image', onclick:'none', decor:'plant', body:'' },
+  decoration:{shape:'decor', nm:'Decoration', ic:'plant', c:6, key:'', ds:'Something to stand on the shelf — a plant, a bookend, a little figure', attrs:['decor','media'], size:[4,5], phoneSize:[2,3], mediaType:'image', onclick:'none', decor:'plant', body:'' },
   audio:   {film:true, nm:'Audio',   ic:'music',   c:10, key:'U', ds:'Something to listen to',    size:[6,2], onclick:'read', attrs:['text','media','duration'], mediaType:'audio', body:'' },
   video:   {film:true, nm:'Video',   ic:'film',    c:9, key:'&', ds:'Something to watch',        size:[6,4], onclick:'read', attrs:['text','media','duration'], mediaType:'video', body:'' },
   trip:    {shape:'ticket', nm:'Trip',    ic:'flag',    c:9, key:'P', ds:'Somewhere you are going',   size:[8,6], attrs:['container','date','span','location'], layout:'grid', body:'' },

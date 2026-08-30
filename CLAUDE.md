@@ -314,10 +314,12 @@ and the plant doesn't move. It is still on the grid — box, snap, drag, resize,
 pages — it is only the overlap rule that lets go. It wears no tile at all (no
 paper, border, shadow or name), is drawn above the tiles, and on a **locked**
 board takes no pointer events, because a cut-out's transparent corners would
-otherwise swallow taps meant for what it stands in front of. The ten built-ins
+otherwise swallow taps meant for what it stands in front of. The built-ins
 are inline SVG in `decor.js` so they can read the style — `currentColor` is the
 object's colour, plus `--brass`/`--glow` — and each suggests the slot it looks
-best in. An uploaded **SVG is never put through the canvas**; rasterising is
+best in, plus its **own tight viewBox and tile size** — an ornament stands on
+the floor of its box rather than floating in it. An uploaded **SVG is never put
+through the canvas**; rasterising is
 the one thing that throws away what an SVG is for. New file → add it to `SHELL`
 in `sw.js`. See decision 86.
 

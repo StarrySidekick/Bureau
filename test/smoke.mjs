@@ -3290,7 +3290,14 @@ const CHROME = process.env.BUREAU_CHROME;
     const nap = n => new Promise(r => setTimeout(r, n));
     const S = BUREAU.state, out = {};
     S.view='desk'; S.drawerId=null; S.look.locked=false;
-    out.tenOfThem = Object.keys(BUREAU.decor).length === 10;
+    const set = BUREAU.decor;
+    out.aSetOfThem = Object.keys(set).length >= 10;
+    /* Each states its own tight viewBox and the tile shape it wants — the two
+       numbers that stop an ornament floating in a box instead of standing in
+       one. See decision 86. */
+    out.eachStatesItsOwnBox = Object.values(set).every(d =>
+      /^[-\d. ]+$/.test(d.vb) && d.vb.trim().split(/\s+/).length === 4
+      && Array.isArray(d.size) && d.size.length === 2);
     const d = BUREAU.create('decoration', { parent:'root', title:'Plant' });
     out.carriesTheTrait = BUREAU.has(d, 'decor');
     // stand it deliberately on top of a drawer that is already there
@@ -3304,6 +3311,15 @@ const CHROME = process.env.BUREAU_CHROME;
       && cs.borderTopWidth === '0px' && cs.boxShadow === 'none';
     out.aboveTheTiles = +cs.zIndex >= 6;
     out.drawnInline = !!el().querySelector('svg.decart');
+    /* Flush with the floor of its tile — measured through the SVG's own screen
+       matrix rather than guessed at, because `preserveAspectRatio` is what
+       does the aligning and a formula that ignores it lies. */
+    out.standsOnTheFloor = (() => {
+      const svg = el().querySelector('svg.decart'), bb = svg.getBBox();
+      const m = svg.getScreenCTM(), q = svg.createSVGPoint();
+      q.x = bb.x; q.y = bb.y + bb.height;
+      return Math.abs(el().getBoundingClientRect().bottom - q.matrixTransform(m).y) < 1.5;
+    })();
     // …and nothing has to make room for one: the drawer under it is untouched
     out.nothingMovedForIt = on.desk.x === d.desk.x && on.desk.y === d.desk.y;
     /* A real tile may still be placed where a decoration stands — measured
