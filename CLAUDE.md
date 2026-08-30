@@ -608,6 +608,18 @@ on the Exercise desk answers with screenplay scenes. `inScope()` is checked
 before every other clause in `inContainer()`, so it applies to the archive and
 to every rule alike.
 
+**The status bar is the top of the carcass, and only `theme-color` can reach
+it.** On an installed app the strip the clock and battery sit in is painted by
+the system, not by the page — so it is the one piece of the furniture CSS
+cannot touch. It is the **wood**, so the carcass runs unbroken from there to
+the drawer along the bottom. **One meta, no light/dark pair**: the wood is the
+same in both, and a second meta carrying a `media` would outrank the one
+`paintStatusBar()` in views.js writes to. The head states the default so a cold
+launch is right before any script runs; the function follows a desk that names
+its own `wood` and a style that overrules the token, reading the computed value
+only when neither can answer. Never duplicate the default as a JS constant —
+the stylesheet owns it. See decision 89.
+
 **The app is furniture, and the board is set into it.** A phone screen has two
 strips the board cannot use — the notch above the bar and the curve of the
 bottom corners — and both are the desk itself: `--wood` above, and along the

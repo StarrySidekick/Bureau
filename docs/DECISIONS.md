@@ -3088,3 +3088,37 @@ bindings that need three layers. It sits **under** the texture on purpose:
 grain is printed on shaped wood, not the other way round. And a magic front
 that asks for an ogee gives up its gilt lines and keeps its sunk ground: two
 gilt frames on one drawer is a picture frame shop.
+
+---
+
+## 89. The status bar is the top of the carcass
+
+*2026-08-30*
+
+On an installed app the strip the clock, the signal and the battery sit in is
+painted by the **system**, from `theme-color`, and nothing in CSS can reach it.
+It was `#EDE7DB` — the paper — which put a cream band above the walnut bar and
+made the app look as though it started an inch below the top of the screen.
+Decision 55 says the app is furniture and the board is set *into* it; that has
+to include the one strip the app does not draw.
+
+So `theme-color` is the **wood**. The carcass now runs unbroken from the status
+bar, through the bar and the reveal, to the drawer along the bottom.
+
+**One value, with no light/dark pair.** The two media-queried metas are gone.
+The wood is deliberately not derived from the style's five and is deliberately
+the same in both — a desk is walnut at midday as much as at midnight — and a
+second meta carrying a `media` would win over the one the app writes to at
+runtime, which is a silent way to break it.
+
+**The head states the default and views.js keeps it in step.** The default has
+to be in the markup so a cold launch is right before any script runs; but the
+wood is per desk (`wood` on the desk's own config) and a style may overrule the
+token in its own `vars`, so `paintStatusBar()` follows both. It reads the
+computed value only when neither can answer — a desk with its own wood hands
+over a hex directly — and caches on desk-wood plus style, so an ordinary render
+does no work. The default is **not** duplicated as a JS constant: the
+stylesheet owns it and two copies drift.
+
+Guarded as `statusBar`, which is the only way to see this at all — a screenshot
+of the page cannot show a strip the page does not draw.

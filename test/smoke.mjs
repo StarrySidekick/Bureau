@@ -3235,6 +3235,32 @@ const CHROME = process.env.BUREAU_CHROME;
       .every(n => names.has(n));
   });
 
+  /* --- the status bar is the top of the carcass — decision 89 -----------
+     Painted by the system from `theme-color`, so it is the one piece of the
+     app's furniture CSS cannot reach — and the only way to see it is to ask
+     the meta what it says. */
+  const statusBar = await page.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const S = BUREAU.state, out = {};
+    const meta = () => document.querySelector('meta[name="theme-color"]').content.trim().toLowerCase();
+    const wood = () => getComputedStyle(document.getElementById('frame'))
+      .getPropertyValue('--wood').trim().toLowerCase();
+    /* One, with no light/dark pair: the wood is the same in both, and a second
+       meta with a `media` would win over the one views.js writes to. */
+    out.justTheOne = document.querySelectorAll('meta[name="theme-color"]').length === 1;
+    out.isTheWood = meta() === wood();
+    out.notThePaper = meta() !== '#ede7db';
+    // a desk that names its own wood takes the status bar with it
+    S.deskCfg = S.deskCfg || {};
+    S.deskCfg.wood = '#4b2e12';
+    BUREAU.render(); await nap(150);
+    out.followsTheDesk = meta() === '#4b2e12' && wood() === '#4b2e12';
+    delete S.deskCfg.wood;
+    BUREAU.render(); await nap(150);
+    out.andBackAgain = meta() === wood();
+    return out;
+  });
+
   /* --- how a book is bound — decision 87 --------------------------------
      Five bindings, all of them CSS off one class. What can actually go wrong
      here is not the ornament — it is the *title*: a spine's lettering runs in
@@ -3608,7 +3634,7 @@ const CHROME = process.env.BUREAU_CHROME;
     paletteKeys, editorKeys, pickerLeads, rollupsEverywhere, soundAndVision, keyboardBoard,
     ranking, repeating, oneLock, scheduling, ownColour, addBox, calFaces,
     lockedBoard, freeTraits, pageWrites, tickBoxes, readerFits,
-    dropsIn, keyframesRegistered, bindings, spineReads, panelling, theSpray, tappingIsQuiet, decorations, pinboard
+    dropsIn, keyframesRegistered, statusBar, bindings, spineReads, panelling, theSpray, tappingIsQuiet, decorations, pinboard
   }, null, 2));
   await browser.close();
 })();

@@ -830,6 +830,32 @@ function renderSoon(){
   if(soonId) return;
   soonId = requestAnimationFrame(()=>{ soonId=0; render(); });
 }
+/* ---- the status bar is the top of the carcass -------------------------
+   In an installed app the strip the clock and the battery sit in is painted by
+   the *system*, from `theme-color`, and nothing in CSS can reach it — so it is
+   the one piece of the furniture that has to be told separately. It is the
+   wood: the carcass runs from there down to the drawer along the bottom, and a
+   cream strip above a walnut bar reads as the app starting an inch below the
+   top of the screen.
+
+   The head states the default, so a cold launch is right before any of this
+   runs. This keeps it in step with a desk that names its own wood, and with a
+   style that overrules the token in its own `vars`. The computed value is read
+   only when neither of those can answer — a desk with its own wood hands over
+   a hex directly — and the result is cached on both, so an ordinary render
+   does no work at all. Never duplicate the default as a constant here: the
+   stylesheet owns it, and two copies drift. */
+let BARKEY = null, BARMETA;
+function paintStatusBar(frame, wood){
+  const key = (wood||'') + '|' + ((S.look&&S.look.style)||'');
+  if(key === BARKEY) return;
+  BARKEY = key;
+  const c = (wood || getComputedStyle(frame).getPropertyValue('--wood') || '').trim();
+  if(!c) return;
+  BARMETA = BARMETA || document.querySelector('meta[name="theme-color"]');
+  if(BARMETA) BARMETA.setAttribute('content', c);
+}
+
 function render(){
   if(soonId){ cancelAnimationFrame(soonId); soonId=0; }
   const frame=$('#frame');
@@ -844,6 +870,7 @@ function render(){
      follows. `--wood-2` derives from it in CSS, so the shaded edge comes too. */
   const wood = (cfgOf(deskHere())||{}).wood;
   if(wood) frame.style.setProperty('--wood', wood); else frame.style.removeProperty('--wood');
+  paintStatusBar(frame, wood);
   // settings stopped being a view in v35; an old snapshot may still name it
   if(S.view==='settings') S.view='desk';
   const placed = PLACED.n;      // ensureBox() may invent boxes as this builds

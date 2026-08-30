@@ -6,8 +6,15 @@
 <title>Bureau</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='10' fill='%23E9E1CC'/%3E%3Crect x='9' y='12' width='46' height='40' rx='4' fill='%237E5A38'/%3E%3Crect x='13' y='16' width='38' height='32' rx='2' fill='none' stroke='%23F3E7D2' stroke-opacity='.45' stroke-width='2'/%3E%3Ccircle cx='32' cy='32' r='6' fill='%23F3E7D2' fill-opacity='.75'/%3E%3C/svg%3E">
-<meta name="theme-color" content="#EDE7DB" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#191510" media="(prefers-color-scheme: dark)">
+<!-- The strip the clock and the battery sit in is painted by the system from
+     this, not by the page, so it is the one piece of the app's furniture that
+     CSS cannot reach. It is the **wood**: the carcass runs from the status bar
+     down to the drawer along the bottom, and a cream strip above a walnut bar
+     reads as the app starting an inch below the top of the screen. One value,
+     with no light/dark pair, because the wood is the same in both — a desk is
+     walnut at midday as much as at midnight. views.js keeps it in step with a
+     desk that names its own. -->
+<meta name="theme-color" content="#3A2C1E">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
