@@ -1156,10 +1156,11 @@ html[data-style="golf97"] .drawer.dtile.bd-gloss{
              inset 3px 3px 0 1px rgba(255,255,255,.42), inset -3px -3px 0 1px rgba(0,0,0,.34),
              inset 7px 7px 0 1px rgba(0,0,0,.26), inset -7px -7px 0 1px rgba(255,255,255,.18),
              var(--shadow) }
-/* A cockbead is cabinetwork and 1997 has none: a front here is a *panel*, flat
-   inside its bevel, so the moulding layer stands down. The border slot is
-   doing the whole job, which is exactly what it did on that desktop. */
-html[data-style="golf97"] .drawer.dtile .dpanel{display:none}
+/* A cockbead is cabinetwork and 1997 has none — but that is an argument about
+   what position 1 is *made of*, not about whether the layer should exist. It
+   used to stand the moulding down entirely, which was right for exactly as
+   long as Golf 97 had no panellings of its own; it has five now (decision 93),
+   and hiding the layer would hide the group box and the CRT bezel with it. */
 /* square, because nothing in 1997 had a radius — including the tick boxes */
 html[data-style="golf97"] .drawer,html[data-style="golf97"] .sqbtn,
 html[data-style="golf97"] .check,html[data-style="golf97"] .clbox{border-radius:0}

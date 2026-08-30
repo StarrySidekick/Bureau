@@ -3325,6 +3325,26 @@ const CHROME = process.env.BUREAU_CHROME;
     /* the two new ornaments, which the `decorations` block above already holds
        to the tight-box and flush-to-the-floor rules along with the other ten */
     out.gearworkAndVolute = !!BUREAU.decor.cog && !!BUREAU.decor.volute;
+    /* **A panelling is a slot, like an edge and a colour** (decision 93). Every
+       aesthetic names all five in its own vocabulary, and what is stored is the
+       *position* — so a front you made a raised panel is an ashlar block in
+       Carca and a group box in 1997, and is a raised panel again when you come
+       back. That last part is the whole point and the thing a rename would
+       quietly break. */
+    const named = Object.values(BUREAU.styles).map(st => st.panels);
+    out.everyAestheticNamesFive = named.every(p => Array.isArray(p) && p.length === 5);
+    out.andNamesThemItsOwnWay =
+      new Set(named.map(p => p.join('|'))).size === named.length;
+    const d = BUREAU.create('drawer', { parent:'root', title:'Slot', panel:'fielded' });
+    BUREAU.setStyle('carca');  await nap(140);
+    const asCarca = BUREAU.panelSlots().find(([k]) => k === 'fielded')[1];
+    BUREAU.setStyle('golf97'); await nap(140);
+    const as97 = BUREAU.panelSlots().find(([k]) => k === 'fielded')[1];
+    BUREAU.setStyle('victorian'); await nap(140);
+    out.theSlotSurvivesTheSwitch = d.panel === 'fielded';
+    out.andIsCalledSomethingElse = asCarca === 'Ashlar block' && as97 === 'Group box'
+      && BUREAU.panelSlots().find(([k]) => k === 'fielded')[1] === 'Raised panel';
+    BUREAU.delDrawer(d.id);
     S.look.style = was; BUREAU.setStyle(was);
     S.undo=[]; S.redo=[]; BUREAU.render(); await nap(120);
     return out;

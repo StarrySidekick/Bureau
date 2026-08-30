@@ -3290,3 +3290,53 @@ bracket**, the thing actually holding up a Sicilian balcony. So the scroll —
 an archimedean path of two and a half turns whose radius tapers as it goes,
 because a hand-drawn coil reads as wire — sits on a flared S-profile body with
 an acanthus down its face and a plinth under it.
+
+---
+
+## 93. A panelling is a slot, like an edge and a colour
+
+*2026-08-30*
+
+Borders have been positions since decision 33: a drawer stores `bd-panel` and
+what position one is *made of* is the aesthetic's business — a Victoria
+moulding, an Aeros glass rim, a Golf 97 outset. Panelling (decision 88) never
+got that treatment. It shipped as five hardcoded Victorian cabinetmaking terms,
+so every aesthetic had to answer "is this front cockbeaded" whether or not
+cockbeading meant anything in it. It meant nothing in four of the seven.
+
+So panelling is a slot system now, in exactly the shape borders already had.
+Each aesthetic names its own five:
+
+| | Victoria | Carca | Stelaine | Girando | Golf 97 | Starful Gothic | Aeros |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 0 | Flat front | Dressed flat | Unworked | Uncarved | Flat | Unlined | Clear |
+| 1 | Cockbead | Chamfer | Crystal rim | Bead | Plastic edge | Pencil rim | Glass edge |
+| 2 | Raised panel | Ashlar block | Floating slab | Cartouche | **Group box** | Sketched panel | Glass panel |
+| 3 | Reeded | Fluting | Ribbing | Rustication | **Scanlines** | Hatching | Ribbed glass |
+| 4 | Ogee panel | Tracery | Astral inlay | Volute panel | **CRT bezel** | Doodle frame | Aqua inlay |
+
+**The stored value is the position, and that is the whole point.** A front you
+made a raised panel is an ashlar block in Carca and a group box in 1997, and is
+a raised panel again the moment you come back — nothing is converted, only
+looked up, and the choice you made about that one drawer survives every switch.
+Renaming the keys would have broken exactly that, so they are unchanged and
+still read as Victoria's words in the code; `panelSlots()` overlays whichever
+aesthetic is showing, the way `borderSlots()` always has.
+
+**This is where an aesthetic gets to be about something.** The differences are
+no longer a palette and a typeface: Carca cuts a chamfer where Victoria runs a
+bead, because masonry knocks the arris off rather than applying a moulding to
+it; its position 3 is *fluting*, a reed cut in rather than run on, so the
+hollow is shaded where a reed's crown is lit. Girando's rustication runs
+**horizontally** where a reed runs vertically — the axis is the whole
+difference between a course of stone and a fluted pilaster. Stelaine's field
+does not sit on the front, it hovers over it. And Golf 97 gets the three most
+1997 things available: the etched **group box** — one dark line and one light
+line a pixel apart, which is how that decade drew a frame round anything —
+**scanlines**, and a **CRT bezel** with the corners rounded off the way a
+tube's are and the picture darkening toward its edges.
+
+One thing had to be undone for this: decision 92 hid `.dpanel` entirely under
+Golf 97, on the argument that 1997 has no cabinetwork. That was right for
+exactly as long as Golf 97 had no panellings of its own. It has five now, and
+hiding the layer would have hidden the group box with them.

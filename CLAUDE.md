@@ -257,10 +257,16 @@ side. The first pass ran the white mix out to a third of the radius, which is
 most of the face lightened — and a knob that is a paler disc of the front is the
 sticker this was meant to replace, wearing a gradient.
 
-**A drawer front is worked, and the working is five choices.** `panelOf(o)` —
-per object then per type — stamps `pn-<name>` and the rest is CSS: `plain`
-(flat), `cockbead` (**the default**, a half-round round the rim), `fielded` (a
-raised panel and its chamfer), `reeded`, and `ogee` (a sunk panel with gilt).
+**A drawer front is worked, and the working is a *slot*.** `panelOf(o)` — per
+object then per type — stamps `pn-<name>` and the rest is CSS. The five keys
+(`plain`, `cockbead`, `fielded`, `reeded`, `ogee`) are **positions**, not
+descriptions, exactly as the six `bd-*` are: what is stored is the position, and
+each aesthetic names and dresses its own. Position 2 is Victoria's raised panel,
+Carca's ashlar block, Golf 97's group box and Stelaine's floating slab — so a
+front re-dresses on a switch and is itself again when you come back. Ask
+`panelSlots()` for the names, never `PANELS` (that is the fallback and it is
+Victoria's words). Don't rename the keys: the stored value surviving a switch is
+the entire point. See decision 93.
 Two rules carry all five, and they are the spine's generalised: **a multi-stop
 gradient across a narrow band reads as a half-round**, and **a moulding is a
 fixed thickness at any size** — px thicknesses, proportional insets, so a wide

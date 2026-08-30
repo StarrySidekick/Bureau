@@ -5,6 +5,12 @@ typeface, whether the desk is light or dark, and the defaults every new drawer
 is born with (knob, border, texture, panelling). Choosing one is a starting
 point, not a cage — every individual control keeps working afterwards.
 
+**A colour, an edge and a *working* are all slots.** Sixteen colour positions,
+six border positions and five panelling positions; each aesthetic names and
+dresses its own, and what an object stores is the position. That is what lets
+one drawer be a claret ashlar block here and a deep-sea-blue group box in 1997
+and itself again when you come back. See decisions 33, 88 and 93.
+
 It was called a *Style* until 2026-08-30. The word is now **Aesthetics**
 throughout the interface, ahead of the shared definitions coming from the
 Aesthetics repository; the stored key is still `style` and the CSS hook is

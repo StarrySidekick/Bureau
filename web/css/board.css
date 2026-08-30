@@ -920,6 +920,172 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
    ground and gives up its lines. */
 .drawer.magicdrawer.pn-ogee .dpanel::after{content:none}
 
+/* ---- the same five workings, answered by each aesthetic — decision 93 --
+   A panelling is a slot exactly as an edge and a colour are. The five rules
+   above are Victoria's answers and the fallback for anything that does not
+   care; below, each aesthetic says what its own positions are made of. A front
+   keeps the *slot* it was given through a switch, so a drawer you made a
+   raised panel stays a raised panel here, an ashlar block in Carca and a group
+   box in 1997 — and the choice survives coming back.
+
+   Only positions 1–4 need answering: position 0 is flat everywhere and its
+   whole job is to be nothing. `--pin` is inherited from the base rule, so the
+   inset shrinks on a short front here as it does there. */
+
+/* ---- Carca: cut stone -------------------------------------------------- */
+/* a chamfer, which on masonry is the arris knocked off rather than a bead
+   applied to it — so it is a *bevel round the opening*, lit above and shaded
+   below, and there is nothing standing proud at all */
+html[data-style="carca"] .pn-cockbead .dpanel{
+  background:none;
+  box-shadow:inset 0 5px 5px -4px rgba(255,255,255,.30),
+             inset 0 -5px 5px -4px rgba(0,0,0,.26),
+             inset 5px 0 5px -4px rgba(255,255,255,.16),
+             inset -5px 0 5px -4px rgba(0,0,0,.18) }
+/* a dressed block, bedded in its course: the joint is a shadow line and the
+   face of the stone stands a little forward of it */
+html[data-style="carca"] .pn-fielded .dpanel::before{
+  border-radius:2px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.20) }
+html[data-style="carca"] .pn-fielded .dpanel::after{
+  border-radius:1px;
+  background:linear-gradient(168deg,
+    color-mix(in srgb, var(--c) 88%, #fff), var(--c) 55%,
+    color-mix(in srgb, var(--c) 92%, #000));
+  box-shadow:0 -1px 0 rgba(255,255,255,.20), 0 2px 3px rgba(0,0,0,.26) }
+/* fluting is a reed cut *in* rather than run on: the hollow is shaded and the
+   fillet between two of them catches the light */
+html[data-style="carca"] .pn-reeded .dpanel{
+  background:repeating-linear-gradient(90deg,
+    rgba(0,0,0,.16) 0 1px, rgba(0,0,0,.10) 1px 5px, rgba(0,0,0,.02) 5px 9px,
+    rgba(255,255,255,.16) 9px 11px, rgba(255,255,255,.05) 11px 13px) }
+/* tracery: a pointed arch struck into the panel, which is the one gothic thing
+   a rectangle can actually say */
+html[data-style="carca"] .pn-ogee .dpanel::before{
+  border-radius:44% 44% 3px 3px / 34% 34% 3px 3px;
+  background:linear-gradient(168deg, rgba(0,0,0,.16), rgba(0,0,0,0) 50%,
+    rgba(255,255,255,.10));
+  box-shadow:inset 0 2px 4px rgba(0,0,0,.24) }
+html[data-style="carca"] .pn-ogee .dpanel::after{
+  border-radius:44% 44% 2px 2px / 34% 34% 2px 2px;
+  border-color:color-mix(in srgb,var(--brass) 70%,transparent);
+  outline-color:color-mix(in srgb,var(--brass) 70%,transparent) }
+
+/* ---- Stelaine: nothing is bedded, it is hung -------------------------- */
+/* a crystal rim: a hairline of gilt held off the edge, no roll and no shadow */
+html[data-style="stelaine"] .pn-cockbead .dpanel{
+  background:none;
+  box-shadow:inset 0 0 0 5px transparent,
+             inset 0 0 0 6px color-mix(in srgb,var(--glow) 30%,transparent) }
+/* a floating slab: the field does not sit *on* the front, it hovers over it —
+   so the drop is soft and offset and the field itself is faintly lit */
+html[data-style="stelaine"] .pn-fielded .dpanel::before{
+  background:none;box-shadow:none }
+html[data-style="stelaine"] .pn-fielded .dpanel::after{
+  border-radius:6px;
+  background:linear-gradient(152deg,
+    color-mix(in srgb, var(--c) 82%, #fff), var(--c) 60%,
+    color-mix(in srgb, var(--c) 88%, #000));
+  box-shadow:0 6px 14px -4px rgba(0,0,0,.55),
+             inset 0 0 0 1px color-mix(in srgb,var(--glow) 26%,transparent) }
+/* ribbing, and it is *light* rather than moulding — the bands glow faintly */
+html[data-style="stelaine"] .pn-reeded .dpanel{
+  background:repeating-linear-gradient(90deg,
+    color-mix(in srgb,var(--glow) 12%,transparent) 0 1px,
+    rgba(255,255,255,.05) 1px 3px, rgba(0,0,0,0) 3px 10px,
+    rgba(0,0,0,.14) 10px 12px) }
+/* an astral inlay: the sunk panel is a window onto something further off */
+html[data-style="stelaine"] .pn-ogee .dpanel::before{
+  border-radius:8px;
+  background:radial-gradient(120% 90% at 50% 0%,
+    color-mix(in srgb,var(--brass) 34%,transparent), transparent 70%);
+  box-shadow:inset 0 0 18px -4px color-mix(in srgb,var(--brass) 60%,transparent),
+             inset 0 0 0 1px rgba(0,0,0,.30) }
+html[data-style="stelaine"] .pn-ogee .dpanel::after{ border-radius:6px;opacity:.85 }
+
+/* ---- Girando: carved ---------------------------------------------------- */
+/* a cartouche is a raised field with its corners *eaten in*, which is the one
+   shape that reads as baroque rather than as a picture frame */
+html[data-style="girando"] .pn-fielded .dpanel::after{
+  border-radius:18px 4px 18px 4px / 12px 4px 12px 4px;
+  box-shadow:0 0 0 1px color-mix(in srgb,var(--glow) 30%,transparent),
+             0 2px 4px rgba(0,0,0,.32), inset 0 1px 0 rgba(255,255,255,.16) }
+html[data-style="girando"] .pn-fielded .dpanel::before{
+  border-radius:20px 6px 20px 6px / 14px 6px 14px 6px }
+/* rustication: courses cut across the face with a deep joint between them,
+   which is horizontal where a reed is vertical — the axis is the whole point */
+html[data-style="girando"] .pn-reeded .dpanel{
+  background:repeating-linear-gradient(180deg,
+    rgba(255,255,255,.10) 0 1px, rgba(0,0,0,0) 1px 13px,
+    rgba(0,0,0,.30) 13px 15px, rgba(0,0,0,.10) 15px 16px) }
+/* the volute panel: the ogee, with its corners scrolled */
+html[data-style="girando"] .pn-ogee .dpanel::before{
+  border-radius:26px 6px 26px 6px / 18px 6px 18px 6px }
+html[data-style="girando"] .pn-ogee .dpanel::after{
+  border-radius:22px 5px 22px 5px / 15px 5px 15px 5px }
+
+/* ---- Golf 97: it is a dialog box, and it always was -------------------- */
+/* a plastic edge: one hard step, no roll, because moulded ABS has no curve
+   worth drawing at this size */
+html[data-style="golf97"] .pn-cockbead .dpanel{
+  background:none;
+  box-shadow:inset 2px 2px 0 rgba(255,255,255,.34), inset -2px -2px 0 rgba(0,0,0,.26) }
+/* the **group box**: the etched frame that decade drew round a set of
+   controls — one dark line and one light line, one pixel apart, and nothing
+   else. It is the single most 1997 thing in this file. */
+html[data-style="golf97"] .pn-fielded .dpanel::before{
+  background:none;border-radius:0;
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.42), inset -1px -1px 0 1px rgba(255,255,255,.55) }
+html[data-style="golf97"] .pn-fielded .dpanel::after{ content:none }
+/* scanlines, which is what any of this looked like on the television */
+html[data-style="golf97"] .pn-reeded .dpanel{
+  background:repeating-linear-gradient(180deg,
+    rgba(0,0,0,.16) 0 1px, rgba(0,0,0,0) 1px 3px) }
+/* a CRT bezel: the picture is sunk behind glass with the corners rounded off
+   the way a tube's are, and the screen is darker at its edges */
+html[data-style="golf97"] .pn-ogee .dpanel::before{
+  border-radius:10px;
+  background:radial-gradient(120% 120% at 50% 45%, rgba(0,0,0,0) 55%, rgba(0,0,0,.30));
+  box-shadow:inset 2px 2px 0 rgba(0,0,0,.40), inset -2px -2px 0 rgba(255,255,255,.34) }
+html[data-style="golf97"] .pn-ogee .dpanel::after{ content:none }
+
+/* ---- Starful Gothic: all of it is drawn ------------------------------- */
+/* the outline this aesthetic already puts on `.dpanel` is the pencil rim, so
+   position 1 is that and nothing more; the others add to it */
+html[data-style="starry"] .pn-cockbead .dpanel{ background:none }
+html[data-style="starry"] .pn-fielded .dpanel::before{ background:none;box-shadow:none }
+html[data-style="starry"] .pn-fielded .dpanel::after{
+  background:none;border-radius:4px;
+  box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--ink) 40%,transparent) }
+/* hatching: pencil strokes at an angle, because a drawn thing shades by
+   crossing lines rather than by darkening */
+html[data-style="starry"] .pn-reeded .dpanel{
+  background:repeating-linear-gradient(58deg,
+    color-mix(in srgb,var(--ink) 20%,transparent) 0 1px, rgba(0,0,0,0) 1px 7px) }
+html[data-style="starry"] .pn-ogee .dpanel::after{
+  border-color:color-mix(in srgb,var(--ink) 42%,transparent);
+  outline-color:color-mix(in srgb,var(--ink) 26%,transparent);
+  filter:none }
+
+/* ---- Aeros: glass ------------------------------------------------------- */
+html[data-style="aero"] .pn-cockbead .dpanel{
+  background:none;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.55), inset 0 8px 12px -8px rgba(255,255,255,.5) }
+html[data-style="aero"] .pn-fielded .dpanel::after{
+  border-radius:8px;
+  background:linear-gradient(180deg, rgba(255,255,255,.30), rgba(255,255,255,.02) 50%,
+    rgba(255,255,255,.10));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.6), 0 1px 3px rgba(0,0,0,.20) }
+html[data-style="aero"] .pn-fielded .dpanel::before{ background:none;box-shadow:none }
+html[data-style="aero"] .pn-reeded .dpanel{
+  background:repeating-linear-gradient(90deg,
+    rgba(255,255,255,.22) 0 2px, rgba(255,255,255,.04) 2px 6px,
+    rgba(0,0,0,.05) 6px 10px) }
+html[data-style="aero"] .pn-ogee .dpanel::before{
+  border-radius:10px;
+  background:linear-gradient(180deg, rgba(255,255,255,.34), rgba(255,255,255,0) 60%);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.45), inset 0 -6px 12px -8px rgba(0,0,0,.3) }
+html[data-style="aero"] .pn-ogee .dpanel::after{ border-radius:8px;opacity:.6 }
+
 /* ---- drawer textures: quiet, and drawn over the front colour ----------
    Over the *colour*, and under everything standing on it. A generated `::after`
    is the last child of the tile, so with nothing said about depth it painted

@@ -1,4 +1,4 @@
-import { S, K, defaultLook } from './model.js';
+import { S, K, defaultLook, PANELS, PANEL_SLOTS } from './model.js';
 import { save } from './persist.js';
 import { render } from './views.js';
 
@@ -242,6 +242,13 @@ const ROLES = ['Page','Text','Lines','Accent','Glow'];
 const BORDER_SLOTS = ['panel','heavy','bar','gloss','plain','none'];
 const borderNames = ()=> styleNow().borders || BORDER_SLOTS.map(k=>k[0].toUpperCase()+k.slice(1));
 const borderSlots = ()=> BORDER_SLOTS.map((k,i)=>[k, borderNames()[i]||k]);
+/* …and the five panellings, the same way. A front's working is a slot exactly
+   as its edge and its colour are: the object stores position 2 and gets
+   Victoria's fielded panel here, Carca's ashlar block there, and Golf 97's
+   group box in 1997 — so changing aesthetic re-dresses every front you own
+   while the choice you made about each one survives. See decision 93. */
+const panelNames = ()=> styleNow().panels || PANEL_SLOTS.map(k=>PANELS[k]);
+const panelSlots = ()=> PANEL_SLOTS.map((k,i)=>[k, panelNames()[i]||PANELS[k]]);
 const SLOTS = 16;
 const OBJ0 = ROLES.length;          // the first slot an object may be painted in
 const OBJN = SLOTS - OBJ0;          // eleven
@@ -255,6 +262,7 @@ const STYLES = {
   victorian: {nm:'Victoria', ds:'An old desk: baize, brass, sage and claret',
     board:'#EFEADA|#DDE5CE', boardAlpha:1,
     borders:['Panelled','Heavy panel','Bar','Beaded','Plain','None'],
+    panels:['Flat front','Cockbead','Raised panel','Reeded','Ogee panel'],
     defaults:{knob:'round', border:'panel', texture:'none', knobtone:'light', panel:'cockbead'},
     cols:['#E9E1CC','#2A241C','#4A4034','#A9793F','#D9B57C',
           '#6F5137','#4A7C59','#6E7F63','#2E6B52','#4A6382','#5A7A9E',
@@ -278,6 +286,7 @@ const STYLES = {
   carca: {nm:'Carca', ds:'A walled city in tiles, its war machines turned to tinkering',
     board:'#EAE5D4|#DBDCC6', boardAlpha:1,
     borders:['Ashlar','Rampart','Course','Vine','Plain','None'],
+    panels:['Dressed flat','Chamfer','Ashlar block','Fluting','Tracery'],
     defaults:{knob:'ring', border:'panel', texture:'grid', knobtone:'light', panel:'fielded'},
     cols:['#E8E4D6','#22303F','#7E8B96','#A87A3C','#D4B872',
           '#77808A','#2E5B84','#5D82AE','#5E8B4C','#3C6B49','#7A6E9E',
@@ -296,6 +305,7 @@ const STYLES = {
   stelaine: {nm:'Stelaine', ds:'Crystal stars falling on a floating island, and who owns the sky',
     board:'#171233|#1D1740', boardAlpha:1,
     borders:['Filigree','Astral rule','Horizon','Facet','Plain','None'],
+    panels:['Unworked','Crystal rim','Floating slab','Ribbing','Astral inlay'],
     defaults:{knob:'orb', border:'panel', texture:'starry', knobtone:'light', panel:'ogee'},
     cols:['#120E20','#EDE7FA','#6E5F96','#9A6BD8','#E3C98A',
           '#4C3A78','#6E4C9E','#2E2A55','#3A5A9E','#2F6E86','#3E8AA0',
@@ -314,6 +324,7 @@ const STYLES = {
   girando: {nm:'Girando', ds:'The turning underside of a Sicilian rock, in baroque and vine',
     board:'#262119|#2E2820', boardAlpha:1,
     borders:['Volute','Cartouche','Cornice','Vine','Plain','None'],
+    panels:['Uncarved','Bead','Cartouche','Rustication','Volute panel'],
     defaults:{knob:'round', border:'panel', texture:'speckle', knobtone:'dark', panel:'ogee'},
     cols:['#211E1A','#EDE4D2','#7A6E5E','#B98846','#E0C782',
           '#3A342E','#8A7B63','#2F6E92','#3F7A5F','#5B7A46','#A65E3C',
@@ -333,6 +344,7 @@ const STYLES = {
   golf97: {nm:'Golf 97', ds:'Late-nineties fairway, distressed leather and desktop grey',
     board:'#CFD8B8|#C0CBA6', boardAlpha:1,
     borders:['Outset','Deep outset','Sunken','Groove','Plain','None'],
+    panels:['Flat','Plastic edge','Group box','Scanlines','CRT bezel'],
     defaults:{knob:'square', border:'panel', texture:'check', knobtone:'light', panel:'plain'},
     cols:['#D6D3C4','#2A2A24','#8A8878','#12736E','#C8A63C',
           '#6E8F5A','#4F6B44','#A79A6E','#A89663','#8A3F42','#4A6B8A',
@@ -350,6 +362,7 @@ const STYLES = {
   starry: {nm:'Starful Gothic', ds:'White pencil on a night sky, hand-drawn',
     board:'#07080C|#0B0D13', boardAlpha:1,
     borders:['Ruled','Double rule','Underline','Sketched','Plain','None'],
+    panels:['Unlined','Pencil rim','Sketched panel','Hatching','Doodle frame'],
     defaults:{knob:'round', border:'plain', texture:'stars', knobtone:'light', panel:'plain'},
     cols:['#07080C','#F4F6F8','#F4F6F8','#6FD3F5','#7DE8B0',
           '#14161C','#1B1E25','#23262E','#0E2733','#123544','#16443F',
@@ -371,6 +384,7 @@ const STYLES = {
   aero: {nm:'Aeros', ds:'Teal gloss and clear skies, straight from 2006',
     board:'#D8F0F4|#C2E6EC', boardAlpha:.85,
     borders:['Bevel','Deep bevel','Sill','Glass','Plain','None'],
+    panels:['Clear','Glass edge','Glass panel','Ribbed glass','Aqua inlay'],
     defaults:{knob:'orb', border:'aqua', texture:'sheen', knobtone:'light', panel:'plain'},
     cols:['#EAF4F7','#0D3541','#5B8C9B','#18A6C4','#7EE8F5',
           '#1E9AAE','#2FA39A','#3F8F63','#6FA83C','#2B6B99','#4C89C8',
@@ -458,5 +472,5 @@ export { themeNow, lookVal, setLookVal, applyLook, applyStyle, styleDefaults,
   DARKMODES, darkMode, hasDark, darkNow, systemDark,
   randomFront, randomBoard, randomLook, STYLES, BACKDROPS,
   SLOTS, OBJ0, OBJN, ROLES, slotName, styleNow, palNow, setSlot,
-  BORDER_SLOTS, borderSlots, CHECKS,
+  BORDER_SLOTS, borderSlots, panelSlots, CHECKS,
   hexOf, objColour, objSlots, isDark, lum, contrast, readsOn };

@@ -498,6 +498,14 @@ const bindingOf = o => {
    its rim, the raised-and-fielded panel, a reeded face, and the sunk ogee
    panel with gilt. Per object then per type, like a knob or a border — ask
    `panelOf(o)`. See decision 88. */
+/* **These five are positions, not descriptions** — the same arrangement the
+   border slots have had all along (decision 33). What you store is the slot,
+   and what a slot is *made of* is the aesthetic's business: position 2 is
+   Victoria's raised-and-fielded panel, Carca's ashlar block, Golf 97's group
+   box and Stelaine's floating slab. The names below are the fallback and
+   happen to be Victoria's, because it was the only aesthetic when panelling
+   was written; `panelSlots()` in look.js overlays whichever is showing.
+   See decision 93. */
 const PANELS = {
   plain:    'Flat front',
   cockbead: 'Cockbead',
@@ -505,6 +513,7 @@ const PANELS = {
   reeded:   'Reeded',
   ogee:     'Ogee panel'
 };
+const PANEL_SLOTS = Object.keys(PANELS);
 /* Cockbead is the default rather than flat: it is on very nearly every drawer
    of the period, it is one moulding rather than an ornament, and a flat
    rectangle is the thing this exists to stop being. Unknown names fall back,
@@ -1244,7 +1253,7 @@ export { ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds, K,
   boardLocked,
   PRIOS, prioOf, prioName,
   REPEAT_UNITS, repeatOf, repeats, repeatSaid, repeatSpent, nextRepeat,
-  BINDINGS, bindingOf, PANELS, panelOf,
+  BINDINGS, bindingOf, PANELS, PANEL_SLOTS, panelOf,
   KNOBSIZES, knobSizeOf, answered, iconOf, TSIZES, textSizeOf, mediaTypeOf, isPicture,
   isMedia, isPlayable, acceptFor, isDecor,
   spawnByOf, genKindOf, takesTyping, showsAddBox, keepsDone, showsContainers,

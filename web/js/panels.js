@@ -10,9 +10,9 @@ import { S, K, KINDS, KEYS, T, ATTRS, USER_ATTRS, FIELDS, fieldOf, OPS, ROLLS,
   relatedTo, backlinksTo, streak, goalPct,
   CALVIEWS, calViewOf, weekStartOf, showsWeekends, KNOBSIZES, knobSizeOf,
   TSIZES, textSizeOf, mediaTypeOf, isPicture, isMedia, isDecor,
-  BINDINGS, bindingOf, PANELS, panelOf } from './model.js';
+  BINDINGS, bindingOf, panelOf } from './model.js';
 import { GRID, lay, boxOk, freeSpot, sizeOfKind, toPhoneSize } from './grid.js';
-import { randomBoard, randomFront, hexOf, objColour, objSlots, palNow, OBJ0, borderSlots } from './look.js';
+import { randomBoard, randomFront, hexOf, objColour, objSlots, palNow, OBJ0, borderSlots, panelSlots } from './look.js';
 import { CLICKS, clickOf, gridTile, pending } from './tiles.js';
 import { DECOR, DECOR_KEYS, decorOf, decorSVG } from './decor.js';
 import { quickAdd, toast, drawerForTag } from './mutations.js';
@@ -457,7 +457,7 @@ function objectPanelBody(id, sec){
           ? prow('Binding', psel(id,'binding', Object.entries(BINDINGS), bindingOf(d)),
               'how the book is bound — the spine is the one face that is a made object')
           : faceOf(d)==='front'
-          ? prow('Panelling', psel(id,'panel', Object.entries(PANELS), panelOf(d)),
+          ? prow('Panelling', psel(id,'panel', panelSlots(), panelOf(d)),
               'how the front is worked — a moulding, lit from the upper left like the knob')
           : '')
     : prow('Shape', psel(id,'shape', Object.entries(SHAPES), shapeOf(d))));
