@@ -11,6 +11,10 @@ import { themeNow, applyLook, lookVal, STYLES, BACKDROPS, DARKMODES, darkMode, h
   palNow, setSlot, styleNow, hexOf, objColour, slotName, OBJ0, CHECKS } from './look.js';
 import { gridOfContainer, gridTile, listTile, scrollEntry, bookView, calSpan } from './tiles.js';
 import { openPanel, closePanel, panelKey, repositionPanel } from './panels.js';
+/* Cyclic at *function* level only — motion.js imports render() from here and
+   this imports sprayAt() from there, and neither is called while the modules
+   are loading. That is the graph the app already has; keep it that way. */
+import { sprayAt, SPRAYS } from './motion.js';
 import { APP_VERSION, DATA_V, save, saveIfDirty, storeSize, install } from './persist.js';
 
 /* The desk is nothing but the grid. There is no toolbar: New, Arrange and
@@ -510,6 +514,15 @@ function settingsBody(sec){
       <div class="mini" style="--k:var(--brass);margin-top:6px">Everywhere a box is drawn — a task on the board, a row in a list, a line on a checklist front. Tasks and checklists follow the desk rather than each carrying their own.</div>
     </div>
 
+    ${/* Things that come out of a tile when you touch it. Real physics rather
+          than a keyframe — see decision 85 — so it is a flavour rather than a
+          switch: how many, how big, and which shapes. */''}
+    <div class="field" style="margin-top:12px"><label>When you touch something</label>
+      <div class="filterbar">${Object.entries(SPRAYS).map(([v,[nm]])=>
+        `<button class="fchip${(S.look.spray||'sparks')===v?' on':''}" data-spray="${v}">${nm}</button>`).join('')}</div>
+      <div class="mini" style="--k:var(--brass);margin-top:6px">Stars, rings, spirals and little bars of confetti, thrown out of whatever you tapped and then pulled down — and again when a new object lands on the board. They take the colour of the thing they came out of and the style's own accent, so a burst belongs to the desk it happened on.</div>
+    </div>
+
     <div class="field" style="margin-top:12px"><label>Shadows</label>
       <div class="filterbar">${[['1','Things cast a shadow'],['','Laid flat']].map(([v,n])=>
         `<button class="fchip${(S.look.shadows===false?'':'1')===v?' on':''}" data-shadows="${v}">${n}</button>`).join('')}</div>
@@ -698,7 +711,14 @@ function reveal(id){
   }
   const el=document.querySelector(`#app .grid .drawer[data-row="${id}"],#app .grid .drawer[data-drawer="${id}"]`);
   const sc=$('#app .scroll');
-  if(el){ el.classList.add('justmade'); setTimeout(()=>el.classList.remove('justmade'), 1200); }
+  if(el){
+    el.classList.add('justmade'); setTimeout(()=>el.classList.remove('justmade'), 1200);
+    /* …and it throws a handful of things out when it lands. 46% of the 1s
+       `justmade` keyframe is the moment it touches down — the one number here
+       that tracks a keyframe, so the two have to move together. See
+       decisions 81 and 85. */
+    setTimeout(()=>sprayAt(id, 1.15), 450);
+  }
   if(!el || !sc) return;
   const er=el.getBoundingClientRect(), sr=sc.getBoundingClientRect();
   if(er.top < sr.top+8 || er.bottom > sr.bottom-8){

@@ -11,7 +11,7 @@ import { hexOf, objColour } from './look.js';
 import { render, pageAt } from './views.js';
 import { openObj, openWriter, openRead, openViewer, renderSheet } from './sheet.js';
 import { objectPanel } from './panels.js';
-import { openTile, openingFor } from './motion.js';
+import { openTile, openingFor, spray, sprayAt } from './motion.js';
 import { save } from './persist.js';
 
 /* ============================================================
@@ -285,8 +285,24 @@ function fireButton(o){
    object's `opening` asks for and then does the thing — in that order, and
    without waiting: the state change is immediate and the animation is a copy
    drawn over the result. See motion.js. */
+/* Where the last tap landed, so a burst comes out of the point you touched
+   rather than the middle of the tile. gestures.js writes it on the way in; a
+   tap that arrives another way (the keyboard, anything synthetic) leaves it
+   null and the burst takes the tile's centre instead. See decision 85. */
+const TAPAT = {x:null, y:null};
 function tileTap(id){
   const o=byId(id); if(!o) return;
+  /* Touched, so something comes out of it. Before the switch, because half
+     the branches below navigate — and a burst thrown from a board that is
+     about to be replaced is still drawn over the one that replaces it, since
+     #fx is outside #app. Ticking is the exception: toggleDone answers with
+     both the ring and the burst, and spray() drops the second of two calls in
+     the same instant anyway. */
+  if(clickOf(o)!=='check'){
+    if(TAPAT.x!=null) spray(TAPAT.x, TAPAT.y, id);
+    else sprayAt(id);
+  }
+  TAPAT.x=TAPAT.y=null;
   if(isContainer(o)){
     openTile(id, ()=>{ S.view='drawer'; S.drawerId=id; S.kindFilter=null; render(); });
     return;
@@ -1172,6 +1188,6 @@ function scrollEntry(o){
   </article>`;
 }
 
-export { spinTo, CLICKS, clickOf, fireButton, tileTap, pending, placeAtPending, PAGESHIFT,
+export { spinTo, CLICKS, clickOf, fireButton, tileTap, TAPAT, pending, placeAtPending, PAGESHIFT,
   gridTile, gridOfContainer, listTile, scrollEntry, bookOf, bookView, turnPage, clearPages,
   calSpan };

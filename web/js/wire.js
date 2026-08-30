@@ -631,6 +631,12 @@ function wire(){
     if(chk){ S.look.check = chk.dataset.checks;
       applyLook(); save(); render(); refreshPanel(); return; }
 
+    /* What comes out of a tile when you touch it — off, or one of three
+       flavours. See decision 85. */
+    const spr=t.closest('[data-spray]');
+    if(spr){ S.look.spray = spr.dataset.spray;
+      save(); render(); refreshPanel(); return; }
+
     // laid flat on the board, or pinned to it — see decision 75
     const pnb=t.closest('[data-pinned]');
     if(pnb){ S.look.pinned = !!pnb.dataset.pinned;

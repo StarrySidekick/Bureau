@@ -3,7 +3,7 @@ import { S, byId, dev, has, isAncestor, childrenOf, container, gatherKind, spanO
   sortOf, cfgOf, boardLocked, T } from './model.js';
 import { GRID, CELL, gridOf, cellW, lay, boxOk, overlaps } from './grid.js';
 import { toast, gather, setPin, del, pushSets } from './mutations.js';
-import { pending, tileTap, fireButton } from './tiles.js';
+import { pending, tileTap, fireButton, TAPAT } from './tiles.js';
 import { modalNewObject, openCtx, closeCtx, schedulePanel } from './panels.js';
 import { render } from './views.js';
 import { pagerBegin, pagerMove, pagerEnd, pagerCancel, pagerOn } from './motion.js';
@@ -1008,7 +1008,10 @@ function onUp(e){
   if(g.mode===null && Math.abs(dx)<7){
     // a tap on a button's face fires it; anywhere else follows the type
     const o=byId(g.id);
+    // where the finger actually was, so the burst comes out of that point
+    TAPAT.x=e.clientX; TAPAT.y=e.clientY;
     if(o && has(o,'button') && g.startedOnFace) fireButton(o); else tileTap(g.id);
+    TAPAT.x=TAPAT.y=null;
   }
 }
 

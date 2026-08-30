@@ -3230,6 +3230,47 @@ const CHROME = process.env.BUREAU_CHROME;
       .every(n => names.has(n));
   });
 
+  /* --- things come out of a tile when you touch it ----------------------
+     Real physics on a canvas rather than a keyframe, so what is asserted is
+     that bits exist, that they move, and that they clear up after themselves
+     — a burst that leaves its canvas behind is a canvas over the board
+     forever. See decision 85. */
+  const theSpray = await page.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const S = BUREAU.state, out = {};
+    S.view='desk'; S.drawerId=null; S.look.locked=false; S.look.spray='sparks';
+    BUREAU.render(); await nap(150);
+    BUREAU.spray(700, 400, null);
+    out.itThrowsSomething = BUREAU.sprayCount() > 0;
+    out.onOneCanvas = document.querySelectorAll('#fx canvas.fxspray').length === 1;
+    await nap(1500);
+    out.andClearsItselfUp = BUREAU.sprayCount() === 0
+      && !document.querySelector('.fxspray');
+    // a flavour is how many, and off is off
+    S.look.spray='off'; BUREAU.spray(700,400,null);
+    out.offIsOff = BUREAU.sprayCount() === 0 && !document.querySelector('.fxspray');
+    await nap(150);
+    S.look.spray='confetti'; BUREAU.spray(700,400,null);
+    const lots = BUREAU.sprayCount();
+    await nap(1500);
+    S.look.spray='sparks'; BUREAU.spray(700,400,null);
+    out.aFlavourIsHowMany = lots > BUREAU.sprayCount();
+    await nap(1500);
+    /* Tapping a tile throws from the tile. Ticking one goes through pop() as
+       well, and the two must not double up — spray() drops a second call in
+       the same instant. */
+    const t = BUREAU.create('task', { parent:'root', title:'Touch me' });
+    t.desk = Object.assign(BUREAU.free(4,2,'root'), {w:4,h:2});
+    BUREAU.render(); await nap(200);
+    BUREAU.sprayAt(t.id);
+    const once = BUREAU.sprayCount();
+    BUREAU.sprayAt(t.id);
+    out.oneEventIsOneBurst = BUREAU.sprayCount() === once;
+    await nap(1500);
+    BUREAU.del(t.id); S.undo=[]; S.redo=[]; BUREAU.render();
+    return out;
+  });
+
   /* --- pinned to the board rather than laid flat on it ----------------- */
   const pinboard = await page.evaluate(async () => {
     const nap = ms => new Promise(r => setTimeout(r, ms));
@@ -3295,7 +3336,7 @@ const CHROME = process.env.BUREAU_CHROME;
     paletteKeys, editorKeys, pickerLeads, rollupsEverywhere, soundAndVision, keyboardBoard,
     ranking, repeating, oneLock, scheduling, ownColour, addBox, calFaces,
     lockedBoard, freeTraits, pageWrites, tickBoxes, readerFits,
-    dropsIn, keyframesRegistered, pinboard
+    dropsIn, keyframesRegistered, theSpray, pinboard
   }, null, 2));
   await browser.close();
 })();

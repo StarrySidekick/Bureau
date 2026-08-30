@@ -1672,6 +1672,12 @@ kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--rule);border
    typing in it, if the tile has a row to spare. At one row it doesn't, and
    Return finishes there instead of moving to a field that isn't drawn. */
 .drawer.otile.editing:not(.sz-short):not(.sz-mini) .dbody{display:block}
+/* The spray's canvas: one element over the whole frame, made on the first
+   burst and taken down when the last bit dies. It sits in #fx with the rest of
+   the overlays, so render() never sees it and nothing on the board can be hit
+   through it. See decision 85. */
+.fxspray{position:absolute;left:0;top:0;pointer-events:none;z-index:40}
+
 /* ---- a new object arrives ---------------------------------------------
    It **drops onto the board** from above and settles, rather than simply being
    there on the next frame. A thing that appears has to be found; a thing that

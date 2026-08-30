@@ -2806,3 +2806,42 @@ on `#frame`, not inside the stage, because it has to work before the stage is
 drawn. Hoisting the geometry without taking the ruler along left it with no
 `--pageh`, so nothing ever overflowed it and a whole book measured as a single
 page. It carries the same numbers, and must.
+
+---
+
+### 85. Things come out of a tile when you touch it
+
+Stars, rings, spirals and little bars of confetti, thrown out of whatever you
+tapped and then pulled down by gravity. Again when a new object lands on the
+board, so the drop (decision 81) ends in something rather than just stopping.
+
+**It is physics, not a keyframe**, and it has to be. Every other movement in
+the app is a CSS animation, which is a path decided in advance — the whole
+point here is that each bit has its own velocity, its own spin and its own arc,
+so twenty of them never repeat. So it is real integration: a force, a step, a
+draw, each frame, until the last one dies.
+
+**One canvas, not thirty elements.** This is the first canvas in Bureau and it
+earns its place twice over. A spiral has no CSS to draw it, and thirty nodes
+entering and leaving the DOM twice a second is thirty style recalculations
+against a board that may hold three thousand tiles. The canvas is made on the
+first burst, lives in `#fx` with every other overlay — so `render()` never sees
+it — and takes itself down when the last bit dies. A desk nobody is touching
+has no canvas on it and no frame loop running.
+
+**The colours are the object's and the style's**, never a palette of its own.
+A burst off a claret drawer is claret and leaf on Victorian, and pine and green
+shimmer on Starry: `objColour()` for the thing you touched, `--glow` and
+`--brass` read off the root. Same rule as everything else that draws — see
+decision 33. This is what keeps it furniture rather than a party trick stuck on
+top of furniture.
+
+It is a flavour rather than a switch, in Settings beside the tick boxes:
+**Nothing**, **A few**, **Confetti**, **Stars**. Each names how many, how big
+and which shapes, because those three always move together and three sliders
+would be three ways to make it look wrong.
+
+Two things it is careful about. It respects reduced motion like everything else
+in `motion.js`. And **one event is one burst**: a tap that ticks a box arrives
+at both `tileTap()` and `pop()`, so a second call within 120ms is dropped
+rather than doubling the handful — which also protects any caller added later.

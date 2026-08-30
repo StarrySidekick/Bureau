@@ -10,7 +10,7 @@ import { applyLook } from './look.js';
 import { render, sizeGrid, viewHTML, settingsPanel, pageAt, pageCount, goPage } from './views.js';
 import { overlayHTML, objectPanel, modalNewObject, schedulePanel } from './panels.js';
 import { wire } from './wire.js';
-import { openingFor, stepDrawer } from './motion.js';
+import { openingFor, stepDrawer, spray, sprayAt, sprayCount } from './motion.js';
 import { load, writeNow, save, saveIfDirty, hydrateAssets, pasteObjects } from './persist.js';
 import { renderSheet, openWriter, openRead, openViewer, closeSheet, asMarkdown } from './sheet.js';
 
@@ -96,6 +96,8 @@ window.BUREAU = {
      after layout — the three seams a performance pass needs to time separately,
      because "the swipe feels slow" is three different costs in a trench coat. */
   step: stepDrawer, viewHTML, sizeGrid,
+  // the spray, so a test can watch the physics rather than the class
+  spray, sprayAt, sprayCount,
   kids: id => childrenOf(container(id)).map(o=>o.id),
   // which desk something is on — the dots by the title answer with it
   deskOf,

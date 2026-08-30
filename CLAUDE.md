@@ -179,6 +179,17 @@ paper blank — the clamp was doing a job the box already does. `BODY_ON_FACE` i
 show. Cut the text *then* escape it: slicing the escaped string cuts through an
 `&amp;` and prints the entity.
 
+**Things come out of a tile when you touch it, and that one is physics.**
+`spray(x, y, id)` / `sprayAt(id)` in motion.js: stars, rings, spirals and bars
+thrown outward and pulled down, on **one canvas** in `#fx` that is made on the
+first burst and removed when the last bit dies. The only canvas in the app, and
+the only movement that isn't a keyframe — a keyframe is a path decided in
+advance and every bit here needs its own arc. Colours come from `objColour()`
+and the root's `--glow`/`--brass`, never a palette of its own. `S.look.spray`
+is the flavour (off | sparks | confetti | stars). One event is one burst: a
+second call within 120ms is dropped, because a tap that ticks a box reaches
+both `tileTap()` and `pop()`. See decision 85.
+
 **An animation never holds anything up.** This is the one rule in `motion.js`
 and it is easy to break by accident. A tap files, ticks or navigates the
 *instant* it lands, `render()` runs, and the movement is drawn over the result

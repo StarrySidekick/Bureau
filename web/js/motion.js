@@ -160,7 +160,173 @@ function pop(id, was){
     `width:${s}px;height:${s}px;--k:${o?objColour(o):'var(--brass)'}`;
   fx().appendChild(ring);
   setTimeout(()=>ring.remove(), 560);
+  // …and a handful of things go out with it. Finishing something is the tap
+  // most worth marking, and the ring alone was a quiet way to say so.
+  spray(r.left+r.width/2, r.top+r.height/2, id);
 }
+
+/* ============================================================
+   20a · the spray — physics, not a keyframe
+   ============================================================
+   Things shoot out of a tile when you touch it: stars, rings, spirals, little
+   bars of confetti, thrown outward and then pulled down. Every other movement
+   in this file is a CSS keyframe, and this one cannot be — a keyframe is a
+   path decided in advance, and the whole point here is that each bit has its
+   own velocity, its own spin and its own arc, so twenty of them never repeat.
+   So it is real integration: a force, a step, a draw.
+
+   **One canvas, not thirty elements.** A spiral has no CSS, and thirty nodes
+   entering and leaving the DOM twice a second is thirty style recalculations
+   against a board that may hold three thousand tiles. The canvas is made on
+   the first burst, lives in #fx like every other overlay, and takes itself
+   down when the last bit dies — so a desk nobody is touching is a desk with
+   no canvas on it and no frame loop running.
+
+   The colours are the **object's own** and the style's, never a palette of
+   its own: a burst off a claret drawer is claret and leaf on Victorian, and
+   pine and green shimmer on Starry. Same rule as everything else that draws
+   — go through objColour(), and read the chrome from the root. See
+   decision 85. */
+const SPRAY = { el:null, ctx:null, bits:[], raf:0, t:0, at:0 };
+
+/* Off, or a flavour: how many, how big, and which shapes. A named preset
+   rather than a pile of sliders — the same shape as the tick boxes. */
+const SPRAYS = {
+  off:      ['Nothing',   0,  0,   []],
+  sparks:   ['A few',     9,  .8,  ['star','circle','ring','bar']],
+  confetti: ['Confetti',  24, 1,   ['bar','bar','circle','triangle','star','ring']],
+  stars:    ['Stars',     15, 1.1, ['star','star','spiral','ring']]
+};
+const sprayNow = ()=> SPRAYS[S.look.spray] ? S.look.spray : 'sparks';
+
+const GRAVITY = 1500;      // px/s² — heavy enough to arc inside half a second
+const DRAG    = 2.1;       // air, per second: the sideways throw dies first
+const LIFE    = [.55,.95]; // seconds
+
+/* ---- the shapes, each drawn at the origin so the caller owns the maths --- */
+function bitPath(ctx, kind, r){
+  ctx.beginPath();
+  if(kind==='circle'){ ctx.arc(0,0,r,0,6.284); ctx.fill(); return; }
+  if(kind==='ring'){ ctx.lineWidth=Math.max(1,r*.34); ctx.arc(0,0,r*.8,0,6.284); ctx.stroke(); return; }
+  if(kind==='bar'){ ctx.fillRect(-r,-r*.42,r*2,r*.84); return; }
+  if(kind==='triangle'){
+    ctx.moveTo(0,-r); ctx.lineTo(r*.9,r*.7); ctx.lineTo(-r*.9,r*.7);
+    ctx.closePath(); ctx.fill(); return;
+  }
+  if(kind==='spiral'){
+    // an archimedean curl, a turn and a half — the one shape CSS cannot draw
+    ctx.lineWidth=Math.max(1,r*.28); ctx.lineCap='round';
+    for(let a=0;a<9.4;a+=.3){ const rr=r*(a/9.4);
+      const x=Math.cos(a)*rr, y=Math.sin(a)*rr;
+      a ? ctx.lineTo(x,y) : ctx.moveTo(x,y); }
+    ctx.stroke(); return;
+  }
+  // a five-pointed star, the default
+  for(let i=0;i<10;i++){
+    const a=(i*Math.PI)/5 - Math.PI/2, rr=i%2 ? r*.45 : r;
+    const x=Math.cos(a)*rr, y=Math.sin(a)*rr;
+    i ? ctx.lineTo(x,y) : ctx.moveTo(x,y);
+  }
+  ctx.closePath(); ctx.fill();
+}
+
+function sprayCanvas(){
+  if(SPRAY.el && SPRAY.el.isConnected) return SPRAY.el;
+  const host=fx(); if(!host) return null;
+  const c=document.createElement('canvas');
+  c.className='fxspray';
+  host.appendChild(c);
+  SPRAY.el=c; SPRAY.ctx=c.getContext('2d');
+  return c;
+}
+function endSpray(){
+  cancelAnimationFrame(SPRAY.raf); SPRAY.raf=0; SPRAY.bits.length=0;
+  if(SPRAY.el){ SPRAY.el.remove(); SPRAY.el=null; SPRAY.ctx=null; }
+}
+function sprayFrame(now){
+  const dt=Math.min(.05, (now - SPRAY.t)/1000 || .016);
+  SPRAY.t=now;
+  const c=SPRAY.el, ctx=SPRAY.ctx;
+  if(!c || !ctx) return endSpray();
+  ctx.clearRect(0,0,c.width,c.height);
+  const dpr=c.__dpr||1;
+  for(let i=SPRAY.bits.length-1;i>=0;i--){
+    const b=SPRAY.bits[i];
+    b.age+=dt;
+    if(b.age>=b.life){ SPRAY.bits.splice(i,1); continue; }
+    const d=Math.exp(-DRAG*dt);
+    b.vx*=d; b.vy=(b.vy*d)+GRAVITY*dt;
+    b.x+=b.vx*dt; b.y+=b.vy*dt; b.rot+=b.vr*dt;
+    // it thins out at the end rather than blinking off
+    const k=b.age/b.life, fade=k<.7 ? 1 : 1-(k-.7)/.3;
+    ctx.save();
+    ctx.globalAlpha=fade;
+    ctx.translate(b.x*dpr, b.y*dpr);
+    ctx.rotate(b.rot);
+    ctx.fillStyle=b.c; ctx.strokeStyle=b.c;
+    bitPath(ctx, b.kind, b.r*dpr);
+    ctx.restore();
+  }
+  if(SPRAY.bits.length) SPRAY.raf=requestAnimationFrame(sprayFrame);
+  else endSpray();
+}
+
+/* Throw a handful of things out of a point. `id` is only for the colour — the
+   burst belongs to wherever it was aimed, not to a tile it has to keep up
+   with, so nothing here holds a reference to an element that render() is
+   about to replace. */
+function spray(x, y, id, force){
+  if(still()) return;
+  const flavour=sprayNow();
+  const [,n,scale,kinds]=SPRAYS[flavour];
+  if(!n) return;
+  /* Two calls in the same instant are one event wearing two hats — a tap that
+     ticks a box goes through both tileTap() and pop(). The second is dropped
+     rather than doubling the burst. */
+  const now=performance.now();
+  if(now - SPRAY.at < 120) return;
+  SPRAY.at=now;
+  const c=sprayCanvas(); if(!c) return;
+  const f=frameRect(), dpr=Math.min(2, window.devicePixelRatio||1);
+  if(c.width!==Math.round(f.width*dpr) || c.height!==Math.round(f.height*dpr)){
+    c.width=Math.round(f.width*dpr); c.height=Math.round(f.height*dpr);
+    c.style.width=f.width+'px'; c.style.height=f.height+'px';
+  }
+  c.__dpr=dpr;
+  const o=id && byId(id);
+  const root=getComputedStyle(document.documentElement);
+  const pick=[ o ? objColour(o) : root.getPropertyValue('--brass'),
+               root.getPropertyValue('--glow'),
+               root.getPropertyValue('--brass') ].map(s=>String(s).trim()).filter(Boolean);
+  const px=x-f.left, py=y-f.top;
+  const count=Math.round(n*(force||1));
+  for(let i=0;i<count;i++){
+    /* Outward, and biased upward: things thrown off a desk go up before they
+       come down, and a burst that is even in every direction reads as an
+       explosion rather than a handful of something. */
+    const a=Math.random()*6.284;
+    const speed=140+Math.random()*260;
+    SPRAY.bits.push({
+      x:px, y:py,
+      vx:Math.cos(a)*speed,
+      vy:Math.sin(a)*speed - (120+Math.random()*180),
+      rot:Math.random()*6.284, vr:(Math.random()-.5)*14,
+      r:(3+Math.random()*4.5)*scale,
+      kind:kinds[(Math.random()*kinds.length)|0],
+      c:pick[(Math.random()*pick.length)|0],
+      age:0, life:LIFE[0]+Math.random()*(LIFE[1]-LIFE[0])
+    });
+  }
+  if(!SPRAY.raf){ SPRAY.t=performance.now(); SPRAY.raf=requestAnimationFrame(sprayFrame); }
+}
+/* The middle of whatever is standing for an object, for a caller that has an
+   id and no pointer — the keyboard, or a tile that has just landed. */
+function sprayAt(id, force){
+  const el=tileOf(id); if(!el) return;
+  const r=el.getBoundingClientRect();
+  spray(r.left+r.width/2, r.top+r.height/2, id, force);
+}
+const sprayCount = ()=> SPRAY.bits.length;
 
 /* ---- a checklist face refilling itself --------------------------------
    Ticking a line takes it off the front — the render this runs after already
@@ -466,4 +632,5 @@ function pagerCancel(){
 }
 
 export { still, tileOf, tileRect, openingFor, openTile, enter, pop, clRefill,
+  spray, sprayAt, sprayCount, SPRAYS,
   pagerBegin, pagerMove, pagerEnd, pagerCancel, pagerOn, stepDrawer };
