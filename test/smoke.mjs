@@ -3281,6 +3281,34 @@ const CHROME = process.env.BUREAU_CHROME;
     return out;
   });
 
+  /* --- the Look section shows the thing it is about — decision 97 ------- */
+  const lookStage = await page.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const out = {};
+    const d = BUREAU.create('drawer', { parent:'root', title:'Look at me',
+      c:9, knob:'round', panel:'plain' });
+    BUREAU.render(); await nap(200);
+    const stage = () => document.querySelector('#panel .objstage .stagetile .drawer');
+    BUREAU.panel(d.id); await nap(220);
+    out.theTopLevelHasIt = !!stage();
+    BUREAU.panel(d.id, 'look'); await nap(220);
+    out.andSoDoesLook = !!stage();
+    /* …and it is live. Every row in that section changes how the object looks,
+       so a preview that does not follow them is a picture rather than a stage. */
+    const was = document.querySelector('#panel .objstage .pull').className;
+    const sel = document.querySelector(`#panel select[data-oset="${d.id}:knob"]`);
+    if (sel) { sel.value = 'bar'; sel.dispatchEvent(new Event('change', {bubbles:true})); }
+    await nap(250);
+    const now = document.querySelector('#panel .objstage .pull').className;
+    out.andItFollowsTheRows = was !== now && /kn-bar/.test(now);
+    // the desk is a container without a tile, so it still gets no stage
+    BUREAU.panel('root', 'look'); await nap(220);
+    out.butTheDeskHasNoTile = !document.querySelector('#panel .objstage');
+    BUREAU.delDrawer(d.id);
+    BUREAU.state.undo=[]; BUREAU.state.redo=[]; BUREAU.render();
+    return out;
+  });
+
   /* --- an aesthetic reaches further in — decision 92 --------------------- */
   const deeper = await page.evaluate(async () => {
     const nap = n => new Promise(r => setTimeout(r, n));
@@ -3778,7 +3806,7 @@ const CHROME = process.env.BUREAU_CHROME;
     paletteKeys, editorKeys, pickerLeads, rollupsEverywhere, soundAndVision, keyboardBoard,
     ranking, repeating, oneLock, scheduling, ownColour, addBox, calFaces,
     lockedBoard, freeTraits, pageWrites, tickBoxes, readerFits,
-    dropsIn, keyframesRegistered, aesthetics, deeper, statusBar, bindings, panelling, theSpray, tappingIsQuiet, decorations, pinboard
+    dropsIn, keyframesRegistered, aesthetics, deeper, lookStage, statusBar, bindings, panelling, theSpray, tappingIsQuiet, decorations, pinboard
   }, null, 2));
   await browser.close();
 })();

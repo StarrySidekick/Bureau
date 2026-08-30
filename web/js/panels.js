@@ -447,6 +447,12 @@ function objectPanelBody(id, sec){
 
   if(at('look')) {
   /* ---- how it looks ---- */
+  /* The thing itself, again. Every row in this section changes how the object
+     looks, and the panel is covering the object — on a phone it covers the
+     whole board — so a section about appearance with nothing to look at is the
+     one place the stage is least optional. It was only on the top level, which
+     is where you go to rename something. See decisions 51 and 97. */
+  if(!isRoot) out.push(objectStage(id));
   /* A face is how a container draws itself on its parent's board, and the desk
      has no parent and no tile — asking it which front to wear is asking about
      a thing that does not exist. Everything below this line does apply to it:

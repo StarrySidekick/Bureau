@@ -3475,3 +3475,29 @@ turned the whole thing into a *dashed* stroke rather than a chipped one. A chip
 is by definition smaller than the thing it is taken out of, so the noise is
 short and the drops are few — one band in fourteen — and what comes out is a
 line that nibbles at its own edges instead of breaking.
+
+---
+
+## 97. The Look section shows the thing it is about
+
+*2026-08-30*
+
+`objectStage()` — the object drawn through the same `gridTile()` the board
+uses, on a checkerboard, at the top of its editor (decision 51) — was rendered
+only on the panel's **top level**. That is the section you go to in order to
+rename something.
+
+The section where it actually earns its keep is **Look**, which is nothing but
+rows that change how the object looks — face, panelling, colour, mark, edge,
+knob, texture, board — and which is drawn *over* the object it is about. On a
+phone the panel covers the whole board, so the Look section was asking you to
+pick a panelling and a knob for something you could not see.
+
+So the stage renders there too. Everything that made it work on the top level
+already holds: `spec.body` is a function, so `refreshPanel()` redraws it from
+state and the preview follows every row as you change it; and it is still a
+**clone** with id `__stage` at `{x:1,y:1}`, so nothing in the drag, `anchorEl()`
+or `tileOf()` can pick it up instead of the real tile.
+
+The desk still gets none, and that is correct rather than an omission: a desk
+is a container *without* a tile, so there is nothing to draw.

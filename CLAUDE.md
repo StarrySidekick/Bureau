@@ -950,10 +950,12 @@ full screen, or a double tap on the tile for a name and a line. Don't
 reintroduce a form that is both. See decision 36.
 
 Its button is a **paintbrush** (`ic('brush')`); the gear is the *app's* settings
-and belongs to the desk alone. At the top of the body is `objectStage(id)` — the
-object drawn through the same `gridTile()` the board uses, on a checkerboard
-scrolling diagonally, because a panel covers the tile it is asking about and on
-a phone it covers the board. It draws a **clone**: id `__stage`, box moved to
+and belongs to the desk alone. At the top of the body — and **again at the
+top of Look**, which is nothing but rows that change how a thing looks — is
+`objectStage(id)`: the object drawn through the same `gridTile()` the board
+uses, on a checkerboard scrolling diagonally, because a panel covers the tile it
+is asking about and on a phone it covers the board. The desk gets none, because
+a desk is a container without a tile. See decisions 51 and 97. It draws a **clone**: id `__stage`, box moved to
 `{x:1,y:1}`. A second element carrying the real id is one the drag, `anchorEl()`
 and `tileOf()` could all pick up instead of the tile, and a box at the object's
 real `x` lands in a column the preview grid hasn't got — which draws an empty
