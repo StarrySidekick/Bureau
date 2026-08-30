@@ -8,7 +8,7 @@ import { GRID, PHONE_GRIDS, CELL, COLW, MEASURE, colsOf, gridKeyOf,
   pageRows, pageOfBox, lastPage,
   lay, gridOf, cellW, ensureBox, PLACED } from './grid.js';
 import { themeNow, applyLook, lookVal, STYLES, BACKDROPS, DARKMODES, darkMode, hasDark,
-  palNow, setSlot, styleNow, hexOf, objColour, slotName, OBJ0, CHECKS } from './look.js';
+  palNow, setSlot, styleNow, hexOf, objColour, slotName, OBJ0, CHECKS, dressAs } from './look.js';
 import { gridOfContainer, gridTile, listTile, scrollEntry, bookView, calSpan } from './tiles.js';
 import { openPanel, closePanel, panelKey, repositionPanel } from './panels.js';
 /* Cyclic at *function* level only — motion.js imports render() from here and
@@ -775,8 +775,8 @@ function railCfg(){
 }
 function deskRail(){
   const r=railCfg();
-  return `<nav class="deskrail tx-${r.tex} ks-${r.size}" data-rail style="height:${REVEAL.rail}px">
-    <i class="pull railknob kn-${r.knob}" data-act="railout"
+  return `<nav class="deskrail ${dressAs('tx',r.tex)} ks-${r.size}" data-rail style="height:${REVEAL.rail}px">
+    <i class="pull railknob ${dressAs('kn',r.knob)}" data-act="railout"
       ${r.knobc?`style="--knob:${esc(r.knobc)}"`:''}
       title="Back — and pull up to make something"></i>
   </nav>`;

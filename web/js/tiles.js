@@ -3,12 +3,12 @@ import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, chi
   rollup, streak, goalPct, projectStat, tlSpan, dev, spawnByOf, genKindOf, takesTyping, showsAddBox,
   knobSizeOf, answered, sortOf, spanOf, coversDay, lateOn, isLate, iconOf, textSizeOf,
   isPicture, isMedia, isPlayable, isDecor, mediaTypeOf, boardLocked, prioOf, repeatSaid,
-  calViewOf, weekStartOf, calCols, bindingOf, panelOf, knobOf } from './model.js';
+  calViewOf, weekStartOf, calCols, bindingOf, panelOf, knobOf, borderOf, textureOf } from './model.js';
 import { CELL, COLW, gridOf, lay, overlaps, boxOk, freeSpot, gridRows, sizeOfKind, ensureBox,
   pageRows } from './grid.js';
 import { create, toast, toggleDone } from './mutations.js';
 import { DECOR, DECOR_KEYS, decorOf, decorSVG } from './decor.js';
-import { hexOf, objColour } from './look.js';
+import { hexOf, objColour, dress, dressAs } from './look.js';
 import { render, pageAt } from './views.js';
 import { openObj, openWriter, openRead, openViewer, renderSheet } from './sheet.js';
 import { objectPanel } from './panels.js';
@@ -236,7 +236,7 @@ function calSoon(o, n){
    both once it is bigger than three cells a side, where there is room for
    them. See decisions 79 and 80. */
 const calBorder = (o, snug) => `${snug?' calsnug':''}${
-  snug && has(o,'magic') ? '' : ` bd-${o.border||'panel'}`}`;
+  snug && has(o,'magic') ? '' : ` ${dress(o,'bd')}`}`;
 
 /* An agenda row: when first, then what — a calendar's own order of asking. */
 const calRow = x => `<span class="calrow${isLate(x)&&!coversDay(x,T)?' late':''}" data-row="${x.id}"
@@ -416,7 +416,7 @@ function drawTile(o, arr, box){
       </button>`;
     }
     const mark = cont && has(o,'magic') ? 'sparkle' : iconOf(o);
-    return `<button class="drawer ${cont?`dtile bd-${o.border||'panel'}`:'otile'} minitile${sel}${
+    return `<button class="drawer ${cont?`dtile ${dress(o,'bd')}`:'otile'} minitile${sel}${
         ''}"
       ${cont?`data-drawer="${o.id}"`:`data-row="${o.id}"`} title="${esc(o.title||'Untitled')}"
       style="--c:${colour};${place}">
@@ -452,8 +452,8 @@ function drawTile(o, arr, box){
        what every binding has to work with: a head band, the title, and a tail
        band; a binding that doesn't want a band hides it rather than the tile
        rendering something different. See decision 87. */
-    return `<button class="drawer dtile spinetile bn-${bindingOf(o)} bd-${
-        (o.border==='gilt')?'gilt':'none'}${sel}" data-drawer="${o.id}"
+    return `<button class="drawer dtile spinetile ${dress(o,'bn')} ${
+        borderOf(o)==='gilt' ? dress(o,'bd') : 'bd-none'}${sel}" data-drawer="${o.id}"
       style="--c:${colour};${place}">
       <span class="spinetop"></span>
       <span class="spinetitle"><b>${esc(o.title||'Untitled')}</b></span>
@@ -499,14 +499,14 @@ function drawTile(o, arr, box){
     /* With nothing to show the front is a label again: a stack of zero lines
        is an anonymous coloured square — and so is the picker's sample. */
     if(!shown.length && !adds){
-      return `<button class="drawer dtile cltile clidle bd-gilt${sel}" data-drawer="${o.id}"
+      return `<button class="drawer dtile cltile clidle bd-gilt ${dressAs('bd','gilt')}${sel}" data-drawer="${o.id}"
           style="--c:${colour};${place}">
         <div class="dtop">${nameField(o)}</div>
         <div class="dbody"><span class="clempty">${items.length?'All done':'Nothing yet — open it to add'}</span></div>
         ${handles}
       </button>`;
     }
-    return `<${adds?'div':'button'} class="drawer dtile cltile bd-gilt${sel}" data-drawer="${o.id}"
+    return `<${adds?'div':'button'} class="drawer dtile cltile bd-gilt ${dressAs('bd','gilt')}${sel}" data-drawer="${o.id}"
         ${adds?'role="button" tabindex="0"':''} title="${esc(o.title||'Untitled')}"
         style="--c:${colour};--clrows:${rows};${place}">
       ${/* The **box** ticks it and the **words** change it. Tapping anywhere on
@@ -538,7 +538,7 @@ function drawTile(o, arr, box){
   if(cont && faceOf(o)==='project'){
     const st=projectStat(o);
     const late = st.pct<100 && isLate(o);
-    return `<${takesTyping(o)?'div':'button'} class="drawer dtile projtile bd-${o.border||'panel'}${sel}"
+    return `<${takesTyping(o)?'div':'button'} class="drawer dtile projtile ${dress(o,'bd')}${sel}"
         data-drawer="${o.id}" ${takesTyping(o)?'role="button" tabindex="0"':''}
         style="--c:${colour};--pct:${st.pct}%;${place}">
       ${st.cover?`<span class="projcover" style="background-image:url('${esc(st.cover)}')"></span>`:''}
@@ -567,7 +567,7 @@ function drawTile(o, arr, box){
 
   /* A trip is a ticket: a stub torn off down the right, and where to. */
   if(cont && shapeOf(o)==='ticket'){
-    return `<button class="drawer dtile triptile bd-${o.border||'panel'}${sel}" data-drawer="${o.id}" style="--c:${colour};${place}">
+    return `<button class="drawer dtile triptile ${dress(o,'bd')}${sel}" data-drawer="${o.id}" style="--c:${colour};${place}">
       <div class="tkmain">
         <span class="tklabel">${o.due?esc(dateSaid(o)):'Some day'}${rollTag(o)}</span>
         <span class="dname">${esc(o.title||'Untitled')}</span>
@@ -592,7 +592,7 @@ function drawTile(o, arr, box){
     const runOf = x => { const sp=spanOf(x);
       return sp ? Math.max(1, pc(sp.to)-pc(sp.from)) : 0; };
     const nowPc = (T>=sp.min && T<=sp.max) ? pc(T) : null;
-    return `<button class="drawer dtile tltile bd-${o.border||'panel'}${sel}" data-drawer="${o.id}"
+    return `<button class="drawer dtile tltile ${dress(o,'bd')}${sel}" data-drawer="${o.id}"
       data-tlspan="${o.id}:${sp.min}:${sp.max}" style="--c:${colour};${place}">
       <div class="dtop"><span class="dname">${esc(o.title||'Untitled')}</span>
         ${rollTag(o)}
@@ -613,7 +613,7 @@ function drawTile(o, arr, box){
   /* A moodboard shows its pictures on the front, tiled. */
   if(cont && faceOf(o)==='moodboard'){
     const pics=childrenOf(o).filter(x=>x.media&&x.media.src).slice(0,12);
-    return `<button class="drawer dtile mbtile bd-${o.border||'panel'}${sel}" data-drawer="${o.id}" style="--c:${colour};${place}">
+    return `<button class="drawer dtile mbtile ${dress(o,'bd')}${sel}" data-drawer="${o.id}" style="--c:${colour};${place}">
       <div class="mbwall">${pics.map(x=>`<i style="background-image:url('${esc(x.media.src)}')"></i>`).join('')
         || '<span class="clempty">Open it and add pictures</span>'}</div>
       <span class="mbname">${esc(o.title||'Untitled')}${rollTag(o)}</span>
@@ -684,7 +684,6 @@ function drawTile(o, arr, box){
      side. The mark is rendered always and revealed by the size classes, so
      nothing here has to know which threshold it crossed. */
   if(cont){
-    const bd=o.border||'panel', kn=knobOf(o), tx=o.texture||'none';
     const doors = openingFor(o, box)==='cabinet';
     /* A knob is turned out of the same wood as the front, so unless it has been
        told otherwise it *is* the front's colour — what makes it a knob is the
@@ -695,8 +694,14 @@ function drawTile(o, arr, box){
       : o.knobtone==='dark' ? `color-mix(in srgb, ${colour} 78%, #000)`
       : o.knobtone==='light' ? `color-mix(in srgb, ${colour} 74%, #fff)`
       : colour;
-    return `<button class="drawer dtile bd-${bd} tx-${tx} ks-${knobSizeOf(o)} knb-${o.knobpos||'centre'}${
-        doors?' cabinet':''} pn-${panelOf(o)}${sel}" data-drawer="${o.id}"
+    /* Four slot families on one tile, each stamped with its position *and* the
+       aesthetic that dresses it — a bare value names the desk's, a pinned one
+       names the aesthetic it was borrowed from. The stylesheet keys on those
+       scope classes rather than on `html[data-style]`, which is what lets a
+       Victorian front wear a 1997 group box. See decision 98. */
+    return `<button class="drawer dtile ${dress(o,'bd')} ${dress(o,'tx')} ks-${
+        knobSizeOf(o)} knb-${o.knobpos||'centre'}${
+        doors?' cabinet':''} ${dress(o,'pn')}${sel}" data-drawer="${o.id}"
       style="--c:${colour};--knob:${knob};${place}">
       ${chips}
       ${/* The wood the front is cut from. Both pseudo-elements are spoken for
@@ -713,8 +718,8 @@ function drawTile(o, arr, box){
       <div class="dtop">${nameField(o)}
         ${has(o,'magic')?`<span class="magicmark" title="Collects by rule">${ic('sparkle',11)}</span>`:''}
         ${rollup(o)?`<span class="rollup">${esc(rollup(o))}</span>`:''}</div>
-      <div class="dfoot${doors?' doors':''}"><span class="pull kn-${kn}"></span>${
-        doors?`<span class="pull kn-${kn}"></span>`:''}</div>
+      <div class="dfoot${doors?' doors':''}"><span class="pull ${dress(o,'kn')}"></span>${
+        doors?`<span class="pull ${dress(o,'kn')}"></span>`:''}</div>
       ${handles}
     </button>`;
   }
@@ -1027,7 +1032,7 @@ function listTile(o){
       ${o.due?`<span class="mchip">${esc(dateSaid(o))}</span>`:''}
       ${deadSaid(o)?`<span class="mchip deadchip${isLate(o)?' late':''}">${esc(deadSaid(o))}</span>`:''}
       ${cont&&rollup(o)?`<span class="mchip">${esc(rollup(o))}</span>`:''}
-      ${cont?`<span class="pull kn-${knobOf(o)}"${o.knobc?` style="--knob:${esc(o.knobc)}"`:''}></span>`:''}
+      ${cont?`<span class="pull ${dress(o,'kn')}"${o.knobc?` style="--knob:${esc(o.knobc)}"`:''}></span>`:''}
     </div>
   </${raw?'div':'button'}>`;
 }

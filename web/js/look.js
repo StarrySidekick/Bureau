@@ -1,4 +1,6 @@
-import { S, K, defaultLook, PANELS, PANEL_SLOTS, KNOBS, KNOB_SLOTS } from './model.js';
+import { S, K, defaultLook, PANELS, PANEL_SLOTS, KNOBS, KNOB_SLOTS,
+  BINDINGS, BINDING_SLOTS, BORDER_SLOTS, TEXTURE_SLOTS,
+  slotKey, slotSrc, borderOf, textureOf, panelOf, knobOf, bindingOf } from './model.js';
 import { save } from './persist.js';
 import { render } from './views.js';
 
@@ -164,20 +166,21 @@ function randomFront(){
 
    `none` is not in any bag: it is a deliberate "take the edge off this one"
    and not a thing to be handed at random. See decision 92. */
-const KNOB_SHAPES = ['round','diamond','bar','ring','square'];
-const EDGE_SHAPES = ['panel','heavy','bar','gloss','plain'];
-const GRAINS = ['none','dots','grid','weave','weave2','speckle','rule','check'];
-const PANEL_SHAPES = ['plain','cockbead','fielded','reeded','ogee'];
 const pickOf = a => a[Math.floor(Math.random()*a.length)];
-/* Three of the aesthetic's own to one of anything else, per property. */
-const leaning = (mine, all) => pickOf([mine, mine, mine, ...all]);
+/* Three of the aesthetic's own to one of anything else, per property. The bag
+   is the *family's* positions, read off the one table, so a family that gains
+   a position is offered it here without being told. `none` is dropped from
+   every bag: it is a deliberate "take the edge off this one" and not a thing
+   to be handed out at random. */
+const bagOf = fam => FAMS[fam].slots.filter(k=>k!=='none');
+const leaning = (mine, fam) => pickOf([mine, mine, mine, ...bagOf(fam)]);
 function randomLook(){
   const sd = styleDefaults();
   return {
-    knob:     leaning(sd.knob     || 'round',    KNOB_SHAPES),
-    border:   leaning(sd.border   || 'panel',    EDGE_SHAPES),
-    texture:  leaning(sd.texture  || 'none',     GRAINS),
-    panel:    leaning(sd.panel    || 'cockbead', PANEL_SHAPES),
+    knob:     leaning(sd.knob     || 'round',    'kn'),
+    border:   leaning(sd.border   || 'panel',    'bd'),
+    texture:  leaning(sd.texture  || 'none',     'tx'),
+    panel:    leaning(sd.panel    || 'cockbead', 'pn'),
     // a knob turned out of the front's own wood is the default and stays the
     // commonest; lighter and darker are the occasional piece
     knobtone: pickOf([sd.knobtone, sd.knobtone, sd.knobtone, null, 'light', 'dark'])
@@ -222,29 +225,94 @@ function randomBoard(){
 // short, because they are labels under a 60px swatch; what each one does is
 // the sentence above them in Settings and the comment above chromeTokens()
 const ROLES = ['Page','Text','Lines','Accent','Glow'];
-/* An edge is a slot as much as a colour is. Six positions, the same in every
-   aesthetic, and each says what its own are made of — a bevelled Victoria
-   moulding and an Aeros glass rim are both slot 1. The
-   class stays `bd-panel` and so on, because a slot's *name* is per style but
-   its position has to be stable for a stored value to survive a swap. */
-/* Seven positions. `gilt` was for a long time not a slot at all: it was the
-   ruled leaf frame a *magic* drawer wore automatically, which made the one
-   ornament in the app that nobody could choose and nobody could decline. It is
-   an edge like the others now — pick it on anything, take it off a magic
-   drawer. See decision 94. `plain` and `none` stay last, because they mean the
-   same thing in every aesthetic. */
-const BORDER_SLOTS = ['panel','heavy','bar','gloss','gilt','plain','none'];
-const borderNames = ()=> styleNow().borders || BORDER_SLOTS.map(k=>k[0].toUpperCase()+k.slice(1));
-const borderSlots = ()=> BORDER_SLOTS.map((k,i)=>[k, borderNames()[i]||k]);
-/* …and the five panellings, the same way. A front's working is a slot exactly
-   as its edge and its colour are: the object stores position 2 and gets
-   Victoria's fielded panel here, Carca's ashlar block there, and Golf 97's
-   group box in 1997 — so changing aesthetic re-dresses every front you own
-   while the choice you made about each one survives. See decision 93. */
-const panelNames = ()=> styleNow().panels || PANEL_SLOTS.map(k=>PANELS[k]);
-const panelSlots = ()=> PANEL_SLOTS.map((k,i)=>[k, panelNames()[i]||PANELS[k]]);
-const knobNames = ()=> styleNow().knobs || KNOB_SLOTS.map(k=>KNOBS[k]);
-const knobSlots = ()=> KNOB_SLOTS.map((k,i)=>[k, knobNames()[i]||KNOBS[k]]);
+/* ---- five families of slot, one table ---------------------------------
+   An edge is a slot as much as a colour is, and so are a panelling, a knob, a
+   grain and a binding. Every one works the same way: the *position* is stored
+   and stable, the aesthetic says what the position is made of, and the class
+   on the tile is the position — `bd-panel`, `pn-fielded`, `tx-weave`.
+
+   The five were three separate near-identical pairs of functions and two
+   hard-coded lists in panels.js. One table instead, because everything below
+   this line — the pickers, the pins, the scope classes — wants to do the same
+   thing to all five and had no way to say "all five".
+
+   `prop`  what the object stores it under
+   `slots` the positions, in order; the first is the fallback where it matters
+   `words` the fallback names, which are Victoria's, because Victoria was the
+           only aesthetic when most of this was written
+   `says`  the key an aesthetic names its own under
+   `read`  what the object is actually wearing, per object then per type */
+const FAMS = {
+  /* Seven edges. `gilt` was for a long time not a slot at all: it was the
+     ruled leaf frame a *magic* drawer wore automatically, which made it the
+     one ornament nobody could choose and nobody could decline. It is an edge
+     like the others now — decision 94. `plain` and `none` stay last, because
+     they mean the same thing in every aesthetic. */
+  bd: {prop:'border',  slots:BORDER_SLOTS,  says:'borders',
+       words:['Panelled','Heavy panel','Bar','Beaded','Gilt frame','Plain','None'],
+       read:borderOf},
+  /* Five workings of a front. The object stores position 2 and gets Victoria's
+     fielded panel here, Carca's ashlar block there and Golf 97's group box in
+     1997 — so a switch re-dresses every front you own while the choice you
+     made about each survives. See decision 93. */
+  pn: {prop:'panel',   slots:PANEL_SLOTS,   says:'panels',
+       words:PANEL_SLOTS.map(k=>PANELS[k]), read:panelOf},
+  kn: {prop:'knob',    slots:KNOB_SLOTS,    says:'knobs',
+       words:KNOB_SLOTS.map(k=>KNOBS[k]),   read:knobOf},
+  /* Six grains. A texture is what a *surface* is made of, and stone, glass,
+     cathedral paper and a 1997 dialog do not share one — so the eleven global
+     names became six positions each aesthetic answers for. Migration 24. */
+  tx: {prop:'texture', slots:TEXTURE_SLOTS, says:'textures',
+       words:['None','Grain','Weave','Ruled','Speckle','Damask'], read:textureOf},
+  bn: {prop:'binding', slots:BINDING_SLOTS, says:'bindings',
+       words:BINDING_SLOTS.map(k=>BINDINGS[k]), read:bindingOf}
+};
+/* What one aesthetic calls a family's positions. Falls back word by word, so
+   an aesthetic that names four of five still gets a name for the fifth. */
+function famNames(fam, styleK){
+  const f=FAMS[fam], st=(styleK && STYLES[styleK]) || styleNow();
+  const said=st[f.says]||[];
+  return f.slots.map((k,i)=> said[i] || f.words[i] || k);
+}
+/* The picker's list for a family, in whichever aesthetic — `[value, name]`. */
+const famSlots = (fam, styleK)=> FAMS[fam].slots.map((k,i)=>[k, famNames(fam,styleK)[i]]);
+const borderSlots = ()=> famSlots('bd');
+const panelSlots  = ()=> famSlots('pn');
+const knobSlots   = ()=> famSlots('kn');
+const textureSlots= ()=> famSlots('tx');
+const bindingSlots= ()=> famSlots('bn');
+
+/* ---- who dresses this slot --------------------------------------------
+   A stored value may be pinned to the aesthetic it was borrowed from
+   (`golf97/fielded`, see model.js). Everything that draws asks here rather
+   than assuming the desk's aesthetic, and writes the answer onto the element
+   as `<fam>sty-<aesthetic>` — which is why the per-aesthetic tile rules are
+   keyed on those classes and not on `html[data-style]`. Four families can
+   then be dressed by four different aesthetics on one tile, which is exactly
+   what a pin is for and what an `html[data-style]` selector cannot express.
+
+   The chrome — panels, buttons, the bar, the typeface, the wood — stays on
+   `html[data-style]`, because none of it is a slot and nothing about it can
+   be pinned. See decision 98. */
+const styleKey = ()=> STYLES[(S.look&&S.look.style)] ? S.look.style : 'victorian';
+const styleFor = pin => (pin && STYLES[pin]) ? pin : styleKey();
+// the class pair for one family on one object: `pn-fielded pnsty-carca`
+const dress = (o, fam)=>
+  `${fam}-${FAMS[fam].read(o)} ${fam}sty-${styleFor(slotSrc(o, FAMS[fam].prop))}`;
+// …and for something that is furniture rather than an object: the desk's rail
+const dressAs = (fam, key)=> `${fam}-${slotKey(key)} ${fam}sty-${styleKey()}`;
+
+/* ---- the way out of your own aesthetic --------------------------------
+   You pick a knob from the five your aesthetic has, and they re-dress when you
+   switch: that is the whole system and it is what the picker shows. But
+   sometimes you want *that* one — Golf 97's group box on a Victorian desk —
+   and there was no way to say so. So under each of these rows is a second
+   list holding every aesthetic's answers, grouped, writing a pinned value.
+
+   It is deliberately the second list and not the first: seeing thirty-five
+   knobs when you have five is the wall of chips decision 66 took out. */
+const famAll = fam => Object.keys(STYLES).filter(k=>k!==styleKey())
+  .map(k=>[STYLES[k].nm, famSlots(fam,k).map(([v,n])=>[`${k}/${v}`, n])]);
 const SLOTS = 16;
 const OBJ0 = ROLES.length;          // the first slot an object may be painted in
 const OBJN = SLOTS - OBJ0;          // eleven
@@ -260,6 +328,7 @@ const STYLES = {
     borders:['Panelled','Heavy panel','Bar','Beaded','Gilt frame','Plain','None'],
     panels:['Flat front','Cockbead','Raised panel','Reeded','Ogee panel'],
     knobs:['Round','Diamond','Bar','Ring','Square'],
+    textures:['None','Grain','Weave','Ruled','Speckle','Damask'],
     defaults:{knob:'round', border:'panel', texture:'none', knobtone:'light', panel:'cockbead'},
     cols:['#E9E1CC','#2A241C','#4A4034','#A9793F','#D9B57C',
           '#6F5137','#4A7C59','#6E7F63','#2E6B52','#4A6382','#5A7A9E',
@@ -285,7 +354,8 @@ const STYLES = {
     borders:['Ashlar','Rampart','Course','Vine','Inlay','Plain','None'],
     panels:['Dressed flat','Chamfer','Ashlar block','Fluting','Tracery'],
     knobs:['Boss','Faceted','Bar handle','Gear','Stud'],
-    defaults:{knob:'ring', border:'panel', texture:'grid', knobtone:'light', panel:'fielded'},
+    textures:['None','Ashlar','Basketweave','Coursing','Aggregate','Millefleur'],
+    defaults:{knob:'ring', border:'panel', texture:'ruled', knobtone:'light', panel:'fielded'},
     cols:['#E8E4D6','#22303F','#7E8B96','#A87A3C','#D4B872',
           '#77808A','#2E5B84','#5D82AE','#5E8B4C','#3C6B49','#7A6E9E',
           '#A8555C','#A6803C','#9A6440','#4E8478','#8C8574'],
@@ -305,7 +375,8 @@ const STYLES = {
     borders:['Filigree','Astral rule','Horizon','Facet','Sigil frame','Plain','None'],
     panels:['Unworked','Crystal rim','Floating slab','Ribbing','Astral inlay'],
     knobs:['Orb','Shard','Bar','Halo','Crystal'],
-    defaults:{knob:'round', border:'panel', texture:'starry', knobtone:'light', panel:'ogee'},
+    textures:['None','Stardust','Nebula','Ley lines','Crystal dust','Constellation'],
+    defaults:{knob:'round', border:'panel', texture:'speckle', knobtone:'light', panel:'ogee'},
     cols:['#120E20','#EDE7FA','#6E5F96','#9A6BD8','#E3C98A',
           '#4C3A78','#6E4C9E','#2E2A55','#3A5A9E','#2F6E86','#3E8AA0',
           '#9A3F86','#9E4A3A','#8A6D2E','#3F7A5E','#5A5470'],
@@ -325,6 +396,7 @@ const STYLES = {
     borders:['Volute','Cartouche','Cornice','Vine','Gilt cartouche','Plain','None'],
     panels:['Uncarved','Bead','Cartouche','Rustication','Volute panel'],
     knobs:['Volute','Lozenge','Bar','Ring','Block'],
+    textures:['None','Tufa','Cane','Rustication','Volcanic','Majolica'],
     defaults:{knob:'round', border:'panel', texture:'speckle', knobtone:'dark', panel:'ogee'},
     cols:['#211E1A','#EDE4D2','#7A6E5E','#B98846','#E0C782',
           '#3A342E','#8A7B63','#2F6E92','#3F7A5F','#5B7A46','#A65E3C',
@@ -346,7 +418,8 @@ const STYLES = {
     borders:['Outset','Deep outset','Sunken','Groove','Marquee','Plain','None'],
     panels:['Flat','Plastic edge','Group box','Scanlines','CRT bezel'],
     knobs:['Button','Tee','Slider','Dial','Keycap'],
-    defaults:{knob:'square', border:'panel', texture:'check', knobtone:'light', panel:'plain'},
+    textures:['None','Dither','Weave','Scanlines','Static','Argyle'],
+    defaults:{knob:'square', border:'panel', texture:'fine', knobtone:'light', panel:'plain'},
     cols:['#D6D3C4','#2A2A24','#8A8878','#12736E','#C8A63C',
           '#6E8F5A','#4F6B44','#A79A6E','#A89663','#8A3F42','#4A6B8A',
           '#2C7A76','#A88A32','#7A5334','#6E4A66','#8C8C84'],
@@ -365,7 +438,8 @@ const STYLES = {
     borders:['Ruled','Double rule','Underline','Sketched','Chalk frame','Plain','None'],
     panels:['Unlined','Pencil rim','Sketched panel','Hatching','Doodle frame'],
     knobs:['Circle','Diamond','Bar','Ring','Square'],
-    defaults:{knob:'round', border:'plain', texture:'stars', knobtone:'light', panel:'plain'},
+    textures:['None','Tooth','Crosshatch','Ruled','Stipple','Stars'],
+    defaults:{knob:'round', border:'plain', texture:'fine', knobtone:'light', panel:'plain'},
     cols:['#07080C','#F4F6F8','#F4F6F8','#6FD3F5','#7DE8B0',
           '#14161C','#1B1E25','#23262E','#0E2733','#123544','#16443F',
           '#1A3B2C','#2B2F38','#191D2A','#101820','#33383F'],
@@ -388,7 +462,8 @@ const STYLES = {
     borders:['Bevel','Deep bevel','Sill','Glass','Chrome frame','Plain','None'],
     panels:['Clear','Glass edge','Glass panel','Ribbed glass','Aqua inlay'],
     knobs:['Orb','Gem','Bar','Halo','Chiclet'],
-    defaults:{knob:'round', border:'aqua', texture:'sheen', knobtone:'light', panel:'plain'},
+    textures:['None','Frost','Brushed','Ripple','Bubbles','Sheen'],
+    defaults:{knob:'round', border:'gloss', texture:'fine', knobtone:'light', panel:'plain'},
     cols:['#EAF4F7','#0D3541','#5B8C9B','#18A6C4','#7EE8F5',
           '#1E9AAE','#2FA39A','#3F8F63','#6FA83C','#2B6B99','#4C89C8',
           '#14607A','#5E7A8A','#44515C','#33414D','#8A98A3'],
@@ -475,5 +550,6 @@ export { themeNow, lookVal, setLookVal, applyLook, applyStyle, styleDefaults,
   DARKMODES, darkMode, hasDark, darkNow, systemDark,
   randomFront, randomBoard, randomLook, STYLES, BACKDROPS,
   SLOTS, OBJ0, OBJN, ROLES, slotName, styleNow, palNow, setSlot,
-  BORDER_SLOTS, borderSlots, panelSlots, knobSlots, CHECKS,
+  BORDER_SLOTS, borderSlots, panelSlots, knobSlots, textureSlots, bindingSlots,
+  FAMS, famSlots, famNames, famAll, styleKey, styleFor, dress, dressAs, CHECKS,
   hexOf, objColour, objSlots, isDark };

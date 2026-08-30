@@ -3281,6 +3281,110 @@ const CHROME = process.env.BUREAU_CHROME;
     return out;
   });
 
+  /* --- a slot is scoped to the aesthetic that dresses it — decision 98 ---
+     The per-aesthetic tile rules used to be keyed on `html[data-style]`, which
+     assumes every slot on a tile follows the desk. Pinning breaks that
+     assumption, so they are keyed on a `<fam>sty-` class the renderer writes.
+
+     The failure mode of that move is **silent**: a selector that did not get
+     converted simply stops matching, and the drawer keeps rendering — just
+     undressed. So this walks every family in every aesthetic and insists that
+     the positions come out *different from each other*, which is the only
+     thing that catches a rule that quietly stopped applying. */
+  const slotScoping = await page.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const S = BUREAU.state, out = {}, was = S.look.style;
+    const c = S.objects.find(o => BUREAU.isContainer(o) && BUREAU.faceOf(o) === 'front');
+    out.foundAFront = !!c;
+    if(!c) return out;
+    const keep = {border:c.border, panel:c.panel, knob:c.knob, texture:c.texture};
+    // everything a slot can reasonably change, on the element that wears it
+    const look = el => {
+      const cs = getComputedStyle(el), b = getComputedStyle(el,'::before'),
+            a = getComputedStyle(el,'::after');
+      const of = x => [x.boxShadow, x.borderWidth, x.borderColor, x.borderRadius,
+        x.backgroundImage, x.background, x.filter, x.opacity, x.transform, x.content, x.inset];
+      return JSON.stringify([of(cs), of(b), of(a)]);
+    };
+    const wear = {bd:'border', pn:'panel', kn:'knob', tx:'texture'};
+    const pick = {bd:t=>t, pn:t=>t.querySelector('.dpanel'),
+                  kn:t=>t.querySelector('.pull'), tx:t=>t};
+    const thin = {};
+    for(const fam of Object.keys(wear)){
+      thin[fam] = {};
+      for(const sty of Object.keys(BUREAU.styles)){
+        const seen = new Set();
+        for(const [slot] of BUREAU.famSlots(fam, sty)){
+          c[wear[fam]] = sty + '/' + slot;
+          BUREAU.render();
+          seen.add(look(pick[fam](document.querySelector(`[data-drawer="${c.id}"]`))));
+        }
+        thin[fam][sty] = seen.size;
+      }
+      delete c[wear[fam]];
+    }
+    /* Every position of every family has to be its own thing. Starful Gothic
+       is the one exception and it is deliberate: its four dressed edges are
+       the *same drawn line* at four weights (decision 96), and a weight lives
+       on `.dpanel` rather than on the tile — so its seven edges read as fewer
+       from here. It still has to answer with more than one. */
+    out.everyFamilyIsDressed = Object.entries(thin).every(([fam, byStyle]) =>
+      Object.entries(byStyle).every(([sty, n]) =>
+        n >= (fam === 'bd' && sty === 'starry' ? 2 : BUREAU.famSlots(fam, sty).length - 1)));
+    out.counts = thin;
+    /* A pin is dressed by the aesthetic it names, wherever you are; a bare
+       value follows the desk. That is the whole feature in two assertions. */
+    const styOf = () => (document.querySelector(`[data-drawer="${c.id}"]`).className
+      .match(/pnsty-([\w]+)/) || [])[1];
+    BUREAU.setStyle('victorian'); await nap(60);
+    c.panel = 'golf97/fielded'; BUREAU.render();
+    out.aPinKeepsItsAesthetic = styOf() === 'golf97';
+    c.panel = 'fielded'; BUREAU.render();
+    out.aBareValueFollowsTheDesk = styOf() === 'victorian';
+    BUREAU.setStyle('carca'); await nap(60);
+    out.andFollowsItAcrossASwitch = styOf() === 'carca';
+    c.panel = 'golf97/fielded'; BUREAU.render();
+    out.aPinnedOneDoesNot = styOf() === 'golf97';
+    // …and the position itself is still what the object is wearing
+    out.theSlotSurvivesThePin =
+      document.querySelector(`[data-drawer="${c.id}"]`).classList.contains('pn-fielded');
+    Object.assign(c, keep);
+    if(keep.border == null) delete c.border;
+    if(keep.panel == null) delete c.panel;
+    S.look.style = was; BUREAU.applyLook(); BUREAU.render(); await nap(120);
+    return out;
+  });
+
+  /* --- eleven grains became six slots — migration 24 -------------------- */
+  const grainSlots = await page.evaluate(() => {
+    const out = {};
+    // every aesthetic names all six, so a picker is never short of a word
+    out.allSevenNameAllSix = Object.keys(BUREAU.styles).every(k =>
+      BUREAU.famSlots('tx', k).length === 6
+      && BUREAU.famSlots('tx', k).every(([, n]) => n && n.length));
+    // …and names them differently, or the aesthetic is not saying anything
+    const words = k => BUREAU.famSlots('tx', k).slice(1).map(([, n]) => n).join('|');
+    out.andEachSaysItsOwn = new Set(Object.keys(BUREAU.styles).map(words)).size === 7;
+    const old = BUREAU.migrated({ v:23, objects:[
+      {id:'a', kind:'drawer', texture:'grid'}, {id:'b', kind:'drawer', texture:'weave2'},
+      {id:'c', kind:'drawer', texture:'stars'}, {id:'d', kind:'drawer', texture:'dots'},
+      {id:'e', kind:'drawer', texture:'nonsense'}, {id:'f', kind:'drawer', border:'aqua'}],
+      deskCfg:{railtexture:'check'},
+      look:{styleDefaults:{texture:'starry', border:'aqua'}} });
+    const t = id => (old.objects.find(o => o.id === id) || {}).texture;
+    out.theElevenFold = t('a')==='ruled' && t('b')==='weave' && t('c')==='pattern' && t('d')==='fine';
+    out.anUnknownGrainIsNone = t('e') === 'none';
+    out.theRailFoldsToo = old.deskCfg.railtexture === 'fine';
+    out.theCachedDefaultFoldsToo = old.look.styleDefaults.texture === 'speckle';
+    /* Aeros stated `aqua` as its border, which was never one of the seven
+       positions — so `bd-aqua` styled nothing and every drawer born on an Aero
+       desk had no edge at all. */
+    out.aerosBorderIsASlotNow = old.look.styleDefaults.border === 'gloss'
+      && (old.objects.find(o => o.id === 'f') || {}).border === 'gloss'
+      && BUREAU.styles.aero.defaults.border === 'gloss';
+    return out;
+  });
+
   /* --- the Look section shows the thing it is about — decision 97 ------- */
   const lookStage = await page.evaluate(async () => {
     const nap = n => new Promise(r => setTimeout(r, n));
@@ -3806,7 +3910,7 @@ const CHROME = process.env.BUREAU_CHROME;
     paletteKeys, editorKeys, pickerLeads, rollupsEverywhere, soundAndVision, keyboardBoard,
     ranking, repeating, oneLock, scheduling, ownColour, addBox, calFaces,
     lockedBoard, freeTraits, pageWrites, tickBoxes, readerFits,
-    dropsIn, keyframesRegistered, aesthetics, deeper, lookStage, statusBar, bindings, panelling, theSpray, tappingIsQuiet, decorations, pinboard
+    dropsIn, keyframesRegistered, aesthetics, slotScoping, grainSlots, deeper, lookStage, statusBar, bindings, panelling, theSpray, tappingIsQuiet, decorations, pinboard
   }, null, 2));
   await browser.close();
 })();

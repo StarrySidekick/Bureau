@@ -17,7 +17,7 @@ import { closePanel } from './panels.js';
    Bureau is this phone running" is exactly the question you ask when a change
    appears not to have deployed. Shown in Settings, so it can be read off the
    device rather than guessed at. */
-const APP_VERSION = '1.03';
+const APP_VERSION = '1.06';
 const KEY = 'bureau.v1';
 const install = {deferred:null};   // the browser's install prompt, when one is on offer
 let saveTimer = null;
@@ -222,7 +222,7 @@ function rescalePhone(d, from, cols){
    skips all of them, an old backup replays only what it is missing. These
    used to be ad-hoc per-load mutations inside adopt(); a new repair that
    should run once belongs here, as the next numbered step. */
-const DATA_V = 23;
+const DATA_V = 24;
 const MIGRATIONS = [
   // Drawers and objects were two arrays and a drawer could not live inside
   // anything. foldDrawers also replays the old dense flow to give v1 drawers
@@ -530,6 +530,46 @@ const MIGRATIONS = [
     if(d.look && gone[d.look.style]) d.look.style = 'victorian';
     const sl = d.look && d.look.slots;
     if(sl) Object.keys(gone).forEach(k=>{ delete sl[k]; });
+  }},
+  /* A grain became a **slot**, like an edge and a knob and a panelling.
+
+     There were eleven global names — dots, graph, weave, wide weave, checker,
+     ruled, stars, starry, speckle, sheen — and that is a list of *pictures*
+     rather than a vocabulary. A picture cannot be answered by an aesthetic, so
+     cut stone, glass, cathedral paper and a 1997 dialog all wore the same
+     sheet of graph paper, which is the one place the aesthetics did not reach.
+     Six positions instead — nothing, the fine tooth of the surface, a weave, a
+     ruling, a scatter, a pattern — each named and drawn by whichever aesthetic
+     is showing.
+
+     Eleven into six is a fold, so some pairs land together: graph and ruled
+     are both a ruling, wide weave joins weave, checker and sheen are both the
+     fine grain of their surface. Nothing is lost that a picker cannot get
+     back, and a name that was never one of the eleven falls to `none` rather
+     than being stamped onto a tile as a class that styles nothing.
+
+     Both places a grain is stored: an object's `texture`, and the desk's own
+     `railtexture` for the drawer along the bottom of a phone. Types too — an
+     invented type may carry one. See decision 98. */
+  {v:24, up(d){
+    const TX = {none:'none', dots:'fine', sheen:'fine', check:'fine',
+                weave:'weave', weave2:'weave', grid:'ruled', rule:'ruled',
+                speckle:'speckle', starry:'speckle', stars:'pattern'};
+    const fold = v => (typeof v==='string' && v) ? (TX[v] || 'none') : v;
+    (d.objects||[]).forEach(o=>{ if(o.texture) o.texture = fold(o.texture); });
+    Object.values(d.kinds||{}).forEach(k=>{ if(k && k.texture) k.texture = fold(k.texture); });
+    if(d.deskCfg && d.deskCfg.railtexture) d.deskCfg.railtexture = fold(d.deskCfg.railtexture);
+    (d.objects||[]).forEach(o=>{ if(o.railtexture) o.railtexture = fold(o.railtexture); });
+    /* The aesthetic's own stated defaults are cached in `look.styleDefaults`,
+       so a desk that never switched aesthetic is still carrying the old
+       eleven-name answer and would hand it to the next drawer it made. */
+    const sd = d.look && d.look.styleDefaults;
+    if(sd && sd.texture) sd.texture = fold(sd.texture);
+    /* …and Aeros' stated border was `aqua`, which is not one of the seven
+       positions and never has been: `bd-aqua` styles nothing, so every drawer
+       born on an Aero desk had no edge at all and nobody could see why. */
+    if(sd && sd.border==='aqua') sd.border='gloss';
+    (d.objects||[]).forEach(o=>{ if(o.border==='aqua') o.border='gloss'; });
   }},
 ];
 function migrate(d){

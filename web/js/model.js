@@ -464,6 +464,29 @@ const isContainer = o => !!o && has(o,'container');
 /* A face is how a container draws itself on its parent's board. A layout is
    how it arranges its children once opened. They used to be one property,
    which meant a checklist could not also be sorted when you opened it. */
+/* ---- a slot may name the aesthetic it came from ------------------------
+   Every look slot — border, panelling, knob, texture, binding — stores a
+   *position*, and what a position is made of is the aesthetic's business.
+   That is the whole point of the system (decision 33) and it is also its one
+   sharp edge: a Golf 97 group box you liked becomes a Victorian raised panel
+   the moment you switch, and there was no way at all to say "not that one,
+   keep it as it is".
+
+   So a stored value may be **pinned** to the aesthetic it was borrowed from,
+   written `golf97/fielded`. A bare value follows the desk and re-dresses on
+   every switch, which stays the default and is what nearly everything holds;
+   a pinned one is dressed by the aesthetic it names, wherever you are.
+
+   No migration: every value written before this is bare, and a bare value
+   means exactly what it always meant. See decision 98. */
+const slotKey  = v => { const s=String(v==null?'':v), i=s.indexOf('/'); return i<0?s:s.slice(i+1); };
+const slotFrom = v => { const s=String(v==null?'':v), i=s.indexOf('/'); return i<0?null:s.slice(0,i); };
+/* The stored value of one look slot, per object then per type, pin and all —
+   the raw thing, before the key is taken off it. */
+const slotRaw = (o, prop) => (o && o[prop]) || K(o&&o.kind)[prop] || '';
+// which aesthetic dresses this object's slot, or null for "whichever is showing"
+const slotSrc = (o, prop) => slotFrom(slotRaw(o, prop));
+
 /* ---- how a book is bound ----------------------------------------------
    A spine is the one face that is a *made object* rather than a layout — it
    is the outside of a book, and the outside of a book is the binder's work.
@@ -479,11 +502,12 @@ const BINDINGS = {
   tooled: 'Tooled and gilt',
   label:  'Paper label'
 };
+const BINDING_SLOTS = Object.keys(BINDINGS);
 /* A name that isn't one of the five falls back rather than being stamped onto
    the tile: `bn-` plus whatever was stored styles nothing, so a typo in an
    imported backup would silently give a spine no binding at all. */
 const bindingOf = o => {
-  const b = (o && o.binding) || K(o&&o.kind).binding;
+  const b = slotKey(slotRaw(o,'binding'));
   return BINDINGS[b] ? b : 'banded';
 };
 
@@ -529,15 +553,36 @@ const KNOBS = {
 };
 const KNOB_SLOTS = Object.keys(KNOBS);
 const knobOf = o => {
-  const k = (o && o.knob) || K(o&&o.kind).knob;
+  const k = slotKey(slotRaw(o,'knob'));
   return KNOBS[k] ? k : 'round';
+};
+/* ---- the edge, and what the front is made of --------------------------
+   Two more slot families, read the same way as the three above so a pin
+   works on all five. `BORDER_SLOTS` used to live in look.js, which was the
+   wrong side of the wall: the *positions* are the model's vocabulary and only
+   what each is called is the aesthetic's. Seven, with gilt among them since
+   decision 94 and plain and none last because they mean the same thing
+   everywhere. */
+const BORDER_SLOTS = ['panel','heavy','bar','gloss','gilt','plain','none'];
+const borderOf = o => {
+  const b = slotKey(slotRaw(o,'border'));
+  return BORDER_SLOTS.includes(b) ? b : 'panel';
+};
+/* Six positions of grain: nothing, the fine tooth of the surface, a weave, a
+   ruling, a scatter, and an outright pattern. Eleven global names became six
+   slots in migration 24 — a texture is what a *surface* is made of, and stone,
+   glass, cathedral paper and a 1997 dialog do not share one. */
+const TEXTURE_SLOTS = ['none','fine','weave','ruled','speckle','pattern'];
+const textureOf = o => {
+  const t = slotKey(slotRaw(o,'texture'));
+  return TEXTURE_SLOTS.includes(t) ? t : 'none';
 };
 /* Cockbead is the default rather than flat: it is on very nearly every drawer
    of the period, it is one moulding rather than an ornament, and a flat
    rectangle is the thing this exists to stop being. Unknown names fall back,
    the same way a binding does. */
 const panelOf = o => {
-  const p = (o && o.panel) || K(o&&o.kind).panel;
+  const p = slotKey(slotRaw(o,'panel'));
   return PANELS[p] ? p : 'cockbead';
 };
 
@@ -1271,7 +1316,9 @@ export { ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds, K,
   boardLocked,
   PRIOS, prioOf, prioName,
   REPEAT_UNITS, repeatOf, repeats, repeatSaid, repeatSpent, nextRepeat,
-  BINDINGS, bindingOf, PANELS, PANEL_SLOTS, panelOf, KNOBS, KNOB_SLOTS, knobOf,
+  slotKey, slotFrom, slotRaw, slotSrc,
+  BINDINGS, BINDING_SLOTS, bindingOf, PANELS, PANEL_SLOTS, panelOf, KNOBS, KNOB_SLOTS, knobOf,
+  BORDER_SLOTS, borderOf, TEXTURE_SLOTS, textureOf,
   KNOBSIZES, knobSizeOf, answered, iconOf, TSIZES, textSizeOf, mediaTypeOf, isPicture,
   isMedia, isPlayable, acceptFor, isDecor,
   spawnByOf, genKindOf, takesTyping, showsAddBox, keepsDone, showsContainers,

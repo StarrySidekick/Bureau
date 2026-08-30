@@ -10,9 +10,10 @@ import { S, K, KINDS, KEYS, T, ATTRS, USER_ATTRS, FIELDS, fieldOf, OPS, ROLLS,
   relatedTo, backlinksTo, streak, goalPct,
   CALVIEWS, calViewOf, weekStartOf, showsWeekends, KNOBSIZES, knobSizeOf,
   TSIZES, textSizeOf, mediaTypeOf, isPicture, isMedia, isDecor,
-  BINDINGS, bindingOf, panelOf, knobOf } from './model.js';
+  BINDINGS, bindingOf, panelOf, knobOf, borderOf, textureOf, slotRaw } from './model.js';
 import { GRID, lay, boxOk, freeSpot, sizeOfKind, toPhoneSize } from './grid.js';
-import { randomBoard, randomFront, hexOf, objColour, objSlots, palNow, OBJ0, borderSlots, panelSlots, knobSlots } from './look.js';
+import { randomBoard, randomFront, hexOf, objColour, objSlots, palNow, OBJ0,
+  famSlots, famAll, FAMS, styleKey } from './look.js';
 import { CLICKS, clickOf, gridTile, pending } from './tiles.js';
 import { DECOR, DECOR_KEYS, decorOf, decorSVG } from './decor.js';
 import { quickAdd, toast, drawerForTag } from './mutations.js';
@@ -294,6 +295,40 @@ const psel=(id,key,list,cur)=>`<select class="psel" data-oset="${id}:${key}">${
 const pfield=(id,key,cur,type,ph)=>`<input class="pfield"${type?` type="${type}"`:''}
   data-oset="${id}:${key}" value="${esc(cur==null?'':cur)}" placeholder="${esc(ph||'')}">`;
 const pgroup=(label,body,open)=>`<details class="pgroup"${open?' open':''}><summary>${esc(label)}</summary>${body}</details>`;
+/* ---- a slot row -------------------------------------------------------
+   Five knobs, seven edges, five panellings, six grains: what you see is
+   *this* aesthetic's answers, because a slot is a position and the position
+   is what you are choosing. They re-dress when you switch, which is the whole
+   system (decision 33).
+
+   And underneath, closed, is every other aesthetic's, grouped by aesthetic —
+   because sometimes you want *that* one, Golf 97's group box on a Victorian
+   desk, and until now there was no way to say so. Picking from there writes a
+   **pinned** value (`golf97/fielded`) that stops following the desk. It is
+   deliberately the second control and not a longer first one: thirty-five
+   knobs where there were five is the wall of chips decision 66 took out.
+
+   One `<select>` and one disclosure rather than a select with optgroups in
+   it, because the pin is a different *kind* of answer — "always this one",
+   not "position three" — and a picker that hides that distinction inside a
+   scroll is a picker that pins things by accident. See decision 98. */
+function slotRow(label, id, fam, cur, note, prop){
+  prop = prop || FAMS[fam].prop;
+  const pinned = String(cur||'').includes('/');
+  const mine = famSlots(fam);
+  // a pinned value is not in this aesthetic's list, so the select would show
+  // its first option as though nothing had been chosen — say so instead
+  const head = pinned ? [['', '— from another aesthetic —']] : [];
+  return prow(label,
+    psel(id, prop, head.concat(mine), pinned ? '' : cur)
+    + pgroup('From other aesthetics',
+        `<select class="psel" data-oset="${id}:${prop}">
+          <option value="">Follow this aesthetic</option>${
+          famAll(fam).map(([nm, opts])=>`<optgroup label="${esc(nm)}">${
+            opts.map(([v,n])=>`<option value="${esc(v)}"${v===cur?' selected':''}>${esc(n)}</option>`).join('')
+          }</optgroup>`).join('')}</select>`, pinned),
+    note);
+}
 /* ---- eleven slots, and one colour of your own --------------------------
    A slot is a *position*, not a hue: store 11 and you get Victoria's claret or
    Aero's deep sea blue depending on where you are, and changing style repaints
@@ -460,10 +495,10 @@ function objectPanelBody(id, sec){
   if(!isRoot) out.push(cont
     ? prow('Face', psel(id,'face', Object.entries(FACES), faceOf(d)), 'on its parent’s board')
       + (faceOf(d)==='spine' || (d[dev()]||{}).w<=1
-          ? prow('Binding', psel(id,'binding', Object.entries(BINDINGS), bindingOf(d)),
+          ? slotRow('Binding', id, 'bn', slotRaw(d,'binding')||bindingOf(d),
               'how the book is bound — the spine is the one face that is a made object')
           : faceOf(d)==='front'
-          ? prow('Panelling', psel(id,'panel', panelSlots(), panelOf(d)),
+          ? slotRow('Panelling', id, 'pn', slotRaw(d,'panel')||panelOf(d),
               'how the front is worked — a moulding, lit from the upper left like the knob')
           : '')
     : prow('Shape', psel(id,'shape', Object.entries(SHAPES), shapeOf(d))));
@@ -484,9 +519,9 @@ function objectPanelBody(id, sec){
   if(!isRoot && !cont)
     out.push(prow('Edge', psel(id,'edge',[['','None'],['1','Coloured stripe']], d.edge?'1':'')));
   if(!isRoot && cont){
-    out.push(prow('Border', psel(id,'border', borderSlots(), d.border||'panel'), 'a slot, named by the aesthetic'));
-    out.push(prow('Knob', psel(id,'knob', knobSlots(), knobOf(d))
-      + psel(id,'knobsize', Object.entries(KNOBSIZES), knobSizeOf(d))
+    out.push(slotRow('Border', id, 'bd', slotRaw(d,'border')||borderOf(d), 'a slot, named by the aesthetic'));
+    out.push(slotRow('Knob', id, 'kn', slotRaw(d,'knob')||knobOf(d)));
+    out.push(prow('Knob size', psel(id,'knobsize', Object.entries(KNOBSIZES), knobSizeOf(d))
       + psel(id,'knobpos', [['centre','Centre'],['bottom','Bottom']], d.knobpos||'centre')));
     /* A knob is turned out of the same wood as the front, so by default that is
        what it is: the drawer's own colour, told apart by the light on it rather
@@ -500,9 +535,8 @@ function objectPanelBody(id, sec){
           style="background:var(--paper);border-style:dashed"></button>${
         ['#F8F3E6','#A9793F','#2A241C','#C0563F','#3E7A6B','#5D7E99'].map(c=>
         `<button data-pknobc="${c}" data-id="${id}" class="${d.knobc===c?'on':''}" style="background:${c}"></button>`).join('')}</div>`));
-    out.push(prow('Texture', psel(id,'texture',
-      [['none','None'],['dots','Dots'],['grid','Graph'],['weave','Weave'],['weave2','Wide weave'],
-       ['check','Checker'],['rule','Ruled'],['stars','Stars'],['sheen','Sheen']], d.texture||'none')));
+    out.push(slotRow('Texture', id, 'tx', slotRaw(d,'texture')||textureOf(d),
+      'what the surface is made of'));
   }
   /* What the board underneath is made of. The desk gets this too — it is a
      container like any other, and repainting *this* desk used to be impossible
@@ -557,19 +591,15 @@ function objectPanelBody(id, sec){
         <button data-pwood="" data-id="${id}" title="The app's own walnut" class="${d.wood?'':'on'}"
           style="background:var(--paper);border-style:dashed"></button></div>`,
         'the wood above the bar and below the board'));
-      out.push(prow('Its drawer', psel(id,'railknob',
-          [['round','Round'],['diamond','Diamond'],['bar','Bar'],['ring','Ring'],['square','Square'],['orb','Orb']],
-          d.railknob||'round')
-        + psel(id,'railknobsize', Object.entries(KNOBSIZES), d.railknobsize||'sm')
-        + psel(id,'railtexture',
-          [['none','None'],['dots','Dots'],['grid','Graph'],['weave','Weave'],['weave2','Wide weave'],
-           ['check','Checker'],['rule','Ruled'],['stars','Stars'],['sheen','Sheen']], d.railtexture||'none')
+      out.push(slotRow('Its knob', id, 'kn', d.railknob||'round', 'a phone', 'railknob'));
+      out.push(slotRow('Its grain', id, 'tx', d.railtexture||'none', '', 'railtexture'));
+      out.push(prow('Its drawer', psel(id,'railknobsize', Object.entries(KNOBSIZES), d.railknobsize||'sm')
         + `<div class="pickgrid sw" style="margin-top:5px">
           <button data-prailknobc="" data-id="${id}" title="Follow the wood" class="${d.railknobc?'':'on'}"
             style="background:var(--paper);border-style:dashed"></button>${
           ['#F8F3E6','#A9793F','#2A241C','#C0563F','#3E7A6B','#5D7E99'].map(c=>
           `<button data-prailknobc="${c}" data-id="${id}" class="${d.railknobc===c?'on':''}" style="background:${c}"></button>`).join('')}</div>`,
-        'a phone'));
+        'how big it is, and what colour'));
     }
     if(!isRoot) out.push(prow('Where it is kept', psel(id,'pin',
       [['','On the board it lives on'],['desk','A desk of its own']],
