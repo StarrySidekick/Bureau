@@ -3658,3 +3658,99 @@ default. Unset follows the aesthetic and changes with it — Golf 97's ballot bo
 Carca's cut square, Stelaine's circle; picked stays picked, everywhere. The way
 back deletes the key rather than storing `''`, because `applyLook()` tests the
 key.
+
+---
+
+## 101. Starful Gothic is a drawing, and a drawing costs what a drawing costs
+
+*2026-08-30*
+
+This aesthetic sits further from the other six than they sit from each other,
+and the version that shipped with decision 96 only went half way. It had one
+drawn line round a tile that was otherwise a solid coloured slab — which is two
+aesthetics arguing on one object, and the edge should win. It also lagged.
+
+**No ground, on anything.** A thing on this desk is its outline: no fill, no
+ring, no shadow, on a drawer front and on a note alike. The board's checker
+shows through, which is right — the drawing is *on* the desk rather than a set
+of cards laid on it.
+
+What the eleven colour slots do here is therefore nothing, and that is the
+aesthetic's own answer rather than an omission: Aeros owns no reds, Pseudochromo
+owned no hues, and this one owns no fills. Everything else about a slot still
+holds — the seven edges are the same line at four weights, what you stored
+survives a switch, and a stock is still five different sheets, drawn in line
+rather than in ground: ruled leaf, tracing, board, foxed.
+
+### Three bugs, and why none of them was visible to a test
+
+**The tile's own filter was haloing the text.** A torn shape — `sh-note` and
+its relatives — outlines itself with four zero-blur `drop-shadow`s tracing its
+own silhouette *after* the clip, because a `border` gets sliced off at the
+notches and left hanging at the corners. That technique needs a silhouette. With
+the ground gone the only alpha left on the tile was the writing, so it stopped
+outlining the paper and started outlining every letter: a white halo round each
+glyph on a night sky. The clip-path stays and the tile's filter goes; the drawn
+rectangle inside is clipped by it, so a note keeps a bite out of each side,
+which is what a tear looks like when it is drawn rather than cut.
+
+**The chips were finer than the stroke.** The first version ran three
+turbulence fields — a long wander, a short "tooth", and a third for the
+chipping. The tooth displaced by about half the stroke width, which frays a
+1.5px line rather than texturing it, and the chip field took bites smaller than
+the line was thick. Between them they turned a pencil stroke into dust. **A
+chip has to be bigger than the stroke, not smaller** — which is the opposite of
+what the first pass assumed, and the same mistake decision 96 recorded from the
+other direction when the grain was too coarse and the line read as dashed.
+There is a narrow window and it is found by looking, not by reasoning.
+
+One turbulence now, at two octaves, and both effects read off it: R and G
+displace the picture, B becomes a discrete alpha mask the line is composited
+into. They are correlated by construction — the line skips where it bends —
+which is closer to a real pencil than two independent fields were. The mask
+drops one band in twenty-four, because fractal noise is bell-shaped and a band
+near the middle covers far more of the surface than its share of the range
+suggests: one in twelve ran gaps of twenty pixels and took whole rounded
+corners out.
+
+**Every tile drew the same line.** A CSS filter's coordinate system is the
+element's own border box, so an `feTurbulence` starts at each element's origin
+— two tiles the same size get *identical* noise, and a row of eight drawers had
+its gap in the same place eight times. A repeat is the one thing a hand-drawn
+line cannot be. Three filters differing in seed **and frequency**, staggered
+across the board, is what breaks it up; re-seeding at one frequency was not
+enough.
+
+### The wiggle, and the thing that makes it affordable
+
+The line steps between the three filters, which is the drawing being redrawn.
+`filter: url()` does not interpolate, so plain percentage keyframes snap and no
+`steps()` is needed.
+
+**Animate the custom property, not the filter.** Writing
+`animation: wiggle 1.5s infinite` on the line is the obvious way and it costs a
+third of the frame rate: a `url()` filter is not a compositable property, so an
+animation on it marks the element dirty on *every* frame and the whole board's
+outlines are re-filtered sixty times a second for three distinct values. An
+idle desk sat at 42fps doing nothing at all. The animation goes on the **tile**
+and moves an inherited `--pen`, which is a style recalculation and nothing
+more; only its three actual changes repaint anything.
+
+One trap on the way: the `animation` shorthand writes `animation-delay:0s` as
+part of itself, so the per-tile stagger set as a plain `animation-delay` in a
+lower-specificity rule lost silently. The delay rides in a custom property too.
+
+### What it costs now
+
+A filter is roughly a quarter of a millisecond of **fixed** overhead per
+element per repaint — buffer, filter graph, composite — and almost none of that
+is the noise: dropping to one octave, or shrinking the filter region by an
+eighth, changed nothing measurable. So the only lever is how many elements
+carry one. Knobs, tick boxes, grains and spine bands do not: none of them shows
+a three-pixel wander at the size it is drawn, and each was a filtered element on
+every tile on the board.
+
+Seventy-five filtered elements became fifty-two — one per tile, which *is* the
+outline system — and a full re-render went from 48ms to 32ms, against Victoria's
+34ms. The aesthetic is no longer the expensive one. Most of that came from the
+grounds and the torn-shape filters rather than from the line itself.

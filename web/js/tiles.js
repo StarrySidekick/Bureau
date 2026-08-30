@@ -537,14 +537,14 @@ function drawTileFace(o, arr, box){
     /* With nothing to show the front is a label again: a stack of zero lines
        is an anonymous coloured square — and so is the picker's sample. */
     if(!shown.length && !adds){
-      return `<button class="drawer dtile cltile clidle bd-gilt ${dressAs('bd','gilt')}${sel}" data-drawer="${o.id}"
+      return `<button class="drawer dtile cltile clidle ${dressAs('bd','gilt')}${sel}" data-drawer="${o.id}"
           style="--c:${colour};${place}">
         <div class="dtop">${nameField(o)}</div>
         <div class="dbody"><span class="clempty">${items.length?'All done':'Nothing yet — open it to add'}</span></div>
         ${handles}
       </button>`;
     }
-    return `<${adds?'div':'button'} class="drawer dtile cltile bd-gilt ${dressAs('bd','gilt')}${sel}" data-drawer="${o.id}"
+    return `<${adds?'div':'button'} class="drawer dtile cltile ${dressAs('bd','gilt')}${sel}" data-drawer="${o.id}"
         ${adds?'role="button" tabindex="0"':''} title="${esc(o.title||'Untitled')}"
         style="--c:${colour};--clrows:${rows};${place}">
       ${/* The **box** ticks it and the **words** change it. Tapping anywhere on

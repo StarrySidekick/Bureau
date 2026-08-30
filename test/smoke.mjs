@@ -2948,11 +2948,21 @@ const CHROME = process.env.BUREAU_CHROME;
     inp.dispatchEvent(new Event('input', {bubbles:true}));
     await nap(250);
     out.writesALiteral = d.c === '#7d2f5b' && typeof d.c === 'string';
-    const paint = () => getComputedStyle(document.querySelector(`[data-drawer="${d.id}"]`)).backgroundColor;
-    const before = paint();
-    // the whole point: a slot follows the style, a literal does not
+    const tile = () => document.querySelector(`[data-drawer="${d.id}"]`);
+    const paint = () => getComputedStyle(tile()).backgroundColor;
+    const owns = () => getComputedStyle(tile()).getPropertyValue('--c').trim();
+    const before = paint(), ownBefore = owns();
+    /* The whole point: a slot follows the aesthetic, a literal does not. Asked
+       of `--c` rather than of the painted background, because whether a tile
+       paints its colour as a ground is the *aesthetic's* business — Starful
+       Gothic paints none at all (decision 101) — and this is a claim about the
+       colour surviving, not about where it is put. Carca is the one switched
+       to for the paint check, because it does fill a front. */
     BUREAU.state.look.style = 'starry'; BUREAU.applyLook(); BUREAU.render(); await nap(250);
-    out.survivesAStyleChange = d.c === '#7d2f5b' && paint() === before;
+    const keptWithoutAGround = d.c === '#7d2f5b' && owns() === ownBefore;
+    BUREAU.state.look.style = 'carca'; BUREAU.applyLook(); BUREAU.render(); await nap(250);
+    out.survivesAStyleChange = keptWithoutAGround
+      && d.c === '#7d2f5b' && owns() === ownBefore && paint() === before;
     S.look.style = wasStyle; BUREAU.applyLook(); BUREAU.render(); await nap(200);
     // …and there is a way back to the style's own
     BUREAU.panel(d.id, 'look'); await nap(250);
@@ -3432,6 +3442,64 @@ const CHROME = process.env.BUREAU_CHROME;
     out.andEachSaysItsOwn = new Set(Object.keys(BUREAU.styles)
       .map(k => BUREAU.famSlots('st', k).slice(1).map(([, n]) => n).join('|'))).size === 7;
     S.look.style = was; BUREAU.applyLook(); BUREAU.render(); await nap(120);
+    return out;
+  });
+
+  /* --- Starful Gothic is a drawing — decision 101 ------------------------
+     Three things went wrong here and all three were invisible to an assertion
+     that only asked "is there a line". They are asserted individually. */
+  const drawnAesthetic = await page.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const S = BUREAU.state, out = {}, was = S.look.style;
+    BUREAU.setStyle('starry'); await nap(400);
+    const tile = document.querySelector('.grid .drawer.dtile');
+    const obj  = document.querySelector('.grid .drawer.otile');
+    const cs = getComputedStyle(tile), os = getComputedStyle(obj);
+    /* 1. **No ground.** A thing on this desk is its outline and nothing else —
+       no fill, no ring, no shadow, on a drawer or on a note alike. */
+    const bare = e => { const c = getComputedStyle(e);
+      return c.backgroundColor === 'rgba(0, 0, 0, 0)' && c.backgroundImage === 'none'
+        && c.boxShadow === 'none'; };
+    out.nothingHasAGround = bare(tile) && bare(obj);
+    /* 2. **The tile itself carries no filter.** A torn shape outlines itself
+       with four drop-shadows tracing its own alpha, which with the ground gone
+       is only the writing — so it stopped outlining the paper and started
+       haloing every letter. */
+    out.theTileIsNotFiltered = cs.filter === 'none' && os.filter === 'none';
+    out.butTheLineIs = /url\(/.test(getComputedStyle(tile.querySelector('.dpanel')).filter);
+    /* 3. **The animation is on the tile, not on the filter.** Animating
+       `filter` directly is not compositable, so it repaints every element on
+       every frame for three distinct values — an idle board sat at 42fps. The
+       tile animates an inherited custom property instead, and only its three
+       changes repaint anything. This is the assertion that keeps it: the line
+       must not be what is animating. */
+    out.theTileIsWhatAnimates = getComputedStyle(tile).animationName.includes('drawnline');
+    out.andTheLineIsNot =
+      getComputedStyle(tile.querySelector('.dpanel')).animationName === 'none';
+    /* …and it really does step, and neighbours are out of phase — the noise is
+       per element, so without the stagger a row of eight drawers had its gap
+       in the same place eight times. */
+    const first = [...document.querySelectorAll('.grid > .drawer')].slice(0, 6)
+      .map(e => e.querySelector('.dpanel')).filter(Boolean);
+    const each = first.map(() => new Set());
+    for(let i = 0; i < 26; i++){
+      first.forEach((e, j) => each[j].add(getComputedStyle(e).filter));
+      await nap(40);
+    }
+    out.theLineSteps = each.every(sn => sn.size === 3);
+    out.andNeighboursAreOutOfPhase =
+      new Set(first.map(e => getComputedStyle(e).filter)).size > 1;
+    /* 4. **Nothing small is filtered.** A knob is twenty pixels across and a
+       tick box nineteen; a three-pixel wander on either is a scribble, and
+       both were a filtered element on every tile on the board. */
+    const knob = tile.querySelector('.pull'), box = document.querySelector('.check');
+    out.smallThingsAreNotFiltered = (!knob || getComputedStyle(knob).filter === 'none')
+      && (!box || getComputedStyle(box).filter === 'none');
+    // …but they are still drawn rather than printed: in ink, not in the page's
+    // faintest grey, which on a night sky is nearly the sky
+    out.butTheyAreStillDrawn = !box
+      || /0\.6|0\.7|156|244/.test(getComputedStyle(box).borderColor);
+    S.look.style = was; BUREAU.applyLook(); BUREAU.render(); await nap(200);
     return out;
   });
 
@@ -4033,7 +4101,7 @@ const CHROME = process.env.BUREAU_CHROME;
     paletteKeys, editorKeys, pickerLeads, rollupsEverywhere, soundAndVision, keyboardBoard,
     ranking, repeating, oneLock, scheduling, ownColour, addBox, calFaces,
     lockedBoard, freeTraits, pageWrites, tickBoxes, readerFits,
-    dropsIn, keyframesRegistered, aesthetics, slotScoping, objectsDressed, grainSlots, tagged, deeper, lookStage, statusBar, bindings, panelling, theSpray, tappingIsQuiet, decorations, pinboard
+    dropsIn, keyframesRegistered, aesthetics, slotScoping, objectsDressed, grainSlots, tagged, drawnAesthetic, deeper, lookStage, statusBar, bindings, panelling, theSpray, tappingIsQuiet, decorations, pinboard
   }, null, 2));
   await browser.close();
 })();

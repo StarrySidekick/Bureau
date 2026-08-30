@@ -263,6 +263,15 @@ disclosure. A bare value follows the desk; a pinned one does not.
 Plus per-aesthetic CSS for `.panel` and `.sqbtn` — one menu system and one
 button, so two rules reach every menu in the app — and `.gridbar`.
 
+### The one that answers differently
+
+**Starful Gothic has no ground.** A thing on that desk is its outline and
+nothing else — no fill on a drawer front or on a note, no ring, no shadow. So
+its colour slots do nothing, its edges are one drawn line at four weights, and
+its five stocks are five *drawn* sheets rather than five materials. That is the
+aesthetic's own answer and not a gap in the coverage: an aesthetic is allowed
+to be about one thing, the way Aeros owns no reds. See decision 101.
+
 ### What is tagged rather than dressed
 
 A **decoration** is a made object: a mantel clock cannot be re-dressed into a

@@ -662,12 +662,11 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
 /* Starful Gothic: a spine is drawn, so every ornament on it is a line. The
    filter goes on the ornament layers and never on `.spinetitle`, which holds
    the lettering — the same rule as everywhere else. */
-.drawer.spinetile.bnsty-starry{ box-shadow:none;border-color:transparent }
+.drawer.spinetile.bnsty-starry{ background:none;box-shadow:none;border-color:transparent }
 .bnsty-starry .spinetop,.bnsty-starry .spinefoot{
   background:none;box-shadow:none;
   border-top:1.5px solid color-mix(in srgb,var(--ink) 55%,transparent);
-  border-bottom:1.5px solid color-mix(in srgb,var(--ink) 55%,transparent);
-  filter:url(#pencil) }
+  border-bottom:1.5px solid color-mix(in srgb,var(--ink) 55%,transparent) }
 .bn-ribbed.bnsty-starry::before,.bn-tooled.bnsty-starry::before{
   filter:url(#pencilchip) }
 .bn-tooled.bnsty-starry::before{
@@ -1308,13 +1307,14 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
 .tx-fine.txsty-starry .dgrain{--txo:.26;background-image:
   radial-gradient(circle at 50% 50%, rgba(255,255,255,.8) 0 .6px, transparent 1px);
   background-size:7px 7px}
+/* No filter on a grain. It is a repeat at a seven- or eighteen-pixel pitch and
+   a three-pixel wander on it reads as blur rather than as hand — and it was a
+   filtered element on every textured tile. See decision 101. */
 .tx-weave.txsty-starry .dgrain{--txo:.22;background-image:
   repeating-linear-gradient(52deg, rgba(255,255,255,.6) 0 .8px, transparent .8px 7px),
-  repeating-linear-gradient(-38deg, rgba(255,255,255,.45) 0 .8px, transparent .8px 7px);
-  filter:url(#pencil)}
+  repeating-linear-gradient(-38deg, rgba(255,255,255,.45) 0 .8px, transparent .8px 7px)}
 .tx-ruled.txsty-starry .dgrain{--txo:.24;background-image:
-  linear-gradient(rgba(255,255,255,.6) 1px, transparent 1px);background-size:100% 18px;
-  filter:url(#pencil)}
+  linear-gradient(rgba(255,255,255,.6) 1px, transparent 1px);background-size:100% 18px}
 /* stipple: pen dots, which are irregular or they are a screen */
 .tx-speckle.txsty-starry .dgrain{--txo:.40;background-image:
   radial-gradient(circle at 14% 26%, rgba(255,255,255,.85) 0 .9px, transparent 1.3px),

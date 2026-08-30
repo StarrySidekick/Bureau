@@ -799,38 +799,6 @@ html .drawer.dtile.cltile{background-image:none}
   radial-gradient(circle at 4px 50%, rgba(0,0,0,.35) 0 2px, transparent 2.6px);
   background-size:100% 24px, 10px 14px }
 
-/* ---- Starful Gothic: one drawn line, and paper that shows it ---------- */
-/* Same as the drawer front: the four dressed edges are the *same* line at four
-   weights, and it lives on `.dpanel` because a box-shadow cannot be filtered
-   on its own and the filter must never touch anything holding text. */
-.drawer.otile.bdsty-starry{ border-color:transparent;box-shadow:none }
-.drawer.otile.bd-panel.bdsty-starry .dpanel,
-.drawer.otile.bd-heavy.bdsty-starry .dpanel,
-.drawer.otile.bd-bar.bdsty-starry   .dpanel,
-.drawer.otile.bd-gloss.bdsty-starry .dpanel,
-.drawer.otile.bd-plain.bdsty-starry .dpanel{
-  inset:3px;border-radius:4px;
-  border:1.5px solid color-mix(in srgb,var(--ink) 52%,transparent);
-  filter:url(#pencilchip) }
-.drawer.otile.bd-heavy.bdsty-starry .dpanel{ border-width:2.5px }
-.drawer.otile.bd-bar.bdsty-starry   .dpanel{ border-width:1px;
-  border-color:color-mix(in srgb,var(--ink) 38%,transparent) }
-.drawer.otile.bd-gloss.bdsty-starry .dpanel{ border-width:1px;
-  border-color:color-mix(in srgb,var(--ink) 30%,transparent) }
-.drawer.otile.bd-none.bdsty-starry .dpanel{ border-color:transparent }
-.drawer.otile.sz-mini.bdsty-starry .dpanel{ display:none }
-.drawer.otile.st-laid.ststy-starry{ background-image:
-  repeating-linear-gradient(0deg, transparent 0 17px,
-    color-mix(in srgb,var(--ink) 22%,transparent) 17px 18px) }
-.drawer.otile.st-wove.ststy-starry{ background-image:
-  linear-gradient(0deg, rgba(255,255,255,.10), rgba(255,255,255,.10));opacity:.9 }
-.drawer.otile.st-card.ststy-starry{ background-image:
-  linear-gradient(180deg, rgba(255,255,255,.10), rgba(0,0,0,.16));
-  box-shadow:inset 0 -3px 0 rgba(0,0,0,.28), 0 3px 5px rgba(0,0,0,.3) }
-.drawer.otile.st-aged.ststy-starry{ background-image:
-  radial-gradient(circle at 12% 16%, rgba(170,140,90,.30) 0 7%, transparent 32%),
-  radial-gradient(circle at 84% 78%, rgba(170,140,90,.24) 0 6%, transparent 28%) }
-
 /* ---- Aeros: glass, and what is behind it ------------------------------ */
 .drawer.otile.bd-panel.bdsty-aero{
   box-shadow:inset 0 0 0 1px rgba(255,255,255,.75), inset 0 4px 10px rgba(255,255,255,.4),
@@ -1249,35 +1217,12 @@ html .drawer.dtile.cltile{background-image:none}
    stored border through a style swap and comes back to a Victorian moulding
    when you come back. Only the four dressed ones differ; plain and none mean
    the same thing everywhere. */
-/* **Starful Gothic has one edge, and it is a drawn line.**
-
-   This aesthetic sits further from the others than they sit from each other:
-   there is no moulding anywhere in it, no bevel, no gilt, no relief. A shape
-   is *outlined* — one clean hand-drawn line round the structure, wandering,
-   taking the tooth of the paper and chipped where the surface did not hold it.
-   So the four dressed slots do not each become a different ornament here.
-   They become the **same line**, and what a slot changes is only how heavy it
-   is drawn — which is the only thing a pencil can honestly vary.
-
-   The tile's own border carries it (not a box-shadow, which cannot be
-   filtered independently of the tile), and `.dpanel` carries the filter — see
-   the drawn-line block below for why it must never go on anything holding
-   text. See decision 96. */
-.drawer.dtile.bdsty-starry{ box-shadow:none;border-color:transparent }
-.drawer.dtile.bd-panel.bdsty-starry .dpanel,
-.drawer.dtile.bd-heavy.bdsty-starry .dpanel,
-.drawer.dtile.bd-bar.bdsty-starry   .dpanel,
-.drawer.dtile.bd-gloss.bdsty-starry .dpanel,
-.drawer.dtile.bd-plain.bdsty-starry .dpanel{
-  border-color:color-mix(in srgb,var(--ink) 62%,transparent);
-  filter:url(#pencilchip) }
-/* the only thing a slot varies: how hard the pencil was pressed */
-.drawer.dtile.bd-heavy.bdsty-starry .dpanel{ border-width:2.5px }
-.drawer.dtile.bd-bar.bdsty-starry   .dpanel{ border-width:1px;
-  border-color:color-mix(in srgb,var(--ink) 40%,transparent) }
-.drawer.dtile.bd-gloss.bdsty-starry .dpanel{ border-width:1px;
-  border-color:color-mix(in srgb,var(--ink) 34%,transparent) }
-.drawer.dtile.bd-none.bdsty-starry .dpanel{ border-color:transparent }
+/* Starful Gothic answers all four with the *same* line and varies only how
+   hard the pencil was pressed — which is the only thing a pencil can honestly
+   vary. It sits with the rest of that aesthetic, further down: there is no
+   moulding in it at all, so its edges are not a variation on these but a
+   different material, and keeping them here would have meant reading half of
+   it in one place and half in another. See decision 101. */
 
 /* ============================================================
    An aesthetic reaches the chrome as well as the board — decision 92
@@ -1344,27 +1289,214 @@ html[data-style="starry"] .panel{
 html[data-style="starry"] .sqbtn{
   border-color:color-mix(in srgb,var(--ink) 34%,transparent);background:transparent }
 
-/* ---- the drawn line, on the one aesthetic that is drawn -----------------
-   Starful Gothic is white pencil on a night sky, and a box-shadow is the
-   straightest line a computer can make. The filter in index.html bends it —
-   the Tilemakers' Workshop trick, which displaces the rendered *picture*
-   rather than the paths, so every edge in it wavers at once.
+/* ============================================================
+   Starful Gothic is a drawing — decision 101
+   ============================================================
+   This aesthetic sits further from the other six than they sit from each
+   other. There is no moulding in it, no bevel, no relief, no gilt and — the
+   part that took two goes to get right — **no fill**. A thing on this desk is
+   its outline: one white pencil line round it, on the night sky, and nothing
+   else. A tile with a solid ground and a drawn edge is two aesthetics arguing
+   on one object; the edge wins, so the ground goes.
 
-   **It is only ever put on a layer that holds no text.** `.dpanel` is the
-   moulding layer (decision 88): a real element inside every drawer front that
-   draws lines and nothing else, which is exactly the surface a hand-drawn
-   outline wants and exactly why it must not go on the tile — displacing a
-   drawer's name would be smudging the label, not drawing the box. The gilt
-   frame on a magic front is the same kind of layer, so it takes it too. */
-.drawer.dtile.bdsty-starry .dpanel{
-  inset:4px;border-radius:5px;
-  border:1.5px solid color-mix(in srgb,var(--ink) 52%,transparent);
-  filter:url(#pencilchip);
+   What the colour slots do here, therefore, is nothing, and that is the
+   aesthetic's own answer rather than an omission — Aeros owns no reds and this
+   one owns no fills. Everything else about a slot still holds: the seven edges
+   are the same line at four weights, and what you stored survives a switch.
+
+   Three things about the filter, all of them learned the hard way:
+
+   1. **It only ever goes on a layer that holds no text.** `.dpanel` is the
+      moulding layer on a drawer (decision 88) and the mount on an object
+      (decision 99) — a real element that draws lines and nothing else.
+      Displacing a drawer's name is smudging the label, not drawing the box.
+   2. **It is expensive, and the cost is per element per repaint.** Seventy-five
+      filtered elements took a Starful Gothic board from 57fps to 21 the moment
+      anything made it repaint — a drag, a colour change, a panel opening over
+      it. Only the outlines carry it now: not the knobs, not the grains, not
+      the tick boxes, none of which show a three-pixel wander at the size they
+      are drawn.
+   3. **A chip has to be bigger than the stroke.** See index.html.
+
+   The wiggle is three seeds of the same filter, stepped. `filter: url()` does
+   not interpolate, so percentage keyframes snap rather than blend and no
+   `steps()` is needed. It is the drawing being redrawn, which is what the line
+   does on Timothy's own site. */
+/* **Animate the custom property, not the filter.** Animating `filter` directly
+   is the obvious way to write this and it costs a third of the frame rate: a
+   `url()` filter is not a compositable property, so an animation on it marks
+   the element dirty on *every* frame and the whole board's outlines are
+   re-filtered sixty times a second for three distinct values. An idle Starful
+   Gothic desk sat at 42fps doing nothing at all.
+
+   An inherited custom property instead. The animation runs on the *tile*,
+   which is a style recalculation and nothing more; `--pen`'s computed value
+   changes three times per cycle, and only then does anything repaint. 60fps
+   idle, and the line still steps. See decision 101. */
+@keyframes drawnline{
+  0%,32%   { --pen:url(#pencilchip) }
+  33%,65%  { --pen:url(#pencilchip2) }
+  66%,100% { --pen:url(#pencilchip3) }
 }
-.drawer.dtile.bd-gilt.bdsty-starry::before{ filter:url(#pencil) }
+@keyframes drawnplain{
+  0%,32%   { --penp:url(#pencil) }
+  33%,65%  { --penp:url(#pencil2) }
+  66%,100% { --penp:url(#pencil3) }
+}
+
+/* ---- no ground, on anything ------------------------------------------- */
+/* The tile itself carries no fill and no ring: both are the drawn line's job
+   now. `--c` is still set on the element and still resolves — a decoration
+   reads it, and so does anything that opts back in — it is simply not painted
+   as a slab any more. */
+.drawer.dtile.bdsty-starry,
+.drawer.otile.bdsty-starry{
+  background:none;box-shadow:none;border-color:transparent;
+  /* **And no filter on the tile.** A torn shape outlines itself with four
+     zero-blur drop-shadows tracing its own silhouette *after* the clip, which
+     is the only way to get a line that follows a tear (see `sh-note` above).
+     That technique needs a silhouette — and with the ground gone the only
+     alpha left on the tile is the writing, so it stopped outlining the paper
+     and started outlining every letter. A white halo round each glyph on a
+     night sky, which is what "buggy" looked like.
+
+     The clip-path stays, and the drawn rectangle inside it is clipped by it:
+     a note keeps a bite out of each side, which is what a tear looks like
+     when it is drawn rather than cut. See decision 101. */
+  filter:none }
+/* A stock is what the sheet is made of, and here it is made of line like
+   everything else. The first pass answered all five with nothing — which is
+   what "no backgrounds" meant literally, and it left the picker offering five
+   named papers that all did the same thing. A slot that is named and not made
+   promises (decision 100), so these are drawn rather than dropped: no ground
+   on any of them, just what a pencil would put on the sheet to say which
+   sheet it is. */
+.drawer.otile.ststy-starry{ background-color:transparent }
+/* ruled leaf: the lines that are already on the paper */
+.drawer.otile.st-laid.ststy-starry{ background-image:
+  repeating-linear-gradient(0deg, transparent 0 17px,
+    color-mix(in srgb,var(--ink) 20%,transparent) 17px 18px) }
+/* tracing: you can see through it, so the only thing on it is a sheen */
+.drawer.otile.st-wove.ststy-starry{ background-image:
+  linear-gradient(158deg, color-mix(in srgb,var(--ink) 8%,transparent),
+    transparent 46%, color-mix(in srgb,var(--ink) 5%,transparent)) }
+/* board: a sheet thick enough to see the edge of, drawn as a second line
+   inside the bottom and the right — which is how you draw thickness */
+.drawer.otile.st-card.ststy-starry{ background-image:
+  linear-gradient(0deg, color-mix(in srgb,var(--ink) 34%,transparent) 0 1.5px, transparent 1.5px),
+  linear-gradient(90deg, transparent calc(100% - 1.5px),
+    color-mix(in srgb,var(--ink) 34%,transparent) calc(100% - 1.5px));
+  background-position:0 calc(100% - 7px), 0 0;
+  background-size:calc(100% - 14px) 100%, 100% calc(100% - 7px);
+  background-repeat:no-repeat }
+/* foxed: the spots an old sheet grows, drawn as rings rather than stains */
+.drawer.otile.st-aged.ststy-starry{ background-image:
+  radial-gradient(circle at 14% 18%, transparent 0 2.6px,
+    color-mix(in srgb,var(--ink) 30%,transparent) 2.6px 3.4px, transparent 3.4px),
+  radial-gradient(circle at 82% 74%, transparent 0 2px,
+    color-mix(in srgb,var(--ink) 24%,transparent) 2px 2.7px, transparent 2.7px),
+  radial-gradient(circle at 66% 26%, transparent 0 1.4px,
+    color-mix(in srgb,var(--ink) 20%,transparent) 1.4px 2px, transparent 2px);
+  background-size:120px 120px }
+/* A drawer front's own working is a moulding, and there are none here. The
+   panel layer is the line, so a panelling must not also paint into it. */
+.drawer.dtile.pnsty-starry .dpanel{ background:none;box-shadow:none }
+
+/* ---- the line -------------------------------------------------------- */
+/* Both halves, in one rule, because a drawer and a note are the same drawing
+   here — the only difference is how far in the line is held. */
+.drawer.dtile.bd-panel.bdsty-starry .dpanel,
+.drawer.dtile.bd-heavy.bdsty-starry .dpanel,
+.drawer.dtile.bd-bar.bdsty-starry   .dpanel,
+.drawer.dtile.bd-gloss.bdsty-starry .dpanel,
+.drawer.dtile.bd-plain.bdsty-starry .dpanel,
+.drawer.otile.bd-panel.bdsty-starry .dpanel,
+.drawer.otile.bd-heavy.bdsty-starry .dpanel,
+.drawer.otile.bd-bar.bdsty-starry   .dpanel,
+.drawer.otile.bd-gloss.bdsty-starry .dpanel,
+.drawer.otile.bd-plain.bdsty-starry .dpanel{
+  inset:3px;border-radius:5px;
+  border:2px solid color-mix(in srgb,var(--ink) 78%,transparent);
+  filter:var(--pen, url(#pencilchip));
+}
+/* The animation goes on the tile, not on the line — see the keyframes above.
+   The delay rides in a custom property because it is set from somewhere else:
+   the `animation` shorthand writes `animation-delay:0s` as part of itself, and
+   a plain `animation-delay` in the staggering rule below lost to it silently
+   when the animation lived on a five-class selector. */
+.grid > .drawer.bdsty-starry{ animation:drawnline 1.5s var(--wob,0s) infinite }
+/* the only thing a slot varies: how hard the pencil was pressed */
+.drawer.dtile.bd-heavy.bdsty-starry .dpanel,
+.drawer.otile.bd-heavy.bdsty-starry .dpanel{ border-width:3px }
+.drawer.dtile.bd-bar.bdsty-starry   .dpanel,
+.drawer.otile.bd-bar.bdsty-starry   .dpanel{ border-width:1.5px;
+  border-color:color-mix(in srgb,var(--ink) 52%,transparent) }
+.drawer.dtile.bd-gloss.bdsty-starry .dpanel,
+.drawer.otile.bd-gloss.bdsty-starry .dpanel{ border-width:1.5px;
+  border-color:color-mix(in srgb,var(--ink) 40%,transparent) }
+/* Nothing to draw, so nothing to filter — a filter is about a quarter of a
+   millisecond of fixed overhead whether or not there is a line inside it. */
+.drawer.dtile.bd-none.bdsty-starry .dpanel,
+.drawer.otile.bd-none.bdsty-starry .dpanel{ border-color:transparent;filter:none }
+/* Gilt is gold leaf, which is a *material*, and this aesthetic has none. The
+   pencil's answer to a ruled leaf frame is a **double rule** — two drawn lines
+   a fixed distance apart — so the corner brackets and the wash go and the two
+   lines stay. It still means what it meant: a face that refills itself has
+   earned a frame (decision 79), and here the frame is drawn like everything
+   else. */
+.grid > .drawer.bd-gilt.bdsty-starry{ animation:drawnline 1.5s var(--wob,0s) infinite,
+  drawnplain 1.5s var(--wob,0s) infinite }
+.drawer.bd-gilt.bdsty-starry::before{
+  filter:var(--penp, url(#pencil));
+  background:none;opacity:1;inset:5px;border-radius:3px;
+  border:1.5px solid color-mix(in srgb,var(--ink) 55%,transparent);
+  outline:1px solid color-mix(in srgb,var(--ink) 30%,transparent);outline-offset:2px }
+/* **The noise is the same on every tile, and that is what read as broken.**
+   A CSS filter's coordinate system is the element's own border box, so an
+   `feTurbulence` starts at each element's origin — which means two tiles the
+   same size get *identical* noise, and a board of eight drawers in a row had
+   its gap in the same place eight times. That is a repeat, and a repeat is
+   the one thing a hand-drawn line cannot be.
+
+   The wiggle already carries three seeds, so the fix is free: stagger the
+   animation so neighbours are on different frames of it. Three variants at any
+   instant rather than one, and it costs nothing because the animation was
+   running anyway. DOM order is not screen order on a grid, which here is a
+   help rather than a hindrance — it scatters them. */
+.grid > .drawer:nth-child(3n+2){ --wob:-.5s }
+.grid > .drawer:nth-child(3n)  { --wob:-1s }
 /* One cell square is the type's mark and nothing else, and a 40px box with a
-   3px wander on it is a scribble rather than a line. */
-.drawer.dtile.bdsty-starry.sz-mini .dpanel{display:none}
+   three-pixel wander on it is a scribble rather than a line. */
+.drawer.dtile.bdsty-starry.sz-mini .dpanel,
+.drawer.otile.bdsty-starry.sz-mini .dpanel{ display:none }
+
+/* ---- the two things that were still printed --------------------------- */
+/* A tick box, and the box on a checklist line. They were a hard grey square
+   next to a drawn tile, which is the one place the aesthetic gave itself away
+   — and `--ink-3` is the *page's* faintest ink, which on a night sky is nearly
+   the sky. Drawn in the same hand as everything else, and ticked in the glow
+   rather than filled with it: a filled box is a printed box.
+
+   No filter, for the reason the knobs have none — nineteen pixels does not
+   show a three-pixel wander, and every task on the board carrying one would
+   put the cost straight back. See decision 101. */
+html[data-style="starry"] .check,
+html[data-style="starry"] .clbox{
+  border-color:color-mix(in srgb,var(--ink) 62%,transparent);
+  background:none }
+html[data-style="starry"] .check.on,
+html[data-style="starry"] .clbox.on{
+  background:none;border-color:var(--glow);color:var(--glow) }
+
+/* A drawing does not redraw itself while you are moving it: the wiggle is a
+   repaint of every outline on the board six or seven times a second, and a
+   drag already wants those frames. Off under reduced motion for the obvious
+   reason, and off on a tile in hand for the same one. */
+.dragging,
+#fx .drawer{ animation:none }
+@media (prefers-reduced-motion:reduce){
+  .grid > .drawer{ animation:none !important }
+}
 
 /* ashlar: cut stone. A course line held off the edge and a chamfer above it,
    because a dressed block is bedded rather than framed. Slot 4 is the vine. */
@@ -1682,10 +1814,18 @@ html[data-style="golf97"] .check,html[data-style="golf97"] .clbox{border-radius:
    light, and a lit sphere sitting on a pencil drawing is the one thing that
    would give it away. The filter is safe here for the reason it is safe on
    `.dpanel` — a knob holds no text. */
+/* Drawn, like everything else: an outline with nothing inside it, no relief
+   and no highlight, because a lit sphere sitting on a pencil drawing is the
+   one thing that would give the aesthetic away.
+
+   **No filter.** A knob is about twenty pixels across and a three-pixel wander
+   on it is a scribble, not a line — and it was a filtered element on every
+   drawer on the board, which is a third of the cost of the whole aesthetic for
+   an effect nobody can see. See decision 101. */
 .pull.knsty-starry{
   background:none;
-  border:1.5px solid color-mix(in srgb,var(--ink) 62%,transparent);
-  box-shadow:none;filter:url(#pencil) }
+  border:1.5px solid color-mix(in srgb,var(--ink) 72%,transparent);
+  box-shadow:none }
 .pull.kn-round.knsty-starry{border-radius:50%}
 .pull.kn-diamond.knsty-starry{border-radius:2px;transform:rotate(45deg)}
 .pull.kn-bar.knsty-starry{border-radius:99px}

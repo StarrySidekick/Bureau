@@ -266,15 +266,33 @@ knob is a spiral without a special case. `orb` is not a position — it was in
 the picker with no CSS behind it for a long time and quietly gave you a round
 one. See decision 96.
 
-**Starful Gothic has one edge, and it is a drawn line.** It sits further from
+**Starful Gothic is a drawing, and it has no ground.** It sits further from
 the other aesthetics than they sit from each other: no moulding, no bevel, no
-relief anywhere. Its four dressed border slots are the **same** hand-drawn
-outline and vary only in weight — the tile's own ring is switched off and the
-line lives on `.dpanel`, because a box-shadow cannot be filtered on its own and
-the filter must never touch anything holding text. The chips come from
-`#pencilchip`, and **the chip grain must be finer than the stroke**: at a long
-wavelength the gaps outrun the line's thickness and it reads as dashed rather
-than weathered.
+relief, and — the part that took two goes — **no fill**. A thing on this desk
+is its outline. The eleven colour slots therefore do nothing here, which is the
+aesthetic's own answer rather than an omission. Its four dressed border slots
+are the same hand-drawn line varying only in weight; a stock is still five
+different sheets, drawn in line rather than in ground.
+
+Four rules, each of which cost a session to learn. **The line lives on
+`.dpanel`, and the tile itself must carry `filter:none`** — a torn shape
+outlines itself with four drop-shadows tracing its own alpha, and with the
+ground gone the only alpha left is the writing, so it haloed every letter.
+**A chip has to be bigger than the stroke**, not smaller — one turbulence at
+two octaves, R and G displacing and B a discrete mask dropping one band in
+twenty-four; finer than that and the line is dust, coarser and a whole corner
+goes missing. **The noise is per element**, so two tiles the same size draw the
+identical line — three filters differing in seed *and* frequency, staggered by
+`--wob`, is what breaks up the repeat. And **animate `--pen`, never `filter`**:
+a `url()` filter is not compositable, so animating it repaints every outline
+sixty times a second and an idle board sits at 42fps. See decision 101.
+
+**A filter costs about a quarter of a millisecond per element per repaint, and
+the noise is not the cost.** Buffer, graph and composite are; dropping an
+octave or shrinking the filter region changes nothing measurable. So the only
+lever is how many elements carry one — knobs, tick boxes, grains and spine
+bands do not, because none of them shows a three-pixel wander at the size it is
+drawn. Don't add a filter to something small.
 
 **A slot may be pinned to the aesthetic it came from.** Every look slot stores
 a *position* and the aesthetic says what the position is made of — that is the
