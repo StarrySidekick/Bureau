@@ -219,6 +219,79 @@ manually): `orb` knob, `aqua` border, `sheen` texture, `stars` texture.
 
 ---
 
+## What an aesthetic controls — a coverage map
+
+*Audited 2026-08-30.* This is the honest state of it: what changes when you
+switch, what does not, and where the thin patches are.
+
+### The four slot systems
+
+A slot is a **position**. The object stores the position; the aesthetic decides
+what that position is made of. This is what makes a switch re-dress everything
+you own while your individual choices survive — and switch back and every one
+of them is itself again.
+
+| System | Positions | Every aesthetic names them? | Dressed in CSS by |
+| --- | --- | --- | --- |
+| **Colour** | 16 (5 chrome + 11 objects) | yes | all — it is the `cols` array |
+| **Border / edge** | 7 | yes | all six non-default (4 slots each; Starful Gothic 10 rules) |
+| **Panelling** | 5 | yes | all six (5–6 rules each) |
+| **Knob** | 5 | yes | **only four, thinly** — Golf 97 ×3, Carca ×2, Girando ×2, Stelaine ×1, **Starful Gothic and Aeros: none** |
+
+### What else an aesthetic declares
+
+| | What it sets |
+| --- | --- |
+| `cols` + `names` | sixteen hexes and what it calls its eleven |
+| `dark` | an optional second sixteen — **only Victoria has one** |
+| `board` + `boardAlpha` | the checker under everything |
+| `defaults` | knob · border · texture · knobtone · panel — what a new drawer leans toward |
+| `spray` | which burst shape an unset preference follows |
+| `vars` | `--wood` (the carcass, and the status bar with it), `--radius`, `--radius-d`, `--serif`, `--line` |
+
+Plus per-aesthetic CSS for `.panel` and `.sqbtn` — one menu system and one
+button, so two rules reach every menu in the app — and `.gridbar`.
+
+### What does **not** change between aesthetics
+
+Ranked by how much it costs.
+
+1. **Object tiles.** There is exactly **one** per-aesthetic rule for `.otile`
+   in the whole stylesheet (Aeros'). A note, a task, a quote or an index card
+   changes colour, typeface and corner radius on a switch and nothing else.
+   Every slot system so far is scoped to `.drawer.dtile` — the *containers*.
+   This is the biggest gap by a distance.
+2. **Textures.** One global list of eleven (`dots`, `weave`, `speckle`,
+   `starry`, `check`, `rule`…), the same names and the same look in all seven.
+   A Golf 97 drawer and a Stelaine drawer pick their grain from identical
+   vocabulary. The obvious candidate for the fifth slot system.
+3. **Knobs, in practice.** They *are* a slot system, but two aesthetics dress
+   none of the five positions and the rest dress one to three. Structurally
+   done, visually half-finished.
+4. **Bindings** (book spines). Five fixed bookbinding terms — plain, banded,
+   ribbed, tooled, label — global, not a slot. A Golf 97 spine is still a
+   nineteenth-century half-leather binding.
+5. **Decorations.** Fourteen pieces, one global set. They recolour through
+   `currentColor` and `--brass`, so they belong to the palette, but the same
+   aspidistra and the same gearwork appear in all seven.
+6. **Tick boxes.** Six shapes, but desk-wide (`S.look.check`) rather than per
+   aesthetic — deliberately, by decision 83, so that a task and a checklist
+   line never disagree. Could still take an aesthetic's *default*.
+7. **Marks / icons.** One global set of about thirty.
+8. **Spray shapes.** The list is global; an aesthetic only picks which is the
+   default.
+
+### What *should* not change, and does not
+
+Faces and layouts (`front`, `checklist`, `project`, `calendar`, `timeline`,
+`spine`; `grid`, `list`, `book`, `scroll`) are **structural** — they say what a
+container *is* and how it arranges what it holds. An aesthetic saying a
+checklist is a calendar would not be a style, it would be a different app.
+Likewise the grid, paging, locking, shadows and the pinned board: those are
+facts about the desk, not about the look.
+
+---
+
 ## Two things an aesthetic does not own
 
 **The wood.** `--wood` and `--wood-2` are the carcass — the rail above the bar
