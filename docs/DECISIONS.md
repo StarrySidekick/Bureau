@@ -2836,10 +2836,21 @@ shimmer on Starry: `objColour()` for the thing you touched, `--glow` and
 decision 33. This is what keeps it furniture rather than a party trick stuck on
 top of furniture.
 
-It is a flavour rather than a switch, in Settings beside the tick boxes:
-**Nothing**, **A few**, **Confetti**, **Stars**. Each names how many, how big
-and which shapes, because those three always move together and three sliders
-would be three ways to make it look wrong.
+The setting asks **which shape**, because that is the only question worth
+asking: how many and how big always move with it, so each preset carries its
+own count and scale rather than making you set three things to get one look.
+**Stars** by default — the friendliest of them, and the one this was for; then
+Sparkles, Spirals, Squares, Hearts, Confetti, a mix of all of them, and
+Nothing. The star's inner radius is a half rather than the .38 a correct
+pentagram uses, because fat points read as friendly and thin ones read as a
+compass rose.
+
+Each option is **drawn as the thing it throws** — the type picker's rule (a
+type is drawn as the thing it makes) applied to a shape. The chip's mark comes
+out of the same `bitPath()` the burst does, painted onto a throwaway canvas, so
+a sample in Settings cannot drift from what you actually get. An unknown value
+falls back to stars rather than leaving a desk that throws nothing, which is
+also what carries a preference written by an older version.
 
 Two things it is careful about. It respects reduced motion like everything else
 in `motion.js`. And **one event is one burst**: a tap that ticks a box arrives

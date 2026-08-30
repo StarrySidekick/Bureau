@@ -189,15 +189,25 @@ function pop(id, was){
    decision 85. */
 const SPRAY = { el:null, ctx:null, bits:[], raf:0, t:0, at:0 };
 
-/* Off, or a flavour: how many, how big, and which shapes. A named preset
-   rather than a pile of sliders — the same shape as the tick boxes. */
+/* **Which shape comes out**, which is the only question worth asking: how many
+   and how big always move together with it, so each preset carries its own
+   count and scale rather than making you set three things to get one look.
+   Stars by default — the friendliest of them, and the one this was for.
+
+   An unknown value falls back to stars rather than leaving a desk that throws
+   nothing, which also carries a preference written by an older version. */
 const SPRAYS = {
   off:      ['Nothing',   0,  0,   []],
-  sparks:   ['A few',     9,  .8,  ['star','circle','ring','bar']],
-  confetti: ['Confetti',  24, 1,   ['bar','bar','circle','triangle','star','ring']],
-  stars:    ['Stars',     15, 1.1, ['star','star','spiral','ring']]
+  stars:    ['Stars',     14, 1.1, ['star']],
+  twinkles: ['Sparkles',  16, 1,   ['twinkle']],
+  spirals:  ['Spirals',   12, 1.2, ['spiral']],
+  squares:  ['Squares',   16, .95, ['square']],
+  hearts:   ['Hearts',    12, 1.1, ['heart']],
+  confetti: ['Confetti',  22, 1,   ['bar','bar','square']],
+  mixed:    ['A mix',      18, 1,
+             ['star','twinkle','spiral','square','heart','ring','bar','circle']]
 };
-const sprayNow = ()=> SPRAYS[S.look.spray] ? S.look.spray : 'sparks';
+const sprayNow = ()=> SPRAYS[S.look.spray] ? S.look.spray : 'stars';
 
 const GRAVITY = 1500;      // px/s² — heavy enough to arc inside half a second
 const DRAG    = 2.1;       // air, per second: the sideways throw dies first
@@ -209,6 +219,31 @@ function bitPath(ctx, kind, r){
   if(kind==='circle'){ ctx.arc(0,0,r,0,6.284); ctx.fill(); return; }
   if(kind==='ring'){ ctx.lineWidth=Math.max(1,r*.34); ctx.arc(0,0,r*.8,0,6.284); ctx.stroke(); return; }
   if(kind==='bar'){ ctx.fillRect(-r,-r*.42,r*2,r*.84); return; }
+  if(kind==='square'){
+    const d=r*1.5;
+    if(ctx.roundRect){ ctx.roundRect(-d/2,-d/2,d,d,r*.3); ctx.fill(); }
+    else ctx.fillRect(-d/2,-d/2,d,d);
+    return;
+  }
+  if(kind==='twinkle'){
+    // a four-pointed sparkle: the sides curve *in* towards the middle, which
+    // is the whole difference between a sparkle and a plus sign
+    for(let i=0;i<4;i++){
+      const a=i*Math.PI/2, b=a+Math.PI/2;
+      const x=Math.cos(a)*r, y=Math.sin(a)*r;
+      i ? ctx.lineTo(x,y) : ctx.moveTo(x,y);
+      ctx.quadraticCurveTo(Math.cos(a+Math.PI/4)*r*.13, Math.sin(a+Math.PI/4)*r*.13,
+                           Math.cos(b)*r, Math.sin(b)*r);
+    }
+    ctx.closePath(); ctx.fill(); return;
+  }
+  if(kind==='heart'){
+    const d=r*.95;
+    ctx.moveTo(0, d*.78);
+    ctx.bezierCurveTo(-d*1.5,-d*.35, -d*.52,-d*1.15, 0,-d*.32);
+    ctx.bezierCurveTo( d*.52,-d*1.15,  d*1.5,-d*.35, 0, d*.78);
+    ctx.closePath(); ctx.fill(); return;
+  }
   if(kind==='triangle'){
     ctx.moveTo(0,-r); ctx.lineTo(r*.9,r*.7); ctx.lineTo(-r*.9,r*.7);
     ctx.closePath(); ctx.fill(); return;
@@ -221,9 +256,12 @@ function bitPath(ctx, kind, r){
       a ? ctx.lineTo(x,y) : ctx.moveTo(x,y); }
     ctx.stroke(); return;
   }
-  // a five-pointed star, the default
+  /* A five-pointed star, the default. The inner radius is a half rather than
+     the .38 a "correct" pentagram uses: fatter points read as friendly, and
+     thin ones read as a compass rose. Rounded joins for the same reason. */
+  ctx.lineJoin='round';
   for(let i=0;i<10;i++){
-    const a=(i*Math.PI)/5 - Math.PI/2, rr=i%2 ? r*.45 : r;
+    const a=(i*Math.PI)/5 - Math.PI/2, rr=i%2 ? r*.5 : r;
     const x=Math.cos(a)*rr, y=Math.sin(a)*rr;
     i ? ctx.lineTo(x,y) : ctx.moveTo(x,y);
   }
@@ -327,6 +365,25 @@ function sprayAt(id, force){
   spray(r.left+r.width/2, r.top+r.height/2, id, force);
 }
 const sprayCount = ()=> SPRAY.bits.length;
+
+/* One option, drawn as the thing it throws — the type picker's rule (a type is
+   drawn as the thing it makes) applied to a shape. It goes through the same
+   bitPath() the burst does, on a throwaway canvas, so a sample in Settings
+   cannot drift from what you actually get. Cached: the settings panel redraws
+   on every keystroke in it. */
+const MARKS = {};
+function sprayMark(kind, colour, px){
+  const key=kind+'|'+colour+'|'+(px||22);
+  if(MARKS[key]) return MARKS[key];
+  const d=px||22, dpr=2;
+  const c=document.createElement('canvas');
+  c.width=c.height=d*dpr;
+  const x=c.getContext('2d');
+  x.translate(d*dpr/2, d*dpr/2);
+  x.fillStyle=colour; x.strokeStyle=colour;
+  bitPath(x, kind, d*dpr*.42);
+  return (MARKS[key]=c.toDataURL());
+}
 
 /* ---- a checklist face refilling itself --------------------------------
    Ticking a line takes it off the front — the render this runs after already
@@ -632,5 +689,5 @@ function pagerCancel(){
 }
 
 export { still, tileOf, tileRect, openingFor, openTile, enter, pop, clRefill,
-  spray, sprayAt, sprayCount, SPRAYS,
+  spray, sprayAt, sprayCount, SPRAYS, sprayNow, sprayMark,
   pagerBegin, pagerMove, pagerEnd, pagerCancel, pagerOn, stepDrawer };

@@ -14,7 +14,7 @@ import { openPanel, closePanel, panelKey, repositionPanel } from './panels.js';
 /* Cyclic at *function* level only — motion.js imports render() from here and
    this imports sprayAt() from there, and neither is called while the modules
    are loading. That is the graph the app already has; keep it that way. */
-import { sprayAt, SPRAYS } from './motion.js';
+import { sprayAt, SPRAYS, sprayNow, sprayMark } from './motion.js';
 import { APP_VERSION, DATA_V, save, saveIfDirty, storeSize, install } from './persist.js';
 
 /* The desk is nothing but the grid. There is no toolbar: New, Arrange and
@@ -518,9 +518,18 @@ function settingsBody(sec){
           than a keyframe — see decision 85 — so it is a flavour rather than a
           switch: how many, how big, and which shapes. */''}
     <div class="field" style="margin-top:12px"><label>When you touch something</label>
-      <div class="filterbar">${Object.entries(SPRAYS).map(([v,[nm]])=>
-        `<button class="fchip${(S.look.spray||'sparks')===v?' on':''}" data-spray="${v}">${nm}</button>`).join('')}</div>
-      <div class="mini" style="--k:var(--brass);margin-top:6px">Stars, rings, spirals and little bars of confetti, thrown out of whatever you tapped and then pulled down — and again when a new object lands on the board. They take the colour of the thing they came out of and the style's own accent, so a burst belongs to the desk it happened on.</div>
+      <div class="checkpick">${(()=>{
+        const ink=getComputedStyle(document.documentElement).getPropertyValue('--brass').trim()||'#A9793F';
+        const here=sprayNow();
+        return Object.entries(SPRAYS).map(([v,[nm,,,kinds]])=>
+          `<button class="checkopt sprayopt${here===v?' on':''}" data-spray="${v}" title="${esc(nm)}">
+            <span>${kinds.length
+              ? [...new Set(kinds)].slice(0,3).map(k=>
+                  `<img src="${sprayMark(k, ink, 20)}" alt="" width="20" height="20">`).join('')
+              : `<i class="spraynone"></i>`}</span>
+            <u>${esc(nm)}</u></button>`).join('');
+      })()}</div>
+      <div class="mini" style="--k:var(--brass);margin-top:6px">Thrown out of whatever you tapped and then pulled down — and again when a new object lands on the board. They take the colour of the thing they came out of and the style's own accent, so a burst belongs to the desk it happened on.</div>
     </div>
 
     <div class="field" style="margin-top:12px"><label>Shadows</label>

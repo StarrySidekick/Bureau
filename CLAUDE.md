@@ -186,7 +186,10 @@ first burst and removed when the last bit dies. The only canvas in the app, and
 the only movement that isn't a keyframe — a keyframe is a path decided in
 advance and every bit here needs its own arc. Colours come from `objColour()`
 and the root's `--glow`/`--brass`, never a palette of its own. `S.look.spray`
-is the flavour (off | sparks | confetti | stars). One event is one burst: a
+is **which shape** (stars by default; sparkles, spirals, squares, hearts,
+confetti, a mix, or nothing) and each preset carries its own count and scale.
+Every option in Settings is drawn by the same `bitPath()` the burst uses, so a
+sample can't drift from the thing it makes. One event is one burst: a
 second call within 120ms is dropped, because a tap that ticks a box reaches
 both `tileTap()` and `pop()`. See decision 85.
 

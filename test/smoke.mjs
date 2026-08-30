@@ -3238,7 +3238,7 @@ const CHROME = process.env.BUREAU_CHROME;
   const theSpray = await page.evaluate(async () => {
     const nap = n => new Promise(r => setTimeout(r, n));
     const S = BUREAU.state, out = {};
-    S.view='desk'; S.drawerId=null; S.look.locked=false; S.look.spray='sparks';
+    S.view='desk'; S.drawerId=null; S.look.locked=false; S.look.spray='stars';
     BUREAU.render(); await nap(150);
     BUREAU.spray(700, 400, null);
     out.itThrowsSomething = BUREAU.sprayCount() > 0;
@@ -3253,9 +3253,21 @@ const CHROME = process.env.BUREAU_CHROME;
     S.look.spray='confetti'; BUREAU.spray(700,400,null);
     const lots = BUREAU.sprayCount();
     await nap(1500);
-    S.look.spray='sparks'; BUREAU.spray(700,400,null);
+    S.look.spray='spirals'; BUREAU.spray(700,400,null);
     out.aFlavourIsHowMany = lots > BUREAU.sprayCount();
     await nap(1500);
+    /* Stars unless told otherwise — including for a preference written by an
+       older version, which is why the fallback is the default and not a
+       blank desk that throws nothing. */
+    delete S.look.spray;
+    out.starsByDefault = BUREAU.sprayNow() === 'stars';
+    S.look.spray='nonsense';
+    out.nonsenseFallsBack = BUREAU.sprayNow() === 'stars';
+    S.look.spray='stars';
+    // every shape it can throw actually draws something
+    out.everyShapeDraws = Object.values(BUREAU.SPRAYS)
+      .flatMap(v => v[3])
+      .every(k => BUREAU.sprayMark(k, '#000', 16).startsWith('data:image/png'));
     /* Tapping a tile throws from the tile. Ticking one goes through pop() as
        well, and the two must not double up — spray() drops a second call in
        the same instant. */

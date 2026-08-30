@@ -1269,6 +1269,11 @@ html[data-style="aero"] .drawer.dtile.bd-bar{
 .checkopt .check{width:22px;height:22px}
 .checkopt u{text-decoration:none;font-size:10.5px;color:var(--ink-3);white-space:nowrap}
 .checkopt.on u{color:var(--ink)}
+/* the spray picker borrows the tick boxes' chips — same job, same shape: each
+   option drawn as the thing it throws */
+.sprayopt > span{display:flex;align-items:center;gap:3px}
+.sprayopt img{display:block;opacity:.9}
+.spraynone{width:18px;height:2px;background:var(--ink-3);border-radius:2px}
 .kindmark{
   width:22px;height:22px;flex:0 0 auto;border-radius:7px;display:grid;place-items:center;margin-top:0px;
   background:color-mix(in srgb,var(--k) 17%, transparent);color:var(--k);
