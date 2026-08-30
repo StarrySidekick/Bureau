@@ -8,7 +8,7 @@ import { CELL, COLW, gridOf, lay, overlaps, boxOk, freeSpot, gridRows, sizeOfKin
   pageRows } from './grid.js';
 import { create, toast, toggleDone } from './mutations.js';
 import { DECOR, DECOR_KEYS, decorOf, decorSVG } from './decor.js';
-import { hexOf, objColour } from './look.js';
+import { hexOf, objColour, palNow, contrast } from './look.js';
 import { render, pageAt } from './views.js';
 import { openObj, openWriter, openRead, openViewer, renderSheet } from './sheet.js';
 import { objectPanel } from './panels.js';
@@ -246,6 +246,47 @@ const calRow = x => `<span class="calrow${isLate(x)&&!coversDay(x,T)?' late':''}
 /* What a click on an object does. The editor is no longer the default — it
    lives on the context menu. `onclick` is per-object, falling back to the
    kind's, and 'read' opens the body full-width with nothing to edit. */
+/* ---- lettering that can actually be read on the cover it is on ---------
+   A spine's title is the one piece of type in the app printed straight onto an
+   *object's own colour* rather than onto paper or a drawer's dark front, and
+   the eleven slots include pale creams and mid tans. Cream lettering vanishes
+   on the pale ones and gilt vanishes on the pale *and* the mid ones, because
+   gold is a mid tone — which is why this asks `readsOn()` for a contrast ratio
+   rather than `isDark()` for a side.
+
+   What it does about it is what a binder does: the *metal* changes, not the
+   design. Gilt that will not separate from its ground is burnished **bright**
+   on a dark cover and deepened to a **bronze** on a pale one — pushed away
+   from the ground rather than toward it — so a tooled spine is still tooled
+   and still gilt.
+
+   **It always takes the best of the candidates, never the first that passes a
+   threshold.** A pass/fail test picks the fallback the moment the preferred
+   colour misses, and on a *mid* cover the fallback is worse than what it
+   replaced: a first pass here dropped cream for near-black on mid brown and
+   mid purple, which measured 2.46 where the cream it replaced measured 2.57.
+   There is no threshold in this function for that reason — `readsOn()` is for
+   asking a yes/no question, and this one is "which of these is furthest from
+   the cover". Returns the two colours the stylesheet needs and whether the
+   answer came out dark, because a dark letter wants a *light* impression under
+   it and a light one wants a dark. */
+const CREAM = '#F8F3E6', DEEP = '#241A0E';
+const BRIGHT = '#FBEFC8', BRONZE = '#2A1D08';
+function spineInk(colour){
+  const ground = hexOf(colour) || '#666';
+  const gilt = hexOf(palNow()[4]) || '#C9A227';
+  const best = (...c) => c.reduce((a,b) => contrast(b,ground) > contrast(a,ground) ? b : a);
+  const ink = best(CREAM, DEEP);
+  /* Both metals are always in the running. Choosing the candidate *set* by
+     which side of mid the cover falls on is the same mistake as choosing by a
+     threshold, one step earlier: a cover at 0.46 is nominally "dark", so it
+     only ever saw the bright gold — which measured 1.86 on it, where the
+     bronze it was never offered measures 3.04. Offer both and take the max;
+     "push away from the ground" is what maximising already does. */
+  const metal = best(gilt, BRIGHT, BRONZE);
+  return { ink, metal, dark: ink === DEEP };
+}
+
 const CLICKS = {
   none:     'Nothing',
   read:     'Open it to read',
@@ -452,8 +493,11 @@ function drawTile(o, arr, box){
        what every binding has to work with: a head band, the title, and a tail
        band; a binding that doesn't want a band hides it rather than the tile
        rendering something different. See decision 87. */
+    const si = spineInk(colour);
     return `<button class="drawer dtile spinetile bn-${bindingOf(o)} bd-none${sel}${
-        has(o,'magic')?' magicspine':''}" data-drawer="${o.id}" style="--c:${colour};${place}">
+        si.dark?' spineinked':''}${
+        has(o,'magic')?' magicspine':''}" data-drawer="${o.id}"
+      style="--c:${colour};--spineink:${si.ink};--spinegilt:${si.metal};${place}">
       <span class="spinetop"></span>
       <span class="spinetitle"><b>${esc(o.title||'Untitled')}</b></span>
       ${/* A spine has no width for a chip, so what it totals is set at the foot
@@ -825,7 +869,9 @@ function drawTile(o, arr, box){
        the vertical writing mode lives on it, so a spine without one prints its
        title across the book. A binding is a container's, so this one wears no
        `bn-` class and keeps the head and tail bands it has always had. */
-    return `<button class="drawer otile sh-spine spinetile${sel}" data-row="${o.id}" style="--c:${colour};${place}">
+    const si = spineInk(colour);
+    return `<button class="drawer otile sh-spine spinetile${si.dark?' spineinked':''}${sel}"
+      data-row="${o.id}" style="--c:${colour};--spineink:${si.ink};--spinegilt:${si.metal};${place}">
       ${chips}
       <span class="spinetop"></span>
       <span class="spinetitle"><b>${esc(o.title||'Untitled')}</b></span>

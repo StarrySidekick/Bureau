@@ -38,6 +38,18 @@ const lum = hex => {
   return (0.2126*n[0] + 0.7152*n[1] + 0.0722*n[2]) / 255;
 };
 const isDark = hex => lum(hex) < 0.42;
+/* **Whether one colour can be read on another**, which is a different question
+   from whether it is darker — and the only one worth asking about lettering.
+   `isDark()` cannot answer it: gold is a *mid* tone, so gilt vanishes on a pale
+   cover and on a mid one alike, and the eleven slots contain both. The ratio is
+   WCAG's; the threshold is loose because this is large display type on a tile
+   and not body text, and because holding gilt to 4.5 would rule it out
+   everywhere except black. */
+const contrast = (a, b) => {
+  const x = lum(a), y = lum(b);
+  return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
+};
+const readsOn = (fg, bg) => contrast(fg, bg) >= 2.8;
 const mix = (a,p,b) => `color-mix(in srgb, ${a} ${p}%, ${b})`;
 function chromeTokens(cols){
   const [bg, ink, line, accent, glow] = cols;
@@ -350,4 +362,4 @@ export { themeNow, lookVal, setLookVal, applyLook, applyStyle, styleDefaults,
   randomFront, randomBoard, STYLES, BACKDROPS,
   SLOTS, OBJ0, OBJN, ROLES, slotName, styleNow, palNow, setSlot,
   BORDER_SLOTS, borderSlots, CHECKS,
-  hexOf, objColour, objSlots, isDark };
+  hexOf, objColour, objSlots, isDark, lum, contrast, readsOn };

@@ -670,21 +670,33 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
   display:flex;align-items:center;justify-content:center;overflow:hidden}
 .spinetitle b{writing-mode:vertical-rl;transform:rotate(180deg);
   font-family:var(--serif);font-weight:600;
-  color:#F8F3E6;letter-spacing:.045em;
+  /* the colour is chosen against the cover in `spineInk()`, because a title is
+     printed on an object's own colour and several of the eleven slots are pale
+     enough to swallow cream — see decision 87 */
+  color:var(--spineink,#F8F3E6);letter-spacing:.045em;
   /* In vertical writing the *inline* axis is the height, so a definite height
      is what gives `text-overflow` a length to measure against. With max-height
      the box stayed auto, the line overflowed both ends and the clip took the
      first letter off instead of the last. */
   height:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
   text-shadow:0 1px 0 rgba(0,0,0,.35)}
-.bn-label .spinetitle b{color:var(--ink,#2A2118);text-shadow:none;font-weight:600}
-/* Gilt lettering on the bindings that have gilt on them. Gold is a *mid* tone,
-   so on a pale cover it disappears — and the eleven slots include several. Real
-   gilt is stamped into the cloth and sits in its own impression, so the letter
-   carries that shadow with it and reads on a light ground as well as a dark. */
+/* A pasted label is cream paper whatever the cover under it is, so its
+   lettering is the page's own ink on every ground — two classes deep so the
+   pale-cover rule below cannot reach it. */
+.drawer.spinetile.bn-label .spinetitle b{color:var(--ink,#2A2118);text-shadow:none;font-weight:600}
+/* Gilt lettering on the bindings that have gilt on them. Not `--glow` outright:
+   gold is a *mid* tone, so on a pale cover — and on a mid one — it disappears,
+   and the eleven slots include both. `spineInk()` picks the metal that actually
+   separates from this cover and hands it over as `--spinegilt`. Real gilt is
+   stamped into the cloth and sits in its own impression, so the letter carries
+   that shadow with it either way. */
 .bn-banded .spinetitle b,.bn-tooled .spinetitle b{
-  color:var(--glow);
+  color:var(--spinegilt,var(--glow));
   text-shadow:0 1px 0 rgba(0,0,0,.55), 0 0 2px rgba(0,0,0,.4)}
+/* A dark letter wants a light impression under it, not a darker one — a dark
+   text-shadow behind dark type on a pale cover is a smudge. */
+.drawer.spinetile.spineinked .spinetitle b{
+  text-shadow:0 1px 0 rgba(255,255,255,.42)}
 /* a question with rounder corners */
 .drawer.otile.sh-bubble{border-radius:18px 18px 18px 3px}
 /* A timeline. The rule sits in the middle of the wrap rather than at the top,

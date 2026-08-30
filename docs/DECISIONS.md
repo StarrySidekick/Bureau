@@ -3001,11 +3001,32 @@ places that draw a spine must wrap the title — the container's face and the
 `sh-spine` object shape — and a spine that forgets prints its title across the
 book rather than up it.
 
-**Gilt is a mid tone, so it carries its own impression.** Gold lettering
-disappears on a pale cover, and several of the eleven slots are pale. Real
-gilt is stamped into the cloth and sits in a debossed letter, so the type
-carries that shadow with it and reads on a light ground as well as a dark one
-— rather than the app picking a different colour behind the user's back.
+**Gilt is a mid tone, so the metal is chosen against the cover.** A spine's
+title is the one piece of type in the app printed straight onto an *object's
+own colour* rather than onto paper or a drawer's dark front — and gold sits in
+the middle of the range, so it hides on a pale cover and on a mid one alike.
+`spineInk()` picks the lettering by **contrast ratio**, not by which side of
+mid the cover falls on: `isDark()` cannot answer "can this be read".
+
+What it changes is the *metal*, not the design — gilt is burnished bright on a
+dark cover and deepened to a bronze on a pale one, so a tooled spine is still
+tooled and still gilt. The letter still carries its debossed impression, dark
+under a light letter and light under a dark one.
+
+**It takes the best candidate, never the first that passes a threshold**, and
+this took two goes to get right. A pass/fail test picks the fallback the moment
+the preferred colour misses, and on a *mid* cover the fallback is worse than
+what it replaced: the first version dropped cream for near-black on mid brown,
+measuring 2.46 where the cream it replaced measured 2.57. The second version
+fixed that but still chose the candidate *set* by `lum(ground) < 0.5`, which is
+the same mistake one step earlier — a cover at 0.46 is nominally dark, so it
+only ever saw the bright gold at 1.86 and never the bronze at 3.04. Offer every
+candidate and take the maximum; "push away from the ground" is what maximising
+already does.
+
+Guarded as `spineReads`, which walks eleven slots times four styles times three
+bindings and asks for a ratio, because a screenshot of one desk cannot see it.
+Before: 1.33 at worst, which is invisible. After: 2.44.
 
 ---
 

@@ -319,9 +319,23 @@ measure. **Both places that draw a spine must wrap the title** (the container's
 face and the `sh-spine` object shape); one that forgets prints its title across
 the book. The three panelled bindings shorten that box, so their lettering is a
 step smaller — which is true of the real thing and is what lets a title that
-fills a plain spine still fit between two hubs. Gilt lettering carries a dark
-impression with it, because gold is a mid tone and several of the eleven slots
-are pale. See decision 87.
+fills a plain spine still fit between two hubs.
+
+**A spine's lettering is chosen against the cover, by contrast ratio.** It is
+the one piece of type printed straight onto an object's own colour, and gold is
+a *mid* tone — so it hides on a pale cover and a mid one alike, and `isDark()`
+cannot answer "can this be read". `spineInk()` in tiles.js hands the stylesheet
+`--spineink` and `--spinegilt`; `readsOn()`/`contrast()` in look.js are the
+primitives. It burnishes the gilt **bright** on a dark cover and deepens it to a
+**bronze** on a pale one — the metal changes, not the design.
+
+**Take the best candidate, never the first that passes a threshold**, and never
+narrow the candidate set by a side test first — both are the same bug, and both
+shipped once. A pass/fail test swaps cream for near-black on a mid cover and
+*loses* contrast; choosing the candidates by `lum < 0.5` means a cover at 0.46
+never sees the bronze that would have doubled its ratio. Offer everything, take
+the max. Guarded as `spineReads` across eleven slots times four styles. See
+decision 87.
 
 **A style is a typeface, and that includes an object's words.** `--serif` is
 whatever the style declares; `.dname`, `.tiletext` and both inline editors are
