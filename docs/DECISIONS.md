@@ -3378,3 +3378,42 @@ like ordinary drawers — and the gilt is one row of the object editor away. Tha
 is the point of the change rather than a cost of it: a deliberate frame on the
 three drawers you want framed reads as a choice, and a frame on all of them
 read as a system message.
+
+---
+
+## 95. A spine's lettering is a drawer's name turned on its side
+
+*2026-08-30*
+
+Reverses most of the lettering half of decision 87.
+
+A spine title was given a contrast-chosen colour — cream or near-black for the
+ink, gilt burnished bright or deepened to a bronze for the metal — plus an
+embossed shadow under it, on the theory that gold is a mid tone and hides on
+several of the eleven slots. The measurements were right: gilt on a mid purple
+was 1.33, which is invisible.
+
+**But that was not why the titles had disappeared.** The spines that showed no
+text at all in the report that started this were the *centering* bug — the
+title packed against the bottom of its box by `text-align: start` in a rotated
+vertical writing mode, and clipped by the tile edge. Fixing that fixed the
+symptom. What the contrast machinery then solved was a much smaller problem
+that had been mistaken for the large one, and it solved it by putting a second
+ink and an embossing on four words.
+
+So the lettering is `.dname`'s: the same family, weight, tracking and the
+drawer's own `--dink`, which is what every other container name in the app is
+set in. The argument for parity is not only that it looks better — it is that
+a spine's cover *is* an object colour, exactly like a drawer front's, and
+CLAUDE.md's standing invariant is that fronts are solid mid-dark colours read
+against light ink. A cover too pale for cream is a *front* too pale for cream,
+and that is a question about the palette rather than about spines.
+
+The gilt stays where the ornament is — in a banded spine's rules and a tooled
+one's panel. The **paper label** keeps dark ink, because that is a fact about
+the material and not a heuristic: it prints on cream stock.
+
+`readsOn()` and `contrast()` in look.js existed only for this and are gone with
+it, as is the `spineReads` block, which guarded an invariant now deliberately
+retired. Removing a test because it fails is bad; removing one because the
+thing it protects is no longer a rule is the honest half of changing your mind.

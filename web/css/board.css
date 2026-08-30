@@ -662,12 +662,13 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
    container clips at the wrong end. */
 .spinetitle{flex:1;min-height:0;min-width:0;z-index:2;position:relative;
   display:flex;align-items:center;justify-content:center;overflow:hidden}
+/* The same words a drawer front wears, turned on their side. Family, weight,
+   colour and tracking are `.dname`'s — the title on a spine is a container's
+   name like any other, and it is set in the drawer's own light ink, which the
+   tile already supplies. It carried a contrast-chosen colour and an impression
+   shadow for a while; both are gone. See decision 95. */
 .spinetitle b{writing-mode:vertical-rl;transform:rotate(180deg);
-  font-family:var(--serif);font-weight:600;
-  /* the colour is chosen against the cover in `spineInk()`, because a title is
-     printed on an object's own colour and several of the eleven slots are pale
-     enough to swallow cream — see decision 87 */
-  color:var(--spineink,#F8F3E6);letter-spacing:.045em;
+  font-family:var(--serif);font-weight:600;letter-spacing:.005em;
   /* In vertical writing the *inline* axis is the height, so a definite height
      is what gives `text-overflow` a length to measure against. With max-height
      the box stayed auto, the line overflowed both ends and the clip took the
@@ -679,25 +680,15 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
      `vertical-rl` box — which `rotate(180deg)` then flips to the bottom. So a
      short title on a tall spine sat on the tail rather than in the middle, and
      no amount of `align-items` could reach it. */
-  text-align:center;
-  text-shadow:0 1px 0 rgba(0,0,0,.35)}
+  text-align:center}
 /* A pasted label is cream paper whatever the cover under it is, so its
    lettering is the page's own ink on every ground — two classes deep so the
    pale-cover rule below cannot reach it. */
 .drawer.spinetile.bn-label .spinetitle b{color:var(--ink,#2A2118);text-shadow:none;font-weight:600}
-/* Gilt lettering on the bindings that have gilt on them. Not `--glow` outright:
-   gold is a *mid* tone, so on a pale cover — and on a mid one — it disappears,
-   and the eleven slots include both. `spineInk()` picks the metal that actually
-   separates from this cover and hands it over as `--spinegilt`. Real gilt is
-   stamped into the cloth and sits in its own impression, so the letter carries
-   that shadow with it either way. */
-.bn-banded .spinetitle b,.bn-tooled .spinetitle b{
-  color:var(--spinegilt,var(--glow));
-  text-shadow:0 1px 0 rgba(0,0,0,.55), 0 0 2px rgba(0,0,0,.4)}
-/* A dark letter wants a light impression under it, not a darker one — a dark
-   text-shadow behind dark type on a pale cover is a smudge. */
-.drawer.spinetile.spineinked .spinetitle b{
-  text-shadow:0 1px 0 rgba(255,255,255,.42)}
+/* The gilt on a banded or tooled spine is in its **rules and its panel**, which
+   is where the ornament is. The lettering is the drawer's ink like every other
+   name in the app — a second colour and an embossing on four words was doing
+   more work than the problem needed. */
 /* a question with rounder corners */
 .drawer.otile.sh-bubble{border-radius:18px 18px 18px 3px}
 /* A timeline. The rule sits in the middle of the wrap rather than at the top,

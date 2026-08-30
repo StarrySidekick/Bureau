@@ -3474,49 +3474,6 @@ const CHROME = process.env.BUREAU_CHROME;
     return out;
   });
 
-  /* A spine's title is the one piece of type printed straight onto an object's
-     own colour, so its legibility is not a fact about one style — it is eleven
-     slots times every aesthetic there is, and gilt is a mid tone that hides on
-     the middle of that range. This walks the whole product and asks for a contrast ratio,
-     because a screenshot of one desk cannot see it. */
-  const spineReads = await page.evaluate(async () => {
-    const nap = n => new Promise(r => setTimeout(r, n));
-    const S = BUREAU.state, wasStyle = S.look.style;
-    S.view='desk'; S.drawerId=null;
-    const lum = rgb => { const n = rgb.match(/[\d.]+/g).map(Number);
-      return (0.2126*n[0] + 0.7152*n[1] + 0.0722*n[2]) / 255; };
-    const made = [];
-    for (let slot = 5; slot <= 15; slot++) for (const bn of ['banded','plain','tooled']) {
-      const o = { id:`sr${slot}${bn}`, kind:'drawer', title:'Untitled', parent:'root',
-        face:'spine', binding:bn, c:slot, desk:{ x:1, y:1, w:1, h:5 } };
-      made.push(o); S.objects.push(o);
-    }
-    let worst = 99, worstAt = '';
-    for (const st of Object.keys(BUREAU.styles)) {
-      S.look.style = st; BUREAU.applyLook(); BUREAU.render(); await nap(180);
-      for (const o of made) {
-        const t = document.querySelector(`.grid .drawer[data-drawer="${o.id}"]`);
-        if (!t) continue;
-        const run = t.querySelector('.spinetitle b');
-        // resolve the cover through the browser, so color-mix() is a real colour
-        const probe = document.createElement('span');
-        probe.style.color = 'var(--c)'; t.appendChild(probe);
-        const bg = getComputedStyle(probe).color; probe.remove();
-        const a = lum(getComputedStyle(run).color), b = lum(bg);
-        const c = (Math.max(a,b) + 0.05) / (Math.min(a,b) + 0.05);
-        if (c < worst) { worst = c; worstAt = `${st}/${slot(o)}/${o.binding}`; }
-      }
-    }
-    function slot(o){ return o.c; }
-    made.forEach(o => BUREAU.delDrawer(o.id));
-    S.look.style = wasStyle; BUREAU.applyLook();
-    S.undo=[]; S.redo=[]; BUREAU.render();
-    /* 2.3 is loose on purpose — this is large display type on a book, not body
-       text. What it catches is the real failure: gilt at 1.3 on a cover it
-       cannot separate from, which is invisible rather than merely low. */
-    return { worst:+worst.toFixed(2), worstAt, everyCoverReads: worst >= 2.3 };
-  });
-
   /* --- how a drawer front is worked — decision 88 -----------------------
      The cabinetmaker's half of the bindings. Same shape of test: every one
      draws, each says which it is, and the two that must not collide don't. */
@@ -3788,7 +3745,7 @@ const CHROME = process.env.BUREAU_CHROME;
     paletteKeys, editorKeys, pickerLeads, rollupsEverywhere, soundAndVision, keyboardBoard,
     ranking, repeating, oneLock, scheduling, ownColour, addBox, calFaces,
     lockedBoard, freeTraits, pageWrites, tickBoxes, readerFits,
-    dropsIn, keyframesRegistered, aesthetics, deeper, statusBar, bindings, spineReads, panelling, theSpray, tappingIsQuiet, decorations, pinboard
+    dropsIn, keyframesRegistered, aesthetics, deeper, statusBar, bindings, panelling, theSpray, tappingIsQuiet, decorations, pinboard
   }, null, 2));
   await browser.close();
 })();
