@@ -1415,8 +1415,8 @@ html[data-style="starry"] .sqbtn{
 .drawer.otile.bd-bar.bdsty-starry   .dpanel,
 .drawer.otile.bd-gloss.bdsty-starry .dpanel,
 .drawer.otile.bd-plain.bdsty-starry .dpanel{
-  inset:3px;border-radius:5px;
-  border:2px solid color-mix(in srgb,var(--ink) 78%,transparent);
+  inset:4px;border-radius:5px;
+  border:1.5px solid color-mix(in srgb,var(--ink) 68%,transparent);
   filter:var(--pen, url(#pencilchip));
 }
 /* The animation goes on the tile, not on the line — see the keyframes above.
@@ -1424,16 +1424,16 @@ html[data-style="starry"] .sqbtn{
    the `animation` shorthand writes `animation-delay:0s` as part of itself, and
    a plain `animation-delay` in the staggering rule below lost to it silently
    when the animation lived on a five-class selector. */
-.grid > .drawer.bdsty-starry{ animation:drawnline 1.5s var(--wob,0s) infinite }
+.grid > .drawer.bdsty-starry{ animation:drawnline .75s var(--wob,0s) infinite }
 /* the only thing a slot varies: how hard the pencil was pressed */
 .drawer.dtile.bd-heavy.bdsty-starry .dpanel,
-.drawer.otile.bd-heavy.bdsty-starry .dpanel{ border-width:3px }
+.drawer.otile.bd-heavy.bdsty-starry .dpanel{ border-width:2.5px }
 .drawer.dtile.bd-bar.bdsty-starry   .dpanel,
-.drawer.otile.bd-bar.bdsty-starry   .dpanel{ border-width:1.5px;
-  border-color:color-mix(in srgb,var(--ink) 52%,transparent) }
+.drawer.otile.bd-bar.bdsty-starry   .dpanel{ border-width:1px;
+  border-color:color-mix(in srgb,var(--ink) 48%,transparent) }
 .drawer.dtile.bd-gloss.bdsty-starry .dpanel,
-.drawer.otile.bd-gloss.bdsty-starry .dpanel{ border-width:1.5px;
-  border-color:color-mix(in srgb,var(--ink) 40%,transparent) }
+.drawer.otile.bd-gloss.bdsty-starry .dpanel{ border-width:1px;
+  border-color:color-mix(in srgb,var(--ink) 36%,transparent) }
 /* Nothing to draw, so nothing to filter — a filter is about a quarter of a
    millisecond of fixed overhead whether or not there is a line inside it. */
 .drawer.dtile.bd-none.bdsty-starry .dpanel,
@@ -1444,8 +1444,8 @@ html[data-style="starry"] .sqbtn{
    lines stay. It still means what it meant: a face that refills itself has
    earned a frame (decision 79), and here the frame is drawn like everything
    else. */
-.grid > .drawer.bd-gilt.bdsty-starry{ animation:drawnline 1.5s var(--wob,0s) infinite,
-  drawnplain 1.5s var(--wob,0s) infinite }
+.grid > .drawer.bd-gilt.bdsty-starry{ animation:drawnline .75s var(--wob,0s) infinite,
+  drawnplain .75s var(--wob,0s) infinite }
 .drawer.bd-gilt.bdsty-starry::before{
   filter:var(--penp, url(#pencil));
   background:none;opacity:1;inset:5px;border-radius:3px;
@@ -1463,8 +1463,8 @@ html[data-style="starry"] .sqbtn{
    instant rather than one, and it costs nothing because the animation was
    running anyway. DOM order is not screen order on a grid, which here is a
    help rather than a hindrance — it scatters them. */
-.grid > .drawer:nth-child(3n+2){ --wob:-.5s }
-.grid > .drawer:nth-child(3n)  { --wob:-1s }
+.grid > .drawer:nth-child(3n+2){ --wob:-.25s }
+.grid > .drawer:nth-child(3n)  { --wob:-.5s }
 /* One cell square is the type's mark and nothing else, and a 40px box with a
    three-pixel wander on it is a scribble rather than a line. */
 .drawer.dtile.bdsty-starry.sz-mini .dpanel,

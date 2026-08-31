@@ -3694,24 +3694,21 @@ glyph on a night sky. The clip-path stays and the tile's filter goes; the drawn
 rectangle inside is clipped by it, so a note keeps a bite out of each side,
 which is what a tear looks like when it is drawn rather than cut.
 
-**The chips were finer than the stroke.** The first version ran three
-turbulence fields — a long wander, a short "tooth", and a third for the
-chipping. The tooth displaced by about half the stroke width, which frays a
-1.5px line rather than texturing it, and the chip field took bites smaller than
-the line was thick. Between them they turned a pencil stroke into dust. **A
-chip has to be bigger than the stroke, not smaller** — which is the opposite of
-what the first pass assumed, and the same mistake decision 96 recorded from the
-other direction when the grain was too coarse and the line read as dashed.
-There is a narrow window and it is found by looking, not by reasoning.
+**The chip grain has a narrow window at both ends, and I found the far wall.**
+The line is three passes: a long **wander** that bends it, a short **tooth**
+that gives its edge the grain of the paper, and a fine **chipping** that takes
+bites out of it. Reading a zoom of that, I judged it "dust" and rebuilt it as
+one turbulence with chips at a twenty-four pixel wavelength — cheaper, and
+wrong. Timothy's verdict was the useful one: *the current lines have a lot of
+gaps in them and it doesn't look as good as before.* A chip at that wavelength
+is not a chip, it is a gap, and a line with gaps reads as broken rather than as
+drawn. The original numbers are back.
 
-One turbulence now, at two octaves, and both effects read off it: R and G
-displace the picture, B becomes a discrete alpha mask the line is composited
-into. They are correlated by construction — the line skips where it bends —
-which is closer to a real pencil than two independent fields were. The mask
-drops one band in twenty-four, because fractal noise is bell-shaped and a band
-near the middle covers far more of the surface than its share of the range
-suggests: one in twelve ran gaps of twenty pixels and took whole rounded
-corners out.
+So the rule from decision 96 stands, and it stands both ways up. Too fine and
+the line is dust; too coarse and it is a dashed stroke with holes in it. The
+window is narrow, and it is found by looking rather than by reasoning about
+what a pencil "should" do — which is what I did, twice, in opposite
+directions.
 
 **Every tile drew the same line.** A CSS filter's coordinate system is the
 element's own border box, so an `feTurbulence` starts at each element's origin
@@ -3725,7 +3722,8 @@ enough.
 
 The line steps between the three filters, which is the drawing being redrawn.
 `filter: url()` does not interpolate, so plain percentage keyframes snap and no
-`steps()` is needed.
+`steps()` is needed. The cycle is 0.75s — four changes a second, matched to the
+rate on Timothy's own site, which is about twice what the first pass ran at.
 
 **Animate the custom property, not the filter.** Writing
 `animation: wiggle 1.5s infinite` on the line is the obvious way and it costs a
@@ -3740,17 +3738,32 @@ One trap on the way: the `animation` shorthand writes `animation-delay:0s` as
 part of itself, so the per-tile stagger set as a plain `animation-delay` in a
 lower-specificity rule lost silently. The delay rides in a custom property too.
 
-### What it costs now
+### What it costs
 
-A filter is roughly a quarter of a millisecond of **fixed** overhead per
-element per repaint — buffer, filter graph, composite — and almost none of that
-is the noise: dropping to one octave, or shrinking the filter region by an
-eighth, changed nothing measurable. So the only lever is how many elements
-carry one. Knobs, tick boxes, grains and spine bands do not: none of them shows
-a three-pixel wander at the size it is drawn, and each was a filtered element on
-every tile on the board.
+Two levers, and I was initially wrong about one of them. I measured octaves on
+the cheap single-turbulence version, saw no difference, and concluded the noise
+was free and only the element count mattered. Measured properly across the
+three-pass chain, each **pass** costs about 0.2ms per element per repaint: over
+fifty-two tiles, the wander alone is 41ms, the chip takes it to 51 and the
+tooth to 61, against Victoria's 40. What genuinely is not a lever is the filter
+region — tightening it from 116% to 106% moved nothing.
 
-Seventy-five filtered elements became fifty-two — one per tile, which *is* the
-outline system — and a full re-render went from 48ms to 32ms, against Victoria's
-34ms. The aesthetic is no longer the expensive one. Most of that came from the
-grounds and the torn-shape filters rather than from the line itself.
+So both halves matter, and the element count is the one that was free to fix.
+Knobs, tick boxes, grains and spine bands carry no filter: none of them shows a
+three-pixel wander at the size it is drawn, and each was a filtered element on
+every tile on the board. Seventy-five became fifty-two — one per tile, which
+*is* the outline system.
+
+The three passes are then a deliberate purchase. A full re-render is about 1.5×
+Victoria's, and in use that means a tick or a drop peaks near 100ms against
+Victoria's 50 — a beat, not a stall, and it buys the only thing this aesthetic
+has. Dropping the chip or the tooth would each give back roughly ten
+milliseconds and neither is worth it. The structural fix, if it is ever needed,
+is not a cheaper filter but a different architecture: draw every outline into
+one filtered SVG overlay and pay for one filter instead of fifty-two. That
+means a second source of truth for the geometry, which is why it has not been
+done.
+
+The idle cost, which is the one that actually read as lag, is gone: the board
+holds 60fps with the wiggle running, where animating `filter` directly sat it
+at 42.

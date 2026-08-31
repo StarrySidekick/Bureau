@@ -290,21 +290,25 @@ Four rules, each of which cost a session to learn. **The line lives on
 `.dpanel`, and the tile itself must carry `filter:none`** — a torn shape
 outlines itself with four drop-shadows tracing its own alpha, and with the
 ground gone the only alpha left is the writing, so it haloed every letter.
-**A chip has to be bigger than the stroke**, not smaller — one turbulence at
-two octaves, R and G displacing and B a discrete mask dropping one band in
-twenty-four; finer than that and the line is dust, coarser and a whole corner
-goes missing. **The noise is per element**, so two tiles the same size draw the
-identical line — three filters differing in seed *and* frequency, staggered by
-`--wob`, is what breaks up the repeat. And **animate `--pen`, never `filter`**:
-a `url()` filter is not compositable, so animating it repaints every outline
-sixty times a second and an idle board sits at 42fps. See decision 101.
+**The line is three passes** — a long wander, a short tooth, and a fine
+chipping — and the window on the chip grain is narrow at *both* ends: finer and
+the line is dust, coarser and the bites become gaps and it reads as broken. A
+one-turbulence version with coarse chips was tried, was cheaper, and looked
+wrong; these numbers were found by looking. **The noise is per element**, so
+two tiles the same size draw the identical line — three filters differing in
+seed, staggered by `--wob`, is what breaks up the repeat. And **animate
+`--pen`, never `filter`**: a `url()` filter is not compositable, so animating
+it repaints every outline sixty times a second and an idle board sits at 42fps.
+See decision 101.
 
-**A filter costs about a quarter of a millisecond per element per repaint, and
-the noise is not the cost.** Buffer, graph and composite are; dropping an
-octave or shrinking the filter region changes nothing measurable. So the only
-lever is how many elements carry one — knobs, tick boxes, grains and spine
-bands do not, because none of them shows a three-pixel wander at the size it is
-drawn. Don't add a filter to something small.
+**A filter costs about 0.2ms per element per *pass* per repaint**, and both
+halves of that matter. Cutting passes is real — wander alone is 41ms across
+fifty-two tiles, adding the chip makes it 51 and the tooth 61, against
+Victoria's 40 — and so is cutting elements, which is why knobs, tick boxes,
+grains and spine bands carry none: no three-pixel wander shows at the size they
+are drawn. What is *not* a lever is the filter region: tightening it from 116%
+to 106% changed nothing measurable. Don't add a filter to something small, and
+don't add a pass without measuring it.
 
 **A slot may be pinned to the aesthetic it came from.** Every look slot stores
 a *position* and the aesthetic says what the position is made of — that is the

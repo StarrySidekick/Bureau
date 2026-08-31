@@ -34,120 +34,133 @@
      Redrawing two thousand path calls with hand-wobble is a rewrite that never
      ends; displacing the result is one pass.
 
-     None of that is possible on a box-shadow — but it is the same operation an
+     None of that is possible on a box-shadow -- but it is the same operation an
      SVG filter does natively, and `feTurbulence` + `feDisplacementMap` *is*
      smooth-noise displacement of a rendered picture. So the technique carries
      over exactly; only the implementation changes.
 
-     **One turbulence, and everything comes out of it.** The first version ran
-     three — a long wander, a short "tooth", and a third field for the chipping
-     — and paid for all three on every element it was applied to, every time
-     that element repainted. On a Starful Gothic board that was seventy-five
-     filtered elements and it cost two thirds of the frame rate: 57fps became
-     21. It also did not look right. The tooth pass displaced by about half the
-     stroke width, which frays a 1.5px line rather than texturing it, and the
-     chip field was so fine that it took bites smaller than the line was thick.
-     Between them they turned a pencil stroke into dust.
+     **Three passes, and all three earn their keep.** A long **wander** that
+     bends the line, a short **tooth** that gives its edge the grain of the
+     paper, and a fine **chipping** that takes bites out of it.
 
-     So: **one** `feTurbulence` at two octaves, and both effects read off it.
-     R and G displace the picture — that is the wander, and two octaves gives
-     it a long lazy bend with a little life on top. B becomes an alpha mask
-     that the line is composited *into*, which is the skip. They are correlated
-     by construction — the line skips where it bends — and that is closer to a
-     real pencil than two independent fields were.
+     There was a version with one turbulence and coarse chips, written to make
+     the filter cheaper. It was cheaper and it was wrong: a chip at a
+     twenty-four pixel wavelength is a *gap*, and a line with gaps in it reads
+     as broken rather than as drawn. The lesson from that round stands, but the
+     other way up -- the window is narrow at both ends. Too fine and the line
+     is dust; too coarse and it is a dashed stroke with holes in it. These
+     numbers are the ones that look right, and they were found by looking.
 
-     **A chip has to be bigger than the stroke, not smaller.** That is the
-     whole lesson of the first version and it is the opposite of what it
-     assumed. The mask is `discrete`, because a skip is a skip and not a fade,
-     and it drops one band in twelve at a wavelength of about thirty pixels —
-     so a gap is a few pixels long with a centimetre of line either side. Drop
-     more, or drop it finer, and you are back to a dashed line made of dust.
+     The cost turned out not to be here anyway: a filter is about a quarter of
+     a millisecond of *fixed* overhead per element per repaint, and dropping a
+     turbulence barely moved it. What moved it was how many elements carry one,
+     which is decision 101's actual finding.
 
-     Three of each, differing in seed **and in frequency**, so the stylesheet
-     can step between them and the line wiggles the way a drawing does when you
-     keep redrawing it. Frequency as well as seed, because a filter's
-     coordinate system is the element's own border box — the noise starts at
-     each element's origin, so two tiles the same size get the *same* line, and
-     a row of eight drawers had its gap in the same place eight times. Three
-     structurally different hands, staggered across the board by
-     `animation-delay`, is what breaks that up; a re-seed at one frequency was
-     not enough. `filter: url()` does not interpolate, so plain percentage
-     keyframes snap from one to the next with no `steps()` needed. It is only
-     ever applied to layers that hold no text — displacing a drawer's name
-     would be smudging the label rather than drawing the box. See decision 101.
--->
+     Three of each, differing only in seed, so the stylesheet can step between
+     them and the line wiggles the way a drawing does when you keep redrawing
+     it. `filter: url()` does not interpolate, so plain percentage keyframes
+     snap from one to the next with no `steps()` needed; the three are
+     staggered across the board by `animation-delay`, because a filter's
+     coordinate system is the element's own border box and two tiles the same
+     size would otherwise draw the identical line.
+
+     It is only ever applied to layers that hold no text -- displacing a
+     drawer's name would be smudging the label rather than drawing the box.
+     See decisions 96 and 101. -->
 <svg width="0" height="0" aria-hidden="true" focusable="false"
      style="position:absolute;pointer-events:none">
   <filter id="pencil" x="-6%" y="-6%" width="112%" height="112%"
           color-interpolation-filters="sRGB">
-    <feTurbulence type="fractalNoise" baseFrequency="0.028" numOctaves="2"
-                  seed="7" stitchTiles="stitch" result="hand"/>
-    <feDisplacementMap in="SourceGraphic" in2="hand" scale="3"
+    <feTurbulence type="fractalNoise" baseFrequency="0.045" numOctaves="2"
+                  seed="7" stitchTiles="stitch" result="wander"/>
+    <feDisplacementMap in="SourceGraphic" in2="wander" scale="3.2"
+                       xChannelSelector="R" yChannelSelector="G" result="bent"/>
+    <feTurbulence type="fractalNoise" baseFrequency="0.34" numOctaves="1"
+                  seed="19" stitchTiles="stitch" result="tooth"/>
+    <feDisplacementMap in="bent" in2="tooth" scale="1.1"
                        xChannelSelector="R" yChannelSelector="G"/>
   </filter>
   <filter id="pencil2" x="-6%" y="-6%" width="112%" height="112%"
           color-interpolation-filters="sRGB">
-    <feTurbulence type="fractalNoise" baseFrequency="0.033" numOctaves="2"
-                  seed="23" stitchTiles="stitch" result="hand"/>
-    <feDisplacementMap in="SourceGraphic" in2="hand" scale="3"
+    <feTurbulence type="fractalNoise" baseFrequency="0.045" numOctaves="2"
+                  seed="23" stitchTiles="stitch" result="wander"/>
+    <feDisplacementMap in="SourceGraphic" in2="wander" scale="3.2"
+                       xChannelSelector="R" yChannelSelector="G" result="bent"/>
+    <feTurbulence type="fractalNoise" baseFrequency="0.34" numOctaves="1"
+                  seed="61" stitchTiles="stitch" result="tooth"/>
+    <feDisplacementMap in="bent" in2="tooth" scale="1.1"
                        xChannelSelector="R" yChannelSelector="G"/>
   </filter>
   <filter id="pencil3" x="-6%" y="-6%" width="112%" height="112%"
           color-interpolation-filters="sRGB">
-    <feTurbulence type="fractalNoise" baseFrequency="0.023" numOctaves="2"
-                  seed="41" stitchTiles="stitch" result="hand"/>
-    <feDisplacementMap in="SourceGraphic" in2="hand" scale="3"
+    <feTurbulence type="fractalNoise" baseFrequency="0.045" numOctaves="2"
+                  seed="41" stitchTiles="stitch" result="wander"/>
+    <feDisplacementMap in="SourceGraphic" in2="wander" scale="3.2"
+                       xChannelSelector="R" yChannelSelector="G" result="bent"/>
+    <feTurbulence type="fractalNoise" baseFrequency="0.34" numOctaves="1"
+                  seed="97" stitchTiles="stitch" result="tooth"/>
+    <feDisplacementMap in="bent" in2="tooth" scale="1.1"
                        xChannelSelector="R" yChannelSelector="G"/>
   </filter>
-  <!-- …and the same line, weathered. The B channel of the one turbulence
-       becomes alpha, a discrete table drops one band in twenty-four to nothing, and
-       the drawn line is composited `in` that mask — so the stroke is simply
-       missing where the paper did not take it.
-
-       **One band in twenty-four, not one in twelve.** Fractal noise is bell-shaped
-       around a half, so a band near the middle covers far more of the surface
-       than its share of the range suggests: one in twelve ran gaps of ten and
-       twenty pixels and took whole rounded corners out, which reads as broken
-       rather than as skipped. A skip is a few pixels with a long run of line
-       either side. -->
-  <filter id="pencilchip" x="-6%" y="-6%" width="112%" height="112%"
+  <!-- ...and the same line, chipped: a third noise field turned into an
+       alpha mask and composited `in`, so the stroke is simply missing where
+       the paper did not take it. **Fine on purpose** -- see the note above. -->
+  <filter id="pencilchip" x="-8%" y="-8%" width="116%" height="116%"
           color-interpolation-filters="sRGB">
-    <feTurbulence type="fractalNoise" baseFrequency="0.028" numOctaves="2"
-                  seed="7" stitchTiles="stitch" result="hand"/>
-    <feDisplacementMap in="SourceGraphic" in2="hand" scale="3"
+    <feTurbulence type="fractalNoise" baseFrequency="0.045" numOctaves="2"
+                  seed="7" stitchTiles="stitch" result="wander"/>
+    <feDisplacementMap in="SourceGraphic" in2="wander" scale="3.2"
+                       xChannelSelector="R" yChannelSelector="G" result="bent"/>
+    <feTurbulence type="fractalNoise" baseFrequency="0.34" numOctaves="1"
+                  seed="19" stitchTiles="stitch" result="tooth"/>
+    <feDisplacementMap in="bent" in2="tooth" scale="1.1"
                        xChannelSelector="R" yChannelSelector="G" result="drawn"/>
-    <feColorMatrix in="hand" type="matrix" result="skipA"
-                   values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 1 0 0"/>
-    <feComponentTransfer in="skipA" result="skips">
-      <feFuncA type="discrete" tableValues="1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 1 1 1 1 1 1 1 1"/>
+    <feTurbulence type="fractalNoise" baseFrequency="0.42" numOctaves="1"
+                  seed="41" stitchTiles="stitch" result="grit"/>
+    <feColorMatrix in="grit" type="matrix" result="gritA"
+                   values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  1 0 0 0 0"/>
+    <feComponentTransfer in="gritA" result="chips">
+      <feFuncA type="discrete" tableValues="1 1 1 1 1 1 0 1 1 1 1 1 1 1"/>
     </feComponentTransfer>
-    <feComposite in="drawn" in2="skips" operator="in"/>
+    <feComposite in="drawn" in2="chips" operator="in"/>
   </filter>
-  <filter id="pencilchip2" x="-6%" y="-6%" width="112%" height="112%"
+  <filter id="pencilchip2" x="-8%" y="-8%" width="116%" height="116%"
           color-interpolation-filters="sRGB">
-    <feTurbulence type="fractalNoise" baseFrequency="0.033" numOctaves="2"
-                  seed="23" stitchTiles="stitch" result="hand"/>
-    <feDisplacementMap in="SourceGraphic" in2="hand" scale="3"
+    <feTurbulence type="fractalNoise" baseFrequency="0.045" numOctaves="2"
+                  seed="23" stitchTiles="stitch" result="wander"/>
+    <feDisplacementMap in="SourceGraphic" in2="wander" scale="3.2"
+                       xChannelSelector="R" yChannelSelector="G" result="bent"/>
+    <feTurbulence type="fractalNoise" baseFrequency="0.34" numOctaves="1"
+                  seed="61" stitchTiles="stitch" result="tooth"/>
+    <feDisplacementMap in="bent" in2="tooth" scale="1.1"
                        xChannelSelector="R" yChannelSelector="G" result="drawn"/>
-    <feColorMatrix in="hand" type="matrix" result="skipA"
-                   values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 1 0 0"/>
-    <feComponentTransfer in="skipA" result="skips">
-      <feFuncA type="discrete" tableValues="1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 1 1 1 1 1 1 1 1"/>
+    <feTurbulence type="fractalNoise" baseFrequency="0.42" numOctaves="1"
+                  seed="83" stitchTiles="stitch" result="grit"/>
+    <feColorMatrix in="grit" type="matrix" result="gritA"
+                   values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  1 0 0 0 0"/>
+    <feComponentTransfer in="gritA" result="chips">
+      <feFuncA type="discrete" tableValues="1 1 1 1 1 1 0 1 1 1 1 1 1 1"/>
     </feComponentTransfer>
-    <feComposite in="drawn" in2="skips" operator="in"/>
+    <feComposite in="drawn" in2="chips" operator="in"/>
   </filter>
-  <filter id="pencilchip3" x="-6%" y="-6%" width="112%" height="112%"
+  <filter id="pencilchip3" x="-8%" y="-8%" width="116%" height="116%"
           color-interpolation-filters="sRGB">
-    <feTurbulence type="fractalNoise" baseFrequency="0.023" numOctaves="2"
-                  seed="41" stitchTiles="stitch" result="hand"/>
-    <feDisplacementMap in="SourceGraphic" in2="hand" scale="3"
+    <feTurbulence type="fractalNoise" baseFrequency="0.045" numOctaves="2"
+                  seed="41" stitchTiles="stitch" result="wander"/>
+    <feDisplacementMap in="SourceGraphic" in2="wander" scale="3.2"
+                       xChannelSelector="R" yChannelSelector="G" result="bent"/>
+    <feTurbulence type="fractalNoise" baseFrequency="0.34" numOctaves="1"
+                  seed="97" stitchTiles="stitch" result="tooth"/>
+    <feDisplacementMap in="bent" in2="tooth" scale="1.1"
                        xChannelSelector="R" yChannelSelector="G" result="drawn"/>
-    <feColorMatrix in="hand" type="matrix" result="skipA"
-                   values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 1 0 0"/>
-    <feComponentTransfer in="skipA" result="skips">
-      <feFuncA type="discrete" tableValues="1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 1 1 1 1 1 1 1 1"/>
+    <feTurbulence type="fractalNoise" baseFrequency="0.42" numOctaves="1"
+                  seed="137" stitchTiles="stitch" result="grit"/>
+    <feColorMatrix in="grit" type="matrix" result="gritA"
+                   values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  1 0 0 0 0"/>
+    <feComponentTransfer in="gritA" result="chips">
+      <feFuncA type="discrete" tableValues="1 1 1 1 1 1 0 1 1 1 1 1 1 1"/>
     </feComponentTransfer>
-    <feComposite in="drawn" in2="skips" operator="in"/>
+    <feComposite in="drawn" in2="chips" operator="in"/>
   </filter>
 </svg>
 <div id="frame" class="is-desk"><div class="app" id="app"></div></div>
