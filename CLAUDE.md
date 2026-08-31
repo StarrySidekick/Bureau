@@ -260,7 +260,10 @@ a steady camera grows the picture by the same *factor* each frame, hence `z**f`
 and not a lerp. The mouth is a **hole**: an `evenodd` clip in percentages cuts
 the drawer's rect out of the picture, and the dark of the carcass is a separate
 element *under* it, because anything drawn inside the hole is clipped away with
-it.
+it. The **front dissolves** over that hole — a clip is instant, so cutting the
+mouth out at the tap made the drawer pop open. A second element is fine; a
+second *curve* is what made the first version wrong, so the fading front rides
+the mouth's own waypoints.
 
 **Nothing that flies carries a filter.** One inherited `drop-shadow` on the
 diving front — scaled to four times size, so a hundred-pixel blur recomputed

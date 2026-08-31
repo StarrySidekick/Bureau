@@ -1560,6 +1560,29 @@ const CHROME = process.env.BUREAU_CHROME;
     out.theDrawerBecomesTheDoorway = !!cave && /^polygon\(\s*evenodd/.test(clip || '')
       && (clip.match(/%/g) || []).length >= 18;
 
+    /* **And the front dissolves rather than being cut away.** A clip is
+       instant, so cutting the mouth out at the moment of the tap made the
+       drawer pop open. The front is drawn again over its own hole, on the
+       mouth's own travel — same rect, same waypoints, so it cannot pull away
+       from the hole the way decision 103's second front did. */
+    const face = document.querySelector('#fx .divefront');
+    out.theFrontDissolves = !!face
+      && face.style.getPropertyValue('--dive8') === twin.style.getPropertyValue('--dive8')
+      && getComputedStyle(face).animationName === 'divefront';
+    /* solid to begin with — a fade that starts at nothing is a dissolve, not
+       something you are passing through */
+    const opacityAt = ms => {
+      const a = face && face.getAnimations()[0];
+      if(!a) return null;
+      const was = a.currentTime;
+      a.currentTime = ms;
+      const o = parseFloat(getComputedStyle(face).opacity);
+      a.currentTime = was;
+      return o;
+    };
+    out.itIsSolidToBeginWith = opacityAt(20) > .95;
+    out.andGoneByTheTimeYouAreThrough = opacityAt(0.42 * 520) < .05;
+
     /* **Both halves are one movement, and the numbers are measured.** The
        world grows until the drawer's rect fills the screen; the arriving board
        starts framed by exactly that rect. So the two end scales are
@@ -1581,7 +1604,7 @@ const CHROME = process.env.BUREAU_CHROME;
        here is one ease-in-out per gap and the camera stops dead at each
        waypoint. `dive()` walks the curve instead; these three must stay
        linear. */
-    out.theEasingIsInTheNumbers = ['#fx .fxleave', '#fx .divecave', '#app .main.in-dive']
+    out.theEasingIsInTheNumbers = ['#fx .fxleave', '#fx .divecave', '#fx .divefront', '#app .main.in-dive']
       .every(s => { const e = document.querySelector(s);
         return e && getComputedStyle(e).animationTimingFunction === 'linear'; });
     /* it pans as well as zooming, or a drawer in the corner stays in the
@@ -1612,7 +1635,7 @@ const CHROME = process.env.BUREAU_CHROME;
     out.nothingInThePictureIsFiltered = filteredInThePicture === 0;
 
     await nap(700);
-    out.andItAllClearsUp = !document.querySelector('#fx .fxleave,#fx .divecave')
+    out.andItAllClearsUp = !document.querySelector('#fx .fxleave,#fx .divecave,#fx .divefront')
       && !document.querySelector('#fx .fxopen');
     S.view = 'desk'; S.drawerId = null; BUREAU.render(); await nap(150);
     return out;
@@ -1977,7 +2000,7 @@ const CHROME = process.env.BUREAU_CHROME;
     out.frontFlies = !!document.querySelector('#fx .fxleave') && !!document.querySelector('#fx .divecave');
     out.boardArrives = !!document.querySelector('#app .main.in-dive');
     await nap(620);
-    out.ghostClearsItselfUp = !document.querySelector('#fx .fxopen,#fx .fxleave,#fx .divecave');
+    out.ghostClearsItselfUp = !document.querySelector('#fx .fxopen,#fx .fxleave,#fx .divecave,#fx .divefront');
     S.view='desk'; S.drawerId=null; BUREAU.render(); await nap(160);
 
     // a sheet of paper curls, and the page it opens is not instant either

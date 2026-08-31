@@ -152,7 +152,16 @@ function openTile(id, go){
        rect. You are looking down into the next desk from the first frame,
        through a window that opens until it is the screen. Painting the front
        black instead would be flying at a drawer rather than into one, and the
-       recursive world is the whole idea. */
+       recursive world is the whole idea.
+
+       **The front dissolves over the hole rather than being cut away with
+       it.** A clip is instant, so cutting the mouth out at the moment of the
+       tap made the drawer *pop* open — one frame of front, then a window. So
+       the front is drawn again over its own hole and faded out as the camera
+       comes in, on the mouth's own travel. That is not the two-fronts bug
+       coming back: it is the same rect on the same curve as the hole it
+       covers, so it cannot pull away from it. What made the old one wrong was
+       a *second* scale, not a second element. */
     const m=$('#app .main');
     const twin = m ? m.cloneNode(true) : null;
     const mr = m && m.getBoundingClientRect();
@@ -187,9 +196,24 @@ function openTile(id, go){
       cave.className='divecave';
       at(cave, r);
       dive(cave, r, mr, 'away');
+
+      /* The front itself, over the dark and under the picture, travelling with
+         the hole it covers and fading as you come through it. */
+      const face=document.createElement('div');
+      face.className='divefront';
+      at(face, r);
+      face.appendChild(faceOf(el));
+      face.querySelectorAll('[data-drawer],[data-row],[data-id],[data-check],[data-edit]')
+        .forEach(n=>{ n.removeAttribute('data-drawer'); n.removeAttribute('data-row');
+          n.removeAttribute('data-id'); n.removeAttribute('data-check');
+          n.removeAttribute('data-edit'); });
+      face.setAttribute('aria-hidden','true');
+      dive(face, r, mr, 'away');
+
       fx().appendChild(cave);
+      fx().appendChild(face);
       fx().appendChild(twin);
-      setTimeout(()=>{ twin.remove(); cave.remove(); }, OPEN_MS.dive);
+      setTimeout(()=>{ twin.remove(); cave.remove(); face.remove(); }, OPEN_MS.dive);
       enter('dive', r, true);
     } else enter('dive', r);
     return;

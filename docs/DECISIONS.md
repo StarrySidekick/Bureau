@@ -3910,6 +3910,19 @@ and it is translucent — a drawer with the next desk visible down inside it,
 brightening as you come. Painted opaque it would be a black rectangle you fly
 at, and flying at a drawer is not going into one.
 
+**And the front dissolves rather than being cut away with the hole.** A clip
+is instant, so cutting the mouth out at the moment of the tap made the drawer
+*pop* open: one frame of drawer front, then a window. So the front is drawn a
+second time over its own hole, above the carcass and below the picture, and
+faded out as the camera comes in — solid for the first eighth, gone by the
+time you are through it.
+
+That is not the two-fronts bug coming back, and the difference is worth
+stating because the two look identical in a diff. That front had a *second
+scale*; this one is on the mouth's own travel — the same rect, the same nine
+waypoints — so it cannot pull away from the hole it is covering. A second
+element is fine. A second curve is not.
+
 Measured after all three fixes: a steady 16.7ms, one dropped frame in a run of
 thirty-six. The clip costs nothing at all — with and without it the frame times
 are identical.

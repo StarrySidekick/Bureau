@@ -151,6 +151,35 @@
   87.5% {transform:var(--dive7,scale(3.9))}
   100%  {transform:var(--dive8,scale(4.4)); opacity:0}
 }
+/* The front, dissolving. A clip-path is instant, so cutting the mouth out of
+   the picture at the moment of the tap made the drawer *pop* open: one frame
+   of drawer, then a window. The front is therefore drawn again over its own
+   hole and faded out as the camera comes in.
+
+   It is on the mouth's own travel — the same rect, the same nine waypoints —
+   so it cannot pull away from the hole it is covering. That is what separates
+   this from the two-fronts bug decision 103 records: what was wrong there was
+   a second *scale*, not a second element.
+
+   It holds solid for the first eighth, because a drawer front is a solid
+   thing and a fade that starts at nothing reads as a dissolve rather than as
+   passing through. No shadow, for decision 101's reason. */
+.divefront{position:absolute; pointer-events:none; transform-origin:50% 50%;
+  will-change:transform,opacity;
+  animation:divefront var(--divems,.52s) linear both}
+.divefront *{filter:none !important; animation:none !important}
+@keyframes divefront{
+  0%    {transform:var(--dive0,none);       opacity:1}
+  12.5% {transform:var(--dive1,scale(1.15));opacity:1}
+  25%   {transform:var(--dive2,scale(1.4))}
+  37.5% {transform:var(--dive3,scale(1.75));opacity:0}
+  50%   {transform:var(--dive4,scale(2.2))}
+  62.5% {transform:var(--dive5,scale(2.75))}
+  75%   {transform:var(--dive6,scale(3.3))}
+  87.5% {transform:var(--dive7,scale(3.9))}
+  100%  {transform:var(--dive8,scale(4.4)); opacity:0}
+}
+
 /* The inside of the drawer: the shade over the window, travelling with it.
 
    **Dark, not opaque.** The board you are going to is framed inside this rect
