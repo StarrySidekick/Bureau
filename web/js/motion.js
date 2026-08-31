@@ -90,7 +90,7 @@ function openingFor(o, box){
 /* Opening something. `go` is the thing that actually happens — navigating into
    a drawer, opening a surface — and it is called straight away, every time,
    including when there is no animation to play at all. */
-const OPEN_MS = {dive:460, drawer:420, cabinet:520, curl:520, lift:340};
+const OPEN_MS = {dive:520, drawer:420, cabinet:520, curl:520, lift:340};
 function openTile(id, go){
   const o=byId(id);
   if(!o){ go(); return; }
@@ -136,21 +136,30 @@ function openTile(id, go){
        **Cloned before `go()`, inserted after it.** `cloneNode` is a DOM copy
        and costs almost nothing; what costs is laying a second whole board out,
        and that must not land on the frame the tap has to feel instant on.
-       Same split the pager makes for the same reason. */
+       Same split the pager makes for the same reason.
+
+       **One front, and it belongs to the picture.** The first version of this
+       flew a *separate* copy of the drawer front at the camera as well, on its
+       own curve — so there were two of the same tile on screen, starting
+       coincident and pulling apart as the animation ran, which read exactly
+       like the drawer coming out of a board that was also moving. There is one
+       front now: the one already in the picture, growing with the world it is
+       standing in. What you go *through* is the drawer's own mouth.
+
+       **And the mouth is a hole, not a dark panel.** The picture is clipped
+       with the drawer's own rect cut out of it, so what shows there is the
+       board you are arriving on — which `dive()` has framed to exactly that
+       rect. You are looking down into the next desk from the first frame,
+       through a window that opens until it is the screen. Painting the front
+       black instead would be flying at a drawer rather than into one, and the
+       recursive world is the whole idea. */
     const m=$('#app .main');
     const twin = m ? m.cloneNode(true) : null;
     const mr = m && m.getBoundingClientRect();
 
-    const ghost=document.createElement('div');
-    ghost.className='fxopen fx-dive';
-    at(ghost, r);
-    ghost.style.setProperty('--c', objColour(o));
-    ghost.innerHTML=`<i class="fxcave"></i><div class="fxfront"></div>`;
-    ghost.querySelector('.fxfront').appendChild(faceOf(el));
-
     go();
 
-    if(twin){
+    if(twin && mr){
       /* A picture of a board, not a second board. Ids go for the reason
          `faceOf()` takes them off a flying front, and so does everything a
          tile is *found* by — `tileOf()` scopes itself to `#app` and this is in
@@ -166,14 +175,23 @@ function openTile(id, go){
       twin.setAttribute('aria-hidden','true');
       twin.className='fxleave';
       at(twin, mr);
-      twin.style.setProperty('--divex', pct(r.left+r.width/2 - mr.left, mr.width));
-      twin.style.setProperty('--divey', pct(r.top+r.height/2 - mr.top, mr.height));
+      twin.style.clipPath = hole(r, mr);
+      dive(twin, r, mr, 'away');
+
+      /* The inside of the drawer, which is dark, and which is *under* the
+         picture rather than in it — the hole is cut through everything the
+         picture is made of, so anything drawn in there would be cut away with
+         it. It is placed on the mouth and given the mouth's own travel, so it
+         stays over the window as the window opens. */
+      const cave=document.createElement('i');
+      cave.className='divecave';
+      at(cave, r);
+      dive(cave, r, mr, 'away');
+      fx().appendChild(cave);
       fx().appendChild(twin);
-      setTimeout(()=>twin.remove(), OPEN_MS.dive);
-    }
-    fx().appendChild(ghost);
-    enter('dive', r);
-    setTimeout(()=>ghost.remove(), OPEN_MS.dive);
+      setTimeout(()=>{ twin.remove(); cave.remove(); }, OPEN_MS.dive);
+      enter('dive', r, true);
+    } else enter('dive', r);
     return;
   }
   const ghost=document.createElement('div');
@@ -195,20 +213,86 @@ function openTile(id, go){
   setTimeout(()=>ghost.remove(), OPEN_MS[how]);
 }
 
+/* ---- the camera --------------------------------------------------------
+   A dive is one camera move seen from both sides, and the two sides have to
+   agree exactly or it is two things happening at once. Written as four
+   waypoints along a path, because neither half of it is something CSS can work
+   out for itself.
+
+   **How far it travels is measured.** The move ends when the drawer's own rect
+   fills the screen, which is the board's size over the tile's — so opening a
+   small drawer is a longer journey than opening a big one. Clamped at both
+   ends: a 1×1 on a full desk would be a fifteen-fold zoom, and a drawer half
+   the board would barely move.
+
+   **It pans as well as zooming**, and that is the part the first version got
+   wrong. Scaling about a tile in the corner keeps that tile in the corner, so
+   it never covers the screen however far it grows — which left the old board
+   and the new one both visible at the end, a double exposure rather than an
+   arrival. The mouth has to come to the middle as it opens, so the camera
+   tracks: `translate` toward the centre while the scale runs.
+
+   **And the destination sits inside the mouth the whole way.** The arriving
+   board's transform is the exact inverse — it starts framed by the drawer's
+   rect and grows out of it, staying centred on the mouth at every waypoint,
+   which is what the `f - z**(f-1)` is. So what you see through the drawer is
+   where you are going, from the first frame.
+
+   **A steady zoom grows by the same *factor* each frame, not by the same
+   amount.** Interpolating scale linearly from 1 to 5 spends the first half of
+   the time crossing the first eighth of the apparent distance and then rushes,
+   which is the wonkiness a camera never has. Hence `z**f` rather than a
+   lerp. */
+/* The board with the drawer's rect cut out of it: the outer ring the long way
+   round, then the inner one, and `evenodd` to make the second a hole rather
+   than a second shape. In percentages of the picture's own box, because the
+   picture is about to be scaled and a hole measured in pixels would stay the
+   size it was while everything around it grew. */
+function hole(r, mr){
+  const p = (v, s) => (v/s*100).toFixed(3)+'%';
+  const l=p(r.left-mr.left, mr.width),  t=p(r.top-mr.top, mr.height),
+        rt=p(r.right-mr.left, mr.width), b=p(r.bottom-mr.top, mr.height);
+  return `polygon(evenodd, 0% 0%, 100% 0%, 100% 100%, 0% 100%, 0% 0%, `+
+    `${l} ${t}, ${l} ${b}, ${rt} ${b}, ${rt} ${t}, ${l} ${t})`;
+}
+
+const STOPS = [0, .32, .64, 1];
+/* Far enough that the mouth is the screen, and then a little further. The bare
+   covering factor is only reached on the very last frame, which leaves the old
+   board showing round the edges for the whole of the fade — the double
+   exposure this movement exists to avoid, arriving three hundred milliseconds
+   later than it used to. Overshooting by a quarter brings the moment the world
+   is sealed forward to about five sixths of the way through, which is where
+   the fade starts. */
+const OVER = 1.28;
+const zoomFor = (r, mr) => OVER * Math.min(7, Math.max(2.2,
+  Math.max(mr.width/Math.max(1,r.width), mr.height/Math.max(1,r.height))));
+
+function dive(el, r, mr, going){
+  const cx = r.left+r.width/2 - mr.left, cy = r.top+r.height/2 - mr.top;
+  el.style.setProperty('--divex', cx.toFixed(1)+'px');
+  el.style.setProperty('--divey', cy.toFixed(1)+'px');
+  if(!going) return;
+  const z = zoomFor(r, mr), dx = mr.width/2 - cx, dy = mr.height/2 - cy;
+  const step = (k, s) =>
+    `translate(${(dx*k).toFixed(1)}px,${(dy*k).toFixed(1)}px) scale(${s.toFixed(4)})`;
+  const way = going==='away'
+    ? f => step(f, z**f)             // the world, growing until the mouth is the screen
+    : f => step(f - z**(f-1), z**(f-1));  // and what is behind it, framed by that mouth
+  el.style.setProperty('--divez', z.toFixed(4));
+  STOPS.forEach((f, i) => el.style.setProperty('--dive'+i, way(f)));
+}
+
 /* The board that has just been rendered, arriving. Set after go() because
    render() replaces #app wholesale and would take the class with it. */
-function enter(kind, from){
+function enter(kind, from, zoom){
   const m=$('#app .main');
   if(!m || still()) return;
   /* Where the movement comes from. A dive grows out of the tile you touched,
      so the transform origin is that tile's centre in the arriving board's own
      coordinates — the one number that makes this a movement *through
      something* rather than a box getting bigger. */
-  if(from){
-    const b=m.getBoundingClientRect();
-    m.style.setProperty('--divex', pct(from.left+from.width/2 - b.left, b.width));
-    m.style.setProperty('--divey', pct(from.top+from.height/2 - b.top, b.height));
-  }
+  if(from) dive(m, from, m.getBoundingClientRect(), zoom && 'into');
   const cls='in-'+kind;
   m.classList.add(cls);
   setTimeout(()=>m.classList.remove(cls), 520);

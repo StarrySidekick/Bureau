@@ -238,14 +238,29 @@ Don't add a branch on a kind's name to get a different movement; add a value, or
 set `opening` on the type.
 
 **A drawer is somewhere you go, not something that comes to you.** `dive` is the
-default: the front rushes past the camera, a still picture of the board you are
-leaving flies at you, and the board you are arriving on grows out of the spot
-the drawer stood on. What is behind a drawer front is another desk, and the
-movement should say so. The picture is cloned **before** `go()` and inserted
+default: a still picture of the board you are leaving grows until the drawer's
+own rect is the screen, and the board you are arriving on is framed **inside
+that rect** the whole way. What is behind a drawer front is another desk, and
+the movement should say so. The picture is cloned **before** `go()` and inserted
 **after** it — the clone is free, laying a second board out is not, and it must
 not land on the frame the tap has to feel instant on. It carries no ids and no
 `data-drawer`/`data-row`, because the drag's lookups are not scoped to `#app`
 the way `tileOf()` is. See decision 103.
+
+**Both halves of a dive come out of one function, and all three of its rules
+were learned by looking at frames.** `dive(el, r, mr, going)` in motion.js
+writes four waypoints; `'away'` is the picture and `'into'` is the board
+arriving, and they are exact inverses, so the mouth and the destination agree
+at every waypoint. **One front** — flying a separate copy of the drawer as well
+puts two of the same tile on two scale curves and reads as the drawer coming
+out. **It pans as well as zooming** — scaling about a corner keeps the tile in
+the corner, so it never covers the screen however far it grows, and the old
+board shows round the edges at the end. **And a linear scale is not a zoom** —
+a steady camera grows the picture by the same *factor* each frame, hence `z**f`
+and not a lerp. The mouth is a **hole**: an `evenodd` clip in percentages cuts
+the drawer's rect out of the picture, and the dark of the carcass is a separate
+element *under* it, because anything drawn inside the hole is clipped away with
+it.
 
 **Nothing that flies carries a filter.** One inherited `drop-shadow` on the
 diving front — scaled to four times size, so a hundred-pixel blur recomputed

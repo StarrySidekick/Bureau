@@ -1538,15 +1538,53 @@ const CHROME = process.env.BUREAU_CHROME;
        out of the place the drawer stood. One without the other is a box
        getting bigger. */
     const twin = document.querySelector('#fx .fxleave');
-    const front = document.querySelector('#fx .fxopen.fx-dive .fxfront');
     const main = document.querySelector('#app .main');
     out.theBoardYouLeftFliesPast = !!twin;
-    out.theFrontComesAtYou = !!front;
     out.theBoardYouEnterGrowsIn = !!main && main.classList.contains('in-dive');
+
+    /* **There is one front, and it is the one in the picture.** The version
+       before this flew a second copy of the drawer at the camera on its own
+       curve, so two of the same tile were on screen pulling apart — which is
+       exactly what "the drawer also comes out" looked like. What you go
+       through now is the drawer's own mouth, gone to carcass inside the
+       picture that carries it. */
+    out.onlyOneOfTheDrawerIsOnScreen = !document.querySelector('#fx .fxopen');
+
+    /* **The mouth is a hole, not a dark panel.** The picture is clipped with
+       the drawer's rect cut out of it — in percentages, so the hole grows with
+       the picture rather than staying the size it was — and the shade over
+       that hole is its own element, under the picture, because anything drawn
+       inside the hole would be clipped away with it. */
+    const cave = document.querySelector('#fx .divecave');
+    const clip = twin && twin.style.clipPath;
+    out.theDrawerBecomesTheDoorway = !!cave && /^polygon\(\s*evenodd/.test(clip || '')
+      && (clip.match(/%/g) || []).length >= 18;
+
+    /* **Both halves are one movement, and the numbers are measured.** The
+       world grows until the drawer's rect fills the screen; the arriving board
+       starts framed by exactly that rect. So the two end scales are
+       reciprocal, and neither is a number somebody liked the look of. */
+    const sc = (el, k) => {
+      const m = /scale\(([\d.]+)\)/.exec(el ? el.style.getPropertyValue(k) : '');
+      return m ? parseFloat(m[1]) : 0;
+    };
+    const zoom = twin && parseFloat(twin.style.getPropertyValue('--divez'));
+    out.theZoomIsMeasured = zoom > 1 && Math.abs(sc(twin, '--dive3') - zoom) < .01;
+    out.andTheTwoHalvesAgree = Math.abs(sc(twin, '--dive3') * sc(main, '--dive0') - 1) < .01;
+    /* and it grows by the same factor each frame, not the same amount — the
+       waypoint sits below the arithmetic middle, which is what a steady camera
+       does and a linear ramp does not */
+    const mid = sc(twin, '--dive2');
+    out.theCameraMovesSteadily = mid > 1 && mid < 1 + (zoom - 1) * .64;
+    /* it pans as well as zooming, or a drawer in the corner stays in the
+       corner however far it grows and never covers the screen at all */
+    out.andTracksAsItGoes = /translate\(-?[\d.]+px,\s*-?[\d.]+px\)/.test(
+      twin ? twin.style.getPropertyValue('--dive3') : '');
     /* …out of the tile you touched, which is the one number that makes this a
        movement *through something* rather than a zoom about the middle. */
     const ox = main && main.style.getPropertyValue('--divex');
-    out.outOfTheTileYouTouched = !!ox && ox !== '50.0%' && /%$/.test(ox);
+    out.outOfTheTileYouTouched = /px$/.test(ox || '')
+      && Math.abs(parseFloat(ox) - main.getBoundingClientRect().width / 2) > 8;
 
     /* **The picture is a picture, not a second board.** A tile is found by its
        id and `tileOf()` scopes itself to `#app`, but the drag's lookups do not
@@ -1557,18 +1595,16 @@ const CHROME = process.env.BUREAU_CHROME;
       && !twin.querySelector('[id]');
 
     /* **And nothing that flies carries a filter.** This is the whole
-       performance story: a `drop-shadow` on the front, scaled to four times
-       size, took the movement from 60fps to 25 on its own, and the board's
-       torn shapes would do it again. Both are asserted, because both were
-       measured and neither is visible in the result. */
-    out.theFrontCastsNoShadow = !!front && getComputedStyle(front).filter === 'none';
+       performance story: a `drop-shadow` on a front scaled to four times size
+       took the movement from 60fps to 25 on its own, and the board's torn
+       shapes would do it again. Measured, and not visible in the result. */
     const filteredInThePicture = twin
       ? [...twin.querySelectorAll('*')].filter(e => getComputedStyle(e).filter !== 'none').length
       : -1;
     out.nothingInThePictureIsFiltered = filteredInThePicture === 0;
 
     await nap(700);
-    out.andItAllClearsUp = !document.querySelector('#fx .fxleave')
+    out.andItAllClearsUp = !document.querySelector('#fx .fxleave,#fx .divecave')
       && !document.querySelector('#fx .fxopen');
     S.view = 'desk'; S.drawerId = null; BUREAU.render(); await nap(150);
     return out;
@@ -1930,10 +1966,10 @@ const CHROME = process.env.BUREAU_CHROME;
        playing over the result, not which movement it is. */
     document.querySelector('.grid .drawer[data-drawer="d_in"]').click();
     out.arrivesAtOnce = S.view === 'drawer' && S.drawerId === 'd_in';
-    out.frontFlies = !!document.querySelector('#fx .fxopen.fx-dive .fxfront');
+    out.frontFlies = !!document.querySelector('#fx .fxleave') && !!document.querySelector('#fx .divecave');
     out.boardArrives = !!document.querySelector('#app .main.in-dive');
-    await nap(560);
-    out.ghostClearsItselfUp = !document.querySelector('#fx .fxopen');
+    await nap(620);
+    out.ghostClearsItselfUp = !document.querySelector('#fx .fxopen,#fx .fxleave,#fx .divecave');
     S.view='desk'; S.drawerId=null; BUREAU.render(); await nap(160);
 
     // a sheet of paper curls, and the page it opens is not instant either

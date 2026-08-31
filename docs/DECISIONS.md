@@ -3833,11 +3833,12 @@ it is **another desk** — a grid with its own drawers on it, which have their o
 grids. The organising idea of the whole app is that everything sits on a grid
 and drawers open onto grids of their own; the movement should say so.
 
-So the camera goes in instead. The front rushes up past you, the board you were
-on flies at the camera and past, and the board you are arriving on grows out of
-the exact spot the drawer was standing on. Open the drawer on the left and it
-comes from the left. A drawer inside a drawer inside a drawer then reads as
-what it is.
+So the camera goes in instead. The board you were on grows until the drawer's
+own rect is the screen, and the board you are arriving on is framed inside that
+rect the whole way — you are looking down into the next desk from the first
+frame, through a window that opens until it is everything. Open the drawer on
+the left and it comes from the left. A drawer inside a drawer inside a drawer
+then reads as what it is.
 
 `drawer` is still there and still called "Pulls out of the shelf"; it is simply
 no longer what nobody chose. `cabinet` is untouched — a standing container has
@@ -3862,6 +3863,57 @@ other is a double exposure — two desks visible at once for a fifth of a second
 which reads as a glitch rather than as movement. What reveals the board behind
 is the picture's own edges leaving the screen.
 
+### The first version was wonky, and it was wonky three ways
+
+It shipped, and it read as *the drawer coming out* while everything else moved
+in — which is precisely the impression the whole decision exists to replace.
+Three separate faults, each of which had to be found by looking at frames
+rather than by reasoning about the code.
+
+**There were two of the drawer on screen.** The picture of the board already
+contains the drawer front; flying a *separate* copy of that front at the camera
+as well put two of the same tile in the same place on two different scale
+curves — coincident at 90ms, visibly apart by 300. There is one front now and
+it belongs to the picture, growing with the world it is standing in.
+
+**Scaling about a corner never fills the screen.** Both halves scaled about the
+drawer's centre, so a drawer in the top-left grew about the top-left and stayed
+there: its rect could not cover a screen whose centre is somewhere else,
+however far it grew. So at the end the old board was still visible round the
+edges — the double exposure again, three hundred milliseconds later than
+before. The camera has to **pan as well as zoom**: `translate` toward the
+centre while the scale runs, so the mouth arrives in the middle as it opens.
+And the covering factor is overshot by a quarter, because the bare one is only
+reached on the very last frame and the fade needs somewhere to happen.
+
+**A linear scale is not a zoom.** Interpolating scale from 1 to 4.3 spends the
+first half of the time crossing the first eighth of the apparent distance and
+then rushes. A camera moving at a steady speed grows the picture by the same
+*factor* each frame, not the same amount — so the path is `z**f`, worked out at
+four waypoints in `dive()` because CSS cannot raise a variable to a power.
+
+The two halves are now written by one function from one measurement, as exact
+inverses: the mouth's transform and the destination's agree at every waypoint,
+which is what makes them one movement instead of two things happening at once.
+
+### The mouth is a hole
+
+The board you are going to is framed inside the drawer's rect for the whole
+movement — so the picture is **clipped with that rect cut out of it**, an
+`evenodd` polygon in percentages so the hole grows with the picture rather than
+staying the size it was. What shows through is the destination.
+
+The dark of the carcass is a separate element *under* the picture, not inside
+it: the hole is cut through everything the picture is made of, so anything
+drawn in there would be clipped away with it. It gets the mouth's own travel,
+and it is translucent — a drawer with the next desk visible down inside it,
+brightening as you come. Painted opaque it would be a black rectangle you fly
+at, and flying at a drawer is not going into one.
+
+Measured after all three fixes: a steady 16.7ms, one dropped frame in a run of
+thirty-six. The clip costs nothing at all — with and without it the frame times
+are identical.
+
 ### What it cost, and where the cost actually was
 
 The first version ran at 25fps with a worst frame of 267ms, against the
@@ -3871,7 +3923,7 @@ not the second layout (15ms, and identical in the cheap version), not the throw
 distance (2.7× and 1.25× cost the same), not the checkerboard, not
 `container-type`, and not `will-change`. Hiding every tile changed nothing.
 
-It was **one blurred drop-shadow**. `.fxfront` inherits the pull-out's
+It was **one blurred drop-shadow**. The flying front inherited the pull-out's
 `drop-shadow(0 18px 26px)`, and this front scales to four times size — a
 hundred-pixel blur recomputed over a growing area on every frame. Removing it
 took the movement from 59ms and 25fps to 22ms and a full 60, which is what the
