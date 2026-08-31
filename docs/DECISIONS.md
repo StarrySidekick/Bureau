@@ -3818,3 +3818,71 @@ coordinate per container and nothing in the model knows about pages — which is
 right, and which means the boundary between the two spaces is a line every
 piece of code either crosses correctly or silently crosses wrong. There are now
 exactly two functions on that line.
+
+---
+
+## 103. A drawer is somewhere you go
+
+*2026-08-31*
+
+`auto` answered `drawer` for any container that isn't standing: the front pulls
+out of the carcass, tips toward you and passes overhead, and the board behind it
+is what you have arrived on. It is a lovely piece of furniture and it is the
+wrong idea. What is behind a drawer front in Bureau is not the inside of a box,
+it is **another desk** — a grid with its own drawers on it, which have their own
+grids. The organising idea of the whole app is that everything sits on a grid
+and drawers open onto grids of their own; the movement should say so.
+
+So the camera goes in instead. The front rushes up past you, the board you were
+on flies at the camera and past, and the board you are arriving on grows out of
+the exact spot the drawer was standing on. Open the drawer on the left and it
+comes from the left. A drawer inside a drawer inside a drawer then reads as
+what it is.
+
+`drawer` is still there and still called "Pulls out of the shelf"; it is simply
+no longer what nobody chose. `cabinet` is untouched — a standing container has
+two doors and swinging them open is a different, deliberate thing.
+
+### The board you are leaving has to still be there
+
+`go()` replaces `#app` on the spot, and at that instant the arriving board is
+small and faded — so without the old board the first fifth of a second is a
+blank page. A still picture of it is cloned **before** `go()` and inserted
+**after**: `cloneNode` is half a millisecond, and what costs is laying a second
+whole board out, which must not land on the frame the tap has to feel instant
+on. Same split the pager makes, for the same reason.
+
+The picture keeps its ids off, and its `data-drawer`/`data-row`/`data-check`
+too. `tileOf()` scopes itself to `#app` and the picture lives in `#fx`, but the
+drag's own lookups do not — a second element answering to a real object's id is
+decision 51's bug lying in wait.
+
+**It stays opaque nearly all the way.** Crossfading the two boards through each
+other is a double exposure — two desks visible at once for a fifth of a second,
+which reads as a glitch rather than as movement. What reveals the board behind
+is the picture's own edges leaving the screen.
+
+### What it cost, and where the cost actually was
+
+The first version ran at 25fps with a worst frame of 267ms, against the
+pull-out's 17ms. Four things were tried and measured before the culprit turned
+up, and it is worth recording what was *not* the problem: not the clone (0.5ms),
+not the second layout (15ms, and identical in the cheap version), not the throw
+distance (2.7× and 1.25× cost the same), not the checkerboard, not
+`container-type`, and not `will-change`. Hiding every tile changed nothing.
+
+It was **one blurred drop-shadow**. `.fxfront` inherits the pull-out's
+`drop-shadow(0 18px 26px)`, and this front scales to four times size — a
+hundred-pixel blur recomputed over a growing area on every frame. Removing it
+took the movement from 59ms and 25fps to 22ms and a full 60, which is what the
+pull-out costs plus the second board's layout.
+
+The board's own filters are off in the flying picture too, on the same evidence:
+a desk carries one on every torn shape — their outline *is* four drop-shadows,
+there being no other way to make a line follow a tear — and Starful Gothic
+carries one on every tile.
+
+That is decision 101's finding arriving from the other direction, and it is
+now the rule twice over: **a filter costs per element per repaint, and a scale
+is a repaint every frame.** Nothing that flies should carry one. Neither shadow
+is visible in the result; both were free to give up.

@@ -31,6 +31,8 @@ function tileOf(id){
 const tileRect = id => { const el=tileOf(id); return el ? el.getBoundingClientRect() : null; };
 
 /* Place a floating box over the frame, in the frame's own coordinates. */
+// where a point sits inside a box, as a percentage — a transform origin
+const pct = (v, size) => `${(v/Math.max(1,size)*100).toFixed(1)}%`;
 function at(el, r){
   const f=frameRect();
   el.style.left=(r.left-f.left)+'px'; el.style.top=(r.top-f.top)+'px';
@@ -70,17 +72,25 @@ function faceOf(el){
    lay() knows nothing about. Left out, it asks lay() the same as before. */
 const PAPER = ['note','idea','verse','quote','index','page','chit'];
 const standing = b => b.w>=2 && b.h>b.w;
+/* **A drawer is somewhere you go, not something that comes to you.** `auto`
+   used to answer `drawer` for anything that isn't standing — the front pulls
+   out of the carcass and past you, which is a lovely piece of furniture and
+   the wrong idea: what is behind it is another *desk*, not the inside of a
+   box. So the camera goes in instead. A drawer inside a drawer inside a
+   drawer then reads as what it is, which is the organising idea of the whole
+   app arriving in the movement. `drawer` is still there to be picked; it is
+   just no longer what nobody chose. See decision 103. */
 function openingFor(o, box){
   const how = openingOf(o);
   if(how!=='auto') return how;
-  if(isContainer(o)) return standing(box||lay(o)) ? 'cabinet' : 'drawer';
+  if(isContainer(o)) return standing(box||lay(o)) ? 'cabinet' : 'dive';
   return PAPER.includes(shapeOf(o)) ? 'curl' : 'lift';
 }
 
 /* Opening something. `go` is the thing that actually happens — navigating into
    a drawer, opening a surface — and it is called straight away, every time,
    including when there is no animation to play at all. */
-const OPEN_MS = {drawer:420, cabinet:520, curl:520, lift:340};
+const OPEN_MS = {dive:460, drawer:420, cabinet:520, curl:520, lift:340};
 function openTile(id, go){
   const o=byId(id);
   if(!o){ go(); return; }
@@ -105,9 +115,67 @@ function openTile(id, go){
     return;
   }
 
-  // a drawer or a cabinet: the front comes off the board, and what was behind
-  // it is the board you have just arrived on
+  /* Going *in*. The front rushes up past the camera while the board you are
+     arriving on grows out of the place the drawer was standing — so the
+     movement has a direction and the direction is inward. The origin is the
+     tile's own centre, which is what makes opening the drawer on the left
+     feel different from opening the one on the right.
+
+     No clone of the board you are leaving, which the obvious version of this
+     wants: `.main.cloneNode(true)` is thirteen milliseconds to lay out and it
+     would land on the frame that has to feel instant. The front expanding over
+     the cut covers it instead. See decision 103. */
   const r=el.getBoundingClientRect();
+  if(how==='dive'){
+    /* The board you are leaving has to still be there, or the first fifth of
+       a second is a blank page: `go()` replaces #app on the spot, and the
+       board arriving is small and faded at that moment. So a still picture of
+       it flies at the camera and past, and what grows out from behind it is
+       where you were going.
+
+       **Cloned before `go()`, inserted after it.** `cloneNode` is a DOM copy
+       and costs almost nothing; what costs is laying a second whole board out,
+       and that must not land on the frame the tap has to feel instant on.
+       Same split the pager makes for the same reason. */
+    const m=$('#app .main');
+    const twin = m ? m.cloneNode(true) : null;
+    const mr = m && m.getBoundingClientRect();
+
+    const ghost=document.createElement('div');
+    ghost.className='fxopen fx-dive';
+    at(ghost, r);
+    ghost.style.setProperty('--c', objColour(o));
+    ghost.innerHTML=`<i class="fxcave"></i><div class="fxfront"></div>`;
+    ghost.querySelector('.fxfront').appendChild(faceOf(el));
+
+    go();
+
+    if(twin){
+      /* A picture of a board, not a second board. Ids go for the reason
+         `faceOf()` takes them off a flying front, and so does everything a
+         tile is *found* by — `tileOf()` scopes itself to `#app` and this is in
+         `#fx`, but the drag's own lookups do not, and a second element
+         answering to a real object's id is decision 51's bug waiting to
+         happen. */
+      twin.removeAttribute('id');
+      twin.querySelectorAll('[id]').forEach(n=>n.removeAttribute('id'));
+      twin.querySelectorAll('[data-drawer],[data-row],[data-id],[data-check],[data-edit]')
+        .forEach(n=>{ n.removeAttribute('data-drawer'); n.removeAttribute('data-row');
+          n.removeAttribute('data-id'); n.removeAttribute('data-check');
+          n.removeAttribute('data-edit'); });
+      twin.setAttribute('aria-hidden','true');
+      twin.className='fxleave';
+      at(twin, mr);
+      twin.style.setProperty('--divex', pct(r.left+r.width/2 - mr.left, mr.width));
+      twin.style.setProperty('--divey', pct(r.top+r.height/2 - mr.top, mr.height));
+      fx().appendChild(twin);
+      setTimeout(()=>twin.remove(), OPEN_MS.dive);
+    }
+    fx().appendChild(ghost);
+    enter('dive', r);
+    setTimeout(()=>ghost.remove(), OPEN_MS.dive);
+    return;
+  }
   const ghost=document.createElement('div');
   ghost.className='fxopen fx-'+how;
   at(ghost, r);
@@ -129,9 +197,18 @@ function openTile(id, go){
 
 /* The board that has just been rendered, arriving. Set after go() because
    render() replaces #app wholesale and would take the class with it. */
-function enter(kind){
+function enter(kind, from){
   const m=$('#app .main');
   if(!m || still()) return;
+  /* Where the movement comes from. A dive grows out of the tile you touched,
+     so the transform origin is that tile's centre in the arriving board's own
+     coordinates — the one number that makes this a movement *through
+     something* rather than a box getting bigger. */
+  if(from){
+    const b=m.getBoundingClientRect();
+    m.style.setProperty('--divex', pct(from.left+from.width/2 - b.left, b.width));
+    m.style.setProperty('--divey', pct(from.top+from.height/2 - b.top, b.height));
+  }
   const cls='in-'+kind;
   m.classList.add(cls);
   setTimeout(()=>m.classList.remove(cls), 520);

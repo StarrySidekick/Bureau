@@ -752,7 +752,8 @@ const readOf = o => (o && o.read) || K(o&&o.kind).read || 'page';
    Resolving auto needs the object's box and its shape, so it lives in
    motion.js next to the animations it chooses between; this is the vocabulary
    and the stored value, which is what the settings panel needs. */
-const OPENINGS = {auto:'However it suits', drawer:'Pulls out of the shelf',
+const OPENINGS = {auto:'However it suits', dive:'You go in',
+  drawer:'Pulls out of the shelf',
   cabinet:'Swings open', curl:'Curls up', lift:'Lifts', none:'Nothing'};
 const openingOf = o => (o && o.opening) || K(o&&o.kind).opening || 'auto';
 // A phone has no room for a spread, so book reads as page there and the page

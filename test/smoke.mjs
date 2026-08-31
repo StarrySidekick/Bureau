@@ -1521,6 +1521,59 @@ const CHROME = process.env.BUREAU_CHROME;
     return out;
   });
 
+  /* --- going in, rather than it coming out — decision 103 ---------------- */
+  const goingIn = await page.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const S = BUREAU.state, out = {};
+    S.view = 'desk'; S.drawerId = null; BUREAU.render(); await nap(200);
+    const el = [...document.querySelectorAll('.grid .drawer[data-drawer]')]
+      .find(e => /Idea Bin/.test(e.textContent));
+    out.foundADrawer = !!el;
+    if(!el) return out;
+    el.click();
+    await nap(40);
+
+    /* Both halves of the movement exist: a still picture of the board you are
+       leaving, flying at the camera, and the board you are arriving on growing
+       out of the place the drawer stood. One without the other is a box
+       getting bigger. */
+    const twin = document.querySelector('#fx .fxleave');
+    const front = document.querySelector('#fx .fxopen.fx-dive .fxfront');
+    const main = document.querySelector('#app .main');
+    out.theBoardYouLeftFliesPast = !!twin;
+    out.theFrontComesAtYou = !!front;
+    out.theBoardYouEnterGrowsIn = !!main && main.classList.contains('in-dive');
+    /* …out of the tile you touched, which is the one number that makes this a
+       movement *through something* rather than a zoom about the middle. */
+    const ox = main && main.style.getPropertyValue('--divex');
+    out.outOfTheTileYouTouched = !!ox && ox !== '50.0%' && /%$/.test(ox);
+
+    /* **The picture is a picture, not a second board.** A tile is found by its
+       id and `tileOf()` scopes itself to `#app`, but the drag's lookups do not
+       — a second element answering to a real object's id is decision 51's bug
+       lying in wait. */
+    out.thePictureHasNoIdentity = !!twin
+      && !twin.querySelector('[data-drawer],[data-row],[data-id],[data-check]')
+      && !twin.querySelector('[id]');
+
+    /* **And nothing that flies carries a filter.** This is the whole
+       performance story: a `drop-shadow` on the front, scaled to four times
+       size, took the movement from 60fps to 25 on its own, and the board's
+       torn shapes would do it again. Both are asserted, because both were
+       measured and neither is visible in the result. */
+    out.theFrontCastsNoShadow = !!front && getComputedStyle(front).filter === 'none';
+    const filteredInThePicture = twin
+      ? [...twin.querySelectorAll('*')].filter(e => getComputedStyle(e).filter !== 'none').length
+      : -1;
+    out.nothingInThePictureIsFiltered = filteredInThePicture === 0;
+
+    await nap(700);
+    out.andItAllClearsUp = !document.querySelector('#fx .fxleave')
+      && !document.querySelector('#fx .fxopen');
+    S.view = 'desk'; S.drawerId = null; BUREAU.render(); await nap(150);
+    return out;
+  });
+
   /* --- a board row is not a screen row — decision 102 --------------------
      `gridTile()` subtracts the page as it draws, and that is the whole of
      paging. Anything that reads a cell *off* the screen, or writes a box
@@ -1849,13 +1902,17 @@ const CHROME = process.env.BUREAU_CHROME;
     const S = BUREAU.state, out = {};
 
     /* how a thing opens is worked out from what it is, and can be overruled.
-       Which way round it is, not how big: a square is a drawer at any size, and
-       it takes standing up taller than it is wide to be a cabinet. */
+       Which way round it is, not how big: a square is not a cabinet at any
+       size, and it takes standing up taller than it is wide to be one. Asked
+       as "not a cabinet" rather than as a name, because the name of the other
+       answer is a *default* and defaults change -- it is `dive` now and was
+       `drawer` (decision 103). The shape test is the thing being asserted. */
     const d = S.objects.find(o => o.id === 'd_in');
     d.desk = { ...d.desk, w:4, h:4 };
-    out.squareIsADrawer = BUREAU.openingFor(d) === 'drawer';
+    out.squareIsNotACabinet = BUREAU.openingFor(d) !== 'cabinet';
+    out.andTheDefaultIsToGoIn = BUREAU.openingFor(d) === 'dive';
     d.desk = { ...d.desk, w:6, h:6 };
-    out.andSoIsABigSquare = BUREAU.openingFor(d) === 'drawer';
+    out.andSoIsABigSquare = BUREAU.openingFor(d) !== 'cabinet';
     d.desk = { ...d.desk, w:4, h:6 };
     out.standingIsACabinet = BUREAU.openingFor(d) === 'cabinet';
     d.opening = 'curl';
@@ -1867,11 +1924,14 @@ const CHROME = process.env.BUREAU_CHROME;
     out.aTaskJustLifts = BUREAU.openingFor(S.objects.find(o => o.kind === 'task')) === 'lift';
     BUREAU.render(); await nap(160);
 
-    // opening a drawer: there *and then*, with the front flying over the top
+    /* opening a drawer: there *and then*, with the front flying over the top.
+       Named for the default, which is `dive` since decision 103 — the point of
+       these two is that the state changed on the spot and a movement is
+       playing over the result, not which movement it is. */
     document.querySelector('.grid .drawer[data-drawer="d_in"]').click();
     out.arrivesAtOnce = S.view === 'drawer' && S.drawerId === 'd_in';
-    out.frontFlies = !!document.querySelector('#fx .fxopen.fx-drawer .fxfront');
-    out.boardArrives = !!document.querySelector('#app .main.in-drawer');
+    out.frontFlies = !!document.querySelector('#fx .fxopen.fx-dive .fxfront');
+    out.boardArrives = !!document.querySelector('#app .main.in-dive');
     await nap(560);
     out.ghostClearsItselfUp = !document.querySelector('#fx .fxopen');
     S.view='desk'; S.drawerId=null; BUREAU.render(); await nap(160);
@@ -2199,12 +2259,12 @@ const CHROME = process.env.BUREAU_CHROME;
     const knobs = d => document.querySelectorAll(`.grid .drawer[data-drawer="${d.id}"] .pull`).length;
     out.standingSwings   = BUREAU.openingFor(tall) === 'cabinet';
     out.andWearsTwoKnobs = knobs(tall) === 2;
-    out.lyingStillPulls  = BUREAU.openingFor(wide) === 'drawer';
+    out.lyingIsNoCabinet = BUREAU.openingFor(wide) !== 'cabinet';
     out.andWearsOne      = knobs(wide) === 1;
     /* Which way round it is, not how big it is. A second clause used to put
        doors on anything over a given area, which is what gave a 4x3 — a front
        half again as wide as it is tall — two of them. */
-    out.sizeIsNotTheQuestion = BUREAU.openingFor(big) === 'drawer' && knobs(big) === 1;
+    out.sizeIsNotTheQuestion = BUREAU.openingFor(big) !== 'cabinet' && knobs(big) === 1;
     // it follows openingFor(), not a size test of its own: say "pulls out" and
     // the second door goes with it
     tall.opening = 'drawer'; BUREAU.render(); await nap(120);
@@ -4183,7 +4243,7 @@ const CHROME = process.env.BUREAU_CHROME;
   console.log(JSON.stringify({
     errors: errs, manifestOk, swReady, survived, styleSurvived, slotColours,
     newObjectSeen, inlineEdit, sortDefaults, taskLook,
-    shelfTools, gridSizes, keeping, versionShown, sampler, paging, pageCoords, pagerGround,
+    shelfTools, gridSizes, keeping, versionShown, sampler, paging, pageCoords, pagerGround, goingIn,
     makingOnAPhone, railDrawer, railIsFurniture, pagerLandsFlat, deskDots,
     listSwipe, shadows, textureDepth,
     gridClass, offlineWorks, railGone, tabsGone, shelfGone, tileNavigates,

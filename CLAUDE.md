@@ -230,12 +230,30 @@ animated app becomes a slow one, and it breaks every test that reads state
 after a click. See decision 38.
 
 **How a thing opens is a property, and the front says which.** `openingFor(o,
-box)` in `motion.js` — `auto | drawer | cabinet | curl | lift | none`, per object
-then per type. `auto` asks what the object *is*: a container over four cells
-square swings open, so does one **taller than it is wide** at two cells of width
-or more, a smaller one pulls out, a paper shape curls, everything else lifts.
+box)` in `motion.js` — `auto | dive | drawer | cabinet | curl | lift | none`,
+per object then per type. `auto` asks what the object *is*: a container
+**taller than it is wide** at two cells of width or more swings open, any other
+container is one you **go into**, a paper shape curls, everything else lifts.
 Don't add a branch on a kind's name to get a different movement; add a value, or
 set `opening` on the type.
+
+**A drawer is somewhere you go, not something that comes to you.** `dive` is the
+default: the front rushes past the camera, a still picture of the board you are
+leaving flies at you, and the board you are arriving on grows out of the spot
+the drawer stood on. What is behind a drawer front is another desk, and the
+movement should say so. The picture is cloned **before** `go()` and inserted
+**after** it — the clone is free, laying a second board out is not, and it must
+not land on the frame the tap has to feel instant on. It carries no ids and no
+`data-drawer`/`data-row`, because the drag's lookups are not scoped to `#app`
+the way `tileOf()` is. See decision 103.
+
+**Nothing that flies carries a filter.** One inherited `drop-shadow` on the
+diving front — scaled to four times size, so a hundred-pixel blur recomputed
+every frame — cost 25fps against the pull-out's 60, and it was the *only* thing
+that did: not the clone, not the second layout, not the throw distance, not the
+checkerboard. The flying picture drops the board's filters too, and a desk has
+one on every torn shape. A scale is a repaint every frame and a filter costs per
+element per repaint — decision 101's finding, from the other side.
 
 A container is a **cabinet when it stands** — taller than it is wide, at least
 two cells across — and a drawer at any other shape, however big. Which way round

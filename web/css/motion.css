@@ -75,6 +75,67 @@
   100%{transform:rotateY(82deg)   translateZ(22px);opacity:0}
 }
 
+/* ---- going in --------------------------------------------------------
+   The default for a drawer, and the one movement in the app that is about
+   *travel* rather than about a piece of furniture doing what it does. The
+   front rushes up past the camera; the board behind it grows out of the exact
+   spot the drawer was standing on. Two halves of one movement, on the same
+   curve and the same clock, or it reads as two things happening at once. */
+/* **No shadow on the front.** `.fxfront` carries the pull-out's soft
+   `drop-shadow(0 18px 26px)` by default, and this one flies at the camera to
+   four times size -- which is a hundred-pixel blur recomputed over a growing
+   area on every frame. It took the whole movement from 60fps to 25, and it was
+   the *only* thing that did: with it gone the dive costs what the pull-out
+   costs. A thing rushing past you does not need a shadow; it needs to get out
+   of the way. */
+.fxopen.fx-dive .fxfront{
+  filter:none;
+  transform-origin:50% 50%;will-change:transform,opacity;
+  animation:divethrough .46s cubic-bezier(.42,0,.24,1) forwards}
+@keyframes divethrough{
+  0%  {transform:scale(1);   opacity:1}
+  46% {opacity:.9}
+  100%{transform:scale(4.2); opacity:0}
+}
+/* The carcass, briefly, so there is a moment of dark to pass through — the
+   same brief-and-clear rule the pull-out's cave follows. */
+.fxopen.fx-dive .fxcave{animation:fxcave .26s ease-out forwards}
+.main.in-dive{
+  transform-origin:var(--divex,50%) var(--divey,50%);
+  animation:divein .46s cubic-bezier(.42,0,.24,1)}
+@keyframes divein{
+  from{transform:scale(.34);opacity:0}
+  30% {opacity:.35}
+  62% {opacity:1}
+  to  {transform:none;opacity:1}
+}
+/* The board you are leaving, as a still picture, flying at the camera and
+   past it — the half of the movement that makes the other half read as
+   travel rather than as a box growing. It scales about the same point the
+   arriving board grows out of, so the two are one gesture. */
+.fxleave{position:absolute;overflow:hidden;pointer-events:none;
+  transform-origin:var(--divex,50%) var(--divey,50%);
+  will-change:transform,opacity;backface-visibility:hidden;
+  animation:diveleave .46s cubic-bezier(.42,0,.24,1) forwards}
+/* **Opaque nearly all the way.** Crossfading the two boards through each
+   other is a double exposure -- two desks visible at once for a fifth of a
+   second, which reads as a glitch rather than as movement. It stays solid and
+   simply flies past; what reveals the board behind it is its own edges
+   leaving the screen, and only the last of it fades. */
+/* **No filters on the picture either**, for the same reason and measured the
+   same way. A desk carries one on every torn shape -- their outline *is* four
+   drop-shadows, there being no other way to make a line follow a tear -- and,
+   in Starful Gothic, one on every tile. Scaling re-rasterises and
+   re-rasterising re-runs all of them. A hairline outline on a board flying
+   past at nearly three times size is not something anyone can see. Decision
+   101's finding, arriving from the other direction. */
+.fxleave *{filter:none !important;animation:none !important}
+@keyframes diveleave{
+  0%  {transform:scale(1);   opacity:1}
+  62% {transform:scale(1.8); opacity:1}
+  100%{transform:scale(2.7); opacity:0}
+}
+
 /* the board you have arrived on, coming up out of the thing you opened */
 .main.in-drawer{animation:insidein .34s cubic-bezier(.2,.9,.3,1)}
 .main.in-cabinet{animation:insidein .4s cubic-bezier(.2,.9,.3,1)}
@@ -210,6 +271,6 @@
 @media (prefers-reduced-motion: reduce){
   .fxopen,.fxring,#fx > *{display:none}
   .drawer.curling,.drawer.lifting,.drawer.popped,
-  .main.in-drawer,.main.in-cabinet,.main.in-back{animation:none}
+  .main.in-drawer,.main.in-cabinet,.main.in-back,.main.in-dive{animation:none}
   .curlshade{display:none}
 }
