@@ -704,6 +704,20 @@ const viewKey = ()=> S.view==='drawer' ? 'drawer:'+S.drawerId : 'desk';
 const PAGE = {};
 const pageCount = cid => lastPage(dev(), cid) + (pageRows(dev(), cid) ? 2 : 1);
 const pageAt = cid => Math.min(PAGE[cid]||0, pageCount(cid)-1);
+/* How many rows this board is scrolled down by, right now.
+
+   **A box in the model is in board rows and a cell on the screen is in page
+   rows, and the two are only the same on page one.** `gridTile()` subtracts
+   this as it draws (`PAGESHIFT` in tiles.js), which is the whole of paging —
+   but anything that reads a cell *off* the screen, or writes a box *onto* it,
+   has to make the same conversion or it is a page out. Three gestures did
+   not: sketching a new object read a screen row and stored it as a board row,
+   so on page two it collided with whatever was at that row on page one and
+   refused to make anything; and the move ghost and the live resize wrote a
+   board row straight into `grid-row`, which on page two is off the end of the
+   page — so a tile being resized vanished until you let go and a render put
+   it back. See decision 102. */
+const pageTop = cid => pageAt(cid) * pageRows(dev(), cid);
 function goPage(cid, n, soon){
   const p = clamp(n, 0, pageCount(cid)-1);
   if(p === pageAt(cid)) return false;
@@ -1010,6 +1024,6 @@ function sizeGrid(){
   if(changed){ sizing=true; try{ render(); } finally { sizing=false; } }
 }
 
-export { render, renderSoon, sizeGrid, reveal, deskMap, viewHTML, previewHTML,
+export { render, renderSoon, sizeGrid, pageTop, reveal, deskMap, viewHTML, previewHTML,
   pageAt, pageCount, goPage, gridSizeField,
   settingsPanel, toggleSettings };

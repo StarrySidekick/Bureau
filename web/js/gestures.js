@@ -5,7 +5,7 @@ import { GRID, CELL, gridOf, cellW, lay, boxOk, overlaps } from './grid.js';
 import { toast, gather, setPin, del, pushSets } from './mutations.js';
 import { pending, tileTap, fireButton } from './tiles.js';
 import { modalNewObject, openCtx, closeCtx, schedulePanel } from './panels.js';
-import { render } from './views.js';
+import { render, pageTop } from './views.js';
 import { pagerBegin, pagerMove, pagerEnd, pagerCancel, pagerOn } from './motion.js';
 import { save } from './persist.js';
 
@@ -178,9 +178,14 @@ function candidate(g, cx, cy){
   if(h<1){ if(hd.includes('n')) y=b.y+b.h-1; h=1; }
   return {x,y,w,h};
 }
-function place(el, b){
+/* A box is in **board** rows; `grid-row` is in **page** rows. They are the same
+   thing only on page one, and everything that draws a box onto the screen has
+   to take the page off it — the same subtraction `gridTile()` makes as it
+   renders. Forgetting it put a resizing tile at a row the page hasn't got, so
+   it disappeared until you let go. See decision 102. */
+function place(el, b, cid){
   el.style.gridColumn=`${b.x} / span ${b.w}`;
-  el.style.gridRow=`${b.y} / span ${b.h}`;
+  el.style.gridRow=`${b.y - pageTop(cid||ROOT)} / span ${b.h}`;
 }
 // put a carried tile down: the offset the sway was composing, and the fallback
 function clearCarry(el){
@@ -416,7 +421,12 @@ function onDown(e){
     const grid=e.target, home=grid.dataset.gridfor||ROOT;
     const g=gridOf(undefined, home), r=grid.getBoundingClientRect(), cw=cellW(grid,g);
     const cx=clamp(Math.floor((e.clientX-r.left)/(cw+g.gap))+1, 1, g.cols);
-    const cy=Math.max(1, Math.floor((e.clientY-r.top)/(CELL[dev()]+g.gap))+1);
+    /* A board row, not the row you touched: `cy` comes off the screen, so on
+       page two it is thirteen short of where the object actually goes. Adding
+       the page back here is what makes every reader below — `boxOk`,
+       `overlaps`, and the box `create()` is handed — see the same coordinate
+       space the model stores. See decision 102. */
+    const cy=Math.max(1, Math.floor((e.clientY-r.top)/(CELL[dev()]+g.gap))+1) + pageTop(home);
     const locked=grid.classList.contains('locked');
     G={type:'sketch', grid, parent:home, x0:cx, y0:cy,
        stepX:cw+g.gap, stepY:CELL[dev()]+g.gap, sx:e.clientX, sy:e.clientY, mode:null,
@@ -431,7 +441,7 @@ function onDown(e){
       // the cell lights up the moment the hold lands, or nothing has happened
       G.ghost=document.createElement('div');
       G.ghost.className='ghost band';
-      place(G.ghost, {x:G.x0, y:G.y0, w:1, h:1});
+      place(G.ghost, {x:G.x0, y:G.y0, w:1, h:1}, G.parent);
       G.grid.appendChild(G.ghost);
       G.mode='sketch';
     }, e.pointerType==='touch' ? HOLD_TOUCH : HOLD_MOUSE);
@@ -635,7 +645,7 @@ function onMove(e){
     G.hits=hits.map(o=>o.id);
     G.ok = !hits.length && boxOk(box,null,dev(),G.parent);
     G.ghost.className='ghost band'+(hits.length?' picking':(G.ok?'':' bad'));
-    place(G.ghost, box);
+    place(G.ghost, box, G.parent);
     $$('.grid .drawer').forEach(el=>{
       const id=el.dataset.row||el.dataset.drawer||el.dataset.id;
       el.classList.toggle('selected', G.hits.includes(id));
@@ -780,7 +790,7 @@ function onMove(e){
         G.el.style.pointerEvents='none';
         G.ghost=document.createElement('div');
         G.ghost.className='ghost';
-        place(G.ghost, G.box);
+        place(G.ghost, G.box, G.parent);
         G.el.parentElement.appendChild(G.ghost);
         G.scroller=G.el.closest('.scroll');
         if(!panning) panning=requestAnimationFrame(autoPan);
@@ -827,9 +837,9 @@ function applyDrag(G, dx, dy){
       aimDrop(G, G.px, G.py);
       const landing = G.dropDay||G.dropTl||G.dropOn||G.gatherOn;
       G.ghost.className='ghost'+(landing?' hidden':(G.ok?'':' bad'));
-      place(G.ghost, box);
+      place(G.ghost, box, G.parent);
     } else {
-      place(G.el, box);            // live resize, like dragging a window edge
+      place(G.el, box, G.parent);   // live resize, like dragging a window edge
     }
 }
 function onUp(e){

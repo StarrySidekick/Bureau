@@ -185,8 +185,17 @@
    end" in the material it is made of. */
 .pager{position:absolute;z-index:38;overflow:hidden;pointer-events:none}
 .pager .track{position:absolute;inset:0;will-change:transform}
+/* A pane stands exactly where the board it is a copy of stands, so it has to
+   be made of what is *behind* that board — and on a phone that is the carcass,
+   not the page. `.deskscroll` is `flex:0 0 auto` there (decision 44), so the
+   few pixels the screen has over fall below the board; at rest they are
+   `.main`, which is wood. In a pane they were `--paper`, and a strip of
+   parchment slid up between two boards every time you turned a page. That is
+   the "it flashes a default background" — the default is Victoria's cream, and
+   it was the pane's own. See decision 102. */
 .pager .pane{position:absolute;inset:0;display:flex;flex-direction:column;
   overflow:hidden;background:var(--paper)}
+.is-phone .pager .pane{background:var(--wood)}
 .ax-x .pane.prev{transform:translateX(-100%)}
 .ax-x .pane.next{transform:translateX(100%)}
 .ax-y .pane.prev{transform:translateY(-100%)}

@@ -10,8 +10,8 @@ import { create, setPin, togglePin, del, delMany, delDrawer, undo, redo, toggleD
 import { applyLook, applyStyle, STYLES, panelSlots, borderSlots, knobSlots, textureSlots,
   bindingSlots, stockSlots, famSlots, famAll, dress, styleKey, stockNow, randomLook,
   palNow, CHECKS } from './look.js';
-import { render, sizeGrid, viewHTML, reveal, settingsPanel, pageAt, pageCount, goPage } from './views.js';
-import { overlayHTML, objectPanel, modalNewObject, schedulePanel,
+import { render, sizeGrid, viewHTML, reveal, settingsPanel, pageAt, pageCount, pageTop, goPage } from './views.js';
+import { overlayHTML, objectPanel, modalNewObject, schedulePanel, closePanel,
   sampleObject, sampleTile } from './panels.js';
 import { wire } from './wire.js';
 import { openingFor, stepDrawer, spray, sprayAt, sprayCount, sprayNow, sprayMark, SPRAYS } from './motion.js';
@@ -97,7 +97,7 @@ window.BUREAU = {
   setGrid: setGridSize,
   // the four things an object opens onto: its editor, its words, its paper,
   // and — for something made of an image — the picture
-  panel: objectPanel, write: openWriter, read: openRead, view: openViewer,
+  panel: objectPanel, closePanel, write: openWriter, read: openRead, view: openViewer,
   /* A thing drawn as the thing it makes — the type picker's own primitive
      (decision 51). Exposed so anything outside the app that wants to *show* a
      tile draws the real one rather than a copy of it: `scripts/catalogue.mjs`
@@ -140,7 +140,7 @@ window.BUREAU = {
   // which desk something is on — the dots by the title answer with it
   deskOf,
   // paging, for the smoke test: how tall a page is and which one you are on
-  get pageRows(){ return pageRows(); }, pageAt, pageCount, goPage,
+  get pageRows(){ return pageRows(); }, pageAt, pageCount, pageTop, goPage,
   // somewhere free to put a fixture, so a test needn't hardcode a coordinate
   free: (w,h,parent)=> freeSpot(w,h,S.device,parent||'root')
 };

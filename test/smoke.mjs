@@ -1521,6 +1521,106 @@ const CHROME = process.env.BUREAU_CHROME;
     return out;
   });
 
+  /* --- a board row is not a screen row — decision 102 --------------------
+     `gridTile()` subtracts the page as it draws, and that is the whole of
+     paging. Anything that reads a cell *off* the screen, or writes a box
+     *onto* it, has to make the same conversion, and three gestures did not.
+     Every one of these was invisible on page one, which is where everything
+     gets tested. */
+  const pageCoords = await phone.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const B = BUREAU, S = B.state, out = {};
+    const was = S.objects.slice();
+    /* One object, far enough down that page two exists and is otherwise
+       empty — the seeded desk is too full to find a bare cell on. */
+    S.objects = S.objects.filter(o => o.parent !== 'root');
+    const wasLock = S.look.locked; S.look.locked = false;
+    const t = B.create('task', { parent:'root', title:'Alone' });
+    B.render(); await nap(150);
+    const per = B.pageRows;
+    t.phone = { x:1, y:per + 3, w:3, h:2 };
+    B.render(); await nap(150);
+    B.goPage('root', 1); await nap(250);
+    out.onPageTwo = B.pageAt('root') === 1;
+    out.pageTopIsTheOffset = B.pageTop('root') === per;
+
+    const frame = document.getElementById('frame'), grid = document.querySelector('.grid');
+    const ev = (el, ty, x, y) => el.dispatchEvent(new PointerEvent(ty,
+      { bubbles:true, cancelable:true, clientX:x, clientY:y,
+        pointerId:1, pointerType:'mouse', isPrimary:true }));
+
+    /* A tile on page two is drawn near the top of it, and must *stay* there
+       while it is resized: `place()` used to write the board row straight into
+       `grid-row`, which on page two is off the end of the page, so the tile
+       vanished until you let go and a render put it back. */
+    const tile = document.querySelector(`.grid .drawer[data-row="${t.id}"]`);
+    out.foundTheTile = !!tile;
+    if(tile){
+      const drawnAt = +getComputedStyle(tile).gridRowStart;
+      out.drawnAtItsPageRow = drawnAt === t.phone.y - per;
+      const grip = tile.querySelector('.rz.se');
+      out.hasAGrip = !!grip;
+      if(grip){
+        const g = grip.getBoundingClientRect();
+        ev(grip, 'pointerdown', g.x + 4, g.y + 4); await nap(40);
+        ev(frame, 'pointermove', g.x + 44, g.y + 44); await nap(40);
+        const live = document.querySelector(`.grid .drawer[data-row="${t.id}"]`);
+        out.staysOnItsPageWhileResizing = live && +getComputedStyle(live).gridRowStart === drawnAt;
+        ev(frame, 'pointerup', g.x + 44, g.y + 44); await nap(200);
+      }
+    }
+
+    /* …and a cell sketched on page two makes the object *on page two*. It read
+       the screen row and stored it as a board row, so the new object landed
+       fifteen rows up on page one — where you are not looking. That is what
+       "making new objects doesn't work" was: it worked, somewhere else. */
+    const gr = document.querySelector('.grid').getBoundingClientRect();
+    const x = gr.left + gr.width * 0.2, y = gr.top + gr.height * 0.75;
+    out.aimedAtBareBoard = document.elementFromPoint(x, y) === document.querySelector('.grid');
+    ev(document.querySelector('.grid'), 'pointerdown', x, y);
+    await nap(420);                       // outlast the hold
+    ev(frame, 'pointermove', x + 40, y + 40); await nap(60);
+    const ghost = document.querySelector('.ghost');
+    out.theGhostIsOnThisPage = !!ghost && +getComputedStyle(ghost).gridRowStart <= per;
+    ev(frame, 'pointerup', x + 40, y + 40); await nap(300);
+    out.thePickerOpened = !!document.querySelector('#panel');
+    const chip = document.querySelector('#panel .kindgrid button');
+    if(chip){ chip.click(); await nap(350); }
+    const made = S.objects.filter(o => o.parent === 'root' && o.id !== t.id);
+    out.itMadeOne = made.length === 1;
+    out.andOnTheRightPage = made.length === 1 && made[0].phone
+      && Math.floor((made[0].phone.y - 1) / per) === 1;
+
+    B.closePanel && B.closePanel();
+    S.objects = was; S.look.locked = wasLock;
+    B.goPage('root', 0); B.render(); await nap(200);
+    return out;
+  });
+
+  /* --- a pane is made of what is behind the board, not of the page ------- */
+  const pagerGround = await phone.evaluate(() => {
+    const frame = document.getElementById('frame');
+    const val = n => getComputedStyle(frame).getPropertyValue(n).trim();
+    /* `.deskscroll` is `flex:0 0 auto` on a phone, so the pixels the screen has
+       over fall below the board; at rest they are `.main`, which is the wood.
+       A pane painted `--paper` instead, and a strip of parchment slid up
+       between two boards on every page turn — which is the "it flashes a
+       default background". Asserted on the rule rather than mid-swipe,
+       because the swipe is three frames long and the assertion is about what
+       the pane is made of. */
+    const probe = document.createElement('div');
+    probe.className = 'pager ax-y';
+    const pane = document.createElement('div');
+    pane.className = 'pane';
+    probe.appendChild(pane); frame.appendChild(probe);
+    const bg = getComputedStyle(pane).backgroundColor;
+    probe.remove();
+    const hex = h => { const n = h.replace('#','');
+      return `rgb(${parseInt(n.slice(0,2),16)}, ${parseInt(n.slice(2,4),16)}, ${parseInt(n.slice(4,6),16)})`; };
+    return { paneIsTheCarcass: bg === hex(val('--wood')),
+             andNotThePage: bg !== hex(val('--paper')) };
+  });
+
   /* --- the way in on a phone. There were two: pulling a drawer front up out
      of the shelf, and holding a bare cell. The shelf is gone and so is the
      pull that came out of it — holding a cell is the one that is left, and it
@@ -4083,7 +4183,7 @@ const CHROME = process.env.BUREAU_CHROME;
   console.log(JSON.stringify({
     errors: errs, manifestOk, swReady, survived, styleSurvived, slotColours,
     newObjectSeen, inlineEdit, sortDefaults, taskLook,
-    shelfTools, gridSizes, keeping, versionShown, sampler, paging,
+    shelfTools, gridSizes, keeping, versionShown, sampler, paging, pageCoords, pagerGround,
     makingOnAPhone, railDrawer, railIsFurniture, pagerLandsFlat, deskDots,
     listSwipe, shadows, textureDepth,
     gridClass, offlineWorks, railGone, tabsGone, shelfGone, tileNavigates,

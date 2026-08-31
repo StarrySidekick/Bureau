@@ -911,7 +911,17 @@ never from the scroller's own height; forget the padding and the last row is
 sized into pixels it cannot be seen in. A page is *not stored*: `y` is one continuous
 coordinate space per container and a page is a window of *n* rows onto it, so
 drag, drop and `freeSpot()` know nothing about pages. The one rule is that
-nothing may straddle a break, enforced in `boxOk()`. Two fingers up and down
+nothing may straddle a break, enforced in `boxOk()`.
+
+**But a board row is not a screen row, and the boundary between them is two
+functions.** `gridTile()` subtracts the page as it draws (`PAGESHIFT`), so
+anything that reads a cell *off* the screen has to add it back and anything
+that writes a box *onto* the screen has to take it off. `pageTop(cid)` in
+views.js is the offset; the sketch gesture adds it, `place()` in gestures.js
+subtracts it, and those are the only two places allowed to know. Get it wrong
+and it is invisible on page one — a new object made on page two landed on page
+one, and a tile being resized left the screen until you let go. See decision
+102. Two fingers up and down
 turn pages; two fingers left and right walk the desks. See decision 44. See decision 37.
 
 **Tapping bare board does nothing on a phone; holding it makes something

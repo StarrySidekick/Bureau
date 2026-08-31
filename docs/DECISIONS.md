@@ -3767,3 +3767,54 @@ done.
 The idle cost, which is the one that actually read as lag, is gone: the board
 holds 60fps with the wiggle running, where animating `filter` directly sat it
 at 42.
+
+---
+
+## 102. A board row is not a screen row
+
+*2026-08-31*
+
+A phone board is a coordinate space *n* rows tall and a page is a window of
+`pageRows()` rows onto it (decision 44). `gridTile()` subtracts the page as it
+draws — `PAGESHIFT` in tiles.js — and that one subtraction is the whole of
+paging.
+
+Which means everything that reads a cell **off** the screen, or writes a box
+**onto** it, has to make the same conversion. Three gestures did not, and all
+three were invisible on page one, which is where everything gets tested.
+
+**Sketching a new object read a screen row and stored it as a board row.** Hold
+a bare cell on page two, drag out a size, pick a type — and the object is made
+fifteen rows higher, on page one, where you are not looking. Worse, the check
+that decides whether the sketch is even legal ran against page one's contents,
+so on a full first page the ghost showed red and the gesture did nothing at all.
+That is what "making new objects doesn't work" was: it worked, somewhere else.
+
+**The live resize wrote a board row straight into `grid-row`.** A tile at board
+row 16 on a fifteen-row page is drawn at row 1; the moment you took its corner,
+`place()` put it back at row 16, which the page hasn't got. The tile left the
+screen and came back when you let go and a render redrew it properly. The move
+ghost had the same bug and nobody had noticed, because a ghost that is in the
+wrong place looks like a ghost that is somewhere else.
+
+The fix is one conversion in one direction each way: `pageTop(cid)` beside
+`pageAt()`, added by the gesture that reads a cell and subtracted by `place()`,
+which is the only thing in gestures.js that draws a box. Everything downstream —
+`boxOk`, `overlaps`, the box `create()` is handed — then sees the coordinate
+space the model actually stores.
+
+**And the pager was made of the wrong material.** `.pager .pane` painted
+`var(--paper)`. On a phone `.deskscroll` is `flex:0 0 auto`, so the pixels the
+screen has left over fall *below* the board, and at rest they are `.main`,
+which is the wood. In a pane they were parchment — so a strip of Victoria's
+cream slid up between two boards on every page turn, which is the "it flashes a
+default background before the chosen one". It is the default, and it was the
+pane's own. A pane stands exactly where the board it copies stands, so it has
+to be made of what is behind that board.
+
+The general lesson is the one decision 44 already implies and did not say out
+loud: **a page is a rendering fact, not a stored one.** `y` is one continuous
+coordinate per container and nothing in the model knows about pages — which is
+right, and which means the boundary between the two spaces is a line every
+piece of code either crosses correctly or silently crosses wrong. There are now
+exactly two functions on that line.
