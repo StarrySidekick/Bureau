@@ -92,18 +92,30 @@
    the distance is *measured* — how far the world has to grow for this
    particular drawer to fill the screen — and because a scale that grows by
    the same factor each frame is what a steady camera looks like, which CSS
-   cannot work out for itself. */
+   cannot work out for itself.
+
+   **`linear`, and that is not a mistake.** A timing function on the element
+   applies to each *segment* between keyframes, not to the run — so an
+   ease-in-out here would be one per gap, and the camera would come to a near
+   stop at every waypoint. The easing is already in the numbers: `dive()`
+   evaluates the curve and hands over nine positions along it. Put a bezier
+   back on any of these three and you get the hitch back. */
 .main.in-dive{
   transform-origin:var(--divex,50%) var(--divey,50%);
   will-change:transform,opacity;
-  animation:divein var(--divems,.52s) cubic-bezier(.36,0,.22,1)}
+  animation:divein var(--divems,.52s) linear}
 @keyframes divein{
-  0%  {transform:var(--dive0,scale(.3)); opacity:0}
-  20% {opacity:.62}
-  32% {transform:var(--dive1,scale(.45))}
-  46% {opacity:1}
-  64% {transform:var(--dive2,scale(.68))}
-  100%{transform:var(--dive3,none); opacity:1}
+  0%    {transform:var(--dive0,scale(.24)); opacity:0}
+  12.5% {transform:var(--dive1,scale(.28))}
+  20%   {opacity:.62}
+  25%   {transform:var(--dive2,scale(.34))}
+  37.5% {transform:var(--dive3,scale(.42))}
+  46%   {opacity:1}
+  50%   {transform:var(--dive4,scale(.53))}
+  62.5% {transform:var(--dive5,scale(.66))}
+  75%   {transform:var(--dive6,scale(.79))}
+  87.5% {transform:var(--dive7,scale(.92))}
+  100%  {transform:var(--dive8,none); opacity:1}
 }
 /* The board you are leaving, as a still picture, growing past the camera —
    the half of the movement that makes the other half read as travel rather
@@ -111,7 +123,7 @@
 .fxleave{position:absolute;overflow:hidden;pointer-events:none;
   transform-origin:var(--divex,50%) var(--divey,50%);
   will-change:transform,opacity;backface-visibility:hidden;
-  animation:diveleave var(--divems,.52s) cubic-bezier(.36,0,.22,1) forwards}
+  animation:diveleave var(--divems,.52s) linear forwards}
 /* **Opaque nearly all the way.** Crossfading the two boards through each
    other is a double exposure -- two desks visible at once for a fifth of a
    second, which reads as a glitch rather than as movement. It stays solid and
@@ -128,11 +140,16 @@
    go through. Decision 101's finding, arriving from the other direction. */
 .fxleave *{filter:none !important;animation:none !important}
 @keyframes diveleave{
-  0%  {transform:var(--dive0,none);        opacity:1}
-  32% {transform:var(--dive1,scale(1.65))}
-  64% {transform:var(--dive2,scale(2.7))}
-  86% {opacity:1}
-  100%{transform:var(--dive3,scale(4.4));  opacity:0}
+  0%    {transform:var(--dive0,none);       opacity:1}
+  12.5% {transform:var(--dive1,scale(1.15))}
+  25%   {transform:var(--dive2,scale(1.4))}
+  37.5% {transform:var(--dive3,scale(1.75))}
+  50%   {transform:var(--dive4,scale(2.2))}
+  62.5% {transform:var(--dive5,scale(2.75))}
+  75%   {transform:var(--dive6,scale(3.3))}
+  86%   {opacity:1}
+  87.5% {transform:var(--dive7,scale(3.9))}
+  100%  {transform:var(--dive8,scale(4.4)); opacity:0}
 }
 /* The inside of the drawer: the shade over the window, travelling with it.
 
@@ -146,12 +163,18 @@
   will-change:transform,opacity;
   background:radial-gradient(120% 100% at 50% 0%, rgba(0,0,0,.5), rgba(0,0,0,.82));
   box-shadow:inset 0 10px 26px rgba(0,0,0,.6);
-  animation:divecave var(--divems,.52s) cubic-bezier(.36,0,.22,1) both}
+  animation:divecave var(--divems,.52s) linear both}
 @keyframes divecave{
-  0%  {transform:var(--dive0,none);       opacity:.9}
-  32% {transform:var(--dive1,scale(1.65));opacity:.62}
-  64% {transform:var(--dive2,scale(2.7)); opacity:.3}
-  100%{transform:var(--dive3,scale(4.4)); opacity:0}
+  0%    {transform:var(--dive0,none);       opacity:.9}
+  12.5% {transform:var(--dive1,scale(1.15))}
+  25%   {transform:var(--dive2,scale(1.4))}
+  32%   {opacity:.62}
+  37.5% {transform:var(--dive3,scale(1.75))}
+  50%   {transform:var(--dive4,scale(2.2))}
+  62.5% {transform:var(--dive5,scale(2.75));opacity:.3}
+  75%   {transform:var(--dive6,scale(3.3))}
+  87.5% {transform:var(--dive7,scale(3.9))}
+  100%  {transform:var(--dive8,scale(4.4)); opacity:0}
 }
 
 /* the board you have arrived on, coming up out of the thing you opened */

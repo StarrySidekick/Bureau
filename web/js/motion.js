@@ -242,7 +242,17 @@ function openTile(id, go){
    amount.** Interpolating scale linearly from 1 to 5 spends the first half of
    the time crossing the first eighth of the apparent distance and then rushes,
    which is the wonkiness a camera never has. Hence `z**f` rather than a
-   lerp. */
+   lerp.
+
+   **And the easing is baked into the waypoints, because a CSS timing function
+   applies to every *segment* rather than to the run.** A `cubic-bezier` on the
+   element eases between each pair of keyframes — so four waypoints and one
+   ease-in-out is three ease-in-outs, and the camera came to a near stop twice
+   on the way in. Nothing about reading the stylesheet says so, and it is why
+   the movement still had a hitch in it after the geometry was right. So the
+   curve is evaluated here, the stops carry the eased positions, and the
+   animation runs `linear` — nine of them, which is close enough together that
+   the straight lines between are not visible. */
 /* The board with the drawer's rect cut out of it: the outer ring the long way
    round, then the inner one, and `evenodd` to make the second a hole rather
    than a second shape. In percentages of the picture's own box, because the
@@ -256,7 +266,27 @@ function hole(r, mr){
     `${l} ${t}, ${l} ${b}, ${rt} ${b}, ${rt} ${t}, ${l} ${t})`;
 }
 
-const STOPS = [0, .32, .64, 1];
+/* Nine stops, evenly spaced in *time*, each carrying where the eased curve has
+   got to by then. The standard cubic-bezier solve: Newton on x, then read y. */
+const EASE = [.36, 0, .22, 1];
+const STOPS = Array.from({length:9}, (_, i) => i/8);
+function easer([x1, y1, x2, y2]){
+  const cx=3*x1, bx=3*(x2-x1)-cx, ax=1-cx-bx;
+  const cy=3*y1, by=3*(y2-y1)-cy, ay=1-cy-by;
+  const X = t => ((ax*t+bx)*t+cx)*t;
+  return x => {
+    let t=x;
+    for(let i=0;i<8;i++){
+      const e=X(t)-x; if(Math.abs(e)<1e-5) break;
+      const d=(3*ax*t+2*bx)*t+cx; if(Math.abs(d)<1e-6) break;
+      t-=e/d;
+    }
+    t=Math.min(1, Math.max(0, t));
+    return ((ay*t+by)*t+cy)*t;
+  };
+}
+const ease = easer(EASE);
+
 /* Far enough that the mouth is the screen, and then a little further. The bare
    covering factor is only reached on the very last frame, which leaves the old
    board showing round the edges for the whole of the fade — the double
@@ -280,7 +310,7 @@ function dive(el, r, mr, going){
     ? f => step(f, z**f)             // the world, growing until the mouth is the screen
     : f => step(f - z**(f-1), z**(f-1));  // and what is behind it, framed by that mouth
   el.style.setProperty('--divez', z.toFixed(4));
-  STOPS.forEach((f, i) => el.style.setProperty('--dive'+i, way(f)));
+  STOPS.forEach((t, i) => el.style.setProperty('--dive'+i, way(ease(t))));
 }
 
 /* The board that has just been rendered, arriving. Set after go() because

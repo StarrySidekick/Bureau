@@ -1569,17 +1569,25 @@ const CHROME = process.env.BUREAU_CHROME;
       return m ? parseFloat(m[1]) : 0;
     };
     const zoom = twin && parseFloat(twin.style.getPropertyValue('--divez'));
-    out.theZoomIsMeasured = zoom > 1 && Math.abs(sc(twin, '--dive3') - zoom) < .01;
-    out.andTheTwoHalvesAgree = Math.abs(sc(twin, '--dive3') * sc(main, '--dive0') - 1) < .01;
+    out.theZoomIsMeasured = zoom > 1 && Math.abs(sc(twin, '--dive8') - zoom) < .01;
+    out.andTheTwoHalvesAgree = Math.abs(sc(twin, '--dive8') * sc(main, '--dive0') - 1) < .01;
     /* and it grows by the same factor each frame, not the same amount — the
        waypoint sits below the arithmetic middle, which is what a steady camera
        does and a linear ramp does not */
-    const mid = sc(twin, '--dive2');
-    out.theCameraMovesSteadily = mid > 1 && mid < 1 + (zoom - 1) * .64;
+    const mid = sc(twin, '--dive4');
+    out.theCameraMovesSteadily = mid > 1 && mid < 1 + (zoom - 1) * .62;
+    /* **And the easing is in the numbers, not on the animation.** A CSS timing
+       function applies to every segment rather than to the run, so a bezier
+       here is one ease-in-out per gap and the camera stops dead at each
+       waypoint. `dive()` walks the curve instead; these three must stay
+       linear. */
+    out.theEasingIsInTheNumbers = ['#fx .fxleave', '#fx .divecave', '#app .main.in-dive']
+      .every(s => { const e = document.querySelector(s);
+        return e && getComputedStyle(e).animationTimingFunction === 'linear'; });
     /* it pans as well as zooming, or a drawer in the corner stays in the
        corner however far it grows and never covers the screen at all */
     out.andTracksAsItGoes = /translate\(-?[\d.]+px,\s*-?[\d.]+px\)/.test(
-      twin ? twin.style.getPropertyValue('--dive3') : '');
+      twin ? twin.style.getPropertyValue('--dive8') : '');
     /* …out of the tile you touched, which is the one number that makes this a
        movement *through something* rather than a zoom about the middle. */
     const ox = main && main.style.getPropertyValue('--divex');
