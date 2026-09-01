@@ -206,6 +206,39 @@
   100%  {transform:var(--dive8,scale(4.4)); opacity:0}
 }
 
+/* ---- coming back out ----------------------------------------------------
+   The knob at the bottom plays the dive backwards, and it plays it with the
+   *same four animations* run `reverse` rather than four more sets of
+   keyframes. Two things fall out of that and both matter: the camera cannot
+   drift from the way in the day either is touched, and the eight waypoints
+   are the ones `dive()` already wrote — the JS calls it with exactly the
+   arguments the way in used.
+
+   Only the two ends swap places. The picture is the board you are leaving —
+   which on the way in was the board *arriving*, framed inside the drawer's
+   mouth — so it takes `divein` and shrinks into the front, fading out as it
+   lands. The board you arrive on takes `diveleave`, starting zoomed in on
+   that same front and settling back to its own size around it; its fade
+   happens under a picture that still covers the screen, so it is not seen.
+   The carcass closes down over the window and the front fades back in over
+   the carcass, which is the drawer shutting behind you.
+
+   `linear` for the reason the way in is linear: the easing is in the
+   numbers. Reversed, the curve is its own mirror image, which is what a
+   camera does going the other way. */
+.main.in-diveout{
+  transform-origin:var(--divex,50%) var(--divey,50%);
+  will-change:transform,opacity;
+  animation:diveleave var(--divems,.52s) linear reverse both}
+.fxback{position:absolute;overflow:hidden;pointer-events:none;
+  transform-origin:var(--divex,50%) var(--divey,50%);
+  will-change:transform,opacity;backface-visibility:hidden;
+  animation:divein var(--divems,.52s) linear reverse both}
+/* decision 101, again: a scale re-rasterises and every filter under it is
+   re-run, and a Starful Gothic board carries one per tile. */
+.fxback *{filter:none !important;animation:none !important}
+.divefront.back,.divecave.back{animation-direction:reverse}
+
 /* the board you have arrived on, coming up out of the thing you opened */
 .main.in-drawer{animation:insidein .34s cubic-bezier(.2,.9,.3,1)}
 .main.in-cabinet{animation:insidein .4s cubic-bezier(.2,.9,.3,1)}
@@ -341,6 +374,7 @@
 @media (prefers-reduced-motion: reduce){
   .fxopen,.fxring,#fx > *{display:none}
   .drawer.curling,.drawer.lifting,.drawer.popped,
-  .main.in-drawer,.main.in-cabinet,.main.in-back,.main.in-dive{animation:none}
+  .main.in-drawer,.main.in-cabinet,.main.in-back,
+  .main.in-dive,.main.in-diveout{animation:none}
   .curlshade{display:none}
 }

@@ -265,6 +265,20 @@ mouth out at the tap made the drawer pop open. A second element is fine; a
 second *curve* is what made the first version wrong, so the fading front rides
 the mouth's own waypoints.
 
+**The way out is the way in, backwards.** `leaveTile()` in motion.js — the
+knob along the bottom and the chevron at the top of the bar. The board you are
+standing in shrinks into the front it came out of, the board you arrive on
+starts zoomed in on that front and settles back around it, and the carcass and
+the front close over the mouth behind you. It is the **same four animations run
+`reverse`**, called with the same arguments `dive()` got on the way in — not a
+second set of keyframes, which would be eight more chances to disagree about
+where the mouth is. So the picture takes `divein` (on the way in that was the
+board *arriving*, framed inside the mouth) and the board you arrive on takes
+`diveleave`. Walking off a *desk* keeps the small settle: desks sit beside each
+other, not inside each other. The knob can climb more than one level, so the
+mouth is the nearest ancestor with a tile on the board that has just been
+drawn, not necessarily the drawer you were in. See decision 104.
+
 **Nothing that flies carries a filter.** One inherited `drop-shadow` on the
 diving front — scaled to four times size, so a hundred-pixel blur recomputed
 every frame — cost 25fps against the pull-out's 60, and it was the *only* thing

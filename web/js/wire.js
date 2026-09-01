@@ -20,7 +20,7 @@ import { openPanel, closePanel, refreshPanel, panelKey, panelBack, draft, openMe
   schedulePanel, quickISO, SCHED } from './panels.js';
 import { onDown, onMove, onUp, onCancel, onTouchStart, onTouchMove, onTouchEnd,
   gestureFlags, dragArmed } from './gestures.js';
-import { enter, pagerOn } from './motion.js';
+import { enter, leaveTile, pagerOn } from './motion.js';
 import { save, writeNow, exportBackup, importBackup, importFile, imgFor, pasteObjects, install , assetDel } from './persist.js';
 
 /* Mark one chip in a group as the chosen one. The selector is deliberately
@@ -194,10 +194,13 @@ function act(name, el){
        of the tree is wherever you are working, so walking to the root every
        time was walking past the thing you meant to get back to. */
     case 'back': {
-      const o=byId(el.dataset.id), up=(o&&o.parent)||ROOT;
-      S.view = up===ROOT ? 'desk' : 'drawer';
-      S.drawerId = up===ROOT ? null : up;
-      S.kindFilter=null; render(); enter('back'); break;
+      const from=el.dataset.id, o=byId(from), up=(o&&o.parent)||ROOT;
+      leaveTile(from, ()=>{
+        S.view = up===ROOT ? 'desk' : 'drawer';
+        S.drawerId = up===ROOT ? null : up;
+        S.kindFilter=null; render();
+      });
+      break;
     }
     case 'pin': togglePin(el.dataset.id); break;
     // the name at the top left: every desk at once, small, to jump to
@@ -344,14 +347,23 @@ function act(name, el){
        to the desk it stands on, and from a desk to the home desk. Nothing when
        you are already home — a button that goes where you already are is a
        button that reads as broken. Pulling the same rail makes something; see
-       gestures.js. */
+       gestures.js.
+
+       Coming out of a drawer is the dive backwards — `leaveTile()` — because
+       the way in was a camera going somewhere and the way out has to be the
+       same camera coming back, or the drawer you went into is not the drawer
+       you came out of. Walking off a desk is not a dive and keeps its settle:
+       desks sit beside each other rather than inside each other. */
     case 'railout': {
       if(S.view==='drawer' && S.drawerId){
-        const up = deskOf(S.drawerId);
-        if(up && up!==S.drawerId){
-          S.view = up===ROOT ? 'desk' : 'drawer';
-          S.drawerId = up===ROOT ? null : up;
-          S.kindFilter=null; render(); enter('back'); break;
+        const from = S.drawerId, up = deskOf(from);
+        if(up && up!==from){
+          leaveTile(from, ()=>{
+            S.view = up===ROOT ? 'desk' : 'drawer';
+            S.drawerId = up===ROOT ? null : up;
+            S.kindFilter=null; render();
+          });
+          break;
         }
       }
       if(!(S.view==='desk' && !S.drawerId)){

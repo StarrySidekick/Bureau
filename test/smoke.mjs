@@ -1641,6 +1641,74 @@ const CHROME = process.env.BUREAU_CHROME;
     return out;
   });
 
+  /* --- and coming back out, which is the same camera in reverse ----------
+     The knob along the bottom and the chevron at the top both play the dive
+     backwards. What is being guarded is that it really is the *same* movement
+     read from the far end — the same waypoints, the same four animations run
+     `reverse` — rather than a second set of numbers that would drift from the
+     first the day either is touched. */
+  const comingOut = await page.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const S = BUREAU.state, out = {};
+    S.view = 'desk'; S.drawerId = null; BUREAU.render(); await nap(200);
+    const el = [...document.querySelectorAll('.grid .drawer[data-drawer]')]
+      .find(e => /Idea Bin/.test(e.textContent));
+    const id = el && el.dataset.drawer;
+    el.click(); await nap(700);
+    out.wentIn = S.view === 'drawer' && S.drawerId === id;
+
+    document.querySelector('.gridbar [data-act="back"]').click();
+    out.andComesStraightBackOut = S.view === 'desk' && !S.drawerId;
+    await nap(40);
+
+    /* Both halves again, the other way round: a picture of the board you were
+       standing in, shrinking into the front it came out of, and the board you
+       have arrived on settling back around that front. */
+    const twin = document.querySelector('#fx .fxback');
+    const main = document.querySelector('#app .main');
+    out.theBoardYouLeaveShrinksIn = !!twin;
+    out.theBoardYouArriveOnSettles = !!main && main.classList.contains('in-diveout');
+    out.andTheDrawerShutsBehindYou = !!document.querySelector('#fx .divefront.back')
+      && !!document.querySelector('#fx .divecave.back');
+
+    /* **The same animations, run backwards.** Not a second set of keyframes:
+       if these names ever stop matching the ones the way in uses, the two
+       movements have started to drift. */
+    const anim = s => { const e = document.querySelector(s); return e ? getComputedStyle(e) : null; };
+    const back = anim('#fx .fxback'), arr = anim('#app .main.in-diveout'),
+          fnt = anim('#fx .divefront.back');
+    out.itIsTheWayInPlayedBackwards = !!back && !!arr && !!fnt
+      && back.animationName === 'divein' && back.animationDirection === 'reverse'
+      && arr.animationName === 'diveleave' && arr.animationDirection === 'reverse'
+      && fnt.animationDirection === 'reverse';
+    // and still linear, for the reason the way in is linear
+    out.theEasingIsStillInTheNumbers = back.animationTimingFunction === 'linear'
+      && arr.animationTimingFunction === 'linear';
+
+    /* The two halves are exact inverses at the far end, the same as on the way
+       in — the picture ends framed by the mouth the board has arrived at. */
+    const sc = (e, k) => { const m = /scale\(([\d.]+)\)/.exec(e ? e.style.getPropertyValue(k) : '');
+      return m ? parseFloat(m[1]) : 0; };
+    out.theTwoHalvesAgree = Math.abs(sc(twin, '--dive0') * sc(main, '--dive8') - 1) < .01;
+    // out of the drawer you came out of, not the middle of the screen
+    const ox = main && main.style.getPropertyValue('--divex');
+    out.intoTheDrawerYouCameOutOf = /px$/.test(ox || '')
+      && Math.abs(parseFloat(ox) - main.getBoundingClientRect().width / 2) > 8;
+    out.thePictureHasNoIdentity = !!twin
+      && !twin.querySelector('[data-drawer],[data-row],[data-id],[data-check]')
+      && !twin.querySelector('[id]');
+
+    await nap(700);
+    out.andItAllClearsUp = !document.querySelector('#fx .fxback,#fx .divecave,#fx .divefront')
+      && !document.querySelector('#app .main.in-diveout');
+    /* and the board is back to its own size — a transform left behind is a
+       board every measurement after it reads wrong */
+    out.andNothingIsLeftTransformed = getComputedStyle(
+      document.querySelector('#app .main')).transform === 'none';
+    S.view = 'desk'; S.drawerId = null; BUREAU.render(); await nap(150);
+    return out;
+  });
+
   /* --- a board row is not a screen row — decision 102 --------------------
      `gridTile()` subtracts the page as it draws, and that is the whole of
      paging. Anything that reads a cell *off* the screen, or writes a box
@@ -1793,8 +1861,13 @@ const CHROME = process.env.BUREAU_CHROME;
       && Math.abs(parseFloat(ks.width) - parseFloat(ks.height)) < 1;
     // tapping it from inside a drawer comes back out to the desk
     S.view='drawer'; S.drawerId='d_ideas'; BUREAU.render(); await nap(220);
-    knob().click(); await nap(400);
+    knob().click();
     out.theKnobTakesYouOut = S.view === 'desk' && !S.drawerId;
+    /* …and the way out is the dive backwards, which transforms the board for
+       half a second. Wait it out before measuring anything on the rail: a
+       board mid-camera-move reports a rect that is nowhere near where it is
+       about to settle. */
+    await nap(700);
 
     /* A real pull, not a flick: the front follows the finger and only opens if
        you carry it about a quarter of the screen. Forty pixels used to do it,
@@ -4310,7 +4383,7 @@ const CHROME = process.env.BUREAU_CHROME;
   console.log(JSON.stringify({
     errors: errs, manifestOk, swReady, survived, styleSurvived, slotColours,
     newObjectSeen, inlineEdit, sortDefaults, taskLook,
-    shelfTools, gridSizes, keeping, versionShown, sampler, paging, pageCoords, pagerGround, goingIn,
+    shelfTools, gridSizes, keeping, versionShown, sampler, paging, pageCoords, pagerGround, goingIn, comingOut,
     makingOnAPhone, railDrawer, railIsFurniture, pagerLandsFlat, deskDots,
     listSwipe, shadows, textureDepth,
     gridClass, offlineWorks, railGone, tabsGone, shelfGone, tileNavigates,

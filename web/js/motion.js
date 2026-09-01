@@ -39,6 +39,23 @@ function at(el, r){
   el.style.width=r.width+'px'; el.style.height=r.height+'px';
 }
 
+/* Everything a tile is *found* by, taken off a copy of one. `tileOf()` scopes
+   itself to `#app` and these live in `#fx`, but the drag's own lookups do not,
+   and a second element answering to a real object's id is decision 51's bug
+   waiting to happen. */
+const FOUNDBY='[data-drawer],[data-row],[data-id],[data-check],[data-edit]';
+function picture(el){
+  el.removeAttribute('id');
+  el.querySelectorAll('[id]').forEach(n=>n.removeAttribute('id'));
+  el.querySelectorAll(FOUNDBY).forEach(n=>{
+    n.removeAttribute('data-drawer'); n.removeAttribute('data-row');
+    n.removeAttribute('data-id'); n.removeAttribute('data-check');
+    n.removeAttribute('data-edit');
+  });
+  el.setAttribute('aria-hidden','true');
+  return el;
+}
+
 /* A copy of a tile that can live outside a grid: its cell placement, its
    handles and any id that would now be a duplicate all go. */
 function faceOf(el){
@@ -171,17 +188,8 @@ function openTile(id, go){
     if(twin && mr){
       /* A picture of a board, not a second board. Ids go for the reason
          `faceOf()` takes them off a flying front, and so does everything a
-         tile is *found* by — `tileOf()` scopes itself to `#app` and this is in
-         `#fx`, but the drag's own lookups do not, and a second element
-         answering to a real object's id is decision 51's bug waiting to
-         happen. */
-      twin.removeAttribute('id');
-      twin.querySelectorAll('[id]').forEach(n=>n.removeAttribute('id'));
-      twin.querySelectorAll('[data-drawer],[data-row],[data-id],[data-check],[data-edit]')
-        .forEach(n=>{ n.removeAttribute('data-drawer'); n.removeAttribute('data-row');
-          n.removeAttribute('data-id'); n.removeAttribute('data-check');
-          n.removeAttribute('data-edit'); });
-      twin.setAttribute('aria-hidden','true');
+         tile is found by — see `anonymise()`. */
+      picture(twin);
       twin.className='fxleave';
       at(twin, mr);
       twin.style.clipPath = hole(r, mr);
@@ -203,11 +211,7 @@ function openTile(id, go){
       face.className='divefront';
       at(face, r);
       face.appendChild(faceOf(el));
-      face.querySelectorAll('[data-drawer],[data-row],[data-id],[data-check],[data-edit]')
-        .forEach(n=>{ n.removeAttribute('data-drawer'); n.removeAttribute('data-row');
-          n.removeAttribute('data-id'); n.removeAttribute('data-check');
-          n.removeAttribute('data-edit'); });
-      face.setAttribute('aria-hidden','true');
+      picture(face);
       dive(face, r, mr, 'away');
 
       fx().appendChild(cave);
@@ -235,6 +239,74 @@ function openTile(id, go){
   go();
   enter(how);
   setTimeout(()=>ghost.remove(), OPEN_MS[how]);
+}
+
+/* ---- and coming back out ----------------------------------------------
+   The knob along the bottom is the way out, and out is the dive played
+   backwards: the board you are standing in shrinks until it is the drawer
+   front it came out of, and the board you are arriving on — which starts
+   zoomed in on that same front — settles back around it. Every waypoint is
+   the one the way in used, read from the far end, so the two movements
+   cannot disagree about where the mouth is at any moment. That is the whole
+   trick: `dive()` is called with the *same* arguments as the way in and the
+   stylesheet runs the animations `reverse`, rather than a second set of
+   numbers that would drift from the first the day either is touched.
+
+   The same three overlays doing the same jobs in the other order. The
+   picture is the board you are *leaving* again — but it is the one that gets
+   the `into` waypoints this time, because on the way in that was the arriving
+   board framed inside the mouth, and this is the same board on the same path
+   walked backwards. The carcass closes down over the window and the front
+   fades back in over it, so the drawer shuts as you step out of it.
+
+   **Which mouth you come out of is not always the drawer you were in.** The
+   knob can climb more than one level at a time — out of a nested drawer to
+   the desk it stands on — so walk up until something answers to a tile on
+   the board that has just been drawn, and come out of that one.
+
+   Anything that isn't a dive keeps the small settle it always had: reversing
+   a cabinet is a different movement and it hasn't been drawn. */
+function leaveTile(id, go){
+  const m0 = $('#app .main');
+  const twin = (m0 && !still() && fx()) ? m0.cloneNode(true) : null;
+  const mr = twin && m0.getBoundingClientRect();
+
+  go();
+
+  if(!twin || !mr){ enter('back'); return; }
+
+  let el=null, o=byId(id), n=0;
+  while(o && n++ < 100){ el=tileOf(o.id); if(el) break; o = o.parent ? byId(o.parent) : null; }
+  const m=$('#app .main'), r=el && el.getBoundingClientRect();
+  if(!m || !r || !r.width || openingFor(o)!=='dive'){ enter('back'); return; }
+
+  picture(twin);
+  twin.className='fxback';
+  at(twin, mr);
+  dive(twin, r, mr, 'into');
+
+  const cave=document.createElement('i');
+  cave.className='divecave back';
+  at(cave, r);
+  dive(cave, r, mr, 'away');
+
+  const face=document.createElement('div');
+  face.className='divefront back';
+  at(face, r);
+  face.appendChild(faceOf(el));
+  picture(face);
+  dive(face, r, mr, 'away');
+
+  fx().appendChild(cave);
+  fx().appendChild(face);
+  fx().appendChild(twin);
+  setTimeout(()=>{ twin.remove(); cave.remove(); face.remove(); }, OPEN_MS.dive);
+
+  /* The board you have arrived on, coming back down out of the drawer — the
+     picture's exact inverse, which is what it was on the way in as well. */
+  dive(m, r, mr, 'away');
+  m.classList.add('in-diveout');
+  setTimeout(()=>m.classList.remove('in-diveout'), OPEN_MS.dive);
 }
 
 /* ---- the camera --------------------------------------------------------
@@ -951,6 +1023,6 @@ function pagerCancel(){
   letGo(g);
 }
 
-export { still, tileOf, tileRect, openingFor, openTile, enter, pop, clRefill,
+export { still, tileOf, tileRect, openingFor, openTile, leaveTile, enter, pop, clRefill,
   spray, sprayAt, sprayCount, SPRAYS, sprayNow, sprayMark,
   pagerBegin, pagerMove, pagerEnd, pagerCancel, pagerOn, stepDrawer };

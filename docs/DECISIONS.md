@@ -3951,3 +3951,49 @@ That is decision 101's finding arriving from the other direction, and it is
 now the rule twice over: **a filter costs per element per repaint, and a scale
 is a repaint every frame.** Nothing that flies should carry one. Neither shadow
 is visible in the result; both were free to give up.
+
+## 104. The way out is the way in, backwards
+
+*2026-09-01*
+
+The dive was only half a movement. Going into a drawer was a camera going
+somewhere; coming back out was `in-back` — a 3% scale and a fade, the same
+small settle every other kind of navigation uses. So you travelled in and then
+simply appeared outside, and the drawer you came out of was not visibly the
+drawer you had gone into.
+
+The knob along the bottom of the desk and the chevron at the top of the bar
+now play the dive **backwards**. The board you are standing in shrinks until
+it is the drawer front it came out of; the board you are arriving on starts
+zoomed in on that same front and settles back around it; the carcass closes
+down over the window and the front fades back in over the carcass. Which is
+the drawer shutting behind you.
+
+**It is the same four animations run `reverse`, not a second set of
+keyframes.** `leaveTile()` calls `dive()` with exactly the arguments the way
+in uses and the stylesheet reverses the direction — the picture takes
+`divein` because on the way in that was the board *arriving*, framed inside
+the mouth, and this is the same board on the same path walked the other way;
+the board you arrive on takes `diveleave`. Two things fall out of that: the
+two movements cannot drift apart the day either is touched, and the eight
+waypoints are the ones already written. Written as its own eight numbers it
+would have been eight chances to disagree about where the mouth is.
+
+The easing reverses with it, which is right — a cubic-bezier read backwards is
+its own mirror image, and that is what a camera does going the other way.
+
+Two things it is deliberately not. **It is not every way out.** Walking off a
+desk keeps the small settle, because desks sit *beside* each other rather
+than inside each other and a dive there would be claiming a containment that
+isn't there. And a cabinet still opens with its doors and closes with the
+settle: reversing that is a different movement and it hasn't been drawn.
+
+**The mouth is not always the drawer you were in.** The knob climbs to the
+desk a nested drawer stands on, which can be more than one level — so it
+walks up until something answers to a tile on the board that has just been
+drawn, and comes out of *that* one. Coming out into a board and shrinking
+into a front that isn't on it would be a picture flying at nothing.
+
+One consequence worth knowing: the board is transformed for the whole 520ms,
+so anything that measures a rect in that window reads a board mid-camera-move.
+That was already true of the way in. The smoke test learned to wait it out.
