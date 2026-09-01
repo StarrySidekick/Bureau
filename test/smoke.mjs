@@ -1108,6 +1108,128 @@ const CHROME = process.env.BUREAU_CHROME;
   });
   await shot('12-reading');
 
+  /* --- the page is a sheet of the object's own paper — decision 105 ------
+     A note that is ruled on the board is ruled when you open it. What is
+     guarded is that the sheet takes the *same two families* the tile does,
+     resolved by the same readers — a second answer here would drift from the
+     tile's the day a slot gains a rule — and that it takes neither the tile's
+     edge nor any layout with it. */
+  const readPaper = await page.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const S = BUREAU.state, out = {};
+    const o = BUREAU.create('note', { parent: 'root', title: 'Ruled',
+      body: Array.from({ length: 30 },
+        () => 'A line, and then a good many more of them after it. ').join('\n\n') });
+    o.texture = 'ruled'; o.stock = 'laid';
+    BUREAU.render(); await nap(120);
+    const fams = s => (s.match(/\b(tx|st)(sty)?-[a-z0-9]+/g) || []).sort().join(' ');
+    const tile = document.querySelector(`.grid .drawer[data-row="${o.id}"]`);
+    out.theTileWearsIt = /\btx-ruled\b/.test(tile.className) && /\bst-laid\b/.test(tile.className);
+
+    S.readId = o.id; S.bookAt = 0; BUREAU.renderSheet(); await nap(120);
+    const sp = document.querySelector('.bookstage .spread');
+    /* the same stock and the same grain, dressed by the same aesthetic — not a
+       second answer that happens to agree today */
+    out.andSoDoesThePage = fams(sp.className) === fams(tile.className);
+    /* …but not the edge: a tile's border is its frame on the board, and a page
+       has its own. Two frames on one sheet is decision 88's picture-frame shop */
+    out.butNotTheEdge = !/\bbd-/.test(sp.className);
+
+    const grain = sp.querySelector(':scope > .dgrain');
+    out.theGrainIsDrawn = !!grain
+      && getComputedStyle(grain).backgroundImage !== 'none'
+      && +getComputedStyle(grain).opacity > 0;
+    out.theStockIsTheSheet = getComputedStyle(sp).backgroundImage !== 'none';
+    /* The grain hangs off the **spread**, not the page: in scroll mode the
+       paper is what the column moves over, and an absolute box inside a
+       scrolling page would cover the first screenful and stop. */
+    out.itBelongsToTheSheet = grain.parentElement === sp;
+    out.andNotToThePage = !sp.querySelector('.page .dgrain');
+
+    /* And it takes no room. A grain is a sibling of the pages, so anything
+       that counted the spread's *children* rather than its pages broke the
+       day paper arrived — one page was laid out in half the width and
+       overflowed. */
+    out.onePageIsStillOneColumn =
+      getComputedStyle(sp).gridTemplateColumns.split(' ').length === 1;
+    const pg = sp.querySelector('.page');
+    out.andStillPaginates = pg.scrollHeight <= pg.clientHeight + 1;
+
+    // scroll mode keeps its paper too, and the grain still does not scroll away
+    o.read = 'scroll'; BUREAU.renderSheet(); await nap(80);
+    const sp2 = document.querySelector('.bookstage .spread');
+    out.scrollKeepsItsPaper = fams(sp2.className) === fams(tile.className)
+      && !!sp2.querySelector(':scope > .dgrain');
+
+    S.readId = null; o.read = null; BUREAU.renderSheet();
+    BUREAU.del(o.id); S.undo = [];
+    return out;
+  });
+
+  /* --- one bar under the paper, and everything in it on one rhythm ------
+     The row is four glyph buttons, a chip and a count, and it had drifted:
+     three different gaps, two radii, a glyph at 16 among glyphs at 15, and the
+     mode button laid out with `inline-flex` and no `justify-content`, so with
+     its label hidden its mark sat hard left in its own box while every other
+     mark was centred. Measured on a phone, which is where the label goes. */
+  const readBar = await phone.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const S = BUREAU.state, out = {};
+    // paragraphs, not one long run: pagination breaks between blocks, and a
+    // single block always gets a page however tall it is
+    const o = BUREAU.create('note', { parent: 'root', title: 'Bar',
+      body: Array.from({ length: 60 },
+        () => 'Enough words here to take up a line or two of a real page. ').join('\n\n') });
+    S.readId = o.id; S.bookAt = 0; BUREAU.renderSheet(); await nap(150);
+
+    const bar = document.querySelector('.bookbar');
+    const btns = [...bar.querySelectorAll('.iconbtn')];
+    const cs = btns.map(b => getComputedStyle(b));
+    const r = e => e.getBoundingClientRect();
+
+    // one height, one radius, one glyph size
+    out.oneHeight = new Set(btns.map(b => Math.round(r(b).height))).size === 1;
+    out.oneRadius = new Set(cs.map(c => c.borderTopLeftRadius)).size === 1;
+    out.oneGlyphSize = new Set(btns.map(b =>
+      Math.round(r(b.querySelector('svg')).width))).size === 1;
+    /* every mark centred in its own box — the one that actually read as
+       crooked, and the one a look at the class list would never have found */
+    out.everyMarkIsCentred = btns.every(b => {
+      const br = r(b), s = r(b.querySelector('svg'));
+      return Math.abs((s.left + s.width / 2) - (br.left + br.width / 2)) < 0.6;
+    });
+
+    // one rhythm: the same gap inside every group
+    const gaps = [];
+    ['.bktools', '.bkturn', '.bkout'].forEach(sel => {
+      const kids = [...bar.querySelectorAll(`${sel} > *`)];
+      for (let i = 1; i < kids.length; i++) gaps.push(Math.round(r(kids[i]).left - r(kids[i-1]).right));
+    });
+    out.oneRhythm = gaps.length > 1 && new Set(gaps).size === 1;
+
+    // the turns stay centred under the sheet
+    const t = r(bar.querySelector('.bkturn')), b = r(bar);
+    out.theTurnsAreCentred = Math.abs((t.left + t.width/2) - (b.left + b.width/2)) < 1;
+
+    /* …and they stay put as you page. The count is between them, so sized to
+       its own digits it grows from "1 of 9" to "10 of 12" and walks the button
+       you are pressing out from under your thumb. */
+    /* Re-queried every time, never held: turning a page re-renders the sheet,
+       so a reference taken before the click is a detached node reporting where
+       the button used to be and what the count used to say. */
+    const next = () => document.querySelector('.bookbar [data-act="booknext"]');
+    const said = () => document.querySelector('.bookbar .bookcount').textContent;
+    const was = r(next()).left, count = said();
+    // a page turn is animated and re-entrant calls are dropped, so wait it out
+    for (let i = 0; i < 9 && next() && !next().disabled; i++){ next().click(); await nap(560); }
+    out.turnedSeveralPages = said() !== count && /\b(9|1\d) of/.test(said());
+    out.andTheTurnsDidNotMove = Math.abs(r(next()).left - was) < 0.6;
+
+    S.readId = null; BUREAU.renderSheet();
+    BUREAU.del(o.id); S.undo = [];
+    return out;
+  });
+
   /* --- migrations 10, 17, 19 and 20: a v9 desk's phone boxes are in
      16-column coordinates, and the phone grid has been 8, 10, 9, and is now 8
      again — Small, the first of three sizes to choose between. Halving and then
@@ -4393,7 +4515,7 @@ const CHROME = process.env.BUREAU_CHROME;
     timeLayer, checklistBox, pluckWorks, answering, seedAndKnobs, longPress, drawerSize, tagDrawer, groupMove, dropStates,
     adaptiveTiles, bubblePanel, scrollKept, kindSizes,
     phoneGrid, phoneMigration,
-    dupIds, undoWorks, readViews, paperSize, movement, pager, desks, spans,
+    dupIds, undoWorks, readViews, paperSize, readPaper, readBar, movement, pager, desks, spans,
     listControls, checklistEdit, lockedNamesAreNames, perBoardGrid, newThingsAreSmall,
     picture, fronts, editor, noSelecting, selectionDropped,
     settingsHasDoors, settingsBack,

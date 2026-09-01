@@ -117,8 +117,13 @@
 .spread{display:grid;grid-template-columns:1fr 1fr;gap:0;background:var(--paper-2);
   border:1px solid var(--rule);border-radius:var(--radius);overflow:hidden;
   height:var(--pageh);position:relative;perspective:2200px}
-/* one page: the spread has only one child, so a single column is enough */
-.spread:has(> .page:only-child){grid-template-columns:1fr}
+/* One page, one column. Asked as "there is no second page" rather than as
+   "the page is an only child": the sheet also carries its grain, which is an
+   absolutely positioned `<i>` that takes no room in the grid but is still a
+   *sibling* — so `:only-child` stopped matching the day the paper arrived and
+   a single page was laid out in half the width, overflowing. Count the pages,
+   not the children. */
+.spread:not(:has(> .page + .page)){grid-template-columns:1fr}
 .is-phone .spread{grid-template-columns:1fr}
 /* a phone has room for one sheet; the second would be clipped, not stacked */
 .is-phone .spread > .page + .page{display:none}
@@ -144,26 +149,51 @@
 
    It is the width of the paper, so nothing in it can drift off the screen: the
    thing that went wrong with the header it replaced. */
+/* **One rhythm.** The three groups used to space themselves differently — 4px
+   in the tools, 8px between the turns, 6px on a phone — which is what made a
+   row of identical 28px buttons read as three unrelated clusters. One gap,
+   named once. */
 .bookbar{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;
-  gap:10px;margin-top:12px;width:var(--paperw);max-width:100%;margin-inline:auto}
-.bktools{display:flex;align-items:center;gap:4px;min-width:0}
-.bkturn{display:flex;align-items:center;justify-content:center;gap:8px;flex:0 0 auto}
-.bkout{display:flex;align-items:center;justify-content:flex-end}
+  --bkgap:6px;
+  gap:12px;margin-top:12px;width:var(--paperw);max-width:100%;margin-inline:auto}
+.bktools,.bkturn,.bkout{display:flex;align-items:center;gap:var(--bkgap)}
+.bktools{min-width:0}
+.bkturn{justify-content:center;flex:0 0 auto}
+.bkout{justify-content:flex-end}
 /* nothing in the bar may squash or wrap — that was the other half of the
    jumbling, a pill with room for six letters wrapping its label onto two */
 .bookbar > span > *{flex:0 0 auto;white-space:nowrap}
-.bookcount{font-size:12px;color:#E5DCC6;font-variant-numeric:tabular-nums}
+/* **The count is fixed width**, and that is not cosmetic: it is what the two
+   chevrons sit either side of, so sized to its own digits it grows from
+   "1 of 9" to "10 of 12" and the button you are pressing walks out from under
+   your thumb as you page. Tabular figures stop the *digits* moving; only a
+   width stops the row moving. */
+.bookcount{font-size:12px;color:#E5DCC6;font-variant-numeric:tabular-nums;
+  min-width:72px;text-align:center}
+.is-phone .bookcount{min-width:64px}
 .bookbar .iconbtn{color:rgba(244,238,221,.8)}
 .bookbar .iconbtn:hover{background:rgba(255,255,255,.14);color:#fff}
 .bookbar .iconbtn[disabled]{opacity:.35;pointer-events:none}
 .bookbar .pill{background:rgba(255,255,255,.10);border-color:rgba(255,255,255,.22);color:#E9E1CC}
 .bookbar .pill:hover{border-color:var(--brass);color:#fff}
-/* the mode wears its name where there is room, and its mark where there isn't */
-.bookbar .readmode{display:inline-flex;align-items:center;gap:5px;width:auto;
-  padding:0 9px;border-radius:var(--radius)}
+/* The mode wears its name where there is room, and its mark where there isn't.
+
+   It is the one control in the row that is also a **readout** — it says what
+   you are reading as, and pressing it changes that — so it is dressed as a
+   chip rather than left as a bare glyph pretending to be one of its
+   neighbours. What it must not do is differ from them by accident, and it did,
+   three times over: a `--radius` of its own against their 8px, thirty pixels
+   wide on a phone against their twenty-eight, and — the one that actually
+   read as crooked — **`inline-flex` with no `justify-content`**, so with the
+   label hidden its glyph sat hard against the left edge of its own box while
+   every other glyph in the row was centred by `place-items`. First thing in
+   the row, and the only thing off its own centre. */
+.bookbar .readmode{display:inline-flex;align-items:center;justify-content:center;
+  gap:6px;width:auto;padding:0 10px;
+  background:rgba(255,255,255,.09);box-shadow:inset 0 0 0 1px rgba(255,255,255,.15)}
+.bookbar .readmode:hover{background:rgba(255,255,255,.16)}
 .is-phone .bookbar .readmode span{display:none}
-.is-phone .bookbar .readmode{padding:0;width:30px}
-.is-phone .bookbar{gap:6px}
+.is-phone .bookbar .readmode{padding:0;width:28px}
 
 /* the leaf: one sheet with a page printed on each side, hinged at the spine.
    backface-visibility does the swap halfway through the rotation, which is
@@ -625,23 +655,32 @@ html .drawer.dtile.cltile{background-image:none}
    positions, and 0 is the flat paper the app has always drawn — so an object
    that hasn't asked is unchanged. Everything here is a `background-image`
    layered under whatever a shape or a texture puts on top, plus, for card, the
-   one thing a sheet's weight actually looks like: a thicker edge. */
-.drawer.otile.st-laid{
+   one thing a sheet's weight actually looks like: a thicker edge.
+
+   **A page is a sheet of the same stock**, so every one of these answers for
+   `.bookpaper` as well — the spread you read a thing on, wearing the classes
+   `sheetOf()` gives it. Written as `:is(.drawer.otile, .bookpaper)` rather
+   than adding one shared class to both, because `.drawer.otile` is two
+   classes and a bare one would be one: the whole block would drop a step of
+   specificity and lose to `.drawer.otile.sh-index`, which sets `background`
+   as a shorthand and would take every stock off an index card. `:is()` takes
+   the weight of its heaviest arm, so nothing moves. */
+:is(.drawer.otile,.bookpaper).st-laid{
   background-image:repeating-linear-gradient(0deg,
     rgba(0,0,0,.05) 0 1px, transparent 1px 5px),
     linear-gradient(160deg, rgba(255,255,255,.5), rgba(0,0,0,.03)) }
-.drawer.otile.st-wove{
+:is(.drawer.otile,.bookpaper).st-wove{
   background-image:radial-gradient(120% 90% at 30% 12%,
     rgba(255,255,255,.75), rgba(0,0,0,.05) 78%) }
 /* card: a sheet you can see the thickness of, so it stands a little higher and
    the bottom edge is its own cut rather than a shadow */
-.drawer.otile.st-card{
+:is(.drawer.otile,.bookpaper).st-card{
   background-image:linear-gradient(180deg, rgba(255,255,255,.45), rgba(0,0,0,.04));
   box-shadow:inset 0 -3px 0 rgba(0,0,0,.10), inset 0 -4px 0 rgba(255,255,255,.35),
              0 3px 5px rgba(0,0,0,.16) }
 /* aged: foxed at the corners and warm toward the edges, which is what a sheet
    left in a drawer for thirty years actually does */
-.drawer.otile.st-aged{
+:is(.drawer.otile,.bookpaper).st-aged{
   background-image:
     radial-gradient(circle at 8% 10%, rgba(150,110,60,.26) 0 8%, transparent 34%),
     radial-gradient(circle at 92% 88%, rgba(150,110,60,.22) 0 7%, transparent 30%),
@@ -668,18 +707,18 @@ html .drawer.dtile.cltile{background-image:none}
 .drawer.otile.bd-gloss.bdsty-carca .dpanel{
   inset:4px;border-radius:3px;
   border:1px dashed color-mix(in srgb,var(--brass) 70%,transparent) }
-.drawer.otile.st-laid.ststy-carca{ background-image:
+:is(.drawer.otile,.bookpaper).st-laid.ststy-carca{ background-image:
   radial-gradient(120% 100% at 20% 0%, rgba(190,170,120,.20), transparent 60%),
   radial-gradient(90% 120% at 90% 100%, rgba(150,130,90,.18), transparent 55%) }
-.drawer.otile.st-wove.ststy-carca{ background-image:
+:is(.drawer.otile,.bookpaper).st-wove.ststy-carca{ background-image:
   repeating-linear-gradient(0deg, rgba(0,0,0,.05) 0 1px, transparent 1px 3px),
   repeating-linear-gradient(90deg, rgba(0,0,0,.05) 0 1px, transparent 1px 3px) }
 /* slate: a dark cool ground with the cleave of the stone across it */
-.drawer.otile.st-card.ststy-carca{ background-image:
+:is(.drawer.otile,.bookpaper).st-card.ststy-carca{ background-image:
   linear-gradient(168deg, rgba(40,50,60,.30), rgba(20,26,34,.42));
   box-shadow:inset 0 -3px 0 rgba(0,0,0,.30), 0 3px 5px rgba(0,0,0,.20);
   --dink:#F2F4F6;--dink-2:rgba(242,244,246,.72);--dink-3:rgba(242,244,246,.5) }
-.drawer.otile.st-aged.ststy-carca{ background-image:
+:is(.drawer.otile,.bookpaper).st-aged.ststy-carca{ background-image:
   radial-gradient(circle at 14% 88%, rgba(90,110,70,.28) 0 9%, transparent 40%),
   radial-gradient(circle at 86% 18%, rgba(120,105,60,.22) 0 7%, transparent 34%),
   radial-gradient(150% 130% at 50% 40%, transparent 38%, rgba(60,60,50,.24)) }
@@ -705,20 +744,20 @@ html .drawer.dtile.cltile{background-image:none}
    aesthetic a bright point at full strength competes with the words in front of
    it far more than the same point does on paper. Sparse and dim — the grain
    slot is where you go if you want stars you can count. */
-.drawer.otile.st-laid.ststy-stelaine{ background-image:
+:is(.drawer.otile,.bookpaper).st-laid.ststy-stelaine{ background-image:
   radial-gradient(circle at 22% 24%, rgba(255,255,255,.30) 0 .9px, transparent 1.4px),
   radial-gradient(circle at 74% 62%, rgba(255,255,255,.20) 0 .7px, transparent 1.2px),
   linear-gradient(168deg, rgba(255,255,255,.14), transparent 62%);
   background-size:64px 64px, 88px 88px, 100% 100% }
-.drawer.otile.st-wove.ststy-stelaine{ background-image:
+:is(.drawer.otile,.bookpaper).st-wove.ststy-stelaine{ background-image:
   linear-gradient(114deg, rgba(255,255,255,.16) 0%, transparent 34%,
     rgba(255,255,255,.09) 58%, transparent 84%) }
 /* shard: a cleaved face, so the light runs in flat planes across it */
-.drawer.otile.st-card.ststy-stelaine{ background-image:
+:is(.drawer.otile,.bookpaper).st-card.ststy-stelaine{ background-image:
   linear-gradient(126deg, rgba(255,255,255,.16) 0 32%, rgba(0,0,0,.10) 32% 58%,
     rgba(255,255,255,.10) 58% 78%, rgba(0,0,0,.14) 78%);
   box-shadow:inset 0 -3px 0 rgba(0,0,0,.14), 0 3px 6px rgba(0,0,0,.18) }
-.drawer.otile.st-aged.ststy-stelaine{ background-image:
+:is(.drawer.otile,.bookpaper).st-aged.ststy-stelaine{ background-image:
   radial-gradient(150% 130% at 50% 20%, rgba(255,255,255,.12), transparent 58%),
   linear-gradient(180deg, transparent 40%, color-mix(in srgb,var(--paper) 60%,transparent)) }
 
@@ -742,21 +781,21 @@ html .drawer.dtile.cltile{background-image:none}
    took the note's own words with it. Everything here is a tenth rather than a
    half; the grain slot is where you go for something you can see. */
 /* fresco: lime plaster, which is mottled and never quite one colour */
-.drawer.otile.st-laid.ststy-girando{ background-image:
+:is(.drawer.otile,.bookpaper).st-laid.ststy-girando{ background-image:
   radial-gradient(circle at 24% 30%, rgba(255,255,255,.13) 0 16%, transparent 52%),
   radial-gradient(circle at 78% 66%, rgba(0,0,0,.10) 0 18%, transparent 54%),
   radial-gradient(circle at 60% 12%, rgba(255,255,255,.08) 0 12%, transparent 44%) }
-.drawer.otile.st-wove.ststy-girando{ background-image:
+:is(.drawer.otile,.bookpaper).st-wove.ststy-girando{ background-image:
   repeating-linear-gradient(0deg, rgba(0,0,0,.06) 0 1px, transparent 1px 4px),
   repeating-linear-gradient(90deg, rgba(0,0,0,.06) 0 1px, transparent 1px 4px),
   linear-gradient(180deg, rgba(255,255,255,.10), transparent 50%) }
 /* terracotta: fired earth is warm all the way through and rough on top */
-.drawer.otile.st-card.ststy-girando{ background-image:
+:is(.drawer.otile,.bookpaper).st-card.ststy-girando{ background-image:
   radial-gradient(circle at 30% 40%, rgba(0,0,0,.10) 0 1px, transparent 1.6px),
   linear-gradient(180deg, rgba(190,105,60,.22), rgba(150,72,42,.30));
   background-size:9px 9px, 100% 100%;
   box-shadow:inset 0 -3px 0 rgba(0,0,0,.18), 0 3px 5px rgba(0,0,0,.18) }
-.drawer.otile.st-aged.ststy-girando{ background-image:
+:is(.drawer.otile,.bookpaper).st-aged.ststy-girando{ background-image:
   linear-gradient(184deg, rgba(255,255,255,.14), transparent 46%),
   radial-gradient(140% 120% at 50% 0%, rgba(255,240,200,.12), transparent 60%) }
 
@@ -782,19 +821,19 @@ html .drawer.dtile.cltile{background-image:none}
 .drawer.otile.bd-gloss.bdsty-golf97 .dpanel{
   inset:3px;border:1px dotted rgba(0,0,0,.6) }
 /* window: the title bar, which is the one thing everybody remembers */
-.drawer.otile.st-laid.ststy-golf97{ background-image:
+:is(.drawer.otile,.bookpaper).st-laid.ststy-golf97{ background-image:
   linear-gradient(90deg, #0A246A, #A6CAF0) ;background-size:100% 5px;
   background-repeat:no-repeat;box-shadow:inset 0 5px 0 rgba(0,0,0,.15) }
 /* dialog: flat grey, no gradient at all, because there were none */
-.drawer.otile.st-wove.ststy-golf97{ background-image:
+:is(.drawer.otile,.bookpaper).st-wove.ststy-golf97{ background-image:
   linear-gradient(0deg, rgba(160,160,160,.30), rgba(160,160,160,.30)) }
 /* readout: the green screen */
-.drawer.otile.st-card.ststy-golf97{ background-image:
+:is(.drawer.otile,.bookpaper).st-card.ststy-golf97{ background-image:
   repeating-linear-gradient(180deg, rgba(0,0,0,.3) 0 1px, transparent 1px 3px),
   linear-gradient(180deg, rgba(8,42,20,.92), rgba(4,26,12,.95));
   --dink:#7CFFA0;--dink-2:rgba(124,255,160,.72);--dink-3:rgba(124,255,160,.5) }
 /* printout: tractor feed and the alternating green bands */
-.drawer.otile.st-aged.ststy-golf97{ background-image:
+:is(.drawer.otile,.bookpaper).st-aged.ststy-golf97{ background-image:
   repeating-linear-gradient(180deg, rgba(120,180,130,.22) 0 12px, transparent 12px 24px),
   radial-gradient(circle at 4px 50%, rgba(0,0,0,.35) 0 2px, transparent 2.6px);
   background-size:100% 24px, 10px 14px }
@@ -815,16 +854,16 @@ html .drawer.dtile.cltile{background-image:none}
   inset:2px;border-radius:8px;
   border-top:1.5px solid rgba(255,255,255,.9);border-left:1.5px solid rgba(255,255,255,.6);
   border-right:1.5px solid rgba(255,255,255,.6);border-bottom:1.5px solid rgba(255,255,255,.35) }
-.drawer.otile.st-laid.ststy-aero{ background-image:
+:is(.drawer.otile,.bookpaper).st-laid.ststy-aero{ background-image:
   linear-gradient(180deg, rgba(255,255,255,.55), rgba(255,255,255,.05) 52%, rgba(255,255,255,.2)) }
-.drawer.otile.st-wove.ststy-aero{ background-image:
+:is(.drawer.otile,.bookpaper).st-wove.ststy-aero{ background-image:
   linear-gradient(96deg, rgba(255,255,255,.4), transparent 40%, rgba(255,255,255,.25) 72%, transparent) }
 /* acrylic: a thick sheet, so the edge is a lit band rather than a shadow */
-.drawer.otile.st-card.ststy-aero{ background-image:
+:is(.drawer.otile,.bookpaper).st-card.ststy-aero{ background-image:
   linear-gradient(180deg, rgba(255,255,255,.42), rgba(255,255,255,.06));
   box-shadow:inset 0 -4px 0 rgba(255,255,255,.5), inset 0 -5px 0 rgba(0,0,0,.10),
              0 3px 6px rgba(0,0,0,.16) }
-.drawer.otile.st-aged.ststy-aero{ background-image:
+:is(.drawer.otile,.bookpaper).st-aged.ststy-aero{ background-image:
   radial-gradient(120% 90% at 78% 6%, rgba(255,246,200,.5), transparent 62%),
   linear-gradient(180deg, rgba(255,255,255,.3), transparent 44%) }
 
@@ -1373,16 +1412,16 @@ html[data-style="starry"] .sqbtn{
    sheet it is. */
 .drawer.otile.ststy-starry{ background-color:transparent }
 /* ruled leaf: the lines that are already on the paper */
-.drawer.otile.st-laid.ststy-starry{ background-image:
+:is(.drawer.otile,.bookpaper).st-laid.ststy-starry{ background-image:
   repeating-linear-gradient(0deg, transparent 0 17px,
     color-mix(in srgb,var(--ink) 20%,transparent) 17px 18px) }
 /* tracing: you can see through it, so the only thing on it is a sheen */
-.drawer.otile.st-wove.ststy-starry{ background-image:
+:is(.drawer.otile,.bookpaper).st-wove.ststy-starry{ background-image:
   linear-gradient(158deg, color-mix(in srgb,var(--ink) 8%,transparent),
     transparent 46%, color-mix(in srgb,var(--ink) 5%,transparent)) }
 /* board: a sheet thick enough to see the edge of, drawn as a second line
    inside the bottom and the right — which is how you draw thickness */
-.drawer.otile.st-card.ststy-starry{ background-image:
+:is(.drawer.otile,.bookpaper).st-card.ststy-starry{ background-image:
   linear-gradient(0deg, color-mix(in srgb,var(--ink) 34%,transparent) 0 1.5px, transparent 1.5px),
   linear-gradient(90deg, transparent calc(100% - 1.5px),
     color-mix(in srgb,var(--ink) 34%,transparent) calc(100% - 1.5px));
@@ -1390,7 +1429,7 @@ html[data-style="starry"] .sqbtn{
   background-size:calc(100% - 14px) 100%, 100% calc(100% - 7px);
   background-repeat:no-repeat }
 /* foxed: the spots an old sheet grows, drawn as rings rather than stains */
-.drawer.otile.st-aged.ststy-starry{ background-image:
+:is(.drawer.otile,.bookpaper).st-aged.ststy-starry{ background-image:
   radial-gradient(circle at 14% 18%, transparent 0 2.6px,
     color-mix(in srgb,var(--ink) 30%,transparent) 2.6px 3.4px, transparent 3.4px),
   radial-gradient(circle at 82% 74%, transparent 0 2px,

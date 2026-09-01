@@ -242,6 +242,26 @@ function calSoon(o, n){
    shape gets all three without being told. See decision 99. */
 const paper = o => `${dress(o,'bd')} ${dress(o,'tx')} ${dress(o,'st')}`;
 
+/* **The page you read something on is a sheet of its own paper.** A note that
+   is ruled on the board is ruled when you open it, and a note on aged stock
+   opens onto a foxed sheet — same slot, same aesthetic, drawn larger. It was
+   the one place an object stopped looking like itself: the tile carried a
+   stock and a grain and the letter-sized page was flat `--paper-2` whatever
+   the thing was made of.
+
+   Two of the three families, not all three. A **stock** is what the sheet is
+   and a **grain** is what is printed on it, so both scale up. An **edge** is
+   the tile's frame on the board — a mount round a postcard — and a page has
+   its own border and its own radius; a double rule inside that would be two
+   frames on one sheet, which is decision 88's picture-frame shop again.
+
+   It goes on the **spread** rather than on each page, because the spread is
+   the sheet: two pages side by side are one leaf, and in scroll mode the
+   paper is what the column moves over rather than something that moves with
+   it — a grain inside a scrolling page is an absolute box against the padding
+   box, so it would cover the first screenful and stop. */
+const sheetOf = o => `bookpaper ${dress(o,'tx')} ${dress(o,'st')}`;
+
 const calBorder = (o, snug) => `${snug?' calsnug':''}${
   snug && has(o,'magic') ? '' : ` ${dress(o,'bd')}`}`;
 
@@ -1158,7 +1178,7 @@ function bookOf(o, left, right){
   if(mode==='scroll'){
     // the same sheet, the same size — the column inside it scrolls instead of
     // the paper growing to fit what is on it
-    return `<div class="book"><div class="spread scrolling">
+    return `<div class="book"><div class="spread scrolling ${sheetOf(o)}"><i class="dgrain"></i>
       <div class="page">${headOf(o)}${o.body?md(o.body):'<p class="thin">Nothing written yet.</p>'}</div>
     </div>${bar('')}</div>`;
   }
@@ -1170,7 +1190,7 @@ function bookOf(o, left, right){
     `<button class="iconbtn" data-act="bookprev" title="Back"${at<=0?' disabled':''}>${ic('chevL',15)}</button>
      <span class="bookcount">${two&&last>at+1?`${at+1}–${last}`:at+1} of ${pages.length}</span>
      <button class="iconbtn" data-act="booknext" title="On"${at+step>=pages.length?' disabled':''}>${ic('chevR',15)}</button>`;
-  return `<div class="book"><div class="spread">
+  return `<div class="book"><div class="spread ${sheetOf(o)}"><i class="dgrain"></i>
       <div class="page">${pages[at]||''}<span class="pno">${at+1}</span></div>
       ${two?`<div class="page">${pages[at+1]||''}${pages[at+1]?`<span class="pno">${at+2}</span>`:''}</div>`:''}
     </div>${bar(turn)}</div>`;
@@ -1226,7 +1246,10 @@ function bookView(c, items){
   const at=Math.min(S.bookAt||0, Math.max(0,pages.length-1));
   const left=pages[at]||'', right=pages[at+1]||'';
   return `<div class="book">
-    <div class="spread">
+    ${/* a drawer read as a book is bound in its own paper, the same way an
+         object opens onto its own — the sheet belongs to what you are
+         reading, and here that is the container. */''}
+    <div class="spread ${sheetOf(c)}"><i class="dgrain"></i>
       <div class="page">${left}<span class="pno">${at+1}</span></div>
       <div class="page">${right}${right?`<span class="pno">${at+2}</span>`:''}</div>
     </div>
@@ -1256,5 +1279,5 @@ function scrollEntry(o){
 }
 
 export { spinTo, CLICKS, clickOf, fireButton, tileTap, pending, placeAtPending, PAGESHIFT,
-  gridTile, gridOfContainer, listTile, scrollEntry, bookOf, bookView, turnPage, clearPages,
+  gridTile, gridOfContainer, listTile, scrollEntry, bookOf, bookView, sheetOf, turnPage, clearPages,
   calSpan };

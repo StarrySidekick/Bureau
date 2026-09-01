@@ -3997,3 +3997,87 @@ into a front that isn't on it would be a picture flying at nothing.
 One consequence worth knowing: the board is transformed for the whole 520ms,
 so anything that measures a rect in that window reads a board mid-camera-move.
 That was already true of the way in. The smoke test learned to wait it out.
+
+## 105. A page is a sheet of the object's own paper
+
+*2026-09-01*
+
+A note carries a **stock** — what the sheet is — and a **grain** — what is
+printed on it, decision 99's two halves of an object's look. On the board it
+wore both. Opened, it became a flat letter-sized rectangle of `--paper-2`
+whatever it was made of: laid paper, aged paper and a 1997 printout all opened
+onto the same blank page. The one place in the app where a thing stopped
+looking like itself.
+
+The reading sheet now takes both, through `sheetOf()` — the same two readers
+the tile's `paper()` uses, so there is one answer per family and not two that
+happen to agree today. A note that is ruled on the desk is ruled when you open
+it, in whichever aesthetic, and it re-dresses on a switch the way the tile
+does.
+
+**Two families, not three.** A stock and a grain are what the paper *is*, so
+they scale up. An **edge** is the tile's frame on the board — a mount round a
+postcard — and a page has its own border and its own radius already; a second
+ruled frame inside that is decision 88's picture-frame shop.
+
+**It hangs off the spread, not the page**, and that is not tidiness. In scroll
+mode the sheet is what the column moves over rather than something that moves
+with it, and a grain inside a scrolling page is an absolute box measured
+against the padding box: it would cover the first screenful and stop. On a
+two-page spread it is also simply true — two pages side by side are one leaf.
+
+The one thing it cost, and it is worth recording because it was invisible in
+every measurement that mattered: `.spread:has(> .page:only-child)` was how a
+single page got a single column, and the grain is a **sibling** of the pages.
+Absolutely positioned, taking no room in the grid — but `:only-child` is a
+question about the DOM, not about layout, so the day the paper arrived a
+one-page sheet was laid out in half the width and its text ran off the bottom.
+It asks `:not(:has(> .page + .page))` now: count the pages, not the children.
+
+### What is not aligned, and deliberately so
+
+A **ruled** grain does not line up with the text baselines. The rules are the
+aesthetic's own — 22px in Victoria, its own pitch in each of the other six —
+and the reader's leading is 14.5px at 1.75. Making text sit *on* the lines
+means driving both from one number, in seven aesthetics, and giving the
+pagination ruler the same classes so the breaks are measured against the same
+leading. That is a piece of work, not a tweak, and it is not this one.
+
+The grain is also **not damped for reading**, which was the tempting thing to
+do: Carca's millefleur behind a full page of body text is louder than it is on
+a four-cell tile. It stays at the weight the aesthetic set, because "the same
+paper" is a rule you can predict and "the same paper at some fraction" is a
+second renderer waiting to drift. A texture too loud to read on is a reason to
+put that note on different paper, which the object editor already offers.
+
+## 106. One bar under the paper, on one rhythm
+
+*2026-09-01*
+
+Decision 84 put everything you can press into one row under the sheet. The row
+was right and its contents had drifted, in four ways that each looked like
+nothing and added up to a left-hand cluster that read as crooked:
+
+- **Three gaps.** 4px between the tools, 8px between the page turns, 6px on a
+  phone. One `--bkgap`, used by all three groups.
+- **Two radii.** The mode button took `var(--radius)`; its neighbours took
+  `.iconbtn`'s 8px. Three squares and one differently-rounded rectangle.
+- **Two glyph sizes.** The way out was drawn at 16 and everything else at 15.
+- **One mark off its own centre.** `.readmode` is laid out `inline-flex`
+  because it carries a label; every other button in the row is `display:grid;
+  place-items:center`. With no `justify-content` on it, hiding the label on a
+  phone left its mark hard against the left edge of its own 28px box, 7.5px
+  out, while every mark beside it was centred. First thing in the row, and the
+  only thing not centred in itself. Nothing about reading the class list says
+  so — it took measuring the glyph against its button.
+
+The mode button is now dressed as a **chip** rather than left as a bare glyph
+pretending to be one of its neighbours, because it is the one control that is
+also a readout: it says what you are reading as, and pressing it changes that.
+Differing from its neighbours on purpose is fine. Differing by accident is
+what this was.
+
+And the page count is **fixed width**. It sits between the two chevrons, so
+sized to its own digits it grows from "1 of 9" to "10 of 12" and walks the
+button you are pressing out from under your thumb as you page. Tabular figures
+stop the digits moving; only a width stops the row moving.

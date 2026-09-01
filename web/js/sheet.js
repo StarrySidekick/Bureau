@@ -1,7 +1,7 @@
 import { $, $$, esc, ic, md, D, ROOT } from './util.js';
 import { S, K, byId, has, isContainer, READS, readOf, isPicture, isMedia, isPlayable,
   mediaTypeOf, iconOf } from './model.js';
-import { bookOf } from './tiles.js';
+import { bookOf, sheetOf } from './tiles.js';
 import { closePanel, objectPanel } from './panels.js';
 import { toast } from './mutations.js';
 import { render } from './views.js';
@@ -324,12 +324,14 @@ function renderSheet(){
            ${ic(mode==='scroll'?'feather':'book',15)}<span>${READS[mode]}</span></button>
          <button class="iconbtn" data-act="copymd" data-id="${r.id}" title="Copy as markdown">${ic('copy',15)}</button>
          <button class="iconbtn" data-act="objset" data-id="${r.id}" title="Everything about it but the words">${ic('brush',15)}</button>`;
-    const out = `<button class="iconbtn" data-sheet="close" title="Close">${ic('x',16)}</button>`;
+    // 15, like everything else in the bar — it was the one glyph at 16
+    const out = `<button class="iconbtn" data-sheet="close" title="Close">${ic('x',15)}</button>`;
     host.innerHTML=`<div class="bookscrim" data-sheet="close"></div>
       <div class="bookstage rm-${mode}${editing?' writingon':''}">
         <div class="bookhead"><b>${esc(r.title||'Untitled')}</b></div>
         ${editing
-          ? `<div class="book"><div class="spread"><div class="page">
+          ? `<div class="book"><div class="spread ${sheetOf(r)}"><i class="dgrain"></i>
+             <div class="page">
               <textarea class="pagebody" data-w="body"
                 placeholder="Write.">${esc(r.body||'')}</textarea></div></div>
              <div class="bookbar"><span class="bktools">${tools}</span>

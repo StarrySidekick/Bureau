@@ -1020,6 +1020,32 @@ are kept throughout: a keyboard gets a smaller sheet, never a different shape.
 named in the same rule as `.bookstage` — without `--pageh` nothing overflows it
 and a whole book measures as one page. See decision 84.
 
+**A page is a sheet of the object's own paper.** `sheetOf(o)` in tiles.js —
+the same `tx` and `st` readers `paper()` gives a tile, so a note that is ruled
+on the board is ruled when you open it and re-dresses on an aesthetic switch
+the same way. Two families, not three: a stock and a grain are what the sheet
+*is*, an **edge** is the tile's frame on the board and a page has its own. It
+goes on the **spread** — the spread is the sheet, two pages side by side are
+one leaf, and in scroll mode the paper is what the column moves over rather
+than something that moves with it (an absolute box inside a scrolling page
+covers the first screenful and stops). The grain is a *sibling* of the pages,
+which is why the one-column rule asks `:not(:has(> .page + .page))` and not
+`.page:only-child` — `:only-child` is a question about the DOM, and the day
+the paper arrived a single page was laid out in half the width. A ruled grain
+does **not** line up with the text baselines and that is knowingly left: the
+pitch is the aesthetic's and the leading is the reader's, and joining them
+means one number across seven aesthetics plus the pagination ruler. Don't damp
+the grain for reading either — see decision 105.
+
+**Everything in the reading bar is one shape on one rhythm.** One `--bkgap`
+for all three groups, one radius, one glyph size, and every mark centred in
+its own box — `.readmode` is `inline-flex` because it carries a label, so it
+needs `justify-content:center` or its mark sits hard left the moment a phone
+hides the label. It is dressed as a chip on purpose: it is the one control
+that is also a readout. The page count is **fixed width**, because it sits
+between the two chevrons and a count sized to its own digits walks the button
+you are pressing out from under your thumb as you page. See decision 106.
+
 **The page you read is the page you write on.** Tapping the paper puts a caret
 in it — the whole body, in the page's own face, however the page is broken up;
 `clearPages()` when you put it down. The reading head is three things: the mode
