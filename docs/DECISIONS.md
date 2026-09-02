@@ -4253,6 +4253,21 @@ would not move the shelf. The full rotation sees it. The price is that alpha
 drifts and a body-turn reads as a tilt, and both are absorbed by the neutral's
 own drift below.
 
+**Depth is throw, not sensitivity, and there is no rim.** Real parallax
+displaces by depth × tan(angle), so a deeper shelf moves *further for the same
+tilt* — which is `--tiltpx`/`--tiltpy` and nothing else. Narrowing `TILT_RANGE`
+would reach the same displacement sooner and read as twitchy rather than as
+deep; it is a different quantity and the wrong one. They started at 9 and 7,
+which read as a picture with a little play in it, and are 16 and 12.
+
+Insetting the board — a margin of carcass all round, so the opening has a
+visible inside rim at rest — was tried and reverted. It is the obvious way to
+say "this is a shelf", and it is worse: the desk wants its full width, and a
+frame drawn round a board at rest is a picture mount rather than a recess. The
+board is **flush** face on and stays that way. All of the depth lives in the
+movement, which means the claim is made only while it is being demonstrated —
+which is the honest place for it.
+
 **The neutral is where you actually hold the phone.** Nobody holds one at beta
 zero, so the sensor's own zero would leave the shelf jammed in a corner
 forever. The first steady reading becomes rest, and rest then *drifts* slowly

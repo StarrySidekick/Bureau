@@ -2882,11 +2882,24 @@ input,textarea,select,[contenteditable],
    this switched off pays for none of it — no `will-change`, no promoted layer,
    no extra shadow to paint. */
 /* How deep the cavity is, and the only two numbers worth turning. Everything
-   else here is derived from them, so making the shelf sit further back is one
-   edit and not four that can disagree — the rim's shading is 2.2× the throw,
-   which is what keeps the shadow ahead of the movement rather than trailing
-   it. Park the shelf by hand to judge a value: `BUREAU.tilt(1, 0)`. */
-.is-phone.tilting{--tiltpx:9px;--tiltpy:7px}
+   else here is derived from them, so setting the shelf further back is one edit
+   and not four that can disagree — the rim's shading is 2.2× the throw, which
+   is what keeps the shadow ahead of the movement rather than trailing it. Park
+   the shelf by hand to judge a value: `BUREAU.tilt(1, 0)`.
+
+   **Depth is throw, not sensitivity.** Real parallax displaces by depth ×
+   tan(angle), so a deeper shelf moves *further for the same tilt* — which is
+   this pair. Narrowing `TILT_RANGE` instead would reach the same displacement
+   sooner and read as twitchy rather than as deep, which is a different thing
+   and the wrong one.
+
+   These were 9 and 7, and the desk read as a picture with a little play in it
+   rather than as something standing in a recess. The board is **flush** with
+   the carcass face on and it stays that way: the depth is entirely in the
+   movement, so what makes it a shelf is what happens when you tilt, not a rim
+   drawn round it. A margin was tried and it was worse — the desk wants its
+   full width, and a frame at rest is a picture mount. */
+.is-phone.tilting{--tiltpx:16px;--tiltpy:12px}
 .is-phone.tilting .deskscroll .grid{
   transform:translate3d(calc(var(--tiltx,0) * var(--tiltpx)),
                         calc(var(--tilty,0) * var(--tiltpy)), 0);

@@ -461,7 +461,12 @@ sensor, never in the CSS: the rim's shading derives from the same two variables
 and stays on the right side of the movement for free. `--tiltx`/`--tilty`
 (−1..1) are written on `#frame` by motion.js §20b²; `--tiltpx`/`--tiltpy` are
 the only two numbers worth turning, and `BUREAU.tilt(1,0)` parks the shelf so
-you can look. It is off by default, phone only, and it eases to zero for a
+you can look. **Depth is throw, not sensitivity** — parallax displaces by depth
+× tan(angle), so a deeper shelf moves further for the same tilt; narrowing
+`TILT_RANGE` instead reads as twitchy. The board is **flush** with the carcass
+face on and must stay that way: insetting it to give the opening a visible rim
+was tried and reverted, because a frame round a board at rest is a picture
+mount. All the depth is in the movement. It is off by default, phone only, and it eases to zero for a
 drag, the pager, a panel, a surface and reduced motion — all read off state or
 the DOM, so nothing else has to know it exists. See decision 108.
 
