@@ -2,7 +2,8 @@ import { esc, ic, clamp, D, md, plain, oneline } from './util.js';
 import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, childrenOf, container,
   rollup, streak, goalPct, projectStat, tlSpan, dev, spawnByOf, genKindOf, takesTyping, showsAddBox,
   knobSizeOf, answered, sortOf, spanOf, coversDay, lateOn, isLate, iconOf, textSizeOf,
-  isPicture, isMedia, isPlayable, isDecor, mediaTypeOf, boardLocked, prioOf, repeatSaid,
+  isPicture, isMedia, isPlayable, isDecor, mediaTypeOf, frameOf, isWindow,
+  boardLocked, prioOf, repeatSaid,
   calViewOf, weekStartOf, calCols, bindingOf, panelOf, knobOf, borderOf, textureOf } from './model.js';
 import { CELL, COLW, gridOf, lay, overlaps, boxOk, freeSpot, gridRows, sizeOfKind, ensureBox,
   pageRows } from './grid.js';
@@ -810,9 +811,16 @@ function drawTileFace(o, arr, box){
      fixed at the *tap* and this branch was still making at the tile. */
   const img = isPicture(o) && o.media && o.media.src;
   if(img){
-    return `<button class="drawer otile ${paper(o)} imgtile sh-image${o.media.alpha?'':' opaque'} fr-${o.frame||'none'}${sel}" data-row="${o.id}" style="--c:${colour};${place}">
+    /* A window's bars are drawn *over* the view rather than around it, so they
+       are their own element — the tile's two pseudo-elements are spoken for
+       (decision 99) and a muntin has to sit above the image, which nothing a
+       picture frame does ever has to. `winview` is what puts the view behind
+       the glass and lets it move; the bars never do. See decision 113. */
+    const fr=frameOf(o), win=isWindow(o);
+    return `<button class="drawer otile ${paper(o)} imgtile sh-image${o.media.alpha?'':' opaque'} fr-${fr}${win?' winview':''}${sel}" data-row="${o.id}" style="--c:${colour};${place}">
       ${chips}
       <img class="tileimg" src="${esc(o.media.src)}" alt="${esc(o.title||'')}" draggable="false">
+      ${win?'<i class="wbars"></i>':''}
       ${handles}
     </button>`;
   }
@@ -824,10 +832,11 @@ function drawTileFace(o, arr, box){
     const kind=mediaTypeOf(o);
     const mark=kind==='audio'?'music':kind==='video'?'film':'image';
     const say =kind==='audio'?'Add a sound':kind==='video'?'Add a video':'Add a picture';
-    return `<button class="drawer otile ${paper(o)} imgtile empty fr-${o.frame||'none'}${sel}" data-row="${o.id}"
+    return `<button class="drawer otile ${paper(o)} imgtile empty fr-${frameOf(o)}${isWindow(o)?' winview':''}${sel}" data-row="${o.id}"
       title="${esc(o.title||'')} — tap to choose a file" style="--c:${colour};${place}">
       ${chips}
       <span class="imgempty">${ic(mark,24)}<b>${esc(o.title||say)}</b></span>
+      ${isWindow(o)?'<i class="wbars"></i>':''}
       ${handles}
     </button>`;
   }

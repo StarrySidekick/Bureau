@@ -672,6 +672,17 @@ through the canvas**; rasterising is
 the one thing that throws away what an SVG is for. New file → add it to `SHELL`
 in `sw.js`. See decision 86.
 
+**A frame goes round a picture; a window goes in front of a view.** One slot,
+`frameOf(o)` (per object then per type — never `o.frame`), holding six picture
+frames and four window ones; `isWindow(o)` is the second group. A window's
+muntins are their own element (`.wbars`) because they sit *above* the image and
+a tile's two pseudo-elements are spent — drawn as gradients so a bar is a fixed
+px thickness at any size and every position is a %. The view behind the glass
+moves with `--tiltx`/`--tilty` and the bars never do, which is what keeps this
+clear of decision 42: nothing is behind a photograph, so a picture frame stays
+still. It is also the one place the parallax needs no argument — the frame *is*
+the occluder the desk's own cavity has to imply. See decision 113.
+
 **Anything made of a file opens onto the media surface — sound and video
 included.** `isMedia(o)` routes; `isPicture(o)` is still the image case and
 `isPlayable(o)` the other two, and `acceptFor(o)` tells the one file input what

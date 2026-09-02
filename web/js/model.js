@@ -127,6 +127,12 @@ const BUILTIN_KINDS = {
   habit:   {shape:'habit', nm:'Habit',   ic:'repeat',  c:8, key:'A', ds:'Repeats, tracks a streak',  size:[4,4], onclick:'read', attrs:['text','streak'], body:'**Why —** ' },
   goal:    {shape:'goal', nm:'Goal',    ic:'target',  c:13, key:'J', ds:'Long-term, has milestones', size:[4,4], onclick:'read', attrs:['text','progress'], body:'**Definition of done —** ' },
   image:   {nm:'Image',   ic:'image',   c:15, key:'G', ds:'A picture on the board',   size:[6,4], onclick:'read', attrs:['media'], body:'' },
+  /* A window is an Image that admits there is somewhere on the other side of
+     it. Same attribute, same surface, same file — what differs is that the
+     frame is *in front of* the picture rather than around it, so the view
+     behind it moves when you tilt the phone and the frame does not. See
+     decision 113. */
+  window:  {nm:'Window',  ic:'image',   c:9,  ds:'A view, framed',          size:[5,4], onclick:'read', attrs:['media'], mediaType:'image', frame:'cross', body:'' },
   /* Something standing on the shelf rather than filed on it. It carries
      `media` like a picture — you can put your own cut-out PNG or SVG on the
      desk — and ships with ten of its own, drawn in the style's colours. */
@@ -506,6 +512,41 @@ const slotSrc = (o, prop) => slotFrom(slotRaw(o, prop));
    the full tooled panel, and the paper label somebody pasted on. Per object
    then per type, like a border or a knob — ask `bindingOf(o)`. See
    decision 87. */
+/* ---- what a picture is framed in --------------------------------------
+   Two families in one slot, because they are the same question — what is
+   around the image — asked of two different things.
+
+   A **picture frame** surrounds a photograph: it is furniture holding a flat
+   object, and what is inside it is a picture of somewhere else. A **window
+   frame** is not around the image at all, it is *in front of* it: muntins
+   crossing the glass, with a view behind them. That difference is the whole
+   reason the second group exists, and it is what earns them the parallax — a
+   window has something on the other side, and a photograph in a gilt frame
+   does not. See decision 113. */
+const FRAMES = {
+  none:     'None',
+  mount:    'Mount',
+  gilt:     'Gilt',
+  walnut:   'Walnut',
+  black:    'Lacquer',
+  polaroid: 'Instant',
+  cross:    'Window — four lights',
+  six:      'Window — six lights',
+  arch:     'Window — round headed',
+  lattice:  'Window — leaded'
+};
+const FRAME_SLOTS = Object.keys(FRAMES);
+// the ones with a view behind them rather than a picture inside them
+const WINDOW_FRAMES = ['cross','six','arch','lattice'];
+/* Per object, then per type — never `o.frame`, or a type that states its own
+   frame is a type nothing wears. A name that is not one of the ten falls back
+   rather than being stamped onto the tile, the way a binding does. */
+const frameOf = o => {
+  const f = (o && o.frame) || (o && K(o.kind).frame) || 'none';
+  return FRAMES[f] ? f : 'none';
+};
+const isWindow = o => WINDOW_FRAMES.includes(frameOf(o));
+
 const BINDINGS = {
   plain:  'Plain cloth',
   banded: 'Gilt rules',
@@ -1380,7 +1421,8 @@ export { ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds, K,
   PRIOS, prioOf, prioName,
   REPEAT_UNITS, repeatOf, repeats, repeatSaid, repeatSpent, nextRepeat,
   slotKey, slotFrom, slotRaw, slotSrc,
-  BINDINGS, BINDING_SLOTS, bindingOf, PANELS, PANEL_SLOTS, panelOf, KNOBS, KNOB_SLOTS, knobOf,
+  BINDINGS, BINDING_SLOTS, bindingOf, FRAMES, FRAME_SLOTS, frameOf, isWindow,
+  PANELS, PANEL_SLOTS, panelOf, KNOBS, KNOB_SLOTS, knobOf,
   BORDER_SLOTS, borderOf, TEXTURE_SLOTS, textureOf, STOCKS, STOCK_SLOTS, stockOf,
   KNOBSIZES, knobSizeOf, answered, iconOf, TSIZES, textSizeOf, mediaTypeOf, isPicture,
   isMedia, isPlayable, acceptFor, isDecor,

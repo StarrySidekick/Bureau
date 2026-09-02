@@ -2359,6 +2359,67 @@ const CHROME = process.env.BUREAU_CHROME;
   });
   await stillCtx.close();
 
+  /* --- a window is a picture with somewhere on the other side of it. The
+     frame slot held five ways of framing a photograph; a window frame is not
+     around the image at all, it is in front of it — muntins across the glass,
+     with a view behind. That difference is what earns it the parallax a
+     photograph in a gilt frame has no use for. See decision 113. */
+  const windows = await phone.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const S = BUREAU.state, out = {};
+    out.thereIsAWindowType = !!BUREAU.K.window;
+    out.andItIsBornWithAFrame = BUREAU.K.window.frame === 'cross';
+    const scene = 'data:image/svg+xml;utf8,' + encodeURIComponent(
+      `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300">
+       <rect width="400" height="300" fill="#9FC4E8"/>
+       <path d="M140 215 L240 120 L340 215 Z" fill="#54704C"/></svg>`);
+    // a board of their own, or they are drawn under whatever is already there
+    const room = BUREAU.create('drawer', {title:'Windows', parent:'root'});
+    const wasView = S.view, wasId = S.drawerId, wasPx = S.look.parallax;
+    S.view='drawer'; S.drawerId=room.id;
+    const made = ['cross','six','arch','lattice'].map((f,i) => {
+      const o = BUREAU.create('window', {title:f, parent:room.id});
+      o.media = {src:scene, alpha:0}; o.frame = f;
+      o.phone = {x:1+(i%2)*4, y:1+Math.floor(i/2)*5, w:4, h:4};
+      return o;
+    });
+    S.look.parallax = true; BUREAU.applyLook(); BUREAU.render(); await nap(420);
+    out.allFourDraw = document.querySelectorAll('#app .winview').length === 4;
+    const t = document.querySelector(`#app .drawer[data-row="${made[0].id}"]`);
+    const bars = t && t.querySelector('.wbars');
+    out.theBarsArePainted = !!bars
+      && getComputedStyle(bars).backgroundImage !== 'none';
+    /* The view moves and the frame does not, which is the whole claim: the
+       frame is a real occluder at the glass and the view is behind it. */
+    const view = () => getComputedStyle(t.querySelector('.tileimg')).transform;
+    BUREAU.tilt(0,0); await nap(90); const level = view();
+    BUREAU.tilt(1,0); await nap(90);
+    out.theViewMovesBehindIt = view() !== level;
+    out.andTheFrameDoesNot = getComputedStyle(bars).transform === 'none';
+    BUREAU.tilt(0,0);
+    // and a window with no file is still a window, which is what the type
+    // picker draws — it has no media to show
+    const e = BUREAU.create('window', {title:'Empty', parent:room.id});
+    e.phone = {x:1, y:11, w:4, h:4}; BUREAU.render(); await nap(300);
+    const et = document.querySelector(`#app .drawer[data-row="${e.id}"]`);
+    out.anEmptyOneIsStillAWindow = !!(et && et.classList.contains('winview')
+      && et.querySelector('.wbars'));
+    // a picture frame is not a window and must not move
+    const pic = BUREAU.create('image', {title:'Framed', parent:room.id});
+    pic.media = {src:scene, alpha:0}; pic.frame = 'gilt';
+    pic.phone = {x:5, y:11, w:4, h:4}; BUREAU.render(); await nap(300);
+    const pt = document.querySelector(`#app .drawer[data-row="${pic.id}"]`);
+    BUREAU.tilt(1,0); await nap(90);
+    out.aFramedPictureStaysStill = !pt.classList.contains('winview')
+      && getComputedStyle(pt.querySelector('.tileimg')).transform === 'none';
+    BUREAU.tilt(0,0);
+
+    [...made, e, pic, room].forEach(o => BUREAU.del(o.id));
+    S.look.parallax = wasPx; S.view = wasView; S.drawerId = wasId;
+    BUREAU.applyLook(); BUREAU.render();
+    return out;
+  });
+
   /* --- thrown off the desk. Carry a tile and flick it hard off an edge and
      it goes — the gesture every phone has for dismissing a thing, and the one
      thing a drag could not do. It has to be hard to do by accident, so it asks
@@ -4989,7 +5050,7 @@ const CHROME = process.env.BUREAU_CHROME;
     errors: errs, manifestOk, swReady, survived, styleSurvived, slotColours,
     newObjectSeen, inlineEdit, sortDefaults, taskLook,
     shelfTools, gridSizes, keeping, versionShown, sampler, paging, pageCoords, pagerGround, goingIn, comingOut,
-    makingOnAPhone, railDrawer, railIsFurniture, holding, cavity, tossing, pinch, pagerLandsFlat, deskDots,
+    makingOnAPhone, railDrawer, railIsFurniture, holding, cavity, windows, tossing, pinch, pagerLandsFlat, deskDots,
     listSwipe, shadows, textureDepth,
     gridClass, offlineWorks, railGone, tabsGone, shelfGone, tileNavigates,
     holdArms, maxDrift,

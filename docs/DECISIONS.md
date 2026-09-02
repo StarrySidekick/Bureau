@@ -4541,3 +4541,50 @@ the clone itself. Every previous caller handed it a board, where the things
 answering to an id are always descendants. This one hands it a tile — so the
 root *was* the object, and it flew off still answering to an id the desk had
 just deleted, which is exactly the duplicate decision 51 exists to prevent.
+
+## 113. A window is a picture with somewhere on the other side of it
+
+*2026-09-02*
+
+The `frame` slot already held five ways of framing a photograph — a mount, gilt,
+walnut, lacquer, an instant print. All five go *around* the image: they are
+furniture holding a flat object, and what is inside them is a picture of
+somewhere else.
+
+A **window frame** is not around the image at all. It is in front of it —
+muntins crossing the glass, with a view behind them. Same slot, because it is
+the same question asked of two different things, and the four window positions
+live in the same table as the six picture ones.
+
+That difference is what earns a window the **parallax**, and it is the reason
+this does not reopen decision 42. The rule there is that furniture does not
+react to being held, and a photograph in a gilt frame is furniture: nothing is
+behind it, so nothing can move. A window has a view, the frame is a real
+occluder drawn at the glass, and the view is unambiguously behind it. Tilting
+does not make the frame do anything — the bars never move — it changes what you
+can see through a hole in it.
+
+**And it is the one place the parallax needs no argument.** The desk's own
+cavity (decision 108) has to work for its depth: there is no drawn frame, so
+the occluder is the bezel, and everything since has been about making an
+invisible edge read as a near one. A window supplies the frame. That is why
+this is worth having quite apart from the type — it is the effect with its
+premise satisfied instead of asserted.
+
+The bars are **their own element**, because they sit above the image and a
+tile's two pseudo-elements are spent (decision 99) — and because nothing a
+picture frame does has ever needed to be above the picture. They are gradients
+rather than borders, so every bar is a fixed thickness in px and every position
+a percentage: a muntin is the same width on a large window as on a small one,
+which is the spine's rule and the drawer moulding's.
+
+The image is oversized and `cover` while it moves, or it runs out of picture and
+shows the letterbox at the edge of a `contain` fit.
+
+The **Window** type is an Image that admits all this: same attribute, same
+surface, same file, born with the cross. Naming it is what makes it findable —
+"put a picture in a window" is not something you would think to do to an Image.
+
+One correction made by looking: `six` was written with four bars, which draws
+*nine* lights. Six is two across and three down, which is what the name says and
+what a sash window has.

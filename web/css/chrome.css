@@ -18,6 +18,97 @@
 .drawer.imgtile.fr-polaroid{padding:7% 7% 20%;background:#FBF8F0;border-radius:2px;box-shadow:var(--shadow-lg)}
 .drawer.imgtile:not(.fr-none) .tileimg{border-radius:1px;box-shadow:0 1px 3px rgba(0,0,0,.35)}
 
+/* ---- and windows, which are the other thing a frame can be -------------
+   A picture frame goes *around* a photograph. A window frame goes in front of
+   a view: the bars cross the glass and there is somewhere on the other side.
+   That is the whole difference, and it is what earns a window the parallax a
+   picture has no use for — decision 42's rule is that furniture does not react
+   to being held, and this is not the furniture reacting, it is what is visible
+   through a hole in it.
+
+   The bars are their own element because they sit **above** the image, which
+   nothing a picture frame does ever has to, and because a tile's two
+   pseudo-elements are spent (decision 99). They are gradients rather than
+   borders: a muntin is a fixed thickness at any size, so every bar is stated
+   in px and every position in %, which is the spine's rule and the drawer
+   moulding's. See decision 113. */
+/* An empty one is glass with nothing behind it yet — a pale sky rather than the
+   grey mount a picture gets, because a window with no view is still a window. */
+.drawer.imgtile.winview.empty{background:linear-gradient(#BBD3E8,#D9E3EA)}
+.drawer.imgtile.winview.empty .imgempty{position:relative;z-index:5;color:#3C4A55}
+.drawer.imgtile.winview{padding:0;background:var(--wood-2);
+  box-shadow:var(--shadow-lg), inset 0 0 0 1px rgba(0,0,0,.35)}
+.drawer.imgtile.winview .tileimg{border-radius:0;box-shadow:none}
+/* the reveal: a window is set into its own wall, so the glass is inside a jamb */
+.drawer.imgtile.winview::before{content:"";position:absolute;inset:0;z-index:3;
+  pointer-events:none;border:7px solid transparent;
+  box-shadow:inset 0 0 0 7px var(--wood), inset 0 0 9px -2px rgba(0,0,0,.75);
+  border-radius:inherit}
+.wbars{position:absolute;inset:7px;z-index:4;pointer-events:none;
+  background-repeat:no-repeat}
+/* one bar each way — the plus, four lights */
+.fr-cross .wbars{
+  background-image:
+    linear-gradient(var(--wood) 0 100%),
+    linear-gradient(var(--wood) 0 100%);
+  background-size:5px 100%, 100% 5px;
+  background-position:50% 0, 0 50%;
+}
+/* two across and three down: six lights, which is what a sash window has and
+   what the name says. Written with four bars once, which drew nine. */
+.fr-six .wbars{
+  background-image:
+    linear-gradient(var(--wood) 0 100%),
+    linear-gradient(var(--wood) 0 100%), linear-gradient(var(--wood) 0 100%);
+  background-size:4px 100%, 100% 4px, 100% 4px;
+  background-position:50% 0, 0 33.33%, 0 66.66%;
+}
+/* round headed, with the same cross under the arch */
+.fr-arch{border-radius:50% 50% var(--radius-d) var(--radius-d) / 32% 32% var(--radius-d) var(--radius-d)}
+.fr-arch .wbars{
+  background-image:
+    linear-gradient(var(--wood) 0 100%),
+    linear-gradient(var(--wood) 0 100%);
+  background-size:5px 100%, 100% 5px;
+  background-position:50% 0, 0 62%;
+}
+/* leaded lights: diamonds, drawn as two crossed sets of thin lines */
+.fr-lattice .wbars{
+  background-image:
+    repeating-linear-gradient(52deg, transparent 0 21px,
+      color-mix(in srgb, var(--wood) 82%, transparent) 21px 23px),
+    repeating-linear-gradient(-52deg, transparent 0 21px,
+      color-mix(in srgb, var(--wood) 82%, transparent) 21px 23px);
+  background-size:100% 100%, 100% 100%;
+  background-position:0 0, 0 0;
+}
+
+/* ---- the view is behind the glass -------------------------------------
+   The one place a parallax earns itself without any of decision 108's
+   arithmetic: the frame is a real occluder, drawn, fixed, and at the glass,
+   and the view is unambiguously behind it. That is the whole thing the desk's
+   own cavity has to work for — it has no visible frame, so the depth has to be
+   argued. Here it is simply true.
+
+   The image is oversized so it never runs out of picture as it moves, and it
+   is `object-fit:cover` for the same reason — a `contain` image has letterbox
+   at the edges and sliding it would show the box. The tile clips. */
+.is-phone.tilting .drawer.imgtile.winview .tileimg{
+  object-fit:cover;
+  transform:scale(1.16)
+            translate(calc(var(--tiltx,0) * var(--winpx,11px)),
+                      calc(var(--tilty,0) * var(--winpy,9px)));
+  will-change:transform;
+}
+/* …and the glass catches a little of the light it is turning into */
+.is-phone.tilting .drawer.imgtile.winview .wbars{
+  box-shadow:inset calc(var(--tiltx,0) * -14px) calc(var(--tilty,0) * -11px)
+                   22px -12px rgba(0,0,0,.55);
+}
+@media (prefers-reduced-motion: reduce){
+  .is-phone.tilting .drawer.imgtile.winview .tileimg{transform:none}
+}
+
 /* a recipe is an index card: ruled, with a red margin line */
 .drawer.otile.sh-index{
   background:#F6F1E2;clip-path:none;border:1px solid var(--rule);border-left:1px solid var(--rule);padding-left:20px;

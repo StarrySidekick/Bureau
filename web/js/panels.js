@@ -10,7 +10,8 @@ import { S, K, KINDS, KEYS, T, ATTRS, USER_ATTRS, FIELDS, fieldOf, OPS, ROLLS,
   relatedTo, backlinksTo, streak, goalPct,
   CALVIEWS, calViewOf, weekStartOf, showsWeekends, KNOBSIZES, knobSizeOf,
   TSIZES, textSizeOf, mediaTypeOf, isPicture, isMedia, isDecor,
-  BINDINGS, bindingOf, panelOf, knobOf, borderOf, textureOf, slotRaw } from './model.js';
+  BINDINGS, bindingOf, FRAMES, FRAME_SLOTS, frameOf, panelOf, knobOf, borderOf, textureOf,
+  slotRaw } from './model.js';
 import { GRID, lay, boxOk, freeSpot, sizeOfKind, toPhoneSize } from './grid.js';
 import { randomBoard, randomFront, hexOf, objColour, objSlots, palNow, OBJ0,
   famSlots, famAll, FAMS, styleKey, stockNow } from './look.js';
@@ -617,8 +618,12 @@ function objectPanelBody(id, sec){
         value="${Math.round((d.boardAlpha==null?1:d.boardAlpha)*100)}" data-palpha data-id="${id}">`,
       isRoot?'this desk only':''));
   }
-  if(img) out.push(prow('Frame', psel(id,'frame',
-    [['none','None'],['mount','Mount'],['gilt','Gilt'],['walnut','Walnut'],['black','Lacquer'],['polaroid','Instant']], d.frame||'none')));
+  /* Ten of them now, and the list is the table rather than a copy of it — the
+     old one was written out by hand here and the window frames would have been
+     invisible to it. */
+  if(img) out.push(prow('Frame',
+    psel(id, 'frame', FRAME_SLOTS.map(k=>[k, FRAMES[k]]), frameOf(d)),
+    'a picture is framed; a window is looked through'));
   if(has(d,'button')) out.push(prow('Button shape', psel(id,'btnshape',
     [['rounded','Rounded'],['round','Round'],['square','Square']], d.btnshape||'rounded')));
 
