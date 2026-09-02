@@ -2375,6 +2375,35 @@ const CHROME = process.env.BUREAU_CHROME;
     out.lettingGoShortPutsItBack = S.drawerId === startAt
       && !document.querySelector('#fx .fxback');
 
+    /* ---- the device interrupts, and it must not matter -----------------
+       iOS fires `pointercancel` for both pointers the moment it decides a
+       two-finger gesture is a gesture — which is exactly when a pinch is
+       getting going. `pointercancel` is wired to onCancel, and while onCancel
+       cancelled the zoom the movement started, ran a fraction of the way and
+       wound itself back. Every time on the device, and never here, because a
+       synthetic pinch never fired one. See decision 109. */
+    fire('touchstart', [[CX-R0,CY],[CX+R0,CY]]);
+    await squeeze(0.7, 5);
+    app.dispatchEvent(new PointerEvent('pointercancel',
+      {bubbles:true, pointerId:1, pointerType:'touch'}));
+    await nap(40);
+    /* Still following the fingers afterwards — not merely still on screen,
+       which it is either way while the wind-back plays out. */
+    /* Null-safe on purpose: when this regresses the movement is *torn down*
+       by the interruption, so the element is gone and a bare read throws —
+       which crashes the run instead of reporting a failure. A test that
+       explodes tells you less than one that says false. */
+    const scrubbedTo = () => { const el=document.querySelector('#fx .fxback');
+                               return el ? delay(el) : 0; };
+    const beforeCancel = scrubbedTo();
+    await squeeze(0.4, 5);
+    out.itKeepsFollowingAfterAnInterruption = scrubbedTo() < beforeCancel;
+    await lift();
+    out.andThePinchStillLands = S.view==='drawer' && S.drawerId===parent;
+
+    // …and back down for the assertions below, which start where we started
+    S.view='drawer'; S.drawerId=startAt; BUREAU.render(); await nap(320);
+
     // a real one goes up exactly one level, not out to the desk
     await pinchTo(0.4);
     out.aRealOneGoesUpOne = S.view==='drawer' && S.drawerId===parent;

@@ -1228,13 +1228,6 @@ function zoomEnd(){
   // is still opaque, and which the grip takes away once it has
   else z.grip.undo(()=>{ S.view='drawer'; S.drawerId=z.from; render(); });
 }
-function zoomCancel(){
-  const z=Z; Z=null;
-  if(!z) return;
-  if(z.sheet){ sheetScale(0); return; }
-  z.grip.undo(()=>{ S.view='drawer'; S.drawerId=z.from; render(); });
-}
-
 function onTouchStart(e){
   if(!e.touches || e.touches.length!==2){ TWO.on=false; return; }
   const [a,b]=e.touches;
@@ -1284,9 +1277,16 @@ const gestureFlags = {suppressClick:false};
    hold arms. */
 const dragArmed = ()=> !!(G && G.armed);
 
+/* This does **not** touch the zoom, and that is deliberate. `pointercancel` is
+   wired here, and iOS fires one for both pointers the moment it decides a
+   two-finger gesture is a gesture — which is exactly when a pinch is getting
+   going. Cancelling from here meant the movement started, ran a fraction of
+   the way and then wound itself back, every time, on the device and never in
+   a synthetic test. The pinch is driven by touch events and ends with them:
+   `touchend` and `touchcancel` both land in onTouchEnd, which decides between
+   committing and putting it back. See decision 109. */
 function onCancel(){
   cancelHold();
-  zoomCancel();
   if(G && G.type==='band') clearRow(G);
   stopPan();
   pagerCancel();

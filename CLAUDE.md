@@ -831,7 +831,11 @@ both exist: one is a step, the other a destination. Only *inward*; pinching out
 would have to name a thing to go into. Whichever is winning when the squeeze
 passes `PINCH_MIN` — the squeeze or the midpoint's travel — decides the gesture,
 once, so a pager under way can't turn into a pinch. A surface answers it too, by
-shrinking. See decision 109.
+shrinking. **`onCancel()` must not touch it**: iOS fires `pointercancel` for
+both pointers the moment it recognises a two-finger gesture, so cancelling from
+there tore the pinch down on the device and never in a test. Touch events own
+its lifecycle — `touchend` and `touchcancel` both land in `onTouchEnd`. See
+decision 109.
 
 **A dive can be scrubbed, and that is why it has no second set of keyframes.**
 `scrubDive()` in motion.js: the four animations are on one clock and all

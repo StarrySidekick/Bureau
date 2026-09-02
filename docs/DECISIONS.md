@@ -4353,6 +4353,24 @@ One thing the tests hold onto: all four parts must sit at the same point on that
 clock. They are four separate elements running four separate keyframes, and the
 only thing making them one movement is being scrubbed together.
 
+**And the device interrupts, which is the thing that made it not work.** On a
+real iPhone the pinch started, ran a fraction of the way and wound itself back,
+every time. `pointercancel` is wired to `onCancel`, and iOS fires one for both
+pointers the moment it decides a two-finger gesture *is* a gesture — which is
+exactly when a pinch is getting going. `onCancel` cancelled the zoom, so the
+movement was being torn down by the browser acknowledging it.
+
+`onCancel` no longer touches it. The pinch is driven by touch events and ends
+with them: `touchend` and `touchcancel` both land in `onTouchEnd`, which decides
+between committing and putting it back. `pointercancel` is about the pointer
+gestures — the drag, the sketch — and has no business here.
+
+It passed every synthetic test because a synthetic pinch never fires a
+`pointercancel`. The regression test does now, mid-gesture, and it is written
+null-safe: when this breaks, the movement is torn down and a bare style read
+throws, which crashes the run instead of reporting. A test that explodes tells
+you less than one that says false.
+
 ## 110. The floor is deeper than the things standing on it
 
 *2026-09-02*
