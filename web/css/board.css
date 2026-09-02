@@ -535,6 +535,14 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
   border-radius:3px 5px 5px 3px;align-items:center;justify-content:center;
   padding:10px 0;overflow:hidden;
   box-shadow:var(--shadow), inset 0 1px 0 rgba(255,255,255,.14);
+  /* Wider than the tile and centred, so the round back can turn a little way
+     without its dark edge stops leaving the element. A book to the left of the
+     shelf's middle shows a sliver of its right-hand curve, which is the same
+     perspective the flanks draw and is why it reads off `--px`. See decision
+     117. */
+  background-repeat:no-repeat;
+  background-size:calc(100% + 2 * var(--spinerun,0px)) 100%;
+  background-position:calc(-1 * var(--spinerun,0px) - var(--px,0) * var(--spinerun,0px)) 0;
 }
 /* the head and tail bands every binding starts from */
 .spinetop,.spinefoot{width:62%;height:2px;background:var(--glow);opacity:.85;

@@ -2462,6 +2462,106 @@ const CHROME = process.env.BUREAU_CHROME;
   });
   await stillCtx.close();
 
+  /* --- and the things standing in the slot. With four walls round it the board
+     was the only thing on the screen with any depth; everything on it read as
+     printed on the back panel. The fix is perspective rather than movement —
+     where a thing stands decides which of its sides you can see — so none of it
+     is keyed on the tilt and none of it costs a frame. See decision 117. */
+  const depth = await phone.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const S = BUREAU.state, out = {};
+    const wasLocked = S.look.locked, wasPar = S.look.parallax;
+    const heldView = S.view, heldId = S.drawerId;
+    S.view='desk'; S.drawerId=null; S.look.locked=true;
+    S.writeId = S.readId = S.viewId = null; BUREAU.closePanel && BUREAU.closePanel();
+    document.querySelectorAll('#panel').forEach(e => e.remove());
+    // Two arguments: half of what is measured here lives on a pseudo-element.
+    const cs = (el, pseudo) => getComputedStyle(el, pseudo || null);
+    const tiles = () => [...document.querySelectorAll('#drawergrid > .drawer')];
+    const px = el => parseFloat(el.style.getPropertyValue('--px'));
+
+    S.look.parallax='off'; BUREAU.applyLook(); BUREAU.render(); await nap(120);
+    // Off, the whole thing is absent: no numbers written and no layer drawn.
+    out.nothingWhileTheShelfIsOff = tiles().length > 4
+      && tiles().every(t => !t.style.getPropertyValue('--px'))
+      && !document.querySelector('#drawergrid .dside');
+
+    S.look.parallax='desk'; BUREAU.applyLook(); BUREAU.render(); await nap(160);
+    const ts = tiles();
+    out.everyTileKnowsWhereItStands = ts.length > 4 && ts.every(t =>
+      Number.isFinite(px(t)) && Math.abs(px(t)) <= 1);
+    // The sign is the whole cue: left of the middle is negative, right positive.
+    const lefts = ts.filter(t => t.getBoundingClientRect().left < innerWidth/2 - 60);
+    const rights = ts.filter(t => t.getBoundingClientRect().right > innerWidth/2 + 60);
+    out.leftOfCentreIsNegative = lefts.length > 0 && lefts.every(t => px(t) < 0);
+    out.rightOfCentreIsPositive = rights.length > 0 && rights.every(t => px(t) > 0);
+
+    // Only things with thickness carry a flank, and a spine never does — its
+    // own cylinder is already its side.
+    const flanked = ts.filter(t => t.querySelector(':scope > .dside'));
+    out.furnitureHasAFlank = flanked.length > 0
+      && flanked.every(t => parseFloat(t.style.getPropertyValue('--depth')) >= 0.5);
+    const paper = ts.filter(t => parseFloat(t.style.getPropertyValue('--depth')) < 0.5);
+    out.paperLiesFlat = paper.length > 0 && paper.every(t => !t.querySelector(':scope > .dside'));
+    const spine = ts.find(t => t.classList.contains('spinetile'));
+    out.aBookKeepsItsOwnCurve = !!spine
+      && cs(spine).backgroundPosition !== '0px 0px'
+      && (!spine.querySelector(':scope > .dside')
+          || cs(spine.querySelector(':scope > .dside'), '::before').content === 'none');
+
+    // The side you see is the one facing the middle of the shelf.
+    const scaleOf = (t, which) => {
+      const m = cs(t.querySelector(':scope > .dside'), which).transform;
+      return m === 'none' ? 0 : parseFloat(m.slice(m.indexOf('(')+1));
+    };
+    // A spine carries the layer for its head and tail bands but no side faces,
+    // so it is not what this half is about.
+    const sided = flanked.filter(t => !t.classList.contains('spinetile'));
+    const l = sided.filter(t => px(t) < -0.3), r = sided.filter(t => px(t) > 0.3);
+    out.aThingOnTheLeftShowsItsRightSide = l.length > 0
+      && l.every(t => scaleOf(t,'::after') > 0.2 && scaleOf(t,'::before') === 0);
+    out.andOneOnTheRightItsLeft = r.length > 0
+      && r.every(t => scaleOf(t,'::before') > 0.2 && scaleOf(t,'::after') === 0);
+
+    /* Above the middle you see a thing's underside, below it you see its top —
+       drawn as inset bands on the same layer, so the two horizontal faces cost
+       no element at all. A negative offset puts the band along the far edge,
+       which is what makes one declaration do both. */
+    const band = t => cs(t.querySelector(':scope > .dside')).boxShadow;
+    const hi = flanked.filter(t => parseFloat(t.style.getPropertyValue('--py')) < -0.3);
+    const lo = flanked.filter(t => parseFloat(t.style.getPropertyValue('--py')) > 0.3);
+    out.aboveCentreYouSeeTheUnderside = hi.length > 0 && hi.every(t => /-\d/.test(band(t)));
+    out.belowCentreYouSeeTheTop = lo.length > 0 && lo.every(t => /inset[\s\S]*[^-]\d+(\.\d+)?px 0px 0px inset/.test(band(t)) && !/-\d+(\.\d+)?px 0px 0px 0px inset/.test(band(t)));
+
+    /* And the whole of it is *static*: turning the phone moves the board and
+       changes nothing about any tile on it. That is the performance claim as
+       much as the physical one — a cue that read `--tiltx` would be a style
+       recalculation on every tile on every frame. */
+    /* Every surface a cue is drawn on, not just the tile — the cues live on
+       `.dside` and on a spine's own background, so a guard that only read the
+       tile would pass over a tilt-dependent flank without noticing. */
+    const frame = document.getElementById('frame');
+    const shot = () => tiles().map(t => {
+      const d = t.querySelector(':scope > .dside');
+      return t.style.cssText + '|' + cs(t).boxShadow + '|' + cs(t).backgroundPosition
+        + '|' + (d ? cs(d).boxShadow + cs(d,'::before').transform + cs(d,'::after').transform : '');
+    }).join('\n');
+    const before = shot();
+    BUREAU.tilt(0.9, -0.7); await nap(120);
+    /* And prove the phone actually turned first. tiltHeld() parks the shelf at
+       zero whenever a panel or a surface is up, and a block earlier in this file
+       can leave one open — which made this assertion pass against a shelf that
+       had not moved at all. A guard that cannot fail is not a guard. */
+    out.theShelfReallyTurned = Math.abs(parseFloat(frame.style.getPropertyValue('--tiltx'))) > 0.5;
+    out.turningThePhoneChangesNoTile = before === shot();
+    BUREAU.tilt(0, 0);
+
+    S.look.parallax = wasPar; S.look.locked = wasLocked;
+    S.view = heldView; S.drawerId = heldId;
+    BUREAU.applyLook(); BUREAU.render(); await nap(60);
+    return out;
+  });
+
   /* --- a window is a picture with somewhere on the other side of it. The
      frame slot held five ways of framing a photograph; a window frame is not
      around the image at all, it is in front of it — muntins across the glass,
@@ -5162,7 +5262,7 @@ const CHROME = process.env.BUREAU_CHROME;
     errors: errs, manifestOk, swReady, survived, styleSurvived, slotColours,
     newObjectSeen, inlineEdit, sortDefaults, taskLook,
     shelfTools, gridSizes, keeping, versionShown, sampler, paging, pageCoords, pagerGround, goingIn, comingOut,
-    makingOnAPhone, railDrawer, railIsFurniture, holding, cavity, windows, tossing, pinch, pagerLandsFlat, deskDots,
+    makingOnAPhone, railDrawer, railIsFurniture, holding, cavity, depth, windows, tossing, pinch, pagerLandsFlat, deskDots,
     listSwipe, shadows, textureDepth,
     gridClass, offlineWorks, railGone, tabsGone, shelfGone, tileNavigates,
     holdArms, maxDrift,

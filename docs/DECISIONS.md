@@ -4735,3 +4735,88 @@ comment to the next took the **entire carcass section** with it — the wood on
 rendered with a transparent carcass and nothing failed, because no test asserts
 what colour the wood is. Delete by matching the rule, not by matching the span
 between two landmarks.
+
+## 117. Perspective is where a thing stands, not what the phone is doing
+
+*2026-09-02*
+
+With four walls round it the board was the only thing on the screen with any
+depth in it. Everything standing on it read as printed on the back panel — a
+slot with a photograph in it rather than a shelf with things in it.
+
+The obvious fix is to shade each object as the phone turns, and it is the wrong
+one twice over. It is wrong physically: for a shelf a centimetre or two deep,
+turning the phone changes the angle onto an object by almost nothing, and what
+actually decides which of its sides you can see is **where it is standing**.
+Stand in front of the middle of a bookshelf and you see the right-hand side of
+everything to your left, the left-hand side of everything to your right, and
+none of either from the thing dead centre. That is true before you move at all.
+
+And it is wrong to build. `--tiltx` is inherited, so every element whose style
+depends on it is a style recalculation on every frame of the tilt, and a board
+is fifty tiles. Measured on the sample desk: the cues written against the tilt
+ran at 31fps against the shipped board's 60, and restricting them to the dozen
+tiles that are really furniture only got most of it back.
+
+So `--px`/`--py` — the tile's centre against the board's, −1..1 — are written
+once per render by `perspOf()` and never touched again. The whole of the depth
+is static, and the only thing that moves when the phone turns is still the board
+itself, in one piece, which is decision 116's whole point. The per-frame set is
+unchanged from 1.33: **119 style recalculations and 0 layouts** over a 120-frame
+sweep either way, the five elements being `.grid` and the four walls.
+
+Three faces, one extra element. `.dside` is a third spliced layer beside
+`.dpanel` and `.dgrain`, because a tile's own two pseudo-elements have been
+spent since decision 99. Its two pseudo-elements are the upright faces,
+`scaleX`d by how far off centre the tile is so only ever one of them shows; the
+horizontal faces are **inset shadows on `.dside` itself** — no blur, no spread,
+so each is a solid band along one edge, and a *negative* offset puts it along
+the opposite one, which is how one declaration draws both and never draws them
+together. Above the middle you see a thing's underside and below it you see its
+top.
+
+One light, at the upper left, the same one `.pull` has been lit by all along. So
+the two sides are not one face mirrored: the left is turned towards it, the
+right away, and **neither is facing it** — both are darker than the front and
+the left only less so. The first version lit the left face brighter than the
+tile, which reads as glare on glass.
+
+A book gets none of it. The gradient across a spine already *is* a cylinder
+(decision 87); it only needed permission to present a little of one side, which
+is a `background-position` off the same `--px` and costs no element. Giving it a
+flat flank as well puts two side faces on one object, and at a cell's width that
+is a quarter of the book. Its head and tail bands stay — those are the top and
+bottom of the text block, and they are true.
+
+Paper lies flat, at `--depth` 0.18, and gets no layer at all. That is physical
+and it is also why a full board does not grow two hundred elements with nothing
+drawn on them.
+
+**The cast shadow is not here, and the reason is worth keeping.** It was the
+obvious third cue — one light in one place, so a thicker thing throws further —
+and it was written as `--shx`/`--shy` fed into the `--shadow` that board.css
+builds, on the belief that a custom property resolves on the element that
+*uses* it. It does not. `var()` inside a declaration is substituted on the
+element the declaration is **on**, so a `--shadow` declared at `:root` takes
+root's `--shx` — unset — and every tile inherits that already-resolved string.
+Setting `--shx` on a tile did nothing whatever, silently. Declaring `--shadow`
+on the tile instead would work, and would beat the Shadows switch's own zeros,
+which is the trap CLAUDE.md already names. Two cues that draw something beat
+three, one of which is a no-op.
+
+Two testing scars, both the same shape as decision 109's. The assertion that
+turning the phone changes no tile **passed against a shelf that had not moved**:
+`tiltHeld()` parks it at zero whenever a panel or a surface is up, and a block
+earlier in the file leaves one open. A guard that cannot fail is not a guard, so
+it now proves `--tiltx` really changed first. And the assertion that a thicker
+thing throws a longer shadow passed for a year's worth of wrong reason — the two
+tiles it compared wear different border slots, so their inset mouldings differ
+whatever the shadow does. Every assertion in the block was then checked by
+breaking the thing it watches and confirming it goes red.
+
+The fps sweep is *not* what settled this. The container the tests run in drifted
+so far under contention that the same configuration measured 59 and then 53, and
+one run had all three cues cheaper than one of them — noise larger than the
+effect. Style-recalculation and layout **counts** are deterministic where clocks
+are not: contention changes how long they take and never how many there are.
+When a number will not hold still, measure something that has to.

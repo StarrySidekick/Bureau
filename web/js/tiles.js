@@ -3,10 +3,10 @@ import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, chi
   rollup, streak, goalPct, projectStat, tlSpan, dev, spawnByOf, genKindOf, takesTyping, showsAddBox,
   knobSizeOf, answered, sortOf, spanOf, coversDay, lateOn, isLate, iconOf, textSizeOf,
   isPicture, isMedia, isPlayable, isDecor, mediaTypeOf, frameOf, isWindow,
-  boardLocked, prioOf, repeatSaid,
+  boardLocked, prioOf, repeatSaid, tiltsDesk,
   calViewOf, weekStartOf, calCols, bindingOf, panelOf, knobOf, borderOf, textureOf } from './model.js';
 import { CELL, COLW, gridOf, lay, overlaps, boxOk, freeSpot, gridRows, sizeOfKind, ensureBox,
-  pageRows } from './grid.js';
+  pageRows, colsOf } from './grid.js';
 import { create, toast, toggleDone } from './mutations.js';
 import { DECOR, DECOR_KEYS, decorOf, decorSVG } from './decor.js';
 import { hexOf, objColour, dress, dressAs } from './look.js';
@@ -396,7 +396,10 @@ function gridTile(o, arr, parentId){
   const sz=[sizeClass(box),
     has(o,'movable')   ? 'freemovable' : '',
     has(o,'resizable') ? 'freesizable' : ''].filter(Boolean).join(' ');
-  const html=drawTile(o, arr, box);
+  /* Samples are on no board at all, so they get no perspective — a type drawn
+     in the picker is a specimen, not a thing standing somewhere. */
+  const persp = arr===false ? null : perspOf(box);
+  const html=drawTile(o, arr, box, persp);
   return sz ? html.replace('class="', `class="${sz} `) : html;
 }
 /* ---- the two layers under everything ----------------------------------
@@ -413,10 +416,48 @@ function gridTile(o, arr, parentId){
    `::after` and could not be, on an object, for the reason above. Both are
    the only surfaces the drawn-line filter may touch — displacing a name is
    smudging the label rather than drawing the box. See decisions 96 and 99. */
+/* Thickness, as a multiplier on everything the slot draws: how much flank you
+   see from the side, and how far the shadow reaches. One number, so a thing
+   cannot be thick in its shadow and thin in its side. Derived from what a thing
+   *is* rather than from what it is called, so a type invented at runtime gets a
+   sensible answer without being told. */
+const depthOf = o =>
+    isContainer(o)  ? 1           // furniture, standing on the shelf
+  : shapeOf(o)==='spine' ? 0.9    // a book is nearly as deep as the drawer beside it
+  : isDecor(o)      ? 0.75
+  : has(o,'media')  ? 0.55        // a framed thing has a frame's thickness
+  : 0.18;                         // paper, lying on it
+/* Where this tile sits relative to the middle of the board, −1..1 on each axis.
+   That is the whole of the perspective: standing in front of the middle of a
+   bookshelf you see the *right* side of everything to your left and the left
+   side of everything to your right, and nothing at all of the thing dead
+   centre. It is a fact about the board rather than about the phone, so it is
+   written once per render and never again — the shelf's depth costs nothing
+   per frame, which is why it can be on every tile while decision 108's board
+   slide stays the only thing that moves. See decision 117. */
+/* A holder rather than an argument, for the reason PAGESHIFT is one — and
+   because the answer is a fact about the *board*, not about the tile. Working
+   it out per tile meant `colsOf()` and `pageRows()` fifty times a board, and
+   each of those walks the parent chain and scans S.objects to find out what
+   grid the desk is set to: the same lookup, fifty times, growing with the desk.
+   `gridOfContainer()` fills it in once. Zero rows means a Mac or a board that
+   has not been measured yet, and no perspective either way. */
+const PERSP = {cols:0, rows:0};
+function perspOf(box){
+  if(!PERSP.rows || !PERSP.cols) return null;
+  const px = ((box.x - 1 + box.w/2) / PERSP.cols) * 2 - 1;
+  const py = ((box.y - 1 + box.h/2) / PERSP.rows) * 2 - 1;
+  return { x:+clamp(px,-1,1).toFixed(3), y:+clamp(py,-1,1).toFixed(3) };
+}
+/* Only something with real thickness gets the extra element. Paper on the
+   shelf has no flank to show, and two hundred empty layers on a full board is
+   a render cost with nothing drawn on it. */
+const FLANKED = 0.5;
+const SIDE_LAYER = '<i class="dside"></i>';
 const GRAIN_LAYER = '<i class="dgrain"></i>';
 const PANEL_LAYER = '<i class="dpanel"></i>';
-function drawTile(o, arr, box){
-  const html = drawTileFace(o, arr, box);
+function drawTile(o, arr, box, persp){
+  const html = drawTileFace(o, arr, box, persp);
   const i = html.indexOf('>');          // esc() escapes `>`, so this is the tag
   if(i < 0) return html;
   /* The grain layer only when there is a grain. Most things on a desk have
@@ -427,10 +468,11 @@ function drawTile(o, arr, box){
      that list here is the silent-failure coupling decision 98 exists to
      avoid. */
   const layers = (html.includes('class="dpanel"') ? '' : PANEL_LAYER)
-    + (textureOf(o)==='none' ? '' : GRAIN_LAYER);
+    + (textureOf(o)==='none' ? '' : GRAIN_LAYER)
+    + (persp && depthOf(o) >= FLANKED ? SIDE_LAYER : '');
   return html.slice(0, i+1) + layers + html.slice(i+1);
 }
-function drawTileFace(o, arr, box){
+function drawTileFace(o, arr, box, persp){
   const cont=isContainer(o);
   const colour = objColour(o);
   /* Grips are for arranging, so an unlocked board has them on everything and
@@ -452,8 +494,16 @@ function drawTileFace(o, arr, box){
      the same way --tscale does. The stylesheet only uses it under `.pinboard`;
      off, the two custom properties sit there costing nothing. */
   const tilt = S.look.pinned ? tiltOf(o.id) : null;
+  /* The slot's three numbers, folded into `place` for the same reason
+     `--tscale` is: it is the tail of every tile's style attribute, so a branch
+     of drawTile() nobody has thought about gets them too. They are written only
+     while the shelf is on, and they never change again until the next render —
+     the flank you see, the shadow you throw and the light on a curved spine are
+     facts about where a thing stands, not about what the phone is doing.
+     See decision 117. */
   const place = `${ts!==1?`--tscale:${ts};`:''}${
     tilt?`--tilt:${tilt.deg}deg;--pinx:${tilt.right?'100%':'0%'};`:''
+  }${persp?`--px:${persp.x};--py:${persp.y};--depth:${depthOf(o)};`:''
   }grid-column:${box.x} / span ${box.w};grid-row:${box.y} / span ${box.h}`;
   const sel = S.sel.includes(o.id) ? ' selected' : '';
 
@@ -1041,8 +1091,14 @@ function gridOfContainer(cid){
     kids = kids.filter(o=>{ const b=FLOW.get(o.id)||lay(o); return b.y>from && b.y<=from+per; });
     PAGESHIFT.n = from;                       // gridTile subtracts it as it draws
   } else PAGESHIFT.n = 0;
+  /* Where the middle of this board is, for the shelf's perspective — once,
+     here, rather than once per tile. Off unless the shelf is on, which is what
+     keeps the numbers off every tile's style attribute when there is no slot
+     to be standing in. See decision 117. */
+  PERSP.cols = tiltsDesk() ? colsOf(c.id) : 0;
+  PERSP.rows = tiltsDesk() ? per : 0;
   const tiles=kids.map(o=>gridTile(o,arr,c.id)).join('');
-  PAGESHIFT.n = 0;
+  PAGESHIFT.n = 0; PERSP.cols = PERSP.rows = 0;
   // a page is exactly the rows that fit; a scrolling board is at least a screen
   const minRows=Math.max(12, Math.ceil((window.innerHeight-140)/Math.max(1,CELL[dev()])));
   const rows = per ? per : Math.max(gridRows(dev(),c.id)+(arr===true?2:0), minRows);

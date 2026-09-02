@@ -579,7 +579,52 @@ elements because a tile's own `::before` and `::after` are spoken for several
 times over on an object: the gilt frame takes one, and the index card's red
 margin, the habit's bar, the idea's folded corner, the tab and the chit take the
 other. They are also the only surfaces the drawn-line filter may touch. See
-decision 99.
+decision 99. A **third** joins them inside the shelf — `<i class="dside">`,
+below.
+
+**Perspective is where a thing stands, not what the phone is doing.** Inside the
+shelf (decision 116) every tile carries `--px`/`--py` — its centre against the
+board's, −1..1 — written once per render by `perspOf()` in tiles.js and never
+touched again. Stand in front of the middle of a bookshelf and you see the right
+side of everything to your left, the left side of everything to your right, and
+neither from the thing dead centre; that is true before you move at all, so
+**none of the depth is keyed on `--tiltx`**. That is a performance rule as much
+as a physical one: `--tiltx` is inherited, so every element whose style depends
+on it is a style recalculation on every frame, and a board is fifty tiles — the
+tilt-keyed version measured 31fps against the shipped board's 60. The per-frame
+set is exactly decision 116's five elements, `.grid` and the four walls, and a
+120-frame sweep does **119 style recalculations and 0 layouts** with the cues in
+or out.
+
+`.dside` is the third spliced layer and it carries all four faces of a tile: its
+two pseudo-elements are the upright ones, `scaleX`d by `--px` so only ever one
+shows, and the horizontal ones are **inset shadows on `.dside` itself** — no
+blur, no spread, so each is a solid band along one edge, and a negative offset
+puts it along the opposite one, which is how one declaration draws both and
+never draws them together. `depthOf(o)` is the multiplier and paper (0.18) gets
+no layer at all. One light, at the upper left, the same one `.pull` has always
+had — so both sides are darker than the front and the left one only less so; a
+face lit *brighter* than the tile reads as glare on glass. A spine gets no flank:
+the gradient across it already is a cylinder (decision 87) and turns with
+`--spinerun` off the same `--px`. See decision 117.
+
+**A custom property resolves where it is declared, not where it is used.** The
+cast shadow was going to be the third cue — `--shx`/`--shy` on a tile, fed into
+the `--shadow` that board.css builds — and it did nothing whatever, silently,
+because `var()` inside a declaration is substituted on the element the
+declaration is **on**: a `--shadow` declared at `:root` takes root's `--shx`,
+which is unset, and every tile inherits that already-resolved string. Declaring
+`--shadow` on the tile would work and would beat the Shadows switch's own zeros,
+which is the trap two paragraphs of this file already name. Don't reach for this
+pattern; it is not lazy substitution.
+
+**When a number will not hold still, measure something that has to.** The fps
+sweep in this container drifted far enough under contention that one
+configuration read 59 and then 53, and one run had three cues cheaper than one
+of them. Style-recalculation and layout **counts** are deterministic where
+clocks are not — contention changes how long they take, never how many there
+are. Decision 101's discipline still stands for filters; this is the estimator
+to use when the machine is noisy.
 
 **What cannot be a slot is tagged.** A decoration is a made object — a mantel
 clock cannot be re-dressed into a gearwork the way a knob is re-dressed into a

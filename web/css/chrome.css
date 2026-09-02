@@ -101,6 +101,87 @@
   background-position:0 0, 0 0;
 }
 
+/* ---- and the things standing in the slot ------------------------------
+   With four walls round it the board had become the only thing with any depth
+   in it: everything on it read as printed on the back panel. What was missing
+   is not movement — the board already moves, in one piece, which is the point
+   of decision 108 — it is **perspective**. Stand in front of the middle of a
+   bookshelf and you see the right-hand side of everything to your left, the
+   left-hand side of everything to your right, and nothing at all of the thing
+   dead centre. That is a fact about where a thing stands, so `--px`/`--py` are
+   written once per render and never touched again: the whole of the depth
+   costs nothing per frame, and the only thing that moves when the phone turns
+   is still the board itself. See decision 117.
+
+   None of it is a real 3D transform. A transform on a tile changes what
+   `getBoundingClientRect()` and `elementFromPoint()` say about it, and the drag
+   reads both — the same reason decision 108 translates the board and never
+   rotates it. */
+/* The flank of anything thick, drawn on `.dside` — a third spliced layer beside
+   `.dpanel` and `.dgrain`, because a tile's two pseudo-elements have been spent
+   for a year (decision 99). One element carries all four faces: the two upright
+   ones as pseudo-elements `scaleX`d by how far off centre the tile is, and the
+   two horizontal ones as inset shadows, which cost no element at all. A thing
+   in the middle of the shelf shows none of them, which is correct — you are
+   looking straight at it. */
+.dside{position:absolute;inset:0;z-index:0;pointer-events:none;
+  border-radius:inherit;overflow:hidden;
+  /* Below centre you see the top of a thing, and the top faces the light;
+     above centre you see its underside, which does not. An inset shadow with
+     no blur and no spread is a solid band along one edge, and a *negative*
+     offset puts it along the opposite one — so both faces come out of one
+     declaration and neither is ever drawn at the same time as the other. */
+  box-shadow:
+    inset 0 calc(max(0, var(--py,0)) * var(--depth,.5) * 7px) 0 rgba(0,0,0,.10),
+    inset 0 calc(min(0, var(--py,0)) * var(--depth,.5) * 7px) 0 rgba(0,0,0,.24);
+}
+.dside::before,.dside::after{
+  content:"";position:absolute;top:0;bottom:0;
+  width:calc(var(--depth,.5) * 11px);transform:scaleX(0)}
+/* One light, at the upper left — the same one `.pull` has been lit by all along
+   — so the two sides are not the same face in mirror image: the left one is
+   turned towards it, the right one away, and neither is *facing* it. Both are
+   therefore darker than the front and the left one only less so; a face lit
+   brighter than the thing it belongs to reads as glare on glass, which was the
+   first version and was wrong. The gradient ends on a value rather than fading
+   to nothing, because a face has an edge and a vignette has not — and that edge
+   is the whole of what says the thing has a side. */
+.dside::before{left:0;transform-origin:left center;
+  background:linear-gradient(90deg, rgba(0,0,0,.15), rgba(0,0,0,.04))}
+.dside::after{right:0;transform-origin:right center;
+  background:linear-gradient(270deg, rgba(0,0,0,.34), rgba(0,0,0,.12))}
+/* A book is the one thing whose side is already drawn: the gradient across a
+   spine *is* a cylinder (decision 87), and it turns with `--spinerun` below.
+   Giving it a flat flank as well puts two side faces on one object, and at a
+   cell's width that is a quarter of the book. The head and tail bands stay —
+   those are the top and bottom of the text block, and they are true. */
+.drawer.spinetile > .dside::before,
+.drawer.spinetile > .dside::after{content:none}
+/* A tile to the *right* of centre shows its left flank, and the other way
+   about. `max(0, …)` is what keeps each strip to its own half of the board
+   rather than flipping inside out at the middle. */
+.is-phone.tilt-desk .grid > .drawer > .dside::before{
+  transform:scaleX(max(0, var(--px,0)))}
+.is-phone.tilt-desk .grid > .drawer > .dside::after{
+  transform:scaleX(max(0, -1 * var(--px,0)))}
+
+/* No cast shadow among these. It was the obvious third cue — one light in one
+   place, so a thicker thing throws further — and it was written as `--shx`/
+   `--shy` fed into the `--shadow` that board.css builds, on the belief that a
+   custom property resolves where it is *used*. It does not: `var()` inside a
+   declaration is substituted on the element the declaration is **on**, so a
+   `--shadow` declared at `:root` takes root's `--shx` (unset) and every tile
+   inherits that already-resolved string. Setting `--shx` on a tile did nothing
+   whatever, silently, for as long as it took to measure it. Declaring
+   `--shadow` on the tile instead would work and would beat the Shadows
+   switch's own zeros, which is the trap CLAUDE.md names — so there are two
+   cues here, both of which demonstrably draw something, rather than three. */
+/* How far a spine's cylinder may turn. The gradient that draws a book's round
+   back (decision 87) is already a cylinder; all it needed was permission to
+   present a little of one side, which is the same perspective every other tile
+   is getting and costs a background-position rather than an element. */
+.is-phone.tilt-desk .grid > .drawer.spinetile{--spinerun:6px}
+
 /* ---- the view is behind the glass -------------------------------------
    The one place a parallax earns itself without any of decision 108's
    arithmetic: the frame is a real occluder, drawn, fixed, and at the glass,
