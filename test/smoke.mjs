@@ -2174,14 +2174,27 @@ const CHROME = process.env.BUREAU_CHROME;
     out.offByDefault = S.look.parallax === false;
     out.andNothingMoves = !frame.classList.contains('tilting')
       && cs(grid()).transform === 'none';
+    // what the desk is with the cavity off — full width, flush, no transform.
+    // Switching off has to give exactly this back.
+    const off = grid().getBoundingClientRect();
 
+    /* Measure the resting board with the cavity **already on**, not with it
+       off: switching it on sets the board into the wood, which changes the
+       board's width on purpose. What these assertions are about is that
+       *tilting* changes nothing but position — so both readings have to come
+       from the same desk. They were written against a flush board and quietly
+       compared to a hardcoded zero; the inset is what caught it. */
+    S.look.parallax = true; BUREAU.render(); await nap(200);
+    BUREAU.tilt(0, 0); await nap(60);
     const flat = grid().getBoundingClientRect();
+    const mouthFlat = document.querySelector('.deskscroll').getBoundingClientRect();
     const cols = cs(grid()).gridTemplateColumns;
-    S.look.parallax = true; BUREAU.tilt(1, -1); await nap(60);
+    BUREAU.tilt(1, -1); await nap(60);
     const tilted = grid().getBoundingClientRect();
 
     out.theShelfSlides = Math.abs(tilted.left - flat.left) > 6;
-    out.theOpeningDoesNot = Math.abs(document.querySelector('.deskscroll').getBoundingClientRect().left) < 0.5;
+    out.theOpeningDoesNot = Math.abs(
+      document.querySelector('.deskscroll').getBoundingClientRect().left - mouthFlat.left) < 0.5;
     out.theCarcassStaysPut =
       Math.abs(document.querySelector('.gridbar').getBoundingClientRect().left) < 0.5
       && Math.abs(document.querySelector('.deskrail').getBoundingClientRect().left) < 0.5;
@@ -2225,6 +2238,37 @@ const CHROME = process.env.BUREAU_CHROME;
     BUREAU.render(); await nap(120);
     out.aRenderDoesNotWipeIt = frame.classList.contains('tilting')
       && cs(grid()).transform !== 'none';
+
+    /* ---- set into the wood, so the clip has something to happen behind --
+       With the board flush to the screen, the edge a tile disappears at is the
+       *bezel* — not drawn, so it reads as an image being cut off rather than
+       as something passing behind wood, and that is what gives the illusion
+       away. A few pixels of reveal is enough: the scroller clips at its own
+       edge either way, so the occluder only has to be visible, not as wide as
+       the throw. Off, the desk is flush and full width exactly as it was.
+       See decision 111. */
+    const scRect = () => document.querySelector('.deskscroll').getBoundingClientRect();
+    const wasInset = S.look.deskinset;
+    S.look.parallax=false; BUREAU.applyLook(); BUREAU.render(); await nap(160);
+    out.flushWhenTheCavityIsOff = Math.round(scRect().left) === 0;
+    S.look.parallax=true; S.look.deskinset=10;
+    BUREAU.applyLook(); BUREAU.render(); await nap(200);
+    out.setIntoTheWoodWhenItIsOn = Math.round(scRect().left) === 10
+      && Math.round(innerWidth - scRect().right) === 10;
+    /* …and the reveal is what the shelf slides behind: at full throw the board
+       runs past the opening on one side, and there is wood beyond that edge
+       rather than the end of the screen. */
+    BUREAU.tilt(1, 0); await nap(120);
+    const shelf = grid().getBoundingClientRect(), mouth = scRect();
+    out.theShelfPassesBehindIt = shelf.right > mouth.right + 1
+      && mouth.right < innerWidth - 1;
+    BUREAU.tilt(0, 0);
+    // the cell follows, because the cell is measured and never stated
+    const wide = grid().getBoundingClientRect().width;
+    S.look.deskinset=0; BUREAU.applyLook(); BUREAU.render(); await nap(200);
+    out.zeroPutsItBackFlush = Math.round(scRect().left) === 0
+      && grid().getBoundingClientRect().width > wide;
+    S.look.deskinset = wasInset; BUREAU.applyLook(); BUREAU.render(); await nap(160);
 
     /* ---- which way round, and where "level" is ------------------------
        Everything above drives the vars directly, which is the right way to
@@ -2295,7 +2339,8 @@ const CHROME = process.env.BUREAU_CHROME;
     S.look.parallax = false; BUREAU.applyTilt(); S.look.locked = wasLocked; await nap(60);
     out.switchingItOffPutsItBack = !frame.classList.contains('tilting')
       && cs(grid()).transform === 'none'
-      && Math.abs(grid().getBoundingClientRect().left - flat.left) < 0.01;
+      && Math.abs(grid().getBoundingClientRect().left - off.left) < 0.01
+      && Math.abs(grid().getBoundingClientRect().width - off.width) < 0.01;
     return out;
   });
   /* …and someone who has asked not to be moved is not moved, whatever the

@@ -445,7 +445,13 @@ function defaultLook(){
              into that cavity. Off by default: switching it on asks iOS for
              permission, and a phone feature only — a Mac has no gyroscope.
              See decision 108. */
-          parallax:false};
+          parallax:false,
+          /* How far the board is set into the carcass while the cavity is on,
+             in px a side. It is what the shelf slides *behind* — with the
+             board flush to the screen the occluder is the bezel, which is not
+             drawn, so a tile leaving the board reads as an image cut off
+             rather than as something going behind wood. See decision 111. */
+          deskinset:8};
 }
 reset();
 

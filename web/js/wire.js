@@ -1121,6 +1121,18 @@ function wire(){
     const lr=e.target.dataset.lookrange;
     if(lr){ S.look[lr]=(+e.target.value)/100; applyLook();
       const b=e.target.parentElement.querySelector('b'); if(b) b.textContent=e.target.value+'%'; return; }
+    /* The same thing in px rather than in hundredths. It is separate from
+       `lookrange` because that one divides by a hundred, and a slider that
+       silently stores a fortieth of what it says is a trap.
+
+       `sizeGrid()` rather than `render()`: the reveal changes the board's
+       width, so the cell and possibly the row count change with it — and
+       sizeGrid measures, writes what moved and calls render itself if the rows
+       actually differ. A render per pixel of slider is a board rebuilt sixty
+       times a second for a number that mostly does not change the layout. */
+    const lp=e.target.dataset.lookpx;
+    if(lp){ S.look[lp]=+e.target.value; applyLook(); sizeGrid();
+      const b=e.target.parentElement.querySelector('b'); if(b) b.textContent=e.target.value+'px'; return; }
     // repainting one slot of the style showing — it belongs to that style
     if(e.target.dataset.slot!=null){
       setSlot(+e.target.dataset.slot, e.target.value); applyLook(); render(); return;
@@ -1208,7 +1220,7 @@ function wire(){
     }
     // re-render only once the picker closes, so it doesn't die mid-drag
     if(e.target.dataset.lookinput){ save(); render(); refreshPanel(); }
-    if(e.target.dataset.lookrange){ save(); render(); refreshPanel(); }
+    if(e.target.dataset.lookrange || e.target.dataset.lookpx){ save(); render(); refreshPanel(); }
   });
 
   frame.addEventListener('keydown', e=>{

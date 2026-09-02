@@ -4425,3 +4425,48 @@ does not fix: on a full board the floor is mostly covered, so the differential
 is strongest exactly where there is least to look at. The rim's shading is what
 carries the depth on a busy desk, which is an argument for it being the strong
 one rather than a reason to add more.
+
+## 111. Set into the wood, and a slider to find out how far
+
+*2026-09-02*
+
+Decision 108 records an inset being tried and reverted: a margin of carcass all
+round so the opening has a visible rim. It was reverted on the grounds that a
+frame drawn round a board at rest is a picture mount, and the board wants its
+full width. That was right about the rim and wrong about what the inset is for,
+which only became visible once the throw was doubled.
+
+**The reveal is not decoration. It is the thing the shelf slides behind.** With
+the board flush to the screen, the edge a tile disappears at is the *bezel* —
+which is not drawn. So a tile leaving the board reads as an image being cut off
+rather than as something passing behind wood, and that is the moment the
+illusion goes. Accretion and deletion at a boundary is a real depth cue, and it
+needs a visible occluder to be one.
+
+A few pixels is enough, and it does **not** have to be as wide as the throw:
+the scroller clips at its own edge either way, so once there is any wood outside
+that edge the clip has something to happen behind. That is the difference
+between this and the first attempt, which reasoned about the rim being wide
+enough to contain the movement.
+
+It applies **only while the cavity is on**, so switching the tilt off leaves the
+desk flush and full width exactly as it shipped. And it is a **slider** rather
+than a number in the stylesheet, because how much is a matter of taste held in
+the hand and neither of us can settle it from here — `S.look.deskinset`, 0 to
+24px, in the section where the cavity is switched on. Zero is a real answer and
+puts the desk back flush.
+
+Nothing has to be told when it moves: the cell is `grid.width / cols`, measured
+after layout, and a column count is the coordinate space rather than a number
+of pixels — so a narrower board is smaller cells and more rows, all derived.
+The slider calls `sizeGrid()` rather than `render()`, which measures, writes
+only what moved, and renders itself if the row count actually changed; a render
+per pixel of slider is a board rebuilt sixty times a second for a number that
+usually changes nothing.
+
+It also caught three assertions that had gone quietly wrong. `theOpeningDoesNot`
+compared the scroller's left edge to a hardcoded **zero** rather than to where
+it had been a moment earlier, and two others measured the resting board with the
+cavity *off* and the tilted board with it *on* — so they were comparing two
+different desks and calling the difference "unchanged". All three now measure
+the same desk twice, which is what they always meant.

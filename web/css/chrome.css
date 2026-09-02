@@ -2833,6 +2833,20 @@ input,textarea,select,[contenteditable],
    surface with a heading, rather than as a board set into a desk. */
 .is-phone .scroll.deskscroll{overflow:hidden;padding:0;flex:0 0 auto;
   --gapmin:7px;margin-top:var(--gapmin)}
+/* ---- and set into the wood, while the cavity is on --------------------
+   The shelf slides behind the opening's edge, and with the board flush to the
+   screen that edge is the *bezel* — which is not drawn, so a tile leaving the
+   board read as an image being cut off rather than as something passing behind
+   wood. A few pixels of reveal gives the clip a visible occluder, and that is
+   the whole job: it does not have to be as wide as the throw, because the
+   scroller clips at its own edge either way.
+
+   Only while tilting, so switching the cavity off leaves the desk flush and
+   full width as it always was. It costs cell size and nothing has to be told —
+   the cell is `grid.width / cols`, measured after layout, and a column count is
+   the coordinate space rather than a number of pixels. See decisions 60 and
+   111. */
+.is-phone.tilting .scroll.deskscroll{margin-inline:var(--deskinset,0px)}
 .is-phone .main{overflow:hidden}
 
 /* ============================================================

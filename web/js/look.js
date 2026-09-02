@@ -95,6 +95,9 @@ function applyLook(){
   Object.entries(chromeTokens(cols)).forEach(([k,v])=>el.style.setProperty(k,v));
   const st=STYLES[L.style];
   if(st && st.vars) Object.entries(st.vars).forEach(([k,v])=>el.style.setProperty(k,v));
+  // how deep the board sits in the carcass — read by the cavity rules, and on
+  // the root so it inherits everywhere rather than needing a class to find
+  el.style.setProperty('--deskinset', (L.deskinset==null?8:L.deskinset)+'px');
 
   /* And then the hand overrides, which still beat the aesthetic — one is a
      starting point, not a cage.

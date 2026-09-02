@@ -468,10 +468,15 @@ all**: the cue is *relative* displacement, so the floor (`.grid::before`, at
 `--tiltfloor`) outruns the tiles. That pseudo-element is also the one place a
 real `perspective()`/`rotate3d` is free — nothing can measure a pseudo-element,
 where a rotation on `.grid` would make `getBoundingClientRect()` describe a
-trapezoid and break every coordinate in the app. See decision 110. The board is **flush** with the carcass
-face on and must stay that way: insetting it to give the opening a visible rim
-was tried and reverted, because a frame round a board at rest is a picture
-mount. All the depth is in the movement. It is off by default, phone only, and it eases to zero for a
+trapezoid and break every coordinate in the app. See decision 110. The board is set into the wood by
+`S.look.deskinset` **while the cavity is on** and is flush and full width the
+moment it is off. That reveal is not decoration: it is what the shelf slides
+*behind*, and flush to the screen the occluder is the bezel, which is not drawn
+— so a tile leaving the board reads as an image cut off rather than as
+something going behind wood. It needn't be as wide as the throw, because the
+scroller clips at its own edge either way. It is a slider in Settings (0–24px,
+zero is flush) because how much is a matter of taste held in the hand. Changing
+it calls `sizeGrid()`, never `render()`. It is off by default, phone only, and it eases to zero for a
 drag, the pager, a panel, a surface and reduced motion — all read off state or
 the DOM, so nothing else has to know it exists. See decision 108.
 

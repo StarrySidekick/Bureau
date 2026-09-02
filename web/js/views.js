@@ -556,6 +556,12 @@ function settingsBody(sec){
       <div class="filterbar">${[['','Still'],['1','The shelf is inset']].map(([v,n])=>
         `<button class="fchip${(S.look.parallax?'1':'')===v?' on':''}" data-parallax="${v}">${n}</button>`).join('')}</div>
       <div class="mini" style="--k:var(--brass);margin-top:6px">The board is set into the carcass a centimetre or so, and tilting the phone looks into that cavity — the shelf slides behind the opening, which stays where it is. It asks iPhone for the motion sensor the first time you switch it on, and it stands still while you are carrying a tile or reading.</div>
+      ${S.look.parallax?`
+      <label class="rangerow" style="margin-top:10px"><span>Set into the wood</span>
+        <input type="range" min="0" max="24" step="1" data-lookpx="deskinset"
+               value="${S.look.deskinset==null?8:S.look.deskinset}">
+        <b>${S.look.deskinset==null?8:S.look.deskinset}px</b></label>
+      <div class="mini" style="--k:var(--brass);margin-top:6px">How much wood shows around the board. It is what the shelf slides behind — at nothing, a tile leaving the board is cut off by the edge of the screen rather than going behind anything, which is the thing that gives it away.</div>`:''}
     </div>`:''}
 
     ${gridSizeField(null)}
