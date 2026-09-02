@@ -7,7 +7,7 @@ import { pending, tileTap, fireButton } from './tiles.js';
 import { modalNewObject, holdPanel, openCtx, closeCtx, schedulePanel } from './panels.js';
 import { render, pageTop } from './views.js';
 import { closeSheet } from './sheet.js';
-import { pagerBegin, pagerMove, pagerEnd, pagerCancel, pagerOn, leaveTile } from './motion.js';
+import { pagerBegin, pagerMove, pagerEnd, pagerCancel, pagerOn, leaveTile, toss } from './motion.js';
 import { save } from './persist.js';
 
 /* ============================================================
@@ -375,6 +375,43 @@ function aimDrop(g, px, py){
   if(over && !g.group && canFile(g.id, over.dataset.drawer)){
     g.dropEl=over; g.dropOn=over.dataset.drawer; over.classList.add('dropinto');
   }
+}
+
+/* ---- throwing something off the desk ----------------------------------
+   Carry a tile and flick it hard off an edge and it goes. It is the gesture
+   every phone already has for dismissing a thing, and it is the one thing a
+   drag could not do — you had to put the tile down, hold it again, and find
+   Delete on the menu.
+
+   It has to be **hard to do by accident**, so it asks three things and not
+   one: the flick has to be fast (TOSS_SPEED is well past what a careful move
+   ends at), you have to let go at the very edge of the board or past it, and
+   you have to be travelling *out* through that edge. A slow drag to the edge
+   is still a move that finds no room; a fast movement that ends in the middle
+   of the board is still a move.
+
+   **Down is not one of them**, and that falls out rather than being said: the
+   drawer's mouth is along the bottom, `aimHold()` is asked first, and a thing
+   flicked downward lands in the holding space instead. Which is the better
+   answer for a downward flick anyway — it is where you throw something you
+   want to keep.
+
+   The velocity is smoothed, because one pointer event's worth of it is mostly
+   noise and a threshold on noise fires at random. See decision 112. */
+const TOSS_SPEED = 1.15;   // px per ms — about a third of a second across a phone
+const TOSS_EDGE = 26;      // how close to the edge letting go counts as off it
+function tossed(g){
+  const sp=Math.hypot(g.vx||0, g.vy||0);
+  if(sp < TOSS_SPEED) return null;
+  const sc=g.scroller || (g.el && g.el.closest('.scroll'));
+  if(!sc) return null;
+  const r=sc.getBoundingClientRect();
+  // out through the edge you are nearest, and heading that way
+  if(g.px <= r.left+TOSS_EDGE   && g.vx < 0) return 'left';
+  if(g.px >= r.right-TOSS_EDGE  && g.vx > 0) return 'right';
+  if(g.py <= r.top+TOSS_EDGE    && g.vy < 0) return 'up';
+  if(g.py >= r.bottom-TOSS_EDGE && g.vy > 0) return 'down';
+  return null;
 }
 
 /* ---- carrying a tile past the edge of the screen ----------------------
@@ -870,6 +907,17 @@ function onMove(e){
       return;
     }
     if(!G.armed) return;             // still waiting out the hold
+    /* How fast it is going, smoothed. One event's worth of velocity is mostly
+       noise, and a threshold on noise fires at random — so each reading is
+       folded into the last, which is enough to tell a flick from a carry and
+       cheap enough to do on every move. */
+    const now=performance.now();
+    if(G.vt){
+      const dt=Math.max(8, now-G.vt), k=0.55;
+      G.vx=(G.vx||0)*(1-k) + ((e.clientX-G.px)/dt)*k;
+      G.vy=(G.vy||0)*(1-k) + ((e.clientY-G.py)/dt)*k;
+    }
+    G.vt=now;
     G.px=e.clientX; G.py=e.clientY;
     if(!G.mode){
       if(Math.abs(dx)<5 && Math.abs(dy)<5) return;
@@ -1066,6 +1114,21 @@ function onUp(e){
     if(d && aim.hold && holdIt(d.id)){
       render();
       toast('Kept in the drawer', true);
+      return;
+    }
+    /* Thrown off the edge. After the drawer, which owns downward, and before
+       everything that is a *place* — a thing that has left the board is not
+       landing anywhere. The picture is taken before the delete and flies over
+       the board that has already lost it, the same way every movement in this
+       app is drawn over a state change that has already happened. `del()`
+       pushes its own undo and says so. */
+    if(d && !g.group && tossed(g)){
+      // taken before the delete, because del() renders and the tile it is a
+      // picture of stops existing
+      const r=g.el.getBoundingClientRect();
+      toss(g.el, r, g.vx, g.vy);
+      del(d.id);
+      if(navigator.vibrate) navigator.vibrate([3,20,6]);
       return;
     }
     /* ---- so that ⌘Z means something after a drag ------------------------

@@ -805,6 +805,20 @@ piece of work is made of. See decision 34.
 all four exist to show what already happened. Everywhere else, done means gone, and that
 is what keeps a drawer finite.
 
+**A hard flick off an edge throws a tile away.** `tossed()` in gestures.js asks
+three things, not one — fast enough (`TOSS_SPEED`, on a *smoothed* velocity,
+because a threshold on one event's noise fires at random), let go within
+`TOSS_EDGE` of the board's edge, and travelling out through it. A slow carry to
+the edge is still a move. **Down is not an edge**, and that falls out rather
+than being said: the drawer's mouth is along the bottom and `aimHold()` is asked
+first, so a downward flick is kept rather than thrown. `del()` pushes its own
+undo and the toast offers it. See decision 112.
+
+**`picture()` strips the clone itself, not only its descendants.** Every caller
+but the toss hands it a whole board, where the thing answering to an id is
+always a descendant; the toss hands it a tile, and it flew off still answering
+to an id the desk had just deleted. Decision 51 from the other side.
+
 **A drop has four meanings, and they are ordered.** `aimDrop()` in
 `gestures.js`: a day on a calendar, a point along a timeline's axis, an object
 it gathers with, a container to file into. The first two sit inside a

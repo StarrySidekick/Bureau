@@ -47,11 +47,16 @@ const FOUNDBY='[data-drawer],[data-row],[data-id],[data-check],[data-edit]';
 function picture(el){
   el.removeAttribute('id');
   el.querySelectorAll('[id]').forEach(n=>n.removeAttribute('id'));
-  el.querySelectorAll(FOUNDBY).forEach(n=>{
-    n.removeAttribute('data-drawer'); n.removeAttribute('data-row');
-    n.removeAttribute('data-id'); n.removeAttribute('data-check');
-    n.removeAttribute('data-edit');
-  });
+  /* The element **itself** as well as its descendants. It only ever got a
+     board's worth of tiles before, where the thing answering to an id is
+     always a descendant — and then a tile was thrown off the desk, which
+     clones the tile, so the root *was* the object. It flew off still
+     answering to an id the desk had just deleted. */
+  const strip=n=>{ n.removeAttribute('data-drawer'); n.removeAttribute('data-row');
+                   n.removeAttribute('data-id'); n.removeAttribute('data-check');
+                   n.removeAttribute('data-edit'); };
+  if(el.matches && el.matches(FOUNDBY)) strip(el);
+  el.querySelectorAll(FOUNDBY).forEach(strip);
   el.setAttribute('aria-hidden','true');
   return el;
 }
@@ -266,6 +271,42 @@ function openTile(id, go){
 
    Anything that isn't a dive keeps the small settle it always had: reversing
    a cabinet is a different movement and it hasn't been drawn. */
+/* ---- throwing something off the desk ----------------------------------
+   The tile leaves along the line it was thrown, turning as it goes and
+   shrinking away — which is the one thing that makes it read as *thrown*
+   rather than deleted with a flourish. It is a clone in `#fx`, made before the
+   delete and drawn over the board that has already lost it, because nothing in
+   this file delays a state change.
+
+   The distance is generous: far enough that the tile is off any screen it was
+   thrown from before the fade finishes, so it never dissolves in mid-air where
+   you can still see it. See decision 112. */
+function toss(src, r, vx, vy){
+  if(!src || !r || !r.width || still() || !fx()) return;
+  const box=document.createElement('div');
+  box.className='fxtoss';
+  at(box, r);
+  const sp=Math.hypot(vx,vy)||1, far=Math.max(innerWidth, innerHeight)*1.35;
+  // it turns the way it was thrown, and faster throws turn further
+  const spin=(vx>0?1:-1)*(18+Math.min(26, sp*9));
+  box.style.setProperty('--tossx', Math.round(vx/sp*far)+'px');
+  box.style.setProperty('--tossy', Math.round(vy/sp*far)+'px');
+  box.style.setProperty('--tossr', spin.toFixed(1)+'deg');
+  /* The tile's own picture, not a stand-in. Its inline style is kept — that is
+     where its colour lives — and only what placed it on a grid is taken off,
+     because inside the flying box it is the whole of it. `picture()` strips
+     the ids, or the drag's own lookups would find a second element answering
+     to an object that has just been deleted (decision 51). */
+  const ghost=picture(src.cloneNode(true));
+  ghost.classList.remove('dragging','lifted','invalid','justmade');
+  ['grid-column','grid-row','transform','--carryx','--carryy','z-index']
+    .forEach(k=>ghost.style.removeProperty(k));
+  ghost.style.width='100%'; ghost.style.height='100%';
+  box.appendChild(ghost);
+  fx().appendChild(box);
+  setTimeout(()=>box.remove(), 620);
+}
+
 /* ---- a movement you drive with your fingers ---------------------------
    The four animations a dive is made of are CSS, on one clock (`--divems`),
    and every one of them is `linear` because `dive()` bakes the easing into the
@@ -1281,7 +1322,7 @@ function pagerCancel(){
   letGo(g);
 }
 
-export { still, tileOf, tileRect, openingFor, openTile, leaveTile, enter, pop, clRefill,
+export { still, tileOf, tileRect, openingFor, openTile, leaveTile, enter, pop, clRefill, toss,
   spray, sprayAt, sprayCount, SPRAYS, sprayNow, sprayMark,
   pagerBegin, pagerMove, pagerEnd, pagerCancel, pagerOn, stepDrawer,
   applyTilt, askTilt, tiltTo, tiltRecentre };

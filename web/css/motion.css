@@ -378,3 +378,28 @@
   .main.in-dive,.main.in-diveout{animation:none}
   .curlshade{display:none}
 }
+
+/* ============================================================
+   Thrown off the desk
+   ============================================================
+   A tile flicked hard off the edge leaves along the line it was thrown,
+   turning as it goes. The turn is what says *thrown*: a thing that slides
+   away in a straight line reads as a panel closing, and a thing that spins
+   reads as something that has left your hand. It carries the tile's own
+   picture, so what flies off is the thing you were holding rather than a
+   grey rectangle standing in for it.
+
+   No filters on it, for decision 101's reason — a scale re-rasterises and a
+   desk carries a drop-shadow on every torn shape. See decision 112. */
+.fxtoss{position:absolute;pointer-events:none;z-index:60;
+  transform-origin:50% 50%;will-change:transform,opacity;
+  animation:tossaway .58s cubic-bezier(.25,.55,.4,1) forwards}
+.fxtoss *{filter:none !important;animation:none !important}
+@keyframes tossaway{
+  0%  {transform:none;opacity:1}
+  22% {opacity:1}
+  100%{transform:translate(var(--tossx,0),var(--tossy,0))
+                 rotate(var(--tossr,0deg)) scale(.62);
+       opacity:0}
+}
+@media (prefers-reduced-motion: reduce){ .fxtoss{display:none} }

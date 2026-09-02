@@ -4499,3 +4499,45 @@ it had been a moment earlier, and two others measured the resting board with the
 cavity *off* and the tilted board with it *on* — so they were comparing two
 different desks and calling the difference "unchanged". All three now measure
 the same desk twice, which is what they always meant.
+
+## 112. Thrown off the desk
+
+*2026-09-02*
+
+Carrying a tile could put it anywhere — a drawer, a day, a timeline, the
+holding space — and could not get rid of it. Deleting meant putting the tile
+down, holding it again, and finding Delete on the menu, which is three
+deliberate acts for the one thing you often decide *while* you have hold of it.
+
+So a hard flick off an edge throws it away. It is the gesture every phone
+already has for dismissing something, and it is the only one the drag was
+missing.
+
+**It has to be hard to do by accident**, which means asking three things rather
+than one: the flick has to be fast (well past what a careful move ends at), you
+have to let go at the very edge of the board or past it, and you have to be
+travelling *out* through that edge. A slow carry to the edge is still a move
+that finds no room; a fast movement that ends in the middle of the board is
+still a move. Undo covers the rest, and the toast says so.
+
+**Down is not one of the edges, and that falls out rather than being stated.**
+The holding drawer's mouth runs along the bottom, `aimHold()` is asked first,
+and a thing flicked downward lands in it. Which is the better answer for a
+downward flick anyway: down is where you throw something you want to keep.
+
+The velocity is **smoothed**. One pointer event's worth of it is mostly noise,
+and a threshold on noise fires at random — each reading is folded into the last
+instead, which is enough to tell a flick from a carry and cheap enough to do on
+every move.
+
+The tile leaves along the line it was thrown, turning as it goes. The turn is
+what makes it read as *thrown*: a thing that slides away in a straight line
+reads as a panel closing. It is a picture of the tile taken before the delete
+and drawn over a board that has already lost it, which is this file's one rule.
+
+And it caught a real bug in `picture()`, which is what makes a flying copy safe
+to have on screen: it stripped the ids of a clone's **descendants** but not of
+the clone itself. Every previous caller handed it a board, where the things
+answering to an id are always descendants. This one hands it a tile — so the
+root *was* the object, and it flew off still answering to an id the desk had
+just deleted, which is exactly the duplicate decision 51 exists to prevent.

@@ -2359,6 +2359,56 @@ const CHROME = process.env.BUREAU_CHROME;
   });
   await stillCtx.close();
 
+  /* --- thrown off the desk. Carry a tile and flick it hard off an edge and
+     it goes — the gesture every phone has for dismissing a thing, and the one
+     thing a drag could not do. It has to be hard to do by accident, so it asks
+     three questions rather than one: fast enough, let go at the edge, and
+     travelling out through it. See decision 112. */
+  const tossing = await phone.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const S = BUREAU.state, out = {};
+    const wasLocked = S.look.locked;
+    S.view='desk'; S.drawerId=null; S.look.locked=false; BUREAU.render(); await nap(300);
+    const alive = id => !!S.objects.find(o => o.id === id);
+    /* Held for the hold, then carried at whatever pace the steps say. The pace
+       is the whole experiment: the same path travelled slowly is a move and
+       travelled fast is a throw. */
+    const carry = async (pid, step, ms, n, endAt) => {
+      const el = document.querySelector('#app .grid .drawer[data-row]');
+      const id = el.dataset.row, r = el.getBoundingClientRect();
+      const o = {bubbles:true, cancelable:true, pointerId:pid, pointerType:'touch', isPrimary:true};
+      const x0 = r.left + r.width/2, y0 = r.top + Math.min(r.height/2, 20);
+      el.dispatchEvent(new PointerEvent('pointerdown', {...o, clientX:x0, clientY:y0}));
+      await nap(340);
+      for(let i=1;i<=n;i++){
+        el.dispatchEvent(new PointerEvent('pointermove', {...o, clientX:x0+i*step, clientY:y0}));
+        await nap(ms);
+      }
+      el.dispatchEvent(new PointerEvent('pointerup', {...o, clientX:x0+endAt, clientY:y0}));
+      await nap(400);
+      return id;
+    };
+    // carried to the edge at a working pace: still a move
+    out.aSlowCarryIsNotAThrow = alive(await carry(61, -14, 30, 14, -220));
+    await nap(200);
+    // …and flicked off it
+    const thrown = await carry(62, -30, 8, 8, -260);
+    out.aHardFlickThrowsIt = !alive(thrown);
+    out.andTheTileFliesOff = !!document.querySelector('#fx .fxtoss');
+    /* The picture must not answer to the id of the thing that has just been
+       deleted, or the drag's own lookups find it — decision 51 from the other
+       side, and this one flies over a board that has lost the original. */
+    out.andCarriesNoId = !document.querySelector('#fx .fxtoss [data-row], #fx .fxtoss [data-drawer]');
+    await nap(700);
+    out.thenTidiesItselfUp = !document.querySelector('#fx .fxtoss');
+    BUREAU.undo(); await nap(220);
+    out.undoBringsItBack = alive(thrown);
+    // fast, but let go in the middle of the board: a move, and a refused one
+    out.fastButNotOffTheEdgeIsAMove = alive(await carry(63, 12, 8, 8, 96));
+    S.look.locked = wasLocked; S.view='desk'; S.drawerId=null; BUREAU.render();
+    return out;
+  });
+
   /* --- pinching out of somewhere. Two fingers already walk the desks and turn
      the pages; bringing them together is the other thing two fingers can say,
      and it means what it has meant on a phone for fifteen years. It goes up
@@ -4939,7 +4989,7 @@ const CHROME = process.env.BUREAU_CHROME;
     errors: errs, manifestOk, swReady, survived, styleSurvived, slotColours,
     newObjectSeen, inlineEdit, sortDefaults, taskLook,
     shelfTools, gridSizes, keeping, versionShown, sampler, paging, pageCoords, pagerGround, goingIn, comingOut,
-    makingOnAPhone, railDrawer, railIsFurniture, holding, cavity, pinch, pagerLandsFlat, deskDots,
+    makingOnAPhone, railDrawer, railIsFurniture, holding, cavity, tossing, pinch, pagerLandsFlat, deskDots,
     listSwipe, shadows, textureDepth,
     gridClass, offlineWorks, railGone, tabsGone, shelfGone, tileNavigates,
     holdArms, maxDrift,
