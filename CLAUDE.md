@@ -463,32 +463,25 @@ and stays on the right side of the movement for free. `--tiltx`/`--tilty`
 the only two numbers worth turning, and `BUREAU.tilt(1,0)` parks the shelf so
 you can look. **Depth is throw, not sensitivity** — parallax displaces by depth
 × tan(angle), so a deeper shelf moves further for the same tilt; narrowing
-`TILT_RANGE` instead reads as twitchy. **One plane sliding is not parallax at
-all**: the cue is *relative* displacement, so the floor (`.grid::before`, at
-`--tiltfloor`) outruns the tiles. That pseudo-element is also the one place a
-real `perspective()`/`rotate3d` is free — nothing can measure a pseudo-element,
-where a rotation on `.grid` would make `getBoundingClientRect()` describe a
-trapezoid and break every coordinate in the app. See decision 110. **Which surfaces answer the tilt is a choice** — `tiltMode()` in model.js, four
+`TILT_RANGE` instead reads as twitchy. The cue is *relative* displacement, and it is
+between the board and the **opening** — which is what the four walls draw. See
+decision 116. **Which surfaces answer the tilt is a choice** — `tiltMode()` in model.js, four
 modes (`off | desk | window | both`), each gated on its own class (`.tilt-desk`,
 `.tilt-win`) stamped by `render()` from `S.look`, so a desk set to windows only
 pays for none of the cavity. The old stored boolean still reads as `both`.
 **One slider each** (`tiltdesk`, `tiltwin`): the second axis and the floor's
 extra travel are fixed fractions of the one number, written by `applyLook()`,
-so the four properties cannot disagree. The board is set into the wood by
-`S.look.deskinset` **while the cavity is on** and is flush and full width the
-moment it is off. That reveal is not decoration: it is what the shelf slides
-*behind*, and flush to the screen the occluder is the bezel, which is not drawn
-— so a tile leaving the board reads as an image cut off rather than as
-something going behind wood. It needn't be as wide as the throw, because the
-scroller clips at its own edge either way. It is a slider in Settings (0–24px,
-zero is flush) because how much is a matter of taste held in the hand. Changing
-it calls `sizeGrid()`, never `render()`. The reveal is **drawn as a frame** —
-`.main::after`, a bevel with mitre joints at the corners, both out of one
-`border-image` whose conic gradient puts a flat sector on each side so the
-boundaries fall on the diagonals. It hangs off `.main` because the scroller
-clips, and `--boardtop`/`--boardh` are written into the markup as well as by
-`sizeGrid()`, or the render after the one that moved them loses them (decision
-58's trap, again). See decision 115. It is off by default, phone only, and it eases to zero for a
+so the four properties cannot disagree. **The board is the back panel of a slot, and it goes *over* what surrounds it,
+never under.** Four `.cavwall` quadrilaterals join the opening's corners to the
+board's, and each polygon carries the board's own offset — so tilting opens one
+wall out and closes the opposite one, which is what looking into a bookshelf at
+an angle does and what a fixed rim can never say. The board is **inset**
+(`margin` on `.grid`, never padding — `cellW()` measures that rect) by
+`max(S.look.deskinset, --tiltpx)`: a back panel that can shift further than it
+is inset runs out past the opening, so the slider is a floor that adds room
+beyond the movement. Nothing is ever clipped. See decision 116, which reverses
+110 — the checkerboard is the board's own paper and must not slide under its
+own tiles. It is off by default, phone only, and it eases to zero for a
 drag, the pager, a panel, a surface and reduced motion — all read off state or
 the DOM, so nothing else has to know it exists. See decision 108.
 

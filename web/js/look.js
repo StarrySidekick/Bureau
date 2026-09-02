@@ -100,13 +100,11 @@ function applyLook(){
   el.style.setProperty('--deskinset', (L.deskinset==null?8:L.deskinset)+'px');
   /* How far each thing that answers a tilt actually moves. One number each,
      because the second axis is always the same fraction of the first — there is
-     less room up and down than across — and the desk's floor outruns its tiles
-     by a fixed ratio (decision 110). Written on the root so the rules read them
+     less room up and down than across. Written on the root so the rules read them
      wherever they are, and so a slider is one property rather than five. */
   const dp = L.tiltdesk==null ? 16 : L.tiltdesk, wp = L.tiltwin==null ? 11 : L.tiltwin;
   el.style.setProperty('--tiltpx', dp+'px');
   el.style.setProperty('--tiltpy', Math.round(dp*0.75)+'px');
-  el.style.setProperty('--tiltfloor', Math.round(dp*0.8)+'px');
   el.style.setProperty('--winpx', wp+'px');
   el.style.setProperty('--winpy', Math.round(wp*0.8)+'px');
 

@@ -2247,27 +2247,46 @@ const CHROME = process.env.BUREAU_CHROME;
        edge either way, so the occluder only has to be visible, not as wide as
        the throw. Off, the desk is flush and full width exactly as it was.
        See decision 111. */
+    /* ---- the board is the back of the slot, not something behind a frame --
+       The inset is on the **board**, never on the opening: the opening is the
+       screen and stays where it is, and the board is smaller than it and moves
+       *inside* it. So the board is never clipped — which was the whole
+       complaint — and the four walls take up the slack instead.
+       See decision 116. */
     const scRect = () => document.querySelector('.deskscroll').getBoundingClientRect();
     const wasInset = S.look.deskinset;
     S.look.parallax='off'; BUREAU.applyLook(); BUREAU.render(); await nap(160);
-    out.flushWhenTheCavityIsOff = Math.round(scRect().left) === 0;
+    const flushW = grid().getBoundingClientRect().width;
+    out.flushWhenTheCavityIsOff = Math.round(scRect().left) === 0
+      && Math.round(grid().getBoundingClientRect().left) === 0;
     S.look.parallax='both'; S.look.deskinset=10;
     BUREAU.applyLook(); BUREAU.render(); await nap(200);
-    out.setIntoTheWoodWhenItIsOn = Math.round(scRect().left) === 10
-      && Math.round(innerWidth - scRect().right) === 10;
-    /* …and the reveal is what the shelf slides behind: at full throw the board
-       runs past the opening on one side, and there is wood beyond that edge
-       rather than the end of the screen. */
+    out.theOpeningStaysFullWidth = Math.round(scRect().left) === 0
+      && Math.round(innerWidth - scRect().right) === 0;
+    /* …by at least the throw, which is why the figure is a max(): a back panel
+       that can shift further than it is inset runs out past the opening. */
+    const inset = Math.max(10, S.look.tiltdesk==null?16:S.look.tiltdesk);
+    out.andTheBoardIsInsetInsideIt =
+      Math.abs(grid().getBoundingClientRect().left - (scRect().left + inset)) < 1.5
+      && grid().getBoundingClientRect().width < flushW;
+    /* …and at full throw it is still inside. A board that reaches the edge is
+       a board being cut off by the phone, which is the thing the slot exists
+       to stop. */
     BUREAU.tilt(1, 0); await nap(120);
     const shelf = grid().getBoundingClientRect(), mouth = scRect();
-    out.theShelfPassesBehindIt = shelf.right > mouth.right + 1
-      && mouth.right < innerWidth - 1;
+    out.andStaysInsideAtFullThrow = shelf.left > mouth.left - 0.5
+      && shelf.right < mouth.right + 0.5;
     BUREAU.tilt(0, 0);
-    // the cell follows, because the cell is measured and never stated
+    /* At zero the slider gives up nothing extra, and the board is still inset
+       by the throw — flush is what switching the cavity *off* gives you, which
+       is asserted above. The cell follows either way, because the cell is
+       measured and never stated. */
     const wide = grid().getBoundingClientRect().width;
     S.look.deskinset=0; BUREAU.applyLook(); BUREAU.render(); await nap(200);
-    out.zeroPutsItBackFlush = Math.round(scRect().left) === 0
-      && grid().getBoundingClientRect().width > wide;
+    const throwPx = S.look.tiltdesk==null?16:S.look.tiltdesk;
+    out.zeroLeavesJustEnoughForTheThrow =
+      Math.abs(grid().getBoundingClientRect().left - (scRect().left + throwPx)) < 1.5
+      && grid().getBoundingClientRect().width < flushW && wide <= flushW;
     S.look.deskinset = wasInset; BUREAU.applyLook(); BUREAU.render(); await nap(160);
 
     /* ---- which way round, and where "level" is ------------------------
@@ -2344,34 +2363,35 @@ const CHROME = process.env.BUREAU_CHROME;
                           && near(inHand.pitch,  upright.pitch);
     forget();
 
-    /* ---- the reveal is a frame, not a gap -------------------------------
-       Flat wood reads as the phone cutting the board off. A bevel with mitre
-       joints at the corners reads as the board going behind something, which
-       is the same pixels saying a different thing. `--boardtop`/`--boardh` are
-       measured by sizeGrid() the way the reveal and the rail's depth already
-       are. See decision 115. */
-    S.look.parallax='desk'; S.look.deskinset=14;
+    /* ---- the four walls of the slot -------------------------------------
+       An outer rectangle, an inner one, and four lines joining their corners:
+       that is how the inside of a box is drawn in two dimensions. The walls
+       are quadrilaterals between the opening and the board, and because the
+       board's own offset is in each polygon, the corner joins **follow it** —
+       tilt right and the left wall opens out while the right one closes.
+       See decision 116. */
+    S.look.parallax='desk'; S.look.deskinset=18;
     BUREAU.applyLook(); BUREAU.applyTilt(); BUREAU.render(); await nap(260);
-    // re-queried every time: render() replaces #app, so a captured .main is stale
-    const rimOf = () => getComputedStyle(document.querySelector('#app .main'), '::after');
-    out.theRimIsDrawn = rimOf().borderImageSource.includes('conic-gradient')
-      && parseFloat(rimOf().borderTopWidth) === 14;
-    // it is mitred: four flat sectors, so the joints fall on the diagonals
-    out.andItIsMitred = (rimOf().borderImageSource.match(/color|rgb/g)||[]).length >= 4;
-    // …and it knows where the board actually is
-    /* …and it knows where the board is *after a render*, which is the half
-       that was broken: sizeGrid() writes only what changed, so the value has to
-       be in the markup too or the next render loses it. */
-    BUREAU.render(); await nap(220);
-    const mn = document.querySelector('#app .main');
-    const sr = document.querySelector('.deskscroll').getBoundingClientRect();
-    const mrr = mn.getBoundingClientRect();
-    const cssv = k => parseFloat(getComputedStyle(mn).getPropertyValue(k));
-    out.andItIsRoundTheBoard = Math.abs(cssv('--boardtop') - (sr.top-mrr.top)) < 1.5
-      && Math.abs(cssv('--boardh') - sr.height) < 1.5;
-    // no cavity, no rim: switching it off leaves the desk as it shipped
+    const walls = () => [...document.querySelectorAll('#app .cavwall')];
+    out.thereAreFourWalls = walls().length === 4;
+    out.andTheyAreBehindTheBoard =
+      walls().every(w => +cs(w).zIndex === 0) && +cs(grid()).zIndex === 1;
+    const clipOf = i => cs(walls()[i]).clipPath;
+    BUREAU.tilt(0,0); await nap(90);
+    const level = [clipOf(0), clipOf(3)];
+    BUREAU.tilt(1,0); await nap(90);
+    out.andTheyFollowTheBoard = clipOf(0) !== level[0] && clipOf(3) !== level[1];
+    /* The left wall opens out as the board goes right, and the right one
+       closes — the two together are what says you are looking in at an angle
+       rather than at a picture that has been nudged. */
+    const widthOf = sel => { const w = document.querySelector('#app '+sel);
+      const m = cs(w).clipPath.match(/-?[\d.]+px/g) || []; return m; };
+    out.andOneOpensAsTheOtherCloses =
+      JSON.stringify(widthOf('.cw-left')) !== JSON.stringify(widthOf('.cw-right'));
+    BUREAU.tilt(0,0);
+    // no cavity, no walls drawn
     S.look.parallax='off'; BUREAU.applyTilt(); BUREAU.render(); await nap(200);
-    out.andNoneOfItWhenTheCavityIsOff = rimOf().borderImageSource === 'none';
+    out.andNoneOfItWhenTheCavityIsOff = cs(walls()[0]).clipPath === 'none';
     S.look.parallax='both'; S.look.deskinset=8;
     BUREAU.applyLook(); BUREAU.applyTilt(); BUREAU.render(); await nap(200);
 
@@ -2411,7 +2431,7 @@ const CHROME = process.env.BUREAU_CHROME;
     BUREAU.applyLook(); await nap(60);
     const root = cs(document.documentElement), v = k => root.getPropertyValue(k).trim();
     out.oneSliderEach = v('--tiltpx')==='30px' && v('--tiltpy')==='23px'
-      && v('--tiltfloor')==='24px' && v('--winpx')==='26px';
+      && v('--winpx')==='26px' && v('--winpy')==='21px';
     // an old desk stored a boolean, and true meant everything
     S.look.parallax = true;
     out.theOldBooleanStillMeansBoth = BUREAU.tiltMode() === 'both';

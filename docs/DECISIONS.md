@@ -4682,3 +4682,56 @@ and then skipped as unchanged is a value the new one never gets — the rim was
 correct on the render that moved it and missing on every other. They are written
 into the markup from the last measurement now, exactly as the reveal and the
 rail's depth already were.
+
+## 116. Looking into a slot: the board is the back panel
+
+*2026-09-02*
+
+Everything before this had the board sliding **behind** something — under a
+rim, under a frame, clipped at an opening. That is a drawer, and the complaint
+kept coming back in different words: the desk was getting cut off by the phone.
+The layer was wrong. The board should be **over** what surrounds it, not under
+it, because the board is not a thing passing behind a frame — it is the *back
+panel of the slot you are looking into*.
+
+So: an outer rectangle (the opening, which is the screen), an inner one (the
+board), and **four quadrilaterals joining their corners**. Those are the walls
+of the slot seen in two dimensions, and the diagonals at their ends are the
+corner joins. It is how the inside of a box has always been drawn.
+
+The whole thing turns on the walls **following the board**. Each polygon has the
+board's own offset in it, so tilting right opens the left wall out and closes
+the right one — you see more of one side of the slot and less of the other,
+which is what looking into a bookshelf at an angle actually does. A rim cannot
+do this: a fixed frame with a moving thing behind it says "occluded", and only a
+join that stretches says "at an angle".
+
+**And the board is never clipped.** It is inset from the opening rather than
+bounded by it, and the inset is `max(the slider, the throw)` — in a real slot
+the back panel is smaller than the opening by exactly as much as it can shift,
+or it would run out past it. So the slider is a floor that adds room beyond the
+movement, never a number that can be set too small for the movement to fit.
+
+Four elements rather than one. Each wall is a different quadrilateral taking a
+different amount of light, and the joins have to land exactly on the corners —
+which a single gradient centred anywhere cannot promise once the inner rectangle
+stops being concentric with the outer one.
+
+This **reverses decision 110.** The floor was made to outrun the tiles, on the
+grounds that relative displacement between depths is the actual parallax cue.
+The research was right and the application was wrong: the checkerboard is the
+board's own paper and the tiles are standing on it, so a floor that slides under
+them makes the things on the desk look unattached to it. The board moves as one
+piece. The depth is in the walls now, which is where a slot keeps it — the
+relative motion is between the board and the *opening*, and that is exactly what
+the four walls draw.
+
+The mitred rim of decision 115 is gone with it, superseded by the thing it was
+reaching for.
+
+One scar worth recording: deleting the rim's CSS block by matching from one
+comment to the next took the **entire carcass section** with it — the wood on
+`#frame`, `.app` and `.main`, and the paper on non-grid scrollers. The desk
+rendered with a transparent carcass and nothing failed, because no test asserts
+what colour the wood is. Delete by matching the rule, not by matching the span
+between two landmarks.

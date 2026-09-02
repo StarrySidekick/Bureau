@@ -1,3 +1,11 @@
+/* The rim's own shading is gone with it. Four walls that change shape say
+   which way you are looking far better than a shadow sliding across the board,
+   and the two together were arguing. */
+.is-phone .deskscroll::after{
+  content:"";position:absolute;inset:0;z-index:5;pointer-events:none;
+  box-shadow:inset 0 0 20px -6px rgba(0,0,0,.30);
+}
+
 /* Bureau — stylesheet, part 2 of 3.
    Split by load order only, to keep each file under ~800 lines: board.css
    loads first, chrome.css second, motion.css third, and later rules
@@ -2947,47 +2955,6 @@ input,textarea,select,[contenteditable],
    the cell is `grid.width / cols`, measured after layout, and a column count is
    the coordinate space rather than a number of pixels. See decisions 60 and
    111. */
-/* The reveal is the **same all round**, so `--gapmin` follows it: the board's
-   top gap is at least the side inset, which is what lets the rim below be one
-   uniform width without its top edge running into the bar. */
-.is-phone.tilt-desk .scroll.deskscroll{
-  margin-inline:var(--deskinset,0px);
-  --gapmin:max(7px, var(--deskinset,0px));
-}
-
-/* ---- the rim is a real frame, not a gap -------------------------------
-   The reveal was flat wood, and a board sliding into flat wood reads as the
-   phone cutting it off rather than as something passing behind a frame. So the
-   reveal is *drawn*: a bevel lit from the upper left, and — the part that
-   makes it legible — **mitre lines at the four corners**, which is what says
-   "frame" faster than any amount of shading.
-
-   Both come free from one `border-image`. A conic gradient in four flat
-   sectors, started at 45°, puts a sector on each side of the box and the
-   boundaries between them fall exactly on the diagonals: the corner joints of
-   a mitred frame, drawn by the geometry rather than by hand. Light at the
-   upper left, like every other lit thing in the app.
-
-   It hangs off `.main`, not the scroller: the scroller clips, and a rim drawn
-   *outside* something that clips is a rim you cannot see. `--boardtop` and
-   `--boardh` are written by sizeGrid() after it has measured, the way the
-   reveal and the rail's depth already are. See decision 115. */
-.is-phone.tilt-desk .main::after{
-  content:"";position:absolute;z-index:6;pointer-events:none;
-  left:0;right:0;
-  top:calc(var(--boardtop,0px) - var(--deskinset,0px));
-  height:var(--boardh,0px);
-  box-sizing:content-box;
-  border:var(--deskinset,0px) solid transparent;
-  border-image:conic-gradient(from 45deg,
-    color-mix(in srgb, var(--wood) 82%, #000) 0 25%,   /* right, in shade   */
-    color-mix(in srgb, var(--wood) 66%, #000) 0 50%,   /* bottom, deepest   */
-    color-mix(in srgb, var(--wood) 90%, #fff) 0 75%,   /* left, catching it */
-    color-mix(in srgb, var(--wood) 78%, #fff) 0) 1;    /* top, lit          */
-  /* a hairline where it meets the board, and one at its outer edge, so the
-     band reads as standing proud of both */
-  box-shadow:inset 0 0 0 1px rgba(0,0,0,.42), 0 0 0 1px rgba(0,0,0,.28);
-}
 .is-phone .main{overflow:hidden}
 
 /* ============================================================
@@ -3057,43 +3024,77 @@ input,textarea,select,[contenteditable],
    movement, so what makes it a shelf is what happens when you tilt, not a rim
    drawn round it. A margin was tried and it was worse — the desk wants its
    full width, and a frame at rest is a picture mount. */
+/* The board is the slot's **back panel**: inset from the opening rather than
+   clipped by it, and drawn *over* the walls. That is the layer the whole thing
+   turns on — a board that slides under a frame reads as being cut off, and a
+   board that rides over the walls reads as the back of a box you are looking
+   into. The inset is on the grid and never on the scroller, because the
+   scroller is the opening and has to stay where it is.
+
+   `margin`, not padding: `cellW()` measures the grid's own rect, so a margin
+   narrows the board honestly and a padding would move every tile out from
+   under the drag maths. */
 .is-phone.tilt-desk .deskscroll .grid{
+  /* **At least the throw.** In a real slot the back panel is smaller than the
+     opening by exactly as much as it can shift — if it were not, it would run
+     out past the opening and be cut off, which is the thing this replaced. So
+     the inset is a floor the slider raises, never a number that can be set too
+     small for the movement it has to contain. */
+  margin:max(var(--deskinset,0px), var(--tiltpx,0px));
+  position:relative;z-index:1;
   transform:translate3d(calc(var(--tiltx,0) * var(--tiltpx)),
                         calc(var(--tilty,0) * var(--tiltpy)), 0);
   will-change:transform;
 }
-/* ---- the floor is deeper than the things standing on it ----------------
-   One plane sliding is not parallax. The depth cue is **relative** motion
-   between things at different depths — a single layer translating is a picture
-   being moved, and reads as one however far it goes, which is what was still
-   missing after the throw was doubled.
+/* ---- and the four walls it is joined to -------------------------------
+   Each is the quadrilateral between one edge of the opening and the matching
+   edge of the board, so the two diagonals at its ends are the corner joins —
+   and because the board's own offset is in the polygon, they follow it. Move
+   the board right and the left wall opens out while the right one closes: the
+   thing that actually says "you are looking into this at an angle".
 
-   Through a window, a point at the glass does not move and a point at depth d
-   shifts by `Δ·d/(e+d)`: **deeper moves further, in the same direction**. So
-   the shelf's floor has to outrun the tiles standing on it. `--tiltfloor` is
-   how much further, and it is the second real number in the effect.
-
-   The floor is `.grid::before` — a pseudo-element, which is the whole reason
-   this is safe. Nothing in the app measures it: `cellW()` measures `.grid`,
-   and a pseudo-element has no box anyone can ask about. So it can take a
-   *perspective* as well as a shift, which is the other thing the research is
-   clear about — orthographic parallax reads worse than perspective parallax at
-   every depth, because a sliding image never foreshortens and the eye knows
-   it. A rotation on `.grid` itself would make `getBoundingClientRect()`
-   describe a trapezoid and break every coordinate in the app; here it costs
-   nothing.
-
-   It is oversized by a wide margin so its own edges stay outside the opening
-   as it turns, and the scroller clips. See decision 110. */
-.is-phone.tilt-desk .deskscroll .grid::before{
-  inset:-40px;
-  background-position:calc(var(--tiltx,0) * var(--tiltfloor))
-                      calc(var(--tilty,0) * var(--tiltfloor) * 0.8);
-  transform:perspective(760px)
-            rotateY(calc(var(--tiltx,0) * 5deg))
-            rotateX(calc(var(--tilty,0) * -4deg));
-  will-change:transform,background-position;
+   `--wx`/`--wy` are the board's offset, stated once here so the four cannot
+   disagree about where it has gone. See decision 116. */
+.is-phone.tilt-desk .deskscroll{
+  --wx:calc(var(--tiltx,0) * var(--tiltpx));
+  --wy:calc(var(--tilty,0) * var(--tiltpy));
+  --wi:max(var(--deskinset,0px), var(--tiltpx,0px));
+  --wl:calc(var(--wi) + var(--wx));
+  --wr:calc(100% - var(--wi) + var(--wx));
+  --wt:calc(var(--wi) + var(--wy));
+  --wb:calc(100% - var(--wi) + var(--wy));
 }
+.is-phone.tilt-desk .cavwall{
+  position:absolute;inset:0;z-index:0;pointer-events:none;
+  background:var(--wood);
+}
+.is-phone.tilt-desk .cw-top{
+  background:color-mix(in srgb, var(--wood) 62%, #000);
+  clip-path:polygon(0 0, 100% 0, var(--wr) var(--wt), var(--wl) var(--wt));
+}
+.is-phone.tilt-desk .cw-bottom{
+  background:color-mix(in srgb, var(--wood) 88%, #fff);
+  clip-path:polygon(0 100%, 100% 100%, var(--wr) var(--wb), var(--wl) var(--wb));
+}
+.is-phone.tilt-desk .cw-left{
+  background:color-mix(in srgb, var(--wood) 80%, #fff);
+  clip-path:polygon(0 0, 0 100%, var(--wl) var(--wb), var(--wl) var(--wt));
+}
+.is-phone.tilt-desk .cw-right{
+  background:color-mix(in srgb, var(--wood) 74%, #000);
+  clip-path:polygon(100% 0, 100% 100%, var(--wr) var(--wb), var(--wr) var(--wt));
+}
+/* the line where a wall meets the back panel, so the join reads as an edge
+   rather than as two colours meeting */
+.is-phone.tilt-desk .deskscroll .grid{
+  box-shadow:0 0 0 1px rgba(0,0,0,.42), 0 2px 10px -3px rgba(0,0,0,.5);
+}
+/* The board moves as **one piece** — the checkerboard is the board's own
+   paper and the tiles are standing on it, so nothing slides under anything.
+   The floor used to outrun the tiles (decision 110) and it was wrong: it made
+   the things on the desk look unattached to it. The depth is in the walls now,
+   which is where it belongs. See decision 116. */
+
 /* The shading has to be drawn *over* the shelf, so it is a pseudo-element and
    not an inset shadow on the scroller: an inset shadow paints under the
    element's own children, and the children here are every tile on the board —

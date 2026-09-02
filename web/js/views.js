@@ -128,11 +128,7 @@ function gridBar(c){
    So the numbers are held here and written into the markup as it is built, the
    same way gridOfContainer() writes the checker squares from the last measured
    cell. A board drawn off-screen is drawn at the size it will be. */
-/* The board's own box, measured after layout and written back onto `.main` so
-   the rim can be drawn round it. Same discipline as `gap` and `rail`: written
-   only when it has actually changed, because a style write that changes
-   nothing still dirties layout. */
-const REVEAL = {gap:7, rail:30, top:0, h:0};
+const REVEAL = {gap:7, rail:30};
 const revealStyle = ()=> S.device==='phone' ? ` style="margin-top:${REVEAL.gap}px"` : '';
 
 function viewDesk(){
@@ -153,6 +149,7 @@ function viewDesk(){
   return `
   ${gridBar(c)}
   <div class="scroll deskscroll"${revealStyle()}>
+    ${cavityWalls()}
     ${S.layoutEdit?`<div class="banner">${ic('resize',14)} You are arranging the <b style="margin:0 3px">${S.layoutEdit==='desk'?'Mac':'iPhone'}</b> layout.
       <button data-act="stopedit">Back to this device</button></div>`:''}
     ${gridOfContainer(ROOT)}
@@ -328,6 +325,7 @@ function viewDrawer(){
   return `
   ${gridBar(d)}
   <div class="scroll${view==='grid'?' deskscroll':''}"${view==='grid'?revealStyle():''}>
+    ${view==='grid'?cavityWalls():''}
     ${kinds.length>1&&view!=='grid'?`<div class="filterbar">
       <button class="fchip${!S.kindFilter?' on':''}" data-kind="">All</button>
       ${kinds.map(k=>`<button class="fchip${S.kindFilter===k?' on':''}" data-kind="${k}" style="--k:${hexOf(K(k).c)}">${K(k).nm}</button>`).join('')}
@@ -567,10 +565,10 @@ function settingsBody(sec){
       <label class="rangerow" style="margin-top:12px"><span>How deep the desk sits</span>
         <input type="range" min="0" max="34" step="1" data-lookpx="tiltdesk" value="${px('tiltdesk',16)}">
         <b>${px('tiltdesk',16)}px</b></label>
-      <label class="rangerow" style="margin-top:8px"><span>Set into the wood</span>
+      <label class="rangerow" style="margin-top:8px"><span>Room around it</span>
         <input type="range" min="0" max="24" step="1" data-lookpx="deskinset" value="${px('deskinset',8)}">
         <b>${px('deskinset',8)}px</b></label>
-      <div class="mini" style="--k:var(--brass);margin-top:6px">How far the shelf slides, and how much wood shows around it. The reveal is what the shelf slides <i>behind</i> — at nothing, a tile leaving the board is cut off by the edge of the screen rather than going behind anything, which is the thing that gives it away.</div>`:''}
+      <div class="mini" style="--k:var(--brass);margin-top:6px">How far the board slides, and how much room it has around it. The board is the back of the slot and the four walls join it to the opening, so it is never cut off — which means the room is always at least the slide, and this slider only adds more on top of that.</div>`:''}
       ${tiltMode()!=='off'?`
       <label style="display:block;margin-top:12px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)">Which way it moves</label>
       <div class="filterbar" style="margin-top:5px">${[['','Against the tilt'],['1','With the tilt']].map(([v,n])=>
@@ -819,6 +817,27 @@ function railCfg(){
   return {knob:c.railknob||'round', size:c.railknobsize||'sm',
           tex:c.railtexture||'none', knobc:c.railknobc||''};
 }
+/* ---- the four walls of the slot ---------------------------------------
+   How you draw the inside of a box in two dimensions: an outer rectangle (the
+   opening, which is the screen), an inner one (the back panel, which is the
+   board), and four lines joining their corners. Those lines are the walls seen
+   in perspective, and the whole trick is that **they follow the board**: it
+   moves with the tilt and they stretch to stay joined to it, so you see more of
+   one wall and less of the opposite one. That is what looking into a bookshelf
+   slot actually looks like.
+
+   Four elements rather than one, because each wall is a different quadrilateral
+   and takes a different amount of light — and the joins have to land exactly on
+   the corners, which a single gradient centred anywhere cannot promise once the
+   inner rectangle stops being concentric with the outer one.
+
+   The board is drawn **over** them. It is inset from the opening rather than
+   clipped by it, so it never runs out past the edge and is never cut off; the
+   walls take up the slack. See decision 116. */
+const cavityWalls = ()=> S.device==='phone'
+  ? '<i class="cavwall cw-top"></i><i class="cavwall cw-right"></i>'
+   +'<i class="cavwall cw-bottom"></i><i class="cavwall cw-left"></i>' : '';
+
 function deskRail(){
   const r=railCfg();
   return `<nav class="deskrail ${dressAs('tx',r.tex)} ks-${r.size}" data-rail style="height:${REVEAL.rail}px">
@@ -842,15 +861,7 @@ function viewHTML(){
   try{
     const body = S.view==='drawer' ? viewDrawer()
                : viewDesk();        // the desk is the only other place there is
-    /* The board's box is written into the markup from the *last* measurement,
-       for the same reason the reveal and the rail's depth are: `sizeGrid()`
-       writes only what has changed, and `render()` replaces `#app` — so a
-       value written onto the old `.main` and then skipped as "unchanged" is a
-       value the new one never gets. It was missing on every render but the
-       one that moved it. See decision 115. */
-    const box = S.device==='phone'
-      ? ` style="--boardtop:${REVEAL.top}px;--boardh:${REVEAL.h}px"` : '';
-    return `<div class="main"${box}>${body}${S.device==='phone'?deskRail():''}</div>`;
+    return `<div class="main">${body}${S.device==='phone'?deskRail():''}</div>`;
   } finally { endPass(); }
 }
 
@@ -1042,11 +1053,7 @@ function sizeGrid(){
     const gap = gapMin + Math.floor(over/2), deep = railMin + Math.ceil(over/2);
     if(gap!==REVEAL.gap){ REVEAL.gap=gap; sc.style.marginTop = gap+'px'; }
     if(rail && deep!==REVEAL.rail){ REVEAL.rail=deep; rail.style.height = deep+'px'; }
-    // where the board actually ended up, for the rim drawn around it
-    const mr=main.getBoundingClientRect(), sr=sc.getBoundingClientRect();
-    const bt=Math.round(sr.top-mr.top), bh=Math.round(sr.height);
-    if(bt!==REVEAL.top){ REVEAL.top=bt; main.style.setProperty('--boardtop', bt+'px'); }
-    if(bh!==REVEAL.h){   REVEAL.h=bh;   main.style.setProperty('--boardh',  bh+'px'); }
+
   } else if(dev()!=='phone'){ MEASURE.desk.room=0; MEASURE.desk.w=w*g.cols; }
   /* Do NOT round. Columns are `1fr` and therefore fractional; rounding the row
      height to a whole pixel made rows and columns different sizes, and the
