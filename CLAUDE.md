@@ -468,7 +468,13 @@ all**: the cue is *relative* displacement, so the floor (`.grid::before`, at
 `--tiltfloor`) outruns the tiles. That pseudo-element is also the one place a
 real `perspective()`/`rotate3d` is free — nothing can measure a pseudo-element,
 where a rotation on `.grid` would make `getBoundingClientRect()` describe a
-trapezoid and break every coordinate in the app. See decision 110. The board is set into the wood by
+trapezoid and break every coordinate in the app. See decision 110. **Which surfaces answer the tilt is a choice** — `tiltMode()` in model.js, four
+modes (`off | desk | window | both`), each gated on its own class (`.tilt-desk`,
+`.tilt-win`) stamped by `render()` from `S.look`, so a desk set to windows only
+pays for none of the cavity. The old stored boolean still reads as `both`.
+**One slider each** (`tiltdesk`, `tiltwin`): the second axis and the floor's
+extra travel are fixed fractions of the one number, written by `applyLook()`,
+so the four properties cannot disagree. The board is set into the wood by
 `S.look.deskinset` **while the cavity is on** and is flush and full width the
 moment it is off. That reveal is not decoration: it is what the shelf slides
 *behind*, and flush to the screen the occluder is the bezel, which is not drawn

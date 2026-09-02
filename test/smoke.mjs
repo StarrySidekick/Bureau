@@ -2171,8 +2171,8 @@ const CHROME = process.env.BUREAU_CHROME;
     const cs = el => getComputedStyle(el);
 
     // off is off: nothing promoted, nothing transformed, nothing to paint
-    out.offByDefault = S.look.parallax === false;
-    out.andNothingMoves = !frame.classList.contains('tilting')
+    out.offByDefault = BUREAU.tiltMode() === 'off';
+    out.andNothingMoves = !frame.classList.contains('tilt-desk')
       && cs(grid()).transform === 'none';
     // what the desk is with the cavity off — full width, flush, no transform.
     // Switching off has to give exactly this back.
@@ -2184,7 +2184,7 @@ const CHROME = process.env.BUREAU_CHROME;
        *tilting* changes nothing but position — so both readings have to come
        from the same desk. They were written against a flush board and quietly
        compared to a hardcoded zero; the inset is what caught it. */
-    S.look.parallax = true; BUREAU.render(); await nap(200);
+    S.look.parallax = 'both'; BUREAU.render(); await nap(200);
     BUREAU.tilt(0, 0); await nap(60);
     const flat = grid().getBoundingClientRect();
     const mouthFlat = document.querySelector('.deskscroll').getBoundingClientRect();
@@ -2236,7 +2236,7 @@ const CHROME = process.env.BUREAU_CHROME;
        that element has to survive it. This one did not, and the symptom was
        the cavity working until the first tick and then quietly stopping. */
     BUREAU.render(); await nap(120);
-    out.aRenderDoesNotWipeIt = frame.classList.contains('tilting')
+    out.aRenderDoesNotWipeIt = frame.classList.contains('tilt-desk')
       && cs(grid()).transform !== 'none';
 
     /* ---- set into the wood, so the clip has something to happen behind --
@@ -2249,9 +2249,9 @@ const CHROME = process.env.BUREAU_CHROME;
        See decision 111. */
     const scRect = () => document.querySelector('.deskscroll').getBoundingClientRect();
     const wasInset = S.look.deskinset;
-    S.look.parallax=false; BUREAU.applyLook(); BUREAU.render(); await nap(160);
+    S.look.parallax='off'; BUREAU.applyLook(); BUREAU.render(); await nap(160);
     out.flushWhenTheCavityIsOff = Math.round(scRect().left) === 0;
-    S.look.parallax=true; S.look.deskinset=10;
+    S.look.parallax='both'; S.look.deskinset=10;
     BUREAU.applyLook(); BUREAU.render(); await nap(200);
     out.setIntoTheWoodWhenItIsOn = Math.round(scRect().left) === 10
       && Math.round(innerWidth - scRect().right) === 10;
@@ -2309,8 +2309,8 @@ const CHROME = process.env.BUREAU_CHROME;
        it was at rest, is continuous everywhere and needs no case for how the
        phone is being held — which matters, because there is no way to ask.
        See decision 108. */
-    const forget = () => { S.look.parallax=false; BUREAU.applyTilt();
-                           S.look.parallax=true;  BUREAU.applyTilt(); };
+    const forget = () => { S.look.parallax='off';  BUREAU.applyTilt();
+                           S.look.parallax='both'; BUREAU.applyTilt(); };
     const respondsAt = async (rest) => {
       forget(); send(rest, 0); await nap(200);       // settle here, level
       await hold(rest, 10);    const rolled  = tx(); // …then the same ten
@@ -2336,8 +2336,52 @@ const CHROME = process.env.BUREAU_CHROME;
                           && near(inHand.pitch,  upright.pitch);
     forget();
 
-    S.look.parallax = false; BUREAU.applyTilt(); S.look.locked = wasLocked; await nap(60);
-    out.switchingItOffPutsItBack = !frame.classList.contains('tilting')
+    /* ---- which of them answers the tilt is a choice ---------------------
+       The desk and a window are the same sensor and the same two numbers, and
+       they are not the same effect — a window has a drawn frame to be behind
+       and the desk has to imply one. So each is gated on its own class, and
+       the four modes have to be genuinely independent rather than one switch
+       wearing four labels. See decision 114. */
+    const win = document.querySelector('#app .winview .tileimg');
+    const moves = el => el && cs(el).transform !== 'none';
+    const mode = async m => { S.look.parallax=m; BUREAU.applyLook(); BUREAU.applyTilt();
+      BUREAU.render(); await nap(180); BUREAU.tilt(1,0); await nap(90);
+      // said as words, because half of these are *meant* to be still and a
+      // bare false in the summary reads as a failure
+      return {desk:moves(grid())?'moves':'still',
+              win:moves(document.querySelector('#app .winview .tileimg'))?'moves':'still'}; };
+    // a window to look through, so "windows only" has something to prove
+    const room = BUREAU.create('drawer', {title:'W', parent:'root'});
+    const w = BUREAU.create('window', {title:'w', parent:room.id});
+    w.media = {src:'data:image/svg+xml;utf8,'+encodeURIComponent(
+      '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="30"><rect width="40" height="30" fill="#9FC4E8"/></svg>'), alpha:0};
+    const heldView = S.view, heldId = S.drawerId;
+    S.view='drawer'; S.drawerId=room.id;
+    w.phone = {x:1, y:1, w:4, h:4};
+    out.deskOnly   = await mode('desk');
+    out.windowOnly = await mode('window');
+    out.both       = await mode('both');
+    out.neither    = await mode('off');
+    out.theyAreIndependent =
+       out.deskOnly.desk==='moves'   && out.deskOnly.win==='still'
+    && out.windowOnly.win==='moves'  && out.windowOnly.desk==='still'
+    && out.both.desk==='moves'       && out.both.win==='moves'
+    && out.neither.desk==='still'    && out.neither.win==='still';
+    // …and one slider each reaches everything derived from it
+    S.look.parallax='both'; S.look.tiltdesk=30; S.look.tiltwin=26;
+    BUREAU.applyLook(); await nap(60);
+    const root = cs(document.documentElement), v = k => root.getPropertyValue(k).trim();
+    out.oneSliderEach = v('--tiltpx')==='30px' && v('--tiltpy')==='23px'
+      && v('--tiltfloor')==='24px' && v('--winpx')==='26px';
+    // an old desk stored a boolean, and true meant everything
+    S.look.parallax = true;
+    out.theOldBooleanStillMeansBoth = BUREAU.tiltMode() === 'both';
+    S.look.tiltdesk=16; S.look.tiltwin=11;
+    [w.id, room.id].forEach(id => BUREAU.del(id));
+    S.view=heldView; S.drawerId=heldId;
+
+    S.look.parallax = 'off'; BUREAU.applyTilt(); S.look.locked = wasLocked; await nap(60);
+    out.switchingItOffPutsItBack = !frame.classList.contains('tilt-desk')
       && cs(grid()).transform === 'none'
       && Math.abs(grid().getBoundingClientRect().left - off.left) < 0.01
       && Math.abs(grid().getBoundingClientRect().width - off.width) < 0.01;
@@ -2352,7 +2396,7 @@ const CHROME = process.env.BUREAU_CHROME;
   await stillPage.goto(URL); await stillPage.waitForTimeout(700);
   cavity.reducedMotionIsObeyed = await stillPage.evaluate(async () => {
     const S = BUREAU.state;
-    S.view='desk'; S.drawerId=null; S.look.parallax=true; BUREAU.render();
+    S.view='desk'; S.drawerId=null; S.look.parallax='both'; BUREAU.render();
     await new Promise(r => setTimeout(r, 220));
     BUREAU.tilt(1, 1);
     return getComputedStyle(document.querySelector('#drawergrid')).transform === 'none';
@@ -2383,7 +2427,7 @@ const CHROME = process.env.BUREAU_CHROME;
       o.phone = {x:1+(i%2)*4, y:1+Math.floor(i/2)*5, w:4, h:4};
       return o;
     });
-    S.look.parallax = true; BUREAU.applyLook(); BUREAU.render(); await nap(420);
+    S.look.parallax = 'window'; BUREAU.applyLook(); BUREAU.render(); await nap(420);
     out.allFourDraw = document.querySelectorAll('#app .winview').length === 4;
     const t = document.querySelector(`#app .drawer[data-row="${made[0].id}"]`);
     const bars = t && t.querySelector('.wbars');

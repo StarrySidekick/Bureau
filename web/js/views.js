@@ -3,7 +3,8 @@ import { S, K, T, byId, has, isContainer, containers, container, childrenOf, cha
   deskTitle, rootObj, cfgOf, deskIds, deskHere, deskOf, isDesk, allTags, dev,
   beginPass, endPass,
   layoutOf, takesTyping, genKindOf, CALVIEWS, calViewOf, calCols,
-  spanOf, coversDay, lastDay, boardLocked } from './model.js';
+  spanOf, coversDay, lastDay, boardLocked,
+  TILT_MODES, tiltMode, tiltsDesk, tiltsWindows, tiltClasses } from './model.js';
 import { GRID, PHONE_GRIDS, CELL, COLW, MEASURE, colsOf, gridKeyOf,
   pageRows, pageOfBox, lastPage,
   lay, gridOf, cellW, ensureBox, PLACED } from './grid.js';
@@ -551,18 +552,27 @@ function settingsBody(sec){
       <div class="mini" style="--k:var(--brass);margin-top:6px">Off, a tile is the colour and the border and nothing else — flatter, quieter, and easier to read a crowded board off.</div>
     </div>
 
-    ${S.device!=='desk'?`
+    ${S.device!=='desk'?(()=>{
+      const px=(k,d)=>S.look[k]==null?d:S.look[k];
+      return `
     <div class="field" style="margin-top:12px"><label>Looking in</label>
-      <div class="filterbar">${[['','Still'],['1','The shelf is inset']].map(([v,n])=>
-        `<button class="fchip${(S.look.parallax?'1':'')===v?' on':''}" data-parallax="${v}">${n}</button>`).join('')}</div>
-      <div class="mini" style="--k:var(--brass);margin-top:6px">The board is set into the carcass a centimetre or so, and tilting the phone looks into that cavity — the shelf slides behind the opening, which stays where it is. It asks iPhone for the motion sensor the first time you switch it on, and it stands still while you are carrying a tile or reading.</div>
-      ${S.look.parallax?`
-      <label class="rangerow" style="margin-top:10px"><span>Set into the wood</span>
-        <input type="range" min="0" max="24" step="1" data-lookpx="deskinset"
-               value="${S.look.deskinset==null?8:S.look.deskinset}">
-        <b>${S.look.deskinset==null?8:S.look.deskinset}px</b></label>
-      <div class="mini" style="--k:var(--brass);margin-top:6px">How much wood shows around the board. It is what the shelf slides behind — at nothing, a tile leaving the board is cut off by the edge of the screen rather than going behind anything, which is the thing that gives it away.</div>`:''}
-    </div>`:''}
+      <div class="filterbar">${Object.entries(TILT_MODES).map(([v,n])=>
+        `<button class="fchip${tiltMode()===v?' on':''}" data-parallax="${v}">${n}</button>`).join('')}</div>
+      <div class="mini" style="--k:var(--brass);margin-top:6px">Tilting the phone can move two different things, and they are worth having apart. <b>The desk</b> sets the board into the carcass and slides it behind the opening. <b>Windows</b> leave the desk still and move the view behind a window's frame, which is the same idea with a frame you can actually see. It asks iPhone for the motion sensor the first time you switch either on, and both stand still while you are carrying a tile or reading.</div>
+      ${tiltsDesk()?`
+      <label class="rangerow" style="margin-top:12px"><span>How deep the desk sits</span>
+        <input type="range" min="0" max="34" step="1" data-lookpx="tiltdesk" value="${px('tiltdesk',16)}">
+        <b>${px('tiltdesk',16)}px</b></label>
+      <label class="rangerow" style="margin-top:8px"><span>Set into the wood</span>
+        <input type="range" min="0" max="24" step="1" data-lookpx="deskinset" value="${px('deskinset',8)}">
+        <b>${px('deskinset',8)}px</b></label>
+      <div class="mini" style="--k:var(--brass);margin-top:6px">How far the shelf slides, and how much wood shows around it. The reveal is what the shelf slides <i>behind</i> — at nothing, a tile leaving the board is cut off by the edge of the screen rather than going behind anything, which is the thing that gives it away.</div>`:''}
+      ${tiltsWindows()?`
+      <label class="rangerow" style="margin-top:12px"><span>How far back a view is</span>
+        <input type="range" min="0" max="30" step="1" data-lookpx="tiltwin" value="${px('tiltwin',11)}">
+        <b>${px('tiltwin',11)}px</b></label>
+      <div class="mini" style="--k:var(--brass);margin-top:6px">How far behind its frame a window's view sits. Further back is more movement for the same tilt, which is what depth actually is.</div>`:''}
+    </div>`;})():''}
 
     ${gridSizeField(null)}
 
@@ -907,7 +917,7 @@ function render(){
      on the frame is a fact about the desk and not about the sensor's mood.
      See decision 108. */
   frame.className = (S.device==='desk' ? 'is-desk' : 'is-phone')
-    + (S.look.parallax && S.device!=='desk' ? ' tilting' : '');
+    + (S.device==='desk' ? '' : tiltClasses());
   document.documentElement.dataset.theme = themeNow();
   applyLook();          // the custom colours are per theme, so repaint them
   /* The wood is per desk, and it is the whole carcass rather than the rail: the

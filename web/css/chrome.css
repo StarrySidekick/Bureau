@@ -39,12 +39,18 @@
 .drawer.imgtile.winview{padding:0;background:var(--wood-2);
   box-shadow:var(--shadow-lg), inset 0 0 0 1px rgba(0,0,0,.35)}
 .drawer.imgtile.winview .tileimg{border-radius:0;box-shadow:none}
-/* the reveal: a window is set into its own wall, so the glass is inside a jamb */
+/* The casing, at the tile's own edge. It carried `border:7px solid transparent`
+   as well as the inset shadow, and an inset shadow paints inside the *padding*
+   box — so the wood sat seven pixels in from the edge and a strip of raw image
+   showed all the way round it. The frame looked like it was floating on the
+   picture rather than being the edge of the thing. */
 .drawer.imgtile.winview::before{content:"";position:absolute;inset:0;z-index:3;
-  pointer-events:none;border:7px solid transparent;
+  pointer-events:none;
   box-shadow:inset 0 0 0 7px var(--wood), inset 0 0 9px -2px rgba(0,0,0,.75);
   border-radius:inherit}
-.wbars{position:absolute;inset:7px;z-index:4;pointer-events:none;
+/* …and the muntins run corner to corner, so they meet the casing rather than
+   stopping short of it. A bar that floats clear of the frame is not a bar. */
+.wbars{position:absolute;inset:0;z-index:4;pointer-events:none;
   background-repeat:no-repeat}
 /* one bar each way — the plus, four lights */
 .fr-cross .wbars{
@@ -93,7 +99,7 @@
    The image is oversized so it never runs out of picture as it moves, and it
    is `object-fit:cover` for the same reason — a `contain` image has letterbox
    at the edges and sliding it would show the box. The tile clips. */
-.is-phone.tilting .drawer.imgtile.winview .tileimg{
+.is-phone.tilt-win .drawer.imgtile.winview .tileimg{
   object-fit:cover;
   transform:scale(1.16)
             translate(calc(var(--tiltx,0) * var(--winpx,11px)),
@@ -101,12 +107,12 @@
   will-change:transform;
 }
 /* …and the glass catches a little of the light it is turning into */
-.is-phone.tilting .drawer.imgtile.winview .wbars{
+.is-phone.tilt-win .drawer.imgtile.winview .wbars{
   box-shadow:inset calc(var(--tiltx,0) * -14px) calc(var(--tilty,0) * -11px)
                    22px -12px rgba(0,0,0,.55);
 }
 @media (prefers-reduced-motion: reduce){
-  .is-phone.tilting .drawer.imgtile.winview .tileimg{transform:none}
+  .is-phone.tilt-win .drawer.imgtile.winview .tileimg{transform:none}
 }
 
 /* a recipe is an index card: ruled, with a red margin line */
@@ -2937,7 +2943,7 @@ input,textarea,select,[contenteditable],
    the cell is `grid.width / cols`, measured after layout, and a column count is
    the coordinate space rather than a number of pixels. See decisions 60 and
    111. */
-.is-phone.tilting .scroll.deskscroll{margin-inline:var(--deskinset,0px)}
+.is-phone.tilt-desk .scroll.deskscroll{margin-inline:var(--deskinset,0px)}
 .is-phone .main{overflow:hidden}
 
 /* ============================================================
@@ -2983,14 +2989,17 @@ input,textarea,select,[contenteditable],
    you have tilted away from. That shadow is most of the depth; the movement on
    its own reads as a loose board.
 
-   `.tilting` is on the frame only while the sensor is running, so a desk with
-   this switched off pays for none of it — no `will-change`, no promoted layer,
-   no extra shadow to paint. */
-/* How deep the cavity is, and the only two numbers worth turning. Everything
-   else here is derived from them, so setting the shelf further back is one edit
-   and not four that can disagree — the rim's shading is 2.2× the throw, which
-   is what keeps the shadow ahead of the movement rather than trailing it. Park
-   the shelf by hand to judge a value: `BUREAU.tilt(1, 0)`.
+   `.tilt-desk` is on the frame only while the desk is one of the things
+   answering the sensor, so a desk with it switched off — or set to windows
+   only — pays for none of it: no `will-change`, no promoted layer, no extra
+   shadow to paint. The window rules are gated the same way on `.tilt-win`. */
+/* How deep the cavity is. `--tiltpx`/`--tiltpy`/`--tiltfloor` are written by
+   applyLook() from one slider in Settings, because how deep is a matter of
+   taste held in the hand — the second axis and the floor's extra travel are
+   fixed fractions of it, so it stays one number and the four cannot disagree.
+   The rim's shading is 2.2× the throw, which keeps the shadow ahead of the
+   movement rather than trailing it. Park the shelf by hand to judge a value:
+   `BUREAU.tilt(1, 0)`.
 
    **Depth is throw, not sensitivity.** Real parallax displaces by depth ×
    tan(angle), so a deeper shelf moves *further for the same tilt* — which is
@@ -3004,8 +3013,7 @@ input,textarea,select,[contenteditable],
    movement, so what makes it a shelf is what happens when you tilt, not a rim
    drawn round it. A margin was tried and it was worse — the desk wants its
    full width, and a frame at rest is a picture mount. */
-.is-phone.tilting{--tiltpx:16px;--tiltpy:12px;--tiltfloor:13px}
-.is-phone.tilting .deskscroll .grid{
+.is-phone.tilt-desk .deskscroll .grid{
   transform:translate3d(calc(var(--tiltx,0) * var(--tiltpx)),
                         calc(var(--tilty,0) * var(--tiltpy)), 0);
   will-change:transform;
@@ -3033,7 +3041,7 @@ input,textarea,select,[contenteditable],
 
    It is oversized by a wide margin so its own edges stay outside the opening
    as it turns, and the scroller clips. See decision 110. */
-.is-phone.tilting .deskscroll .grid::before{
+.is-phone.tilt-desk .deskscroll .grid::before{
   inset:-40px;
   background-position:calc(var(--tiltx,0) * var(--tiltfloor))
                       calc(var(--tilty,0) * var(--tiltfloor) * 0.8);
@@ -3054,7 +3062,7 @@ input,textarea,select,[contenteditable],
    things that have slid away from it. The movement alone reads as a loose
    board sliding about; it is this that makes it a cavity. */
 .is-phone .scroll.deskscroll{position:relative}
-.is-phone.tilting .deskscroll::after{
+.is-phone.tilt-desk .deskscroll::after{
   content:"";position:absolute;inset:0;z-index:5;pointer-events:none;
   /* The spread is the offset's negative, which is the whole trick with an
      inset shadow: it grows the inner rectangle by exactly what the offset
@@ -3080,8 +3088,8 @@ input,textarea,select,[contenteditable],
    either — this is the belt to that pair of braces, and it also catches the
    setting being left on when the preference is turned on later. */
 @media (prefers-reduced-motion: reduce){
-  .is-phone.tilting .deskscroll .grid{transform:none;will-change:auto}
-  .is-phone.tilting .deskscroll::after{content:none}
+  .is-phone.tilt-desk .deskscroll .grid{transform:none;will-change:auto}
+  .is-phone.tilt-desk .deskscroll::after{content:none}
 }
 
 /* ---- …and the bottom one is a drawer front ----------------------------

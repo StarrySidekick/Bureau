@@ -451,7 +451,12 @@ function defaultLook(){
              into that cavity. Off by default: switching it on asks iOS for
              permission, and a phone feature only — a Mac has no gyroscope.
              See decision 108. */
-          parallax:false,
+          /* Which surfaces answer the phone being tilted — see tiltMode().
+             `off` by default, because switching it on asks iOS for the motion
+             sensor and an app that prompts on first launch is a rude app. */
+          parallax:'off',
+          // how far each of them moves, in px, from the sliders beside it
+          tiltdesk:16, tiltwin:11,
           /* How far the board is set into the carcass while the cavity is on,
              in px a side. It is what the shelf slides *behind* — with the
              board flush to the screen the occluder is the bezel, which is not
@@ -860,6 +865,33 @@ const deskHere = ()=> deskOf(S.view==='drawer' && S.drawerId ? S.drawerId : ROOT
    lines back. */
 // 'desk' | null — how this container is kept, if at all
 const placeOf = id => isDesk(id) && id!==ROOT ? 'desk' : null;
+
+/* ---- what answers a phone being tilted --------------------------------
+   Two surfaces can, and they are worth having separately: the **desk**, whose
+   board slides behind the opening (decision 108), and a **window**, whose view
+   moves behind its frame (decision 113). They are the same sensor and the same
+   two numbers on `#frame`, but they are not the same effect — a window has a
+   drawn frame to be behind and the desk has to imply one — so which of them is
+   on is a choice rather than a switch.
+
+   It **was** a boolean, and `true` meant everything. A desk still carrying the
+   old value reads as `both` rather than needing a migration for one key, which
+   is the tolerance `repeatOf()` gives the four old repeat words and `rulesOf()`
+   gives the pre-migration filter shape. */
+const TILT_MODES = {off:'Still', desk:'The desk', window:'Windows', both:'Both'};
+const tiltMode = ()=>{
+  const p = S.look && S.look.parallax;
+  if(p===true) return 'both';
+  if(!p) return 'off';
+  return TILT_MODES[p] ? p : 'off';
+};
+const tiltsDesk = ()=> ['desk','both'].includes(tiltMode());
+const tiltsWindows = ()=> ['window','both'].includes(tiltMode());
+/* What `render()` stamps on `#frame`. Stated here rather than asked of
+   motion.js, because it is a fact about the desk and not about the sensor —
+   and because render() writes that className wholesale, so anything living on
+   it has to be restated there (decision 108). */
+const tiltClasses = ()=> (tiltsDesk()?' tilt-desk':'') + (tiltsWindows()?' tilt-win':'');
 
 /* ---- the holding space --------------------------------------------------
    A drawer along the bottom of a phone that holds things while you carry them
@@ -1416,6 +1448,7 @@ export { ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds, K,
   shapeOf, READS, readOf, spreadOf, OPENINGS, openingOf, gathersOf, gatherKind, containers,
   deskIds, deskList, isDesk, deskOf, deskHere,
   placeOf, isHeld, heldObjects, heldCount,
+  TILT_MODES, tiltMode, tiltsDesk, tiltsWindows, tiltClasses,
   spanOf, coversDay, lastDay, lateOn, isLate,
   boardLocked,
   PRIOS, prioOf, prioName,

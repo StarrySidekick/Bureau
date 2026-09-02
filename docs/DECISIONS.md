@@ -4588,3 +4588,45 @@ surface, same file, born with the cross. Naming it is what makes it findable —
 One correction made by looking: `six` was written with four bars, which draws
 *nine* lights. Six is two across and three down, which is what the name says and
 what a sash window has.
+
+## 114. Which surfaces answer the tilt is a choice, not a switch
+
+*2026-09-02*
+
+Two things in Bureau can answer the phone being tilted, and they are the same
+sensor and the same two numbers on `#frame` but they are **not the same
+effect**. The **desk** slides its board behind an opening it has to imply,
+because there is no drawn frame and the occluder is the bezel (decision 108).
+A **window** moves its view behind a frame that is actually there (decision
+113). One of them is an argument and the other is simply true, so which is on
+had to stop being a single switch.
+
+Four modes — still, the desk, windows, both — each gated on its own class:
+`.tilt-desk` and `.tilt-win`, stamped by `render()` from `S.look`. A desk set
+to windows only pays for none of the cavity: no `will-change`, no promoted
+layer, no shadow to paint.
+
+And **one slider each**, because how deep is a matter of taste held in the hand
+and neither of us can settle it from here. Everything else is a fixed fraction
+of the one number — the second axis has less room than the first, and the
+floor's extra travel is a ratio of the shelf's — so four properties cannot
+disagree and there is still only one thing to turn.
+
+The stored value **was** a boolean and `true` meant everything. `tiltMode()`
+reads that as `both` rather than needing a migration for one key, which is the
+tolerance `repeatOf()` gives the four old repeat words.
+
+Two things caught by testing it rather than reasoning about it:
+
+The window frames left a **gap**. `.winview::before` carried `border:7px solid
+transparent` as well as its inset shadow, and an inset shadow paints inside the
+*padding* box — so the casing sat seven pixels in from the tile's edge with a
+strip of raw image showing all the way round, and the frame read as floating on
+the picture rather than being the edge of the thing. The muntins stopped short
+of it too. Both now run to the tile's own edge, so a bar meets the casing
+instead of hovering near it.
+
+And `tiltTo()` — the hook that parks the shelf by hand — set `TILT.on`, which
+is `tiltStart()`'s own guard. A later `applyTilt()` therefore returned early
+and never attached the listener, so *using the test hook quietly stopped the
+sensor*. It sets the classes and nothing else now.

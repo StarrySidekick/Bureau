@@ -671,13 +671,13 @@ function wire(){
        storing a setting that cannot do anything. See decision 108. */
     const plx=t.closest('[data-parallax]');
     if(plx){
-      const want = !!plx.dataset.parallax;
+      const want = plx.dataset.parallax;
       (async ()=>{
-        if(want && !(await askTilt())){
+        if(want!=='off' && !(await askTilt())){
           toast('iPhone would not give Bureau its motion sensor');
         } else {
           S.look.parallax = want;
-          save();
+          save(); render();      // the classes are stated by render()
         }
         applyTilt(); refreshPanel();
       })();

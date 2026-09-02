@@ -1,5 +1,6 @@
 import { $, clamp, ROOT } from './util.js';
-import { S, byId, isContainer, shapeOf, openingOf, dev, deskIds, deskOf } from './model.js';
+import { S, byId, isContainer, shapeOf, openingOf, dev, deskIds, deskOf,
+  tiltMode, tiltsDesk, tiltsWindows } from './model.js';
 import { lay } from './grid.js';
 import { objColour, styleNow } from './look.js';
 import { render, renderSoon, previewHTML, pageAt, pageCount, goPage } from './views.js';
@@ -1015,6 +1016,15 @@ function onOrient(e){
 // Coming back to the app after it has been away: wherever you are holding it
 // now is the new neutral, rather than easing there from where you left off.
 function tiltRecentre(){ TILT.rest=null; TILT.ox=TILT.oy=0; TILT.tx=TILT.ty=0; tiltSoon(); }
+/* Which of the two are listening, patched straight onto the frame so throwing
+   the switch takes effect before the next render rather than after it.
+   `render()` states the same thing from `S.look` — it writes that className
+   wholesale, so anything living there has to be restated. */
+function markTilt(on){
+  const f=$('#frame'); if(!f) return;
+  f.classList.toggle('tilt-desk', on && tiltsDesk());
+  f.classList.toggle('tilt-win',  on && tiltsWindows());
+}
 function tiltStop(){
   if(TILT.listening){ removeEventListener('deviceorientation', onOrient); TILT.listening=false; }
   TILT.on=false;
@@ -1022,12 +1032,12 @@ function tiltStop(){
   TILT.x=TILT.y=TILT.tx=TILT.ty=0; TILT.rest=null; TILT.ox=TILT.oy=0;
   const f=$('#frame');
   if(f){ f.style.removeProperty('--tiltx'); f.style.removeProperty('--tilty');
-         f.classList.remove('tilting'); }
+         f.classList.remove('tilt-desk','tilt-win'); }
 }
 function tiltStart(){
   if(TILT.on || S.device==='desk') return;
   TILT.on=true;
-  const f=$('#frame'); if(f) f.classList.add('tilting');
+  markTilt(true);
   if(!TILT.listening){ addEventListener('deviceorientation', onOrient); TILT.listening=true; }
   tiltSoon();
 }
@@ -1036,7 +1046,7 @@ function tiltStart(){
    it. The desk has no gyroscope, so this is a phone feature and says so by
    simply not starting. */
 function applyTilt(){
-  if(S.look && S.look.parallax && S.device!=='desk') tiltStart(); else tiltStop();
+  if(tiltMode()!=='off' && S.device!=='desk') tiltStart(); else tiltStop();
 }
 /* iOS 13+ will not deliver deviceorientation without being asked, and will only
    consider the question if it arrives inside a user gesture — so this is
@@ -1058,7 +1068,10 @@ function tiltTo(x, y){
   const held=tiltHeld();
   f.style.setProperty('--tiltx', (held?0:TILT.x).toFixed(4));
   f.style.setProperty('--tilty', (held?0:TILT.y).toFixed(4));
-  f.classList.add('tilting');
+  /* The classes but **not** `TILT.on`: that flag is tiltStart()'s own guard,
+     and setting it here made a later applyTilt() return early and never attach
+     the listener — so parking the shelf by hand quietly stopped the sensor. */
+  markTilt(true);
 }
 
 /* ============================================================

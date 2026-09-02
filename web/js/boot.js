@@ -5,7 +5,7 @@ import { $ } from './util.js';
 import { S, KINDS, SHAPES, SORTS, childrenOf, container, relate, deskOf, has, lateOn, isLate, knobOf,
   isContainer, faceOf,
   prioOf, repeatOf, repeatSaid, nextRepeat, boardLocked, BINDINGS, bindingOf, PANELS, panelOf,
-  isHeld, heldObjects } from './model.js';
+  isHeld, heldObjects, tiltMode } from './model.js';
 import { pageRows, freeSpot, boxOk } from './grid.js';
 import { create, setPin, togglePin, del, delMany, delDrawer, undo, redo, toggleDone, spawnNext, setGridSize,
   holdIt, unholdIt } from './mutations.js';
@@ -144,7 +144,7 @@ window.BUREAU = {
   /* Putting the shelf somewhere by hand, without a phone to tilt: the smoke
      test drives this, and so does anyone tuning the throw. −1 to 1 on each
      axis. See decision 108. */
-  tilt: tiltTo, applyTilt,
+  tilt: tiltTo, applyTilt, tiltMode,
   // the spray, so a test can watch the physics rather than the class — and
   // the reveal, which is now the only thing in the app that sets one off
   spray, sprayAt, sprayCount, sprayNow, sprayMark, reveal,
