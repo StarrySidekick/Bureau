@@ -2248,6 +2248,98 @@ const CHROME = process.env.BUREAU_CHROME;
   });
   await stillCtx.close();
 
+  /* --- pinching out of somewhere. Two fingers already walk the desks and turn
+     the pages; bringing them together is the other thing two fingers can say,
+     and it means what it has meant on a phone for fifteen years. It goes up
+     **one level**, not one desk, and a desk is the top of the stack because
+     desks sit beside each other rather than inside each other.
+
+     The half worth testing hardest is the scrub: the four animations a dive is
+     made of are paused and parked at a point in their own timeline, and if
+     they ever stop sharing one clock the movement comes apart. See decision
+     109. */
+  const pinch = await phone.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const S = BUREAU.state, out = {};
+    const byId = id => S.objects.find(o => o.id === id);
+    const isC = o => o && BUREAU.isContainer(o);
+    // somewhere two levels deep, so "up one" is visibly not "out to the desk"
+    const inner = S.objects.find(o => isC(o) && o.parent && o.parent !== 'root'
+      && isC(byId(o.parent)));
+    const startAt = inner.id, parent = inner.parent;
+    S.view='drawer'; S.drawerId=startAt; BUREAU.render(); await nap(320);
+
+    const app = document.querySelector('#frame');
+    const touch = (x,y,id) => new Touch({identifier:id, target:app, clientX:x, clientY:y, pageX:x, pageY:y});
+    const fire = (type, pts) => { const ts = pts.map((pt,i) => touch(pt[0], pt[1], i+1));
+      app.dispatchEvent(new TouchEvent(type, {bubbles:true, cancelable:true,
+        touches:ts, targetTouches:ts, changedTouches:ts})); };
+    const CX = 195, CY = 420, R0 = 120;
+    const squeeze = async (to, steps=10) => {
+      for(let i=1;i<=steps;i++){ const r = R0*(1-(1-to)*i/steps);
+        fire('touchmove', [[CX-r,CY],[CX+r,CY]]); await nap(16); }
+    };
+    const lift = async () => { app.dispatchEvent(new TouchEvent('touchend',
+      {bubbles:true, cancelable:true, touches:[], targetTouches:[], changedTouches:[touch(CX,CY,1)]}));
+      await nap(700); };
+    const pinchTo = async (to) => { fire('touchstart', [[CX-R0,CY],[CX+R0,CY]]);
+      await squeeze(to); await lift(); };
+
+    /* Mid-gesture: the movement exists, is paused, and is parked further
+       through its own timeline the further the fingers have come. */
+    fire('touchstart', [[CX-R0,CY],[CX+R0,CY]]);
+    await squeeze(0.65, 6);
+    const pic = document.querySelector('#fx .fxback');
+    out.itDrawsTheWayOut = !!pic;
+    const delay = el => parseFloat(getComputedStyle(el).animationDelay);
+    out.andHoldsItStill = !!pic && getComputedStyle(pic).animationPlayState === 'paused';
+    const d1 = pic ? delay(pic) : 0;
+    await squeeze(0.45, 6);
+    const d2 = pic ? delay(pic) : 0;
+    out.itTracksTheFingers = d1 < 0 && d2 < d1;
+    /* All four parts on one clock. They are four separate elements running
+       four separate keyframes, and the only thing keeping them one movement is
+       that they are scrubbed together. */
+    out.allFourOnOneClock = ['#fx .fxback', '#fx .divecave', '#fx .divefront',
+                             '#app .main.in-diveout']
+      .map(sel => document.querySelector(sel))
+      .every(el => el && Math.abs(delay(el) - d2) < 1);
+    // …and letting go short of the threshold hands the board back
+    await squeeze(1, 4); await lift();
+    out.lettingGoShortPutsItBack = S.drawerId === startAt
+      && !document.querySelector('#fx .fxback');
+
+    // a real one goes up exactly one level, not out to the desk
+    await pinchTo(0.4);
+    out.aRealOneGoesUpOne = S.view==='drawer' && S.drawerId===parent;
+    // a desk is the top of the stack: it has no parent, so it refuses
+    out.andThatIsADesk = S.desks.includes(S.drawerId);
+    await pinchTo(0.4);
+    out.aDeskRefuses = S.drawerId === parent;
+
+    // a drawer on the home desk arrives at the desk itself
+    const onHome = S.objects.find(o => isC(o) && o.parent==='root' && !S.desks.includes(o.id));
+    S.view='drawer'; S.drawerId=onHome.id; BUREAU.render(); await nap(320);
+    await pinchTo(0.4);
+    out.fromTheHomeDeskYouArriveAtIt = S.view==='desk' && !S.drawerId;
+    await pinchTo(0.4);
+    out.theHomeDeskRefusesToo = S.view==='desk' && !S.drawerId;
+
+    // a surface is a thing you are inside, and answers the same gesture
+    BUREAU.read(S.objects.find(o => BUREAU.has(o,'text') && !isC(o)).id);
+    await nap(320);
+    out.aSurfaceIsOpen = !!S.readId;
+    fire('touchstart', [[CX-R0,CY],[CX+R0,CY]]);
+    await squeeze(0.6, 6);
+    out.andShrinksUnderTheFingers =
+      getComputedStyle(document.querySelector('#sheetHost')).transform !== 'none';
+    await squeeze(0.4, 4); await lift();
+    out.pinchingPutsItDown = !S.readId && !S.writeId && !S.viewId;
+
+    S.view='desk'; S.drawerId=null; BUREAU.render();
+    return out;
+  });
+
   /* --- the board being slid in beside you arrives *in position*. Both the
      reveal above the board and the depth of the drawer below it are measured
      after layout, and they used to be written onto the elements only then — so
@@ -4690,7 +4782,7 @@ const CHROME = process.env.BUREAU_CHROME;
     errors: errs, manifestOk, swReady, survived, styleSurvived, slotColours,
     newObjectSeen, inlineEdit, sortDefaults, taskLook,
     shelfTools, gridSizes, keeping, versionShown, sampler, paging, pageCoords, pagerGround, goingIn, comingOut,
-    makingOnAPhone, railDrawer, railIsFurniture, holding, cavity, pagerLandsFlat, deskDots,
+    makingOnAPhone, railDrawer, railIsFurniture, holding, cavity, pinch, pagerLandsFlat, deskDots,
     listSwipe, shadows, textureDepth,
     gridClass, offlineWorks, railGone, tabsGone, shelfGone, tileNavigates,
     holdArms, maxDrift,

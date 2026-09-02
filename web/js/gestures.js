@@ -6,7 +6,8 @@ import { toast, gather, setPin, del, pushSets, holdIt } from './mutations.js';
 import { pending, tileTap, fireButton } from './tiles.js';
 import { modalNewObject, holdPanel, openCtx, closeCtx, schedulePanel } from './panels.js';
 import { render, pageTop } from './views.js';
-import { pagerBegin, pagerMove, pagerEnd, pagerCancel, pagerOn } from './motion.js';
+import { closeSheet } from './sheet.js';
+import { pagerBegin, pagerMove, pagerEnd, pagerCancel, pagerOn, leaveTile } from './motion.js';
 import { save } from './persist.js';
 
 /* ============================================================
@@ -1151,24 +1152,126 @@ function onUp(e){
    below. Both gestures go through the pager, which draws the neighbouring
    board *beside* this one and slides the pair — so a swipe is something you
    can do slowly, see coming, and pull back from. */
-const TWO = {on:false, x:0, y:0, axis:null, from:0, mode:null};
+const TWO = {on:false, x:0, y:0, axis:null, from:0, mode:null, d0:0};
+const apart = (a,b)=> Math.hypot(a.clientX-b.clientX, a.clientY-b.clientY);
+
+/* ---- pinching out of somewhere ----------------------------------------
+   Two fingers already walk the desks and turn the pages, and both of those are
+   the *midpoint* travelling. Bringing the fingers together is the other thing
+   two fingers can say, and on a phone it has meant one thing for fifteen years:
+   back out of what you are looking at. So a pinch inside a drawer goes **up one
+   level** — the parent, not the desk — and pinching again goes up again, until
+   you are standing on a desk, which is the top of the stack because desks sit
+   beside each other rather than inside each other (decision 39). The knob along
+   the bottom still goes straight home in one press, which is the other thing
+   you want and the reason both exist.
+
+   PINCH_MIN is how much squeeze rules out a two-finger swipe: whichever of the
+   two — the squeeze or the midpoint's travel — is winning at that point decides
+   what the gesture is, and it is decided once. PINCH_FULL is the squeeze that
+   counts as the whole movement, and PINCH_DO is how far through you have to be
+   for letting go to commit rather than put it back.
+
+   Only *inward*. Pinching out would have to mean going into something, and
+   there is no way to say which something. See decision 109. */
+const PINCH_MIN = 26, PINCH_FULL = 0.42, PINCH_DO = 0.45;
+let Z = null;
+/* A surface is a thing you are inside, so it answers the same gesture — and it
+   answers by shrinking under the fingers, because a gesture with no picture is
+   a gesture you cannot tell is working. */
+function sheetOpen(){ return !!(S.writeId || S.readId || S.viewId); }
+function sheetScale(p){
+  const h=$('#sheetHost'); if(!h) return;
+  h.style.transformOrigin='50% 42%';
+  // it follows the fingers exactly on the way down and eases on the way back,
+  // because a snap back to full size reads as the gesture having failed
+  h.style.transition = p ? 'none' : 'transform .18s, opacity .18s';
+  h.style.transform = p ? `scale(${(1-p*0.14).toFixed(4)})` : '';
+  h.style.opacity = p ? (1-p*0.35).toFixed(3) : '';
+  if(!p) setTimeout(()=>{ h.style.transition=''; h.style.transformOrigin=''; }, 220);
+}
+function zoomBegin(){
+  if(sheetOpen()){ Z={sheet:true, at:0}; return true; }
+  if(S.view!=='drawer' || !S.drawerId) return false;
+  const here=byId(S.drawerId);
+  // a desk has no parent, which is exactly what makes it the top of the stack
+  const up = here && here.parent;
+  if(!up) return false;
+  const from=S.drawerId;
+  const grip = leaveTile(from, ()=>{
+    S.view = up===ROOT ? 'desk' : 'drawer';
+    S.drawerId = up===ROOT ? null : up;
+    S.kindFilter=null; render();
+  }, true);
+  // no grip means it had no movement to give and has already gone there
+  Z = grip ? {from, grip, at:0} : null;
+  return true;
+}
+function zoomMove(d){
+  if(!Z || !TWO.d0) return;
+  Z.at = clamp((1 - d/TWO.d0) / (1-PINCH_FULL), 0, 1);
+  if(Z.sheet) sheetScale(Z.at); else Z.grip.set(Z.at);
+}
+function zoomEnd(){
+  const z=Z; Z=null;
+  if(!z) return;
+  if(z.sheet){
+    sheetScale(0);
+    if(z.at>=PINCH_DO) closeSheet();
+    return;
+  }
+  if(z.at>=PINCH_DO){
+    if(navigator.vibrate) navigator.vibrate(6);
+    z.grip.finish();
+  }
+  // short of it, the board you were in comes back — under the picture, which
+  // is still opaque, and which the grip takes away once it has
+  else z.grip.undo(()=>{ S.view='drawer'; S.drawerId=z.from; render(); });
+}
+function zoomCancel(){
+  const z=Z; Z=null;
+  if(!z) return;
+  if(z.sheet){ sheetScale(0); return; }
+  z.grip.undo(()=>{ S.view='drawer'; S.drawerId=z.from; render(); });
+}
+
 function onTouchStart(e){
   if(!e.touches || e.touches.length!==2){ TWO.on=false; return; }
   const [a,b]=e.touches;
   TWO.on=true; TWO.axis=null; TWO.from=0; TWO.mode=null;
   TWO.x=(a.clientX+b.clientX)/2; TWO.y=(a.clientY+b.clientY)/2;
+  TWO.d0=apart(a,b);
   onCancel();                      // two fingers is never a drag
   gestureFlags.suppressClick=true;
 }
 function onTouchMove(e){
   if(!TWO.on || !e.touches || e.touches.length!==2) return;
   const [a,b]=e.touches;
-  swipeMove(TWO, (a.clientX+b.clientX)/2 - TWO.x, (a.clientY+b.clientY)/2 - TWO.y);
+  const mx=(a.clientX+b.clientX)/2, my=(a.clientY+b.clientY)/2;
+  if(TWO.mode==='pinch'){ zoomMove(apart(a,b)); return; }
+  /* One decision, taken once: whichever is winning when the squeeze passes the
+     threshold is what this gesture is. A pager already under way keeps it —
+     `mode` is set by then — so a swipe cannot turn into a pinch halfway. */
+  if(!TWO.mode){
+    const squeeze = TWO.d0 - apart(a,b);
+    if(squeeze > PINCH_MIN && squeeze > Math.hypot(mx-TWO.x, my-TWO.y)){
+      TWO.mode='pinch';
+      if(zoomBegin()){ zoomMove(apart(a,b)); return; }
+      TWO.mode='nothing';         // nowhere to go: it is not a swipe either
+      return;
+    }
+  }
+  if(TWO.mode==='nothing') return;
+  swipeMove(TWO, mx - TWO.x, my - TWO.y);
 }
 function onTouchEnd(e){
   if(e.touches && e.touches.length>=2) return;
   if(TWO.on && TWO.mode==='swipe') pagerEnd();
-  TWO.on=false; TWO.axis=null; TWO.mode=null;
+  /* Not gated on TWO.on: a third finger landing turns the two-finger gesture
+     off, and without this the zoom it started would be left half-open with
+     nothing to end it. */
+  if(Z) zoomEnd();
+  TWO.on=false; TWO.axis=null; TWO.mode=null; TWO.d0=0;
 }
 
 /* A drag ends with a click event the browser sends anyway. When the drag *was*
@@ -1183,6 +1286,7 @@ const dragArmed = ()=> !!(G && G.armed);
 
 function onCancel(){
   cancelHold();
+  zoomCancel();
   if(G && G.type==='band') clearRow(G);
   stopPan();
   pagerCancel();

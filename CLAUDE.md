@@ -802,6 +802,28 @@ finger walks the boards, which is the gesture a phone is actually for. A drawer
 you make yourself starts unlocked, because you made it in order to arrange it —
 `create()` sets nothing, the seed sets `locked:true`.
 
+**Pinching two fingers together goes up one level.** The parent, not the desk
+— `zoomBegin/Move/End` in gestures.js — and again for the next, until a desk,
+which has no parent and so refuses (desks sit *beside* each other, decision 39).
+The knob along the bottom still goes straight home in one press, which is why
+both exist: one is a step, the other a destination. Only *inward*; pinching out
+would have to name a thing to go into. Whichever is winning when the squeeze
+passes `PINCH_MIN` — the squeeze or the midpoint's travel — decides the gesture,
+once, so a pager under way can't turn into a pinch. A surface answers it too, by
+shrinking. See decision 109.
+
+**A dive can be scrubbed, and that is why it has no second set of keyframes.**
+`scrubDive()` in motion.js: the four animations are on one clock and all
+`linear` (the easing is baked into `dive()`'s waypoints), so a **paused
+animation with a negative `animation-delay`** renders at that point in its own
+timeline — one number moves all four and they cannot drift apart. Pass `scrub`
+to `leaveTile()` for a handle (`set` / `finish` / `undo`) instead of a played
+movement; it returns null when there is no movement to give (reduced motion, a
+drawer that doesn't dive) and has already navigated. The commit happens on the
+first frame and lands *under* the opaque picture of the board you were on —
+`undo` re-renders the drawer under that same picture before taking it away,
+which is the pager's trick and why neither needs a "maybe" in the model.
+
 **Two fingers navigate; on a locked board, one does.** Both go through the
 pager in `motion.js`, which draws the board either side of this one and slides
 the strip with your finger rather than committing at a threshold. A locked board

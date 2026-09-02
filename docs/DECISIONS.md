@@ -4236,3 +4236,62 @@ so anything else living on that element has to be restated there. `tilting` was
 not, and the symptom was the cavity working until you ticked something and then
 silently stopping. It is stated off `S.look` in `render()` now — a class on the
 frame is a fact about the desk, not about the sensor's mood.
+
+## 109. Pinching out goes up one level
+
+*2026-09-02*
+
+Two fingers already meant one thing on a board — the midpoint travelling, which
+walks the desks sideways and turns the pages up and down (decision 38). Bringing
+the fingers *together* is the other thing two fingers can say, and on a phone it
+has meant the same thing for fifteen years: back out of what you are looking at.
+Bureau had no gesture for that at all. The knob along the bottom took you
+straight home in one press, which is the right answer when you know where you
+want to be and the wrong one when you are two drawers deep and want to be one.
+
+So a pinch inside a drawer goes **up one level** — the parent, not the desk —
+and pinching again goes up again. The knob is unchanged and still goes straight
+home, which is why both are worth having: one is a step and the other is a
+destination.
+
+**A desk is the top of the stack.** It has no parent, because desks sit beside
+each other in the master space rather than inside each other (decision 39), so
+"up" from one is not a direction. It refuses rather than falling through to the
+home desk, which would be sideways travel wearing an upward gesture. The knob
+still does that trip in one press.
+
+**Only inward.** Pinching out would have to mean going *into* something, and
+there is no way to say which something — the gesture has no target the way a tap
+does.
+
+**One decision, taken once.** Whichever is winning when the squeeze passes its
+threshold — the squeeze, or the midpoint's travel — decides what the gesture is,
+and it is not revisited. A pager already under way keeps it, so a swipe cannot
+turn into a pinch halfway through.
+
+**And the movement runs on your fingers.** This is the part that could easily
+have been a second animation and is not. A dive is four CSS animations on one
+clock, and every one of them is `linear` because `dive()` bakes the easing into
+the waypoints themselves. That is exactly what makes them scrubbable: a paused
+animation with a **negative delay** renders at that point in its own timeline,
+so one number moves all four together and they cannot drift apart. `scrubDive()`
+is about twenty lines and there are no new keyframes — the played version and
+the pulled version are the same movement, which is decision 104's rule applied
+to time instead of to geometry.
+
+**It commits on the first frame and hides it.** `leaveTile()` clones the board
+you are on *before* navigating, and at scrub position zero that picture is
+opaque and covers the screen — so the state change and the render land
+underneath something that still shows the board you were in. Letting go short of
+the threshold winds back to zero, re-renders the drawer *under* that same
+picture, and only then takes the picture away. The pager's trick, and the reason
+neither of them needs a "maybe" state in the model.
+
+**A surface answers the same gesture**, because a thing you have opened is
+somewhere you are inside. It shrinks under the fingers rather than scrubbing a
+dive — there is no dive to scrub — and letting go past the threshold puts it
+down. A gesture with no picture is a gesture you cannot tell is working.
+
+One thing the tests hold onto: all four parts must sit at the same point on that
+clock. They are four separate elements running four separate keyframes, and the
+only thing making them one movement is being scrubbed together.

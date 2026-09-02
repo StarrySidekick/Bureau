@@ -266,7 +266,57 @@ function openTile(id, go){
 
    Anything that isn't a dive keeps the small settle it always had: reversing
    a cabinet is a different movement and it hasn't been drawn. */
-function leaveTile(id, go){
+/* ---- a movement you drive with your fingers ---------------------------
+   The four animations a dive is made of are CSS, on one clock (`--divems`),
+   and every one of them is `linear` because `dive()` bakes the easing into the
+   waypoints themselves. That is what makes them scrubbable: a paused animation
+   with a **negative delay** renders at exactly that point in its own timeline,
+   so one number moves all four together and they cannot drift apart. No second
+   set of keyframes, no Web Animations rewrite, and the played and the scrubbed
+   versions are the same movement — which is decision 104's whole rule, applied
+   to time instead of to geometry.
+
+   `set` puts it at a fraction. `finish` lets go and lets it run on from there.
+   `undo` winds it back to nothing and hands the board back — and the order
+   inside it matters: the board is re-rendered *underneath* a picture that is
+   still opaque, and only then is the picture taken away. Same trick the pager
+   plays. See decision 109. */
+function scrubDive(parts, clean){
+  let at=0;
+  const put=p=>{
+    at=clamp(p,0,1);
+    parts.forEach(e=>{ e.style.animationPlayState='paused';
+                       e.style.animationDelay=(-at*OPEN_MS.dive).toFixed(1)+'ms'; });
+  };
+  put(0);
+  return {
+    set: put,
+    at: ()=>at,
+    finish(after){
+      parts.forEach(e=>{ e.style.animationDelay=(-at*OPEN_MS.dive).toFixed(1)+'ms';
+                         e.style.animationPlayState='running'; });
+      setTimeout(()=>{ clean(); if(after) after(); },
+                 Math.max(60, Math.round((1-at)*OPEN_MS.dive)));
+    },
+    undo(after){
+      const from=at, t0=performance.now(), ms=Math.max(90, from*260);
+      const step=()=>{
+        const k=Math.min(1, (performance.now()-t0)/ms);
+        put(from*(1-k));
+        if(k<1){ requestAnimationFrame(step); return; }
+        if(after) after();   // the board comes back under the picture…
+        clean();             // …and only then is the picture taken away
+      };
+      requestAnimationFrame(step);
+    }
+  };
+}
+
+/* `scrub` asks for the movement to be handed back paused rather than played.
+   It returns null when there is no movement to hand back — reduced motion, or
+   a drawer that does not dive — and in that case the navigation has already
+   happened, which is the same answer the plain call gives. */
+function leaveTile(id, go, scrub){
   const m0 = $('#app .main');
   const twin = (m0 && !still() && fx()) ? m0.cloneNode(true) : null;
   const mr = twin && m0.getBoundingClientRect();
@@ -300,13 +350,20 @@ function leaveTile(id, go){
   fx().appendChild(cave);
   fx().appendChild(face);
   fx().appendChild(twin);
-  setTimeout(()=>{ twin.remove(); cave.remove(); face.remove(); }, OPEN_MS.dive);
 
   /* The board you have arrived on, coming back down out of the drawer — the
      picture's exact inverse, which is what it was on the way in as well. */
   dive(m, r, mr, 'away');
   m.classList.add('in-diveout');
-  setTimeout(()=>m.classList.remove('in-diveout'), OPEN_MS.dive);
+
+  const parts=[twin, cave, face, m];
+  const clean=()=>{
+    twin.remove(); cave.remove(); face.remove();
+    m.classList.remove('in-diveout');
+    parts.forEach(e=>{ e.style.animationPlayState=''; e.style.animationDelay=''; });
+  };
+  if(!scrub){ setTimeout(clean, OPEN_MS.dive); return null; }
+  return scrubDive(parts, clean);
 }
 
 /* ---- the camera --------------------------------------------------------

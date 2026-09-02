@@ -359,6 +359,20 @@ gyroscope), and it is a `S.look.parallax` switch in Settings.
 
 See decision 108.
 
+### 7c. Backing out
+
+**Pinching two fingers together goes up one level** — the parent container, not
+the desk — and pinching again goes up again. A desk refuses: it has no parent,
+because desks sit beside each other rather than inside each other. The knob
+along the bottom is unchanged and still goes straight home in one press; one is
+a step, the other a destination. A surface answers the same gesture by shrinking
+under the fingers.
+
+The movement **runs on your fingers**: the four animations a dive is made of are
+paused and scrubbed together by negative `animation-delay`, so the pulled
+version and the played version are the same movement rather than two that can
+disagree. See decision 109.
+
 ## 8. The grid
 
 Each container is its own coordinate space, and every device has its own.
