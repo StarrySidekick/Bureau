@@ -4352,3 +4352,58 @@ down. A gesture with no picture is a gesture you cannot tell is working.
 One thing the tests hold onto: all four parts must sit at the same point on that
 clock. They are four separate elements running four separate keyframes, and the
 only thing making them one movement is being scrubbed together.
+
+## 110. The floor is deeper than the things standing on it
+
+*2026-09-02*
+
+The cavity was doubled in depth (decision 108) and still read as a picture with
+play in it rather than as a recess. Reading around motion parallax says why, and
+it is not a matter of degree.
+
+**One plane sliding is not parallax.** The depth cue is *relative* motion
+between things at different depths — Rogers and Graham's result is that
+perceived depth agrees closely with the degree of relative image displacement,
+and relative is the operative word. A single layer translating has no relative
+displacement in it at all, so it reads as a picture being moved however far it
+goes. Bureau had exactly one plane: the tiles and the checkerboard they stand on
+moved together, because that is what "the whole shelf moves as one" turned into.
+
+Through a window a point at the glass does not move and a point at depth `d`
+shifts by `Δ·d/(e+d)` — **deeper moves further, in the same direction**. So the
+floor has to outrun the tiles. `--tiltfloor` is how much further, and it is the
+second real number in the effect.
+
+**And orthographic parallax reads worse than perspective parallax**, measurably
+and at every depth (Buckthought, Yoonessi & Baker, *Journal of Vision* 2017). A
+sliding image never foreshortens, and the eye knows. The off-axis-projection
+literature says the same thing from the engineering side: translating the
+picture "violates optical consistency — objects don't scale or occlude
+naturally", which is why a real window effect skews the *frustum* rather than
+moving the image.
+
+Bureau cannot skew the frustum. A rotation on `.grid` would make
+`getBoundingClientRect()` describe a trapezoid, and `cellW()` divides by exactly
+that — every coordinate in the app would start lying, and the drop would land in
+the wrong cell with nothing to notice (decision 108 records why translate was
+chosen for this reason).
+
+But the **floor is a pseudo-element**, and nothing in the app can measure a
+pseudo-element. `.grid::before` can therefore take a real `perspective()` and
+`rotate3d` for nothing: the checkerboard converges and foreshortens like a
+surface receding, while the tiles keep the safe translate. It is oversized so
+its own edges stay outside the opening as it turns, and the scroller clips. The
+one place perspective was free is the one place it was needed.
+
+**And a cavity has two walls.** The rim drew a shadow on the side you tilt away
+from and nothing on the other, which is half a box. Turn a real one and the
+opposite wall comes round into the light. The wash is weak and warm — light on
+wood, not a highlight, and specifically not decision 42's foil — and it is the
+same shadow mirrored, so the two cannot disagree about which way you have
+turned.
+
+Still 61fps sweeping continuously, because none of this is per-tile. What it
+does not fix: on a full board the floor is mostly covered, so the differential
+is strongest exactly where there is least to look at. The rim's shading is what
+carries the depth on a busy desk, which is an argument for it being the strong
+one rather than a reason to add more.

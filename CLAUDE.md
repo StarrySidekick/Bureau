@@ -463,7 +463,12 @@ and stays on the right side of the movement for free. `--tiltx`/`--tilty`
 the only two numbers worth turning, and `BUREAU.tilt(1,0)` parks the shelf so
 you can look. **Depth is throw, not sensitivity** — parallax displaces by depth
 × tan(angle), so a deeper shelf moves further for the same tilt; narrowing
-`TILT_RANGE` instead reads as twitchy. The board is **flush** with the carcass
+`TILT_RANGE` instead reads as twitchy. **One plane sliding is not parallax at
+all**: the cue is *relative* displacement, so the floor (`.grid::before`, at
+`--tiltfloor`) outruns the tiles. That pseudo-element is also the one place a
+real `perspective()`/`rotate3d` is free — nothing can measure a pseudo-element,
+where a rotation on `.grid` would make `getBoundingClientRect()` describe a
+trapezoid and break every coordinate in the app. See decision 110. The board is **flush** with the carcass
 face on and must stay that way: insetting it to give the opening a visible rim
 was tried and reverted, because a frame round a board at rest is a picture
 mount. All the depth is in the movement. It is off by default, phone only, and it eases to zero for a

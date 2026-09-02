@@ -2899,11 +2899,43 @@ input,textarea,select,[contenteditable],
    movement, so what makes it a shelf is what happens when you tilt, not a rim
    drawn round it. A margin was tried and it was worse — the desk wants its
    full width, and a frame at rest is a picture mount. */
-.is-phone.tilting{--tiltpx:16px;--tiltpy:12px}
+.is-phone.tilting{--tiltpx:16px;--tiltpy:12px;--tiltfloor:13px}
 .is-phone.tilting .deskscroll .grid{
   transform:translate3d(calc(var(--tiltx,0) * var(--tiltpx)),
                         calc(var(--tilty,0) * var(--tiltpy)), 0);
   will-change:transform;
+}
+/* ---- the floor is deeper than the things standing on it ----------------
+   One plane sliding is not parallax. The depth cue is **relative** motion
+   between things at different depths — a single layer translating is a picture
+   being moved, and reads as one however far it goes, which is what was still
+   missing after the throw was doubled.
+
+   Through a window, a point at the glass does not move and a point at depth d
+   shifts by `Δ·d/(e+d)`: **deeper moves further, in the same direction**. So
+   the shelf's floor has to outrun the tiles standing on it. `--tiltfloor` is
+   how much further, and it is the second real number in the effect.
+
+   The floor is `.grid::before` — a pseudo-element, which is the whole reason
+   this is safe. Nothing in the app measures it: `cellW()` measures `.grid`,
+   and a pseudo-element has no box anyone can ask about. So it can take a
+   *perspective* as well as a shift, which is the other thing the research is
+   clear about — orthographic parallax reads worse than perspective parallax at
+   every depth, because a sliding image never foreshortens and the eye knows
+   it. A rotation on `.grid` itself would make `getBoundingClientRect()`
+   describe a trapezoid and break every coordinate in the app; here it costs
+   nothing.
+
+   It is oversized by a wide margin so its own edges stay outside the opening
+   as it turns, and the scroller clips. See decision 110. */
+.is-phone.tilting .deskscroll .grid::before{
+  inset:-40px;
+  background-position:calc(var(--tiltx,0) * var(--tiltfloor))
+                      calc(var(--tilty,0) * var(--tiltfloor) * 0.8);
+  transform:perspective(760px)
+            rotateY(calc(var(--tiltx,0) * 5deg))
+            rotateX(calc(var(--tilty,0) * -4deg));
+  will-change:transform,background-position;
 }
 /* The shading has to be drawn *over* the shelf, so it is a pseudo-element and
    not an inset shadow on the scroller: an inset shadow paints under the
@@ -2925,11 +2957,19 @@ input,textarea,select,[contenteditable],
      them unmatched and most of the shadow falls outside the box and you get a
      four-pixel smudge — which is what the first pass drew, correctly and
      invisibly. */
+  /* **Two walls, not one.** Turn a box and you see one inner wall fall into
+     shade and the opposite one come round into the light; drawing only the
+     shadow gives half a cavity. The wash is weak and warm — it is light
+     falling on wood, not a highlight — and it is the same shadow mirrored, so
+     the two cannot disagree about which way you have turned. */
   box-shadow:
     inset 0 0 20px -6px rgba(0,0,0,.42),
     inset calc(var(--tiltx,0) * -2.2 * var(--tiltpx))
           calc(var(--tilty,0) * -2.2 * var(--tiltpy))
-          30px calc(-2.2 * var(--tiltpx)) rgba(0,0,0,.72);
+          30px calc(-2.2 * var(--tiltpx)) rgba(0,0,0,.72),
+    inset calc(var(--tiltx,0) * 1.5 * var(--tiltpx))
+          calc(var(--tilty,0) * 1.5 * var(--tiltpy))
+          26px calc(-1.5 * var(--tiltpx)) rgba(255,246,228,.13);
 }
 /* Asked not to be moved. motion.js never starts the loop under this query
    either — this is the belt to that pair of braces, and it also catches the
