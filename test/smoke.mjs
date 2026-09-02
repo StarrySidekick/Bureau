@@ -2299,6 +2299,14 @@ const CHROME = process.env.BUREAU_CHROME;
     await hold(40, 15);  out.rollingRightLeansTheShelfLeft = tx() < -0.3;
     await hold(40, -15); out.andRollingLeftLeansItRight   = tx() >  0.3;
     await hold(55, 0);   out.pitchingIsNegatedToMatch     = ty() < -0.3;
+    /* …and the whole thing can be run the other way round, which is a setting
+       because the answer was found by holding it. One multiplication at the
+       sensor, so the rim's shading and a window's view turn round with it. */
+    S.look.tiltflip = true;
+    await hold(40, 15);  out.flippedItLeansTheOtherWay = tx() > 0.3;
+    await hold(55, 0);   out.andSoDoesThePitch         = ty() > 0.3;
+    S.look.tiltflip = false;
+    await hold(40, 15);  out.andBackAgain              = tx() < -0.3;
 
     /* ---- and it has to work at any attitude, not just a phone on a table --
        The three Euler angles are singular at beta ±90 — a phone held upright,

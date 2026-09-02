@@ -457,6 +457,11 @@ function defaultLook(){
           parallax:'off',
           // how far each of them moves, in px, from the sliders beside it
           tiltdesk:16, tiltwin:11,
+          /* Which way round the tilt runs. A thing in a recess lags the
+             movement rather than chasing it, so the sensor is negated by
+             default — but that was settled by holding it once, and it is worth
+             being able to hold it the other way. See decision 108. */
+          tiltflip:false,
           /* How far the board is set into the carcass while the cavity is on,
              in px a side. It is what the shelf slides *behind* — with the
              board flush to the screen the occluder is the bezel, which is not

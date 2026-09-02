@@ -4225,6 +4225,14 @@ The proportion was right first time and is unchanged. Only the direction moved,
 and it is a sign per axis — one character each, if one of them ever feels wrong
 on its own.
 
+And it is now a **setting** as well, because that answer was found by holding
+the phone once and is worth being able to check again with everything else
+around it changed. `S.look.tiltflip` is one multiplication at the sensor, which
+is the only place it belongs: the rim's shading and the view behind a window's
+frame are both derived from those two variables, so they turn round with it and
+nothing else has to know. It is there to be compared rather than because either
+answer is in doubt.
+
 **The three Euler angles are the wrong thing to read, and a phone held upright
 is exactly where that shows.** The obvious implementation — gamma for
 left/right, beta for up/down — works on a phone lying on a table and falls

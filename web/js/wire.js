@@ -669,6 +669,11 @@ function wire(){
        which is this click and nothing else, so the permission call lives here
        rather than in applyTilt(). A refusal leaves the switch off rather than
        storing a setting that cannot do anything. See decision 108. */
+    // which way round the tilt runs — no render and no applyLook: the sensor
+    // reads it on the next event and the two vars turn round with it
+    const tfl=t.closest('[data-tiltflip]');
+    if(tfl){ S.look.tiltflip = !!tfl.dataset.tiltflip; save(); refreshPanel(); return; }
+
     const plx=t.closest('[data-parallax]');
     if(plx){
       const want = plx.dataset.parallax;

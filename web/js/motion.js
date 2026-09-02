@@ -1009,8 +1009,14 @@ function onOrient(e){
   TILT.ox += (dx-TILT.ox)*TILT_DRIFT;
   TILT.oy += (dy-TILT.oy)*TILT_DRIFT;
   const K = Math.sin(TILT_RANGE*RAD);         // the throw, as a sine not a degree
-  TILT.tx = clamp(TILT_SIGN_X * (dx-TILT.ox)/K, -1, 1);
-  TILT.ty = clamp(TILT_SIGN_Y * (dy-TILT.oy)/K, -1, 1);
+  /* …and the whole thing can be run the other way round, which is a setting
+     because the answer was found by holding it and is worth checking again.
+     Applied here with the two signs, so the rim's shading and the view behind
+     a window's frame — both derived from these two variables — turn round with
+     it and nothing else has to know. */
+  const flip = (S.look && S.look.tiltflip) ? -1 : 1;
+  TILT.tx = clamp(flip * TILT_SIGN_X * (dx-TILT.ox)/K, -1, 1);
+  TILT.ty = clamp(flip * TILT_SIGN_Y * (dy-TILT.oy)/K, -1, 1);
   tiltSoon();
 }
 // Coming back to the app after it has been away: wherever you are holding it

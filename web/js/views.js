@@ -567,6 +567,11 @@ function settingsBody(sec){
         <input type="range" min="0" max="24" step="1" data-lookpx="deskinset" value="${px('deskinset',8)}">
         <b>${px('deskinset',8)}px</b></label>
       <div class="mini" style="--k:var(--brass);margin-top:6px">How far the shelf slides, and how much wood shows around it. The reveal is what the shelf slides <i>behind</i> — at nothing, a tile leaving the board is cut off by the edge of the screen rather than going behind anything, which is the thing that gives it away.</div>`:''}
+      ${tiltMode()!=='off'?`
+      <label style="display:block;margin-top:12px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)">Which way it moves</label>
+      <div class="filterbar" style="margin-top:5px">${[['','Against the tilt'],['1','With the tilt']].map(([v,n])=>
+        `<button class="fchip${(S.look.tiltflip?'1':'')===v?' on':''}" data-tiltflip="${v}">${n}</button>`).join('')}</div>
+      <div class="mini" style="--k:var(--brass);margin-top:6px">A thing sitting in a recess hangs back when you turn the phone rather than chasing it, which is why it runs against the tilt. The other way round is here to be compared rather than because it is right.</div>`:''}
       ${tiltsWindows()?`
       <label class="rangerow" style="margin-top:12px"><span>How far back a view is</span>
         <input type="range" min="0" max="30" step="1" data-lookpx="tiltwin" value="${px('tiltwin',11)}">
