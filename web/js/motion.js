@@ -912,7 +912,19 @@ function tiltSoon(){ if(TILT.on && !TILT.raf) TILT.raf=requestAnimationFrame(til
 /* gamma is the roll (left/right) and beta the pitch (front/back), both in
    degrees. Portrait only: in landscape the two swap meaning, and a desk that
    tilts sideways when you tip it forwards is worse than one that does not
-   tilt. */
+   tilt.
+
+   **Which way round is these two numbers, and it was settled by holding it.**
+   The first version ran the shelf *with* the sensor and read backwards in the
+   hand — the shelf chased the tilt instead of hanging back behind the opening,
+   which is the opposite of what a thing sitting in a recess does. Parallax on
+   a real cavity moves the deep part against the near part, so the sensor is
+   negated and the shelf lags the phone. Everything else follows from these
+   two, the rim's shading included, because it is derived from the same
+   variables — so changing a sign here keeps the shadow on the correct side of
+   the movement without touching the CSS. If one axis ever feels wrong on its
+   own, it is one character. See decision 108. */
+const TILT_SIGN_X = -1, TILT_SIGN_Y = -1;
 function onOrient(e){
   if(e.gamma==null || e.beta==null) return;
   const g=e.gamma, b=e.beta;
@@ -921,8 +933,8 @@ function onOrient(e){
     TILT.restG += (g-TILT.restG)*TILT_DRIFT;
     TILT.restB += (b-TILT.restB)*TILT_DRIFT;
   }
-  TILT.tx = clamp((g-TILT.restG)/TILT_RANGE, -1, 1);
-  TILT.ty = clamp((b-TILT.restB)/TILT_RANGE, -1, 1);
+  TILT.tx = clamp(TILT_SIGN_X * (g-TILT.restG)/TILT_RANGE, -1, 1);
+  TILT.ty = clamp(TILT_SIGN_Y * (b-TILT.restB)/TILT_RANGE, -1, 1);
   tiltSoon();
 }
 // Coming back to the app after it has been away: wherever you are holding it

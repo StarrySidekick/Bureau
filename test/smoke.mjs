@@ -2226,6 +2226,35 @@ const CHROME = process.env.BUREAU_CHROME;
     out.aRenderDoesNotWipeIt = frame.classList.contains('tilting')
       && cs(grid()).transform !== 'none';
 
+    /* ---- which way round, and where "level" is ------------------------
+       Everything above drives the vars directly, which is the right way to
+       test geometry and the wrong way to test the *sensor* — it bypasses the
+       mapping entirely, so a sign could flip in a refactor and nothing would
+       notice. This half sends real orientation events.
+
+       Rest first: a phone is held at forty-odd degrees of pitch, never at the
+       sensor's zero, so the first steady reading has to *become* level or the
+       shelf sits jammed in a corner for good. */
+    // put the shelf back at nothing first: the assertions above parked it at
+    // full throw by hand, and it eases rather than snapping
+    BUREAU.tilt(0, 0); BUREAU.applyTilt(); await nap(60);
+    const send = (beta, gamma) => dispatchEvent(
+      new DeviceOrientationEvent('deviceorientation', {alpha:0, beta, gamma}));
+    const tx = () => +cs(frame).getPropertyValue('--tiltx');
+    const ty = () => +cs(frame).getPropertyValue('--tilty');
+    const hold = async (beta, gamma) => { for(let i=0;i<30;i++){ send(beta, gamma); await nap(12); } };
+
+    send(40, 0); await nap(260);
+    out.whereYouHoldItIsLevel = Math.abs(tx()) < 0.02 && Math.abs(ty()) < 0.02;
+    /* And the shelf runs **against** the phone, which is what a thing sitting
+       in a recess does and what the first version got backwards: roll right and
+       the shelf hangs back to the left. Both axes are negated at the sensor, so
+       the rim's shading — derived from the same vars — stays on the correct
+       side of the movement without the CSS knowing. See decision 108. */
+    await hold(40, 15);  out.rollingRightLeansTheShelfLeft = tx() < -0.3;
+    await hold(40, -15); out.andRollingLeftLeansItRight   = tx() >  0.3;
+    await hold(55, 0);   out.pitchingIsNegatedToMatch     = ty() < -0.3;
+
     S.look.parallax = false; BUREAU.applyTilt(); S.look.locked = wasLocked; await nap(60);
     out.switchingItOffPutsItBack = !frame.classList.contains('tilting')
       && cs(grid()).transform === 'none'

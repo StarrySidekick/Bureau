@@ -447,7 +447,12 @@ where a `rotate3d` makes `getBoundingClientRect()` return the bounding box of a
 trapezoid and quietly breaks the drop. The rim's shading is a `::after` at
 `z-index:5`, because an inset shadow paints *under* its element's own children
 and every tile on the board is one of those — and its spread must be the
-negative of its offset or the shadow lands outside the box. `--tiltx`/`--tilty`
+negative of its offset or the shadow lands outside the box. The shelf runs
+**against** the phone — `TILT_SIGN_X`/`TILT_SIGN_Y` negate the sensor, because a
+thing in a recess lags the movement rather than chasing it, and the first
+version had it the other way and read backwards in the hand. Negate at the
+sensor, never in the CSS: the rim's shading derives from the same two variables
+and stays on the right side of the movement for free. `--tiltx`/`--tilty`
 (−1..1) are written on `#frame` by motion.js §20b²; `--tiltpx`/`--tiltpy` are
 the only two numbers worth turning, and `BUREAU.tilt(1,0)` parks the shelf so
 you can look. It is off by default, phone only, and it eases to zero for a

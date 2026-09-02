@@ -4211,6 +4211,20 @@ Also learned the hard way: with an inset shadow, **spread must be the negative
 of the offset**, or the shadow's rectangle lands mostly outside the box and you
 get a four-pixel smudge where you wanted a gradient.
 
+**Which way round is two signs, and it was settled by holding it.** The first
+version ran the shelf *with* the sensor: roll the phone right and the shelf slid
+right. In the hand that reads backwards — the shelf chases the tilt instead of
+hanging back behind the opening, which is the opposite of what a thing sitting
+in a recess does. Parallax moves the deep part against the near part, so both
+axes are negated at the sensor and the shelf now lags the phone. Negating there
+rather than in the CSS matters: the rim's shading is derived from the same two
+variables, so it stays on the correct side of the movement without the
+stylesheet knowing anything happened.
+
+The proportion was right first time and is unchanged. Only the direction moved,
+and it is a sign per axis — one character each, if one of them ever feels wrong
+on its own.
+
 **The neutral is where you actually hold the phone.** Nobody holds one at beta
 zero, so the sensor's own zero would leave the shelf jammed in a corner
 forever. The first steady reading becomes rest, and rest then *drifts* slowly
