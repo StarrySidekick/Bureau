@@ -437,6 +437,27 @@ was dead from the day it was written.
 depths on a drawer front, bottom to top: `.dpanel` and `.dgrain` (0), the knobs
 (1), the name (2), the mark and the seam (3).
 
+**The shelf is inset, and tilting the phone looks into the cavity.** One
+transform on **one** element: `.grid` — the tiles and the checkerboard they
+stand on are one piece of furniture and move together — while the opening
+(`.deskscroll`) stays put and clips, and the wood shows along the edge you
+tilted away from. **Translate, never rotate**: the drag maths divides by the
+grid's own rect, and a translate cancels out of every coordinate in the app
+where a `rotate3d` makes `getBoundingClientRect()` return the bounding box of a
+trapezoid and quietly breaks the drop. The rim's shading is a `::after` at
+`z-index:5`, because an inset shadow paints *under* its element's own children
+and every tile on the board is one of those — and its spread must be the
+negative of its offset or the shadow lands outside the box. `--tiltx`/`--tilty`
+(−1..1) are written on `#frame` by motion.js §20b²; `--tiltpx`/`--tiltpy` are
+the only two numbers worth turning, and `BUREAU.tilt(1,0)` parks the shelf so
+you can look. It is off by default, phone only, and it eases to zero for a
+drag, the pager, a panel, a surface and reduced motion — all read off state or
+the DOM, so nothing else has to know it exists. See decision 108.
+
+**`render()` writes `#frame.className` wholesale**, so anything else living on
+that element has to be restated in `render()` or the next one wipes it. That is
+how the cavity came to work until you ticked something and then stop, silently.
+
 **Nothing on the desk shimmers.** A magic drawer used to be holographic foil,
 lit from `--holox`/`--holoy` on `#frame` — the phone's tilt, or the pointer.
 It was tacky, and it is gone along with the whole tilt apparatus. Furniture does

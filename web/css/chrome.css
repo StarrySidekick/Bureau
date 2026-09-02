@@ -2860,6 +2860,72 @@ input,textarea,select,[contenteditable],
 .is-phone .scroll.deskscroll{box-shadow:0 0 0 1px var(--wood-2),
   0 -3px 5px -3px rgba(0,0,0,.5)}
 
+/* ---- the cavity -------------------------------------------------------
+   The board is set into the carcass, so tilting the phone should show a little
+   more of one interior wall and a little less of the other. `--tiltx`/`--tilty`
+   are written onto `#frame` by motion.js, −1 to 1, and everything below is two
+   rules: the **shelf** moves and the **opening** does not.
+
+   The shelf is `.grid` — the tiles and the checkerboard they stand on are one
+   piece of furniture and move together, which is the whole read. It is a
+   *translate*, never a rotation: the drag maths divides by the grid's own rect
+   and a translate cancels out of every coordinate in the app, where a
+   `rotate3d` would make `getBoundingClientRect()` return the bounding box of a
+   trapezoid and quietly break the drop. See decision 108.
+
+   The opening is `.deskscroll`: it stays put, it clips, and it gains an inset
+   shadow that slides the *other* way — the cavity wall shading whichever edge
+   you have tilted away from. That shadow is most of the depth; the movement on
+   its own reads as a loose board.
+
+   `.tilting` is on the frame only while the sensor is running, so a desk with
+   this switched off pays for none of it — no `will-change`, no promoted layer,
+   no extra shadow to paint. */
+/* How deep the cavity is, and the only two numbers worth turning. Everything
+   else here is derived from them, so making the shelf sit further back is one
+   edit and not four that can disagree — the rim's shading is 2.2× the throw,
+   which is what keeps the shadow ahead of the movement rather than trailing
+   it. Park the shelf by hand to judge a value: `BUREAU.tilt(1, 0)`. */
+.is-phone.tilting{--tiltpx:9px;--tiltpy:7px}
+.is-phone.tilting .deskscroll .grid{
+  transform:translate3d(calc(var(--tiltx,0) * var(--tiltpx)),
+                        calc(var(--tilty,0) * var(--tiltpy)), 0);
+  will-change:transform;
+}
+/* The shading has to be drawn *over* the shelf, so it is a pseudo-element and
+   not an inset shadow on the scroller: an inset shadow paints under the
+   element's own children, and the children here are every tile on the board —
+   so the one on `.deskscroll` was perfectly correct and completely invisible,
+   covered by the furniture it was supposed to be shading.
+
+   Two shadows. The **first is constant**: a soft darkening all round, which is
+   what says "inset" before you have tilted anything at all. The **second
+   moves**, opposite the shelf — the near edge of the opening overhanging the
+   things that have slid away from it. The movement alone reads as a loose
+   board sliding about; it is this that makes it a cavity. */
+.is-phone .scroll.deskscroll{position:relative}
+.is-phone.tilting .deskscroll::after{
+  content:"";position:absolute;inset:0;z-index:5;pointer-events:none;
+  /* The spread is the offset's negative, which is the whole trick with an
+     inset shadow: it grows the inner rectangle by exactly what the offset
+     shifts it, so the dark starts *at* the edge and feathers inward. Leave
+     them unmatched and most of the shadow falls outside the box and you get a
+     four-pixel smudge — which is what the first pass drew, correctly and
+     invisibly. */
+  box-shadow:
+    inset 0 0 20px -6px rgba(0,0,0,.42),
+    inset calc(var(--tiltx,0) * -2.2 * var(--tiltpx))
+          calc(var(--tilty,0) * -2.2 * var(--tiltpy))
+          30px calc(-2.2 * var(--tiltpx)) rgba(0,0,0,.72);
+}
+/* Asked not to be moved. motion.js never starts the loop under this query
+   either — this is the belt to that pair of braces, and it also catches the
+   setting being left on when the preference is turned on later. */
+@media (prefers-reduced-motion: reduce){
+  .is-phone.tilting .deskscroll .grid{transform:none;will-change:auto}
+  .is-phone.tilting .deskscroll::after{content:none}
+}
+
 /* ---- …and the bottom one is a drawer front ----------------------------
    It holds nothing — it is the front of the desk itself. A round knob you can
    tap to come back out, and pull up to make something (see gestures.js). Its

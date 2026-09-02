@@ -763,6 +763,161 @@ function clRefill(cid, idx){
    phone is held again, it starts here and it starts from a stated reason.
 
    ============================================================
+   20b² · the cavity — and the stated reason
+   ============================================================
+   Here is that reason, and it is a different claim from the foil's.
+
+   The foil was a **material** reacting to being held: a rainbow that changed
+   hue because you moved, which is a thing a trading card does and a thing a
+   drawer front does not. What this is instead is the **camera** moving. The
+   desk is set into the phone — the wood above the bar, the drawer along the
+   bottom, the board recessed between them — and if that is true then tilting
+   the phone should show you a little more of one interior wall and a little
+   less of the other. That is not an effect applied to the furniture; it is
+   what having furniture already implies. The dive (decision 103) makes the
+   same claim once, loudly, when you open a drawer. This makes it quietly, all
+   the time.
+
+   **The whole interior moves as one piece.** Not a per-tile parallax with
+   things at different depths — the board, its checkerboard and everything
+   standing on it are one shelf, inset a centimetre or so behind the opening,
+   and the opening does not move. So there is exactly one transform on exactly
+   one element (`.grid`), the rim (`.deskscroll`) stays where it is and clips,
+   and the wood shows along whichever edge you have tilted away from. One
+   composited transform for the whole effect; nothing is per-tile, and decision
+   101's arithmetic — a cost per element per repaint — therefore never starts.
+
+   **Translate, never rotate.** This is the part that would have cost a session
+   to learn. The drag maths reads `(clientX - grid.left) / cellW` and `cellW`
+   is `grid.width / cols`; under a translate the rect's left edge moves by
+   exactly what the tiles moved by and the width does not change at all, so
+   every coordinate in the app cancels out and nothing has to know this is
+   happening. Under a `rotate3d` it would not: `getBoundingClientRect()` hands
+   back the axis-aligned box of a trapezoid, and `left` and `width` both start
+   lying. A real 3D rotation is a different and much larger job — it would have
+   to unwind the transform in `cellW()`, `sizeGrid()` and `aimDrop()` — and the
+   translate buys most of the read for none of that.
+
+   **The neutral is where you actually hold the phone**, not where the sensor's
+   zero is. Nobody holds a phone at beta 0; it would sit shoved into a corner
+   forever. So the first steady reading becomes the rest attitude, and the rest
+   attitude then **drifts** slowly towards wherever you are actually holding it
+   — lie down and the desk settles back to centre over a few seconds rather
+   than staying jammed. That drift is the difference between this being
+   pleasant and being something you turn off after a day.
+
+   **It yields to everything.** A drag, the pager, an open panel, a surface,
+   reduced motion: the tilt eases to zero and stays there. Every one of those
+   is read off state or the DOM rather than pushed in from the modules that
+   cause them, so nothing else in the app has to remember this exists.
+
+   Off by default, because turning it on asks iOS for permission and an app
+   that prompts for motion access on first launch is a rude app. See decision
+   108.                                                                       */
+const TILT_THROW = 9;      // px the shelf slides at full tilt, sideways
+const TILT_THROW_Y = 7;    // …and up and down, which has less room to give
+const TILT_RANGE = 20;     // degrees from rest that reach the full throw
+const TILT_EASE = 0.14;    // how fast it follows — low enough to read as heavy
+const TILT_DRIFT = 0.004;  // how fast rest follows where you are really holding it
+const TILT_SETTLE = 0.0006;// below this it has arrived; park the loop
+const TILT = {on:false, listening:false, raf:0,
+              x:0, y:0,          // where the shelf is
+              tx:0, ty:0,        // where it is heading
+              restB:null, restG:null};
+
+/* Everything that outranks a decoration. Each is read off state or the DOM,
+   deliberately: the alternative is gestures.js, panels.js and sheet.js each
+   remembering to tell this file what they are doing, which is three more
+   places to forget. */
+function tiltHeld(){
+  if(still()) return true;                       // asked not to be moved
+  if(pagerOn()) return true;                     // a board is already in flight
+  if(S.writeId || S.readId || S.viewId) return true;
+  if($('#panel')) return true;
+  return !!document.querySelector('#app .drawer.dragging, #app .drawer.lifted');
+}
+function tiltFrame(){
+  TILT.raf=0;
+  const held=tiltHeld();
+  const tx = held ? 0 : TILT.tx, ty = held ? 0 : TILT.ty;
+  TILT.x += (tx-TILT.x)*TILT_EASE;
+  TILT.y += (ty-TILT.y)*TILT_EASE;
+  const f=$('#frame');
+  if(f){
+    f.style.setProperty('--tiltx', TILT.x.toFixed(4));
+    f.style.setProperty('--tilty', TILT.y.toFixed(4));
+  }
+  // park when it has arrived: a rAF that runs forever on a still phone is a
+  // battery cost for no picture
+  if(Math.abs(tx-TILT.x) > TILT_SETTLE || Math.abs(ty-TILT.y) > TILT_SETTLE) tiltSoon();
+}
+function tiltSoon(){ if(TILT.on && !TILT.raf) TILT.raf=requestAnimationFrame(tiltFrame); }
+/* gamma is the roll (left/right) and beta the pitch (front/back), both in
+   degrees. Portrait only: in landscape the two swap meaning, and a desk that
+   tilts sideways when you tip it forwards is worse than one that does not
+   tilt. */
+function onOrient(e){
+  if(e.gamma==null || e.beta==null) return;
+  const g=e.gamma, b=e.beta;
+  if(TILT.restG==null){ TILT.restG=g; TILT.restB=b; }
+  else {
+    TILT.restG += (g-TILT.restG)*TILT_DRIFT;
+    TILT.restB += (b-TILT.restB)*TILT_DRIFT;
+  }
+  TILT.tx = clamp((g-TILT.restG)/TILT_RANGE, -1, 1);
+  TILT.ty = clamp((b-TILT.restB)/TILT_RANGE, -1, 1);
+  tiltSoon();
+}
+// Coming back to the app after it has been away: wherever you are holding it
+// now is the new neutral, rather than easing there from where you left off.
+function tiltRecentre(){ TILT.restG=TILT.restB=null; TILT.tx=TILT.ty=0; tiltSoon(); }
+function tiltStop(){
+  if(TILT.listening){ removeEventListener('deviceorientation', onOrient); TILT.listening=false; }
+  TILT.on=false;
+  if(TILT.raf){ cancelAnimationFrame(TILT.raf); TILT.raf=0; }
+  TILT.x=TILT.y=TILT.tx=TILT.ty=0; TILT.restG=TILT.restB=null;
+  const f=$('#frame');
+  if(f){ f.style.removeProperty('--tiltx'); f.style.removeProperty('--tilty');
+         f.classList.remove('tilting'); }
+}
+function tiltStart(){
+  if(TILT.on || S.device==='desk') return;
+  TILT.on=true;
+  const f=$('#frame'); if(f) f.classList.add('tilting');
+  if(!TILT.listening){ addEventListener('deviceorientation', onOrient); TILT.listening=true; }
+  tiltSoon();
+}
+/* Follow the setting. Called on boot and whenever the switch is thrown, so the
+   listener's existence is a fact about `S.look.parallax` and never drifts from
+   it. The desk has no gyroscope, so this is a phone feature and says so by
+   simply not starting. */
+function applyTilt(){
+  if(S.look && S.look.parallax && S.device!=='desk') tiltStart(); else tiltStop();
+}
+/* iOS 13+ will not deliver deviceorientation without being asked, and will only
+   consider the question if it arrives inside a user gesture — so this is
+   called from the Settings switch and nowhere else. Everything else (Android,
+   a desktop browser, an older iOS) has no such method and is granted by
+   default. */
+async function askTilt(){
+  const D = window.DeviceOrientationEvent;
+  if(!D) return false;
+  if(typeof D.requestPermission !== 'function') return true;
+  try{ return (await D.requestPermission())==='granted'; }
+  catch(_){ return false; }
+}
+// A way in for the smoke test and for tuning by hand: put the shelf somewhere
+// and leave it there, without a phone to tilt.
+function tiltTo(x, y){
+  const f=$('#frame'); if(!f) return;
+  TILT.tx=TILT.x=clamp(x,-1,1); TILT.ty=TILT.y=clamp(y,-1,1);
+  const held=tiltHeld();
+  f.style.setProperty('--tiltx', (held?0:TILT.x).toFixed(4));
+  f.style.setProperty('--tilty', (held?0:TILT.y).toFixed(4));
+  f.classList.add('tilting');
+}
+
+/* ============================================================
    20c · the pager — boards that slide
    ============================================================
    Walking between pinned drawers, and between the pages of one board, used to
@@ -1025,4 +1180,5 @@ function pagerCancel(){
 
 export { still, tileOf, tileRect, openingFor, openTile, leaveTile, enter, pop, clRefill,
   spray, sprayAt, sprayCount, SPRAYS, sprayNow, sprayMark,
-  pagerBegin, pagerMove, pagerEnd, pagerCancel, pagerOn, stepDrawer };
+  pagerBegin, pagerMove, pagerEnd, pagerCancel, pagerOn, stepDrawer,
+  applyTilt, askTilt, tiltTo, tiltRecentre };

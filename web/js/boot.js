@@ -16,7 +16,8 @@ import { render, sizeGrid, viewHTML, reveal, settingsPanel, pageAt, pageCount, p
 import { overlayHTML, objectPanel, modalNewObject, holdPanel, schedulePanel, closePanel,
   sampleObject, sampleTile } from './panels.js';
 import { wire } from './wire.js';
-import { openingFor, stepDrawer, spray, sprayAt, sprayCount, sprayNow, sprayMark, SPRAYS } from './motion.js';
+import { openingFor, stepDrawer, spray, sprayAt, sprayCount, sprayNow, sprayMark, SPRAYS,
+  applyTilt, tiltTo, tiltRecentre } from './motion.js';
 import { load, writeNow, save, saveIfDirty, hydrateAssets, pasteObjects, migrate } from './persist.js';
 import { renderSheet, openWriter, openRead, openViewer, closeSheet, asMarkdown } from './sheet.js';
 import { DECOR, DECOR_KEYS, decorSVG, decorSuits, decorFor, decorRest } from './decor.js';
@@ -58,6 +59,15 @@ wire();
 watchViewport();
 applyLook();
 render();
+/* The shelf follows its setting from the first frame. It starts nothing unless
+   the setting is on, and iOS will already have been asked — permission is
+   remembered per origin, so a granted desk picks the sensor back up on launch
+   without prompting again. See decision 108. */
+applyTilt();
+/* Away and back: wherever you are holding the phone *now* is the new neutral.
+   Without this you return to a shelf shoved into a corner and it eases out of
+   it over several seconds, which reads as a bug. */
+document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) tiltRecentre(); });
 // settings is a sheet over the desk now, not a place you navigate to
 if(hash==='settings') settingsPanel();
 hydrateAssets();
@@ -131,6 +141,10 @@ window.BUREAU = {
      after layout — the three seams a performance pass needs to time separately,
      because "the swipe feels slow" is three different costs in a trench coat. */
   step: stepDrawer, viewHTML, sizeGrid,
+  /* Putting the shelf somewhere by hand, without a phone to tilt: the smoke
+     test drives this, and so does anyone tuning the throw. −1 to 1 on each
+     axis. See decision 108. */
+  tilt: tiltTo, applyTilt,
   // the spray, so a test can watch the physics rather than the class — and
   // the reveal, which is now the only thing in the app that sets one off
   spray, sprayAt, sprayCount, sprayNow, sprayMark, reveal,

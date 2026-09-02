@@ -4161,3 +4161,78 @@ its own `<button>`. A button inside a button is a parse error the browser fixes
 by **unnesting** it — so the tile fell out of its own cell, silently, and the
 layout went with it. `.kindtile` is a `div` with `role="button"` for exactly
 this reason and had been for a year.
+
+## 108. The shelf is inset, and tilting looks into the cavity
+
+*2026-09-02*
+
+Decision 42 killed a tilt feature and said so bluntly: *furniture does not react
+to being held*. This is a tilt feature. The distinction it turns on is real, and
+if it ever stops being real this should go the same way the foil did.
+
+The foil was a **material** reacting — a rainbow that changed hue because you
+moved, which is a thing a trading card does. This is the **camera** moving. The
+desk is already set into the phone: wood above the bar, a drawer along the
+bottom, the board recessed between them. If that is true, then tilting should
+show a little more of one interior wall and a little less of the other. It is
+not an effect applied to the furniture; it is what having furniture implies. The
+dive (decision 103) makes the same claim once and loudly when you open a drawer.
+This makes it quietly, at rest, all the time.
+
+**The whole interior moves as one piece.** Not layers at different depths, not
+per-tile: the board, its checkerboard and everything standing on it are one
+shelf, inset behind an opening that does not move. So there is one transform on
+one element — `.grid` — and the rim (`.deskscroll`) stays put and clips. Wood
+shows along whichever edge you tilted away from. Because nothing is per-tile,
+decision 101's arithmetic — a cost per element per repaint — never starts: a
+full sample desk sweeping continuously holds 61fps, against the 42 that one
+animated filter cost on an idle board.
+
+**Translate, never rotate, and this is the load-bearing part.** The drag maths
+is `(clientX − grid.left) / cellW`, and `cellW` is `grid.width / cols`. Under a
+translate the rect's left edge moves by exactly what the tiles moved by and the
+width does not change at all, so every coordinate in the app cancels and
+nothing has to be told this is happening. Under a `rotate3d`,
+`getBoundingClientRect()` returns the axis-aligned box of a trapezoid and both
+`left` and `width` start lying — which would mean unwinding the transform in
+`cellW()`, `sizeGrid()` and `aimDrop()`. Real 3D rotation is a different and
+much larger job. The translate buys most of the read for none of it.
+
+**The shading is drawn over the shelf, not under it.** The first pass put an
+inset shadow on `.deskscroll` and it was perfectly correct and completely
+invisible: an inset shadow paints beneath the element's own children, and the
+children here are every tile on the board. It is a `::after` at `z-index:5`
+instead. Two shadows — one constant, which is what says "inset" before you have
+tilted anything, and one that moves opposite the shelf, the near edge of the
+opening overhanging what has slid away from it. The movement alone reads as a
+loose board; the shading is what makes it a cavity.
+
+Also learned the hard way: with an inset shadow, **spread must be the negative
+of the offset**, or the shadow's rectangle lands mostly outside the box and you
+get a four-pixel smudge where you wanted a gradient.
+
+**The neutral is where you actually hold the phone.** Nobody holds one at beta
+zero, so the sensor's own zero would leave the shelf jammed in a corner
+forever. The first steady reading becomes rest, and rest then *drifts* slowly
+toward wherever you are really holding it — lie down and the desk settles back
+to centre over a few seconds. Coming back from the background recentres
+outright. That drift is the whole difference between this being pleasant and
+being something you switch off after a day.
+
+**It yields to everything.** A drag, the pager, an open panel, a surface,
+reduced motion: the tilt eases to zero and stays there. Every one of those is
+read off state or the DOM inside `motion.js` rather than pushed in from the
+module that causes it — the alternative is gestures.js, panels.js and sheet.js
+each remembering this file exists, which is three places to forget.
+
+**Off by default**, because switching it on asks iOS for the motion sensor and
+an app that prompts on first launch is a rude app. The permission call lives in
+the Settings switch's own handler and nowhere else, because iOS will only
+consider the question inside a user gesture. A refusal leaves the switch off
+rather than storing a setting that cannot do anything.
+
+One trap worth its own line: `render()` writes `#frame.className` **wholesale**,
+so anything else living on that element has to be restated there. `tilting` was
+not, and the symptom was the cavity working until you ticked something and then
+silently stopping. It is stated off `S.look` in `render()` now — a class on the
+frame is a fact about the desk, not about the sensor's mood.

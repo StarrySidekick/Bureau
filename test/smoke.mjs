@@ -2153,6 +2153,101 @@ const CHROME = process.env.BUREAU_CHROME;
     return out;
   });
 
+  /* --- looking into the cavity. The board is set into the carcass, so tilting
+     the phone slides the shelf behind an opening that does not move. The
+     assertion that matters is not that it moves — it is that **nothing else
+     notices**: a translate has to cancel out of every coordinate in the app,
+     or the drop lands in the wrong cell and nobody finds out for a week.
+     See decision 108. */
+  const cavity = await phone.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const S = BUREAU.state, out = {};
+    // put the lock back the way it was found: the pager test after this one
+    // needs a locked board for its one-finger swipe
+    const wasLocked = S.look.locked;
+    S.view='desk'; S.drawerId=null; S.look.locked=false; BUREAU.render(); await nap(220);
+    const frame = document.querySelector('#frame');
+    const grid = () => document.querySelector('#drawergrid');
+    const cs = el => getComputedStyle(el);
+
+    // off is off: nothing promoted, nothing transformed, nothing to paint
+    out.offByDefault = S.look.parallax === false;
+    out.andNothingMoves = !frame.classList.contains('tilting')
+      && cs(grid()).transform === 'none';
+
+    const flat = grid().getBoundingClientRect();
+    const cols = cs(grid()).gridTemplateColumns;
+    S.look.parallax = true; BUREAU.tilt(1, -1); await nap(60);
+    const tilted = grid().getBoundingClientRect();
+
+    out.theShelfSlides = Math.abs(tilted.left - flat.left) > 6;
+    out.theOpeningDoesNot = Math.abs(document.querySelector('.deskscroll').getBoundingClientRect().left) < 0.5;
+    out.theCarcassStaysPut =
+      Math.abs(document.querySelector('.gridbar').getBoundingClientRect().left) < 0.5
+      && Math.abs(document.querySelector('.deskrail').getBoundingClientRect().left) < 0.5;
+    // the rim shades the shelf from *above* it — an inset shadow on the
+    // scroller paints under its own children and is invisible behind the tiles
+    const rim = getComputedStyle(document.querySelector('.deskscroll'), '::after');
+    out.theRimShadesFromAbove = rim.boxShadow !== 'none' && +rim.zIndex > 0;
+
+    /* The whole argument for translate over rotate: the grid's own width is
+       untouched, so cellW() is untouched, so every cell coordinate in the app
+       is untouched. */
+    out.itsWidthIsUnchanged = Math.abs(tilted.width - flat.width) < 0.01;
+    out.andSoAreItsColumns = cs(grid()).gridTemplateColumns === cols;
+    /* And the one that would actually bite: a pointer over the middle of a
+       tile still computes that tile's own column, because clientX and the
+       grid's left edge moved by exactly the same amount. */
+    const tile = document.querySelector('#drawergrid .drawer[data-drawer]');
+    const tr = tile.getBoundingClientRect(), gr = grid().getBoundingClientRect();
+    const cw = gr.width / +cs(grid()).getPropertyValue('--cols');
+    const col = Math.floor((tr.left + tr.width/2 - gr.left) / cw) + 1;
+    const box = S.objects.find(o => o.id === tile.dataset.drawer).phone;
+    out.thePointerStillHitsItsOwnCell = col >= box.x && col < box.x + box.w;
+
+    /* It yields to anything that outranks a decoration, and each of those is
+       read off state or the DOM rather than pushed in — so nothing else in the
+       app has to remember this exists. */
+    const tiltNow = () => +cs(frame).getPropertyValue('--tiltx');
+    BUREAU.panel(tile.dataset.drawer); await nap(120);
+    BUREAU.tilt(1, 0);
+    out.aPanelHoldsItStill = tiltNow() === 0;
+    BUREAU.closePanel(); await nap(120);
+    BUREAU.tilt(1, 0);
+    out.andItComesBack = tiltNow() !== 0;
+    tile.classList.add('lifted'); BUREAU.tilt(1, 0);
+    out.carryingATileHoldsItStill = tiltNow() === 0;
+    tile.classList.remove('lifted');
+
+    /* render() writes `#frame`'s className wholesale, so anything living on
+       that element has to survive it. This one did not, and the symptom was
+       the cavity working until the first tick and then quietly stopping. */
+    BUREAU.render(); await nap(120);
+    out.aRenderDoesNotWipeIt = frame.classList.contains('tilting')
+      && cs(grid()).transform !== 'none';
+
+    S.look.parallax = false; BUREAU.applyTilt(); S.look.locked = wasLocked; await nap(60);
+    out.switchingItOffPutsItBack = !frame.classList.contains('tilting')
+      && cs(grid()).transform === 'none'
+      && Math.abs(grid().getBoundingClientRect().left - flat.left) < 0.01;
+    return out;
+  });
+  /* …and someone who has asked not to be moved is not moved, whatever the
+     setting says. motion.js never starts the loop under that query either;
+     this is the CSS half, which also catches the preference being turned on
+     while the setting is already stored. */
+  const stillCtx = await browser.newContext({ viewport:{width:390,height:844}, reducedMotion:'reduce' });
+  const stillPage = await stillCtx.newPage();
+  await stillPage.goto(URL); await stillPage.waitForTimeout(700);
+  cavity.reducedMotionIsObeyed = await stillPage.evaluate(async () => {
+    const S = BUREAU.state;
+    S.view='desk'; S.drawerId=null; S.look.parallax=true; BUREAU.render();
+    await new Promise(r => setTimeout(r, 220));
+    BUREAU.tilt(1, 1);
+    return getComputedStyle(document.querySelector('#drawergrid')).transform === 'none';
+  });
+  await stillCtx.close();
+
   /* --- the board being slid in beside you arrives *in position*. Both the
      reveal above the board and the depth of the drawer below it are measured
      after layout, and they used to be written onto the elements only then — so
@@ -4595,7 +4690,7 @@ const CHROME = process.env.BUREAU_CHROME;
     errors: errs, manifestOk, swReady, survived, styleSurvived, slotColours,
     newObjectSeen, inlineEdit, sortDefaults, taskLook,
     shelfTools, gridSizes, keeping, versionShown, sampler, paging, pageCoords, pagerGround, goingIn, comingOut,
-    makingOnAPhone, railDrawer, railIsFurniture, holding, pagerLandsFlat, deskDots,
+    makingOnAPhone, railDrawer, railIsFurniture, holding, cavity, pagerLandsFlat, deskDots,
     listSwipe, shadows, textureDepth,
     gridClass, offlineWorks, railGone, tabsGone, shelfGone, tileNavigates,
     holdArms, maxDrift,

@@ -21,7 +21,7 @@ import { openPanel, closePanel, refreshPanel, panelKey, panelBack, draft, openMe
   schedulePanel, quickISO, SCHED } from './panels.js';
 import { onDown, onMove, onUp, onCancel, onTouchStart, onTouchMove, onTouchEnd,
   gestureFlags, dragArmed } from './gestures.js';
-import { enter, leaveTile, pagerOn } from './motion.js';
+import { enter, leaveTile, pagerOn, applyTilt, askTilt } from './motion.js';
 import { save, writeNow, exportBackup, importBackup, importFile, imgFor, pasteObjects, install , assetDel } from './persist.js';
 
 /* Mark one chip in a group as the chosen one. The selector is deliberately
@@ -664,6 +664,26 @@ function wire(){
     const shd=t.closest('[data-shadows]');
     if(shd){ S.look.shadows = !!shd.dataset.shadows;
       applyLook(); save(); render(); refreshPanel(); return; }
+
+    /* Looking into the cavity. Switching it **on** has to ask iOS for the
+       sensor, and iOS will only consider the question inside a user gesture —
+       which is this click and nothing else, so the permission call lives here
+       rather than in applyTilt(). A refusal leaves the switch off rather than
+       storing a setting that cannot do anything. See decision 108. */
+    const plx=t.closest('[data-parallax]');
+    if(plx){
+      const want = !!plx.dataset.parallax;
+      (async ()=>{
+        if(want && !(await askTilt())){
+          toast('iPhone would not give Bureau its motion sensor');
+        } else {
+          S.look.parallax = want;
+          save();
+        }
+        applyTilt(); refreshPanel();
+      })();
+      return;
+    }
 
     /* Which tick box the whole desk wears. The sample inside each option
        carries the same attribute, so a button is drawn as the thing it picks

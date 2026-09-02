@@ -440,7 +440,12 @@ function defaultLook(){
           /* Pinned to a board rather than laid flat on one: a little air around
              each tile and a degree or two of tilt. Off by default — see
              decision 75. */
-          pinned:false};
+          pinned:false,
+          /* The shelf is inset behind the opening, and tilting the phone looks
+             into that cavity. Off by default: switching it on asks iOS for
+             permission, and a phone feature only — a Mac has no gyroscope.
+             See decision 108. */
+          parallax:false};
 }
 reset();
 

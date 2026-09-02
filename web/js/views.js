@@ -551,6 +551,13 @@ function settingsBody(sec){
       <div class="mini" style="--k:var(--brass);margin-top:6px">Off, a tile is the colour and the border and nothing else — flatter, quieter, and easier to read a crowded board off.</div>
     </div>
 
+    ${S.device!=='desk'?`
+    <div class="field" style="margin-top:12px"><label>Looking in</label>
+      <div class="filterbar">${[['','Still'],['1','The shelf is inset']].map(([v,n])=>
+        `<button class="fchip${(S.look.parallax?'1':'')===v?' on':''}" data-parallax="${v}">${n}</button>`).join('')}</div>
+      <div class="mini" style="--k:var(--brass);margin-top:6px">The board is set into the carcass a centimetre or so, and tilting the phone looks into that cavity — the shelf slides behind the opening, which stays where it is. It asks iPhone for the motion sensor the first time you switch it on, and it stands still while you are carrying a tile or reading.</div>
+    </div>`:''}
+
     ${gridSizeField(null)}
 
     <div class="field" style="margin-top:12px"><label>Whose desk this is</label>
@@ -887,7 +894,14 @@ function render(){
   const frame=$('#frame');
   const wasKey=SCROLL.key, wasEl=$('#app .scroll');
   if(wasEl) SCROLL.top=wasEl.scrollTop;
-  frame.className = S.device==='desk' ? 'is-desk' : 'is-phone';
+  /* Written wholesale, so anything else living on this element has to be
+     restated here or it is wiped by the next render — which for `tilting` meant
+     the cavity worked until you ticked something and then silently stopped.
+     It is stated off `S.look` rather than asked of motion.js, because a class
+     on the frame is a fact about the desk and not about the sensor's mood.
+     See decision 108. */
+  frame.className = (S.device==='desk' ? 'is-desk' : 'is-phone')
+    + (S.look.parallax && S.device!=='desk' ? ' tilting' : '');
   document.documentElement.dataset.theme = themeNow();
   applyLook();          // the custom colours are per theme, so repaint them
   /* The wood is per desk, and it is the whole carcass rather than the rail: the

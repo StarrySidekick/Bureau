@@ -340,6 +340,25 @@ furniture, rather than a "Where it lives" row in a form.
 
 See decision 107.
 
+### 7b. The cavity
+
+The board is **set into** the carcass, and on a phone tilting looks into that
+recess: the shelf — the grid, its checkerboard and every tile standing on it —
+slides as one piece behind an opening that does not move, and the rim shades
+whatever has slid away from it. It is off by default, phone only (a Mac has no
+gyroscope), and it is a `S.look.parallax` switch in Settings.
+
+- **One transform on one element**, never per tile, so it costs one composited
+  layer rather than a repaint per tile.
+- **Translate, never rotate.** A translate cancels out of `cellW()` and every
+  coordinate derived from it; a rotation would make `getBoundingClientRect()`
+  describe a trapezoid's bounding box and break the drop.
+- **It yields** to a drag, the pager, a panel, a surface and reduced motion.
+- **Rest is where you hold the phone**, not the sensor's zero, and it drifts
+  toward wherever you settle.
+
+See decision 108.
+
 ## 8. The grid
 
 Each container is its own coordinate space, and every device has its own.
