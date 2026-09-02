@@ -4638,3 +4638,47 @@ And `tiltTo()` — the hook that parks the shelf by hand — set `TILT.on`, whic
 is `tiltStart()`'s own guard. A later `applyTilt()` therefore returned early
 and never attached the listener, so *using the test hook quietly stopped the
 sensor*. It sets the classes and nothing else now.
+
+## 115. The reveal is a frame, and a window is painted
+
+*2026-09-02*
+
+Two things, both found by using it rather than reading it.
+
+**A window was the carcass's colour.** The frame and its muntins were drawn in
+`--wood`, which made every window walnut and made the object's colour picker do
+nothing at all to one. They are `--c` now — the object's own colour, set inline
+from `objColour()` — which is the rule the whole app runs on and which this
+broke by borrowing a token that belongs to the furniture. A window is a thing
+you paint; it is not a piece of the desk.
+
+**And the reveal was a gap rather than a frame.** The board slid into flat wood,
+which reads as the phone cutting it off rather than as something passing behind
+something. The pixels were right and the reading was wrong.
+
+So the reveal is *drawn*: a bevel lit from the upper left, and — the part that
+makes it legible — **mitre joints at the four corners**, which say "frame"
+faster than any amount of shading. Both come free from one `border-image`: a
+conic gradient in four flat sectors, started at 45°, puts one sector on each
+side of the box and the boundaries between them fall exactly on the diagonals.
+The corner joints are drawn by the geometry rather than by hand.
+
+It hangs off `.main` and not the scroller, because the scroller clips and a rim
+drawn outside something that clips is a rim you cannot see. And the top gap now
+follows the side inset (`--gapmin: max(7px, --deskinset)`), so the reveal is the
+same width all round and the rim's top edge cannot run into the bar.
+
+**What this does not do is stop the board being occluded**, and it cannot: a
+surface that moves inside a fixed opening has to go behind *something*, or it
+overflows the opening. What changed is what that something looks like. If the
+board should never be occluded at all, the only honest version is one where the
+board does not move and only the floor does — which is a different effect and
+worth trying separately.
+
+One trap, and it is decision 58's: `--boardtop` and `--boardh` are measured
+after layout by `sizeGrid()`, which writes **only what has changed**, and
+`render()` replaces `#app` wholesale. So a value written onto the old `.main`
+and then skipped as unchanged is a value the new one never gets — the rim was
+correct on the render that moved it and missing on every other. They are written
+into the markup from the last measurement now, exactly as the reveal and the
+rail's depth already were.

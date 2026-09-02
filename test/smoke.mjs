@@ -2344,6 +2344,37 @@ const CHROME = process.env.BUREAU_CHROME;
                           && near(inHand.pitch,  upright.pitch);
     forget();
 
+    /* ---- the reveal is a frame, not a gap -------------------------------
+       Flat wood reads as the phone cutting the board off. A bevel with mitre
+       joints at the corners reads as the board going behind something, which
+       is the same pixels saying a different thing. `--boardtop`/`--boardh` are
+       measured by sizeGrid() the way the reveal and the rail's depth already
+       are. See decision 115. */
+    S.look.parallax='desk'; S.look.deskinset=14;
+    BUREAU.applyLook(); BUREAU.applyTilt(); BUREAU.render(); await nap(260);
+    // re-queried every time: render() replaces #app, so a captured .main is stale
+    const rimOf = () => getComputedStyle(document.querySelector('#app .main'), '::after');
+    out.theRimIsDrawn = rimOf().borderImageSource.includes('conic-gradient')
+      && parseFloat(rimOf().borderTopWidth) === 14;
+    // it is mitred: four flat sectors, so the joints fall on the diagonals
+    out.andItIsMitred = (rimOf().borderImageSource.match(/color|rgb/g)||[]).length >= 4;
+    // …and it knows where the board actually is
+    /* …and it knows where the board is *after a render*, which is the half
+       that was broken: sizeGrid() writes only what changed, so the value has to
+       be in the markup too or the next render loses it. */
+    BUREAU.render(); await nap(220);
+    const mn = document.querySelector('#app .main');
+    const sr = document.querySelector('.deskscroll').getBoundingClientRect();
+    const mrr = mn.getBoundingClientRect();
+    const cssv = k => parseFloat(getComputedStyle(mn).getPropertyValue(k));
+    out.andItIsRoundTheBoard = Math.abs(cssv('--boardtop') - (sr.top-mrr.top)) < 1.5
+      && Math.abs(cssv('--boardh') - sr.height) < 1.5;
+    // no cavity, no rim: switching it off leaves the desk as it shipped
+    S.look.parallax='off'; BUREAU.applyTilt(); BUREAU.render(); await nap(200);
+    out.andNoneOfItWhenTheCavityIsOff = rimOf().borderImageSource === 'none';
+    S.look.parallax='both'; S.look.deskinset=8;
+    BUREAU.applyLook(); BUREAU.applyTilt(); BUREAU.render(); await nap(200);
+
     /* ---- which of them answers the tilt is a choice ---------------------
        The desk and a window are the same sensor and the same two numbers, and
        they are not the same effect — a window has a drawn frame to be behind
@@ -2456,6 +2487,15 @@ const CHROME = process.env.BUREAU_CHROME;
     const et = document.querySelector(`#app .drawer[data-row="${e.id}"]`);
     out.anEmptyOneIsStillAWindow = !!(et && et.classList.contains('winview')
       && et.querySelector('.wbars'));
+    /* The frame is the **object's** colour. It was the carcass's walnut, which
+       made every window the same and made the colour picker do nothing to one
+       — the mistake CLAUDE.md names as reading `o.c` instead of going through
+       the token. */
+    made[0].c = '#FF0000'; BUREAU.render(); await nap(220);
+    const red = document.querySelector(`#app .drawer[data-row="${made[0].id}"] .wbars`);
+    out.theFrameTakesTheObjectsColour =
+      getComputedStyle(red).backgroundImage.includes('rgb(255, 0, 0)');
+
     // a picture frame is not a window and must not move
     const pic = BUREAU.create('image', {title:'Framed', parent:room.id});
     pic.media = {src:scene, alpha:0}; pic.frame = 'gilt';

@@ -36,7 +36,11 @@
    grey mount a picture gets, because a window with no view is still a window. */
 .drawer.imgtile.winview.empty{background:linear-gradient(#BBD3E8,#D9E3EA)}
 .drawer.imgtile.winview.empty .imgempty{position:relative;z-index:5;color:#3C4A55}
-.drawer.imgtile.winview{padding:0;background:var(--wood-2);
+/* The frame is the **object's own colour**, like everything else on a board:
+   `--c` is set inline from `objColour()`, and a window is a thing you paint
+   rather than a piece of the carcass. It was `--wood`, which made every window
+   walnut and made the colour picker do nothing to one. */
+.drawer.imgtile.winview{padding:0;background:var(--c);
   box-shadow:var(--shadow-lg), inset 0 0 0 1px rgba(0,0,0,.35)}
 .drawer.imgtile.winview .tileimg{border-radius:0;box-shadow:none}
 /* The casing, at the tile's own edge. It carried `border:7px solid transparent`
@@ -46,7 +50,7 @@
    picture rather than being the edge of the thing. */
 .drawer.imgtile.winview::before{content:"";position:absolute;inset:0;z-index:3;
   pointer-events:none;
-  box-shadow:inset 0 0 0 7px var(--wood), inset 0 0 9px -2px rgba(0,0,0,.75);
+  box-shadow:inset 0 0 0 7px var(--c), inset 0 0 9px -2px rgba(0,0,0,.75);
   border-radius:inherit}
 /* …and the muntins run corner to corner, so they meet the casing rather than
    stopping short of it. A bar that floats clear of the frame is not a bar. */
@@ -55,8 +59,8 @@
 /* one bar each way — the plus, four lights */
 .fr-cross .wbars{
   background-image:
-    linear-gradient(var(--wood) 0 100%),
-    linear-gradient(var(--wood) 0 100%);
+    linear-gradient(var(--c) 0 100%),
+    linear-gradient(var(--c) 0 100%);
   background-size:5px 100%, 100% 5px;
   background-position:50% 0, 0 50%;
 }
@@ -64,8 +68,8 @@
    what the name says. Written with four bars once, which drew nine. */
 .fr-six .wbars{
   background-image:
-    linear-gradient(var(--wood) 0 100%),
-    linear-gradient(var(--wood) 0 100%), linear-gradient(var(--wood) 0 100%);
+    linear-gradient(var(--c) 0 100%),
+    linear-gradient(var(--c) 0 100%), linear-gradient(var(--c) 0 100%);
   background-size:4px 100%, 100% 4px, 100% 4px;
   background-position:50% 0, 0 33.33%, 0 66.66%;
 }
@@ -73,8 +77,8 @@
 .fr-arch{border-radius:50% 50% var(--radius-d) var(--radius-d) / 32% 32% var(--radius-d) var(--radius-d)}
 .fr-arch .wbars{
   background-image:
-    linear-gradient(var(--wood) 0 100%),
-    linear-gradient(var(--wood) 0 100%);
+    linear-gradient(var(--c) 0 100%),
+    linear-gradient(var(--c) 0 100%);
   background-size:5px 100%, 100% 5px;
   background-position:50% 0, 0 62%;
 }
@@ -82,9 +86,9 @@
 .fr-lattice .wbars{
   background-image:
     repeating-linear-gradient(52deg, transparent 0 21px,
-      color-mix(in srgb, var(--wood) 82%, transparent) 21px 23px),
+      color-mix(in srgb, var(--c) 88%, transparent) 21px 23px),
     repeating-linear-gradient(-52deg, transparent 0 21px,
-      color-mix(in srgb, var(--wood) 82%, transparent) 21px 23px);
+      color-mix(in srgb, var(--c) 88%, transparent) 21px 23px);
   background-size:100% 100%, 100% 100%;
   background-position:0 0, 0 0;
 }
@@ -2943,7 +2947,47 @@ input,textarea,select,[contenteditable],
    the cell is `grid.width / cols`, measured after layout, and a column count is
    the coordinate space rather than a number of pixels. See decisions 60 and
    111. */
-.is-phone.tilt-desk .scroll.deskscroll{margin-inline:var(--deskinset,0px)}
+/* The reveal is the **same all round**, so `--gapmin` follows it: the board's
+   top gap is at least the side inset, which is what lets the rim below be one
+   uniform width without its top edge running into the bar. */
+.is-phone.tilt-desk .scroll.deskscroll{
+  margin-inline:var(--deskinset,0px);
+  --gapmin:max(7px, var(--deskinset,0px));
+}
+
+/* ---- the rim is a real frame, not a gap -------------------------------
+   The reveal was flat wood, and a board sliding into flat wood reads as the
+   phone cutting it off rather than as something passing behind a frame. So the
+   reveal is *drawn*: a bevel lit from the upper left, and — the part that
+   makes it legible — **mitre lines at the four corners**, which is what says
+   "frame" faster than any amount of shading.
+
+   Both come free from one `border-image`. A conic gradient in four flat
+   sectors, started at 45°, puts a sector on each side of the box and the
+   boundaries between them fall exactly on the diagonals: the corner joints of
+   a mitred frame, drawn by the geometry rather than by hand. Light at the
+   upper left, like every other lit thing in the app.
+
+   It hangs off `.main`, not the scroller: the scroller clips, and a rim drawn
+   *outside* something that clips is a rim you cannot see. `--boardtop` and
+   `--boardh` are written by sizeGrid() after it has measured, the way the
+   reveal and the rail's depth already are. See decision 115. */
+.is-phone.tilt-desk .main::after{
+  content:"";position:absolute;z-index:6;pointer-events:none;
+  left:0;right:0;
+  top:calc(var(--boardtop,0px) - var(--deskinset,0px));
+  height:var(--boardh,0px);
+  box-sizing:content-box;
+  border:var(--deskinset,0px) solid transparent;
+  border-image:conic-gradient(from 45deg,
+    color-mix(in srgb, var(--wood) 82%, #000) 0 25%,   /* right, in shade   */
+    color-mix(in srgb, var(--wood) 66%, #000) 0 50%,   /* bottom, deepest   */
+    color-mix(in srgb, var(--wood) 90%, #fff) 0 75%,   /* left, catching it */
+    color-mix(in srgb, var(--wood) 78%, #fff) 0) 1;    /* top, lit          */
+  /* a hairline where it meets the board, and one at its outer edge, so the
+     band reads as standing proud of both */
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.42), 0 0 0 1px rgba(0,0,0,.28);
+}
 .is-phone .main{overflow:hidden}
 
 /* ============================================================

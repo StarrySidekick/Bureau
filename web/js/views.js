@@ -128,7 +128,11 @@ function gridBar(c){
    So the numbers are held here and written into the markup as it is built, the
    same way gridOfContainer() writes the checker squares from the last measured
    cell. A board drawn off-screen is drawn at the size it will be. */
-const REVEAL = {gap:7, rail:30};
+/* The board's own box, measured after layout and written back onto `.main` so
+   the rim can be drawn round it. Same discipline as `gap` and `rail`: written
+   only when it has actually changed, because a style write that changes
+   nothing still dirties layout. */
+const REVEAL = {gap:7, rail:30, top:0, h:0};
 const revealStyle = ()=> S.device==='phone' ? ` style="margin-top:${REVEAL.gap}px"` : '';
 
 function viewDesk(){
@@ -838,7 +842,15 @@ function viewHTML(){
   try{
     const body = S.view==='drawer' ? viewDrawer()
                : viewDesk();        // the desk is the only other place there is
-    return `<div class="main">${body}${S.device==='phone'?deskRail():''}</div>`;
+    /* The board's box is written into the markup from the *last* measurement,
+       for the same reason the reveal and the rail's depth are: `sizeGrid()`
+       writes only what has changed, and `render()` replaces `#app` — so a
+       value written onto the old `.main` and then skipped as "unchanged" is a
+       value the new one never gets. It was missing on every render but the
+       one that moved it. See decision 115. */
+    const box = S.device==='phone'
+      ? ` style="--boardtop:${REVEAL.top}px;--boardh:${REVEAL.h}px"` : '';
+    return `<div class="main"${box}>${body}${S.device==='phone'?deskRail():''}</div>`;
   } finally { endPass(); }
 }
 
@@ -1030,6 +1042,11 @@ function sizeGrid(){
     const gap = gapMin + Math.floor(over/2), deep = railMin + Math.ceil(over/2);
     if(gap!==REVEAL.gap){ REVEAL.gap=gap; sc.style.marginTop = gap+'px'; }
     if(rail && deep!==REVEAL.rail){ REVEAL.rail=deep; rail.style.height = deep+'px'; }
+    // where the board actually ended up, for the rim drawn around it
+    const mr=main.getBoundingClientRect(), sr=sc.getBoundingClientRect();
+    const bt=Math.round(sr.top-mr.top), bh=Math.round(sr.height);
+    if(bt!==REVEAL.top){ REVEAL.top=bt; main.style.setProperty('--boardtop', bt+'px'); }
+    if(bh!==REVEAL.h){   REVEAL.h=bh;   main.style.setProperty('--boardh',  bh+'px'); }
   } else if(dev()!=='phone'){ MEASURE.desk.room=0; MEASURE.desk.w=w*g.cols; }
   /* Do NOT round. Columns are `1fr` and therefore fractional; rounding the row
      height to a whole pixel made rows and columns different sizes, and the

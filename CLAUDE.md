@@ -482,7 +482,13 @@ moment it is off. That reveal is not decoration: it is what the shelf slides
 something going behind wood. It needn't be as wide as the throw, because the
 scroller clips at its own edge either way. It is a slider in Settings (0–24px,
 zero is flush) because how much is a matter of taste held in the hand. Changing
-it calls `sizeGrid()`, never `render()`. It is off by default, phone only, and it eases to zero for a
+it calls `sizeGrid()`, never `render()`. The reveal is **drawn as a frame** —
+`.main::after`, a bevel with mitre joints at the corners, both out of one
+`border-image` whose conic gradient puts a flat sector on each side so the
+boundaries fall on the diagonals. It hangs off `.main` because the scroller
+clips, and `--boardtop`/`--boardh` are written into the markup as well as by
+`sizeGrid()`, or the render after the one that moved them loses them (decision
+58's trap, again). See decision 115. It is off by default, phone only, and it eases to zero for a
 drag, the pager, a panel, a surface and reduced motion — all read off state or
 the DOM, so nothing else has to know it exists. See decision 108.
 
@@ -680,7 +686,10 @@ in `sw.js`. See decision 86.
 
 **A frame goes round a picture; a window goes in front of a view.** One slot,
 `frameOf(o)` (per object then per type — never `o.frame`), holding six picture
-frames and four window ones; `isWindow(o)` is the second group. A window's
+frames and four window ones; `isWindow(o)` is the second group. A window is
+painted in **`--c`**, the object's own colour, like everything else on a board —
+it was `--wood`, which made every window walnut and the colour picker useless on
+one. Its
 muntins are their own element (`.wbars`) because they sit *above* the image and
 a tile's two pseudo-elements are spent — drawn as gradients so a bar is a fixed
 px thickness at any size and every position is a %. The view behind the glass
