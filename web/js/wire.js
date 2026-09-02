@@ -2,19 +2,20 @@ import { $, $$, esc, ic, uid, D, ROOT } from './util.js';
 import { S, K, KINDS, KEYS, refreshKinds, ATTRS, USER_ATTRS, attrsOf, has, SHAPES,
   FACES, MANUAL, byId, container, cfgOf, isContainer, isAncestor, relate, deskOf,
   unrelate, sensedDevice, reset, T, dz, dev, calViewOf, RULE_MAX, acceptFor,
-  boardLocked, repeatOf, repeats } from './model.js';
+  boardLocked, repeatOf, repeats, heldObjects, heldCount } from './model.js';
 import { gridOf, lay, boxOk, freeSpot, toPhoneSize } from './grid.js';
 import { applyLook, applyStyle, setLookVal, lookVal, STYLES, randomFront,
   setSlot, palNow, objColour, darkMode } from './look.js';
 import { toast, setGridSize, toggleDone, spawnNext, del, delMany, delDrawer, undo, redo, pushUndo,
-  pushSet, pushSets, setPin, togglePin, drawerForTag, create, quickAdd, spawnInto, randomThing } from './mutations.js';
+  pushSet, pushSets, setPin, togglePin, drawerForTag, create, quickAdd, spawnInto, randomThing,
+  holdIt, unholdIt } from './mutations.js';
 import { spinTo, pending, placeAtPending, tileTap, turnPage, clearPages } from './tiles.js';
 import { DECOR } from './decor.js';
 import { render, renderSoon, sizeGrid, toggleSettings, settingsPanel, reveal, goPage, deskMap } from './views.js';
 import { openObj, openWriter, openRead, openViewer, closeSheet, renderSheet, words,
   mdKey, copyObject } from './sheet.js';
 import { openPanel, closePanel, refreshPanel, panelKey, panelBack, draft, openMenu,
-  modalNewObject, modalNewKind, modalMove, renderPreview,
+  modalNewObject, modalNewKind, modalMove, renderPreview, holdPanel,
   drawerPanel, objectPanel,
   drawerFromSelection, openCtx, closeCtx, openCmd, closeCmd, cmdList, cmdMove, cmdAt, runCmd,
   schedulePanel, quickISO, SCHED } from './panels.js';
@@ -371,6 +372,29 @@ function act(name, el){
       }
       break;
     }
+    /* ---- the holding space ---------------------------------------------
+       Out of the drawer along the bottom and onto the board you are standing
+       on. The panel stays open while there is anything left in it — you are
+       usually putting down more than one — and closes itself when the drawer
+       is empty, because a drawer with nothing in it is not a screen. */
+    case 'holdopen': holdPanel(); break;
+    case 'holdtake': {
+      const id=el.dataset.id;
+      if(!unholdIt(id)) break;
+      render(); reveal(id);
+      if(heldCount()) refreshPanel(); else closePanel();
+      break;
+    }
+    case 'holdtakeall': {
+      const ids=heldObjects().map(o=>o.id);
+      if(!ids.length) break;
+      // one at a time, so each is placed against what the last one took
+      ids.forEach(id=>unholdIt(id));
+      render(); reveal(ids[ids.length-1]);
+      closePanel();
+      toast(`${ids.length} put down`);
+      break;
+    }
     case 'drawersettings': case 'objset': objectPanel(el.dataset.id); break;
     case 'panelclose': closePanel(); break;
     case 'panelback': panelBack(); break;
@@ -596,6 +620,10 @@ function wire(){
       else if(cmd==='today'){ const o=byId(id); pushSet('Scheduled',id,'due',o.due); o.due=T; save(); render(); toast('Scheduled today'); }
       else if(cmd==='tom'){ const o=byId(id); pushSet('Scheduled',id,'due',o.due); o.due=dz(1); save(); render(); toast('Scheduled tomorrow'); }
       else if(cmd==='move') modalMove(id);
+      /* The drawer along the bottom, without the gesture. The drag is the way
+         you reach for this on a phone; a Mac has no rail to drag onto, and the
+         menu is the one place that answers for both. */
+      else if(cmd==='hold'){ if(holdIt(id)){ render(); toast('Kept in the drawer', true); } }
       else if(cmd==='dupe'){ const o=byId(id); S.objects.push(Object.assign({},o,{id:uid('o'),title:o.title+' (copy)',ord:o.ord+0.1})); render(); }
       else if(cmd==='intodrawer') drawerFromSelection(id);
       else if(cmd==='del'){

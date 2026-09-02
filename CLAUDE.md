@@ -568,6 +568,40 @@ a container takes dictation at all. The box is off unless `addbox` says
 regardless at two cells tall or less, where the line is worth more as an item.
 Inside the container it is always there. See decisions 77 and 79.
 
+**The drawer along the bottom holds things.** Pick a tile up on a phone and it
+stands ajar under the tile; let go over it and the object leaves the board and
+waits in the **holding space**, which is how a thing is carried to another
+desk. A held object is `parent: HOLD` — a *reserved id*, `'__hold'`, exactly as
+ROOT is, not an object — so there is nothing to seed, migrate, export or reap;
+ask `isHeld(o)` and `heldObjects()`, go through `holdIt`/`unholdIt`. Both boxes
+are cleared going in, because HOLD is not a coordinate space, and `ensureBox()`
+places it fresh coming out. **A magic drawer cannot see into it** —
+`inContainer()` refuses a held object before scope and before the archive, or
+"everything unfinished" would draw it straight back onto the board it was taken
+off and it would be in two places. The panel is `fit`: as tall as what is in
+it. Held things are drawn at their **type's desk size**, not the box they had —
+a phone task is eight cells by one, and scaled to a thumbnail that is a sliver.
+See decision 107.
+
+**The rail's pull has two detents, and they are the same drawer read
+literally.** A little way (`PULL_HOLD`) opens the drawer onto what is in it;
+the whole way (`PULL_OPEN`, a quarter of the screen) pulls it clean out of the
+desk, which is the new-object picker. The long one is unchanged, so the gesture
+that already existed still means what it meant. The ajar drawer and the pulled
+one are **one element** — `makePull()` — because two would disagree about where
+the mouth is. It is an overlay rather than a taller rail: the rail is a flex
+item and growing it would relayout the board under the tile in your hand. And
+the drop is aimed **geometrically**, off one number measured once, because the
+front is `pointer-events:none` and `elementFromPoint` falls through it — and
+the mouth starts a lip above the *rail*, not at the top of the front, because
+the front is an overlay standing on the board's last row. `aimDrop()` asks about it **first** — it is not on a board at all, so
+there is nothing under it for it to beat.
+
+**A tile inside a `<button>` is a tile that falls out of its own cell.** A tile
+renders its own `<button>`, and a button inside a button is a parse error the
+browser fixes by *unnesting* it — silently, taking the layout with it. That is
+why `.kindtile` and `.helditem` are `div`s with `role="button"`.
+
 **A tag is a magic drawer waiting to happen.** There is no filter mode and no
 filter bar; clicking a tag anywhere calls `drawerForTag()`, which finds the
 magic drawer collecting that tag or makes one. If you are tempted to add a
@@ -809,8 +843,10 @@ the stylesheet owns it. See decision 89.
 strips the board cannot use — the notch above the bar and the curve of the
 bottom corners — and both are the desk itself: `--wood` above, and along the
 bottom a **drawer front** with a round knob. Tapping the knob takes you out (out
-of a drawer to its desk, from a desk to home); **pulling it up opens the type
-picker**, which is decision 43's gesture given back the thing it comes out of.
+of a drawer to its desk, from a desk to home); **pulling it up a little opens
+the drawer** onto the holding space, and **pulling it all the way out opens the
+type picker**, which is decision 43's gesture given back the thing it comes out
+of. It is a real drawer now — it holds things (decision 107).
 The wood is the same in light and dark and is deliberately not derived from the
 style's five — a desk is walnut at midday too. See decision 55.
 

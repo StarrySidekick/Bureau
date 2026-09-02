@@ -1,10 +1,10 @@
 import { $, $$, clamp, D, ROOT } from './util.js';
 import { S, byId, dev, has, isAncestor, childrenOf, container, gatherKind, spanOf,
-  sortOf, cfgOf, boardLocked, T } from './model.js';
+  sortOf, cfgOf, boardLocked, heldCount, T } from './model.js';
 import { GRID, CELL, gridOf, cellW, lay, boxOk, overlaps } from './grid.js';
-import { toast, gather, setPin, del, pushSets } from './mutations.js';
+import { toast, gather, setPin, del, pushSets, holdIt } from './mutations.js';
 import { pending, tileTap, fireButton } from './tiles.js';
-import { modalNewObject, openCtx, closeCtx, schedulePanel } from './panels.js';
+import { modalNewObject, holdPanel, openCtx, closeCtx, schedulePanel } from './panels.js';
 import { render, pageTop } from './views.js';
 import { pagerBegin, pagerMove, pagerEnd, pagerCancel, pagerOn } from './motion.js';
 import { save } from './persist.js';
@@ -74,28 +74,99 @@ function cancelHold(e){
    the desk's own drawer front now, which is better furniture for it — a drawer
    is a thing you pull open, and this one is drawn as one.
 
-   Three numbers and an element. PULL_START is how far the finger travels before
+   **The drawer opens twice**, because it does two things. Open it a little and
+   it is the **holding space** — what is in the drawer, and a way to put it
+   down. Keep pulling and the whole thing comes out of the desk, which is the
+   **new object** picker: you have pulled the drawer clean out, so what you get
+   is a thing rather than the drawer's contents. One stroke, two detents, and
+   the front says which one you are in before you let go. See decision 107.
+
+   Four numbers and an element. PULL_START is how far the finger travels before
    the drawer is showing at all — enough to rule out a tap and a sideways
-   scroll, not enough to feel like a delay. PULL_OPEN is the pull itself, and it
-   is deliberately long: a quarter of a phone screen is a stroke you have to
-   commit to, which is what stops a flick, a scroll or a swipe up out of the app
-   from opening it by accident.
+   scroll, not enough to feel like a delay. PULL_HOLD is the first detent, and
+   it is small on purpose: opening the drawer is the cheap half. PULL_OPEN is
+   the pull itself, and it is deliberately long: a quarter of a phone screen is
+   a stroke you have to commit to, which is what stops a flick, a scroll or a
+   swipe up out of the app from making an object by accident.
 
    HOME_EDGE is the strip along the very bottom that iOS keeps for its own home
    swipe. The rail sits above the home indicator — the safe-area inset is inside
    it — so this is belt and braces. */
-const PULL_START = 12, HOME_EDGE = 14;
+const PULL_START = 12, PULL_HOLD = 40, HOME_EDGE = 14;
 const PULL_OPEN = ()=> Math.round(Math.min(200, Math.max(110, innerHeight*0.26)));
-function makePull(){
+/* A drawer front standing on the rail's top edge, however far out it has been
+   pulled. Both uses build the same element: the one your finger is pulling,
+   and the one that stands ajar under a tile you are carrying — it is the same
+   piece of furniture doing the same thing, so it must not be two of them. */
+function makePull(cls){
   const el=document.createElement('div');
-  el.className='shelfpull';
-  el.innerHTML=`<div class="pullfront"><i class="pullknob"></i><b>New object</b></div>`;
+  el.className='shelfpull'+(cls?' '+cls:'');
+  el.innerHTML=`<div class="pullfront"><i class="pullknob"></i>
+    <b class="pulllabel"></b></div>`;
   // it comes out *of* the rail, so it stands on the rail's top edge rather than
   // covering it — the front is the thing it is being pulled from
   const rail=$('.deskrail'), fr=$('#frame').getBoundingClientRect();
   el.style.bottom = (rail ? fr.bottom - rail.getBoundingClientRect().top : 0) + 'px';
   $('#frame').appendChild(el);
   return el;
+}
+// What the front is offering at this moment, said in the fewest words that are
+// still true. An empty drawer says so rather than pretending to hold something.
+function pullSay(el, word){
+  const b=el.querySelector('.pulllabel');
+  if(b) b.textContent=word;
+}
+const holdWord = ()=>{ const n=heldCount(); return n ? `Holding · ${n}` : 'Holding'; };
+
+/* ---- the drawer stands ajar while you are carrying something -----------
+   Pick a tile up on a phone and the drawer along the bottom opens a little:
+   the desk showing you it will take the thing in your hand. Drop it there and
+   it waits in the holding space until you put it down somewhere else — which
+   is the whole of copy and paste, made of furniture.
+
+   It is drawn as an overlay rather than by growing the rail, because the rail
+   is a flex item and growing it would relayout the board under the tile you
+   are carrying. That overlay stands *over* the last row of the board, so the
+   mouth is not the whole of it: it starts AJAR_GRAB above the rail — roughly
+   where the open front meets the carcass — and runs to the bottom of the
+   screen. Take the whole front and the last row of every phone board becomes
+   somewhere you cannot drop a tile; take none of it and the thing that says
+   "let go" does not answer when you do.
+
+   The band is measured once, when the front appears, and the aim is that one
+   number: a geometric test rather than elementFromPoint, which the front is
+   `pointer-events:none` to and would fall straight through. Measuring once
+   also means the band does not grow when the front does, which is the
+   hysteresis you want — it is easier to stay in than to enter. */
+const AJAR = 34, AJAR_AIM = 62, AJAR_GRAB = 16;
+function openAjar(g){
+  if(S.device==='desk' || g.group || g.hold) return;
+  g.hold=makePull('ajar');
+  g.hold.style.setProperty('--pull', AJAR+'px');
+  pullSay(g.hold, holdWord());
+  const rail=$('.deskrail');
+  g.holdTop = (rail ? rail.getBoundingClientRect().top
+                    : g.hold.getBoundingClientRect().bottom) - AJAR_GRAB;
+}
+function closeAjar(g){
+  if(!g || !g.hold) return;
+  g.hold.remove(); g.hold=null; g.holdTop=null;
+}
+/* Is the pointer in the drawer's mouth? The aim band is the ajar front plus
+   everything below it — the rail, the home strip, the bottom of the screen —
+   because a thing carried off the bottom edge of a phone was aimed at the only
+   thing down there. */
+function aimHold(g, py){
+  if(!g.hold || g.holdTop==null) return false;
+  const on = py >= g.holdTop;
+  if(on !== !!g.holdOn){
+    g.holdOn=on;
+    g.hold.classList.toggle('aim', on);
+    g.hold.style.setProperty('--pull', (on?AJAR_AIM:AJAR)+'px');
+    pullSay(g.hold, on ? 'Let go to keep it here' : holdWord());
+    if(on && navigator.vibrate) navigator.vibrate(4);
+  }
+  return on;
 }
 
 /* ---- the two things a row can be swiped into --------------------------
@@ -202,6 +273,9 @@ function clearCarry(el){
    asked about first — otherwise every drop on a calendar would file into the
    drawer and throw the date away, which is the bug that made this ordering
    explicit rather than incidental. */
+/* The drawer's own aim is not cleared here: aimHold() owns it and is called
+   immediately afterwards, so resetting it first would make every pointer move
+   a toggle — and the toggle carries a haptic. */
 function clearAim(g){
   if(g.dayEl){ g.dayEl.classList.remove('dropday'); g.dayEl=null; }
   if(g.tlEl){ g.tlEl.classList.remove('droptime');
@@ -230,6 +304,8 @@ const canDate = (dragId, intoId) => !!intoId && intoId!==dragId && !isAncestor(d
 function aimPluck(g, px, py){
   if(g.dropEl) g.dropEl.classList.remove('dropinto','dropboard');
   g.dropEl=null; g.dropOn=null;
+  // the drawer first, for the same reason aimDrop asks it first
+  if(aimHold(g, py)) return;
   if(g.chip) g.chip.style.visibility='hidden';
   const under=document.elementFromPoint(px, py);
   if(g.chip) g.chip.style.visibility='';
@@ -251,6 +327,12 @@ function aimDrop(g, px, py){
   const d=byId(g.id);
   // a set has no single date, and nothing to gather with — it only ever files
   if(!d) return;
+  /* The drawer along the bottom, before any of the four below. It is not on a
+     board at all — it is the carcass — so there is nothing under it for it to
+     beat and nothing it can take a drop away from. Everything else in this
+     function is a question about the board; this one is a question about
+     whether you have left it. See decision 107. */
+  if(aimHold(g, py)) return;
   const under=document.elementFromPoint(px, py);
   if(!under) return;
   const dated=!g.group && has(d,'date');
@@ -713,6 +795,7 @@ function onMove(e){
       if(Math.abs(dx)<5 && Math.abs(dy)<5) return;
       G.mode='pluck';
       G.el.classList.add('plucked');
+      openAjar(G);
       const o=byId(G.id);
       G.chip=document.createElement('div');
       G.chip.className='pluckchip';
@@ -746,7 +829,14 @@ function onMove(e){
     const up=clamp(-dy - PULL_START, 0, open*1.25);
     G.at=up;
     G.pull.style.setProperty('--pull', up+'px');
-    G.pull.classList.toggle('ready', up >= open);
+    /* Which of the two the front is offering, said before you let go. `peek`
+       is the drawer open — what is in it; `ready` is the drawer out of the
+       desk — a new object. They are exclusive, so the front never claims
+       both. */
+    const peek = up>=PULL_HOLD && up<open;
+    G.pull.classList.toggle('peek', peek);
+    G.pull.classList.toggle('ready', up>=open);
+    pullSay(G.pull, up>=open ? 'New object' : peek ? holdWord() : '');
     return;
   }
 
@@ -785,6 +875,9 @@ function onMove(e){
       G.mode='grid';
       G.el.classList.add('dragging');
       if(G.type==='move'){
+        // the desk opens its drawer the moment the tile is in your hand: what
+        // is in your hand is the only thing that drawer is for
+        openAjar(G);
         // the tile follows the pointer, so it has to stop being hit-testable or
         // elementFromPoint only ever finds the thing being dragged
         G.el.style.pointerEvents='none';
@@ -888,15 +981,21 @@ function onUp(e){
     // a tap: the knob takes you out, and bare rail does nothing at all
     if(!g.pull) return;
     const open = g.at >= PULL_OPEN();
+    const peek = !open && g.at >= PULL_HOLD;
     const el=g.pull;
-    el.classList.remove('ready');
+    el.classList.remove('ready','peek');
     el.classList.add('settling');
+    // pulled clean out, it keeps going; opened a little, it stays open under
+    // the panel that is coming up out of it; short of either, it drops back
     el.style.setProperty('--pull', open ? (PULL_OPEN()*1.35)+'px' : '0px');
     setTimeout(()=>el.remove(), 260);
     if(open){
       if(navigator.vibrate) navigator.vibrate(6);
       pending.cell=null;               // no cell in mind: wherever there is room
       modalNewObject();
+    } else if(peek){
+      if(navigator.vibrate) navigator.vibrate(4);
+      holdPanel();
     }
     return;
   }
@@ -933,9 +1032,11 @@ function onUp(e){
     if(g.chip) g.chip.remove();
     if(g.el) g.el.classList.remove('lifted','plucked');
     if(g.dropEl) g.dropEl.classList.remove('dropinto','dropboard');
+    const heldIt=g.holdOn; closeAjar(g);
     if(g.mode!=='pluck') return;         // a tap; let the click tick it off
     gestureFlags.suppressClick=true;     // the drag must not also tick it
     const o=byId(g.id);
+    if(heldIt && o && holdIt(o.id)){ render(); toast('Kept in the drawer'); return; }
     if(o && g.dropOn && g.dropOn!==o.parent){
       o.parent=g.dropOn; o.desk=null; o.phone=null;   // a new coordinate space
       const into=g.dropOn===ROOT?null:byId(g.dropOn);
@@ -953,9 +1054,19 @@ function onUp(e){
       if(el){ el.style.transform=''; el.style.zIndex=''; }
     });
     if(g.ghost) g.ghost.remove();
-    const aim={day:g.dropDay, tl:g.dropTl, on:g.dropOn, gath:g.gatherOn, gk:g.gatherKind};
-    clearAim(g);
+    const aim={day:g.dropDay, tl:g.dropTl, on:g.dropOn, gath:g.gatherOn,
+               gk:g.gatherKind, hold:!!g.holdOn};
+    clearAim(g); closeAjar(g);
     const d=byId(g.id);
+    /* Into the drawer along the bottom. First, and outside the undo block
+       below, because holdIt() records its own move — it is not a box being
+       moved or a container being filed into, it is the object leaving the
+       board altogether. */
+    if(d && aim.hold && holdIt(d.id)){
+      render();
+      toast('Kept in the drawer', true);
+      return;
+    }
     /* ---- so that ⌘Z means something after a drag ------------------------
        Undo used to know about deletion and nothing else, so carrying a tile to
        the wrong drawer — or across a calendar, which re-dates *and* re-files
@@ -1075,7 +1186,7 @@ function onCancel(){
   if(G && G.type==='band') clearRow(G);
   stopPan();
   pagerCancel();
-  if(G){ clearAim(G); if(G.ghost) G.ghost.remove();
+  if(G){ clearAim(G); closeAjar(G); if(G.ghost) G.ghost.remove();
          if(G.chip) G.chip.remove();
          if(G.pull) G.pull.remove();
          if(G.dropEl) G.dropEl.classList.remove('dropinto','dropboard');

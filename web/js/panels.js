@@ -4,7 +4,7 @@ import { S, K, KINDS, KEYS, T, ATTRS, USER_ATTRS, FIELDS, fieldOf, OPS, ROLLS,
   SORTS, MANUAL, sortOf, FACES, SHAPES, READS, OPENINGS, openingOf,
   faceOf, layoutOf, shapeOf, readOf, byId, container, cfgOf, deskTitle,
   rootObj, containers, isContainer, isAncestor, childrenOf, has, kindHas,
-  attrsOf, allTags, placeOf, deskList, deskOf, isDesk, spanOf,
+  attrsOf, allTags, placeOf, deskList, deskOf, isDesk, spanOf, heldObjects,
   dev, takesTyping, genKindOf, answered, isLate,
   PRIOS, prioOf, prioName, REPEAT_UNITS, repeatOf, repeats, repeatSaid,
   relatedTo, backlinksTo, streak, goalPct,
@@ -69,7 +69,7 @@ function openPanel(spec){
      doesn't stay one — but keep `open`, or replacing one panel with another
      would slide the whole thing out and back in. */
   const wasOpen = !fresh && el.classList.contains('open');
-  el.className = 'panel' + (spec.wide?' wide':'') + (wasOpen?' open':'');
+  el.className = 'panel' + (spec.wide?' wide':'') + (spec.fit?' fit':'') + (wasOpen?' open':'');
   el.removeAttribute('style');
   el.dataset.panel = spec.key || '';
   bubbleAt(el, PANEL.anchor);
@@ -245,6 +245,63 @@ function modalNewObject(){
       <div class="kindgrid">${g.ks.map(kindTile).join('')}</div>`).join(''))
   });
 }
+/* ============================================================
+   16b · the holding space
+   ============================================================
+   The drawer along the bottom of a phone opens onto this. It is where a thing
+   waits while you carry it somewhere else — pick a tile up, drop it on the
+   drawer, walk to another desk, open the drawer and put it down. Copy and
+   paste, made of furniture rather than of a clipboard you cannot see.
+
+   It is drawn as the things themselves, through the same `sampleTile()` the
+   type picker uses, because a list of names is not what you are carrying. Each
+   is a **twin** — `__held_n`, boxed at the origin — for the same reason
+   `objectStage()` draws one: a second element carrying the real id is one the
+   drag, `anchorEl()` and `tileOf()` could all pick up instead of the tile.
+
+   The panel is `fit`: it is as tall as what is in it, so holding one thing
+   shows you one thing and leaves the board behind it visible. A drawer with
+   two things in it is not a screen. See decision 107. */
+function heldTile(o, i){
+  /* At the size its *type* starts at on the desk, not the box it had. A held
+     thing has no box — HOLD is not a board, so there are no coordinates to
+     keep — and the box it came off would be the wrong picture anyway: a phone
+     task is eight cells by one, which scaled into a thumbnail is a sliver
+     fourteen pixels tall. The type picker draws a type at its desk size for
+     the same reason, and drawing these the same way is what makes a row of
+     held things read as a row rather than as an argument between aspect
+     ratios. */
+  const [w,h]=sizeOfKind(o.kind, 'desk', ROOT), at={x:1, y:1, w, h};
+  const twin=Object.assign({}, o, {id:'__held_'+i, desk:at, phone:at});
+  /* A div rather than a button, for the same reason `.kindtile` is one: a tile
+     renders its own `<button>`, and a button inside a button is a parse error
+     the browser fixes by *unnesting* it — which silently drops the tile out of
+     its own cell and takes the layout with it. */
+  return `<div class="helditem" data-act="holdtake" data-id="${o.id}"
+      role="button" tabindex="0" title="Put it down here">
+    <span class="hpv">${sampleTile(twin, 112, 72)}</span>
+    <span class="hnm">${esc(o.title||'Untitled')}</span>
+  </div>`;
+}
+function holdPanel(){
+  openPanel({
+    key:'holding', fit:true, title:'Holding',
+    sub:'Kept out of the desk until you put it down',
+    body:()=>{
+      const held=heldObjects();
+      const here = (S.view==='drawer' && S.drawerId && byId(S.drawerId)) || null;
+      const where = here ? esc(here.title||'this drawer') : 'the desk';
+      if(!held.length) return `<p class="holdnote">Nothing in here. Pick a tile
+        up, drop it on the drawer along the bottom, and it waits here until you
+        open the drawer somewhere else and put it down.</p>`;
+      return `<div class="heldgrid">${held.map(heldTile).join('')}</div>
+        <p class="holdnote">Press one to put it down on ${where}.</p>
+        ${held.length>1?`<button class="holdall" data-act="holdtakeall">${
+          ic('arrowD',13)} Put all ${held.length} down here</button>`:''}`;
+    }
+  });
+}
+
 /* The eleven a thing may be painted in, plus whatever literal colour is in use.
    A swatch carries the *slot*, not the hex it happens to be showing — that is
    the whole point: what you pick follows the aesthetic. A literal is still allowed
@@ -1232,6 +1289,12 @@ function cmdList(q){
     res.push({t:'The Desk',s:'view',c:'var(--brass)',i:'grid',go:()=>{S.view='desk';S.drawerId=null;}});
   if(!q||'settings'.includes(q))
     res.push({t:'Settings',s:'panel',c:'var(--brass)',i:'sliders',go:()=>settingsPanel()});
+  /* The holding space, whenever there is anything in it. Without this a thing
+     kept on a phone would be unreachable on a Mac, which has no rail to pull
+     — and a drawer you cannot open is a drawer things go missing in. */
+  if(heldObjects().length && (!q||'holding'.includes(q)))
+    res.push({t:'Holding', s:`${heldObjects().length} kept`, c:'var(--brass)',
+              i:'inbox', go:()=>holdPanel()});
   containers().forEach(d=>{ if(!q||(d.title||'').toLowerCase().includes(q)) res.push({t:d.title,s:'drawer',c:objColour(d),i:'folder',go:()=>{S.view='drawer';S.drawerId=d.id;}}); });
   /* Tags are how everything in Bureau is filed, and the one search in the app
      did not look at them. A tag match opens the magic drawer that collects it,
@@ -1309,6 +1372,7 @@ function openCtx(x,y,id){
     ${(!many&&(has(o,'check')||has(o,'streak')))?`<button data-c="done:${id}">${ic('check',14)} ${has(o,'streak')?'Mark today':'Complete'}</button>`:''}
     <button data-c="intodrawer:${id}">${ic('folder',14)} ${many?`Put these ${sel.length} in a new drawer`:'Put this in a new drawer'}</button>
     <button data-c="move:${id}">${ic('folder',14)} Move to drawer…</button>
+    ${many?'':`<button data-c="hold:${id}">${ic('inbox',14)} Keep in the drawer</button>`}
     ${many?'':`<button data-c="today:${id}">${ic('calendar',14)} Schedule today</button>
     <button data-c="dupe:${id}">${ic('archive',14)} Duplicate</button>`}
     <div class="div"></div>
@@ -1322,7 +1386,7 @@ function openCtx(x,y,id){
 const closeCtx = ()=> $('#ctx').classList.remove('open');
 
 export { overlayHTML, openPanel, closePanel, refreshPanel, repositionPanel, panelKey, panelBack, draft,
-  openMenu, modalNewObject, objectPanel, drawerPanel, modalNewKind,
+  openMenu, modalNewObject, holdPanel, objectPanel, drawerPanel, modalNewKind,
   renderPreview, modalMove, sampleObject, sampleTile, kindSample,
   openCmd, closeCmd, cmdList, cmdMove, cmdAt, runCmd, drawerFromSelection, openCtx, closeCtx,
   schedulePanel, quickISO, SCHED };

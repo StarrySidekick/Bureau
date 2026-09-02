@@ -4081,3 +4081,83 @@ And the page count is **fixed width**. It sits between the two chevrons, so
 sized to its own digits it grows from "1 of 9" to "10 of 12" and walks the
 button you are pressing out from under your thumb as you page. Tabular figures
 stop the digits moving; only a width stops the row moving.
+
+## 107. The drawer along the bottom holds things
+
+*2026-09-02*
+
+Moving a thing from one desk to another was: open the object editor, find
+"Where it lives", pick the container out of a list of every container there
+is. That is a form standing in for a gesture, on an app whose whole argument is
+that you pick things up and put them down.
+
+So the drawer along the bottom of a phone — which was a *handle* and nothing
+else, a knob to tap and a front to pull — now **holds things**. Pick a tile up
+and the drawer stands ajar under it. Carry the tile down and let go and the
+object leaves the board altogether: it is in the drawer. Walk to another desk,
+open the drawer, press the thing, and it lands where you are standing. Copy and
+paste, made of furniture rather than of a clipboard you cannot see.
+
+**A held object is parented to `HOLD`, which is a reserved id and not an
+object.** Exactly as `ROOT` is. That is the whole of the state, which is why
+nothing had to be seeded, migrated, exported, garbage-collected or told about
+it: `isHeld(o)` is `o.parent==='__hold'`, and every path that walks
+`S.objects` already handles a parent that resolves to no board. It is not a
+container object because it is not a *place* — a place is somewhere with
+coordinates, and the point of the drawer is that a thing in it has none. The
+box is cleared going in (a box belongs to one container's coordinate space)
+and `ensureBox()` places it fresh coming out.
+
+**A magic drawer cannot see into it.** One line at the top of `inContainer()`'s
+magic branch, before scope and before the archive. Without it, "everything
+unfinished" would collect a held task and draw it back onto the board it had
+just been deliberately taken off — and it would then be in two places, which is
+the one thing containment promises cannot happen (decision 17).
+
+**The pull opens twice.** The rail's swipe-up used to have one meaning and one
+threshold: carry it a quarter of the screen and the type picker opens. It has
+two detents now — a little way is the drawer, which is what is in it; the whole
+way is the drawer out of the desk, which is a new object. That is not a
+compromise between two features, it is the same piece of furniture read
+literally: you open a drawer to see what is in it, and you pull it right out to
+get a thing. The long detent is unchanged, so the gesture that already existed
+still means what it meant; the new one is the cheap half, which is right,
+because looking in a drawer should cost less than making something.
+
+**The drawer is the first thing `aimDrop()` asks about, and it asks
+geometrically.** First because it is not on a board at all — it is the carcass
+— so there is nothing under it for it to beat and nothing it can take a drop
+away from. Geometrically because the ajar front is `pointer-events:none` and
+`elementFromPoint` falls straight through it: the band is measured once, when
+it appears, and the aim is that one number. Measuring once also gives the band
+hysteresis for free — the front grows when you aim at it, and the test does
+not grow with it.
+
+**The mouth is not the whole of the open front.** The front is an overlay and
+it stands over the last row of the board, so the band starts a lip's width
+above the rail — roughly where the front meets the carcass — rather than at the
+top of the front. Take the whole front and the last row of every phone board
+becomes somewhere you cannot drop a tile; take none of it and the thing saying
+"let go to keep it here" does not answer when you do.
+
+**It is an overlay, not a taller rail.** The rail is a flex item and the board
+is sized off what is left; growing it during a drag would relayout the board
+under the tile in your hand. So the ajar drawer is the same `.shelfpull` the
+pull builds — one piece of furniture doing one thing, not two elements that can
+disagree about where the mouth is.
+
+**The panel is as tall as what is in it.** Every other panel on a phone is a
+fixed slab, because every other panel is a form or a list that runs on. This
+one is a drawer, and a drawer with two things in it is not a screen.
+
+**Held things are drawn at their type's desk size, not at the box they had.**
+The type picker's rule, for the type picker's reason. A phone task is eight
+cells by one; scaled into a thumbnail that is a sliver fourteen pixels tall,
+and a row of held things becomes an argument between aspect ratios. What the
+drawer has to tell you is *what* you are carrying.
+
+One trap, which cost an hour: `.helditem` was a `<button>`, and a tile renders
+its own `<button>`. A button inside a button is a parse error the browser fixes
+by **unnesting** it — so the tile fell out of its own cell, silently, and the
+layout went with it. `.kindtile` is a `div` with `role="button"` for exactly
+this reason and had been for a year.

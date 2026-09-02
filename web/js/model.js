@@ -1,4 +1,4 @@
-import { uid, clamp, D, ROOT } from './util.js';
+import { uid, clamp, D, ROOT, HOLD } from './util.js';
 
 /* ============================================================
    2 · ATTRIBUTES and KINDS — the heart of Bureau
@@ -809,6 +809,21 @@ const deskHere = ()=> deskOf(S.view==='drawer' && S.drawerId ? S.drawerId : ROOT
 // 'desk' | null — how this container is kept, if at all
 const placeOf = id => isDesk(id) && id!==ROOT ? 'desk' : null;
 
+/* ---- the holding space --------------------------------------------------
+   A drawer along the bottom of a phone that holds things while you carry them
+   somewhere else — the desk's own hand. An object put in it is parented to
+   HOLD, which is a reserved id and not an object: nothing draws it, nothing
+   collides in it, and there are no coordinates to keep, because it is not a
+   board. That is the whole of the state, so it exports, imports, migrates and
+   reloads with everything else and needed none of them told about it.
+
+   Its order is arrival order, `ord` ascending, because the drawer is a queue
+   of things you meant to move rather than a board you arranged. See decision
+   107. */
+const isHeld = o => !!o && o.parent===HOLD;
+const heldObjects = ()=> S.objects.filter(isHeld).sort((a,b)=>(a.ord||0)-(b.ord||0));
+const heldCount = ()=> S.objects.reduce((n,o)=>n+(isHeld(o)?1:0), 0);
+
 /* A drawer holds. A magic drawer collects. Nothing does both.
    An object lives in exactly one drawer — its `parent` — and that is the only
    thing an ordinary drawer shows. A magic drawer ignores parentage entirely and
@@ -838,6 +853,12 @@ function inContainer(c,o){
   if(!c || o.id===c.id) return false;
   if(has(c,'magic')){
     const f=c.filter||{};
+    /* Before scope, before the archive, before anything: a thing in the
+       holding space is off the desk. A magic drawer that collected one would
+       put it back on a board it has been deliberately taken off, and then it
+       would be in two places — which is the one thing containment promises it
+       cannot be. See decision 107. */
+    if(isHeld(o)) return false;
     if(!inScope(c,o)) return false;    // before anything else: it cannot see it
     if(f.done) return !!o.done;        // the archive
     if(o.done && !keepsDone(c)) return false;   // finished things leave elsewhere
@@ -1342,7 +1363,7 @@ export { ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds, K,
   deskTitle, rootObj, container, cfgOf, isContainer, FACES, faceOf, layoutOf, SHAPES,
   shapeOf, READS, readOf, spreadOf, OPENINGS, openingOf, gathersOf, gatherKind, containers,
   deskIds, deskList, isDesk, deskOf, deskHere,
-  placeOf,
+  placeOf, isHeld, heldObjects, heldCount,
   spanOf, coversDay, lastDay, lateOn, isLate,
   boardLocked,
   PRIOS, prioOf, prioName,

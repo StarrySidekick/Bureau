@@ -2995,6 +2995,16 @@ input,textarea,select,[contenteditable],
   display:flex;align-items:flex-end;
 }
 .shelfpull.settling{transition:height .22s cubic-bezier(.22,1,.3,1)}
+/* Opened a little rather than pulled: the drawer standing ajar under a tile
+   you are carrying, and the same drawer at its first detent under a finger.
+   It is a *height*, so it opens and closes on one transition — the front
+   inside it is already sized off `--pull`. */
+.shelfpull.ajar{transition:height .16s cubic-bezier(.22,1,.3,1)}
+/* An ajar drawer is a few centimetres of front, so what is drawn on it has to
+   fit in that: a tighter gap and a smaller word than the pulled-out one. */
+.shelfpull.ajar .pullfront{gap:5px}
+.shelfpull.ajar .pullfront b{font-size:11.5px}
+.shelfpull.ajar .pullknob{height:5px;width:38px}
 .pullfront{
   flex:1;height:var(--pull,0px);min-height:0;
   border-radius:var(--radius-d) var(--radius-d) 0 0;
@@ -3006,12 +3016,62 @@ input,textarea,select,[contenteditable],
 .pullknob{
   width:44px;height:7px;border-radius:99px;flex:0 0 auto;
   background:color-mix(in srgb,#F8F3E6 58%,transparent);transition:.16s}
-.pullfront b{font-size:13px;font-weight:500;letter-spacing:.01em;opacity:.72;transition:.16s}
-/* far enough to open: the front says so before you let go, which is the whole
-   point of drawing it at all */
+.pullfront b{font-size:13px;font-weight:500;letter-spacing:.01em;opacity:.72;transition:.16s;
+  white-space:nowrap;text-align:center;padding:0 10px;
+  overflow:hidden;text-overflow:ellipsis;max-width:100%}
+/* Two detents, and the front says which one you are in before you let go —
+   which is the whole point of drawing it at all. `peek` is the drawer open on
+   what it holds; `ready` is the drawer out of the desk, which is a new object.
+   They are exclusive, so the front never claims both. See decision 107. */
+.shelfpull.peek .pullknob{background:color-mix(in srgb,#F8F3E6 82%,transparent);width:56px}
+.shelfpull.peek .pullfront b{opacity:.92}
 .shelfpull.ready .pullknob{background:var(--glow);width:64px}
 .shelfpull.ready .pullfront b{opacity:1}
 .shelfpull.ready .pullfront{border-color:color-mix(in srgb,var(--glow) 60%,transparent)}
+/* …and the ajar one lights the same way when the thing in your hand is over
+   its mouth, because letting go there is the same commitment `ready` is. */
+.shelfpull.ajar.aim .pullknob{background:var(--glow);width:64px}
+.shelfpull.ajar.aim .pullfront b{opacity:1}
+.shelfpull.ajar.aim .pullfront{border-color:color-mix(in srgb,var(--glow) 60%,transparent);
+  box-shadow:0 -8px 22px -10px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.16),
+    inset 0 0 0 1px color-mix(in srgb,var(--glow) 34%,transparent)}
+
+/* ============================================================
+   What is in that drawer
+   ============================================================
+   The holding space: things kept out of the desk while you carry them
+   somewhere else. Drawn as the things themselves, at the size the type picker
+   draws a type, because a list of names is not what you are carrying. The
+   panel is `fit` — as tall as what is in it — so holding one thing shows one
+   thing and leaves the board behind it visible. See decision 107. */
+.heldgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(126px,1fr));gap:12px 8px}
+.is-phone .heldgrid{grid-template-columns:repeat(3,1fr);gap:10px 6px}
+/* `min-width:0` is not optional: a `1fr` track is `minmax(auto,1fr)`, so a
+   nowrap name sets the track's floor to the whole title and one long-named
+   thing takes half the drawer. */
+.helditem{
+  position:relative;min-width:0;display:flex;flex-direction:column;align-items:center;gap:6px;
+  padding:5px 2px;border-radius:12px;cursor:pointer
+}
+.helditem:hover{background:color-mix(in srgb,var(--ink) 6%,transparent)}
+.helditem:focus-visible{outline:2px solid var(--brass);outline-offset:0}
+.helditem .hpv{height:78px;display:grid;place-items:center;pointer-events:none;
+  transition:transform .15s}
+.helditem:hover .hpv{transform:translateY(-3px)}
+.helditem .hnm{font-size:11.5px;font-weight:600;color:var(--ink-2);
+  width:100%;text-align:center;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.holdnote{font-size:12px;color:var(--ink-3);line-height:1.5;margin:14px 2px 0}
+.holdall{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;
+  margin-top:12px;padding:10px;border-radius:10px;
+  border:1px solid var(--rule);background:none;color:var(--ink-2);
+  font:inherit;font-size:12.5px;cursor:pointer}
+.holdall:hover{border-color:var(--brass);color:var(--ink)}
+/* A panel that is as tall as what is in it. Every other panel on a phone is a
+   fixed slab, because every other panel is a form or a list that runs on; this
+   one is a drawer, and a drawer with two things in it is not a screen. */
+.panel.fit{height:auto}
+.is-phone .panel.fit{height:auto;max-height:min(70vh,620px)}
 
 /* ============================================================
    Every desk, laid out

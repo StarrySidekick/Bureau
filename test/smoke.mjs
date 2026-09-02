@@ -2000,17 +2000,30 @@ const CHROME = process.env.BUREAU_CHROME;
     const tap = (el,cx,cy,type) => el.dispatchEvent(new PointerEvent(type,
       { bubbles:true, cancelable:true, pointerId:31, pointerType:'touch', clientX:cx, clientY:cy }));
     tap(rail(), x, y, 'pointerdown');
-    tap(rail(), x, y - 60, 'pointermove');
+    tap(rail(), x, y - 22, 'pointermove');
     await nap(20);
     out.aFlickDoesNotOpenIt = !!document.querySelector('.shelfpull')
-      && !document.querySelector('.shelfpull.ready') && !document.querySelector('#panel');
-    tap(rail(), x, y - 60, 'pointerup');
+      && !document.querySelector('.shelfpull.ready')
+      && !document.querySelector('.shelfpull.peek') && !document.querySelector('#panel');
+    tap(rail(), x, y - 22, 'pointerup');
     await nap(320);
     out.andItDropsBack = !document.querySelector('#panel');
-    // …and the whole way does
+    /* The first detent: opened a little is the drawer, which is the holding
+       space. The front says which before you let go. See decision 107. */
+    tap(rail(), x, y, 'pointerdown');
+    for (let i = 1; i <= 3; i++){ tap(rail(), x, y - i*20, 'pointermove'); await nap(12); }
+    out.aLittleSaysHolding = !!document.querySelector('.shelfpull.peek')
+      && !document.querySelector('.shelfpull.ready');
+    tap(rail(), x, y - 60, 'pointerup');
+    await nap(320);
+    const ph = document.querySelector('#panel');
+    out.aLittleOpensTheDrawer = !!ph && ph.dataset.panel === 'holding';
+    document.querySelector('[data-act="panelclose"]').click(); await nap(200);
+    // …and the whole way is the drawer out of the desk, which is a new object
     tap(rail(), x, y, 'pointerdown');
     for (let i = 1; i <= 8; i++){ tap(rail(), x, y - i*40, 'pointermove'); await nap(12); }
-    out.itFollowsTheFinger = !!document.querySelector('.shelfpull.ready');
+    out.itFollowsTheFinger = !!document.querySelector('.shelfpull.ready')
+      && !document.querySelector('.shelfpull.peek');
     tap(rail(), x, y - 320, 'pointerup');
     await nap(320);
     const p = document.querySelector('#panel');
@@ -2061,6 +2074,82 @@ const CHROME = process.env.BUREAU_CHROME;
     delete S.deskCfg.railknobsize; delete S.deskCfg.railtexture;
     BUREAU.render(); await nap(150);
     out.andTheAppsOwnWalnutComesBack = woodOf(rail()) === 'rgb(58, 44, 30)';
+    return out;
+  });
+
+  /* --- the holding space: the drawer along the bottom actually holds things.
+     Pick a tile up and the drawer stands ajar; carry it down there and let go
+     and the object leaves the board altogether — no parent on any board, so no
+     magic drawer collects it and nothing draws it. Open the drawer again and
+     pressing it puts it down on whatever board you are standing on, which is
+     the whole of copy and paste. See decision 107. */
+  const holding = await phone.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const S = BUREAU.state, out = {};
+    // a tile has to be pickable up, so the board is opened — and put back the
+    // way it was found, because the pager test after this one needs the lock
+    const wasLocked = S.look.locked;
+    S.view='desk'; S.drawerId=null; S.look.locked=false; BUREAU.render(); await nap(220);
+    const tile = document.querySelector('#drawergrid .drawer[data-row]')
+              || document.querySelector('#drawergrid .drawer[data-drawer]');
+    const id = tile.dataset.row || tile.dataset.drawer;
+    const find = x => S.objects.find(o => o.id === x);
+    const wasIn = find(id).parent;
+    const r = tile.getBoundingClientRect();
+    const x = r.left + r.width/2, y = r.top + Math.min(r.height/2, 22);
+    const o = { bubbles:true, cancelable:true, pointerId:41, pointerType:'touch', isPrimary:true };
+    const ev = (t,cx,cy) => tile.dispatchEvent(new PointerEvent(t, {...o, clientX:cx, clientY:cy}));
+
+    ev('pointerdown', x, y);
+    await nap(340);                       // the hold that arms the drag
+    ev('pointermove', x, y - 14);
+    await nap(30);
+    // the desk opens its drawer the moment the thing is in your hand
+    out.theDrawerStandsAjar = !!document.querySelector('.shelfpull.ajar');
+    const rr = document.querySelector('.deskrail').getBoundingClientRect();
+    const down = rr.top + 4;
+    ev('pointermove', x, down);
+    await nap(40);
+    out.aimingAtItLightsIt = !!document.querySelector('.shelfpull.ajar.aim');
+    ev('pointerup', x, down);
+    await nap(320);
+
+    const held = find(id);
+    out.lettingGoKeepsIt = !!held && held.parent === '__hold';
+    out.andItsBoxIsGone = !held.desk && !held.phone;
+    out.theDrawerClosesAgain = !document.querySelector('.shelfpull');
+    // off the board it was on…
+    out.itLeavesTheBoard = !document.querySelector(
+      `#app .grid .drawer[data-row="${id}"], #app .grid .drawer[data-drawer="${id}"]`);
+    /* …and off every magic drawer. A thing in two places is the one thing
+       containment promises cannot happen, and a magic rule that collected a
+       held object would put it back on a board it was taken off. */
+    out.noMagicDrawerCollectsIt = !S.objects
+      .filter(c => BUREAU.isContainer(c) && BUREAU.has(c,'magic'))
+      .some(c => BUREAU.kids(c.id).includes(id));
+
+    // the drawer opens onto it, drawn as the thing itself
+    BUREAU.holding();
+    await nap(240);
+    const p = document.querySelector('#panel');
+    out.theDrawerOpensOntoIt = !!p && p.dataset.panel === 'holding';
+    out.andShowsTheThingItself = !!p.querySelector(`.helditem[data-id="${id}"] .pvscale`);
+    // …and it is only as tall as what is in it
+    out.itIsOnlyAsTallAsItsContents = p.getBoundingClientRect().height < innerHeight * 0.6;
+
+    // pressing it puts it down on the board you are standing on
+    p.querySelector(`.helditem[data-id="${id}"]`).click();
+    await nap(280);
+    const back = find(id);
+    out.pressingItPutsItDown = back.parent === 'root';
+    out.andItIsOnTheBoardAgain = !!document.querySelector(
+      `#app .grid .drawer[data-row="${id}"], #app .grid .drawer[data-drawer="${id}"]`);
+    out.theDrawerIsEmptyAgain = !document.querySelector('#panel');
+    // ⌘Z after either half puts it back where it was
+    BUREAU.undo(); await nap(160); BUREAU.undo(); await nap(160);
+    out.undoPutsItBack = find(id).parent === wasIn;
+    S.look.locked = wasLocked;
+    S.view='desk'; S.drawerId=null; BUREAU.render();
     return out;
   });
 
@@ -4506,7 +4595,7 @@ const CHROME = process.env.BUREAU_CHROME;
     errors: errs, manifestOk, swReady, survived, styleSurvived, slotColours,
     newObjectSeen, inlineEdit, sortDefaults, taskLook,
     shelfTools, gridSizes, keeping, versionShown, sampler, paging, pageCoords, pagerGround, goingIn, comingOut,
-    makingOnAPhone, railDrawer, railIsFurniture, pagerLandsFlat, deskDots,
+    makingOnAPhone, railDrawer, railIsFurniture, holding, pagerLandsFlat, deskDots,
     listSwipe, shadows, textureDepth,
     gridClass, offlineWorks, railGone, tabsGone, shelfGone, tileNavigates,
     holdArms, maxDrift,

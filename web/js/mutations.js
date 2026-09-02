@@ -1,7 +1,7 @@
-import { $, esc, uid, ROOT, D } from './util.js';
+import { $, esc, uid, ROOT, HOLD, D } from './util.js';
 import { S, byId, K, KINDS, KEYS, kindHas, has, isContainer, genKindOf, streak, T, dz, dev,
   repeatOf, repeats, nextRepeat, faceOf, childrenOf,
-  deskIds, deskHere, placeOf, cfgOf } from './model.js';
+  deskIds, deskHere, placeOf, cfgOf, isHeld, heldObjects } from './model.js';
 import { GRID, PHONE_GRIDS, colsOf, gridOf, freeSpot, lay, boxOk, sizeOfKind } from './grid.js';
 import { randomFront, randomBoard, randomLook, styleDefaults } from './look.js';
 import { render, reveal } from './views.js';
@@ -243,6 +243,47 @@ function delDrawer(id){
   toast('Drawer removed — its contents kept', true);
   render();
 }
+/* ---- the holding space -------------------------------------------------
+   Putting a thing in the drawer along the bottom, and taking it out again.
+   Both are reparenting and nothing more — the same move a drop into a drawer
+   makes — so both clear *both* devices' boxes, because HOLD is not a board and
+   whatever the object's coordinates were, they were somewhere else's.
+
+   Both push one undo move, so ⌘Z after either puts the thing back where it
+   was rather than leaving it in a drawer with no board. See decisions 65
+   and 107. */
+function holdIt(id){
+  const o=byId(id);
+  if(!o || isHeld(o) || o.id===ROOT) return false;
+  pushSets('Held', [[o.id,'parent',o.parent], [o.id,'desk',o.desk],
+                    [o.id,'phone',o.phone],   [o.id,'ord',o.ord]]);
+  // arrival order: the drawer is a queue of things you meant to move, not a
+  // board you arranged, so a new one goes on the end
+  const last = heldObjects().reduce((m,x)=>Math.max(m, x.ord||0), 0);
+  o.parent=HOLD; o.desk=null; o.phone=null; o.ord=last+1;
+  save();
+  return true;
+}
+/* Out of the drawer and onto the board you are standing on. The box is left
+   null on purpose: ensureBox() places it on the next render, which is the one
+   thing that knows what room this board has. */
+function unholdIt(id, intoId){
+  const o=byId(id);
+  if(!o || !isHeld(o)) return false;
+  /* A magic drawer holds nothing, so putting a thing "down here" while you are
+     standing in one means putting it where that drawer lives — the same answer
+     spawnInto() gives when you type into one. */
+  let into = intoId || (S.view==='drawer' && S.drawerId) || ROOT;
+  const c = into===ROOT ? null : byId(into);
+  if(into!==ROOT && !c) return false;
+  if(c && has(c,'magic')) into = c.parent||ROOT;
+  pushSets('Taken out', [[o.id,'parent',o.parent], [o.id,'desk',o.desk],
+                         [o.id,'phone',o.phone]]);
+  o.parent=into; o.desk=null; o.phone=null;
+  save();
+  return true;
+}
+
 /* ---- changing how fine a board's grid is -------------------------------
    The three sizes are three column counts, and a column count is a coordinate
    space: every box on that board is measured in it. So switching is a migration
@@ -514,4 +555,5 @@ function randomThing(parentId){
 // the one door, so nothing outside has to know a habit ticks differently.
 export { toast, setGridSize, toggleDone, spawnNext, del, delMany, delDrawer, undo, redo,
   pushUndo, pushSet, pushSets, setPin, togglePin,
-  drawerForTag, create, gather, quickAdd, spawnInto, randomThing };
+  drawerForTag, create, gather, quickAdd, spawnInto, randomThing,
+  holdIt, unholdIt };

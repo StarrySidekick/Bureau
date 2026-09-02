@@ -13,6 +13,13 @@ const uid = (()=>{let n=0;return p=>
   `${p||'o'}${Date.now().toString(36)}${(++n).toString(36)}${Math.floor(Math.random()*1679616).toString(36)}`})();
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const ROOT = 'root';   // the desk: the container every other object descends from
+/* The holding space: the drawer along the bottom of a phone, which is the one
+   container that is furniture rather than somewhere on a board. An object
+   parented here is *out of the desk* — off every grid, invisible to every
+   magic drawer — and waiting to be put down somewhere else. It is a reserved
+   id rather than a real object, exactly as ROOT is, so nothing has to be
+   seeded, migrated, exported or tidied up after. See decision 107. */
+const HOLD = '__hold';
 
 const D = {
   today(){ const d=new Date(); d.setHours(0,0,0,0); return d; },
@@ -175,4 +182,4 @@ function plain(src){
 /* The same thing on one line, for a band that has room for a sentence. */
 const oneline = s => plain(s).replace(/\s+/g,' ').trim();
 
-export { $, $$, esc, uid, clamp, ROOT, D, ic, md, plain, oneline };
+export { $, $$, esc, uid, clamp, ROOT, HOLD, D, ic, md, plain, oneline };

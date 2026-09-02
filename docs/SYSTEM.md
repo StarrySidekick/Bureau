@@ -310,6 +310,36 @@ filter bar. Clicking a tag calls `drawerForTag()`, which finds the magic drawer
 collecting that tag or makes one. If a filter UI ever seems necessary, the
 answer is a drawer.
 
+### 7a. The holding space
+
+The drawer along the bottom of a phone is not only a handle: it **holds
+things**. Pick a tile up and it stands ajar; carry the tile down and let go and
+the object leaves the board altogether and waits in the drawer. Open the drawer
+somewhere else, press the thing, and it lands on the board you are standing on.
+That is how something is moved between desks — copy and paste made of
+furniture, rather than a "Where it lives" row in a form.
+
+- **`HOLD` is a reserved id, not an object** — `'__hold'`, exactly as `ROOT`
+  is `'root'`. A held object carries `parent: HOLD`; `isHeld(o)` is that test
+  and `heldObjects()` is the drawer's contents, in arrival order. There is no
+  container object, no seed, no migration and nothing to garbage-collect,
+  because the drawer is not a *place*: a place has coordinates, and the point
+  of the drawer is that a thing in it has none. Both boxes are cleared going
+  in and `ensureBox()` places it fresh coming out.
+- **A magic drawer cannot see into it.** `inContainer()` refuses a held object
+  before scope and before the archive. Otherwise "everything unfinished" would
+  draw a held task back onto the board it was just taken off, and it would be
+  in two places — which §3 says cannot happen.
+- **It is reachable from three places.** The drag (a phone), "Keep in the
+  drawer" on the context menu (both devices), and ⌘K, which lists Holding
+  whenever there is anything in it — a Mac has no rail to pull, and a drawer
+  you cannot open is a drawer things go missing in.
+- **The rail's pull has two detents.** A little way opens the drawer onto what
+  is in it; the whole way pulls the drawer out of the desk, which is the
+  new-object picker. The long one is unchanged.
+
+See decision 107.
+
 ## 8. The grid
 
 Each container is its own coordinate space, and every device has its own.

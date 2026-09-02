@@ -4,14 +4,16 @@
 import { $ } from './util.js';
 import { S, KINDS, SHAPES, SORTS, childrenOf, container, relate, deskOf, has, lateOn, isLate, knobOf,
   isContainer, faceOf,
-  prioOf, repeatOf, repeatSaid, nextRepeat, boardLocked, BINDINGS, bindingOf, PANELS, panelOf } from './model.js';
+  prioOf, repeatOf, repeatSaid, nextRepeat, boardLocked, BINDINGS, bindingOf, PANELS, panelOf,
+  isHeld, heldObjects } from './model.js';
 import { pageRows, freeSpot, boxOk } from './grid.js';
-import { create, setPin, togglePin, del, delMany, delDrawer, undo, redo, toggleDone, spawnNext, setGridSize } from './mutations.js';
+import { create, setPin, togglePin, del, delMany, delDrawer, undo, redo, toggleDone, spawnNext, setGridSize,
+  holdIt, unholdIt } from './mutations.js';
 import { applyLook, applyStyle, STYLES, panelSlots, borderSlots, knobSlots, textureSlots,
   bindingSlots, stockSlots, famSlots, famAll, dress, styleKey, stockNow, randomLook,
   palNow, CHECKS } from './look.js';
 import { render, sizeGrid, viewHTML, reveal, settingsPanel, pageAt, pageCount, pageTop, goPage } from './views.js';
-import { overlayHTML, objectPanel, modalNewObject, schedulePanel, closePanel,
+import { overlayHTML, objectPanel, modalNewObject, holdPanel, schedulePanel, closePanel,
   sampleObject, sampleTile } from './panels.js';
 import { wire } from './wire.js';
 import { openingFor, stepDrawer, spray, sprayAt, sprayCount, sprayNow, sprayMark, SPRAYS } from './motion.js';
@@ -113,6 +115,9 @@ window.BUREAU = {
   closeSheet,
   // the type picker, so a test can open the thing rather than the gesture
   pick: modalNewObject,
+  // …and the drawer along the bottom, which is the other thing that pull
+  // opens — see decision 107
+  holding: holdPanel, held: heldObjects, isHeld, hold: holdIt, unhold: unholdIt,
   // what an object looks like on its way out — see decision 68
   asMarkdown,
   // the two questions a date can be asked: which day it sits on, and whether
