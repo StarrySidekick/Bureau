@@ -356,6 +356,9 @@ gyroscope), and it is a `S.look.parallax` switch in Settings.
 - **It yields** to a drag, the pager, a panel, a surface and reduced motion.
 - **Rest is where you hold the phone**, not the sensor's zero, and it drifts
   toward wherever you settle.
+- **The sensor is read as an attitude, not as three angles.** The Euler angles
+  are singular where a phone is actually held — upright — so the screen's own
+  normal is tracked against its rest attitude instead.
 
 See decision 108.
 

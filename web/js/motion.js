@@ -880,7 +880,8 @@ const TILT_SETTLE = 0.0006;// below this it has arrived; park the loop
 const TILT = {on:false, listening:false, raf:0,
               x:0, y:0,          // where the shelf is
               tx:0, ty:0,        // where it is heading
-              restB:null, restG:null};
+              rest:null,         // the attitude you are holding it at
+              ox:0, oy:0};       // …and the neutral, creeping toward it
 
 /* Everything that outranks a decoration. Each is read off state or the DOM,
    deliberately: the alternative is gestures.js, panels.js and sheet.js each
@@ -909,42 +910,75 @@ function tiltFrame(){
   if(Math.abs(tx-TILT.x) > TILT_SETTLE || Math.abs(ty-TILT.y) > TILT_SETTLE) tiltSoon();
 }
 function tiltSoon(){ if(TILT.on && !TILT.raf) TILT.raf=requestAnimationFrame(tiltFrame); }
-/* gamma is the roll (left/right) and beta the pitch (front/back), both in
-   degrees. Portrait only: in landscape the two swap meaning, and a desk that
-   tilts sideways when you tip it forwards is worse than one that does not
-   tilt.
+/* ---- reading the sensor without believing its numbers ------------------
+   `deviceorientation` reports three Euler angles, and the obvious thing — take
+   gamma for left/right and beta for up/down — works fine on a phone lying on a
+   table and **falls apart in the hand**, which is where phones are.
 
-   **Which way round is these two numbers, and it was settled by holding it.**
-   The first version ran the shelf *with* the sensor and read backwards in the
-   hand — the shelf chased the tilt instead of hanging back behind the opening,
-   which is the opposite of what a thing sitting in a recess does. Parallax on
-   a real cavity moves the deep part against the near part, so the sensor is
-   negated and the shelf lags the phone. Everything else follows from these
-   two, the rim's shading included, because it is derived from the same
-   variables — so changing a sign here keeps the shadow on the correct side of
-   the movement without touching the CSS. If one axis ever feels wrong on its
-   own, it is one character. See decision 108. */
+   The angles are `Rz(alpha)·Rx(beta)·Ry(gamma)` with gamma clamped to ±90, and
+   that parameterisation is singular at beta ±90 — which is a phone held
+   upright, screen facing you, the ordinary way to hold one. At that attitude
+   alpha and gamma describe *the same physical rotation*: the matrices for ten
+   degrees of alpha and ten degrees of gamma are identical to five decimal
+   places. Which of the two the platform attributes a movement to is then
+   decided by sensor noise, so gamma jitters while the phone is perfectly
+   steady, and beta sits pinned on the singularity. Gimbal lock, and reading
+   either angle as a coordinate is reading the wrong thing.
+
+   The **attitude** is fine; only the description of it is bad. So build the
+   rotation and track the screen's own normal against where it was at rest:
+   `n` is the third column of R, and its two components in the rest frame are
+   how far the screen has turned away from where you were holding it, left and
+   up. Continuous everywhere, identical whether the phone is flat or upright,
+   and it needs no case for either — which is the whole point, because there is
+   no way to ask a phone which way its owner is holding it.
+
+   `TILT_SIGN_X/Y` are which way round it runs, and they are unchanged: the
+   shelf leans **against** the phone, because a thing in a recess lags the
+   movement rather than chasing it. The polarity of the two components below is
+   chosen to match what the angles gave on a flat phone, so this is a fix and
+   not a re-tuning. See decision 108. */
 const TILT_SIGN_X = -1, TILT_SIGN_Y = -1;
+const RAD = Math.PI/180;
+// device → Earth, in the order the spec names. Row-major; only two of its
+// columns are ever read.
+function rotOf(al, be, ga){
+  const a=al*RAD, b=be*RAD, g=ga*RAD;
+  const cA=Math.cos(a), sA=Math.sin(a), cB=Math.cos(b),
+        sB=Math.sin(b), cG=Math.cos(g), sG=Math.sin(g);
+  return [cA*cG - sA*sB*sG, -sA*cB, cA*sG + sA*sB*cG,
+          sA*cG + cA*sB*sG,  cA*cB, sA*sG - cA*sB*cG,
+          -cB*sG,            sB,    cB*cG];
+}
+const dot3 = (m, i, n)=> m[i]*n[0] + m[i+3]*n[1] + m[i+6]*n[2];   // column i · n
 function onOrient(e){
-  if(e.gamma==null || e.beta==null) return;
-  const g=e.gamma, b=e.beta;
-  if(TILT.restG==null){ TILT.restG=g; TILT.restB=b; }
-  else {
-    TILT.restG += (g-TILT.restG)*TILT_DRIFT;
-    TILT.restB += (b-TILT.restB)*TILT_DRIFT;
-  }
-  TILT.tx = clamp(TILT_SIGN_X * (g-TILT.restG)/TILT_RANGE, -1, 1);
-  TILT.ty = clamp(TILT_SIGN_Y * (b-TILT.restB)/TILT_RANGE, -1, 1);
+  if(e.beta==null || e.gamma==null) return;
+  const R = rotOf(e.alpha||0, e.beta, e.gamma);
+  const n = [R[2], R[5], R[8]];               // where the screen is facing
+  if(!TILT.rest){ TILT.rest=R; TILT.ox=0; TILT.oy=0; }
+  /* Turned so far from rest that the flat approximation has stopped meaning
+     anything — you have put the phone down, or picked it up the other way up.
+     Wherever it is now is the new rest. */
+  if(dot3(TILT.rest, 2, n) < 0.35){ TILT.rest=R; TILT.ox=0; TILT.oy=0; }
+  const dx =  dot3(TILT.rest, 0, n);
+  const dy = -dot3(TILT.rest, 1, n);
+  // the neutral still creeps toward wherever you have settled, exactly as it
+  // did when this was two angles
+  TILT.ox += (dx-TILT.ox)*TILT_DRIFT;
+  TILT.oy += (dy-TILT.oy)*TILT_DRIFT;
+  const K = Math.sin(TILT_RANGE*RAD);         // the throw, as a sine not a degree
+  TILT.tx = clamp(TILT_SIGN_X * (dx-TILT.ox)/K, -1, 1);
+  TILT.ty = clamp(TILT_SIGN_Y * (dy-TILT.oy)/K, -1, 1);
   tiltSoon();
 }
 // Coming back to the app after it has been away: wherever you are holding it
 // now is the new neutral, rather than easing there from where you left off.
-function tiltRecentre(){ TILT.restG=TILT.restB=null; TILT.tx=TILT.ty=0; tiltSoon(); }
+function tiltRecentre(){ TILT.rest=null; TILT.ox=TILT.oy=0; TILT.tx=TILT.ty=0; tiltSoon(); }
 function tiltStop(){
   if(TILT.listening){ removeEventListener('deviceorientation', onOrient); TILT.listening=false; }
   TILT.on=false;
   if(TILT.raf){ cancelAnimationFrame(TILT.raf); TILT.raf=0; }
-  TILT.x=TILT.y=TILT.tx=TILT.ty=0; TILT.restG=TILT.restB=null;
+  TILT.x=TILT.y=TILT.tx=TILT.ty=0; TILT.rest=null; TILT.ox=TILT.oy=0;
   const f=$('#frame');
   if(f){ f.style.removeProperty('--tiltx'); f.style.removeProperty('--tilty');
          f.classList.remove('tilting'); }

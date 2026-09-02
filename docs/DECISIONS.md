@@ -4225,6 +4225,34 @@ The proportion was right first time and is unchanged. Only the direction moved,
 and it is a sign per axis — one character each, if one of them ever feels wrong
 on its own.
 
+**The three Euler angles are the wrong thing to read, and a phone held upright
+is exactly where that shows.** The obvious implementation — gamma for
+left/right, beta for up/down — works on a phone lying on a table and falls
+apart in the hand, which is where phones are. The angles parameterise
+`Rz(alpha)·Rx(beta)·Ry(gamma)` with gamma clamped to ±90, and that is singular
+at beta ±90: a phone held upright, screen facing you. At that attitude alpha
+and gamma describe *the same physical rotation* — the two matrices agree to
+five decimal places — so which of them a movement is attributed to is settled
+by sensor noise. Gamma jitters while the phone is steady, and beta sits pinned
+on the singularity.
+
+The attitude is fine; only the description of it is bad. So build the rotation
+and track the **screen's own normal** against where it was at rest: `n` is the
+third column of R, and its two components in the rest frame are how far the
+screen has turned away from where you were holding it. Continuous everywhere,
+and identical whether the phone is flat or upright with no case for either —
+which is the point, because there is no way to ask a phone how its owner is
+holding it. Ten degrees now moves the shelf by the same amount at every
+attitude, which is the assertion that would have caught the old version: it
+gave *a* number when upright, just the wrong one.
+
+Gravity in the device frame was the other candidate and is not enough. It is
+beautifully stable and it cannot see yaw at all, so an upright phone turned
+left and right — the commonest way to look into something you are holding —
+would not move the shelf. The full rotation sees it. The price is that alpha
+drifts and a body-turn reads as a tilt, and both are absorbed by the neutral's
+own drift below.
+
 **The neutral is where you actually hold the phone.** Nobody holds one at beta
 zero, so the sensor's own zero would leave the shelf jammed in a corner
 forever. The first steady reading becomes rest, and rest then *drifts* slowly

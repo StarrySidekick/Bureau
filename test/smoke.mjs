@@ -2246,6 +2246,7 @@ const CHROME = process.env.BUREAU_CHROME;
 
     send(40, 0); await nap(260);
     out.whereYouHoldItIsLevel = Math.abs(tx()) < 0.02 && Math.abs(ty()) < 0.02;
+
     /* And the shelf runs **against** the phone, which is what a thing sitting
        in a recess does and what the first version got backwards: roll right and
        the shelf hangs back to the left. Both axes are negated at the sensor, so
@@ -2254,6 +2255,42 @@ const CHROME = process.env.BUREAU_CHROME;
     await hold(40, 15);  out.rollingRightLeansTheShelfLeft = tx() < -0.3;
     await hold(40, -15); out.andRollingLeftLeansItRight   = tx() >  0.3;
     await hold(55, 0);   out.pitchingIsNegatedToMatch     = ty() < -0.3;
+
+    /* ---- and it has to work at any attitude, not just a phone on a table --
+       The three Euler angles are singular at beta ±90 — a phone held upright,
+       screen facing you, which is how one is actually held. There alpha and
+       gamma describe *the same physical rotation*, so which of them a movement
+       is attributed to is decided by sensor noise: reading either as a
+       coordinate reads the wrong thing. The screen's own normal, against where
+       it was at rest, is continuous everywhere and needs no case for how the
+       phone is being held — which matters, because there is no way to ask.
+       See decision 108. */
+    const forget = () => { S.look.parallax=false; BUREAU.applyTilt();
+                           S.look.parallax=true;  BUREAU.applyTilt(); };
+    const respondsAt = async (rest) => {
+      forget(); send(rest, 0); await nap(200);       // settle here, level
+      await hold(rest, 10);    const rolled  = tx(); // …then the same ten
+      forget(); send(rest, 0); await nap(200);       //    degrees each way
+      await hold(rest+10, 0);  const pitched = ty();
+      return {roll:+rolled.toFixed(3), pitch:+pitched.toFixed(3)};
+    };
+    const onTable = await respondsAt(5);    // face up on a table
+    const inHand  = await respondsAt(45);   // the usual reading angle
+    const upright = await respondsAt(90);   // straight up, the singular one
+    out.atAnyAttitude = {onTable, inHand, upright};
+    const lively = a => Math.abs(a.roll) > 0.2 && Math.abs(a.pitch) > 0.2;
+    out.bothAxesRespondOnATable  = lively(onTable);
+    out.bothAxesRespondInTheHand = lively(inHand);
+    out.bothAxesRespondUpright   = lively(upright);
+    /* …and by the same amount, which is the half that would have caught the
+       old version: the angles gave *some* number when upright, it was just the
+       wrong one. Ten degrees is ten degrees however you are holding it. */
+    const near = (a,b) => Math.abs(Math.abs(a)-Math.abs(b)) < 0.12;
+    out.andByTheSameAmount = near(onTable.roll,  upright.roll)
+                          && near(onTable.pitch, upright.pitch)
+                          && near(inHand.roll,   upright.roll)
+                          && near(inHand.pitch,  upright.pitch);
+    forget();
 
     S.look.parallax = false; BUREAU.applyTilt(); S.look.locked = wasLocked; await nap(60);
     out.switchingItOffPutsItBack = !frame.classList.contains('tilting')

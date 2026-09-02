@@ -447,7 +447,13 @@ where a `rotate3d` makes `getBoundingClientRect()` return the bounding box of a
 trapezoid and quietly breaks the drop. The rim's shading is a `::after` at
 `z-index:5`, because an inset shadow paints *under* its element's own children
 and every tile on the board is one of those — and its spread must be the
-negative of its offset or the shadow lands outside the box. The shelf runs
+negative of its offset or the shadow lands outside the box. **Never read the Euler angles as coordinates**: `Rz(a)Rx(b)Ry(g)` is singular
+at beta ±90, which is a phone held upright, and there alpha and gamma are the
+same rotation — so gamma jitters while the phone is still. `onOrient()` builds
+the rotation and tracks the **screen normal against its rest attitude**, which
+is continuous at any attitude and needs no case for how the phone is held.
+Gravity-in-device-frame is stabler still and cannot see yaw, which is most of
+the gesture, so it is not enough. The shelf runs
 **against** the phone — `TILT_SIGN_X`/`TILT_SIGN_Y` negate the sensor, because a
 thing in a recess lags the movement rather than chasing it, and the first
 version had it the other way and read backwards in the hand. Negate at the
