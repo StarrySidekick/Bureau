@@ -4371,6 +4371,35 @@ null-safe: when this breaks, the movement is torn down and a bare style read
 throws, which crashes the run instead of reporting. A test that explodes tells
 you less than one that says false.
 
+**And that was not the whole of it.** The real one: a touch is delivered to the
+element it *started* on for the whole of its life, wherever the finger goes —
+and this gesture **renders on the frame it is recognised in**, because the
+render is the commit and the picture is what covers it. `render()` replaces
+`#app` wholesale, so the element those touches are being delivered to leaves the
+document. A detached node has no ancestors, so nothing bubbles: the listeners on
+`#frame` stop hearing the gesture the instant it commits. The movement froze at
+the point it had reached, no `touchend` ever arrived to finish or undo it, and
+the picture sat there over a desk that had already navigated — which reads,
+correctly, as "it gets stuck at the very beginning and then does nothing".
+
+`holdFingers()` puts the same handlers on that element for the length of the
+gesture, so it keeps hearing them detached or not. The handlers may then hear
+one event twice while the element is still in the document, which a stamp on the
+event settles — cheaper than reasoning about whether every path is idempotent.
+
+The test could never have found it, because it fired every event at `#frame` —
+which is never replaced, so the events always arrived. It dispatches at the
+element the fingers land on now, captured when they land and used detached or
+not, and asserts that element really is gone by the time the scrub is measured.
+Without that assertion the test can silently stop exercising the hazard the day
+something stops rendering on the first frame.
+
+The rule this is a case of is already in the file for the pager: **do not render
+mid-gesture.** The pager obeys it by building its neighbours and committing on
+release. This one cannot — the mouth it flies into has to be measured on the
+board being arrived at — so it renders and then holds on to the fingers by
+hand.
+
 ## 110. The floor is deeper than the things standing on it
 
 *2026-09-02*

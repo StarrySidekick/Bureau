@@ -505,10 +505,9 @@ function wire(){
      because a two-finger swipe that also scrolls the page underneath reads as
      two things happening at once. */
   frame.addEventListener('touchstart', onTouchStart, {passive:true});
-  frame.addEventListener('touchmove', e=>{
-    if(e.touches && e.touches.length===2) e.preventDefault();
-    onTouchMove(e);
-  }, {passive:false});
+  // the preventDefault lives in onTouchMove now, because the gesture is also
+  // heard on the element the touches started on — see holdFingers()
+  frame.addEventListener('touchmove', onTouchMove, {passive:false});
   frame.addEventListener('touchend', onTouchEnd, {passive:true});
   frame.addEventListener('touchcancel', onTouchEnd, {passive:true});
 

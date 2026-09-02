@@ -842,6 +842,18 @@ there tore the pinch down on the device and never in a test. Touch events own
 its lifecycle — `touchend` and `touchcancel` both land in `onTouchEnd`. See
 decision 109.
 
+**A touch belongs to the element it started on, and a render takes that element
+away.** `render()` replaces `#app` wholesale, and a detached node has no
+ancestors, so nothing bubbles to `#frame` — a gesture that renders mid-flight
+stops hearing its own fingers and freezes with no `touchend` ever arriving.
+`holdFingers()` in gestures.js puts the handlers on that element for the length
+of the pinch (a stamp on the event swallows the second delivery while it is
+still attached). The pager avoids the whole problem by committing on release;
+anything that must render mid-gesture has to hold on by hand. **A test that
+dispatches at `#frame` cannot see any of this** — `#frame` is never replaced —
+so the pinch tests fire at the element the fingers land on and assert it really
+has gone.
+
 **A dive can be scrubbed, and that is why it has no second set of keyframes.**
 `scrubDive()` in motion.js: the four animations are on one clock and all
 `linear` (the easing is baked into `dive()`'s waypoints), so a **paused

@@ -2380,26 +2380,43 @@ const CHROME = process.env.BUREAU_CHROME;
     const startAt = inner.id, parent = inner.parent;
     S.view='drawer'; S.drawerId=startAt; BUREAU.render(); await nap(320);
 
-    const app = document.querySelector('#frame');
-    const touch = (x,y,id) => new Touch({identifier:id, target:app, clientX:x, clientY:y, pageX:x, pageY:y});
+    /* ---- dispatched the way a device dispatches ------------------------
+       A touch goes to the element it *started* on for the whole of its life,
+       and this gesture renders on the frame it is recognised in — which
+       replaces `#app` and takes that element out of the document. Firing at
+       `#frame` instead, as this did, hides the entire hazard: `#frame` is
+       never replaced, so the events always arrived and the gesture always
+       worked here while freezing solid on the phone. So `tgt` is captured
+       when the fingers land and every event for that gesture goes to it,
+       detached or not. See decision 109. */
+    const landsOn = () => document.querySelector('#sheetHost .stage')
+      || document.querySelector('#app .main') || document.querySelector('#frame');
+    let tgt = landsOn();
+    const touch = (x,y,id) => new Touch({identifier:id, target:tgt, clientX:x, clientY:y, pageX:x, pageY:y});
     const fire = (type, pts) => { const ts = pts.map((pt,i) => touch(pt[0], pt[1], i+1));
-      app.dispatchEvent(new TouchEvent(type, {bubbles:true, cancelable:true,
+      tgt.dispatchEvent(new TouchEvent(type, {bubbles:true, cancelable:true,
         touches:ts, targetTouches:ts, changedTouches:ts})); };
     const CX = 195, CY = 420, R0 = 120;
+    const down = () => { tgt = landsOn(); fire('touchstart', [[CX-R0,CY],[CX+R0,CY]]); };
     const squeeze = async (to, steps=10) => {
       for(let i=1;i<=steps;i++){ const r = R0*(1-(1-to)*i/steps);
         fire('touchmove', [[CX-r,CY],[CX+r,CY]]); await nap(16); }
     };
-    const lift = async () => { app.dispatchEvent(new TouchEvent('touchend',
+    const lift = async () => { tgt.dispatchEvent(new TouchEvent('touchend',
       {bubbles:true, cancelable:true, touches:[], targetTouches:[], changedTouches:[touch(CX,CY,1)]}));
       await nap(700); };
-    const pinchTo = async (to) => { fire('touchstart', [[CX-R0,CY],[CX+R0,CY]]);
-      await squeeze(to); await lift(); };
+    const pinchTo = async (to) => { down(); await squeeze(to); await lift(); };
 
     /* Mid-gesture: the movement exists, is paused, and is parked further
        through its own timeline the further the fingers have come. */
-    fire('touchstart', [[CX-R0,CY],[CX+R0,CY]]);
+    down();
     await squeeze(0.65, 6);
+    /* …and the render that commits has already happened, so the element these
+       touches are being delivered to is out of the document. That is the whole
+       hazard, asserted rather than assumed: if a future change stops rendering
+       on the first frame this goes false and the test below stops proving
+       anything. */
+    out.theTouchTargetIsGone = !document.contains(tgt);
     const pic = document.querySelector('#fx .fxback');
     out.itDrawsTheWayOut = !!pic;
     const delay = el => parseFloat(getComputedStyle(el).animationDelay);
@@ -2427,9 +2444,9 @@ const CHROME = process.env.BUREAU_CHROME;
        cancelled the zoom the movement started, ran a fraction of the way and
        wound itself back. Every time on the device, and never here, because a
        synthetic pinch never fired one. See decision 109. */
-    fire('touchstart', [[CX-R0,CY],[CX+R0,CY]]);
+    down();
     await squeeze(0.7, 5);
-    app.dispatchEvent(new PointerEvent('pointercancel',
+    document.querySelector('#frame').dispatchEvent(new PointerEvent('pointercancel',
       {bubbles:true, pointerId:1, pointerType:'touch'}));
     await nap(40);
     /* Still following the fingers afterwards — not merely still on screen,
@@ -2469,7 +2486,7 @@ const CHROME = process.env.BUREAU_CHROME;
     BUREAU.read(S.objects.find(o => BUREAU.has(o,'text') && !isC(o)).id);
     await nap(320);
     out.aSurfaceIsOpen = !!S.readId;
-    fire('touchstart', [[CX-R0,CY],[CX+R0,CY]]);
+    down();
     await squeeze(0.6, 6);
     out.andShrinksUnderTheFingers =
       getComputedStyle(document.querySelector('#sheetHost')).transform !== 'none';

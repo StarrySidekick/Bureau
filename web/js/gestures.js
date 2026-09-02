@@ -1152,7 +1152,40 @@ function onUp(e){
    below. Both gestures go through the pager, which draws the neighbouring
    board *beside* this one and slides the pair — so a swipe is something you
    can do slowly, see coming, and pull back from. */
-const TWO = {on:false, x:0, y:0, axis:null, from:0, mode:null, d0:0};
+const TWO = {on:false, x:0, y:0, axis:null, from:0, mode:null, d0:0, el:null, held:null};
+
+/* ---- keeping hold of the fingers across a render -----------------------
+   A touch is delivered to the element it *started* on for the whole of its
+   life, wherever the finger then goes. `zoomBegin()` renders — that is the
+   commit, and it is what lets the picture cover it — and `render()` replaces
+   `#app` wholesale, which takes that element out of the document. A detached
+   node has no ancestors, so nothing bubbles: the listeners on `#frame` stop
+   hearing the gesture the instant it commits. The movement freezes at the
+   point it had reached, no `touchend` ever arrives to finish or undo it, and
+   the picture sits on screen over a desk that has already navigated. Which is
+   exactly what it did on the device, and exactly what a synthetic pinch
+   dispatched at `#frame` could never show, because `#frame` is never replaced.
+
+   So the gesture listens on the element the touches are actually being sent
+   to, for as long as it lasts. It is the same handler, and it may hear the
+   same event twice while that element is still in the document — hence the
+   stamp, which is cheaper than reasoning about whether every handler is
+   idempotent. See decision 109. */
+function holdFingers(el){
+  if(!el || TWO.held) return;
+  TWO.held=el;
+  el.addEventListener('touchmove', onTouchMove, {passive:false});
+  el.addEventListener('touchend', onTouchEnd);
+  el.addEventListener('touchcancel', onTouchEnd);
+}
+function dropFingers(){
+  const el=TWO.held; TWO.held=null;
+  if(!el) return;
+  el.removeEventListener('touchmove', onTouchMove, {passive:false});
+  el.removeEventListener('touchend', onTouchEnd);
+  el.removeEventListener('touchcancel', onTouchEnd);
+}
+const twice = e => e.__bureau2 ? true : !(e.__bureau2 = 1);
 const apart = (a,b)=> Math.hypot(a.clientX-b.clientX, a.clientY-b.clientY);
 
 /* ---- pinching out of somewhere ----------------------------------------
@@ -1198,6 +1231,9 @@ function zoomBegin(){
   const up = here && here.parent;
   if(!up) return false;
   const from=S.drawerId;
+  // before leaveTile, because leaveTile renders and the render is what takes
+  // the element these touches are being delivered to out of the document
+  holdFingers(TWO.el);
   const grip = leaveTile(from, ()=>{
     S.view = up===ROOT ? 'desk' : 'drawer';
     S.drawerId = up===ROOT ? null : up;
@@ -1229,16 +1265,25 @@ function zoomEnd(){
   else z.grip.undo(()=>{ S.view='drawer'; S.drawerId=z.from; render(); });
 }
 function onTouchStart(e){
+  if(twice(e)) return;
   if(!e.touches || e.touches.length!==2){ TWO.on=false; return; }
   const [a,b]=e.touches;
-  TWO.on=true; TWO.axis=null; TWO.from=0; TWO.mode=null;
+  TWO.on=true; TWO.axis=null; TWO.from=0; TWO.mode=null; TWO.el=e.target;
   TWO.x=(a.clientX+b.clientX)/2; TWO.y=(a.clientY+b.clientY)/2;
   TWO.d0=apart(a,b);
   onCancel();                      // two fingers is never a drag
   gestureFlags.suppressClick=true;
 }
 function onTouchMove(e){
-  if(!TWO.on || !e.touches || e.touches.length!==2) return;
+  if(twice(e)) return;
+  if(!e.touches || e.touches.length!==2) return;
+  /* Two fingers on the board is always ours: a two-finger swipe that also
+     scrolls the page underneath reads as two things happening at once, and a
+     pinch Safari decides is a page zoom stops being delivered at all. Done
+     here rather than in wire.js because the gesture is also heard on the
+     element the touches started on, which has its own listener. */
+  if(e.cancelable) e.preventDefault();
+  if(!TWO.on) return;
   const [a,b]=e.touches;
   const mx=(a.clientX+b.clientX)/2, my=(a.clientY+b.clientY)/2;
   if(TWO.mode==='pinch'){ zoomMove(apart(a,b)); return; }
@@ -1258,13 +1303,15 @@ function onTouchMove(e){
   swipeMove(TWO, mx - TWO.x, my - TWO.y);
 }
 function onTouchEnd(e){
+  if(twice(e)) return;
   if(e.touches && e.touches.length>=2) return;
+  dropFingers();
   if(TWO.on && TWO.mode==='swipe') pagerEnd();
   /* Not gated on TWO.on: a third finger landing turns the two-finger gesture
      off, and without this the zoom it started would be left half-open with
      nothing to end it. */
   if(Z) zoomEnd();
-  TWO.on=false; TWO.axis=null; TWO.mode=null; TWO.d0=0;
+  TWO.on=false; TWO.axis=null; TWO.mode=null; TWO.d0=0; TWO.el=null;
 }
 
 /* A drag ends with a click event the browser sends anyway. When the drag *was*
