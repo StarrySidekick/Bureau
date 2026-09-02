@@ -579,6 +579,10 @@ function settingsBody(sec){
         <input type="range" min="0" max="30" step="1" data-lookpx="tiltwin" value="${px('tiltwin',11)}">
         <b>${px('tiltwin',11)}px</b></label>
       <div class="mini" style="--k:var(--brass);margin-top:6px">How far behind its frame a window's view sits. Further back is more movement for the same tilt, which is what depth actually is.</div>`:''}
+      <label class="rangerow" style="margin-top:12px"><span>How far things stand out</span>
+        <input type="range" min="0" max="18" step="1" data-lookpx="depth" value="${px('depth',11)}">
+        <b>${px('depth',11)}px</b></label>
+      <div class="mini" style="--k:var(--brass);margin-top:6px">How thick the things standing on the shelf are. You see the right-hand side of everything left of the middle and the left-hand side of everything right of it, the way you do standing in front of a bookcase — so it is set by where a thing is rather than by the phone, and it reads with the desk sitting still. Its own setting for that reason: have it without the tilt, or the tilt without it. Zero is off.</div>
     </div>`;})():''}
 
     ${gridSizeField(null)}

@@ -2480,29 +2480,42 @@ const CHROME = process.env.BUREAU_CHROME;
     const tiles = () => [...document.querySelectorAll('#drawergrid > .drawer')];
     const px = el => parseFloat(el.style.getPropertyValue('--px'));
 
-    S.look.parallax='off'; BUREAU.applyLook(); BUREAU.render(); await nap(120);
-    // Off, the whole thing is absent: no numbers written and no layer drawn.
-    out.nothingWhileTheShelfIsOff = tiles().length > 4
+    const wasDepth = S.look.depth;
+    S.look.depth = 0; S.look.parallax='desk'; BUREAU.applyLook(); BUREAU.render(); await nap(120);
+    // At zero the whole thing is absent: no numbers written and no layer drawn.
+    out.nothingAtZeroDepth = tiles().length > 4
       && tiles().every(t => !t.style.getPropertyValue('--px'))
       && !document.querySelector('#drawergrid .dside');
 
+    /* And the two are separate settings. Where a thing stands is a fact about
+       the board, so it reads with the desk sitting still — and the desk can
+       slide without anything on it standing proud. */
+    S.look.depth = wasDepth==null ? 11 : wasDepth;
+    S.look.parallax='off'; BUREAU.applyLook(); BUREAU.render(); await nap(120);
+    out.depthWithoutTheTilt = tiles().some(t => t.style.getPropertyValue('--px'))
+      && !!document.querySelector('#drawergrid .dside')
+      && !document.getElementById('frame').classList.contains('tilt-desk');
+
     S.look.parallax='desk'; BUREAU.applyLook(); BUREAU.render(); await nap(160);
     const ts = tiles();
-    out.everyTileKnowsWhereItStands = ts.length > 4 && ts.every(t =>
+    /* The numbers and the layer are one condition, so nothing can carry a side
+       without knowing where it stands, or the other way about. */
+    const flanked = ts.filter(t => t.querySelector(':scope > .dside'));
+    out.everythingWithASideKnowsWhereItStands = flanked.length > 2 && flanked.every(t =>
       Number.isFinite(px(t)) && Math.abs(px(t)) <= 1);
+    out.andNothingElseCarriesTheNumbers = ts.every(t =>
+      !!t.style.getPropertyValue('--px') === !!t.querySelector(':scope > .dside'));
     // The sign is the whole cue: left of the middle is negative, right positive.
-    const lefts = ts.filter(t => t.getBoundingClientRect().left < innerWidth/2 - 60);
-    const rights = ts.filter(t => t.getBoundingClientRect().right > innerWidth/2 + 60);
+    const lefts = flanked.filter(t => t.getBoundingClientRect().left < innerWidth/2 - 60);
+    const rights = flanked.filter(t => t.getBoundingClientRect().right > innerWidth/2 + 60);
     out.leftOfCentreIsNegative = lefts.length > 0 && lefts.every(t => px(t) < 0);
     out.rightOfCentreIsPositive = rights.length > 0 && rights.every(t => px(t) > 0);
 
-    // Only things with thickness carry a flank, and a spine never does — its
-    // own cylinder is already its side.
-    const flanked = ts.filter(t => t.querySelector(':scope > .dside'));
+    // Only things with thickness carry a flank, and a spine's is its own curve.
     out.furnitureHasAFlank = flanked.length > 0
       && flanked.every(t => parseFloat(t.style.getPropertyValue('--depth')) >= 0.5);
-    const paper = ts.filter(t => parseFloat(t.style.getPropertyValue('--depth')) < 0.5);
-    out.paperLiesFlat = paper.length > 0 && paper.every(t => !t.querySelector(':scope > .dside'));
+    const paper = ts.filter(t => !t.querySelector(':scope > .dside'));
+    out.paperLiesFlat = paper.length > 0 && paper.every(t => !t.style.getPropertyValue('--depth'));
     const spine = ts.find(t => t.classList.contains('spinetile'));
     out.aBookKeepsItsOwnCurve = !!spine
       && cs(spine).backgroundPosition !== '0px 0px'
@@ -2556,7 +2569,20 @@ const CHROME = process.env.BUREAU_CHROME;
     out.turningThePhoneChangesNoTile = before === shot();
     BUREAU.tilt(0, 0);
 
-    S.look.parallax = wasPar; S.look.locked = wasLocked;
+    /* Last, because it renders and every element captured above goes with it.
+       A decoration is thick and still gets no side: it wears no tile at all
+       (decision 86), so there is no box for a face to belong to — and drawing
+       one put a hard grey rectangle round a cut-out plant. */
+    const orna = BUREAU.create('decoration', {title:'Test plant', parent:'root'});
+    orna.phone = {x:1, y:1, w:3, h:3};
+    BUREAU.render(); await nap(160);
+    const orn = tiles().filter(t => t.classList.contains('dectile'));
+    out.ornamentsOnTheBoard = orn.length > 0;
+    out.anOrnamentHasNoBox = orn.every(t => !t.querySelector(':scope > .dside')
+      && !t.style.getPropertyValue('--depth'));
+    S.objects.splice(S.objects.indexOf(orna), 1);
+
+    S.look.parallax = wasPar; S.look.depth = wasDepth; S.look.locked = wasLocked;
     S.view = heldView; S.drawerId = heldId;
     BUREAU.applyLook(); BUREAU.render(); await nap(60);
     return out;

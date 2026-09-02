@@ -467,7 +467,7 @@ function defaultLook(){
              board flush to the screen the occluder is the bezel, which is not
              drawn, so a tile leaving the board reads as an image cut off
              rather than as something going behind wood. See decision 111. */
-          deskinset:8};
+          deskinset:8, depth:11};
 }
 reset();
 
@@ -891,12 +891,21 @@ const tiltMode = ()=>{
   return TILT_MODES[p] ? p : 'off';
 };
 const tiltsDesk = ()=> ['desk','both'].includes(tiltMode());
+/* How far a thing standing on the shelf sticks out of it, in pixels, and its
+   own setting rather than a consequence of the tilt: the perspective is a fact
+   about where a thing stands and reads with the phone flat on a table (decision
+   117), so it is worth having with the board still — and worth turning off
+   while the board moves. Zero is off, and off costs nothing at all: no numbers
+   on any tile and no layer drawn. */
+const shelfDepth = ()=> { const d = S.look && S.look.depth; return d==null ? 11 : +d || 0; };
+const standsProud = ()=> shelfDepth() > 0;
 const tiltsWindows = ()=> ['window','both'].includes(tiltMode());
 /* What `render()` stamps on `#frame`. Stated here rather than asked of
    motion.js, because it is a fact about the desk and not about the sensor —
    and because render() writes that className wholesale, so anything living on
    it has to be restated there (decision 108). */
-const tiltClasses = ()=> (tiltsDesk()?' tilt-desk':'') + (tiltsWindows()?' tilt-win':'');
+const tiltClasses = ()=> (tiltsDesk()?' tilt-desk':'') + (tiltsWindows()?' tilt-win':'')
+  + (standsProud()?' shelf-deep':'');
 
 /* ---- the holding space --------------------------------------------------
    A drawer along the bottom of a phone that holds things while you carry them
@@ -1453,7 +1462,7 @@ export { ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds, K,
   shapeOf, READS, readOf, spreadOf, OPENINGS, openingOf, gathersOf, gatherKind, containers,
   deskIds, deskList, isDesk, deskOf, deskHere,
   placeOf, isHeld, heldObjects, heldCount,
-  TILT_MODES, tiltMode, tiltsDesk, tiltsWindows, tiltClasses,
+  TILT_MODES, tiltMode, tiltsDesk, tiltsWindows, tiltClasses, shelfDepth, standsProud,
   spanOf, coversDay, lastDay, lateOn, isLate,
   boardLocked,
   PRIOS, prioOf, prioName,

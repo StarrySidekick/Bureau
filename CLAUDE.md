@@ -582,8 +582,8 @@ other. They are also the only surfaces the drawn-line filter may touch. See
 decision 99. A **third** joins them inside the shelf — `<i class="dside">`,
 below.
 
-**Perspective is where a thing stands, not what the phone is doing.** Inside the
-shelf (decision 116) every tile carries `--px`/`--py` — its centre against the
+**Perspective is where a thing stands, not what the phone is doing.** Every tile
+that stands proud carries `--px`/`--py` — its centre against the
 board's, −1..1 — written once per render by `perspOf()` in tiles.js and never
 touched again. Stand in front of the middle of a bookshelf and you see the right
 side of everything to your left, the left side of everything to your right, and
@@ -595,6 +595,22 @@ tilt-keyed version measured 31fps against the shipped board's 60. The per-frame
 set is exactly decision 116's five elements, `.grid` and the four walls, and a
 120-frame sweep does **119 style recalculations and 0 layouts** with the cues in
 or out.
+
+**And it is its own setting, `S.look.depth`** — px, zero is off, gating both the
+numbers and the layer through `standsProud()`. Not the tilt's: the perspective
+reads with the desk sitting still, so have it without the tilt or the tilt
+without it. One number, because `applyLook()` derives `--deepy` (the top and
+bottom bands) from `--deep` (the flanks) and the two must not be able to
+disagree.
+
+**A decoration gets none of it, and thickness is the wrong test.** An ornament
+wears no tile at all (decision 86), so there is no box for a side face to belong
+to — the flank drew a hard grey rectangle round a cut-out plant. *Having a box*
+is the test. Same for `sz-mini`, where eleven pixels of flank on forty is a
+quarter of the tile, and `.dpanel` already bows out; and for a tile in your
+hand, which still carries the `--px` of the cell it came out of. The numbers and
+the layer are one condition (`standsOut()`), so a tile cannot carry one without
+the other.
 
 `.dside` is the third spliced layer and it carries all four faces of a tile: its
 two pseudo-elements are the upright ones, `scaleX`d by `--px` so only ever one

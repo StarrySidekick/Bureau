@@ -4820,3 +4820,36 @@ one run had all three cues cheaper than one of them — noise larger than the
 effect. Style-recalculation and layout **counts** are deterministic where clocks
 are not: contention changes how long they take and never how many there are.
 When a number will not hold still, measure something that has to.
+
+### 117a. …and it is its own setting, because it is not the tilt
+
+*2026-09-02*
+
+The perspective shipped gated on the cavity, which was wrong on its own terms:
+decision 117's whole argument is that where a thing stands decides what you see
+of it *before you move at all*, so it reads with the phone flat on a table.
+Tying it to the tilt made it look like a consequence of the sensor.
+
+So `S.look.depth` — px, its own row, zero is off — and `standsProud()` gates
+both the numbers and the layer. Have the depth without the tilt or the tilt
+without the depth. It is one number, not two: the band along a top or bottom
+edge is a fixed fraction of the flank down a side (`--deepy` from `--deep`, in
+`applyLook()`), so the two cannot disagree the way five separate properties
+could.
+
+**A decoration gets none of it, and thickness was the wrong test.** An ornament
+stands on the board rather than in it and wears no tile at all — no paper, no
+border, no shadow, no name (decision 86) — so there is no box for a side face to
+be a side *of*, and the flank drew a hard grey rectangle round a cut-out plant.
+Having a box is the test, not being thick. Two smaller versions of the same
+mistake went with it: a tile one cell square is the type's mark and nothing else
+(decision 50), and eleven pixels of flank on forty is a quarter of it — so
+`.dside` bows out at `sz-mini` exactly as `.dpanel` already does; and a tile in
+your hand still carries the `--px` of the cell it came out of, so a thing
+carried across the board kept showing the side it had over there until the drop
+re-rendered. Nothing being carried has a side.
+
+The numbers and the layer are now one condition (`standsOut()`), so a tile can
+never carry one without the other — which is also what makes "everything with a
+side knows where it stands" a testable claim rather than two claims that could
+drift.

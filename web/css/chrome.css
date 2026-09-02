@@ -132,12 +132,12 @@
      offset puts it along the opposite one — so both faces come out of one
      declaration and neither is ever drawn at the same time as the other. */
   box-shadow:
-    inset 0 calc(max(0, var(--py,0)) * var(--depth,.5) * 7px) 0 rgba(0,0,0,.10),
-    inset 0 calc(min(0, var(--py,0)) * var(--depth,.5) * 7px) 0 rgba(0,0,0,.24);
+    inset 0 calc(max(0, var(--py,0)) * var(--depth,.5) * var(--deepy,7px)) 0 rgba(0,0,0,.10),
+    inset 0 calc(min(0, var(--py,0)) * var(--depth,.5) * var(--deepy,7px)) 0 rgba(0,0,0,.24);
 }
 .dside::before,.dside::after{
   content:"";position:absolute;top:0;bottom:0;
-  width:calc(var(--depth,.5) * 11px);transform:scaleX(0)}
+  width:calc(var(--depth,.5) * var(--deep,11px));transform:scaleX(0)}
 /* One light, at the upper left — the same one `.pull` has been lit by all along
    — so the two sides are not the same face in mirror image: the left one is
    turned towards it, the right one away, and neither is *facing* it. Both are
@@ -157,12 +157,21 @@
    those are the top and bottom of the text block, and they are true. */
 .drawer.spinetile > .dside::before,
 .drawer.spinetile > .dside::after{content:none}
+/* One cell square is the type's mark and nothing else (decision 50) — there is
+   no room on forty pixels for a side face, the way there is none for a name.
+   `.dpanel` bows out at this size for the same reason. */
+.drawer.sz-mini > .dside{display:none}
+/* A tile in your hand is off the shelf, and its `--px` is still the cell it
+   came out of — so a thing carried from one side of the board to the other
+   would keep showing the side it had over there until the drop re-rendered.
+   Nothing standing anywhere has a side while it is being carried. */
+.drawer.dragging > .dside,.drawer.lifted > .dside{opacity:0}
 /* A tile to the *right* of centre shows its left flank, and the other way
    about. `max(0, …)` is what keeps each strip to its own half of the board
    rather than flipping inside out at the middle. */
-.is-phone.tilt-desk .grid > .drawer > .dside::before{
+.is-phone.shelf-deep .grid > .drawer > .dside::before{
   transform:scaleX(max(0, var(--px,0)))}
-.is-phone.tilt-desk .grid > .drawer > .dside::after{
+.is-phone.shelf-deep .grid > .drawer > .dside::after{
   transform:scaleX(max(0, -1 * var(--px,0)))}
 
 /* No cast shadow among these. It was the obvious third cue — one light in one
@@ -180,7 +189,7 @@
    back (decision 87) is already a cylinder; all it needed was permission to
    present a little of one side, which is the same perspective every other tile
    is getting and costs a background-position rather than an element. */
-.is-phone.tilt-desk .grid > .drawer.spinetile{--spinerun:6px}
+.is-phone.shelf-deep .grid > .drawer.spinetile{--spinerun:calc(var(--deep,11px) * .55)}
 
 /* ---- the view is behind the glass -------------------------------------
    The one place a parallax earns itself without any of decision 108's

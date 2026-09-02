@@ -3,7 +3,7 @@ import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, chi
   rollup, streak, goalPct, projectStat, tlSpan, dev, spawnByOf, genKindOf, takesTyping, showsAddBox,
   knobSizeOf, answered, sortOf, spanOf, coversDay, lateOn, isLate, iconOf, textSizeOf,
   isPicture, isMedia, isPlayable, isDecor, mediaTypeOf, frameOf, isWindow,
-  boardLocked, prioOf, repeatSaid, tiltsDesk,
+  boardLocked, prioOf, repeatSaid, standsProud,
   calViewOf, weekStartOf, calCols, bindingOf, panelOf, knobOf, borderOf, textureOf } from './model.js';
 import { CELL, COLW, gridOf, lay, overlaps, boxOk, freeSpot, gridRows, sizeOfKind, ensureBox,
   pageRows, colsOf } from './grid.js';
@@ -422,9 +422,9 @@ function gridTile(o, arr, parentId){
    *is* rather than from what it is called, so a type invented at runtime gets a
    sensible answer without being told. */
 const depthOf = o =>
-    isContainer(o)  ? 1           // furniture, standing on the shelf
+    isDecor(o)      ? 0           /* a cut-out with no box to have sides — see below */
+  : isContainer(o)  ? 1           // furniture, standing on the shelf
   : shapeOf(o)==='spine' ? 0.9    // a book is nearly as deep as the drawer beside it
-  : isDecor(o)      ? 0.75
   : has(o,'media')  ? 0.55        // a framed thing has a frame's thickness
   : 0.18;                         // paper, lying on it
 /* Where this tile sits relative to the middle of the board, −1..1 on each axis.
@@ -451,8 +451,17 @@ function perspOf(box){
 }
 /* Only something with real thickness gets the extra element. Paper on the
    shelf has no flank to show, and two hundred empty layers on a full board is
-   a render cost with nothing drawn on it. */
+   a render cost with nothing drawn on it.
+
+   A **decoration** is the one thing that is thick and still gets none. It
+   stands on the board rather than in it and wears no tile at all — no paper,
+   no border, no shadow, no name (decision 86) — so there is no box for a side
+   face to be a side *of*, and drawing one put a hard grey rectangle round a
+   cut-out plant. Thickness is not the test; having a box is. */
 const FLANKED = 0.5;
+/* One condition for the layer and for the numbers that dress it, so a tile can
+   never carry one without the other. */
+const standsOut = (o, persp) => !!persp && depthOf(o) >= FLANKED;
 const SIDE_LAYER = '<i class="dside"></i>';
 const GRAIN_LAYER = '<i class="dgrain"></i>';
 const PANEL_LAYER = '<i class="dpanel"></i>';
@@ -469,7 +478,7 @@ function drawTile(o, arr, box, persp){
      avoid. */
   const layers = (html.includes('class="dpanel"') ? '' : PANEL_LAYER)
     + (textureOf(o)==='none' ? '' : GRAIN_LAYER)
-    + (persp && depthOf(o) >= FLANKED ? SIDE_LAYER : '');
+    + (standsOut(o, persp) ? SIDE_LAYER : '');
   return html.slice(0, i+1) + layers + html.slice(i+1);
 }
 function drawTileFace(o, arr, box, persp){
@@ -503,7 +512,7 @@ function drawTileFace(o, arr, box, persp){
      See decision 117. */
   const place = `${ts!==1?`--tscale:${ts};`:''}${
     tilt?`--tilt:${tilt.deg}deg;--pinx:${tilt.right?'100%':'0%'};`:''
-  }${persp?`--px:${persp.x};--py:${persp.y};--depth:${depthOf(o)};`:''
+  }${standsOut(o, persp) ? `--px:${persp.x};--py:${persp.y};--depth:${depthOf(o)};` : ''
   }grid-column:${box.x} / span ${box.w};grid-row:${box.y} / span ${box.h}`;
   const sel = S.sel.includes(o.id) ? ' selected' : '';
 
@@ -1092,11 +1101,12 @@ function gridOfContainer(cid){
     PAGESHIFT.n = from;                       // gridTile subtracts it as it draws
   } else PAGESHIFT.n = 0;
   /* Where the middle of this board is, for the shelf's perspective — once,
-     here, rather than once per tile. Off unless the shelf is on, which is what
-     keeps the numbers off every tile's style attribute when there is no slot
-     to be standing in. See decision 117. */
-  PERSP.cols = tiltsDesk() ? colsOf(c.id) : 0;
-  PERSP.rows = tiltsDesk() ? per : 0;
+     here, rather than once per tile. Off at zero depth, which is what keeps the
+     numbers off every tile's style attribute when nothing is standing proud —
+     and that is its own setting, not the tilt's: the perspective reads with the
+     phone flat on a table. See decision 117. */
+  PERSP.cols = standsProud() ? colsOf(c.id) : 0;
+  PERSP.rows = standsProud() ? per : 0;
   const tiles=kids.map(o=>gridTile(o,arr,c.id)).join('');
   PAGESHIFT.n = 0; PERSP.cols = PERSP.rows = 0;
   // a page is exactly the rows that fit; a scrolling board is at least a screen
