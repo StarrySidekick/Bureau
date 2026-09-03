@@ -1,7 +1,7 @@
 import { S, K, defaultLook, PANELS, PANEL_SLOTS, KNOBS, KNOB_SLOTS,
   BINDINGS, BINDING_SLOTS, BORDER_SLOTS, TEXTURE_SLOTS, STOCKS, STOCK_SLOTS,
   slotKey, slotRaw, slotSrc, borderOf, textureOf, panelOf, knobOf, bindingOf, stockOf,
-  shelfDepth, shelfTurn } from './model.js';
+  shelfDepth, bookDepth, shelfTurn, faceCue } from './model.js';
 import { save } from './persist.js';
 import { render } from './views.js';
 
@@ -114,7 +114,45 @@ function applyLook(){
   const sd = shelfDepth();
   el.style.setProperty('--deep', sd+'px');
   el.style.setProperty('--deepy', (Math.round(sd*0.64*10)/10)+'px');
+  /* A book's is its own number, for the reason model.js gives: a flank and a
+     roll-off are two different things and one slider could only ever be right
+     for one of them. A spine tile redeclares `--deep`/`--deepy` from these, so
+     everything downstream — the head and tail bands, the specular that slides
+     across the round back — goes on reading the one property it always read.
+     `--bkshade` is the third: how dark the roll-off gets, as a share of what it
+     is at eleven, because on a cylinder the *shade* is the depth cue and a
+     width alone cannot say it. Worked out here rather than in CSS because calc
+     cannot divide a length by a length. */
+  const bd = bookDepth();
+  el.style.setProperty('--deepbk', bd+'px');
+  el.style.setProperty('--deepybk', (Math.round(bd*0.64*10)/10)+'px');
+  el.style.setProperty('--bkshade', String(Math.round(Math.min(1.5, bd/11)*100)/100));
   el.style.setProperty('--turn', String(shelfTurn()/100));
+  /* And the five drawn on the face. Each is one number, 0-100, and everything
+     it needs is derived from it here — a strength, not a set of properties, so
+     a cue cannot be bright in its highlight and flat in its shade. The ceilings
+     were found on the bench; a slider at 100 is the most of each that still
+     reads as furniture rather than as a filter. */
+  const cue = k => faceCue(k) / 100;
+  const w = cue('facelight');
+  el.style.setProperty('--washhi', (w * 0.14).toFixed(3));
+  el.style.setProperty('--washlo', (w * 0.28).toFixed(3));
+  el.style.setProperty('--sweepamt', (cue('facesweep') * 0.17).toFixed(3));
+  /* An arris is a fixed thickness at any size, like every moulding in the app,
+     so the slider is the *light* on it and never the width. */
+  const a = cue('arris');
+  el.style.setProperty('--arw', '2px');
+  el.style.setProperty('--arlit', (a * 0.24).toFixed(3));
+  el.style.setProperty('--arshade', (a * 0.28).toFixed(3));
+  el.style.setProperty('--areye', (a * 0.20).toFixed(3));
+  const r = cue('recess');
+  el.style.setProperty('--recthrow', (r * 10).toFixed(1) + 'px');
+  el.style.setProperty('--recblur', '18px');
+  el.style.setProperty('--recamt', (r * 0.36).toFixed(3));
+  const kn = cue('knobturn');
+  el.style.setProperty('--knobturn', (kn * 5).toFixed(1) + 'px');
+  el.style.setProperty('--knobglow', (kn * 0.42).toFixed(3));
+  el.style.setProperty('--fieldshift', (cue('fieldshift') * 2.4).toFixed(2) + 'px');
 
   /* And then the hand overrides, which still beat the aesthetic — one is a
      starting point, not a cage.

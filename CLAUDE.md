@@ -600,12 +600,49 @@ cylinder, a `background-position` per frame, allowed because a board has a
 handful of spines; don't give the same treatment to anything there are fifty
 of. Never move a face by anything that paints.
 
-**And it is its own setting, `S.look.depth`** — px, zero is off, gating both the
-numbers and the layer through `standsProud()`. Not the tilt's: the perspective
-reads with the desk sitting still, so have it without the tilt or the tilt
-without it. One number, because `applyLook()` derives `--deepy` (the top and
-bottom bands) from `--deep` (the flanks) and the two must not be able to
-disagree.
+**And it is its own setting — two of them.** `S.look.depth` is the drawers,
+cards and pictures and `S.look.bookdepth` is the books; px, zero is off on
+each, and `standsOut()` asks per tile which slider it stands under, so a board
+can have the books turning and the drawers flat and draw no layer at all on the
+drawers. Not the tilt's: the perspective reads with the desk sitting still, so
+have it without the tilt or the tilt without it. Two rather than one because a
+flank and a roll-off are different surfaces and one number was a compromise
+between them — the books looked right and the drawers only technically worked.
+A spine **redeclares `--deep`/`--deepy`** from `--deepbk`/`--deepybk`, so the
+head and tail bands and `--spinerun` go on reading the property they always
+read rather than needing rules of their own; `--bkshade` is the roll-off's
+weight, because on a cylinder the shade spans half the spine at any depth and a
+width cannot say how far round it has turned. Within each, one number:
+`applyLook()` derives the top-and-bottom band from the flank so the two cannot
+disagree. See decision 117c.
+
+**And a drawer's depth is light on its face, not a face on its side.** The
+flank is honest geometry and nearly invisible — a front's character is the
+moulding, the knob and the grain, and a band of grey down one edge is not part
+of it. Six more cues, each **one number 0–100** in `S.look` with every property
+derived from it in `applyLook()`: `arris` (a two-pixel eased edge, the one that
+reads most like a drawer), `facelight` (the face lighter on the edge turning
+towards you), `facesweep` (the spine's specular on a flat front — wide, because
+narrow and bright is decision 42's foil), `recess` (the *opening's* depth: the
+desk's lip shading the front), `knobturn` (the light on the knob moves, the wood
+does not) and `fieldshift` (the panel's field sliding in its moulding — the only
+real parallax of the six). **Every one is a transform or an opacity on a
+promoted layer**, which is the condition of their existing: 0 layouts and no
+repaint across a 120-frame sweep with all six on. Zero is off and off costs no
+element — `faceLayers()` gates per tile. They go to things with a face at the
+same `FLANKED` line the flank uses; not to a book, which has its own answer, and
+not to paper. There is **still no cast shadow**, now for a structural reason as
+well: `.drawer` is `overflow:hidden` with `isolation:isolate`, so nothing drawn
+inside it can reach the board behind it. See decision 118.
+
+**Nothing that reads as prose may be a flex container.** `.mini` was
+`display:flex`, so a note with a `<b>` in it was dealt out into one narrow
+column per bold word — invisible on a Mac, and a wall of vertical single-word
+strips on a phone. `.rangerow` had the matching bug from the other direction:
+`display:flex` at 0,1,0 against `.field label` at 0,2,0, so every slider in the
+app was being drawn by the *label* rule, stacked and uppercased at 10px. It is
+an explicitly placed grid now — name and value on one line, full-width track
+beneath — and it states a specificity `.field` cannot beat. See decision 118a.
 
 **A decoration gets none of it, and thickness is the wrong test.** An ornament
 wears no tile at all (decision 86), so there is no box for a side face to belong
@@ -1290,6 +1327,13 @@ on. See decisions 47 and 81. Dragging a size out on bare board still makes somet
 both devices, because that one is deliberate. And on a phone every panel comes
 up from the bottom rather than in from the right — a panel from the right covers
 the whole board, which is the thing decision 23 exists to prevent.
+
+**Depth is its own door.** `Depth and light` in Settings — four headed groups:
+*Looking in* (what the tilt moves), *Books*, *Drawer fronts* and *Both* (how far
+any of it follows the phone). It was four rows at the foot of Appearance and is
+now eleven, and "how solid does this desk look" is not "what colour is the
+board". Every note in it is one or two sentences: eleven controls each with a
+paragraph is a wall rather than an explanation.
 
 **A panel asks one question.** A long one is a short list of **doors**:
 `objectPanel(id, sec)` and `settingsPanel(sec)` are the *same panel under the

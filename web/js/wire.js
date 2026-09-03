@@ -1139,8 +1139,16 @@ function wire(){
       const b=e.target.parentElement.querySelector('b'); if(b) b.textContent=e.target.value+'px'; return; }
     // the same thing for a number that is a share rather than a length
     const lq=e.target.dataset.lookpct;
-    if(lq){ S.look[lq]=+e.target.value; applyLook();
-      const b=e.target.parentElement.querySelector('b'); if(b) b.textContent=e.target.value+'%'; return; }
+    if(lq){
+      /* Crossing zero adds or takes away a layer, and a layer is markup — so a
+         cue coming on has to render once, where turning it up is only a
+         property. Without this a slider dragged off zero did nothing until you
+         let go, which reads as a broken control rather than a cheap one. */
+      const was=+(S.look[lq]||0), now=+e.target.value;
+      S.look[lq]=now; applyLook();
+      const b=e.target.parentElement.querySelector('b'); if(b) b.textContent=now+'%';
+      if((was>0) !== (now>0)) render();
+      return; }
     // repainting one slot of the style showing — it belongs to that style
     if(e.target.dataset.slot!=null){
       setSlot(+e.target.dataset.slot, e.target.value); applyLook(); render(); return;

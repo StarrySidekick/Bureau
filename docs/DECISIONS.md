@@ -4894,3 +4894,141 @@ moving left turns its left side towards you and its right side away, so the
 shade grows on the right. The first pass copied the box's sign and shaded both
 sides at once, which is a pipe. The specular sliding underneath already went the
 right way; the roll-off had to agree with it.
+
+### 117c. A book and a drawer are two sliders, not one
+
+*2026-09-03*
+
+The cue works on books and does not work on drawers, and one number could only
+ever be right for one of them.
+
+A book is a **cylinder**. The gradient that draws its round back was already a
+cylinder before any of this (decision 87); all the perspective did was let it
+turn. What you see when a book turns is not a new surface, it is the same
+surface falling into shade — and shade on a curve is the thing your eye reads
+depth off. It looks right at eleven pixels and it looks better at eighteen.
+
+A drawer is a **box**, and a box shows a flank: a hard-edged band down one side,
+eleven pixels of it, in a colour nothing else on the tile is. That is honest
+geometry and it is nearly invisible, because a drawer front's whole character is
+the *face* — the moulding, the knob's highlight, the grain — and a sliver of
+grey at the edge is not part of that character. Turned up far enough to see, it
+stops being a side and becomes a grey stripe. Timothy's word was that the books
+look cool and the drawers technically work, which is exactly what a cue that has
+the right maths and the wrong surface feels like.
+
+So: `depth` is the drawers, cards and pictures, and `bookdepth` is the books.
+Zero is off on each, per tile rather than per desk — `standsOut()` asks which of
+the two sliders the tile it is drawing stands under, so a board can have the
+books turning and the drawers flat and pay for no layer at all on the drawers.
+A spine redeclares `--deep`/`--deepy` from the book's own pair, so everything
+downstream — the head and tail bands, the specular that slides across the back —
+goes on reading the one property it always read, rather than a second set of
+rules that could disagree with the first. `--bkshade` is the third number and it
+is not a width: on a cylinder the shade already spans half the spine at any
+depth, so weight is the only handle that says how far round it has turned. It is
+worked out in `applyLook()` because calc cannot divide a length by a length.
+
+What this decision does **not** do is fix the drawer. It stops one slider from
+being a compromise between two surfaces, so the drawer can be looked at on its
+own terms — and the open question is whether a drawer's depth belongs on its
+flank at all, or in the light across its own face.
+
+## 118. Depth on a drawer is light on its face, not a face on its side
+
+*2026-09-03*
+
+Decision 117c stopped one slider from being a compromise between a book and a
+drawer. It did not fix the drawer, and said so. This is the other half.
+
+The flank is honest geometry — you see the side that faces the middle of the
+shelf — and it is nearly invisible, because a drawer front's whole character is
+the moulding, the knob and the grain, and a band of grey down one edge is not
+part of that character. Turned up far enough to read, it stops being a side and
+becomes a stripe. A book works because a spine is a cylinder and what turns is
+**shade on a curve**; a flat front has no curve, so the shade has to be put
+somewhere else. It was explored on a bench before any of it was written here,
+which is why there are six answers rather than one.
+
+Five are drawn on the face and one is drawn on the panel already there:
+
+- **A chamfered edge.** The arris a real front is eased with, and the first
+  thing in a room to catch light. Two pixels at any size — a moulding is a
+  fixed thickness, like every other one in the app — with the fixed upper-left
+  light plus a term for whichever edge is turning towards you. This is the one
+  that reads most like a drawer, because it is what a drawer has.
+- **Light across the face.** The front lighter on the edge turning towards you
+  and falling away on the other.
+- **A sweep of light.** One broad band travelling across, which is the spine's
+  specular borrowed by a flat surface. Deliberately wide: narrow and bright is
+  decision 42's foil, which the desk has been through once.
+- **Set into the carcass.** The *opening's* depth rather than the drawer's —
+  the lip of the desk laying a shadow across the front from the side you moved
+  away from. The only cue that needs the tile to have no thickness at all.
+- **The knob turns with you.** The one part of a front that is already solid.
+  Its wood does not move; only the light on it does, which is the difference
+  between a knob and a sticker sliding about on the wood.
+- **The field shifts in its frame.** A panelled field is genuinely set back
+  inside its moulding, so it slides against the frame. The only one that is
+  real parallax rather than painted light.
+
+**Every one of them is a transform or an opacity on a promoted layer**, and
+that is not an implementation note — it is the condition of their existing. A
+cue keyed on `--tiltx` changes on every frame of the tilt, and decision 117b
+already paid 21fps for a version that changed a `background-size` and a
+`box-shadow`. So a gradient is painted once on a layer three times the width of
+the tile and **slid**; an arris is four bars painted once whose **opacity**
+follows the eye; a recess is an inset ring painted once and slid. Measured over
+a 120-frame sweep with all six on: **0 layouts**, one style recalculation per
+frame either way, and no tile and no layer changing a background, a size or a
+shadow. The recalculation *duration* across the whole sweep goes from 1.6ms
+with the flank alone to 3.4ms with everything on, which is 0.028ms a frame.
+
+Each is **one number, 0–100**, and `applyLook()` derives every property from it
+— the arrangement decision 114 gave the tilt's own sliders, for the same
+reason: four properties that can disagree about one cue is four chances to be
+wrong. Zero is off and off costs no element, gated per tile in `faceLayers()`,
+because two extra elements on every tile is a fifth of a render at three
+thousand objects and a layer with nothing painted on it is the worst kind.
+
+They go to things with a face to draw them on — a drawer, a card, a picture —
+at the same `FLANKED` line the flank is drawn at. Not to a book, which has its
+own answer. Not to paper, which lies on the shelf rather than standing in it.
+
+**And there is still no cast shadow.** Decision 117 could not have one because
+a custom property resolves where it is declared; this is a second, structural
+reason, found from the other side. A shadow thrown onto the board has to be
+drawn outside the tile, and `.drawer` is `overflow:hidden` with
+`isolation:isolate` — so a layer inside it is clipped to the front and a
+negative z-index cannot reach behind the tile's own background. The only route
+left is the tile's own `box-shadow` keyed on the eye, which is paint on every
+tile on every frame: the 21fps mistake again, from a third direction.
+
+### 118a. Eleven controls is a door, and prose is not a flex container
+
+Depth was four rows at the foot of Appearance and is now eleven, so it is a
+**door of its own** — "how solid does this desk look" is not the same question
+as "what colour is the board", and decision 66 says a long panel is a short
+list of doors. Inside it, four headed groups: *Looking in* (what the tilt
+moves), *Books*, *Drawer fronts*, and *Both* (how far any of it follows the
+phone). Every note in the group is one or two sentences, because eleven
+controls each with a paragraph is a wall rather than an explanation.
+
+Two formatting bugs came out with it, both of them years old and neither
+device-specific in the end.
+
+`.mini` — the note under a control — was `display:flex`. A paragraph with a
+`<b>` in it is a flex container with three children, so the sentence was dealt
+out into one narrow column per bold word. On a Mac there is width enough to
+hide it; on a phone panel it shredded a three-line explanation into six
+vertical strips of single words. **Nothing that reads as prose may be a flex
+container.** The dot keeps its alignment as an inline mark instead.
+
+`.rangerow` was `display:flex` at specificity 0,1,0 against `.field label` at
+0,2,0 — so every slider in the app was being rendered by the *label* rule:
+stacked, uppercased and 10px. It is a grid now, placed explicitly rather than
+flowed (the markup is name, track, value, which is the reading order, but the
+value belongs beside the name), and it says so at a specificity `.field` cannot
+beat. The track is full width, because a slider sharing a line with a sentence
+has about ninety pixels of travel on a phone and is not a control you can set a
+number with.
