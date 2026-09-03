@@ -600,12 +600,21 @@ cylinder, a `background-position` per frame, allowed because a board has a
 handful of spines; don't give the same treatment to anything there are fifty
 of. Never move a face by anything that paints.
 
-**And it is its own setting, `S.look.depth`** — px, zero is off, gating both the
-numbers and the layer through `standsProud()`. Not the tilt's: the perspective
-reads with the desk sitting still, so have it without the tilt or the tilt
-without it. One number, because `applyLook()` derives `--deepy` (the top and
-bottom bands) from `--deep` (the flanks) and the two must not be able to
-disagree.
+**And it is its own setting — two of them.** `S.look.depth` is the drawers,
+cards and pictures and `S.look.bookdepth` is the books; px, zero is off on
+each, and `standsOut()` asks per tile which slider it stands under, so a board
+can have the books turning and the drawers flat and draw no layer at all on the
+drawers. Not the tilt's: the perspective reads with the desk sitting still, so
+have it without the tilt or the tilt without it. Two rather than one because a
+flank and a roll-off are different surfaces and one number was a compromise
+between them — the books looked right and the drawers only technically worked.
+A spine **redeclares `--deep`/`--deepy`** from `--deepbk`/`--deepybk`, so the
+head and tail bands and `--spinerun` go on reading the property they always
+read rather than needing rules of their own; `--bkshade` is the roll-off's
+weight, because on a cylinder the shade spans half the spine at any depth and a
+width cannot say how far round it has turned. Within each, one number:
+`applyLook()` derives the top-and-bottom band from the flank so the two cannot
+disagree. See decision 117c.
 
 **A decoration gets none of it, and thickness is the wrong test.** An ornament
 wears no tile at all (decision 86), so there is no box for a side face to belong

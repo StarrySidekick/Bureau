@@ -4894,3 +4894,42 @@ moving left turns its left side towards you and its right side away, so the
 shade grows on the right. The first pass copied the box's sign and shaded both
 sides at once, which is a pipe. The specular sliding underneath already went the
 right way; the roll-off had to agree with it.
+
+### 117c. A book and a drawer are two sliders, not one
+
+*2026-09-03*
+
+The cue works on books and does not work on drawers, and one number could only
+ever be right for one of them.
+
+A book is a **cylinder**. The gradient that draws its round back was already a
+cylinder before any of this (decision 87); all the perspective did was let it
+turn. What you see when a book turns is not a new surface, it is the same
+surface falling into shade — and shade on a curve is the thing your eye reads
+depth off. It looks right at eleven pixels and it looks better at eighteen.
+
+A drawer is a **box**, and a box shows a flank: a hard-edged band down one side,
+eleven pixels of it, in a colour nothing else on the tile is. That is honest
+geometry and it is nearly invisible, because a drawer front's whole character is
+the *face* — the moulding, the knob's highlight, the grain — and a sliver of
+grey at the edge is not part of that character. Turned up far enough to see, it
+stops being a side and becomes a grey stripe. Timothy's word was that the books
+look cool and the drawers technically work, which is exactly what a cue that has
+the right maths and the wrong surface feels like.
+
+So: `depth` is the drawers, cards and pictures, and `bookdepth` is the books.
+Zero is off on each, per tile rather than per desk — `standsOut()` asks which of
+the two sliders the tile it is drawing stands under, so a board can have the
+books turning and the drawers flat and pay for no layer at all on the drawers.
+A spine redeclares `--deep`/`--deepy` from the book's own pair, so everything
+downstream — the head and tail bands, the specular that slides across the back —
+goes on reading the one property it always read, rather than a second set of
+rules that could disagree with the first. `--bkshade` is the third number and it
+is not a width: on a cylinder the shade already spans half the spine at any
+depth, so weight is the only handle that says how far round it has turned. It is
+worked out in `applyLook()` because calc cannot divide a length by a length.
+
+What this decision does **not** do is fix the drawer. It stops one slider from
+being a compromise between two surfaces, so the drawer can be looked at on its
+own terms — and the open question is whether a drawer's depth belongs on its
+flank at all, or in the light across its own face.

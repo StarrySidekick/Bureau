@@ -172,8 +172,16 @@
    top. */
 .drawer.spinetile > .dside::before,
 .drawer.spinetile > .dside::after{width:50%}
-.drawer.spinetile > .dside::before{background:linear-gradient(90deg, rgba(0,0,0,.26), rgba(0,0,0,.08) 45%, rgba(0,0,0,0))}
-.drawer.spinetile > .dside::after{background:linear-gradient(270deg, rgba(0,0,0,.36), rgba(0,0,0,.12) 45%, rgba(0,0,0,0))}
+/* And how *dark* that roll-off gets is the book's own slider, as a share of
+   what it is at eleven. On a flat face the depth is a width — you see more or
+   less flank — but a cylinder's shade already spans half the spine at any
+   depth, so width is the wrong handle and only the weight of the shade says
+   how far round it has turned. `--bkshade` is written by applyLook() because
+   calc cannot divide one length by another. */
+.drawer.spinetile > .dside::before{background:linear-gradient(90deg,
+  rgba(0,0,0,calc(.26 * var(--bkshade,1))), rgba(0,0,0,calc(.08 * var(--bkshade,1))) 45%, rgba(0,0,0,0))}
+.drawer.spinetile > .dside::after{background:linear-gradient(270deg,
+  rgba(0,0,0,calc(.36 * var(--bkshade,1))), rgba(0,0,0,calc(.12 * var(--bkshade,1))) 45%, rgba(0,0,0,0))}
 /* One cell square is the type's mark and nothing else (decision 50) — there is
    no room on forty pixels for a side face, the way there is none for a name.
    `.dpanel` bows out at this size for the same reason. */
@@ -214,7 +222,15 @@
    back (decision 87) is already a cylinder; all it needed was permission to
    present a little of one side, which is the same perspective every other tile
    is getting and costs a background-position rather than an element. */
-.is-phone.shelf-deep .grid > .drawer.spinetile{--spinerun:calc(var(--deep,11px) * .55);
+/* A spine redeclares the depth from the book's own pair, and everything under
+   it goes on reading `--deep`/`--deepy` the way it always has — the head and
+   tail bands, and the specular below. One substitution rather than a second
+   set of rules, which is the same argument `dive()` makes for one set of
+   waypoints: two would be two chances to disagree. `--spinerun` is declared on
+   this element and so takes this element's own `--deep`. */
+.is-phone.shelf-deep .grid > .drawer.spinetile{
+  --deep:var(--deepbk, 11px);--deepy:var(--deepybk, 7px);
+  --spinerun:calc(var(--deep,11px) * .55);
   --ex:clamp(-1.4, calc(var(--px,0) + var(--tiltx,0) * var(--turn,1)), 1.4)}
 
 /* ---- the view is behind the glass -------------------------------------

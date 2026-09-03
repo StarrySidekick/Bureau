@@ -898,7 +898,18 @@ const tiltsDesk = ()=> ['desk','both'].includes(tiltMode());
    while the board moves. Zero is off, and off costs nothing at all: no numbers
    on any tile and no layer drawn. */
 const shelfDepth = ()=> { const d = S.look && S.look.depth; return d==null ? 11 : +d || 0; };
-const standsProud = ()=> shelfDepth() > 0;
+/* And books are the other half of the same idea, and they are **not** the same
+   number. A drawer is a box: what it shows from the side is a flat flank, and
+   the whole of the effect is how thick it is. A book is a cylinder: what it
+   shows is its round back turning away, which is shade rather than a face, and
+   it reads at a depth that makes a drawer look like a brick. They were one
+   slider for exactly as long as it took to look at a board with both on it. */
+const bookDepth = ()=> { const d = S.look && S.look.bookdepth; return d==null ? 11 : +d || 0; };
+/* Either one is enough to want the perspective: `--px`/`--py` are written per
+   tile and the `shelf-deep` class turns the faces on, and a desk with the
+   drawers flat and the books turning still needs both. Which *tiles* get a
+   layer is asked per tile, in `standsOut()`. */
+const standsProud = ()=> shelfDepth() > 0 || bookDepth() > 0;
 /* And how much of that follows the phone, 0–100. Where a thing stands is the
    resting answer; this is how far your eye moving adds to it. At zero the faces
    are still true and never move, which is the 1.34 shelf. */
@@ -1466,7 +1477,7 @@ export { ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds, K,
   shapeOf, READS, readOf, spreadOf, OPENINGS, openingOf, gathersOf, gatherKind, containers,
   deskIds, deskList, isDesk, deskOf, deskHere,
   placeOf, isHeld, heldObjects, heldCount,
-  TILT_MODES, tiltMode, tiltsDesk, tiltsWindows, tiltClasses, shelfDepth, standsProud, shelfTurn,
+  TILT_MODES, tiltMode, tiltsDesk, tiltsWindows, tiltClasses, shelfDepth, bookDepth, standsProud, shelfTurn,
   spanOf, coversDay, lastDay, lateOn, isLate,
   boardLocked,
   PRIOS, prioOf, prioName,

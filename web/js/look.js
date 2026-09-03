@@ -1,7 +1,7 @@
 import { S, K, defaultLook, PANELS, PANEL_SLOTS, KNOBS, KNOB_SLOTS,
   BINDINGS, BINDING_SLOTS, BORDER_SLOTS, TEXTURE_SLOTS, STOCKS, STOCK_SLOTS,
   slotKey, slotRaw, slotSrc, borderOf, textureOf, panelOf, knobOf, bindingOf, stockOf,
-  shelfDepth, shelfTurn } from './model.js';
+  shelfDepth, bookDepth, shelfTurn } from './model.js';
 import { save } from './persist.js';
 import { render } from './views.js';
 
@@ -114,6 +114,19 @@ function applyLook(){
   const sd = shelfDepth();
   el.style.setProperty('--deep', sd+'px');
   el.style.setProperty('--deepy', (Math.round(sd*0.64*10)/10)+'px');
+  /* A book's is its own number, for the reason model.js gives: a flank and a
+     roll-off are two different things and one slider could only ever be right
+     for one of them. A spine tile redeclares `--deep`/`--deepy` from these, so
+     everything downstream — the head and tail bands, the specular that slides
+     across the round back — goes on reading the one property it always read.
+     `--bkshade` is the third: how dark the roll-off gets, as a share of what it
+     is at eleven, because on a cylinder the *shade* is the depth cue and a
+     width alone cannot say it. Worked out here rather than in CSS because calc
+     cannot divide a length by a length. */
+  const bd = bookDepth();
+  el.style.setProperty('--deepbk', bd+'px');
+  el.style.setProperty('--deepybk', (Math.round(bd*0.64*10)/10)+'px');
+  el.style.setProperty('--bkshade', String(Math.round(Math.min(1.5, bd/11)*100)/100));
   el.style.setProperty('--turn', String(shelfTurn()/100));
 
   /* And then the hand overrides, which still beat the aesthetic — one is a

@@ -579,10 +579,14 @@ function settingsBody(sec){
         <input type="range" min="0" max="30" step="1" data-lookpx="tiltwin" value="${px('tiltwin',11)}">
         <b>${px('tiltwin',11)}px</b></label>
       <div class="mini" style="--k:var(--brass);margin-top:6px">How far behind its frame a window's view sits. Further back is more movement for the same tilt, which is what depth actually is.</div>`:''}
-      <label class="rangerow" style="margin-top:12px"><span>How far things stand out</span>
+      <label class="rangerow" style="margin-top:12px"><span>How far drawers stand out</span>
         <input type="range" min="0" max="18" step="1" data-lookpx="depth" value="${px('depth',11)}">
         <b>${px('depth',11)}px</b></label>
-      <div class="mini" style="--k:var(--brass);margin-top:6px">How thick the things standing on the shelf are. Standing in front of a bookcase you see the right-hand side of everything left of you and the left-hand side of everything right of you, so at rest each thing shows the side that faces the middle. Zero is off.</div>
+      <div class="mini" style="--k:var(--brass);margin-top:6px">How thick the drawers, cards and pictures standing on the shelf are. Standing in front of a bookcase you see the right-hand side of everything left of you and the left-hand side of everything right of you, so at rest each thing shows the side that faces the middle. Zero is off.</div>
+      <label class="rangerow" style="margin-top:12px"><span>How far books turn</span>
+        <input type="range" min="0" max="18" step="1" data-lookpx="bookdepth" value="${px('bookdepth',11)}">
+        <b>${px('bookdepth',11)}px</b></label>
+      <div class="mini" style="--k:var(--brass);margin-top:6px">A book is a cylinder, not a box: it shows no flank, its round back simply turns away into shade. That reads at a depth which makes a drawer look like a brick, so it is its own number — have the books turning with the drawers flat, or the other way about. Zero is off.</div>
       <label class="rangerow" style="margin-top:8px"><span>How much they turn with the phone</span>
         <input type="range" min="0" max="100" step="5" data-lookpct="turn" value="${px('turn',100)}">
         <b>${px('turn',100)}%</b></label>

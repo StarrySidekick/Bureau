@@ -3,7 +3,7 @@ import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, chi
   rollup, streak, goalPct, projectStat, tlSpan, dev, spawnByOf, genKindOf, takesTyping, showsAddBox,
   knobSizeOf, answered, sortOf, spanOf, coversDay, lateOn, isLate, iconOf, textSizeOf,
   isPicture, isMedia, isPlayable, isDecor, mediaTypeOf, frameOf, isWindow,
-  boardLocked, prioOf, repeatSaid, standsProud,
+  boardLocked, prioOf, repeatSaid, standsProud, shelfDepth, bookDepth,
   calViewOf, weekStartOf, calCols, bindingOf, panelOf, knobOf, borderOf, textureOf } from './model.js';
 import { CELL, COLW, gridOf, lay, overlaps, boxOk, freeSpot, gridRows, sizeOfKind, ensureBox,
   pageRows, colsOf } from './grid.js';
@@ -459,9 +459,22 @@ function perspOf(box){
    face to be a side *of*, and drawing one put a hard grey rectangle round a
    cut-out plant. Thickness is not the test; having a box is. */
 const FLANKED = 0.5;
+/* Whether this tile is drawn as a book, which is a question about the *box* and
+   not about the type: a container one cell wide is a spine whatever face it
+   asked for (decision 50), and an object is one when its shape says so. Both
+   branches of drawTile() below reach the same answer, and this has to agree
+   with them — a tile told it is a book and then drawn as a drawer would be
+   shaded by a slider that isn't showing it. */
+const drawsAsSpine = (o, box) => isContainer(o)
+  ? (faceOf(o)==='spine' || box.w<=1)
+  : shapeOf(o)==='spine';
 /* One condition for the layer and for the numbers that dress it, so a tile can
-   never carry one without the other. */
-const standsOut = (o, persp) => !!persp && depthOf(o) >= FLANKED;
+   never carry one without the other — and now it asks *which* of the two
+   sliders it stands under, so a desk with the books turning and the drawers
+   flat draws a layer on the books and none at all on the drawers. Zero still
+   costs nothing: no element and no numbers, per tile rather than per desk. */
+const standsOut = (o, persp, box) => !!persp && depthOf(o) >= FLANKED
+  && (drawsAsSpine(o, box) ? bookDepth() : shelfDepth()) > 0;
 const SIDE_LAYER = '<i class="dside"><i class="dtop"></i><i class="dbot"></i></i>';
 const GRAIN_LAYER = '<i class="dgrain"></i>';
 const PANEL_LAYER = '<i class="dpanel"></i>';
@@ -478,7 +491,7 @@ function drawTile(o, arr, box, persp){
      avoid. */
   const layers = (html.includes('class="dpanel"') ? '' : PANEL_LAYER)
     + (textureOf(o)==='none' ? '' : GRAIN_LAYER)
-    + (standsOut(o, persp) ? SIDE_LAYER : '');
+    + (standsOut(o, persp, box) ? SIDE_LAYER : '');
   return html.slice(0, i+1) + layers + html.slice(i+1);
 }
 function drawTileFace(o, arr, box, persp){
@@ -512,7 +525,7 @@ function drawTileFace(o, arr, box, persp){
      See decision 117. */
   const place = `${ts!==1?`--tscale:${ts};`:''}${
     tilt?`--tilt:${tilt.deg}deg;--pinx:${tilt.right?'100%':'0%'};`:''
-  }${standsOut(o, persp) ? `--px:${persp.x};--py:${persp.y};--depth:${depthOf(o)};` : ''
+  }${standsOut(o, persp, box) ? `--px:${persp.x};--py:${persp.y};--depth:${depthOf(o)};` : ''
   }grid-column:${box.x} / span ${box.w};grid-row:${box.y} / span ${box.h}`;
   const sel = S.sel.includes(o.id) ? ' selected' : '';
 
