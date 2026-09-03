@@ -1137,6 +1137,10 @@ function wire(){
     const lp=e.target.dataset.lookpx;
     if(lp){ S.look[lp]=+e.target.value; applyLook(); sizeGrid();
       const b=e.target.parentElement.querySelector('b'); if(b) b.textContent=e.target.value+'px'; return; }
+    // the same thing for a number that is a share rather than a length
+    const lq=e.target.dataset.lookpct;
+    if(lq){ S.look[lq]=+e.target.value; applyLook();
+      const b=e.target.parentElement.querySelector('b'); if(b) b.textContent=e.target.value+'%'; return; }
     // repainting one slot of the style showing — it belongs to that style
     if(e.target.dataset.slot!=null){
       setSlot(+e.target.dataset.slot, e.target.value); applyLook(); render(); return;
@@ -1224,7 +1228,7 @@ function wire(){
     }
     // re-render only once the picker closes, so it doesn't die mid-drag
     if(e.target.dataset.lookinput){ save(); render(); refreshPanel(); }
-    if(e.target.dataset.lookrange || e.target.dataset.lookpx){ save(); render(); refreshPanel(); }
+    if(e.target.dataset.lookrange || e.target.dataset.lookpx || e.target.dataset.lookpct){ save(); render(); refreshPanel(); }
   });
 
   frame.addEventListener('keydown', e=>{

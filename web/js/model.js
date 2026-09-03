@@ -467,7 +467,7 @@ function defaultLook(){
              board flush to the screen the occluder is the bezel, which is not
              drawn, so a tile leaving the board reads as an image cut off
              rather than as something going behind wood. See decision 111. */
-          deskinset:8, depth:11};
+          deskinset:8, depth:11, turn:100};
 }
 reset();
 
@@ -899,6 +899,10 @@ const tiltsDesk = ()=> ['desk','both'].includes(tiltMode());
    on any tile and no layer drawn. */
 const shelfDepth = ()=> { const d = S.look && S.look.depth; return d==null ? 11 : +d || 0; };
 const standsProud = ()=> shelfDepth() > 0;
+/* And how much of that follows the phone, 0–100. Where a thing stands is the
+   resting answer; this is how far your eye moving adds to it. At zero the faces
+   are still true and never move, which is the 1.34 shelf. */
+const shelfTurn = ()=> { const t = S.look && S.look.turn; return t==null ? 100 : Math.max(0, Math.min(100, +t || 0)); };
 const tiltsWindows = ()=> ['window','both'].includes(tiltMode());
 /* What `render()` stamps on `#frame`. Stated here rather than asked of
    motion.js, because it is a fact about the desk and not about the sensor —
@@ -1462,7 +1466,7 @@ export { ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds, K,
   shapeOf, READS, readOf, spreadOf, OPENINGS, openingOf, gathersOf, gatherKind, containers,
   deskIds, deskList, isDesk, deskOf, deskHere,
   placeOf, isHeld, heldObjects, heldCount,
-  TILT_MODES, tiltMode, tiltsDesk, tiltsWindows, tiltClasses, shelfDepth, standsProud,
+  TILT_MODES, tiltMode, tiltsDesk, tiltsWindows, tiltClasses, shelfDepth, standsProud, shelfTurn,
   spanOf, coversDay, lastDay, lateOn, isLate,
   boardLocked,
   PRIOS, prioOf, prioName,

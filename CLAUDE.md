@@ -582,19 +582,23 @@ other. They are also the only surfaces the drawn-line filter may touch. See
 decision 99. A **third** joins them inside the shelf — `<i class="dside">`,
 below.
 
-**Perspective is where a thing stands, not what the phone is doing.** Every tile
-that stands proud carries `--px`/`--py` — its centre against the
-board's, −1..1 — written once per render by `perspOf()` in tiles.js and never
-touched again. Stand in front of the middle of a bookshelf and you see the right
-side of everything to your left, the left side of everything to your right, and
-neither from the thing dead centre; that is true before you move at all, so
-**none of the depth is keyed on `--tiltx`**. That is a performance rule as much
-as a physical one: `--tiltx` is inherited, so every element whose style depends
-on it is a style recalculation on every frame, and a board is fifty tiles — the
-tilt-keyed version measured 31fps against the shipped board's 60. The per-frame
-set is exactly decision 116's five elements, `.grid` and the four walls, and a
-120-frame sweep does **119 style recalculations and 0 layouts** with the cues in
-or out.
+**How much of a face you see is where the thing stands plus where your eye is,
+and only the second moves.** Every tile that stands proud carries `--px`/`--py`
+— its centre against the board's, −1..1 — written once per render by
+`perspOf()` in tiles.js. Stand in front of the middle of a bookshelf and you see
+the right side of everything to your left before you move at all; that is the
+resting answer. Turning the phone adds `--tiltx × --turn` to it in `.dside`'s
+`--ex`/`--ey` — the same `--tiltx` that slides the board, so the faces and the
+board cannot disagree about which way you are looking — and `--turn`
+(`S.look.turn`, 0–100) is how much that counts. **Every face is a `transform`
+on a promoted layer of its own**: that is the whole performance argument. A
+face that follows the phone changes on every frame, and a version that changed
+a `background-size` and a `box-shadow` — paint — cost 21fps across a board. A
+`scaleX` on a composited layer costs the compositor and nothing else, and a
+120-frame sweep still does **0 layouts**. The one exception is a spine's
+cylinder, a `background-position` per frame, allowed because a board has a
+handful of spines; don't give the same treatment to anything there are fifty
+of. Never move a face by anything that paints.
 
 **And it is its own setting, `S.look.depth`** — px, zero is off, gating both the
 numbers and the layer through `standsProud()`. Not the tilt's: the perspective
@@ -613,11 +617,11 @@ the layer are one condition (`standsOut()`), so a tile cannot carry one without
 the other.
 
 `.dside` is the third spliced layer and it carries all four faces of a tile: its
-two pseudo-elements are the upright ones, `scaleX`d by `--px` so only ever one
-shows, and the horizontal ones are **inset shadows on `.dside` itself** — no
-blur, no spread, so each is a solid band along one edge, and a negative offset
-puts it along the opposite one, which is how one declaration draws both and
-never draws them together. `depthOf(o)` is the multiplier and paper (0.18) gets
+two pseudo-elements are the upright ones and two children (`.dtop`, `.dbot`)
+the horizontal ones, each `scaleX`d or `scaleY`d by `max(0, ±--ex/--ey)` so a
+face is drawn only from the side it can be seen from. They were inset shadows
+for one version — cheaper in elements, but a shadow is paint and cannot follow
+the phone. `depthOf(o)` is the multiplier and paper (0.18) gets
 no layer at all. One light, at the upper left, the same one `.pull` has always
 had — so both sides are darker than the front and the left one only less so; a
 face lit *brighter* than the tile reads as glare on glass. A spine gets no flank:

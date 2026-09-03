@@ -2537,37 +2537,52 @@ const CHROME = process.env.BUREAU_CHROME;
       && r.every(t => scaleOf(t,'::before') > 0.2 && scaleOf(t,'::after') === 0);
 
     /* Above the middle you see a thing's underside, below it you see its top —
-       drawn as inset bands on the same layer, so the two horizontal faces cost
-       no element at all. A negative offset puts the band along the far edge,
-       which is what makes one declaration do both. */
-    const band = t => cs(t.querySelector(':scope > .dside')).boxShadow;
-    const hi = flanked.filter(t => parseFloat(t.style.getPropertyValue('--py')) < -0.3);
-    const lo = flanked.filter(t => parseFloat(t.style.getPropertyValue('--py')) > 0.3);
-    out.aboveCentreYouSeeTheUnderside = hi.length > 0 && hi.every(t => /-\d/.test(band(t)));
-    out.belowCentreYouSeeTheTop = lo.length > 0 && lo.every(t => /inset[\s\S]*[^-]\d+(\.\d+)?px 0px 0px inset/.test(band(t)) && !/-\d+(\.\d+)?px 0px 0px 0px inset/.test(band(t)));
-
-    /* And the whole of it is *static*: turning the phone moves the board and
-       changes nothing about any tile on it. That is the performance claim as
-       much as the physical one — a cue that read `--tiltx` would be a style
-       recalculation on every tile on every frame. */
-    /* Every surface a cue is drawn on, not just the tile — the cues live on
-       `.dside` and on a spine's own background, so a guard that only read the
-       tile would pass over a tilt-dependent flank without noticing. */
+       two children of the same layer, scaled the way the flanks are. Measured
+       after faceOf() is defined, below. */
+    /* Turning the phone turns the faces — that is the whole point of them — and
+       it does so without laying anything out or repainting any tile: every face
+       is a transform on its own layer, and the only things a frame of the tilt
+       may touch are those and the board's own translate. A version that moved a
+       `background-size` cost 21fps across a board. */
     const frame = document.getElementById('frame');
-    const shot = () => tiles().map(t => {
+    const faceOf = (t, which) => {
       const d = t.querySelector(':scope > .dside');
-      return t.style.cssText + '|' + cs(t).boxShadow + '|' + cs(t).backgroundPosition
-        + '|' + (d ? cs(d).boxShadow + cs(d,'::before').transform + cs(d,'::after').transform : '');
+      const el = which==='top' ? d.querySelector('.dtop') : which==='bottom' ? d.querySelector('.dbot') : d;
+      const m = cs(el, which==='left' ? '::before' : which==='right' ? '::after' : null).transform;
+      if (m === 'none') return 0;
+      const n = m.slice(m.indexOf('(')+1).split(',').map(parseFloat);
+      return which==='top' || which==='bottom' ? n[3] : n[0];
+    };
+    const tileState = () => tiles().map(t => {
+      const r = t.getBoundingClientRect(), g = document.querySelector('#drawergrid').getBoundingClientRect();
+      return [r.left-g.left, r.top-g.top, r.width, r.height].map(v=>v.toFixed(1)).join(',')
+        + '|' + cs(t).boxShadow + '|' + (t.classList.contains('spinetile') ? '' : cs(t).backgroundPosition);
     }).join('\n');
-    const before = shot();
-    BUREAU.tilt(0.9, -0.7); await nap(120);
+    const wasTurn = S.look.turn; S.look.turn = 100; BUREAU.applyLook();
+    BUREAU.tilt(0, 0); await nap(60);
+    const still = tileState();
+    const hi = sided.filter(t => parseFloat(t.style.getPropertyValue('--py')) < -0.3);
+    const lo = sided.filter(t => parseFloat(t.style.getPropertyValue('--py')) > 0.3);
+    out.aboveCentreYouSeeTheUnderside = hi.length > 0 && hi.every(t => faceOf(t,'bottom') > 0.2 && faceOf(t,'top') === 0);
+    out.belowCentreYouSeeTheTop = lo.length > 0 && lo.every(t => faceOf(t,'top') > 0.2 && faceOf(t,'bottom') === 0);
+    const subject = sided.find(t => px(t) < -0.3);          // stands left of centre
+    const restL = faceOf(subject,'left'), restR = faceOf(subject,'right');
+    BUREAU.tilt(1, 0); await nap(120);
     /* And prove the phone actually turned first. tiltHeld() parks the shelf at
        zero whenever a panel or a surface is up, and a block earlier in this file
-       can leave one open — which made this assertion pass against a shelf that
-       had not moved at all. A guard that cannot fail is not a guard. */
+       can leave one open — which made an assertion here pass against a shelf
+       that had not moved at all. A guard that cannot fail is not a guard. */
     out.theShelfReallyTurned = Math.abs(parseFloat(frame.style.getPropertyValue('--tiltx'))) > 0.5;
-    out.turningThePhoneChangesNoTile = before === shot();
-    BUREAU.tilt(0, 0);
+    // Your eye moved right: the right flank it showed at rest folds away and a left face opens.
+    out.turningThePhoneTurnsTheFaces = restR > 0.2 && restL === 0
+      && faceOf(subject,'right') < restR && faceOf(subject,'left') > 0;
+    out.andLaysNothingOutOrRepaintsATile = tileState() === still;
+    BUREAU.tilt(0, 1); await nap(120);
+    out.tiltingDownShowsTheTop = faceOf(subject,'top') > 0 && faceOf(subject,'bottom') === 0;
+    // At zero the faces are still true, just still — the resting perspective alone.
+    S.look.turn = 0; BUREAU.applyLook(); BUREAU.tilt(1, 0); await nap(120);
+    out.atZeroTurnTheyStayStill = faceOf(subject,'right') === restR && faceOf(subject,'left') === restL;
+    BUREAU.tilt(0, 0); S.look.turn = wasTurn; BUREAU.applyLook();
 
     /* Last, because it renders and every element captured above goes with it.
        A decoration is thick and still gets no side: it wears no tile at all

@@ -462,7 +462,7 @@ const FLANKED = 0.5;
 /* One condition for the layer and for the numbers that dress it, so a tile can
    never carry one without the other. */
 const standsOut = (o, persp) => !!persp && depthOf(o) >= FLANKED;
-const SIDE_LAYER = '<i class="dside"></i>';
+const SIDE_LAYER = '<i class="dside"><i class="dtop"></i><i class="dbot"></i></i>';
 const GRAIN_LAYER = '<i class="dgrain"></i>';
 const PANEL_LAYER = '<i class="dpanel"></i>';
 function drawTile(o, arr, box, persp){

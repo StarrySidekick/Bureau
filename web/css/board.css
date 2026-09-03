@@ -542,7 +542,10 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
      117. */
   background-repeat:no-repeat;
   background-size:calc(100% + 2 * var(--spinerun,0px)) 100%;
-  background-position:calc(-1 * var(--spinerun,0px) - var(--px,0) * var(--spinerun,0px)) 0;
+  /* This one *is* a paint per frame — a background moving under the tile —
+     and it is allowed because a board has a handful of spines and fifty tiles.
+     Don't give the same treatment to anything there are fifty of. */
+  background-position:calc(-1 * var(--spinerun,0px) - var(--ex, var(--px,0)) * var(--spinerun,0px)) 0;
 }
 /* the head and tail bands every binding starts from */
 .spinetop,.spinefoot{width:62%;height:2px;background:var(--glow);opacity:.85;

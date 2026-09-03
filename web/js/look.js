@@ -1,7 +1,7 @@
 import { S, K, defaultLook, PANELS, PANEL_SLOTS, KNOBS, KNOB_SLOTS,
   BINDINGS, BINDING_SLOTS, BORDER_SLOTS, TEXTURE_SLOTS, STOCKS, STOCK_SLOTS,
   slotKey, slotRaw, slotSrc, borderOf, textureOf, panelOf, knobOf, bindingOf, stockOf,
-  shelfDepth } from './model.js';
+  shelfDepth, shelfTurn } from './model.js';
 import { save } from './persist.js';
 import { render } from './views.js';
 
@@ -114,6 +114,7 @@ function applyLook(){
   const sd = shelfDepth();
   el.style.setProperty('--deep', sd+'px');
   el.style.setProperty('--deepy', (Math.round(sd*0.64*10)/10)+'px');
+  el.style.setProperty('--turn', String(shelfTurn()/100));
 
   /* And then the hand overrides, which still beat the aesthetic — one is a
      starting point, not a cage.

@@ -582,7 +582,11 @@ function settingsBody(sec){
       <label class="rangerow" style="margin-top:12px"><span>How far things stand out</span>
         <input type="range" min="0" max="18" step="1" data-lookpx="depth" value="${px('depth',11)}">
         <b>${px('depth',11)}px</b></label>
-      <div class="mini" style="--k:var(--brass);margin-top:6px">How thick the things standing on the shelf are. You see the right-hand side of everything left of the middle and the left-hand side of everything right of it, the way you do standing in front of a bookcase — so it is set by where a thing is rather than by the phone, and it reads with the desk sitting still. Its own setting for that reason: have it without the tilt, or the tilt without it. Zero is off.</div>
+      <div class="mini" style="--k:var(--brass);margin-top:6px">How thick the things standing on the shelf are. Standing in front of a bookcase you see the right-hand side of everything left of you and the left-hand side of everything right of you, so at rest each thing shows the side that faces the middle. Zero is off.</div>
+      <label class="rangerow" style="margin-top:8px"><span>How much they turn with the phone</span>
+        <input type="range" min="0" max="100" step="5" data-lookpct="turn" value="${px('turn',100)}">
+        <b>${px('turn',100)}%</b></label>
+      <div class="mini" style="--k:var(--brass);margin-top:6px">Tilting moves your eye, and the faces turn to follow it — tilt right and you see more of every left-hand side. This is how far that goes on top of where a thing already stands. It is its own number so you can have the faces without the movement, or the board sliding without the faces; at zero they are still true, just still.</div>
     </div>`;})():''}
 
     ${gridSizeField(null)}

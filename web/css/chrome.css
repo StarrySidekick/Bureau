@@ -117,44 +117,56 @@
    `getBoundingClientRect()` and `elementFromPoint()` say about it, and the drag
    reads both — the same reason decision 108 translates the board and never
    rotates it. */
-/* The flank of anything thick, drawn on `.dside` — a third spliced layer beside
+/* The faces of anything thick, drawn on `.dside` — a third spliced layer beside
    `.dpanel` and `.dgrain`, because a tile's two pseudo-elements have been spent
-   for a year (decision 99). One element carries all four faces: the two upright
-   ones as pseudo-elements `scaleX`d by how far off centre the tile is, and the
-   two horizontal ones as inset shadows, which cost no element at all. A thing
-   in the middle of the shelf shows none of them, which is correct — you are
-   looking straight at it. */
+   for a year (decision 99). Four faces: the two upright ones are its
+   pseudo-elements, the two horizontal ones are two children, and every one of
+   them is a **transform** on a layer of its own. That is the whole of the
+   performance argument. A face that turns with the phone has to change on every
+   frame of the tilt, and the first version changed a `background-size` and a
+   `box-shadow` — both *paint* — which cost 21fps across a board. A `scaleX` on
+   a promoted layer costs the compositor and nothing else: no paint and no
+   layout, whatever the phone is doing.
+
+   How much of a face you see is one number per axis: where the tile stands
+   (`--px`, written once per render — you see the right side of everything to
+   your left before you move at all) plus where the phone has put your eye
+   (`--tiltx`, which is also what slides the board, so the two cannot disagree
+   about which way you are looking). `--turn` is how much the second counts.
+   `--tiltx` positive is the board moved right, which is your eye moved right,
+   which is more of every *left* face — the same sign as `--px`. */
 .dside{position:absolute;inset:0;z-index:0;pointer-events:none;
   border-radius:inherit;overflow:hidden;
-  /* Below centre you see the top of a thing, and the top faces the light;
-     above centre you see its underside, which does not. An inset shadow with
-     no blur and no spread is a solid band along one edge, and a *negative*
-     offset puts it along the opposite one — so both faces come out of one
-     declaration and neither is ever drawn at the same time as the other. */
-  box-shadow:
-    inset 0 calc(max(0, var(--py,0)) * var(--depth,.5) * var(--deepy,7px)) 0 rgba(0,0,0,.10),
-    inset 0 calc(min(0, var(--py,0)) * var(--depth,.5) * var(--deepy,7px)) 0 rgba(0,0,0,.24);
-}
-.dside::before,.dside::after{
-  content:"";position:absolute;top:0;bottom:0;
-  width:calc(var(--depth,.5) * var(--deep,11px));transform:scaleX(0)}
+  --ex:clamp(-1.4, calc(var(--px,0) + var(--tiltx,0) * var(--turn,1)), 1.4);
+  --ey:clamp(-1.4, calc(var(--py,0) + var(--tilty,0) * var(--turn,1)), 1.4)}
+.dside::before,.dside::after,.dside > i{
+  content:"";position:absolute;display:block;
+  /* Promoted, so the per-frame scale is compositor-only. It costs a small
+     layer per face — and a face is eleven pixels by a tile, which is nothing
+     against re-rasterising the tile it belongs to sixty times a second. */
+  will-change:transform;backface-visibility:hidden}
+.dside::before,.dside::after{top:0;bottom:0;width:calc(var(--depth,.5) * var(--deep,11px))}
+.dside > i{left:0;right:0;height:calc(var(--depth,.5) * var(--deepy,7px))}
 /* One light, at the upper left — the same one `.pull` has been lit by all along
-   — so the two sides are not the same face in mirror image: the left one is
-   turned towards it, the right one away, and neither is *facing* it. Both are
-   therefore darker than the front and the left one only less so; a face lit
-   brighter than the thing it belongs to reads as glare on glass, which was the
-   first version and was wrong. The gradient ends on a value rather than fading
-   to nothing, because a face has an edge and a vignette has not — and that edge
-   is the whole of what says the thing has a side. */
-.dside::before{left:0;transform-origin:left center;
+   — so the four faces are not one face turned four ways. The left is turned
+   towards the light and the top faces it; the right and the underside face
+   away. None of them is lit *brighter* than the front, because a face brighter
+   than the thing it belongs to reads as glare on glass, which the first version
+   was. A face ends on a value rather than fading to nothing: it has an edge,
+   and a vignette has not, and that edge is what says the thing has a side. */
+.dside::before{left:0;transform-origin:left center;transform:scaleX(0);
   background:linear-gradient(90deg, rgba(0,0,0,.15), rgba(0,0,0,.04))}
-.dside::after{right:0;transform-origin:right center;
+.dside::after{right:0;transform-origin:right center;transform:scaleX(0);
   background:linear-gradient(270deg, rgba(0,0,0,.34), rgba(0,0,0,.12))}
+.dside > .dtop{top:0;transform-origin:center top;transform:scaleY(0);
+  background:linear-gradient(180deg, rgba(0,0,0,.11), rgba(0,0,0,.03))}
+.dside > .dbot{bottom:0;transform-origin:center bottom;transform:scaleY(0);
+  background:linear-gradient(0deg, rgba(0,0,0,.28), rgba(0,0,0,.10))}
 /* A book is the one thing whose side is already drawn: the gradient across a
    spine *is* a cylinder (decision 87), and it turns with `--spinerun` below.
    Giving it a flat flank as well puts two side faces on one object, and at a
-   cell's width that is a quarter of the book. The head and tail bands stay —
-   those are the top and bottom of the text block, and they are true. */
+   cell's width that is a quarter of the book. The head and tail stay — those
+   are the top and bottom of the text block, and they are true. */
 .drawer.spinetile > .dside::before,
 .drawer.spinetile > .dside::after{content:none}
 /* One cell square is the type's mark and nothing else (decision 50) — there is
@@ -166,13 +178,13 @@
    would keep showing the side it had over there until the drop re-rendered.
    Nothing standing anywhere has a side while it is being carried. */
 .drawer.dragging > .dside,.drawer.lifted > .dside{opacity:0}
-/* A tile to the *right* of centre shows its left flank, and the other way
-   about. `max(0, …)` is what keeps each strip to its own half of the board
-   rather than flipping inside out at the middle. */
-.is-phone.shelf-deep .grid > .drawer > .dside::before{
-  transform:scaleX(max(0, var(--px,0)))}
-.is-phone.shelf-deep .grid > .drawer > .dside::after{
-  transform:scaleX(max(0, -1 * var(--px,0)))}
+/* Your eye to the right of a thing sees its left face, and the other way about;
+   above it, its top. `max(0, …)` keeps each face to its own half rather than
+   flipping inside out as the number crosses zero. */
+.is-phone.shelf-deep .grid > .drawer > .dside::before{transform:scaleX(max(0, var(--ex)))}
+.is-phone.shelf-deep .grid > .drawer > .dside::after{transform:scaleX(max(0, -1 * var(--ex)))}
+.is-phone.shelf-deep .grid > .drawer > .dside > .dtop{transform:scaleY(max(0, var(--ey)))}
+.is-phone.shelf-deep .grid > .drawer > .dside > .dbot{transform:scaleY(max(0, -1 * var(--ey)))}
 
 /* No cast shadow among these. It was the obvious third cue — one light in one
    place, so a thicker thing throws further — and it was written as `--shx`/
@@ -189,7 +201,8 @@
    back (decision 87) is already a cylinder; all it needed was permission to
    present a little of one side, which is the same perspective every other tile
    is getting and costs a background-position rather than an element. */
-.is-phone.shelf-deep .grid > .drawer.spinetile{--spinerun:calc(var(--deep,11px) * .55)}
+.is-phone.shelf-deep .grid > .drawer.spinetile{--spinerun:calc(var(--deep,11px) * .55);
+  --ex:clamp(-1.4, calc(var(--px,0) + var(--tiltx,0) * var(--turn,1)), 1.4)}
 
 /* ---- the view is behind the glass -------------------------------------
    The one place a parallax earns itself without any of decision 108's

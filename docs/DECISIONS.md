@@ -4853,3 +4853,32 @@ The numbers and the layer are now one condition (`standsOut()`), so a tile can
 never carry one without the other — which is also what makes "everything with a
 side knows where it stands" a testable claim rather than two claims that could
 drift.
+
+
+### 117b. The faces turn with the phone, and they turn as transforms
+
+*2026-09-03*
+
+Static was wrong. The argument for it — where a thing stands decides what you
+see of it, so the perspective is true with the phone flat — is still true, and
+it produced a cue that read as shading painted on the front. A side face that
+does not turn when you turn is not a side face, and Timothy said so.
+
+What made the first attempt cost 21fps was not that the faces moved; it was
+*how*. A `background-size` and a `box-shadow` keyed on `--tiltx` are paint, and
+paint on fifteen tiles a frame is what a phone cannot do. So every face is now a
+`transform` on a promoted layer of its own — the two flanks are `.dside`'s
+pseudo-elements and the two horizontal faces are its children — and a frame of
+the tilt costs the compositor and nothing else. Zero layouts across a 120-frame
+sweep, and no tile's own paint changes; the smoke test asserts both.
+
+How much of a face you see is one number per axis: where the tile stands
+(`--px`) plus where your eye has gone (`--tiltx × --turn`). The tilt variable is
+the same one that slides the board, so the faces and the board cannot disagree
+about which way you are looking: `--tiltx` positive is the board moved right,
+which is your eye moved right, which is more of every *left* face. `--turn` is
+its own slider because the two halves are worth having apart — at zero the faces
+are the 1.35 shelf, true and still.
+
+The one paint left is a spine's cylinder, a `background-position` per frame,
+allowed because a board has a handful of spines and fifty of everything else.
