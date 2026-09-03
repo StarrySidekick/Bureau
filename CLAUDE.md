@@ -624,9 +624,12 @@ for one version — cheaper in elements, but a shadow is paint and cannot follow
 the phone. `depthOf(o)` is the multiplier and paper (0.18) gets
 no layer at all. One light, at the upper left, the same one `.pull` has always
 had — so both sides are darker than the front and the left one only less so; a
-face lit *brighter* than the tile reads as glare on glass. A spine gets no flank:
-the gradient across it already is a cylinder (decision 87) and turns with
-`--spinerun` off the same `--px`. See decision 117.
+face lit *brighter* than the tile reads as glare on glass. A spine gets no flank
+but it does get shade: its two upright layers are soft roll-offs half the spine
+wide (a cylinder has no edge for a face to end on), and **their sign is the
+box's inverted** — your eye moving left shows a box a new surface in shade, but
+turns a cylinder's left side *towards* you, so its shade grows on the right. The
+specular underneath (`--spinerun`) goes the same way. See decisions 117 and 117b.
 
 **A custom property resolves where it is declared, not where it is used.** The
 cast shadow was going to be the third cue — `--shx`/`--shy` on a tile, fed into

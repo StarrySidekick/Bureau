@@ -162,13 +162,18 @@
   background:linear-gradient(180deg, rgba(0,0,0,.11), rgba(0,0,0,.03))}
 .dside > .dbot{bottom:0;transform-origin:center bottom;transform:scaleY(0);
   background:linear-gradient(0deg, rgba(0,0,0,.28), rgba(0,0,0,.10))}
-/* A book is the one thing whose side is already drawn: the gradient across a
-   spine *is* a cylinder (decision 87), and it turns with `--spinerun` below.
-   Giving it a flat flank as well puts two side faces on one object, and at a
-   cell's width that is a quarter of the book. The head and tail stay — those
-   are the top and bottom of the text block, and they are true. */
+/* A book has no side to show, it has a **curve** — the gradient across a spine
+   already is a cylinder (decision 87) — so its two upright layers are not
+   flanks. They are the shade a round back falls into as it turns away from you:
+   half the spine wide, dark at the edge and fading to nothing well before the
+   middle, because a cylinder has no edge for a face to end on. Which side is in
+   shade is decided below, with the flat faces — and it is the other way round
+   from theirs. The head and tail are flat, and stay flat — a text block has a
+   top. */
 .drawer.spinetile > .dside::before,
-.drawer.spinetile > .dside::after{content:none}
+.drawer.spinetile > .dside::after{width:50%}
+.drawer.spinetile > .dside::before{background:linear-gradient(90deg, rgba(0,0,0,.26), rgba(0,0,0,.08) 45%, rgba(0,0,0,0))}
+.drawer.spinetile > .dside::after{background:linear-gradient(270deg, rgba(0,0,0,.36), rgba(0,0,0,.12) 45%, rgba(0,0,0,0))}
 /* One cell square is the type's mark and nothing else (decision 50) — there is
    no room on forty pixels for a side face, the way there is none for a name.
    `.dpanel` bows out at this size for the same reason. */
@@ -183,6 +188,14 @@
    flipping inside out as the number crosses zero. */
 .is-phone.shelf-deep .grid > .drawer > .dside::before{transform:scaleX(max(0, var(--ex)))}
 .is-phone.shelf-deep .grid > .drawer > .dside::after{transform:scaleX(max(0, -1 * var(--ex)))}
+/* A book turns the other way. A box shows a *new* surface when your eye moves
+   left — its left face, in shade — but a cylinder has no new surface: moving
+   left turns its left side towards you and its right side away, so the shade
+   grows on the right. The specular sliding underneath (`--spinerun`) already
+   goes this way; the roll-off has to agree with it or the book shades on both
+   sides at once and reads as a pipe. */
+.is-phone.shelf-deep .grid > .drawer.spinetile > .dside::before{transform:scaleX(max(0, -1 * var(--ex)))}
+.is-phone.shelf-deep .grid > .drawer.spinetile > .dside::after{transform:scaleX(max(0, var(--ex)))}
 .is-phone.shelf-deep .grid > .drawer > .dside > .dtop{transform:scaleY(max(0, var(--ey)))}
 .is-phone.shelf-deep .grid > .drawer > .dside > .dbot{transform:scaleY(max(0, -1 * var(--ey)))}
 

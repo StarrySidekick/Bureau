@@ -2516,11 +2516,14 @@ const CHROME = process.env.BUREAU_CHROME;
       && flanked.every(t => parseFloat(t.style.getPropertyValue('--depth')) >= 0.5);
     const paper = ts.filter(t => !t.querySelector(':scope > .dside'));
     out.paperLiesFlat = paper.length > 0 && paper.every(t => !t.style.getPropertyValue('--depth'));
+    /* A book has a curve rather than a side: its two upright layers are soft
+       roll-offs half the spine wide, not depth-wide flanks, and the specular on
+       its back slides as well. */
     const spine = ts.find(t => t.classList.contains('spinetile'));
     out.aBookKeepsItsOwnCurve = !!spine
       && cs(spine).backgroundPosition !== '0px 0px'
-      && (!spine.querySelector(':scope > .dside')
-          || cs(spine.querySelector(':scope > .dside'), '::before').content === 'none');
+      && !!spine.querySelector(':scope > .dside')
+      && parseFloat(cs(spine.querySelector(':scope > .dside'), '::before').width) > spine.getBoundingClientRect().width * 0.4;
 
     // The side you see is the one facing the middle of the shelf.
     const scaleOf = (t, which) => {
@@ -2579,6 +2582,15 @@ const CHROME = process.env.BUREAU_CHROME;
     out.andLaysNothingOutOrRepaintsATile = tileState() === still;
     BUREAU.tilt(0, 1); await nap(120);
     out.tiltingDownShowsTheTop = faceOf(subject,'top') > 0 && faceOf(subject,'bottom') === 0;
+    /* And a book turns the other way from a box. Your eye moving right shows a
+       drawer's *left* face; it turns a cylinder's left side towards you and its
+       right side away, so the shade grows on the right. Same tilt, opposite
+       side — and the specular underneath slides to agree. */
+    BUREAU.tilt(1, 0); await nap(120);
+    const book = sided.length && ts.find(t => t.classList.contains('spinetile') && t.querySelector(':scope > .dside'));
+    out.aBookShadesTheOtherWayFromABox = !!book
+      && faceOf(subject,'left') > 0 && faceOf(subject,'right') === 0
+      && faceOf(book,'right') > 0 && faceOf(book,'left') === 0;
     // At zero the faces are still true, just still — the resting perspective alone.
     S.look.turn = 0; BUREAU.applyLook(); BUREAU.tilt(1, 0); await nap(120);
     out.atZeroTurnTheyStayStill = faceOf(subject,'right') === restR && faceOf(subject,'left') === restL;

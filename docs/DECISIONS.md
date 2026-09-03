@@ -4882,3 +4882,15 @@ are the 1.35 shelf, true and still.
 
 The one paint left is a spine's cylinder, a `background-position` per frame,
 allowed because a board has a handful of spines and fifty of everything else.
+
+**And a book turns the other way** (1.37). A spine had no upright faces at all
+— its gradient is already a cylinder — which left it the one thing on the shelf
+that did not answer the phone. It does now, but not with a flank: its two
+upright layers are soft roll-offs half the spine wide, dark at the edge and
+fading to nothing before the middle, because a cylinder has no edge for a face
+to end on. And the sign is the box's inverted. Your eye moving left shows a box
+a *new* surface — its left face, in shade — but a cylinder has no new surface:
+moving left turns its left side towards you and its right side away, so the
+shade grows on the right. The first pass copied the box's sign and shaded both
+sides at once, which is a pipe. The specular sliding underneath already went the
+right way; the roll-off had to agree with it.
