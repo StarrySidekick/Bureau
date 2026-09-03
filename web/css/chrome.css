@@ -207,6 +207,136 @@
 .is-phone.shelf-deep .grid > .drawer > .dside > .dtop{transform:scaleY(max(0, var(--ey)))}
 .is-phone.shelf-deep .grid > .drawer > .dside > .dbot{transform:scaleY(max(0, -1 * var(--ey)))}
 
+/* ---- light on the face, rather than a face on the side --------------
+   The flank is honest geometry and nearly invisible: a drawer front's whole
+   character is the moulding and the knob, and eleven pixels of grey down one
+   edge is not part of that character — turned up far enough to read, it stops
+   being a side and becomes a stripe. So these five say the same thing on the
+   surface the front actually has. See decision 118.
+
+   **Every one of them is a transform or an opacity on a promoted layer**, and
+   that is not a detail — it is the whole reason they may exist. A cue keyed on
+   `--tiltx` changes on every frame of the tilt, and the first version of the
+   flank changed a `background-size` and a `box-shadow`, which is paint, and
+   cost 21fps across a board (decision 117b). A gradient painted once on an
+   oversized layer and slid across the tile costs the compositor and nothing
+   else, however far the phone turns.
+
+   `--ex`/`--ey` are declared on the **tile** rather than on each layer, so the
+   flank, the wash, the sweep, the arris, the recess and the knob cannot
+   disagree about which way you are looking. */
+.is-phone.shelf-deep .grid > .drawer{
+  --ex:clamp(-1.4, calc(var(--px,0) + var(--tiltx,0) * var(--turn,1)), 1.4);
+  --ey:clamp(-1.4, calc(var(--py,0) + var(--tilty,0) * var(--turn,1)), 1.4)}
+
+/* Common to all five: clipped by the tile, no pointer events, and a layer of
+   their own. They sit above the moulding and the grain and below the name. */
+.dwash,.dsweep,.darris,.drecess{
+  position:absolute;inset:0;border-radius:inherit;overflow:hidden;pointer-events:none}
+.dwash{z-index:1} .dsweep{z-index:2} .darris{z-index:3} .drecess{z-index:1}
+.dwash::before,.dwash::after,.dsweep::before,.drecess::before{
+  content:"";position:absolute;display:block;will-change:transform;backface-visibility:hidden}
+
+/* **The wash** — the face itself lighter on the edge turning towards you and
+   falling away on the other. The ramp is drawn three times the width of the
+   tile and slid by a third of itself, so the tile's window travels from the
+   dark end of it to the light end: at rest the window is the middle, which is
+   nothing at all. Two pseudo-elements rather than one rotated gradient, because
+   an angle recomputed per frame is paint. */
+.dwash::before{top:0;bottom:0;left:-100%;right:-100%;
+  transform:translateX(calc(var(--ex) * -16.67%));
+  background:linear-gradient(90deg,
+    rgb(0 0 0 / var(--washlo,0)) 0%, rgb(0 0 0 / 0) 34%,
+    rgb(255 255 255 / 0) 66%, rgb(255 255 255 / var(--washhi,0)) 100%)}
+.dwash::after{left:0;right:0;top:-100%;bottom:-100%;
+  transform:translateY(calc(var(--ey) * -16.67%));
+  background:linear-gradient(180deg,
+    rgb(0 0 0 / calc(var(--washlo,0) * .55)) 0%, rgb(0 0 0 / 0) 34%,
+    rgb(255 255 255 / 0) 66%, rgb(255 255 255 / calc(var(--washhi,0) * .7)) 100%)}
+
+/* **The sweep** — one broad soft band of light travelling across the front, the
+   same trick that draws a book's round back (decision 87) borrowed by a flat
+   one. Wide and faint reads as varnish; narrow and bright reads as glass, which
+   is decision 42's mistake, so the band is deliberately wide. */
+.dsweep::before{top:-30%;bottom:-30%;left:-100%;right:-100%;
+  transform:translateX(calc(var(--ex) * -14%));
+  background:linear-gradient(102deg,
+    rgb(255 255 255 / 0) 38%,
+    rgb(255 255 255 / var(--sweepamt,0)) 50%,
+    rgb(255 255 255 / 0) 62%)}
+
+/* **The arris** — the eased edge a real front is worked with, and the first
+   thing in a room to catch light. A fixed thickness at any size, like every
+   moulding in the app: two pixels is two pixels on a 40px tile and on a 300px
+   one. The light is the same upper-left one `.pull` has always had, and the eye
+   term adds to whichever edge is turning towards you.
+
+   It is **opacity** that follows the eye, not the gradient — opacity on a
+   promoted layer is compositor-only, and the alphas inside are painted once. */
+.darris::before,.darris::after,.darris > i{
+  content:"";position:absolute;display:block;will-change:opacity;backface-visibility:hidden}
+.darris::before,.darris::after{top:0;bottom:0;width:var(--arw,2px)}
+.darris > i{left:0;right:0;height:var(--arw,2px)}
+.darris::before{left:0;opacity:calc(var(--arlit,0) + var(--areye,0) * max(0, var(--ex)));
+  background:linear-gradient(90deg, rgb(255 255 255 / .92), rgb(255 255 255 / 0))}
+.darris > .artop{top:0;opacity:calc(var(--arlit,0) * 1.15 + var(--areye,0) * max(0, var(--ey)));
+  background:linear-gradient(180deg, rgb(255 255 255 / .92), rgb(255 255 255 / 0))}
+.darris::after{right:0;opacity:calc(var(--arshade,0) + var(--areye,0) * max(0, calc(-1 * var(--ex))));
+  background:linear-gradient(270deg, rgb(0 0 0 / .92), rgb(0 0 0 / 0))}
+.darris > .arbot{bottom:0;opacity:calc(var(--arshade,0) * 1.2 + var(--areye,0) * max(0, calc(-1 * var(--ey))));
+  background:linear-gradient(0deg, rgb(0 0 0 / .92), rgb(0 0 0 / 0))}
+
+/* **The recess** — not the drawer's depth but the *opening's*: the lip of the
+   carcass laying a shadow across the front from the side you have moved away
+   from. It puts the tile inside something, which is what a drawer in a desk
+   actually is, and it is the one cue here that needs the tile to have no
+   thickness at all. An inset ring painted once on an oversized layer and slid,
+   for the same reason as the wash. */
+.drecess::before{inset:calc(-1 * var(--recthrow,0px) - 2px);
+  transform:translate(calc(var(--ex) * var(--recthrow,0px)), calc(var(--ey) * var(--recthrow,0px)));
+  border-radius:inherit;
+  box-shadow:inset 0 0 var(--recblur,18px) calc(var(--recblur,18px) * -.2) rgb(0 0 0 / var(--recamt,0))}
+
+/* **The knob turns with you.** The one part of a front that is already three
+   dimensional, so its highlight is the cheapest true thing on the tile: a
+   second layer over the knob carrying the lit spot, translated. The body of the
+   knob is `.pull`'s own gradient and is not touched — a knob whose *fill*
+   moved would read as a sticker sliding about on the wood. */
+.is-phone.shelf-deep .grid > .drawer .pull{position:relative;overflow:hidden}
+.is-phone.shelf-deep .grid > .drawer .pull::after{
+  content:"";position:absolute;inset:-30%;border-radius:50%;pointer-events:none;
+  will-change:transform;backface-visibility:hidden;
+  transform:translate(calc(var(--ex) * var(--knobturn,0px) * -1), calc(var(--ey) * var(--knobturn,0px) * -1));
+  background:radial-gradient(circle at 38% 32%,
+    rgb(255 255 255 / var(--knobglow,0)) 0%, rgb(255 255 255 / 0) 42%)}
+
+/* **The field shifts in its frame.** A fielded panel is genuinely set back
+   inside its moulding, so it should slide a little against the frame as your
+   eye moves. The only cue here that is true parallax rather than painted light
+   — and the only one that needed no element, because `.dpanel` has been there
+   since decision 88. Easy to overdo into a rattle, hence the px cap. */
+.is-phone.shelf-deep .grid > .drawer > .dpanel{
+  transform:translate(calc(var(--ex) * var(--fieldshift,0px)), calc(var(--ey) * var(--fieldshift,0px)))}
+
+/* The same three exemptions the flank has, for the same three reasons: forty
+   pixels has no room for any of it, a tile in your hand is off the shelf and
+   its `--px` is the cell it came out of, and a book is not a box. */
+.drawer.sz-mini > .dwash,.drawer.sz-mini > .dsweep,
+.drawer.sz-mini > .darris,.drawer.sz-mini > .drecess{display:none}
+.drawer.dragging > .dwash,.drawer.lifted > .dwash,
+.drawer.dragging > .dsweep,.drawer.lifted > .dsweep,
+.drawer.dragging > .darris,.drawer.lifted > .darris,
+.drawer.dragging > .drecess,.drawer.lifted > .drecess{opacity:0}
+
+/* No cast shadow, and this time the reason is structural rather than the
+   custom-property trap decision 117 hit. A shadow thrown onto the board has to
+   be drawn outside the tile, and `.drawer` is `overflow:hidden` with
+   `isolation:isolate` — so a layer inside it is clipped to the front and a
+   negative z-index cannot reach behind the tile's own background. The only way
+   left is the tile's own `box-shadow` keyed on the eye, which is paint on every
+   tile on every frame: the 21fps version of decision 117b, arrived at from a
+   third direction. */
+
 /* No cast shadow among these. It was the obvious third cue — one light in one
    place, so a thicker thing throws further — and it was written as `--shx`/
    `--shy` fed into the `--shadow` that board.css builds, on the belief that a
@@ -484,9 +614,28 @@
 /* and the paper says it can be written on, quietly, before you touch it */
 .bookstage:not(.writingon) .spread .page{cursor:text}
 .pfoot{margin-top:12px;padding-top:10px;border-top:1px solid var(--rule-2)}
-.rangerow{display:flex;align-items:center;gap:10px;margin-top:8px;font-size:12.5px;color:var(--ink-2)}
-.rangerow input[type=range]{flex:1;accent-color:var(--brass)}
-.rangerow b{font-variant-numeric:tabular-nums;color:var(--ink);min-width:38px;text-align:right}
+/* A slider row is a name, a number and a track, and it was a flex row of all
+   three — which `.field label` (0,2,0 against its 0,1,0) quietly overrode into
+   a stacked, uppercased, 10px label, everywhere, on both devices. It is a grid
+   now, and it says so at a specificity nothing in `.field` can beat: the name
+   and its value on one line, the track full width underneath. A track sharing a
+   line with a sentence has about ninety pixels of travel on a phone, which is
+   not a control you can set a number with. */
+.rangerow,.field .rangerow{
+  display:grid;grid-template-columns:1fr auto;gap:2px 10px;align-items:baseline;
+  margin-top:10px;font-size:12.5px;color:var(--ink-2);
+  text-transform:none;letter-spacing:0;font-weight:400}
+/* Placed rather than flowed. The markup is name, track, value in that order —
+   the reading order, and the one every caller already writes — but the value
+   belongs beside the name and the track belongs under both. Auto-placement puts
+   them in three rows and hangs the number under the slider you are dragging. */
+.rangerow > span,.field .rangerow > span{
+  grid-area:1 / 1;font-size:12.5px;text-transform:none;letter-spacing:0;
+  color:var(--ink-2);font-weight:400}
+.rangerow b{grid-area:1 / 2;font-variant-numeric:tabular-nums;color:var(--ink);
+  text-align:right;font-size:12px}
+.rangerow input[type=range]{grid-area:2 / 1 / 3 / 3;width:100%;
+  accent-color:var(--brass);margin:1px 0 0}
 /* A long press on a tile is Bureau's "pick this up". iOS reads the same press
    as "select this text / show me the callout", and shows the magnifier over the
    thing you are trying to lift. */
@@ -2608,8 +2757,15 @@ kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--rule);border
 .statline .s{font-size:11.5px;color:var(--ink-3)}
 .statline .s b{font-family:var(--serif);font-size:15px;color:var(--ink);font-weight:600;margin-right:4px}
 .blocks{display:flex;flex-direction:column;gap:11px}
-.mini{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-2);padding:6px 2px}
-.mini .dot{width:6px;height:6px;border-radius:50%;background:var(--k);flex:0 0 auto}
+/* A note under a control is a **paragraph**, and it was a flex row — so every
+   `<b>` in it became a flex item of its own and the sentence was dealt out into
+   as many columns as it had bold words. On a Mac there is width enough to hide
+   it; on a phone panel it shredded a three-line explanation into six vertical
+   strips of single words. Nothing that reads as prose may be a flex container.
+   The dot keeps its alignment as an inline mark instead of as a flex child. */
+.mini{display:block;font-size:12.5px;line-height:1.45;color:var(--ink-2);padding:6px 2px}
+.mini .dot{display:inline-block;vertical-align:middle;width:6px;height:6px;
+  border-radius:50%;background:var(--k);margin-right:8px}
 .pickgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:7px}
 .pickgrid button{height:38px;border-radius:var(--radius);border:1px solid var(--rule);font-size:11.5px;font-weight:600}
 .pickgrid button.on{outline:2px solid var(--glow);outline-offset:1px}

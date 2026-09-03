@@ -2480,12 +2480,60 @@ const CHROME = process.env.BUREAU_CHROME;
     const tiles = () => [...document.querySelectorAll('#drawergrid > .drawer')];
     const px = el => parseFloat(el.style.getPropertyValue('--px'));
 
-    const wasDepth = S.look.depth;
-    S.look.depth = 0; S.look.parallax='desk'; BUREAU.applyLook(); BUREAU.render(); await nap(120);
+    /* Depth is no longer one number. A drawer is a box and shows a flank; a
+       book is a cylinder and shows shade on a curve; and five more cues are
+       drawn on a front's own face. So "off" is all of them off — and each has
+       to be able to be off on its own, which is the next assertion. */
+    const CUES = ['depth','bookdepth','facelight','facesweep','arris','recess','knobturn','fieldshift'];
+    const was = {}; CUES.forEach(k => was[k] = S.look[k]);
+    const setCues = v => CUES.forEach(k => S.look[k] = v);
+
+    setCues(0); S.look.parallax='desk'; BUREAU.applyLook(); BUREAU.render(); await nap(120);
     // At zero the whole thing is absent: no numbers written and no layer drawn.
     out.nothingAtZeroDepth = tiles().length > 4
       && tiles().every(t => !t.style.getPropertyValue('--px'))
       && !document.querySelector('#drawergrid .dside');
+
+    /* A book and a drawer are two sliders, and the gate is per tile rather than
+       per desk: books turning with the drawers flat draws a layer on the books
+       and none at all on the drawers. See decision 117c. */
+    const spines = () => tiles().filter(t => t.classList.contains('spinetile'));
+    const boxes  = () => tiles().filter(t => !t.classList.contains('spinetile')
+                                          && !t.classList.contains('sz-mini'));
+    setCues(0); S.look.bookdepth = 11; BUREAU.applyLook(); BUREAU.render(); await nap(120);
+    out.booksWithoutDrawers = spines().length > 0
+      && spines().every(t => !!t.querySelector(':scope > .dside'))
+      && boxes().every(t => !t.querySelector(':scope > .dside'));
+    setCues(0); S.look.depth = 11; BUREAU.applyLook(); BUREAU.render(); await nap(120);
+    out.drawersWithoutBooks = boxes().some(t => !!t.querySelector(':scope > .dside'))
+      && spines().every(t => !t.querySelector(':scope > .dside'));
+
+    /* And each face cue brings its own layer and nothing else's, because a
+       layer with nothing painted on it is the one Bureau refuses to pay for. */
+    setCues(0); S.look.arris = 60; BUREAU.applyLook(); BUREAU.render(); await nap(120);
+    out.oneCueIsOneLayer = !!document.querySelector('#drawergrid .darris')
+      && !document.querySelector('#drawergrid .dwash')
+      && !document.querySelector('#drawergrid .dsweep')
+      && !document.querySelector('#drawergrid .drecess')
+      && !document.querySelector('#drawergrid .dside')
+      && boxes().some(t => !!t.style.getPropertyValue('--px'));
+    /* A face cue goes to things with a face. Not to a book, which is a cylinder
+       and has its own answer, and not to paper lying on the shelf. */
+    out.noFaceCueOnABook = spines().every(t => !t.querySelector(':scope > .darris'));
+
+    /* Every one of them is a transform or an opacity on a promoted layer. A cue
+       that paints is the 21fps mistake of decision 117b, so nothing here may
+       change a background, a shadow or a size. */
+    setCues(40); BUREAU.applyLook(); BUREAU.render(); await nap(140);
+    const moved = ['.dwash::before', '.dsweep::before', '.drecess::before'].map(sel => {
+      const [q, ps] = sel.split('::');
+      const el = document.querySelector('#drawergrid ' + q);
+      return el ? cs(el, '::' + ps).transform : null;
+    });
+    out.cuesMoveByTransform = moved.every(t => t && t !== 'none');
+
+    CUES.forEach(k => { if (was[k] == null) delete S.look[k]; else S.look[k] = was[k]; });
+    const wasDepth = S.look.depth;
 
     /* And the two are separate settings. Where a thing stands is a fact about
        the board, so it reads with the desk sitting still — and the desk can

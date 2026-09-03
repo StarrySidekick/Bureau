@@ -1,7 +1,7 @@
 import { S, K, defaultLook, PANELS, PANEL_SLOTS, KNOBS, KNOB_SLOTS,
   BINDINGS, BINDING_SLOTS, BORDER_SLOTS, TEXTURE_SLOTS, STOCKS, STOCK_SLOTS,
   slotKey, slotRaw, slotSrc, borderOf, textureOf, panelOf, knobOf, bindingOf, stockOf,
-  shelfDepth, bookDepth, shelfTurn } from './model.js';
+  shelfDepth, bookDepth, shelfTurn, faceCue } from './model.js';
 import { save } from './persist.js';
 import { render } from './views.js';
 
@@ -128,6 +128,31 @@ function applyLook(){
   el.style.setProperty('--deepybk', (Math.round(bd*0.64*10)/10)+'px');
   el.style.setProperty('--bkshade', String(Math.round(Math.min(1.5, bd/11)*100)/100));
   el.style.setProperty('--turn', String(shelfTurn()/100));
+  /* And the five drawn on the face. Each is one number, 0-100, and everything
+     it needs is derived from it here — a strength, not a set of properties, so
+     a cue cannot be bright in its highlight and flat in its shade. The ceilings
+     were found on the bench; a slider at 100 is the most of each that still
+     reads as furniture rather than as a filter. */
+  const cue = k => faceCue(k) / 100;
+  const w = cue('facelight');
+  el.style.setProperty('--washhi', (w * 0.14).toFixed(3));
+  el.style.setProperty('--washlo', (w * 0.28).toFixed(3));
+  el.style.setProperty('--sweepamt', (cue('facesweep') * 0.17).toFixed(3));
+  /* An arris is a fixed thickness at any size, like every moulding in the app,
+     so the slider is the *light* on it and never the width. */
+  const a = cue('arris');
+  el.style.setProperty('--arw', '2px');
+  el.style.setProperty('--arlit', (a * 0.24).toFixed(3));
+  el.style.setProperty('--arshade', (a * 0.28).toFixed(3));
+  el.style.setProperty('--areye', (a * 0.20).toFixed(3));
+  const r = cue('recess');
+  el.style.setProperty('--recthrow', (r * 10).toFixed(1) + 'px');
+  el.style.setProperty('--recblur', '18px');
+  el.style.setProperty('--recamt', (r * 0.36).toFixed(3));
+  const kn = cue('knobturn');
+  el.style.setProperty('--knobturn', (kn * 5).toFixed(1) + 'px');
+  el.style.setProperty('--knobglow', (kn * 0.42).toFixed(3));
+  el.style.setProperty('--fieldshift', (cue('fieldshift') * 2.4).toFixed(2) + 'px');
 
   /* And then the hand overrides, which still beat the aesthetic — one is a
      starting point, not a cage.

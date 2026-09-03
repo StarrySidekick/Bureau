@@ -909,7 +909,29 @@ const bookDepth = ()=> { const d = S.look && S.look.bookdepth; return d==null ? 
    tile and the `shelf-deep` class turns the faces on, and a desk with the
    drawers flat and the books turning still needs both. Which *tiles* get a
    layer is asked per tile, in `standsOut()`. */
-const standsProud = ()=> shelfDepth() > 0 || bookDepth() > 0;
+/* ---- and the five that are drawn on the face instead ------------------
+   The flank is honest geometry and it is nearly invisible: a drawer front's
+   character is the moulding and the knob, and a sliver of grey down one edge is
+   not part of it. These say the same thing on the surface the front has. Each
+   is **one number, 0-100**, and `applyLook()` derives every property it needs
+   from that — the same arrangement the tilt's own sliders have, and for the
+   same reason: four properties that could disagree about one cue is four
+   chances to be wrong. Zero is off, and off costs no element. See decision 118. */
+const FACE_CUES = {
+  facelight:  'Light across the face',
+  facesweep:  'A sweep of light',
+  arris:      'A chamfered edge',
+  recess:     'Set into the carcass',
+  knobturn:   'The knob turns with you',
+  fieldshift: 'The field shifts in its frame'
+};
+const faceCue = k => { const v = S.look && S.look[k]; return Math.max(0, Math.min(100, +v || 0)); };
+const anyFaceCue = ()=> Object.keys(FACE_CUES).some(k => faceCue(k) > 0);
+/* Any one of them is reason enough to write `--px`/`--py` and stamp the class:
+   a desk with the drawers flat and the light on their faces still needs to know
+   which way each thing is standing. Which *tiles* get which layer is asked per
+   tile, in `faceLayers()`. */
+const standsProud = ()=> shelfDepth() > 0 || bookDepth() > 0 || anyFaceCue();
 /* And how much of that follows the phone, 0–100. Where a thing stands is the
    resting answer; this is how far your eye moving adds to it. At zero the faces
    are still true and never move, which is the 1.34 shelf. */
@@ -1477,7 +1499,7 @@ export { ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds, K,
   shapeOf, READS, readOf, spreadOf, OPENINGS, openingOf, gathersOf, gatherKind, containers,
   deskIds, deskList, isDesk, deskOf, deskHere,
   placeOf, isHeld, heldObjects, heldCount,
-  TILT_MODES, tiltMode, tiltsDesk, tiltsWindows, tiltClasses, shelfDepth, bookDepth, standsProud, shelfTurn,
+  TILT_MODES, tiltMode, tiltsDesk, tiltsWindows, tiltClasses, shelfDepth, bookDepth, standsProud, shelfTurn, FACE_CUES, faceCue, anyFaceCue,
   spanOf, coversDay, lastDay, lateOn, isLate,
   boardLocked,
   PRIOS, prioOf, prioName,

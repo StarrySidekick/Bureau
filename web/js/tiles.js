@@ -3,7 +3,7 @@ import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, chi
   rollup, streak, goalPct, projectStat, tlSpan, dev, spawnByOf, genKindOf, takesTyping, showsAddBox,
   knobSizeOf, answered, sortOf, spanOf, coversDay, lateOn, isLate, iconOf, textSizeOf,
   isPicture, isMedia, isPlayable, isDecor, mediaTypeOf, frameOf, isWindow,
-  boardLocked, prioOf, repeatSaid, standsProud, shelfDepth, bookDepth,
+  boardLocked, prioOf, repeatSaid, standsProud, shelfDepth, bookDepth, faceCue, anyFaceCue,
   calViewOf, weekStartOf, calCols, bindingOf, panelOf, knobOf, borderOf, textureOf } from './model.js';
 import { CELL, COLW, gridOf, lay, overlaps, boxOk, freeSpot, gridRows, sizeOfKind, ensureBox,
   pageRows, colsOf } from './grid.js';
@@ -475,6 +475,31 @@ const drawsAsSpine = (o, box) => isContainer(o)
    costs nothing: no element and no numbers, per tile rather than per desk. */
 const standsOut = (o, persp, box) => !!persp && depthOf(o) >= FLANKED
   && (drawsAsSpine(o, box) ? bookDepth() : shelfDepth()) > 0;
+/* The five drawn on the face go to things with a face to draw them on: a
+   drawer, a card, a picture. Not a book — a spine is a cylinder and has its own
+   answer already — and not paper, which lies on the shelf rather than standing
+   in it, the same `FLANKED` line the flank is drawn at. Each layer is emitted
+   only when its own slider is up, because two extra elements on every tile cost
+   about a fifth of a render at three thousand objects and a layer with nothing
+   painted on it is the worst kind. See decision 118. */
+const FACE_LAYERS = [
+  ['facelight',  '<i class="dwash"></i>'],
+  ['facesweep',  '<i class="dsweep"></i>'],
+  ['arris',      '<i class="darris"><i class="artop"></i><i class="arbot"></i></i>'],
+  ['recess',     '<i class="drecess"></i>']
+];
+/* `knobturn` and `fieldshift` are in FACE_CUES too but need no element — the
+   first rides on `.pull`'s own pseudo and the second on `.dpanel`, which has
+   been there since decision 88. They still count towards `takesFace()`, or a
+   desk with only those two on would carry no `--px` for them to read. */
+const takesFace = (o, persp, box) =>
+  !!persp && depthOf(o) >= FLANKED && !drawsAsSpine(o, box);
+const faceLayers = (o, persp, box) => !takesFace(o, persp, box) ? ''
+  : FACE_LAYERS.reduce((h,[k,html])=> h + (faceCue(k) > 0 ? html : ''), '');
+/* One condition for every layer and for the numbers that dress them all, so a
+   tile can never carry a cue without the eye it reads. */
+const hasPersp = (o, persp, box) => standsOut(o, persp, box)
+  || (takesFace(o, persp, box) && anyFaceCue());
 const SIDE_LAYER = '<i class="dside"><i class="dtop"></i><i class="dbot"></i></i>';
 const GRAIN_LAYER = '<i class="dgrain"></i>';
 const PANEL_LAYER = '<i class="dpanel"></i>';
@@ -491,7 +516,8 @@ function drawTile(o, arr, box, persp){
      avoid. */
   const layers = (html.includes('class="dpanel"') ? '' : PANEL_LAYER)
     + (textureOf(o)==='none' ? '' : GRAIN_LAYER)
-    + (standsOut(o, persp, box) ? SIDE_LAYER : '');
+    + (standsOut(o, persp, box) ? SIDE_LAYER : '')
+    + faceLayers(o, persp, box);
   return html.slice(0, i+1) + layers + html.slice(i+1);
 }
 function drawTileFace(o, arr, box, persp){
@@ -525,7 +551,7 @@ function drawTileFace(o, arr, box, persp){
      See decision 117. */
   const place = `${ts!==1?`--tscale:${ts};`:''}${
     tilt?`--tilt:${tilt.deg}deg;--pinx:${tilt.right?'100%':'0%'};`:''
-  }${standsOut(o, persp, box) ? `--px:${persp.x};--py:${persp.y};--depth:${depthOf(o)};` : ''
+  }${hasPersp(o, persp, box) ? `--px:${persp.x};--py:${persp.y};--depth:${depthOf(o)};` : ''
   }grid-column:${box.x} / span ${box.w};grid-row:${box.y} / span ${box.h}`;
   const sel = S.sel.includes(o.id) ? ' selected' : '';
 

@@ -402,6 +402,12 @@ const installed = ()=> window.matchMedia('(display-mode: standalone)').matches |
 const SETSECS = {
   style:  ['Aesthetics', 'palette', 'the sixteen colours, light and dark'],
   look:   ['Appearance', 'brush',   'the board, the shadows, the grid'],
+  /* Depth was four rows at the foot of Appearance and is now eleven, because a
+     drawer wants a different answer from a book and both wanted trying out. A
+     panel asks one question, and "how solid does this desk look" is not the
+     same question as "what colour is the board" — so it is a door, the way the
+     object editor's Look is. See decisions 66 and 118. */
+  depth:  ['Depth and light', 'layers', 'how solid things look, and what the tilt moves'],
   things: ['Your things','archive', 'how much there is, and getting it out'],
   paste:  ['Paste in',   'plus',    'objects described as JSON'],
   about:  ['About',      'help',    'which Bureau this is, and starting over']
@@ -554,44 +560,6 @@ function settingsBody(sec){
       <div class="mini" style="--k:var(--brass);margin-top:6px">Off, a tile is the colour and the border and nothing else — flatter, quieter, and easier to read a crowded board off.</div>
     </div>
 
-    ${S.device!=='desk'?(()=>{
-      const px=(k,d)=>S.look[k]==null?d:S.look[k];
-      return `
-    <div class="field" style="margin-top:12px"><label>Looking in</label>
-      <div class="filterbar">${Object.entries(TILT_MODES).map(([v,n])=>
-        `<button class="fchip${tiltMode()===v?' on':''}" data-parallax="${v}">${n}</button>`).join('')}</div>
-      <div class="mini" style="--k:var(--brass);margin-top:6px">Tilting the phone can move two different things, and they are worth having apart. <b>The desk</b> sets the board into the carcass and slides it behind the opening. <b>Windows</b> leave the desk still and move the view behind a window's frame, which is the same idea with a frame you can actually see. It asks iPhone for the motion sensor the first time you switch either on, and both stand still while you are carrying a tile or reading.</div>
-      ${tiltsDesk()?`
-      <label class="rangerow" style="margin-top:12px"><span>How deep the desk sits</span>
-        <input type="range" min="0" max="34" step="1" data-lookpx="tiltdesk" value="${px('tiltdesk',16)}">
-        <b>${px('tiltdesk',16)}px</b></label>
-      <label class="rangerow" style="margin-top:8px"><span>Room around it</span>
-        <input type="range" min="0" max="24" step="1" data-lookpx="deskinset" value="${px('deskinset',8)}">
-        <b>${px('deskinset',8)}px</b></label>
-      <div class="mini" style="--k:var(--brass);margin-top:6px">How far the board slides, and how much room it has around it. The board is the back of the slot and the four walls join it to the opening, so it is never cut off — which means the room is always at least the slide, and this slider only adds more on top of that.</div>`:''}
-      ${tiltMode()!=='off'?`
-      <label style="display:block;margin-top:12px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)">Which way it moves</label>
-      <div class="filterbar" style="margin-top:5px">${[['','Against the tilt'],['1','With the tilt']].map(([v,n])=>
-        `<button class="fchip${(S.look.tiltflip?'1':'')===v?' on':''}" data-tiltflip="${v}">${n}</button>`).join('')}</div>
-      <div class="mini" style="--k:var(--brass);margin-top:6px">A thing sitting in a recess hangs back when you turn the phone rather than chasing it, which is why it runs against the tilt. The other way round is here to be compared rather than because it is right.</div>`:''}
-      ${tiltsWindows()?`
-      <label class="rangerow" style="margin-top:12px"><span>How far back a view is</span>
-        <input type="range" min="0" max="30" step="1" data-lookpx="tiltwin" value="${px('tiltwin',11)}">
-        <b>${px('tiltwin',11)}px</b></label>
-      <div class="mini" style="--k:var(--brass);margin-top:6px">How far behind its frame a window's view sits. Further back is more movement for the same tilt, which is what depth actually is.</div>`:''}
-      <label class="rangerow" style="margin-top:12px"><span>How far drawers stand out</span>
-        <input type="range" min="0" max="18" step="1" data-lookpx="depth" value="${px('depth',11)}">
-        <b>${px('depth',11)}px</b></label>
-      <div class="mini" style="--k:var(--brass);margin-top:6px">How thick the drawers, cards and pictures standing on the shelf are. Standing in front of a bookcase you see the right-hand side of everything left of you and the left-hand side of everything right of you, so at rest each thing shows the side that faces the middle. Zero is off.</div>
-      <label class="rangerow" style="margin-top:12px"><span>How far books turn</span>
-        <input type="range" min="0" max="18" step="1" data-lookpx="bookdepth" value="${px('bookdepth',11)}">
-        <b>${px('bookdepth',11)}px</b></label>
-      <div class="mini" style="--k:var(--brass);margin-top:6px">A book is a cylinder, not a box: it shows no flank, its round back simply turns away into shade. That reads at a depth which makes a drawer look like a brick, so it is its own number — have the books turning with the drawers flat, or the other way about. Zero is off.</div>
-      <label class="rangerow" style="margin-top:8px"><span>How much they turn with the phone</span>
-        <input type="range" min="0" max="100" step="5" data-lookpct="turn" value="${px('turn',100)}">
-        <b>${px('turn',100)}%</b></label>
-      <div class="mini" style="--k:var(--brass);margin-top:6px">Tilting moves your eye, and the faces turn to follow it — tilt right and you see more of every left-hand side. This is how far that goes on top of where a thing already stands. It is its own number so you can have the faces without the movement, or the board sliding without the faces; at zero they are still true, just still.</div>
-    </div>`;})():''}
 
     ${gridSizeField(null)}
 
@@ -623,6 +591,77 @@ function settingsBody(sec){
       ${[['','This device ('+(S.device==='desk'?'Mac':'iPhone')+')'],['desk','Arrange Mac layout'],['phone','Arrange iPhone layout']].map(([v,n])=>
         `<button class="fchip${(S.layoutEdit||'')===v?' on':''}" data-layout="${v}">${n}</button>`).join('')}
     </div>` : '',
+    at('depth') ? (()=>{
+      const px=(k,d)=>S.look[k]==null?d:S.look[k];
+      /* One slider is one row and one note. The cues below differ only in what
+         they are called and what they claim, so they are a table rather than
+         eleven copies of the same markup — add one here and it arrives in the
+         panel, and `applyLook()` is the only other place that has to know. */
+      const cue=(key, name, note, dflt)=>`
+      <label class="rangerow"><span>${name}</span>
+        <input type="range" min="0" max="100" step="5" data-lookpct="${key}" value="${px(key,dflt)}">
+        <b>${px(key,dflt)}%</b></label>
+      <div class="mini" style="--k:var(--brass)">${note}</div>`;
+      if(S.device==='desk') return `
+    <div class="section-h"><h2>Depth and light</h2><div class="rule"></div></div>
+    <div class="mini" style="--k:var(--brass)">All of this is the phone's: it is about a board you tilt and hold, and a Mac sits still on a desk. Open the iPhone layout to set it.</div>`;
+      return `
+    <div class="section-h"><h2>Looking in</h2><div class="rule"></div></div>
+    <div class="mini" style="--k:var(--brass)">Tilting the phone can move two different things, and they are worth having apart. <b>The desk</b> sets the board into the carcass and slides it behind the opening. <b>Windows</b> leave the desk still and move the view behind a window's frame, which is the same idea with a frame you can actually see. It asks iPhone for the motion sensor the first time you switch either on, and both stand still while you are carrying a tile or reading.</div>
+    <div class="field" style="margin-top:10px">
+      <div class="filterbar">${Object.entries(TILT_MODES).map(([v,n])=>
+        `<button class="fchip${tiltMode()===v?' on':''}" data-parallax="${v}">${n}</button>`).join('')}</div>
+      ${tiltsDesk()?`
+      <label class="rangerow"><span>How deep the desk sits</span>
+        <input type="range" min="0" max="34" step="1" data-lookpx="tiltdesk" value="${px('tiltdesk',16)}">
+        <b>${px('tiltdesk',16)}px</b></label>
+      <label class="rangerow"><span>Room around it</span>
+        <input type="range" min="0" max="24" step="1" data-lookpx="deskinset" value="${px('deskinset',8)}">
+        <b>${px('deskinset',8)}px</b></label>
+      <div class="mini" style="--k:var(--brass)">How far the board slides, and how much room it has around it. The board is the back of the slot and the four walls join it to the opening, so it is never cut off — which means the room is always at least the slide, and this slider only adds more on top of that.</div>`:''}
+      ${tiltsWindows()?`
+      <label class="rangerow"><span>How far back a view is</span>
+        <input type="range" min="0" max="30" step="1" data-lookpx="tiltwin" value="${px('tiltwin',11)}">
+        <b>${px('tiltwin',11)}px</b></label>
+      <div class="mini" style="--k:var(--brass)">How far behind its frame a window's view sits. Further back is more movement for the same tilt, which is what depth actually is.</div>`:''}
+      ${tiltMode()!=='off'?`
+      <label class="rangerow" style="margin-top:14px"><span>Which way it moves</span><b></b></label>
+      <div class="filterbar">${[['','Against the tilt'],['1','With the tilt']].map(([v,n])=>
+        `<button class="fchip${(S.look.tiltflip?'1':'')===v?' on':''}" data-tiltflip="${v}">${n}</button>`).join('')}</div>
+      <div class="mini" style="--k:var(--brass)">A thing sitting in a recess hangs back when you turn the phone rather than chasing it, which is why it runs against the tilt. The other way round is here to be compared rather than because it is right.</div>`:''}
+    </div>
+
+    <div class="section-h"><h2>Books</h2><div class="rule"></div></div>
+    <div class="field">
+      <label class="rangerow"><span>How far a book turns</span>
+        <input type="range" min="0" max="18" step="1" data-lookpx="bookdepth" value="${px('bookdepth',11)}">
+        <b>${px('bookdepth',11)}px</b></label>
+      <div class="mini" style="--k:var(--brass)">A book is a cylinder, not a box: it shows no flank, its round back simply turns away into shade. That is the cue working on the surface it suits, and it reads at a depth that would make a drawer look like a brick — which is why it is its own number. Zero is off.</div>
+    </div>
+
+    <div class="section-h"><h2>Drawer fronts</h2><div class="rule"></div></div>
+    <div class="mini" style="--k:var(--brass)">A drawer is a box, and the honest thing to show from the side is a flank. It is also nearly invisible: a front's whole character is the moulding and the knob, and turned up far enough to read, a flank stops being a side and becomes a grey stripe. So the rest of these are drawn on the face the front actually has. They cost no width, which is what lets them survive at the size a drawer is really drawn. Each is off at zero.</div>
+    <div class="field" style="margin-top:10px">
+      <label class="rangerow"><span>How far a drawer stands out</span>
+        <input type="range" min="0" max="18" step="1" data-lookpx="depth" value="${px('depth',11)}">
+        <b>${px('depth',11)}px</b></label>
+      <div class="mini" style="--k:var(--brass)">The flank, in pixels. Standing in front of a bookcase you see the right-hand side of everything left of you and the left-hand side of everything right of you, so at rest each thing shows the side that faces the middle. Cards and pictures stand under this one too.</div>
+      ${cue('arris', 'A chamfered edge', 'Two pixels of eased edge, brightening on the side turning towards you — the first thing in a room to catch light.', 0)}
+      ${cue('facelight', 'Light across the face', 'The face itself lighter on the edge turning towards you and falling away on the other — what a spine does, on a flat surface.', 0)}
+      ${cue('facesweep', 'A sweep of light', 'One broad band of light travelling across the front. Faint is varnish on wood; bright is glass, which this desk has been through once.', 0)}
+      ${cue('recess', 'Set into the carcass', 'The lip of the desk laying a shadow across the front from the side you moved away from — the opening\'s depth rather than the drawer\'s.', 0)}
+      ${cue('knobturn', 'The knob turns with you', 'The one part of a front that is already solid. The wood does not move; only the light on it does.', 0)}
+      ${cue('fieldshift', 'The field shifts in its frame', 'A panelled field is set back inside its moulding, so it slides against the frame. Real parallax rather than painted light, and the easiest to overdo.', 0)}
+    </div>
+
+    <div class="section-h"><h2>Both</h2><div class="rule"></div></div>
+    <div class="field">
+      <label class="rangerow"><span>How much they turn with the phone</span>
+        <input type="range" min="0" max="100" step="5" data-lookpct="turn" value="${px('turn',100)}">
+        <b>${px('turn',100)}%</b></label>
+      <div class="mini" style="--k:var(--brass)">Tilting moves your eye, and everything above turns to follow it — tilt right and you see more of every left-hand side. This is how far that goes on top of where a thing already stands. At zero they are all still true, just still: the perspective reads with the phone flat on a table, so you can have it without the movement or the board sliding without it.</div>
+    </div>`;})() : '',
+
     at('things') ? `
     <div class="section-h"><h2>Your things</h2><div class="rule"></div></div>
     <div class="statline">
