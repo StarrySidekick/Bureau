@@ -635,6 +635,21 @@ not to paper. There is **still no cast shadow**, now for a structural reason as
 well: `.drawer` is `overflow:hidden` with `isolation:isolate`, so nothing drawn
 inside it can reach the board behind it. See decision 118.
 
+**Which way round a cue runs is a setting, one per cue.** There is no single
+right sign for all of them — a flank and a roll-off are opposite by geometry, a
+field set back behind its moulding slides against the frame in front of it, a
+specular follows your eye while a shadow runs from it — and a wrong one is
+invisible until it sits beside a right one. `CUE_DIR` in model.js is the
+baseline, `<key>flip` reverses it, and `applyLook()` writes `--sgn-<key>` off
+the key. Every rule reads **its own** eye: each layer declares `--e`/`--f` and
+nothing under it touches `--ex` again — on the layer and not the tile, because
+a cue that is off has no layer and the choice then costs nothing. Two baselines
+are deliberately not the geometry: the **flank** now runs the book's way rather
+than opposite it (reversing half of 117b — a desk that reads as one object beat
+a desk correct in six places separately), and the **field** slides the other way
+from how it was first written. The board's own slide stays out of the table:
+`tiltflip` has said it since decision 114. See decision 119.
+
 **Nothing that reads as prose may be a flex container.** `.mini` was
 `display:flex`, so a note with a `<b>` in it was dealt out into one narrow
 column per bold word — invisible on a Mac, and a wall of vertical single-word

@@ -5032,3 +5032,53 @@ value belongs beside the name), and it says so at a specificity `.field` cannot
 beat. The track is full width, because a slider sharing a line with a sentence
 has about ninety pixels of travel on a phone and is not a control you can set a
 number with.
+
+## 119. Which way round is a setting, one per cue
+
+*2026-09-03*
+
+Timothy, looking at 118 on a real board: the field shifting in its frame looks
+right and runs the wrong way, and a few of the others have the shading coming
+from one side and the shadow from the other.
+
+He is right, and the reason is that **there is no single correct sign for all
+of them**. A flank and a roll-off are opposite by geometry — a box shows a
+*new* surface as you move where a cylinder turns one *away*, which is what
+117b's last paragraph is about. A field set back behind its moulding slides
+against the frame in front of it, so it goes the opposite way from anything
+painted on the frame's own plane. A specular follows your eye; a shadow runs
+from it. Six cues written at six different sittings, each reasoned about on its
+own, is six chances to pick the wrong one — and a wrong one is **invisible in
+isolation**. It only shows up beside a right one, which is exactly the state
+118 shipped in.
+
+So the direction is a setting. `CUE_DIR` in model.js holds the baseline for
+each, `<key>flip` reverses it, and `applyLook()` writes `--sgn-<key>` off the
+key so there is no second naming scheme to keep in step. Every rule reads its
+own sign: each **layer** declares `--e`/`--f` — that cue's eye — and nothing
+under it touches `--ex` again. On the layer rather than on the tile because a
+cue that is off has no layer, so having the choice costs nothing; sixteen
+custom properties on every tile would have been paid for on every frame of the
+tilt whether the cue was on or not.
+
+Two baselines moved, both because Timothy asked: **the flank** and **the field
+shift**. The flank's is the interesting one, because it reverses half of 117b.
+A drawer used to be the geometric answer — a thing to your right shows you its
+left side, the way a bookcase does — and a book was deliberately opposite. Now
+a drawer defaults to the book's direction and the two agree. That is *not* what
+the geometry says, and it is worth writing down that it isn't: a box and a
+cylinder genuinely do turn opposite ways, and the argument for the old sign was
+a good one. It also made a board on which the shading disagreed with itself,
+and a desk that reads as one object beats a desk that is individually correct
+in six places. The toggle is there so the question stays settleable by looking
+rather than by argument, which is how it should have been settled the first
+time.
+
+The board's own slide is **not** in the table. `tiltflip` has said the same
+thing for the board since decision 114, and two switches for one idea is one
+too many.
+
+The control is a button on the slider's own row rather than a pair of chips
+beside it. It is one bit; eight pairs of chips is more furniture than the eight
+sliders they belong to. The row grows a third column when it has one, which
+`.rangerow:has(.dirflip)` states in one rule rather than every caller knowing.

@@ -1,7 +1,7 @@
 import { S, K, defaultLook, PANELS, PANEL_SLOTS, KNOBS, KNOB_SLOTS,
   BINDINGS, BINDING_SLOTS, BORDER_SLOTS, TEXTURE_SLOTS, STOCKS, STOCK_SLOTS,
   slotKey, slotRaw, slotSrc, borderOf, textureOf, panelOf, knobOf, bindingOf, stockOf,
-  shelfDepth, bookDepth, shelfTurn, faceCue } from './model.js';
+  shelfDepth, bookDepth, shelfTurn, faceCue, CUE_DIR, cueSign } from './model.js';
 import { save } from './persist.js';
 import { render } from './views.js';
 
@@ -153,6 +153,10 @@ function applyLook(){
   el.style.setProperty('--knobturn', (kn * 5).toFixed(1) + 'px');
   el.style.setProperty('--knobglow', (kn * 0.42).toFixed(3));
   el.style.setProperty('--fieldshift', (cue('fieldshift') * 2.4).toFixed(2) + 'px');
+  /* And which way round each one runs, written straight off the key so there is
+     no second naming scheme to keep in step with the first. A layer reads its
+     own sign into `--e`/`--f` and never touches `--ex` again. */
+  Object.keys(CUE_DIR).forEach(k => el.style.setProperty('--sgn-' + k, String(cueSign(k))));
 
   /* And then the hand overrides, which still beat the aesthetic — one is a
      starting point, not a cage.

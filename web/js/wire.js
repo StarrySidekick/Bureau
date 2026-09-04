@@ -414,6 +414,13 @@ function act(name, el){
     case 'nextcopy': spawnNext(el.dataset.id || S.openId); refreshPanel(); break;
     // one object out as words — see decision 68
     case 'copymd': copyObject(el.dataset.id || S.openId); break;
+    /* Which way round a cue answers your eye. A render rather than an
+       applyLook(): the button's own pressed state is drawn by the panel, so the
+       panel has to be redrawn for the press to show. */
+    case 'lookflip': {
+      const k = el.dataset.lookflip;
+      S.look[k + 'flip'] = !S.look[k + 'flip'];
+      applyLook(); save(); render(); refreshPanel(); break; }
     case 'appsettings': toggleSettings(); break;
     // the two surfaces an object opens onto, each reachable from the other
     case 'editthis': openWriter(el.dataset.id); break;

@@ -85,6 +85,8 @@ const P = {
   undo:'M3 9a9 9 0 1 1 1.2 6.6M3 4v5h5',
   sun:'M12 6a6 6 0 1 0 0 12 6 6 0 0 0 0-12M12 1v2M12 21v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M1 12h2M21 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4',
   resize:'M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7',
+  // two arrows running opposite ways: which way round a thing answers your eye
+  swap:'M4 9h15M15 5l4 4-4 4M20 15H5M9 11l-4 4 4 4',
   // a plant in a pot: the leaves, the stem, the rim and the taper
   plant:'M9 21h6l1-6H8zM7 15h10M12 15V9M12 10C12 6 9.5 4 6 4c0 3.5 2.5 6 6 6M12 9c0-3 2-5 5-5 0 3-2 5-5 5',
   // two sheets, one behind the other — the universal copy mark
