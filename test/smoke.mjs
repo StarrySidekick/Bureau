@@ -2582,10 +2582,22 @@ const CHROME = process.env.BUREAU_CHROME;
     // so it is not what this half is about.
     const sided = flanked.filter(t => !t.classList.contains('spinetile'));
     const l = sided.filter(t => px(t) < -0.3), r = sided.filter(t => px(t) > 0.3);
-    out.aThingOnTheLeftShowsItsRightSide = l.length > 0
-      && l.every(t => scaleOf(t,'::after') > 0.2 && scaleOf(t,'::before') === 0);
-    out.andOneOnTheRightItsLeft = r.length > 0
+/* Which way round a flank runs is a **setting** now, and its baseline was
+       reversed because the first one read backwards against everything drawn on
+       the face beside it — a board with the shading coming from one side and the
+       shadow from the other. So a drawer defaults to a book's direction rather
+       than its opposite: a thing left of centre shows its *left* side. See
+       decision 119, which reverses that half of 117b. */
+    out.aThingOnTheLeftShowsItsLeftSide = l.length > 0
+      && l.every(t => scaleOf(t,'::before') > 0.2 && scaleOf(t,'::after') === 0);
+    out.andOneOnTheRightItsRight = r.length > 0
+      && r.every(t => scaleOf(t,'::after') > 0.2 && scaleOf(t,'::before') === 0);
+    /* And the toggle really is the sign, not a second set of rules: flipped, a
+       drawer shows exactly what it showed before the baseline changed. */
+    S.look.depthflip = true; BUREAU.applyLook(); await nap(80);
+    out.theFlipReversesIt = l.every(t => scaleOf(t,'::after') > 0.2 && scaleOf(t,'::before') === 0)
       && r.every(t => scaleOf(t,'::before') > 0.2 && scaleOf(t,'::after') === 0);
+    delete S.look.depthflip; BUREAU.applyLook(); await nap(80);
 
     /* Above the middle you see a thing's underside, below it you see its top —
        two children of the same layer, scaled the way the flanks are. Measured
@@ -2614,8 +2626,10 @@ const CHROME = process.env.BUREAU_CHROME;
     const still = tileState();
     const hi = sided.filter(t => parseFloat(t.style.getPropertyValue('--py')) < -0.3);
     const lo = sided.filter(t => parseFloat(t.style.getPropertyValue('--py')) > 0.3);
-    out.aboveCentreYouSeeTheUnderside = hi.length > 0 && hi.every(t => faceOf(t,'bottom') > 0.2 && faceOf(t,'top') === 0);
-    out.belowCentreYouSeeTheTop = lo.length > 0 && lo.every(t => faceOf(t,'top') > 0.2 && faceOf(t,'bottom') === 0);
+    // The vertical axis reverses with the horizontal one — it is one sign per
+    // cue, not one per axis, so a thing above the middle shows its top.
+    out.aboveCentreYouSeeTheTop = hi.length > 0 && hi.every(t => faceOf(t,'top') > 0.2 && faceOf(t,'bottom') === 0);
+    out.belowCentreYouSeeTheUnderside = lo.length > 0 && lo.every(t => faceOf(t,'bottom') > 0.2 && faceOf(t,'top') === 0);
     const subject = sided.find(t => px(t) < -0.3);          // stands left of centre
     const restL = faceOf(subject,'left'), restR = faceOf(subject,'right');
     BUREAU.tilt(1, 0); await nap(120);
@@ -2624,24 +2638,32 @@ const CHROME = process.env.BUREAU_CHROME;
        can leave one open — which made an assertion here pass against a shelf
        that had not moved at all. A guard that cannot fail is not a guard. */
     out.theShelfReallyTurned = Math.abs(parseFloat(frame.style.getPropertyValue('--tiltx'))) > 0.5;
-    // Your eye moved right: the right flank it showed at rest folds away and a left face opens.
-    out.turningThePhoneTurnsTheFaces = restR > 0.2 && restL === 0
-      && faceOf(subject,'right') < restR && faceOf(subject,'left') > 0;
+    /* Your eye moved right: the left flank the subject showed at rest folds
+       away and a right face opens. Reversed from 117b with the baseline. */
+    out.turningThePhoneTurnsTheFaces = restL > 0.2 && restR === 0
+      && faceOf(subject,'left') < restL && faceOf(subject,'right') > 0;
     out.andLaysNothingOutOrRepaintsATile = tileState() === still;
     BUREAU.tilt(0, 1); await nap(120);
-    out.tiltingDownShowsTheTop = faceOf(subject,'top') > 0 && faceOf(subject,'bottom') === 0;
-    /* And a book turns the other way from a box. Your eye moving right shows a
-       drawer's *left* face; it turns a cylinder's left side towards you and its
-       right side away, so the shade grows on the right. Same tilt, opposite
-       side — and the specular underneath slides to agree. */
+    out.tiltingDownShowsTheUnderside = faceOf(subject,'bottom') > 0 && faceOf(subject,'top') === 0;
+    /* A book was the one that already looked right, so its baseline did not
+       move — and the drawer's moved onto it. They shade the same way by default
+       now, which is not the geometry 117b argued (a box shows a new surface
+       where a cylinder turns one away) but is what the desk reads better as.
+       Each has its own toggle, so the argument is settleable by looking. */
     BUREAU.tilt(1, 0); await nap(120);
     const book = sided.length && ts.find(t => t.classList.contains('spinetile') && t.querySelector(':scope > .dside'));
-    out.aBookShadesTheOtherWayFromABox = !!book
-      && faceOf(subject,'left') > 0 && faceOf(subject,'right') === 0
+    out.aBookAndABoxAgreeByDefault = !!book
+      && faceOf(subject,'right') > 0 && faceOf(subject,'left') === 0
       && faceOf(book,'right') > 0 && faceOf(book,'left') === 0;
+    /* …and flipping the book alone puts them back on opposite sides, which is
+       the whole reason the sign is per cue rather than one switch. */
+    S.look.bookdepthflip = true; BUREAU.applyLook(); await nap(100);
+    out.andTheBookCanBeFlippedAlone = faceOf(book,'left') > 0 && faceOf(book,'right') === 0
+      && faceOf(subject,'right') > 0 && faceOf(subject,'left') === 0;
+    delete S.look.bookdepthflip; BUREAU.applyLook(); await nap(100);
     // At zero the faces are still true, just still — the resting perspective alone.
     S.look.turn = 0; BUREAU.applyLook(); BUREAU.tilt(1, 0); await nap(120);
-    out.atZeroTurnTheyStayStill = faceOf(subject,'right') === restR && faceOf(subject,'left') === restL;
+    out.atZeroTurnTheyStayStill = faceOf(subject,'left') === restL && faceOf(subject,'right') === restR;
     BUREAU.tilt(0, 0); S.look.turn = wasTurn; BUREAU.applyLook();
 
     /* Last, because it renders and every element captured above goes with it.

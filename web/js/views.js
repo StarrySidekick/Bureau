@@ -4,7 +4,7 @@ import { S, K, T, byId, has, isContainer, containers, container, childrenOf, cha
   beginPass, endPass,
   layoutOf, takesTyping, genKindOf, CALVIEWS, calViewOf, calCols,
   spanOf, coversDay, lastDay, boardLocked,
-  TILT_MODES, tiltMode, tiltsDesk, tiltsWindows, tiltClasses } from './model.js';
+  TILT_MODES, tiltMode, tiltsDesk, tiltsWindows, tiltClasses, cueFlipped } from './model.js';
 import { GRID, PHONE_GRIDS, CELL, COLW, MEASURE, colsOf, gridKeyOf,
   pageRows, pageOfBox, lastPage,
   lay, gridOf, cellW, ensureBox, PLACED } from './grid.js';
@@ -597,10 +597,18 @@ function settingsBody(sec){
          they are called and what they claim, so they are a table rather than
          eleven copies of the same markup — add one here and it arrives in the
          panel, and `applyLook()` is the only other place that has to know. */
+      /* Every cue that answers the eye can answer it the other way round, and
+         which way is right is a thing to be looked at rather than argued about
+         — so the flip sits on the row it belongs to rather than in a list of
+         its own. A button, not a pair of chips: it is one bit, and eight pairs
+         of chips is more furniture than the eight sliders they belong to. */
+      const flip=key=>`<button type="button" class="dirflip${cueFlipped(key)?' on':''}"
+        data-act="lookflip" data-lookflip="${key}"
+        title="Which way round it runs" aria-pressed="${cueFlipped(key)}">${ic('swap',12)}</button>`;
       const cue=(key, name, note, dflt)=>`
       <label class="rangerow"><span>${name}</span>
         <input type="range" min="0" max="100" step="5" data-lookpct="${key}" value="${px(key,dflt)}">
-        <b>${px(key,dflt)}%</b></label>
+        <b>${px(key,dflt)}%</b>${flip(key)}</label>
       <div class="mini" style="--k:var(--brass)">${note}</div>`;
       if(S.device==='desk') return `
     <div class="section-h"><h2>Depth and light</h2><div class="rule"></div></div>
@@ -635,17 +643,17 @@ function settingsBody(sec){
     <div class="field">
       <label class="rangerow"><span>How far a book turns</span>
         <input type="range" min="0" max="18" step="1" data-lookpx="bookdepth" value="${px('bookdepth',11)}">
-        <b>${px('bookdepth',11)}px</b></label>
-      <div class="mini" style="--k:var(--brass)">A book is a cylinder, not a box: it shows no flank, its round back simply turns away into shade. That is the cue working on the surface it suits, and it reads at a depth that would make a drawer look like a brick — which is why it is its own number. Zero is off.</div>
+        <b>${px('bookdepth',11)}px</b>${flip('bookdepth')}</label>
+      <div class="mini" style="--k:var(--brass)">A book is a cylinder, not a box: it shows no flank, its round back simply turns away into shade. That is the cue working on the surface it suits, and it reads at a depth that would make a drawer look like a brick — which is why it is its own number. Zero is off, and ⇄ turns it the other way.</div>
     </div>
 
     <div class="section-h"><h2>Drawer fronts</h2><div class="rule"></div></div>
-    <div class="mini" style="--k:var(--brass)">A drawer is a box, and the honest thing to show from the side is a flank. It is also nearly invisible: a front's whole character is the moulding and the knob, and turned up far enough to read, a flank stops being a side and becomes a grey stripe. So the rest of these are drawn on the face the front actually has. They cost no width, which is what lets them survive at the size a drawer is really drawn. Each is off at zero.</div>
+    <div class="mini" style="--k:var(--brass)">A drawer is a box, and the honest thing to show from the side is a flank. It is also nearly invisible: a front's whole character is the moulding and the knob, and turned up far enough to read, a flank stops being a side and becomes a grey stripe. So the rest of these are drawn on the face the front actually has. They cost no width, which is what lets them survive at the size a drawer is really drawn. Each is off at zero, and <b>⇄ runs it the other way round</b> — there is no single right sign for all of them, and one pointing the wrong way is invisible until it sits beside one that is right.</div>
     <div class="field" style="margin-top:10px">
       <label class="rangerow"><span>How far a drawer stands out</span>
         <input type="range" min="0" max="18" step="1" data-lookpx="depth" value="${px('depth',11)}">
-        <b>${px('depth',11)}px</b></label>
-      <div class="mini" style="--k:var(--brass)">The flank, in pixels. Standing in front of a bookcase you see the right-hand side of everything left of you and the left-hand side of everything right of you, so at rest each thing shows the side that faces the middle. Cards and pictures stand under this one too.</div>
+        <b>${px('depth',11)}px</b>${flip('depth')}</label>
+      <div class="mini" style="--k:var(--brass)">The flank, in pixels — the side of the box you can see from where you are standing. Cards and pictures stand under this one too.</div>
       ${cue('arris', 'A chamfered edge', 'Two pixels of eased edge, brightening on the side turning towards you — the first thing in a room to catch light.', 0)}
       ${cue('facelight', 'Light across the face', 'The face itself lighter on the edge turning towards you and falling away on the other — what a spine does, on a flat surface.', 0)}
       ${cue('facesweep', 'A sweep of light', 'One broad band of light travelling across the front. Faint is varnish on wood; bright is glass, which this desk has been through once.', 0)}

@@ -926,6 +926,32 @@ const FACE_CUES = {
   fieldshift: 'The field shifts in its frame'
 };
 const faceCue = k => { const v = S.look && S.look[k]; return Math.max(0, Math.min(100, +v || 0)); };
+/* ---- and which way round each cue runs --------------------------------
+   There is no single right sign for all of them. A flank and a roll-off are
+   opposite by geometry (a box shows a new surface where a cylinder turns one
+   away); a field set back behind its moulding slides against the frame in
+   front of it; a specular follows your eye while a shadow runs from it. Get
+   one wrong and it is invisible until it sits beside one that is right, which
+   is how a board came to have the shading coming from one side and the shadow
+   from the other.
+
+   So the direction is a setting, and the baseline below is only where the
+   toggle starts. `CUE_DIR` is every cue that has a direction worth reversing —
+   the board's own slide is not in it, because `tiltflip` has said the same
+   thing for the board since decision 114 and two switches for one idea is one
+   too many. See decision 119. */
+const CUE_DIR = {
+  depth:      -1,   // the flank, reversed from how it was first written
+  bookdepth:   1,   // a book, which is the one that already looked right
+  facelight:   1,
+  facesweep:   1,
+  arris:       1,
+  recess:      1,
+  knobturn:    1,
+  fieldshift: -1    // the field slides the other way from how it was written
+};
+const cueFlipped = k => !!(S.look && S.look[k + 'flip']);
+const cueSign = k => (CUE_DIR[k] || 1) * (cueFlipped(k) ? -1 : 1);
 const anyFaceCue = ()=> Object.keys(FACE_CUES).some(k => faceCue(k) > 0);
 /* Any one of them is reason enough to write `--px`/`--py` and stamp the class:
    a desk with the drawers flat and the light on their faces still needs to know
@@ -1499,7 +1525,7 @@ export { ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds, K,
   shapeOf, READS, readOf, spreadOf, OPENINGS, openingOf, gathersOf, gatherKind, containers,
   deskIds, deskList, isDesk, deskOf, deskHere,
   placeOf, isHeld, heldObjects, heldCount,
-  TILT_MODES, tiltMode, tiltsDesk, tiltsWindows, tiltClasses, shelfDepth, bookDepth, standsProud, shelfTurn, FACE_CUES, faceCue, anyFaceCue,
+  TILT_MODES, tiltMode, tiltsDesk, tiltsWindows, tiltClasses, shelfDepth, bookDepth, standsProud, shelfTurn, FACE_CUES, faceCue, anyFaceCue, CUE_DIR, cueFlipped, cueSign,
   spanOf, coversDay, lastDay, lateOn, isLate,
   boardLocked,
   PRIOS, prioOf, prioName,
