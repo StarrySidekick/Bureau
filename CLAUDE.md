@@ -66,7 +66,17 @@ choosing which ones mattered is how you miss one.
 `test/scale-probe.mjs` is not a test and nothing gates on it — it pours objects
 onto the sample desk and times a render, the string build inside it, and a full
 save, so "is this getting slow" has an answer rather than an opinion. Run it
-after anything that touches `render()`, `childrenOf()` or the grid maths. The
+after anything that touches `render()`, `childrenOf()` or the grid maths.
+**Quote its counts, not its milliseconds.** The times are the shape of the
+curve and nothing else — DIAGNOSTIC §2 has them moving 30–50% between runs on
+code that did not change. `layouts` and `styles`, off Chrome's own counters
+either side of one render, are things that either happen or do not: **both
+should be 1**, at every size and on both devices, and a render that starts
+doing two layouts is decision 59's regression coming back. `perTile` is how
+many elements one tile is made of, which is the question every spliced layer
+since decision 99 has raised — read it down the same row across versions, never
+along a run, because the objects poured on are 1×1 and a 1×1 is the mark alone.
+`chars` is the built string's own length, which is what `build` is timing. The
 numbers as of v0.61 are in `docs/DIAGNOSTIC.md` §2; the short version is that
 growth is linear, the phone pages and the Mac doesn't, and the most expensive
 thing in a big frame is the save.
