@@ -31,6 +31,17 @@ Decisions 120 and 121.
   render are 1 at every size on both devices, which is the invariant
   `sizeGrid()` was written to hold and had never been measured
 
+**And a second follow-up: When, rebuilt to what Timothy actually wanted.** The
+month stays open and the panel became a **page** to make room for it; two quick
+answers instead of four (this weekend and next week were ranges said as a
+single day); four marks on the month — on, aim for, due by, and the work as a
+grey rule along the run it takes; **difficulty**, a new 1–5 attribute in
+teardrops; ranks drawn as their own mark filled to the rank; duration in five
+presses; the repeat rule moved to where the dates it counts from are; tags in
+the same page; tapping a task opens it; two entries off the long press.
+Decision 123. And **books lie down** when they are wider than they are tall —
+one class over the same markup, decision 124.
+
 **Follow-up the same day: it was implemented and not reachable.** Priority was
 five steps behind two doors of the object editor, and the other three sat under
 the fold of a bubble that leads with a month grid. All four are one panel now,

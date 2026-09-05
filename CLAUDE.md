@@ -521,6 +521,18 @@ It was tacky, and it is gone along with the whole tilt apparatus. Furniture does
 not react to being held. If you want a surface to catch light, give it a reason
 first and read decision 42.
 
+**A book wider than it is tall is lying down.** `lying` in `drawTile()`'s spine
+branch — the same test a cabinet answers from the other side (decision 54):
+which way round it is, never how big. One class over the *same three elements*,
+so every binding transposes for nothing; the block in board.css is a
+transposition of the standing one, and neither of the spine's two laws (a
+multi-stop gradient across a narrow band is a half-round, an ornament is a
+fixed thickness at any size) needed changing. The round back is along the
+**bottom** — that is what looking down at a book on a table shows — the
+lettering takes the drawer front's size rather than the spine's, and the
+roll-off answers the vertical eye (`--f`) with the cylinder's inversion. A 1×n
+can never reach this, so decision 50's fallback is safe. See decision 124.
+
 **A container one cell wide is a spine, whatever face it asked for.** The title
 runs up the tile, the way it does on a book on a shelf — `box.w<=1` is part of
 the spine branch's own condition in `drawTile()`, which is why it sits above the

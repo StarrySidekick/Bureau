@@ -743,6 +743,86 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
      short title on a tall spine sat on the tail rather than in the middle, and
      no amount of `align-items` could reach it. */
   text-align:center}
+/* ============================================================
+   A book lying down — decision 124
+   ============================================================
+   Wider than it is tall, and it is a book laid flat on the desk seen from
+   above rather than one standing on a shelf. The same test a cabinet answers
+   from the other side (decision 54): **which way round it is, not how big.**
+
+   One class and the whole grammar turns ninety degrees. Every rule below is a
+   transposition of the one above it — the gradient runs down instead of
+   across, the head and tail bands become the two ends, the ornaments'
+   thicknesses stay in px and their positions stay in %, and the title lies
+   down. Nothing here is a new idea; a spine's two rules (a multi-stop gradient
+   across a narrow band reads as a half-round, and an ornament is a fixed
+   thickness at any size) hold on either axis, which is the reason this is
+   thirty lines rather than a second face.
+
+   The **round back is along the bottom**, because that is what you see looking
+   down at a book lying on a table: the fore-edge nearest you, the spine's
+   curve at the far side. So the gradient's dark stops are at the top and the
+   highlight sits below centre, which is the standing spine's own profile
+   turned a quarter and not a mirror of it. */
+.drawer.spinetile.lying{
+  background:linear-gradient(180deg,
+    color-mix(in srgb, var(--c) 58%, #000) 0 3%,
+    color-mix(in srgb, var(--c) 78%, #000) 3% 12%,
+    var(--c) 34%,
+    color-mix(in srgb, var(--c) 90%, #fff) 42%,
+    var(--c) 62%,
+    color-mix(in srgb, var(--c) 74%, #000) 88%,
+    color-mix(in srgb, var(--c) 52%, #000) 96% 100%);
+  border-radius:3px 3px 5px 5px;
+  flex-direction:row;padding:0 10px;
+  background-size:100% calc(100% + 2 * var(--spinerun,0px));
+  background-position:0 calc(-1 * var(--spinerun,0px) - var(--ex, var(--px,0)) * var(--sgn-bookdepth,1) * var(--spinerun,0px));
+}
+.drawer.dtile.spinetile.lying.sz-thin,
+.drawer.dtile.spinetile.lying.sz-narrow,
+.drawer.dtile.spinetile.lying.sz-short{padding:0 9px}
+/* the head and tail bands are the two ends now */
+.spinetile.lying .spinetop,.spinetile.lying .spinefoot{width:2px;height:62%}
+.drawer.spinetile.lying.bd-gilt .spinetop,
+.drawer.spinetile.lying.bd-gilt .spinefoot{width:4px;height:62%}
+.spinetile.lying.bn-banded .spinetop,.spinetile.lying.bn-banded .spinefoot{
+  width:0;height:64%;border-top:0;border-bottom:0;
+  border-left:1.5px solid var(--glow);border-right:1.5px solid var(--glow);
+  padding:0 2.5px}
+.spinetile.lying.bn-tooled .spinetop,.spinetile.lying.bn-tooled .spinefoot{
+  width:0;height:70%;border-top:0;border-bottom:0;
+  border-left:1px solid var(--glow);border-right:2px solid var(--glow);padding:0 3px}
+/* the hubs run across a lying book, and the panels are left and right of them */
+.spinetile.lying.bn-ribbed::before{
+  background:
+    var(--hub) 4% 0/9px 100% no-repeat,
+    var(--hub) 13% 0/9px 100% no-repeat,
+    var(--hub) 87% 0/9px 100% no-repeat,
+    var(--hub) 96% 0/9px 100% no-repeat,
+    var(--fillet) calc(4% - 4px) 50%/1px 60% no-repeat,
+    var(--fillet) calc(13% + 4px) 50%/1px 60% no-repeat,
+    var(--fillet) calc(87% - 4px) 50%/1px 60% no-repeat,
+    var(--fillet) calc(96% + 4px) 50%/1px 60% no-repeat;
+}
+.spinetile.lying.bn-ribbed .spinetitle{top:0;bottom:0;left:16%;right:16%}
+.spinetile.lying.bn-tooled::before{left:11%;right:11%;top:14%;bottom:14%}
+.spinetile.lying.bn-tooled .spinetitle{top:0;bottom:0;left:15%;right:15%}
+/* a label pasted on a lying book sits towards the head end, not the middle */
+.spinetile.lying.bn-label::before{left:10%;right:20%;top:11%;bottom:11%}
+.spinetile.lying.bn-label .spinetitle{top:0;bottom:0;left:10%;right:20%}
+/* and the title simply lies down: no writing-mode, no rotation, and the
+   ellipsis measures along the width the way it does everywhere else */
+.spinetile.lying .spinetitle b{
+  writing-mode:horizontal-tb;transform:none;height:auto;width:100%}
+/* The roll-off is a cylinder along the other axis too — the two soft shades
+   half the book *deep* rather than half of it wide, top and bottom. */
+.drawer.spinetile.lying > .dside::before,
+.drawer.spinetile.lying > .dside::after{width:100%;height:50%}
+.drawer.spinetile.lying > .dside::before{top:0;bottom:auto;
+  background:linear-gradient(180deg, rgba(0,0,0,var(--bkshade,.16)), transparent 78%)}
+.drawer.spinetile.lying > .dside::after{bottom:0;top:auto;
+  background:linear-gradient(0deg, rgba(0,0,0,var(--bkshade,.16)), transparent 78%)}
+
 /* A pasted label is cream paper whatever the cover under it is, so its
    lettering is the page's own ink on every ground — two classes deep so the
    pale-cover rule below cannot reach it. */

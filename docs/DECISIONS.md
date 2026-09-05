@@ -5438,3 +5438,58 @@ The object editor is untouched and is not a duplicate: it answers *what this
 object is* — its look, its structure, its traits. This page answers *what this
 one is worth and when*. Two panels asking two questions is decision 66 working;
 it is two panels asking the same one that would have been the mistake.
+
+## 124. A book wider than it is tall is lying down
+
+*2026-09-05*
+
+Timothy: *"I want to be able to have horizontal books, because they look cool.
+This can just be part of the book spine face, just for sizes that are longer
+than they are tall, like a 4×1 or 3×1 book."*
+
+The test is the one a cabinet already answers from the other side. Decision 54
+settled that a container **taller than it is wide** swings open like a cabinet
+and anything else is a drawer — *which way round it is, never how big* — and
+this is that same sentence pointed at a book. Wider than tall and it is lying
+flat on the desk, seen from above; anything else is on a shelf.
+
+It is **one class over the same markup**, and that is the whole design. A spine
+renders three elements — a head band, a title, a tail band — and every binding
+is CSS reading off `bn-*` (decision 87). Adding `lying` transposes the grammar
+and leaves the markup alone, so a binding invented tomorrow lies down for
+nothing. A second face would have been two places to keep in step, and it would
+have made "horizontal book" a different kind of thing rather than the same book
+put down.
+
+Every rule in the block is a transposition of the one above it, and neither of
+the spine's two laws needed changing: **a multi-stop gradient across a narrow
+band reads as a half-round**, and **an ornament is a fixed thickness at any
+size** — px thicknesses, % positions — hold on either axis. That is why this is
+thirty lines of CSS.
+
+Three things had to be decided rather than transposed.
+
+**The round back is along the bottom.** Looking down at a book lying on a
+table you see the fore-edge nearest you and the spine's curve at the far side,
+so the gradient's dark stops go to the top and the highlight sits below centre.
+That is the standing spine's profile turned a quarter, not mirrored — turning
+it the other way makes a book you are somehow reading from underneath.
+
+**The lettering takes the drawer front's size, not the spine's.** A lying book
+is nearly always one cell tall and is read at a glance across the desk rather
+than squinted at on a shelf; 17.5px in a 40px band is a title with no room
+above or below it.
+
+**The roll-off answers the vertical eye.** A book's two upright layers are not
+flanks, they are the shade a round back falls into as it turns away (decision
+117b) — and a cylinder whose axis has turned a quarter rolls off top and
+bottom, reading `--f` instead of `--e`, with the same inversion for the same
+reason: your eye moving down turns the near edge towards you and the far one
+away. The gradients are transposed in board.css beside the rest of the lying
+grammar; only the `scale` is restated in chrome.css, next to the flat faces'
+own transforms, because two files writing one transform is how they come to
+disagree.
+
+The one-cell-wide fallback — a container that thin is a spine whatever face it
+asked for (decision 50) — cannot collide with this: a 1×n is never wider than
+it is tall. Guarded as `lyingBooks`, including that.

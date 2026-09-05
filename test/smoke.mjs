@@ -4229,6 +4229,48 @@ const CHROME = process.env.BUREAU_CHROME;
     return out;
   });
 
+  /* --- a book wider than it is tall is lying down ------------------------
+     The same test a cabinet answers from the other side (decision 54): which
+     way round it is, never how big. The claim worth guarding is that it is one
+     class over the same markup, so a binding added tomorrow lies down for
+     nothing — and that the one-cell fallback cannot reach it. */
+  const lyingBooks = await page.evaluate(async () => {
+    const nap = ms => new Promise(r => setTimeout(r, ms));
+    const S = BUREAU.state, out = {};
+    const mk = (title, box, bn) => { const d = BUREAU.create('drawer', {parent:'root', title});
+      d.face='spine'; d.binding=bn||'banded'; d.desk=box; return d; };
+    const flat = mk('Lying down', {x:1,y:4,w:5,h:1});
+    const tall = mk('Standing up', {x:8,y:4,w:1,h:5});
+    const big  = mk('Also standing', {x:12,y:4,w:3,h:5});
+    BUREAU.render(); await nap(200);
+    const el = id => document.querySelector(`.grid .drawer[data-drawer="${id}"]`);
+    out.widerThanTallLiesDown = el(flat.id).classList.contains('lying');
+    out.tallerThanWideStandsUp = !el(tall.id).classList.contains('lying');
+    out.andSoDoesAWideTallOne = !el(big.id).classList.contains('lying');
+    // one cell wide is a spine by the old fallback, and can never be lying
+    const thin = BUREAU.create('drawer', {parent:'root', title:'Thin'});
+    thin.desk = {x:16,y:4,w:1,h:4};
+    BUREAU.render(); await nap(200);
+    out.aThinDrawerIsStillASpine = el(thin.id).classList.contains('spinetile')
+      && !el(thin.id).classList.contains('lying');
+    /* Same three elements, so a binding gets this for nothing — the whole
+       reason it is a class and not a second face. */
+    out.sameMarkupBothWays = ['spinetop','spinetitle','spinefoot'].every(c =>
+      !!el(flat.id).querySelector('.'+c) && !!el(tall.id).querySelector('.'+c));
+    // the title lies down with it, rather than being set on its side
+    const wm = n => getComputedStyle(el(n).querySelector('.spinetitle b')).writingMode;
+    out.theTitleLiesDownToo = wm(flat.id).startsWith('horizontal')
+      && wm(tall.id).startsWith('vertical');
+    // …and every binding transposes, because they all read off the one class
+    out.everyBindingLiesDown = ['plain','banded','ribbed','tooled','label'].every(bn => {
+      flat.binding = bn; BUREAU.render();
+      return el(flat.id).classList.contains('lying') && el(flat.id).classList.contains('bn-'+bn);
+    });
+    [flat, tall, big, thin].forEach(o => BUREAU.del(o.id));
+    S.undo=[]; S.redo=[]; BUREAU.render();
+    return out;
+  });
+
   /* --- a plan is a board you can put down again -------------------------
      Everything here is about a copy being a copy: fresh ids, the doing left
      behind, the arrangement kept. A plan that quietly shared ids with the
@@ -5671,7 +5713,7 @@ const CHROME = process.env.BUREAU_CHROME;
     settingsHasDoors, settingsBack,
     wordsNotSource, deadlines, twoClauses, undoEverything, savesOnlyChanges,
     paletteKeys, editorKeys, pickerLeads, rollupsEverywhere, soundAndVision, keyboardBoard,
-    ranking, urgency, reachable, plansWork, repeating, oneLock, scheduling, ownColour, addBox, calFaces,
+    ranking, urgency, reachable, lyingBooks, plansWork, repeating, oneLock, scheduling, ownColour, addBox, calFaces,
     lockedBoard, freeTraits, pageWrites, tickBoxes, readerFits,
     dropsIn, keyframesRegistered, aesthetics, slotScoping, objectsDressed, grainSlots, tagged, drawnAesthetic, deeper, lookStage, statusBar, bindings, panelling, theSpray, tappingIsQuiet, decorations, pinboard
   }, null, 2));

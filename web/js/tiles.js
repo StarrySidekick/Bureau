@@ -617,12 +617,22 @@ function drawTileFace(o, arr, box, persp){
      run out of room. One cell square is still the mark and nothing else, above:
      at 40px a spine has no length to set a name along either. */
   if(cont && (faceOf(o)==='spine' || box.w<=1)){
+    /* **A book wider than it is tall is lying down**, and that is the same test
+       a cabinet answers from the other side (decision 54): which way round it
+       is, never how big. A 4×1 or a 3×1 asked to be a spine is a book laid
+       flat on the desk seen from above — the round back along the bottom, the
+       bands across the ends, the title running left to right. One class, and
+       the whole grammar turns ninety degrees in CSS; the markup is the same
+       three elements, because a lying book is not a different thing. The
+       one-cell-wide fallback above cannot reach this: a 1×n is never wider
+       than it is tall. See decision 124. */
+    const lying = box.w > box.h;
     /* How it is bound is a property, the way a border or a knob is — five
        answers, all of them CSS off one class. The three elements below are
        what every binding has to work with: a head band, the title, and a tail
        band; a binding that doesn't want a band hides it rather than the tile
        rendering something different. See decision 87. */
-    return `<button class="drawer dtile spinetile ${dress(o,'bn')} ${
+    return `<button class="drawer dtile spinetile${lying?' lying':''} ${dress(o,'bn')} ${
         borderOf(o)==='gilt' ? dress(o,'bd') : 'bd-none'}${sel}" data-drawer="${o.id}"
       style="--c:${colour};${place}">
       <span class="spinetop"></span>

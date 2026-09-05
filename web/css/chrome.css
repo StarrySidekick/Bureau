@@ -204,6 +204,16 @@
    sides at once and reads as a pipe. */
 .is-phone.shelf-deep .grid > .drawer.spinetile > .dside::before{transform:scaleX(max(0, -1 * var(--e)))}
 .is-phone.shelf-deep .grid > .drawer.spinetile > .dside::after{transform:scaleX(max(0, var(--e)))}
+/* A book **lying down** is the same cylinder with its axis turned a quarter,
+   so its roll-off is top and bottom and it answers the *vertical* eye. Same
+   inversion for the same reason: your eye moving down turns the near edge of a
+   cylinder towards you and the far one away. The gradients themselves are
+   transposed in board.css, next to the rest of the lying grammar; only the
+   scale has to be restated here, because this is where the flat faces' own
+   transforms are and two places writing one transform is how they come to
+   disagree. See decision 124. */
+.is-phone.shelf-deep .grid > .drawer.spinetile.lying > .dside::before{transform:scaleY(max(0, -1 * var(--f)))}
+.is-phone.shelf-deep .grid > .drawer.spinetile.lying > .dside::after{transform:scaleY(max(0, var(--f)))}
 .is-phone.shelf-deep .grid > .drawer > .dside > .dtop{transform:scaleY(max(0, var(--f)))}
 .is-phone.shelf-deep .grid > .drawer > .dside > .dbot{transform:scaleY(max(0, -1 * var(--f)))}
 
@@ -3826,6 +3836,11 @@ input,textarea,select,[contenteditable],
    nothing to share it with. The three panelled bindings shorten that run to
    the space between their ornaments, so their lettering is a step down. */
 .spinetitle b{font-size:calc(17.5px * var(--tscale,1))}
+/* A lying book is read at a glance across the desk rather than squinted at on
+   a shelf, and it is nearly always one cell tall — so its lettering takes the
+   drawer front's size rather than the standing spine's. */
+.spinetile.lying .spinetitle b{font-size:calc(15px * var(--tscale,1))}
+.spinetile.lying.sz-short .spinetitle b{font-size:calc(13.5px * var(--tscale,1))}
 .bn-ribbed .spinetitle b,.bn-tooled .spinetitle b,
 .bn-label .spinetitle b{font-size:calc(15.5px * var(--tscale,1))}
 
