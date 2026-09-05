@@ -18,7 +18,7 @@ import { openPanel, closePanel, refreshPanel, panelKey, panelBack, draft, openMe
   modalNewObject, modalNewKind, modalMove, renderPreview, holdPanel,
   drawerPanel, objectPanel,
   drawerFromSelection, openCtx, closeCtx, openCmd, closeCmd, cmdList, cmdMove, cmdAt, runCmd,
-  schedulePanel, quickISO, SCHED, plansPanel } from './panels.js';
+  schedulePanel, quickISO, SCHED, SCHED_PENS, plansPanel } from './panels.js';
 import { onDown, onMove, onUp, onCancel, onTouchStart, onTouchMove, onTouchEnd,
   gestureFlags, dragArmed } from './gestures.js';
 import { enter, leaveTile, pagerOn, applyTilt, askTilt } from './motion.js';
@@ -821,13 +821,34 @@ function wire(){
     /* The little calendar. A day sets the day it sits on; a quick pill is the
        same write with the arithmetic done for you; the arrows walk the month
        without touching anything. See decision 78. */
+    /* Picking up one of the three pens. A trait the object hasn't got is picked
+       up with it, so "give it a soft deadline and put it on the 12th" is two
+       presses on the same grid rather than a chip in one place and a field in
+       another. See decision 125. */
+    const sp=t.closest('[data-schedpen]');
+    if(sp){ const [oid,k]=sp.dataset.schedpen.split(':');
+      const o=byId(oid), pen=SCHED_PENS.find(x=>x[0]===k);
+      if(o && pen){
+        const a=attrsOf(o);
+        if(!a.includes(pen[1])){ pushSet(ATTRS[pen[1]]?ATTRS[pen[1]].nm:pen[1], oid, 'attrs', o.attrs);
+          o.attrs=a.concat(pen[1]); save(); }
+        SCHED.mode = k;
+        render(); refreshPanel();
+      }
+      return; }
+    /* A day on the month writes whichever of the three the pen is on. It was
+       always `due`, which is why the other two had to be typed into a field —
+       and a date field is the one control in this panel that says nothing
+       about where the day sits relative to the others. */
     const sd=t.closest('[data-schedday]');
     if(sd){ const [oid,iso]=sd.dataset.schedday.split(':');
       const o=byId(oid); if(o){
-        pushSet('Scheduled', oid, 'due', o.due);
-        o.due = o.due===iso ? null : iso;
+        const k = SCHED.mode || 'due';
+        const pen = SCHED_PENS.find(x=>x[0]===k) || SCHED_PENS[0];
+        pushSet(pen[2], oid, k, o[k]);
+        o[k] = o[k]===iso ? null : iso;      // pressing the same day again clears it
         save(); render(); refreshPanel();
-        toast(o.due?`On ${D.human(o.due).toLowerCase()}`:'No date');
+        toast(o[k] ? `${pen[2]} ${D.human(o[k]).toLowerCase()}` : `No ${pen[2].toLowerCase()} date`);
       }
       return; }
     const sm=t.closest('[data-schedmon]');

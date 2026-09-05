@@ -920,6 +920,29 @@ skips the trait test and reads `get()`) while the rollup picker refuses it.
 deadline chip as **the line thickening as the slack runs out** — never as a left
 stripe, which is what priority means. See decision 120.
 
+**A corner is round or square, and nothing in between.** Four tokens in
+board.css — `--radius` 4px (a control, a chip, a field), `--radius-lg` 6px (a
+panel, a menu, a card), `--radius-d` 2px (drawers), `--pill` 999px (round ends,
+all the way). A **squircle** is the shape of software and the one thing on this
+desk that could not be a made object: a knob is turned and is a circle, a front
+is sawn and is a rectangle. Don't write a raw `border-radius` in the 6–12px
+band in the chrome. An **aesthetic** may still say otherwise for its own tiles
+— Aeros is glossy and round and that is its argument — which is the line
+between the twelve declarations that stayed and the forty-six that went. The
+sharp end keeps a hair of radius on purpose: dead square reads as a rendering
+fault rather than a made edge. Guarded off the *computed* style, because a
+token nobody applied is a rule nobody follows. See decision 125.
+
+**The month holds one of three pens.** `SCHED.mode` + `SCHED_PENS` in
+panels.js — a press on a day writes the day it sits on, the day you aim for or
+the day it is owed, whichever pen is up. Each pen carries the colour it puts
+down on its own left edge and the date it is already holding, so it is the
+legend as well as the control and there is no colour key to read. A pen for a
+trait the object hasn't got is an outline and **picks up the trait with it**.
+UI state, never stored; it resets to `due` every time the page opens. The one
+mark that cannot be a pen is the grey work rule, because it is a span rather
+than a day. See decision 125.
+
 **Everything a task is weighed by is one page, called `When`.**
 `schedulePanel(id)` — the name, the day it sits on, both deadlines, the
 duration, the difficulty, the priority, the urgency they produce, the repeat

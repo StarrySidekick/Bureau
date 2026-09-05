@@ -5493,3 +5493,88 @@ disagree.
 The one-cell-wide fallback — a container that thin is a spine whatever face it
 asked for (decision 50) — cannot collide with this: a 1×n is never wider than
 it is tall. Guarded as `lyingBooks`, including that.
+
+## 125. Round, or square, and three pens for one calendar
+
+*2026-09-05*
+
+Two of Timothy's three asks; the third — Victoria's own overhaul — needs a
+question answered first and is at the foot of this entry.
+
+### A squircle is the shape of software
+
+*"I want to stay away from the squircle buttons — either they are completely
+perfectly round or square. Borders in general should be fairly sharp, maybe not
+like no rounding at all."*
+
+He is right and the reason is the app's own argument. Bureau is furniture, and
+**nothing in a workshop has a squircle**. A knob is turned on a lathe and is a
+circle. A drawer front is sawn and is a rectangle with the arris taken off. A
+label is cut against a rule. The seven-to-twelve pixels that every interface
+puts on a 28px button is the one shape on this desk that could not be a made
+object — it is a rounded rectangle that has been apologised for.
+
+So there are exactly two legal answers in the chrome: **a stadium or a circle
+for anything round, and a sharp square for everything else.** The sharp end
+keeps a hair of radius — 4px on a control, 6px on a thing with things in it,
+2px on a drawer — because a corner cut dead square reads as a rendering
+artefact rather than as a made edge, which is his "maybe not like no rounding
+at all".
+
+Forty-six declarations sat in the six-to-twelve band and every one of them has
+gone to a token. Twelve stayed, and the line between them is the rule worth
+keeping: **an aesthetic may still say otherwise for its own tiles.** Aeros is
+glossy and round and that is its entire argument; Stelaine's ogee and Girando's
+cartouche are mouldings, not buttons. This governs the chrome — the panels,
+the fields, the menus, the day cells, the ranks — which is the part that
+belongs to the app rather than to a style.
+
+The pills went the other way, to a true stadium. They were at 20px on a 24px
+chip, which is *nearly* a stadium, and nearly is the shape being got rid of.
+
+Guarded off the **computed** style rather than read out of the source, because a
+token nobody applied is a rule nobody follows.
+
+### Three pens for one calendar
+
+*"Picking soft and hard deadlines should still be in context of the on-screen
+calendar. There should be a button for it, and when pressed, then wherever you
+press on the calendar sets that respective thing."*
+
+Decision 123 put all three dates on one month and then let you set only one of
+them there: a press always wrote `due`, so the other two had to be typed into a
+date field — the one control on that page that says nothing about where a day
+sits relative to the others. Drawing three marks on a grid and then making two
+of them unreachable *from* that grid is the same failure as 122, one layer in.
+
+So the month holds one of **three pens**, and a press puts down whichever it is
+holding. The two alternatives were both worse: three separate month grids is
+three times the panel, and long-press-for-deadline is a gesture nobody would
+find. A mode is honest here for the same reason it is honest at a desk — you
+pick up the red pen, and then you point at a day.
+
+The pens are the **legend as well as the control**: each carries the colour it
+puts down on its own left edge, like a nib, and the date it is already holding.
+That let the old colour key go — a key underneath a grid is a thing you read
+once and then have to remember, and a control that shows its own answer is one
+you never have to. What is left of the key is the grey rule, which is the one
+mark that cannot be a pen because it is a *span* rather than a day.
+
+A pen for a trait the object hasn't got is drawn as an outline and **picks up
+the trait with it**. So "give it a soft deadline and put it on the 12th" is two
+presses on one grid, where before it was a chip in one place and then a field
+in another. Pressing the same day twice clears it, the way every other toggle
+here behaves; and the pen survives the redraw, because you are still holding it.
+
+The mode is UI state and is never stored. It resets to the day it sits on every
+time the page opens, because that is what you are usually setting.
+
+### Still open: Victoria
+
+Timothy asked to bring Victoria to parity with *"the Alyssian Picnic and
+Twilight ones that we renamed"*. Neither name exists in this repository — not
+in `look.js`, not in `docs/STYLES.md`, not anywhere in the working tree or the
+visible history. The seven are Victoria, Carca, Stelaine, Girando, Golf 97,
+Starful Gothic and Aeros. Rather than guess which two he means and rebuild the
+default aesthetic against the wrong reference, that half is asked before it is
+built.

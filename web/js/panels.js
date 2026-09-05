@@ -1383,7 +1383,24 @@ function schedMonth(o, anchorISO){
       ${cells.join('')}
     </div></div>`;
 }
-const SCHED = {month:null};
+/* Which of the three dates a press on the month writes. All three are placed
+   on the same grid, so the question "which one am I putting down" has to be
+   asked somewhere, and a mode is the honest place: you pick up the red pen,
+   then you point at a day. The alternative — three separate month grids, or a
+   long-press-for-deadline — is either three times the panel or a gesture
+   nobody would find. UI state, never stored: it resets to the day it sits on
+   every time the page opens, because that is what you are usually setting.
+   See decision 125. */
+const SCHED = {month:null, mode:'due'};
+/* The three, in the order they are read and in the colours the month draws
+   them: the day it sits on, the day you aim for, the day it is owed. The
+   attribute each one needs is named here too, so pressing the pen for a trait
+   the object hasn't got can pick it up on the way. */
+const SCHED_PENS = [
+  ['due',  'date',         'On',     'calendar'],
+  ['soft', 'softdeadline', 'Aim for','target'],
+  ['dead', 'deadline',     'Due by', 'flag']
+];
 /* ---- When: everything a task is weighed by, on one page ----------------
    The day it sits on, both deadlines, how long the work is, how hard it is,
    how much it matters, how it comes round, and what it is tagged with. One
@@ -1404,6 +1421,7 @@ const SCHED = {month:null};
 function schedulePanel(id){
   const o=byId(id); if(!o || isContainer(o)) return;
   SCHED.month = null;
+  SCHED.mode = 'due';
   S.openId = id;
   openPanel({key:'schedule:'+id, tall:true, title:'When', sub:esc(o.title||'Untitled'),
     body:()=>{
@@ -1441,10 +1459,19 @@ function schedulePanel(id){
           return `<button class="pill${(k==='clear'?!ob.due:ob.due===iso)?' solid':''}"
             data-schedset="${id}:${k}">${mk?ic(mk,12):''}${nm}${iso?`<u>${esc(D.short(iso))}</u>`:''}</button>`;
         }).join('')}</div>
+        ${/* Which pen the month is holding. A trait it hasn't got is drawn as an
+             outline and picks itself up when pressed — one tap to have a soft
+             deadline and be placing it, rather than a chip somewhere else and
+             then a field. */''}
+        <div class="schedpens">${SCHED_PENS.map(([k,attr,nm,mk])=>{
+          const got = has(ob, attr), on = SCHED.mode===k;
+          return `<button class="schedpen p-${k}${on?' on':''}${got?'':' un'}"
+            data-schedpen="${id}:${k}">${ic(mk,11)}${nm}${
+            got && ob[k] ? `<u>${esc(D.short(ob[k]))}</u>` : ''}</button>`;
+        }).join('')}</div>
         ${schedMonth(ob, SCHED.month)}
         <div class="schedkey">
-          <i class="k on"></i>on <i class="k soft"></i>aim for
-          <i class="k dead"></i>due by <i class="k work"></i>the work
+          <i class="k work"></i>the days the work takes
         </div>
         ${trow('On', pfield(id,'due', ob.due, 'date'), 'the day it sits on')}` : ''}
 
@@ -1649,4 +1676,4 @@ export { plansPanel, planCard,
   openMenu, modalNewObject, holdPanel, objectPanel, drawerPanel, modalNewKind,
   renderPreview, modalMove, sampleObject, sampleTile, kindSample,
   openCmd, closeCmd, cmdList, cmdMove, cmdAt, runCmd, drawerFromSelection, openCtx, closeCtx,
-  schedulePanel, quickISO, SCHED };
+  schedulePanel, quickISO, SCHED, SCHED_PENS };

@@ -863,7 +863,7 @@ html .drawer.dtile.cltile{background-image:none}
 .cline:hover{background:color-mix(in srgb, var(--ink) 5%, transparent)}
 .cline.done{color:var(--dink-3);text-decoration:line-through}
 /* the task tile's own box — 38px, capped only when a row is shorter than it */
-.clbox{height:min(38px,82%);aspect-ratio:1;width:auto;flex:0 0 auto;border-radius:8px;
+.clbox{height:min(38px,82%);aspect-ratio:1;width:auto;flex:0 0 auto;border-radius:var(--radius);
   border:2.4px solid var(--dink-3);display:grid;place-items:center;color:var(--dink)}
 .cline:hover .clbox{border-color:var(--ink-2)}
 .cline.done .clbox{background:var(--rule);border-color:transparent}
@@ -885,7 +885,7 @@ html .drawer.dtile.cltile{background-image:none}
 .drawer[role="button"]{cursor:pointer}
 .drawer[role="button"]:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
 .cladd{display:flex;align-items:center;gap:6px;flex:0 0 auto;margin:1px 0 5px;padding:3px 7px;
-  border-radius:7px;border:1px dashed var(--dink-3);color:var(--dink-3);cursor:text;transition:.14s}
+  border-radius:var(--radius);border:1px dashed var(--dink-3);color:var(--dink-3);cursor:text;transition:.14s}
 .cladd:focus-within{border-style:solid;border-color:var(--dink);color:var(--dink)}
 /* on a checklist face the box is a row of the stack — one task-sized line,
    a dashed rule underneath instead of a pill of its own */
@@ -909,7 +909,7 @@ html .drawer.dtile.cltile{background-image:none}
 .projtile > *{position:relative;z-index:1}
 .projtile .dtop{align-items:flex-start;justify-content:space-between;gap:6px}
 .projdue{flex:0 0 auto;font-size:10px;letter-spacing:.03em;text-transform:uppercase;
-  color:var(--dink-2);border:1px solid var(--dink-3);border-radius:20px;padding:1px 7px;white-space:nowrap}
+  color:var(--dink-2);border:1px solid var(--dink-3);border-radius:var(--pill);padding:1px 7px;white-space:nowrap}
 .projdue.late{color:var(--dink);border-color:var(--dink);background:rgba(0,0,0,.22)}
 .projbar{display:flex;align-items:center;gap:7px;margin-top:7px;flex:0 0 auto}
 .projbar i{flex:1;height:5px;border-radius:3px;background:rgba(0,0,0,.26);overflow:hidden;position:relative}
@@ -919,7 +919,7 @@ html .drawer.dtile.cltile{background-image:none}
 .projline{display:flex;gap:9px;margin-top:5px;font-size:11px;color:var(--dink-2);flex:0 0 auto}
 .projnext{margin-left:auto;white-space:nowrap}
 .projkinds{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;align-content:flex-start;flex:0 0 auto}
-.projkind{display:inline-flex;align-items:center;gap:3px;padding:1px 6px 1px 4px;border-radius:20px;
+.projkind{display:inline-flex;align-items:center;gap:3px;padding:1px 6px 1px 4px;border-radius:var(--pill);
   background:rgba(0,0,0,.20);color:var(--dink-2);font-size:10.5px;
   box-shadow:inset 2px 0 0 var(--k)}
 .projkind u{text-decoration:none;font-variant-numeric:tabular-nums}
@@ -1332,7 +1332,7 @@ html .drawer.dtile.cltile{background-image:none}
    38px + 5px top and bottom is a phone cell almost exactly. */
 /* .check further down this file sets 19px on the same one class, and later
    wins — so the tile's box has to say both names to beat it. */
-.check.tilecheck{width:38px;height:38px;border-radius:8px;border-width:2.4px;flex:0 0 auto;margin-top:0}
+.check.tilecheck{width:38px;height:38px;border-radius:var(--radius);border-width:2.4px;flex:0 0 auto;margin-top:0}
 .check.tilecheck svg{width:21px;height:21px}
 .drawer.sz-short{padding:5px 10px}
 .sz-mini .tilecheck{display:none}
@@ -1389,7 +1389,7 @@ html .drawer.dtile.cltile{background-image:none}
 /* the six buttons in the editor: the scale, visible */
 .priorow{display:flex;gap:4px;align-items:center}
 .priobtn{
-  width:30px;height:30px;border-radius:8px;border:1px solid var(--rule);
+  width:30px;height:30px;border-radius:var(--radius);border:1px solid var(--rule);
   background:var(--paper-2);color:var(--ink-2);font-size:12.5px;font-weight:600;
   display:grid;place-items:center;transition:.14s;
 }
@@ -1407,7 +1407,7 @@ html .drawer.dtile.cltile{background-image:none}
    by the ground filling in, so a desk with no reds on it still shows it. */
 .urgerow{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
 .urgebtn{
-  padding:5px 8px;border-radius:8px;border:1px solid var(--rule);
+  padding:5px 8px;border-radius:var(--radius);border:1px solid var(--rule);
   background:var(--paper-2);color:var(--ink-3);font-size:11px;letter-spacing:.02em;
 }
 .urgebtn.on{border-color:var(--ink);color:var(--paper);background:var(--ink);font-weight:600}
@@ -1428,14 +1428,14 @@ html .drawer.dtile.cltile{background-image:none}
 .schedquick{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
 .schedquick .pill u{text-decoration:none;color:var(--ink-3);margin-left:6px;font-size:11px}
 .schedquick .pill.solid u{color:rgba(255,255,255,.72)}
-.schedmonth{border:1px solid var(--rule);border-radius:11px;padding:8px;background:var(--paper-2)}
+.schedmonth{border:1px solid var(--rule);border-radius:var(--radius-lg);padding:8px;background:var(--paper-2)}
 .schedhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
 .schedhead b{font-family:var(--serif);font-size:14px}
 .schedgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
 .schedgrid .dow{font-size:9.5px;color:var(--ink-3);text-align:center;font-style:normal;
   letter-spacing:.08em;padding-bottom:2px}
 .sday{
-  aspect-ratio:1;border-radius:7px;border:1px solid transparent;background:transparent;
+  aspect-ratio:1;border-radius:var(--radius);border:1px solid transparent;background:transparent;
   font-size:12px;color:var(--ink-2);display:grid;place-items:center;transition:.12s;
 }
 .sday:hover{border-color:var(--brass)}
@@ -1467,7 +1467,7 @@ html .drawer.dtile.cltile{background-image:none}
   content:"";position:absolute;top:0;left:-1px;right:-1px;height:3px;
   background:color-mix(in srgb,var(--ink) 34%,transparent)}
 .sday.work.out::before{opacity:.5}
-.sday.on,.sday.soft,.sday.dead{border-radius:7px;font-weight:600}
+.sday.on,.sday.soft,.sday.dead{border-radius:var(--radius);font-weight:600}
 .sday.on{background:#E3B23C;color:#2A241C;border-color:#E3B23C}
 .sday.soft{background:#E08A3C;color:#221B14;border-color:#E08A3C}
 .sday.dead{background:#C0563F;color:#FFF3EC;border-color:#C0563F}
@@ -1476,14 +1476,36 @@ html .drawer.dtile.cltile{background-image:none}
 .sday.soft.dead{box-shadow:inset 0 -3px 0 #E08A3C}
 .sday.out.on,.sday.out.soft,.sday.out.dead{opacity:.6}
 
-/* the legend, so the four marks say what they are without being pressed */
+/* ---- the three pens — decision 125 ------------------------------------
+   Which of the three dates a press on the month writes. They are the legend
+   as well as the control: each carries the colour it puts down and the date it
+   is already holding, so "which of these is the hard one" is answered by the
+   thing you press rather than by a key underneath. One that the object hasn't
+   got yet is an outline, and picking it up picks up the trait with it. */
+.schedpens{display:flex;flex-wrap:wrap;gap:5px;margin:0 1px 8px}
+.schedpen{
+  display:inline-flex;align-items:center;gap:5px;padding:5px 9px;
+  border-radius:var(--radius);border:1px solid var(--rule);background:var(--paper-2);
+  font-size:11.5px;color:var(--ink-2);transition:.12s;
+  /* the colour it puts down, carried on its own left edge like a nib */
+  border-left:3px solid var(--pen,var(--rule));
+}
+.schedpen u{text-decoration:none;color:var(--ink-3);font-size:10.5px}
+.schedpen.p-due{--pen:#E3B23C}
+.schedpen.p-soft{--pen:#E08A3C}
+.schedpen.p-dead{--pen:#C0563F}
+.schedpen.un{border-style:dashed;border-left-style:solid;color:var(--ink-3);background:transparent}
+.schedpen:hover{border-color:var(--brass);border-left-color:var(--pen)}
+.schedpen.on{background:var(--pen);border-color:var(--pen);color:#221B14;font-weight:600}
+.schedpen.on u{color:rgba(34,27,20,.62)}
+.schedpen.p-dead.on{color:#FFF3EC}
+.schedpen.p-dead.on u{color:rgba(255,243,236,.7)}
+
+/* the one mark the pens cannot carry, because it is a span rather than a day */
 .schedkey{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;
   margin:7px 1px 12px;font-size:10.5px;color:var(--ink-3)}
-.schedkey .k{width:9px;height:9px;border-radius:2.5px;display:inline-block;margin-right:2px}
-.schedkey .k.on{background:#E3B23C}
-.schedkey .k.soft{background:#E08A3C}
-.schedkey .k.dead{background:#C0563F}
-.schedkey .k.work{background:color-mix(in srgb,var(--ink) 34%,transparent);height:3px;border-radius:1px}
+.schedkey .k{width:9px;height:9px;border-radius:2px;display:inline-block;margin-right:2px}
+.schedkey .k.work{background:color-mix(in srgb,var(--ink) 34%,transparent);height:3px;border-radius:1px;width:14px}
 
 /* ---- a rank drawn as its own mark — decision 123 -----------------------
    Priority is stars and difficulty is teardrops, filled up to the rank, so the
@@ -1496,7 +1518,7 @@ html .drawer.dtile.cltile{background-image:none}
    things are lit. */
 .ratrow{display:flex;gap:3px;align-items:center;flex-wrap:wrap}
 .ratbtn{
-  width:28px;height:28px;border-radius:7px;border:1px solid transparent;
+  width:28px;height:28px;border-radius:var(--radius);border:1px solid transparent;
   background:transparent;color:var(--ink-3);font-size:12px;
   display:grid;place-items:center;transition:.12s;
 }
@@ -1597,7 +1619,7 @@ html .drawer.dtile.cltile{background-image:none}
    "is there anything in the box" and the box is on the front. A tick would say
    "dealt with"; the point of keeping a question is the thing you worked out. */
 .ansbox{display:flex;align-items:center;gap:7px;margin-top:auto;flex:0 0 auto;
-  padding:5px 9px;border-radius:9px;border:1.5px dashed var(--rule);
+  padding:5px 9px;border-radius:var(--radius);border:1.5px dashed var(--rule);
   background:color-mix(in srgb,var(--paper) 55%,transparent);cursor:text;transition:.15s}
 .ansbox i{flex:0 0 auto;display:inline-flex;color:var(--ink-3)}
 .ansbox input{flex:1;min-width:0;border:0;background:none;outline:none;font:inherit;
@@ -1625,7 +1647,7 @@ html .drawer.dtile.cltile{background-image:none}
 /* A counter is a number with a caption */
 .drawer.cnttile{
   background:var(--c);align-items:center;justify-content:center;gap:4px;text-align:center;padding:8px;
-  border-radius:10px;border-color:transparent;
+  border-radius:var(--radius-d);border-color:transparent;
 }
 .cntnum{font-family:var(--serif);font-size:clamp(30px,52cqw,180px);line-height:1;font-weight:600;
   color:#F8F3E6;font-variant-numeric:tabular-nums;cursor:pointer}
@@ -2528,7 +2550,7 @@ html[data-style="golf97"] .check,html[data-style="golf97"] .clbox{border-radius:
 
 .rows{display:flex;flex-direction:column;gap:5px}
 .row{
-  position:relative;display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:11px;
+  position:relative;display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:var(--radius-lg);
   background:var(--paper-2);border:1px solid var(--rule);cursor:pointer;z-index:1;
   transition:border-color .15s,background .15s,transform .06s;
   touch-action:pan-y;
@@ -2622,7 +2644,7 @@ html[data-style="golf97"] .check,html[data-style="golf97"] .clbox{border-radius:
 .decopt u{text-decoration:none;font-size:10.5px;color:var(--ink-3);text-align:center}
 .decopt.on u{color:var(--ink)}
 .kindmark{
-  width:22px;height:22px;flex:0 0 auto;border-radius:7px;display:grid;place-items:center;margin-top:0px;
+  width:22px;height:22px;flex:0 0 auto;border-radius:var(--radius);display:grid;place-items:center;margin-top:0px;
   background:color-mix(in srgb,var(--k) 17%, transparent);color:var(--k);
 }
 .row .body{flex:1;min-width:0}
@@ -2631,7 +2653,7 @@ html[data-style="golf97"] .check,html[data-style="golf97"] .clbox{border-radius:
 .row .snip{font-size:12px;color:var(--ink-3);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .meta{display:flex;align-items:center;gap:7px;margin-top:5px;flex-wrap:wrap}
 .mchip{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--ink-3);white-space:nowrap}
-.mchip.tag{color:var(--ink-2);background:var(--paper-3);padding:1px 7px;border-radius:20px}
+.mchip.tag{color:var(--ink-2);background:var(--paper-3);padding:1px 7px;border-radius:var(--pill)}
 /* A deadline says it is a deadline. Not a stripe and not a colour of its own —
    the same chip everything else wears, ruled underneath, because "due by" is
    the day a thing is *owed*, and going past it is the only state worth
@@ -2689,7 +2711,7 @@ html[data-style="golf97"] .check,html[data-style="golf97"] .clbox{border-radius:
 .is-phone .sheet-b{padding:16px 14px 140px}
 .detail-wrap{max-width:720px;margin:0 auto}
 .kindbadge{
-  display:inline-flex;align-items:center;gap:6px;padding:4px 11px;border-radius:20px;font-size:11.5px;font-weight:600;
+  display:inline-flex;align-items:center;gap:6px;padding:4px 11px;border-radius:var(--pill);font-size:11.5px;font-weight:600;
   letter-spacing:.05em;text-transform:uppercase;background:color-mix(in srgb,var(--k) 15%,transparent);color:var(--k);
 }
 .titlefield{
@@ -2698,7 +2720,7 @@ html[data-style="golf97"] .check,html[data-style="golf97"] .clbox{border-radius:
 }
 .is-phone .titlefield{font-size:25px}
 .fieldgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:9px;margin:14px 0 6px}
-.field{background:var(--paper-2);border:1px solid var(--rule);border-radius:10px;padding:8px 11px}
+.field{background:var(--paper-2);border:1px solid var(--rule);border-radius:var(--radius-lg);padding:8px 11px}
 .field label{display:block;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);font-weight:600;margin-bottom:3px}
 .field input,.field select{width:100%;border:0;background:none;outline:none;font-size:13px;font-weight:500}
 .field select{cursor:pointer}
@@ -2721,15 +2743,15 @@ html[data-style="golf97"] .check,html[data-style="golf97"] .clbox{border-radius:
 .prose .tick.on b{background:var(--brass);border-color:var(--brass)}
 .prose .tick.on{color:var(--ink-3);text-decoration:line-through}
 .mediablock{
-  border-radius:12px;overflow:hidden;border:1px solid var(--rule);margin:14px 0;background:var(--paper-2);
+  border-radius:var(--radius-lg);overflow:hidden;border:1px solid var(--rule);margin:14px 0;background:var(--paper-2);
 }
 .mediablock .art{height:170px;display:grid;place-items:center;color:#fff;
   background:linear-gradient(135deg,color-mix(in srgb,var(--k) 62%,transparent),color-mix(in srgb,var(--k) 20%,transparent))}
 .mediablock .cap{padding:8px 12px;font-size:11.5px;color:var(--ink-3);display:flex;align-items:center;gap:7px}
 .tagrow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:14px 0}
-.tagrow .add,.relrow .add{font-size:11.5px;color:var(--ink-3);border:1px dashed var(--rule);padding:3px 9px;border-radius:20px}
+.tagrow .add,.relrow .add{font-size:11.5px;color:var(--ink-3);border:1px dashed var(--rule);padding:3px 9px;border-radius:var(--pill)}
 .tagrow .add:hover,.relrow .add:hover{color:var(--brass);border-color:var(--brass)}
-.subtle-btn{font-size:12px;color:var(--ink-3);padding:5px 10px;border-radius:8px;border:1px solid var(--rule)}
+.subtle-btn{font-size:12px;color:var(--ink-3);padding:5px 10px;border-radius:var(--radius);border:1px solid var(--rule)}
 .subtle-btn:hover{color:var(--ink);border-color:var(--brass)}
 
 /* ============================================================
@@ -2741,10 +2763,10 @@ html[data-style="golf97"] .check,html[data-style="golf97"] .clbox{border-radius:
 .dots i.on{background:var(--k);border-color:transparent}
 .dots i.today{outline:1.5px solid var(--brass);outline-offset:1.5px}
 
-.bar{height:7px;border-radius:6px;background:var(--paper-3);overflow:hidden;margin:11px 0 4px;border:1px solid var(--rule-2)}
-.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--k),color-mix(in srgb,var(--k) 55%,var(--brass)));border-radius:6px;transition:width .5s cubic-bezier(.2,.9,.3,1)}
+.bar{height:7px;border-radius:2px;background:var(--paper-3);overflow:hidden;margin:11px 0 4px;border:1px solid var(--rule-2)}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--k),color-mix(in srgb,var(--k) 55%,var(--brass)));border-radius:2px;transition:width .5s cubic-bezier(.2,.9,.3,1)}
 .miles{margin-top:11px;display:flex;flex-direction:column;gap:2px}
-.mile{display:flex;align-items:center;gap:9px;padding:6px 8px;border-radius:8px;font-size:13px;cursor:pointer}
+.mile{display:flex;align-items:center;gap:9px;padding:6px 8px;border-radius:var(--radius);font-size:13px;cursor:pointer}
 .mile:hover{background:var(--paper-3)}
 .mile.done{color:var(--ink-3)}
 .mile.done .mt{text-decoration:line-through}
@@ -2773,7 +2795,7 @@ html[data-style="golf97"] .check,html[data-style="golf97"] .clbox{border-radius:
 .is-phone .kindgrid{grid-template-columns:repeat(2,1fr);gap:12px 7px}
 .kindtile{
   position:relative;display:flex;flex-direction:column;align-items:center;gap:7px;
-  padding:4px 2px;border-radius:12px;cursor:pointer
+  padding:4px 2px;border-radius:var(--radius-lg);cursor:pointer
 }
 .kindtile:focus-visible{outline:2px solid var(--k);outline-offset:0}
 /* a sample is a picture of a tile, not a tile: nothing in it is clickable, or
@@ -2791,7 +2813,7 @@ html[data-style="golf97"] .check,html[data-style="golf97"] .clbox{border-radius:
 .kindtile .kbd{font-family:var(--mono);font-size:9.5px;color:var(--ink-3);border:1px solid var(--rule);border-radius:4px;padding:0 4px}
 /* level with the name but taken out of the flow, so it can't shove the name
    off centre as it fades in — and never over the sample, whose width varies */
-.kedit{position:absolute;bottom:-2px;right:0;width:22px;height:22px;border-radius:6px;
+.kedit{position:absolute;bottom:-2px;right:0;width:22px;height:22px;border-radius:var(--radius);
   display:grid;place-items:center;background:var(--paper);
   color:var(--ink-3);opacity:0;transition:.14s}
 .kindtile:hover .kedit,.kindtile:focus-within .kedit{opacity:1}
@@ -2816,9 +2838,9 @@ html[data-style="golf97"] .check,html[data-style="golf97"] .clbox{border-radius:
 .cmd{width:min(560px,100%);align-self:flex-start;margin-top:8vh}
 .cmdinput{width:100%;border:0;background:none;outline:none;font-size:17px;padding:16px 18px;font-family:var(--serif)}
 .cmdlist{max-height:46vh;overflow-y:auto;border-top:1px solid var(--rule-2);padding:6px}
-.cmdrow{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:9px;cursor:pointer;font-size:13px}
+.cmdrow{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:var(--radius);cursor:pointer;font-size:13px}
 .cmdrow:hover,.cmdrow.on{background:var(--paper-3)}
-.cmdrow .ic{width:22px;height:22px;border-radius:7px;display:grid;place-items:center;background:color-mix(in srgb,var(--k) 16%,transparent);color:var(--k);flex:0 0 auto}
+.cmdrow .ic{width:22px;height:22px;border-radius:var(--radius);display:grid;place-items:center;background:color-mix(in srgb,var(--k) 16%,transparent);color:var(--k);flex:0 0 auto}
 .cmdrow .sub{margin-left:auto;font-size:11px;color:var(--ink-3)}
 
 
@@ -2831,7 +2853,7 @@ html[data-style="golf97"] .check,html[data-style="golf97"] .clbox{border-radius:
 
 .toast{
   position:absolute;left:50%;bottom:96px;transform:translate(-50%,14px);z-index:80;
-  background:var(--ink);color:var(--paper);padding:9px 15px;border-radius:12px;font-size:12.5px;font-weight:500;
+  background:var(--ink);color:var(--paper);padding:9px 15px;border-radius:var(--radius-lg);font-size:12.5px;font-weight:500;
   opacity:0;pointer-events:none;transition:.22s;box-shadow:var(--shadow-lg);display:flex;align-items:center;gap:10px;white-space:nowrap
 }
 html[data-theme="walnut"] .toast{background:var(--paper-3);color:var(--ink)}
@@ -2839,11 +2861,11 @@ html[data-theme="walnut"] .toast{background:var(--paper-3);color:var(--ink)}
 .toast u{cursor:pointer;color:var(--brass-2);text-decoration:none;font-weight:700}
 
 .ctxmenu{
-  position:absolute;z-index:90;min-width:184px;background:var(--paper-2);border:1px solid var(--rule);border-radius:12px;
+  position:absolute;z-index:90;min-width:184px;background:var(--paper-2);border:1px solid var(--rule);border-radius:var(--radius-lg);
   box-shadow:var(--shadow-lg);padding:5px;display:none;
 }
 .ctxmenu.open{display:block}
-.ctxmenu button{display:flex;align-items:center;gap:9px;width:100%;padding:7px 10px;border-radius:8px;font-size:12.5px;text-align:left}
+.ctxmenu button{display:flex;align-items:center;gap:9px;width:100%;padding:7px 10px;border-radius:var(--radius);font-size:12.5px;text-align:left}
 .ctxmenu button:hover{background:var(--paper-3)}
 /* the same element serves as a menu hung off a bar button, where one row is
    the current setting rather than an action */
@@ -2869,7 +2891,7 @@ kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--rule);border
 .is-desk .only-phone{display:none}
 .is-phone .topbar h1{font-size:21px;line-height:1.2}
 .is-phone .topbar .sub{font-size:11.5px}
-.quickadd{display:flex;align-items:center;gap:9px;padding:9px 12px;border-radius:11px;border:1.5px dashed var(--rule);
+.quickadd{display:flex;align-items:center;gap:9px;padding:9px 12px;border-radius:var(--radius);border:1.5px dashed var(--rule);
   background:color-mix(in srgb,var(--paper-2) 60%,transparent);margin-bottom:9px;transition:.15s;
   max-width:900px}   /* the same column the bands below it stand in */
 .quickadd:focus-within{border-style:solid;border-color:var(--brass);background:var(--paper-2)}
@@ -2881,7 +2903,7 @@ kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--rule);border
    chip half off the edge reads as a chip that is broken. Wrap instead. */
 .panel .filterbar{flex-wrap:wrap;overflow-x:visible}
 .filterbar::-webkit-scrollbar{display:none}
-.fchip{flex:0 0 auto;padding:4px 11px;border-radius:20px;font-size:11.5px;font-weight:500;border:1px solid var(--rule);
+.fchip{flex:0 0 auto;padding:4px 11px;border-radius:var(--pill);font-size:11.5px;font-weight:500;border:1px solid var(--rule);
   background:var(--paper-2);color:var(--ink-2);white-space:nowrap;transition:.14s;cursor:pointer}
 .fchip:hover{border-color:var(--k,var(--brass));color:var(--ink)}
 .fchip.on{background:color-mix(in srgb,var(--k,var(--brass)) 18%,transparent);border-color:transparent;color:var(--ink);font-weight:600}
@@ -3753,7 +3775,7 @@ input,textarea,select,[contenteditable],
    thing takes half the drawer. */
 .helditem{
   position:relative;min-width:0;display:flex;flex-direction:column;align-items:center;gap:6px;
-  padding:5px 2px;border-radius:12px;cursor:pointer
+  padding:5px 2px;border-radius:var(--radius-lg);cursor:pointer
 }
 .helditem:hover{background:color-mix(in srgb,var(--ink) 6%,transparent)}
 .helditem:focus-visible{outline:2px solid var(--brass);outline-offset:0}
@@ -3765,7 +3787,7 @@ input,textarea,select,[contenteditable],
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .holdnote{font-size:12px;color:var(--ink-3);line-height:1.5;margin:14px 2px 0}
 .holdall{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;
-  margin-top:12px;padding:10px;border-radius:10px;
+  margin-top:12px;padding:10px;border-radius:var(--radius-lg);
   border:1px solid var(--rule);background:none;color:var(--ink-2);
   font:inherit;font-size:12.5px;cursor:pointer}
 .holdall:hover{border-color:var(--brass);color:var(--ink)}

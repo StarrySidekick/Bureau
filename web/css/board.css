@@ -24,8 +24,23 @@
   --shadow-lg:0 2px 6px rgba(42,36,28,.16),0 22px 46px -20px rgba(42,36,28,.42);
   --board-1:#EFEADA;        /* the board, light square */
   --board-2:#DDE5CE;        /* the board, other square — a soft green */
-  --radius:5px;             /* UI chrome — pills, chips, fields */
-  --radius-d:3px;           /* drawers. A drawer front is not a rounded rect. */
+  /* ---- corners: round, or square, and nothing in between ---------------
+     A **squircle** — the 7 to 12 pixels that most interfaces put on a 28px
+     button — is the shape of software, and it is the one thing on this desk
+     that could not be a made object. Nothing in a workshop has it: a knob is
+     turned and is a circle, a drawer front is sawn and is a rectangle with the
+     arris taken off, a label is cut with a rule. So there are exactly two
+     legal answers here — **a stadium (`--pill`) or a circle for anything round,
+     and a sharp square for everything else** — and the sharp end keeps a
+     hair of radius because a corner cut dead square reads as a rendering
+     artefact rather than as a made edge. See decision 125.
+
+     An *aesthetic* may still say otherwise for its own tiles: Aeros is glossy
+     and round and that is its whole argument. This governs the chrome. */
+  --radius:4px;             /* a control, a chip, a field */
+  --radius-lg:6px;          /* a panel, a menu, a card — a thing with things in it */
+  --radius-d:2px;           /* drawers. A drawer front is not a rounded rect. */
+  --pill:999px;             /* the other legal answer: round ends, all the way */
   /* ---- the carcass -------------------------------------------------------
      The desk is a piece of furniture and the board is the surface set into it.
      These two are the wood the app itself is made of: the rail above the bar
@@ -74,19 +89,19 @@ body{
 button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0}
 input,textarea{font:inherit;color:inherit}
 ::-webkit-scrollbar{width:10px;height:10px}
-::-webkit-scrollbar-thumb{background:var(--rule);border-radius:10px;border:3px solid transparent;background-clip:padding-box}
+::-webkit-scrollbar-thumb{background:var(--rule);border-radius:2px;border:3px solid transparent;background-clip:padding-box}
 ::-webkit-scrollbar-thumb:hover{background:var(--ink-3);background-clip:padding-box;border:3px solid transparent}
 
 /* ============================================================
    App shell
    ============================================================ */
 #frame{position:fixed;inset:0;display:flex;flex-direction:column;overflow:hidden;background:var(--paper)}
-.seg{display:flex;background:var(--paper-3);border-radius:9px;padding:2px;gap:2px}
-.seg button{padding:4px 11px;border-radius:7px;font-size:12px;color:var(--ink-2);font-weight:500;transition:.15s}
+.seg{display:flex;background:var(--paper-3);border-radius:var(--radius);padding:2px;gap:2px}
+.seg button{padding:4px 11px;border-radius:2px;font-size:12px;color:var(--ink-2);font-weight:500;transition:.15s}
 .seg button[aria-pressed="true"]{background:var(--paper-2);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.14)}
-.iconbtn{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;color:var(--ink-2);transition:.15s}
+.iconbtn{width:28px;height:28px;border-radius:var(--radius);display:grid;place-items:center;color:var(--ink-2);transition:.15s}
 .iconbtn:hover{background:var(--paper-3);color:var(--ink)}
-.banner{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:11px;font-size:12px;
+.banner{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:var(--radius-lg);font-size:12px;
   background:color-mix(in srgb,var(--brass) 16%,transparent);color:var(--ink);margin-bottom:10px}
 .banner button{margin-left:auto;font-weight:600;color:var(--brass);white-space:nowrap}
 
@@ -97,7 +112,7 @@ input,textarea{font:inherit;color:inherit}
 /* a drag must never turn into a text selection */
 .dragging-ui,.dragging-ui *{user-select:none!important}
 .navitem{
-  display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:9px;
+  display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:var(--radius);
   color:var(--ink-2);font-size:13.5px;font-weight:500;transition:.12s;width:100%;text-align:left;
 }
 .navitem:hover{background:var(--paper-3);color:var(--ink)}
@@ -105,7 +120,7 @@ input,textarea{font:inherit;color:inherit}
 .navitem .ico{width:17px;display:grid;place-items:center;color:var(--ink-3)}
 .navitem.on .ico{color:var(--brass)}
 .navitem .n{margin-left:auto;font-size:11.5px;color:var(--ink-3);font-variant-numeric:tabular-nums}
-.tagchip{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:20px;font-size:11.5px;
+.tagchip{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:var(--pill);font-size:11.5px;
   background:var(--paper-3);color:var(--ink-2);border:1px solid var(--rule-2)}
 .tagchip.on{background:color-mix(in srgb,var(--brass) 22%, transparent);color:var(--ink);border-color:transparent}
 .realtag{
@@ -129,7 +144,7 @@ input,textarea{font:inherit;color:inherit}
 .topbar .sub{color:var(--ink-3);font-size:12.5px;margin-top:1px}
 .topbar .grow{flex:1}
 .pill{
-  display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:12.5px;
+  display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:var(--pill);font-size:12.5px;
   font-weight:500;background:var(--paper-2);border:1px solid var(--rule);color:var(--ink-2);transition:.15s;white-space:nowrap
 }
 .pill:hover{border-color:var(--brass);color:var(--ink)}
@@ -241,7 +256,7 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
 .drawer .dname{font-family:var(--serif);font-size:15.5px;font-weight:600;letter-spacing:.005em;
   color:var(--dink);white-space:normal;overflow-wrap:anywhere;overflow:hidden}
 .drawer .dcount{margin-left:auto;font-size:11px;color:var(--dink-2);font-variant-numeric:tabular-nums;
-  background:rgba(0,0,0,.20);border:1px solid rgba(255,255,255,.14);padding:1px 7px;border-radius:20px}
+  background:rgba(0,0,0,.20);border:1px solid rgba(255,255,255,.14);padding:1px 7px;border-radius:var(--pill)}
 .drawer .dbody{flex:1;min-height:0;margin-top:8px;overflow:hidden;position:relative}
 .drawer .dfoot{
   margin-top:auto;padding-top:8px;display:flex;align-items:center;justify-content:center;
@@ -401,7 +416,7 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
 .prow.tight > label i{font-style:normal;text-transform:none;letter-spacing:0;
   font-size:10.5px;font-weight:400;color:var(--ink-3);margin-top:1px}
 .prow.tight > div{grid-row:1;grid-column:2;justify-content:flex-end}
-.pchip{padding:4px 9px;border-radius:20px;font-size:11.5px;border:1px solid var(--rule);
+.pchip{padding:4px 9px;border-radius:var(--pill);font-size:11.5px;border:1px solid var(--rule);
   color:var(--ink-2);background:var(--paper);transition:.12s}
 .pchip:hover{border-color:var(--brass);color:var(--ink)}
 .pchip.on{background:color-mix(in srgb,var(--brass) 22%,transparent);color:var(--ink);border-color:transparent}
@@ -462,7 +477,7 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
   align-items:center;gap:3px;padding:0 6px}
 .stpv i{flex:1;height:14px;border-radius:2px}
 .rollup{margin-left:auto;font-size:11px;color:var(--dink-2);font-variant-numeric:tabular-nums;
-  background:rgba(0,0,0,.20);border:1px solid rgba(255,255,255,.14);padding:1px 7px;border-radius:20px}
+  background:rgba(0,0,0,.20);border:1px solid rgba(255,255,255,.14);padding:1px 7px;border-radius:var(--pill)}
 .pvwrap{display:grid;place-items:center;padding:16px 10px 18px;margin-bottom:12px;
   border:1px solid var(--rule);border-radius:var(--radius);
   background-color:var(--board-1);
@@ -479,7 +494,7 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
 .iconchip{padding:5px 8px;display:inline-flex;align-items:center}
 .iconchip.on{color:var(--ink)}
 .relrow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:4px}
-.relchip{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:20px;
+.relchip{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:var(--pill);
   font-size:11.5px;cursor:pointer;color:var(--ink);
   background:color-mix(in srgb,var(--k) 16%,transparent);border:1px solid color-mix(in srgb,var(--k) 40%,transparent)}
 .relchip:hover{border-color:var(--k)}
@@ -904,7 +919,7 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
   box-shadow:0 0 0 2px rgba(255,255,255,.4)}
 /* a generator: a press with an arrow */
 .drawer.gentile{background:var(--c);align-items:center;justify-content:center;gap:5px;text-align:center;
-  border-radius:8px;border-color:transparent;padding:8px;container-type:inline-size}
+  border-radius:var(--radius-d);border-color:transparent;padding:8px;container-type:inline-size}
 .genico{color:#F8F3E6;opacity:.9}
 .genlabel{font-size:clamp(10px,6cqw,14px);font-weight:600;color:#F8F3E6;overflow-wrap:anywhere;line-height:1.2}
 .genarrow{position:absolute;right:6px;bottom:6px;color:rgba(248,243,230,.65)}
@@ -912,7 +927,7 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
 /* a counter as an old ledger totaliser */
 .drawer.cnttile{
   background:linear-gradient(#2A241C,#211C16);border:1px solid rgba(0,0,0,.5);
-  box-shadow:inset 0 2px 6px rgba(0,0,0,.6), var(--shadow);border-radius:6px;
+  box-shadow:inset 0 2px 6px rgba(0,0,0,.6), var(--shadow);border-radius:var(--radius-d);
 }
 .cntlabel{color:rgba(233,225,204,.55);letter-spacing:.1em;text-transform:uppercase;
   font-size:clamp(8px,4cqw,12px)}

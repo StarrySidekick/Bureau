@@ -4229,6 +4229,65 @@ const CHROME = process.env.BUREAU_CHROME;
     return out;
   });
 
+  /* --- three pens, and corners that are round or square -------------------
+     A press on the month always wrote `due`, so the other two dates had to be
+     typed into a field — the one control on that page that says nothing about
+     where a day sits relative to the others. And the chrome was full of
+     squircles, which is the shape of software and the one thing on this desk
+     that could not be a made object. See decision 125. */
+  const pensAndCorners = await page.evaluate(async () => {
+    const nap = ms => new Promise(r => setTimeout(r, ms));
+    const S = BUREAU.state, out = {};
+    const t = BUREAU.create('task', {parent:'root', title:'Pen me'});
+    // the two ranks have to be *there* to be measured — a row that is not
+    // rendered reads as a radius of null, which is not the same as sharp
+    t.attrs = ['text','check','date','duration','difficulty','priority','repeat'];
+    BUREAU.render(); await nap(150);
+    BUREAU.schedule(t.id); await nap(320);
+
+    const pen = k => document.querySelector(`#panel [data-schedpen$=":${k}"]`);
+    out.threePens = ['due','soft','dead'].every(k => !!pen(k));
+    // the day it sits on is the pen you start holding, because it is the one
+    // you are usually setting
+    out.startsOnTheDay = pen('due').classList.contains('on');
+    // one it hasn't got is an outline, and picking it up picks up the trait
+    out.oneItHasNotGotIsAnOutline = pen('dead').classList.contains('un');
+    pen('dead').click(); await nap(300);
+    out.pickingItUpTakesTheTrait = BUREAU.has(t, 'deadline')
+      && pen('dead').classList.contains('on') && !pen('dead').classList.contains('un');
+
+    /* …and then the month writes *that* date. This is the whole change: the
+       same grid, three pens, rather than one grid and two typed fields. */
+    const days = [...document.querySelectorAll('#panel .sday:not(.out)')];
+    const iso = days[12].dataset.schedday.split(':')[1];
+    days[12].click(); await nap(300);
+    out.theMonthWritesThatOne = t.dead === iso && t.due !== iso;
+    // pressing the same day again clears it, the way every toggle here does
+    document.querySelector(`#panel [data-schedday$=":${iso}"]`).click(); await nap(300);
+    out.andPressingItAgainClears = t.dead == null;
+    // the pen survives a redraw: it is UI state, and you are still holding it
+    out.thePenIsStillInYourHand = pen('dead').classList.contains('on');
+
+    /* ---- round, or square, and nothing in between --------------------
+       Measured off the computed style rather than read out of the source,
+       because a token nobody applied is a rule nobody follows. */
+    const r = sel => { const el=document.querySelector(sel); if(!el) return null;
+      return parseFloat(getComputedStyle(el).borderTopLeftRadius); };
+    const sharp = n => n != null && n <= 4.01;
+    out.theDayCellsAreSquare = sharp(r('#panel .sday'));
+    out.andSoAreTheRanks = sharp(r('#panel [data-prio]')) && sharp(r('#panel [data-diff]'));
+    out.andThePens = sharp(r('#panel [data-schedpen]'));
+    // a pill is the other legal answer, and it is a full stadium rather than
+    // the 20px that was *nearly* one
+    const chip = document.querySelector('#panel .pchip, #panel .schedquick .pill');
+    out.aPillIsAStadium = !!chip
+      && parseFloat(getComputedStyle(chip).borderTopLeftRadius) >= chip.getBoundingClientRect().height/2 - 1;
+
+    document.querySelector('#panel [data-act="panelclose"]').click();
+    BUREAU.del(t.id); S.undo=[]; S.redo=[]; BUREAU.render();
+    return out;
+  });
+
   /* --- a book wider than it is tall is lying down ------------------------
      The same test a cabinet answers from the other side (decision 54): which
      way round it is, never how big. The claim worth guarding is that it is one
@@ -5713,7 +5772,7 @@ const CHROME = process.env.BUREAU_CHROME;
     settingsHasDoors, settingsBack,
     wordsNotSource, deadlines, twoClauses, undoEverything, savesOnlyChanges,
     paletteKeys, editorKeys, pickerLeads, rollupsEverywhere, soundAndVision, keyboardBoard,
-    ranking, urgency, reachable, lyingBooks, plansWork, repeating, oneLock, scheduling, ownColour, addBox, calFaces,
+    ranking, urgency, reachable, pensAndCorners, lyingBooks, plansWork, repeating, oneLock, scheduling, ownColour, addBox, calFaces,
     lockedBoard, freeTraits, pageWrites, tickBoxes, readerFits,
     dropsIn, keyframesRegistered, aesthetics, slotScoping, objectsDressed, grainSlots, tagged, drawnAesthetic, deeper, lookStage, statusBar, bindings, panelling, theSpray, tappingIsQuiet, decorations, pinboard
   }, null, 2));
