@@ -447,6 +447,26 @@ is started; pick from it.
    tile dropped on a calendar day, and one dropped along a timeline. Both move
    the object into the container, and neither said so before; the day drop had
    no feedback at all.
+
+   **It is verified but not yet guarded, and that is worth finishing.** The
+   behaviour was checked by driving a real drag: the object is filed by the
+   time the drop returns, a picture of the tile flies in `#fx` carrying a real
+   translation and a scale under 1, it answers to no id, and it cleans itself
+   up — plus three frames of the fall, captured by freezing the animation with
+   a negative delay and hiding `#app`, which show the tile's own paper and tick
+   box travelling and shrinking.
+
+   A `filingLands` block asserting all of that was written and then **taken
+   back out**, because it destabilised `smoke.mjs` and a suite you cannot trust
+   is worse than a missing assertion. Two things it got wrong, both recorded so
+   the next attempt starts ahead of them: a test ending on a real drag leaves
+   `gestureFlags.suppressClick` set, which swallows the *next* test's press
+   (`longPress.armed` and `groupMove` both failed); and forcing
+   `S.look.locked = true` afterwards is not the fix — restoring the previous
+   value instead made the suite hang outright, somewhere after
+   `18-task-shapes`. Whatever the right cleanup is, it is not either of those,
+   and it wants a machine where the suite runs in minutes rather than the
+   forty this one took.
 2. **A new object arrives from where it was made.** `reveal()` flashes
    `justmade`; it could instead grow out of the shelf, the picker tile, or the
    cell you sketched — so "where did that go" is answered by watching.

@@ -593,73 +593,6 @@ const CHROME = process.env.BUREAU_CHROME;
              boxCleared: moved.boxCleared, chipGone: moved.chipGone, tapStillTicks: ticked };
   })();
 
-  /* --- filing lands: the tile falls into the drawer it went into.
-     The state change is what matters and it must not wait — so this asserts
-     both halves: the object is filed by the time the drop returns, AND a
-     picture of the tile is flying, in `#fx` rather than in `#app`, carrying a
-     real translation and a scale under 1. See ROADMAP 0b-next item 1. */
-  const filingLands = await (async () => {
-    const spot = await page.evaluate(async () => {
-      const nap = n => new Promise(r => setTimeout(r, n));
-      const S = BUREAU.state;
-      S.view = 'desk'; S.drawerId = null; S.look.locked = false;
-      const into = BUREAU.create('drawer', { parent: 'root', title: 'Filing cabinet' });
-      into.desk = BUREAU.free(2, 2);
-      const it = BUREAU.create('task', { parent: 'root', title: 'File me' });
-      it.desk = BUREAU.free(3, 1);
-      BUREAU.render(); await nap(220);
-      window.__fl = { into: into.id, it: it.id };
-      const a = document.querySelector(`[data-row="${it.id}"]`).getBoundingClientRect();
-      const b = document.querySelector(`[data-drawer="${into.id}"]`).getBoundingClientRect();
-      return { from: [a.left + a.width / 2, a.top + a.height / 2],
-               to: [b.left + b.width / 2, b.top + b.height / 2] };
-    });
-    await page.mouse.move(...spot.from);
-    await page.mouse.down();
-    await page.waitForTimeout(320);                 // the hold arms the drag
-    await page.mouse.move(spot.from[0] + 18, spot.from[1] + 12, { steps: 4 });
-    await page.mouse.move(...spot.to, { steps: 10 });
-    await page.mouse.up();
-    // Read on the very next tick: the point is that nothing waited.
-    await page.waitForTimeout(30);
-    const mid = await page.evaluate(() => {
-      const f = window.__fl, S = BUREAU.state;
-      const o = S.objects.find(x => x.id === f.it);
-      const g = document.querySelector('.fxfile');
-      const cs = g && getComputedStyle(g);
-      return {
-        filedAtOnce: !!o && o.parent === f.into,
-        boxCleared: !!o && !o.desk && !o.phone,
-        flies: !!g,
-        outsideApp: !!g && !g.closest('#app') && !!g.closest('#fx'),
-        // A picture of the tile, not a stand-in: it carries the tile's markup.
-        carriesTheTile: !!g && !!g.querySelector('.drawer'),
-        // …and answers to no id, or the drag's own lookups would find it.
-        answersToNothing: !!g && !g.querySelector('[data-row],[data-drawer]'),
-        travels: !!cs && parseFloat(cs.getPropertyValue('--filex')) !== 0,
-        shrinks: !!cs && parseFloat(cs.getPropertyValue('--filek')) < 1
-      };
-    });
-    await page.waitForTimeout(600);
-    const after = await page.evaluate(() => {
-      const f = window.__fl, S = BUREAU.state;
-      const gone = !document.querySelector('.fxfile');
-      S.objects = S.objects.filter(o => o.id !== f.it && o.id !== f.into);
-      S.look.locked = true; BUREAU.render();
-      return gone;
-    });
-    /* This ended on a real drag, which leaves gestureFlags.suppressClick set
-       for the next click — by design, so a reordered pin doesn't also open.
-       Spend it on a click that does nothing, or the next test's press is
-       swallowed and it fails for a reason that has nothing to do with it.
-       That is exactly what happened to longPress and groupMove when this was
-       first dropped in above them. */
-    await page.evaluate(() =>
-      document.querySelector('#frame').dispatchEvent(new MouseEvent('click', { bubbles: true })));
-    await page.waitForTimeout(120);
-    return { ...mid, cleansUp: after };
-  })();
-
   /* --- a question is answered by writing the answer, not by ticking a box.
      Typing must not re-render the board: the input is the thing being typed in,
      and rebuilding it would take the caret with it — so the state class is
@@ -5458,7 +5391,7 @@ const CHROME = process.env.BUREAU_CHROME;
     holdArms, maxDrift,
     settingsIsPanel, pickerPreviews, builderPreview, everyMenuIsAPanel,
     pasteOk, magicOk, rollupOk, relationsOk, relationsUI,
-    timeLayer, checklistBox, pluckWorks, filingLands, answering, seedAndKnobs, longPress, drawerSize, tagDrawer, groupMove, dropStates,
+    timeLayer, checklistBox, pluckWorks, answering, seedAndKnobs, longPress, drawerSize, tagDrawer, groupMove, dropStates,
     adaptiveTiles, bubblePanel, scrollKept, kindSizes,
     phoneGrid, phoneMigration,
     dupIds, undoWorks, readViews, paperSize, readPaper, readBar, movement, pager, desks, spans,
