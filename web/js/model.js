@@ -426,7 +426,7 @@ const sensedDevice = ()=> window.matchMedia('(min-width: 900px)').matches ? 'des
 function reset(){
   const s = seed();
   S = {
-    objects:s.objects, kinds:{}, desks:s.desks.slice(),
+    objects:s.objects, kinds:{}, plans:[], desks:s.desks.slice(),
     // one shelf, one list: anything at all may be kept on it, and it is the
     // same list wherever you are standing
     pins:s.pins.slice(),

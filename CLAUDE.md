@@ -148,6 +148,7 @@ clause at the bottom of each file — that list is each module's public surface.
 | `panels.js` | `openPanel()` — **every menu in the app** — plus `openMenu()` for a popup hung off a button, the command palette (⌘K), the context menu, and `sampleObject`/`sampleTile` for drawing a type as the thing it makes. |
 | `gestures.js` | Pointer-based drag, resize, lasso, swipe. The fiddliest code in the app. |
 | `motion.js` | Every movement: `openTile()` (drawer, cabinet, curl, lift), `pop()`, and the pager that slides between boards. Nothing in it ever delays a state change. |
+| `plans.js` | A **plan** — a saved board, in `S.plans`, captured and stamped. Not an object and not on any grid. |
 | `persist.js` | localStorage read/write, **versioned `MIGRATIONS`**, JSON export/import, IndexedDB image assets, the paste bridge. |
 | `wire.js` | One delegated listener set on `#frame`. All interaction routes through here — to add an action, add a `data-act` and a case in `act()`. |
 | `boot.js` | Entry point: load, wire, render, register the service worker, `window.BUREAU`. |
@@ -956,6 +957,25 @@ same box. Ask `takesTyping(c)`, and go through `spawnInto()` rather than
 `quickAdd()` directly: a magic container holds nothing, so what you type into
 one has to be made where the container itself lives and collected back by its
 rule. That is the only reason the quick-add on a calendar day works.
+
+**A plan is a board you can put down again, and it is not an object.**
+`web/js/plans.js` — `planFrom(cid)` captures what a container *holds*, all the
+way down; `stampPlan(id, into, at)` lays it out again with fresh ids. The word
+is **plan** because `layout` is taken (it is how a container arranges its
+children when it opens) — an architect's plan of a room, which is what this is.
+It lives in `S.plans`, beside `S.kinds`, because both are things the desk is
+made **with** rather than things on it; a container with a null parent that is
+not in `S.desks` is an orphan every walk of the object list would have had to
+learn about. Four rules: it carries **everything but the doing** (ticks, counts,
+dates, history and the repeat's tally are stripped at *capture*, so stamping is
+a plain copy); **media is stripped outright**, because a plan is stored inside
+the snapshot that exists to keep `media.src` out of localStorage; it is captured
+**by parent, never `childrenOf()`**, or a magic drawer's plan would duplicate
+half the desk; and where it lands is **one offset applied to the whole
+arrangement**, because if the shape didn't survive the move there would be
+nothing to save. A kind may carry `plan`, which supersedes `seed:` and is read
+before it. Deleting a plan clears that pointer off any type holding it. See
+decision 121.
 
 **A type can be born with things inside it.** `seed:[{kind,title}]` on a kind
 makes those children when the container is created, placed at the top of its

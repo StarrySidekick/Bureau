@@ -5,6 +5,40 @@ Sequenced by dependency, not appetite: item 1 makes everything after it safer.
 
 ---
 
+## 0p. Queued 2026-09-05 (fifteenth pass) — urgency, and plans — DONE (v1.42)
+
+Three things Timothy asked for after a read of where the project stood.
+Decisions 120 and 121.
+
+- **Urgency is a deadline and an estimate put together**, and stored nowhere.
+  Three hours due tomorrow and three weeks due tomorrow are not the same
+  situation, and sorting by date cannot tell them apart. A deadline is **hard**
+  (consequences) or **soft** (a day you gave yourself) and a thing may carry
+  both; a duration in minutes says how much work it is; `workday` — three hours
+  by default — turns one into the other. Slack is the days you have less the
+  days the work needs, and the ladder is Room · Ahead · Soon · Tight · Behind.
+  A soft deadline reads one rung lower and can never reach Behind. A magic
+  drawer collects on it, a board sorts by it, and the deadline chip carries it
+  as the line thickening under the date
+- **A plan is a board you can put down again.** Arrange a drawer, save it, lay
+  it out anywhere — with fresh ids, everything but the doing, and the whole
+  arrangement shifted by one offset so its shape survives. A type may **open
+  fitted to** one, which is what `seed:` was reaching for. Three lead in the
+  picker, all of them live in a settings door. This is the roadmap's
+  template-spawn, in Timothy's own shape
+- **The scale probe counts as well as times**, because its milliseconds move
+  30–50% between runs on code that did not change. `layouts` and `styles` per
+  render are 1 at every size on both devices, which is the invariant
+  `sizeGrid()` was written to hold and had never been measured
+
+*Deliberately not done:* sync, which Timothy is holding until Bureau is a
+TestFlight app, since the transport will be a different question by then. The
+Depth and light door stays as it is; the defaults get locked in later. The
+filing-lands animation (§0b-next item 1) was built on another branch and lands
+separately.
+
+---
+
 ## 0o. Queued 2026-08-30 — everything joins the aesthetic system — DONE (v1.07)
 
 From the coverage audit in `docs/STYLES.md`. Five stages, sequenced by
@@ -601,8 +635,8 @@ panel replaces it and there is no way back except reopening.
 
 - **button actions** — a button can run an app action (new object of type X in
   container Y, toggle a lock, open the paste box), not just open things
-- **template-spawn** — generalize `spawn` to deep-copy a template object with
-  its children (weekly review, packing list)
+- ~~**template-spawn**~~ — done (2026-09-05) as **plans**, decision 121: a saved
+  board, laid out again with fresh ids, and a type that opens fitted to one
 - ~~**undo log**~~ — done (2026-08-12). `S.undo` is a stack of up to 20 moves,
   each a list of steps replayed backwards (`{del}`, `{add}`, `{set}`), covering
   single delete, group delete, drawer delete and paste import, on the Undo in

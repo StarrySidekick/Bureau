@@ -22,6 +22,7 @@ import { quickAdd, toast, drawerForTag } from './mutations.js';
 import { openObj, openWriter, openRead, renderSheet } from './sheet.js';
 import { render, settingsPanel, gridSizeField } from './views.js';
 import { openingFor } from './motion.js';
+import { plans, planById, planTop, planSize, planFrom, stampPlan } from './plans.js';
 import { save } from './persist.js';
 
 /* ============================================================
@@ -222,6 +223,63 @@ function oftenUsed(homeId){
   const rest = Object.keys(n).filter(k=>k!==first).sort((a,b)=>n[b]-n[a]);
   return [first, ...rest].filter(Boolean).slice(0, HANDFUL);
 }
+/* ---- a plan, drawn as the board it will lay out -----------------------
+   The same miniature the desk map draws, off the plan's own stored boxes
+   rather than off childrenOf() — a plan is not on any board, so there is
+   nothing to walk. Drawn rather than listed for the same reason the type
+   picker draws its types (decision 67): a list of names is not what you are
+   choosing between when the thing you are choosing is an arrangement. */
+function planCard(p, act){
+  const top = planTop(p);
+  const rows = Math.max(6, top.reduce((m,o)=>{const b=o.desk||{y:1,h:2};return Math.max(m,(b.y||1)+(b.h||1)-1)},0));
+  return `<button class="deskcard plancard" data-${act}="${p.id}">
+    <span class="deskmini" style="--dcols:24;--drows:${rows}">
+      ${top.map(o=>{ const b=o.desk||{x:1,y:1,w:2,h:2};
+        return `<i style="--k:${objColour(o)};grid-column:${b.x||1}/span ${b.w||1};grid-row:${b.y||1}/span ${b.h||1}"></i>`;
+      }).join('')}</span>
+    <b>${esc(p.nm||'Untitled plan')}</b>
+    <u>${top.length} on it${planSize(p)>top.length?` · ${planSize(p)} in all`:''}</u>
+  </button>`;
+}
+
+/* ---- the plans you have, and what to do with one ----------------------
+   A door of its own rather than a row in someone else's: a plan is a thing
+   the desk is made *with*, like a type, and "what arrangements have I saved"
+   is not the same question as "how much is on this device". See decision 121. */
+function plansPanel(){
+  openPanel({key:'plans', wide:true, title:'Plans',
+    sub:'Boards you saved, to lay out again',
+    body:()=>{
+      const ps = plans();
+      const home = (S.view==='drawer' && S.drawerId) || ROOT;
+      const c = byId(home);
+      const where = home===ROOT ? 'the desk' : (c && c.title) || 'this drawer';
+      if(!ps.length) return `<div class="mini" style="--k:var(--brass)">Nothing saved yet. Arrange a drawer the way you want it, open <b>its</b> editor with the brush in the bar, and press <b>Save as a plan</b>. Then it can be put down again anywhere — or given to a type, so every one you make opens fitted to it.</div>`;
+      return `<div class="deskmapgrid">${ps.map(p=>planCard(p,'planput')).join('')}</div>
+        <div class="mini" style="--k:var(--brass);margin-top:10px">Pressing one lays it out on <b>${esc(where)}</b>. Everything comes back unticked and undated — a plan carries what a thing <i>is</i>, never the record of having done it.</div>
+        <div class="section-h" style="margin-top:14px"><h2>Keeping them</h2><div class="rule"></div></div>
+        <div class="rows">${ps.map(p=>`<div class="row">
+          <span class="kindmark">${ic(p.ic||'grid',13)}</span>
+          <div class="body"><input class="pfield" data-planname="${p.id}" value="${esc(p.nm||'')}" placeholder="Untitled plan">
+            <div class="snip">${planSize(p)} things · saved ${esc(p.made||'')}</div></div>
+          <button class="subtle-btn" data-act="delplan" data-id="${p.id}">${ic('trash',12)}</button>
+        </div>`).join('')}</div>`;
+    }});
+}
+
+/* A plan is a thing you *make* — several things, arranged — so it belongs in
+   the picker beside the types and not only in a settings door. It leads,
+   because if you have saved one and you are opening the picker on a bare
+   board, laying it out is very often what you came for. */
+const PLANS_HERE = 3;
+function plansHere(){
+  const ps = plans();
+  if(!ps.length) return '';
+  return `<div class="section-h"><h2>Plans</h2><div class="rule"></div><span class="n">a board you saved, laid out where you pressed</span></div>
+    <div class="deskmapgrid">${ps.slice(0,PLANS_HERE).map(p=>planCard(p,'planput')).join('')}</div>${
+    ps.length>PLANS_HERE ? `<button class="subtle-btn" data-act="allplans">${ic('grid',12)} All ${ps.length} plans</button>` : ''}`;
+}
+
 function modalNewObject(){
   /* Where the thing will land, which decides what the picker leads with. The
      cell a hold sketched knows its container; failing that it is the board you
@@ -234,7 +292,7 @@ function modalNewObject(){
     key:'newobject', wide:true, title:'New object',
     sub:'Every type is drawn as the thing it makes',
     act:`<button class="pill" data-act="newkind">${ic('sparkle',13)} New type</button>`,
-    body:()=> (often.length ? `
+    body:()=> (plansHere() ? plansHere() : '') + (often.length ? `
       <div class="section-h"><h2>Often</h2><div class="rule"></div><span class="n">${
         made ? 'this drawer makes a '+esc(made) : 'what this desk is made of'}</span></div>
       <div class="kindgrid">${often.map(kindTile).join('')}</div>
@@ -522,6 +580,18 @@ function objectPanelBody(id, sec){
       'swaps its traits, keeps its data'));
     out.push(prow('Lives in', psel(id,'parent',
       moveTargets(id).map(c=>[c.id, c.id===ROOT?'The Desk':(c.title||'Untitled')]), o.parent||ROOT)));
+  }
+  /* ---- save this board as a plan --------------------------------------
+     On the top level rather than behind a door, because it is a thing you do
+     *to the board you are standing on* and not a property of it — the same
+     footing the star (promote to a desk) has in the bar. Only a container has
+     a board to save, and the desk is a container. See decision 121. */
+  if(!sec && cont){
+    const held = S.objects.filter(x=>x.parent===id).length;
+    out.push(prow('Plan',
+      held ? `<button class="pill" data-act="saveplan" data-id="${id}">${ic('grid',13)} Save as a plan</button>`
+           : `<span class="mini" style="--k:var(--brass)">Nothing in it to save yet</span>`,
+      held ? `${held} on this board, and whatever is inside them` : ''));
   }
   /* …and the doors. Which ones there are depends on what the thing is: only a
      container collects, and the desk has no traits of its own to tick. */
@@ -1105,7 +1175,7 @@ function modalNewKind(from, editKey){
            size, phoneSize, onclick:(base&&base.onclick)||'read',
            read:(base&&base.read)||'page',
            sort, shape:(base&&base.shape)||'card', face:(base&&base.face)||'front',
-           sortBy:(base&&base.sort)||MANUAL,
+           sortBy:(base&&base.sort)||MANUAL, plan:(base&&base.plan)||'',
            gathers:gathersNow, spawnBy:(base&&base.spawnBy)||'click'},
     body:`
   <div class="kbuild">
@@ -1156,6 +1226,15 @@ function modalNewKind(from, editKey){
         chip(((base&&base.spawnBy)||'click')==='click','data-kspawn="click"','When pressed')+
         chip(((base&&base.spawnBy)||'click')==='type','data-kspawn="type"','As you type in it'),
         'kspawn', ` id="kspawnrow"${seedAttrs.includes('spawn')?'':' style="display:none"'}`)}
+      ${/* A type may open **fitted to a plan** — every one you make arrives with
+           that whole arrangement inside it, boxes and nesting and all. This is
+           what `seed:` was reaching for and could not say: seed is a list of
+           titles one level deep, and a shoot day is a board. See decision 121. */''}
+      ${row('Opens fitted to','a plan you saved — every one you make arrives with it inside',
+        `<select class="psel" data-kplan><option value="">Empty</option>${
+          plans().map(p=>`<option value="${p.id}"${(base&&base.plan)===p.id?' selected':''}>${esc(p.nm||'Untitled plan')}</option>`).join('')}</select>${
+          plans().length ? '' : `<div class="mini" style="--k:var(--brass);margin-top:6px">No plans saved yet — arrange a drawer, then <b>Save as a plan</b> in its own editor.</div>`}`,
+        'kplan', ` id="kplanrow"${sort==='object'?' style="display:none"':''}`)}
       ${/* a container's contents have a default order, like everything else a
            type decides. Manual is a real answer, and the one a drawer gives. */''}
       ${row('Contents sorted by','one of these can still be set per drawer',
@@ -1421,7 +1500,8 @@ function openCtx(x,y,id){
 }
 const closeCtx = ()=> $('#ctx').classList.remove('open');
 
-export { overlayHTML, openPanel, closePanel, refreshPanel, repositionPanel, panelKey, panelBack, draft,
+export { plansPanel, planCard,
+  overlayHTML, openPanel, closePanel, refreshPanel, repositionPanel, panelKey, panelBack, draft,
   openMenu, modalNewObject, holdPanel, objectPanel, drawerPanel, modalNewKind,
   renderPreview, modalMove, sampleObject, sampleTile, kindSample,
   openCmd, closeCmd, cmdList, cmdMove, cmdAt, runCmd, drawerFromSelection, openCtx, closeCtx,

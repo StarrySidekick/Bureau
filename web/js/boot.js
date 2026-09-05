@@ -2,6 +2,8 @@
    boot — load, wire, render, register the service worker
    ============================================================ */
 import { $ } from './util.js';
+import { plans, planFrom, stampPlan, planById, planSize, delPlan } from './plans.js';
+import { refreshKinds } from './model.js';
 import { S, KINDS, SHAPES, SORTS, childrenOf, container, relate, deskOf, has, lateOn, isLate, knobOf,
   urgencyOf, urgeSaid, workday,
   isContainer, faceOf,
@@ -125,6 +127,13 @@ window.BUREAU = {
   /* Urgency is derived, so there is nothing on an object for a test to read —
      it has to be able to ask the same question the sort and the rule ask. */
   urgency: urgencyOf, urgeSaid, workday,
+  /* Plans: saved, put down, and the list itself. A plan is not an object, so
+     nothing in `state.objects` answers for one and a test needs the module. */
+  plans, planFrom, stampPlan, planById, planSize, delPlan,
+  /* KINDS is BUILTIN_KINDS merged with S.kinds, and the merge is a step —
+     writing a type into S.kinds without it leaves K() answering the fallback.
+     The builder calls it; a test writing a type by hand needs to as well. */
+  refreshKinds,
   prioOf, repeatOf, repeatSaid, nextRepeat, boardLocked,
   closeSheet,
   // the type picker, so a test can open the thing rather than the gesture

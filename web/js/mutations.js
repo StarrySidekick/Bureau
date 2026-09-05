@@ -6,6 +6,7 @@ import { GRID, PHONE_GRIDS, colsOf, gridOf, freeSpot, lay, boxOk, sizeOfKind } f
 import { randomFront, randomBoard, randomLook, styleDefaults } from './look.js';
 import { render, reveal } from './views.js';
 import { tileRect, pop, clRefill } from './motion.js';
+import { planForKind, stampPlan } from './plans.js';
 import { closeSheet } from './sheet.js';
 import { assetDel, rescalePhone, rescaleOneBoard, rescaleBoxes, save } from './persist.js';
 
@@ -463,6 +464,14 @@ function create(kind, patch){
      gets one *put in it* rather than growing a second one of its own on its
      front. One level only: a seeded child's own seed is ignored, because two
      types that seed each other would fill the desk forever. */
+  /* A type may open **fitted to a plan** — a whole saved arrangement, boxes
+     and nesting and all, rather than `seed:`'s list of titles one level deep.
+     The plan comes first and `seed` is still read after it, so a type that had
+     one keeps working and a type can honestly have both. See decision 121. */
+  if(!(patch&&patch.noSeed) && kindHas(kind,'container')){
+    const pid = planForKind(kind);
+    if(pid) stampPlan(pid, o.id);
+  }
   if(!(patch&&patch.noSeed)) (k.seed||[]).forEach((sp,i)=>{
     if(!KINDS[sp.kind]) return;
     const child = create(sp.kind, {parent:o.id, title:sp.title||'', noSeed:true});

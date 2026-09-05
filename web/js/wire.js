@@ -18,10 +18,11 @@ import { openPanel, closePanel, refreshPanel, panelKey, panelBack, draft, openMe
   modalNewObject, modalNewKind, modalMove, renderPreview, holdPanel,
   drawerPanel, objectPanel,
   drawerFromSelection, openCtx, closeCtx, openCmd, closeCmd, cmdList, cmdMove, cmdAt, runCmd,
-  schedulePanel, quickISO, SCHED } from './panels.js';
+  schedulePanel, quickISO, SCHED, plansPanel } from './panels.js';
 import { onDown, onMove, onUp, onCancel, onTouchStart, onTouchMove, onTouchEnd,
   gestureFlags, dragArmed } from './gestures.js';
 import { enter, leaveTile, pagerOn, applyTilt, askTilt } from './motion.js';
+import { planFrom, stampPlan, planById, delPlan, planSize, renamePlan } from './plans.js';
 import { save, writeNow, exportBackup, importBackup, importFile, imgFor, pasteObjects, install , assetDel } from './persist.js';
 
 /* Mark one chip in a group as the chosen one. The selector is deliberately
@@ -278,6 +279,8 @@ function act(name, el){
         // a container type says how its contents are ordered; manual is the
         // answer a drawer gives, and storing it as one keeps it a real choice
         sort: dk.sort==='object' ? undefined : (dk.sortBy||MANUAL),
+        // the plan every one of these opens fitted to, if it has one
+        plan: dk.sort==='object' ? undefined : (dk.plan || undefined),
         gathers: dk.sort==='object' ? (dk.gathers||undefined) : undefined,
         spawnBy: dk.attrs.includes('spawn') ? (dk.spawnBy||'click') : undefined});
       refreshKinds();
@@ -416,6 +419,26 @@ function act(name, el){
       const a=attrsOf(o);
       if(!a.includes(want)){ pushSet(ATTRS[want] ? ATTRS[want].nm : want, o.id, 'attrs', o.attrs); o.attrs=a.concat(want); }
       save(); render(); refreshPanel();
+      break;
+    }
+    /* ---- plans ---------------------------------------------------------
+       Saving takes the board you are standing in; putting one down lays it
+       out where you are. Both are ordinary actions on the delegated listener,
+       which is what keeps a plan from needing a mode. See decision 121. */
+    case 'saveplan': {
+      const cid = el.dataset.id || S.openId || ROOT;
+      const c = byId(cid);
+      const nm = (c && c.title) || (cid===ROOT ? deskTitle() : 'Untitled');
+      const p = planFrom(cid, nm);
+      if(!p){ toast('Nothing to save'); break; }
+      save(); refreshPanel();
+      toast(`Saved “${p.nm}” as a plan — ${planSize(p)} thing${planSize(p)===1?'':'s'}`);
+      break;
+    }
+    case 'allplans': plansPanel(); break;
+    case 'delplan': {
+      const p = planById(el.dataset.id);
+      if(p && delPlan(p.id)){ save(); refreshPanel(); toast(`Deleted “${p.nm}”`); }
       break;
     }
     // Things 3.23's "create next copy" — a head start on the next one
@@ -769,6 +792,28 @@ function wire(){
       S.drawerId = id===ROOT ? null : id;
       S.kindFilter=null; render(); enter('back'); return; }
 
+    /* A plan, drawn as the board it will lay out — pressing one lays it out
+       where you are standing. A card, so it is found the way the desk map's
+       cards are and not through `data-act`. */
+    const pp=t.closest('[data-planput]');
+    if(pp){
+      /* The cell a hold sketched, when there is one — so a plan laid out from
+         the picker arrives where the finger was, not wherever the board had
+         room. `pending.cell` also names the container, which is what makes
+         this work inside a drawer as well as on the desk. */
+      const cell = pending.cell;
+      const home = (cell && cell.parent) || (S.view==='drawer' && S.drawerId) || ROOT;
+      const made = stampPlan(pp.dataset.planput, home, cell);
+      pending.cell = null;
+      if(!made.length){ toast('That plan is empty'); return; }
+      // one move, so ⌘Z takes the whole arrangement back off in one press
+      pushUndo('Lay out a plan', made.map(o=>({add:o.id})));
+      closePanel(); save(); render();
+      const top = made.filter(o=>o.parent===home)[0];
+      if(top) reveal(top.id);
+      toast(`Laid out ${made.length} thing${made.length===1?'':'s'}`);
+      return; }
+
     // the page dots in the top shelf: two fingers turn pages, and so do these
     const gp=t.closest('[data-gopage]');
     if(gp){ goPage(S.view==='drawer'?S.drawerId:ROOT, +gp.dataset.gopage); return; }
@@ -1014,6 +1059,8 @@ function wire(){
       const gr=$('#kgatherrow'); if(gr) gr.style.display = v==='object' ? '' : 'none';
       // …and only a container has contents to put in an order
       const sr=$('#ksortrow'); if(sr) sr.style.display = v==='object' ? 'none' : '';
+      // …and only a container can be born holding an arrangement
+      const pr=$('#kplanrow'); if(pr) pr.style.display = v==='object' ? 'none' : '';
       renderPreview(); return; }
     const kg=t.closest('[data-kgather]');
     if(kg){ draft().gathers=kg.dataset.kgather; only(kg,'#kgather button'); return; }
@@ -1252,6 +1299,11 @@ function wire(){
       S.look.dark=e.target.value; applyLook(); save(); render(); refreshPanel(); return;
     }
     if(e.target.dataset.ksort2!=null){ const d=draft(); if(d) d.sortBy=e.target.value; return; }
+    if(e.target.dataset.kplan!=null){ const d=draft(); if(d) d.plan=e.target.value; return; }
+    /* Renaming a plan is typed straight into its row, so it must not redraw
+       the panel — the input is the thing being typed in. The next ordinary
+       refresh agrees with it. */
+    if(e.target.dataset.planname){ renamePlan(e.target.dataset.planname, e.target.value); save(); return; }
     if(e.target.id==='imgpicker' && e.target.files && e.target.files[0]){
       importFile(e.target.files[0]); e.target.value='';
     }

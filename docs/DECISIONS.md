@@ -5186,3 +5186,93 @@ words with the one you are on lit, and the arithmetic spelled out beside it.
 A derived number that never says how it got there is one you stop believing;
 *"Tight — 8h of work, 3 days to a hard deadline"* is a sentence you can argue
 with, which is what makes it worth reading.
+
+## 121. A plan is a board you can put down again
+
+*2026-09-05*
+
+Timothy, on what the roadmap had been calling template-spawn: *"I basically want
+to be able to save layouts, be able to have types come with prepackaged layouts,
+and make new layouts myself and enable it as a toolset."* Three things, and the
+third is the one that makes it a feature rather than a convenience — a saved
+arrangement you can reach for while you are working, not a setting.
+
+**The word first, because `layout` was taken.** In Bureau a layout is how a
+container arranges its children when it opens — grid, list, scroll, book,
+calendar, timeline — and that word is in the interface, on a row of the object
+editor. Calling a saved board a layout too would have meant two unrelated
+answers to "what layout is this?" and a stored key that read as one and meant
+the other. A **plan** is what an architect draws of a room: an arrangement,
+drawn, so it can be built again. Short, in the same furniture register as the
+carcass and the drawer front, and colliding with nothing.
+
+**A plan is not on the grid, so it is not an object.** Everything else in Bureau
+is one, and the elegant-looking move was to make a plan a container with a null
+parent — a desk that is not in the row, which is nearly what `setPin()` already
+builds. That would have been one clever thing too many. `chainOf()` stops at a
+desk, `isDesk()` reads `S.desks`, and a container in neither state is an orphan
+that every walk of the object list — every magic rule, every reap, every export —
+would have had to be taught about, silently and one bug at a time. `S.plans` is
+its own list beside `S.kinds`, and the two are the same sort of thing: something
+the desk is made **with**, rather than something on it.
+
+**It carries everything but the doing.** Types, titles, bodies, boxes on both
+devices, colours, faces, the whole look, tags, and however deep the nesting
+goes. What it does not carry is the record of having done it — ticks, counts,
+history, dates, answers, the mark a repeat leaves on its copies. So a packing
+list arrives written and unticked, and a plan saved in January is not stamped
+overdue in September. A milestone travels and whether it is ticked does not; a
+repeat rule travels and its tally of copies made does not. The alternative
+considered was a true duplicate, which is simpler to build and means untickng
+eleven things every time you use one.
+
+The stripping happens at **capture**, not at stamping. A plan is then a clean
+thing you can look at, and putting one down is a plain copy with no rules in
+it — one list of doing-fields, in one place, rather than the same list written
+out twice and drifting.
+
+**Media is stripped outright**, and that one is structural rather than taste.
+Image and sound bytes live in IndexedDB, and `snapshot()` takes `media.src` out
+of every object on its way to localStorage. A plan is stored *inside* that
+snapshot, so a plan carrying a photograph would be a data URL smuggled past the
+one place in the app that exists to stop them.
+
+**Captured by parent, never by `childrenOf()`.** A magic drawer shows things
+that live somewhere else; a plan that captured a collection would put copies of
+other people's objects in the box, and stamping it would duplicate half the
+desk. A magic drawer *inside* a plan keeps its rule, which is a setting and
+travels like any other — so it arrives empty and fills itself, which is what a
+magic drawer is for.
+
+**Where it lands is one offset applied to the whole arrangement.** Holding a
+bare cell is how you make a thing *there* (decision 47), and a plan laid out
+from that gesture arrives under your finger — the top-left corner to that cell,
+everything else keeping its place relative to it. That is the only reason this
+is a plan rather than a list of titles: if the shape did not survive the move
+there would be nothing to save. Only the top level can collide, since everything
+deeper is going into a container that has just been made empty; where a box is
+taken, that one thing finds a spot and the rest stay, which beats re-flowing the
+board and beats refusing.
+
+A plan also stores the phone column count it was arranged on, because a column
+count is a coordinate space (decision 48) and a plan is boxes in one. Stamped
+onto a board with a different number, it gets the same rescale a stored desk
+gets when the grid size changes.
+
+**A type may open fitted to a plan**, which is what `seed:` was reaching for and
+could not say: seed is a list of titles, one level deep, with no boxes. Both are
+read, the plan first, so nothing already using seed had to change and a type can
+honestly have both. Deleting a plan clears the pointer off any type holding it —
+otherwise that type makes an empty container for ever, which is the quiet kind
+of broken.
+
+**And it is a toolset, which means it is in the picker.** A plan is a thing you
+make — several things, arranged — so it sits beside the types where you make
+things, three of them leading, the rest one press away. A settings door has all
+of them and is where they are renamed and thrown out. Saving is on the *top
+level* of a board's own editor rather than behind a door, because it is
+something you do to the board you are standing on and not a property of it —
+the same footing the star has in the bar.
+
+One press of ⌘Z takes a whole stamped arrangement back off, as one move. Laying
+out twenty things and then deleting them one at a time is not an undo.

@@ -4118,6 +4118,83 @@ const CHROME = process.env.BUREAU_CHROME;
     return out;
   });
 
+  /* --- a plan is a board you can put down again -------------------------
+     Everything here is about a copy being a copy: fresh ids, the doing left
+     behind, the arrangement kept. A plan that quietly shared ids with the
+     board it came off would be the id-collision bug of `dupIds` all over
+     again, and worse, because it would look right. */
+  const plansWork = await page.evaluate(async () => {
+    const nap = ms => new Promise(r => setTimeout(r, ms));
+    const S = BUREAU.state, out = {};
+    const d = BUREAU.create('drawer', {parent:'root', title:'Shoot day'});
+    d.desk = {x:1, y:4, w:6, h:6};
+    const t1 = BUREAU.create('task', {parent:d.id, title:'Charge batteries'});
+    t1.done = true; t1.due = '2026-01-01'; t1.desk = {x:1,y:1,w:5,h:1};
+    const t2 = BUREAU.create('task', {parent:d.id, title:'Load the van'});
+    t2.desk = {x:1,y:2,w:5,h:1};
+    const kit = BUREAU.create('checklist', {parent:d.id, title:'Kit'});
+    kit.desk = {x:1,y:3,w:5,h:4};
+    BUREAU.create('task', {parent:kit.id, title:'Tripod'});
+    BUREAU.render(); await nap(150);
+
+    const p = BUREAU.planFrom(d.id, 'Shoot day');
+    out.saves = !!p && BUREAU.plans().includes(p);
+    out.allTheWayDown = BUREAU.planSize(p) === 4;   // two tasks, the checklist, its task
+    out.keepsTheBoxes = p.objects.some(o => o.desk && o.desk.w === 5);
+    out.keepsTheNesting = p.objects.some(o => o.parent !== '__plan');
+    /* Everything but the doing: what a thing *is* travels, the record of
+       having done it does not — so a list arrives written and unticked, and a
+       plan saved in January is not stamped overdue in September. */
+    out.leavesTheDoing = p.objects.every(o => !o.done && o.due == null);
+    out.keepsTheWriting = p.objects.every(o => 'title' in o);
+    // a plan is not an object: nothing on any board answers to it
+    out.notAnObject = !S.objects.some(o => o.id === p.id)
+      && !S.objects.some(o => p.objects.some(q => q.id === o.id));
+
+    const before = S.objects.length;
+    const made = BUREAU.stampPlan(p.id, 'root');
+    out.putsItDown = made.length === 4 && S.objects.length === before + 4;
+    /* Fresh ids throughout. byId() returns the first match, so a shared id
+       means dragging one tile moves another — see `dupIds`. */
+    out.freshIds = made.every(o => !p.objects.some(q => q.id === o.id))
+      && new Set(made.map(o => o.id)).size === 4;
+    out.arrivesUnticked = made.every(o => !o.done);
+    out.nestingSurvives = made.filter(o => o.parent === 'root').length === 3
+      && made.some(o => o.parent !== 'root');
+    // …and one press of ⌘Z takes the whole arrangement back off
+    const ids = made.map(o => o.id);
+    S.undo.push({label:'Lay out a plan', steps: ids.map(id => ({add:id})), at:Date.now()});
+    BUREAU.undo(); await nap(150);
+    out.oneUndoTakesItBack = !S.objects.some(o => ids.includes(o.id));
+
+    /* Where it lands is an offset applied to the whole arrangement, so the
+       shape of it survives — which is the only reason it is a plan and not a
+       list of titles. */
+    const at = BUREAU.stampPlan(p.id, 'root', {x:9, y:9});
+    const top = at.filter(o => o.parent === 'root');
+    out.landsWhereAsked = Math.min(...top.map(o => o.desk.x)) === 9;
+    out.andKeepsItsShape = new Set(top.map(o => o.desk.y)).size === top.length;
+    at.forEach(o => BUREAU.del(o.id));
+
+    // a type may open fitted to one, which is what `seed:` was reaching for
+    S.kinds.shootday = {nm:'Shoot day', ic:'clapper', c:9, ds:'', attrs:['container'],
+      layout:'grid', size:[6,6], phoneSize:[6,6], body:'', plan:p.id};
+    BUREAU.refreshKinds && BUREAU.refreshKinds();
+    const born = BUREAU.create('shootday', {parent:'root', title:'Friday'});
+    out.aTypeOpensFittedToIt = BUREAU.kids(born.id).length === 3;
+    BUREAU.del(born.id); delete S.kinds.shootday;
+
+    // and deleting one takes the type's pointer at it with it, which is the
+    // quiet kind of broken otherwise: an empty container made for ever
+    S.kinds.ghost = {nm:'Ghost', attrs:['container'], plan:p.id, size:[2,2], body:''};
+    BUREAU.delPlan(p.id);
+    out.deletingUnhooksTheType = !S.kinds.ghost.plan && !BUREAU.planById(p.id);
+    delete S.kinds.ghost;
+    BUREAU.del(d.id);
+    S.undo = []; S.redo = []; BUREAU.render();
+    return out;
+  });
+
   /* --- urgency is a deadline and an estimate put together --------------
      Nothing stores it, so every claim here is about arithmetic being done at
      read time — which is exactly the kind of thing that fails silently. */
@@ -5481,7 +5558,7 @@ const CHROME = process.env.BUREAU_CHROME;
     settingsHasDoors, settingsBack,
     wordsNotSource, deadlines, twoClauses, undoEverything, savesOnlyChanges,
     paletteKeys, editorKeys, pickerLeads, rollupsEverywhere, soundAndVision, keyboardBoard,
-    ranking, urgency, repeating, oneLock, scheduling, ownColour, addBox, calFaces,
+    ranking, urgency, plansWork, repeating, oneLock, scheduling, ownColour, addBox, calFaces,
     lockedBoard, freeTraits, pageWrites, tickBoxes, readerFits,
     dropsIn, keyframesRegistered, aesthetics, slotScoping, objectsDressed, grainSlots, tagged, drawnAesthetic, deeper, lookStage, statusBar, bindings, panelling, theSpray, tappingIsQuiet, decorations, pinboard
   }, null, 2));

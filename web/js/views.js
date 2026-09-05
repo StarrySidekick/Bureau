@@ -12,7 +12,7 @@ import { GRID, PHONE_GRIDS, CELL, COLW, MEASURE, colsOf, gridKeyOf,
 import { themeNow, applyLook, lookVal, STYLES, BACKDROPS, DARKMODES, darkMode, hasDark,
   palNow, setSlot, styleNow, hexOf, objColour, slotName, OBJ0, CHECKS, dressAs } from './look.js';
 import { gridOfContainer, gridTile, listTile, scrollEntry, bookView, calSpan } from './tiles.js';
-import { openPanel, closePanel, panelKey, repositionPanel } from './panels.js';
+import { openPanel, closePanel, panelKey, repositionPanel, plansPanel } from './panels.js';
 /* Cyclic at *function* level only — motion.js imports render() from here and
    this imports sprayAt() from there, and neither is called while the modules
    are loading. That is the graph the app already has; keep it that way. */
@@ -413,11 +413,16 @@ const SETSECS = {
      not a look, a board or a backup, so it is its own door rather than a row
      wedged into someone else's. See decisions 66 and 120. */
   time:   ['Time and urgency','clock', "a day's work, and what makes a thing urgent"],
+  plans:  ['Plans',      'grid',    'boards you saved, to lay out again'],
   things: ['Your things','archive', 'how much there is, and getting it out'],
   paste:  ['Paste in',   'plus',    'objects described as JSON'],
   about:  ['About',      'help',    'which Bureau this is, and starting over']
 };
 function settingsPanel(sec){
+  /* Plans is a door in this list and a **panel of its own** — it is wide, it
+     draws boards rather than rows, and it is reached from the picker as well
+     as from here. So the row hands over rather than rendering in place. */
+  if(sec==='plans') return plansPanel();
   const s = SETSECS[sec] ? sec : null;
   openPanel({key:'settings', title: s ? SETSECS[s][0] : 'Settings',
     sub: s ? 'Settings' : `Bureau ${APP_VERSION} · ${installed()?'installed':'in a browser tab'}`,

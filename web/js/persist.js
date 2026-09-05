@@ -17,7 +17,7 @@ import { closePanel } from './panels.js';
    Bureau is this phone running" is exactly the question you ask when a change
    appears not to have deployed. Shown in Settings, so it can be read off the
    device rather than guessed at. */
-const APP_VERSION = '1.41';
+const APP_VERSION = '1.42';
 const KEY = 'bureau.v1';
 const install = {deferred:null};   // the browser's install prompt, when one is on offer
 let saveTimer = null;
@@ -35,8 +35,12 @@ function snapshot(){
   const live = id => id===ROOT || S.objects.some(o=>o.id===id);
   const desks=(S.desks||[ROOT]).filter(live);
   const pins=(S.pins||[]).filter(live);
+  /* Plans travel with the desk. They are made *with*, like kinds — a backup
+     that restored your types and not the arrangements you built out of them
+     would restore half a desk. They carry no media by construction, so there
+     is nothing here for the `media.src` strip above to do. */
   return {v:DATA_V, savedAt:new Date().toISOString(), desks, pins,
-          look:S.look, kinds:S.kinds, deskCfg:S.deskCfg, objects};
+          look:S.look, kinds:S.kinds, plans:S.plans||[], deskCfg:S.deskCfg, objects};
 }
 /* ---- writing, and only when there is something to write ----------------
    `save()` means "something changed": it marks the desk dirty and asks for a
@@ -584,6 +588,9 @@ function adopt(d){
   const fixedIds=dedupeIds(S.objects);
   if(fixedIds) setTimeout(()=>toast(`Repaired ${fixedIds} duplicated id${fixedIds>1?'s':''}`),400);
   S.kinds = d.kinds || {};
+  // absent in every snapshot written before decision 121, which needs no
+  // migration: no plans is the same thing as an empty list
+  S.plans = Array.isArray(d.plans) ? d.plans : [];
   if(d.deskCfg) S.deskCfg = Object.assign({layout:'grid',locked:false,sort:null}, d.deskCfg);
   S.look = Object.assign(defaultLook(), d.look||{});
   // the grid size is a coordinate space, so it has to be in place before

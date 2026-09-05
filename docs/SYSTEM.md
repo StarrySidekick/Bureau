@@ -652,6 +652,15 @@ the start, `#tag` anywhere, and `!today` / `!tomorrow` / `!week`.
   finishing early needs no special case at all. The copy carries `fromRepeat`
   and wears a small repeat glyph: a thing that comes round, not a thing you
   wrote down.
+- **A plan is a saved board**, in `S.plans` — not an object, not on any grid,
+  and beside `S.kinds` because both are what the desk is made *with*. It holds
+  what a container had in it all the way down: types, titles, bodies, boxes on
+  both devices, look, tags, nesting. It does **not** hold the doing — ticks,
+  counts, dates, history — which is stripped at capture, nor media, which lives
+  in IndexedDB and must never reach the snapshot. `planFrom(cid)` saves one and
+  `stampPlan(id, into, at)` lays it out with fresh ids, shifting the whole
+  arrangement by one offset so its shape survives. A kind may carry `plan`,
+  which supersedes `seed:`. See decision 121.
 - **Urgency is derived and stored nowhere.** `urgencyOf(o)` — the days you have
   to a deadline, less the days the work needs (`dur` minutes ÷ `workday()`
   hours). What is left is *slack*, and the ladder is Room · Ahead · Soon ·
