@@ -403,3 +403,21 @@
        opacity:0}
 }
 @media (prefers-reduced-motion: reduce){ .fxtoss{display:none} }
+
+/* Filing lands — toss's mechanism, aimed inward.
+   The tile falls from where you let go into the front it went into, and it
+   accelerates on the way: a thing going into a drawer picks up speed, where a
+   thing being thrown leaves fast and slows. Same no-filter rule as `.fxtoss`,
+   and for the same reason — it scales, and a scale re-rasterises whatever
+   filter is on it. See ROADMAP 0b-next item 1. */
+.fxfile{position:absolute;pointer-events:none;z-index:60;
+  transform-origin:50% 50%;will-change:transform,opacity;
+  animation:filein var(--filems,360ms) cubic-bezier(.45,0,.75,.6) forwards}
+.fxfile *{filter:none !important;animation:none !important}
+@keyframes filein{
+  0%  {transform:none;opacity:1}
+  55% {opacity:.9}
+  100%{transform:translate(var(--filex,0),var(--filey,0)) scale(var(--filek,.3));
+       opacity:0}
+}
+@media (prefers-reduced-motion: reduce){ .fxfile{display:none} }

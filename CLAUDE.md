@@ -98,7 +98,11 @@ this phone running" can be read off the device instead of guessed at.
 `APP_VERSION` **is the commit count**, written `0.NN`: the fifty-first commit is
 `0.51` and the hundredth is `1.00`, which will be the first honest claim to a
 1.0 this app has made. `git log --oneline | wc -l`, plus the commit you are
-about to make. Without
+about to make. **In a shallow clone that count is a lie**: it read 53 against
+an `APP_VERSION` of 1.40, and taking it at face value would walk the version
+*backwards* — which Settings would then report, on top of a cache name the
+origin has already served. Ask `git rev-parse --is-shallow-repository` first,
+and if it says true, read the current `APP_VERSION` and add one. Without
 the cache bump, installed copies keep serving the old version. A **new** file must also be added to `SHELL` in `sw.js` or
 it won't work offline. This is the easiest thing in the project to forget and
 the symptom — "my change didn't deploy" — points at the wrong culprit.
@@ -230,6 +234,17 @@ corners into the path itself, because canvas's `lineJoin:'round'` only rounds a
 light on a dark style, named nowhere. It is passed into `bitPath()` rather than
 read off `strokeStyle`, because two of the shapes stroke themselves in their
 own colour and Settings draws its samples through the same function.
+
+**Filing lands, and the picture is read before the state changes.** `fileTo()`
+in motion.js: a drop that files an object flies a picture of the tile from
+where you let go into the front it went into, shrinking as it goes — toss's
+mechanism aimed inward. The source element and its rect must both be captured
+**before** `fileInto`/`save`/`render`, because `render()` replaces `#app` and
+the element in your hand is detached a moment later with a rect of nothing.
+The drawer's own `swallow` bump moved to the *end* of the fall, so the two read
+as one event; that is a delay on an animation and not on a state change. A
+**gather** keeps the bump and does not get the fall — nothing went into
+anything, a third thing was made. See ROADMAP 0b-next item 1.
 
 **An animation never holds anything up.** This is the one rule in `motion.js`
 and it is easy to break by accident. A tap files, ticks or navigates the

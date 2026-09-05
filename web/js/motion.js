@@ -308,6 +308,63 @@ function toss(src, r, vx, vy){
   setTimeout(()=>box.remove(), 620);
 }
 
+/* Filing lands.
+   ---------------------------------------------------------------------
+   Dropping a tile into a drawer used to play `swallow` alone — a 7% bump on
+   the *drawer*. That says something arrived and never says what, so on a busy
+   board a file and a mis-drop looked identical. The tile itself falls in now:
+   a picture of the thing you were holding, from exactly where you let go,
+   shrinking into the front it went into. Toss's trick aimed inward instead of
+   away, which is also §0b-next item 1's own description of it.
+
+   Three things it does not do, all of them rules rather than choices.
+
+   It never holds anything up. The object is filed, saved and re-rendered
+   before this is called at all, and the picture is drawn over the result in
+   `#fx` — outside the element `render()` replaces. Decision 38.
+
+   It carries no filter, because it scales: a desk has a drop-shadow on every
+   torn shape and a filter costs per element per repaint. Decision 101, and
+   the same reason `.fxtoss` strips them.
+
+   And the drawer's own bump now lands when the tile does rather than when the
+   finger lifts. That is a delay on an *animation*, which is allowed; the
+   state changed a frame ago either way. */
+const FILE_MS=360;
+function fileTo(src, from, toId){
+  const bump=()=>{ const el=document.querySelector(`[data-drawer="${toId}"]`);
+    if(el){ el.classList.add('swallow'); setTimeout(()=>el.classList.remove('swallow'),420); } };
+  // Reduced motion still gets the bump: it is one scale step, not a journey,
+  // and something has to say the drop was taken.
+  if(!src || !from || !from.width || still() || !fx()){ bump(); return; }
+  const dest=document.querySelector(`[data-drawer="${toId}"]`);
+  if(!dest){ bump(); return; }
+  const to=dest.getBoundingClientRect();
+  if(!to.width){ bump(); return; }
+
+  const box=document.createElement('div');
+  box.className='fxfile';
+  at(box, from);
+  // Centre to centre, and small enough at the end to read as having gone in
+  // rather than as having landed on top. Measured against the drawer, so a
+  // 1x1 front takes it further down than a 6x4 one does.
+  const k=Math.min(1, Math.min(to.width/from.width, to.height/from.height)*0.55);
+  box.style.setProperty('--filex', Math.round((to.left+to.width/2)-(from.left+from.width/2))+'px');
+  box.style.setProperty('--filey', Math.round((to.top+to.height/2)-(from.top+from.height/2))+'px');
+  box.style.setProperty('--filek', k.toFixed(3));
+  box.style.setProperty('--filems', FILE_MS+'ms');
+
+  const ghost=picture(src);
+  ghost.classList.remove('dragging','lifted','invalid','justmade');
+  ['grid-column','grid-row','transform','--carryx','--carryy','z-index']
+    .forEach(k2=>ghost.style.removeProperty(k2));
+  ghost.style.width='100%'; ghost.style.height='100%';
+  box.appendChild(ghost);
+  fx().appendChild(box);
+  setTimeout(()=>box.remove(), FILE_MS+60);
+  setTimeout(bump, FILE_MS-90);
+}
+
 /* ---- a movement you drive with your fingers ---------------------------
    The four animations a dive is made of are CSS, on one clock (`--divems`),
    and every one of them is `linear` because `dive()` bakes the easing into the
@@ -1342,6 +1399,7 @@ function pagerCancel(){
 }
 
 export { still, tileOf, tileRect, openingFor, openTile, leaveTile, enter, pop, clRefill, toss,
+  fileTo,
   spray, sprayAt, sprayCount, SPRAYS, sprayNow, sprayMark,
   pagerBegin, pagerMove, pagerEnd, pagerCancel, pagerOn, stepDrawer,
   applyTilt, askTilt, tiltTo, tiltRecentre };

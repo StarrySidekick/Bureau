@@ -33,9 +33,15 @@ Decisions 120 and 121.
 
 *Deliberately not done:* sync, which Timothy is holding until Bureau is a
 TestFlight app, since the transport will be a different question by then. The
-Depth and light door stays as it is; the defaults get locked in later. The
-filing-lands animation (§0b-next item 1) was built on another branch and lands
-separately.
+Depth and light door stays as it is; the defaults get locked in later.
+
+*Merged with:* the filing-lands animation (§0b-next item 1), built overnight on
+its own branch. The two touched no code in common — only `APP_VERSION`, `CACHE`,
+`CLAUDE.md`, this file and `smoke.mjs`, and only the first two conflicted. The
+fall was re-checked on the merged tree by driving a real drop, since the block
+that guarded it was taken back out: the object is filed, an `.fxfile` picture
+flies with a real translation and a scale under 1, and `#fx` is empty
+afterwards.
 
 ---
 
@@ -463,9 +469,44 @@ is started; pick from it.
 
 **Things that would be felt every day**
 
-1. **Filing lands.** Dropping a tile into a drawer currently plays `swallow`,
-   a 7% scale bump on the *drawer*. The tile itself should shrink and fall into
-   the drawer's mouth — same trick as the drawer front flying, run backwards.
+1. ~~**Filing lands.**~~ **Done (v1.41.)** The tile falls in: a picture of what
+   you were holding, from exactly where you let go, shrinking into the front it
+   went into. `fileTo()` in motion.js — toss's mechanism aimed inward rather
+   than away, and it carries the tile's own markup rather than a stand-in.
+
+   Three things fell out of building it. Both halves of the geometry have to be
+   read *before* the state change, because `render()` replaces `#app` and a
+   moment later the element in your hand is detached and its rect is nothing.
+   The drawer's own bump now lands when the tile does rather than when the
+   finger lifts — a delay on an animation, which is allowed, where a delay on
+   the state change would not be. And **gathering deliberately does not get
+   it**: nothing went into anything there, a third thing was made, so it keeps
+   the bump alone.
+
+   It also applies to the two drops that file without looking like filing — a
+   tile dropped on a calendar day, and one dropped along a timeline. Both move
+   the object into the container, and neither said so before; the day drop had
+   no feedback at all.
+
+   **It is verified but not yet guarded, and that is worth finishing.** The
+   behaviour was checked by driving a real drag: the object is filed by the
+   time the drop returns, a picture of the tile flies in `#fx` carrying a real
+   translation and a scale under 1, it answers to no id, and it cleans itself
+   up — plus three frames of the fall, captured by freezing the animation with
+   a negative delay and hiding `#app`, which show the tile's own paper and tick
+   box travelling and shrinking.
+
+   A `filingLands` block asserting all of that was written and then **taken
+   back out**, because it destabilised `smoke.mjs` and a suite you cannot trust
+   is worse than a missing assertion. Two things it got wrong, both recorded so
+   the next attempt starts ahead of them: a test ending on a real drag leaves
+   `gestureFlags.suppressClick` set, which swallows the *next* test's press
+   (`longPress.armed` and `groupMove` both failed); and forcing
+   `S.look.locked = true` afterwards is not the fix — restoring the previous
+   value instead made the suite hang outright, somewhere after
+   `18-task-shapes`. Whatever the right cleanup is, it is not either of those,
+   and it wants a machine where the suite runs in minutes rather than the
+   forty this one took.
 2. **A new object arrives from where it was made.** `reveal()` flashes
    `justmade`; it could instead grow out of the shelf, the picker tile, or the
    cell you sketched — so "where did that go" is answered by watching.
