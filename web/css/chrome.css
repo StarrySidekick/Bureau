@@ -1457,16 +1457,38 @@ html .drawer.dtile.cltile{background-image:none}
    reason `late` already is, and running them through the eleven would make
    "which of these is the hard one" a question about what desk you are on. */
 .sday{position:relative}
-/* The work is a **rule along the top edge**, not a fill. It has to survive
-   under one: the last day of the band is nearly always the deadline itself,
-   and a grey background beaten by a red one made a three-day run read as two.
-   An edge is also the honest shape for it — the other three are days and this
-   is a span. It bleeds 1px either side so the grid's own gap does not chop the
-   run into separate marks. */
+/* The work is a **highlighter stroke**, drawn over the day rather than under
+   it. A hairline along the top said the right thing and looked like a border
+   that had gone wrong; a marker swipe is what you would actually do to a
+   fortnight on a paper calendar, and it is the only mark here that is a
+   *span* rather than a day.
+
+   Over, not under, is the whole trick: the last day of the run is nearly
+   always the deadline itself, and a fill drawn underneath loses to the red
+   one, which made a three-day run read as two. At this alpha the red still
+   reads as red and the stroke still reads as continuous across it. It bleeds
+   past both edges so the grid's own gap cannot chop the run into dashes, and
+   the ends are ragged the way a marker's are. */
 .sday.work::before{
-  content:"";position:absolute;top:0;left:-1px;right:-1px;height:3px;
-  background:color-mix(in srgb,var(--ink) 34%,transparent)}
-.sday.work.out::before{opacity:.5}
+  content:"";position:absolute;z-index:1;pointer-events:none;
+  left:-2px;right:-2px;top:12%;bottom:12%;
+  background:linear-gradient(180deg,
+    color-mix(in srgb,var(--brass) 26%,transparent),
+    color-mix(in srgb,var(--brass) 42%,transparent) 34%,
+    color-mix(in srgb,var(--brass) 32%,transparent));
+  border-radius:1px}
+/* No blend mode, and that was found by looking: `multiply` is right on
+   parchment and nearly invisible over the red deadline, which is precisely
+   the day the run has to be seen crossing. A plain translucent wash veils
+   whatever is under it — gold on paper, and a lighter band across the red —
+   which is what a highlighter actually does to ink. */
+/* the two ends of the stroke, where the pen was set down and lifted */
+.sday.work.bandstart::before{left:1px;border-radius:6px 1px 1px 6px}
+.sday.work.bandend::before{right:1px;border-radius:1px 6px 6px 1px}
+.sday.work.out::before{opacity:.45}
+/* the number rides on top of the stroke, the way ink does under a marker */
+.sday{isolation:isolate}
+.sday.work{z-index:0}
 .sday.on,.sday.soft,.sday.dead{border-radius:var(--radius);font-weight:600}
 .sday.on{background:#E3B23C;color:#2A241C;border-color:#E3B23C}
 .sday.soft{background:#E08A3C;color:#221B14;border-color:#E08A3C}
@@ -1476,36 +1498,87 @@ html .drawer.dtile.cltile{background-image:none}
 .sday.soft.dead{box-shadow:inset 0 -3px 0 #E08A3C}
 .sday.out.on,.sday.out.soft,.sday.out.dead{opacity:.6}
 
-/* ---- the three pens — decision 125 ------------------------------------
-   Which of the three dates a press on the month writes. They are the legend
-   as well as the control: each carries the colour it puts down and the date it
-   is already holding, so "which of these is the hard one" is answered by the
-   thing you press rather than by a key underneath. One that the object hasn't
-   got yet is an outline, and picking it up picks up the trait with it. */
-.schedpens{display:flex;flex-wrap:wrap;gap:5px;margin:0 1px 8px}
+/* ---- three buttons off a card — decisions 125 and 126 ------------------
+   When, Done and Due, drawn as **sewing buttons**: a turned disc with four
+   thread holes, in the colour it puts down. Drag one onto a day, or press it
+   and press the day — the two ways anything on a desk gets moved. One the
+   task hasn't got yet is still sewn to the card and picks up its trait when
+   you take it.
+
+   They are the readout as well as the control, which is what let the three
+   date rows underneath go: a button sitting on the 14th says where the 14th
+   falls against the other two and against the work, which `09/14/2026` in a
+   field never could. */
+.schedpens{display:flex;flex-wrap:wrap;gap:4px;margin:0 1px 9px;align-items:center}
 .schedpen{
-  display:inline-flex;align-items:center;gap:5px;padding:5px 9px;
-  border-radius:var(--radius);border:1px solid var(--rule);background:var(--paper-2);
-  font-size:11.5px;color:var(--ink-2);transition:.12s;
-  /* the colour it puts down, carried on its own left edge like a nib */
-  border-left:3px solid var(--pen,var(--rule));
+  display:inline-flex;align-items:center;gap:6px;padding:4px 10px 4px 5px;
+  border-radius:var(--pill);border:1px solid var(--rule);background:var(--paper-2);
+  font-size:11.5px;color:var(--ink-2);transition:.12s;cursor:grab;
+  touch-action:none;   /* the drag owns the finger, or the panel scrolls under it */
+  user-select:none;-webkit-user-select:none;
 }
-.schedpen u{text-decoration:none;color:var(--ink-3);font-size:10.5px}
-.schedpen.p-due{--pen:#E3B23C}
-.schedpen.p-soft{--pen:#E08A3C}
-.schedpen.p-dead{--pen:#C0563F}
-.schedpen.un{border-style:dashed;border-left-style:solid;color:var(--ink-3);background:transparent}
-.schedpen:hover{border-color:var(--brass);border-left-color:var(--pen)}
-.schedpen.on{background:var(--pen);border-color:var(--pen);color:#221B14;font-weight:600}
-.schedpen.on u{color:rgba(34,27,20,.62)}
-.schedpen.p-dead.on{color:#FFF3EC}
-.schedpen.p-dead.on u{color:rgba(255,243,236,.7)}
+.schedpen b{font-weight:600;letter-spacing:.01em;font-family:var(--sans)}
+/* the button itself: turned stock, a rim, and four holes with thread in them */
+.schedpen .btn{
+  width:19px;height:19px;flex:0 0 auto;border-radius:50%;position:relative;
+  background:
+    radial-gradient(circle at 34% 30%, rgba(255,255,255,.5), transparent 46%),
+    radial-gradient(circle at 62% 74%, rgba(0,0,0,.26), transparent 52%),
+    var(--pen,#C8BC9E);
+  box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.28),
+             inset 0 0 0 2.5px rgba(0,0,0,.14),
+             0 1px 2px rgba(0,0,0,.32);
+}
+/* four holes, and the cross of thread through them */
+.schedpen .btn::before{
+  content:"";position:absolute;inset:0;border-radius:50%;
+  background:
+    radial-gradient(circle at 36% 36%, rgba(0,0,0,.62) 0 1.5px, transparent 1.6px),
+    radial-gradient(circle at 64% 36%, rgba(0,0,0,.62) 0 1.5px, transparent 1.6px),
+    radial-gradient(circle at 36% 64%, rgba(0,0,0,.62) 0 1.5px, transparent 1.6px),
+    radial-gradient(circle at 64% 64%, rgba(0,0,0,.62) 0 1.5px, transparent 1.6px)}
+.schedpen .btn::after{
+  content:"";position:absolute;left:36%;right:36%;top:calc(50% - .75px);height:1.5px;
+  background:var(--thread,#F1EBDA);opacity:.75;border-radius:1px;
+  transform:rotate(45deg);transform-origin:center}
+.schedpen.p-due{--pen:#E3B23C;--thread:#7A5C18}
+.schedpen.p-soft{--pen:#E08A3C;--thread:#6B3C12}
+.schedpen.p-dead{--pen:#C0563F;--thread:#FFE6DC}
+/* not sewn on yet: the disc is an empty stitch-hole in the card */
+.schedpen.un{border-style:dashed;color:var(--ink-3);background:transparent}
+.schedpen.un .btn{
+  background:none;box-shadow:inset 0 0 0 1.5px var(--rule);opacity:.75}
+.schedpen.un .btn::before,.schedpen.un .btn::after{opacity:.3}
+.schedpen:hover{border-color:var(--brass)}
+/* placed on the month: the card shows the hole it came out of */
+.schedpen.placed{background:transparent;border-style:dotted;color:var(--ink-3)}
+.schedpen.placed .btn{
+  background:none;box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--pen) 55%,transparent);
+  opacity:.85}
+.schedpen.placed .btn::after{opacity:.25}
+/* in your hand, waiting for a day */
+.schedpen.up{border-color:var(--pen);background:color-mix(in srgb,var(--pen) 18%,transparent);
+  color:var(--ink);font-weight:600;cursor:grabbing}
+.schedpen.up .btn{background:
+    radial-gradient(circle at 34% 30%, rgba(255,255,255,.5), transparent 46%),
+    radial-gradient(circle at 62% 74%, rgba(0,0,0,.26), transparent 52%),
+    var(--pen);
+  box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.28), inset 0 0 0 2.5px rgba(0,0,0,.14),
+             0 0 0 3px color-mix(in srgb,var(--pen) 34%,transparent), 0 1px 2px rgba(0,0,0,.32)}
+.schedpen.up .btn::after{opacity:.75}
+
+/* the one being carried, and the day it is over */
+.penghost{
+  position:absolute;z-index:70;pointer-events:none;
+  transform:translate(-50%,-50%) scale(1.18);
+  filter:drop-shadow(0 4px 7px rgba(0,0,0,.4))}
+.sday.aim{box-shadow:inset 0 0 0 2px var(--brass)}
 
 /* the one mark the pens cannot carry, because it is a span rather than a day */
 .schedkey{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;
   margin:7px 1px 12px;font-size:10.5px;color:var(--ink-3)}
 .schedkey .k{width:9px;height:9px;border-radius:2px;display:inline-block;margin-right:2px}
-.schedkey .k.work{background:color-mix(in srgb,var(--ink) 34%,transparent);height:3px;border-radius:1px;width:14px}
+.schedkey .k.work{background:color-mix(in srgb,var(--brass) 40%,transparent);height:9px;border-radius:1px;width:16px}
 
 /* ---- a rank drawn as its own mark — decision 123 -----------------------
    Priority is stars and difficulty is teardrops, filled up to the rank, so the
@@ -1516,13 +1589,16 @@ html .drawer.dtile.cltile{background-image:none}
    The lit marks are the ones up to and including the answer; the answer itself
    also carries the ring, so "which one did I press" survives a row where six
    things are lit. */
+/* A rank is read at a glance and never typed, so the mark is the control and
+   it is drawn at a size you can actually see the shape of — a star at 13px is
+   a speck that could be anything. */
 .ratrow{display:flex;gap:3px;align-items:center;flex-wrap:wrap}
 .ratbtn{
-  width:28px;height:28px;border-radius:var(--radius);border:1px solid transparent;
-  background:transparent;color:var(--ink-3);font-size:12px;
+  width:36px;height:36px;border-radius:var(--radius);border:1px solid transparent;
+  background:transparent;color:var(--ink-3);font-size:13px;
   display:grid;place-items:center;transition:.12s;
 }
-.ratbtn:first-child{width:24px;border-color:var(--rule);font-weight:600}
+.ratbtn:first-child{width:26px;height:36px;border-color:var(--rule);font-weight:600}
 .ratbtn:hover{color:var(--ink);border-color:var(--brass)}
 .ratbtn.lit{color:var(--brass)}
 .ratbtn.lit svg{fill:var(--brass);stroke:var(--brass)}

@@ -1369,7 +1369,8 @@ function schedMonth(o, anchorISO){
     const tip = [on&&'the day it sits on', soft&&'aim for', dead&&'due by',
                  work&&`${band.days} day${band.days===1?'':'s'} of work`].filter(Boolean).join(' · ');
     cells.push(`<button class="sday${out?' out':''}${iso===T?' today':''}${
-      work?' work':''}${on?' on':''}${soft?' soft':''}${dead?' dead':''}"${
+      work?' work':''}${work&&iso===band.from?' bandstart':''}${work&&iso===band.to?' bandend':''}${
+      on?' on':''}${soft?' soft':''}${dead?' dead':''}"${
       tip?` title="${esc(tip)}"`:''} data-schedday="${o.id}:${iso}">${d.getDate()}</button>`);
   }
   return `<div class="schedmonth">
@@ -1397,9 +1398,9 @@ const SCHED = {month:null, mode:'due'};
    attribute each one needs is named here too, so pressing the pen for a trait
    the object hasn't got can pick it up on the way. */
 const SCHED_PENS = [
-  ['due',  'date',         'On',     'calendar'],
-  ['soft', 'softdeadline', 'Aim for','target'],
-  ['dead', 'deadline',     'Due by', 'flag']
+  ['due',  'date',         'When'],
+  ['soft', 'softdeadline', 'Done'],
+  ['dead', 'deadline',     'Due']
 ];
 /* ---- When: everything a task is weighed by, on one page ----------------
    The day it sits on, both deadlines, how long the work is, how hard it is,
@@ -1431,11 +1432,11 @@ function schedulePanel(id){
       /* Everything it could carry and does not, each with the mark it wears
          everywhere else — a flag is owed, a target is aimed at, a clock is
          time, a star is worth, a teardrop is effort. */
+      /* What it could carry and does not. The three dates are not here — they
+         are buttons on the card above, which is a better offer than a chip. */
       const missing = [
-        ['date','Date','calendar'], ['deadline','Hard deadline','flag'],
-        ['softdeadline','Soft deadline','target'], ['duration','Duration','clock'],
-        ['difficulty','Difficulty','drop'], ['priority','Priority','star'],
-        ['repeat','Repeats','repeat']
+        ['duration','Duration','clock'], ['difficulty','Difficulty','drop'],
+        ['priority','Priority','star'], ['repeat','Repeats','repeat']
       ].filter(([a])=>!has(ob,a));
       /* A rating drawn as its own mark, filled to the rank. The scale stays
          visible — decision 72's argument for six buttons rather than a select —
@@ -1450,7 +1451,7 @@ function schedulePanel(id){
         <button class="ratbtn${now==null?' on':''}" data-${attr}="" data-id="${id}" title="Unranked">–</button>
         ${list.map(([n,nm,ds])=>
           `<button class="ratbtn${now!=null&&n>0&&n<=now?' lit':''}${now===n?' on':''}"
-             data-${attr}="${n}" data-id="${id}" title="${esc(nm)} — ${esc(ds)}">${ic(mark,13)}</button>`).join('')}</div>`;
+             data-${attr}="${n}" data-id="${id}" title="${esc(nm)} — ${esc(ds)}">${ic(mark,20)}</button>`).join('')}</div>`;
       const r = repeatOf(ob) || {every:1, unit:'day', days:[], from:'date'};
       return `${trow('Name', `<input class="pfield" data-oset="${id}:title" value="${esc(ob.title||'')}" placeholder="Untitled">`)}
 
@@ -1459,15 +1460,18 @@ function schedulePanel(id){
           return `<button class="pill${(k==='clear'?!ob.due:ob.due===iso)?' solid':''}"
             data-schedset="${id}:${k}">${mk?ic(mk,12):''}${nm}${iso?`<u>${esc(D.short(iso))}</u>`:''}</button>`;
         }).join('')}</div>
-        ${/* Which pen the month is holding. A trait it hasn't got is drawn as an
-             outline and picks itself up when pressed — one tap to have a soft
-             deadline and be placing it, rather than a chip somewhere else and
-             then a field. */''}
-        <div class="schedpens">${SCHED_PENS.map(([k,attr,nm,mk])=>{
-          const got = has(ob, attr), on = SCHED.mode===k;
-          return `<button class="schedpen p-${k}${on?' on':''}${got?'':' un'}"
-            data-schedpen="${id}:${k}">${ic(mk,11)}${nm}${
-            got && ob[k] ? `<u>${esc(D.short(ob[k]))}</u>` : ''}</button>`;
+        ${/* Three buttons off a card, and you put them on a day. Drag one onto
+             the month, or press it and then press the day — the same two ways
+             a real thing on a desk is moved. One the task hasn't got yet is
+             sewn on the card still and picks up its trait when you take it.
+             They are *on* the calendar once placed, which is why there are no
+             date rows underneath: the month is the readout. See decision 126. */''}
+        <div class="schedpens">${SCHED_PENS.map(([k,attr,nm])=>{
+          const got = has(ob, attr), placed = got && ob[k], on = SCHED.mode===k;
+          return `<span class="schedpen p-${k}${on?' up':''}${placed?' placed':''}${got?'':' un'}"
+            data-schedpen="${id}:${k}" role="button" tabindex="0"
+            title="${esc(nm)}${placed?' — '+D.said(ob[k]):' — not placed yet'}">
+            <i class="btn"></i><b>${nm}</b></span>`;
         }).join('')}</div>
         ${schedMonth(ob, SCHED.month)}
         <div class="schedkey">
@@ -1475,11 +1479,11 @@ function schedulePanel(id){
         </div>
         ${trow('On', pfield(id,'due', ob.due, 'date'), 'the day it sits on')}` : ''}
 
-        ${has(ob,'deadline') ? trow(`${ic('flag',11)} Due by`, pfield(id,'dead', ob.dead, 'date'),
-            ob.dead ? (isLate(ob)?'late':'missing it costs something') : 'the day it is owed') : ''}
-        ${has(ob,'softdeadline') ? trow(`${ic('target',11)} Aim for`, pfield(id,'soft', ob.soft, 'date'),
-            'nothing happens if it slips') : ''}
-
+        ${/* No date rows. Three buttons showing where they sit *on the month* say
+             everything a row of `09/14/2026` said and one thing it never could:
+             where that day falls against the other two and against the work.
+             A field for a date you can see is a second answer to a settled
+             question. See decision 126. */''}
         ${/* Five presses covering nearly every estimate anyone makes. Past five
              hours a thing is not a task, it is a piece of work with tasks in
              it — so the ladder stops there rather than climbing, and the field

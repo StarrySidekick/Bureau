@@ -17,7 +17,7 @@ import { closePanel } from './panels.js';
    Bureau is this phone running" is exactly the question you ask when a change
    appears not to have deployed. Shown in Settings, so it can be read off the
    device rather than guessed at. */
-const APP_VERSION = '1.46';
+const APP_VERSION = '1.47';
 const KEY = 'bureau.v1';
 const install = {deferred:null};   // the browser's install prompt, when one is on offer
 let saveTimer = null;
@@ -226,7 +226,7 @@ function rescalePhone(d, from, cols){
    skips all of them, an old backup replays only what it is missing. These
    used to be ad-hoc per-load mutations inside adopt(); a new repair that
    should run once belongs here, as the next numbered step. */
-const DATA_V = 24;
+const DATA_V = 25;
 const MIGRATIONS = [
   // Drawers and objects were two arrays and a drawer could not live inside
   // anything. foldDrawers also replays the old dense flow to give v1 drawers
@@ -574,6 +574,26 @@ const MIGRATIONS = [
        born on an Aero desk had no edge at all and nobody could see why. */
     if(sd && sd.border==='aqua') sd.border='gloss';
     (d.objects||[]).forEach(o=>{ if(o.border==='aqua') o.border='gloss'; });
+  }},
+  /* `repeat` is opt-in now, offered beside the deadlines and the ranks rather
+     than standing open on every task. A task following its type's attrs would
+     silently lose the trait — and with it the Repeats section and, worse, the
+     rule it is already running. So anything actually carrying a rule is given
+     the trait on its own attrs, which is where an opt-in lives. */
+  {v:25, up(d){
+    /* Naming the old type outright, which is the one place that is allowed to:
+       `task` is the only built-in whose set changed, and a migration exists to
+       say what a thing used to be. An object with explicit attrs just gains
+       the trait; one following its type gets the set the type had before. */
+    const WAS = {task:['text','check','date','repeat']};
+    (d.objects||[]).forEach(o=>{
+      if(!o || !o.repeat) return;
+      if(Array.isArray(o.attrs)){
+        if(!o.attrs.includes('repeat')) o.attrs = o.attrs.concat('repeat');
+      } else if(WAS[o.kind]){
+        o.attrs = WAS[o.kind].slice();
+      }
+    });
   }},
 ];
 function migrate(d){

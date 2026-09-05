@@ -5578,3 +5578,82 @@ visible history. The seven are Victoria, Carca, Stelaine, Girando, Golf 97,
 Starful Gothic and Aeros. Rather than guess which two he means and rebuild the
 default aesthetic against the wrong reference, that half is asked before it is
 built.
+
+## 126. Three buttons off a card
+
+*2026-09-05*
+
+Timothy, on the pens from 125: *"It would be cool to make the When and Done and
+Due buttons little like sewing buttons that you can pick up and drag to the
+calendar date you want them to go, or just tap them and then tap where they go.
+Since they will show on the calendar itself, you don't need a list item below
+saying the deadline."*
+
+The renaming is the smaller half and it is still an improvement. *On*, *Aim for*
+and *Due by* were three phrases; **When**, **Done** and **Due** are three words,
+and *Done* is a better name for the soft deadline than anything proposed here —
+it is the day you mean to be **done**, which is exactly the thing a day you set
+yourself is for.
+
+The rest is a change of category. A pen is an instrument you hold and a mode you
+are in; a **button** is a thing that is somewhere. Once the three are objects
+rather than modes, two things follow that the pen version could not have.
+
+**You can drag one onto a day**, which is the gesture the thing's own shape
+suggests, and the tap-then-tap survives beside it as the same thing done
+slowly. One writer for both — `placePen()` — so the two ways cannot come to
+disagree about what happens, including the part easy to forget, which is that
+putting a button on a day it is already on takes it off again. The drag is
+claimed in `onDown` **without consuming the tap**: if the finger never travels,
+onUp lets the click through and the ordinary handler takes the button into your
+hand. Two gestures, one code path deciding which you did.
+
+The ghost is a *copy*, and the card keeps its hole. You can see where the thing
+came from while it is in the air — and the original lives inside a panel that
+scrolls, which a fixed-position original would fight. It carries
+`pointer-events:none`, which is what lets `elementFromPoint` see the day
+underneath it; the day under the finger is asked of the document each frame
+rather than tracked with cached rects, because the month is in a scroller and a
+cached rect goes stale the moment the panel moves.
+
+**And the three date rows went.** This is the part worth writing down. A button
+sitting on the 14th says where the 14th falls against the other two dates and
+against the days the work takes — which `09/14/2026` in a field could never
+say, and which is the entire reason the month was drawn. A field for a date you
+can already see is a second answer to a settled question, and the second answer
+is the worse one. The month is the readout.
+
+Three smaller things came with it.
+
+**The work is a highlighter stroke.** It was a hairline along the top edge,
+which said the right thing and looked like a border that had gone wrong. A
+marker swipe is what you would actually do to a fortnight on a paper calendar,
+and it is the only mark on that grid that is a *span* rather than a day. Drawn
+**over** the day rather than under it, for the reason the edge existed in the
+first place: the run's last day is nearly always the deadline itself. And with
+**no blend mode**, which was found by looking — `multiply` is right on
+parchment and nearly invisible over the red, which is precisely the day the run
+has to be seen crossing. A plain translucent wash veils whatever is under it,
+gold on paper and a lighter band across the red, which is what a highlighter
+does to ink.
+
+**The ranks are drawn at a size you can see.** A star at 13px is a speck that
+could be anything; the mark *is* the control here and it was being set at
+caption size.
+
+**Repeating became opt-in**, offered beside the estimate and the ranks rather
+than standing open on every task. Six rows of rule-building on a task that will
+never repeat is furniture. It came off `task`'s attrs, which would have quietly
+taken the trait — and the running rule with it — off every task following its
+type, so **migration 25** puts `repeat` on the attrs of anything actually
+carrying a rule. It names `task` outright, which a migration is allowed to do
+and nothing else is: saying what a type *used to be* is the whole job.
+
+### Rejected: the four card treatments
+
+The four dressings offered as *Four Whens* — a printed docket, a leather
+blotter, a ledger page, a tabbed index card — were all turned down, and none of
+them is coming back in another suit. The next attempt at Victorian character
+starts from **ornament** rather than from surface: a specimen plate of six
+printer's flowers, each proposed with a job and three proposed against, is at
+the head of the next pass.

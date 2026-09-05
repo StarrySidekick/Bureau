@@ -136,7 +136,13 @@ const BUILTIN_KINDS = {
      tapping meant the object editor, which is a page of look and structure a
      task has no use for. It is not right once there is a page that answers
      the question you have every single time you look at one. See decision 123. */
-  task:    {shape:'sliver', nm:'Task',    ic:'check',   c:6, key:'T', ds:'A thing to do',             attrs:['text','check','date','repeat'], size:[4,1], onclick:'when', gathers:'checklist', body:'' },
+  /* `repeat` came off the default set: it is offered in the When page beside
+     the deadlines, the estimate and the ranks, and a Repeats section standing
+     open on every task that will never repeat is six rows of furniture. Every
+     task that *has* a rule keeps the trait — migration 25 puts it on their own
+     attrs, because the ability to repeat is not something to take away from a
+     thing that is already doing it. */
+  task:    {shape:'sliver', nm:'Task',    ic:'check',   c:6, key:'T', ds:'A thing to do',             attrs:['text','check','date'], size:[4,1], onclick:'when', gathers:'checklist', body:'' },
   note:    {shape:'note', nm:'Note',    ic:'note',    c:10, key:'O', ds:'Something to remember',     attrs:['text'], size:[4,4], onclick:'read', body:'' },
   idea:    {shape:'idea', nm:'Idea',    ic:'bulb',    c:12, key:'I', ds:'A spark, unformed',         size:[4,4], onclick:'read', attrs:['text'], body:'**The spark —** \n\n**Why it might work —** \n\n**What it needs —** ' },
   outline: {nm:'Outline', ic:'list',    c:14, key:'L', ds:'Structure before prose',    size:[4,4], onclick:'read', attrs:['text'], body:'## I.\n- \n- \n\n## II.\n- \n- \n\n## III.\n- ' },

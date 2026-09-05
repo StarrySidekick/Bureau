@@ -4,7 +4,7 @@ import { S, byId, dev, has, isContainer, isAncestor, childrenOf, container, gath
 import { GRID, CELL, gridOf, cellW, lay, boxOk, overlaps } from './grid.js';
 import { toast, gather, setPin, del, pushSets, holdIt } from './mutations.js';
 import { pending, tileTap, fireButton } from './tiles.js';
-import { modalNewObject, holdPanel, openCtx, closeCtx, schedulePanel } from './panels.js';
+import { modalNewObject, holdPanel, openCtx, closeCtx, schedulePanel, refreshPanel } from './panels.js';
 import { render, pageTop } from './views.js';
 import { closeSheet } from './sheet.js';
 import { pagerBegin, pagerMove, pagerEnd, pagerCancel, pagerOn, leaveTile, toss, fileTo } from './motion.js';
@@ -500,6 +500,27 @@ function swipeMove(g, dx, dy){
   pagerMove((g.axis==='y' ? dy : dx) - g.from);
 }
 
+/* How far a finger travels before a press on a button becomes a carry. Small,
+   because the alternative gesture — a tap — is completed by *not* moving, so
+   there is no second thing a few pixels of travel could have meant. */
+const PEN_SLOP = 5;
+const dayUnder = (x, y) => {
+  const el = document.elementFromPoint(x, y);
+  return (el && el.closest && el.closest('[data-schedday]')) || null;
+};
+/* One writer for both ways of placing a button, so a drag and a tap-then-tap
+   cannot come to disagree about what happens — including the part that is easy
+   to forget, which is that dropping one on a day it is already on takes it off
+   again. */
+function placePen(id, k, iso){
+  const o = byId(id); if(!o || !iso) return;
+  pushSets(k==='dead' ? 'Due' : k==='soft' ? 'Done' : 'When', [[id, k, o[k]]]);
+  o[k] = o[k]===iso ? null : iso;
+  save(); render(); refreshPanel();
+  const said = k==='dead' ? 'Due' : k==='soft' ? 'Done' : 'When';
+  toast(o[k] ? `${said} ${D.human(o[k]).toLowerCase()}` : `${said} — taken off`);
+}
+
 function onDown(e){
   if(e.button===2) return;
   if(pagerOn()) return;              // a board already in flight owns the screen
@@ -520,6 +541,20 @@ function onDown(e){
       ? {type:'homeedge'}
       : {type:'rail', el:railEl, onKnob:!!e.target.closest('.railknob'),
          sx:e.clientX, sy:e.clientY, mode:null, pull:null};
+    return;
+  }
+  /* ---- a button off the card ------------------------------------------
+     When, Done and Due are things you pick up and put on a day. Claimed here
+     rather than left to the delegated click, because a drag needs the move and
+     the release as well — and claimed *without* consuming the tap: if the
+     finger never travels, onUp lets the click through and the ordinary handler
+     takes the button into your hand instead. Two ways to move one thing, and
+     the same code path decides which you did. See decision 126. */
+  const penEl = e.target.closest && e.target.closest('.schedpen');
+  if(penEl){
+    const [pid, pk] = (penEl.dataset.schedpen||'').split(':');
+    G = {type:'pen', el:penEl, id:pid, k:pk, sx:e.clientX, sy:e.clientY,
+         moved:false, ghost:null, over:null};
     return;
   }
   // Any tile on any unlocked grid. There is no arrange mode — everything is
@@ -747,6 +782,37 @@ function onMove(e){
   const dx=e.clientX-G.sx, dy=e.clientY-G.sy;
 
   if(G.type==='swipe'){ swipeMove(G, dx, dy); return; }
+
+  /* Carrying a button. The ghost is a copy rather than the button itself: the
+     card keeps its hole, so you can see where the thing came from while it is
+     in the air — and the real one is inside a panel that scrolls, which a
+     fixed-position original would fight. `pointer-events:none` on the ghost is
+     what lets elementFromPoint see the day underneath it. */
+  if(G.type==='pen'){
+    if(!G.moved && Math.abs(dx) + Math.abs(dy) < PEN_SLOP) return;
+    if(!G.moved){
+      G.moved = true;
+      const g = G.el.cloneNode(true);
+      g.classList.add('penghost','up');
+      g.removeAttribute('data-schedpen');
+      $('#frame').appendChild(g);
+      G.ghost = g;
+      document.body.classList.add('dragging-ui');
+    }
+    const fr = $('#frame').getBoundingClientRect();
+    G.ghost.style.left = (e.clientX - fr.left) + 'px';
+    G.ghost.style.top  = (e.clientY - fr.top)  + 'px';
+    /* Which day it is over. Asked of the document rather than tracked with
+       geometry, because the month is inside a scroller and a cached set of
+       rects goes stale the moment the panel moves under the finger. */
+    const day = dayUnder(e.clientX, e.clientY);
+    if(day !== G.over){
+      if(G.over) G.over.classList.remove('aim');
+      if(day) day.classList.add('aim');
+      G.over = day;
+    }
+    return;
+  }
 
   if(G.type==='sketch'){
     // locked, and moved before the hold landed: the finger walks the boards
@@ -994,6 +1060,20 @@ function onUp(e){
   if(!G) return;
   const g=G; G=null;
   const dx=e.clientX-g.sx;
+
+  /* Putting the button down. A drag that never travelled is a tap and is left
+     alone — the click that follows takes the button into your hand, which is
+     the other half of the same gesture. */
+  if(g.type==='pen'){
+    if(g.over) g.over.classList.remove('aim');
+    if(g.ghost) g.ghost.remove();
+    document.body.classList.remove('dragging-ui');
+    if(!g.moved) return;                       // a tap: let the click through
+    gestureFlags.suppressClick = true;         // a drag: it must not also pick up
+    const day = g.over || dayUnder(e.clientX, e.clientY);
+    if(day) placePen(g.id, g.k, (day.dataset.schedday||'').split(':')[1]);
+    return;
+  }
 
   /* A board that opened to let one tile move closes again now. Before any of
      the branches below, so whichever one renders draws the padlock shut. */

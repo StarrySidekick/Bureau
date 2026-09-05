@@ -4161,13 +4161,19 @@ const CHROME = process.env.BUREAU_CHROME;
     out.theMonthIsAlwaysThere = document.querySelectorAll('#panel [data-schedday]').length === 42
       && !document.querySelector('#panel details .schedgrid');
 
-    /* Each trait it hasn't got is one chip, with the mark it wears everywhere:
-       a flag is owed, a target is aimed at, a clock is time, a teardrop is
-       effort, a star is worth. */
+    /* The three dates are **buttons on the card**, not chips — a chip that
+       says "give it a deadline" and then a field to type it into is two
+       answers to one question, and the month is the better one. Everything
+       else it could carry is a chip wearing its own mark: a clock is time, a
+       teardrop is effort, a star is worth, a loop comes round. */
     const chip = a => document.querySelector(`#panel [data-want="${a}"]`);
-    const wants = ['deadline','softdeadline','duration','difficulty','priority'];
+    const wants = ['duration','difficulty','priority','repeat'];
     out.everyTraitIsOffered = wants.every(a => !!chip(a));
     out.andEachWearsItsMark = wants.every(a => !!chip(a).querySelector('svg'));
+    out.andTheDatesAreNotChips = !chip('deadline') && !chip('softdeadline');
+    /* Repeating is offered rather than assumed. It stood open on every task
+       that would never repeat, which is six rows of furniture. */
+    out.repeatingIsOptIn = !BUREAU.K.task.attrs.includes('repeat');
     for(const a of wants){ chip(a).click(); await nap(230); }
     out.oneTapAddsEach = wants.every(a => BUREAU.has(t, a));
 
@@ -4191,6 +4197,11 @@ const CHROME = process.env.BUREAU_CHROME;
     /* The month carries what the object says about time: the day it sits on,
        the day you aim for, the day it is owed, and a rule along the top of the
        days the work itself takes. */
+    /* The three dates arrive by *taking their buttons off the card*, which is
+       the only way in now — there is no chip and no field for them. */
+    for(const k of ['soft','dead']){
+      document.querySelector(`#panel [data-schedpen$=":${k}"]`).click(); await nap(240);
+    }
     t.due = iso(1); t.soft = iso(5); t.dead = iso(9); t.dur = 60 * 9;
     BUREAU.schedule(t.id); await nap(340);
     const n = c => document.querySelectorAll(`#panel .sday.${c}`).length;
@@ -4249,12 +4260,12 @@ const CHROME = process.env.BUREAU_CHROME;
     out.threePens = ['due','soft','dead'].every(k => !!pen(k));
     // the day it sits on is the pen you start holding, because it is the one
     // you are usually setting
-    out.startsOnTheDay = pen('due').classList.contains('on');
+    out.startsOnTheDay = pen('due').classList.contains('up');
     // one it hasn't got is an outline, and picking it up picks up the trait
     out.oneItHasNotGotIsAnOutline = pen('dead').classList.contains('un');
     pen('dead').click(); await nap(300);
     out.pickingItUpTakesTheTrait = BUREAU.has(t, 'deadline')
-      && pen('dead').classList.contains('on') && !pen('dead').classList.contains('un');
+      && pen('dead').classList.contains('up') && !pen('dead').classList.contains('un');
 
     /* …and then the month writes *that* date. This is the whole change: the
        same grid, three pens, rather than one grid and two typed fields. */
@@ -4266,7 +4277,7 @@ const CHROME = process.env.BUREAU_CHROME;
     document.querySelector(`#panel [data-schedday$=":${iso}"]`).click(); await nap(300);
     out.andPressingItAgainClears = t.dead == null;
     // the pen survives a redraw: it is UI state, and you are still holding it
-    out.thePenIsStillInYourHand = pen('dead').classList.contains('on');
+    out.thePenIsStillInYourHand = pen('dead').classList.contains('up');
 
     /* ---- round, or square, and nothing in between --------------------
        Measured off the computed style rather than read out of the source,
@@ -4276,7 +4287,13 @@ const CHROME = process.env.BUREAU_CHROME;
     const sharp = n => n != null && n <= 4.01;
     out.theDayCellsAreSquare = sharp(r('#panel .sday'));
     out.andSoAreTheRanks = sharp(r('#panel [data-prio]')) && sharp(r('#panel [data-diff]'));
-    out.andThePens = sharp(r('#panel [data-schedpen]'));
+    /* The buttons are the *other* legal answer: a stadium, because a sewing
+       button is round and the thing it sits in is a buttonhole. */
+    const bt = document.querySelector('#panel [data-schedpen]');
+    out.thePensAreRound = parseFloat(getComputedStyle(bt).borderTopLeftRadius)
+      >= bt.getBoundingClientRect().height/2 - 1;
+    out.andTheDiscIsACircle = parseFloat(
+      getComputedStyle(bt.querySelector('.btn')).borderTopLeftRadius) >= 8;
     // a pill is the other legal answer, and it is a full stadium rather than
     // the 20px that was *nearly* one
     const chip = document.querySelector('#panel .pchip, #panel .schedquick .pill');
@@ -4537,6 +4554,9 @@ const CHROME = process.env.BUREAU_CHROME;
     // it is a trait, so a drawer can collect what repeats
     const d = BUREAU.create('magic', {parent:'root', title:'Comes round'});
     d.filter = {scope:'all', rules:[{f:'repeat', op:'any'}]};
+    // repeating is opt-in now, so the trait has to be on the object itself —
+    // which is exactly what migration 25 does to every task already running one
+    head.attrs = (head.attrs || BUREAU.K.task.attrs).concat('repeat');
     out.collectsRepeating = BUREAU.kids(d.id).includes(head.id);
     out.saidInWords = /every day/.test(BUREAU.repeatSaid(head));
     S.objects = S.objects.filter(o => o.title !== 'Bins' && o.id !== d.id);
@@ -4597,11 +4617,15 @@ const CHROME = process.env.BUREAU_CHROME;
     document.querySelector('#panel [data-schedmon]').click(); await nap(200);
     out.monthWalks = document.querySelector('#panel .schedhead b').textContent !== wasHead
       && t.due == null;
-    // and the deadline is offered here, because it is the other date
-    out.offersADeadline = !!document.querySelector('#panel [data-act="wantdeadline"]');
-    document.querySelector('#panel [data-act="wantdeadline"]').click(); await nap(250);
+    /* Both other dates are offered here as buttons off the card, and taking
+       one picks up its trait — so there is no "give it a deadline" link and no
+       field to type it into. The month is where a date is set and where it is
+       read. See decision 126. */
+    out.offersADeadline = !!document.querySelector(`#panel [data-schedpen$=":dead"]`);
+    document.querySelector(`#panel [data-schedpen$=":dead"]`).click(); await nap(280);
     out.deadlineArrives = BUREAU.has(t, 'deadline')
-      && !!document.querySelector(`#panel [data-oset="${t.id}:dead"]`);
+      && document.querySelector(`#panel [data-schedpen$=":dead"]`).classList.contains('up')
+      && !document.querySelector(`#panel [data-oset="${t.id}:dead"]`);
     t.attrs = null; t.due = iso(0);
     document.querySelector('#panel [data-act="panelclose"]').click();
     S.undo=[]; S.redo=[]; BUREAU.render();

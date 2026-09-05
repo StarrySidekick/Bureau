@@ -933,20 +933,30 @@ sharp end keeps a hair of radius on purpose: dead square reads as a rendering
 fault rather than a made edge. Guarded off the *computed* style, because a
 token nobody applied is a rule nobody follows. See decision 125.
 
-**The month holds one of three pens.** `SCHED.mode` + `SCHED_PENS` in
-panels.js — a press on a day writes the day it sits on, the day you aim for or
-the day it is owed, whichever pen is up. Each pen carries the colour it puts
-down on its own left edge and the date it is already holding, so it is the
-legend as well as the control and there is no colour key to read. A pen for a
-trait the object hasn't got is an outline and **picks up the trait with it**.
-UI state, never stored; it resets to `due` every time the page opens. The one
-mark that cannot be a pen is the grey work rule, because it is a span rather
-than a day. See decision 125.
+**Three buttons off a card: When, Done and Due.** `SCHED_PENS` in panels.js,
+drawn as sewing buttons. **Drag one onto a day, or tap it and tap the day** —
+`G.type:'pen'` in gestures.js claims the press *without consuming the tap*, so
+a finger that never travels falls through to the click that takes the button
+into your hand. `placePen()` is the one writer for both ways, including that
+dropping a button on the day it is already on takes it off. The ghost is a copy
+carrying `pointer-events:none` (which is what lets `elementFromPoint` find the
+day), and the day under the finger is asked of the document each frame — the
+month is in a scroller and a cached rect goes stale.
+
+**There are no date rows, and there must not be.** A button sitting on the 14th
+says where the 14th falls against the other two and against the days the work
+takes; `09/14/2026` in a field never could, and it is a second answer to a
+settled question. The month is the readout. The work is a **highlighter stroke
+drawn over the day**, with no blend mode: `multiply` is right on parchment and
+invisible over the red deadline, which is the one day the run has to be seen
+crossing. See decisions 125 and 126.
 
 **Everything a task is weighed by is one page, called `When`.**
 `schedulePanel(id)` — the name, the day it sits on, both deadlines, the
 duration, the difficulty, the priority, the urgency they produce, the repeat
-rule and the tags. **A page, not a bubble**: a month grid and nine rows is a
+rule and the tags. **Repeating is opt-in** — it came off `task`'s attrs and is
+offered beside the ranks, with migration 25 keeping it on anything already
+running a rule. **A page, not a bubble**: a month grid and nine rows is a
 sheet, and decision 27's "a question about one tile belongs beside it" was
 right when this asked one question. **Tapping a task opens it** (`onclick:'when'`
 in `CLICKS`) and *When…* on the long press opens the same one — one
