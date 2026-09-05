@@ -5339,3 +5339,102 @@ user" — which is the failure that happened, twice over, in one pass.
 Named for what is in it rather than for what it produces. *Where it stands* is
 the better sentence and the Urgency row says it anyway; this is the panel
 nobody could find, so findable beat elegant.
+
+## 123. When: everything a task is weighed by, on one page
+
+*2026-09-05*
+
+Timothy, item by item, after 122 put four of these in one place and left them
+half dressed. The whole list is his; the reasoning for each is the part worth
+writing down.
+
+**The month stays open.** 122 folded it behind a disclosure to make room, and
+that was the wrong economy — picking a day is what you came to this panel for,
+and the four marks the month now carries are how the other rows say what they
+mean. Room came from somewhere better instead: this is a **page**, not a bubble
+beside the tile. Decision 27 says a question about one tile belongs next to that
+tile, and it was right when this asked one question; a month grid and nine rows
+is a sheet, and a sheet that scrolls inside a 640px bubble is 122's failure
+wearing a different hat.
+
+**It is called When.** It holds nine things and only three of them are times,
+but *When* is what you are thinking when you reach for it, and a menu item is
+found by the word you had in mind rather than by the one that inventories the
+contents.
+
+**Two quick answers, not four.** *This weekend* and *next week* are both
+**ranges said as a single day** — a guess about which day you meant, made on
+your behalf, with the month sitting right there to say it properly. Today wears
+a star, because it is the one you press most and the one your eye hunts for.
+
+**Four marks on the month, and the fourth is an edge.** The day it sits on is
+yellow, the day you aim for is orange, the day it is owed is red — and the days
+the **work itself** takes are a grey rule along the top of that run, ending at
+the nearest deadline and reaching back `duration ÷ workday` days.
+
+That band is the whole argument for drawing any of this. Urgency is a
+subtraction and a number can only report it; a band that starts before today
+*shows* you that you are already behind, on the same grid you set the dates on.
+It had to be an **edge** rather than a fill, and that was learned by looking:
+the last day of the band is nearly always the deadline itself, so a grey
+background lost to a red one made a three-day run read as two. An edge is also
+the honest shape — the other three are days and this is a span.
+
+These four are the one place in the app that names colours outright. They are
+**signals, not slots**: a deadline is red in every aesthetic for the same reason
+`late` already is, and running them through the eleven would turn "which of
+these is the hard one" into a question about which desk you are standing on.
+
+**Difficulty is a third axis, in teardrops.** Neither of the other two can stand
+in for it: a difficult phone call is five minutes and unbearable, painting a
+fence is an afternoon and asks nothing of you. Priority says how much it matters
+and duration says how long it is; difficulty says what it will cost you to
+*start*, which is the thing that actually decides what gets put off. It feeds
+urgency not at all — urgency is time against time — and it starts at **1**,
+because an unranked thing has no difficulty but there is no task that is zero
+hard; if it takes no effort it is already done.
+
+**A rank is drawn as its own mark, and n stars means n.** Priority is stars,
+difficulty is teardrops, filled to the rank, so the two scales are told apart
+before either caption is read. The scale stays *visible* — decision 72's
+argument against a select survives; only the digit has gone, and the digit was
+never the thing being chosen. The trap: priority runs 0–5 because "a dream,
+nothing to act on" is a real answer, so lighting every mark up to the rank made
+a 4 show five stars. Zero lights nothing and wears the ring alone.
+
+**Duration is five presses**, 10m to 5h, with the field beside them for the
+exception. It stops at five hours deliberately: past that a thing is not a task
+but a piece of work with tasks in it, and a ladder that climbed to "all day"
+would be inviting you to keep one. Pressing the one already set clears it, the
+way every other toggle here behaves.
+
+**Repeating moved to where the dates are.** The rule was already granular — every
+N days, weeks, months or years, a set of weekdays, counted from the due day or
+from the day you finish (decision 73) — and it lived two doors away in the
+object editor, counting from dates you could not see while you set it. Every
+example he named is expressible as it stands: *every day*, *every week*, *every
+Tuesday and Thursday*, *every 15th of the month* (a monthly rule keeps the day
+of the month it is due on). Nothing new was needed; it needed to be **in front
+of you**. And a copy carries the whole task — both deadlines, the estimate, both
+ranks — because completing spawns a fresh object (decision 5) rather than moving
+a date, so a repeat is the task coming round and not just its name.
+
+**Tags are here too**, because a tag is how a thing gets found again and you
+know what it is while you are writing the thing down, not after two doors.
+
+**Tapping a task opens it**, and *When…* on the long press opens the same page.
+One destination, two ways in — which is the whole of "don't duplicate the menu".
+A task's click was `none` for a long time and that was right while tapping meant
+the object editor, which is a page of look and structure a task has no use for;
+it stopped being right the moment there was a page answering the question you
+have every time you look at one.
+
+**Two things came off the long press.** *Keep in the drawer* is what dropping a
+tile on the rail already does, and *Schedule today* is one press inside the page
+the menu now leads to. A menu earns its length by holding what has nowhere else
+to be.
+
+The object editor is untouched and is not a duplicate: it answers *what this
+object is* — its look, its structure, its traits. This page answers *what this
+one is worth and when*. Two panels asking two questions is decision 66 working;
+it is two panels asking the same one that would have been the mistake.

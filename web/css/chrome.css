@@ -1431,10 +1431,75 @@ html .drawer.dtile.cltile{background-image:none}
 .sday:hover{border-color:var(--brass)}
 .sday.out{color:var(--ink-3);opacity:.45}
 .sday.today{font-weight:700;color:var(--brass)}
-.sday.on{background:var(--ink);color:var(--paper);border-color:var(--ink)}
-/* a deadline is ruled underneath, the same as the chip on a tile */
-.sday.dead{border-bottom:2px solid #C0563F}
-.sday.on.dead{border-bottom-color:var(--paper)}
+.sday.today::after{content:"";position:absolute;bottom:3px;width:3px;height:3px;
+  border-radius:50%;background:currentColor}
+
+/* ---- what the object says about time, drawn on the month — decision 123 ----
+   Four facts, four marks, and they stack: the **work** is a grey band under
+   everything, because it is a run of days rather than one; then the day it
+   sits on, the day you aim for, and the day it is owed, in that order of
+   loudness. A day can be two of them at once — scheduled *and* owed is the
+   ordinary case — so the fills are ordered by which is the stronger claim
+   rather than by which rule comes last.
+
+   These are the one place in the app that names colours outright. They are
+   **signals**, not slots: a deadline is red in every aesthetic for the same
+   reason `late` already is, and running them through the eleven would make
+   "which of these is the hard one" a question about what desk you are on. */
+.sday{position:relative}
+/* The work is a **rule along the top edge**, not a fill. It has to survive
+   under one: the last day of the band is nearly always the deadline itself,
+   and a grey background beaten by a red one made a three-day run read as two.
+   An edge is also the honest shape for it — the other three are days and this
+   is a span. It bleeds 1px either side so the grid's own gap does not chop the
+   run into separate marks. */
+.sday.work::before{
+  content:"";position:absolute;top:0;left:-1px;right:-1px;height:3px;
+  background:color-mix(in srgb,var(--ink) 34%,transparent)}
+.sday.work.out::before{opacity:.5}
+.sday.on,.sday.soft,.sday.dead{border-radius:7px;font-weight:600}
+.sday.on{background:#E3B23C;color:#2A241C;border-color:#E3B23C}
+.sday.soft{background:#E08A3C;color:#221B14;border-color:#E08A3C}
+.sday.dead{background:#C0563F;color:#FFF3EC;border-color:#C0563F}
+/* both at once: the deadline wins the fill and the other says so on the edge */
+.sday.on.dead,.sday.on.soft{box-shadow:inset 0 -3px 0 #E3B23C}
+.sday.soft.dead{box-shadow:inset 0 -3px 0 #E08A3C}
+.sday.out.on,.sday.out.soft,.sday.out.dead{opacity:.6}
+
+/* the legend, so the four marks say what they are without being pressed */
+.schedkey{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;
+  margin:7px 1px 12px;font-size:10.5px;color:var(--ink-3)}
+.schedkey .k{width:9px;height:9px;border-radius:2.5px;display:inline-block;margin-right:2px}
+.schedkey .k.on{background:#E3B23C}
+.schedkey .k.soft{background:#E08A3C}
+.schedkey .k.dead{background:#C0563F}
+.schedkey .k.work{background:color-mix(in srgb,var(--ink) 34%,transparent);height:3px;border-radius:1px}
+
+/* ---- a rank drawn as its own mark — decision 123 -----------------------
+   Priority is stars and difficulty is teardrops, filled up to the rank, so the
+   two scales are told apart before either caption is read. The scale stays
+   *visible* — decision 72's argument against a select — it is only the digit
+   that has gone, and the digit was never the thing you were choosing.
+
+   The lit marks are the ones up to and including the answer; the answer itself
+   also carries the ring, so "which one did I press" survives a row where six
+   things are lit. */
+.ratrow{display:flex;gap:3px;align-items:center;flex-wrap:wrap}
+.ratbtn{
+  width:28px;height:28px;border-radius:7px;border:1px solid transparent;
+  background:transparent;color:var(--ink-3);font-size:12px;
+  display:grid;place-items:center;transition:.12s;
+}
+.ratbtn:first-child{width:24px;border-color:var(--rule);font-weight:600}
+.ratbtn:hover{color:var(--ink);border-color:var(--brass)}
+.ratbtn.lit{color:var(--brass)}
+.ratbtn.lit svg{fill:var(--brass);stroke:var(--brass)}
+.ratbtn.on{border-color:var(--brass);background:color-mix(in srgb,var(--brass) 15%,transparent)}
+.ratbtn:first-child.on{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+
+/* a duration in one press, with the field beside it for the exception */
+.durrow{display:flex;gap:4px;align-items:center;flex-wrap:wrap;width:100%}
+.durrow .pfield.num{width:78px;flex:0 0 auto;margin-left:2px}
 
 /* ---- a colour of your own, under the eleven — decision 76 ---------------
    Its own labelled row rather than a twelfth swatch, because it does something
@@ -3549,6 +3614,9 @@ input,textarea,select,[contenteditable],
 }
 .is-phone .panel.open,.is-phone .panel.bubble.open{transform:none;opacity:1}
 .is-phone .panel.wide{height:min(82vh, 760px)}
+/* The month plus nine rows wants more of the screen than an ordinary sheet.
+   Phone only: on a Mac the panel already runs the height of the frame. */
+.is-phone .panel.tall{height:min(88vh, 820px)}
 /* no tail: it is not pointing at anything any more */
 .is-phone .panel.bubble::before,.is-phone .panel.bubble::after{content:none}
 /* the grab bar, so it reads as something you pulled up */

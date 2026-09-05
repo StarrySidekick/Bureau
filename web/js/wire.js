@@ -832,6 +832,18 @@ function wire(){
       return; }
     const sm=t.closest('[data-schedmon]');
     if(sm){ SCHED.month = sm.dataset.schedmon.split(':')[1]; refreshPanel(); return; }
+    /* A duration in one press. The five cover nearly every estimate; the
+       field beside them is for the exception, and pressing the one already
+       set clears it, which is how every other toggle in the app behaves. */
+    const dq=t.closest('[data-durset]');
+    if(dq){ const [oid,mins]=dq.dataset.durset.split(':');
+      const o=byId(oid); if(o){
+        pushSet('Duration', oid, 'dur', o.dur);
+        o.dur = Number(o.dur)===+mins ? null : +mins;
+        save(); render(); refreshPanel();
+      }
+      return; }
+
     const sq=t.closest('[data-schedset]');
     if(sq){ const [oid,which]=sq.dataset.schedset.split(':');
       const o=byId(oid); if(o){
@@ -991,7 +1003,7 @@ function wire(){
     /* What is left of the panel's buttons once every one-of-many list became a
        select: swatches, the knob's own colours, and the read switch in the
        reading header — which is a header, not a panel. */
-    const pn=t.closest('[data-ocolour],[data-oic],[data-pboard],[data-pknobc],[data-pwood],[data-prailknobc],[data-oread],[data-fkind],[data-fdesk],[data-prio],[data-repday]');
+    const pn=t.closest('[data-ocolour],[data-oic],[data-pboard],[data-pknobc],[data-pwood],[data-prailknobc],[data-oread],[data-fkind],[data-fdesk],[data-prio],[data-diff],[data-repday]');
     if(pn){
       const id=pn.dataset.id, o=byId(id) || cfgOf(id);
       /* An empty one is the way back to the type's own, and it has to be
@@ -1004,6 +1016,13 @@ function wire(){
       else if(pn.dataset.prio!=null){
         pushSet('Priority', id, 'prio', o.prio);
         o.prio = pn.dataset.prio==='' ? null : +pn.dataset.prio;
+      }
+      /* Difficulty starts at 1 — there is no task that is zero hard — so the
+         empty string is the only absence, and it still has to be tested for
+         rather than trusted to falsiness. */
+      else if(pn.dataset.diff!=null){
+        pushSet('Difficulty', id, 'diff', o.diff);
+        o.diff = pn.dataset.diff==='' ? null : +pn.dataset.diff;
       }
       else if(pn.dataset.repday!=null){
         const was=clone(o.repeat);

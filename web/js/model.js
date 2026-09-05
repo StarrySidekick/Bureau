@@ -37,6 +37,12 @@ const ATTRS = {
   rating:   {nm:'Rating',     ds:'Out of five'},
   location: {nm:'Location',   ds:'Where it is'},
   duration: {nm:'Duration',   ds:'How long it will probably take, in minutes — half of what makes it urgent'},
+  /* The third axis, and the one neither of the others can stand in for. A
+     thing can be quick and hard (a difficult phone call) or long and easy
+     (painting a fence), and importance says nothing about either. It feeds
+     nothing automatically — urgency is time against time — because how hard a
+     thing is changes whether you *start* it, not when it is owed. */
+  difficulty:{nm:'Difficulty', ds:'How hard it is, 1 to 5 — not how long it takes and not how much it matters'},
   priority: {nm:'Priority',   ds:'How much it matters to you — 0 to 5, not how urgent it is'},
   price:    {nm:'Price',      ds:'What it costs'},
   answer:   {nm:'Answerable', ds:'A box to answer it in — filled means answered'},
@@ -72,6 +78,7 @@ const FIELDS = {
   location: {key:'loc',    type:'text',   nm:'Location'},
   duration: {key:'dur',    type:'number', nm:'Duration'},
   priority: {key:'prio',   type:'level',  nm:'Priority', opts:[0,1,2,3,4,5], get:o=>prioOf(o)},
+  difficulty:{key:'diff',  type:'level',  nm:'Difficulty', opts:[1,2,3,4,5], get:o=>diffOf(o)},
   price:    {key:'price',  type:'money',  nm:'Price'},
   answer:   {key:'answer', type:'text',   nm:'Answer'},
   relates:  {key:'rel',    type:'refs',   nm:'Related'},
@@ -124,7 +131,12 @@ const BUILTIN_KINDS = {
      container — so its default rule is "anything with a date". */
   calendar:{face:'calendar', nm:'Calendar', ic:'calendar', c:7, key:'C', ds:'Whatever it collects, on the day it falls', attrs:['container','magic'], filter:{rule:{f:'date',op:'any'}}, calview:'month', layout:'calendar', size:[4,4], phoneSize:[4,4], body:'' },
   control: {nm:'Control',  ic:'sliders', c:15, key:'', ds:'A Bureau button on the desk', attrs:['control'], size:[4,4], body:'' },
-  task:    {shape:'sliver', nm:'Task',    ic:'check',   c:6, key:'T', ds:'A thing to do',             attrs:['text','check','date','repeat'], size:[4,1], onclick:'none', gathers:'checklist', body:'' },
+  /* A task opens onto **When** — the dates, the estimate, the ranks, the
+     repeat and the tags. It was `none` for a long time and that was right when
+     tapping meant the object editor, which is a page of look and structure a
+     task has no use for. It is not right once there is a page that answers
+     the question you have every single time you look at one. See decision 123. */
+  task:    {shape:'sliver', nm:'Task',    ic:'check',   c:6, key:'T', ds:'A thing to do',             attrs:['text','check','date','repeat'], size:[4,1], onclick:'when', gathers:'checklist', body:'' },
   note:    {shape:'note', nm:'Note',    ic:'note',    c:10, key:'O', ds:'Something to remember',     attrs:['text'], size:[4,4], onclick:'read', body:'' },
   idea:    {shape:'idea', nm:'Idea',    ic:'bulb',    c:12, key:'I', ds:'A spark, unformed',         size:[4,4], onclick:'read', attrs:['text'], body:'**The spark —** \n\n**Why it might work —** \n\n**What it needs —** ' },
   outline: {nm:'Outline', ic:'list',    c:14, key:'L', ds:'Structure before prose',    size:[4,4], onclick:'read', attrs:['text'], body:'## I.\n- \n- \n\n## II.\n- \n- \n\n## III.\n- ' },
@@ -1361,6 +1373,32 @@ const prioOf = o => {
 };
 const prioName = n => (PRIOS.find(p=>p[0]===n)||[])[1] || '';
 
+/* ---- how hard it is, 1 to 5 -------------------------------------------
+   The third axis and the one the other two cannot stand in for. A difficult
+   phone call is five minutes and unbearable; painting a fence is a whole
+   afternoon and needs nothing of you. Priority says how much it matters and
+   duration says how long it is; neither says how much it will cost you to
+   start, which is the thing that actually decides what gets put off.
+
+   It starts at **1**, not 0, and that is deliberate: an unranked thing has no
+   difficulty (null, the same as priority), but there is no such thing as a
+   task that is zero hard — if it takes no effort at all it is already done. */
+const DIFFS = [
+  [1, 'Trivial',   'no resistance at all'],
+  [2, 'Easy',      'you could do it now without thinking'],
+  [3, 'Real work', 'wants your attention for a while'],
+  [4, 'Hard',      'needs a good run at it'],
+  [5, 'Punishing', 'the one you keep not starting']
+];
+const diffOf = o => {
+  if(!o || !has(o,'difficulty')) return null;
+  const v = o.diff;
+  if(v==null || v==='') return null;
+  const n = Number(v);
+  return isNaN(n) ? null : clamp(Math.round(n), 1, 5);
+};
+const diffName = n => (DIFFS.find(d=>d[0]===n)||[])[1] || '';
+
 /* ---- urgency: what a deadline and an estimate come to together ---------
    Priority says how much a thing matters to your life. A deadline says when
    it is owed. Neither one on its own tells you what to do this afternoon,
@@ -1651,7 +1689,7 @@ export { ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds, K,
   TILT_MODES, tiltMode, tiltsDesk, tiltsWindows, tiltClasses, shelfDepth, bookDepth, standsProud, shelfTurn, FACE_CUES, faceCue, anyFaceCue, CUE_DIR, cueFlipped, cueSign,
   spanOf, coversDay, lastDay, lateOn, isLate,
   boardLocked,
-  PRIOS, prioOf, prioName,
+  PRIOS, prioOf, prioName, DIFFS, diffOf, diffName,
   REPEAT_UNITS, repeatOf, repeats, repeatSaid, repeatSpent, nextRepeat,
   slotKey, slotFrom, slotRaw, slotSrc,
   BINDINGS, BINDING_SLOTS, bindingOf, FRAMES, FRAME_SLOTS, frameOf, isWindow,

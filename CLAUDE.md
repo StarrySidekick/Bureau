@@ -861,6 +861,13 @@ file picker itself on the surface; `importImage()` calls `renderSheet()` when
 the file lands, because the file comes back long after the button was pressed.
 See decision 49.
 
+**Difficulty is the third axis, and nothing else stands in for it.** `diffOf(o)`
+— 1 to 5, teardrops, `DIFFS` in model.js. Priority says how much a thing
+matters and duration says how long it is; difficulty says what it will cost you
+to *start*, which is what actually decides what gets put off. It feeds urgency
+not at all — urgency is time against time — and it **starts at 1**: an unranked
+thing has no difficulty, but there is no task that is zero hard.
+
 **Priority is a rank of 0–5, and 0 is a real answer.** `prioOf(o)` returns null
 or a number — never `o.prio || …`, which folds "a dream, nothing to act on" into
 whatever the fallback is. It is *importance*, not urgency: urgency is a deadline
@@ -901,19 +908,38 @@ skips the trait test and reads `get()`) while the rollup picker refuses it.
 deadline chip as **the line thickening as the slack runs out** — never as a left
 stripe, which is what priority means. See decision 120.
 
-**The four facts a task is weighed by are one panel, off a long press.**
-`schedulePanel(id)` — the day it sits on, both deadlines, the duration and the
-priority, with the urgency readout they produce at the foot. Reached from the
-context menu (*Dates and priority…*) and from a right-swipe on a list row. What
-an object hasn't got is **one row of chips** in that same panel (`data-want`
-names the attribute), never a trait picker two doors away. The month sits
-behind a disclosure, open only when there is no date: it is 300px, a bubble
-caps at 640, and it used to push every other field under the fold — which is
-how three fields that were implemented, correct and tested were in practice
-unreachable. **A test that asks whether the markup is right cannot see that.**
-`reachable` in the smoke test asserts the panel's body does not scroll and its
-bottom edge is on the screen; write that pair for anything new that has to be
-found. See decision 122.
+**Everything a task is weighed by is one page, called `When`.**
+`schedulePanel(id)` — the name, the day it sits on, both deadlines, the
+duration, the difficulty, the priority, the urgency they produce, the repeat
+rule and the tags. **A page, not a bubble**: a month grid and nine rows is a
+sheet, and decision 27's "a question about one tile belongs beside it" was
+right when this asked one question. **Tapping a task opens it** (`onclick:'when'`
+in `CLICKS`) and *When…* on the long press opens the same one — one
+destination, two ways in. The object editor is not a duplicate: it answers what
+an object *is* (look, structure, traits), this answers what it is *worth and
+when*.
+
+The month is **always drawn** and carries four marks: the day it sits on
+(yellow), the day you aim for (orange), the day it is owed (red), and the days
+the work takes as a grey **rule along the top edge** — `workBand()`, reaching
+back `duration ÷ workday()` days from the nearest deadline. That last one must
+be an edge and not a fill: its final day is nearly always the deadline itself,
+so a grey background loses to the red one and a three-day run reads as two.
+Those four are the only colours named outright anywhere in the app — they are
+signals, not slots, for the same reason `late` is red everywhere.
+
+A rank is drawn as **its own mark filled to the rank** — stars for priority,
+teardrops for difficulty — and **n marks means n**: priority runs 0–5 because 0
+is a real answer (decision 72), so rank 0 lights nothing and wears the ring
+alone, or every rating in the app reads one too high. What an object hasn't got
+is one row of chips in the same page (`data-want` names the attribute), each
+wearing its own mark.
+
+**A test that asks whether the markup is right cannot say whether you can reach
+it.** `reachable` in the smoke test presses the menu item, presses each chip,
+ranks both scales, reads the urgency line back and checks the month's marks
+against what the object carries; write that kind of pair for anything new that
+has to be found. See decisions 122 and 123.
 
 **A deadline is hard or soft, and a thing may carry both.** `deadline`/`dead` is
 the **hard** one — missing it costs something; `softdeadline`/`soft` is a day

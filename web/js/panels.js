@@ -7,7 +7,7 @@ import { S, K, KINDS, KEYS, T, ATTRS, USER_ATTRS, FIELDS, fieldOf, OPS, ROLLS,
   rootObj, containers, isContainer, isAncestor, childrenOf, has, kindHas,
   attrsOf, allTags, placeOf, deskList, deskOf, isDesk, spanOf, heldObjects,
   dev, takesTyping, genKindOf, answered, isLate,
-  PRIOS, prioOf, prioName, REPEAT_UNITS, repeatOf, repeats, repeatSaid,
+  PRIOS, prioOf, prioName, DIFFS, diffOf, diffName, REPEAT_UNITS, repeatOf, repeats, repeatSaid,
   relatedTo, backlinksTo, streak, goalPct,
   CALVIEWS, calViewOf, weekStartOf, showsWeekends, KNOBSIZES, knobSizeOf,
   TSIZES, textSizeOf, mediaTypeOf, isPicture, isMedia, isDecor,
@@ -72,7 +72,11 @@ function openPanel(spec){
      doesn't stay one — but keep `open`, or replacing one panel with another
      would slide the whole thing out and back in. */
   const wasOpen = !fresh && el.classList.contains('open');
-  el.className = 'panel' + (spec.wide?' wide':'') + (spec.fit?' fit':'') + (wasOpen?' open':'');
+  /* `tall` is a phone-only ask for more of the screen. The densest page in the
+     app is a month grid plus nine rows, and a bottom sheet at 70vh puts the
+     month at the very bottom of it. It does nothing on a Mac, where the panel
+     is full height already. */
+  el.className = 'panel' + (spec.wide?' wide':'') + (spec.tall?' tall':'') + (spec.fit?' fit':'') + (wasOpen?' open':'');
   el.removeAttribute('style');
   el.dataset.panel = spec.key || '';
   bubbleAt(el, PANEL.anchor);
@@ -1301,13 +1305,21 @@ function modalMove(objId){
 
    It is a panel rather than a popup because it asks more than one question,
    and on a phone a panel comes up from the bottom where the thumb is. */
+/* Two answers and a clear. It had four, and the two that went — this weekend,
+   next week — are both *ranges* said as a day, which is a guess about which
+   day you meant; the month is right there for anything that is not today or
+   tomorrow. Today wears a star, because it is the one you press most and the
+   one you look for. */
 const WHENS_QUICK = [
-  ['today',    'Today',        0],
-  ['tomorrow', 'Tomorrow',     1],
-  ['weekend',  'This weekend', null],
-  ['week',     'Next week',    null],
-  ['clear',    'No date',      null]
+  ['today',    'Today',    0,    'star'],
+  ['tomorrow', 'Tomorrow', 1,    null],
+  ['clear',    'No date',  null, null]
 ];
+/* Five presses covering nearly every estimate anyone makes. It stops at five
+   hours on purpose: past that a thing is not a task, it is a piece of work
+   with tasks in it, and a ladder that climbed to "all day" would be inviting
+   you to keep one. The field is still there for the exception. */
+const DURS = [[10,'10m'],[30,'30m'],[60,'1h'],[120,'2h'],[300,'5h']];
 function quickISO(which){
   if(which==='today') return T;
   if(which==='tomorrow') return D.addISO(T,1);
@@ -1323,18 +1335,42 @@ function quickISO(which){
 }
 /* One month of squares, with what is already on each day marked — the same
    thing the calendar face draws, at the size a menu can hold. */
+/* ---- the month, with everything the object says about time on it --------
+   Four facts, four marks, and they are marks rather than four colours of the
+   same thing: the day it **sits on** is yellow, the day you **aim for** is
+   orange, the day it is **owed** is red, and the days the work itself takes
+   are a grey band running back from whichever deadline is nearest.
+
+   That band is the whole argument for drawing this. Urgency is a subtraction
+   and a number can only report it; a band that starts before today *shows*
+   you that you are already behind, on the same grid you set the dates on.
+   It ends at the deadline and runs back `workDays()` days, which is the
+   duration divided by what a day of your work holds. See decision 123. */
+function workBand(o){
+  const end = (has(o,'deadline') && o.dead) || (has(o,'softdeadline') && o.soft) || null;
+  if(!end || !has(o,'duration') || !(Number(o.dur)>0)) return null;
+  const days = Math.max(1, Math.ceil((Number(o.dur)/60)/workday()));
+  return {from: D.addISO(end, -(days-1)), to: end, days};
+}
 function schedMonth(o, anchorISO){
   const at = D.parse(anchorISO || o.due || T) || D.today();
   const first = new Date(at.getFullYear(), at.getMonth(), 1);
   const lead = (first.getDay()+6)%7;               // weeks start Monday here
   const start = D.add(first, -lead);
+  const band = workBand(o);
   const cells=[];
   for(let i=0;i<42;i++){
     const d=D.add(start,i), iso=D.iso(d);
     const out = d.getMonth()!==at.getMonth();
-    const on = o.due===iso, dead = has(o,'deadline') && o.dead===iso;
-    cells.push(`<button class="sday${out?' out':''}${iso===T?' today':''}${on?' on':''}${dead?' dead':''}"
-      data-schedday="${o.id}:${iso}">${d.getDate()}</button>`);
+    const on = o.due===iso;
+    const dead = has(o,'deadline') && o.dead===iso;
+    const soft = has(o,'softdeadline') && o.soft===iso;
+    const work = band && iso>=band.from && iso<=band.to;
+    const tip = [on&&'the day it sits on', soft&&'aim for', dead&&'due by',
+                 work&&`${band.days} day${band.days===1?'':'s'} of work`].filter(Boolean).join(' · ');
+    cells.push(`<button class="sday${out?' out':''}${iso===T?' today':''}${
+      work?' work':''}${on?' on':''}${soft?' soft':''}${dead?' dead':''}"${
+      tip?` title="${esc(tip)}"`:''} data-schedday="${o.id}:${iso}">${d.getDate()}</button>`);
   }
   return `<div class="schedmonth">
     <div class="schedhead">
@@ -1348,95 +1384,134 @@ function schedMonth(o, anchorISO){
     </div></div>`;
 }
 const SCHED = {month:null};
-/* ---- what a task weighs, and when it is owed --------------------------
-   Four facts decide what you do next: the day it sits on, the day it is
-   **owed** (hard, or soft and self-imposed), how long the work is, and how
-   much it matters. Urgency is what the middle two come to together. They were
-   scattered — dates here, duration and priority behind two doors of the object
-   editor, and priority reachable only after ticking a trait — so in practice
-   nobody set any of them.
+/* ---- When: everything a task is weighed by, on one page ----------------
+   The day it sits on, both deadlines, how long the work is, how hard it is,
+   how much it matters, how it comes round, and what it is tagged with. One
+   page, because they are one question — *what is this and when* — and because
+   the answer to half of them, urgency, is made out of the other half.
 
-   They are one panel now, off a long press on the tile, because they are one
-   question: *where does this stand?* The month went **behind a disclosure**,
-   open only when there is no date yet. That reverses a bit of decision 78 and
-   it is why: a month grid is 300 pixels, the bubble caps at 540, and every
-   field under it was below the fold on a panel that does not look scrollable.
-   The quick answers cover today, tomorrow, the weekend and next week, which is
-   most of what a date ever is; "some other day" is worth one press.
+   It is a **full page**, not a bubble beside the tile. Decision 27 says a
+   question about one tile belongs next to that tile, and that was right when
+   this asked one question; nine rows and a month grid is a sheet, and a sheet
+   that scrolls inside a 640px bubble is decision 122's failure again. Tapping
+   a task opens it and so does *When…* on the long press — one destination, two
+   ways in, which is the whole of "don't duplicate the menu".
 
-   What the object has not got is offered as **one row of chips** rather than a
-   stack of buttons — four traits it could take, said once, in the place you
-   would set them. See decisions 78 and 122. */
+   The month is **always drawn**. It was folded away for one version to make
+   room and that was the wrong economy: picking a day is what you came for, and
+   the four marks on it are how the other rows say what they mean.
+   See decision 123. */
 function schedulePanel(id){
   const o=byId(id); if(!o || isContainer(o)) return;
   SCHED.month = null;
   S.openId = id;
-  openPanel({key:'schedule:'+id, anchor:id,
-    /* Named for what is in it rather than for what it produces. "Where it
-       stands" is the better sentence and the Urgency row says it anyway; this
-       is the panel nobody could find, so findable beats elegant. */
-    title:'Dates and priority', sub:esc(o.title||'Untitled'),
+  openPanel({key:'schedule:'+id, tall:true, title:'When', sub:esc(o.title||'Untitled'),
     body:()=>{
       const ob=byId(id); if(!ob) return '';
       const dated = has(ob,'date');
-      /* Everything it could carry and does not. One chip each, in the order
-         the rows would appear, so the row reads as the panel's own missing
-         half rather than as four separate offers. */
+      const p = prioOf(ob), df = diffOf(ob);
+      /* Everything it could carry and does not, each with the mark it wears
+         everywhere else — a flag is owed, a target is aimed at, a clock is
+         time, a star is worth, a teardrop is effort. */
       const missing = [
-        ['date','Date'], ['deadline','Hard deadline'],
-        ['softdeadline','Soft deadline'], ['duration','Duration'],
-        ['priority','Priority']
+        ['date','Date','calendar'], ['deadline','Hard deadline','flag'],
+        ['softdeadline','Soft deadline','target'], ['duration','Duration','clock'],
+        ['difficulty','Difficulty','drop'], ['priority','Priority','star'],
+        ['repeat','Repeats','repeat']
       ].filter(([a])=>!has(ob,a));
-      const p = prioOf(ob);
-      return `${dated ? `<div class="schedquick">${WHENS_QUICK.map(([k,nm])=>{
+      /* A rating drawn as its own mark, filled to the rank. The scale stays
+         visible — decision 72's argument for six buttons rather than a select —
+         but the mark says which scale it is without reading the caption. */
+      /* Lit up to the rank, and **never counting the zero**: priority runs 0–5
+         because "a dream, nothing to act on" is a real answer (decision 72),
+         but a rank of 4 lighting five stars is a rating that is off by one
+         every time you read it. So rank 0 lights nothing and wears the ring
+         alone, and n stars means n. Difficulty starts at 1 and never meets
+         the case. */
+      const scale = (mark, list, now, attr) => `<div class="ratrow">
+        <button class="ratbtn${now==null?' on':''}" data-${attr}="" data-id="${id}" title="Unranked">–</button>
+        ${list.map(([n,nm,ds])=>
+          `<button class="ratbtn${now!=null&&n>0&&n<=now?' lit':''}${now===n?' on':''}"
+             data-${attr}="${n}" data-id="${id}" title="${esc(nm)} — ${esc(ds)}">${ic(mark,13)}</button>`).join('')}</div>`;
+      const r = repeatOf(ob) || {every:1, unit:'day', days:[], from:'date'};
+      return `${trow('Name', `<input class="pfield" data-oset="${id}:title" value="${esc(ob.title||'')}" placeholder="Untitled">`)}
+
+        ${dated ? `<div class="schedquick">${WHENS_QUICK.map(([k,nm,,mk])=>{
           const iso=quickISO(k);
           return `<button class="pill${(k==='clear'?!ob.due:ob.due===iso)?' solid':''}"
-            data-schedset="${id}:${k}">${nm}${iso?`<u>${esc(D.short(iso))}</u>`:''}</button>`;
+            data-schedset="${id}:${k}">${mk?ic(mk,12):''}${nm}${iso?`<u>${esc(D.short(iso))}</u>`:''}</button>`;
         }).join('')}</div>
-        ${pgroup('Some other day', schedMonth(ob, SCHED.month), !ob.due)}
+        ${schedMonth(ob, SCHED.month)}
+        <div class="schedkey">
+          <i class="k on"></i>on <i class="k soft"></i>aim for
+          <i class="k dead"></i>due by <i class="k work"></i>the work
+        </div>
         ${trow('On', pfield(id,'due', ob.due, 'date'), 'the day it sits on')}` : ''}
 
-        ${/* The day it is *owed*, which is not the day it sits on. It says which
-             of the two decides lateness, because two dates on one object is
-             exactly the place to be explicit. See decision 62. */''}
-        ${has(ob,'deadline') ? trow('Due by', pfield(id,'dead', ob.dead, 'date'),
+        ${has(ob,'deadline') ? trow(`${ic('flag',11)} Due by`, pfield(id,'dead', ob.dead, 'date'),
             ob.dead ? (isLate(ob)?'late':'missing it costs something') : 'the day it is owed') : ''}
-        ${has(ob,'softdeadline') ? trow('Aim for', pfield(id,'soft', ob.soft, 'date'),
+        ${has(ob,'softdeadline') ? trow(`${ic('target',11)} Aim for`, pfield(id,'soft', ob.soft, 'date'),
             'nothing happens if it slips') : ''}
-        ${has(ob,'duration') ? trow('Duration', pfield(id,'dur', ob.dur, 'number','minutes'),
-            ob.dur>0 ? `${durSaid(ob.dur)} · ${Math.round((ob.dur/60)/workday()*10)/10} days of work`
-                     : 'how long it will probably take') : ''}
 
-        ${/* Importance, not urgency — the two are different questions and this
-             is the panel where you can see that they are, because the answer to
-             the other one is printed three rows down. Six buttons rather than a
-             select, so the scale is visible. See decision 72. */''}
-        ${has(ob,'priority') ? prow('Priority',
-          `<div class="priorow">
-            <button class="priobtn${p==null?' on':''}" data-prio="" data-id="${id}" title="Unranked">–</button>
-            ${PRIOS.map(([n,nm,ds])=>
-              `<button class="priobtn p${n}${p===n?' on':''}" data-prio="${n}" data-id="${id}"
-                 title="${esc(nm)} — ${esc(ds)}">${n}</button>`).join('')}
-          </div>`,
+        ${/* Five presses covering nearly every estimate anyone makes. Past five
+             hours a thing is not a task, it is a piece of work with tasks in
+             it — so the ladder stops there rather than climbing, and the field
+             is still open for the exception. */''}
+        ${has(ob,'duration') ? prow(`${ic('clock',11)} Duration`,
+          `<div class="durrow">${DURS.map(([m,nm])=>
+            `<button class="pchip${Number(ob.dur)===m?' on':''}" data-durset="${id}:${m}">${nm}</button>`).join('')}
+           <input class="pfield num" type="number" min="0" step="5" data-oset="${id}:dur" value="${ob.dur||''}" placeholder="min"></div>`,
+          ob.dur>0 ? `${durSaid(ob.dur)} · ${Math.round((ob.dur/60)/workday()*10)/10} days of work`
+                   : 'longer than five hours is more than one task') : ''}
+
+        ${has(ob,'difficulty') ? prow(`${ic('drop',11)} Difficulty`, scale('drop', DIFFS, df, 'diff'),
+          df==null ? 'how hard it is — not how long, and not how much it matters' : esc(diffName(df))) : ''}
+        ${has(ob,'priority') ? prow(`${ic('star',11)} Priority`, scale('star', PRIOS, p, 'prio'),
           p==null ? 'how much it matters to your life' : esc(prioName(p))) : ''}
 
-        ${/* And what the two of them come to. A readout, never a field: there is
-             no `urg` on any object and no way to set one. */''}
+        ${/* What the deadlines and the estimate come to. A readout, never a
+             field: there is no `urg` on any object and no way to set one. */''}
         ${urgencyOf(ob) ? prow('Urgency',
           `<div class="urgerow">${URGES.map(([n,nm])=>
             `<span class="urgebtn u${n}${urgeRank(ob)===n?' on':''}" title="${esc(URGES[n][2])}">${esc(nm)}</span>`).join('')}</div>`,
           esc(urgeSaid(ob))) : ''}
 
+        ${/* ---- how it comes round -----------------------------------------
+             The rule was only ever in the object editor, two doors away from
+             the dates it counts from. The row that matters is **counted from**:
+             "every week" and "a week after I finish it" are different promises
+             and only one of them survives a week you skipped. See decision 73. */''}
+        ${has(ob,'repeat') ? `<div class="section-h"><h2>${ic('repeat',12)} Repeats</h2><div class="rule"></div>
+            <span class="n">${repeats(ob)?esc(repeatSaid(ob)):'not yet'}</span></div>
+          ${trow('Comes round', psel(id,'rep.on', [['','Never'],['1','Yes — on a rule']], repeats(ob)?'1':''))}
+          ${!repeats(ob) ? '' : `
+          ${trow('Counted from', psel(id,'rep.from',
+            [['date','The day it is due — a fixed schedule'],['done','The day I finish it']], r.from||'date'))}
+          ${trow('How often', `<input class="pfield num" type="number" min="1" max="99" data-oset="${id}:rep.every" value="${r.every||1}">`
+            + psel(id,'rep.unit', REPEAT_UNITS.map(([v,pl])=>[v, (r.every>1?pl:v)]), r.unit||'day'))}
+          ${r.unit==='week' && r.from!=='done' ? prow('On these days',
+            `<div class="dowchips">${['Su','Mo','Tu','We','Th','Fr','Sa'].map((d,i)=>
+              `<button class="pchip${(r.days||[]).includes(i)?' on':''}" data-repday="${i}" data-id="${id}">${d}</button>`).join('')}</div>`,
+            (r.days||[]).length ? '' : 'none picked — it counts from the day it is due') : ''}
+          ${r.unit==='month' ? `<div class="mini" style="--k:var(--brass)">It keeps the day of the month it is due on — a task due on the 15th comes round every 15th.</div>` : ''}
+          ${trow('Running', psel(id,'rep.paused',
+            [['','Making the next one'],['1','Paused — keeps its rule, stops making']], r.paused?'1':''))}
+          <button class="subtle-btn" data-act="nextcopy" data-id="${id}">${ic('plus',12)} Make the next one now</button>
+          <div class="mini" style="--k:var(--brass);margin-top:6px">Every copy is a fresh object carrying all of this — the deadlines, the estimate, the ranks — so a repeat is the whole task coming round, not just its name.</div>`}` : ''}
+
+        ${/* Tags, here rather than only behind a door, because a tag is how a
+             thing gets found again and you know it while you are writing the
+             thing down. Clicking one opens the drawer that collects it. */''}
+        <div class="section-h"><h2>${ic('tag',12)} Tags</h2><div class="rule"></div></div>
+        <div class="tagrow">${(ob.tags||[]).map(t=>
+          `<span class="realtag" data-tagdrawer="${esc(t)}" title="Open a drawer for #${esc(t)}">${esc(t)}<b data-untag="${esc(t)}">✕</b></span>`).join('')}
+          <button class="add" data-act="addtag" data-id="${id}">+ tag</button></div>
+
         ${missing.length ? prow('It could also carry',
-          missing.map(([a,nm])=>`<button class="pchip" data-act="wantdeadline" data-want="${a}" data-id="${id}">${ic('plus',11)} ${esc(nm)}</button>`).join(''),
+          missing.map(([a,nm,mk])=>`<button class="pchip" data-act="wantdeadline" data-want="${a}" data-id="${id}">${ic(mk,11)} ${esc(nm)}</button>`).join(''),
           has(ob,'deadline')||has(ob,'softdeadline') ? '' : 'a deadline is a different fact from the day you have put it on') : ''}
 
-        ${!urgencyOf(ob) && (has(ob,'deadline')||has(ob,'softdeadline')||has(ob,'duration'))
-          ? `<div class="mini" style="--k:var(--brass);margin-top:8px">Urgency is a deadline and an estimate together: the days you have, less the days the work needs. Give it both and this says where it stands.</div>` : ''}
-        ${has(ob,'span') ? prow('Runs until', pfield(id,'till', ob.till,'date')) : ''}
-        ${has(ob,'repeat') ? `<div class="mini" style="--k:var(--brass);margin-top:10px">${
-          repeats(ob) ? 'Repeats '+esc(repeatSaid(ob))+' — the rule is in the object editor.'
-                      : 'Set it to repeat in the object editor.'}</div>` : ''}`;
+        ${has(ob,'span') ? trow('Runs until', pfield(id,'till', ob.till,'date')) : ''}`;
     }});
 }
 
@@ -1549,14 +1624,16 @@ function openCtx(x,y,id){
          sits on, both deadlines, how long the work is, and how much it matters.
          Offered to anything that is not a container, because the panel offers
          the traits it hasn't got rather than refusing. See decision 122. */''}
-    ${(!many && !isContainer(o))?`<button data-c="when:${id}">${ic('clock',14)} Dates and priority…</button>`:''}
+    ${(!many && !isContainer(o))?`<button data-c="when:${id}">${ic('calendar',14)} When…</button>`:''}
     ${(!many&&repeats(o))?`<button data-c="nextcopy:${id}">${ic('repeat',14)} Make the next one</button>`:''}
     ${(!many&&(has(o,'check')||has(o,'streak')))?`<button data-c="done:${id}">${ic('check',14)} ${has(o,'streak')?'Mark today':'Complete'}</button>`:''}
     <button data-c="intodrawer:${id}">${ic('folder',14)} ${many?`Put these ${sel.length} in a new drawer`:'Put this in a new drawer'}</button>
     <button data-c="move:${id}">${ic('folder',14)} Move to drawer…</button>
-    ${many?'':`<button data-c="hold:${id}">${ic('inbox',14)} Keep in the drawer</button>`}
-    ${many?'':`<button data-c="today:${id}">${ic('calendar',14)} Schedule today</button>
-    <button data-c="dupe:${id}">${ic('archive',14)} Duplicate</button>`}
+    ${/* "Keep in the drawer" and "Schedule today" are both out: the first is
+         what dropping a tile on the rail already does, and the second is one
+         press inside When… next to the other four answers. A menu earns its
+         length by holding what has nowhere else to be. */''}
+    ${many?'':`<button data-c="dupe:${id}">${ic('archive',14)} Duplicate</button>`}
     <div class="div"></div>
     <button class="danger" data-c="del:${id}">${ic('trash',14)} ${many?`Delete ${sel.length}`:'Delete'}</button>`;
   const r=$('#frame').getBoundingClientRect();

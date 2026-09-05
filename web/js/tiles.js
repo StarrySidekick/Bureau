@@ -12,7 +12,7 @@ import { DECOR, DECOR_KEYS, decorOf, decorSVG } from './decor.js';
 import { hexOf, objColour, dress, dressAs } from './look.js';
 import { render, pageAt } from './views.js';
 import { openObj, openWriter, openRead, openViewer, renderSheet } from './sheet.js';
-import { objectPanel } from './panels.js';
+import { objectPanel, schedulePanel } from './panels.js';
 import { openTile, openingFor } from './motion.js';
 import { save } from './persist.js';
 
@@ -283,6 +283,11 @@ const CLICKS = {
   read:     'Open it to read',
   edit:     'Open it to write',
   check:    'Tick it off',
+  /* The When page: dates, both deadlines, the estimate, the ranks, the repeat
+     and the tags. The default for a task, because a task is the one type where
+     "what is this worth and when" is the question you have every time you look
+     at it. See decision 123. */
+  when:     'Open it to schedule',
   settings: 'Open its settings',
   generate: 'Make a new object'
 };
@@ -341,7 +346,11 @@ function tileTap(id){
     // Ticking has a movement of its own — the pop — so it isn't an opening.
     case 'check': if(has(o,'check')||has(o,'streak')) toggleDone(id); else openTile(id, ()=>openObj(id)); break;
     case 'settings': openTile(id, ()=>objectPanel(id)); break;
-    default: break;                      // 'none' — a task just sits there
+    /* One destination, two ways in: this and *When…* on the long press. The
+       whole page rather than a bubble, because it holds a month and nine rows
+       — see decision 123. */
+    case 'when': openTile(id, ()=>schedulePanel(id)); break;
+    default: break;                      // 'none' — it just sits there
   }
 }
 /* Where a click on bare grid happened, so the next new object lands there. */

@@ -3510,11 +3510,15 @@ const CHROME = process.env.BUREAU_CHROME;
     const band = id => document.querySelector(`[data-listfor] .listband[data-row="${id}"]`);
     out.itIsAList = !!band(a.id) && !!document.querySelector('[data-listfor]');
 
-    /* A task is a short string of text. It used to open the object editor from
-       a list — the one place that ignored the object's own click behaviour —
-       so tapping one put a page of paper in front of you. */
-    band(a.id).click(); await nap(250);
-    out.aTaskDoesNotOpen = !document.querySelector('#panel') && !document.querySelector('.sheet');
+    /* A band obeys the object's own click behaviour, which is the thing a list
+       used to ignore — it opened the object editor for everything on it, so
+       tapping a task put a page of paper in front of you. A task's answer is
+       now the When page, and the claim worth holding is that the *band* asks
+       the object rather than deciding for it. See decisions 61 and 123. */
+    band(a.id).click(); await nap(280);
+    out.aTaskOpensItsOwnAnswer = (document.querySelector('#panel .ptop b')||{}).textContent === 'When'
+      && !document.querySelector('.sheet');
+    document.querySelector('#panel [data-act="panelclose"]').click(); await nap(200);
 
     // tapping the words is how you change them
     band(a.id).querySelector('[data-edit]').click(); await nap(250);
@@ -4118,50 +4122,108 @@ const CHROME = process.env.BUREAU_CHROME;
     return out;
   });
 
-  /* --- the four facts are reachable from the tile ------------------------
-     Every one of these existed and could not be found: priority was behind two
-     doors of the object editor and a trait you had to tick first, and the
-     other three were below the fold of a bubble that does not look scrollable.
-     "It is implemented" and "you can get at it" are different claims and only
-     the second one matters. */
+  /* --- When: everything a task is weighed by, on one page ----------------
+     Every one of these existed once and could not be found: priority was two
+     doors and a trait-tick away, and the rest were under the fold of a bubble.
+     So these assertions are about *reach* as much as about correctness — what
+     the long press offers, what a tap opens, and whether the marks the month
+     draws are the ones the object is carrying. */
   const reachable = await page.evaluate(async () => {
     const nap = ms => new Promise(r => setTimeout(r, ms));
     const S = BUREAU.state, out = {};
-    const t = BUREAU.create('task', {parent:'root', title:'Reach me'});
-    BUREAU.render(); await nap(150);
-    // a long press offers it, and offers it by a name that says what is inside
-    BUREAU.ctx(10, 10, t.id); await nap(200);
-    const item = document.querySelector('#ctx button[data-c^="when:"]');
-    out.theMenuOffersIt = !!item && /priorit/i.test(item.textContent);
-    item.click(); await nap(320);
-    out.opens = !!document.querySelector('#panel');
-    /* Each of the four it hasn't got is one chip, in the panel where it would
-       be set — not a trait picker two doors away. */
-    const chip = a => document.querySelector(`#panel [data-want="${a}"]`);
-    out.allFourAreOffered = ['deadline','softdeadline','duration','priority'].every(a => !!chip(a));
-    for(const a of ['deadline','softdeadline','duration','priority']){ chip(a).click(); await nap(240); }
-    out.oneTapAddsEach = ['deadline','softdeadline','duration','priority'].every(a => BUREAU.has(t, a));
-    out.andTheChipsGo = !document.querySelector('#panel [data-want]');
-    // …and then every one of them is a row you can set, in that same panel
-    out.everyFieldIsThere = ['dead','soft','dur'].every(k =>
-      !!document.querySelector(`#panel [data-oset="${t.id}:${k}"]`))
-      && !!document.querySelector('#panel [data-prio="5"]');
-    document.querySelector('#panel [data-prio="4"]').click(); await nap(240);
-    out.priorityRanksFromHere = t.prio === 4;
-    /* And the readout the other three produce, in the same place — which is the
-       argument for one panel rather than four rows in four places. */
     const iso = n => { const d=new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()+n);
       return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
-    t.dead = iso(2); t.dur = 60*12;
-    BUREAU.schedule(t.id); await nap(320);
-    out.andUrgencyIsRead = !!document.querySelector('#panel .urgerow')
-      && /Behind/.test(document.querySelector('#panel .prow:has(.urgerow)').textContent);
-    /* The whole point of the rebuild: it has to *fit*. A bubble that scrolls
-       does not look like one, and that is how three of these went unseen. */
+    const t = BUREAU.create('task', {parent:'root', title:'Reach me'});
+    BUREAU.render(); await nap(150);
+
+    // a tap opens it, and the long press offers the same one place
+    out.aTapOpensIt = BUREAU.K.task.onclick === 'when';
+    BUREAU.ctx(10, 10, t.id); await nap(200);
+    const item = document.querySelector('#ctx button[data-c^="when:"]');
+    out.theMenuOffersIt = !!item && /when/i.test(item.textContent);
+    /* Two quick options came off the menu: one duplicated the rail drop and
+       the other is a press inside the page the menu now leads to. */
+    const menu = [...document.querySelectorAll('#ctx button')].map(b => b.textContent);
+    out.andHasShed = !menu.some(x => /Keep in the drawer|Schedule today/.test(x));
+    item.click(); await nap(340);
+    /* A page, not a bubble. Nine rows and a month is a sheet, and a sheet that
+       scrolls inside a 640px bubble is the failure this replaced. */
     const el = document.querySelector('#panel');
-    const body = document.querySelector('#panel .pbody');
-    out.itFitsWithoutScrolling = body.scrollHeight <= body.clientHeight + 2;
-    out.andStaysOnTheScreen = el.getBoundingClientRect().bottom <= window.innerHeight + 1;
+    out.isAPageNotABubble = !!el && !el.classList.contains('bubble');
+
+    // …and it renames, which is the thing a tap used to have to go elsewhere for
+    out.itRenames = !!document.querySelector(`#panel [data-oset="${t.id}:title"]`);
+    // two quick answers and a clear; the two ranges are gone
+    const quick = [...document.querySelectorAll('#panel [data-schedset]')].map(b => b.textContent);
+    out.twoQuickAnswers = quick.length === 3 && !quick.some(x => /weekend|Next week/.test(x));
+    out.todayWearsAStar = !!document.querySelector('#panel [data-schedset$=":today"] svg');
+    // the month is drawn, never folded away: picking a day is what you came for
+    out.theMonthIsAlwaysThere = document.querySelectorAll('#panel [data-schedday]').length === 42
+      && !document.querySelector('#panel details .schedgrid');
+
+    /* Each trait it hasn't got is one chip, with the mark it wears everywhere:
+       a flag is owed, a target is aimed at, a clock is time, a teardrop is
+       effort, a star is worth. */
+    const chip = a => document.querySelector(`#panel [data-want="${a}"]`);
+    const wants = ['deadline','softdeadline','duration','difficulty','priority'];
+    out.everyTraitIsOffered = wants.every(a => !!chip(a));
+    out.andEachWearsItsMark = wants.every(a => !!chip(a).querySelector('svg'));
+    for(const a of wants){ chip(a).click(); await nap(230); }
+    out.oneTapAddsEach = wants.every(a => BUREAU.has(t, a));
+
+    // difficulty is teardrops, 1–5, and it is its own axis
+    document.querySelector('#panel [data-diff="3"]').click(); await nap(230);
+    out.difficultyRanks = t.diff === 3;
+    out.inTeardrops = document.querySelectorAll('#panel [data-diff] svg').length === 5;
+    /* Priority is stars, and n stars means n: rank 0 is a real answer and it
+       lights nothing, or every rating in the app reads one too high. */
+    document.querySelector('#panel [data-prio="4"]').click(); await nap(230);
+    out.priorityRanks = t.prio === 4;
+    out.inStars = document.querySelectorAll('#panel [data-prio] svg').length === 6;
+    out.nStarsMeansN = document.querySelectorAll('#panel [data-prio].lit').length === 4;
+
+    // a duration in one press, and pressing the one already set clears it
+    document.querySelector('#panel [data-durset$=":120"]').click(); await nap(240);
+    out.durationInOnePress = t.dur === 120;
+    document.querySelector('#panel [data-durset$=":120"]').click(); await nap(240);
+    out.andPressingItAgainClears = t.dur == null;
+
+    /* The month carries what the object says about time: the day it sits on,
+       the day you aim for, the day it is owed, and a rule along the top of the
+       days the work itself takes. */
+    t.due = iso(1); t.soft = iso(5); t.dead = iso(9); t.dur = 60 * 9;
+    BUREAU.schedule(t.id); await nap(340);
+    const n = c => document.querySelectorAll(`#panel .sday.${c}`).length;
+    out.theMonthShowsTheDay = n('on') === 1;
+    out.andTheSoftDeadline = n('soft') === 1;
+    out.andTheHardOne = n('dead') === 1;
+    /* Three days of work at three hours a day, ending on the deadline — and the
+       last of them *is* the deadline, so the band has to be an edge rather than
+       a fill or a red day would eat it. */
+    out.andHowLongTheWorkIs = n('work') === 3;
+
+    // repeating is set from here, granularly, not two doors away
+    out.repeatsFromHere = !!document.querySelector(`#panel [data-oset="${t.id}:rep.on"]`);
+    /* Driven through the selects rather than a back door, because a select is
+       the path: it answers on `change`, and the panel then redraws itself,
+       which is what makes the weekday chips appear at all. */
+    const pick = (key, v) => { const el=document.querySelector(`#panel [data-oset="${t.id}:${key}"]`);
+      el.value = v; el.dispatchEvent(new Event('change', {bubbles:true})); };
+    pick('rep.on', '1'); await nap(300);
+    pick('rep.unit', 'week'); await nap(300);
+    out.theDaysAppearForAWeeklyRule = !!document.querySelector('#panel [data-repday="2"]');
+    document.querySelector('#panel [data-repday="2"]').click(); await nap(260);
+    document.querySelector('#panel [data-repday="4"]').click(); await nap(260);
+    out.everyTuesdayAndThursday = /Tuesday, Thursday/.test(BUREAU.repeatSaid(t));
+    // and a copy carries the whole task, not just its name
+    const spawned = BUREAU.spawnNext(t.id);
+    const copy = S.objects.find(o => o.fromRepeat && o.title === t.title && o.id !== t.id);
+    out.aCopyCarriesItAll = !!copy && copy.dead === t.dead && copy.dur === t.dur
+      && copy.prio === t.prio && copy.diff === t.diff;
+    if(copy) BUREAU.del(copy.id);
+
+    // tags, in the page you are already in rather than behind a door
+    out.tagsAreHere = !!document.querySelector('#panel [data-act="addtag"]');
     document.querySelector('#panel [data-act="panelclose"]').click();
     BUREAU.del(t.id); S.undo=[]; S.redo=[]; BUREAU.render();
     return out;
@@ -4414,7 +4476,9 @@ const CHROME = process.env.BUREAU_CHROME;
     BUREAU.schedule(t.id); await nap(250);
     const p = document.querySelector('#panel');
     out.opens = !!p && (p.dataset.panel||'').startsWith('schedule:');
-    out.hasQuickAnswers = p.querySelectorAll('[data-schedset]').length >= 4;
+    /* Two answers and a clear. It had four; this weekend and next week were
+       both ranges said as a day, and the month is right there. Decision 123. */
+    out.hasQuickAnswers = p.querySelectorAll('[data-schedset]').length === 3;
     out.hasAMonth = p.querySelectorAll('[data-schedday]').length === 42;
     // a quick answer writes the day it sits on
     const iso = n => { const d=new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()+n);
