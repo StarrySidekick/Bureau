@@ -390,6 +390,17 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
 .prow label{display:block;font-size:10px;letter-spacing:.08em;text-transform:uppercase;
   color:var(--ink-3);font-weight:600;margin-bottom:5px}
 .prow > div{display:flex;flex-wrap:wrap;gap:4px}
+/* A short control — a date, a number — puts its label beside it instead of
+   over it. Stacked captions are right when the control is a row of chips and
+   wasteful when it is one small field, and the panel that answers "where does
+   this stand" has five of those to fit inside a bubble. The caption drops to
+   its own line under both, so it can be a sentence without squeezing either. */
+.prow.tight{display:grid;grid-template-columns:auto minmax(120px,1fr);
+  align-items:center;column-gap:10px;row-gap:2px}
+.prow.tight > label{margin:0;grid-row:1;grid-column:1;display:flex;flex-direction:column}
+.prow.tight > label i{font-style:normal;text-transform:none;letter-spacing:0;
+  font-size:10.5px;font-weight:400;color:var(--ink-3);margin-top:1px}
+.prow.tight > div{grid-row:1;grid-column:2;justify-content:flex-end}
 .pchip{padding:4px 9px;border-radius:20px;font-size:11.5px;border:1px solid var(--rule);
   color:var(--ink-2);background:var(--paper);transition:.12s}
 .pchip:hover{border-color:var(--brass);color:var(--ink)}

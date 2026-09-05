@@ -31,6 +31,15 @@ Decisions 120 and 121.
   render are 1 at every size on both devices, which is the invariant
   `sizeGrid()` was written to hold and had never been measured
 
+**Follow-up the same day: it was implemented and not reachable.** Priority was
+five steps behind two doors of the object editor, and the other three sat under
+the fold of a bubble that leads with a month grid. All four are one panel now,
+off a long press — *Dates and priority…* — with the traits an object hasn't got
+offered as one row of chips and the month behind a disclosure. Decision 122.
+The lesson worth keeping: every assertion in the suite could say the markup was
+right and none could say it was on the screen, so `reachable` now checks that
+the panel does not scroll and its bottom edge is visible.
+
 *Deliberately not done:* sync, which Timothy is holding until Bureau is a
 TestFlight app, since the transport will be a different question by then. The
 Depth and light door stays as it is; the defaults get locked in later.

@@ -5276,3 +5276,66 @@ the same footing the star has in the bar.
 
 One press of ⌘Z takes a whole stamped arrangement back off, as one move. Laying
 out twenty things and then deleting them one at a time is not an undo.
+
+## 122. Implemented is not reachable
+
+*2026-09-05*
+
+Timothy, after 120 shipped: *"How exactly do we have it set up to be able to
+actually apply any of these attributes to tasks? I want to be able to do it
+directly from the task — tapping and holding it and then accessing something
+that allows you to add or rank whether a deadline is hard or soft, what the
+priority level is, and the duration. I don't see where to set that."*
+
+He was right, and the honest answer was worse than "it's over there":
+
+- **Priority was not reachable from a tile at all.** Object editor → Traits →
+  tick Priority → back → Fields → press a rank. Five steps and two doors, for a
+  field the app sorts and collects by.
+- **The other three were on the long press**, in the panel behind *When…* — and
+  invisible. That panel led with a month grid three hundred pixels tall, a
+  bubble caps at 540, and the three "add" buttons sat under the fold of a panel
+  that does not look scrollable. Present, correct, guarded by a test, and in
+  practice not there.
+
+Decision 120 argued that all three should stay opt-in with "a way in from the
+panel where you are already setting dates", and 78 built that panel. Both were
+right about *where*; neither checked that the way in could be seen. A feature
+you have to be told the route to is not finished, and no assertion in
+`smoke.mjs` could have caught it, because every one of them asked whether the
+markup was correct rather than whether it was on the screen.
+
+**So the four facts are one panel**, off a long press on the tile, because they
+are one question — *what is this worth and when is it owed?* — and because
+their answer, urgency, is made out of three of them. Splitting them across a
+scheduling bubble and two doors of the editor was splitting one thought.
+
+**The month went behind a disclosure**, open only when there is no date yet.
+That reverses part of decision 78 and the reason is arithmetic: the quick
+answers — today, tomorrow, this weekend, next week, no date — are most of what
+a date ever is, and "some other day" is worth one press when the alternative is
+that four other fields cannot be seen.
+
+**What an object hasn't got is one row of chips**, in the panel where those
+things are set, rather than a trait picker two doors away. Four offers said
+once, in the place you would use them. The traits stay opt-in — decision 62's
+separation of *sits on* from *owed on* is worth keeping and the chips cost one
+tap — but opt-in now means one press rather than an expedition.
+
+**A short control puts its label beside it, not over it.** `.prow.tight`:
+three date fields with an uppercase caption stacked above each is most of a
+bubble's height, and this panel has five rows and a readout to fit. The bubble
+cap went from 540 to 640 as well, which is free on a desk and never reached on
+a phone, where a bubble falls back to the bottom sheet.
+
+**And the test asks whether you can get at it.** `reachable` presses the menu
+item, presses each chip, ranks a priority, reads the urgency line back, and
+then asserts the two things every other assertion in the suite had been unable
+to see: that the panel's body does not scroll, and that its bottom edge is on
+the screen. That last pair is the actual lesson. This project's tests were very
+good at "is the markup right" and had no way to say "and is it in front of the
+user" — which is the failure that happened, twice over, in one pass.
+
+Named for what is in it rather than for what it produces. *Where it stands* is
+the better sentence and the Urgency row says it anyway; this is the panel
+nobody could find, so findable beat elegant.

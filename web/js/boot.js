@@ -17,7 +17,7 @@ import { applyLook, applyStyle, STYLES, panelSlots, borderSlots, knobSlots, text
   palNow, CHECKS } from './look.js';
 import { render, sizeGrid, viewHTML, reveal, settingsPanel, pageAt, pageCount, pageTop, goPage } from './views.js';
 import { overlayHTML, objectPanel, modalNewObject, holdPanel, schedulePanel, closePanel,
-  sampleObject, sampleTile } from './panels.js';
+  sampleObject, sampleTile, openCtx } from './panels.js';
 import { wire } from './wire.js';
 import { openingFor, stepDrawer, spray, sprayAt, sprayCount, sprayNow, sprayMark, SPRAYS,
   applyTilt, tiltTo, tiltRecentre } from './motion.js';
@@ -122,6 +122,9 @@ window.BUREAU = {
   del, delMany, delDrawer, undo, redo, toggleDone, spawnNext,
   // the little calendar, and how a thing comes round — decisions 72, 73, 78
   schedule: schedulePanel, applyLook, palNow,
+  /* The context menu, so a test can ask what a long press actually offers —
+     which is the question "is this reachable" and the one that went unasked. */
+  ctx: openCtx,
   get CHECKS(){ return CHECKS; }, decorSVG,
   get sorts(){ return SORTS; },
   /* Urgency is derived, so there is nothing on an object for a test to read —

@@ -4118,6 +4118,55 @@ const CHROME = process.env.BUREAU_CHROME;
     return out;
   });
 
+  /* --- the four facts are reachable from the tile ------------------------
+     Every one of these existed and could not be found: priority was behind two
+     doors of the object editor and a trait you had to tick first, and the
+     other three were below the fold of a bubble that does not look scrollable.
+     "It is implemented" and "you can get at it" are different claims and only
+     the second one matters. */
+  const reachable = await page.evaluate(async () => {
+    const nap = ms => new Promise(r => setTimeout(r, ms));
+    const S = BUREAU.state, out = {};
+    const t = BUREAU.create('task', {parent:'root', title:'Reach me'});
+    BUREAU.render(); await nap(150);
+    // a long press offers it, and offers it by a name that says what is inside
+    BUREAU.ctx(10, 10, t.id); await nap(200);
+    const item = document.querySelector('#ctx button[data-c^="when:"]');
+    out.theMenuOffersIt = !!item && /priorit/i.test(item.textContent);
+    item.click(); await nap(320);
+    out.opens = !!document.querySelector('#panel');
+    /* Each of the four it hasn't got is one chip, in the panel where it would
+       be set — not a trait picker two doors away. */
+    const chip = a => document.querySelector(`#panel [data-want="${a}"]`);
+    out.allFourAreOffered = ['deadline','softdeadline','duration','priority'].every(a => !!chip(a));
+    for(const a of ['deadline','softdeadline','duration','priority']){ chip(a).click(); await nap(240); }
+    out.oneTapAddsEach = ['deadline','softdeadline','duration','priority'].every(a => BUREAU.has(t, a));
+    out.andTheChipsGo = !document.querySelector('#panel [data-want]');
+    // …and then every one of them is a row you can set, in that same panel
+    out.everyFieldIsThere = ['dead','soft','dur'].every(k =>
+      !!document.querySelector(`#panel [data-oset="${t.id}:${k}"]`))
+      && !!document.querySelector('#panel [data-prio="5"]');
+    document.querySelector('#panel [data-prio="4"]').click(); await nap(240);
+    out.priorityRanksFromHere = t.prio === 4;
+    /* And the readout the other three produce, in the same place — which is the
+       argument for one panel rather than four rows in four places. */
+    const iso = n => { const d=new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()+n);
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
+    t.dead = iso(2); t.dur = 60*12;
+    BUREAU.schedule(t.id); await nap(320);
+    out.andUrgencyIsRead = !!document.querySelector('#panel .urgerow')
+      && /Behind/.test(document.querySelector('#panel .prow:has(.urgerow)').textContent);
+    /* The whole point of the rebuild: it has to *fit*. A bubble that scrolls
+       does not look like one, and that is how three of these went unseen. */
+    const el = document.querySelector('#panel');
+    const body = document.querySelector('#panel .pbody');
+    out.itFitsWithoutScrolling = body.scrollHeight <= body.clientHeight + 2;
+    out.andStaysOnTheScreen = el.getBoundingClientRect().bottom <= window.innerHeight + 1;
+    document.querySelector('#panel [data-act="panelclose"]').click();
+    BUREAU.del(t.id); S.undo=[]; S.redo=[]; BUREAU.render();
+    return out;
+  });
+
   /* --- a plan is a board you can put down again -------------------------
      Everything here is about a copy being a copy: fresh ids, the doing left
      behind, the arrangement kept. A plan that quietly shared ids with the
@@ -5558,7 +5607,7 @@ const CHROME = process.env.BUREAU_CHROME;
     settingsHasDoors, settingsBack,
     wordsNotSource, deadlines, twoClauses, undoEverything, savesOnlyChanges,
     paletteKeys, editorKeys, pickerLeads, rollupsEverywhere, soundAndVision, keyboardBoard,
-    ranking, urgency, plansWork, repeating, oneLock, scheduling, ownColour, addBox, calFaces,
+    ranking, urgency, reachable, plansWork, repeating, oneLock, scheduling, ownColour, addBox, calFaces,
     lockedBoard, freeTraits, pageWrites, tickBoxes, readerFits,
     dropsIn, keyframesRegistered, aesthetics, slotScoping, objectsDressed, grainSlots, tagged, drawnAesthetic, deeper, lookStage, statusBar, bindings, panelling, theSpray, tappingIsQuiet, decorations, pinboard
   }, null, 2));

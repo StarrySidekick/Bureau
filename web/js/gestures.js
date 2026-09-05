@@ -1,5 +1,5 @@
 import { $, $$, clamp, D, ROOT } from './util.js';
-import { S, byId, dev, has, isAncestor, childrenOf, container, gatherKind, spanOf,
+import { S, byId, dev, has, isContainer, isAncestor, childrenOf, container, gatherKind, spanOf,
   sortOf, cfgOf, boardLocked, heldCount, T } from './model.js';
 import { GRID, CELL, gridOf, cellW, lay, boxOk, overlaps } from './grid.js';
 import { toast, gather, setPin, del, pushSets, holdIt } from './mutations.js';
@@ -183,7 +183,11 @@ function aimHold(g, py){
    of at a time is two hundred you should not have built. Same argument as the
    drag chip and the pull. */
 const ROW_MAX = 150, ROW_DO = 78;
-const canSchedule = id => { const o=byId(id); return !!o && has(o,'date'); };
+/* The right-swipe opens the dates-and-priority panel, which offers the traits
+   an object hasn't got rather than refusing — so the gate is "is there
+   anything to say about this", not "has it already got a date". A container is
+   out: a drawer is not owed on a day. See decision 122. */
+const canSchedule = id => { const o=byId(id); return !!o && !isContainer(o); };
 function rowAction(band){
   let el=$('#rowact');
   if(!el){ el=document.createElement('i'); el.id='rowact'; $('#frame').appendChild(el); }
@@ -803,7 +807,7 @@ function onMove(e){
       G.el.style.transform=`translateX(${show}px)`;
       if(G.back){
         G.back.className='rowact'+(act==='del'?' del':act==='due'?' due':'')+(G.act?' ready':'');
-        G.back.innerHTML = act==='del' ? 'Delete' : act==='due' ? 'When…' : '';
+        G.back.innerHTML = act==='del' ? 'Delete' : act==='due' ? 'Dates…' : '';
       }
       return;
     }

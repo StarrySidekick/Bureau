@@ -901,6 +901,20 @@ skips the trait test and reads `get()`) while the rollup picker refuses it.
 deadline chip as **the line thickening as the slack runs out** — never as a left
 stripe, which is what priority means. See decision 120.
 
+**The four facts a task is weighed by are one panel, off a long press.**
+`schedulePanel(id)` — the day it sits on, both deadlines, the duration and the
+priority, with the urgency readout they produce at the foot. Reached from the
+context menu (*Dates and priority…*) and from a right-swipe on a list row. What
+an object hasn't got is **one row of chips** in that same panel (`data-want`
+names the attribute), never a trait picker two doors away. The month sits
+behind a disclosure, open only when there is no date: it is 300px, a bubble
+caps at 640, and it used to push every other field under the fold — which is
+how three fields that were implemented, correct and tested were in practice
+unreachable. **A test that asks whether the markup is right cannot see that.**
+`reachable` in the smoke test asserts the panel's body does not scroll and its
+bottom edge is on the screen; write that pair for anything new that has to be
+found. See decision 122.
+
 **A deadline is hard or soft, and a thing may carry both.** `deadline`/`dead` is
 the **hard** one — missing it costs something; `softdeadline`/`soft` is a day
 you set yourself, and nothing happens if it slips. The ordinary case is both at

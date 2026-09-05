@@ -1,6 +1,6 @@
 import { $, $$, esc, ic, uid, clamp, D, ROOT } from './util.js';
 import { S, K, KINDS, KEYS, T, ATTRS, USER_ATTRS, FIELDS, fieldOf, OPS, ROLLS,
-  URGES, workday, urgencyOf, urgeRank, urgeSaid,
+  URGES, workday, urgencyOf, urgeRank, urgeSaid, durSaid,
   WHENS, whenISO, RULE_MAX, rulesOf,
   SORTS, MANUAL, sortOf, FACES, SHAPES, READS, OPENINGS, openingOf,
   faceOf, layoutOf, shapeOf, readOf, byId, container, cfgOf, deskTitle,
@@ -109,7 +109,11 @@ function bubbleAt(el, anchor){
   const side = (fr.right-a.right) >= w+BUBBLE_GAP ? 'right'
              : (a.left-fr.left)   >= w+BUBBLE_GAP ? 'left' : null;
   if(!side) return false;
-  const maxH = Math.min(fr.height-32, 540);
+  /* 540 was chosen when a bubble held one question. The panel that answers
+     "where does this stand" holds five rows and a readout, and a bubble that
+     scrolls does not look like one — so it may grow, on a screen with the room
+     for it. A phone never reaches here: it falls back to the bottom sheet. */
+  const maxH = Math.min(fr.height-32, 640);
   const top = clamp(a.top-fr.top-10, 16, Math.max(16, fr.height-maxH-16));
   el.classList.add('bubble', 'from-'+side);
   el.style.width = w+'px';
@@ -394,6 +398,13 @@ function swatchRows(cur, flat){
    wall; they are two rows now. The bulky many-of-many groups — traits, what a
    magic drawer collects — are behind a disclosure, closed until asked for. */
 const prow=(label,body,note)=>`<div class="prow"><label>${label}${note?`<i>${note}</i>`:''}</label><div>${body}</div></div>`;
+/* The same row with the label *beside* the control rather than over it, for
+   the ones whose control is short — a date, a number. Three date fields
+   stacked with a caption above each is most of a bubble, and the panel that
+   answers "where does this stand" has five of them plus a readout to fit.
+   A separate function rather than an argument on prow(), because every other
+   caller wants the label over the control and always will. */
+const trow=(label,body,note)=>`<div class="prow tight"><label>${label}${note?`<i>${note}</i>`:''}</label><div>${body}</div></div>`;
 /* The marks on offer, in one list, because a type and an object are choosing
    from the same drawer of stamps — two lists would drift the first time one
    gained an icon. */
@@ -1337,39 +1348,91 @@ function schedMonth(o, anchorISO){
     </div></div>`;
 }
 const SCHED = {month:null};
+/* ---- what a task weighs, and when it is owed --------------------------
+   Four facts decide what you do next: the day it sits on, the day it is
+   **owed** (hard, or soft and self-imposed), how long the work is, and how
+   much it matters. Urgency is what the middle two come to together. They were
+   scattered — dates here, duration and priority behind two doors of the object
+   editor, and priority reachable only after ticking a trait — so in practice
+   nobody set any of them.
+
+   They are one panel now, off a long press on the tile, because they are one
+   question: *where does this stand?* The month went **behind a disclosure**,
+   open only when there is no date yet. That reverses a bit of decision 78 and
+   it is why: a month grid is 300 pixels, the bubble caps at 540, and every
+   field under it was below the fold on a panel that does not look scrollable.
+   The quick answers cover today, tomorrow, the weekend and next week, which is
+   most of what a date ever is; "some other day" is worth one press.
+
+   What the object has not got is offered as **one row of chips** rather than a
+   stack of buttons — four traits it could take, said once, in the place you
+   would set them. See decisions 78 and 122. */
 function schedulePanel(id){
-  const o=byId(id); if(!o || !has(o,'date')) return;
+  const o=byId(id); if(!o || isContainer(o)) return;
   SCHED.month = null;
   S.openId = id;
   openPanel({key:'schedule:'+id, anchor:id,
-    title:'When', sub:esc(o.title||'Untitled'),
+    /* Named for what is in it rather than for what it produces. "Where it
+       stands" is the better sentence and the Urgency row says it anyway; this
+       is the panel nobody could find, so findable beats elegant. */
+    title:'Dates and priority', sub:esc(o.title||'Untitled'),
     body:()=>{
       const ob=byId(id); if(!ob) return '';
-      const deadline = has(ob,'deadline');
-      return `<div class="schedquick">${WHENS_QUICK.map(([k,nm])=>{
+      const dated = has(ob,'date');
+      /* Everything it could carry and does not. One chip each, in the order
+         the rows would appear, so the row reads as the panel's own missing
+         half rather than as four separate offers. */
+      const missing = [
+        ['date','Date'], ['deadline','Hard deadline'],
+        ['softdeadline','Soft deadline'], ['duration','Duration'],
+        ['priority','Priority']
+      ].filter(([a])=>!has(ob,a));
+      const p = prioOf(ob);
+      return `${dated ? `<div class="schedquick">${WHENS_QUICK.map(([k,nm])=>{
           const iso=quickISO(k);
           return `<button class="pill${(k==='clear'?!ob.due:ob.due===iso)?' solid':''}"
             data-schedset="${id}:${k}">${nm}${iso?`<u>${esc(D.short(iso))}</u>`:''}</button>`;
         }).join('')}</div>
-        ${schedMonth(ob, SCHED.month)}
-        ${prow('On', pfield(id,'due', ob.due, 'date'), 'the day it sits on')}
-        ${deadline
-          ? prow('Due by', pfield(id,'dead', ob.dead, 'date'),
-              ob.dead ? (isLate(ob)?'late':'what makes it late') : 'the day it is owed')
-          : `<button class="subtle-btn" data-act="wantdeadline" data-id="${id}">${ic('plus',12)} Give it a deadline as well</button>
-             <div class="mini" style="--k:var(--brass)">A deadline is a different fact from the day you have put it on — see decision 62.</div>`}
-        ${has(ob,'softdeadline')
-          ? prow('Aim for', pfield(id,'soft', ob.soft, 'date'), 'a day you set yourself — nothing happens if it slips')
-          : `<button class="subtle-btn" data-act="wantdeadline" data-want="softdeadline" data-id="${id}">${ic('plus',12)} And a soft one you set yourself</button>`}
-        ${/* The third fact urgency is made of, offered where the other two are:
-             a deadline without an estimate can only say how close it is, and
-             three hours due tomorrow is not three weeks due tomorrow. */''}
-        ${has(ob,'duration')
-          ? prow('Duration', pfield(id,'dur', ob.dur, 'number','minutes'),
-              ob.dur>0 ? `${Math.round((ob.dur/60)/workday()*10)/10} days of work` : 'how long it will probably take')
-          : `<button class="subtle-btn" data-act="wantdeadline" data-want="duration" data-id="${id}">${ic('plus',12)} And how long it will take</button>`}
-        ${urgencyOf(ob) ? `<div class="mini" style="--k:var(--brass);margin-top:8px">${esc(urgeSaid(ob))}.</div>`
-          : `<div class="mini" style="--k:var(--brass);margin-top:8px">Urgency is a deadline and an estimate together: the days you have, less the days the work needs. Give it both and this line says where it stands.</div>`}
+        ${pgroup('Some other day', schedMonth(ob, SCHED.month), !ob.due)}
+        ${trow('On', pfield(id,'due', ob.due, 'date'), 'the day it sits on')}` : ''}
+
+        ${/* The day it is *owed*, which is not the day it sits on. It says which
+             of the two decides lateness, because two dates on one object is
+             exactly the place to be explicit. See decision 62. */''}
+        ${has(ob,'deadline') ? trow('Due by', pfield(id,'dead', ob.dead, 'date'),
+            ob.dead ? (isLate(ob)?'late':'missing it costs something') : 'the day it is owed') : ''}
+        ${has(ob,'softdeadline') ? trow('Aim for', pfield(id,'soft', ob.soft, 'date'),
+            'nothing happens if it slips') : ''}
+        ${has(ob,'duration') ? trow('Duration', pfield(id,'dur', ob.dur, 'number','minutes'),
+            ob.dur>0 ? `${durSaid(ob.dur)} · ${Math.round((ob.dur/60)/workday()*10)/10} days of work`
+                     : 'how long it will probably take') : ''}
+
+        ${/* Importance, not urgency — the two are different questions and this
+             is the panel where you can see that they are, because the answer to
+             the other one is printed three rows down. Six buttons rather than a
+             select, so the scale is visible. See decision 72. */''}
+        ${has(ob,'priority') ? prow('Priority',
+          `<div class="priorow">
+            <button class="priobtn${p==null?' on':''}" data-prio="" data-id="${id}" title="Unranked">–</button>
+            ${PRIOS.map(([n,nm,ds])=>
+              `<button class="priobtn p${n}${p===n?' on':''}" data-prio="${n}" data-id="${id}"
+                 title="${esc(nm)} — ${esc(ds)}">${n}</button>`).join('')}
+          </div>`,
+          p==null ? 'how much it matters to your life' : esc(prioName(p))) : ''}
+
+        ${/* And what the two of them come to. A readout, never a field: there is
+             no `urg` on any object and no way to set one. */''}
+        ${urgencyOf(ob) ? prow('Urgency',
+          `<div class="urgerow">${URGES.map(([n,nm])=>
+            `<span class="urgebtn u${n}${urgeRank(ob)===n?' on':''}" title="${esc(URGES[n][2])}">${esc(nm)}</span>`).join('')}</div>`,
+          esc(urgeSaid(ob))) : ''}
+
+        ${missing.length ? prow('It could also carry',
+          missing.map(([a,nm])=>`<button class="pchip" data-act="wantdeadline" data-want="${a}" data-id="${id}">${ic('plus',11)} ${esc(nm)}</button>`).join(''),
+          has(ob,'deadline')||has(ob,'softdeadline') ? '' : 'a deadline is a different fact from the day you have put it on') : ''}
+
+        ${!urgencyOf(ob) && (has(ob,'deadline')||has(ob,'softdeadline')||has(ob,'duration'))
+          ? `<div class="mini" style="--k:var(--brass);margin-top:8px">Urgency is a deadline and an estimate together: the days you have, less the days the work needs. Give it both and this says where it stands.</div>` : ''}
         ${has(ob,'span') ? prow('Runs until', pfield(id,'till', ob.till,'date')) : ''}
         ${has(ob,'repeat') ? `<div class="mini" style="--k:var(--brass);margin-top:10px">${
           repeats(ob) ? 'Repeats '+esc(repeatSaid(ob))+' — the rule is in the object editor.'
@@ -1482,7 +1545,11 @@ function openCtx(x,y,id){
                    :mediaTypeOf(o)==='video'?'Add a video':'Add a picture')}</button>`:''}
            ${has(o,'text')?`<button data-c="read:${id}">${ic('eye',14)} Read</button>
              <button data-c="write:${id}">${ic('edit',14)} Write…</button>`:''}`}`}
-    ${(!many&&has(o,'date'))?`<button data-c="when:${id}">${ic('calendar',14)} When…</button>`:''}
+    ${/* The four facts that decide what you do next, in one place: the day it
+         sits on, both deadlines, how long the work is, and how much it matters.
+         Offered to anything that is not a container, because the panel offers
+         the traits it hasn't got rather than refusing. See decision 122. */''}
+    ${(!many && !isContainer(o))?`<button data-c="when:${id}">${ic('clock',14)} Dates and priority…</button>`:''}
     ${(!many&&repeats(o))?`<button data-c="nextcopy:${id}">${ic('repeat',14)} Make the next one</button>`:''}
     ${(!many&&(has(o,'check')||has(o,'streak')))?`<button data-c="done:${id}">${ic('check',14)} ${has(o,'streak')?'Mark today':'Complete'}</button>`:''}
     <button data-c="intodrawer:${id}">${ic('folder',14)} ${many?`Put these ${sel.length} in a new drawer`:'Put this in a new drawer'}</button>
