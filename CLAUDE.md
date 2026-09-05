@@ -856,6 +856,35 @@ fact about one drawer, and unlocking each drawer as you walked into it was
 arrange-mode by another name. Nothing carries its own `locked` any more. See
 decision 74.
 
+**Urgency is a subtraction, and nothing stores it.** `urgencyOf(o)` in model.js
+— the days you have to a deadline, less the days the work needs (`dur` minutes
+divided by `workday()` hours) — because *three hours due tomorrow and three
+weeks due tomorrow are not the same situation*, which is the thing sorting by
+date can never say. Five rungs (`URGES`: Room · Ahead · Soon · Tight · Behind),
+and the answer carries the arithmetic so the editor can say **why**. Three
+rules, each of which is a bug if you forget it: a **soft** deadline reads one
+rung lower than the identical hard one and so can never reach Behind; a thing
+with **no** deadline has no urgency at all — null, not 0, exactly as an unranked
+thing has no priority; and the day a thing merely *sits* on does not count, or
+decision 62 is undone in one line. Duration is optional and its absence costs
+nothing — with no estimate the slack is simply the days left. Ask `urgeRank(o)`,
+never `o.urg`: there is no such field on any object. It is in `FIELDS` anyway,
+marked `derived`, which is what lets a magic drawer collect on it (matchRule
+skips the trait test and reads `get()`) while the rollup picker refuses it.
+`SORTS.urgent` is the sort and has deliberately no reverse. Drawn on the
+deadline chip as **the line thickening as the slack runs out** — never as a left
+stripe, which is what priority means. See decision 120.
+
+**A deadline is hard or soft, and a thing may carry both.** `deadline`/`dead` is
+the **hard** one — missing it costs something; `softdeadline`/`soft` is a day
+you set yourself, and nothing happens if it slips. The ordinary case is both at
+once (aim for Friday, owed on Monday), which is why they are two fields and not
+one field with a switch. `isLate()` still reads the hard one only. All three of
+these traits — both deadlines and the duration — stay **opt-in**, and the way in
+is the little calendar's three buttons (`data-want` names the attribute). Don't
+put them on the `task` kind to save a tap: that deletes the affordance that
+teaches they exist, and decision 62's separation with it.
+
 **When a thing sits and when it is late are two facts.** `date`/`due` is the day
 it is drawn on — what a calendar shows it on, what Today collects, what a drag
 onto a day cell writes. `deadline`/`dead` is the day it is *late*, and it is an

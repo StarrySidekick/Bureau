@@ -40,7 +40,10 @@ const D = {
      lowercasing, "Scheduled Sep 4" does not, and the difference is whether the
      phrase is a word or a date. */
   said(s){ const h=D.human(s); return /\d/.test(h) ? h : h.toLowerCase(); },
-  overdue(s){ return s && D.parse(s) < D.today(); }
+  overdue(s){ return s && D.parse(s) < D.today(); },
+  /* Whole days from today: 0 is today, 1 is tomorrow, negative is behind you.
+     Urgency is a subtraction and this is the left-hand side of it. */
+  until(s){ const d=D.parse(s); return d==null ? null : Math.round((d-D.today())/864e5); }
 };
 
 /* ============================================================

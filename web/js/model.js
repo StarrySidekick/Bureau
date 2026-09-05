@@ -17,7 +17,13 @@ const ATTRS = {
      `deadline` is the day it is *late*. Opt-in, so nothing already on the desk
      changes and a thing merely scheduled for Friday stays a different thing
      from a thing owed on Friday. See decision 62. */
-  deadline: {nm:'Deadline',   ds:'The day it is late — separate from the day you have put it on'},
+  deadline: {nm:'Hard deadline', ds:'The day missing it costs something — separate from the day you have put it on'},
+  /* The other half of the same fact. A hard deadline is imposed and has
+     consequences; a soft one is a day you give *yourself* so the work gets done
+     reasonably, and nothing happens if it slips. Both at once is the ordinary
+     case — aim for Friday, owed on Monday — which is why they are two fields
+     and not one field with a switch. See decision 120. */
+  softdeadline:{nm:'Soft deadline', ds:'The day you mean to be done — a date you set yourself, with no consequence attached'},
   span:     {nm:'Lasts',      ds:'Runs from its date to another one — a trip, a shoot, a term'},
   repeat:   {nm:'Repeats',    ds:'Completing it spawns the next one'},
   button:   {nm:'Button',     ds:'A button that opens an object, a drawer, or a link'},
@@ -30,7 +36,7 @@ const ATTRS = {
   count:    {nm:'Count',      ds:'A tally you add to'},
   rating:   {nm:'Rating',     ds:'Out of five'},
   location: {nm:'Location',   ds:'Where it is'},
-  duration: {nm:'Duration',   ds:'How long it takes'},
+  duration: {nm:'Duration',   ds:'How long it will probably take, in minutes — half of what makes it urgent'},
   priority: {nm:'Priority',   ds:'How much it matters to you — 0 to 5, not how urgent it is'},
   price:    {nm:'Price',      ds:'What it costs'},
   answer:   {nm:'Answerable', ds:'A box to answer it in — filled means answered'},
@@ -57,6 +63,7 @@ const FIELDS = {
   check:    {key:'done',   type:'bool',   nm:'Done'},
   date:     {key:'due',    type:'date',   nm:'On'},
   deadline: {key:'dead',   type:'date',   nm:'Due by'},
+  softdeadline:{key:'soft', type:'date',  nm:'Aim for'},
   span:     {key:'till',   type:'date',   nm:'Runs until'},
   repeat:   {key:'repeat', type:'repeat', nm:'Repeats'},
   link:     {key:'url',    type:'text',   nm:'Link'},
@@ -64,10 +71,17 @@ const FIELDS = {
   rating:   {key:'rating', type:'number', nm:'Rating'},
   location: {key:'loc',    type:'text',   nm:'Location'},
   duration: {key:'dur',    type:'number', nm:'Duration'},
-  priority: {key:'prio',   type:'level',  nm:'Priority', opts:[0,1,2,3,4,5]},
+  priority: {key:'prio',   type:'level',  nm:'Priority', opts:[0,1,2,3,4,5], get:o=>prioOf(o)},
   price:    {key:'price',  type:'money',  nm:'Price'},
   answer:   {key:'answer', type:'text',   nm:'Answer'},
-  relates:  {key:'rel',    type:'refs',   nm:'Related'}
+  relates:  {key:'rel',    type:'refs',   nm:'Related'},
+  /* The one field nothing stores. Urgency is a deadline and an estimate put
+     together, so it is *derived* — there is no `urg` on any object and no way
+     to set one, and `derived` is what tells matchRule to skip the "has it got
+     that trait" test and ask the reader instead. It is in this table rather
+     than beside it so a magic drawer's field picker gets it for nothing.
+     See decision 120. */
+  urgency:  {key:'urg',    type:'level',  nm:'Urgency', opts:[0,1,2,3,4], derived:true, get:o=>urgeRank(o)}
 };
 const fieldOf = a => FIELDS[a] || null;
 // every field an object actually carries, for filters and rollups
@@ -443,6 +457,13 @@ function defaultLook(){
              default, because a desk you have arranged is one you want to look
              at, and on a locked board one finger walks the boards. */
           locked:true,
+          /* `workday` — how many hours of real work a day holds, which is the
+             one number the urgency ladder is scaled by — is deliberately *not*
+             here. It is unwritten until the slider is moved, and `workday()`
+             answers WORKDAY for a desk that has never said, the same way a
+             stock falls back to the aesthetic's paper. Declaring it here would
+             also have put it in front of its own constant, which is where this
+             started. See decision 120. */
           /* Pinned to a board rather than laid flat on one: a little air around
              each tile and a degree or two of tilt. Off by default — see
              decision 75. */
@@ -1085,12 +1106,15 @@ const whenISO = v => {
 function matchRule(o, r){
   if(!r || !r.f) return true;
   const fld=fieldOf(r.f); if(!fld) return true;
-  if(!attrsOf(o).includes(r.f)) return false;      // it hasn't got that field
+  /* A derived field is not a trait an object carries — there is no `urg` on
+     anything — so it is read off every object and answers null for the ones it
+     cannot speak for, which the ops below already handle. */
+  if(!fld.derived && !attrsOf(o).includes(r.f)) return false;  // it hasn't got that field
   /* A repeat is an object, so "contains week" has to compare against how it
      would be *said*; a level is a number, so 0 is a value and not an absence.
      See decisions 72 and 73. */
   const v = fld.type==='repeat' ? (repeatSaid(o)||null)
-          : fld.type==='level'  ? prioOf(o)
+          : fld.get             ? fld.get(o)
           : valOf(o, fld.key);
   /* A date is compared as a date. `numOf` strips everything but digits, dots
      and minus signs, so "2026-08-19" came out of it as 2026 — which made every
@@ -1123,7 +1147,7 @@ function rollup(c){
   const kids=childrenOf(c);
   if(r.fn==='count') return String(kids.length);
   if(r.fn==='done'){ const d=kids.filter(x=>x.done).length; return `${d}/${kids.length}`; }
-  const fld=fieldOf(r.f); if(!fld) return null;
+  const fld=fieldOf(r.f); if(!fld || fld.derived) return null;
   const nums=kids.map(x=>numOf(x, fld.key)).filter(n=>n!=null);
   if(!nums.length) return null;
   const money = fld.type==='money';
@@ -1148,6 +1172,11 @@ const SORTS = {
      and "not now" are different answers and 0 is a real one. */
   prio:     ['Most important first', (a,b)=>((prioOf(b)??-1)-(prioOf(a)??-1)),                          'arrowU'],
   prioup:   ['Least important first',(a,b)=>((prioOf(a)??99)-(prioOf(b)??99)),                          'arrowD'],
+  /* The sort urgency exists for, and there is deliberately no reverse of it:
+     "least urgent first" is not an order anyone wants a board in. Anything
+     without a deadline sorts to the bottom rather than to Room — no urgency
+     and no slack are different answers, the same way unranked is not 0. */
+  urgent:   ['Most urgent first',    (a,b)=>((urgeRank(b)??-1)-(urgeRank(a)??-1)),                      'clock'],
   made:     ['Newest made first',      (a,b)=>(b.created||'').localeCompare(a.created||''),                             'arrowR'],
   madeup:   ['Oldest made first',      (a,b)=>(a.created||'').localeCompare(b.created||''),                             'arrowL'],
   edited:   ['Newest changed first',   (a,b)=>(b.edited||b.created||'').localeCompare(a.edited||a.created||''),         'arrowU'],
@@ -1331,6 +1360,100 @@ const prioOf = o => {
   return isNaN(n) ? null : clamp(Math.round(n), 0, 5);
 };
 const prioName = n => (PRIOS.find(p=>p[0]===n)||[])[1] || '';
+
+/* ---- urgency: what a deadline and an estimate come to together ---------
+   Priority says how much a thing matters to your life. A deadline says when
+   it is owed. Neither one on its own tells you what to do this afternoon,
+   because **three hours' work due tomorrow and three weeks' work due tomorrow
+   are not the same situation** — and every list app that sorts by date treats
+   them as if they were.
+
+   So urgency is a subtraction: the days you have, less the days the work will
+   take. What is left is **slack**, and the less of it there is the more urgent
+   the thing is. Nothing stores it; it is read off a deadline, a duration and
+   today, so it is right every morning without anything being rewritten — the
+   same argument the five resolving date words in a rule make (decision 63).
+
+   Two rules fall out of the two kinds of deadline. A **hard** one has
+   consequences, so it can reach the top of the ladder. A **soft** one is a day
+   you gave yourself, so it is always **one step less urgent than the same hard
+   one would be** — which is the whole of "more given" in one line, rather than
+   a second weighting to keep in step. A thing carrying both is read as
+   whichever is more pressing, which is nearly always the hard one and is
+   allowed to be the soft one when it is much closer.
+
+   A thing with **no deadline has no urgency at all** — null, not 0, exactly as
+   an unranked thing has no priority (decision 72). "Nothing is owed" and "it is
+   owed in a year" are different answers and folding them together is how a
+   sort ends up lying. And the day a thing merely *sits* on does not count: a
+   task scheduled for tomorrow is scheduled, not urgent, which is the whole of
+   decision 62 and would be undone by reading `due` here.
+
+   Duration is optional and its absence costs nothing: with no estimate the
+   need is zero and slack is simply the days left, which is the answer a plain
+   deadline deserves. See decision 120. */
+/* How much real work a day holds. It has to be a number — with the twenty-four
+   hours a day nominally has, three hours due tomorrow is never urgent and the
+   ladder never leaves its bottom rung. Three is the honest figure for work you
+   do around a life; it is a setting because it sets the feel of the whole
+   ladder and is the one number worth turning. */
+const WORKDAY = 3;
+const workday = ()=>{ const n=Number((S.look||{}).workday); return n>0 ? n : WORKDAY; };
+// the estimate, in days of that capacity — no estimate is no time needed
+const workDays = o => { const m = has(o,'duration') ? Number(o.dur) : 0;
+  return m>0 ? (m/60)/workday() : 0; };
+/* Five rungs, and each says what it means. `slack` is days spare after the
+   work is taken out of the time left. */
+const URGES = [
+  [0, 'Room',    'more time than the work needs'],
+  [1, 'Ahead',   'a week or so of slack'],
+  [2, 'Soon',    'a few days of slack'],
+  [3, 'Tight',   'about a day of slack'],
+  [4, 'Behind',  'not enough time left to do it in']
+];
+const urgeStep = slack => slack < 0 ? 4 : slack < 1 ? 3 : slack < 3 ? 2 : slack < 7 ? 1 : 0;
+/* The whole answer, not just the rung: the day it is measured against, whether
+   that day is hard, and the arithmetic behind it — because the row in the
+   editor has to be able to say *why*, and a number that cannot explain itself
+   is a number you stop trusting. Null when there is nothing to measure. */
+function urgencyOf(o){
+  if(!o || o.done) return null;               // a finished thing is never urgent
+  const days = [];
+  if(has(o,'deadline') && o.dead)     days.push([o.dead, true]);
+  if(has(o,'softdeadline') && o.soft) days.push([o.soft, false]);
+  if(!days.length) return null;
+  const need = workDays(o);
+  let best = null;
+  for(const [iso, hard] of days){
+    const left = D.until(iso);
+    if(left==null) continue;
+    const slack = left - need;
+    // a soft deadline is one rung down, and so can never reach Behind
+    const rank = hard ? urgeStep(slack) : Math.max(0, urgeStep(slack) - 1);
+    if(!best || rank > best.rank) best = {iso, hard, left, need, slack, rank};
+  }
+  return best;
+}
+const urgeRank = o => { const u=urgencyOf(o); return u ? u.rank : null; };
+/* Minutes are what an estimate is stored in and hours are what it is read in:
+   "1200 min" is a number you have to convert before it means anything, and the
+   whole argument for the estimate is that it is legible next to a date. */
+const durSaid = m => { const n=Number(m); if(!(n>0)) return '';
+  if(n<60) return `${Math.round(n)} min`;
+  const h=Math.floor(n/60), r=Math.round(n%60);
+  return r ? `${h}h ${r}` : `${h}h`; };
+const urgeName = n => (URGES.find(u=>u[0]===n)||[])[1] || '';
+/* Said in English, for the editor row and the tile's title. It states the
+   arithmetic rather than the rung alone — "Tight" tells you nothing you can
+   argue with; "1h30 of work, 2 days left" does. */
+function urgeSaid(o){
+  const u = urgencyOf(o); if(!u) return '';
+  const hrs = u.need>0 ? `${Math.round(u.need*workday()*10)/10}h of work, ` : '';
+  const when = u.left < 0 ? `${-u.left} days past ${u.hard?'a hard':'a soft'} deadline`
+             : u.left === 0 ? `${u.hard?'hard':'soft'} deadline today`
+             : `${u.left} day${u.left===1?'':'s'} to a ${u.hard?'hard':'soft'} deadline`;
+  return `${urgeName(u.rank)} — ${hrs}${when}`;
+}
 
 /* ============================================================
    2c · repeating — a rule, not a word
@@ -1540,5 +1663,6 @@ export { ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds, K,
   CALVIEWS, calViewOf, weekStartOf, showsWeekends, calCols,
   OPS, WHENS, whenISO, RULE_MAX, rulesOf, matchRule,
   ROLLS, rollup, SORTS, MANUAL, sortOf, childrenOf, beginPass, endPass, isAncestor,
+  URGES, WORKDAY, workday, urgencyOf, urgeRank, urgeName, urgeSaid, durSaid,
   relatedTo, backlinksTo, relate, unrelate, chainOf, tlSpan, streak, goalPct,
   allUnder, progressOf, projectStat, allTags };

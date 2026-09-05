@@ -3,7 +3,7 @@ import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, chi
   rollup, streak, goalPct, projectStat, tlSpan, dev, spawnByOf, genKindOf, takesTyping, showsAddBox,
   knobSizeOf, answered, sortOf, spanOf, coversDay, lateOn, isLate, iconOf, textSizeOf,
   isPicture, isMedia, isPlayable, isDecor, mediaTypeOf, frameOf, isWindow,
-  boardLocked, prioOf, repeatSaid, standsProud, shelfDepth, bookDepth, faceCue, anyFaceCue,
+  boardLocked, prioOf, repeatSaid, urgencyOf, urgeSaid, durSaid, standsProud, shelfDepth, bookDepth, faceCue, anyFaceCue,
   calViewOf, weekStartOf, calCols, bindingOf, panelOf, knobOf, borderOf, textureOf } from './model.js';
 import { CELL, COLW, gridOf, lay, overlaps, boxOk, freeSpot, gridRows, sizeOfKind, ensureBox,
   pageRows, colsOf } from './grid.js';
@@ -72,8 +72,12 @@ const dateSaid = o => { const sp=spanOf(o);
 /* The deadline, said as a deadline. Only for something carrying one and only
    when it is set — the day a thing *sits* on is already said by dateSaid(), and
    printing both when they agree is the same fact twice. */
-const deadSaid = o => has(o,'deadline') && o.dead
-  ? `due ${D.said(o.dead)}` : '';
+/* Both deadlines say themselves on the face, in the order they are read: what
+   is owed beats what you aimed for, and a thing with only an aim says so in a
+   different word so the two cannot be mistaken for each other. See decision
+   120. */
+const deadSaid = o => has(o,'deadline') && o.dead ? `due ${D.said(o.dead)}`
+  : has(o,'softdeadline') && o.soft ? `aim ${D.said(o.soft)}` : '';
 
 /* Every face can show what it totals. It used to be two of them — a drawer
    front and a checklist — so whether a container told you what it was worth
@@ -950,7 +954,7 @@ function drawTileFace(o, arr, box, persp){
       <span class="medmark">${ic(kind==='audio'?'music':'film',20)}</span>
       <div class="dtop">${nameField(o)}</div>
       <div class="dfoot"><span class="tilemeta">${
-        [K(o.kind).nm, has(o,'duration')&&o.dur?`${o.dur} min`:''].filter(Boolean).join(' · ')}</span></div>
+        [K(o.kind).nm, has(o,'duration')&&o.dur?durSaid(o.dur):''].filter(Boolean).join(' · ')}</span></div>
       ${handles}
     </button>`;
   }
@@ -1029,11 +1033,17 @@ function drawTileFace(o, arr, box, persp){
      from the day a thing sits on is that you can see both. It is only printed
      when it is set — an object that carries the trait and hasn't used it has
      nothing to say. */
-  if(deadSaid(o)) bits.push(`<span class="deadchip${isLate(o)?' late':''}">${esc(deadSaid(o))}</span>`);
+  /* Urgency is drawn *on* the deadline rather than beside it: it is a fact
+     about that date and an estimate, not a fourth thing to read. A stripe down
+     the left is what priority means and urgency must never borrow it. */
+  const urg = urgencyOf(o);
+  if(deadSaid(o)) bits.push(`<span class="deadchip${urg?' u'+urg.rank:''}${
+    !(has(o,'deadline')&&o.dead)?' soft':''}${isLate(o)?' late':''}"${
+    urg?` title="${esc(urgeSaid(o))}"`:''}>${esc(deadSaid(o))}</span>`);
   if(has(o,'streak')) bits.push(`${streak(o)}-day streak`);
   if(has(o,'progress')) bits.push(`${goalPct(o)}%`);
   if(has(o,'count')) bits.push(`${o.count||0}`);
-  if(has(o,'duration')&&o.dur) bits.push(`${o.dur} min`);
+  if(has(o,'duration')&&o.dur) bits.push(durSaid(o.dur));
   if(has(o,'price')&&o.price) bits.push(esc(o.price));
   if(has(o,'location')&&o.loc) bits.push(esc(o.loc));
 
@@ -1202,7 +1212,9 @@ function listTile(o){
       ${nameField(o)}
       ${o.body?`<span class="bandsnip">${esc(oneline(o.body).slice(0,120))}</span>`:''}
       ${o.due?`<span class="mchip">${esc(dateSaid(o))}</span>`:''}
-      ${deadSaid(o)?`<span class="mchip deadchip${isLate(o)?' late':''}">${esc(deadSaid(o))}</span>`:''}
+      ${deadSaid(o)?(u=>`<span class="mchip deadchip${u?' u'+u.rank:''}${
+        !(has(o,'deadline')&&o.dead)?' soft':''}${isLate(o)?' late':''}"${
+        u?` title="${esc(urgeSaid(o))}"`:''}>${esc(deadSaid(o))}</span>`)(urgencyOf(o)):''}
       ${cont&&rollup(o)?`<span class="mchip">${esc(rollup(o))}</span>`:''}
       ${cont?`<span class="pull ${dress(o,'kn')}"${o.knobc?` style="--knob:${esc(o.knobc)}"`:''}></span>`:''}
     </div>
@@ -1384,7 +1396,9 @@ function scrollEntry(o){
       ${has(o,'check')?`<span class="check${o.done?' on':''}" data-check="${o.id}">${ic('check',12)}</span>`:`<span class="kindmark">${ic(k.ic,13)}</span>`}
       <h3${o.done?' class="done"':''}>${esc(o.title||'Untitled')}</h3>
       ${o.due?`<span class="mchip">${esc(dateSaid(o))}</span>`:''}
-      ${deadSaid(o)?`<span class="mchip deadchip${isLate(o)?' late':''}">${esc(deadSaid(o))}</span>`:''}
+      ${deadSaid(o)?(u=>`<span class="mchip deadchip${u?' u'+u.rank:''}${
+        !(has(o,'deadline')&&o.dead)?' soft':''}${isLate(o)?' late':''}"${
+        u?` title="${esc(urgeSaid(o))}"`:''}>${esc(deadSaid(o))}</span>`)(urgencyOf(o)):''}
       ${(o.tags||[]).map(t=>`<span class="mchip tag" data-tagdrawer="${esc(t)}">${esc(t)}</span>`).join('')}
     </header>
     ${has(o,'media')&&o.media&&o.media.src?`<img class="scrollimg" src="${esc(o.media.src)}" alt="${esc(o.title||'')}">`:''}

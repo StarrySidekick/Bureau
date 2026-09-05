@@ -1,5 +1,6 @@
 import { $, $$, esc, ic, uid, clamp, D, ROOT } from './util.js';
 import { S, K, KINDS, KEYS, T, ATTRS, USER_ATTRS, FIELDS, fieldOf, OPS, ROLLS,
+  URGES, workday, urgencyOf, urgeRank, urgeSaid,
   WHENS, whenISO, RULE_MAX, rulesOf,
   SORTS, MANUAL, sortOf, FACES, SHAPES, READS, OPENINGS, openingOf,
   faceOf, layoutOf, shapeOf, readOf, byId, container, cfgOf, deskTitle,
@@ -720,7 +721,14 @@ function objectPanelBody(id, sec){
        late, because two dates on one object is exactly the place to be explicit.
        See decision 62. */
     if(has(o,'deadline')) f.push(prow('Due by', pfield(id,'dead',o.dead,'date'),
-      o.dead ? (isLate(o) ? 'late' : 'what makes it late') : 'not set — its date decides'));
+      o.dead ? (isLate(o) ? 'late' : 'what makes it late — missing it costs something') : 'not set — its date decides'));
+    /* The day you gave yourself. It sits under the hard one because that is the
+       order they are read in — you aim for one and you owe the other — and it
+       says so, because two deadlines on one object is the second place in this
+       editor where being explicit is worth a line. See decision 120. */
+    if(has(o,'softdeadline')) f.push(prow('Aim for', pfield(id,'soft',o.soft,'date'),
+      o.soft ? 'a day you set yourself — nothing happens if it slips'
+             : (has(o,'deadline') && o.dead ? 'pace the work before it is owed' : 'not set')));
     /* A last day, inclusive: a trip from the 4th to the 11th is still on the
        desk on the 11th. It needs a date to run from, so it says so rather than
        drawing a lone field that means nothing on its own. */
@@ -767,7 +775,18 @@ function objectPanelBody(id, sec){
     }
     if(has(o,'link')) f.push(prow('Link', pfield(id,'url',o.url,'','https://')));
     if(has(o,'location')) f.push(prow('Location', pfield(id,'loc',o.loc,'','Where')));
-    if(has(o,'duration')) f.push(prow('Duration', pfield(id,'dur',o.dur,'number','minutes')));
+    if(has(o,'duration')) f.push(prow('Duration', pfield(id,'dur',o.dur,'number','minutes'),
+      o.dur>0 ? `${Math.round((o.dur/60)/workday()*10)/10} days of work` : 'how long it will probably take'));
+    /* ---- urgency, which is read rather than set -----------------------
+       The one row in this editor with no field in it: urgency is a deadline
+       and an estimate put together, so there is nothing to type. It is here
+       because the two rows it is made of are here, and because a derived number
+       that never says how it got there is one you stop believing. It only
+       appears once there is a deadline to measure against. See decision 120. */
+    if(urgencyOf(o)) f.push(prow('Urgency',
+      `<div class="urgerow">${URGES.map(([n,nm])=>
+        `<span class="urgebtn u${n}${urgeRank(o)===n?' on':''}" title="${esc(URGES[n][2])}">${esc(nm)}</span>`).join('')}</div>`,
+      esc(urgeSaid(o))));
     if(has(o,'price')) f.push(prow('Price', pfield(id,'price',o.price,'','12.50')));
     /* ---- how much it matters, 0 to 5 ----------------------------------
        A rank, not three words. Six buttons rather than a select, because the
@@ -938,7 +957,7 @@ function objectPanelBody(id, sec){
         [['','Anywhere'],['1','Loose on a desk — not filed in anything']], fl.loose?'1':''),
         'an inbox is this and nothing else')}` : '')
       + prow('Shows a total', psel(id,'roll.fn',[['','Nothing'],...Object.entries(ROLLS)], rl.fn||'')
-        + psel(id,'roll.f',[['','—'],...Object.keys(FIELDS).map(a=>[a,FIELDS[a].nm])], rl.f||''),
+        + psel(id,'roll.f',[['','—'],...Object.keys(FIELDS).filter(a=>!FIELDS[a].derived).map(a=>[a,FIELDS[a].nm])], rl.f||''),
         'on every face it can wear')
       + prow('Front preview', psel(id,'pv',
         [['list','List'],['stack','Card stack'],['thumbs','Thumbnails'],['bars','Progress bars'],['big','Big number']], d.pv||'list'));
@@ -1260,6 +1279,18 @@ function schedulePanel(id){
               ob.dead ? (isLate(ob)?'late':'what makes it late') : 'the day it is owed')
           : `<button class="subtle-btn" data-act="wantdeadline" data-id="${id}">${ic('plus',12)} Give it a deadline as well</button>
              <div class="mini" style="--k:var(--brass)">A deadline is a different fact from the day you have put it on — see decision 62.</div>`}
+        ${has(ob,'softdeadline')
+          ? prow('Aim for', pfield(id,'soft', ob.soft, 'date'), 'a day you set yourself — nothing happens if it slips')
+          : `<button class="subtle-btn" data-act="wantdeadline" data-want="softdeadline" data-id="${id}">${ic('plus',12)} And a soft one you set yourself</button>`}
+        ${/* The third fact urgency is made of, offered where the other two are:
+             a deadline without an estimate can only say how close it is, and
+             three hours due tomorrow is not three weeks due tomorrow. */''}
+        ${has(ob,'duration')
+          ? prow('Duration', pfield(id,'dur', ob.dur, 'number','minutes'),
+              ob.dur>0 ? `${Math.round((ob.dur/60)/workday()*10)/10} days of work` : 'how long it will probably take')
+          : `<button class="subtle-btn" data-act="wantdeadline" data-want="duration" data-id="${id}">${ic('plus',12)} And how long it will take</button>`}
+        ${urgencyOf(ob) ? `<div class="mini" style="--k:var(--brass);margin-top:8px">${esc(urgeSaid(ob))}.</div>`
+          : `<div class="mini" style="--k:var(--brass);margin-top:8px">Urgency is a deadline and an estimate together: the days you have, less the days the work needs. Give it both and this line says where it stands.</div>`}
         ${has(ob,'span') ? prow('Runs until', pfield(id,'till', ob.till,'date')) : ''}
         ${has(ob,'repeat') ? `<div class="mini" style="--k:var(--brass);margin-top:10px">${
           repeats(ob) ? 'Repeats '+esc(repeatSaid(ob))+' — the rule is in the object editor.'

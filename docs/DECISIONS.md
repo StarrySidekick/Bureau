@@ -5082,3 +5082,107 @@ The control is a button on the slider's own row rather than a pair of chips
 beside it. It is one bit; eight pairs of chips is more furniture than the eight
 sliders they belong to. The row grows a third column when it has one, which
 `.rangerow:has(.dirflip)` states in one rule rather than every caller knowing.
+
+## 120. Urgency is a deadline and an estimate, and nothing stores it
+
+*2026-09-05*
+
+Timothy, setting out the whole shape rather than answering §0n's question as
+asked: a thing can have a **priority** (how much it matters to your life), a
+**duration** (how long it will probably take), and a deadline that is either
+**soft** or **hard** — a soft one is a day you give yourself so the work gets
+done reasonably, a hard one has direct consequences for missing it. And then
+the part none of those four is: *"tasks that are due soon as compared to how
+long they will take are considered urgent. If something will take 3 hours to do
+and it's due tomorrow with a hard deadline, it's urgent."*
+
+That last sentence is the whole design. **Three hours due tomorrow and three
+weeks due tomorrow are not the same situation**, and every list app that sorts
+by date treats them as if they were — which is why sorting by date has never
+once told anybody what to do this afternoon. Urgency is not a fifth field to
+keep up to date. It is a **subtraction**: the days you have, less the days the
+work needs. What is left is *slack*, and the less of it there is the more urgent
+the thing is.
+
+So urgency is **derived and stored nowhere**. There is no `urg` on any object
+and no way to set one — it is read off a deadline, a duration and today, which
+means it is right every morning without anything being rewritten. That is the
+same argument the five resolving date words in a rule make (decision 63): a
+fact that goes stale overnight should be computed at the moment it is asked,
+not written down.
+
+**Two deadlines, not one deadline with a switch.** §0n proposed `hard:true` on
+the existing deadline and I would have taken it; Timothy's version is better,
+because the ordinary case is *both at once* — aim for Friday, owed on Monday —
+and one field with a flag cannot say that. `deadline`/`dead` is now explicitly
+the **hard** one, which is the honest reading of "the day it is late" and means
+no stored value changes meaning; `softdeadline`/`soft` is the new one. A thing
+carrying both is read as whichever is more pressing, which is nearly always the
+hard one and is allowed to be the soft one when it is much closer.
+
+**A soft deadline is one rung lower, and that is the whole of "more given".**
+The alternative was a second weighting — a multiplier on the soft one's slack —
+which is a number nobody could ever have an opinion about and which would have
+had to be kept in step with the ladder. One step down, with a floor at the
+bottom, says the same thing in a line and has the property worth having: only a
+hard deadline can reach **Behind**. Nothing you promised only yourself is ever
+the top of the list.
+
+**A thing with no deadline has no urgency at all** — null, not zero, exactly as
+an unranked thing has no priority (decision 72). "Nothing is owed" and "it is
+owed in a year" are different answers and folding them together is how a sort
+comes to lie. And the day a thing merely *sits* on does not count: a task
+scheduled for tomorrow is scheduled, not urgent. That is decision 62's whole
+argument and reading `due` here would have undone it in one line.
+
+**Duration is optional and costs nothing when it is absent.** With no estimate
+the need is zero and the slack is simply the days left — which is the answer a
+bare deadline deserves, and it means the feature does something useful before
+you have estimated anything. Minutes are what it is stored in; `durSaid()` is
+what it is read in, because "1200 min" is a number you have to convert before it
+means anything and the entire argument for the estimate is that it sits legibly
+next to a date.
+
+**One number scales the whole ladder**, and it had to be a number: with the
+twenty-four hours a day nominally has, three hours due tomorrow is never urgent
+and the ladder never leaves its bottom rung. `workday` is how many hours of real
+work a day holds, three by default, and it is a setting because it decides how
+the whole thing *feels* — the one knob worth turning, which is the shape
+`applyLook()` uses everywhere else. It is deliberately **unwritten** until the
+slider is moved: `workday()` answers the constant for a desk that has never
+said, the same asymmetry a stock has (decision 99). Writing it into
+`defaultLook()` also put it in front of its own declaration, which is a
+temporal-dead-zone error that takes the whole app down on load — the second time
+this file has had to record that a `const` is not hoisted.
+
+**None of the three traits is switched on by default**, and the first version of
+this had `task` carrying all three. The smoke test caught it, and it was right
+to: decision 62 made `deadline` opt-in so that a thing merely scheduled for
+Friday stays a different thing from a thing owed on Friday, and there is a
+button — *"Give it a deadline as well"* — that exists to teach you that. Adding
+the trait to the type would have deleted the affordance to save a tap. What the
+three get instead is a way in from the panel you are already setting dates in:
+one button each, one tap, `data-want` naming the attribute so a fourth needs a
+button and nothing else.
+
+**Urgency is drawn on the deadline it belongs to.** Not a chip of its own, and
+emphatically not a stripe down the left — that is what priority means, and
+importance and urgency being visibly different is most of the point of having
+both. The line under the date **thickens as the slack runs out**, doubling at
+Behind; a soft deadline's rule is dashed and a shade back, because it is a day
+you could move. No new colour: `late` already owns the red, and Behind is not
+the same claim as overdue — a thing can be behind three weeks before it is late.
+
+**It is a field for a rule without being an attribute.** `FIELDS.urgency`
+carries `derived:true`, which tells `matchRule()` to skip the "has it got this
+trait" test and read through the field's own `get()`; the rollup picker filters
+it out, because there is nothing stored to total. So a magic drawer can be told
+*"urgency is more than 2"* and the field picker got the option for nothing.
+Alongside it, `Sorted by → Most urgent first`, which has deliberately no reverse:
+"least urgent first" is not an order anyone wants a board in.
+
+The editor's Urgency row is the one row in that panel with no field in it — five
+words with the one you are on lit, and the arithmetic spelled out beside it.
+A derived number that never says how it got there is one you stop believing;
+*"Tight — 8h of work, 3 days to a hard deadline"* is a sentence you can argue
+with, which is what makes it worth reading.

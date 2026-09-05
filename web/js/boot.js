@@ -3,6 +3,7 @@
    ============================================================ */
 import { $ } from './util.js';
 import { S, KINDS, SHAPES, SORTS, childrenOf, container, relate, deskOf, has, lateOn, isLate, knobOf,
+  urgencyOf, urgeSaid, workday,
   isContainer, faceOf,
   prioOf, repeatOf, repeatSaid, nextRepeat, boardLocked, BINDINGS, bindingOf, PANELS, panelOf,
   isHeld, heldObjects, tiltMode } from './model.js';
@@ -121,6 +122,9 @@ window.BUREAU = {
   schedule: schedulePanel, applyLook, palNow,
   get CHECKS(){ return CHECKS; }, decorSVG,
   get sorts(){ return SORTS; },
+  /* Urgency is derived, so there is nothing on an object for a test to read —
+     it has to be able to ask the same question the sort and the rule ask. */
+  urgency: urgencyOf, urgeSaid, workday,
   prioOf, repeatOf, repeatSaid, nextRepeat, boardLocked,
   closeSheet,
   // the type picker, so a test can open the thing rather than the gesture

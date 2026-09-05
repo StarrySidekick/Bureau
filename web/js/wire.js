@@ -403,10 +403,18 @@ function act(name, el){
     /* "give it a deadline as well" — the trait, ticked from the one place the
        question comes up. It is an attribute like any other, so this is the same
        write the Traits chips make. */
+    /* The three facts urgency is made of are traits like any other, so they
+       are *added* rather than assumed — decision 62's argument, which is that a
+       thing merely scheduled for Friday must stay a different thing from a
+       thing owed on Friday. What they get instead of being switched on by
+       default is a way in from the panel where you are already setting dates:
+       one button each, one tap, and each says what it is for. `data-want` is
+       the attribute to add, so a fourth needs a button and nothing else. */
     case 'wantdeadline': {
       const o=byId(el.dataset.id || S.openId); if(!o) break;
+      const want=el.dataset.want || 'deadline';
       const a=attrsOf(o);
-      if(!a.includes('deadline')){ pushSet('Deadline', o.id, 'attrs', o.attrs); o.attrs=a.concat('deadline'); }
+      if(!a.includes(want)){ pushSet(ATTRS[want] ? ATTRS[want].nm : want, o.id, 'attrs', o.attrs); o.attrs=a.concat(want); }
       save(); render(); refreshPanel();
       break;
     }
@@ -1144,6 +1152,15 @@ function wire(){
     const lp=e.target.dataset.lookpx;
     if(lp){ S.look[lp]=+e.target.value; applyLook(); sizeGrid();
       const b=e.target.parentElement.querySelector('b'); if(b) b.textContent=e.target.value+'px'; return; }
+    /* And for a number that is neither a share nor a length — an amount, with
+       a unit of its own. It only writes the readout here; the release below
+       saves and renders, because a day's work changes what every tile on the
+       board says about itself. */
+    const ln=e.target.dataset.looknum;
+    if(ln){ S.look[ln]=+e.target.value;
+      const b=e.target.parentElement.querySelector('b');
+      if(b) b.textContent=e.target.value+(e.target.dataset.unit||'');
+      return; }
     // the same thing for a number that is a share rather than a length
     const lq=e.target.dataset.lookpct;
     if(lq){
@@ -1243,7 +1260,7 @@ function wire(){
     }
     // re-render only once the picker closes, so it doesn't die mid-drag
     if(e.target.dataset.lookinput){ save(); render(); refreshPanel(); }
-    if(e.target.dataset.lookrange || e.target.dataset.lookpx || e.target.dataset.lookpct){ save(); render(); refreshPanel(); }
+    if(e.target.dataset.lookrange || e.target.dataset.lookpx || e.target.dataset.lookpct || e.target.dataset.looknum){ save(); render(); refreshPanel(); }
   });
 
   frame.addEventListener('keydown', e=>{

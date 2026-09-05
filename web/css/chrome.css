@@ -1390,6 +1390,21 @@ html .drawer.dtile.cltile{background-image:none}
 .priobtn.p4.on{background:color-mix(in srgb,#C0563F 70%,var(--brass));border-color:transparent}
 .priobtn.p5.on{background:#C0563F;border-color:#C0563F}
 
+/* Urgency is read, never set, so its row is a **readout** and not a row of
+   buttons: five words with the one you are on lit. It borrows the priority
+   row's rhythm so the two read as the same kind of scale, and states nothing
+   in a colour priority has already spent — the ladder is carried by weight and
+   by the ground filling in, so a desk with no reds on it still shows it. */
+.urgerow{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.urgebtn{
+  padding:5px 8px;border-radius:8px;border:1px solid var(--rule);
+  background:var(--paper-2);color:var(--ink-3);font-size:11px;letter-spacing:.02em;
+}
+.urgebtn.on{border-color:var(--ink);color:var(--paper);background:var(--ink);font-weight:600}
+.urgebtn.u0.on{background:var(--ink-3);border-color:var(--ink-3)}
+.urgebtn.u3.on{background:var(--brass);border-color:var(--brass)}
+.urgebtn.u4.on{background:#C0563F;border-color:#C0563F}
+
 /* a repeat rule: a number beside a unit, and seven day chips */
 .pfield.num{width:74px;flex:0 0 auto}
 .dowchips .fchip{min-width:30px;padding:5px 0;text-align:center}
@@ -2549,6 +2564,16 @@ html[data-style="golf97"] .check,html[data-style="golf97"] .clbox{border-radius:
 .deadchip{border-bottom:1px solid currentColor;padding-bottom:1px}
 .deadchip.late{color:var(--bad,#B2543F);font-weight:600}
 .drawer.dtile .deadchip.late{color:var(--dink)}
+/* A soft deadline is a day you gave yourself, so its rule is drawn as one you
+   could move: dashed, and a shade back. */
+.deadchip.soft{border-bottom-style:dashed;opacity:.78}
+/* And the line under a date **thickens as the slack runs out** — urgency read
+   off the deadline it belongs to rather than given a chip of its own. No new
+   colour: `late` already owns the red, and Behind is not the same claim as
+   overdue — a thing can be behind three weeks before it is late. */
+.deadchip.u2{font-weight:600}
+.deadchip.u3{font-weight:600;border-bottom-width:2px}
+.deadchip.u4{font-weight:700;border-bottom:3px double currentColor;padding-bottom:0}
 .spineroll{display:block;font-size:9px;font-style:normal;text-decoration:none;
   color:var(--dink-3);letter-spacing:.04em}
 /* A sound or a video on the board is its mark and its name, not a player:

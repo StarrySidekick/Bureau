@@ -4,7 +4,8 @@ import { S, K, T, byId, has, isContainer, containers, container, childrenOf, cha
   beginPass, endPass,
   layoutOf, takesTyping, genKindOf, CALVIEWS, calViewOf, calCols,
   spanOf, coversDay, lastDay, boardLocked,
-  TILT_MODES, tiltMode, tiltsDesk, tiltsWindows, tiltClasses, cueFlipped } from './model.js';
+  TILT_MODES, tiltMode, tiltsDesk, tiltsWindows, tiltClasses, cueFlipped,
+  URGES, workday } from './model.js';
 import { GRID, PHONE_GRIDS, CELL, COLW, MEASURE, colsOf, gridKeyOf,
   pageRows, pageOfBox, lastPage,
   lay, gridOf, cellW, ensureBox, PLACED } from './grid.js';
@@ -408,6 +409,10 @@ const SETSECS = {
      same question as "what colour is the board" — so it is a door, the way the
      object editor's Look is. See decisions 66 and 118. */
   depth:  ['Depth and light', 'layers', 'how solid things look, and what the tilt moves'],
+  /* Urgency is scaled by one number — how much work a day holds — and it is
+     not a look, a board or a backup, so it is its own door rather than a row
+     wedged into someone else's. See decisions 66 and 120. */
+  time:   ['Time and urgency','clock', "a day's work, and what makes a thing urgent"],
   things: ['Your things','archive', 'how much there is, and getting it out'],
   paste:  ['Paste in',   'plus',    'objects described as JSON'],
   about:  ['About',      'help',    'which Bureau this is, and starting over']
@@ -670,6 +675,21 @@ function settingsBody(sec){
       <div class="mini" style="--k:var(--brass)">Tilting moves your eye, and everything above turns to follow it — tilt right and you see more of every left-hand side. This is how far that goes on top of where a thing already stands. At zero they are all still true, just still: the perspective reads with the phone flat on a table, so you can have it without the movement or the board sliding without it.</div>
     </div>`;})() : '',
 
+    at('time') ? `
+    <div class="section-h"><h2>A day's work</h2><div class="rule"></div></div>
+    <div class="field">
+      <label class="rangerow"><span>Hours of real work in a day</span>
+        <input type="range" min="1" max="12" step="0.5" data-looknum="workday" data-unit="h" value="${workday()}">
+        <b>${workday()}h</b></label>
+      <div class="mini" style="--k:var(--brass)">Urgency is a subtraction: the days you have, less the days the work will take. This is what turns an estimate in minutes into days — at ${workday()} hours, something that will take three hours needs ${Math.round((3/workday())*100)/100} of a day. Set it low and more things read as urgent; set it to what you actually get done and the ladder tells the truth.</div>
+    </div>
+
+    <div class="section-h"><h2>The ladder</h2><div class="rule"></div></div>
+    <div class="rows">${URGES.map(([n,nm,ds])=>
+      `<div class="row"><span class="urgebtn u${n} on">${esc(nm)}</span>
+        <div class="body"><div class="snip">${esc(ds)}</div></div></div>`).join('')}</div>
+    <div class="mini" style="--k:var(--brass);margin-top:6px">A <b>hard</b> deadline can reach every rung — missing it costs something. A <b>soft</b> one is a day you gave yourself, so it always reads one rung lower and never reaches Behind. A thing with no deadline has no urgency at all, which is a different answer from Room.</div>
+    <div class="mini" style="--k:var(--brass);margin-top:6px">Give a drawer <b>Sorted by → Most urgent first</b>, or a magic drawer the rule <b>Urgency is more than 2</b>, and this becomes a board.</div>` : '',
     at('things') ? `
     <div class="section-h"><h2>Your things</h2><div class="rule"></div></div>
     <div class="statline">

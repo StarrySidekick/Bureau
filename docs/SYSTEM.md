@@ -123,7 +123,8 @@ reason an invented type works everywhere immediately.
 | `text` | A markdown body. The default; a bare object is just this. | — |
 | `check` | A checkbox. Ticking it completes the object. | `done` bool |
 | `date` | The day it sits on — what a calendar draws it on, what Today collects. | `due` date |
-| `deadline` | The day it is **late**, which is a different fact. Opt-in. | `dead` date |
+| `deadline` | The **hard** deadline — the day missing it costs something. Opt-in. | `dead` date |
+| `softdeadline` | The **soft** one: a day you set yourself, with no consequence. Opt-in. | `soft` date |
 | `repeat` | Comes round on a rule. Completing it spawns the next occurrence. | `repeat` rule |
 | `button` | A button pointing at an object, a drawer, or a URL. | — |
 | `container` | Children, on a grid or a list of its own. **This is what makes a drawer.** | — |
@@ -139,7 +140,7 @@ reason an invented type works everywhere immediately.
 | `rating` | Out of five. | `rating` number |
 | `location` | Where it is. | `loc` text |
 | `duration` | How long it takes. | `dur` number |
-| `priority` | How much it matters to you, 0–5 — a stripe whose weight is the rank. Not urgency: that is `deadline`. | `prio` 0–5 |
+| `priority` | How much it matters to you, 0–5 — a stripe whose weight is the rank. Not urgency, which is derived (see below). | `prio` 0–5 |
 | `price` | What it costs. | `price` money |
 | `answer` | A box on the front to answer it in. Filled means answered. | `answer` text |
 | `relates` | Points at other objects, both ways. | `rel` refs |
@@ -651,6 +652,15 @@ the start, `#tag` anywhere, and `!today` / `!tomorrow` / `!week`.
   finishing early needs no special case at all. The copy carries `fromRepeat`
   and wears a small repeat glyph: a thing that comes round, not a thing you
   wrote down.
+- **Urgency is derived and stored nowhere.** `urgencyOf(o)` — the days you have
+  to a deadline, less the days the work needs (`dur` minutes ÷ `workday()`
+  hours). What is left is *slack*, and the ladder is Room · Ahead · Soon ·
+  Tight · Behind. A **soft** deadline reads one rung lower than the identical
+  hard one and can never reach Behind; a thing with **no** deadline has no
+  urgency at all, which is a different answer from Room. It is a `derived`
+  entry in `FIELDS`, so a magic drawer can collect on it and the rollup picker
+  refuses it; `SORTS.urgent` is the sort. Ask `urgeRank(o)` / `urgeSaid(o)` —
+  never `o.urg`, which does not exist. See decision 120.
 - **Priority is a rank of 0–5**, and it is *importance*, not urgency — urgency
   is a deadline coming up (decision 62). 0 is "a dream, nothing to act on yet",
   which is the answer every other list app makes you delete. Read it with

@@ -4118,6 +4118,87 @@ const CHROME = process.env.BUREAU_CHROME;
     return out;
   });
 
+  /* --- urgency is a deadline and an estimate put together --------------
+     Nothing stores it, so every claim here is about arithmetic being done at
+     read time — which is exactly the kind of thing that fails silently. */
+  const urgency = await page.evaluate(async () => {
+    const nap = ms => new Promise(r => setTimeout(r, ms));
+    const S = BUREAU.state, out = {};
+    const iso = n => { const d=new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()+n);
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
+    S.look.workday = 3;
+    const t = BUREAU.create('task', {parent:'root', title:'Urgent me'});
+    t.attrs = ['text','check','date','deadline','softdeadline','duration'];
+    // no deadline is *no urgency*, which is a different answer from Room
+    out.noDeadlineNoUrgency = BUREAU.urgency(t) == null;
+    // a deadline alone still answers: with no estimate the slack is the days left
+    t.dead = iso(30);
+    out.aDeadlineAloneAnswers = (BUREAU.urgency(t)||{}).rank === 0;
+    /* The whole claim: three hours due tomorrow and three weeks due tomorrow
+       are not the same situation, and a sort by date cannot tell them apart. */
+    t.dead = iso(1); t.dur = 180;
+    const small = (BUREAU.urgency(t)||{}).rank;
+    t.dur = 60 * 60;                                   // sixty hours of work
+    const big = (BUREAU.urgency(t)||{}).rank;
+    out.durationMovesIt = big > small;
+    out.notEnoughTimeIsBehind = big === 4;
+    /* And the scale is the setting, not a constant baked into the ladder. Read
+       at a size where it can actually cross a rung: ten hours against five days
+       is a third of every day at three hours and a twelfth at twelve. */
+    t.dead = iso(5); t.dur = 60 * 10;
+    const atThree = (BUREAU.urgency(t)||{}).rank;
+    S.look.workday = 12;
+    out.theWorkdayScalesIt = (BUREAU.urgency(t)||{}).rank < atThree;
+    S.look.workday = 3;
+    /* A soft deadline is a day you gave yourself, so it reads one rung lower
+       than the identical hard one and can never reach Behind. */
+    t.dur = 180; t.dead = iso(1);
+    const hard = (BUREAU.urgency(t)||{}).rank;
+    t.dead = null; t.soft = iso(1);
+    const soft = (BUREAU.urgency(t)||{}).rank;
+    out.softIsOneRungLower = soft === Math.max(0, hard - 1);
+    t.dur = 60*60; t.soft = iso(1);
+    out.softNeverReachesBehind = (BUREAU.urgency(t)||{}).rank <= 3;
+    /* Carrying both, the more pressing of the two decides — and that is
+       usually the hard one and is allowed to be the soft one when it is much
+       closer. A month away is Room; a soft deadline tomorrow is not. */
+    t.dur = 180; t.dead = iso(30); t.soft = null;
+    const farHard = (BUREAU.urgency(t)||{}).rank;
+    t.soft = iso(1);
+    const both = (BUREAU.urgency(t)||{}).rank;
+    out.theMorePressingWins = farHard === 0 && both > farHard && both === Math.max(0, hard - 1);
+    // a finished thing is never urgent, the same way it is never late
+    t.done = true;
+    out.doneIsNeverUrgent = BUREAU.urgency(t) == null;
+    t.done = false;
+    // it is said in English, with the arithmetic in it rather than the rung alone
+    out.saysWhy = /\d/.test(BUREAU.urgeSaid(t)) && BUREAU.urgeSaid(t).includes('—');
+    // the deadline chip on the tile carries it — urgency is drawn on the date
+    // it belongs to, never as a left stripe, which is what priority means
+    t.soft = null; t.dead = iso(0); t.dur = 60*60;
+    BUREAU.render(); await nap(200);
+    const tile = () => document.querySelector(`.grid .drawer[data-row="${t.id}"]`);
+    const chip = () => tile() && tile().querySelector('.deadchip');
+    out.theChipCarriesIt = !!chip() && chip().className.includes('u4');
+    out.andNotAsAStripe = !!tile() && !tile().className.includes('prio-');
+    // a magic drawer collects on it, though no object has an `urg` to match
+    const d = BUREAU.create('magic', {parent:'root', title:'Urgent'});
+    d.filter = {scope:'all', rules:[{f:'urgency', op:'gt', v:'2'}]};
+    out.collectsByUrgency = BUREAU.kids(d.id).includes(t.id);
+    out.nothingStoresIt = !S.objects.some(o => 'urg' in o);
+    t.dead = iso(90); t.dur = 30;
+    out.andExcludes = !BUREAU.kids(d.id).includes(t.id);
+    // …and a board can sort by it
+    out.sortsByIt = !!BUREAU.sorts.urgent;
+    // the editor offers the row, and it is a readout rather than a field
+    BUREAU.panel(t.id, 'fields'); await nap(250);
+    out.theEditorSaysIt = !!document.querySelector('#panel .urgerow')
+      && !document.querySelector('#panel [data-oset$=":urg"]');
+    document.querySelector('#panel [data-act="panelclose"]').click();
+    BUREAU.del(t.id); BUREAU.del(d.id); S.undo=[]; S.redo=[]; BUREAU.render();
+    return out;
+  });
+
   /* --- repeating is a rule, and the two modes are different promises --- */
   const repeating = await page.evaluate(async () => {
     const nap = ms => new Promise(r => setTimeout(r, ms));
@@ -5400,7 +5481,7 @@ const CHROME = process.env.BUREAU_CHROME;
     settingsHasDoors, settingsBack,
     wordsNotSource, deadlines, twoClauses, undoEverything, savesOnlyChanges,
     paletteKeys, editorKeys, pickerLeads, rollupsEverywhere, soundAndVision, keyboardBoard,
-    ranking, repeating, oneLock, scheduling, ownColour, addBox, calFaces,
+    ranking, urgency, repeating, oneLock, scheduling, ownColour, addBox, calFaces,
     lockedBoard, freeTraits, pageWrites, tickBoxes, readerFits,
     dropsIn, keyframesRegistered, aesthetics, slotScoping, objectsDressed, grainSlots, tagged, drawnAesthetic, deeper, lookStage, statusBar, bindings, panelling, theSpray, tappingIsQuiet, decorations, pinboard
   }, null, 2));

@@ -17,7 +17,7 @@ import { closePanel } from './panels.js';
    Bureau is this phone running" is exactly the question you ask when a change
    appears not to have deployed. Shown in Settings, so it can be read off the
    device rather than guessed at. */
-const APP_VERSION = '1.40';
+const APP_VERSION = '1.41';
 const KEY = 'bureau.v1';
 const install = {deferred:null};   // the browser's install prompt, when one is on offer
 let saveTimer = null;
@@ -836,7 +836,7 @@ function kindFromName(n){
   const partial=KEYS.find(k=>k.startsWith(t)||t.startsWith(k));
   return partial||'note';
 }
-const SPEC_FIELDS=['body','due','dead','till','done','count','rating','price','prio','loc','dur','url','repeat','rel'];
+const SPEC_FIELDS=['body','due','dead','soft','till','done','count','rating','price','prio','loc','dur','url','repeat','rel'];
 
 function addSpec(spec, parentId, tally){
   if(spec==null) return;
