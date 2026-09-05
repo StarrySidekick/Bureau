@@ -429,9 +429,24 @@ is started; pick from it.
 
 **Things that would be felt every day**
 
-1. **Filing lands.** Dropping a tile into a drawer currently plays `swallow`,
-   a 7% scale bump on the *drawer*. The tile itself should shrink and fall into
-   the drawer's mouth — same trick as the drawer front flying, run backwards.
+1. ~~**Filing lands.**~~ **Done (v1.41.)** The tile falls in: a picture of what
+   you were holding, from exactly where you let go, shrinking into the front it
+   went into. `fileTo()` in motion.js — toss's mechanism aimed inward rather
+   than away, and it carries the tile's own markup rather than a stand-in.
+
+   Three things fell out of building it. Both halves of the geometry have to be
+   read *before* the state change, because `render()` replaces `#app` and a
+   moment later the element in your hand is detached and its rect is nothing.
+   The drawer's own bump now lands when the tile does rather than when the
+   finger lifts — a delay on an animation, which is allowed, where a delay on
+   the state change would not be. And **gathering deliberately does not get
+   it**: nothing went into anything there, a third thing was made, so it keeps
+   the bump alone.
+
+   It also applies to the two drops that file without looking like filing — a
+   tile dropped on a calendar day, and one dropped along a timeline. Both move
+   the object into the container, and neither said so before; the day drop had
+   no feedback at all.
 2. **A new object arrives from where it was made.** `reveal()` flashes
    `justmade`; it could instead grow out of the shelf, the picker tile, or the
    cell you sketched — so "where did that go" is answered by watching.

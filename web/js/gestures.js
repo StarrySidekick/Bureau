@@ -7,7 +7,7 @@ import { pending, tileTap, fireButton } from './tiles.js';
 import { modalNewObject, holdPanel, openCtx, closeCtx, schedulePanel } from './panels.js';
 import { render, pageTop } from './views.js';
 import { closeSheet } from './sheet.js';
-import { pagerBegin, pagerMove, pagerEnd, pagerCancel, pagerOn, leaveTile, toss } from './motion.js';
+import { pagerBegin, pagerMove, pagerEnd, pagerCancel, pagerOn, leaveTile, toss, fileTo } from './motion.js';
 import { save } from './persist.js';
 
 /* ============================================================
@@ -1151,22 +1151,33 @@ function onUp(e){
     }
     const swallow=id=>{ const el=document.querySelector(`[data-drawer="${id}"]`);
       if(el){ el.classList.add('swallow'); setTimeout(()=>el.classList.remove('swallow'),420); } };
+    /* The tile falls into the drawer it was filed in, so what happened is
+       visible rather than merely reported. Both halves have to be read HERE,
+       before the state change: `render()` replaces `#app`, so a moment later
+       the element in your hand is detached and its rect is nothing. The
+       picture is drawn afterwards, over the finished board, and holds nothing
+       up. See motion.js `fileTo()` and ROADMAP 0b-next item 1. */
+    const held=g.el ? g.el.cloneNode(true) : null;
+    const heldAt=g.el ? g.el.getBoundingClientRect() : null;
     // dropped on a day: it gets that date, and moves into the container showing
     // the month, because a date it can't be seen on is only half the gesture
     if(d && aim.day){
       const [did,iso]=aim.day.split(':');
       reschedule(d, iso); fileInto(d, did);
-      save(); render(); toast(`Scheduled ${D.said(iso)}`);
+      save(); render(); fileTo(held, heldAt, did);
+      toast(`Scheduled ${D.said(iso)}`);
       return;
     }
     // dropped along a timeline: the point on the axis is the date
     if(d && aim.tl){
       reschedule(d, aim.tl.iso); fileInto(d, aim.tl.id);
-      save(); render(); swallow(aim.tl.id);
+      save(); render(); fileTo(held, heldAt, aim.tl.id);
       toast(`Placed at ${D.said(aim.tl.iso)}`);
       return;
     }
-    // dropped on something it agrees with: the two become what they add up to
+    /* dropped on something it agrees with: the two become what they add up to.
+       Not a filing — nothing went into anything, a third thing was made — so
+       it keeps the bump and does not get the fall. */
     if(d && aim.gath){
       const c=gather(g.id, aim.gath, aim.gk);
       save(); render();
@@ -1176,7 +1187,7 @@ function onUp(e){
     if(d && aim.on){
       const into=byId(aim.on);
       fileInto(d, aim.on);                   // it will be placed inside on first render
-      save(); render(); swallow(aim.on);
+      save(); render(); fileTo(held, heldAt, aim.on);
       toast(`Filed in ${into?into.title:'the drawer'}`);
       return;
     }
