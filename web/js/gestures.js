@@ -1,11 +1,12 @@
 import { $, $$, clamp, D, ROOT } from './util.js';
 import { S, byId, dev, has, isContainer, isAncestor, childrenOf, container, gatherKind, spanOf,
   sortOf, cfgOf, boardLocked, heldCount, T } from './model.js';
-import { GRID, CELL, gridOf, cellW, lay, boxOk, overlaps } from './grid.js';
-import { toast, gather, setPin, del, pushSets, holdIt } from './mutations.js';
+import { GRID, CELL, gridOf, cellW, lay, boxOk, overlaps, sizeOfKind } from './grid.js';
+import { toast, gather, setPin, del, pushSets, holdIt, unholdIt } from './mutations.js';
 import { pending, tileTap, fireButton } from './tiles.js';
-import { modalNewObject, holdPanel, openCtx, closeCtx, schedulePanel, refreshPanel } from './panels.js';
-import { render, pageTop } from './views.js';
+import { modalNewObject, holdPanel, openCtx, closeCtx, schedulePanel, refreshPanel,
+  closePanel } from './panels.js';
+import { render, pageTop, reveal } from './views.js';
 import { closeSheet } from './sheet.js';
 import { pagerBegin, pagerMove, pagerEnd, pagerCancel, pagerOn, leaveTile, toss, fileTo } from './motion.js';
 import { save } from './persist.js';
@@ -134,24 +135,43 @@ const holdWord = ()=>{ const n=heldCount(); return n ? `Holding · ${n}` : 'Hold
    somewhere you cannot drop a tile; take none of it and the thing that says
    "let go" does not answer when you do.
 
-   The band is measured once, when the front appears, and the aim is that one
-   number: a geometric test rather than elementFromPoint, which the front is
-   `pointer-events:none` to and would fall straight through. Measuring once
-   also means the band does not grow when the front does, which is the
-   hysteresis you want — it is easier to stay in than to enter. */
-const AJAR = 34, AJAR_AIM = 62, AJAR_GRAB = 16;
+   The band is measured once, when the front appears, and the aim is those two
+   numbers: a geometric test rather than elementFromPoint, which the front is
+   `pointer-events:none` to and would fall straight through. */
+/* AJAR_GRAB was sixteen pixels — a band starting halfway up a front that is
+   thirty-four tall, so the thing that looked like it was open was mostly not
+   the target, and you had to carry a tile almost off the bottom of the screen
+   to be heard. **The whole open front is the mouth now**, plus a lip: what it
+   looks like it is offering is what it takes.
+
+   AJAR_KEEP is the other half, and it is what the old comment claimed to have
+   and did not. Entering and leaving were one line, so a thumb that wobbled
+   upward fell out of a drawer that was still drawn wide open — the front had
+   grown to AJAR_AIM and the band had not. The band now grows with it: you come
+   in at AJAR_GRAB and you leave at AJAR_KEEP, which is the hysteresis a detent
+   has and the reason a real drawer does not shut itself while you are aiming
+   at it.
+
+   What this costs is the bottom of the last row: while a tile is in your hand
+   the mouth beats a cell (`aimHold()` is asked first), so a 1×1 whose finger
+   sits inside the band cannot be put down there. That is the trade the band
+   has always made and it is only larger — and the front stands visibly ajar
+   saying so, which a cell does not. */
+const AJAR = 34, AJAR_AIM = 62, AJAR_GRAB = 48, AJAR_KEEP = 76;
 function openAjar(g){
   if(S.device==='desk' || g.group || g.hold) return;
   g.hold=makePull('ajar');
   g.hold.style.setProperty('--pull', AJAR+'px');
   pullSay(g.hold, holdWord());
   const rail=$('.deskrail');
-  g.holdTop = (rail ? rail.getBoundingClientRect().top
-                    : g.hold.getBoundingClientRect().bottom) - AJAR_GRAB;
+  const lip = (rail ? rail.getBoundingClientRect().top
+                    : g.hold.getBoundingClientRect().bottom);
+  g.holdTop = lip - AJAR_GRAB;
+  g.holdKeep = lip - AJAR_KEEP;
 }
 function closeAjar(g){
   if(!g || !g.hold) return;
-  g.hold.remove(); g.hold=null; g.holdTop=null;
+  g.hold.remove(); g.hold=null; g.holdTop=null; g.holdKeep=null;
 }
 /* Is the pointer in the drawer's mouth? The aim band is the ajar front plus
    everything below it — the rail, the home strip, the bottom of the screen —
@@ -159,7 +179,8 @@ function closeAjar(g){
    thing down there. */
 function aimHold(g, py){
   if(!g.hold || g.holdTop==null) return false;
-  const on = py >= g.holdTop;
+  // easier to stay in than to enter — the line moves up once you are inside
+  const on = py >= (g.holdOn ? g.holdKeep : g.holdTop);
   if(on !== !!g.holdOn){
     g.holdOn=on;
     g.hold.classList.toggle('aim', on);
@@ -325,6 +346,66 @@ function aimPluck(g, px, py){
     const home=grid.dataset.gridfor||ROOT;
     if(canFile(g.id, home)){ g.dropEl=grid; g.dropOn=home; grid.classList.add('dropboard'); }
   }
+}
+
+/* ---- out of the holding drawer, onto a place you chose -----------------
+   Putting a held thing down used to be a press, and a press has no *where* in
+   it: `unholdIt()` clears both boxes and `ensureBox()` finds the object a spot,
+   which on a full board is wherever there happens to be room. So the drawer
+   along the bottom could take a tile off one desk and put it on another, and
+   the last third of the gesture — the part where you say where — was missing.
+
+   Dragging one out is that third. It is the pen's shape rather than a tile's:
+   the press is claimed **without consuming the tap**, so a finger that never
+   travels still falls through to the click that puts it down here, and only
+   movement makes it a carry. No hold timer for the same reason — a tap is
+   completed by not moving, so there is no third thing a few pixels could have
+   meant.
+
+   Two answers, in the order a drop already reads them: a drawer under the
+   pointer, or a **cell** on the board you are looking at. The cell is the
+   whole point — `freeSpot()` is what you get when nobody said. */
+const HELD_SLOP = 6;
+function clearHeldAim(g){
+  if(g.dropEl){ g.dropEl.classList.remove('dropinto','dropboard'); g.dropEl=null; }
+  if(g.band){ g.band.remove(); g.band=null; }
+  g.dropOn=null; g.cell=null;
+}
+function aimHeld(g, px, py){
+  clearHeldAim(g);
+  const o=byId(g.id); if(!o) return;
+  // the ghost is under the finger, so it has to stand aside to be seen past —
+  // the same thing the pluck chip does for the same reason
+  if(g.ghost) g.ghost.style.visibility='hidden';
+  const under=document.elementFromPoint(px, py);
+  if(g.ghost) g.ghost.style.visibility='';
+  if(!under) return;
+  const over=under.closest('.grid .drawer[data-drawer]');
+  if(over && canFile(g.id, over.dataset.drawer)){
+    g.dropEl=over; g.dropOn=over.dataset.drawer; over.classList.add('dropinto');
+    return;
+  }
+  const grid=under.closest('.grid');
+  if(!grid) return;
+  const home=grid.dataset.gridfor||ROOT;
+  if(!canFile(g.id, home)) return;
+  g.dropEl=grid; g.dropOn=home; grid.classList.add('dropboard');
+  /* Which cell, in the board's own coordinate space — `pageTop()` added back,
+     because `cy` came off the screen and page two is a window onto rows
+     thirteen and up. Decision 102, and it is invisible on page one. */
+  const gr=gridOf(undefined, home), r=grid.getBoundingClientRect(), cw=cellW(grid, gr);
+  const [w,h]=sizeOfKind(o.kind, dev(), home);
+  const x=clamp(Math.floor((px-r.left)/(cw+gr.gap))+1, 1, Math.max(1, gr.cols-w+1));
+  const y=Math.max(1, Math.floor((py-r.top)/(CELL[dev()]+gr.gap))+1) + pageTop(home);
+  const b={x, y, w, h};
+  // shown only where it would actually land: a band over a taken cell is a
+  // promise the drop cannot keep, and the fallback is a spot nobody chose
+  g.cell = boxOk(b, o.id, dev(), home) ? b : null;
+  if(!g.cell) return;
+  g.band=document.createElement('div');
+  g.band.className='ghost band';
+  place(g.band, b, home);
+  grid.appendChild(g.band);
 }
 
 function aimDrop(g, px, py){
@@ -605,6 +686,15 @@ function onDown(e){
       G.mode='sketch';
     }, e.pointerType==='touch' ? HOLD_TOUCH : HOLD_MOUSE);
     holdFrom={x:e.clientX,y:e.clientY};
+    return;
+  }
+  /* Out of the holding drawer and onto somewhere you picked. Before every tile
+     branch, because a `.helditem` draws a tile inside itself and would
+     otherwise be read as one on a board it is not on. */
+  const heldEl = e.target.closest('.helditem');
+  if(heldEl){
+    G={type:'held', el:heldEl, id:heldEl.dataset.id, sx:e.clientX, sy:e.clientY,
+       px:e.clientX, py:e.clientY, mode:null};
     return;
   }
   /* A line on a checklist front is the object itself, so it can be taken off
@@ -896,6 +986,36 @@ function onMove(e){
     return;
   }
 
+  if(G.type==='held'){
+    G.px=e.clientX; G.py=e.clientY;
+    if(!G.mode){
+      if(Math.abs(dx)<HELD_SLOP && Math.abs(dy)<HELD_SLOP) return;
+      G.mode='held';
+      dropSelection();
+      /* The drawer's contents stand aside. The panel is over the board — it is
+         what you were just looking at — so without this you would be aiming at
+         a cell you cannot see, through an element `elementFromPoint` hits
+         first. It is a class rather than a `display:none` because the panel
+         has to keep its size: closing it would relayout the board under the
+         thing in your hand. */
+      const pn=$('#panel'); if(pn) pn.classList.add('standaside');
+      G.el.classList.add('taken');
+      /* The `.hpv` node itself, not its innerHTML: the wrapper carries the
+         box the preview is centred in, and without it the tile is drawn
+         against whatever size the scaler happens to compute. */
+      const pv=G.el.querySelector('.hpv');
+      G.ghost=document.createElement('div');
+      G.ghost.className='heldghost';
+      if(pv) G.ghost.appendChild(pv.cloneNode(true));
+      $('#frame').appendChild(G.ghost);
+    }
+    const fr=$('#frame').getBoundingClientRect();
+    G.ghost.style.left=(e.clientX-fr.left)+'px';
+    G.ghost.style.top=(e.clientY-fr.top)+'px';
+    aimHeld(G, e.clientX, e.clientY);
+    return;
+  }
+
   if(G.type==='pluck'){
     if(!G.armed) return;             // still waiting out the hold
     G.px=e.clientX; G.py=e.clientY;
@@ -1161,6 +1281,30 @@ function onUp(e){
     return;
   }
 
+  if(g.type==='held'){
+    const pn=$('#panel'); if(pn) pn.classList.remove('standaside');
+    if(g.el) g.el.classList.remove('taken');
+    if(g.ghost) g.ghost.remove();
+    const to=g.dropOn, cell=g.cell;
+    clearHeldAim(g);
+    if(g.mode!=='held') return;        // a tap; let the click put it down here
+    gestureFlags.suppressClick=true;   // the carry must not also fire holdtake
+    if(!to){ toast('Put it on a board'); return; }
+    /* unholdIt() records its own move and clears both boxes, so the cell is
+       written after it — on the device being edited only, because the other
+       one is a coordinate space this drop said nothing about and ensureBox()
+       is the thing that knows what room it has. */
+    if(!unholdIt(g.id, to)) return;
+    const o=byId(g.id);
+    if(o && cell) o[dev()]={...cell};
+    save(); render(); reveal(g.id);
+    if(heldCount()) refreshPanel(); else closePanel();
+    const into = to===ROOT ? null : byId(to);
+    toast(cell ? `Put down on ${into?into.title:'the desk'}`
+               : `Put down in ${into?into.title:'the desk'}`, true);
+    return;
+  }
+
   if(g.type==='pluck'){
     if(g.chip) g.chip.remove();
     if(g.el) g.el.classList.remove('lifted','plucked');
@@ -1169,12 +1313,17 @@ function onUp(e){
     if(g.mode!=='pluck') return;         // a tap; let the click tick it off
     gestureFlags.suppressClick=true;     // the drag must not also tick it
     const o=byId(g.id);
-    if(heldIt && o && holdIt(o.id)){ render(); toast('Kept in the drawer'); return; }
+    if(heldIt && o && holdIt(o.id)){ render(); toast('Kept in the drawer', true); return; }
     if(o && g.dropOn && g.dropOn!==o.parent){
+      /* Recorded, like every other filing. This one wrote three fields
+         straight onto the object and pushed nothing, so a line plucked off a
+         checklist front into the wrong drawer was the one filing in the app
+         that ⌘Z could not reach. See decision 65. */
+      pushSets('Filed', [[o.id,'parent',o.parent], [o.id,'desk',o.desk], [o.id,'phone',o.phone]]);
       o.parent=g.dropOn; o.desk=null; o.phone=null;   // a new coordinate space
       const into=g.dropOn===ROOT?null:byId(g.dropOn);
       save(); render();
-      toast(`Filed in ${into?into.title:'the desk'}`);
+      toast(`Filed in ${into?into.title:'the desk'}`, true);
     } else render();
     return;
   }
@@ -1249,14 +1398,14 @@ function onUp(e){
       const [did,iso]=aim.day.split(':');
       reschedule(d, iso); fileInto(d, did);
       save(); render(); fileTo(held, heldAt, did);
-      toast(`Scheduled ${D.said(iso)}`);
+      toast(`Scheduled ${D.said(iso)}`, true);
       return;
     }
     // dropped along a timeline: the point on the axis is the date
     if(d && aim.tl){
       reschedule(d, aim.tl.iso); fileInto(d, aim.tl.id);
       save(); render(); fileTo(held, heldAt, aim.tl.id);
-      toast(`Placed at ${D.said(aim.tl.iso)}`);
+      toast(`Placed at ${D.said(aim.tl.iso)}`, true);
       return;
     }
     /* dropped on something it agrees with: the two become what they add up to.
@@ -1272,7 +1421,7 @@ function onUp(e){
       const into=byId(aim.on);
       fileInto(d, aim.on);                   // it will be placed inside on first render
       save(); render(); fileTo(held, heldAt, aim.on);
-      toast(`Filed in ${into?into.title:'the drawer'}`);
+      toast(`Filed in ${into?into.title:'the drawer'}`, true);
       return;
     }
     if(d && g.moved && g.ok) g.moved.forEach(m=>{ const o=byId(m.id); if(o) o[dev()]={...m.box}; });

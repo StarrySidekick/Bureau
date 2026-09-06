@@ -778,10 +778,22 @@ a container takes dictation at all. The box is off unless `addbox` says
 regardless at two cells tall or less, where the line is worth more as an item.
 Inside the container it is always there. See decisions 77 and 79.
 
-**The drawer along the bottom holds things.** Pick a tile up on a phone and it
+**The drawer along the bottom holds things, and you take them out where you
+want them.** Pick a tile up on a phone and it
 stands ajar under the tile; let go over it and the object leaves the board and
 waits in the **holding space**, which is how a thing is carried to another
-desk. A held object is `parent: HOLD` — a *reserved id*, `'__hold'`, exactly as
+desk. Its mouth is the **whole open front** (`AJAR_GRAB`) with a second, higher
+line to leave by (`AJAR_KEEP`) — coming in and going out are two numbers, which
+is what a detent is; one line is a switch that shuts while you are aiming at
+it. Dragging a `.helditem` **out** of the panel is the third act of the
+gesture: built in the pen's shape (the press is claimed without consuming the
+tap, so a tap still puts it down here), aiming at a drawer or at a **cell**,
+and the panel `standaside`s — it slides to its own closed position while you
+carry one out and comes back when you let go, because it is over the board and
+`elementFromPoint` would hit it before any grid. It slides rather than closing
+because the gesture is still running and it has to come back if you let go over
+nothing; a phone panel is a fixed overlay, so nothing is relayed out either
+way. See decision 128. A held object is `parent: HOLD` — a *reserved id*, `'__hold'`, exactly as
 ROOT is, not an object — so there is nothing to seed, migrate, export or reap;
 ask `isHeld(o)` and `heldObjects()`, go through `holdIt`/`unholdIt`. Both boxes
 are cleared going in, because HOLD is not a coordinate space, and `ensureBox()`
@@ -1881,7 +1893,15 @@ when you're editing the *other* device's layout from this one.
   that already exists, so `dropSelection()` in `gestures.js` clears one at the
   start of every hold that becomes a Bureau gesture. Never inside a field. See
   decision 52.
-- **Anything that changes a field pushes an undo move.** Not just deletion — that
+- **An undo nobody can reach is not an undo.** A phone has no ⌘Z, so a move on
+the stack with no `toast(msg, true)` in front of it is a way back that exists
+only on a keyboard — which is what every filing in the app was for a long time,
+correctly recorded and unreachable. Pass the flag. And **one gesture is one
+move**: `unholdIt()` in a loop pushes a move each, so the Undo offered after
+"put all down" would have put back the last thing only — `unholdMany()` records
+the lot as one, the way `delMany()` sits beside `del()`. See decision 128.
+
+**Anything that changes a field pushes an undo move.** Not just deletion — that
 was the whole of it for a long time, and ⌘Z after a panel edit or a drag did
 nothing, silently. `pushSet(label, id, key, was)` records one field and
 **coalesces** (a set on the same field within 1.5s rides the move on top,

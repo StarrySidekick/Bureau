@@ -8,7 +8,7 @@ import { applyLook, applyStyle, setLookVal, lookVal, STYLES, randomFront,
   setSlot, palNow, objColour, darkMode } from './look.js';
 import { toast, setGridSize, toggleDone, spawnNext, del, delMany, delDrawer, undo, redo, pushUndo,
   pushSet, pushSets, setPin, togglePin, drawerForTag, create, quickAdd, spawnInto, randomThing,
-  holdIt, unholdIt } from './mutations.js';
+  holdIt, unholdIt, unholdMany } from './mutations.js';
 import { spinTo, pending, placeAtPending, tileTap, turnPage, clearPages } from './tiles.js';
 import { DECOR } from './decor.js';
 import { render, renderSoon, sizeGrid, toggleSettings, settingsPanel, reveal, goPage, deskMap } from './views.js';
@@ -386,16 +386,20 @@ function act(name, el){
       if(!unholdIt(id)) break;
       render(); reveal(id);
       if(heldCount()) refreshPanel(); else closePanel();
+      /* unholdIt() records the move; this is the way to it. A phone has no ⌘Z,
+         so a filing whose undo is only on the keyboard has no undo. */
+      toast('Put down here', true);
       break;
     }
     case 'holdtakeall': {
       const ids=heldObjects().map(o=>o.id);
       if(!ids.length) break;
-      // one at a time, so each is placed against what the last one took
-      ids.forEach(id=>unholdIt(id));
+      // one at a time, so each is placed against what the last one took — but
+      // one move, because putting the drawer down is one gesture
+      const n=unholdMany(ids);
       render(); reveal(ids[ids.length-1]);
       closePanel();
-      toast(`${ids.length} put down`);
+      toast(`${n} put down`, true);
       break;
     }
     case 'drawersettings': case 'objset': objectPanel(el.dataset.id); break;

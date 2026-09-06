@@ -268,7 +268,7 @@ function holdIt(id){
 /* Out of the drawer and onto the board you are standing on. The box is left
    null on purpose: ensureBox() places it on the next render, which is the one
    thing that knows what room this board has. */
-function unholdIt(id, intoId){
+function unholdIt(id, intoId, rec=true){
   const o=byId(id);
   if(!o || !isHeld(o)) return false;
   /* A magic drawer holds nothing, so putting a thing "down here" while you are
@@ -278,11 +278,30 @@ function unholdIt(id, intoId){
   const c = into===ROOT ? null : byId(into);
   if(into!==ROOT && !c) return false;
   if(c && has(c,'magic')) into = c.parent||ROOT;
-  pushSets('Taken out', [[o.id,'parent',o.parent], [o.id,'desk',o.desk],
-                         [o.id,'phone',o.phone]]);
+  // `rec` is off only for unholdMany(), which has already recorded the lot as
+  // one move — never as a way of filing something without a way back
+  if(rec) pushSets('Taken out', [[o.id,'parent',o.parent], [o.id,'desk',o.desk],
+                                 [o.id,'phone',o.phone]]);
   o.parent=into; o.desk=null; o.phone=null;
-  save();
+  if(rec) save();
   return true;
+}
+
+/* Several at once, as **one** move. Putting the whole drawer down is one
+   gesture, so it has to be one ⌘Z — calling unholdIt() in a loop pushes a move
+   each, and the Undo offered on the toast would then put back the last thing
+   only and quietly leave the rest. Same argument as delMany() beside del().
+   The order matters: each is placed against what the one before it took, so
+   they are applied in order and recorded in one go beforehand. */
+function unholdMany(ids, intoId){
+  const live = ids.map(byId).filter(o=>o && isHeld(o));
+  if(!live.length) return 0;
+  pushSets('Taken out', live.flatMap(o=>[[o.id,'parent',o.parent],
+    [o.id,'desk',o.desk], [o.id,'phone',o.phone]]));
+  let n=0;
+  live.forEach(o=>{ if(unholdIt(o.id, intoId, false)) n++; });
+  save();
+  return n;
 }
 
 /* ---- changing how fine a board's grid is -------------------------------
@@ -565,4 +584,4 @@ function randomThing(parentId){
 export { toast, setGridSize, toggleDone, spawnNext, del, delMany, delDrawer, undo, redo,
   pushUndo, pushSet, pushSets, setPin, togglePin,
   drawerForTag, create, gather, quickAdd, spawnInto, randomThing,
-  holdIt, unholdIt };
+  holdIt, unholdIt, unholdMany };

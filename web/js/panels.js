@@ -346,7 +346,7 @@ function heldTile(o, i){
      the browser fixes by *unnesting* it — which silently drops the tile out of
      its own cell and takes the layout with it. */
   return `<div class="helditem" data-act="holdtake" data-id="${o.id}"
-      role="button" tabindex="0" title="Put it down here">
+      role="button" tabindex="0" title="Press to put it down, or drag it where you want it">
     <span class="hpv">${sampleTile(twin, 112, 72)}</span>
     <span class="hnm">${esc(o.title||'Untitled')}</span>
   </div>`;
@@ -363,7 +363,8 @@ function holdPanel(){
         up, drop it on the drawer along the bottom, and it waits here until you
         open the drawer somewhere else and put it down.</p>`;
       return `<div class="heldgrid">${held.map(heldTile).join('')}</div>
-        <p class="holdnote">Press one to put it down on ${where}.</p>
+        <p class="holdnote">Press one to put it down on ${where}, or drag it
+        out onto the spot you want it.</p>
         ${held.length>1?`<button class="holdall" data-act="holdtakeall">${
           ic('arrowD',13)} Put all ${held.length} down here</button>`:''}`;
     }

@@ -5702,3 +5702,87 @@ presses: open the desk's own editor from the grid bar, click the button that is
 actually rendered, and count the plans either side. That is decision 122 again,
 from the other side — implemented is not reachable, and *tested* is not
 reachable either.
+
+## 128. The drawer along the bottom, given its third act
+
+Three complaints about the same piece of furniture, and they turn out to be
+one shape: the drawer along the bottom could take a thing off one board and
+put it on another, but not **anywhere in particular**; it was hard to aim at;
+and once a thing was filed there was no way back on the one device Bureau is
+actually used on.
+
+### A phone has no ⌘Z
+
+Filing had recorded an undo move since decision 65, and it worked — ⌘Z after
+carrying a tile into the wrong drawer put it back, correctly, every time. It
+had simply never been reachable. `toast()` has taken an `undo` flag from the
+day it was written; deletion passed it and filing did not, so the way back
+existed on a keyboard and nowhere else. Every filing toast passes it now:
+filed, scheduled, placed along a timeline, put down out of the drawer.
+
+That the moves were right the whole time is why this went unnoticed for so
+long — and it is the same lesson as decision 127 wearing different clothes.
+A test can assert that the stack has the right thing on it and say nothing
+whatever about whether a finger can get at it.
+
+**One hole was real.** A line plucked off a checklist front wrote `parent`,
+`desk` and `phone` straight onto the object and pushed nothing at all — the
+one filing in the app that ⌘Z genuinely could not reach. And **putting the
+whole drawer down** called `unholdIt()` in a loop, which pushes a move each:
+offering an Undo there would have put back the last thing only and quietly
+left the rest, which is worse than offering nothing. `unholdMany()` records
+the lot as one move, the way `delMany()` sits beside `del()`. One gesture,
+one ⌘Z.
+
+### The mouth is the whole open front
+
+`AJAR_GRAB` was sixteen pixels against a front thirty-four tall, so the thing
+that *looked* open was mostly not the target and you had to carry a tile
+nearly off the bottom of the screen to be heard. It is forty-eight now: what
+the front looks like it is offering is what it takes.
+
+The second half is the one the old comment claimed and did not have. It said
+measuring the band once "means the band does not grow when the front does,
+which is the hysteresis you want" — but entering and leaving were the same
+line, so a thumb that drifted up fell out of a drawer still drawn wide open.
+Coming in at `AJAR_GRAB` and going out at `AJAR_KEEP` is a detent; one line is
+a switch. A real drawer does not shut itself while you are aiming at it.
+
+What this costs is the bottom of the last row, and it is worth naming: while a
+tile is in your hand the mouth beats a cell, so a 1×1 whose finger sits inside
+the band cannot be put down there. That trade is not new, only larger — and
+the front stands visibly ajar saying what it will do, which a cell never does.
+
+### Out of it, onto a place you chose
+
+Putting a held thing down was a press, and a press has no *where* in it:
+`unholdIt()` clears both boxes and `ensureBox()` finds a spot, which on a full
+board is wherever there happens to be room. So the whole gesture — pick up
+here, carry, put down **there** — was missing its third act.
+
+Dragging one out is that act, and it is built in the **pen's** shape rather
+than a tile's (decision 126): the press is claimed without consuming the tap,
+so a finger that never travels still falls through to the click that puts it
+down here, and only movement makes it a carry. No hold timer, for the reason a
+pen has none — a tap is completed by *not* moving, so there is no third thing
+six pixels could have meant.
+
+It reads two answers, in the order a drop already reads them: a drawer under
+the pointer, or a cell on the board. The cell is the point of the whole
+exercise, and it is only offered where the object would actually fit — a band
+over a taken cell is a promise the drop cannot keep.
+
+**The drawer shuts while you carry one out**, and opens again when you let go.
+The panel is over the board — it is what you were just looking at — so without
+this you are aiming at a cell you cannot see, through an element
+`elementFromPoint` hits before any grid. Fading it in place was tried at two
+strengths and both were wrong: its own words stayed legible over the board and
+you were reading two things at once while trying to aim. So it slides to its
+own closed position, on its own easing, which is the one thing a drawer does.
+
+It *slides* rather than closing because the gesture is still running and the
+panel has to come back if you let go over nothing. The first version of this
+paragraph said it could not close because that would relayout the board under
+the thing in your hand — which is motion.js's rule and is not true here: on a
+phone a panel is a fixed overlay and never was a flex item. Nothing is relayed
+out either way, so this is a question of what it looks like and nothing else.

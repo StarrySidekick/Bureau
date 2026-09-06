@@ -2153,6 +2153,192 @@ const CHROME = process.env.BUREAU_CHROME;
     return out;
   });
 
+  /* --- the third of the gesture that was missing, and the way back from the
+     other two. Three complaints, one shape between them: the drawer along the
+     bottom could take a thing off a board and put it on another, but not
+     anywhere in particular; it was hard to aim at; and once a thing was filed
+     there was no way back on the one device Bureau is actually used on.
+
+     A phone has no ⌘Z, so a filing whose only undo is a keystroke has no undo.
+     Every assertion here presses the word on the toast rather than calling
+     BUREAU.undo(), because the affordance is the whole fix — the moves were
+     being recorded correctly the entire time. */
+  const holdingOut = await phone.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const S = BUREAU.state, out = {};
+    const find = x => S.objects.find(o => o.id === x);
+    const wasLocked = S.look.locked;
+    S.view='desk'; S.drawerId=null; S.look.locked=false; BUREAU.render(); await nap(240);
+    /* This block files things, holds things and puts them down again, and
+       putting a held thing down clears its box and lets ensureBox() re-place
+       it — so it rearranges the desk for everything after it in the suite.
+       (It did: the perspective block a few hundred lines down asserts that
+       something sits below the board's centre, and after this ran, nothing
+       did.) So the whole arrangement is taken now and put back at the end. */
+    const board = S.objects.map(o => [o.id, o.parent, o.desk, o.phone, o.ord]);
+    const ev = (node,t,cx,cy) => node.dispatchEvent(new PointerEvent(t,
+      {bubbles:true, cancelable:true, pointerId:47, pointerType:'touch', isPrimary:true,
+       clientX:cx, clientY:cy}));
+    /* A drag arms suppressClick, and a real touch spends it with its own
+       trailing click. A synthetic one never sends that click, so every press
+       after a synthetic drag has to spend it or it eats the thing you meant to
+       press — which is exactly how the Undo assertions below first "failed". */
+    const spendTheClick = () => document.querySelector('#frame')
+      .dispatchEvent(new MouseEvent('click', {bubbles:true}));
+    const tileOf = id => document.querySelector(
+      `#app .grid .drawer[data-row="${id}"], #app .grid .drawer[data-drawer="${id}"]`);
+
+    const kids = S.objects.filter(o => o.parent === 'root');
+    const thing = kids.find(o => !BUREAU.isContainer(o));
+    const into  = kids.find(o => BUREAU.isContainer(o) && !BUREAU.has(o,'magic'));
+
+    // ---- 1. filing says so, and says how to take it back ------------------
+    {
+      const el = tileOf(thing.id), tg = tileOf(into.id);
+      const a = el.getBoundingClientRect(), t = tg.getBoundingClientRect();
+      const wasIn = thing.parent;
+      ev(el,'pointerdown', a.left+a.width/2, a.top+a.height/2); await nap(360);
+      ev(el,'pointermove', a.left+a.width/2+9, a.top+a.height/2+9); await nap(30);
+      ev(el,'pointermove', t.left+t.width/2, t.top+t.height/2); await nap(40);
+      ev(el,'pointerup',   t.left+t.width/2, t.top+t.height/2); await nap(320);
+      out.aDropFiles = find(thing.id).parent === into.id;
+      out.andTheToastOffersTheWayBack = !!document.querySelector('#toast [data-undo]');
+      spendTheClick(); await nap(30);
+      document.querySelector('#toast [data-undo]').click(); await nap(240);
+      out.andPressingItUnfilesIt = find(thing.id).parent === wasIn;
+    }
+
+    // ---- 2. the drawer's mouth is the whole open front --------------------
+    {
+      const el = tileOf(thing.id), a = el.getBoundingClientRect();
+      const rail = document.querySelector('.deskrail').getBoundingClientRect();
+      const x = a.left + a.width/2;
+      ev(el,'pointerdown', x, a.top+a.height/2); await nap(360);
+      ev(el,'pointermove', x+9, a.top+a.height/2+9); await nap(40);
+      /* Forty pixels above the rail. Inside the open front, and outside the
+         sixteen-pixel band this used to be — which is the complaint: you had
+         to carry a tile nearly off the bottom of the screen to be heard. */
+      ev(el,'pointermove', x, rail.top-40); await nap(60);
+      out.theWholeOpenFrontIsTheMouth = !!document.querySelector('.shelfpull.ajar.aim');
+      // and it does not shut itself while you are aiming at it: coming in and
+      // going out are two lines now, which is what a detent is
+      ev(el,'pointermove', x, rail.top-64); await nap(60);
+      out.andAWobbleDoesNotLoseIt = !!document.querySelector('.shelfpull.ajar.aim');
+      ev(el,'pointermove', x, rail.top-150); await nap(60);
+      out.butLeavingItReallyLeaves = !document.querySelector('.shelfpull.ajar.aim');
+      ev(el,'pointermove', x, rail.top-40); await nap(50);
+      ev(el,'pointerup',   x, rail.top-40); await nap(320);
+      out.andLettingGoStillKeepsIt = BUREAU.isHeld(find(thing.id));
+    }
+
+    // ---- 3. dragging one out lands it on the cell you chose ---------------
+    {
+      BUREAU.holding(); await nap(300);
+      const item = document.querySelector(`.helditem[data-id="${thing.id}"]`);
+      out.theDrawerShowsIt = !!item;
+      const ir = item.getBoundingClientRect();
+      const grid = document.querySelector('#drawergrid');
+      const gr = grid.getBoundingClientRect();
+      const cell = parseFloat(getComputedStyle(grid).getPropertyValue('--rowh'));
+      ev(item,'pointerdown', ir.left+ir.width/2, ir.top+ir.height/2); await nap(40);
+      ev(item,'pointermove', ir.left+ir.width/2, ir.top+ir.height/2-3); await nap(40);
+      out.aWobbleIsNotACarry = !document.querySelector('.heldghost');
+      ev(item,'pointermove', ir.left+ir.width/2, ir.top+ir.height/2-24); await nap(50);
+      out.movingLiftsItOut = !!document.querySelector('.heldghost');
+      /* The panel is over the board — it is what you were just looking at — so
+         it has to stand aside, or you are aiming at a cell you cannot see
+         through an element elementFromPoint hits first. */
+      out.andTheDrawerStandsAside = !!document.querySelector('#panel.standaside');
+      /* An **empty** cell, found rather than assumed. The band is drawn only
+         where the object would actually fit — a band over a taken cell is a
+         promise the drop cannot keep — and by this point in the suite the
+         sample desk has been rearranged a couple of thousand lines' worth, so
+         a hardcoded row is a cell with something already standing on it. */
+      const taken = new Set();
+      document.querySelectorAll('#drawergrid .drawer').forEach(t => {
+        const st = getComputedStyle(t);
+        const cx = parseInt(st.gridColumnStart,10), cy = parseInt(st.gridRowStart,10);
+        const cw = parseInt(st.gridColumnEnd.replace(/\D/g,''),10) || 1;
+        const ch = parseInt(st.gridRowEnd.replace(/\D/g,''),10) || 1;
+        for(let i=0;i<cw;i++) for(let j=0;j<ch;j++) taken.add((cx+i)+','+(cy+j));
+      });
+      const rows = Math.max(1, Math.round(gr.height/cell));
+      const cols = Math.max(1, Math.round(gr.width/cell));
+      /* An empty **row**, not an empty cell: a phone task is eight cells wide
+         by one, so a single free square is not somewhere it fits — and the aim
+         clamps x so the box stays on the board, which would walk it straight
+         back into whatever is on that row. */
+      let free = 0;
+      for(let yy=1; yy<=rows && !free; yy++){
+        let clear = true;
+        for(let xx=1; xx<=cols; xx++) if(taken.has(xx+','+yy)) { clear=false; break; }
+        if(clear) free = yy;
+      }
+      out.thereIsSomewhereToPutIt = free > 0;
+      const tx = gr.left + cell*0.5, ty = gr.top + cell*(free-0.5);
+      ev(item,'pointermove', tx, ty); await nap(60);
+      const band = document.querySelector('#drawergrid .ghost.band');
+      out.andACellLightsUp = !!band;
+      const aimed = band ? band.style.gridRow : '';
+      ev(item,'pointerup', tx, ty); await nap(400);
+      const o = find(thing.id);
+      out.itComesOutOfTheDrawer = !BUREAU.isHeld(o);
+      out.andOntoTheBoard = o.parent === 'root';
+      // the whole point: **that** cell, not wherever freeSpot() had room
+      out.andLandsOnTheCellYouChose = !!o[S.device]
+        && aimed.startsWith(String(o[S.device].y) + ' ');
+      out.andTheDrawerComesBack = !document.querySelector('#panel.standaside');
+    }
+
+    // ---- 4. onto a drawer, it files into it -------------------------------
+    {
+      BUREAU.hold(thing.id); BUREAU.render(); await nap(180);
+      BUREAU.holding(); await nap(300);
+      const item = document.querySelector(`.helditem[data-id="${thing.id}"]`);
+      const tg = tileOf(into.id);
+      const ir = item.getBoundingClientRect(), t = tg.getBoundingClientRect();
+      ev(item,'pointerdown', ir.left+ir.width/2, ir.top+ir.height/2); await nap(40);
+      ev(item,'pointermove', ir.left+ir.width/2, ir.top+ir.height/2-24); await nap(50);
+      ev(item,'pointermove', t.left+t.width/2, t.top+t.height/2); await nap(60);
+      out.aDrawerUnderItLightsUp = !!document.querySelector('.drawer.dropinto');
+      // a drawer is not a cell: a band there would be a promise it can't keep
+      out.andNoCellBandShows = !document.querySelector('#drawergrid .ghost.band');
+      ev(item,'pointerup', t.left+t.width/2, t.top+t.height/2); await nap(400);
+      out.andItFilesInThere = find(thing.id).parent === into.id;
+      spendTheClick(); await nap(30);
+      document.querySelector('#toast [data-undo]').click(); await nap(240);
+      out.undoPutsItBackInTheDrawer = BUREAU.isHeld(find(thing.id));
+    }
+
+    // ---- 5. putting the whole drawer down is ONE move ---------------------
+    {
+      kids.filter(o => !BUREAU.isContainer(o)).slice(0,3)
+        .forEach(o => { if(!BUREAU.isHeld(o)) BUREAU.hold(o.id); });
+      BUREAU.render(); await nap(160);
+      const n = BUREAU.held().length;
+      out.severalCanWait = n >= 2;
+      const depth = S.undo.length;
+      BUREAU.holding(); await nap(300);
+      document.querySelector('.holdall').click(); await nap(400);
+      out.allOfThemGoDown = BUREAU.held().length === 0;
+      /* One gesture, one ⌘Z. unholdIt() in a loop pushes a move each, and the
+         Undo on the toast would then put back the last thing only and quietly
+         leave the rest — which is worse than not offering it at all. */
+      out.andItIsOneMoveNotThree = S.undo.length === depth + 1;
+      document.querySelector('#toast [data-undo]').click(); await nap(280);
+      out.andOneUndoTakesThemAllBack = BUREAU.held().length === n;
+      BUREAU.held().slice().forEach(o => BUREAU.unhold(o.id));
+    }
+
+    board.forEach(([id, parent, desk, phone, ord]) => {
+      const o = find(id); if(!o) return;
+      o.parent = parent; o.desk = desk; o.phone = phone; o.ord = ord;
+    });
+    S.look.locked = wasLocked;
+    S.view='desk'; S.drawerId=null; BUREAU.render();
+    return out;
+  });
+
   /* --- looking into the cavity. The board is set into the carcass, so tilting
      the phone slides the shelf behind an opening that does not move. The
      assertion that matters is not that it moves — it is that **nothing else
@@ -5807,7 +5993,7 @@ const CHROME = process.env.BUREAU_CHROME;
     errors: errs, manifestOk, swReady, survived, styleSurvived, slotColours,
     newObjectSeen, inlineEdit, sortDefaults, taskLook,
     shelfTools, gridSizes, keeping, versionShown, sampler, paging, pageCoords, pagerGround, goingIn, comingOut,
-    makingOnAPhone, railDrawer, railIsFurniture, holding, cavity, depth, windows, tossing, pinch, pagerLandsFlat, deskDots,
+    makingOnAPhone, railDrawer, railIsFurniture, holding, holdingOut, cavity, depth, windows, tossing, pinch, pagerLandsFlat, deskDots,
     listSwipe, shadows, textureDepth,
     gridClass, offlineWorks, railGone, tabsGone, shelfGone, tileNavigates,
     holdArms, maxDrift,

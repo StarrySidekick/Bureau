@@ -3861,6 +3861,37 @@ input,textarea,select,[contenteditable],
 .helditem .hnm{font-size:11.5px;font-weight:600;color:var(--ink-2);
   width:100%;text-align:center;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* ---- carrying one out of the drawer -----------------------------------
+   Pressing a held thing puts it down where there is room; dragging it out puts
+   it down where you said. Three states, and each is only what the gesture
+   needs to be legible: the item you took goes quiet in the drawer, the drawer
+   itself stands aside so you can see the board you are aiming at, and the
+   thing in your hand follows the finger.
+
+   The panel *stands aside* rather than closing: it keeps its size, because
+   closing it would relayout the board under the tile you are carrying — and
+   it gives up its pointer events, because it is over the board and
+   `elementFromPoint` would otherwise hit it before any cell. */
+.helditem.taken{opacity:.24}
+.helditem.taken .hpv{transform:none}
+/* It **shuts while you carry one out**, and opens again when you let go — the
+   panel's own closed position, on the panel's own easing, so the drawer along
+   the bottom does the one thing a drawer does. Fading it in place was tried at
+   two strengths and both were wrong: the words stayed legible over the board
+   and you were reading two things at once while trying to aim at a cell.
+
+   It slides rather than closing because the gesture is still running and the
+   panel has to come back if you let go over nothing. Nothing is relayed out
+   either way — on a phone the panel is a fixed overlay, not a flex item — so
+   this is a question of what it looks like and nothing else. */
+#panel.standaside{pointer-events:none;transform:translateY(101%)!important;
+  transition:transform .18s cubic-bezier(.2,.9,.3,1)}
+/* The thing in your hand, at the size it is drawn in the drawer and lifted off
+   the board — one shadow, no filter chain: it moves every frame. */
+.heldghost{position:absolute;z-index:80;pointer-events:none;
+  transform:translate(-50%,-50%);transform-origin:50% 50%;
+  filter:drop-shadow(0 10px 18px rgba(0,0,0,.4))}
+.heldghost .hpv{height:auto}
 .holdnote{font-size:12px;color:var(--ink-3);line-height:1.5;margin:14px 2px 0}
 .holdall{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;
   margin-top:12px;padding:10px;border-radius:var(--radius-lg);
