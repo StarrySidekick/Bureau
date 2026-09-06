@@ -36,10 +36,12 @@ meaning, containers are finite, and opening one is a small deliberate act.
 | --- | --- |
 | **Object** | Anything that sits on a grid. The unit of everything. |
 | **Attribute** | One capability — a checkbox, a date, the ability to contain. Attributes decide what an object can do and how it draws. |
-| **Type** (`kind` in code) | A named preset of attributes, plus a colour, an icon, a key, a starting size and a body template. Forty built in; you can invent more at runtime. |
+| **Type** (`kind` in code) | A named preset of attributes, plus a colour, an icon, a key, a starting size and a body template. Forty-odd built in, twenty of which are the major categories the picker leads with; you can invent more at runtime. |
 | **Field** | The named, typed value some attributes carry (`due`, `price`, `prio`). Only fields can be sorted, filtered or totalled. |
 | **Drawer** | An object whose type carries `container`. It holds other objects, including other drawers. |
-| **Magic drawer** | A drawer that carries `magic` as well. It holds nothing and shows whatever matches its rule. |
+| **Sorting drawer** | A drawer that carries `magic` as well. It holds nothing and shows whatever matches its rule. `magic` in the code; **sorting drawer** in the interface. |
+| **Life drawer** | A container for an area of your life rather than a piece of work. Reports what is in it and what is next, and never a percentage. |
+| **Control** | An object that is a switch for one of the desk's own settings, standing on the board. |
 | **Desk** | The root container, id `root`. Never drawn as a tile. |
 | **Face** | How a container draws itself on its *parent's* board. |
 | **Shape** | How a non-container object draws itself. |
@@ -101,6 +103,9 @@ One array, `S.objects`, holds drawers and objects alike.
   // carried only when the matching attribute is present
   done, doneAt, due, repeat, history, milestones, media, link,
   count, rating, loc, dur, prio, price, rel,
+  tracks, target,               // a progress bar reading another object
+  ctl,                          // which setting a control is a switch for
+  genKind, genDir,              // what a spawner makes, and which way
 
   // containers only
   c, board, pv, knob, border, texture,   // how the front looks
@@ -161,22 +166,72 @@ and the type is hidden from the picker.
 
 ## 6. Types
 
-Forty built in, grouped in the picker by what they are for. Each carries an
-icon, a colour, a single-letter key, a description, a starting size, a body
-template, an attribute set, a default shape or face, and — for an object — how
-it opens to be read.
+Forty-odd built in. Each carries an icon, a colour, a single-letter key, a
+description, a starting size, a body template, an attribute set, a default
+shape or face, and — for an object — how it opens to be read.
+
+### The major categories
+
+`PRIMARY` in model.js is the twenty the picker leads with, in this order. They
+are what a desk is actually made of; everything else is one disclosure further
+in and is still reachable by name, by shortcut and from the type builder. See
+decision 130.
+
+| | Type | What it is |
+| --- | --- | --- |
+| 1 | **Drawer** | A container. Holds what you file in it. |
+| 2 | **Sorting drawer** | Collects by a rule instead of holding. Asks which tag before it exists. `magic` in the code. |
+| 3 | **Project** | A piece of work, and everything it is made of. Reports: a bar, a count, what is next. |
+| 4 | **Life drawer** | An area of your life rather than a piece of work. Reports the same walk with **no bar** — it never finishes. |
+| 5 | **Book** | Anything made of words. A container that reads as a book both ways round. |
+| 6 | **Checklist** | Tasks on the outside, tickable without opening it. |
+| 7 | **Calendar** | Whatever it collects, on the day it falls. |
+| 8 | **Note** | Something to remember. |
+| 9 | **Thought** | What crossed your mind. A chit, no template, no ceremony. |
+| 10 | **Idea** | A spark, with three prompts to work it out. |
+| 11 | **Question** | Open until you have written the answer. |
+| 12 | **Problem** | Something in the way. Open until you have written what you did about it. |
+| 13 | **Task** | A thing to do. |
+| 14 | **Progress bar** | How far along something is — its own milestones, or another object's. |
+| 15 | **Image** | A picture on the board. |
+| 16 | **Trip** | Somewhere you are going, and what it is made of. |
+| 17 | **Recipe** | Ingredients you can tick, and a method. |
+| 18 | **Decoration** | Something to stand on the shelf. |
+| 19 | **Control** | A switch on the board for one of the desk's own settings. |
+| 20 | **Spawner** | Press it and it makes one of something — or one of anything. |
+
+A container that says what it makes still promotes that type to the front of
+the row, wherever it sits in the order: you opened the picker *inside* it.
+
+### Everything else
 
 | Group | Types |
 | --- | --- |
-| **Containers** — hold other things | Drawer, Magic drawer, Checklist, Calendar, Trip, Moodboard, Project, Timeline |
-| **Objects** — hold nothing | Task, Note, Idea, Outline, Script, Question, Essay, Habit, Goal, Image, Quote, Text field, Poem, Generator, Counter, Button, Achievement, Dream, Event |
-| **Writing** — for a world you are making | Story, Scene, Character, Place, Event, Item |
-| **Cooking** | Recipe, Ingredient, Shopping list |
+| **Containers** | Moodboard, Timeline, Shot list, Shopping list, World, Album, Film |
+| **Objects** | Outline, Script, Essay, Habit, Goal, Quote, Text field, Poem, Counter, Button, Achievement, Dream, Event, Window |
+| **Writing** | Story, Novel, Short story, Scene, Character, Place, Event, Item |
+| **Cooking** | Ingredient |
 | **Film** | Audio, Video, Shot |
 | **Yours** | Anything you build in the type editor |
 
-Plus **Control**, which is seeded rather than made and does not appear in the
-picker.
+### Controls
+
+A **control** is an object carrying the `control` attribute and a `ctl` naming
+one of the desk's own settings. `CONTROLS` in mutations.js is the table: for
+each setting, how it is read and how it is flipped. A **switch** (lock,
+shadows, pinned board) is on or off and is drawn as a lever; a **dial**
+(aesthetic, light, tick box, grid, depth) walks a list and prints where it is.
+Nothing outside that table knows which settings are switchable, so adding one
+is a row there. See decision 132.
+
+### Progress bars
+
+Anything carrying `progress` may name a `tracks` — another object whose
+progress the bar reads instead of its own milestones. `barPct(o)` is the one
+reader, and **everything drawn as a bar asks it, never `goalPct()`**: a
+container reports how much of everything under it is ticked, a streak reports
+its run against `target` days, and with nothing tracked (or a tracked object
+that has been deleted) it falls back to its own milestones. See decision 133.
 
 A type also states `mediaType` where it means one — Audio is for audio and
 Video for video — so an object that carries `media` and has nothing in it yet is
@@ -209,9 +264,11 @@ same settings, kept in `S.deskCfg` because it has no object to hang them on.
 pull), `checklist` (a stack of task-sized lines — one per cell of height, boxes
 you can tick without opening it; ticking one refills the face from inside the
 drawer, see decision 79), `project` (a front page: progress, counts, what is
-next, what it is made of), `calendar` (adaptive: a day pad at one cell, pad
-plus agenda below three cells a side, the month grid from there, titles in the
-cells at twelve by six — see decision 80), `moodboard`, `timeline`.
+next, what it is made of), `life` (the same walk with **no bar**, because an
+area of your life has no end for a percentage to be a fraction of — decision
+131), `calendar` (adaptive: a day pad at one cell, pad plus agenda below three
+cells a side, the month grid from there, titles in the cells at twelve by six —
+see decision 80), `moodboard`, `timeline`.
 
 **Layout** — how it arranges its children once opened: `grid`, `list`, `scroll`
 (nothing truncated — for reading a drawer rather than scanning it), plus

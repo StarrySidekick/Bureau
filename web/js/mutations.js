@@ -1,9 +1,11 @@
 import { $, esc, uid, ROOT, HOLD, D } from './util.js';
 import { S, byId, K, KINDS, KEYS, kindHas, has, isContainer, genKindOf, streak, T, dz, dev,
-  repeatOf, repeats, nextRepeat, faceOf, childrenOf,
+  repeatOf, repeats, nextRepeat, faceOf, childrenOf, TILT_MODES, tiltMode,
+  ctlOf, isPrimary,
   placeOf, cfgOf, isHeld, heldObjects } from './model.js';
 import { GRID, PHONE_GRIDS, colsOf, gridOf, freeSpot, lay, boxOk, sizeOfKind, keepSize } from './grid.js';
-import { randomFront, randomBoard, randomLook, styleDefaults } from './look.js';
+import { randomFront, randomBoard, randomLook, styleDefaults,
+  STYLES, CHECKS, DARKMODES, styleKey, applyStyle, applyLook } from './look.js';
 import { render, reveal } from './views.js';
 import { tileRect, pop, clRefill } from './motion.js';
 import { planForKind, stampPlan } from './plans.js';
@@ -575,9 +577,84 @@ function spawnInto(c, text, patch){
   return o;
 }
 
+/* ---- controls: a switch on the board for one of the desk's own settings --
+   Every one of these is already in Settings, three doors deep, and that is the
+   right place for a thing you set once. A control is for the two or three you
+   flip constantly — the lock above all — put on the board where your thumb
+   already is. It is furniture: it moves, resizes, takes a colour and wears an
+   aesthetic like anything else on the grid.
+
+   The table is the whole feature. Each entry says how its setting is *read*
+   and how it is *flipped*, and nothing outside this object knows which
+   settings are switchable — so a new one is a row here and a name in the
+   picker, and the tile, the press and the object editor all come along.
+
+   Two shapes of control, and the tile tells them apart by `cycle`: a **switch**
+   is on or off, and a **dial** walks a list and says where it is. Nothing here
+   pushes an undo move, for the same reason the desk's own settings do not —
+   `S.look` has no id for a step to point at (decision 65). Flipping it back is
+   the same press. See decision 132. */
+const CONTROLS = {
+  lock:     {nm:'Lock',      ic:'lock',  ds:'Locks and unlocks every board',
+             on:()=>!!S.look.locked,  flip(){ S.look.locked=!S.look.locked; }},
+  shadows:  {nm:'Shadows',   ic:'sun',   ds:'Whether what stands on a surface casts one',
+             on:()=>!!S.look.shadows, flip(){ S.look.shadows=!S.look.shadows; applyLook(); }},
+  pinned:   {nm:'Pinned',    ic:'pin',   ds:'Tiles pinned to the board rather than laid flat',
+             on:()=>!!S.look.pinned,  flip(){ S.look.pinned=!S.look.pinned; }},
+  style:    {nm:'Aesthetic', ic:'brush', ds:'Walks the aesthetics',
+             cycle:()=>Object.keys(STYLES), get:()=>styleKey(),
+             said:v=>(STYLES[v]||{}).nm||v, set(v){ applyStyle(v); }},
+  dark:     {nm:'Light',     ic:'eye',   ds:'Follow the device, or insist',
+             cycle:()=>Object.keys(DARKMODES), get:()=>S.look.dark||'auto',
+             said:v=>DARKMODES[v]||v, set(v){ S.look.dark=v; applyLook(); }},
+  check:    {nm:'Tick box',  ic:'check', ds:'Which box every tick in the app is drawn in',
+             cycle:()=>Object.keys(CHECKS), get:()=>CHECKS[S.look.check]?S.look.check:'square',
+             said:v=>CHECKS[v]||v, set(v){ S.look.check=v; applyLook(); }},
+  grid:     {nm:'Grid',      ic:'grid',  ds:'How fine a phone board is',
+             cycle:()=>Object.keys(PHONE_GRIDS), get:()=>S.look.grid||'small',
+             said:v=>v[0].toUpperCase()+v.slice(1), set(v){ setGridSize(v); }},
+  parallax: {nm:'Depth',     ic:'resize',ds:'What answers the phone being tilted',
+             cycle:()=>Object.keys(TILT_MODES), get:()=>tiltMode(),
+             said:v=>TILT_MODES[v]||v, set(v){ S.look.parallax=v; applyLook(); }}
+};
+const CTL_KEYS = Object.keys(CONTROLS);
+const ctlSpec = o => CONTROLS[ctlOf(o)] || CONTROLS.lock;
+// What the switch is showing right now, in words. A dial says where it is; a
+// switch says on or off, which is drawn as a switch and not printed.
+const ctlSaid = o => { const c=ctlSpec(o); return c.cycle ? c.said(c.get()) : (c.on()?'On':'Off'); };
+const ctlIsOn = o => { const c=ctlSpec(o); return c.cycle ? true : !!c.on(); };
+/* Pressing one. A dial walks to the next value and wraps; a switch flips.
+   Both save and render immediately — a control is a thing you press to see the
+   board change, so there is nothing here to defer. */
+function ctlPress(id){
+  const o=byId(id); if(!o || !has(o,'control')) return;
+  const c=ctlSpec(o);
+  if(c.cycle){
+    const list=c.cycle(), i=list.indexOf(c.get());
+    const next=list[(i+1)%list.length];
+    c.set(next);
+    toast(`${c.nm}: ${c.said(next)}`);
+  } else {
+    c.flip();
+    toast(`${c.nm} ${c.on()?'on':'off'}`);
+  }
+  save();
+  render();
+}
+
 /* Testing aid: drop something arbitrary onto the desk. Random kind, random
    size within what the grid allows, random colour — the point is to see how
    placement and the board cope with shapes nobody designed for. */
+/* What a spawner set to `random` presses out. The major categories only, and
+   nothing structural with them: a spawner that made a drawer, a control or a
+   decoration is a machine for making furniture, and what you want out of one
+   is work. See decision 133. */
+function someKind(){
+  const pool = KEYS.filter(k => isPrimary(k) && !kindHas(k,'container')
+    && !kindHas(k,'control') && !kindHas(k,'decor'));
+  return pool[Math.floor(Math.random()*pool.length)] || 'note';
+}
+
 const WORDS='brass ledger cedar tide quarry lantern vellum thistle harbour ember slate poppy compass juniper marrow'.split(' ');
 function randomThing(parentId){
   const pick=a=>a[Math.floor(Math.random()*a.length)];
@@ -603,4 +680,5 @@ function randomThing(parentId){
 export { toast, setGridSize, toggleDone, spawnNext, del, delMany, delDrawer, undo, redo,
   pushUndo, pushSet, pushSets, setPin, togglePin,
   drawerForTag, create, gather, quickAdd, spawnInto, randomThing,
+  CONTROLS, CTL_KEYS, ctlSpec, ctlSaid, ctlIsOn, ctlPress, someKind,
   holdIt, unholdIt, unholdMany, undoToast };

@@ -72,6 +72,8 @@ const P = {
   inbox:'M3 13h5l2 3h4l2-3h5M3 13 6 4h12l3 9v7H3z',
   chevL:'M15 5l-7 7 7 7', chevR:'M9 5l7 7-7 7',
   more:'M12 6h.01M12 12h.01M12 18h.01',
+  // a bar with a run filled in — a progress bar's own mark
+  bar:'M3 9h18v6H3zM3 12h9',
   grip:'M9 6h.01M9 12h.01M9 18h.01M15 6h.01M15 12h.01M15 18h.01',
   archive:'M3 4h18v4H3zM5 8v12h14V8M9.5 12h5',
   star:'M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z',

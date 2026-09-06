@@ -1,13 +1,14 @@
 import { esc, ic, clamp, D, md, plain, oneline } from './util.js';
 import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, childrenOf, container,
-  rollup, streak, goalPct, projectStat, tlSpan, dev, spawnByOf, genKindOf, takesTyping, showsAddBox,
+  rollup, streak, barPct, projectStat, tlSpan, dev, spawnByOf, genKindOf, genSaid,
+  makesAnything, ctlOf, takesTyping, showsAddBox,
   knobSizeOf, answered, sortOf, spanOf, coversDay, lateOn, isLate, iconOf, textSizeOf,
   isPicture, isMedia, isPlayable, isDecor, mediaTypeOf, frameOf, isWindow,
   boardLocked, prioOf, repeatSaid, urgencyOf, urgeSaid, durSaid, standsProud, shelfDepth, bookDepth, faceCue, anyFaceCue,
   calViewOf, weekStartOf, calCols, borderOf, textureOf } from './model.js';
 import { CELL, gridOf, lay, overlaps, boxOk, freeSpot, gridRows, sizeOfKind, ensureBox,
   pageRows, colsOf } from './grid.js';
-import { create, toast, toggleDone } from './mutations.js';
+import { create, toast, toggleDone, someKind, ctlSpec, ctlSaid, ctlIsOn, ctlPress } from './mutations.js';
 import { DECOR, decorOf, decorSVG } from './decor.js';
 import { hexOf, objColour, dress, dressAs } from './look.js';
 import { render, pageAt } from './views.js';
@@ -35,7 +36,7 @@ function drawerPreview(d, items){
   }
   if(d.pv==='bars'){
     return `<div class="pv-bars">${items.slice(0,4).map(o=>{
-      const p = has(o,'progress') ? goalPct(o) : clamp(streak(o)*14,6,100);
+      const p = has(o,'progress') ? barPct(o) : clamp(streak(o)*14,6,100);
       return `<div class="b" style="--k:${objColour(o)}"><i style="width:${p}%"></i></div>`;}).join('')}</div>`;
   }
   return `<div class="pv-list">${items.slice(0,5).map(o=>
@@ -289,13 +290,18 @@ const CLICKS = {
      at it. See decision 123. */
   when:     'Open it to schedule',
   settings: 'Open its settings',
-  generate: 'Make a new object'
+  generate: 'Make a new object',
+  // a control is a switch, and pressing a switch flips it — nothing opens
+  toggle:   'Flip the switch'
 };
 const clickOf = o => o.onclick || K(o.kind).onclick || 'none';
 /* A generator presses out a new object beside itself, in whichever direction
    it is set to. `random` drops it wherever there is room. */
 function dispense(g){
-  const kind=genKindOf(g), dir=g.genDir||'down';
+  /* `random` is not a kind, so it is resolved *here* and once — asking again
+     further down would place the box for one type and make another. */
+  const kind = makesAnything(g) ? someKind() : genKindOf(g);
+  const dir=g.genDir||'down';
   const o=create(kind,{parent:g.parent});
   const dv=dev(), b=lay(g), [w,h]=sizeOfKind(kind, dv, g.parent);
   const spots={
@@ -346,6 +352,9 @@ function tileTap(id){
     // Ticking has a movement of its own — the pop — so it isn't an opening.
     case 'check': if(has(o,'check')||has(o,'streak')) toggleDone(id); else openTile(id, ()=>openObj(id)); break;
     case 'settings': openTile(id, ()=>objectPanel(id)); break;
+    /* Pressing a control is not an opening either: the thing that answers is
+       the board, which is already behind it. */
+    case 'toggle': ctlPress(id); return;
     /* One destination, two ways in: this and *When…* on the long press. The
        whole page rather than a bubble, because it holds a month and nine rows
        — see decision 123. */
@@ -596,11 +605,23 @@ function drawTileFace(o, arr, box, persp){
     </button>`;
   }
 
-  // A control is a Bureau button that lives on the desk like anything else.
-  if(false){
-    return `<button class="drawer ctile${sel}" data-ctl="${esc(o.ctl||'')}" data-id="${o.id}" style="--c:${colour};${place}">
-      ${chips}<span class="cico">${ic(K(o.kind).ic==='sliders'&&o.ic?o.ic:(o.ic||'sliders'),20)}</span>
-      <span class="clabel">${esc(o.title||'')}</span>
+  /* A control is a switch for one of the desk's own settings, standing on the
+     board like a light switch on a wall. Two shapes, and the table decides
+     which: a **dial** walks a list and prints where it is, a **switch** is on
+     or off and is drawn as a switch rather than printed — the state has to be
+     readable across the desk, and "Shadows: On" is a label where a lever is a
+     glance. Its own name if it has one, the setting's if it has not, which is
+     what makes one usable the moment it lands. See decision 132. */
+  if(has(o,'control')){
+    const spec=ctlSpec(o), dial=!!spec.cycle, on=ctlIsOn(o);
+    return `<button class="drawer otile ${paper(o)} sh-switch ctltile${
+        on?' on':''}${sel}" data-row="${o.id}" data-ctl="${esc(ctlOf(o))}"
+        title="${esc(spec.ds||'')}" style="--c:${colour};${place}">
+      ${chips}
+      <span class="cico">${ic(o.ic || spec.ic, 18)}</span>
+      <span class="clabel">${esc(o.title||spec.nm)}</span>
+      ${dial ? `<span class="cval">${esc(ctlSaid(o))}</span>`
+             : `<i class="clever" aria-hidden="true"></i>`}
       ${handles}
     </button>`;
   }
@@ -673,7 +694,7 @@ function drawTileFace(o, arr, box, persp){
        task you could have seen — and off regardless when the front is too short
        to spare a line for it. See decisions 77 and 79. */
     const adds=showsAddBox(o, box);
-    const made=K(genKindOf(o)).nm.toLowerCase();
+    const made=genSaid(o);
     const rows=Math.max(1, box.h|0);
     const shown=items.filter(x=>!x.done).slice(0, Math.max(1, rows-(adds?1:0)));
     /* With nothing to show the front is a label again: a stack of zero lines
@@ -740,7 +761,44 @@ function drawTileFace(o, arr, box, persp){
           <i style="--k:${objColour(x)}">${ic(K(x.kind).ic,10)}</i>
           <b>${esc(x.title||'Untitled')}</b><u>${esc(D.short(x.due))}</u></span>`).join('')}</div>
       ${showsAddBox(o, box)?`<label class="cladd">${ic('plus',11)}
-        <input data-contadd="${o.id}" placeholder="Add a ${esc(K(genKindOf(o)).nm.toLowerCase())}…"></label>`:''}
+        <input data-contadd="${o.id}" placeholder="Add a ${esc(genSaid(o))}…"></label>`:''}
+      ${handles}
+    </${takesTyping(o)?'div':'button'}>`;
+  }
+
+  /* A **life drawer** reports like a project with the one thing taken off that
+     would be a lie. A project has an end and a percentage is the answer to
+     "where is this up to"; an area of your life has neither, and a bar reading
+     62% against Health is worse than no bar at all — it invites you to finish
+     something that does not finish.
+
+     So: what it is made of, what is next, and how much is outstanding. Read
+     off the same single walk `projectStat()` already does, and drawn with the
+     project's own classes plus `.lifetile`, which is what takes the bar's row
+     out — two faces that report the same walk should not be two blocks of
+     markup that drift. See decision 131. */
+  if(cont && faceOf(o)==='life'){
+    const st=projectStat(o), left=st.ticks-st.done;
+    return `<${takesTyping(o)?'div':'button'} class="drawer dtile projtile lifetile ${dress(o,'bd')}${sel}"
+        data-drawer="${o.id}" ${takesTyping(o)?'role="button" tabindex="0"':''}
+        style="--c:${colour};${place}">
+      ${st.cover?`<span class="projcover" style="background-image:url('${esc(st.cover)}')"></span>`:''}
+      <div class="dtop"><span class="dname">${esc(o.title||'Untitled')}</span>${rollTag(o)}</div>
+      <div class="projline">
+        ${left?`<span>${left} outstanding</span>`:`<span>${st.n||'Nothing'} inside</span>`}
+        ${st.next?`<span class="projnext">next ${esc(D.short(st.next))}</span>`:''}
+      </div>
+      <div class="projkinds">${st.kinds.slice(0,6).map(([k,n])=>
+        `<span class="projkind" style="--k:${hexOf(K(k).c)}" title="${esc(K(k).nm)}">
+          ${ic(K(k).ic,11)}<u>${n}</u></span>`).join('')
+        || '<span class="clempty">Open it and start filling it</span>'}</div>
+      <div class="projsoon">${st.soon.slice(0,3).map(x=>
+        `<span class="projitem${isLate(x)?' late':''}" data-row="${x.id}"
+           title="${esc(x.title||'Untitled')}">
+          <i style="--k:${objColour(x)}">${ic(K(x.kind).ic,10)}</i>
+          <b>${esc(x.title||'Untitled')}</b><u>${esc(D.short(x.due))}</u></span>`).join('')}</div>
+      ${showsAddBox(o, box)?`<label class="cladd">${ic('plus',11)}
+        <input data-contadd="${o.id}" placeholder="Add a ${esc(genSaid(o))}…"></label>`:''}
       ${handles}
     </${takesTyping(o)?'div':'button'}>`;
   }
@@ -998,11 +1056,14 @@ function drawTileFace(o, arr, box, persp){
     </button>`;
   }
   if(has(o,'spawn') && spawnByOf(o)==='click'){
-    const made=K(genKindOf(o));
-    return `<button class="drawer otile ${paper(o)} sh-press gentile${sel}" data-row="${o.id}" style="--c:${colour};${place}">
+    /* `random` is not a kind, so the mark and the label come off the spawner
+       itself rather than off K() — which answers `note` for anything it does
+       not know and would draw a machine for making notes. */
+    const any=makesAnything(o), made=any?null:K(genKindOf(o));
+    return `<button class="drawer otile ${paper(o)} sh-press gentile${any?' genany':''}${sel}" data-row="${o.id}" style="--c:${colour};${place}">
       ${chips}
-      <span class="genico">${ic(made.ic,20)}</span>
-      <span class="genlabel">${esc(o.title||('New '+made.nm.toLowerCase()))}</span>
+      <span class="genico">${ic(any?'sparkle':made.ic,20)}</span>
+      <span class="genlabel">${esc(o.title||('New '+genSaid(o)))}</span>
       <span class="genarrow">${ic('plus',15)}</span>
       ${handles}
     </button>`;
@@ -1060,7 +1121,7 @@ function drawTileFace(o, arr, box, persp){
     !(has(o,'deadline')&&o.dead)?' soft':''}${isLate(o)?' late':''}"${
     urg?` title="${esc(urgeSaid(o))}"`:''}>${esc(deadSaid(o))}</span>`);
   if(has(o,'streak')) bits.push(`${streak(o)}-day streak`);
-  if(has(o,'progress')) bits.push(`${goalPct(o)}%`);
+  if(has(o,'progress')) bits.push(`${barPct(o)}%`);
   if(has(o,'count')) bits.push(`${o.count||0}`);
   if(has(o,'duration')&&o.dur) bits.push(durSaid(o.dur));
   if(has(o,'price')&&o.price) bits.push(esc(o.price));
@@ -1077,7 +1138,7 @@ function drawTileFace(o, arr, box, persp){
   return `<${raw?'div':'button'} class="drawer otile ${paper(o)} sh-${shapeOf(o)}${o.edge?' edge':''}${sel}${
       edit?' editing':''}${
       asks?(answered(o)?' answered':' unanswered'):''}${prioOf(o)!=null?' prio-'+prioOf(o):''}" data-row="${o.id}"
-    style="--c:${colour};${has(o,'progress')?`--pct:${goalPct(o)}%;`:''}${place}">
+    style="--c:${colour};${has(o,'progress')?`--pct:${barPct(o)}%;`:''}${place}">
     ${chips}
     <div class="dtop">
       ${has(o,'check')?`<span class="check tilecheck${o.done?' on':''}" data-check="${o.id}">${ic('check',12)}</span>`:''}

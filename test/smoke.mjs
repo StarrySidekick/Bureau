@@ -1577,7 +1577,8 @@ const CHROME = process.env.BUREAU_CHROME;
   // --- one of every type on the desk, named after itself
   const sampler = await page.evaluate(() => {
     const S = BUREAU.state;
-    const kinds = Object.keys(BUREAU.K).filter(k => k !== 'control');
+    // control is a real, placeable type again — decision 132
+    const kinds = Object.keys(BUREAU.K);
     const onDesk = S.objects.filter(o => o.parent === 'root' && (o.tags||[]).includes('sampler'));
     return { one: kinds.every(k => onDesk.some(o => o.kind === k)),
              named: onDesk.every(o => o.title === BUREAU.K[o.kind].nm),
@@ -2239,6 +2240,24 @@ const CHROME = process.env.BUREAU_CHROME;
 
     // ---- 3. dragging one out lands it on the cell you chose ---------------
     {
+      /* Somewhere to put it. The sampler makes one of every type there is, so
+         the first page of the phone desk gets fuller every time a type is
+         added — a free row is not something to assume. Clear one instead: find
+         a row neither the drawer this block files into nor the thing in hand
+         is standing on, and send what is on it to a later page. The whole
+         arrangement is taken at the top of this block and put back at the end,
+         so this costs nothing and nothing after it sees the difference. */
+      {
+        const rows = BUREAU.pageRows;
+        const hits = (o,y) => { const b=o[S.device]; return !!b && b.y<=y && b.y+b.h-1>=y; };
+        for(let y=rows; y>=1; y--){
+          const on = S.objects.filter(o => o.parent==='root' && hits(o,y));
+          if(on.some(o => o.id===into.id || o.id===thing.id)) continue;
+          on.forEach(o => { o[S.device].y += rows*2; });
+          break;
+        }
+        BUREAU.render(); await nap(240);
+      }
       BUREAU.holding(); await nap(300);
       const item = document.querySelector(`.helditem[data-id="${thing.id}"]`);
       out.theDrawerShowsIt = !!item;
@@ -4308,10 +4327,22 @@ const CHROME = process.env.BUREAU_CHROME;
     BUREAU.pick(); await nap(220);
     const panel = document.querySelector('#panel');
     out.opens = !!panel && panel.dataset.panel === 'newobject';
+    /* The picker leads with the **major categories** — the twenty things you
+       are nearly always putting down — and everything else is one disclosure
+       further in. See decision 130. */
     const first = [...panel.querySelectorAll('.kindgrid')][0];
-    out.aHandful = !!first && first.children.length <= 5;
+    const led = [...first.children].map(e => e.dataset.new);
+    out.leadsWithTheMajors = led.length === BUREAU.PRIMARY.length
+      && led.every(k => BUREAU.isPrimary(k));
+    out.drawersLead = BUREAU.isContainer({kind:led[0]}) || led.slice(0,4)
+      .every(k => BUREAU.K[k].attrs.includes('container'));
+    /* …and nothing is drawn twice. A type in the lead row *and* in a group
+       behind the disclosure is a type you have to decide about twice, which
+       is the thing the majors exist to stop. */
+    const all = [...panel.querySelectorAll('.kindtile')].map(e => e.dataset.new);
+    out.noneDrawnTwice = new Set(all).size === all.length;
     out.restBehindOneMore = !!panel.querySelector('details.allkinds');
-    out.everythingIsStillThere = panel.querySelectorAll('.kindtile').length > 20;
+    out.everythingIsStillThere = new Set(all).size === Object.keys(BUREAU.K).length;
     document.querySelector('#panel [data-act="panelclose"]').click();
     // …and inside a container that says what it makes, that type comes first
     await nap(120);
@@ -6142,6 +6173,160 @@ const CHROME = process.env.BUREAU_CHROME;
     return out;
   });
 
+  /* --- the major categories, and the four things they brought with them ---
+     Decisions 130–133: a Book, a Thought and a Problem; three kinds of drawer
+     with a life area beside the project; a control that is a switch on the
+     board; a spawner that can make one of anything; and a progress bar that
+     may be a readout of something else. */
+  const categories = await page.evaluate(async () => {
+    const nap = ms => new Promise(r => setTimeout(r, ms));
+    const S = BUREAU.state, out = {};
+    S.view='desk'; S.drawerId=null; S.look.locked=false; BUREAU.render(); await nap(200);
+    const put = (kind, patch) => {
+      const o = BUREAU.create(kind, Object.assign({parent:'root'}, patch||{}));
+      const [w,h] = [BUREAU.K[kind].size[0], BUREAU.K[kind].size[1]];
+      o[S.device] = Object.assign(BUREAU.free(w,h,'root'), {w,h});
+      return o;
+    };
+    const tile = id => document.querySelector(`#app .grid .drawer[data-row="${id}"],
+      #app .grid .drawer[data-drawer="${id}"]`.replace(/\s+/g,' '));
+
+    // ---- every major is a real type, and none of them is a note in disguise
+    out.everyMajorExists = BUREAU.PRIMARY.every(k => !!BUREAU.K[k]);
+    out.threeKindsOfDrawer = ['magic','project','life'].every(k =>
+      BUREAU.K[k].attrs.includes('container'));
+    out.magicIsCalledSorting = /sorting/i.test(BUREAU.K.magic.nm);
+    out.generatorIsCalledSpawner = /spawner/i.test(BUREAU.K.generator.nm);
+
+    // ---- a book is a container that reads as one --------------------------
+    {
+      const b = put('book');
+      BUREAU.render(); await nap(200);
+      out.aBookIsAContainer = BUREAU.isContainer(b);
+      // a book is seen spine-on, and its title runs up it
+      out.andWearsASpine = !!tile(b.id) && tile(b.id).classList.contains('spinetile')
+        && !!tile(b.id).querySelector('.spinetitle b');
+      // both readings of "opens as a book": what it holds, and its own body
+      out.andOpensAsOneBothWays = BUREAU.K.book.layout === 'book' && BUREAU.K.book.read === 'book';
+      BUREAU.del(b.id);
+    }
+
+    // ---- a life drawer reports, and never claims to be finished -----------
+    {
+      const l = put('life', {title:'Health'});
+      BUREAU.create('task', {parent:l.id, title:'Book the dentist'});
+      BUREAU.render(); await nap(220);
+      const t = tile(l.id);
+      out.lifeReports = !!t && !!t.querySelector('.projline');
+      /* The whole point of the face: no percentage. An area of your life has
+         no end for a bar to be a fraction of. */
+      out.lifeHasNoBar = !!t && (!t.querySelector('.projbar')
+        || getComputedStyle(t.querySelector('.projbar')).display === 'none');
+      // …and a project standing beside it still has one
+      out.butAProjectStillDoes = (() => {
+        const p = put('project', {title:'Finishable'});
+        BUREAU.render();
+        const pt = tile(p.id);
+        const ok = !!pt && !!pt.querySelector('.projbar')
+          && getComputedStyle(pt.querySelector('.projbar')).display !== 'none';
+        BUREAU.delDrawer(p.id);
+        return ok;
+      })();
+      out.lifeIsNotAProject = BUREAU.faceOf(l) === 'life';
+      BUREAU.delDrawer(l.id);
+    }
+
+    // ---- a control is a switch on the board, and pressing it flips it -----
+    {
+      const c = put('control', {ctl:'shadows', title:'Shadows'});
+      BUREAU.render(); await nap(220);
+      const t = tile(c.id);
+      out.controlDrawsALever = !!t && !!t.querySelector('.clever');
+      const was = S.look.shadows;
+      out.controlShowsItsState = t.classList.contains('on') === !!was;
+      BUREAU.ctlPress(c.id); await nap(200);
+      out.pressingItFlipsTheDesk = S.look.shadows === !was;
+      out.andTheTileAgrees = tile(c.id).classList.contains('on') === !!S.look.shadows;
+      BUREAU.ctlPress(c.id); await nap(160);      // put it back
+      // a dial walks a list and prints where it is, rather than being on or off
+      const d = put('control', {ctl:'check', title:'Boxes'});
+      BUREAU.render(); await nap(200);
+      const before = BUREAU.ctlSaid(d);
+      out.aDialPrintsItsValue = !!tile(d.id).querySelector('.cval');
+      BUREAU.ctlPress(d.id); await nap(200);
+      out.andPressingItWalksOn = BUREAU.ctlSaid(d) !== before;
+      out.everySwitchIsReadable = Object.keys(BUREAU.CONTROLS)
+        .every(k => typeof BUREAU.ctlSaid({kind:'control', ctl:k}) === 'string');
+      BUREAU.del(c.id); BUREAU.del(d.id);
+    }
+
+    // ---- a spawner may make one of anything -------------------------------
+    {
+      const g = put('generator', {genKind:'random'});
+      BUREAU.render(); await nap(200);
+      /* `random` is not a kind. Handing it to K() answers `note`, so a spawner
+         set to anything used to draw as a note factory and press out notes. */
+      out.anySpawnerSaysAnything = /anything/i.test(tile(g.id).textContent);
+      const n = S.objects.length;
+      const kinds = new Set();
+      for(let i=0;i<6;i++){
+        tile(g.id).dispatchEvent(new MouseEvent('click',{bubbles:true}));
+        await nap(120);
+        const made = S.objects[S.objects.length-1];
+        kinds.add(made.kind);
+      }
+      out.andMakesSomethingEachPress = S.objects.length === n+6;
+      out.andNotAlwaysTheSameThing = kinds.size > 1;
+      out.andOnlyMajors = [...kinds].every(k => BUREAU.isPrimary(k));
+      S.objects.slice(n).map(o=>o.id).forEach(id => BUREAU.del(id));
+      BUREAU.del(g.id);
+    }
+
+    // ---- a progress bar may be about something else -----------------------
+    {
+      const proj = put('project', {title:'Tracked'});
+      const a = BUREAU.create('task',{parent:proj.id, title:'one'});
+      const b = BUREAU.create('task',{parent:proj.id, title:'two'});
+      a.done = true;
+      const bar = put('progressbar', {title:'How far'});
+      /* Born with one milestone and nothing tracked, so it reads as its own
+         goal — the fallback has to be the old behaviour exactly, or every
+         object already carrying milestones changes meaning. */
+      bar.milestones = [{t:'a',done:true},{t:'b',done:false},{t:'c',done:false},{t:'d',done:false}];
+      out.itsOwnMilestonesByDefault = BUREAU.barPct(bar) === 25;
+      bar.tracks = proj.id;
+      out.aBarCanReadAnother = BUREAU.barPct(bar) === 50;
+      BUREAU.render(); await nap(220);
+      const t = tile(bar.id);
+      out.andTheTileDrawsThatNumber =
+        /50%/.test(t.textContent) || t.style.getPropertyValue('--pct') === '50%';
+      // a tracked object that has gone must not leave the bar blank
+      BUREAU.delDrawer(proj.id);
+      out.aLostTrackFallsBack = typeof BUREAU.barPct(bar) === 'number';
+      BUREAU.del(bar.id); BUREAU.del(a.id); BUREAU.del(b.id);
+    }
+
+    // ---- a sorting drawer is asked what it sorts, before it exists --------
+    {
+      BUREAU.tagFirst('magic'); await nap(240);
+      const panel = document.querySelector('#panel');
+      out.sortingAsksFirst = !!panel && panel.dataset.panel === 'newtag';
+      out.andOffersTheTagsYouHave = panel.querySelectorAll('[data-newtag]').length > 1;
+      const chip = [...panel.querySelectorAll('[data-newtag]')]
+        .find(e => e.dataset.newtag.split(':')[1]);
+      const tag = chip.dataset.newtag.split(':')[1];
+      chip.dispatchEvent(new MouseEvent('click',{bubbles:true})); await nap(320);
+      const made = S.objects[S.objects.length-1];
+      out.andComesOutWithTheRuleInIt = made.kind === 'magic'
+        && made.filter && made.filter.tag === tag;
+      out.andNamedForIt = made.title === '#'+tag;
+      out.andItActuallyCollects = BUREAU.kids(made.id).length > 0;
+      BUREAU.del(made.id);
+    }
+    S.look.locked = true; BUREAU.render();
+    return out;
+  });
+
   console.log(JSON.stringify({
     errors: errs, manifestOk, swReady, survived, styleSurvived, slotColours,
     newObjectSeen, inlineEdit, sortDefaults, taskLook,
@@ -6162,7 +6347,7 @@ const CHROME = process.env.BUREAU_CHROME;
     wordsNotSource, deadlines, twoClauses, undoEverything, savesOnlyChanges,
     paletteKeys, editorKeys, pickerLeads, rollupsEverywhere, soundAndVision, keyboardBoard,
     ranking, urgency, reachable, pensAndCorners, lyingBooks, plansWork, repeating, oneLock, scheduling, ownColour, addBox, calFaces,
-    lockedBoard, freeTraits, pageWrites, tickBoxes, readerFits,
+    lockedBoard, freeTraits, pageWrites, tickBoxes, readerFits, categories,
     dropsIn, keyframesRegistered, aesthetics, slotScoping, objectsDressed, grainSlots, tagged, drawnAesthetic, deeper, lookStage, statusBar, bindings, panelling, theSpray, tappingIsQuiet, decorations, pinboard
   }, null, 2));
   await browser.close();

@@ -5856,3 +5856,163 @@ the commonest one, and every part of it is a row you can change), so the
 section opens on something rather than on a second question. Saying never is
 taking the trait off, which is now one button at the end of the section rather
 than a value hidden in a dropdown.
+
+## 130. Twenty categories, and the rest one press further in
+
+Forty types is an inventory. The picker was already leading with a handful —
+whatever the desk had most of, counted off `S.objects` (decision 67) — and that
+was the right shape with the wrong contents: a frequency tally answers "what
+have I made before", and the question in front of you on a bare board is "what
+kind of thing is this". Those are not the same question, and the tally's answer
+drifts as the desk fills, so the row you learned last week is a different row
+today.
+
+So the lead row is stated rather than counted. `PRIMARY` in model.js is twenty
+kinds — the four drawers, then the things that hold words, then the things you
+do, then the pieces of furniture — and the picker draws them in that order,
+every time, on every board. **Everything else is behind one disclosure**, still
+reachable by name, by shortcut, from the type builder and from every other type
+picker in the app: `pickGroups(skipPrimary)` only narrows the *new object*
+picker, because narrowing what a type can *be* is a different decision and not
+this one. A type is never drawn twice on one screen — the row and the groups
+are disjoint — because a thing you have to decide about twice is worse than a
+thing you have to scroll to once.
+
+The one exception is the one decision 67 already found: a container that says
+what it makes puts that type first, whatever the order says. You opened the
+picker *inside* it, which is a stronger signal than any list. If that type is
+not a major it is promoted into the row rather than left behind the
+disclosure — "add to this shot list" must never be the thing the picker hides.
+
+### Three types the categories were missing
+
+The list is what a desk is actually made of, and writing it down showed three
+gaps.
+
+**Book** is the category for anything made of words. Story, Novel and Short
+story are all still here, and they are this with a binding and a body template
+— but deciding whether the thing you are starting is a novel is a decision
+nobody has at the moment they start it. A book is a container that reads as one
+both ways round: `layout:'book'` pages through what it holds, `read:'book'`
+pages through its own body.
+
+**Thought** is the smallest writing type there is, and deliberately so. An idea
+is a spark you might build on and comes with three prompts to fill in; a
+thought is the thing that crossed your mind on the stairs, and the entire value
+of one is that writing it down costs nothing. A torn chit two cells tall, an
+empty body, no template. Anything more and you stop bothering, which is the
+only way this type can fail.
+
+**Problem** is a question about something in the way. It carries the same
+`answer` machinery as a question — the box on the front, `answered()` — because
+both are resolved by *writing*, not by ticking: a problem ticked off with
+nothing said about it teaches you nothing the next time you meet it. It also
+carries `difficulty` and `priority`, because how hard a problem is to start is
+most of what decides whether you ever do.
+
+`outline`, `moodboard` and `goal` gave up their keyboard shortcuts to `life`,
+`book` and `progressbar`. Every letter was taken, and a shortcut belongs to the
+thing you reach for.
+
+## 131. Three kinds of drawer
+
+A drawer is a container and that is the whole of it — which is right, and is
+also why every question about one has been answered by a rule builder two doors
+inside the object editor. There are three shapes of container people actually
+make, and now there are three types.
+
+**A sorting drawer** is what a magic drawer was. `magic` in the code, exactly as
+a container is `container` in the code and "drawer" in the interface — the
+stored kind key does not change and nothing needed migrating. What changed is
+that it now asks its question **before it exists**: `asksTag` on the kind sends
+the picker to `tagFirstPanel()`, which offers every tag the desk has, counted,
+plus a field for one it hasn't, and the drawer arrives with the rule in it and
+the tag as its name. A sorting drawer with no rule collects nothing and lands
+on the board looking broken, which is a bad first thirty seconds for the most
+powerful thing in the app. *No rule yet* still makes the drawer and opens the
+rule builder — the question is a shortcut past the common case, never a gate in
+front of the uncommon one.
+
+**A project** is unchanged. It reports: a bar, a count, what is next.
+
+**A life drawer** is the new one, and it is the project with the one thing taken
+off that would lie. Money, health, the people in your life — none of them ends,
+so none of them has a percentage. `face:'life'` reads off the same single
+`projectStat()` walk and draws everything but the bar, and `.lifetile` is one
+CSS rule that takes the row out rather than a second block of markup that would
+drift from the first. What the bar's row buys back is given to what is inside,
+which is the thing you actually ask an area of your life.
+
+Eventually these may not be drawers at all — a hammer for the house, a heart
+for the people in it. That is a change of *shape*, and the shape of a container
+has been a slot since decision 93; nothing here forecloses it.
+
+## 132. A control is a switch on the board
+
+`control` was an attribute once. Nothing ever drew it, migration 14 stripped it
+out, and the kind sat in `KINDS` with a dead `attrs:['control']` and an
+`if(false)` in `drawTile()` — one of those things that is neither present nor
+removed.
+
+It is back, with a table behind it. `CONTROLS` in mutations.js says, for each of
+the desk's own settings, how it is **read** and how it is **flipped**; `ctl`
+names which one this object is a switch for; and nothing outside that table
+knows which settings are switchable, so adding one is a row there and the tile,
+the press and the object editor all come along. Eight to start with: the lock,
+the shadows, the pinned board, the aesthetic, light or dark, the tick box, the
+grid, and what answers the phone being tilted.
+
+Every one of these is already in Settings, three doors deep, which is the right
+place for a thing you set once. A control is for the two or three you flip
+constantly — the lock above all — put on the board where your thumb already is.
+And it is furniture, not chrome: it moves, resizes, takes a colour, wears an
+aesthetic, and can be filed in a drawer with the other switches.
+
+Two shapes, and the table decides which. A **switch** is on or off and is drawn
+as a lever, never printed: the state has to be readable at a glance across the
+desk, and "Shadows: On" is a label where a lever is a glance. A **dial** walks a
+list and prints where it is, because "Aesthetic" with a lever would say nothing
+about which. Neither pushes an undo move, for decision 65's reason: `S.look`
+has no id for a step to point at, and flipping it back is the same press.
+
+### And a tile made of its own colour has to say so three classes deep
+
+Building the control's plate turned up a bug in a tile that had been wrong for
+a while. `.drawer.gentile{background:var(--c)}` in board.css is two classes;
+`.drawer.otile{background:var(--paper-2)}` in chrome.css is also two classes
+and later in the cascade. An object became paper in decision 99, and from that
+day the spawner rendered as a blank sheet with white writing on it. Both are
+`.drawer.otile.<tile>` now, and both set `background-color` rather than the
+shorthand, because a stock sets `background-image` and the shorthand would
+fight it for the grain and lose. Anything else on a board that is made of its
+own colour is standing in the same hole.
+
+## 133. A readout, and a machine that makes anything
+
+Two of the majors were nearly there already, and what each was missing was the
+same thing: a value that is not a kind.
+
+**A progress bar** is a goal with the goal taken out. A goal is a thing you are
+trying to reach and its milestones belong to it; a progress bar is a *readout*,
+and what it reads is very often somewhere else — the project two desks over,
+the habit you have been keeping. `tracks` names that object and `barPct()` is
+the one reader: a container reports how much of everything under it is ticked,
+a streak reports its run against `target` days, and with nothing tracked it
+falls back to its own milestones and is a goal again. **Everything drawn as a
+bar asks `barPct()`, never `goalPct()`** — otherwise a tile and its editor
+disagree about the same number. The fallback matters as much as the feature: a
+tracked object that has been deleted must leave the bar reading *something*,
+not blank, because what happened somewhere else is not the bar's fault.
+
+It also got a shape of its own. On a goal the bar is one detail of a card; here
+the bar *is* the tile, so `sh-bar` runs the track the full width and thick
+enough to read across a desk.
+
+**A spawner** was the Generator, which named the machinery rather than the job.
+Its new answer is `genKind:'random'` — one of anything. That is not a kind, and
+that is the whole hazard: `K('random')` answers `note`, so a spawner set to
+anything would have drawn as a note factory and pressed out notes. `ANY`,
+`makesAnything()` and `genSaid()` are the three readers that keep it out of
+`K()`, and `someKind()` picks from the majors with the containers, controls and
+decorations taken out — a spawner that made furniture is a machine for making
+furniture, and what you want out of one is work.

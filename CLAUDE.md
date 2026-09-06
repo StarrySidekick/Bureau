@@ -824,6 +824,70 @@ renders its own `<button>`, and a button inside a button is a parse error the
 browser fixes by *unnesting* it — silently, taking the layout with it. That is
 why `.kindtile` and `.helditem` are `div`s with `role="button"`.
 
+**The picker leads with twenty stated categories, not with a tally.** `PRIMARY`
+in model.js — the four drawers (Drawer, Sorting drawer, Project, Life drawer),
+then Book, Checklist, Calendar, Note, Thought, Idea, Question, Problem, Task,
+Progress bar, Image, Trip, Recipe, Decoration, Control, Spawner. Everything else
+is behind *Every other type* and is still reachable by name, by shortcut, from
+the type builder and from **every other type picker in the app** —
+`pickGroups(skipPrimary)` narrows only the new-object picker, because narrowing
+what a type can *be* is a different decision. No type is drawn twice on one
+screen. A container that says what it makes still leads with that type wherever
+it sits in the order, promoted into the row if it isn't a major. Adding a major
+is one name in `PRIMARY`. See decision 130.
+
+**Three kinds of drawer, and `magic` is called a *sorting drawer*.** The stored
+kind key is unchanged — `magic` in the code, "sorting drawer" in the interface,
+exactly as `container` is "drawer" — so nothing needed migrating and every
+`has(o,'magic')` still reads. What changed is `asksTag` on the kind: placing one
+opens `tagFirstPanel()` first, which offers every tag the desk has (counted) and
+a field for one it hasn't, and `makeSorting()` in wire.js is the **one** place
+both answers land, so the naming, the placing and the reveal cannot drift.
+*No rule yet* still makes the drawer and opens the rule builder — the question
+is a shortcut past the common case, never a gate in front of the uncommon one.
+A **life drawer** is the third: `face:'life'`, the project's own
+`projectStat()` walk drawn with `.projtile .lifetile` and one CSS rule taking
+the bar's row out. It has no percentage on purpose — an area of your life has
+no end for one to be a fraction of, and a bar at 62% against Health is worse
+than no bar. See decision 131.
+
+**A control is a switch on the board, and the table is the feature.** `CONTROLS`
+in mutations.js says, for each of the desk's own settings, how it is **read**
+and how it is **flipped**; `ctlOf(o)` names which one this object is for.
+Nothing outside that table knows which settings are switchable — a new one is a
+row there and the tile, the press and the object editor all come along. A
+**switch** is on or off and is drawn as a lever, never printed: the state has to
+be readable across the desk. A **dial** walks a list and prints where it is.
+Neither pushes an undo move, for decision 65's reason — `S.look` has no id for a
+step to point at, and flipping it back is the same press. A control is
+furniture, not chrome: it moves, resizes, takes a colour and wears an aesthetic.
+See decision 132.
+
+**Anything drawn as a bar asks `barPct()`, never `goalPct()`.** `goalPct` is an
+object's own milestones; `barPct` is what a bar is actually drawn at, and a
+Progress bar may name a `tracks` — a container reports how much of everything
+under it is ticked, a streak reports its run against `target` days, and with
+nothing tracked (or a tracked object since deleted) it falls back to its own
+milestones. The fallback matters as much as the feature: what happened somewhere
+else is not the bar's fault. `sh-bar` is its shape — on a goal the bar is one
+detail of a card, here the bar *is* the tile. See decision 133.
+
+**`random` is not a kind, and it must never reach `K()`.** A Spawner (was
+Generator) may be set to make one of anything. `K('random')` answers `note`, so
+a spawner set to anything would draw as a note factory and press out notes —
+ask `makesAnything(o)` and `genSaid(o)`, and resolve it **once** in `dispense()`
+with `someKind()`, which picks from the majors with containers, controls and
+decorations taken out. Every "Add a …" placeholder in the app goes through
+`genSaid()` for the same reason.
+
+**A tile made of its own colour has to say so three classes deep.**
+`.drawer.gentile{background:var(--c)}` is two classes; `.drawer.otile{background:
+var(--paper-2)}` in chrome.css is also two and *later in the cascade*, so from
+the day an object became paper (decision 99) the spawner rendered as a blank
+sheet with white writing on it — silently, for versions. Write
+`.drawer.otile.<tile>` and set `background-color`, never the shorthand: a stock
+sets `background-image` and the shorthand would fight it for the grain and lose.
+
 **A tag is a magic drawer waiting to happen.** There is no filter mode and no
 filter bar; clicking a tag anywhere calls `drawerForTag()`, which finds the
 magic drawer collecting that tag or makes one. If you are tempted to add a

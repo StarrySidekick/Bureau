@@ -935,6 +935,17 @@ html .drawer.dtile.cltile{background-image:none}
 /* the box sits at the foot of a project, not under the last thing in the list
    — a project's front is a page, and the way in belongs at the bottom of it */
 .projtile .cladd{margin-top:auto}
+/* ---- a life area's front ------------------------------------------------
+   The project's front with the bar taken off, because an area of your life has
+   no end for a percentage to be a percentage *of*. It borrows every other rule
+   above by carrying `.projtile` as well; this block is the difference, which is
+   the whole of it. What the row buys back is given to what is inside — the
+   thing you actually ask a life drawer is "what is going on in here".
+   See decision 131. */
+.lifetile .projbar{display:none}
+.lifetile .projline{margin-top:6px}
+.lifetile .projsoon{margin-top:6px}
+
 /* what a tile gives up as it shrinks — the bar and the name survive longest */
 .sz-narrow .projsoon,.sz-short .projsoon{display:none}
 .sz-narrow .projkinds,.sz-short .projkinds{display:none}

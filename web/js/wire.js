@@ -16,12 +16,30 @@ import { openObj, openWriter, openRead, openViewer, closeSheet, renderSheet, wor
 import { openPanel, closePanel, refreshPanel, panelKey, panelBack, draft, modalNewObject, modalNewKind, modalMove, renderPreview, holdPanel,
   objectPanel,
   drawerFromSelection, openCtx, closeCtx, openCmd, closeCmd, cmdList, cmdMove, cmdAt, runCmd,
-  schedulePanel, quickISO, SCHED, SCHED_PENS, plansPanel } from './panels.js';
+  schedulePanel, quickISO, SCHED, SCHED_PENS, plansPanel, tagFirstPanel } from './panels.js';
 import { onDown, onMove, onUp, onCancel, onTouchStart, onTouchMove, onTouchEnd,
   gestureFlags, dragArmed } from './gestures.js';
 import { enter, leaveTile, pagerOn, applyTilt, askTilt } from './motion.js';
 import { planFrom, stampPlan, planById, delPlan, planSize, renamePlan } from './plans.js';
 import { save, writeNow, exportBackup, importBackup, importFile, imgFor, pasteObjects, install , assetDel } from './persist.js';
+
+/* A sorting drawer, made with its rule already in it. Both ways into
+   tagFirstPanel() land here — a tag that exists and a tag you typed — so the
+   naming, the placing and the reveal cannot drift apart. A blank tag is the
+   *No rule yet* way out: the drawer is still made, in the cell you pressed,
+   and its editor is opened on the rule builder rather than nothing happening.
+   See decision 131. */
+function makeSorting(kind, tag){
+  tag = (tag||'').trim().replace(/^#/,'');
+  const at = pending.cell;
+  closePanel();
+  pending.cell = at;
+  const o = create(kind||'magic', at?{parent:at.parent}:undefined);
+  if(tag){ o.filter = Object.assign({}, o.filter, {tag}); o.title = '#'+tag; }
+  placeAtPending(o);
+  save(); render(); reveal(o.id);
+  if(tag) toast(`Sorting for #${tag}`); else objectPanel(o.id, 'collect');
+}
 
 /* Mark one chip in a group as the chosen one. The selector is deliberately
    class-agnostic — the chips in these groups have changed class twice. */
@@ -153,6 +171,8 @@ function setField(el){
       break;
     case 'knobtone': t.knobtone=v; t.knobc=null; break;
     case 'dur': t.dur = v===''?null:+v; break;
+    // how many days in a row a tracked streak is drawn as full — see decision 133
+    case 'target': t.target = v==='' ? null : Math.max(1, parseInt(v,10)||30); break;
     // normal is the absence of an answer, not the number 1 stored on every
     // object that was ever looked at in the editor
     case 'tsize': t.tsize = (v==='' || +v===1) ? null : +v; break;
@@ -187,6 +207,8 @@ function setField(el){
 function act(name, el){
   switch(name){
     case 'new': modalNewObject(); break;
+    // the free-text half of the sorting drawer's question
+    case 'newtagmake': makeSorting(el.dataset.id, ($('#newtagin')||{}).value||''); break;
     // a drawer is made the way everything else is, and then talked to
     case 'newdrawer': { const d=create('drawer',{title:'New drawer',
       parent:(S.view==='drawer'&&S.drawerId)||ROOT}); save(); render(); reveal(d.id); objectPanel(d.id); break; }
@@ -913,6 +935,12 @@ function wire(){
       byId(oid).parent=did; closePanel(); save(); render(); renderSheet();
       toast('Filed in '+(did===ROOT?'The Desk':byId(did).title)); return; }
 
+    /* The tag a sorting drawer was asked for, on the way in. `''` is *No rule
+       yet*, which makes the drawer and opens its editor rather than refusing —
+       the question is a shortcut, not a gate. */
+    const nt=t.closest('[data-newtag]');
+    if(nt){ makeSorting(...nt.dataset.newtag.split(/:(.*)/)); return; }
+
     // the dial in a type tile's corner edits the type rather than making one
     const nk=t.closest('[data-new]');
     if(nk && !t.closest('[data-act]')){
@@ -921,6 +949,12 @@ function wire(){
       pending.cell=at;
       const kind=nk.dataset.new;
       if(K(kind).picksFile){ pending.cell=at; $('#imgpicker').click(); return; }
+      /* A type may ask one question before it exists. A sorting drawer with
+         no rule is an empty front that reads as broken, so it is asked what it
+         sorts for while the cell it is going into is still remembered — which
+         is why `pending.cell` is restored above and left alone here.
+         See decision 131. */
+      if(K(kind).asksTag){ tagFirstPanel(kind); return; }
       const o=create(kind, at?{parent:at.parent}:undefined);
       placeAtPending(o);
       save(); render();
@@ -1387,6 +1421,11 @@ function wire(){
        are in, ⌘B and ⌘I wrap what you selected. sheet.js answers or it doesn't,
        and when it does the browser is kept out of it. See decision 68. */
     if(e.target.dataset.w==='body' && mdKey(e, e.target)){ e.preventDefault(); return; }
+    if(e.target.id==='newtagin' && e.key==='Enter'){
+      e.preventDefault();
+      makeSorting(e.target.dataset.kind||'magic', e.target.value);
+      return;
+    }
     if(e.target.dataset.fieldfor && e.key==='Enter'){
       const src=byId(e.target.dataset.fieldfor), text=e.target.value.trim();
       if(!text) return;

@@ -6,18 +6,19 @@ import { plans, planFrom, stampPlan, planById, planSize, delPlan } from './plans
 import { refreshKinds } from './model.js';
 import { S, KINDS, SHAPES, SORTS, childrenOf, container, relate, deskOf, has, lateOn, isLate, knobOf,
   urgencyOf, urgeSaid, workday,
-  isContainer, faceOf,
+  isContainer, faceOf, PRIMARY, isPrimary, barPct,
   prioOf, repeatOf, repeatSaid, nextRepeat, boardLocked, BINDINGS, bindingOf, PANELS, panelOf,
   isHeld, heldObjects, tiltMode } from './model.js';
 import { pageRows, freeSpot, boxOk } from './grid.js';
 import { create, setPin, togglePin, del, delMany, delDrawer, undo, redo, toggleDone, spawnNext, setGridSize,
+  CONTROLS, ctlSaid, ctlIsOn, ctlPress,
   holdIt, unholdIt } from './mutations.js';
 import { applyLook, applyStyle, STYLES, panelSlots, borderSlots, knobSlots, textureSlots,
   bindingSlots, stockSlots, famSlots, famAll, dress, styleKey, stockNow, randomLook,
   palNow, CHECKS } from './look.js';
 import { render, sizeGrid, viewHTML, reveal, settingsPanel, pageAt, pageCount, pageTop, goPage } from './views.js';
 import { overlayHTML, objectPanel, modalNewObject, holdPanel, schedulePanel, closePanel,
-  sampleObject, sampleTile, openCtx } from './panels.js';
+  sampleObject, sampleTile, openCtx, tagFirstPanel } from './panels.js';
 import { wire } from './wire.js';
 import { openingFor, stepDrawer, spray, sprayAt, sprayCount, sprayNow, sprayMark, SPRAYS,
   applyTilt, tiltTo, tiltRecentre } from './motion.js';
@@ -141,6 +142,17 @@ window.BUREAU = {
   closeSheet,
   // the type picker, so a test can open the thing rather than the gesture
   pick: modalNewObject,
+  /* The major categories the picker leads with, and the tag question a sorting
+     drawer asks on the way in — decisions 130 and 131. Exposed so a test asks
+     the app which types are majors rather than keeping a second copy of the
+     list that goes stale the moment one is added. */
+  get PRIMARY(){ return PRIMARY; }, isPrimary, tagFirst: tagFirstPanel,
+  /* The switch table behind a control, and what one is showing — decision 132.
+     A control's state is the desk's, not the object's, so there is nothing on
+     the object for a test to read. */
+  get CONTROLS(){ return CONTROLS; }, ctlSaid, ctlIsOn, ctlPress,
+  // what a bar is actually drawn at, which may be about another object entirely
+  barPct,
   // …and the drawer along the bottom, which is the other thing that pull
   // opens — see decision 107
   holding: holdPanel, held: heldObjects, isHeld, hold: holdIt, unhold: unholdIt,

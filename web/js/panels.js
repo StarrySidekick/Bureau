@@ -6,7 +6,8 @@ import { S, K, KINDS, KEYS, T, ATTRS, USER_ATTRS, FIELDS, fieldOf, OPS, ROLLS,
   faceOf, layoutOf, shapeOf, readOf, byId, container, cfgOf, deskTitle,
   rootObj, containers, isContainer, isAncestor, childrenOf, has, kindHas,
   attrsOf, allTags, placeOf, deskList, deskOf, isDesk, spanOf, heldObjects,
-  dev, takesTyping, genKindOf, answered, isLate,
+  dev, takesTyping, genKindOf, genSaid, ANY, ctlOf, barOf,
+  PRIMARY, isPrimary, answered, isLate,
   PRIOS, prioOf, prioName, DIFFS, diffOf, diffName, REPEAT_UNITS, repeatOf, repeats, repeatSaid,
   relatedTo, backlinksTo, streak, goalPct,
   CALVIEWS, calViewOf, weekStartOf, showsWeekends, KNOBSIZES, knobSizeOf,
@@ -17,7 +18,7 @@ import { GRID, lay, boxOk, freeSpot, sizeOfKind, toPhoneSize, keepSize } from '.
 import { randomBoard, randomFront, hexOf, objColour, objSlots, famSlots, famAll, FAMS, styleKey, stockNow } from './look.js';
 import { CLICKS, clickOf, gridTile, pending } from './tiles.js';
 import { DECOR, decorOf, decorSVG, decorFor, decorRest } from './decor.js';
-import { quickAdd, toast, drawerForTag } from './mutations.js';
+import { quickAdd, toast, drawerForTag, CONTROLS, CTL_KEYS, ctlSpec } from './mutations.js';
 import { openObj, renderSheet } from './sheet.js';
 import { render, settingsPanel, gridSizeField } from './views.js';
 import { openingFor } from './motion.js';
@@ -177,12 +178,17 @@ function openMenu(anchor, html){
 }
 
 /* Every type falls in exactly one group. `scene` used to be listed under both
-   Writing and Film, because the two filters were written independently. */
-function pickGroups(){
+   Writing and Film, because the two filters were written independently.
+
+   `skipPrimary` is what the picker passes: the majors are already drawn above
+   in their own order, and a type drawn twice on one screen is a type you have
+   to decide about twice. The *type* pickers — the one in the object editor,
+   the one in a magic drawer's rule — pass nothing and still see everything,
+   because narrowing what a type can be is not what decision 130 is about. */
+function pickGroups(skipPrimary){
   const g={Containers:[], Objects:[], Writing:[], Cooking:[], Film:[], Yours:[]};
   KEYS.forEach(k=>{
-    // 'control' isn't offered — Bureau's own buttons are seeded, not made
-    if(k==='control') return;
+    if(skipPrimary && isPrimary(k) && !S.kinds[k]) return;
     const d=KINDS[k];
     if(S.kinds[k])                    g.Yours.push(k);
     else if(d.narrative)              g.Writing.push(k);
@@ -221,14 +227,17 @@ function kindTile(k){
    a frequency that goes stale and needs migrating. A container that says what
    it makes goes first whatever the count — you opened the picker *inside* it,
    which is a stronger signal than anything the tally knows. See decision 67. */
-const HANDFUL = 5;
-function oftenUsed(homeId){
-  const n={};
-  S.objects.forEach(o=>{ if(KINDS[o.kind] && o.kind!=='control') n[o.kind]=(n[o.kind]||0)+1; });
+/* The majors, in their stated order, with one exception: a container that
+   says what it makes puts that first whatever the order says — you opened the
+   picker *inside* it, which is a stronger signal than any list. A type it
+   names that is not a major is promoted into the row rather than left behind
+   the disclosure, because "add to this shot list" must never be the one thing
+   the picker hides. See decision 130. */
+function majors(homeId){
   const home = homeId && byId(homeId);
   const first = home && isContainer(home) && takesTyping(home) ? genKindOf(home) : null;
-  const rest = Object.keys(n).filter(k=>k!==first).sort((a,b)=>n[b]-n[a]);
-  return [first, ...rest].filter(Boolean).slice(0, HANDFUL);
+  const rest = PRIMARY.filter(k => KINDS[k] && k!==first);
+  return [(first && KINDS[first]) ? first : null, ...rest].filter(Boolean);
 }
 /* ---- a plan, drawn as the board it will lay out -----------------------
    The same miniature the desk map draws, off the plan's own stored boxes
@@ -292,26 +301,53 @@ function modalNewObject(){
      cell a hold sketched knows its container; failing that it is the board you
      are looking at. */
   const home = (pending.cell && pending.cell.parent) || (S.view==='drawer' && S.drawerId) || ROOT;
-  const often = oftenUsed(home);
+  const lead = majors(home);
   const c = byId(home);
-  const made = c && isContainer(c) && takesTyping(c) ? K(genKindOf(c)).nm.toLowerCase() : null;
+  const made = c && isContainer(c) && takesTyping(c) ? genSaid(c) : null;
+  const rest = pickGroups(true);
   openPanel({
     key:'newobject', wide:true, title:'New object',
     sub:'Every type is drawn as the thing it makes',
     act:`<button class="pill" data-act="newkind">${ic('sparkle',13)} New type</button>`,
-    body:()=> (plansHere() ? plansHere() : '') + (often.length ? `
-      <div class="section-h"><h2>Often</h2><div class="rule"></div><span class="n">${
-        made ? 'this drawer makes a '+esc(made) : 'what this desk is made of'}</span></div>
-      <div class="kindgrid">${often.map(kindTile).join('')}</div>
-      <details class="pgroup allkinds"><summary>Every type</summary>${
-        pickGroups().map(g=>`
+    body:()=> (plansHere() ? plansHere() : '') + `
+      <div class="section-h"><h2>${made?'In here':'Put down'}</h2><div class="rule"></div><span class="n">${
+        made ? 'this drawer makes a '+esc(made) : 'the things a desk is made of'}</span></div>
+      <div class="kindgrid">${lead.map(kindTile).join('')}</div>${
+      rest.length ? `<details class="pgroup allkinds"><summary>Every other type</summary>${
+        rest.map(g=>`
           <div class="section-h"><h2>${g.nm}</h2><div class="rule"></div>${g.note?`<span class="n">${g.note}</span>`:''}</div>
-          <div class="kindgrid">${g.ks.map(kindTile).join('')}</div>`).join('')}</details>`
-    : pickGroups().map(g=>`
-      <div class="section-h"><h2>${g.nm}</h2><div class="rule"></div>${g.note?`<span class="n">${g.note}</span>`:''}</div>
-      <div class="kindgrid">${g.ks.map(kindTile).join('')}</div>`).join(''))
+          <div class="kindgrid">${g.ks.map(kindTile).join('')}</div>`).join('')}</details>` : ''}`
   });
 }
+/* ---- a sorting drawer is asked what it sorts, before it exists ----------
+   A sorting drawer with no rule collects nothing, so it lands on the board as
+   an empty front that looks broken, and the rule builder is two doors inside
+   the object editor. What you actually want one for, nearly every time, is a
+   tag — so placing one asks which, out of the tags the desk already has, and
+   makes the drawer with the rule already in it and the tag as its name.
+
+   Anything more than a tag is still the rule builder's job, and *No rule yet*
+   is the way through to it — this is a shortcut past the common case, not a
+   gate in front of the uncommon one. See decision 131. */
+function tagFirstPanel(kind){
+  const k=K(kind);
+  openPanel({
+    key:'newtag', title:k.nm, sub:'What should it sort for?',
+    body:()=>{
+      const tags=allTags();
+      return `<div class="section-h"><h2>A tag</h2><div class="rule"></div><span class="n">${
+          tags.length? 'everything carrying it, wherever it lives' : 'nothing on this desk is tagged yet'}</span></div>
+        <div class="tagrow">${tags.map(([t,n])=>
+          `<button class="realtag" data-newtag="${esc(kind)}:${esc(t)}">${esc(t)}<u>${n}</u></button>`).join('')
+          || '<span class="clempty">Tag something and it will be offered here</span>'}</div>
+        <div class="field"><label>Or a tag it does not have yet</label>
+          <div class="rangerow"><input id="newtagin" data-kind="${esc(kind)}" placeholder="a tag of your own"
+            ><button class="pill" data-act="newtagmake" data-id="${esc(kind)}">Make it</button></div></div>
+        <button class="subtle-btn" data-newtag="${esc(kind)}:">${ic('sliders',12)} No rule yet — I will set it up inside</button>`;
+    }
+  });
+}
+
 /* ============================================================
    16b · the holding space
    ============================================================
@@ -581,7 +617,7 @@ function objectPanelBody(id, sec){
   const cal = cont && (view==='calendar' || faceOf(d)==='calendar');
   const img = isPicture(d);
   const spawns = has(d,'spawn') || clickOf(d)==='generate';
-  const objectKinds = KEYS.filter(k=>!kindHas(k,'container') && k!=='control')
+  const objectKinds = KEYS.filter(k=>!kindHas(k,'container') && !kindHas(k,'control'))
     .map(k=>[k, KINDS[k].nm]);
 
   const out=[];
@@ -787,8 +823,35 @@ function objectPanelBody(id, sec){
       'even shown, it goes by itself at two cells tall'));
   }
   if(!isRoot && !cont && spawns){
-    out.push(prow('It makes', psel(id,'genKind', objectKinds, genKindOf(d))
+    /* `random` leads the list rather than sitting in it alphabetically: a
+       spawner that makes one of anything is a different thing from a spawner
+       that makes scenes, and it is the one you reach for on an empty desk. */
+    out.push(prow('It makes', psel(id,'genKind', [[ANY,'One of anything'], ...objectKinds], genKindOf(d))
       + psel(id,'genDir',[['down','Down'],['up','Up'],['left','Left'],['right','Right'],['random','Anywhere']], d.genDir||'down')));
+  }
+  /* Which of the desk's own settings this switch is for. The list is the
+     CONTROLS table and nothing else knows it, so adding a switchable setting
+     is one row there. See decision 132. */
+  if(!isRoot && has(d,'control')){
+    out.push(prow('It switches', psel(id,'ctl',
+      CTL_KEYS.map(k=>[k, CONTROLS[k].nm]), ctlOf(d)),
+      esc(ctlSpec(d).ds||'')));
+  }
+  /* A progress bar may be a readout of something else. Anything with
+     milestones may name a `tracks`, because that is the trait the bar is drawn
+     off — not the Progress bar type, which is only the one born wanting it.
+     See decision 133. */
+  if(!isRoot && has(d,'progress')){
+    const others = S.objects.filter(x=>x.id!==id &&
+      (isContainer(x) || has(x,'progress') || has(x,'streak')))
+      .map(x=>[x.id, (x.title||'Untitled')+' · '+K(x.kind).nm]);
+    out.push(prow('The bar reads', psel(id,'tracks',
+      [['','Its own milestones'], ...others], d.tracks||''),
+      barOf(d) && has(barOf(d),'streak')
+        ? 'a streak, against the target below'
+        : 'a drawer reports how much of it is ticked'));
+    if(barOf(d) && has(barOf(d),'streak'))
+      out.push(prow('Full at', pfield(id,'target', d.target||'', 'number', '30'), 'days in a row'));
   }
 
   }
@@ -1689,6 +1752,6 @@ const closeCtx = ()=> $('#ctx').classList.remove('open');
 export { plansPanel, planCard,
   overlayHTML, openPanel, closePanel, refreshPanel, repositionPanel, panelKey, panelBack, draft,
   openMenu, modalNewObject, holdPanel, objectPanel, drawerPanel, modalNewKind,
-  renderPreview, modalMove, sampleObject, sampleTile, kindSample,
+  renderPreview, modalMove, tagFirstPanel, sampleObject, sampleTile, kindSample,
   openCmd, closeCmd, cmdList, cmdMove, cmdAt, runCmd, drawerFromSelection, openCtx, closeCtx,
   schedulePanel, quickISO, SCHED, SCHED_PENS };

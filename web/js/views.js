@@ -2,7 +2,7 @@ import { $, esc, ic, D, md, clamp, ROOT } from './util.js';
 import { S, K, T, byId, has, isContainer, containers, container, childrenOf, chainOf,
   deskTitle, rootObj, cfgOf, deskIds, deskHere, deskOf, isDesk, allTags, dev,
   beginPass, endPass,
-  layoutOf, takesTyping, genKindOf, CALVIEWS, calViewOf, calCols,
+  layoutOf, takesTyping, genSaid, CALVIEWS, calViewOf, calCols,
   spanOf, coversDay, lastDay, boardLocked,
   TILT_MODES, tiltMode, tiltsDesk, tiltsWindows, tiltClasses, cueFlipped,
   URGES, workday } from './model.js';
@@ -334,7 +334,7 @@ function viewDrawer(){
     ${has(d,'text')&&(d.body||'').trim()
       ? `<div class="contbody">${md(d.body)}</div>` : ''}
     ${takesTyping(d)&&view!=='calendar' ? `<div class="quickadd">${ic('plus',14)}
-      <input data-contadd="${d.id}" placeholder="Add a ${esc(K(genKindOf(d)).nm.toLowerCase())}…">
+      <input data-contadd="${d.id}" placeholder="Add a ${esc(genSaid(d))}…">
       <span class="k">return</span></div>` : ''}
     ${view==='grid'
       ? gridOfContainer(d.id)

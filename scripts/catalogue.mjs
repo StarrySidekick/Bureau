@@ -45,7 +45,10 @@ const FAMILIES = [
 ];
 
 const page = await (async () => {
-  const b = await chromium.launch();
+  // same escape hatch the smoke test has: somewhere with a Chromium playwright
+  // didn't download itself, BUREAU_CHROME=/path/to/chrome node scripts/catalogue.mjs
+  const b = await chromium.launch(process.env.BUREAU_CHROME
+    ? { executablePath: process.env.BUREAU_CHROME } : {});
   const p = await b.newPage({ viewport:{ width:1400, height:900 } });
   p.on('pageerror', e => { console.error('PAGE ERROR:', e.message); process.exitCode = 1; });
   await p.goto(URL, { waitUntil:'networkidle' });

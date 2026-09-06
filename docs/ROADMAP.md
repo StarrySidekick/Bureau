@@ -5,6 +5,87 @@ Sequenced by dependency, not appetite: item 1 makes everything after it safer.
 
 ---
 
+## 0r. Queued 2026-09-06 (seventeenth pass) — the categories — DONE (v1.51)
+
+Timothy: "I want to focus on the major categories of types of thing in Bureau,
+because when you create an object, I want you to have a more simple sort of
+selection of things to choose from that then sort of branch out into more
+specific objects."
+
+**Twenty majors, the rest one press further in** (decision 130). `PRIMARY` in
+model.js is stated, not counted off the desk: the four drawers, then the things
+made of words, then the things you do, then the furniture. Everything else is
+behind *Every other type* and is still reachable by name, by shortcut, from the
+type builder and from every other type picker in the app. No type is drawn
+twice on one screen. A container that says what it makes still leads with it.
+
+**Three types the list was missing:** **Book** (anything made of words — a
+story, a novel, a notebook, a list you read), **Thought** (a chit, no template,
+because the whole value of one is that writing it down costs nothing) and
+**Problem** (a question about something in the way, resolved by writing rather
+than ticking).
+
+**Three kinds of drawer** (decision 131). *Sorting drawer* is what a magic
+drawer was, and it now asks which tag **before it exists** rather than landing
+empty with the rule builder two doors away. *Project* is unchanged. *Life
+drawer* is the new one: the project's report with the bar taken off, because an
+area of your life has no end for a percentage to be a fraction of.
+
+**A control is a switch on the board** (decision 132). `CONTROLS` in
+mutations.js is the table — eight settings, each saying how it is read and how
+it is flipped. A switch is a lever; a dial walks a list and prints where it is.
+It also turned up a tile that had been rendering wrong since decision 99: the
+spawner's `background:var(--c)` lost to `.drawer.otile`'s paper, in the
+cascade, silently.
+
+**A readout, and a machine that makes anything** (decision 133). A *Progress
+bar* may name a `tracks` and read another object's progress — a project's ticks,
+a habit's streak against a target — with its own milestones as the fallback;
+`barPct()` is the one reader and everything drawn as a bar asks it. The
+*Spawner* (was Generator) may be set to make one of **anything**, which needed
+three readers to keep `random` out of `K()`.
+
+### Timothy's life map, and what Bureau could do with it
+
+The mind map he wrote out is five branches — Social, Personal, Creations,
+Learning, Enrichment — and it maps onto what already exists more cleanly than
+it looks:
+
+- **The five branches are desks**, not drawers. A desk is somewhere you *are*
+  (decision 39) and the row is walked with two fingers, so "which part of my
+  life am I in" becomes a swipe rather than a navigation. Five desks plus home.
+- **The leaves are life drawers.** Diet, Money, Home, Mind; Alyssa, Family,
+  Friends; Architecture, Music theory, History. Each is an area rather than a
+  piece of work, which is exactly what the new type is for.
+- **The named projects are projects.** Bureau, Composer's Key, ArtPG,
+  Activinator, Proximi, EveryPark, Maestro — each finishes, each has a bar.
+  Games, Films, Songs, Essays, Poems, Short stories are life drawers *holding*
+  projects, because the practice is ongoing and each piece is not.
+- **Mind's four rows are the one part with no home yet.** Past/Present/Future,
+  beliefs, the six feelings, and Focus/Sleep/Energy/Stress are all *readings*
+  rather than things — the shape they want is a counter or a rating taken
+  daily, and what would make them worth taking is a **progress bar tracking a
+  habit**, which now exists. A "Sleep" habit with a Progress bar beside it
+  reading its streak is the whole of it, today, with no new machinery.
+- **Enrichment is a shelf, not a list.** TV/Film, Music, Art, Travel, Books,
+  Food are things consumed and remembered — Books is literally a shelf of
+  spines, and a Moodboard or a drawer of Quotes is right for the rest.
+
+Two things this pass deliberately did **not** build, both of which the map
+argues for and both of which want their own session:
+
+1. **A starter plan.** Plans already capture a whole arrangement (decision
+   121), so the map could ship as one plan per branch, stamped onto a new desk.
+   The reason to wait is that a plan is user data and a *built-in* plan is a
+   new category of thing in `S.plans`.
+2. **A life drawer that is an object you can touch.** A hammer for the house, a
+   pile of coins for money, a heart for the people. The shape of a container
+   has been a slot since decision 93, so this is a set of `sh-*` answers and a
+   picker row, not new machinery — but it is a drawing job before it is a code
+   job.
+
+---
+
 ## 0q. Queued 2026-09-06 (sixteenth pass) — the drawer, and four reports — DONE (v1.50)
 
 **The holding drawer got its third act** (decision 128). Filing recorded an
@@ -44,6 +125,7 @@ rewritten rather than deleted.
   on the month, 5 · lozenge round Urgency.
 - **Tabled:** the three desk textures / drawer treatments.
 - **Next up, by Timothy:** magic drawers, notes, and the type system.
+  *(The type system and magic drawers are done — pass 0r above.)*
 
 ---
 

@@ -58,6 +58,14 @@ const ATTRS = {
      is also the one thing allowed to overlap, and the one nothing has to make
      room for. See decision 86. */
   decor:    {nm:'Decoration', ds:'Stands above the board rather than in it — it may overlap anything, and nothing makes room for it'},
+  /* The one thing on the board that is about the *desk* rather than about
+     anything on it. A control is a switch for one of the desk's own settings —
+     the lock, the shadows, the aesthetic — sitting on the grid like a light
+     switch on a wall rather than three doors deep in Settings. It was an
+     attribute once, was stripped out by migration 14 because nothing drew it,
+     and comes back here with a table behind it (`CONTROLS` in mutations.js).
+     See decision 132. */
+  control:  {nm:'Control',    ds:'A switch on the board for one of the desk\'s own settings'},
   movable:  {nm:'Movable when locked',   ds:'Can be picked up on a locked board — wears a pin'},
   resizable:{nm:'Resizable when locked', ds:'Corners still work on a locked board — wears a bracket'}
 };
@@ -119,7 +127,28 @@ const BUILTIN_KINDS = {
      outright: the derivation halves a container, and half of two is one, which
      is the mini tile that has no room for a name. */
   drawer:  {nm:'Drawer',  ic:'folder',  c:5, key:'D', ds:'A container on the grid',   attrs:['container'], layout:'grid', size:[2,2], phoneSize:[2,2], body:'' },
-  magic:   {nm:'Magic drawer', ic:'sparkle', c:10, key:'Q', ds:'The same drawer, filled by a rule instead of by hand', attrs:['container','magic'], layout:'grid', size:[2,2], phoneSize:[2,2], body:'' },
+  /* The drawer that collects instead of holding. It was called a *magic*
+     drawer, which named the mechanism rather than the job — what you actually
+     reach for it to do is sort the desk by a tag, so it is a **sorting
+     drawer** in the interface and `magic` in the code, exactly as a container
+     is a "drawer" in the interface and `container` in the code. The stored
+     kind key does not change, so nothing needs migrating.
+
+     `asksTag` is the other half: a sorting drawer with no rule collects
+     nothing and reads as broken, so placing one asks which tag it is for
+     *before* it exists rather than leaving you to find the rule builder.
+     See decision 131. */
+  magic:   {nm:'Sorting drawer', ic:'sparkle', c:10, key:'Q', ds:'Collects by a rule instead of holding — pick the tag it sorts for', attrs:['container','magic'], layout:'grid', size:[2,2], phoneSize:[2,2], asksTag:true, body:'' },
+  /* The third drawer. A project is a piece of work and it finishes; a **life
+     drawer** is an area of your life and it does not — money, health, the
+     people in it — so it reports what is in it and what is next and draws no
+     percentage, because a bar at 60% against "Family" is a nonsense. Same
+     machinery as a project with the one thing taken off that would lie.
+     See decision 131. */
+  life:    {face:'life', nm:'Life drawer', ic:'target', c:12, key:'L', ds:'A part of your life rather than a piece of work — it is never finished',
+     attrs:['text','container','relates'],
+     seed:[{kind:'field', title:'Add to this…'}],
+     layout:'grid', size:[5,5], phoneSize:[4,4], body:'' },
   /* A checklist wears its contents on the outside, so it also takes dictation:
      `spawn` gives it a box at the top, and `genKind` says a line you type into
      it is a task. Both are ordinary attributes — a type you invent gets the
@@ -130,7 +159,25 @@ const BUILTIN_KINDS = {
      due. It holds nothing — the day is the `due` field on the object, not a
      container — so its default rule is "anything with a date". */
   calendar:{face:'calendar', nm:'Calendar', ic:'calendar', c:7, key:'C', ds:'Whatever it collects, on the day it falls', attrs:['container','magic'], filter:{rule:{f:'date',op:'any'}}, calview:'month', layout:'calendar', size:[4,4], phoneSize:[4,4], body:'' },
-  control: {nm:'Control',  ic:'sliders', c:15, key:'', ds:'A Bureau button on the desk', attrs:['control'], size:[4,4], body:'' },
+  /* **Book** is the category for anything made of words that you would keep
+     rather than read once: a story, a novel, a notebook, a list you read.
+     Story, Novel and Short story are still here behind the dropdown — they are
+     this with a binding and a body template — but a book you just want is a
+     book, and having to decide whether the thing you are starting is a novel
+     is a decision nobody has at that moment. It is a container, so it holds
+     the pieces it is made of, and it opens as a book both ways round:
+     `layout:'book'` pages through what it holds and `read:'book'` pages
+     through its own body. See decision 130. */
+  book:    {face:'spine', binding:'banded', nm:'Book', ic:'book', c:11, key:'B',
+     ds:'Anything made of words — a story, a notebook, a list you read',
+     attrs:['text','container','relates'], layout:'book', read:'book',
+     size:[3,9], phoneSize:[2,6], body:'' },
+  /* A control is a switch for one of the desk's own settings, on the board.
+     `ctl` names which setting; CONTROLS in mutations.js is the table of them
+     and the only thing that knows how each is read and flipped. Pressing it is
+     a click action like any other (`toggle`), not a branch on a kind's name.
+     See decision 132. */
+  control: {shape:'switch', nm:'Control',  ic:'sliders', c:15, key:'-', ds:'A switch on the board for one of the desk\'s own settings', attrs:['control'], ctl:'lock', onclick:'toggle', size:[4,2], phoneSize:[4,2], body:'' },
   /* A task opens onto **When** — the dates, the estimate, the ranks, the
      repeat and the tags. It was `none` for a long time and that was right when
      tapping meant the object editor, which is a page of look and structure a
@@ -145,7 +192,24 @@ const BUILTIN_KINDS = {
   task:    {shape:'sliver', nm:'Task',    ic:'check',   c:6, key:'T', ds:'A thing to do',             attrs:['text','check','date'], size:[4,1], onclick:'when', gathers:'checklist', body:'' },
   note:    {shape:'note', nm:'Note',    ic:'note',    c:10, key:'O', ds:'Something to remember',     attrs:['text'], size:[4,4], onclick:'read', body:'' },
   idea:    {shape:'idea', nm:'Idea',    ic:'bulb',    c:12, key:'I', ds:'A spark, unformed',         size:[4,4], onclick:'read', attrs:['text'], body:'**The spark —** \n\n**Why it might work —** \n\n**What it needs —** ' },
-  outline: {nm:'Outline', ic:'list',    c:14, key:'L', ds:'Structure before prose',    size:[4,4], onclick:'read', attrs:['text'], body:'## I.\n- \n- \n\n## II.\n- \n- \n\n## III.\n- ' },
+  /* The smallest of the writing types, and deliberately so. An idea is a
+     spark you might build on and has three prompts to fill in; a **thought**
+     is the thing that crossed your mind on the stairs, and the whole value of
+     one is that writing it down costs nothing. So it is a torn chit two cells
+     tall with an empty body and no template to fill in — anything more and you
+     stop bothering, which is the only way this type fails. See decision 130. */
+  thought: {shape:'chit', nm:'Thought',  ic:'bulb',    c:14, key:'+', ds:'Something that crossed your mind, before it goes', size:[4,2], onclick:'read', attrs:['text'], body:'' },
+  /* A question is open until you have *written* the answer; a **problem** is
+     open until you have done something about it. Same `answer` machinery —
+     the box on the front, `answered()` — because both are resolved by writing
+     rather than by ticking, and a problem ticked off with nothing said about
+     it teaches you nothing the next time. It carries `difficulty` and
+     `priority` because how hard a problem is to start, and how much it
+     actually matters, are between them most of what decides whether you ever
+     get to it. See decision 130. */
+  problem: {shape:'index', nm:'Problem', ic:'help',    c:8,  key:'*', ds:'Something in the way — open until you have written what you did about it', size:[5,4], onclick:'read', attrs:['text','answer','difficulty','priority'],
+            body:'**What is wrong —** \n\n**Why it matters —** \n\n**What I have tried —** ' },
+  outline: {nm:'Outline', ic:'list',    c:14, ds:'Structure before prose',    size:[4,4], onclick:'read', attrs:['text'], body:'## I.\n- \n- \n\n## II.\n- \n- \n\n## III.\n- ' },
   // A recipe holds its ingredients rather than listing them in prose, so they
   // can be ticked while you cook and totalled before you shop. The method stays
   // in the body, which a container with `text` shows above what it holds.
@@ -157,7 +221,18 @@ const BUILTIN_KINDS = {
   question:{shape:'bubble', nm:'Question',ic:'help',    c:10, key:'?', ds:'Open until you have written the answer', size:[4,4], onclick:'read', attrs:['text','answer'], body:'**What I know —** \n\n' },
   essay:   {shape:'note', nm:'Essay',   ic:'feather', c:7, key:'Y', ds:'Long-form writing',         size:[4,4], onclick:'read', attrs:['text'], body:'> Working thesis.\n\n' },
   habit:   {shape:'habit', nm:'Habit',   ic:'repeat',  c:8, key:'A', ds:'Repeats, tracks a streak',  size:[4,4], onclick:'read', attrs:['text','streak'], body:'**Why —** ' },
-  goal:    {shape:'goal', nm:'Goal',    ic:'target',  c:13, key:'J', ds:'Long-term, has milestones', size:[4,4], onclick:'read', attrs:['text','progress'], body:'**Definition of done —** ' },
+  goal:    {shape:'goal', nm:'Goal',    ic:'target',  c:13, ds:'Long-term, has milestones', size:[4,4], onclick:'read', attrs:['text','progress'], body:'**Definition of done —** ' },
+  /* A **progress bar** is a goal with the goal taken out of it. A goal is a
+     thing you are trying to reach and its milestones belong to it; a progress
+     bar is a *readout*, and the thing it reads is very often somewhere else —
+     the project two desks over, the habit you have been keeping. `tracks`
+     names that object and `barPct()` reads it: a container reports how much of
+     it is ticked, a habit reports its streak against `target` days, and with
+     nothing tracked it falls back to its own milestones and is a goal again.
+     Two cells tall, because a bar with a name over it is all there is to draw.
+     See decision 133. */
+  progressbar:{shape:'bar', nm:'Progress bar', ic:'bar', c:13, key:'J', ds:'How far along something is — its own milestones, or another object\'s',
+     attrs:['text','progress'], size:[5,2], phoneSize:[5,2], onclick:'read', target:30, body:'' },
   image:   {nm:'Image',   ic:'image',   c:15, key:'G', ds:'A picture on the board',   size:[6,4], onclick:'read', attrs:['media'], body:'' },
   /* A window is an Image that admits there is somewhere on the other side of
      it. Same attribute, same surface, same file — what differs is that the
@@ -172,7 +247,7 @@ const BUILTIN_KINDS = {
   audio:   {film:true, nm:'Audio',   ic:'music',   c:10, key:'U', ds:'Something to listen to',    size:[6,2], onclick:'read', attrs:['text','media','duration'], mediaType:'audio', body:'' },
   video:   {film:true, nm:'Video',   ic:'film',    c:9, key:'&', ds:'Something to watch',        size:[6,4], onclick:'read', attrs:['text','media','duration'], mediaType:'video', body:'' },
   trip:    {shape:'ticket', nm:'Trip',    ic:'flag',    c:9, key:'P', ds:'Somewhere you are going',   size:[8,6], attrs:['container','date','span','location'], layout:'grid', body:'' },
-  moodboard:{face:'moodboard', nm:'Moodboard', ic:'image', c:13, key:'B', ds:'Pictures, pinned together', size:[8,8], attrs:['container'], layout:'moodboard', body:'' },
+  moodboard:{face:'moodboard', nm:'Moodboard', ic:'image', c:13, ds:'Pictures, pinned together', size:[8,8], attrs:['container'], layout:'moodboard', body:'' },
   quote:   {shape:'quote', nm:'Quote',   ic:'book',    c:5, key:'Z', ds:'Someone else\'s words',      size:[6,4], onclick:'read', attrs:['text','link','rating'],
             body:'> \n\n— ' },
   /* A story holds its scenes and reads as a book; a world holds the people,
@@ -217,7 +292,12 @@ const BUILTIN_KINDS = {
   ingredient:{shape:'index', cooking:true, nm:'Ingredient', ic:'pot', c:11, key:'4', ds:'One line of a recipe',   size:[5,1], onclick:'check', attrs:['check','count','price'], gathers:'recipe', body:'' },
   shot:    {shape:'sliver', film:true, nm:'Shot',    ic:'clapper', c:9, key:'5', ds:'One shot, for a shoot',   size:[6,1], onclick:'check', attrs:['text','check','duration','location'], gathers:'shotlist', body:'' },
   shotlist:{face:'checklist', film:true, nm:'Shot list', ic:'clapper', c:9, key:';', ds:'Shots for a shoot, in order', attrs:['container'], layout:'list', size:[7,8], body:'' },
-  generator:{shape:'press', nm:'Generator', ic:'plus', c:13, key:'6', ds:'Press it and it makes one of something', size:[4,4], onclick:'generate', attrs:['spawn'], spawnBy:'click', body:'' },
+  /* Press it and something appears beside it. It was the *Generator*, which
+     named the machinery; it is the **Spawner**, which names what it does. Its
+     one new answer is `genKind:'random'` — a spawner that makes one of
+     *anything*, which is the thing you want on a desk you are trying to fill
+     rather than a desk you are running. See decision 133. */
+  generator:{shape:'press', nm:'Spawner', ic:'plus', c:13, key:'6', ds:'Press it and it makes one of something — or one of anything', size:[4,4], onclick:'generate', attrs:['spawn'], spawnBy:'click', body:'' },
   shopping:{cooking:true, face:'checklist', nm:'Shopping list', ic:'inbox', c:11, key:'7', ds:'Things to buy, with a total', attrs:['container'], layout:'list', size:[6,8], body:'' },
   counter: {nm:'Counter',  ic:'target', c:8, key:'X', ds:'A number, and what it counts', size:[4,4], onclick:'none', attrs:['count'], body:'' },
   link:    {shape:'card', nm:'Button',  ic:'arrow',   c:9, key:'E', ds:'A button that opens something', attrs:['button'], body:'' },
@@ -238,6 +318,23 @@ const BUILTIN_KINDS = {
   timeline:{face:'timeline', nm:'Timeline',ic:'clock',   c:5, key:'0', ds:'Things in the order they happened', attrs:['container'], layout:'timeline', size:[10,6], body:'' },
   appt:    {shape:'sliver', nm:'Event',   ic:'calendar',c:8, key:'V', ds:'Something at a time and place', size:[6,2], onclick:'read', attrs:['text','date','duration','location'], body:'' }
 };
+/* ---- the major categories ----------------------------------------------
+   Forty types is an inventory, not a choice. These are the twenty that answer
+   "what am I putting down" nearly every time, and the picker leads with them;
+   everything else is one disclosure further in and is reachable by name, by
+   shortcut and by the type builder exactly as before. Nothing is hidden and
+   nothing is deleted — this is an ordering, not a hierarchy, and the hierarchy
+   underneath it (attributes, then kinds, then objects) is untouched.
+
+   The order is the order they are drawn in, and it is not alphabetical: the
+   four drawers lead, because what you are usually doing on a bare board is
+   making somewhere to put things. See decision 130. */
+const PRIMARY = ['drawer','magic','project','life',
+                 'book','checklist','calendar','note','thought','idea',
+                 'question','problem','task','progressbar',
+                 'image','trip','recipe','decoration','control','generator'];
+const isPrimary = k => PRIMARY.includes(k);
+
 // Kinds you invent live in state alongside these; both are read through KINDS.
 let KINDS = Object.assign({}, BUILTIN_KINDS);
 let KEYS = Object.keys(KINDS);
@@ -407,7 +504,10 @@ function seed(){
      clear on purpose — a desk you can put something on, and the space every
      test fixture and every hand-made object lands in first. */
   const museum=[]; let mx=1, my=10, rowH=0;
-  KEYS.filter(k=>k!=='control').forEach(k=>{
+  /* Every type there is, control included — it was excluded for as long as it
+     was a dead kind nothing drew (decision 132 brings it back), and a sampler
+     that skips a type is a sampler you cannot check a type against. */
+  KEYS.forEach(k=>{
     const d=KINDS[k], [w,h]=d.size||[4,4];
     if(mx+w-1 > GRID_COLS){ mx=1; my+=rowH; rowH=0; }
     rowH=Math.max(rowH,h);
@@ -718,6 +818,7 @@ const panelOf = o => {
 };
 
 const FACES = {front:'Drawer front', checklist:'Checklist', project:'Project',
+               life:'Life area',
                calendar:'Calendar', moodboard:'Moodboard', timeline:'Timeline',
                spine:'Book spine'};
 const faceOf = o => (o && o.face) || K(o&&o.kind).face || 'front';
@@ -732,6 +833,18 @@ const layoutOf = o => (o && o.layout) || K(o&&o.kind).layout || 'grid';
    the same trait wearing two settings, not two branches. */
 const spawnByOf = o => (o && o.spawnBy) || K(o&&o.kind).spawnBy || 'click';
 const genKindOf = o => (o && o.genKind) || K(o&&o.kind).genKind || 'task';
+/* A spawner may be set to make one of *anything*. `random` is not a kind — it
+   is the absence of one — so it must never be handed to K(), which answers
+   `note` for anything it does not know and would draw the tile as a note
+   factory. Ask makesAnything() before naming what comes out. */
+const ANY = 'random';
+const makesAnything = o => genKindOf(o)===ANY;
+const genSaid = o => makesAnything(o) ? 'anything' : K(genKindOf(o)).nm.toLowerCase();
+
+/* Which of the desk's own settings a control is a switch for — per object,
+   then per type, like every other slot. The table of what each one *is* lives
+   in mutations.js beside the code that flips it. */
+const ctlOf = o => (o && o.ctl) || K(o&&o.kind).ctl || 'lock';
 // A container that takes dictation: a box at the top of it, on its front and
 // inside it, making one of whatever it collects.
 const takesTyping = c => has(c,'spawn') && spawnByOf(c)==='type';
@@ -835,7 +948,8 @@ const SHAPES = {
   page:'Punched page', index:'Index card', spine:'Book spine', portrait:'Portrait',
   ticket:'Ticket', plaque:'Plaque', tally:'Tally', quote:'Quotation',
   verse:'Verse', sliver:'Sliver', press:'Press', band:'Band',
-  tab:'Filing tab', ruled:'Ruled line', chit:'Torn chit', pill:'Pill'
+  tab:'Filing tab', ruled:'Ruled line', chit:'Torn chit', pill:'Pill',
+  switch:'Switch', bar:'Bar'
 };
 const shapeOf = o => (o && o.shape) || K(o&&o.kind).shape || 'card';
 
@@ -1636,6 +1750,27 @@ function streak(o){
   return n;
 }
 const goalPct = o => !o.milestones||!o.milestones.length ? 0 : Math.round(100*o.milestones.filter(m=>m.done).length/o.milestones.length);
+/* What a bar is actually drawn at. `goalPct` is an object's own milestones and
+   nothing else; **anything drawn as a bar asks this instead**, because a
+   progress bar may be a readout of a different object entirely — the project
+   on the other desk, the habit you are keeping. `tracks` names it:
+
+     · a container reports how much of everything under it is ticked
+     · a streak reports its run against `target` days (thirty unless said)
+     · anything else reports its own milestones
+
+   With nothing tracked, or a target that has been deleted, it falls back to
+   its own milestones and is a goal again — so a bar can never be blank because
+   of something that happened somewhere else. See decision 133. */
+function barPct(o){
+  if(!o) return 0;
+  const t = o.tracks ? byId(o.tracks) : null;
+  if(!t) return goalPct(o);
+  if(has(t,'streak')) return clamp(Math.round(100*streak(t)/(o.target||K(o.kind).target||30)),0,100);
+  return progressOf(t);
+}
+// What the bar is about, said in words — the tracked object's name, or nothing.
+const barOf = o => (o && o.tracks) ? byId(o.tracks) : null;
 
 /* Everything under a container, however deep. A project is made of checklists
    as often as of loose tasks, so counting only its direct children would report
@@ -1709,4 +1844,5 @@ export { ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds, K,
   ROLLS, rollup, SORTS, MANUAL, sortOf, childrenOf, beginPass, endPass, isAncestor,
   URGES, WORKDAY, workday, urgencyOf, urgeRank, urgeName, urgeSaid, durSaid,
   relatedTo, backlinksTo, relate, unrelate, chainOf, tlSpan, streak, goalPct,
-  allUnder, progressOf, projectStat, allTags };
+  allUnder, progressOf, projectStat, allTags,
+  PRIMARY, isPrimary, ANY, makesAnything, genSaid, ctlOf, barPct, barOf };
