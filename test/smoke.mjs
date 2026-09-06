@@ -4413,6 +4413,32 @@ const CHROME = process.env.BUREAU_CHROME;
     out.aTypeOpensFittedToIt = BUREAU.kids(born.id).length === 3;
     BUREAU.del(born.id); delete S.kinds.shootday;
 
+    /* ---- the desk is a container that is *not an object* ----------------
+       Everything above went through `planFrom()` on a drawer, and the button
+       on a drawer short-circuits before it ever asks what the board is called.
+       The desk asks, `byId(ROOT)` is undefined, and the handler reached for a
+       desk title it had no way to get — so **Save as a plan threw on the one
+       board you are most likely to be standing on**, silently, while the model
+       underneath it was perfectly fine.
+
+       So this half is driven through the *button*, not the API: the bug was in
+       the wiring, and a test of the model could never have seen it. */
+    document.querySelector('#panel [data-act="panelclose"]')?.click();
+    S.view = 'desk'; S.drawerId = null; BUREAU.render(); await nap(200);
+    const before2 = BUREAU.plans().length;
+    document.querySelector('.gridbar [data-act="drawersettings"]').click(); await nap(320);
+    const deskBtn = document.querySelector('#panel [data-act="saveplan"]');
+    out.theDeskOffersItToo = !!deskBtn;
+    deskBtn.click(); await nap(340);
+    out.andSavingTheDeskWorks = BUREAU.plans().length === before2 + 1;
+    const deskPlan = BUREAU.plans()[BUREAU.plans().length - 1];
+    // named after the board rather than "Untitled", which is what the throw
+    // was in aid of — the container's own title is the one place that knows
+    out.andItIsNamedAfterTheDesk = !!deskPlan && !!deskPlan.nm && deskPlan.nm !== 'Untitled';
+    out.andItHoldsTheDesk = BUREAU.planSize(deskPlan) > 0;
+    BUREAU.delPlan(deskPlan.id);
+    document.querySelector('#panel [data-act="panelclose"]')?.click(); await nap(150);
+
     // and deleting one takes the type's pointer at it with it, which is the
     // quiet kind of broken otherwise: an empty container made for ever
     S.kinds.ghost = {nm:'Ghost', attrs:['container'], plan:p.id, size:[2,2], body:''};

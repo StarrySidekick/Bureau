@@ -5657,3 +5657,48 @@ them is coming back in another suit. The next attempt at Victorian character
 starts from **ornament** rather than from surface: a specimen plate of six
 printer's flowers, each proposed with a job and three proposed against, is at
 the head of the next pass.
+
+## 127. The desk is a container that is not an object
+
+"Save as a plan" worked from inside a drawer and threw on the desk. It had
+shipped that way, past a test block of twenty assertions with the word `plans`
+in its name, because every one of those assertions asked the **model** a
+question and the bug was in the **wiring** — one line of `wire.js` naming a
+function that file never imported:
+
+```js
+const c = byId(cid);
+const nm = (c && c.title) || (cid===ROOT ? deskTitle() : 'Untitled');
+```
+
+From a drawer, `c.title` answers and the ternary is never evaluated, so the
+undefined name is never reached. From the desk, `byId(ROOT)` is `undefined` —
+ROOT is a **reserved id**, the way HOLD is (decision 107), and there is no
+object in `S.objects` answering to it — so the ternary runs, `deskTitle` is not
+defined in that scope, and the handler throws before `planFrom()` is called.
+Silently: `act()` is inside a delegated listener, so the exception goes to the
+console and the button simply does nothing. No toast, no plan, no complaint.
+
+Three things fall out of it.
+
+**Ask `container()`, never `byId()`, when the id might be a board.**
+`container(id)` returns `rootObj()` for ROOT and the object otherwise, which is
+the whole reason it exists — the desk is a container *without a tile*, not a
+special case (decision 51), and every reader that goes through `container()`
+gets the desk for free. The fix is a deletion: the name computation goes
+entirely, because `planFrom()` already falls back to the container's own title
+and the container's own title is the one place that knows. Two answers to one
+question, and the second one was wrong.
+
+**The other thirteen sites are safe, and it is worth knowing why.** Every other
+`byId(S.openId)` in `wire.js` is followed by `if(!o) return` — they fail *shut*
+on the desk rather than falling through to a second branch. This one reached
+past the guard because the guard was an `||`, which is not a guard.
+
+**And a test that only calls the API cannot see a broken button.** `plansWork`
+called `planFrom()` and `stampPlan()` directly and asserted correctly about
+both. The coverage that would have caught this presses the thing a finger
+presses: open the desk's own editor from the grid bar, click the button that is
+actually rendered, and count the plans either side. That is decision 122 again,
+from the other side — implemented is not reachable, and *tested* is not
+reachable either.

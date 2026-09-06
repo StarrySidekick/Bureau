@@ -1829,6 +1829,15 @@ when you're editing the *other* device's layout from this one.
   `locked` to opt out. A 200ms hold arms the drag (`G.armed`), which is the only
   thing keeping a click from picking a tile up. Corners resize, and that's all —
   no edge handles, no size chip, no delete cross.
+- **`byId(ROOT)` is undefined — ask `container()`.** The desk is a container
+  that is not an object: ROOT is a reserved id the way HOLD is, and there is
+  nothing in `S.objects` answering to it. `container(id)` returns `rootObj()`
+  for the desk and the object otherwise, which is what every reader that has to
+  work on both boards goes through. A `byId()` followed by `if(!o) return`
+  fails shut and is safe; a `byId()` folded into an `||` falls through to a
+  second branch on the desk and only on the desk — which is how "Save as a
+  plan" shipped throwing on the one board it was most likely to be used from.
+  See decision 127.
 - **Ids must be unique across sessions.** `uid()` once used a counter that
   restarted at 0 on every load, so the Nth object made today collided with the
   Nth made yesterday. `byId()` returns the first match, so a collision meant

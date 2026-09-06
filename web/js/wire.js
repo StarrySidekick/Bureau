@@ -426,10 +426,14 @@ function act(name, el){
        out where you are. Both are ordinary actions on the delegated listener,
        which is what keeps a plan from needing a mode. See decision 121. */
     case 'saveplan': {
+      /* No name is worked out here. `container()` answers for the desk as well
+         as for a drawer — ROOT is a container that is *not an object*, so
+         `byId(ROOT)` is undefined and every caller that forgets it reaches for
+         a desk title it has no way to get. planFrom() already falls back to
+         the container's own title, and the container's own title is the one
+         place that knows. See decision 127. */
       const cid = el.dataset.id || S.openId || ROOT;
-      const c = byId(cid);
-      const nm = (c && c.title) || (cid===ROOT ? deskTitle() : 'Untitled');
-      const p = planFrom(cid, nm);
+      const p = planFrom(cid);
       if(!p){ toast('Nothing to save'); break; }
       save(); refreshPanel();
       toast(`Saved “${p.nm}” as a plan — ${planSize(p)} thing${planSize(p)===1?'':'s'}`);
