@@ -2,7 +2,7 @@ import { $, $$, esc, ic, uid, D, ROOT } from './util.js';
 import { S, K, KINDS, KEYS, refreshKinds, ATTRS, attrsOf, has, SHAPES,
   FACES, MANUAL, byId, container, cfgOf, isContainer, isAncestor, relate, deskOf,
   unrelate, sensedDevice, reset, T, dz, dev, calViewOf, RULE_MAX, acceptFor,
-  boardLocked, repeatOf, repeats, heldObjects, heldCount } from './model.js';
+  boardLocked, repeatOf, repeats, heldObjects, heldCount, marginOf, marginPlus } from './model.js';
 import { gridOf, lay, boxOk, freeSpot, toPhoneSize, keepSize } from './grid.js';
 import { applyLook, applyStyle, setLookVal, lookVal, STYLES, setSlot, objColour, darkMode } from './look.js';
 import { toast, setGridSize, toggleDone, spawnNext, del, delMany, delDrawer, undo, redo, pushUndo,
@@ -333,6 +333,18 @@ function act(name, el){
       const c=Object.assign({},o,{id:uid(isContainer(o)?'d':'o'),title:o.title+' (copy)',
         ord:(o.ord||0)+0.1, desk:null, phone:null});
       S.objects.push(c); closePanel(); save(); render(); reveal(c.id); break; }
+    /* Appending to the margin is the only write it has. The old list goes to
+       pushSet, so an accidental entry comes back off with the same undo as
+       every other field — and the panel is redrawn rather than patched, because
+       spec.body is a function and that is what refreshPanel() is for. */
+    case 'margin': {
+      const o=byId(el.dataset.id||S.openId); if(!o) return;
+      const box=$(`[data-margin="${o.id}"]`); if(!box) return;
+      const next=marginPlus(o, box.value);
+      if(next.length===marginOf(o).length) return;      // nothing typed
+      pushSet('Margin note', o.id, 'margin', o.margin ? o.margin.slice() : undefined);
+      o.margin=next; box.value='';
+      save(); refreshPanel(); render(); break; }
     case 'resetslots': {
       const k=(S.look.style)||'victorian';
       if(S.look.slots) delete S.look.slots[k];

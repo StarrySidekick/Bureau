@@ -5,7 +5,7 @@ import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, chi
   knobSizeOf, answered, sortOf, spanOf, coversDay, lateOn, isLate, iconOf, textSizeOf,
   isPicture, isMedia, isPlayable, isDecor, mediaTypeOf, frameOf, isWindow,
   boardLocked, prioOf, repeatSaid, urgencyOf, urgeSaid, durSaid, standsProud, shelfDepth, bookDepth, faceCue, anyFaceCue,
-  calViewOf, weekStartOf, calCols, borderOf, textureOf } from './model.js';
+  calViewOf, weekStartOf, calCols, borderOf, textureOf, marginOf } from './model.js';
 import { CELL, gridOf, lay, overlaps, boxOk, freeSpot, gridRows, sizeOfKind, ensureBox,
   pageRows, colsOf } from './grid.js';
 import { create, toast, toggleDone, someKind, ctlSpec, ctlSaid, ctlIsOn, ctlPress } from './mutations.js';
@@ -1147,6 +1147,10 @@ function drawTileFace(o, arr, box, persp){
            same small glyph on generated to-dos, and it is the difference between
            "I decided this" and "this comes round". See decision 73. */''}
       ${o.fromRepeat?`<span class="repeatmark" title="${esc(repeatSaid(o)||'made by a repeat')}">${ic('repeat',10)}</span>`:''}
+      ${/* A file with something written in the margin looks different from one
+           without, before you open it. The count and not the words: a margin
+           entry is a sentence and a tile has no room for one. */''}
+      ${marginOf(o).length?`<span class="margmark" title="${marginOf(o).length} in the margin">${marginOf(o).length}</span>`:''}
     </div>
     ${has(o,'rating')&&o.rating?`<div class="tilestars">${'★'.repeat(o.rating)}<span>${'★'.repeat(5-o.rating)}</span></div>`:''}
     ${edit && has(o,'text')

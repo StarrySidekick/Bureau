@@ -7,7 +7,7 @@ import { S, K, KINDS, KEYS, T, ATTRS, USER_ATTRS, FIELDS, fieldOf, OPS, ROLLS,
   rootObj, containers, isContainer, isAncestor, childrenOf, has, kindHas,
   attrsOf, allTags, placeOf, deskList, deskOf, isDesk, spanOf, heldObjects,
   dev, takesTyping, genKindOf, genSaid, ANY, ctlOf, barOf,
-  PRIMARY, isPrimary, answered, isLate,
+  PRIMARY, isPrimary, answered, marginOf, isLate,
   PRIOS, prioOf, prioName, DIFFS, diffOf, diffName, REPEAT_UNITS, repeatOf, repeats, repeatSaid,
   relatedTo, backlinksTo, streak, goalPct,
   CALVIEWS, calViewOf, weekStartOf, showsWeekends, KNOBSIZES, knobSizeOf,
@@ -958,6 +958,19 @@ function objectPanelBody(id, sec){
       `<div class="stars">${[1,2,3,4,5].map(n=>`<button data-star="${id}:${n}" class="${(o.rating||0)>=n?'on':''}">${ic('star',17)}</button>`).join('')}</div>`));
     if(has(o,'answer')) f.push(prow(`Answer${answered(o)?'':' — unanswered'}`,
       `<textarea class="pfield tall" data-oset="${id}:answer" placeholder="What you worked out">${esc(o.answer||'')}</textarea>`));
+    /* The margin. Entries are printed, not edited — there is no field over an
+       existing one on purpose, because a note you can go back and tidy is the
+       body again and the whole point of a margin is that it accumulates. The
+       one control is the box that adds the next one. */
+    if(has(o,'margin')){
+      const ms=marginOf(o);
+      f.push(prow(`Margin${ms.length?` — ${ms.length}`:''}`,
+        (ms.length ? `<div class="margins">${ms.map(m=>
+          `<div class="marg"><i>${esc(m.d)}</i><span>${esc(m.t)}</span></div>`).join('')}</div>` : '')
+        + `<textarea class="pfield" data-margin="${id}" placeholder="${ms.length?'Add to the margin':'Write in the margin'}"></textarea>`
+        + `<button class="pill" data-act="margin" data-id="${id}">Add</button>`,
+        'Dated as it is written, and never rewritten.'));
+    }
     /* A decoration picks one of the ten that ship with the app, or a file of
        your own. The ten are drawn as themselves — a decoration *is* a picture,
        so a list of names would be the one picker in the app that made you

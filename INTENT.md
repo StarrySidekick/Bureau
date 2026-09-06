@@ -32,6 +32,19 @@ copy, tear out, pin, date, archive. Bureau has spent many passes on aesthetics,
 slots, depth and motion, and those are good and are not banned — but look work
 is no longer the default answer to "what now".
 
+**First of them, 2026-09-06 (v1.52): the margin.** `margin` is an attribute any
+object can carry — a running note, each entry dated as it is written and never
+rewritten. `text` is the document and is edited; the margin is what you write
+beside it, and a paper file grows by having things added rather than by the
+letter being redrafted. Entries are printed rather than editable on purpose: a
+margin you can go back and tidy is just the body again. On the board it shows as
+a count, because an entry is a sentence and a tile has no room for one.
+
+**Still on the list**, in rough order of how paper they are: **clip** (objects
+that travel together, which containing and relating both fail to express),
+**stamp** (a dated impression — received, sent, paid), and **tear out** (pulling
+part of a note out as its own object).
+
 Second, and directly useful to him: **a real personal desk layout that fits his
 life.** `plans.js` exists for exactly this — a plan is a board you can put down
 again. Proposing a concrete arrangement as a plan is legitimate, welcome work.
