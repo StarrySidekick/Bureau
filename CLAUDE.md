@@ -1,5 +1,11 @@
 # Bureau — working notes for Claude Code
 
+> **Read [`INTENT.md`](INTENT.md) first.** It records what this project is for
+> and what Timothy wants next, in his own words, dated. Where it disagrees with
+> this file about *direction* it is newer and wins; where it disagrees about
+> *mechanics* — how the code works, what was decided deliberately, the
+> invariants — this file wins.
+
 Bureau is Timothy's personal to-do / note / idea / writing app. It is not a
 product for other people, and design decisions should be made for one user.
 
