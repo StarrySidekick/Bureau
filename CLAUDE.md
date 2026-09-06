@@ -968,7 +968,9 @@ crossing. See decisions 125 and 126.
 duration, the difficulty, the priority, the urgency they produce, the repeat
 rule and the tags. **Repeating is opt-in** — it came off `task`'s attrs and is
 offered beside the ranks, with migration 25 keeping it on anything already
-running a rule. **A page, not a bubble**: a month grid and nine rows is a
+running a rule. The chip **is** the answer, so it arrives carrying a rule and
+the section asks no "Never / Yes" underneath itself; saying never is the one
+button that takes the trait off. See decision 129. **A page, not a bubble**: a month grid and nine rows is a
 sheet, and decision 27's "a question about one tile belongs beside it" was
 right when this asked one question. **Tapping a task opens it** (`onclick:'when'`
 in `CLICKS`) and *When…* on the long press opens the same one — one
@@ -986,9 +988,12 @@ Those four are the only colours named outright anywhere in the app — they are
 signals, not slots, for the same reason `late` is red everywhere.
 
 A rank is drawn as **its own mark filled to the rank** — stars for priority,
-teardrops for difficulty — and **n marks means n**: priority runs 0–5 because 0
-is a real answer (decision 72), so rank 0 lights nothing and wears the ring
-alone, or every rating in the app reads one too high. What an object hasn't got
+teardrops for difficulty — and **n marks means n**, so both scales draw
+**five** marks. `PRIOS` runs 0–5 because 0 is a real answer (decision 72) and
+the object editor's *numbered* row still offers it outright; but on a mark
+scale zero is drawn as no marks, so a sixth star is one that can never light
+and a scale that reads as out of six. The leading dash is where "no stars"
+lives and covers both nothing-said and rank zero. See decision 129. What an object hasn't got
 is one row of chips in the same page (`data-want` names the attribute), each
 wearing its own mark.
 
@@ -1893,7 +1898,15 @@ when you're editing the *other* device's layout from this one.
   that already exists, so `dropSelection()` in `gestures.js` clears one at the
   start of every hold that becomes a Bureau gesture. Never inside a field. See
   decision 52.
-- **An undo nobody can reach is not an undo.** A phone has no ⌘Z, so a move on
+- **An Undo on a toast is about the move the words were written for.** It used
+to call `undo()`, which takes whatever is on top of the stack — so anything at
+all happening inside the toast's three and a half seconds meant the word
+stepped back over the *newer* thing and left the filing exactly where it was:
+pressable, and quietly about something else. `toast(msg, true)` pins the move
+that was on top; `undoToast()` fires only if it still is, and says so otherwise.
+⌘Z stays unpinned and walks the whole stack. See decision 129.
+
+**An undo nobody can reach is not an undo.** A phone has no ⌘Z, so a move on
 the stack with no `toast(msg, true)` in front of it is a way back that exists
 only on a keyboard — which is what every filing in the app was for a long time,
 correctly recorded and unreachable. Pass the flag. And **one gesture is one
@@ -1926,11 +1939,19 @@ side of the build. Don't put `save()` back in render(). See decision 64.
   holding it falls off the bottom of the stack — which `reap()` now checks for a
   `{set:{k:'media'}}` step as well as a deleted object, because taking a picture
   *out* of an object that is still on the desk is the same bargain.
-- **A box belongs to one container's coordinate space.** Reparenting in bulk has
-  to clear `desk`/`phone` and let `ensureBox()` re-place, or the moved objects
-  land on the same numbers in a grid where those numbers mean somewhere else —
-  usually on top of something. `delDrawer()` is the one that got this wrong.
-  Guarded as `contentsReplaced` in the smoke test.
+- **A box's *position* belongs to a container's coordinate space; its *size*
+  does not.** Reparenting has to drop `x`/`y` and let `ensureBox()` re-place, or
+  the moved objects land on the same numbers in a grid where those numbers mean
+  somewhere else — usually on top of something (`delDrawer()` got that wrong
+  once; guarded as `contentsReplaced`). But `w`/`h` mean the same thing
+  anywhere, and clearing the whole box handed the object back its **type's**
+  default — so a note pulled out to six cells tall came out of a drawer two
+  cells tall. Go through **`keepSize(o)`** in grid.js, never `o.desk=null;
+  o.phone=null`: it leaves a box carrying a size with no position, which
+  `ensureBox()` knows how to place (clamped to the arriving board's columns).
+  The holding drawer's *preview* still normalises to the type's desk size —
+  that is decision 107 and is about a thumbnail, not about the object. See
+  decision 129.
 - **Drawer fronts are solid mid-dark colours** and everything inside them reads
   light, via `--dink`/`--dink-2`/`--dink-3` set on `.drawer`. Don't use `--ink-*`
   inside a drawer tile — it's the page's dark ink and will vanish.

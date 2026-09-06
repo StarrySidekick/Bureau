@@ -21,7 +21,7 @@ import { overlayHTML, objectPanel, modalNewObject, holdPanel, schedulePanel, clo
 import { wire } from './wire.js';
 import { openingFor, stepDrawer, spray, sprayAt, sprayCount, sprayNow, sprayMark, SPRAYS,
   applyTilt, tiltTo, tiltRecentre } from './motion.js';
-import { load, writeNow, save, saveIfDirty, hydrateAssets, pasteObjects, migrate } from './persist.js';
+import { load, writeNow, save, hydrateAssets, pasteObjects, migrate } from './persist.js';
 import { renderSheet, openWriter, openRead, openViewer, closeSheet, asMarkdown } from './sheet.js';
 import { DECOR, DECOR_KEYS, decorSVG, decorSuits, decorFor, decorRest } from './decor.js';
 

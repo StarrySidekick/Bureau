@@ -2116,7 +2116,13 @@ const CHROME = process.env.BUREAU_CHROME;
 
     const held = find(id);
     out.lettingGoKeepsIt = !!held && held.parent === '__hold';
-    out.andItsBoxIsGone = !held.desk && !held.phone;
+    /* Its **position** is gone — HOLD is not a board, so there are no
+       coordinates to keep — but its **size** is not: w and h mean the same
+       thing on any board, and clearing them handed the thing back its type's
+       default when it came out. See decision 129. */
+    out.andItsPositionIsGone = !(held.desk && held.desk.x) && !(held.phone && held.phone.x);
+    out.butItKeepsTheShapeYouGaveIt =
+      !!(held.phone && held.phone.w) || !!(held.desk && held.desk.w);
     out.theDrawerClosesAgain = !document.querySelector('.shelfpull');
     // off the board it was on…
     out.itLeavesTheBoard = !document.querySelector(
@@ -2333,6 +2339,135 @@ const CHROME = process.env.BUREAU_CHROME;
     board.forEach(([id, parent, desk, phone, ord]) => {
       const o = find(id); if(!o) return;
       o.parent = parent; o.desk = desk; o.phone = phone; o.ord = ord;
+    });
+    S.look.locked = wasLocked;
+    S.view='desk'; S.drawerId=null; BUREAU.render();
+    return out;
+  });
+
+  /* --- four things reported from the device, and one of them explains
+     another. A box's **position** belongs to a container's coordinate space;
+     its **size** does not, and clearing the whole box on a move threw away the
+     shape you had given a thing and handed it back its type's default. A mark
+     scale drew six stars for a five-star rating. The repeat section asked
+     "does it repeat" underneath the chip that had just said so. And the Undo
+     on the toast called undo(), which takes whatever is on top of the stack —
+     not the move the words were written about. */
+  const reported = await phone.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const S = BUREAU.state, out = {};
+    const find = x => S.objects.find(o => o.id === x);
+    const wasLocked = S.look.locked;
+    S.view='desk'; S.drawerId=null; S.look.locked=false; BUREAU.render(); await nap(240);
+    const board = S.objects.map(o => [o.id, o.parent, o.desk, o.phone, o.attrs, o.repeat, o.prio]);
+    const ev = (node,t,cx,cy) => node.dispatchEvent(new PointerEvent(t,
+      {bubbles:true, cancelable:true, pointerId:53, pointerType:'touch', isPrimary:true,
+       clientX:cx, clientY:cy}));
+    const tileOf = id => document.querySelector(
+      `#app .grid .drawer[data-row="${id}"], #app .grid .drawer[data-drawer="${id}"]`);
+    const kids = S.objects.filter(o => o.parent === 'root');
+    const thing = kids.find(o => !BUREAU.isContainer(o));
+    const into  = kids.find(o => BUREAU.isContainer(o) && !BUREAU.has(o,'magic'));
+    const drag = async (el, tg) => {
+      const a = el.getBoundingClientRect(), t = tg.getBoundingClientRect();
+      ev(el,'pointerdown', a.left+20, a.top+20); await nap(360);
+      ev(el,'pointermove', a.left+28, a.top+28); await nap(30);
+      ev(el,'pointermove', t.left+t.width/2, t.top+t.height/2); await nap(40);
+      ev(el,'pointerup',   t.left+t.width/2, t.top+t.height/2); await nap(360);
+    };
+
+    // ---- 1. a thing keeps the shape you gave it -------------------------
+    {
+      thing.phone = {x:1, y:6, w:4, h:2};
+      thing.desk  = {x:2, y:3, w:5, h:3};
+      BUREAU.render(); await nap(240);
+      await drag(tileOf(thing.id), tileOf(into.id));
+      const o = find(thing.id);
+      out.filingKeepsTheSize = !!o.phone && o.phone.w === 4 && o.phone.h === 2;
+      // both devices, because the other one is a coordinate space this drop
+      // said nothing about — and it is the one you are not looking at
+      out.andOnTheDeviceYouCannotSee = !!o.desk && o.desk.w === 5 && o.desk.h === 3;
+      // …and no position, which is the half that really did belong to the old
+      // board. ensureBox() gives it one on the board it has arrived on.
+      out.butNotThePosition = !o.phone.x;
+      S.view='drawer'; S.drawerId=into.id; BUREAU.render(); await nap(240);
+      const o2 = find(thing.id);
+      out.andItIsPlacedInsideAtThatSize =
+        !!o2.phone.x && o2.phone.w === 4 && o2.phone.h === 2;
+      S.view='desk'; S.drawerId=null; BUREAU.render(); await nap(200);
+    }
+
+    // ---- 2. the Undo on the toast is about the move it was offered for ---
+    {
+      const other = kids.filter(o => !BUREAU.isContainer(o))[1];
+      find(thing.id).parent = 'root'; find(thing.id).phone = {x:1,y:6,w:4,h:2};
+      BUREAU.render(); await nap(220);
+      await drag(tileOf(thing.id), tileOf(into.id));
+      out.filingOffersTheWayBack = !!document.querySelector('#toast [data-undo]');
+      /* Something else happens while the toast is still up — which is the
+         whole of it. undo() takes the top of the stack, so the word on the
+         toast used to step back over the *newer* thing and leave the filing
+         exactly where it was: pressable, and quietly about something else. */
+      const wasTitle = other.title;
+      S.undo.push({label:'Renamed', steps:[{set:{id:other.id, k:'title', v:wasTitle}}],
+                   at:Date.now()});
+      other.title = 'Overtaken';
+      document.querySelector('#toast [data-undo]').click(); await nap(260);
+      out.andRefusesOnceOvertaken =
+        find(thing.id).parent === into.id && find(other.id).title === 'Overtaken';
+      out.andSaysSo = /overtaken|since/i.test(document.querySelector('#toast').textContent);
+      S.undo.pop(); other.title = wasTitle;
+    }
+
+    // ---- 3. five stars, because n marks means n -------------------------
+    {
+      const t = find(thing.id);
+      BUREAU.schedule(t.id); await nap(340);
+      document.querySelector('#panel [data-want="priority"]')?.click(); await nap(300);
+      document.querySelector('#panel [data-want="difficulty"]')?.click(); await nap(300);
+      const marks = a => [...document.querySelectorAll(`#panel [data-${a}]`)]
+        .map(x => x.dataset[a]).filter(v => v !== '');
+      out.priorityOffersFiveStars = marks('prio').length === 5;
+      out.andDifficultyStillFive  = marks('diff').length === 5;
+      // and the rank still means what it says: four marks is four
+      document.querySelector('#panel [data-prio="4"]').click(); await nap(300);
+      const lit = [...document.querySelectorAll('#panel [data-prio]')]
+        .filter(x => x.classList.contains('lit') || x.classList.contains('on')).length;
+      out.rankFourLightsFour = find(t.id).prio === 4 && lit === 4;
+      /* Rank 0 is still a real answer (decision 72) and still reachable — it
+         is the leading button, where "no stars" lives, because on a mark scale
+         nothing-said and rank-zero draw the same thing. */
+      document.querySelector('#panel [data-prio=""]').click(); await nap(300);
+      out.andTheDashIsWhereNoStarsLives =
+        !document.querySelector('#panel [data-prio].lit');
+    }
+
+    // ---- 4. repeating is asked once, by the chip ------------------------
+    {
+      const t = find(thing.id);
+      out.repeatIsOfferedAsAChip = !!document.querySelector('#panel [data-want="repeat"]');
+      document.querySelector('#panel [data-want="repeat"]').click(); await nap(320);
+      // the chip is the answer, so it has to arrive with a rule or the
+      // section it opens is empty and the page asks the question twice
+      out.addingItStartsARule = !!BUREAU.repeatOf(find(t.id));
+      out.andTheRuleRowsAreThere =
+        !!document.querySelector('#panel [data-oset$="rep.every"]') &&
+        !!document.querySelector('#panel select[data-oset$="rep.from"]');
+      out.andThereIsNoNeverToPickAgain =
+        !document.querySelector('#panel select[data-oset$="rep.on"]');
+      // saying never is taking the trait off, and it says so in one button
+      out.sayingNeverIsAButton = !!document.querySelector('#panel [data-act="norepeat"]');
+      document.querySelector('#panel [data-act="norepeat"]').click(); await nap(320);
+      const o = find(t.id);
+      out.andItTakesTheRuleWithIt = !BUREAU.has(o,'repeat') && !BUREAU.repeatOf(o);
+      out.andOffersTheChipBack = !!document.querySelector('#panel [data-want="repeat"]');
+      document.querySelector('#panel [data-act="panelclose"]')?.click(); await nap(200);
+    }
+
+    board.forEach(([id, parent, desk, phone, attrs, repeat, prio]) => {
+      const o = find(id); if(!o) return;
+      o.parent = parent; o.desk = desk; o.phone = phone;
+      o.attrs = attrs; o.repeat = repeat; o.prio = prio;
     });
     S.look.locked = wasLocked;
     S.view='desk'; S.drawerId=null; BUREAU.render();
@@ -4367,11 +4502,17 @@ const CHROME = process.env.BUREAU_CHROME;
     document.querySelector('#panel [data-diff="3"]').click(); await nap(230);
     out.difficultyRanks = t.diff === 3;
     out.inTeardrops = document.querySelectorAll('#panel [data-diff] svg').length === 5;
-    /* Priority is stars, and n stars means n: rank 0 is a real answer and it
-       lights nothing, or every rating in the app reads one too high. */
+    /* Priority is stars, and n stars means n — so the scale is **five** of
+       them, like difficulty's five teardrops above. PRIOS runs 0–5 and the
+       numbered row in the object editor still offers 0 outright; on a mark
+       scale zero is drawn as no marks, so a sixth star is one that can never
+       light and a rating that reads as out of six. See decision 129. */
     document.querySelector('#panel [data-prio="4"]').click(); await nap(230);
     out.priorityRanks = t.prio === 4;
-    out.inStars = document.querySelectorAll('#panel [data-prio] svg').length === 6;
+    out.inStars = document.querySelectorAll('#panel [data-prio] svg').length === 5;
+    out.andTheSameCountAsDifficulty =
+      document.querySelectorAll('#panel [data-prio] svg').length ===
+      document.querySelectorAll('#panel [data-diff] svg').length;
     out.nStarsMeansN = document.querySelectorAll('#panel [data-prio].lit').length === 4;
 
     // a duration in one press, and pressing the one already set clears it
@@ -4399,14 +4540,26 @@ const CHROME = process.env.BUREAU_CHROME;
        a fill or a red day would eat it. */
     out.andHowLongTheWorkIs = n('work') === 3;
 
-    // repeating is set from here, granularly, not two doors away
-    out.repeatsFromHere = !!document.querySelector(`#panel [data-oset="${t.id}:rep.on"]`);
+    /* Repeating is set from here, granularly, not two doors away — and it is
+       reached by the **chip**, which is the one place the question is asked.
+       There used to be a "Comes round: Never / Yes" select underneath it
+       asking the same thing again; adding the trait now arrives carrying a
+       rule instead. See decision 129. */
+    /* The chip is offered only to a task that hasn't got the trait — which is
+       the point of it — so it may already have been taken by an earlier
+       assertion on this same object. Either way the claim is the same: the
+       trait is on, it arrived carrying a rule, and there is no second question
+       underneath asking whether it repeats after all. */
+    const repChip = () => document.querySelector('#panel [data-want="repeat"]');
+    out.repeatsFromHere = !!repChip() || BUREAU.has(t,'repeat');
+    if(repChip()){ repChip().click(); await nap(320); }
+    out.andTheChipIsTheAnswer = !!BUREAU.repeatOf(t)
+      && !document.querySelector(`#panel [data-oset="${t.id}:rep.on"]`);
     /* Driven through the selects rather than a back door, because a select is
        the path: it answers on `change`, and the panel then redraws itself,
        which is what makes the weekday chips appear at all. */
     const pick = (key, v) => { const el=document.querySelector(`#panel [data-oset="${t.id}:${key}"]`);
       el.value = v; el.dispatchEvent(new Event('change', {bubbles:true})); };
-    pick('rep.on', '1'); await nap(300);
     pick('rep.unit', 'week'); await nap(300);
     out.theDaysAppearForAWeeklyRule = !!document.querySelector('#panel [data-repday="2"]');
     document.querySelector('#panel [data-repday="2"]').click(); await nap(260);
@@ -5993,7 +6146,7 @@ const CHROME = process.env.BUREAU_CHROME;
     errors: errs, manifestOk, swReady, survived, styleSurvived, slotColours,
     newObjectSeen, inlineEdit, sortDefaults, taskLook,
     shelfTools, gridSizes, keeping, versionShown, sampler, paging, pageCoords, pagerGround, goingIn, comingOut,
-    makingOnAPhone, railDrawer, railIsFurniture, holding, holdingOut, cavity, depth, windows, tossing, pinch, pagerLandsFlat, deskDots,
+    makingOnAPhone, railDrawer, railIsFurniture, holding, holdingOut, reported, cavity, depth, windows, tossing, pinch, pagerLandsFlat, deskDots,
     listSwipe, shadows, textureDepth,
     gridClass, offlineWorks, railGone, tabsGone, shelfGone, tileNavigates,
     holdArms, maxDrift,

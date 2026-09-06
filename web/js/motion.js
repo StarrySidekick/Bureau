@@ -1,5 +1,5 @@
 import { $, clamp, ROOT } from './util.js';
-import { S, byId, isContainer, shapeOf, openingOf, dev, deskIds, deskOf,
+import { S, byId, isContainer, shapeOf, openingOf, deskIds, deskOf,
   tiltMode, tiltsDesk, tiltsWindows } from './model.js';
 import { lay } from './grid.js';
 import { objColour, styleNow } from './look.js';

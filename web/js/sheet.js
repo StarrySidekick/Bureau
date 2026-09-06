@@ -1,6 +1,5 @@
-import { $, $$, esc, ic, md, D, ROOT } from './util.js';
-import { S, K, byId, has, isContainer, READS, readOf, isPicture, isMedia, isPlayable,
-  mediaTypeOf, iconOf } from './model.js';
+import { $, $$, esc, ic } from './util.js';
+import { S, K, byId, has, isContainer, READS, readOf, isMedia, mediaTypeOf, iconOf } from './model.js';
 import { bookOf, sheetOf } from './tiles.js';
 import { closePanel, objectPanel } from './panels.js';
 import { toast } from './mutations.js';

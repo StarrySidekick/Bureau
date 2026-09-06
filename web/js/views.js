@@ -6,11 +6,11 @@ import { S, K, T, byId, has, isContainer, containers, container, childrenOf, cha
   spanOf, coversDay, lastDay, boardLocked,
   TILT_MODES, tiltMode, tiltsDesk, tiltsWindows, tiltClasses, cueFlipped,
   URGES, workday } from './model.js';
-import { GRID, PHONE_GRIDS, CELL, COLW, MEASURE, colsOf, gridKeyOf,
+import { PHONE_GRIDS, CELL, COLW, MEASURE, colsOf, gridKeyOf,
   pageRows, pageOfBox, lastPage,
   lay, gridOf, cellW, ensureBox, PLACED } from './grid.js';
 import { themeNow, applyLook, lookVal, STYLES, BACKDROPS, DARKMODES, darkMode, hasDark,
-  palNow, setSlot, styleNow, hexOf, objColour, slotName, OBJ0, CHECKS, dressAs } from './look.js';
+  palNow, styleNow, hexOf, objColour, slotName, OBJ0, CHECKS, dressAs } from './look.js';
 import { gridOfContainer, gridTile, listTile, scrollEntry, bookView, calSpan } from './tiles.js';
 import { openPanel, closePanel, panelKey, repositionPanel, plansPanel } from './panels.js';
 /* Cyclic at *function* level only — motion.js imports render() from here and

@@ -5786,3 +5786,73 @@ paragraph said it could not close because that would relayout the board under
 the thing in your hand — which is motion.js's rule and is not true here: on a
 phone a panel is a fixed overlay and never was a flex item. Nothing is relayed
 out either way, so this is a question of what it looks like and nothing else.
+
+## 129. A size is not a position, and an Undo belongs to its own move
+
+Four things reported from the device in one breath. Two of them turn out to be
+the same thing seen from either end.
+
+### A box's position belongs to a coordinate space; its size does not
+
+Filing an object cleared **both** of its boxes, on the sound reasoning that
+`x` and `y` mean somewhere else in a new container (the rule guarding
+`delDrawer` since it got this wrong once). But `w` and `h` mean the same thing
+anywhere, and clearing them threw away the shape you had given the thing and
+handed it back its **type's default** — a note pulled out to six cells tall
+came out of a drawer two cells tall, with nothing on screen to say where the
+size had gone.
+
+So a box may now carry a size with no position. `keepSize(o)` writes one,
+`ensureBox()` places it, and every site that moves an object between
+containers goes through it: a drop, a plucked line, the holding drawer both
+ways, Move to…, promoting a drawer to a desk and back, gathering, a paste, and
+emptying a drawer that is being deleted. The size is clamped to the columns of
+the board it arrives on, because boards differ in width (decisions 48 and 60)
+and a ten-wide box on an eight-column board is a box `freeSpot()` would look
+for for ever.
+
+The *preview* in the holding drawer still draws a held thing at its type's
+desk size, which decision 107 chose deliberately and for a reason that has not
+changed: a phone task is eight cells by one, and scaled to a thumbnail that is
+a sliver fourteen pixels tall.
+
+### The Undo on a toast is about the move the words were written for
+
+"Pressable and available, but it didn't put the object back." It was doing
+something — just not that. The link called `undo()`, which takes whatever is on
+**top of the stack**, while the words on the toast were about a move that might
+by then be several down it. Change anything at all in the three and a half
+seconds the toast is up and pressing Undo stepped back over the newer thing and
+left the filing exactly where it was.
+
+It is pinned now: `toast(msg, true)` remembers the move that was on top when
+the words were written, and the word only fires if that move is still on top.
+Otherwise it says so rather than undoing a thing nobody pointed at. ⌘Z is the
+unpinned one and still walks the whole stack, which is what a keyboard undo is
+for.
+
+This is the second half of decision 128's lesson. That one said an undo nobody
+can reach is not an undo; this one says an undo that reaches the wrong move is
+worse than one that isn't offered, because it spends the user's trust and their
+change at the same time.
+
+### Five stars, not six
+
+`PRIOS` runs 0–5 because 0 is a real answer (decision 72), and on the object
+editor's **numbered** row a `0` says so perfectly well. But the When page draws
+the same list as **marks**, and on a mark scale zero is drawn as no marks — so
+the sixth star was one that could never light, and the scale read as out of
+six. The leading button is where "no stars" lives and it covers both nothing
+said and rank zero, because here they draw the same thing for the same reason.
+The line under the row still says which.
+
+### Repeating is asked once
+
+`repeat` became an opt-in trait offered as a chip (decision 126), and the
+section it opened then asked *"Comes round: Never / Yes — on a rule"* — the
+question the chip had just answered, given more room than the answer. The
+select is gone. The chip arrives with a rule (weekly, from the day it is due —
+the commonest one, and every part of it is a row you can change), so the
+section opens on something rather than on a second question. Saying never is
+taking the trait off, which is now one button at the end of the section rather
+than a value hidden in a dropdown.

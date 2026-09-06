@@ -241,12 +241,29 @@ function sizeOfKind(k, device, cid){
    questions about coordinates has no business knowing what a disk is.
    See decision 64. */
 const PLACED = {n:0};
+/* Moving to another container is a change of **coordinate space, not of
+   size**: x and y mean somewhere else there, w and h mean the same thing
+   anywhere. Clearing the whole box therefore threw away the shape you had
+   given the object and handed it back its type's default — a note you had
+   pulled out to six cells tall came out of a drawer two cells tall, and there
+   was nothing to say where the size had gone. So a box may now carry a size
+   with no position: `keepSize()` writes one and this places it. */
+function keepSize(o){
+  ['desk','phone'].forEach(dv=>{ const b=o[dv]; o[dv] = b && b.w ? {w:b.w, h:b.h} : null; });
+}
 function ensureBox(o, device, parentId){
   const dv=device||dev();
   const home = parentId||o.parent||ROOT;
-  if(o[dv] && o[dv].w) return o[dv];
-  const [w,h]=sizeOfKind(o.kind, dv, home);
-  o[dv] = freeSpot(w, h, dv, home);
+  const b=o[dv];
+  if(b && b.w && b.x) return b;
+  const [dw,dh]=sizeOfKind(o.kind, dv, home);
+  /* The size it was given, if it has one, clamped to the board it is arriving
+     on — boards differ in columns (decision 48/60), so a ten-wide box put on
+     an eight-column board is a box freeSpot() would look for for ever and
+     never find. */
+  const cols=colsOf(home);
+  const w=Math.min(b && b.w ? b.w : dw, cols), h=(b && b.h) ? b.h : dh;
+  o[dv] = freeSpot(w, h, dv, home) || freeSpot(dw, dh, dv, home);
   PLACED.n++;
   return o[dv];
 }
@@ -260,5 +277,5 @@ function cellW(grid,g){
 
 export { GRID, PHONE_GRIDS, PHONE_MAX_H, PHONE_MAX_NEW, CELL, COLW, MEASURE,
   colsOf, gridKeyOf, pageRows, pageOfBox, lastPage,
-  gridOf, lay, overlaps, boxOk, freeSpot, gridRows, sizeOfKind, toPhoneSize, ensureBox, cellW,
+  gridOf, lay, overlaps, boxOk, freeSpot, gridRows, sizeOfKind, toPhoneSize, ensureBox, keepSize, cellW,
   PLACED };

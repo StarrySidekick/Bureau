@@ -1,6 +1,6 @@
 import { D, uid, clamp, ROOT } from './util.js';
 import { S, K, KINDS, KEYS, kindHas, has, byId, isContainer, refreshKinds, defaultLook, dev } from './model.js';
-import { GRID, PHONE_GRIDS, overlaps, gridOf, freeSpot, sizeOfKind } from './grid.js';
+import { GRID, PHONE_GRIDS, overlaps, gridOf, freeSpot, sizeOfKind, keepSize } from './grid.js';
 import { toast, create, pushUndo } from './mutations.js';
 import { render } from './views.js';
 import { renderSheet } from './sheet.js';
@@ -17,7 +17,7 @@ import { closePanel } from './panels.js';
    Bureau is this phone running" is exactly the question you ask when a change
    appears not to have deployed. Shown in Settings, so it can be read off the
    device rather than guessed at. */
-const APP_VERSION = '1.49';
+const APP_VERSION = '1.50';
 const KEY = 'bureau.v1';
 const install = {deferred:null};   // the browser's install prompt, when one is on offer
 let saveTimer = null;
@@ -750,7 +750,7 @@ function importMedia(file){
     const was = o.media && o.media.assetId;
     o.media={assetId, type:kind, label:file.name, src:URL.createObjectURL(file), size:file.size};
     if(was && was!==assetId) assetDel(was);
-    if(o!==into){ o.desk=null; o.phone=null; }
+    if(o!==into){ keepSize(o); }
     closePanel(); save(); render(); renderSheet();
     toast(ok ? (kind==='audio'?'Sound added':'Video added')
              : 'Added — it may not survive a reload');
@@ -776,7 +776,7 @@ function importSVG(file){
       const was = o.media && o.media.assetId;
       o.media={assetId, type:'image', label:file.name, src, alpha:true, svg:true};
       if(was && was!==assetId) assetDel(was);
-      if(o!==into){ o.desk=null; o.phone=null; }
+      if(o!==into){ keepSize(o); }
       closePanel(); save(); render(); renderSheet();
       toast(ok?'Added':'Added — it may not survive a reload');
     });
@@ -833,7 +833,7 @@ function importImage(file){
                  label:file.name, src, alpha:keepAlpha};
         if(was && was!==assetId) assetDel(was);      // the picture it replaced
         // pictures land square; you stretch them to the shape you want
-        if(o!==into){ o.desk=null; o.phone=null; }
+        if(o!==into){ keepSize(o); }
         closePanel(); save(); render();
         // the picture surface may be the thing that asked for the file, and it
         // is showing an empty mount until it is told

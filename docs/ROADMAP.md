@@ -5,6 +5,48 @@ Sequenced by dependency, not appetite: item 1 makes everything after it safer.
 
 ---
 
+## 0q. Queued 2026-09-06 (sixteenth pass) — the drawer, and four reports — DONE (v1.50)
+
+**The holding drawer got its third act** (decision 128). Filing recorded an
+undo move all along and never offered one, which on a phone means no undo at
+all; the drawer's mouth was sixteen pixels of a thirty-four pixel front; and
+putting a held thing down had no *where* in it. All three fixed, plus two real
+holes behind the first: a plucked line pushed no move at all, and "put all
+down" pushed one per object so an Undo would have restored the last only
+(`unholdMany()`).
+
+**Then four things reported from the device** (decision 129), one of which
+explains another:
+
+1. **A size is not a position.** Filing cleared both boxes, so an object came
+   out of a drawer at its *type's* default size. `keepSize()` now keeps w/h and
+   drops x/y, at every site that moves an object between containers.
+2. **The Undo on a toast belongs to its own move.** It called `undo()`, which
+   takes the top of the stack — so anything happening inside the toast's three
+   and a half seconds meant the word undid the *newer* thing and left the
+   filing alone. Pinned now; ⌘Z stays unpinned.
+3. **Five stars, not six.** `PRIOS` runs 0–5 and the numbered row still offers
+   0, but on a mark scale zero draws no marks, so the sixth star could never
+   light.
+4. **Repeating is asked once.** The chip is the answer; the "Never / Yes"
+   select underneath it is gone and the chip arrives carrying a rule.
+
+Also a housekeeping pass: forty dead named imports removed across nine
+modules, and the two smoke assertions that encoded the old size behaviour
+rewritten rather than deleted.
+
+### Still open from this pass
+
+- **Victoria → Alyssian.** The aesthetics repo has the renamed identity
+  (Picnic light / Twilight dark) and the sixteen colours already match
+  exactly; the rename is display-only, no migration. Offered, not greenlit.
+- **Filigree.** The mockup Timothy liked: 1 · swelled rule, 3 · corner scroll
+  on the month, 5 · lozenge round Urgency.
+- **Tabled:** the three desk textures / drawer treatments.
+- **Next up, by Timothy:** magic drawers, notes, and the type system.
+
+---
+
 ## 0p. Queued 2026-09-05 (fifteenth pass) — urgency, and plans — DONE (v1.42)
 
 Three things Timothy asked for after a read of where the project stood.

@@ -1,23 +1,42 @@
 import { $, esc, uid, ROOT, HOLD, D } from './util.js';
 import { S, byId, K, KINDS, KEYS, kindHas, has, isContainer, genKindOf, streak, T, dz, dev,
   repeatOf, repeats, nextRepeat, faceOf, childrenOf,
-  deskIds, deskHere, placeOf, cfgOf, isHeld, heldObjects } from './model.js';
-import { GRID, PHONE_GRIDS, colsOf, gridOf, freeSpot, lay, boxOk, sizeOfKind } from './grid.js';
+  placeOf, cfgOf, isHeld, heldObjects } from './model.js';
+import { GRID, PHONE_GRIDS, colsOf, gridOf, freeSpot, lay, boxOk, sizeOfKind, keepSize } from './grid.js';
 import { randomFront, randomBoard, randomLook, styleDefaults } from './look.js';
 import { render, reveal } from './views.js';
 import { tileRect, pop, clRefill } from './motion.js';
 import { planForKind, stampPlan } from './plans.js';
 import { closeSheet } from './sheet.js';
-import { assetDel, rescalePhone, rescaleOneBoard, rescaleBoxes, save } from './persist.js';
+import { assetDel, rescaleOneBoard, rescaleBoxes, save } from './persist.js';
 
 /* ============================================================
    6 · mutations
    ============================================================ */
+/* `undo` offers the way back on the toast itself, which is the only way back a
+   phone has. It is **pinned to the move that was on top when the words were
+   written** — the link used to call undo(), which takes whatever is on top
+   *now*, so a toast still on screen after anything else had been changed undid
+   the newer thing and left the filing you were looking at exactly where it
+   was. Pressable, and quietly about something else. */
 function toast(msg,undo){
   const t=$('#toast');
+  toast._move = undo ? (S.undo[S.undo.length-1] || null) : null;
   t.innerHTML = esc(msg) + (undo?' <u data-undo="1">Undo</u>':'');
   t.classList.add('show');
   clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove('show'),3400);
+}
+/* What the word on the toast does. If the move it was offered for is still on
+   top, step back over it; if something has happened since, say so rather than
+   undoing a thing nobody pointed at. ⌘Z is the unpinned one and still walks
+   the whole stack. */
+function undoToast(){
+  const m=toast._move;
+  if(m && S.undo[S.undo.length-1]!==m){
+    toast('Something else has happened since — ⌘Z steps back through it');
+    return;
+  }
+  undo();
 }
 /* ---- the next one ------------------------------------------------------
    The rule decides, and `nextRepeat()` in model.js is where it lives. Two
@@ -236,7 +255,7 @@ function delDrawer(id){
     steps.push({set:{id:o.id, k:'parent', v:id}},
                {set:{id:o.id, k:'desk',   v:o.desk}},
                {set:{id:o.id, k:'phone',  v:o.phone}});
-    o.parent=up; o.desk=null; o.phone=null;
+    o.parent=up; keepSize(o);
   });
   steps.push(...removeMany([id]));
   if(S.drawerId===id){ S.drawerId = up===ROOT?null:up; S.view = up===ROOT?'desk':'drawer'; }
@@ -261,7 +280,7 @@ function holdIt(id){
   // arrival order: the drawer is a queue of things you meant to move, not a
   // board you arranged, so a new one goes on the end
   const last = heldObjects().reduce((m,x)=>Math.max(m, x.ord||0), 0);
-  o.parent=HOLD; o.desk=null; o.phone=null; o.ord=last+1;
+  o.parent=HOLD; keepSize(o); o.ord=last+1;
   save();
   return true;
 }
@@ -282,7 +301,7 @@ function unholdIt(id, intoId, rec=true){
   // one move — never as a way of filing something without a way back
   if(rec) pushSets('Taken out', [[o.id,'parent',o.parent], [o.id,'desk',o.desk],
                                  [o.id,'phone',o.phone]]);
-  o.parent=into; o.desk=null; o.phone=null;
+  o.parent=into; keepSize(o);
   if(rec) save();
   return true;
 }
@@ -384,12 +403,12 @@ function setPin(id, where){
     if(was!=='desk'){
       // remember where it stood, so demoting is a return and not a guess
       o.wasIn = o.parent||ROOT;
-      o.parent=null; o.desk=null; o.phone=null;
+      o.parent=null; keepSize(o);
     }
   } else {
     if(was==='desk'){
       o.parent = (o.wasIn && (o.wasIn===ROOT || byId(o.wasIn))) ? o.wasIn : ROOT;
-      delete o.wasIn; o.desk=null; o.phone=null;
+      delete o.wasIn; keepSize(o);
       // whoever was looking at it as a desk has to be put somewhere real
       if(S.view==='drawer' && S.drawerId===id){ S.view='desk'; S.drawerId=null; }
     }
@@ -519,7 +538,7 @@ function gather(aId, bId, kind){
   const dv=dev(), home=b.parent, box=lay(b);
   const c=create(kind, {parent:home, title:K(kind).nm});
   a.parent=c.id; b.parent=c.id;
-  a.desk=a.phone=b.desk=b.phone=null;
+  keepSize(a); keepSize(b);
   b.ord=0; a.ord=1;
   const [kw,kh]=sizeOfKind(kind, dv, home);   // never K(kind).size — a board states its own columns
   const want={x:box.x, y:box.y, w:kw, h:kh};
@@ -584,4 +603,4 @@ function randomThing(parentId){
 export { toast, setGridSize, toggleDone, spawnNext, del, delMany, delDrawer, undo, redo,
   pushUndo, pushSet, pushSets, setPin, togglePin,
   drawerForTag, create, gather, quickAdd, spawnInto, randomThing,
-  holdIt, unholdIt, unholdMany };
+  holdIt, unholdIt, unholdMany, undoToast };

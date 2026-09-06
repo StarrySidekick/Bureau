@@ -4,14 +4,14 @@ import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, chi
   knobSizeOf, answered, sortOf, spanOf, coversDay, lateOn, isLate, iconOf, textSizeOf,
   isPicture, isMedia, isPlayable, isDecor, mediaTypeOf, frameOf, isWindow,
   boardLocked, prioOf, repeatSaid, urgencyOf, urgeSaid, durSaid, standsProud, shelfDepth, bookDepth, faceCue, anyFaceCue,
-  calViewOf, weekStartOf, calCols, bindingOf, panelOf, knobOf, borderOf, textureOf } from './model.js';
-import { CELL, COLW, gridOf, lay, overlaps, boxOk, freeSpot, gridRows, sizeOfKind, ensureBox,
+  calViewOf, weekStartOf, calCols, borderOf, textureOf } from './model.js';
+import { CELL, gridOf, lay, overlaps, boxOk, freeSpot, gridRows, sizeOfKind, ensureBox,
   pageRows, colsOf } from './grid.js';
 import { create, toast, toggleDone } from './mutations.js';
-import { DECOR, DECOR_KEYS, decorOf, decorSVG } from './decor.js';
+import { DECOR, decorOf, decorSVG } from './decor.js';
 import { hexOf, objColour, dress, dressAs } from './look.js';
 import { render, pageAt } from './views.js';
-import { openObj, openWriter, openRead, openViewer, renderSheet } from './sheet.js';
+import { openObj, openWriter, openRead, openViewer } from './sheet.js';
 import { objectPanel, schedulePanel } from './panels.js';
 import { openTile, openingFor } from './motion.js';
 import { save } from './persist.js';

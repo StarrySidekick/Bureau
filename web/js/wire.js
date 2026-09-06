@@ -1,22 +1,20 @@
 import { $, $$, esc, ic, uid, D, ROOT } from './util.js';
-import { S, K, KINDS, KEYS, refreshKinds, ATTRS, USER_ATTRS, attrsOf, has, SHAPES,
+import { S, K, KINDS, KEYS, refreshKinds, ATTRS, attrsOf, has, SHAPES,
   FACES, MANUAL, byId, container, cfgOf, isContainer, isAncestor, relate, deskOf,
   unrelate, sensedDevice, reset, T, dz, dev, calViewOf, RULE_MAX, acceptFor,
   boardLocked, repeatOf, repeats, heldObjects, heldCount } from './model.js';
-import { gridOf, lay, boxOk, freeSpot, toPhoneSize } from './grid.js';
-import { applyLook, applyStyle, setLookVal, lookVal, STYLES, randomFront,
-  setSlot, palNow, objColour, darkMode } from './look.js';
+import { gridOf, lay, boxOk, freeSpot, toPhoneSize, keepSize } from './grid.js';
+import { applyLook, applyStyle, setLookVal, lookVal, STYLES, setSlot, objColour, darkMode } from './look.js';
 import { toast, setGridSize, toggleDone, spawnNext, del, delMany, delDrawer, undo, redo, pushUndo,
-  pushSet, pushSets, setPin, togglePin, drawerForTag, create, quickAdd, spawnInto, randomThing,
-  holdIt, unholdIt, unholdMany } from './mutations.js';
+  pushSet, pushSets, setPin, togglePin, drawerForTag, create, spawnInto, randomThing,
+  holdIt, unholdIt, unholdMany, undoToast } from './mutations.js';
 import { spinTo, pending, placeAtPending, tileTap, turnPage, clearPages } from './tiles.js';
 import { DECOR } from './decor.js';
 import { render, renderSoon, sizeGrid, toggleSettings, settingsPanel, reveal, goPage, deskMap } from './views.js';
 import { openObj, openWriter, openRead, openViewer, closeSheet, renderSheet, words,
   mdKey, copyObject } from './sheet.js';
-import { openPanel, closePanel, refreshPanel, panelKey, panelBack, draft, openMenu,
-  modalNewObject, modalNewKind, modalMove, renderPreview, holdPanel,
-  drawerPanel, objectPanel,
+import { openPanel, closePanel, refreshPanel, panelKey, panelBack, draft, modalNewObject, modalNewKind, modalMove, renderPreview, holdPanel,
+  objectPanel,
   drawerFromSelection, openCtx, closeCtx, openCmd, closeCmd, cmdList, cmdMove, cmdAt, runCmd,
   schedulePanel, quickISO, SCHED, SCHED_PENS, plansPanel } from './panels.js';
 import { onDown, onMove, onUp, onCancel, onTouchStart, onTouchMove, onTouchEnd,
@@ -151,7 +149,7 @@ function setField(el){
     case 'parent':
       if(!o) break;
       if(v===id || isAncestor(id, container(v))){ toast('A drawer cannot go inside itself'); break; }
-      if(o.parent!==v){ o.parent=v; o.desk=null; o.phone=null; }
+      if(o.parent!==v){ o.parent=v; keepSize(o); }
       break;
     case 'knobtone': t.knobtone=v; t.knobc=null; break;
     case 'dur': t.dur = v===''?null:+v; break;
@@ -422,7 +420,28 @@ function act(name, el){
       const want=el.dataset.want || 'deadline';
       const a=attrsOf(o);
       if(!a.includes(want)){ pushSet(ATTRS[want] ? ATTRS[want].nm : want, o.id, 'attrs', o.attrs); o.attrs=a.concat(want); }
+      /* A trait that is a *rule* rather than a value has to arrive with one,
+         or the section it opens is empty and the page has to ask "does it
+         repeat" a second time — which is the question the chip just answered.
+         Weekly from the day it is due: the commonest rule, and every part of
+         it is a row you can change. See decision 129. */
+      if(want==='repeat' && !repeats(o)){
+        pushSet('Repeats', o.id, 'repeat', o.repeat);
+        o.repeat={every:1, unit:'week', days:[], from:'date', made:0};
+      }
       save(); render(); refreshPanel();
+      break;
+    }
+    /* Saying never. The trait's presence is what says it repeats, so this is
+       the way back out — the rule goes with it, because a rule nothing reads
+       is a thing to be surprised by later. */
+    case 'norepeat': {
+      const o=byId(el.dataset.id || S.openId); if(!o) break;
+      pushSets('Repeats', [[o.id,'attrs',o.attrs], [o.id,'repeat',o.repeat]]);
+      o.attrs=attrsOf(o).filter(a=>a!=='repeat');
+      o.repeat=null;
+      save(); render(); refreshPanel();
+      toast('It doesn\u2019t repeat', true);
       break;
     }
     /* ---- plans ---------------------------------------------------------
@@ -650,7 +669,7 @@ function wire(){
        a tile on a board. See decision 61. */
     const ed=t.closest('[data-edit]');
     if(ed && !boardLocked()){ startEdit(ed.dataset.edit); return; }
-    const undoEl=t.closest('[data-undo]'); if(undoEl){ undo(); return; }
+    const undoEl=t.closest('[data-undo]'); if(undoEl){ undoToast(); return; }
     const c=t.closest('[data-c]');
     if(c){ const [cmd,id]=c.dataset.c.split(':'); closeCtx();
       if(cmd==='open'||cmd==='write') openWriter(id);

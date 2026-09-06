@@ -11,18 +11,17 @@ import { S, K, KINDS, KEYS, T, ATTRS, USER_ATTRS, FIELDS, fieldOf, OPS, ROLLS,
   relatedTo, backlinksTo, streak, goalPct,
   CALVIEWS, calViewOf, weekStartOf, showsWeekends, KNOBSIZES, knobSizeOf,
   TSIZES, textSizeOf, mediaTypeOf, isPicture, isMedia, isDecor,
-  BINDINGS, bindingOf, FRAMES, FRAME_SLOTS, frameOf, panelOf, knobOf, borderOf, textureOf,
+  bindingOf, FRAMES, FRAME_SLOTS, frameOf, panelOf, knobOf, borderOf, textureOf,
   slotRaw } from './model.js';
-import { GRID, lay, boxOk, freeSpot, sizeOfKind, toPhoneSize } from './grid.js';
-import { randomBoard, randomFront, hexOf, objColour, objSlots, palNow, OBJ0,
-  famSlots, famAll, FAMS, styleKey, stockNow } from './look.js';
+import { GRID, lay, boxOk, freeSpot, sizeOfKind, toPhoneSize, keepSize } from './grid.js';
+import { randomBoard, randomFront, hexOf, objColour, objSlots, famSlots, famAll, FAMS, styleKey, stockNow } from './look.js';
 import { CLICKS, clickOf, gridTile, pending } from './tiles.js';
-import { DECOR, DECOR_KEYS, decorOf, decorSVG, decorFor, decorRest } from './decor.js';
+import { DECOR, decorOf, decorSVG, decorFor, decorRest } from './decor.js';
 import { quickAdd, toast, drawerForTag } from './mutations.js';
-import { openObj, openWriter, openRead, renderSheet } from './sheet.js';
+import { openObj, renderSheet } from './sheet.js';
 import { render, settingsPanel, gridSizeField } from './views.js';
 import { openingFor } from './motion.js';
-import { plans, planById, planTop, planSize, planFrom, stampPlan } from './plans.js';
+import { plans, planTop, planSize } from './plans.js';
 import { save } from './persist.js';
 
 /* ============================================================
@@ -1440,18 +1439,24 @@ function schedulePanel(id){
         ['priority','Priority','star'], ['repeat','Repeats','repeat']
       ].filter(([a])=>!has(ob,a));
       /* A rating drawn as its own mark, filled to the rank. The scale stays
-         visible — decision 72's argument for six buttons rather than a select —
-         but the mark says which scale it is without reading the caption. */
-      /* Lit up to the rank, and **never counting the zero**: priority runs 0–5
-         because "a dream, nothing to act on" is a real answer (decision 72),
-         but a rank of 4 lighting five stars is a rating that is off by one
-         every time you read it. So rank 0 lights nothing and wears the ring
-         alone, and n stars means n. Difficulty starts at 1 and never meets
-         the case. */
+         visible — decision 72's argument for buttons rather than a select — but
+         the mark says which scale it is without reading the caption, and it is
+         lit up to the rank so that **n marks means n**.
+
+         **Five marks, not six.** PRIOS runs 0–5 because 0 is a real answer, and
+         on a numbered row a `0` says so perfectly well — but on a *mark* scale
+         zero is drawn as no marks, so a sixth star that can never light is a
+         scale that reads as out of six. The leading button is where "no stars"
+         lives and it covers both: nothing said, and rank zero. They draw the
+         same thing here because here they mean the same thing, and the line
+         under the row says which. Difficulty starts at 1 and never meets the
+         case. See decisions 72 and 129. */
+      const marked = list => list.filter(([n])=>n>0);
       const scale = (mark, list, now, attr) => `<div class="ratrow">
-        <button class="ratbtn${now==null?' on':''}" data-${attr}="" data-id="${id}" title="Unranked">–</button>
-        ${list.map(([n,nm,ds])=>
-          `<button class="ratbtn${now!=null&&n>0&&n<=now?' lit':''}${now===n?' on':''}"
+        <button class="ratbtn${now==null||now===0?' on':''}" data-${attr}="" data-id="${id}"
+          title="Unranked">–</button>
+        ${marked(list).map(([n,nm,ds])=>
+          `<button class="ratbtn${now!=null&&n<=now?' lit':''}${now===n?' on':''}"
              data-${attr}="${n}" data-id="${id}" title="${esc(nm)} — ${esc(ds)}">${ic(mark,20)}</button>`).join('')}</div>`;
       const r = repeatOf(ob) || {every:1, unit:'day', days:[], from:'date'};
       return `${trow('Name', `<input class="pfield" data-oset="${id}:title" value="${esc(ob.title||'')}" placeholder="Untitled">`)}
@@ -1513,10 +1518,14 @@ function schedulePanel(id){
              the dates it counts from. The row that matters is **counted from**:
              "every week" and "a week after I finish it" are different promises
              and only one of them survives a week you skipped. See decision 73. */''}
+        ${/* No "does it repeat" question here. Adding the trait **is** the
+             answer — it is one of the chips at the foot of this page, exactly
+             like a deadline or an estimate — so a select offering "Never"
+             underneath it asks the same question twice and gives the second
+             answer more room than the first. Saying never is taking the trait
+             off, which is the button at the end. See decision 129. */''}
         ${has(ob,'repeat') ? `<div class="section-h"><h2>${ic('repeat',12)} Repeats</h2><div class="rule"></div>
-            <span class="n">${repeats(ob)?esc(repeatSaid(ob)):'not yet'}</span></div>
-          ${trow('Comes round', psel(id,'rep.on', [['','Never'],['1','Yes — on a rule']], repeats(ob)?'1':''))}
-          ${!repeats(ob) ? '' : `
+            <span class="n">${esc(repeatSaid(ob))}</span></div>
           ${trow('Counted from', psel(id,'rep.from',
             [['date','The day it is due — a fixed schedule'],['done','The day I finish it']], r.from||'date'))}
           ${trow('How often', `<input class="pfield num" type="number" min="1" max="99" data-oset="${id}:rep.every" value="${r.every||1}">`
@@ -1529,7 +1538,8 @@ function schedulePanel(id){
           ${trow('Running', psel(id,'rep.paused',
             [['','Making the next one'],['1','Paused — keeps its rule, stops making']], r.paused?'1':''))}
           <button class="subtle-btn" data-act="nextcopy" data-id="${id}">${ic('plus',12)} Make the next one now</button>
-          <div class="mini" style="--k:var(--brass);margin-top:6px">Every copy is a fresh object carrying all of this — the deadlines, the estimate, the ranks — so a repeat is the whole task coming round, not just its name.</div>`}` : ''}
+          <button class="subtle-btn" data-act="norepeat" data-id="${id}">${ic('x',12)} It doesn't repeat</button>
+          <div class="mini" style="--k:var(--brass);margin-top:6px">Every copy is a fresh object carrying all of this — the deadlines, the estimate, the ranks — so a repeat is the whole task coming round, not just its name.</div>` : ''}
 
         ${/* Tags, here rather than only behind a door, because a tag is how a
              thing gets found again and you know it while you are writing the
@@ -1618,7 +1628,7 @@ function drawerFromSelection(id){
     desk:null, phone:null
   };
   S.objects.push(d);
-  objs.forEach(o=>{ o.parent=d.id; o.desk=null; o.phone=null; });
+  objs.forEach(o=>{ o.parent=d.id; keepSize(o); });
   // now that its contents have moved out, the first object's old spot is free —
   // and the drawer arrives at the size a drawer starts at, not a hardcoded one
   const [dw,dh]=sizeOfKind('drawer', dev());

@@ -1,8 +1,8 @@
 import { $, $$, clamp, D, ROOT } from './util.js';
 import { S, byId, dev, has, isContainer, isAncestor, childrenOf, container, gatherKind, spanOf,
-  sortOf, cfgOf, boardLocked, heldCount, T } from './model.js';
-import { GRID, CELL, gridOf, cellW, lay, boxOk, overlaps, sizeOfKind } from './grid.js';
-import { toast, gather, setPin, del, pushSets, holdIt, unholdIt } from './mutations.js';
+  sortOf, boardLocked, heldCount } from './model.js';
+import { CELL, gridOf, cellW, lay, boxOk, overlaps, sizeOfKind, keepSize } from './grid.js';
+import { toast, gather, del, pushSets, holdIt, unholdIt } from './mutations.js';
 import { pending, tileTap, fireButton } from './tiles.js';
 import { modalNewObject, holdPanel, openCtx, closeCtx, schedulePanel, refreshPanel,
   closePanel } from './panels.js';
@@ -542,7 +542,7 @@ function reschedule(d, iso){
    that layout. */
 function fileInto(d, intoId){
   if(!canFile(d.id, intoId) || d.parent===intoId) return false;
-  d.parent=intoId; d.desk=null; d.phone=null;
+  d.parent=intoId; keepSize(d);          // the space changes, the size does not
   return true;
 }
 
@@ -1320,7 +1320,7 @@ function onUp(e){
          checklist front into the wrong drawer was the one filing in the app
          that ⌘Z could not reach. See decision 65. */
       pushSets('Filed', [[o.id,'parent',o.parent], [o.id,'desk',o.desk], [o.id,'phone',o.phone]]);
-      o.parent=g.dropOn; o.desk=null; o.phone=null;   // a new coordinate space
+      o.parent=g.dropOn; keepSize(o);                 // a new coordinate space
       const into=g.dropOn===ROOT?null:byId(g.dropOn);
       save(); render();
       toast(`Filed in ${into?into.title:'the desk'}`, true);
