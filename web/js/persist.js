@@ -1,6 +1,6 @@
 import { D, uid, clamp, ROOT } from './util.js';
 import { S, K, KINDS, KEYS, kindHas, has, byId, isContainer, refreshKinds, defaultLook, dev } from './model.js';
-import { GRID, PHONE_GRIDS, overlaps, gridOf, freeSpot, sizeOfKind, keepSize } from './grid.js';
+import { GRID, PHONE_GRIDS, overlaps, gridOf, freeSpot, anySpot, sizeOfKind, keepSize } from './grid.js';
 import { toast, create, pushUndo } from './mutations.js';
 import { render } from './views.js';
 import { renderSheet } from './sheet.js';
@@ -17,7 +17,7 @@ import { closePanel } from './panels.js';
    Bureau is this phone running" is exactly the question you ask when a change
    appears not to have deployed. Shown in Settings, so it can be read off the
    device rather than guessed at. */
-const APP_VERSION = '1.53';
+const APP_VERSION = '1.54';
 const KEY = 'bureau.v1';
 const install = {deferred:null};   // the browser's install prompt, when one is on offer
 let saveTimer = null;
@@ -39,7 +39,11 @@ function snapshot(){
      that restored your types and not the arrangements you built out of them
      would restore half a desk. They carry no media by construction, so there
      is nothing here for the `media.src` strip above to do. */
-  return {v:DATA_V, savedAt:new Date().toISOString(), desks, pins,
+  /* `centred` is the one-shot that put what was already on the desk onto its
+     middle shelf, per device. It is stored because it must happen exactly once
+     — a second pass would push everything off the desk — which makes it a fact
+     about the desk rather than about this session. See centreDesk(). */
+  return {v:DATA_V, savedAt:new Date().toISOString(), desks, pins, centred:S.centred||{},
           look:S.look, kinds:S.kinds, plans:S.plans||[], deskCfg:S.deskCfg, objects};
 }
 /* ---- writing, and only when there is something to write ----------------
@@ -185,14 +189,19 @@ function dedupeIds(objects){
    full-width tile still maps exactly (8 × 1.25 = 10). Scaling the edge is what
    makes the gaps between tiles scale too: column 3 is two cells in from the
    left, not three. */
-function rescaleBoxes(objects, from, cols){
+/* `dv` is which layout is being rescaled. It was the phone's alone for as long
+   as the phone was the only board whose column count moved; a Mac board is
+   eight columns wide inside a drawer now (decision 141), so the desk layout
+   moves too and the arithmetic is the same either way. */
+function rescaleBoxes(objects, from, cols, dv){
+  dv = dv || 'phone';
   const r = cols/from;
   const half = v => Math.ceil(v - 0.5);
   const up = n => Math.max(1, half(n*r));
   const placed = {};
   const overlap = (a,b)=> a.x < b.x+b.w && b.x < a.x+a.w && a.y < b.y+b.h && b.y < a.y+a.h;
   objects.forEach(o=>{
-    const b=o.phone; if(!b || !b.w) return;
+    const b=o[dv]; if(!b || !b.w) return;
     const w=Math.min(cols, up(b.w));
     const x=Math.max(1, half((b.x-1)*r) + 1);
     let box={x:Math.min(x, cols-w+1), y:Math.max(1,b.y), w, h:Math.max(1,b.h)};
@@ -203,14 +212,14 @@ function rescaleBoxes(objects, from, cols){
         if(!home.some(t=>overlap(spot,t))){ box=spot; break outer; }
       }
     }
-    home.push(box); o.phone=box;
+    home.push(box); o[dv]=box;
   });
 }
 /* One board's worth: what changing *this* drawer's grain costs. The boxes on a
    board are measured in that board's columns and nowhere else, so nothing
    outside it is touched. */
-function rescaleOneBoard(objects, cid, from, cols){
-  rescaleBoxes(objects.filter(o=>(o.parent||ROOT)===cid), from, cols);
+function rescaleOneBoard(objects, cid, from, cols, dv){
+  rescaleBoxes(objects.filter(o=>(o.parent||ROOT)===cid), from, cols, dv);
 }
 function rescalePhone(d, from, cols){
   rescaleBoxes(d.objects||[], from, cols);
@@ -226,7 +235,7 @@ function rescalePhone(d, from, cols){
    skips all of them, an old backup replays only what it is missing. These
    used to be ad-hoc per-load mutations inside adopt(); a new repair that
    should run once belongs here, as the next numbered step. */
-const DATA_V = 26;
+const DATA_V = 27;
 const MIGRATIONS = [
   // Drawers and objects were two arrays and a drawer could not live inside
   // anything. foldDrawers also replays the old dense flow to give v1 drawers
@@ -658,6 +667,51 @@ const MIGRATIONS = [
       if(o.layout==='moodboard') o.layout='grid';
     }));
   }},
+  /* ---- one desk, nine shelves ------------------------------------------
+     Two things, and they are the same change from either end.
+
+     **Every desk but home becomes an ordinary drawer again.** A desk was a
+     drawer promoted out into a row of its own, and what that bought was room;
+     the Desk is nine screens now, so the room is on it. A promoted drawer has
+     `parent:null`, which is no coordinate space at all, so each one is put
+     back where it came from (`wasIn`, remembered by setPin) or on the desk,
+     and keeps its size and loses its position the way any reparenting does.
+
+     **And a Mac drawer's board is one shelf.** It was twenty-four columns and
+     a shelf is eight, so every box on a *drawer's* Mac layout is three times
+     too wide for the board it is on. `rescaleBoxes` is the same arithmetic the
+     phone grid has been rescaled with three times, pointed at the desk layout:
+     each tile keeps the fraction of its board it had, and anything that lands
+     on a neighbour after the rounding is dropped into the nearest free box.
+
+     The **desk's own** board is untouched: it is still twenty-four columns,
+     which is now three shelves side by side rather than one wide board. What
+     is on it moves to the middle shelf at first render — see centreDesk(),
+     which cannot happen here because a shelf is as tall as whatever fits on
+     the screen and nothing knows that number until the board is measured.
+     See decision 141. */
+  {v:27, up(d){
+    const objs = d.objects||[];
+    const byId = id => objs.find(o=>o && o.id===id);
+    (d.desks||[]).forEach(id=>{
+      if(id===ROOT) return;
+      const o=byId(id); if(!o) return;
+      o.parent = (o.wasIn && (o.wasIn===ROOT || byId(o.wasIn))) ? o.wasIn : ROOT;
+      delete o.wasIn;
+      // a change of coordinate space: the size means the same thing anywhere,
+      // the position does not — ensureBox places it on first render
+      ['desk','phone'].forEach(dv=>{ const b=o[dv]; o[dv] = (b && b.w) ? {w:b.w, h:b.h} : null; });
+    });
+    d.desks=[ROOT];
+    /* Written out rather than read off GRID: a migration must not drift with a
+       constant that may move again. Twenty-four columns into three shelves of
+       eight is the whole of it. */
+    const WAS = 24, NOW = 8;
+    const homes = new Set(objs.map(o=>o && (o.parent||ROOT)).filter(id=>id && id!==ROOT));
+    homes.forEach(cid=>rescaleOneBoard(objs, cid, WAS, NOW, 'desk'));
+    // and the desk's contents move to the middle shelf at first render
+    delete d.centred;
+  }},
 ];
 function migrate(d){
   let v = d.v||0;
@@ -679,8 +733,8 @@ function adopt(d){
   // the grid size is a coordinate space, so it has to be in place before
   // anything is laid out — every stored phone box is in its columns
   GRID.phone.cols = PHONE_GRIDS[S.look.grid] || PHONE_GRIDS.small;
-  S.desks = Array.isArray(d.desks) && d.desks.length ? d.desks.slice() : [ROOT];
-  if(!S.desks.includes(ROOT)) S.desks.unshift(ROOT);   // home is always in the row
+  S.desks = [ROOT];                        // one desk, nine shelves — decision 141
+  S.centred = (d.centred && typeof d.centred==='object') ? d.centred : {};
   // the shelf holds drawers only: home is walked to, not pinned
   S.pins = (Array.isArray(d.pins) ? d.pins : []).filter(id=>id!==ROOT);
   S.undo = [];   // the moves on it referred to objects this desk has never had
@@ -945,7 +999,7 @@ function addSpec(spec, parentId, tally){
   if(spec.onclick) o.onclick=spec.onclick;
   const [dw,dh]=sizeOfKind(kind, dev());
   const w=clamp(parseInt(spec.w,10)||dw,1,gridOf().cols), h=Math.max(1,parseInt(spec.h,10)||dh);
-  o[dev()]=freeSpot(w,h,dev(),parentId);
+  o[dev()]=anySpot(w,h,dev(),parentId);
   tally[isContainer(o)?'drawers':'objects']++;
   tally.made.push(o.id);
   kids.forEach(c=>addSpec(c, o.id, tally));

@@ -1,12 +1,12 @@
 import { $, $$, clamp, D, ROOT } from './util.js';
 import { S, byId, dev, has, isContainer, isAncestor, childrenOf, container, gatherKind, spanOf,
   sortOf, boardLocked, heldCount } from './model.js';
-import { CELL, gridOf, cellW, lay, boxOk, overlaps, sizeOfKind, keepSize } from './grid.js';
+import { CELL, gridOf, drawCols, drawRows, cellW, lay, boxOk, overlaps, sizeOfKind, keepSize } from './grid.js';
 import { toast, gather, del, pushSets, holdIt, unholdIt } from './mutations.js';
 import { pending, tileTap, fireButton } from './tiles.js';
 import { modalNewObject, holdPanel, openCtx, closeCtx, schedulePanel, refreshPanel,
   closePanel } from './panels.js';
-import { render, pageTop, reveal } from './views.js';
+import { render, shelfShift, reveal } from './views.js';
 import { closeSheet } from './sheet.js';
 import { pagerBegin, pagerMove, pagerEnd, pagerCancel, pagerOn, leaveTile, toss, fileTo } from './motion.js';
 import { save } from './persist.js';
@@ -275,14 +275,16 @@ function candidate(g, cx, cy){
   if(h<1){ if(hd.includes('n')) y=b.y+b.h-1; h=1; }
   return {x,y,w,h};
 }
-/* A box is in **board** rows; `grid-row` is in **page** rows. They are the same
-   thing only on page one, and everything that draws a box onto the screen has
-   to take the page off it — the same subtraction `gridTile()` makes as it
-   renders. Forgetting it put a resizing tile at a row the page hasn't got, so
-   it disappeared until you let go. See decision 102. */
+/* A box is in **board** cells; `grid-column`/`grid-row` are in **shelf** cells.
+   They are the same thing only on the first shelf, and everything that draws a
+   box onto the screen has to take the shelf off it — the same subtraction
+   `gridTile()` makes as it renders. Forgetting it put a resizing tile at a row
+   the shelf hasn't got, so it disappeared until you let go. Now in both
+   directions. See decisions 102 and 141. */
 function place(el, b, cid){
-  el.style.gridColumn=`${b.x} / span ${b.w}`;
-  el.style.gridRow=`${b.y - pageTop(cid||ROOT)} / span ${b.h}`;
+  const s = shelfShift(cid||ROOT);
+  el.style.gridColumn=`${b.x - s.x} / span ${b.w}`;
+  el.style.gridRow=`${b.y - s.y} / span ${b.h}`;
 }
 // put a carried tile down: the offset the sway was composing, and the fallback
 function clearCarry(el){
@@ -390,13 +392,15 @@ function aimHeld(g, px, py){
   const home=grid.dataset.gridfor||ROOT;
   if(!canFile(g.id, home)) return;
   g.dropEl=grid; g.dropOn=home; grid.classList.add('dropboard');
-  /* Which cell, in the board's own coordinate space — `pageTop()` added back,
-     because `cy` came off the screen and page two is a window onto rows
-     thirteen and up. Decision 102, and it is invisible on page one. */
+  /* Which cell, in the board's own coordinate space — the shelf's origin added
+     back, because the reading came off the *screen* and the shelf you are on
+     is a window onto somewhere else in the board. Decisions 102 and 141, and
+     it is invisible on the first shelf. */
   const gr=gridOf(undefined, home), r=grid.getBoundingClientRect(), cw=cellW(grid, gr);
+  const sh=shelfShift(home);
   const [w,h]=sizeOfKind(o.kind, dev(), home);
-  const x=clamp(Math.floor((px-r.left)/(cw+gr.gap))+1, 1, Math.max(1, gr.cols-w+1));
-  const y=Math.max(1, Math.floor((py-r.top)/(CELL[dev()]+gr.gap))+1) + pageTop(home);
+  const x=clamp(Math.floor((px-r.left)/(cw+gr.gap))+1, 1, Math.max(1, gr.shelfW-w+1)) + sh.x;
+  const y=Math.max(1, Math.floor((py-r.top)/(CELL[dev()]+gr.gap))+1) + sh.y;
   const b={x, y, w, h};
   // shown only where it would actually land: a band over a taken cell is a
   // promise the drop cannot keep, and the fallback is a spot nobody chose
@@ -660,13 +664,15 @@ function onDown(e){
   if(e.target.classList && e.target.classList.contains('grid')){
     const grid=e.target, home=grid.dataset.gridfor||ROOT;
     const g=gridOf(undefined, home), r=grid.getBoundingClientRect(), cw=cellW(grid,g);
-    const cx=clamp(Math.floor((e.clientX-r.left)/(cw+g.gap))+1, 1, g.cols);
-    /* A board row, not the row you touched: `cy` comes off the screen, so on
-       page two it is thirteen short of where the object actually goes. Adding
-       the page back here is what makes every reader below — `boxOk`,
-       `overlaps`, and the box `create()` is handed — see the same coordinate
-       space the model stores. See decision 102. */
-    const cy=Math.max(1, Math.floor((e.clientY-r.top)/(CELL[dev()]+g.gap))+1) + pageTop(home);
+    const sh=shelfShift(home);
+    /* A **board** cell, not the cell you touched: the reading comes off the
+       screen, so on any shelf but the first it is a shelf short of where the
+       object actually goes. Adding the shelf's origin back here is what makes
+       every reader below — `boxOk`, `overlaps`, and the box `create()` is
+       handed — see the same coordinate space the model stores. Decisions 102
+       and 141. */
+    const cx=clamp(Math.floor((e.clientX-r.left)/(cw+g.gap))+1, 1, drawCols(g)) + sh.x;
+    const cy=Math.max(1, Math.floor((e.clientY-r.top)/(CELL[dev()]+g.gap))+1) + sh.y;
     const locked=grid.classList.contains('locked');
     G={type:'sketch', grid, parent:home, x0:cx, y0:cy,
        stepX:cw+g.gap, stepY:CELL[dev()]+g.gap, sx:e.clientX, sy:e.clientY, mode:null,
@@ -1146,7 +1152,8 @@ function applyDrag(G, dx, dy){
       const moved=G.group.map(g2=>({id:g2.id, box:{x:g2.box.x+cx, y:g2.box.y+cy, w:g2.box.w, h:g2.box.h}}));
       G.moved=moved;
       const g0=gridOf();
-      G.ok = moved.every(m=>m.box.x>=1 && m.box.y>=1 && m.box.x+m.box.w-1<=g0.cols)
+      G.ok = moved.every(m=>m.box.x>=1 && m.box.y>=1
+              && m.box.x+m.box.w-1<=g0.cols && m.box.y+m.box.h-1<=g0.rows)
         && !childrenOf(container(G.parent)).some(o=>!ids.includes(o.id) &&
              moved.some(m=>overlaps(m.box, lay(o))));
     } else {

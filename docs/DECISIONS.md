@@ -6249,3 +6249,97 @@ stop the border slot drawing a frame on a tile one cell wide (decision 87) —
 that means "do not dress the edge", not "this object is flat" — and `bd-none`
 also zeroes the shadow, which left a book as the one thing on the desk not
 sitting on the surface. A spine states its shadow back.
+
+## 140. A checklist front shows twice as much
+
+One task-sized line per cell of height was the right rule while a task tile was
+the unit: a checklist three cells tall showed three tasks the way three task
+tiles would, and the two were directly comparable.
+
+In practice a checklist is the one face you *want* dense. The whole argument for
+a face that wears its contents on the outside is seeing more of them than
+opening it would show you, and one-for-one gave up exactly that. **Two to a
+cell**, with the type and the box brought down to suit — a six-cell front shows
+twelve things instead of six.
+
+It is a fact about the **desk**, not about one drawer, the same way a tick box is
+(decision 83): a checklist packed one way sitting beside one packed the other is
+two apps sharing a board. One switch in Settings, and the old density is under
+it. `--clrows` stays the divisor every line's flex-basis is worked out from, so
+the count and the row height cannot disagree.
+
+## 141. One desk, nine shelves
+
+A **shelf** is one screenful of board, and it is the unit everything else is
+counted in. The **Desk** is three shelves by three and you start in the middle
+one; every other container is **one** shelf, with the option of more.
+
+That replaces two things at once.
+
+**Pages are gone.** A page was a window of *rows* onto a board that was as tall
+as it needed to be. A shelf is that idea given a second axis and a finite board:
+nine windows, and running out of them means something. Everything a page had
+carries over — `SHELFSHIFT` in tiles.js subtracts the shelf as it draws exactly
+as `PAGESHIFT` subtracted the page, boxes are never rewritten, and anything
+reading a cell off the screen adds it back — with both axes instead of one.
+
+**And so is the row of desks.** A desk was a drawer promoted out into a master
+space you walked sideways, and what it bought was *room*: somewhere to put a
+whole area of your life without it landing on the same board as everything else.
+But it bought the room by making some drawers a different **kind of thing** from
+the rest — one you stand on rather than go into — and that is a second concept
+for a problem space itself can solve. You get your Finance board by putting a
+drawer on the shelf to the left. `deskIds()`, `isDesk()`, `deskOf()` and
+`deskHere()` collapse to constants rather than being deleted, because everything
+that asks "which desk am I on" is asking a question that still has an answer.
+
+### The two devices finally agree about a shelf
+
+On a Mac a shelf is **eight columns** — a third of the twenty-four the desk board
+has always had — so the desk shows its whole middle *row* of three side by side,
+and the rows above and below are up and down the scroller. That is the one thing
+the extra width is worth spending on.
+
+It also means a drawer, being one shelf, is a third of the Mac's width, drawn at
+the same cell size as everything else and centred in the carcass: a shelf sitting
+in the middle of a cabinet, which is what it is. The cell is derived from the
+**desk's** width over its twenty-four columns whatever board is showing —
+measuring the element itself would make a drawer's cells three times the desk's.
+Migration 27 rescales every stored Mac drawer layout 3:1 for it, which is the
+same arithmetic the phone grid has been rescaled with three times.
+
+### Four things learned building it
+
+**Place nothing before the board has been measured.** A shelf is as tall as
+whatever fits on this screen, so until that is known the geometry is a guess —
+and placing on a guess writes a coordinate in the wrong space, which the
+correction then has to shuffle. `ensureBox()` returns null while unmeasured and
+the renderer leaves the object out for that one frame; the frame in question is
+the first one at launch, and sizeGrid() re-renders the moment it has a number.
+Without this, everything landed in the top-left shelf on frame one and the
+centring shifted half of it off the desk.
+
+**A new object goes on the shelf you are looking at.** `freeSpot()` scans the
+current shelf first and then the others *nearest first*, so a full shelf spills
+next door rather than to a corner. Scanning from the origin is decision 46's bug
+with eight more places to hide in.
+
+**A board can be full, and then it says so.** `fits()` is asked before anything
+is made — before the type is even asked which sort of note you want — and refuses
+with a sentence that says what to do about it. An object with nowhere to be is
+worse than no object. The one place that writes an overlap is `anySpot()`, for
+things that already exist and must be somewhere: a reparent, a paste, a shelf
+that got shorter when the window did.
+
+**Nothing straddles a seam where a seam is a screen.** That is a phone: half a
+tile on each of two shelves is a tile you can read neither half of. On a Mac the
+three shelves of a row are all visible at once and a tile lying across two is
+perfectly legible, so nothing is refused there — the same shape of rule a page
+break had, and the same reason.
+
+### And the dots became a map
+
+Nine shelves are a *square*, so the dots by the title are one too — a map you can
+aim at rather than a count you have to translate. The name opens the big version:
+the nine drawn as they actually are, each with what is on it at a fiftieth of the
+size and the one you are standing on lit.

@@ -489,13 +489,21 @@ function seed(){
   // The drawers whose whole job is a rule are magic drawers — they collect and
   // never hold. The rest are ordinary containers you file into.
   const MG = (o)=> DR(Object.assign({kind:'magic'}, o));
-  /* Ten drawer fronts in a rack along the top, at the size a drawer now starts
-     at. The rest of the desk is left clear on purpose: what a drawer holds is
-     behind it, so a wall of them is the whole point and takes one row.
-     The first three are the ones that start out pinned — see below. */
-  /* A desk has no box and no parent: it *is* somewhere, so it is not also a
-     front sitting on somebody else's board. See decision 40. */
-  const DESK = (o)=> DR(Object.assign({parent:null, desk:null, phone:null}, o));
+  /* Ten drawer fronts in a rack, at the size a drawer starts at, packed four
+     across and three down — which is **one shelf** on either device, because a
+     shelf is eight columns on both now (decision 141). The rest of the shelf is
+     left clear on purpose: what a drawer holds is behind it, so a wall of them
+     is the whole point and it takes a corner.
+
+     Authored on the *first* shelf and moved to the middle one at first render
+     by centreDesk(), for the reason it exists: a shelf is as tall as whatever
+     fits on this particular screen, and nothing knows that number until the
+     board has been measured once.
+
+     `shelves` is the "add another shelf" the drawer editor writes. The five
+     that actually hold things get a second one side by side — a drawer is one
+     shelf until you say otherwise, and a sample desk that demonstrates saying
+     otherwise is worth more than one that quietly never needs to. */
   const drawers = [
     MG({id:'d_today', title:'Today',        c:6, layout:'list', filter:{due:'today', scope:'all'},      desk:{x:1,y:1,w:2,h:2},  phone:{x:1,y:1,w:2,h:2}}),
     /* The inbox **collects**; it does not hold. Everything loose on a desk —
@@ -504,15 +512,18 @@ function seed(){
        you, which is the one thing the desk is for. See decision 45. */
     MG({id:'d_in',    title:'Inbox',        c:5, layout:'list', filter:{loose:true, scope:'all'}, desk:{x:3,y:1,w:2,h:2},  phone:{x:3,y:1,w:2,h:2}}),
     // everything still to do, wherever it lives — the drawer that answers "what
-    // is outstanding" without caring which desk or project it is outstanding on
+    // is outstanding" without caring which project it is outstanding in
     MG({id:'d_all',   title:'Everything',   c:9, layout:'list', filter:{kinds:['task'], scope:'all'},   desk:{x:5,y:1,w:2,h:2},  phone:{x:5,y:1,w:2,h:2}}),
-    DR({id:'d_ideas', title:'Idea Bin',     c:12, desk:{x:7,y:1,w:2,h:2},  phone:{x:7,y:1,w:2,h:2}}),
-    DR({id:'d_studio',title:'Studio',       c:9, desk:{x:9,y:1,w:2,h:2},  phone:{x:1,y:3,w:2,h:2}}),
-    MG({id:'d_open',  title:'Open Questions',c:10,filter:{kinds:['question'], rule:{f:'answer',op:'is',v:''}},              desk:{x:11,y:1,w:2,h:2},  phone:{x:3,y:3,w:2,h:2}}),
-    DR({id:'d_keep',  title:'Keeping Up',   c:8, desk:{x:13,y:1,w:2,h:2},  phone:{x:5,y:3,w:2,h:2}}),
-    MG({id:'d_done',  title:'Done & Dusted',c:5, filter:{done:true, scope:'all'},                       desk:{x:15,y:1,w:2,h:2},  phone:{x:7,y:3,w:2,h:2}}),
-    DESK({id:'d_write', title:'Writing Desk', c:7}),
-    DESK({id:'d_kitch', title:'Kitchen',      c:11})
+    DR({id:'d_ideas', title:'Idea Bin',     c:12, shelves:{w:2,h:1}, desk:{x:7,y:1,w:2,h:2},  phone:{x:7,y:1,w:2,h:2}}),
+    DR({id:'d_studio',title:'Studio',       c:9,  shelves:{w:2,h:1}, desk:{x:1,y:3,w:2,h:2},  phone:{x:1,y:3,w:2,h:2}}),
+    MG({id:'d_open',  title:'Open Questions',c:10,filter:{kinds:['question'], rule:{f:'answer',op:'is',v:''}},              desk:{x:3,y:3,w:2,h:2},  phone:{x:3,y:3,w:2,h:2}}),
+    DR({id:'d_keep',  title:'Keeping Up',   c:8,  shelves:{w:2,h:1}, desk:{x:5,y:3,w:2,h:2},  phone:{x:5,y:3,w:2,h:2}}),
+    MG({id:'d_done',  title:'Done & Dusted',c:5, filter:{done:true, scope:'all'},                       desk:{x:7,y:3,w:2,h:2},  phone:{x:7,y:3,w:2,h:2}}),
+    /* These two were **desks** — drawers promoted out into a row of their own.
+       There is one desk now and it is nine shelves, so they are drawers on it
+       like everything else. See decision 141. */
+    DR({id:'d_write', title:'Writing Desk', c:7,  shelves:{w:2,h:1}, desk:{x:1,y:5,w:2,h:2},  phone:{x:1,y:5,w:2,h:2}}),
+    DR({id:'d_kitch', title:'Kitchen',      c:11, shelves:{w:2,h:1}, desk:{x:3,y:5,w:2,h:2},  phone:{x:3,y:5,w:2,h:2}})
   ];
 
   // The app's own buttons live on the desk, on the grid, and move like anything
@@ -648,12 +659,10 @@ function seed(){
      still outstanding anywhere. A first desk should show what pinning is for,
      and these are the ones worth reaching in one tap. */
   return {objects: drawers.concat(controls, objects, museum),
-          /* Two of the drawers start as desks of their own, because one desk
-             holding a life is exactly the thing desks exist to stop — and a
-             sample desk that never demonstrates the master space is a sample
-             of the old app. A desk is not on the shelf: it is somewhere you
-             walk to, and the title at the top left lays them all out. */
-          desks: [ROOT, 'd_write', 'd_kitch'],
+          /* One desk, nine shelves. The row is kept as a one-element list
+             rather than deleted, because a backup carries it and every reader
+             of it now answers with a constant. See decision 141. */
+          desks: [ROOT],
           pins: ['d_today','d_in','d_all']};
 }
 
@@ -666,6 +675,11 @@ function reset(){
   const s = seed();
   S = {
     objects:s.objects, kinds:{}, plans:[], desks:s.desks.slice(),
+    /* Which devices have had what is on the desk moved to the middle shelf.
+       Empty on a fresh desk too: the seed is authored on the *first* shelf,
+       because a shelf is as tall as whatever fits on this screen and nothing
+       knows that number until the board has been measured. See centreDesk(). */
+    centred:{},
     // one shelf, one list: anything at all may be kept on it, and it is the
     // same list wherever you are standing
     pins:s.pins.slice(),
@@ -1177,21 +1191,29 @@ const containers = ()=> S.objects.filter(isContainer);
    path has to tidy up after itself. The row does not wrap: a space you can walk
    off the end of is a space you can learn, and a loop with a seam in it is not
    spatial. See decision 39. */
-const deskIds = ()=> (S.desks||[ROOT]).filter(id=>id===ROOT || (byId(id)&&isContainer(byId(id))));
-const deskList = ()=> deskIds().map(container).filter(Boolean);
-const isDesk = id => deskIds().includes(id||ROOT);
-/* Which desk something is on — the nearest ancestor that is one. ROOT is always
-   a desk, so this always terminates somewhere. */
-function deskOf(o){
-  let x = typeof o==='string' ? container(o) : o, n=0;
-  while(x && n++ < 100){
-    if(isDesk(x.id)) return x.id;
-    x = x.parent ? container(x.parent) : null;
-  }
-  return ROOT;
-}
-// which desk you are looking at, whichever board of it you are on
-const deskHere = ()=> deskOf(S.view==='drawer' && S.drawerId ? S.drawerId : ROOT);
+/* ---- …and then there was one -------------------------------------------
+   All of that was right about the problem and wrong about the answer. What a
+   row of desks bought was **room**: somewhere to put a whole area of your life
+   without it landing on the same board as everything else. But it bought the
+   room by making some drawers a different *kind of thing* from the rest — a
+   drawer you could stand on rather than go into — and that is a second concept
+   for a spatial problem that space itself can solve.
+
+   The Desk is nine screens now (decision 141). A drawer is a drawer again,
+   whatever is in it, and you get your Finance board by putting a drawer on the
+   shelf to the left rather than by promoting one out of the world.
+
+   So there is exactly one desk and these four readers collapse to constants.
+   They are kept rather than deleted because everything that asks "which desk
+   am I on" is asking a question that still has an answer — it is just always
+   the same one — and because a magic drawer's `scope:'desk'`, the breadcrumb's
+   root and `gridKeyOf()`'s middle step all read them. `S.desks` is still
+   loaded and saved so an old backup survives a round trip. See decision 141. */
+const deskIds = ()=> [ROOT];
+const deskList = ()=> [rootObj()];
+const isDesk = id => (id||ROOT)===ROOT;
+const deskOf = ()=> ROOT;
+const deskHere = ()=> ROOT;
 
 /* ---- where a container is kept -----------------------------------------
    There was a shelf: one global row along the bottom of a phone, holding
@@ -1204,8 +1226,9 @@ const deskHere = ()=> deskOf(S.view==='drawer' && S.drawerId ? S.drawerId : ROOT
    everything else. `S.pins` is still loaded and saved untouched, so nothing
    anybody put on the shelf is lost and putting it back is putting these few
    lines back. */
-// 'desk' | null — how this container is kept, if at all
-const placeOf = id => isDesk(id) && id!==ROOT ? 'desk' : null;
+// 'desk' | null — how this container is kept, if at all. Always null now:
+// there is one desk and nothing is promoted into it. See decision 141.
+const placeOf = ()=> null;
 
 /* ---- what answers a phone being tilted --------------------------------
    Two surfaces can, and they are worth having separately: the **desk**, whose

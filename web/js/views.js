@@ -1,4 +1,4 @@
-import { $, esc, ic, D, md, clamp, ROOT } from './util.js';
+import { $, $$, esc, ic, D, md, clamp, ROOT } from './util.js';
 import { S, K, T, byId, has, isContainer, containers, container, childrenOf, chainOf,
   deskTitle, rootObj, cfgOf, deskIds, deskHere, deskOf, isDesk, allTags, dev,
   beginPass, endPass,
@@ -6,8 +6,8 @@ import { S, K, T, byId, has, isContainer, containers, container, childrenOf, cha
   spanOf, coversDay, lastDay, boardLocked,
   TILT_MODES, tiltMode, tiltsDesk, tiltsWindows, tiltClasses, cueFlipped,
   URGES, workday } from './model.js';
-import { PHONE_GRIDS, CELL, COLW, MEASURE, colsOf, gridKeyOf,
-  pageRows, pageOfBox, lastPage,
+import { GRID, PHONE_GRIDS, CELL, COLW, MEASURE, colsOf, gridKeyOf, SHELVES, shelvesOf,
+  shelfRows, shelfOfBox, shelfAt, setShelf, shelfOrigin, SHELF, drawCols, drawRows,
   lay, gridOf, cellW, ensureBox, PLACED } from './grid.js';
 import { themeNow, applyLook, lookVal, STYLES, BACKDROPS, DARKMODES, darkMode, hasDark,
   palNow, styleNow, hexOf, objColour, slotName, OBJ0, CHECKS, dressAs } from './look.js';
@@ -47,10 +47,9 @@ function gridBar(c){
   let trail = chainOf(c.id);
   if(!(trail[0] && isDesk(trail[0].id))) trail = [container(deskOf(c.id)), ...trail];
   const atDesk = trail.length<=1;
-  const pages = pageCount(c.id);
-  const desks = deskIds(), here = deskHere();
+  const sh = shelvesOf(c.id), at = shelfAt(c.id);
   const deskBtn = (label)=>`<b class="deskname" data-act="deskmap"
-    title="Every desk, laid out">${esc(label)}</b>`;
+    title="Every shelf, laid out">${esc(label)}</b>`;
   return `<div class="gridbar shelf shelf-top">
     <div class="where">
       ${atDesk ? `<span class="here">${deskBtn(boardName(trail[0]))}</span>` :
@@ -61,25 +60,20 @@ function gridBar(c){
              : i===0 ? deskBtn(x.id===ROOT ? deskTitle() : boardName(x))
              : `<b data-drawer="${x.id}">${esc(boardName(x))}</b>`}`).join('')}</span>`}
       ${has(c,'magic')?`<span class="magicmark big" title="Collects by rule">${ic('sparkle',14)}</span>`:''}
-      ${/* The dots are the **desks**, in the order they sit in the master
-           space, with the one you are standing on lit. A row you walk sideways
-           is a row you can be lost in, and "third of five" is the one thing a
-           strip of dots says better than anything else — which is what they are
-           for on every home screen ever made. They used to count the pages of
-           this board, which is a fact about how far down you have scrolled and
-           reads as position in exactly the wrong axis. Pressing one goes there.
-
-           Dots while they fit; a count once they don't — nine is already more
-           than you can aim at, and thirty is a texture. */''}
-      ${desks.length>1?`<span class="deskmark" title="Which desk you are on — swipe sideways to walk them">${
-        desks.length<=9
-          ? desks.map(id=>`<i class="${id===here?'on':''}" data-deskgo="${id}"
-              title="${esc(boardName(container(id)))}"></i>`).join('')
-          : `<b>${desks.indexOf(here)+1}<u>/${desks.length}</u></b>`}</span>`:''}
-      ${/* …and the page, which is a number rather than a place. It only says
-           anything when there is more than one. */''}
-      ${pages>1?`<span class="pagemark" title="Two fingers up and down turn the page"
-        ><b>${pageAt(c.id)+1}<u>/${pages}</u></b></span>`:''}
+      ${/* The dots are the **shelves of this board**, laid out the way they
+           actually are, with the one you are standing on lit. A row of dots
+           was right when the desks were a row; nine shelves are a square, and
+           a square of nine dots is a map you can aim at rather than a count
+           you have to translate. It only says anything when there is more than
+           one shelf, which on a Mac — where the whole row is on the screen at
+           once — means the two rows you are not looking at. Pressing one goes
+           there. See decision 141. */''}
+      ${(sh.w*sh.h)>1?`<span class="shelfmark" style="--sw:${sh.w}"
+          title="Which shelf you are on — swipe to walk them">${
+        Array.from({length:sh.w*sh.h}, (_,i)=>{
+          const x=i%sh.w, y=(i/sh.w)|0;
+          return `<i class="${x===at.x&&y===at.y?'on':''}" data-shelfgo="${c.id}:${x}:${y}"></i>`;
+        }).join('')}</span>`:''}
     </div>
     <div class="bartools">
       ${/* The lock comes first, because it is the one that changes what every
@@ -95,10 +89,9 @@ function gridBar(c){
       ${/* How a board is laid out and how it sorts itself are things you set
            once and then live with, which is a settings question and not a
            tool. Both are rows in the board's own editor now. */''}
-      ${/* The star promotes: a drawer becomes a desk of its own, out in the
-           master space, and stops being on the board it was on at all. */''}
-      ${c.id===ROOT?'':`<button class="sqbtn${isDesk(c.id)?' on':''}" data-act="pin" data-id="${c.id}"
-        title="${isDesk(c.id)?'Make it an ordinary drawer again':'Give it a place of its own'}">${ic('star',16)}</button>`}
+      ${/* The star promoted a drawer into a desk of its own. There is one desk
+           now and it is nine shelves wide, so what the star bought — room — is
+           bought by putting the drawer on a shelf instead. See decision 141. */''}
       ${/* The brush is *this board*, whichever board it is. A drawer is an
            object and opens its object editor; a desk is a container without a
            tile and opens the same editor for itself — how it is laid out, what
@@ -389,7 +382,35 @@ function gridSizeField(cid){
       <div class="mini" style="--k:var(--brass);margin-top:6px">Fewer columns, bigger cells. The rows are whatever fits — a cell is square, so the columns decide both. ${
         app ? 'Every board that has not been asked this question itself.'
             : (own ? 'This board only.' : 'Following the desk — pick one to give this board its own.')}${
-        S.device==='phone' ? ` Right now: <b>${colsOf(app?null:cid, 'phone')} × ${pageRows('phone', app?null:cid)}</b>.` : ''}</div>
+        S.device==='phone' ? ` Right now a shelf is <b>${colsOf(app?null:cid, 'phone')} × ${shelfRows('phone', app?null:cid)}</b>.` : ''}</div>
+    </div>`;
+}
+/* ---- how many shelves a board is --------------------------------------
+   The Desk is three by three and every other container is one, with the option
+   of more — this is the option. Drawn as the grid it makes rather than as two
+   numbers: you are choosing a *shape*, and a picture of the shape is the one
+   thing a pair of steppers cannot show you.
+
+   Shrinking is allowed and is not destructive: nothing is deleted, and
+   anything left outside the smaller board is re-placed the next time the board
+   is drawn — the same licence `ensureBox()` takes with an object that has
+   never been in a grid. The desk's own row is fixed at three by three: it is
+   the room everything else is in, and a desk you can shrink to one shelf is
+   the app before this. See decision 141. */
+function shelfCountField(cid){
+  if(cid===ROOT) return `<div class="field" style="margin-top:12px"><label>Shelves</label>
+      <div class="mini" style="--k:var(--brass)">The Desk is <b>three by three</b>, and you start in the middle. Swipe up, down, left or right to walk them; on a Mac the middle row is on the screen at once and the other two are up and down the scroller.</div>
+    </div>`;
+  const now = shelvesOf(cid);
+  return `<div class="field" style="margin-top:12px"><label>Shelves</label>
+      <div class="shelfpick" style="--sw:${SHELVES}">${
+        Array.from({length:SHELVES*SHELVES}, (_,i)=>{
+          const x=i%SHELVES+1, y=((i/SHELVES)|0)+1;
+          return `<button class="shelfopt${x<=now.w&&y<=now.h?' on':''}"
+            data-shelfsize="${cid}:${x}:${y}" title="${x} × ${y}"></button>`;
+        }).join('')}</div>
+      <div class="mini" style="--k:var(--brass);margin-top:6px">A shelf is one screenful. This board is <b>${now.w} × ${now.h}</b>${
+        now.w*now.h>1 ? ` — swipe between them` : ''}. Press a corner to make it that many; nothing is thrown away if you make it smaller, it is put back on a shelf that fits.</div>
     </div>`;
 }
 const installed = ()=> window.matchMedia('(display-mode: standalone)').matches || !!window.navigator.standalone;
@@ -780,30 +801,44 @@ function settingsBody(sec){
    The miniature is drawn from the boxes rather than from tiles, on purpose: a
    desk map is about *shape* — where the rack is, how full the board is — and
    forty real tiles at 3% would be a smear that costs a render. */
-function deskCard(id){
-  const c=container(id), on=deskHere()===id;
-  const g=gridOf('desk'), kids=childrenOf(c);
-  /* Anything that has never been on this layout has no box, and lay() answers
-     1,1 for all of them — which drew every unvisited desk as one square. Place
-     them, which is exactly what opening the desk would do a moment later. */
-  kids.forEach(o=>ensureBox(o, 'desk', id));
-  const rows=Math.max(8, kids.reduce((m,o)=>{const b=lay(o,'desk');return Math.max(m,b.y+b.h-1)},0));
-  const bd=c.board ? String(c.board).split('|') : null;
-  return `<button class="deskcard${on?' on':''}" data-deskgo="${id}">
-    <span class="deskmini" style="--dcols:${g.cols};--drows:${rows}${
-        bd?`;--board-1:${esc(bd[0])};--board-2:${esc(bd[1]||bd[0])}`:''}">
-      ${kids.map(o=>{ const b=lay(o,'desk');
-        return `<i style="--k:${objColour(o)};grid-column:${b.x}/span ${b.w};grid-row:${b.y}/span ${b.h}"></i>`;
-      }).join('')}</span>
-    <b>${esc(id===ROOT?deskTitle():(c.title||'Untitled'))}</b>
-    <u>${on?'you are here · ':''}${kids.length} on it</u>
+/* ---- one shelf of a board, drawn small ---------------------------------
+   The desk map was a row of desks; there is one desk, so it is a map of its
+   **shelves** — the nine, laid out as they actually are, each with what is on
+   it drawn at a fiftieth of the size and the one you are standing on lit.
+   Press one and you are there.
+
+   Drawn from the boxes rather than from tiles, on purpose: a map is about
+   *shape* — where the rack is, how full a shelf is — and forty real tiles at
+   3% would be a smear that costs a render. */
+function shelfCard(cid, sx, sy){
+  const dv=dev(), g=gridOf(dv, cid), at=shelfAt(cid);
+  const on = at.x===sx && at.y===sy;
+  const x0=sx*g.shelfW, y0=sy*g.shelfH;
+  // an unplaced object has nowhere to draw yet, so it is not on any shelf
+  const kids=childrenOf(container(cid)).filter(o=>!!ensureBox(o, dv, cid));
+  const here=kids.map(o=>[o, lay(o, dv, cid)])
+    .filter(([,b])=> b.x>x0 && b.x<=x0+g.shelfW && b.y>y0 && b.y<=y0+g.shelfH);
+  return `<button class="deskcard shelfcard${on?' on':''}" data-shelfgo="${cid}:${sx}:${sy}">
+    <span class="deskmini" style="--dcols:${g.shelfW};--drows:${g.shelfH}">
+      ${here.map(([o,b])=>
+        `<i style="--k:${objColour(o)};grid-column:${b.x-x0}/span ${b.w};grid-row:${b.y-y0}/span ${b.h}"></i>`
+      ).join('')}</span>
+    <u>${on?'you are here':here.length ? here.length+' on it' : 'empty'}</u>
   </button>`;
 }
+/* Nine cards in a three-by-three, which is the whole point: a map you can aim
+   at rather than a list you have to translate. A board with one shelf has
+   nothing to map, so the door says so instead of drawing a single card. */
 function deskMap(){
-  openPanel({key:'deskmap', wide:true, title:'Desks',
-    sub:'Swipe sideways to walk them — or jump',
-    body:()=>`<div class="deskmapgrid">${deskIds().map(deskCard).join('')}</div>
-      <div class="mini" style="--k:var(--brass);margin-top:10px">A desk is somewhere you can be. Promote any drawer with the star in its bar and it leaves the board it was on and joins this row.</div>`});
+  const cid = (S.view==='drawer' && S.drawerId) || ROOT;
+  const sh = shelvesOf(cid);
+  openPanel({key:'deskmap', wide:true, title: cid===ROOT ? deskTitle() : boardName(container(cid)),
+    sub: sh.w*sh.h>1 ? 'Nine shelves — swipe between them, or jump' : 'One shelf',
+    body:()=> sh.w*sh.h<=1
+      ? `<div class="mini" style="--k:var(--brass)">This board is one shelf. The <b>Desk</b> is nine — three across and three down, and you start in the middle. Swipe up, down, left or right to walk them.</div>`
+      : `<div class="shelfmap" style="--sw:${sh.w}">${
+          Array.from({length:sh.w*sh.h}, (_,i)=>shelfCard(cid, i%sh.w, (i/sh.w)|0)).join('')}</div>
+        <div class="mini" style="--k:var(--brass);margin-top:10px">The Desk is nine shelves and you start in the middle one. Swiping walks them; on a Mac the middle row is all on the screen at once and the other two are up and down the scroller.</div>`});
 }
 
 /* ============================================================
@@ -819,36 +854,73 @@ function bindSortables(){ /* delegation handles it; keep quick-add focused */ }
 const SCROLL = {key:null, top:0};
 const viewKey = ()=> S.view==='drawer' ? 'drawer:'+S.drawerId : 'desk';
 
-/* ---- which page of a board you are on ---------------------------------
-   Remembered per container, in memory, so walking into a drawer and back
-   doesn't lose your place — and never stored, because which screen of a board
-   you happened to be looking at is not a fact about the desk.
+/* ---- which shelf of a board you are on --------------------------------
+   The state lives in grid.js beside the geometry that reads it; this is the
+   half that renders. `goShelf()` is the one writer, and it takes a *step* —
+   one shelf in one direction — because that is what every way of moving
+   between them does: a swipe, an arrow key, a press on the map.
 
-   A board always offers one page past the last thing on it, so there is
-   somewhere to drag to and somewhere for a new object to land. */
-const PAGE = {};
-const pageCount = cid => lastPage(dev(), cid) + (pageRows(dev(), cid) ? 2 : 1);
-const pageAt = cid => Math.min(PAGE[cid]||0, pageCount(cid)-1);
-/* How many rows this board is scrolled down by, right now.
-
-   **A box in the model is in board rows and a cell on the screen is in page
-   rows, and the two are only the same on page one.** `gridTile()` subtracts
-   this as it draws (`PAGESHIFT` in tiles.js), which is the whole of paging —
-   but anything that reads a cell *off* the screen, or writes a box *onto* it,
-   has to make the same conversion or it is a page out. Three gestures did
-   not: sketching a new object read a screen row and stored it as a board row,
-   so on page two it collided with whatever was at that row on page one and
-   refused to make anything; and the move ghost and the live resize wrote a
-   board row straight into `grid-row`, which on page two is off the end of the
-   page — so a tile being resized vanished until you let go and a render put
-   it back. See decision 102. */
-const pageTop = cid => pageAt(cid) * pageRows(dev(), cid);
-function goPage(cid, n, soon){
-  const p = clamp(n, 0, pageCount(cid)-1);
-  if(p === pageAt(cid)) return false;
-  PAGE[cid]=p;
+   Nothing here is stored. Which screen of a board you happened to be looking
+   at is not a fact about the desk, and a desk should open on its middle shelf
+   in the morning whatever you were doing at midnight. */
+function goShelf(cid, dx, dy, soon){
+  const at = shelfAt(cid);
+  const moved = setShelf(cid, at.x+dx, at.y+dy);
+  if(!moved) return false;
   if(soon) renderSoon(); else render();
   return true;
+}
+function goShelfTo(cid, x, y, soon){
+  if(!setShelf(cid, x, y)) return false;
+  if(soon) renderSoon(); else render();
+  return true;
+}
+/* How far the shelf you are on is from the board's origin, in cells.
+
+   **A box in the model is in board cells and a cell on the screen is in shelf
+   cells, and the two are only the same on the first shelf.** `gridTile()`
+   subtracts this as it draws (`SHELFSHIFT` in tiles.js), which is the whole of
+   the shelf system — but anything that reads a cell *off* the screen, or
+   writes a box *onto* it, has to make the same conversion or it is a shelf
+   out. On a Mac it is always zero: the whole board is drawn and scrolled
+   rather than windowed, so there is nothing to shift. See decisions 102, 141. */
+const shelfShift = cid => S.device==='phone' ? shelfOrigin(cid) : {x:0, y:0};
+const shelfTop  = cid => shelfShift(cid).y;
+const shelfLeft = cid => shelfShift(cid).x;
+
+/* ---- putting what is already here onto the middle shelf ----------------
+   Every box on the desk was written when a board was one screen wide and as
+   tall as it needed to be. Under the shelves that is the **top-left** of nine,
+   and you start on the middle one — so a desk that has been used would open on
+   an empty shelf with everything you own one swipe up and to the left.
+
+   It cannot be done in the migration: a shelf is as tall as whatever fits on
+   *this* screen, and nothing knows that number until the board has been
+   measured once. So it happens on the first render per device that has a
+   measurement, and says so in `S.centred` — which is stored, because it must
+   happen exactly once and a second pass would push everything off the desk.
+
+   Only the desk's own board, and only the objects on it: a drawer is one shelf
+   and its contents are already on it. */
+function centreDesk(){
+  const dv = dev();
+  S.centred = S.centred || {};
+  if(S.centred[dv]) return false;
+  const g = gridOf(dv, ROOT);
+  if(!MEASURE[dv].w || !MEASURE[dv].room) return false;   // not measured yet
+  S.centred[dv] = true;
+  const mid = {x:(g.shelves.w-1)>>1, y:(g.shelves.h-1)>>1};
+  const dx = mid.x*g.shelfW, dy = mid.y*g.shelfH;
+  if(!dx && !dy) return true;
+  let moved=false;
+  S.objects.forEach(o=>{
+    if(o.parent!==ROOT) return;
+    const b=o[dv];
+    if(!b || !b.w) return;
+    o[dv]={...b, x:(b.x||1)+dx, y:(b.y||1)+dy};
+    moved=true;
+  });
+  return moved || true;
 }
 
 /* ---- show me the thing I just made -----------------------------------
@@ -864,11 +936,14 @@ function goPage(cid, n, soon){
    restores the remembered offset — would undo this. */
 function reveal(id){
   const o=byId(id);
-  // paged boards don't scroll — the thing to do is turn to the page it is on
+  /* A board is nine screens, so the thing to do first is **go to the shelf it
+     landed on** — otherwise a new object made while a shelf was full lands on
+     the one next door and it looks exactly like nothing happened. On a Mac
+     nothing is windowed and the scroll below does the work. */
   const home = o && (o.parent||ROOT);
-  if(o && pageRows(dev(), home)){
-    if(S.view==='drawer' ? S.drawerId===home : home===ROOT)
-      goPage(home, pageOfBox(lay(o), dev(), home));
+  if(o && dev()==='phone' && (S.view==='drawer' ? S.drawerId===home : home===ROOT)){
+    const s = shelfOfBox(lay(o, dev(), home), dev(), home);
+    goShelfTo(home, s.x, s.y);
   }
   const el=document.querySelector(`#app .grid .drawer[data-row="${id}"],#app .grid .drawer[data-drawer="${id}"]`);
   const sc=$('#app .scroll');
@@ -968,18 +1043,18 @@ function viewHTML(){
 
    Two things it must not leave behind: the id on the grid, because there would
    momentarily be two elements called #drawergrid and sizeGrid() measures the
-   first one it finds; and the remembered page, which is per container and not
-   the pager's to change until the swipe is committed. */
+   first one it finds; and the remembered **shelf**, which is per container and
+   not the pager's to change until the swipe is committed. */
 function previewHTML(at){
   const was={view:S.view, drawerId:S.drawerId, kindFilter:S.kindFilter};
-  const cid = at.drawerId || ROOT, wasPage = PAGE[cid];
+  const cid = at.drawerId || ROOT, wasShelf = SHELF[cid];
   S.view=at.view; S.drawerId=at.drawerId||null; S.kindFilter=null;
-  if(at.page!=null) PAGE[cid]=at.page;
+  if(at.shelf) SHELF[cid]=at.shelf;
   let html='';
   try{ html=viewHTML(); }
   finally{
     S.view=was.view; S.drawerId=was.drawerId; S.kindFilter=was.kindFilter;
-    if(at.page!=null){ if(wasPage==null) delete PAGE[cid]; else PAGE[cid]=wasPage; }
+    if(at.shelf){ if(wasShelf==null) delete SHELF[cid]; else SHELF[cid]=wasShelf; }
   }
   return html.replace(/ id="drawergrid"/g, '');
 }
@@ -1052,10 +1127,25 @@ function render(){
   paintStatusBar(frame, wood);
   // settings stopped being a view in v35; an old snapshot may still name it
   if(S.view==='settings') S.view='desk';
+  /* Put what is already on the desk onto the **middle** shelf, once per
+     device. It needs a measurement, so on the very first render it does
+     nothing and sizeGrid's re-render picks it up. See centreDesk(). */
+  const centred = centreDesk();
   const placed = PLACED.n;      // ensureBox() may invent boxes as this builds
   $('#app').innerHTML = viewHTML();
   const key=viewKey(), now=$('#app .scroll');
   if(key!==wasKey) SCROLL.top=0;
+  /* On a Mac nothing is windowed: the whole board is drawn and the shelf-rows
+     you are not on are above and below in the scroller. So arriving at a board
+     means scrolling to the row you are on — which for the desk is the middle
+     one, and is what "you start in the centre" means on a device that can see
+     three shelves at once.
+
+     Asked for here and **done in sizeGrid()**, after the measurement: a row is
+     as tall as the cell and the cell is not known until the board has been
+     laid out once, so doing it here scrolls to a guess and then never corrects
+     it. See wantScroll below. */
+  if(key!==wasKey && S.device!=='phone') SHELFSCROLL.want = true;
   /* Only when there is something to restore. Writing `scrollTop` on an element
      that was inserted a moment ago forces the browser to lay the whole board
      out then and there so it can work out the scroll range — nine milliseconds
@@ -1066,6 +1156,11 @@ function render(){
      where it belongs: at paint. */
   if(now && SCROLL.top) now.scrollTop=SCROLL.top;
   SCROLL.key=key;
+  /* …and on a Mac the shelf you are on **is where you have scrolled to**. The
+     scroller is a brand-new element every render, so this cannot leak; it
+     patches the dots in place rather than rendering, because re-laying a board
+     out on every scroll event is the one thing a scroll must never do. */
+  if(now && S.device!=='phone') now.addEventListener('scroll', onBoardScroll, {passive:true});
   bindSortables();
   sizeGrid();
   repositionPanel();   // a bubble is pinned to a tile, and the tiles just moved
@@ -1075,7 +1170,33 @@ function render(){
      It used to save unconditionally, which at three thousand objects meant
      35ms of serialising an unchanged desk every 250ms while you dragged.
      See decision 64. */
-  if(PLACED.n!==placed) save(); else saveIfDirty();
+  if(centred || PLACED.n!==placed) save(); else saveIfDirty();
+}
+
+/* ---- the scroll and the shelf, on a Mac -------------------------------
+   Two directions, and they are the same fact. Arriving at a board scrolls to
+   the shelf-row you are on (`want`), which has to wait for the measurement —
+   a row is as tall as the cell and the cell is not known until the board has
+   been laid out once. And scrolling *changes* which shelf you are on, because
+   on a Mac there is nothing else it could mean.
+
+   The dots are patched in place rather than re-rendered: laying a board out on
+   every scroll event is the one thing a scroller must never make you do. */
+const SHELFSCROLL = {want:false};
+function onBoardScroll(e){
+  const sc=e.currentTarget;
+  const cid=(S.view==='drawer'&&S.drawerId)||ROOT;
+  const g=gridOf('desk', cid);
+  const rowH=g.shelfH*g.rowh;
+  if(!(rowH>0) || g.shelves.h<2) return;
+  const y=Math.round(sc.scrollTop/rowH);
+  SCROLL.top = sc.scrollTop;
+  if(!setShelf(cid, shelfAt(cid).x, y)) return;
+  const at=shelfAt(cid);
+  $$('#app .shelfmark i').forEach(el=>{
+    const p=(el.dataset.shelfgo||'').split(':');
+    el.classList.toggle('on', +p[1]===at.x && +p[2]===at.y);
+  });
 }
 
 /* The graph-paper backdrop in arrange mode has to match the real column width,
@@ -1088,6 +1209,7 @@ function sizeGrid(){
   const grid=$('#drawergrid'); if(!grid) return;
   const g=gridOf(), w=cellW(grid,g);
   if(!(w>0)) return;
+  const deskCell = ()=> MEASURE.desk.w ? MEASURE.desk.w/GRID.desk.cols : CELL.desk;
   /* The cell is **square**: the row height is the measured column width, on
      both devices. It was briefly the board divided by a stated fourteen rows,
      which made a page the same shape on every handset and a cell a third taller
@@ -1131,12 +1253,12 @@ function sizeGrid(){
     const gapMin = parseFloat(getComputedStyle(sc).getPropertyValue('--gapmin'))||0;
     const railMin = rail ? (parseFloat(getComputedStyle(rail).minHeight)||0) : 0;
     const room = main.clientHeight - barH - gapMin - railMin;
-    const boardW = w * g.cols;
-    const was = pageRows('phone', cid);
+    const boardW = w * drawCols(g);
+    const was = shelfRows('phone', cid);
     if(MEASURE.phone.room!==room || Math.abs(MEASURE.phone.w-boardW)>0.5){
       MEASURE.phone.room=room; MEASURE.phone.w=boardW;
     }
-    const rows=pageRows('phone', cid);
+    const rows=shelfRows('phone', cid);
     if(rows!==was && !sizing){ sizing=true; try{ render(); } finally { sizing=false; } return; }
     /* Written only when they have actually changed. The markup already carries
        last render's numbers (see REVEAL), so on an ordinary render these agree
@@ -1149,35 +1271,70 @@ function sizeGrid(){
     if(gap!==REVEAL.gap){ REVEAL.gap=gap; sc.style.marginTop = gap+'px'; }
     if(rail && deep!==REVEAL.rail){ REVEAL.rail=deep; rail.style.height = deep+'px'; }
 
-  } else if(dev()!=='phone'){ MEASURE.desk.room=0; MEASURE.desk.w=w*g.cols; }
+  } else if(dev()!=='phone'){
+    /* A Mac measures the same two numbers now, because a shelf is the
+       coordinate unit on both devices and something has to say how tall one
+       is. The **width** is the desk's full twenty-four columns whatever board
+       is showing — the grid element itself is only as wide as its own columns
+       (a drawer is one shelf, so a third of it, centred), so measuring the
+       element would make a drawer's cell three times a desk's. The room is the
+       scroller's own height, which is one shelf-row: the desk's other two rows
+       are above and below it and you scroll to them. */
+    const main2 = grid.closest('.main');
+    const avail = sc ? sc.clientWidth : w*drawCols(g);
+    const room = sc ? sc.clientHeight : 0;
+    const wasR = shelfRows('desk', cid);
+    MEASURE.desk.w = avail;
+    MEASURE.desk.room = room;
+    if(shelfRows('desk', cid)!==wasR && !sizing){
+      sizing=true; try{ render(); } finally { sizing=false; } return;
+    }
+  }
   /* Do NOT round. Columns are `1fr` and therefore fractional; rounding the row
      height to a whole pixel made rows and columns different sizes, and the
      error accumulated across the grid — a tile at column 16 sat ~7px from
      where the drag maths thought it was, which is why things far to the
      bottom-right were hardest to pick up. */
-  const cell = w;
+  /* On a Mac the cell is the **desk's** width over its twenty-four columns,
+     not this board's width over its own — a drawer is one shelf, so its
+     element is a third as wide, and measuring the element would make its cells
+     three times the size of the desk's. The element is then given that width
+     explicitly (`.grid` is `width:calc(var(--cols)*var(--rowh))` on a Mac), so
+     the measurement above agrees with it once the first pass has settled. */
+  const cell = dev()==='phone' ? w : deskCell();
   /* Same again, and this is the one that mattered: gridOfContainer() builds the
      board from the *last* measurement, so on any render where the window has
      not moved the measurement agrees with what is already on the element and
      there is nothing to write. `--cellw` and `--cellstep` used to be written
      here too and were read by nobody — two style writes per render for a value
      no rule has ever asked for. */
-  const same = CELL[dev()]===cell && COLW[dev()]===w;
+  const same = CELL[dev()]===cell && COLW[dev()]===cell;
   const changed = !sizing && Math.abs(CELL[dev()]-cell) > 0.25;
   if(!same){
-    CELL[dev()]=cell; COLW[dev()]=w;
+    CELL[dev()]=cell; COLW[dev()]=cell;
     grid.style.setProperty('--rowh', cell+'px');
     // a checker square is two cells each way — the same number now, but written
     // as two, because the two are measured separately and one may drift first
-    grid.style.setProperty('--checkerx', 2*(w+g.gap)+'px');
+    grid.style.setProperty('--checkerx', 2*(cell+g.gap)+'px');
     grid.style.setProperty('--checkery', 2*(cell+g.gap)+'px');
     grid.style.gridAutoRows = cell+'px';
     const rr=(grid.style.gridTemplateRows.match(/repeat\((\d+)/)||[])[1];
     if(rr) grid.style.gridTemplateRows=`repeat(${rr},${cell}px)`;
   }
-  if(changed){ sizing=true; try{ render(); } finally { sizing=false; } }
+  if(changed){ sizing=true; try{ render(); } finally { sizing=false; } return; }
+  /* The scroll the last render asked for, now that a row's height is known. */
+  if(SHELFSCROLL.want && dev()!=='phone'){
+    SHELFSCROLL.want=false;
+    const cid = grid.dataset.gridfor || ROOT;
+    const gg = gridOf('desk', cid);
+    if(gg.shelves.h>1 && sc){
+      SCROLL.top = shelfAt(cid).y * gg.shelfH * cell;
+      sc.scrollTop = SCROLL.top;
+    }
+  }
 }
 
-export { render, renderSoon, sizeGrid, pageTop, reveal, deskMap, viewHTML, previewHTML,
-  pageAt, pageCount, goPage, gridSizeField,
+export { render, renderSoon, sizeGrid, shelfTop, shelfLeft, shelfShift, centreDesk,
+  reveal, deskMap, viewHTML, previewHTML,
+  goShelf, goShelfTo, gridSizeField, shelfCountField,
   settingsPanel, toggleSettings };

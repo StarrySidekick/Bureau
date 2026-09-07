@@ -3,7 +3,7 @@ import { S, byId, K, KINDS, KEYS, kindHas, has, isContainer, genKindOf, streak, 
   repeatOf, repeats, nextRepeat, faceOf, childrenOf, TILT_MODES, tiltMode,
   ctlOf, isPrimary,
   placeOf, cfgOf, isHeld, heldObjects } from './model.js';
-import { GRID, PHONE_GRIDS, colsOf, gridOf, freeSpot, lay, boxOk, sizeOfKind, keepSize } from './grid.js';
+import { GRID, PHONE_GRIDS, colsOf, gridOf, freeSpot, anySpot, roomFor, lay, boxOk, sizeOfKind, keepSize } from './grid.js';
 import { randomFront, randomBoard, randomLook, styleDefaults,
   STYLES, CHECKS, DARKMODES, styleKey, applyStyle, applyLook } from './look.js';
 import { render, reveal } from './views.js';
@@ -374,60 +374,58 @@ function setGridSize(key, cid){
   toast(`${key[0].toUpperCase()+key.slice(1)} — ${cols} across`);
 }
 
-/* Where a drawer is kept, which is deliberately not a property of the drawer —
-   see the note in model.js. `where` is:
+/* ---- a drawer is a drawer ---------------------------------------------
+   Promoting one into a desk of its own is gone with the row of desks it was
+   promoting into (decision 141). What it bought was **room**, and the Desk is
+   nine shelves now — you get your Finance board by putting a drawer on the
+   shelf to the left, which is a thing you already know how to do.
 
-     desk    out in the master space, somewhere you can be
-     null    an ordinary drawer, on the board where it lives
-
-   The row appends, so it fills left to right in the order you chose things, and
-   taking one out leaves the rest where they were.
-
-   Becoming a desk is a **move**, not a label. A desk is somewhere you can be,
-   and a thing cannot be both a place you go to and a front sitting on somebody
-   else's board — so promoting takes the drawer off the board it was on
-   entirely, and demoting puts it back where it came from. Its boxes go with
-   it, because it is a new coordinate space either way. See decision 40. */
+   Both readers are kept as no-ops rather than deleted, because a keyboard
+   shortcut, a context-menu item and an old backup all still reach them, and a
+   missing function is a thrown error where a refusal is a sentence. `setPin`
+   also has one job left: **demoting**. An old desk is a container with a null
+   parent, which is no coordinate space at all, so anything still in that state
+   has to be put back on the board — which is what migration 27 does to all of
+   them at once and what this does to any that arrive later. */
 function setPin(id, where){
   const o=byId(id); if(!o) return;
-  /* 'pin' is still accepted and still means "not a desk": the shelf is out for
-     now (decision 53) and there is nowhere for a pinned thing to be drawn, so
-     asking for it takes the drawer off the desk row and leaves it on its board.
-     Old data keeps its `S.pins` list, untouched, for whenever the shelf comes
-     back. */
-  const to = where===true ? 'desk' : (where==='pin' ? null : (where||null));
-  // only a container can be a desk — a desk is a place, and a place holds things
-  if(to==='desk' && !isContainer(o)) return;
-  const was = placeOf(id);
-  S.desks = (S.desks||[ROOT]).filter(x=>x!==id);
-  if(to==='desk'){
-    S.desks.push(id);
-    if(was!=='desk'){
-      // remember where it stood, so demoting is a return and not a guess
-      o.wasIn = o.parent||ROOT;
-      o.parent=null; keepSize(o);
-    }
-  } else {
-    if(was==='desk'){
-      o.parent = (o.wasIn && (o.wasIn===ROOT || byId(o.wasIn))) ? o.wasIn : ROOT;
-      delete o.wasIn; keepSize(o);
-      // whoever was looking at it as a desk has to be put somewhere real
-      if(S.view==='drawer' && S.drawerId===id){ S.view='desk'; S.drawerId=null; }
-    }
+  if(where==='desk' || where===true){
+    toast('Drawers are not desks any more — put it on a shelf instead');
+    return;
   }
+  if(o.parent==null){
+    o.parent = (o.wasIn && (o.wasIn===ROOT || byId(o.wasIn))) ? o.wasIn : ROOT;
+    delete o.wasIn; keepSize(o);
+    if(S.view==='drawer' && S.drawerId===id){ S.view='desk'; S.drawerId=null; }
+  }
+  S.desks = [ROOT];
   render();
 }
-/* The star in the bar. It promotes, because that is the interesting half of
-   the question — and it says what promoting costs, since a drawer that becomes
-   a desk leaves the board it was on and drops out of what every rule on every
-   *other* desk can see. Both are consequences you would not guess. */
 function togglePin(id){
   const o=byId(id); if(!o || !isContainer(o)) return;
-  const was = placeOf(id)==='desk';
-  const home = was ? null : (byId(o.parent)||{}).title || 'the desk';
-  setPin(id, was ? null : 'desk');
-  toast(was ? `${o.title} is an ordinary drawer again`
-            : `${o.title} is a desk of its own — it has left ${home}`);
+  toast('Every drawer is on the Desk now — the Desk is nine shelves wide');
+}
+
+/* ---- it won't fit ------------------------------------------------------
+   A shelf is a screen and a board is one shelf or nine, so a board can be
+   **full**. When it is, the thing you asked for is not made: an object with
+   nowhere to be is worse than no object, and quietly putting it somewhere else
+   is the thing decision 46 spent a version establishing you must not do.
+
+   Said once, here, so every maker says the same sentence — and it says what to
+   do about it, because "it won't fit" with no next move is an error message.
+   Returns false when there is no room, so a caller reads as
+   `if(!fits(...)) return;`. See decision 141. */
+function fits(kind, home, dv){
+  const d = dv || dev();
+  const [w,h] = sizeOfKind(kind, d, home);
+  if(roomFor(w, h, d, home)) return true;
+  const c = byId(home);
+  const many = c && (c.shelves||{}).w*(c.shelves||{}).h > 1;
+  toast(home===ROOT
+    ? 'No room on the Desk — all nine shelves are full'
+    : `No room in ${c && c.title ? c.title : 'here'} — give it another shelf in its editor${many?'':''}`);
+  return false;
 }
 /* Tag filtering has no mode and no filter bar on purpose. A tag you care about
    enough to filter by is a tag you care about enough to keep, and "everything
@@ -549,7 +547,7 @@ function gather(aId, bId, kind){
   b.ord=0; a.ord=1;
   const [kw,kh]=sizeOfKind(kind, dv, home);   // never K(kind).size — a board states its own columns
   const want={x:box.x, y:box.y, w:kw, h:kh};
-  c[dv] = boxOk(want, c.id, dv, home) ? want : freeSpot(kw, kh, dv, home);
+  c[dv] = boxOk(want, c.id, dv, home) ? want : anySpot(kw, kh, dv, home);
   toast(`Made a ${K(kind).nm.toLowerCase()}`);
   return c;
 }
@@ -564,6 +562,8 @@ function quickAdd(text, kind, drawerId){
   if(/!tomorrow\b/i.test(t)){ due=dz(1); t=t.replace(/!tomorrow\b/i,''); }
   if(/!week\b/i.test(t)){ due=dz(7); t=t.replace(/!week\b/i,''); }
   t=t.replace(/\s+/g,' ').trim();
+  // a shelf is finite: a line typed into a full board makes nothing and says so
+  if(!fits(k, drawerId || (S.view==='drawer' && S.drawerId) || ROOT)) return null;
   const o=create(k,{title:t, tags, parent:drawerId||undefined, body:''});
   if(due) o.due=due; else if(!kindHas(k,'date')) o.due=null;
   return o;
@@ -741,7 +741,7 @@ function randomThing(parentId){
   if(isContainer(o)){ o.c=randomFront(); o.board=randomBoard(); }
   const g=gridOf(undefined, home), dv=dev();
   const w=1+Math.floor(Math.random()*8), h=1+Math.floor(Math.random()*8);
-  o[dv]=freeSpot(Math.min(w,g.cols), h, dv, home);
+  o[dv]=anySpot(Math.min(w,g.shelfW), h, dv, home);
   return o;
 }
 
@@ -751,4 +751,5 @@ export { toast, setGridSize, toggleDone, spawnNext, del, delMany, delDrawer, und
   pushUndo, pushSet, pushSets, setPin, togglePin,
   drawerForTag, create, gather, quickAdd, spawnInto, randomThing,
   CONTROLS, CTL_KEYS, ctlSpec, ctlSaid, ctlIsOn, ctlForm, ctlNum, ctlIndex, ctlPress, someKind,
+  fits,
   holdIt, unholdIt, unholdMany, undoToast };

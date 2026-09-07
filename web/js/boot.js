@@ -9,14 +9,14 @@ import { S, KINDS, SHAPES, SORTS, childrenOf, container, relate, deskOf, has, la
   isContainer, faceOf, PRIMARY, isPrimary, barPct, marginOf, marginPlus,
   prioOf, repeatOf, repeatSaid, nextRepeat, boardLocked, BINDINGS, bindingOf, PANELS, panelOf,
   isHeld, heldObjects, tiltMode } from './model.js';
-import { pageRows, freeSpot, boxOk } from './grid.js';
+import { shelfRows, shelvesOf, shelfAt, setShelf, freeSpot, anySpot, roomFor, boxOk } from './grid.js';
 import { create, setPin, togglePin, del, delMany, delDrawer, undo, redo, toggleDone, spawnNext, setGridSize,
   CONTROLS, ctlSaid, ctlIsOn, ctlPress,
   holdIt, unholdIt } from './mutations.js';
 import { applyLook, applyStyle, STYLES, panelSlots, borderSlots, knobSlots, textureSlots,
   bindingSlots, stockSlots, famSlots, famAll, dress, styleKey, stockNow, randomLook,
   palNow, CHECKS } from './look.js';
-import { render, sizeGrid, viewHTML, reveal, settingsPanel, pageAt, pageCount, pageTop, goPage } from './views.js';
+import { render, sizeGrid, viewHTML, reveal, settingsPanel, goShelf, goShelfTo, shelfShift } from './views.js';
 import { overlayHTML, objectPanel, modalNewObject, holdPanel, schedulePanel, closePanel,
   sampleObject, sampleTile, openCtx, tagFirstPanel } from './panels.js';
 import { wire } from './wire.js';
@@ -186,8 +186,12 @@ window.BUREAU = {
   kids: id => childrenOf(container(id)).map(o=>o.id),
   // which desk something is on — the dots by the title answer with it
   deskOf,
-  // paging, for the smoke test: how tall a page is and which one you are on
-  get pageRows(){ return pageRows(); }, pageAt, pageCount, pageTop, goPage,
+  /* The shelves, for the smoke test: how tall one is, how many a board has,
+     which one you are on, and how to get to another. See decision 141. */
+  get shelfRows(){ return shelfRows(); }, shelvesOf, shelfAt, setShelf,
+  shelfShift, goShelf, goShelfTo,
+  // is there room for one of these here — the question "it won't fit" answers
+  roomFor: (w,h,parent)=> roomFor(w,h,S.device,parent||'root'),
   // somewhere free to put a fixture, so a test needn't hardcode a coordinate
-  free: (w,h,parent)=> freeSpot(w,h,S.device,parent||'root')
+  free: (w,h,parent)=> anySpot(w,h,S.device,parent||'root')
 };

@@ -4328,3 +4328,16 @@ input,textarea,select,[contenteditable],
   min-width:13px;height:13px;padding:0 3px;margin-left:4px;border-radius:var(--pill);
   border:1px solid currentColor;font-size:9px;line-height:1;opacity:.6;
   font-variant-numeric:tabular-nums;vertical-align:1px}
+
+
+/* ---- how many shelves a board is, drawn as the shape it makes -----------
+   Nine little squares in a three-by-three, lit up to the corner you press:
+   you are choosing a *shape*, and a picture of the shape is the one thing a
+   pair of steppers cannot show you. See decision 141. */
+.shelfpick{display:grid;grid-template-columns:repeat(var(--sw,3), 34px);gap:4px;width:max-content}
+.shelfopt{
+  width:34px;height:26px;border-radius:var(--radius);cursor:pointer;
+  border:1px solid var(--rule);background:var(--paper-3);transition:.14s;
+}
+.shelfopt:hover{border-color:var(--brass)}
+.shelfopt.on{background:color-mix(in srgb, var(--brass) 34%, var(--paper-2));border-color:var(--brass)}

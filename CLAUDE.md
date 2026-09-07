@@ -1356,12 +1356,14 @@ first frame and lands *under* the opaque picture of the board you were on —
 which is the pager's trick and why neither needs a "maybe" in the model.
 
 **Two fingers navigate; on a locked board, one does.** Both go through the
-pager in `motion.js`, which draws the board either side of this one and slides
+pager in `motion.js`, which draws the shelf either side of this one and slides
 the strip with your finger rather than committing at a threshold. A locked board
-has nothing for a finger to carry, so the finger walks the boards — while a tap
-still opens the tile and the long press still opens the menu. See decision 38.
+has nothing for a finger to carry, so the finger walks the shelves — while a tap
+still opens the tile and the long press still opens the menu. Both axes commit
+`goShelf()` now: where the sideways swipe used to build a whole other desk, it
+builds the same board windowed one shelf over. See decisions 38 and 141.
 
-**Navigation is the desks, and nothing else.** There are exactly two views: the
+**Navigation is the shelves, and nothing else.** There are exactly two views: the
 desk and a drawer. The four fixed tabs (Today, Keeping Up, Everything) are gone
 — they were hard-coded aggregations, which is a magic drawer's job. Don't add a
 view without a very good reason — a magic drawer is nearly always the answer.
@@ -1376,24 +1378,64 @@ anywhere but the board you are looking at. For one version it filed into a
 nominated inbox instead, which meant a thing you made on the desk vanished off
 the desk; `S.inbox` is gone with it. See decision 45.
 
-**There is more than one desk, and a desk is somewhere rather than something.**
-`S.desks` is the master space: an ordered row of container ids with `ROOT` among
-them. A container in it is somewhere you can *be* — the breadcrumb roots there
-(`chainOf` stops at a desk) — and a sideways swipe walks the row. Everything
-else is a drawer, somewhere you went *into*. Ask `isDesk(id)` and `deskOf(o)`;
-promote with `setPin(id,'desk')`. The row does **not** wrap — a space you can
-walk off the end of is a space you can learn. See decision 39.
+**There is one desk and it is nine shelves.** A **shelf** is one screenful of
+board and it is the unit everything else is counted in; the Desk is three by
+three and you start in the middle; every other container is one shelf, with the
+option of more (`shelves` on the object, `shelvesOf(cid)` to read it). The row
+of desks is gone — what it bought was *room*, and the room is on the desk. A
+drawer is a drawer wherever it is. `deskIds()`, `isDesk()`, `deskOf()` and
+`deskHere()` are constants now rather than deleted, because everything asking
+"which desk am I on" is asking a question that still has one answer.
+See decision 141.
 
-**Promoting a drawer to a desk takes it off the board it was on.** It is a
-move, not a label: `setPin()` remembers `wasIn`, clears `parent` and both boxes,
-and demoting is the return trip. A container with a null parent is in no
-coordinate space at all, which is exactly what a desk is. Don't reintroduce a
-front that is also a place. See decision 40.
+**`gridOf()` answers two questions and they are easy to confuse.** `shelfW`/
+`shelfH` are one **shelf** — the window a phone can see. `cols`/`rows` are the
+**coordinate space**, which is the shelf times the shelves this container has. A
+box lives in the second; a screen shows the first. `drawCols(g)`/`drawRows(g)`
+say which is actually rendered — the shelf on a phone, the whole board on a Mac,
+where the middle row of three is on the screen at once and the other two are up
+and down the scroller. Everything that goes wrong here goes wrong by using one
+where the other was meant.
 
-**The name at the top left opens every desk at once.** Desks are laid out in
-space, so the row needs a map rather than a strip of buttons — `deskMap()` in
-`views.js` draws each desk small, its boxes on its own board, and pressing one
-goes there. Desks are laid out in space, not listed in a strip.
+**`SHELFSHIFT` is the whole of it, and it is the same trap the page was.** A box
+is in board cells and `grid-column`/`grid-row` are in shelf cells, and the two
+agree only on the first shelf. `gridTile()` subtracts the shelf as it draws;
+anything reading a cell *off* the screen (the sketch, the drop) adds it back,
+and anything writing a box *onto* it (the ghost, the live resize) takes it off —
+`shelfShift(cid)` in views.js is the one reader. Both axes now. Zero on a Mac,
+where nothing is windowed. See decisions 102 and 141.
+
+**Place nothing before the board has been measured.** A shelf is as tall as
+whatever fits on this screen, so `ensureBox()` returns **null** while
+`MEASURE[dv]` is empty and `gridOfContainer()` leaves that object off the frame.
+The frame in question is the first one at launch and sizeGrid() re-renders the
+moment it has a number. Placing on the guess writes a coordinate in the wrong
+space, and correcting it is a shuffle of an arrangement nobody asked to shuffle.
+
+**A new object goes on the shelf you are looking at, and a board can be full.**
+`freeSpot()` scans the current shelf first and the rest nearest-first, and
+returns **null** when there is nowhere — which is a real answer. Every path that
+*makes* something asks `fits()` first and refuses with a sentence saying what to
+do about it. `anySpot()` is the never-null version and is only for things that
+already exist and must be somewhere (a reparent, a paste, a shelf that got
+shorter when the window did); it is the one place in the app that writes an
+overlap.
+
+**Nothing straddles a seam where a seam is a screen** — a phone. On a Mac the
+three shelves of a row are all visible at once and a tile lying across two is
+legible, so `boxOk()` refuses it only on a phone. Same shape of rule the page
+break had.
+
+**The name at the top left opens the shelf map**, and the dots beside it are the
+same thing small: nine shelves are a *square*, so the dots are one — a map you
+can aim at rather than a count you have to translate. `deskMap()` in `views.js`
+draws each shelf with what is on it at a fiftieth of the size, and pressing one
+goes there.
+
+**What was already on the desk is moved to the middle shelf once**, per device,
+by `centreDesk()` — and it has to happen at first render rather than in the
+migration, because a shelf's height is measured. `S.centred` is stored, because
+it must happen exactly once and a second pass would push everything off.
 
 **A magic drawer sees its own desk unless it says otherwise.** `filter.scope` is
 `desk` (the default) | `all` | `some` + `filter.scopeDesks`. Without it, a rule
@@ -1492,11 +1534,11 @@ or the dead strip under the title that decision 44 removed. `--gapmin` on
 `.deskscroll` is the floor for the top half; `min-height` on `.deskrail` is the
 floor for the bottom, and the safe-area inset rides inside it.
 
-**The dots by the title are the desks, not the pages.** In the order they sit in
-the master space, the one you are standing on lit, following you into a drawer
-because a drawer is on a desk, and pressing one goes there. They counted pages
-once, which is position in the wrong axis. The page is a number now — `2/3`,
-only when there is more than one. See decision 56.
+**The dots by the title are the shelves of this board, laid out the way they
+actually are.** A row of dots was right when the desks were a row; nine shelves
+are a *square*, so the dots are one — a map you can aim at rather than a count
+you have to translate. The one you are standing on is lit, pressing one goes
+there, and a board with one shelf draws none. See decisions 56 and 141.
 
 **Shadows are a switch.** `S.look.shadows`, in the app's settings. Off writes a
 **zero** shadow into `--shadow`/`--shadow-lg`, never `none`: half the border
@@ -1568,21 +1610,24 @@ screen is a rounded rectangle and a row that runs into the curve loses its first
 and last tile to it — the shelf used to hold that space and now nothing does.
 `sizeGrid()` measures the room from `.main` less the bar less **that padding**,
 never from the scroller's own height; forget the padding and the last row is
-sized into pixels it cannot be seen in. A page is *not stored*: `y` is one continuous
-coordinate space per container and a page is a window of *n* rows onto it, so
-drag, drop and `freeSpot()` know nothing about pages. The one rule is that
-nothing may straddle a break, enforced in `boxOk()`.
+sized into pixels it cannot be seen in. Which shelf you are on is *not stored*:
+`x` and `y` are one continuous coordinate space per container and a shelf is a
+window of `shelfW × shelfH` cells onto it, so drag, drop and `freeSpot()` know
+nothing about which one you are looking at. The one rule is that nothing may
+straddle a seam **on a phone**, enforced in `boxOk()`.
 
-**But a board row is not a screen row, and the boundary between them is two
-functions.** `gridTile()` subtracts the page as it draws (`PAGESHIFT`), so
+**But a board cell is not a screen cell, and the boundary between them is two
+functions.** `gridTile()` subtracts the shelf as it draws (`SHELFSHIFT`), so
 anything that reads a cell *off* the screen has to add it back and anything
-that writes a box *onto* the screen has to take it off. `pageTop(cid)` in
+that writes a box *onto* the screen has to take it off. `shelfShift(cid)` in
 views.js is the offset; the sketch gesture adds it, `place()` in gestures.js
 subtracts it, and those are the only two places allowed to know. Get it wrong
-and it is invisible on page one — a new object made on page two landed on page
-one, and a tile being resized left the screen until you let go. See decision
-102. Two fingers up and down
-turn pages; two fingers left and right walk the desks. See decision 44. See decision 37.
+and it is invisible on the first shelf — a new object made on the middle one
+landed a shelf up and a shelf across, and a tile being resized left the screen
+until you let go. See decisions 102 and 141. **Two fingers in any of the four
+directions walks the shelves**, and so does one finger on a locked board; both
+go through the same pager, whose two axes now do the same thing. See decisions
+44 and 37.
 
 **Tapping bare board does nothing on a phone; holding it makes something
 there.** One way in, and it is the good one: **holding a bare cell** lights that

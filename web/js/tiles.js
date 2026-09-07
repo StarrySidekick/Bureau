@@ -9,13 +9,13 @@ import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, chi
   isPicture, isMedia, isPlayable, isDecor, mediaTypeOf, frameOf, isWindow,
   boardLocked, prioOf, repeatSaid, urgencyOf, urgeSaid, durSaid, standsProud, shelfDepth, bookDepth, faceCue, anyFaceCue,
   calViewOf, weekStartOf, calCols, borderOf, textureOf, marginOf } from './model.js';
-import { CELL, gridOf, lay, overlaps, boxOk, freeSpot, gridRows, sizeOfKind, ensureBox,
-  pageRows, colsOf } from './grid.js';
-import { create, toast, toggleDone, someKind, ctlSpec, ctlSaid, ctlIsOn,
+import { CELL, gridOf, drawCols, drawRows, lay, overlaps, boxOk, freeSpot, anySpot, roomFor, gridRows, sizeOfKind,
+  ensureBox, shelfRows, shelfOrigin, shelfAt, colsOf } from './grid.js';
+import { create, toast, fits, toggleDone, someKind, ctlSpec, ctlSaid, ctlIsOn,
   ctlForm, ctlNum, ctlIndex, ctlPress } from './mutations.js';
 import { DECOR, decorOf, decorSVG, LIFE_ART, lifeSVG } from './decor.js';
 import { hexOf, objColour, dress, dressAs, OBJ0, OBJN } from './look.js';
-import { render, pageAt } from './views.js';
+import { render } from './views.js';
 import { openObj, openWriter, openRead, openViewer } from './sheet.js';
 import { objectPanel, schedulePanel } from './panels.js';
 import { openTile, openingFor } from './motion.js';
@@ -307,6 +307,8 @@ function dispense(g){
   /* `random` is not a kind, so it is resolved *here* and once — asking again
      further down would place the box for one type and make another. */
   const kind = makesAnything(g) ? someKind() : genKindOf(g);
+  // a press on a full shelf makes nothing and says why — decision 141
+  if(!fits(kind, g.parent)) return;
   const dir=g.genDir||'down';
   const o=create(kind,{parent:g.parent});
   const dv=dev(), b=lay(g), [w,h]=sizeOfKind(kind, dv, g.parent);
@@ -317,7 +319,7 @@ function dispense(g){
     left:  {x:Math.max(1,b.x-w), y:b.y, w, h}
   };
   const want=spots[dir];
-  o[dv] = (dir!=='random' && want && boxOk(want,o.id,dv,g.parent)) ? want : freeSpot(w,h,dv,g.parent);
+  o[dv] = (dir!=='random' && want && boxOk(want,o.id,dv,g.parent)) ? want : anySpot(w,h,dv,g.parent);
   save(); render();
   const el=document.querySelector(`[data-row="${g.id}"]`);
   if(el){ el.classList.add('swallow'); setTimeout(()=>el.classList.remove('swallow'),420); }
@@ -380,12 +382,12 @@ function tileTap(id){
 const pending={cell:null};   // a holder, because three modules write it
 function placeAtPending(o){
   const dv=dev();
-  if(!pending.cell){ const [w,h]=sizeOfKind(o.kind, dv, o.parent); o[dv]=o[dv]||freeSpot(w,h,dv,o.parent); return; }
+  if(!pending.cell){ const [w,h]=sizeOfKind(o.kind, dv, o.parent); o[dv]=o[dv]||anySpot(w,h,dv,o.parent); return; }
   // a sketched box wins over the kind's own size
   const [kw,kh]=sizeOfKind(o.kind, dv, pending.cell.parent);
   const w=pending.cell.w||kw, h=pending.cell.h||kh;
   const g=gridOf(undefined, pending.cell.parent), box={x:clamp(pending.cell.x,1,g.cols-w+1), y:Math.max(1,pending.cell.y), w, h};
-  o[dv] = boxOk(box, o.id, dv, o.parent) ? box : freeSpot(w,h,dv,o.parent);
+  o[dv] = boxOk(box, o.id, dv, o.parent) ? box : anySpot(w,h,dv,o.parent);
   // The other device has no box yet. Leaving it null means ensureBox() picks
   // one the first time that layout is opened, rather than inheriting a
   // coordinate that means nothing over there.
@@ -417,15 +419,17 @@ function sizeClass(box){
    The size classes are stamped on afterwards rather than threaded through
    fifteen branches: every branch below returns one element, and its own class
    list is the first `class="` in the string. */
-/* How far up the page being drawn has pushed the board. A holder rather than an
-   argument because gridTile() is also called by the type picker's samples, which
-   are on no page at all. Only the CSS placement uses it. */
-const PAGESHIFT = {n:0};
+/* How far the shelf being drawn has pushed the board, in cells, in **both**
+   directions. A holder rather than an argument because gridTile() is also
+   called by the type picker's samples, which are on no shelf at all. Only the
+   CSS placement uses it — a box is never rewritten, exactly as it never was
+   for a page. See decision 141. */
+const SHELFSHIFT = {x:0, y:0};
 function gridTile(o, arr, parentId){
   let box;
   if(FLOW.has(o.id)){ box=FLOW.get(o.id); FLOW.delete(o.id); }
   else { ensureBox(o, dev(), parentId); box=lay(o); }
-  if(PAGESHIFT.n) box={...box, y:box.y-PAGESHIFT.n};
+  if(SHELFSHIFT.x || SHELFSHIFT.y) box={...box, x:box.x-SHELFSHIFT.x, y:box.y-SHELFSHIFT.y};
   /* Stamped on the same way the size classes are — the first `class="` of
      whatever drawTile() returns — so the two traits that let an object out of
      a locked board reach every face without one of them being told. */
@@ -471,7 +475,7 @@ const depthOf = o =>
    written once per render and never again — the shelf's depth costs nothing
    per frame, which is why it can be on every tile while decision 108's board
    slide stays the only thing that moves. See decision 117. */
-/* A holder rather than an argument, for the reason PAGESHIFT is one — and
+/* A holder rather than an argument, for the reason SHELFSHIFT is one — and
    because the answer is a fact about the *board*, not about the tile. Working
    it out per tile meant `colsOf()` and `pageRows()` fifty times a board, and
    each of those walks the parent chain and scans S.objects to find out what
@@ -1371,18 +1375,24 @@ function drawTileFace(o, arr, box, persp){
    restores the arrangement you made. */
 const FLOW = new Map();   // id -> box, for one render of a sorted grid
 function flowSorted(kids, cid){
-  const g=gridOf(undefined, cid), dv=dev(), taken=[], per=pageRows(dv, cid);
-  const free=(b)=> b.x+b.w-1<=g.cols && !taken.some(t=>overlaps(b,t))
-    // a packed board respects the page break too, or the sort would produce
-    // the straddling tiles the drag is not allowed to make
-    && (!per || Math.floor((b.y-1)/per)===Math.floor((b.y+b.h-2)/per));
+  const g=gridOf(undefined, cid), dv=dev(), taken=[];
+  /* A packed board fills its shelves in order and respects the seam between
+     them, or the sort would produce the straddling tiles the drag is not
+     allowed to make. Shelf by shelf, reading order, which is what a sorted
+     board *is*: the first thing in the top-left corner of the first shelf. */
+  const free=(b)=> !taken.some(t=>overlaps(b,t));
+  const shelves=[];
+  for(let sy=0;sy<g.shelves.h;sy++) for(let sx=0;sx<g.shelves.w;sx++) shelves.push([sx,sy]);
   kids.forEach(o=>{
     let [w,h]=(o[dv]&&o[dv].w) ? [o[dv].w,o[dv].h] : sizeOfKind(o.kind, dv, cid);
-    w=Math.min(w, g.cols);
-    if(per) h=Math.min(h,per);
+    w=Math.min(w, g.shelfW); h=Math.min(h, g.shelfH);
     let put=null;
-    for(let y=1;y<600&&!put;y++) for(let x=1;x<=g.cols-w+1;x++){
-      const b={x,y,w,h}; if(free(b)){ put=b; break; }
+    for(const [sx,sy] of shelves){
+      const x0=sx*g.shelfW, y0=sy*g.shelfH;
+      for(let y=1;y<=g.shelfH-h+1 && !put;y++) for(let x=1;x<=g.shelfW-w+1;x++){
+        const b={x:x0+x, y:y0+y, w, h}; if(free(b)){ put=b; break; }
+      }
+      if(put) break;
     }
     put=put||{x:1,y:1,w,h};
     taken.push(put);
@@ -1399,7 +1409,7 @@ function flowSorted(kids, cid){
    arithmetic on a box — the drag, the drop, freeSpot() — carries on in the
    real coordinates and needs to know nothing about pages. */
 function gridOfContainer(cid){
-  const c=container(cid), g=gridOf(undefined, c.id);
+  const c=container(cid);
   /* You are always arranging, unless the one lock says otherwise — see
      decision 74. It used to be `c.locked`, per board.
 
@@ -1411,39 +1421,52 @@ function gridOfContainer(cid){
      neither, because it is a picture of a tile rather than a tile. */
   const arr = boardLocked() ? 'locked' : true;
   const sorted=sortOf(c);
-  const per=pageRows(undefined, c.id), pg=per?pageAt(c.id):0, from=pg*per;
+  const dv=dev(), g=gridOf(dv, c.id);
+  /* On a phone the board is **windowed** to one shelf; on a Mac the whole
+     thing is drawn and the scroller reaches the rows you cannot see. So the
+     shift is zero on a Mac and everything below reads the same either way. */
+  const shift = dv==='phone' ? shelfOrigin(c.id, dv) : {x:0, y:0};
   let kids=childrenOf(c);
   FLOW.clear();
+  /* An object with no box yet is left off this frame rather than drawn at the
+     origin: `ensureBox()` refuses to place anything before the board has been
+     measured, because a shelf is as tall as whatever fits on this screen. The
+     frame in question is the first one at launch. See decision 141. */
   if(sorted) flowSorted(kids, c.id);          // a sort overrides hand placement
-  else kids.forEach(o=>ensureBox(o, dev(), c.id));
-  if(per){
-    /* A box from before this board had pages — or from a phone whose pages
-       were a different height — can straddle a break, and half a tile on each
+  else kids = kids.filter(o=>!!ensureBox(o, dv, c.id));
+  if(dv==='phone'){
+    /* A box from before this board had shelves — or from a phone whose shelves
+       were a different height — can straddle a seam, and half a tile on each
        of two screens is a tile you can read neither half of. Re-place it, once:
        the same licence ensureBox() takes to place an object that has never been
        in a grid. boxOk() stops any *new* box from straddling. */
-    const dv=dev();
     if(!sorted) kids.forEach(o=>{
-      const b=lay(o);
-      if(b.h<=per && Math.floor((b.y-1)/per)===Math.floor((b.y+b.h-2)/per)) return;
+      const b=lay(o, dv, c.id);
+      if(b.w<=g.shelfW && b.h<=g.shelfH
+         && Math.floor((b.x-1)/g.shelfW)===Math.floor((b.x+b.w-2)/g.shelfW)
+         && Math.floor((b.y-1)/g.shelfH)===Math.floor((b.y+b.h-2)/g.shelfH)) return;
+      const keep={w:Math.min(b.w,g.shelfW), h:Math.min(b.h,g.shelfH)};
       o[dv]=null;
-      o[dv]=freeSpot(b.w, Math.min(b.h,per), dv, c.id);
+      o[dv]=anySpot(keep.w, keep.h, dv, c.id);
     });
-    kids = kids.filter(o=>{ const b=FLOW.get(o.id)||lay(o); return b.y>from && b.y<=from+per; });
-    PAGESHIFT.n = from;                       // gridTile subtracts it as it draws
-  } else PAGESHIFT.n = 0;
+    kids = kids.filter(o=>{ const b=FLOW.get(o.id)||lay(o, dv, c.id);
+      return b.x>shift.x && b.x<=shift.x+g.shelfW && b.y>shift.y && b.y<=shift.y+g.shelfH; });
+  }
+  SHELFSHIFT.x = shift.x; SHELFSHIFT.y = shift.y;
   /* Where the middle of this board is, for the shelf's perspective — once,
      here, rather than once per tile. Off at zero depth, which is what keeps the
      numbers off every tile's style attribute when nothing is standing proud —
      and that is its own setting, not the tilt's: the perspective reads with the
      phone flat on a table. See decision 117. */
-  PERSP.cols = standsProud() ? colsOf(c.id) : 0;
-  PERSP.rows = standsProud() ? per : 0;
+  PERSP.cols = standsProud() ? g.shelfW : 0;
+  PERSP.rows = standsProud() ? g.shelfH : 0;
   const tiles=kids.map(o=>gridTile(o,arr,c.id)).join('');
-  PAGESHIFT.n = 0; PERSP.cols = PERSP.rows = 0;
-  // a page is exactly the rows that fit; a scrolling board is at least a screen
-  const minRows=Math.max(12, Math.ceil((window.innerHeight-140)/Math.max(1,CELL[dev()])));
-  const rows = per ? per : Math.max(gridRows(dev(),c.id)+(arr===true?2:0), minRows);
+  SHELFSHIFT.x = SHELFSHIFT.y = 0; PERSP.cols = PERSP.rows = 0;
+  /* Exactly the shelves there are. A board is a finite space now — one shelf
+     or nine — so it is neither "as tall as the tallest thing on it" nor "at
+     least a screen": it is the shelves, and running out of them is what "it
+     won't fit" means. */
+  const cols = drawCols(g, dv), rows = drawRows(g, dv);
 
   // a drawer may carry its own board, which overrides the global one
   const bd = c.board ? String(c.board).split('|') : null;
@@ -1459,9 +1482,16 @@ function gridOfContainer(cid){
   // this board's own cell, derived from the measured width and its columns —
   // not the cell of whichever board happened to be measured last
   const colw = g.rowh;
-  return `<div class="grid g-${dev()}${arr===true?' arranging':''}${boardLocked()?' locked':''}${sorted?' sorted':''}${S.look.pinned?' pinboard':''}"
+  /* The seams between shelves, drawn only where more than one is on the screen
+     at once — a Mac, where the middle row of three is all visible. They are the
+     one thing that says the board is *nine* rather than one wide one, and they
+     are a background rather than elements: a gradient with a hard stop every
+     `shelfW` columns costs nothing and cannot be dragged. */
+  const seams = dv!=='phone' && (g.shelves.w>1 || g.shelves.h>1)
+    ? `--seamx:${g.shelfW*g.rowh}px;--seamy:${g.shelfH*g.rowh}px;` : '';
+  return `<div class="grid g-${dv}${arr===true?' arranging':''}${boardLocked()?' locked':''}${sorted?' sorted':''}${S.look.pinned?' pinboard':''}${seams?' shelved':''}"
        id="drawergrid" data-gridfor="${c.id}"
-       style="${boardVars}--cols:${g.cols};--rowh:${g.rowh}px;--checkerx:${2*colw}px;--checkery:${2*g.rowh}px;grid-auto-rows:${g.rowh}px;grid-template-rows:repeat(${Math.max(rows,1)},${g.rowh}px)">${tiles}
+       style="${boardVars}${seams}--cols:${cols};--rowh:${g.rowh}px;--checkerx:${2*colw}px;--checkery:${2*g.rowh}px;grid-auto-rows:${g.rowh}px;grid-template-rows:repeat(${Math.max(rows,1)},${g.rowh}px)">${tiles}
   </div>`;
 }
 
@@ -1689,6 +1719,6 @@ function scrollEntry(o){
   </article>`;
 }
 
-export { spinTo, CLICKS, clickOf, fireButton, tileTap, pending, placeAtPending, PAGESHIFT,
+export { spinTo, CLICKS, clickOf, fireButton, tileTap, pending, placeAtPending, SHELFSHIFT,
   gridTile, gridOfContainer, listTile, scrollEntry, bookOf, bookView, sheetOf, turnPage, clearPages,
   calSpan };

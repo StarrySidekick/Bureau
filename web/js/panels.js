@@ -14,13 +14,13 @@ import { S, K, KINDS, KEYS, T, ATTRS, USER_ATTRS, FIELDS, fieldOf, OPS, ROLLS,
   TSIZES, textSizeOf, mediaTypeOf, isPicture, isMedia, isDecor,
   bindingOf, FRAMES, FRAME_SLOTS, frameOf, panelOf, knobOf, borderOf, textureOf,
   slotRaw } from './model.js';
-import { GRID, lay, boxOk, freeSpot, sizeOfKind, toPhoneSize, keepSize } from './grid.js';
+import { GRID, lay, boxOk, freeSpot, anySpot, sizeOfKind, toPhoneSize, keepSize } from './grid.js';
 import { randomBoard, randomFront, hexOf, objColour, objSlots, famSlots, famAll, FAMS, styleKey, stockNow } from './look.js';
 import { CLICKS, clickOf, gridTile, pending } from './tiles.js';
 import { DECOR, decorOf, decorSVG, decorFor, decorRest, LIFE_ART, LIFE_KEYS, lifeSVG } from './decor.js';
 import { quickAdd, toast, drawerForTag, CONTROLS, CTL_KEYS, ctlSpec } from './mutations.js';
 import { openObj, renderSheet } from './sheet.js';
-import { render, settingsPanel, gridSizeField } from './views.js';
+import { render, settingsPanel, gridSizeField, shelfCountField } from './views.js';
 import { openingFor } from './motion.js';
 import { plans, planTop, planSize } from './plans.js';
 import { save } from './persist.js';
@@ -846,6 +846,8 @@ function objectPanelBody(id, sec){
        and a checklist you keep forty lines in do not want the same grain. See
        decision 60. */
     out.push(gridSizeField(id));
+    // and how many screenfuls it is — decision 141
+    out.push(shelfCountField(id));
     /* A desk is somewhere you stand, so its editor is also where the carcass it
        is drawn in is asked about: the wood, and the drawer along the bottom of
        a phone that you tap to come out of and pull to make something. It is a
@@ -870,10 +872,10 @@ function objectPanelBody(id, sec){
           `<button data-prailknobc="${c}" data-id="${id}" class="${d.railknobc===c?'on':''}" style="background:${c}"></button>`).join('')}</div>`,
         'how big it is, and what colour'));
     }
-    if(!isRoot) out.push(prow('Where it is kept', psel(id,'pin',
-      [['','On the board it lives on'],['desk','A desk of its own']],
-      placeOf(id)||''),
-      'a desk leaves the board it was on'));
+    /* "Where it is kept" was here, and its two answers were "on the board it
+       lives on" and "a desk of its own". There is one desk now and it is nine
+       shelves, so a drawer is only ever the first — and the row it is on is
+       the shelf picker above. See decision 141. */
   } else if(!isRoot){
     out.push(prow('Clicking it', psel(id,'onclick', Object.entries(CLICKS), clickOf(d))));
     if(has(d,'text')) out.push(prow('Opens as', psel(id,'read', Object.entries(READS), readOf(d))));
@@ -1785,7 +1787,7 @@ function drawerFromSelection(id){
   // and the drawer arrives at the size a drawer starts at, not a hardcoded one
   const [dw,dh]=sizeOfKind('drawer', dev());
   d[dev()] = boxOk({x:spot.x,y:spot.y,w:dw,h:dh}, d.id, dev(), home)
-    ? {x:spot.x,y:spot.y,w:dw,h:dh} : freeSpot(dw,dh,dev(),home);
+    ? {x:spot.x,y:spot.y,w:dw,h:dh} : anySpot(dw,dh,dev(),home);
   S.sel=[];
   save(); render();
   toast(`${objs.length} filed in a new drawer`);

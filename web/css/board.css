@@ -1807,3 +1807,84 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
 @media (prefers-reduced-motion: reduce){
   .grid.pinboard > .drawer{ transition:none }
 }
+
+
+/* ============================================================
+   26 · shelves
+   ============================================================
+   A **shelf** is one screenful of board and the Desk is nine of them, three
+   across and three down, starting in the middle. On a phone one shelf fills
+   the screen and a swipe walks them; on a Mac the whole board is drawn and the
+   middle row of three is on the screen at once, with the other two rows up and
+   down the scroller. See decision 141.                                       */
+
+/* On a Mac a board is **exactly as wide as its own columns**, at the desk's own
+   cell size, and centred. That is what makes a drawer — one shelf, eight
+   columns — a shelf sitting in the middle of the cabinet rather than a board
+   with cells three times the size of the desk's. The desk's own board is
+   twenty-four columns, so this is a no-op there and it fills the width the way
+   it always has. A phone draws one shelf and fills the screen with it, so the
+   rule is a Mac's alone. */
+.is-desk .grid{
+  width:calc(var(--cols) * var(--rowh));
+  max-width:100%;
+  margin-inline:auto;
+}
+/* The seams between shelves, drawn only where more than one is on the screen
+   at once — which is a Mac. They are what says the board is nine shelves
+   rather than one wide one.
+
+   They are **two more background layers on the checkerboard's own
+   pseudo-element**, not a second one: `.grid::before` *is* the checkerboard,
+   and a `.grid.shelved::before` of its own replaces it wholesale — which is
+   exactly what it did, and the board lost its paper. A pseudo-element is a
+   single element and there is one spare on a grid; the way to add to it is to
+   add layers, in front of the squares and behind everything else.
+
+   A hairline in the board's own ink rather than a rule: it is a change of
+   surface, not a border. The layers start at the board's own origin, the way
+   the checker squares do, so a seam falls exactly on a shelf boundary. */
+.grid.shelved::before{
+  background-image:
+    repeating-linear-gradient(90deg,
+      transparent 0 calc(var(--seamx) - 1px),
+      color-mix(in srgb, var(--ink, #2A2118) 16%, transparent) calc(var(--seamx) - 1px) var(--seamx)),
+    repeating-linear-gradient(180deg,
+      transparent 0 calc(var(--seamy) - 1px),
+      color-mix(in srgb, var(--ink, #2A2118) 16%, transparent) calc(var(--seamy) - 1px) var(--seamy)),
+    conic-gradient(
+      var(--board-2) 0 25%, transparent 0 50%,
+      var(--board-2) 0 75%, transparent 0);
+  background-size:
+    100% 100%,
+    100% 100%,
+    var(--checkerx,var(--checker,160px)) var(--checkery,var(--checker,160px));
+}
+
+/* ---- the nine dots in the bar ------------------------------------------
+   The desks were a row and their dots were a row. Nine shelves are a *square*,
+   so the dots are one too — a map you can aim at rather than a count you have
+   to translate. `--sw` is how many across, written by the renderer, so a board
+   with a different shelf grid draws the shape it actually has. */
+.shelfmark{
+  display:grid;grid-template-columns:repeat(var(--sw,3), 1fr);
+  gap:2.5px;flex:0 0 auto;margin-left:8px;padding:3px;
+  border-radius:var(--radius);background:rgba(0,0,0,.10);
+}
+.shelfmark i{
+  width:5px;height:5px;border-radius:1.5px;display:block;cursor:pointer;
+  background:color-mix(in srgb, var(--bar-ink, #EDE3CE) 34%, transparent);
+  transition:background .14s, transform .14s;
+}
+.shelfmark i:hover{background:color-mix(in srgb, var(--bar-ink, #EDE3CE) 62%, transparent)}
+.shelfmark i.on{background:var(--glow);transform:scale(1.25)}
+
+/* ---- and the big version of it ----------------------------------------
+   Nine cards in a three-by-three, each drawing what is actually on that shelf.
+   The card is the desk map's, which is why it keeps that class: the miniature,
+   its board and its "you are here" are the same three things. */
+.shelfmap{
+  display:grid;grid-template-columns:repeat(var(--sw,3), 1fr);gap:10px;
+}
+.shelfcard{padding:6px}
+.shelfcard .deskmini{aspect-ratio:1}

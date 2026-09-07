@@ -38,7 +38,7 @@
    A plan is an arrangement; it is not an asset store. */
 import { S, K, T, isContainer, container } from './model.js';
 import { uid, ROOT } from './util.js';
-import { GRID, ensureBox, boxOk, freeSpot } from './grid.js';
+import { GRID, ensureBox, boxOk, freeSpot, anySpot } from './grid.js';
 import { rescaleOneBoard } from './persist.js';
 
 /* The parent every top-level thing in a plan carries. A reserved string, the
@@ -171,7 +171,7 @@ function stampPlan(planId, intoId, at){
       const b = o[dv];
       if(!b || !b.w){ ensureBox(o, dv, home); return; }
       if(boxOk(b, o.id, dv, home)) return;
-      const spot = freeSpot(b.w, b.h, dv, home);
+      const spot = anySpot(b.w, b.h, dv, home);
       o[dv] = spot ? Object.assign({}, spot, {w:b.w, h:b.h}) : b;
     });
   });

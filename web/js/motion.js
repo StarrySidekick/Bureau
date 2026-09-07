@@ -1,9 +1,9 @@
 import { $, clamp, ROOT } from './util.js';
-import { S, byId, isContainer, shapeOf, openingOf, deskIds, deskOf,
+import { S, byId, isContainer, shapeOf, openingOf, deskOf,
   tiltMode, tiltsDesk, tiltsWindows } from './model.js';
-import { lay } from './grid.js';
+import { lay, shelvesOf, shelfAt } from './grid.js';
 import { objColour, styleNow } from './look.js';
-import { render, renderSoon, previewHTML, pageAt, pageCount, goPage } from './views.js';
+import { render, renderSoon, previewHTML, goShelf } from './views.js';
 
 /* ============================================================
    20 · motion — the movements the desk makes
@@ -1165,22 +1165,14 @@ const pagerOn = ()=> !!PG;
    a row you can walk off the end of is a row you can learn — "Finance is two
    to the right of home" only means something if two to the right of the last
    desk is nothing at all. A loop with a seam in it is not a space. */
-function drawerStops(){ return deskIds(); }
-/* `soon` rebuilds on the next frame instead of this one. Where you are changes
-   either way and changes now — it is only the DOM that waits, and only while
-   there is an opaque strip over it. See renderSoon() in views.js. */
-function stepDrawer(d, soon){
-  const stops=drawerStops();
-  if(stops.length<2) return false;
-  const at2=Math.max(0, stops.indexOf(deskOf(S.view==='drawer' ? S.drawerId : ROOT)));
-  const to=stops[at2+d];
-  if(to==null) return false;                 // the end of the row
-  S.view = to===ROOT ? 'desk' : 'drawer';
-  S.drawerId = to===ROOT ? null : to;
-  S.kindFilter=null;
-  if(soon) renderSoon(); else render();
-  return true;
-}
+/* Walking the row of desks was what a sideways swipe did. There is one desk
+   now and it is nine shelves (decision 141), so **both axes move a shelf** and
+   this is the one step either of them takes. `soon` rebuilds on the next frame
+   instead of this one: where you are changes either way and changes now — it
+   is only the DOM that waits, and only while there is an opaque strip over it.
+   See renderSoon() in views.js. */
+function stepDrawer(d, soon){ return goShelf(hereBoard(), d, 0, soon); }
+const hereBoard = ()=> (S.view==='drawer' && S.drawerId) || ROOT;
 
 function pane(cls, html){
   const p=document.createElement('div');
@@ -1199,26 +1191,23 @@ function pagerBegin(axis, dir){
   const host = axis==='x' ? $('#app .main') : $('#app .scroll');
   if(!app || !host || !host.getBoundingClientRect().width) return false;
 
-  const here = S.view==='drawer' ? S.drawerId : ROOT;
-  let prev=null, next=null;
-  if(axis==='x'){
-    const stops=drawerStops();
-    if(stops.length<2) return false;
-    const i=Math.max(0, stops.indexOf(deskOf(S.view==='drawer' ? S.drawerId : ROOT)));
-    // undefined at either end of the row, which is what makes the strip give
-    // rather than carry you round to the other side of the desk
-    const to=n=>{ const id=stops[n];
-      return id==null ? null : {view:id===ROOT?'desk':'drawer', drawerId:id===ROOT?null:id}; };
-    prev=to(i-1); next=to(i+1);
-    if(!prev && !next) return false;
-  } else {
-    const n=pageAt(here), last=pageCount(here)-1;
-    if(last<1) return false;
-    const me={view:S.view, drawerId:S.drawerId};
-    if(n>0) prev={...me, page:n-1};
-    if(n<last) next={...me, page:n+1};
-    if(!prev && !next) return false;
-  }
+  /* Both axes walk the **shelves** of the board you are on. The neighbour
+     either side is the same board drawn at a different shelf, which is what
+     `previewHTML({shelf})` is for — where a sideways swipe used to build a
+     whole other desk, it now builds the same one windowed one shelf over.
+     Undefined at either end, which is what makes the strip give rather than
+     carry you round to the other side. */
+  const here = hereBoard();
+  const sh = shelvesOf(here), at = shelfAt(here);
+  const dx = axis==='x' ? 1 : 0, dy = axis==='x' ? 0 : 1;
+  const me = {view:S.view, drawerId:S.drawerId};
+  const to = n => {
+    const x=at.x+dx*n, y=at.y+dy*n;
+    if(x<0 || y<0 || x>=sh.w || y>=sh.h) return null;
+    return {...me, shelf:{x,y}};
+  };
+  const prev=to(-1), next=to(1);
+  if(!prev && !next) return false;
 
   const r=host.getBoundingClientRect(), fr=frameRect();
   PG={axis, here, prev, next, at:0, w:r.width, h:r.height,
@@ -1384,11 +1373,11 @@ function letGo(g){
   h.style.transition=''; h.style.transform='';
   h.style.willChange=''; h.style.visibility='';
 }
+/* goShelf() clamps and renders, so a shelf that has gone away between the
+   swipe starting and it ending simply lands on the nearest one. */
 function commit(g, step, soon){
-  if(g.axis==='x') stepDrawer(step, soon);
-  // goPage() clamps and renders, so a page that has gone away between the
-  // swipe starting and it ending simply lands on the nearest one
-  else goPage(g.here, pageAt(g.here)+step, soon);
+  if(g.axis==='x') goShelf(g.here, step, 0, soon);
+  else             goShelf(g.here, 0, step, soon);
 }
 function pagerCancel(){
   if(!PG) return;

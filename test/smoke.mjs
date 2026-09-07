@@ -229,7 +229,7 @@ const CHROME = process.env.BUREAU_CHROME;
              cellIsThumbSized: colw > 36 && colw < 62,
              square: Math.abs(colw - rowh) < 1,
              // and the bar is thin enough to leave a real page of them
-             rowsFit: BUREAU.pageRows >= 12 };
+             rowsFit: BUREAU.shelfRows >= 12 };
   });
   // the sidebar and the four fixed tabs were both removed on purpose —
   // assert they are genuinely gone, and so is the shelf that replaced them
@@ -1521,7 +1521,7 @@ const CHROME = process.env.BUREAU_CHROME;
     out.backIsWhereYouWere = cols() === 8 && rack() === was;
     /* The whole board is rows now, not rows-less-a-shelf: 8x13, 9x14, 10x15 on
        a 390pt handset, give or take whatever this one's height rounds to. */
-    out.everyRowIsTheBoards = BUREAU.pageRows >= 13;
+    out.everyRowIsTheBoards = BUREAU.shelfRows >= 13;
     return out;
   });
 
@@ -1534,29 +1534,28 @@ const CHROME = process.env.BUREAU_CHROME;
     const S = BUREAU.state, out = {};
     out.noShelfAnywhere = !document.querySelector('.pinbar,.pinrow,.shelf-bottom');
     out.pinsAreStillStored = Array.isArray(S.pins);
-    const d = S.objects.find(o => o.kind === 'drawer' && !S.desks.includes(o.id));
+    /* There is **one desk** and it is nine shelves (decision 141). Promoting a
+       drawer into a desk of its own is gone, and so is the star that did it —
+       what the row bought was room, and the room is on the desk now. */
+    out.oneDeskOnly = S.desks.length === 1 && S.desks[0] === 'root';
+    out.noStarInTheBar = !document.querySelector('.gridbar [data-act="pin"]');
+    const d = S.objects.find(o => o.kind === 'drawer' && o.parent);
     const stood = d.parent;
-    /* Promoting takes it off the board it was standing on, because a desk is
-       somewhere you go rather than a front you look at. See decision 40. */
     BUREAU.setPin(d.id, 'desk'); await nap(200);
-    out.movesToTheRow = S.desks.includes(d.id);
-    out.leavesTheBoardItWasOn = d.parent == null
-      && !BUREAU.kids(stood).includes(d.id)
-      && !document.querySelector(`.grid .drawer[data-drawer="${d.id}"]`);
-    // and demoting is a return, not a guess: it goes back where it stood
-    BUREAU.setPin(d.id, null); await nap(150);
-    out.unpins = !S.desks.includes(d.id);
-    out.demotingPutsItBack = d.parent === stood;
-    // asking for the shelf leaves it exactly where it lives, and draws nothing
-    BUREAU.setPin(d.id, 'pin'); await nap(150);
-    out.askingForTheShelfIsHarmless = d.parent === stood && !S.desks.includes(d.id)
-      && !!document.querySelector(`.grid .drawer[data-drawer="${d.id}"]`);
+    out.refusesToPromote = S.desks.length === 1 && d.parent === stood;
+    // and anything already out there is put back on a board, because a null
+    // parent is no coordinate space at all
+    d.parent = null; d.wasIn = stood;
+    BUREAU.setPin(d.id, null); await nap(200);
+    out.putsAStrandedOneBack = d.parent === stood;
 
-    // the desk map: every desk drawn small, and pressing one goes there
+    /* The name in the bar opens the **shelf map**: the nine, laid out as they
+       actually are, and pressing one goes there. */
     document.querySelector('.gridbar .deskname').click(); await nap(250);
-    out.theNameOpensTheMap = document.querySelectorAll('#panel .deskcard').length === S.desks.length;
-    document.querySelector(`#panel .deskcard[data-deskgo="${S.desks[1]}"]`).click(); await nap(250);
-    out.aCardJumps = S.drawerId === S.desks[1];
+    out.theNameOpensTheMap = document.querySelectorAll('#panel .shelfcard').length === 9;
+    document.querySelector('#panel .shelfcard[data-shelfgo="root:2:0"]').click(); await nap(250);
+    out.aCardJumps = JSON.stringify(BUREAU.shelfAt('root')) === JSON.stringify({x:2,y:0});
+    BUREAU.goShelfTo('root', 1, 1); await nap(150);
     S.view='desk'; S.drawerId=null; BUREAU.render(); await nap(120);
     return out;
   });
@@ -1600,8 +1599,8 @@ const CHROME = process.env.BUREAU_CHROME;
     const g = () => document.querySelector('#drawergrid');
     const sc = () => document.querySelector('#app .scroll');
     // every row of it is the board's now — the shelf used to take the last one
-    out.rowsMeasured = BUREAU.pageRows >= 13;
-    out.exactlyOnePage = /repeat\((\d+),/.exec(g().style.gridTemplateRows)[1] === String(BUREAU.pageRows);
+    out.rowsMeasured = BUREAU.shelfRows >= 13;
+    out.exactlyOneShelf = /repeat\((\d+),/.exec(g().style.gridTemplateRows)[1] === String(BUREAU.shelfRows);
     out.neverScrolls = sc().scrollHeight <= sc().clientHeight + 1
       && getComputedStyle(sc()).overflowY === 'hidden';
     /* …and the column adds up exactly — bar, the reveal, the rows, the rail —
@@ -1616,31 +1615,46 @@ const CHROME = process.env.BUREAU_CHROME;
       Math.abs(h(bar) + gap + h(sc()) + h(rail) - main.clientHeight) < 1.5;
     out.clearsTheCurveOfTheScreen = h(rail) >= 30
       && g().getBoundingClientRect().bottom <= innerHeight - 30;
-    out.morePages = BUREAU.pageCount('root') > 1;
-    // nothing may straddle a break: half a tile on each of two screens is a
-    // tile you can read neither half of
-    const per = BUREAU.pageRows;
+    /* The desk is **nine shelves**, three by three, and you start in the
+       middle one. See decision 141. */
+    out.nineShelves = JSON.stringify(BUREAU.shelvesOf('root')) === JSON.stringify({w:3,h:3});
+    out.startsInTheMiddle = JSON.stringify(BUREAU.shelfAt('root')) === JSON.stringify({x:1,y:1});
+    // nothing may straddle a seam, in either direction: half a tile on each of
+    // two screens is a tile you can read neither half of
+    const per = BUREAU.shelfRows, wide = 8;
     out.nothingStraddles = BUREAU.kids('root').every(id => {
       const b = BUREAU.state.objects.find(o => o.id === id).phone;
-      return !b || (b.h <= per && Math.floor((b.y-1)/per) === Math.floor((b.y+b.h-2)/per));
+      return !b || (b.h <= per && b.w <= wide
+        && Math.floor((b.y-1)/per) === Math.floor((b.y+b.h-2)/per)
+        && Math.floor((b.x-1)/wide) === Math.floor((b.x+b.w-2)/wide));
     });
-    // two fingers up and down
+    // …and only the shelf you are on is drawn
+    out.oneShelfDrawn = [...document.querySelectorAll('#drawergrid > .drawer')].every(el => {
+      const b = (BUREAU.state.objects.find(o => o.id === (el.dataset.drawer||el.dataset.row))||{}).phone;
+      return !b || (Math.floor((b.x-1)/wide) === 1 && Math.floor((b.y-1)/per) === 1);
+    });
+    // two fingers, all four ways
     const el = document.querySelector('#frame');
     const T = (x,y,i) => ({identifier:i, target:el, clientX:x, clientY:y});
     const mk = (t,list) => { const e = new Event(t,{bubbles:true,cancelable:true});
       e.touches=list; e.targetTouches=list; e.changedTouches=list; return e; };
-    const swipe = (dx,dy) => { el.dispatchEvent(mk('touchstart',[T(200,500,1),T(240,500,2)]));
-      el.dispatchEvent(mk('touchmove',[T(200+dx,500+dy,1),T(240+dx,500+dy,2)]));
+    const swipe = (dx,dy) => { el.dispatchEvent(mk('touchstart',[T(200,460,1),T(240,460,2)]));
+      el.dispatchEvent(mk('touchmove',[T(200+dx,460+dy,1),T(240+dx,460+dy,2)]));
       el.dispatchEvent(mk('touchend',[])); };
-    swipe(0,-120); await nap(220);
-    out.twoFingersTurnPage = BUREAU.pageAt('root') === 1;
-    swipe(0,120); await nap(220);
-    out.andBack = BUREAU.pageAt('root') === 0;
-    // two fingers sideways walks the pinned drawers
-    swipe(-140,0); await nap(260);
-    out.twoFingersWalkDrawers = BUREAU.state.view === 'drawer';
-    swipe(140,0); await nap(260);
-    out.andBackToDesk = BUREAU.state.view === 'desk';
+    const at = () => BUREAU.shelfAt('root');
+    swipe(0,-160); await nap(260);
+    out.twoFingersUpGoesDownAShelf = at().y === 2;
+    swipe(0,160); await nap(260);
+    out.andBack = at().y === 1;
+    swipe(-160,0); await nap(260);
+    out.twoFingersSidewaysWalksShelves = at().x === 2;
+    swipe(160,0); await nap(260);
+    out.andBackAcross = at().x === 1;
+    // the row does not wrap: the edge gives rather than carrying you round
+    BUREAU.goShelfTo('root', 2, 2); await nap(200);
+    swipe(-160,0); await nap(260);
+    out.stopsAtTheEdge = at().x === 2;
+    BUREAU.goShelfTo('root', 1, 1); await nap(200);
     return out;
   });
 
@@ -1848,12 +1862,13 @@ const CHROME = process.env.BUREAU_CHROME;
     const wasLock = S.look.locked; S.look.locked = false;
     const t = B.create('task', { parent:'root', title:'Alone' });
     B.render(); await nap(150);
-    const per = B.pageRows;
-    t.phone = { x:1, y:per + 3, w:3, h:2 };
+    const per = B.shelfRows, wide = 8;
+    t.phone = { x:wide + 1, y:per + 3, w:3, h:2 };
     B.render(); await nap(150);
-    B.goPage('root', 1); await nap(250);
-    out.onPageTwo = B.pageAt('root') === 1;
-    out.pageTopIsTheOffset = B.pageTop('root') === per;
+    B.goShelfTo('root', 1, 1); await nap(250);
+    out.onTheMiddleShelf = JSON.stringify(B.shelfAt('root')) === JSON.stringify({x:1,y:1});
+    out.shelfShiftIsTheOffset = B.shelfShift('root').y === per
+                             && B.shelfShift('root').x === wide;
 
     const frame = document.getElementById('frame'), grid = document.querySelector('.grid');
     const ev = (el, ty, x, y) => el.dispatchEvent(new PointerEvent(ty,
@@ -1868,7 +1883,8 @@ const CHROME = process.env.BUREAU_CHROME;
     out.foundTheTile = !!tile;
     if(tile){
       const drawnAt = +getComputedStyle(tile).gridRowStart;
-      out.drawnAtItsPageRow = drawnAt === t.phone.y - per;
+      out.drawnAtItsShelfRow = drawnAt === t.phone.y - per;
+      out.andItsShelfColumn = +getComputedStyle(tile).gridColumnStart === t.phone.x - wide;
       const grip = tile.querySelector('.rz.se');
       out.hasAGrip = !!grip;
       if(grip){
@@ -1876,15 +1892,16 @@ const CHROME = process.env.BUREAU_CHROME;
         ev(grip, 'pointerdown', g.x + 4, g.y + 4); await nap(40);
         ev(frame, 'pointermove', g.x + 44, g.y + 44); await nap(40);
         const live = document.querySelector(`.grid .drawer[data-row="${t.id}"]`);
-        out.staysOnItsPageWhileResizing = live && +getComputedStyle(live).gridRowStart === drawnAt;
+        out.staysOnItsShelfWhileResizing = live && +getComputedStyle(live).gridRowStart === drawnAt;
         ev(frame, 'pointerup', g.x + 44, g.y + 44); await nap(200);
       }
     }
 
-    /* …and a cell sketched on page two makes the object *on page two*. It read
-       the screen row and stored it as a board row, so the new object landed
-       fifteen rows up on page one — where you are not looking. That is what
-       "making new objects doesn't work" was: it worked, somewhere else. */
+    /* …and a cell sketched on the middle shelf makes the object *on the middle
+       shelf*. It read the screen cell and stored it as a board cell, so the new
+       object landed a shelf up and a shelf across — where you are not looking.
+       That is what "making new objects doesn't work" was: it worked, somewhere
+       else. Both axes now. See decisions 102 and 141. */
     const gr = document.querySelector('.grid').getBoundingClientRect();
     const x = gr.left + gr.width * 0.2, y = gr.top + gr.height * 0.75;
     out.aimedAtBareBoard = document.elementFromPoint(x, y) === document.querySelector('.grid');
@@ -1892,19 +1909,20 @@ const CHROME = process.env.BUREAU_CHROME;
     await nap(420);                       // outlast the hold
     ev(frame, 'pointermove', x + 40, y + 40); await nap(60);
     const ghost = document.querySelector('.ghost');
-    out.theGhostIsOnThisPage = !!ghost && +getComputedStyle(ghost).gridRowStart <= per;
+    out.theGhostIsOnThisShelf = !!ghost && +getComputedStyle(ghost).gridRowStart <= per;
     ev(frame, 'pointerup', x + 40, y + 40); await nap(300);
     out.thePickerOpened = !!document.querySelector('#panel');
     const chip = document.querySelector('#panel .kindgrid button');
     if(chip){ chip.click(); await nap(350); }
     const made = S.objects.filter(o => o.parent === 'root' && o.id !== t.id);
     out.itMadeOne = made.length === 1;
-    out.andOnTheRightPage = made.length === 1 && made[0].phone
-      && Math.floor((made[0].phone.y - 1) / per) === 1;
+    out.andOnTheRightShelf = made.length === 1 && made[0].phone
+      && Math.floor((made[0].phone.y - 1) / per) === 1
+      && Math.floor((made[0].phone.x - 1) / wide) === 1;
 
     B.closePanel && B.closePanel();
     S.objects = was; S.look.locked = wasLock;
-    B.goPage('root', 0); B.render(); await nap(200);
+    B.goShelfTo('root', 1, 1); B.render(); await nap(200);
     return out;
   });
 
@@ -2248,7 +2266,7 @@ const CHROME = process.env.BUREAU_CHROME;
          arrangement is taken at the top of this block and put back at the end,
          so this costs nothing and nothing after it sees the difference. */
       {
-        const rows = BUREAU.pageRows;
+        const rows = BUREAU.shelfRows;
         const hits = (o,y) => { const b=o[S.device]; return !!b && b.y<=y && b.y+b.h-1>=y; };
         for(let y=rows; y>=1; y--){
           const on = S.objects.filter(o => o.parent==='root' && hits(o,y));
@@ -3321,24 +3339,26 @@ const CHROME = process.env.BUREAU_CHROME;
     return out;
   });
 
-  /* --- the dots by the title are the desks, not the pages. A row you walk
-     sideways is a row you can be lost in, and "third of five" is the one thing
-     a strip of dots says better than anything else. */
+  /* --- the dots by the title are the **shelves of this board**, laid out the
+     way they actually are. A row of dots was right when the desks were a row;
+     nine shelves are a square, and a square of nine is a map you can aim at
+     rather than a count you have to translate. Decision 141. */
   const deskDots = await phone.evaluate(async () => {
     const nap = n => new Promise(r => setTimeout(r, n));
     const S = BUREAU.state, out = {};
     S.view='desk'; S.drawerId=null; BUREAU.render(); await nap(200);
-    const dots = () => [...document.querySelectorAll('.deskmark i')];
-    out.oneDotPerDesk = dots().length === S.desks.length;
-    out.theOneYouAreOnIsLit = dots().findIndex(d => d.classList.contains('on'))
-      === S.desks.indexOf('root');
-    // …and inside a drawer it still says which desk that drawer is on
-    S.view='drawer'; S.drawerId='d_ideas'; BUREAU.render(); await nap(200);
-    out.itFollowsYouIntoADrawer = dots().findIndex(d => d.classList.contains('on'))
-      === S.desks.indexOf(BUREAU.deskOf('d_ideas'));
+    const dots = () => [...document.querySelectorAll('.shelfmark i')];
+    out.nineDots = dots().length === 9;
+    out.theOneYouAreOnIsLit = dots().filter(d => d.classList.contains('on')).length === 1
+      && dots()[4].classList.contains('on');
     // pressing one goes there
-    dots()[1].click(); await nap(300);
-    out.pressingOneGoesThere = S.drawerId === S.desks[1];
+    dots()[2].click(); await nap(300);
+    out.pressingOneGoesThere = JSON.stringify(BUREAU.shelfAt('root'))
+      === JSON.stringify({x:2, y:0});
+    BUREAU.goShelfTo('root', 1, 1); await nap(200);
+    // …and a board with one shelf has nothing to map, so it draws none
+    S.view='drawer'; S.drawerId='d_open'; BUREAU.render(); await nap(200);
+    out.oneShelfDrawsNoDots = !document.querySelector('.shelfmark');
     S.view='desk'; S.drawerId=null; BUREAU.render(); await nap(150);
     return out;
   });
@@ -3364,7 +3384,10 @@ const CHROME = process.env.BUREAU_CHROME;
     out.sidewaysStartsThePager = !!document.querySelector('.pager');
     ev('pointerup', x - 240, y);
     await nap(450);
-    out.andLandsOnTheNextDesk = S.drawerId === S.desks[1];
+    // …and it lands on the next **shelf**: the desks are one desk now, so
+    // both axes of the pager walk the nine. See decision 141.
+    out.andLandsOnTheNextShelf = BUREAU.shelfAt('root').x === 2;
+    BUREAU.goShelfTo('root', 1, 1);
     S.view='desk'; S.drawerId=null; S.deskCfg.layout='grid'; BUREAU.render(); await nap(200);
     return out;
   });
@@ -3554,10 +3577,10 @@ const CHROME = process.env.BUREAU_CHROME;
   });
   await phone.screenshot({ path: 'test/shots/20-phone-pager.png' });
 
-  /* --- desks: a drawer given a place in the master space. What makes it a
-     desk rather than a drawer is that you are *at* it — so the breadcrumb
-     roots there, the shelf belongs to it, and the row you swipe is the row of
-     them. And a magic drawer stops seeing across the lot. */
+  /* --- one desk, nine shelves. A drawer given a place in the master space
+     was what bought *room*, and the Desk is nine screens now — so a drawer is
+     a drawer again, wherever it is, and the breadcrumb, the scope of a rule
+     and the row you swipe are all about shelves instead. Decision 141. */
   await page.bringToFront();
   await page.evaluate(() => { const S=BUREAU.state;
     S.view='desk'; S.drawerId=null; S.look.locked=false; BUREAU.render(); });
@@ -3568,60 +3591,69 @@ const CHROME = process.env.BUREAU_CHROME;
     const bar = () => (document.querySelector('.gridbar .where')||{}).textContent
       .replace(/\s+/g,' ').trim();
 
-    out.homeIsInTheRow = S.desks.includes('root');
-    out.sampleHasMoreThanOne = S.desks.length > 1;
-    // the shelf is the app's now, not any one desk's
+    out.oneDeskOnly = S.desks.length === 1 && S.desks[0] === 'root';
+    out.everyDrawerIsOnIt = S.objects.filter(o => BUREAU.isContainer(o))
+      .every(o => o.parent != null);
+    out.deskOfIsAlwaysHome = BUREAU.deskOf('d_ideas') === 'root';
     out.oneShelfForAllOfThem = (S.pins||[]).length > 0 && !('shelf' in S.deskCfg);
 
-    // at a desk there is no way "up": it is where you are, not what you are in
-    const dk = S.desks[1];
-    S.view='drawer'; S.drawerId=dk; BUREAU.render(); await nap(200);
-    out.aDeskIsWhereYouAre = bar() === (BUREAU.state.objects.find(o=>o.id===dk).title)
-      && !document.querySelector('[data-act="back"]');
-    out.noSecondShelf = !document.querySelector('.shelf-top.pinbar .pinbtn');
-
-    // …and a drawer on it is somewhere you went into, from that desk
-    const inner = BUREAU.create('drawer', {parent:dk, title:'Drafts'});
-    inner.desk = BUREAU.free(2,2,dk);
+    /* A drawer is somewhere you went *into*, so the breadcrumb roots at the
+       desk and the way back up is the chevron. */
+    const outer = S.objects.find(o => o.kind === 'drawer' && o.parent === 'root');
+    S.view='drawer'; S.drawerId=outer.id; BUREAU.render(); await nap(200);
+    out.aDrawerIsSomewhereYouWent = !!document.querySelector('[data-act="back"]');
+    const inner = BUREAU.create('drawer', {parent:outer.id, title:'Drafts'});
+    inner.desk = BUREAU.free(2,2,outer.id);
     S.drawerId = inner.id; BUREAU.render(); await nap(200);
-    out.breadcrumbRootsAtTheDesk =
-      bar().startsWith(BUREAU.state.objects.find(o=>o.id===dk).title)
-      && bar().includes('Drafts') && !bar().includes('Desk ›');
-    out.backGoesUpOne = true;
+    out.breadcrumbRootsAtTheDesk = bar().includes('Drafts') && bar().includes(outer.title);
     document.querySelector('[data-act="back"]').click(); await nap(200);
-    out.backGoesUpOne = S.drawerId === dk;
+    out.backGoesUpOne = S.drawerId === outer.id;
 
-    /* Scope. A rule on the home desk collects from the home desk; the same
-       rule set to every desk reaches inside the others. This is the whole
-       reason desks are not merely cosmetic. */
+    /* Scope still exists as a rule clause and now has one answer: there is one
+       desk, so `desk` and `all` reach the same things. The machinery is kept
+       because a rule may still name it and a backup still carries it. */
     S.view='desk'; S.drawerId=null; BUREAU.render(); await nap(150);
-    const far = BUREAU.create('task', {parent:dk, title:'Over there', due:BUREAU.state.objects[0].created});
+    const far = BUREAU.create('task', {parent:outer.id, title:'Over there'});
     far.due = new Date().toISOString().slice(0,10);
     const mg = BUREAU.create('magic', {parent:'root', title:'Rule'});
     mg.filter = {rule:{f:'date', op:'any'}};
     mg.desk = BUREAU.free(2,2,'root'); BUREAU.render(); await nap(150);
     const sees = () => BUREAU.kids(mg.id).includes(far.id);
-    out.scopedToItsOwnDeskByDefault = !sees();
+    out.oneDeskSoScopeIsOneAnswer = sees();
     mg.filter = Object.assign({}, mg.filter, {scope:'all'});
-    out.everyDeskSeesInside = sees();
-    mg.filter = Object.assign({}, mg.filter, {scope:'some', scopeDesks:[dk]});
-    out.chosenDesksWork = sees();
-    mg.filter = Object.assign({}, mg.filter, {scope:'some', scopeDesks:['root']});
-    out.chosenDesksExclude = !sees();
-    // the seeded Today is global, because a Today that stops at one desk is
-    // not a Today
+    out.andEveryDeskIsTheSame = sees();
+    // the seeded Today is global, because a Today that stops anywhere is not a Today
     const today = BUREAU.state.objects.find(o => o.id === 'd_today');
     out.todayIsGlobal = (today.filter||{}).scope === 'all';
 
-    // demoting puts it back to being an ordinary drawer, contents intact and
-    // standing on a board again
-    BUREAU.setPin(dk, null); await nap(150);
-    const back = BUREAU.state.objects.find(o=>o.id===dk);
-    out.demotes = !S.desks.includes(dk) && !!back && back.parent != null;
-    BUREAU.setPin(dk, 'desk'); await nap(100);
+    /* How many shelves a board is, from its own editor. A shrink throws
+       nothing away: what is left outside is re-placed on the next render. */
+    const many = BUREAU.create('drawer', {parent:'root', title:'Roomy'});
+    many.desk = BUREAU.free(2,2,'root'); BUREAU.render(); await nap(120);
+    out.aDrawerStartsAtOneShelf =
+      JSON.stringify(BUREAU.shelvesOf(many.id)) === JSON.stringify({w:1,h:1});
+    many.shelves = {w:2,h:2}; BUREAU.render(); await nap(120);
+    out.andCanBeGivenMore =
+      JSON.stringify(BUREAU.shelvesOf(many.id)) === JSON.stringify({w:2,h:2});
+    /* …and a full board refuses rather than putting the thing somewhere you
+       are not looking. It is a message, not a silent placement. */
+    const tight = BUREAU.create('drawer', {parent:'root', title:'Tight'});
+    tight.desk = BUREAU.free(2,2,'root'); BUREAU.render(); await nap(120);
+    let n = 0;
+    while(BUREAU.roomFor(1,1,tight.id) && n < 500){
+      const o = BUREAU.create('note',{parent:tight.id});
+      o.desk={w:1,h:1}; o.phone={w:1,h:1}; BUREAU.render(); n++;
+    }
+    out.aBoardCanBeFilled = n > 20 && !BUREAU.roomFor(1,1,tight.id);
+    const held = BUREAU.kids(tight.id).length;
+    S.view='drawer'; S.drawerId=tight.id; BUREAU.render(); await nap(120);
+    BUREAU.quickAdd && BUREAU.quickAdd('One more', 'note', tight.id);
+    out.andRefusesRatherThanGuessing = BUREAU.kids(tight.id).length === held;
 
-    BUREAU.del(far.id); BUREAU.del(mg.id); BUREAU.del(inner.id); S.undo=[];
-    S.view='desk'; S.drawerId=null; BUREAU.render();
+    S.view='desk'; S.drawerId=null;
+    BUREAU.del(far.id); BUREAU.del(mg.id); BUREAU.del(inner.id);
+    BUREAU.delDrawer(many.id); BUREAU.delDrawer(tight.id); S.undo=[]; S.redo=[];
+    BUREAU.render();
     return out;
   });
 

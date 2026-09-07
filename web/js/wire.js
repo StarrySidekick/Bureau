@@ -3,14 +3,15 @@ import { S, K, KINDS, KEYS, refreshKinds, ATTRS, attrsOf, has, SHAPES,
   FACES, MANUAL, byId, container, cfgOf, isContainer, isAncestor, relate, deskOf,
   unrelate, sensedDevice, reset, T, dz, dev, calViewOf, RULE_MAX, acceptFor,
   boardLocked, repeatOf, repeats, heldObjects, heldCount, marginOf, marginPlus } from './model.js';
-import { gridOf, lay, boxOk, freeSpot, toPhoneSize, keepSize } from './grid.js';
+import { gridOf, lay, boxOk, freeSpot, anySpot, roomFor, sizeOfKind, toPhoneSize, keepSize,
+  shelvesOf, shelfAt, setShelf } from './grid.js';
 import { applyLook, applyStyle, setLookVal, lookVal, STYLES, setSlot, objColour, darkMode } from './look.js';
-import { toast, setGridSize, toggleDone, spawnNext, del, delMany, delDrawer, undo, redo, pushUndo,
+import { toast, fits, setGridSize, toggleDone, spawnNext, del, delMany, delDrawer, undo, redo, pushUndo,
   pushSet, pushSets, setPin, togglePin, drawerForTag, create, spawnInto, randomThing,
   holdIt, unholdIt, unholdMany, undoToast } from './mutations.js';
 import { spinTo, pending, placeAtPending, tileTap, turnPage, clearPages } from './tiles.js';
 import { DECOR, LIFE_ART } from './decor.js';
-import { render, renderSoon, sizeGrid, toggleSettings, settingsPanel, reveal, goPage, deskMap } from './views.js';
+import { render, renderSoon, sizeGrid, toggleSettings, settingsPanel, reveal, goShelf, goShelfTo, deskMap } from './views.js';
 import { openObj, openWriter, openRead, openViewer, closeSheet, renderSheet, words,
   mdKey, copyObject } from './sheet.js';
 import { openPanel, closePanel, refreshPanel, panelKey, panelBack, draft, modalNewObject, modalNewKind, modalMove, renderPreview, holdPanel,
@@ -94,6 +95,10 @@ function newOfKind(kind){
   closePanel();
   pending.cell = at;
   const k = K(kind);
+  /* Before anything else, and before any question is asked: a shelf is finite,
+     and being asked which sort of note you want and *then* told there is
+     nowhere to put it is the wrong order. See decision 141. */
+  if(!fits(kind, (at && at.parent) || (S.view==='drawer' && S.drawerId) || ROOT)) return;
   if(k.picksFile){ $('#imgpicker').click(); return; }
   /* A type may ask one question before it exists. A sorting drawer with no
      rule is an empty front that reads as broken; a life drawer with no object
@@ -919,12 +924,15 @@ function wire(){
     const st3=t.closest('[data-style3]');
     if(st3){ applyStyle(st3.dataset.style3); toast(STYLES[st3.dataset.style3].nm); return; }
 
-    // the desk map: every desk drawn small, and pressing one goes there
-    const dg=t.closest('[data-deskgo]');
-    if(dg){ const id=dg.dataset.deskgo; closePanel();
-      S.view = id===ROOT ? 'desk' : 'drawer';
-      S.drawerId = id===ROOT ? null : id;
-      S.kindFilter=null; render(); enter('back'); return; }
+    /* The shelf map, and the nine dots in the bar it is the big version of:
+       press a shelf and you are on it. One handler for both, because they are
+       the same press — decision 141. */
+    const sg=t.closest('[data-shelfgo]');
+    if(sg){
+      const [cid,x,y]=sg.dataset.shelfgo.split(':');
+      if(panelKey()==='deskmap') closePanel();
+      goShelfTo(cid, +x, +y);
+      return; }
 
     /* A plan, drawn as the board it will lay out — pressing one lays it out
        where you are standing. A card, so it is found the way the desk map's
@@ -947,10 +955,6 @@ function wire(){
       if(top) reveal(top.id);
       toast(`Laid out ${made.length} thing${made.length===1?'':'s'}`);
       return; }
-
-    // the page dots in the top shelf: two fingers turn pages, and so do these
-    const gp=t.closest('[data-gopage]');
-    if(gp){ goPage(S.view==='drawer'?S.drawerId:ROOT, +gp.dataset.gopage); return; }
 
     /* The little calendar. A day sets the day it sits on; a quick pill is the
        same write with the arithmetic done for you; the arrows walk the month
@@ -1075,6 +1079,20 @@ function wire(){
         const was=o.at||0, want=+n;
         pushSet('Progress', id, 'at', was);
         o.at = was===want ? want-1 : want;
+        save(); render(); refreshPanel();
+      }
+      return; }
+
+    /* How many shelves a board is. A shrink throws nothing away: what is left
+       outside is re-placed the next time the board is drawn. See decision 141. */
+    const shz=t.closest('[data-shelfsize]');
+    if(shz){
+      const [cid,x,y]=shz.dataset.shelfsize.split(':');
+      const o=byId(cid);
+      if(o){
+        pushSet('Shelves', cid, 'shelves', o.shelves);
+        o.shelves={w:+x, h:+y};
+        setShelf(cid, Math.min(shelfAt(cid).x, +x-1), Math.min(shelfAt(cid).y, +y-1));
         save(); render(); refreshPanel();
       }
       return; }
@@ -1538,7 +1556,7 @@ function wire(){
       // land it directly beneath the field that made it
       const b=lay(src), g=gridOf();
       const want={x:b.x, y:b.y+b.h, w:b.w, h:1};
-      t[dev()] = boxOk(want,t.id,dev(),src.parent) ? want : freeSpot(b.w,1,dev(),src.parent);
+      t[dev()] = boxOk(want,t.id,dev(),src.parent) ? want : anySpot(b.w,1,dev(),src.parent);
       e.target.value=''; save(); render();
       const el=document.querySelector(`[data-fieldfor="${src.id}"]`); el&&el.focus();
       return;
