@@ -1611,7 +1611,6 @@ const CHROME = process.env.BUREAU_CHROME;
       && !RACK.includes(o.id));
     parked.forEach(o => { o.parent = '__parked'; });
     BUREAU.render(); await nap(200);
-    const was = rack();
     out.smallIsTheDefault = S.look.grid === 'small' && cols() === 8;
     BUREAU.setGrid('extra'); await nap(400);
     out.extraIsNine = cols() === 9 && square();
@@ -1638,10 +1637,14 @@ const CHROME = process.env.BUREAU_CHROME;
         if(hit(all[i],all[j])) return false;
       return all.every(b => ((b.x-1)%8)+b.w <= 8 && ((b.y-1)%g)+b.h <= g);
     })();
+    /* From where the jump left it, not from where the block started: the jump
+       has already bumped a tile by design, and a later round trip cannot undo
+       that. What is being measured is one notch out and one notch back. */
+    const before = rack();
     BUREAU.setGrid('extra'); await nap(400);
     BUREAU.setGrid('small'); await nap(400);
-    out.backIsWhereYouWere = (cols() === 8 && rack() === was)
-      || `was ${was} / back ${rack()} / cols ${cols()}`;
+    out.backIsWhereYouWere = (cols() === 8 && rack() === before)
+      || `before ${before} / back ${rack()} / cols ${cols()}`;
     parked.forEach(o => { o.parent = 'root'; });
     BUREAU.render(); await nap(200);
     /* The whole board is rows now, not rows-less-a-shelf: 8x13, 9x14, 10x15 on
