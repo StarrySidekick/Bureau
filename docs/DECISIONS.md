@@ -6016,3 +6016,236 @@ anything would have drawn as a note factory and pressed out notes. `ANY`,
 `K()`, and `someKind()` picks from the majors with the containers, controls and
 decorations taken out — a spawner that made furniture is a machine for making
 furniture, and what you want out of one is work.
+
+## 134. A collage is the board inside it
+
+The moodboard front drew its own wall: the pictures it held, packed three to a
+row, up to twelve of them. That is a *different picture* from the one you made.
+A moodboard is an **arrangement** — the whole reason to put pictures in one is
+to put them next to each other in a particular way — and a front that re-packs
+them is showing you a thumbnail of something else.
+
+So the face draws the container's own board, small: every child at the box it
+actually occupies, on the container's own column count. Rename included, because
+"moodboard" named a genre and the thing is more general than that: it is a
+**Collage**, and it is a **face** rather than a type, so any container can wear
+it. The type that wears it by default keeps its stored key, so nothing needed
+migrating beyond the face and the layout name.
+
+Two details, both learned by looking. A child that has never been placed has no
+box to draw at, and dropping those made a collage you had just filled by
+dictation look empty until you opened it — so an unplaced child gets a synthetic
+box in flow order. Nothing is written: `ensureBox()` is a mutation and a face is
+not allowed one. And something in it that is *not* a picture is still something
+in it, drawn as its own colour, because a wall with holes in it where the notes
+are is not the arrangement either.
+
+## 135. A category is a type you press to be asked which
+
+Twenty majors was already an ordering rather than a hierarchy (decision 130),
+and it was still asking you to decide twice: once that you were writing
+something down, and again about what sort of writing-down it was. Five kinds of
+note sat side by side in the picker's front page and between them said less than
+one tile saying **Note** would have.
+
+A **category** is a type you press to be asked *which*. `family` on a kind is the
+list, and it leads with that kind wherever it is a real thing you can make — the
+first kind of note is a Note. Four of them: **Note** (idea, thought, problem,
+question), **Text** (the old Book, renamed: poem, novel, short story, essay),
+**Project** (film, novel, game, song, album, app, art piece, trip) and
+**Fragment**, which is the one that is *only* a question — there is no generic
+fragment, so `cat` marks it and pressing it always asks.
+
+Three rules fell out of building it.
+
+**One way in, whether you pressed the tile or typed its letter.** The keyboard
+shortcut used to call `create()` outright, so a sorting drawer made with `Q`
+skipped the question its own tile asks and landed as an empty front. Everything
+a type can ask before it exists is in `newOfKind()` now, once. (The same line
+was calling `.toLowerCase()` on an optional `key`, so any letter that did not
+match one of the first dozen types threw before it could miss.)
+
+**The cell survives the question.** `closePanel()` clears `pending.cell`, so
+every one of these asks reads it first and puts it back — the answer still has
+to land in the cell you held.
+
+**A family member is not listed twice.** Drawing Idea both in the picker's own
+list and behind the Note tile is the deciding-twice this exists to remove, so
+`pickGroups(true)` skips anything a *major* category already covers. The type
+pickers that deliberately show everything — the object editor's, a rule's —
+pass nothing and still see it all.
+
+### And what a project *is*, drawn as the thing it will become
+
+A piece of work has a shape you know before it exists: a film is a poster, an
+album is a sleeve, a game is a boxed case, an app is an icon, a novel is a
+spine. `proj` names which cover the project face wears — one property and one
+stylesheet block, not eight container types with eight blocks of markup that
+would drift apart the first time the project face learned anything.
+
+A picture on the object is always the cover. With none, each draws its own
+**placeholder**, and that is the half that matters: an empty film should read as
+a film you have not made yet, not as a project you have not filled in.
+
+Three depths, and they must not be guessed at: the cover at 0, the scrim over it
+at 1, the report over that at 2. `.projtile > *` lifts every child into the
+positioned layer at z-index 1 — which had been quietly overriding
+`.projcover{position:absolute}` since the day it was written, so the cover was a
+flex item in a band along the top rather than the background it was declared to
+be. Invisible at 30% opacity behind a report; not invisible at all once a cover
+became the face.
+
+### A goal is a drawer with the knob taken off
+
+A goal is a thing you are trying to reach and it is *made of* the work that gets
+you there, so it holds that work rather than describing it. Its front is a
+drawer front with no knob — a goal is not something you pull open to rummage in
+— and the name set as large as the frame allows, because on a goal the name *is*
+the face. "Lose 25 pounds" needs nothing else printed on it.
+
+What it is **called** is read off the time on it rather than stored: no deadline
+and it is a **dream**, barely enough time and it is a **challenge**, anything
+else is a goal. Three stored types would have made you re-declare a dream as a
+goal the day you finally put a date on it, and would have left a Challenge
+sitting there lying about itself the day the date slipped past.
+
+### An achievement is picked, not written
+
+You do not compose an achievement; you point at the thing you finished. So
+placing one lists what is actually done — ticked objects, and goals and projects
+whose work is all done — and the plaque takes that thing's name **in the past
+tense**. `st.length>0` is the part that matters in `finishedThings()`: every
+tickable thing under an empty container is done, vacuously, so without it a
+project you had not started would be offered as an achievement.
+
+The past tense leans on a **list**, not a pattern. English cannot be conjugated
+from the outside: "Bike to work" and "Bill the client" look exactly like verbs
+and are, "Bike shed" and "Bill's birthday" look exactly like verbs and are not.
+So `pastTense()` knows the irregulars plus the ordinary verbs people actually
+start a goal with, and a title whose first word is not in the list comes back
+**exactly as written**. Getting it wrong is worse than not trying: "Housed the
+spare keys" reads as a mistake in a way that "House the spare keys" never does.
+
+### Seven types that went, and one that absorbed another
+
+An Item is an Artifact, a worldbuilding Event is a Historical event, a Shot is a
+Task, a Shot list and a Shopping list are both a Checklist. The **Button** object
+has no successor — its `button` trait is still in the vocabulary, so anything
+carrying one keeps working; the type becomes a Note, which is what a button with
+nothing to open already was.
+
+The **Text field** is the interesting one. A spawner is a spiral you press, one
+cell square, and made bigger it grows the box you type into — what you write is
+the name of the thing it presses out. That is the whole of what a Text field
+was. Pressing and typing are two *sizes* of one machine, not two machines, so
+there is one type now and the seed a project is born with states its own band
+size rather than the spiral its type is.
+
+## 136. A life drawer wears an object
+
+A life drawer is an area of your life, and a coloured rectangle with "Health"
+written on it is the least memorable thing a desk could put that under. It wears
+a **thing** instead — a stack of coins for money, a suitcase for travel, a
+dumbbell for exercise — lying on the desk with its name on a small label under
+it. You recognise the drawer before you have read anything, which is the whole
+argument for a desk over a list.
+
+Nine of them, drawn as inline SVG in decor.js beside the decorations, for the
+three reasons the decorations are (already in the shell, crisp at any tile size,
+and being in the DOM they read the style's own colours) plus a fourth: a
+photograph found on the web carries a licence, and this app ships. A **picture
+on the object beats the drawing**, which is where this is meant to end up: put
+your own photograph or drawing on a life drawer and it wears that, with no code
+changing.
+
+Placing one asks which, the way a sorting drawer is asked what it sorts for, and
+`makeLife()` is the one place both halves of the answer land — the naming, the
+placing and the reveal cannot drift apart. "No object, just a drawer" is a real
+answer and falls back to the reporting front it has always had.
+
+## 137. Three shapes of control, because there are three questions
+
+A control was a switch or a printed value, and the printed value was doing two
+different jobs badly. `ctlForm()` reads the table — never a name — and answers
+one of three.
+
+**Two states is a switch**, and a switch is drawn as one: late-Victorian
+hardware, a brass bat on a porcelain backplate with a screw at each end. It is a
+fixed size at any tile size, the argument every moulding on a drawer front
+makes, and what reads is *position* — the bat is up or it is down, and you can
+see which from across the room. `cycle().length<=2` rather than "has a cycle": a
+two-value list is a switch wearing a list, and drawing it as a button would give
+the desk two answers to one question.
+
+**More than two is a button that changes colour**, because a list has no lever
+position to be at. The face steps through the aesthetic's own eleven object
+slots as it walks, so pressing it is visibly a different indicator rather than
+the same square with new words — and the colour is never named here, which is
+decision 33's rule.
+
+**A number is a dial**, turned, with a pointer: 270° of sweep with a stop at
+each end, because a full circle has no stop and a pointer at twelve would mean
+both nothing and everything. `range` on a control row is the only thing that
+says so; four of the desk's own numbers got rows, so the dial has something to
+be. Pressing it is one detent round of ten, wrapping — a dial you cannot move at
+all is an ornament, and the press is what every other control already answers
+to. Dragging one is still to come.
+
+## 138. Four tiles that were saying the wrong thing
+
+**A counter is its number.** It carried no `shape` at all, so `shapeOf()` fell
+through to `card` and it drew as a titled note with the tally in the *footer* —
+the one thing a counter must never be, and invisible as a bug because the tile
+rendered perfectly well. `count` is its click, because going up is the whole of
+what a counter is for.
+
+**A progress bar is a row of blocks, not a fill.** A continuous bar can read 63%
+and mean nothing you can point at; ten blocks with six lit says six of ten,
+which is what you actually know about a thing you are counting. Each block is a
+whole cell tall and half a cell wide, so a ten-step bar is five cells long with
+nobody told — and made narrower it **wraps** into a second row rather than
+shrinking its blocks into slivers you cannot count, so one cell can hold four.
+The columns are evened across the rows, because a last row half empty reads as a
+bar that has broken rather than one that has wrapped. Pressing a block sets the
+bar to it and pressing the one it is on steps back, so a readout that owns its
+own number can be walked from the board — and a bar that is *tracking*
+something else refuses, because what happened somewhere else is not this tile's
+to change.
+
+**A note is a plain sheet.** It was torn — a chip bitten out of each side and a
+hand-drawn outline traced round the tear with four drop-shadows, because a
+`border` cannot follow a `clip-path`. It was the most characterful tile on the
+board and it was worn by the type you reach for most, which is the wrong way
+round: a desk covered in torn scraps reads as a desk in trouble. The machinery
+is still there as `sh-tornnote` for the shapes that are genuinely torn.
+
+That is also what makes the **idea** work: a note ruled round in a bold border
+of its own colour, rather than a note with a corner folded over. An earmark is a
+lovely drawing and a poor signal — at three cells it is eighteen pixels in one
+corner. The colour is `--c` and is never a named hue: the Idea type sits on slot
+12, which is Victoria's Gilt and every other aesthetic's answer to the same
+position. And a **thought** is a rounded card and nothing else: it was a torn
+chit with a perforation dotted down it, which is three drawings for a two-line
+scrap whose whole value is that writing it down costs nothing.
+
+## 139. An edge of none still has to reach the edge
+
+Books never looked flush with the tiles beside them, and the boxes were exactly
+flush — every tile in the row started and ended on the cell, to the pixel. It
+was paint.
+
+`border-color:transparent` leaves the 1px border *box* in place, and a
+background **image** is laid against the padding box by default. So a tile with
+no edge and a sized background painted its gradient one pixel short on every
+side and showed a hairline of board all the way round; against a neighbour whose
+border is a real line, that reads as the tile not filling its cell. A background
+*colour* was never affected — `background-clip` is border-box — which is why
+this hid for so long: only the tiles made of a gradient were short, which is
+every spine and anything wearing a stock. `background-origin:border-box` on
+`.drawer.bd-none` is the whole fix.
+
+The second half is the shadow. The renderer forces `bd-none` onto a spine to
+stop the border slot drawing a frame on a tile one cell wide (decision 87) —
+that means "do not dress the edge", not "this object is flat" — and `bd-none`
+also zeroes the shadow, which left a book as the one thing on the desk not
+sitting on the surface. A spine states its shadow back.

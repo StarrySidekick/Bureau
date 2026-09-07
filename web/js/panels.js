@@ -1,4 +1,4 @@
-import { $, $$, esc, ic, uid, clamp, D, ROOT } from './util.js';
+import { $, $$, esc, ic, uid, clamp, D, ROOT, pastTense } from './util.js';
 import { S, K, KINDS, KEYS, T, ATTRS, USER_ATTRS, FIELDS, fieldOf, OPS, ROLLS,
   URGES, workday, urgencyOf, urgeRank, urgeSaid, durSaid,
   WHENS, whenISO, RULE_MAX, rulesOf,
@@ -7,7 +7,7 @@ import { S, K, KINDS, KEYS, T, ATTRS, USER_ATTRS, FIELDS, fieldOf, OPS, ROLLS,
   rootObj, containers, isContainer, isAncestor, childrenOf, has, kindHas,
   attrsOf, allTags, placeOf, deskList, deskOf, isDesk, spanOf, heldObjects,
   dev, takesTyping, genKindOf, genSaid, ANY, ctlOf, barOf,
-  PRIMARY, isPrimary, answered, marginOf, isLate,
+  PRIMARY, isPrimary, inFamily, familyList, finishedThings, answered, marginOf, isLate,
   PRIOS, prioOf, prioName, DIFFS, diffOf, diffName, REPEAT_UNITS, repeatOf, repeats, repeatSaid,
   relatedTo, backlinksTo, streak, goalPct,
   CALVIEWS, calViewOf, weekStartOf, showsWeekends, KNOBSIZES, knobSizeOf,
@@ -17,7 +17,7 @@ import { S, K, KINDS, KEYS, T, ATTRS, USER_ATTRS, FIELDS, fieldOf, OPS, ROLLS,
 import { GRID, lay, boxOk, freeSpot, sizeOfKind, toPhoneSize, keepSize } from './grid.js';
 import { randomBoard, randomFront, hexOf, objColour, objSlots, famSlots, famAll, FAMS, styleKey, stockNow } from './look.js';
 import { CLICKS, clickOf, gridTile, pending } from './tiles.js';
-import { DECOR, decorOf, decorSVG, decorFor, decorRest } from './decor.js';
+import { DECOR, decorOf, decorSVG, decorFor, decorRest, LIFE_ART, LIFE_KEYS, lifeSVG } from './decor.js';
 import { quickAdd, toast, drawerForTag, CONTROLS, CTL_KEYS, ctlSpec } from './mutations.js';
 import { openObj, renderSheet } from './sheet.js';
 import { render, settingsPanel, gridSizeField } from './views.js';
@@ -188,7 +188,16 @@ function openMenu(anchor, html){
 function pickGroups(skipPrimary){
   const g={Containers:[], Objects:[], Writing:[], Cooking:[], Film:[], Yours:[]};
   KEYS.forEach(k=>{
+    /* A category is only ever a question — there is no generic Fragment to
+       make — so it is never listed as a type anywhere, including in the
+       pickers that deliberately show everything. */
+    if(K(k).cat) return;
     if(skipPrimary && isPrimary(k) && !S.kinds[k]) return;
+    /* …and neither is a type its category already covers. Drawing Idea both
+       in the picker's own list and behind the Note tile is the "decide twice"
+       this exists to remove — one press further in is where it lives now, and
+       the object editor's type picker (which passes nothing) still sees it. */
+    if(skipPrimary && inFamily(k) && !S.kinds[k]) return;
     const d=KINDS[k];
     if(S.kinds[k])                    g.Yours.push(k);
     else if(d.narrative)              g.Writing.push(k);
@@ -209,13 +218,80 @@ function pickGroups(skipPrimary){
    be the only way in doesn't exist on a phone. */
 function kindTile(k){
   const d=KINDS[k];
-  return `<div class="kindtile" data-new="${k}" role="button" tabindex="0"
+  /* A **category** does not make anything: pressing it asks which, and the
+     family is one press further in. It is drawn as a type like any other,
+     because what you are choosing between at that moment is still "what am I
+     putting down" — a chevron says the answer is one more press, and the
+     count says how many are behind it. See decision 135. */
+  const fam = d.family && familyList(k);
+  return `<div class="kindtile${fam?' kindcat':''}" ${fam?`data-family="${k}"`:`data-new="${k}"`} role="button" tabindex="0"
       style="--k:${hexOf(d.c)}" title="${esc(d.ds||'')}">
     <div class="kpv">${sampleTile(kindSample(k), 146, 82)}</div>
     <div class="krow"><span class="nm">${esc(d.nm)}</span>
-      ${d.key?`<span class="kbd">${esc(d.key)}</span>`:''}</div>
-    <button class="kedit" data-act="editkind" data-id="${k}" title="Edit ${esc(d.nm)}">${ic('sliders',12)}</button>
+      ${fam?`<span class="kmore">${fam.length}${ic('chevR',11)}</span>`
+           :d.key?`<span class="kbd">${esc(d.key)}</span>`:''}</div>
+    ${fam?'':`<button class="kedit" data-act="editkind" data-id="${k}" title="Edit ${esc(d.nm)}">${ic('sliders',12)}</button>`}
   </div>`;
+}
+
+/* ---- the family behind a category --------------------------------------
+   The same grid of drawn types, one press in, with the way back in the head —
+   a replaced panel with no chevron is a dead end, which is what `spec.back`
+   exists for. The category's own kind leads the list where it is a real thing
+   (a Note is the first kind of note); a category that is only a question has
+   no such entry and its family simply starts with the first member.
+
+   `pending.cell` survives this the same way it survives the sorting drawer's
+   question: closePanel() clears it, so the caller in wire.js puts it back
+   before opening this, and pressing a type in here goes through the ordinary
+   `data-new` path with the cell still remembered. See decision 135. */
+function familyPanel(cat){
+  const d=K(cat), ks=familyList(cat);
+  if(!ks.length) return;
+  openPanel({key:'newobject', wide:true, back:()=>modalNewObject(),
+    title:d.nm, sub:d.famSub || 'Which one?',
+    body:()=>`<div class="kindgrid">${ks.map(kindTile).join('')}</div>
+      ${d.ds?`<div class="mini" style="--k:var(--brass);margin-top:12px">${esc(d.ds)}</div>`:''}`});
+}
+
+/* ---- which object a life drawer is -------------------------------------
+   A life drawer is an area of your life, and the thing that makes one
+   recognisable across a desk is not its name — it is the object lying on it.
+   So placing one asks which, out of the nine drawn in decor.js, and the
+   drawer arrives already wearing it and already named. `makeLife()` in wire.js
+   is the one place both halves land, exactly as `makeSorting()` is for the
+   sorting drawer. See decision 136. */
+function lifeFirstPanel(kind){
+  const k=K(kind);
+  openPanel({key:'newlife', title:k.nm, sub:'What part of your life?',
+    body:()=>`<div class="lifepick">${LIFE_KEYS.map(key=>{
+        const a=LIFE_ART[key];
+        return `<button class="lifeopt" data-newlife="${kind}:${key}" style="--k:${hexOf(a.c)}"
+            title="${esc(a.ds)}"><span class="lifeoptart">${lifeSVG(key)}</span>
+          <b>${esc(a.nm)}</b></button>`;
+      }).join('')}</div>
+      <div class="mini" style="--k:var(--brass);margin-top:12px">Each is a drawing, so it takes the aesthetic's own colours. Put your own picture on it later and that wins — a life drawer carrying an image wears the image.</div>
+      <button class="subtle-btn" data-newlife="${kind}:" style="margin-top:10px">${ic('folder',12)} No object — just a drawer</button>`});
+}
+
+/* ---- an achievement is picked, not written -----------------------------
+   You do not compose an achievement; you point at the thing you finished. So
+   this lists what is actually done — ticked objects, and goals and projects
+   whose work is all done — and the plaque takes that thing's name, put in the
+   past. Nothing is finished yet is a real answer and not an error: the plaque
+   is made blank and you write on it. See decision 135. */
+function donePanel(kind){
+  const k=K(kind), done=finishedThings().slice(0,40);
+  openPanel({key:'newdone', title:k.nm, sub:'What did you finish?',
+    body:()=>!done.length
+      ? `<div class="mini" style="--k:var(--brass)">Nothing on the desk is finished yet. Make the plaque anyway and write on it — or come back when a goal is done and it will be waiting here.</div>
+         <button class="pill" data-newdone="${kind}:" style="margin-top:12px">${ic('trophy',13)} Make a blank one</button>`
+      : `<div class="rows">${done.map(o=>`<button class="row donerow" data-newdone="${kind}:${o.id}">
+          <span class="kindmark" style="--k:${objColour(o)}">${ic(K(o.kind).ic,13)}</span>
+          <div class="body"><b>${esc(pastTense(o.title||'Untitled'))}</b>
+            <div class="snip">${esc(K(o.kind).nm)}${o.doneAt||o.due?` · ${esc(D.short(o.doneAt||o.due))}`:''}</div></div>
+        </button>`).join('')}</div>
+        <button class="subtle-btn" data-newdone="${kind}:" style="margin-top:10px">${ic('plus',12)} None of these — a blank one</button>`});
 }
 /* ---- what this desk actually uses --------------------------------------
    The picker drew all forty types in six sections, every time, wherever you
@@ -1765,6 +1841,7 @@ const closeCtx = ()=> $('#ctx').classList.remove('open');
 export { plansPanel, planCard,
   overlayHTML, openPanel, closePanel, refreshPanel, repositionPanel, panelKey, panelBack, draft,
   openMenu, modalNewObject, holdPanel, objectPanel, drawerPanel, modalNewKind,
-  renderPreview, modalMove, tagFirstPanel, sampleObject, sampleTile, kindSample,
+  renderPreview, modalMove, tagFirstPanel, familyPanel, lifeFirstPanel, donePanel,
+  sampleObject, sampleTile, kindSample,
   openCmd, closeCmd, cmdList, cmdMove, cmdAt, runCmd, drawerFromSelection, openCtx, closeCtx,
   schedulePanel, quickISO, SCHED, SCHED_PENS };

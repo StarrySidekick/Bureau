@@ -830,17 +830,107 @@ renders its own `<button>`, and a button inside a button is a parse error the
 browser fixes by *unnesting* it — silently, taking the layout with it. That is
 why `.kindtile` and `.helditem` are `div`s with `role="button"`.
 
-**The picker leads with twenty stated categories, not with a tally.** `PRIMARY`
-in model.js — the four drawers (Drawer, Sorting drawer, Project, Life drawer),
-then Book, Checklist, Calendar, Note, Thought, Idea, Question, Problem, Task,
-Progress bar, Image, Trip, Recipe, Decoration, Control, Spawner. Everything else
-is behind *Every other type* and is still reachable by name, by shortcut, from
-the type builder and from **every other type picker in the app** —
-`pickGroups(skipPrimary)` narrows only the new-object picker, because narrowing
-what a type can *be* is a different decision. No type is drawn twice on one
-screen. A container that says what it makes still leads with that type wherever
-it sits in the order, promoted into the row if it isn't a major. Adding a major
-is one name in `PRIMARY`. See decision 130.
+**The picker leads with stated categories, not with a tally.** `PRIMARY` in
+model.js — the five drawers (Drawer, Sorting drawer, Project, Life drawer,
+Goal), then Text, Checklist, Calendar, Note, Fragment, Task, Progress bar,
+Image, Decoration, Control, Spawner. Everything else is behind *Every other
+type* and is still reachable by name, by shortcut, from the type builder and
+from **every other type picker in the app** — `pickGroups(skipPrimary)` narrows
+only the new-object picker, because narrowing what a type can *be* is a
+different decision. No type is drawn twice on one screen. A container that says
+what it makes still leads with that type wherever it sits in the order,
+promoted into the row if it isn't a major. Adding a major is one name in
+`PRIMARY`. See decision 130.
+
+**Four of the majors are *categories*: you press them to be asked which.**
+`family` on a kind is the list, and it leads with that kind where that is a
+real thing to make — the first kind of note is a Note. **Note** (idea, thought,
+problem, question), **Text** (the old Book, renamed — poem, novel, short story,
+essay), **Project** (film, novel, game, song, album, app, art piece, trip) and
+**Fragment**, which is the only one that is *only* a question: `cat` marks it,
+there is no generic fragment, and pressing it always asks. `familyPanel()` draws
+the second screen and `inFamily()` is what keeps a member from being listed
+twice — it is skipped from *Every other type* only when its category is itself
+a major, so a family behind a door nobody can open cannot happen.
+
+**Everything a type asks before it exists is in `newOfKind()`, once.** Pressing
+a tile and typing its letter are the same act: the shortcut used to call
+`create()` outright, so a sorting drawer made with `Q` skipped its own question
+and landed as an empty front. `picksFile`, `asksTag`, `asksLife`, `asksDone`
+and `family` all branch there, and every one of them reads `pending.cell`
+first and puts it back — `closePanel()` clears it and the answer still has to
+land in the cell you held. See decision 135.
+
+**A project's cover is a slot, and a placeholder is not a fallback.**
+`projCoverOf(o)` — per object then per type — says which cover the project face
+wears: `film` a poster, `album` a sleeve, `song` a record, `game` a boxed case
+with the platform's strip down the left, `app` an icon squircle, `art` a
+canvas, `novel` the spine it already had, `trip` the ticket. A picture on the
+object is always the cover; with none, each kind draws its **own** placeholder,
+because an empty film should read as a film you have not made yet rather than
+as a project you have not filled in. Three depths on a cover tile and they must
+not be guessed at — the cover at 0, the scrim at 1, the report at 2:
+`.projtile > *` lifts every child into the positioned layer, which had been
+silently overriding `.projcover{position:absolute}` for as long as that line
+has existed.
+
+**A goal is a drawer with the knob taken off, and what it is *called* is read
+rather than stored.** `goalStanding(o)` — no deadline is a **dream**, thirty
+days or fewer is a **challenge**, anything else is a goal. Derived, so putting
+a date on a dream makes it a goal without re-declaring it and a slipped date
+cannot leave a Challenge lying about itself. The name is the face and is set as
+large as the frame allows; the run is a hairline along the bottom edge, never a
+bar, because a bar would compete with the name.
+
+**An achievement is picked, not written.** `finishedThings()` is the list —
+ticked objects, and goals and projects whose work is all done. `st.length>0` is
+the load-bearing clause: every tickable thing under an empty container is done
+vacuously, so without it an unstarted project is offered as an achievement.
+`pastTense()` in util.js puts the first word in the past and **only** off a
+list of verbs it knows: "Bike shed" and "Bill's birthday" look exactly like
+verbs, so a title it cannot vouch for comes back exactly as written.
+
+**A life drawer wears an object, and a picture beats the drawing.**
+`lifeArtOf(o)` names one of the nine in `LIFE_ART` (decor.js, beside the
+decorations and drawn the same way); an object carrying `media` wears that
+instead, which is where this is meant to end up. No front at all on that face —
+no panel, no knob, no border — the thing lies on the desk with its name on a
+small label. `makeLife()` in wire.js is the one place the answer lands.
+See decision 136.
+
+**A control has three shapes and `ctlForm()` reads the table, never a name.**
+Two states is a **switch** (a Victorian bat on a backplate, a fixed size at any
+tile size — what reads is *position*); more than two is a **button that changes
+colour**, stepping the aesthetic's own eleven slots, because a list has no lever
+position to be at; a `range` is a **dial**, 270° of sweep with a stop at each
+end. `cycle().length<=2` and not "has a cycle": a two-value list is a switch
+wearing a list. Pressing a dial is one detent of ten and wraps. See decision 137.
+
+**A progress bar is blocks, not a fill.** `barSteps`, `barFilled` and
+`barGrid(o, box)` in model.js: two increments to a cell of width, each a whole
+cell tall, so a ten-step bar is five cells long without being told — and
+narrower than that it **wraps** rather than shrinking the blocks. The columns
+are evened across the rows, because a half-empty last row reads as broken
+rather than wrapped. Pressing a block sets the bar to it and pressing the one it
+is on steps back; a bar that names a `tracks` refuses the press. See decision 138.
+
+**A spawner is a spiral, and bigger it is the Text field.** One cell square it
+is the mark and nothing else; wider or taller it grows the box you type into,
+and what you type names the thing it presses out. That is the whole of what the
+Text field type was, so there is no Text field type — pressing and typing are
+two sizes of one machine. The branch sits **above** the 1×1 branch in
+`drawTile()` deliberately, or a spawner shrunk to a stamp would be an anonymous
+mark. A seed may state its own box (`sz`/`phoneSz`), which is how a project is
+born holding a band rather than a spiral.
+
+**A collage is the board inside it, drawn small.** `faceOf(o)==='collage'` —
+every child at the box it actually occupies, on the container's own columns.
+A moodboard is an *arrangement*, and the old front re-packed it three to a row,
+which is a picture of something else. A child that has never been placed gets a
+synthetic box in flow order rather than being dropped (a face may not call
+`ensureBox()` — that is a mutation), and something in it that is not a picture
+is drawn as its own colour, because a wall with holes where the notes are is
+not the arrangement either. See decision 134.
 
 **Three kinds of drawer, and `magic` is called a *sorting drawer*.** The stored
 kind key is unchanged — `magic` in the code, "sorting drawer" in the interface,
@@ -1737,6 +1827,23 @@ coordinate space and `freeSpot()` scans from the top, so on a phone — where an
 object is full width — a new thing always lands below the fold. It looked
 exactly like nothing had happened. Don't fix it by shuffling the board: things
 you arranged don't move.
+
+**A note is a plain sheet, an idea is a note ruled round, and a thought is a
+rounded card.** The note was torn — a chip out of each side and a drawn outline
+following it — which is the most characterful tile on the board worn by the
+type you reach for most. That machinery is still here as **`sh-tornnote`** for
+the shapes that are genuinely torn. An idea's border is `var(--c)` and never a
+named yellow: the type sits on slot 12, which is Victoria's Gilt and every
+other aesthetic's answer to the same position. See decision 138.
+
+**An edge of none still has to reach the edge.** `border-color:transparent`
+leaves the border *box*, and a background **image** is laid against the padding
+box — so a tile with no edge and a gradient painted a pixel short all the way
+round and showed a hairline of board. A background *colour* never was, which is
+why it hid: only spines and anything wearing a stock were short.
+`background-origin:border-box` on `.drawer.bd-none` is the fix, and a spine
+states its **shadow** back, because `bd-none` is forced onto it to suppress the
+border *slot* and was taking the shadow with it. See decision 139.
 
 **A shape with a torn edge still has a border, and it follows the tear.** A
 `border` is drawn on the box, so `clip-path` slices it off at the notches and

@@ -348,6 +348,241 @@ const DECOR = {
     <path d="M4 96h92v4H4Z" fill="#000" opacity=".2"/>` }
 };
 
+/* ============================================================
+   22b · the things a life is made of
+   ============================================================
+   A **life drawer** is an area of your life rather than a piece of work, and a
+   coloured rectangle with "Health" written on it is the least memorable thing
+   a desk could put that under. So it wears an **object** instead — a stack of
+   coins for money, a dumbbell for exercise, a suitcase for travel — lying on
+   the desk the way the real thing would, with the name on a small label under
+   it. You recognise the drawer before you have read anything, which is the
+   whole point of a desk over a list.
+
+   Drawn rather than photographed, and for the same three reasons the
+   decorations are (they are already in the shell, they stay crisp at any tile
+   size, and being in the DOM they read the style's own colours) plus a fourth:
+   a photograph found on the web carries a licence, and this app ships. A life
+   drawer will also take an **uploaded picture** as its face — `media` on the
+   object beats the drawing — so a photograph or a drawing of your own goes on
+   without a line of code changing.
+
+   Same two rules as the decorations about the box: each states its own
+   viewBox, tight to its own artwork, and nothing is drawn outside it. Unlike a
+   decoration these are centred rather than stood on the floor — a thing lying
+   on a desk has no up. */
+const LIFE_ART = {
+
+  money: { nm:'Money', ds:'A stack of coins', c:13, vb:'2 6 96 88', svg:`
+    <ellipse cx="46" cy="84" rx="34" ry="9" fill="#000" opacity=".16"/>
+    <g>
+      <path d="M14 74v-9h64v9a32 9 0 0 1-64 0Z" fill="var(--brass)"/>
+      <ellipse cx="46" cy="65" rx="32" ry="9" fill="var(--brass)"/>
+      <ellipse cx="46" cy="65" rx="32" ry="9" fill="#fff" opacity=".2"/>
+      <path d="M14 74v-9h64v9a32 9 0 0 1-64 0Z" fill="#000" opacity=".22"/>
+    </g>
+    <g>
+      <path d="M17 60v-9h60v9a30 8.4 0 0 1-60 0Z" fill="var(--brass)"/>
+      <ellipse cx="47" cy="51" rx="30" ry="8.4" fill="var(--brass)"/>
+      <ellipse cx="47" cy="51" rx="30" ry="8.4" fill="#fff" opacity=".22"/>
+      <path d="M17 60v-9h60v9a30 8.4 0 0 1-60 0Z" fill="#000" opacity=".2"/>
+    </g>
+    <g>
+      <path d="M20 46v-8h56v8a28 8 0 0 1-56 0Z" fill="var(--brass)"/>
+      <ellipse cx="48" cy="38" rx="28" ry="8" fill="var(--brass)"/>
+      <ellipse cx="48" cy="38" rx="28" ry="8" fill="#fff" opacity=".24"/>
+      <path d="M20 46v-8h56v8a28 8 0 0 1-56 0Z" fill="#000" opacity=".18"/>
+    </g>
+    <g>
+      <path d="M24 33v-7h48v7a24 7 0 0 1-48 0Z" fill="var(--brass)"/>
+      <ellipse cx="48" cy="26" rx="24" ry="7" fill="var(--brass)"/>
+      <ellipse cx="48" cy="26" rx="24" ry="7" fill="#fff" opacity=".28"/>
+      <ellipse cx="48" cy="26" rx="15" ry="4.2" fill="none" stroke="#000" stroke-width="1.2" opacity=".2"/>
+      <path d="M24 33v-7h48v7a24 7 0 0 1-48 0Z" fill="#000" opacity=".16"/>
+    </g>
+    <g transform="rotate(-16 84 62)">
+      <ellipse cx="84" cy="62" rx="13" ry="20" fill="var(--brass)"/>
+      <ellipse cx="84" cy="62" rx="13" ry="20" fill="#fff" opacity=".18"/>
+      <ellipse cx="84" cy="62" rx="8" ry="13" fill="none" stroke="#000" stroke-width="1.4" opacity=".22"/>
+      <path d="M84 42a13 20 0 0 0 0 40 13 20 0 0 1 0-40Z" fill="#fff" opacity=".16"/>
+    </g>` },
+
+  home: { nm:'Home', ds:'The front-door key', c:5, vb:'2 12 96 76', svg:`
+    <ellipse cx="50" cy="80" rx="40" ry="7" fill="#000" opacity=".14"/>
+    <g transform="rotate(-8 50 50)">
+      <path d="M18 46h62v9H18Z" fill="var(--brass)"/>
+      <path d="M18 46h62v3.4H18Z" fill="#fff" opacity=".38"/>
+      <path d="M18 52.6h62V55H18Z" fill="#000" opacity=".24"/>
+      <path d="M72 55h6v10h-6Z" fill="var(--brass)"/>
+      <path d="M72 55h2.4v10H72Z" fill="#fff" opacity=".3"/>
+      <path d="M62 55h5v7h-5Z" fill="var(--brass)"/>
+      <path d="M62 55h2v7h-2Z" fill="#fff" opacity=".3"/>
+      <circle cx="20" cy="50.5" r="17" fill="var(--brass)"/>
+      <circle cx="20" cy="50.5" r="17" fill="#000" opacity=".08"/>
+      <path d="M20 33.5a17 17 0 0 0 0 34 17 17 0 0 1 0-34Z" fill="#fff" opacity=".26"/>
+      <circle cx="20" cy="50.5" r="7.5" fill="none" stroke="#000" stroke-width="2.6" opacity=".3"/>
+      <circle cx="20" cy="50.5" r="6.6" fill="var(--paper-2, #F1EBDA)" opacity=".55"/>
+    </g>
+    <g transform="rotate(12 76 34)">
+      <path d="M62 22h28a4 4 0 0 1 4 4v18a4 4 0 0 1-4 4H62a4 4 0 0 1-4-4V26a4 4 0 0 1 4-4Z" fill="currentColor"/>
+      <path d="M62 22h28a4 4 0 0 1 4 4v4H58v-4a4 4 0 0 1 4-4Z" fill="#fff" opacity=".18"/>
+      <path d="M58 42h36v2a4 4 0 0 1-4 4H62a4 4 0 0 1-4-4Z" fill="#000" opacity=".2"/>
+      <circle cx="66" cy="30" r="2.6" fill="var(--brass)"/>
+      <path d="M64 36h24M64 40h16" stroke="var(--glow)" stroke-width="1.6" opacity=".5"/>
+    </g>` },
+
+  exercise: { nm:'Exercise', ds:'A dumbbell', c:8, vb:'0 24 100 52', svg:`
+    <ellipse cx="50" cy="70" rx="42" ry="6" fill="#000" opacity=".16"/>
+    <path d="M28 46h44v10H28Z" fill="var(--brass)"/>
+    <path d="M28 46h44v3.4H28Z" fill="#fff" opacity=".36"/>
+    <path d="M28 53h44v3H28Z" fill="#000" opacity=".26"/>
+    <g>
+      <rect x="14" y="34" width="12" height="34" rx="3" fill="currentColor"/>
+      <rect x="14" y="34" width="4.4" height="34" rx="2" fill="#fff" opacity=".22"/>
+      <rect x="21" y="34" width="5" height="34" fill="#000" opacity=".2"/>
+      <rect x="2" y="38" width="12" height="26" rx="3" fill="currentColor"/>
+      <rect x="2" y="38" width="4" height="26" rx="2" fill="#fff" opacity=".24"/>
+      <rect x="9.5" y="38" width="4.5" height="26" fill="#000" opacity=".18"/>
+    </g>
+    <g>
+      <rect x="74" y="34" width="12" height="34" rx="3" fill="currentColor"/>
+      <rect x="74" y="34" width="4.4" height="34" rx="2" fill="#fff" opacity=".22"/>
+      <rect x="81" y="34" width="5" height="34" fill="#000" opacity=".2"/>
+      <rect x="86" y="38" width="12" height="26" rx="3" fill="currentColor"/>
+      <rect x="86" y="38" width="4" height="26" rx="2" fill="#fff" opacity=".24"/>
+      <rect x="93.5" y="38" width="4.5" height="26" fill="#000" opacity=".18"/>
+    </g>
+    <path d="M32 48h36" stroke="#000" stroke-width="1.2" opacity=".22"/>` },
+
+  nutrition: { nm:'Nutrition', ds:'An apple', c:2, vb:'6 4 88 92', svg:`
+    <ellipse cx="50" cy="90" rx="30" ry="6" fill="#000" opacity=".16"/>
+    <path d="M50 26c9-8 24-7 30 3 7 12 3 34-7 51-5 9-11 13-15 9-4-3-9-3-13 0-5 4-11 0-16-9C19 63 15 41 22 29c6-10 21-11 28-3Z" fill="currentColor"/>
+    <path d="M50 26c-7-8-22-7-28 3-7 12-3 34 7 51 5 9 11 13 16 9 2-2 4-3 5-3Z" fill="#fff" opacity=".16"/>
+    <path d="M62 24c8 1 15 5 18 11-7-4-14-5-22-3Z" fill="#fff" opacity=".2"/>
+    <path d="M66 42c5 8 5 22 0 33" stroke="#000" stroke-width="3" opacity=".14" fill="none" stroke-linecap="round"/>
+    <path d="M49 27c-1-9 1-17 4-22" stroke="var(--brass)" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <path d="M55 18c9-9 22-10 30-6-2 10-12 17-24 15-3 0-5-4-6-9Z" fill="var(--glow)"/>
+    <path d="M55 18c8-8 20-9 28-6-9 0-19 3-26 10Z" fill="#fff" opacity=".3"/>
+    <path d="M58 20c7-4 15-5 22-4" stroke="#000" stroke-width="1.2" opacity=".18" fill="none"/>` },
+
+  travel: { nm:'Travel', ds:'A suitcase', c:9, vb:'2 12 96 78', svg:`
+    <ellipse cx="50" cy="84" rx="40" ry="6" fill="#000" opacity=".16"/>
+    <path d="M40 20h20a4 4 0 0 1 4 4v8h-6v-6H42v6h-6v-8a4 4 0 0 1 4-4Z" fill="var(--brass)"/>
+    <path d="M8 32h84a6 6 0 0 1 6 6v40a6 6 0 0 1-6 6H8a6 6 0 0 1-6-6V38a6 6 0 0 1 6-6Z" fill="currentColor"/>
+    <path d="M8 32h84a6 6 0 0 1 6 6v6H2v-6a6 6 0 0 1 6-6Z" fill="#fff" opacity=".16"/>
+    <path d="M2 74h96v4a6 6 0 0 1-6 6H8a6 6 0 0 1-6-6Z" fill="#000" opacity=".22"/>
+    <path d="M2 56h96v3H2Z" fill="#000" opacity=".18"/>
+    <path d="M2 59h96v1.6H2Z" fill="#fff" opacity=".16"/>
+    <g fill="var(--brass)">
+      <path d="M22 32h9v52h-9Z"/><path d="M69 32h9v52h-9Z"/>
+    </g>
+    <g fill="#fff" opacity=".3"><path d="M22 32h3v52h-3Z"/><path d="M69 32h3v52h-3Z"/></g>
+    <g fill="#000" opacity=".2"><path d="M28 32h3v52h-3Z"/><path d="M75 32h3v52h-3Z"/></g>
+    <rect x="20" y="52" width="13" height="10" rx="2" fill="var(--brass)"/>
+    <rect x="67" y="52" width="13" height="10" rx="2" fill="var(--brass)"/>
+    <rect x="20" y="52" width="13" height="3.4" rx="1.6" fill="#fff" opacity=".34"/>
+    <rect x="67" y="52" width="13" height="3.4" rx="1.6" fill="#fff" opacity=".34"/>
+    <g transform="rotate(-14 88 44)">
+      <path d="M80 36h17a3 3 0 0 1 3 3v11a3 3 0 0 1-3 3H80l-5-8Z" fill="var(--paper-2, #F1EBDA)"/>
+      <path d="M80 36h17a3 3 0 0 1 3 3v3H78Z" fill="#000" opacity=".08"/>
+      <circle cx="82" cy="44.5" r="2" fill="#000" opacity=".28"/>
+      <path d="M87 41h10M87 45h8M87 49h10" stroke="var(--ink, #2A2118)" stroke-width="1.3" opacity=".4"/>
+    </g>` },
+
+  family: { nm:'Family', ds:'A framed photograph', c:12, vb:'4 6 92 88', svg:`
+    <ellipse cx="50" cy="88" rx="34" ry="6" fill="#000" opacity=".16"/>
+    <path d="M12 10h76a4 4 0 0 1 4 4v66a4 4 0 0 1-4 4H12a4 4 0 0 1-4-4V14a4 4 0 0 1 4-4Z" fill="var(--brass)"/>
+    <path d="M12 10h76a4 4 0 0 1 4 4v4H8v-4a4 4 0 0 1 4-4Z" fill="#fff" opacity=".34"/>
+    <path d="M8 76h84v4a4 4 0 0 1-4 4H12a4 4 0 0 1-4-4Z" fill="#000" opacity=".26"/>
+    <path d="M17 19h66v56H17Z" fill="#000" opacity=".2"/>
+    <path d="M19 21h62v52H19Z" fill="var(--paper-2, #F1EBDA)"/>
+    <path d="M19 21h62v52H19Z" fill="currentColor" opacity=".2"/>
+    <circle cx="38" cy="40" r="9" fill="currentColor"/>
+    <path d="M23 70c0-9 7-16 15-16s15 7 15 16Z" fill="currentColor"/>
+    <circle cx="62" cy="43" r="7.5" fill="currentColor" opacity=".78"/>
+    <path d="M49 70c0-8 6-14 13-14s13 6 13 14Z" fill="currentColor" opacity=".78"/>
+    <circle cx="49" cy="52" r="5.5" fill="currentColor" opacity=".6"/>
+    <path d="M40 70c0-6 4-11 9-11s9 5 9 11Z" fill="currentColor" opacity=".6"/>
+    <path d="M19 21h62v10H19Z" fill="#fff" opacity=".14"/>` },
+
+  partner: { nm:'Partner', ds:'Two rings', c:1, vb:'2 20 96 60', svg:`
+    <ellipse cx="50" cy="74" rx="38" ry="6" fill="#000" opacity=".16"/>
+    <g>
+      <circle cx="36" cy="50" r="22" fill="none" stroke="var(--brass)" stroke-width="7"/>
+      <path d="M15.3 42.5A22 22 0 0 1 43.5 29.3" fill="none" stroke="#fff" stroke-width="6" opacity=".34" stroke-linecap="round"/>
+      <path d="M28.5 70.7A22 22 0 0 0 56.7 57.5" fill="none" stroke="#000" stroke-width="6" opacity=".16" stroke-linecap="round"/>
+      <circle cx="36" cy="50" r="22" fill="none" stroke="#000" stroke-width="1.2" opacity=".18"/>
+    </g>
+    <g>
+      <circle cx="64" cy="50" r="22" fill="none" stroke="currentColor" stroke-width="7"/>
+      <path d="M43.3 42.5A22 22 0 0 1 71.5 29.3" fill="none" stroke="#fff" stroke-width="6" opacity=".3" stroke-linecap="round"/>
+      <path d="M56.5 70.7A22 22 0 0 0 84.7 57.5" fill="none" stroke="#000" stroke-width="6" opacity=".16" stroke-linecap="round"/>
+      <circle cx="64" cy="50" r="22" fill="none" stroke="#000" stroke-width="1.2" opacity=".18"/>
+      ${/* the brass ring passing back in front, which is what makes them linked */''}
+      <path d="M46.5 33.6A22 22 0 0 0 38.6 28.1" fill="none" stroke="var(--brass)" stroke-width="7"/>
+    </g>
+    <path d="M64 24l4 5-4 5-4-5Z" fill="var(--glow)"/>
+    <path d="M64 24l4 5h-8Z" fill="#fff" opacity=".4"/>` },
+
+  friends: { nm:'Friends', ds:'Two cups', c:7, vb:'0 22 100 62', svg:`
+    <ellipse cx="50" cy="78" rx="42" ry="6" fill="#000" opacity=".16"/>
+    <g>
+      <path d="M6 44h40v14a20 16 0 0 1-40 0Z" fill="var(--paper-2, #F1EBDA)"/>
+      <path d="M6 44h40v14a20 16 0 0 1-40 0Z" fill="currentColor" opacity=".3"/>
+      <path d="M6 44h13v28a20 16 0 0 1-13-14Z" fill="#fff" opacity=".3"/>
+      <ellipse cx="26" cy="44" rx="20" ry="6" fill="var(--paper-2, #F1EBDA)"/>
+      <ellipse cx="26" cy="44" rx="20" ry="6" fill="#000" opacity=".1"/>
+      <ellipse cx="26" cy="44" rx="16" ry="4.4" fill="currentColor" opacity=".55"/>
+      <path d="M46 48c8-2 12 2 12 7s-4 9-12 8" fill="none" stroke="var(--paper-2, #F1EBDA)" stroke-width="5"/>
+      <ellipse cx="26" cy="76" rx="26" ry="6" fill="var(--paper-2, #F1EBDA)"/>
+      <ellipse cx="26" cy="76" rx="26" ry="6" fill="#000" opacity=".12"/>
+      <path d="M0 76h52a26 6 0 0 1-52 0Z" fill="#000" opacity=".14"/>
+    </g>
+    <g>
+      <path d="M56 40h38v13a19 15 0 0 1-38 0Z" fill="var(--paper-2, #F1EBDA)"/>
+      <path d="M56 40h38v13a19 15 0 0 1-38 0Z" fill="currentColor" opacity=".22"/>
+      <path d="M56 40h12v26a19 15 0 0 1-12-13Z" fill="#fff" opacity=".3"/>
+      <ellipse cx="75" cy="40" rx="19" ry="5.6" fill="var(--paper-2, #F1EBDA)"/>
+      <ellipse cx="75" cy="40" rx="19" ry="5.6" fill="#000" opacity=".1"/>
+      <ellipse cx="75" cy="40" rx="15" ry="4" fill="currentColor" opacity=".5"/>
+      <path d="M68 28c-3-4 0-6 2-8M78 28c-3-4 0-6 2-8" stroke="var(--glow)" stroke-width="2.4"
+        fill="none" opacity=".55" stroke-linecap="round"/>
+      <ellipse cx="75" cy="72" rx="24" ry="5.6" fill="var(--paper-2, #F1EBDA)"/>
+      <ellipse cx="75" cy="72" rx="24" ry="5.6" fill="#000" opacity=".12"/>
+    </g>` },
+
+  experiences: { nm:'Experiences', ds:'A camera', c:15, vb:'2 14 96 72', svg:`
+    <ellipse cx="50" cy="80" rx="38" ry="6" fill="#000" opacity=".16"/>
+    <path d="M34 22h32l5 8H29Z" fill="currentColor"/>
+    <path d="M34 22h16l-3 8H29Z" fill="#fff" opacity=".18"/>
+    <path d="M6 30h88a6 6 0 0 1 6 6v34a6 6 0 0 1-6 6H6a6 6 0 0 1-6-6V36a6 6 0 0 1 6-6Z" fill="currentColor"/>
+    <path d="M6 30h88a6 6 0 0 1 6 6v5H0v-5a6 6 0 0 1 6-6Z" fill="#fff" opacity=".16"/>
+    <path d="M0 66h100v4a6 6 0 0 1-6 6H6a6 6 0 0 1-6-6Z" fill="#000" opacity=".22"/>
+    <path d="M0 48h100v14H0Z" fill="#000" opacity=".12"/>
+    <circle cx="50" cy="53" r="21" fill="var(--brass)"/>
+    <circle cx="50" cy="53" r="21" fill="#000" opacity=".12"/>
+    <circle cx="50" cy="53" r="17" fill="var(--ink, #2A2118)" opacity=".8"/>
+    <circle cx="50" cy="53" r="12" fill="var(--glow)" opacity=".5"/>
+    <circle cx="50" cy="53" r="12" fill="#000" opacity=".45"/>
+    <circle cx="44" cy="47" r="4.5" fill="#fff" opacity=".5"/>
+    <circle cx="50" cy="53" r="21" fill="none" stroke="#fff" stroke-width="1.6" opacity=".22"/>
+    <rect x="8" y="36" width="16" height="9" rx="2" fill="var(--brass)"/>
+    <rect x="8" y="36" width="16" height="3" rx="1.4" fill="#fff" opacity=".34"/>
+    <circle cx="86" cy="41" r="4.5" fill="var(--glow)"/>
+    <circle cx="86" cy="41" r="4.5" fill="#fff" opacity=".2"/>
+    <rect x="76" y="55" width="18" height="12" rx="2" fill="#000" opacity=".22"/>` }
+};
+const LIFE_KEYS = Object.keys(LIFE_ART);
+/* The artwork for one, as markup. Centred rather than stood on a floor: a
+   thing lying on a desk has no up, and these are the *face* of a tile rather
+   than an ornament standing in front of one. */
+function lifeSVG(name){
+  const d = LIFE_ART[name];
+  if(!d) return '';
+  return `<svg class="lifeart" viewBox="${d.vb}" preserveAspectRatio="xMidYMid meet"
+    aria-hidden="true">${d.svg}</svg>`;
+}
+
 const DECOR_KEYS = Object.keys(DECOR);
 /* ---- which ones suit where — decision 100 ------------------------------
    A decoration is a *made object*, not a slot: a mantel clock cannot be
@@ -372,4 +607,5 @@ function decorSVG(name){
     aria-hidden="true">${d.svg}</svg>`;
 }
 
-export { DECOR, DECOR_KEYS, decorOf, decorSVG, decorSuits, decorFor, decorRest };
+export { DECOR, DECOR_KEYS, decorOf, decorSVG, decorSuits, decorFor, decorRest,
+  LIFE_ART, LIFE_KEYS, lifeSVG };

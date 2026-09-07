@@ -1,4 +1,4 @@
-import { $, esc, uid, ROOT, HOLD, D } from './util.js';
+import { $, esc, uid, clamp, ROOT, HOLD, D } from './util.js';
 import { S, byId, K, KINDS, KEYS, kindHas, has, isContainer, genKindOf, streak, T, dz, dev,
   repeatOf, repeats, nextRepeat, faceOf, childrenOf, TILT_MODES, tiltMode,
   ctlOf, isPrimary,
@@ -518,8 +518,13 @@ function create(kind, patch){
     /* Placed rather than left to ensureBox: a seeded thing is the way *in*, so
        it belongs at the top of the board and not wherever the ordering happens
        to drop it. Both devices, because either could be opened first. */
+    /* A seed may state its own size. The spawner a project is born with is a
+       band you type into, not the one-cell spiral its type is: what the type
+       is *for* on a bare board and what it is *for* at the top of a project
+       are two shapes of the same thing, and only the seed knows which. */
     ['desk','phone'].forEach(dv=>{
-      const [w,h]=sizeOfKind(sp.kind, dv, o.id);
+      const said = dv==='phone' ? (sp.phoneSz || sp.sz) : sp.sz;
+      const [w,h] = said ? said : sizeOfKind(sp.kind, dv, o.id);
       child[dv]={x:1, y:1+i*h, w, h};
     });
   });
@@ -615,20 +620,82 @@ const CONTROLS = {
              said:v=>v[0].toUpperCase()+v.slice(1), set(v){ setGridSize(v); }},
   parallax: {nm:'Depth',     ic:'resize',ds:'What answers the phone being tilted',
              cycle:()=>Object.keys(TILT_MODES), get:()=>tiltMode(),
-             said:v=>TILT_MODES[v]||v, set(v){ S.look.parallax=v; applyLook(); }}
+             said:v=>TILT_MODES[v]||v, set(v){ S.look.parallax=v; applyLook(); }},
+  /* ---- the ones that are a number ------------------------------------
+     A switch is on or off and a dial walks a list; these are neither — they
+     are a quantity, and the thing that reads a quantity on a real desk is a
+     turned knob with a pointer on it. `range` is what says so, and it is the
+     only difference between these rows and the ones above: everything else
+     about a control (moving it, colouring it, wearing an aesthetic) already
+     works. See decision 137. */
+  depth:    {nm:'Drawer depth', ic:'resize', ds:'How far a drawer front stands off the board',
+             range:[0,40], get:()=>S.look.depth??11, set(v){ S.look.depth=v; applyLook(); }},
+  bookdepth:{nm:'Book depth',   ic:'book',   ds:'How far a spine stands off the board',
+             range:[0,40], get:()=>S.look.bookdepth??S.look.depth??11, set(v){ S.look.bookdepth=v; applyLook(); }},
+  turn:     {nm:'Turn',         ic:'swap',   ds:'How much a face follows the phone',
+             range:[0,100], get:()=>S.look.turn??100, set(v){ S.look.turn=v; applyLook(); }},
+  inset:    {nm:'Shelf inset',  ic:'grid',   ds:'How far the board is set into the carcass',
+             range:[0,40], get:()=>S.look.deskinset??8, set(v){ S.look.deskinset=v; applyLook(); }}
 };
 const CTL_KEYS = Object.keys(CONTROLS);
 const ctlSpec = o => CONTROLS[ctlOf(o)] || CONTROLS.lock;
+/* ---- what a control is *made of* ---------------------------------------
+   Three, and the table decides — nothing here branches on a control's name.
+
+   A thing with **two** states is a switch, and a switch is drawn as a switch:
+   a lever you can read across the room, because "Shadows: On" is a label where
+   a lever is a glance. A thing walking **more than two** is a **button** that
+   changes colour as it goes, which is what a bank of indicator buttons does and
+   is the only way a list longer than two can say where it is at a glance. And
+   a thing that is a **number** is a **dial**, turned, with a pointer.
+
+   `cycle().length<=2` rather than "has a cycle": a two-value list is a switch
+   wearing a list, and drawing it as a button would give the desk two different
+   answers to the same question. See decision 137. */
+function ctlForm(o){
+  const c = ctlSpec(o);
+  if(c.range) return 'dial';
+  if(c.cycle) return (c.cycle()||[]).length<=2 ? 'switch' : 'button';
+  return 'switch';
+}
+/* Where a numbered control is, as the value and as a fraction — the fraction
+   is what the pointer's angle is worked out from, and it is clamped here so a
+   stored number outside the range cannot spin the pointer off its scale. */
+function ctlNum(o){
+  const c = ctlSpec(o); if(!c.range) return null;
+  const [lo,hi] = c.range;
+  const v = clamp(Number(c.get())||0, lo, hi);
+  return {v, lo, hi, pct:(v-lo)/((hi-lo)||1)};
+}
+// where a walking control is in its own list, which is what colours the button
+function ctlIndex(o){
+  const c = ctlSpec(o); if(!c.cycle) return 0;
+  return Math.max(0, (c.cycle()||[]).indexOf(c.get()));
+}
 // What the switch is showing right now, in words. A dial says where it is; a
 // switch says on or off, which is drawn as a switch and not printed.
-const ctlSaid = o => { const c=ctlSpec(o); return c.cycle ? c.said(c.get()) : (c.on()?'On':'Off'); };
-const ctlIsOn = o => { const c=ctlSpec(o); return c.cycle ? true : !!c.on(); };
+const ctlSaid = o => { const c=ctlSpec(o);
+  return c.range ? String(Math.round(Number(c.get())||0))
+       : c.cycle ? c.said(c.get()) : (c.on()?'On':'Off'); };
+const ctlIsOn = o => { const c=ctlSpec(o); return (c.cycle||c.range) ? true : !!c.on(); };
 /* Pressing one. A dial walks to the next value and wraps; a switch flips.
    Both save and render immediately — a control is a thing you press to see the
    board change, so there is nothing here to defer. */
+const DIAL_DETENTS = 10;
 function ctlPress(id){
   const o=byId(id); if(!o || !has(o,'control')) return;
   const c=ctlSpec(o);
+  /* A dial is turned, and pressing it is one detent round — ten to the sweep,
+     wrapping back to the bottom past the top. A real one is dragged and this
+     one will be too, but a dial you cannot move at all is an ornament, and the
+     press is the whole of what every other control already answers to. */
+  if(c.range){
+    const n=ctlNum(o), step=(n.hi-n.lo)/DIAL_DETENTS;
+    const next = n.v + step > n.hi + step/2 ? n.lo : Math.min(n.hi, Math.round((n.v+step)/step)*step);
+    c.set(Math.round(next));
+    toast(`${c.nm}: ${Math.round(next)}`);
+    save(); render(); return;
+  }
   if(c.cycle){
     const list=c.cycle(), i=list.indexOf(c.get());
     const next=list[(i+1)%list.length];
@@ -650,8 +717,11 @@ function ctlPress(id){
    decoration is a machine for making furniture, and what you want out of one
    is work. See decision 133. */
 function someKind(){
-  const pool = KEYS.filter(k => isPrimary(k) && !kindHas(k,'container')
-    && !kindHas(k,'control') && !kindHas(k,'decor'));
+  /* …and never a **category**, which is not a type at all but a question. A
+     spawner set to anything would otherwise press out a Fragment, which is the
+     one thing in KINDS that nothing knows how to draw as itself. */
+  const pool = KEYS.filter(k => isPrimary(k) && !K(k).cat && !K(k).family
+    && !kindHas(k,'container') && !kindHas(k,'control') && !kindHas(k,'decor'));
   return pool[Math.floor(Math.random()*pool.length)] || 'note';
 }
 
@@ -680,5 +750,5 @@ function randomThing(parentId){
 export { toast, setGridSize, toggleDone, spawnNext, del, delMany, delDrawer, undo, redo,
   pushUndo, pushSet, pushSets, setPin, togglePin,
   drawerForTag, create, gather, quickAdd, spawnInto, randomThing,
-  CONTROLS, CTL_KEYS, ctlSpec, ctlSaid, ctlIsOn, ctlPress, someKind,
+  CONTROLS, CTL_KEYS, ctlSpec, ctlSaid, ctlIsOn, ctlForm, ctlNum, ctlIndex, ctlPress, someKind,
   holdIt, unholdIt, unholdMany, undoToast };

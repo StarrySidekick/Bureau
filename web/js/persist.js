@@ -17,7 +17,7 @@ import { closePanel } from './panels.js';
    Bureau is this phone running" is exactly the question you ask when a change
    appears not to have deployed. Shown in Settings, so it can be read off the
    device rather than guessed at. */
-const APP_VERSION = '1.52';
+const APP_VERSION = '1.53';
 const KEY = 'bureau.v1';
 const install = {deferred:null};   // the browser's install prompt, when one is on offer
 let saveTimer = null;
@@ -226,7 +226,7 @@ function rescalePhone(d, from, cols){
    skips all of them, an old backup replays only what it is missing. These
    used to be ad-hoc per-load mutations inside adopt(); a new repair that
    should run once belongs here, as the next numbered step. */
-const DATA_V = 25;
+const DATA_V = 26;
 const MIGRATIONS = [
   // Drawers and objects were two arrays and a drawer could not live inside
   // anything. foldDrawers also replays the old dense flow to give v1 drawers
@@ -594,6 +594,69 @@ const MIGRATIONS = [
         o.attrs = WAS[o.kind].slice();
       }
     });
+  }},
+  /* ---- categories, and seven types that went ----------------------------
+     The picker leads with categories now — press Note and the five kinds of
+     note are one press in — and in doing that seven types stopped earning a
+     place. Six of them are a *rename*: an Item is an Artifact, a worldbuilding
+     Event is a Historical event, a Shot is a Task, a Shot list and a Shopping
+     list are both a Checklist, and a Text field is a Spawner made big enough
+     to type into. The seventh, the Button object, has no successor — its
+     `button` trait is still in the vocabulary, so anything actually carrying
+     one keeps working; it becomes a Note, which is what a button with nothing
+     to open already was.
+
+     Naming old types outright is the one thing a migration is allowed to do
+     (see the note on decision 130's step above): everywhere else in the app
+     branching on a type's name is the mistake, and here it is the whole job.
+     See decision 135. */
+  {v:26, up(d){
+    const GONE = {item:'artifact', event:'histevent', shot:'task',
+                  shotlist:'checklist', shopping:'checklist',
+                  field:'generator', link:'note'};
+    const kids = k => GONE[k] || k;
+    (d.objects||[]).forEach(o=>{
+      if(!o) return;
+      if(GONE[o.kind]){
+        const was = o.kind;
+        o.kind = GONE[was];
+        /* A Button that is now a Note wants somewhere to put its words, and
+           does not want a trait nothing will draw. */
+        if(was==='link' && Array.isArray(o.attrs)){
+          o.attrs = o.attrs.filter(a=>a!=='button');
+          if(!o.attrs.includes('text')) o.attrs.push('text');
+        }
+        /* A shot list and a shopping list were both checklist faces already;
+           a Shot was a task with a duration, and keeps it. Nothing else about
+           either object changes — the box, the colour and the look are facts
+           about the object, not about the type it used to be. */
+      }
+      /* A moodboard is a **Collage**, and a collage is a face rather than a
+         wall of its own: it draws the board inside it, small. `moodboard` was
+         also a *layout*, which never arranged anything a grid did not. */
+      if(o.face==='moodboard') o.face='collage';
+      if(o.layout==='moodboard') o.layout='grid';
+      /* A gathering type that no longer exists would make two objects agree
+         they add up to nothing. */
+      if(o.gathers) o.gathers = kids(o.gathers);
+      if(o.genKind) o.genKind = kids(o.genKind);
+    });
+    /* Types you invented can name a gone type in three places. A seed naming
+       one used to be skipped silently by create(), which is safe and also
+       means a project born with a way in quietly stopped having one. */
+    Object.values(d.kinds||{}).forEach(k=>{
+      if(!k) return;
+      if(k.gathers) k.gathers = kids(k.gathers);
+      if(k.genKind) k.genKind = kids(k.genKind);
+      if(Array.isArray(k.seed)) k.seed.forEach(sp=>{ if(sp && sp.kind) sp.kind = kids(sp.kind); });
+    });
+    // …and a saved plan is a list of objects like any other
+    (d.plans||[]).forEach(p=>(p.objects||[]).forEach(o=>{
+      if(!o) return;
+      if(GONE[o.kind]) o.kind = GONE[o.kind];
+      if(o.face==='moodboard') o.face='collage';
+      if(o.layout==='moodboard') o.layout='grid';
+    }));
   }},
 ];
 function migrate(d){

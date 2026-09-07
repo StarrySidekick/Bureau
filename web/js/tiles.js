@@ -1,6 +1,8 @@
 import { esc, ic, clamp, D, md, plain, oneline } from './util.js';
 import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, childrenOf, container,
-  rollup, streak, barPct, projectStat, tlSpan, dev, spawnByOf, genKindOf, genSaid,
+  rollup, streak, barPct, barSteps, barFilled, barGrid, projectStat, progressOf, tlSpan,
+  dev, spawnByOf, genKindOf, genSaid,
+  projCoverOf, lifeArtOf, goalStanding, GOAL_STANDINGS,
   makesAnything, ctlOf, takesTyping, showsAddBox,
   knobSizeOf, answered, sortOf, spanOf, coversDay, lateOn, isLate, iconOf, textSizeOf,
   isPicture, isMedia, isPlayable, isDecor, mediaTypeOf, frameOf, isWindow,
@@ -8,9 +10,10 @@ import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, chi
   calViewOf, weekStartOf, calCols, borderOf, textureOf, marginOf } from './model.js';
 import { CELL, gridOf, lay, overlaps, boxOk, freeSpot, gridRows, sizeOfKind, ensureBox,
   pageRows, colsOf } from './grid.js';
-import { create, toast, toggleDone, someKind, ctlSpec, ctlSaid, ctlIsOn, ctlPress } from './mutations.js';
-import { DECOR, decorOf, decorSVG } from './decor.js';
-import { hexOf, objColour, dress, dressAs } from './look.js';
+import { create, toast, toggleDone, someKind, ctlSpec, ctlSaid, ctlIsOn,
+  ctlForm, ctlNum, ctlIndex, ctlPress } from './mutations.js';
+import { DECOR, decorOf, decorSVG, LIFE_ART, lifeSVG } from './decor.js';
+import { hexOf, objColour, dress, dressAs, OBJ0, OBJN } from './look.js';
 import { render, pageAt } from './views.js';
 import { openObj, openWriter, openRead, openViewer } from './sheet.js';
 import { objectPanel, schedulePanel } from './panels.js';
@@ -291,6 +294,8 @@ const CLICKS = {
   when:     'Open it to schedule',
   settings: 'Open its settings',
   generate: 'Make a new object',
+  // a counter's whole job is to go up, so that is what pressing one does
+  count:    'Add one to it',
   // a control is a switch, and pressing a switch flips it — nothing opens
   toggle:   'Flip the switch'
 };
@@ -355,6 +360,14 @@ function tileTap(id){
     /* Pressing a control is not an opening either: the thing that answers is
        the board, which is already behind it. */
     case 'toggle': ctlPress(id); return;
+    /* Neither is adding one to a counter. The wheels are spun in place rather
+       than re-rendered, because a fresh element starts at its final transform
+       and the count would blink from 7 to 8 instead of rolling. */
+    case 'count': {
+      o.count=(o.count||0)+1; save();
+      const w=document.querySelector(`[data-row="${id}"] .cntnum`);
+      if(w) spinTo(w, o.count); else render();
+      return; }
     /* One destination, two ways in: this and *When…* on the long press. The
        whole page rather than a bubble, because it holds a month and nine rows
        — see decision 123. */
@@ -523,6 +536,49 @@ const faceLayers = (o, persp, box) => !takesFace(o, persp, box) ? ''
 const hasPersp = (o, persp, box) => standsOut(o, persp, box)
   || (takesFace(o, persp, box) && anyFaceCue());
 const SIDE_LAYER = '<i class="dside"><i class="dtop"></i><i class="dbot"></i></i>';
+/* How many children a collage will draw. A face is a miniature and sixty
+   boxes is already more than one reads as an arrangement; past that it is a
+   texture, and it is a texture that costs a render. */
+const COLLAGE_MAX = 60;
+
+/* ---- the cover a project wears ------------------------------------------
+   A piece of work has a shape you know before it exists — a film is a poster,
+   an album is a sleeve, a game is a boxed case, an app is an icon — and the
+   project face wears it. A picture you have put on it is always the cover;
+   with none yet, each kind of work draws its own **placeholder**, which is
+   what makes an empty one recognisable as the thing it is going to be rather
+   than as a project that has not been filled in.
+
+   One function and one class per cover, so the report underneath is the same
+   markup for all of them: eight faces that report the same walk must not be
+   eight blocks of markup, which is decision 131's rule from the other side.
+   See decision 135. */
+function projCover(o, cov, st){
+  if(cov==='plain') return st.cover
+    ? `<span class="projcover" style="background-image:url('${esc(st.cover)}')"></span>` : '';
+  if(st.cover) return `<span class="projcover" style="background-image:url('${esc(st.cover)}')"></span>`;
+  const mark = ic(iconOf(o), 26);
+  switch(cov){
+    /* A record and a sleeve are the same drawing at two sizes: the disc, its
+       label, and the light across it. The album's sits in a square box, which
+       is the bounding box a sleeve is. */
+    case 'album': case 'song':
+      return `<span class="projcover projdisc"><i class="cd"><b></b></i></span>`;
+    // an icon, on the squircle the whole tile has become
+    case 'app':   return `<span class="projcover projapp">${mark}</span>`;
+    /* A boxed game: the cover, with the platform's strip down the left the way
+       a case has it. The strip is drawn whether or not the platform is named —
+       it is what says "game" — and the mark stands in for the artwork. */
+    case 'game':  return `<span class="projcover projgame">
+        <i class="gspine"><u>${esc(o.platform||'')}</u></i><em>${mark}</em></span>`;
+    // a poster with nothing on it yet is its own title, set large
+    case 'film':  return `<span class="projcover projposter"><b>${esc(o.title||'Untitled')}</b></span>`;
+    // a painting is itself, so an empty one is the stretcher and the mount
+    case 'art':   return `<span class="projcover projart">${mark}</span>`;
+    default:      return '';
+  }
+}
+
 const GRAIN_LAYER = '<i class="dgrain"></i>';
 const PANEL_LAYER = '<i class="dpanel"></i>';
 function drawTile(o, arr, box, persp){
@@ -577,6 +633,36 @@ function drawTileFace(o, arr, box, persp){
   }grid-column:${box.x} / span ${box.w};grid-row:${box.y} / span ${box.h}`;
   const sel = S.sel.includes(o.id) ? ' selected' : '';
 
+  /* ---- a spawner is a spiral -------------------------------------------
+     One cell square is its natural size, and at that size the spiral *is* the
+     tile — a press, drawn as the thing a press makes. It sits above the 1×1
+     branch deliberately: a spawner shrunk to a stamp is still the press it has
+     always been, and the anonymous mini tile would have taken that away.
+
+     Made **bigger** it grows the box you type into, and what you type is the
+     name of the thing it presses out. That is the whole of what the Text field
+     type was, which is why there is no longer a Text field type: pressing and
+     typing are two sizes of one machine, not two machines. The spiral keeps
+     the press, so both are still reachable on one tile. See decision 135. */
+  if(has(o,'spawn') && spawnByOf(o)==='click'){
+    /* `random` is not a kind, so the mark and the label come off the spawner
+       itself rather than off K() — which answers `note` for anything it does
+       not know and would draw a machine for making notes. */
+    const any=makesAnything(o);
+    const big = box.w>1 || box.h>1;
+    const made = genSaid(o);
+    return `<${big?'div':'button'} class="drawer otile ${paper(o)} sh-press gentile${
+        any?' genany':''}${big?' genbig':''}${sel}" data-row="${o.id}"
+        ${big?'role="button" tabindex="0"':''}
+        title="${esc(o.title||('New '+made))}" style="--c:${colour};${place}">
+      ${chips}
+      <span class="genico">${ic(any?'sparkle':'spiral', big?22:26)}</span>
+      ${big?`<input class="fieldin" data-fieldfor="${o.id}"
+          placeholder="${esc(o.title||('New '+made+'…'))}">`:''}
+      ${handles}
+    </${big?'div':'button'}>`;
+  }
+
   /* One cell square: the mark, and nothing else. Every shape below this line
      assumes there is room for a name, and at 40px there isn't — a drawer front
      shrunk to a stamp printed "Untit…" across its own knob. A mini tile keeps
@@ -613,18 +699,35 @@ function drawTileFace(o, arr, box, persp){
      glance. Its own name if it has one, the setting's if it has not, which is
      what makes one usable the moment it lands. See decision 132. */
   if(has(o,'control')){
-    const spec=ctlSpec(o), dial=!!spec.cycle, on=ctlIsOn(o);
-    return `<button class="drawer otile ${paper(o)} sh-switch ctltile${
+    const spec=ctlSpec(o), form=ctlForm(o), on=ctlIsOn(o);
+    const num=ctlNum(o);
+    /* The pointer's angle. 270° of sweep, from seven o'clock round to five —
+       a full circle has no stop, and a pointer that can sit at twelve meaning
+       both nothing and everything is a dial you cannot read. */
+    const ang = num ? (num.pct*270 - 135) : 0;
+    /* A **button** changes colour as it walks: the face is the aesthetic's own
+       eleven, stepped by where the list is, so pressing it is visibly a
+       different indicator rather than the same square with different words.
+       The other two keep the object's colour, because a lever and a dial say
+       where they are by their own position. */
+    const face = form==='button' ? hexOf(OBJ0 + (ctlIndex(o) % OBJN)) : colour;
+    return `<button class="drawer otile ${paper(o)} sh-switch ctltile ctl-${form}${
         on?' on':''}${sel}" data-row="${o.id}" data-ctl="${esc(ctlOf(o))}"
-        title="${esc(spec.ds||'')}" style="--c:${colour};${place}">
+        title="${esc(spec.ds||'')}" style="--c:${face};${
+        num?`--dial:${ang.toFixed(1)}deg;`:''}${place}">
       ${chips}
       <span class="cico">${ic(o.ic || spec.ic, 18)}</span>
       <span class="clabel">${esc(o.title||spec.nm)}</span>
-      ${dial ? `<span class="cval">${esc(ctlSaid(o))}</span>`
-             : `<i class="clever" aria-hidden="true"></i>`}
+      ${form==='switch'
+        ? `<span class="cplate" aria-hidden="true"><i class="clever"></i></span>`
+        : form==='dial'
+        ? `<span class="cdialwrap" aria-hidden="true"><i class="cdial"></i></span>
+           <span class="cval">${esc(ctlSaid(o))}</span>`
+        : `<span class="cval">${esc(ctlSaid(o))}</span>`}
       ${handles}
     </button>`;
   }
+
 
   /* A story is a book seen spine-on, and it is also a container — the scenes
      are inside it. Every other container face draws what it holds; a spine
@@ -739,10 +842,12 @@ function drawTileFace(o, arr, box, persp){
   if(cont && faceOf(o)==='project'){
     const st=projectStat(o);
     const late = st.pct<100 && isLate(o);
-    return `<${takesTyping(o)?'div':'button'} class="drawer dtile projtile ${dress(o,'bd')}${sel}"
+    const cov = projCoverOf(o);
+    return `<${takesTyping(o)?'div':'button'} class="drawer dtile projtile pcov-${cov}${
+        cov!=='plain'?' hascover':''}${st.cover?' haspic':''} ${dress(o,'bd')}${sel}"
         data-drawer="${o.id}" ${takesTyping(o)?'role="button" tabindex="0"':''}
         style="--c:${colour};--pct:${st.pct}%;${place}">
-      ${st.cover?`<span class="projcover" style="background-image:url('${esc(st.cover)}')"></span>`:''}
+      ${projCover(o, cov, st)}
       <div class="dtop"><span class="dname">${esc(o.title||'Untitled')}</span>
         ${rollTag(o)}
         ${lateOn(o)?`<span class="projdue${late?' late':''}">${esc(deadSaid(o)||dateSaid(o))}</span>`:''}</div>
@@ -779,6 +884,27 @@ function drawTileFace(o, arr, box, persp){
      markup that drift. See decision 131. */
   if(cont && faceOf(o)==='life'){
     const st=projectStat(o), left=st.ticks-st.done;
+    /* A life drawer wears an **object**: a stack of coins, a suitcase, a
+       dumbbell, lying on the desk with its name on a label under it. That is
+       what makes one recognisable across a board, which a coloured rectangle
+       reading "Health" never was. A picture you put on it wins over the
+       drawing, because that is where this is meant to end up.
+
+       With neither, it falls back to the report below — the same walk of what
+       it holds a project makes, minus the percentage that would be a lie about
+       an area of your life. See decision 136. */
+    const art = lifeArtOf(o), pic = o.media && o.media.src;
+    if(art || pic){
+      return `<button class="drawer dtile lifething${sel}" data-drawer="${o.id}"
+          title="${esc(o.title||'Untitled')}" style="--c:${colour};${place}">
+        <span class="lifepic">${pic
+          ? `<img src="${esc(pic)}" alt="" draggable="false">`
+          : lifeSVG(art)}</span>
+        <span class="lifelabel">${esc(o.title||'Untitled')}</span>
+        ${left?`<span class="lifeleft" title="${left} outstanding">${left}</span>`:''}
+        ${handles}
+      </button>`;
+    }
     return `<${takesTyping(o)?'div':'button'} class="drawer dtile projtile lifetile ${dress(o,'bd')}${sel}"
         data-drawer="${o.id}" ${takesTyping(o)?'role="button" tabindex="0"':''}
         style="--c:${colour};${place}">
@@ -848,15 +974,65 @@ function drawTileFace(o, arr, box, persp){
     </button>`;
   }
 
-  /* A moodboard shows its pictures on the front, tiled. */
-  if(cont && faceOf(o)==='moodboard'){
-    const pics=childrenOf(o).filter(x=>x.media&&x.media.src).slice(0,12);
+  /* A **collage** shows the board inside it, small — every child at the box
+     it actually occupies, not a separate wall of thumbnails packed three to a
+     row. The difference matters: a moodboard is an *arrangement*, and a front
+     that re-packs what you arranged is showing you a different picture from
+     the one you made. It is a face rather than a type, so any container can
+     wear it. See decision 134.
+
+     A child that has never been placed has no box to draw at — it gets a
+     synthetic one in flow order rather than being dropped, because a collage
+     you have just filled by dictation should not look empty until you open
+     it. Nothing is written: `ensureBox()` is a mutation and a face is not
+     allowed one. */
+  if(cont && faceOf(o)==='collage'){
+    const dv=dev(), g=gridOf(undefined, o.id), kids=childrenOf(o).slice(0, COLLAGE_MAX);
+    const per=Math.max(1, g.cols>>1);
+    let rows=1, flow=0;
+    const cells=kids.map(x=>{
+      const own = x[dv] && x[dv].w ? x[dv] : null;
+      const b = own || {x:(flow%per)*2+1, y:Math.floor(flow/per)*2+1, w:2, h:2};
+      if(!own) flow++;
+      rows = Math.max(rows, b.y+b.h-1);
+      const img = x.media && x.media.src;
+      return `<i class="${img?'mbpic':'mbthing'}" title="${esc(x.title||'')}"
+        style="grid-column:${b.x}/span ${b.w};grid-row:${b.y}/span ${b.h};${
+        img?`background-image:url('${esc(img)}')`:`--k:${objColour(x)}`}"></i>`;
+    });
     return `<button class="drawer dtile mbtile ${dress(o,'bd')}${sel}" data-drawer="${o.id}" style="--c:${colour};${place}">
-      <div class="mbwall">${pics.map(x=>`<i style="background-image:url('${esc(x.media.src)}')"></i>`).join('')
-        || '<span class="clempty">Open it and add pictures</span>'}</div>
+      <div class="mbwall" style="--mbcols:${g.cols};--mbrows:${rows}">${cells.join('')
+        || '<span class="clempty">Open it and arrange some pictures</span>'}</div>
       <span class="mbname">${esc(o.title||'Untitled')}${rollTag(o)}</span>
       ${handles}
     </button>`;
+  }
+
+  /* ---- a goal: a drawer with the knob taken off ------------------------
+     The name *is* the face. "Lose 25 pounds" needs nothing printed beside it,
+     so it is set as large as the frame allows and everything else is small
+     and at the foot — and the knob comes off, because a goal is not a thing
+     you pull open to rummage in, it is a thing you are walking towards.
+
+     What it is called is read off the time on it rather than stored: no
+     deadline and it is a **dream**, barely enough time and it is a
+     **challenge**. See decision 135. */
+  if(cont && faceOf(o)==='goal'){
+    const st=projectStat(o), pct=progressOf(o), stand=goalStanding(o);
+    const late = pct<100 && isLate(o);
+    return `<${takesTyping(o)?'div':'button'} class="drawer dtile goaltile stand-${stand} ${
+        dress(o,'bd')} ${dress(o,'tx')} ${dress(o,'pn')}${sel}"
+        data-drawer="${o.id}" ${takesTyping(o)?'role="button" tabindex="0"':''}
+        title="${esc(o.title||'Untitled')}" style="--c:${colour};--pct:${pct}%;${place}">
+      <i class="dpanel"></i>
+      <span class="goalstand">${esc(GOAL_STANDINGS[stand])}</span>
+      <span class="goalname">${esc(o.title||'Untitled')}</span>
+      <span class="goalfoot">
+        ${lateOn(o)?`<u class="${late?'late':''}">${esc(deadSaid(o)||dateSaid(o))}</u>`:''}
+        ${st.ticks?`<b>${st.done}/${st.ticks}</b>`:''}</span>
+      <i class="goalbar" aria-hidden="true"></i>
+      ${handles}
+    </${takesTyping(o)?'div':'button'}>`;
   }
 
   /* A calendar is a container drawing what it collects on the day each thing
@@ -1046,6 +1222,34 @@ function drawTileFace(o, arr, box, persp){
     </button>`;
   }
 
+  /* ---- a progress bar is a row of blocks -------------------------------
+     Not a fill. A continuous bar can read 63% and mean nothing you can point
+     at; ten blocks with six lit says six of ten, which is what you actually
+     know about a thing you are counting. Each block is a **whole cell tall and
+     half a cell wide**, so a ten-step bar is five cells long without anybody
+     being told — and made narrower than that it wraps into a second row rather
+     than shrinking its blocks to slivers.
+
+     Pressing a block sets the bar to it, and pressing the one it is already on
+     steps back — which is the only way a readout that owns its own number can
+     be moved from the board. A bar that is *tracking* something else is a
+     readout of that thing and refuses the press: what happened somewhere else
+     is not the bar's to change. See decision 138. */
+  if(shapeOf(o)==='bar'){
+    const g=barGrid(o, box), lit=barFilled(o);
+    const own = !o.tracks && !(o.milestones||[]).length;
+    return `<div class="drawer otile ${paper(o)} sh-bar bartile${own?' ownbar':''}${sel}"
+        data-row="${o.id}" role="button" tabindex="0"
+        title="${esc(o.title||'Untitled')} — ${lit} of ${g.n}"
+        style="--c:${colour};--barcols:${g.cols};--barrows:${g.rows};${place}">
+      ${chips}
+      <div class="dtop">${nameField(o)}<span class="barcount">${lit}/${g.n}</span></div>
+      <div class="barblocks">${Array.from({length:g.n}, (_,i)=>
+        `<i class="barblock${i<lit?' on':''}"${own?` data-barset="${o.id}:${i+1}"`:''}></i>`).join('')}</div>
+      ${handles}
+    </div>`;
+  }
+
   /* A counter is its number, not a title and a body. */
   if(shapeOf(o)==='tally'){
     return `<button class="drawer otile ${paper(o)} sh-tally cnttile${sel}" data-row="${o.id}" style="--c:${colour};${place}">
@@ -1055,19 +1259,8 @@ function drawTileFace(o, arr, box, persp){
       ${handles}
     </button>`;
   }
-  if(has(o,'spawn') && spawnByOf(o)==='click'){
-    /* `random` is not a kind, so the mark and the label come off the spawner
-       itself rather than off K() — which answers `note` for anything it does
-       not know and would draw a machine for making notes. */
-    const any=makesAnything(o), made=any?null:K(genKindOf(o));
-    return `<button class="drawer otile ${paper(o)} sh-press gentile${any?' genany':''}${sel}" data-row="${o.id}" style="--c:${colour};${place}">
-      ${chips}
-      <span class="genico">${ic(any?'sparkle':made.ic,20)}</span>
-      <span class="genlabel">${esc(o.title||('New '+genSaid(o)))}</span>
-      <span class="genarrow">${ic('plus',15)}</span>
-      ${handles}
-    </button>`;
-  }
+  /* A non-container that takes dictation rather than a press — the old Text
+     field's setting, kept because a type you invent may still want it. */
   if(has(o,'spawn') && spawnByOf(o)==='type'){
     return `<div class="drawer otile ${paper(o)} sh-band fieldtile${sel}" data-row="${o.id}" style="--c:${colour};${place}">
       ${chips}

@@ -1,4 +1,4 @@
-import { $, $$, esc, ic, uid, D, ROOT } from './util.js';
+import { $, $$, esc, ic, uid, D, ROOT, pastTense } from './util.js';
 import { S, K, KINDS, KEYS, refreshKinds, ATTRS, attrsOf, has, SHAPES,
   FACES, MANUAL, byId, container, cfgOf, isContainer, isAncestor, relate, deskOf,
   unrelate, sensedDevice, reset, T, dz, dev, calViewOf, RULE_MAX, acceptFor,
@@ -9,14 +9,15 @@ import { toast, setGridSize, toggleDone, spawnNext, del, delMany, delDrawer, und
   pushSet, pushSets, setPin, togglePin, drawerForTag, create, spawnInto, randomThing,
   holdIt, unholdIt, unholdMany, undoToast } from './mutations.js';
 import { spinTo, pending, placeAtPending, tileTap, turnPage, clearPages } from './tiles.js';
-import { DECOR } from './decor.js';
+import { DECOR, LIFE_ART } from './decor.js';
 import { render, renderSoon, sizeGrid, toggleSettings, settingsPanel, reveal, goPage, deskMap } from './views.js';
 import { openObj, openWriter, openRead, openViewer, closeSheet, renderSheet, words,
   mdKey, copyObject } from './sheet.js';
 import { openPanel, closePanel, refreshPanel, panelKey, panelBack, draft, modalNewObject, modalNewKind, modalMove, renderPreview, holdPanel,
   objectPanel,
   drawerFromSelection, openCtx, closeCtx, openCmd, closeCmd, cmdList, cmdMove, cmdAt, runCmd,
-  schedulePanel, quickISO, SCHED, SCHED_PENS, plansPanel, tagFirstPanel } from './panels.js';
+  schedulePanel, quickISO, SCHED, SCHED_PENS, plansPanel, tagFirstPanel,
+  familyPanel, lifeFirstPanel, donePanel } from './panels.js';
 import { onDown, onMove, onUp, onCancel, onTouchStart, onTouchMove, onTouchEnd,
   gestureFlags, dragArmed } from './gestures.js';
 import { enter, leaveTile, pagerOn, applyTilt, askTilt } from './motion.js';
@@ -39,6 +40,78 @@ function makeSorting(kind, tag){
   placeAtPending(o);
   save(); render(); reveal(o.id);
   if(tag) toast(`Sorting for #${tag}`); else objectPanel(o.id, 'collect');
+}
+
+/* A **life drawer**, made already wearing the object it is for. Same shape as
+   makeSorting(): the question is asked before the drawer exists, `pending.cell`
+   is carried across the panel close, and the naming, the placing and the reveal
+   all happen in one place so they cannot drift. An empty answer is the way out
+   — "no object, just a drawer" — and makes the plain reporting front.
+   See decision 136. */
+function makeLife(kind, art){
+  const at = pending.cell;
+  closePanel();
+  pending.cell = at;
+  const o = create(kind||'life', at?{parent:at.parent}:undefined);
+  if(art && LIFE_ART[art]){ o.lifeart=art; o.title=LIFE_ART[art].nm; o.c=LIFE_ART[art].c; }
+  placeAtPending(o);
+  save(); render(); reveal(o.id);
+}
+
+/* An **achievement**, made out of the thing you finished. The plaque takes
+   that object's name in the past tense and the day it was done, and points at
+   it — `of` is the link back, so the plaque can say what it is a plaque for
+   even after the goal itself has been filed away. A blank one is a real answer
+   and is what you get when nothing is finished yet. See decision 135. */
+function makeDone(kind, srcId){
+  const at = pending.cell;
+  closePanel();
+  pending.cell = at;
+  const src = srcId && byId(srcId);
+  const o = create(kind||'achievement', at?{parent:at.parent}:undefined);
+  if(src){
+    o.title = pastTense(src.title||'Untitled');
+    o.due = src.doneAt || src.due || T;
+    o.of = src.id;
+    if(src.c!=null) o.c = src.c;
+  }
+  placeAtPending(o);
+  save(); render(); reveal(o.id);
+}
+
+/* ---- picking a type, however you picked it -----------------------------
+   Pressing a type's tile and typing its letter are the same act and must reach
+   the same place: the shortcut used to create the kind outright, so a sorting
+   drawer made with `Q` skipped the question its own tile asks and landed as an
+   empty front. Everything a type can ask before it exists is here, once.
+
+   `pending.cell` is the cell a hold sketched. closePanel() clears it, so it is
+   read first and put back — every question below re-opens a panel, and the
+   answer still has to land where you pressed. See decisions 131 and 135. */
+function newOfKind(kind){
+  if(!KINDS[kind]) return;
+  const at = pending.cell;
+  closePanel();
+  pending.cell = at;
+  const k = K(kind);
+  if(k.picksFile){ $('#imgpicker').click(); return; }
+  /* A type may ask one question before it exists. A sorting drawer with no
+     rule is an empty front that reads as broken; a life drawer with no object
+     on it is the coloured rectangle the object was there to replace; an
+     achievement is picked rather than written; and a category is nothing but
+     the question. */
+  if(k.asksTag){ tagFirstPanel(kind); return; }
+  if(k.asksLife){ lifeFirstPanel(kind); return; }
+  if(k.asksDone){ donePanel(kind); return; }
+  if(k.family){ familyPanel(kind); return; }
+  const o = create(kind, at?{parent:at.parent}:undefined);
+  placeAtPending(o);
+  save(); render();
+  /* …and then it is scrolled to. A board is a coordinate space, so a new
+     object goes in the first free room from the top — which on a phone, where
+     objects are full width, is always below everything you can see. It landed
+     correctly and looked like nothing had happened. */
+  reveal(o.id);
 }
 
 /* Mark one chip in a group as the chosen one. The selector is deliberately
@@ -953,29 +1026,26 @@ function wire(){
     const nt=t.closest('[data-newtag]');
     if(nt){ makeSorting(...nt.dataset.newtag.split(/:(.*)/)); return; }
 
-    // the dial in a type tile's corner edits the type rather than making one
-    const nk=t.closest('[data-new]');
-    if(nk && !t.closest('[data-act]')){
-      const at=pending.cell;            // closePanel clears it, so keep it first
+    /* A category asks *which* before anything is made. `pending.cell` is kept
+       across the close exactly as the sorting drawer's question keeps it, so
+       the type you press two panels in still lands in the cell you held. */
+    const nf=t.closest('[data-family]');
+    if(nf && !t.closest('[data-act]')){
+      const at=pending.cell;
       closePanel();
       pending.cell=at;
-      const kind=nk.dataset.new;
-      if(K(kind).picksFile){ pending.cell=at; $('#imgpicker').click(); return; }
-      /* A type may ask one question before it exists. A sorting drawer with
-         no rule is an empty front that reads as broken, so it is asked what it
-         sorts for while the cell it is going into is still remembered — which
-         is why `pending.cell` is restored above and left alone here.
-         See decision 131. */
-      if(K(kind).asksTag){ tagFirstPanel(kind); return; }
-      const o=create(kind, at?{parent:at.parent}:undefined);
-      placeAtPending(o);
-      save(); render();
-      /* …and then it is scrolled to. A board is a coordinate space, so a new
-         object goes in the first free room from the top — which on a phone,
-         where objects are full width, is always below everything you can see.
-         It landed correctly and looked like nothing had happened. */
-      reveal(o.id);
+      familyPanel(nf.dataset.family);
       return; }
+
+    const nl=t.closest('[data-newlife]');
+    if(nl){ makeLife(...nl.dataset.newlife.split(/:(.*)/)); return; }
+
+    const nd=t.closest('[data-newdone]');
+    if(nd){ makeDone(...nd.dataset.newdone.split(/:(.*)/)); return; }
+
+    // the dial in a type tile's corner edits the type rather than making one
+    const nk=t.closest('[data-new]');
+    if(nk && !t.closest('[data-act]')){ newOfKind(nk.dataset.new); return; }
 
     // month / week / day — the same calendar over a different span
     const cv=t.closest('[data-calview]');
@@ -990,6 +1060,24 @@ function wire(){
       if(S.view!=='drawer' || S.drawerId!==did){ S.view='drawer'; S.drawerId=did; S.calDay=iso; }
       render(); return;
     }
+
+    /* One block of a progress bar, pressed. It sets the bar to that many
+       increments, and pressing the block it is already on steps back one — so
+       a bar can be walked forwards and backwards from the board with no panel
+       and no milestones. Only a bar that owns its own number carries these;
+       one reading another object refuses, because what happened somewhere else
+       is not this tile's to change. See decision 138. */
+    const bs=t.closest('[data-barset]');
+    if(bs){
+      const [id,n]=bs.dataset.barset.split(':');
+      const o=byId(id);
+      if(o){
+        const was=o.at||0, want=+n;
+        pushSet('Progress', id, 'at', was);
+        o.at = was===want ? want-1 : want;
+        save(); render(); refreshPanel();
+      }
+      return; }
 
     const ck=t.closest('[data-check]'); if(ck){ toggleDone(ck.dataset.check); return; }
 
@@ -1582,9 +1670,13 @@ function wire(){
       save(); return;
     }
     if(panelKey()==='newobject'){
-      const k=KEYS.find(x=>KINDS[x].key.toLowerCase()===e.key.toLowerCase());
-      // it lands on the board and is scrolled to, the same as picking its tile
-      if(k){ closePanel(); const o=create(k); save(); render(); reveal(o.id); return; }
+      /* `KINDS[x].key` is optional and most types have none — the old test
+         called .toLowerCase() on it unguarded, so any letter that did not
+         match one of the first dozen types threw before it could miss. */
+      const want = e.key.toLowerCase();
+      const k = KEYS.find(x => (KINDS[x].key||'').toLowerCase()===want);
+      // the same way in as pressing the tile: the cell, and the questions
+      if(k){ newOfKind(k); return; }
     }
     if(e.key==='n'||e.key==='N'){ e.preventDefault(); modalNewObject(); return; }
     if(boardKey(e)) return;

@@ -525,7 +525,7 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
    readout, so the track runs the width of the tile and is thick enough to read
    from across the desk. Same `--pct` either way — what a bar is drawn at is
    barPct() and may be about another object entirely. See decision 133. */
-.drawer.otile.sh-bar{background:var(--paper-2);justify-content:flex-start;padding:9px 11px 18px}
+.drawer.otile.sh-bar{background:var(--paper-2);justify-content:flex-start;padding:7px 8px 6px;gap:5px}
 .drawer.otile.sh-bar::after{content:"";position:absolute;left:11px;right:11px;bottom:9px;height:9px;
   border-radius:99px;
   background:linear-gradient(90deg,var(--c) var(--pct,0%),rgba(0,0,0,.10) var(--pct,0%));
@@ -938,12 +938,33 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
    it. Colour only, never the shorthand: a stock sets `background-image` and
    the shorthand would fight it for the grain and lose. The same trap is
    waiting for anything else on a board that is made of its own colour. */
-.drawer.otile.gentile{background-color:var(--c);align-items:center;justify-content:center;gap:5px;text-align:center;
-  border-radius:var(--radius-d);border-color:transparent;padding:8px;container-type:inline-size}
-.genico{color:#F8F3E6;opacity:.9}
-.genlabel{font-size:clamp(10px,6cqw,14px);font-weight:600;color:#F8F3E6;overflow-wrap:anywhere;line-height:1.2}
-.genarrow{position:absolute;right:6px;bottom:6px;color:rgba(248,243,230,.65)}
+.drawer.otile.gentile{background-color:var(--c);align-items:center;justify-content:center;gap:6px;text-align:center;
+  border-radius:var(--radius-d);border-color:transparent;padding:6px;container-type:inline-size}
+/* The spiral fills the cell. A spawner is one cell square by default and at
+   that size the mark *is* the tile — a press drawn as the thing a press does,
+   with no room for a name and no need of one. `cqw` rather than a fixed size
+   so it grows with the tile it is on. */
+.genico{color:#F8F3E6;opacity:.92;display:flex;line-height:0}
+.genico svg{width:clamp(18px,62cqw,64px);height:auto}
 .drawer.gentile:active{transform:scale(.97)}
+/* Bigger than a cell, it grows the box you type into — what you write is the
+   name of the thing it makes, which is the whole of what the Text field type
+   was. The spiral steps aside into the corner: the press is still the tile,
+   and the line is what you came to the big one for. See decision 135. */
+.drawer.otile.gentile.genbig{flex-direction:row;gap:8px;padding:6px 8px;align-items:center}
+.gentile.genbig .genico svg{width:clamp(16px,18cqw,30px)}
+.gentile.genbig .fieldin{
+  flex:1;min-width:0;border:0;background:rgba(255,255,255,.14);border-radius:var(--radius);
+  padding:5px 8px;font:inherit;font-size:13px;color:#F8F3E6;outline:none;
+  box-shadow:inset 0 1px 3px rgba(0,0,0,.28);
+}
+.gentile.genbig .fieldin::placeholder{color:rgba(248,243,230,.6)}
+.gentile.genbig .fieldin:focus{background:rgba(255,255,255,.22)}
+/* …and one cell tall, the box is the whole of it and the spiral is the stamp
+   at the end — the same rule every other tile follows as it loses room. */
+.gentile.genbig.sz-short{padding:4px 6px;gap:6px}
+.gentile.genbig.sz-narrow .fieldin{display:none}
+.gentile.genbig.sz-narrow{flex-direction:column;justify-content:center}
 /* ---- a control: a switch on the board -----------------------------------
    Plate, engraved label, and either a lever or a printed value. It is drawn
    in the object's own colour like everything else on a board, with the ink
@@ -980,6 +1001,128 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
 .ctltile.on .clever{background:rgba(255,255,255,.30)}
 .ctltile.on .clever::after{transform:translateX(16px)}
 .drawer.ctltile:active{transform:scale(.97)}
+
+/* ---- three shapes, because there are three questions -------------------
+   A control with **two** states is a switch and is drawn as one; a control
+   walking **more than two** is a **button** that changes colour as it goes;
+   a control that is a **number** is a **dial**, turned. `ctlForm()` in
+   mutations.js decides, off the table and never off a name. See decision 137.
+
+   ---- the switch: late Victorian, so a lever on a plate ----------------
+   The hardware of the period is a brass bat on a porcelain backplate, thrown
+   up or down, with a screw either side of it. It is a fixed size at any tile
+   size — the same argument every moulding on a drawer front makes — and it is
+   *position* that reads, not colour: the bat is at the top or it is at the
+   bottom, and you can see which from across the room. */
+.ctltile .cplate{
+  width:30px;height:44px;flex:0 0 auto;margin-top:3px;position:relative;
+  border-radius:5px;
+  background:linear-gradient(#F4EEDE,#DCD2BB 58%,#C6BBA1);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.85), inset 0 -1px 2px rgba(0,0,0,.28),
+             0 1px 2px rgba(0,0,0,.4);
+}
+/* the two screws that hold the plate to the wall */
+.ctltile .cplate::before,.ctltile .cplate::after{
+  content:"";position:absolute;left:50%;width:5px;height:5px;margin-left:-2.5px;
+  border-radius:50%;background:radial-gradient(circle at 35% 30%, #EFE7D4, #9A8E77);
+  box-shadow:inset 0 0 0 .5px rgba(0,0,0,.35);
+}
+.ctltile .cplate::before{top:3px}
+.ctltile .cplate::after{bottom:3px}
+/* the bat: a tapered brass lever pivoting at the middle of the plate */
+.ctltile .cplate .clever{
+  position:absolute;left:50%;top:50%;width:13px;height:19px;margin-left:-6.5px;
+  border-radius:3px 3px 5px 5px;
+  background:linear-gradient(100deg, var(--brass), color-mix(in srgb,var(--brass) 62%,#000));
+  box-shadow:0 1px 2px rgba(0,0,0,.5), inset 1px 0 0 rgba(255,255,255,.45);
+  transform-origin:50% 0;
+  transform:translateY(-1px) rotate(180deg);
+  transition:transform .16s cubic-bezier(.3,1.5,.5,1);
+}
+.ctltile.on .cplate .clever{ transform:translateY(-1px) rotate(0deg) }
+/* the shadow the bat throws into the plate, which is what says it stands off it */
+.ctltile .cplate .clever::after{
+  content:"";position:absolute;inset:auto 2px -3px 2px;height:4px;border-radius:50%;
+  background:rgba(0,0,0,.3);filter:blur(1px);
+}
+.ctltile.ctl-switch{align-items:center;text-align:center}
+.ctltile.ctl-switch .clabel{padding-right:0}
+
+/* ---- the button: it changes colour as it walks ------------------------
+   A list longer than two has no lever position to be at, so the readout is
+   the colour of the face plus the word on it. The colour is the aesthetic's
+   own eleven stepped by where the list is (tiles.js), so pressing it is
+   visibly a different indicator and not the same square with new words. It is
+   built as a real button: a bezel, a domed face, and a press that sinks. */
+.ctltile.ctl-button{
+  align-items:center;text-align:center;justify-content:center;gap:6px;
+  background-color:color-mix(in srgb, var(--c) 34%, #1A1611);
+  padding:7px;
+}
+.ctltile.ctl-button .clabel{padding-right:0;font-size:clamp(9px,4.6cqw,11.5px);
+  color:rgba(248,243,230,.75);letter-spacing:.06em;text-transform:uppercase}
+.ctltile.ctl-button .cval{
+  flex:0 0 auto;max-width:100%;padding:6px 12px;border-radius:var(--radius);
+  font-size:clamp(10px,5.4cqw,14px);font-weight:600;color:#FBF7EC;
+  background:linear-gradient(color-mix(in srgb,var(--c) 88%,#fff), var(--c) 55%,
+             color-mix(in srgb,var(--c) 78%,#000));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.5), inset 0 -2px 3px rgba(0,0,0,.3),
+             0 2px 0 color-mix(in srgb,var(--c) 55%,#000), 0 3px 5px rgba(0,0,0,.35);
+  transition:transform .1s, box-shadow .1s;
+}
+.ctltile.ctl-button:active .cval{
+  transform:translateY(2px);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.4), inset 0 -1px 2px rgba(0,0,0,.3),
+             0 0 0 color-mix(in srgb,var(--c) 55%,#000), 0 1px 2px rgba(0,0,0,.35);
+}
+.ctltile.ctl-button.sz-short .cval{padding:3px 9px}
+
+/* ---- the dial: a turned knob with a pointer --------------------------
+   270° of sweep with a stop at each end, because a full circle has no stop
+   and a pointer at twelve would mean both nothing and everything. The knob
+   is turned out of brass and lit from the upper left, the same light every
+   drawer knob on this desk has; the pointer is a milled line across its face,
+   and the ticks around it are the scale it is read against.
+
+   The whole dial rotates rather than the pointer alone — that is what a real
+   one does, and it is one transform on one promoted layer rather than two
+   elements that could disagree about where the middle is. */
+.ctltile.ctl-dial{align-items:center;text-align:center;justify-content:center;gap:4px;padding:6px}
+.ctltile.ctl-dial .clabel{padding-right:0;font-size:clamp(9px,4.4cqw,11.5px)}
+.ctltile .cdialwrap{
+  position:relative;flex:0 0 auto;width:46px;height:46px;
+  /* the scale: ticks every 27° across the 270° the knob can turn through */
+  background:
+    conic-gradient(from 225deg,
+      rgba(248,243,230,.55) 0 1.2deg, transparent 1.2deg 27deg,
+      rgba(248,243,230,.35) 27deg 28deg, transparent 28deg 54deg,
+      rgba(248,243,230,.35) 54deg 55deg, transparent 55deg 81deg,
+      rgba(248,243,230,.35) 81deg 82deg, transparent 82deg 108deg,
+      rgba(248,243,230,.35) 108deg 109deg, transparent 109deg 135deg,
+      rgba(248,243,230,.55) 135deg 136.2deg, transparent 136.2deg 270deg);
+  border-radius:50%;
+}
+.ctltile .cdial{
+  position:absolute;inset:5px;border-radius:50%;
+  background:
+    radial-gradient(circle at 32% 28%, rgba(255,255,255,.55), transparent 46%),
+    linear-gradient(160deg, color-mix(in srgb,var(--brass) 82%,#fff), var(--brass) 45%,
+      color-mix(in srgb,var(--brass) 60%,#000));
+  box-shadow:inset 0 -2px 4px rgba(0,0,0,.4), 0 2px 4px rgba(0,0,0,.45);
+  transform:rotate(var(--dial,0deg));
+  transition:transform .18s cubic-bezier(.3,1.2,.5,1);
+  will-change:transform;
+}
+/* the milled line across the face — the pointer, cut into the knob */
+.ctltile .cdial::after{
+  content:"";position:absolute;left:50%;top:3px;width:2.5px;height:42%;margin-left:-1.25px;
+  border-radius:2px;background:rgba(26,20,14,.78);
+  box-shadow:0 1px 0 rgba(255,255,255,.3);
+}
+.ctltile.ctl-dial .cval{font-variant-numeric:tabular-nums;font-size:clamp(9px,4.6cqw,12px)}
+.ctltile.ctl-dial.sz-short .cdialwrap{width:32px;height:32px}
+.ctltile.ctl-dial.sz-short .cdial{inset:3px}
+.ctltile.sz-mini .cdialwrap,.ctltile.sz-mini .cplate{display:none}
 /* what it gives up as it shrinks: the mark first, then the value. The lever
    never goes — without it the tile says nothing at all. */
 .ctltile.sz-narrow .cico{display:none}
@@ -992,6 +1135,86 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
 /* a spawner set to make one of anything wears the same press with the mark
    that means "by a rule rather than by hand" everywhere else in the app */
 .drawer.gentile.genany .genico{opacity:1}
+
+/* ---- a progress bar is a row of blocks ---------------------------------
+   Quantised, not filled. Each block is a whole cell tall and half a cell wide
+   — which is what makes a ten-step bar five cells long with nobody told — and
+   the grid is written by `barGrid()` off the box the tile was given, so a bar
+   dragged narrower wraps into a second row rather than shrinking its blocks
+   into slivers you cannot count. `1fr` in both directions is what fills the
+   tile at whatever shape it ends up. See decision 138. */
+.barblocks{
+  flex:1;min-height:0;display:grid;gap:3px;
+  grid-template-columns:repeat(var(--barcols,10),1fr);
+  grid-template-rows:repeat(var(--barrows,1),1fr);
+}
+.barblock{
+  border-radius:2px;background:color-mix(in srgb,var(--c) 12%,var(--paper-3));
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c) 26%,transparent);
+  transition:background .14s, box-shadow .14s;
+}
+.barblock.on{
+  background:var(--c);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.34), inset 0 0 0 1px color-mix(in srgb,var(--c) 70%,#000);
+}
+/* only a bar that owns its own number takes the press — one reading another
+   object is a readout of that object, and what happened somewhere else is not
+   this tile's to change */
+.ownbar .barblock{cursor:pointer}
+.ownbar .barblock:hover{box-shadow:inset 0 0 0 1.5px var(--c)}
+.bartile .barcount{margin-left:auto;font-size:11px;color:var(--ink-3);
+  font-variant-numeric:tabular-nums;flex:0 0 auto}
+.bartile .dtop{flex:0 0 auto;align-items:baseline;gap:6px}
+.bartile.sz-short .dtop{display:none}
+.drawer.otile.sh-bar.sz-short{padding:3px 4px}
+.bartile.sz-mini .barcount{display:none}
+
+/* ---- a goal: a drawer with the knob taken off --------------------------
+   The name is the face, so it is set as large as the frame allows and
+   everything else is small and at the foot. No knob at all: a goal is not a
+   thing you pull open to rummage in.
+
+   The three standings — Goal, Challenge, Dream — are read off the time on the
+   object rather than stored (goalStanding() in model.js), and each says so in
+   one small line at the top. A dream is set in italic, because a thing with no
+   date on it is a different sort of statement. See decision 135. */
+.drawer.dtile.goaltile{
+  background-color:var(--c);align-items:center;justify-content:center;text-align:center;
+  padding:12px 14px;gap:6px;container-type:inline-size;overflow:hidden;
+}
+/* Above the two spliced layers. `.dpanel` and `.dgrain` are absolutely
+   positioned, so they paint above every static child of the tile however early
+   they sit in the DOM — the name was rendering perfectly and was under the
+   moulding. Same reason `.projtile > *` states it, and the same order a drawer
+   front already keeps: the working at 0, the words above it. */
+.goaltile .goalstand,.goaltile .goalname,.goaltile .goalfoot{position:relative;z-index:2}
+.goaltile .goalbar{z-index:3}
+.goalstand{
+  font-size:clamp(8px,3.6cqw,11px);letter-spacing:.14em;text-transform:uppercase;
+  color:var(--dink-3);flex:0 0 auto;
+}
+.stand-dream .goalstand{font-style:italic;letter-spacing:.1em}
+.goalname{
+  font-family:var(--serif);font-weight:600;line-height:1.14;color:var(--dink);
+  font-size:clamp(15px,9.5cqw,44px);overflow-wrap:anywhere;
+  display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;
+}
+.goalfoot{
+  display:flex;gap:8px;align-items:baseline;flex:0 0 auto;
+  font-size:clamp(9px,4cqw,12px);color:var(--dink-2);
+}
+.goalfoot u{text-decoration:none}
+.goalfoot u.late{color:var(--dink);font-weight:700;text-decoration:underline}
+.goalfoot b{font-variant-numeric:tabular-nums;font-weight:600}
+/* the run, along the bottom edge — a hairline rather than a bar, because a
+   goal's face is its name and a full-width bar would be competing with it */
+.goaltile .goalbar{
+  position:absolute;left:0;right:0;bottom:0;height:3px;
+  background:linear-gradient(90deg, var(--glow) var(--pct,0%), rgba(0,0,0,.22) var(--pct,0%));
+}
+.goaltile.sz-short{padding:6px 10px}
+.goaltile.sz-short .goalstand,.goaltile.sz-short .goalfoot{display:none}
+.goaltile.sz-narrow .goalfoot{display:none}
 
 /* a counter as an old ledger totaliser */
 .drawer.cnttile{

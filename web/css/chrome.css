@@ -904,7 +904,14 @@ html .drawer.dtile.cltile{background-image:none}
    off one walk of the whole subtree, so a project of checklists counts the
    ticks inside them. */
 .projtile{position:relative;overflow:hidden}
-.projcover{position:absolute;inset:0;background-size:cover;background-position:center;
+/* `.projtile .projcover` and not `.projcover`: the rule below it lifts every
+   child of a project tile into the positioned layer, and at equal specificity
+   the later rule wins — so the cover has been `position:relative` since the
+   day that line was written, which made it a flex item sitting in a band along
+   the top instead of the background it was declared to be. Invisible at 30%
+   opacity behind a report; not invisible at all once a cover became the face.
+   Two classes states the intent and beats the sweep. */
+.projtile .projcover{position:absolute;inset:0;background-size:cover;background-position:center;
   opacity:.30;filter:saturate(.7)}
 .projtile > *{position:relative;z-index:1}
 .projtile .dtop{align-items:flex-start;justify-content:space-between;gap:6px}
@@ -945,6 +952,165 @@ html .drawer.dtile.cltile{background-image:none}
 .lifetile .projbar{display:none}
 .lifetile .projline{margin-top:6px}
 .lifetile .projsoon{margin-top:6px}
+
+/* ---- the cover a project wears ----------------------------------------
+   A piece of work has a shape you know before it exists, and the project face
+   wears it: a poster, a sleeve, a boxed case, an icon. The report does not
+   change — the same name, bar, counts and next-thing, off the same walk — it
+   just gets out of the way, standing in a band at the foot of the cover the
+   way the type on a DVD case does. One class per cover, and every one of them
+   only *adds*; nothing here re-declares the report.
+
+   A picture on the object is always the cover. With none, each draws its own
+   **placeholder**, and that is the part that matters: an empty film should
+   read as a film you have not made yet, not as a project you have not filled
+   in. See decision 135. */
+/* The cover is absolute at inset:0, so it fills the tile whatever padding the
+   tile has and the report keeps the padding every project front already has —
+   which is why nothing here zeroes it and then puts it back on each child.
+
+   Three depths and they must not be guessed at: the cover at 0, the scrim
+   over it at 1, the report over that at 2. `.projtile > *` lifts every child
+   into the positioned layer at z-index 1, so a cover that says nothing sits
+   *above* the scrim meant to darken it — which is a thing you can only see
+   once a cover is opaque. */
+.projtile.hascover .projcover{opacity:1;filter:none;display:flex;z-index:0;
+  align-items:center;justify-content:center;overflow:hidden;
+  /* the artwork centres in the room above the report, not in the whole tile:
+     a record with its own title printed across it is a record you cannot read */
+  padding-bottom:24%}
+.projtile.hascover::after{
+  content:"";position:absolute;left:0;right:0;bottom:0;height:58%;z-index:1;
+  background:linear-gradient(transparent, color-mix(in srgb, var(--c) 82%, #000) 78%);
+  pointer-events:none;
+}
+.projtile.hascover .dtop,.projtile.hascover .projbar,
+.projtile.hascover .projline,.projtile.hascover .cladd{z-index:2}
+.projtile.hascover .dtop{margin-top:auto}
+.projtile.hascover .projkinds,.projtile.hascover .projsoon{display:none}
+
+/* a poster with nothing on it is its own title, set large — which is what a
+   teaser one-sheet is, and the reason a film's default box is 2:3 */
+.projtile.hascover .projposter{padding-bottom:20%}
+.projposter{background:linear-gradient(150deg,
+  color-mix(in srgb,var(--c) 72%,#000), color-mix(in srgb,var(--c) 96%,#fff) 52%,
+  color-mix(in srgb,var(--c) 66%,#000));padding:12% 10%}
+.projposter b{font-family:var(--serif);font-weight:700;text-align:center;line-height:1.02;
+  letter-spacing:-.01em;text-transform:uppercase;color:var(--dink);
+  font-size:clamp(13px,13cqw,54px);
+  display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;
+  text-shadow:0 2px 10px rgba(0,0,0,.4)}
+
+/* a record: the disc, its label, and the light across it. An album's sits in
+   a square box because a sleeve is one — the bounding box *is* the sleeve. */
+.projdisc{background:color-mix(in srgb,var(--c) 78%,#000)}
+.projdisc .cd{
+  position:relative;width:min(74%,74cqh);aspect-ratio:1;border-radius:50%;
+  background:
+    radial-gradient(circle at 34% 30%, rgba(255,255,255,.34), transparent 44%),
+    repeating-radial-gradient(circle at 50% 50%, rgba(255,255,255,.05) 0 2px, transparent 2px 4px),
+    conic-gradient(from 210deg, #6E6A63, #A8A29A 18%, #55514B 40%, #9E988F 62%, #6E6A63 84%, #A8A29A);
+  box-shadow:0 3px 10px rgba(0,0,0,.5), inset 0 0 0 1px rgba(0,0,0,.3);
+}
+.projdisc .cd b{
+  position:absolute;inset:32%;border-radius:50%;background:var(--c);
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.35);
+}
+.projdisc .cd b::after{
+  content:"";position:absolute;inset:38%;border-radius:50%;
+  background:color-mix(in srgb,var(--c) 40%,#000);
+}
+.pcov-album .projdisc{padding:8%}
+/* the sleeve's own square, ruled round the disc — the bounding box the
+   placeholder is described as */
+.pcov-album .projdisc::after{
+  content:"";position:absolute;inset:6%;border:1.5px solid rgba(255,255,255,.28);
+  border-radius:2px;pointer-events:none;
+}
+
+/* an app is an icon, so the tile becomes one: a squircle with the mark in the
+   middle. The one place a heavy radius is right — decision 125 lets an
+   aesthetic argue for its own, and this is the object arguing for itself. */
+.projtile.pcov-app{border-radius:22%}
+.projtile.pcov-app .projcover{border-radius:22%}
+.projapp{
+  background:linear-gradient(160deg, color-mix(in srgb,var(--c) 96%,#fff),
+    var(--c) 46%, color-mix(in srgb,var(--c) 62%,#000));
+  color:var(--dink);
+  box-shadow:inset 0 1.5px 0 rgba(255,255,255,.4), inset 0 -3px 8px rgba(0,0,0,.28);
+}
+.projapp svg{width:38%;height:38%;opacity:.92}
+.projtile.pcov-app .projline{display:none}
+
+/* a boxed game: the cover, with the platform's strip down the left the way a
+   case has it. The strip is drawn whether or not the platform is named — it
+   is the thing that says "game" — and it holds the name running up it. */
+.projgame{background:linear-gradient(155deg,
+  color-mix(in srgb,var(--c) 84%,#000), color-mix(in srgb,var(--c) 98%,#fff) 58%,
+  color-mix(in srgb,var(--c) 74%,#000))}
+.projgame .gspine{
+  position:absolute;left:0;top:0;bottom:0;width:clamp(12px,11%,26px);
+  background:color-mix(in srgb,var(--c) 40%,#000);
+  box-shadow:inset -1px 0 0 rgba(255,255,255,.22);
+  display:flex;align-items:center;justify-content:center;
+}
+.projgame .gspine u{
+  writing-mode:vertical-rl;transform:rotate(180deg);text-decoration:none;
+  font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--dink-2);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-height:86%;
+}
+.projgame em{color:var(--dink);opacity:.55;font-style:normal;margin-left:6%}
+.projgame em svg{width:clamp(20px,22cqw,52px);height:auto}
+.projtile.pcov-game .dtop,.projtile.pcov-game .projbar,.projtile.pcov-game .projline{
+  margin-left:clamp(12px,11%,26px)}
+
+/* a painting is itself. With nothing on it yet: the mount and the stretcher,
+   which is what an unpainted canvas is. */
+.projart{background:var(--paper-2);padding:7%}
+.projart::after{
+  content:"";position:absolute;inset:7%;border:1px solid rgba(0,0,0,.22);
+  background:linear-gradient(160deg,#F4EFE1,#E4DCC7);
+}
+.projart svg{position:relative;z-index:1;color:rgba(0,0,0,.2)}
+
+/* a trip already has the ticket its own shape draws; the cover would be a
+   second answer to the same question */
+.projtile.pcov-trip.hascover:not(.haspic) .projcover{display:none}
+
+/* ---- a life drawer wearing an object -----------------------------------
+   No front at all: no panel, no knob, no border, no paper. The thing is lying
+   on the desk and the name is on a small label under it — which is the same
+   argument a decoration makes (decision 86), except that this one is a drawer
+   and opens. The artwork fills the box less the label; the count of what is
+   outstanding rides in the corner, because on a life drawer that number is the
+   only thing that is ever urgent. See decision 136. */
+.drawer.dtile.lifething{
+  background:none;border:0;box-shadow:none;padding:4px 4px 0;
+  align-items:center;justify-content:flex-end;gap:2px;container-type:inline-size;
+  overflow:visible;
+}
+.lifething .lifepic{
+  flex:1;min-height:0;width:100%;display:flex;align-items:center;justify-content:center;
+  filter:drop-shadow(0 4px 8px rgba(0,0,0,.22));
+}
+.lifething .lifepic svg,.lifething .lifepic img{
+  width:100%;height:100%;object-fit:contain;color:var(--c);display:block;
+}
+.lifething .lifelabel{
+  flex:0 0 auto;max-width:100%;margin-bottom:2px;padding:2px 9px;border-radius:var(--pill);
+  background:color-mix(in srgb,var(--c) 88%,#000);color:#F8F3E6;
+  font-size:clamp(9px,5.4cqw,13px);font-weight:600;letter-spacing:.01em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  box-shadow:0 1px 3px rgba(0,0,0,.3);
+}
+.lifething .lifeleft{
+  position:absolute;top:0;right:0;min-width:18px;height:18px;padding:0 5px;
+  display:grid;place-items:center;border-radius:var(--pill);
+  background:var(--glow);color:#241C14;font-size:10.5px;font-weight:700;
+  font-variant-numeric:tabular-nums;box-shadow:0 1px 3px rgba(0,0,0,.35);
+}
+.lifething.sz-short .lifelabel,.lifething.sz-mini .lifelabel{display:none}
+.lifething.sz-mini .lifeleft{display:none}
 
 /* what a tile gives up as it shrinks — the bar and the name survive longest */
 .sz-narrow .projsoon,.sz-short .projsoon{display:none}
@@ -1081,6 +1247,19 @@ html .drawer.dtile.cltile{background-image:none}
    object with nothing said falls to (`borderOf` in model.js) — so nothing
    moves for a desk that never asks. */
 .drawer.otile.bd-plain{ border-color:var(--rule);box-shadow:var(--shadow) }
+/* ---- an edge of none still has to reach the edge ------------------------
+   `border-color:transparent` leaves the 1px border *box* in place, and a
+   background **image** is laid against the padding box by default — so a tile
+   with no edge and a sized background painted its gradient one pixel short on
+   every side and showed a hairline of board all the way round. Against a
+   neighbour whose border is a real line, that reads as the tile not filling
+   its cell: it is why a book never looked flush with the note beside it.
+
+   A background *colour* was never affected (`background-clip` is border-box),
+   which is why this hid for so long: only the tiles made of a gradient — every
+   spine, and anything wearing a stock — were short. `background-origin` is the
+   whole fix. See decision 139. */
+.drawer.bd-none{ background-origin:border-box }
 .drawer.otile.bd-none{ border-color:transparent;box-shadow:none }
 /* a ruled mount, the way a print is mounted: a line held off the edge */
 .drawer.otile.bd-panel{
@@ -1643,8 +1822,22 @@ html .drawer.dtile.cltile{background-image:none}
 
 /* ---- what each kind looks like on the board ---------------------------- */
 
-/* A note is a torn scrap of parchment: no binding, and a chip out of one edge */
-.drawer.otile.sh-note,.drawer.otile.sh-note,
+/* A note is a plain sheet, and that is the whole of it.
+
+   It used to be torn — a chip bitten out of each side, and a hand-drawn
+   outline traced round the tear with four drop-shadows because a `border`
+   cannot follow a clip-path. It was the most characterful tile on the board
+   and it was worn by the type you reach for most, which is the wrong way
+   round: a desk covered in torn scraps reads as a desk in trouble. The
+   machinery that drew it is still here, on the shapes that are genuinely torn
+   (a chit, a ticket), and a note that wants to be one can still be set to it.
+
+   What is left is paper and the aesthetic's own plain edge — which is also
+   what makes the **idea** work, one rule down: a note with a bold border in
+   the object's own colour, rather than a note with a corner folded over.
+   See decision 138. */
+.drawer.otile.sh-note{ background:var(--paper-2) }
+.drawer.otile.sh-tornnote,.drawer.otile.sh-tornnote,
 /* Torn paper, for the shapes that are paper. A plaque was in this list and
    should never have been: it is cast metal, and the parchment edge overrode
    the plaque styling entirely because this file loads second. */
@@ -1663,7 +1856,7 @@ html .drawer.dtile.cltile{background-image:none}
    line traces whatever the clip-path cut — the torn ends, the chip out of each
    side, all of it. Then the real shadows go on top of the same filter chain,
    which is also what stopped the sheet from floating with no shadow at all. */
-.drawer.otile.sh-note{
+.drawer.otile.sh-tornnote{
   border:0;
   --tornline:var(--line,rgba(0,0,0,.28));
   filter:
@@ -1677,17 +1870,22 @@ html .drawer.dtile.cltile{background-image:none}
 }
 /* ---- one silhouette per kind ------------------------------------------ */
 
-/* An idea has a folded corner, like a page turned down to mark it */
-/* The folded corner is the whole shape; the coloured left edge it used to
-   carry as well was a second signal saying nothing the corner didn't. */
+/* An idea is a note in a **bold border of its own colour** — the same sheet
+   as a note, ruled round. It had a folded corner (an earmark, a page turned
+   down to mark it), which is a lovely drawing and a poor signal: at three
+   cells the fold is eighteen pixels in one corner, and next to a note it says
+   almost nothing. A band all the way round says it from any distance and at
+   any size, and it costs the tile neither of its pseudo-elements.
+
+   The colour is `--c` and is never a named hue: the Idea type sits on slot 12,
+   which is Victoria's Gilt and every other aesthetic's answer to the same
+   position — so an idea is yellow on the desk it was designed for and is
+   whatever *that* aesthetic calls the same slot everywhere else. Hardcoding
+   the yellow would be the one thing decision 33 exists to stop.
+   See decision 138. */
 .drawer.otile.sh-idea{
-  clip-path:polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 0 100%);
-  background:var(--paper-2);
-}
-.drawer.otile.sh-idea::after{
-  content:"";position:absolute;top:0;right:0;width:18px;height:18px;
-  background:color-mix(in srgb, var(--c) 34%, var(--paper-3));
-  clip-path:polygon(0 0, 100% 100%, 0 100%);
+  background:var(--paper-2);clip-path:none;
+  border:2.5px solid var(--c);
 }
 /* A question is a speech bubble, with a tail */
 /* Three corners rounded hard and the fourth left square, because that is the
@@ -1757,9 +1955,23 @@ html .drawer.dtile.cltile{background-image:none}
 }
 .drawer.otile.sh-page .tiletext,.drawer.otile.sh-page .tiletext{font-family:var(--mono);font-size:10.5px}
 /* moodboard */
+/* ---- a collage is the board inside it, seen small ----------------------
+   Every child at the box it actually occupies, on the container's own columns
+   — not a wall of thumbnails packed three to a row. A moodboard *is* an
+   arrangement, and a front that re-packs what you arranged is showing you a
+   picture you did not make. See decision 134. */
 .drawer.mbtile{padding:0;overflow:hidden;background:var(--paper-3)}
-.mbwall{position:absolute;inset:0;display:grid;grid-template-columns:repeat(3,1fr);gap:2px;padding:2px}
-.mbwall i{background-size:cover;background-position:center;border-radius:2px;display:block}
+.mbwall{position:absolute;inset:0;display:grid;gap:2px;padding:2px;
+  grid-template-columns:repeat(var(--mbcols,12),1fr);
+  grid-template-rows:repeat(var(--mbrows,6),1fr);
+  grid-auto-rows:1fr}
+.mbwall i{background-size:cover;background-position:center;border-radius:2px;display:block;
+  min-width:0;min-height:0}
+/* something in it that is not a picture is still something in it: it is drawn
+   as its own colour, so the arrangement is complete rather than gappy */
+.mbwall i.mbthing{background-color:var(--k);opacity:.72;
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.16)}
+.mbwall .clempty{grid-column:1/-1;grid-row:1/-1;place-self:center;text-align:center;padding:0 10%}
 .mbname{position:absolute;left:0;right:0;bottom:0;padding:5px 8px;font-size:12px;font-weight:600;
   color:#F8F3E6;background:rgba(0,0,0,.5);text-align:left}
 /* a task is a plain band.
@@ -1819,6 +2031,22 @@ html .drawer.dtile.cltile{background-image:none}
 }
 .drawer.otile.sh-ruled:hover{box-shadow:none;background:color-mix(in srgb,var(--c) 7%,transparent)}
 .drawer.otile.sh-ruled .dname{font-family:var(--serif);font-size:14.5px;font-weight:500}
+/* A **rounded card**: soft on all four corners, and nothing else. A thought is
+   the thing that crossed your mind on the stairs and the whole value of one is
+   that writing it down costs nothing, so its tile should cost nothing to read
+   — it was a torn chit with a perforation dotted down it, which is three
+   drawings for a two-line scrap. Rounded the way a question is, without the
+   tail: a question is asked *of* something and has somewhere to point, a
+   thought is not. See decision 138. */
+.drawer.otile.sh-rounded{
+  border-radius:18px;background:var(--paper-2);clip-path:none;
+}
+.drawer.otile.sh-rounded .dbody{margin-top:5px}
+.sz-short.sh-rounded .dtop{height:100%;align-items:center}
+.drawer.otile.sh-rounded .dname{
+  -webkit-line-clamp:2;font-size:13px;white-space:normal;overflow-wrap:anywhere}
+.drawer.otile.sh-rounded.sz-mini{border-radius:12px}
+
 /* A chit off a pad: both short ends torn, and a perforation the stub would be
    torn along. Four teeth to an edge rather than eight — at one row a tile is
    ~58px tall, and eight of them read as a fuzzy edge rather than as a tear. */
@@ -1866,6 +2094,14 @@ html .drawer.dtile.cltile{background-image:none}
 }
 .drawer.dtile.bd-plain{ box-shadow:var(--shadow) }
 .drawer.dtile.bd-none{ box-shadow:none;border-color:transparent }
+/* …and a **spine** keeps its shadow, because it did not choose to have none.
+   The renderer forces `bd-none` onto a spine to stop the border slot drawing a
+   frame on a tile one cell wide (decision 87) — that is "do not dress the
+   edge", not "this object is flat", and taking the shadow with it left a book
+   as the one thing on the desk not sitting on the surface. */
+.drawer.dtile.spinetile.bd-none{
+  box-shadow:var(--shadow), inset 0 1px 0 rgba(255,255,255,.14);
+}
 /* slot 4 is the style's flourish — a beaded Victorian edge by default */
 .drawer.dtile.bd-gloss{
   box-shadow:inset 0 0 0 3px rgba(0,0,0,.14),
@@ -2016,7 +2252,7 @@ html[data-style="starry"] .sqbtn{
   background:none;box-shadow:none;border-color:transparent;
   /* **And no filter on the tile.** A torn shape outlines itself with four
      zero-blur drop-shadows tracing its own silhouette *after* the clip, which
-     is the only way to get a line that follows a tear (see `sh-note` above).
+     is the only way to get a line that follows a tear (see `sh-tornnote` above).
      That technique needs a silhouette — and with the ground gone the only
      alpha left on the tile is the writing, so it stopped outlining the paper
      and started outlining every letter. A white halo round each glyph on a

@@ -71,6 +71,12 @@ const P = {
   grid:'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z',
   inbox:'M3 13h5l2 3h4l2-3h5M3 13 6 4h12l3 9v7H3z',
   chevL:'M15 5l-7 7 7 7', chevR:'M9 5l7 7-7 7',
+  /* The spawner's mark. Four semicircles of doubling radius, alternating
+     sides — the compact construction of a spiral, and the reason it is that
+     rather than a plotted curve is legibility at 16px: an even Archimedean
+     spiral of the same extent puts its turns 1.6 units apart, which at a
+     stroke of 1.75 is a filled blob. Two turns, four units between them. */
+  spiral:'M12 11a2 2 0 0 1 4 0a4 4 0 0 1-8 0a6 6 0 0 1 12 0a8 8 0 0 1-16 0',
   more:'M12 6h.01M12 12h.01M12 18h.01',
   // a bar with a run filled in — a progress bar's own mark
   bar:'M3 9h18v6H3zM3 12h9',
@@ -192,4 +198,76 @@ function plain(src){
 /* The same thing on one line, for a band that has room for a sentence. */
 const oneline = s => plain(s).replace(/\s+/g,' ').trim();
 
-export { $, $$, esc, uid, clamp, ROOT, HOLD, D, ic, md, plain, oneline };
+/* ---- saying a thing in the past ----------------------------------------
+   An achievement is a goal you finished, and a plaque reading "Lose 25 pounds"
+   is a to-do with a frame round it. So the first word is put in the past —
+   "Lost 25 pounds" — and only the first word, because the rest of a title is
+   almost always its object and conjugating that is how you get "Lost 25
+   pounded".
+
+   The rule that matters is the one about *when not to*. English cannot be
+   conjugated by pattern from the outside: "Bike to work" and "Bill the
+   client" look exactly like verbs and are, "Bike shed" and "Bill's birthday"
+   look exactly like verbs and are not. So this leans on a list rather than on
+   a guess — the irregulars, plus the ordinary verbs people actually start a
+   goal with — and a title whose first word is not in it comes back **exactly
+   as written**. Getting it wrong is worse than not trying: a plaque is a thing
+   you look at, and "Housed the spare keys" reads as a mistake in a way that
+   "House the spare keys" never does. Adding a verb is one word in the list. */
+const IRREGULAR = {
+  be:'was', become:'became', begin:'began', break:'broke', bring:'brought',
+  build:'built', buy:'bought', catch:'caught', choose:'chose', come:'came',
+  cut:'cut', deal:'dealt', dig:'dug', do:'did', draw:'drew', drink:'drank',
+  drive:'drove', eat:'ate', fall:'fell', feed:'fed', feel:'felt', fight:'fought',
+  find:'found', fly:'flew', forget:'forgot', forgive:'forgave', get:'got',
+  give:'gave', go:'went', grow:'grew', hang:'hung', have:'had', hear:'heard',
+  hide:'hid', hit:'hit', hold:'held', keep:'kept', know:'knew', lay:'laid',
+  lead:'led', leave:'left', lend:'lent', let:'let', lose:'lost', make:'made',
+  meet:'met', pay:'paid', put:'put', quit:'quit', read:'read', ride:'rode',
+  ring:'rang', rise:'rose', run:'ran', say:'said', see:'saw', sell:'sold',
+  send:'sent', set:'set', shake:'shook', shoot:'shot', show:'showed',
+  shut:'shut', sing:'sang', sit:'sat', sleep:'slept', speak:'spoke',
+  spend:'spent', stand:'stood', steal:'stole', stick:'stuck', swim:'swam',
+  take:'took', teach:'taught', tell:'told', think:'thought', throw:'threw',
+  understand:'understood', wake:'woke', wear:'wore', win:'won', write:'wrote'
+};
+/* Ordinary verbs, conjugated by rule — the list is what says "this word is a
+   verb at all", which is the only hard part. Roughly, the things a person
+   starts a goal, a project or a task with. */
+const REGULAR = ('add answer apply arrange ask book call cancel change check clean clear climb'
+  + ' collect complete cook cover crack create cross deliver design draft drop earn edit'
+  + ' email empty enter face file fill filter finish fix follow frame gather hire improve'
+  + ' install join land launch learn level lift list listen live load lock look mail manage'
+  + ' mark master mend merge move name open order organise organize paint pack pass phone'
+  + ' pick pitch place plan plant play post practise practice prepare present print publish'
+  + ' pull push raise reach record reduce release remove rename repair replace reply research'
+  + ' return review rewrite roll sand save scan schedule score scrub seal serve settle shave'
+  + ' ship sign sketch solve sort sow start stop stretch study submit swap tidy touch track'
+  + ' train transfer trim try turn unpack update upload use visit vote wait walk want wash'
+  + ' watch weed wire work wrap yield').split(' ');
+const REGULAR_SET = new Set(REGULAR);
+function edOf(v){
+  if(/e$/.test(v)) return v + 'd';
+  if(/[^aeiou]y$/.test(v)) return v.slice(0,-1) + 'ied';
+  // one syllable, consonant–vowel–consonant: the consonant doubles (plan → planned)
+  if(/^[^aeiou]*[aeiou][^aeiouwxy]$/.test(v)) return v + v.slice(-1) + 'ed';
+  return v + 'ed';
+}
+function pastVerb(w){
+  const low = w.toLowerCase();
+  const p = IRREGULAR[low] || (REGULAR_SET.has(low) ? edOf(low) : null);
+  if(!p) return null;
+  // keep the capital the title was written with, whatever it was
+  return /^[A-Z]/.test(w) ? p[0].toUpperCase() + p.slice(1) : p;
+}
+/* The whole title, with its first word put in the past — or the title back
+   unchanged, which is the answer for anything this cannot vouch for. */
+function pastTense(title){
+  const s = String(title||'').trim();
+  const m = s.match(/^([A-Za-z]+)(\b[\s\S]*)$/);
+  if(!m) return s;
+  const p = pastVerb(m[1]);
+  return p ? p + m[2] : s;
+}
+
+export { $, $$, esc, uid, clamp, ROOT, HOLD, D, ic, md, plain, oneline, pastTense };

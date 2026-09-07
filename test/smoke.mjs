@@ -36,9 +36,9 @@ const CHROME = process.env.BUREAU_CHROME;
   // field tile is a thing on a board.
   await page.click('.grid .drawer[data-drawer="d_ideas"]');
   await page.waitForTimeout(250);
-  // the quick-add bar is gone; a text-field object makes tasks instead
+  // the quick-add bar is gone; a spawner big enough to type into makes tasks
   await page.evaluate(() => {
-    const f = BUREAU.create('field', { parent: 'd_ideas', title: 'Add…' });
+    const f = BUREAU.create('generator', { parent: 'd_ideas', title: 'Add…' });
     f[BUREAU.state.device] = { x:1, y:1, w:8, h:2 };
     BUREAU.render();
   });
@@ -627,7 +627,7 @@ const CHROME = process.env.BUREAU_CHROME;
     const pr = BUREAU.create('project', { parent: 'root', title: 'Seeded' });
     pr.desk = BUREAU.free(5, 5);
     const kids = S.objects.filter(o => o.parent === pr.id);
-    const seeded = kids.length === 1 && kids[0].kind === 'field'
+    const seeded = kids.length === 1 && kids[0].kind === 'generator'
       && kids[0].desk.x === 1 && kids[0].desk.y === 1;
     // and a seeded child does not seed in turn (the test made one of its own
     // earlier, so count only what this project put inside itself)
@@ -4366,7 +4366,7 @@ const CHROME = process.env.BUREAU_CHROME;
     BUREAU.create('task', {parent:c.id, title:'b'});
     c.roll = {fn:'count'};
     const seen = {};
-    for (const face of ['front','project','calendar','timeline','moodboard']) {
+    for (const face of ['front','project','calendar','timeline','collage']) {
       c.face = face; BUREAU.render(); await nap(120);
       const el = document.querySelector(`.grid .drawer[data-drawer="${c.id}"]`);
       seen[face] = !!el && !!el.querySelector('.rollup');
