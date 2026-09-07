@@ -2,7 +2,7 @@ import { $, $$, esc, ic, uid, D, ROOT, pastTense } from './util.js';
 import { S, K, KINDS, KEYS, refreshKinds, ATTRS, attrsOf, has, SHAPES,
   FACES, MANUAL, byId, container, cfgOf, isContainer, isAncestor, relate, deskOf,
   unrelate, sensedDevice, reset, T, dz, dev, calViewOf, RULE_MAX, acceptFor,
-  boardLocked, repeatOf, repeats, heldObjects, heldCount, marginOf, marginPlus } from './model.js';
+  boardLocked, repeatOf, repeats, heldObjects, heldCount, marginOf, marginPlus, homeFor } from './model.js';
 import { gridOf, lay, boxOk, freeSpot, anySpot, roomFor, sizeOfKind, toPhoneSize, keepSize,
   shelvesOf, shelfAt, setShelf } from './grid.js';
 import { applyLook, applyStyle, setLookVal, lookVal, STYLES, setSlot, objColour, darkMode } from './look.js';
@@ -101,7 +101,7 @@ function newOfKind(kind, asked){
   /* Before anything else, and before any question is asked: a shelf is finite,
      and being asked which sort of note you want and *then* told there is
      nowhere to put it is the wrong order. See decision 141. */
-  if(!fits(kind, (at && at.parent) || (S.view==='drawer' && S.drawerId) || ROOT)) return;
+  if(!fits(kind, (at && at.parent) || homeFor((S.view==='drawer' && S.drawerId) || ROOT))) return;
   if(k.picksFile){ $('#imgpicker').click(); return; }
   /* A type may ask one question before it exists. A sorting drawer with no
      rule is an empty front that reads as broken; a life drawer with no object
@@ -790,6 +790,33 @@ function wire(){
     const ed=t.closest('[data-edit]');
     if(ed && !boardLocked()){ startEdit(ed.dataset.edit); return; }
     const undoEl=t.closest('[data-undo]'); if(undoEl){ undoToast(); return; }
+    /* ---- renaming from the panel's own heading --------------------------
+       The editor's title is what the thing is called, so pressing it is how
+       you change it — the same act a tile's name already answers to, in the
+       one place the name is already printed. It swaps itself for an input in
+       place rather than re-rendering the panel: a rebuilt panel is a lost
+       caret, and this is a field you are about to type into. See decision 148. */
+    const hn=t.closest('[data-headname]');
+    if(hn && hn.tagName!=='INPUT'){
+      const id=hn.dataset.headname, o=byId(id); if(!o) return;
+      const was=o.title||'';
+      const inp=document.createElement('input');
+      inp.className='pheadin'; inp.value=was; inp.placeholder='Untitled';
+      inp.dataset.headname=id;
+      /* It carries `data-oset` so the ordinary field writer handles it: one
+         coalesced undo move for a run of typing, the board redrawn as you go,
+         and nothing here duplicating the writer. All this handler does is put
+         the input there and take it away again. */
+      inp.dataset.oset=id+':title';
+      hn.replaceWith(inp); inp.focus(); inp.select();
+      inp.addEventListener('blur', ()=>{ if(inp.isConnected) refreshPanel(); });
+      inp.addEventListener('keydown', ev=>{
+        if(ev.key==='Enter'){ ev.preventDefault(); inp.blur(); }
+        if(ev.key==='Escape'){ ev.preventDefault();
+          inp.value=was; inp.dispatchEvent(new Event('input',{bubbles:true})); inp.blur(); }
+      });
+      return;
+    }
     const c=t.closest('[data-c]');
     if(c){ const [cmd,id]=c.dataset.c.split(':'); closeCtx();
       if(cmd==='open'||cmd==='write') openWriter(id);
@@ -1217,6 +1244,29 @@ function wire(){
     const dtg=t.closest('[data-dtag]');
     if(dtg){ draft().tag=dtg.dataset.dtag; only(dtg,'#dtag button'); return; }
 
+    /* ---- a visual choice, pressed through ------------------------------
+       Every Look row is a cycle now (pcycle() in panels.js), and pressing one
+       writes the next value in the ring. It goes through `setField()` like
+       every select and every field in the editor, handed a stand-in element
+       carrying the same `data-oset` and the value to write — so undo, the
+       nested-key writer and the desk's own settings target all come along
+       without this knowing anything about them. See decision 148. */
+    const cyc=t.closest('[data-ocycle]');
+    if(cyc){
+      setField({dataset:{oset:cyc.dataset.ocycle}, value:cyc.dataset.next});
+      save(); render(); refreshPanel();
+      return;
+    }
+    /* A button that writes one stated value — `<id>:<key>:<value>`. The text
+       size ramp is three of these, which is the point of it: the answer is the
+       letter you press, not a step along a ring. */
+    const ock=t.closest('[data-oclick]');
+    if(ock){
+      const raw=ock.dataset.oclick, i=raw.indexOf(':'), j=raw.indexOf(':', i+1);
+      setField({dataset:{oset:raw.slice(0,j)}, value:raw.slice(j+1)});
+      save(); render(); refreshPanel();
+      return;
+    }
     /* What is left of the panel's buttons once every one-of-many list became a
        select: swatches, the knob's own colours, and the read switch in the
        reading header — which is a header, not a panel. */
@@ -1407,6 +1457,23 @@ function wire(){
       // cfgOf() for the desk, which is a container without an object behind it
       const o=byId(e.target.dataset.id) || cfgOf(e.target.dataset.id);
       if(o){ o.boardAlpha=(+e.target.value)/100; save(); render(); }
+      return;
+    }
+    /* One square of the checkerboard. A board is stored as the pair
+       `"#light|#dark"`, which is one string and two answers — so either input
+       writes its own end of it and leaves the other alone. With nothing stored
+       yet the untouched half falls back to what is currently being drawn, so
+       nudging one square does not blank the other. See decision 150. */
+    if(e.target.dataset.pboardhalf!=null){
+      const o=byId(e.target.dataset.id) || cfgOf(e.target.dataset.id);
+      if(!o) return;
+      const cs=getComputedStyle(document.documentElement);
+      const now=(o.board||'').split('|');
+      const a=now[0]||cs.getPropertyValue('--board-1').trim()||'#EFEADA';
+      const z=now[1]||cs.getPropertyValue('--board-2').trim()||'#DDE5CE';
+      const v=e.target.value;
+      o.board = e.target.dataset.pboardhalf==='a' ? `${v}|${z}` : `${a}|${v}`;
+      save(); render();
       return;
     }
     // the type builder's size sliders — the Mac pair, then the phone pair

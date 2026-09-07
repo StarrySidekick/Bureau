@@ -710,14 +710,25 @@
 .grid.locked .drawer{cursor:default}
 .lockmark{color:var(--ink-3);display:inline-flex;align-items:center;margin-left:6px}
 
-/* the cells a dragged/resized drawer would land on */
+/* The cells a dragged/resized drawer would land on.
+
+   **The line is drawn inside the box, not on its edge.** A phone board runs to
+   both sides of the screen, so a box in the first or last column has its
+   border sitting exactly on the clip — and a 2.5px border straddling it loses
+   half its width to the scroller and reads as three sides and a missing one.
+   An `outline` at a negative offset is inset by construction: it cannot leave
+   the box however far the box is pushed against an edge, and unlike a
+   `box-shadow` ring it can still be dashed, which is what says selection
+   rather than object. */
 .ghost{
-  border:2.5px solid var(--ink);
+  border:0;
+  outline:2.5px solid var(--ink);
+  outline-offset:-2.5px;
   background:color-mix(in srgb,var(--ink) 26%,transparent);
   box-shadow:0 0 0 2px rgba(255,255,255,.5), var(--shadow-lg);
   border-radius:var(--radius-d);pointer-events:none;z-index:20;
 }
-.ghost.bad{border-color:#C0563F;background:rgba(192,86,63,.30);
+.ghost.bad{outline-color:#C0563F;background:rgba(192,86,63,.30);
   box-shadow:0 0 0 2px rgba(255,255,255,.45), var(--shadow-lg)}
 
 /* Four corners, like a window — and the **grip is bigger than the mark that
@@ -1019,11 +1030,35 @@ html .drawer.dtile.cltile{background-image:none}
   display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;
   text-shadow:0 2px 10px rgba(0,0,0,.4)}
 
-/* a record: the disc, its label, and the light across it. An album's sits in
-   a square box because a sleeve is one — the bounding box *is* the sleeve. */
-.projdisc{background:color-mix(in srgb,var(--c) 78%,#000)}
+/* ---- a record ----------------------------------------------------------
+   The disc, its label, the light across it — and **nothing behind it**. It
+   used to sit on a coloured square, which is a sleeve, and a song is not in a
+   sleeve; the tile's own ground went with it, so what is on the board is the
+   record and the desk showing round it. That is why the tile drops its front
+   as well (`.projtile.pcov-song`, below): a disc on a card reads as a picture
+   of a disc.
+
+   It fills the box it is given — `min(100%,100cqh)` is "as big as the smaller
+   side", which is exactly what a circle in a rectangle can be. */
+.projdisc{background:none}
+/* `.bare` is set by projCover()'s caller and means "this cover *is* the tile".
+   Everything a card gives a face — ground, edge, shadow, moulding, grain, and
+   the scrim the report is read against — comes off, because all of it is the
+   sleeve the record was sitting in. */
+.projtile.bare{
+  background:none;background-color:transparent;background-image:none;
+  border:0;box-shadow:none;overflow:visible}
+.projtile.bare::before,.projtile.bare::after{display:none}
+.projtile.bare .dpanel,.projtile.bare .dgrain,.projtile.bare .dside{display:none}
+/* the report is off a record: a disc is the whole tile, and a percentage
+   printed across one is the thing decision 138 took off the project face */
+.projtile.bare .projline,.projtile.bare .projkinds,
+.projtile.bare .projsoon,.projtile.bare .dtop,
+.projtile.bare .projbar,.projtile.bare .cladd{display:none}
+.projtile.bare .projcover{
+  display:flex;align-items:center;justify-content:center;padding:0;inset:0}
 .projdisc .cd{
-  position:relative;width:min(74%,74cqh);aspect-ratio:1;border-radius:50%;
+  position:relative;width:min(100%,100cqh);aspect-ratio:1;border-radius:50%;
   background:
     radial-gradient(circle at 34% 30%, rgba(255,255,255,.34), transparent 44%),
     repeating-radial-gradient(circle at 50% 50%, rgba(255,255,255,.05) 0 2px, transparent 2px 4px),
@@ -1038,13 +1073,20 @@ html .drawer.dtile.cltile{background-image:none}
   content:"";position:absolute;inset:38%;border-radius:50%;
   background:color-mix(in srgb,var(--c) 40%,#000);
 }
-.pcov-album .projdisc{padding:8%}
-/* the sleeve's own square, ruled round the disc — the bounding box the
-   placeholder is described as */
-.pcov-album .projdisc::after{
-  content:"";position:absolute;inset:6%;border:1.5px solid rgba(255,255,255,.28);
-  border-radius:2px;pointer-events:none;
-}
+/* The name, printed round the label the way it is on a record. `textPath` is
+   the only way to set type on a curve, so this is an SVG over the CSS disc
+   rather than part of it — the disc keeps its gradients and this carries
+   nothing but the words. The size is in viewBox units, so it scales with the
+   record and needs no clamp. */
+.projdisc .cd .cdtext{position:absolute;inset:0;width:100%;height:100%;
+  pointer-events:none;overflow:visible}
+.projdisc .cd .cdtext text{
+  font-family:var(--serif);font-size:9px;font-weight:600;letter-spacing:.06em;
+  fill:rgba(255,255,255,.94);paint-order:stroke;
+  stroke:rgba(0,0,0,.45);stroke-width:.7px;stroke-linejoin:round}
+/* Below about three cells the lettering is a grey smear round a small circle
+   and the label under it is what identifies the thing. */
+.sz-narrow .projdisc .cd .cdtext,.sz-short .projdisc .cd .cdtext{display:none}
 
 /* an app is an icon, so the tile becomes one: a squircle with the mark in the
    middle. The one place a heavy radius is right — decision 125 lets an
@@ -1307,10 +1349,36 @@ html .drawer.dtile.cltile{background-image:none}
    specificity and lose to `.drawer.otile.sh-index`, which sets `background`
    as a shorthand and would take every stock off an index card. `:is()` takes
    the weight of its heaviest arm, so nothing moves. */
+/* ---- laid: the rule goes **under the writing**, not across the sheet -----
+   A ruled sheet whose lines are a fixed five pixels apart is a sheet whose
+   lines have nothing to do with the words on it: the text sat between them,
+   across them, and — at another text size — three to a rule. CLAUDE.md
+   knowingly left that, on the argument that joining the pitch to the leading
+   means one number across seven aesthetics and the pagination ruler.
+
+   It does not. **Put the ruling on the writing itself** and the two cannot
+   disagree, at any size, in any aesthetic, with no number shared between
+   them: the period is `1lh` — the element's own line box — so every rule
+   falls exactly at the foot of a line, by construction rather than by
+   agreement. The sheet keeps the tint that says what it is made of; the lines
+   belong to the text. See decision 147. */
 :is(.drawer.otile,.bookpaper).st-laid{
-  background-image:repeating-linear-gradient(0deg,
-    rgba(0,0,0,.05) 0 1px, transparent 1px 5px),
-    linear-gradient(160deg, rgba(255,255,255,.5), rgba(0,0,0,.03)) }
+  background-image:linear-gradient(160deg, rgba(255,255,255,.5), rgba(0,0,0,.03)) }
+/* The one selector, for every aesthetic and both surfaces. `1lh` is the used
+   line-height of the element the gradient is painted on, so nothing here needs
+   to know what the leading is — and the gradient starts at the content box, so
+   the first rule lands under the first line. */
+.st-laid .tiletext,.st-laid .contbody,
+.bookpaper.st-laid .page,.st-laid .inlinebody{
+  background-image:repeating-linear-gradient(180deg,
+    transparent 0 calc(1lh - 1px),
+    color-mix(in srgb, var(--ink) 16%, transparent) calc(1lh - 1px) 1lh);
+  background-origin:content-box;background-clip:content-box;
+  background-repeat:repeat}
+/* A tile is a face, and a body clamped to four lines under a title does not
+   read as a ruled sheet — it reads as a table. Ruling starts where there is
+   enough of the page to be a page. */
+.sz-short .tiletext,.sz-mini .tiletext{background-image:none}
 :is(.drawer.otile,.bookpaper).st-wove{
   background-image:radial-gradient(120% 90% at 30% 12%,
     rgba(255,255,255,.75), rgba(0,0,0,.05) 78%) }
@@ -1540,8 +1608,18 @@ html .drawer.dtile.cltile{background-image:none}
    38px + 5px top and bottom is a phone cell almost exactly. */
 /* .check further down this file sets 19px on the same one class, and later
    wins — so the tile's box has to say both names to beat it. */
-.check.tilecheck{width:38px;height:38px;border-radius:var(--radius);border-width:2.4px;flex:0 0 auto;margin-top:0}
-.check.tilecheck svg{width:21px;height:21px}
+/* **The box is a fraction of a cell, not a fixed 38px.** A task is one cell
+   tall, and a fixed box takes 65% of a desk cell, 79% of a phone cell and 95%
+   of the 40px cell a preview is drawn at — so the same tick box looked right
+   on the board and looked like a crate in the object editor. Two thirds of the
+   row it is on, capped, which is what it measures at on a real desk and what
+   it now measures at everywhere else. `--rowh` is the grid's own row height,
+   written by sizeGrid() on a board and by sampleTile() on a preview, so both
+   are answering the same question. */
+.check.tilecheck{width:min(38px, calc(var(--rowh,40px) * .66));
+  height:min(38px, calc(var(--rowh,40px) * .66));
+  border-radius:var(--radius);border-width:2.4px;flex:0 0 auto;margin-top:0}
+.check.tilecheck svg{width:56%;height:56%}
 .drawer.sz-short{padding:5px 10px}
 .sz-mini .tilecheck{display:none}
 /* a button object fills its tile; the shape is its own setting */
@@ -1776,11 +1854,39 @@ html .drawer.dtile.cltile{background-image:none}
 .schedpen.up .btn::after{opacity:.75}
 
 /* the one being carried, and the day it is over */
+/* The carried button. `left`/`top` are fixed at the frame's origin and the
+   whole movement is a `transform`, which is the compositor's to do — writing
+   position on every pointermove was a layout per event, and a pointer fires
+   faster than the screen redraws. `will-change` promotes it once when it is
+   made rather than on the first move. See decision 154. */
 .penghost{
-  position:absolute;z-index:70;pointer-events:none;
-  transform:translate(-50%,-50%) scale(1.18);
+  position:absolute;left:0;top:0;z-index:70;pointer-events:none;
+  transform:translate(-50%,-50%);
+  will-change:transform;
   filter:drop-shadow(0 4px 7px rgba(0,0,0,.4))}
 .sday.aim{box-shadow:inset 0 0 0 2px var(--brass)}
+
+/* ---- a rank, drawn as its own mark with the score inside it ------------
+   One outlined star or teardrop, big enough to be a target, with the number
+   in the middle of it. The mark is the scale — a star says importance and a
+   teardrop says effort, which is what the five-mark row was doing with five
+   times the width — and the digit is the answer. Pressing walks the ramp and
+   comes back round to nothing. See decision 155. */
+.rankmark{
+  position:relative;display:inline-flex;align-items:center;justify-content:center;
+  width:46px;height:46px;padding:0;border:0;background:none;cursor:pointer;
+  color:var(--brass);transition:transform .12s, color .12s}
+.rankmark svg{width:44px;height:44px;stroke-width:1.5}
+.rankmark > u{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  text-decoration:none;font-family:var(--serif);font-weight:700;font-size:15px;
+  color:var(--ink);line-height:1;padding-top:2px}
+.rankmark:hover{transform:scale(1.06)}
+.rankmark:active{transform:scale(.94)}
+.rankmark.none{color:var(--ink-3)}
+.rankmark.none > u{color:var(--ink-3)}
+/* a teardrop hangs point-up, so its number sits a little lower in the bowl */
+.rankmark.rm-diff > u{padding-top:6px}
 
 /* the one mark the pens cannot carry, because it is a span rather than a day */
 .schedkey{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;
@@ -1886,6 +1992,271 @@ html .drawer.dtile.cltile{background-image:none}
   clip-path:polygon(0 0, 100% 0, 100% 62%, 96.5% 68%, 100% 74%, 100% 100%,
                     0 100%, 0 34%, 2.5% 28%, 0 22%);
 }
+/* ---- a fragment is a piece torn out of something ------------------------
+   Every type listed under the Fragment category — a character, a place, a law,
+   a scene, a world — is a **piece of something bigger**, and the edge says so.
+   Not the chipped edge `sh-tornnote` wears: that is paper with bites out of it,
+   and half a centimetre missing from each side reads as damage. This is the
+   edge paper has when you fold it, crease it and pull — near straight, and
+   fuzzy along its whole length.
+
+   Two things make it that rather than a wobble. The jitter is in **px**, so
+   the fuzz is a fixed thickness at any tile size — a percentage tear is
+   invisible on a stamp and a bite on a big card, which is the same rule every
+   moulding on a drawer front follows. And the **line follows the tear**: four
+   zero-blur drop-shadows computed from the element's alpha *after* the clip,
+   which is the one way to draw a rule round a clipped shape and is exactly
+   what the torn note works out one block above.
+
+   Three silhouettes, chosen by a hash of the object's own id (`tornOf()` in
+   tiles.js), because one polygon on every fragment on a board is a repeat you
+   can see — the same finding Starful Gothic's drawn line made about noise.
+   They are static polygons rather than a turbulence filter for the reason
+   decision 101 gives: a `url()` filter is not compositable and this is a shape
+   that never moves. See decision 145. */
+.drawer.otile.tornedge{
+  border:0;box-shadow:none;
+  --tornline:var(--line,rgba(0,0,0,.30));
+  filter:
+    drop-shadow(1px 0 0 var(--tornline)) drop-shadow(-1px 0 0 var(--tornline))
+    drop-shadow(0 1px 0 var(--tornline)) drop-shadow(0 -1px 0 var(--tornline))
+    drop-shadow(0 1px 2px rgba(0,0,0,.14)) drop-shadow(0 5px 12px rgba(0,0,0,.10));
+}
+/* A stamp has no room for a tear: two pixels of fuzz on forty is a quarter of
+   the edge, and six filter passes on a mark is the cost decision 101 names. */
+.drawer.otile.tornedge.sz-mini{filter:none;clip-path:none}
+.drawer.otile.torn0{clip-path:polygon(0.0% 1.0px,
+    5.3% 1.3px,
+    10.5% 2.0px,
+    15.8% 1.1px,
+    21.1% 1.2px,
+    26.3% 1.3px,
+    31.6% 0.5px,
+    36.8% 1.2px,
+    42.1% 1.4px,
+    47.4% 1.8px,
+    52.6% 0.3px,
+    57.9% 0.7px,
+    63.2% 0.3px,
+    68.4% 1.8px,
+    73.7% 1.6px,
+    78.9% 0.2px,
+    84.2% 2.2px,
+    89.5% 2.1px,
+    94.7% 1.5px,
+    100.0% 1.4px,
+    calc(100% - 0.4px) 5.3%,
+    calc(100% - 0.1px) 10.5%,
+    calc(100% - 1.2px) 15.8%,
+    calc(100% - 0.2px) 21.1%,
+    calc(100% - 0.5px) 26.3%,
+    calc(100% - 0.6px) 31.6%,
+    calc(100% - 0.2px) 36.8%,
+    calc(100% - 1.1px) 42.1%,
+    calc(100% - 1.0px) 47.4%,
+    calc(100% - 1.9px) 52.6%,
+    calc(100% - 1.2px) 57.9%,
+    calc(100% - 1.4px) 63.2%,
+    calc(100% - 1.1px) 68.4%,
+    calc(100% - 1.5px) 73.7%,
+    calc(100% - 1.1px) 78.9%,
+    calc(100% - 0.7px) 84.2%,
+    calc(100% - 2.2px) 89.5%,
+    calc(100% - 2.2px) 94.7%,
+    calc(100% - 1.9px) 100.0%,
+    94.7% calc(100% - 1.6px),
+    89.5% calc(100% - 0.8px),
+    84.2% calc(100% - 0.6px),
+    78.9% calc(100% - 0.7px),
+    73.7% calc(100% - 0.2px),
+    68.4% calc(100% - 1.7px),
+    63.2% calc(100% - 0.9px),
+    57.9% calc(100% - 1.9px),
+    52.6% calc(100% - 0.9px),
+    47.4% calc(100% - 2.1px),
+    42.1% calc(100% - 1.9px),
+    36.8% calc(100% - 0.1px),
+    31.6% calc(100% - 0.5px),
+    26.3% calc(100% - 2.0px),
+    21.1% calc(100% - 1.1px),
+    15.8% calc(100% - 2.2px),
+    10.5% calc(100% - 0.9px),
+    5.3% calc(100% - 0.3px),
+    0.0% calc(100% - 1.4px),
+    1.7px 94.7%,
+    0.7px 89.5%,
+    0.3px 84.2%,
+    0.8px 78.9%,
+    2.1px 73.7%,
+    1.7px 68.4%,
+    0.3px 63.2%,
+    0.6px 57.9%,
+    0.3px 52.6%,
+    0.2px 47.4%,
+    1.8px 42.1%,
+    0.5px 36.8%,
+    1.3px 31.6%,
+    1.0px 26.3%,
+    0.5px 21.1%,
+    1.6px 15.8%,
+    0.4px 10.5%,
+    1.5px 5.3%,
+    0.3px 0.0%)}
+.drawer.otile.torn1{clip-path:polygon(0.0% 1.3px,
+    5.3% 0.8px,
+    10.5% 1.9px,
+    15.8% 0.7px,
+    21.1% 1.2px,
+    26.3% 0.8px,
+    31.6% 1.0px,
+    36.8% 2.1px,
+    42.1% 0.3px,
+    47.4% 1.0px,
+    52.6% 0.6px,
+    57.9% 0.8px,
+    63.2% 2.2px,
+    68.4% 0.8px,
+    73.7% 1.4px,
+    78.9% 1.0px,
+    84.2% 1.6px,
+    89.5% 1.0px,
+    94.7% 0.5px,
+    100.0% 1.0px,
+    calc(100% - 1.0px) 5.3%,
+    calc(100% - 1.8px) 10.5%,
+    calc(100% - 1.3px) 15.8%,
+    calc(100% - 0.5px) 21.1%,
+    calc(100% - 1.5px) 26.3%,
+    calc(100% - 0.7px) 31.6%,
+    calc(100% - 1.2px) 36.8%,
+    calc(100% - 0.6px) 42.1%,
+    calc(100% - 1.0px) 47.4%,
+    calc(100% - 1.8px) 52.6%,
+    calc(100% - 1.2px) 57.9%,
+    calc(100% - 1.7px) 63.2%,
+    calc(100% - 1.7px) 68.4%,
+    calc(100% - 1.3px) 73.7%,
+    calc(100% - 1.5px) 78.9%,
+    calc(100% - 0.9px) 84.2%,
+    calc(100% - 1.4px) 89.5%,
+    calc(100% - 1.7px) 94.7%,
+    calc(100% - 0.3px) 100.0%,
+    94.7% calc(100% - 2.1px),
+    89.5% calc(100% - 0.9px),
+    84.2% calc(100% - 0.4px),
+    78.9% calc(100% - 0.4px),
+    73.7% calc(100% - 0.8px),
+    68.4% calc(100% - 0.2px),
+    63.2% calc(100% - 0.9px),
+    57.9% calc(100% - 1.0px),
+    52.6% calc(100% - 1.5px),
+    47.4% calc(100% - 1.1px),
+    42.1% calc(100% - 2.1px),
+    36.8% calc(100% - 1.5px),
+    31.6% calc(100% - 0.8px),
+    26.3% calc(100% - 1.9px),
+    21.1% calc(100% - 1.6px),
+    15.8% calc(100% - 2.1px),
+    10.5% calc(100% - 1.6px),
+    5.3% calc(100% - 2.1px),
+    0.0% calc(100% - 0.5px),
+    0.7px 94.7%,
+    2.1px 89.5%,
+    0.1px 84.2%,
+    2.0px 78.9%,
+    2.0px 73.7%,
+    0.4px 68.4%,
+    0.4px 63.2%,
+    2.0px 57.9%,
+    2.1px 52.6%,
+    1.9px 47.4%,
+    1.6px 42.1%,
+    1.7px 36.8%,
+    0.7px 31.6%,
+    0.1px 26.3%,
+    1.4px 21.1%,
+    2.0px 15.8%,
+    2.1px 10.5%,
+    1.2px 5.3%,
+    0.1px 0.0%)}
+.drawer.otile.torn2{clip-path:polygon(0.0% 0.8px,
+    5.3% 1.0px,
+    10.5% 1.1px,
+    15.8% 0.8px,
+    21.1% 1.2px,
+    26.3% 0.9px,
+    31.6% 0.2px,
+    36.8% 1.0px,
+    42.1% 0.1px,
+    47.4% 0.3px,
+    52.6% 0.7px,
+    57.9% 2.1px,
+    63.2% 1.1px,
+    68.4% 1.2px,
+    73.7% 2.0px,
+    78.9% 2.0px,
+    84.2% 1.3px,
+    89.5% 0.6px,
+    94.7% 1.2px,
+    100.0% 0.9px,
+    calc(100% - 2.1px) 5.3%,
+    calc(100% - 0.2px) 10.5%,
+    calc(100% - 0.9px) 15.8%,
+    calc(100% - 1.5px) 21.1%,
+    calc(100% - 1.4px) 26.3%,
+    calc(100% - 1.3px) 31.6%,
+    calc(100% - 1.7px) 36.8%,
+    calc(100% - 0.6px) 42.1%,
+    calc(100% - 1.9px) 47.4%,
+    calc(100% - 2.0px) 52.6%,
+    calc(100% - 0.2px) 57.9%,
+    calc(100% - 0.8px) 63.2%,
+    calc(100% - 0.9px) 68.4%,
+    calc(100% - 0.9px) 73.7%,
+    calc(100% - 1.2px) 78.9%,
+    calc(100% - 0.6px) 84.2%,
+    calc(100% - 1.5px) 89.5%,
+    calc(100% - 2.0px) 94.7%,
+    calc(100% - 2.0px) 100.0%,
+    94.7% calc(100% - 1.9px),
+    89.5% calc(100% - 0.6px),
+    84.2% calc(100% - 1.7px),
+    78.9% calc(100% - 1.7px),
+    73.7% calc(100% - 1.4px),
+    68.4% calc(100% - 1.5px),
+    63.2% calc(100% - 0.7px),
+    57.9% calc(100% - 1.7px),
+    52.6% calc(100% - 0.6px),
+    47.4% calc(100% - 1.3px),
+    42.1% calc(100% - 0.6px),
+    36.8% calc(100% - 1.2px),
+    31.6% calc(100% - 0.2px),
+    26.3% calc(100% - 0.8px),
+    21.1% calc(100% - 1.7px),
+    15.8% calc(100% - 0.6px),
+    10.5% calc(100% - 1.6px),
+    5.3% calc(100% - 1.8px),
+    0.0% calc(100% - 1.4px),
+    1.4px 94.7%,
+    0.5px 89.5%,
+    1.1px 84.2%,
+    2.1px 78.9%,
+    2.2px 73.7%,
+    1.3px 68.4%,
+    1.0px 63.2%,
+    2.2px 57.9%,
+    1.2px 52.6%,
+    1.8px 47.4%,
+    0.3px 42.1%,
+    0.7px 36.8%,
+    1.8px 31.6%,
+    1.2px 26.3%,
+    1.7px 21.1%,
+    1.0px 15.8%,
+    2.0px 10.5%,
+    0.2px 5.3%,
+    0.7px 0.0%)}
+
 /* ---- one silhouette per kind ------------------------------------------ */
 
 /* An idea is a note in a **bold border of its own colour** — the same sheet
@@ -2289,9 +2660,9 @@ html[data-style="starry"] .sqbtn{
    sheet it is. */
 .drawer.otile.ststy-starry{ background-color:transparent }
 /* ruled leaf: the lines that are already on the paper */
-:is(.drawer.otile,.bookpaper).st-laid.ststy-starry{ background-image:
-  repeating-linear-gradient(0deg, transparent 0 17px,
-    color-mix(in srgb,var(--ink) 20%,transparent) 17px 18px) }
+/* laid: the rule is under the writing here too — the sheet itself is only the
+   pale wash a drawn aesthetic can afford, which is nothing at all */
+:is(.drawer.otile,.bookpaper).st-laid.ststy-starry{ background-image:none }
 /* tracing: you can see through it, so the only thing on it is a sheen */
 :is(.drawer.otile,.bookpaper).st-wove.ststy-starry{ background-image:
   linear-gradient(158deg, color-mix(in srgb,var(--ink) 8%,transparent),
@@ -2560,6 +2931,33 @@ html[data-style="golf97"] .check,html[data-style="golf97"] .clbox{border-radius:
   box-shadow:inset 0 1px 1px rgba(255,255,255,.30), 0 1px 2px rgba(0,0,0,.30)}
 .pull.kn-square{border-radius:3px}
 .drawer:hover .pull{opacity:1}
+
+/* ---- the knob that is also a dial --------------------------------------
+   A project is a drawer, and how far along it is reads off the knob: a ring
+   burnt round the outside of it, swept to `--ring`. Drawn on the knob's own
+   `::before` at a negative inset, so it sits *around* the wood rather than
+   over it and every knob shape gets it — a round knob, a lozenge, a volute,
+   all of them keep whatever their aesthetic made them and gain the ring.
+
+   The sweep is a conic gradient masked to an annulus, which is one painted
+   element rather than an SVG per tile, and the two colours are the app's own
+   brass and the shade a groove is: nothing here names a hue. A knob shape that
+   is not round (`kn-bar`) simply gets a ring round its bounding box, which
+   reads as a collar and is fine — it is still the same reading in the same
+   place. */
+.pull.pullring{position:relative;overflow:visible}
+.pull.pullring::before{
+  content:"";position:absolute;inset:-22%;border-radius:50%;
+  background:conic-gradient(from -90deg,
+    var(--brass) 0 var(--ring,0%), rgba(0,0,0,.15) var(--ring,0%) 100%);
+  -webkit-mask:radial-gradient(closest-side, transparent 0 78%, #000 80% 100%);
+          mask:radial-gradient(closest-side, transparent 0 78%, #000 80% 100%);
+  filter:drop-shadow(0 1px 1px rgba(0,0,0,.35));
+  pointer-events:none;
+}
+/* At a stamp there is no room for a ring round a knob that is already the
+   whole foot of the tile, and a two-pixel annulus reads as dirt. */
+.sz-mini .pull.pullring::before,.sz-thin .pull.pullring::before{display:none}
 
 /* ============================================================
    A knob is a slot too — decision 96
@@ -2912,46 +3310,97 @@ html[data-style="golf97"] .check,html[data-style="golf97"] .clbox{border-radius:
 .check svg{opacity:0;transform:scale(.5);transition:.15s}
 .check.on svg{opacity:1;transform:scale(1)}
 
-/* ---- six tick boxes, and the desk picks one --------------------------
-   A fact about the whole desk rather than about a type, so it is written once
-   on the root by applyLook() and answered here for every box in the app: the
-   38px one on a task tile, the 19px one in a row, and the line on a
-   checklist's front, which is a `.clbox` and has no tick inside it because a
-   ticked line does not print there (decision 79). Anything that shapes the
-   box therefore has to name both. See decision 83. */
-[data-checks="circle"] .check,[data-checks="circle"] .clbox{border-radius:50%}
-[data-checks="circle"] .check.tilecheck{border-radius:50%}
+/* ---- six tick boxes: the desk's answer, and the object's own -----------
+   It was a fact about the whole desk (decision 83), on the argument that a
+   task ticked one way and a checklist line ticked another are two apps sharing
+   a board. That argument is right about the *default* and wrong about the
+   choice: a habit you tick in a circle beside a shopping list you tick in a
+   ballot box is one desk with two kinds of thing on it, and there was no way
+   to say so. So the desk still picks one, for everything that has not asked,
+   and an object may carry its own — `check` on the object, stamped as
+   `ck-<shape>` on the tile.
 
-[data-checks="hard"] .check,[data-checks="hard"] .clbox,
-[data-checks="hard"] .check.tilecheck{border-radius:1px}
+   **The desk's rules are wrapped in `:where()` and the object's are not.**
+   That is the whole mechanism: `:where()` contributes nothing to specificity,
+   so `[data-checks="dot"] .check` scores as a bare `.check` and
+   `.drawer.ck-circle .check` beats it — which is what makes the nearer answer
+   win. Written the obvious way the two would tie on specificity and *source
+   order* would decide, so whichever shape happened to be last in this file
+   would be the shape every object got. See decisions 83 and 149. */
+:where([data-checks="circle"]) .check,
+.drawer.ck-circle .check,
+:where([data-checks="circle"]) .clbox,
+.drawer.ck-circle .clbox{border-radius:50%}
+:where([data-checks="circle"]) .check.tilecheck,
+.drawer.ck-circle .check.tilecheck{border-radius:50%}
+
+:where([data-checks="hard"]) .check,
+.drawer.ck-hard .check,
+:where([data-checks="hard"]) .clbox,
+.drawer.ck-hard .clbox,
+:where([data-checks="hard"]) .check.tilecheck,
+.drawer.ck-hard .check.tilecheck{border-radius:1px}
 
 /* fills in: no tick at all — the box floods with the object's own colour, the
    way a filled-in form does. The most legible of the six from across a desk. */
-[data-checks="fill"] .check,[data-checks="fill"] .clbox,
-[data-checks="fill"] .check.tilecheck{border-radius:3px}
-[data-checks="fill"] .check.on svg{display:none}
-[data-checks="fill"] .check.on{box-shadow:inset 0 0 0 2px var(--paper-2)}
+:where([data-checks="fill"]) .check,
+.drawer.ck-fill .check,
+:where([data-checks="fill"]) .clbox,
+.drawer.ck-fill .clbox,
+:where([data-checks="fill"]) .check.tilecheck,
+.drawer.ck-fill .check.tilecheck{border-radius:3px}
+:where([data-checks="fill"]) .check.on svg,
+.drawer.ck-fill .check.on svg{display:none}
+:where([data-checks="fill"]) .check.on,
+.drawer.ck-fill .check.on{box-shadow:inset 0 0 0 2px var(--paper-2)}
 
 /* a printed ballot box: a heavier square rule, and the tick crosses it */
-[data-checks="ballot"] .check,[data-checks="ballot"] .clbox,
-[data-checks="ballot"] .check.tilecheck{border-radius:0;border-width:2px;
+:where([data-checks="ballot"]) .check,
+.drawer.ck-ballot .check,
+:where([data-checks="ballot"]) .clbox,
+.drawer.ck-ballot .clbox,
+:where([data-checks="ballot"]) .check.tilecheck,
+.drawer.ck-ballot .check.tilecheck{border-radius:0;border-width:2px;
   border-color:var(--ink-2)}
-[data-checks="ballot"] .check.tilecheck{border-width:3px}
-[data-checks="ballot"] .check.on{background:none;color:var(--k);
+:where([data-checks="ballot"]) .check.tilecheck,
+.drawer.ck-ballot .check.tilecheck{border-width:3px}
+:where([data-checks="ballot"]) .check.on,
+.drawer.ck-ballot .check.on{background:none;color:var(--k);
   border-color:var(--ink-2)}
-[data-checks="ballot"] .check.on svg{transform:scale(1.25)}
+:where([data-checks="ballot"]) .check.on svg,
+.drawer.ck-ballot .check.on svg{transform:scale(1.25)}
 
 /* a dot: the smallest box that is still a box. The ring is the target, the
    filled centre is the answer — Bear's, and the quietest on a full board. */
-[data-checks="dot"] .check,[data-checks="dot"] .clbox,
-[data-checks="dot"] .check.tilecheck{border-radius:50%;border-width:1.5px}
-[data-checks="dot"] .check{width:15px;height:15px}
-[data-checks="dot"] .check.tilecheck{width:24px;height:24px;border-width:2px}
-[data-checks="dot"] .clbox{height:min(24px,60%)}
-[data-checks="dot"] .check.on{background:none;border-color:var(--k)}
-[data-checks="dot"] .check.on svg{display:none}
-[data-checks="dot"] .check.on::after{content:"";width:56%;height:56%;
+:where([data-checks="dot"]) .check,
+.drawer.ck-dot .check,
+:where([data-checks="dot"]) .clbox,
+.drawer.ck-dot .clbox,
+:where([data-checks="dot"]) .check.tilecheck,
+.drawer.ck-dot .check.tilecheck{border-radius:50%;border-width:1.5px}
+:where([data-checks="dot"]) .check,
+.drawer.ck-dot .check{width:15px;height:15px}
+:where([data-checks="dot"]) .check.tilecheck,
+.drawer.ck-dot .check.tilecheck{width:24px;height:24px;border-width:2px}
+:where([data-checks="dot"]) .clbox,
+.drawer.ck-dot .clbox{height:min(24px,60%)}
+:where([data-checks="dot"]) .check.on,
+.drawer.ck-dot .check.on{background:none;border-color:var(--k)}
+:where([data-checks="dot"]) .check.on svg,
+.drawer.ck-dot .check.on svg{display:none}
+:where([data-checks="dot"]) .check.on::after,
+.drawer.ck-dot .check.on::after{content:"";width:56%;height:56%;
   border-radius:50%;background:var(--k)}
+
+/* Square is the base look, so it has no rules of its own — which means an
+   object that asks for it while the desk is showing a circle needs the base
+   said back explicitly, or it inherits the desk's. The one shape that has to
+   state what it *is not*. */
+.drawer.ck-square .check,.drawer.ck-square .clbox,
+.drawer.ck-square .check.tilecheck{border-radius:var(--radius);border-width:1.5px;
+  width:auto;height:auto}
+.drawer.ck-square .check.on svg{display:block}
+.drawer.ck-square .check.on::after{content:none}
 
 /* the picker: each option drawn as the box it picks, ticked — because what a
    box looks like ticked is the half you live with */
@@ -3199,7 +3648,17 @@ html[data-style="golf97"] .check,html[data-style="golf97"] .clbox{border-radius:
 }
 html[data-theme="walnut"] .toast{background:var(--paper-3);color:var(--ink)}
 .toast.show{opacity:1;transform:translate(-50%,0)}
-.toast u{cursor:pointer;color:var(--brass-2);text-decoration:none;font-weight:700}
+/* **The word takes the press; the bar does not.** The toast is
+   `pointer-events:none` because it sits over the board and a strip you cannot
+   click through would swallow taps on whatever is under it — but `.show` never
+   put the events back on anything, so the one way back a phone has was
+   unpressable for as long as it has existed. The word alone opts in, which
+   keeps both: a target where the word is, and the board live everywhere else.
+   The target is padded out beyond the letters, because "Undo" is four small
+   characters and a thumb is not. */
+.toast u{cursor:pointer;color:var(--brass-2);text-decoration:none;font-weight:700;
+  margin:-8px -6px;padding:8px 6px}
+.toast.show u{pointer-events:auto}
 
 .ctxmenu{
   position:absolute;z-index:90;min-width:184px;background:var(--paper-2);border:1px solid var(--rule);border-radius:var(--radius-lg);
@@ -3628,6 +4087,82 @@ video.viewimg{background:#000}
   font:inherit;font-size:12.5px;
 }
 .psel{cursor:pointer;max-width:100%}
+
+/* ---- a cycle: the control for a choice you judge by eye ----------------
+   Wide, so it is a target rather than a word; the name on the left, where you
+   read it, and how far round the ring you are on the right, so a list of
+   fourteen panellings does not feel bottomless. It is built out of the same
+   parts a `.psel` is, because it stands in the same rows. See decision 148. */
+.pcyc{
+  flex:1 1 100%;min-width:0;display:flex;align-items:center;gap:8px;
+  padding:7px 10px;border:1px solid var(--rule);border-radius:var(--radius);
+  background:var(--paper-2);color:var(--ink);font:inherit;font-size:12.5px;
+  cursor:pointer;text-align:left;transition:border-color .14s, background .14s;
+}
+.pcyc:hover{border-color:var(--brass)}
+.pcyc:active{background:var(--paper-3)}
+.pcyc > span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pcyc > u{flex:0 0 auto;text-decoration:none;font-size:10.5px;color:var(--ink-3);
+  font-variant-numeric:tabular-nums}
+.pcyc > i{flex:0 0 auto;display:flex;color:var(--ink-3)}
+/* two cycles on one row share it, the way two selects do */
+.pcycrow{display:flex;align-items:stretch;gap:5px;flex:1 1 100%;min-width:0}
+.pcycrow > .pcyc{flex:1 1 auto}
+.pcycback{
+  flex:0 0 auto;display:flex;align-items:center;justify-content:center;width:30px;
+  border:1px solid var(--rule);border-radius:var(--radius);background:var(--paper-2);
+  color:var(--ink-3);cursor:pointer}
+.pcycback:hover{border-color:var(--brass);color:var(--brass)}
+.prow > div > .pcyc + .pcyc,
+.prow > div > .pcycrow + .pcycrow{flex:1 1 45%}
+
+/* ---- the other aesthetics' answers, behind a chip ----------------------
+   A slot family's back door. It was a full-width disclosure with a heading on
+   it, and a Look section has five slot rows in it — five headings in front of
+   a choice hardly anyone makes. A chip with a brush on it, beside the cycle it
+   belongs to, and the words on the tooltip. */
+.slotpick{display:flex;align-items:flex-start;gap:6px;flex-wrap:wrap;width:100%}
+.slotpick > .pcyc,.slotpick > .pcycrow{flex:1 1 auto}
+.pgroup.slotmore{margin:0;border:0;background:none;flex:0 0 auto}
+.pgroup.slotmore > summary{
+  padding:0;width:32px;height:32px;display:flex;align-items:center;justify-content:center;
+  border:1px solid var(--rule);border-radius:var(--radius);background:var(--paper-2);
+  color:var(--ink-3);letter-spacing:0}
+.pgroup.slotmore > summary::marker,.pgroup.slotmore > summary::-webkit-details-marker{display:none;content:""}
+.pgroup.slotmore > summary:hover{border-color:var(--brass);color:var(--brass)}
+.pgroup.slotmore[open]{flex:1 1 100%;display:flex;gap:6px;align-items:flex-start}
+.pgroup.slotmore[open] > select{flex:1 1 auto;min-width:0}
+
+/* ---- text size: three letters at three sizes --------------------------- */
+.tsizerow{display:flex;align-items:baseline;gap:4px;width:100%}
+.tsizerow .tsz{
+  flex:1 1 0;min-width:0;display:flex;align-items:baseline;justify-content:center;
+  padding:8px 4px 7px;border:1px solid var(--rule);border-radius:var(--radius);
+  background:var(--paper-2);color:var(--ink-2);cursor:pointer;
+  font-family:var(--serif);font-weight:600;line-height:1;
+  transition:border-color .14s, background .14s;
+}
+.tsizerow .tsz:hover{border-color:var(--brass)}
+.tsizerow .tsz.on{border-color:var(--brass);background:var(--paper-3);color:var(--ink)}
+
+/* ---- two squares of the checkerboard, one input each ------------------- */
+.halfrow{display:flex;gap:8px;margin-top:6px;width:100%}
+.halfsw{flex:1 1 0;min-width:0;display:flex;align-items:center;gap:7px;
+  padding:5px 7px;border:1px solid var(--rule);border-radius:var(--radius);
+  background:var(--paper-2);cursor:pointer}
+.halfsw input[type="color"]{
+  flex:0 0 auto;width:26px;height:26px;padding:0;border:1px solid var(--rule);
+  border-radius:4px;background:none;cursor:pointer}
+.halfsw span{font-size:10.5px;color:var(--ink-3);overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+
+/* ---- the heading that is also the name --------------------------------- */
+.pheadname{cursor:text;border-bottom:1px dashed transparent;transition:border-color .14s}
+.pheadname:hover{border-bottom-color:var(--rule-2)}
+.pheadin{
+  font:inherit;font-size:inherit;font-weight:inherit;font-family:inherit;color:inherit;
+  width:100%;max-width:100%;background:var(--paper);border:1px solid var(--brass);
+  border-radius:var(--radius);padding:1px 6px;outline:none}
 .psel:focus,.pfield:focus{outline:none;border-color:var(--brass)}
 .pfield.tall{min-height:62px;resize:vertical;line-height:1.45}
 /* Selects on one row share it rather than stacking — and the *first* one is
@@ -4240,8 +4775,12 @@ input,textarea,select,[contenteditable],
    drawer front's size rather than the standing spine's. */
 .spinetile.lying .spinetitle b{font-size:calc(15px * var(--tscale,1))}
 .spinetile.lying.sz-short .spinetitle b{font-size:calc(13.5px * var(--tscale,1))}
-.bn-ribbed .spinetitle b,.bn-tooled .spinetitle b,
-.bn-label .spinetitle b{font-size:calc(15.5px * var(--tscale,1))}
+/* A panelled binding shortens the box the title runs in, so its lettering is
+   a step smaller — which is true of the real thing and is what lets a title
+   that fills a plain spine still fit between two hubs. Only `ribbed` panels
+   the spine now: a flat back and a chamfer change the *shape* and leave the
+   full run of the spine to write on. */
+.bn-ribbed .spinetitle b{font-size:calc(15.5px * var(--tscale,1))}
 
 /* ============================================================
    The object editor's stage

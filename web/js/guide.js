@@ -178,16 +178,16 @@ const specimen = (of, title, colour) => {
    a bar. Drawn inside each aesthetic's own plate, so a row reads as that
    aesthetic entire. */
 function tasteRow(){
-  const mk = (spec, w, h) => sampleTile(sampleObject(spec), w||132, h||92);
+  const mk = (spec, w, h) => sampleTile(sampleObject(spec), w||180, h||130, 1.4);
   return [
     ['A drawer',   mk({kind:'drawer', attrs:['container'], title:'Kitchen', size:[3,2]})],
-    ['A cabinet',  mk({kind:'drawer', attrs:['container'], title:'Studio', size:[2,3]}, 96, 132)],
-    ['A book',     mk({kind:'book', attrs:['container','text'], face:'spine', title:'Middlemarch', size:[1,4]}, 60, 150)],
+    ['A cabinet',  mk({kind:'drawer', attrs:['container'], title:'Studio', size:[2,3]}, 130, 190)],
+    ['A book',     mk({kind:'book', attrs:['container','text'], face:'spine', title:'Middlemarch', size:[1,4]}, 100, 250)],
     ['A note',     mk({kind:'note', attrs:['text'], title:'Kept', size:[3,2]})],
-    ['A task',     mk({kind:'task', attrs:['check','date'], title:'Water the fig', size:[4,1]}, 160, 52)],
-    ['A checklist',mk({kind:'checklist', attrs:['container','spawn'], face:'checklist', title:'Before dinner', size:[3,3]}, 132, 132)],
-    ['A project',  mk({kind:'project', attrs:['container','progress'], face:'project', title:'The film', size:[3,3]}, 132, 132)],
-    ['A bar',      mk({kind:'progress', attrs:['progress'], shape:'bar', title:'Ten pounds', size:[5,1]}, 170, 46)]
+    ['A task',     mk({kind:'task', attrs:['check','date'], title:'Water the fig', size:[4,1]}, 220, 70)],
+    ['A checklist',mk({kind:'checklist', attrs:['container','spawn'], face:'checklist', title:'Before dinner', size:[3,3]}, 180, 180)],
+    ['A project',  mk({kind:'project', attrs:['container','progress'], face:'project', title:'The film', size:[3,3]}, 180, 180)],
+    ['A bar',      mk({kind:'progress', attrs:['progress'], shape:'bar', title:'Ten pounds', size:[5,1]}, 240, 62)]
   ];
 }
 
@@ -255,7 +255,7 @@ function chromePlate(s){
       <button>${B('brush')} Object editor</button>
       <button>${B('eye')} Read</button>
       <button>${B('calendar')} When&hellip;</button>
-      <button>${B('folder')} Move to drawer&hellip;</button>
+      <button>${B('folder')} Move&hellip;</button>
       <div class="ctxrule"></div>
       <button class="danger">${B('trash')} Delete</button>
     </div>
@@ -354,8 +354,11 @@ function guideBody(){
       const f = FAMILIES[i];
       mats[i].rows.push({ style:key, cells: famSlots(f.fam, key).map(([slot,name])=>({
         slot, name,
+        /* Bigger than the picker draws them, and allowed to grow past life
+           size: this page is read close up, and the difference between two
+           bindings is two millimetres of gilt. See decision 153. */
         html: sampleTile(pin(specimen(f.of, name, colour), key, {[f.prop]:slot}),
-          f.of==='spine'?70:148, f.of==='spine'?168:100)
+          f.of==='spine'?120:196, f.of==='spine'?280:140, f.of==='spine'?1.8:1.35)
       })) });
     }
     return { taste:tasteRow(), chrome:chromePlate({key, cols:palNow().slice()}) };
@@ -376,7 +379,7 @@ function guideBody(){
     const o = sampleObject({kind:'note', attrs:['text','check'], title:nm, size:[3,2],
       body:'A line or two.'});
     o.shape = k;
-    return {key:k, nm, html:sampleTile(o,148,100)};
+    return {key:k, nm, html:sampleTile(o,196,140,1.35)};
   });
   /* No `spawn` in the attrs, and that is not a detail: a container carrying it
      with no `spawnBy` of its own answers `click`, which is the spawner branch,
@@ -388,24 +391,28 @@ function guideBody(){
     const o = sampleObject({kind:'drawer', attrs:['container','progress'],
       title:nm, size: spine?[1,4]:[3,3]});
     o.face = k;
-    return {key:k, nm, html:sampleTile(o, spine?70:148, spine?168:132)};
+    return {key:k, nm, html:sampleTile(o, spine?120:196, spine?280:180, spine?1.8:1.35)};
   });
   const covers = Object.entries(PROJ_COVERS).map(([k,nm])=>{
     const o = sampleObject({kind:'project', attrs:['container','progress'],
       face:'project', title:nm, size: k==='film'?[2,3]:[3,3]});
     o.proj = k;
-    return {key:k, nm, html:sampleTile(o, k==='film'?100:148, 150)};
+    return {key:k, nm, html:sampleTile(o, k==='film'?140:196, 210, 1.35)};
   });
   const lifes = LIFE_KEYS.map(k=>{
     const o = sampleObject({kind:'life', attrs:['container'], face:'life',
       title:(LIFE_ART[k]||{}).nm || k, size:[3,3]});
     o.lifeart = k;
-    return {key:k, nm:(LIFE_ART[k]||{}).nm || k, html:sampleTile(o,132,132)};
+    return {key:k, nm:(LIFE_ART[k]||{}).nm || k, html:sampleTile(o,180,180,1.35)};
   });
   const types = KEYS.filter(k=>!isCategory(k)).map(k=>({
     key:k, nm:K(k).nm, cat: isContainer({kind:k, attrs:K(k).attrs}) ? 'Drawers' : 'Objects',
     major: PRIMARY.includes(k), fam: familyOf(k),
-    html: sampleTile(kindSample(k), 148, 108)
+    /* A type is drawn at whatever box it starts at, and some of those are
+       long and thin — a task is six cells by one, which at the old 148px was
+       ninety pixels across and twenty-four tall. Wider, taller, and allowed to
+       grow, so a wide type is legible and a small one is not a stamp. */
+    html: sampleTile(kindSample(k), 230, 160, 1.5)
   }));
 
   const cell = c => `<td class="gx-paper"><div class="gx-cell">${c.html}

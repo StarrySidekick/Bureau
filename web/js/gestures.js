@@ -1,6 +1,6 @@
 import { $, $$, clamp, D, ROOT } from './util.js';
 import { S, byId, dev, has, isContainer, isAncestor, childrenOf, container, gatherKind, spanOf,
-  sortOf, boardLocked, heldCount } from './model.js';
+  sortOf, boardLocked, heldCount, homeFor, attrsOf } from './model.js';
 import { CELL, gridOf, drawCols, drawRows, cellW, lay, boxOk, overlaps, sizeOfKind, keepSize } from './grid.js';
 import { toast, gather, del, pushSets, holdIt, unholdIt } from './mutations.js';
 import { pending, tileTap, fireButton } from './tiles.js';
@@ -597,12 +597,29 @@ const dayUnder = (x, y) => {
    cannot come to disagree about what happens — including the part that is easy
    to forget, which is that dropping one on a day it is already on takes it off
    again. */
+/* Which trait each button needs before the date it writes means anything. It
+   is the same table `SCHED_PENS` holds in panels.js, kept to the two columns
+   this file needs rather than imported, because gestures.js importing a panel
+   would put a cycle across the two heaviest modules in the app. */
+const PEN_ATTR = {due:'date', soft:'softdeadline', dead:'deadline'};
+const PEN_SAID = {due:'When', soft:'Done', dead:'Due'};
 function placePen(id, k, iso){
   const o = byId(id); if(!o || !iso) return;
-  pushSets(k==='dead' ? 'Due' : k==='soft' ? 'Done' : 'When', [[id, k, o[k]]]);
+  /* **Dropping it is what creates it.** Both deadlines are opt-in traits, so a
+     button for one the object has not got used to be a button that wrote a
+     field nothing would ever read — you had to press it first, which turned
+     the trait on, and only then drag. Picking a thing up and putting it down
+     is one act; the trait comes along with it. See decision 154. */
+  const need = PEN_ATTR[k];
+  const a = attrsOf(o);
+  const gain = need && !a.includes(need);
+  const steps = [[id, k, o[k]]];
+  if(gain) steps.push([id, 'attrs', o.attrs]);
+  pushSets(PEN_SAID[k]||'When', steps);
+  if(gain) o.attrs = a.concat(need);
   o[k] = o[k]===iso ? null : iso;
   save(); render(); refreshPanel();
-  const said = k==='dead' ? 'Due' : k==='soft' ? 'Done' : 'When';
+  const said = PEN_SAID[k]||'When';
   toast(o[k] ? `${said} ${D.human(o[k]).toLowerCase()}` : `${said} — taken off`);
 }
 
@@ -891,22 +908,38 @@ function onMove(e){
       const g = G.el.cloneNode(true);
       g.classList.add('penghost','up');
       g.removeAttribute('data-schedpen');
+      // it starts where the finger is, or the first frame flies it in from the
+      // frame's own top-left corner
+      const fr0 = $('#frame').getBoundingClientRect();
+      g.style.transform = `translate(${e.clientX-fr0.left}px, ${e.clientY-fr0.top}px) translate(-50%,-50%)`;
       $('#frame').appendChild(g);
       G.ghost = g;
       document.body.classList.add('dragging-ui');
     }
-    const fr = $('#frame').getBoundingClientRect();
-    G.ghost.style.left = (e.clientX - fr.left) + 'px';
-    G.ghost.style.top  = (e.clientY - fr.top)  + 'px';
-    /* Which day it is over. Asked of the document rather than tracked with
-       geometry, because the month is inside a scroller and a cached set of
-       rects goes stale the moment the panel moves under the finger. */
-    const day = dayUnder(e.clientX, e.clientY);
-    if(day !== G.over){
-      if(G.over) G.over.classList.remove('aim');
-      if(day) day.classList.add('aim');
-      G.over = day;
-    }
+    /* **A transform, and once a frame.** It was `left`/`top` written on every
+       pointermove, which is a layout on every move of a pointer that can fire
+       faster than the screen refreshes — and `elementFromPoint` beside it, so
+       a carried button was doing a layout and a hit-test per event. Both go on
+       one rAF now: the ghost rides a compositor-only transform and the day
+       under it is asked at most once per frame, which is the only rate at
+       which the answer can be seen. See decision 154. */
+    G.px = e.clientX; G.py = e.clientY;
+    if(!G.raf) G.raf = requestAnimationFrame(()=>{
+      G.raf = 0;
+      if(!G || G.type!=='pen' || !G.ghost) return;
+      const fr = $('#frame').getBoundingClientRect();
+      G.ghost.style.transform =
+        `translate(${G.px - fr.left}px, ${G.py - fr.top}px) translate(-50%,-50%)`;
+      /* Which day it is over. Asked of the document rather than tracked with
+         geometry, because the month is inside a scroller and a cached set of
+         rects goes stale the moment the panel moves under the finger. */
+      const day = dayUnder(G.px, G.py);
+      if(day !== G.over){
+        if(G.over) G.over.classList.remove('aim');
+        if(day) day.classList.add('aim');
+        G.over = day;
+      }
+    });
     return;
   }
 
@@ -1192,6 +1225,7 @@ function onUp(e){
      alone — the click that follows takes the button into your hand, which is
      the other half of the same gesture. */
   if(g.type==='pen'){
+    if(g.raf){ cancelAnimationFrame(g.raf); g.raf=0; }
     if(g.over) g.over.classList.remove('aim');
     if(g.ghost) g.ghost.remove();
     document.body.classList.remove('dragging-ui');
@@ -1225,13 +1259,19 @@ function onUp(e){
        is a surface you put a finger on to scroll, steady a thing, or miss a
        tile. The way in is a swipe up off the bottom shelf. Sketching a size by
        dragging still works, on both devices, because that is deliberate. */
+    /* A sorting drawer **collects; it does not hold** — so a cell sketched on
+       one is a cell in a coordinate space nothing is ever filed into. The
+       object goes where the drawer itself lives (homeFor), and the cell is
+       dropped rather than carried across: it was measured on a board the
+       object is not going to land on. See homeFor() in model.js. */
+    const home = homeFor(g.parent), reHomed = home!==g.parent;
     if(g.mode!=='sketch' || !g.cand){
       // a tap does nothing; a hold makes something, right there
       if(S.device!=='desk' && !g.held) return;
-      pending.cell={x:g.x0, y:g.y0, parent:g.parent};
-    } else pending.cell = g.ok
-      ? {x:g.cand.x, y:g.cand.y, w:g.cand.w, h:g.cand.h, parent:g.parent}
-      : {x:g.x0, y:g.y0, parent:g.parent};
+      pending.cell = reHomed ? {parent:home} : {x:g.x0, y:g.y0, parent:home};
+    } else pending.cell = reHomed ? {parent:home} : (g.ok
+      ? {x:g.cand.x, y:g.cand.y, w:g.cand.w, h:g.cand.h, parent:home}
+      : {x:g.x0, y:g.y0, parent:home});
     modalNewObject();
     return;
   }

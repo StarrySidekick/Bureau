@@ -521,15 +521,13 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
 .drawer.otile.sh-goal::after{content:"";position:absolute;left:10px;right:10px;bottom:10px;height:5px;
   border-radius:99px;background:linear-gradient(90deg,var(--c) var(--pct,30%),rgba(0,0,0,.10) var(--pct,30%))}
 /* ---- a progress bar, where the bar *is* the tile -----------------------
-   A goal is a card with a bar as one detail of it; a progress bar is a
-   readout, so the track runs the width of the tile and is thick enough to read
-   from across the desk. Same `--pct` either way — what a bar is drawn at is
-   barPct() and may be about another object entirely. See decision 133. */
+   **Blocks, and only blocks.** There was a continuous `--pct` track on this
+   `::after` from before decision 138, and when the blocks arrived it stayed —
+   so every progress bar was drawing its number twice, the analog reading lying
+   across the bottom row of the digital one. One tile, one answer: a bar that
+   reads six of ten says so in blocks you can point at, which is the whole
+   argument for having blocks at all. */
 .drawer.otile.sh-bar{background:var(--paper-2);justify-content:flex-start;padding:7px 8px 6px;gap:5px}
-.drawer.otile.sh-bar::after{content:"";position:absolute;left:11px;right:11px;bottom:9px;height:9px;
-  border-radius:99px;
-  background:linear-gradient(90deg,var(--c) var(--pct,0%),rgba(0,0,0,.10) var(--pct,0%));
-  box-shadow:inset 0 1px 2px rgba(0,0,0,.20)}
 /* the chips row carries the percentage, and it sits over the track rather than
    under it — at two cells tall there is no room for a line of its own */
 .drawer.otile.sh-bar .dbody{flex:0 1 auto;min-height:0}
@@ -635,48 +633,87 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
     rgba(0,0,0,.34) 82% calc(100% - 1px),
     rgba(0,0,0,.10) calc(100% - 1px));
   --fillet:linear-gradient(var(--glow),var(--glow));
+  /* **Four hubs, evenly spaced, and the gilt on each one.** They were at 4%,
+     13%, 87% and 96% — two pairs jammed against the head and the tail, with a
+     bare two thirds of leather between them — and the fillets were offset
+     *beside* each hub rather than run along it. A binder tools the band
+     itself, and the eye reads a gold line on a ridge as gilding and a gold
+     line next to a ridge as a mistake. Five panels, a hub between each pair,
+     and one fillet down the middle of every hub. */
   background:
-    var(--hub) 0 4%/100% 9px no-repeat,
-    var(--hub) 0 13%/100% 9px no-repeat,
-    var(--hub) 0 87%/100% 9px no-repeat,
-    var(--hub) 0 96%/100% 9px no-repeat,
-    var(--fillet) 50% calc(4% - 4px)/60% 1px no-repeat,
-    var(--fillet) 50% calc(13% + 4px)/60% 1px no-repeat,
-    var(--fillet) 50% calc(87% - 4px)/60% 1px no-repeat,
-    var(--fillet) 50% calc(96% + 4px)/60% 1px no-repeat;
+    var(--hub) 0 18%/100% 9px no-repeat,
+    var(--hub) 0 38%/100% 9px no-repeat,
+    var(--hub) 0 62%/100% 9px no-repeat,
+    var(--hub) 0 82%/100% 9px no-repeat,
+    var(--fillet) 50% calc(18% + 4px)/62% 1px no-repeat,
+    var(--fillet) 50% calc(38% + 4px)/62% 1px no-repeat,
+    var(--fillet) 50% calc(62% + 4px)/62% 1px no-repeat,
+    var(--fillet) 50% calc(82% + 4px)/62% 1px no-repeat;
 }
 .bn-ribbed .spinetop,.bn-ribbed .spinefoot{display:none}
-/* the panel between the second and third hub, which is the title's */
-.bn-ribbed .spinetitle{position:absolute;left:0;right:0;top:16%;bottom:16%}
+/* the wide panel in the middle of the five, which is the title's */
+.bn-ribbed .spinetitle{position:absolute;left:0;right:0;top:24%;bottom:24%}
 
-/* Tooled and gilt: a double-ruled panel around the title, with the head and
-   tail bands outside it. The double rule is a border and an outline offset
-   from it — two hairlines a fixed distance apart at any size, which is what
-   four background gradients could not manage. */
-.bn-tooled .spinetop,.bn-tooled .spinefoot{
-  width:70%;height:0;border-top:1px solid var(--glow);border-bottom:2px solid var(--glow);
-  padding:3px 0;background:none;opacity:.95}
-.bn-tooled::before{
-  content:"";position:absolute;left:14%;right:14%;top:11%;bottom:11%;
-  pointer-events:none;z-index:1;border-radius:1px;
-  border:1px solid var(--glow);
-  outline:1px solid var(--glow);outline-offset:3px;
-  opacity:.85;
-}
-.bn-tooled .spinetitle{position:absolute;left:0;right:0;top:15%;bottom:15%}
+/* ---- the back itself: flat, and chamfered ------------------------------
+   The first three bindings are all *ornament* on the same shape — a round
+   back, which is what a sewn book does when it is backed. These two are the
+   shape, which is why they earn a position each: a flat-backed book and a
+   bevelled one read as different objects across a shelf, where a fourth
+   pattern of gilt rules would not.
 
-/* A paper label, pasted on: cream stock with a hairline rule, the title in
-   the page's own ink rather than in gilt. Labels sit above the middle — the
-   part of a spine you read at eye level on a shelf — so it is not centred, and
-   the title is positioned to match rather than left to find its own way. */
-.bn-label::before{
-  content:"";position:absolute;left:11%;right:11%;top:10%;bottom:20%;z-index:1;
-  pointer-events:none;background:var(--paper-2,#F1EBDA);
-  box-shadow:0 1px 3px rgba(0,0,0,.28), inset 0 0 0 1px rgba(0,0,0,.14);
-  border-radius:1px;
+   Both restate `background` on the tile. That is the one thing a binding is
+   otherwise forbidden to touch — the round back is `.drawer.spinetile`'s own
+   gradient and every other binding leaves it alone — and it is exactly what
+   these two exist to change. They are three classes deep so they beat it, and
+   they keep `background-size`/`-position` alone so the `--spinerun` sweep goes
+   on working: a flat back still turns with your eye, it just has no curve to
+   turn. */
+
+/* **Flat back.** Square shoulders and a broad even face: one dark stop at each
+   edge for the joint, and nothing in between but a soft sheen up near the
+   left-hand edge, which is the only light a flat surface gives back. The head
+   and tail bands stay, because a flat-backed book is still a bound one. */
+.drawer.spinetile.bn-flat{
+  background:linear-gradient(90deg,
+    color-mix(in srgb, var(--c) 50%, #000) 0 4%,
+    color-mix(in srgb, var(--c) 88%, #fff) 12%,
+    var(--c) 26% 78%,
+    color-mix(in srgb, var(--c) 72%, #000) 92%,
+    color-mix(in srgb, var(--c) 48%, #000) 100%);
+  border-radius:2px;
 }
-.bn-label .spinetitle{position:absolute;left:0;right:0;top:13%;bottom:23%}
-.bn-label .spinetop,.bn-label .spinefoot{width:50%;opacity:.55}
+.bn-flat .spinetop,.bn-flat .spinefoot{
+  width:72%;height:1.5px;background:var(--glow);opacity:.85}
+/* the joint down each side, which is what a square back has instead of a curve */
+.bn-flat::before{
+  content:"";position:absolute;left:0;right:0;top:0;bottom:0;z-index:1;
+  pointer-events:none;
+  background:
+    linear-gradient(rgba(0,0,0,.30),rgba(0,0,0,.30)) 7% 0/1px 100% no-repeat,
+    linear-gradient(rgba(255,255,255,.14),rgba(255,255,255,.14)) calc(7% + 1px) 0/1px 100% no-repeat,
+    linear-gradient(rgba(0,0,0,.30),rgba(0,0,0,.30)) 93% 0/1px 100% no-repeat,
+    linear-gradient(rgba(255,255,255,.10),rgba(255,255,255,.10)) calc(93% - 1px) 0/1px 100% no-repeat;
+}
+
+/* **Chamfered.** A flat face with the two edges cut off at an angle rather
+   than rounded — so the shading is three planes with hard stops between them,
+   not a curve. The hard stop is the whole point: a gradient that eases is a
+   round back again, and what says "chamfer" is the line where one facet ends
+   and the next begins. */
+.drawer.spinetile.bn-chamfer{
+  background:linear-gradient(90deg,
+    color-mix(in srgb, var(--c) 46%, #000) 0 3%,
+    color-mix(in srgb, var(--c) 62%, #000) 3% 16%,
+    color-mix(in srgb, var(--c) 94%, #fff) 16% 17%,
+    var(--c) 17% 76%,
+    color-mix(in srgb, var(--c) 66%, #000) 76% 77%,
+    color-mix(in srgb, var(--c) 60%, #000) 77% 96%,
+    color-mix(in srgb, var(--c) 42%, #000) 96% 100%);
+  border-radius:2px;
+}
+.bn-chamfer .spinetop,.bn-chamfer .spinefoot{
+  width:56%;height:0;border-top:1px solid var(--glow);border-bottom:1px solid var(--glow);
+  padding:2px 0;background:none;opacity:.9}
 
 /* Taking the title out of the flow leaves the head and tail bands as the only
    two flex items, and a centred flex box stacks them in the middle — which put
@@ -706,8 +743,12 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
 .bn-ribbed.bnsty-golf97::before{
   background:repeating-linear-gradient(180deg,
     transparent 0 10px, rgba(0,0,0,.22) 10px 12px, rgba(255,255,255,.3) 12px 13px) }
-.bn-tooled.bnsty-golf97::before{
-  border-radius:0;border:1px solid rgba(255,255,255,.6);outline:0 }
+/* a slim case: square edges, and a plain white rule down each joint */
+.drawer.spinetile.bn-flat.bnsty-golf97{border-radius:0}
+.bn-flat.bnsty-golf97::before{
+  background:
+    linear-gradient(rgba(255,255,255,.55),rgba(255,255,255,.55)) 7% 0/1px 100% no-repeat,
+    linear-gradient(rgba(0,0,0,.4),rgba(0,0,0,.4)) 93% 0/1px 100% no-repeat }
 
 /* Starful Gothic: a spine is drawn, so every ornament on it is a line. The
    filter goes on the ornament layers and never on `.spinetitle`, which holds
@@ -717,26 +758,31 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
   background:none;box-shadow:none;
   border-top:1.5px solid color-mix(in srgb,var(--ink) 55%,transparent);
   border-bottom:1.5px solid color-mix(in srgb,var(--ink) 55%,transparent) }
-.bn-ribbed.bnsty-starry::before,.bn-tooled.bnsty-starry::before{
+.bn-ribbed.bnsty-starry::before,.bn-flat.bnsty-starry::before{
   filter:url(#pencilchip) }
-.bn-tooled.bnsty-starry::before{
-  background:none;border:1.5px solid color-mix(in srgb,var(--ink) 55%,transparent);
-  outline:1px solid color-mix(in srgb,var(--ink) 34%,transparent) }
-.bn-label.bnsty-starry::before{
-  background:color-mix(in srgb,var(--paper) 88%,#fff);filter:url(#pencilchip) }
+/* a drawn aesthetic has no ground to cut a facet out of, so a flat back and a
+   chamfered one are two drawn lines and three drawn lines respectively — which
+   is exactly how you would draw the difference by hand */
+.drawer.spinetile.bn-flat.bnsty-starry,
+.drawer.spinetile.bn-chamfer.bnsty-starry{background:none}
+.bn-flat.bnsty-starry::before{
+  background:
+    linear-gradient(color-mix(in srgb,var(--ink) 45%,transparent),color-mix(in srgb,var(--ink) 45%,transparent)) 8% 0/1.5px 100% no-repeat,
+    linear-gradient(color-mix(in srgb,var(--ink) 45%,transparent),color-mix(in srgb,var(--ink) 45%,transparent)) 92% 0/1.5px 100% no-repeat }
 
 /* Aeros: a case rather than a cloth back — the rules are chrome and the panel
    is etched into the surface instead of tooled onto it. */
 .bn-banded.bnsty-aero .spinetop,.bn-banded.bnsty-aero .spinefoot{
   background:linear-gradient(180deg, rgba(255,255,255,.9), rgba(255,255,255,.25));
   box-shadow:0 1px 2px rgba(0,0,0,.2) }
-.bn-tooled.bnsty-aero::before{
-  border-color:rgba(255,255,255,.7);
-  outline-color:rgba(255,255,255,.35);
-  box-shadow:inset 0 1px 4px rgba(0,0,0,.2) }
+/* a flat edge on a glass case is a lit sill down each joint */
+.bn-flat.bnsty-aero::before{
+  background:
+    linear-gradient(rgba(255,255,255,.75),rgba(255,255,255,.2)) 7% 0/1.5px 100% no-repeat,
+    linear-gradient(rgba(255,255,255,.4),rgba(255,255,255,.12)) 93% 0/1.5px 100% no-repeat }
 
-.drawer.spinetile.bn-tooled,
-.drawer.spinetile.bn-label{justify-content:space-between}
+.drawer.spinetile.bn-flat,
+.drawer.spinetile.bn-chamfer{justify-content:space-between}
 
 /* The size is stated at the end of chrome.css with the rest of them, so it
    picks up the object's own `--tscale` like every other word on a tile. */
@@ -817,27 +863,45 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
   width:0;height:64%;border-top:0;border-bottom:0;
   border-left:1.5px solid var(--glow);border-right:1.5px solid var(--glow);
   padding:0 2.5px}
-.spinetile.lying.bn-tooled .spinetop,.spinetile.lying.bn-tooled .spinefoot{
-  width:0;height:70%;border-top:0;border-bottom:0;
-  border-left:1px solid var(--glow);border-right:2px solid var(--glow);padding:0 3px}
 /* the hubs run across a lying book, and the panels are left and right of them */
 .spinetile.lying.bn-ribbed::before{
   background:
-    var(--hub) 4% 0/9px 100% no-repeat,
-    var(--hub) 13% 0/9px 100% no-repeat,
-    var(--hub) 87% 0/9px 100% no-repeat,
-    var(--hub) 96% 0/9px 100% no-repeat,
-    var(--fillet) calc(4% - 4px) 50%/1px 60% no-repeat,
-    var(--fillet) calc(13% + 4px) 50%/1px 60% no-repeat,
-    var(--fillet) calc(87% - 4px) 50%/1px 60% no-repeat,
-    var(--fillet) calc(96% + 4px) 50%/1px 60% no-repeat;
+    var(--hub) 18% 0/9px 100% no-repeat,
+    var(--hub) 38% 0/9px 100% no-repeat,
+    var(--hub) 62% 0/9px 100% no-repeat,
+    var(--hub) 82% 0/9px 100% no-repeat,
+    var(--fillet) calc(18% + 4px) 50%/1px 62% no-repeat,
+    var(--fillet) calc(38% + 4px) 50%/1px 62% no-repeat,
+    var(--fillet) calc(62% + 4px) 50%/1px 62% no-repeat,
+    var(--fillet) calc(82% + 4px) 50%/1px 62% no-repeat;
 }
-.spinetile.lying.bn-ribbed .spinetitle{top:0;bottom:0;left:16%;right:16%}
-.spinetile.lying.bn-tooled::before{left:11%;right:11%;top:14%;bottom:14%}
-.spinetile.lying.bn-tooled .spinetitle{top:0;bottom:0;left:15%;right:15%}
-/* a label pasted on a lying book sits towards the head end, not the middle */
-.spinetile.lying.bn-label::before{left:10%;right:20%;top:11%;bottom:11%}
-.spinetile.lying.bn-label .spinetitle{top:0;bottom:0;left:10%;right:20%}
+.spinetile.lying.bn-ribbed .spinetitle{top:0;bottom:0;left:24%;right:24%}
+/* Lying down, the back is along the **bottom** (decision 124) — so a flat back
+   and a chamfer are the same facets read the other way round, and both are a
+   transposition of the standing block rather than a second drawing. */
+.drawer.spinetile.lying.bn-flat{
+  background:linear-gradient(180deg,
+    color-mix(in srgb, var(--c) 88%, #fff) 0 12%,
+    var(--c) 26% 78%,
+    color-mix(in srgb, var(--c) 72%, #000) 92%,
+    color-mix(in srgb, var(--c) 48%, #000) 100%) }
+.spinetile.lying.bn-flat::before{
+  background:
+    linear-gradient(rgba(0,0,0,.30),rgba(0,0,0,.30)) 0 7%/100% 1px no-repeat,
+    linear-gradient(rgba(0,0,0,.30),rgba(0,0,0,.30)) 0 93%/100% 1px no-repeat }
+.drawer.spinetile.lying.bn-chamfer{
+  background:linear-gradient(180deg,
+    color-mix(in srgb, var(--c) 62%, #000) 0 16%,
+    color-mix(in srgb, var(--c) 94%, #fff) 16% 17%,
+    var(--c) 17% 76%,
+    color-mix(in srgb, var(--c) 66%, #000) 76% 77%,
+    color-mix(in srgb, var(--c) 60%, #000) 77% 96%,
+    color-mix(in srgb, var(--c) 42%, #000) 96% 100%) }
+.spinetile.lying.bn-flat .spinetop,.spinetile.lying.bn-flat .spinefoot{
+  width:1.5px;height:72%}
+.spinetile.lying.bn-chamfer .spinetop,.spinetile.lying.bn-chamfer .spinefoot{
+  width:0;height:56%;border-top:0;border-bottom:0;
+  border-left:1px solid var(--glow);border-right:1px solid var(--glow);padding:0 2px}
 /* and the title simply lies down: no writing-mode, no rotation, and the
    ellipsis measures along the width the way it does everywhere else */
 .spinetile.lying .spinetitle b{
@@ -851,10 +915,6 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
 .drawer.spinetile.lying > .dside::after{bottom:0;top:auto;
   background:linear-gradient(0deg, rgba(0,0,0,var(--bkshade,.16)), transparent 78%)}
 
-/* A pasted label is cream paper whatever the cover under it is, so its
-   lettering is the page's own ink on every ground — two classes deep so the
-   pale-cover rule below cannot reach it. */
-.drawer.spinetile.bn-label .spinetitle b{color:var(--ink,#2A2118);text-shadow:none;font-weight:600}
 /* The gilt on a banded or tooled spine is in its **rules and its panel**, which
    is where the ornament is. The lettering is the drawer's ink like every other
    name in the app — a second colour and an embossing on four words was doing
@@ -926,9 +986,11 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
   overflow:hidden;font-family:var(--serif);font-size:17px;line-height:1.3;color:#F4EEDD}
 .bookstage .spread{box-shadow:0 30px 60px -20px rgba(0,0,0,.7)}
 .bookstage .bookcount{color:#E5DCC6}
-/* the lasso reads as a selection rather than a new object */
-.ghost.band{border-style:dashed}
-.ghost.picking{border-color:var(--brass);background:color-mix(in srgb,var(--brass) 18%,transparent);
+/* the lasso reads as a selection rather than a new object — and the stroke is
+   the ghost's inset outline, not a border, so a box in the board's first or
+   last column keeps all four sides. See `.ghost` in chrome.css. */
+.ghost.band{outline-style:dashed}
+.ghost.picking{outline-color:var(--brass);background:color-mix(in srgb,var(--brass) 18%,transparent);
   box-shadow:0 0 0 2px rgba(255,255,255,.4)}
 /* a spawner: a press with an arrow.
    `.drawer.otile.gentile`, three classes, and not `.drawer.gentile` — an
@@ -947,11 +1009,31 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
 .genico{color:#F8F3E6;opacity:.92;display:flex;line-height:0}
 .genico svg{width:clamp(18px,62cqw,64px);height:auto}
 .drawer.gentile:active{transform:scale(.97)}
+/* One cell square, a spawner is its spiral and nothing else. No ground, no
+   edge, no shadow and no stock — the mark is pressed straight onto the board
+   in the object's own colour, and it fills the cell. `container-type` is what
+   lets the spiral be sized in `cqw`, so it grows with the tile rather than
+   being a fixed 26px mark floating in a square. */
+.drawer.gentile.gensolo{
+  background:none;background-color:transparent;background-image:none;
+  border:0;box-shadow:none;padding:0;
+  align-items:center;justify-content:center;container-type:inline-size}
+.gentile.gensolo .genico{color:var(--c);opacity:1}
+.gentile.gensolo .genico svg{width:92cqw;height:auto;stroke-width:1.5}
+.drawer.gentile.gensolo:active{transform:scale(.92)}
+
 /* Bigger than a cell, it grows the box you type into — what you write is the
    name of the thing it makes, which is the whole of what the Text field type
    was. The spiral steps aside into the corner: the press is still the tile,
-   and the line is what you came to the big one for. See decision 135. */
-.drawer.otile.gentile.genbig{flex-direction:row;gap:8px;padding:6px 8px;align-items:center}
+   and the line is what you came to the big one for. See decision 135.
+
+   **A pill**, because the two halves of it are a thing you press and a thing
+   you type into and both of those are round-ended. The radius is the token,
+   not a number: `--pill` is "round ends, all the way" and this is the shape
+   it exists for. See decision 125. */
+.drawer.otile.gentile.genbig{flex-direction:row;gap:8px;padding:5px 10px;align-items:center;
+  border-radius:var(--pill)}
+.drawer.otile.gentile.genbig .fieldin{border-radius:var(--pill);padding:5px 12px}
 .gentile.genbig .genico svg{width:clamp(16px,18cqw,30px)}
 .gentile.genbig .fieldin{
   flex:1;min-width:0;border:0;background:rgba(255,255,255,.14);border-radius:var(--radius);
@@ -963,8 +1045,67 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
 /* …and one cell tall, the box is the whole of it and the spiral is the stamp
    at the end — the same rule every other tile follows as it loses room. */
 .gentile.genbig.sz-short{padding:4px 6px;gap:6px}
-.gentile.genbig.sz-narrow .fieldin{display:none}
-.gentile.genbig.sz-narrow{flex-direction:column;justify-content:center}
+/* The line goes only when there is no width left at all — one cell — because
+   above one cell the box *is* what the big spawner is for. `sz-narrow` (three
+   cells) was too eager and left a 2-wide press with nothing to type into. */
+.gentile.genbig.sz-thin .fieldin{display:none}
+.gentile.genbig.sz-thin{flex-direction:column;justify-content:center}
+.gentile.genbig.sz-narrow{padding:4px 7px;gap:5px}
+.gentile.genbig.sz-narrow .fieldin{padding:4px 8px;font-size:12px}
+/* ---- a sound, and a moving picture --------------------------------------
+   A sound is a record with a play button in the middle of it: no card, no
+   ground, no edge — the same argument the song cover makes one file over, and
+   the same drawing (`discHTML()` in tiles.js). While it plays the record turns,
+   which is the one thing on this desk that moves because something is actually
+   happening rather than because you touched it. */
+.drawer.otile.sndtile,.drawer.otile.vidtile{
+  background:none;background-color:transparent;background-image:none;
+  border:0;box-shadow:none;padding:0;overflow:hidden;
+  align-items:center;justify-content:center;position:relative}
+.drawer.otile.sndtile{overflow:visible}
+.sndtile .snddisc{display:flex;align-items:center;justify-content:center;
+  width:100%;height:100%}
+.sndtile .cd{transition:none}
+@keyframes spinrec{to{transform:rotate(360deg)}}
+.sndtile.sounding .cd{animation:spinrec 3.4s linear infinite}
+@media (prefers-reduced-motion:reduce){.sndtile.sounding .cd{animation:none}}
+
+/* The button sits in the label, which is where the spindle is — a record has a
+   hole in the middle and this is what is in it. It does not turn with the
+   disc, because a control that spins is a control you cannot press. */
+.medbtn{
+  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  display:flex;align-items:center;justify-content:center;
+  width:clamp(22px,26cqw,58px);height:clamp(22px,26cqw,58px);border-radius:50%;
+  background:rgba(20,17,13,.62);color:#F6F1E4;
+  box-shadow:0 2px 8px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.18);
+  pointer-events:none;z-index:3}
+.medbtn svg{width:44%;height:44%}
+/* a filled triangle rather than an outlined one: a play mark is a solid */
+.medbtn svg path[d^="M8 5.5"]{fill:currentColor;stroke:none}
+
+/* A video fills the frame it is in, whatever shape that is — `cover`, because
+   a letterboxed thumbnail on a board reads as a broken tile. */
+.vidtile .tilevid{width:100%;height:100%;object-fit:cover;display:block;
+  border-radius:var(--radius-d);background:#14110D}
+/* …and the button goes once it is running: what you are looking at is the
+   picture, and a play mark over a moving image is a screenshot of a player. */
+.vidtile.sounding .medbtn{opacity:0;transition:opacity .3s}
+/* An empty one is the frame it will be, not a card with a title on it. */
+.drawer.otile.vidtile:not(:has(video)){background:#1A1712;border-radius:var(--radius-d);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.10)}
+.vidempty{position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:6px;padding:8px 10px;
+  color:rgba(246,241,228,.62);text-align:center}
+.vidempty b{font-size:11.5px;font-weight:600;line-height:1.25;
+  overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.drawer.otile.vidtile:not(:has(video)) .medbtn{position:static;transform:none;
+  width:auto;height:auto;background:none;box-shadow:none;display:none}
+/* a record with nothing on it yet is a blank: no lettering, and the hub says
+   "choose one" rather than "play" */
+.snddisc.blank .cdtext{display:none}
+.medbtn.blank{background:rgba(20,17,13,.5)}
+
 /* ---- a control: a switch on the board -----------------------------------
    Plate, engraved label, and either a lever or a printed value. It is drawn
    in the object's own colour like everything else on a board, with the ink
@@ -976,16 +1117,69 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
    and a knuckle that is plainly at one end of it. It slides rather than
    changing colour, because the state is *where it is*, and a colour change is
    a thing you have to have learnt. */
+/* **No card behind it.** A switch on a wall is the switch, not a switch on a
+   coloured tile — and the plate, the base and the button each carry their own
+   ground, so a second one under them was the thing that made every control
+   read as a sticker. The ink goes back to the board's own, because there is no
+   dark front to read light against any more. */
 .drawer.otile.ctltile{
-  background-color:var(--c);border-color:transparent;border-radius:var(--radius-d);
-  padding:8px 10px;gap:4px;align-items:flex-start;justify-content:center;
+  background:none;background-color:transparent;background-image:none;
+  border:0;box-shadow:none;
+  padding:5px 6px;gap:4px;align-items:center;justify-content:center;
   container-type:inline-size;
 }
-.ctltile .cico{position:absolute;right:8px;top:7px;color:rgba(248,243,230,.55)}
-.ctltile .clabel{font-size:clamp(10px,5.5cqw,13.5px);font-weight:600;line-height:1.15;
-  color:#F8F3E6;overflow-wrap:anywhere;padding-right:22px}
-.ctltile .cval{font-size:clamp(9px,4.4cqw,11.5px);color:rgba(248,243,230,.72);
+.ctltile .cico{display:none}
+.ctltile .clabel{font-size:clamp(9px,5cqw,12.5px);font-weight:600;line-height:1.15;
+  color:var(--ink-2);overflow-wrap:anywhere;text-align:center;
+  overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.ctltile .cval{font-size:clamp(9px,4.4cqw,11.5px);color:var(--ink-3);
   letter-spacing:.02em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+/* the hardware fills whatever room is left after the name */
+.ctlart{flex:1 1 auto;min-height:0;width:100%;height:100%;display:block}
+.ctltile.csw-light .ctlart{max-width:min(82cqw,110px)}
+.ctltile.csw-knife .ctlart{max-width:100%}
+
+/* ---- the push button: one cell -----------------------------------------
+   A disc in the object's own colour, proud when it is off and sunk when it is
+   on. The light is the app's one light, at the upper left, so it is the same
+   piece of hardware as a drawer knob seen from the front. */
+.cpush{position:relative;width:min(84cqw,84cqh);aspect-ratio:1;border-radius:50%;
+  background:radial-gradient(circle at 50% 120%, rgba(0,0,0,.28), transparent 60%),
+    linear-gradient(#EFE8D6,#CFC4AA);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.9), 0 2px 4px rgba(0,0,0,.35);
+  display:flex;align-items:center;justify-content:center}
+.cpush > i{width:64%;height:64%;border-radius:50%;
+  background:radial-gradient(circle at 34% 28%,
+    color-mix(in srgb,var(--c) 82%,#fff), var(--c) 46%,
+    color-mix(in srgb,var(--c) 66%,#000));
+  box-shadow:0 2px 3px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.35);
+  transition:transform .14s, box-shadow .14s}
+.ctltile.on .cpush > i{transform:translateY(1px) scale(.94);
+  box-shadow:inset 0 2px 4px rgba(0,0,0,.5)}
+
+/* ---- the light switch: one cell across ---------------------------------
+   Porcelain plate, two screws, and a brass bat thrown up or down. */
+.artlight .plate{fill:#EDE5D3;stroke:rgba(0,0,0,.28);stroke-width:1}
+.artlight .screw{fill:#B9AC91;stroke:rgba(0,0,0,.3);stroke-width:.6}
+.artlight .well{fill:rgba(0,0,0,.16)}
+.artlight .bat{fill:var(--brass);stroke:rgba(0,0,0,.35);stroke-width:.8;
+  transform-origin:22px 36px;transform:rotate(180deg);
+  transition:transform .16s cubic-bezier(.3,1.5,.5,1)}
+.ctltile.on .artlight .bat{transform:rotate(0deg)}
+
+/* ---- the knife switch: two cells and up --------------------------------
+   Two poles, hinged on their posts at one end and closing into their jaws at
+   the other, with one insulating grip across both. Open is up; closed is
+   down and touching, which is the whole readout. */
+.artknife .base{fill:color-mix(in srgb,var(--c) 30%,#1A160F);
+  stroke:rgba(0,0,0,.4);stroke-width:1}
+.artknife .post{fill:#8A7B5E}
+.artknife .jaw{fill:#8A7B5E}
+.artknife .blade{fill:var(--brass);stroke:rgba(0,0,0,.35);stroke-width:.7}
+.artknife .grip{fill:#2B2118;stroke:rgba(255,255,255,.14);stroke-width:.8}
+.artknife .blades{transform-origin:22px 51px;transform:rotate(-26deg);
+  transition:transform .2s cubic-bezier(.3,1.3,.5,1)}
+.ctltile.on .artknife .blades{transform:rotate(0deg)}
 /* the lever. 34×18 at any tile size — a switch is a fixed piece of hardware,
    the same argument every moulding on a drawer front makes */
 .ctltile .clever{
@@ -1059,8 +1253,10 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
   background-color:color-mix(in srgb, var(--c) 34%, #1A1611);
   padding:7px;
 }
+/* The name is printed on the board now, not on a dark face, so it takes the
+   board's own ink — light-on-dark was correct only while there was a card. */
 .ctltile.ctl-button .clabel{padding-right:0;font-size:clamp(9px,4.6cqw,11.5px);
-  color:rgba(248,243,230,.75);letter-spacing:.06em;text-transform:uppercase}
+  color:var(--ink-2);letter-spacing:.06em;text-transform:uppercase}
 .ctltile.ctl-button .cval{
   flex:0 0 auto;max-width:100%;padding:6px 12px;border-radius:var(--radius);
   font-size:clamp(10px,5.4cqw,14px);font-weight:600;color:#FBF7EC;
@@ -1122,7 +1318,12 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
 .ctltile.ctl-dial .cval{font-variant-numeric:tabular-nums;font-size:clamp(9px,4.6cqw,12px)}
 .ctltile.ctl-dial.sz-short .cdialwrap{width:32px;height:32px}
 .ctltile.ctl-dial.sz-short .cdial{inset:3px}
-.ctltile.sz-mini .cdialwrap,.ctltile.sz-mini .cplate{display:none}
+/* One cell **across** is the hardware and nothing else — the same rule the mini
+   tile makes, reached from the other side. A light switch is one cell wide, and
+   a name set across one cell is two letters and a hyphen. */
+.ctltile.sz-mini .cdialwrap,.ctltile.sz-mini .clabel,.ctltile.sz-mini .cval,
+.ctltile.sz-thin .clabel,.ctltile.sz-thin .cval{display:none}
+.ctltile.sz-mini,.ctltile.sz-thin{padding:2px}
 /* what it gives up as it shrinks: the mark first, then the value. The lever
    never goes — without it the tile says nothing at all. */
 .ctltile.sz-narrow .cico{display:none}
@@ -1178,10 +1379,74 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
    object rather than stored (goalStanding() in model.js), and each says so in
    one small line at the top. A dream is set in italic, because a thing with no
    date on it is a different sort of statement. See decision 135. */
-.drawer.dtile.goaltile{
-  background-color:var(--c);align-items:center;justify-content:center;text-align:center;
-  padding:12px 14px;gap:6px;container-type:inline-size;overflow:hidden;
+/* ---- a goal is a playing card ------------------------------------------
+   The one thing on this desk that is neither furniture nor paper: a goal is a
+   thing you are holding, and a card is what a held thing looks like. Four
+   things make a rectangle read as a playing card and it needs all four —
+
+   a **heavy corner radius**, which is the one place decision 125's 6–12px ban
+   does not apply because a card really is cut that way (a die-cut corner is
+   about 3.5mm on a 63mm card, so the radius is a *proportion*, not a token);
+   the **linen tooth**, a fine cross-hatch pressed into the stock, at an
+   opacity you feel rather than see; a **ruled panel** inset from the edge, in
+   the goal's own colour, which is the card's border; and an **index in two
+   opposite corners** with the second one turned upside down, which is the
+   detail that says card and nothing else does.
+
+   The face is the card's own white rather than the object's colour — a
+   playing card is white and its colour is the ink on it — so `--c` moves to
+   the rule, the index and the name. See decision 146. */
+.drawer.dtile.goaltile.playcard{
+  background-color:#F7F3E8;
+  background-image:
+    repeating-linear-gradient(0deg, rgba(0,0,0,.022) 0 1px, transparent 1px 4px),
+    repeating-linear-gradient(90deg, rgba(0,0,0,.022) 0 1px, transparent 1px 4px);
+  border:0;
+  border-radius:clamp(4px, 5.5cqw, 16px);
+  box-shadow:0 1px 2px rgba(0,0,0,.22), 0 6px 14px rgba(0,0,0,.16),
+             inset 0 0 0 1px rgba(0,0,0,.16);
+  align-items:center;justify-content:center;text-align:center;
+  padding:clamp(8px,7cqw,20px) clamp(9px,7cqw,22px);gap:4px;
+  container-type:inline-size;overflow:hidden;
 }
+/* the ruled panel: the card's border, inset the way a card's is */
+.goaltile.playcard .cardrule{
+  position:absolute;inset:clamp(3px,3.4cqw,10px);z-index:1;pointer-events:none;
+  border:1px solid color-mix(in srgb, var(--c) 78%, transparent);
+  border-radius:clamp(3px,3.6cqw,11px);
+}
+/* the index, and the same index turned round in the opposite corner */
+.goaltile.playcard .cardidx{
+  position:absolute;z-index:2;display:flex;flex-direction:column;align-items:center;
+  gap:1px;color:var(--c);line-height:1;
+  left:clamp(6px,5.4cqw,16px);top:clamp(5px,4.6cqw,14px);
+}
+.goaltile.playcard .cardidx u{
+  text-decoration:none;font-family:var(--serif);font-weight:700;
+  font-size:clamp(9px,5.2cqw,17px)}
+.goaltile.playcard .cardidx svg{width:clamp(7px,4cqw,13px);height:auto}
+.goaltile.playcard .cardidx.flip{
+  left:auto;top:auto;right:clamp(6px,5.4cqw,16px);bottom:clamp(5px,4.6cqw,14px);
+  transform:rotate(180deg)}
+/* the two indexes are the standing, so the line that used to say it can go
+   wherever there is no room for both */
+.goaltile.playcard .goalstand{color:color-mix(in srgb,var(--c) 72%,transparent)}
+.goaltile.playcard .goalname{color:#241E16}
+.goaltile.playcard .goalfoot{color:rgba(36,30,22,.62)}
+.goaltile.playcard .goalfoot u.late{color:#B0402C}
+/* No depth faces, no moulding, and **no grain slot**: a card is one piece of
+   board and the tooth pressed into it is the card's own. A drawer front's
+   grain painted over a playing card is graph paper on a Bicycle deck. */
+.goaltile.playcard .dside,.goaltile.playcard .dpanel,
+.goaltile.playcard .dgrain{display:none}
+/* the run follows the card's own corner rather than running past it */
+.goaltile.playcard .goalbar{left:clamp(3px,3.4cqw,10px);right:clamp(3px,3.4cqw,10px);
+  bottom:clamp(3px,3.4cqw,10px);height:2px;border-radius:99px}
+/* At three cells across the two indexes are the standing and the name has the
+   middle to itself, which is what a card at that size can honestly hold. */
+.goaltile.playcard.sz-narrow .goalstand,
+.goaltile.playcard.sz-short .goalstand{display:none}
+.goaltile.playcard.sz-mini .cardidx,.goaltile.playcard.sz-mini .cardrule{display:none}
 /* Above the two spliced layers. `.dpanel` and `.dgrain` are absolutely
    positioned, so they paint above every static child of the tile however early
    they sit in the DOM — the name was rendering perfectly and was under the

@@ -245,7 +245,11 @@ const CHROME = process.env.BUREAU_CHROME;
     BUREAU.panel(d.id, 'look'); await wait();
     const p = document.querySelector('#panel');
     out.wayBack = !!p.querySelector('[data-act="panelback"]');
-    out.condensed = p.querySelectorAll('.psel').length >= 6
+    /* Still condensed — a one-of-many list is never a wall of chips — but the
+       control is a **cycle** rather than a select wherever the answer is a
+       thing you look at, because a select covers the stage that is showing it
+       to you. See decisions 66 and 148. */
+    out.condensed = p.querySelectorAll('.pcyc, .psel').length >= 6
       && !p.querySelector('[data-otype],[data-oshape],[data-pface]');
     BUREAU.panel(d.id); await wait();
     await click('[data-act="panelclose"]');
@@ -448,7 +452,7 @@ const CHROME = process.env.BUREAU_CHROME;
     a.attrs = (a.attrs || ['text','check','date','repeat']).concat('relates');
     // relations were on the detail sheet; they are a setting about one object,
     // so they moved into that object's panel with the rest of it
-    BUREAU.panel(a.id, 'tags');
+    BUREAU.panel(a.id);
     await new Promise(r => setTimeout(r, 120));
     const host = document.querySelector('#panel');
     const chips = [...host.querySelectorAll('.relchip')];
@@ -456,7 +460,7 @@ const CHROME = process.env.BUREAU_CHROME;
     const canUnlink = !!host.querySelector(`[data-unrel="${a.id}:${b.id}"]`);
     const canAdd = !!host.querySelector('[data-act="addrel"]');
     // and the other end shows it as a backlink, without opting in
-    BUREAU.panel(b.id, 'tags');
+    BUREAU.panel(b.id);
     await new Promise(r => setTimeout(r, 120));
     const backChip = [...document.querySelectorAll('#panel .relchip')]
       .some(c => c.dataset.openrel === a.id);
@@ -774,7 +778,7 @@ const CHROME = process.env.BUREAU_CHROME;
   const tagDrawer = await page.evaluate(async () => {
     const S = BUREAU.state;
     const o = S.objects.find(x => (x.tags || []).includes('bureau'));
-    BUREAU.panel(o.id, 'tags');
+    BUREAU.panel(o.id);
     await new Promise(r => setTimeout(r, 150));
     document.querySelector('.realtag[data-tagdrawer="bureau"]').click();
     await new Promise(r => setTimeout(r, 250));
@@ -784,7 +788,7 @@ const CHROME = process.env.BUREAU_CHROME;
       && BUREAU.kids(d.id).every(id => (S.objects.find(y => y.id === id).tags || []).includes('bureau'));
     // asking again reuses it rather than piling up drawers
     const n = S.objects.filter(x => (x.filter || {}).tag === 'bureau').length;
-    BUREAU.panel(o.id, 'tags');
+    BUREAU.panel(o.id);
     await new Promise(r => setTimeout(r, 150));
     document.querySelector('.realtag[data-tagdrawer="bureau"]').click();
     await new Promise(r => setTimeout(r, 200));
@@ -1136,11 +1140,14 @@ const CHROME = process.env.BUREAU_CHROME;
     delete o.read;
     open(undefined); o.read = undefined; S.readId = o.id; BUREAU.renderSheet();
     out.defaultsToPage = document.querySelectorAll('.bookstage .spread .page').length === 1;
-    /* A story opens as a book in both senses, and they are different
-       properties: `layout` pages through the scenes it holds, `read` pages
+    /* Prose & Poetry opens as a book in both senses, and they are different
+       properties: `layout` pages through the pieces it holds, `read` pages
        through its own body. It used to assert `onclick === 'read'`, which a
-       container has no use for — clicking one navigates into it. */
-    out.storyOpensAsBook = BUREAU.K.story.read === 'book' && BUREAU.K.story.layout === 'book';
+       container has no use for — clicking one navigates into it. This was the
+       Story type, which is gone: it was this with a different binding, which
+       is one tile for one object too many. See decision 144. */
+    out.storyIsGone = !BUREAU.K.story;
+    out.textOpensAsBook = BUREAU.K.book.read === 'book' && BUREAU.K.book.layout === 'book';
 
     S.readId = null; BUREAU.renderSheet();
     BUREAU.del(o.id); S.undo = [];
@@ -2632,21 +2639,26 @@ const CHROME = process.env.BUREAU_CHROME;
       BUREAU.schedule(t.id); await nap(340);
       document.querySelector('#panel [data-want="priority"]')?.click(); await nap(300);
       document.querySelector('#panel [data-want="difficulty"]')?.click(); await nap(300);
-      const marks = a => [...document.querySelectorAll(`#panel [data-${a}]`)]
-        .map(x => x.dataset[a]).filter(v => v !== '');
-      out.priorityOffersFiveStars = marks('prio').length === 5;
-      out.andDifficultyStillFive  = marks('diff').length === 5;
-      // and the rank still means what it says: four marks is four
-      document.querySelector('#panel [data-prio="4"]').click(); await nap(300);
-      const lit = [...document.querySelectorAll('#panel [data-prio]')]
-        .filter(x => x.classList.contains('lit') || x.classList.contains('on')).length;
-      out.rankFourLightsFour = find(t.id).prio === 4 && lit === 4;
-      /* Rank 0 is still a real answer (decision 72) and still reachable — it
-         is the leading button, where "no stars" lives, because on a mark scale
+      /* **One mark, with its number in it** — decision 155. Five stars filled to
+         the answer was a picture of the scale, and the scale is not the thing
+         you want to see; what is measurable now is that there is exactly one
+         target per rank, that pressing it walks the ramp, and that the digit it
+         prints is the rank the object is actually carrying. */
+      const mark = a => document.querySelector(`#panel [data-${a}]`);
+      out.priorityIsOneMark  = document.querySelectorAll('#panel [data-prio]').length === 1;
+      out.andDifficultyToo   = document.querySelectorAll('#panel [data-diff]').length === 1;
+      // press it up to four, and the digit says four
+      t.prio = 3; BUREAU.schedule(t.id); await nap(320);
+      mark('prio').click(); await nap(300);
+      out.rankFourSaysFour = find(t.id).prio === 4
+        && mark('prio').querySelector('u').textContent.trim() === '4';
+      /* Rank 0 is still a real answer (decision 72) and still reachable: the
+         ring comes back round to nothing, and the mark prints a dash, because
          nothing-said and rank-zero draw the same thing. */
-      document.querySelector('#panel [data-prio=""]').click(); await nap(300);
-      out.andTheDashIsWhereNoStarsLives =
-        !document.querySelector('#panel [data-prio].lit');
+      t.prio = 5; BUREAU.schedule(t.id); await nap(320);
+      mark('prio').click(); await nap(300);
+      out.andItComesRoundToNothing = find(t.id).prio == null
+        && mark('prio').querySelector('u').textContent.trim() === '\u2013';
     }
 
     // ---- 4. repeating is asked once, by the chip ------------------------
@@ -4302,16 +4314,23 @@ const CHROME = process.env.BUREAU_CHROME;
     out.itIsACloneNotACopy = !document.querySelector(`#panel [data-row="${n.id}"]`);
     // …and the rows themselves are one door in: Look
     BUREAU.panel(n.id, 'look'); await nap(220);
-    // text size: a multiplier over whatever each rule decided
-    const sel = document.querySelector(`#panel [data-oset="${n.id}:tsize"]`);
-    out.textSizeIsOffered = !!sel;
-    if(sel){ sel.value='1.6'; sel.dispatchEvent(new Event('change',{bubbles:true})); }
+    /* Text size is a **ramp of letters**, not a list of words — the Books
+       app's control, and right for the same reason every other Look row is a
+       cycle: the answer is a thing you look at. Five buttons, each drawn at
+       the size it sets. See decision 148. */
+    const tsz = v => document.querySelector(`#panel [data-oclick="${n.id}:tsize:${v}"]`);
+    out.textSizeIsOffered = document.querySelectorAll('#panel .tsizerow .tsz').length === 5;
+    out.andEachIsDrawnAtItsSize = (() => {
+      const b = [...document.querySelectorAll('#panel .tsizerow .tsz')]
+        .map(e => parseFloat(getComputedStyle(e).fontSize));
+      return b.every((v,i) => i === 0 || v > b[i-1]);
+    })();
+    if(tsz('1.6')) tsz('1.6').click();
     await nap(220);
     const tile = () => document.querySelector(`.grid .drawer[data-row="${n.id}"]`);
     out.wordsGetBigger = !!tile() && tile().style.getPropertyValue('--tscale')==='1.6'
       && parseFloat(getComputedStyle(tile().querySelector('.dname')).fontSize) > 20;
-    const s2 = document.querySelector(`#panel [data-oset="${n.id}:tsize"]`);
-    if(s2){ s2.value='1'; s2.dispatchEvent(new Event('change',{bubbles:true})); }
+    if(tsz('1')) tsz('1').click();
     await nap(200);
     out.normalIsNotStored = n.tsize == null;
     // the mark, per object, with the way back to the type's
@@ -4338,10 +4357,16 @@ const CHROME = process.env.BUREAU_CHROME;
     out.selectstartRefused = fire(document.querySelector('.grid .drawer .dname'));
     BUREAU.panel('d_ideas');
     return new Promise(r => setTimeout(() => {
-      // a panel's labels are furniture; only its fields are text
+      /* A panel's labels are furniture; only its fields are text. The field
+         asked about is the **rename**, which is the panel's own heading until
+         you press it — one place a thing is called something (decision 148) —
+         so the press is part of the question rather than setup for it. */
       out.panelLabelRefuses = css(document.querySelector('#panel .prow label')) === 'none';
-      out.panelFieldAllows  = css(document.querySelector('#panel input.pfield')) === 'text';
-      out.fieldSelectstartAllowed = !fire(document.querySelector('#panel input.pfield'));
+      document.querySelector('#panel [data-headname]').click();
+      const f = document.querySelector('#panel input[data-headname]');
+      out.theHeadingBecomesAField = !!f;
+      out.panelFieldAllows  = !!f && css(f) === 'text';
+      out.fieldSelectstartAllowed = !!f && !fire(f);
       document.querySelector('#panel [data-act="panelclose"]').click();
       r(out);
     }, 260));
@@ -4408,7 +4433,7 @@ const CHROME = process.env.BUREAU_CHROME;
     t.due = iso(-1); t.dead = iso(3);
     // …and the trait puts a field in the editor to fill in, or it is a trait
     // you can tick and never use
-    BUREAU.panel(t.id, 'fields');
+    BUREAU.panel(t.id, 'adv');
     await new Promise(r => setTimeout(r, 220));
     out.hasAField = !!document.querySelector(`#panel [data-oset="${t.id}:dead"]`);
     document.querySelector('#panel [data-act="panelclose"]').click();
@@ -4466,7 +4491,14 @@ const CHROME = process.env.BUREAU_CHROME;
     S.undo = [];
     // a panel edit
     BUREAU.panel(o.id); await nap(200);
-    const f = document.querySelector(`#panel [data-oset="${o.id}:title"]`);
+    /* The name is the panel's **heading** now, and pressing it turns it into
+       the field — one place a thing is called something, rather than a heading
+       saying it and a labelled box underneath saying it again. The input it
+       becomes carries the same `data-oset`, so undo and coalescing are the
+       ordinary field writer's, not a second copy. See decision 148. */
+    out.theHeadingIsTheName = !!document.querySelector(`#panel [data-headname="${o.id}"]`);
+    document.querySelector(`#panel [data-headname="${o.id}"]`).click(); await nap(120);
+    const f = document.querySelector(`#panel input[data-oset="${o.id}:title"]`);
     f.value = 'After'; f.dispatchEvent(new Event('input', {bubbles:true}));
     await nap(60);
     out.editRecorded = S.undo.length === 1 && o.title === 'After';
@@ -4683,9 +4715,15 @@ const CHROME = process.env.BUREAU_CHROME;
     BUREAU.view(a.id); await nap(220);
     out.itPlays = !!document.querySelector('.viewstage audio.viewplayer');
     BUREAU.closeSheet(); BUREAU.render(); await nap(150);
-    // …and on the board it is a face, not forty decoded players
+    /* …and on the board it is a **record with a play button in it**, which is
+       decision 144 walking part of decision 71 back: pressing the tile plays
+       the sound. The half of 71 that still holds is the expensive half — there
+       is **no media element on the board**. The audio lives in a module map
+       outside the DOM, so a hundred sounds on one desk cost a hundred discs
+       and nothing else, and an unrelated render cannot silence one. */
     const tile = document.querySelector(`.grid .drawer[data-row="${a.id}"]`);
-    out.tileIsAFace = !!tile && !tile.querySelector('audio') && !!tile.querySelector('.medmark');
+    out.tileIsAFace = !!tile && !tile.querySelector('audio')
+      && !!tile.querySelector('.snddisc') && !!tile.querySelector('.medbtn');
     BUREAU.del(a.id); S.undo=[]; S.redo=[]; BUREAU.render();
     return out;
   });
@@ -4733,7 +4771,7 @@ const CHROME = process.env.BUREAU_CHROME;
     const t = BUREAU.create('task', {parent:'root', title:'Rank me'});
     t.attrs = ['text','check','date','repeat','priority'];
     BUREAU.render(); await nap(150);
-    BUREAU.panel(t.id, 'fields'); await nap(250);
+    BUREAU.panel(t.id, 'adv'); await nap(250);
     const btn = n => document.querySelector(`#panel [data-prio="${n}"]`);
     out.sixLevels = [0,1,2,3,4,5].every(n => !!btn(n)) && !!document.querySelector('#panel [data-prio=""]');
     btn(5).click(); await nap(200);
@@ -4814,22 +4852,26 @@ const CHROME = process.env.BUREAU_CHROME;
     for(const a of wants){ chip(a).click(); await nap(230); }
     out.oneTapAddsEach = wants.every(a => BUREAU.has(t, a));
 
-    // difficulty is teardrops, 1–5, and it is its own axis
-    document.querySelector('#panel [data-diff="3"]').click(); await nap(230);
-    out.difficultyRanks = t.diff === 3;
-    out.inTeardrops = document.querySelectorAll('#panel [data-diff] svg').length === 5;
-    /* Priority is stars, and n stars means n — so the scale is **five** of
-       them, like difficulty's five teardrops above. PRIOS runs 0–5 and the
-       numbered row in the object editor still offers 0 outright; on a mark
-       scale zero is drawn as no marks, so a sixth star is one that can never
-       light and a rating that reads as out of six. See decision 129. */
-    document.querySelector('#panel [data-prio="4"]').click(); await nap(230);
-    out.priorityRanks = t.prio === 4;
-    out.inStars = document.querySelectorAll('#panel [data-prio] svg').length === 5;
-    out.andTheSameCountAsDifficulty =
-      document.querySelectorAll('#panel [data-prio] svg').length ===
-      document.querySelectorAll('#panel [data-diff] svg').length;
-    out.nStarsMeansN = document.querySelectorAll('#panel [data-prio].lit').length === 4;
+    /* ---- a rank is one mark with its number in it — decision 155 --------
+       Difficulty is a teardrop and priority is a star, and each is a single
+       outlined mark carrying the score. Pressing it walks the ramp and comes
+       round to nothing, so what is measurable is that there is one target per
+       rank, that it writes, and that the digit it prints is the rank the
+       object is actually carrying. Five marks filled to the answer was a
+       picture of the scale, and the scale is not the thing you are choosing. */
+    const rank = a => document.querySelector(`#panel [data-${a}]`);
+    out.oneMarkEach = document.querySelectorAll('#panel [data-diff]').length === 1
+      && document.querySelectorAll('#panel [data-prio]').length === 1;
+    out.eachWearsItsOwnMark = !!rank('diff').querySelector('svg')
+      && !!rank('prio').querySelector('svg');
+    t.diff = 2; BUREAU.schedule(t.id); await nap(300);
+    rank('diff').click(); await nap(260);
+    out.difficultyRanks = t.diff === 3
+      && rank('diff').querySelector('u').textContent.trim() === '3';
+    t.prio = 3; BUREAU.schedule(t.id); await nap(300);
+    rank('prio').click(); await nap(260);
+    out.priorityRanks = t.prio === 4
+      && rank('prio').querySelector('u').textContent.trim() === '4';
 
     // a duration in one press, and pressing the one already set clears it
     document.querySelector('#panel [data-durset$=":120"]').click(); await nap(240);
@@ -4908,6 +4950,10 @@ const CHROME = process.env.BUREAU_CHROME;
     // the two ranks have to be *there* to be measured — a row that is not
     // rendered reads as a radius of null, which is not the same as sharp
     t.attrs = ['text','check','date','duration','difficulty','priority','repeat'];
+    /* Nothing placed yet, so all three are in the lane. A task is born dated
+       today, and a **placed button is not in the lane** — it is on the day it
+       was put on (decision 154), which is asserted further down. */
+    t.due = null;
     BUREAU.render(); await nap(150);
     BUREAU.schedule(t.id); await nap(320);
 
@@ -4928,11 +4974,16 @@ const CHROME = process.env.BUREAU_CHROME;
     const iso = days[12].dataset.schedday.split(':')[1];
     days[12].click(); await nap(300);
     out.theMonthWritesThatOne = t.dead === iso && t.due !== iso;
+    /* …and it is **not in the lane any more**. It has been put somewhere; a
+       tray still showing it would be drawing the same fact twice, with the
+       tray reading as though nothing had been put down. See decision 154. */
+    out.aPlacedOneLeavesTheLane = !pen('dead')
+      && document.querySelectorAll('#panel .sday.dead').length === 1;
     // pressing the same day again clears it, the way every toggle here does
     document.querySelector(`#panel [data-schedday$=":${iso}"]`).click(); await nap(300);
     out.andPressingItAgainClears = t.dead == null;
-    // the pen survives a redraw: it is UI state, and you are still holding it
-    out.thePenIsStillInYourHand = pen('dead').classList.contains('up');
+    // …and back it comes, still in your hand: the pen is UI state
+    out.thePenIsStillInYourHand = !!pen('dead') && pen('dead').classList.contains('up');
 
     /* ---- round, or square, and nothing in between --------------------
        Measured off the computed style rather than read out of the source,
@@ -4993,7 +5044,7 @@ const CHROME = process.env.BUREAU_CHROME;
     out.theTitleLiesDownToo = wm(flat.id).startsWith('horizontal')
       && wm(tall.id).startsWith('vertical');
     // …and every binding transposes, because they all read off the one class
-    out.everyBindingLiesDown = ['plain','banded','ribbed','tooled','label'].every(bn => {
+    out.everyBindingLiesDown = Object.keys(BUREAU.BINDINGS).every(bn => {
       flat.binding = bn; BUREAU.render();
       return el(flat.id).classList.contains('lying') && el(flat.id).classList.contains('bn-'+bn);
     });
@@ -5178,7 +5229,7 @@ const CHROME = process.env.BUREAU_CHROME;
     // …and a board can sort by it
     out.sortsByIt = !!BUREAU.sorts.urgent;
     // the editor offers the row, and it is a readout rather than a field
-    BUREAU.panel(t.id, 'fields'); await nap(250);
+    BUREAU.panel(t.id, 'adv'); await nap(250);
     out.theEditorSaysIt = !!document.querySelector('#panel .urgerow')
       && !document.querySelector('#panel [data-oset$=":urg"]');
     document.querySelector('#panel [data-act="panelclose"]').click();
@@ -5963,12 +6014,18 @@ const CHROME = process.env.BUREAU_CHROME;
     out.andSoDoesLook = !!stage();
     /* …and it is live. Every row in that section changes how the object looks,
        so a preview that does not follow them is a picture rather than a stage. */
+    /* Every Look row is a **cycle** now: one press is one answer, and the
+       stage under it redraws. What is measurable is that pressing the knob row
+       changes the knob on the stage — which is the whole argument for a cycle
+       over a select, because a select covers the stage with a list of words.
+       See decision 148. */
     const was = document.querySelector('#panel .objstage .pull').className;
-    const sel = document.querySelector(`#panel select[data-oset="${d.id}:knob"]`);
-    if (sel) { sel.value = 'bar'; sel.dispatchEvent(new Event('change', {bubbles:true})); }
+    const cyc = document.querySelector(`#panel .pcyc[data-ocycle="${d.id}:knob"]`);
+    out.aLookRowIsACycle = !!cyc;
+    if (cyc) cyc.click();
     await nap(250);
     const now = document.querySelector('#panel .objstage .pull').className;
-    out.andItFollowsTheRows = was !== now && /kn-bar/.test(now);
+    out.andItFollowsTheRows = was !== now && /\bkn-/.test(now);
     // the desk is a container without a tile, so it still gets no stage
     BUREAU.panel('root', 'look'); await nap(220);
     out.butTheDeskHasNoTile = !document.querySelector('#panel .objstage');
@@ -6170,15 +6227,26 @@ const CHROME = process.env.BUREAU_CHROME;
     // each one says which binding it is, and the front is a spine
     out.eachSaysWhichItIs = made.every((o, i) =>
       tile(o) && tile(o).classList.contains('bn-' + names[i]));
-    /* The ornaments are drawn on `::before` for three of the five, so what is
-       measurable is that those three put something there and the other two
-       do not — an empty `::before` would be a binding that draws nothing. */
+    /* What each binding puts on `::before`. Three of the five draw something
+       there — the hubs, and the two joints a flat or chamfered back has — and
+       an empty `::before` would be a binding that draws nothing. `chamfer`
+       says its whole answer in the tile's own background, so it is bare here
+       and its *shape* is asserted below instead. See decision 152. */
     const drawn = o => { const cs = getComputedStyle(tile(o), '::before');
       return cs.content !== 'none' && cs.width !== 'auto'; };
-    out.threeCarryOrnament = ['ribbed','tooled','label']
+    out.threeCarryOrnament = ['ribbed','flat']
       .every(bn => drawn(made[names.indexOf(bn)]));
     out.andTwoAreBare = ['plain','banded']
       .every(bn => !drawn(made[names.indexOf(bn)]));
+    /* **The back is the shape, for the last two.** A flat back and a chamfer
+       are the only two bindings allowed to restate the spine's own gradient,
+       and it is the one thing they exist to change — so what is measurable is
+       that their background is *not* the rounded one every other binding
+       keeps. See decision 152. */
+    const bg = o => getComputedStyle(tile(o)).backgroundImage;
+    out.theBackIsTheBinding = bg(made[names.indexOf('flat')]) !== bg(made[names.indexOf('plain')])
+      && bg(made[names.indexOf('chamfer')]) !== bg(made[names.indexOf('plain')])
+      && bg(made[names.indexOf('banded')]) === bg(made[names.indexOf('plain')]);
     // the title runs up the spine, in every one of them
     const run = o => tile(o) && tile(o).querySelector('.spinetitle b');
     out.everyTitleRunsUp = made.every(o => run(o)
@@ -6203,7 +6271,7 @@ const CHROME = process.env.BUREAU_CHROME;
     });
     // a binding is per object then per type, like every other look
     out.perObjectThenPerType = BUREAU.bindingOf({ kind: 'novel', binding: 'plain' }) === 'plain'
-      && BUREAU.bindingOf({ kind: 'novel' }) === 'tooled';
+      && BUREAU.bindingOf({ kind: 'novel' }) === BUREAU.K.novel.binding;
     // nonsense falls back rather than stamping a class nothing styles
     out.nonsenseFallsBack = BUREAU.bindingOf({ binding: 'crocodile' }) === 'banded';
     made.forEach(o => BUREAU.delDrawer(o.id));

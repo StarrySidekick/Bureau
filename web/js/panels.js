@@ -13,13 +13,13 @@ import { S, K, KINDS, KEYS, T, ATTRS, USER_ATTRS, FIELDS, fieldOf, OPS, ROLLS,
   CALVIEWS, calViewOf, weekStartOf, showsWeekends, KNOBSIZES, knobSizeOf,
   TSIZES, textSizeOf, mediaTypeOf, isPicture, isMedia, isDecor,
   bindingOf, FRAMES, FRAME_SLOTS, frameOf, panelOf, knobOf, borderOf, textureOf,
-  slotRaw } from './model.js';
+  slotRaw, homeFor } from './model.js';
 import { GRID, lay, boxOk, freeSpot, anySpot, sizeOfKind, toPhoneSize, keepSize } from './grid.js';
-import { randomBoard, randomFront, hexOf, objColour, objSlots, famSlots, famAll, FAMS, styleKey, stockNow } from './look.js';
+import { randomBoard, randomFront, hexOf, objColour, objSlots, famSlots, famAll, FAMS, styleKey, stockNow, CHECKS, checkNow } from './look.js';
 import { CLICKS, clickOf, gridTile, pending } from './tiles.js';
 import { DECOR, decorOf, decorSVG, decorFor, decorRest, LIFE_ART, LIFE_KEYS, lifeSVG } from './decor.js';
 import { quickAdd, toast, drawerForTag, CONTROLS, CTL_KEYS, ctlSpec } from './mutations.js';
-import { openObj, renderSheet } from './sheet.js';
+import { openObj, renderSheet, closeSheet } from './sheet.js';
 import { render, settingsPanel, gridSizeField, shelfCountField } from './views.js';
 import { openingFor } from './motion.js';
 import { plans, planTop, planSize } from './plans.js';
@@ -186,7 +186,13 @@ function openMenu(anchor, html){
    the one in a magic drawer's rule — pass nothing and still see everything,
    because narrowing what a type can be is not what decision 130 is about. */
 function pickGroups(skipPrimary){
-  const g={Containers:[], Objects:[], Writing:[], Cooking:[], Film:[], Yours:[]};
+  /* **There is no Film group.** It held Audio and Video, which are things you
+     put on a desk rather than a corner of film-making and are majors now, plus
+     Film, Song and Album, which are members of the Project family and were
+     never listed here anyway. What was left was a heading over three tiles you
+     reach a different way. Anything still marked `film` falls to Containers or
+     Objects like everything else. See decision 144. */
+  const g={Containers:[], Objects:[], Writing:[], Cooking:[], Yours:[]};
   KEYS.forEach(k=>{
     /* A category is only ever a question — there is no generic Fragment to
        make — so it is never listed as a type anywhere, including in the
@@ -202,7 +208,6 @@ function pickGroups(skipPrimary){
     if(S.kinds[k])                    g.Yours.push(k);
     else if(d.narrative)              g.Writing.push(k);
     else if(d.cooking)                g.Cooking.push(k);
-    else if(d.film)                   g.Film.push(k);
     else if(kindHas(k,'container'))   g.Containers.push(k);
     else                              g.Objects.push(k);
   });
@@ -384,7 +389,7 @@ function modalNewObject(){
   /* Where the thing will land, which decides what the picker leads with. The
      cell a hold sketched knows its container; failing that it is the board you
      are looking at. */
-  const home = (pending.cell && pending.cell.parent) || (S.view==='drawer' && S.drawerId) || ROOT;
+  const home = (pending.cell && pending.cell.parent) || homeFor((S.view==='drawer' && S.drawerId) || ROOT);
   const lead = majors(home);
   const c = byId(home);
   const made = c && isContainer(c) && takesTyping(c) ? genSaid(c) : null;
@@ -393,10 +398,15 @@ function modalNewObject(){
     key:'newobject', wide:true, title:'New object',
     sub:'Every type is drawn as the thing it makes',
     act:`<button class="pill" data-act="newkind">${ic('sparkle',13)} New type</button>`,
-    body:()=> (plansHere() ? plansHere() : '') + `
+    /* **Put down first, then plans.** A plan is a board you saved and it is the
+       rarer answer to "what am I making"; leading with it put a row of saved
+       arrangements above the thing you opened the picker for. Types, then the
+       arrangements, then everything else. */
+    body:()=> `
       <div class="section-h"><h2>${made?'In here':'Put down'}</h2><div class="rule"></div><span class="n">${
         made ? 'this drawer makes a '+esc(made) : 'the things a desk is made of'}</span></div>
-      <div class="kindgrid">${lead.map(k=>kindTile(k)).join('')}</div>${
+      <div class="kindgrid">${lead.map(k=>kindTile(k)).join('')}</div>
+      ${plansHere()}${
       rest.length ? `<details class="pgroup allkinds"><summary>Every other type</summary>${
         rest.map(g=>`
           <div class="section-h"><h2>${g.nm}</h2><div class="rule"></div>${g.note?`<span class="n">${g.note}</span>`:''}</div>
@@ -544,9 +554,91 @@ const OPENING_IS = o => openingOf(o)==='auto'
   ? 'right now, it '+OPENINGS[openingFor(o)].toLowerCase() : '';
 const psel=(id,key,list,cur)=>`<select class="psel" data-oset="${id}:${key}">${
   list.map(([v,n])=>`<option value="${esc(String(v))}"${String(cur==null?'':cur)===String(v)?' selected':''}>${esc(n)}</option>`).join('')}</select>`;
+/* ---- a visual choice is pressed through, not chosen from a list --------
+   Every row in the Look section changes something you can *see*, and the thing
+   you can see is drawn six inches above it on the stage. A `<select>` puts a
+   list of words between you and that: you open it, the list covers the
+   preview, you read a name you have to imagine, you close it, and only then
+   does the picture change — so trying five panellings is five round trips
+   through a menu that hides the answer.
+
+   A cycle is one press per answer. The button says where you are and how many
+   there are, the stage redraws under it, and going round the ring is the whole
+   interaction. It writes through `setField()` like every other row, so undo,
+   the desk's re-render and the panel's refresh all come along unchanged.
+
+   Words-not-pictures rows keep their select: "Clicking it" is a list of
+   behaviours and cycling through those means pressing a button to find out
+   what it does. This is for the ones you judge by eye. See decision 148. */
+const pcycle=(id,key,list,cur)=>{
+  if(!list.length) return '';
+  const now = String(cur==null?'':cur);
+  const i = Math.max(0, list.findIndex(([v])=>String(v)===now));
+  const nx = list[(i+1)%list.length];
+  const pv = list[(i-1+list.length)%list.length];
+  /* A ring you can only walk one way is fine for five knobs and a chore for
+     twenty-eight shapes: overshoot the one you liked and you go round again.
+     The step back is a separate small target rather than a list, so this is
+     still a cycle — the answer is the picture on the stage, not a word you
+     read off a menu. Only when there are enough of them to get lost in. */
+  const back = list.length>6
+    ? `<i class="pcycback" data-ocycle="${id}:${key}" data-next="${esc(String(pv[0]))}"
+         role="button" tabindex="0" title="Back to ${esc(pv[1])}">${ic('chevL',12)}</i>` : '';
+  return `<span class="pcycrow">${back}<button class="pcyc" data-ocycle="${id}:${key}"
+      data-next="${esc(String(nx[0]))}"
+      title="${esc(list[i][1])} — press for ${esc(nx[1])}">
+      <span>${esc(list[i][1])}</span><u>${i+1}/${list.length}</u>
+      <i>${ic('chevR',12)}</i></button></span>`;
+};
 const pfield=(id,key,cur,type,ph)=>`<input class="pfield"${type?` type="${type}"`:''}
   data-oset="${id}:${key}" value="${esc(cur==null?'':cur)}" placeholder="${esc(ph||'')}">`;
 const pgroup=(label,body,open)=>`<details class="pgroup"${open?' open':''}><summary>${esc(label)}</summary>${body}</details>`;
+/* ---- text size: three letters, not five words -------------------------
+   The Books app's control, and it is right for the same reason the cycle above
+   is: the answer is a thing you look at. Three letters at three sizes say
+   "smaller, normal, bigger" without either of the words, and the two ends of
+   the ramp are one press away rather than a menu apart. The five stored values
+   are unchanged — TSIZES is still the table — these are three of them; the
+   other two are reachable by pressing on past the end, because the row wraps
+   the way every cycle in this panel does. See decision 148. */
+const TSIZE_STEPS = ['0.8','1','1.25','1.6','2'];
+function tsizeRow(id, cur){
+  const now = String(cur);
+  const i = Math.max(0, TSIZE_STEPS.indexOf(now));
+  return `<div class="tsizerow">${TSIZE_STEPS.map((v,n)=>
+    `<button class="tsz${i===n?' on':''}" data-oclick="${id}:tsize:${v}"
+       style="font-size:${11 + n*4}px" title="${esc((TSIZES.find(t=>t[0]===v)||[,''])[1])}"
+       >A</button>`).join('')}</div>`;
+}
+
+/* ---- the board: two colours, one for each square ----------------------
+   A board is a checkerboard and it was one control: six preset pairs and a
+   dice roll. That is fine for "give me a board" and no use at all for "this
+   half a shade warmer", which is the thing you actually want once you have
+   lived with one. Two colour inputs, one per square, over the same six presets
+   — the presets write both at once, and either input writes its own half.
+
+   Stored as it always was, `"#aaa|#bbb"`, so nothing needed migrating: the
+   pair is one string and these are its two ends. See decision 150. */
+function boardRow(id, d, isRoot){
+  const cur = d.board || '';
+  const [a, z] = (cur || '|').split('|');
+  const half = (which, v) => `<label class="halfsw">
+    <input type="color" data-pboardhalf="${which}" data-id="${id}" value="${esc(v||'#EFE9DA')}">
+    <span>${which==='a'?'Light square':'Dark square'}</span></label>`;
+  return prow('Board',
+    `<div class="pickgrid sw">${[0,1,2,3,4,5].map(()=>randomBoard()).map(b=>{
+        const [p,q]=b.split('|');
+        return `<button data-pboard="${b}" data-id="${id}"
+          style="background:linear-gradient(135deg,${p} 0 50%,${q} 50% 100%)"></button>`;}).join('')}
+      <button data-pboard="" data-id="${id}" title="${isRoot?'Use the app\u2019s board':'Use the desk\u2019s board'}" class="${cur?'':'on'}"
+        style="background:var(--paper);border-style:dashed"></button></div>
+    <div class="halfrow">${half('a', a)}${half('z', z)}</div>
+    <input class="pslide" type="range" min="0" max="100" step="5"
+      value="${Math.round((d.boardAlpha==null?1:d.boardAlpha)*100)}" data-palpha data-id="${id}">`,
+    isRoot?'this desk only':'');
+}
+
 /* ---- a slot row -------------------------------------------------------
    Five knobs, seven edges, five panellings, six grains: what you see is
    *this* aesthetic's answers, because a slot is a position and the position
@@ -568,17 +660,25 @@ function slotRow(label, id, fam, cur, note, prop){
   prop = prop || FAMS[fam].prop;
   const pinned = String(cur||'').includes('/');
   const mine = famSlots(fam);
-  // a pinned value is not in this aesthetic's list, so the select would show
-  // its first option as though nothing had been chosen — say so instead
+  // a pinned value is not in this aesthetic's list, so the cycle would start at
+  // its first position as though nothing had been chosen — say so instead
   const head = pinned ? [['', '— from another aesthetic —']] : [];
+  /* **A small door, not a labelled one.** Every slot family carried a full-
+     width disclosure reading "From other aesthetics", so a section with five
+     slot rows in it had five of those — five lines of furniture in front of
+     the thing you were looking at, for a choice most people never make. It is
+     a chip with a brush on it now, opening the same list; the label lives on
+     the tooltip, where a rarely-taken door's label belongs. */
   return prow(label,
-    psel(id, prop, head.concat(mine), pinned ? '' : cur)
-    + pgroup('From other aesthetics',
-        `<select class="psel" data-oset="${id}:${prop}">
+    `<div class="slotpick">${pcycle(id, prop, head.concat(mine), pinned ? '' : cur)}
+      <details class="pgroup slotmore"${pinned?' open':''}>
+        <summary title="From other aesthetics">${ic('brush',12)}</summary>
+        <select class="psel" data-oset="${id}:${prop}">
           <option value="">Follow this aesthetic</option>${
           famAll(fam).map(([nm, opts])=>`<optgroup label="${esc(nm)}">${
             opts.map(([v,n])=>`<option value="${esc(v)}"${v===cur?' selected':''}>${esc(n)}</option>`).join('')
-          }</optgroup>`).join('')}</select>`, pinned),
+          }</optgroup>`).join('')}</select>
+      </details></div>`,
     note);
 }
 /* ---- eleven slots, and one colour of your own --------------------------
@@ -661,22 +761,48 @@ function objectStage(id){
    panel under the same key, so a section replaces rather than stacks, and
    `spec.back` is the way out: the one thing a replaced panel never had, and the
    only real work in splitting these up. See decision 66. */
+/* **Four doors, and one of them is marked advanced.**
+
+   There were six. *Tags and links* has gone because tags are on the card now —
+   the thing you came to look at, with a plus on the end of the row — and a
+   door in front of a row of five chips is a door in front of nothing.
+
+   *Fields* and *Traits* are behind **Advanced**. Both are about the object's
+   own structure rather than about the object: Traits is which attributes it
+   carries at all, which is the type builder pointed at one thing, and Fields
+   is a form generated from those traits. Neither is wrong and neither is what
+   you open an editor to do — a task's dates live in the When page, a
+   milestone list in Collects, a picture in the media row. Behind one door,
+   named for what it is. See decision 148. */
 const OBJSECS = {
-  look:   ['Look',      'palette',  'shape, colour, mark, edges'],
+  look:   ['Look',      'palette',  'colour, face, edges, hardware'],
   does:   ['Behaviour', 'sliders',  'what it does when you touch it'],
-  fields: ['Fields',    'list',     'what its traits carry'],
   collect:['Collects',  'sparkle',  'what fills it, and what it totals'],
-  tags:   ['Tags and links','tag',  'what it is filed under, what it points at'],
-  traits: ['Traits',    'gear',     'what it can do at all']
+  adv:    ['Advanced',  'gear',     'its fields, and which traits it carries']
 };
 function objectPanel(id, sec){
   const o = id===ROOT ? null : byId(id);
   if(id!==ROOT && !o) return;
+  /* **The editor closes the surface, not the other way round.** `renderSheet()`
+     closes any open panel, on the argument that a surface is the bigger claim
+     — which is right when you open a surface. It is wrong when you press the
+     paintbrush *from* one: the panel came up behind the book and you had to
+     close the book to see the settings you had just asked for. Whichever you
+     opened last wins, in both directions. The clear has to happen before
+     openPanel(), because renderSheet() only shuts a panel while a surface is
+     still up. */
+  if(S.writeId || S.readId || S.viewId) closeSheet();
   S.openId = id;                    // what the field handlers in wire.js act on
   const s = OBJSECS[sec] ? sec : null;
+  /* The heading *is* the rename field on the top level: press it and it becomes
+     an input, and the panel's own title is the one place a thing is called
+     something. `pheadname` is the hook wire.js listens for. */
+  const heading = s ? esc(OBJSECS[s][0])
+    : id===ROOT ? esc(deskTitle())
+    : `<span class="pheadname" data-headname="${id}" tabindex="0"
+         title="Press to rename">${esc(o.title||'Untitled')}</span>`;
   openPanel({key:'object:'+id, anchor:id===ROOT?null:id,
-    title: s ? OBJSECS[s][0]
-             : id===ROOT ? esc(deskTitle()) : esc(o.title||'Untitled'),
+    title: heading,
     sub: s ? (id===ROOT ? esc(deskTitle()) : esc(o.title||'Untitled'))
            : id===ROOT ? 'The desk itself' : esc(K(o.kind).nm)+' · editor',
     back: s ? (()=>objectPanel(id)) : null,
@@ -709,12 +835,42 @@ function objectPanelBody(id, sec){
   /* ---- what it is. The top level, and only there: a section is about one
      question and "what is this thing called" is not that question twice. ---- */
   if(!sec && !isRoot){
+    /* **The name is the title of the panel.** It was a labelled field under
+       the stage, which is a second place the thing is called something — the
+       head already prints the name, so the editor opened saying "Sunday
+       braise" twice, once as a heading and once as a box. Tapping the heading
+       turns it into the box (see `pheadname` below); everything else about
+       the top of this panel is the thing itself. */
     out.push(objectStage(id));
-    out.push(prow('Name', pfield(id,'title', o.title, '', 'Untitled')));
     out.push(prow('Type', `<select class="psel" data-oset="${id}:kind">${typeOptions(o.kind)}</select>`,
       'swaps its traits, keeps its data'));
     out.push(prow('Lives in', psel(id,'parent',
       moveTargets(id).map(c=>[c.id, c.id===ROOT?'The Desk':(c.title||'Untitled')]), o.parent||ROOT)));
+    /* **Tags are on the card.** They were behind a door called "Tags and
+       links", which is a door in front of a row of five chips — and a tag is
+       the one piece of filing you add *while looking at the thing*, not a
+       setting you go and configure. The plus is the whole interface. */
+    out.push(prow('Tags',
+      `<div class="tagrow">${(o.tags||[]).map(t=>
+        `<span class="realtag" data-tagdrawer="${esc(t)}" title="Open a drawer for #${esc(t)}">${esc(t)}<b data-untag="${esc(t)}">\u2715</b></span>`).join('')}
+        <button class="add" data-act="addtag" data-id="${id}">+ tag</button></div>`,
+      (o.tags||[]).length ? 'press one to open a drawer for it' : 'what it is filed under'));
+    /* **And the links, beside them.** They were the other half of the door
+       called "Tags and links", and they are the same sort of fact: what this
+       thing is filed under, and what it points at. Both belong on the card
+       with the thing rather than behind a heading. */
+    const rel=relatedTo(o), back=backlinksTo(id).filter(x=>x.id!==id);
+    if(has(o,'relates') || rel.length || back.length){
+      const chip=(x,rm)=>`<span class="relchip" style="--k:${objColour(x)}" data-openrel="${x.id}">
+        ${ic(K(x.kind).ic,11)} ${esc(x.title||'Untitled')}${rm?`<b data-unrel="${id}:${x.id}" title="Unlink">\u2715</b>`:''}</span>`;
+      out.push(prow('Related',
+        `<div class="relrow">${rel.map(x=>chip(x,true)).join('')}
+          ${has(o,'relates')?`<button class="add" data-act="addrel" data-id="${id}">+ link</button>`
+            :`<span class="mini" style="--k:var(--brass);padding:0">Tick <b>Related</b> under Advanced to link from here</span>`}</div>
+        ${back.length?`<div class="statline" style="margin:10px 0 4px"><div class="s">Pointed at by</div></div>
+          <div class="relrow">${back.map(x=>chip(x,false)).join('')}</div>`:''}`,
+        rel.length+back.length ? `${rel.length+back.length}` : ''));
+    }
   }
   /* ---- save this board as a plan --------------------------------------
      On the top level rather than behind a door, because it is a thing you do
@@ -731,11 +887,9 @@ function objectPanelBody(id, sec){
   /* …and the doors. Which ones there are depends on what the thing is: only a
      container collects, and the desk has no traits of its own to tick. */
   if(!sec){
-    const doors = ['look','does','fields','collect','tags','traits'].filter(s=>
+    const doors = ['look','does','collect','adv'].filter(s=>
         (s!=='collect' || (cont && !isRoot))
-     && (s!=='fields'  || !isRoot)
-     && (s!=='tags'    || !isRoot)
-     && (s!=='traits'  || !isRoot));
+     && (s!=='adv'     || !isRoot));
     out.push(`<div class="rows osecs">${doors.map(s=>{
       const [nm,icon,note]=OBJSECS[s];
       return `<div class="row" data-osec="${id}:${s}">
@@ -745,92 +899,99 @@ function objectPanelBody(id, sec){
   }
 
   if(at('look')) {
-  /* ---- how it looks ---- */
-  /* The thing itself, again. Every row in this section changes how the object
-     looks, and the panel is covering the object — on a phone it covers the
-     whole board — so a section about appearance with nothing to look at is the
-     one place the stage is least optional. It was only on the top level, which
-     is where you go to rename something. See decisions 51 and 97. */
+  /* ---- how it looks ----------------------------------------------------
+     **One order, whatever the thing is.** Colour, face, how big the words
+     are, the mark, the shape or the working on the front, the edge, what the
+     sheet or the surface is made of, the hardware, and the board underneath.
+     A drawer has knobs and a note has a stock, so not every row is drawn for
+     every object — but the ones that *are* drawn are always in this order, so
+     the row you want is in the place it was last time rather than in the place
+     this particular type happens to put it.
+
+     Every one of them is a cycle rather than a list: see pcycle(). The stage
+     is above them and redraws on each press, which is the whole point.
+
+     `Opening` is here rather than under Behaviour, where it used to sit. It is
+     not what the thing *does* — that is the same either way — it is which
+     animation it does it with, which is a look. See decision 148. */
   if(!isRoot) out.push(objectStage(id));
-  /* A face is how a container draws itself on its parent's board, and the desk
-     has no parent and no tile — asking it which front to wear is asking about
-     a thing that does not exist. Everything below this line does apply to it:
-     a desk is a container, and what it is made of is its own question. */
-  if(!isRoot) out.push(cont
-    ? prow('Face', psel(id,'face', Object.entries(FACES), faceOf(d)), 'on its parent’s board')
-      + (faceOf(d)==='spine' || (d[dev()]||{}).w<=1
-          ? slotRow('Binding', id, 'bn', slotRaw(d,'binding')||bindingOf(d),
-              'how the book is bound — the spine is the one face that is a made object')
-          : faceOf(d)==='front'
-          ? slotRow('Panelling', id, 'pn', slotRaw(d,'panel')||panelOf(d),
-              'how the front is worked — a moulding, lit from the upper left like the knob')
-          : '')
-    : prow('Shape', psel(id,'shape', Object.entries(SHAPES), shapeOf(d))));
+
+  // 1 · colour
   if(!isRoot) out.push(prow(cont?'Front':'Colour', swatches(id,'c', d.c)));
-  /* The mark, per object. A type carries one and every object of that type wore
-     it, which is right until two drawers of the same type sit side by side and
-     the only thing telling them apart is a name too small to read. Follows the
-     type until you pick, and the first chip is the way back. */
+  // 2 · face — how a container draws itself on its parent's board. The desk
+  //     has no parent and no tile, so it is not asked.
+  if(!isRoot && cont) out.push(prow('Face', pcycle(id,'face', Object.entries(FACES), faceOf(d)),
+    'on its parent\u2019s board'));
+  // 3 · how big the words on its face are
+  if(!isRoot) out.push(prow('Text size', tsizeRow(id, textSizeOf(d))));
+  /* 4 · the mark, per object. A type carries one and every object of that type
+     wore it, which is right until two drawers of the same type sit side by
+     side and the only thing telling them apart is a name too small to read. */
   if(!isRoot) out.push(prow('Mark', `<button class="pchip iconchip${d.ic?'':' on'}"
       data-oic="" data-id="${id}" title="Follow the ${esc(K(d.kind).nm.toLowerCase())} type">${ic('undo',15)}</button>`
     + MARKS.map(i=>`<button class="pchip iconchip${d.ic===i?' on':''}" data-oic="${i}" data-id="${id}"
         title="${esc(i)}">${ic(i,15)}</button>`).join(''),
     d.ic ? 'its own' : esc(K(d.kind).nm)));
-  /* How big the words on its face are. A note you want to read from across the
-     desk and a note that is a label are the same object at two sizes, and
-     resizing the tile was the only answer the app had. */
-  if(!isRoot) out.push(prow('Text size', psel(id,'tsize', TSIZES, String(textSizeOf(d)))));
-  /* An object is paper, so it wears the same families a drawer front does
-     minus the hardware: an edge, a grain, and what the sheet itself is made
-     of. It was the one thing on the desk outside the aesthetic system — every
-     note in Golf 97 looked exactly like every note in Victoria. See decision
-     99. */
-  if(!isRoot && !cont){
-    out.push(slotRow('Border', id, 'bd', slotRaw(d,'border')||borderOf(d), 'a slot, named by the aesthetic'));
-    out.push(slotRow('Stock', id, 'st', slotRaw(d,'stock')||stockNow(d), 'what the sheet is made of'));
-    out.push(slotRow('Texture', id, 'tx', slotRaw(d,'texture')||textureOf(d), 'what is printed on it'));
-    out.push(prow('Coloured stripe', psel(id,'edge',[['','None'],['1','Down the left']], d.edge?'1':'')));
-  }
+  // 5 · the shape it is, or the working on the front it wears
+  if(!isRoot && !cont) out.push(prow('Shape', pcycle(id,'shape', Object.entries(SHAPES), shapeOf(d))));
   if(!isRoot && cont){
-    out.push(slotRow('Border', id, 'bd', slotRaw(d,'border')||borderOf(d), 'a slot, named by the aesthetic'));
+    if(faceOf(d)==='spine' || (d[dev()]||{}).w<=1)
+      out.push(slotRow('Binding', id, 'bn', slotRaw(d,'binding')||bindingOf(d),
+        'how the book is bound \u2014 the spine is the one face that is a made object'));
+    else if(faceOf(d)==='front')
+      out.push(slotRow('Panelling', id, 'pn', slotRaw(d,'panel')||panelOf(d),
+        'how the front is worked \u2014 a moulding, lit from the upper left like the knob'));
+  }
+  // 6 · the edge
+  if(!isRoot) out.push(slotRow('Border', id, 'bd', slotRaw(d,'border')||borderOf(d), 'a slot, named by the aesthetic'));
+  /* 7 · what the surface is made of. **Paper asks for a stock, wood asks for a
+     grain** — they are the same question about two materials, and asking an
+     object both left every note with a grain it did not need on top of a stock
+     that already said what the sheet was. */
+  if(!isRoot && !cont) out.push(slotRow('Stock', id, 'st', slotRaw(d,'stock')||stockNow(d), 'what the sheet is made of'));
+  if(!isRoot && cont) out.push(slotRow('Texture', id, 'tx', slotRaw(d,'texture')||textureOf(d), 'what the surface is made of'));
+  // 8 · the hardware
+  if(!isRoot && cont){
     out.push(slotRow('Knob', id, 'kn', slotRaw(d,'knob')||knobOf(d)));
-    out.push(prow('Knob size', psel(id,'knobsize', Object.entries(KNOBSIZES), knobSizeOf(d))
-      + psel(id,'knobpos', [['centre','Centre'],['bottom','Bottom']], d.knobpos||'centre')));
+    out.push(prow('Knob size', pcycle(id,'knobsize', Object.entries(KNOBSIZES), knobSizeOf(d))
+      + pcycle(id,'knobpos', [['centre','Centre'],['bottom','Bottom']], d.knobpos||'centre')));
     /* A knob is turned out of the same wood as the front, so by default that is
        what it is: the drawer's own colour, told apart by the light on it rather
        than by being a different colour. Lighter and darker are still there for
        a brass handle on a walnut front — and so is a colour outright. The first
        swatch is the way back to the front's own. */
-    out.push(prow('Knob colour', psel(id,'knobtone',
+    out.push(prow('Knob colour', pcycle(id,'knobtone',
         [['','Same as the front'],['light','Lighter'],['dark','Darker']], d.knobc?'':(d.knobtone||''))
       + `<div class="pickgrid sw" style="margin-top:5px">
         <button data-pknobc="" data-id="${id}" title="Follow the front" class="${d.knobc?'':'on'}"
           style="background:var(--paper);border-style:dashed"></button>${
         ['#F8F3E6','#A9793F','#2A241C','#C0563F','#3E7A6B','#5D7E99'].map(c=>
         `<button data-pknobc="${c}" data-id="${id}" class="${d.knobc===c?'on':''}" style="background:${c}"></button>`).join('')}</div>`));
-    out.push(slotRow('Texture', id, 'tx', slotRaw(d,'texture')||textureOf(d),
-      'what the surface is made of'));
   }
-  /* What the board underneath is made of. The desk gets this too — it is a
+  /* 9 · what the board underneath is made of. The desk gets this too — it is a
      container like any other, and repainting *this* desk used to be impossible
      without repainting every one of them from the app's settings. */
-  if(cont){
-    out.push(prow('Board', `<div class="pickgrid sw">${[0,1,2,3,4,5].map(()=>randomBoard()).map(b=>{
-        const [a,z]=b.split('|');
-        return `<button data-pboard="${b}" data-id="${id}" style="background:linear-gradient(135deg,${a} 0 50%,${z} 50% 100%)"></button>`;}).join('')}
-        <button data-pboard="" data-id="${id}" title="${isRoot?'Use the app’s board':'Use the desk’s board'}" class="${d.board?'':'on'}"
-          style="background:var(--paper);border-style:dashed"></button></div>
-      <input class="pslide" type="range" min="0" max="100" step="5"
-        value="${Math.round((d.boardAlpha==null?1:d.boardAlpha)*100)}" data-palpha data-id="${id}">`,
-      isRoot?'this desk only':''));
-  }
+  if(cont) out.push(boardRow(id, d, isRoot));
+  /* And the last of the visual rows: which movement it opens with. Left alone
+     it works itself out — a big container swings, a small one pulls out, a
+     sheet of paper curls — and this is here for when it has worked it out
+     wrongly. */
+  if(!isRoot) out.push(prow('Opening', pcycle(id,'opening', Object.entries(OPENINGS), openingOf(d)),
+    esc(OPENING_IS(d))));
+  /* A tick box is per object now: a task you tick in a circle and a checklist
+     you tick in a square are two things you may genuinely want side by side,
+     and it was one switch for the whole app. See decision 149. */
+  if(!isRoot && (has(d,'check') || (cont && genKindOf(d) && kindHas(genKindOf(d),'check'))))
+    out.push(prow('Tick box', pcycle(id,'check',
+      [['','Follow the desk'], ...Object.entries(CHECKS)], d.check||''),
+      d.check ? 'its own' : esc(CHECKS[checkNow()]||'')));
   /* Ten of them now, and the list is the table rather than a copy of it — the
      old one was written out by hand here and the window frames would have been
      invisible to it. */
   if(img) out.push(prow('Frame',
-    psel(id, 'frame', FRAME_SLOTS.map(k=>[k, FRAMES[k]]), frameOf(d)),
+    pcycle(id, 'frame', FRAME_SLOTS.map(k=>[k, FRAMES[k]]), frameOf(d)),
     'a picture is framed; a window is looked through'));
-  if(has(d,'button')) out.push(prow('Button shape', psel(id,'btnshape',
+  if(has(d,'button')) out.push(prow('Button shape', pcycle(id,'btnshape',
     [['rounded','Rounded'],['round','Round'],['square','Square']], d.btnshape||'rounded')));
 
   }
@@ -888,11 +1049,10 @@ function objectPanelBody(id, sec){
     out.push(prow('Clicking it', psel(id,'onclick', Object.entries(CLICKS), clickOf(d))));
     if(has(d,'text')) out.push(prow('Opens as', psel(id,'read', Object.entries(READS), readOf(d))));
   }
-  /* How it opens — the movement, not the destination. Left alone it works
-     itself out: a big container swings, a small one pulls out, a sheet of
-     paper curls. This is here for when it has worked it out wrongly. */
-  if(!isRoot) out.push(prow('Opening', psel(id,'opening', Object.entries(OPENINGS), openingOf(d)),
-    esc(OPENING_IS(d))));
+  /* **Opening is in Look now.** It names which *animation* a thing opens with
+     — swing, pull out, curl, lift — and what it does is the same either way,
+     so it was answering a question about appearance from the page about
+     behaviour. See decision 148. */
   if(cal){
     out.push(prow('Shows', psel(id,'calview', Object.entries(CALVIEWS), calViewOf(d))
       + psel(id,'weekStart',[['mon','Week starts Monday'],['sun','Week starts Sunday']], weekStartOf(d))
@@ -942,7 +1102,7 @@ function objectPanelBody(id, sec){
 
   }
 
-  if(at('fields')) {
+  if(at('adv')) {
   /* ---- the fields its traits carry. Every one is gated on an attribute,
      never on a type's name — which is what lets an invented type get the right
      fields the moment it ticks the trait. ---- */
@@ -1108,10 +1268,10 @@ function objectPanelBody(id, sec){
 
   }
 
-  if(at('fields')||at('tags')) {
+  if(at('adv')) {
   /* ---- milestones, a streak, tags and relations: all four were on the old
      detail sheet, and all four are settings about one object ---- */
-  if(at('fields') && !isRoot && has(o,'progress')){
+  if(!isRoot && has(o,'progress')){
     out.push(`<div class="section-h"><h2>Milestones</h2><div class="rule"></div><span class="n">${goalPct(o)}%</span></div>
       <div class="bar" style="--k:${K(o.kind).c}"><i style="width:${goalPct(o)}%"></i></div>
       <div class="miles">${(o.milestones||[]).map((m,i)=>`
@@ -1123,31 +1283,12 @@ function objectPanelBody(id, sec){
         </div>`).join('')}</div>
       <button class="subtle-btn" data-act="addmile" data-id="${id}">${ic('plus',12)} Add milestone</button>`);
   }
-  if(at('fields') && !isRoot && has(o,'streak')){
+  if(!isRoot && has(o,'streak')){
     out.push(`<div class="section-h"><h2>Last 28 days</h2><div class="rule"></div><span class="n">${streak(o)}-day streak</span></div>
       <div class="dots" style="--k:${K(o.kind).c};flex-wrap:wrap;gap:4px">
       ${[...Array(28)].map((_,i)=>{const ds=D.addISO(T,i-27);
         return `<i data-hday="${ds}" class="${(o.history||[]).includes(ds)?'on':''}${ds===T?' today':''}"></i>`}).join('')}</div>`);
   }
-  if(at('tags') && !isRoot){
-    out.push(`<div class="section-h"><h2>Tags</h2><div class="rule"></div></div>
-      <div class="tagrow">${(o.tags||[]).map(t=>
-        `<span class="realtag" data-tagdrawer="${esc(t)}" title="Open a drawer for #${esc(t)}">${esc(t)}<b data-untag="${esc(t)}">✕</b></span>`).join('')}
-        <button class="add" data-act="addtag" data-id="${id}">+ tag</button></div>`);
-    const rel=relatedTo(o), back=backlinksTo(id).filter(x=>x.id!==id);
-    if(has(o,'relates') || rel.length || back.length){
-      const chip=(x,rm)=>`<span class="relchip" style="--k:${objColour(x)}" data-openrel="${x.id}">
-        ${ic(K(x.kind).ic,11)} ${esc(x.title||'Untitled')}${rm?`<b data-unrel="${id}:${x.id}" title="Unlink">✕</b>`:''}</span>`;
-      out.push(`<div class="section-h"><h2>Related</h2><div class="rule"></div>
-          <span class="n">${rel.length+back.length||''}</span></div>
-        <div class="relrow">${rel.map(x=>chip(x,true)).join('')}
-          ${has(o,'relates')?`<button class="add" data-act="addrel" data-id="${id}">+ link</button>`
-            :`<span class="mini" style="--k:var(--brass);padding:0">Tick <b>Related</b> in Traits to link from here</span>`}</div>
-        ${back.length?`<div class="statline" style="margin:10px 0 4px"><div class="s">Pointed at by</div></div>
-          <div class="relrow">${back.map(x=>chip(x,false)).join('')}</div>`:''}`);
-    }
-  }
-
   }
 
   if(at('collect')) {
@@ -1167,15 +1308,57 @@ function objectPanelBody(id, sec){
        query UI — which is the thing tags-becoming-drawers exists to avoid.
        See decision 63. */
     const rs = rulesOf(fl);
-    const dateish = f => (fieldOf(f)||{}).type==='date';
+    /* ---- what a clause can ask, and what it offers you to answer with ----
+       The field list is two groups now: what a thing **is** (its type, where
+       it lives, its tags, its traits, its name) and what it **carries** (the
+       fields its traits bring with them). The first group is what makes "a
+       task, due this week, anywhere inside the film" sayable, and it was
+       missing entirely — every clause used to be about a trait's field, so
+       there was no way to ask about the type or the filing.
+
+       And the **value control follows the field**: a container clause offers
+       the containers, a type clause offers the types, a tag clause offers the
+       tags the desk actually has. Typing an object id into a text box is not a
+       rule builder. `pick` on the field says which list. See decision 151. */
+    const F = f => fieldOf(f) || {};
+    const META = Object.keys(FIELDS).filter(a=>FIELDS[a].meta);
+    const OWN  = Object.keys(FIELDS).filter(a=>!FIELDS[a].meta);
+    const fieldPick = (i, r) => `<select class="psel" data-oset="${id}:rule.${i}.f">
+        <option value=""${r.f?'':' selected'}>Any field</option>
+        <optgroup label="What it is">${META.map(a=>
+          `<option value="${a}"${r.f===a?' selected':''}>${esc(FIELDS[a].nm)}</option>`).join('')}</optgroup>
+        <optgroup label="What it carries">${OWN.map(a=>
+          `<option value="${a}"${r.f===a?' selected':''}>${esc(FIELDS[a].nm)}</option>`).join('')}</optgroup>
+      </select>`;
+    const PICKS = {
+      kinds: ()=> KEYS.filter(k=>!K(k).cat).map(k=>[k, K(k).nm]),
+      conts: ()=> [[ROOT,'The Desk'], ...containers().map(c=>[c.id, (c.title||'Untitled')+' · '+K(c.kind).nm])],
+      tags:  ()=> allTags().map(([t,n])=>[t, '#'+t+' ('+n+')']),
+      attrs: ()=> USER_ATTRS.map(a=>[a, ATTRS[a].nm]),
+      yesno: ()=> [['true','Yes'],['false','No']]
+    };
+    const valueFor = (i, r) => {
+      const f = F(r.f);
+      if(f.type==='date')
+        return psel(id,`rule.${i}.v`, [['','—'],...Object.entries(WHENS),
+            ...(whenISO(r.v)&&!WHENS[r.v] ? [[r.v, r.v]] : [])], r.v||'')
+          + pfield(id,`rule.${i}.v`, /^\d{4}-/.test(r.v||'')?r.v:'', 'date');
+      if(f.pick && PICKS[f.pick]){
+        const list = PICKS[f.pick]();
+        // a value that is no longer in the list (a drawer since deleted, a tag
+        // nothing carries any more) still has to show, or the rule silently
+        // reads as though nothing had been chosen
+        const head = (r.v && !list.some(([v])=>String(v)===String(r.v))) ? [[r.v, r.v+' — gone']] : [];
+        return psel(id,`rule.${i}.v`, [['','—'], ...head, ...list], r.v||'');
+      }
+      if(f.type==='level' && f.opts)
+        return psel(id,`rule.${i}.v`, [['','—'], ...f.opts.map(n=>[String(n), String(n)])], r.v||'');
+      return pfield(id,`rule.${i}.v`, r.v, f.type==='number'?'number':'', 'value');
+    };
     const clause = (r, i) => prow(i ? '…and also' : '…and matching',
-      psel(id,`rule.${i}.f`, [['','Any field'],...Object.keys(FIELDS).map(a=>[a,FIELDS[a].nm])], r.f||'')
+      fieldPick(i, r)
       + psel(id,`rule.${i}.op`, Object.entries(OPS), r.op||'is')
-      + (dateish(r.f)
-          ? psel(id,`rule.${i}.v`, [['','—'],...Object.entries(WHENS),
-              ...(whenISO(r.v)&&!WHENS[r.v] ? [[r.v, r.v]] : [])], r.v||'')
-            + pfield(id,`rule.${i}.v`, /^\d{4}-/.test(r.v||'')?r.v:'', 'date')
-          : pfield(id,`rule.${i}.v`, r.v, '', 'value')),
+      + valueFor(i, r),
       i ? '' : (rs.length>1 ? 'all of them have to be true' : ''));
     const clauses = rs.slice(0,RULE_MAX).map(clause).join('')
       + (rs.length<RULE_MAX ? clause({op:'is'}, rs.length) : '');
@@ -1213,7 +1396,7 @@ function objectPanelBody(id, sec){
 
   }
 
-  if(at('traits')) {
+  if(at('adv')) {
   /* ---- traits. A many-of-many, so still chips — behind a disclosure, and
      the structural two stay out of it (see STRUCTURAL in model.js). ---- */
   if(!isRoot){
@@ -1279,11 +1462,18 @@ function sampleObject(spec){
    at 11px a cell wrapped "Drawer" onto two lines — a miniature has to be the
    real thing seen from further away, or it isn't a preview of anything. */
 const PV_CELL = 40;
-function sampleTile(o, maxW, maxH){
+/* `grow` is the largest scale a specimen may be drawn at, and it defaults to
+   1 — the type picker wants a miniature and a miniature is the real thing seen
+   from further away. The **specimen book** wants the opposite: it exists to be
+   looked at closely, and a book spine at one cell of width came out 40px
+   across, which is not enough to tell a raised band from a gilt rule. Passing
+   a number above 1 lets it be drawn larger, still through this one function,
+   so the page cannot drift from what the desk draws. See decision 153. */
+function sampleTile(o, maxW, maxH, grow){
   // a real object may not have been placed on this device yet, and a sample is
   // not the place to invent a box for one — lay() answers for both
   const b=o[dev()]||o.desk||o.phone||lay(o), w=b.w*PV_CELL, h=b.h*PV_CELL;
-  const k=Math.min(maxW/w, maxH/h, 1);
+  const k=Math.min(maxW/w, maxH/h, grow||1);
   // the geometry is inline because it is computed here, not chosen
   return `<div class="pvscale" aria-hidden="true" style="width:${w*k}px;height:${h*k}px;overflow:hidden">
     <div style="width:${w}px;height:${h}px;transform:scale(${k});transform-origin:top left">
@@ -1445,7 +1635,7 @@ function moveTargets(objId){
   return [rootObj()].concat(containers().filter(c=>c.id!==objId && !has(c,'magic') && !(o&&isAncestor(objId,c))));
 }
 function modalMove(objId){
-  openPanel({key:'move', title:'Move to drawer',
+  openPanel({key:'move', title:'Move',
     sub:'Filing by hand always wins over a drawer&rsquo;s rule',
     body:()=>`<div class="rows">${moveTargets(objId).map(d=>
       `<div class="row" data-moveto="${objId}:${d.id}" style="--k:${objColour(d)}"><span class="kindmark">${ic('folder',13)}</span>
@@ -1614,12 +1804,25 @@ function schedulePanel(id){
          under the row says which. Difficulty starts at 1 and never meets the
          case. See decisions 72 and 129. */
       const marked = list => list.filter(([n])=>n>0);
-      const scale = (mark, list, now, attr) => `<div class="ratrow">
-        <button class="ratbtn${now==null||now===0?' on':''}" data-${attr}="" data-id="${id}"
-          title="Unranked">–</button>
-        ${marked(list).map(([n,nm,ds])=>
-          `<button class="ratbtn${now!=null&&n<=now?' lit':''}${now===n?' on':''}"
-             data-${attr}="${n}" data-id="${id}" title="${esc(nm)} — ${esc(ds)}">${ic(mark,20)}</button>`).join('')}</div>`;
+      /* ---- a rank is one mark with a number in it -----------------------
+         Five stars filled to the answer is a picture of the *scale*, and the
+         scale is not the thing you want to see on a card: what you want is the
+         score. So it is the outline — a star for priority, a teardrop for
+         difficulty, the same two marks they are drawn with everywhere else —
+         with the number inside it, and pressing it walks 1 to 5 and round to
+         nothing. One target instead of six, one glance instead of a count.
+         See decision 155. */
+      const scale = (mark, list, now, attr) => {
+        const ranks = marked(list).map(([n])=>n);
+        const i = now==null ? -1 : ranks.indexOf(now);
+        const next = i<0 ? ranks[0] : (i+1<ranks.length ? ranks[i+1] : '');
+        const said = now==null ? 'Unranked'
+          : (list.find(x=>x[0]===now) ? list.find(x=>x[0]===now)[1] : String(now));
+        return `<button class="rankmark rm-${attr}${now==null?' none':''}"
+            data-${attr}="${next}" data-id="${id}"
+            title="${esc(said)} — press for the next">
+            ${ic(mark,34)}<u>${now==null?'–':now}</u></button>`;
+      };
       const r = repeatOf(ob) || {every:1, unit:'day', days:[], from:'date'};
       return `${trow('Name', `<input class="pfield" data-oset="${id}:title" value="${esc(ob.title||'')}" placeholder="Untitled">`)}
 
@@ -1634,13 +1837,21 @@ function schedulePanel(id){
              sewn on the card still and picks up its trait when you take it.
              They are *on* the calendar once placed, which is why there are no
              date rows underneath: the month is the readout. See decision 126. */''}
-        <div class="schedpens">${SCHED_PENS.map(([k,attr,nm])=>{
-          const got = has(ob, attr), placed = got && ob[k], on = SCHED.mode===k;
-          return `<span class="schedpen p-${k}${on?' up':''}${placed?' placed':''}${got?'':' un'}"
+        ${/* **A placed button is not in the lane.** It used to stay there
+             wearing a dotted outline, so a task with all three set showed
+             three buttons in the tray *and* three marks on the month — the
+             same fact drawn twice, and the tray reading as though nothing had
+             been put down. The lane is the ones still to place; a button that
+             has been put somewhere is on the day it was put on, which is what
+             `schedMonth()` draws and where you press to move it. */''}
+        <div class="schedpens">${SCHED_PENS.filter(([k,attr])=>!(has(ob,attr)&&ob[k]))
+          .map(([k,attr,nm])=>{
+          const got = has(ob, attr), on = SCHED.mode===k;
+          return `<span class="schedpen p-${k}${on?' up':''}${got?'':' un'}"
             data-schedpen="${id}:${k}" role="button" tabindex="0"
-            title="${esc(nm)}${placed?' — '+D.said(ob[k]):' — not placed yet'}">
+            title="${esc(nm)} — drag it onto a day, or press it and then press the day">
             <i class="btn"></i><b>${nm}</b></span>`;
-        }).join('')}</div>
+        }).join('') || `<span class="mini" style="--k:var(--brass);padding:0">All three are on the month. Press one there to move it.</span>`}</div>
         ${schedMonth(ob, SCHED.month)}
         <div class="schedkey">
           <i class="k work"></i>the days the work takes
@@ -1831,7 +2042,7 @@ function openCtx(x,y,id){
     ${(!many&&repeats(o))?`<button data-c="nextcopy:${id}">${ic('repeat',14)} Make the next one</button>`:''}
     ${(!many&&(has(o,'check')||has(o,'streak')))?`<button data-c="done:${id}">${ic('check',14)} ${has(o,'streak')?'Mark today':'Complete'}</button>`:''}
     <button data-c="intodrawer:${id}">${ic('folder',14)} ${many?`Put these ${sel.length} in a new drawer`:'Put this in a new drawer'}</button>
-    <button data-c="move:${id}">${ic('folder',14)} Move to drawer…</button>
+    <button data-c="move:${id}">${ic('folder',14)} Move…</button>
     ${/* "Keep in the drawer" and "Schedule today" are both out: the first is
          what dropping a tile on the rail already does, and the second is one
          press inside When… next to the other four answers. A menu earns its

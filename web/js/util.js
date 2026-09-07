@@ -61,6 +61,9 @@ const P = {
   image:'M3 5h18v14H3zM3 16l5-5 4 4 3-3 6 6M8.5 9.5a1 1 0 1 0 .01 0',
   film:'M3 4h18v16H3zM7 4v16M17 4v16M3 12h18',
   music:'M9 18V5l11-2v13M6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6M17 19a3 3 0 1 0 0-6 3 3 0 0 0 0 6',
+  // the two faces of one button: a filled triangle and two bars
+  play:'M8 5.5 19 12 8 18.5z',
+  pause:'M9 5v14M15 5v14',
   note:'M6 3h8l4 4v14H6zM14 3v4h4M9 12h6M9 16h4',
   bulb:'M9.4 18h5.2M10.5 21h3M12 3a6 6 0 0 1 3.5 10.9c-.6.5-.9 1.2-.9 1.9M8.5 15.8c0-.7-.3-1.4-.9-1.9A6 6 0 0 1 12 3',
   list:'M8 6h13M8 12h13M8 18h13M3.6 6h.01M3.6 12h.01M3.6 18h.01',

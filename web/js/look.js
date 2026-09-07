@@ -84,6 +84,14 @@ const CHECKS = {
   dot:     'Dot'
 };
 
+/* Which box the desk is showing, resolved the way applyLook() resolves it:
+   what was picked, else what this aesthetic makes tick boxes out of, else the
+   circle. Exported because the object editor says what an object will get if
+   it does not ask, and reading `S.look.check` there would answer '' on a desk
+   that has never been asked. */
+const checkNow = () => CHECKS[(S.look||{}).check] ? S.look.check
+  : (CHECKS[styleNow().check] ? styleNow().check : 'circle');
+
 /* Appearance: the style's five, then whatever the user overrode on top. */
 function applyLook(){
   const el=document.documentElement, L=S.look||defaultLook();
@@ -204,7 +212,7 @@ function applyLook(){
      the way it says what paper is made of. Unset follows the aesthetic and
      re-dresses on a switch; picked one stays picked, everywhere. See
      decision 100. */
-  el.dataset.checks = CHECKS[L.check] ? L.check : (CHECKS[styleNow().check] ? styleNow().check : 'square');
+  el.dataset.checks = CHECKS[L.check] ? L.check : (CHECKS[styleNow().check] ? styleNow().check : 'circle');
   // the theme block still owns the shadows, and which one is showing is the
   // style's background rather than a switch of its own
   document.documentElement.dataset.theme = themeNow();
@@ -425,9 +433,9 @@ const STYLES = {
     knobs:['Round','Diamond','Bar','Ring','Square'],
     textures:['None','Grain','Weave','Ruled','Speckle','Damask'],
     stocks:['Plain','Laid','Wove','Card','Aged'],
-    bindings:['Plain cloth','Gilt rules','Raised bands','Tooled and gilt','Paper label'],
-    check:'square',
-    defaults:{knob:'round', border:'panel', texture:'none', knobtone:'light', panel:'cockbead', stock:'laid'},
+    bindings:['Plain cloth','Gilt rules','Raised bands','Flat back','Chamfered'],
+    check:'circle',
+    defaults:{knob:'round', border:'panel', texture:'none', knobtone:'light', panel:'cockbead', stock:'plain'},
     cols:['#E9E1CC','#2A241C','#4A4034','#A9793F','#D9B57C',
           '#6F5137','#4A7C59','#6E7F63','#2E6B52','#4A6382','#5A7A9E',
           '#8E3B38','#9A7B2F','#8A6A3C','#5E4A72','#6E7075'],
@@ -454,9 +462,9 @@ const STYLES = {
     knobs:['Boss','Faceted','Bar handle','Gear','Stud'],
     textures:['None','Ashlar','Basketweave','Coursing','Aggregate','Millefleur'],
     stocks:['Plain','Parchment','Linen','Slate','Weathered'],
-    bindings:['Vellum','Ruled bands','Cords','Blind-tooled','Pasted label'],
-    check:'hard',
-    defaults:{knob:'ring', border:'panel', texture:'ruled', knobtone:'light', panel:'fielded', stock:'laid'},
+    bindings:['Vellum','Ruled bands','Cords','Squared back','Bevelled'],
+    check:'circle',
+    defaults:{knob:'ring', border:'panel', texture:'ruled', knobtone:'light', panel:'fielded', stock:'plain'},
     cols:['#E8E4D6','#22303F','#7E8B96','#A87A3C','#D4B872',
           '#77808A','#2E5B84','#5D82AE','#5E8B4C','#3C6B49','#7A6E9E',
           '#A8555C','#A6803C','#9A6440','#4E8478','#8C8574'],
@@ -478,9 +486,9 @@ const STYLES = {
     knobs:['Orb','Shard','Bar','Halo','Crystal'],
     textures:['None','Stardust','Nebula','Ley lines','Crystal dust','Constellation'],
     stocks:['Plain','Starcloth','Silk','Shard','Faded'],
-    bindings:['Starcloth','Astral rules','Ribs','Sigil panel','Vellum label'],
+    bindings:['Starcloth','Astral rules','Ribs','Flat back','Bevelled'],
     check:'circle',
-    defaults:{knob:'round', border:'panel', texture:'speckle', knobtone:'light', panel:'ogee', stock:'laid'},
+    defaults:{knob:'round', border:'panel', texture:'speckle', knobtone:'light', panel:'ogee', stock:'plain'},
     cols:['#120E20','#EDE7FA','#6E5F96','#9A6BD8','#E3C98A',
           '#4C3A78','#6E4C9E','#2E2A55','#3A5A9E','#2F6E86','#3E8AA0',
           '#9A3F86','#9E4A3A','#8A6D2E','#3F7A5E','#5A5470'],
@@ -502,9 +510,9 @@ const STYLES = {
     knobs:['Volute','Lozenge','Bar','Ring','Block'],
     textures:['None','Tufa','Cane','Rustication','Volcanic','Majolica'],
     stocks:['Plain','Fresco','Canvas','Terracotta','Sun-bleached'],
-    bindings:['Buckram','Gilt fillets','Raised cords','Volute panel','Pasted title'],
+    bindings:['Buckram','Gilt fillets','Raised cords','Flat back','Chamfered'],
     check:'circle',
-    defaults:{knob:'round', border:'panel', texture:'speckle', knobtone:'dark', panel:'ogee', stock:'laid'},
+    defaults:{knob:'round', border:'panel', texture:'speckle', knobtone:'dark', panel:'ogee', stock:'plain'},
     cols:['#211E1A','#EDE4D2','#7A6E5E','#B98846','#E0C782',
           '#3A342E','#8A7B63','#2F6E92','#3F7A5F','#5B7A46','#A65E3C',
           '#8A3A38','#A8823A','#3B4E86','#5E3D5C','#6B655C'],
@@ -527,8 +535,8 @@ const STYLES = {
     knobs:['Button','Tee','Slider','Dial','Keycap'],
     textures:['None','Dither','Weave','Scanlines','Static','Argyle'],
     stocks:['Plain','Window','Dialog','Readout','Printout'],
-    bindings:['Jewel case','Spine label','Ribbed case','Boxed art','Sticker'],
-    check:'ballot',
+    bindings:['Jewel case','Spine label','Ribbed case','Slim case','Bevelled case'],
+    check:'circle',
     defaults:{knob:'square', border:'panel', texture:'fine', knobtone:'light', panel:'plain', stock:'wove'},
     cols:['#D6D3C4','#2A2A24','#8A8878','#12736E','#C8A63C',
           '#6E8F5A','#4F6B44','#A79A6E','#A89663','#8A3F42','#4A6B8A',
@@ -550,8 +558,8 @@ const STYLES = {
     knobs:['Circle','Diamond','Bar','Ring','Square'],
     textures:['None','Tooth','Crosshatch','Ruled','Stipple','Stars'],
     stocks:['Plain','Ruled leaf','Tracing','Board','Foxed'],
-    bindings:['Cloth','Drawn rules','Drawn bands','Drawn panel','Pasted label'],
-    check:'hard',
+    bindings:['Cloth','Drawn rules','Drawn bands','Flat back','Chamfered'],
+    check:'circle',
     defaults:{knob:'round', border:'plain', texture:'fine', knobtone:'light', panel:'plain', stock:'plain'},
     cols:['#07080C','#F4F6F8','#F4F6F8','#6FD3F5','#7DE8B0',
           '#14161C','#1B1E25','#23262E','#0E2733','#123544','#16443F',
@@ -577,9 +585,9 @@ const STYLES = {
     knobs:['Orb','Gem','Bar','Halo','Chiclet'],
     textures:['None','Frost','Brushed','Ripple','Bubbles','Sheen'],
     stocks:['Plain','Frosted','Satin','Acrylic','Sunlit'],
-    bindings:['Frosted case','Chrome rules','Ribs','Etched panel','Label'],
-    check:'fill',
-    defaults:{knob:'round', border:'gloss', texture:'fine', knobtone:'light', panel:'plain', stock:'laid'},
+    bindings:['Frosted case','Chrome rules','Ribs','Flat edge','Bevelled edge'],
+    check:'circle',
+    defaults:{knob:'round', border:'gloss', texture:'fine', knobtone:'light', panel:'plain', stock:'plain'},
     cols:['#EAF4F7','#0D3541','#5B8C9B','#18A6C4','#7EE8F5',
           '#1E9AAE','#2FA39A','#3F8F63','#6FA83C','#2B6B99','#4C89C8',
           '#14607A','#5E7A8A','#44515C','#33414D','#8A98A3'],
@@ -672,5 +680,5 @@ export { themeNow, lookVal, setLookVal, applyLook, applyStyle, styleDefaults,
   randomFront, randomBoard, randomLook, STYLES, BACKDROPS,
   SLOTS, OBJ0, OBJN, ROLES, slotName, styleNow, palNow, setSlot,
   BORDER_SLOTS, borderSlots, panelSlots, knobSlots, textureSlots, bindingSlots, stockSlots, stockNow,
-  FAMS, famSlots, famNames, famAll, styleKey, styleFor, dress, dressAs, CHECKS,
+  FAMS, famSlots, famNames, famAll, styleKey, styleFor, dress, dressAs, CHECKS, checkNow,
   hexOf, objColour, objSlots, isDark };

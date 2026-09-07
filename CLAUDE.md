@@ -601,12 +601,16 @@ name along. A magic one gets `magicspine`, which gilds the two bands it already
 has rather than the frame every other magic front wears — inset 5px on a tile one
 cell wide is the whole tile.
 
-**A spine is bound, and the binding is five choices.** `bindingOf(o)` — per
-object then per type, like a knob or a border slot — stamps `bn-<name>` and the
-rest is CSS: `plain` (cloth), `banded` (gilt rules, the default), `ribbed`
-(raised hubs), `tooled` (a double-ruled panel) and `label` (paper pasted on).
-Under all five the back is **round**, which is seven stops of one horizontal
-gradient and most of what makes it a book rather than a coloured rectangle.
+**A spine is bound, and the binding is five choices — three ornaments and two
+backs.** `bindingOf(o)` — per object then per type, like a knob or a border slot
+— stamps `bn-<name>` and the rest is CSS: `plain` (cloth), `banded` (gilt rules,
+the default), `ribbed` (raised hubs with a fillet down the middle of each),
+`flat` (a square back) and `chamfer` (a bevelled one). Under the first three the
+back is **round**, which is seven stops of one horizontal gradient and most of
+what makes it a book rather than a coloured rectangle; the last two are the one
+thing a binding is otherwise forbidden to restate, and changing it is what they
+are for. A chamfer's gradient stops are **hard** — one that eases is a round
+back again. See decision 152.
 **Ornaments are a fixed thickness and a proportional position** — a cord is the
 same width on a pamphlet as on a folio, so every thickness is px and every
 position %; 5.5% hubs were four grey belts across a tall spine.
@@ -813,10 +817,18 @@ has. A tick box stays a fact about the desk (decision 83) and takes the
 aesthetic's `check` until you pick one; the way back **deletes** the key rather
 than storing `''`. See decision 100.
 
-**A magic drawer asks up to three questions, ANDed.** `filter.rules` is an
-array; ask `rulesOf(f)`, never `filter.rule`, which is the old single-clause
-shape still read for a pre-migration-21 backup. There is no OR and there is not
-going to be one — an OR needs groups, groups need a builder, and a builder is a
+**A magic drawer asks up to five questions, ANDed, and they are not only about
+fields.** `filter.rules` is an array; ask `rulesOf(f)`, never `filter.rule`,
+which is the old single-clause shape still read for a pre-migration-21 backup.
+Half the useful clauses are **meta fields** — `@kind`, `@in`, `@under`, `@tag`,
+`@trait`, `@title`, `@body`, `@done`, `@made`, `@holds`, `@colour` — marked
+`meta` in `FIELDS`, read off every object rather than gated on a trait, and
+named with an `@` so they cannot collide with an attribute. `@under` is a chain
+of parents (`ancestorIds()`), which is what makes "a task, anywhere inside the
+film" sayable; it walks `parent` by hand because `childrenOf()` runs magic rules
+and a rule that ran rules would call itself. A field carrying `pick` tells the
+builder to offer a list — containers, types, tags, traits — rather than a box to
+type an id into. There is no OR and there is not going to be one — an OR needs groups, groups need a builder, and a builder is a
 query UI, which is the thing tags-become-drawers exists to avoid. A date clause
 compares as a *date* (`numOf` read "2026-08-19" as 2026) and its value may be
 one of five words — `today`, `tomorrow`, `week`, `month`, `year` — resolved when
@@ -905,8 +917,9 @@ promoted into the row if it isn't a major. Adding a major is one name in
 **Four of the majors are *categories*: you press them to be asked which.**
 `family` on a kind is the list, and it leads with that kind where that is a
 real thing to make — the first kind of note is a Note. **Note** (idea, thought,
-problem, question), **Text** (the old Book, renamed — poem, novel, short story,
-essay), **Project** (film, novel, game, song, album, app, art piece, trip) and
+problem, question), **Prose & Poetry** (the old Book, renamed twice — poem,
+novel, short story, essay; **Story is gone**, it was this with a different
+binding), **Project** (film, novel, game, song, album, app, art piece, trip) and
 **Fragment**, which is the only one that is *only* a question: `cat` marks it,
 there is no generic fragment, and pressing it always asks. `familyPanel()` draws
 the second screen and `inFamily()` is what keeps a member from being listed
@@ -934,13 +947,19 @@ not be guessed at — the cover at 0, the scrim at 1, the report at 2:
 silently overriding `.projcover{position:absolute}` for as long as that line
 has existed.
 
-**A goal is a drawer with the knob taken off, and what it is *called* is read
-rather than stored.** `goalStanding(o)` — no deadline is a **dream**, thirty
-days or fewer is a **challenge**, anything else is a goal. Derived, so putting
-a date on a dream makes it a goal without re-declaring it and a slipped date
-cannot leave a Challenge lying about itself. The name is the face and is set as
-large as the frame allows; the run is a hairline along the bottom edge, never a
-bar, because a bar would compete with the name.
+**A goal is a playing card, and what it is *called* is read rather than
+stored.** `goalStanding(o)` — no deadline is a **dream**, thirty days or fewer
+is a **challenge**, anything else is a goal. Derived, so putting a date on a
+dream makes it a goal without re-declaring it and a slipped date cannot leave a
+Challenge lying about itself. It is drawn as a Bicycle card and needs all four
+of the things that say card: a **heavy corner radius** (the one exception to
+decision 125, and a *proportion* rather than a token, because a card is die-cut
+that way), the **linen tooth**, a **ruled panel** in the goal's own colour, and
+an **index in two opposite corners with the second upside down**. The face is
+the card's white — a card's colour is the ink on it — so `--c` moves to the rule
+and the index. Its default box is 3×2, a card laid down. The name is still the
+face and the run is still a hairline along the bottom, never a bar. See
+decision 146.
 
 **An achievement is picked, not written.** `finishedThings()` is the list —
 ticked objects, and goals and projects whose work is all done. `st.length>0` is
@@ -958,25 +977,43 @@ no panel, no knob, no border — the thing lies on the desk with its name on a
 small label. `makeLife()` in wire.js is the one place the answer lands.
 See decision 136.
 
-**A control has three shapes and `ctlForm()` reads the table, never a name.**
-Two states is a **switch** (a Victorian bat on a backplate, a fixed size at any
-tile size — what reads is *position*); more than two is a **button that changes
-colour**, stepping the aesthetic's own eleven slots, because a list has no lever
-position to be at; a `range` is a **dial**, 270° of sweep with a stop at each
-end. `cycle().length<=2` and not "has a cycle": a two-value list is a switch
-wearing a list. Pressing a dial is one detent of ten and wraps. See decision 137.
+**A control has three forms and `ctlForm()` reads the table, never a name.**
+Two states is a **switch**; more than two is a **button that changes colour**,
+stepping the aesthetic's own eleven slots, because a list has no lever position
+to be at; a `range` is a **dial**, 270° of sweep with a stop at each end.
+`cycle().length<=2` and not "has a cycle": a two-value list is a switch wearing
+a list. Pressing a dial is one detent of ten and wraps. See decision 137.
 
-**A progress bar is blocks, not a fill.** `barSteps`, `barFilled` and
-`barGrid(o, box)` in model.js: two increments to a cell of width, each a whole
+**And a switch is a piece of hardware, so it comes in sizes.** `switchShape(box)`
+— one cell is a **push button**, one cell in either direction is a **light
+switch** (a plate with a bat thrown up or down), two cells each way and up is a
+**two-pole knife switch** hinged at one end and closing into its jaws. All three
+say their state by *position*, never by colour. The last two are inline SVG
+rather than stacked boxes, because a blade at an angle and a tapered bat are
+shapes; the knife's viewBox leaves room **above** the slate for the blades to
+stand open in, or the only state that is not the default is clipped. **A control
+wears no tile at all** — no ground, no edge, no shadow — because the plate, the
+base and the button each carry their own, and a second one under them is what
+made every control read as a sticker.
+
+**A progress bar is blocks, and *only* blocks.** There was a continuous
+`--pct` track on `.sh-bar`'s `::after` from before decision 138, and when the
+blocks arrived it stayed — so every bar drew its number twice, the analog
+reading lying across the bottom row of the digital one. `barSteps`, `barFilled`
+and `barGrid(o, box)` in model.js: two increments to a cell of width, each a whole
 cell tall, so a ten-step bar is five cells long without being told — and
 narrower than that it **wraps** rather than shrinking the blocks. The columns
 are evened across the rows, because a half-empty last row reads as broken
 rather than wrapped. Pressing a block sets the bar to it and pressing the one it
 is on steps back; a bar that names a `tracks` refuses the press. See decision 138.
 
-**A spawner is a spiral, and bigger it is the Text field.** One cell square it
-is the mark and nothing else; wider or taller it grows the box you type into,
-and what you type names the thing it presses out. That is the whole of what the
+**A spawner is a spiral, and bigger it is a pill with a line in it.** One cell
+square the spiral **is** the tile — no ground, no edge, no shadow and no stock,
+drawn in the object's own colour and filling the cell, because a coloured square
+with a small mark on it is a button carrying a picture of a button. Wider or
+taller it is a **pill** (`--pill`, the token that exists for exactly this) with
+the press at the head and the box you type into filling the rest; what you type
+names the thing it presses out. The line goes only at one cell of width. That is the whole of what the
 Text field type was, so there is no Text field type — pressing and typing are
 two sizes of one machine. The branch sits **above** the 1×1 branch in
 `drawTile()` deliberately, or a spawner shrunk to a stamp would be an anonymous
@@ -1044,6 +1081,15 @@ sheet with white writing on it — silently, for versions. Write
 `.drawer.otile.<tile>` and set `background-color`, never the shorthand: a stock
 sets `background-image` and the shorthand would fight it for the grain and lose.
 
+**A thing made "in" a sorting drawer is made where that drawer lives.** A
+magic drawer *collects; it does not hold* — `inContainer()` ignores `parent` for
+one — so an object whose parent is a sorting drawer is in no board at all: the
+drawer will not list it unless the rule happens to match, and nothing else lists
+it either. It was made, saved, and nowhere. `homeFor(id)` in model.js is the one
+answer — the nearest ancestor that actually holds — and `create()`, `quickAdd()`,
+`spawnInto()`, the picker and the sketch all go through it. That was the whole of
+"some drawers don't propagate new objects".
+
 **A tag is a magic drawer waiting to happen.** There is no filter mode and no
 filter bar; clicking a tag anywhere calls `drawerForTag()`, which finds the
 magic drawer collecting that tag or makes one. If you are tempted to add a
@@ -1086,9 +1132,15 @@ included.** `isMedia(o)` routes; `isPicture(o)` is still the image case and
 `isPlayable(o)` the other two, and `acceptFor(o)` tells the one file input what
 to offer. A picture is stored as a downscaled data URL, a sound or a video as
 the **Blob itself** (base64 is a third bigger), with a 60MB ceiling;
-`hydrateAssets()` makes an object URL for a blob. On the *board* a sound or a
-video is a face — a mark and a name — never a player: forty decoded media
-elements is a board that will not scroll. `create()` deliberately stores **no**
+`hydrateAssets()` makes an object URL for a blob. On the *board* a **sound is a record with a play
+button in its label** and a **video is the video**, and pressing either starts
+and stops it — decision 144, which walks part of 71 back. The expensive half of
+71 still holds and is still enforced: a sound draws **no element at all** until
+it is pressed, and the `Audio()` it makes lives in a module map outside the DOM,
+so a board of a hundred costs a hundred discs and an unrelated render cannot
+silence the one that is playing. A video has to show a frame, so it does carry
+an element, at `preload="metadata"`, and a render does stop it. One at a time,
+because a desk plays one thing at a time. `create()` deliberately stores **no**
 `media.type`, so an object follows its kind's `mediaType` until told otherwise —
 it used to stamp `type:'image'` at birth, which made every Audio a photograph.
 See decision 71.
@@ -1166,7 +1218,14 @@ fault rather than a made edge. Guarded off the *computed* style, because a
 token nobody applied is a rule nobody follows. See decision 125.
 
 **Three buttons off a card: When, Done and Due.** `SCHED_PENS` in panels.js,
-drawn as sewing buttons. **Drag one onto a day, or tap it and tap the day** —
+drawn as sewing buttons. **Dropping one is what creates the deadline** — both
+deadlines are opt-in traits, and `placePen()` adds the trait as it writes the
+date, because picking a thing up and putting it down is one act. A **placed
+button leaves the lane**: it is on the day it was put on, and a tray still
+showing it was drawing the same fact twice. The carry is a **transform on one
+rAF** — it was `left`/`top` plus an `elementFromPoint` on every pointermove,
+which is a layout and a hit-test per event on a pointer that fires faster than
+the screen. See decision 154. **Drag one onto a day, or tap it and tap the day** —
 `G.type:'pen'` in gestures.js claims the press *without consuming the tap*, so
 a finger that never travels falls through to the click that takes the button
 into your hand. `placePen()` is the one writer for both ways, including that
@@ -1207,13 +1266,15 @@ so a grey background loses to the red one and a three-day run reads as two.
 Those four are the only colours named outright anywhere in the app — they are
 signals, not slots, for the same reason `late` is red everywhere.
 
-A rank is drawn as **its own mark filled to the rank** — stars for priority,
-teardrops for difficulty — and **n marks means n**, so both scales draw
-**five** marks. `PRIOS` runs 0–5 because 0 is a real answer (decision 72) and
-the object editor's *numbered* row still offers it outright; but on a mark
-scale zero is drawn as no marks, so a sixth star is one that can never light
-and a scale that reads as out of six. The leading dash is where "no stars"
-lives and covers both nothing-said and rank zero. See decision 129. What an object hasn't got
+A rank is **one outlined mark with its number inside it** — a star for
+priority, a teardrop for difficulty, the same two marks they are drawn with
+everywhere else — and pressing it walks one to five and round to nothing. Five
+marks filled to the answer is a picture of the *scale*, and the scale is not
+what you want to see; decision 72's argument was against a **select**, which
+hides the scale behind a word, and a mark carrying its own number hides nothing.
+See decision 155. `PRIOS` still runs 0–5, because 0 is a real answer (decision
+72) and the object editor's numbered row still offers it outright; the mark
+prints a dash for "no rank", which covers both nothing-said and rank zero. What an object hasn't got
 is one row of chips in the same page (`data-want` names the attribute), each
 wearing its own mark.
 
@@ -1326,10 +1387,16 @@ front and `answered(o)` is "is there anything in it". Typing in it must not
 `render()` — the input is the thing being typed in, so wire.js toggles the
 `answered`/`unanswered` class in place and lets the next ordinary render agree.
 
-**A project reports; every other container lists or hides.** `face:'project'`
-is the one front that answers "where is this up to" — a bar, a count, what is
-next, and what it is made of — all read off `projectStat(c)`, which walks the
-*whole* subtree once. `progressOf(o)` is the number: a container is its ticked
+**A project is a drawer whose knob is a dial; the named kinds of work report.**
+The generic `project` kind wears `face:'front'` — the drawer it is filed behind
+— and `ringFor()`/`knobHTML()` in tiles.js burn a conic sweep round the knob at
+`barPct()`, which is how far along it is read off the one part of a drawer your
+eye already goes to. The named kinds (film, game, song, app, art piece) keep
+`face:'project'`, because a film knows it is a poster before it exists. **No
+bar on any of them**: a percentage was drawn twice and is neither the question
+you ask a project across the desk nor an honest answer to it. What it holds and
+what is next are what the face says, all read off `projectStat(c)`, which walks
+the *whole* subtree once. `progressOf(o)` is the number: a container is its ticked
 descendants, however deep, so a project made of four full checklists reads 100%
 rather than 0%; milestones are the fallback for when it holds nothing tickable
 yet. A project opens onto a **grid**, not a list, because it holds everything a
@@ -1735,6 +1802,14 @@ are kept throughout: a keyboard gets a smaller sheet, never a different shape.
 named in the same rule as `.bookstage` — without `--pageh` nothing overflows it
 and a whole book measures as one page. See decision 84.
 
+**A ruled sheet's lines go under the writing, not across the paper.** The
+`st-laid` ruling is painted on the **prose element** — `.tiletext`, `.contbody`,
+`.page` — with a period of `1lh`, the element's own line box, so every rule
+falls at the foot of a line by construction rather than by agreement between two
+numbers. The sheet keeps the tint that says what it is made of. And the default
+stock is **plain** in every aesthetic: laid was the default in five of seven,
+which meant every note on a new desk arrived ruled. See decision 147.
+
 **A page is a sheet of the object's own paper.** `sheetOf(o)` in tiles.js —
 the same `tx` and `st` readers `paper()` gives a tile, so a note that is ruled
 on the board is ruled when you open it and re-dresses on an aesthetic switch
@@ -1767,10 +1842,15 @@ in it — the whole body, in the page's own face, however the page is broken up;
 as **one cycling button**, copy as a glyph, and Edit meaning the *object
 editor*. See decision 82.
 
-**A tick box is a fact about the desk, not about a type.** Six shapes,
-`S.look.check`, written onto the root as `data-checks` by `applyLook()` and
-answered in CSS for `.check` and `.clbox` alike. A task ticked one way and a
-checklist line ticked another are two apps sharing a board. See decision 83.
+**A tick box is a fact about the desk, and an object may argue.** Six shapes;
+the desk's is `S.look.check`, written onto the root as `data-checks` by
+`applyLook()`, and an object's own `check` is stamped as `ck-<shape>` beside the
+size classes. The desk's rules are wrapped in **`:where()`** and the object's are
+not — that is the whole mechanism, because `:where()` scores nothing and the two
+would otherwise tie on specificity and let *source order* pick the shape. The
+default is the **circle**, in every aesthetic, and the box is a fraction of a
+cell (`--rowh`) rather than a fixed 38px, or the same box is 65% of a desk cell
+and 95% of a preview's. See decisions 83 and 149.
 
 **Holding a tile opens the menu, and moving from there takes the tile — and
 unlocks the board, for as long as you hold it.** The iPhone home screen's gesture, and the gesture is no
@@ -1795,9 +1875,25 @@ paragraph is a wall rather than an explanation.
 `objectPanel(id, sec)` and `settingsPanel(sec)` are the *same panel under the
 same key*, so a section replaces rather than stacks, and `spec.back` puts a
 chevron in the head — the way out a replaced panel never had. The object
-editor's top is the thing itself, its name, its type and where it lives; the
-rest is Look, Behaviour, Fields, Collects, Tags and links, Traits. Don't add a
-row to the top level unless it is one you reach for constantly. See decision 66.
+editor's top is the thing itself, its **type, where it lives, its tags and its
+links**; the rest is four doors — Look, Behaviour, Collects, **Advanced** (its
+fields and which traits it carries). Don't add a row to the top level unless it
+is one you reach for constantly. See decisions 66 and 148.
+
+**The name is the panel's own heading**, and pressing it turns it into an input
+in place (`data-headname`, handled in wire.js). It swaps itself rather than
+re-rendering the panel, because a rebuilt panel is a lost caret.
+
+**Every row in Look is a cycle, not a select.** `pcycle()` — the answer is a
+thing you look at, drawn six inches above it on the stage, and a `<select>`
+covers the preview with a list of words you have to imagine. It writes through
+`setField()` like every other row, so undo and the refresh come along. Rows that
+are lists of *behaviours* keep their select. A slot family's back door — the
+other aesthetics' answers — is a chip with a brush on it beside the cycle, not a
+full-width labelled disclosure: five slot rows meant five of those. The Look
+rows are in **one order whatever the thing is**, so the row you want is where it
+was last time. And **the editor closes an open surface** rather than opening
+behind it: whichever you opened last wins, in both directions. See decision 148.
 
 **There are no modals — a menu is a panel.** `openPanel(spec)` in `panels.js`
 is the whole system: one panel at a time, down the right, over a desk that stays
@@ -1932,6 +2028,17 @@ coordinate space and `freeSpot()` scans from the top, so on a phone — where an
 object is full width — a new thing always lands below the fold. It looked
 exactly like nothing had happened. Don't fix it by shuffling the board: things
 you arranged don't move.
+
+**A fragment is a piece torn out of something, and the edge says so.** Every
+type under the Fragment category wears a **fuzzy crease-tear**: a near-straight
+edge with a px-sized jitter along its whole length, not `sh-tornnote`'s chipped
+bites. The jitter is in **px** so the fuzz is a fixed thickness at any tile size;
+the line is four zero-blur drop-shadows off the element's alpha *after* the clip,
+which is the one way to rule a clipped shape; and there are **three** silhouettes
+picked by a hash of the object's id (`tornOf()`), because one polygon on every
+fragment on a board is a repeat you can see. Which types these are is asked of
+`isFragmentKind()` — the category's own `family` list — never of a name. See
+decision 145.
 
 **A note is a plain sheet, an idea is a note ruled round, and a thought is a
 rounded card.** The note was torn — a chip out of each side and a drawn outline

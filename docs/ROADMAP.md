@@ -5,6 +5,47 @@ Sequenced by dependency, not appetite: item 1 makes everything after it safer.
 
 ---
 
+## 0t. Queued 2026-09-07 (nineteenth pass) — what the last one left behind — DONE (v1.59)
+
+Timothy again, in one list of thirty. Most of it is the shelf revamp's loose
+ends and a long-overdue pass on the object editor; three of them are bugs that
+had been quietly wrong for versions.
+
+**The bugs.** A thing made "in" a sorting drawer took that drawer as its parent
+— and a sorting drawer *collects; it does not hold*, so the object was in no
+board at all: made, saved, and nowhere. That was the whole of "some drawers
+don't propagate new objects". `homeFor()` is the one answer now and every maker
+goes through it. The **toast's Undo** had never been pressable: `.toast` is
+`pointer-events:none` because it sits over the board, and `.show` never put the
+events back on anything, so the one way back a phone has was decorative. And
+every **progress bar** was drawing its number twice — a continuous `--pct` track
+left over from before the blocks arrived, lying across the bottom row of them.
+
+**The object editor** (decision 148). Every Look row is a cycle rather than a
+select, because the answer is a thing you look at and it is drawn six inches
+above the row that a dropped-down list covers. The name is the panel's own
+heading. Tags and links are on the card. Fields and Traits are behind
+**Advanced**. Opening moved into Look, where it belongs — it names an animation.
+The coloured stripe went. The rows are in one order whatever the thing is. A
+slot family's back door is a chip with a brush on it rather than a labelled
+full-width disclosure, five of which is what a Look section had.
+
+**Sorting drawers can ask what a thing *is*** (decision 151): the type, the
+container it is filed in, *anywhere inside* a container, its tags, its traits,
+its name, its words. "A task, due this week, anywhere inside the film" is three
+clauses and was unsayable.
+
+And the drawings: a **goal is a playing card** (146), a **fragment is torn**
+(145), a **sound is a record you press** (144), a **project is a drawer whose
+knob is a dial** (§5), a **control is a push button, a light switch or a knife
+switch** by size, a **record fills its tile with its name round the label**, a
+**spawner at one cell is its spiral and nothing else**, the last two **bindings
+are the back rather than a fourth ornament** (152), a **rank is one mark with
+its number in it** (155), a **ruled sheet's lines go under the writing** (147),
+and a **tick box is per object with the circle as the default** (149).
+
+---
+
 ## 0s. Queued 2026-09-07 (eighteenth pass) — one desk, and a book of it — DONE (v1.56)
 
 Timothy, in one list of twenty-one. The three that changed the shape of the app:

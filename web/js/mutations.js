@@ -2,7 +2,7 @@ import { $, esc, uid, clamp, ROOT, HOLD, D } from './util.js';
 import { S, byId, K, KINDS, KEYS, kindHas, has, isContainer, genKindOf, streak, T, dz, dev,
   repeatOf, repeats, nextRepeat, faceOf, childrenOf, TILT_MODES, tiltMode,
   ctlOf, isPrimary,
-  placeOf, cfgOf, isHeld, heldObjects } from './model.js';
+  placeOf, cfgOf, isHeld, heldObjects, homeFor } from './model.js';
 import { GRID, PHONE_GRIDS, colsOf, gridOf, shelfRows, freeSpot, anySpot, roomFor, lay, boxOk, sizeOfKind, keepSize } from './grid.js';
 import { randomFront, randomBoard, randomLook, styleDefaults,
   STYLES, CHECKS, DARKMODES, styleKey, applyStyle, applyLook } from './look.js';
@@ -474,7 +474,7 @@ function create(kind, patch){
        you. The inbox *collects* instead: it is a magic drawer whose rule is
        "loose on a desk", so a new object shows up in it while staying exactly
        where you made it. See inContainer() and decision 45. */
-    parent:(S.view==='drawer'&&S.drawerId)||ROOT,
+    parent:homeFor((S.view==='drawer'&&S.drawerId)||ROOT),
     done:false, doneAt:null, due:kindHas(kind,'date')?T:null,
     repeat:kindHas(kind,'streak')?{every:1,unit:'day',days:[],from:'date',ends:null,paused:false,made:0}:null,
     history:[], milestones:kindHas(kind,'progress')?[{t:'First milestone',done:false,d:dz(30)}]:[],
@@ -582,7 +582,7 @@ function quickAdd(text, kind, drawerId){
   if(/!week\b/i.test(t)){ due=dz(7); t=t.replace(/!week\b/i,''); }
   t=t.replace(/\s+/g,' ').trim();
   // a shelf is finite: a line typed into a full board makes nothing and says so
-  if(!fits(k, drawerId || (S.view==='drawer' && S.drawerId) || ROOT)) return null;
+  if(!fits(k, drawerId || homeFor((S.view==='drawer' && S.drawerId) || ROOT))) return null;
   const o=create(k,{title:t, tags, parent:drawerId||undefined, body:''});
   if(due) o.due=due; else if(!kindHas(k,'date')) o.due=null;
   return o;
@@ -595,7 +595,7 @@ function quickAdd(text, kind, drawerId){
    caller that aimed at a particular day. */
 function spawnInto(c, text, patch){
   if(!c) return null;
-  const home = has(c,'magic') ? (c.parent||ROOT) : c.id;
+  const home = homeFor(c.id);
   const o = quickAdd(text, genKindOf(c), home);
   if(o && patch) Object.assign(o, patch);
   return o;

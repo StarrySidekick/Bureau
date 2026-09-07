@@ -208,11 +208,18 @@ the row, wherever it sits in the order: you opened the picker *inside* it.
 | Group | Types |
 | --- | --- |
 | **Containers** | Moodboard, Timeline, Shot list, Shopping list, World, Album, Film |
-| **Objects** | Outline, Script, Essay, Habit, Goal, Quote, Text field, Poem, Counter, Button, Achievement, Dream, Event, Window |
-| **Writing** | Story, Novel, Short story, Scene, Character, Place, Event, Item |
+| **Objects** | Outline, Script, Essay, Habit, Goal, Quote, Poem, Counter, Button, Achievement, Dream, Event, Window |
+| **Writing** | Novel, Short story, Scene, Character, Place, Event, Item |
 | **Cooking** | Ingredient |
-| **Film** | Audio, Video, Shot |
 | **Yours** | Anything you build in the type editor |
+
+There is no **Film** group. It held Audio and Video, which are things you put on
+a desk rather than a corner of film-making and are majors now, plus Film, Song
+and Album, which are members of the Project family. And **Story** is gone: it
+was Prose & Poetry with a different binding — a container of text that reads as
+a book both ways round — and two tiles for one object is the deciding-twice that
+categories exist to remove. Migration 29 turns any story already on a desk into
+a text and keeps its binding. See decision 144.
 
 ### Controls
 
@@ -296,12 +303,14 @@ decision 88.
 
 **And a spine is bound.** `binding`, per object then per type, read through
 `bindingOf(o)`: **Plain cloth**, **Gilt rules** (the default), **Raised bands**,
-**Tooled and gilt**, **Paper label**. It stamps `bn-<name>` on the tile and
-every difference between the five is CSS, the way a border slot is. Under all
-of them the back is round — a horizontal gradient with the hinge in shadow, the
-crown lit a third of the way across and the outer edge falling away. The row
-sits in the object editor under Look, and only for a container that is drawing
-as a spine. See decision 87.
+**Flat back**, **Chamfered**. It stamps `bn-<name>` on the tile and every
+difference between the five is CSS, the way a border slot is. Under the first
+three the back is round — a horizontal gradient with the hinge in shadow, the
+crown lit a third of the way across and the outer edge falling away; the last
+two are that shape changed, which is the one thing a binding is otherwise
+forbidden to restate and is what they exist for. The row sits in the object
+editor under Look, and only for a container that is drawing as a spine. See
+decisions 87 and 152.
 
 **A container can take dictation, and the box is opt-in.** `spawn` with
 `spawnBy:'type'` puts a box at the top of it — inside it always, and on its
@@ -326,13 +335,31 @@ answers three more questions, per object then per type: `calview`
 `weekStart` (`mon | sun`) and `weekends` (shown or hidden, which takes two
 columns off the grid). All three reach the front as well as the opened view.
 
-**Rules.** A magic drawer matches on **up to three clauses**, ANDed — each a
+**Rules.** A magic drawer matches on **up to five clauses**, ANDed — each a
 field, a comparison (`is`, `is not`, `contains`, `after / more than`,
 `before / less than`, `has any`) and a value — plus the shorthands the seeded
 drawers use: a tag, a set of types, loose, due today, done. All of them AND
-together. An object that hasn't got the field never matches. Ask `rulesOf(f)`,
-never `filter.rule`, which is the old single-clause shape and is still read for
-a snapshot restored from before migration 21.
+together. Ask `rulesOf(f)`, never `filter.rule`, which is the old single-clause
+shape and is still read for a snapshot restored from before migration 21.
+
+A clause is about a **trait's field** or about what the thing **is**. The first
+sort only ever answers for an object carrying that trait — a rule about
+`duration` cannot match something with no estimate — which is right for a field
+and useless for most of the questions you ask a drawer. The second sort are
+**meta fields**, marked `meta` in `FIELDS` and named with an `@` so they can
+never collide with an attribute: `@kind` the type, `@in` the container it is
+filed in, `@under` **anywhere inside** a container, `@tag`, `@trait`, `@title`,
+`@body`, `@done`, `@made`, `@holds`, `@colour`. They are read off every object
+rather than gated on a trait, which is the exemption `derived` already had.
+
+`@under` is a chain of parents rather than one, so "a task, due this week,
+anywhere inside the film" is three clauses and works however deep the task is
+filed. It walks `parent` by hand rather than asking `childrenOf()`, because
+`childrenOf()` runs magic rules and a rule that ran rules would call itself.
+
+A field carrying `pick` tells the rule builder to offer a list rather than a box
+— the containers, the types, the tags the desk actually has — because typing an
+object id into a text field is not a rule builder. See decision 151.
 
 There is **no OR**, deliberately: an OR needs groups, groups need a builder, and
 a builder is a query UI — which is the thing tags-becoming-drawers exists to
@@ -522,17 +549,26 @@ container is an object with children, so "drawer settings" and "object settings"
 were the same question asked twice.
 
 **And it asks one question at a time.** The top of it is what you came for — the
-thing itself on its stage, its name, its type, where it lives — and under that a
-row of doors: **Look** (shape, colour, mark, edges, board), **Behaviour** (what
-a click does, how it opens, how it sorts), **Fields** (everything its traits
-carry, plus milestones and a streak), **Collects** (what fills a magic drawer,
-what any container totals), **Tags and links**, **Traits**. Settings is the same
+thing itself on its stage, its type, where it lives, its tags and its links —
+and under that a row of doors: **Look** (colour, face, text size, mark, shape or
+panelling, edge, stock or grain, hardware, board, opening), **Behaviour** (what
+a click does, how it sorts, what typing into it makes), **Collects** (what fills
+a sorting drawer, what any container totals), **Advanced** (its fields, its
+milestones, a streak, and which traits it carries at all). Settings is the same
 shape: Style, Appearance, Your things, Paste in, About.
+
+**The name is the panel's own heading**, and pressing it turns it into the
+field: one place a thing is called something, rather than a heading saying it
+and a labelled box repeating it. The input carries the same `data-oset`, so undo
+and coalescing are the ordinary writer's.
 
 A door is the *same panel under the same key*, so it replaces rather than
 stacks, and `spec.back` puts a chevron in the head — the way out that a replaced
-panel never had. A list of one-of-many is a `<select>`; the many-of-many groups
-are chips behind a closed `<details>`. See decisions 36 and 66.
+panel never had. **Every row in Look is a cycle**, not a select: the answer is a
+thing you look at, and it is drawn on the stage six inches above the row, which
+a dropped-down list covers. Rows that are lists of *behaviours* keep their
+select. The many-of-many groups are chips behind a closed `<details>`. See
+decisions 36, 66 and 148.
 
 At the top of it is **the thing itself**, drawn through the same `gridTile()`
 the board uses, on a checkerboard scrolling diagonally. Every row was already
@@ -679,6 +715,12 @@ would be ten moves. The one thing left out is the desk's own settings, which
 live in `S.deskCfg` and have no id for a step to point at. A deleted object's
 picture is only freed from IndexedDB when its move falls off the bottom of the
 stack. See decision 65.
+
+**Anything made "in" a sorting drawer is made where that drawer lives.** A
+sorting drawer collects and does not hold, so an object whose `parent` is one is
+in no board at all — the drawer will not list it unless its rule happens to
+match, and nothing else lists it either. `homeFor(id)` is the one answer, and
+every maker goes through it.
 
 **Making things by typing** happens in four places: a Text field object (type
 into it and a task appears beneath it), the box at the top of any container that

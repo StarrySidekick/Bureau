@@ -147,3 +147,34 @@ torn note *can* wear a hairline, a moulding or a rule, drawn this way. The cost
 is that the filter chain is per shape rather than per slot, so a slot's material
 would have to be expressible as a colour and a weight. Four of the six already
 are.
+
+---
+
+## 5. And a second edge drawn that way: the fragment's tear
+
+Everything under the **Fragment** category — a character, a place, a law, a
+scene, a world — now carries a **crease tear**: a near-straight edge with a
+small jitter along its whole length, which is what paper does when you fold it
+and pull. Not the note's chipped edge; that is paper with bites taken out of it
+and reads as damage.
+
+It is the same technique section 4 describes, applied to a different silhouette,
+and it is the second use of it — which is the point: the four drop-shadows are a
+general way to rule a clipped shape, not a special case for one note.
+
+Two things about it are worth keeping straight if this is ever generalised
+further:
+
+**The jitter is in px, and the position is in %.** A percentage tear is
+invisible on a stamp and a bite on a big card. That is the same rule every
+moulding on a drawer front follows and the same one the bindings' hubs follow.
+
+**There are three of them, chosen by a hash of the object's id** (`tornOf()` in
+tiles.js). One polygon on every fragment on a board is a repeat you can see, and
+the hash is stable, so a tile tears the same way on every render forever.
+
+They are static polygons rather than an SVG turbulence filter, for decision
+101's reason: a `url()` filter is not compositable, and this is a shape that
+never moves. And the whole thing is off at `sz-mini` — two pixels of fuzz on
+forty is a quarter of the edge, and six filter passes on a mark is the cost
+decision 101 measured.

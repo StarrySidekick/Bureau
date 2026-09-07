@@ -17,7 +17,7 @@ import { closePanel } from './panels.js';
    Bureau is this phone running" is exactly the question you ask when a change
    appears not to have deployed. Shown in Settings, so it can be read off the
    device rather than guessed at. */
-const APP_VERSION = '1.58';
+const APP_VERSION = '1.59';
 const KEY = 'bureau.v1';
 const install = {deferred:null};   // the browser's install prompt, when one is on offer
 let saveTimer = null;
@@ -265,7 +265,7 @@ function rescalePhone(d, from, cols){
    skips all of them, an old backup replays only what it is missing. These
    used to be ad-hoc per-load mutations inside adopt(); a new repair that
    should run once belongs here, as the next numbered step. */
-const DATA_V = 28;
+const DATA_V = 30;
 const MIGRATIONS = [
   // Drawers and objects were two arrays and a drawer could not live inside
   // anything. foldDrawers also replays the old dense flow to give v1 drawers
@@ -773,6 +773,43 @@ const MIGRATIONS = [
       o.parent = cont ? 'd_alldr' : 'd_allob';
       o.desk = null; o.phone = null;
     });
+  }},
+  /* **Story is gone**, folded into Prose & Poetry (`book`), which is the same
+     object with a different binding — a container of text that reads as a book
+     both ways round. A removed type is the dangerous kind of removal, because
+     `K()` answers `note` for a name it does not know: a story left alone would
+     quietly stop being a container and its children would be orphaned. So the
+     kind is rewritten and the binding it wore is written onto the object, where
+     it is a slot like any other and survives an aesthetic switch. See the
+     kind table in model.js. */
+  {v:29, up(d){
+    (d.objects||[]).forEach(o=>{
+      if(!o || o.kind!=='story') return;
+      o.kind = 'book';
+      if(!o.binding) o.binding = 'ribbed';
+    });
+    (d.kinds ? Object.values(d.kinds) : []).forEach(k=>{
+      if(k && k.gathers==='story') k.gathers='book';
+    });
+  }},
+  /* Binding positions 3 and 4 were **Tooled and gilt** and **Paper label**;
+     they are **Flat back** and **Chamfered** now (decision 152). A slot is a
+     position and the stored value is the position's key, so the keys have to
+     be rewritten or a spine that wore one silently falls back to `banded` —
+     which is the quiet kind of loss a removed slot always is. Pinned values
+     carry the aesthetic in front of a slash (`golf97/tooled`), so both shapes
+     are rewritten. */
+  {v:30, up(d){
+    const MAP = {tooled:'flat', label:'chamfer'};
+    const fix = v => {
+      if(typeof v!=='string' || !v) return v;
+      const i = v.indexOf('/');
+      const key = i<0 ? v : v.slice(i+1);
+      if(!MAP[key]) return v;
+      return i<0 ? MAP[key] : v.slice(0,i+1)+MAP[key];
+    };
+    (d.objects||[]).forEach(o=>{ if(o && o.binding) o.binding = fix(o.binding); });
+    Object.values(d.kinds||{}).forEach(k=>{ if(k && k.binding) k.binding = fix(k.binding); });
   }},
 ];
 function migrate(d){

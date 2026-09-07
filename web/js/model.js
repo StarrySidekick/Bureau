@@ -104,8 +104,47 @@ const FIELDS = {
      that trait" test and ask the reader instead. It is in this table rather
      than beside it so a magic drawer's field picker gets it for nothing.
      See decision 120. */
-  urgency:  {key:'urg',    type:'level',  nm:'Urgency', opts:[0,1,2,3,4], derived:true, get:o=>urgeRank(o)}
+  urgency:  {key:'urg',    type:'level',  nm:'Urgency', opts:[0,1,2,3,4], derived:true, get:o=>urgeRank(o)},
+  /* ---- what a thing *is*, as against what it carries -------------------
+     Everything above is a **trait's field**: a rule about `duration` only ever
+     answers for something carrying `duration`, which is right for a field and
+     useless for the questions you actually ask a sorting drawer. "Tasks due
+     this week that are inside the film" is three clauses and two of them are
+     not fields at all — one is the type and one is where the thing lives.
+
+     So: **meta fields**, marked `meta`. They are read off every object rather
+     than gated on a trait (the same exemption `derived` already has), they are
+     named with an `@` so they can never collide with an attribute, and they
+     carry `pick` so the rule builder knows to offer a list rather than a box
+     to type in. Adding another is one row here and nothing anywhere else.
+
+     `@under` is the one that makes the example work: a chain of parents rather
+     than one, so "anywhere inside the film" collects a task filed in a
+     checklist filed in a shot list filed in the film. It walks `parent` by
+     hand rather than asking childrenOf(), because childrenOf() runs magic
+     rules and a rule that ran rules would be a rule calling itself.
+     See decision 151. */
+  '@kind':  {key:'kind',   type:'text', nm:'Type',              meta:true, pick:'kinds',  get:o=>o.kind},
+  '@in':    {key:'parent', type:'text', nm:'Filed in',          meta:true, pick:'conts',  get:o=>o.parent||ROOT},
+  '@under': {key:'parent', type:'text', nm:'Anywhere inside',   meta:true, pick:'conts',  list:true, get:o=>ancestorIds(o)},
+  '@tag':   {key:'tags',   type:'text', nm:'Tag',               meta:true, pick:'tags',   list:true, get:o=>o.tags||[]},
+  '@trait': {key:'attrs',  type:'text', nm:'Carries the trait', meta:true, pick:'attrs',  list:true, get:o=>attrsOf(o)},
+  '@title': {key:'title',  type:'text', nm:'Name',              meta:true, get:o=>o.title||''},
+  '@body':  {key:'body',   type:'text', nm:'Words',             meta:true, get:o=>o.body||''},
+  '@done':  {key:'done',   type:'bool', nm:'Finished',          meta:true, pick:'yesno',  get:o=>!!o.done},
+  '@made':  {key:'created',type:'date', nm:'Made on',           meta:true, get:o=>o.created||null},
+  '@holds': {key:'holds',  type:'number', nm:'Things filed in it', meta:true,
+             get:o=>S.objects.filter(x=>x.parent===o.id).length},
+  '@colour':{key:'c',      type:'text', nm:'Colour slot',       meta:true, get:o=>o.c==null?'':String(o.c)}
 };
+/* Every container a thing is inside, innermost first. Bounded, because a
+   filing cycle would otherwise hang the app on the first render. */
+function ancestorIds(o){
+  const out=[]; let at=o && o.parent;
+  for(let i=0;i<32 && at && at!==ROOT;i++){ out.push(at); const p=byId(at); at = p && p.parent; }
+  out.push(ROOT);
+  return out;
+}
 const fieldOf = a => FIELDS[a] || null;
 // every field an object actually carries, for filters and rollups
 const fieldsOf = o => attrsOf(o).map(fieldOf).filter(Boolean);
@@ -176,7 +215,7 @@ const BUILTIN_KINDS = {
      the pieces it is made of, and it opens as a book both ways round:
      `layout:'book'` pages through what it holds and `read:'book'` pages
      through its own body. See decision 130. */
-  book:    {face:'spine', binding:'banded', nm:'Text', ic:'book', c:11, key:'B',
+  book:    {face:'spine', binding:'banded', nm:'Prose & Poetry', ic:'book', c:11, key:'B',
      ds:'Anything made of words — press it and say which',
      family:['book','poem','novel','shortstory','essay'], famSub:'What are you writing?',
      attrs:['text','container','relates'], layout:'book', read:'book',
@@ -247,7 +286,10 @@ const BUILTIN_KINDS = {
      ds:'Something you are trying to reach, and the work that gets you there',
      attrs:['text','container','date','deadline','progress','relates'],
      seed:[{kind:'generator', title:'What gets you there…', sz:[8,2]}],
-     layout:'grid', size:[6,4], phoneSize:[6,3], body:'' },
+     /* **A playing card, laid on its side.** Three by two is the proportion a
+        card has when you put it down on a table rather than hold it, which is
+        what a goal on a desk is. See the goal tile in tiles.js. */
+     layout:'grid', size:[6,4], phoneSize:[3,2], body:'' },
   /* A **progress bar** is a goal with the goal taken out of it. A goal is a
      thing you are trying to reach and its milestones belong to it; a progress
      bar is a *readout*, and the thing it reads is very often somewhere else —
@@ -270,8 +312,11 @@ const BUILTIN_KINDS = {
      `media` like a picture — you can put your own cut-out PNG or SVG on the
      desk — and ships with ten of its own, drawn in the style's colours. */
   decoration:{shape:'decor', nm:'Decoration', ic:'plant', c:6, key:'', ds:'Something to stand on the shelf — a plant, a bookend, a little figure', attrs:['decor','media'], size:[4,5], phoneSize:[2,3], mediaType:'image', onclick:'none', decor:'plant', body:'' },
-  audio:   {film:true, nm:'Audio',   ic:'music',   c:10, key:'U', ds:'Something to listen to',    size:[6,2], onclick:'read', attrs:['text','media','duration'], mediaType:'audio', body:'' },
-  video:   {film:true, nm:'Video',   ic:'film',    c:9, key:'&', ds:'Something to watch',        size:[6,4], onclick:'read', attrs:['text','media','duration'], mediaType:'video', body:'' },
+  /* Sound and moving pictures are things you put on a desk, not a corner of
+     film-making — so they are majors, and pressing one plays it rather than
+     opening a page about it. See decision 144. */
+  audio:   {nm:'Audio',   ic:'music',   c:10, key:'U', ds:'Something to listen to',    size:[4,4], phoneSize:[3,3], onclick:'play', attrs:['text','media','duration'], mediaType:'audio', body:'' },
+  video:   {nm:'Video',   ic:'film',    c:9, key:'&', ds:'Something to watch',        size:[6,4], onclick:'play', attrs:['text','media','duration'], mediaType:'video', body:'' },
   trip:    {shape:'ticket', proj:'trip', nm:'Trip',    ic:'flag',    c:9, key:'P', ds:'Somewhere you are going',   size:[8,6], attrs:['container','date','span','location'], layout:'grid', body:'' },
   /* A **collage** is a container whose face is the board inside it, drawn
      small — not a separate wall of thumbnails that had to be kept in step with
@@ -280,14 +325,17 @@ const BUILTIN_KINDS = {
   moodboard:{face:'collage', nm:'Collage', ic:'image', c:13, ds:'Pictures, arranged — the board inside it, seen from outside', size:[8,8], attrs:['container'], layout:'grid', body:'' },
   quote:   {shape:'quote', nm:'Quote',   ic:'book',    c:5, key:'Z', ds:'Someone else\'s words',      size:[6,4], onclick:'read', attrs:['text','link','rating'],
             body:'> \n\n— ' },
-  /* A story holds its scenes and reads as a book; a world holds the people,
-     places and things the stories are set in. The distinction is the whole
-     reason there are two: a character outlives the book they first appeared in.
-     Both readings of "opens as a book" apply — `layout:'book'` pages through
-     the scenes it holds, `read:'book'` pages through its own body — and they
-     are different properties, so it carries both rather than choosing. */
-  story:   {face:'spine', binding:'ribbed', narrative:true, nm:'Story',   ic:'book',    c:5, key:'M', ds:'Scenes, bound in order', size:[3,9], attrs:['text','container','relates'], layout:'book', read:'book',
-            body:'' },
+  /* **Story is gone.** It was Prose & Poetry with a different binding: a
+     container of text that reads as a book both ways round, which is the
+     category's own description. Two tiles for one object is the "decide twice"
+     decision 130 exists to remove, and the one that had to go is the one whose
+     name is a guess about what you are writing. Migration 29 turns any story
+     already on a desk into a text and keeps its binding, so nothing that
+     exists changes shape. A pile of scenes gathers into one.
+
+     A world holds the people, places and things the stories are set in, and
+     that distinction is why it stays: a character outlives the book they first
+     appeared in. */
   world:   {narrative:true, nm:'World',   ic:'star',    c:9, key:'F', ds:'The people, places and things a story is set in', size:[8,8], attrs:['text','container'], layout:'grid', body:'' },
   /* Four things that are made of other things, and were being kept as notes
      because no type could hold anything. A film is a piece of work with a date
@@ -327,14 +375,14 @@ const BUILTIN_KINDS = {
      ds:'A painting, a print, a drawing — and the work behind it',
      attrs:['text','container','date','progress','media','relates'],
      layout:'grid', size:[6,6], phoneSize:[5,5], body:'' },
-  novel:   {face:'spine', proj:'novel', binding:'tooled', narrative:true, nm:'Novel', ic:'book', c:11, key:'#', ds:'Chapters, bound in order',
+  novel:   {face:'spine', proj:'novel', binding:'ribbed', narrative:true, nm:'Novel', ic:'book', c:11, key:'#', ds:'Chapters, bound in order',
      attrs:['text','container','relates'], layout:'book', read:'book', size:[3,9], phoneSize:[2,6], body:'' },
-  shortstory:{face:'spine', binding:'label', narrative:true, nm:'Short story', ic:'feather', c:14, key:'$', ds:'One story, its scenes in order',
+  shortstory:{face:'spine', binding:'flat', narrative:true, nm:'Short story', ic:'feather', c:14, key:'$', ds:'One story, its scenes in order',
      attrs:['text','container','relates'], layout:'book', read:'book', size:[3,7], phoneSize:[2,5], body:'' },
   album:   {face:'project', proj:'album', film:true, nm:'Album', ic:'music', c:10, key:'%', ds:'Tracks, in the order they play',
      attrs:['text','container','media','spawn'], spawnBy:'type', genKind:'audio',
      layout:'list', size:[5,5], phoneSize:[4,4], body:'' },
-  scene:   {shape:'page', narrative:true, film:true, nm:'Scene',   ic:'clapper', c:9, key:'N', ds:'One scene, for writing',     size:[6,5], onclick:'read', attrs:['text','location','duration','relates'], gathers:'story',
+  scene:   {shape:'page', narrative:true, film:true, nm:'Scene',   ic:'clapper', c:9, key:'N', ds:'One scene, for writing',     size:[6,5], onclick:'read', attrs:['text','location','duration','relates'], gathers:'book',
             body:'**Where —** \n\n**Who —** \n\n**What changes —** ' },
   character:{shape:'portrait', narrative:true, nm:'Character', ic:'star', c:13, key:'H', ds:'Someone in the story',       size:[4,6], onclick:'read', attrs:['text','media','relates'], gathers:'world',
             body:'**Wants —** \n\n**Fears —** \n\n**Voice —** ' },
@@ -391,7 +439,14 @@ const BUILTIN_KINDS = {
      a board of its own rather than a list, and its front reports on what is
      inside instead of listing the first fourteen things. `media` gives it a
      cover; `spawn` lets you throw a task at it without opening it. */
-  project: {face:'project', nm:'Project', ic:'flag',    c:7, key:'8', ds:'A whole piece of work, and everything it is made of',
+  /* **A project is a drawer.** Its default face is the front it is filed
+     behind, with the knob turned into a dial — how far along it is, read off
+     the one part of a drawer your eye already goes to. The named kinds of work
+     below keep their covers, because a film knows it is a poster before it
+     exists; a project that is only a project does not, and a drawer is what
+     everything on this desk is until it says otherwise. See ringFor() in
+     tiles.js. */
+  project: {face:'front', nm:'Project', ic:'flag',    c:7, key:'8', ds:'A whole piece of work, and everything it is made of',
      family:['project','film','novel','game','song','album','app','artpiece','trip'],
      famSub:'What is the work?',
      attrs:['text','container','date','progress','media','relates'],
@@ -418,7 +473,7 @@ const BUILTIN_KINDS = {
 const PRIMARY = ['drawer','magic','project','life','goal',
                  'book','checklist','calendar','note','fragment',
                  'task','progressbar',
-                 'image','decoration','control','generator'];
+                 'image','audio','video','decoration','control','generator'];
 const isPrimary = k => PRIMARY.includes(k);
 
 /* ---- a category is a type you press to be *asked which* -----------------
@@ -447,6 +502,15 @@ const FAMILY_OF = (()=>{ const m={};
    counts: a family whose own tile is not on the picker's front page would hide
    its members behind a door nobody can open. */
 const inFamily = k => { const c=FAMILY_OF[k]; return (c && isPrimary(c)) ? c : null; };
+/* Whether a type is a **piece of something bigger** — a fragment. Asked of the
+   category table rather than of a name: the Fragment category's own `family`
+   list is what says which types these are, so a type you invent that names
+   itself a fragment gets the torn edge for free and nothing here has to be
+   kept in step with a list somewhere else. `world` and `character` are members
+   with shapes of their own, and they are torn too: what makes a fragment is
+   that it came out of something, not what it is drawn on. See decision 145. */
+const isFragmentKind = k => FAMILY_OF[k]==='fragment' || k==='fragment' ||
+  (S.kinds && S.kinds[k] && S.kinds[k].family1==='fragment');
 /* The members worth drawing, which is not quite the stored list: a family may
    name a type that has since been deleted from KINDS, and a type you invented
    may say it belongs to one. */
@@ -842,12 +906,24 @@ const frameOf = o => {
 };
 const isWindow = o => WINDOW_FRAMES.includes(frameOf(o));
 
+/* Positions 3 and 4 were **Tooled and gilt** and **Paper label**, and both
+   were drawings of a rectangle: an empty double rule running the whole spine,
+   and a cream sticker covering three quarters of it. Neither read as a
+   binding, in any aesthetic — what they read as was a border and a blank.
+
+   They are the **back** now, which is the one thing about a bound book that
+   the first three positions all leave alone: plain, gilt-ruled and raised-band
+   spines are all *rounded*, because that is what a sewn book does. A flat back
+   and a chamfered one are the two other real answers, and they change the
+   whole silhouette rather than adding another ornament to it — which is what a
+   fourth and fifth position should do. Migration 30 carries the stored values
+   across. See decision 152. */
 const BINDINGS = {
   plain:  'Plain cloth',
   banded: 'Gilt rules',
   ribbed: 'Raised bands',
-  tooled: 'Tooled and gilt',
-  label:  'Paper label'
+  flat:   'Flat back',
+  chamfer:'Chamfered'
 };
 const BINDING_SLOTS = Object.keys(BINDINGS);
 /* A name that isn't one of the five falls back rather than being stamped onto
@@ -1416,6 +1492,31 @@ function inContainer(c,o){
   if(o.done && !keepsDone(c)) return false;
   return o.parent===c.id;              // an ordinary drawer holds what is filed in it
 }
+/* ---- where a thing made "in" a drawer actually goes --------------------
+   A magic drawer **collects; it does not hold** — `inContainer()` ignores
+   `parent` for one and matches its rule instead. So an object whose parent is
+   a magic drawer is in no board at all: the drawer will not list it unless the
+   rule happens to match, and nothing else lists it either, because nothing
+   else asks about that parent. It is made, it is saved, and it is nowhere.
+
+   That is exactly what "some drawers don't propagate new objects" was: the
+   picker, the sketch and every other maker took the board you were standing on
+   as the parent, and standing on a sorting drawer is standing on a rule.
+
+   `homeFor()` is the one answer: the nearest ancestor that actually **holds**.
+   `spawnInto()` has said the same thing about typing since the add box existed
+   — this is that rule applied to every way of making something, in one place
+   so the next maker gets it for free. The loop is bounded because a filed
+   cycle would otherwise hang the app. */
+function homeFor(id){
+  let at = id || ROOT;
+  for(let i=0;i<32;i++){
+    const c = byId(at);
+    if(!c || !has(c,'magic')) return at;
+    at = c.parent || ROOT;
+  }
+  return ROOT;
+}
 /* ---- clauses ----------------------------------------------------------
    A magic drawer used to carry exactly one `filter.rule`. The shorthands
    already stacked — kinds AND tag AND loose AND the rule — but the *free*
@@ -1429,7 +1530,14 @@ function inContainer(c,o){
 
    `rule` is still read so an old snapshot works before migration 18 runs, and
    so does anything that writes one by hand. See decision 63. */
-const RULE_MAX = 3;
+/* Five, not three. Three was "two clauses covers what a desk asks", which was
+   true of the fields the rule could ask about at the time; with the meta
+   fields (type, where it lives, its tags, its traits) the ordinary useful
+   question is now three or four — "a task, due this week, anywhere inside the
+   film, not finished" is four. Still ANDed and still no OR: an OR needs
+   groups, groups need a builder, and a builder is a query UI. See decision
+   151, which extends 63 rather than reversing it. */
+const RULE_MAX = 5;
 const rulesOf = f => {
   const rs = (f && f.rules) || (f && f.rule ? [f.rule] : []);
   return rs.filter(r=>r && r.f);
@@ -1458,7 +1566,8 @@ function matchRule(o, r){
   /* A derived field is not a trait an object carries — there is no `urg` on
      anything — so it is read off every object and answers null for the ones it
      cannot speak for, which the ops below already handle. */
-  if(!fld.derived && !attrsOf(o).includes(r.f)) return false;  // it hasn't got that field
+  // a derived or meta field is not a trait, so it is read off every object
+  if(!fld.derived && !fld.meta && !attrsOf(o).includes(r.f)) return false;
   /* A repeat is an object, so "contains week" has to compare against how it
      would be *said*; a level is a number, so 0 is a value and not an absence.
      See decisions 72 and 73. */
@@ -1474,8 +1583,17 @@ function matchRule(o, r){
     if(!a || !b) return false;
     return r.op==='gt' ? a>b : a<b;
   }
+  /* A **list** field holds several answers at once — the tags a thing carries,
+     the traits it has, the containers it is inside — so "is" means "is one of
+     them". Without this, `@under is <film>` compared the film's id against a
+     comma-joined chain and matched nothing, which is the quietest way for a
+     rule to be wrong. */
+  if(fld.list && (r.op==='is' || r.op==='not' || r.op==='has')){
+    const inIt = Array.isArray(v) && v.includes(String(r.v??''));
+    return r.op==='not' ? !inIt : inIt;
+  }
   switch(r.op){
-    case 'any':  return Array.isArray(v) ? v.length>0 : v!=null && v!==false;
+    case 'any':  return Array.isArray(v) ? v.length>0 : v!=null && v!==false && v!=='';
     case 'is':   return String(v??'')===String(fld.type==='date' ? (whenISO(r.v)??r.v) : r.v ?? '');
     case 'not':  return String(v??'')!==String(fld.type==='date' ? (whenISO(r.v)??r.v) : r.v ?? '');
     case 'has':  return Array.isArray(v) ? v.includes(r.v) : String(v??'').toLowerCase().includes(String(r.v??'').toLowerCase());
@@ -2114,7 +2232,7 @@ function marginPlus(o, text){
   return t ? marginOf(o).concat({d:D.iso(D.today()), t}) : marginOf(o);
 }
 
-export { ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds, K,
+export { homeFor, ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds, K,
   attrsOf, has, kindHas, T, dz, S, sensedDevice, reset, defaultLook, dev, byId,
   deskTitle, rootObj, container, cfgOf, isContainer, FACES, faceOf, layoutOf, SHAPES,
   shapeOf, READS, readOf, spreadOf, OPENINGS, openingOf, gathersOf, gatherKind, containers,
@@ -2141,6 +2259,6 @@ export { ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds, K,
   allUnder, progressOf, projectStat, finishedThings, allTags,
   PRIMARY, isPrimary, ANY, makesAnything, genSaid, ctlOf, barPct, barOf,
   BAR_STEPS, barSteps, barFilled, barGrid,
-  familyOf, isCategory, inFamily, familyList,
+  familyOf, isCategory, inFamily, isFragmentKind, familyList,
   PROJ_COVERS, projCoverOf, lifeArtOf,
   goalStanding, GOAL_STANDINGS, CHALLENGE_DAYS };

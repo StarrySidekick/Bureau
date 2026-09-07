@@ -8,13 +8,13 @@ import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, chi
   knobSizeOf, answered, sortOf, spanOf, coversDay, lateOn, isLate, iconOf, textSizeOf,
   isPicture, isMedia, isPlayable, isDecor, mediaTypeOf, frameOf, isWindow,
   boardLocked, prioOf, repeatSaid, urgencyOf, urgeSaid, durSaid, standsProud, shelfDepth, bookDepth, faceCue, anyFaceCue,
-  calViewOf, weekStartOf, calCols, borderOf, textureOf, marginOf } from './model.js';
+  calViewOf, weekStartOf, calCols, borderOf, textureOf, marginOf, isFragmentKind } from './model.js';
 import { CELL, gridOf, drawCols, drawRows, lay, overlaps, boxOk, freeSpot, anySpot, roomFor, gridRows, sizeOfKind,
   ensureBox, shelfRows, shelfOrigin, shelfAt, colsOf } from './grid.js';
 import { create, toast, fits, toggleDone, someKind, ctlSpec, ctlSaid, ctlIsOn,
   ctlForm, ctlNum, ctlIndex, ctlPress } from './mutations.js';
 import { DECOR, decorOf, decorSVG, LIFE_ART, lifeSVG } from './decor.js';
-import { hexOf, objColour, dress, dressAs, OBJ0, OBJN } from './look.js';
+import { hexOf, objColour, dress, dressAs, OBJ0, OBJN, CHECKS } from './look.js';
 import { render } from './views.js';
 import { openObj, openWriter, openRead, openViewer } from './sheet.js';
 import { objectPanel, schedulePanel } from './panels.js';
@@ -250,7 +250,21 @@ function calSoon(o, n){
    the hardware and with a **stock** in the panelling's place: what the sheet
    is, as against what is printed on it. One call, so a tile that grows a new
    shape gets all three without being told. See decision 99. */
-const paper = o => `${dress(o,'bd')} ${dress(o,'tx')} ${dress(o,'st')}`;
+/* Which of the three tears a fragment wears — a hash of its own id, so it is
+   the same one on every render forever and two fragments side by side are not
+   the same piece of paper twice. Exactly `tiltOf()`'s trick, for exactly its
+   reason. See decision 145. */
+function tornOf(o){
+  if(!isFragmentKind(o.kind)) return '';
+  let h=0; const id=String(o.id);
+  for(let i=0;i<id.length;i++) h=(h*31 + id.charCodeAt(i)) >>> 0;
+  return ` tornedge torn${h%3}`;
+}
+/* An object's three look families, plus the torn edge if it is a piece of
+   something. Every object tile goes through here, so a branch nobody has
+   thought about gets the edge without being told — the same argument the size
+   classes make. */
+const paper = o => `${dress(o,'bd')} ${dress(o,'tx')} ${dress(o,'st')}${tornOf(o)}`;
 
 /* **The page you read something on is a sheet of its own paper.** A note that
    is ruled on the board is ruled when you open it, and a note on aged stock
@@ -298,7 +312,9 @@ const CLICKS = {
   // a counter's whole job is to go up, so that is what pressing one does
   count:    'Add one to it',
   // a control is a switch, and pressing a switch flips it — nothing opens
-  toggle:   'Flip the switch'
+  toggle:   'Flip the switch',
+  // a sound or a video: press to start it, press again to stop — decision 144
+  play:     'Play it, and press again to stop'
 };
 const clickOf = o => o.onclick || K(o.kind).onclick || 'none';
 /* A generator presses out a new object beside itself, in whichever direction
@@ -337,6 +353,66 @@ function fireButton(o){
    object's `opening` asks for and then does the thing — in that order, and
    without waiting: the state change is immediate and the animation is a copy
    drawn over the result. See motion.js. */
+/* ---- playing a sound, and a moving picture -----------------------------
+   One at a time, and the audio element is kept **outside the DOM**. `render()`
+   replaces `#app` wholesale, so a `<audio>` written into a tile would be torn
+   out and silenced by any unrelated re-render — ticking a task on the far side
+   of the board would stop the music. Held in a module map keyed by object id
+   instead, which survives every render there is, and named by `src` so
+   changing the file behind an object does not go on playing the old one.
+
+   A video cannot be kept out of the DOM: you have to see it. So its element is
+   in the tile, a render does stop it, and that is stated rather than worked
+   around — the same bargain an inline edit makes.
+
+   Nothing here renders. `.sounding` is written onto the tile by hand, because
+   the whole point of holding the element outside `#app` is that playing must
+   not be at the mercy of a render. */
+const SOUNDS = new Map();
+let SOUNDING = null;
+const isSounding = id => SOUNDING===id;
+function markSounding(id, on){
+  SOUNDING = on ? id : (SOUNDING===id ? null : SOUNDING);
+  document.querySelectorAll('.sounding').forEach(el=>{
+    if(el.dataset.row!==SOUNDING) el.classList.remove('sounding'); });
+  const el = document.querySelector(`[data-row="${id}"]`);
+  if(!el) return;
+  el.classList.toggle('sounding', !!on);
+  const btn = el.querySelector('.medbtn');
+  if(btn) btn.innerHTML = ic(on?'pause':'play',20);
+}
+/* Whatever is playing, stopped — a desk plays one thing at a time, the way a
+   room does. Both kinds, because a video starting while a record is spinning
+   is two things at once just as much as two records would be. */
+function stopSounds(){
+  SOUNDS.forEach((a,id)=>{ if(!a.paused){ a.pause(); markSounding(id,false); } });
+  document.querySelectorAll('.vidtile video').forEach(v=>{
+    if(!v.paused){ v.pause(); const t=v.closest('[data-row]'); if(t) markSounding(t.dataset.row,false); } });
+  SOUNDING = null;
+}
+function playPress(id){
+  const o=byId(id); if(!o) return;
+  const src = o.media && o.media.src;
+  // nothing chosen yet: the press is "let me pick a file", which is the surface
+  if(!src){ openTile(id, ()=>openViewer(id)); return; }
+  if(mediaTypeOf(o)==='video'){
+    const v = document.querySelector(`[data-row="${id}"] video`);
+    if(!v) return;
+    if(v.paused){ stopSounds(); v.muted=false; v.play().then(()=>markSounding(id,true)).catch(()=>{}); }
+    else { v.pause(); markSounding(id,false); }
+    return;
+  }
+  let a = SOUNDS.get(id);
+  if(a && a.forSrc !== src){ a.pause(); a=null; }
+  if(!a){
+    a = new Audio(src); a.forSrc = src; a.preload='none';
+    a.addEventListener('ended', ()=>markSounding(id,false));
+    SOUNDS.set(id, a);
+  }
+  if(a.paused){ stopSounds(); a.play().then(()=>markSounding(id,true)).catch(()=>{}); }
+  else { a.pause(); markSounding(id,false); }
+}
+
 function tileTap(id){
   const o=byId(id); if(!o) return;
   if(isContainer(o)){
@@ -363,6 +439,9 @@ function tileTap(id){
     /* Pressing a control is not an opening either: the thing that answers is
        the board, which is already behind it. */
     case 'toggle': ctlPress(id); return;
+    /* A press starts it and a press stops it, and neither is an opening —
+       what answers is the tile itself. See playPress(). */
+    case 'play': playPress(id); return;
     /* Neither is adding one to a counter. The wheels are spun in place rather
        than re-rendered, because a fresh element starts at its final transform
        and the count would blink from 7 to 8 instead of rolling. */
@@ -382,7 +461,14 @@ function tileTap(id){
 const pending={cell:null};   // a holder, because three modules write it
 function placeAtPending(o){
   const dv=dev();
-  if(!pending.cell){ const [w,h]=sizeOfKind(o.kind, dv, o.parent); o[dv]=o[dv]||anySpot(w,h,dv,o.parent); return; }
+  /* No cell, or a cell that named a board but no square on it — which is what
+     a sketch on a sorting drawer leaves behind, because that drawer holds
+     nothing and the coordinate was measured somewhere the object is not going.
+     See homeFor() in model.js. */
+  if(!pending.cell || pending.cell.x==null){
+    pending.cell=null;
+    const [w,h]=sizeOfKind(o.kind, dv, o.parent); o[dv]=o[dv]||anySpot(w,h,dv,o.parent); return;
+  }
   // a sketched box wins over the kind's own size
   const [kw,kh]=sizeOfKind(o.kind, dv, pending.cell.parent);
   const w=pending.cell.w||kw, h=pending.cell.h||kh;
@@ -434,6 +520,12 @@ function gridTile(o, arr, parentId){
      whatever drawTile() returns — so the two traits that let an object out of
      a locked board reach every face without one of them being told. */
   const sz=[sizeClass(box),
+    /* A tick box of its own, spliced in with the size classes for the same
+       reason they are: every branch below returns one element and a class list
+       written here reaches all of them, including the ones nobody has thought
+       about. The desk's answer needs no class — it is the `:where()`-weighted
+       rule on the root. See decision 149. */
+    o.check && CHECKS[o.check] ? 'ck-'+o.check : '',
     has(o,'movable')   ? 'freemovable' : '',
     has(o,'resizable') ? 'freesizable' : ''].filter(Boolean).join(' ');
   /* Samples are on no board at all, so they get no perspective — a type drawn
@@ -558,17 +650,49 @@ const COLLAGE_MAX = 60;
    markup for all of them: eight faces that report the same walk must not be
    eight blocks of markup, which is decision 131's rule from the other side.
    See decision 135. */
+/* One disc, drawn once. A record cover and a sound object are the same
+   object seen twice — silver, a label in the thing's own colour, and the name
+   printed round it — so they share this rather than each carrying a copy that
+   would drift the first time the lettering changed. */
+function discHTML(o){
+  const t = (o.title||'').trim().slice(0, 42);
+  const pid = 'cdp_'+o.id;
+  return `<i class="cd"><b></b>${t?`
+    <svg class="cdtext" viewBox="0 0 100 100" aria-hidden="true">
+      <defs><path id="${esc(pid)}" fill="none"
+        d="M 13 50 A 37 37 0 0 1 87 50 A 37 37 0 0 1 13 50"></path></defs>
+      <text><textPath href="#${esc(pid)}" startOffset="25%"
+        text-anchor="middle">${esc(t)}</textPath></text>
+    </svg>`:''}</i>`;
+}
 function projCover(o, cov, st){
   if(cov==='plain') return st.cover
     ? `<span class="projcover" style="background-image:url('${esc(st.cover)}')"></span>` : '';
   if(st.cover) return `<span class="projcover" style="background-image:url('${esc(st.cover)}')"></span>`;
   const mark = ic(iconOf(o), 26);
   switch(cov){
-    /* A record and a sleeve are the same drawing at two sizes: the disc, its
-       label, and the light across it. The album's sits in a square box, which
-       is the bounding box a sleeve is. */
+    /* **A record is the whole tile.** The disc fills the box it is in, there
+       is no sleeve behind it, and the name runs round the label the way it is
+       printed on one — which is the one place on this desk where curved type
+       is the honest drawing rather than a trick, because a record's lettering
+       really does follow the groove.
+
+       Curved text is the one thing CSS cannot do, so the ring of lettering is
+       an inline SVG `textPath` over the CSS disc: the disc keeps its gradients
+       and its sheen, and the SVG carries nothing but the words. `id` is per
+       object because two records on one board would otherwise share a path.
+
+       **Two half-arcs, never one nearly-closed one.** A circle written as a
+       single arc back to a point a hundredth away from where it started makes
+       the renderer choose between two candidate centres, and with
+       large-arc + sweep both set it picks the one *below* the disc — so the
+       lettering came out on a circle of the right size in the wrong place,
+       under the tile, silently. Left point, over the top to the right point,
+       and round the bottom back: the top half is the first quarter of the
+       path, which is why the title is offset a quarter along and reads left to
+       right where a record's lettering is. */
     case 'album': case 'song':
-      return `<span class="projcover projdisc"><i class="cd"><b></b></i></span>`;
+      return `<span class="projcover projdisc">${discHTML(o)}</span>`;
     // an icon, on the squircle the whole tile has become
     case 'app':   return `<span class="projcover projapp">${mark}</span>`;
     /* A boxed game: the cover, with the platform's strip down the left the way
@@ -582,6 +706,74 @@ function projCover(o, cov, st){
     case 'art':   return `<span class="projcover projart">${mark}</span>`;
     default:      return '';
   }
+}
+
+/* ---- a switch is a piece of hardware, and hardware comes in sizes -------
+   One cell is a **push button**: a disc you press, because at 40px a lever has
+   no throw to read. One cell in either direction is a **light switch**: a
+   plate on the wall with a bat thrown up or down, which is the shape a switch
+   has when it is tall and thin. Two cells each way and up it is a **knife
+   switch**: two poles hinged at one end and closing into their jaws, which is
+   what a switch looks like when it is big enough to see the mechanism.
+
+   All three say their state by **position**, never by colour: the button is
+   proud or sunk, the bat is up or down, the blades are open or closed. A
+   colour is a thing you have to have learnt; a lever is a thing you can see.
+
+   Drawn as inline SVG rather than stacked boxes, because a blade at an angle
+   and a tapered bat are shapes, and the CSS version of them was six nested
+   pseudo-elements that never quite lined up. Nothing here names a colour: the
+   metal is `--brass`, the body is the object's own `--c`, and the plate is the
+   one light this app has, at the upper left. */
+const switchShape = box =>
+  (box.w<=1 && box.h<=1) ? 'push' : (box.w>=2 && box.h>=2) ? 'knife' : 'light';
+
+function ctlSwitch(box, on){
+  const shape = switchShape(box);
+  if(shape==='push') return `<span class="cpush" aria-hidden="true"><i></i></span>`;
+  if(shape==='light') return `<svg class="ctlart artlight" viewBox="0 0 44 72" aria-hidden="true">
+      <rect class="plate" x="1.5" y="1.5" width="41" height="69" rx="5"/>
+      <circle class="screw" cx="22" cy="8" r="2.2"/>
+      <circle class="screw" cx="22" cy="64" r="2.2"/>
+      <rect class="well" x="13" y="17" width="18" height="38" rx="3"/>
+      <g class="bat"><path d="M16.5 36 L27.5 36 L25.5 17.5 Q22 14.5 18.5 17.5 Z"/></g>
+    </svg>`;
+  /* The viewBox leaves room **above** the slate for the blades to stand open
+     in: a knife switch open is a thing sticking up out of its base, and a box
+     drawn tight to the closed position clips the only state that is not the
+     default. Nothing may leave the viewBox — the SVG scales to `meet`, so what
+     fits the box fits the tile at every size. */
+  return `<svg class="ctlart artknife" viewBox="0 0 100 76" aria-hidden="true">
+      <rect class="base" x="4" y="26" width="92" height="46" rx="5"/>
+      ${/* the jaws the blades close into, and the posts they hinge on */''}
+      <g class="jaw"><rect x="74" y="36" width="6" height="12" rx="1.5"/>
+        <rect x="74" y="54" width="6" height="12" rx="1.5"/></g>
+      <g class="post"><circle cx="22" cy="42" r="5"/><circle cx="22" cy="60" r="5"/></g>
+      <g class="blades">
+        <rect class="blade" x="20" y="39" width="60" height="6" rx="2"/>
+        <rect class="blade" x="20" y="57" width="60" height="6" rx="2"/>
+        <rect class="grip" x="70" y="34" width="11" height="34" rx="4"/>
+      </g>
+    </svg>`;
+}
+
+/* ---- the knob, and the one that is also a dial --------------------------
+   Every drawer front's knob goes through here, so a front that reports and a
+   front that does not are one piece of markup with one extra class. The ring
+   is a conic sweep round the outside of the knob — burnt into the wood rather
+   than laid over it — and it is written as a custom property so the stylesheet
+   owns every colour, which is the rule everywhere else on a tile.
+
+   `ringFor()` is the test, and it is about the object rather than its type: a
+   container that carries `progress` is one you have asked to report, so it
+   gets the dial. Everything else gets the knob it has always had. */
+function ringFor(o){
+  if(!isContainer(o) || !has(o,'progress')) return null;
+  return clamp(Math.round(barPct(o)), 0, 100);
+}
+function knobHTML(o, ring){
+  return `<span class="pull ${dress(o,'kn')}${ring==null?'':' pullring'}"${
+    ring==null?'':` style="--ring:${ring}%" title="${ring}% done"`}></span>`;
 }
 
 const GRAIN_LAYER = '<i class="dgrain"></i>';
@@ -656,8 +848,19 @@ function drawTileFace(o, arr, box, persp){
     const any=makesAnything(o);
     const big = box.w>1 || box.h>1;
     const made = genSaid(o);
-    return `<${big?'div':'button'} class="drawer otile ${paper(o)} sh-press gentile${
-        any?' genany':''}${big?' genbig':''}${sel}" data-row="${o.id}"
+    /* One cell square, the spiral **is** the tile: no ground, no edge, no
+       shadow, drawn in the object's own colour and filling the cell. A
+       coloured square with a small mark on it is a button carrying a picture
+       of a button, which is one thing too many at 40px — the same argument the
+       mini tile makes one branch below. So no `paper()` either: a stock is
+       what a sheet is made of, and there is no sheet here.
+
+       Bigger, it is a **pill**: the press at the head and the line you type
+       into filling the rest, which is the shape a thing you press and a thing
+       you type into share. */
+    return `<${big?'div':'button'} class="drawer ${
+        big?`otile ${paper(o)} genbig`:'gensolo bd-none'} sh-press gentile${
+        any?' genany':''}${sel}" data-row="${o.id}"
         ${big?'role="button" tabindex="0"':''}
         title="${esc(o.title||('New '+made))}" style="--c:${colour};${place}">
       ${chips}
@@ -674,7 +877,11 @@ function drawTileFace(o, arr, box, persp){
      the thing's colour and its type's mark, which is enough to recognise it,
      and the title is the tooltip. It is still a drawer or still an object, so
      the front styling and the drop target come along unchanged. */
-  if(box.w<=1 && box.h<=1){
+  /* …with two exceptions, both for the same reason the spawner sits above this
+     line: a **control** at one cell is a push button, which is already a mark
+     and already says its own state, and an anonymous disc would take the state
+     away. See ctlSwitch(). */
+  if(box.w<=1 && box.h<=1 && !has(o,'control')){
     /* A calendar at one cell is still a calendar: the tear-off day pad — the
        month small, today big — not an anonymous mark. See decision 80. */
     if(cont && faceOf(o)==='calendar'){
@@ -716,15 +923,15 @@ function drawTileFace(o, arr, box, persp){
        The other two keep the object's colour, because a lever and a dial say
        where they are by their own position. */
     const face = form==='button' ? hexOf(OBJ0 + (ctlIndex(o) % OBJN)) : colour;
-    return `<button class="drawer otile ${paper(o)} sh-switch ctltile ctl-${form}${
-        on?' on':''}${sel}" data-row="${o.id}" data-ctl="${esc(ctlOf(o))}"
+    return `<button class="drawer otile sh-switch ctltile ctl-${form} csw-${
+        switchShape(box)}${on?' on':''}${sel}" data-row="${o.id}" data-ctl="${esc(ctlOf(o))}"
         title="${esc(spec.ds||'')}" style="--c:${face};${
         num?`--dial:${ang.toFixed(1)}deg;`:''}${place}">
       ${chips}
       <span class="cico">${ic(o.ic || spec.ic, 18)}</span>
       <span class="clabel">${esc(o.title||spec.nm)}</span>
       ${form==='switch'
-        ? `<span class="cplate" aria-hidden="true"><i class="clever"></i></span>`
+        ? ctlSwitch(box, on)
         : form==='dial'
         ? `<span class="cdialwrap" aria-hidden="true"><i class="cdial"></i></span>
            <span class="cval">${esc(ctlSaid(o))}</span>`
@@ -853,15 +1060,26 @@ function drawTileFace(o, arr, box, persp){
     const st=projectStat(o);
     const late = st.pct<100 && isLate(o);
     const cov = projCoverOf(o);
+    /* A record has no card behind it (see `.pcov-song` in chrome.css), so it
+       takes no edge either — `bd-none` rather than the object's own slot,
+       because a border round a disc is the sleeve this cover just lost. */
+    const disc = (cov==='song'||cov==='album') && !st.cover;
     return `<${takesTyping(o)?'div':'button'} class="drawer dtile projtile pcov-${cov}${
-        cov!=='plain'?' hascover':''}${st.cover?' haspic':''} ${dress(o,'bd')}${sel}"
+        cov!=='plain'?' hascover':''}${st.cover?' haspic':''}${disc?' bare':''} ${
+        disc?'bd-none':dress(o,'bd')}${sel}"
         data-drawer="${o.id}" ${takesTyping(o)?'role="button" tabindex="0"':''}
         style="--c:${colour};--pct:${st.pct}%;${place}">
       ${projCover(o, cov, st)}
       <div class="dtop"><span class="dname">${esc(o.title||'Untitled')}</span>
         ${rollTag(o)}
         ${lateOn(o)?`<span class="projdue${late?' late':''}">${esc(deadSaid(o)||dateSaid(o))}</span>`:''}</div>
-      <div class="projbar"><i></i><b>${st.pct}%</b></div>
+      ${/* **No bar.** A project's percentage was a bar and a number on every
+           face, and it is neither the question you ask a project across the
+           desk nor an honest answer to it — half the ticks under a project are
+           in checklists that mean nothing on their own. What it is made of and
+           what is next are what the face says now. The walk still computes the
+           number: `projectStat()` feeds the knob-ring on a project's drawer
+           front, and `barPct()` still reads it. */''}
       <div class="projline">
         ${st.ticks?`<span>${st.done}/${st.ticks} done</span>`:`<span>${st.n||'Nothing'} inside</span>`}
         ${st.next?`<span class="projnext">next ${esc(D.short(st.next))}</span>`:''}
@@ -1030,11 +1248,25 @@ function drawTileFace(o, arr, box, persp){
   if(cont && faceOf(o)==='goal'){
     const st=projectStat(o), pct=progressOf(o), stand=goalStanding(o);
     const late = pct<100 && isLate(o);
-    return `<${takesTyping(o)?'div':'button'} class="drawer dtile goaltile stand-${stand} ${
-        dress(o,'bd')} ${dress(o,'tx')} ${dress(o,'pn')}${sel}"
+    /* **A playing card.** A goal is the one thing on this desk that is not
+       furniture and not paper: it is a thing you are holding, and a card is
+       what a held thing looks like. Everything a Bicycle card has and nothing
+       it hasn't — a heavy corner radius, a white face, the linen tooth, a
+       ruled panel inset from the edge, and an **index in two opposite
+       corners**, the second one turned round, which is the detail that makes a
+       rectangle read as a card rather than as a rounded tile.
+
+       The index is the standing (`Goal`, `Challenge`, `Dream`) over the mark;
+       the middle is the name, because the name is still the face. The count
+       is the pip line at the foot, and the run is the hairline it always was.
+       See decision 146. */
+    const mark = ic(iconOf(o), 13);
+    const idx = `<span class="cardidx"><u>${esc(GOAL_STANDINGS[stand][0])}</u>${mark}</span>`;
+    return `<${takesTyping(o)?'div':'button'} class="drawer dtile goaltile playcard stand-${stand} bd-none${sel}"
         data-drawer="${o.id}" ${takesTyping(o)?'role="button" tabindex="0"':''}
         title="${esc(o.title||'Untitled')}" style="--c:${colour};--pct:${pct}%;${place}">
-      <i class="dpanel"></i>
+      <i class="cardrule" aria-hidden="true"></i>
+      ${idx}${idx.replace('cardidx','cardidx flip')}
       <span class="goalstand">${esc(GOAL_STANDINGS[stand])}</span>
       <span class="goalname">${esc(o.title||'Untitled')}</span>
       <span class="goalfoot">
@@ -1109,6 +1341,15 @@ function drawTileFace(o, arr, box, persp){
      nothing here has to know which threshold it crossed. */
   if(cont){
     const doors = openingFor(o, box)==='cabinet';
+    /* **A project is a drawer whose knob is the dial.** The default look for a
+       piece of work is the front it is filed behind, and how far along it is
+       reads off the one thing every drawer already has — a turned knob with a
+       ring burnt round it. It says the same number the face used to print
+       twice, in the place your eye already goes, and it costs no row.
+
+       `ringFor()` answers null for anything that is not reporting, and a null
+       ring draws exactly the knob that has always been drawn. */
+    const ring = ringFor(o);
     /* A knob is turned out of the same wood as the front, so unless it has been
        told otherwise it *is* the front's colour — what makes it a knob is the
        light on it, not a lighter shade painted where it sits. Lighter and
@@ -1142,8 +1383,8 @@ function drawTileFace(o, arr, box, persp){
       <div class="dtop">${nameField(o)}
         ${has(o,'magic')?`<span class="magicmark" title="Collects by rule">${ic('sparkle',11)}</span>`:''}
         ${rollup(o)?`<span class="rollup">${esc(rollup(o))}</span>`:''}</div>
-      <div class="dfoot${doors?' doors':''}"><span class="pull ${dress(o,'kn')}"></span>${
-        doors?`<span class="pull ${dress(o,'kn')}"></span>`:''}</div>
+      <div class="dfoot${doors?' doors':''}">${knobHTML(o, ring)}${
+        doors?knobHTML(o, ring):''}</div>
       ${handles}
     </button>`;
   }
@@ -1189,6 +1430,54 @@ function drawTileFace(o, arr, box, persp){
       ${handles}
     </button>`;
   }
+  /* ---- a sound, and a moving picture ------------------------------------
+     **A sound is a record with a play button in the middle of it**, and a
+     video is the video, filling whatever box it is in. Pressing either starts
+     it and pressing again stops it — see `playPress()`, which is where the
+     one-at-a-time rule and the cost of keeping an element around both live.
+
+     This is a deliberate reversal of decision 71's "never a player on the
+     board". That rule was written to stop forty decoded media elements
+     appearing on one desk, and it still holds where it matters: a **sound**
+     draws no element at all until it is pressed, so a board of a hundred of
+     them costs a hundred discs and nothing else. A **video** has to show a
+     frame to be a video, so it does carry an element, at `preload="metadata"`
+     — which fetches the header and the first frame rather than the file. The
+     honest cost of that is that a re-render stops it, the same way a re-render
+     ends an inline edit. See decision 144.
+
+     `.sounding` is toggled on the tile by hand rather than by re-rendering,
+     because the whole point of keeping the audio element outside the DOM is
+     that playing music must not be at the mercy of an unrelated render. */
+  if(isPlayable(o)){
+    const kind=mediaTypeOf(o);
+    const on = isSounding(o.id);
+    const src = (o.media && o.media.src) || '';
+    if(kind==='video'){
+      return `<div class="drawer otile vidtile bd-none${on?' sounding':''}${sel}"
+          data-row="${o.id}" role="button" tabindex="0"
+          title="${esc(o.title||'Untitled')} — press to play" style="--c:${colour};${place}">
+        ${chips}
+        ${src?`<video class="tilevid" src="${esc(src)}" preload="metadata"
+          playsinline tabindex="-1"></video>`
+        :`<span class="vidempty">${ic('film',22)}<b>${esc(o.title||'Add a video')}</b></span>`}
+        ${/* Nothing chosen yet is not a thing you can play: the button says
+             what the press actually does, which is choose a file. */''}
+        <span class="medbtn${src?'':' blank'}" aria-hidden="true">${
+          ic(src?(on?'pause':'play'):'plus',20)}</span>
+        ${handles}
+      </div>`;
+    }
+    return `<button class="drawer otile sndtile bd-none${on?' sounding':''}${sel}"
+        data-row="${o.id}"
+        title="${esc(o.title||'Untitled')} — press to play" style="--c:${colour};${place}">
+      ${chips}
+      <span class="projdisc snddisc${src?'':' blank'}">${discHTML(o)}</span>
+      <span class="medbtn${src?'':' blank'}">${ic(src?(on?'pause':'play'):'plus',20)}</span>
+      ${handles}
+    </button>`;
+  }
+
   /* …and a picture with nothing in it yet is an empty mount, not a card with a
      title and a blank body. It said "Untitled" and did nothing, which is how a
      new Image object came to look broken rather than unfilled. Tapping it opens
@@ -1205,23 +1494,6 @@ function drawTileFace(o, arr, box, persp){
       ${handles}
     </button>`;
   }
-  /* A sound or a video that *has* a file, on the board: its mark, its name and
-     how long it runs. Not a player — a tile is a face, and forty of them each
-     holding a decoded media element is a board that will not scroll. Tapping it
-     opens the surface, which is where it plays. See decision 71. */
-  if(isPlayable(o) && o.media && o.media.src){
-    const kind=mediaTypeOf(o);
-    return `<button class="drawer otile ${paper(o)} mediatile sh-${shapeOf(o)}${sel}" data-row="${o.id}"
-      style="--c:${colour};${place}">
-      ${chips}
-      <span class="medmark">${ic(kind==='audio'?'music':'film',20)}</span>
-      <div class="dtop">${nameField(o)}</div>
-      <div class="dfoot"><span class="tilemeta">${
-        [K(o.kind).nm, has(o,'duration')&&o.dur?durSaid(o.dur):''].filter(Boolean).join(' · ')}</span></div>
-      ${handles}
-    </button>`;
-  }
-
   // a button object is the button: it fills its tile rather than sitting in it
   if(has(o,'button')){
     return `<button class="drawer otile ${paper(o)} sh-button btntile bs-${o.btnshape||'rounded'}${sel}" data-row="${o.id}"

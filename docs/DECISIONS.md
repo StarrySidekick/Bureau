@@ -6460,3 +6460,318 @@ spirals: a container carrying `spawn` with no `spawnBy` of its own answers
 fault and not the app's — but a film project was printing its title twice, once
 as the poster and once as the report's own name row, and nothing had noticed,
 because you have to put a poster next to eight other covers to see it.
+
+## 144 · A sound is a record you press, and Story is gone
+
+*2026-09-07*
+
+Three changes to what the picker offers, and one reversal.
+
+**The Film group has gone.** It held Audio and Video — things you put on a desk,
+not a corner of film-making — plus Film, Song and Album, which are members of
+the Project family and were never listed there anyway. What was left was a
+heading over three tiles you reach a different way. Audio and Video are majors
+now; the rest fall to Containers and Objects like everything else.
+
+**Story has gone.** It was Prose & Poetry with a different binding: a container
+of text that reads as a book both ways round, which is the category's own
+description. Two tiles for one object is the "decide twice" decision 130 exists
+to remove, and the one that had to go is the one whose name is a guess about
+what you are writing before you have written it. Migration 29 rewrites any story
+already on a desk into a text and keeps the binding it wore, because a removed
+type is the dangerous kind of removal — `K()` answers `note` for a name it does
+not know, so a story left alone would quietly stop being a container and orphan
+its children. **Text** is called **Prose & Poetry** now, which says what it is
+for rather than what it is made of.
+
+**And a sound is a record with a play button in the middle of it.** Decision 71
+said a tile is a face and never a player, on the argument that forty decoded
+media elements is a board that will not scroll. The expensive half of that is
+still true and is still enforced: there is **no media element on the board** for
+a sound. The `Audio` object holds nothing; pressing it makes an `Audio()` in a
+module map keyed by object id, outside the DOM — so a hundred sounds cost a
+hundred discs and nothing else, and an unrelated render cannot silence the one
+that is playing. One at a time, because a desk plays one thing at a time.
+
+A video cannot be kept out of the DOM: you have to see it. So its element is in
+the tile at `preload="metadata"`, a render does stop it, and that is stated
+rather than worked around — the same bargain an inline edit makes.
+
+The disc is `discHTML()` and it is the same drawing the song and album covers
+use. One record, two callers.
+
+## 145 · A fragment is a piece torn out of something
+
+*2026-09-07*
+
+Every type listed under the Fragment category — a character, a place, a law, a
+scene, a world — is a piece of something bigger, and the edge says so. Not
+`sh-tornnote`'s chipped edge: that is paper with bites out of it, and half a
+centimetre missing from each side reads as damage rather than as a tear. This is
+the edge paper has when you fold it, crease it and pull — near straight, and
+fuzzy along its whole length.
+
+Three things make it that rather than a wobble.
+
+The jitter is in **px**, so the fuzz is a fixed thickness at any tile size. A
+percentage tear is invisible on a stamp and a bite on a big card, which is the
+same rule every moulding on a drawer front follows.
+
+The line **follows the tear**: four zero-blur drop-shadows computed from the
+element's alpha *after* the clip, which is the one way to draw a rule round a
+clipped shape and is exactly what the torn note worked out.
+
+And there are **three silhouettes**, chosen by a hash of the object's own id, in
+`tornOf()`. One polygon on every fragment on a board is a repeat you can see —
+the same finding Starful Gothic's drawn line made about noise. They are static
+polygons rather than a turbulence filter for decision 101's reason: a `url()`
+filter is not compositable and this is a shape that never moves.
+
+Which types these are is asked of the **category table**, never of a name:
+`isFragmentKind()` reads the Fragment category's own `family` list, so a type
+you invent that names itself a fragment gets the edge for free.
+
+## 146 · A goal is a playing card
+
+*2026-09-07*
+
+The one thing on this desk that is neither furniture nor paper. A goal is
+something you are holding, and a card is what a held thing looks like — so it is
+drawn as one, and its default box is three by two, which is a card put down on a
+table rather than held in a hand.
+
+Four things make a rectangle read as a playing card and it needs all four: a
+**heavy corner radius** (the one place decision 125's 6–12px ban does not apply,
+because a card really is die-cut that way — and it is a *proportion*, not a
+token); the **linen tooth**, a fine cross-hatch you feel rather than see; a
+**ruled panel** inset from the edge, in the goal's own colour; and an **index in
+two opposite corners** with the second turned upside down, which is the detail
+that says card and that nothing else does.
+
+The face is the card's own white rather than the object's colour, because a
+playing card is white and its colour is the ink on it. So `--c` moves to the
+rule, the index and the deadline, and the standing — Goal, Challenge, Dream,
+still read off the time on it rather than stored — is the letter in the index.
+
+## 147 · The rule goes under the writing, not across the sheet
+
+*2026-09-07*
+
+A ruled sheet whose lines are a fixed five pixels apart is a sheet whose lines
+have nothing to do with the words on it: the text sat between them, across them,
+and — at another text size — three to a rule. CLAUDE.md knowingly left that, on
+the argument that joining the pitch to the leading means one number shared
+across seven aesthetics and the pagination ruler.
+
+It does not. **Put the ruling on the writing itself** and the two cannot
+disagree, at any size, in any aesthetic, with no number shared between them: the
+period is `1lh` — the element's own line box — so every rule falls exactly at the
+foot of a line by construction rather than by agreement. The sheet keeps the
+tint that says what it is made of; the lines belong to the text.
+
+And the default stock is **plain** everywhere. Laid was the default in five of
+the seven aesthetics, which meant every note on a new desk arrived ruled whether
+or not it was going to be written on.
+
+## 148 · A visual choice is pressed through, not chosen from a list
+
+*2026-09-07*
+
+Every row in the object editor's Look section changes something you can see, and
+the thing you can see is drawn six inches above it on the stage. A `<select>`
+puts a list of words between you and that: you open it, the list covers the
+preview, you read a name you have to imagine, you close it, and only then does
+the picture change. Trying five panellings was five round trips through a menu
+that hides the answer.
+
+A cycle is one press per answer. The button says where you are and how many
+there are, the stage redraws under it, and going round the ring is the whole
+interaction. It writes through `setField()` like every other row, so undo, the
+desk's re-render and the panel's refresh come along unchanged.
+
+Words-not-pictures rows keep their select. "Clicking it" is a list of
+behaviours, and cycling through those means pressing a button to find out what
+it does.
+
+Four more things about that panel, all of them the same idea — put the answer
+where the question is:
+
+**The name is the title.** It was a labelled field under the stage, which is a
+second place the thing is called something. Pressing the heading turns it into
+the box.
+
+**Tags and links are on the card**, not behind a door called "Tags and links". A
+tag is the one piece of filing you add while looking at the thing.
+
+**Fields and Traits are behind Advanced.** Both are about the object's own
+structure rather than about the object: Traits is which attributes it carries at
+all, which is the type builder pointed at one thing, and Fields is a form
+generated from those traits. Neither is wrong and neither is what you open an
+editor to do.
+
+**Opening moved into Look**, because it names which *animation* a thing opens
+with and what it does is the same either way. And the coloured stripe went: a
+stripe down the left is what `priority` means, and a second thing meaning it was
+the confusion decision 72 spent a version removing.
+
+The Look rows are in **one order whatever the thing is** — colour, face, text
+size, mark, shape or panelling, edge, stock or grain, hardware, board, opening —
+so the row you want is where it was last time rather than where this particular
+type happens to put it.
+
+## 149 · A tick box is a fact about the desk *and* about an object
+
+*2026-09-07*
+
+Decision 83 made it a fact about the whole desk, on the argument that a task
+ticked one way and a checklist line ticked another are two apps sharing a board.
+That argument is right about the **default** and wrong about the **choice**: a
+habit you tick in a circle beside a shopping list you tick in a ballot box is one
+desk with two kinds of thing on it, and there was no way to say so.
+
+So the desk still picks one, for everything that has not asked, and an object may
+carry its own — stamped as `ck-<shape>` beside the size classes, so every tile
+branch gets it.
+
+The mechanism is the whole decision. **The desk's rules are wrapped in
+`:where()` and the object's are not.** `:where()` contributes nothing to
+specificity, so `[data-checks="dot"] .check` scores as a bare `.check` and
+`.drawer.ck-circle .check` beats it — which is what makes the nearer answer win.
+Written the obvious way the two would tie, and *source order* would decide, so
+whichever shape happened to be last in the file would be the shape every object
+got.
+
+The default is the **circle** now, in every aesthetic. And the box is a fraction
+of a cell rather than a fixed 38px: the same tick box was 65% of a desk cell,
+79% of a phone cell and 95% of the 40px cell a preview draws at, which is why it
+looked right on the board and looked like a crate in the editor.
+
+## 150 · A board is two colours, and you can set either
+
+*2026-09-07*
+
+The desk's own board settings have had a colour input per square for a while;
+an object's board had six presets and a dice roll. That is fine for "give me a
+board" and no use at all for "this half a shade warmer", which is the thing you
+actually want once you have lived with one.
+
+Two inputs, one per square, over the same presets. Stored as it always was —
+`"#light|#dark"`, one string and two answers — so nothing needed migrating:
+either input writes its own end of it and leaves the other alone, and with
+nothing stored yet the untouched half falls back to what is currently drawn, so
+nudging one square does not blank the other.
+
+## 151 · A sorting drawer can ask what a thing *is*
+
+*2026-09-07*
+
+Every clause used to be about a **trait's field**: a rule about `duration` only
+ever answers for something carrying `duration`, which is right for a field and
+useless for the questions you actually ask a sorting drawer. "Tasks due this week
+that are inside the film" is three clauses and two of them are not fields at all
+— one is the type and one is where the thing lives.
+
+So: **meta fields**, marked `meta` in the same table. They are read off every
+object rather than gated on a trait (the exemption `derived` already had), they
+are named with an `@` so they can never collide with an attribute, and they carry
+`pick` so the rule builder offers a list rather than a box to type in. The type,
+the container it is filed in, **anywhere inside** a container, its tags, its
+traits, its name, its words, whether it is finished, the day it was made, how
+many things are filed in it, its colour slot. Adding another is one row.
+
+`@under` is the one that makes the example work: a chain of parents rather than
+one, so "anywhere inside the film" collects a task filed in a checklist filed in
+a shot list filed in the film. It walks `parent` by hand rather than asking
+`childrenOf()`, because `childrenOf()` runs magic rules and a rule that ran rules
+would be a rule calling itself.
+
+The **value control follows the field**: a container clause offers the
+containers, a type clause the types, a tag clause the tags the desk actually has.
+Typing an object id into a text box is not a rule builder.
+
+Five clauses now, not three. Still ANDed and still no OR: an OR needs groups,
+groups need a builder, and a builder is a query UI — which is the thing
+tags-become-drawers exists to avoid. This extends decision 63 rather than
+reversing it.
+
+## 152 · The last two bindings are the back, not another ornament
+
+*2026-09-07*
+
+Positions 3 and 4 were **Tooled and gilt** and **Paper label**, and both were
+drawings of a rectangle: an empty double rule running the whole spine, and a
+cream sticker covering three quarters of it. Neither read as a binding in any
+aesthetic — what they read as was a border and a blank.
+
+They are the **back** now, which is the one thing about a bound book that the
+first three positions all leave alone: plain, gilt-ruled and raised-band spines
+are all rounded, because that is what a sewn book does. A **flat back** and a
+**chamfered** one are the two other real answers, and they change the whole
+silhouette rather than adding a fourth pattern of gilt rules to it — which is
+what a fourth and fifth position should do.
+
+Both restate `background` on the tile, which is the one thing a binding is
+otherwise forbidden to touch, and is exactly what these two exist to change. The
+chamfer's stops are **hard**: a gradient that eases is a round back again, and
+what says chamfer is the line where one facet ends and the next begins.
+
+And the raised bands were fixed on the way past. The four hubs were at 4%, 13%,
+87% and 96% — two pairs jammed against the head and the tail with two thirds of
+bare leather between them — and the gilt fillets were offset *beside* each hub
+rather than run along it. A binder tools the band itself, and the eye reads a
+gold line on a ridge as gilding and a gold line next to a ridge as a mistake.
+Five panels, a hub between each pair, one fillet down the middle of every hub.
+
+Migration 30 rewrites the stored keys, including the pinned `aesthetic/slot`
+form, because a slot is a position and a position whose key has changed falls
+back silently.
+
+## 153 · A specimen may be drawn larger than life
+
+*2026-09-07*
+
+`sampleTile()` capped its scale at 1, which is right for the type picker — a
+miniature is the real thing seen from further away — and wrong for the specimen
+book, which exists to be looked at closely. A book spine at one cell of width
+came out forty pixels across, which is not enough to tell a raised band from a
+gilt rule.
+
+`grow` is a fourth argument and defaults to 1, so nothing else changes. The book
+passes 1.35 for a tile and 1.8 for a spine, and every specimen still comes out of
+the one function, so the page cannot drift from what the desk draws.
+
+## 154 · Dropping the button is what creates the deadline
+
+*2026-09-07*
+
+Both deadlines are opt-in traits, so a button for one the object had not got was
+a button that wrote a field nothing would ever read. You had to press it first,
+which turned the trait on, and only *then* drag it. Picking a thing up and
+putting it down is one act; the trait comes along with it.
+
+And a **placed button leaves the lane**. It used to stay there wearing a dotted
+outline, so a task with all three set showed three buttons in the tray *and*
+three marks on the month — the same fact drawn twice, with the tray reading as
+though nothing had been put down. The lane is what is still to place; a button
+that has been put somewhere is on the day it was put on.
+
+The carry is a **transform on one rAF**. It was `left`/`top` written on every
+pointermove — a layout on every move of a pointer that fires faster than the
+screen refreshes — with `elementFromPoint` beside it, so a carried button was
+doing a layout and a hit-test per event. Both go on one animation frame now, and
+the ghost rides a compositor-only transform, which is the rule everything else
+that moves in this app already follows.
+
+## 155 · A rank is one mark with its number in it
+
+*2026-09-07*
+
+Five stars filled to the answer is a picture of the **scale**, and the scale is
+not the thing you want to see: what you want is the score. So a rank is the
+outline — a star for priority, a teardrop for difficulty, the same two marks they
+are drawn with everywhere else — with the number inside it, and pressing it walks
+one to five and round to nothing.
+
+One target instead of six, one glance instead of a count. Decision 72's argument
+was against a *select*, which hides the scale behind a word; a mark that carries
+its own number hides nothing.
