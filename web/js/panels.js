@@ -1269,8 +1269,10 @@ function objectPanelBody(id, sec){
   }
 
   if(at('adv')) {
-  /* ---- milestones, a streak, tags and relations: all four were on the old
-     detail sheet, and all four are settings about one object ---- */
+  /* ---- milestones and a streak: what a thing carrying `progress` or
+     `streak` is *made of*, which is the same sort of question as its fields.
+     Tags and relations used to be here too; they are on the card now, where
+     the thing you are filing is. See decision 148. ---- */
   if(!isRoot && has(o,'progress')){
     out.push(`<div class="section-h"><h2>Milestones</h2><div class="rule"></div><span class="n">${goalPct(o)}%</span></div>
       <div class="bar" style="--k:${K(o.kind).c}"><i style="width:${goalPct(o)}%"></i></div>

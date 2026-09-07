@@ -69,12 +69,15 @@ function chromeTokens(cols){
 const CHROME_VARS = Object.keys(chromeTokens(['#000','#fff','#888','#888','#888']));
 
 /* ---- what a tick box looks like ---------------------------------------
-   Six shapes, one of them the default. It is a fact about the whole desk
-   rather than about a type, so it lives in `look` beside the shadows and the
-   grid — a task ticked one way and a checklist line ticked another would be
-   two apps sharing a board. The shapes themselves are in chrome.css off
-   `[data-checks]`; this is the list the picker draws and the guard that stops
-   an unknown value from leaving the desk with no boxes at all. */
+   Six shapes. The desk picks one for everything that has not asked, and an
+   **object may carry its own** (`check`, stamped as `ck-<shape>` on the tile)
+   — decision 149, which walks back the half of decision 83 that was about the
+   *choice* while keeping the half that was about the default. The shapes
+   themselves are in chrome.css; this is the list the picker draws and the
+   guard that stops an unknown value from leaving the desk with no boxes.
+
+   The fallback of fallbacks is the **circle**: what an aesthetic has not
+   spoken for, and what a desk gets when the stored value is nonsense. */
 const CHECKS = {
   square:  'Rounded square',
   circle:  'Circle',
@@ -463,7 +466,7 @@ const STYLES = {
     textures:['None','Ashlar','Basketweave','Coursing','Aggregate','Millefleur'],
     stocks:['Plain','Parchment','Linen','Slate','Weathered'],
     bindings:['Vellum','Ruled bands','Cords','Squared back','Bevelled'],
-    check:'circle',
+    check:'hard',
     defaults:{knob:'ring', border:'panel', texture:'ruled', knobtone:'light', panel:'fielded', stock:'plain'},
     cols:['#E8E4D6','#22303F','#7E8B96','#A87A3C','#D4B872',
           '#77808A','#2E5B84','#5D82AE','#5E8B4C','#3C6B49','#7A6E9E',
@@ -536,7 +539,7 @@ const STYLES = {
     textures:['None','Dither','Weave','Scanlines','Static','Argyle'],
     stocks:['Plain','Window','Dialog','Readout','Printout'],
     bindings:['Jewel case','Spine label','Ribbed case','Slim case','Bevelled case'],
-    check:'circle',
+    check:'ballot',
     defaults:{knob:'square', border:'panel', texture:'fine', knobtone:'light', panel:'plain', stock:'wove'},
     cols:['#D6D3C4','#2A2A24','#8A8878','#12736E','#C8A63C',
           '#6E8F5A','#4F6B44','#A79A6E','#A89663','#8A3F42','#4A6B8A',
@@ -559,7 +562,7 @@ const STYLES = {
     textures:['None','Tooth','Crosshatch','Ruled','Stipple','Stars'],
     stocks:['Plain','Ruled leaf','Tracing','Board','Foxed'],
     bindings:['Cloth','Drawn rules','Drawn bands','Flat back','Chamfered'],
-    check:'circle',
+    check:'hard',
     defaults:{knob:'round', border:'plain', texture:'fine', knobtone:'light', panel:'plain', stock:'plain'},
     cols:['#07080C','#F4F6F8','#F4F6F8','#6FD3F5','#7DE8B0',
           '#14161C','#1B1E25','#23262E','#0E2733','#123544','#16443F',
@@ -586,7 +589,7 @@ const STYLES = {
     textures:['None','Frost','Brushed','Ripple','Bubbles','Sheen'],
     stocks:['Plain','Frosted','Satin','Acrylic','Sunlit'],
     bindings:['Frosted case','Chrome rules','Ribs','Flat edge','Bevelled edge'],
-    check:'circle',
+    check:'fill',
     defaults:{knob:'round', border:'gloss', texture:'fine', knobtone:'light', panel:'plain', stock:'plain'},
     cols:['#EAF4F7','#0D3541','#5B8C9B','#18A6C4','#7EE8F5',
           '#1E9AAE','#2FA39A','#3F8F63','#6FA83C','#2B6B99','#4C89C8',

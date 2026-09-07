@@ -141,7 +141,7 @@ const FIELDS = {
    filing cycle would otherwise hang the app on the first render. */
 function ancestorIds(o){
   const out=[]; let at=o && o.parent;
-  for(let i=0;i<32 && at && at!==ROOT;i++){ out.push(at); const p=byId(at); at = p && p.parent; }
+  for(let i=0;i<32 && at && at!==ROOT;i++){ out.push(at); const p=upOf(at); at = p && p.parent; }
   out.push(ROOT);
   return out;
 }
@@ -1154,7 +1154,21 @@ const clFit = ()=> CL_FITS[S.look.clfit] ? S.look.clfit : 'dense';
 const clPerCell = ()=> CL_PER_CELL[clFit()];
 
 const DONE_FACES = ['checklist','project','calendar','timeline'];
-const keepsDone = c => DONE_FACES.includes(faceOf(c));
+/* **And anything that reports a fraction keeps them too.** `DONE_FACES` was the
+   whole test, which was right while the only containers that showed what had
+   already happened wore one of those four faces. A project is a drawer front
+   now (decision 148) and it still reports how far along it is — and a
+   percentage whose numerator has been thrown out of the drawer is not a
+   percentage.
+
+   So the test is the **trait**: a container carrying `progress` counts what is
+   under it, and the things that count them are the things that keep them. That
+   catches a **goal** as well, which never wore a `DONE_FACES` face and has been
+   quietly reporting the wrong number for as long as it has had a run along its
+   bottom edge — tick three of four things inside one and its numerator walked
+   out of the drawer, leaving 0 of 1. Widening the rule to the honest predicate
+   is what fixes both. See decision 148. */
+const keepsDone = c => DONE_FACES.includes(faceOf(c)) || (isContainer(c) && has(c,'progress'));
 // laid out along time rather than in a grid — by face, or by how it opens
 const TIME_FACES = ['calendar','timeline'];
 const showsContainers = c => TIME_FACES.includes(faceOf(c)) || TIME_FACES.includes(layoutOf(c));
@@ -1677,8 +1691,25 @@ const sortOf = c => { const v=(c && c.sort) || K(c&&c.kind).sort || MANUAL;
    that can be wrong. Placing a box during a pass is fine: ensureBox() changes
    where a thing sits, never which container it is in. */
 let KIDS = null;
-const beginPass = ()=>{ KIDS = new Map(); };
-const endPass   = ()=>{ KIDS = null; };
+/* ---- and the index the `@under` clause needs -------------------------
+   `byId()` is a linear scan of every object, which is fine for the handful of
+   calls the app makes and ruinous inside a **rule**: `@under` walks a chain of
+   parents, `childrenOf()` runs the rule for every object on the desk, and a
+   board asks childrenOf() fifty times. Three thousand objects at depth three
+   is twenty-seven million comparisons to draw one screen.
+
+   So a pass may remember this too, on the same terms as KIDS: built on first
+   use rather than at `beginPass()`, because most passes never ask; **null
+   outside a pass**, where every lookup is the honest scan and there is no
+   invalidation to get wrong. See decisions 59 and 151. */
+let PARENTS = null;
+const upOf = id => {
+  if(!KIDS) return byId(id);
+  if(!PARENTS){ PARENTS = new Map(); S.objects.forEach(o=>PARENTS.set(o.id, o)); }
+  return PARENTS.get(id);
+};
+const beginPass = ()=>{ KIDS = new Map(); PARENTS = null; };
+const endPass   = ()=>{ KIDS = null; PARENTS = null; };
 function childrenOf(c){
   if(!c) return [];
   if(KIDS){ const hit=KIDS.get(c.id); if(hit) return hit; }
@@ -2187,8 +2218,11 @@ function finishedThings(){
     if(!o || isHeld(o)) return false;
     if(has(o,'check')) return !!o.done;
     if(isContainer(o)){
-      const f = faceOf(o);
-      if(f!=='goal' && f!=='project') return false;
+      /* A piece of work that is finished — a goal reached, a project done.
+         Asked of the **trait** rather than of the face, because a project is a
+         drawer front now (decision 148) and "does this thing have an end to
+         reach" is what `progress` means, not what a face is called. */
+      if(!has(o,'progress')) return false;
       const st = allUnder(o).filter(x=>has(x,'check'));
       return st.length>0 && st.every(x=>x.done);
     }

@@ -924,20 +924,24 @@ function onMove(e){
        under it is asked at most once per frame, which is the only rate at
        which the answer can be seen. See decision 154. */
     G.px = e.clientX; G.py = e.clientY;
-    if(!G.raf) G.raf = requestAnimationFrame(()=>{
-      G.raf = 0;
-      if(!G || G.type!=='pen' || !G.ghost) return;
+    /* The frame is captured, not read off `G`: a gesture that has ended has
+       been replaced by the next one, and a callback that wrote onto whatever
+       `G` happens to be by then would be moving somebody else's ghost. */
+    const g = G;
+    if(!g.raf) g.raf = requestAnimationFrame(()=>{
+      g.raf = 0;
+      if(G !== g || !g.ghost) return;
       const fr = $('#frame').getBoundingClientRect();
-      G.ghost.style.transform =
-        `translate(${G.px - fr.left}px, ${G.py - fr.top}px) translate(-50%,-50%)`;
+      g.ghost.style.transform =
+        `translate(${g.px - fr.left}px, ${g.py - fr.top}px) translate(-50%,-50%)`;
       /* Which day it is over. Asked of the document rather than tracked with
          geometry, because the month is inside a scroller and a cached set of
          rects goes stale the moment the panel moves under the finger. */
-      const day = dayUnder(G.px, G.py);
-      if(day !== G.over){
-        if(G.over) G.over.classList.remove('aim');
+      const day = dayUnder(g.px, g.py);
+      if(day !== g.over){
+        if(g.over) g.over.classList.remove('aim');
         if(day) day.classList.add('aim');
-        G.over = day;
+        g.over = day;
       }
     });
     return;

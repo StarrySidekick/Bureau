@@ -5581,7 +5581,12 @@ const CHROME = process.env.BUREAU_CHROME;
     const nap = n => new Promise(r => setTimeout(r, n));
     const S = BUREAU.state, out = {};
     const root = document.documentElement;
-    out.defaultsToSquare = (root.dataset.checks || '') === 'square';
+    /* The aesthetic's own answer, and the circle where it has none — decision
+       149. Asked of the aesthetic rather than hardcoded, because which box
+       Victoria ticks in is Victoria's business and this is a claim about the
+       *chain*: what is picked, else what the aesthetic makes boxes out of,
+       else the circle. */
+    out.defaultsToTheAesthetics = (root.dataset.checks || '') === BUREAU.styles.victorian.check;
     S.look.check = 'circle'; BUREAU.applyLook(); BUREAU.render(); await nap(200);
     out.theDeskWearsIt = root.dataset.checks === 'circle';
     const t = BUREAU.create('task', { parent:'root', title:'Ticked' });
@@ -5591,8 +5596,15 @@ const CHROME = process.env.BUREAU_CHROME;
     out.andSoDoesEveryBox = getComputedStyle(box).borderRadius.startsWith('50%');
     // an unknown value cannot leave the desk with no boxes at all
     S.look.check = 'nonsense'; BUREAU.applyLook();
-    out.nonsenseFallsBack = root.dataset.checks === 'square';
+    out.nonsenseFallsBack = root.dataset.checks === BUREAU.styles.victorian.check;
+    /* …and an object may argue with the desk. The desk's rules are wrapped in
+       `:where()` so they score nothing, which is what lets the nearer answer
+       win; written the obvious way the two tie and source order picks. */
     S.look.check = 'square'; BUREAU.applyLook();
+    t.check = 'circle'; BUREAU.render(); await nap(200);
+    const own = document.querySelector(`.grid .drawer[data-row="${t.id}"] .tilecheck`);
+    out.anObjectCanArgue = !!own && getComputedStyle(own).borderRadius.startsWith('50%');
+    delete t.check;
     BUREAU.del(t.id); S.undo=[]; S.redo=[]; BUREAU.render();
     return out;
   });
@@ -5949,7 +5961,8 @@ const CHROME = process.env.BUREAU_CHROME;
     S.look.check = 'dot'; BUREAU.applyLook();
     out.aPickedOneStays = document.documentElement.dataset.checks === 'dot';
     delete S.look.check; BUREAU.setStyle('victorian'); await nap(60);
-    out.andTheWayBackIsTheAesthetic = document.documentElement.dataset.checks === 'square';
+    out.andTheWayBackIsTheAesthetic =
+      document.documentElement.dataset.checks === BUREAU.styles.victorian.check;
     /* A binding is a slot: all seven name all five, and they are not the same
        five words — Golf 97's shelf is jewel cases, not calf. */
     out.everyAestheticBinds = Object.keys(BUREAU.styles).every(k =>
@@ -6575,16 +6588,23 @@ const CHROME = process.env.BUREAU_CHROME;
       const t = tile(l.id);
       out.lifeReports = !!t && !!t.querySelector('.projline');
       /* The whole point of the face: no percentage. An area of your life has
-         no end for a bar to be a fraction of. */
+         no end for a bar to be a fraction of. **Nor has any face** now — the
+         bar came off the project face too, because a percentage across the
+         front was drawn twice and is neither the question you ask a project
+         across the desk nor an honest answer to it. Where a project's number
+         lives instead is the knob: it is a drawer, and the ring round the knob
+         is how far along it is. See decisions 131 and 148. */
       out.lifeHasNoBar = !!t && (!t.querySelector('.projbar')
         || getComputedStyle(t.querySelector('.projbar')).display === 'none');
-      // …and a project standing beside it still has one
-      out.butAProjectStillDoes = (() => {
+      // …and a project standing beside it is a drawer whose knob is the dial
+      out.butAProjectIsADrawerWithADial = (() => {
         const p = put('project', {title:'Finishable'});
+        p.milestones = [{t:'a',done:true},{t:'b',done:false}];
         BUREAU.render();
         const pt = tile(p.id);
-        const ok = !!pt && !!pt.querySelector('.projbar')
-          && getComputedStyle(pt.querySelector('.projbar')).display !== 'none';
+        const knob = pt && pt.querySelector('.pull.pullring');
+        const ok = !!pt && !pt.querySelector('.projbar') && !!knob
+          && knob.style.getPropertyValue('--ring') === '50%';
         BUREAU.delDrawer(p.id);
         return ok;
       })();
@@ -6597,7 +6617,12 @@ const CHROME = process.env.BUREAU_CHROME;
       const c = put('control', {ctl:'shadows', title:'Shadows'});
       BUREAU.render(); await nap(220);
       const t = tile(c.id);
-      out.controlDrawsALever = !!t && !!t.querySelector('.clever');
+      /* A switch is a piece of hardware, so it comes in sizes: one cell is a
+         push button, one cell across is a light switch with a bat on a plate,
+         two cells each way and up is a two-pole knife switch. `put()` places
+         at the type's own size, which is four by two — a knife switch. All
+         three say their state by *position*, never by colour. */
+      out.controlDrawsAKnifeSwitch = !!t && !!t.querySelector('.artknife .blades');
       const was = S.look.shadows;
       out.controlShowsItsState = t.classList.contains('on') === !!was;
       BUREAU.ctlPress(c.id); await nap(200);

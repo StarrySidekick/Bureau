@@ -6614,6 +6614,24 @@ with and what it does is the same either way. And the coloured stripe went: a
 stripe down the left is what `priority` means, and a second thing meaning it was
 the confusion decision 72 spent a version removing.
 
+**A project is a drawer whose knob is the dial.** Its default face is the front
+it is filed behind, and how far along it is reads off the one part of a drawer
+your eye already goes to — a conic sweep burnt round the knob. The named kinds
+of work keep their covers, because a film knows it is a poster before it exists;
+a project that is only a project does not, and a drawer is what everything on
+this desk is until it says otherwise. **No bar on any face**, which is the same
+argument decision 138 made about the progress bar: a number drawn twice.
+
+That change had a consequence worth writing down, because the smoke suite caught
+it and nothing else would have. `keepsDone()` was `DONE_FACES.includes(faceOf(c))`
+— and a project stopped wearing one of those faces, so its finished things
+started leaving the drawer and its percentage read 0 of 1. The fix is not to add
+`front` to the list; it is that the list was a **proxy** for the real question.
+A container that reports a fraction of what is under it needs its numerator, so
+the test is `has(c,'progress')`. Which also catches a **goal** — never in
+`DONE_FACES`, and quietly wrong in exactly the same way for as long as it has
+had a run along its bottom edge.
+
 The Look rows are in **one order whatever the thing is** — colour, face, text
 size, mark, shape or panelling, edge, stock or grain, hardware, board, opening —
 so the row you want is where it was last time rather than where this particular

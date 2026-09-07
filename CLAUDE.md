@@ -1402,9 +1402,14 @@ rather than 0%; milestones are the fallback for when it holds nothing tickable
 yet. A project opens onto a **grid**, not a list, because it holds everything a
 piece of work is made of. See decision 34.
 
-**Completed things leave a drawer unless its face says otherwise.**
-`keepsDone(c)` — checklist, project, calendar and timeline keep them, because
-all four exist to show what already happened. Everywhere else, done means gone, and that
+**Completed things leave a drawer unless it counts them.** `keepsDone(c)` —
+the four faces that exist to show what already happened (checklist, project,
+calendar, timeline), **and anything carrying `progress`**. The second half is
+the honest predicate: a container that reports a fraction of what is under it
+needs its numerator, and a percentage whose ticked things have been thrown out
+of the drawer is not a percentage. It catches a goal, which never wore one of
+those faces and had been reporting 0 of 1 the moment you ticked something
+inside it. Everywhere else, done means gone, and that
 is what keeps a drawer finite.
 
 **A hard flick off an edge throws a tile away.** `tossed()` in gestures.js asks

@@ -186,7 +186,7 @@ function tasteRow(){
     ['A note',     mk({kind:'note', attrs:['text'], title:'Kept', size:[3,2]})],
     ['A task',     mk({kind:'task', attrs:['check','date'], title:'Water the fig', size:[4,1]}, 220, 70)],
     ['A checklist',mk({kind:'checklist', attrs:['container','spawn'], face:'checklist', title:'Before dinner', size:[3,3]}, 180, 180)],
-    ['A project',  mk({kind:'project', attrs:['container','progress'], face:'project', title:'The film', size:[3,3]}, 180, 180)],
+    ['A project',  mk({kind:'project', attrs:['container','progress'], title:'The film', size:[3,3]}, 180, 180)],
     ['A bar',      mk({kind:'progress', attrs:['progress'], shape:'bar', title:'Ten pounds', size:[5,1]}, 240, 62)]
   ];
 }
