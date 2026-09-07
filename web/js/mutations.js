@@ -338,10 +338,15 @@ function unholdMany(ids, intoId){
    to rescale every board that was following it, which is all of them except the
    ones that have an answer of their own.
 
-   It is not reversible to the pixel: going Small → Large → Small rounds twice
-   and a box may come back a cell wider than it went. That is the honest cost of
-   trying sizes on, and it is why this is a setting rather than a gesture.
-   See decisions 48 and 60. */
+   **A notch at a time is exact; two notches at once is not.** Small → Extra →
+   Small comes home to the cell; Small → Large → Small does not, and the reason
+   is worth knowing rather than shrugging at. Scaling the left *edge* while the
+   width rounds to the nearest whole cell compresses the gaps between tiles: at
+   ten columns a rack of two-wide fronts sits at 3, 5, 7, 9, and ×0.8 maps
+   those to 3, 4, 6, 7 while every tile stays two wide — so two of them land on
+   each other and the loser is dropped into the nearest free box. That is the
+   honest cost of trying sizes on, and it is why this is a setting rather than
+   a gesture. See decisions 48 and 60. */
 function setGridSize(key, cid){
   const cols = PHONE_GRIDS[key];
   if(!cols) return;

@@ -1606,8 +1606,9 @@ const CHROME = process.env.BUREAU_CHROME;
        behaviour and not a rounding error. On a busy shelf that neighbour can be
        anything. So everything but the rack is parked for the length of the trip
        and put back afterwards, and what is measured is the guarantee itself. */
+    const RACK = ['d_today','d_in','d_all','d_ideas'];
     const parked = S.objects.filter(o => (o.parent||'root')==='root'
-      && !['d_today','d_in','d_all','d_ideas'].includes(o.id));
+      && !RACK.includes(o.id));
     parked.forEach(o => { o.parent = '__parked'; });
     BUREAU.render(); await nap(200);
     const was = rack();
@@ -1620,10 +1621,25 @@ const CHROME = process.env.BUREAU_CHROME;
     const big = 390/8, small = 390/10;
     out.moreColumnsSmallerCells = big > small;
     BUREAU.setGrid('small'); await nap(400);
-    /* The round trip is only exact while nothing had to be **re-placed** on the
-       way: a tile the rounding bumps onto a neighbour is dropped into the
-       nearest free box and does not come back. So it says what it saw when it
-       does not hold, rather than only that it did not. */
+    /* **A notch at a time is exact; two notches at once is not**, and that is
+       the code's own claim rather than a shortfall in it. Scaling the left
+       *edge* while the width rounds to the nearest cell compresses the gaps: at
+       ten columns the rack sits at local 3,5,7,9 and 0.8 maps those to 3,4,6,7
+       while every tile stays two wide, so two of them land on each other and
+       the loser is dropped into the nearest free box. Going back through nine
+       has no such step and comes home to the cell.
+
+       So the exactness is measured where it is promised, and the jump is
+       measured for what it does promise: a legal board. */
+    out.aTwoNotchJumpStaysLegal = (() => {
+      const g = BUREAU.shelfRows, all = RACK.map(id => S.objects.find(o=>o.id===id).phone);
+      const hit = (a,b) => a.x<b.x+b.w && b.x<a.x+a.w && a.y<b.y+b.h && b.y<a.y+a.h;
+      for(let i=0;i<all.length;i++) for(let j=i+1;j<all.length;j++)
+        if(hit(all[i],all[j])) return false;
+      return all.every(b => ((b.x-1)%8)+b.w <= 8 && ((b.y-1)%g)+b.h <= g);
+    })();
+    BUREAU.setGrid('extra'); await nap(400);
+    BUREAU.setGrid('small'); await nap(400);
     out.backIsWhereYouWere = (cols() === 8 && rack() === was)
       || `was ${was} / back ${rack()} / cols ${cols()}`;
     parked.forEach(o => { o.parent = 'root'; });
