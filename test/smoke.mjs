@@ -2988,6 +2988,15 @@ const CHROME = process.env.BUREAU_CHROME;
         return o;
       }).filter(Boolean);
     out.thereAreCornersToRead = corners.length === 4;
+    /* And a **book**, for the half of this block that is about a cylinder
+       rather than a box. The sampler used to leave one on the desk; it is in a
+       drawer of its own now, so this makes its own. One cell wide, which is
+       what makes a container a spine whatever face it asked for (decision 50).
+       Left of centre, so its roll-off can be read against a drawer's flank. */
+    const spine = BUREAU.create('book', {title:'Depth', parent:'root'});
+    if(spine) spine.phone = hereBox({x:Math.max(1, (shelfW>>1)-2), y:2, w:1, h:4});
+    if(spine) corners.push(spine);
+    out.thereIsABookToo = !!spine;
 
     /* Depth is no longer one number. A drawer is a box and shows a flank; a
        book is a cylinder and shows shade on a curve; and five more cues are
