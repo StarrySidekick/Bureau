@@ -11,6 +11,41 @@ const CHROME = process.env.BUREAU_CHROME;
 (async () => {
   const browser = await chromium.launch(CHROME ? { executablePath: CHROME } : {});
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  /* ---- finding something to press, on a board that is nine screens ------
+     A phone draws **one shelf of nine**, so "the first root child" and "the
+     first tile on the board" stop being the same thing: a block that picks an
+     object out of `S.objects` and then asks the document for its tile gets
+     null whenever that object is on one of the eight shelves you are not
+     looking at. Three blocks made that assumption and each one broke a
+     different forty-minute run.
+
+     So: walk to a shelf that has what you need, and stay there — putting the
+     shelf back afterwards is what broke the *next* block. On the desk, where
+     the whole board is drawn at once, the first look always succeeds and none
+     of this costs anything. Injected on the context so it survives a reload
+     and lives in one place rather than four. See decision 141. */
+  await ctx.addInitScript(() => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const tile = id => document.querySelector(
+      `#app .grid .drawer[data-row="${id}"], #app .grid .drawer[data-drawer="${id}"]`);
+    const walk = async (look) => {
+      let r = look(); if (r) return r;
+      for (let y = 0; y < 3; y++) for (let x = 0; x < 3; x++) {
+        BUREAU.goShelfTo('root', x, y); await nap(180);
+        r = look(); if (r) return r;
+      }
+      return null;
+    };
+    // something to drag, and a plain drawer to drag it into, both on one shelf
+    window.twoOnAShelf = () => walk(() => {
+      const here = BUREAU.state.objects.filter(o => o.parent === 'root' && tile(o.id));
+      const thing = here.find(o => !BUREAU.isContainer(o));
+      const into  = here.find(o => BUREAU.isContainer(o) && !BUREAU.has(o, 'magic'));
+      return (thing && into) ? { thing, into } : null;
+    }) ;
+    // …or just any tile at all
+    window.aTileOnAShelf = () => walk(() => document.querySelector('#app .grid .drawer'));
+  });
   const page = await ctx.newPage();
   const errs = [];
   page.on('console', m => { if (m.type() === 'error') errs.push(m.text()); });
@@ -2241,17 +2276,10 @@ const CHROME = process.env.BUREAU_CHROME;
        has both a thing to drag and a drawer to drag it into, and stay there.
        See decision 141. */
     const kids = S.objects.filter(o => o.parent === 'root');
-    const wasShelf = BUREAU.shelfAt('root');
-    let thing = null, into = null;
-    for(let y=0; y<3 && !thing; y++) for(let x=0; x<3 && !thing; x++){
-      BUREAU.goShelfTo('root', x, y); await nap(200);
-      const here = kids.filter(o => tileOf(o.id));
-      const a = here.find(o => !BUREAU.isContainer(o));
-      const b = here.find(o => BUREAU.isContainer(o) && !BUREAU.has(o,'magic'));
-      if(a && b){ thing = a; into = b; }
-    }
-    out.thereIsSomethingToDrag = !!thing && !!into;
-    if(!thing || !into) return out;
+    const pair = await window.twoOnAShelf();
+    out.thereIsSomethingToDrag = !!pair;
+    if(!pair) return out;
+    const { thing, into } = pair;
 
     // ---- 1. filing says so, and says how to take it back ------------------
     {
@@ -2414,9 +2442,6 @@ const CHROME = process.env.BUREAU_CHROME;
       o.parent = parent; o.desk = desk; o.phone = phone; o.ord = ord;
     });
     S.look.locked = wasLocked;
-    // …and back to the shelf this started on, because the walk above moved it
-    // and everything after this expects a board with something drawn on it
-    BUREAU.goShelfTo('root', wasShelf.x, wasShelf.y);
     S.view='desk'; S.drawerId=null; BUREAU.render();
     return out;
   });
@@ -2442,8 +2467,10 @@ const CHROME = process.env.BUREAU_CHROME;
     const tileOf = id => document.querySelector(
       `#app .grid .drawer[data-row="${id}"], #app .grid .drawer[data-drawer="${id}"]`);
     const kids = S.objects.filter(o => o.parent === 'root');
-    const thing = kids.find(o => !BUREAU.isContainer(o));
-    const into  = kids.find(o => BUREAU.isContainer(o) && !BUREAU.has(o,'magic'));
+    const pair = await window.twoOnAShelf();
+    out.thereIsSomethingToReportOn = !!pair;
+    if(!pair) return out;
+    const { thing, into } = pair;
     const drag = async (el, tg) => {
       const a = el.getBoundingClientRect(), t = tg.getBoundingClientRect();
       ev(el,'pointerdown', a.left+20, a.top+20); await nap(360);
@@ -3596,12 +3623,7 @@ const CHROME = process.env.BUREAU_CHROME;
       await nap(420);
       return up;
     };
-    /* A phone draws one shelf of nine, so "the first tile on the board" is only
-       a tile if this shelf has one. Walk to one that does. See decision 141. */
-    for(let i=0; i<9 && !document.querySelector('.grid .drawer'); i++){
-      BUREAU.goShelfTo('root', i%3, (i/3)|0); await nap(180);
-    }
-    out.oneFingerFromATile = await oneFinger(document.querySelector('.grid .drawer'), 21);
+    out.oneFingerFromATile = await oneFinger(await window.aTileOnAShelf(), 21);
     out.lockedSwipeArrives = S.view === 'drawer';
     S.view='desk'; S.drawerId=null; BUREAU.render(); await nap(200);
     out.oneFingerFromBareBoard = await oneFinger(document.querySelector('#drawergrid'), 23);
