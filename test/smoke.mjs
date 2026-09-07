@@ -45,6 +45,16 @@ const CHROME = process.env.BUREAU_CHROME;
     }) ;
     // …or just any tile at all
     window.aTileOnAShelf = () => walk(() => document.querySelector('#app .grid .drawer'));
+    /* The other half of the same trap, and the one that actually bit: a box is
+       in **board** cells and a phone shows one shelf of them, so a test that
+       writes `{x:1,y:1}` and then looks for the tile is writing onto shelf
+       (0,0) while standing on the middle one — where the desk starts. `hereBox`
+       puts a box on the shelf you are looking at. On the desk the shift is
+       zero and it changes nothing. See decision 141 and `shelfShift()`. */
+    window.hereBox = (box, cid) => {
+      const sh = BUREAU.shelfShift(cid || 'root');
+      return { ...box, x: box.x + sh.x, y: box.y + sh.y };
+    };
   });
   const page = await ctx.newPage();
   const errs = [];
@@ -2481,7 +2491,7 @@ const CHROME = process.env.BUREAU_CHROME;
 
     // ---- 1. a thing keeps the shape you gave it -------------------------
     {
-      thing.phone = {x:1, y:6, w:4, h:2};
+      thing.phone = hereBox({x:1, y:6, w:4, h:2});
       thing.desk  = {x:2, y:3, w:5, h:3};
       BUREAU.render(); await nap(240);
       await drag(tileOf(thing.id), tileOf(into.id));
@@ -2503,7 +2513,7 @@ const CHROME = process.env.BUREAU_CHROME;
     // ---- 2. the Undo on the toast is about the move it was offered for ---
     {
       const other = kids.filter(o => !BUREAU.isContainer(o))[1];
-      find(thing.id).parent = 'root'; find(thing.id).phone = {x:1,y:6,w:4,h:2};
+      find(thing.id).parent = 'root'; find(thing.id).phone = hereBox({x:1,y:6,w:4,h:2});
       BUREAU.render(); await nap(220);
       await drag(tileOf(thing.id), tileOf(into.id));
       out.filingOffersTheWayBack = !!document.querySelector('#toast [data-undo]');
@@ -2840,7 +2850,7 @@ const CHROME = process.env.BUREAU_CHROME;
       '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="30"><rect width="40" height="30" fill="#9FC4E8"/></svg>'), alpha:0};
     const heldView = S.view, heldId = S.drawerId;
     S.view='drawer'; S.drawerId=room.id;
-    w.phone = {x:1, y:1, w:4, h:4};
+    w.phone = hereBox({x:1, y:1, w:4, h:4});
     out.deskOnly   = await mode('desk');
     out.windowOnly = await mode('window');
     out.both       = await mode('both');
@@ -3095,7 +3105,7 @@ const CHROME = process.env.BUREAU_CHROME;
        (decision 86), so there is no box for a face to belong to — and drawing
        one put a hard grey rectangle round a cut-out plant. */
     const orna = BUREAU.create('decoration', {title:'Test plant', parent:'root'});
-    orna.phone = {x:1, y:1, w:3, h:3};
+    orna.phone = hereBox({x:1, y:1, w:3, h:3});
     BUREAU.render(); await nap(160);
     const orn = tiles().filter(t => t.classList.contains('dectile'));
     out.ornamentsOnTheBoard = orn.length > 0;
@@ -3130,7 +3140,7 @@ const CHROME = process.env.BUREAU_CHROME;
     const made = ['cross','six','arch','lattice'].map((f,i) => {
       const o = BUREAU.create('window', {title:f, parent:room.id});
       o.media = {src:scene, alpha:0}; o.frame = f;
-      o.phone = {x:1+(i%2)*4, y:1+Math.floor(i/2)*5, w:4, h:4};
+      o.phone = hereBox({x:1+(i%2)*4, y:1+Math.floor(i/2)*5, w:4, h:4});
       return o;
     });
     S.look.parallax = 'window'; BUREAU.applyLook(); BUREAU.render(); await nap(420);
@@ -3150,7 +3160,7 @@ const CHROME = process.env.BUREAU_CHROME;
     // and a window with no file is still a window, which is what the type
     // picker draws — it has no media to show
     const e = BUREAU.create('window', {title:'Empty', parent:room.id});
-    e.phone = {x:1, y:11, w:4, h:4}; BUREAU.render(); await nap(300);
+    e.phone = hereBox({x:1, y:11, w:4, h:4}); BUREAU.render(); await nap(300);
     const et = document.querySelector(`#app .drawer[data-row="${e.id}"]`);
     out.anEmptyOneIsStillAWindow = !!(et && et.classList.contains('winview')
       && et.querySelector('.wbars'));
@@ -3166,7 +3176,7 @@ const CHROME = process.env.BUREAU_CHROME;
     // a picture frame is not a window and must not move
     const pic = BUREAU.create('image', {title:'Framed', parent:room.id});
     pic.media = {src:scene, alpha:0}; pic.frame = 'gilt';
-    pic.phone = {x:5, y:11, w:4, h:4}; BUREAU.render(); await nap(300);
+    pic.phone = hereBox({x:5, y:11, w:4, h:4}); BUREAU.render(); await nap(300);
     const pt = document.querySelector(`#app .drawer[data-row="${pic.id}"]`);
     BUREAU.tilt(1,0); await nap(90);
     out.aFramedPictureStaysStill = !pt.classList.contains('winview')
