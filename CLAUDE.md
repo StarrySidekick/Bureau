@@ -58,6 +58,16 @@ across a reload, and an offline reload. **Run it after any non-trivial change an
 before saying you're done.** It writes screenshots to `test/shots/` — look at
 them, this is a visual app and a passing assertion doesn't mean it looks right.
 
+**Writing a phone block: the board is nine screens and you are on one of them.**
+Two window helpers are injected on the context for it, and between them they
+cost three forty-minute runs to learn. `hereBox(box)` puts a box on the shelf
+you are *looking at* — the desk starts on the middle one, where the shift is
+(8,15), so a bare `phone:{x:1,y:1}` lands on shelf (0,0) and its tile is never
+drawn. `twoOnAShelf()` / `aTileOnAShelf()` find something to press, walking the
+shelves if this one hasn't got it — and they **stay** where they walked to,
+because putting the shelf back is what broke the block after. On the desk the
+whole board is drawn, the shift is zero and none of it costs anything.
+
 **The specimen book is `web/js/guide.js`, and the app opens it.** Every visual
 option there is on one page: the seven aesthetics with their sixteen colours,
 their tokens, their typefaces and what a new drawer is born with; the six slot
