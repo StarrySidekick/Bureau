@@ -43,8 +43,9 @@ const CHROME = process.env.BUREAU_CHROME;
       const into  = here.find(o => BUREAU.isContainer(o) && !BUREAU.has(o, 'magic'));
       return (thing && into) ? { thing, into } : null;
     }) ;
-    // …or just any tile at all
-    window.aTileOnAShelf = () => walk(() => document.querySelector('#app .grid .drawer'));
+    // …or any tile at all, or a particular sort of one
+    window.aTileOnAShelf = (sel) =>
+      walk(() => document.querySelector(sel || '#app .grid .drawer'));
     /* The other half of the same trap, and the one that actually bit: a box is
        in **board** cells and a phone shows one shelf of them, so a test that
        writes `{x:1,y:1}` and then looks for the tile is writing onto shelf
@@ -3230,7 +3231,7 @@ const CHROME = process.env.BUREAU_CHROME;
        is the whole experiment: the same path travelled slowly is a move and
        travelled fast is a throw. */
     const carry = async (pid, step, ms, n, endAt) => {
-      const el = document.querySelector('#app .grid .drawer[data-row]');
+      const el = await window.aTileOnAShelf('#app .grid .drawer[data-row]');
       const id = el.dataset.row, r = el.getBoundingClientRect();
       const o = {bubbles:true, cancelable:true, pointerId:pid, pointerType:'touch', isPrimary:true};
       const x0 = r.left + r.width/2, y0 = r.top + Math.min(r.height/2, 20);
@@ -3665,7 +3666,8 @@ const CHROME = process.env.BUREAU_CHROME;
     out.oneFingerFromBareBoard = await oneFinger(document.querySelector('#drawergrid'), 23);
 
     S.view='desk'; S.drawerId=null; BUREAU.render(); await nap(180);
-    const tile = document.querySelector('.grid .drawer[data-drawer]');
+    // a *container* this time, because the point is that a tap still opens one
+    const tile = await window.aTileOnAShelf('#app .grid .drawer[data-drawer]');
     const id = tile.dataset.drawer, tr = tile.getBoundingClientRect();
     const tp = { bubbles:true, cancelable:true, pointerId:22, pointerType:'touch', isPrimary:true,
                  clientX:tr.left+tr.width/2, clientY:tr.top+tr.height/2 };
@@ -5289,8 +5291,11 @@ const CHROME = process.env.BUREAU_CHROME;
     const S = BUREAU.state, out = {};
     S.view='desk'; S.drawerId=null; S.look.locked=true; S.sel=[];
     const t = BUREAU.create('task', { parent:'root', title:'Hold me' });
+    // anySpot() puts it anywhere on a nine-shelf board, which may not be the
+    // shelf you are standing on — so go to wherever it landed
     t.phone = Object.assign(BUREAU.free(3,1,'root'), {w:3,h:1});
     BUREAU.render(); await nap(250);
+    await window.aTileOnAShelf(`#app .grid .drawer[data-row="${t.id}"]`);
     const el = () => document.querySelector(`.grid .drawer[data-row="${t.id}"]`);
     const r = el().getBoundingClientRect();
     const cx = r.left + r.width/2, cy = r.top + r.height/2;
