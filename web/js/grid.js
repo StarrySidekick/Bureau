@@ -231,9 +231,16 @@ function lay(d, device, cid){
   // board whose column count clamps them — never "the board on the screen"
   const g=gridOf(device, cid===undefined ? (d && d.parent) || ROOT : cid);
   const b=d[device||dev()]||{};
-  /* Clamped to a **shelf** in size and to the whole board in position: nothing
-     may be bigger than a screen, and nothing may be outside the nine. */
-  const w=clamp(b.w||2,1,g.shelfW), h=clamp(b.h||1,1,g.shelfH);
+  /* Clamped in size to a **shelf on a phone** and to the whole board on a Mac,
+     and in position to the board either way: on a phone nothing may be bigger
+     than a screen, and on a Mac the row of three shelves is one screen, so a
+     tile lying across two of them is legible — the asymmetry boxOk() and
+     freeSpot() both state. Clamping here as well is what kept the planner
+     unreachable after freeSpot() was fixed: the box said twelve and the tile
+     was drawn at eight. */
+  const dv2 = device||dev();
+  const w=clamp(b.w||2,1,dv2==='phone'?g.shelfW:g.cols),
+        h=clamp(b.h||1,1,dv2==='phone'?g.shelfH:g.rows);
   return {x:clamp(b.x||1,1,Math.max(1,g.cols-w+1)),
           y:clamp(b.y||1,1,Math.max(1,g.rows-h+1)), w, h};
 }
@@ -275,9 +282,23 @@ function boxOk(box, id, device, parentId){
    **Null when there is no room anywhere.** That is a real answer: a shelf is a
    finite thing and an object that will not fit on one does not get made. Every
    caller has to say so rather than quietly putting it somewhere. */
+/* **A shelf bounds the search on a phone and not on a Mac**, which is the same
+   asymmetry `boxOk()` already states: a phone shows one shelf at a time and
+   half a tile on each of two screens is a tile you can read neither half of,
+   while a Mac shows a whole row of shelves at once and a tile lying across two
+   is perfectly legible.
+
+   Clamping on both made the widest face in the app unreachable. A desk shelf
+   is eight columns and the planner wants twelve, so a 12x6 calendar was placed
+   at eight wide and quietly drew a month grid instead — a face nobody could
+   get to, failing silently, which is the shape of bug decision 141 keeps
+   producing. The scan still *starts* near the shelf you are on either way:
+   what changes is how far it may run from there. */
 function freeSpot(w,h,device,parentId,prefer){
   const dv=device||dev(), home=parentId||ROOT, g=gridOf(dv, home);
-  w=Math.min(w, g.shelfW); h=Math.min(h, g.shelfH);
+  const oneShelfOnly = dv==='phone';
+  w=Math.min(w, oneShelfOnly ? g.shelfW : g.cols);
+  h=Math.min(h, oneShelfOnly ? g.shelfH : g.rows);
   const p = prefer || shelfAt(home);
   const order=[];
   for(let sy=0; sy<g.shelves.h; sy++) for(let sx=0; sx<g.shelves.w; sx++)
@@ -285,7 +306,9 @@ function freeSpot(w,h,device,parentId,prefer){
   order.sort((a,b)=> a[2]-b[2] || a[1]-b[1] || a[0]-b[0]);
   for(const [sx,sy] of order){
     const x0=sx*g.shelfW, y0=sy*g.shelfH;
-    for(let y=1;y<=g.shelfH-h+1;y++) for(let x=1;x<=g.shelfW-w+1;x++){
+    const lastX = (oneShelfOnly ? g.shelfW : g.cols-x0) - w + 1;
+    const lastY = (oneShelfOnly ? g.shelfH : g.rows-y0) - h + 1;
+    for(let y=1;y<=lastY;y++) for(let x=1;x<=lastX;x++){
       const box={x:x0+x, y:y0+y, w, h};
       if(boxOk(box,null,dv,home)) return box;
     }
@@ -311,8 +334,10 @@ function anySpot(w,h,device,parentId,prefer){
   if(spot) return spot;
   const dv=device||dev(), home=parentId||ROOT, gg=gridOf(dv, home);
   const at = prefer || shelfAt(home);
+  const one = dv==='phone';
   return {x: at.x*gg.shelfW+1, y: at.y*gg.shelfH+1,
-          w: Math.min(w, gg.shelfW), h: Math.min(h, gg.shelfH)};
+          w: Math.min(w, one ? gg.shelfW : gg.cols),
+          h: Math.min(h, one ? gg.shelfH : gg.rows)};
 }
 const gridRows = (device,parentId)=> childrenOf(container(parentId||ROOT))
   .reduce((m,d)=>{const b=lay(d,device,parentId||ROOT);return Math.max(m,b.y+b.h-1)},0);
@@ -405,13 +430,14 @@ function ensureBox(o, device, parentId){
      sizeGrid() re-renders the moment it has a number. See decision 141. */
   if(!MEASURE[dv].w || !MEASURE[dv].room) return null;
   const [dw,dh]=sizeOfKind(o.kind, dv, home);
-  /* The size it was given, if it has one, clamped to the **shelf** it is
-     arriving on — boards differ in columns (decision 48/60) and a shelf is a
-     screen, so a ten-wide box put on an eight-column board is a box freeSpot()
-     would look for for ever and never find. */
-  const gg=gridOf(dv, home);
-  const w=Math.min(b && b.w ? b.w : dw, gg.shelfW);
-  const h=Math.min((b && b.h) ? b.h : dh, gg.shelfH);
+  /* The size it was given, if it has one, clamped to what the board it is
+     arriving on can actually hold — a shelf on a phone, the whole board on a
+     Mac. Boards differ in columns (decisions 48 and 60), so a ten-wide box put
+     on an eight-column phone board is one freeSpot() would look for for ever
+     and never find. */
+  const gg=gridOf(dv, home), one = dv==='phone';
+  const w=Math.min(b && b.w ? b.w : dw, one ? gg.shelfW : gg.cols);
+  const h=Math.min((b && b.h) ? b.h : dh, one ? gg.shelfH : gg.rows);
   /* `anySpot` rather than `freeSpot`: an object being placed for the first
      time already exists, so it has to end up somewhere even on a full board.
      See the note there. */

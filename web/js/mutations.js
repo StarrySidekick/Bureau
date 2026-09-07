@@ -3,7 +3,7 @@ import { S, byId, K, KINDS, KEYS, kindHas, has, isContainer, genKindOf, streak, 
   repeatOf, repeats, nextRepeat, faceOf, childrenOf, TILT_MODES, tiltMode,
   ctlOf, isPrimary,
   placeOf, cfgOf, isHeld, heldObjects } from './model.js';
-import { GRID, PHONE_GRIDS, colsOf, gridOf, freeSpot, anySpot, roomFor, lay, boxOk, sizeOfKind, keepSize } from './grid.js';
+import { GRID, PHONE_GRIDS, colsOf, gridOf, shelfRows, freeSpot, anySpot, roomFor, lay, boxOk, sizeOfKind, keepSize } from './grid.js';
 import { randomFront, randomBoard, randomLook, styleDefaults,
   STYLES, CHECKS, DARKMODES, styleKey, applyStyle, applyLook } from './look.js';
 import { render, reveal } from './views.js';
@@ -348,7 +348,16 @@ function setGridSize(key, cid){
   if(cid!=null){
     const t = cfgOf(cid); if(!t) return;
     const from = colsOf(cid, 'phone');
-    if(cols!==from){ rescaleOneBoard(S.objects, cid, from, cols); }
+    if(cols!==from){
+      /* Measured either side of the change, because a shelf's **height** moves
+         with its width — the cell is square, so eight columns is thirteen rows
+         and ten is fifteen — and a box has to come out of this on the shelf it
+         went in on. See rescaleBoxes(). */
+      const wasRows = shelfRows('phone', cid);
+      t.grid = key;
+      rescaleOneBoard(S.objects, cid, from, cols, 'phone',
+        [wasRows, shelfRows('phone', cid)]);
+    }
     t.grid = key;
     save(); render();
     toast(`This board — ${cols} across`);
@@ -365,8 +374,13 @@ function setGridSize(key, cid){
         const own=(cfgOf(id)||{}).grid;
         return !(own && PHONE_GRIDS[own]) && colsOf(id,'phone')===from;
       }));
-    // …and the objects on them, which is every object whose home is a follower
-    rescaleBoxes(S.objects.filter(o=>followers.has(o.parent||ROOT)), from, cols);
+    // …and the objects on them, which is every object whose home is a follower.
+    // Both numbers, taken either side of the switch: a shelf's height moves
+    // with its width and a box has to stay on the shelf it was on.
+    const wasRows = shelfRows('phone', ROOT);
+    S.look.grid = key; GRID.phone.cols = cols;
+    rescaleBoxes(S.objects.filter(o=>followers.has(o.parent||ROOT)), from, cols,
+      'phone', [wasRows, shelfRows('phone', ROOT)]);
   }
   S.look.grid = key;
   GRID.phone.cols = cols;

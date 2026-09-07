@@ -765,6 +765,13 @@ hand, which still carries the `--px` of the cell it came out of. The numbers and
 the layer are one condition (`standsOut()`), so a tile cannot carry one without
 the other.
 
+**`.dtop` is two different things, and the depth face comes first.** A drawer
+front's name row is `.dtop`, and so is the *top* face of the flank inside
+`.dside` — which sits earlier in the DOM, so `querySelector('.dtop')` on a tile
+finds the face and not the name. The CSS is safe (`.dside > i` and
+`.dmark ~ .dtop` are both scoped by structure), but anything reading a tile by
+hand wants `:scope > .dtop`.
+
 `.dside` is the third spliced layer and it carries all four faces of a tile: its
 two pseudo-elements are the upright ones and two children (`.dtop`, `.dbot`)
 the horizontal ones, each `scaleX`d or `scaleY`d by `max(0, ±--ex/--ey)` so a

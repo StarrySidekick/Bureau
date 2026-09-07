@@ -17,7 +17,7 @@ import { closePanel } from './panels.js';
    Bureau is this phone running" is exactly the question you ask when a change
    appears not to have deployed. Shown in Settings, so it can be read off the
    device rather than guessed at. */
-const APP_VERSION = '1.56';
+const APP_VERSION = '1.57';
 const KEY = 'bureau.v1';
 const install = {deferred:null};   // the browser's install prompt, when one is on offer
 let saveTimer = null;
@@ -193,22 +193,52 @@ function dedupeIds(objects){
    as the phone was the only board whose column count moved; a Mac board is
    eight columns wide inside a drawer now (decision 141), so the desk layout
    moves too and the arithmetic is the same either way. */
-function rescaleBoxes(objects, from, cols, dv){
+/* `rows` is `[from, to]` — how tall a shelf was and how tall it is now — and
+   passing it is what makes this **shelf-aware**. A board is `cols` across and
+   `rows` down *per shelf*, and both are coordinate spaces: eight columns is
+   thirteen rows and ten is fifteen, because the cell is square. So a box does
+   not merely scale, it scales **inside the shelf it is on**, and the shelf
+   index has to survive.
+
+   Without that, the clamp to `cols` — one shelf's width — pulled every tile on
+   shelves 1 and 2 back onto shelf 0, where the overlap resolver piled them at
+   the top left: the rack at x=11, 13, 15 came out at (1,1), (3,1), (5,1) and
+   the arrangement was gone. Small to Extra and back is meant to be the desk you
+   started with.
+
+   Omit `rows` for a board that is one shelf — a Mac drawer, or anything a
+   migration is rewriting — where everything is shelf zero and none of it
+   applies. Only the columns scale either way: the row count changes with the
+   cell, but a tile two cells tall stays two cells tall, and clamping it into a
+   shorter shelf is the honest cost the note above already admits. */
+function rescaleBoxes(objects, from, cols, dv, rows){
   dv = dv || 'phone';
   const r = cols/from;
   const half = v => Math.ceil(v - 0.5);
   const up = n => Math.max(1, half(n*r));
+  const fromR = rows ? rows[0] : 0, toR = rows ? rows[1] : 0;
+  const shx = b => Math.floor((b.x-1)/from);
+  const shy = b => rows ? Math.floor((b.y-1)/fromR) : 0;
   const placed = {};
   const overlap = (a,b)=> a.x < b.x+b.w && b.x < a.x+a.w && a.y < b.y+b.h && b.y < a.y+a.h;
   objects.forEach(o=>{
     const b=o[dv]; if(!b || !b.w) return;
-    const w=Math.min(cols, up(b.w));
-    const x=Math.max(1, half((b.x-1)*r) + 1);
-    let box={x:Math.min(x, cols-w+1), y:Math.max(1,b.y), w, h:Math.max(1,b.h)};
+    const w = Math.min(cols, up(b.w));
+    const h = Math.max(1, rows ? Math.min(toR, b.h) : b.h);
+    // where it sits inside its own shelf, scaled, then the shelf put back
+    const lx = ((b.x-1) % from) + 1;
+    const ly = rows ? ((b.y-1) % fromR) + 1 : b.y;
+    const ox = shx(b)*cols, oy = rows ? shy(b)*toR : 0;
+    const x0 = Math.min(Math.max(1, half((lx-1)*r) + 1), cols-w+1);
+    const y0 = rows ? Math.min(Math.max(1, ly), toR-h+1) : Math.max(1, ly);
+    let box = {x:ox+x0, y:oy+y0, w, h};
     const home = placed[o.parent||ROOT] = placed[o.parent||ROOT] || [];
     if(home.some(t=>overlap(box,t))){
-      outer: for(let y=1;y<400;y++) for(let x=1;x<=cols-w+1;x++){
-        const spot={x, y, w, h:box.h};
+      // a free cell **on the same shelf**, because moving a tile to another
+      // screen is not a rescale, it is losing it
+      const lastY = rows ? toR-h+1 : 400;
+      outer: for(let y=1;y<=lastY;y++) for(let x=1;x<=cols-w+1;x++){
+        const spot={x:ox+x, y:oy+y, w, h};
         if(!home.some(t=>overlap(spot,t))){ box=spot; break outer; }
       }
     }
@@ -218,8 +248,8 @@ function rescaleBoxes(objects, from, cols, dv){
 /* One board's worth: what changing *this* drawer's grain costs. The boxes on a
    board are measured in that board's columns and nowhere else, so nothing
    outside it is touched. */
-function rescaleOneBoard(objects, cid, from, cols, dv){
-  rescaleBoxes(objects.filter(o=>(o.parent||ROOT)===cid), from, cols, dv);
+function rescaleOneBoard(objects, cid, from, cols, dv, rows){
+  rescaleBoxes(objects.filter(o=>(o.parent||ROOT)===cid), from, cols, dv, rows);
 }
 function rescalePhone(d, from, cols){
   rescaleBoxes(d.objects||[], from, cols);

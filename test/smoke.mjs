@@ -544,7 +544,11 @@ const CHROME = process.env.BUREAU_CHROME;
     }
     await nap(200);
     const before = lines().map(l => l.textContent.trim());
-    const linesFitTheHeight = before.length === cl.desk.h - 1;
+    /* Twice as many lines to a cell of height since decision 140, with the old
+       density kept as a setting — so the count is the rows the face draws less
+       the one the add box takes, not one per cell. */
+    const per = 2;   // BUREAU's default; `roomy` in Settings is the old one
+    const linesFitTheHeight = before.length === cl.desk.h * per - 1;
     /* Ticking a shown line takes it off the face, keeps the task inside the
        drawer, and the next thing waiting inside steps onto the bottom of the
        stack. The top line is the newest made — create() orders newest first —
@@ -1340,9 +1344,15 @@ const CHROME = process.env.BUREAU_CHROME;
     const before = BUREAU.state.objects.length;
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'n', bubbles: true }));
     await nap(200);
-    const picker = !!document.querySelector('[data-new="note"]');
+    /* Note is one of the four **categories**: the picker draws it as a family
+       and its key opens the second screen rather than making one. So the
+       shortcut and the tile are the same act, which is decision 135's whole
+       point — and the test has to answer the question. */
+    const picker = !!document.querySelector('[data-family="note"]');
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'O', bubbles: true }));  // Note
     await nap(300);
+    const plain = document.querySelector('#panel [data-new="note"]');
+    if(plain){ plain.dispatchEvent(new MouseEvent('click',{bubbles:true})); await nap(320); }
     const made = BUREAU.state.objects[BUREAU.state.objects.length - 1];
     const el = document.querySelector(`.grid .drawer[data-row="${made.id}"]`);
     const r = el && el.getBoundingClientRect();
@@ -2403,8 +2413,9 @@ const CHROME = process.env.BUREAU_CHROME;
       out.itComesOutOfTheDrawer = !BUREAU.isHeld(o);
       out.andOntoTheBoard = o.parent === 'root';
       // the whole point: **that** cell, not wherever freeSpot() had room
+      // `aimed` is a grid-row on the screen; the box is in board cells
       out.andLandsOnTheCellYouChose = !!o[S.device]
-        && aimed.startsWith(String(o[S.device].y) + ' ');
+        && aimed.startsWith(String(o[S.device].y - BUREAU.shelfShift('root').y) + ' ');
       out.andTheDrawerComesBack = !document.querySelector('#panel.standaside');
     }
 
@@ -2650,8 +2661,11 @@ const CHROME = process.env.BUREAU_CHROME;
     const tr = tile.getBoundingClientRect(), gr = grid().getBoundingClientRect();
     const cw = gr.width / +cs(grid()).getPropertyValue('--cols');
     const col = Math.floor((tr.left + tr.width/2 - gr.left) / cw) + 1;
+    /* `col` is a **screen** column and `box.x` is a **board** one, and on any
+       shelf but the first they are not the same number. See decision 141. */
     const box = S.objects.find(o => o.id === tile.dataset.drawer).phone;
-    out.thePointerStillHitsItsOwnCell = col >= box.x && col < box.x + box.w;
+    const bx = box.x - BUREAU.shelfShift('root').x;
+    out.thePointerStillHitsItsOwnCell = col >= bx && col < bx + box.w;
 
     /* It yields to anything that outranks a decoration, and each of those is
        read off state or the DOM rather than pushed in — so nothing else in the
@@ -3376,10 +3390,10 @@ const CHROME = process.env.BUREAU_CHROME;
     // a real one goes up exactly one level, not out to the desk
     await pinchTo(0.4);
     out.aRealOneGoesUpOne = S.view==='drawer' && S.drawerId===parent;
-    // a desk is the top of the stack: it has no parent, so it refuses
-    out.andThatIsADesk = S.desks.includes(S.drawerId);
-    await pinchTo(0.4);
-    out.aDeskRefuses = S.drawerId === parent;
+    /* There is one desk and every drawer is on it (decision 141), so what a
+       pinch used to stop at — a promoted desk part way up — no longer exists.
+       Going up from a drawer on the desk arrives at the desk itself, which is
+       the pair of assertions below. */
 
     // a drawer on the home desk arrives at the desk itself
     const onHome = S.objects.find(o => isC(o) && o.parent==='root' && !S.desks.includes(o.id));
@@ -3450,6 +3464,9 @@ const CHROME = process.env.BUREAU_CHROME;
     const nap = n => new Promise(r => setTimeout(r, n));
     const S = BUREAU.state, out = {};
     S.view='desk'; S.drawerId=null; BUREAU.render(); await nap(200);
+    // this block reads the lit dot by its index, so it has to say which shelf
+    // it is standing on rather than take whatever the block before it left
+    BUREAU.goShelfTo('root', 1, 1); await nap(200);
     const dots = () => [...document.querySelectorAll('.shelfmark i')];
     out.nineDots = dots().length === 9;
     out.theOneYouAreOnIsLit = dots().filter(d => d.classList.contains('on')).length === 1
@@ -3537,7 +3554,12 @@ const CHROME = process.env.BUREAU_CHROME;
        playing over the result, not which movement it is. */
     document.querySelector('.grid .drawer[data-drawer="d_in"]').click();
     out.arrivesAtOnce = S.view === 'drawer' && S.drawerId === 'd_in';
-    out.frontFlies = !!document.querySelector('#fx .fxleave') && !!document.querySelector('#fx .divecave');
+    /* The picture and the dark of the carcass are **under** the arriving board
+       now, in `#fxunder`; only the front stays in `#fx`, because the front is
+       the thing you go through. Decision 142. */
+    out.frontFlies = !!document.querySelector('#fxunder .fxleave')
+      && !!document.querySelector('#fxunder .divecave')
+      && !!document.querySelector('#fx .divefront');
     out.boardArrives = !!document.querySelector('#app .main.in-dive');
     await nap(620);
     out.ghostClearsItselfUp = !document.querySelector('#fx .fxopen,#fx .fxleave,#fx .divecave,#fx .divefront');
@@ -3606,6 +3628,7 @@ const CHROME = process.env.BUREAU_CHROME;
     };
     const letGo = () => el.dispatchEvent(mk('touchend', []));
 
+    const startShelf = BUREAU.shelfAt('root');
     await drag(-13, 12);
     const p = document.querySelector('.pager');
     /* Two panes and the real board between them. The middle used to be a copy
@@ -3624,7 +3647,10 @@ const CHROME = process.env.BUREAU_CHROME;
     out.outsideTheBoard = !!p && p.parentElement.id === 'frame';
     out.onlyOneDrawergrid = document.querySelectorAll('#drawergrid').length === 1;
     letGo(); await nap(60);
-    out.landsBeforeItStops = S.view === 'drawer';    // committed, still sliding
+    // Committed while it is still sliding — and what it commits to is the
+    // **next shelf**, not a drawer: both axes walk shelves now. Decision 141.
+    out.landsBeforeItStops = S.view === 'desk'
+      && JSON.stringify(BUREAU.shelfAt('root')) !== JSON.stringify(startShelf);
     await nap(400);
     out.stripClearsItselfUp = !document.querySelector('.pager');
 
@@ -3660,8 +3686,10 @@ const CHROME = process.env.BUREAU_CHROME;
       await nap(420);
       return up;
     };
+    const beforeOne = BUREAU.shelfAt('root');
     out.oneFingerFromATile = await oneFinger(await window.aTileOnAShelf(), 21);
-    out.lockedSwipeArrives = S.view === 'drawer';
+    out.lockedSwipeArrives = S.view === 'desk'
+      && JSON.stringify(BUREAU.shelfAt('root')) !== JSON.stringify(beforeOne);
     S.view='desk'; S.drawerId=null; BUREAU.render(); await nap(200);
     out.oneFingerFromBareBoard = await oneFinger(document.querySelector('#drawergrid'), 23);
 
@@ -3743,9 +3771,16 @@ const CHROME = process.env.BUREAU_CHROME;
        are not looking. It is a message, not a silent placement. */
     const tight = BUREAU.create('drawer', {parent:'root', title:'Tight'});
     tight.desk = BUREAU.free(2,2,'root'); BUREAU.render(); await nap(120);
+    /* **Inside** it while it fills. `ensureBox()` runs as a tile is drawn, so
+       an object made into a board nobody is looking at is never placed — and a
+       board with nothing placed on it never fills, however much you pour in.
+       The first version of this poured five hundred notes into an empty
+       drawer and `roomFor` said yes every time. */
+    S.view='drawer'; S.drawerId=tight.id; BUREAU.render(); await nap(160);
     let n = 0;
     while(BUREAU.roomFor(1,1,tight.id) && n < 500){
       const o = BUREAU.create('note',{parent:tight.id});
+      if(!o) break;
       o.desk={w:1,h:1}; o.phone={w:1,h:1}; BUREAU.render(); n++;
     }
     out.aBoardCanBeFilled = n > 20 && !BUREAU.roomFor(1,1,tight.id);
@@ -3895,8 +3930,12 @@ const CHROME = process.env.BUREAU_CHROME;
     const sr = seam && seam.getBoundingClientRect();
     out.theSeamCutsTheWholeFace = !!sr && sr.top <= tr.top + 0.5 && sr.bottom >= tr.bottom - 0.5;
     // no room for a name: the mark, over the knob
+    /* `:scope >` on both, because `.dtop` is two different things: the front's
+       name row, and the **top face** of the depth flank inside `.dside`. The
+       flank's comes first in the DOM, so a bare `querySelector('.dtop')` finds
+       that one and reads the wrong element's display. */
     const shows = d => { const t = document.querySelector(`.grid .drawer[data-drawer="${d.id}"]`);
-      const m = t && t.querySelector('.dmark'), n = t && t.querySelector('.dtop');
+      const m = t && t.querySelector(':scope > .dmark'), n = t && t.querySelector(':scope > .dtop');
       return { mark: !!m && getComputedStyle(m).display !== 'none',
                name: !!n && getComputedStyle(n).display !== 'none' }; };
     const f = shows(flat), w2 = shows(wide);
@@ -4466,8 +4505,11 @@ const CHROME = process.env.BUREAU_CHROME;
     /* The picker leads with the **major categories** — the twenty things you
        are nearly always putting down — and everything else is one disclosure
        further in. See decision 130. */
+    /* A **category** is drawn as `data-family`, not `data-new`: pressing it
+       asks which kind rather than making one. Decision 135. */
+    const keyOf = e => e.dataset.new || e.dataset.family;
     const first = [...panel.querySelectorAll('.kindgrid')][0];
-    const led = [...first.children].map(e => e.dataset.new);
+    const led = [...first.children].map(keyOf);
     out.leadsWithTheMajors = led.length === BUREAU.PRIMARY.length
       && led.every(k => BUREAU.isPrimary(k));
     out.drawersLead = BUREAU.isContainer({kind:led[0]}) || led.slice(0,4)
@@ -4475,10 +4517,18 @@ const CHROME = process.env.BUREAU_CHROME;
     /* …and nothing is drawn twice. A type in the lead row *and* in a group
        behind the disclosure is a type you have to decide about twice, which
        is the thing the majors exist to stop. */
-    const all = [...panel.querySelectorAll('.kindtile')].map(e => e.dataset.new);
+    const all = [...panel.querySelectorAll('.kindtile')].map(keyOf);
     out.noneDrawnTwice = new Set(all).size === all.length;
     out.restBehindOneMore = !!panel.querySelector('details.allkinds');
-    out.everythingIsStillThere = new Set(all).size === Object.keys(BUREAU.K).length;
+    /* …and everything is still reachable, which is no longer the same as
+       everything being *drawn*: a category stands in for its members and they
+       are on the second screen. Decision 135. */
+    const reachable = new Set(all);
+    [...panel.querySelectorAll('[data-family]')].forEach(e => {
+      reachable.add(e.dataset.family);
+      ((BUREAU.K[e.dataset.family] || {}).family || []).forEach(k => reachable.add(k));
+    });
+    out.everythingIsStillThere = Object.keys(BUREAU.K).every(k => reachable.has(k));
     document.querySelector('#panel [data-act="panelclose"]').click();
     // …and inside a container that says what it makes, that type comes first
     await nap(120);
