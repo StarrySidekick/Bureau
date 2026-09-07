@@ -1,5 +1,6 @@
 import { esc, ic, clamp, D, md, plain, oneline } from './util.js';
 import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, childrenOf, container,
+  clPerCell,
   rollup, streak, barPct, barSteps, barFilled, barGrid, projectStat, progressOf, tlSpan,
   dev, spawnByOf, genKindOf, genSaid,
   projCoverOf, lifeArtOf, goalStanding, GOAL_STANDINGS,
@@ -798,7 +799,12 @@ function drawTileFace(o, arr, box, persp){
        to spare a line for it. See decisions 77 and 79. */
     const adds=showsAddBox(o, box);
     const made=genSaid(o);
-    const rows=Math.max(1, box.h|0);
+    /* Two lines to a cell of height unless the desk says otherwise. `--clrows`
+       is the divisor every line's flex-basis is calculated from, so the count
+       and the row height cannot disagree — and `.dense` is what shrinks the
+       type and the box to suit. See decision 140. */
+    const per=clPerCell();
+    const rows=Math.max(1, (box.h|0) * per);
     const shown=items.filter(x=>!x.done).slice(0, Math.max(1, rows-(adds?1:0)));
     /* With nothing to show the front is a label again: a stack of zero lines
        is an anonymous coloured square — and so is the picker's sample. */
@@ -810,7 +816,7 @@ function drawTileFace(o, arr, box, persp){
         ${handles}
       </button>`;
     }
-    return `<${adds?'div':'button'} class="drawer dtile cltile ${dressAs('bd','gilt')}${sel}" data-drawer="${o.id}"
+    return `<${adds?'div':'button'} class="drawer dtile cltile${per>1?' cldense':''} ${dressAs('bd','gilt')}${sel}" data-drawer="${o.id}"
         ${adds?'role="button" tabindex="0"':''} title="${esc(o.title||'Untitled')}"
         style="--c:${colour};--clrows:${rows};${place}">
       ${/* The **box** ticks it and the **words** change it. Tapping anywhere on

@@ -1079,6 +1079,11 @@ function wire(){
       }
       return; }
 
+    /* How much a checklist front shows — a fact about the desk, so it lands in
+       S.look and every checklist on every board agrees at the next render. */
+    const cf=t.closest('[data-clfit]');
+    if(cf){ S.look.clfit=cf.dataset.clfit; save(); render(); refreshPanel(); return; }
+
     const ck=t.closest('[data-check]'); if(ck){ toggleDone(ck.dataset.check); return; }
 
     const ml=t.closest('[data-mile]');

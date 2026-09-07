@@ -860,6 +860,15 @@ html .drawer.dtile.cltile{background-image:none}
   cursor:pointer;padding:0 10px;overflow:hidden;overflow-wrap:anywhere;line-height:1.25;
   flex:0 0 calc(100%/var(--clrows,4));min-height:0}
 .cline + .cline,.cladd + .cline{border-top:1px solid var(--rule)}
+/* Twice as many lines to the cell is half the room per line, so the type and
+   the box come down to suit — the `min(38px,82%)` on the box already follows
+   the line, and this is the part that does not. The rule stays a hairline: it
+   is the same rule at either density and thinning it would make the stack read
+   as one block. See decision 140. */
+.cltile.cldense .cline{font-size:11.5px;gap:6px;padding:0 8px}
+.cltile.cldense .cladd{padding:0 8px}
+.cltile.cldense .cladd input{font-size:11.5px}
+.cltile.cldense .cline .cltext{font-size:11.5px}
 .cline:hover{background:color-mix(in srgb, var(--ink) 5%, transparent)}
 .cline.done{color:var(--dink-3);text-decoration:line-through}
 /* the task tile's own box — 38px, capped only when a row is shorter than it */

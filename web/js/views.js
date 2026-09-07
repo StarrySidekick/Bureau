@@ -2,7 +2,7 @@ import { $, esc, ic, D, md, clamp, ROOT } from './util.js';
 import { S, K, T, byId, has, isContainer, containers, container, childrenOf, chainOf,
   deskTitle, rootObj, cfgOf, deskIds, deskHere, deskOf, isDesk, allTags, dev,
   beginPass, endPass,
-  layoutOf, takesTyping, genSaid, CALVIEWS, calViewOf, calCols,
+  layoutOf, takesTyping, genSaid, CALVIEWS, calViewOf, calCols, CL_FITS, clFit,
   spanOf, coversDay, lastDay, boardLocked,
   TILT_MODES, tiltMode, tiltsDesk, tiltsWindows, tiltClasses, cueFlipped,
   URGES, workday } from './model.js';
@@ -525,6 +525,17 @@ function settingsBody(sec){
       <div class="filterbar">${[['','Laid flat on the board'],['1','Pinned to it']].map(([v,n])=>
         `<button class="fchip${(S.look.pinned?'1':'')===v?' on':''}" data-pinned="${v}">${n}</button>`).join('')}</div>
       <div class="mini" style="--k:var(--brass);margin-top:6px">Pinned gives every tile a little room around it and tilts it a degree or two, as though a pin went through one of its top corners. The angle comes from the object itself, so nothing moves between renders — and a tile straightens while you carry it.</div>
+    </div>
+
+    ${/* How much a checklist front shows. Dense by default: the whole point of
+          a face that wears its contents on the outside is seeing more of them
+          than opening it would show you, and one task-sized line per cell was
+          the rule from when a task tile was the unit. A fact about the desk,
+          not about one drawer — see decision 140. */''}
+    <div class="field" style="margin-top:12px"><label>What a checklist front shows</label>
+      <div class="filterbar">${Object.entries(CL_FITS).map(([v,n])=>
+        `<button class="fchip${clFit()===v?' on':''}" data-clfit="${v}">${n}</button>`).join('')}</div>
+      <div class="mini" style="--k:var(--brass);margin-top:6px">Twice as many packs two lines into every cell of a checklist's height, with the type and the box brought down to suit — a six-cell front shows twelve things to do instead of six. One per cell is what it used to be: a line exactly as tall as the task tile it stands for.</div>
     </div>
 
     ${/* Six tick boxes, each drawn as itself — ticked, because what a box

@@ -1035,6 +1035,23 @@ function calCols(c){
    calendar whose days clear behind you is not a record of anything. (The
    checklist *face* prints only the undone — decision 79 — but that is what
    the front shows, not what the drawer holds: the ticked ones stay inside.) */
+/* ---- how much a checklist front shows -----------------------------------
+   A checklist face is a stack of task-sized lines, one per cell of height —
+   which made a checklist front hold exactly as much as the same box filled
+   with task tiles. That was the right rule while a task tile was the unit; in
+   practice a checklist is the one face you *want* dense, because the whole
+   point of wearing your contents on the outside is seeing more of them than
+   you would by opening it. **Two to a cell** is the default now.
+
+   It is a fact about the desk rather than about one drawer, the same way a
+   tick box is (decision 83) — a checklist packed one way sitting beside one
+   packed the other is two apps sharing a board. One switch, in Settings.
+   See decision 140. */
+const CL_FITS = {dense:'Twice as many', roomy:'One per cell of height'};
+const CL_PER_CELL = {dense:2, roomy:1};
+const clFit = ()=> CL_FITS[S.look.clfit] ? S.look.clfit : 'dense';
+const clPerCell = ()=> CL_PER_CELL[clFit()];
+
 const DONE_FACES = ['checklist','project','calendar','timeline'];
 const keepsDone = c => DONE_FACES.includes(faceOf(c));
 // laid out along time rather than in a grid — by face, or by how it opens
@@ -2082,6 +2099,7 @@ export { ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds, K,
   isMedia, isPlayable, acceptFor, isDecor,
   spawnByOf, genKindOf, takesTyping, showsAddBox, keepsDone, showsContainers,
   CALVIEWS, calViewOf, weekStartOf, showsWeekends, calCols,
+  CL_FITS, clFit, clPerCell,
   OPS, WHENS, whenISO, RULE_MAX, rulesOf, matchRule,
   ROLLS, rollup, SORTS, MANUAL, sortOf, childrenOf, beginPass, endPass, isAncestor,
   URGES, WORKDAY, workday, urgencyOf, urgeRank, urgeName, urgeSaid, durSaid,
