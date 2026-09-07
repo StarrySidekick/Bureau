@@ -1344,9 +1344,15 @@ const CHROME = process.env.BUREAU_CHROME;
          a 8-wide box in sixteen columns comes out 5 wide in nine. Only the
          first is asserted by number — the rest of the row cannot fit beside it
          at nine columns, so they are re-placed, and what is checked there is
-         that they are re-placed *legally* rather than left on top of it. */
-      rescaled: b('d_a').w === 4 && b('d_a').h === 3 && b('d_a').x === 1,
-      inside: all.every(x => x.x >= 1 && x.x + x.w - 1 <= 8),
+         that they are re-placed *legally* rather than left on top of it.
+
+         **Shelf-relative, both of them.** What was already on the desk is moved
+         to the **middle** shelf once (centreDesk), so x=1 is no longer where a
+         thing starts: on an eight-column phone the middle shelf begins at
+         column 9. Asking about the position inside its own shelf is the same
+         question, and it survives the desk being nine screens. Decision 141. */
+      rescaled: b('d_a').w === 4 && b('d_a').h === 3 && (b('d_a').x - 1) % 8 === 0,
+      inside: all.every(x => x.x >= 1 && ((x.x - 1) % 8) + x.w <= 8),
       clear,
       nothingElseAdded: BUREAU.state.objects.length === 4,
       deskUntouched: BUREAU.state.objects.find(o=>o.id==='d_b').desk.x === 7
@@ -1603,7 +1609,12 @@ const CHROME = process.env.BUREAU_CHROME;
     const big = 390/8, small = 390/10;
     out.moreColumnsSmallerCells = big > small;
     BUREAU.setGrid('small'); await nap(400);
-    out.backIsWhereYouWere = cols() === 8 && rack() === was;
+    /* The round trip is only exact while nothing had to be **re-placed** on the
+       way: a tile the rounding bumps onto a neighbour is dropped into the
+       nearest free box and does not come back. So it says what it saw when it
+       does not hold, rather than only that it did not. */
+    out.backIsWhereYouWere = (cols() === 8 && rack() === was)
+      || `was ${was} / back ${rack()} / cols ${cols()}`;
     /* The whole board is rows now, not rows-less-a-shelf: 8x13, 9x14, 10x15 on
        a 390pt handset, give or take whatever this one's height rounds to. */
     out.everyRowIsTheBoards = BUREAU.shelfRows >= 13;
@@ -3885,6 +3896,12 @@ const CHROME = process.env.BUREAU_CHROME;
        Done from the desk, dropping on a day of the calendar's *tile*, which is
        the gesture you would actually make. */
     S.view='desk'; S.drawerId=null; BUREAU.render(); await nap(250);
+    /* Both in view before either is measured. `aimDrop()` asks the document
+       what is under the pointer, so a day cell scrolled off a three-shelf-tall
+       Mac board is a drop that lands on whatever *is* there. Scrolling after
+       measuring would be worse than not scrolling at all. */
+    intoView(document.querySelector(`.grid .drawer[data-drawer="${cal.id}"]`));
+    await nap(120);
     const day = [...document.querySelectorAll(`[data-drawer="${cal.id}"] [data-calday]`)]
       .find(c => c.dataset.calday.endsWith(iso(8)));
     const tile = document.querySelector(`.grid .drawer[data-drawer="${trip.id}"]`);
@@ -6502,6 +6519,10 @@ const CHROME = process.env.BUREAU_CHROME;
     // ---- a spawner may make one of anything -------------------------------
     {
       const g = put('generator', {genKind:'random'});
+      /* Bigger than a stamp, or there are no words to read: one cell square a
+         spawner **is** the spiral, and wider it grows the box you type into.
+         Decision 135. */
+      g[S.device] = Object.assign({}, g[S.device], {w:5, h:2});
       BUREAU.render(); await nap(200);
       /* `random` is not a kind. Handing it to K() answers `note`, so a spawner
          set to anything used to draw as a note factory and press out notes. */
@@ -6537,8 +6558,12 @@ const CHROME = process.env.BUREAU_CHROME;
       out.aBarCanReadAnother = BUREAU.barPct(bar) === 50;
       BUREAU.render(); await nap(220);
       const t = tile(bar.id);
-      out.andTheTileDrawsThatNumber =
-        /50%/.test(t.textContent) || t.style.getPropertyValue('--pct') === '50%';
+      /* A bar is **blocks**, not a fill: half of them are filled at 50% and
+         there is no percentage printed anywhere on it. Decision 138. */
+      const blocks = [...t.querySelectorAll('.barblock')];
+      out.andTheTileDrawsThatNumber = blocks.length > 1
+        && blocks.filter(e => e.classList.contains('on')).length
+             === Math.round(blocks.length / 2);
       // a tracked object that has gone must not leave the bar blank
       BUREAU.delDrawer(proj.id);
       out.aLostTrackFallsBack = typeof BUREAU.barPct(bar) === 'number';
