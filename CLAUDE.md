@@ -289,13 +289,21 @@ out. **It pans as well as zooming** — scaling about a corner keeps the tile in
 the corner, so it never covers the screen however far it grows, and the old
 board shows round the edges at the end. **And a linear scale is not a zoom** —
 a steady camera grows the picture by the same *factor* each frame, hence `z**f`
-and not a lerp. The mouth is a **hole**: an `evenodd` clip in percentages cuts
-the drawer's rect out of the picture, and the dark of the carcass is a separate
-element *under* it, because anything drawn inside the hole is clipped away with
-it. The **front dissolves** over that hole — a clip is instant, so cutting the
-mouth out at the tap made the drawer pop open. A second element is fine; a
-second *curve* is what made the first version wrong, so the fading front rides
-the mouth's own waypoints.
+and not a lerp. The mouth is a **hole in the stack, not a hole in the
+picture** — the picture goes *under* the arriving board in `#fxunder`, and what
+you see through the drawer is what the picture does not cover; the dark of the
+carcass sits between them. The **front dissolves** over that mouth, because a
+clip is instant and cutting the mouth out at the tap made the drawer pop open.
+A second element is fine; a second *curve* is what made the first version
+wrong, so the fading front rides the mouth's own waypoints.
+
+**A rectangle with a rectangle taken out of it is a mask.** The mouth was an
+`evenodd` `clip-path` for four versions, and a non-rectangular clip cannot be
+composited — it is a mask on a layer that is scaling, which is a repaint every
+frame, and it cost four dropped frames in every dive. Identical with `nonzero`
+winding and free with a plain rect clip on the same element, which is what
+named it. Don't reach for a clip-path to cut a shape out of anything that
+moves; restack it instead. See decision 142.
 
 **The way out is the way in, backwards.** `leaveTile()` in motion.js — the
 knob along the bottom and the chevron at the top of the bar. The board you are
@@ -318,6 +326,16 @@ that did: not the clone, not the second layout, not the throw distance, not the
 checkerboard. The flying picture drops the board's filters too, and a desk has
 one on every torn shape. A scale is a repaint every frame and a filter costs per
 element per repaint — decision 101's finding, from the other side.
+
+**Nor a shadow, nor a flank, and the reason is raster scale.** A scaling layer
+is rasterised once, at the animation's **maximum** scale — so a picture ending
+at four and a half times the screen is twenty times the pixels, each paying for
+every `box-shadow` and every `.dside` depth face on it. `.fxleave`/`.fxback`
+therefore zero both on everything they contain. Those two and nothing else, on
+purpose: a shadow and a flank are what you cannot see on a board flying past at
+three times size in a fifth of a second, and a moulding and a grain are what a
+drawer front *is*. And `#app` gives up the wood for the length of a dive
+(`.app.diving`), because the picture is behind it now. See decision 142.
 
 A container is a **cabinet when it stands** — taller than it is wide, at least
 two cells across — and a drawer at any other shape, however big. Which way round

@@ -15,6 +15,14 @@
    already changed. */
 #fx{position:absolute;inset:0;z-index:42;pointer-events:none;overflow:hidden}
 #fx > *{position:absolute}
+/* The other half of the same idea, **under** the board rather than over it.
+   A dive's picture of where you were is not an overlay: it is what the board
+   you are arriving on is seen against, and putting it here is what let the
+   mouth stop being a clip-path. No z-index — it is a sibling of `#app` and
+   comes before it in the document, which is the whole of the ordering.
+   See decision 142. */
+#fxunder{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+#fxunder > *{position:absolute}
 
 /* ============================================================
    opening — a drawer pulls out, a cabinet swings
@@ -139,6 +147,22 @@
    exempted from the animation half because it is ours and it is the thing you
    go through. Decision 101's finding, arriving from the other direction. */
 .fxleave *{filter:none !important;animation:none !important}
+/* …and **no shadows and no flanks** either, for exactly the same reason one
+   step further on. Chrome rasterises a scaling layer at the animation's
+   *maximum* scale, so a picture that ends four and a half times the screen is
+   rasterised at four and a half times the screen — twenty times the pixels,
+   every one of them paying for every shadow and every depth layer on it.
+   Together they were the whole of an eighty-millisecond task on the frame the
+   tap lands in; without them there is no long task at all, measured on both
+   devices.
+
+   These two and not the mouldings: a `box-shadow` and a `.dside` flank are the
+   two things on a tile you cannot see on a board flying past at three times
+   size in a fifth of a second, and the moulding and the grain are what a
+   drawer front *is*. Same trade the filters made, made again with numbers.
+   See decision 142. */
+.fxleave *,.fxback *{box-shadow:none !important}
+.fxleave .dside,.fxback .dside{display:none !important}
 @keyframes diveleave{
   0%    {transform:var(--dive0,none);       opacity:1}
   12.5% {transform:var(--dive1,scale(1.15))}

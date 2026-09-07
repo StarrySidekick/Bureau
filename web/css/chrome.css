@@ -3746,6 +3746,11 @@ input,textarea,select,[contenteditable],
    with nothing above the bar there is nothing to draw, which is right. */
 .is-phone #frame{background:var(--wood)}
 .is-phone .app{background:var(--wood)}
+/* …except while a dive is running, when the wood is coming from the picture
+   under it. `.app`'s own className rather than the frame's, because render()
+   writes the frame's wholesale and would drop it mid-movement.
+   See decision 142. */
+.app.diving{background:transparent}
 /* Everything above the board is one piece of wood — the inset, the bar, and the
    reveal under it — and everything below it is the drawer. `.main` is therefore
    the carcass, not the surface: the board draws its own paper (the grid paints

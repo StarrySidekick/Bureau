@@ -6343,3 +6343,51 @@ Nine shelves are a *square*, so the dots by the title are one too — a map you 
 aim at rather than a count you have to translate. The name opens the big version:
 the nine drawn as they actually are, each with what is on it at a fiftieth of the
 size and the one you are standing on lit.
+
+## 142. The mouth was a hole in the picture, and is a hole in the stack
+
+The dive still hitched, and the two things costing it were both invisible.
+
+**A rectangle with a rectangle taken out of it is a mask.** The picture of the
+board you are leaving carried the drawer's rect as an `evenodd` clip-path, and
+Chrome composites a **rectangular** clip-path and nothing else — so the picture
+was a mask on a layer that was scaling, which is a repaint every frame. Four
+dropped frames in every dive, measured; identical with `nonzero` winding, so it
+is the shape and not the fill rule; and a plain rect clip on the same element
+cost nothing at all, which is what named the culprit.
+
+The fix removes the clip rather than making it cheaper. The board you are
+arriving on is already framed to exactly the drawer's rect the whole way — that
+is what `dive(…, 'into')` does — so there was never anything else in the mouth
+to hide. Put the picture **under** the arriving board instead of over it and
+what you see through the drawer is simply what the picture does not cover.
+`#fxunder` is the second effects host that needs: a sibling of `#app` with no
+z-index, sitting before it in the document, which is the whole of the ordering.
+The dark of the carcass goes there too, over the picture and under the board;
+only the front stays in `#fx`, because the front is the thing you go through.
+`.app` paints the wood on a phone and gives it up for the length of the
+movement — on its own className, because `render()` writes the frame's
+wholesale.
+
+**And a scaling layer is rasterised at the animation's maximum scale.** A
+picture that ends four and a half times the screen is rasterised at four and a
+half times the screen: twenty times the pixels, every one of them paying for
+every `box-shadow` and every `.dside` depth flank on it. Together those two were
+the whole of an eighty-millisecond task on the frame the tap lands in — capping
+the zoom made the task vanish, which is what proved it was raster scale and not
+paint.
+
+So the flying pictures drop shadows and flanks, and keep everything else. Those
+two and not the mouldings, deliberately: a shadow and a flank are the two things
+on a tile you cannot see on a board flying past at three times size in a fifth
+of a second, and a moulding and a grain are what a drawer front *is*. It is the
+same trade `filter:none` already made on the same element (decision 101), made
+again with numbers.
+
+Measured, both devices, median of seven dives:
+
+    phone   29 frames, 6 dropped, an 83ms task  →  38 frames, 1 dropped, none
+    Mac     21 frames, 14 dropped, a 63ms task  →  34 frames, 4 dropped, none
+
+The counts are what to read, not the milliseconds — DIAGNOSTIC §2's rule. A
+dropped frame either happened or it did not.

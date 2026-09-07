@@ -20,6 +20,20 @@ import { render, renderSoon, previewHTML, goShelf } from './views.js';
 
 const still = ()=> window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const fx = ()=> $('#fx');
+/* The other one, **under** the board. `#fx` is over everything, which is right
+   for anything flying off a desk; the dive needs the opposite — a picture of
+   where you were, for the board you are arriving on to be seen against. Both
+   are siblings of `#app` with no z-index of their own, so DOM order is the
+   whole of it: this goes *before* `#app` in the document and therefore behind
+   it on the screen. Made on the first dive and kept, because an empty div
+   costs nothing and making one per dive is a layout per dive.
+   See decision 142. */
+const fxUnder = ()=>{
+  let d=$('#fxunder');
+  if(!d){ d=document.createElement('div'); d.id='fxunder';
+    const app=$('#app'); if(!app) return null; app.parentNode.insertBefore(d, app); }
+  return d;
+};
 const frameRect = ()=> $('#frame').getBoundingClientRect();
 
 /* The element standing for an object right now. A ticked task might be a tile
@@ -198,21 +212,22 @@ function openTile(id, go){
       picture(twin);
       twin.className='fxleave';
       at(twin, mr);
-      twin.style.clipPath = hole(r, mr);
       dive(twin, r, mr, 'away');
 
-      /* The inside of the drawer, which is dark, and which is *under* the
-         picture rather than in it — the hole is cut through everything the
-         picture is made of, so anything drawn in there would be cut away with
-         it. It is placed on the mouth and given the mouth's own travel, so it
-         stays over the window as the window opens. */
+      /* The inside of the drawer, which is dark. It sits **over** the picture
+         and under the board you are arriving on, so the mouth is dark before
+         that board has faded up rather than showing you the desk you have just
+         left through its own drawer. Placed on the mouth and given the mouth's
+         own travel, so it stays over the window as the window opens. */
       const cave=document.createElement('i');
       cave.className='divecave';
       at(cave, r);
       dive(cave, r, mr, 'away');
 
-      /* The front itself, over the dark and under the picture, travelling with
-         the hole it covers and fading as you come through it. */
+      /* The front itself, over **everything** — the only one of the three that
+         is above the board you are arriving on, because it is the thing you go
+         through. It travels with the mouth it covers and fades as you come
+         through it. */
       const face=document.createElement('div');
       face.className='divefront';
       at(face, r);
@@ -220,10 +235,19 @@ function openTile(id, go){
       picture(face);
       dive(face, r, mr, 'away');
 
-      fx().appendChild(cave);
+      /* Three layers, in three places, and the order is the whole of the
+         effect: the picture and the dark of the carcass go **under** the board
+         you are arriving on, and only the front goes over it. `.app` paints
+         the wood on a phone, so it is made transparent for the length of the
+         movement — on its own className rather than the frame's, because
+         `render()` writes the frame's wholesale. See decision 142. */
+      const under=fxUnder(), app=$('#app');
+      under.appendChild(twin);
+      under.appendChild(cave);
       fx().appendChild(face);
-      fx().appendChild(twin);
-      setTimeout(()=>{ twin.remove(); cave.remove(); face.remove(); }, OPEN_MS.dive);
+      if(app) app.classList.add('diving');
+      setTimeout(()=>{ twin.remove(); cave.remove(); face.remove();
+        const a=$('#app'); if(a) a.classList.remove('diving'); }, OPEN_MS.dive);
       enter('dive', r, true);
     } else enter('dive', r);
     return;
@@ -505,18 +529,26 @@ function leaveTile(id, go, scrub){
    curve is evaluated here, the stops carry the eased positions, and the
    animation runs `linear` — nine of them, which is close enough together that
    the straight lines between are not visible. */
-/* The board with the drawer's rect cut out of it: the outer ring the long way
-   round, then the inner one, and `evenodd` to make the second a hole rather
-   than a second shape. In percentages of the picture's own box, because the
-   picture is about to be scaled and a hole measured in pixels would stay the
-   size it was while everything around it grew. */
-function hole(r, mr){
-  const p = (v, s) => (v/s*100).toFixed(3)+'%';
-  const l=p(r.left-mr.left, mr.width),  t=p(r.top-mr.top, mr.height),
-        rt=p(r.right-mr.left, mr.width), b=p(r.bottom-mr.top, mr.height);
-  return `polygon(evenodd, 0% 0%, 100% 0%, 100% 100%, 0% 100%, 0% 0%, `+
-    `${l} ${t}, ${l} ${b}, ${rt} ${b}, ${rt} ${t}, ${l} ${t})`;
-}
+/* ---- the mouth was a hole in the picture, and is a hole in the stack ----
+   The picture of the board you are leaving used to carry the drawer's rect as
+   a **hole**, cut with an `evenodd` clip-path in percentages of its own box —
+   percentages, because the picture is about to be scaled and a hole measured
+   in pixels would stay the size it was while everything around it grew. What
+   showed through it was the board you were arriving at.
+
+   Chrome composites a **rectangular** clip-path and nothing else. A rectangle
+   with a rectangle taken out of it is a mask, and a mask on a layer that is
+   scaling is a repaint every frame — four dropped frames in every dive,
+   measured, and identical with `nonzero` winding instead of `evenodd`, so it
+   is the shape and not the fill rule. A plain rect clip on the same element
+   cost nothing at all, which is what named the culprit.
+
+   So the mouth is a hole in the **stack** rather than in the picture: the
+   picture goes *under* the board you are arriving on instead of over it, and
+   what you see through the drawer is simply what the picture does not cover.
+   The arriving board is already framed to exactly that rect the whole way
+   (`dive(…, 'into')`), so there was never anything else in the mouth to hide.
+   One clip fewer to rasterise, and the same picture. See decision 142. */
 
 /* Nine stops, evenly spaced in *time*, each carrying where the eased curve has
    got to by then. The standard cubic-bezier solve: Newton on x, then read y. */

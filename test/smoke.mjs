@@ -1674,7 +1674,7 @@ const CHROME = process.env.BUREAU_CHROME;
        leaving, flying at the camera, and the board you are arriving on growing
        out of the place the drawer stood. One without the other is a box
        getting bigger. */
-    const twin = document.querySelector('#fx .fxleave');
+    const twin = document.querySelector('#fxunder .fxleave');
     const main = document.querySelector('#app .main');
     out.theBoardYouLeftFliesPast = !!twin;
     out.theBoardYouEnterGrowsIn = !!main && main.classList.contains('in-dive');
@@ -1687,15 +1687,25 @@ const CHROME = process.env.BUREAU_CHROME;
        picture that carries it. */
     out.onlyOneOfTheDrawerIsOnScreen = !document.querySelector('#fx .fxopen');
 
-    /* **The mouth is a hole, not a dark panel.** The picture is clipped with
-       the drawer's rect cut out of it — in percentages, so the hole grows with
-       the picture rather than staying the size it was — and the shade over
-       that hole is its own element, under the picture, because anything drawn
-       inside the hole would be clipped away with it. */
-    const cave = document.querySelector('#fx .divecave');
+    /* **The mouth is a hole in the stack, not in the picture.** It used to be
+       an `evenodd` clip-path cutting the drawer's rect out of the picture,
+       which Chrome cannot composite — a rectangle with a rectangle taken out
+       of it is a mask, and a mask on a scaling layer is a repaint every frame.
+       So the picture is unclipped and goes **under** the board you are
+       arriving on, and what you see through the drawer is what it does not
+       cover. See decision 142. */
+    const cave = document.querySelector('#fxunder .divecave');
     const clip = twin && twin.style.clipPath;
-    out.theDrawerBecomesTheDoorway = !!cave && /^polygon\(\s*evenodd/.test(clip || '')
-      && (clip.match(/%/g) || []).length >= 18;
+    out.theDrawerBecomesTheDoorway = !!cave && !!twin
+      && (!clip || clip === 'none')
+      && twin.parentElement.id === 'fxunder'
+      && cave.parentElement.id === 'fxunder';
+    /* …and the board you are arriving on is between them and the front, which
+       is the whole of the ordering. `.app` gives up its wood for the length of
+       it, on its own className because render() writes the frame's wholesale. */
+    out.theArrivingBoardIsInTheMouth =
+      document.querySelector('#app').classList.contains('diving')
+      && document.querySelector('#fxunder').nextElementSibling.id === 'app';
 
     /* **And the front dissolves rather than being cut away.** A clip is
        instant, so cutting the mouth out at the moment of the tap made the
@@ -1703,6 +1713,7 @@ const CHROME = process.env.BUREAU_CHROME;
        mouth's own travel — same rect, same waypoints, so it cannot pull away
        from the hole the way decision 103's second front did. */
     const face = document.querySelector('#fx .divefront');
+    out.theFrontIsTheOnlyThingOverTheBoard = !!face && face.parentElement.id === 'fx';
     out.theFrontDissolves = !!face
       && face.style.getPropertyValue('--dive8') === twin.style.getPropertyValue('--dive8')
       && getComputedStyle(face).animationName === 'divefront';
@@ -1741,7 +1752,7 @@ const CHROME = process.env.BUREAU_CHROME;
        here is one ease-in-out per gap and the camera stops dead at each
        waypoint. `dive()` walks the curve instead; these three must stay
        linear. */
-    out.theEasingIsInTheNumbers = ['#fx .fxleave', '#fx .divecave', '#fx .divefront', '#app .main.in-dive']
+    out.theEasingIsInTheNumbers = ['#fxunder .fxleave', '#fxunder .divecave', '#fx .divefront', '#app .main.in-dive']
       .every(s => { const e = document.querySelector(s);
         return e && getComputedStyle(e).animationTimingFunction === 'linear'; });
     /* it pans as well as zooming, or a drawer in the corner stays in the
@@ -1770,10 +1781,21 @@ const CHROME = process.env.BUREAU_CHROME;
       ? [...twin.querySelectorAll('*')].filter(e => getComputedStyle(e).filter !== 'none').length
       : -1;
     out.nothingInThePictureIsFiltered = filteredInThePicture === 0;
+    /* **Nor a shadow, nor a depth flank**, and for the same reason one step on:
+       Chrome rasterises a scaling layer at the animation's *maximum* scale, so
+       a picture ending four and a half times the screen pays for every shadow
+       and every `.dside` twenty times over. Together they were an eighty-
+       millisecond task on the frame the tap lands in; without them there is no
+       long task at all. See decision 142. */
+    out.nothingInThePictureCastsAShadow = !!twin
+      && [...twin.querySelectorAll('*')].every(e => getComputedStyle(e).boxShadow === 'none');
+    out.andNoFlanksEither = !!twin
+      && [...twin.querySelectorAll('.dside')].every(e => getComputedStyle(e).display === 'none');
 
     await nap(700);
-    out.andItAllClearsUp = !document.querySelector('#fx .fxleave,#fx .divecave,#fx .divefront')
-      && !document.querySelector('#fx .fxopen');
+    out.andItAllClearsUp = !document.querySelector('#fxunder .fxleave,#fxunder .divecave,#fx .divefront')
+      && !document.querySelector('#fx .fxopen')
+      && !document.querySelector('#app').classList.contains('diving');
     S.view = 'desk'; S.drawerId = null; BUREAU.render(); await nap(150);
     return out;
   });
