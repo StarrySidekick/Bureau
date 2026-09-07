@@ -1000,14 +1000,23 @@ html .drawer.dtile.cltile{background-image:none}
 
 /* a poster with nothing on it is its own title, set large — which is what a
    teaser one-sheet is, and the reason a film's default box is 2:3 */
-.projtile.hascover .projposter{padding-bottom:20%}
+/* The report sits along the bottom third of a cover, so a poster's own title
+   is set in the two thirds above it — 20% cleared the bar and not the line
+   under it, and a one-sheet with "50%" struck through the word is worse than
+   no cover at all. */
+.projtile.hascover .projposter{padding-bottom:36%;justify-content:flex-start;padding-top:14%}
+/* And a poster that *is* the title does not also print it along the bottom.
+   The same argument a short drawer front makes when it drops its name for the
+   mark: one name on a tile, drawn once, in whichever place says it best. It is
+   here rather than in `projCover()` because which of the two wins is a look. */
+.projtile.pcov-film .dtop .dname{display:none}
 .projposter{background:linear-gradient(150deg,
   color-mix(in srgb,var(--c) 72%,#000), color-mix(in srgb,var(--c) 96%,#fff) 52%,
   color-mix(in srgb,var(--c) 66%,#000));padding:12% 10%}
 .projposter b{font-family:var(--serif);font-weight:700;text-align:center;line-height:1.02;
   letter-spacing:-.01em;text-transform:uppercase;color:var(--dink);
   font-size:clamp(13px,13cqw,54px);
-  display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;
   text-shadow:0 2px 10px rgba(0,0,0,.4)}
 
 /* a record: the disc, its label, and the light across it. An album's sits in
@@ -4346,3 +4355,46 @@ input,textarea,select,[contenteditable],
 }
 .shelfopt:hover{border-color:var(--brass)}
 .shelfopt.on{background:color-mix(in srgb, var(--brass) 34%, var(--paper-2));border-color:var(--brass)}
+
+
+/* ---- the specimen book, in the app -------------------------------------
+   Every aesthetic and everything each one dresses, generated out of the desk
+   that is running and shown in a frame of its own. An **iframe**, and that is
+   the whole of the design: the book carries a global reset — `body` scrolls,
+   is not parchment and is not a hundred per cent tall — and all three of those
+   are things Bureau's own stylesheet says the other way round, because Bureau
+   is an app and this is a page you read. Isolated, neither has to give way.
+
+   It is a surface rather than a panel: it covers the desk, so it goes over the
+   bar and the rail as well, and the way out is a chevron in its own head. It
+   lives on `#frame` beside the panels, outside the element `render()`
+   replaces. See decision 143. */
+.guidehost{
+  position:absolute;inset:0;z-index:60;display:flex;flex-direction:column;
+  background:var(--wood);
+  padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);
+}
+.guidebar{
+  flex:0 0 auto;display:flex;align-items:center;gap:9px;
+  padding:8px 10px 8px 6px;
+  border-bottom:1px solid rgba(0,0,0,.35);
+  /* light on dark for its own subtree, the same remap the phone's bar does and
+     for the same reason: this strip is the carcass, and the page's ink is the
+     ink of a sheet of paper. */
+  --ink:#F4EEE0;
+  --ink-2:rgba(244,238,224,.74);
+  --ink-3:rgba(244,238,224,.52);
+  --rule:rgba(244,238,224,.20);
+  --paper-2:rgba(255,255,255,.08);
+  --brass:var(--glow);
+  color:var(--ink);
+}
+.guidebar b{font-family:var(--serif);font-size:15px;font-weight:600}
+.guidebar i{font-style:normal;font-size:11.5px;opacity:.62;flex:1;min-width:0;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.guidebar .pill{flex:0 0 auto}
+/* A phone has no room for the subtitle beside a title and two buttons. */
+.is-phone .guidebar i{display:none}
+/* White rather than the paper token: the book paints its own ground and a
+   frame that starts parchment flashes a colour the document then repaints. */
+.guideframe{flex:1;min-height:0;width:100%;border:0;background:#F1F2F5;display:block}

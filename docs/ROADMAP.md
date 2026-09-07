@@ -5,6 +5,76 @@ Sequenced by dependency, not appetite: item 1 makes everything after it safer.
 
 ---
 
+## 0s. Queued 2026-09-07 (eighteenth pass) — one desk, and a book of it — DONE (v1.56)
+
+Timothy, in one list of twenty-one. The three that changed the shape of the app:
+
+**One desk of nine shelves, and pages are gone** (decision 141). A *shelf* is one
+screenful of grid; the Desk is a three-by-three of them and you start on the
+middle one. Swiping up, left, down or right walks to the neighbour, and the dots
+by the title are the nine, laid out the way they actually are. Inside a drawer
+it is one shelf with the option to add more, up to nine, chosen as the *shape*
+it makes rather than as a pair of steppers. Promoting a drawer to a desk is
+gone with the row of desks it belonged to, and everything that had been promoted
+came back as an ordinary drawer. On a Mac three shelves are on the screen at
+once, with the rows above and below reached by scrolling. And a board can now be
+**full**: when nothing fits, the thing you asked for is **not made** and it says
+so, because an object with nowhere to be is worse than no object.
+
+**The dive got smooth** (decision 142). The mouth was an `evenodd` clip-path,
+which is a mask on a layer that is scaling and therefore a repaint every frame;
+and a scaling layer is rasterised at the animation's *maximum* scale, so a
+picture ending four and a half times the screen paid for every shadow and every
+depth flank twenty times over. Restack instead of clipping, drop the shadows and
+flanks from the flying pictures. Phone 29 frames with 6 dropped and an 83ms task
+became 38 with 1 and none; Mac 21 with 14 and 63ms became 34 with 4 and none.
+
+**The specimen book moved into the app** (decision 143). Every aesthetic and
+everything each one dresses — the sixteen colours, the tokens, the typefaces,
+the six slot families, every type, every face, every project cover, every life
+object, every shape, the ticks, the bursts, the ornaments, and for the first
+time the **chrome**: the panel, the bubble, the menu, the bar, the rail, the
+toast and the palette, once per aesthetic. Settings → *Specimen book*. It is
+generated out of the desk that is running rather than built beside it, so
+`scripts/catalogue.mjs` is now eleven lines that ask the app for the same
+string.
+
+The rest of the list, in the order it was given:
+
+* **Books sit flush.** `border-color:transparent` keeps the border box, and a
+  background *image* is laid against the padding box — so every gradient-backed
+  tile painted a pixel short all round. `background-origin:border-box` on
+  `bd-none` (decision 139).
+* **Twenty categories become sub-pickers** (decision 135). Text (Poem, Novel,
+  Short story, Essay), Note (Note, Idea, Thought, Problem, Question), Project
+  (film, novel, game, song, album, app, art piece, goal, trip) and a new
+  **Fragment** (World, Character, Place, Artifact, Creature, Historical event,
+  Scene, Outline, Law, Group). **Goal** is its own major — a drawer with the
+  knob taken off and the name set as large as the frame allows — and reads as a
+  *Dream* with no deadline and a *Challenge* with barely enough time.
+* **Project covers.** A film is a poster, an album a sleeve, a song a record, a
+  game a boxed case with the platform down the spine, an app a squircle, a novel
+  a spine, an art piece itself, a trip a ticket. A slot like any other.
+* **Life drawers are things lying on the desk** (decision 136): nine drawings —
+  family, partner, friends, money, home, nutrition, exercise, travel,
+  experiences — and an uploaded picture beats the drawing.
+* **Three shapes of control** (decision 137): a lever for two states, a button
+  that lights for more than two, a dial for a range.
+* **Counter, bar, notes** (decision 138). A counter is a big number that counts
+  up when you tap it. A bar is quantised into blocks a grid-cell tall, two to a
+  cell, four when it is made short. A Note is a plain sheet, an Idea a note with
+  a bolder border and no earmark, a Thought a rounded card.
+* **Checklists fit twice as many** (decision 140), with the old density kept as
+  a setting.
+* **Collage** is what a moodboard was, and it is a *face*: the board inside it,
+  small, at the boxes you arranged (decision 134).
+* **Seven types out**: Button, Text field (its typing is a big spawner now),
+  Shot, Shotlist, Shopping list, Item, Event. **Recipe** moved to *Every other
+  type*. **Spawner** is a 1×1 spiral, and a bigger one is the box you type into.
+* **Achievements**: pick something finished and it is printed in the past tense.
+
+---
+
 ## 0r. Queued 2026-09-06 (seventeenth pass) — the categories — DONE (v1.51)
 
 Timothy: "I want to focus on the major categories of types of thing in Bureau,

@@ -1806,8 +1806,7 @@ function openCtx(x,y,id){
     ${/* one panel for both — a container is an object with children */''}
     ${many?'' : `<button data-c="objset:${id}">${ic('brush',14)} Object editor</button>
       ${isContainer(o)
-        ? `<button data-c="opendrawer:${id}">${ic('eye',14)} Open</button>
-           <button data-c="pin:${id}">${ic('star',14)} ${isDesk(id)?'Make it a drawer again':'Make it a desk'}</button>`
+        ? `<button data-c="opendrawer:${id}">${ic('eye',14)} Open</button>`
         : `${isMedia(o)?`<button data-c="view:${id}">${ic(
                mediaTypeOf(o)==='audio'?'music':mediaTypeOf(o)==='video'?'film':'image',14)} ${
                o.media&&o.media.src

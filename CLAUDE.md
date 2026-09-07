@@ -45,7 +45,7 @@ and shouldn't be undone by accident.
 scripts/serve.sh              # http://localhost:8000
 node test/smoke.mjs           # headless browser check, needs the server running
 node test/scale-probe.mjs     # what a render costs as the desk fills up
-node scripts/catalogue.mjs out.html   # every visual option, on one page
+node scripts/catalogue.mjs out.html   # the specimen book, to a file (Settings opens it too)
 ```
 
 Open it over http, never as a `file://` URL — the service worker won't register
@@ -58,16 +58,40 @@ across a reload, and an offline reload. **Run it after any non-trivial change an
 before saying you're done.** It writes screenshots to `test/shots/` — look at
 them, this is a visual app and a passing assertion doesn't mean it looks right.
 
-`scripts/catalogue.mjs` is the **specimen book**: every visual option there is —
-seven aesthetics by six slot families, plus the sixteen colours, the shapes, the
-tick boxes and the decorations — as one page you can look at. It needs the
-server running, and it draws every tile through the app's own `sampleTile()`
-rather than writing markup of its own, because a second renderer drifts from the
-first the day a slot gains a rule. Re-run it after changing a slot. The one
-thing it works around is that the *chrome* rules are still keyed on
-`html[data-style]` and cannot be on a page showing seven aesthetics at once, so
-it duplicates each of them onto a `[data-sty]` wrapper — wholesale, because
-choosing which ones mattered is how you miss one.
+**The specimen book is `web/js/guide.js`, and the app opens it.** Every visual
+option there is on one page: the seven aesthetics with their sixteen colours,
+their tokens, their typefaces and what a new drawer is born with; the six slot
+families as seven-by-n matrices; every type, every face, every project cover,
+every life object, every shape; the tick boxes, the bursts and the ornaments;
+and the **chrome** — the panel, the bubble, the menu, the bar, the rail, the
+toast, the palette and every control that goes inside them, once per aesthetic.
+Settings → *Specimen book*. `node scripts/catalogue.mjs out.html` writes the
+same string to a file, and the script is eleven lines that load the app and ask
+it for one, because **there is one generator**: a page built out in a script
+from data it extracted is a second book that agrees with the first until
+somebody edits one. Nothing in it draws a tile itself either — every specimen
+comes out of `sampleTile()`, and every colour, token and default is read off
+the root after asking the app to *be* that aesthetic.
+
+It is shown in an **iframe**, which is not a convenience: the book resets
+`body` to scroll, to not be parchment and to not be full height, and Bureau's
+stylesheet says all three the other way round because Bureau is an app and this
+is a page you read. Its host sits beside `#app` the way a panel does, so
+`render()` leaves it alone, and Escape closes it before anything else.
+
+Two things to know before touching it. The **chrome rules are still keyed on
+`html[data-style]`** and cannot be on a page showing seven aesthetics at once
+(decision 98 moved the *tile* rules onto `<fam>sty-` classes, which is exactly
+what makes the page possible), so every one of them is re-emitted onto a
+`[data-sty]` wrapper — read out of the live CSSOM, recursively, so a rule inside
+an `@media` keeps its condition, and wholesale, because choosing which ones
+mattered is how you miss one. That failure is **silent** — a panel renders, just
+undressed — so `specimenBook` in the smoke test compares Golf 97's panel against
+Victoria's. And the **chrome specimens are written in the app's own class
+names**, because a `.sqbtn` has no shared function to reuse; that section is the
+*inventory* of those names, and a renamed class shows up there as an undressed
+specimen. Re-run nothing after changing a slot: the book is generated when you
+press the button. See decision 143.
 
 `test/scale-probe.mjs` is not a test and nothing gates on it — it pours objects
 onto the sample desk and times a render, the string build inside it, and a full
@@ -159,6 +183,7 @@ clause at the bottom of each file — that list is each module's public surface.
 | `gestures.js` | Pointer-based drag, resize, lasso, swipe. The fiddliest code in the app. |
 | `motion.js` | Every movement: `openTile()` (drawer, cabinet, curl, lift), `pop()`, and the pager that slides between boards. Nothing in it ever delays a state change. |
 | `plans.js` | A **plan** — a saved board, in `S.plans`, captured and stamped. Not an object and not on any grid. |
+| `guide.js` | The **specimen book** — every aesthetic and everything each one dresses, generated out of the running app. `guideDoc()` builds it, `openGuide()` shows it. |
 | `persist.js` | localStorage read/write, **versioned `MIGRATIONS`**, JSON export/import, IndexedDB image assets, the paste bridge. |
 | `wire.js` | One delegated listener set on `#frame`. All interaction routes through here — to add an action, add a `data-act` and a case in `act()`. |
 | `boot.js` | Entry point: load, wire, render, register the service worker, `window.BUREAU`. |

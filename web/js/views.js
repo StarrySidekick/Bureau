@@ -13,6 +13,7 @@ import { themeNow, applyLook, lookVal, STYLES, BACKDROPS, DARKMODES, darkMode, h
   palNow, styleNow, hexOf, objColour, slotName, OBJ0, CHECKS, dressAs } from './look.js';
 import { gridOfContainer, gridTile, listTile, scrollEntry, bookView, calSpan } from './tiles.js';
 import { openPanel, closePanel, panelKey, repositionPanel, plansPanel } from './panels.js';
+import { openGuide } from './guide.js';
 /* Cyclic at *function* level only — motion.js imports render() from here and
    this imports sprayAt() from there, and neither is called while the modules
    are loading. That is the graph the app already has; keep it that way. */
@@ -434,6 +435,11 @@ const SETSECS = {
      not a look, a board or a backup, so it is its own door rather than a row
      wedged into someone else's. See decisions 66 and 120. */
   time:   ['Time and urgency','clock', "a day's work, and what makes a thing urgent"],
+  /* Not a setting at all: a door out to the specimen book, which is every
+     aesthetic and everything each one dresses, generated out of the desk that
+     is running. It sits among the look doors because that is what you are
+     looking at when you want it. See decision 143. */
+  guide:  ['Specimen book','book', 'every aesthetic, and everything it dresses'],
   plans:  ['Plans',      'grid',    'boards you saved, to lay out again'],
   things: ['Your things','archive', 'how much there is, and getting it out'],
   paste:  ['Paste in',   'plus',    'objects described as JSON'],
@@ -444,6 +450,9 @@ function settingsPanel(sec){
      draws boards rather than rows, and it is reached from the picker as well
      as from here. So the row hands over rather than rendering in place. */
   if(sec==='plans') return plansPanel();
+  /* And the specimen book is not a panel either: it is a document, so it takes
+     the screen the way a surface does rather than a column down the edge. */
+  if(sec==='guide'){ closePanel(); return openGuide(); }
   const s = SETSECS[sec] ? sec : null;
   openPanel({key:'settings', title: s ? SETSECS[s][0] : 'Settings',
     sub: s ? 'Settings' : `Bureau ${APP_VERSION} · ${installed()?'installed':'in a browser tab'}`,

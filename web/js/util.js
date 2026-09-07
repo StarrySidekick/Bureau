@@ -90,6 +90,11 @@ const P = {
   trophy:'M7 4h10v5a5 5 0 0 1-10 0zM7 6.5H4v1a3 3 0 0 0 3 3M17 6.5h3v1a3 3 0 0 1-3 3M9 20h6M12 14.2V20',
   book:'M4 4h7a2 2 0 0 1 2 2v14a2 2 0 0 0-2-2H4zM20 4h-7a2 2 0 0 0-2 2v14a2 2 0 0 1 2-2h7z',
   sliders:'M4 8h10M18 8h2M4 16h4M12 16h8M14 5.5v5M8 13.5v5',
+  /* Two the Settings doors have been asking for since they were written: `ic`
+     falls back to the note glyph for a name it hasn't got, silently, so
+     Aesthetics and Depth both wore a sheet of paper. */
+  palette:'M12 3a9 9 0 100 18h1.8a2.2 2.2 0 001.7-3.6 2.2 2.2 0 011.7-3.6H19a2.5 2.5 0 002.5-2.5A8.9 8.9 0 0012 3M7.5 12.5h.01M9.5 8.5h.01M14 7.5h.01M17 10.5h.01',
+  layers:'M12 3.5L3.5 8 12 12.5 20.5 8zM3.5 12L12 16.5 20.5 12M3.5 16L12 20.5 20.5 16',
   folder:'M3 6h6l2 3h10v11H3z',
   sparkle:'M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM18.5 15l.7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7z',
   edit:'M4 20h4L20 8l-4-4L4 16z',

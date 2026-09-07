@@ -12,6 +12,7 @@ import { toast, fits, setGridSize, toggleDone, spawnNext, del, delMany, delDrawe
 import { spinTo, pending, placeAtPending, tileTap, turnPage, clearPages } from './tiles.js';
 import { DECOR, LIFE_ART } from './decor.js';
 import { render, renderSoon, sizeGrid, toggleSettings, settingsPanel, reveal, goShelf, goShelfTo, deskMap } from './views.js';
+import { closeGuide, guideOpen, saveGuide } from './guide.js';
 import { openObj, openWriter, openRead, openViewer, closeSheet, renderSheet, words,
   mdKey, copyObject } from './sheet.js';
 import { openPanel, closePanel, refreshPanel, panelKey, panelBack, draft, modalNewObject, modalNewKind, modalMove, renderPreview, holdPanel,
@@ -619,6 +620,11 @@ function act(name, el){
       toast(boardLocked()?'Locked':'Unlocked — everything can be moved');
       break;
     }
+    /* The specimen book. It is a document rather than a board, so it takes the
+       screen and gives it back; saving hands over the same string the frame is
+       showing rather than the frame's own serialisation of it. */
+    case 'closeguide': closeGuide(); break;
+    case 'saveguide':  saveGuide(); break;
     case 'newkind': modalNewKind(null); break;
     case 'install': if(install.deferred){ install.deferred.prompt(); install.deferred=null; } break;
     case 'pastego': { const b=$('#pastebox'); pasteObjects(b&&b.value, ROOT); if(b) b.value=''; break; }
@@ -1679,7 +1685,10 @@ function wire(){
   document.addEventListener('keydown', e=>{
     const typing = /input|textarea/i.test(document.activeElement.tagName);
     if((e.metaKey||e.ctrlKey) && e.key.toLowerCase()==='k'){ e.preventDefault(); openCmd(); return; }
-    if(e.key==='Escape'){ closeCtx(); closeCmd(); closePanel();
+    if(e.key==='Escape'){
+      // the book covers everything, so it is what Escape is about while it is up
+      if(guideOpen()){ closeGuide(); return; }
+      closeCtx(); closeCmd(); closePanel();
       if(S.writeId||S.readId||S.viewId) closeSheet();
       else if(S.editId){ S.editId=null; render(); }
       // …and a selection is a thing that is up, so Escape puts it down too

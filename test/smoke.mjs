@@ -2235,9 +2235,22 @@ const CHROME = process.env.BUREAU_CHROME;
     const tileOf = id => document.querySelector(
       `#app .grid .drawer[data-row="${id}"], #app .grid .drawer[data-drawer="${id}"]`);
 
+    /* Only what is **on the shelf you are standing on**: a phone board draws
+       one shelf of nine, so the first root child is very often a tile that is
+       not on the screen and `tileOf()` answers null. Walk the shelves until one
+       has both a thing to drag and a drawer to drag it into, and stay there.
+       See decision 141. */
     const kids = S.objects.filter(o => o.parent === 'root');
-    const thing = kids.find(o => !BUREAU.isContainer(o));
-    const into  = kids.find(o => BUREAU.isContainer(o) && !BUREAU.has(o,'magic'));
+    let thing = null, into = null;
+    for(let y=0; y<3 && !thing; y++) for(let x=0; x<3 && !thing; x++){
+      BUREAU.goShelfTo('root', x, y); await nap(200);
+      const here = kids.filter(o => tileOf(o.id));
+      const a = here.find(o => !BUREAU.isContainer(o));
+      const b = here.find(o => BUREAU.isContainer(o) && !BUREAU.has(o,'magic'));
+      if(a && b){ thing = a; into = b; }
+    }
+    out.thereIsSomethingToDrag = !!thing && !!into;
+    if(!thing || !into) return out;
 
     // ---- 1. filing says so, and says how to take it back ------------------
     {
@@ -6381,6 +6394,63 @@ const CHROME = process.env.BUREAU_CHROME;
     return out;
   });
 
+  /* ---- the specimen book ------------------------------------------------
+     Generated out of the running app, so the things to check are that it
+     *is* generated (not a file that has gone stale), that the seven-on-one-page
+     trick works (a chrome rule keyed on `html[data-style]` re-emitted onto a
+     `[data-sty]` wrapper — the failure mode is silent, exactly as it is for the
+     tile rules `slotScoping` guards), and that surveying every aesthetic in
+     turn puts the desk back where it found it. See decision 143. */
+  const specimenBook = await page.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const out = {}, S = BUREAU.state;
+    const was = S.look.style;
+    const g = await import('./js/guide.js');
+
+    const doc = g.guideDoc();
+    out.itGenerates = doc.length > 200000 && doc.startsWith('<!doctype html>');
+    out.andPutsTheDeskBack = S.look.style === was;
+    // one section per aesthetic, one per slot family, plus the four galleries
+    const n = k => (doc.match(new RegExp(k, 'g')) || []).length;
+    out.everyAestheticHasAPlate = Object.keys(BUREAU.styles)
+      .every(k => doc.includes('id="aes-' + k + '"'));
+    out.everySlotFamilyHasAMatrix = ['bd','pn','kn','tx','st','bn']
+      .every(f => doc.includes('id="fam-' + f + '"'));
+    out.andTheTilesAreTheDesksOwn = n('class="pvscale"') > 300;
+    // the chrome patch: a rule that was html[data-style=…] has to be re-emitted
+    out.chromeRulesRescoped = doc.includes('[data-sty="golf97"] .panel');
+
+    // …and it opens
+    g.openGuide(); await nap(900);
+    const host = document.querySelector('#guidehost');
+    out.itOpens = !!host && !!host.querySelector('.guideframe');
+    const d = host.querySelector('.guideframe').contentDocument;
+    out.andRendersInside = d.querySelectorAll('.gx-sec').length > 12;
+    /* Dressed, not merely present. Golf 97's panel is a hard outset dialog and
+       Victoria's is parchment: if the rescoped rules never landed, both come
+       out the same and the page looks fine. */
+    const p1 = d.querySelector('[data-sty="golf97"] .panel');
+    const p2 = d.querySelector('[data-sty="victorian"] .panel');
+    out.andEachOneIsDressed = !!p1 && !!p2 &&
+      getComputedStyle(p1).boxShadow !== getComputedStyle(p2).boxShadow;
+    /* And it takes its own ink. Most of the chrome declares no colour at all —
+       in the app it inherits from `#frame`, which is `var(--ink)` — so on a
+       page with no frame every panel title took the *book's* grey, dark on
+       parchment and invisible on a night aesthetic. A light one and a dark one
+       have to come out different. */
+    const t1 = d.querySelector('[data-sty="starry"] .panel .ptop b');
+    const t2 = d.querySelector('[data-sty="victorian"] .panel .ptop b');
+    out.andEachOneTakesItsOwnInk = !!t1 && !!t2 &&
+      getComputedStyle(t1).color !== getComputedStyle(t2).color;
+    // it covers the desk rather than sitting beside it
+    const r = host.getBoundingClientRect();
+    out.itTakesTheScreen = r.width > innerWidth * 0.9 && r.height > innerHeight * 0.8;
+    g.closeGuide();
+    out.andGivesItBack = !document.querySelector('#guidehost');
+    return out;
+  });
+  await shot('90-specimen-book');
+
   console.log(JSON.stringify({
     errors: errs, manifestOk, swReady, survived, styleSurvived, slotColours,
     newObjectSeen, inlineEdit, sortDefaults, taskLook,
@@ -6402,6 +6472,7 @@ const CHROME = process.env.BUREAU_CHROME;
     paletteKeys, editorKeys, pickerLeads, rollupsEverywhere, soundAndVision, keyboardBoard,
     ranking, urgency, reachable, pensAndCorners, lyingBooks, plansWork, repeating, oneLock, scheduling, ownColour, addBox, calFaces,
     lockedBoard, freeTraits, pageWrites, tickBoxes, readerFits, categories,
+    specimenBook,
     dropsIn, keyframesRegistered, aesthetics, slotScoping, objectsDressed, grainSlots, tagged, drawnAesthetic, deeper, lookStage, statusBar, bindings, panelling, theSpray, tappingIsQuiet, decorations, pinboard
   }, null, 2));
   await browser.close();
