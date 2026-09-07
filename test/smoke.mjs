@@ -2241,6 +2241,7 @@ const CHROME = process.env.BUREAU_CHROME;
        has both a thing to drag and a drawer to drag it into, and stay there.
        See decision 141. */
     const kids = S.objects.filter(o => o.parent === 'root');
+    const wasShelf = BUREAU.shelfAt('root');
     let thing = null, into = null;
     for(let y=0; y<3 && !thing; y++) for(let x=0; x<3 && !thing; x++){
       BUREAU.goShelfTo('root', x, y); await nap(200);
@@ -2413,6 +2414,9 @@ const CHROME = process.env.BUREAU_CHROME;
       o.parent = parent; o.desk = desk; o.phone = phone; o.ord = ord;
     });
     S.look.locked = wasLocked;
+    // …and back to the shelf this started on, because the walk above moved it
+    // and everything after this expects a board with something drawn on it
+    BUREAU.goShelfTo('root', wasShelf.x, wasShelf.y);
     S.view='desk'; S.drawerId=null; BUREAU.render();
     return out;
   });
@@ -3592,7 +3596,12 @@ const CHROME = process.env.BUREAU_CHROME;
       await nap(420);
       return up;
     };
-    out.oneFingerFromATile = await oneFinger(document.querySelector('.grid.locked .drawer'), 21);
+    /* A phone draws one shelf of nine, so "the first tile on the board" is only
+       a tile if this shelf has one. Walk to one that does. See decision 141. */
+    for(let i=0; i<9 && !document.querySelector('.grid .drawer'); i++){
+      BUREAU.goShelfTo('root', i%3, (i/3)|0); await nap(180);
+    }
+    out.oneFingerFromATile = await oneFinger(document.querySelector('.grid .drawer'), 21);
     out.lockedSwipeArrives = S.view === 'drawer';
     S.view='desk'; S.drawerId=null; BUREAU.render(); await nap(200);
     out.oneFingerFromBareBoard = await oneFinger(document.querySelector('#drawergrid'), 23);
