@@ -1599,6 +1599,17 @@ const CHROME = process.env.BUREAU_CHROME;
       return `${b.x},${b.y},${b.w}x${b.h}`; }).join('|');
     const square = () => Math.abs(g().getBoundingClientRect().width/cols()
       - parseFloat(getComputedStyle(g()).getPropertyValue('--rowh'))) < 1;
+    /* **The rack alone.** What is promised is that eight to ten and back is the
+       arrangement you started with, and that holds for the boxes being rescaled
+       — but a tile the rounding shifts onto a *neighbour* is dropped into the
+       nearest free box and does not come back, which is the code's own stated
+       behaviour and not a rounding error. On a busy shelf that neighbour can be
+       anything. So everything but the rack is parked for the length of the trip
+       and put back afterwards, and what is measured is the guarantee itself. */
+    const parked = S.objects.filter(o => (o.parent||'root')==='root'
+      && !['d_today','d_in','d_all','d_ideas'].includes(o.id));
+    parked.forEach(o => { o.parent = '__parked'; });
+    BUREAU.render(); await nap(200);
     const was = rack();
     out.smallIsTheDefault = S.look.grid === 'small' && cols() === 8;
     BUREAU.setGrid('extra'); await nap(400);
@@ -1615,6 +1626,8 @@ const CHROME = process.env.BUREAU_CHROME;
        does not hold, rather than only that it did not. */
     out.backIsWhereYouWere = (cols() === 8 && rack() === was)
       || `was ${was} / back ${rack()} / cols ${cols()}`;
+    parked.forEach(o => { o.parent = 'root'; });
+    BUREAU.render(); await nap(200);
     /* The whole board is rows now, not rows-less-a-shelf: 8x13, 9x14, 10x15 on
        a 390pt handset, give or take whatever this one's height rounds to. */
     out.everyRowIsTheBoards = BUREAU.shelfRows >= 13;
@@ -6526,7 +6539,13 @@ const CHROME = process.env.BUREAU_CHROME;
       BUREAU.render(); await nap(200);
       /* `random` is not a kind. Handing it to K() answers `note`, so a spawner
          set to anything used to draw as a note factory and press out notes. */
-      out.anySpawnerSaysAnything = /anything/i.test(tile(g.id).textContent);
+      /* Where a spawner says what it makes is the **box you type into** — a
+         spiral has no words and never did. `random` is not a kind, so handing
+         it to K() answers `note`, and a spawner set to anything used to say it
+         made notes and then press one out. */
+      const gt = tile(g.id);
+      const said = (gt.querySelector('input')||{}).placeholder || '';
+      out.anySpawnerSaysAnything = /anything/i.test(said + ' ' + gt.textContent);
       const n = S.objects.length;
       const kinds = new Set();
       for(let i=0;i<6;i++){
