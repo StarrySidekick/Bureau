@@ -17,7 +17,7 @@ import { closePanel } from './panels.js';
    Bureau is this phone running" is exactly the question you ask when a change
    appears not to have deployed. Shown in Settings, so it can be read off the
    device rather than guessed at. */
-const APP_VERSION = '1.57';
+const APP_VERSION = '1.58';
 const KEY = 'bureau.v1';
 const install = {deferred:null};   // the browser's install prompt, when one is on offer
 let saveTimer = null;
@@ -265,7 +265,7 @@ function rescalePhone(d, from, cols){
    skips all of them, an old backup replays only what it is missing. These
    used to be ad-hoc per-load mutations inside adopt(); a new repair that
    should run once belongs here, as the next numbered step. */
-const DATA_V = 27;
+const DATA_V = 28;
 const MIGRATIONS = [
   // Drawers and objects were two arrays and a drawer could not live inside
   // anything. foldDrawers also replays the old dense flow to give v1 drawers
@@ -741,6 +741,38 @@ const MIGRATIONS = [
     homes.forEach(cid=>rescaleOneBoard(objs, cid, WAS, NOW, 'desk'));
     // and the desk's contents move to the middle shelf at first render
     delete d.centred;
+  }},
+  /* ---- the sampler comes off the desk ----------------------------------
+     One of every type was laid out on the desk itself, in a column that ran to
+     row 102 — fine when a board was as tall as whatever was on it, nonsense
+     now that it is nine shelves: fifty-six tiles clamped into the bottom of
+     the board and drawn on top of each other. They go into two drawers with
+     nine shelves apiece, and their boxes are cleared so ensureBox() places
+     them on a board that knows how tall it is. The desk gets its clear space
+     back, which is what a first desk is supposed to look like.
+
+     Only things tagged `sampler` and only where they are still loose on the
+     desk: anything you have moved or filed yourself is yours. See decision 141. */
+  {v:28, up(d){
+    const objs = d.objects||[];
+    const loose = objs.filter(o => o && (o.tags||[]).includes('sampler')
+      && (o.parent||ROOT)===ROOT);
+    if(!loose.length) return;
+    const has = id => objs.some(o => o && o.id===id);
+    const DR = (id, title, c, x) => ({
+      id, kind:'drawer', title, c, attrs:['container'], tags:[], parent:ROOT,
+      shelves:{w:3,h:3}, locked:true, ord:0, done:false, milestones:[], history:[],
+      desk:{x, y:5, w:2, h:2}, phone:{x, y:5, w:2, h:2}, created:'', body:''});
+    if(!has('d_alldr')) objs.push(DR('d_alldr','Every drawer',14,5));
+    if(!has('d_allob')) objs.push(DR('d_allob','Every object',15,7));
+    loose.forEach(o=>{
+      /* `kindHas`, not `o.attrs`: a sampler object stores no attrs of its own —
+         it *is* its type, and what a type can do is the type's business. An
+         object that has been given attrs by hand is asked about both. */
+      const cont = kindHas(o.kind, 'container') || (o.attrs||[]).includes('container');
+      o.parent = cont ? 'd_alldr' : 'd_allob';
+      o.desk = null; o.phone = null;
+    });
   }},
 ];
 function migrate(d){

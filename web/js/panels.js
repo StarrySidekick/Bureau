@@ -216,15 +216,23 @@ function pickGroups(skipPrimary){
    underneath, because a card drawn around a card reads as two objects.
    The dial in the corner opens the type editor — the right-click that used to
    be the only way in doesn't exist on a phone. */
-function kindTile(k){
+/* `inFam` is "this tile is already *inside* the family panel", and it is the
+   difference between asking and answering. A category leads its own family
+   where that is a real thing to make — the first kind of note is a Note — so
+   without it that lead tile is drawn as a category again and pressing it
+   re-opens the panel it is already on: the plain Note, Text and Project were
+   unmakeable, and the loop looked like nothing happening. Pass it explicitly
+   rather than through `.map(kindTile)`, which hands the *index* as the second
+   argument and would make it true for everything but the first. */
+function kindTile(k, inFam){
   const d=KINDS[k];
   /* A **category** does not make anything: pressing it asks which, and the
      family is one press further in. It is drawn as a type like any other,
      because what you are choosing between at that moment is still "what am I
      putting down" — a chevron says the answer is one more press, and the
      count says how many are behind it. See decision 135. */
-  const fam = d.family && familyList(k);
-  return `<div class="kindtile${fam?' kindcat':''}" ${fam?`data-family="${k}"`:`data-new="${k}"`} role="button" tabindex="0"
+  const fam = !inFam && d.family && familyList(k);
+  return `<div class="kindtile${fam?' kindcat':''}" ${fam?`data-family="${k}"`:`data-new="${k}"${inFam?' data-asked':''}`} role="button" tabindex="0"
       style="--k:${hexOf(d.c)}" title="${esc(d.ds||'')}">
     <div class="kpv">${sampleTile(kindSample(k), 146, 82)}</div>
     <div class="krow"><span class="nm">${esc(d.nm)}</span>
@@ -250,7 +258,7 @@ function familyPanel(cat){
   if(!ks.length) return;
   openPanel({key:'newobject', wide:true, back:()=>modalNewObject(),
     title:d.nm, sub:d.famSub || 'Which one?',
-    body:()=>`<div class="kindgrid">${ks.map(kindTile).join('')}</div>
+    body:()=>`<div class="kindgrid">${ks.map(k=>kindTile(k, true)).join('')}</div>
       ${d.ds?`<div class="mini" style="--k:var(--brass);margin-top:12px">${esc(d.ds)}</div>`:''}`});
 }
 
@@ -388,11 +396,11 @@ function modalNewObject(){
     body:()=> (plansHere() ? plansHere() : '') + `
       <div class="section-h"><h2>${made?'In here':'Put down'}</h2><div class="rule"></div><span class="n">${
         made ? 'this drawer makes a '+esc(made) : 'the things a desk is made of'}</span></div>
-      <div class="kindgrid">${lead.map(kindTile).join('')}</div>${
+      <div class="kindgrid">${lead.map(k=>kindTile(k)).join('')}</div>${
       rest.length ? `<details class="pgroup allkinds"><summary>Every other type</summary>${
         rest.map(g=>`
           <div class="section-h"><h2>${g.nm}</h2><div class="rule"></div>${g.note?`<span class="n">${g.note}</span>`:''}</div>
-          <div class="kindgrid">${g.ks.map(kindTile).join('')}</div>`).join('')}</details>` : ''}`
+          <div class="kindgrid">${g.ks.map(k=>kindTile(k)).join('')}</div>`).join('')}</details>` : ''}`
   });
 }
 /* ---- a sorting drawer is asked what it sorts, before it exists ----------

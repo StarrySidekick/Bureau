@@ -46,6 +46,18 @@ const CHROME = process.env.BUREAU_CHROME;
     // …or any tile at all, or a particular sort of one
     window.aTileOnAShelf = (sel) =>
       walk(() => document.querySelector(sel || '#app .grid .drawer'));
+    /* A **Mac** board is three shelves tall and only the middle row is on the
+       screen, so a fixed desk coordinate like {x:1,y:4} is on the shelf above
+       the one you are looking at: in the DOM, above the viewport, and out of
+       reach of a real mouse. Every gesture driven by page.mouse has to place
+       its subject on the shelf being looked at and scroll it in before it is
+       measured. See decision 141. */
+    window.onThisShelf = (w, h, parent) =>
+      Object.assign(BUREAU.free(w, h, parent || 'root'), {w, h});
+    window.intoView = (el) => {
+      if(el && el.scrollIntoView) el.scrollIntoView({block:'center', inline:'nearest'});
+      return el;
+    };
     /* The other half of the same trap, and the one that actually bit: a box is
        in **board** cells and a phone shows one shelf of them, so a test that
        writes `{x:1,y:1}` and then looks for the tile is writing onto shelf
@@ -535,8 +547,11 @@ const CHROME = process.env.BUREAU_CHROME;
     const made = kids.length === 1 && kids[0].kind === 'task' && kids[0].title === 'Passport';
     const lines = () => [...front().querySelectorAll('.cline')];
     const onFront = lines().some(l => l.textContent.trim() === 'Passport');
-    // one line per cell of height, less the row the add box is standing on
-    for (const t of ['Socks', 'Charger', 'Boots', 'Hat', 'Map', 'Torch']) {
+    /* **Twice** as many lines to a cell of height since decision 140, less the
+       row the add box is standing on — so a six-cell face shows eleven, and it
+       takes more than six things to fill one now. */
+    for (const t of ['Socks', 'Charger', 'Boots', 'Hat', 'Map', 'Torch',
+                     'Towel', 'Cable', 'Cap', 'Book', 'Pen', 'Keys', 'Tickets']) {
       const b = front().querySelector('input[data-contadd]');
       b.value = t;
       b.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
@@ -544,10 +559,8 @@ const CHROME = process.env.BUREAU_CHROME;
     }
     await nap(200);
     const before = lines().map(l => l.textContent.trim());
-    /* Twice as many lines to a cell of height since decision 140, with the old
-       density kept as a setting — so the count is the rows the face draws less
-       the one the add box takes, not one per cell. */
-    const per = 2;   // BUREAU's default; `roomy` in Settings is the old one
+    // the default density; `roomy` in Settings is the old one
+    const per = 2;
     const linesFitTheHeight = before.length === cl.desk.h * per - 1;
     /* Ticking a shown line takes it off the face, keeps the task inside the
        drawer, and the next thing waiting inside steps onto the bottom of the
@@ -581,14 +594,14 @@ const CHROME = process.env.BUREAU_CHROME;
     const S = BUREAU.state;
     S.view = 'desk'; S.drawerId = null; S.sel = [];
     const cl = BUREAU.create('checklist', { parent: 'root', title: 'Plucking' });
-    // the six rows under the drawer rack are left clear by the seed, and this
-    // gesture is a real mouse drag, so it has to happen where the mouse can see
-    cl.desk = { x: 1, y: 4, w: 4, h: 6 };
+    // a real mouse drag, so it has to happen where the mouse can see: on the
+    // shelf being looked at, not at a coordinate that used to be clear
+    cl.desk = onThisShelf(4, 6);
     const one = BUREAU.create('task', { parent: cl.id, title: 'Take me out' });
     const two = BUREAU.create('task', { parent: cl.id, title: 'Tick me' });
     window.__pl = { cl: cl.id, one: one.id, two: two.id };
     BUREAU.render();
-    const line = document.querySelector(`[data-pluck="${one.id}"]`);
+    const line = intoView(document.querySelector(`[data-pluck="${one.id}"]`));
     // an ordinary drawer: the Inbox collects by rule now and holds nothing,
     // so nothing can be filed into it — see decision 45
     const into = document.querySelector('.grid .drawer[data-drawer="d_ideas"]');
@@ -816,6 +829,12 @@ const CHROME = process.env.BUREAU_CHROME;
   /* --- what a drop means. Dragging is the only way to reach any of this, so a
      real press-hold-move-release is the only way to test it. */
   const drop = async (fromSel, to) => {
+    /* Scrolled in first. A Mac board is three shelves tall and only the middle
+       row is on the screen, so `boundingBox()` can name a point the mouse
+       cannot reach. See decision 141. */
+    await page.evaluate(sel => { const e = document.querySelector(sel);
+      if(e) e.scrollIntoView({block:'center', inline:'nearest'}); }, fromSel);
+    await page.waitForTimeout(80);
     const b = await (await page.$(fromSel)).boundingBox();
     await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
     await page.mouse.down();
@@ -867,6 +886,14 @@ const CHROME = process.env.BUREAU_CHROME;
   const two = await page.evaluate(() =>
     BUREAU.state.objects.filter(o => o.kind==='task' && o.parent==='root' && !o.done
       && !(o.tags||[]).includes('sampler')).slice(0,2).map(o=>o.id));
+  /* Both of them where the mouse can see: the drop's own scroll would move the
+     target out from under the coordinates measured before it. So the target is
+     scrolled in first and measured after the source has been. */
+  await page.evaluate(ids => {
+    ids.forEach(id => { const e = document.querySelector(`.grid .drawer[data-row="${id}"]`);
+      if(e) e.scrollIntoView({block:'center', inline:'nearest'}); });
+  }, two);
+  await page.waitForTimeout(120);
   const tb = await (await page.$(`.grid .drawer[data-row="${two[1]}"]`)).boundingBox();
   const gatherAim = await drop(`.grid .drawer[data-row="${two[0]}"]`,
     { x: tb.x + tb.width/2, y: tb.y + tb.height/2 });
@@ -998,10 +1025,11 @@ const CHROME = process.env.BUREAU_CHROME;
 
   // ids must be unique — a collision made byId() return the wrong object, so
   // dragging one tile moved another and new objects were immovable
-  const dupIds = await page.evaluate(() => {
+  const noDupIds = await page.evaluate(() => {
     const seen = new Set(); let n = 0;
     BUREAU.state.objects.forEach(o => { if (seen.has(o.id)) n++; seen.add(o.id); });
-    return n;
+    // every value in the summary should be truthy, and none is the good answer
+    return n === 0;
   });
 
   // --- undo covers the three ways to lose the most at once. Group delete and
@@ -1351,7 +1379,8 @@ const CHROME = process.env.BUREAU_CHROME;
     const picker = !!document.querySelector('[data-family="note"]');
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'O', bubbles: true }));  // Note
     await nap(300);
-    const plain = document.querySelector('#panel [data-new="note"]');
+    // the family leads with the plain one, which is a type like any other here
+    const plain = document.querySelector('#panel .kindgrid [data-new]');
     if(plain){ plain.dispatchEvent(new MouseEvent('click',{bubbles:true})); await nap(320); }
     const made = BUREAU.state.objects[BUREAU.state.objects.length - 1];
     const el = document.querySelector(`.grid .drawer[data-row="${made.id}"]`);
@@ -1629,16 +1658,26 @@ const CHROME = process.env.BUREAU_CHROME;
   const versionShown = versionOnTheHead && versionInFull;
   await page.keyboard.press('Escape');
 
-  // --- one of every type on the desk, named after itself
+  /* --- one of every type, named after itself, in two drawers of its own.
+     It used to lie on the desk in a column that ran to row 102, which a board
+     of nine shelves cannot hold — so it is a board of its own now, and the
+     desk gets its clear space back. See decision 141. */
   const sampler = await page.evaluate(() => {
     const S = BUREAU.state;
     // control is a real, placeable type again — decision 132
     const kinds = Object.keys(BUREAU.K);
-    const onDesk = S.objects.filter(o => o.parent === 'root' && (o.tags||[]).includes('sampler'));
-    return { one: kinds.every(k => onDesk.some(o => o.kind === k)),
-             named: onDesk.every(o => o.title === BUREAU.K[o.kind].nm),
-             // and the rack plus six clear rows above them
-             clearTop: onDesk.every(o => o.desk.y >= 10),
+    const all = S.objects.filter(o => (o.tags||[]).includes('sampler'));
+    const homes = new Set(all.map(o => o.parent));
+    return { one: kinds.every(k => all.some(o => o.kind === k)),
+             named: all.every(o => o.title === BUREAU.K[o.kind].nm),
+             // …and none of it on the desk, which is what a first desk is for
+             offTheDesk: !all.some(o => o.parent === 'root'),
+             inTwoDrawers: homes.size === 2
+               && [...homes].every(id => ['d_alldr','d_allob'].includes(id)),
+             /* Nine shelves apiece, and no box until the board they are on has
+                been measured: a seed cannot know how tall a shelf is. */
+             roomForThem: ['d_alldr','d_allob'].every(id =>
+               JSON.stringify(BUREAU.shelvesOf(id)) === JSON.stringify({w:3,h:3})),
              knobIsMedium: BUREAU.K.drawer.knobsize === undefined
                && getComputedStyle(document.querySelector('.grid .dtile .pull')).width !== '' };
   });
@@ -3808,11 +3847,11 @@ const CHROME = process.env.BUREAU_CHROME;
     const trip = BUREAU.create('trip', {parent:'root', title:'Lisbon'});
     out.tripLasts = BUREAU.K.trip.attrs.includes('span');
     trip.due = iso(1); trip.till = iso(5);
-    trip.desk = {x:1, y:3, w:4, h:3};       // the clear rows under the rack, so
+    trip.desk = onThisShelf(4, 3);          // on the shelf being looked at, so
     // a calendar collecting anything dated has to mark all five days — and a
     // trip is a container, which only a layout that runs on time will collect
     const cal = BUREAU.create('calendar', {parent:'root', title:'When'});
-    cal.desk = {x:6, y:3, w:6, h:6};        // the drop below happens on screen
+    cal.desk = onThisShelf(6, 6);           // the drop below happens on screen
     cal.filter = {rule:{f:'date',op:'any'}, scope:'all'};
     BUREAU.render(); await nap(150);
     out.aTimeLayoutCollectsContainers = BUREAU.kids(cal.id).includes(trip.id);
@@ -6586,7 +6625,7 @@ const CHROME = process.env.BUREAU_CHROME;
     timeLayer, checklistBox, pluckWorks, answering, seedAndKnobs, longPress, drawerSize, tagDrawer, groupMove, dropStates,
     adaptiveTiles, bubblePanel, scrollKept, kindSizes,
     phoneGrid, phoneMigration,
-    dupIds, undoWorks, readViews, paperSize, readPaper, readBar, movement, pager, desks, spans,
+    noDupIds, undoWorks, readViews, paperSize, readPaper, readBar, movement, pager, desks, spans,
     listControls, checklistEdit, lockedNamesAreNames, perBoardGrid, newThingsAreSmall,
     picture, fronts, editor, noSelecting, selectionDropped,
     settingsHasDoors, settingsBack,

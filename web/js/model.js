@@ -523,7 +523,18 @@ function seed(){
        There is one desk now and it is nine shelves, so they are drawers on it
        like everything else. See decision 141. */
     DR({id:'d_write', title:'Writing Desk', c:7,  shelves:{w:2,h:1}, desk:{x:1,y:5,w:2,h:2},  phone:{x:1,y:5,w:2,h:2}}),
-    DR({id:'d_kitch', title:'Kitchen',      c:11, shelves:{w:2,h:1}, desk:{x:3,y:5,w:2,h:2},  phone:{x:3,y:5,w:2,h:2}})
+    DR({id:'d_kitch', title:'Kitchen',      c:11, shelves:{w:2,h:1}, desk:{x:3,y:5,w:2,h:2},  phone:{x:3,y:5,w:2,h:2}}),
+    /* One of every type there is, in two drawers rather than on the desk.
+       They used to lie on the desk itself in a column that ran to row 102,
+       which was fine when a board was as tall as whatever was on it and is
+       nonsense now that it is nine shelves: fifty-six tiles were clamped into
+       the bottom of the board and drawn on top of each other. A first desk is
+       supposed to feel like a desk, and what the sampler is *for* — eyeballing
+       a change across every kind at once — is better served by a board of its
+       own. Nine shelves each, which is a thousand cells against the six
+       hundred they need. See decision 141. */
+    DR({id:'d_alldr', title:'Every drawer', c:14, shelves:{w:3,h:3}, desk:{x:5,y:5,w:2,h:2}, phone:{x:5,y:5,w:2,h:2}}),
+    DR({id:'d_allob', title:'Every object', c:15, shelves:{w:3,h:3}, desk:{x:7,y:5,w:2,h:2}, phone:{x:7,y:5,w:2,h:2}})
   ];
 
   // The app's own buttons live on the desk, on the grid, and move like anything
@@ -629,29 +640,29 @@ function seed(){
      coordinates the first time that layout is opened. Containers are given a
      child apiece, because an empty checklist is a picture of a checklist that
      is wrong. */
-  // the desk grid's width. Not imported from grid.js on purpose: grid.js
-  // imports this file, and a cycle evaluated at load time is a real one.
-  const GRID_COLS = 24;
-  /* Row 10 down. The rack is rows 1–2 and the six rows under it are left
-     clear on purpose — a desk you can put something on, and the space every
-     test fixture and every hand-made object lands in first. */
-  const museum=[]; let mx=1, my=10, rowH=0;
   /* Every type there is, control included — it was excluded for as long as it
      was a dead kind nothing drew (decision 132 brings it back), and a sampler
-     that skips a type is a sampler you cannot check a type against. */
+     that skips a type is a sampler you cannot check a type against.
+
+     **No box, on either device.** It used to author `desk:{x,y}` by wrapping
+     at the desk's twenty-four columns, which is a coordinate the seed cannot
+     know any more: a shelf is as tall as whatever fits on *this* screen, so
+     the number of rows a board has is measured rather than declared. Leaving
+     both null hands the placing to `ensureBox()`, which packs shelf by shelf
+     on the board the tile is actually drawn on, at whatever height that turns
+     out to be — the first time you open the drawer. See decision 141. */
+  const museum=[];
   KEYS.forEach(k=>{
-    const d=KINDS[k], [w,h]=d.size||[4,4];
-    if(mx+w-1 > GRID_COLS){ mx=1; my+=rowH; rowH=0; }
-    rowH=Math.max(rowH,h);
+    const d=KINDS[k];
     const id='k_'+k;
-    museum.push(O({id, kind:k, title:d.nm, parent:ROOT, tags:['sampler'],
+    museum.push(O({id, kind:k, title:d.nm, tags:['sampler'],
+      parent: kindHas(k,'container') ? 'd_alldr' : 'd_allob',
       body: kindHas(k,'text') ? (d.body||'A sample '+d.nm.toLowerCase()+', so you can see one.') : '',
-      desk:{x:mx, y:my, w, h}, phone:null}));
+      desk:null, phone:null}));
     if(kindHas(k,'container') && !kindHas(k,'magic'))
       // the kind's own answer, read straight off the table: genKindOf() is
       // declared further down this file and seed() runs before it exists
       ['One','Two','Three'].forEach(t=>museum.push(O({kind:d.genKind||'task', title:t, parent:id})));
-    mx+=w;
   });
 
   /* Three drawers on the shelf, and they are the three every desk wants:

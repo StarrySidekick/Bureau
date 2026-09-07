@@ -90,7 +90,9 @@ function makeDone(kind, srcId){
    `pending.cell` is the cell a hold sketched. closePanel() clears it, so it is
    read first and put back — every question below re-opens a panel, and the
    answer still has to land where you pressed. See decisions 131 and 135. */
-function newOfKind(kind){
+/* `asked` is "the family question is already answered", which is what the tiles
+   inside a family panel carry. Everything else a type asks it still asks. */
+function newOfKind(kind, asked){
   if(!KINDS[kind]) return;
   const at = pending.cell;
   closePanel();
@@ -109,7 +111,7 @@ function newOfKind(kind){
   if(k.asksTag){ tagFirstPanel(kind); return; }
   if(k.asksLife){ lifeFirstPanel(kind); return; }
   if(k.asksDone){ donePanel(kind); return; }
-  if(k.family){ familyPanel(kind); return; }
+  if(!asked && k.family){ familyPanel(kind); return; }
   const o = create(kind, at?{parent:at.parent}:undefined);
   placeAtPending(o);
   save(); render();
@@ -1055,7 +1057,11 @@ function wire(){
 
     // the dial in a type tile's corner edits the type rather than making one
     const nk=t.closest('[data-new]');
-    if(nk && !t.closest('[data-act]')){ newOfKind(nk.dataset.new); return; }
+    /* `data-asked` means the family question has already been answered — this
+       tile is *inside* that family's panel. Without it the lead member re-asks
+       and the panel re-opens on itself. See kindTile(). */
+    if(nk && !t.closest('[data-act]')){
+      newOfKind(nk.dataset.new, nk.hasAttribute('data-asked')); return; }
 
     // month / week / day — the same calendar over a different span
     const cv=t.closest('[data-calview]');
