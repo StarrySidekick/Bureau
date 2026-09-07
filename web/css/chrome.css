@@ -4065,3 +4065,21 @@ input,textarea,select,[contenteditable],
   font-family:inherit;flex:1;min-width:0}
 /* …and a band being typed in keeps the row's shape while it is a field */
 .listband .inlinename{flex:1;min-width:0;max-width:none}
+
+/* The margin — a run of dated entries in the object editor, printed rather
+   than editable. The date is a hanging label so the entries read as a column
+   of notes down a page rather than as a form. */
+.margins{display:grid;gap:7px;margin:0 0 9px}
+.marg{display:grid;grid-template-columns:auto 1fr;gap:9px;align-items:baseline;
+  font-size:12.5px;line-height:1.4}
+.marg i{font-style:normal;font-size:10px;letter-spacing:.06em;color:var(--ink-3);
+  font-variant-numeric:tabular-nums;white-space:nowrap}
+.marg span{white-space:pre-line}
+.marg + .marg{border-top:1px solid var(--rule);padding-top:7px}
+
+/* On the board it is a count, not the words: a margin entry is a sentence and
+   a tile has no room for one. */
+.margmark{display:inline-flex;align-items:center;justify-content:center;
+  min-width:13px;height:13px;padding:0 3px;margin-left:4px;border-radius:var(--pill);
+  border:1px solid currentColor;font-size:9px;line-height:1;opacity:.6;
+  font-variant-numeric:tabular-nums;vertical-align:1px}

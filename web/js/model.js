@@ -46,6 +46,14 @@ const ATTRS = {
   priority: {nm:'Priority',   ds:'How much it matters to you — 0 to 5, not how urgent it is'},
   price:    {nm:'Price',      ds:'What it costs'},
   answer:   {nm:'Answerable', ds:'A box to answer it in — filled means answered'},
+  /* The margin. A paper file accumulates by having things added to it: you do
+     not rewrite the letter, you write in the margin and date it. `text` is the
+     document and is edited; this is the running note beside it and is only ever
+     appended to. Two different things, which is why it is a second attribute
+     rather than more room in the body. Kept as a list so the order and the days
+     survive; nothing here is editable once written, because a margin you can go
+     back and tidy is just the body again. */
+  margin:   {nm:'Margin',     ds:'A running note you add to, each entry dated — never rewritten'},
   relates:  {nm:'Related',    ds:'Points at other objects, both ways'},
   total:    {nm:'Total',      ds:'Adds up a field across what it holds'},
   spawn:    {nm:'Spawns',     ds:'Makes new objects — on a press, or as you type into it'},
@@ -1821,6 +1829,20 @@ function projectStat(c){
 }
 const allTags = ()=>{ const m={}; S.objects.forEach(o=>(o.tags||[]).forEach(t=>m[t]=(m[t]||0)+1)); return Object.entries(m).sort((a,b)=>b[1]-a[1]); };
 
+/* Every entry in the margin, oldest first, defensive about the shape because
+   this is a list on an object and a hand-edited backup could carry anything. */
+function marginOf(o){
+  if(!o || !Array.isArray(o.margin)) return [];
+  return o.margin.filter(m=>m && typeof m.t==='string' && m.t.trim());
+}
+/* Appending is the only write. Returns the new list rather than mutating, so
+   the caller can hand the old one to pushSet and undo works like every other
+   field. */
+function marginPlus(o, text){
+  const t=String(text||'').trim();
+  return t ? marginOf(o).concat({d:D.iso(D.today()), t}) : marginOf(o);
+}
+
 export { ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds, K,
   attrsOf, has, kindHas, T, dz, S, sensedDevice, reset, defaultLook, dev, byId,
   deskTitle, rootObj, container, cfgOf, isContainer, FACES, faceOf, layoutOf, SHAPES,
@@ -1836,7 +1858,7 @@ export { ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds, K,
   BINDINGS, BINDING_SLOTS, bindingOf, FRAMES, FRAME_SLOTS, frameOf, isWindow,
   PANELS, PANEL_SLOTS, panelOf, KNOBS, KNOB_SLOTS, knobOf,
   BORDER_SLOTS, borderOf, TEXTURE_SLOTS, textureOf, STOCKS, STOCK_SLOTS, stockOf,
-  KNOBSIZES, knobSizeOf, answered, iconOf, TSIZES, textSizeOf, mediaTypeOf, isPicture,
+  KNOBSIZES, knobSizeOf, answered, marginOf, marginPlus, iconOf, TSIZES, textSizeOf, mediaTypeOf, isPicture,
   isMedia, isPlayable, acceptFor, isDecor,
   spawnByOf, genKindOf, takesTyping, showsAddBox, keepsDone, showsContainers,
   CALVIEWS, calViewOf, weekStartOf, showsWeekends, calCols,

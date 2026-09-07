@@ -6,7 +6,7 @@ import { plans, planFrom, stampPlan, planById, planSize, delPlan } from './plans
 import { refreshKinds } from './model.js';
 import { S, KINDS, SHAPES, SORTS, childrenOf, container, relate, deskOf, has, lateOn, isLate, knobOf,
   urgencyOf, urgeSaid, workday,
-  isContainer, faceOf, PRIMARY, isPrimary, barPct,
+  isContainer, faceOf, PRIMARY, isPrimary, barPct, marginOf, marginPlus,
   prioOf, repeatOf, repeatSaid, nextRepeat, boardLocked, BINDINGS, bindingOf, PANELS, panelOf,
   isHeld, heldObjects, tiltMode } from './model.js';
 import { pageRows, freeSpot, boxOk } from './grid.js';
@@ -152,7 +152,7 @@ window.BUREAU = {
      the object for a test to read. */
   get CONTROLS(){ return CONTROLS; }, ctlSaid, ctlIsOn, ctlPress,
   // what a bar is actually drawn at, which may be about another object entirely
-  barPct,
+  barPct, marginOf, marginPlus,
   // …and the drawer along the bottom, which is the other thing that pull
   // opens — see decision 107
   holding: holdPanel, held: heldObjects, isHeld, hold: holdIt, unhold: unholdIt,
