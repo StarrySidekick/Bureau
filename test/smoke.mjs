@@ -2914,6 +2914,27 @@ const CHROME = process.env.BUREAU_CHROME;
     const tiles = () => [...document.querySelectorAll('#drawergrid > .drawer')];
     const px = el => parseFloat(el.style.getPropertyValue('--px'));
 
+    /* Everything below asks for a tile standing left of centre, one standing
+       right, one above and one below, and takes whatever the seed happens to
+       have put there. The blocks above rearrange the desk — the holding block
+       says so in its own comment — and on a board that is nine shelves the
+       shelf you land on may hold nothing useful at all. So put four drawers at
+       the corners of the shelf being looked at and take them away again. Four
+       and not two: `--px` and `--py` are one call, and a corner answers both. */
+    const board = S.objects.map(o => [o.id, o.parent, o.desk, o.phone]);
+    const shelfW = parseInt(cs(document.querySelector('#drawergrid'))
+      .getPropertyValue('--cols'), 10) || 9;
+    const shelfH = BUREAU.shelfRows;
+    const corners = [[1,1],[shelfW-2,1],[1,shelfH-3],[shelfW-2,shelfH-3]]
+      .map(([x,y],i) => {
+        // create() refuses when a board is full, which is a real answer and not
+        // an error — see fits() in mutations.js
+        const o = BUREAU.create('drawer', {title:'Corner '+i, parent:'root'});
+        if(o) o.phone = hereBox({x, y, w:3, h:3});
+        return o;
+      }).filter(Boolean);
+    out.thereAreCornersToRead = corners.length === 4;
+
     /* Depth is no longer one number. A drawer is a box and shows a flank; a
        book is a cylinder and shows shade on a curve; and five more cues are
        drawn on a front's own face. So "off" is all of them off — and each has
@@ -3112,6 +3133,11 @@ const CHROME = process.env.BUREAU_CHROME;
     out.anOrnamentHasNoBox = orn.every(t => !t.querySelector(':scope > .dside')
       && !t.style.getPropertyValue('--depth'));
     S.objects.splice(S.objects.indexOf(orna), 1);
+    corners.forEach(o => S.objects.splice(S.objects.indexOf(o), 1));
+    board.forEach(([id, parent, desk, phone]) => {
+      const o = S.objects.find(x => x.id === id); if(!o) return;
+      o.parent = parent; o.desk = desk; o.phone = phone;
+    });
 
     S.look.parallax = wasPar; S.look.depth = wasDepth; S.look.locked = wasLocked;
     S.view = heldView; S.drawerId = heldId;
