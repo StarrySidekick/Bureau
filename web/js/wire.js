@@ -42,7 +42,14 @@ function makeSorting(kind, tag){
   if(tag){ o.filter = Object.assign({}, o.filter, {tag}); o.title = '#'+tag; }
   placeAtPending(o);
   save(); render(); reveal(o.id);
-  if(tag) toast(`Sorting for #${tag}`); else objectPanel(o.id, 'collect');
+  /* **And then you are standing in Collects, whichever way you came.** The tag
+     question is a shortcut past the common case, not an answer to the whole
+     question — a drawer made from it collects one tag and nothing else, and
+     the six other things it could ask were two doors away in a panel you had
+     no reason to open. Landing on the rule means the sentence you just made is
+     the first thing you read, with every remaining blank in it. */
+  if(tag) toast(`Sorting for #${tag}`);
+  objectPanel(o.id, 'collect');
 }
 
 /* A **life drawer**, made already wearing the object it is for. Same shape as
@@ -167,6 +174,19 @@ const UNDOKEY = {
   'mtype':'media'
 };
 const clone = v => (v && typeof v==='object') ? JSON.parse(JSON.stringify(v)) : v;
+/* **Has a tap already answered this tile?** `onUp` answers a tap on pointerup
+   and the browser then sends a click, which used to answer it a second time —
+   invisible for everything idempotent, which is nearly all of `tileTap`, and
+   fatal for play, where the first call started the video and the second stopped
+   it. The record is one tile and one moment, so a click on anything else, or a
+   second real press on the same tile, is untouched. See decision 158. */
+const TAP_ECHO = 700;
+function justTapped(id){
+  const t = gestureFlags.tapped;
+  if(!t || t.id !== id || Date.now() - t.at > TAP_ECHO) return false;
+  gestureFlags.tapped = null;          // one echo, not every click after it
+  return true;
+}
 function setField(el){
   const raw=el.dataset.oset||'', i=raw.indexOf(':');
   const id=raw.slice(0,i), key=raw.slice(i+1);
@@ -348,6 +368,17 @@ function act(name, el){
             <span class="kindmark">${ic(K(x.kind).ic,13)}</span>
             <div class="body"><div class="title">${esc(x.title||'Untitled')}</div>
               <div class="snip">${esc(K(x.kind).nm)}</div></div></div>`).join('')}</div>`});
+      break;
+    }
+    /* The way back from a list of types to "anything at all". It has to be a
+       button rather than un-pressing every chip: the blank says *anything* when
+       the list is empty, so getting back to it is one press and not four. */
+    case 'fkindclear': {
+      const o=byId(el.dataset.id||S.openId); if(!o) return;
+      const was=clone(o.filter);
+      o.filter=Object.assign({}, o.filter, {kinds:[]});
+      pushSet('Collects', o.id, 'filter', was);
+      save(); render(); refreshPanel();
       break;
     }
     case 'attrreset': {
@@ -1236,7 +1267,7 @@ function wire(){
       if(S.view==='drawer' && S.drawerId===dr.dataset.drawer) return;
       // …and a tile that gets here without a tap behind it — the keyboard, or
       // anything synthetic — still opens the way a tile opens
-      if(dr.closest('.grid')){ tileTap(dr.dataset.drawer); return; }
+      if(dr.closest('.grid')){ if(!justTapped(dr.dataset.drawer)) tileTap(dr.dataset.drawer); return; }
       S.view='drawer'; S.drawerId=dr.dataset.drawer; S.kindFilter=null; render(); return; }
 
     // anything else carrying an id — a tile on a grid, a band in a list, or a
@@ -1247,7 +1278,9 @@ function wire(){
          board is. A list used to open the editor for everything on it, which
          meant a task — a short string of text with `onclick:'none'` — opened
          onto a page of paper it has no use for. A list is a board. */
-      if(ro.closest('.grid') || ro.closest('[data-listfor]')) tileTap(ro.dataset.row);
+      if(ro.closest('.grid') || ro.closest('[data-listfor]')){
+        if(!justTapped(ro.dataset.row)) tileTap(ro.dataset.row);
+      }
       else openObj(ro.dataset.row);
       return;
     }

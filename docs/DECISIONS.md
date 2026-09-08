@@ -6793,3 +6793,163 @@ one to five and round to nothing.
 One target instead of six, one glance instead of a count. Decision 72's argument
 was against a *select*, which hides the scale behind a word; a mark that carries
 its own number hides nothing.
+
+## 156 · Two ways to read, and a scroll is the screen
+
+*2026-09-08*
+
+There were three — book, page, scroll — and `page` was never one of them. It is
+a book showing one page: the same sheet, the same measured pagination, the same
+turn, with the second half of the spread taken away. Which is what `book`
+already does on a phone, where there is no room for a spread. So it was the
+desk's book seen on a smaller screen, offered as a choice that made no
+difference on the one device where it was the only option. Gone; a desk that
+stored it reads as a book (migration 31), and `readOf()` falls back for any word
+it does not know.
+
+And a **scroll takes the whole stage**. It was wearing the book's letter
+proportions — the same 8.5 × 11 sheet floating in the middle of a dark stage,
+with the words moving inside it — which is a book you cannot turn the pages of.
+The point of a scroll is that it does not end. It is full width and full height
+now, with the column keeping a measure, said in the page's own padding: a
+percentage there resolves against the page's width, so one declaration centres
+every paragraph, list and heading and none of them needs a rule of its own.
+
+The paper is still the object's own stock. What goes is the shape of a page.
+
+## 157 · What you typed is what you see
+
+*2026-09-08*
+
+`md()` made every non-blank line its own `<p>` and threw every blank line away.
+So a single Return between two lines came out as a paragraph break — more space
+than you asked for — and the empty rows somebody put in on purpose came out as
+nothing at all. Both directions wrong, in an app whose whole writing surface is
+a plain textarea.
+
+Two rules instead. **One Return is a line break** inside the paragraph, because
+that is what pressing Return once means to the person doing it. **A blank row
+ends the paragraph, and every blank after the first keeps a line of room** —
+counting the run is what tells "the ordinary gap between two paragraphs" apart
+from "spacing I asked for", and asking whether a paragraph was open could not,
+because a heading has already closed itself.
+
+`plain()` is untouched: a tile is a face, and a run of blank lines on one is
+still one break. This is about the page.
+
+## 158 · A tap is answered once
+
+*2026-09-08*
+
+`onUp` answers a tap on a tile, and the browser then sends a click, which landed
+in the delegated handler and answered it again. Invisible for nearly everything
+`tileTap` does — walking into a drawer you are then already in, opening a panel
+that is then already up — and every other gesture that acts on pointerup already
+sets `suppressClick` for exactly this reason.
+
+Play is not idempotent. The first call started the video and the click arriving
+a frame later stopped it; because `play()` resolves *after* the pause, the tile
+was left marked as playing on a video that was not. That is the whole of "the
+play and pause controls glitch out and it doesn't play". Ticking has the same
+shape and was saved only by the render that happened in between.
+
+The click also cleared a selection on its way past, so that moves into the tap
+rather than being lost with it.
+
+## 159 · A rule is a sentence
+
+*2026-09-08*
+
+A sorting drawer's rule was six labelled rows — Collects from, Collects these
+types, a clause or two, and anything tagged, and Where they are — each a heading
+over a control. Six correct answers to six questions, which is not the same
+thing as knowing what the drawer will do.
+
+It is one sentence with the answers standing in it:
+
+> **This drawer collects** *anything* **from** *anywhere* **tagged** *any tag*
+> **with** *field* *is* *value*
+
+Every blank is the control that sets it, in place, so reading the rule and
+changing it are the same act. An unset blank reads as the word it defaults to —
+*anything*, *anywhere*, *any tag* — rather than as a gap you have to work out,
+and the joining words are chosen not to agree with anything, because a sentence
+built out of blanks has to survive every filling-in of them ("from", not "that
+are", which reads as "anything that are").
+
+Three things underneath it:
+
+- **The types are grouped and folded away.** Forty chips in one grid, in
+  whatever order `KEYS` happens to be in, was the wall this replaces. They are
+  grouped the way the new-object picker groups them — one list, one order,
+  learnt once — behind the blank that says how many are chosen, because
+  *anything* is the answer nearly every time. There is a button back to it, so
+  getting there is one press and not four.
+- **Everywhere is the default**, which is decision 141 catching up. `desk` was
+  right when the app was a row of desks and a rule on one answering with
+  another's contents was a real surprise. There is one desk of nine shelves:
+  "this desk" and "everywhere" are the same answer on every desk that exists,
+  and the one that read as a limit was the one being applied. The scope blank
+  only appears when there is more than one desk to choose between.
+- **Making one lands you here.** The tag question is a shortcut past the common
+  case, not an answer to the whole question, and the six other things a drawer
+  could ask were two doors away in a panel you had no reason to open.
+
+Still no OR. An OR needs groups, groups need a builder, and a builder is a query
+UI — see decision 63.
+
+## 160 · Three types that were a property
+
+*2026-09-08*
+
+- A **habit** is a task with a repeat rule on it. The type added a streak, a
+  shape and a name, and nothing you could not say with `repeat` — all three in
+  the seed were already carrying one.
+- A **dream** is a goal with no day it is owed by. `goalStanding()` has said so
+  since decision 146, so the type was the same fact stored twice and able to
+  disagree with itself: a Dream carrying a deadline said one thing and read as
+  another.
+- An **ingredient** is a line of a recipe, and a recipe is a card you write on
+  now, so it is a task like every other tickable line.
+
+Each becomes the type it always was (migration 32). **A removed kind needs a
+migration even though `K()` falls back**: the fallback keeps the object working
+while it stores a name that resolves to a note, so it turns into one at the
+first thing that reads its kind.
+
+A **recipe holds nothing**. It was a container with a checklist face whose only
+member type was Ingredient; with that gone there was nothing for it to hold, so
+what is left is the card — three by two, ruled, the method on it.
+
+## 161 · A label, and a tear anyone can wear
+
+*2026-09-08*
+
+**Label** is a caption you lay over a run of tiles to say what they are: four
+cells by one, its words set large because they are read across the desk rather
+than up close, and wearing the gilt frame, which is the one edge in the app that
+says *this is a heading* rather than *this is a thing*. It also gives `sh-band` a
+job — the shape existed with no rule behind it, so a band was a card that had
+been told it was something else.
+
+And the **torn edge is a shape**. It was a fact about the Fragment category
+(decision 145), which made the best-looking edge in the app something only ten
+types could have. `tornOf()` answers for the shape *or* the family, so anyone can
+pick it and a fragment still wears it without choosing — a scene keeps its
+punched page and its tear both, which is decision 145's own argument about what
+makes a fragment.
+
+## 162 · An event says when
+
+*2026-09-08*
+
+An Event wore `sliver` — the task's shape — so the one type whose subject is
+*when* looked exactly like the type whose subject is *what*. It is a **diary
+leaf** now: weekday over day number over month on a block of its own colour,
+torn along a perforation, with the name beside it and under the name how long it
+runs.
+
+It can only know two things, and that is the design rather than a limit: Bureau
+stores a day and never a clock time, so "when" is the **day** and "how long" is
+the **duration** — or the run of days where it spans. `span` is new on the type,
+and it is why a meeting and a trip are one type rather than two.

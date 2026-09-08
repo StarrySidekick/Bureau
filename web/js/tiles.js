@@ -1688,7 +1688,15 @@ function drawTileFace(o, arr, box, persp){
      inside a <button> is unfocusable — the same reason the answer box does. */
   const edit = S.editId===o.id;
   const raw = asks || edit;
-  return `<${raw?'div':'button'} class="drawer otile ${paper(o)} sh-${shapeOf(o)}${o.edge?' edge':''}${sel}${
+  /* A plaque is cast metal rather than paper, so it states its own edge and its
+     own shadow — and to *win* them it needs a class of its own. `.sh-plaque` is
+     three classes in board.css and `.drawer.otile.bd-plain` is three in
+     chrome.css, which loads later, so the border slot took the shadow every
+     time and the engraving never showed. Every other tile that steps out of the
+     border system carries a name for exactly this reason: `goaltile`,
+     `bartile`, `cnttile`, `spinetile`. */
+  const plaque = shapeOf(o)==='plaque' ? ' plaquetile' : '';
+  return `<${raw?'div':'button'} class="drawer otile ${paper(o)} sh-${shapeOf(o)}${plaque}${o.edge?' edge':''}${sel}${
       edit?' editing':''}${
       asks?(answered(o)?' answered':' unanswered'):''}${prioOf(o)!=null?' prio-'+prioOf(o):''}" data-row="${o.id}"
     style="--c:${colour};${has(o,'progress')?`--pct:${barPct(o)}%;`:''}${place}">

@@ -5,6 +5,70 @@ Sequenced by dependency, not appetite: item 1 makes everything after it safer.
 
 ---
 
+## 0u. Queued 2026-09-08 (twentieth pass) — the second look — DONE (v1.61)
+
+Timothy again, in one list of twenty-seven, written after living with the
+nineteenth pass. Roughly a third of it is things that shipped and did not work;
+the rest is the catalogue finally being pruned rather than added to.
+
+**Bugs that shipped**
+
+1. **A tap was answered twice** — `onUp` and then the browser's trailing click.
+   Invisible for everything idempotent, which is nearly all of `tileTap`, and
+   fatal for play: the first call started the video and the second stopped it.
+   Decision 158.
+2. **The selection box lost two sides on the phone.** The inset `outline` was
+   correct and went on failing; four independent borders on an inset child
+   cannot. Decision, in CLAUDE.md.
+3. **A control that was not a two-state switch vanished at one cell wide.** The
+   name and the printed value go there and a button had no lever to fall back
+   on. It draws its push disc; the dial keeps its knob.
+4. **A `.wav` could not be chosen.** `accept="audio/*"` is a request the picker
+   translates, and `audio/wave` is not what it translated it to.
+5. **A video was black until pressed**, and wore a play mark over the frame you
+   wanted to see.
+6. **The gilt on a raised band sat a pixel and a half low**, on every band of
+   every book: a per cent in `background-position` resolves against the
+   container *less the layer*, and hub and fillet were different heights.
+7. **The goal card's inner rule was not concentric.** A `container-type` element
+   is not its own query container, so the two radii were measured against
+   different boxes.
+
+**The catalogue, pruned**
+
+8. Habit, Dream and Ingredient removed — each a property wearing a name.
+   Decision 160.
+9. Collage, Timeline, Counter, Recipe, Achievement and Event moved into *Put
+   down*; Quote into Note, Window into Decoration, Script into both Project and
+   Prose & Poetry.
+10. **Label**, new: a caption you lay over a run of tiles. Decision 161.
+11. **Event**, remade as a diary leaf. Decision 162.
+12. The **torn edge** became a shape anyone can wear. Decision 161.
+
+**Reading and writing**
+
+13. **Page mode removed**; a **scroll takes the whole stage**. Decision 156.
+14. **What you typed is what you see** — one Return is a line break, and blank
+    rows keep their room. Decision 157.
+
+**The rest**
+
+15. A sorting drawer's rule **reads as a sentence**, its types are grouped
+    behind the blank, everywhere is the default scope, and making one lands you
+    on it. Decision 159.
+16. A **placed calendar button can be picked up and moved**, and the `On` field
+    went with it — the month had already drawn that day.
+17. A **checklist front is one line per cell on a phone** and two on a Mac.
+18. **Tags and links moved to the foot** of the object editor.
+19. An **achievement** is quieter and set larger.
+
+*Left out:* nothing. The one item that was information rather than a request —
+that Today and Inbox are load-bearing for Getting Things Done — is noted here
+rather than built: it is an argument for **layouts made of sorting drawers**,
+which is what §0b's template work is for, and it is the next thing to design.
+
+---
+
 ## 0t. Queued 2026-09-07 (nineteenth pass) — what the last one left behind — DONE (v1.59)
 
 Timothy again, in one list of thirty. Most of it is the shelf revamp's loose

@@ -1352,10 +1352,17 @@ function objectPanelBody(id, sec){
     };
     const valueFor = (i, r) => {
       const f = F(r.f);
-      if(f.type==='date')
+      if(f.type==='date'){
+        /* A word or a day, **not both at once**. The two controls are one
+           answer — "in a week" and an empty `mm/dd/yyyy` sitting beside it is
+           the sentence saying the same blank twice — so the day only shows
+           while no word is chosen, and choosing a word puts it away. The word
+           list carries a chosen day as its own option, which is the way back. */
+        const isDay = /^\d{4}-/.test(r.v||'');
         return psel(id,`rule.${i}.v`, [['','—'],...Object.entries(WHENS),
             ...(whenISO(r.v)&&!WHENS[r.v] ? [[r.v, r.v]] : [])], r.v||'')
-          + pfield(id,`rule.${i}.v`, /^\d{4}-/.test(r.v||'')?r.v:'', 'date');
+          + (r.v && !isDay ? '' : pfield(id,`rule.${i}.v`, isDay?r.v:'', 'date'));
+      }
       if(f.pick && PICKS[f.pick]){
         const list = PICKS[f.pick]();
         // a value that is no longer in the list (a drawer since deleted, a tag
@@ -1368,37 +1375,91 @@ function objectPanelBody(id, sec){
         return psel(id,`rule.${i}.v`, [['','—'], ...f.opts.map(n=>[String(n), String(n)])], r.v||'');
       return pfield(id,`rule.${i}.v`, r.v, f.type==='number'?'number':'', 'value');
     };
-    const clause = (r, i) => prow(i ? '…and also' : '…and matching',
-      fieldPick(i, r)
-      + psel(id,`rule.${i}.op`, Object.entries(OPS), r.op||'is')
-      + valueFor(i, r),
-      i ? '' : (rs.length>1 ? 'all of them have to be true' : ''));
+    /* ---- the rule, read as a sentence ----------------------------------
+       It was six labelled rows — Collects from, Collects these types, a clause
+       or two, and anything tagged, and Where they are — each a heading over a
+       control, in a panel you had to read top to bottom to find out what the
+       drawer would actually do. Six correct answers to six questions is not the
+       same thing as knowing what you have built.
+
+       So it is **one sentence with the answers in it**, which is what a rule
+       is: *This drawer collects [types] that are [where], tagged [tag], with
+       [field] [is] [value].* Every blank is the control that sets it, in place,
+       so reading the rule and changing it are the same act — and an empty blank
+       reads as the word it defaults to ("anything", "anywhere", "any tag")
+       rather than as a gap you have to work out.
+
+       Nothing underneath changed: the same `data-oset` names, the same
+       `filter.*` keys, the same clause list. This is the sentence the rule
+       always was, written down. */
+    const clause = (r, i) => `<span class="rclause">
+        <b>${i ? 'and' : 'with'}</b>
+        <span class="rblank">${fieldPick(i, r)}</span>
+        <span class="rblank">${psel(id,`rule.${i}.op`, Object.entries(OPS), r.op||'is')}</span>
+        <span class="rblank">${valueFor(i, r)}</span>
+      </span>`;
     const clauses = rs.slice(0,RULE_MAX).map(clause).join('')
       + (rs.length<RULE_MAX ? clause({op:'is'}, rs.length) : '');
-    /* What it can see. The default is its own desk, which on a desk that has
-       never been split up is everything — so this only starts mattering the
-       moment there is more than one place to look. */
-    const sc = fl.scope||'desk';
-    const scope = prow('Collects from', psel(id,'filter.scope',
-        [['desk','This desk'],['all','Every desk'],['some','The desks I choose']], sc),
-        sc==='desk' ? esc(deskName(deskOf(id))) : '')
-      + (sc==='some' ? pgroup('Which desks', `<div>${deskList().map(k=>
+
+    /* What it can see. **Only asked where there is more than one desk** — there
+       is one, of nine shelves (decision 141), so "this desk" and "every desk"
+       were two words for the same answer and the panel was asking you to pick
+       between them. It comes back by itself the day the desk is split up. */
+    const sc = fl.scope||'all';
+    const manyDesks = deskList().length > 1;
+    const scope = !manyDesks ? '' : `<span class="rclause"><b>looking in</b>
+      <span class="rblank">${psel(id,'filter.scope',
+        [['all','every desk'],['desk','this desk'],['some','the desks I choose']], sc)}</span></span>`;
+    const scopeDesks = (manyDesks && sc==='some')
+      ? pgroup('Which desks', `<div>${deskList().map(k=>
           `<button class="pchip${(fl.scopeDesks||[]).includes(k.id)?' on':''}" data-fdesk="${k.id}" data-id="${id}">${
-            esc(deskName(k.id))}</button>`).join('')}</div>`, true) : '');
-    const body = (magic ? scope + `
-      ${prow('Collects these types',
-        `<div class="pickgrid chips">${KEYS.filter(k=>k!=='control').map(k=>
-          `<button class="fchip${(fl.kinds||[]).includes(k)?' on':''}" data-fkind="${k}" data-id="${id}"
-             style="--k:${hexOf(KINDS[k].c)}">${esc(KINDS[k].nm)}</button>`).join('')}</div>`)}
-      ${clauses}
-      ${prow('…and anything tagged', psel(id,'filter.tag',
-        [['','Any tag'], ...allTags().map(([t])=>[t,'#'+t])], fl.tag||''))}
-      ${/* An inbox is not a rule about a field — it is a rule about *where a
-           thing is*: loose on a desk, not put away in anything. On its own it
-           is the whole of what an inbox collects. */''}
-      ${prow('Where they are', psel(id,'filter.loose',
-        [['','Anywhere'],['1','Loose on a desk — not filed in anything']], fl.loose?'1':''),
-        'an inbox is this and nothing else')}` : '')
+            esc(deskName(k.id))}</button>`).join('')}</div>`, true) : '';
+
+    /* ---- the types blank, and the list behind it ------------------------
+       Forty chips in one grid was the "jumbled" part: every type in the app,
+       in the order `KEYS` happens to be in, with no way to see that Drawer and
+       Sorting drawer are the same sort of answer. They are **grouped the way
+       the new-object picker groups them** — one list, one order, learnt once —
+       and folded away behind the blank that says how many are chosen, because
+       "anything" is the answer nearly every time and a wall of chips is a bad
+       way to say it. */
+    const chosen = (fl.kinds||[]).filter(k=>KINDS[k]);
+    const saidTypes = !chosen.length ? 'anything'
+      : chosen.length<=2 ? chosen.map(k=>K(k).nm.toLowerCase()).join(' and ')
+      : `${chosen.length} types`;
+    /* Closed, always. The grid is the *answer* to the blank and not the blank
+       itself — opening it by default because something is chosen pushes the
+       rest of the sentence off the screen, which is the wall this replaced. */
+    const typePick = `<details class="rtypes">
+      <summary><span class="rblank rbtn">${esc(saidTypes)}</span></summary>
+      ${pickGroups().map(g=>`
+        <div class="section-h"><h2>${esc(g.nm)}</h2><div class="rule"></div></div>
+        <div class="pickgrid chips">${g.ks.map(k=>
+          `<button class="fchip${chosen.includes(k)?' on':''}" data-fkind="${k}" data-id="${id}"
+             style="--k:${hexOf(KINDS[k].c)}">${esc(KINDS[k].nm)}</button>`).join('')}</div>`).join('')}
+      ${chosen.length ? `<button class="subtle-btn" data-act="fkindclear" data-id="${id}">${
+        ic('undo',12)} Anything at all</button>` : ''}
+    </details>`;
+
+    const body = (magic ? `
+      <div class="rulesay">
+        <b>This drawer collects</b>
+        ${typePick}
+        ${/* "from", not "that are": the types blank reads "anything" most of the
+             time and "anything that are" is the sort of thing a form says. A
+             sentence built out of blanks has to survive every filling-in of
+             them, so the joining words are chosen not to agree with anything. */''}
+        <span class="rclause"><b>from</b>
+          <span class="rblank">${psel(id,'filter.loose',
+            [['','anywhere'],['1','loose on a desk']], fl.loose?'1':'')}</span></span>
+        <span class="rclause"><b>tagged</b>
+          <span class="rblank">${psel(id,'filter.tag',
+            [['','any tag'], ...allTags().map(([t])=>[t,'#'+t])], fl.tag||'')}</span></span>
+        ${clauses}
+        ${scope}
+      </div>
+      ${scopeDesks}
+      <div class="mini" style="--k:var(--brass)">Every blank has to be true at once, and a blank left as it is asks nothing. <b>Loose on a desk</b> means not filed in anything, which is the whole of what an inbox collects.</div>` : '')
       + prow('Shows a total', psel(id,'roll.fn',[['','Nothing'],...Object.entries(ROLLS)], rl.fn||'')
         + psel(id,'roll.f',[['','—'],...Object.keys(FIELDS).filter(a=>!FIELDS[a].derived).map(a=>[a,FIELDS[a].nm])], rl.f||''),
         'on every face it can wear')

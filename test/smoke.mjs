@@ -1101,7 +1101,12 @@ const CHROME = process.env.BUREAU_CHROME;
     const pages = () => document.querySelectorAll('.bookstage .spread .page').length;
 
     open('book');   out.bookIsSpread = pages() === 2 && !!document.querySelector('.bookstage.rm-book');
-    open('page');   out.pageIsOne = pages() === 1;
+    /* **There is no page mode.** It was a book showing one page — the same
+       sheet, the same pagination, the same turn — which is what a book already
+       is on a phone. A desk that stored it reads as a book, and `readOf()`
+       falls back for any word it does not know. */
+    out.pageIsGone = !Object.keys(BUREAU.reads).includes('page');
+    open('page');   out.pageReadsAsABook = pages() === 2;
     /* Scroll has the bar too now — it holds every control, not just the page
        turns, so it is not the turns' guest any more. What it has not got is
        anything to turn. See decision 84. */
@@ -1129,17 +1134,25 @@ const CHROME = process.env.BUREAU_CHROME;
     await new Promise(r => setTimeout(r, 700));
     out.turnedBack = S.bookAt === 0;
 
-    // a page turns one at a time, not two
-    open('page');
-    document.querySelector('[data-act="booknext"]').click();
-    out.pageStepsOne = S.bookAt === 1;
-    await new Promise(r => setTimeout(r, 700));
+    /* Scroll is the **whole stage** now, not a letter-shaped sheet with the words
+       moving inside it. Said as "it fills the stage" rather than "it is taller
+       than the book": on a wide screen the book is already as tall as the stage
+       allows and only its *width* is held to the paper's proportions, so a
+       height comparison is true on a phone and false on a Mac. */
+    open('scroll');
+    const sc = document.querySelector('.bookstage .spread').getBoundingClientRect();
+    open('book');
+    const bk = document.querySelector('.bookstage .spread').getBoundingClientRect();
+    const stage = document.querySelector('.bookstage').getBoundingClientRect();
+    out.scrollFillsTheStage = Math.abs(sc.width - stage.width) < 2;
+    out.andTheBookDoesNot = bk.width < stage.width - 2;
+    out.andIsNotLetterShaped = Math.abs(sc.width / sc.height - 8.5/11) > 0.05;
 
     // the type carries the default, the object overrides it
-    out.typeDefault = BUREAU.K.note.read === undefined;   // unset means page
+    out.typeDefault = BUREAU.K.note.read === undefined;   // unset means book
     delete o.read;
     open(undefined); o.read = undefined; S.readId = o.id; BUREAU.renderSheet();
-    out.defaultsToPage = document.querySelectorAll('.bookstage .spread .page').length === 1;
+    out.defaultsToBook = document.querySelectorAll('.bookstage .spread .page').length === 2;
     /* Prose & Poetry opens as a book in both senses, and they are different
        properties: `layout` pages through the pieces it holds, `read` pages
        through its own body. It used to assert `onclick === 'read'`, which a
@@ -1171,18 +1184,19 @@ const CHROME = process.env.BUREAU_CHROME;
     };
     const near = (a, b) => Math.abs(a - b) <= 1;
 
-    for (const m of ['book', 'page', 'scroll']) {
+    /* **Only the book is letter-shaped.** A scroll takes the whole stage now:
+       the point of one is that it does not end, so giving it a page's
+       proportions was a book you could not turn the pages of. Both are still
+       *steady* — the size is the stage's, never the text's, which is the bug
+       this block was written for. */
+    for (const m of ['book', 'scroll']) {
       const e = box(empty, m), l = box(long, m);
       out[m + 'Steady'] = near(e.w, l.w) && near(e.h, l.h);
-      // one sheet is 8.5:11; a spread is two of them side by side
-      const cols = m === 'book' ? 2 : 1;
-      out[m + 'IsLetter'] = Math.abs((e.w / cols) / e.h - 8.5 / 11) < 0.02;
     }
-    // and every mode is the same height, so switching view doesn't jump
-    out.sameHeight = near(box(long, 'book').h, box(long, 'page').h)
-      && near(box(long, 'page').h, box(long, 'scroll').h);
+    const eb = box(empty, 'book');
+    out.bookIsLetter = Math.abs((eb.w / 2) / eb.h - 8.5 / 11) < 0.02;
     // a long body paginates rather than overflowing its page
-    box(long, 'page');
+    box(long, 'book');
     const pg = document.querySelector('.bookstage .spread .page');
     out.noOverflow = pg.scrollHeight <= pg.clientHeight + 1;
     out.paginated = +document.querySelector('.bookcount').textContent.split(' of ')[1] > 6;
@@ -1235,9 +1249,18 @@ const CHROME = process.env.BUREAU_CHROME;
        that counted the spread's *children* rather than its pages broke the
        day paper arrived — one page was laid out in half the width and
        overflowed. */
+    /* …and the page has to actually be *one* to test that, which since decision
+       156 means asking for a scroll: an object that says nothing opens as a
+       book, and on a Mac a book is a spread. The claim is about the
+       `:has(> .page + .page)` test, which is what the grain sibling broke. */
+    o.read = 'scroll'; BUREAU.renderSheet(); await nap(140);
+    const one = document.querySelector('.bookstage .spread');
     out.onePageIsStillOneColumn =
-      getComputedStyle(sp).gridTemplateColumns.split(' ').length === 1;
-    const pg = sp.querySelector('.page');
+      getComputedStyle(one).gridTemplateColumns.split(' ').length === 1
+      && one.querySelectorAll('.page').length === 1
+      && !!one.querySelector(':scope > .dgrain');
+    delete o.read; BUREAU.renderSheet(); await nap(140);
+    const pg = document.querySelector('.bookstage .spread .page');
     out.andStillPaginates = pg.scrollHeight <= pg.clientHeight + 1;
 
     // scroll mode keeps its paper too, and the grain still does not scroll away
@@ -4650,7 +4673,17 @@ const CHROME = process.env.BUREAU_CHROME;
        is the thing the majors exist to stop. */
     const all = [...panel.querySelectorAll('.kindtile')].map(keyOf);
     out.noneDrawnTwice = new Set(all).size === all.length;
-    out.restBehindOneMore = !!panel.querySelector('details.allkinds');
+    /* **The disclosure only exists when something is left over**, and after the
+       twentieth pass nothing is: every type that is not a major belongs to a
+       category, so it is one press *in* rather than one disclosure *down*. The
+       claim is therefore the two-sided one — a leftover goes behind the
+       disclosure, and a type with a home does not need it. `reachable` below is
+       what guards that nothing was lost. */
+    const leftover = Object.keys(BUREAU.K).filter(k =>
+      !BUREAU.isPrimary(k) && !BUREAU.K[k].cat && !BUREAU.inFamily(k));
+    out.restBehindOneMore = leftover.length
+      ? !!panel.querySelector('details.allkinds')
+      : !panel.querySelector('details.allkinds');
     /* …and everything is still reachable, which is no longer the same as
        everything being *drawn*: a category stands in for its members and they
        are on the second screen. Decision 135. */
@@ -4707,7 +4740,12 @@ const CHROME = process.env.BUREAU_CHROME;
     out.opensOntoTheSurface = !!document.querySelector('.viewstage');
     document.querySelector('.viewstage [data-act="pickimage"]').click();
     await nap(80);
-    out.pickerAcceptsSound = document.querySelector('#imgpicker').accept === 'audio/*';
+    /* The wildcard **and the extensions**. `accept="audio/*"` is a request the
+       picker has to translate, and a `.wav` — `audio/wave`, `audio/x-wav`, or
+       no type at all depending on what made it — came back greyed out. */
+    const acc = document.querySelector('#imgpicker').accept;
+    out.pickerAcceptsSound = /(^|,)audio\/\*(,|$)/.test(acc) && acc.includes('.wav')
+      && !acc.includes('image/');
     BUREAU.closeSheet(); await nap(150);
     // a file that has arrived plays rather than being shown as a still
     a.media = {assetId:'x', type:'audio', label:'take.m4a',
@@ -4957,7 +4995,13 @@ const CHROME = process.env.BUREAU_CHROME;
     BUREAU.render(); await nap(150);
     BUREAU.schedule(t.id); await nap(320);
 
-    const pen = k => document.querySelector(`#panel [data-schedpen$=":${k}"]`);
+    /* **In the lane**, specifically. A placed button now wears a tab on its own
+       day (decision 154 as amended), and that tab carries the same
+       `data-schedpen` — which is the whole point, since it means the drag, the
+       tap-then-tap and `placePen()` are one code path. So a question about the
+       lane has to ask about the lane. */
+    const pen = k => document.querySelector(`#panel .schedpens [data-schedpen$=":${k}"]`);
+    const onDay = k => document.querySelector(`#panel .sday [data-schedpen$=":${k}"]`);
     out.threePens = ['due','soft','dead'].every(k => !!pen(k));
     // the day it sits on is the pen you start holding, because it is the one
     // you are usually setting
@@ -4979,6 +5023,12 @@ const CHROME = process.env.BUREAU_CHROME;
        tray reading as though nothing had been put down. See decision 154. */
     out.aPlacedOneLeavesTheLane = !pen('dead')
       && document.querySelectorAll('#panel .sday.dead').length === 1;
+    /* …and it is **on the day**, as a thing you can pick up again. A date you
+       could put down and not move was a date you had to take off and re-place,
+       hunting the old day for the old button. */
+    out.andWearsItsButtonThere = !!onDay('dead');
+    out.whichIsTheSameControl = !!onDay('dead')
+      && onDay('dead').dataset.schedpen === `${t.id}:dead`;
     // pressing the same day again clears it, the way every toggle here does
     document.querySelector(`#panel [data-schedday$=":${iso}"]`).click(); await nap(300);
     out.andPressingItAgainClears = t.dead == null;
@@ -4995,7 +5045,7 @@ const CHROME = process.env.BUREAU_CHROME;
     out.andSoAreTheRanks = sharp(r('#panel [data-prio]')) && sharp(r('#panel [data-diff]'));
     /* The buttons are the *other* legal answer: a stadium, because a sewing
        button is round and the thing it sits in is a buttonhole. */
-    const bt = document.querySelector('#panel [data-schedpen]');
+    const bt = document.querySelector('#panel .schedpens [data-schedpen]');
     out.thePensAreRound = parseFloat(getComputedStyle(bt).borderTopLeftRadius)
       >= bt.getBoundingClientRect().height/2 - 1;
     out.andTheDiscIsACircle = parseFloat(
@@ -6779,6 +6829,110 @@ const CHROME = process.env.BUREAU_CHROME;
   });
   await shot('90-specimen-book');
 
+  /* --- what this pass changed, asked of the app rather than the source -----
+     A test that reads a table says the table is right; one that presses the
+     thing says you can get at it. These are the second kind. */
+  const thisPass = await page.evaluate(async () => {
+    const nap = ms => new Promise(r => setTimeout(r, ms));
+    const S = BUREAU.state, out = {};
+
+    /* ---- three types that were a property ------------------------------ */
+    out.habitIsGone = !BUREAU.K.habit;
+    out.dreamIsGone = !BUREAU.K.dream;
+    out.ingredientIsGone = !BUREAU.K.ingredient;
+    /* …and a desk carrying one is not left storing a word that resolves to a
+       note. A removed kind needs the migration even though `K()` falls back. */
+    const old = BUREAU.migrated({v:30, objects:[
+      {id:'h', kind:'habit', title:'Write', attrs:['text','streak']},
+      {id:'d', kind:'dream', title:'A boat', dead:'2026-12-01'},
+      {id:'i', kind:'ingredient', title:'2 onions'}]});
+    const by = k => old.objects.find(o=>o.id===k);
+    out.aHabitBecomesARepeatingTask = by('h').kind==='task'
+      && !!by('h').repeat && by('h').attrs.includes('repeat');
+    out.aDreamBecomesAGoalOwingNothing = by('d').kind==='goal' && by('d').dead===null;
+    out.anIngredientBecomesATask = by('i').kind==='task';
+    // and a dream is still *called* one, because that is what it always was
+    out.andAGoalWithNoDayIsStillADream =
+      BUREAU.goalStanding({kind:'goal'}) === 'dream';
+
+    /* ---- the new ones -------------------------------------------------- */
+    out.thereIsALabel = !!BUREAU.K.label && BUREAU.K.label.size[0] === 4
+      && BUREAU.K.label.border === 'gilt';
+    out.tornIsAShapeAnyoneCanWear = !!BUREAU.shapes.torn;
+    const nt = BUREAU.create('note', {parent:'root', title:'Torn'});
+    nt.shape = 'torn'; BUREAU.render(); await nap(200);
+    out.andANoteCanWearIt = !!document.querySelector(`[data-row="${nt.id}"].tornedge`);
+    // …while a fragment still wears it without asking, keeping its own shape
+    const sc = BUREAU.create('scene', {parent:'root', title:'Cold open'});
+    BUREAU.render(); await nap(200);
+    const scEl = document.querySelector(`[data-row="${sc.id}"]`);
+    out.andAFragmentStillWearsItUnasked = !!scEl
+      && scEl.classList.contains('tornedge') && scEl.classList.contains('sh-page');
+
+    /* ---- an event says when, and how long ------------------------------ */
+    const ev = BUREAU.create('appt', {parent:'root', title:'Colour grade'});
+    ev.due = '2026-09-14'; ev.dur = 150;
+    BUREAU.render(); await nap(220);
+    const evEl = document.querySelector(`[data-row="${ev.id}"]`);
+    out.anEventIsADiaryLeaf = !!evEl && !!evEl.querySelector('.evleaf .evday');
+    out.andSaysHowLong = !!evEl && /2h 30/.test(evEl.querySelector('.evrun').textContent);
+
+    /* ---- a control that is not a switch still draws at one cell --------- */
+    const mk = (k, w, h) => { const o = BUREAU.create('control', {parent:'root'});
+      o.ctl = k; o.desk = {x:1,y:1,w,h}; return o; };
+    const cb = mk('style',1,1), cd = mk('depth',1,1);
+    BUREAU.render(); await nap(250);
+    const drawn = id => { const t=document.querySelector(`[data-row="${id}"]`);
+      return !!t && [...t.children].some(el => el.getBoundingClientRect().width > 4); };
+    out.aButtonAtOneCellIsAPushButton = drawn(cb.id)
+      && !!document.querySelector(`[data-row="${cb.id}"] .cpush`);
+    out.aDialAtOneCellKeepsItsKnob = drawn(cd.id)
+      && document.querySelector(`[data-row="${cd.id}"] .cdialwrap`).getBoundingClientRect().width > 8;
+
+    /* ---- a rule reads as a sentence, and every blank writes ------------- */
+    const mg = BUREAU.create('magic', {parent:'root', title:'A rule'});
+    BUREAU.render(); await nap(150);
+    BUREAU.panel(mg.id, 'collect'); await nap(400);
+    const say = document.querySelector('#panel .rulesay');
+    out.theRuleIsASentence = !!say && /This drawer collects/.test(say.textContent);
+    out.andSaysAnythingWhenItAsksNothing = !!say && /anything/.test(say.textContent);
+    // the types are grouped, behind the blank, rather than forty chips in a row
+    const sum = document.querySelector('#panel .rulesay details.rtypes > summary');
+    out.theTypesAreBehindTheBlank = !!sum
+      && !document.querySelector('#panel .rtypes[open]');
+    sum.click(); await nap(250);
+    out.andGroupedWhenOpened =
+      document.querySelectorAll('#panel .rtypes .section-h h2').length >= 2;
+    document.querySelector('#panel .rtypes .fchip[data-fkind="note"]').click(); await nap(320);
+    out.pressingOneNarrowsTheRule = (mg.filter.kinds||[]).includes('note')
+      && /note/.test(document.querySelector('#panel .rulesay .rbtn').textContent);
+    document.querySelector('#panel [data-act="fkindclear"]').click(); await nap(320);
+    out.andThereIsAWayBackToAnything = !(mg.filter.kinds||[]).length;
+    /* Everywhere is the default, which is decision 141 catching up: there is
+       one desk, so "this desk" was the reading that limited a rule for no
+       reason anybody could see. */
+    out.itCollectsFromEverywhereByDefault = (() => {
+      const loose = BUREAU.create('note', {parent:'root', title:'Loose'});
+      mg.filter = {rules:[{f:'@title', op:'has', v:'Loose'}]};
+      const got = BUREAU.kids(mg.id).includes(loose.id);
+      BUREAU.del(loose.id); return got;
+    })();
+    BUREAU.closePanel();
+
+    /* ---- what you typed is what you read ------------------------------- */
+    const w = BUREAU.create('note', {parent:'root', title:'Spacing'});
+    w.body = 'One line.\nA second, one Return down.\n\n\n\nAfter three blanks.';
+    S.readId = w.id; S.openId = null; BUREAU.renderSheet(); await nap(300);
+    const pg = document.querySelector('.bookstage .spread .page');
+    out.oneReturnIsALineBreak = !!pg && pg.querySelectorAll('br').length === 1;
+    out.blankRowsKeepTheirRoom = !!pg && pg.querySelectorAll('.vspace').length === 2;
+    S.readId = null; BUREAU.renderSheet();
+
+    [nt, sc, ev, cb, cd, mg, w].forEach(o => BUREAU.del(o.id));
+    S.undo = []; S.redo = []; BUREAU.render();
+    return out;
+  });
+
   console.log(JSON.stringify({
     errors: errs, manifestOk, swReady, survived, styleSurvived, slotColours,
     newObjectSeen, inlineEdit, sortDefaults, taskLook,
@@ -6800,7 +6954,7 @@ const CHROME = process.env.BUREAU_CHROME;
     paletteKeys, editorKeys, pickerLeads, rollupsEverywhere, soundAndVision, keyboardBoard,
     ranking, urgency, reachable, pensAndCorners, lyingBooks, plansWork, repeating, oneLock, scheduling, ownColour, addBox, calFaces,
     lockedBoard, freeTraits, pageWrites, tickBoxes, readerFits, categories,
-    specimenBook,
+    specimenBook, thisPass,
     dropsIn, keyframesRegistered, aesthetics, slotScoping, objectsDressed, grainSlots, tagged, drawnAesthetic, deeper, lookStage, statusBar, bindings, panelling, theSpray, tappingIsQuiet, decorations, pinboard
   }, null, 2));
   await browser.close();

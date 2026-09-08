@@ -1547,20 +1547,25 @@ const heldCount = ()=> S.objects.reduce((n,o)=>n+(isHeld(o)?1:0), 0);
    across every desk there is, which is right for an inbox and wrong for
    everything else: "anything due this week" on the Exercise desk should not
    answer with a screenplay scene. So a magic drawer collects from its own desk
-   unless it says otherwise, and saying otherwise is two values —
+   unless it says otherwise, and saying otherwise is three values —
 
-     desk   the desk this drawer is on (the default)
-     all    every desk there is, which is what an inbox or a Today wants
+     all    every desk there is — **the default**
+     desk   the desk this drawer is on
      some   the desks named in `scopeDesks`
 
-   For a desk that has never been split up this changes nothing: everything is
-   on the home desk, so "this desk" and "everywhere" are the same answer. It
-   starts mattering the moment you promote a drawer, which is the moment you
-   wanted it to. See decision 39. */
+   **Everywhere is the default now, and that is decision 141 catching up.**
+   `desk` was right when the app was a row of desks and a rule written on one
+   of them answering with another one's contents was a real surprise. There is
+   one desk — nine shelves of it — so "this desk" and "everywhere" are the same
+   answer on every desk that exists, and the one that reads as a limit was the
+   one being applied. A rule you write collects what matches it; if you ever
+   split the desk up again, saying so is one blank in the sentence.
+   See decisions 39 and 141. */
 function inScope(c, o){
   const f=c.filter||{};
-  if(f.scope==='all') return true;
-  const want = (f.scope==='some' && (f.scopeDesks||[]).length) ? f.scopeDesks : [deskOf(c)];
+  const sc = f.scope || 'all';
+  if(sc==='all') return true;
+  const want = (sc==='some' && (f.scopeDesks||[]).length) ? f.scopeDesks : [deskOf(c)];
   return want.includes(deskOf(o));
 }
 function inContainer(c,o){

@@ -46,7 +46,7 @@ meaning, containers are finite, and opening one is a small deliberate act.
 | **Face** | How a container draws itself on its *parent's* board. |
 | **Shape** | How a non-container object draws itself. |
 | **Layout** | How a container arranges its children once you *open* it. |
-| **Read view** | How a non-container object opens to be read: `book`, `page` or `scroll`. |
+| **Read view** | How a non-container object opens to be read: `book` or `scroll`. `page` was a book showing one page and is gone — decision 156. |
 | **Rule** | One clause — field, comparison, value — that a magic drawer matches against. Up to three, ANDed. |
 | **Repeat rule** | How a thing comes round: how often, counted from its date or from the day you finish it, and when it stops. |
 | **Rollup** | A number a container totals across its children, shown on its face. |
@@ -172,7 +172,7 @@ shape or face, and — for an object — how it opens to be read.
 
 ### The major categories
 
-`PRIMARY` in model.js is the twenty the picker leads with, in this order. They
+`PRIMARY` in model.js is what the picker leads with, in this order. They
 are what a desk is actually made of; everything else is one disclosure further
 in and is still reachable by name, by shortcut and from the type builder. See
 decision 130.
@@ -180,25 +180,30 @@ decision 130.
 | | Type | What it is |
 | --- | --- | --- |
 | 1 | **Drawer** | A container. Holds what you file in it. |
-| 2 | **Sorting drawer** | Collects by a rule instead of holding. Asks which tag before it exists. `magic` in the code. |
-| 3 | **Project** | A piece of work, and everything it is made of. Reports: a bar, a count, what is next. |
+| 2 | **Sorting drawer** | Collects by a rule instead of holding. Asks which tag before it exists, then lands you on the rule. `magic` in the code. |
+| 3 | **Project** | A piece of work, and everything it is made of. A drawer front whose knob is a dial. |
 | 4 | **Life drawer** | An area of your life rather than a piece of work. Reports the same walk with **no bar** — it never finishes. |
-| 5 | **Book** | Anything made of words. A container that reads as a book both ways round. |
-| 6 | **Checklist** | Tasks on the outside, tickable without opening it. |
-| 7 | **Calendar** | Whatever it collects, on the day it falls. |
-| 8 | **Note** | Something to remember. |
-| 9 | **Thought** | What crossed your mind. A chit, no template, no ceremony. |
-| 10 | **Idea** | A spark, with three prompts to work it out. |
-| 11 | **Question** | Open until you have written the answer. |
-| 12 | **Problem** | Something in the way. Open until you have written what you did about it. |
-| 13 | **Task** | A thing to do. |
-| 14 | **Progress bar** | How far along something is — its own milestones, or another object's. |
-| 15 | **Image** | A picture on the board. |
-| 16 | **Trip** | Somewhere you are going, and what it is made of. |
-| 17 | **Recipe** | Ingredients you can tick, and a method. |
-| 18 | **Decoration** | Something to stand on the shelf. |
-| 19 | **Control** | A switch on the board for one of the desk's own settings. |
-| 20 | **Spawner** | Press it and it makes one of something — or one of anything. |
+| 5 | **Goal** | Something you are trying to reach. A playing card, laid down. |
+| 6 | **Prose & Poetry** | Anything made of words. A category: poem, novel, short story, essay, script. |
+| 7 | **Checklist** | Tasks on the outside, tickable without opening it. |
+| 8 | **Calendar** | Whatever it collects, on the day it falls. |
+| 9 | **Collage** | The board inside it, drawn small — an arrangement, not a re-packing. |
+| 10 | **Timeline** | Things in the order they happened. |
+| 11 | **Note** | Something to remember. A category: idea, thought, problem, question, quote. |
+| 12 | **Fragment** | A piece of a world or a story. A category, and *only* a question — there is no generic fragment. |
+| 13 | **Label** | A caption you lay over a run of tiles to say what they are. |
+| 14 | **Recipe** | An index card: what goes in it, and how. It holds nothing. |
+| 15 | **Achievement** | Something you actually did. Picked from what is finished, not written. |
+| 16 | **Task** | A thing to do. |
+| 17 | **Progress bar** | How far along something is — its own milestones, or another object's. |
+| 18 | **Counter** | A number you tap to add to. |
+| 19 | **Event** | Something on a day — a meeting, a shoot, a trip. A diary leaf. `appt` in the code. |
+| 20 | **Image** | A picture on the board. |
+| 21 | **Audio** | A record with a play button in its label. |
+| 22 | **Video** | The video, filling whatever box it is in. |
+| 23 | **Decoration** | Something to stand on the shelf. A category: an ornament, or a window. |
+| 24 | **Control** | A switch on the board for one of the desk's own settings. |
+| 25 | **Spawner** | Press it and it makes one of something — or one of anything. |
 
 A container that says what it makes still promotes that type to the front of
 the row, wherever it sits in the order: you opened the picker *inside* it.
@@ -207,10 +212,9 @@ the row, wherever it sits in the order: you opened the picker *inside* it.
 
 | Group | Types |
 | --- | --- |
-| **Containers** | Moodboard, Timeline, Shot list, Shopping list, World, Album, Film |
-| **Objects** | Outline, Script, Essay, Habit, Goal, Quote, Poem, Counter, Button, Achievement, Dream, Event, Window |
-| **Writing** | Novel, Short story, Scene, Character, Place, Event, Item |
-| **Cooking** | Ingredient |
+| **Containers** | Shot list, Shopping list, World, Album, Film |
+| **Objects** | Outline, Essay, Poem, Button |
+| **Writing** | Novel, Short story, Scene, Character, Place, Item |
 | **Yours** | Anything you build in the type editor |
 
 There is no **Film** group. It held Audio and Video, which are things you put on
@@ -770,13 +774,15 @@ the start, `#tag` anywhere, and `!today` / `!tomorrow` / `!week`.
   refuses it; `SORTS.urgent` is the sort. Ask `urgeRank(o)` / `urgeSaid(o)` —
   never `o.urg`, which does not exist. See decision 120.
 - **Priority is a rank of 0–5**, and it is *importance*, not urgency — urgency
-  is a deadline coming up (decision 62). 0 is "a dream, nothing to act on yet",
+  is a deadline coming up (decision 62). 0 is "nothing to act on yet",
   which is the answer every other list app makes you delete. Read it with
   `prioOf(o)`, which returns null or a number: **0 is a real answer** and
   `o.prio || …` folds it into the wrong one. See decision 72.
-- A habit has `streak` instead of `check`: a history of dates, a streak counted
-  back from today, and no overdue — which is the guilt-generating pattern that
-  makes habit trackers unpleasant.
+- **A habit is a task that repeats.** There is no Habit type: it was a streak, a
+  shape and a name over `repeat`, which every habit already carried. The
+  `streak` trait stays — a history of dates, a streak counted back from today,
+  and no overdue, which is the guilt-generating pattern that makes habit
+  trackers unpleasant — and anything can wear it. See decision 160.
 - A goal has ordered milestones; progress is the fraction done.
 - Completed things go to the archive, which is a magic drawer whose rule is
   `done`. Nothing is moved to get them there.

@@ -229,6 +229,24 @@ which keeps the name. The classes are spliced into the first `class="` of
 whatever `drawTile()` returns, so a new branch gets the behaviour without being
 told. See decisions 26 and 50.
 
+**What you typed is what you read.** `md()` made every non-blank line its own
+`<p>` and threw every blank line away, so one Return read as a paragraph break
+and deliberate empty rows read as nothing. **One Return is a line break** inside
+the paragraph; **a blank row ends it, and every blank after the first keeps a
+line of room** (`<p class="vspace">`). Counting the run is what tells the
+ordinary gap between two paragraphs apart from spacing somebody asked for —
+asking whether a paragraph is open cannot, because a heading has already closed
+itself. `plain()` is untouched: a tile is a face, and a run of blanks on one is
+still one break. See decision 157.
+
+**A tap is answered once.** `onUp` answers a tap on a tile and the browser's
+trailing click used to answer it again — invisible for everything idempotent,
+which is nearly all of `tileTap`, and fatal for play, where the first call
+started the video and the second stopped it before a frame had gone by. The tap
+branch sets `gestureFlags.suppressClick`, like every other gesture that acts on
+pointerup, and clears the selection the click would have cleared. See decision
+158.
+
 **A tile prints words, not markdown source.** `plain()` in `util.js` takes the
 marks off and keeps the writing — not `md()`, because a face is not a page and
 a `<ul>` in a 40px band is a bullet and half a word. `.tiletext` is `pre-line`,
@@ -601,6 +619,14 @@ name along. A magic one gets `magicspine`, which gilds the two bands it already
 has rather than the frame every other magic front wears — inset 5px on a tile one
 cell wide is the whole tile.
 
+**A background layer's per cent resolves against the container *less that
+layer*.** The ribbed spine's gilt fillet was a 1px-tall layer at the same per
+cent as its 9px hub, so it sat about a pixel and a half low on every band of
+every book — the same number, two different boxes. Give both layers the **same
+size** and put the gold inside the hub-sized one, and they cannot come apart.
+(The lying spine also needs the *turned* gradient: a 180deg shade in a 9px-wide
+full-height strip runs along the band instead of across it.)
+
 **A spine is bound, and the binding is five choices — three ornaments and two
 backs.** `bindingOf(o)` — per object then per type, like a knob or a border slot
 — stamps `bn-<name>` and the rest is CSS: `plain` (cloth), `banded` (gilt rules,
@@ -809,6 +835,24 @@ clocks are not — contention changes how long they take, never how many there
 are. Decision 101's discipline still stands for filters; this is the estimator
 to use when the machine is noisy.
 
+**Three types were a property wearing a name, and are gone.** A **habit** is a
+task with a repeat rule on it; a **dream** is a goal with no day owed, which
+`goalStanding()` has said since decision 146; an **ingredient** is a line of a
+recipe, and a recipe is a card you write on now. Migration 32 turns each into
+the type it always was. **A removed kind needs a migration even though `K()`
+falls back** — the fallback keeps the object working while it stores a name that
+resolves to a note, so it turns into one at the first thing that reads its kind.
+See decision 160.
+
+**A Label is a caption on the grid.** Four cells by one, gilt frame, words set
+large because they are read across the desk — and it is what gives `sh-band` a
+job, a shape that existed with no rule behind it. **An Event is a diary leaf**:
+weekday over day over month on a block of its own colour, torn along a
+perforation, the name beside it and under it how long it runs. It knows a *day*
+and a *duration* (or a run of days, since it carries `span`) because Bureau
+stores a day and never a clock time — that is the design, not a limit. See
+decisions 161 and 162.
+
 **What cannot be a slot is tagged.** A decoration is a made object — a mantel
 clock cannot be re-dressed into a gearwork the way a knob is re-dressed into a
 boss — so each carries `aes:[…]` and the picker leads with `decorFor(style)`,
@@ -835,8 +879,12 @@ one of five words — `today`, `tomorrow`, `week`, `month`, `year` — resolved 
 the rule runs, so "before next week" keeps meaning it. See decision 63.
 
 **A checklist face is a stack of task-sized lines, and it refills itself.** One
-line per cell of height, counted out by `--clrows` from the box being drawn — a
-checklist three cells tall shows three tasks the way three task tiles would.
+line per cell of height on a **phone** and two on a **Mac**, counted out by
+`--clrows` from the box being drawn. The density is answered **per device**
+(`clFit(d)` / `setClFit(v, d)` in model.js): the cell is the same fifty pixels
+on both and the *screen* is not, so two to a cell is a good Mac front and a
+twenty-four-pixel task on a phone. A bare stored word means both, which is what
+every desk saved before this holds. See decision 140, as amended.
 Each line is drawn the way the task tile is — paper and ink (the same `--dink`
 remap `.otile` does), the task's own 38px box and name type — and what says the
 stack is one thing rather than three loose tasks is the **magic drawer's gilt
@@ -903,9 +951,10 @@ browser fixes by *unnesting* it — silently, taking the layout with it. That is
 why `.kindtile` and `.helditem` are `div`s with `role="button"`.
 
 **The picker leads with stated categories, not with a tally.** `PRIMARY` in
-model.js — the five drawers (Drawer, Sorting drawer, Project, Life drawer,
-Goal), then Text, Checklist, Calendar, Note, Fragment, Task, Progress bar,
-Image, Decoration, Control, Spawner. Everything else is behind *Every other
+model.js — the drawers first (Drawer, Sorting drawer,
+Project, Life drawer, Goal), then Prose & Poetry, Checklist, Calendar, Collage,
+Timeline, Note, Fragment, Label, Recipe, Achievement, Task, Progress bar,
+Counter, Event, Image, Audio, Video, Decoration, Control, Spawner. Everything else is behind *Every other
 type* and is still reachable by name, by shortcut, from the type builder and
 from **every other type picker in the app** — `pickGroups(skipPrimary)` narrows
 only the new-object picker, because narrowing what a type can *be* is a
@@ -914,13 +963,16 @@ what it makes still leads with that type wherever it sits in the order,
 promoted into the row if it isn't a major. Adding a major is one name in
 `PRIMARY`. See decision 130.
 
-**Four of the majors are *categories*: you press them to be asked which.**
+**Five of the majors are *categories*: you press them to be asked which.**
 `family` on a kind is the list, and it leads with that kind where that is a
 real thing to make — the first kind of note is a Note. **Note** (idea, thought,
-problem, question), **Prose & Poetry** (the old Book, renamed twice — poem,
-novel, short story, essay; **Story is gone**, it was this with a different
-binding), **Project** (film, novel, game, song, album, app, art piece, trip) and
-**Fragment**, which is the only one that is *only* a question: `cat` marks it,
+problem, question, **quote**), **Prose & Poetry** (the old Book, renamed twice —
+poem, novel, short story, essay, **script**; **Story is gone**, it was this with
+a different binding), **Project** (film, novel, game, song, album, app, art
+piece, trip, **script** — a thing you write *and* a piece of work, and
+`inFamily()` keeps it out of the flat list either way), **Decoration**
+(**window**: a decoration you can see through) and **Fragment**, which is the
+only one that is *only* a question: `cat` marks it,
 there is no generic fragment, and pressing it always asks. `familyPanel()` draws
 the second screen and `inFamily()` is what keeps a member from being listed
 twice — it is skipped from *Every other type* only when its category is itself
@@ -983,6 +1035,14 @@ stepping the aesthetic's own eleven slots, because a list has no lever position
 to be at; a `range` is a **dial**, 270° of sweep with a stop at each end.
 `cycle().length<=2` and not "has a cycle": a two-value list is a switch wearing
 a list. Pressing a dial is one detent of ten and wraps. See decision 137.
+
+**At one cell wide there is no room for a name or a printed value, so what is
+left has to be the hardware.** The stylesheet takes both away there, and for two
+of the three forms nothing was left: a **button** had no lever to fall back on
+and a **dial** lost its knob with the words, so both drew a blank tile. A button
+draws its stepped-colour push disc (`box.w<=1` in tiles.js) and the dial keeps
+its knob. That was "the control turned invisible when I set it to change
+aesthetics" — not the aesthetic, the form.
 
 **And a switch is a piece of hardware, so it comes in sizes.** `switchShape(box)`
 — one cell is a **push button**, one cell in either direction is a **light
@@ -1127,6 +1187,15 @@ clear of decision 42: nothing is behind a photograph, so a picture frame stays
 still. It is also the one place the parallax needs no argument — the frame *is*
 the occluder the desk's own cavity has to imply. See decision 113.
 
+**A file is what its name says when its type says nothing.** `accept="audio/*"`
+is a request the picker has to translate, and `audio/wave`, `audio/x-wav` and the
+empty string are not what it translated it to — a `.wav` came back greyed out and
+unpickable. `MEDIA_EXT` in model.js names the extensions outright and
+`importMedia()` reads the extension when the MIME type says nothing. **A video
+wears no button**: the tile is the control, and it asks for `#t=0.1` (plus a
+`loadedmetadata` seek in wire.js, in the capture phase, because media events do
+not bubble) so an unplayed one shows a frame rather than a black rectangle.
+
 **Anything made of a file opens onto the media surface — sound and video
 included.** `isMedia(o)` routes; `isPicture(o)` is still the image case and
 `isPlayable(o)` the other two, and `acceptFor(o)` tells the one file input what
@@ -1204,6 +1273,24 @@ skips the trait test and reads `get()`) while the rollup picker refuses it.
 deadline chip as **the line thickening as the slack runs out** — never as a left
 stripe, which is what priority means. See decision 120.
 
+**A selection box is four edges, not one path.** `.ghost` draws its line on a
+child pinned at `inset:2px` rather than as an `outline` at a negative offset.
+Both are inset by construction, and the outline is *correct* — but an outline is
+one path around the whole box, so an engine that clips or rounds it anywhere
+loses whole sides of it at once, which is what it went on doing on the phone. A
+border on a child is four independent edges and a side can only go missing if
+something takes that side away by name. Structural beats correct-in-theory when
+there is exactly one of the thing at a time.
+
+**Two concentric corners are one radius and one inset.** The goal card's rule is
+`max(0px, var(--cardr) - var(--cardin))`, and both read `--checkerx` — the
+board's own two-cell step — rather than `cqw`. The card sets
+`container-type:inline-size`, and **an element is not its own query container**:
+`cqw` written on the card resolves against whatever container is above it while
+the same `cqw` on `.cardrule` resolves against the card, so the two arcs were
+being measured against different boxes and could not have agreed. The same trap
+is waiting for anything else that sizes a container and its children together.
+
 **A corner is round or square, and nothing in between.** Four tokens in
 board.css — `--radius` 4px (a control, a chip, a field), `--radius-lg` 6px (a
 panel, a menu, a card), `--radius-d` 2px (drawers), `--pill` 999px (round ends,
@@ -1218,7 +1305,13 @@ fault rather than a made edge. Guarded off the *computed* style, because a
 token nobody applied is a rule nobody follows. See decision 125.
 
 **Three buttons off a card: When, Done and Due.** `SCHED_PENS` in panels.js,
-drawn as sewing buttons. **Dropping one is what creates the deadline** — both
+drawn as sewing buttons. **A placed one wears a tab on its own day**, carrying
+the same `data-schedpen` — so the drag, the tap-then-tap and `placePen()` are one
+code path, and a date you put down is a date you can pick up and move. Anything
+asking about the *lane* has to say `.schedpens` now, because the month has pens
+in it too. There is **no `On` field**: the month had already drawn that day, and
+`09/14/2026` cannot say where the 14th falls against the other two.
+**Dropping one is what creates the deadline** — both
 deadlines are opt-in traits, and `placePen()` adds the trait as it writes the
 date, because picking a thing up and putting it down is one act. A **placed
 button leaves the lane**: it is on the day it was put on, and a tray still
@@ -1569,11 +1662,23 @@ by `centreDesk()` — and it has to happen at first render rather than in the
 migration, because a shelf's height is measured. `S.centred` is stored, because
 it must happen exactly once and a second pass would push everything off.
 
-**A magic drawer sees its own desk unless it says otherwise.** `filter.scope` is
-`desk` (the default) | `all` | `some` + `filter.scopeDesks`. Without it, a rule
-on the Exercise desk answers with screenplay scenes. `inScope()` is checked
-before every other clause in `inContainer()`, so it applies to the archive and
-to every rule alike.
+**A magic drawer sees everywhere unless it says otherwise.** `filter.scope` is
+`all` (**the default**) | `desk` | `some` + `filter.scopeDesks`. `desk` was
+right when the app was a row of desks and a rule on one answering with another's
+contents was a real surprise; there is one desk of nine shelves now, so the two
+are the same answer on every desk that exists and the one that read as a limit
+was the one being applied. `inScope()` is checked before every other clause in
+`inContainer()`, so it applies to the archive and to every rule alike. The scope
+blank only shows when there is more than one desk. See decisions 141 and 159.
+
+**A rule is a sentence, and the blanks are the controls.** *This drawer collects
+[anything] from [anywhere] tagged [any tag] with [field] [is] [value].* Six
+labelled rows told you six correct things and never told you what the drawer
+would do; reading the rule and changing it are one act now. The joining words
+are chosen not to agree with anything — "from", not "that are", which reads as
+"anything that are". The **types** are grouped the way the new-object picker
+groups them and folded behind the blank, with one button back to *anything*.
+Making a sorting drawer lands you here. See decision 159.
 
 **The status bar is the top of the carcass, and only `theme-color` can reach
 it.** On an installed app the strip the clock and battery sit in is painted by
@@ -1880,8 +1985,10 @@ paragraph is a wall rather than an explanation.
 `objectPanel(id, sec)` and `settingsPanel(sec)` are the *same panel under the
 same key*, so a section replaces rather than stacks, and `spec.back` puts a
 chevron in the head — the way out a replaced panel never had. The object
-editor's top is the thing itself, its **type, where it lives, its tags and its
-links**; the rest is four doors — Look, Behaviour, Collects, **Advanced** (its
+editor's top is the thing itself, its **type and where it lives**; its **tags
+and links** are at the **foot**, just above the row of things you can do to it,
+because what a thing is filed under and what it points at are the last things
+you say about it and they were sitting above every door; the rest is four doors — Look, Behaviour, Collects, **Advanced** (its
 fields and which traits it carries). Don't add a row to the top level unless it
 is one you reach for constantly. See decisions 66 and 148.
 
@@ -2033,6 +2140,12 @@ coordinate space and `freeSpot()` scans from the top, so on a phone — where an
 object is full width — a new thing always lands below the fold. It looked
 exactly like nothing had happened. Don't fix it by shuffling the board: things
 you arranged don't move.
+
+**The torn edge is a shape, and a fragment wears it without asking.**
+`tornOf()` answers for `shapeOf(o)==='torn'` **or** `isFragmentKind(o.kind)`, so
+anyone can pick "Torn edge" and a scene still keeps its punched page *and* its
+tear — what makes a fragment is that it came out of something, not what it is
+drawn on. See decision 161.
 
 **A fragment is a piece torn out of something, and the edge says so.** Every
 type under the Fragment category wears a **fuzzy crease-tear**: a near-straight
@@ -2268,11 +2381,16 @@ when you're editing the *other* device's layout from this one.
 - **Clicking an object is configurable** — `clickOf()`, per object then per
   kind: nothing, read, edit, or tick. The editor is no longer the default; it is
   on the context menu. Don't add a code path that opens the editor on click.
-- **How an object reads is one property, not three click actions.** `readOf()`
-  — `book | page | scroll`, per object then per kind, defaulting to `page`.
-  "Open it as a book" used to be a click action, which made *whether* it opens
-  and *how it looks* the same question. There is one reading surface now; the
-  plain half-screen read panel is gone.
+- **How an object reads is one property, and there are two ways.** `readOf()`
+  — `book | scroll`, per object then per kind, defaulting to **book**. `page`
+  was a book showing one page — the same sheet, the same pagination, the same
+  turn — which is what a book already is on a phone; it is gone, and a desk that
+  stored it reads as a book (migration 31). A **scroll is the whole stage**, not
+  a letter-shaped sheet with the words moving inside it, and its column keeps a
+  measure said in the page's own padding (a per cent there resolves against the
+  page's width, so one declaration centres every block). "Open it as a book"
+  used to be a click action, which made *whether* it opens and *how it looks* the
+  same question. See decision 156.
 - **A reading page is US Letter and sized from the *visual* viewport, never the
   text.** It
   was a `min-height`, so a long body grew a taller sheet and an empty one

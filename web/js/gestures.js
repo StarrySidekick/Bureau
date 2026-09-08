@@ -1499,10 +1499,14 @@ function onUp(e){
        That is the whole of "the controls glitch out and it doesn't play".
        Ticking has the same shape and was saved only by the render in between.
 
-       The click also cleared a selection on its way past, so that happens here
-       rather than being lost with it. */
-    if(S.sel.length) S.sel = [];
-    gestureFlags.suppressClick = true;
+       **Recorded rather than suppressed.** `suppressClick` would do it and is
+       the mechanism every other pointerup gesture uses, but it swallows the
+       *whole* click — including the selection-clearing and the context-menu
+       close it does on its way past — and it stays set until the next press if
+       no click ever arrives. What is duplicated here is one call, so what is
+       skipped is one call: wire.js asks `justTapped(id)` before answering a
+       tile again, and everything else the click does still happens. */
+    gestureFlags.tapped = {id: g.id, at: Date.now()};
     // a tap on a button's face fires it; anywhere else follows the type
     const o=byId(g.id);
     if(o && has(o,'button') && g.startedOnFace) fireButton(o); else tileTap(g.id);
@@ -1692,7 +1696,10 @@ function onTouchEnd(e){
 /* A drag ends with a click event the browser sends anyway. When the drag *was*
    the gesture, that click has to be swallowed or reordering a pin would also
    open the drawer. wire.js clears this on the next click it sees. */
-const gestureFlags = {suppressClick:false};
+/* `suppressClick` swallows the click a *drag* leaves behind. `tapped` is the
+   narrower one: which tile a tap on pointerup has already answered, so the
+   click that follows it does not answer the same tile twice. See decision 158. */
+const gestureFlags = {suppressClick:false, tapped:null};
 /* Whether a tile is currently being carried. wire.js asks, because two things
    outside this module have to stand down while one is: the page's own scroll,
    and the long-press context menu that iOS fires at about the same moment the

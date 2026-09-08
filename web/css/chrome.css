@@ -1868,6 +1868,66 @@ html .drawer.dtile.cltile{background-image:none}
    date rows underneath go: a button sitting on the 14th says where the 14th
    falls against the other two and against the work, which `09/14/2026` in a
    field never could. */
+/* ---- a rule, read as a sentence -----------------------------------------
+   Six labelled rows told you six correct things and never told you what the
+   drawer would do. The rule is one sentence with its own controls standing in
+   the blanks, so reading it and changing it are the same act — an adlib you
+   fill in rather than a form you complete.
+
+   The prose is the panel's own serif at reading size and the blanks are
+   underlined the way a blank in a printed form is: a dotted rule under the
+   answer, the answer in the accent, and no box around it. A `<select>` that
+   looks like a select breaks the line into a row of widgets; one that looks
+   like a filled-in blank keeps it a sentence. */
+.rulesay{
+  font-family:var(--serif);font-size:15.5px;line-height:2.15;color:var(--ink-2);
+  margin:2px 1px 10px;
+}
+.rulesay b{font-weight:600;color:var(--ink-3);font-family:var(--sans);
+  font-size:12.5px;letter-spacing:.04em;text-transform:uppercase}
+/* The sentence wraps where a sentence wraps. A clause with three blanks in it
+   — field, comparison, value — cannot be held on one line at any panel width,
+   and holding it there is what pushed the value off the edge. */
+.rclause{display:inline}
+.rulesay > *{margin-right:7px}
+/* the blank itself: the control, undressed, with a rule under it */
+.rblank{display:inline-block;vertical-align:baseline;max-width:100%}
+.rulesay .rblank select.psel,
+.rulesay .rblank input.pfield{
+  display:inline-block;width:auto;max-width:min(100%, 11em);min-width:0;
+  font-family:var(--serif);font-size:15.5px;color:var(--brass);
+  background:none;border:0;border-radius:0;
+  border-bottom:1.5px dotted color-mix(in srgb,var(--brass) 55%,transparent);
+  padding:0 2px 1px;margin:0;box-shadow:none;height:auto;line-height:1.4;
+  -webkit-appearance:none;appearance:none;text-overflow:ellipsis;
+}
+.rulesay .rblank select.psel:focus,
+.rulesay .rblank input.pfield:focus{
+  outline:none;border-bottom-style:solid;background:color-mix(in srgb,var(--brass) 9%,transparent)}
+/* a clause that has not been filled in is quieter than one that has: an empty
+   blank is a question nobody asked, not an answer worth reading */
+.rulesay .rblank select.psel:has(option[value=""]:checked){
+  color:var(--ink-3);border-bottom-color:var(--rule)}
+/* The types blank, which opens onto the grid rather than a list. It carries no
+   `pgroup` class on purpose: that one dresses its summary as a heading — small
+   caps, a rule, a marker — and a heading in the middle of a sentence is not a
+   blank you filled in. */
+.rulesay details.rtypes{display:inline-block;vertical-align:baseline;max-width:100%;
+  font-family:var(--serif);font-size:15.5px;text-transform:none;letter-spacing:0}
+.rulesay details.rtypes > summary{
+  list-style:none;cursor:pointer;display:inline-block;padding:0;margin:0;
+  font-family:inherit;font-size:inherit;text-transform:none;letter-spacing:0}
+.rulesay details.rtypes > summary::-webkit-details-marker{display:none}
+.rulesay details.rtypes > summary::marker{content:''}
+.rulesay .rbtn{
+  color:var(--brass);border-bottom:1.5px dotted color-mix(in srgb,var(--brass) 55%,transparent);
+  padding:0 2px 1px}
+.rulesay details.rtypes[open] > summary .rbtn{border-bottom-style:solid}
+/* …and the grid drops out of the line, full width, under the sentence */
+.rulesay details.rtypes[open]{display:block;margin:2px 0 8px}
+.rulesay details.rtypes .section-h{margin-top:10px}
+.rulesay details.rtypes .pickgrid.chips{font-family:var(--sans)}
+
 .schedpens{display:flex;flex-wrap:wrap;gap:4px;margin:0 1px 9px;align-items:center}
 .schedpen{
   display:inline-flex;align-items:center;gap:6px;padding:4px 10px 4px 5px;

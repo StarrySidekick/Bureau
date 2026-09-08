@@ -178,3 +178,59 @@ They are static polygons rather than an SVG turbulence filter, for decision
 never moves. And the whole thing is off at `sz-mini` — two pixels of fuzz on
 forty is a quarter of the edge, and six filter passes on a mark is the cost
 decision 101 measured.
+
+## 6. …and the tear is a shape now, not a fact about a category
+
+*2026-09-08 — decision 161*
+
+Section 5 says "every type under the Fragment category carries a crease tear",
+and `tornOf()` did exactly that: it asked `isFragmentKind(o.kind)` and nothing
+else. Which made the best-looking edge in the app something ten types could have
+and nothing else could — the sort of thing that is only ever noticed by somebody
+who wants it on a note.
+
+`torn` is in `SHAPES` now, and `tornOf()` answers for **the shape or the
+family**:
+
+```js
+if(shapeOf(o)!=='torn' && !isFragmentKind(o.kind)) return '';
+```
+
+An `||`, deliberately, and not a default. A fragment keeps whatever shape it
+already had *and* its tear — a scene is a punched page with a torn edge — which
+is section 5's own argument restated: what makes a fragment is that it came out
+of something, not what it is drawn on. Picking `torn` on something that is not a
+fragment gives it the tear and the plain sheet under it.
+
+Nothing else changed: the same three silhouettes, the same hash, the same four
+drop-shadows, the same `sz-mini` cut-off.
+
+## 7. The selection box is four edges, not one path
+
+*2026-09-08*
+
+Not an object's edge, but it belongs in this inventory because it is the same
+question asked about a different rectangle.
+
+`.ghost` — the box you drag out to make something, and the one that shows where
+a tile will land — drew its line as an `outline` at `outline-offset:-2.5px`.
+That is inset by construction, which is what it was there for: a phone board
+runs to both sides of the screen, so a box in the first or last column has its
+edge sitting exactly on the clip, and a line straddling that clip loses half its
+width and reads as three sides and a missing one.
+
+It is correct by the specification and it went on dropping the left and right
+sides on the device it was written for. **An outline is one path around the
+whole box**, so an engine that clips or rounds it anywhere loses whole sides of
+it at once, and there is nothing in the rule to argue with.
+
+A `border` on a child pinned to `inset:2px` is four independent edges, drawn the
+way every other rectangle in the app is drawn. It cannot straddle the clip
+because the child is already inside its parent, it needs no `outline-offset`
+support, and a side can only go missing if something takes that side away by
+name.
+
+The general lesson, and the reason this is written down: **when a thing that
+should not fail keeps failing, stop making the rule more correct and change what
+the rule is made of.** Structural beats correct-in-theory, and here it cost one
+element on a thing there is exactly one of at a time.

@@ -588,15 +588,18 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
    name is the whole of it, centred, on one line, with room inside whatever edge
    it is wearing. A gilt frame is inset five pixels and a label is very often
    wearing one, so the padding clears the corner brackets rather than the box. */
-.drawer.otile.sh-band{padding:0 15px;align-items:center;justify-content:center}
-.drawer.otile.sh-band .dbody{display:none}
-.drawer.otile.sh-band .dname{
+/* `:not(.fieldtile)` throughout: a **text field** is drawn as a band too — a
+   strip you type into — and it has its own padding and its own stretch, so
+   these would be the label's rules landing on somebody else's tile. */
+.drawer.otile.sh-band:not(.fieldtile){padding:0 15px;align-items:center;justify-content:center}
+.drawer.otile.sh-band:not(.fieldtile) .dbody{display:none}
+.drawer.otile.sh-band:not(.fieldtile) .dname{
   font-family:var(--serif);text-align:center;width:100%;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.15}
-.drawer.otile.sh-band.sz-thin .dname{white-space:normal}
+.drawer.otile.sh-band.sz-thin:not(.fieldtile) .dname{white-space:normal}
 
 /* an achievement is a plaque */
-.drawer.otile.sh-plaque{
+.drawer.otile.sh-plaque.plaquetile{
   /* Cast metal, engraved: a lit top edge, the object's own colour through the
      middle, a shadowed foot, and a bevel cut inside the frame. It used to be
      three hardcoded browns, which meant an achievement stayed brass in a style
@@ -613,12 +616,19 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
                              color-mix(in srgb,var(--c) 96%,#fff) 42%,
                              color-mix(in srgb,var(--c) 84%,#000));
   border:1px solid color-mix(in srgb,#fff 26%,transparent);border-radius:3px;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.26),
-             inset 0 0 0 4px rgba(0,0,0,.13),
-             inset 0 0 0 5px color-mix(in srgb,#fff 14%,transparent),
+  /* The plate is lighter, so the **cut** has to do the work the darkness used
+     to: a hairline shade and a lit lip either side of it, which is what an
+     engraved bevel actually is, rather than a wide dark band. */
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.30),
+             inset 0 0 0 4px rgba(0,0,0,.20),
+             inset 0 0 0 5px color-mix(in srgb,#fff 26%,transparent),
              var(--shadow-lg);
   align-items:center;justify-content:center;text-align:center;
 }
+/* An achievement has a name and nothing else printed on it, so the empty body
+   must not take the room the name should be centred in. */
+.drawer.otile.sh-plaque .dbody{flex:0 1 auto}
+.drawer.otile.sh-plaque .dtop{flex:0 0 auto}
 /* **Engraved, so it is set larger.** The name is the whole of an achievement —
    there is nothing else printed on the plate — and it was taking the same size
    as a note's title, which is a size chosen for something with a body under
