@@ -540,18 +540,33 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
      middle, a shadowed foot, and a bevel cut inside the frame. It used to be
      three hardcoded browns, which meant an achievement stayed brass in a style
      that owns no browns at all — it takes its colour from its slot now, like
-     everything else. */
-  background:linear-gradient(color-mix(in srgb,var(--c) 72%,#000),
-                             var(--c) 40%,
-                             color-mix(in srgb,var(--c) 62%,#000));
-  border:1px solid color-mix(in srgb,#fff 30%,transparent);border-radius:3px;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.30),
-             inset 0 0 0 4px rgba(0,0,0,.22),
-             inset 0 0 0 5px color-mix(in srgb,#fff 16%,transparent),
+     everything else.
+
+     **And the metal is quieter than it was.** The plate was mixed hard towards
+     black at both ends and carried a heavy inner shade, which made every
+     achievement the loudest thing on the board — a wall of dark brass, and the
+     one type whose whole job is to be looked at once in a while shouting over
+     the work. Less black in the mix, a lighter bevel, and the engraving is
+     what carries it. */
+  background:linear-gradient(color-mix(in srgb,var(--c) 88%,#000),
+                             color-mix(in srgb,var(--c) 96%,#fff) 42%,
+                             color-mix(in srgb,var(--c) 84%,#000));
+  border:1px solid color-mix(in srgb,#fff 26%,transparent);border-radius:3px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.26),
+             inset 0 0 0 4px rgba(0,0,0,.13),
+             inset 0 0 0 5px color-mix(in srgb,#fff 14%,transparent),
              var(--shadow-lg);
   align-items:center;justify-content:center;text-align:center;
 }
-.drawer.otile.sh-plaque .dname{font-family:var(--serif);letter-spacing:.02em;text-align:center}
+/* **Engraved, so it is set larger.** The name is the whole of an achievement —
+   there is nothing else printed on the plate — and it was taking the same size
+   as a note's title, which is a size chosen for something with a body under
+   it. It steps up with the tile and stops before it fills the plate. */
+.drawer.otile.sh-plaque .dname{font-family:var(--serif);letter-spacing:.02em;text-align:center;
+  font-size:clamp(13px, 5.2cqw, 22px);line-height:1.24}
+.drawer.otile.sh-plaque{container-type:inline-size}
+.drawer.otile.sh-plaque.sz-short .dname{font-size:clamp(12px, 4.2cqw, 17px)}
+.drawer.otile.sh-plaque.sz-narrow .dname{font-size:clamp(11px, 6cqw, 15px)}
 /* a story is a book seen spine-on — and a container, so this can't be scoped
    to .otile the way the other shapes are */
 /* ---- a book, seen spine-on — decision 87 ------------------------------
@@ -625,30 +640,44 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
 .bn-ribbed::before{
   content:"";position:absolute;left:0;right:0;top:0;bottom:0;
   pointer-events:none;z-index:1;
-  --hub:linear-gradient(180deg,
+  /* the ridge, written once and turned whichever way the book is lying */
+  --hubstops:
     rgba(0,0,0,.26) 0 1px,
     rgba(255,255,255,.26) 1px 30%,
     rgba(255,255,255,.06) 30% 52%,
     rgba(0,0,0,.16) 52% 82%,
     rgba(0,0,0,.34) 82% calc(100% - 1px),
-    rgba(0,0,0,.10) calc(100% - 1px));
-  --fillet:linear-gradient(var(--glow),var(--glow));
-  /* **Four hubs, evenly spaced, and the gilt on each one.** They were at 4%,
-     13%, 87% and 96% — two pairs jammed against the head and the tail, with a
-     bare two thirds of leather between them — and the fillets were offset
-     *beside* each hub rather than run along it. A binder tools the band
-     itself, and the eye reads a gold line on a ridge as gilding and a gold
-     line next to a ridge as a mistake. Five panels, a hub between each pair,
-     and one fillet down the middle of every hub. */
+    rgba(0,0,0,.10) calc(100% - 1px);
+  --hub:linear-gradient(180deg, var(--hubstops));
+  --hubx:linear-gradient(90deg, var(--hubstops));
+  /* **The fillet is drawn inside a band-sized layer, not positioned beside
+     one.** It was a 1px-tall layer set to `calc(18% + 4px)`, next to a 9px-tall
+     hub set to `18%` — and a background position in per cent resolves against
+     the container *less the layer*, so the same 18% means a different pixel for
+     a 1px layer than for a 9px one. The gold sat about a pixel and a half below
+     the ridge it belonged to, at every band and on every book, which is
+     precisely "the gold lines aren't on each bump".
+
+     Give the fillet the **same 9px box** as the hub and put the gold in the
+     middle of it, and the two cannot come apart: one position, one size, two
+     layers that are by construction the same rectangle. */
+  --fillet:linear-gradient(180deg,
+    transparent 0 4px, var(--glow) 4px 5px, transparent 5px);
+  --filletx:linear-gradient(90deg,
+    transparent 0 4px, var(--glow) 4px 5px, transparent 5px);
+  /* Four hubs, evenly spaced. They were at 4%, 13%, 87% and 96% — two pairs
+     jammed against the head and the tail with a bare two thirds of leather
+     between them. Five panels, a hub between each pair, the wide middle one
+     for the title. */
   background:
     var(--hub) 0 18%/100% 9px no-repeat,
     var(--hub) 0 38%/100% 9px no-repeat,
     var(--hub) 0 62%/100% 9px no-repeat,
     var(--hub) 0 82%/100% 9px no-repeat,
-    var(--fillet) 50% calc(18% + 4px)/62% 1px no-repeat,
-    var(--fillet) 50% calc(38% + 4px)/62% 1px no-repeat,
-    var(--fillet) 50% calc(62% + 4px)/62% 1px no-repeat,
-    var(--fillet) 50% calc(82% + 4px)/62% 1px no-repeat;
+    var(--fillet) 50% 18%/62% 9px no-repeat,
+    var(--fillet) 50% 38%/62% 9px no-repeat,
+    var(--fillet) 50% 62%/62% 9px no-repeat,
+    var(--fillet) 50% 82%/62% 9px no-repeat;
 }
 .bn-ribbed .spinetop,.bn-ribbed .spinefoot{display:none}
 /* the wide panel in the middle of the five, which is the title's */
@@ -863,17 +892,22 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
   width:0;height:64%;border-top:0;border-bottom:0;
   border-left:1.5px solid var(--glow);border-right:1.5px solid var(--glow);
   padding:0 2.5px}
-/* the hubs run across a lying book, and the panels are left and right of them */
+/* The hubs run across a lying book, and the panels are left and right of them —
+   so the ridge and its fillet are the **turned** gradients, `--hubx` and
+   `--filletx`. They were the standing ones: a 180deg shade in a 9px-wide,
+   full-height strip runs along the band instead of across it, which is a
+   gradient down a ribbon rather than a cord under leather. Same rectangle for
+   both layers here too, for the reason the standing block gives. */
 .spinetile.lying.bn-ribbed::before{
   background:
-    var(--hub) 18% 0/9px 100% no-repeat,
-    var(--hub) 38% 0/9px 100% no-repeat,
-    var(--hub) 62% 0/9px 100% no-repeat,
-    var(--hub) 82% 0/9px 100% no-repeat,
-    var(--fillet) calc(18% + 4px) 50%/1px 62% no-repeat,
-    var(--fillet) calc(38% + 4px) 50%/1px 62% no-repeat,
-    var(--fillet) calc(62% + 4px) 50%/1px 62% no-repeat,
-    var(--fillet) calc(82% + 4px) 50%/1px 62% no-repeat;
+    var(--hubx) 18% 0/9px 100% no-repeat,
+    var(--hubx) 38% 0/9px 100% no-repeat,
+    var(--hubx) 62% 0/9px 100% no-repeat,
+    var(--hubx) 82% 0/9px 100% no-repeat,
+    var(--filletx) 18% 50%/9px 62% no-repeat,
+    var(--filletx) 38% 50%/9px 62% no-repeat,
+    var(--filletx) 62% 50%/9px 62% no-repeat,
+    var(--filletx) 82% 50%/9px 62% no-repeat;
 }
 .spinetile.lying.bn-ribbed .spinetitle{top:0;bottom:0;left:24%;right:24%}
 /* Lying down, the back is along the **bottom** (decision 124) — so a flat back
@@ -1321,8 +1355,18 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
 /* One cell **across** is the hardware and nothing else — the same rule the mini
    tile makes, reached from the other side. A light switch is one cell wide, and
    a name set across one cell is two letters and a hyphen. */
-.ctltile.sz-mini .cdialwrap,.ctltile.sz-mini .clabel,.ctltile.sz-mini .cval,
+/* At one cell wide there is no room for a name or a printed value, so both go.
+   **What is left has to be the hardware** — and for two of the three forms it
+   was not: a dial lost its knob along with the words and a button had no lever
+   to fall back on, so both drew a blank tile. The dial keeps its knob (sized
+   to the cell below) and the button draws a push disc instead of the value
+   (tiles.js). A control you cannot see is a control you cannot find. */
+.ctltile.sz-mini .clabel,.ctltile.sz-mini .cval,
 .ctltile.sz-thin .clabel,.ctltile.sz-thin .cval{display:none}
+/* the knob fills the cell it has left, the way the push button does */
+.ctltile.sz-mini .cdialwrap,.ctltile.sz-thin .cdialwrap{
+  width:min(84cqw,84cqh);height:min(84cqw,84cqh)}
+.ctltile.sz-mini .cdial,.ctltile.sz-thin .cdial{inset:2px}
 .ctltile.sz-mini,.ctltile.sz-thin{padding:2px}
 /* what it gives up as it shrinks: the mark first, then the value. The lever
    never goes — without it the tile says nothing at all. */

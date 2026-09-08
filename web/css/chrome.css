@@ -531,6 +531,30 @@
 /* a phone has room for one sheet; the second would be clipped, not stacked */
 .is-phone .spread > .page + .page{display:none}
 .spread.scrolling .page{overflow-y:auto}
+
+/* ---- scroll is the screen, not a sheet you scroll inside ------------------
+   A scroll wearing the book's letter proportions is a book you cannot turn the
+   pages of: the same 8.5×11 sheet, floating in the middle of a dark stage, with
+   the words moving inside it. The point of a scroll is that it does not end, so
+   it takes the whole stage — full width, full height, one column of writing —
+   and the bar stays where the bar is. The paper is still the object's own
+   stock; what goes is the shape of a page.
+
+   `--paperw` is what the head and the sheet both take (decision 84), so
+   widening it here widens the title with the paper and the two cannot come
+   apart. */
+.bookstage.rm-scroll{ --pagew:var(--avail-w); --paperw:var(--avail-w);
+  --pageh:var(--avail-h) }
+.bookstage.rm-scroll .book{width:100%}
+.bookstage.rm-scroll .spread{height:var(--avail-h);border-radius:var(--radius-lg)}
+/* A column of writing keeps a **measure** even on a wide screen: the paper is
+   the width of the stage, the words are not. Said in the padding rather than
+   with a max-width on the blocks inside — a percentage in `padding` resolves
+   against the page's own width, so one declaration centres every paragraph,
+   list and heading at once and none of them needs a rule of its own. */
+.bookstage.rm-scroll .spread .page{
+  padding:36px max(24px, calc((100% - 68ch) / 2)) 44px; max-width:none}
+.is-phone .bookstage.rm-scroll .spread .page{padding:22px 20px 28px}
 /* Pagination measures against this box, so anything that changes its inside
    height has to be deterministic — an image sized by its own pixels is not. */
 .spread .scrollimg{width:100%;height:34%;object-fit:cover;margin:0 0 14px}
@@ -543,6 +567,11 @@
 .spread .page h2{font-family:var(--serif);font-size:20px;margin:0 0 12px}
 .spread .pno{position:absolute;bottom:14px;left:0;right:0;text-align:center;font-size:11px;color:var(--ink-3)}
 .spread .thin{color:var(--ink-3)}
+/* An empty row somebody typed on purpose keeps its room — see `md()` in
+   util.js. `1lh` is the element's own line box, so the gap is exactly one line
+   of the type it sits in rather than a number that has to be kept in step. */
+.prose .vspace,.contbody .vspace,.spread .page .vspace,.writepaper .vspace{
+  height:1lh;margin:0}
 /* ---- one bar under the paper — decision 84 ---------------------------
    Everything you can press, in one row, at the end of the sheet a thumb
    reaches. Three columns rather than a flex row: the tools weigh whatever they

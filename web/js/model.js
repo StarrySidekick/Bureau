@@ -217,7 +217,7 @@ const BUILTIN_KINDS = {
      through its own body. See decision 130. */
   book:    {face:'spine', binding:'banded', nm:'Prose & Poetry', ic:'book', c:11, key:'B',
      ds:'Anything made of words — press it and say which',
-     family:['book','poem','novel','shortstory','essay'], famSub:'What are you writing?',
+     family:['book','poem','novel','shortstory','essay','script'], famSub:'What are you writing?',
      attrs:['text','container','relates'], layout:'book', read:'book',
      size:[3,9], phoneSize:[2,6], body:'' },
   /* A control is a switch for one of the desk's own settings, on the board.
@@ -239,7 +239,9 @@ const BUILTIN_KINDS = {
      thing that is already doing it. */
   task:    {shape:'sliver', nm:'Task',    ic:'check',   c:6, key:'T', ds:'A thing to do',             attrs:['text','check','date'], size:[4,1], onclick:'when', gathers:'checklist', body:'' },
   note:    {shape:'note', nm:'Note',    ic:'note',    c:10, key:'O', ds:'Something to remember — press it and say which',
-     family:['note','idea','thought','problem','question'], famSub:'What sort of thing is it?',
+     /* Quote is one of these: it is somebody's words written down, which is the
+        same act as the other five with the authorship changed. */
+     family:['note','idea','thought','problem','question','quote'], famSub:'What sort of thing is it?',
      attrs:['text'], size:[4,4], onclick:'read', body:'' },
   idea:    {shape:'idea', nm:'Idea',    ic:'bulb',    c:12, key:'I', ds:'A spark, unformed',         size:[4,4], onclick:'read', attrs:['text'], body:'**The spark —** \n\n**Why it might work —** \n\n**What it needs —** ' },
   /* The smallest of the writing types, and deliberately so. An idea is a
@@ -263,14 +265,18 @@ const BUILTIN_KINDS = {
   // A recipe holds its ingredients rather than listing them in prose, so they
   // can be ticked while you cook and totalled before you shop. The method stays
   // in the body, which a container with `text` shows above what it holds.
-  recipe:  {face:'checklist', cooking:true, nm:'Recipe',  ic:'pot',     c:11, key:'R', ds:'Ingredients you can tick, and a method',    size:[6,7], attrs:['text','container'], layout:'list', body:'**Serves** 2 · **Time** 30 min\n\n## Method\n1. \n2. \n3. ' },
+  /* A **recipe is an index card**, and it holds nothing. It was a container
+     with a checklist face whose only member type was Ingredient — and with
+     Ingredient gone there is nothing for it to hold, so what is left is the
+     card you write the thing on: three by two, ruled, with the method on it.
+     Anything you want to tick off it is a task, like everything else. */
+  recipe:  {shape:'index', nm:'Recipe',  ic:'pot',     c:11, key:'R', ds:'What goes in it, and how',    size:[3,2], onclick:'read', attrs:['text'], body:'**Serves** 2 · **Time** 30 min\n\n## Method\n1. \n2. \n3. ' },
   script:  {shape:'page', nm:'Script',  ic:'clapper', c:9, key:'S', ds:'Scenes and dialogue',       size:[4,4], onclick:'read', attrs:['text'], body:'### INT. LOCATION — DAY\n\nAction line.\n\n**CHARACTER**\nDialogue.' },
   /* Open until answered — and answering it is writing the answer down, not
      ticking a box. A tick says "dealt with"; a question wants the thing you
      worked out, and having it on the front is the whole value of keeping one. */
   question:{shape:'bubble', nm:'Question',ic:'help',    c:10, key:'?', ds:'Open until you have written the answer', size:[4,4], onclick:'read', attrs:['text','answer'], body:'**What I know —** \n\n' },
   essay:   {shape:'note', nm:'Essay',   ic:'feather', c:7, key:'Y', ds:'Long-form writing',         size:[4,4], onclick:'read', attrs:['text'], body:'> Working thesis.\n\n' },
-  habit:   {shape:'habit', nm:'Habit',   ic:'repeat',  c:8, key:'A', ds:'Repeats, tracks a streak',  size:[4,4], onclick:'read', attrs:['text','streak'], body:'**Why —** ' },
   /* A **goal** is a thing you are trying to reach, and it is made of the work
      that gets you there — so it holds that work rather than describing it. Its
      front is a drawer with the knob taken off and the name set as large as the
@@ -311,7 +317,12 @@ const BUILTIN_KINDS = {
   /* Something standing on the shelf rather than filed on it. It carries
      `media` like a picture — you can put your own cut-out PNG or SVG on the
      desk — and ships with ten of its own, drawn in the style's colours. */
-  decoration:{shape:'decor', nm:'Decoration', ic:'plant', c:6, key:'', ds:'Something to stand on the shelf — a plant, a bookend, a little figure', attrs:['decor','media'], size:[4,5], phoneSize:[2,3], mediaType:'image', onclick:'none', decor:'plant', body:'' },
+  /* A **window** is a decoration: it is a thing you hang on the wall of the
+     shelf, and its whole difference from an ornament is that you can see
+     through it. One press in from Decoration rather than a tile of its own in
+     a list that is already long. */
+  decoration:{shape:'decor', nm:'Decoration', ic:'plant', c:6, key:'', ds:'Something to stand on the shelf — a plant, a bookend, a little figure', attrs:['decor','media'], size:[4,5], phoneSize:[2,3], mediaType:'image', onclick:'none', decor:'plant',
+     family:['decoration','window'], famSub:'What is standing there?', body:'' },
   /* Sound and moving pictures are things you put on a desk, not a corner of
      film-making — so they are majors, and pressing one plays it rather than
      opening a page about it. See decision 144. */
@@ -413,7 +424,6 @@ const BUILTIN_KINDS = {
             body:'**The rule —** \n\n**What it costs —** \n\n**Where it breaks —** ' },
   group:   {shape:'card', narrative:true, nm:'Group', ic:'flag', c:5, ds:'A nation, a race, an order, a guild', size:[5,5], onclick:'read', attrs:['text','media','relates'], gathers:'world',
             body:'**Who they are —** \n\n**What they want —** \n\n**Who opposes them —** ' },
-  ingredient:{shape:'index', cooking:true, nm:'Ingredient', ic:'pot', c:11, key:'4', ds:'One line of a recipe',   size:[5,1], onclick:'check', attrs:['check','count','price'], gathers:'recipe', body:'' },
   /* Press it and something appears beside it. It was the *Generator*, which
      named the machinery; it is the **Spawner**, which names what it does. Its
      one new answer is `genKind:'random'` — a spawner that makes one of
@@ -447,7 +457,11 @@ const BUILTIN_KINDS = {
      everything on this desk is until it says otherwise. See ringFor() in
      tiles.js. */
   project: {face:'front', nm:'Project', ic:'flag',    c:7, key:'8', ds:'A whole piece of work, and everything it is made of',
-     family:['project','film','novel','game','song','album','app','artpiece','trip'],
+     /* A **script** is here as well as under Prose & Poetry, and that is not a
+        type drawn twice on one screen: both are families, so it is one press
+        in from either, and it honestly is both — a thing you write and a piece
+        of work you are making. `inFamily()` keeps it out of the flat list. */
+     family:['project','film','novel','game','song','album','app','artpiece','trip','script'],
      famSub:'What is the work?',
      attrs:['text','container','date','progress','media','relates'],
      // born with a spawner inside it rather than a box bolted to its front:
@@ -455,7 +469,6 @@ const BUILTIN_KINDS = {
      // gets one put in it instead of growing a second one of its own
      seed:[{kind:'generator', title:'Add to this project…', sz:[8,2]}],
      layout:'grid', size:[5,5], phoneSize:[4,4], body:'' },
-  dream:   {shape:'dream', nm:'Dream',   ic:'star',    c:10, key:'9', ds:'Far off, and probably daft',   size:[5,5], onclick:'read', attrs:['text','media'], body:'**Why it pulls at me —** ' },
   timeline:{face:'timeline', nm:'Timeline',ic:'clock',   c:5, key:'0', ds:'Things in the order they happened', attrs:['container'], layout:'timeline', size:[10,6], body:'' },
   appt:    {shape:'sliver', nm:'Event',   ic:'calendar',c:8, key:'V', ds:'Something at a time and place', size:[6,2], onclick:'read', attrs:['text','date','duration','location'], body:'' }
 };
@@ -471,8 +484,9 @@ const BUILTIN_KINDS = {
    four drawers lead, because what you are usually doing on a bare board is
    making somewhere to put things. See decision 130. */
 const PRIMARY = ['drawer','magic','project','life','goal',
-                 'book','checklist','calendar','note','fragment',
-                 'task','progressbar',
+                 'book','checklist','calendar','moodboard','timeline',
+                 'note','fragment','recipe','achievement',
+                 'task','progressbar','counter','appt',
                  'image','audio','video','decoration','control','generator'];
 const isPrimary = k => PRIMARY.includes(k);
 
@@ -640,17 +654,12 @@ function seed(){
     O({kind:'question', title:'Should a drawer be able to contain another drawer?', parent:'d_open', tags:['bureau'],
        body:'**Question —** Nesting is powerful and also how Obsidian becomes a swamp.\n\n**What I know —** Two levels feels safe. Infinite depth always rots.\n\n**Answer —** '}),
     O({kind:'question', title:'What happens to an object with no drawer?', parent:'d_open', tags:['bureau']}),
-    O({kind:'question', title:'Is a habit a kind, or a property of a task?', parent:'d_open', tags:['bureau']}),
+    O({kind:'question', title:'Is a habit a kind, or a property of a task?', parent:'d_open', tags:['bureau'], body:'**Answer —** A property. It is a task with a repeat rule on it, and the type is gone.'}),
 
-    // A recipe holds its ingredients now, so the seed has to show one that does
-    // — an empty checklist front is what a recipe looks like when it's wrong.
+    // A recipe is a card you write on, so the seed writes on one: what goes in
+    // it and how, on the card rather than in a drawer behind it.
     O({id:'o_braise', kind:'recipe', title:'Sunday braise', parent:'d_kitch', tags:['cooking'],
-       body:'**Serves** 4 · **Time** 3 hr\n\n## Method\n1. Salt the meat the night before.\n2. Brown hard, in batches, no crowding.\n3. Wine in, scrape, reduce by half.\n4. 150°C, lid on, 3 hours. Do not peek.'}),
-    O({kind:'ingredient', title:'1.4 kg chuck, in big pieces', parent:'o_braise', price:'18.40'}),
-    O({kind:'ingredient', title:'2 onions, halved', parent:'o_braise', price:'0.80'}),
-    O({kind:'ingredient', title:'1 head garlic, topped', parent:'o_braise', price:'0.60'}),
-    O({kind:'ingredient', title:'400 ml red', parent:'o_braise', price:'7.00'}),
-    O({kind:'ingredient', title:'Bay, thyme, a strip of orange peel', parent:'o_braise', price:'1.20'}),
+       body:'**Serves** 4 · **Time** 3 hr\n\n1.4 kg chuck, in big pieces\n2 onions, halved\n1 head garlic, topped\n400 ml red\nBay, thyme, a strip of orange peel\n\n## Method\n1. Salt the meat the night before.\n2. Brown hard, in batches, no crowding.\n3. Wine in, scrape, reduce by half.\n4. 150°C, lid on, 3 hours. Do not peek.'}),
     O({kind:'recipe', title:'The only pancakes', parent:'d_kitch', tags:['cooking']}),
     O({kind:'recipe', title:'Cold-brew ratio that finally worked', parent:'d_kitch', tags:['cooking']}),
 
@@ -662,11 +671,20 @@ function seed(){
     O({kind:'audio', title:'Room tone — kitchen, 4am', parent:'d_studio', tags:['film'], media:{type:'audio', label:'02:14 · WAV'}}),
     O({kind:'video', title:'Drawer-open animation test v3', parent:'d_studio', tags:['bureau','visual'], media:{type:'video', label:'00:06 · ProRes'}}),
 
-    O({kind:'habit', title:'Write 500 words', parent:'d_keep', tags:['writing'], repeat:{every:1, unit:'day', days:[], from:'date', ends:null, paused:false, made:0},
+    /* A habit is a **task that repeats** — there is no Habit type any more, and
+       the seed says so by keeping the three that were habits as exactly that:
+       the repeat rule they always carried, and the trait that reads it. */
+    O({kind:'task', title:'Write 500 words', parent:'d_keep', tags:['writing'],
+       attrs:['text','check','date','repeat'], due:T,
+       repeat:{every:1, unit:'day', days:[], from:'date', ends:null, paused:false, made:0},
        history:[dz(-1),dz(-2),dz(-3),dz(-4),dz(-6),dz(-7),dz(-8),dz(-11)], body:'**Why —** The essay only exists on the days I show up.'}),
-    O({kind:'habit', title:'Walk before screens', parent:'d_keep', tags:['health'], repeat:{every:1, unit:'day', days:[], from:'date', ends:null, paused:false, made:0},
+    O({kind:'task', title:'Walk before screens', parent:'d_keep', tags:['health'],
+       attrs:['text','check','date','repeat'], due:T,
+       repeat:{every:1, unit:'day', days:[], from:'date', ends:null, paused:false, made:0},
        history:[dz(-1),dz(-2),dz(-3),dz(-5),dz(-6),dz(-9),dz(-10),dz(-12),dz(-13)]}),
-    O({kind:'habit', title:'Close the laptop by 10', parent:'d_keep', tags:['health'], repeat:{every:1, unit:'week', days:[1,2,3,4,5], from:'date', ends:null, paused:false, made:0},
+    O({kind:'task', title:'Close the laptop by 10', parent:'d_keep', tags:['health'],
+       attrs:['text','check','date','repeat'], due:T,
+       repeat:{every:1, unit:'week', days:[1,2,3,4,5], from:'date', ends:null, paused:false, made:0},
        history:[dz(-2),dz(-3),dz(-4),dz(-7)]}),
 
     O({kind:'goal', title:'Ship Bureau 1.0 to the App Store', parent:'d_keep', tags:['bureau'], due:dz(120),
@@ -1293,8 +1311,15 @@ const shapeOf = o => (o && o.shape) || K(o&&o.kind).shape || 'card';
    turn through, a single page you turn through, or one uninterrupted column.
    Per object, falling back to its type, which is what the type builder sets.
    A type that says nothing opens as a page. */
-const READS = {book:'Book', page:'Page', scroll:'Scroll'};
-const readOf = o => (o && o.read) || K(o&&o.kind).read || 'page';
+/* **Two, not three.** `page` was a book showing one page — the same sheet, the
+   same pagination, the same turn — with the second half of the spread taken
+   away, which is what `book` already does on a phone. So it was never a mode:
+   it was the desk's book seen on a smaller screen, offered as a choice that
+   made no difference on the device where it was the only option. Removed; a
+   desk that stored it reads as a book (migration 31). */
+const READS = {book:'Book', scroll:'Scroll'};
+const readOf = o => { const v=(o && o.read) || K(o&&o.kind).read;
+  return READS[v] ? v : 'book'; };
 
 /* How a thing opens — the movement, not the destination. Same shape as
    readOf() and clickOf(): the object's own answer, then its type's, then

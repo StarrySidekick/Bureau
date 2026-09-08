@@ -265,7 +265,7 @@ function rescalePhone(d, from, cols){
    skips all of them, an old backup replays only what it is missing. These
    used to be ad-hoc per-load mutations inside adopt(); a new repair that
    should run once belongs here, as the next numbered step. */
-const DATA_V = 30;
+const DATA_V = 32;
 const MIGRATIONS = [
   // Drawers and objects were two arrays and a drawer could not live inside
   // anything. foldDrawers also replays the old dense flow to give v1 drawers
@@ -810,6 +810,67 @@ const MIGRATIONS = [
     };
     (d.objects||[]).forEach(o=>{ if(o && o.binding) o.binding = fix(o.binding); });
     Object.values(d.kinds||{}).forEach(k=>{ if(k && k.binding) k.binding = fix(k.binding); });
+  }},
+  /* `page` was never a reading mode of its own — it is a book with the second
+     half of the spread taken off, which is what a book already is on a phone.
+     Anything that stored it reads as a book. `readOf()` falls back for a value
+     it does not know, so this is not what makes the app work; it is what stops
+     a desk carrying a word that means nothing from carrying it for ever. */
+  {v:31, up(d){
+    (d.objects||[]).forEach(o=>{ if(o && o.read==='page') o.read='book'; });
+    Object.values(d.kinds||{}).forEach(k=>{ if(k && k.read==='page') k.read='book'; });
+  }},
+  /* Three types that were a property wearing a name.
+
+       **Habit**     a task with a repeat rule on it, which is what every habit
+                     in the seed already was — the type added a streak and a
+                     shape and nothing you could not say with `repeat`.
+       **Dream**     a goal with no day it is owed by. `goalStanding()` has
+                     called that a dream since decision 146, so the type was
+                     the same fact stored twice and able to disagree with
+                     itself: a Dream carrying a deadline said one thing and
+                     read as another.
+       **Ingredient** a line of a recipe, and a recipe is a card you write on
+                     now — so it is a task, which is what a tickable line is
+                     everywhere else on this desk.
+
+     Each becomes the type it always was. Removing a kind needs this even
+     though `K()` falls back: the fallback means an object keeps *working*
+     while storing a name that resolves to a note, so it would quietly turn
+     into one at the first thing that read its kind. A type somebody invented
+     that pointed at one of the three is repointed too. */
+  {v:32, up(d){
+    const SWAP = {habit:'task', dream:'goal', ingredient:'task'};
+    (d.objects||[]).forEach(o=>{
+      if(!o) return;
+      const was = o.kind, to = SWAP[was];
+      if(!to) return;
+      o.kind = to;
+      if(was==='habit'){
+        // it keeps the rule it was running; `repeat` is the trait that reads it
+        o.attrs = ['text','check','date','repeat'];
+        if(!o.repeat) o.repeat = {every:1, unit:'day', days:[], from:'date'};
+      }
+      if(was==='dream'){
+        // a dream is the goal that owes nothing: taking the day off is what
+        // makes goalStanding() go on calling it one
+        o.dead = null; o.soft = null;
+        delete o.attrs;                    // follow the goal type
+      }
+      if(was==='ingredient') delete o.attrs;
+      if(o.shape==='habit' || o.shape==='dream') delete o.shape;
+    });
+    Object.values(d.kinds||{}).forEach(k=>{
+      if(!k) return;
+      if(SWAP[k.genKind]) k.genKind = SWAP[k.genKind];
+      if(SWAP[k.gathers]) k.gathers = SWAP[k.gathers];
+      /* `gathers` names the **container** a pile of something becomes, and
+         Recipe stopped being one in this same change — a pile that gathered
+         into it would make a card with the things it gathered nowhere. It
+         gathers into nothing now, which is what every type that names no
+         container does. */
+      if(k.gathers==='recipe') delete k.gathers;
+    });
   }},
 ];
 function migrate(d){

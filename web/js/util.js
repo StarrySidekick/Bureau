@@ -142,11 +142,35 @@ function md(src){
     .replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>')
     .replace(/(^|\W)\*([^*\n]+)\*/g,'$1<em>$2</em>')
     .replace(/\[([^\]]+)\]\(([^)]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
-  const out=[]; let list=null;
-  const close=()=>{ if(list){out.push(`</${list}>`); list=null;} };
+  /* **What you typed is what you see.** Every non-blank line used to become its
+     own `<p>` and every blank line was thrown away — so a single Return between
+     two lines came out as a paragraph break, and the empty rows somebody put in
+     on purpose came out as nothing at all. Two rules instead:
+
+       one Return   a line break inside the paragraph — you meant a new line
+       a blank row  the paragraph ends; every further blank keeps its room
+
+     A block — a heading, a rule, a quote, a list item — always closes the
+     paragraph first, which is what `close()` is for. */
+  const out=[]; let list=null, para=null, blanks=0;
+  const flush=()=>{ if(para!==null){ out.push(`<p>${para}</p>`); para=null; } };
+  const close=()=>{ flush(); if(list){out.push(`</${list}>`); list=null;} };
+  const line = t => { if(list) close(); para = para===null ? t : para+'<br>'+t; };
   src.split(/\r?\n/).forEach(raw=>{
     const l=raw.trim();
-    if(!l){ close(); return; }
+    if(!l){
+      /* The **first** blank of a run ends what was being written and nothing
+         more — that is the ordinary gap between two paragraphs, and it is the
+         same blank that sits under a heading before a list. Every blank after
+         it is spacing somebody asked for, and keeps a line of room. Counting
+         the run is what tells those two apart; asking whether a paragraph was
+         open could not, because a heading has already closed itself. */
+      blanks++;
+      if(blanks===1) close();
+      else if(out.length) out.push('<p class="vspace"></p>');
+      return;
+    }
+    blanks=0;
     let m;
     if(/^---+$/.test(l)){ close(); out.push('<hr>'); return; }
     if((m=l.match(/^(#{1,4})\s+(.*)$/))){ close(); const n=Math.min(m[1].length+1,4); out.push(`<h${n}>${inline(m[2])}</h${n}>`); return; }
@@ -158,7 +182,7 @@ function md(src){
     }
     if((m=l.match(/^[-*]\s+(.*)$/))){ if(list!=='ul'){close(); out.push('<ul>'); list='ul';} out.push(`<li>${inline(m[1])}</li>`); return; }
     if((m=l.match(/^\d+[.)]\s+(.*)$/))){ if(list!=='ol'){close(); out.push('<ol>'); list='ol';} out.push(`<li>${inline(m[1])}</li>`); return; }
-    close(); out.push(`<p>${inline(l)}</p>`);
+    line(inline(l));
   });
   close();
   return out.join('');

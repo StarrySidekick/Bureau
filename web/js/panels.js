@@ -835,6 +835,9 @@ function objectPanelBody(id, sec){
     .map(k=>[k, KINDS[k].nm]);
 
   const out=[];
+  // what it is filed under and what it points at, held back to the foot — see
+  // the note on the Tags row below
+  const filing=[];
 
   /* ---- what it is. The top level, and only there: a section is about one
      question and "what is this thing called" is not that question twice. ---- */
@@ -850,24 +853,28 @@ function objectPanelBody(id, sec){
       'swaps its traits, keeps its data'));
     out.push(prow('Lives in', psel(id,'parent',
       moveTargets(id).map(c=>[c.id, c.id===ROOT?'The Desk':(c.title||'Untitled')]), o.parent||ROOT)));
-    /* **Tags are on the card.** They were behind a door called "Tags and
-       links", which is a door in front of a row of five chips — and a tag is
-       the one piece of filing you add *while looking at the thing*, not a
-       setting you go and configure. The plus is the whole interface. */
-    out.push(prow('Tags',
+    /* **Tags and links are on the card, at the bottom of it.** They were
+       behind a door called "Tags and links", which is a door in front of a row
+       of five chips — a tag is the one piece of filing you add *while looking
+       at the thing*, not a setting you go and configure, so the door went.
+       They then sat directly under the stage, which put the least-used two
+       rows above every door in the panel.
+
+       They belong at the **end**: what a thing is filed under and what it
+       points at are the last things you say about it, and the row of things
+       you can *do* to it — write, copy, duplicate, delete — is what they sit
+       above. Built here, where everything they need is in scope, and pushed
+       just before that row. */
+    filing.push(prow('Tags',
       `<div class="tagrow">${(o.tags||[]).map(t=>
         `<span class="realtag" data-tagdrawer="${esc(t)}" title="Open a drawer for #${esc(t)}">${esc(t)}<b data-untag="${esc(t)}">\u2715</b></span>`).join('')}
         <button class="add" data-act="addtag" data-id="${id}">+ tag</button></div>`,
       (o.tags||[]).length ? 'press one to open a drawer for it' : 'what it is filed under'));
-    /* **And the links, beside them.** They were the other half of the door
-       called "Tags and links", and they are the same sort of fact: what this
-       thing is filed under, and what it points at. Both belong on the card
-       with the thing rather than behind a heading. */
     const rel=relatedTo(o), back=backlinksTo(id).filter(x=>x.id!==id);
     if(has(o,'relates') || rel.length || back.length){
       const chip=(x,rm)=>`<span class="relchip" style="--k:${objColour(x)}" data-openrel="${x.id}">
         ${ic(K(x.kind).ic,11)} ${esc(x.title||'Untitled')}${rm?`<b data-unrel="${id}:${x.id}" title="Unlink">\u2715</b>`:''}</span>`;
-      out.push(prow('Related',
+      filing.push(prow('Related',
         `<div class="relrow">${rel.map(x=>chip(x,true)).join('')}
           ${has(o,'relates')?`<button class="add" data-act="addrel" data-id="${id}">+ link</button>`
             :`<span class="mini" style="--k:var(--brass);padding:0">Tick <b>Related</b> under Advanced to link from here</span>`}</div>
@@ -1417,6 +1424,7 @@ function objectPanelBody(id, sec){
 
   }
 
+  if(!sec) out.push(filing.join(''));
   if(!sec && !isRoot) out.push(`<div class="pfoot">
     ${has(o,'text')?`<button class="pill" data-act="editthis" data-id="${id}">${ic('edit',13)} Write</button>`:''}
     ${has(o,'text')?`<button class="pill" data-act="copymd" data-id="${id}">${ic('archive',13)} Copy</button>`:''}
@@ -1546,7 +1554,7 @@ function modalNewKind(from, editKey){
     draft:{c, attrs:seedAttrs, ic:(base&&base.ic)||'note', ds:'',
            fromId:from&&from.id, editKey:editKey||null,
            size, phoneSize, onclick:(base&&base.onclick)||'read',
-           read:(base&&base.read)||'page',
+           read:(base&&base.read)||'book',
            sort, shape:(base&&base.shape)||'card', face:(base&&base.face)||'front',
            sortBy:(base&&base.sort)||MANUAL, plan:(base&&base.plan)||'',
            gathers:gathersNow, spawnBy:(base&&base.spawnBy)||'click'},
@@ -1588,7 +1596,7 @@ function modalNewKind(from, editKey){
         Object.entries(CLICKS).map(([v,n])=>chip(((base&&base.onclick)||'read')===v,`data-kclick="${v}"`,n)).join(''),
         'kclick')}
       ${row('Opens as','how one reads',
-        Object.entries(READS).map(([v,n])=>chip(((base&&base.read)||'page')===v,`data-kread="${v}"`,n)).join(''),
+        Object.entries(READS).map(([v,n])=>chip(((base&&base.read)||'book')===v,`data-kread="${v}"`,n)).join(''),
         'kread', ` id="kreadrow"${sort==='object'?'':' style="display:none"'}`)}
       ${row('Two of them make','dropped on each other',
         chip(!gathersNow,'data-kgather=""','Nothing')+

@@ -374,7 +374,7 @@ function act(name, el){
         // *clear* an override an edited type used to carry
         phoneSize:dk.phoneSize||null,
         onclick:dk.onclick||'read', body:base.body||'',
-        read: dk.sort==='object' ? (dk.read||'page') : undefined,
+        read: dk.sort==='object' ? (dk.read||'book') : undefined,
         shape: dk.sort==='object' ? (dk.shape||'card') : undefined,
         face:  dk.sort==='object' ? undefined : (dk.face||'front'),
         layout: dk.sort==='object' ? undefined : (base.layout||'grid'),

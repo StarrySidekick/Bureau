@@ -932,11 +932,26 @@ function drawTileFace(o, arr, box, persp){
       ${chips}
       <span class="cico">${ic(o.ic || spec.ic, 18)}</span>
       <span class="clabel">${esc(o.title||spec.nm)}</span>
+      ${/* **A button one cell wide is a push button**, and it has to be: at that
+            width the stylesheet takes the name and the printed value away —
+            there is no room for either — and a button form has no lever to be
+            left with, so the tile came out completely blank. Which is what
+            "the control turned invisible when I set it to change aesthetics"
+            was: not the aesthetic, the *form*. A dial reached the same end from
+            the other side and is answered in CSS, which still has its knob to
+            show.
+
+            The disc is the right answer rather than a fallback: a button form
+            says where it is **by its colour** (decision 137), and `.cpush`
+            draws its inner disc in `--c`, which is already the stepped colour.
+            So the smallest hardware and the largest say the same thing. */''}
       ${form==='switch'
         ? ctlSwitch(box, on)
         : form==='dial'
         ? `<span class="cdialwrap" aria-hidden="true"><i class="cdial"></i></span>
            <span class="cval">${esc(ctlSaid(o))}</span>`
+        : box.w<=1
+        ? `<span class="cpush" aria-hidden="true"><i></i></span>`
         : `<span class="cval">${esc(ctlSaid(o))}</span>`}
       ${handles}
     </button>`;
