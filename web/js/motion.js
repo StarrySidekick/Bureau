@@ -1,6 +1,6 @@
 import { $, clamp, ROOT } from './util.js';
 import { S, byId, isContainer, shapeOf, openingOf, deskOf,
-  tiltMode, tiltsDesk, tiltsWindows } from './model.js';
+  tiltMode, tiltsDesk, tiltsWindows, gravityTilts } from './model.js';
 import { lay, shelvesOf, shelfAt } from './grid.js';
 import { objColour, styleNow } from './look.js';
 import { render, renderSoon, previewHTML, goShelf } from './views.js';
@@ -1011,6 +1011,7 @@ const TILT_SETTLE = 0.0006;// below this it has arrived; park the loop
 const TILT = {on:false, listening:false, raf:0,
               x:0, y:0,          // where the shelf is
               tx:0, ty:0,        // where it is heading
+              lx:0, ly:0,        // …and the same lean with no sign on it
               rest:null,         // the attitude you are holding it at
               ox:0, oy:0};       // …and the neutral, creeping toward it
 
@@ -1023,7 +1024,9 @@ function tiltHeld(){
   if(pagerOn()) return true;                     // a board is already in flight
   if(S.writeId || S.readId || S.viewId) return true;
   if($('#panel')) return true;
-  return !!document.querySelector('#app .drawer.dragging, #app .drawer.lifted');
+  // …and a body being carried out of a heap, which is a hand on the board for
+  // the same reason a drag is
+  return !!document.querySelector('#app .drawer.dragging, #app .drawer.lifted, #app .drawer.carried');
 }
 function tiltFrame(){
   TILT.raf=0;
@@ -1106,11 +1109,20 @@ function onOrient(e){
   const flip = (S.look && S.look.tiltflip) ? -1 : 1;
   TILT.tx = clamp(flip * TILT_SIGN_X * (dx-TILT.ox)/K, -1, 1);
   TILT.ty = clamp(flip * TILT_SIGN_Y * (dy-TILT.oy)/K, -1, 1);
+  /* The same reading with **neither** sign on it: how far the screen's normal
+     has tipped towards its right edge and towards its bottom, which is to say
+     which way is downhill on the glass. The shelf wants that negated (a thing
+     in a recess lags the movement) and reversible (`tiltflip`); gravity wants
+     it raw, because which way a heap slides is not a matter of taste. Kept
+     here rather than worked out again from the angles, so there is one place
+     that reads the sensor. See decision 166. */
+  TILT.lx = clamp((dx-TILT.ox)/K, -1, 1);
+  TILT.ly = clamp((dy-TILT.oy)/K, -1, 1);
   tiltSoon();
 }
 // Coming back to the app after it has been away: wherever you are holding it
 // now is the new neutral, rather than easing there from where you left off.
-function tiltRecentre(){ TILT.rest=null; TILT.ox=TILT.oy=0; TILT.tx=TILT.ty=0; tiltSoon(); }
+function tiltRecentre(){ TILT.rest=null; TILT.ox=TILT.oy=0; TILT.tx=TILT.ty=0; TILT.lx=TILT.ly=0; tiltSoon(); }
 /* Which of the two are listening, patched straight onto the frame so throwing
    the switch takes effect before the next render rather than after it.
    `render()` states the same thing from `S.look` — it writes that className
@@ -1124,7 +1136,7 @@ function tiltStop(){
   if(TILT.listening){ removeEventListener('deviceorientation', onOrient); TILT.listening=false; }
   TILT.on=false;
   if(TILT.raf){ cancelAnimationFrame(TILT.raf); TILT.raf=0; }
-  TILT.x=TILT.y=TILT.tx=TILT.ty=0; TILT.rest=null; TILT.ox=TILT.oy=0;
+  TILT.x=TILT.y=TILT.tx=TILT.ty=0; TILT.lx=TILT.ly=0; TILT.rest=null; TILT.ox=TILT.oy=0;
   const f=$('#frame');
   if(f){ f.style.removeProperty('--tiltx'); f.style.removeProperty('--tilty');
          f.classList.remove('tilt-desk','tilt-win'); }
@@ -1140,9 +1152,17 @@ function tiltStart(){
    listener's existence is a fact about `S.look.parallax` and never drifts from
    it. The desk has no gyroscope, so this is a phone feature and says so by
    simply not starting. */
+/* …and gravity is the second thing that wants the sensor. It paints nothing —
+   `markTilt()` hangs the two classes off `tiltsDesk()`/`tiltsWindows()`, both
+   of which are still false — so a desk with the cavity off and the heap
+   pouring reads the phone and dresses nothing. See decision 166. */
 function applyTilt(){
-  if(tiltMode()!=='off' && S.device!=='desk') tiltStart(); else tiltStop();
+  if((tiltMode()!=='off' || gravityTilts()) && S.device!=='desk') tiltStart(); else tiltStop();
 }
+/* Which way is downhill on the glass, −1..1 on each axis, with neither the
+   shelf's sign nor its flip applied. Zero until the sensor has said otherwise,
+   which is what a phone lying flat and a Mac both look like from here. */
+const tiltLean = ()=> ({x: TILT.lx, y: TILT.ly});
 /* iOS 13+ will not deliver deviceorientation without being asked, and will only
    consider the question if it arrives inside a user gesture — so this is
    called from the Settings switch and nowhere else. Everything else (Android,
@@ -1423,4 +1443,4 @@ export { still, tileOf, tileRect, openingFor, openTile, leaveTile, enter, pop, c
   fileTo,
   spray, sprayAt, sprayCount, SPRAYS, sprayNow, sprayMark,
   pagerBegin, pagerMove, pagerEnd, pagerCancel, pagerOn, stepDrawer,
-  applyTilt, askTilt, tiltTo, tiltRecentre };
+  applyTilt, askTilt, tiltTo, tiltRecentre, tiltLean };

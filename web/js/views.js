@@ -5,6 +5,7 @@ import { S, K, T, byId, has, isContainer, containers, container, childrenOf, cha
   layoutOf, takesTyping, genSaid, CALVIEWS, calViewOf, calCols, CL_FITS, clFit,
   spanOf, coversDay, lastDay, boardLocked,
   TILT_MODES, tiltMode, tiltsDesk, tiltsWindows, tiltClasses, cueFlipped,
+  GRAVITIES, gravityMode, gravityOn,
   URGES, workday } from './model.js';
 import { GRID, PHONE_GRIDS, CELL, COLW, MEASURE, colsOf, gridKeyOf, SHELVES, shelvesOf,
   shelfRows, shelfOfBox, shelfAt, setShelf, shelfOrigin, SHELF, drawCols, drawRows,
@@ -12,6 +13,7 @@ import { GRID, PHONE_GRIDS, CELL, COLW, MEASURE, colsOf, gridKeyOf, SHELVES, she
 import { themeNow, applyLook, lookVal, STYLES, BACKDROPS, DARKMODES, darkMode, hasDark,
   palNow, styleNow, hexOf, objColour, slotName, OBJ0, CHECKS, dressAs } from './look.js';
 import { gridOfContainer, gridTile, listTile, bookView, calSpan } from './tiles.js';
+import { gravitySync } from './gravity.js';
 import { openPanel, closePanel, panelKey, repositionPanel, plansPanel } from './panels.js';
 import { openGuide } from './guide.js';
 /* Cyclic at *function* level only — motion.js imports render() from here and
@@ -568,6 +570,24 @@ function settingsBody(sec){
       <div class="filterbar">${[['','Laid flat on the board'],['1','Pinned to it']].map(([v,n])=>
         `<button class="fchip${(S.look.pinned?'1':'')===v?' on':''}" data-pinned="${v}">${n}</button>`).join('')}</div>
       <div class="mini" style="--k:var(--brass);margin-top:6px">Pinned gives every tile a little room around it and tilts it a degree or two, as though a pin went through one of its top corners. The angle comes from the object itself, so nothing moves between renders — and a tile straightens while you carry it.</div>
+    </div>
+
+    ${/* The board lets go. It is an experiment and the note says so — but it
+          is a real solver rather than a keyframe, because the interesting half
+          is what a pile *does* when you throw another drawer into it. Nothing
+          moves in the model: the boxes stay exactly where they are and the
+          whole fall is a transform over the top, so switching it off is the
+          arrangement you had. See decision 166. */''}
+    <div class="field" style="margin-top:12px"><label>Gravity</label>
+      <div class="filterbar">${Object.entries(GRAVITIES).map(([v,n])=>
+        `<button class="fchip${gravityMode()===v?' on':''}" data-gravity="${v}">${n}</button>`).join('')}</div>
+      <div class="mini" style="--k:var(--brass);margin-top:6px">Everything on the shelf you are looking at stops being on the grid and falls into a heap at the bottom of it. <b>Sand</b> is the plain answer: nothing turns, so a thing drops straight down and sits on what is under it. <b>Tumbling</b> gives each one real weight, so it lands on a corner, leans, and the pile finds its own angle. You can pick one out of the heap and throw it, and tapping one still opens it.</div>
+      <div class="mini" style="--k:var(--brass);margin-top:6px">Nothing here changes the desk. Every tile keeps the cell you put it in and the fall is drawn over the top, so switching it off puts the board back exactly as it was.</div>
+      ${gravityOn() && S.device!=='desk' ? `
+      <label class="rangerow" style="margin-top:12px"><span>Which way is down</span><b></b></label>
+      <div class="filterbar">${[['','Down the board'],['1','Wherever the phone leans']].map(([v,n])=>
+        `<button class="fchip${(S.look.gravitytilt?'1':'')===v?' on':''}" data-gravitytilt="${v}">${n}</button>`).join('')}</div>
+      <div class="mini" style="--k:var(--brass);margin-top:6px">The same sensor the cavity reads, so a desk with both on slides and pours together. Tip the phone and the heap runs to the low corner; turn it right over and things slow to a stop rather than falling off the ceiling, because you are looking <i>into</i> a shelf. It asks iPhone for the motion sensor the first time.</div>` : ''}
     </div>
 
     ${/* How much a checklist front shows — **per device**, like a box is. Two
@@ -1219,6 +1239,12 @@ function render(){
   bindSortables();
   sizeGrid();
   repositionPanel();   // a bubble is pinned to a tile, and the tiles just moved
+  /* The heap, re-bound to the tiles that have just been built. `render()`
+     replaces `#app` wholesale, so a body's element is detached a moment later —
+     bodies are kept by **id**, so a render in the middle of a fall is invisible
+     and the pile carries on where it was. Off, it costs one function call and a
+     read of `S.look`. See decision 166. */
+  gravitySync();
   /* A render is not a change. Every mutation already says `save()` for itself,
      so all this has to catch is the one thing a *render* writes — a box
      invented by ensureBox() for an object seen in a layout for the first time.

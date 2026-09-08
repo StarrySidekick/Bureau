@@ -22,6 +22,8 @@ import { overlayHTML, objectPanel, modalNewObject, holdPanel, schedulePanel, clo
 import { wire } from './wire.js';
 import { openingFor, stepDrawer, spray, sprayAt, sprayCount, sprayNow, sprayMark, SPRAYS,
   applyTilt, tiltTo, tiltRecentre } from './motion.js';
+import { gravityReport, gravitySettle, gravityApply, gravityWake,
+  gravityGrab, gravityDrag, gravityDrop } from './gravity.js';
 import { load, writeNow, save, hydrateAssets, pasteObjects, migrate } from './persist.js';
 import { renderSheet, openWriter, openRead, openViewer, closeSheet, asMarkdown } from './sheet.js';
 import { DECOR, DECOR_KEYS, decorSVG, decorSuits, decorFor, decorRest } from './decor.js';
@@ -177,6 +179,12 @@ window.BUREAU = {
      test drives this, and so does anyone tuning the throw. −1 to 1 on each
      axis. See decision 108. */
   tilt: tiltTo, applyTilt, tiltMode,
+  /* The heap, for a test that has to watch physics rather than a class: how
+     many bodies there are and where each has got to, in the board's own
+     pixels, plus a way to run the fall to a standstill without waiting for it.
+     See decision 166. */
+  gravity: {report: gravityReport, settle: gravitySettle, apply: gravityApply,
+            wake: gravityWake, grab: gravityGrab, drag: gravityDrag, drop: gravityDrop},
   // the spray, so a test can watch the physics rather than the class — and
   // the reveal, which is now the only thing in the app that sets one off
   spray, sprayAt, sprayCount, sprayNow, sprayMark, reveal,

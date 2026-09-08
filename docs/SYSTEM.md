@@ -517,6 +517,15 @@ Each container is its own coordinate space, and every device has its own.
   so the angle never changes between renders. The gap is a margin on the tile,
   never `gap` on the grid — the grid is a coordinate space and moving it would
   move every tile out from under the drag maths. See decision 75.
+- A board can also be told to **let go**: `S.look.gravity` is `off | sand |
+  tumble`, and on, everything on the shelf you are looking at stops being on the
+  grid and falls into a heap at the bottom of it. It is a real rigid-body solver
+  (`gravity.js`), and **nothing in the model moves** — every box stays in its
+  cell and the whole fall is a `transform` written over the top, so switching it
+  off is the arrangement you had. Sand is the same solver with rotation taken
+  out; tumbling is it with rotation let back in. On a phone the pull can follow
+  the phone's own lean (`S.look.gravitytilt`), from the sensor the cavity
+  already reads. See decision 166.
 - The grid element carries no padding and no border, because `cellW()` measures
   its own rect. Decoration goes on a wrapper.
 - The cell size is never rounded. Columns are `1fr` and therefore fractional;
@@ -869,6 +878,7 @@ or shown on a surface and drawn as a face on the board. See decision 71.
 | The detail sheet | `sheet.js` |
 | Every menu, form, popup and the palette | `panels.js` |
 | Drag, resize, lasso, sketch, swipe | `gestures.js` |
+| A board that has let go — the rigid-body solver | `gravity.js` |
 | Create, complete, delete, undo, repeat, pin, tag-drawer | `mutations.js` |
 | Storage, migrations, assets, export/import, paste | `persist.js` |
 | Styles, the sixteen colour slots, tokens | `look.js` |

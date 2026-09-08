@@ -1,6 +1,6 @@
 import { $, esc, uid, clamp, ROOT, HOLD, D } from './util.js';
 import { S, byId, K, KINDS, KEYS, kindHas, has, isContainer, genKindOf, streak, T, dz, dev,
-  repeatOf, repeats, nextRepeat, faceOf, childrenOf, TILT_MODES, tiltMode,
+  repeatOf, repeats, nextRepeat, faceOf, childrenOf, TILT_MODES, tiltMode, GRAVITIES, gravityMode,
   ctlOf, isPrimary,
   placeOf, cfgOf, isHeld, heldObjects, homeFor } from './model.js';
 import { GRID, PHONE_GRIDS, colsOf, gridOf, shelfRows, freeSpot, anySpot, roomFor, lay, boxOk, sizeOfKind, keepSize } from './grid.js';
@@ -645,6 +645,15 @@ const CONTROLS = {
   parallax: {nm:'Depth',     ic:'resize',ds:'What answers the phone being tilted',
              cycle:()=>Object.keys(TILT_MODES), get:()=>tiltMode(),
              said:v=>TILT_MODES[v]||v, set(v){ S.look.parallax=v; applyLook(); }},
+  /* A lever on the desk that drops everything on it — including, once the heap
+     has settled, itself. The press goes through `render()` like every other
+     control, and the fall is picked back up by `gravitySync()` at the end of
+     it; the settle-back is Settings' alone, because there is nothing left to
+     walk home once a render has rebuilt the board. See decision 166. */
+  gravity:  {nm:'Gravity',   ic:'drop',  ds:'The shelf lets go, and everything on it falls',
+             cycle:()=>Object.keys(GRAVITIES), get:()=>gravityMode(),
+             said:v=>GRAVITIES[v]||v,
+             set(v){ if(v && v!=='off') S.look.gravity=v; else delete S.look.gravity; }},
   /* ---- the ones that are a number ------------------------------------
      A switch is on or off and a dial walks a list; these are neither — they
      are a quantity, and the thing that reads a quantity on a real desk is a

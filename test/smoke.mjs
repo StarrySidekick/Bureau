@@ -6722,6 +6722,134 @@ const CHROME = process.env.BUREAU_CHROME;
     return out;
   });
 
+  /* --- the board lets go — decision 166 --------------------------------
+     A physics toy, so what is worth asserting is not that a class appeared but
+     that the heap **arrived and holds together**: the tiles are below where
+     they were, they are inside the pen and not through the floor, sand keeps
+     every one of them square while tumbling does not, and — the load-bearing
+     one — switching it off leaves the arrangement untouched, because that is
+     the whole reason this is safe to have.
+
+     Driven through `BUREAU.gravity.settle()` rather than a wait, so the run
+     does not spend eight seconds a mode watching a pile come to rest. */
+  const gravity = await page.evaluate(async () => {
+    const nap = ms => new Promise(r => setTimeout(r, ms));
+    const S = BUREAU.state, out = {};
+    S.view='desk'; S.drawerId=null; delete S.look.gravity; BUREAU.render(); await nap(220);
+    /* **A heap needs a pile.** Which shelf the suite has left the desk standing
+       on is nobody's business but the block that put it there, and this one ran
+       on a shelf-row carrying three tiles out of a hundred and thirty-five —
+       which is a perfectly good fall and a poor test of one. So it brings its
+       own, on the shelf it is on (`freeSpot()` prefers it), and takes them away
+       at the end. */
+    const mine = [];
+    for(let i=0;i<6;i++){
+      const o = BUREAU.create('note', {parent:'root', title:'falls '+i});
+      if(o) mine.push(o.id);
+    }
+    BUREAU.render(); await nap(260);
+    const homes = () => {
+      const g = document.querySelector('#drawergrid').getBoundingClientRect();
+      return [...document.querySelectorAll('#drawergrid > .drawer')]
+        .map(e => { const r = e.getBoundingClientRect(); return {id: e.dataset.drawer||e.dataset.row,
+          x:Math.round(r.left), y:Math.round(r.top), t:e.style.transform,
+          // where its middle is in the grid's own pixels, which is the space
+          // the pen is measured in
+          gy: r.top - g.top + r.height/2}; });
+    };
+    const was = homes();
+    out.offByDefault = !document.querySelector('#drawergrid.falling')
+      && was.every(h => !h.t) && BUREAU.gravity.report().bodies === 0;
+
+    S.look.gravity = 'sand'; BUREAU.gravity.apply();
+    BUREAU.gravity.settle(900);
+    const sand = BUREAU.gravity.report();
+    /* Everything **on this shelf**, and asked by id rather than by counting.
+       On a Mac the whole board is drawn and the two shelf-rows you are not
+       looking at stay on the grid, so "one body per tile in the element" is the
+       wrong claim to start with; and an equality of counts then answers "did
+       the pile end up the size I predicted", which is a second arithmetic to
+       get wrong rather than the thing worth knowing. What is worth knowing is
+       that nothing on the shelf was left behind. The tally rides along beside
+       it so a failure says which way it went. */
+    const onTheShelf = was.filter(h =>
+      h.gy >= sand.board.y0 && h.gy <= sand.board.y0 + sand.board.h);
+    const isABody = new Set(sand.at.map(b => b.id));
+    out.everythingOnTheShelfBecomesABody = onTheShelf.length > 3
+      && onTheShelf.every(h => isABody.has(h.id));
+    out.tally = `${sand.bodies} bodies · ${onTheShelf.length} on the shelf · ${was.length} drawn`;
+    out.itAllFalls = sand.at.every(b => b.y >= b.home.y - 1)
+      && sand.at.filter(b => b.y > b.home.y + 4).length > 2;
+    // the pen is the shelf, and the floor of it holds
+    out.nothingLeavesTheShelf = sand.at.every(b =>
+      b.y + b.hh <= sand.board.y0 + sand.board.h + 2
+      && b.y - b.hh >= sand.board.y0 - 2
+      && b.x - b.hw >= -2 && b.x + b.hw <= sand.board.w + 2);
+    // sand cannot turn, and it cannot wander sideways either: nothing pushes it
+    out.sandStaysSquare = sand.at.every(b => b.a === 0);
+    out.sandFallsStraight = sand.at.every(b => Math.abs(b.x - b.home.x) < 1);
+    // nothing is standing inside anything else once it has come to rest
+    out.nothingOverlaps = (() => {
+      const b = sand.at;
+      for(let i=0;i<b.length;i++) for(let j=i+1;j<b.length;j++){
+        const p=b[i], q=b[j];
+        if(Math.abs(p.x-q.x) < p.hw+q.hw-2 && Math.abs(p.y-q.y) < p.hh+q.hh-2) return false;
+      }
+      return true;
+    })();
+    // …and the transform is what moved it. The box is untouched.
+    out.drawnAsATransform = [...document.querySelectorAll('#drawergrid > .drawer')]
+      .filter(e => /translate/.test(e.style.transform)).length > 2;
+
+    /* Tumbling is the same solver with rotation let back in, so the one thing
+       that has to differ is that things **can** turn. Asked of the whole fall,
+       a step at a time, rather than of the heap or of one moment in it: where a
+       thing comes to rest is a fact about the board it fell on, and a box that
+       landed at three degrees on a flat floor is upright again a fifth of a
+       second later. A phone shelf is eight columns and a drawer is three of
+       them, so there is nowhere to land off-centre and a phone pile settles
+       nearly as flat as a sand one; a Mac shelf is twenty-four and its heap
+       leans. Both turn on the way down, and that is the invariant. */
+    const everTurns = (mode) => {
+      delete S.look.gravity; BUREAU.gravity.apply();
+      S.look.gravity = mode; BUREAU.gravity.apply();
+      for(let i=0;i<80;i++){
+        if(BUREAU.gravity.report().at.some(b => Math.abs(b.a) > 0.02)) return true;
+        BUREAU.gravity.settle(1);
+      }
+      return false;
+    };
+    out.sandNeverTurnsAtAll = !everTurns('sand');
+    out.tumblingTurns = everTurns('tumble');
+    BUREAU.gravity.settle(900);
+    const t1 = BUREAU.gravity.report();
+    /* …and off a hash of each object's id rather than Math.random(), so a board
+       that has fallen and been put back falls the same way again. */
+    delete S.look.gravity; BUREAU.gravity.apply(); await nap(500);
+    S.look.gravity = 'tumble'; BUREAU.gravity.apply();
+    BUREAU.gravity.settle(900);
+    const t2 = BUREAU.gravity.report();
+    out.sameBoardFallsTheSameWay = t1.at.every((b, i) =>
+      Math.abs(b.x - t2.at[i].x) < 1 && Math.abs(b.y - t2.at[i].y) < 1);
+
+    /* **The one that matters.** Nothing moved in the model, so switching it off
+       is the arrangement you had rather than a tidy-up to undo. */
+    delete S.look.gravity; BUREAU.gravity.apply(); await nap(560);
+    BUREAU.render(); await nap(220);
+    const now = homes();
+    out.puttingItBackChangesNothing = now.length === was.length
+      && now.every((h, i) => h.id === was[i].id
+        && Math.abs(h.x - was[i].x) < 1 && Math.abs(h.y - was[i].y) < 1 && !h.t);
+    out.andTheClassGoes = !document.querySelector('#drawergrid.falling')
+      && BUREAU.gravity.report().bodies === 0;
+    /* It is a control as well as a setting, and the table is the feature —
+       a row there brings the tile, the press and the editor along. */
+    out.thereIsASwitchForIt = 'gravity' in BUREAU.CONTROLS;
+    mine.forEach(id => BUREAU.del(id));
+    S.undo = []; S.redo = []; BUREAU.render();
+    return out;
+  });
+
   /* --- the major categories, and the four things they brought with them ---
      Decisions 130–133: a Book, a Thought and a Problem; three kinds of drawer
      with a life area beside the project; a control that is a switch on the
@@ -7085,7 +7213,7 @@ const CHROME = process.env.BUREAU_CHROME;
     ranking, urgency, reachable, pensAndCorners, lyingBooks, plansWork, repeating, oneLock, scheduling, ownColour, addBox, calFaces,
     lockedBoard, freeTraits, pageWrites, tickBoxes, readerFits, categories,
     specimenBook, thisPass,
-    dropsIn, keyframesRegistered, aesthetics, slotScoping, objectsDressed, grainSlots, tagged, drawnAesthetic, deeper, lookStage, statusBar, bindings, panelling, theSpray, tappingIsQuiet, decorations, pinboard
+    dropsIn, keyframesRegistered, aesthetics, slotScoping, objectsDressed, grainSlots, tagged, drawnAesthetic, deeper, lookStage, statusBar, bindings, panelling, theSpray, tappingIsQuiet, decorations, pinboard, gravity
   }, null, 2));
   await browser.close();
 })();

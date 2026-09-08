@@ -2252,6 +2252,60 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
 
 
 /* ============================================================
+   the board lets go — see decision 166
+   ============================================================
+   A switch, and everything on the shelf falls into a heap at the bottom of it.
+   The board does not change: every tile is still in the cell it was drawn in
+   and the whole of the fall is a `transform` written over the top by
+   gravity.js, so switching it off is the arrangement you had rather than a
+   tidy-up you have to undo.
+
+   Three declarations, and each is load-bearing.
+
+   `will-change` is what puts every falling tile on its own compositor layer,
+   which is the whole performance argument: forty of them moving every frame is
+   forty composited transforms and **zero layouts**. It is scoped to `.falling`
+   because a layer per tile on a still board is memory spent on nothing.
+
+   `transform-origin` has to be restated because the **pinboard** moves it to a
+   top corner — a pin goes through the corner, and a body turns about its own
+   centre of mass. Written on a selector carrying both classes as well, or the
+   pinboard's own rule wins on specificity and every tile in a tumbling heap
+   spins about its shoulder.
+
+   And `transition` has to go, for the same reason: a transition on `transform`
+   under a solver writing one every frame is a hundred and twenty millisecond
+   lag laid over the physics, which reads as treacle. */
+.grid.falling > .drawer,
+.grid.falling.pinboard > .drawer{
+  will-change:transform;
+  transform-origin:50% 50%;
+  transition:none;
+}
+/* The one you are holding. A body being carried is still solid — it shoves
+   what it is dragged through and gets shoved back — so this says *which*
+   rather than doing anything: it is above the rest of the heap and it is
+   lifted off the board, and nothing else changes. No transform of its own; the
+   solver owns that. */
+.grid.falling > .drawer.carried{
+  z-index:40;
+  box-shadow:var(--shadow-lg);
+  filter:brightness(1.05);
+}
+/* Putting them back. The switch off is deliberately not a render — a render
+   would replace every tile with a fresh one sitting at home and there would be
+   nothing left to walk back — so gravity.js clears the transforms and this
+   carries them to their cells. Rotation and position on one curve, because
+   they are one movement. */
+.grid.settling > .drawer{
+  transition:transform .4s cubic-bezier(.2,.75,.3,1);
+}
+@media (prefers-reduced-motion: reduce){
+  .grid.settling > .drawer{ transition:none }
+}
+
+
+/* ============================================================
    26 · shelves
    ============================================================
    A **shelf** is one screenful of board and the Desk is nine of them, three

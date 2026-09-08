@@ -7038,3 +7038,143 @@ The **Void Drawer** is what was called "Holding" — the space off the desk that
 copy and paste is made of. The **Magic Selector** is the dashed rectangle you
 drag out of a bare cell, which makes objects and picks up the ones already there.
 Neither behaviour changed; both can now be referred to.
+
+## 166 · The board lets go
+
+*2026-09-08*
+
+A switch, and everything on the shelf you are looking at stops being on the grid
+and falls into a heap at the bottom of it. Two answers — **Sand**, where nothing
+turns, and **Tumbling**, where everything does — plus a third which is off, and
+off is the default. It is an experiment, it was asked for as one, and it says so
+in its own note in Settings.
+
+It is also, deliberately, a **real solver** rather than a keyframe. A keyframe
+could drop forty tiles convincingly enough and would answer nothing, because the
+interesting half of a heap is not the falling: it is what the pile does when you
+throw another drawer into it, and what it does when you turn the phone over.
+Bureau has one other piece of real physics already — the spray a new object lands
+in (decision 85) — for exactly this reason.
+
+**Nothing in the model moves, and that is what makes it safe to play with.** Every
+box stays in the cell you put it in. A body's *home* is the rectangle its tile was
+drawn in, and the whole of the fall is a `transform` written over the top of a
+board that has not been touched — so switching it off is the arrangement you had,
+to the pixel, rather than a tidy-up you then have to undo. This is the pinboard's
+bargain (decision 75) with a great deal more going on, and it is why the feature
+can be a toy without being a hazard.
+
+### One solver, and the two answers differ in one number
+
+Sand was asked for first and as the simpler thing: *"a simple downward force so
+objects don't tilt, they just kinda fall down almost like sand in Minecraft."* It
+is tempting to write that as its own tiny system — a per-column drop, a snap to
+the thing below — and then write the tumbling one separately when it is wanted.
+Two systems, two sets of bugs, and the day one of them learns something the other
+does not is the day they start disagreeing about what a shelf is.
+
+So there is one rigid-body solver, and **sand is that solver with rotation taken
+out**: `1/I` is zero, which is exactly how a wall is "infinitely heavy", so a sand
+body cannot be turned by any impulse, stays square to the board, falls straight
+down and sits on what is under it. The second mode was then free. Every other
+difference between them — a little bounce, less friction — is a number in one
+table.
+
+Sand *is* Minecraft's sand, and for the reason Minecraft's is: with gravity
+straight down and no torque, a box resting half off another box has nothing
+pushing it sideways, so it stays. Nothing had to be written to make that true.
+
+### The three things that were learned by looking
+
+**A leftover substep is a bomb.** The solver runs on a fixed clock and the screen
+does not, so a frame carries some remainder — and the first version ran that
+remainder as a short step. The overlap correction is a *speed*, `BIAS/dt` times
+how far two boxes are inside each other, so a step of seven microseconds asks for
+a correction of hundreds of pixels a second. Every contact in the pile took two
+hundred and forty pixels a second of shove, every frame; a stack that had plainly
+come to rest went on shivering, nothing ever counted as still, and the loop never
+parked. A whole step or none, with the remainder carried, and the same pile
+settles dead flat in a second and a half with every velocity at exactly zero.
+
+**A perfect grid falls into a perfect heap.** Let go of twelve identical drawers
+in four aligned columns and every one lands square on the one below it: correct
+physics of an impossibly precise release, and a tumbling board indistinguishable
+from a sand one. So a body starts a few degrees off true with half a radian a
+second of spin and a shove of forty-five pixels a second sideways — all three
+from a **hash of its own id**, which is the pinboard's trick for the pinboard's
+reason: the same board falls the same way every time. Sand gets none of it. Sand
+cannot turn, and a shove it cannot answer is a push nobody asked for.
+
+**A shelf is not a small space.** A Mac shelf-row is twenty-four columns by
+fourteen rows, so three hundred and thirty tiles is a legal board and
+every-body-against-every-other is fifty-six thousand tests a step. A sweep along
+x — sorted by left edge, stopping at the first body that starts to the right of
+where this one ends — makes a completely packed shelf 2.5ms a step and an
+ordinary one of twenty or forty bodies far less than a tenth of that. The walls
+stay out of the sweep, because a wall is six hundred pixels thick and spans the
+whole board, so one that took part would overlap everything and the early exit
+would never fire.
+
+### The pen is a shelf
+
+A phone is already windowed to one — the board element is a shelf tall and the
+tiles have had the shift taken off as they were drawn — so the pen is the whole
+of it. A **Mac** draws the entire board and scrolls, so the pen is the shelf-row
+you have scrolled to: full width, because the three shelves of a row are on the
+screen at once, and one row deep, because the two rows you cannot see are not
+what let go. Without that the floor was the bottom of the ninth shelf and
+flipping the switch tipped the desk into a heap two screens below the one you
+were looking at, which reads exactly like everything vanishing.
+
+Four walls, not three, and that is the cavity's own shape (decision 116): the
+board is the back panel of a slot and a slot has four sides, so a thrown drawer
+comes back rather than leaving by the top.
+
+### What it costs when it is off, and where it plugs in
+
+One function call at the end of `render()` and a read of `S.look`. On, it is one
+`getBoundingClientRect` per tile per render — measured rather than derived from
+`grid-column`, because a **pinned** tile carries a three-pixel margin and a body
+worked out from its cell would be six pixels too big in each direction. Every
+transform is cleared before that measurement and rewritten after it, so it is one
+layout and not one per tile.
+
+Everything else is a transform on a promoted layer, which is the argument this
+app has already made twice — for the flank (decision 117) and for the six face
+cues (decision 118). Forty tiles moving every frame is forty composited
+transforms and zero layouts.
+
+Three integrations, each one branch. `render()` re-binds the pile to the tiles it
+has just built, **by id**, so a render in the middle of a fall is invisible.
+`gestures.js` claims a press on a falling board and hands the travel to the
+solver — the pointer stays in one file, because two systems capturing one finger
+is how a drag ends with no release — and it claims it *without consuming the tap*
+(decision 126's trick), so tapping a drawer in a heap still opens it and the long
+press still gives you the menu. And the switch itself deliberately does **not**
+render: turning it off has to walk the tiles back to their cells, and a render
+replaces every one of them with a fresh element already sitting at home, so there
+would be nothing left to animate.
+
+### Which way is down
+
+Straight down the board, or — on a phone, and opt-in — wherever the phone is
+leaning. It is the same sensor the cavity reads (decision 108), so a desk with
+both on slides and pours together rather than disagreeing about where the floor
+is; what gravity takes is the **raw** lean, with neither the shelf's sign nor its
+flip on it, because a shelf lags the movement as a matter of taste and which way
+a heap slides is not. `tiltLean()` is that reading, kept where the sensor is
+already read rather than worked out a second time from the angles.
+
+Gravity is the second thing that can want the sensor, so `applyTilt()` asks both.
+It paints nothing when only gravity wants it: the two tilt classes hang off the
+cavity's own settings, both of which are still off. And the loop cannot park
+while the phone is the floor — a parked loop is not reading it — so it keeps
+running and does the physics only when the lean has actually moved, which is a
+comparison and no contacts at all.
+
+### Reduced motion
+
+Not refused. Somebody threw a switch, and a switch somebody threw is not an
+incidental animation. The whole fall is run inside one frame and the answer
+written once: the heap is there, and nothing moved on the way. A carry is the
+exception — a hand in the pile is movement you are causing.

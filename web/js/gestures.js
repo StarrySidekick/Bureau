@@ -7,6 +7,7 @@ import { pending, tileTap, fireButton } from './tiles.js';
 import { modalNewObject, holdPanel, openCtx, closeCtx, schedulePanel, refreshPanel,
   closePanel } from './panels.js';
 import { render, shelfShift, reveal } from './views.js';
+import { gravityGrab, gravityDrag, gravityDrop } from './gravity.js';
 import { closeSheet } from './sheet.js';
 import { pagerBegin, pagerMove, pagerEnd, pagerCancel, pagerOn, leaveTile, toss, fileTo } from './motion.js';
 import { save } from './persist.js';
@@ -887,6 +888,37 @@ function onDown(e){
     const grid=dEl.closest('.grid');
     const d=byId(dEl.dataset.drawer||dEl.dataset.row||dEl.dataset.id);
     if(!d || !grid) return;
+    /* ---- a board that has let go ---------------------------------------
+       There is no box to write here: the grid is still exactly where it was
+       and the tile is a body in a heap on top of it, so a press is a hand in
+       the pile rather than a move. gestures.js keeps the pointer either way —
+       two files capturing one finger is how a drag ends with no release — and
+       hands the travel to the solver.
+
+       Claimed **without consuming the tap**, the way a schedule button is
+       (decision 126): a finger that never moves falls through to the click, so
+       tapping a drawer in a heap still opens it. The long press is kept for the
+       same reason it is kept on a locked board — "tell me about this" is the one
+       thing a phone must be able to do to a tile it cannot pick up. See
+       decision 166. */
+    if(grid.classList.contains('falling')){
+      G={type:'fall', el:dEl, id:d.id, sx:e.clientX, sy:e.clientY, mode:null};
+      const g0=G;
+      if(e.pointerType==='touch'){
+        menuTimer=setTimeout(()=>{
+          menuTimer=null;
+          if(G!==g0 || G.mode) return;
+          dropSelection();
+          const r=G.el.getBoundingClientRect();
+          if(navigator.vibrate) navigator.vibrate([4,40,10]);
+          G.menu=true;
+          gestureFlags.suppressClick=true;
+          openCtx(r.left+Math.min(r.width/2,140), r.top+r.height/2, g0.id);
+        }, HOLD_TOUCH + MENU_AFTER);
+        holdFrom={x:e.clientX,y:e.clientY};
+      }
+      return;
+    }
     /* A locked board — or a sorted one, which arranges itself — refuses to be
        moved or resized. It does **not** refuse the long press: "tell me about
        this" is the one thing a phone has to be able to do to a tile it cannot
@@ -984,6 +1016,25 @@ function onMove(e){
   const dx=e.clientX-G.sx, dy=e.clientY-G.sy;
 
   if(G.type==='swipe'){ swipeMove(G, dx, dy); return; }
+
+  /* Carrying one out of the heap. The threshold is the same wobble every other
+     gesture allows a resting finger, and crossing it is what turns a tap into a
+     throw: the solver drives the body towards the pointer with a spring, so it
+     is still solid on the way and letting go throws it at whatever speed it had
+     when you did. */
+  if(G.type==='fall'){
+    if(G.menu) return;
+    if(G.mode!=='carry'){
+      if(Math.abs(dx) < WOBBLE && Math.abs(dy) < WOBBLE) return;
+      if(!gravityGrab(G.id, e.clientX, e.clientY)){ G=null; return; }
+      /* `armed` is what wire.js's non-passive touchmove listener reads to take
+         the scroll off the browser — a carry that let the page scroll under it
+         would lose the finger halfway across the heap. */
+      G.mode='carry'; G.armed=true;
+    }
+    gravityDrag(e.clientX, e.clientY);
+    return;
+  }
 
   /* Carrying a button. The ghost is a copy rather than the button itself: the
      card keeps its hole, so you can see where the thing came from while it is
@@ -1337,6 +1388,14 @@ function onUp(e){
     gestureFlags.suppressClick = true;         // a drag: it must not also pick up
     const day = g.over || dayUnder(e.clientX, e.clientY);
     if(day) placePen(g.id, g.k, (day.dataset.schedday||'').split(':')[1]);
+    return;
+  }
+
+  /* Putting one back in the heap. A carry has to swallow its own trailing
+     click, or the tile you threw also opens; a press that never travelled is a
+     tap and is left alone, which is what keeps a drawer in a pile openable. */
+  if(g.type==='fall'){
+    if(g.mode==='carry'){ gravityDrop(); gestureFlags.suppressClick=true; }
     return;
   }
 
@@ -1828,6 +1887,7 @@ const dragArmed = ()=> !!(G && G.armed);
    committing and putting it back. See decision 109. */
 function onCancel(){
   cancelHold();
+  if(G && G.type==='fall') gravityDrop();
   if(G && G.type==='band') clearRow(G);
   stopPan();
   pagerCancel();

@@ -1550,6 +1550,36 @@ const tiltsWindows = ()=> ['window','both'].includes(tiltMode());
 const tiltClasses = ()=> (tiltsDesk()?' tilt-desk':'') + (tiltsWindows()?' tilt-win':'')
   + (standsProud()?' shelf-deep':'');
 
+/* ---- the board lets go -------------------------------------------------
+   A switch, and everything on the shelf you are looking at stops being on the
+   grid and falls. It is an experiment and it says so: **nothing moves in the
+   model.** The boxes are exactly where they were, a body's home is the cell it
+   was drawn in, and every bit of the fall is a `transform` written over the top
+   — so switching it off is the arrangement you had, to the pixel, rather than a
+   tidy-up you have to undo. That is the whole reason this is safe to play with.
+
+   Two answers, and they differ in one number: whether a body may **turn**.
+
+     sand    it cannot — `1/I` is zero, every box stays square to the board, and
+             a thing falls straight down and sits on what is under it
+     tumble   it can — real inertia, so a box lands on a corner, leans, and the
+             pile finds its own angle
+
+   One solver reaches both, which is what makes the second answer cheap: sand is
+   not a simpler simulation, it is the same one with the rotation taken out. See
+   decision 166. */
+const GRAVITIES = {off:'Off', sand:'Sand', tumble:'Tumbling'};
+const gravityMode = ()=>{
+  const g = S.look && S.look.gravity;
+  return GRAVITIES[g] && g!=='off' ? g : 'off';
+};
+const gravityOn = ()=> gravityMode()!=='off';
+/* Which way is down. Straight down the board unless the phone is asked, and
+   then it is wherever the phone is leaning — the same sensor the shelf's own
+   cavity reads, so a desk with both on slides and pours together. A Mac has no
+   gyroscope, so it is a phone answer and says so by simply not being one. */
+const gravityTilts = ()=> gravityOn() && !!(S.look && S.look.gravitytilt) && S.device!=='desk';
+
 /* ---- the holding space --------------------------------------------------
    A drawer along the bottom of a phone that holds things while you carry them
    somewhere else — the desk's own hand. An object put in it is parented to
@@ -2398,7 +2428,8 @@ export { homeFor, ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds,
   shapeOf, READS, readOf, spreadOf, OPENINGS, openingOf, gathersOf, gatherKind, containers,
   deskIds, deskList, isDesk, deskOf, deskHere,
   placeOf, isHeld, heldObjects, heldCount,
-  TILT_MODES, tiltMode, tiltsDesk, tiltsWindows, tiltClasses, shelfDepth, bookDepth, standsProud, shelfTurn, FACE_CUES, faceCue, anyFaceCue, CUE_DIR, cueFlipped, cueSign,
+  TILT_MODES, tiltMode, tiltsDesk, tiltsWindows, tiltClasses,
+  GRAVITIES, gravityMode, gravityOn, gravityTilts, shelfDepth, bookDepth, standsProud, shelfTurn, FACE_CUES, faceCue, anyFaceCue, CUE_DIR, cueFlipped, cueSign,
   spanOf, coversDay, lastDay, lateOn, isLate,
   boardLocked,
   PRIOS, prioOf, prioName, DIFFS, diffOf, diffName,

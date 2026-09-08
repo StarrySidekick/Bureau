@@ -8,7 +8,7 @@ import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, chi
   knobSizeOf, answered, sortOf, spanOf, coversDay, lateOn, isLate, iconOf, textSizeOf,
   isPicture, isMedia, isPlayable, isDecor, mediaTypeOf, frameOf, isWindow,
   boardLocked, prioOf, repeatSaid, urgencyOf, urgeSaid, durSaid, standsProud, shelfDepth, bookDepth, faceCue, anyFaceCue,
-  calViewOf, weekStartOf, calCols, borderOf, textureOf, marginOf, isFragmentKind } from './model.js';
+  calViewOf, weekStartOf, calCols, borderOf, textureOf, marginOf, isFragmentKind, gravityOn } from './model.js';
 import { CELL, gridOf, drawCols, drawRows, lay, overlaps, boxOk, freeSpot, anySpot, roomFor, gridRows, sizeOfKind,
   ensureBox, shelfRows, shelfOrigin, shelfAt, colsOf } from './grid.js';
 import { create, toast, fits, toggleDone, someKind, ctlSpec, ctlSaid, ctlIsOn,
@@ -1870,7 +1870,7 @@ function gridOfContainer(cid){
      been cut into pieces. The checkerboard is one surface and it runs straight
      through; which shelf you are on is answered by the map of dots in the bar,
      which is a thing you can aim at rather than a line you have to read. */
-  return `<div class="grid g-${dv}${arr===true?' arranging':''}${boardLocked()?' locked':''}${sorted?' sorted':''}${S.look.pinned?' pinboard':''}"
+  return `<div class="grid g-${dv}${arr===true?' arranging':''}${boardLocked()?' locked':''}${sorted?' sorted':''}${S.look.pinned?' pinboard':''}${gravityOn()?' falling':''}"
        id="drawergrid" data-gridfor="${c.id}"
        style="${boardVars}--cols:${cols};--rowh:${g.rowh}px;--checkerx:${2*colw}px;--checkery:${2*g.rowh}px;grid-auto-rows:${g.rowh}px;grid-template-rows:repeat(${Math.max(rows,1)},${g.rowh}px)">${tiles}
   </div>`;

@@ -5,6 +5,23 @@ Sequenced by dependency, not appetite: item 1 makes everything after it safer.
 
 ---
 
+## 0w. Asked 2026-09-08 — the board lets go — DONE (v1.63)
+
+Timothy, in his own words: *"the ability to flip a setting switch and then have
+everything in the current shelf be subject to, like, a simple form of downward
+gravity… one where it's just a simple downward force so objects don't tilt, and
+they just kinda fall down almost like sand in Minecraft. And then I wanna try
+one where they actually can tilt and, like, sit on top of each other so that
+they're kind of, like, active physics objects."*
+
+Both, and they are one solver a single number apart: **Sand** is that solver
+with rotation taken out, **Tumbling** is it with rotation let back in. Settings →
+Appearance → Gravity, and there is a control for it that can go on the board.
+Nothing in the model moves — every box stays in its cell and the fall is a
+transform over the top, so switching it off is the arrangement you had. You can
+pull one out of the heap and throw it, tapping one still opens it, and on a
+phone the pull can follow the phone's own lean. Decision 166.
+
 ## 0v. Queued 2026-09-08 (twenty-first pass) — the pruning — DONE (v1.62)
 
 Timothy again, in one list of twenty-one, written the same day as the twentieth

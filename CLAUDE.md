@@ -192,6 +192,7 @@ clause at the bottom of each file — that list is each module's public surface.
 | `panels.js` | `openPanel()` — **every menu in the app** — plus `openMenu()` for a popup hung off a button, the command palette (⌘K), the context menu, and `sampleObject`/`sampleTile` for drawing a type as the thing it makes. |
 | `gestures.js` | Pointer-based drag, resize, lasso, swipe. The fiddliest code in the app. |
 | `motion.js` | Every movement: `openTile()` (drawer, cabinet, curl, lift), `pop()`, and the pager that slides between boards. Nothing in it ever delays a state change. |
+| `gravity.js` | A board that has **let go** — the rigid-body solver behind Sand and Tumbling. Reads nothing but the tiles' rectangles; writes nothing but their transforms. |
 | `plans.js` | A **plan** — a saved board, in `S.plans`, captured and stamped. Not an object and not on any grid. |
 | `guide.js` | The **specimen book** — every aesthetic and everything each one dresses, generated out of the running app. `guideDoc()` builds it, `openGuide()` shows it. |
 | `persist.js` | localStorage read/write, **versioned `MIGRATIONS`**, JSON export/import, IndexedDB image assets, the paste bridge. |
@@ -264,6 +265,34 @@ paper blank — the clamp was doing a job the box already does. `BODY_ON_FACE` i
 `tiles.js` is the character cut, and it is deliberately larger than any face can
 show. Cut the text *then* escape it: slicing the escaped string cuts through an
 `&amp;` and prints the entity.
+
+**The board can let go, and nothing in the model moves when it does.**
+`S.look.gravity` — `off | sand | tumble`, read with `gravityMode()` — and
+everything on the shelf you are looking at falls into a heap at the bottom of
+it. `gravity.js` is a real rigid-body solver, and its whole safety argument is
+that the boxes are untouched: a body's *home* is the rectangle its tile was
+drawn in, the fall is a `transform` over the top, and switching it off is the
+arrangement you had to the pixel. **One solver, two answers, one number apart**
+— sand sets `1/I` to zero so a body cannot turn, exactly as a wall's zero mass
+makes it immovable; tumbling gives it real inertia. Don't write sand as its own
+little system: it is not a simpler simulation, it is this one with the rotation
+taken out.
+
+Four things in it were learned by looking and will bite anyone who changes them.
+**A leftover substep is a bomb**: the overlap bias is `BIAS/dt`, so running a
+frame's seven-microsecond remainder as a short step fires hundreds of pixels a
+second into every contact and a settled pile shivers for ever — whole steps
+only, remainder carried. **A perfect grid falls into a perfect heap**, which is
+correct physics of an impossibly precise release and looks identical to sand, so
+a tumbling body starts a few degrees off true with a little spin and a shove, all
+three off a hash of its own id (the pinboard's trick, decision 75, for the same
+reason: the same board falls the same way twice). **The pen is a shelf** — on a
+Mac the shelf-*row* you have scrolled to, not the whole nine-shelf board, or
+flipping the switch tips the desk two screens below the one you are looking at.
+And the **switch does not render**: turning it off has to walk the tiles home,
+and a render replaces every one of them with a fresh element already sitting
+there. `gravityApply()` patches the class and drives the settle, the way
+`markTilt()` does. See decision 166.
 
 **Things come out of a new object as it lands, and that one is physics.**
 `spray(x, y, id)` / `sprayAt(id)` in motion.js: stars, rings, spirals and bars

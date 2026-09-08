@@ -24,6 +24,7 @@ import { openPanel, closePanel, refreshPanel, panelKey, panelBack, draft, modalN
 import { onDown, onMove, onUp, onCancel, onTouchStart, onTouchMove, onTouchEnd,
   gestureFlags, dragArmed } from './gestures.js';
 import { enter, leaveTile, pagerOn, applyTilt, askTilt } from './motion.js';
+import { gravityApply, gravityWake } from './gravity.js';
 import { planFrom, stampPlan, planById, delPlan, planSize, renamePlan } from './plans.js';
 import { save, writeNow, exportBackup, importBackup, importFile, imgFor, pasteObjects, install , assetDel } from './persist.js';
 
@@ -1033,6 +1034,39 @@ function wire(){
     if(spr){ const v = spr.dataset.spray;
       if(v) S.look.spray = v; else delete S.look.spray;
       save(); render(); refreshPanel(); return; }
+
+    /* ---- the board lets go ------------------------------------------
+       Deliberately **no render**. Turning it off has to walk the tiles back to
+       their cells, and a render replaces every one of them with a fresh element
+       already sitting at home — so there would be nothing left to animate.
+       `gravityApply()` patches the class and drives the settle, the way
+       `markTilt()` patches the tilt classes, and the next ordinary render
+       states it from `S.look` like everything else. See decision 166. */
+    const grv=t.closest('[data-gravity]');
+    if(grv){
+      const v=grv.dataset.gravity;
+      // off is the default, so it is deleted rather than stored — a key that
+      // means "no" in every backup is a key nobody needed
+      if(v && v!=='off') S.look.gravity=v; else delete S.look.gravity;
+      save(); gravityApply(); refreshPanel(); return;
+    }
+    /* Down the board, or wherever the phone is leaning. Same shape as the
+       parallax switch and for the same reason: iOS will only consider the
+       question inside a user gesture, which is this click and nothing else. */
+    const grt=t.closest('[data-gravitytilt]');
+    if(grt){
+      const want = !!grt.dataset.gravitytilt;
+      (async ()=>{
+        if(want && !(await askTilt())){
+          toast('iPhone would not give Bureau its motion sensor');
+        } else {
+          if(want) S.look.gravitytilt = true; else delete S.look.gravitytilt;
+          save();
+        }
+        applyTilt(); gravityWake(); refreshPanel();
+      })();
+      return;
+    }
 
     // laid flat on the board, or pinned to it — see decision 75
     const pnb=t.closest('[data-pinned]');
