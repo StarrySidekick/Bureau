@@ -14,7 +14,7 @@ import { CELL, gridOf, drawCols, drawRows, lay, overlaps, boxOk, freeSpot, anySp
 import { create, toast, fits, toggleDone, someKind, ctlSpec, ctlSaid, ctlIsOn,
   ctlForm, ctlNum, ctlIndex, ctlPress } from './mutations.js';
 import { DECOR, decorOf, decorSVG, LIFE_ART, lifeSVG } from './decor.js';
-import { hexOf, objColour, dress, dressAs, OBJ0, OBJN, CHECKS } from './look.js';
+import { hexOf, objColour, dress, dressAs, OBJ0, OBJN, CHECKS, bestInk } from './look.js';
 import { render } from './views.js';
 import { openObj, openWriter, openRead, openViewer } from './sheet.js';
 import { objectPanel, schedulePanel } from './panels.js';
@@ -255,13 +255,16 @@ function calSoon(o, n){
    the same piece of paper twice. Exactly `tiltOf()`'s trick, for exactly its
    reason. See decision 145. */
 function tornOf(o){
-  /* **The shape, or the family.** It was the family alone, which made the best
-     edge in the app a thing only ten types could have. It is a shape now —
-     anyone can pick "Torn edge" — and a fragment still wears it without
-     choosing, because what makes a fragment is that it came out of something
-     and not what it is drawn on. That is why this is an `||` and not a
-     default: a scene keeps its punched page *and* its tear. */
-  if(shapeOf(o)!=='torn' && !isFragmentKind(o.kind)) return '';
+  /* **The shape, or the family — but the object gets the last word.** A
+     fragment wears the tear without choosing, because what makes a fragment is
+     that it came out of something and not what it is drawn on. That is still
+     an `||` and not a default, so a scene keeps its punched page *and* its
+     tear. What it must not be is a thing you cannot decline: `o.shape` is the
+     object saying so itself, and until this read it, picking any other shape
+     for a scene left the tear on it for ever with no way back. Saying `torn`
+     outright still tears anything. */
+  if(shapeOf(o)==='torn') { /* asked for outright */ }
+  else if(!(isFragmentKind(o.kind) && !o.shape)) return '';
   let h=0; const id=String(o.id);
   for(let i=0;i<id.length;i++) h=(h*31 + id.charCodeAt(i)) >>> 0;
   return ` tornedge torn${h%3}`;
@@ -856,6 +859,13 @@ function drawTileFace(o, arr, box, persp){
     const any=makesAnything(o);
     const big = box.w>1 || box.h>1;
     const made = genSaid(o);
+    /* **The spiral is drawn on a square press and nowhere else.** It is a mark
+       that winds out from its own middle, so it wants a middle to wind out
+       from — on a four-by-one band it sat in the left-hand cell as a stamp
+       beside a line, which is a badge rather than a press. A square spawner is
+       the spiral; an oblong one is the box you type into, and pressing it is
+       pressing the tile. */
+    const round2 = box.w===box.h;
     /* One cell square, the spiral **is** the tile: no ground, no edge, no
        shadow, drawn in the object's own colour and filling the cell. A
        coloured square with a small mark on it is a button carrying a picture
@@ -867,12 +877,12 @@ function drawTileFace(o, arr, box, persp){
        into filling the rest, which is the shape a thing you press and a thing
        you type into share. */
     return `<${big?'div':'button'} class="drawer ${
-        big?`otile ${paper(o)} genbig`:'gensolo bd-none'} sh-press gentile${
+        big?`otile ${paper(o)} genbig${round2?' gensquare':''}`:'gensolo bd-none'} sh-press gentile${
         any?' genany':''}${sel}" data-row="${o.id}"
         ${big?'role="button" tabindex="0"':''}
         title="${esc(o.title||('New '+made))}" style="--c:${colour};${place}">
       ${chips}
-      <span class="genico">${ic(any?'sparkle':'spiral', big?22:26)}</span>
+      ${!big || round2 ? `<span class="genico">${ic(any?'sparkle':'spiral', big?22:26)}</span>` : ''}
       ${big?`<input class="fieldin" data-fieldfor="${o.id}"
           placeholder="${esc(o.title||('New '+made+'…'))}">`:''}
       ${handles}
@@ -1251,10 +1261,18 @@ function drawTileFace(o, arr, box, persp){
         style="grid-column:${b.x}/span ${b.w};grid-row:${b.y}/span ${b.h};${
         img?`background-image:url('${esc(img)}')`:`--k:${objColour(x)}`}"></i>`;
     });
-    return `<button class="drawer dtile mbtile ${dress(o,'bd')}${sel}" data-drawer="${o.id}" style="--c:${colour};${place}">
+    /* **No name band.** A collage is the arrangement and nothing else — a
+       moodboard with a caption stapled under it is a moodboard with a caption
+       stapled under it, and the strip was taking a row off every wall to print
+       a word the tooltip already carries. The **rollup** stays: a container
+       that has been asked to report a number says it on every face, and a face
+       that quietly stopped would be the bug decision 148 named. It sits in the
+       corner rather than in the band that used to carry it. */
+    return `<button class="drawer dtile mbtile ${dress(o,'bd')}${sel}" data-drawer="${o.id}"
+        title="${esc(o.title||'Untitled')}" style="--c:${colour};${place}">
       <div class="mbwall" style="--mbcols:${g.cols};--mbrows:${rows}">${cells.join('')
         || '<span class="clempty">Open it and arrange some pictures</span>'}</div>
-      <span class="mbname">${esc(o.title||'Untitled')}${rollTag(o)}</span>
+      ${rollTag(o)}
       ${handles}
     </button>`;
   }
@@ -1628,20 +1646,10 @@ function drawTileFace(o, arr, box, persp){
       ${handles}
     </div>`;
   }
-  if(shapeOf(o)==='spine'){
-    /* The `<b>` is the measuring frame, the same as on a container's spine —
-       the vertical writing mode lives on it, so a spine without one prints its
-       title across the book. A binding is a container's, so this one wears no
-       `bn-` class and keeps the head and tail bands it has always had. */
-    return `<button class="drawer otile ${paper(o)} sh-spine spinetile${sel}"
-      data-row="${o.id}" style="--c:${colour};${place}">
-      ${chips}
-      <span class="spinetop"></span>
-      <span class="spinetitle"><b>${esc(o.title||'Untitled')}</b></span>
-      <span class="spinefoot"></span>
-      ${handles}
-    </button>`;
-  }
+  /* A **book spine on an object** used to be a shape here. It is gone: a
+     container one cell wide is already drawn as a spine (the branch above), and
+     what a bare object drawn spine-on says is only that its title is sideways.
+     The face is still `spine` on a container, which is where a book lives. */
   if(shapeOf(o)==='quote'){
     return `<button class="drawer otile ${paper(o)} sh-quote quotetile${sel}" data-row="${o.id}" style="--c:${colour};${place}">
       ${chips}
@@ -1695,11 +1703,27 @@ function drawTileFace(o, arr, box, persp){
      time and the engraving never showed. Every other tile that steps out of the
      border system carries a name for exactly this reason: `goaltile`,
      `bartile`, `cnttile`, `spinetile`. */
+  /* **The engraving is read against the plate, not assumed.** A drawer's ink
+     is light because a drawer front is a solid mid-dark colour; a plaque is
+     cast in the object's own slot, and eleven of those are pale — so a light
+     engraving on a pale brass read as a watermark. Two candidates and the
+     better one wins, the same argument `spineReads` makes for gilt: the metal
+     changes, the design does not. Written as a property so the stylesheet
+     keeps the engraved lip under it either way. */
   const plaque = shapeOf(o)==='plaque' ? ' plaquetile' : '';
+  const plaqueInk = plaque ? (()=>{
+    /* The plate's own mid tone — the gradient runs dark, light, dark round the
+       object's colour, so the middle band is what the letters actually sit on.
+       Two candidates, and the one with the better ratio wins; a threshold on
+       lightness hands a mid brass whichever it tested first and loses. */
+    const ink = bestInk(colour, ['#F7F1E1', '#1E1710']);
+    return `--plink:${ink};--plcut:${
+      ink==='#F7F1E1' ? 'rgba(0,0,0,.55)' : 'rgba(255,255,255,.55)'};`;
+  })() : '';
   return `<${raw?'div':'button'} class="drawer otile ${paper(o)} sh-${shapeOf(o)}${plaque}${o.edge?' edge':''}${sel}${
       edit?' editing':''}${
       asks?(answered(o)?' answered':' unanswered'):''}${prioOf(o)!=null?' prio-'+prioOf(o):''}" data-row="${o.id}"
-    style="--c:${colour};${has(o,'progress')?`--pct:${barPct(o)}%;`:''}${place}">
+    style="--c:${colour};${plaqueInk}${has(o,'progress')?`--pct:${barPct(o)}%;`:''}${place}">
     ${chips}
     <div class="dtop">
       ${has(o,'check')?`<span class="check tilecheck${o.done?' on':''}" data-check="${o.id}">${ic('check',12)}</span>`:''}
@@ -1840,16 +1864,15 @@ function gridOfContainer(cid){
   // this board's own cell, derived from the measured width and its columns —
   // not the cell of whichever board happened to be measured last
   const colw = g.rowh;
-  /* The seams between shelves, drawn only where more than one is on the screen
-     at once — a Mac, where the middle row of three is all visible. They are the
-     one thing that says the board is *nine* rather than one wide one, and they
-     are a background rather than elements: a gradient with a hard stop every
-     `shelfW` columns costs nothing and cannot be dragged. */
-  const seams = dv!=='phone' && (g.shelves.w>1 || g.shelves.h>1)
-    ? `--seamx:${g.shelfW*g.rowh}px;--seamy:${g.shelfH*g.rowh}px;` : '';
-  return `<div class="grid g-${dv}${arr===true?' arranging':''}${boardLocked()?' locked':''}${sorted?' sorted':''}${S.look.pinned?' pinboard':''}${seams?' shelved':''}"
+  /* **No seams.** A hairline every shelfW columns was there to say the board is
+     nine screens rather than one wide one, and on a Mac — where three of them
+     are on the screen at once — what it actually said was that the paper had
+     been cut into pieces. The checkerboard is one surface and it runs straight
+     through; which shelf you are on is answered by the map of dots in the bar,
+     which is a thing you can aim at rather than a line you have to read. */
+  return `<div class="grid g-${dv}${arr===true?' arranging':''}${boardLocked()?' locked':''}${sorted?' sorted':''}${S.look.pinned?' pinboard':''}"
        id="drawergrid" data-gridfor="${c.id}"
-       style="${boardVars}${seams}--cols:${cols};--rowh:${g.rowh}px;--checkerx:${2*colw}px;--checkery:${2*g.rowh}px;grid-auto-rows:${g.rowh}px;grid-template-rows:repeat(${Math.max(rows,1)},${g.rowh}px)">${tiles}
+       style="${boardVars}--cols:${cols};--rowh:${g.rowh}px;--checkerx:${2*colw}px;--checkery:${2*g.rowh}px;grid-auto-rows:${g.rowh}px;grid-template-rows:repeat(${Math.max(rows,1)},${g.rowh}px)">${tiles}
   </div>`;
 }
 
@@ -2058,25 +2081,11 @@ function bookView(c, items){
   </div>`;
 }
 
-/* Scroll view: the same list, but nothing is truncated. Every object's whole
-   body, one after another, for reading a drawer rather than scanning it. */
-function scrollEntry(o){
-  const k=K(o.kind);
-  return `<article class="scrollentry" data-row="${o.id}" style="--k:${objColour(o)}">
-    <header>
-      ${has(o,'check')?`<span class="check${o.done?' on':''}" data-check="${o.id}">${ic('check',12)}</span>`:`<span class="kindmark">${ic(k.ic,13)}</span>`}
-      <h3${o.done?' class="done"':''}>${esc(o.title||'Untitled')}</h3>
-      ${o.due?`<span class="mchip">${esc(dateSaid(o))}</span>`:''}
-      ${deadSaid(o)?(u=>`<span class="mchip deadchip${u?' u'+u.rank:''}${
-        !(has(o,'deadline')&&o.dead)?' soft':''}${isLate(o)?' late':''}"${
-        u?` title="${esc(urgeSaid(o))}"`:''}>${esc(deadSaid(o))}</span>`)(urgencyOf(o)):''}
-      ${(o.tags||[]).map(t=>`<span class="mchip tag" data-tagdrawer="${esc(t)}">${esc(t)}</span>`).join('')}
-    </header>
-    ${has(o,'media')&&o.media&&o.media.src?`<img class="scrollimg" src="${esc(o.media.src)}" alt="${esc(o.title||'')}">`:''}
-    ${o.body?`<div class="prose">${md(o.body)}</div>`:''}
-  </article>`;
-}
-
+/* **Scroll view is gone.** It was a container layout — the same list with
+   nothing truncated — reachable from one button in the bar, and that button is
+   a grid/list toggle again. Reading a whole drawer end to end is what a book
+   is for; reading one object is what its own page is for, and `read: scroll`
+   (the *object's* setting, a different thing entirely) is untouched. */
 export { spinTo, CLICKS, clickOf, fireButton, tileTap, pending, placeAtPending, SHELFSHIFT,
-  gridTile, gridOfContainer, listTile, scrollEntry, bookOf, bookView, sheetOf, turnPage, clearPages,
+  gridTile, gridOfContainer, listTile, bookOf, bookView, sheetOf, turnPage, clearPages,
   calSpan };

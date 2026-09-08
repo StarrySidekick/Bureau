@@ -315,10 +315,36 @@ function freeSpot(w,h,device,parentId,prefer){
   }
   return null;
 }
+/* ---- room for one this size, or the largest one there is room for ------
+   `freeSpot` asks one question: is there a hole exactly this shape? On the
+   Desk, twenty-four columns wide, the answer is nearly always yes. Inside a
+   **drawer** it is eight columns wide and one tile in the middle of a row is
+   enough to mean there is no six-by-four hole anywhere on a board that is
+   three quarters empty — which is what "it says there is no room and there
+   very obviously is" was. A person looking at that board is not asking for a
+   six-by-four hole; they are asking whether the thing can go in the drawer.
+
+   So this steps the **long side** down a cell at a time and asks again, which
+   keeps the shape as long as it can and gives up the proportion before it
+   gives up the object. Null only when a single cell will not fit, which is a
+   board that really is full — and that is still a refusal, because an object
+   with nowhere to be is worse than no object (decision 46).
+
+   The first ask is the common case and costs exactly what it always did. */
+function fitSpot(w,h,device,parentId,prefer){
+  let a=Math.max(1,w|0), b=Math.max(1,h|0);
+  for(let i=0;i<12;i++){
+    const spot=freeSpot(a,b,device,parentId,prefer);
+    if(spot) return spot;
+    if(a<=1 && b<=1) return null;
+    if(a>=b) a--; else b--;
+  }
+  return null;
+}
 /* Is there room for one of these here? The question every maker has to ask
    before it makes anything, so that "it won't fit" is said *before* an object
    exists rather than after it has nowhere to go. */
-const roomFor = (w,h,device,parentId,prefer)=> !!freeSpot(w,h,device,parentId,prefer);
+const roomFor = (w,h,device,parentId,prefer)=> !!fitSpot(w,h,device,parentId,prefer);
 /* freeSpot(), but **never null**. An object that already exists has to be
    somewhere: with no box it is invisible and unreachable, which is worse than
    one sitting on top of another. So a full board puts it in the corner of the
@@ -441,7 +467,9 @@ function ensureBox(o, device, parentId){
   /* `anySpot` rather than `freeSpot`: an object being placed for the first
      time already exists, so it has to end up somewhere even on a full board.
      See the note there. */
-  o[dv] = freeSpot(w, h, dv, home) || anySpot(dw, dh, dv, home);
+  /* `fitSpot` rather than `freeSpot`: the same step-down `fits()` agreed to
+     before the object was made, so what was promised is what arrives. */
+  o[dv] = fitSpot(w, h, dv, home) || anySpot(dw, dh, dv, home);
   PLACED.n++;
   return o[dv];
 }
@@ -467,6 +495,6 @@ function cellW(grid,g){
 
 export { GRID, PHONE_GRIDS, PHONE_MAX_H, PHONE_MAX_NEW, CELL, COLW, MEASURE,
   SHELVES, DESK_SHELF_COLS, colsOf, gridKeyOf, shelvesOf,
-  shelfRows, shelfOfBox, shelfAt, setShelf, shelfOrigin, SHELF,
+  shelfRows, shelfOfBox, shelfAt, setShelf, shelfOrigin, SHELF, fitSpot,
   gridOf, drawCols, drawRows, lay, overlaps, boxOk, freeSpot, anySpot, roomFor, gridRows, sizeOfKind, toPhoneSize,
   ensureBox, keepSize, cellW, PLACED };

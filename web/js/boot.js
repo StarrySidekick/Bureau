@@ -4,7 +4,7 @@
 import { $ } from './util.js';
 import { plans, planFrom, stampPlan, planById, planSize, delPlan } from './plans.js';
 import { refreshKinds } from './model.js';
-import { S, KINDS, SHAPES, SORTS, childrenOf, container, relate, deskOf, has, lateOn, isLate, knobOf,
+import { S, KINDS, SHAPES, shapeChoices, SORTS, childrenOf, container, relate, deskOf, has, lateOn, isLate, knobOf,
   urgencyOf, urgeSaid, workday,
   isContainer, faceOf, PRIMARY, isPrimary, inFamily, barPct, marginOf, marginPlus,
   prioOf, repeatOf, repeatSaid, nextRepeat, boardLocked, BINDINGS, bindingOf, PANELS, panelOf,
@@ -89,7 +89,7 @@ if('serviceWorker' in navigator){
 window.BUREAU = {
   get state(){ return S; }, render, create, save: writeNow, saveSoon: save,
   get K(){ return KINDS; },
-  get shapes(){ return SHAPES; },
+  get shapes(){ return SHAPES; }, shapeChoices,
   // every aesthetic there is, so a test can walk them all rather than
   // hardcode a list that goes stale the moment one is added or dropped
   get styles(){ return STYLES; },

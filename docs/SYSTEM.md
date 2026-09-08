@@ -281,9 +281,11 @@ area of your life has no end for a percentage to be a fraction of — decision
 cells a side, the month grid from there, titles in the cells at twelve by six —
 see decision 80), `moodboard`, `timeline`.
 
-**Layout** — how it arranges its children once opened: `grid`, `list`, `scroll`
-(nothing truncated — for reading a drawer rather than scanning it), plus
-`checklist`, `calendar` and `timeline` for anything that isn't the desk.
+**Layout** — how it arranges its children once opened: `grid` or `list`, which
+is the toggle in the bar, plus `book`, `calendar` and `timeline` for anything
+that isn't the desk. (`scroll` — the list with nothing truncated — is gone;
+migration 33 reads one as a list. The *object's* own `read: scroll` is a
+different property and is untouched.)
 
 Face and layout are two properties because they are two questions. A Checklist
 is `face:checklist, layout:list`, and any container can wear any face.
@@ -399,7 +401,7 @@ filter bar. Clicking a tag calls `drawerForTag()`, which finds the magic drawer
 collecting that tag or makes one. If a filter UI ever seems necessary, the
 answer is a drawer.
 
-### 7a. The holding space
+### 7a. The Void Drawer
 
 The drawer along the bottom of a phone is not only a handle: it **holds
 things**. Pick a tile up and it stands ajar; carry the tile down and let go and
@@ -419,15 +421,24 @@ furniture, rather than a "Where it lives" row in a form.
   before scope and before the archive. Otherwise "everything unfinished" would
   draw a held task back onto the board it was just taken off, and it would be
   in two places — which §3 says cannot happen.
-- **It is reachable from three places.** The drag (a phone), "Keep in the
-  drawer" on the context menu (both devices), and ⌘K, which lists Holding
-  whenever there is anything in it — a Mac has no rail to pull, and a drawer
-  you cannot open is a drawer things go missing in.
+- **It is called the Void Drawer**, and the knob it comes out of is the **Home
+  Knob**. Both had no name for a long time, which meant neither could be
+  referred to — not in the interface and not in these notes.
+- **It is reachable from four places.** The drag (a phone), the drag onto the
+  Home Knob (a Mac), "Keep in the drawer" on the context menu (both devices),
+  and ⌘K, which lists it whenever there is anything in it — a drawer you cannot
+  open is a drawer things go missing in.
 - **The rail's pull has two detents.** A little way opens the drawer onto what
   is in it; the whole way pulls the drawer out of the desk, which is the
   new-object picker. The long one is unchanged.
+- **On a Mac the knob floats.** A Mac window has no strip of carcass below the
+  board for a drawer front to be — the board fills it and scrolls — so the same
+  knob stands on its own, fixed in the bottom right corner. A tap goes home; a
+  drag inside its own ring opens the Void Drawer; a drag past the ring onto a
+  bare cell is where the next object goes; and a tile carried onto it goes into
+  the Void Drawer, which is `aimHold()` reading a circle rather than a band.
 
-See decision 107.
+See decisions 107 and 165.
 
 ### 7b. The cavity
 
@@ -523,8 +534,8 @@ of four things layered over them.
 | Surface | What it is for | Where it lives |
 | --- | --- | --- |
 | **The grid** | The app. | `#app`, rebuilt whole by `render()` |
-| **The bar** | Where you are — pressing it opens every desk at once — a dot per desk with the one you are on lit, and three icon buttons: the lock, this board's editor (a brush), and the app's settings (a gear, on a desk only). Inside a drawer the gear's place is the star, which promotes it to a desk. | inside `#app` |
-| **The carcass** | The wood the app is made of. Everything above the board is one piece of it — the notch strip, the bar and the reveal under it — and along the bottom of a phone is the desk's own drawer front. It holds nothing. Tap its knob to come out a level; pull it up for the type picker. Its knob, texture and colour are rows in that desk's editor. | inside `#app` |
+| **The bar** | Where you are — pressing it opens the shelf map — the square of shelf dots with the one you are on lit, and four icon buttons: the lock, grid-or-list, one of anything (a spiral), this board's editor (a brush), and the app's settings (a gear, on a desk only). | inside `#app` |
+| **The carcass** | The wood the app is made of. Everything above the board is one piece of it — the notch strip, the bar and the reveal under it — and along the bottom of a phone is the desk's own drawer front. Tap its **Home Knob** to come out a level; pull it a little for the Void Drawer and the whole way for the type picker. On a Mac the same knob floats in the bottom right corner. Its shape, size, texture and colour are rows in that desk's editor. | inside `#app` |
 | **Reading** | An object's body as paper — a spread, a page, or a column. Over a dimmed desk. | `#sheetHost`, rendered separately from `render()` |
 | **Writing** | The same body, full screen, with nothing else on it. A title and a textarea. | `#sheetHost` |
 | **The media** | What something made of a file opens onto: a picture as large as the window allows, a sound or a video with the browser's own transport, and — when there isn't one yet — the empty mount, which *is* the button that chooses a file. Replace and Remove in the head. | `#sheetHost` |
