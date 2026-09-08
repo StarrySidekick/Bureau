@@ -97,6 +97,33 @@ const COLW = {desk:40, phone:48};
    it. Boards differ from each other only in columns; the room is the room. */
 const MEASURE = {desk:{w:0, room:0}, phone:{w:0, room:0}};
 
+/* ---- a phone turned on its side ----------------------------------------
+   Bureau is a **portrait desk**: a shelf is a screenful of a phone held the way
+   a phone is held, and landscape is not a second layout.
+
+   Measuring one anyway is what made turning the phone look like losing the
+   desk. A landscape screen has about a quarter of the vertical room, so the
+   shelf re-measured from fifteen rows to four — and a shelf is *also* the unit
+   the window is cut from, so the middle shelf of nine became rows five to
+   eight of a twelve-row space, which is a slice of the coordinate space with
+   nothing in it. The board went **blank**: a giant empty checkerboard, until
+   you turned the phone back. Nothing was lost, and it read exactly like
+   everything being lost, which is worse than most bugs that are.
+
+   So nothing is measured while it is on its side. The board holds the geometry
+   it had and the stylesheet keeps it its own width, so the cells stay square
+   and you see the top of your desk through a letterbox; turn it back and it is
+   where it was. The manifest asks for portrait too, which is what an installed
+   copy honours — this is what happens when it is not.
+
+   `S.device`, not `dev()`: this is a question about the screen in your hand,
+   and `dev()` answers with whichever *layout* is being edited, so a Mac editing
+   the phone layout is a wide window and is not a phone on its side. And only
+   once there is a measurement to hold on to, or a launch in landscape would
+   never place anything at all. */
+const sideways = ()=> S.device==='phone' && MEASURE.phone.w > 0
+  && window.innerWidth > window.innerHeight;
+
 /* Which board a call is about when it doesn't say: the one you are looking at. */
 const hereId = ()=> (S.view==='drawer' && S.drawerId) || ROOT;
 /* Small | extra | large, resolved: the board's own answer, then the desk it is
@@ -493,7 +520,7 @@ function cellW(grid,g){
   return (r.width - g.gap*(n-1))/n;
 }
 
-export { GRID, PHONE_GRIDS, PHONE_MAX_H, PHONE_MAX_NEW, CELL, COLW, MEASURE,
+export { GRID, PHONE_GRIDS, PHONE_MAX_H, PHONE_MAX_NEW, CELL, COLW, MEASURE, sideways,
   SHELVES, DESK_SHELF_COLS, colsOf, gridKeyOf, shelvesOf,
   shelfRows, shelfOfBox, shelfAt, setShelf, shelfOrigin, SHELF, fitSpot,
   gridOf, drawCols, drawRows, lay, overlaps, boxOk, freeSpot, anySpot, roomFor, gridRows, sizeOfKind, toPhoneSize,

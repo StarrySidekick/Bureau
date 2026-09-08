@@ -9,7 +9,7 @@ import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, chi
   isPicture, isMedia, isPlayable, isDecor, mediaTypeOf, frameOf, isWindow,
   boardLocked, prioOf, repeatSaid, urgencyOf, urgeSaid, durSaid, standsProud, shelfDepth, bookDepth, faceCue, anyFaceCue,
   calViewOf, weekStartOf, calCols, borderOf, textureOf, marginOf, isFragmentKind, gravityOn } from './model.js';
-import { CELL, gridOf, drawCols, drawRows, lay, overlaps, boxOk, freeSpot, anySpot, roomFor, gridRows, sizeOfKind,
+import { CELL, gridOf, drawCols, drawRows, lay, overlaps, boxOk, freeSpot, anySpot, roomFor, gridRows, sizeOfKind, sideways,
   ensureBox, shelfRows, shelfOrigin, shelfAt, colsOf } from './grid.js';
 import { create, toast, fits, toggleDone, someKind, ctlSpec, ctlSaid, ctlIsOn,
   ctlForm, ctlNum, ctlIndex, ctlPress } from './mutations.js';
@@ -477,8 +477,14 @@ function placeAtPending(o){
      nothing and the coordinate was measured somewhere the object is not going.
      See homeFor() in model.js. */
   if(!pending.cell || pending.cell.x==null){
+    /* A **size with no place**, which is what a sketch on a falling board
+       leaves behind: the cells there are not where the tiles are, so the
+       coordinate is dropped and the box you dragged out is not. */
+    const said = pending.cell && pending.cell.w
+      ? [pending.cell.w, pending.cell.h] : null;
     pending.cell=null;
-    const [w,h]=sizeOfKind(o.kind, dv, o.parent); o[dv]=o[dv]||anySpot(w,h,dv,o.parent); return;
+    const [w,h] = said || sizeOfKind(o.kind, dv, o.parent);
+    o[dv]=o[dv]||anySpot(w,h,dv,o.parent); return;
   }
   // a sketched box wins over the kind's own size
   const [kw,kh]=sizeOfKind(o.kind, dv, pending.cell.parent);
@@ -1822,7 +1828,10 @@ function gridOfContainer(cid){
        of two screens is a tile you can read neither half of. Re-place it, once:
        the same licence ensureBox() takes to place an object that has never been
        in a grid. boxOk() stops any *new* box from straddling. */
-    if(!sorted) kids.forEach(o=>{
+    /* …and not while the phone is on its side: the shelf is not being measured
+       there (`sideways()` in grid.js), so the geometry this is comparing against
+       is the portrait one and every box already fits it. */
+    if(!sorted && !sideways()) kids.forEach(o=>{
       const b=lay(o, dv, c.id);
       if(b.w<=g.shelfW && b.h<=g.shelfH
          && Math.floor((b.x-1)/g.shelfW)===Math.floor((b.x+b.w-2)/g.shelfW)

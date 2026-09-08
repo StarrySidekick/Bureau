@@ -7,7 +7,7 @@ import { S, K, T, byId, has, isContainer, containers, container, childrenOf, cha
   TILT_MODES, tiltMode, tiltsDesk, tiltsWindows, tiltClasses, cueFlipped,
   GRAVITIES, gravityMode, gravityOn,
   URGES, workday } from './model.js';
-import { GRID, PHONE_GRIDS, CELL, COLW, MEASURE, colsOf, gridKeyOf, SHELVES, shelvesOf,
+import { GRID, PHONE_GRIDS, CELL, COLW, MEASURE, sideways, colsOf, gridKeyOf, SHELVES, shelvesOf,
   shelfRows, shelfOfBox, shelfAt, setShelf, shelfOrigin, SHELF, drawCols, drawRows,
   lay, gridOf, cellW, ensureBox, PLACED } from './grid.js';
 import { themeNow, applyLook, lookVal, STYLES, BACKDROPS, DARKMODES, darkMode, hasDark,
@@ -1288,6 +1288,14 @@ function onBoardScroll(e){
 let sizing=false;
 function sizeGrid(){
   const grid=$('#drawergrid'); if(!grid) return;
+  /* **A phone on its side measures nothing.** Landscape has about a quarter of
+     the vertical room, so measuring it cut the shelf from fifteen rows to four
+     — and the shelf is the unit the window is cut from, so the one you were
+     standing on became a slice of the board with nothing on it and the desk
+     went blank until you turned the phone back. Holding the portrait geometry
+     costs a letterboxed board while it is sideways and gives it back exactly as
+     it was. See `sideways()` in grid.js. */
+  if(sideways()) return;
   const g=gridOf(), w=cellW(grid,g);
   if(!(w>0)) return;
   const deskCell = ()=> MEASURE.desk.w ? MEASURE.desk.w/GRID.desk.cols : CELL.desk;

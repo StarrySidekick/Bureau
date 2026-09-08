@@ -22,6 +22,13 @@ transform over the top, so switching it off is the arrangement you had. You can
 pull one out of the heap and throw it, tapping one still opens it, and on a
 phone the pull can follow the phone's own lean. Decision 166.
 
+Three follow-ups the same day (v1.64), all one bug wearing three hats — a falling
+board's tiles are not where their boxes say they are, and everything that reads
+the model to decide what the screen means got a stale answer. A phone turned on
+its side went blank; a new object floated in its cell and then snapped to the
+heap; and the Magic Selector silently became a lasso and made nothing.
+Decision 166a.
+
 ## 0v. Queued 2026-09-08 (twenty-first pass) — the pruning — DONE (v1.62)
 
 Timothy again, in one list of twenty-one, written the same day as the twentieth

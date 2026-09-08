@@ -517,6 +517,12 @@ Each container is its own coordinate space, and every device has its own.
   so the angle never changes between renders. The gap is a margin on the tile,
   never `gap` on the grid — the grid is a coordinate space and moving it would
   move every tile out from under the drag maths. See decision 75.
+- Bureau is a **portrait desk**, and a phone on its side measures nothing:
+  `sideways()` in grid.js stops `sizeGrid()` and the straddle repair, so the
+  board holds the portrait geometry and is letterboxed until you turn back.
+  Measuring landscape cut a shelf to four rows and the window then fell on a
+  slice of the board with nothing on it. The manifest asks for `portrait` too.
+  See decision 166a.
 - A board can also be told to **let go**: `S.look.gravity` is `off | sand |
   tumble`, and on, everything on the shelf you are looking at stops being on the
   grid and falls into a heap at the bottom of it. It is a real rigid-body solver
@@ -525,7 +531,10 @@ Each container is its own coordinate space, and every device has its own.
   off is the arrangement you had. Sand is the same solver with rotation taken
   out; tumbling is it with rotation let back in. On a phone the pull can follow
   the phone's own lean (`S.look.gravitytilt`), from the sensor the cavity
-  already reads. See decision 166.
+  already reads. On such a board a tile is not where its box says it is, so
+  nothing may read a box to decide what a cell on the screen means: the Magic
+  Selector keeps the size you drag out and gives up the place. See decisions 166
+  and 166a.
 - The grid element carries no padding and no border, because `cellW()` measures
   its own rect. Decoration goes on a wrapper.
 - The cell size is never rounded. Columns are `1fr` and therefore fractional;

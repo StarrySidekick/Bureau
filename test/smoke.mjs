@@ -293,6 +293,53 @@ const CHROME = process.env.BUREAU_CHROME;
              // and the bar is thin enough to leave a real page of them
              rowsFit: BUREAU.shelfRows >= 12 };
   });
+  /* --- a phone on its side ---------------------------------------------
+     Bureau is a portrait desk, and measuring a landscape one is what made
+     turning the phone look like losing it: a quarter of the vertical room cut
+     the shelf from fifteen rows to four, and since the shelf is also the unit
+     the window is cut from, the one you were standing on became a slice of the
+     board with nothing on it — a giant empty checkerboard until you turned
+     back. Nothing measures while it is sideways now. See decision 166. */
+  const turnedSideways = await (async () => {
+    const read = () => phone.evaluate(() => ({
+      rows: BUREAU.shelfRows,
+      tiles: document.querySelectorAll('#drawergrid > .drawer').length,
+      cell: parseFloat(getComputedStyle(document.querySelector('#drawergrid'))
+              .getPropertyValue('--rowh')),
+      boxes: BUREAU.state.objects.filter(o=>o.phone)
+        .map(o=>`${o.id}:${o.phone.x},${o.phone.y},${o.phone.w},${o.phone.h}`).join('|')
+    }));
+    const was = await read();
+    await phone.setViewportSize({ width: 844, height: 390 });
+    await phone.waitForTimeout(500);
+    const on = await read();
+    /* The columns are `1fr`, so a board left to fill a screen twice as wide
+       would draw cells twice as wide as they are tall — and `cellW()` measures
+       that rect for the drag maths, so the two axes would then disagree about
+       where a cell is. The board keeps its own width instead. */
+    const square = await phone.evaluate(() => {
+      const g = document.querySelector('#drawergrid');
+      const cols = +getComputedStyle(g).getPropertyValue('--cols');
+      const colw = g.getBoundingClientRect().width / cols;
+      const rowh = parseFloat(getComputedStyle(g).getPropertyValue('--rowh'));
+      return { ok: Math.abs(colw - rowh) < 1, narrower: g.getBoundingClientRect().width < innerWidth - 40 };
+    });
+    await phone.setViewportSize({ width: 390, height: 844 });
+    await phone.waitForTimeout(500);
+    const back = await read();
+    return {
+      // the desk is still on the board rather than a slice of empty squares
+      theDeskIsStillThere: on.tiles === was.tiles && on.tiles > 0,
+      // …at the size it was, because nothing was re-measured
+      keepsItsGeometry: on.rows === was.rows && Math.abs(on.cell - was.cell) < 0.6,
+      cellsStaySquare: square.ok,
+      andTheBoardIsLetterboxed: square.narrower,
+      // nothing was rewritten, which is the one that matters
+      nothingMoved: on.boxes === was.boxes && back.boxes === was.boxes,
+      andItComesBack: back.rows === was.rows && back.tiles === was.tiles
+    };
+  })();
+
   // the sidebar and the four fixed tabs were both removed on purpose —
   // assert they are genuinely gone, and so is the shelf that replaced them
   const railGone = await phone.evaluate(() => !document.querySelector('.rail'));
@@ -6844,6 +6891,70 @@ const CHROME = process.env.BUREAU_CHROME;
       && BUREAU.gravity.report().bodies === 0;
     /* It is a control as well as a setting, and the table is the feature —
        a row there brings the tile, the press and the editor along. */
+    /* ---- what a falling board does to the two things that make objects ---
+       Both were wrong in the first pass, and both for the same reason: a tile's
+       *box* is still in the cell it was drawn in while the tile itself is in a
+       heap at the bottom, so anything that reads the model to decide what the
+       screen means gets a stale answer.
+
+       **A new object falls at once.** `justmade` animates a transform and an
+       animation beats an inline style, so the new tile sat in its cell for the
+       length of the drop-in while its body was already falling underneath, then
+       snapped to wherever the solver had got to. On a falling board the arrival
+       is the fall, and what is left of `justmade` is the ring of light. */
+    S.look.gravity = 'sand'; BUREAU.gravity.apply();
+    BUREAU.gravity.settle(900);
+    const fresh = BUREAU.create('note', {parent:'root', title:'arrives'});
+    BUREAU.render(); BUREAU.reveal(fresh.id); await nap(80);
+    const ftile = document.querySelector(`#drawergrid .drawer[data-row="${fresh.id}"]`);
+    out.aNewThingIsABodyAtOnce = !!BUREAU.gravity.report().at.find(b=>b.id===fresh.id);
+    out.andTheDropInGivesWayToTheFall = !!ftile
+      && /justmadeglow/.test(getComputedStyle(ftile).animationName || '')
+      && !/^justmade,|^justmade$/.test(getComputedStyle(ftile).animationName || '');
+    BUREAU.gravity.settle(900);
+    const fb = BUREAU.gravity.report().at.find(b=>b.id===fresh.id);
+    out.andItComesToRestInTheHeap = !!fb && Math.abs(fb.y - fb.home.y) > 4;
+    BUREAU.del(fresh.id); BUREAU.render();
+
+    /* **The Magic Selector still makes something.** The rubber band asks which
+       objects its box crosses to decide whether it is a lasso — and on a
+       falling board that finds tiles nobody can see, so every sketch quietly
+       became a selection of three things at the top of the board and made
+       nothing at all. There is no lasso on a falling board, and the cell is
+       given up while the size you dragged out is kept. */
+    BUREAU.gravity.settle(900);
+    const sketch = (()=>{
+      const grid = document.querySelector('#drawergrid');
+      const r = grid.getBoundingClientRect();
+      const cell = parseFloat(getComputedStyle(grid).getPropertyValue('--rowh'));
+      const at = {x: r.left + cell*1.5, y: r.top + cell*1.5};
+      const ev = (t, x, y) => grid.dispatchEvent(new PointerEvent(t,
+        {clientX:x, clientY:y, bubbles:true, pointerId:1, pointerType:'mouse', button:0}));
+      return {at, ev, cell};
+    })();
+    sketch.ev('pointerdown', sketch.at.x, sketch.at.y);
+    await nap(420);                                  // the hold
+    sketch.ev('pointermove', sketch.at.x + sketch.cell*2.4, sketch.at.y + sketch.cell*1.4);
+    await nap(40);
+    const ghost = document.querySelector('#drawergrid .ghost');
+    out.theBandIsASketchAndNotALasso = !!ghost && !/picking|bad/.test(ghost.className);
+    sketch.ev('pointerup', sketch.at.x + sketch.cell*2.4, sketch.at.y + sketch.cell*1.4);
+    await nap(320);
+    out.andItOpensThePicker = !!document.querySelector('#panel')
+      && document.querySelector('#panel').dataset.panel === 'newobject'
+      && S.sel.length === 0;
+    const n0 = S.objects.length;
+    const pick = document.querySelector('#panel .kindtile[data-new="note"]')
+              || document.querySelector('#panel .kindtile[data-new]');
+    if(pick){ pick.click(); await nap(500); }
+    const born = S.objects[S.objects.length-1];
+    out.andSomethingIsActuallyMade = S.objects.length === n0 + 1;
+    out.atTheSizeYouDrewIt = !!born && born[S.device] && born[S.device].w === 3;
+    if(born && S.objects.length === n0+1){ BUREAU.del(born.id); }
+    BUREAU.closePanel();
+    delete S.look.gravity; BUREAU.gravity.apply(); await nap(560);
+    BUREAU.render(); await nap(200);
+
     out.thereIsASwitchForIt = 'gravity' in BUREAU.CONTROLS;
     mine.forEach(id => BUREAU.del(id));
     S.undo = []; S.redo = []; BUREAU.render();
@@ -7203,7 +7314,7 @@ const CHROME = process.env.BUREAU_CHROME;
     pasteOk, magicOk, rollupOk, relationsOk, relationsUI,
     timeLayer, checklistBox, pluckWorks, answering, seedAndKnobs, longPress, drawerSize, tagDrawer, groupMove, dropStates,
     adaptiveTiles, bubblePanel, scrollKept, kindSizes,
-    phoneGrid, phoneMigration,
+    phoneGrid, phoneMigration, turnedSideways,
     noDupIds, undoWorks, readViews, paperSize, readPaper, readBar, movement, pager, desks, spans,
     listControls, checklistEdit, lockedNamesAreNames, perBoardGrid, newThingsAreSmall,
     picture, fronts, editor, noSelecting, selectionDropped,

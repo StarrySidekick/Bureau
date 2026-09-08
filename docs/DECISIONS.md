@@ -7178,3 +7178,58 @@ Not refused. Somebody threw a switch, and a switch somebody threw is not an
 incidental animation. The whole fall is run inside one frame and the answer
 written once: the heap is there, and nothing moved on the way. A carry is the
 exception — a hand in the pile is movement you are causing.
+
+### 166a · Three things the first pass got wrong
+
+*2026-09-08*
+
+All three came from the same place, and it is worth naming: **a falling board's
+tiles are not where their boxes say they are.** Anything that reads the model to
+decide what the screen means gets a stale answer, and the failures are quiet
+rather than loud.
+
+**A phone on its side went blank.** Bureau is a portrait desk — a shelf is a
+screenful of a phone held the way a phone is held — but `sizeGrid()` measured a
+landscape one anyway. A quarter of the vertical room cut the shelf from fifteen
+rows to four, and the shelf is *also* the unit the window is cut from, so the
+middle shelf of nine became rows five to eight of a twelve-row space: a slice of
+the board with nothing on it. A giant empty checkerboard, until you turned the
+phone back. Nothing was lost and it read exactly like everything being lost,
+which is the worse failure of the two.
+
+This mattered for gravity because pouring the desk sideways *is* the rotation
+gesture — to slide a thing to the right you lower the right edge, which is a roll
+about the screen's own normal, which is precisely what a phone reads as
+landscape. So the manifest now asks for `portrait`, which an installed copy
+honours, and `sideways()` in grid.js is what happens when it is not: nothing is
+measured and nothing is repaired while the phone is on its side, so the board
+holds the geometry it had, and the stylesheet keeps it its own width so the cells
+stay square rather than stretching `1fr` columns across a screen twice as wide —
+which would also make `cellW()` and `--rowh` disagree about where a cell is. You
+see the top of your desk through a letterbox and turn it back to exactly what you
+had.
+
+**A new object floated, then snapped.** `justmade` animates a transform, and an
+animation beats an inline style — so the new tile sat in its cell for the length
+of the drop-in while its body was already falling underneath it, and jumped to
+wherever the solver had got to when the keyframe ended. On a falling board the
+arrival **is** the fall; what is still worth having is the ring of light that
+says which one is new, which is exactly what `justmade` was before decision 81
+gave it a drop. `justmadeglow` is that, and it is the same answer reduced motion
+already gets, for the same reason: something else is doing the moving.
+
+**The Magic Selector made nothing.** Holding a bare cell and dragging out a size
+asks which objects the band crosses, to tell a sketch from a lasso — and on a
+falling board it crossed the boxes of three tiles sitting in a heap at the other
+end of the board. So every sketch decided it was a lasso, selected things you
+could not see, and made nothing. It is the same class of bug as the blank
+landscape: correct code reading a model that no longer describes the screen.
+
+A falling board therefore keeps the **size** you drag out and gives up the
+**place**: no lasso, no cell, and the object goes wherever there is room and
+falls into the heap — which is where it was going to end up whatever cell you had
+named. `placeAtPending()` grew the one case it was missing, a size that arrives
+with no position, which is also what a sketch on a sorting drawer has always
+wanted. The rail's pull was never affected, because pulling makes a thing with
+nowhere in mind and asks the model for room rather than asking the screen for a
+cell — which is why it kept working and was the clue.

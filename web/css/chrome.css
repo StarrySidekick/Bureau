@@ -4066,6 +4066,23 @@ kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--rule);border
     100%  {outline-color:transparent}
   }
 }
+/* ---- and on a board that has let go, the fall is the arrival -----------
+   `justmade` animates `transform`, and an animation beats an inline style — so
+   on a falling board the new tile sat in its cell for the length of the drop-in
+   while its body was already falling underneath it, and then snapped to wherever
+   the solver had got to. The movement belongs to gravity there; what is still
+   worth having is the **ring of light that says which one is new**, which is
+   exactly what this was before decision 81 gave it a fall. Same shape as the
+   reduced-motion answer above, and for the same reason: something else is doing
+   the moving. See decision 166. */
+@keyframes justmadeglow{
+  0%,70%{outline-color:var(--glow)}
+  100%  {outline-color:transparent}
+}
+.grid.falling > .drawer.justmade{
+  animation:justmadeglow 1s cubic-bezier(.3,0,.25,1),
+            justmadein .2s ease-out;
+}
 
 /* ---- the writing surface: the body, full screen, and nothing else ----- */
 .writescrim{position:absolute;inset:0;z-index:60;background:rgba(20,16,12,.62);backdrop-filter:blur(3px)}

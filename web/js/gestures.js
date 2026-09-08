@@ -781,9 +781,22 @@ function onDown(e){
     const cx=clamp(Math.floor((e.clientX-r.left)/(cw+g.gap))+1, 1, drawCols(g)) + sh.x;
     const cy=Math.max(1, Math.floor((e.clientY-r.top)/(CELL[dev()]+g.gap))+1) + sh.y;
     const locked=grid.classList.contains('locked');
+    /* ---- and whether the cells still mean anything ---------------------
+       On a board that has **let go**, every tile is a body in a heap and its
+       box is still in the cell it was drawn in — so the top of the board looks
+       bare and is not, and the bottom looks full and is empty. That breaks the
+       Magic Selector in a way that reads as nothing happening: the rubber band
+       finds the objects whose *boxes* it crosses, decides it is a lasso, and
+       selects three tiles you cannot see instead of making anything.
+
+       So a falling board keeps the **size** you drag out and gives up the
+       **place**: no lasso, no cell, and the new object goes wherever there is
+       room and falls into the heap — which is where it was going to end up
+       whatever cell you had named. See decision 166. */
     G={type:'sketch', grid, parent:home, x0:cx, y0:cy,
        stepX:cw+g.gap, stepY:CELL[dev()]+g.gap, sx:e.clientX, sy:e.clientY, mode:null,
        add:e.shiftKey||e.metaKey||e.ctrlKey, hits:[],
+       falling: grid.classList.contains('falling'),
        locked, axis:null, from:0, canSketch:!locked, held:false};
     const g0=G;
     holdTimer=setTimeout(()=>{
@@ -1104,9 +1117,14 @@ function onMove(e){
     /* Anything the rubber band touches becomes the selection. If it touches
        nothing, the same drag is sketching the size of a new object — which is
        what stopped the two gestures from fighting each other. */
-    const hits=childrenOf(container(G.parent)).filter(o=>overlaps(box, lay(o)));
+    /* Nothing on a falling board is where its box says it is, so neither the
+       lasso nor the collision test can be asked — both read the model and the
+       model is not what is on the screen. What the band still says truthfully
+       is how big the thing you are dragging out will be. */
+    const hits = G.falling ? []
+      : childrenOf(container(G.parent)).filter(o=>overlaps(box, lay(o)));
     G.hits=hits.map(o=>o.id);
-    G.ok = !hits.length && boxOk(box,null,dev(),G.parent);
+    G.ok = G.falling || (!hits.length && boxOk(box,null,dev(),G.parent));
     G.ghost.className='ghost band'+(hits.length?' picking':(G.ok?'':' bad'));
     place(G.ghost, box, G.parent);
     $$('.grid .drawer').forEach(el=>{
@@ -1428,11 +1446,17 @@ function onUp(e){
        dropped rather than carried across: it was measured on a board the
        object is not going to land on. See homeFor() in model.js. */
     const home = homeFor(g.parent), reHomed = home!==g.parent;
+    /* A falling board is re-homed in the same sense a sorting drawer is: the
+       coordinate was measured somewhere the object is not going to be. The
+       size survives, because that is a thing you said on purpose. */
+    const loose = reHomed || g.falling;
     if(g.mode!=='sketch' || !g.cand){
       // a tap does nothing; a hold makes something, right there
       if(S.device!=='desk' && !g.held) return;
-      pending.cell = reHomed ? {parent:home} : {x:g.x0, y:g.y0, parent:home};
-    } else pending.cell = reHomed ? {parent:home} : (g.ok
+      pending.cell = loose ? {parent:home} : {x:g.x0, y:g.y0, parent:home};
+    } else pending.cell = loose
+      ? (g.falling ? {parent:home, w:g.cand.w, h:g.cand.h} : {parent:home})
+      : (g.ok
       ? {x:g.cand.x, y:g.cand.y, w:g.cand.w, h:g.cand.h, parent:home}
       : {x:g.x0, y:g.y0, parent:home});
     modalNewObject();

@@ -237,6 +237,24 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
    geometry is untouched — cellW() measures the real rect — only the picture is
    honest. */
 .is-desk .grid.g-phone{max-width:430px;margin-inline:auto}
+/* ---- a phone on its side ----------------------------------------------
+   Bureau is a portrait desk and landscape is not a second layout — nothing is
+   re-measured while the phone is sideways (see `sideways()` in grid.js), so
+   the board keeps the row height it had. Its columns are `1fr`, though, which
+   would stretch them across a screen twice as wide and make every cell twice
+   as wide as it is tall — and `cellW()` measures that rect for the drag maths,
+   so the two axes would then disagree about where a cell is.
+
+   So the board keeps **its own width** and sits in the middle: square cells,
+   the same coordinate space, and you see the top of your desk through a
+   letterbox until you turn the phone back. */
+@media (orientation: landscape){
+  .is-phone .grid.g-phone{
+    width:calc(var(--cols,8) * var(--rowh,44px));
+    max-width:100%;
+    margin-inline:auto;
+  }
+}
 
 .drawer{
   position:relative;border-radius:var(--radius-d);overflow:hidden;text-align:left;

@@ -294,6 +294,33 @@ and a render replaces every one of them with a fresh element already sitting
 there. `gravityApply()` patches the class and drives the settle, the way
 `markTilt()` does. See decision 166.
 
+**A falling board's tiles are not where their boxes say they are**, and that is
+the one class of bug this mode produces. Anything that reads the model to decide
+what the *screen* means gets a stale answer, quietly. Two were shipped and fixed:
+`justmade` animates a transform and an animation beats an inline style, so a new
+object sat in its cell for the length of the drop-in and then snapped to the heap
+(`justmadeglow` under `.grid.falling` is the glow without the fall — the arrival
+*is* the fall there); and the Magic Selector asks which objects the rubber band
+crosses to tell a sketch from a lasso, found three tiles nobody could see, and
+made nothing. A falling board keeps the **size** you drag out and gives up the
+**place** — `G.falling` in gestures.js, and `placeAtPending()` takes a size that
+arrives with no position. Before adding anything that reads a box to decide what
+a cell means, ask what it does on a board that has let go. See decision 166a.
+
+**Bureau is a portrait desk, and a phone on its side measures nothing.**
+`sideways()` in grid.js — `S.device==='phone'` and a viewport wider than it is
+tall. Landscape has about a quarter of the vertical room, so measuring it cut a
+shelf from fifteen rows to four; and the shelf is *also* the unit the window is
+cut from, so the one you were standing on became a slice of the board with
+nothing on it and the desk went **blank** until you turned the phone back.
+`sizeGrid()` returns early and `gridOfContainer()`'s straddle repair sits out, so
+the board holds the geometry it had; the stylesheet keeps it its own width, or
+the `1fr` columns would stretch across a screen twice as wide and `cellW()` and
+`--rowh` would disagree about where a cell is. The manifest asks for `portrait`
+as well, which is what an installed copy honours — this is what happens when it
+is not. It matters for gravity because pouring the desk sideways *is* the
+rotation gesture. See decision 166a.
+
 **Things come out of a new object as it lands, and that one is physics.**
 `spray(x, y, id)` / `sprayAt(id)` in motion.js: stars, rings, spirals and bars
 thrown outward and pulled down, on **one canvas** in `#fx` that is made on the
