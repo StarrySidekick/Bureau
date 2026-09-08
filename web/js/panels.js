@@ -1383,7 +1383,7 @@ function objectPanelBody(id, sec){
        same thing as knowing what you have built.
 
        So it is **one sentence with the answers in it**, which is what a rule
-       is: *This drawer collects [types] that are [where], tagged [tag], with
+       is: *This drawer collects [types] from [where], tagged [tag], with
        [field] [is] [value].* Every blank is the control that sets it, in place,
        so reading the rule and changing it are the same act — and an empty blank
        reads as the word it defaults to ("anything", "anywhere", "any tag")
