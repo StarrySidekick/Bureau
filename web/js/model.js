@@ -1150,7 +1150,30 @@ function calCols(c){
    See decision 140. */
 const CL_FITS = {dense:'Twice as many', roomy:'One per cell of height'};
 const CL_PER_CELL = {dense:2, roomy:1};
-const clFit = ()=> CL_FITS[S.look.clfit] ? S.look.clfit : 'dense';
+/* **And it is answered per device**, which is the amendment decision 140 needed.
+   Two lines to a cell is a good Mac front and a bad phone one: a phone cell is
+   about fifty pixels, so a packed line is a twenty-four pixel task — a tick box,
+   a clipped word, and no room for the second line the words wrap onto. The
+   board is the same size on both and the *screen* is not, which is the same
+   reason a box is stored per device in the first place.
+   So the fallback is per device and the switch writes per device. A bare word
+   is what every desk saved before this stored, and it still means both. */
+const CL_FIT_DEF = {desk:'dense', phone:'roomy'};
+function clFit(d){
+  const at = d || dev(), v = S.look.clfit;
+  const one = typeof v === 'string' ? v : (v && v[at]);
+  return CL_FITS[one] ? one : (CL_FIT_DEF[at] || 'dense');
+}
+function setClFit(v, d){
+  const at = d || dev();
+  const was = S.look.clfit;
+  // widen a bare word into the pair it always meant before writing one half
+  const pair = typeof was === 'string'
+    ? {desk:was, phone:was}
+    : Object.assign({}, was);
+  pair[at] = v;
+  S.look.clfit = pair;
+}
 const clPerCell = ()=> CL_PER_CELL[clFit()];
 
 const DONE_FACES = ['checklist','project','calendar','timeline'];
@@ -1234,7 +1257,21 @@ const isDecor = o => has(o,'decor');
 const isMedia = o => has(o,'media');
 const isPlayable = o => isMedia(o) && mediaTypeOf(o)!=='image';
 /* What the file picker should be willing to show for it. */
-const acceptFor = o => ({image:'image/*', audio:'audio/*', video:'video/*'})[mediaTypeOf(o)] || 'image/*';
+/* **Extensions as well as the wildcard, because a wildcard is not a list.**
+   `accept="audio/*"` is a request the picker has to translate, and the
+   translation is the platform's: a `.wav` came back greyed out and unpickable
+   while every `.m4a` beside it went through, because the file's own type is
+   `audio/wave` or `audio/x-wav` or — off some cameras and recorders — the
+   empty string, and none of those are what the picker matched the wildcard to.
+   Naming the extensions costs a line and cannot be wrong; `importMedia()` reads
+   the extension too, for the file that arrives claiming nothing at all. */
+const MEDIA_EXT = {
+  image:'image/*,.png,.jpg,.jpeg,.gif,.webp,.avif,.heic,.heif,.svg',
+  audio:'audio/*,.wav,.wave,.mp3,.m4a,.aac,.aiff,.aif,.caf,.flac,.ogg,.oga,.opus,.weba',
+  video:'video/*,.mp4,.m4v,.mov,.webm,.ogv,.avi,.mkv,.3gp,.qt'
+};
+const acceptFor = o => MEDIA_EXT[mediaTypeOf(o)] || MEDIA_EXT.image;
+const acceptAny = () => Object.values(MEDIA_EXT).join(',');
 
 /* The four at the end are the newer answers to "what does a task look like",
    which is a question a plain sliver only ever answered by not being anything.
@@ -2282,10 +2319,10 @@ export { homeFor, ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds,
   PANELS, PANEL_SLOTS, panelOf, KNOBS, KNOB_SLOTS, knobOf,
   BORDER_SLOTS, borderOf, TEXTURE_SLOTS, textureOf, STOCKS, STOCK_SLOTS, stockOf,
   KNOBSIZES, knobSizeOf, answered, marginOf, marginPlus, iconOf, TSIZES, textSizeOf, mediaTypeOf, isPicture,
-  isMedia, isPlayable, acceptFor, isDecor,
+  isMedia, isPlayable, acceptFor, acceptAny, MEDIA_EXT, isDecor,
   spawnByOf, genKindOf, takesTyping, showsAddBox, keepsDone, showsContainers,
   CALVIEWS, calViewOf, weekStartOf, showsWeekends, calCols,
-  CL_FITS, clFit, clPerCell,
+  CL_FITS, clFit, setClFit, clPerCell,
   OPS, WHENS, whenISO, RULE_MAX, rulesOf, matchRule,
   ROLLS, rollup, SORTS, MANUAL, sortOf, childrenOf, beginPass, endPass, isAncestor,
   URGES, WORKDAY, workday, urgencyOf, urgeRank, urgeName, urgeSaid, durSaid,

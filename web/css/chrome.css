@@ -712,23 +712,41 @@
 
 /* The cells a dragged/resized drawer would land on.
 
-   **The line is drawn inside the box, not on its edge.** A phone board runs to
-   both sides of the screen, so a box in the first or last column has its
-   border sitting exactly on the clip — and a 2.5px border straddling it loses
-   half its width to the scroller and reads as three sides and a missing one.
-   An `outline` at a negative offset is inset by construction: it cannot leave
-   the box however far the box is pushed against an edge, and unlike a
-   `box-shadow` ring it can still be dashed, which is what says selection
-   rather than object. */
+   **The line is drawn inside the box, on an element of its own, and it is a
+   border rather than an outline.** A phone board runs to both sides of the
+   screen, so a box in the first or last column has its edge sitting exactly on
+   the clip — and a line straddling that clip loses half its width to the
+   scroller and reads as three sides and a missing one. Insetting the line is
+   what fixes that, and there were two ways to do it.
+
+   The first was `outline` at a negative offset, which is inset by construction
+   and can still be dashed. It is correct by the specification, it draws
+   correctly in this container, and on the phone it was written for it went on
+   dropping the left and right sides — an outline is **one path around the
+   whole box**, so an engine that clips or rounds it anywhere loses whole sides
+   of it at once, and there is nothing in the rule to argue with.
+
+   A `border` on a child pinned to `inset:2px` is four independent edges, drawn
+   the way every other rectangle in the app is drawn. It cannot straddle the
+   clip because the child is already inside its parent, it needs no
+   `outline-offset` support, and a side can only go missing if something takes
+   that side away by name. Structural beats correct-in-theory: this is one more
+   element on a thing there is exactly one of at a time. */
 .ghost{
   border:0;
-  outline:2.5px solid var(--ink);
-  outline-offset:-2.5px;
+  outline:0;
+  --ghostline:var(--ink);
   background:color-mix(in srgb,var(--ink) 26%,transparent);
   box-shadow:0 0 0 2px rgba(255,255,255,.5), var(--shadow-lg);
   border-radius:var(--radius-d);pointer-events:none;z-index:20;
+  position:relative;
 }
-.ghost.bad{outline-color:#C0563F;background:rgba(192,86,63,.30);
+.ghost::before{
+  content:'';position:absolute;inset:0;
+  border:2.5px solid var(--ghostline);
+  border-radius:inherit;pointer-events:none;
+}
+.ghost.bad{--ghostline:#C0563F;background:rgba(192,86,63,.30);
   box-shadow:0 0 0 2px rgba(255,255,255,.45), var(--shadow-lg)}
 
 /* Four corners, like a window — and the **grip is bigger than the mark that
@@ -1720,10 +1738,14 @@ html .drawer.dtile.cltile{background-image:none}
 .schedgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
 .schedgrid .dow{font-size:9.5px;color:var(--ink-3);text-align:center;font-style:normal;
   letter-spacing:.08em;padding-bottom:2px}
+/* A `div`, not a `button`, since decision 126's tabs live inside it — so the
+   few things a button gave it for free are stated here. */
 .sday{
   aspect-ratio:1;border-radius:var(--radius);border:1px solid transparent;background:transparent;
   font-size:12px;color:var(--ink-2);display:grid;place-items:center;transition:.12s;
+  font-family:var(--sans);cursor:pointer;user-select:none;
 }
+.sday > u{text-decoration:none;grid-area:1/1;line-height:1}
 .sday:hover{border-color:var(--brass)}
 .sday.out{color:var(--ink-3);opacity:.45}
 .sday.today{font-weight:700;color:var(--brass)}
@@ -1783,6 +1805,28 @@ html .drawer.dtile.cltile{background-image:none}
 .sday.on.dead,.sday.on.soft{box-shadow:inset 0 -3px 0 #E3B23C}
 .sday.soft.dead{box-shadow:inset 0 -3px 0 #E08A3C}
 .sday.out.on,.sday.out.soft,.sday.out.dead{opacity:.6}
+
+/* ---- and the button that put the date there stays on the day -------------
+   A placed date used to be a coloured square and nothing else, so moving one
+   meant fetching a fresh button and then hunting the old day down to take the
+   old one off. Each date now wears its own **tab** — the same `.schedpen` the
+   lane hands out, shrunk to a disc — carrying the same `data-schedpen`, so the
+   drag, the tap-then-tap and `placePen()` are the code that already existed.
+
+   Top right, because the `today` dot is at the bottom; a white ring under the
+   colour, because the tab sits on a fill of its own colour and would otherwise
+   disappear into it; and small, because the number is what you read and the
+   tab is what you grab. */
+.daypens{
+  position:absolute;z-index:3;top:2px;right:2px;
+  display:flex;flex-direction:row-reverse;gap:2px;pointer-events:none}
+.schedpen.onday{
+  pointer-events:auto;display:block;width:9px;height:9px;padding:0;border-radius:50%;
+  background:var(--pen);border:1px solid rgba(0,0,0,.42);
+  box-shadow:0 0 0 1.5px rgba(255,255,255,.75);cursor:grab;transition:transform .12s}
+.schedpen.onday:hover{transform:scale(1.25)}
+.schedpen.onday:active{cursor:grabbing}
+.sday.out .daypens{opacity:.5}
 
 /* ---- three buttons off a card — decisions 125 and 126 ------------------
    When, Done and Due, drawn as **sewing buttons**: a turned disc with four

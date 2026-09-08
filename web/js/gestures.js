@@ -1486,6 +1486,23 @@ function onUp(e){
   // the menu is up and the finger simply left: the menu is the answer
   if(g.menu) return;
   if(g.mode===null && Math.abs(dx)<7){
+    /* **A tap is answered here, so the trailing click must not answer it
+       again.** Every other gesture that acts on pointerup says so already; a
+       tap did not, because nearly everything `tileTap` does is idempotent —
+       walking into a drawer you are then already in, opening a panel that is
+       then already up — so a second call landed on a board that had already
+       moved and did nothing visible.
+
+       Play is not idempotent. The first call started the video and the click
+       arriving a frame later stopped it, and because `play()` resolves after
+       the pause the tile was left marked as playing on a video that was not.
+       That is the whole of "the controls glitch out and it doesn't play".
+       Ticking has the same shape and was saved only by the render in between.
+
+       The click also cleared a selection on its way past, so that happens here
+       rather than being lost with it. */
+    if(S.sel.length) S.sel = [];
+    gestureFlags.suppressClick = true;
     // a tap on a button's face fires it; anywhere else follows the type
     const o=byId(g.id);
     if(o && has(o,'button') && g.startedOnFace) fireButton(o); else tileTap(g.id);

@@ -13,7 +13,7 @@ import { S, K, KINDS, KEYS, T, ATTRS, USER_ATTRS, FIELDS, fieldOf, OPS, ROLLS,
   CALVIEWS, calViewOf, weekStartOf, showsWeekends, KNOBSIZES, knobSizeOf,
   TSIZES, textSizeOf, mediaTypeOf, isPicture, isMedia, isDecor,
   bindingOf, FRAMES, FRAME_SLOTS, frameOf, panelOf, knobOf, borderOf, textureOf,
-  slotRaw, homeFor } from './model.js';
+  slotRaw, homeFor, acceptAny } from './model.js';
 import { GRID, lay, boxOk, freeSpot, anySpot, sizeOfKind, toPhoneSize, keepSize } from './grid.js';
 import { randomBoard, randomFront, hexOf, objColour, objSlots, famSlots, famAll, FAMS, styleKey, stockNow, CHECKS, checkNow } from './look.js';
 import { CLICKS, clickOf, gridTile, pending } from './tiles.js';
@@ -39,7 +39,11 @@ function overlayHTML(){
   <div id="fx"></div>
   <div id="sheetHost"></div>
   <input type="file" id="importer" accept="application/json,.json" class="hidden">
-  <input type="file" id="imgpicker" accept="image/*,.svg,audio/*,video/*" class="hidden">`;
+  ${/* The markup's own accept is the fallback for a press that names nobody;
+        `pickimage` in wire.js narrows it to the object being filled. Extensions
+        as well as wildcards — see MEDIA_EXT in model.js, and the .wav that
+        could not be chosen. */''}
+  <input type="file" id="imgpicker" accept="${acceptAny()}" class="hidden">`;
 }
 
 /* ============================================================
@@ -1722,10 +1726,32 @@ function schedMonth(o, anchorISO){
     const work = band && iso>=band.from && iso<=band.to;
     const tip = [on&&'the day it sits on', soft&&'aim for', dead&&'due by',
                  work&&`${band.days} day${band.days===1?'':'s'} of work`].filter(Boolean).join(' · ');
-    cells.push(`<button class="sday${out?' out':''}${iso===T?' today':''}${
+    /* **A button that has been put down can be picked up again.** The three
+       dates were drawn as coloured squares and nothing else, so the only way to
+       move one was to take a fresh button out of the lane and drop it on the new
+       day — and the old one, still sitting on the old day, had to be found and
+       taken off. A thing you put somewhere is a thing you can move.
+
+       So each placed date wears a **tab** on its day: the same `.schedpen` the
+       lane hands you, small enough to sit in the corner, and carrying the same
+       `data-schedpen` — which means the gesture, the tap-then-tap and
+       `placePen()` all pick it up with no second code path to disagree with the
+       first. One per date rather than one per day, so a day carrying two of
+       them can have either taken off it. The fill stays what it was: the tab is
+       the handle, the colour is still the readout. */
+    const here = [on&&'due', soft&&'soft', dead&&'dead'].filter(Boolean);
+    const tabs = here.length ? `<span class="daypens">${here.map(k=>{
+      const nm = (SCHED_PENS.find(x=>x[0]===k)||[,,k])[2];
+      return `<i class="schedpen onday p-${k}" data-schedpen="${o.id}:${k}"
+        role="button" tabindex="0" title="${esc(nm)} — drag it to another day"></i>`;
+    }).join('')}</span>` : '';
+    /* A `div`, not a `button`: a button inside a button is a parse error the
+       browser fixes by unnesting it, and the tab would fall out of its own day.
+       Same trap `.kindtile` and `.helditem` are divs for. */
+    cells.push(`<div class="sday${out?' out':''}${iso===T?' today':''}${
       work?' work':''}${work&&iso===band.from?' bandstart':''}${work&&iso===band.to?' bandend':''}${
-      on?' on':''}${soft?' soft':''}${dead?' dead':''}"${
-      tip?` title="${esc(tip)}"`:''} data-schedday="${o.id}:${iso}">${d.getDate()}</button>`);
+      on?' on':''}${soft?' soft':''}${dead?' dead':''}" role="button" tabindex="0"${
+      tip?` title="${esc(tip)}"`:''} data-schedday="${o.id}:${iso}"><u>${d.getDate()}</u>${tabs}</div>`);
   }
   return `<div class="schedmonth">
     <div class="schedhead">
@@ -1858,7 +1884,13 @@ function schedulePanel(id){
         <div class="schedkey">
           <i class="k work"></i>the days the work takes
         </div>
-        ${trow('On', pfield(id,'due', ob.due, 'date'), 'the day it sits on')}` : ''}
+        ${/* **And no `On` row.** It was the last date field left, sitting under
+             a month that had just drawn the same day in yellow and now hands
+             you the button that put it there. Two answers to one question, and
+             the field was the worse of them: `09/14/2026` cannot say where the
+             14th falls against the other two or against the days the work
+             takes. Decision 126 took the other two rows away for this reason
+             and left this one behind. */''}` : ''}
 
         ${/* No date rows. Three buttons showing where they sit *on the month* say
              everything a row of `09/14/2026` said and one thing it never could:

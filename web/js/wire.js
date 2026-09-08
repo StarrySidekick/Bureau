@@ -1,8 +1,9 @@
 import { $, $$, esc, ic, uid, D, ROOT, pastTense } from './util.js';
 import { S, K, KINDS, KEYS, refreshKinds, ATTRS, attrsOf, has, SHAPES,
   FACES, MANUAL, byId, container, cfgOf, isContainer, isAncestor, relate, deskOf,
-  unrelate, sensedDevice, reset, T, dz, dev, calViewOf, RULE_MAX, acceptFor,
-  boardLocked, repeatOf, repeats, heldObjects, heldCount, marginOf, marginPlus, homeFor } from './model.js';
+  unrelate, sensedDevice, reset, T, dz, dev, calViewOf, RULE_MAX, acceptFor, acceptAny,
+  boardLocked, repeatOf, repeats, heldObjects, heldCount, marginOf, marginPlus, homeFor,
+  setClFit } from './model.js';
 import { gridOf, lay, boxOk, freeSpot, anySpot, roomFor, sizeOfKind, toPhoneSize, keepSize,
   shelvesOf, shelfAt, setShelf } from './grid.js';
 import { applyLook, applyStyle, setLookVal, lookVal, STYLES, setSlot, objColour, darkMode } from './look.js';
@@ -443,7 +444,7 @@ function act(name, el){
       const who = el.dataset.id ? byId(el.dataset.id) : null;
       imgFor.id = el.dataset.id || null;
       const p=$('#imgpicker');
-      p.accept = who ? acceptFor(who) : 'image/*,audio/*,video/*';
+      p.accept = who ? acceptFor(who) : acceptAny();
       p.click();
       break;
     }
@@ -695,6 +696,27 @@ function wire(){
   frame.addEventListener('touchmove', onTouchMove, {passive:false});
   frame.addEventListener('touchend', onTouchEnd, {passive:true});
   frame.addEventListener('touchcancel', onTouchEnd, {passive:true});
+
+  /* A video on the board shows a **frame**, not a black rectangle. `preload` is
+     `metadata`, which fetches enough to know the size and not enough to paint
+     anything, so a video nobody had pressed yet was a black tile — which reads
+     as broken rather than as unplayed. The tile asks for `#t=0.1`, and this is
+     the second go for the players that ignore a media fragment on a blob URL:
+     nudge an untouched video a tenth of a second in, which is what forces a
+     decode and a paint.
+
+     **In the capture phase, because media events do not bubble.** They still
+     travel *down* to the target, so one listener on `#frame` hears every video
+     on the board — which is the same delegation everything else here uses, and
+     the reason no render has to remember to bind anything. */
+  frame.addEventListener('loadedmetadata', e=>{
+    const v = e.target;
+    if(!v || v.tagName!=='VIDEO' || !v.classList.contains('tilevid')) return;
+    if(!v.paused || v.currentTime > 0) return;
+    // …and only where there is something to seek to: a stream with no duration
+    // yet would throw the position away and start from nothing
+    if(v.duration && isFinite(v.duration)) v.currentTime = Math.min(0.1, v.duration/2);
+  }, true);
 
   /* iOS reads a long press on ordinary text as "select this", and puts a
      magnifier over the tile you are trying to lift. `user-select:none` is
@@ -1139,7 +1161,7 @@ function wire(){
     /* How much a checklist front shows — a fact about the desk, so it lands in
        S.look and every checklist on every board agrees at the next render. */
     const cf=t.closest('[data-clfit]');
-    if(cf){ S.look.clfit=cf.dataset.clfit; save(); render(); refreshPanel(); return; }
+    if(cf){ setClFit(cf.dataset.clfit); save(); render(); refreshPanel(); return; }
 
     const ck=t.closest('[data-check]'); if(ck){ toggleDone(ck.dataset.check); return; }
 

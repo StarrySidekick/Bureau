@@ -987,10 +987,10 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
 .bookstage .spread{box-shadow:0 30px 60px -20px rgba(0,0,0,.7)}
 .bookstage .bookcount{color:#E5DCC6}
 /* the lasso reads as a selection rather than a new object — and the stroke is
-   the ghost's inset outline, not a border, so a box in the board's first or
-   last column keeps all four sides. See `.ghost` in chrome.css. */
-.ghost.band{outline-style:dashed}
-.ghost.picking{outline-color:var(--brass);background:color-mix(in srgb,var(--brass) 18%,transparent);
+   drawn on the ghost's own inset child, so a box in the board's first or last
+   column keeps all four sides. See `.ghost` in chrome.css. */
+.ghost.band::before{border-style:dashed}
+.ghost.picking{--ghostline:var(--brass);background:color-mix(in srgb,var(--brass) 18%,transparent);
   box-shadow:0 0 0 2px rgba(255,255,255,.4)}
 /* a spawner: a press with an arrow.
    `.drawer.otile.gentile`, three classes, and not `.drawer.gentile` — an
@@ -1397,12 +1397,30 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
    playing card is white and its colour is the ink on it — so `--c` moves to
    the rule, the index and the name. See decision 146. */
 .drawer.dtile.goaltile.playcard{
+  /* The die-cut corner and how far inside it the rule sits, named once. Two
+     concentric corners are **one** radius and one inset — the inner arc is the
+     outer arc less the gap between them, by construction — and writing the
+     inner one as a clamp of its own made it a second opinion that agreed with
+     the first at one card size and drifted at every other.
+
+     **Off the checker step, not off `cqw`.** The card sets
+     `container-type:inline-size`, and an element is not its own query
+     container: `cqw` written *on* the card resolves against whatever container
+     is above it (here, none — so the viewport), while the same `cqw` written on
+     `.cardrule` resolves against the card. The two radii were therefore being
+     measured against two different boxes and could not have agreed. Both read
+     `--checkerx` instead — the board's own two-cell step, an inherited length
+     the card and its children resolve identically — so the corner is a fixed
+     fraction of a desk cell and the rule is concentric with it at every card
+     size. Which is also what a deck is: every card the same corner. */
+  --cardr:clamp(5px, calc(var(--checkerx, 100px) * .115), 18px);
+  --cardin:clamp(3px, calc(var(--checkerx, 100px) * .055), 9px);
   background-color:#F7F3E8;
   background-image:
     repeating-linear-gradient(0deg, rgba(0,0,0,.022) 0 1px, transparent 1px 4px),
     repeating-linear-gradient(90deg, rgba(0,0,0,.022) 0 1px, transparent 1px 4px);
   border:0;
-  border-radius:clamp(4px, 5.5cqw, 16px);
+  border-radius:var(--cardr);
   box-shadow:0 1px 2px rgba(0,0,0,.22), 0 6px 14px rgba(0,0,0,.16),
              inset 0 0 0 1px rgba(0,0,0,.16);
   align-items:center;justify-content:center;text-align:center;
@@ -1411,22 +1429,28 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
 }
 /* the ruled panel: the card's border, inset the way a card's is */
 .goaltile.playcard .cardrule{
-  position:absolute;inset:clamp(3px,3.4cqw,10px);z-index:1;pointer-events:none;
+  position:absolute;inset:var(--cardin);z-index:1;pointer-events:none;
   border:1px solid color-mix(in srgb, var(--c) 78%, transparent);
-  border-radius:clamp(3px,3.6cqw,11px);
+  border-radius:max(0px, var(--cardr) - var(--cardin));
 }
 /* the index, and the same index turned round in the opposite corner */
+/* The index sits **inside** the rule, and says so off the same inset rather
+   than off a clamp of its own — the two were independent, so the letter drifted
+   onto the rule and then over the card's edge as the card changed size. */
 .goaltile.playcard .cardidx{
   position:absolute;z-index:2;display:flex;flex-direction:column;align-items:center;
   gap:1px;color:var(--c);line-height:1;
-  left:clamp(6px,5.4cqw,16px);top:clamp(5px,4.6cqw,14px);
+  left:calc(var(--cardin) + clamp(3px, calc(var(--checkerx, 100px) * .035), 8px));
+  top:calc(var(--cardin) + clamp(2px, calc(var(--checkerx, 100px) * .028), 7px));
 }
 .goaltile.playcard .cardidx u{
   text-decoration:none;font-family:var(--serif);font-weight:700;
   font-size:clamp(9px,5.2cqw,17px)}
 .goaltile.playcard .cardidx svg{width:clamp(7px,4cqw,13px);height:auto}
 .goaltile.playcard .cardidx.flip{
-  left:auto;top:auto;right:clamp(6px,5.4cqw,16px);bottom:clamp(5px,4.6cqw,14px);
+  left:auto;top:auto;
+  right:calc(var(--cardin) + clamp(3px, calc(var(--checkerx, 100px) * .035), 8px));
+  bottom:calc(var(--cardin) + clamp(2px, calc(var(--checkerx, 100px) * .028), 7px));
   transform:rotate(180deg)}
 /* the two indexes are the standing, so the line that used to say it can go
    wherever there is no room for both */
@@ -1440,8 +1464,8 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
 .goaltile.playcard .dside,.goaltile.playcard .dpanel,
 .goaltile.playcard .dgrain{display:none}
 /* the run follows the card's own corner rather than running past it */
-.goaltile.playcard .goalbar{left:clamp(3px,3.4cqw,10px);right:clamp(3px,3.4cqw,10px);
-  bottom:clamp(3px,3.4cqw,10px);height:2px;border-radius:99px}
+.goaltile.playcard .goalbar{left:var(--cardin);right:var(--cardin);
+  bottom:var(--cardin);height:2px;border-radius:99px}
 /* At three cells across the two indexes are the standing and the name has the
    middle to itself, which is what a card at that size can honestly hold. */
 .goaltile.playcard.sz-narrow .goalstand,

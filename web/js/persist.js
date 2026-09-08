@@ -948,9 +948,28 @@ const imgFor = {id:null};
    refusal you can read beats a desk that has quietly become sluggish.
    See decision 71. */
 const MEDIA_MAX = 60 * 1024 * 1024;
+/* **What a file is, asked twice.** A browser hands over whatever its platform
+   said the type was, and for a sound that is very often nothing useful: a `.wav`
+   arrives as `audio/wave`, `audio/x-wav`, `audio/vnd.wave` or the empty string
+   depending on where it was made, and the first gate here only knew the word
+   `audio/`. So the MIME type is asked first and the **extension** second, and
+   only a file that answers neither is refused. */
+const EXT_KIND = {
+  wav:'audio', wave:'audio', mp3:'audio', m4a:'audio', aac:'audio', aiff:'audio',
+  aif:'audio', caf:'audio', flac:'audio', ogg:'audio', oga:'audio', opus:'audio',
+  weba:'audio', wma:'audio',
+  mp4:'video', m4v:'video', mov:'video', webm:'video', ogv:'video', avi:'video',
+  mkv:'video', '3gp':'video', qt:'video'
+};
+function mediaKindOf(file){
+  const t = String(file.type||'').toLowerCase();
+  if(/^audio\//.test(t)) return 'audio';
+  if(/^video\//.test(t)) return 'video';
+  const ext = (file.name||'').toLowerCase().split('.').pop();
+  return EXT_KIND[ext] || null;
+}
 function importMedia(file){
-  const kind = /^audio\//.test(file.type) ? 'audio'
-             : /^video\//.test(file.type) ? 'video' : null;
+  const kind = mediaKindOf(file);
   if(!kind){ toast('That is not a sound or a video'); return; }
   if(file.size > MEDIA_MAX){
     toast(`Too big — ${Math.round(file.size/1048576)}MB, and the limit is ${MEDIA_MAX/1048576}MB`);
@@ -1003,7 +1022,13 @@ function importSVG(file){
 /* One door for the picker, whichever sort of file came back through it. */
 function importFile(file){
   if(!file) return;
-  if(/^image\//.test(file.type)) importImage(file);
+  /* An image is decided the same two ways: a `.heic` off a phone and an `.svg`
+     dragged out of a design tool both turn up typeless often enough to matter. */
+  const t = String(file.type||'').toLowerCase();
+  const ext = (file.name||'').toLowerCase().split('.').pop();
+  const looksImage = /^image\//.test(t) ||
+    (!EXT_KIND[ext] && /^(png|jpg|jpeg|gif|webp|avif|heic|heif|svg|bmp|tif|tiff)$/.test(ext));
+  if(looksImage) importImage(file);
   else importMedia(file);
 }
 function importImage(file){

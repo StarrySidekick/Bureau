@@ -378,7 +378,9 @@ function markSounding(id, on){
   const el = document.querySelector(`[data-row="${id}"]`);
   if(!el) return;
   el.classList.toggle('sounding', !!on);
-  const btn = el.querySelector('.medbtn');
+  // a sound's button is in the spindle and says which way the press goes; a
+  // video has no button to rewrite, because the picture is the control
+  const btn = el.querySelector('.medbtn:not(.blank)');
   if(btn) btn.innerHTML = ic(on?'pause':'play',20);
 }
 /* Whatever is playing, stopped — a desk plays one thing at a time, the way a
@@ -1454,17 +1456,30 @@ function drawTileFace(o, arr, box, persp){
     const on = isSounding(o.id);
     const src = (o.media && o.media.src) || '';
     if(kind==='video'){
+      /* **A video wears no button at all.** It had a play mark in the middle of
+         it, hidden only while it ran — so a board of videos was a board of
+         screenshots-of-a-player, and the one frame you most wanted to see was
+         the one with a disc over it. The whole tile is the control: press it to
+         start, press it again to stop, which is what pressing a thing on this
+         desk means everywhere else. Nothing to hide, nothing to glitch, and
+         nothing between you and the picture.
+
+         **And it shows a frame rather than a black rectangle.** `preload` at
+         `metadata` fetches the header, which is enough to know the size and
+         nothing else — so until it had been played once a video was a black
+         box with a play mark on it. `#t=0.1` asks for a tenth of a second in,
+         which makes the browser decode and paint that frame; `wire.js` seeks
+         once more on `loadedmetadata` for the players that ignore the fragment.
+         Two goes at the same small thing, because a video that looks broken
+         until you press it is a video you do not press. */
       return `<div class="drawer otile vidtile bd-none${on?' sounding':''}${sel}"
           data-row="${o.id}" role="button" tabindex="0"
           title="${esc(o.title||'Untitled')} — press to play" style="--c:${colour};${place}">
         ${chips}
-        ${src?`<video class="tilevid" src="${esc(src)}" preload="metadata"
+        ${src?`<video class="tilevid" src="${esc(src)}#t=0.1" preload="metadata"
           playsinline tabindex="-1"></video>`
-        :`<span class="vidempty">${ic('film',22)}<b>${esc(o.title||'Add a video')}</b></span>`}
-        ${/* Nothing chosen yet is not a thing you can play: the button says
-             what the press actually does, which is choose a file. */''}
-        <span class="medbtn${src?'':' blank'}" aria-hidden="true">${
-          ic(src?(on?'pause':'play'):'plus',20)}</span>
+        :`<span class="vidempty">${ic('film',22)}<b>${esc(o.title||'Add a video')}</b></span>
+          <span class="medbtn blank" aria-hidden="true">${ic('plus',20)}</span>`}
         ${handles}
       </div>`;
     }
