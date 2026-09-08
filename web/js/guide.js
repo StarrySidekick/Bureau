@@ -304,6 +304,12 @@ function chromePlate(s){
     <div class="gx-bit"><span class="kindmark">${B('folder',13)}</span><small>.kindmark</small></div>
     <div class="gx-bit gx-wide"><div class="section-h"><h2>A heading</h2><div class="rule"></div></div><small>.section-h</small></div>
     <div class="gx-bit gx-wide"><div class="mini" style="--k:var(--brass)">A note in a panel, which is where every explanation in the app lives.</div><small>.mini</small></div>
+    ${/* The add box, which is also what a spawner with its line showing wears —
+         one block, two selectors, so the tile and the drawer cannot drift. See
+         decision 167. */''}
+    <div class="gx-bit gx-wide"><div class="quickadd addline" style="width:100%;margin:0">
+      <button class="addpress">${B('spiral',15)}</button>
+      <input value="Add a task…" readonly><span class="k">return</span></div><small>.addline</small></div>
     <div class="gx-bit gx-wide"><div class="pickgrid sw">${
       s.cols.slice(OBJ0, OBJ0+6).map((c,i)=>`<button class="${i===1?'on':''}" style="background:${esc(c)}"></button>`).join('')}</div><small>.pickgrid.sw</small></div>
   </div>`;

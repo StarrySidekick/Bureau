@@ -2,7 +2,7 @@ import { $, $$, esc, ic, D, md, clamp, ROOT } from './util.js';
 import { S, K, T, byId, has, isContainer, containers, container, childrenOf, chainOf,
   deskTitle, rootObj, cfgOf, deskIds, deskHere, deskOf, isDesk, allTags, dev,
   beginPass, endPass,
-  layoutOf, takesTyping, genSaid, CALVIEWS, calViewOf, calCols, CL_FITS, clFit,
+  layoutOf, takesTyping, genSaid, makesAnything, CALVIEWS, calViewOf, calCols, CL_FITS, clFit,
   spanOf, coversDay, lastDay, boardLocked,
   TILT_MODES, tiltMode, tiltsDesk, tiltsWindows, tiltClasses, cueFlipped,
   GRAVITIES, gravityMode, gravityOn,
@@ -144,13 +144,28 @@ function gridBar(c){
 const REVEAL = {gap:7, rail:30};
 const revealStyle = ()=> S.device==='phone' ? ` style="margin-top:${REVEAL.gap}px"` : '';
 
+/* ---- a list is a column of eight-by-ones -------------------------------
+   A list exists to look at things one after another, so a row of one is a
+   **task-sized strip**: the shape a task tile has on a grid at eight cells by
+   one, at exactly that height, standing flush against the one above it. It was
+   a 46px minimum with six pixels of air between, which is a card list — a
+   different thing, and the wrong one for working down a list of jobs.
+
+   `--listrow` is the cell, written into the markup from the last measurement
+   the same way gridOfContainer() writes the checker squares: a list is not a
+   grid, so sizeGrid() never reaches it, and the number it needs is the same
+   number. It goes on the **scroller** rather than on the list, because the add
+   box at the top stands in the same column and has to be the same width.
+   See decision 168. */
+const listStyle = ()=> ` style="--listrow:${CELL[dev()]}px"`;
+
 function viewDesk(){
   const c=rootObj(), view=c.layout||'grid';
   if(view!=='grid'){
     const items=childrenOf(c);
     return `
     ${gridBar(c)}
-    <div class="scroll">
+    <div class="scroll"${listStyle()}>
       ${!items.length ? `<div class="empty"><div class="big">Nothing on the desk</div>Hold a bare cell — that is the Magic Selector — and drag out the size you want.</div>`
         : view==='book'   ? bookView(c, items)
         : `<div class="listgrid" data-listfor="${c.id}">${items.map(listTile).join('')}</div>`}
@@ -187,7 +202,12 @@ function dayPanel(d, iso, list, named){
       <div class="rule"></div><span class="n">${list.length}</span></div>
     ${list.length?`<div class="listgrid">${list.map(listTile).join('')}</div>`
       :`<div class="mini" style="--k:var(--brass)">Nothing on this day yet.</div>`}
-    <div class="quickadd" style="margin-top:9px">${ic('plus',14)}
+    ${/* The same add box as the one at the top of a drawer, aimed at a day —
+         `.addline`, the spawner's mark, the line and the word. See decision
+         167. */''}
+    <div class="quickadd addline" style="margin-top:9px">
+      <button class="addpress" data-daynew="${d.id}:${iso}"
+        title="Make a ${esc(genSaid(d))} on this day">${ic(makesAnything(d)?'sparkle':'spiral',15)}</button>
       <input data-dayadd="${d.id}:${iso}" placeholder="Add something on this day…">
       <span class="k">return</span></div>
   </div>`;
@@ -336,7 +356,7 @@ function viewDrawer(){
   const view = layoutOf(d);
   return `
   ${gridBar(d)}
-  <div class="scroll${view==='grid'?' deskscroll':''}"${view==='grid'?revealStyle():''}>
+  <div class="scroll${view==='grid'?' deskscroll':''}"${view==='grid'?revealStyle():listStyle()}>
     ${view==='grid'?cavityWalls():''}
     ${kinds.length>1&&view!=='grid'?`<div class="filterbar">
       <button class="fchip${!S.kindFilter?' on':''}" data-kind="">All</button>
@@ -344,7 +364,16 @@ function viewDrawer(){
     </div>`:''}
     ${has(d,'text')&&(d.body||'').trim()
       ? `<div class="contbody">${md(d.body)}</div>` : ''}
-    ${takesTyping(d)&&view!=='calendar' ? `<div class="quickadd">${ic('plus',14)}
+    ${/* The box at the top of a drawer **is a spawner**, and now says so: the
+         same dashed rule, the same spiral, the same field and the same
+         `return` a spawner tile with its line showing wears (`.addline`), and
+         the mark presses out one of what the drawer collects exactly as a
+         spawner's does. It was a plus in a dashed box doing the identical job
+         a scroll away from a tile that looked like a control. One machine,
+         one look. See decision 167. */''}
+    ${takesTyping(d)&&view!=='calendar' ? `<div class="quickadd addline">
+      <button class="addpress" data-contnew="${d.id}"
+        title="Make a ${esc(genSaid(d))}">${ic(makesAnything(d)?'sparkle':'spiral',15)}</button>
       <input data-contadd="${d.id}" placeholder="Add a ${esc(genSaid(d))}…">
       <span class="k">return</span></div>` : ''}
     ${view==='grid'

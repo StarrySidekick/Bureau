@@ -879,18 +879,32 @@ function drawTileFace(o, arr, box, persp){
        mini tile makes one branch below. So no `paper()` either: a stock is
        what a sheet is made of, and there is no sheet here.
 
-       Bigger, it is a **pill**: the press at the head and the line you type
-       into filling the rest, which is the shape a thing you press and a thing
-       you type into share. */
+       **Bigger, with its line showing, it is the add box** — the same dashed
+       rule, mark, field and `return` the box at the top of an open drawer
+       wears. Those two are one machine: you write a name, press return, and
+       one of a stated type comes out. They looked nothing like each other —
+       a solid pill of the object's own colour on a board, a dashed rule
+       inside a drawer — and the pill said *control* where the thing it does
+       says *write here*. One look, `.addline`, worn by both. The colour has
+       not gone anywhere: it is in the mark, which is what an add box is
+       identified by. See decision 167.
+
+       The mark is drawn at **every** big size now. It used to sit out on
+       anything that was not square, on the argument that a spiral in the
+       left-hand cell of a four-by-one is a badge beside a line rather than a
+       press — true of a coloured pill, and the wrong way round here: the box
+       at the top of a drawer has always had a mark at its head, and that is
+       the thing this is now. */
     return `<${big?'div':'button'} class="drawer ${
-        big?`otile ${paper(o)} genbig${round2?' gensquare':''}`:'gensolo bd-none'} sh-press gentile${
+        big?`otile ${paper(o)} genbig addline${round2?' gensquare':''}`:'gensolo bd-none'} sh-press gentile${
         any?' genany':''}${sel}" data-row="${o.id}"
         ${big?'role="button" tabindex="0"':''}
         title="${esc(o.title||('New '+made))}" style="--c:${colour};${place}">
       ${chips}
-      ${!big || round2 ? `<span class="genico">${ic(any?'sparkle':'spiral', big?22:26)}</span>` : ''}
+      <span class="genico">${ic(any?'sparkle':'spiral', big?22:26)}</span>
       ${big?`<input class="fieldin" data-fieldfor="${o.id}"
-          placeholder="${esc(o.title||('New '+made+'…'))}">`:''}
+          placeholder="${esc(o.title||('New '+made+'…'))}">
+        <span class="k">return</span>`:''}
       ${handles}
     </${big?'div':'button'}>`;
   }
@@ -1072,14 +1086,21 @@ function drawTileFace(o, arr, box, persp){
       ${/* The **box** ticks it and the **words** change it. Tapping anywhere on
             the line used to tick it, which left no way to fix a typo without
             opening the drawer — and a checklist you cannot correct in place is
-            a checklist you stop trusting. Holding it still plucks it out. */''}
+            a checklist you stop trusting.
+
+            Holding the **box** plucks the line out. It used to be the whole
+            line, and a front is lines from edge to edge — so holding a
+            checklist anywhere took a task out of it instead of picking the
+            drawer up. The words fall through to the tile, which is what gives
+            a checklist front its drag back. */''}
       <div class="dbody"><div class="clist">
         ${adds?`<label class="cladd">${ic('plus',11)}
           <input data-contadd="${o.id}" placeholder="Add a ${esc(made)}…"></label>`:''}
         ${shown.map(x=>
         `<span class="cline" data-pluck="${x.id}"
-           title="${esc(x.title||'Untitled')} — hold to take it out">
-           <i class="clbox" data-check="${x.id}"></i>${
+           title="${esc(x.title||'Untitled')}">
+           <i class="clbox" data-check="${x.id}"
+              title="Tick it — or hold it to take it out"></i>${
            nameField(x, 'cltext')}</span>`).join('')
         || `<span class="clempty">Nothing yet — type above</span>`}</div></div>
       ${handles}

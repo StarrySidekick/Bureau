@@ -299,6 +299,43 @@ function clearRow(g){
   if(g && g.el){ g.el.classList.remove('swiping'); g.el.style.transform=''; }
 }
 
+/* ---- picking a band up, and the gap it will go into --------------------
+   The same act as picking a tile up off a grid: the thing you are holding
+   lifts and follows the finger, the rest step aside to leave the space it will
+   land in, and letting go drops it there. Nothing moves in the DOM until then.
+
+   It used to re-insert the band into the list on every pointermove. The list
+   re-flowed under the finger — everything past the insertion point jumped a
+   row at a time, and what you were carrying jumped with it, because it was one
+   of them. A move is one place in an order, not a hundred of them.
+
+   The **pitch** is measured off two real neighbours rather than taken from a
+   height, because the bands are flush and overlap their borders by a pixel:
+   the distance between two tops is the only number that agrees with what you
+   can see. With no neighbour to measure against there is nothing to reorder
+   anyway, and the height is a harmless fallback. */
+function liftBand(g){
+  g.sibs=[...g.list.querySelectorAll('.listband')];
+  g.from=g.sibs.indexOf(g.el);
+  g.to=g.from;
+  const r=g.el.getBoundingClientRect();
+  const nx=g.sibs[g.from+1], pv=g.sibs[g.from-1];
+  g.step = nx ? nx.getBoundingClientRect().top - r.top
+         : pv ? r.top - pv.getBoundingClientRect().top
+         : r.height;
+  if(!(g.step>0)) g.step = r.height||1;
+  g.el.classList.add('lifted');
+}
+/* Everything back where the stylesheet puts it. The transition is still on, so
+   a band that had stood aside eases home rather than snapping — which is what
+   makes letting go over the place you started read as putting it back. */
+function clearBandShift(g){
+  if(!g) return;
+  (g.sibs||[]).forEach(el=>{ el.style.transform=''; });
+  if(g.el) g.el.style.transform='';
+  if(g.list) g.list.classList.remove('reordering');
+}
+
 /* ---- opening a locked board with the tile already in your hand -----------
    The iPhone home screen's gesture: hold an icon, the menu comes up, and if you
    keep holding and start moving, the menu goes and the icon is in your hand.
@@ -827,8 +864,17 @@ function onDown(e){
      the front. Holding one lifts it out as a chip you can drop on the board or
      into another drawer — which is what makes a checklist somewhere things pass
      through rather than somewhere they go to stay. A tap still ticks it: only
-     the hold plucks, and only a plucked one suppresses its own click. */
-  const plEl=e.target.closest('.cline[data-pluck]');
+     the hold plucks, and only a plucked one suppresses its own click.
+
+     **The hold is aimed at the box, not at the whole line.** A checklist front
+     is lines from edge to edge, so a pluck armed anywhere on one left the
+     drawer itself with almost no tile to be picked up by: holding a checklist
+     took a task out of it instead of moving it, wherever you put your finger.
+     Each of the three targets keeps a tap and a hold now — the box ticks and
+     plucks, the words edit and fall through, the front opens and moves — and
+     the one that falls through is what gives the drawer its drag back. */
+  const plBox=e.target.closest('.cline[data-pluck] > .clbox');
+  const plEl=plBox && plBox.closest('.cline[data-pluck]');
   if(plEl){
     G={type:'pluck', el:plEl, id:plEl.dataset.pluck, sx:e.clientX, sy:e.clientY,
        px:e.clientX, py:e.clientY, mode:null, armed:false};
@@ -867,7 +913,7 @@ function onDown(e){
       dropSelection(); refind(G);
       if(g0.canOrder){
         G.armed=true;
-        G.el.classList.add('lifted');
+        liftBand(G);
         if(navigator.vibrate) navigator.vibrate(6);
       }
       // …and keep holding, without moving, and it is the menu — the same two
@@ -1171,19 +1217,28 @@ function onMove(e){
     if(G.menu){
       if(Math.abs(dx)<WOBBLE && Math.abs(dy)<WOBBLE) return;
       G.menu=false; closeCtx();
-      if(G.canOrder){ G.armed=true; G.el.classList.add('lifted'); }
+      if(G.canOrder){ G.armed=true; liftBand(G); }
     }
     if(!G.armed) return;             // still waiting out the hold
     if(!G.mode){
       if(Math.abs(dy)<5) return;
       G.mode='band'; G.el.classList.add('dragging');
+      G.list.classList.add('reordering');
     }
-    // slide past whichever neighbour the pointer has cleared the middle of
-    const sibs=[...G.list.querySelectorAll('.listband')].filter(x=>x!==G.el);
-    const after=sibs.filter(x=>{ const r=x.getBoundingClientRect(); return e.clientY > r.top+r.height/2; }).pop();
-    if(after) after.after(G.el);
-    else { const first=G.list.querySelector('.listband');
-           if(first && first!==G.el) first.before(G.el); }
+    /* The band goes with the finger, and it is the one thing here that must
+       not ease: a tile that lags your thumb reads as a tile you have not
+       picked up. The others do ease, and they are the whole gesture — a gap
+       opening where this one will land. */
+    G.el.style.transform=`translateY(${dy}px)`;
+    const to=clamp(G.from + Math.round(dy/G.step), 0, G.sibs.length-1);
+    if(to===G.to) return;
+    G.to=to;
+    G.sibs.forEach((el,i)=>{
+      if(el===G.el) return;
+      const by = (G.from<to && i>G.from && i<=to) ? -G.step
+               : (G.from>to && i>=to && i<G.from) ?  G.step : 0;
+      el.style.transform = by ? `translateY(${by}px)` : '';
+    });
     return;
   }
 
@@ -1513,17 +1568,26 @@ function onUp(e){
       render();                          // put it back where it came from
       return;
     }
-    if(g.mode!=='band') return;          // a tap; let the click open it
+    if(g.mode!=='band'){ clearBandShift(g); return; }  // a tap; the click opens it
     gestureFlags.suppressClick=true;     // the drag must not also open it
-    /* Read the new order straight off the list. `ord` is what childrenOf()
-       falls back to when nothing sorts, so writing indexes into it is the whole
-       of the change — and the boxes are untouched, because a thing's place on a
-       grid is a different fact from its place in a list. */
-    [...g.list.querySelectorAll('.listband')].forEach((el,i)=>{
-      const o=byId(el.dataset.row||el.dataset.drawer);
-      if(o) o.ord=i;
-    });
-    save(); render(); toast('Reordered');
+    /* Put it down in the gap. The order is read off the two indexes rather
+       than off the DOM, because the DOM was never reordered — which is what
+       let the bands slide instead of jump. `ord` is what childrenOf() falls
+       back to when nothing sorts, so writing indexes into it is the whole of
+       the change, and the boxes are untouched: a thing's place on a grid is a
+       different fact from its place in a list. */
+    if(g.to===g.from){ clearBandShift(g); return; }   // put back where it was
+    const ids=g.sibs.map(el=>el.dataset.row||el.dataset.drawer);
+    ids.splice(g.to, 0, ids.splice(g.from, 1)[0]);
+    clearBandShift(g);
+    /* One move for the whole shuffle, and offered on the toast: a phone has no
+       ⌘Z, so a reorder with nothing in front of it is a way back that exists
+       only on a keyboard. See decisions 65 and 128. */
+    const sets=[];
+    ids.forEach((id,i)=>{ const o=byId(id); if(o && o.ord!==i) sets.push([id,'ord',o.ord]); });
+    if(sets.length) pushSets('Reordered', sets);
+    ids.forEach((id,i)=>{ const o=byId(id); if(o) o.ord=i; });
+    save(); render(); toast('Reordered', true);
     return;
   }
 
@@ -1912,7 +1976,7 @@ const dragArmed = ()=> !!(G && G.armed);
 function onCancel(){
   cancelHold();
   if(G && G.type==='fall') gravityDrop();
-  if(G && G.type==='band') clearRow(G);
+  if(G && G.type==='band'){ clearRow(G); clearBandShift(G); }
   stopPan();
   pagerCancel();
   if(G){ clearAim(G); closeAjar(G); if(G.ghost) G.ghost.remove();

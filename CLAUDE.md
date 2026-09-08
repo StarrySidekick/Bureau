@@ -994,6 +994,15 @@ shuffle *after* the render, never instead of it. A face with nothing to show is
 a label again — name and a quiet line — which is also what the type picker's
 sample is. See decision 79.
 
+**Each of the three targets on that face keeps a tap and a hold, and the words
+fall through to the tile.** The box ticks and, held, plucks the line out; the
+words change and, held, put the *drawer* in your hand; the front opens and, held,
+does the same. The pluck used to arm anywhere on the line, and a face is lines
+from edge to edge — so holding a checklist took a task out of it wherever your
+finger landed and there was no tile left to pick the drawer up by. `onDown`
+therefore matches `.cline[data-pluck] > .clbox` and not the line, and everything
+else on the face reaches the tile branch below. See decision 169.
+
 **The add box is opt-in, and even then it can go by itself.** Ask
 `showsAddBox(c, box)` for the front, not `takesTyping(c)` — that answers whether
 a container takes dictation at all. The box is off unless `addbox` says
@@ -1164,32 +1173,49 @@ are evened across the rows, because a half-empty last row reads as broken
 rather than wrapped. Pressing a block sets the bar to it and pressing the one it
 is on steps back; a bar that names a `tracks` refuses the press. See decision 138.
 
-**A spawner is a spiral, and bigger it is a box with a line in it.** Square
-corners like everything else on a board (decision 125); the spiral is drawn
-**only where the box is square** — `gensquare` — because it is a mark that winds
-out from its own middle and a four-by-one has no middle for it to wind out of.
-The icon is eight half-arcs whose ends alternate either side of the viewBox's
-centre line, so it is even by construction and reaches the edge; the old one was
-four relative arcs starting a pixel off centre and wound off to one side. In a
-square box the mark takes whatever height the line leaves, by `aspect-ratio` and
-not by a width in `cqw` — a proportion of the width is the wrong number in a
-column — and `.fieldin` has to restate `height:auto`, because the base rule is
-`height:100%` and that is the whole tile.
+**A spawner with its line showing is the add box, and so is the box at the top
+of a drawer.** They are one machine — a mark you press, a line you write a name
+in, one of a stated type comes out — and they were drawn as two things: a dashed
+rule on paper inside a drawer, a solid pill of the object's own colour on a
+board. The pill said *control* where what it does says *write here*. One look
+now, **`.addline`**, in **one CSS block naming both selectors** so they cannot
+drift; the tile's selector is four classes deep because
+`.drawer.otile.gentile{background-color:var(--c)}` is three and `.drawer` owns
+the border and the shadow — the trap that block's own comment names, met from
+the other side. The colour did not go anywhere: it is in the **mark**. The mark
+is drawn at every big size (a spiral in the left-hand cell was a badge on a
+pill and is the head of an add box here), and the box at the top of a drawer
+grew the half it lacked — pressing its mark makes one with no name, through
+`spawnInto()`, so a sorting drawer still makes the thing where the drawer
+itself lives. `.addpress` and not `.genico`: that class's `62cqw` is *the whole
+cell*, which outside a query container is most of the screen. See decision 167.
 
-The rest of it, unchanged:
-
-**A spawner is a spiral, and bigger it is a pill with a line in it.** One cell
-square the spiral **is** the tile — no ground, no edge, no shadow and no stock,
-drawn in the object's own colour and filling the cell, because a coloured square
-with a small mark on it is a button carrying a picture of a button. Wider or
-taller it is a **pill** (`--pill`, the token that exists for exactly this) with
-the press at the head and the box you type into filling the rest; what you type
-names the thing it presses out. The line goes only at one cell of width. That is the whole of what the
-Text field type was, so there is no Text field type — pressing and typing are
-two sizes of one machine. The branch sits **above** the 1×1 branch in
+**One cell square, the spiral still *is* the tile** — no ground, no edge, no
+shadow and no stock, drawn in the object's own colour and filling the cell,
+because a coloured square with a small mark on it is a button carrying a picture
+of a button. The **line** is dropped only at one cell of *width* (`sz-thin`) —
+above that the box is what the big spawner is for — and the `return` hint goes
+one step sooner, at `sz-narrow` or `sz-short`, because a hint is what a small
+tile can spare. Line and mark together are the whole of what the Text field type
+was, so there is no Text field type: pressing and typing are two sizes of one
+machine. The branch sits **above** the 1×1 branch in
 `drawTile()` deliberately, or a spawner shrunk to a stamp would be an anonymous
 mark. A seed may state its own box (`sz`/`phoneSz`), which is how a project is
 born holding a band rather than a spiral.
+
+The icon is eight half-arcs whose ends alternate either side of the viewBox's
+centre line, so it is even by construction and reaches the edge; the old one was
+four relative arcs starting a pixel off centre and wound off to one side. In a
+**square** box (`gensquare`) the mark takes whatever height the line leaves, by
+`aspect-ratio` and not by a width in `cqw` — a proportion of the width is the
+wrong number in a column — and `.fieldin` has to restate `height:auto`, because
+the base rule is `height:100%` and that is the whole tile.
+
+**A spawner's line makes what the spawner is set to make.** It created a `task`
+outright for a long time, so one set to Note pressed out notes with the spiral
+and typed out tasks with the line. `genKindOf()`, or `someKind()` when it is set
+to anything — resolved once, like `dispense()` does it — and `fits()` asked
+first, like everything else that makes something.
 
 **A collage is the board inside it, drawn small.** `faceOf(o)==='collage'` —
 every child at the box it actually occupies, on the container's own columns.
@@ -1384,14 +1410,21 @@ skips the trait test and reads `get()`) while the rollup picker refuses it.
 deadline chip as **the line thickening as the slack runs out** — never as a left
 stripe, which is what priority means. See decision 120.
 
-**A selection box is four edges, not one path.** `.ghost` draws its line on a
-child pinned at `inset:2px` rather than as an `outline` at a negative offset.
-Both are inset by construction, and the outline is *correct* — but an outline is
-one path around the whole box, so an engine that clips or rounds it anywhere
-loses whole sides of it at once, which is what it went on doing on the phone. A
-border on a child is four independent edges and a side can only go missing if
-something takes that side away by name. Structural beats correct-in-theory when
-there is exactly one of the thing at a time.
+**The Magic Selector's line is four edges, and each of them is its own paint.**
+`.ghost::before` draws no border at all: four `repeating-linear-gradient`
+background layers, one per edge, sized `100% × --ghostw` and `--ghostw × 100%`
+and positioned at the four sides, with `--ghostdash` — one custom property read
+by all four — saying solid or dashed. It was an `outline` (one path round the
+whole box, and an engine that clips or rounds it anywhere loses whole sides at
+once), then a **border on an inset child**, and the phone went on losing the
+two upright sides under both. A border is still four sides of *one property*,
+resolved together against one box and one radius and then segmented into dashes
+by the engine — so a side going missing is something the engine can decide,
+once. Four layers cannot be decided about together. Same trick as a moulding and
+a window's muntins: a fixed px thickness, a proportional position. The general
+rule: **when a structural fix does not hold, the structure was not small enough
+yet** — stop where the thing that can fail is a thing you named. See decision
+170, which supersedes the border-on-a-child half of the same argument.
 
 **Two concentric corners are one radius and one inset.** The goal card's rule is
 `max(0px, var(--cardr) - var(--cardin))`, and both read `--checkerx` — the
@@ -2277,6 +2310,21 @@ is **one** borrowed `#rowact` element positioned over the row that is moving, no
 a strip in every band: a list is the one place that can hold two hundred of
 something.
 
+**And a row is an eight-by-one.** A list is for looking at things one after
+another, so a row is the strip the same object would be on a grid at eight cells
+by one — one cell tall, standing **flush** against the one above it, in a column
+eight cells wide. On a phone that is the board's own width, so a task in a list
+is the strip it is on the desk. `--listrow` is the measured cell, written onto
+the **scroller** by `listStyle()` in views.js from `CELL[dev()]` — a list is not
+a grid, so `sizeGrid()` never reaches one, and the add box at the top has to
+stand in the same column. Flush is a `margin-top:-1px` on every band after the
+first: each tile carries a one-pixel edge, so two touching ones draw a
+two-pixel rule and the stack reads as gapped anyway. A name in a band is **one
+line**, and it has to say so at three classes — `.drawer.otile .dname` sets
+`white-space:normal` and the text-size multiplier restates the size, and both
+are two classes and later in the file. Restate the multiplier, don't beat it.
+See decision 168.
+
 **A hold is 300ms and a render inside one detaches the tile.** The arming
 callbacks call `refind(g)`, which looks the element up again by id — putting an
 inline edit down renders on the next tick, and since a name became something you
@@ -2289,6 +2337,22 @@ untouched, because a thing's place on a grid is a different fact from its place
 in a list. The gesture only arms when `sortOf(container)` is manual: a board
 that sorts itself arranges itself, and shuffling an A–Z list would be a gesture
 whose result vanished on the next render. The list carries `data-listfor`.
+
+**Reordering is picking up and putting down, and nothing moves in the DOM until
+you let go.** `liftBand()` captures the siblings and the **pitch** — measured
+between two real neighbours' tops, because the bands overlap their borders by a
+pixel and a height is the wrong number; `clearBandShift()` puts everything back.
+On the move the band you hold takes a `translateY` of the finger's travel and
+the ones it is passing take one of ±pitch, so a gap opens where it will land;
+the new order is read off `from` and `to` at the drop rather than off the list.
+It used to `after.after(G.el)` on every `pointermove` — the list re-flowed under
+your finger, everything past the insertion point jumped a row at a time, and
+what you were carrying jumped with it, because it was one of them. The band in
+your hand is the one thing that must **not** ease (`.dragging` turns its own
+transition off): a tile that lags your thumb reads as a tile you have not picked
+up. One `pushSets` for the whole shuffle, and `toast(…, true)` — a reorder with
+nothing in front of it is a way back that only exists on a keyboard. See
+decision 168.
 
 **A sort is per object then per type.** Ask `sortOf(c)`, never `c.sort`. `manual`
 is a real stored value — it is what lets one container refuse a type that sorts —

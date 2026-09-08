@@ -5,6 +5,47 @@ Sequenced by dependency, not appetite: item 1 makes everything after it safer.
 
 ---
 
+## 0x. Asked 2026-09-08 — the list, and the add box — DONE (v1.66)
+
+Timothy, in his own words: *"list view ultimately exists to make it easier to
+view objects one after another, and it task based workflow and things like
+that."* Five asks about that view and the add box, and two bugs.
+
+1. **A row in a list is an eight-by-one.** The strip the same object would be on
+   a grid at eight cells by one, one cell tall, standing flush against the one
+   above it. It was a stack of cards — a 46px minimum, six pixels of air, and a
+   name that wrapped — three ways of saying "these are separate objects" in the
+   one view whose argument is that they are a sequence. Decision 168.
+2. **Reordering is picking up and putting down.** The band you hold lifts and
+   follows the finger, the others step aside to leave the gap, and letting go
+   drops it in — the grid's own gesture. It used to re-insert the band into the
+   DOM on every pointermove, so the list re-flowed under your finger and what
+   you were carrying jumped with it. One undo move for the shuffle, offered on
+   the toast. Decision 168.
+3. **A task can be made a project**, from the tile's own menu, and it asks which
+   kind of work. A conversion is not the editor's Type row with a different door
+   on it: the box goes to the new type's size at the old corner, and something
+   holding nothing is seeded the way a new one is. Decision 171.
+4. **The spawner and the drawer's add box are one look.** They are the same
+   machine — press a mark, write a name, one of a stated type comes out — and
+   they were a dashed rule on paper in one place and a solid pill of the
+   object's own colour in the other. `.addline`, one block naming both. The box
+   at the top of a drawer grew the press it was missing. Decision 167.
+5. **A checklist front is a tile you can pick up again.** The hold is aimed at
+   the line's **box** rather than the whole line — a face is lines edge to edge,
+   so holding one anywhere took a task out of the drawer and left no tile to
+   grab. Decision 169.
+6. **The Magic Selector keeps all four sides.** Item 3 of the pass below said
+   this was fixed by moving the border child in two pixels; it was not. A border
+   is four sides of one property, resolved together and segmented by the engine.
+   It is four background layers now, one per edge. Decision 170.
+
+*And one found on the way:* a spawner's **line** made a `task` whatever the
+spawner was set to make, so one set to Note pressed out notes and typed out
+tasks.
+
+*Left out:* nothing.
+
 ## 0w. Asked 2026-09-08 — the board lets go — DONE (v1.63)
 
 Timothy, in his own words: *"the ability to flip a setting switch and then have

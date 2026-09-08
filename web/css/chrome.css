@@ -765,15 +765,43 @@
   border:0;
   outline:0;
   --ghostline:var(--ink);
+  --ghostw:2.5px;
+  /* solid: one stop that fills its own box. The band overrides it — see below */
+  --ghostdash:var(--ghostline) 0 100%;
   background:color-mix(in srgb,var(--ink) 26%,transparent);
   box-shadow:0 0 0 2px rgba(255,255,255,.5), var(--shadow-lg);
   border-radius:var(--radius-d);pointer-events:none;z-index:20;
   position:relative;
 }
+/* ---- four edges, and now four *paints* ---------------------------------
+   The line was an `outline` first and a `border` on this child second, and the
+   phone went on losing the two upright sides of the Magic Selector under both.
+   A border is four sides of **one property**, resolved together against one
+   box and one radius, and a dashed one is then segmented by the engine — so a
+   side going missing is a thing the engine can decide, once, for reasons this
+   file cannot reach.
+
+   Four background layers cannot be decided about together: each is its own
+   paint, its own size and its own position, and an edge can only go missing if
+   something takes that layer away by name. It is the same argument the border
+   was over the outline, carried one step further because one step was not
+   enough. Same trick as a moulding and a window's muntins — a fixed px
+   thickness and a proportional position — so it is house idiom rather than a
+   workaround. Guarded as `ghostEdges` in the smoke test. */
 .ghost::before{
   content:'';position:absolute;inset:2px;
-  border:2.5px solid var(--ghostline);
+  border:0;
   border-radius:inherit;pointer-events:none;
+  background-image:
+    repeating-linear-gradient(90deg, var(--ghostdash)),
+    repeating-linear-gradient(90deg, var(--ghostdash)),
+    repeating-linear-gradient(180deg, var(--ghostdash)),
+    repeating-linear-gradient(180deg, var(--ghostdash));
+  background-size:
+    100% var(--ghostw), 100% var(--ghostw),
+    var(--ghostw) 100%, var(--ghostw) 100%;
+  background-position:left top, left bottom, left top, right top;
+  background-repeat:no-repeat;
 }
 .ghost.bad{--ghostline:#C0563F;background:rgba(192,86,63,.30);
   box-shadow:0 0 0 2px rgba(255,255,255,.45), var(--shadow-lg)}
@@ -1301,16 +1329,47 @@ html .drawer.dtile.cltile{background-image:none}
 /* Nothing on a magic drawer animates and nothing tracks the pointer, so there
    is nothing here to switch off for reduced motion: it is a surface. */
 
-/* Scroll view — a drawer read top to bottom, nothing truncated */
-.listgrid{display:flex;flex-direction:column;gap:6px;max-width:900px}
+/* ---- list view — a column of eight-by-ones ------------------------------
+   A list is for looking at things one after another, and a row of one is a
+   **task-sized strip**: the size the same object would be on a grid at eight
+   cells by one, at exactly that height, standing flush against the one above
+   it. It was a 46px minimum with six pixels of air between them, which is a
+   list of cards — a different thing, and the wrong one for working down a list
+   of jobs.
+
+   `--listrow` is the measured cell, written onto the scroller by views.js
+   (a list is not a grid, so sizeGrid() never reaches it). Eight of them is the
+   column's width, so on a phone — eight columns — the list is the board's own
+   width, and on a Mac it is the strip an 8×1 actually is. **Flush** is the
+   negative margin: every tile carries a 1px edge, so two touching ones would
+   draw a two-pixel rule between them and the stack would read as gapped after
+   all. See decision 168. */
+.listgrid{display:flex;flex-direction:column;gap:0;
+  width:min(calc(8 * var(--listrow,48px)), 100%)}
 .drawer.listband{
-  position:relative;min-height:46px;padding:8px 14px;justify-content:center;
+  position:relative;height:var(--listrow,48px);min-height:0;padding:0 12px;justify-content:center;
   box-shadow:none;cursor:pointer;
 }
-.drawer.listband:hover{filter:brightness(1.05)}
-.drawer.listband .dtop{gap:10px;align-items:center;width:100%}
-.drawer.listband .dname{font-size:14px;-webkit-line-clamp:1;white-space:nowrap;flex:0 0 auto;max-width:40%}
-.drawer.listband .bandsnip{font-size:12px;color:var(--dink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0}
+.drawer.listband + .drawer.listband{margin-top:-1px}
+.drawer.listband:hover{filter:brightness(1.05);z-index:1}
+.drawer.listband .dtop{gap:10px;align-items:center;width:100%;min-width:0}
+/* **One line, and it has to say so at three classes.** A row is one cell tall,
+   so a name that wraps is a name cut in half by the band's own overflow — and
+   two rules later in this file (`.drawer.otile .dname`, which sets
+   `white-space:normal`, and the text-size multiplier at the end of it) are
+   both two classes and both win a tie on source order. The multiplier is
+   restated rather than beaten: a name read from closer is still a name read
+   from closer, wherever it is drawn. */
+.listgrid .drawer.listband .dname{
+  font-size:calc(14px * var(--tscale,1));line-height:1.2;
+  display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  flex:0 1 auto;min-width:0;max-width:100%}
+/* The name takes what it needs and the note takes what is left — `flex:1 1 0`
+   against the name's `0 1 auto`, so the free space goes to the note and the
+   *shrinking*, when there is not enough room, comes off the name. A percentage
+   cap on the name was truncating short titles to make room for a note that had
+   nothing to say. */
+.drawer.listband .bandsnip{font-size:12px;color:var(--dink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1 1 0;min-width:0}
 .drawer.listband .pull{margin-left:auto;width:14px;height:14px}
 .drawer.otile.listband .bandsnip{color:var(--ink-3)}
 .bandimg{width:34px;height:34px;object-fit:cover;border-radius:3px;flex:0 0 auto}
@@ -3771,13 +3830,50 @@ kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--rule);border
 .is-desk .only-phone{display:none}
 .is-phone .topbar h1{font-size:21px;line-height:1.2}
 .is-phone .topbar .sub{font-size:11.5px}
-.quickadd{display:flex;align-items:center;gap:9px;padding:9px 12px;border-radius:var(--radius);border:1.5px dashed var(--rule);
-  background:color-mix(in srgb,var(--paper-2) 60%,transparent);margin-bottom:9px;transition:.15s;
-  max-width:900px}   /* the same column the bands below it stand in */
-.quickadd:focus-within{border-style:solid;border-color:var(--brass);background:var(--paper-2)}
-.quickadd input{flex:1;border:0;background:none;outline:none;font-size:13.5px}
-.quickadd input::placeholder{color:var(--ink-3)}
-.quickadd .k{font-size:10.5px;color:var(--ink-3);font-family:var(--mono)}
+/* ---- the add box, wherever it is ---------------------------------------
+   A spawner with its line showing and the box at the top of an open drawer are
+   the **same machine**: a mark you press, a line you write a name in, and one
+   of a stated type comes out. They were drawn as two different things — a
+   dashed rule on paper inside a drawer, a solid pill of the object's own
+   colour on a board — and the pill said *control* where what it does says
+   *write here*. One look, worn by both.
+
+   Two selectors on one block rather than two blocks, because the whole point
+   is that they cannot drift. The tile's is four classes because it has three
+   rules of its own to beat (see `.drawer.otile.gentile.genbig` in board.css);
+   the quick-add's is one because nothing argues with it. Each keeps what its
+   own place needs afterwards — a tile has a stock and a size class, a
+   quick-add has the column the bands below it stand in. See decision 167. */
+.addline,
+.drawer.otile.gentile.genbig{
+  display:flex;align-items:center;gap:9px;
+  border:1.5px dashed var(--rule);
+  background-color:color-mix(in srgb,var(--paper-2) 60%,transparent);
+  box-shadow:none;transition:border-color .15s,background-color .15s;
+  cursor:text;
+}
+.addline:focus-within,
+.drawer.otile.gentile.genbig:focus-within{
+  border-style:solid;border-color:var(--brass);
+  background-color:var(--paper-2);
+}
+.addline input{flex:1;min-width:0;border:0;background:none;outline:none;font-size:13.5px;color:var(--ink)}
+.addline input::placeholder{color:var(--ink-3)}
+.addline .k{font-size:10.5px;color:var(--ink-3);font-family:var(--mono);flex:0 0 auto}
+/* the mark at the head, as a press: a spawner's mark makes one with no name,
+   and the box at the top of a drawer now does the same */
+.addline .addpress{border:0;background:none;padding:0;cursor:pointer;color:var(--brass);
+  display:flex;line-height:0;flex:0 0 auto;transition:transform .12s,color .12s}
+/* Its own class rather than the tile's `.genico`, whose `62cqw` is *the whole
+   cell* — right where the mark is the tile and, outside a query container,
+   62% of the viewport. The mark here is a mark: it takes the size the icon
+   was drawn at. */
+.addline .addpress svg{width:16px;height:16px}
+.addline .addpress:hover{color:var(--ink)}
+.addline .addpress:active{transform:scale(.9)}
+.quickadd{padding:9px 12px;border-radius:var(--radius);margin-bottom:9px;
+  /* the same column the bands below it stand in — see .listgrid */
+  width:min(calc(8 * var(--listrow,48px)), 100%)}
 .filterbar{display:flex;gap:6px;overflow-x:auto;padding:2px 0 10px;align-items:center}
 /* …but inside a panel there is nothing off to the right to scroll to, and a
    chip half off the edge reads as a chip that is broken. Wrap instead. */
@@ -4915,10 +5011,27 @@ input,textarea,select,[contenteditable],
 
 /* ---- a list you arranged is a list you can rearrange -------------------
    Manual sort only: a board that sorts itself arranges itself, and shuffling
-   an A–Z list would be a gesture whose result vanished on the next render. */
+   an A–Z list would be a gesture whose result vanished on the next render.
+
+   Picking up and putting down, the way a grid does it: the band you are
+   holding lifts and follows the finger, the others **step aside** to leave the
+   gap it will land in, and letting go drops it there. All of it is transforms
+   on the bands themselves — nothing moves in the DOM until the drop — so a
+   two-hundred-row list costs one transition per row to shuffle and no layout
+   at all. The one that must **not** ease is the band in your hand: a tile that
+   lags your thumb reads as a tile you have not picked up, so `.dragging` turns
+   the transition off for itself alone. See decision 168. */
+.listgrid .listband{transition:transform .16s cubic-bezier(.2,.8,.3,1),box-shadow .18s,filter .18s}
+/* while one is in your hand the rest are scenery: nothing else lights up under
+   the pointer, because the only thing being aimed at is the gap */
+.listgrid.reordering .listband{cursor:grabbing}
+.listgrid.reordering .listband:hover{filter:none}
 .drawer.listband.lifted{box-shadow:0 6px 18px -6px rgba(0,0,0,.4);z-index:3}
-.drawer.listband.dragging{opacity:.92;outline:2px solid var(--glow);outline-offset:1px;
-  transform:scale(1.01)}
+.listgrid .listband.dragging{transition:box-shadow .18s;z-index:4;
+  opacity:.96;outline:2px solid var(--glow);outline-offset:-1px;box-shadow:var(--shadow-lg)}
+@media (prefers-reduced-motion: reduce){
+  .listgrid .listband{transition:box-shadow .18s,filter .18s}
+}
 
 /* ============================================================
    Text size — one multiplier over whatever each rule decided

@@ -1121,7 +1121,11 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
 /* the lasso reads as a selection rather than a new object — and the stroke is
    drawn on the ghost's own inset child, so a box in the board's first or last
    column keeps all four sides. See `.ghost` in chrome.css. */
-.ghost.band::before{border-style:dashed}
+/* The dash is the *pattern* of all four edges at once, which is what makes it
+   impossible for two of them to disagree: one custom property, read by four
+   identical layers. Fixed px, so the dash is the same size on a 1×1 as on a
+   nine-cell band. */
+.ghost.band{--ghostdash:var(--ghostline) 0 6px, transparent 6px 11px}
 .ghost.picking{--ghostline:var(--brass);background:color-mix(in srgb,var(--brass) 18%,transparent);
   box-shadow:0 0 0 2px rgba(255,255,255,.4)}
 /* a spawner: a press with an arrow.
@@ -1159,22 +1163,35 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
 
 /* Bigger than a cell, it grows the box you type into — what you write is the
    name of the thing it makes, which is the whole of what the Text field type
-   was. The spiral steps aside into the corner: the press is still the tile,
-   and the line is what you came to the big one for. See decision 135.
+   was. See decision 135.
+
+   **And with its line showing it is the add box**, wearing `.addline`: the
+   same dashed rule, mark, field and `return` as the box at the top of an open
+   drawer, because they are one machine and were drawn as two things. The
+   shared look is one block in chrome.css naming both selectors; what stays
+   here is the part that is a *tile* — how the mark and the line share the box
+   as it changes shape, and what each drops as it runs out of room.
+
+   Three declarations of that shared look have to be restated at four classes
+   rather than left to `.addline`: `.drawer.otile.gentile{background-color:
+   var(--c)}` above is three, and it would win the ground; `.drawer` is one
+   and later than nothing, so it would win the border and the shadow. This is
+   the trap the comment on `.drawer.otile.gentile` names, from the other side.
 
    **Square, not a pill.** It was round-ended on the argument that a thing you
    press and a thing you type into are both round-ended, which is true of
    software and not of this desk: everything on a board is sawn (decision 125),
    and a lozenge among rectangles read as a control that had wandered in from
-   somewhere else. It takes the drawer radius like every other tile.
-
-   And the spiral is drawn **only where the box is square** — `gensquare`,
-   which gridTile() stamps — so a four-by-one is the line you type into and
-   nothing else, while a three-by-three is the press it looks like. */
-.drawer.otile.gentile.genbig{flex-direction:row;gap:8px;padding:5px 10px;align-items:center;
-  border-radius:var(--radius-d)}
-.drawer.otile.gentile.genbig .fieldin{border-radius:var(--radius);padding:5px 12px}
-.gentile.genbig .genico svg{width:clamp(16px,18cqw,30px)}
+   somewhere else. */
+/* Only what is *this tile's* — the ground, the edge, the shadow, the field and
+   the word are the shared `.addline` block in chrome.css, which names this
+   selector alongside it. */
+.drawer.otile.gentile.genbig{flex-direction:row;padding:6px 11px;
+  border-radius:var(--radius);text-align:left;justify-content:flex-start}
+/* the mark is the object's own colour on paper, as it is at one cell square —
+   the ground is not the colour any more, so this is where the colour lives */
+.gentile.genbig .genico{color:var(--c);opacity:1;flex:0 0 auto}
+.gentile.genbig .genico svg{width:clamp(15px,16cqw,26px)}
 /* Square and bigger than a cell: the spiral is the tile again and the box you
    type into sits under it, so both halves get the room they are worth. */
 .drawer.otile.gentile.genbig.gensquare{flex-direction:column;gap:6px;padding:8px}
@@ -1187,24 +1204,21 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
 .gentile.genbig.gensquare .genico{flex:1 1 auto;min-height:0;width:100%;
   align-items:center;justify-content:center}
 .gentile.genbig.gensquare .genico svg{width:auto;height:100%;max-width:100%;aspect-ratio:1}
-.gentile.genbig.gensquare .fieldin{flex:0 0 auto;width:100%;height:auto}
-.gentile.genbig .fieldin{
-  flex:1;min-width:0;border:0;background:rgba(255,255,255,.14);border-radius:var(--radius);
-  padding:5px 8px;font:inherit;font-size:13px;color:#F8F3E6;outline:none;
-  box-shadow:inset 0 1px 3px rgba(0,0,0,.28);
-}
-.gentile.genbig .fieldin::placeholder{color:rgba(248,243,230,.6)}
-.gentile.genbig .fieldin:focus{background:rgba(255,255,255,.22)}
+.gentile.genbig.gensquare .fieldin{flex:0 0 auto;width:100%;height:auto;text-align:center}
+.gentile.genbig .fieldin{flex:1;min-width:0;height:auto;padding:2px 0;font-size:13.5px}
 /* …and one cell tall, the box is the whole of it and the spiral is the stamp
-   at the end — the same rule every other tile follows as it loses room. */
-.gentile.genbig.sz-short{padding:4px 6px;gap:6px}
+   at the head — the same rule every other tile follows as it loses room. The
+   word goes first: it is the hint, and a hint is what a short tile can spare. */
+.gentile.genbig.sz-short{padding:3px 9px;gap:7px}
+.gentile.genbig.sz-short .k,.gentile.genbig.gensquare .k,
+.gentile.genbig.sz-narrow .k{display:none}
 /* The line goes only when there is no width left at all — one cell — because
    above one cell the box *is* what the big spawner is for. `sz-narrow` (three
    cells) was too eager and left a 2-wide press with nothing to type into. */
 .gentile.genbig.sz-thin .fieldin{display:none}
 .gentile.genbig.sz-thin{flex-direction:column;justify-content:center}
-.gentile.genbig.sz-narrow{padding:4px 7px;gap:5px}
-.gentile.genbig.sz-narrow .fieldin{padding:4px 8px;font-size:12px}
+.gentile.genbig.sz-narrow{padding:4px 8px;gap:6px}
+.gentile.genbig.sz-narrow .fieldin{font-size:12px}
 /* ---- a sound, and a moving picture --------------------------------------
    A sound is a record with a play button in the middle of it: no card, no
    ground, no edge — the same argument the song cover makes one file over, and

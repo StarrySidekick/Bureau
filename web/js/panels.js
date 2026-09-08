@@ -232,8 +232,14 @@ function pickGroups(skipPrimary){
    re-opens the panel it is already on: the plain Note, Text and Project were
    unmakeable, and the loop looked like nothing happening. Pass it explicitly
    rather than through `.map(kindTile)`, which hands the *index* as the second
-   argument and would make it true for everything but the first. */
-function kindTile(k, inFam){
+   argument and would make it true for everything but the first — and now hands
+   the whole array as the third, which would turn every tile in the picker into
+   a conversion of an object that does not exist. Every call site is an arrow. */
+/* `becomeId`, when there is one, is an object being *converted* rather than a
+   type being made: the tile asks "is this what it is" instead of "is this what
+   I am putting down", and the dial that opens the type editor sits out —
+   nothing here is about editing the type. */
+function kindTile(k, inFam, becomeId){
   const d=KINDS[k];
   /* A **category** does not make anything: pressing it asks which, and the
      family is one press further in. It is drawn as a type like any other,
@@ -241,13 +247,16 @@ function kindTile(k, inFam){
      putting down" — a chevron says the answer is one more press, and the
      count says how many are behind it. See decision 135. */
   const fam = !inFam && d.family && familyList(k);
-  return `<div class="kindtile${fam?' kindcat':''}" ${fam?`data-family="${k}"`:`data-new="${k}"${inFam?' data-asked':''}`} role="button" tabindex="0"
+  const act = becomeId ? `data-become="${becomeId}:${k}"`
+            : fam ? `data-family="${k}"`
+            : `data-new="${k}"${inFam?' data-asked':''}`;
+  return `<div class="kindtile${fam?' kindcat':''}" ${act} role="button" tabindex="0"
       style="--k:${hexOf(d.c)}" title="${esc(d.ds||'')}">
     <div class="kpv">${sampleTile(kindSample(k), 146, 82)}</div>
     <div class="krow"><span class="nm">${esc(d.nm)}</span>
       ${fam?`<span class="kmore">${fam.length}${ic('chevR',11)}</span>`
-           :d.key?`<span class="kbd">${esc(d.key)}</span>`:''}</div>
-    ${fam?'':`<button class="kedit" data-act="editkind" data-id="${k}" title="Edit ${esc(d.nm)}">${ic('sliders',12)}</button>`}
+           :(d.key&&!becomeId)?`<span class="kbd">${esc(d.key)}</span>`:''}</div>
+    ${(fam||becomeId)?'':`<button class="kedit" data-act="editkind" data-id="${k}" title="Edit ${esc(d.nm)}">${ic('sliders',12)}</button>`}
   </div>`;
 }
 
@@ -269,6 +278,27 @@ function familyPanel(cat){
     title:d.nm, sub:d.famSub || 'Which one?',
     body:()=>`<div class="kindgrid">${ks.map(k=>kindTile(k, true)).join('')}</div>
       ${d.ds?`<div class="mini" style="--k:var(--brass);margin-top:12px">${esc(d.ds)}</div>`:''}`});
+}
+
+/* ---- a thing that turned out to be a project ---------------------------
+   The same drawn grid the picker uses, asking a different question: not "what
+   am I putting down" but "what is this". A task you keep adding to is a
+   project, and that is the commonest reason to want to change what something
+   is — so it is one press off the tile's own menu rather than the Type row
+   four doors into the editor, which is where it has always been possible and
+   never been found.
+
+   It is `familyPanel()` pointed at an object, so the categories keep their one
+   list: adding a kind of project to `family` puts it here too. See decision
+   135 for why the question is asked on its own screen at all. */
+function becomePanel(id, cat){
+  const o=byId(id); if(!o) return;
+  const d=K(cat), ks=familyList(cat);
+  if(!ks.length) return;
+  openPanel({key:'become', wide:true,
+    title:`Make it a ${d.nm.toLowerCase()}`, sub:d.famSub || 'Which one?',
+    body:()=>`<div class="kindgrid">${ks.map(k=>kindTile(k, true, id)).join('')}</div>
+      <div class="mini" style="--k:var(--brass);margin-top:12px">It keeps its name, its words, its tags and where it is filed. It becomes something you can put the work inside.</div>`});
 }
 
 /* ---- which object a life drawer is -------------------------------------
@@ -2154,6 +2184,10 @@ function openCtx(x,y,id){
          Offered to anything that is not a container, because the panel offers
          the traits it hasn't got rather than refusing. See decision 122. */''}
     ${(!many && !isContainer(o))?`<button data-c="when:${id}">${ic('calendar',14)} When…</button>`:''}
+    ${/* A task you keep adding to is a project. Offered to anything that is
+         not already a container, because `isContainer()` is the structural
+         question and "is it a task" is a branch on a name. */''}
+    ${(!many && !isContainer(o))?`<button data-c="become:${id}">${ic('flag',14)} Make it a project…</button>`:''}
     ${(!many&&repeats(o))?`<button data-c="nextcopy:${id}">${ic('repeat',14)} Make the next one</button>`:''}
     ${(!many&&(has(o,'check')||has(o,'streak')))?`<button data-c="done:${id}">${ic('check',14)} ${has(o,'streak')?'Mark today':'Complete'}</button>`:''}
     <button data-c="intodrawer:${id}">${ic('folder',14)} ${many?`Put these ${sel.length} in a new drawer`:'Put this in a new drawer'}</button>
@@ -2176,7 +2210,7 @@ const closeCtx = ()=> $('#ctx').classList.remove('open');
 export { plansPanel, planCard,
   overlayHTML, openPanel, closePanel, refreshPanel, repositionPanel, panelKey, panelBack, draft,
   openMenu, modalNewObject, holdPanel, objectPanel, drawerPanel, modalNewKind,
-  renderPreview, modalMove, tagFirstPanel, familyPanel, lifeFirstPanel, donePanel,
+  renderPreview, modalMove, tagFirstPanel, familyPanel, becomePanel, lifeFirstPanel, donePanel,
   sampleObject, sampleTile, kindSample,
   openCmd, closeCmd, cmdList, cmdMove, cmdAt, runCmd, drawerFromSelection, openCtx, closeCtx,
   schedulePanel, quickISO, SCHED, SCHED_PENS };

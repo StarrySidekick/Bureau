@@ -534,7 +534,15 @@ function create(kind, patch){
     const pid = planForKind(kind);
     if(pid) stampPlan(pid, o.id);
   }
-  if(!(patch&&patch.noSeed)) (k.seed||[]).forEach((sp,i)=>{
+  if(!(patch&&patch.noSeed)) seedInto(o, kind);
+  delete o.noSeed;
+  return o;
+}
+/* What a type is born holding. Its own function because `becomeKind()` needs it
+   too: a task that turns out to be a project should arrive holding the same
+   band a new project does, or it is a project with no way in. */
+function seedInto(o, kind){
+  (K(kind).seed||[]).forEach((sp,i)=>{
     if(!KINDS[sp.kind]) return;
     const child = create(sp.kind, {parent:o.id, title:sp.title||'', noSeed:true});
     /* Placed rather than left to ensureBox: a seeded thing is the way *in*, so
@@ -550,7 +558,55 @@ function create(kind, patch){
       child[dv]={x:1, y:1+i*h, w, h};
     });
   });
-  delete o.noSeed;
+}
+
+/* ---- a thing that turned out to be bigger than it was ------------------
+   A task you keep adding to is a project, and noticing that is the commonest
+   reason to want to change what something *is*. The editor's Type row has
+   always been able to do it; what it could not do is what a conversion
+   actually needs — the box, and what the new type is born holding.
+
+   Three things happen and they are one move on the stack, because one press
+   did all three:
+
+     the **type**, and its attributes with it, which is what the Type row does
+     the **box**, taken to the new type's size where there is room for it —
+       an 8×1 task is a spine as a project, and a project is a front you look
+       at. Where there is no room it keeps the box it had rather than moving:
+       a conversion must never file a thing somewhere else.
+     the **seed**, but only into something holding nothing. A project is born
+       with a band you type into; one you converted into needs the same way in,
+       and one that already has children has its own.
+
+   Never a branch on a name: `kindHas(kind,'container')` is what decides
+   whether there is anything to seed, and the caller decides which types are
+   worth offering. */
+function becomeKind(id, kind){
+  const o=byId(id);
+  if(!o || !KINDS[kind] || o.kind===kind) return null;
+  const clone = v => v==null ? v : JSON.parse(JSON.stringify(v));
+  pushSets(`Made a ${K(kind).nm.toLowerCase()}`, [
+    [id,'kind',o.kind], [id,'attrs',clone(o.attrs)], [id,'milestones',clone(o.milestones)],
+    [id,'desk',clone(o.desk)], [id,'phone',clone(o.phone)]]);
+  o.kind=kind; o.attrs=null;
+  if(has(o,'progress') && !(o.milestones||[]).length)
+    o.milestones=[{t:'First milestone',done:false,d:dz(30)}];
+  const home=o.parent||ROOT;
+  ['desk','phone'].forEach(dv=>{
+    const b=o[dv]; if(!b) return;
+    /* The new type's size at the old corner, stepping the **long side** down
+       until it fits — fitSpot()'s rule with the origin held, because a
+       conversion may change what a thing is and must never change where it
+       is. It gives up the proportion before it gives up the place, and gives
+       up both before it comes out *smaller* than the box it already had: a
+       task that turned into a project is not a stamp. */
+    let [w,h]=sizeOfKind(kind, dv, home);
+    while(!boxOk({x:b.x,y:b.y,w,h}, o.id, dv, home) && (w>1 || h>1)){
+      if(w>=h) w--; else h--;
+    }
+    if(w*h >= b.w*b.h) o[dv]={x:b.x, y:b.y, w, h};
+  });
+  if(kindHas(kind,'container') && !childrenOf(o).length) seedInto(o, kind);
   return o;
 }
 /* Two objects dropped on each other become the container their type gathers
@@ -781,7 +837,7 @@ function randomThing(parentId){
 // toggleHabit isn't exported — a streak reaches it through toggleDone, which is
 // the one door, so nothing outside has to know a habit ticks differently.
 export { toast, setGridSize, toggleDone, spawnNext, del, delMany, delDrawer, undo, redo,
-  pushUndo, pushSet, pushSets, setPin, togglePin,
+  pushUndo, pushSet, pushSets, setPin, togglePin, becomeKind,
   drawerForTag, create, gather, quickAdd, spawnInto, randomThing,
   CONTROLS, CTL_KEYS, ctlSpec, ctlSaid, ctlIsOn, ctlForm, ctlNum, ctlIndex, ctlPress, someKind,
   fits,

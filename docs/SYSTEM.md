@@ -287,6 +287,14 @@ that isn't the desk. (`scroll` — the list with nothing truncated — is gone;
 migration 33 reads one as a list. The *object's* own `read: scroll` is a
 different property and is untouched.)
 
+A **list** is a column of **eight-by-ones**: a row is the strip the same object
+would be on a grid at eight cells by one, one cell tall, standing flush against
+the one above it, in a column eight cells wide. It exists to look at things one
+after another — a list of jobs, worked down — and it was a stack of cards with
+air between them, which says the opposite. `--listrow` is the measured cell,
+written onto the scroller because a list is not a grid and `sizeGrid()` never
+reaches one. See decision 168.
+
 Face and layout are two properties because they are two questions. A Checklist
 is `face:checklist, layout:list`, and any container can wear any face.
 
@@ -318,9 +326,13 @@ forbidden to restate and is what they exist for. The row sits in the object
 editor under Look, and only for a container that is drawing as a spine. See
 decisions 87 and 152.
 
-**A container can take dictation, and the box is opt-in.** `spawn` with
+**A container can take dictation, and the box is a spawner.** `spawn` with
 `spawnBy:'type'` puts a box at the top of it — inside it always, and on its
-front only when asked. Ask `showsAddBox(c, box)` for whether it is drawn on the
+front only when asked. The box **inside** it and a spawner tile with its line
+showing are the same machine and wear the same look (`.addline`): a mark you
+press, a line you write a name in, the word `return`, and one of a stated type
+comes out. Pressing the mark makes one with no name, exactly as pressing a
+spawner does. See decision 167. Ask `showsAddBox(c, box)` for whether it is drawn on the
 *front*: it says no unless you asked for it (`addbox:'show'` — on a checklist
 face the box costs a whole task-sized line, see decision 79) and no when the
 front is **two cells tall or less**, where a line spent on adding a tenth thing
@@ -632,16 +644,18 @@ decision 51.
 | Tap the words on anything | They become a field — on an **unlocked** board only. A tile, a list band, a line on a checklist front |
 | Tap a checklist line's box | Ticks it. The words are how you change it |
 | Swipe a list row left | Delete it |
-| Hold a band in a list | Reorder it, under Manual sort only — it writes `ord`. Hold still and it is the menu |
+| Hold a band in a list | Picks it up: it follows your finger, the others step aside to leave the gap, and letting go drops it in. Under Manual sort only — it writes `ord`, not a box. Hold still and it is the menu. Decision 168 |
 | Swipe a list row right | The little calendar: today, tomorrow, this weekend, next week, no date, a month to press a day on, and the deadline. See decision 78 |
 | Double-tap a tile | Its name becomes a field where it sits, and its body under it if the tile shows one. Containers are exempt: two taps on a drawer opens it twice |
 | Press and hold a tile (200ms) | Arms the drag; then move it, or drag a corner to resize |
 | Click bare grid | The type picker, and what you pick lands on that cell |
 | Drag across bare grid | Sketch a box — the new object takes that size — or lasso tiles |
 | Shift/⌘-click | Finder-style multi-select; dragging one moves the lot |
-| Right-click | Act on the tile or the selection, including sweeping it into a new drawer |
+| Right-click | Act on the tile or the selection, including sweeping it into a new drawer, and — for anything that is not already a container — **making it a project**, which asks which kind of work and takes the box and the seed with it. Decision 171 |
 | Drag onto a calendar day | Dates it, and files it into the drawer showing the month — unless that drawer is magic, which dates it and leaves it where it lives |
-| Hold a line on a checklist front | Lifts it off as a chip; drop it on a drawer or the board to file it there. A tap still ticks it |
+| Hold a checklist line's **box** | Lifts the line off as a chip; drop it on a drawer or the board to file it there. A tap still ticks it. The box and not the whole line, or the front — which is lines edge to edge — has no tile left to pick the drawer up by. Decision 169 |
+| Hold a checklist line's **words** | The drawer, in your hand. Every other target on that face keeps its own tap and its own hold; the words are what falls through to the tile |
+| Press the mark on a drawer's add box | Makes one with no name — the box is a spawner, and this is the half of one that presses. Decision 167 |
 
 **Clicking an object is configurable** — `clickOf()`, per object then per type:
 nothing, read it, write in it, tick it off, open its editor, or make one of

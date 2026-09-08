@@ -3,13 +3,13 @@ import { S, K, KINDS, KEYS, refreshKinds, ATTRS, attrsOf, has, SHAPES,
   FACES, MANUAL, byId, container, cfgOf, isContainer, isAncestor, relate, deskOf,
   unrelate, sensedDevice, reset, T, dz, dev, calViewOf, RULE_MAX, acceptFor, acceptAny,
   boardLocked, repeatOf, repeats, heldObjects, heldCount, marginOf, marginPlus, homeFor,
-  layoutOf, setClFit } from './model.js';
+  layoutOf, setClFit, genKindOf, makesAnything } from './model.js';
 import { gridOf, lay, boxOk, freeSpot, anySpot, roomFor, sizeOfKind, toPhoneSize, keepSize,
   shelvesOf, shelfAt, setShelf } from './grid.js';
 import { applyLook, applyStyle, setLookVal, lookVal, STYLES, setSlot, objColour, darkMode } from './look.js';
 import { toast, fits, setGridSize, toggleDone, spawnNext, del, delMany, delDrawer, undo, redo, pushUndo,
   pushSet, pushSets, setPin, togglePin, drawerForTag, create, spawnInto, randomThing,
-  holdIt, unholdIt, unholdMany, undoToast, someKind } from './mutations.js';
+  holdIt, unholdIt, unholdMany, undoToast, someKind, becomeKind } from './mutations.js';
 import { spinTo, pending, placeAtPending, tileTap, turnPage, clearPages } from './tiles.js';
 import { DECOR, LIFE_ART } from './decor.js';
 import { render, renderSoon, sizeGrid, toggleSettings, settingsPanel, reveal, goShelf, goShelfTo, deskMap } from './views.js';
@@ -20,7 +20,7 @@ import { openPanel, closePanel, refreshPanel, panelKey, panelBack, draft, modalN
   objectPanel,
   drawerFromSelection, openCtx, closeCtx, openCmd, closeCmd, cmdList, cmdMove, cmdAt, runCmd,
   schedulePanel, quickISO, SCHED, SCHED_PENS, plansPanel, tagFirstPanel,
-  familyPanel, lifeFirstPanel, donePanel } from './panels.js';
+  familyPanel, becomePanel, lifeFirstPanel, donePanel } from './panels.js';
 import { onDown, onMove, onUp, onCancel, onTouchStart, onTouchMove, onTouchEnd,
   gestureFlags, dragArmed } from './gestures.js';
 import { enter, leaveTile, pagerOn, applyTilt, askTilt } from './motion.js';
@@ -915,6 +915,10 @@ function wire(){
       else if(cmd==='today'){ const o=byId(id); pushSet('Scheduled',id,'due',o.due); o.due=T; save(); render(); toast('Scheduled today'); }
       else if(cmd==='tom'){ const o=byId(id); pushSet('Scheduled',id,'due',o.due); o.due=dz(1); save(); render(); toast('Scheduled tomorrow'); }
       else if(cmd==='move') modalMove(id);
+      /* Not the editor's Type row with a different door on it: a conversion
+         takes the box and the seed with it, which is what makes the answer
+         look like the thing you chose. See becomeKind(). */
+      else if(cmd==='become') becomePanel(id, 'project');
       /* The Void Drawer, without the gesture. The drag is the way you reach
          for it — the rail on a phone, the Home Knob on a Mac — and the menu is
          the one way in that is the same on both. */
@@ -1193,11 +1197,43 @@ function wire(){
       familyPanel(nf.dataset.family);
       return; }
 
+    /* The mark at the head of a drawer's add box, pressed. The box is a
+       spawner (decision 167) and this is the half of one that presses: a
+       spawner's mark makes one with no name, and so does this. It goes
+       through spawnInto() like the line beside it, so a magic container still
+       makes the thing where the container itself lives. */
+    const cn=t.closest('[data-contnew]');
+    if(cn){
+      const c=byId(cn.dataset.contnew);
+      const o=c && spawnInto(c, K(genKindOf(c)).nm);
+      if(o){ save(); render(); reveal(o.id); toast(`Made a ${K(o.kind).nm.toLowerCase()}`); }
+      return; }
+    // …and the same mark on the box inside one day of a calendar
+    const dn=t.closest('[data-daynew]');
+    if(dn){
+      const [did,iso]=dn.dataset.daynew.split(':');
+      const c=byId(did);
+      const o=c && spawnInto(c, K(genKindOf(c)).nm, {due:iso});
+      if(o){ save(); render(); toast(`Made a ${K(o.kind).nm.toLowerCase()}`); }
+      return; }
+
     const nl=t.closest('[data-newlife]');
     if(nl){ makeLife(...nl.dataset.newlife.split(/:(.*)/)); return; }
 
     const nd=t.closest('[data-newdone]');
     if(nd){ makeDone(...nd.dataset.newdone.split(/:(.*)/)); return; }
+
+    /* The same drawn grid, pointed at an object: this type is what it *is*,
+       not what to make. It closes the panel first, because the tile it is
+       about is behind it and the change is worth watching land. */
+    const bk=t.closest('[data-become]');
+    if(bk && !t.closest('[data-act]')){
+      const [id,k]=bk.dataset.become.split(':');
+      closePanel();
+      if(!becomeKind(id, k)) return;
+      save(); render();
+      toast(`Now a ${K(k).nm.toLowerCase()}`, true);
+      return; }
 
     // the dial in a type tile's corner edits the type rather than making one
     const nk=t.closest('[data-new]');
@@ -1750,11 +1786,21 @@ function wire(){
     if(e.target.dataset.fieldfor && e.key==='Enter'){
       const src=byId(e.target.dataset.fieldfor), text=e.target.value.trim();
       if(!text) return;
-      const t=create('task',{parent:src.parent, title:text});
-      // land it directly beneath the field that made it
-      const b=lay(src), g=gridOf();
-      const want={x:b.x, y:b.y+b.h, w:b.w, h:1};
-      t[dev()] = boxOk(want,t.id,dev(),src.parent) ? want : anySpot(b.w,1,dev(),src.parent);
+      /* What the spawner is **set to make**, not a task. It pressed out its
+         own type and typed out a task, so a spawner set to Note made notes
+         with the spiral and tasks with the line — the same machine answering
+         two different questions. `random` is resolved here and once, the way
+         dispense() resolves it. */
+      const kind = makesAnything(src) ? someKind() : genKindOf(src);
+      if(!fits(kind, src.parent)) return;
+      const t=create(kind,{parent:src.parent, title:text});
+      /* Land it directly beneath the field that made it, at the **type's**
+         size. It used to be the spawner's own width by one row, which was the
+         task's shape written out by hand — right for a task and wrong for
+         everything else the line can now make. */
+      const dv=dev(), b=lay(src), [w,h]=sizeOfKind(kind, dv, src.parent);
+      const want={x:b.x, y:b.y+b.h, w, h};
+      t[dv] = boxOk(want,t.id,dv,src.parent) ? want : anySpot(w,h,dv,src.parent);
       e.target.value=''; save(); render();
       const el=document.querySelector(`[data-fieldfor="${src.id}"]`); el&&el.focus();
       return;

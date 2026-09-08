@@ -716,11 +716,18 @@ const CHROME = process.env.BUREAU_CHROME;
     // so nothing can be filed into it — see decision 45
     const into = document.querySelector('.grid .drawer[data-drawer="d_ideas"]');
     if (!line || !into) return null;
-    const a = line.getBoundingClientRect(), b = into.getBoundingClientRect();
+    const b = into.getBoundingClientRect();
     /* The **box**, not the line: since decision 61 the words on a checklist
-       front are how you change them and the box is how you tick them. */
+       front are how you change them and the box is how you tick them — and
+       since decision 169 the box is also what a *hold* is aimed at, because a
+       front is lines from edge to edge and a pluck armed anywhere on one left
+       the drawer with no tile to be picked up by. So the pluck starts on the
+       box, and the words are the other half of the pair below. */
+    const grab = line.querySelector('.clbox').getBoundingClientRect();
+    const word = line.querySelector('.cltext').getBoundingClientRect();
     const tick = document.querySelector(`[data-pluck="${two.id}"] .clbox`).getBoundingClientRect();
-    return { from: [a.left + a.width / 2, a.top + a.height / 2],
+    return { from: [grab.left + grab.width / 2, grab.top + grab.height / 2],
+             word: [word.left + word.width / 2, word.top + word.height / 2],
              to:   [b.left + b.width / 2, b.top + b.height / 2],
              tick: [tick.left + tick.width / 2, tick.top + tick.height / 2] };
   });
@@ -764,6 +771,60 @@ const CHROME = process.env.BUREAU_CHROME;
     });
     return { found: true, lifted, aimed, filed: moved.parent === 'd_ideas',
              boxCleared: moved.boxCleared, chipGone: moved.chipGone, tapStillTicks: ticked };
+  })();
+
+  /* --- …and the other half of that pair: holding a checklist front by its
+     **words** picks the drawer up. A face is lines edge to edge, so before the
+     pluck was aimed at the box there was almost no tile left to grab — holding
+     a checklist anywhere took a task out of it. A test that asks whether the
+     markup is right cannot see that; this one holds the thing and looks for a
+     ghost. See decision 169. */
+  const checklistMoves = await (async () => {
+    const set = await page.evaluate(() => {
+      const S = BUREAU.state;
+      S.view = 'desk'; S.drawerId = null; S.sel = []; S.look.locked = false;
+      const cl = BUREAU.create('checklist', { parent: 'root', title: 'Carry me' });
+      /* Room asked for **six** wide and the tile drawn **four**, so the two
+         columns to its right are known free and the drag below has somewhere
+         legal to land. A drop `boxOk()` refuses writes nothing, and a test
+         that lands on an occupied cell fails for a reason that is not this. */
+      cl.desk = Object.assign(onThisShelf(6, 6), { w: 4 });
+      BUREAU.create('task', { parent: cl.id, title: 'A line to hold' });
+      window.__cm = { cl: cl.id, was: Object.assign({}, cl.desk), lock: S.look.locked };
+      BUREAU.render();
+      const el = intoView(document.querySelector(`.grid .drawer[data-drawer="${cl.id}"]`));
+      const w = el && el.querySelector('.cline .cltext');
+      if (!w) return null;
+      const r = w.getBoundingClientRect();
+      const cell = parseFloat(getComputedStyle(document.querySelector('#drawergrid'))
+        .getPropertyValue('--rowh'));
+      return { at: [r.left + r.width / 2, r.top + r.height / 2], cell };
+    });
+    if (!set) return { found: false };
+    await page.mouse.move(...set.at);
+    await page.mouse.down();
+    await page.waitForTimeout(320);
+    await page.mouse.move(set.at[0] + set.cell * 2, set.at[1], { steps: 8 });
+    await page.waitForTimeout(120);
+    const held = await page.evaluate(() => ({
+      tileLifted: !!document.querySelector(`.drawer[data-drawer="${window.__cm.cl}"].lifted`),
+      aGhost: !!document.querySelector('.ghost'),
+      noChip: !document.querySelector('.pluckchip')
+    }));
+    await page.mouse.up();
+    await page.waitForTimeout(300);
+    const out = await page.evaluate(() => {
+      const S = BUREAU.state, p = window.__cm;
+      const o = S.objects.find(x => x.id === p.cl);
+      const moved = !!o && o.desk.x === p.was.x + 2 && o.desk.y === p.was.y;
+      /* Removed outright rather than through delDrawer(), which **keeps the
+         contents** and files them one level up — a task left on the desk here
+         shifts `kids('root')` and the next block picks a different tile. */
+      S.objects = S.objects.filter(x => x.id !== p.cl && x.parent !== p.cl);
+      S.undo = []; S.view = 'desk'; S.look.locked = p.lock; BUREAU.render();
+      return moved;
+    });
+    return { found: true, ...held, andItActuallyMoves: out };
   })();
 
   /* --- a question is answered by writing the answer, not by ticking a box.
@@ -4383,6 +4444,29 @@ const CHROME = process.env.BUREAU_CHROME;
     const band = id => document.querySelector(`[data-listfor] .listband[data-row="${id}"]`);
     out.itIsAList = !!band(a.id) && !!document.querySelector('[data-listfor]');
 
+    /* ---- a row is an eight-by-one ---------------------------------------
+       A list is for looking at things one after another, so a row of one is
+       the strip a task tile is on a grid at eight cells by one: one cell tall,
+       standing flush against the one above. It was a 46px minimum with six
+       pixels of air between, which is a list of cards. The cell is read off
+       the *board*, not off a constant, or the two would drift the first time a
+       phone grid changed size. See decision 168. */
+    const cell = parseFloat(getComputedStyle(document.querySelector('.listgrid'))
+      .getPropertyValue('--listrow'));
+    const ra = band(a.id).getBoundingClientRect(), rb = band(b.id).getBoundingClientRect();
+    out.aRowIsOneCellTall = cell > 0 && Math.abs(ra.height - cell) < 1;
+    // flush: the next one starts where this one ends, bar the shared 1px edge
+    out.andTheyStandFlush = Math.abs((rb.top - ra.bottom) + 1) < 1.5;
+    out.andTheColumnIsEightOfThem = (() => {
+      const lg = document.querySelector('.listgrid'), sc = lg.parentElement;
+      const cs = getComputedStyle(sc);
+      const avail = sc.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+      return Math.abs(lg.getBoundingClientRect().width - Math.min(8*cell, avail)) < 2;
+    })();
+    // a name is one line, or a row one cell tall clips it in half
+    out.andANameIsOneLine =
+      getComputedStyle(band(a.id).querySelector('.dname')).whiteSpace === 'nowrap';
+
     /* A band obeys the object's own click behaviour, which is the thing a list
        used to ignore — it opened the object editor for everything on it, so
        tapping a task put a page of paper in front of you. A task's answer is
@@ -4434,9 +4518,37 @@ const CHROME = process.env.BUREAU_CHROME;
     out.aHoldLifts = !!document.querySelector('.listband.lifted');
     ev('pointermove',{clientY: other.top+other.height*0.8});
     await nap(120);
+    /* ---- picking up and putting down ------------------------------------
+       Mid-drag the band you are holding is **carried** and the ones it is
+       passing **step aside**, both as transforms, and the DOM is untouched
+       until you let go. It used to re-insert the band on every pointermove:
+       the list re-flowed under the finger and everything past the insertion
+       point jumped a row at a time — including the band in your hand, because
+       it was one of them. See decision 168. */
+    out.theOneYouHoldIsCarried = /translateY/.test(el.style.transform||'');
+    out.andTheOthersStepAside = /translateY/.test(band(b.id).style.transform||'');
+    out.andNothingHasMovedInTheDomYet =
+      [...document.querySelectorAll('[data-listfor] .listband')][0] === el;
     ev('pointerup',{clientY: other.top+other.height*0.8});
     await nap(300);
     out.andReorders = (a.ord||0) > (b.ord||0);
+    // one move for the whole shuffle, and reachable from the toast
+    out.andItIsOneUndo = (S.undo[S.undo.length-1]||{}).label === 'Reordered';
+
+    /* Let go where you picked it up and nothing happens — and, the part that
+       breaks, nothing is left standing aside. There is no render on that path,
+       so the transforms are the only thing that can put the list back. */
+    const el2 = band(a.id), r2 = el2.getBoundingClientRect();
+    const ev2 = (t,o)=>el2.dispatchEvent(new PointerEvent(t,Object.assign(
+      {bubbles:true,cancelable:true,pointerId:63,pointerType:'touch',
+       clientX:r2.left+30, clientY:r2.top+r2.height/2}, o)));
+    const wasOrd = a.ord;
+    ev2('pointerdown'); await nap(360);
+    ev2('pointermove',{clientY:r2.top+r2.height/2+8}); await nap(80);
+    ev2('pointerup',{clientY:r2.top+r2.height/2+8}); await nap(250);
+    out.puttingItBackChangesNothing = a.ord === wasOrd;
+    out.andLeavesNobodyStandingAside =
+      ![...document.querySelectorAll('[data-listfor] .listband')].some(x=>x.style.transform);
 
     /* The drag armed suppressClick so its own trailing click can't also fire.
        Nothing sends that click here, so it is consumed by hand — otherwise the
@@ -7356,6 +7468,91 @@ const CHROME = process.env.BUREAU_CHROME;
     out.blankRowsKeepTheirRoom = !!pg && pg.querySelectorAll('.vspace').length === 2;
     S.readId = null; BUREAU.renderSheet();
 
+    /* ---- the Magic Selector's four edges are four paints ---------------
+       An outline, then a bordered child, and the phone went on losing the two
+       upright sides of it under both. A border is four sides of one property
+       resolved against one box and one radius; four background layers cannot
+       be decided about together. This asks for the four, not for the look —
+       an engine that drops one is what the change is against, and there is no
+       engine here that does. See decision 170. */
+    const gh = document.createElement('div');
+    gh.className = 'ghost band';
+    document.querySelector('#app .grid').appendChild(gh);
+    const gb = getComputedStyle(gh, '::before');
+    /* Split on **top-level** commas by counting brackets. A regex cannot do it:
+       every layer is a gradient whose own stop list is full of commas, and each
+       colour is an `rgb(…)` full of more. */
+    const top = str => { const out=[]; let d=0, cur='';
+      for(const ch of str){
+        if(ch==='(') d++; else if(ch===')') d--;
+        if(ch===',' && d===0){ out.push(cur); cur=''; } else cur += ch; }
+      out.push(cur); return out; };
+    const layers = top(gb.backgroundImage).length;
+    const sizes = gb.backgroundSize.split(',').map(x => x.trim());
+    out.theSelectorHasFourEdges = layers === 4 && sizes.length === 4;
+    // two of them full width and two full height — a rule and an upright each
+    out.andTwoOfThemAreUpright = sizes.filter(x => /^100%/.test(x)).length === 2
+      && sizes.filter(x => /100%$/.test(x)).length === 2;
+    out.andTheyAreDashed = /transparent/.test(gb.backgroundImage);
+    out.andNoBorderIsLeftToLose = parseFloat(gb.borderLeftWidth) === 0;
+    gh.remove();
+
+    /* ---- a task that turned out to be a project ------------------------
+       One press off the tile's own menu, and it asks which kind of work.
+       The Type row in the editor could always change a kind; what it could
+       not do is what a conversion needs — the box and the seed. See
+       decision 171. */
+    const tk = BUREAU.create('task', {parent:'root', title:'Bigger than it looked'});
+    tk.desk = Object.assign(BUREAU.free(4,4,'root'), {w:4,h:4});
+    const tkAt = {x:tk.desk.x, y:tk.desk.y};
+    BUREAU.render(); await nap(150);
+    BUREAU.ctx(200, 200, tk.id);
+    out.aTaskCanBecomeAProject = !!document.querySelector(`#ctx [data-c="become:${tk.id}"]`);
+    document.querySelector(`#ctx [data-c="become:${tk.id}"]`).click(); await nap(250);
+    const kinds = [...document.querySelectorAll('#panel [data-become]')]
+      .map(e => e.dataset.become.split(':')[1]);
+    out.andItAsksWhichKindOfWork = kinds.length > 3 && kinds.includes('film')
+      && kinds.includes('project');
+    document.querySelector(`#panel [data-become="${tk.id}:film"]`).click(); await nap(300);
+    out.andItIsOneAfterwards = tk.kind === 'film' && BUREAU.isContainer(tk);
+    /* The origin is held — a conversion may change what a thing is and must
+       never change where it is — and the size is the new type's where there is
+       room for it. */
+    out.keepingItsNameAndItsPlace = tk.title === 'Bigger than it looked'
+      && tk.desk.x === tkAt.x && tk.desk.y === tkAt.y;
+    out.andTakesTheProjectsShape = tk.desk.w >= 4 && tk.desk.h >= 4;
+    // a project is born holding the band you type into — so is one you convert
+    out.andArrivesHoldingTheWayIn =
+      BUREAU.kids(tk.id).some(id => BUREAU.state.objects.find(o=>o.id===id).kind === 'generator');
+    BUREAU.undo(); await nap(150);
+    out.andItIsOneUndoBack = tk.kind === 'task';
+    S.objects = S.objects.filter(x => x.id !== tk.id && x.parent !== tk.id);
+
+    /* ---- the add box is a spawner, wherever it is ----------------------
+       A spawner with its line showing and the box at the top of an open
+       drawer do the same thing and were drawn as two different things. Both
+       wear `.addline` now, and the box at the top of a drawer has the mark
+       that presses one out. See decision 167. */
+    const spawner = BUREAU.create('generator', {parent:'root', title:''});
+    spawner.desk = Object.assign(BUREAU.free(6,2,'root'), {w:6,h:2});
+    BUREAU.render(); await nap(200);
+    const sp = document.querySelector(`.grid .drawer[data-row="${spawner.id}"]`);
+    out.aBigSpawnerIsTheAddBox = !!sp && sp.classList.contains('addline')
+      && !!sp.querySelector('input.fieldin') && !!sp.querySelector('.genico');
+    out.andItIsDashedPaperRatherThanASolidPill = !!sp
+      && getComputedStyle(sp).borderTopStyle === 'dashed';
+    const cl2 = BUREAU.create('checklist', {parent:'root', title:'Adding'});
+    S.view='drawer'; S.drawerId=cl2.id; BUREAU.render(); await nap(220);
+    const qa = document.querySelector('.quickadd');
+    out.andSoIsTheBoxAtTheTopOfADrawer = !!qa && qa.classList.contains('addline')
+      && !!qa.querySelector(`[data-contnew="${cl2.id}"]`);
+    const before = BUREAU.kids(cl2.id).length;
+    qa.querySelector('[data-contnew]').click(); await nap(220);
+    out.andItsMarkPressesOneOut = BUREAU.kids(cl2.id).length === before + 1;
+    S.view='desk'; S.drawerId=null;
+    S.objects = S.objects.filter(x => x.id !== cl2.id && x.parent !== cl2.id);
+    BUREAU.del(spawner.id);
+
     [nt, sc, ev, cb, cd, mg, w].forEach(o => BUREAU.del(o.id));
     S.undo = []; S.redo = []; BUREAU.render();
     return out;
@@ -7371,7 +7568,7 @@ const CHROME = process.env.BUREAU_CHROME;
     holdArms, maxDrift,
     settingsIsPanel, pickerPreviews, builderPreview, everyMenuIsAPanel,
     pasteOk, magicOk, rollupOk, relationsOk, relationsUI,
-    timeLayer, checklistBox, pluckWorks, answering, seedAndKnobs, longPress, drawerSize, tagDrawer, groupMove, dropStates,
+    timeLayer, checklistBox, pluckWorks, checklistMoves, answering, seedAndKnobs, longPress, drawerSize, tagDrawer, groupMove, dropStates,
     adaptiveTiles, bubblePanel, scrollKept, kindSizes,
     phoneGrid, phoneMigration, turnedSideways, pouring,
     noDupIds, undoWorks, readViews, paperSize, readPaper, readBar, movement, pager, desks, spans,

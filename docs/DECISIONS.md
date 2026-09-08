@@ -7293,3 +7293,181 @@ holding a phone, so it is deliberately not written.
 already arranged for a different reason: a settled pile stops the solver, and a
 stopped solver is not reading the sensor. With the tilt on, the frame keeps
 running and does the physics only when the direction has actually moved.
+
+## 167 · The add box is one machine
+
+*2026-09-08*
+
+A spawner with its line showing and the box at the top of an open drawer are the
+same thing: a mark you press, a line you write a name in, and one of a stated
+type comes out. They were drawn as two different things and sat a scroll apart.
+
+The box inside a drawer was a dashed rule on translucent paper with a plus at
+its head and the word `return` at the end — a place to write, which is what it
+is. The spawner was a solid pill of the object's own colour with the line
+recessed into it, which is what a **control** looks like: something you set,
+not something you write in. So the two halves of one idea were teaching two
+different things, and the one on the board was teaching the wrong one.
+
+One look, `.addline`, worn by both — one CSS block naming both selectors, so
+they cannot drift. The colour has not gone anywhere: it is in the **mark**,
+which is how an add box says what it makes, and at one cell square the spawner
+is still nothing but that mark in that colour. The tile's selector is four
+classes deep because it has three rules of its own to beat, which is the trap
+`.drawer.otile.gentile` has carried a comment about since decision 99, met from
+the other side.
+
+Two things came with it. The mark is drawn at **every** big size now, not only
+on a square one: a spiral in the left-hand cell of a four-by-one was a badge
+beside a line while the tile was a coloured pill, and is the head of an add box
+now that it is one. And the box at the top of a drawer got the half it was
+missing — pressing its mark makes one with no name, exactly as pressing a
+spawner does, through `spawnInto()` so a sorting drawer still makes the thing
+where the drawer itself lives.
+
+While the two were being read side by side, one of them turned out to be lying.
+A spawner's **line** created a `task` outright, whatever the spawner was set to
+make — so a spawner set to Note pressed out notes and typed out tasks. It goes
+through the same `genKindOf()`/`someKind()` resolution the press does now, and
+asks `fits()` first like everything else that makes something.
+
+*Against:* a spawner used to be identifiable across a desk by being a block of
+its own colour, and it is now a dashed outline like everything else that takes
+typing. That is the trade, and it is the right way round: what a thing does is
+worth more than what it is easy to spot, and the mark still carries the colour.
+
+## 168 · A list is a column of eight-by-ones
+
+*2026-09-08*
+
+List view exists to look at things one after another — a list of jobs, worked
+down. It was a stack of cards: a 46px minimum height, six pixels of air between
+them, and a name that wrapped to as many lines as it liked. Three separate ways
+of saying "these are separate objects", in the one view whose whole argument is
+that they are a sequence.
+
+A row is an **eight-by-one** now: the size the same object would be on a grid at
+eight cells by one, at exactly that height, standing flush against the one above
+it. On a phone — eight columns — that is the board's own width, so a task in a
+list is the same strip it is on the desk. `--listrow` is the measured cell,
+written into the markup from the last measurement the way `gridOfContainer()`
+writes the checker squares, because a list is not a grid and `sizeGrid()` never
+reaches one. Flush is a negative margin: every tile carries a one-pixel edge, so
+two touching ones would draw a two-pixel rule and read as gapped after all.
+
+A row one cell tall clips a name that wraps, so the name is one line — and it
+has to say so at **three** classes, because `.drawer.otile .dname` sets
+`white-space:normal` and the text-size multiplier restates the size, and both
+are two classes and later in the file. The multiplier is restated rather than
+beaten: a name read from closer is still a name read from closer.
+
+The **reorder** is the other half. It used to re-insert the band into the DOM on
+every `pointermove`: the list re-flowed under your finger, everything past the
+insertion point jumped a row at a time, and what you were carrying jumped with
+it, because it was one of them. It is a grid drag now — the band you hold lifts
+and follows the finger, the others **step aside** to open the gap it will land
+in, and letting go drops it there. All of it is transforms; nothing moves in the
+DOM until the drop, so the new order is read off the two indexes rather than off
+the list. The one thing that must not ease is the band in your hand: a tile that
+lags your thumb reads as a tile you have not picked up.
+
+And it pushes **one** undo move for the whole shuffle, offered on the toast — a
+reorder recorded with nothing in front of it is a way back that exists only on a
+keyboard, which a phone has not got (decision 128).
+
+*Against:* on a Mac eight cells is a third of the window, so a list no longer
+fills the width it used to. That is what an eight-by-one is, and a column of
+task strips is easier to read down than a line of text a thousand pixels wide.
+
+## 169 · A checklist front is a tile you can pick up
+
+*2026-09-08*
+
+*"You can't really tap and move a checklist, because you just end up selecting
+one of the tasks on it."*
+
+A checklist front is lines from edge to edge — that is what the face **is**
+(decision 79) — and holding a line plucked it out. So a hold anywhere on the
+tile took a task out of the drawer, and there was no tile left to pick the
+drawer up by. A feature that costs the drawer its drag is not paying for itself.
+
+The hold is aimed at the **box** now. Each of the three targets keeps a tap and
+a hold, which is what makes it learnable:
+
+| | tap | hold |
+| --- | --- | --- |
+| the box | tick it | take the line out |
+| the words | change them | the drawer, in your hand |
+| the front | open it | the drawer, in your hand |
+
+The words falling through to the tile is the whole of the fix: it is where a
+finger lands, and it is the one target that had nothing of its own to do with a
+hold. Plucking is unchanged and still reaches everything it reached — the box is
+already the line's own control, and it is already a 38px target.
+
+*Against:* the pluck is less discoverable, since the box does not look like a
+handle. It never looked like one; it was simply the whole line, which is why it
+was in the way. The tooltip says so, and a gesture you find by accident is worth
+less than a tile you can move.
+
+## 170 · Four edges, four paints
+
+*2026-09-08*
+
+The Magic Selector kept losing its left and right sides on the phone. It was an
+`outline` first — one path around the whole box, which an engine that clips or
+rounds it anywhere loses whole sides of at once. Decision-by-structure moved it
+to a **border on an inset child**: four independent edges, correct by
+construction, drawn the way every other rectangle in the app is drawn. And the
+phone went on losing them.
+
+A border is still four sides of **one property**. They are resolved together,
+against one box and one radius, and a dashed one is then segmented by the engine
+into dashes it decides the number and position of. A side going missing is a
+thing the engine can decide, once, for reasons no rule in this file can reach —
+and Chromium at the same width does not decide it, which is why two passes of
+looking at it here found nothing wrong.
+
+So the line is **four background layers**, one per edge: each its own paint, its
+own size and its own position, and an edge can only go missing if something
+takes that layer away by name. The dash is one custom property read by all four,
+so two of them cannot disagree about the pattern. It is the same trick a
+moulding and a window's muntins already use — a fixed px thickness, a
+proportional position — so it is house idiom rather than a workaround.
+
+The general rule is worth keeping: **when a structural fix does not hold, the
+structure was not small enough yet.** Four edges of one property is more
+structure than one path; four paints is more than four edges of one property.
+Stop at the point where the thing that can fail is a thing you named.
+
+## 171 · A thing that turned out to be a project
+
+*2026-09-08*
+
+A task you keep adding to is a project, and noticing that is the commonest
+reason to want to change what something *is*. The object editor's Type row could
+always do it — four doors in, phrased as a setting, and never found. It is one
+press off the tile's own menu now, and it asks which kind of work: the same
+drawn grid of types the picker uses, pointed at an object rather than at an
+empty cell, so `familyPanel()` and this share one list and adding a kind of
+project puts it in both.
+
+A conversion is not a Type row with a different door on it. Three things happen,
+as one move on the stack because one press did all three:
+
+- **the type**, and its attributes with it, which is what the Type row does;
+- **the box**, taken to the new type's size at the old corner, stepping the long
+  side down until it fits — `fitSpot()`'s rule with the origin held, because a
+  conversion may change what a thing is and must never change where it is. Where
+  nothing bigger than the box it had will fit, it keeps that box: a task that
+  turned into a project is not a stamp;
+- **the seed**, but only into something holding nothing. A project is born with
+  the band you type into (decision 135); one you converted into needs the same
+  way in, and one that already has children has its own.
+
+It is offered to anything that is not already a container — `isContainer()` is
+the structural question, and "is it a task" would be a branch on a name.
+
+*Against:* the menu is one line longer, and a menu earns its length by holding
+what has nowhere else to be. This qualifies: the Type row is somewhere else it
+could be, and four doors in is where it went unfound.
