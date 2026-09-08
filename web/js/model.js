@@ -437,6 +437,19 @@ const BUILTIN_KINDS = {
      footer — the one thing a counter must never be, and invisible as a bug
      because the tile rendered perfectly well. `count` is the click, because
      going up is the whole of what a counter is for. */
+  /* ---- a label: what a stretch of board is called ------------------------
+     Not a note, though it is made of the same paper. A label is a **caption on
+     the grid**: you put one over a run of tiles to say what they are, so it is
+     four cells by one, its words are set large because they are read across
+     the desk rather than up close, and it wears the gilt frame — the one edge
+     in the app that says "this is a heading" rather than "this is a thing".
+
+     It ships with `tsize` and `border`, which are ordinary per-type look
+     values, so every one of them can be argued with in the object editor the
+     moment it lands. */
+  label:   {shape:'band', nm:'Label',   ic:'tag',     c:12, key:'M', ds:'A name for a stretch of board',
+     size:[4,1], phoneSize:[4,1], onclick:'none', attrs:['text'],
+     tsize:'1.6', border:'gilt', body:'' },
   counter: {shape:'tally', nm:'Counter',  ic:'target', c:8, key:'X', ds:'A number you tap to add to', size:[3,3], phoneSize:[3,3], onclick:'count', attrs:['count'], body:'' },
   /* You do not write an achievement, you *pick* one: the goal, project or task
      you finished. So placing one asks which, out of what is actually done, and
@@ -470,7 +483,18 @@ const BUILTIN_KINDS = {
      seed:[{kind:'generator', title:'Add to this project…', sz:[8,2]}],
      layout:'grid', size:[5,5], phoneSize:[4,4], body:'' },
   timeline:{face:'timeline', nm:'Timeline',ic:'clock',   c:5, key:'0', ds:'Things in the order they happened', attrs:['container'], layout:'timeline', size:[10,6], body:'' },
-  appt:    {shape:'sliver', nm:'Event',   ic:'calendar',c:8, key:'V', ds:'Something at a time and place', size:[6,2], onclick:'read', attrs:['text','date','duration','location'], body:'' }
+  /* An **event** is a thing on a day, and it is the one type whose subject is
+     *when*. It wore `sliver` — the task's shape — so the type that is about a
+     date looked exactly like the type that is about a job of work. It has a
+     face of its own now (`sh-event` in tiles.js): a torn-off diary leaf, the
+     name beside it, and under the name how long it runs.
+
+     `span` is new on it and is the reason a trip and a meeting are the same
+     type: an event either lasts a run of days or takes a duration, and both
+     are fields it can already carry. Three by two, which is the leaf plus a
+     name that fits. */
+  appt:    {shape:'event', nm:'Event',   ic:'calendar',c:8, key:'V', ds:'Something on a day — a meeting, a shoot, a trip',
+     size:[6,2], phoneSize:[5,2], onclick:'when', attrs:['text','date','span','duration','location'], body:'' }
 };
 /* ---- the major categories ----------------------------------------------
    Forty types is an inventory, not a choice. These are the twenty that answer
@@ -485,7 +509,7 @@ const BUILTIN_KINDS = {
    making somewhere to put things. See decision 130. */
 const PRIMARY = ['drawer','magic','project','life','goal',
                  'book','checklist','calendar','moodboard','timeline',
-                 'note','fragment','recipe','achievement',
+                 'note','fragment','label','recipe','achievement',
                  'task','progressbar','counter','appt',
                  'image','audio','video','decoration','control','generator'];
 const isPrimary = k => PRIMARY.includes(k);
@@ -1297,6 +1321,13 @@ const acceptAny = () => Object.values(MEDIA_EXT).join(',');
    until you say otherwise. */
 const SHAPES = {
   card:'Card', habit:'Streak', goal:'Progress bar', dream:'Dashed', image:'Picture',
+  event:'Diary leaf',
+  /* **Torn** is the fragment's crease-tear, offered to everything. It was a
+     fact about the *category* — a scene and a character wore it and nothing
+     else could — and it is the best-looking edge in the app, so it is a shape
+     now like every other. A fragment still wears it without being asked: see
+     `tornOf()` in tiles.js, which answers for the shape *or* the family. */
+  torn:'Torn edge',
   note:'Plain sheet', tornnote:'Torn note', idea:'Ruled sheet', bubble:'Speech bubble',
   page:'Punched page', index:'Index card', spine:'Book spine', portrait:'Portrait',
   ticket:'Ticket', plaque:'Plaque', tally:'Tally', quote:'Quotation',

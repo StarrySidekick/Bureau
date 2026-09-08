@@ -534,6 +534,67 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
 .drawer.otile.sh-dream{border-style:dashed;opacity:.96}
 .drawer.otile.sh-dream::after{content:"";position:absolute;right:8px;top:8px;width:14px;height:14px;
   background:var(--c);opacity:.35;clip-path:polygon(50% 0,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%)}
+/* ---- an event: a leaf torn off a diary ----------------------------------
+   The left third is the day, printed the way a desk calendar prints it —
+   weekday small, the number large, the month small under it — on a block of the
+   object's own colour, with a perforation down its right edge where it was torn
+   off the pad. The rest is the name and, under it, how long the thing runs.
+
+   The number is the whole readout, so it is set as large as the block allows
+   and everything else is a caption to it: a glance at this tile is meant to
+   answer "when", and the name is what you read second. */
+.drawer.otile.sh-event{
+  flex-direction:row;align-items:stretch;gap:0;padding:0;overflow:hidden;
+  container-type:inline-size}
+.sh-event .evleaf{
+  position:relative;flex:0 0 auto;width:clamp(44px, 26cqw, 96px);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:1px;padding:4px 6px;color:#FBF7EC;line-height:1;
+  background:linear-gradient(color-mix(in srgb,var(--c) 82%,#fff),
+                             var(--c) 42%,
+                             color-mix(in srgb,var(--c) 86%,#000));
+  box-shadow:inset -1px 0 0 rgba(0,0,0,.28)}
+/* the perforation it was torn along: a dotted rule, a fixed size at any tile
+   size, which is the same argument every moulding on a drawer front makes */
+.sh-event .evleaf::after{
+  content:"";position:absolute;top:4px;bottom:4px;right:2px;width:0;
+  border-left:1.5px dotted color-mix(in srgb,#fff 52%,transparent)}
+.sh-event .evdow{font-size:clamp(8px,3.4cqw,11px);letter-spacing:.1em;
+  text-transform:uppercase;opacity:.82}
+.sh-event .evday{font-family:var(--serif);font-weight:700;
+  font-size:clamp(17px,9.5cqw,38px);line-height:1}
+.sh-event .evmon{font-size:clamp(8px,3.4cqw,11px);letter-spacing:.08em;
+  text-transform:uppercase;opacity:.82}
+.sh-event .evbody{
+  flex:1 1 auto;min-width:0;display:flex;flex-direction:column;
+  justify-content:center;gap:3px;padding:6px 10px}
+.sh-event .evbody .dname{overflow:hidden;display:-webkit-box;
+  -webkit-line-clamp:2;-webkit-box-orient:vertical}
+.sh-event .evrun{font-size:clamp(9px,3.8cqw,12px);color:var(--ink-3);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* a day that has gone by says so the way everything else does */
+.drawer.otile.sh-event.late .evrun{color:#B0402C}
+/* Narrow, and there is only room for the leaf — which is the half worth
+   keeping, because the name is on the tooltip and the date is not. */
+.drawer.otile.sh-event.sz-narrow .evrun{display:none}
+.drawer.otile.sh-event.sz-thin .evbody{display:none}
+.drawer.otile.sh-event.sz-thin .evleaf{width:100%}
+.drawer.otile.sh-event.sz-thin .evleaf::after{display:none}
+
+/* ---- a band: a strip with its name set across it ------------------------
+   The shape existed with no rule behind it — a `sh-band` was a card that had
+   been told it was something else — and the **Label** is the type that gives it
+   a job: a caption you lay over a run of tiles to say what they are. So the
+   name is the whole of it, centred, on one line, with room inside whatever edge
+   it is wearing. A gilt frame is inset five pixels and a label is very often
+   wearing one, so the padding clears the corner brackets rather than the box. */
+.drawer.otile.sh-band{padding:0 15px;align-items:center;justify-content:center}
+.drawer.otile.sh-band .dbody{display:none}
+.drawer.otile.sh-band .dname{
+  font-family:var(--serif);text-align:center;width:100%;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.15}
+.drawer.otile.sh-band.sz-thin .dname{white-space:normal}
+
 /* an achievement is a plaque */
 .drawer.otile.sh-plaque{
   /* Cast metal, engraved: a lit top edge, the object's own colour through the

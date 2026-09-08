@@ -255,7 +255,13 @@ function calSoon(o, n){
    the same piece of paper twice. Exactly `tiltOf()`'s trick, for exactly its
    reason. See decision 145. */
 function tornOf(o){
-  if(!isFragmentKind(o.kind)) return '';
+  /* **The shape, or the family.** It was the family alone, which made the best
+     edge in the app a thing only ten types could have. It is a shape now —
+     anyone can pick "Torn edge" — and a fragment still wears it without
+     choosing, because what makes a fragment is that it came out of something
+     and not what it is drawn on. That is why this is an `||` and not a
+     default: a scene keeps its punched page *and* its tear. */
+  if(shapeOf(o)!=='torn' && !isFragmentKind(o.kind)) return '';
   let h=0; const id=String(o.id);
   for(let i=0;i<id.length;i++) h=(h*31 + id.charCodeAt(i)) >>> 0;
   return ` tornedge torn${h%3}`;
@@ -1560,6 +1566,48 @@ function drawTileFace(o, arr, box, persp){
         `<i class="barblock${i<lit?' on':''}"${own?` data-barset="${o.id}:${i+1}"`:''}></i>`).join('')}</div>
       ${handles}
     </div>`;
+  }
+
+  /* ---- an event: a leaf off a diary --------------------------------------
+     An Event was a `sliver` — the task's shape — with a date on it, which made
+     the one type whose whole subject is *when* look exactly like the type whose
+     subject is *what*. It says the two things it knows, and it can only know
+     two: Bureau stores a day and never a clock time (dates are `YYYY-MM-DD`
+     strings, decision in util.js), so an event's "when" is the **day** and its
+     "how long" is the **duration** — or, where it spans, the run of days.
+
+     So: a torn-off leaf on the left, weekday over day number over month, in
+     the object's own colour; the name beside it; and under the name the run —
+     `3 Feb – 7 Feb`, or `2h 30m`, and the place if it has one. Everything is
+     read off fields that already exist, so nothing new is stored and a thing
+     that is not an Event can wear the shape and say the same. */
+  if(shapeOf(o)==='event'){
+    const day = o.due || null;
+    const sp = spanOf(o);
+    const d = day && D.parse(day);
+    const leaf = d
+      ? `<span class="evdow">${d.toLocaleDateString(undefined,{weekday:'short'})}</span>
+         <span class="evday">${d.getDate()}</span>
+         <span class="evmon">${d.toLocaleDateString(undefined,{month:'short'})}</span>`
+      : `<span class="evdow">no</span><span class="evday">–</span><span class="evmon">date</span>`;
+    /* How long it lasts, said the only way the object can say it: a run of days
+       where it spans, otherwise the duration. Never both — a trip that is five
+       days long does not also take ninety minutes. */
+    const run = sp ? `${sp.days} day${sp.days===1?'':'s'} — to ${esc(D.short(sp.to))}`
+              : (o.dur>0 ? esc(durSaid(o.dur)) : '');
+    const where = has(o,'location') && o.loc ? esc(o.loc) : '';
+    return `<button class="drawer otile ${paper(o)} sh-event evtile${
+        isLate(o)?' late':''}${sel}" data-row="${o.id}"
+        title="${esc(o.title||'Untitled')}${day?' — '+esc(D.human(day)):''}"
+        style="--c:${colour};${place}">
+      ${chips}
+      <span class="evleaf" aria-hidden="true">${leaf}</span>
+      <span class="evbody">
+        ${nameField(o)}
+        ${run||where ? `<span class="evrun">${[run, where].filter(Boolean).join(' · ')}</span>` : ''}
+      </span>
+      ${handles}
+    </button>`;
   }
 
   /* A counter is its number, not a title and a body. */
