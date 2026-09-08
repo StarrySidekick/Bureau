@@ -1011,7 +1011,7 @@ const TILT_SETTLE = 0.0006;// below this it has arrived; park the loop
 const TILT = {on:false, listening:false, raf:0,
               x:0, y:0,          // where the shelf is
               tx:0, ty:0,        // where it is heading
-              lx:0, ly:0,        // …and the same lean with no sign on it
+              gx:0, gy:1,        // …and where down actually is, which is not that
               rest:null,         // the attitude you are holding it at
               ox:0, oy:0};       // …and the neutral, creeping toward it
 
@@ -1109,20 +1109,46 @@ function onOrient(e){
   const flip = (S.look && S.look.tiltflip) ? -1 : 1;
   TILT.tx = clamp(flip * TILT_SIGN_X * (dx-TILT.ox)/K, -1, 1);
   TILT.ty = clamp(flip * TILT_SIGN_Y * (dy-TILT.oy)/K, -1, 1);
-  /* The same reading with **neither** sign on it: how far the screen's normal
-     has tipped towards its right edge and towards its bottom, which is to say
-     which way is downhill on the glass. The shelf wants that negated (a thing
-     in a recess lags the movement) and reversible (`tiltflip`); gravity wants
-     it raw, because which way a heap slides is not a matter of taste. Kept
-     here rather than worked out again from the angles, so there is one place
-     that reads the sensor. See decision 166. */
-  TILT.lx = clamp((dx-TILT.ox)/K, -1, 1);
-  TILT.ly = clamp((dy-TILT.oy)/K, -1, 1);
+  /* ---- and which way is *actually* down --------------------------------
+     Everything above is the shelf's, and every part of it is wrong for a heap.
+     It is **relative** — how far from where you were holding it; **clamped**
+     at twenty degrees, because a parallax has a throw; and it **drifts** back
+     to neutral, so holding a tilt slowly stops meaning anything. Gravity wants
+     the opposite of all three, and the first version borrowed the lean anyway:
+     left and right did something small, turning the phone over did nothing at
+     all, and holding it tilted crept back to flat.
+
+     So this is measured rather than borrowed, and it is exact. Earth's up in
+     the device's own frame is Rᵀe₃ — the third row of R — and
+     Rᵀe₃ = Ry(−γ)Rx(−β)e₃ has **no alpha in it**, which is the physical truth
+     that a compass heading cannot change which way is down. Written out,
+     gravity's shadow on the glass is `(cos β · sin γ, sin β)`: sideways, and
+     down the screen. Unclamped, absolute, and a full circle — upright it is
+     (0, 1), rolled right it is (1, 0), turned over it is (0, −1), and laid
+     flat on a table it is **nothing at all**, which is a tray held level and
+     is the honest answer rather than a floor to clamp to.
+
+     Its length is the pull, not just its direction: a phone at forty-five
+     degrees pours at seven tenths of a g, because that is what it does.
+
+     And the gimbal lock decision 108 warns about cannot reach it. Gamma
+     jitters when beta is near ±90 — a phone held upright, which is where a
+     phone lives — and the `cos β` in front of it goes to zero at exactly that
+     attitude, so the noise is multiplied away instead of being read as a
+     coordinate. The one thing this cannot see is a **screen** turned away from
+     the device, which Bureau has not got: it asks for portrait and holds the
+     board still if it is turned anyway (decision 166a). See decision 166b. */
+  const bR = e.beta*RAD, gR = e.gamma*RAD;
+  TILT.gx = Math.cos(bR) * Math.sin(gR);
+  TILT.gy = Math.sin(bR);
   tiltSoon();
 }
 // Coming back to the app after it has been away: wherever you are holding it
 // now is the new neutral, rather than easing there from where you left off.
-function tiltRecentre(){ TILT.rest=null; TILT.ox=TILT.oy=0; TILT.tx=TILT.ty=0; TILT.lx=TILT.ly=0; tiltSoon(); }
+/* Coming back to the app after it has been away: wherever you are holding it
+   now is the new neutral for the *shelf*. Gravity has no neutral to reset —
+   down is down — so `gx`/`gy` are deliberately left alone. */
+function tiltRecentre(){ TILT.rest=null; TILT.ox=TILT.oy=0; TILT.tx=TILT.ty=0; tiltSoon(); }
 /* Which of the two are listening, patched straight onto the frame so throwing
    the switch takes effect before the next render rather than after it.
    `render()` states the same thing from `S.look` — it writes that className
@@ -1136,7 +1162,7 @@ function tiltStop(){
   if(TILT.listening){ removeEventListener('deviceorientation', onOrient); TILT.listening=false; }
   TILT.on=false;
   if(TILT.raf){ cancelAnimationFrame(TILT.raf); TILT.raf=0; }
-  TILT.x=TILT.y=TILT.tx=TILT.ty=0; TILT.lx=TILT.ly=0; TILT.rest=null; TILT.ox=TILT.oy=0;
+  TILT.x=TILT.y=TILT.tx=TILT.ty=0; TILT.gx=0; TILT.gy=1; TILT.rest=null; TILT.ox=TILT.oy=0;
   const f=$('#frame');
   if(f){ f.style.removeProperty('--tiltx'); f.style.removeProperty('--tilty');
          f.classList.remove('tilt-desk','tilt-win'); }
@@ -1159,10 +1185,11 @@ function tiltStart(){
 function applyTilt(){
   if((tiltMode()!=='off' || gravityTilts()) && S.device!=='desk') tiltStart(); else tiltStop();
 }
-/* Which way is downhill on the glass, −1..1 on each axis, with neither the
-   shelf's sign nor its flip applied. Zero until the sensor has said otherwise,
-   which is what a phone lying flat and a Mac both look like from here. */
-const tiltLean = ()=> ({x: TILT.lx, y: TILT.ly});
+/* Gravity's shadow on the glass, in screen axes: x to the right, y down, and
+   the length is how much of a g is in the plane. Straight down until the
+   sensor has said otherwise, so a board that is switched on before the first
+   event falls the way it would with no phone at all. */
+const tiltDown = ()=> ({x: TILT.gx, y: TILT.gy});
 /* iOS 13+ will not deliver deviceorientation without being asked, and will only
    consider the question if it arrives inside a user gesture — so this is
    called from the Settings switch and nowhere else. Everything else (Android,
@@ -1443,4 +1470,4 @@ export { still, tileOf, tileRect, openingFor, openTile, leaveTile, enter, pop, c
   fileTo,
   spray, sprayAt, sprayCount, SPRAYS, sprayNow, sprayMark,
   pagerBegin, pagerMove, pagerEnd, pagerCancel, pagerOn, stepDrawer,
-  applyTilt, askTilt, tiltTo, tiltRecentre, tiltLean };
+  applyTilt, askTilt, tiltTo, tiltRecentre, tiltDown };

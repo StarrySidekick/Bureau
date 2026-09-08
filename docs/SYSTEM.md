@@ -530,8 +530,10 @@ Each container is its own coordinate space, and every device has its own.
   cell and the whole fall is a `transform` written over the top, so switching it
   off is the arrangement you had. Sand is the same solver with rotation taken
   out; tumbling is it with rotation let back in. On a phone the pull can follow
-  the phone's own lean (`S.look.gravitytilt`), from the sensor the cavity
-  already reads. On such a board a tile is not where its box says it is, so
+  the phone's own lean (`S.look.gravitytilt`) — measured rather than borrowed
+  from the shelf's, which is relative and clamped: `tiltDown()` is
+  `(cos β · sin γ, sin β)`, absolute, the whole circle, and zero when the phone
+  is flat, with its length as the strength of the pull. See decision 166b. On such a board a tile is not where its box says it is, so
   nothing may read a box to decide what a cell on the screen means: the Magic
   Selector keeps the size you drag out and gives up the place. See decisions 166
   and 166a.

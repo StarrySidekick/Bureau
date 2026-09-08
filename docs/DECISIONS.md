@@ -7233,3 +7233,63 @@ with no position, which is also what a sketch on a sorting drawer has always
 wanted. The rail's pull was never affected, because pulling makes a thing with
 nowhere in mind and asks the model for room rather than asking the screen for a
 cell — which is why it kept working and was the clue.
+
+### 166b · Which way is actually down
+
+*2026-09-08*
+
+The pull followed the phone by borrowing the **shelf's** lean, and every
+property that makes that lean right for a parallax makes it wrong for a heap.
+It is **relative** — how far the screen's normal has turned from wherever you
+were holding it. It is **clamped** at twenty degrees, because a parallax has a
+throw and past it there is nothing more to show. And it **drifts**: the neutral
+creeps toward wherever you have settled, so holding a tilt slowly stops meaning
+anything, which is exactly what you want of a recess and exactly what you do not
+want of a floor.
+
+On top of that the first version only ever used it to *bend* a downward pull —
+`gx = lean.x`, `gy = max(0.12, 1 + lean.y)` — so left and right did something
+small, and turning the phone over could not do anything at all. Which is what
+was reported: *"I can't really turn the phone upside down and have anything
+happen. It seems to only register left and right."*
+
+So gravity is **measured** rather than borrowed, and the measurement is exact.
+Earth's up in the device's own frame is `Rᵀe₃`, the third row of R — and
+`Rᵀe₃ = Ry(−γ)Rx(−β)e₃` has no alpha in it at all, which is the physical truth
+that a compass heading cannot change which way is down. Written out, gravity's
+shadow on the glass is
+
+    (cos β · sin γ,  sin β)
+
+x to the right of the screen and y down it. Upright it is (0, 1); rolled right
+(1, 0); rolled left (−1, 0); turned over (0, −1); and laid flat on a table it is
+**(0, 0)** — nothing, which is a tray held level and is the answer rather than a
+gap in it. Absolute, unclamped, no rest, no drift, the whole circle.
+
+**Its length is the pull, not just its direction.** A phone at forty-five degrees
+has 0.866 of a g in the plane of the glass and the heap pours at 0.866, which is
+the difference between a shelf you are tipping and a switch you have thrown. The
+solver already multiplied a unit vector by `GRAV`; dropping the normalisation is
+the whole change.
+
+Three things worth writing down.
+
+**The gimbal lock decision 108 spends four paragraphs on cannot reach this.**
+Gamma jitters when beta is near ±90 — a phone held upright, which is where a
+phone lives — and there is a `cos β` in front of it that goes to zero at exactly
+that attitude. The noise is multiplied away rather than read as a coordinate.
+Decision 108's own note says gravity-in-device-frame "cannot see yaw, which is
+most of the gesture, so it is not enough"; that is true of the *shelf*, whose
+gesture is mostly yaw, and it is precisely why it is the right reading here.
+
+**What it cannot see is a screen turned away from the device.** `beta` and
+`gamma` are the hardware's, so this is the device frame, and the two agree only
+while the page is portrait. Bureau's is: the manifest asks for portrait and
+`sideways()` holds the board still if it is turned anyway (decision 166a). A
+screen-angle correction would be four lines and a sign nobody here can verify by
+holding a phone, so it is deliberately not written.
+
+**And the loop cannot park while the phone is the floor**, which decision 166
+already arranged for a different reason: a settled pile stops the solver, and a
+stopped solver is not reading the sensor. With the tilt on, the frame keeps
+running and does the physics only when the direction has actually moved.

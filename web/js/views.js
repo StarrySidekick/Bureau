@@ -587,7 +587,7 @@ function settingsBody(sec){
       <label class="rangerow" style="margin-top:12px"><span>Which way is down</span><b></b></label>
       <div class="filterbar">${[['','Down the board'],['1','Wherever the phone leans']].map(([v,n])=>
         `<button class="fchip${(S.look.gravitytilt?'1':'')===v?' on':''}" data-gravitytilt="${v}">${n}</button>`).join('')}</div>
-      <div class="mini" style="--k:var(--brass);margin-top:6px">The same sensor the cavity reads, so a desk with both on slides and pours together. Tip the phone and the heap runs to the low corner; turn it right over and things slow to a stop rather than falling off the ceiling, because you are looking <i>into</i> a shelf. It asks iPhone for the motion sensor the first time.</div>` : ''}
+      <div class="mini" style="--k:var(--brass);margin-top:6px">Where down actually is, the whole circle of it. Roll the phone and the heap runs to the low edge; turn it right over and everything falls to the top of the screen; lay it flat on a table and nothing moves at all, because a tray held level is not tipping anything anywhere. Half a tilt is half the pull. It asks iPhone for the motion sensor the first time, and it is the same one the cavity reads.</div>` : ''}
     </div>
 
     ${/* How much a checklist front shows — **per device**, like a box is. Two

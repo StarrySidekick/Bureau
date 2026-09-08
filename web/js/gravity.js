@@ -1,7 +1,7 @@
 import { $, clamp, ROOT } from './util.js';
 import { S, dev, gravityMode, gravityOn, gravityTilts } from './model.js';
 import { gridOf, drawCols, drawRows, shelfAt } from './grid.js';
-import { still, tiltLean, applyTilt } from './motion.js';
+import { still, tiltDown, applyTilt } from './motion.js';
 
 /* ============================================================
    30 · the board lets go
@@ -66,18 +66,17 @@ const WALL = 600;           // how thick the four walls are — nothing tunnels
    on its own has to be woken by its neighbours, which is a graph problem, and
    a board is forty tiles and settles in a second. */
 const SLEEP_V = 9, SLEEP_W = 0.09, SLEEP_T = 0.5;
-/* How far the phone's lean moves the pull. One is the full throw of the tilt
-   sensor (twenty degrees), so at the extreme the board pours at forty-five
-   degrees, and leaning the top towards you slows the fall rather than
-   reversing it — the floor on `gy` is what says gravity never points up. */
-const TILT_SPREAD = 1, TILT_FLOOR = 0.12;
+/* How fast the pull follows the phone. Fast enough that a flick of the wrist
+   is answered and slow enough that sensor noise is not; framerate-free, so it
+   is the same movement at 60 and at 120. */
+const TILT_EASE = 0.001;
 const SETTLE_MS = 420;      // how long the tiles take to walk back to their cells
 
 const W = {
   mode:'off', key:'', grid:null, cid:null,
   bodies:[], by:new Map(), walls:[], sweep:[],
   cell:0, w:0, h:0, y0:0,       // the pen, in the grid's own pixels
-  gx:0, gy:1, lx:0, ly:0,       // where down is, and the lean it is eased from
+  gx:0, gy:1, dx:0, dy:1,       // where down is, and the reading it is eased from
   raf:0, last:0, acc:0, quiet:0, gen:0,
   grab:null
 };
@@ -246,29 +245,33 @@ function sync(){
 }
 
 /* ---- which way is down -------------------------------------------------
-   Straight down the board, unless the phone has been asked. The sensor is the
-   shelf's own — the same lean that slides the cavity — so a desk with both on
-   pours and slides together rather than disagreeing about where the floor is.
+   Straight down the board, unless the phone has been asked — and then it is
+   **where down actually is**, the whole circle of it, taken from the sensor
+   rather than from the shelf's lean. `tiltDown()` in motion.js is the
+   measurement and the note there is why; what matters here is that it is
+   absolute rather than relative, has no rest to drift back to, and is not
+   clamped to a throw. Roll the phone and the heap runs to the low edge; turn it
+   over and it falls to the top of the screen; lay it flat and nothing moves,
+   because a tray held level is not tipping anything anywhere.
 
-   `lx` is how far the screen's normal has tipped towards its right edge, which
-   is the side that has gone *down*; `ly` the same towards the bottom. So the
-   pull is the lean, plus the one that was already there. The floor on `gy` is
-   what stops the board from being tipped upside down: turn the phone right
-   over and things slow to a stop rather than falling off the ceiling, which is
-   the honest reading of a shelf you are looking into. */
+   Its **length** is kept, not just its direction. A phone at forty-five degrees
+   has seven tenths of a g in the plane of the glass and the heap should pour at
+   seven tenths, which is the difference between a shelf you are tipping and a
+   switch you have thrown. See decision 166b. */
 function pull(dt){
   if(!gravityTilts()) return set(0, 1);
-  const l = tiltLean();
-  const k = 1 - Math.pow(0.001, dt);              // the same easing, framerate-free
-  W.lx += (l.x - W.lx)*k;
-  W.ly += (l.y - W.ly)*k;
-  return set(W.lx*TILT_SPREAD, Math.max(TILT_FLOOR, 1 + W.ly*TILT_SPREAD));
+  const d = tiltDown();
+  const k = 1 - Math.pow(TILT_EASE, dt);
+  W.dx += (d.x - W.dx)*k;
+  W.dy += (d.y - W.dy)*k;
+  return set(W.dx, W.dy);
 }
+// No normalising: the length is the pull. A flat phone is a zero here and the
+// pile stays exactly where it is, which is the answer rather than a gap in it.
 function set(x, y){
-  const n = Math.hypot(x, y) || 1;
-  const gx = x/n, gy = y/n;
-  const turned = Math.abs(gx-W.gx) + Math.abs(gy-W.gy) > 0.004;
-  W.gx = gx; W.gy = gy;
+  if(!isFinite(x) || !isFinite(y)){ x = 0; y = 1; }
+  const turned = Math.abs(x-W.gx) + Math.abs(y-W.gy) > 0.004;
+  W.gx = x; W.gy = y;
   return turned;
 }
 

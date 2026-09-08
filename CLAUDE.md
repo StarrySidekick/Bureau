@@ -307,6 +307,22 @@ made nothing. A falling board keeps the **size** you drag out and gives up the
 arrives with no position. Before adding anything that reads a box to decide what
 a cell means, ask what it does on a board that has let go. See decision 166a.
 
+**Which way is down is measured, not borrowed from the shelf.** The tilt sensor
+is read twice, for two different jobs, and the readings must not be swapped.
+The **shelf's** lean is relative, clamped at twenty degrees and drifting back to
+neutral, which is right for a recess and wrong for a floor — borrowed for
+gravity it made left and right do a little and turning the phone over do nothing
+at all. `tiltDown()` in motion.js is gravity's: earth's up in the device frame
+is the third row of R, which has **no alpha in it** because a compass heading
+cannot change which way is down, so gravity's shadow on the glass is
+`(cos β · sin γ, sin β)` — absolute, unclamped, the whole circle, and **zero when
+the phone is flat**, which is a tray held level. Its **length is the pull**, so
+`set()` must not normalise: a phone at forty-five degrees pours at 0.866 g.
+Decision 108's gimbal lock cannot reach it — gamma jitters near beta ±90 and the
+`cos β` in front of it is zero at exactly that attitude — but it is the *device*
+frame, so it agrees with the screen only while the page is portrait, which is
+the next paragraph's job. See decision 166b.
+
 **Bureau is a portrait desk, and a phone on its side measures nothing.**
 `sideways()` in grid.js — `S.device==='phone'` and a viewport wider than it is
 tall. Landscape has about a quarter of the vertical room, so measuring it cut a

@@ -340,6 +340,65 @@ const CHROME = process.env.BUREAU_CHROME;
     };
   })();
 
+  /* --- and which way is down, on a phone --------------------------------
+     The first pass borrowed the *shelf's* lean for gravity, and every part of
+     that is wrong for a heap: relative to where you were holding it, clamped at
+     twenty degrees, and drifting back to neutral. Left and right did something
+     small, turning the phone over did nothing at all. Gravity's shadow on the
+     glass is measured instead — `(cos β · sin γ, sin β)` — which is absolute,
+     unclamped, a full circle, and zero when the phone is flat. See decision
+     166b. */
+  const pouring = await phone.evaluate(async () => {
+    const nap = ms => new Promise(r => setTimeout(r, ms));
+    const S = BUREAU.state, out = {};
+    S.view='desk'; S.drawerId=null;
+    S.look.gravity='sand'; S.look.gravitytilt=true;
+    BUREAU.applyTilt(); BUREAU.gravity.apply(); await nap(300);
+    const hold = async (beta, gamma) => {
+      for(let i=0;i<20;i++){
+        window.dispatchEvent(new DeviceOrientationEvent('deviceorientation',
+          {alpha:0, beta, gamma, absolute:false}));
+        await nap(40);
+      }
+      const r = BUREAU.gravity.report();
+      return {x:+r.g.x.toFixed(2), y:+r.g.y.toFixed(2)};
+    };
+    const near = (g, x, y) => Math.abs(g.x-x) < 0.06 && Math.abs(g.y-y) < 0.06;
+    out.upright      = near(await hold( 90,   0),  0,  1);
+    out.rolledRight  = near(await hold(  0,  90),  1,  0);
+    out.rolledLeft   = near(await hold(  0, -90), -1,  0);
+    // the one the shelf's lean could never say: turned over, things fall up
+    out.turnedOver   = near(await hold(-90,   0),  0, -1);
+    // …and laid flat nothing pulls at all, which is a tray held level
+    out.laidFlat     = near(await hold(  0,   0),  0,  0);
+    // half a tilt is half the pull: the length is kept, not just the direction
+    const half = await hold(45, 45);
+    out.halfATiltIsHalfThePull = Math.abs(Math.hypot(half.x, half.y) - 0.866) < 0.06;
+    /* And the heap actually goes there. The desk board is nearly full, so a
+       centroid on it cannot move; a drawer has room to pour across. */
+    const d = S.objects.find(o => BUREAU.isContainer(o) && !BUREAU.has(o,'magic')
+                                  && BUREAU.kids(o.id).length > 2);
+    if(d){
+      S.view='drawer'; S.drawerId=d.id; BUREAU.render(); await nap(300);
+      BUREAU.gravity.apply();
+      const mid = k => { const a = BUREAU.gravity.report().at;
+        return a.length ? a.reduce((s,p)=>s+p[k],0)/a.length : 0; };
+      /* Left against right, and up against down. **Not** against where it sits
+         when gravity is straight down: that is wherever the boxes happened to
+         be, so a pile that already leans right reads as no travel at all and
+         the assertion fails on the desk rather than on the code. */
+      await hold(0,  90); const right = mid('x');
+      await hold(0, -90); const left  = mid('x');
+      await hold(90,  0); const low   = mid('y');
+      await hold(-90, 0); const high  = mid('y');
+      out.andTheHeapRunsToTheLowEdge = right - left > 20 && low - high > 20;
+    }
+    S.view='desk'; S.drawerId=null;
+    delete S.look.gravity; delete S.look.gravitytilt;
+    BUREAU.gravity.apply(); BUREAU.applyTilt(); BUREAU.render();
+    return out;
+  });
+
   // the sidebar and the four fixed tabs were both removed on purpose —
   // assert they are genuinely gone, and so is the shelf that replaced them
   const railGone = await phone.evaluate(() => !document.querySelector('.rail'));
@@ -7314,7 +7373,7 @@ const CHROME = process.env.BUREAU_CHROME;
     pasteOk, magicOk, rollupOk, relationsOk, relationsUI,
     timeLayer, checklistBox, pluckWorks, answering, seedAndKnobs, longPress, drawerSize, tagDrawer, groupMove, dropStates,
     adaptiveTiles, bubblePanel, scrollKept, kindSizes,
-    phoneGrid, phoneMigration, turnedSideways,
+    phoneGrid, phoneMigration, turnedSideways, pouring,
     noDupIds, undoWorks, readViews, paperSize, readPaper, readBar, movement, pager, desks, spans,
     listControls, checklistEdit, lockedNamesAreNames, perBoardGrid, newThingsAreSmall,
     picture, fronts, editor, noSelecting, selectionDropped,

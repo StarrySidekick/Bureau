@@ -29,6 +29,12 @@ its side went blank; a new object floated in its cell and then snapped to the
 heap; and the Magic Selector silently became a lasso and made nothing.
 Decision 166a.
 
+And a fourth (v1.65): the pull followed the phone by borrowing the shelf's lean,
+which is relative, clamped at twenty degrees and drifts back to neutral — so left
+and right did a little and turning the phone over did nothing. Gravity is
+measured now, `(cos β · sin γ, sin β)`, which is absolute, unclamped, the whole
+circle, and zero when the phone is flat. Decision 166b.
+
 ## 0v. Queued 2026-09-08 (twenty-first pass) — the pruning — DONE (v1.62)
 
 Timothy again, in one list of twenty-one, written the same day as the twentieth
