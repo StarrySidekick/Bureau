@@ -7515,7 +7515,8 @@ const CHROME = process.env.BUREAU_CHROME;
     // two of them full width and two full height — a rule and an upright each
     out.andTwoOfThemAreUpright = sizes.filter(x => /^100%/.test(x)).length === 2
       && sizes.filter(x => /100%$/.test(x)).length === 2;
-    out.andTheyAreDashed = /transparent/.test(gb.backgroundImage);
+    // the keyword is computed away: a fully transparent stop reads as rgba(0,0,0,0)
+    out.andTheyAreDashed = /rgba\(0,\s*0,\s*0,\s*0\)|transparent/.test(gb.backgroundImage);
     out.andNoBorderIsLeftToLose = parseFloat(gb.borderLeftWidth) === 0;
     gh.remove();
 

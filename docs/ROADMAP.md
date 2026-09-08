@@ -5,7 +5,7 @@ Sequenced by dependency, not appetite: item 1 makes everything after it safer.
 
 ---
 
-## 0x. Asked 2026-09-08 — the list, and the add box — DONE (v1.67)
+## 0x. Asked 2026-09-08 — the list, and the add box — DONE (v1.68)
 
 Timothy, in his own words: *"list view ultimately exists to make it easier to
 view objects one after another, and it task based workflow and things like

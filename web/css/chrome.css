@@ -1358,14 +1358,18 @@ html .drawer.dtile.cltile{background-image:none}
 .drawer.listband + .drawer.listband{margin-top:-1px}
 .drawer.listband:hover{filter:brightness(1.05);z-index:1}
 .drawer.listband .dtop{gap:10px;align-items:center;width:100%;min-width:0}
-/* **One line, and it has to say so at three classes.** A row is one cell tall,
-   so a name that wraps is a name cut in half by the band's own overflow — and
-   two rules later in this file (`.drawer.otile .dname`, which sets
-   `white-space:normal`, and the text-size multiplier at the end of it) are
-   both two classes and both win a tie on source order. The multiplier is
-   restated rather than beaten: a name read from closer is still a name read
-   from closer, wherever it is drawn. */
-.listgrid .drawer.listband .dname{
+/* **One line, and it has to say so at four classes.** A row is one cell tall, so
+   a name that wraps is a name cut in half by the band's own overflow — and
+   three rules later in this file say otherwise: `.drawer.otile .dname` sets
+   `white-space:normal`, the text-size multiplier at the end restates the size,
+   and — the one that actually shipped wrong — **`.drawer.otile.sh-sliver
+   .dname` is three classes and later**, so a *task* in a list wrapped to two
+   lines and lost the second while a note beside it did not. Every shape is free
+   to add another, so this cannot win on source order; it goes through `.dtop`,
+   which every band draws its name inside, for a fourth class that is structural
+   rather than a guess. The multiplier is restated rather than beaten: a name
+   read from closer is still a name read from closer, wherever it is drawn. */
+.listgrid .drawer.listband .dtop .dname{
   font-size:calc(14px * var(--tscale,1));line-height:1.2;
   display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   flex:0 1 auto;min-width:0;max-width:100%}
