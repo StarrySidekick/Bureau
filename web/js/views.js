@@ -11,7 +11,7 @@ import { GRID, PHONE_GRIDS, CELL, COLW, MEASURE, colsOf, gridKeyOf, SHELVES, she
   lay, gridOf, cellW, ensureBox, PLACED } from './grid.js';
 import { themeNow, applyLook, lookVal, STYLES, BACKDROPS, DARKMODES, darkMode, hasDark,
   palNow, styleNow, hexOf, objColour, slotName, OBJ0, CHECKS, dressAs } from './look.js';
-import { gridOfContainer, gridTile, listTile, scrollEntry, bookView, calSpan } from './tiles.js';
+import { gridOfContainer, gridTile, listTile, bookView, calSpan } from './tiles.js';
 import { openPanel, closePanel, panelKey, repositionPanel, plansPanel } from './panels.js';
 import { openGuide } from './guide.js';
 /* Cyclic at *function* level only — motion.js imports render() from here and
@@ -87,9 +87,25 @@ function gridBar(c){
            decision 74. */''}
       <button class="sqbtn${boardLocked()?' on locked':''}" data-act="togglelock"
         title="${boardLocked()?'Everything is locked — tap to unlock':'Everything is unlocked — tap to lock'}">${ic(boardLocked()?'lock':'unlock',16)}</button>
-      ${/* How a board is laid out and how it sorts itself are things you set
-           once and then live with, which is a settings question and not a
-           tool. Both are rows in the board's own editor now. */''}
+      ${/* **Grid or list**, and only those two. How a board sorts itself is a
+           thing you set once and live with — that is a row in its own editor —
+           but which of the two ways of *looking* at it you want is something
+           you change while you are working, which is what a tool is. It was a
+           cycle through five layouts for a while and the third of them was
+           Scroll, a list with nothing truncated: one more state to walk past
+           to get back to the grid. Two states, one press. The other three
+           (Book, Calendar, Timeline) are what a container *is* and stay in the
+           editor. */''}
+      <button class="sqbtn" data-act="togglelayout" data-id="${c.id}"
+        title="${layoutOf(c)==='grid'?'On the grid — tap for a list':'A list — tap for the grid'}">${
+        ic(layoutOf(c)==='grid'?'list':'grid',16)}</button>
+      ${/* One of anything, wherever there is room. The spawner's own trick
+           (`genKind: random`) with no spawner needed — which is what makes it
+           worth a button: seeing what a type actually looks like on a board is
+           the fastest way to find out that it doesn't. Same call either way,
+           so the button and the tile cannot drift. */''}
+      <button class="sqbtn" data-act="randomobject" data-id="${c.id}"
+        title="Make one of anything, here">${ic('spiral',16)}</button>
       ${/* The star promoted a drawer into a desk of its own. There is one desk
            now and it is nine shelves wide, so what the star bought — room — is
            bought by putting the drawer on a shelf instead. See decision 141. */''}
@@ -133,8 +149,7 @@ function viewDesk(){
     return `
     ${gridBar(c)}
     <div class="scroll">
-      ${!items.length ? `<div class="empty"><div class="big">Nothing on the desk</div>Click a bare cell in grid view to make something.</div>`
-        : view==='scroll' ? `<div class="scrollview">${items.map(scrollEntry).join('')}</div>`
+      ${!items.length ? `<div class="empty"><div class="big">Nothing on the desk</div>Hold a bare cell — that is the Magic Selector — and drag out the size you want.</div>`
         : view==='book'   ? bookView(c, items)
         : `<div class="listgrid" data-listfor="${c.id}">${items.map(listTile).join('')}</div>`}
     </div>`;
@@ -340,12 +355,10 @@ function viewDrawer(){
         ? `<div class="empty"><div class="big">This drawer is empty</div>${
             has(d,'magic') ? 'Nothing matches its rule yet.'
             : takesTyping(d) ? 'Type in the box above to start it off.'
-            : 'Drag something in, or click a bare cell on the desk.'}</div>`
+            : 'Drag something in, or hold a bare cell with the Magic Selector.'}</div>`
         : view==='book'
         ? bookView(d, items)
-        : view==='scroll'
-          ? `<div class="scrollview">${items.map(scrollEntry).join('')}</div>`
-          : `<div class="listgrid" data-listfor="${d.id}">${items.map(o=>listTile(o)).join('')}</div>`}
+        : `<div class="listgrid" data-listfor="${d.id}">${items.map(o=>listTile(o)).join('')}</div>`}
   </div>`;
 }
 
@@ -1022,7 +1035,37 @@ function deskRail(){
     <i class="dgrain"></i>
     <i class="pull railknob ${dressAs('kn',r.knob)}" data-act="railout"
       ${r.knobc?`style="--knob:${esc(r.knobc)}"`:''}
-      title="Back — and pull up to make something"></i>
+      title="Home Knob — tap for home, pull up to make something"></i>
+  </nav>`;
+}
+
+/* ---- the Home Knob, on a Mac -------------------------------------------
+   A phone gets the whole drawer front along the bottom of the carcass, because
+   a phone screen has a bottom: a strip below the board that is not board and
+   never can be. A Mac window has no such strip — the board fills it and
+   scrolls — so the same piece of furniture is a **knob on its own**, turned out
+   of the same wood, floating in the bottom right corner and staying there
+   however far the board scrolls under it.
+
+   It answers the same three things the rail's knob does, in the shapes a mouse
+   has rather than the ones a thumb has:
+
+     tap                  home, or up one drawer
+     drag a little        the Void Drawer opens
+     drag onto bare board make something in that cell
+
+   …and it is a drop target for the fourth: carry a tile onto it and the object
+   goes into the Void Drawer, which is the Mac's half of decision 107.
+
+   Same `railCfg()` as the rail, so the shape, the size and the colour set in
+   the desk's own editor dress both — there is one knob in this app and this is
+   where it stands when there is no rail to stand on. */
+function deskKnob(){
+  const r=railCfg();
+  return `<nav class="deskknob ks-${r.size}" data-rail>
+    <i class="pull railknob ${dressAs('kn',r.knob)}" data-act="railout"
+      ${r.knobc?`style="--knob:${esc(r.knobc)}"`:''}
+      title="Home Knob — tap for home, drag off for the Void Drawer, drag onto a bare cell to make something"></i>
   </nav>`;
 }
 
@@ -1039,7 +1082,7 @@ function viewHTML(){
   try{
     const body = S.view==='drawer' ? viewDrawer()
                : viewDesk();        // the desk is the only other place there is
-    return `<div class="main">${body}${S.device==='phone'?deskRail():''}</div>`;
+    return `<div class="main">${body}${S.device==='phone'?deskRail():deskKnob()}</div>`;
   } finally { endPass(); }
 }
 
@@ -1064,7 +1107,11 @@ function previewHTML(at){
     S.view=was.view; S.drawerId=was.drawerId; S.kindFilter=was.kindFilter;
     if(at.shelf){ if(wasShelf==null) delete SHELF[cid]; else SHELF[cid]=wasShelf; }
   }
-  return html.replace(/ id="drawergrid"/g, '');
+  /* Two things it must not leave behind, and now three: the **Home Knob**, which
+     is `position:fixed` and so would draw a second one over the first for the
+     length of a swipe. It has no nesting, so a non-greedy match is exact. */
+  return html.replace(/ id="drawergrid"/g, '')
+             .replace(/<nav class="deskknob[\s\S]*?<\/nav>/g, '');
 }
 
 /* ---- rendering one frame later, on purpose -----------------------------
@@ -1288,8 +1335,20 @@ function sizeGrid(){
        element would make a drawer's cell three times a desk's. The room is the
        scroller's own height, which is one shelf-row: the desk's other two rows
        are above and below it and you scroll to them. */
+    /* The scroller's **content** box, not its client width. `clientWidth`
+       includes the padding, and `.deskscroll` carries fourteen pixels of it
+       either side — so the cell came out a whole twenty-eight pixels' worth
+       too wide, `.grid`'s `max-width:100%` then clamped the element back to
+       the honest width, and the columns and the row height disagreed by that
+       much. The tiles are laid out by the grid and were right; the
+       **checkerboard** is drawn from `--checkerx`, which is derived from the
+       cell — so every square was a little too wide and the board drifted left
+       under its own tiles, a couple of pixels at column two and most of a cell
+       by column twenty-four. Measure what the grid actually gets. */
     const main2 = grid.closest('.main');
-    const avail = sc ? sc.clientWidth : w*drawCols(g);
+    const scs = sc ? getComputedStyle(sc) : null;
+    const sidePad = scs ? (parseFloat(scs.paddingLeft)||0) + (parseFloat(scs.paddingRight)||0) : 0;
+    const avail = sc ? Math.max(1, sc.clientWidth - sidePad) : w*drawCols(g);
     const room = sc ? sc.clientHeight : 0;
     const wasR = shelfRows('desk', cid);
     MEASURE.desk.w = avail;

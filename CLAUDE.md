@@ -524,9 +524,16 @@ purpose, and a magic front asking for an ogee gives up its gilt lines: two gilt
 frames on one drawer is a picture frame shop. See decision 88.
 
 **A grain is a slot, and it lives on an element.** Six positions — `none`,
-`fine`, `weave`, `ruled`, `speckle`, `pattern` — named and drawn by each
-aesthetic (Victoria's damask, Carca's millefleur, Golf 97's argyle, Aeros'
-gloss sweep). There were eleven global names for a long time, which is a list
+`fine`, `weave`, `wideweave`, `herring`, `wash` — named and drawn by each
+aesthetic (Carca's hurdle, Stelaine's aurora, Golf 97's chevron, Aeros'
+gloss sweep). The last three used to be `ruled`, `speckle` and `pattern` and all
+three were **noise** — a hard rule, a field of dots, a lattice of figures, each
+a drawing laid over a tile that already has a colour, a moulding and a knob to
+say. Migration 34 rewrites them, on **both sides of a pin** (`golf97/speckle` is
+a legal value). Two `repeating-linear-gradient`s at opposing angles do *not*
+make a herringbone — they cross everywhere and draw a lattice however they are
+offset; four corner triangles with the left pair shifted half a cell do. See
+decision 164. There were eleven global names for a long time, which is a list
 of *pictures* rather than a vocabulary and meant cut stone and a 1997 dialog
 wore the same graph paper; migration 24 folds the eleven in. Ask `textureOf(o)`.
 
@@ -835,6 +842,24 @@ clocks are not — contention changes how long they take, never how many there
 are. Decision 101's discipline still stands for filters; this is the estimator
 to use when the machine is noisy.
 
+**The shape list is silhouettes, and one of them is nothing.** `SHAPES` is what
+a picker offers; it lost eleven — filing tab, torn chit, book spine, ruled line,
+bar, progress bar, streak, ticket, pill, switch and the sliver — because a third
+of the list was a rectangle with one detail on it and several said the same
+small thing twice. It gained **`none`**: no ground, no edge, no shadow, no
+stock, the board straight through. Two of the eleven are still *drawn* and no
+longer offered — `SHAPES_KEPT` — because a Task **is** a sliver and a Progress
+bar **is** a row of blocks; ask `shapeChoices(cur)` for a particular object's
+ring, which puts the kept one at the head when that is what it is wearing, and
+`shapeName(k)` when you only need the word. Migration 33 folds the rest in: a
+removed shape needs one for the same reason a removed kind does. See decision
+163.
+
+**A fragment wears the tear until it says otherwise.** `tornOf()` reads
+`o.shape` first and only then the family, so picking another shape for a scene
+takes the tear off. Before that it was an `||` with no way back and every
+fragment was torn for ever.
+
 **Three types were a property wearing a name, and are gone.** A **habit** is a
 task with a repeat rule on it; a **dream** is a goal with no day owed, which
 `goalStanding()` has said since decision 146; an **ingredient** is a line of a
@@ -1066,6 +1091,20 @@ narrower than that it **wraps** rather than shrinking the blocks. The columns
 are evened across the rows, because a half-empty last row reads as broken
 rather than wrapped. Pressing a block sets the bar to it and pressing the one it
 is on steps back; a bar that names a `tracks` refuses the press. See decision 138.
+
+**A spawner is a spiral, and bigger it is a box with a line in it.** Square
+corners like everything else on a board (decision 125); the spiral is drawn
+**only where the box is square** — `gensquare` — because it is a mark that winds
+out from its own middle and a four-by-one has no middle for it to wind out of.
+The icon is eight half-arcs whose ends alternate either side of the viewBox's
+centre line, so it is even by construction and reaches the edge; the old one was
+four relative arcs starting a pixel off centre and wound off to one side. In a
+square box the mark takes whatever height the line leaves, by `aspect-ratio` and
+not by a width in `cqw` — a proportion of the width is the wrong number in a
+column — and `.fieldin` has to restate `height:auto`, because the base rule is
+`height:100%` and that is the whole tile.
+
+The rest of it, unchanged:
 
 **A spawner is a spiral, and bigger it is a pill with a line in it.** One cell
 square the spiral **is** the tile — no ground, no edge, no shadow and no stock,
@@ -1641,7 +1680,16 @@ space, and correcting it is a shuffle of an arrangement nobody asked to shuffle.
 `freeSpot()` scans the current shelf first and the rest nearest-first, and
 returns **null** when there is nowhere — which is a real answer. Every path that
 *makes* something asks `fits()` first and refuses with a sentence saying what to
-do about it. `anySpot()` is the never-null version and is only for things that
+do about it. But `freeSpot()` asks one question — *is there a hole exactly this
+shape?* — and inside a drawer, which is eight columns wide, one tile in the
+middle of a row is enough for there to be no six-by-four hole on a board that is
+three quarters empty. **`fitSpot()`** steps the long side down a cell at a time
+and asks again, so it gives up the proportion before it gives up the object, and
+returns null only when a single cell will not fit. `fits()` and `ensureBox()`
+both go through it, so what was promised is what arrives; `fits()` also takes the
+**sketched box** when there is one, because a sketch wins over the type's size in
+`placeAtPending()` and asking about the type's default refused a box you had just
+drawn room for. `anySpot()` is the never-null version and is only for things that
 already exist and must be somewhere (a reparent, a paste, a shelf that got
 shorter when the window did); it is the one place in the app that writes an
 overlap.
@@ -1691,6 +1739,21 @@ launch is right before any script runs; the function follows a desk that names
 its own `wood` and a style that overrules the token, reading the computed value
 only when neither can answer. Never duplicate the default as a JS constant —
 the stylesheet owns it. See decision 89.
+
+**The knob is the Home Knob, and on a Mac it floats.** A phone gets the whole
+drawer front along the bottom of the carcass because a phone screen has a
+bottom; a Mac window has none — the board fills it and scrolls — so `deskKnob()`
+draws the same knob on its own, `position:fixed` in the bottom right corner,
+staying put while the board scrolls under it. Fixed and not absolute: `.main` is
+inside `#app`, which `render()` replaces. Same `railCfg()` as the rail, so the
+desk's own editor dresses both. Tap goes home (the click, not the gesture —
+nothing is claimed until you have moved `KNOB_DRAG`), a drag inside its own ring
+opens the **Void Drawer**, a drag past the ring onto a bare cell is where the
+next object goes, and a tile carried onto it goes into the Void Drawer —
+`aimHold()` reads a **circle** there instead of the phone's band, with the same
+two radii a detent needs. The holding space is called the Void Drawer and the
+dashed rectangle you drag out of a bare cell is the **Magic Selector**; neither
+behaviour changed, both can now be talked about. See decision 165.
 
 **The app is furniture, and the board is set into it.** A phone screen has two
 strips the board cannot use — the notch above the bar and the curve of the
@@ -1771,6 +1834,13 @@ or the dead strip under the title that decision 44 removed. `--gapmin` on
 `.deskscroll` is the floor for the top half; `min-height` on `.deskrail` is the
 floor for the bottom, and the safe-area inset rides inside it.
 
+**There are no seams between the shelves.** A hairline every `shelfW` columns was
+there to say the board is nine screens rather than one wide one, and on a Mac —
+where three of them are on the screen at once — what it said instead was that
+the paper had been cut into pieces. The checkerboard is one surface and runs
+straight through; which shelf you are on is the map of dots in the bar, which is
+a thing you can aim at rather than a line you have to read.
+
 **The dots by the title are the shelves of this board, laid out the way they
 actually are.** A row of dots was right when the desks were a row; nine shelves
 are a *square*, so the dots are one — a map you can aim at rather than a count
@@ -1796,7 +1866,16 @@ drawer on a desk. See decision 53.
 
 **A tool in the grid bar is something you change while you are working;
 everything else is a settings row.** The lock is leftmost, because it decides
-what every other gesture on the board means. Then the **brush**, which opens
+what every other gesture on the board means. Then **grid or list**, and only
+those two — which of the two ways of *looking* at a board you want is something
+you change while working, while Book, Calendar and Timeline are what a container
+*is* and stay in its editor. (Scroll was a third state on that button — a list
+with nothing truncated — and it is gone as a container layout entirely;
+migration 33 reads one as a list. The object's own `read: scroll` is a different
+thing and untouched.) Then the **spiral**, which makes one of anything wherever
+there is room — the same `someKind()` a spawner set to "one of anything" goes
+through, so the button and the tile cannot make from two different bags. Then
+the **brush**, which opens
 *this board's* editor — `objectPanel(id)` for a drawer and `objectPanel(ROOT)`
 for the desk, which is the same panel: the desk is a container without a tile,
 not a special case, so it gets its own board colour, its own layout, its own
@@ -1821,7 +1900,15 @@ the columns set the cell and the cell is square so it sets the rows. About 8×13
 
 **Two numbers are measured and the rest is arithmetic.** `MEASURE[device]` holds
 how wide a board is and how much vertical room it has, and that is all
-`sizeGrid()` works out. Boards differ from each other only in columns, so the
+`sizeGrid()` works out. On a Mac the width is the scroller's **content** box, not
+its `clientWidth` — that includes `.deskscroll`'s fourteen pixels of padding
+either side, so the cell came out a whole twenty-eight pixels' worth too wide,
+`.grid`'s `max-width:100%` clamped the element back to the honest width, and the
+columns and the row height then disagreed by that much. The tiles are laid out by
+the grid and were right; the **checkerboard** is drawn from `--checkerx`, which
+is derived from the cell — so every square was slightly too wide and the board
+drifted left under its own tiles, a couple of pixels at column two and most of a
+cell by column twenty-four. Boards differ from each other only in columns, so the
 cell (`width/cols`) and the row count (`room/cell`, floored) of a board that is
 nowhere near the screen — a pager pane, the drawer you are about to drop into —
 are answerable without measuring it. `pageRows(device, cid)` is a function, not

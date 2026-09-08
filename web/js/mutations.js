@@ -435,9 +435,14 @@ function togglePin(id){
    do about it, because "it won't fit" with no next move is an error message.
    Returns false when there is no room, so a caller reads as
    `if(!fits(...)) return;`. See decision 141. */
-function fits(kind, home, dv){
+/* `cell` is the box a hold sketched, when there was one. A sketched box wins
+   over the type's own size in placeAtPending(), so asking about the type's
+   default was asking the wrong question: hold out two cells in a drawer, ask
+   for an Image — six by four — and be told there is no room for a thing you
+   had just made room for. */
+function fits(kind, home, dv, cell){
   const d = dv || dev();
-  const [w,h] = sizeOfKind(kind, d, home);
+  const [w,h] = cell && cell.w ? [cell.w, cell.h] : sizeOfKind(kind, d, home);
   if(roomFor(w, h, d, home)) return true;
   const c = byId(home);
   const many = c && (c.shelves||{}).w*(c.shelves||{}).h > 1;

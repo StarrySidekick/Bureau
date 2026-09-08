@@ -225,7 +225,7 @@ const BUILTIN_KINDS = {
      and the only thing that knows how each is read and flipped. Pressing it is
      a click action like any other (`toggle`), not a branch on a kind's name.
      See decision 132. */
-  control: {shape:'switch', nm:'Control',  ic:'sliders', c:15, key:'-', ds:'A switch on the board for one of the desk\'s own settings', attrs:['control'], ctl:'lock', onclick:'toggle', size:[4,2], phoneSize:[4,2], body:'' },
+  control: {shape:'card', nm:'Control',  ic:'sliders', c:15, key:'-', ds:'A switch on the board for one of the desk\'s own settings', attrs:['control'], ctl:'lock', onclick:'toggle', size:[4,2], phoneSize:[4,2], body:'' },
   /* A task opens onto **When** — the dates, the estimate, the ranks, the
      repeat and the tags. It was `none` for a long time and that was right when
      tapping meant the object editor, which is a page of look and structure a
@@ -328,7 +328,7 @@ const BUILTIN_KINDS = {
      opening a page about it. See decision 144. */
   audio:   {nm:'Audio',   ic:'music',   c:10, key:'U', ds:'Something to listen to',    size:[4,4], phoneSize:[3,3], onclick:'play', attrs:['text','media','duration'], mediaType:'audio', body:'' },
   video:   {nm:'Video',   ic:'film',    c:9, key:'&', ds:'Something to watch',        size:[6,4], onclick:'play', attrs:['text','media','duration'], mediaType:'video', body:'' },
-  trip:    {shape:'ticket', proj:'trip', nm:'Trip',    ic:'flag',    c:9, key:'P', ds:'Somewhere you are going',   size:[8,6], attrs:['container','date','span','location'], layout:'grid', body:'' },
+  trip:    {shape:'card', proj:'trip', nm:'Trip',    ic:'flag',    c:9, key:'P', ds:'Somewhere you are going',   size:[8,6], attrs:['container','date','span','location'], layout:'grid', body:'' },
   /* A **collage** is a container whose face is the board inside it, drawn
      small — not a separate wall of thumbnails that had to be kept in step with
      what the drawer actually holds. So it is a *face* any container can wear,
@@ -456,7 +456,10 @@ const BUILTIN_KINDS = {
      prints it in the past tense — "Lost 25 pounds" rather than "Lose 25
      pounds", because a plaque saying what you still intend to do is a to-do
      with a frame round it. See decision 135. */
-  achievement:{shape:'plaque', nm:'Achievement', ic:'trophy', c:12, key:'W', asksDone:true, ds:'Something you actually did', size:[6,3], onclick:'read', attrs:['text','date'], body:'' },
+  /* A step larger than everything else, because the name is the whole of it:
+     there is nothing else printed on the plate, so it is set the way an
+     engraving is set rather than the way a note's title is. */
+  achievement:{shape:'plaque', nm:'Achievement', ic:'trophy', c:12, key:'W', asksDone:true, tsize:1.25, ds:'Something you actually did', size:[6,3], onclick:'read', attrs:['text','date'], body:'' },
   /* A project is a drawer with a front page. It holds everything a piece of
      work is made of — tasks, events, goals, pictures, notes — so it opens onto
      a board of its own rather than a list, and its front reports on what is
@@ -1063,11 +1066,19 @@ const stockOf = o => {
   const st = slotKey(slotRaw(o,'stock'));
   return STOCKS[st] ? st : 'plain';
 };
-/* Six positions of grain: nothing, the fine tooth of the surface, a weave, a
-   ruling, a scatter, and an outright pattern. Eleven global names became six
+/* Six positions of grain: nothing, the fine tooth of the surface, a close
+   weave, a wide one, a chevron, and a wash. Eleven global names became six
    slots in migration 24 — a texture is what a *surface* is made of, and stone,
-   glass, cathedral paper and a 1997 dialog do not share one. */
-const TEXTURE_SLOTS = ['none','fine','weave','ruled','speckle','pattern'];
+   glass, cathedral paper and a 1997 dialog do not share one.
+
+   The last three used to be a ruling, a scatter and an outright pattern, and
+   all three were **noise**: a hard rule every twenty pixels, a field of dots
+   and a lattice of figures, each of them a picture drawn on top of a tile that
+   already has a colour, a moulding and a knob to say. What replaces them is
+   three *weaves* — a wide one, a chevron and a plain wash — which is what a
+   surface actually looks like at this size: something you read as material
+   rather than as a pattern somebody applied. Migration 34. */
+const TEXTURE_SLOTS = ['none','fine','weave','wideweave','herring','wash'];
 const textureOf = o => {
   const t = slotKey(slotRaw(o,'texture'));
   return TEXTURE_SLOTS.includes(t) ? t : 'none';
@@ -1315,25 +1326,41 @@ const MEDIA_EXT = {
 const acceptFor = o => MEDIA_EXT[mediaTypeOf(o)] || MEDIA_EXT.image;
 const acceptAny = () => Object.values(MEDIA_EXT).join(',');
 
-/* The four at the end are the newer answers to "what does a task look like",
-   which is a question a plain sliver only ever answered by not being anything.
-   They are ordinary shapes: any type can wear one, and a task is a `sliver`
-   until you say otherwise. */
+/* ---- what an object is drawn as ---------------------------------------
+   Twenty-eight of these was a list you scrolled rather than read, and a third
+   of them were a rectangle with one detail on it: a filing tab, a ruled line, a
+   torn chit, a pill, a ticket, a bar, a streak, a progress bar. Each said one
+   small thing and several said the same small thing twice. What is left is the
+   shapes that are actually a *silhouette*, plus **None** — no ground, no edge,
+   no shadow, the board showing straight through, which is the honest answer for
+   anything that is only its own writing. Migration 33 folds the rest in. */
 const SHAPES = {
-  card:'Card', habit:'Streak', goal:'Progress bar', dream:'Dashed', image:'Picture',
-  event:'Diary leaf',
+  card:'Card', rounded:'Rounded card', note:'Plain sheet', tornnote:'Torn note',
+  idea:'Ruled sheet', page:'Punched page', index:'Index card', verse:'Verse',
+  quote:'Quotation', bubble:'Speech bubble', plaque:'Plaque', portrait:'Portrait',
+  band:'Band', tally:'Tally', press:'Press', image:'Picture', event:'Diary leaf',
   /* **Torn** is the fragment's crease-tear, offered to everything. It was a
      fact about the *category* — a scene and a character wore it and nothing
      else could — and it is the best-looking edge in the app, so it is a shape
      now like every other. A fragment still wears it without being asked: see
      `tornOf()` in tiles.js, which answers for the shape *or* the family. */
-  torn:'Torn edge',
-  note:'Plain sheet', tornnote:'Torn note', idea:'Ruled sheet', bubble:'Speech bubble',
-  page:'Punched page', index:'Index card', spine:'Book spine', portrait:'Portrait',
-  ticket:'Ticket', plaque:'Plaque', tally:'Tally', quote:'Quotation',
-  verse:'Verse', sliver:'Sliver', press:'Press', band:'Band', rounded:'Rounded card',
-  tab:'Filing tab', ruled:'Ruled line', chit:'Torn chit', pill:'Pill',
-  switch:'Switch', bar:'Bar'
+  torn:'Torn edge', dream:'Dashed', none:'None'
+};
+/* ---- and two that are still drawn but no longer offered ----------------
+   A Task **is** a sliver — one line, name centred, no body — and a Progress bar
+   **is** a row of blocks; take those two away and two of the primary types stop
+   being what they are. They are not silhouettes anybody would go looking for in
+   a picker, though, so they are out of the list and kept in the model: an
+   object already wearing one still says so honestly in its own editor, because
+   shapeChoices() puts it back at the head of the ring for that one object, and
+   one press walks it into the list for good. */
+const SHAPES_KEPT = {sliver:'Sliver', bar:'Bar'};
+const shapeName = k => SHAPES[k] || SHAPES_KEPT[k] || SHAPES.card;
+/* The ring a *particular* object's Shape row walks: the offered list, with the
+   one it is actually wearing at the front when that is one of the kept two. */
+const shapeChoices = cur => {
+  const all = Object.entries(SHAPES);
+  return (SHAPES[cur] || !SHAPES_KEPT[cur]) ? all : [[cur, SHAPES_KEPT[cur]], ...all];
 };
 const shapeOf = o => (o && o.shape) || K(o&&o.kind).shape || 'card';
 
@@ -2367,6 +2394,7 @@ function marginPlus(o, text){
 export { homeFor, ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds, K,
   attrsOf, has, kindHas, T, dz, S, sensedDevice, reset, defaultLook, dev, byId,
   deskTitle, rootObj, container, cfgOf, isContainer, FACES, faceOf, layoutOf, SHAPES,
+  SHAPES_KEPT, shapeName, shapeChoices,
   shapeOf, READS, readOf, spreadOf, OPENINGS, openingOf, gathersOf, gatherKind, containers,
   deskIds, deskList, isDesk, deskOf, deskHere,
   placeOf, isHeld, heldObjects, heldCount,

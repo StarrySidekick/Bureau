@@ -2,7 +2,7 @@ import { $, $$, esc, ic, uid, clamp, D, ROOT, pastTense } from './util.js';
 import { S, K, KINDS, KEYS, T, ATTRS, USER_ATTRS, FIELDS, fieldOf, OPS, ROLLS,
   URGES, workday, urgencyOf, urgeRank, urgeSaid, durSaid,
   WHENS, whenISO, RULE_MAX, rulesOf,
-  SORTS, MANUAL, sortOf, FACES, SHAPES, READS, OPENINGS, openingOf,
+  SORTS, MANUAL, sortOf, FACES, SHAPES, shapeChoices, READS, OPENINGS, openingOf,
   faceOf, layoutOf, shapeOf, readOf, byId, container, cfgOf, deskTitle,
   rootObj, containers, isContainer, isAncestor, childrenOf, has, kindHas,
   attrsOf, allTags, placeOf, deskList, deskOf, isDesk, spanOf, heldObjects,
@@ -486,15 +486,15 @@ function heldTile(o, i){
 }
 function holdPanel(){
   openPanel({
-    key:'holding', fit:true, title:'Holding',
+    key:'holding', fit:true, title:'Void Drawer',
     sub:'Kept out of the desk until you put it down',
     body:()=>{
       const held=heldObjects();
       const here = (S.view==='drawer' && S.drawerId && byId(S.drawerId)) || null;
       const where = here ? esc(here.title||'this drawer') : 'the desk';
       if(!held.length) return `<p class="holdnote">Nothing in here. Pick a tile
-        up, drop it on the drawer along the bottom, and it waits here until you
-        open the drawer somewhere else and put it down.</p>`;
+        up and drop it on the Home Knob, and it waits in the Void Drawer until
+        you open it somewhere else and put the thing down.</p>`;
       return `<div class="heldgrid">${held.map(heldTile).join('')}</div>
         <p class="holdnote">Press one to put it down on ${where}, or drag it
         out onto the spot you want it.</p>
@@ -582,17 +582,22 @@ const pcycle=(id,key,list,cur)=>{
   const pv = list[(i-1+list.length)%list.length];
   /* A ring you can only walk one way is fine for five knobs and a chore for
      twenty-eight shapes: overshoot the one you liked and you go round again.
-     The step back is a separate small target rather than a list, so this is
-     still a cycle — the answer is the picture on the stage, not a word you
-     read off a menu. Only when there are enough of them to get lost in. */
-  const back = list.length>6
-    ? `<i class="pcycback" data-ocycle="${id}:${key}" data-next="${esc(String(pv[0]))}"
-         role="button" tabindex="0" title="Back to ${esc(pv[1])}">${ic('chevL',12)}</i>` : '';
-  return `<span class="pcycrow">${back}<button class="pcyc" data-ocycle="${id}:${key}"
+     So there is an arrow at **each end** and the name sits between them — the
+     back step used to be a small mark on the left with the forward one drawn
+     inside the button, which is a control that is lopsided and reads as though
+     only one of the two is a real target. Two arrows, one on either side of
+     what they are stepping through, is the shape every stepper has. */
+  return `<span class="pcycrow">
+    <i class="pcycstep back" data-ocycle="${id}:${key}" data-next="${esc(String(pv[0]))}"
+       role="button" tabindex="0" title="Back to ${esc(pv[1])}">${ic('chevL',12)}</i>
+    <button class="pcyc" data-ocycle="${id}:${key}"
       data-next="${esc(String(nx[0]))}"
       title="${esc(list[i][1])} — press for ${esc(nx[1])}">
       <span>${esc(list[i][1])}</span><u>${i+1}/${list.length}</u>
-      <i>${ic('chevR',12)}</i></button></span>`;
+    </button>
+    <i class="pcycstep fwd" data-ocycle="${id}:${key}" data-next="${esc(String(nx[0]))}"
+       role="button" tabindex="0" title="On to ${esc(nx[1])}">${ic('chevR',12)}</i>
+  </span>`;
 };
 const pfield=(id,key,cur,type,ph)=>`<input class="pfield"${type?` type="${type}"`:''}
   data-oset="${id}:${key}" value="${esc(cur==null?'':cur)}" placeholder="${esc(ph||'')}">`;
@@ -706,17 +711,16 @@ const swatches=(id,key,cur)=>{
   const literal = typeof cur==='string' && cur ? cur : '';
   return `<div class="pickgrid sw">${objSlots().map(([slot,nm])=>
     `<button data-ocolour="${slot}" data-key="${key}" data-id="${id}" title="${esc(nm)}"
-       class="${cur===slot?'on':''}" style="background:${hexOf(slot)}"></button>`).join('')}</div>
-    <div class="ownrow">
-      <label class="custcol${literal?' on':''}" title="It stays put when the aesthetic changes">
-        <input type="color" data-ocolinput="${key}" data-id="${id}"
-          value="${esc(literal || hexOf(cur==null?11:cur))}">
-        <span>${literal ? 'Your own · '+esc(literal) : 'A colour of your own'}</span>
-      </label>
-      ${literal?`<button class="pill" data-ocolour="" data-key="${key}" data-id="${id}"
-        title="Follow the aesthetic again">${ic('undo',12)} Back to the aesthetic</button>`:''}
-    </div>
-    ${literal?`<div class="mini" style="--k:var(--brass);margin-top:5px">A colour of your own is not one of the aesthetic's sixteen, so it stays exactly this when you change aesthetic.</div>`:''}`;
+       class="${cur===slot?'on':''}" style="background:${hexOf(slot)}"></button>`).join('')}
+    <label class="swown${literal?' on':''}"
+      title="${literal ? 'Your own · '+esc(literal)+' — it stays put when the aesthetic changes'
+                       : 'A colour of your own — it stays put when the aesthetic changes'}"
+      ${literal?`style="--own:${esc(literal)}"`:''}>
+      <input type="color" data-ocolinput="${key}" data-id="${id}"
+        value="${esc(literal || hexOf(cur==null?11:cur))}">
+    </label>
+    ${literal?`<button class="swback" data-ocolour="" data-key="${key}" data-id="${id}"
+      title="Follow the aesthetic again">${ic('undo',12)}</button>`:''}</div>`;
 };
 // forty types is a wall of chips and two rows of a select, grouped as the
 // picker groups them
@@ -944,7 +948,10 @@ function objectPanelBody(id, sec){
         title="${esc(i)}">${ic(i,15)}</button>`).join(''),
     d.ic ? 'its own' : esc(K(d.kind).nm)));
   // 5 · the shape it is, or the working on the front it wears
-  if(!isRoot && !cont) out.push(prow('Shape', pcycle(id,'shape', Object.entries(SHAPES), shapeOf(d))));
+  /* `shapeChoices` rather than the table: two shapes are still drawn and no
+     longer offered (a task's sliver, a bar's blocks), and an object wearing one
+     has to be able to say so and to walk off it. */
+  if(!isRoot && !cont) out.push(prow('Shape', pcycle(id,'shape', shapeChoices(shapeOf(d)), shapeOf(d))));
   if(!isRoot && cont){
     if(faceOf(d)==='spine' || (d[dev()]||{}).w<=1)
       out.push(slotRow('Binding', id, 'bn', slotRaw(d,'binding')||bindingOf(d),
@@ -991,8 +998,13 @@ function objectPanelBody(id, sec){
     esc(OPENING_IS(d))));
   /* A tick box is per object now: a task you tick in a circle and a checklist
      you tick in a square are two things you may genuinely want side by side,
-     and it was one switch for the whole app. See decision 149. */
-  if(!isRoot && (has(d,'check') || (cont && genKindOf(d) && kindHas(genKindOf(d),'check'))))
+     and it was one switch for the whole app. See decision 149.
+
+     **Only for something that ticks.** A drawer got the row because the things
+     it collects tick, which is a setting about somebody else's tile sitting in
+     this one's editor — and a checklist front draws its lines from the tasks
+     themselves, so each already answers for its own box. */
+  if(!isRoot && !cont && has(d,'check'))
     out.push(prow('Tick box', pcycle(id,'check',
       [['','Follow the desk'], ...Object.entries(CHECKS)], d.check||''),
       d.check ? 'its own' : esc(CHECKS[checkNow()]||'')));
@@ -1011,7 +1023,7 @@ function objectPanelBody(id, sec){
   /* ---- how it behaves ---- */
   if(cont){
     out.push(prow('Opens as', psel(id,'layout',
-      [['grid','Grid'],['list','List'],['scroll','Scroll'],
+      [['grid','Grid'],['list','List'],
        ...(isRoot?[]:[['book','Book'],['calendar','Calendar'],['timeline','Timeline']])], view)));
     // manual is a value, not the absence of one: a container has to be able to
     // refuse a type that sorts
@@ -2060,11 +2072,11 @@ function cmdList(q){
     res.push({t:'The Desk',s:'view',c:'var(--brass)',i:'grid',go:()=>{S.view='desk';S.drawerId=null;}});
   if(!q||'settings'.includes(q))
     res.push({t:'Settings',s:'panel',c:'var(--brass)',i:'sliders',go:()=>settingsPanel()});
-  /* The holding space, whenever there is anything in it. Without this a thing
-     kept on a phone would be unreachable on a Mac, which has no rail to pull
+  /* The Void Drawer, whenever there is anything in it. Without this a thing
+     kept on a phone would be hard to find on a Mac, where the drawer is a knob
      — and a drawer you cannot open is a drawer things go missing in. */
-  if(heldObjects().length && (!q||'holding'.includes(q)))
-    res.push({t:'Holding', s:`${heldObjects().length} kept`, c:'var(--brass)',
+  if(heldObjects().length && (!q||'void drawer holding'.includes(q)))
+    res.push({t:'Void Drawer', s:`${heldObjects().length} kept`, c:'var(--brass)',
               i:'inbox', go:()=>holdPanel()});
   containers().forEach(d=>{ if(!q||(d.title||'').toLowerCase().includes(q)) res.push({t:d.title,s:'drawer',c:objColour(d),i:'folder',go:()=>{S.view='drawer';S.drawerId=d.id;}}); });
   /* Tags are how everything in Bureau is filed, and the one search in the app

@@ -5,6 +5,76 @@ Sequenced by dependency, not appetite: item 1 makes everything after it safer.
 
 ---
 
+## 0v. Queued 2026-09-08 (twenty-first pass) — the pruning — DONE (v1.62)
+
+Timothy again, in one list of twenty-one, written the same day as the twentieth
+after living with it for an afternoon. Two of them are measurement bugs that had
+been quietly wrong for versions; most of the rest is the catalogue being pruned
+a second time; and one is a whole gesture a Mac never had.
+
+**Bugs that were arithmetic**
+
+1. **The Mac board drifted left under its own tiles.** `sizeGrid()` measured the
+   scroller's `clientWidth`, which includes `.deskscroll`'s fourteen pixels of
+   padding either side — so the cell came out twenty-eight pixels' worth too
+   wide, `max-width:100%` clamped the element back, and the checkerboard (drawn
+   from the cell) and the columns (drawn by the grid) disagreed by that much.
+   A couple of pixels at column two and most of a cell by column twenty-four.
+2. **"No room in here" on a board that was three quarters empty.** `freeSpot()`
+   asks whether there is a hole *exactly this shape*, and inside a drawer —
+   eight columns wide — one tile in the middle of a row is enough for there to
+   be no six-by-four hole anywhere. `fitSpot()` steps the long side down and
+   asks again; and `fits()` now takes the sketched box, because a sketch wins
+   over the type's size and asking about the type's default refused a box you
+   had just drawn room for.
+3. **The Magic Selector still lost a side on the phone.** The border child was
+   pinned at `inset:0`, which is the clip boundary; two pixels in and all four
+   sides survive.
+4. **A picture chosen inside a sorting drawer was filed into it** — the same
+   `S.drawerId`-instead-of-`homeFor()` bug that decision 159 fixed everywhere
+   else, still in `importImage()` and `importMedia()`.
+
+**The catalogue, pruned again**
+
+5. **Eleven shapes removed and one added.** Filing tab, torn chit, book spine,
+   ruled line, bar, progress bar, streak, ticket, pill, switch and sliver out;
+   **None** in — no ground, no edge, no shadow, the board straight through.
+   Two are kept but unoffered, because a Task *is* a sliver and a Progress bar
+   *is* a row of blocks. Decision 163.
+6. **Three grains replaced.** Ruled, speckle and damask were noise; a wide
+   weave, a herringbone and a wash are material. Decision 164.
+7. **Scroll is no longer a container layout** — it was the list with nothing
+   truncated, reachable from one bar button that is a grid/list toggle again.
+8. The **shelf seams** are gone; the checkerboard runs straight through.
+9. A **collage** has no name band, and a **drawer** has no tick-box row.
+10. The **verse** lost its torn cutouts, the **speech bubble** its grey strip
+    and its clipped tail, and a **fragment** can now decline its tear.
+11. The **plaque's engraving is read against the plate** rather than assumed
+    light, and an **achievement** is set a step larger again.
+
+**Controls and chrome**
+
+12. A **colour of your own** is a swatch in the same lane as the eleven.
+13. Every **cycle has an arrow at each end**.
+14. The **object editor comes up further** on a phone.
+15. **Grid or list** is back in the bar, and **one of anything** beside it.
+16. A **spawner** has square corners, a spiral that fills its box and is drawn
+    only where the box is square.
+
+**And the one new thing**
+
+17. **The Home Knob floats on a Mac.** A Mac window has no strip of carcass
+    below the board for a drawer front to be, so the same knob stands on its
+    own in the bottom right corner: tap for home, drag a little for the Void
+    Drawer, drag onto a bare cell to make something there, and drop a tile on
+    it to keep it. Decision 165.
+18. **Three things got names**: the Magic Selector, the Void Drawer and the
+    Home Knob.
+
+*Left out:* nothing.
+
+---
+
 ## 0u. Queued 2026-09-08 (twentieth pass) — the second look — DONE (v1.61)
 
 Timothy again, in one list of twenty-seven, written after living with the

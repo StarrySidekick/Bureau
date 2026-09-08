@@ -17,7 +17,7 @@ import { closePanel } from './panels.js';
    Bureau is this phone running" is exactly the question you ask when a change
    appears not to have deployed. Shown in Settings, so it can be read off the
    device rather than guessed at. */
-const APP_VERSION = '1.61';
+const APP_VERSION = '1.62';
 const KEY = 'bureau.v1';
 const install = {deferred:null};   // the browser's install prompt, when one is on offer
 let saveTimer = null;
@@ -265,7 +265,7 @@ function rescalePhone(d, from, cols){
    skips all of them, an old backup replays only what it is missing. These
    used to be ad-hoc per-load mutations inside adopt(); a new repair that
    should run once belongs here, as the next numbered step. */
-const DATA_V = 32;
+const DATA_V = 34;
 const MIGRATIONS = [
   // Drawers and objects were two arrays and a drawer could not live inside
   // anything. foldDrawers also replays the old dense flow to give v1 drawers
@@ -872,6 +872,65 @@ const MIGRATIONS = [
       if(k.gathers==='recipe') delete k.gathers;
     });
   }},
+  /* ---- eleven shapes out, one in, and a layout retired ------------------
+     A removed shape needs a migration for exactly the reason a removed kind
+     does: `shapeOf()` returns whatever is stored, so a desk left on one goes
+     on looking right while storing a name that nothing offers and nothing can
+     be walked back from. `sliver` and `bar` are **not** here — they are still
+     drawn, just not offered (SHAPES_KEPT), and a task that stopped being a
+     sliver would be the change nobody asked for.
+
+     `scroll` went the same way as a container **layout**: it is the list with
+     the bands stretched, and the one place it was reachable from was a bar
+     button that is a grid/list toggle again. A container that was on it opens
+     as a list, which is what it was already showing. */
+  {v:33, up(d){
+    const SHAPE = {tab:'card', chit:'card', ruled:'band', pill:'rounded',
+                   ticket:'card', spine:'card', habit:'card', goal:'card',
+                   switch:'card'};
+    (d.objects||[]).forEach(o=>{
+      if(o && o.shape && SHAPE[o.shape]) o.shape = SHAPE[o.shape];
+      if(o && o.layout==='scroll') o.layout = 'list';
+    });
+    Object.values(d.kinds||{}).forEach(k=>{
+      if(!k) return;
+      if(k.shape && SHAPE[k.shape]) k.shape = SHAPE[k.shape];
+      if(k.layout==='scroll') k.layout = 'list';
+    });
+    if(d.deskCfg) Object.values(d.deskCfg).forEach(c=>{
+      if(c && c.layout==='scroll') c.layout='list';
+    });
+  }},
+  /* ---- three grains that were noise -------------------------------------
+     `ruled`, `speckle` and `pattern` — a hard rule every twenty pixels, a field
+     of dots and a lattice of figures. Three drawings laid over a tile that
+     already has a colour, a moulding and a knob to say, and at tile size they
+     read as dirt rather than as material. Their positions are a wide weave, a
+     herringbone and a wash now.
+
+     A stored value may be **pinned** to the aesthetic it came from
+     (`golf97/speckle`, decision 98), so the key is rewritten either side of the
+     slash rather than compared whole. */
+  {v:34, up(d){
+    const TX = {ruled:'wideweave', speckle:'herring', pattern:'wash'};
+    const fix = v => {
+      if(typeof v!=='string' || !v) return v;
+      const i=v.indexOf('/');
+      const k = i<0 ? v : v.slice(i+1);
+      if(!TX[k]) return v;
+      return i<0 ? TX[k] : v.slice(0,i+1)+TX[k];
+    };
+    (d.objects||[]).forEach(o=>{ if(o && o.texture) o.texture=fix(o.texture); });
+    Object.values(d.kinds||{}).forEach(k=>{ if(k && k.texture) k.texture=fix(k.texture); });
+    if(d.deskCfg) Object.values(d.deskCfg).forEach(c=>{
+      if(c && c.railtexture) c.railtexture=fix(c.railtexture);
+      if(c && c.texture) c.texture=fix(c.texture);
+    });
+    // and the cached copy of the aesthetic's own defaults, which migration 24
+    // had to fix for exactly the same reason
+    const sd = d.look && d.look.styleDefaults;
+    if(sd && sd.texture) sd.texture = fix(sd.texture);
+  }},
 ];
 function migrate(d){
   let v = d.v||0;
@@ -1041,8 +1100,7 @@ function importMedia(file){
     const into = imgFor.id && byId(imgFor.id);
     imgFor.id = null;
     const o = into && has(into,'media') ? into
-      : create(kind, {title:file.name.replace(/\.[^.]+$/,''),
-          parent:(S.view==='drawer'&&S.drawerId)||ROOT});
+      : create(kind, {title:file.name.replace(/\.[^.]+$/,'')});
     const was = o.media && o.media.assetId;
     o.media={assetId, type:kind, label:file.name, src:URL.createObjectURL(file), size:file.size};
     if(was && was!==assetId) assetDel(was);
@@ -1127,9 +1185,12 @@ function importImage(file){
            collects media. */
         const into = imgFor.id && byId(imgFor.id);
         imgFor.id = null;
+        /* No `parent` — `create()`'s own default is `homeFor()`, which is the
+           nearest container that actually *holds*. Naming `S.drawerId` meant
+           a picture chosen while standing in a sorting drawer was filed into
+           a drawer that holds nothing, so it appeared on no board at all. */
         const o = into && has(into,'media') ? into
-          : create('image',{title:file.name.replace(/\.[^.]+$/,''),
-              parent:(S.view==='drawer'&&S.drawerId)||ROOT});
+          : create('image',{title:file.name.replace(/\.[^.]+$/,'')});
         const was = o.media && o.media.assetId;
         o.media={assetId, type:'image', w:cv.width, h:cv.height,
                  label:file.name, src, alpha:keepAlpha};

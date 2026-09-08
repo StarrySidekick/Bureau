@@ -118,7 +118,7 @@ function pullSay(el, word){
   const b=el.querySelector('.pulllabel');
   if(b) b.textContent=word;
 }
-const holdWord = ()=>{ const n=heldCount(); return n ? `Holding · ${n}` : 'Holding'; };
+const holdWord = ()=>{ const n=heldCount(); return n ? `Void Drawer · ${n}` : 'Void Drawer'; };
 
 /* ---- the drawer stands ajar while you are carrying something -----------
    Pick a tile up on a phone and the drawer along the bottom opens a little:
@@ -158,8 +158,72 @@ const holdWord = ()=>{ const n=heldCount(); return n ? `Holding · ${n}` : 'Hold
    has always made and it is only larger — and the front stands visibly ajar
    saying so, which a cell does not. */
 const AJAR = 34, AJAR_AIM = 62, AJAR_GRAB = 48, AJAR_KEEP = 76;
+/* The Mac's mouth is a **circle**, not a band: there is no bottom of the screen
+   to fall off, so the Void Drawer is aimed at rather than crossed into. Same
+   detent either way — easier to stay in than to enter — because a target that
+   shuts while you are aiming at it is the bug two numbers exist to stop. */
+const KNOB_GRAB = 44, KNOB_KEEP = 62;
+/* How far the pointer travels before a press on the Home Knob stops being a tap
+   and becomes something being pulled out of it. Short, because a mouse does not
+   wobble the way a thumb does — and the tap is still safe, since nothing is
+   claimed until this is passed. */
+const KNOB_DRAG = 8;
+/* ---- what dragging *out* of the Home Knob is aiming at ------------------
+   A bare cell on a board — where the next object goes — or nothing in
+   particular, which is the Void Drawer. The cell is read exactly as a sketch
+   reads one (`SHELFSHIFT` added back, decision 102), and it has to be **free**:
+   aiming at a cell that is already occupied and getting an object somewhere
+   else is worse than being told there is nothing there. */
+function aimKnob(g, px, py){
+  const nothing = ()=>{ if(g.ghost){ g.ghost.remove(); g.ghost=null; } g.want=null; g.cell=null; };
+  /* **A little way out is the Void Drawer**, whatever happens to be under the
+     pointer — the knob sits on top of the board, so "just off the knob" is
+     always over a cell and aiming at one there would make the near half of the
+     gesture unreachable. Past the ring it is the board's question again. Same
+     radius the drop uses (KNOB_KEEP), so coming out of the drawer and going
+     into it are the same circle. */
+  const r0=g.el.getBoundingClientRect();
+  if(Math.hypot(px-(r0.left+r0.right)/2, py-(r0.top+r0.bottom)/2) <= KNOB_KEEP){
+    nothing(); return;
+  }
+  // the knob is under the pointer at the start of the drag, so it has to stand
+  // out of elementFromPoint's way — the same trick the pluck's chip plays
+  g.el.style.pointerEvents='none';
+  const under=document.elementFromPoint(px, py);
+  g.el.style.pointerEvents='';
+  const grid = under && under.classList && under.classList.contains('grid') ? under : null;
+  if(!grid){ nothing(); return; }
+  const home=grid.dataset.gridfor||ROOT;
+  const gg=gridOf(undefined, home), r=grid.getBoundingClientRect(), cw=cellW(grid, gg);
+  const sh=shelfShift(home);
+  const cx=clamp(Math.floor((px-r.left)/(cw+gg.gap))+1, 1, drawCols(gg)) + sh.x;
+  const cy=Math.max(1, Math.floor((py-r.top)/(CELL[dev()]+gg.gap))+1) + sh.y;
+  if(!boxOk({x:cx, y:cy, w:1, h:1}, null, dev(), home)){ nothing(); return; }
+  if(g.ghost && g.ghost.parentElement!==grid){ g.ghost.remove(); g.ghost=null; }
+  if(!g.ghost){
+    g.ghost=document.createElement('div');
+    g.ghost.className='ghost band';
+    grid.appendChild(g.ghost);
+  }
+  place(g.ghost, {x:cx, y:cy, w:1, h:1}, home);
+  /* A sorting drawer collects and does not hold, so a cell measured on one is a
+     coordinate in a space nothing is ever filed into — the object goes where
+     that drawer lives and the cell is dropped. Exactly what the sketch does
+     when it lands on one. See homeFor() in model.js. */
+  const to=homeFor(home);
+  g.want='cell';
+  g.cell = to===home ? {x:cx, y:cy, parent:home} : {parent:to};
+}
 function openAjar(g){
-  if(S.device==='desk' || g.group || g.hold) return;
+  if(g.group || g.hold || g.knobEl) return;
+  /* On a Mac the drawer is the Home Knob standing in the corner, and it is
+     already on the screen — nothing has to be built, it only has to say it is
+     ready to take what you are carrying. */
+  if(S.device==='desk'){
+    const k=$('.deskknob');
+    if(k){ g.knobEl=k; k.classList.add('taking'); }
+    return;
+  }
   g.hold=makePull('ajar');
   g.hold.style.setProperty('--pull', AJAR+'px');
   pullSay(g.hold, holdWord());
@@ -170,14 +234,25 @@ function openAjar(g){
   g.holdKeep = lip - AJAR_KEEP;
 }
 function closeAjar(g){
-  if(!g || !g.hold) return;
+  if(!g) return;
+  if(g.knobEl){ g.knobEl.classList.remove('taking','aim'); g.knobEl=null; }
+  if(!g.hold) return;
   g.hold.remove(); g.hold=null; g.holdTop=null; g.holdKeep=null;
 }
 /* Is the pointer in the drawer's mouth? The aim band is the ajar front plus
    everything below it — the rail, the home strip, the bottom of the screen —
    because a thing carried off the bottom edge of a phone was aimed at the only
    thing down there. */
-function aimHold(g, py){
+function aimHold(g, px, py){
+  /* The Mac's Home Knob: distance from its centre, with the ring widening once
+     you are inside it. */
+  if(g.knobEl){
+    const r=g.knobEl.getBoundingClientRect();
+    const d=Math.hypot(px-(r.left+r.right)/2, py-(r.top+r.bottom)/2);
+    const on = d <= (g.holdOn ? KNOB_KEEP : KNOB_GRAB);
+    if(on !== !!g.holdOn){ g.holdOn=on; g.knobEl.classList.toggle('aim', on); }
+    return on;
+  }
   if(!g.hold || g.holdTop==null) return false;
   // easier to stay in than to enter — the line moves up once you are inside
   const on = py >= (g.holdOn ? g.holdKeep : g.holdTop);
@@ -333,7 +408,7 @@ function aimPluck(g, px, py){
   if(g.dropEl) g.dropEl.classList.remove('dropinto','dropboard');
   g.dropEl=null; g.dropOn=null;
   // the drawer first, for the same reason aimDrop asks it first
-  if(aimHold(g, py)) return;
+  if(aimHold(g, px, py)) return;
   if(g.chip) g.chip.style.visibility='hidden';
   const under=document.elementFromPoint(px, py);
   if(g.chip) g.chip.style.visibility='';
@@ -422,7 +497,7 @@ function aimDrop(g, px, py){
      beat and nothing it can take a drop away from. Everything else in this
      function is a question about the board; this one is a question about
      whether you have left it. See decision 107. */
-  if(aimHold(g, py)) return;
+  if(aimHold(g, px, py)) return;
   const under=document.elementFromPoint(px, py);
   if(!under) return;
   const dated=!g.group && has(d,'date');
@@ -643,6 +718,20 @@ function onDown(e){
       ? {type:'homeedge'}
       : {type:'rail', el:railEl, onKnob:!!e.target.closest('.railknob'),
          sx:e.clientX, sy:e.clientY, mode:null, pull:null};
+    return;
+  }
+  /* ---- the Home Knob, on a Mac ----------------------------------------
+     The rail's two detents, in the shapes a mouse has. A tap is not claimed
+     here at all — it falls through to the delegated click and `railout` takes
+     you home, exactly as the rail's knob does. What is claimed is the *drag*:
+     carry it a little and let go near where it started and the Void Drawer
+     opens; carry it onto a bare cell and that cell is where the next object
+     goes. Same two answers as the pull, aimed rather than measured, because a
+     Mac has no bottom of the screen to pull away from. */
+  const knobEl = S.device==='desk' && e.target.closest && e.target.closest('.deskknob');
+  if(knobEl){
+    G={type:'knob', el:knobEl, sx:e.clientX, sy:e.clientY,
+       mode:null, want:null, cell:null, ghost:null};
     return;
   }
   /* ---- a button off the card ------------------------------------------
@@ -1082,6 +1171,17 @@ function onMove(e){
 
   if(G.type==='homeedge') return;      // iOS owns that strip; keep out of it
 
+  if(G.type==='knob'){
+    if(!G.mode){
+      if(Math.abs(dx) < KNOB_DRAG && Math.abs(dy) < KNOB_DRAG) return;
+      G.mode='carry';
+      gestureFlags.suppressClick=true;   // a drag must not also go home
+      G.el.classList.add('carrying');
+    }
+    aimKnob(G, e.clientX, e.clientY);
+    return;
+  }
+
   if(G.type==='rail'){
     /* A real pull: the front rises out of the rail and follows the finger the
        whole way, and it only opens if you carried it PULL_OPEN — a quarter of
@@ -1281,6 +1381,18 @@ function onUp(e){
   }
 
   if(g.type==='homeedge') return;
+  if(g.type==='knob'){
+    if(g.ghost){ g.ghost.remove(); g.ghost=null; }
+    g.el.classList.remove('carrying','aim');
+    if(g.mode!=='carry') return;         // a tap: the click takes you home
+    gestureFlags.suppressClick=true;
+    if(g.want==='cell'){ pending.cell=g.cell; modalNewObject(); return; }
+    /* Anywhere else, including straight back onto itself: the Void Drawer.
+       A drag off the knob that lands on nothing in particular is the "show me
+       what I am carrying" gesture, and there is nothing else it could mean. */
+    holdPanel();
+    return;
+  }
   if(g.type==='rail'){
     // a tap: the knob takes you out, and bare rail does nothing at all
     if(!g.pull) return;
@@ -1364,7 +1476,7 @@ function onUp(e){
     if(g.mode!=='pluck') return;         // a tap; let the click tick it off
     gestureFlags.suppressClick=true;     // the drag must not also tick it
     const o=byId(g.id);
-    if(heldIt && o && holdIt(o.id)){ render(); toast('Kept in the drawer', true); return; }
+    if(heldIt && o && holdIt(o.id)){ render(); toast('Into the Void Drawer', true); return; }
     if(o && g.dropOn && g.dropOn!==o.parent){
       /* Recorded, like every other filing. This one wrote three fields
          straight onto the object and pushed nothing, so a line plucked off a
@@ -1397,7 +1509,7 @@ function onUp(e){
        board altogether. */
     if(d && aim.hold && holdIt(d.id)){
       render();
-      toast('Kept in the drawer', true);
+      toast('Into the Void Drawer', true);
       return;
     }
     /* Thrown off the edge. After the drawer, which owns downward, and before

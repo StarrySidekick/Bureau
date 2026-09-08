@@ -41,6 +41,16 @@ const lum = hex => {
   return (0.2126*n[0] + 0.7152*n[1] + 0.0722*n[2]) / 255;
 };
 const isDark = hex => lum(hex) < 0.42;
+/* ---- can this be read on that? ----------------------------------------
+   WCAG's ratio, and the rule that goes with it: **take the best candidate,
+   never the first that passes a threshold.** A pass/fail test hands a mid tone
+   whichever ink it asked about first and loses contrast doing it, which is the
+   bug decision 87 spent a session on for a book's gilt. Offer every ink and
+   take the maximum. */
+const contrast = (a,b) => { const x=lum(a)+0.05, y=lum(b)+0.05;
+  return x>y ? x/y : y/x; };
+const bestInk = (bg, inks) => inks.reduce((best,c)=>
+  contrast(c,bg) > contrast(best,bg) ? c : best, inks[0]);
 const mix = (a,p,b) => `color-mix(in srgb, ${a} ${p}%, ${b})`;
 function chromeTokens(cols){
   const [bg, ink, line, accent, glow] = cols;
@@ -349,7 +359,7 @@ const FAMS = {
      cathedral paper and a 1997 dialog do not share one — so the eleven global
      names became six positions each aesthetic answers for. Migration 24. */
   tx: {prop:'texture', slots:TEXTURE_SLOTS, says:'textures',
-       words:['None','Grain','Weave','Ruled','Speckle','Damask'], read:textureOf},
+       words:['None','Grain','Weave','Wide weave','Herringbone','Wash'], read:textureOf},
   bn: {prop:'binding', slots:BINDING_SLOTS, says:'bindings',
        words:BINDING_SLOTS.map(k=>BINDINGS[k]), read:bindingOf},
   /* The object's half of a panelling: what the *sheet* is, as against what is
@@ -434,7 +444,7 @@ const STYLES = {
     borders:['Panelled','Heavy panel','Bar','Beaded','Gilt frame','Plain','None'],
     panels:['Flat front','Cockbead','Raised panel','Reeded','Ogee panel'],
     knobs:['Round','Diamond','Bar','Ring','Square'],
-    textures:['None','Grain','Weave','Ruled','Speckle','Damask'],
+    textures:['None','Grain','Weave','Wide weave','Herringbone','Wash'],
     stocks:['Plain','Laid','Wove','Card','Aged'],
     bindings:['Plain cloth','Gilt rules','Raised bands','Flat back','Chamfered'],
     check:'circle',
@@ -463,11 +473,11 @@ const STYLES = {
     borders:['Ashlar','Rampart','Course','Vine','Inlay','Plain','None'],
     panels:['Dressed flat','Chamfer','Ashlar block','Fluting','Tracery'],
     knobs:['Boss','Faceted','Bar handle','Gear','Stud'],
-    textures:['None','Ashlar','Basketweave','Coursing','Aggregate','Millefleur'],
+    textures:['None','Ashlar','Basketweave','Hurdle','Chevron','Patina'],
     stocks:['Plain','Parchment','Linen','Slate','Weathered'],
     bindings:['Vellum','Ruled bands','Cords','Squared back','Bevelled'],
     check:'hard',
-    defaults:{knob:'ring', border:'panel', texture:'ruled', knobtone:'light', panel:'fielded', stock:'plain'},
+    defaults:{knob:'ring', border:'panel', texture:'wideweave', knobtone:'light', panel:'fielded', stock:'plain'},
     cols:['#E8E4D6','#22303F','#7E8B96','#A87A3C','#D4B872',
           '#77808A','#2E5B84','#5D82AE','#5E8B4C','#3C6B49','#7A6E9E',
           '#A8555C','#A6803C','#9A6440','#4E8478','#8C8574'],
@@ -487,11 +497,11 @@ const STYLES = {
     borders:['Filigree','Astral rule','Horizon','Facet','Sigil frame','Plain','None'],
     panels:['Unworked','Crystal rim','Floating slab','Ribbing','Astral inlay'],
     knobs:['Orb','Shard','Bar','Halo','Crystal'],
-    textures:['None','Stardust','Nebula','Ley lines','Crystal dust','Constellation'],
+    textures:['None','Stardust','Nebula','Lattice','Meteors','Aurora'],
     stocks:['Plain','Starcloth','Silk','Shard','Faded'],
     bindings:['Starcloth','Astral rules','Ribs','Flat back','Bevelled'],
     check:'circle',
-    defaults:{knob:'round', border:'panel', texture:'speckle', knobtone:'light', panel:'ogee', stock:'plain'},
+    defaults:{knob:'round', border:'panel', texture:'wideweave', knobtone:'light', panel:'ogee', stock:'plain'},
     cols:['#120E20','#EDE7FA','#6E5F96','#9A6BD8','#E3C98A',
           '#4C3A78','#6E4C9E','#2E2A55','#3A5A9E','#2F6E86','#3E8AA0',
           '#9A3F86','#9E4A3A','#8A6D2E','#3F7A5E','#5A5470'],
@@ -511,11 +521,11 @@ const STYLES = {
     borders:['Volute','Cartouche','Cornice','Vine','Gilt cartouche','Plain','None'],
     panels:['Uncarved','Bead','Cartouche','Rustication','Volute panel'],
     knobs:['Volute','Lozenge','Bar','Ring','Block'],
-    textures:['None','Tufa','Cane','Rustication','Volcanic','Majolica'],
+    textures:['None','Tufa','Cane','Caning','Parquet','Glaze'],
     stocks:['Plain','Fresco','Canvas','Terracotta','Sun-bleached'],
     bindings:['Buckram','Gilt fillets','Raised cords','Flat back','Chamfered'],
     check:'circle',
-    defaults:{knob:'round', border:'panel', texture:'speckle', knobtone:'dark', panel:'ogee', stock:'plain'},
+    defaults:{knob:'round', border:'panel', texture:'wideweave', knobtone:'dark', panel:'ogee', stock:'plain'},
     cols:['#211E1A','#EDE4D2','#7A6E5E','#B98846','#E0C782',
           '#3A342E','#8A7B63','#2F6E92','#3F7A5F','#5B7A46','#A65E3C',
           '#8A3A38','#A8823A','#3B4E86','#5E3D5C','#6B655C'],
@@ -536,7 +546,7 @@ const STYLES = {
     borders:['Outset','Deep outset','Sunken','Groove','Marquee','Plain','None'],
     panels:['Flat','Plastic edge','Group box','Scanlines','CRT bezel'],
     knobs:['Button','Tee','Slider','Dial','Keycap'],
-    textures:['None','Dither','Weave','Scanlines','Static','Argyle'],
+    textures:['None','Dither','Weave','Tiled','Chevron','Gradient'],
     stocks:['Plain','Window','Dialog','Readout','Printout'],
     bindings:['Jewel case','Spine label','Ribbed case','Slim case','Bevelled case'],
     check:'ballot',
@@ -559,7 +569,7 @@ const STYLES = {
     borders:['Ruled','Double rule','Underline','Sketched','Chalk frame','Plain','None'],
     panels:['Unlined','Pencil rim','Sketched panel','Hatching','Doodle frame'],
     knobs:['Circle','Diamond','Bar','Ring','Square'],
-    textures:['None','Tooth','Crosshatch','Ruled','Stipple','Stars'],
+    textures:['None','Tooth','Crosshatch','Hatching','Chevron','Wash'],
     stocks:['Plain','Ruled leaf','Tracing','Board','Foxed'],
     bindings:['Cloth','Drawn rules','Drawn bands','Flat back','Chamfered'],
     check:'hard',
@@ -586,7 +596,7 @@ const STYLES = {
     borders:['Bevel','Deep bevel','Sill','Glass','Chrome frame','Plain','None'],
     panels:['Clear','Glass edge','Glass panel','Ribbed glass','Aqua inlay'],
     knobs:['Orb','Gem','Bar','Halo','Chiclet'],
-    textures:['None','Frost','Brushed','Ripple','Bubbles','Sheen'],
+    textures:['None','Frost','Brushed','Mesh','Chevron','Sheen'],
     stocks:['Plain','Frosted','Satin','Acrylic','Sunlit'],
     bindings:['Frosted case','Chrome rules','Ribs','Flat edge','Bevelled edge'],
     check:'fill',
@@ -684,4 +694,4 @@ export { themeNow, lookVal, setLookVal, applyLook, applyStyle, styleDefaults,
   SLOTS, OBJ0, OBJN, ROLES, slotName, styleNow, palNow, setSlot,
   BORDER_SLOTS, borderSlots, panelSlots, knobSlots, textureSlots, bindingSlots, stockSlots, stockNow,
   FAMS, famSlots, famNames, famAll, styleKey, styleFor, dress, dressAs, CHECKS, checkNow,
-  hexOf, objColour, objSlots, isDark };
+  hexOf, objColour, objSlots, isDark, contrast, bestInk };

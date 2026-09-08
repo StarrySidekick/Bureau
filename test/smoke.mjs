@@ -1219,11 +1219,11 @@ const CHROME = process.env.BUREAU_CHROME;
     const o = BUREAU.create('note', { parent: 'root', title: 'Ruled',
       body: Array.from({ length: 30 },
         () => 'A line, and then a good many more of them after it. ').join('\n\n') });
-    o.texture = 'ruled'; o.stock = 'laid';
+    o.texture = 'wideweave'; o.stock = 'laid';
     BUREAU.render(); await nap(120);
     const fams = s => (s.match(/\b(tx|st)(sty)?-[a-z0-9]+/g) || []).sort().join(' ');
     const tile = document.querySelector(`.grid .drawer[data-row="${o.id}"]`);
-    out.theTileWearsIt = /\btx-ruled\b/.test(tile.className) && /\bst-laid\b/.test(tile.className);
+    out.theTileWearsIt = /\btx-wideweave\b/.test(tile.className) && /\bst-laid\b/.test(tile.className);
 
     S.readId = o.id; S.bookAt = 0; BUREAU.renderSheet(); await nap(120);
     const sp = document.querySelector('.bookstage .spread');
@@ -1506,12 +1506,18 @@ const CHROME = process.env.BUREAU_CHROME;
 
   /* --- no type draws a coloured left stripe any more. A stripe is what
      priority means; painting one on by default made every task look flagged.
-     `edge` is the opt-in, and the four new shapes are the answers instead. */
+     `edge` is the opt-in.
+
+     The four one-row shapes it used to check for — a filing tab, a ruled line,
+     a torn chit and a pill — are **gone** (decision 163): four ways of drawing a
+     rectangle with one detail on it, three of them saying the same small thing.
+     What is checked now is that the list is the shorter one, that **None** is
+     in it, and that the two kept-but-unoffered shapes still draw. */
   const taskLook = await page.evaluate(async () => {
     const nap = n => new Promise(r => setTimeout(r, n));
     const S = BUREAU.state;
     S.view = 'desk'; S.drawerId = null;
-    const shapes = ['sliver','tab','ruled','chit','pill'];
+    const shapes = ['sliver','none','card','band','bar'];
     const made = shapes.map((sh, i) => {
       const o = BUREAU.create('task', { parent: 'root', title: 'Look ' + sh });
       o.shape = sh; o.desk = BUREAU.free(7, 1);
@@ -1531,7 +1537,15 @@ const CHROME = process.env.BUREAU_CHROME;
     const bigCheck = !!tick && tick.getBoundingClientRect().width >= rowBox * 2 - 1;
     BUREAU.delMany(made.map(o => o.id)); S.undo = []; BUREAU.render();
     return { noStripe, allDrawn, edgeStillWorks, bigCheck,
-             fourNewShapes: ['tab','ruled','chit','pill'].every(s => !!BUREAU.shapes[s]) };
+             /* the eleven that went, and they must not come back by accident */
+             elevenGone: ['tab','ruled','chit','pill','ticket','spine',
+                          'habit','goal','switch','bar','sliver']
+                          .every(s => !BUREAU.shapes[s]),
+             noneIsOffered: !!BUREAU.shapes.none,
+             /* …and the two that are still drawn are still reachable for an
+                object already wearing one, at the head of its own ring */
+             keptAreOffered: ['sliver','bar'].every(s =>
+               BUREAU.shapeChoices(s)[0][0] === s) };
   });
   await shot('18-task-shapes');
 
@@ -1593,6 +1607,23 @@ const CHROME = process.env.BUREAU_CHROME;
     out.deskHasAnEditor = tools.some(t => t.dataset.act === 'drawersettings'
       && t.dataset.id === 'root');
     out.andTheGearIsStillTheApp = tools.some(t => t.dataset.act === 'appsettings');
+    /* Grid or list is a **tool** — the one thing about how a board looks that
+       you change while you are working — and it is two states, not the five
+       the old cycle walked. Scroll is gone as a container layout entirely. */
+    const lay = () => document.querySelector('.bartools [data-act="togglelayout"]');
+    out.aLayoutToggle = !!lay();
+    lay().click(); await nap(220);
+    out.itGoesToAList = S.deskCfg.layout === 'list'
+      && !!document.querySelector('.listgrid');
+    lay().click(); await nap(220);
+    out.andBackToTheGrid = S.deskCfg.layout === 'grid' && !!document.querySelector('.grid');
+    out.scrollIsNotALayout = !document.querySelector('.scrollview');
+    /* …and one of anything, wherever there is room. The spawner's own trick
+       with no spawner in the way. */
+    const wasN = S.objects.length;
+    document.querySelector('.bartools [data-act="randomobject"]').click(); await nap(320);
+    out.oneOfAnything = S.objects.length === wasN + 1;
+    BUREAU.del(S.objects[S.objects.length-1].id); S.undo = []; BUREAU.render(); await nap(120);
     document.querySelector('.bartools [data-act="drawersettings"]').click(); await nap(280);
     // …and it asks one question at a time now: how a board sorts and how fine
     // its grid is are Behaviour, what it is painted in is Look. See decision 66.
@@ -2238,6 +2269,93 @@ const CHROME = process.env.BUREAU_CHROME;
     const p = document.querySelector('#panel');
     out.pullingOpensThePicker = !!p && p.dataset.panel === 'newobject';
     document.querySelector('[data-act="panelclose"]').click(); await nap(150);
+    return out;
+  });
+
+  /* --- and the same knob on a Mac, floating -----------------------------
+     A Mac window has no strip of carcass below the board for a drawer front to
+     be, so the Home Knob stands on its own in the bottom right corner. It
+     answers the same three things in the shapes a mouse has: a tap goes home, a
+     drag inside its own ring opens the Void Drawer, a drag past the ring onto a
+     bare cell is where the next object goes — and a tile carried onto it goes
+     into the Void Drawer. Written as a *reachability* pair rather than a markup
+     check: the point of the knob is that you can get to all four. See decision
+     165. */
+  const homeKnob = await page.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const S = BUREAU.state, out = {};
+    S.view='desk'; S.drawerId=null; BUREAU.render(); await nap(200);
+    const knob = () => document.querySelector('.deskknob');
+    out.itIsThere = !!knob();
+    // fixed, so it stays in the corner however far the board scrolls
+    out.itFloats = getComputedStyle(knob()).position === 'fixed';
+    // and it is a drawer pull, like the rail's — one knob, dressed once
+    out.itIsAPull = !!knob().querySelector('.railknob.pull');
+
+    const r = knob().getBoundingClientRect();
+    const cx = r.left + r.width/2, cy = r.top + r.height/2;
+    const ev = (t, x, y, el) => (el||knob()).dispatchEvent(new PointerEvent(t,
+      { bubbles:true, cancelable:true, pointerId:71, pointerType:'mouse', clientX:x, clientY:y }));
+
+    // a tap goes home — from inside a drawer, out to the desk
+    S.view='drawer'; S.drawerId='d_ideas'; BUREAU.render(); await nap(220);
+    knob().querySelector('.railknob').click();
+    out.aTapGoesHome = S.view === 'desk' && !S.drawerId;
+    await nap(700);
+
+    // a short drag, and let go still inside the ring: the Void Drawer
+    ev('pointerdown', cx, cy);
+    ev('pointermove', cx - 26, cy - 26);
+    await nap(30);
+    ev('pointerup', cx - 26, cy - 26);
+    await nap(300);
+    const p1 = document.querySelector('#panel');
+    out.aShortDragOpensTheVoidDrawer = !!p1 && p1.dataset.panel === 'holding';
+    document.querySelector('[data-act="panelclose"]').click(); await nap(200);
+
+    // a drag onto a bare cell: the picker, on that cell
+    const grid = document.querySelector('#drawergrid');
+    const gr = grid.getBoundingClientRect();
+    const cw = gr.width / 24, ch = parseFloat(getComputedStyle(grid).getPropertyValue('--rowh'));
+    let bare = null;
+    for (let y = 1; y < 40 && !bare; y++) for (let x = 1; x <= 24 && !bare; x++){
+      const px = gr.left + (x - 0.5)*cw, py = gr.top + (y - 0.5)*ch;
+      if (py < 120 || py > innerHeight - 150) continue;
+      const el = document.elementFromPoint(px, py);
+      if (el && el.classList.contains('grid')) bare = { px, py };
+    }
+    out.thereIsABareCell = !!bare;
+    if (bare){
+      ev('pointerdown', cx, cy);
+      ev('pointermove', (cx + bare.px)/2, (cy + bare.py)/2);
+      ev('pointermove', bare.px, bare.py);
+      await nap(40);
+      out.itLightsTheCell = !!document.querySelector('#drawergrid .ghost.band');
+      ev('pointerup', bare.px, bare.py);
+      await nap(300);
+      const p2 = document.querySelector('#panel');
+      out.aLongDragOpensThePicker = !!p2 && p2.dataset.panel === 'newobject';
+      document.querySelector('[data-act="panelclose"]').click(); await nap(200);
+    }
+
+    /* …and it is a drop target: carry a tile onto it and the object leaves the
+       board for the Void Drawer, which is `aimHold()` reading a circle. */
+    if (S.look.locked){ S.look.locked = false; BUREAU.render(); await nap(200); }
+    const held0 = BUREAU.held().length;
+    const tile = document.querySelector('#drawergrid .drawer[data-row]');
+    const tr = tile.getBoundingClientRect();
+    const tx = tr.left + tr.width/2, ty = tr.top + tr.height/2;
+    ev('pointerdown', tx, ty, tile);
+    await nap(320);                                  // the hold arms the drag
+    ev('pointermove', tx + 40, ty + 40, tile);
+    ev('pointermove', cx, cy, tile);
+    await nap(60);
+    out.itOpensForATile = knob().classList.contains('aim');
+    ev('pointerup', cx, cy, tile);
+    await nap(400);
+    out.aTileDroppedOnItIsKept = BUREAU.held().length === held0 + 1;
+    BUREAU.unhold(BUREAU.held()[BUREAU.held().length-1].id);
+    S.undo = []; S.look.locked = true; BUREAU.render(); await nap(150);
     return out;
   });
 
@@ -6033,7 +6151,12 @@ const CHROME = process.env.BUREAU_CHROME;
     return out;
   });
 
-  /* --- eleven grains became six slots — migration 24 -------------------- */
+  /* --- eleven grains became six slots — migrations 24 and 34 ------------
+     Two folds, and the test reads the *end* of the chain: 24 turned eleven
+     global names into six positions, and 34 replaced the noisy three of those
+     six (a hard rule, a field of dots, a lattice of figures) with a wide weave,
+     a herringbone and a wash. A desk restored from before either one has to
+     come out the far end wearing something that exists. See decision 164. */
   const grainSlots = await page.evaluate(() => {
     const out = {};
     // every aesthetic names all six, so a picker is never short of a word
@@ -6050,10 +6173,17 @@ const CHROME = process.env.BUREAU_CHROME;
       deskCfg:{railtexture:'check'},
       look:{styleDefaults:{texture:'starry', border:'aqua'}} });
     const t = id => (old.objects.find(o => o.id === id) || {}).texture;
-    out.theElevenFold = t('a')==='ruled' && t('b')==='weave' && t('c')==='pattern' && t('d')==='fine';
+    out.theElevenFold = t('a')==='wideweave' && t('b')==='weave' && t('c')==='wash' && t('d')==='fine';
     out.anUnknownGrainIsNone = t('e') === 'none';
     out.theRailFoldsToo = old.deskCfg.railtexture === 'fine';
-    out.theCachedDefaultFoldsToo = old.look.styleDefaults.texture === 'speckle';
+    out.theCachedDefaultFoldsToo = old.look.styleDefaults.texture === 'herring';
+    /* A **pinned** value carries the aesthetic it came from — `golf97/speckle`
+       — so 34 has to rewrite the half after the slash and leave the half
+       before it alone. Nothing else in the app would notice if it didn't:
+       `textureOf()` would quietly answer `none`. */
+    const pinned = BUREAU.migrated({ v:33, objects:[
+      {id:'p', kind:'drawer', texture:'golf97/speckle'}] });
+    out.aPinnedGrainFoldsToo = pinned.objects[0].texture === 'golf97/herring';
     /* Aeros stated `aqua` as its border, which was never one of the seven
        positions — so `bd-aqua` styled nothing and every drawer born on an Aero
        desk had no edge at all. */
@@ -6936,7 +7066,7 @@ const CHROME = process.env.BUREAU_CHROME;
   console.log(JSON.stringify({
     errors: errs, manifestOk, swReady, survived, styleSurvived, slotColours,
     newObjectSeen, inlineEdit, sortDefaults, taskLook,
-    shelfTools, gridSizes, keeping, versionShown, sampler, paging, pageCoords, pagerGround, goingIn, comingOut,
+    shelfTools, homeKnob, gridSizes, keeping, versionShown, sampler, paging, pageCoords, pagerGround, goingIn, comingOut,
     makingOnAPhone, railDrawer, railIsFurniture, holding, holdingOut, reported, cavity, depth, windows, tossing, pinch, pagerLandsFlat, deskDots,
     listSwipe, shadows, textureDepth,
     gridClass, offlineWorks, railGone, tabsGone, shelfGone, tileNavigates,

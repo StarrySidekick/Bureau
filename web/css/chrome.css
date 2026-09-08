@@ -771,7 +771,7 @@
   position:relative;
 }
 .ghost::before{
-  content:'';position:absolute;inset:0;
+  content:'';position:absolute;inset:2px;
   border:2.5px solid var(--ghostline);
   border-radius:inherit;pointer-events:none;
 }
@@ -1314,7 +1314,6 @@ html .drawer.dtile.cltile{background-image:none}
 .drawer.listband .pull{margin-left:auto;width:14px;height:14px}
 .drawer.otile.listband .bandsnip{color:var(--ink-3)}
 .bandimg{width:34px;height:34px;object-fit:cover;border-radius:3px;flex:0 0 auto}
-.scrollview{max-width:720px}
 /* A container that also has `text` shows its written part above what it holds
    — a recipe's method has to live somewhere once the ingredients have moved
    out of the body and become objects. */
@@ -1324,12 +1323,6 @@ html .drawer.dtile.cltile{background-image:none}
   text-transform:uppercase;font-weight:700;color:var(--ink-3);margin:13px 0 6px}
 .contbody p,.contbody ol,.contbody ul{margin:0 0 7px}
 .contbody ol,.contbody ul{padding-left:19px}
-.scrollentry{padding:16px 0;border-bottom:1px solid var(--rule-2)}
-.scrollentry header{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}
-.scrollentry h3{font-family:var(--serif);font-size:19px;font-weight:600;margin:0}
-.scrollentry h3.done{text-decoration:line-through;color:var(--ink-3)}
-.scrollentry .prose{font-size:14.5px;line-height:1.65}
-.scrollimg{max-width:100%;border-radius:var(--radius);margin:8px 0;display:block}
 .readtitle{font-family:var(--serif);font-size:30px;font-weight:600;margin:0 0 10px;letter-spacing:.005em}
 .prose.read{font-size:15.5px;line-height:1.7;max-width:62ch}
 .drawer.addnew{background:none;border:1.5px dashed var(--rule);box-shadow:none;align-items:center;justify-content:center;color:var(--ink-3);--dink:var(--ink-3)}
@@ -2409,17 +2402,19 @@ html .drawer.dtile.cltile{background-image:none}
   background:var(--paper-2);clip-path:none;
   border:2.5px solid var(--c);
 }
-/* A question is a speech bubble, with a tail */
-/* Three corners rounded hard and the fourth left square, because that is the
-   one the tail comes out of — a bubble rounded on all four is a pill. */
+/* A question is a speech bubble.
+   Three corners rounded hard and the fourth left square, because that is the
+   one a tail comes out of — a bubble rounded on all four is a pill.
+
+   **Two things it used to have and could not.** A `border-left` in `--rule`,
+   over a tile whose other three sides are `--line`: a grey strip down one edge
+   of a rounded shape, which is what it looked like. And a tail on `::after` at
+   `bottom:-10px` — `.drawer` is `overflow:hidden`, so it was never a tail, it
+   was a hairline of paper along the bottom of the tile. The square corner is
+   the whole of the cue and it costs nothing; the pseudo-element goes back to
+   the pool, which on an object is worth more than a triangle nobody saw. */
 .drawer.otile.sh-bubble{
-  border-radius:28px 28px 28px 3px;background:var(--paper-2);
-}
-.drawer.otile.sh-bubble{border-left:1px solid var(--rule);clip-path:none}
-.drawer.otile.sh-bubble::after{
-  content:"";position:absolute;left:14px;bottom:-10px;width:16px;height:12px;
-  background:var(--paper-2);border-right:1px solid var(--rule);border-bottom:1px solid var(--rule);
-  clip-path:polygon(100% 0, 100% 100%, 0 0);
+  border-radius:28px 28px 28px 3px;background:var(--paper-2);clip-path:none;
 }
 /* ---- answering, rather than ticking ---------------------------------
    A question is open until you have written the answer down, so the state is
@@ -2494,8 +2489,11 @@ html .drawer.dtile.cltile{background-image:none}
 .mbwall i.mbthing{background-color:var(--k);opacity:.72;
   box-shadow:inset 0 0 0 1px rgba(0,0,0,.16)}
 .mbwall .clempty{grid-column:1/-1;grid-row:1/-1;place-self:center;text-align:center;padding:0 10%}
-.mbname{position:absolute;left:0;right:0;bottom:0;padding:5px 8px;font-size:12px;font-weight:600;
-  color:#F8F3E6;background:rgba(0,0,0,.5);text-align:left}
+/* The name band is gone (decision 163's tidy), so the rollup — the number a
+   container was asked to report — sits in the corner of the wall instead of at
+   the end of a caption. Over the pictures, so it is legible on any of them. */
+.mbtile > .rollup{position:absolute;right:5px;bottom:4px;margin:0;
+  padding:1px 6px;border-radius:var(--pill);background:rgba(0,0,0,.5);color:#F8F3E6}
 /* a task is a plain band.
    It used to come to a point down its right-hand edge — the one shape that
    implied a direction the object doesn't have — and then it wore a coloured
@@ -2504,55 +2502,32 @@ html .drawer.dtile.cltile{background-image:none}
    task look flagged. No type carries a coloured left edge now. `edge` is the
    opt-in for one, on any object, and the four shapes below are the answers
    worth having instead. */
+/* ---- None: the board, straight through --------------------------------
+   No ground, no edge, no shadow and no stock — a thing that is nothing but its
+   own writing, standing on the desk the way a decoration does but keeping its
+   name, its body and its tick box. It has to say `background-image` as well as
+   the colour, because a stock paints one and the shorthand would fight it and
+   lose (the trap `.gentile` fell into, decision 99). */
+.drawer.otile.sh-none{
+  background-color:transparent;background-image:none;
+  border-color:transparent;box-shadow:none;
+}
+.drawer.otile.sh-none > .dpanel,
+.drawer.otile.sh-none > .dgrain,
+.drawer.otile.sh-none > .dside{display:none}
+.drawer.otile.sh-none:hover{box-shadow:none}
+
 .drawer.otile.sh-sliver{ padding-right:12px }
 .drawer.otile.sh-sliver .dbody,.drawer.otile.sh-sliver .dfoot{display:none}
 .drawer.otile.sh-sliver .dtop{height:100%;align-items:center}
 .drawer.otile.sh-sliver .dname{-webkit-line-clamp:2;font-size:13px;white-space:normal;overflow-wrap:anywhere}
 
-/* ---- four more answers to "what does a task look like" ----------------
-   All four are one-row shapes first and ordinary shapes second: any type can
-   wear one. They differ in what a glance reads — a filing tab reads as
-   *something filed*, a ruled line as *something written down*, a chit as
-   *something torn off a pad*, and a pill as *a token you move*. Each takes its
-   colour from the object, none of them draws a stripe. */
-.drawer.otile.sh-tab,.drawer.otile.sh-ruled,
-.drawer.otile.sh-chit,.drawer.otile.sh-pill{ background:var(--paper-2) }
-.drawer.otile.sh-tab .dbody,.drawer.otile.sh-ruled .dbody,
-.drawer.otile.sh-chit .dbody,.drawer.otile.sh-pill .dbody{margin-top:5px}
-.sz-short.sh-tab .dtop,.sz-short.sh-ruled .dtop,
-.sz-short.sh-chit .dtop,.sz-short.sh-pill .dtop{height:100%;align-items:center}
-.drawer.otile.sh-tab .dname,.drawer.otile.sh-ruled .dname,
-.drawer.otile.sh-chit .dname,.drawer.otile.sh-pill .dname{
-  -webkit-line-clamp:2;font-size:13px;white-space:normal;overflow-wrap:anywhere}
-
-/* A filing tab: a block of the object's colour down the left with its trailing
-   edge cut on the diagonal, the way an index divider's tab sits proud of the
-   card behind it. The paper starts after the tab, so the tick lands on paper. */
-.drawer.otile.sh-tab{
-  border:0;padding-left:38px;overflow:visible;
-  filter:drop-shadow(0 1px 2px rgba(0,0,0,.14)) drop-shadow(0 5px 12px rgba(0,0,0,.10));
-  box-shadow:none;
-}
-.drawer.otile.sh-tab::before{
-  content:"";position:absolute;left:0;top:0;bottom:0;width:32px;
-  background:var(--c);border-radius:var(--radius-d) 0 0 var(--radius-d);
-  clip-path:polygon(0 0, 100% 0, calc(100% - 11px) 100%, 0 100%);
-}
-.drawer.otile.sh-tab.sz-narrow{padding-left:22px}
-.drawer.otile.sh-tab.sz-narrow::before{width:18px}
-/* A ruled line: no box at all. The tile is a hairline with words above it,
-   like something written on a pad — the quietest a task can be and still be a
-   thing you can pick up. */
-.drawer.otile.sh-ruled{
-  background:none;border:0;box-shadow:none;padding:4px 6px 0;justify-content:center;
-}
-.drawer.otile.sh-ruled::after{
-  content:"";position:absolute;left:4px;right:4px;bottom:5px;height:1.5px;
-  background:linear-gradient(90deg, var(--c) 0 34px, var(--rule) 34px);
-  border-radius:2px;opacity:.85;
-}
-.drawer.otile.sh-ruled:hover{box-shadow:none;background:color-mix(in srgb,var(--c) 7%,transparent)}
-.drawer.otile.sh-ruled .dname{font-family:var(--serif);font-size:14.5px;font-weight:500}
+/* ---- and the four one-row answers that went ---------------------------
+   A filing tab, a ruled line, a torn chit and a pill: four ways of drawing a
+   rectangle with one detail on it, offered beside twenty-four other shapes.
+   Each said "this is a small thing" and three of them said it the same way,
+   which is a picker you scroll rather than read. Gone; migration 33 folds a
+   stored one into the nearest shape that is still a silhouette. */
 /* A **rounded card**: soft on all four corners, and nothing else. A thought is
    the thing that crossed your mind on the stairs and the whole value of one is
    that writing it down costs nothing, so its tile should cost nothing to read
@@ -2568,34 +2543,6 @@ html .drawer.dtile.cltile{background-image:none}
 .drawer.otile.sh-rounded .dname{
   -webkit-line-clamp:2;font-size:13px;white-space:normal;overflow-wrap:anywhere}
 .drawer.otile.sh-rounded.sz-mini{border-radius:12px}
-
-/* A chit off a pad: both short ends torn, and a perforation the stub would be
-   torn along. Four teeth to an edge rather than eight — at one row a tile is
-   ~58px tall, and eight of them read as a fuzzy edge rather than as a tear. */
-.drawer.otile.sh-chit{
-  border:0;box-shadow:none;
-  filter:drop-shadow(0 1px 2px rgba(0,0,0,.16)) drop-shadow(0 6px 14px rgba(0,0,0,.10));
-  clip-path:polygon(
-    0 0, 100% 0,
-    calc(100% - 11px) 20%, 100% 40%, calc(100% - 11px) 60%, 100% 80%, calc(100% - 11px) 100%,
-    11px 100%,
-    0 80%, 11px 60%, 0 40%, 11px 20%);
-  padding-left:22px;padding-right:24px;
-}
-.drawer.otile.sh-chit::before{
-  content:"";position:absolute;right:15%;top:5px;bottom:5px;width:2px;
-  background:repeating-linear-gradient(var(--c) 0 3px, transparent 3px 8px);opacity:.75;
-}
-.drawer.otile.sh-chit.sz-narrow::before{display:none}
-/* A pill: an outline in the object's own colour, filled with nothing. It is
-   the one of the four that reads as a token rather than as paper. */
-.drawer.otile.sh-pill{
-  border-radius:999px;border:1.5px solid color-mix(in srgb,var(--c) 62%,transparent);
-  background:color-mix(in srgb,var(--c) 8%,var(--paper-2));
-  box-shadow:none;padding-left:14px;padding-right:14px;
-}
-.drawer.otile.sh-pill:hover{border-color:var(--c);box-shadow:var(--shadow)}
-.drawer.otile.sh-pill.sz-narrow{padding-left:10px;padding-right:10px}
 
 /* ---- drawer fronts: borders and knobs -------------------------------- */
 /* Five borders, in the spirit of a Victorian chest: a bevelled panel, a
@@ -3886,6 +3833,34 @@ kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--rule);border
 .slot.chrome span{color:var(--brass)}
 /* a colour somebody typed in by hand: it belongs to no style and stays put */
 .pickgrid.sw button.custom{border-style:dashed;border-width:2px}
+/* ---- a colour of your own, in the same lane ---------------------------
+   It was a labelled row under the eleven, on the argument that it does
+   something *different* from them and should not look like one of them. True,
+   and it took a third of the section to say — so it is a swatch the same size
+   as the others, marked out by being the only one that is not a flat colour:
+   a wheel until you have picked something, and what you picked afterwards with
+   the wheel still round it. The way back is the small undo beside it, and it
+   only exists once there is something to go back from. See decision 76. */
+.pickgrid.sw .swown{
+  position:relative;width:26px;height:30px;flex:0 0 auto;border-radius:3px;cursor:pointer;
+  border:1px solid rgba(0,0,0,.25);
+  background:conic-gradient(#C0563F,#C9A24A,#7E9A6B,#4E7C8A,#6B5B95,#A8547C,#C0563F);
+}
+.pickgrid.sw .swown.on{background:var(--own)}
+.pickgrid.sw .swown.on::after{
+  content:"";position:absolute;inset:auto 2px 2px auto;width:9px;height:9px;
+  border-radius:50%;border:1px solid rgba(255,255,255,.8);
+  background:conic-gradient(#C0563F,#C9A24A,#7E9A6B,#4E7C8A,#6B5B95,#A8547C,#C0563F);
+}
+.pickgrid.sw .swown input[type=color]{
+  position:absolute;inset:0;width:100%;height:100%;opacity:0;
+  border:0;padding:0;margin:0;cursor:pointer;
+}
+.pickgrid.sw .swback{
+  width:26px;height:30px;flex:0 0 auto;border-radius:3px;border:1px solid var(--rule);
+  background:var(--paper-2);color:var(--ink-3);
+  display:flex;align-items:center;justify-content:center}
+.pickgrid.sw .swback:hover{border-color:var(--brass);color:var(--brass)}
 
 .custcol input[type=color]{width:26px;height:22px;padding:0;margin:0;flex:0 0 auto;display:block;
   border:1px solid var(--rule);border-radius:3px;background:none;cursor:pointer}
@@ -4240,12 +4215,15 @@ video.viewimg{background:#000}
 .pcyc > i{flex:0 0 auto;display:flex;color:var(--ink-3)}
 /* two cycles on one row share it, the way two selects do */
 .pcycrow{display:flex;align-items:stretch;gap:5px;flex:1 1 100%;min-width:0}
-.pcycrow > .pcyc{flex:1 1 auto}
-.pcycback{
+.pcycrow > .pcyc{flex:1 1 auto;justify-content:center;text-align:center}
+/* One step either side of the name, and they are the same button twice — a
+   stepper with a mark at one end and the other drawn inside the label is
+   lopsided, and only half of it reads as something you can press. */
+.pcycstep{
   flex:0 0 auto;display:flex;align-items:center;justify-content:center;width:30px;
   border:1px solid var(--rule);border-radius:var(--radius);background:var(--paper-2);
   color:var(--ink-3);cursor:pointer}
-.pcycback:hover{border-color:var(--brass);color:var(--brass)}
+.pcycstep:hover{border-color:var(--brass);color:var(--brass)}
 .prow > div > .pcyc + .pcyc,
 .prow > div > .pcycrow + .pcycrow{flex:1 1 45%}
 
@@ -4348,7 +4326,7 @@ video.viewimg{background:#000}
    lands on the word "Colour" and highlights it is the same magnifier over the
    same finger. Only the fields. */
 input,textarea,select,[contenteditable],
-.prose,.contbody,.spread .page,.scrollentry .prose,.writepaper{
+.prose,.contbody,.spread .page,.writepaper{
   -webkit-user-select:text;user-select:text;-webkit-touch-callout:default;
 }
 /* …and a field inside something being dragged is not being typed into */
@@ -4641,6 +4619,50 @@ input,textarea,select,[contenteditable],
 }
 .is-phone .railknob:active{filter:brightness(1.14)}
 
+/* ---- …and on a Mac the same knob floats -------------------------------
+   There is no rail here: the board fills the window and scrolls, so there is no
+   strip of carcass below it for a drawer front to be. The knob stands on its
+   own instead — a disc of the desk's wood, fixed in the bottom right corner,
+   staying put while the board scrolls under it.
+
+   `position:fixed` and not `absolute`: `.main` is inside `#app`, which
+   `render()` replaces wholesale, and an absolute knob would ride the scroller
+   and leave the screen. It is a size container for the same reason the rail is
+   — the knob is sized off the thing it is set into, so `cqh` means the disc
+   rather than the window. */
+.is-desk .deskknob{
+  position:fixed;right:26px;bottom:26px;z-index:40;
+  width:54px;height:54px;container-type:size;
+  display:flex;align-items:center;justify-content:center;
+  border-radius:50%;--knob:var(--wood);--kscale:1;
+  background:radial-gradient(120% 120% at 32% 26%,
+    color-mix(in srgb, var(--wood) 82%, #fff), var(--wood) 46%, var(--wood-2));
+  box-shadow:0 12px 26px -10px rgba(0,0,0,.55), 0 0 0 1px var(--wood-2),
+             inset 0 1px 0 rgba(255,255,255,.22);
+  transition:transform .16s, box-shadow .16s;
+}
+.is-desk .deskknob.ks-md{--kscale:1.18}
+.is-desk .deskknob.ks-lg{--kscale:1.4}
+.is-desk .deskknob .railknob{
+  width:calc(clamp(24px, 62cqh, 34px) * var(--kscale,1));
+  aspect-ratio:1;height:auto;cursor:grab;
+}
+.is-desk .deskknob .railknob.kn-bar{
+  width:calc(clamp(30px, 76cqh, 42px) * var(--kscale,1));
+  aspect-ratio:auto;height:calc(clamp(8px, 22cqh, 13px) * var(--kscale,1));
+}
+.is-desk .deskknob:hover{transform:translateY(-1px)}
+/* Being carried away from: the knob sinks the way a pressed one does, so the
+   thing you are dragging out of it is visibly coming *out* of something. */
+.is-desk .deskknob.carrying{transform:scale(.94);cursor:grabbing}
+/* And a tile carried onto it: the mouth of the Void Drawer, open. */
+.is-desk .deskknob.taking{box-shadow:0 12px 26px -10px rgba(0,0,0,.55),
+  0 0 0 2px color-mix(in srgb, var(--glow) 60%, transparent),
+  inset 0 1px 0 rgba(255,255,255,.22)}
+.is-desk .deskknob.aim{transform:scale(1.12);
+  box-shadow:0 14px 30px -10px rgba(0,0,0,.55),
+  0 0 0 3px var(--glow), inset 0 1px 0 rgba(255,255,255,.28)}
+
 /* ---- a menu on a phone comes up out of the bottom ----------------------
    Down the right is a Mac's shape: there is room beside the desk there. On a
    phone a panel from the right covers the whole board, so it comes up from the
@@ -4650,7 +4672,12 @@ input,textarea,select,[contenteditable],
 .is-phone .panel.bubble{
   left:0;right:0;bottom:0;top:auto;
   width:auto!important;max-height:none!important;
-  height:min(70vh, 620px);
+  /* It comes up **further** than it did. Seventy per cent of the screen is
+     about eleven rows of a form, which meant the object editor opened showing
+     the thing itself and two rows under it and every choice was a scroll away.
+     The board behind it is still live and still the thing you are changing, so
+     what has to stay visible is the top of it and not half of it. */
+  height:min(80vh, 720px);
   border:0;border-top:1px solid var(--rule);
   border-radius:16px 16px 0 0;
   box-shadow:0 -14px 40px -12px rgba(0,0,0,.45);
@@ -4659,10 +4686,10 @@ input,textarea,select,[contenteditable],
   padding-top:0;
 }
 .is-phone .panel.open,.is-phone .panel.bubble.open{transform:none;opacity:1}
-.is-phone .panel.wide{height:min(82vh, 760px)}
+.is-phone .panel.wide{height:min(88vh, 820px)}
 /* The month plus nine rows wants more of the screen than an ordinary sheet.
    Phone only: on a Mac the panel already runs the height of the frame. */
-.is-phone .panel.tall{height:min(88vh, 820px)}
+.is-phone .panel.tall{height:min(92vh, 880px)}
 /* no tail: it is not pointing at anything any more */
 .is-phone .panel.bubble::before,.is-phone .panel.bubble::after{content:none}
 /* the grab bar, so it reads as something you pulled up */

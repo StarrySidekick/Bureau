@@ -74,12 +74,20 @@ const P = {
   grid:'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z',
   inbox:'M3 13h5l2 3h4l2-3h5M3 13 6 4h12l3 9v7H3z',
   chevL:'M15 5l-7 7 7 7', chevR:'M9 5l7 7-7 7',
-  /* The spawner's mark. Four semicircles of doubling radius, alternating
-     sides — the compact construction of a spiral, and the reason it is that
-     rather than a plotted curve is legibility at 16px: an even Archimedean
-     spiral of the same extent puts its turns 1.6 units apart, which at a
-     stroke of 1.75 is a filled blob. Two turns, four units between them. */
-  spiral:'M12 11a2 2 0 0 1 4 0a4 4 0 0 1-8 0a6 6 0 0 1 12 0a8 8 0 0 1-16 0',
+  /* The spawner's mark: semicircles of growing radius, alternating sides. Still
+     that rather than a plotted curve for legibility at 16px — an even
+     Archimedean spiral of the same extent puts its turns close enough together
+     that a 1.75 stroke fills them in.
+
+     What changed is that it is drawn **about the middle of its own box and out
+     to the edge of it**. It was four *relative* half-arcs starting a pixel
+     above centre, so it wound off to one side and stopped two thirds of the way
+     out — which at a spawner's size, where the mark *is* the tile, read as a
+     small mark floating in a square rather than as a press. Eight of them now,
+     absolute, their ends alternating either side of x=12 on the same line: the
+     winding is even by construction, the turns are 2.7 units apart, and the
+     last one reaches 10 of a possible 12. */
+  spiral:'M11.4 12A1.275 1.275 0 0 1 13.95 12A2.625 2.625 0 0 1 8.7 12A3.975 3.975 0 0 1 16.65 12A5.325 5.325 0 0 1 6 12A6.675 6.675 0 0 1 19.35 12A8.025 8.025 0 0 1 3.3 12A9.375 9.375 0 0 1 22.05 12',
   more:'M12 6h.01M12 12h.01M12 18h.01',
   // a bar with a run filled in — a progress bar's own mark
   bar:'M3 9h18v6H3zM3 12h9',

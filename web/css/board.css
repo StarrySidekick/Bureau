@@ -503,8 +503,11 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
 
 /* ---- more type silhouettes ------------------------------------------- */
 /* a poem: centred, on parchment */
+/* **No cutout.** The two notches were a torn edge on a shape whose whole
+   subject is the lines set out on it — and a tear is its own shape now
+   (`sh-torn`), offered to anything that wants one. A verse is a clean sheet,
+   centred, with a rule down the binding edge. */
 .drawer.otile.sh-verse{background:var(--paper-2);text-align:center;align-items:center;justify-content:center;
-  clip-path:polygon(0 0,100% 0,100% 62%,96.5% 68%,100% 74%,100% 100%,0 100%,0 34%,2.5% 28%,0 22%);
   border-left:1px solid var(--rule)}
 .drawer.otile.sh-verse .dname{text-align:center;font-family:var(--serif)}
 .drawer.otile.sh-verse .tiletext{text-align:center;font-family:var(--serif);font-style:italic;white-space:pre-line}
@@ -512,14 +515,13 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
 .drawer.otile.sh-index{background:#F6F1E2;border:1px solid var(--rule);padding-left:18px;
   background-image:linear-gradient(rgba(90,120,150,.18) 1px,transparent 1px);background-size:100% 100%}
 .drawer.otile.sh-index::after{content:"";position:absolute;left:11px;top:0;bottom:0;width:1px;background:rgba(180,70,60,.5)}
-/* a habit is a stack of days */
-.drawer.otile.sh-habit{background:var(--paper-2)}
-.drawer.otile.sh-habit::after{content:"";position:absolute;left:10px;right:10px;bottom:10px;height:8px;
-  background-image:repeating-linear-gradient(90deg,var(--c) 0 7px,transparent 7px 11px);opacity:.55;border-radius:2px}
-/* a goal is a target with a bar */
-.drawer.otile.sh-goal,.drawer.otile.sh-dream{background:var(--paper-2)}
-.drawer.otile.sh-goal::after{content:"";position:absolute;left:10px;right:10px;bottom:10px;height:5px;
-  border-radius:99px;background:linear-gradient(90deg,var(--c) var(--pct,30%),rgba(0,0,0,.10) var(--pct,30%))}
+/* **Streak** and **Progress bar** were shapes here — a card with a row of
+   little days along its bottom, and a card with a hairline fill along its
+   bottom. Both drew a reading in a strip eight pixels tall that the object
+   printed in words a line above it, which is a picture of a number you can
+   already read. Gone; a bar that *is* the tile is `sh-bar` below, and a Dashed
+   card keeps the paper they shared. */
+.drawer.otile.sh-dream{background:var(--paper-2)}
 /* ---- a progress bar, where the bar *is* the tile -----------------------
    **Blocks, and only blocks.** There was a continuous `--pct` track on this
    `::after` from before decision 138, and when the blocks arrived it stayed —
@@ -633,8 +635,15 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
    there is nothing else printed on the plate — and it was taking the same size
    as a note's title, which is a size chosen for something with a body under
    it. It steps up with the tile and stops before it fills the plate. */
+/* Cut into the metal rather than printed on it: the letter is `--plink` (which
+   gridTile() picks against the plate, so a pale brass gets a dark engraving and
+   a dark one a light) and `--plcut` is the lit lip along the bottom of the cut,
+   which is what makes it read as depth rather than as coloured text. */
 .drawer.otile.sh-plaque .dname{font-family:var(--serif);letter-spacing:.02em;text-align:center;
-  font-size:clamp(13px, 5.2cqw, 22px);line-height:1.24}
+  font-size:clamp(13px, 5.2cqw, 22px);line-height:1.24;
+  color:var(--plink, var(--dink));text-shadow:0 1px 0 var(--plcut, rgba(0,0,0,.45))}
+.drawer.otile.sh-plaque .tiletext,
+.drawer.otile.sh-plaque .dfoot{color:var(--plink, var(--dink-2));opacity:.82}
 .drawer.otile.sh-plaque{container-type:inline-size}
 .drawer.otile.sh-plaque.sz-short .dname{font-size:clamp(12px, 4.2cqw, 17px)}
 .drawer.otile.sh-plaque.sz-narrow .dname{font-size:clamp(11px, 6cqw, 15px)}
@@ -1110,9 +1119,12 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
 /* The spiral fills the cell. A spawner is one cell square by default and at
    that size the mark *is* the tile — a press drawn as the thing a press does,
    with no room for a name and no need of one. `cqw` rather than a fixed size
-   so it grows with the tile it is on. */
+   so it grows with the tile it is on, and no upper clamp: a three-by-three
+   press is a big press and a 64px cap in the middle of it is a stamp. `cqw`
+   only: the tile is an `inline-size` container, so `cqh` is not a unit it can
+   answer and one in a `min()` throws the whole declaration away. */
 .genico{color:#F8F3E6;opacity:.92;display:flex;line-height:0}
-.genico svg{width:clamp(18px,62cqw,64px);height:auto}
+.genico svg{width:62cqw;height:auto}
 .drawer.gentile:active{transform:scale(.97)}
 /* One cell square, a spawner is its spiral and nothing else. No ground, no
    edge, no shadow and no stock — the mark is pressed straight onto the board
@@ -1124,7 +1136,7 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
   border:0;box-shadow:none;padding:0;
   align-items:center;justify-content:center;container-type:inline-size}
 .gentile.gensolo .genico{color:var(--c);opacity:1}
-.gentile.gensolo .genico svg{width:92cqw;height:auto;stroke-width:1.5}
+.gentile.gensolo .genico svg{width:100cqw;height:auto;stroke-width:1.35}
 .drawer.gentile.gensolo:active{transform:scale(.92)}
 
 /* Bigger than a cell, it grows the box you type into — what you write is the
@@ -1132,14 +1144,32 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
    was. The spiral steps aside into the corner: the press is still the tile,
    and the line is what you came to the big one for. See decision 135.
 
-   **A pill**, because the two halves of it are a thing you press and a thing
-   you type into and both of those are round-ended. The radius is the token,
-   not a number: `--pill` is "round ends, all the way" and this is the shape
-   it exists for. See decision 125. */
+   **Square, not a pill.** It was round-ended on the argument that a thing you
+   press and a thing you type into are both round-ended, which is true of
+   software and not of this desk: everything on a board is sawn (decision 125),
+   and a lozenge among rectangles read as a control that had wandered in from
+   somewhere else. It takes the drawer radius like every other tile.
+
+   And the spiral is drawn **only where the box is square** — `gensquare`,
+   which gridTile() stamps — so a four-by-one is the line you type into and
+   nothing else, while a three-by-three is the press it looks like. */
 .drawer.otile.gentile.genbig{flex-direction:row;gap:8px;padding:5px 10px;align-items:center;
-  border-radius:var(--pill)}
-.drawer.otile.gentile.genbig .fieldin{border-radius:var(--pill);padding:5px 12px}
+  border-radius:var(--radius-d)}
+.drawer.otile.gentile.genbig .fieldin{border-radius:var(--radius);padding:5px 12px}
 .gentile.genbig .genico svg{width:clamp(16px,18cqw,30px)}
+/* Square and bigger than a cell: the spiral is the tile again and the box you
+   type into sits under it, so both halves get the room they are worth. */
+.drawer.otile.gentile.genbig.gensquare{flex-direction:column;gap:6px;padding:8px}
+/* The spiral takes whatever is left after the line, and it is square by
+   `aspect-ratio` rather than by a width in `cqw` — a proportion of the width
+   is the wrong number in a column, and at two cells it overflowed the tile it
+   was supposed to be centred in. `.fieldin` states `height:auto`: the base
+   rule in chrome.css is `height:100%`, which in a column flex box is the whole
+   tile and is what pushed the mark off the top. */
+.gentile.genbig.gensquare .genico{flex:1 1 auto;min-height:0;width:100%;
+  align-items:center;justify-content:center}
+.gentile.genbig.gensquare .genico svg{width:auto;height:100%;max-width:100%;aspect-ratio:1}
+.gentile.genbig.gensquare .fieldin{flex:0 0 auto;width:100%;height:auto}
 .gentile.genbig .fieldin{
   flex:1;min-width:0;border:0;background:rgba(255,255,255,.14);border-radius:var(--radius);
   padding:5px 8px;font:inherit;font-size:13px;color:#F8F3E6;outline:none;
@@ -1976,27 +2006,41 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
 .tx-weave .dgrain{--txo:.22;background-image:
   repeating-linear-gradient(45deg, rgba(255,255,255,.35) 0 1px, transparent 1px 6px),
   repeating-linear-gradient(-45deg, rgba(255,255,255,.35) 0 1px, transparent 1px 6px)}
-.tx-ruled .dgrain{--txo:.20;background-image:
-  linear-gradient(rgba(255,255,255,.55) 1px, transparent 1px);background-size:100% 22px}
-.tx-speckle .dgrain{--txo:.40;background-image:
-  radial-gradient(circle at 12% 18%, rgba(0,0,0,.5) 0 1.1px, transparent 1.5px),
-  radial-gradient(circle at 63% 32%, rgba(0,0,0,.5) 0 1.1px, transparent 1.5px),
-  radial-gradient(circle at 34% 66%, rgba(0,0,0,.5) 0 1.1px, transparent 1.5px),
-  radial-gradient(circle at 82% 84%, rgba(0,0,0,.5) 0 1.1px, transparent 1.5px),
-  radial-gradient(circle at 47% 8%,  rgba(0,0,0,.5) 0 1.1px, transparent 1.5px),
-  radial-gradient(circle at 6% 52%,  rgba(0,0,0,.5) 0 1.1px, transparent 1.5px),
-  radial-gradient(circle at 91% 44%, rgba(0,0,0,.5) 0 1.1px, transparent 1.5px),
-  radial-gradient(circle at 24% 92%, rgba(0,0,0,.5) 0 1.1px, transparent 1.5px);
-  background-size:34px 34px}
-/* damask: a lozenge lattice of soft figures, which is what the pattern on a
-   Victorian wall or a bookbinding endpaper actually is at this size */
-.tx-pattern .dgrain{--txo:.22;background-image:
-  radial-gradient(6px 10px at 50% 50%, rgba(255,255,255,.75) 0 42%, transparent 64%),
-  radial-gradient(6px 10px at 0% 0%,   rgba(255,255,255,.75) 0 42%, transparent 64%),
-  radial-gradient(6px 10px at 100% 0%, rgba(255,255,255,.75) 0 42%, transparent 64%),
-  radial-gradient(6px 10px at 0% 100%, rgba(255,255,255,.75) 0 42%, transparent 64%),
-  radial-gradient(6px 10px at 100% 100%, rgba(255,255,255,.75) 0 42%, transparent 64%);
-  background-size:34px 34px}
+/* ---- and the three that replaced the noisy ones -----------------------
+   Ruled, Speckle and Damask were a hard rule every twenty pixels, a field of
+   dots and a lattice of figures. All three were *drawings* laid over a tile
+   that already has a colour, a moulding and a knob to say, and at tile size
+   they read as dirt. Their positions are three **weaves** now — the same idea
+   at three scales and one angle — which is what a surface looks like rather
+   than what somebody drew on it. Low contrast on purpose: a grain you can pick
+   out from across the desk is not a grain, it is a pattern. */
+/* wide weave: the same over-and-under as `weave`, at three times the pitch, so
+   it reads as coarse cloth rather than as fine linen */
+.tx-wideweave .dgrain{--txo:.22;background-image:
+  repeating-linear-gradient(0deg,
+    rgba(255,255,255,.34) 0 6px, transparent 6px 16px),
+  repeating-linear-gradient(90deg,
+    rgba(0,0,0,.24) 0 6px, transparent 6px 16px);
+  background-size:16px 16px}
+/* herringbone: the zigzag a twill or a parquet floor is laid in. **Four corner
+   gradients, not two crossing diagonals** — two `repeating-linear-gradient`s at
+   opposing angles cross each other everywhere and draw a lattice, however they
+   are offset, because nothing masks either of them to its own band. A quarter
+   triangle in each corner of a 16px cell, the pair on the left shifted half a
+   cell, is a chevron by construction. */
+.tx-herring .dgrain{--txo:.22;background-image:
+  linear-gradient(135deg, rgba(255,255,255,.34) 25%, transparent 25%),
+  linear-gradient(225deg, rgba(0,0,0,.20) 25%, transparent 25%),
+  linear-gradient(315deg, rgba(255,255,255,.34) 25%, transparent 25%),
+  linear-gradient(45deg,  rgba(0,0,0,.20) 25%, transparent 25%);
+  background-position:-8px 0, -8px 0, 0 0, 0 0;
+  background-size:16px 16px}
+/* wash: no repeat at all — one soft sweep of light across the face, the way a
+   varnished board catches a window. The quietest of the six and the one to
+   reach for when a front wants a grain and not a pattern. */
+.tx-wash .dgrain{--txo:.42;background-image:linear-gradient(152deg,
+  rgba(255,255,255,.52) 0%, rgba(255,255,255,.14) 32%,
+  transparent 54%, rgba(0,0,0,.22) 100%)}
 
 /* ---- Carca: dressed stone, and what grew over it ---------------------- */
 /* ashlar: the mason's tooling, short diagonal strokes across the face */
@@ -2009,26 +2053,23 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
   repeating-linear-gradient(0deg,  rgba(255,255,255,.22) 0 5px, transparent 5px 11px);
   background-size:22px 22px,22px 22px,22px 22px}
 /* coursing: a wall is bedded in horizontal courses with the joints staggered */
-.tx-ruled.txsty-carca .dgrain{--txo:.30;background-image:
-  linear-gradient(rgba(0,0,0,.35) 1px, transparent 1px),
-  linear-gradient(90deg, rgba(0,0,0,.22) 1px, transparent 1px);
-  background-size:100% 15px, 40px 30px}
-/* aggregate: the grit in the mortar — coarser and darker than a speckle */
-.tx-speckle.txsty-carca .dgrain{--txo:.34;background-image:
-  radial-gradient(circle at 18% 24%, rgba(0,0,0,.55) 0 2px, transparent 2.6px),
-  radial-gradient(circle at 70% 40%, rgba(0,0,0,.45) 0 1.4px, transparent 2px),
-  radial-gradient(circle at 40% 78%, rgba(0,0,0,.5) 0 2.2px, transparent 2.8px),
-  radial-gradient(circle at 88% 86%, rgba(0,0,0,.4) 0 1.2px, transparent 1.8px),
-  radial-gradient(circle at 8% 62%,  rgba(255,255,255,.4) 0 1.4px, transparent 2px);
-  background-size:44px 44px}
-/* millefleur: the thousand-flower ground of the tapestries, at tile scale */
-.tx-pattern.txsty-carca .dgrain{--txo:.26;background-image:
-  radial-gradient(circle at 20% 20%, rgba(255,255,255,.8) 0 1.6px, transparent 2.4px),
-  radial-gradient(circle at 20% 20%, rgba(255,255,255,.35) 2.6px 4px, transparent 4.6px),
-  radial-gradient(circle at 68% 58%, rgba(255,255,255,.8) 0 1.4px, transparent 2.2px),
-  radial-gradient(circle at 68% 58%, rgba(255,255,255,.35) 2.4px 3.6px, transparent 4.2px),
-  radial-gradient(circle at 44% 84%, rgba(255,255,255,.6) 0 1.2px, transparent 1.9px);
-  background-size:40px 40px}
+/* hurdle: woven hazel panels, which is the same over-and-under a basket is,
+   at the scale a wall is built in */
+.tx-wideweave.txsty-carca .dgrain{--txo:.26;background-image:
+  repeating-linear-gradient(0deg, rgba(0,0,0,.26) 0 7px, transparent 7px 18px),
+  repeating-linear-gradient(90deg, rgba(255,255,255,.26) 0 7px, transparent 7px 18px);
+  background-size:18px 18px}
+/* chevron: herringbone brickwork, laid on edge */
+.tx-herring.txsty-carca .dgrain{--txo:.22;background-image:
+  linear-gradient(135deg, rgba(255,255,255,.30) 25%, transparent 25%),
+  linear-gradient(225deg, rgba(0,0,0,.24) 25%, transparent 25%),
+  linear-gradient(315deg, rgba(255,255,255,.30) 25%, transparent 25%),
+  linear-gradient(45deg,  rgba(0,0,0,.24) 25%, transparent 25%);
+  background-position:-9px 0, -9px 0, 0 0, 0 0;
+  background-size:18px 18px}
+/* patina: what weather leaves on stone — a wash, darker where the water runs */
+.tx-wash.txsty-carca .dgrain{--txo:.34;background-image:linear-gradient(168deg,
+  rgba(255,255,255,.30) 0%, transparent 40%, rgba(0,0,0,.24) 100%)}
 
 /* ---- Stelaine: the sky, and what is scattered through it -------------- */
 .tx-fine.txsty-stelaine .dgrain{--txo:.34;background-image:
@@ -2041,24 +2082,18 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
   radial-gradient(46px 22px at 52% 88%, color-mix(in srgb,var(--brass) 45%,transparent), transparent 74%);
   background-size:120px 120px}
 /* ley lines: long faint diagonals, the way a chart rules the sky */
-.tx-ruled.txsty-stelaine .dgrain{--txo:.26;background-image:
-  repeating-linear-gradient(24deg, rgba(255,255,255,.6) 0 1px, transparent 1px 26px)}
-.tx-speckle.txsty-stelaine .dgrain{--txo:.5;background-image:
-  radial-gradient(circle at 16% 22%, rgba(255,255,255,.95) 0 1.4px, transparent 2px),
-  radial-gradient(circle at 62% 12%, rgba(255,255,255,.6) 0 .9px, transparent 1.4px),
-  radial-gradient(circle at 38% 58%, rgba(255,255,255,.85) 0 1.2px, transparent 1.8px),
-  radial-gradient(circle at 86% 72%, rgba(255,255,255,.55) 0 .8px, transparent 1.3px),
-  radial-gradient(circle at 8% 86%,  rgba(255,255,255,.7) 0 1px, transparent 1.5px);
-  background-size:56px 56px}
-/* constellation: the same stars, joined */
-.tx-pattern.txsty-stelaine .dgrain{--txo:.44;background-image:
-  linear-gradient(28deg, transparent 49.6%, rgba(255,255,255,.45) 49.6% 50.2%, transparent 50.2%),
-  linear-gradient(-52deg, transparent 49.6%, rgba(255,255,255,.35) 49.6% 50.2%, transparent 50.2%),
-  radial-gradient(circle at 18% 26%, rgba(255,255,255,.95) 0 2px, transparent 2.8px),
-  radial-gradient(circle at 66% 14%, rgba(255,255,255,.8) 0 1.5px, transparent 2.2px),
-  radial-gradient(circle at 44% 70%, rgba(255,255,255,.9) 0 1.8px, transparent 2.6px),
-  radial-gradient(circle at 88% 58%, rgba(255,255,255,.7) 0 1.3px, transparent 2px);
-  background-size:104px 104px}
+/* lattice: the grid a chart of the sky is drawn on, wide and faint */
+.tx-wideweave.txsty-stelaine .dgrain{--txo:.24;background-image:
+  repeating-linear-gradient(0deg, rgba(255,255,255,.34) 0 1px, transparent 1px 18px),
+  repeating-linear-gradient(90deg, rgba(255,255,255,.24) 0 1px, transparent 1px 18px)}
+/* meteors: one shower, all falling the same way */
+.tx-herring.txsty-stelaine .dgrain{--txo:.26;background-image:
+  repeating-linear-gradient(58deg, rgba(255,255,255,.5) 0 1px, transparent 1px 7px),
+  repeating-linear-gradient(58deg, rgba(255,255,255,.22) 0 2px, transparent 2px 21px)}
+/* aurora: a sweep of the style's own glow across the top of the face */
+.tx-wash.txsty-stelaine .dgrain{--txo:.5;background-image:linear-gradient(156deg,
+  color-mix(in srgb,var(--glow) 42%,transparent) 0%,
+  rgba(255,255,255,.12) 38%, transparent 62%)}
 
 /* ---- Girando: volcanic rock, cane and glazed earthenware -------------- */
 /* tufa: a porous stone, so the grain is holes rather than lines */
@@ -2073,22 +2108,24 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
   repeating-linear-gradient(-45deg, rgba(0,0,0,.35) 0 1px, transparent 1px 3px,
     rgba(0,0,0,.35) 3px 4px, transparent 4px 12px)}
 /* rustication: deep channels between the courses, cut rather than drawn */
-.tx-ruled.txsty-girando .dgrain{--txo:.34;background-image:repeating-linear-gradient(180deg,
-  rgba(0,0,0,.45) 0 2px, rgba(255,255,255,.30) 2px 3px, transparent 3px 20px)}
-.tx-speckle.txsty-girando .dgrain{--txo:.42;background-image:
-  radial-gradient(circle at 22% 30%, rgba(0,0,0,.65) 0 2.4px, transparent 3px),
-  radial-gradient(circle at 64% 20%, rgba(0,0,0,.5) 0 1.6px, transparent 2.2px),
-  radial-gradient(circle at 42% 74%, rgba(0,0,0,.6) 0 2px, transparent 2.6px),
-  radial-gradient(circle at 86% 66%, rgba(0,0,0,.45) 0 1.4px, transparent 2px);
-  background-size:38px 38px}
-/* majolica: a tin-glazed rosette, repeated the way a tiled floor repeats one */
-.tx-pattern.txsty-girando .dgrain{--txo:.26;background-image:
-  conic-gradient(from 0deg at 50% 50%, rgba(255,255,255,.5) 0 8%, transparent 8% 25%,
-    rgba(255,255,255,.5) 25% 33%, transparent 33% 50%,
-    rgba(255,255,255,.5) 50% 58%, transparent 58% 75%,
-    rgba(255,255,255,.5) 75% 83%, transparent 83%),
-  radial-gradient(circle at 50% 50%, transparent 0 6px, rgba(0,0,0,.28) 6px 7px, transparent 7px);
-  background-size:30px 30px}
+/* caning: the wide-set weave of a chair seat, the same rattan as `weave` at
+   twice the pitch */
+.tx-wideweave.txsty-girando .dgrain{--txo:.28;background-image:
+  repeating-linear-gradient(0deg, rgba(255,255,255,.34) 0 5px, transparent 5px 17px),
+  repeating-linear-gradient(90deg, rgba(0,0,0,.28) 0 5px, transparent 5px 17px);
+  background-size:17px 17px}
+/* parquet: a tiled floor laid in chevrons */
+.tx-herring.txsty-girando .dgrain{--txo:.22;background-image:
+  linear-gradient(135deg, rgba(255,255,255,.32) 25%, transparent 25%),
+  linear-gradient(225deg, rgba(0,0,0,.26) 25%, transparent 25%),
+  linear-gradient(315deg, rgba(255,255,255,.32) 25%, transparent 25%),
+  linear-gradient(45deg,  rgba(0,0,0,.26) 25%, transparent 25%);
+  background-position:-8px 0, -8px 0, 0 0, 0 0;
+  background-size:16px 16px}
+/* glaze: tin glaze pools where the pot turned — one sweep, no repeat */
+.tx-wash.txsty-girando .dgrain{--txo:.34;background-image:linear-gradient(160deg,
+  rgba(255,255,255,.44) 0%, rgba(255,255,255,.10) 42%, transparent 60%,
+  rgba(0,0,0,.18) 100%)}
 
 /* ---- Golf 97: a CRT, at 256 colours ----------------------------------- */
 /* dither: the 50% checkerboard every shadow in that decade was made of */
@@ -2100,20 +2137,22 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
   repeating-linear-gradient(90deg, rgba(255,255,255,.5) 0 1px, transparent 1px 4px),
   repeating-linear-gradient(0deg,  rgba(0,0,0,.35) 0 1px, transparent 1px 4px)}
 /* scanlines: dark, hard, and every third row, which is what a CRT looked like */
-.tx-ruled.txsty-golf97 .dgrain{--txo:.26;background-image:repeating-linear-gradient(180deg,
-  rgba(0,0,0,.55) 0 1px, transparent 1px 3px)}
-.tx-speckle.txsty-golf97 .dgrain{--txo:.28;background-image:
-  radial-gradient(circle at 10% 20%, rgba(255,255,255,.9) 0 1px, transparent 1px),
-  radial-gradient(circle at 70% 10%, rgba(0,0,0,.8) 0 1px, transparent 1px),
-  radial-gradient(circle at 30% 60%, rgba(255,255,255,.7) 0 1px, transparent 1px),
-  radial-gradient(circle at 90% 80%, rgba(0,0,0,.7) 0 1px, transparent 1px),
-  radial-gradient(circle at 50% 40%, rgba(255,255,255,.6) 0 1px, transparent 1px);
-  background-size:11px 11px}
-/* argyle: the diamonds, with the thin cross rule over them */
-.tx-pattern.txsty-golf97 .dgrain{--txo:.24;background-image:
-  repeating-linear-gradient(45deg, rgba(255,255,255,.35) 0 12px, transparent 12px 24px),
-  repeating-linear-gradient(-45deg, rgba(0,0,0,.28) 0 12px, transparent 12px 24px),
-  repeating-linear-gradient(45deg, rgba(255,255,255,.7) 0 1px, transparent 1px 24px)}
+/* tiled: the wallpaper tile of the decade, a wide 1px grid */
+.tx-wideweave.txsty-golf97 .dgrain{--txo:.22;background-image:
+  repeating-linear-gradient(0deg, rgba(255,255,255,.55) 0 1px, transparent 1px 12px),
+  repeating-linear-gradient(90deg, rgba(0,0,0,.32) 0 1px, transparent 1px 12px)}
+/* chevron: the same, on the diagonal — a 256-colour texture fill */
+.tx-herring.txsty-golf97 .dgrain{--txo:.22;background-image:
+  linear-gradient(135deg, rgba(255,255,255,.42) 25%, transparent 25%),
+  linear-gradient(225deg, rgba(0,0,0,.26) 25%, transparent 25%),
+  linear-gradient(315deg, rgba(255,255,255,.42) 25%, transparent 25%),
+  linear-gradient(45deg,  rgba(0,0,0,.26) 25%, transparent 25%);
+  background-position:-7px 0, -7px 0, 0 0, 0 0;
+  background-size:14px 14px}
+/* gradient: the title-bar sweep, which is what that decade did instead of a
+   texture */
+.tx-wash.txsty-golf97 .dgrain{--txo:.34;background-image:linear-gradient(90deg,
+  rgba(255,255,255,.40), transparent 62%)}
 
 /* ---- Starful Gothic: everything is drawn ------------------------------ */
 /* tooth: the grain of the sheet, which is what a pencil catches on */
@@ -2126,24 +2165,20 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
 .tx-weave.txsty-starry .dgrain{--txo:.22;background-image:
   repeating-linear-gradient(52deg, rgba(255,255,255,.6) 0 .8px, transparent .8px 7px),
   repeating-linear-gradient(-38deg, rgba(255,255,255,.45) 0 .8px, transparent .8px 7px)}
-.tx-ruled.txsty-starry .dgrain{--txo:.24;background-image:
-  linear-gradient(rgba(255,255,255,.6) 1px, transparent 1px);background-size:100% 18px}
-/* stipple: pen dots, which are irregular or they are a screen */
-.tx-speckle.txsty-starry .dgrain{--txo:.40;background-image:
-  radial-gradient(circle at 14% 26%, rgba(255,255,255,.85) 0 .9px, transparent 1.3px),
-  radial-gradient(circle at 58% 12%, rgba(255,255,255,.7) 0 .7px, transparent 1.1px),
-  radial-gradient(circle at 36% 62%, rgba(255,255,255,.8) 0 .8px, transparent 1.2px),
-  radial-gradient(circle at 82% 74%, rgba(255,255,255,.6) 0 .7px, transparent 1.1px),
-  radial-gradient(circle at 4% 88%,  rgba(255,255,255,.75) 0 .8px, transparent 1.2px);
-  background-size:26px 26px}
-/* the star field this aesthetic is named for */
-.tx-pattern.txsty-starry .dgrain{--txo:.70;background-image:
-  radial-gradient(circle at 18% 26%, rgba(255,255,255,.95) 0 1.6px, transparent 2.2px),
-  radial-gradient(circle at 66% 14%, rgba(255,255,255,.7) 0 1.1px, transparent 1.7px),
-  radial-gradient(circle at 42% 62%, rgba(255,255,255,.85) 0 1.4px, transparent 2px),
-  radial-gradient(circle at 86% 48%, rgba(255,255,255,.6) 0 1px, transparent 1.5px),
-  radial-gradient(circle at 12% 82%, rgba(255,255,255,.75) 0 1.2px, transparent 1.8px);
-  background-size:120px 120px}
+/* hatching: pen strokes going one way, wide enough to read as shading */
+.tx-wideweave.txsty-starry .dgrain{--txo:.24;background-image:
+  repeating-linear-gradient(56deg, rgba(255,255,255,.55) 0 1px, transparent 1px 9px)}
+/* chevron: the hatch turned back on itself, which is how a pen fills a shape */
+.tx-herring.txsty-starry .dgrain{--txo:.22;background-image:
+  linear-gradient(135deg, rgba(255,255,255,.40) 25%, transparent 25%),
+  linear-gradient(225deg, rgba(255,255,255,.20) 25%, transparent 25%),
+  linear-gradient(315deg, rgba(255,255,255,.40) 25%, transparent 25%),
+  linear-gradient(45deg,  rgba(255,255,255,.20) 25%, transparent 25%);
+  background-position:-8px 0, -8px 0, 0 0, 0 0;
+  background-size:16px 16px}
+/* wash: ink thinned with water and laid across the sheet in one pass */
+.tx-wash.txsty-starry .dgrain{--txo:.30;background-image:linear-gradient(150deg,
+  rgba(255,255,255,.34) 0%, rgba(255,255,255,.08) 46%, transparent 70%)}
 
 /* ---- Aeros: glass, water and brushed metal ---------------------------- */
 /* frost: a fine haze with a sparkle in it, lit from the top like the rest */
@@ -2155,17 +2190,20 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
 .tx-weave.txsty-aero .dgrain{--txo:.22;background-image:repeating-linear-gradient(90deg,
   rgba(255,255,255,.5) 0 1px, transparent 1px 2px, rgba(0,0,0,.25) 2px 3px, transparent 3px 5px)}
 /* ripple: water, which is soft bands rather than rules */
-.tx-ruled.txsty-aero .dgrain{--txo:.30;background-image:repeating-linear-gradient(180deg,
-  rgba(255,255,255,.45) 0 2px, transparent 2px 5px, rgba(0,0,0,.12) 5px 7px, transparent 7px 14px)}
-/* bubbles: a rim and a highlight, because a bubble is a shell and not a dot */
-.tx-speckle.txsty-aero .dgrain{--txo:.42;background-image:
-  radial-gradient(circle at 22% 30%, transparent 0 3px, rgba(255,255,255,.75) 3px 4px, transparent 4px),
-  radial-gradient(circle at 68% 20%, transparent 0 2px, rgba(255,255,255,.6) 2px 2.8px, transparent 2.8px),
-  radial-gradient(circle at 46% 72%, transparent 0 4px, rgba(255,255,255,.7) 4px 5px, transparent 5px),
-  radial-gradient(circle at 86% 62%, transparent 0 2.4px, rgba(255,255,255,.55) 2.4px 3.2px, transparent 3.2px);
-  background-size:46px 46px}
+/* mesh: the fine perforated metal under glass */
+.tx-wideweave.txsty-aero .dgrain{--txo:.24;background-image:
+  repeating-linear-gradient(0deg, rgba(255,255,255,.42) 0 1px, transparent 1px 8px),
+  repeating-linear-gradient(90deg, rgba(0,0,0,.20) 0 1px, transparent 1px 8px)}
+/* chevron: brushed on the diagonal, both ways, the way a machined face is */
+.tx-herring.txsty-aero .dgrain{--txo:.22;background-image:
+  linear-gradient(135deg, rgba(255,255,255,.38) 25%, transparent 25%),
+  linear-gradient(225deg, rgba(0,0,0,.18) 25%, transparent 25%),
+  linear-gradient(315deg, rgba(255,255,255,.38) 25%, transparent 25%),
+  linear-gradient(45deg,  rgba(0,0,0,.18) 25%, transparent 25%);
+  background-position:-7px 0, -7px 0, 0 0, 0 0;
+  background-size:14px 14px}
 /* the 2006 gloss sweep, which is the one everybody remembers */
-.tx-pattern.txsty-aero .dgrain{--txo:.80;background:linear-gradient(168deg,
+.tx-wash.txsty-aero .dgrain{--txo:.80;background:linear-gradient(168deg,
   rgba(255,255,255,.55) 0%, rgba(255,255,255,.18) 38%, transparent 42%, transparent 100%)}
 
 
@@ -2234,37 +2272,6 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
   max-width:100%;
   margin-inline:auto;
 }
-/* The seams between shelves, drawn only where more than one is on the screen
-   at once — which is a Mac. They are what says the board is nine shelves
-   rather than one wide one.
-
-   They are **two more background layers on the checkerboard's own
-   pseudo-element**, not a second one: `.grid::before` *is* the checkerboard,
-   and a `.grid.shelved::before` of its own replaces it wholesale — which is
-   exactly what it did, and the board lost its paper. A pseudo-element is a
-   single element and there is one spare on a grid; the way to add to it is to
-   add layers, in front of the squares and behind everything else.
-
-   A hairline in the board's own ink rather than a rule: it is a change of
-   surface, not a border. The layers start at the board's own origin, the way
-   the checker squares do, so a seam falls exactly on a shelf boundary. */
-.grid.shelved::before{
-  background-image:
-    repeating-linear-gradient(90deg,
-      transparent 0 calc(var(--seamx) - 1px),
-      color-mix(in srgb, var(--ink, #2A2118) 16%, transparent) calc(var(--seamx) - 1px) var(--seamx)),
-    repeating-linear-gradient(180deg,
-      transparent 0 calc(var(--seamy) - 1px),
-      color-mix(in srgb, var(--ink, #2A2118) 16%, transparent) calc(var(--seamy) - 1px) var(--seamy)),
-    conic-gradient(
-      var(--board-2) 0 25%, transparent 0 50%,
-      var(--board-2) 0 75%, transparent 0);
-  background-size:
-    100% 100%,
-    100% 100%,
-    var(--checkerx,var(--checker,160px)) var(--checkery,var(--checker,160px));
-}
-
 /* ---- the nine dots in the bar ------------------------------------------
    The desks were a row and their dots were a row. Nine shelves are a *square*,
    so the dots are one too — a map you can aim at rather than a count you have

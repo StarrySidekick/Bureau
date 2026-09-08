@@ -3,13 +3,13 @@ import { S, K, KINDS, KEYS, refreshKinds, ATTRS, attrsOf, has, SHAPES,
   FACES, MANUAL, byId, container, cfgOf, isContainer, isAncestor, relate, deskOf,
   unrelate, sensedDevice, reset, T, dz, dev, calViewOf, RULE_MAX, acceptFor, acceptAny,
   boardLocked, repeatOf, repeats, heldObjects, heldCount, marginOf, marginPlus, homeFor,
-  setClFit } from './model.js';
+  layoutOf, setClFit } from './model.js';
 import { gridOf, lay, boxOk, freeSpot, anySpot, roomFor, sizeOfKind, toPhoneSize, keepSize,
   shelvesOf, shelfAt, setShelf } from './grid.js';
 import { applyLook, applyStyle, setLookVal, lookVal, STYLES, setSlot, objColour, darkMode } from './look.js';
 import { toast, fits, setGridSize, toggleDone, spawnNext, del, delMany, delDrawer, undo, redo, pushUndo,
   pushSet, pushSets, setPin, togglePin, drawerForTag, create, spawnInto, randomThing,
-  holdIt, unholdIt, unholdMany, undoToast } from './mutations.js';
+  holdIt, unholdIt, unholdMany, undoToast, someKind } from './mutations.js';
 import { spinTo, pending, placeAtPending, tileTap, turnPage, clearPages } from './tiles.js';
 import { DECOR, LIFE_ART } from './decor.js';
 import { render, renderSoon, sizeGrid, toggleSettings, settingsPanel, reveal, goShelf, goShelfTo, deskMap } from './views.js';
@@ -109,7 +109,8 @@ function newOfKind(kind, asked){
   /* Before anything else, and before any question is asked: a shelf is finite,
      and being asked which sort of note you want and *then* told there is
      nowhere to put it is the wrong order. See decision 141. */
-  if(!fits(kind, (at && at.parent) || homeFor((S.view==='drawer' && S.drawerId) || ROOT))) return;
+  if(!fits(kind, (at && at.parent) || homeFor((S.view==='drawer' && S.drawerId) || ROOT),
+           undefined, at)) return;
   if(k.picksFile){ $('#imgpicker').click(); return; }
   /* A type may ask one question before it exists. A sorting drawer with no
      rule is an empty front that reads as broken; a life drawer with no object
@@ -654,6 +655,35 @@ function act(name, el){
       toast(boardLocked()?'Locked':'Unlocked — everything can be moved');
       break;
     }
+    /* Grid or list, for the board you are standing on. Through `cfgOf()` like
+       every other board setting, so the desk — a container without a tile —
+       is not a special case, and undoable for anything that has an id to hang
+       a step on. The other three layouts are what a container *is* and stay in
+       its editor: this is the one you flip while you are working. */
+    case 'togglelayout': {
+      const cid = (el.dataset.id) || ((S.view==='drawer' && S.drawerId) || ROOT);
+      const t = cfgOf(cid); if(!t) break;
+      const o = byId(cid), now = layoutOf(container(cid));
+      const to = now==='grid' ? 'list' : 'grid';
+      if(o && t===o) pushSet('Changed', cid, 'layout', o.layout);
+      t.layout = to;
+      save(); render(); refreshPanel();
+      toast(to==='grid' ? 'On the grid' : 'As a list');
+      break;
+    }
+    /* One of anything, on the board you are looking at. The spawner's own
+       trick with no spawner in the way — `someKind()` is the single resolver
+       both go through, so what the button makes and what a spawner set to
+       "one of anything" presses out cannot be two different bags. */
+    case 'randomobject': {
+      const home = homeFor((S.view==='drawer' && S.drawerId) || ROOT);
+      const kind = someKind();
+      if(!fits(kind, home)) break;
+      const o = create(kind, {parent:home});
+      save(); render(); reveal(o.id);
+      toast(`A ${K(kind).nm.toLowerCase()}, at random`);
+      break;
+    }
     /* The specimen book. It is a document rather than a board, so it takes the
        screen and gives it back; saving hands over the same string the frame is
        showing rather than the frame's own serialisation of it. */
@@ -764,7 +794,7 @@ function wire(){
      old one on the screen, so anything that begins a press also drops whatever
      was highlighted; see dropSelection() in gestures.js. */
   const SELECTABLE = 'input,textarea,select,[contenteditable],'+
-    '.prose,.contbody,.spread .page,.scrollentry .prose,.writepaper';
+    '.prose,.contbody,.spread .page,.writepaper';
   frame.addEventListener('selectstart', e=>{
     if(e.target.closest && e.target.closest(SELECTABLE)) return;
     e.preventDefault();
@@ -884,10 +914,10 @@ function wire(){
       else if(cmd==='today'){ const o=byId(id); pushSet('Scheduled',id,'due',o.due); o.due=T; save(); render(); toast('Scheduled today'); }
       else if(cmd==='tom'){ const o=byId(id); pushSet('Scheduled',id,'due',o.due); o.due=dz(1); save(); render(); toast('Scheduled tomorrow'); }
       else if(cmd==='move') modalMove(id);
-      /* The drawer along the bottom, without the gesture. The drag is the way
-         you reach for this on a phone; a Mac has no rail to drag onto, and the
-         menu is the one place that answers for both. */
-      else if(cmd==='hold'){ if(holdIt(id)){ render(); toast('Kept in the drawer', true); } }
+      /* The Void Drawer, without the gesture. The drag is the way you reach
+         for it — the rail on a phone, the Home Knob on a Mac — and the menu is
+         the one way in that is the same on both. */
+      else if(cmd==='hold'){ if(holdIt(id)){ render(); toast('Into the Void Drawer', true); } }
       else if(cmd==='dupe'){ const o=byId(id); S.objects.push(Object.assign({},o,{id:uid('o'),title:o.title+' (copy)',ord:o.ord+0.1})); render(); }
       else if(cmd==='intodrawer') drawerFromSelection(id);
       else if(cmd==='del'){

@@ -6953,3 +6953,88 @@ It can only know two things, and that is the design rather than a limit: Bureau
 stores a day and never a clock time, so "when" is the **day** and "how long" is
 the **duration** — or the run of days where it spans. `span` is new on the type,
 and it is why a meeting and a trip are one type rather than two.
+
+## 163 · The shape list is silhouettes, and one of them is nothing
+
+*2026-09-08*
+
+Twenty-eight shapes, and a third of them were a rectangle with one detail on it:
+a filing tab, a ruled line, a torn chit, a pill, a ticket, a bar, a streak, a
+progress bar, a book spine, a switch. Several said the same small thing twice —
+"this is a short one" was drawn four different ways — and two of them, Streak
+and Progress bar, drew a *reading* in an eight-pixel strip along the bottom of a
+tile that printed the same number in words a line above it. A picker you scroll
+rather than read.
+
+What is left is the shapes that are actually a silhouette, plus **None**: no
+ground, no edge, no shadow and no stock, the board showing straight through,
+which is the honest answer for anything that is only its own writing.
+
+Two are kept and **not offered**. A Task *is* a sliver — one line, name centred,
+no body — and a Progress bar *is* a row of blocks, so removing them outright
+would stop two primary types being what they are. `SHAPES_KEPT` holds them, and
+`shapeChoices(cur)` puts the current one at the head of that object's own ring,
+so an object wearing one says so honestly and one press walks it into the list.
+Migration 33 folds the rest in — a removed shape needs one for the same reason a
+removed kind does (decision 160): `shapeOf()` returns whatever is stored, so a
+desk left on one goes on looking right while storing a name nothing offers.
+
+And a **fragment can now decline its tear**. Decision 161 made the torn edge a
+shape that a fragment also wears without asking; what it did not do was let the
+object argue, so picking any other shape for a scene left the tear on for ever
+with no way back. `tornOf()` reads `o.shape` first: the family answers only when
+the object has said nothing.
+
+## 164 · Three grains that were noise
+
+*2026-09-08*
+
+`ruled`, `speckle` and `pattern` — a hard rule every twenty pixels, a field of
+dots, and a lattice of figures. All three were *drawings* laid over a tile that
+already has a colour, a moulding, a knob and a name to say, and at tile size
+they read as dirt rather than as material.
+
+Their positions are three **weaves** now: a wide one, a herringbone and a wash.
+Same idea at three scales and one angle, low in contrast on purpose — a grain
+you can pick out from across the desk is not a grain, it is a pattern. Every
+aesthetic re-dresses them in its own material, as it always did, so a Carca
+front gets hurdle, chevron and patina where a Victorian one gets wide weave,
+herringbone and wash. Migration 34 rewrites stored values, on **both sides of a
+pin** (`golf97/speckle` is a legal value, decision 98).
+
+One thing worth writing down about the drawing: two `repeating-linear-gradient`s
+at opposing angles do **not** make a herringbone. They cross each other
+everywhere and draw a lattice, however they are offset, because nothing masks
+either of them to its own band. A quarter triangle in each corner of the repeat,
+with the left pair shifted half a cell, is a chevron by construction.
+
+## 165 · The Home Knob, the Void Drawer and the Magic Selector
+
+*2026-09-08*
+
+Three things in this app had no names, which meant they could not be talked
+about — not in the interface, not in these notes, and not by the person using
+it. They have names now, and one of them grew the half it was missing.
+
+The **Home Knob** is the knob at the bottom of the carcass. On a phone it is the
+rail's, and it has always answered three things: tap to come out, pull a little
+for what is being carried, pull the whole way for a new object. A Mac had none
+of it, because a Mac window has no strip of carcass below the board for a drawer
+front to be — the board fills it and scrolls. So on a Mac the same knob **floats**:
+a disc of the desk's own wood, fixed in the bottom right corner, staying put
+while the board scrolls under it. Same `railCfg()`, so its shape, size and colour
+are the ones set in the desk's own editor; there is one knob in this app, and
+this is where it stands when there is no rail to stand on.
+
+It answers the same things in the shapes a mouse has rather than the ones a thumb
+has. A tap is not claimed by the gesture at all — it falls through to the click
+and `railout` takes you home. A drag *within* the knob's own ring opens the Void
+Drawer; a drag past it onto a bare cell is where the next object goes; and a tile
+carried onto it goes into the Void Drawer, which is `aimHold()` reading a circle
+instead of a band. Both use the same radius, so coming out of the drawer and
+going into it are one shape.
+
+The **Void Drawer** is what was called "Holding" — the space off the desk that
+copy and paste is made of. The **Magic Selector** is the dashed rectangle you
+drag out of a bare cell, which makes objects and picks up the ones already there.
+Neither behaviour changed; both can now be referred to.
