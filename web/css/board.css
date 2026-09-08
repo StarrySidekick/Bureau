@@ -159,6 +159,27 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
    reserved scrollbar gutter was 40px of a 375px screen — 11% of the desk spent
    on nothing, and a cell is only 23px wide, so it cost most of two columns. */
 .is-phone .deskscroll{padding:0 0 110px}
+/* ---- a list stands where the board stands -------------------------------
+   A row is an eight-by-one (decision 168), so it has to start where an
+   eight-wide tile starts: at the board's own edge. A list scroller carries
+   more side padding than a grid one — 22px against 14, and 12px against
+   nothing on a phone — so the column sat a dozen pixels in from the board it
+   is a view of, and its rows were not flush with anything.
+
+   It takes the **grid scroller's** inset instead: zero on a phone, where the
+   board runs to both edges, and fourteen on a Mac, where it does not. Written
+   as its own class rather than by narrowing `.scroll`, because a book, a
+   calendar and a timeline all live in that scroller too and none of them is a
+   column of tiles.
+
+   The two things in there that are not the column say so for themselves. A row
+   of type chips and a container's own writing are *reading*, and reading wants
+   the inset a page has; the column is furniture and wants the board's. */
+.scroll.flushlist{padding-left:14px;padding-right:14px}
+.is-phone .scroll.flushlist{padding-left:0;padding-right:0}
+.is-phone .scroll.flushlist > .filterbar,
+.is-phone .scroll.flushlist > .contbody,
+.is-phone .scroll.flushlist > .empty{padding-left:12px;padding-right:12px}
 /* reserve the scrollbar on both sides, or the grid sits off-centre */
 .scroll{scrollbar-gutter:stable both-edges}
 /* …but a touch scrollbar is an overlay and reserves nothing worth having */

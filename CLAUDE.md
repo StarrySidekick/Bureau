@@ -2317,9 +2317,15 @@ eight cells wide. On a phone that is the board's own width, so a task in a list
 is the strip it is on the desk. `--listrow` is the measured cell, written onto
 the **scroller** by `listStyle()` in views.js from `CELL[dev()]` — a list is not
 a grid, so `sizeGrid()` never reaches one, and the add box at the top has to
-stand in the same column. Flush is a `margin-top:-1px` on every band after the
-first: each tile carries a one-pixel edge, so two touching ones draw a
-two-pixel rule and the stack reads as gapped anyway. A name in a band is **one
+stand in the same column. Flush **up and down** is a `margin-top:-1px` on every
+band after the first: each tile carries a one-pixel edge, so two touching ones
+draw a two-pixel rule and the stack reads as gapped anyway. Flush **left and
+right** is `.flushlist` on the scroller: a list scroller carries more side
+padding than a grid one — 22px against 14, and 12px against nothing on a phone
+— so the column sat a dozen pixels in from the board it is a view of. It takes
+the grid scroller's inset instead, and centres, the way `.is-desk .grid` does;
+on a phone that is edge to edge, which is where an 8-wide tile is. The type
+chips and a container's own writing keep the reading inset and say so. A name in a band is **one
 line**, and it has to say so at three classes — `.drawer.otile .dname` sets
 `white-space:normal` and the text-size multiplier restates the size, and both
 are two classes and later in the file. Restate the multiplier, don't beat it.

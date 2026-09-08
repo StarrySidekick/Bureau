@@ -5,17 +5,19 @@ Sequenced by dependency, not appetite: item 1 makes everything after it safer.
 
 ---
 
-## 0x. Asked 2026-09-08 — the list, and the add box — DONE (v1.66)
+## 0x. Asked 2026-09-08 — the list, and the add box — DONE (v1.67)
 
 Timothy, in his own words: *"list view ultimately exists to make it easier to
 view objects one after another, and it task based workflow and things like
 that."* Five asks about that view and the add box, and two bugs.
 
 1. **A row in a list is an eight-by-one.** The strip the same object would be on
-   a grid at eight cells by one, one cell tall, standing flush against the one
-   above it. It was a stack of cards — a 46px minimum, six pixels of air, and a
-   name that wrapped — three ways of saying "these are separate objects" in the
-   one view whose argument is that they are a sequence. Decision 168.
+   a grid at eight cells by one, one cell tall, flush against the one above it
+   and standing exactly where that board stands — edge to edge on a phone,
+   centred on a Mac. It was a stack of cards a dozen pixels in from the board —
+   a 46px minimum, six pixels of air, side padding of its own and a name that
+   wrapped — four ways of saying "these are separate objects" in the one view
+   whose argument is that they are a sequence. Decision 168.
 2. **Reordering is picking up and putting down.** The band you hold lifts and
    follows the finger, the others step aside to leave the gap, and letting go
    drops it in — the grid's own gesture. It used to re-insert the band into the

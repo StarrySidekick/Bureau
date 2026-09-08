@@ -7352,8 +7352,19 @@ it. On a phone — eight columns — that is the board's own width, so a task in
 list is the same strip it is on the desk. `--listrow` is the measured cell,
 written into the markup from the last measurement the way `gridOfContainer()`
 writes the checker squares, because a list is not a grid and `sizeGrid()` never
-reaches one. Flush is a negative margin: every tile carries a one-pixel edge, so
-two touching ones would draw a two-pixel rule and read as gapped after all.
+reaches one.
+
+**Flush** is two separate things and both had to be said. Up and down it is a
+negative margin: every tile carries a one-pixel edge, so two touching ones would
+draw a two-pixel rule and read as gapped after all. Left and right it is
+`.flushlist` on the scroller — a list scroller carries more side padding than a
+grid one, 22px against 14 and 12px against nothing on a phone, so the column
+stood a dozen pixels in from the board it is a view of and its rows were flush
+with nothing. It takes the grid scroller's inset instead, and centres the way
+`.is-desk .grid` centres, so on a phone it runs edge to edge and on a Mac it
+lands on the drawer's own board to the pixel. The chips and a container's own
+writing are *reading* and keep the inset a page wants; the column is furniture
+and takes the board's.
 
 A row one cell tall clips a name that wraps, so the name is one line — and it
 has to say so at **three** classes, because `.drawer.otile .dname` sets

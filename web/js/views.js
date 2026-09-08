@@ -165,7 +165,7 @@ function viewDesk(){
     const items=childrenOf(c);
     return `
     ${gridBar(c)}
-    <div class="scroll"${listStyle()}>
+    <div class="scroll${view==='book'?'':' flushlist'}"${listStyle()}>
       ${!items.length ? `<div class="empty"><div class="big">Nothing on the desk</div>Hold a bare cell — that is the Magic Selector — and drag out the size you want.</div>`
         : view==='book'   ? bookView(c, items)
         : `<div class="listgrid" data-listfor="${c.id}">${items.map(listTile).join('')}</div>`}
@@ -356,7 +356,12 @@ function viewDrawer(){
   const view = layoutOf(d);
   return `
   ${gridBar(d)}
-  <div class="scroll${view==='grid'?' deskscroll':''}"${view==='grid'?revealStyle():listStyle()}>
+  ${/* A column of eight-by-ones stands where the board stands, so the
+       scroller gives up its own side padding for the grid's — see `.flushlist`
+       in board.css. Only for a list: a book, a calendar and a timeline are not
+       columns of tiles and keep the reading inset. */''}
+  <div class="scroll${view==='grid'?' deskscroll':''}${view==='list'?' flushlist':''}"${
+      view==='grid'?revealStyle():listStyle()}>
     ${view==='grid'?cavityWalls():''}
     ${kinds.length>1&&view!=='grid'?`<div class="filterbar">
       <button class="fchip${!S.kindFilter?' on':''}" data-kind="">All</button>

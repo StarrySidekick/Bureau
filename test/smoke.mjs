@@ -4463,6 +4463,28 @@ const CHROME = process.env.BUREAU_CHROME;
       const avail = sc.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
       return Math.abs(lg.getBoundingClientRect().width - Math.min(8*cell, avail)) < 2;
     })();
+    /* …standing exactly where the board it is a view of stands. A list
+       scroller carries more side padding than a grid one, so the column used to
+       sit a dozen pixels in from the board and its rows were flush with
+       nothing; `.flushlist` gives it the grid's inset, and the column centres
+       the way `.is-desk .grid` does. Measured against the board rather than
+       against a number, or the two drift the first time either moves. */
+    out.andItStandsWhereTheBoardWould = (() => {
+      const lg = document.querySelector('.listgrid'), sc = lg.parentElement;
+      const cs = getComputedStyle(sc);
+      const l = sc.getBoundingClientRect().left + parseFloat(cs.paddingLeft);
+      const r = sc.getBoundingClientRect().right - parseFloat(cs.paddingRight);
+      const b = lg.getBoundingClientRect();
+      return Math.abs((b.left - l) - (r - b.right)) < 2;   // centred in the content box
+    })();
+    // and the add box above stands in that same column, to the pixel
+    out.andTheAddBoxStandsInIt = (() => {
+      const lg = document.querySelector('.listgrid').getBoundingClientRect();
+      const q = document.querySelector('.quickadd');
+      if(!q) return true;
+      const r = q.getBoundingClientRect();
+      return Math.abs(r.left - lg.left) < 1 && Math.abs(r.right - lg.right) < 1;
+    })();
     // a name is one line, or a row one cell tall clips it in half
     out.andANameIsOneLine =
       getComputedStyle(band(a.id).querySelector('.dname')).whiteSpace === 'nowrap';

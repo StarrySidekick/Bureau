@@ -1345,7 +1345,12 @@ html .drawer.dtile.cltile{background-image:none}
    draw a two-pixel rule between them and the stack would read as gapped after
    all. See decision 168. */
 .listgrid{display:flex;flex-direction:column;gap:0;
-  width:min(calc(8 * var(--listrow,48px)), 100%)}
+  width:min(calc(8 * var(--listrow,48px)), 100%);
+  /* …and centred, because that is what a board narrower than its scroller does
+     on a Mac (`.is-desk .grid`): a drawer is one shelf and sits in the middle
+     of the cabinet. On a phone the column is the whole width and this is a
+     no-op, which is where it has to be flush to both edges. */
+  margin-inline:auto}
 .drawer.listband{
   position:relative;height:var(--listrow,48px);min-height:0;padding:0 12px;justify-content:center;
   box-shadow:none;cursor:pointer;
@@ -3871,9 +3876,10 @@ kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--rule);border
 .addline .addpress svg{width:16px;height:16px}
 .addline .addpress:hover{color:var(--ink)}
 .addline .addpress:active{transform:scale(.9)}
-.quickadd{padding:9px 12px;border-radius:var(--radius);margin-bottom:9px;
+.quickadd{padding:9px 12px;border-radius:var(--radius);
   /* the same column the bands below it stand in — see .listgrid */
-  width:min(calc(8 * var(--listrow,48px)), 100%)}
+  width:min(calc(8 * var(--listrow,48px)), 100%);
+  margin:0 auto 9px}
 .filterbar{display:flex;gap:6px;overflow-x:auto;padding:2px 0 10px;align-items:center}
 /* …but inside a panel there is nothing off to the right to scroll to, and a
    chip half off the edge reads as a chip that is broken. Wrap instead. */

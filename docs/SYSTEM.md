@@ -289,11 +289,13 @@ different property and is untouched.)
 
 A **list** is a column of **eight-by-ones**: a row is the strip the same object
 would be on a grid at eight cells by one, one cell tall, standing flush against
-the one above it, in a column eight cells wide. It exists to look at things one
-after another — a list of jobs, worked down — and it was a stack of cards with
-air between them, which says the opposite. `--listrow` is the measured cell,
-written onto the scroller because a list is not a grid and `sizeGrid()` never
-reaches one. See decision 168.
+the one above it, in a column eight cells wide standing exactly where that
+board stands — edge to edge on a phone, centred on a Mac, the way any board
+narrower than its scroller is. It exists to look at things one after another —
+a list of jobs, worked down — and it was a stack of cards with air between them
+and a dozen pixels in from the board, which says the opposite. `--listrow` is
+the measured cell, written onto the scroller because a list is not a grid and
+`sizeGrid()` never reaches one. See decision 168.
 
 Face and layout are two properties because they are two questions. A Checklist
 is `face:checklist, layout:list`, and any container can wear any face.
