@@ -34,6 +34,8 @@ made of — objects, attributes, types, drawers, the grid, the surfaces, storage
 `docs/ROADMAP.md` holds the current plan in dependency order, and
 `docs/DIAGNOSTIC.md` is the last full review — what is wrong, what it measures
 at, and what is worth taking from Bear, Things 3 and Notion.
+`docs/FUNCTIONS.md` is the fifteen functions a paper system serves and Bureau's
+answer to each — scoped, not built, and the source of the current plan.
 
 Read `docs/SYSTEM.md` before changing behaviour and `docs/DECISIONS.md` before
 changing structure — the second one records things that were decided deliberately

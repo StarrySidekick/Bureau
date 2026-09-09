@@ -32,6 +32,12 @@ copy, tear out, pin, date, archive. Bureau has spent many passes on aesthetics,
 slots, depth and motion, and those are good and are not banned — but look work
 is no longer the default answer to "what now".
 
+**The whole list is now scoped, 2026-09-09: `docs/FUNCTIONS.md`.** Timothy's own
+*Function of Paper Systems* document is fifteen functions a paper system serves,
+and that file gives each one a format in Bureau: what exists, what is missing,
+what to add and the board it looks like. It is where "what now" should be read
+from for this stretch, and `ROADMAP.md` §0y is its summary and its order.
+
 **First of them, 2026-09-06 (v1.52): the margin.** `margin` is an attribute any
 object can carry — a running note, each entry dated as it is written and never
 rewritten. `text` is the document and is edited; the margin is what you write

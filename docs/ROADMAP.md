@@ -5,6 +5,48 @@ Sequenced by dependency, not appetite: item 1 makes everything after it safer.
 
 ---
 
+## 0y. Asked 2026-09-09 — the functions, scoped — NOT STARTED
+
+Timothy handed over *Function of Paper Systems*, the document he wrote about
+what paper systems are actually **for**: fifteen functions, each with its own
+routine, structure and register. The ask was to give every one of them a format
+in Bureau, as custom and as direct as the system allows.
+
+The answer is **`docs/FUNCTIONS.md`**, one section per function: what Bureau
+does today, what is honestly missing, what to add, and the board it looks like
+when it is set up. Nothing is implemented; this is a scoping pass.
+
+What came out of it, in short:
+
+- **Four small things unlock four different functions and depend on nothing**:
+  *break it down* (a goal's milestones become real tasks), a **list row that
+  prints a field**, the **work band on the calendar**, and **select what a
+  sorting drawer collects**. Best ratio in the document, and the pass to do
+  first.
+- **Four gestures** fix the entry cost of the three functions Bureau is worst
+  at: the **Void Drawer takes typing**, a **quiet board** with no chrome, a
+  spawner that **opens what it made** for writing, and a board whose default
+  type lets the sketch gesture **skip the picker**.
+- **`series`** is the missing attribute — a value taken repeatedly, `[{d, v}]`,
+  the margin's shape applied to numbers. It is what reflection and skill
+  development both actually need, and the life map's Mind branch has been
+  waiting for it since pass 0r.
+- **Three functions independently argue for `tear out`** and three for `clip`,
+  which is the strongest evidence yet for the two verbs `INTENT.md` already
+  wants.
+- **One new layout, and only one**: a **matrix**, where position writes two
+  fields. It is the only comparative judgment the desk can make, and it is
+  deliberately last of the medium items in case it turns out to be a whiteboard
+  bolted to a desk.
+- **One large thing**: **ink**. Drawing is on his list twice and is the only
+  proposal in the document Bureau cannot approximate at all today.
+- **Five things to write down and not build**, because the system already
+  answers them: a source is a container, a happening is a past Event, a
+  bulletin is a Goal on the middle shelf, a tier list is Labels across a locked
+  board, and "accordion" is the grid/list toggle plus book layout.
+
+*Left out:* everything. Nothing here is built.
+
 ## 0x. Asked 2026-09-08 — the list, and the add box — DONE (v1.68)
 
 Timothy, in his own words: *"list view ultimately exists to make it easier to
