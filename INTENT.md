@@ -40,10 +40,23 @@ letter being redrafted. Entries are printed rather than editable on purpose: a
 margin you can go back and tidy is just the body again. On the board it shows as
 a count, because an entry is a sentence and a tile has no room for one.
 
-**Still on the list**, in rough order of how paper they are: **clip** (objects
-that travel together, which containing and relating both fail to express),
-**stamp** (a dated impression — received, sent, paid), and **tear out** (pulling
-part of a note out as its own object).
+**Second of them, 2026-09-13 (v1.69): the clip.** `clip` is an attribute any
+object can carry — two (or more) objects that travel together on the same
+board without one being filed in the other and without a relation's pointer,
+which asserts meaning and moves nothing. Clipping is symmetric and stored as a
+plain graph rather than a maintained clique (three sheets in a clip are A–B
+and B–C, and the whole clip still moves as one — `clipGroup()` walks it).
+Dragging any clipped tile carries every other member sharing its board along
+by the same delta, keeping their relative positions — the exact mechanism
+already built for dragging a selection, generalised rather than duplicated. A
+clip that reaches into another board does nothing when you drag: a box only
+means something in the coordinate space it was drawn in, so only same-parent
+members travel. On the tile it is a small paperclip mark, the way the margin
+is a count — what matters across a desk is that a thing will not move alone.
+
+**Still on the list**, in rough order of how paper they are: **stamp** (a dated
+impression — received, sent, paid), and **tear out** (pulling part of a note
+out as its own object).
 
 Second, and directly useful to him: **a real personal desk layout that fits his
 life.** `plans.js` exists for exactly this — a plan is a board you can put down

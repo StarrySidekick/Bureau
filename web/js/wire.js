@@ -1,7 +1,7 @@
 import { $, $$, esc, ic, uid, D, ROOT, pastTense } from './util.js';
 import { S, K, KINDS, KEYS, refreshKinds, ATTRS, attrsOf, has, SHAPES,
   FACES, MANUAL, byId, container, cfgOf, isContainer, isAncestor, relate, deskOf,
-  unrelate, sensedDevice, reset, T, dz, dev, calViewOf, RULE_MAX, acceptFor, acceptAny,
+  unrelate, clipTo, unclip, clipGroup, sensedDevice, reset, T, dz, dev, calViewOf, RULE_MAX, acceptFor, acceptAny,
   boardLocked, repeatOf, repeats, heldObjects, heldCount, marginOf, marginPlus, homeFor,
   layoutOf, setClFit, genKindOf, makesAnything } from './model.js';
 import { gridOf, lay, boxOk, freeSpot, anySpot, roomFor, sizeOfKind, toPhoneSize, keepSize,
@@ -367,6 +367,21 @@ function act(name, el){
         sub:'Relations point both ways',
         body:()=>`<div class="rows">${S.objects.filter(x=>x.id!==me).slice(0,120).map(x=>
           `<div class="row" data-dorel="${me}:${x.id}" style="--k:${objColour(x)}">
+            <span class="kindmark">${ic(K(x.kind).ic,13)}</span>
+            <div class="body"><div class="title">${esc(x.title||'Untitled')}</div>
+              <div class="snip">${esc(K(x.kind).nm)}</div></div></div>`).join('')}</div>`});
+      break;
+    }
+    /* Same picker as a relation, minus the objects already in this bundle —
+       clipping to something you're already clipped to is a no-op the list
+       shouldn't offer. */
+    case 'addclip': {
+      const me=el.dataset.id;
+      const already=new Set([me, ...clipGroup(byId(me)).map(x=>x.id)]);
+      openPanel({key:'addclip', title:'Clip to',
+        sub:'Clipped objects travel together on the board',
+        body:()=>`<div class="rows">${S.objects.filter(x=>!already.has(x.id)).slice(0,120).map(x=>
+          `<div class="row" data-doclip="${me}:${x.id}" style="--k:${objColour(x)}">
             <span class="kindmark">${ic(K(x.kind).ic,13)}</span>
             <div class="body"><div class="title">${esc(x.title||'Untitled')}</div>
               <div class="snip">${esc(K(x.kind).nm)}</div></div></div>`).join('')}</div>`});
@@ -939,6 +954,22 @@ function wire(){
     if(ur){ const [a,b]=ur.dataset.unrel.split(':'); unrelate(a,b); save(); refreshPanel(); render(); return; }
     const or2=t.closest('[data-openrel]');
     if(or2){ openObj(or2.dataset.openrel); return; }
+
+    /* Clipping writes to both ends at once, so both are recorded — one ⌘Z
+       undoes the pair, the way a drag that moves a group is one move and not
+       several. See decision 65. */
+    const dc=t.closest('[data-doclip]');
+    if(dc){ const [a,b]=dc.dataset.doclip.split(':');
+      const wasA=clone(byId(a).clip), wasB=clone(byId(b).clip);
+      clipTo(a,b); pushSets('Clipped', [[a,'clip',wasA],[b,'clip',wasB]]);
+      save(); render(); objectPanel(a); return; }
+    const ucl=t.closest('[data-unclip]');
+    if(ucl){ const [a,b]=ucl.dataset.unclip.split(':');
+      const wasA=clone(byId(a).clip), wasB=clone(byId(b).clip);
+      unclip(a,b); pushSets('Unclipped', [[a,'clip',wasA],[b,'clip',wasB]]);
+      save(); refreshPanel(); render(); return; }
+    const ocl=t.closest('[data-openclip]');
+    if(ocl){ openObj(ocl.dataset.openclip); return; }
 
     const st=t.closest('[data-star]');
     if(st){ const [id,n]=st.dataset.star.split(':'); const o=byId(id);

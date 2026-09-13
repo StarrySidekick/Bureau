@@ -136,7 +136,10 @@ const P = {
   arrowD:'M12 5v14M6 13l6 6 6-6',
   arrowL:'M19 12H5M11 6l-6 6 6 6',
   arrowR:'M5 12h14M13 6l6 6-6 6',
-  book:'M4 4h7a2 2 0 0 1 2 2v14a2 2 0 0 0-2-2H4zM20 4h-7a2 2 0 0 0-2 2v14a2 2 0 0 1 2-2h7z'
+  book:'M4 4h7a2 2 0 0 1 2 2v14a2 2 0 0 0-2-2H4zM20 4h-7a2 2 0 0 0-2 2v14a2 2 0 0 1 2-2h7z',
+  // a paperclip laid diagonally, one loop caught inside the other — the mark
+  // for two objects that travel together without being filed or linked
+  paperclip:'M21.4 11 12.2 20.2a6 6 0 0 1-8.5-8.5L12.9 2.5a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.5-8.5'
 };
 function ic(n,s){ s=s||16; return `<svg viewBox="0 0 24 24" width="${s}" height="${s}" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="${P[n]||P.note}"/></svg>`; }
 

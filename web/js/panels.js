@@ -9,7 +9,7 @@ import { S, K, KINDS, KEYS, T, ATTRS, USER_ATTRS, FIELDS, fieldOf, OPS, ROLLS,
   dev, takesTyping, genKindOf, genSaid, ANY, ctlOf, barOf,
   PRIMARY, isPrimary, inFamily, familyList, finishedThings, answered, marginOf, isLate,
   PRIOS, prioOf, prioName, DIFFS, diffOf, diffName, REPEAT_UNITS, repeatOf, repeats, repeatSaid,
-  relatedTo, backlinksTo, streak, goalPct,
+  relatedTo, backlinksTo, clipGroup, streak, goalPct,
   CALVIEWS, calViewOf, weekStartOf, showsWeekends, KNOBSIZES, knobSizeOf,
   TSIZES, textSizeOf, mediaTypeOf, isPicture, isMedia, isDecor,
   bindingOf, FRAMES, FRAME_SLOTS, frameOf, panelOf, knobOf, borderOf, textureOf,
@@ -915,6 +915,20 @@ function objectPanelBody(id, sec){
         ${back.length?`<div class="statline" style="margin:10px 0 4px"><div class="s">Pointed at by</div></div>
           <div class="relrow">${back.map(x=>chip(x,false)).join('')}</div>`:''}`,
         rel.length+back.length ? `${rel.length+back.length}` : ''));
+    }
+    /* Clipped, beside Related rather than folded into it — a relation asserts
+       meaning and moves nothing; a clip asserts nothing and moves the other
+       object with this one. Symmetric, so there is one list and no backlinks
+       to work out: what A is clipped to, B is clipped to as well. */
+    const clipped = clipGroup(o);
+    if(has(o,'clip') || clipped.length){
+      const cchip=x=>`<span class="relchip" style="--k:${objColour(x)}" data-openclip="${x.id}">
+        ${ic(K(x.kind).ic,11)} ${esc(x.title||'Untitled')}<b data-unclip="${id}:${x.id}" title="Unclip">✕</b></span>`;
+      filing.push(prow('Clipped',
+        `<div class="relrow">${clipped.map(cchip).join('')}
+          ${has(o,'clip')?`<button class="add" data-act="addclip" data-id="${id}">+ clip</button>`
+            :`<span class="mini" style="--k:var(--brass);padding:0">Tick <b>Clipped</b> under Advanced to clip from here</span>`}</div>`,
+        clipped.length ? `${clipped.length} — moves with it on the board` : 'travels with what you clip it to'));
     }
   }
   /* ---- save this board as a plan --------------------------------------

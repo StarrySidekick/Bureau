@@ -6,7 +6,7 @@ import { plans, planFrom, stampPlan, planById, planSize, delPlan } from './plans
 import { refreshKinds } from './model.js';
 import { S, KINDS, SHAPES, shapeChoices, SORTS, childrenOf, container, relate, deskOf, has, lateOn, isLate, knobOf,
   urgencyOf, urgeSaid, workday,
-  isContainer, faceOf, PRIMARY, isPrimary, inFamily, barPct, marginOf, marginPlus,
+  isContainer, faceOf, PRIMARY, isPrimary, inFamily, barPct, marginOf, marginPlus, clipTo, unclip, clipGroup,
   prioOf, repeatOf, repeatSaid, nextRepeat, boardLocked, BINDINGS, bindingOf, PANELS, panelOf,
   isHeld, heldObjects, tiltMode, READS, goalStanding } from './model.js';
 import { shelfRows, shelvesOf, shelfAt, setShelf, freeSpot, anySpot, roomFor, boxOk } from './grid.js';
@@ -110,7 +110,7 @@ window.BUREAU = {
      aesthetic is the dangerous kind of removal — the fallback hides it — so a
      test has to be able to load an old desk rather than trust the list. */
   migrated(d){ migrate(d); return d; },
-  paste: pasteObjects, relate, pin: togglePin, setPin, renderSheet,
+  paste: pasteObjects, relate, clipTo, unclip, clipGroup, pin: togglePin, setPin, renderSheet,
   // small | extra | large — the three phone grids, for trying on
   setGrid: setGridSize,
   // the four things an object opens onto: its editor, its words, its paper,

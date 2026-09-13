@@ -1,6 +1,6 @@
 import { $, $$, clamp, D, ROOT } from './util.js';
 import { S, byId, dev, has, isContainer, isAncestor, childrenOf, container, gatherKind, spanOf,
-  sortOf, boardLocked, heldCount, homeFor, attrsOf } from './model.js';
+  sortOf, boardLocked, heldCount, homeFor, attrsOf, clipGroup } from './model.js';
 import { CELL, gridOf, drawCols, drawRows, cellW, lay, boxOk, overlaps, sizeOfKind, keepSize } from './grid.js';
 import { toast, gather, del, pushSets, holdIt, unholdIt } from './mutations.js';
 import { pending, tileTap, fireButton } from './tiles.js';
@@ -997,10 +997,21 @@ function onDown(e){
        stuck, locked, axis:null, from:0,
        armed: !stuck && !!hEl,      // a corner grip drags at once; a tile waits
        startedOnFace:!!e.target.closest('.btnface'),
-       // dragging any member of a selection moves the lot, keeping their
-       // relative positions — the offsets are captured up front
-       group: (!stuck && S.sel.includes(d.id) && S.sel.length>1)
-         ? S.sel.map(byId).filter(Boolean).map(o=>({id:o.id, box:lay(o)})) : null,
+       /* Dragging any member of a selection moves the lot, keeping their
+          relative positions — the offsets are captured up front. A clip does
+          the same thing without a selection: it is what "travels together"
+          *means*, so the set it drags is the selection (when this tile is
+          part of one) unioned with whatever is clipped to it — restricted to
+          this board, because a clip can reach across boards and a box only
+          means something in the coordinate space it was drawn in. Resize is
+          left out: a clip moves its partner, it doesn't stretch it. */
+       group: (()=>{
+         if(stuck) return null;
+         const sel = (S.sel.includes(d.id) && S.sel.length>1) ? S.sel : [];
+         const clipped = hEl ? [] : clipGroup(d).filter(x=>x.parent===d.parent).map(x=>x.id);
+         const ids=[...new Set([d.id, ...sel, ...clipped])];
+         return ids.length>1 ? ids.map(byId).filter(Boolean).map(o=>({id:o.id, box:lay(o)})) : null;
+       })(),
        parent:grid.dataset.gridfor||ROOT,
        box:lay(d), stepX:cellW(grid,g)+g.gap, stepY:g.rowh+g.gap,
        sx:e.clientX, sy:e.clientY, mode:null, ok:true, cand:null};

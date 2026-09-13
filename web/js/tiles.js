@@ -8,7 +8,7 @@ import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, chi
   knobSizeOf, answered, sortOf, spanOf, coversDay, lateOn, isLate, iconOf, textSizeOf,
   isPicture, isMedia, isPlayable, isDecor, mediaTypeOf, frameOf, isWindow,
   boardLocked, prioOf, repeatSaid, urgencyOf, urgeSaid, durSaid, standsProud, shelfDepth, bookDepth, faceCue, anyFaceCue,
-  calViewOf, weekStartOf, calCols, borderOf, textureOf, marginOf, isFragmentKind, gravityOn } from './model.js';
+  calViewOf, weekStartOf, calCols, borderOf, textureOf, marginOf, clipGroup, isFragmentKind, gravityOn } from './model.js';
 import { CELL, gridOf, drawCols, drawRows, lay, overlaps, boxOk, freeSpot, anySpot, roomFor, gridRows, sizeOfKind, sideways,
   ensureBox, shelfRows, shelfOrigin, shelfAt, colsOf } from './grid.js';
 import { create, toast, fits, toggleDone, someKind, ctlSpec, ctlSaid, ctlIsOn,
@@ -1763,6 +1763,11 @@ function drawTileFace(o, arr, box, persp){
            without, before you open it. The count and not the words: a margin
            entry is a sentence and a tile has no room for one. */''}
       ${marginOf(o).length?`<span class="margmark" title="${marginOf(o).length} in the margin">${marginOf(o).length}</span>`:''}
+      ${/* Clipped, not filed and not related — it moves when what it is
+           clipped to moves. A mark rather than words, the way the margin's
+           count is: what matters on the board is that it will travel, not
+           who it travels with. */''}
+      ${clipGroup(o).length?`<span class="clipmark" title="Clipped to ${clipGroup(o).length===1?'one other thing':clipGroup(o).length+' other things'} — moves with them">${ic('paperclip',10)}</span>`:''}
     </div>
     ${has(o,'rating')&&o.rating?`<div class="tilestars">${'★'.repeat(o.rating)}<span>${'★'.repeat(5-o.rating)}</span></div>`:''}
     ${edit && has(o,'text')

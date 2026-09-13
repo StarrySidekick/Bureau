@@ -55,6 +55,14 @@ const ATTRS = {
      back and tidy is just the body again. */
   margin:   {nm:'Margin',     ds:'A running note you add to, each entry dated — never rewritten'},
   relates:  {nm:'Related',    ds:'Points at other objects, both ways'},
+  /* The paperclip. Containing files one thing inside another and relating
+     points at something without moving anything — neither says "these two
+     travel together on the same desk", which is the one thing a clip is for.
+     Clipping two objects binds their *positions*: drag either one and the
+     other comes with it, keeping where it was. Nothing is filed, nothing is
+     nested, and no meaning is asserted about why they go together — a clip
+     doesn't say, it just holds. See INTENT.md, "still on the list". */
+  clip:     {nm:'Clipped',    ds:'Travels with what you clip it to — dragging one moves the other'},
   total:    {nm:'Total',      ds:'Adds up a field across what it holds'},
   spawn:    {nm:'Spawns',     ds:'Makes new objects — on a press, or as you type into it'},
   /* Two ways out of a locked board, one object at a time. A lock is which
@@ -98,6 +106,7 @@ const FIELDS = {
   price:    {key:'price',  type:'money',  nm:'Price'},
   answer:   {key:'answer', type:'text',   nm:'Answer'},
   relates:  {key:'rel',    type:'refs',   nm:'Related'},
+  clip:     {key:'clip',   type:'refs',   nm:'Clipped to', list:true},
   /* The one field nothing stores. Urgency is a deadline and an estimate put
      together, so it is *derived* — there is no `urg` on any object and no way
      to set one, and `derived` is what tells matchRule to skip the "has it got
@@ -1897,6 +1906,36 @@ function unrelate(aId,bId){
   const a=byId(aId); if(!a||!a.rel) return;
   a.rel=a.rel.filter(x=>x!==bId);
 }
+/* A clip is symmetric — a paperclip has no direction — so both ends record it,
+   unlike a relation's one-way pointer with backlinks worked out separately.
+   And it is stored as a plain graph rather than a maintained clique: three
+   sheets in a clip are A–B and B–C, never also A–C, and the whole clip still
+   has to move as one. `clipGroup` walks the graph to answer "who comes with
+   me", bounded like `ancestorIds()` so a corrupt loop can't hang a render. */
+function clipTo(aId,bId){
+  const a=byId(aId), b=byId(bId); if(!a||!b||aId===bId) return;
+  a.clip=a.clip||[]; if(!a.clip.includes(bId)) a.clip.push(bId);
+  b.clip=b.clip||[]; if(!b.clip.includes(aId)) b.clip.push(aId);
+}
+function unclip(aId,bId){
+  const a=byId(aId), b=byId(bId);
+  if(a&&a.clip) a.clip=a.clip.filter(x=>x!==bId);
+  if(b&&b.clip) b.clip=b.clip.filter(x=>x!==aId);
+}
+function clipGroup(o){
+  if(!o) return [];
+  const seen=new Set([o.id]), out=[]; let frontier=[o], n=0;
+  while(frontier.length && n++<200){
+    const next=[];
+    for(const x of frontier) for(const nid of (x.clip||[])){
+      if(seen.has(nid)) continue;
+      const nb=byId(nid); if(!nb) continue;
+      seen.add(nid); out.push(nb); next.push(nb);
+    }
+    frontier=next;
+  }
+  return out;
+}
 /* The breadcrumb, from the desk you are on down to here. It stops at the desk
    rather than walking all the way to the root, because a desk is somewhere you
    *are*: "Finance › Bills" is where you are, and "Desk › Finance › Bills" is a
@@ -2446,7 +2485,7 @@ export { homeFor, ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds,
   OPS, WHENS, whenISO, RULE_MAX, rulesOf, matchRule,
   ROLLS, rollup, SORTS, MANUAL, sortOf, childrenOf, beginPass, endPass, isAncestor,
   URGES, WORKDAY, workday, urgencyOf, urgeRank, urgeName, urgeSaid, durSaid,
-  relatedTo, backlinksTo, relate, unrelate, chainOf, tlSpan, streak, goalPct,
+  relatedTo, backlinksTo, relate, unrelate, clipTo, unclip, clipGroup, chainOf, tlSpan, streak, goalPct,
   allUnder, progressOf, projectStat, finishedThings, allTags,
   PRIMARY, isPrimary, ANY, makesAnything, genSaid, ctlOf, barPct, barOf,
   BAR_STEPS, barSteps, barFilled, barGrid,
