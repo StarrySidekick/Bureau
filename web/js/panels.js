@@ -370,9 +370,18 @@ function majors(homeId){
    choosing between when the thing you are choosing is an arrangement. */
 function planCard(p, act){
   const top = planTop(p);
-  const rows = Math.max(6, top.reduce((m,o)=>{const b=o.desk||{y:1,h:2};return Math.max(m,(b.y||1)+(b.h||1)-1)},0));
+  const far = (k, s)=> top.reduce((m,o)=>{const b=o.desk||{}; return Math.max(m,(b[k]||1)+(b[s]||1)-1)},0);
+  const rows = Math.max(6, far('y','h'));
+  /* **As wide as the plan is, not as wide as the desk.** This drew every plan
+     on twenty-four columns because that is what the desk board has — and a
+     plan is arranged in a *shelf*, which is eight, so nine cards in ten were a
+     miniature squeezed into the left third of the card with two thirds of bare
+     checkerboard beside it. A plan captured off the desk board really can be
+     twenty-four wide, so the width is measured the way the height already was
+     and floored at a shelf, or a plan holding one tile would be drawn enormous. */
+  const cols = Math.max(8, far('x','w'));
   return `<button class="deskcard plancard" data-${act}="${p.id}">
-    <span class="deskmini" style="--dcols:24;--drows:${rows}">
+    <span class="deskmini" style="--dcols:${cols};--drows:${rows}">
       ${top.map(o=>{ const b=o.desk||{x:1,y:1,w:2,h:2};
         return `<i style="--k:${objColour(o)};grid-column:${b.x||1}/span ${b.w||1};grid-row:${b.y||1}/span ${b.h||1}"></i>`;
       }).join('')}</span>

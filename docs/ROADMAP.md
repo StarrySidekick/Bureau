@@ -5,6 +5,54 @@ Sequenced by dependency, not appetite: item 1 makes everything after it safer.
 
 ---
 
+## 0z. Asked 2026-09-13 — ten plans, in the drawer — DONE (v1.69)
+
+Timothy: *"I want you to invent ten new layouts and then make it so that when I
+open the app next, I can see all the layouts as options … and be able to see
+what they look like and paste them into Bureau."*
+
+Everything he asked for already had a home: a **plan** is a board you can put
+down again (decision 121), the Plans door draws each one as a miniature of the
+board it will lay out, and pressing one stamps it where you are standing. What
+was missing is that there were no plans until you had saved one — so the door
+was empty on every desk in existence, and the feature was reachable only by
+somebody who had already arranged the thing once. That is §P1 of
+`docs/FUNCTIONS.md`, and it is what this pass built.
+
+**Ten, in `stockplans.js`, one per job a paper system does** — Morning Page,
+Brainstorm Table, The Workbench, Shoot Day, Day Log, Week in Review, Reading
+Desk, Tier Board, Goal Table, Practice Bench. Every one is built out of types
+that exist today: not one waits on the Daybook, the Log, `series` or the matrix
+the same document proposes, because a plan is an arrangement of the furniture
+there is.
+
+**They are ordinary plans, not a new category.** They arrive with the seed on a
+fresh desk and by migration 35 on an existing one, and after that they are
+yours — rename, edit, delete, and nothing puts them back. `stock` is read by one
+thing only: a later migration adding an eleventh without duplicating the ten.
+
+**The finding that cost the first draft:** a plan is arranged in a **shelf**,
+which is eight columns. The ten were authored at the desk board's twenty-four —
+which is what §4 of `FUNCTIONS.md` describes its arrangements in — and the desk's
+twenty-four are three shelves side by side while a drawer is exactly one. So a
+plan wider than eight cannot be stamped into a drawer at all: the columns are
+not there, every box fails `boxOk()` and `anySpot()` re-flows the arrangement,
+silently, on the board you would most want to use one on. Eight by twelve is
+what fits a phone shelf, a Mac shelf and any drawer at once. Decision 172.
+
+*And three things that were already wrong:* `tracks` did not travel through a
+plan the way `rel` does, so a bar came out reading the checklist it was captured
+from and a second copy gave two bars reading one list; a stamped copy **shared
+its box objects** with the plan it came from, which is a landmine rather than a
+bug because every writer replaces rather than mutates; and `planCard()` drew
+every plan on twenty-four columns, so a shelf-wide plan was a miniature in the
+left third of its card.
+
+*Left out:* `@in` and `@under` rule values are still not re-pointed when a plan
+is stamped, so the ten collect by type and by tag. Noted in `SYSTEM.md`.
+
+---
+
 ## 0y. Asked 2026-09-09 — the functions, scoped — NOT STARTED
 
 Timothy handed over *Function of Paper Systems*, the document he wrote about

@@ -811,6 +811,28 @@ the start, `#tag` anywhere, and `!today` / `!tomorrow` / `!week`.
   `stampPlan(id, into, at)` lays it out with fresh ids, shifting the whole
   arrangement by one offset so its shape survives. A kind may carry `plan`,
   which supersedes `seed:`. See decision 121.
+- **A plan is arranged in a shelf, which is eight columns.** The desk's
+  twenty-four are three shelves side by side and a drawer is exactly one, so a
+  plan wider than eight cannot be stamped into a drawer at all: the columns are
+  not there, every box fails `boxOk()` and `anySpot()` re-flows the
+  arrangement, which is the one thing a plan exists to prevent. Eight by at
+  most twelve rows fits a phone shelf, a Mac shelf and the inside of any
+  drawer — twelve and not thirteen because a shelf is as tall as whatever fits
+  on *this* screen, and a short handset gives twelve. `planCard()` draws the
+  miniature at the plan's own measured width for the same reason; it drew every
+  one on twenty-four, which put nine cards in ten in the left third of the card.
+- **Ten of them ship with the desk** — `stockplans.js`, one per job a paper
+  system does, and `docs/FUNCTIONS.md` is where they come from. They are
+  **ordinary plans, not a new category**: they arrive with the seed on a fresh
+  desk and by migration 35 on an existing one, and after that they are yours to
+  rename, edit or throw away, with nothing putting them back. `stock` names
+  which built-in a plan came from and is read by exactly one thing — a later
+  migration adding an *eleventh* without duplicating the ten already there.
+- **A `tracks` travels like a `rel` does.** Both are ids, and `tracks` was the
+  one the copy did not re-point, so a bar reading the checklist beside it came
+  out of a plan still naming the original, and a second copy gave two bars
+  reading one list. A rule naming a container (`@in`, `@under`) is **not** yet
+  re-pointed — use a tag inside a plan, which travels as itself.
 - **Urgency is derived and stored nowhere.** `urgencyOf(o)` — the days you have
   to a deadline, less the days the work needs (`dur` minutes ÷ `workday()`
   hours). What is left is *slack*, and the ladder is Room · Ahead · Soon ·
@@ -908,6 +930,7 @@ or shown on a surface and drawn as a face on the board. See decision 71.
 | A board that has let go — the rigid-body solver | `gravity.js` |
 | Create, complete, delete, undo, repeat, pin, tag-drawer | `mutations.js` |
 | Storage, migrations, assets, export/import, paste | `persist.js` |
+| The ten plans the desk ships with | `stockplans.js` |
 | Styles, the sixteen colour slots, tokens | `look.js` |
 | The one delegated listener set | `wire.js` |
 

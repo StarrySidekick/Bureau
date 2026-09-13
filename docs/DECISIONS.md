@@ -7482,3 +7482,78 @@ the structural question, and "is it a task" would be a branch on a name.
 *Against:* the menu is one line longer, and a menu earns its length by holding
 what has nowhere else to be. This qualifies: the Type row is somewhere else it
 could be, and four doors in is where it went unfound.
+
+## 172 · The ten plans the desk ships with
+
+*2026-09-13*
+
+A plan is a board you can put down again (decision 121), and until now every one
+of them had to be arranged by hand first. So the feature was reachable only by
+somebody who had already done the thing once, and the Plans door — a whole door
+in Settings, and a section in the type picker — was empty on every desk in
+existence. Ten ship now, in `stockplans.js`, one per job a paper system actually
+does; `docs/FUNCTIONS.md` is where the ten come from and why they are these ten.
+
+**They are ordinary plans, not a new category.** The obvious move was the one
+types make: `BUILTIN_KINDS` merged over `S.kinds` on read, so a built-in can be
+edited and reset. That is right for a *type*, which is a definition a stored
+object still has to resolve against — an object left on an edited built-in has
+to keep working. A plan is not a definition. It is a thing you *have*, like the
+sample desk, and the honest way to ship one is to put it in the drawer and let
+go of it. So they arrive once — with the seed on a fresh desk, by migration 35
+on an existing one — and after that they are yours: rename one, edit it, throw
+it away, and nothing puts it back. `stock` is the one marker they keep, read by
+exactly one thing: a later migration adding an *eleventh* without laying down a
+second copy of the ten already there.
+
+**They are built out of types that exist.** Not one of them waits on the
+Daybook, the Log, the `series` attribute or the matrix layout that
+`FUNCTIONS.md` proposes. A plan is an arrangement of the furniture there is, and
+a stock plan that needed new machinery would be a mock-up rather than a board
+you can put down.
+
+**A plan is arranged in a shelf, which is eight columns.** This is the finding
+that cost the pass its first draft, and it is invisible until you look for it.
+The ten were authored at the desk board's twenty-four, which is what
+`FUNCTIONS.md` describes its arrangements in — and the desk's twenty-four are
+*three shelves side by side*, while a drawer is exactly one. So a plan wider
+than eight cannot be stamped into a drawer at all: columns nine to twenty-four
+are not there, every box fails `boxOk()`, and `anySpot()` re-flows the
+arrangement — which is the one thing a plan exists to prevent, done silently, on
+the board where you would most want to put one down. Eight columns by at most
+**twelve** rows is what fits a phone shelf, a Mac shelf and the inside of any
+drawer at once; twelve and not thirteen because a shelf is as tall as whatever
+fits on *this* screen, and a short handset gives twelve where a tall one gives
+thirteen. The smoke block stamps into an **empty drawer** and insists every box
+comes back exactly as authored, because that is the only place the promise can
+be tested: on a board with things on it, a taken box is *supposed* to move.
+
+Two things fell out of building it, both of which were already wrong:
+
+- **`tracks` did not travel.** It is an id exactly as `rel` is, and it was the
+  one the copy did not re-point — so a progress bar reading the checklist beside
+  it came out of a plan still naming the checklist it was captured from, and
+  stamping a second copy gave you two bars reading one original. Dropped rather
+  than left dangling where the target did not come along, for `rel`'s reason:
+  `barPct()` falls back to the bar's own milestones, which is the right answer
+  for a bar whose subject is not there. A rule naming a container (`@in`,
+  `@under`) is still not re-pointed, which is why the stock plans collect by
+  type and by tag — a tag travels as itself.
+- **A stamped copy shared its boxes with the plan.** `Object.assign({}, o)` is
+  shallow, so the object on the board and the one in the plan were two names for
+  one rectangle. Nothing mutates a box in place today — every writer replaces it
+  — so it never showed; it is a landmine rather than a bug, and it is two lines.
+
+And one presentation bug the ten made visible: `planCard()` drew every plan on
+twenty-four columns because that is what the desk board has. With plans that are
+a shelf wide, nine cards in ten were a miniature squeezed into the left third
+with bare checkerboard beside it. The width is measured off the plan's own boxes
+now, the way the height already was, floored at a shelf so a plan holding one
+tile is not drawn enormous.
+
+*Against:* ten plans is a list you have to scroll, and a desk that ships with
+opinions about how you work is a desk with opinions. Both are real. The answer
+to the first is that the picker still leads with three and the door holds the
+rest, which is the shape it already had; the answer to the second is that a plan
+does nothing until you press it, and the alternative was a feature nobody could
+reach.

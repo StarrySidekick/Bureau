@@ -1,4 +1,5 @@
 import { uid, clamp, D, ROOT, HOLD } from './util.js';
+import { stockPlans } from './stockplans.js';
 
 /* ============================================================
    2 · ATTRIBUTES and KINDS — the heart of Bureau
@@ -794,7 +795,11 @@ const sensedDevice = ()=> window.matchMedia('(min-width: 900px)').matches ? 'des
 function reset(){
   const s = seed();
   S = {
-    objects:s.objects, kinds:{}, plans:[], desks:s.desks.slice(),
+    /* The ten the desk ships with. A fresh desk gets them here and an
+       existing one gets them from migration 35, which is the same list through
+       the same builder — and after that they are ordinary plans, so renaming
+       or deleting one sticks. See stockplans.js. */
+    objects:s.objects, kinds:{}, plans:stockPlans(), desks:s.desks.slice(),
     /* Which devices have had what is on the desk moved to the middle shelf.
        Empty on a fresh desk too: the seed is authored on the *first* shelf,
        because a shelf is as tall as whatever fits on this screen and nothing

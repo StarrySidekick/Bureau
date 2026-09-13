@@ -25,8 +25,17 @@ app inside this one.
 
 Each one carries his brief verbatim, his own classification line, then four
 paragraphs: **today**, **missing**, **the proposal**, **the arrangement**. The
-arrangement is a real board with real boxes, sized in desk cells (24 columns) so
-it can be laid out and looked at rather than agreed with in the abstract.
+arrangement is a real board with real boxes, so it can be laid out and looked at
+rather than agreed with in the abstract.
+
+**One correction, 2026-09-13.** The arrangements below are written in the desk
+board's twenty-four columns, and that is the wrong unit for anything you intend
+to *put down*. The desk's twenty-four are three **shelves** side by side and a
+drawer is exactly one, so an arrangement wider than eight columns cannot be
+stamped into a drawer at all. When these became the ten shipped plans (P1 below,
+decision 172) every one was re-authored to eight columns by at most twelve rows,
+which is what fits a phone shelf, a Mac shelf and the inside of any drawer at
+once. Read the boxes below as proportions, not as coordinates.
 
 Five of the fifteen have **no brief**: he wrote the heading and left the
 description empty (3, 10, 12, 13, 14) and put a question mark on the last one
@@ -1042,7 +1051,7 @@ a rule, **medium** is a face or a behaviour with CSS and a smoke assertion, and
 
 | | | Serves | Cost |
 | --- | --- | --- | --- |
-| P1 | A small protected set in `S.plans`: *a piece of work*, *a week*, *stating a goal*, *a review* | 4, 6, 11 | Medium |
+| P1 | **Shipped v1.69** — ten of them, one per function, in `stockplans.js` | 1 · 2 · 4 · 5 · 6 · 9 · 10 · 11 · 12 · 15 | Medium |
 
 ### Conventions to write down and not build (5)
 
@@ -1070,8 +1079,10 @@ Sequenced by dependency and by how much each one unlocks, which is the same rule
    `INTENT.md` names that gap as worth more than any single feature.
 4. **V1 tear out** and **A3 clip**. Both already wanted; three functions each.
    After this, outlining and notetaking work.
-5. **P1 built-in plans**, then **T3 Deck** and **T4 Skill**, which are data
-   changes that ride on it.
+5. ~~**P1 built-in plans**~~ — **done, v1.69**: ten of them, and they turned out
+   to be the cheapest way to make nine of the fifteen functions reachable
+   without building anything new. Then **T3 Deck** and **T4 Skill**, which are
+   data changes that ride on it.
 6. **L1 the matrix layout.** The one genuinely new layout, and it should wait
    until the rest is settled because it is the one thing here that could turn
    out to be a whiteboard bolted to a desk.

@@ -5564,6 +5564,83 @@ const CHROME = process.env.BUREAU_CHROME;
     return out;
   });
 
+  /* --- the ten the desk ships with -------------------------------------
+     A plan had to be arranged by hand before there was one, so the Plans door
+     was empty until somebody had already done the thing once. Ten arrive with
+     the seed and by migration 35.
+
+     The load-bearing assertion is `everyBoxKept`: a plan is an *arrangement*,
+     and one stamped into an empty drawer has to come back exactly as authored.
+     It cannot, if the plan is wider than the board — **a drawer is one shelf,
+     which is eight columns**, not the desk's twenty-four — so a stock plan
+     authored to the desk's full width would have every box fail boxOk() and be
+     re-flowed by anySpot(), which is the one thing a plan exists to prevent.
+     That is what this catches, and it is invisible on the desk board. */
+  const stockPlans = await page.evaluate(async () => {
+    const nap = ms => new Promise(r => setTimeout(r, ms));
+    const S = BUREAU.state, out = {};
+    const ps = BUREAU.plans().filter(p => p.stock);
+    out.tenOfThem = ps.length === 10;
+    out.everyOneNamed = ps.every(p => p.nm && p.ic && p.c != null);
+    out.everyOneHasThingsOnIt = ps.every(p => BUREAU.planSize(p) > 0);
+    // a plan is not an object: nothing on any board answers to one
+    out.stillNotObjects = !S.objects.some(o => ps.some(p => p.id === o.id));
+
+    /* One shelf, on both devices. Eight columns by twelve rows is what fits a
+       phone shelf, a Mac shelf and the inside of any drawer at once. */
+    const boxes = p => p.objects.filter(o => o.parent === '__plan');
+    out.everyPlanIsAShelf = ps.every(p => boxes(p).every(o =>
+      o.desk && o.phone &&
+      o.desk.x + o.desk.w - 1 <= 8 && o.desk.y + o.desk.h - 1 <= 12 &&
+      o.phone.x + o.phone.w - 1 <= 8 && o.phone.y + o.phone.h - 1 <= 12));
+    // and nothing on one overlaps anything else on it, per device
+    const clear = (p, dv) => { const b = boxes(p).map(o => o[dv]);
+      return b.every((a, i) => b.every((c, j) => i === j ||
+        !(a.x < c.x + c.w && c.x < a.x + a.w && a.y < c.y + c.h && c.y < a.y + a.h))); };
+    out.nothingOverlaps = ps.every(p => clear(p, 'desk') && clear(p, 'phone'));
+    // every type one names is a type that exists
+    out.everyKindIsReal = ps.every(p => p.objects.every(o => !!BUREAU.K[o.kind]));
+
+    /* Into an **empty drawer**, because that is where the promise holds: on a
+       board with things on it already, a taken box sends that one tile to
+       anySpot() and the shape is deliberately given up. */
+    const room = BUREAU.create('drawer', {parent:'root', title:'Empty room'});
+    const p = ps.find(x => x.stock === 'workbench');
+    const saved = boxes(p);
+    const made = BUREAU.stampPlan(p.id, room.id);
+    const top = made.filter(o => o.parent === room.id);
+    out.everyBoxKept = top.length === saved.length && top.every(o => {
+      const was = saved.find(q => q.title === o.title && q.kind === o.kind);
+      return was && ['x','y','w','h'].every(k => was.desk[k] === o.desk[k]
+                                             && was.phone[k] === o.phone[k]);
+    });
+    /* A `tracks` is an id like a relation is, and it was the one thing the
+       copy did not re-point — so the bar came out reading the checklist it was
+       captured from, and a second copy gave two bars reading one original. */
+    const bar = made.find(o => o.kind === 'progressbar');
+    const list = made.find(o => o.kind === 'checklist');
+    out.theBarReadsItsOwnList = bar.tracks === list.id
+      && !p.objects.some(q => q.id === bar.tracks);
+    const twice = BUREAU.stampPlan(p.id, room.id);
+    const bar2 = twice.find(o => o.kind === 'progressbar');
+    out.aSecondCopyIsItsOwn = bar2.tracks === twice.find(o => o.kind === 'checklist').id
+      && bar2.tracks !== bar.tracks;
+    // the plan is not edited by what came out of it — the boxes are copies
+    out.stampingDoesNotEditThePlan =
+      saved.every(q => boxes(p).some(r => r === q)) &&
+      !made.some(o => boxes(p).some(q => q.desk === o.desk || q.phone === o.phone));
+
+    // …and they really draw, which a box being legal does not say
+    S.view = 'drawer'; S.drawerId = room.id; BUREAU.render(); await nap(200);
+    out.everyTileDraws = top.every(o => document.querySelector(
+      `#app .grid .drawer[data-drawer="${o.id}"], #app .grid .drawer[data-row="${o.id}"]`));
+    S.view = 'desk'; S.drawerId = null;
+    twice.concat(made).forEach(o => BUREAU.del(o.id));
+    BUREAU.del(room.id);
+    S.undo = []; S.redo = []; BUREAU.render();
+    return out;
+  });
+
   /* --- urgency is a deadline and an estimate put together --------------
      Nothing stores it, so every claim here is about arithmetic being done at
      read time — which is exactly the kind of thing that fails silently. */
@@ -7600,7 +7677,7 @@ const CHROME = process.env.BUREAU_CHROME;
     settingsHasDoors, settingsBack,
     wordsNotSource, deadlines, twoClauses, undoEverything, savesOnlyChanges,
     paletteKeys, editorKeys, pickerLeads, rollupsEverywhere, soundAndVision, keyboardBoard,
-    ranking, urgency, reachable, pensAndCorners, lyingBooks, plansWork, repeating, oneLock, scheduling, ownColour, addBox, calFaces,
+    ranking, urgency, reachable, pensAndCorners, lyingBooks, plansWork, stockPlans, repeating, oneLock, scheduling, ownColour, addBox, calFaces,
     lockedBoard, freeTraits, pageWrites, tickBoxes, readerFits, categories,
     specimenBook, thisPass,
     dropsIn, keyframesRegistered, aesthetics, slotScoping, objectsDressed, grainSlots, tagged, drawnAesthetic, deeper, lookStage, statusBar, bindings, panelling, theSpray, tappingIsQuiet, decorations, pinboard, gravity

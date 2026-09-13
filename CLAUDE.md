@@ -1614,6 +1614,24 @@ nothing to save. A kind may carry `plan`, which supersedes `seed:` and is read
 before it. Deleting a plan clears that pointer off any type holding it. See
 decision 121.
 
+**A plan is arranged in a shelf, which is eight columns — not the desk's
+twenty-four.** The desk's twenty-four are three shelves side by side and a
+drawer is exactly one, so a plan wider than eight cannot be stamped into a
+drawer at all: the columns are not there, every box fails `boxOk()`, and
+`anySpot()` re-flows the arrangement, which is the one thing a plan exists to
+prevent — silently, on the board you would most want to put one down. Eight by
+at most **twelve** rows fits a phone shelf, a Mac shelf and any drawer at once;
+twelve and not thirteen because a shelf is as tall as whatever fits on *this*
+screen and a short handset gives twelve. **Ten ship with the desk** —
+`stockplans.js`, one per job in `docs/FUNCTIONS.md` — as *ordinary* plans and
+not a merged-on-read category: seeded on a fresh desk, added by migration 35 on
+an existing one, and after that yours to rename or throw away. `stock` is read
+by one thing only, a later migration adding an eleventh. Two ids travel through
+a plan, `rel` and **`tracks`**; a rule naming a container (`@in`, `@under`) does
+**not**, so collect by tag inside a plan. And `planCard()` measures the
+miniature's width off the plan's own boxes — it drew every one on twenty-four,
+which put a shelf-wide plan in the left third of its card. See decision 172.
+
 **A type can be born with things inside it.** `seed:[{kind,title}]` on a kind
 makes those children when the container is created, placed at the top of its
 board rather than left to `ensureBox()`. One level only — a seeded child's own

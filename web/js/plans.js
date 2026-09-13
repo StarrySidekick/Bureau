@@ -76,6 +76,14 @@ function planCopy(o, map, parent){
   c.id = map[o.id];
   c.parent = parent;
   c.rel = (o.rel||[]).map(r=>map[r]).filter(Boolean);
+  /* A `tracks` is an id like a relation is, and it was the one the copy did
+     not re-point — so a progress bar reading the checklist beside it came out
+     of a plan still naming the checklist it was captured from, and stamping a
+     second copy gave you two bars reading the same original. Dropped rather
+     than left dangling, for `rel`'s reason: barPct() falls back to the bar's
+     own milestones when nothing is tracked, which is the right answer for a
+     bar whose subject did not come along. */
+  if(o.tracks) c.tracks = map[o.tracks] || null;
   return c;
 }
 
@@ -130,9 +138,18 @@ function stampPlan(planId, intoId, at){
   p.objects.forEach(o=>{ map[o.id] = uid(isContainer(o) ? 'd' : 'o'); });
   const made = p.objects.map(o=>{
     const c = Object.assign({}, o);
+    /* A shallow copy shares the *boxes*, so the object put on the board and
+       the one still in the plan were two names for one rectangle. Nothing
+       mutates a box in place today — every writer replaces it — so this never
+       showed; it is a landmine rather than a bug, and it is two lines. */
+    if(o.desk)  c.desk  = Object.assign({}, o.desk);
+    if(o.phone) c.phone = Object.assign({}, o.phone);
     c.id = map[o.id];
     c.parent = (o.parent||PLAN_ROOT)===PLAN_ROOT ? home : (map[o.parent] || home);
     c.rel = (o.rel||[]).map(r=>map[r]).filter(Boolean);
+    // the same re-pointing capture does, for the same reason: a bar put down
+    // twice must read the copy beside it and not the first one
+    if(o.tracks) c.tracks = map[o.tracks] || null;
     c.created = T;
     c.ord = (o.ord||0);
     // a plan carries no doing, and a copy of one starts with none either
