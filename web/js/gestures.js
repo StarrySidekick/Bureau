@@ -1580,13 +1580,30 @@ function onUp(e){
     const ids=g.sibs.map(el=>el.dataset.row||el.dataset.drawer);
     ids.splice(g.to, 0, ids.splice(g.from, 1)[0]);
     clearBandShift(g);
+    /* **The bands on screen may be a subset of what the container holds.** A
+       list is windowed to the shelf you are looking at (decision 173), so
+       renumbering the visible ones 0..n would hand out indexes the other
+       shelves are already using and the two would tie. The *whole* order is
+       rewritten instead: everything hidden stays exactly where it sits, and
+       the visible ones drop back into the slots they came out of, in their new
+       relative order. On an unwindowed list every band is visible and this is
+       the renumbering it always was. */
+    const all = g.cid ? childrenOf(container(g.cid)).map(o=>o.id) : ids;
+    const shown = new Set(ids);
+    const order = all.slice();
+    const slots = [];
+    all.forEach((id,i)=>{ if(shown.has(id)) slots.push(i); });
+    slots.forEach((slot,k)=>{ order[slot] = ids[k]; });
+    // anything on screen the container does not claim (it cannot normally
+    // happen) would be dropped by the walk above, so fall back to the bands
+    const final = slots.length===ids.length ? order : ids;
     /* One move for the whole shuffle, and offered on the toast: a phone has no
        ⌘Z, so a reorder with nothing in front of it is a way back that exists
        only on a keyboard. See decisions 65 and 128. */
     const sets=[];
-    ids.forEach((id,i)=>{ const o=byId(id); if(o && o.ord!==i) sets.push([id,'ord',o.ord]); });
+    final.forEach((id,i)=>{ const o=byId(id); if(o && o.ord!==i) sets.push([id,'ord',o.ord]); });
     if(sets.length) pushSets('Reordered', sets);
-    ids.forEach((id,i)=>{ const o=byId(id); if(o) o.ord=i; });
+    final.forEach((id,i)=>{ const o=byId(id); if(o) o.ord=i; });
     save(); render(); toast('Reordered', true);
     return;
   }

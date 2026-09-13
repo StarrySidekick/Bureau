@@ -5,6 +5,39 @@ Sequenced by dependency, not appetite: item 1 makes everything after it safer.
 
 ---
 
+## 0za. Reported 2026-09-13 — three from living with the plans — DONE (v1.70)
+
+Timothy put the ten down and sent three notes back. Every one is the app
+knowing something and not showing it. Decision 173.
+
+1. **A new thing says which drawer caught it.** A sorting drawer collects and
+   does not hold, so a quote typed into the Reading Desk's spawner goes on the
+   board *and* into the Quotes drawer beside it — and nothing ever said the
+   second half, so "where has my quote gone" had no answer on the screen. A
+   picture of the tile hops into the collector now: `fileTo()`'s mechanism
+   aimed at a rule rather than at a drop. From the **tile** rather than the
+   spawner, so it says both where the thing is and where it is also findable.
+   One caller, `reveal()`, which every maker already goes through.
+2. **A drawer out of a plan rolls its own look.** `create()` has given every
+   container its own knob, edge, grain and panelling since decision 92 and
+   `stampPlan()` was the one maker that skipped it. It never showed because a
+   captured plan carries a look on every drawer in it; the ten, hand-authored
+   and stating none, came out as five identical cockbead fronts.
+   `randomLook()` fills in what nobody said, which leaves a saved arrangement
+   untouched.
+3. **A list is one shelf.** A row is the strip the same object would be on a
+   grid (decision 168), so the list is a view of *this board* — and it was
+   showing all nine shelves in one column while the dots in the bar said you
+   were on the middle one. Windowed exactly where the grid is: one shelf on a
+   phone, the whole board on a Mac. An empty shelf says where the rest is. The
+   dots are the toggle, and they were already there.
+
+*Left out:* nothing asked for. The one thing given up is the list as
+"everything on the desk at once" — which is what the seeded *Every object*
+sorting drawer already collects, from everywhere, in a list.
+
+---
+
 ## 0z. Asked 2026-09-13 — ten plans, in the drawer — DONE (v1.69)
 
 Timothy: *"I want you to invent ten new layouts and then make it so that when I

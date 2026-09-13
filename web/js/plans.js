@@ -40,6 +40,7 @@ import { S, K, T, isContainer, container } from './model.js';
 import { uid, ROOT } from './util.js';
 import { GRID, ensureBox, boxOk, freeSpot, anySpot } from './grid.js';
 import { rescaleOneBoard } from './persist.js';
+import { randomLook } from './look.js';
 
 /* The parent every top-level thing in a plan carries. A reserved string, the
    way ROOT and HOLD are — there is no object with this id and there never will
@@ -150,6 +151,25 @@ function stampPlan(planId, intoId, at){
     // the same re-pointing capture does, for the same reason: a bar put down
     // twice must read the copy beside it and not the first one
     if(o.tracks) c.tracks = map[o.tracks] || null;
+    /* **A drawer that came out of a plan rolls its own look, like any other.**
+       `create()` gives every container its own knob, edge, grain and panelling
+       from this aesthetic's vocabulary at birth (decision 92), and a plan
+       stamped them without one — so the ten the desk ships with, which state
+       no look at all, laid out a row of identical cockbead fronts and read as
+       a template rather than as furniture.
+
+       It only ever fills in what nobody has said. A plan *captured* off a
+       board carries a look on every drawer in it, because create() wrote one
+       there, so this cannot overwrite an arrangement you saved; and a stock
+       plan that does state a slot keeps it. The colour is left alone either
+       way — `c` is the one thing the ten do state, and a plan's palette is
+       part of what it is. */
+    if(isContainer(c)){
+      const rl = randomLook();
+      ['knob','border','texture','panel','knobtone'].forEach(k=>{
+        if(c[k] == null && rl[k] != null) c[k] = rl[k];
+      });
+    }
     c.created = T;
     c.ord = (o.ord||0);
     // a plan carries no doing, and a copy of one starts with none either

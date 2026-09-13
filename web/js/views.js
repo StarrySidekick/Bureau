@@ -19,7 +19,7 @@ import { openGuide } from './guide.js';
 /* Cyclic at *function* level only — motion.js imports render() from here and
    this imports sprayAt() from there, and neither is called while the modules
    are loading. That is the graph the app already has; keep it that way. */
-import { sprayAt, SPRAYS, sprayNow, sprayMark } from './motion.js';
+import { sprayAt, SPRAYS, sprayNow, sprayMark, hopIntoCollector } from './motion.js';
 import { APP_VERSION, DATA_V, save, saveIfDirty, storeSize, install } from './persist.js';
 
 /* The desk is nothing but the grid. There is no toolbar: New, Arrange and
@@ -159,14 +159,58 @@ const revealStyle = ()=> S.device==='phone' ? ` style="margin-top:${REVEAL.gap}p
    See decision 168. */
 const listStyle = ()=> ` style="--listrow:${CELL[dev()]}px"`;
 
+/* ---- a list is a view of *this board*, so it is windowed where the board is
+   ----------------------------------------------------------------------
+   A row in a list is the strip the same object would be on a grid at eight
+   cells by one (decision 168) — which is what makes the list a second way of
+   looking at the board rather than a second place. The desk is nine shelves,
+   and the list was showing all nine in one column: things that are not on the
+   board you are looking at, in an order that has nothing to do with where they
+   are, while the dots in the bar went on saying you were on the middle one.
+
+   So the list shows the shelf the grid would. It is windowed **exactly where
+   the grid is windowed** — one shelf on a phone, the whole board on a Mac,
+   where all twenty-four columns are drawn and the rows above and below are up
+   and down the same scroller — because a list that disagreed with the grid
+   about what "this board" means would be the same bug from the other side.
+   `shelfShift()` is the grid's own gate and this asks it the same question.
+
+   Walking shelves still works: the dots in the bar are drawn above the list
+   too, and pressing one moves the window. Anything **never placed** has no
+   shelf to be on, so it is always shown rather than hidden until it is given
+   a box by the next render. */
+function onThisShelf(cid, items){
+  if(S.device!=='phone') return items;
+  const sh = shelvesOf(cid);
+  if(sh.w * sh.h <= 1) return items;
+  const here = shelfAt(cid), dv = dev();
+  return items.filter(o=>{
+    const b = o[dv];
+    if(!b || !b.w) return true;
+    const at = shelfOfBox(b, dv, cid);
+    return at.x===here.x && at.y===here.y;
+  });
+}
+/* Which layouts the window applies to: the **list** and nothing else. A grid
+   is the board itself and `gridOfContainer()` already windows it; a book, a
+   calendar and a timeline arrange by sequence or by date, which is not a fact
+   about where anything sits. Named once so the desk and a drawer cannot answer
+   it differently. */
+const isListView = v => v!=='grid' && v!=='book' && v!=='calendar' && v!=='timeline';
+
 function viewDesk(){
   const c=rootObj(), view=c.layout||'grid';
   if(view!=='grid'){
-    const items=childrenOf(c);
+    const all=childrenOf(c);
+    const items = isListView(view) ? onThisShelf(c.id, all) : all;
+    const elsewhere = !items.length && all.length;
     return `
     ${gridBar(c)}
     <div class="scroll${view==='book'?'':' flushlist'}"${listStyle()}>
-      ${!items.length ? `<div class="empty"><div class="big">Nothing on the desk</div>Hold a bare cell — that is the Magic Selector — and drag out the size you want.</div>`
+      ${!items.length ? `<div class="empty"><div class="big">${
+          elsewhere ? 'Nothing on this shelf' : 'Nothing on the desk'}</div>${
+          elsewhere ? `There ${all.length===1?'is one thing':`are ${all.length} things`} on the other shelves — the dots in the bar walk between them.`
+                    : 'Hold a bare cell — that is the Magic Selector — and drag out the size you want.'}</div>`
         : view==='book'   ? bookView(c, items)
         : `<div class="listgrid" data-listfor="${c.id}">${items.map(listTile).join('')}</div>`}
     </div>`;
@@ -349,11 +393,15 @@ function viewDrawer(){
   let items=all;
   if(S.kindFilter) items=items.filter(o=>o.kind===S.kindFilter);
   const kinds=[...new Set(all.map(o=>o.kind))];
+  const held=items.length;
   /* grid | list | scroll | book | calendar | timeline — the object's own choice
      first, then its type's. Falling straight to 'grid' meant a type that says
      it opens as a calendar only did so if something had written `layout` onto
      the object, which create() does and the seed doesn't. */
   const view = layoutOf(d);
+  // a drawer is one shelf unless it says otherwise, so this is usually a no-op
+  if(isListView(view)) items = onThisShelf(d.id, items);
+  const elsewhere = !items.length && held;
   return `
   ${gridBar(d)}
   ${/* A column of eight-by-ones stands where the board stands, so the
@@ -388,8 +436,10 @@ function viewDrawer(){
       : view==='timeline'
       ? viewTimeline(d, items)
       : !items.length
-        ? `<div class="empty"><div class="big">This drawer is empty</div>${
-            has(d,'magic') ? 'Nothing matches its rule yet.'
+        ? `<div class="empty"><div class="big">${
+            elsewhere ? 'Nothing on this shelf' : 'This drawer is empty'}</div>${
+            elsewhere ? `There ${held===1?'is one thing':`are ${held} things`} on its other shelves — the dots in the bar walk between them.`
+            : has(d,'magic') ? 'Nothing matches its rule yet.'
             : takesTyping(d) ? 'Type in the box above to start it off.'
             : 'Drag something in, or hold a bare cell with the Magic Selector.'}</div>`
         : view==='book'
@@ -1029,6 +1079,10 @@ function reveal(id){
        that tracks a keyframe, so the two have to move together. See
        decisions 81 and 85. */
     setTimeout(()=>sprayAt(id, 1.15), 450);
+    /* …and if a sorting drawer on this board caught it, say so. After the
+       drop has landed and the burst has gone, so the two read as "it arrives,
+       and a copy hops in there" rather than as two things at once. */
+    setTimeout(()=>hopIntoCollector(id), 620);
   }
   if(!el || !sc) return;
   const er=el.getBoundingClientRect(), sr=sc.getBoundingClientRect();

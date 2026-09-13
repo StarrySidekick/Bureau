@@ -287,6 +287,15 @@ that isn't the desk. (`scroll` — the list with nothing truncated — is gone;
 migration 33 reads one as a list. The *object's* own `read: scroll` is a
 different property and is untouched.)
 
+A list is **windowed where the grid is** — one shelf on a phone, the whole
+board on a Mac. A row is the strip the same object would be on a grid, so the
+list is a second way of looking at *this board*; showing all nine of the desk's
+shelves in one column contradicted the dots in the bar. `onThisShelf()` in
+views.js, gated by `isListView()` — the list and nothing else, because a grid is
+the board itself and a book, a calendar and a timeline arrange by sequence or by
+date. Anything never placed is always shown, and a shelf with nothing on it says
+where the rest is. See decision 173.
+
 A **list** is a column of **eight-by-ones**: a row is the strip the same object
 would be on a grid at eight cells by one, one cell tall, standing flush against
 the one above it, in a column eight cells wide standing exactly where that
@@ -828,6 +837,12 @@ the start, `#tag` anywhere, and `!today` / `!tomorrow` / `!week`.
   rename, edit or throw away, with nothing putting them back. `stock` names
   which built-in a plan came from and is read by exactly one thing — a later
   migration adding an *eleventh* without duplicating the ten already there.
+- **A drawer out of a plan rolls its own look.** `randomLook()` fills in the
+  knob, edge, grain and panelling **nobody has said**, at stamping — so an
+  arrangement you captured keeps every slot it had (create() wrote one on each
+  of its drawers) and a hand-authored plan, which states none, comes out as a
+  room of related furniture rather than a row of identical fronts. The colour
+  is left alone either way. See decision 173.
 - **A `tracks` travels like a `rel` does.** Both are ids, and `tracks` was the
   one the copy did not re-point, so a bar reading the checklist beside it came
   out of a plan still naming the original, and a second copy gave two bars

@@ -351,6 +351,33 @@ confetti, a mix, or nothing) and each preset carries its own count and scale.
 Every option in Settings is drawn by the same `bitPath()` the burst uses, so a
 sample can't drift from the thing it makes.
 
+**A new object says which sorting drawer caught it.** A sorting drawer
+collects and does not hold, so a quote typed into a spawner goes on the board —
+wherever `freeSpot()` had room — *and* into the drawer standing beside it, and
+nothing said the second half. `hopIntoCollector(id)` in motion.js flies a
+picture of the tile into the collector: `fileTo()`'s mechanism aimed at a
+**rule** rather than at a drop. From the **tile** and not the spawner, because
+the hop's two endpoints are the two facts — where the thing is, and where it is
+also findable. One caller, `reveal()` at 620ms, which is why it needed no
+plumbing: every maker in the app already goes through it. Three limits, each
+the difference between an answer and a firework: **only a drawer drawn on this
+board**, **only the first one**, and **only a magic drawer** — an ordinary one
+holds by `parent`, so there is no second place to point at. Silent with no
+collector, which is the common case. It asks `childrenOf()` because
+`inContainer()` is model.js's own. See decision 173.
+
+**A list is windowed where the grid is.** A row is the strip the same object
+would be on a grid (decision 168), so a list is a second way of looking at
+*this board* — and it was showing all nine of the desk's shelves in one column
+while the dots in the bar said you were on the middle one. `onThisShelf()` in
+views.js: one shelf on a phone, the whole board on a Mac, asking `shelfShift()`'s
+own question so the two cannot disagree about what "this board" means. Gated by
+`isListView()` — **the list and nothing else**, because a grid is the board
+itself and a book, a calendar and a timeline arrange by sequence or by date.
+Anything never placed has no shelf and is always shown; an empty shelf says
+where the rest is rather than drawing a bare column. No new gesture: the dots
+are the toggle. See decision 173.
+
 **A burst belongs to a new object and to nothing else.** There is exactly one
 caller — `reveal()` in views.js, 450ms after the drop begins. It used to come
 out of anything you touched, which made every tap on a busy desk a small
@@ -1613,6 +1640,15 @@ arrangement**, because if the shape didn't survive the move there would be
 nothing to save. A kind may carry `plan`, which supersedes `seed:` and is read
 before it. Deleting a plan clears that pointer off any type holding it. See
 decision 121.
+
+**A drawer out of a plan rolls its own look.** `stampPlan()` was the one maker
+that skipped `randomLook()`, which `create()` has run on every container since
+decision 92 — invisible while every plan was *captured* (create() had already
+written a look onto each of its drawers) and obvious the moment ten
+hand-authored ones shipped stating none, as five identical cockbead fronts. It
+fills in **only what nobody has said**, which is what makes it safe for an
+arrangement you saved; the colour is left alone in both directions. See
+decision 173.
 
 **A plan is arranged in a shelf, which is eight columns — not the desk's
 twenty-four.** The desk's twenty-four are three shelves side by side and a

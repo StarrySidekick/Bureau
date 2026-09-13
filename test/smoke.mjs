@@ -5641,6 +5641,134 @@ const CHROME = process.env.BUREAU_CHROME;
     return out;
   });
 
+  /* --- three things noticed by living with the plans --------------------
+     A drawer out of a plan rolls its own look, a list is one shelf, and a new
+     object says which sorting drawer caught it. All three are about a thing
+     the app knew and never showed. */
+  const livedWith = await page.evaluate(async () => {
+    const nap = ms => new Promise(r => setTimeout(r, ms));
+    const S = BUREAU.state, out = {};
+
+    /* A drawer is given its own knob, edge, grain and panelling at birth
+       (decision 92) and a plan stamped them without one, so the ten laid out a
+       row of identical fronts wearing the aesthetic's default. */
+    const room = BUREAU.create('drawer', {parent:'root', title:'Look room'});
+    const seen = {border:new Set(), knob:new Set(), texture:new Set(), panel:new Set()};
+    let conts = 0;
+    BUREAU.plans().filter(p => p.stock).forEach(p => {
+      const made = BUREAU.stampPlan(p.id, room.id);
+      made.filter(o => BUREAU.isContainer(o)).forEach(o => {
+        conts++; Object.keys(seen).forEach(k => seen[k].add(o[k]));
+      });
+      made.forEach(o => BUREAU.del(o.id));
+    });
+    out.everyStampedDrawerIsDressed = conts > 0
+      && Object.values(seen).every(v => !v.has(undefined) && !v.has(null));
+    // …and they are not all the same drawer
+    out.andTheyDiffer = Object.values(seen).some(v => v.size > 1);
+    /* It only fills in what nobody said: a plan captured off a board carries a
+       look on every drawer in it, because create() wrote one there. */
+    const stated = {id:'pl_stated', nm:'Stated', ic:'tag', c:5, of:'drawer', cols:8, objects:[
+      {id:'s1', parent:'__plan', kind:'drawer', title:'Stated',
+       border:'reeded', knob:'flat', desk:{x:1,y:1,w:3,h:3}, phone:{x:1,y:1,w:3,h:3},
+       tags:[], milestones:[], history:[]}]};
+    BUREAU.plans().push(stated);
+    const kept = BUREAU.stampPlan('pl_stated', room.id);
+    out.aStatedLookIsKept = kept[0].border === 'reeded' && kept[0].knob === 'flat';
+    kept.forEach(o => BUREAU.del(o.id));
+    BUREAU.plans().splice(BUREAU.plans().indexOf(stated), 1);
+
+    /* A sorting drawer collects and does not hold, so a quote typed into the
+       Reading Desk's spawner goes on the board *and* into the Quotes drawer,
+       and nothing said the second half. */
+    S.view = 'drawer'; S.drawerId = room.id;
+    BUREAU.stampPlan(BUREAU.plans().find(p => p.stock === 'reading').id, room.id);
+    BUREAU.render(); await nap(250);
+    const q = BUREAU.create('quote', {parent:room.id, title:'A line worth keeping'});
+    BUREAU.render(); await nap(120);
+    BUREAU.reveal(q.id); await nap(780);        // past the 620ms it fires at
+    const fly = document.querySelectorAll('#fx .fxfile');
+    out.aGhostHopsToTheCollector = fly.length === 1;
+    out.itCarriesTheTileAndShrinks = fly.length === 1
+      && !!fly[0].querySelector('.drawer')
+      && parseFloat(fly[0].style.getPropertyValue('--filek')) < 1;
+    // it answers to no id, which is decision 51 from the other side
+    out.theGhostIsNobody = fly.length === 1
+      && !fly[0].querySelector('[data-row],[data-drawer]');
+    await nap(700);
+    out.andItCleansItselfUp = document.querySelectorAll('#fx .fxfile').length === 0;
+    // silent when nothing on the board collects it, which is the common case
+    const plain = BUREAU.create('task', {parent:room.id, title:'Not collected'});
+    BUREAU.render(); await nap(120); BUREAU.reveal(plain.id); await nap(780);
+    out.silentWithNoCollector = document.querySelectorAll('#fx .fxfile').length === 0;
+    S.view = 'desk'; S.drawerId = null;
+    S.objects.filter(o => o.parent === room.id).forEach(o => BUREAU.del(o.id));
+    BUREAU.del(room.id);
+    S.undo = []; S.redo = []; BUREAU.render();
+    return out;
+  });
+
+  /* The list half needs a phone, because the window is where the grid's is —
+     one shelf there, the whole board on a Mac. */
+  const listIsOneShelf = await phone.evaluate(async () => {
+    const nap = ms => new Promise(r => setTimeout(r, ms));
+    const S = BUREAU.state, out = {};
+    S.view = 'desk'; S.drawerId = null; BUREAU.render(); await nap(200);
+    // measured, never assumed: a shelf is as tall as whatever fits on this screen
+    const H = BUREAU.shelfRows;
+    const mk = (t, y) => { const o = BUREAU.create('note', {parent:'root', title:t});
+      o.phone = {x:1, y, w:2, h:2}; o.desk = {x:1, y, w:2, h:2}; return o; };
+    const a = mk('Shelf A note', 1), b2 = mk('Shelf B note', H + 1);
+    const was = S.deskCfg.layout;
+    S.deskCfg.layout = 'list';
+    const titles = () => Array.from(document.querySelectorAll('#app .listgrid .listband'))
+      .map(e => e.textContent);
+    BUREAU.goShelfTo('root', 0, 0); BUREAU.render(); await nap(250);
+    const one = titles();
+    BUREAU.goShelfTo('root', 0, 1); BUREAU.render(); await nap(250);
+    const two = titles();
+    out.eachShelfIsItsOwnList =
+         one.some(t => t.includes('Shelf A note')) && !one.some(t => t.includes('Shelf B note'))
+      && two.some(t => t.includes('Shelf B note')) && !two.some(t => t.includes('Shelf A note'));
+    /* A shelf with nothing on it says where the rest is, rather than drawing an
+       empty column that looks like a desk with nothing on it. */
+    BUREAU.goShelfTo('root', 2, 2); BUREAU.render(); await nap(250);
+    const empty = document.querySelector('#app .empty');
+    out.anEmptyShelfSaysWhereTheRestIs = !!empty && /Nothing on this shelf/.test(empty.textContent);
+    out.andDrawsNoRows = titles().length === 0;
+    /* **Reordering a windowed list must not renumber over the shelves you
+       cannot see.** The bands on screen are a subset, so writing 0..n across
+       them would hand out indexes the other shelves already hold. The whole
+       order is rewritten instead, with the hidden ones left where they sit. */
+    BUREAU.goShelfTo('root', 0, 0); BUREAU.render(); await nap(250);
+    const shownIds = Array.from(document.querySelectorAll('#app .listgrid .listband'))
+      .map(e => e.dataset.row || e.dataset.drawer);
+    const all = BUREAU.kids('root');
+    out.theListIsASubset = shownIds.length > 0 && shownIds.length < all.length;
+    // the same arithmetic the drop does, with the first two bands swapped
+    const swapped = shownIds.slice();
+    if(swapped.length > 1) swapped.splice(1, 0, swapped.splice(0, 1)[0]);
+    const shownSet = new Set(shownIds), order = all.slice(), slots = [];
+    all.forEach((id, i) => { if(shownSet.has(id)) slots.push(i); });
+    slots.forEach((slot, k) => { order[slot] = swapped[k]; });
+    // every index it would write is unique across the whole container…
+    out.rewrittenOrderIsUnique = new Set(order).size === order.length
+      && order.length === all.length;
+    // …and everything on another shelf keeps the slot it had
+    out.hiddenKeepTheirSlots = all.every((id, i) =>
+      shownSet.has(id) || order[i] === id);
+
+    // the grid is untouched: it was already windowed, and still holds both
+    S.deskCfg.layout = 'grid'; BUREAU.goShelfTo('root', 0, 0); BUREAU.render(); await nap(250);
+    out.theGridStillHasBoth = ['Shelf A note','Shelf B note']
+      .every(t => S.objects.some(o => o.title === t));
+    S.deskCfg.layout = was;
+    [a, b2].forEach(o => BUREAU.del(o.id));
+    S.undo = []; S.redo = [];
+    BUREAU.goShelfTo('root', 1, 1); BUREAU.render();
+    return out;
+  });
+
   /* --- urgency is a deadline and an estimate put together --------------
      Nothing stores it, so every claim here is about arithmetic being done at
      read time — which is exactly the kind of thing that fails silently. */
@@ -7677,7 +7805,7 @@ const CHROME = process.env.BUREAU_CHROME;
     settingsHasDoors, settingsBack,
     wordsNotSource, deadlines, twoClauses, undoEverything, savesOnlyChanges,
     paletteKeys, editorKeys, pickerLeads, rollupsEverywhere, soundAndVision, keyboardBoard,
-    ranking, urgency, reachable, pensAndCorners, lyingBooks, plansWork, stockPlans, repeating, oneLock, scheduling, ownColour, addBox, calFaces,
+    ranking, urgency, reachable, pensAndCorners, lyingBooks, plansWork, stockPlans, livedWith, listIsOneShelf, repeating, oneLock, scheduling, ownColour, addBox, calFaces,
     lockedBoard, freeTraits, pageWrites, tickBoxes, readerFits, categories,
     specimenBook, thisPass,
     dropsIn, keyframesRegistered, aesthetics, slotScoping, objectsDressed, grainSlots, tagged, drawnAesthetic, deeper, lookStage, statusBar, bindings, panelling, theSpray, tappingIsQuiet, decorations, pinboard, gravity

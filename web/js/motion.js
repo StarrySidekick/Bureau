@@ -1,5 +1,5 @@
 import { $, clamp, ROOT } from './util.js';
-import { S, byId, isContainer, shapeOf, openingOf, deskOf,
+import { S, byId, isContainer, has, childrenOf, shapeOf, openingOf, deskOf,
   tiltMode, tiltsDesk, tiltsWindows, gravityTilts } from './model.js';
 import { lay, shelvesOf, shelfAt } from './grid.js';
 import { objColour, styleNow } from './look.js';
@@ -387,6 +387,42 @@ function fileTo(src, from, toId){
   fx().appendChild(box);
   setTimeout(()=>box.remove(), FILE_MS+60);
   setTimeout(bump, FILE_MS-90);
+}
+
+/* ---- and where a new thing has *also* gone ----------------------------
+   A sorting drawer collects; it does not hold. So a quote typed into the
+   Reading Desk's spawner is put on the board — where `freeSpot()` had room,
+   which is very often not beside the thing that made it — and is *also* in the
+   Quotes drawer standing next to it, and nothing on the screen ever said the
+   second half. You are left to work out where the thing you just wrote can be
+   found, which is the one question a desk should never make you ask.
+
+   So: fly a picture of the tile into the drawer that caught it. That is
+   `fileTo()`'s mechanism aimed at a **rule** rather than at a drop, and the
+   two tiles you end up looking at are honest — the object really is on the
+   board and really is in the drawer, which is what collecting means.
+
+   Three limits, and each is the difference between an answer and a firework.
+   **Only a drawer drawn on this board**, because a hop to somewhere off-screen
+   says nothing. **Only the first one**, because a quote may be caught by four
+   rules across the desk and four ghosts leaving one tile is a display. And
+   **only a magic drawer**: an ordinary one holds by `parent`, so the object is
+   inside it already and there is no second place to point at. */
+function hopIntoCollector(id){
+  const o = byId(id);
+  if(!o || still() || !fx()) return;
+  const src = tileOf(id); if(!src) return;
+  const from = src.getBoundingClientRect(); if(!from.width) return;
+  const dest = Array.from(document.querySelectorAll('#app .grid .drawer[data-drawer]'))
+    .map(el => el.dataset.drawer)
+    /* `inContainer()` is the question, and it is model.js's own — `childrenOf()`
+       is the public surface over it and asking membership of what the drawer
+       will actually list is the same answer. Once, 620ms after a creation, so
+       the walk it costs is not on any render path. */
+    .find(cid => { const c = byId(cid);
+      return c && has(c,'magic') && cid !== (o.parent||ROOT)
+          && childrenOf(c).some(x => x.id === id); });
+  if(dest) fileTo(src, from, dest);
 }
 
 /* ---- a movement you drive with your fingers ---------------------------
@@ -1467,7 +1503,7 @@ function pagerCancel(){
 }
 
 export { still, tileOf, tileRect, openingFor, openTile, leaveTile, enter, pop, clRefill, toss,
-  fileTo,
+  fileTo, hopIntoCollector,
   spray, sprayAt, sprayCount, SPRAYS, sprayNow, sprayMark,
   pagerBegin, pagerMove, pagerEnd, pagerCancel, pagerOn, stepDrawer,
   applyTilt, askTilt, tiltTo, tiltRecentre, tiltDown };

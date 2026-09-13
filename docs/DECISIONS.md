@@ -7557,3 +7557,113 @@ to the first is that the picker still leads with three and the door holds the
 rest, which is the shape it already had; the answer to the second is that a plan
 does nothing until you press it, and the alternative was a feature nobody could
 reach.
+
+## 173 · Three things noticed by living with the plans
+
+*2026-09-13*
+
+Timothy put the ten down and reported three, and every one of them is the app
+knowing something and not showing it.
+
+### A new thing says which drawer caught it
+
+*"When writing a quote it's hard to know where it's gone to, and the quotes
+drawer is right next to it, so letting it sort of hop over to a container on the
+current desk could be nice."*
+
+A sorting drawer **collects; it does not hold** (§3), so a quote typed into the
+Reading Desk's spawner is put on the board — wherever `freeSpot()` had room,
+which is very often not beside the thing that made it — and is *also* in the
+Quotes drawer standing next to it. Nothing on the screen ever said the second
+half. You were left to work out where the thing you had just written could be
+found, which is the one question a desk should never make you ask.
+
+So a picture of the tile flies into the drawer that caught it: `fileTo()`'s
+mechanism aimed at a **rule** rather than at a drop. The two tiles you end up
+looking at are honest — the object really is on the board and really is in the
+drawer, which is what collecting means, and the hop is the only thing in the
+app that has ever said so.
+
+It flies from the **tile**, not from the spawner, which is a deliberate
+departure from how it was asked for. The spawner is where it came from; the
+tile is where it *is*, and a hop between the two endpoints says both facts at
+once. Starting at the spawner would have said only the destination and hidden
+the thing the object still needs — a home you can point at.
+
+There is one caller, `reveal()`, 620ms in: after the drop has landed and the
+burst has gone, so the two read as "it arrives, and a copy hops in there"
+rather than as two things at once. That is also why it needed no plumbing —
+`reveal()` is already the one place a new object is seen, and every maker in
+the app goes through it.
+
+Three limits, and each is the difference between an answer and a firework.
+**Only a drawer drawn on this board**, because a hop to somewhere off-screen
+says nothing. **Only the first one**, because a quote may be caught by four
+rules across the desk. And **only a magic drawer**: an ordinary one holds by
+`parent`, so the object is inside it already and there is no second place to
+point at. With no collector it is silent, which is the common case.
+
+It asks `childrenOf()` rather than `inContainer()`, which is module-private —
+membership of what the drawer will actually list is the same answer, and the
+walk it costs is once, off any render path.
+
+### A drawer out of a plan rolls its own look
+
+*"It seems the default drawer border for these plans is cockbead, we can use our
+random drawer rule in plans as well."*
+
+Right, and it was the ten's fault rather than the plan system's. `create()` has
+given every container its own knob, edge, grain and panelling from the
+aesthetic's vocabulary since decision 92 — so a desk is a room of related
+furniture rather than a row of identical fronts — and `stampPlan()` was the one
+maker that skipped it. It never showed, because a plan *captured* off a board
+carries a look on every drawer in it: create() wrote one there. The ten, which
+are hand-authored and state no look at all, fell through to the aesthetic's
+`defaults` and laid out five cockbead fronts in a row.
+
+`randomLook()` now fills in **what nobody has said**, at stamping. That is the
+whole of the rule and it is what makes it safe: an arrangement you saved keeps
+every slot it had, a stock plan that states a slot keeps it, and only a gap gets
+rolled. The **colour** is left alone in both directions — `c` is the one look
+the ten do state, and a plan's palette is part of what it is.
+
+### A list is one shelf
+
+*"It seems list view on the main desk combines every shelf, each shelf should be
+a separate list view toggle."*
+
+A row in a list is the strip the same object would be on a grid at eight cells
+by one (decision 168) — which is exactly what makes the list a second way of
+*looking at the board* rather than a second place things live. The desk is nine
+shelves, and the list was showing all nine in one column: things that are not on
+the board you are looking at, in an order that has nothing to do with where they
+are, while the dots in the bar went on saying you were on the middle one.
+
+So the list shows the shelf the grid would. It is windowed **exactly where the
+grid is windowed** — one shelf on a phone, the whole board on a Mac, where all
+twenty-four columns are drawn and the rows above and below are up and down the
+same scroller — because a list that disagreed with the grid about what "this
+board" means would be the same bug from the other side. `shelfShift()` is the
+grid's own gate and `onThisShelf()` asks it the same question.
+
+The **list and nothing else**. A grid is the board itself and
+`gridOfContainer()` already windows it; a book, a calendar and a timeline
+arrange by sequence or by date, which is not a fact about where anything sits.
+`isListView()` names that once so the desk and a drawer cannot answer it
+differently.
+
+Two things fall out. Anything **never placed** has no shelf to be on, so it is
+always shown rather than hidden until a render gives it a box. And a shelf with
+nothing on it now says *where the rest is* — "Nothing on this shelf. There are
+22 things on the other shelves" — because an empty column on a desk that is
+three-quarters full reads as a desk that has lost everything.
+
+No new gesture: the dots in the bar are drawn above the list too, and pressing
+one moves the window. That is the "separate list view toggle" asked for, and it
+was already there.
+
+*Against:* the list can no longer answer "everything on the desk, one after
+another". That is a real loss and it is what a sorting drawer is for — *Every
+object* is already on the seeded desk and collects exactly that, in a list, from
+everywhere. A view that quietly aggregates is the thing decision 22 deleted the
+tabs over.
