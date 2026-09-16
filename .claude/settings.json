@@ -38,6 +38,7 @@
       "Bash(scripts/serve.sh:*)",
       "Bash(node test/version.mjs)",
       "Bash(node test/smoke.mjs:*)",
+      "Bash(node test/smoke-only.mjs:*)",
       "Bash(node test/deploy.mjs:*)",
       "Bash(node test/scale-probe.mjs:*)",
       "Bash(node test/shapes.mjs)",

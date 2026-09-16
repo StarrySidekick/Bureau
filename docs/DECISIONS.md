@@ -7723,3 +7723,57 @@ it refuses wrongly. The checks are narrow for exactly that reason and each one
 prints the edit that satisfies it; if one starts crying wolf, fix the check
 rather than pulling the hook. And a `.claude/` directory is the first thing in
 this repository that is about the tool rather than the app. It stays small.
+
+## 175 · The rules load where they apply
+
+*2026-09-16*
+
+CLAUDE.md was 2,814 lines and about 47,000 tokens, read into every session
+before a word was typed, and 2,384 of those lines were one section: *How to
+work in this codebase*, two hundred and sixteen paragraphs that had accreted
+one lesson at a time across a hundred and seventy decisions. A session fixing
+a pinch was paying for thirty paragraphs on spine bindings. Claude Code's own
+guidance puts the target under two hundred lines and says what to do with the
+rest: rules scoped to paths, which load when a matching file is read rather
+than at launch.
+
+**Eight area files, and nothing reworded.** `.claude/rules/` holds one file per
+area of the code, each with a `paths:` list naming the modules it is about, and
+each paragraph moved whole into exactly one of them: board, tiles, look,
+gestures, motion, model, panels, render. The assignment was made by hand, by
+title, against what each paragraph actually names. An automatic pass scored
+off each module's export list was run first and was wrong often enough (the
+light on a knob landed in motion) to serve as a cross-check and not the method.
+The move was verified the only way a move can be: every one of the 216
+paragraphs found byte for byte in exactly one file, and 2,150 non-blank lines
+out, 2,150 in. `grep -rn` across `.claude/rules/` finds what a grep of
+CLAUDE.md used to.
+
+**Five stay in the root.** Rendering is full re-render; an animation never
+holds anything up; events are delegated, not bound; everything is an object
+and containing is an attribute; never branch on a type's name. Each is about
+every module at once, so no path could scope it. The *Invariants* section stays
+for the same reason. The root is 499 lines and about 8,600 tokens.
+
+**The one thing a path-scoped rule cannot do** is load before a file is opened,
+and a plan is made before any file is opened. So the root says it in bold: read
+the file for an area before changing it, and before planning the change. A
+session that plans blind has loaded none of the rules, and that is the failure
+mode this trades for the context.
+
+**And the smoke test runs in pieces now, without being changed.**
+`test/smoke-only.mjs` reads `smoke.mjs`, keeps the blocks you name plus every
+block that declares a name a kept block reads, cuts the rest out of the text
+and runs what is left. Block zero, the page and the helpers, is always kept.
+The two blocks tried ran in six and seven seconds against three hundred and
+four for the file, and `smoke.mjs` is not modified, so the full run is exactly
+what it was and is still the gate: nothing is done until it passes. A block
+that stood on page state a cut block left behind fails loudly, an assertion
+false or a name not defined, rather than passing. That is the design.
+
+*Against:* a rule that used to be guaranteed in context is now guaranteed only
+once its file is touched. The five in the root and the Invariants are the
+answer for what has to be everywhere; the rest was never read as carefully at
+47,000 tokens as it will be at 5,000. And the paths are literal file names: a
+new module in `web/js/` belongs in one of the eight lists or its rules never
+load. Add it to the `paths:` of its area when you add it to `SHELL`.
