@@ -7667,3 +7667,59 @@ another". That is a real loss and it is what a sorting drawer is for — *Every
 object* is already on the seeded desk and collects exactly that, in a list, from
 everywhere. A view that quietly aggregates is the thing decision 22 deleted the
 tabs over.
+
+## 174 · The bump is checked, not remembered
+
+*2026-09-16*
+
+A research pass over what the open-source Claude skill ecosystem could do for
+Bureau, and the finding was: very little. Every frontend skill out there is
+written for the stack this app refuses (a bundler, a framework, Tailwind, a
+`playwright.config.ts`), and installing one would put an advisor in the room
+arguing for a build step on every question. What the pass measured instead was
+this repository's own friction, and three pieces of it were mechanical.
+
+**The cache bump is a hook.** CLAUDE.md said "bump `CACHE` and `APP_VERSION`
+together" across three paragraphs, called it the easiest thing in the project
+to forget, and warned at length that a shallow clone's commit count walks the
+version backwards. Prose is advisory. The shallow clone this was written from
+had 56 commits visible against an `APP_VERSION` of 1.70, so the hazard was
+live that afternoon. `test/version.mjs` asserts the four things that have to
+agree, and `.claude/settings.json` runs it as a `PreToolUse` hook before every
+`git commit`, refusing one that forgot and handing back the fix ("Set
+APP_VERSION to '1.71' in web/js/persist.js and CACHE to 'bureau-v171' in
+web/sw.js"). Anything that is not a commit passes through in a millisecond,
+and a machine with no node passes through too: the hook must never be the
+thing that stops a commit on a machine it cannot run on. It went in clean; the
+tree was consistent the day it arrived, which is the only day to adopt a guard.
+
+**A web session sets itself up.** A fresh clone could not run the tests:
+Playwright is in `package.json` and not in the container, and the tests need
+telling where the pre-installed Chromium is. `.claude/hooks/session-start.sh`
+does both, remote only, with `npm install` and never `npm i playwright`. Naming
+the package re-resolves it, and that is how the research session came to be
+holding a bump from 1.62.1 to 1.63.0 nobody had asked for. It was reverted, not
+committed, and the hook now checks the manifests are untouched after it runs.
+
+**Twenty permission rules, every one read-only or the project's own.** The
+read-only half of git, the scripts and tests by name, bare `npm install`, and
+`ls`, `wc` and `grep`. Nothing that pushes, deletes, or takes a redirect: `git
+branch` came off the list because `-D` is a `git branch`, and `cat` because
+`cat x > y` is a `cat`.
+
+**Not done, on purpose.** A filter flag for the smoke test was the fourth item,
+and it is not a flag. A hundred and twenty-nine blocks run in sequence on one
+page, each declares a result the final `console.log` names, and later blocks
+stand on what earlier ones made; skipping one is a restructure of 7,800 lines.
+The full run is 304 seconds and stays the full run. And CLAUDE.md is 190KB,
+about 47,000 tokens loaded before anything is typed, 214 rule paragraphs that
+cluster along the module table it already carries. Splitting it into skills
+that load when their module is touched is the biggest lever this pass found,
+and it is deliberately its own pass: it rewrites the document that governs
+everything else, and what stays universal is Timothy's call.
+
+*Against:* a hook that refuses is a hook that gets switched off the first time
+it refuses wrongly. The checks are narrow for exactly that reason and each one
+prints the edit that satisfies it; if one starts crying wolf, fix the check
+rather than pulling the hook. And a `.claude/` directory is the first thing in
+this repository that is about the tool rather than the app. It stays small.

@@ -1,0 +1,52 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-start.sh",
+            "timeout": 300
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/commit-guard.sh",
+            "timeout": 30,
+            "statusMessage": "Checking CACHE, APP_VERSION and SHELL agree"
+          }
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "allow": [
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(git branch --show-current)",
+      "Bash(git rev-parse:*)",
+      "Bash(git rev-list:*)",
+      "Bash(git ls-files:*)",
+      "Bash(scripts/serve.sh:*)",
+      "Bash(node test/version.mjs)",
+      "Bash(node test/smoke.mjs:*)",
+      "Bash(node test/deploy.mjs:*)",
+      "Bash(node test/scale-probe.mjs:*)",
+      "Bash(node test/shapes.mjs)",
+      "Bash(node scripts/catalogue.mjs:*)",
+      "Bash(npm install)",
+      "Bash(npm ci)",
+      "Bash(ls:*)",
+      "Bash(wc:*)",
+      "Bash(grep:*)"
+    ]
+  }
+}

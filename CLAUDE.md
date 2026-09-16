@@ -46,6 +46,7 @@ and shouldn't be undone by accident.
 ```bash
 scripts/serve.sh              # http://localhost:8000
 node test/smoke.mjs           # headless browser check, needs the server running
+node test/version.mjs         # CACHE, APP_VERSION and SHELL agree; the commit hook runs this too
 node test/scale-probe.mjs     # what a render costs as the desk fills up
 node scripts/catalogue.mjs out.html   # the specimen book, to a file (Settings opens it too)
 ```
@@ -54,7 +55,9 @@ Open it over http, never as a `file://` URL — the service worker won't registe
 and the manifest won't load, so you'd be testing a different app than the one
 that ships.
 
-`test/smoke.mjs` needs Playwright (`npm i playwright`). It exercises the desk,
+`test/smoke.mjs` needs Playwright: `npm install`, never `npm i playwright`, which
+re-resolves the pin and rewrites `package.json` (a web session's start hook does
+it for you, see below). It exercises the desk,
 drawers, quick-add, the detail sheet, habits and goals, both layouts, persistence
 across a reload, and an offline reload. **Run it after any non-trivial change and
 before saying you're done.** It writes screenshots to `test/shots/` — look at
@@ -148,6 +151,16 @@ and if it says true, read the current `APP_VERSION` and add one. Without
 the cache bump, installed copies keep serving the old version. A **new** file must also be added to `SHELL` in `sw.js` or
 it won't work offline. This is the easiest thing in the project to forget and
 the symptom — "my change didn't deploy" — points at the wrong culprit.
+
+**So it is checked, not remembered.** `test/version.mjs` asserts all of it: the
+two numbers agree, `SHELL` matches the files on disk, a change under `web/`
+moved `CACHE`, and the version never went backwards. `.claude/settings.json`
+runs it as a hook before every `git commit` and refuses one that forgot, with
+the exact edit in the message. The same file starts a web session by
+installing Playwright at the pinned version and pointing the tests at the
+container's Chromium (`.claude/hooks/session-start.sh`, remote only), and
+carries a short allowlist of read-only commands so a session is not asked
+about `git status`. See decision 174.
 
 **A second app used to be deployed beside Bureau, and it still shares the
 origin.** Activinator lives in its own repository now
