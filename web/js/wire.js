@@ -9,7 +9,7 @@ import { gridOf, lay, boxOk, freeSpot, anySpot, roomFor, sizeOfKind, toPhoneSize
 import { applyLook, applyStyle, setLookVal, lookVal, STYLES, setSlot, objColour, darkMode } from './look.js';
 import { toast, fits, setGridSize, toggleDone, spawnNext, del, delMany, delDrawer, undo, redo, pushUndo,
   pushSet, pushSets, setPin, togglePin, drawerForTag, create, spawnInto, randomThing,
-  holdIt, unholdIt, unholdMany, undoToast, someKind, becomeKind } from './mutations.js';
+  holdIt, unholdIt, unholdMany, undoToast, someKind, becomeKind, breakDown } from './mutations.js';
 import { spinTo, pending, placeAtPending, tileTap, turnPage, clearPages } from './tiles.js';
 import { DECOR, LIFE_ART } from './decor.js';
 import { render, renderSoon, sizeGrid, toggleSettings, settingsPanel, reveal, goShelf, goShelfTo, deskMap } from './views.js';
@@ -919,6 +919,7 @@ function wire(){
          takes the box and the seed with it, which is what makes the answer
          look like the thing you chose. See becomeKind(). */
       else if(cmd==='become') becomePanel(id, 'project');
+      else if(cmd==='breakdown') breakDown(id);
       /* The Void Drawer, without the gesture. The drag is the way you reach
          for it — the rail on a phone, the Home Knob on a Mac — and the menu is
          the one way in that is the same on both. */

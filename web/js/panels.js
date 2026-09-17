@@ -2197,6 +2197,12 @@ function openCtx(x,y,id){
          not already a container, because `isContainer()` is the structural
          question and "is it a task" is a branch on a name. */''}
     ${(!many && !isContainer(o))?`<button data-c="become:${id}">${ic('flag',14)} Make it a project…</button>`:''}
+    ${/* A goal's milestones are strings until this turns each into a real
+         Task in a fresh Checklist filed under it — offered on the attribute
+         combination (holds work, carries milestones), not on the word
+         "goal". See breakDown() in mutations.js and FUNCTIONS.md §12. */''}
+    ${(!many && isContainer(o) && has(o,'progress') && (o.milestones||[]).filter(m=>m&&m.t).length)
+      ?`<button data-c="breakdown:${id}">${ic('check',14)} Break it down…</button>`:''}
     ${(!many&&repeats(o))?`<button data-c="nextcopy:${id}">${ic('repeat',14)} Make the next one</button>`:''}
     ${(!many&&(has(o,'check')||has(o,'streak')))?`<button data-c="done:${id}">${ic('check',14)} ${has(o,'streak')?'Mark today':'Complete'}</button>`:''}
     <button data-c="intodrawer:${id}">${ic('folder',14)} ${many?`Put these ${sel.length} in a new drawer`:'Put this in a new drawer'}</button>

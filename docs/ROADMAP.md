@@ -5,6 +5,50 @@ Sequenced by dependency, not appetite: item 1 makes everything after it safer.
 
 ---
 
+## 0zb. Queued 2026-09-17 — break it down — DONE (v1.71)
+
+First of `FUNCTIONS.md`'s own *Order to build in* — the four-item opening
+pass, taken off the top: **B8**, a goal's milestones turned into real work.
+
+A milestone was a string on `o.milestones` — ordered, drawn as a bar, and
+otherwise inert: it could not be ticked from the board, dated, ranked, or
+collected by a sorting drawer, because it was never an object. `breakDown()`
+in `mutations.js` fixes the dead end directly: each milestone becomes a Task
+in a fresh Checklist filed under the container, the milestone list is
+cleared, and `tracks` is pointed at the new checklist — so the number on the
+goal's card keeps meaning what it meant, only now every one of the things it
+is counting can be dragged onto a day, given a deadline, or swept into a
+sorting drawer.
+
+**Gated on the pair of attributes, not on the word "goal".** The menu item —
+"Break it down…", beside "Make it a project…" in the object's context menu —
+checks `isContainer(o) && has(o,'progress')` and that there is at least one
+named milestone. Anything invented at runtime that ticks the same two boxes
+gets the same button, which is the test every addition to this menu is
+supposed to pass.
+
+**One undo move for the field change, none for the creation.** `pushSets()`
+records the container's old `milestones` and `tracks` before either is
+touched, matching `becomeKind()`'s own pattern one function up. The new
+checklist and its tasks are not wrapped in `{add}` steps — neither is
+`drawerFromSelection()`'s drawer, nor `becomeKind()`'s seeded children — so
+⌘Z restores the milestone list and un-points the bar, and the checklist it
+made stands (findable, not orphaned: it is filed exactly where the menu said
+it would be). Fixing that asymmetry for every maker in this file is a
+separate session's work, not this one's.
+
+**Order is set by hand, not by creation.** `create()` gives every new object
+an `ord` one below the current global minimum, so creating tasks in
+milestone order would have listed them backwards the moment the checklist
+opened in its own (list) layout — the newest milestone always the most
+negative and so always first. Each task's `ord` is overwritten to its index
+in the milestone array instead; only the order among siblings is read, so the
+absolute number does not matter.
+
+*Left out:* B5 (a list row prints one field), B10 (the work band on the
+calendar) and B6 (select what a sorting drawer collects) — the rest of the
+same four-item pass, independent of this one and of each other.
+
 ## 0za. Reported 2026-09-13 — three from living with the plans — DONE (v1.70)
 
 Timothy put the ten down and sent three notes back. Every one is the app

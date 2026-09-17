@@ -1042,7 +1042,7 @@ a rule, **medium** is a face or a behaviour with CSS and a smoke assertion, and
 | B5 | **A list row prints one field** (`listField`) | 8, 10 | Small |
 | B6 | **Select what this sorting drawer collects** | 4 | Small |
 | B7 | **Empty a sorting drawer into a real one** | 8 | Small |
-| B8 | **Break it down** — a goal's milestones become tasks | 12 | Small |
+| B8 | **Break it down** — a goal's milestones become tasks | 12 | **Shipped v1.71** |
 | B9 | A **repeat that stamps a plan** instead of copying | 6 | Small |
 | B10 | The **work band on the calendar** | 14 | Small |
 | B11 | A **Label is a heading in a list** | 3 | Medium |
@@ -1066,10 +1066,13 @@ a rule, **medium** is a face or a behaviour with CSS and a smoke assertion, and
 Sequenced by dependency and by how much each one unlocks, which is the same rule
 `ROADMAP.md` uses.
 
-1. **B8 break it down**, **B5 list field**, **B10 work band**, **B6 select by
-   rule**. Four small things, four different functions, no dependencies between
-   them, and each turns an existing dead end into the rest of the system. This
-   is the pass with the best ratio in the document.
+1. ~~**B8 break it down**~~ — **done, v1.71**: a goal's (or any container
+   carrying `progress`) milestones become real Tasks in a fresh Checklist filed
+   under it, `tracks` points the bar at them, and the menu item is gated on the
+   attribute pair rather than the word "goal". **B5 list field**, **B10 work
+   band**, **B6 select by rule** are still open — four small things, four
+   different functions, no dependencies between them, each turning an existing
+   dead end into the rest of the system. Best ratio in the document.
 2. **B3 the Void Drawer takes typing**, **B4 quiet**, **B1 genOpen**, **B2 the
    board's default type.** Four gestures. Between them they fix the entry cost
    of functions 1, 2 and 7, which are the three the app is worst at.

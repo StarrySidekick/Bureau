@@ -609,6 +609,36 @@ function becomeKind(id, kind){
   if(kindHas(kind,'container') && !childrenOf(o).length) seedInto(o, kind);
   return o;
 }
+/* A goal's milestones are strings until this: `ordered steps with a progress
+   bar` and nothing more — not tickable from the board, not dateable, not
+   collectible by a sorting drawer, because they are not objects. Each becomes
+   a real Task in a fresh Checklist filed under it; the milestone list is
+   cleared; and the bar is pointed at the checklist with `tracks`, so the
+   number on the card keeps meaning what it meant. See FUNCTIONS.md §12, B8.
+
+   Offered wherever something both holds its own work and carries milestones —
+   `isContainer(o) && has(o,'progress')` — not by a kind's name: the Goal type
+   is the case that motivated it, and any invented type with the same two
+   attributes gets the same menu item, same as everywhere else in this file. */
+function breakDown(id){
+  const o=byId(id);
+  if(!o || !isContainer(o) || !has(o,'progress')) return;
+  const ms=(o.milestones||[]).filter(m=>m && m.t);
+  if(!ms.length) return;
+  pushSets(`Broke down ${o.title||'it'}`, [
+    [id,'milestones', ms.map(m=>Object.assign({},m))],
+    [id,'tracks', o.tracks||null]]);
+  const list=create('checklist', {parent:o.id, title:'Milestones'});
+  ms.forEach((m,i)=>{
+    const t=create('task', {parent:list.id, title:m.t, done:!!m.done, noSeed:true});
+    t.ord=i;                                 // list order, not creation order
+    if(m.done) t.doneAt=m.d||T; else t.due=m.d||null;
+  });
+  o.milestones=[];
+  o.tracks=list.id;
+  save(); render();
+  toast(`Broken down into ${ms.length} task${ms.length===1?'':'s'}, tracked by the bar`);
+}
 /* Two objects dropped on each other become the container their type gathers
    into — see gatherKind() in model.js, which decides whether they agree. The
    new container starts at the target's corner so the pile stays where you made
@@ -837,7 +867,7 @@ function randomThing(parentId){
 // toggleHabit isn't exported — a streak reaches it through toggleDone, which is
 // the one door, so nothing outside has to know a habit ticks differently.
 export { toast, setGridSize, toggleDone, spawnNext, del, delMany, delDrawer, undo, redo,
-  pushUndo, pushSet, pushSets, setPin, togglePin, becomeKind,
+  pushUndo, pushSet, pushSets, setPin, togglePin, becomeKind, breakDown,
   drawerForTag, create, gather, quickAdd, spawnInto, randomThing,
   CONTROLS, CTL_KEYS, ctlSpec, ctlSaid, ctlIsOn, ctlForm, ctlNum, ctlIndex, ctlPress, someKind,
   fits,

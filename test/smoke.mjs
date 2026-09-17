@@ -7756,6 +7756,30 @@ const CHROME = process.env.BUREAU_CHROME;
     out.andItIsOneUndoBack = tk.kind === 'task';
     S.objects = S.objects.filter(x => x.id !== tk.id && x.parent !== tk.id);
 
+    /* ---- a goal's milestones, broken down -------------------------------
+       Milestones are strings until the menu turns them into real Tasks in a
+       fresh Checklist, points the bar at it with `tracks`, and clears the
+       list they came from. FUNCTIONS.md §12, B8. */
+    const gl = BUREAU.create('goal', {parent: 'root', title: 'Ship the thing',
+      milestones: [{t: 'First', done: true, d: '2026-01-01'}, {t: 'Second', done: false}, {t: 'Third', done: false}]});
+    gl.desk = Object.assign(BUREAU.free(6, 4, 'root'), {w: 6, h: 4});
+    BUREAU.render(); await nap(150);
+    BUREAU.ctx(200, 200, gl.id);
+    out.aGoalOffersToBreakDown = !!document.querySelector(`#ctx [data-c="breakdown:${gl.id}"]`);
+    document.querySelector(`#ctx [data-c="breakdown:${gl.id}"]`).click(); await nap(200);
+    out.andItsMilestonesAreGone = (gl.milestones || []).length === 0;
+    const list = BUREAU.state.objects.find(o => o.id === gl.tracks);
+    out.andTheBarNowTracksAChecklist = !!list && list.kind === 'checklist' && list.parent === gl.id;
+    const tasks = list ? BUREAU.kids(list.id).map(id => BUREAU.state.objects.find(o => o.id === id)) : [];
+    out.andEachMilestoneIsARealTask = tasks.length === 3 && tasks.every(t => t.kind === 'task');
+    // order survives — the manual ord written by hand, not the creation order
+    out.inTheOriginalOrder = tasks.slice().sort((a, b) => (a.ord || 0) - (b.ord || 0))
+      .map(t => t.title).join(',') === 'First,Second,Third';
+    out.andTheDoneOneStayedDone = tasks.find(t => t.title === 'First').done === true;
+    BUREAU.undo(); await nap(150);
+    out.andBreakingItDownIsOneUndoBack = (gl.milestones || []).length === 3 && !gl.tracks;
+    S.objects = S.objects.filter(x => x.id !== gl.id && x.id !== list?.id && x.parent !== list?.id);
+
     /* ---- the add box is a spawner, wherever it is ----------------------
        A spawner with its line showing and the box at the top of an open
        drawer do the same thing and were drawn as two different things. Both
