@@ -3,13 +3,13 @@ import { S, byId, dev, has, isContainer, isAncestor, childrenOf, container, gath
   sortOf, boardLocked, heldCount, homeFor, attrsOf, travelWith } from './model.js';
 import { CELL, gridOf, drawCols, drawRows, cellW, lay, boxOk, overlaps, sizeOfKind, keepSize } from './grid.js';
 import { toast, gather, del, pushSets, holdIt, unholdIt } from './mutations.js';
-import { pending, tileTap, fireButton } from './tiles.js';
+import { pending, tileTap, fireButton, turnPage } from './tiles.js';
 import { modalNewObject, holdPanel, openCtx, closeCtx, schedulePanel, refreshPanel,
   closePanel } from './panels.js';
 import { render, shelfShift, reveal } from './views.js';
 import { gravityGrab, gravityDrag, gravityDrop } from './gravity.js';
-import { closeSheet } from './sheet.js';
-import { pagerBegin, pagerMove, pagerEnd, pagerCancel, pagerOn, leaveTile, toss, fileTo } from './motion.js';
+import { closeSheet, renderSheet } from './sheet.js';
+import { pagerBegin, pagerMove, pagerEnd, pagerCancel, pagerOn, leaveTile, toss, fileTo , zoomedIn } from './motion.js';
 import { save } from './persist.js';
 
 /* ============================================================
@@ -24,6 +24,11 @@ let holdTimer=null, menuTimer=null, holdFrom=null;
    "tell me about this", so it becomes the context menu instead. Six pixels of
    slack, because a finger resting on glass is never perfectly still. */
 const HOLD_TOUCH = 300, HOLD_MOUSE = 200, MENU_AFTER = 250, WOBBLE = 6;
+/* How far a finger has to travel across a book before it is turning a page
+   rather than touching the paper, and how far before letting go commits. The
+   first is deliberately larger than `WOBBLE`: a tap on the page puts a caret
+   in it (decision 82) and losing that to a twitch would be the worse trade. */
+const BOOK_SLOP = 14, BOOK_TURN = 54;
 
 /* Refusing `selectstart` stops a *new* selection; it does nothing about one
    that is already on the screen. Safari will happily keep a highlight — and the
@@ -709,6 +714,53 @@ function placePen(id, k, iso){
 }
 
 function onDown(e){
+  /* **Nothing on the board is dragged while the camera is in.** `cellW()`
+     measures `.grid`'s own rect for the drag maths and a transform changes
+     that rect, so every number this file works in would be out by the zoom
+     factor — silently, and worst at the far corners, which is exactly the
+     class of bug the "never round the cell size" invariant exists to stop.
+     It is also right on its own terms: you are reading rather than arranging.
+
+     `.zoomread` is the one exemption and it has to be: it is the column you
+     push and the spread you turn, which are gestures *in* the thing rather
+     than gestures that move it, and blocking them blocked the whole point of
+     having zoomed in. Everything outside it on the board is still refused.
+     See decision 187. */
+  if(zoomedIn() && e.target.closest('#drawergrid')
+     && !e.target.closest('.zoomread')) return;
+
+  /* ---- a book turns by dragging across it — decision 186 -----------------
+     A book on paper turns by being pushed, and this one had only two chevrons
+     in a bar under it. The press is claimed here and **the tap is not
+     consumed**: `mode` stays null until the finger has actually travelled, so
+     a press that goes nowhere still falls through to the click that puts a
+     caret in the page — which is the whole of decision 82 and must not be
+     taken away to get a page turn.
+
+     It sits at the very **top** of onDown, before the tile branch, because a
+     book read under the camera is drawn inside the object's own tile — and the
+     tile branch would otherwise claim the press as a drag or a menu before
+     this one was ever reached. A press on a page is a press on a page
+     whatever it happens to be inside.
+
+     Only a **paged** spread. `.scrolling` is the scroll mode, where sideways
+     means nothing and up and down is the entire gesture; and a press that
+     starts on a control in the bar belongs to that control. */
+  const spread = e.target.closest('.book .spread:not(.scrolling)');
+  if(spread){
+    /* A control **inside** the spread keeps its press; the tile *around* one
+       does not. A book read under the camera (decision 187) is drawn inside
+       the object's own tile, and a tile is a `<button>` — so a bare
+       `closest('button')` matched the tile itself and refused every page turn
+       on the board. Scoped by containment rather than by tag. */
+    const ctl = e.target.closest('button,input,textarea,select,a');
+    if(!(ctl && spread.contains(ctl))){
+      G={type:'book', el:spread, sx:e.clientX, sy:e.clientY, mode:null, dx:0};
+      return;
+    }
+  }
+
+
   if(e.button===2) return;
   if(pagerOn()) return;              // a board already in flight owns the screen
   /* A drag arms suppressClick so its own trailing click can't also fire. If
@@ -1050,6 +1102,28 @@ function onMove(e){
   cancelHold(e);
   if(!G) return;
   const dx=e.clientX-G.sx, dy=e.clientY-G.sy;
+
+  /* The spread follows the finger, **damped**, because a bound book is hinged
+     at the spine: the far edge travels and the spine does not, so a page that
+     tracked the finger one for one would read as a loose sheet. It commits on
+     release rather than mid-drag — `turnPage()` re-renders and then lays its
+     own leaf over the result, and a render mid-gesture takes the element these
+     pointers are being delivered to out of the document. See decision 186. */
+  if(G.type==='book'){
+    if(!G.mode){
+      // up and down belongs to the page's own scrolling; sideways is the turn
+      if(Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > BOOK_SLOP){ G=null; return; }
+      if(Math.abs(dx) < BOOK_SLOP) return;
+      G.mode='turn';
+      gestureFlags.suppressClick=true;      // it was a turn, not a tap on the paper
+      G.el.style.transition='none';
+      dropSelection();
+    }
+    G.dx=dx;
+    G.el.style.transform=`translateX(${(dx*0.34).toFixed(1)}px)`;
+    G.el.style.filter=`brightness(${(1 - Math.min(0.06, Math.abs(dx)/2400)).toFixed(3)})`;
+    return;
+  }
 
   if(G.type==='swipe'){ swipeMove(G, dx, dy); return; }
 
@@ -1432,6 +1506,27 @@ function onUp(e){
   if(!G) return;
   const g=G; G=null;
   const dx=e.clientX-g.sx;
+
+  /* Letting go of a page. Past the threshold it turns — `turnPage()` advances
+     and re-renders and then lays its own leaf over the result, which is the
+     animation that has been there all along and had only two chevrons to start
+     it. Short of the threshold the spread eases back, because a page you did
+     not push far enough falls back against the spine.
+
+     `S.readId` decides which renderer to hand it: the reading surface draws
+     into `#sheetHost` and the board draws into `#app`, and a book can be
+     either — an object being read, or a container wearing the book layout.
+     See decision 186. */
+  if(g.type==='book'){
+    const el = g.el;
+    el.style.transition='transform .22s cubic-bezier(.2,.8,.3,1), filter .22s';
+    el.style.transform='';
+    el.style.filter='';
+    setTimeout(()=>{ if(el) el.style.transition=''; }, 260);
+    if(g.mode==='turn' && Math.abs(g.dx) > BOOK_TURN)
+      turnPage(g.dx < 0 ? 1 : -1, S.readId ? renderSheet : render);
+    return;
+  }
 
   /* Putting the button down. A drag that never travelled is a tap and is left
      alone — the click that follows takes the button into your hand, which is
@@ -1974,6 +2069,13 @@ function onCancel(){
   cancelHold();
   if(G && G.type==='fall') gravityDrop();
   if(G && G.type==='band'){ clearRow(G); clearBandShift(G); }
+  /* A cancelled page falls back against the spine. Without this, iOS taking
+     the pointer away mid-turn would leave the spread stranded wherever the
+     finger was, with no `pointerup` ever coming to put it back. */
+  if(G && G.type==='book' && G.el){
+    G.el.style.transition='transform .22s, filter .22s';
+    G.el.style.transform=''; G.el.style.filter='';
+  }
   stopPan();
   pagerCancel();
   if(G){ clearAim(G); closeAjar(G); if(G.ghost) G.ghost.remove();

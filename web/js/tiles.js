@@ -21,7 +21,7 @@ import { hexOf, objColour, stringColour, dress, dressAs, OBJ0, OBJN, CHECKS, bes
 import { render } from './views.js';
 import { openObj, openWriter, openRead, openViewer } from './sheet.js';
 import { objectPanel, schedulePanel } from './panels.js';
-import { openTile, openingFor } from './motion.js';
+import { openTile, openingFor , zoomInto, zoomOut, zoomedIn, camScale, CAM_READ } from './motion.js';
 import { save } from './persist.js';
 
 /* ============================================================
@@ -459,7 +459,20 @@ function tileTap(id){
        is its own surface. Reading is what you do to words, and an image object
        sent to the book surface got a blank sheet of paper with a photograph
        pasted at the top of it. */
-    case 'read':  openTile(id, ()=> isMedia(o) ? openViewer(id) : openRead(id)); break;
+    /* **Reading is a camera move now** — decision 187. The board scales until
+       this object fills the screen and its neighbours are still round it,
+       rather than a surface replacing the desk with the object on its own.
+       `S.bookAt` resets because you are opening it, not returning to it.
+
+       A **picture** still goes to the media surface: an image wants the whole
+       screen at its own aspect, and magnifying a 4×3 tile to fill a phone is
+       not the same thing as showing the photograph. Sound and video the same —
+       what you want there is the controls, not a bigger picture of a record. */
+    case 'read':
+      if(isMedia(o)){ openTile(id, ()=>openViewer(id)); break; }
+      S.bookAt = 0;
+      zoomInto(id); render();
+      break;
     // the editor is the writing surface now: the body, full screen, and nothing
     // else on it. Every *setting* is in the object's own panel.
     case 'edit':  openTile(id, ()=>openWriter(id)); break;
@@ -590,11 +603,67 @@ function sizeClass(box){
    CSS placement uses it — a box is never rewritten, exactly as it never was
    for a page. See decision 141. */
 const SHELFSHIFT = {x:0, y:0};
+/* ---- what a tile shows once the camera is on it — decision 187 ---------
+   A tile prints as much of a body as it has room for and stops. Under the
+   camera it has the *same* room — the box has not changed — but you are much
+   closer to it, so "as much as it has room for" becomes a page rather than a
+   caption, and the thing you want next is the rest of it.
+
+   Two answers and they are the object's own, not the camera's: `readOf(o)` is
+   **scroll** or **book**, exactly as it is on the reading surface, so an
+   object opens the way it has always opened and only the place has changed. A
+   scroll gets its whole body in a column you can push; a book gets pages you
+   turn, paginated **against this tile** (see pagesOf's `box`) rather than
+   against a sheet of paper that is not on the screen.
+
+   Anything that is not words — an instrument, a picture, a control — gets
+   nothing added. It is already the whole of itself; the camera just brings it
+   close enough to use.
+
+   The reading view carries its own **head** — the object's name, on one line,
+   clipped — and the tile's own name row is hidden while it is up, because the
+   tile's name is drawn at the tile's own size and the camera magnifies that
+   along with everything else: a 12px caption at 4x is a 48px banner across the
+   words. Its furniture is stated in **ems of the counter-scaled type** and
+   written onto the element as custom properties, so board.css and the
+   pagination below measure against one set of numbers rather than two that
+   agree until somebody edits one. */
+const ZPAD = {x:.8, y:.7}, ZHEAD = 1.9;
+function zoomFace(o, box){
+  if(!has(o,'text') || isMedia(o) || isActive(o) || has(o,'control')) return '';
+  const cell = CELL[dev()] || 44;
+  /* The type is **counter-scaled**: written at `CAM_READ / k` here so that the
+     same transform that magnifies the tile lands it at `CAM_READ` on the
+     screen. Without it the tile's caption type is magnified seven times and
+     you get one word to a line. `camScale()` is the same function `applyZoom()`
+     uses, so the size the words are paginated at and the size they are shown
+     at cannot come apart. See decision 187. */
+  const fs = CAM_READ / camScale(box.w, box.h);
+  const sty = `font-size:${fs.toFixed(2)}px;--zpx:${ZPAD.x}em;--zpy:${ZPAD.y}em;--zhead:${ZHEAD}em`;
+  const head = `<div class="zoomhead">${esc(o.title||'Untitled')}</div>`;
+  if(readOf(o)==='scroll')
+    return `<div class="zoomread zscroll" style="${sty}">${head}<div class="zoombody">${
+      o.body ? md(o.body) : '<p class="thin">Nothing written yet.</p>'}</div></div>`;
+  // the page's own box, in the tile's untransformed pixels, less the furniture
+  const w = Math.max(30, box.w*cell - 2*ZPAD.x*fs - 4);
+  const h = Math.max(30, box.h*cell - 2*ZPAD.y*fs - ZHEAD*fs - 4);
+  const pages = pagesOf(o, {w, h, fs});
+  const at = Math.min(Math.max(0, S.bookAt||0), Math.max(0, pages.length-1));
+  return `<div class="zoomread zbook" style="${sty}">${head}<div class="zoombody"><div class="book"><div class="spread">
+      <div class="page">${pages[at]||''}<span class="pno">${at+1} / ${pages.length}</span></div>
+    </div></div></div></div>`;
+}
+
 function gridTile(o, arr, parentId){
   let box;
   if(FLOW.has(o.id)){ box=FLOW.get(o.id); FLOW.delete(o.id); }
   else { ensureBox(o, dev(), parentId); box=lay(o); }
   if(SHELFSHIFT.x || SHELFSHIFT.y) box={...box, x:box.x-SHELFSHIFT.x, y:box.y-SHELFSHIFT.y};
+  /* Asked before the class list rather than at the splice, because whether
+     there is a reading face is a fact about the tile — it is what takes the
+     tile's own name row over — and a class is how a fact about a tile reaches
+     the stylesheet. Empty for everything that is already the whole of itself. */
+  const camFace = S.zoomOn===o.id ? zoomFace(o, box) : '';
   /* Stamped on the same way the size classes are — the first `class="` of
      whatever drawTile() returns — so the two traits that let an object out of
      a locked board reach every face without one of them being told. */
@@ -608,13 +677,23 @@ function gridTile(o, arr, parentId){
     /* A postcard showing its back. Spliced in with the size classes for their
        reason: one class list written here reaches every branch of drawTile(),
        including the ones nobody has thought about. See decision 184. */
+    /* The camera is on this one. Spliced in with the size classes for their
+       reason — one class list here reaches every branch of drawTile() — and
+       the *contents* are spliced the same way, just below. See decision 187. */
+    S.zoomOn===o.id ? 'oncamera' : '',
+    camFace ? 'camreading' : '',
     o.flip ? 'flipped' : '',
     has(o,'movable')   ? 'freemovable' : '',
     has(o,'resizable') ? 'freesizable' : ''].filter(Boolean).join(' ');
   /* Samples are on no board at all, so they get no perspective — a type drawn
      in the picker is a specimen, not a thing standing somewhere. */
   const persp = arr===false ? null : perspOf(box);
-  const html=drawTile(o, arr, box, persp);
+  let html=drawTile(o, arr, box, persp);
+  /* The reading face goes in the same way the layers do: into whatever
+     drawTile() returned, after its opening tag — so a branch nobody has
+     thought about gets it too, and a tile that has nothing to read is
+     untouched because `zoomFace()` answers with the empty string. */
+  if(camFace){ const i=html.indexOf('>'); html = html.slice(0,i+1) + camFace + html.slice(i+1); }
   return sz ? html.replace('class="', `class="${sz} `) : html;
 }
 /* ---- the two layers under everything ----------------------------------
@@ -2333,12 +2412,21 @@ const clearPages = ()=>{ PAGES.key=null; PAGES.list=null; };
 const headOf = o => o.media&&o.media.src
   ? `<img class="scrollimg" src="${esc(o.media.src)}" alt="${esc(o.title||'')}">` : '';
 
-function pagesOf(o){
-  const two=spreadOf(o);
+/* `box` is optional and is what the camera passes: a book read **inside its
+   own tile** paginates against that tile, not against the reading surface's
+   sheet. The tile's own coordinate space never changes when the camera moves
+   (decision 187) — the magnification is the camera's — so the box handed in
+   here is the untransformed one, and the words come out at the size a tile
+   sets them and are then made bigger by the same transform that made the tile
+   bigger. It is in the cache key for the same reason the window is. */
+function pagesOf(o, box){
+  const two = box ? false : spreadOf(o);
   // the window is in the key because the sheet is sized from it, and a
   // narrower window means fewer lines to a page
   const key=[o.id, two?'two':'one', (o.body||'').length,
-             (o.media&&o.media.assetId)||'', innerWidth, innerHeight].join('|');
+             (o.media&&o.media.assetId)||'', innerWidth, innerHeight,
+             box?`${Math.round(box.w)}x${Math.round(box.h)}@${
+               box.fs?box.fs.toFixed(1):''}`:''].join('|');
   if(PAGES.key===key) return PAGES.list;
 
   const ruler=document.createElement('div');
@@ -2347,6 +2435,11 @@ function pagesOf(o){
     <div class="page"></div>${two?'<div class="page"></div>':''}</div></div>`;
   document.getElementById('frame').appendChild(ruler);
   const cell=ruler.querySelector('.page');
+  if(box){ cell.style.width=box.w+'px'; cell.style.height=box.h+'px';
+           cell.style.padding='0';
+           // the ruler has to measure at the size the words will be *set* at,
+           // or the breaks are for a different typeface entirely
+           if(box.fs){ cell.style.fontSize=box.fs+'px'; cell.style.lineHeight='1.45'; } }
   cell.innerHTML=headOf(o)+md(o.body||'');
 
   const blocks=[...cell.children];

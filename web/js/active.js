@@ -211,10 +211,8 @@ const ACTIVE = {
       const y = 104 - (bpmOf(o) - 30) / 210 * 66;     // the weight rides the scale
       return `<g class="mtBody">
         <path d="M50 4 88 124H12Z" fill="currentColor"/>
-        <path d="M50 4 12 124h18L50 20Z" fill="#fff" opacity=".18"/>
-        <path d="M6 124h88v6H6Z" fill="var(--brass)"/>
-        <path d="M22 108h56v4H22Z" fill="#000" opacity=".18"/>
-        <g stroke="var(--glow)" stroke-width="1.2" opacity=".55">
+    <path d="M6 124h88v6H6Z" fill="var(--brass)"/>
+    <g stroke="var(--glow)" stroke-width="1.2" opacity=".55">
           ${Array.from({length:9},(_,i)=>`<path d="M40 ${38+i*8}h20"/>`).join('')}
         </g>
         <g class="mtArm" style="--beat:${beat}s">
@@ -222,8 +220,7 @@ const ACTIVE = {
             stroke-linecap="round"/>
           <rect class="mtWt" x="40" y="${y.toFixed(1)}" width="20" height="11" rx="2"
             fill="var(--brass)"/>
-          <rect x="40" y="${y.toFixed(1)}" width="20" height="4" rx="2" fill="#fff" opacity=".3"/>
-        </g>
+    </g>
         <circle cx="50" cy="112" r="4" fill="var(--brass)"/>
       </g>`;
     },
@@ -258,10 +255,8 @@ const ACTIVE = {
       const bot = run ? '' : `transform:scaleY(${gone.toFixed(3)})`;
       return `<g class="hgBody">
         <path d="M14 6h72v10H14Zm0 108h72v10H14Z" fill="var(--brass)"/>
-        <path d="M14 6h72v3H14Z" fill="#fff" opacity=".32"/>
-        <path d="M20 16h60c0 24-22 40-22 49s22 25 22 49H20c0-24 22-40 22-49S20 40 20 16Z"
-          fill="#fff" opacity=".16"/>
-        <path d="M20 16h60c0 24-22 40-22 49s22 25 22 49H20c0-24 22-40 22-49S20 40 20 16Z"
+    
+    <path d="M20 16h60c0 24-22 40-22 49s22 25 22 49H20c0-24 22-40 22-49S20 40 20 16Z"
           fill="none" stroke="currentColor" stroke-width="2" opacity=".5"/>
         <clipPath id="hgT"><path d="M22 18h56c0 22-21 38-21 46H43c0-8-21-24-21-46Z"/></clipPath>
         <clipPath id="hgB"><path d="M43 66h14c0 8 21 24 21 46H22c0-22 21-38 21-46Z"/></clipPath>
@@ -270,8 +265,7 @@ const ACTIVE = {
         <g clip-path="url(#hgB)"><rect class="hgBot" x="20" y="64" width="60" height="50"
           fill="var(--glow)" style="${sty};${bot}"/></g>
         ${run?`<rect class="hgRun" x="49" y="64" width="2" height="44" fill="var(--glow)"/>`:''}
-        <path d="M14 114h72v3H14Z" fill="#fff" opacity=".2"/>
-      </g>`;
+    </g>`;
     },
     tap(o){ o.flipAt = Date.now(); return true; },
     say: o => o.flipAt && sandGone(o) < 1
@@ -297,17 +291,13 @@ const ACTIVE = {
           <path d="M30 ${(y-20).toFixed(1)}c4.5 6 6.5 10 6.5 13.5A6.5 6.5 0 0 1 30 ${(y-1).toFixed(1)}
             a6.5 6.5 0 0 1-6.5-6.5C23.5 ${(y-10).toFixed(1)} 25.5 ${(y-14).toFixed(1)} 30 ${(y-20).toFixed(1)}Z"
             fill="var(--glow)"/>
-          <path d="M30 ${(y-13).toFixed(1)}c2 3 2.9 5 2.9 6.6a2.9 2.9 0 0 1-5.8 0c0-1.6.9-3.6 2.9-6.6Z"
-            fill="#fff" opacity=".75"/></g>`:''}
-        <path d="M29 ${(y-2).toFixed(1)}h2v5h-2Z" fill="#000" opacity=".5"/>
-        <rect x="18" y="${y.toFixed(1)}" width="24" height="${h.toFixed(1)}" rx="1.5" fill="${wax}"/>
-        <rect x="18" y="${y.toFixed(1)}" width="7" height="${h.toFixed(1)}" fill="#fff" opacity=".26"/>
-        <ellipse cx="30" cy="${y.toFixed(1)}" rx="12" ry="3" fill="#fff" opacity=".35"/>
-        <path d="M12 108h36c1.6 5-1 9-6 10H18c-5-1-7.6-5-6-10Z" fill="var(--brass)"/>
+    </g>`:''}
+    <rect x="18" y="${y.toFixed(1)}" width="24" height="${h.toFixed(1)}" rx="1.5" fill="${wax}"/>
+    
+    <path d="M12 108h36c1.6 5-1 9-6 10H18c-5-1-7.6-5-6-10Z" fill="var(--brass)"/>
         <path d="M27 118h6v10h-6Z" fill="var(--brass)"/>
         <path d="M8 128h44c2 4 3 7 3 10H5c0-3 1-6 3-10Z" fill="var(--brass)"/>
-        <path d="M8 128h8c-1 4-1.6 7-1.6 10H5c0-3 1-6 3-10Z" fill="#fff" opacity=".26"/>
-      </g>`;
+    </g>`;
     },
     tap(o){
       if(burning(o)){ o.litAt = null; return false; }
@@ -326,20 +316,16 @@ const ACTIVE = {
      The one instrument with no state at all. It rings, and that is the whole
      of it — there is nothing to store, so nothing is stored. */
   bell: {
-    nm:'Desk bell', vb:'0 0 120 92', kind:'bell',
+    nm:'Desk bell', vb:'8 0 104 92', kind:'bell',
     art(){
       return `<g class="blBody">
         <path d="M60 10a34 34 0 0 1 34 34v22H26V44a34 34 0 0 1 34-34Z" fill="var(--brass)"/>
-        <path d="M60 10a34 34 0 0 0-34 34v22h13V44a21 21 0 0 1 21-21Z" fill="#fff" opacity=".3"/>
-        <path d="M44 30a22 22 0 0 1 12-10c-14 4-22 14-24 28Z" fill="#fff" opacity=".4"/>
-        <rect x="55" y="2" width="10" height="10" rx="3" fill="var(--brass)"/>
-        <rect x="55" y="2" width="4" height="10" rx="2" fill="#fff" opacity=".35"/>
-        <rect x="18" y="66" width="84" height="9" rx="3" fill="var(--brass)"/>
-        <rect x="18" y="66" width="84" height="3" rx="1.5" fill="#fff" opacity=".34"/>
-        <rect x="10" y="75" width="100" height="11" rx="4" fill="currentColor"/>
-        <rect x="10" y="75" width="100" height="4" rx="2" fill="#fff" opacity=".2"/>
-        <ellipse cx="60" cy="89" rx="48" ry="3" fill="#000" opacity=".18"/>
-      </g>`;
+    
+    <rect x="55" y="2" width="10" height="10" rx="3" fill="var(--brass)"/>
+    <rect x="18" y="66" width="84" height="9" rx="3" fill="var(--brass)"/>
+    <rect x="10" y="75" width="100" height="11" rx="4" fill="currentColor"/>
+    
+    </g>`;
     },
     tap(){ ding(); return 'ring'; },
     say: () => 'Press it',
@@ -350,29 +336,28 @@ const ACTIVE = {
      Three shapes of one movement. The hands are the same three animations in
      all of them; what changes is the case round them. */
   clock: {
-    nm:'Clock', vb:'0 0 100 118', kind:'clock',
+    nm:'Clock', kind:'clock',
+    /* Tight to each case: a disc, a disc with feet and a bell, a long case. */
+    vb: o => ({wall:'2 10 96 96', alarm:'0 0 100 118', cuckoo:'0 0 100 118'})[clockOf(o)],
     art(o){
       const f = clockOf(o);
       const case_ = f === 'alarm'
         ? `<circle cx="26" cy="15" r="11" fill="var(--brass)"/>
            <circle cx="74" cy="15" r="11" fill="var(--brass)"/>
-           <circle cx="26" cy="15" r="11" fill="#fff" opacity=".22"/>
-           <rect x="44" y="4" width="12" height="9" rx="3" fill="var(--brass)"/>
+    <rect x="44" y="4" width="12" height="9" rx="3" fill="var(--brass)"/>
            <circle cx="50" cy="58" r="44" fill="currentColor"/>
            <circle cx="50" cy="58" r="44" fill="none" stroke="var(--brass)" stroke-width="5"/>
            <path d="M22 100l-8 14h20Zm56 0 8 14H66Z" fill="var(--brass)"/>`
         : f === 'cuckoo'
         ? `<path d="M50 2 96 34H4Z" fill="var(--brass)"/>
-           <path d="M50 2 4 34h16L50 12Z" fill="#fff" opacity=".24"/>
-           <rect x="12" y="32" width="76" height="66" rx="4" fill="currentColor"/>
-           <rect x="12" y="32" width="10" height="66" fill="#fff" opacity=".16"/>
-           <rect x="40" y="36" width="20" height="14" rx="2" fill="var(--brass)"/>
+    <rect x="12" y="32" width="76" height="66" rx="4" fill="currentColor"/>
+    <rect x="40" y="36" width="20" height="14" rx="2" fill="var(--brass)"/>
            <circle cx="50" cy="66" r="26" fill="var(--paper-2, #fff)" opacity=".92"/>
            <path d="M44 98h12v14H44Z" fill="var(--brass)"/>
            <circle class="ckPend" cx="50" cy="112" r="6" fill="var(--brass)"/>`
         : `<circle cx="50" cy="58" r="46" fill="var(--brass)"/>
            <circle cx="50" cy="58" r="40" fill="currentColor"/>
-           <path d="M50 12a46 46 0 0 0-46 46h10a36 36 0 0 1 36-36Z" fill="#fff" opacity=".2"/>`;
+    `;
       // the cuckoo's dial is small and sits high; the other two fill the case
       const s = f === 'cuckoo' ? 0.56 : 1, cy = f === 'cuckoo' ? 66 : 58;
       return `<g class="clkBody">${case_}
@@ -473,21 +458,29 @@ const ACTIVE = {
      because a d6 has pips; everything else gets its number, because a
      twenty-sided die with twenty dots on it is not a thing. */
   die: {
-    nm:'Die', vb:'0 0 100 100', kind:'die',
+    nm:'Die', kind:'die',
+    /* Each solid reaches a different distance into the box, so each states its
+       own — a d6 fills a square cell and a d4 is a triangle with a flat foot. */
+    vb: o => sidesOf(o)===6 ? '2 2 96 96' : sidesOf(o)===4 ? '4 2 92 90' : '4 2 92 96',
     art(o){
       const n = sidesOf(o), f = Math.min(n, Math.max(1, num(o.face, 1)));
       const body = n === 4
-        ? `<path d="M50 6 94 88H6Z" fill="currentColor"/><path d="M50 6 6 88h22L50 26Z" fill="#fff" opacity=".2"/>`
+        ? `<path d="M50 6 94 88H6Z" fill="currentColor"/>
+    `
         : n === 6
-        ? `<rect x="8" y="8" width="84" height="84" rx="14" fill="currentColor"/>
-           <rect x="8" y="8" width="84" height="30" rx="14" fill="#fff" opacity=".16"/>`
+        ? `<rect x="3" y="3" width="94" height="94" rx="15" fill="currentColor"/>
+    `
         : n === 8
-        ? `<path d="M50 4 92 50 50 96 8 50Z" fill="currentColor"/><path d="M50 4 8 50h30Z" fill="#fff" opacity=".2"/>`
+        ? `<path d="M50 4 92 50 50 96 8 50Z" fill="currentColor"/>
+    `
         : n === 10
-        ? `<path d="M50 4 92 40 74 92H26L8 40Z" fill="currentColor"/><path d="M50 4 8 40l18 52h12L26 40Z" fill="#fff" opacity=".18"/>`
+        ? `<path d="M50 4 92 40 74 92H26L8 40Z" fill="currentColor"/>
+    `
         : n === 12
-        ? `<path d="M50 4 88 24l8 42-28 32H32L4 66l8-42Z" fill="currentColor"/><path d="M50 4 12 24 4 66l14 16 6-46Z" fill="#fff" opacity=".18"/>`
-        : `<path d="M50 4 94 30v40L50 96 6 70V30Z" fill="currentColor"/><path d="M50 4 6 30v40l16 9V38Z" fill="#fff" opacity=".18"/>`;
+        ? `<path d="M50 4 88 24l8 42-28 32H32L4 66l8-42Z" fill="currentColor"/>
+    `
+        : `<path d="M50 4 94 30v40L50 96 6 70V30Z" fill="currentColor"/>
+    `;
       /* A d6's five pip positions, and which of them each face uses. Written
          out because a formula for this is longer than the list. */
       const P = {1:[[50,50]], 2:[[30,30],[70,70]], 3:[[30,30],[50,50],[70,70]],
@@ -560,9 +553,21 @@ function activeTap(id){
 /* The artwork, as markup, at whatever size it is being drawn. `xMidYMid`
    because an instrument sits in the middle of its box — an ornament stands on
    the floor of one, which is `decor.js`'s answer and deliberately not this. */
+/* **A viewBox may be a function of the object**, because a clock's case is not
+   one shape: a wall clock is a disc and fills a square, an alarm clock has
+   feet and a bell on top, and a cuckoo hangs a pendulum below itself. One
+   viewBox big enough for all three letterboxes the wall clock inside a square
+   tile and leaves a band of nothing top and bottom — which is what "it doesn't
+   fill the space" was. Each states its own, tight to what it actually draws,
+   and the kind's default box is that proportion, so an instrument put down at
+   its own size fills its cell exactly. See decision 185. */
+const vbOf = o => { const a = ACTIVE[actOf(o)];
+  if(!a) return '0 0 100 100';
+  return typeof a.vb === 'function' ? a.vb(o) : a.vb; };
+
 function activeArt(o, cls){
   const a = ACTIVE[actOf(o)]; if(!a) return '';
-  return `<svg class="actart ${cls||''}" viewBox="${a.vb}"
+  return `<svg class="actart ${cls||''}" viewBox="${vbOf(o)}"
     preserveAspectRatio="xMidYMid meet" aria-hidden="true">${a.art(o)}</svg>`;
 }
 /* Where a burning candle's flame is, in cells, inside a box of `w x h` — the
@@ -574,7 +579,7 @@ function activeArt(o, cls){
 function activeFlame(o, w, h){
   if(!burning(o)) return null;
   const a = ACTIVE[actOf(o)]; if(!a) return null;
-  const [vx, vy, vw, vh] = a.vb.split(/[\s,]+/).map(Number);
+  const [vx, vy, vw, vh] = vbOf(o).split(/[\s,]+/).map(Number);
   const k = Math.min(w/vw, h/vh);
   const ox = (w - vw*k)/2, oy = (h - vh*k)/2;
   const wax = Math.max(6, 84*Math.max(0, Math.min(1, waxLeft(o))));

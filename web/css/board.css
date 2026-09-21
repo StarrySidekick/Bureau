@@ -2726,10 +2726,15 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
 .drawer.otile.acttile:hover{box-shadow:none;filter:brightness(1.06)}
 /* An instrument keeps its taps on a locked board for a lamp's reason
    (decision 179): pressing it is the whole of what it is for. */
-.acttile .actart{
-  width:100%;height:100%;display:block;
-  filter:drop-shadow(0 2px 3px rgba(0,0,0,.28));
-}
+/* **No filter, and no shading baked into the drawing.** A `drop-shadow` on an
+   SVG cannot be composited, so the whole artwork is re-rasterised on every
+   repaint — and this app re-renders the entire board on every tap, which made
+   an instrument visibly flick as you pressed it. The white-and-black washes
+   inside the artwork went with it for a different reason: they are a light
+   source painted into the picture, and every other surface on this desk takes
+   its light from the aesthetic. An instrument is `currentColor`, `--brass` and
+   `--glow`, like a decoration and like everything else. See decision 185. */
+.acttile .actart{width:100%;height:100%;display:block}
 .acttile.selected{outline:2px solid var(--brass);outline-offset:3px}
 .acttile .rz::before{background:var(--ink)}
 
@@ -2799,8 +2804,7 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
   flex:1;min-height:0;display:grid;place-items:center;padding:14px 0 4px;
   color:var(--c);
 }
-.zoomart .actart{width:auto;height:100%;max-width:100%;
-  filter:drop-shadow(0 4px 10px rgba(0,0,0,.3))}
+.zoomart .actart{width:auto;height:100%;max-width:100%}
 /* The weight is the control, so it says so — and while you are dragging it
    the cursor stays a grab wherever the pointer wanders. */
 .zoomart[data-azoomart] .mtWt{cursor:ns-resize}
@@ -2924,3 +2928,112 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
 .wseal.ws-blob svg{display:none}
 .drawer.sz-narrow .wseal,.drawer.sz-short .wseal{width:20px}
 .drawer.minitile .wseal{display:none}
+
+/* ---- the camera — decision 187 -----------------------------------------
+   The board is scaled and slid until one object fills the screen. One
+   transform on one element: the compositor does the whole move, so it costs no
+   layout and no paint however many tiles are on the board. Everything else
+   here is about making the thing under the camera *usable* once it arrives. */
+#drawergrid.camera{
+  transition:transform .42s cubic-bezier(.22,.72,.2,1);
+  will-change:transform;
+}
+/* The scroller stops scrolling while the camera is in: the position is the
+   transform's to decide, and a scrollTop underneath it would fight for the
+   same pixels. */
+.camerascroll{overflow:hidden !important}
+/* Everything that is not the thing being looked at steps back — dimmed and a
+   little desaturated, so the neighbours are still legibly *there* (which is
+   the whole point of zooming on the board rather than opening a surface) and
+   still plainly not what you are reading. */
+.camerascroll #drawergrid > .drawer:not(.oncamera){
+  opacity:.5;filter:saturate(.72);
+  transition:opacity .42s, filter .42s;
+  pointer-events:none;
+}
+.camerascroll #drawergrid > .strings,
+.camerascroll #drawergrid > .lights{opacity:.4;transition:opacity .42s}
+/* The one under the camera keeps its own edge and gains a ring, because at 4×
+   a tile's one-pixel border is four pixels and reads as a frame it never had.
+   The ring is drawn *outside* the box so it takes no room from the contents. */
+#drawergrid > .drawer.oncamera{
+  z-index:8;
+  outline:1.5px solid color-mix(in srgb, var(--brass) 55%, transparent);
+  outline-offset:2px;
+}
+/* ---- what you read once you are there ---------------------------------
+   The words under the camera are **counter-scaled**: written small and
+   magnified back to a reading size by the same transform that magnified the
+   tile, so the object keeps its own size and only the type is set for reading
+   rather than for glancing. The size is inline, from `camScale()`, because it
+   has to be the number the pagination was measured at — and every length in
+   here is therefore in `em`, so one declaration moves the whole page. The
+   three that the pagination also has to know (the two paddings and the head's
+   height) are written inline as `--zpx`/`--zpy`/`--zhead` by `zoomFace()`
+   rather than said once here and once there. See decision 187. */
+.zoomread{
+  position:absolute;inset:0;z-index:3;
+  display:flex;flex-direction:column;
+  padding:var(--zpy) var(--zpx);
+  line-height:1.45;font-family:var(--serif);color:var(--ink);
+}
+/* The name, on one line and clipped. It has a stated height because the
+   pagination subtracts that height before it measures, and a head that wrapped
+   would break every page in the object. */
+.zoomread .zoomhead{
+  flex:0 0 var(--zhead);height:var(--zhead);
+  font-size:1.02em;font-weight:600;line-height:1.25;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  border-bottom:1px solid color-mix(in srgb, var(--ink) 14%, transparent);
+  opacity:.75;
+}
+.zoomread .zoombody{flex:1 1 auto;min-height:0;position:relative}
+/* A scroll is a column you push. `overscroll-behavior` keeps a flick that
+   reaches the end from walking the board behind it. */
+.zoomread.zscroll .zoombody{
+  overflow-y:auto;overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;
+}
+.zoomread p{margin:0 0 .75em}
+.zoomread h1,.zoomread h2,.zoomread h3{margin:0 0 .45em;line-height:1.2}
+.zoomread h1{font-size:1.5em} .zoomread h2{font-size:1.28em} .zoomread h3{font-size:1.1em}
+.zoomread ul,.zoomread ol{margin:0 0 .75em;padding-left:1.4em}
+.zoomread li{margin:0 0 .3em}
+/* A tile that is being read hides the face it was printing instead — the
+   caption *and* the name row, which is the tile's own and therefore drawn at
+   the tile's own size: 12px of caption at 4x is a 48px banner lying across the
+   words. `> .dtop` and not `.dtop`, because the flank's top face is also a
+   `.dtop` and sits earlier in the tile. */
+.drawer.oncamera .tiletext,.drawer.oncamera .dbody{visibility:hidden}
+.drawer.camreading > .dtop{visibility:hidden}
+.drawer.oncamera .zoomread{visibility:visible}
+
+/* The reading surface's page is a sheet of Letter in the middle of the screen:
+   `position:relative`, 14.5px type, a 34px margin and a centred page number.
+   Every one of those is wrong inside a tile being magnified, and every one of
+   them is written at **two** classes in chrome.css — which loads after this
+   file, so it wins a tie. Restated here at three, in `em`. The same reset goes
+   on the **ruler** in `pagesOf()`, inline, or the breaks would be measured for
+   a size the words are not shown at. See decision 187. */
+.zoomread .zoombody .book,.zoomread .zoombody .spread{
+  position:absolute;inset:0;width:auto;height:auto;margin:0;
+  display:block;padding:0;border:0;border-radius:0;
+  background:none;box-shadow:none;perspective:none;
+}
+.zoomread .spread .page{
+  position:absolute;inset:0;overflow:hidden;
+  font-size:inherit;line-height:1.45;padding:0;
+  background:none;box-shadow:none;border:0;
+}
+.zoomread .spread .page h1{font-size:1.5em;margin:0 0 .45em;line-height:1.2}
+.zoomread .spread .page h2{font-size:1.28em;margin:0 0 .45em;line-height:1.2}
+.zoomread .spread .page h3{font-size:1.1em;margin:0 0 .4em}
+.zoomread .spread .page p{margin:0 0 .75em}
+.zoomread .spread .page ul,.zoomread .spread .page ol{margin:0 0 .75em;padding-left:1.4em}
+.zoomread .spread .page li{margin:0 0 .3em}
+/* The count sits in the corner of the page rather than centred under it: a
+   tile has no gutter to centre anything in. */
+.zoomread .spread .pno{
+  position:absolute;left:auto;right:0;bottom:0;text-align:right;
+  font-size:.66em;opacity:.55;
+}

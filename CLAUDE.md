@@ -211,7 +211,7 @@ clause at the bottom of each file — that list is each module's public surface.
 | `sheet.js` | The three surfaces an object opens onto — reading, writing, and the picture — rendered into `#sheetHost`, **separately** from `render()`. |
 | `panels.js` | `openPanel()` — **every menu in the app** — plus `openMenu()` for a popup hung off a button, the command palette (⌘K), the context menu, and `sampleObject`/`sampleTile` for drawing a type as the thing it makes. |
 | `gestures.js` | Pointer-based drag, resize, lasso, swipe. The fiddliest code in the app. |
-| `motion.js` | Every movement: `openTile()` (drawer, cabinet, curl, lift), `pop()`, and the pager that slides between boards. Nothing in it ever delays a state change. |
+| `motion.js` | Every movement: `openTile()` (drawer, cabinet, curl, lift), `pop()`, the pager that slides between boards, and **the camera** (`applyZoom`/`camScale`) that zooms the board into one object where it sits. Nothing in it ever delays a state change. |
 | `gravity.js` | A board that has **let go** — the rigid-body solver behind Sand and Tumbling. Reads nothing but the tiles' rectangles; writes nothing but their transforms. |
 | `plans.js` | A **plan** — a saved board, in `S.plans`, captured and stamped. Not an object and not on any grid. |
 | `active.js` | The **instruments** — a metronome, an hourglass, a candle, a bell, a clock, a die and a deck. One table, and one rule: nothing ticks by re-rendering. |

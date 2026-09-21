@@ -5,6 +5,51 @@ Sequenced by dependency, not appetite: item 1 makes everything after it safer.
 
 ---
 
+## 0zc. Reported 2026-09-21 — six back from living with 0zb — DONE (v1.74)
+
+Timothy put the eight down and sent six notes back, one of them carrying a
+photograph of a real artist's palette. Five are corrections; the sixth is the
+interaction model changing again.
+
+1. **The palette, from the reference.** Flipped upside down and without paint
+   on it. The silhouette, the thumb hole's position and the notch along the
+   edge are the photograph's; the wood and the dabs are the aesthetic's.
+   Decision 185.
+2. **The instruments flicked out of existence when tapped.** Never reproduced
+   as a literal disappearance in any harness — desk, phone, locked board,
+   picker flow. What was there to find is a `drop-shadow` filter on
+   `.acttile .actart`, which forces a re-rasterisation of the whole SVG on
+   every render, and a render is the ordinary case here. It is gone, which is
+   also item 3.
+3. **The baked-in shading is gone** — 27 `#fff`/`#000` opacity elements out of
+   `active.js` and 141 out of `decor.js`. An object is not allowed to paint its
+   own light anywhere else in the app; the aesthetic says what light there is.
+   Decision 185's *Against* is the cost.
+4. **An instrument fills the cell it is in.** `vb` may now be a function, so a
+   clock states a viewBox per case and a die one per number of sides, instead
+   of one box with room for the tallest of them letterboxing all the rest.
+5. **A book turns by being pushed** — the tap-and-drag page turn, on the
+   reading surface and under the camera alike. Decision 186.
+6. **The camera.** Tapping an object zooms the board into it where it sits,
+   neighbours and all, and it becomes readable in place: a 2×3 note is still a
+   2×3 note, and you scroll it or turn its pages there. One transform on one
+   element, nothing reparented, nothing saved. Decision 187 — the largest
+   single change to what a tap means since the app was written.
+
+### Still open
+
+**A 1×1 note under the camera is a postage stamp however close you get.** The
+camera keeps the object's size in cells on purpose, which is the whole point,
+and there is no room in one cell for a page. The reading surface is still the
+answer for anything that small, and nothing routes to it automatically.
+
+**No writing under the camera.** Tapping the paper on the reading surface puts
+a caret in it (decision 82); the zoomed tile does not, because the field would
+be written at a counter-scaled size and every caret and selection rectangle in
+it would be magnified with the tile. Read there, write on the surface.
+
+---
+
 ## 0zb. Asked 2026-09-21 — things that sit on a desk
 
 Timothy went looking for objects that are *on* a desk rather than filed in one,

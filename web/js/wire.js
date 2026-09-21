@@ -24,7 +24,7 @@ import { openPanel, closePanel, refreshPanel, panelKey, panelBack, draft, modalN
   familyPanel, becomePanel, lifeFirstPanel, donePanel } from './panels.js';
 import { onDown, onMove, onUp, onCancel, onTouchStart, onTouchMove, onTouchEnd,
   gestureFlags, dragArmed } from './gestures.js';
-import { enter, leaveTile, pagerOn, applyTilt, askTilt } from './motion.js';
+import { enter, leaveTile, pagerOn, applyTilt, askTilt , zoomOut, zoomedIn } from './motion.js';
 import { gravityApply, gravityWake } from './gravity.js';
 import { planFrom, stampPlan, planById, delPlan, planSize, renamePlan } from './plans.js';
 import { save, writeNow, exportBackup, importBackup, importFile, imgFor, pasteObjects, install , assetDel } from './persist.js';
@@ -1500,6 +1500,16 @@ function wire(){
         render(); }
       return;
     }
+    /* The way back out. A press on anything that is *not* the thing being
+       looked at takes the camera off — which is the same gesture as putting a
+       panel down by tapping past it, and means the board you can still see
+       round the edges is the way out rather than a button being. A press
+       **inside** it falls through to whatever it lands on, so the words are
+       still selectable and the pages still turn. See decision 187. */
+    if(zoomedIn() && !t.closest(`[data-row="${S.zoomOn}"],[data-drawer="${S.zoomOn}"]`)){
+      zoomOut(); render();
+      return;
+    }
     // a plain click anywhere clears the selection before doing anything else
     if(S.sel.length && !t.closest('#ctx')) S.sel=[];
 
@@ -2121,6 +2131,10 @@ function wire(){
       if(guideOpen()){ closeGuide(); return; }
       closeCtx(); closeCmd(); closePanel();
       if(S.writeId||S.readId||S.viewId) closeSheet();
+      /* …and the camera is a thing that is up, so Escape backs it off — after
+         the surfaces, because a surface is the bigger claim, and before the
+         selection, because the camera is the nearer one. See decision 187. */
+      else if(zoomedIn()){ zoomOut(); render(); }
       else if(S.editId){ S.editId=null; render(); }
       // …and a selection is a thing that is up, so Escape puts it down too
       else if(S.sel.length){ S.sel=[]; render(); }

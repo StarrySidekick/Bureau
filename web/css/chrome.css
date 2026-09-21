@@ -3821,55 +3821,94 @@ html[data-theme="walnut"] .toast{background:var(--paper-3);color:var(--ink)}
 .ctxmenu .div{height:1px;background:var(--rule-2);margin:4px 2px}
 .ctxmenu .danger{color:#C0563F}
 
-/* ---- the palette — decision 181 ----------------------------------------
-   A hold opens this on every board now, which makes it the most-reached thing
-   in the app and worth being a *shape* rather than a list in a box. An
-   artist's palette: an organic outline, a warmer ground than an ordinary
-   popup, and a thumb hole.
+/* ---- the palette — decisions 181 and 185 ------------------------------
+   A real artist's palette from the photograph Timothy sent, **turned upside
+   down and with no paint on it**: a walnut board with the corners eased, a
+   **thumb hole** through it and the **wrist notch** bitten out of one corner.
+   Upside down moves both of those from the top right to the bottom left —
+   which is the whole reason this works as a menu, because the bottom left is
+   the one part of a menu with nothing in it.
 
-   The hole is a `mask`, not a painted circle — so the board actually shows
-   through it, the way a hole does. That means it cuts through the buttons as
-   well, which is exactly why the buttons are padded clear of it: nothing is
-   ever behind the hole, so nothing is ever cut. Two mask layers rather than
-   one, because a single radial gradient would also have to describe the
-   outside edge; `luminance` is avoided for the same reason — alpha masking
-   composites the two without a colour space in the middle.
+   **The gutter is the palette and the rows sit beside it.** `padding-left`
+   keeps every row clear of the hole and the notch, so the mask can never cut
+   through anything you have to read at any menu length. That is the rule that
+   makes masking safe here at all, and the first version broke it: the notch
+   was a sweep along the bottom of a *stretched* silhouette, so it wandered
+   under the last row and bit the bottom off "Delete".
 
-   The outline is four corner radii doing the work of a curve nobody has to
-   draw. It is deliberately *near* a rectangle: a palette that leans too far
-   into the shape stops being a menu you can read down. */
+   **Three mask layers, and the bottom one is a flat gradient.** The board's
+   own eased corners are `border-radius` on the element — a true fixed radius —
+   rather than a rounded rectangle in a stretched SVG, which would draw them as
+   ellipses on a long menu. So the mask has nothing left to shape and only has
+   to *subtract*: `mask-composite:exclude` takes the hole and then the notch
+   out of a layer that covers everything. Both are **fixed sizes**: a thumb and
+   a wrist are the same size whatever you are holding, and a hole stretched
+   with the element is a wide oval on a twelve-row menu. */
 .ctxmenu.palette{
-  min-width:214px;
-  padding:6px 6px 6px 40px;
-  background:color-mix(in srgb, var(--wood, #3A2C1E) 12%, var(--paper-2));
-  border-radius:34% 14% 26% 16% / 20% 26% 16% 28%;
-  border-color:color-mix(in srgb, var(--brass) 38%, var(--rule));
-  /* the thumb hole: opaque everywhere, transparent in one circle */
-  -webkit-mask:radial-gradient(circle at 21px 68%, #0000 0 11px, #000 11.6px);
-  mask:radial-gradient(circle at 21px 68%, #0000 0 11px, #000 11.6px);
+  min-width:250px;
+  padding:10px 14px 22px 92px;
+  border:0;box-shadow:none;border-radius:20px;
+  filter:drop-shadow(0 7px 16px rgba(0,0,0,.36));
+  /* The wood. `--wood` is the aesthetic's own, like every other surface in the
+     app, so the palette is walnut in Victoria and whatever the board is made
+     of everywhere else. The grain is two low-alpha rules over it, at a fixed
+     px pitch, because a grain is a fixed thickness at any size. */
+  background:
+    repeating-linear-gradient(97deg,
+      rgba(255,255,255,.035) 0 1px, transparent 1px 7px),
+    repeating-linear-gradient(97deg,
+      rgba(0,0,0,.05) 0 2px, transparent 2px 13px),
+    linear-gradient(152deg,
+      color-mix(in srgb, var(--wood) 84%, #fff),
+      var(--wood) 44%,
+      color-mix(in srgb, var(--wood) 82%, #000));
+  /* Light on dark, the same trick the phone's bar and a drawer front play: the
+     tokens are overridden for this subtree and every control inside comes
+     along without a rule of its own. See board.css's `.is-phone .gridbar`. */
+  --ink:#F4EEE0;
+  --ink-2:rgba(244,238,224,.76);
+  --ink-3:rgba(244,238,224,.54);
+  --rule:rgba(244,238,224,.20);
+  --rule-2:rgba(244,238,224,.10);
+  --paper-2:rgba(255,255,255,.09);
+  --paper-3:rgba(255,255,255,.15);
+  color:var(--ink);
+  --pal-hole:url('data:image/svg+xml;utf8,\
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">\
+<ellipse cx="50" cy="50" rx="49" ry="49" fill="%23fff"/></svg>');
+  /* The wrist notch: the removed shape is the corner itself, bounded by one
+     curve whose control point sits *away* from the corner — which is what
+     makes the edge left behind concave, curving into the board, rather than a
+     chamfer or a bulge. It is easy to get inside out and easy to make too
+     big: the first try took the whole of its own box and left a wedge hanging
+     off the bottom of the menu. */
+  --pal-notch:url('data:image/svg+xml;utf8,\
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">\
+<path fill="%23fff" d="M0 100 V42 Q28 64 80 100 Z"/></svg>');
+  /* `calc(100% - Npx)` in a mask position resolves as `(box - image) - N`, so
+     it puts the image's **bottom** N px above the element's — which is how a
+     thumb hole stays the same distance up from the wrist however many rows
+     the menu has. 78 clears the notch's 52 with board to spare. */
+  -webkit-mask:var(--pal-hole) 22px calc(100% - 78px)/54px 60px no-repeat,
+               var(--pal-notch) 0 100%/66px 52px no-repeat,
+               linear-gradient(#fff,#fff);
+  -webkit-mask-composite:xor,xor,source-over;
+  mask:var(--pal-hole) 22px calc(100% - 78px)/54px 60px no-repeat,
+       var(--pal-notch) 0 100%/66px 52px no-repeat,
+       linear-gradient(#fff,#fff);
+  mask-composite:exclude,exclude,add;
+}
+/* The inner edge of the board catches the light the way the rim of a real one
+   does — on the element's own shadow rather than a layer, so it follows the
+   mask and dies away into the hole and the notch with it. */
+.ctxmenu.palette{
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.16),
+             inset 0 -1px 0 rgba(0,0,0,.22);
 }
 .ctxmenu.palette button{border-radius:var(--pill);padding-left:12px}
-.ctxmenu.palette .div{margin-left:4px}
-.ctxmenu.palette .ctxhead{padding-left:12px}
-/* The dabs of paint, which is what makes it a palette rather than a blob with
-   a hole in it. Three, off the aesthetic's own accent and glow, sitting in the
-   margin the buttons leave — `::before` and `::after` plus one more would need
-   an element, so it is two pseudo-elements carrying three background layers
-   between them and no element at all. */
-.ctxmenu.palette::before{
-  content:"";position:absolute;left:13px;top:17px;width:16px;height:16px;
-  border-radius:50%;pointer-events:none;
-  background:radial-gradient(circle at 38% 34%,
-    color-mix(in srgb, var(--brass) 92%, #fff), var(--brass) 72%);
-  opacity:.72;
-}
-.ctxmenu.palette::after{
-  content:"";position:absolute;left:11px;top:42px;width:13px;height:13px;
-  border-radius:50%;pointer-events:none;
-  background:radial-gradient(circle at 38% 34%,
-    color-mix(in srgb, var(--glow) 92%, #fff), var(--glow) 72%);
-  opacity:.66;
-}
+.ctxmenu.palette button:hover{background:var(--paper-3)}
+.ctxmenu.palette .div{margin-left:4px;background:var(--rule)}
+.ctxmenu.palette .ctxhead{padding-left:12px;color:var(--ink-3)}
 
 /* the panel is narrow: sections sit closer, and the style tiles pair up */
 .pbody .section-h{margin:18px 0 8px}
@@ -5294,3 +5333,18 @@ input,textarea,select,[contenteditable],
 /* White rather than the paper token: the book paints its own ground and a
    frame that starts parchment flashes a colour the document then repaints. */
 .guideframe{flex:1;min-height:0;width:100%;border:0;background:#F1F2F5;display:block}
+
+/* ---- a book turns by dragging across it — decision 186 -----------------
+   The spread moves with the finger, damped, because a bound book is hinged at
+   the spine. `will-change` is worth it on exactly this element: it is one
+   node, it moves on every pointermove for the length of the gesture, and the
+   alternative is a paint of a full page of prose per frame. The cursor says
+   the paper can be pushed without a hint having to be printed on it. */
+.book .spread:not(.scrolling){
+  will-change:transform;
+  cursor:grab;
+}
+.book .spread:not(.scrolling):active{cursor:grabbing}
+/* The page's own text stays selectable and the caret still lands — the turn
+   only claims the gesture once the finger has actually travelled, so a press
+   that goes nowhere is still a press on the paper. */

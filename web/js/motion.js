@@ -1,7 +1,7 @@
 import { $, clamp, ROOT } from './util.js';
 import { S, byId, isContainer, has, childrenOf, shapeOf, openingOf, deskOf,
-  tiltMode, tiltsDesk, tiltsWindows, gravityTilts } from './model.js';
-import { lay, shelvesOf, shelfAt } from './grid.js';
+  tiltMode, tiltsDesk, tiltsWindows, gravityTilts , dev } from './model.js';
+import { lay, shelvesOf, shelfAt , CELL } from './grid.js';
 import { objColour, styleNow } from './look.js';
 import { render, renderSoon, previewHTML, goShelf } from './views.js';
 
@@ -1506,4 +1506,156 @@ export { still, tileOf, tileRect, openingFor, openTile, leaveTile, enter, pop, c
   fileTo, hopIntoCollector,
   spray, sprayAt, sprayCount, SPRAYS, sprayNow, sprayMark,
   pagerBegin, pagerMove, pagerEnd, pagerCancel, pagerOn, stepDrawer,
-  applyTilt, askTilt, tiltTo, tiltRecentre, tiltDown };
+  applyTilt, askTilt, tiltTo, tiltRecentre, tiltDown ,
+  zoomInto, zoomOut, zoomedIn, applyZoom, camScale, CAM_READ, ZOOM_MS };
+
+
+/* ============================================================
+   24 · the camera — decision 187
+   ============================================================
+   Opening a thing used to mean replacing the screen with it: a surface over a
+   dimmed desk, the object on its own, the board gone. That answers "what does
+   it say" and loses "where is it" — and on a desk, where a thing *is* is half
+   of what it means. A note beside the shopping list is about the shopping.
+
+   So opening is a **camera move** instead. The board is scaled and slid until
+   the object fills the screen, its neighbours still round it, still in their
+   own cells, just bigger. Nothing is replaced and nothing is drawn twice: it
+   is the same tiles, seen from closer.
+
+   Three things follow from it being a camera rather than a renderer, and all
+   three are the reason it is cheap:
+
+   **One transform on one element.** `.grid` takes a `translate` and a `scale`
+   and nothing else moves — the compositor does the whole thing and there is no
+   layout and no paint. A second board, or a clone of the tile flown into
+   place, would be both.
+
+   **The tile's own coordinate space does not change.** A 2×3 note is still
+   two cells by three; its words are still set at the size a tile sets them.
+   The camera magnifies the result, which is what makes this *zooming in* on a
+   thing rather than *opening* a different, larger version of it. It is also
+   why the words stay crisp: text is vector and a transform scales it, so a
+   note read at 4× is the same note, not a blurry picture of one.
+
+   **It must be re-applied after every render**, because `render()` replaces
+   `#app` and the element carrying the transform goes with it. `applyZoom()`
+   runs at the end of render beside `repositionPanel()`, which is pinned to a
+   tile for the same reason and was the precedent.
+
+   The one thing it costs: `cellW()` measures `.grid`'s own rect for the drag
+   maths, and a transform changes that rect. So the board **cannot be dragged
+   while the camera is in** — which is right anyway, because you are reading
+   rather than arranging, and is enforced rather than hoped for (`zoomedIn()`
+   in gestures.js). */
+
+const ZOOM_PAD = 22;        // how much board still shows round the edges
+const ZOOM_MAX = 7;         // a 1×1 tile magnified any further is a mark
+
+/* The camera's own easing. Longer than a panel and shorter than a dive: it is
+   a move across a board rather than a door opening, and the eye follows a
+   travelling thing better than it follows a growing one. */
+const ZOOM_MS = 420;
+
+function zoomedIn(){ return !!(S.zoomOn && byId(S.zoomOn)); }
+
+/* How far in the camera goes for a box of this many cells. **One function, two
+   callers**, and that is the whole of why it exists: `applyZoom()` needs it
+   after the render to place the board, and `zoomFace()` needs it *during* the
+   render to set the type — and if those two ever disagreed the words would be
+   paginated for one magnification and displayed at another.
+
+   It is answerable before layout because everything in it is known: the cell
+   is measured (`CELL`), the box is in cells, and the scroller is the one from
+   the previous render, which is the right size already. */
+function camScale(boxW, boxH){
+  const cell = CELL[dev()] || 44;
+  const sc = document.querySelector('#app .scroll');
+  const view = sc ? sc.getBoundingClientRect()
+                  : {width: window.innerWidth, height: window.innerHeight};
+  return Math.max(1, Math.min(ZOOM_MAX,
+    Math.min((view.width  - ZOOM_PAD*2) / Math.max(1, boxW*cell),
+             (view.height - ZOOM_PAD*2) / Math.max(1, boxH*cell))));
+}
+/* What the words are set at **on the screen** once the camera is in. The tile's
+   own type is a caption — eleven or twelve pixels — and magnifying it seven
+   times gives one word to a line, which is what the first pass did. So the
+   type is **counter-scaled**: written at `CAM_READ / k` before the transform
+   so it lands at `CAM_READ` after it. The object keeps its size and its
+   proportions; only the writing is set for reading rather than for glancing,
+   which is the difference between zooming in on a thing and magnifying a
+   photograph of it. */
+const CAM_READ = 17;
+
+/* Put the camera on an object, or take it off. Neither renders — the caller
+   does, the way every mutation in this app hands the render back rather than
+   doing it, so a tap files and *then* the movement is drawn over the result
+   (decision 38). */
+function zoomInto(id){
+  const o = byId(id); if(!o) return false;
+  S.zoomOn = id;
+  return true;
+}
+function zoomOut(){
+  if(!S.zoomOn) return false;
+  S.zoomOn = null;
+  return true;
+}
+
+/* Where the camera has to sit for this tile to fill the screen. Measured with
+   the transform **cleared**, because the numbers being solved for are in the
+   board's own untransformed space and reading a rect that already carries the
+   answer is how a zoom walks away from itself one render at a time. */
+function applyZoom(){
+  const grid = document.querySelector('#drawergrid');
+  const scroller = document.querySelector('#app .scroll');
+  if(!grid) return;
+  const on = zoomedIn() && document.querySelector(`#drawergrid [data-row="${S.zoomOn}"],#drawergrid [data-drawer="${S.zoomOn}"]`);
+  /* **The camera is a fact about the board you are looking at**, and this is
+     the one place that knows whether the thing it is pointed at is on it. Go
+     into a drawer, walk to the next desk, delete the object or file it
+     somewhere else and the tile is gone — and an id left in `S.zoomOn` then
+     answers `zoomedIn()` true for ever, which means wire.js's way out swallows
+     every click on the board from then on. It looked like the app had stopped
+     listening. Cleared here rather than at each of the dozen places that can
+     change the board, because this one runs after all of them. */
+  if(!on) S.zoomOn = null;
+  if(!on){
+    if(grid.style.transform){
+      grid.style.transform = '';
+      grid.style.transformOrigin = '';
+    }
+    grid.classList.remove('camera');
+    if(scroller) scroller.classList.remove('camerascroll');
+    return;
+  }
+  // cleared first: the tile's rect has to be the one it has at rest
+  grid.style.transition = 'none';
+  const had = grid.style.transform;
+  grid.style.transform = '';
+  const g = grid.getBoundingClientRect();
+  const t = on.getBoundingClientRect();
+  const view = (scroller || grid.parentElement).getBoundingClientRect();
+  grid.style.transform = had;
+  // …and back on for the move itself, on the next frame so the clear above
+  // cannot be coalesced into it and skip the animation
+  requestAnimationFrame(()=>{ grid.style.transition = ''; });
+
+  /* Measured off the real rect rather than off the box, because a tile that
+     has been resized is whatever it is; `camScale()` answers the same question
+     from the cells for the callers that have no rect yet. */
+  const k = Math.max(1, Math.min(ZOOM_MAX,
+    Math.min((view.width  - ZOOM_PAD*2) / Math.max(1, t.width),
+             (view.height - ZOOM_PAD*2) / Math.max(1, t.height))));
+  /* The grid is scaled about its own top-left, so a point `p` cells in lands
+     at `g.left + TX + p*k`. Solve that for the tile's centre sitting in the
+     middle of what you can see. */
+  const tcx = t.left + t.width/2 - g.left, tcy = t.top + t.height/2 - g.top;
+  const TX = (view.left + view.width/2)  - g.left - tcx*k;
+  const TY = (view.top  + view.height/2) - g.top  - tcy*k;
+  grid.style.transformOrigin = '0 0';
+  grid.style.transform = `translate(${TX.toFixed(1)}px, ${TY.toFixed(1)}px) scale(${k.toFixed(4)})`;
+  grid.style.setProperty('--camk', k.toFixed(4));
+  grid.classList.add('camera');
+  if(scroller) scroller.classList.add('camerascroll');
+}

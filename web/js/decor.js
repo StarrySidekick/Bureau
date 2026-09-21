@@ -45,17 +45,13 @@ const DECOR = {
   /* ---- plants ---------------------------------------------------------- */
   plant: { c:6, nm:'Aspidistra', aes:['victorian','carca','girando','aero'], vb:'3.5 2.5 81 97.5', size:[4,5], svg:`
     <path d="M44 74C44 52 32 34 6 24c-6 26 12 48 38 52Z" fill="currentColor"/>
-    <path d="M44 74C44 52 32 34 6 24c14 22 26 34 38 50Z" fill="#000" opacity=".13"/>
     <path d="M44 72c0-24 12-42 38-52 6 26-12 48-38 52Z" fill="currentColor" opacity=".86"/>
-    <path d="M44 72c0-24 12-42 38-52-14 22-26 34-38 52Z" fill="#000" opacity=".1"/>
     <path d="M44 66C44 44 38 22 26 8c-8 22-2 46 18 58Z" fill="currentColor" opacity=".72"/>
     <path d="M44 64c0-24 6-44 18-58 8 22 2 46-18 58Z" fill="currentColor" opacity=".64"/>
     <path d="M20 66h48l-5 30a5 5 0 0 1-5 4H30a5 5 0 0 1-5-4Z" fill="var(--brass)"/>
-    <path d="M20 66h14l-3 34h-1a5 5 0 0 1-5-4Z" fill="#fff" opacity=".2"/>
     <path d="M16 60h56v8H16Z" fill="var(--brass)"/>
-    <path d="M16 60h56v3H16Z" fill="#fff" opacity=".3"/>
     <path d="M23 78h42M24 86h40" stroke="var(--glow)" stroke-width="1.6" opacity=".55"/>
-    <path d="M25 96h38l-.6 4H25.6Z" fill="#000" opacity=".22"/>` },
+    ` },
 
   fern: { c:7, nm:'Fern', aes:['victorian','carca','girando'], vb:'5 1.5 82 98.5', size:[4,5], svg:`
     <g stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round">
@@ -75,10 +71,9 @@ const DECOR = {
       <ellipse cx="46" cy="9" rx="4" ry="6"/>
     </g>
     <path d="M26 62h40c3 12 3 24 0 34a5 5 0 0 1-4 4H30a5 5 0 0 1-4-4c-3-10-3-22 0-34Z" fill="var(--brass)"/>
-    <path d="M26 62h11c-2 12-2 26 0 38h-7a5 5 0 0 1-4-4c-3-10-3-22 0-34Z" fill="#fff" opacity=".22"/>
     <path d="M22 58h48v7H22Z" fill="var(--brass)"/>
-    <path d="M22 58h48v2.6H22Z" fill="#fff" opacity=".32"/>
-    <path d="M29 96h34l-.5 4H29.5Z" fill="#000" opacity=".2"/>` },
+    
+    ` },
 
   palm: { c:8, nm:'Parlour palm', aes:['victorian','girando','aero'], vb:'2.5 -1.5 79 101.5', size:[3,4], svg:`
     <g stroke="var(--brass)" stroke-width="2.6" fill="none" stroke-linecap="round" opacity=".8">
@@ -90,19 +85,16 @@ const DECOR = {
     <path d="M42 22C46 8 56 0 70 0c0 12-12 22-28 22Z" fill="currentColor" opacity=".62"/>
     <path d="M42 26c-4-8-2-18 2-26 6 8 6 18 0 26Z" fill="currentColor" opacity=".9"/>
     <path d="M24 62h36l-4 34a4 4 0 0 1-4 4H32a4 4 0 0 1-4-4Z" fill="var(--brass)"/>
-    <path d="M24 62h11l-3 38h-1a4 4 0 0 1-4-4Z" fill="#fff" opacity=".22"/>
     <path d="M20 56h44v7H20Z" fill="var(--brass)"/>
-    <path d="M20 56h44v2.4H20Z" fill="#fff" opacity=".34"/>
     <path d="M22 66h40M25 82h34" stroke="var(--glow)" stroke-width="1.5" opacity=".5"/>
-    <path d="M29 96h26l-.4 4H29.4Z" fill="#000" opacity=".22"/>` },
+    ` },
 
   /* ---- clocks ---------------------------------------------------------- */
   clock: { c:5, nm:'Mantel clock', aes:['victorian','golf97'], vb:'-1 0.5 78 99.5', size:[3,4], svg:`
     <path d="M38 2c2 0 3 1 3 3s-1 3-3 3-3-1-3-3 1-3 3-3Z" fill="var(--brass)"/>
     <path d="M37 8h2v6h-2Z" fill="var(--brass)"/>
     <path d="M10 40a28 28 0 0 1 56 0v46H10Z" fill="currentColor"/>
-    <path d="M10 40a28 28 0 0 1 28-28v74H10Z" fill="#fff" opacity=".1"/>
-    <path d="M10 40a28 28 0 0 1 56 0v4H10Z" fill="#000" opacity=".12"/>
+    
     <circle cx="38" cy="44" r="21" fill="var(--paper-2, #F1EBDA)"/>
     <circle cx="38" cy="44" r="21" fill="none" stroke="var(--brass)" stroke-width="2.8"/>
     <circle cx="38" cy="44" r="17" fill="none" stroke="var(--brass)" stroke-width="1" opacity=".5"/>
@@ -114,19 +106,15 @@ const DECOR = {
     <circle cx="38" cy="44" r="1.8" fill="var(--brass)"/>
     <path d="M38 70v12" stroke="var(--brass)" stroke-width="2"/>
     <circle cx="38" cy="84" r="5" fill="var(--brass)"/>
-    <circle cx="38" cy="84" r="5" fill="#fff" opacity=".22"/>
     <path d="M4 86h68v8H4Z" fill="var(--brass)"/>
-    <path d="M4 86h68v2.6H4Z" fill="#fff" opacity=".34"/>
     <path d="M0 94h76v6H0Z" fill="var(--brass)"/>
-    <path d="M0 94h76v6H0Z" fill="#000" opacity=".2"/>` },
+    ` },
 
   carriage: { c:13, nm:'Carriage clock', aes:['victorian','carca'], vb:'0.5 -1.7 71 101.7', size:[3,4], svg:`
     <path d="M22 12c0-8 6-12 14-12s14 4 14 12" stroke="var(--brass)" stroke-width="3.4"
       fill="none" stroke-linecap="round"/>
     <path d="M8 16h56v6H8Z" fill="var(--brass)"/>
-    <path d="M8 16h56v2.2H8Z" fill="#fff" opacity=".34"/>
     <path d="M12 22h48v62H12Z" fill="currentColor"/>
-    <path d="M12 22h13v62H12Z" fill="#fff" opacity=".12"/>
     <g fill="var(--brass)">
       <path d="M12 22h4v62h-4ZM56 22h4v62h-4Z"/>
     </g>
@@ -138,109 +126,82 @@ const DECOR = {
     <circle cx="36" cy="47" r="1.5" fill="var(--ink, #2A2118)"/>
     <path d="M22 70h28M24 76h24" stroke="var(--glow)" stroke-width="1.6" opacity=".55"/>
     <path d="M6 84h60v8H6Z" fill="var(--brass)"/>
-    <path d="M6 84h60v2.4H6Z" fill="#fff" opacity=".32"/>
     <path d="M2 92h68v8H2Z" fill="var(--brass)"/>
-    <path d="M2 92h68v8H2Z" fill="#000" opacity=".18"/>` },
+    ` },
 
   dome: { c:11, nm:'Under glass', aes:['victorian','stelaine','starry'], vb:'-1 8.5 72 91.5', size:[3,4], svg:`
     <path d="M35 40c0-9 6-15 6-22" stroke="var(--brass)" stroke-width="2" fill="none" opacity=".7"/>
     <path d="M27 56h9c1 8 2 16 1 22H26c-1-6 0-14 1-22Z" fill="var(--brass)"/>
-    <path d="M27 56h3.4c-.6 8-1.2 16-.6 22H26c-1-6 0-14 1-22Z" fill="#fff" opacity=".28"/>
     <path d="M14 58c0-12 8-20 17.5-20S49 46 49 58c0 2-35 2-35 0Z" fill="currentColor"/>
     <circle cx="24" cy="49" r="3.4" fill="var(--paper-2,#F1EBDA)" opacity=".85"/>
     <circle cx="38" cy="46" r="2.6" fill="var(--paper-2,#F1EBDA)" opacity=".85"/>
     <circle cx="43" cy="53" r="2" fill="var(--paper-2,#F1EBDA)" opacity=".85"/>
     ${/* the glass, over it */''}
-    <path d="M8 84V44a27 27 0 0 1 54 0v40Z" fill="#fff" opacity=".2"/>
     <path d="M8 84V44a27 27 0 0 1 54 0v40" fill="none" stroke="var(--ink, #2A2118)"
       stroke-width="1.6" opacity=".3"/>
     <path d="M8 84V44a27 27 0 0 1 54 0v40" fill="none" stroke="#fff"
       stroke-width="1" opacity=".5" transform="translate(1.4 1.4)"/>
-    <path d="M17 82V47a18 18 0 0 1 7-14c-3 4-4 9-4 14v35Z" fill="#fff" opacity=".55"/>
     <path d="M52 78V50" stroke="#fff" stroke-width="2" opacity=".3" stroke-linecap="round"/>
     <path d="M35 12h1v6h-1Z" fill="var(--brass)"/>
     <circle cx="35" cy="11" r="4.2" fill="var(--brass)"/>
-    <circle cx="34" cy="10" r="1.6" fill="#fff" opacity=".5"/>
     <path d="M4 84h62v8H4Z" fill="var(--brass)"/>
-    <path d="M4 84h62v2.4H4Z" fill="#fff" opacity=".34"/>
     <path d="M0 92h70v8H0Z" fill="var(--brass)"/>
-    <path d="M0 92h70v8H0Z" fill="#000" opacity=".2"/>` },
+    ` },
 
   /* ---- figures --------------------------------------------------------- */
   bust: { c:15, nm:'Bust', aes:['victorian','carca','girando'], vb:'0.5 5.5 61 94.5', size:[2,3], svg:`
     <path d="M31 8c8 0 13 6 13 15 0 7-2 12-5 15 4 2 7 5 8 9H15c1-4 4-7 8-9-3-3-5-8-5-15 0-9 5-15 13-15Z" fill="currentColor"/>
-    <path d="M31 8c-8 0-13 6-13 15 0 7 2 12 5 15-4 2-7 5-8 9h8V8Z" fill="#fff" opacity=".14"/>
-    <path d="M18 21c0-9 5-14 13-14 4 0 7 1 9 4-3 6-13 9-22 10Z" fill="#000" opacity=".12"/>
+    
     <path d="M12 47h38c4 8 6 16 6 25H6c0-9 2-17 6-25Z" fill="currentColor"/>
-    <path d="M12 47h9c-3 8-4 16-4 25H6c0-9 2-17 6-25Z" fill="#fff" opacity=".13"/>
     <path d="M6 72h50v6H6Z" fill="var(--brass)"/>
-    <path d="M6 72h50v2H6Z" fill="#fff" opacity=".34"/>
     <path d="M11 78h40v14H11Z" fill="currentColor" opacity=".9"/>
-    <path d="M11 78h11v14H11Z" fill="#fff" opacity=".12"/>
     <path d="M17 84h28" stroke="var(--glow)" stroke-width="1.6" opacity=".5"/>
     <path d="M2 92h58v8H2Z" fill="var(--brass)"/>
-    <path d="M2 92h58v2.4H2Z" fill="#fff" opacity=".3"/>
-    <path d="M2 96h58v4H2Z" fill="#000" opacity=".2"/>` },
+    
+    ` },
 
   figurine: { c:14, nm:'Figurine', aes:['victorian','girando','carca'], vb:'0.5 0.8 53 99.2', size:[2,4], svg:`
     <circle cx="27" cy="12" r="8" fill="currentColor"/>
-    <circle cx="27" cy="12" r="8" fill="#fff" opacity=".16"/>
-    <path d="M22 6c2-4 8-5 11-2 2 2 2 5 1 7-3-3-8-5-12-5Z" fill="#000" opacity=".14"/>
+    
     <path d="M27 20c5 0 9 4 10 9l2 13c-4 2-20 2-24 0l2-13c1-5 5-9 10-9Z" fill="currentColor"/>
-    <path d="M27 20c-5 0-9 4-10 9l-2 13c2 1 6 1.6 9 1.8L27 20Z" fill="#fff" opacity=".15"/>
     <path d="M37 30c5 2 8 6 9 12" stroke="currentColor" stroke-width="4" fill="none" stroke-linecap="round"/>
     <path d="M17 30c-5 2-8 6-9 12" stroke="currentColor" stroke-width="4" fill="none" stroke-linecap="round"/>
     <path d="M15 42c8 2 16 2 24 0 6 14 9 28 9 42H6c0-14 3-28 9-42Z" fill="currentColor"/>
-    <path d="M15 42c3 .8 6 1.3 9 1.6C20 58 18 72 18 84H6c0-14 3-28 9-42Z" fill="#fff" opacity=".15"/>
     <g stroke="var(--glow)" stroke-width="1.3" opacity=".45" fill="none">
       <path d="M24 46c-3 12-4 25-4 38M31 46c3 12 4 25 4 38"/>
     </g>
     <path d="M6 84h42v8H6Z" fill="var(--brass)"/>
-    <path d="M6 84h42v2.4H6Z" fill="#fff" opacity=".34"/>
     <path d="M2 92h50v8H2Z" fill="var(--brass)"/>
-    <path d="M2 92h50v8H2Z" fill="#000" opacity=".2"/>` },
+    ` },
 
   /* ---- light and vessels ----------------------------------------------- */
   candle: { c:3, nm:'Candlestick', aes:['victorian','starry','stelaine'], vb:'3.5 2.5 35 97.5', size:[2,5], emits:{x:22, y:11, reach:2.4}, svg:`
     <path d="M22 4c3 4 4.5 7 4.5 9.5A4.5 4.5 0 0 1 22 18a4.5 4.5 0 0 1-4.5-4.5C17.5 11 19 8 22 4Z" fill="var(--glow)"/>
-    <path d="M22 8c1.4 2 2 3.4 2 4.6A2 2 0 0 1 22 15a2 2 0 0 1-2-2.4c0-1.2.6-2.6 2-4.6Z" fill="#fff" opacity=".7"/>
     <path d="M22 19v3" stroke="#000" stroke-width="1.6" opacity=".45"/>
     <path d="M16 22h12v30H16Z" fill="currentColor"/>
-    <path d="M16 22h4v30h-4Z" fill="#fff" opacity=".3"/>
-    <path d="M16 22c2 1.6 10 1.6 12 0v3c-2 1.6-10 1.6-12 0Z" fill="#000" opacity=".14"/>
+    
     <path d="M11 52h22c1 4-1 7-4 8H15c-3-1-5-4-4-8Z" fill="var(--brass)"/>
-    <path d="M11 52h6c-.6 4 .2 7 1.6 8H15c-3-1-5-4-4-8Z" fill="#fff" opacity=".28"/>
     <path d="M20 60h4v16h-4Z" fill="var(--brass)"/>
     <ellipse cx="22" cy="66" rx="6" ry="3.4" fill="var(--brass)"/>
-    <ellipse cx="22" cy="66" rx="6" ry="3.4" fill="#fff" opacity=".2"/>
     <path d="M18 76h8v8h-8Z" fill="var(--brass)"/>
     <path d="M8 84h28c2 5 3 10 3 16H5c0-6 1-11 3-16Z" fill="var(--brass)"/>
-    <path d="M8 84h7c-1.4 5-2 10-2 16H5c0-6 1-11 3-16Z" fill="#fff" opacity=".26"/>
-    <path d="M5 96h34v4H5Z" fill="#000" opacity=".2"/>` },
+    
+    ` },
 
   lamp: { c:12, nm:'Oil lamp', aes:['victorian','starry','stelaine'], vb:'3.5 6.5 49 93.5', size:[2,4], emits:{x:29, y:20, reach:3.4}, svg:`
     ${/* the chimney: a narrow throat that flares at the lip, the way a duplex
           burner's does — a bulb reads as a light bulb */''}
     <path d="M20 42c0-6 1.5-10 3-13-2-4-2.5-8 0-12 1.5-2.5 4-4 6-5 2 1 4.5 2.5 6 5
-      2.5 4 2 8 0 12 1.5 3 3 7 3 13Z" fill="#fff" opacity=".22"/>
-    <path d="M20 42c0-6 1.5-10 3-13-2-4-2.5-8 0-12 1.5-2.5 4-4 6-5 2 1 4.5 2.5 6 5
       2.5 4 2 8 0 12 1.5 3 3 7 3 13" fill="none" stroke="var(--ink, #2A2118)"
       stroke-width="1.4" opacity=".28"/>
-    <path d="M23.5 40c0-5 1-9 2.4-12-1.6-3.4-2-7 0-10.6-2.6 3.6-2.6 7.6-1.4 11
-      -1.6 3.4-2.6 7.4-2.6 11.6Z" fill="#fff" opacity=".55"/>
     <path d="M29 14c3.4 4.6 5 8 5 11a5 5 0 0 1-10 0c0-3 1.6-6.4 5-11Z" fill="var(--glow)"/>
-    <path d="M29 19c1.7 2.4 2.5 4.2 2.5 5.8a2.5 2.5 0 0 1-5 0c0-1.6.8-3.4 2.5-5.8Z"
-      fill="#fff" opacity=".7"/>
     <path d="M12 42h34v6H12Z" fill="var(--brass)"/>
-    <path d="M12 42h34v2H12Z" fill="#fff" opacity=".34"/>
     <path d="M15 48h28c4 8 5 16 3 22H12c-2-6-1-14 3-22Z" fill="currentColor"/>
-    <path d="M15 48h8c-3 8-4 16-3 22h-8c-2-6-1-14 3-22Z" fill="#fff" opacity=".18"/>
     <path d="M13 62h32" stroke="var(--glow)" stroke-width="1.6" opacity=".5"/>
     <path d="M20 70h18v10H20Z" fill="var(--brass)"/>
-    <path d="M20 70h5v10h-5Z" fill="#fff" opacity=".24"/>
     <path d="M8 80h42c2 6 3 13 3 20H5c0-7 1-14 3-20Z" fill="var(--brass)"/>
-    <path d="M8 80h8c-1.6 6-2.4 13-2.4 20H5c0-7 1-14 3-20Z" fill="#fff" opacity=".26"/>
-    <path d="M5 96h48v4H5Z" fill="#000" opacity=".2"/>` },
+    
+    ` },
 
   vase: { c:9, nm:'Dried stems', aes:['victorian','girando','aero'], vb:'12.5 -3 51 103', size:[2,4], svg:`
     <g stroke="var(--brass)" stroke-width="2" fill="none" stroke-linecap="round" opacity=".85">
@@ -255,13 +216,10 @@ const DECOR = {
       <ellipse cx="30" cy="12" rx="3.4" ry="6" transform="rotate(-18 30 12)"/>
     </g>
     <path d="M26 54h24l3 6H23Z" fill="var(--brass)"/>
-    <path d="M26 54h7l-4 6h-6Z" fill="#fff" opacity=".26"/>
     <path d="M23 60h30c8 12 9 26 4 34a8 8 0 0 1-6 3H25a8 8 0 0 1-6-3c-5-8-4-22 4-34Z" fill="currentColor"/>
-    <path d="M23 60h9c-6 12-7 26-3 37h-4a8 8 0 0 1-6-3c-5-8-4-22 4-34Z" fill="#fff" opacity=".2"/>
     <g stroke="var(--glow)" stroke-width="1.3" opacity=".4" fill="none">
       <path d="M31 64c-4 10-5 22-3 33M45 64c4 10 5 22 3 33"/>
     </g>
-    <path d="M25 97h26l-.4 3H25.4Z" fill="#000" opacity=".22"/>
     <path d="M20 92h36v4H20Z" fill="var(--brass)" opacity=".8"/>` },
 
   /* Carca's half of the story: the war is over and the machines tinker now.
@@ -288,12 +246,11 @@ const DECOR = {
     </g>
     <circle cx="50" cy="42" r="8" fill="var(--brass)"/>
     <circle cx="50" cy="42" r="8" fill="none" stroke="#000" stroke-opacity=".28" stroke-width="1"/>
-    <circle cx="50" cy="42" r="3.6" fill="#000" opacity=".42"/>
-    <circle cx="46.5" cy="38.5" r="2.6" fill="#fff" opacity=".34"/>
+    
     ${/* a bench block, so the works stand on the shelf rather than float */''}
     <path d="M30 88h40l-3-6H33Z" fill="currentColor" opacity=".85"/>
     <path d="M30 88h40v6H30Z" fill="var(--brass)" opacity=".5"/>
-    <path d="M30 92h40v2H30Z" fill="#000" opacity=".3"/>` },
+    ` },
   /* Girando's, and the core motif of it: a volute — but a volute is not a
      spiral on a post, it is the top of a **console bracket**, which is the
      thing actually holding up a Sicilian balcony. So the scroll sits on a
@@ -304,12 +261,10 @@ const DECOR = {
   volute: { c:12, nm:'Volute', aes:['girando','victorian','carca'], vb:'20 6 64 92', size:[3,5], svg:`
     ${/* the plinth it stands on */''}
     <path d="M30 98h44v-9H30Z" fill="currentColor" opacity=".92"/>
-    <path d="M30 89h44v2.4H30Z" fill="#fff" opacity=".18"/>
     <path d="M32 89h40v-4H32Z" fill="currentColor" opacity=".7"/>
     ${/* the bracket: flared at the top, gathered at the waist, flared again */''}
     <path d="M38 85C38 68 34 58 40 46L64 46C70 58 66 68 66 85Z"
       fill="currentColor" opacity=".62"/>
-    <path d="M40 46C34 58 38 68 38 85h4C42 68 38 59 44 46Z" fill="#fff" opacity=".13"/>
     ${/* acanthus down the face of it, which is what a bare bracket lacks */''}
     <g fill="none" stroke="var(--glow)" stroke-width="1.9" opacity=".5" stroke-linecap="round">
       <path d="M52 50v32M52 58c-4-3-7-3-9-1M52 58c4-3 7-3 9-1
@@ -324,28 +279,21 @@ const DECOR = {
     <circle cx="52" cy="30" r="2.6" fill="var(--glow)" opacity=".85"/>` },
   bookend: { c:11, nm:'Bookend', aes:['victorian','carca','golf97','starry'], vb:'2.5 11.5 93 88.5', size:[4,4], svg:`
     <path d="M12 34h8v58h-8Z" fill="var(--brass)"/>
-    <path d="M12 34h3v58h-3Z" fill="#fff" opacity=".34"/>
     <path d="M12 84h46v8H12Z" fill="var(--brass)"/>
-    <path d="M12 84h46v2.4H12Z" fill="#fff" opacity=".3"/>
     ${/* a scrolled finial, which is the Victorian half of a bookend */''}
     <path d="M16 34c0-7 1-11 4-13 4-2 8 0 8 4 0 3-2 5-5 5-2 0-3-1-3-2.5s1-2.5 2.5-2.5"
       fill="none" stroke="var(--brass)" stroke-width="2.6" stroke-linecap="round"/>
     <path d="M27 40h11v44H27Z" fill="currentColor"/>
-    <path d="M27 40h3.4v44H27Z" fill="#fff" opacity=".22"/>
     <path d="M40 34h9v50h-9Z" fill="currentColor" opacity=".78"/>
-    <path d="M40 34h3v50h-3Z" fill="#fff" opacity=".2"/>
     <path d="M51 44h12v40H51Z" fill="currentColor" opacity=".9"/>
-    <path d="M51 44h3.6v40H51Z" fill="#fff" opacity=".22"/>
     <path d="M65 38h10v46H65Z" fill="currentColor" opacity=".7"/>
-    <path d="M65 38h3v46h-3Z" fill="#fff" opacity=".2"/>
     <path d="M77 46h9v38h-9Z" fill="currentColor" opacity=".84"/>
     <g stroke="var(--glow)" stroke-width="1.6" opacity=".7">
       <path d="M29 50h7M42 44h5M53 54h8M67 48h6M79 56h5M29 58h7M42 52h5M53 62h8"/>
     </g>
-    <path d="M60 84h32v8H60Z" fill="#000" opacity=".1"/>
     <path d="M4 92h92v8H4Z" fill="var(--brass)"/>
-    <path d="M4 92h92v2.4H4Z" fill="#fff" opacity=".3"/>
-    <path d="M4 96h92v4H4Z" fill="#000" opacity=".2"/>` }
+    
+    ` }
 };
 
 /* ============================================================
@@ -374,105 +322,80 @@ const DECOR = {
 const LIFE_ART = {
 
   money: { nm:'Money', ds:'A stack of coins', c:13, vb:'2 6 96 88', svg:`
-    <ellipse cx="46" cy="84" rx="34" ry="9" fill="#000" opacity=".16"/>
     <g>
       <path d="M14 74v-9h64v9a32 9 0 0 1-64 0Z" fill="var(--brass)"/>
       <ellipse cx="46" cy="65" rx="32" ry="9" fill="var(--brass)"/>
-      <ellipse cx="46" cy="65" rx="32" ry="9" fill="#fff" opacity=".2"/>
-      <path d="M14 74v-9h64v9a32 9 0 0 1-64 0Z" fill="#000" opacity=".22"/>
+    
     </g>
     <g>
       <path d="M17 60v-9h60v9a30 8.4 0 0 1-60 0Z" fill="var(--brass)"/>
       <ellipse cx="47" cy="51" rx="30" ry="8.4" fill="var(--brass)"/>
-      <ellipse cx="47" cy="51" rx="30" ry="8.4" fill="#fff" opacity=".22"/>
-      <path d="M17 60v-9h60v9a30 8.4 0 0 1-60 0Z" fill="#000" opacity=".2"/>
+    
     </g>
     <g>
       <path d="M20 46v-8h56v8a28 8 0 0 1-56 0Z" fill="var(--brass)"/>
       <ellipse cx="48" cy="38" rx="28" ry="8" fill="var(--brass)"/>
-      <ellipse cx="48" cy="38" rx="28" ry="8" fill="#fff" opacity=".24"/>
-      <path d="M20 46v-8h56v8a28 8 0 0 1-56 0Z" fill="#000" opacity=".18"/>
+    
     </g>
     <g>
       <path d="M24 33v-7h48v7a24 7 0 0 1-48 0Z" fill="var(--brass)"/>
       <ellipse cx="48" cy="26" rx="24" ry="7" fill="var(--brass)"/>
-      <ellipse cx="48" cy="26" rx="24" ry="7" fill="#fff" opacity=".28"/>
-      <ellipse cx="48" cy="26" rx="15" ry="4.2" fill="none" stroke="#000" stroke-width="1.2" opacity=".2"/>
-      <path d="M24 33v-7h48v7a24 7 0 0 1-48 0Z" fill="#000" opacity=".16"/>
+    <ellipse cx="48" cy="26" rx="15" ry="4.2" fill="none" stroke="#000" stroke-width="1.2" opacity=".2"/>
     </g>
     <g transform="rotate(-16 84 62)">
       <ellipse cx="84" cy="62" rx="13" ry="20" fill="var(--brass)"/>
-      <ellipse cx="84" cy="62" rx="13" ry="20" fill="#fff" opacity=".18"/>
-      <ellipse cx="84" cy="62" rx="8" ry="13" fill="none" stroke="#000" stroke-width="1.4" opacity=".22"/>
-      <path d="M84 42a13 20 0 0 0 0 40 13 20 0 0 1 0-40Z" fill="#fff" opacity=".16"/>
+    <ellipse cx="84" cy="62" rx="8" ry="13" fill="none" stroke="#000" stroke-width="1.4" opacity=".22"/>
     </g>` },
 
   home: { nm:'Home', ds:'The front-door key', c:5, vb:'2 12 96 76', svg:`
-    <ellipse cx="50" cy="80" rx="40" ry="7" fill="#000" opacity=".14"/>
     <g transform="rotate(-8 50 50)">
       <path d="M18 46h62v9H18Z" fill="var(--brass)"/>
-      <path d="M18 46h62v3.4H18Z" fill="#fff" opacity=".38"/>
-      <path d="M18 52.6h62V55H18Z" fill="#000" opacity=".24"/>
-      <path d="M72 55h6v10h-6Z" fill="var(--brass)"/>
-      <path d="M72 55h2.4v10H72Z" fill="#fff" opacity=".3"/>
-      <path d="M62 55h5v7h-5Z" fill="var(--brass)"/>
-      <path d="M62 55h2v7h-2Z" fill="#fff" opacity=".3"/>
-      <circle cx="20" cy="50.5" r="17" fill="var(--brass)"/>
-      <circle cx="20" cy="50.5" r="17" fill="#000" opacity=".08"/>
-      <path d="M20 33.5a17 17 0 0 0 0 34 17 17 0 0 1 0-34Z" fill="#fff" opacity=".26"/>
-      <circle cx="20" cy="50.5" r="7.5" fill="none" stroke="#000" stroke-width="2.6" opacity=".3"/>
+    
+    <path d="M72 55h6v10h-6Z" fill="var(--brass)"/>
+    <path d="M62 55h5v7h-5Z" fill="var(--brass)"/>
+    <circle cx="20" cy="50.5" r="17" fill="var(--brass)"/>
+    
+    <circle cx="20" cy="50.5" r="7.5" fill="none" stroke="#000" stroke-width="2.6" opacity=".3"/>
       <circle cx="20" cy="50.5" r="6.6" fill="var(--paper-2, #F1EBDA)" opacity=".55"/>
     </g>
     <g transform="rotate(12 76 34)">
       <path d="M62 22h28a4 4 0 0 1 4 4v18a4 4 0 0 1-4 4H62a4 4 0 0 1-4-4V26a4 4 0 0 1 4-4Z" fill="currentColor"/>
-      <path d="M62 22h28a4 4 0 0 1 4 4v4H58v-4a4 4 0 0 1 4-4Z" fill="#fff" opacity=".18"/>
-      <path d="M58 42h36v2a4 4 0 0 1-4 4H62a4 4 0 0 1-4-4Z" fill="#000" opacity=".2"/>
-      <circle cx="66" cy="30" r="2.6" fill="var(--brass)"/>
+    
+    <circle cx="66" cy="30" r="2.6" fill="var(--brass)"/>
       <path d="M64 36h24M64 40h16" stroke="var(--glow)" stroke-width="1.6" opacity=".5"/>
     </g>` },
 
   exercise: { nm:'Exercise', ds:'A dumbbell', c:8, vb:'0 24 100 52', svg:`
-    <ellipse cx="50" cy="70" rx="42" ry="6" fill="#000" opacity=".16"/>
     <path d="M28 46h44v10H28Z" fill="var(--brass)"/>
-    <path d="M28 46h44v3.4H28Z" fill="#fff" opacity=".36"/>
-    <path d="M28 53h44v3H28Z" fill="#000" opacity=".26"/>
+    
     <g>
       <rect x="14" y="34" width="12" height="34" rx="3" fill="currentColor"/>
-      <rect x="14" y="34" width="4.4" height="34" rx="2" fill="#fff" opacity=".22"/>
-      <rect x="21" y="34" width="5" height="34" fill="#000" opacity=".2"/>
-      <rect x="2" y="38" width="12" height="26" rx="3" fill="currentColor"/>
-      <rect x="2" y="38" width="4" height="26" rx="2" fill="#fff" opacity=".24"/>
-      <rect x="9.5" y="38" width="4.5" height="26" fill="#000" opacity=".18"/>
+    
+    <rect x="2" y="38" width="12" height="26" rx="3" fill="currentColor"/>
+    
     </g>
     <g>
       <rect x="74" y="34" width="12" height="34" rx="3" fill="currentColor"/>
-      <rect x="74" y="34" width="4.4" height="34" rx="2" fill="#fff" opacity=".22"/>
-      <rect x="81" y="34" width="5" height="34" fill="#000" opacity=".2"/>
-      <rect x="86" y="38" width="12" height="26" rx="3" fill="currentColor"/>
-      <rect x="86" y="38" width="4" height="26" rx="2" fill="#fff" opacity=".24"/>
-      <rect x="93.5" y="38" width="4.5" height="26" fill="#000" opacity=".18"/>
+    
+    <rect x="86" y="38" width="12" height="26" rx="3" fill="currentColor"/>
+    
     </g>
     <path d="M32 48h36" stroke="#000" stroke-width="1.2" opacity=".22"/>` },
 
   nutrition: { nm:'Nutrition', ds:'An apple', c:2, vb:'6 4 88 92', svg:`
-    <ellipse cx="50" cy="90" rx="30" ry="6" fill="#000" opacity=".16"/>
     <path d="M50 26c9-8 24-7 30 3 7 12 3 34-7 51-5 9-11 13-15 9-4-3-9-3-13 0-5 4-11 0-16-9C19 63 15 41 22 29c6-10 21-11 28-3Z" fill="currentColor"/>
-    <path d="M50 26c-7-8-22-7-28 3-7 12-3 34 7 51 5 9 11 13 16 9 2-2 4-3 5-3Z" fill="#fff" opacity=".16"/>
-    <path d="M62 24c8 1 15 5 18 11-7-4-14-5-22-3Z" fill="#fff" opacity=".2"/>
+    
     <path d="M66 42c5 8 5 22 0 33" stroke="#000" stroke-width="3" opacity=".14" fill="none" stroke-linecap="round"/>
     <path d="M49 27c-1-9 1-17 4-22" stroke="var(--brass)" stroke-width="4" fill="none" stroke-linecap="round"/>
     <path d="M55 18c9-9 22-10 30-6-2 10-12 17-24 15-3 0-5-4-6-9Z" fill="var(--glow)"/>
-    <path d="M55 18c8-8 20-9 28-6-9 0-19 3-26 10Z" fill="#fff" opacity=".3"/>
     <path d="M58 20c7-4 15-5 22-4" stroke="#000" stroke-width="1.2" opacity=".18" fill="none"/>` },
 
   travel: { nm:'Travel', ds:'A suitcase', c:9, vb:'2 12 96 78', svg:`
-    <ellipse cx="50" cy="84" rx="40" ry="6" fill="#000" opacity=".16"/>
     <path d="M40 20h20a4 4 0 0 1 4 4v8h-6v-6H42v6h-6v-8a4 4 0 0 1 4-4Z" fill="var(--brass)"/>
     <path d="M8 32h84a6 6 0 0 1 6 6v40a6 6 0 0 1-6 6H8a6 6 0 0 1-6-6V38a6 6 0 0 1 6-6Z" fill="currentColor"/>
-    <path d="M8 32h84a6 6 0 0 1 6 6v6H2v-6a6 6 0 0 1 6-6Z" fill="#fff" opacity=".16"/>
-    <path d="M2 74h96v4a6 6 0 0 1-6 6H8a6 6 0 0 1-6-6Z" fill="#000" opacity=".22"/>
-    <path d="M2 56h96v3H2Z" fill="#000" opacity=".18"/>
-    <path d="M2 59h96v1.6H2Z" fill="#fff" opacity=".16"/>
+    
+    
+    
     <g fill="var(--brass)">
       <path d="M22 32h9v52h-9Z"/><path d="M69 32h9v52h-9Z"/>
     </g>
@@ -480,21 +403,17 @@ const LIFE_ART = {
     <g fill="#000" opacity=".2"><path d="M28 32h3v52h-3Z"/><path d="M75 32h3v52h-3Z"/></g>
     <rect x="20" y="52" width="13" height="10" rx="2" fill="var(--brass)"/>
     <rect x="67" y="52" width="13" height="10" rx="2" fill="var(--brass)"/>
-    <rect x="20" y="52" width="13" height="3.4" rx="1.6" fill="#fff" opacity=".34"/>
-    <rect x="67" y="52" width="13" height="3.4" rx="1.6" fill="#fff" opacity=".34"/>
+    
     <g transform="rotate(-14 88 44)">
       <path d="M80 36h17a3 3 0 0 1 3 3v11a3 3 0 0 1-3 3H80l-5-8Z" fill="var(--paper-2, #F1EBDA)"/>
-      <path d="M80 36h17a3 3 0 0 1 3 3v3H78Z" fill="#000" opacity=".08"/>
-      <circle cx="82" cy="44.5" r="2" fill="#000" opacity=".28"/>
-      <path d="M87 41h10M87 45h8M87 49h10" stroke="var(--ink, #2A2118)" stroke-width="1.3" opacity=".4"/>
+    
+    <path d="M87 41h10M87 45h8M87 49h10" stroke="var(--ink, #2A2118)" stroke-width="1.3" opacity=".4"/>
     </g>` },
 
   family: { nm:'Family', ds:'A framed photograph', c:12, vb:'4 6 92 88', svg:`
-    <ellipse cx="50" cy="88" rx="34" ry="6" fill="#000" opacity=".16"/>
     <path d="M12 10h76a4 4 0 0 1 4 4v66a4 4 0 0 1-4 4H12a4 4 0 0 1-4-4V14a4 4 0 0 1 4-4Z" fill="var(--brass)"/>
-    <path d="M12 10h76a4 4 0 0 1 4 4v4H8v-4a4 4 0 0 1 4-4Z" fill="#fff" opacity=".34"/>
-    <path d="M8 76h84v4a4 4 0 0 1-4 4H12a4 4 0 0 1-4-4Z" fill="#000" opacity=".26"/>
-    <path d="M17 19h66v56H17Z" fill="#000" opacity=".2"/>
+    
+    
     <path d="M19 21h62v52H19Z" fill="var(--paper-2, #F1EBDA)"/>
     <path d="M19 21h62v52H19Z" fill="currentColor" opacity=".2"/>
     <circle cx="38" cy="40" r="9" fill="currentColor"/>
@@ -503,10 +422,9 @@ const LIFE_ART = {
     <path d="M49 70c0-8 6-14 13-14s13 6 13 14Z" fill="currentColor" opacity=".78"/>
     <circle cx="49" cy="52" r="5.5" fill="currentColor" opacity=".6"/>
     <path d="M40 70c0-6 4-11 9-11s9 5 9 11Z" fill="currentColor" opacity=".6"/>
-    <path d="M19 21h62v10H19Z" fill="#fff" opacity=".14"/>` },
+    ` },
 
   partner: { nm:'Partner', ds:'Two rings', c:1, vb:'2 20 96 60', svg:`
-    <ellipse cx="50" cy="74" rx="38" ry="6" fill="#000" opacity=".16"/>
     <g>
       <circle cx="36" cy="50" r="22" fill="none" stroke="var(--brass)" stroke-width="7"/>
       <path d="M15.3 42.5A22 22 0 0 1 43.5 29.3" fill="none" stroke="#fff" stroke-width="6" opacity=".34" stroke-linecap="round"/>
@@ -522,55 +440,42 @@ const LIFE_ART = {
       <path d="M46.5 33.6A22 22 0 0 0 38.6 28.1" fill="none" stroke="var(--brass)" stroke-width="7"/>
     </g>
     <path d="M64 24l4 5-4 5-4-5Z" fill="var(--glow)"/>
-    <path d="M64 24l4 5h-8Z" fill="#fff" opacity=".4"/>` },
+    ` },
 
   friends: { nm:'Friends', ds:'Two cups', c:7, vb:'0 22 100 62', svg:`
-    <ellipse cx="50" cy="78" rx="42" ry="6" fill="#000" opacity=".16"/>
     <g>
       <path d="M6 44h40v14a20 16 0 0 1-40 0Z" fill="var(--paper-2, #F1EBDA)"/>
       <path d="M6 44h40v14a20 16 0 0 1-40 0Z" fill="currentColor" opacity=".3"/>
-      <path d="M6 44h13v28a20 16 0 0 1-13-14Z" fill="#fff" opacity=".3"/>
-      <ellipse cx="26" cy="44" rx="20" ry="6" fill="var(--paper-2, #F1EBDA)"/>
-      <ellipse cx="26" cy="44" rx="20" ry="6" fill="#000" opacity=".1"/>
-      <ellipse cx="26" cy="44" rx="16" ry="4.4" fill="currentColor" opacity=".55"/>
+    <ellipse cx="26" cy="44" rx="20" ry="6" fill="var(--paper-2, #F1EBDA)"/>
+    <ellipse cx="26" cy="44" rx="16" ry="4.4" fill="currentColor" opacity=".55"/>
       <path d="M46 48c8-2 12 2 12 7s-4 9-12 8" fill="none" stroke="var(--paper-2, #F1EBDA)" stroke-width="5"/>
       <ellipse cx="26" cy="76" rx="26" ry="6" fill="var(--paper-2, #F1EBDA)"/>
-      <ellipse cx="26" cy="76" rx="26" ry="6" fill="#000" opacity=".12"/>
-      <path d="M0 76h52a26 6 0 0 1-52 0Z" fill="#000" opacity=".14"/>
+    
     </g>
     <g>
       <path d="M56 40h38v13a19 15 0 0 1-38 0Z" fill="var(--paper-2, #F1EBDA)"/>
       <path d="M56 40h38v13a19 15 0 0 1-38 0Z" fill="currentColor" opacity=".22"/>
-      <path d="M56 40h12v26a19 15 0 0 1-12-13Z" fill="#fff" opacity=".3"/>
-      <ellipse cx="75" cy="40" rx="19" ry="5.6" fill="var(--paper-2, #F1EBDA)"/>
-      <ellipse cx="75" cy="40" rx="19" ry="5.6" fill="#000" opacity=".1"/>
-      <ellipse cx="75" cy="40" rx="15" ry="4" fill="currentColor" opacity=".5"/>
+    <ellipse cx="75" cy="40" rx="19" ry="5.6" fill="var(--paper-2, #F1EBDA)"/>
+    <ellipse cx="75" cy="40" rx="15" ry="4" fill="currentColor" opacity=".5"/>
       <path d="M68 28c-3-4 0-6 2-8M78 28c-3-4 0-6 2-8" stroke="var(--glow)" stroke-width="2.4"
         fill="none" opacity=".55" stroke-linecap="round"/>
       <ellipse cx="75" cy="72" rx="24" ry="5.6" fill="var(--paper-2, #F1EBDA)"/>
-      <ellipse cx="75" cy="72" rx="24" ry="5.6" fill="#000" opacity=".12"/>
     </g>` },
 
   experiences: { nm:'Experiences', ds:'A camera', c:15, vb:'2 14 96 72', svg:`
-    <ellipse cx="50" cy="80" rx="38" ry="6" fill="#000" opacity=".16"/>
     <path d="M34 22h32l5 8H29Z" fill="currentColor"/>
-    <path d="M34 22h16l-3 8H29Z" fill="#fff" opacity=".18"/>
     <path d="M6 30h88a6 6 0 0 1 6 6v34a6 6 0 0 1-6 6H6a6 6 0 0 1-6-6V36a6 6 0 0 1 6-6Z" fill="currentColor"/>
-    <path d="M6 30h88a6 6 0 0 1 6 6v5H0v-5a6 6 0 0 1 6-6Z" fill="#fff" opacity=".16"/>
-    <path d="M0 66h100v4a6 6 0 0 1-6 6H6a6 6 0 0 1-6-6Z" fill="#000" opacity=".22"/>
-    <path d="M0 48h100v14H0Z" fill="#000" opacity=".12"/>
+    
+    
     <circle cx="50" cy="53" r="21" fill="var(--brass)"/>
-    <circle cx="50" cy="53" r="21" fill="#000" opacity=".12"/>
     <circle cx="50" cy="53" r="17" fill="var(--ink, #2A2118)" opacity=".8"/>
     <circle cx="50" cy="53" r="12" fill="var(--glow)" opacity=".5"/>
-    <circle cx="50" cy="53" r="12" fill="#000" opacity=".45"/>
-    <circle cx="44" cy="47" r="4.5" fill="#fff" opacity=".5"/>
+    
     <circle cx="50" cy="53" r="21" fill="none" stroke="#fff" stroke-width="1.6" opacity=".22"/>
     <rect x="8" y="36" width="16" height="9" rx="2" fill="var(--brass)"/>
-    <rect x="8" y="36" width="16" height="3" rx="1.4" fill="#fff" opacity=".34"/>
     <circle cx="86" cy="41" r="4.5" fill="var(--glow)"/>
-    <circle cx="86" cy="41" r="4.5" fill="#fff" opacity=".2"/>
-    <rect x="76" y="55" width="18" height="12" rx="2" fill="#000" opacity=".22"/>` }
+    
+    ` }
 };
 const LIFE_KEYS = Object.keys(LIFE_ART);
 /* The artwork for one, as markup. Centred rather than stood on a floor: a

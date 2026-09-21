@@ -687,3 +687,19 @@ also what stops a clipped tile from floating with none.
 `ruled`, `chit`, `pill`) are the answers a task has instead. `docs/BORDERS.md`
 is the inventory of every edge in the app and which ones still belong to the
 border system rather than to a shape.
+
+**Under the camera a tile shows a reading face, and it takes the name row
+over.** `zoomFace(o, box)` in tiles.js, spliced in the way the size classes are
+so every branch of `drawTile()` gets it. It answers the empty string for
+anything that is not words — an instrument, a picture, a control is already the
+whole of itself and the camera just brings it close enough to use — and
+`camreading` is only stamped when there is one. It carries its **own head**,
+because a tile's name is drawn at the tile's size and is therefore magnified
+into a banner lying across the words; the tile's `> .dtop` is hidden under it.
+Everything in it is in `em` off one counter-scaled font size, and the three
+numbers `pagesOf()` also has to know — the two paddings and the head's height —
+are written onto the element as `--zpx`/`--zpy`/`--zhead` rather than said once
+in the stylesheet and once in the script. Note the trap it walked into:
+**chrome.css loads after board.css**, so `.spread .page`'s 14.5px type, relative
+position and centred page number each beat a two-class rule here on source
+order and had to be restated at three. See decision 187.

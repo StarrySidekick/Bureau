@@ -286,3 +286,34 @@ you are leaving, and the real one steps out and hides. It has to become a
 picture before you let go, because letting go rebuilds `#app`. If you ever make
 something render mid-gesture, that picture won't exist and the middle of the
 strip will be empty.
+
+**The camera scales the board, and nothing may be dragged through it.**
+`S.zoomOn` names one object; `applyZoom()` slides and scales `#drawergrid` until
+that tile is centred and as large as fits, with the neighbours still on screen
+behind it. One transform on one element — the compositor does the whole move, so
+four tiles and four hundred cost the same — and the scroller is frozen
+(`.camerascroll`) because a `scrollTop` under a transform is two things arguing
+about the same pixels. **It is a camera and not a container**: nothing is
+reparented, no box is rewritten, nothing is saved, and `zoomOut()` is one
+assignment. The one thing it breaks is the drag maths — `cellW()` measures
+`.grid`'s own bounding rect and a scaled rect gives a cell four times too wide —
+so the first line of `onDown` refuses any press inside a zoomed grid that is not
+inside the reading face. Come out first, then move things. See decision 187.
+
+**Anything shown under the camera has to be counter-scaled or it is magnified
+with everything else.** Type, a page number, a name row, a margin: each is
+either written at `size / camScale()` so the transform lands it at `size` on
+screen, or it is drawn at four times what it was meant to be. `camScale()` is
+one function shared by `applyZoom()` and `zoomFace()` for exactly that reason,
+and `--camk` is on the grid for anything in CSS that needs the same division.
+
+**A test that taps a readable tile has to come back out.** While the camera is
+in, a press on the board is *spent* coming out of it — the same bargain a panel
+makes with a press past it — so a smoke block that leaves `S.zoomOn` set makes
+the next block's click land on nothing, and the assertion that fails is nowhere
+near the block that broke it. Two blocks were poisoned this way before it was
+found: one crashed on a null element three hundred lines later, the other read a
+font size that a swallowed click had never changed. The camera is also cleared
+by `applyZoom()` whenever the tile it names is not on the board being drawn, so
+navigating away is safe; staying on the same board and not pressing off it is
+not.

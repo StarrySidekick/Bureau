@@ -8036,3 +8036,216 @@ one press further in — the front page of the picker is a thing you read. And
 the seal is offered to every object rather than to letters alone, which is
 right (you seal what you like) and means one more row in the Look door for
 things nobody will ever seal.
+
+---
+
+## 185 · Flat artwork, and a palette with a notch in it
+
+*2026-09-21*
+
+Three things reported from living with the instruments for an afternoon, and
+two of them turned out to be the same thing.
+
+**They flicked as you pressed them.** `.actart` carried a `drop-shadow`, and a
+filtered element cannot be composited — so the whole artwork was re-rasterised
+on every repaint, and this app re-renders the entire board on every tap
+(decision 64). The flash was the SVG being redrawn from scratch inside the
+frame the tap landed in. The filter is gone; `look.md` already says not to put
+one on something small, and this is the same lesson arriving from the other
+side: not *small*, but **redrawn often**.
+
+**The shading was painted into the drawings.** A hundred and forty white and
+black washes across `decor.js` and `active.js` — highlights and shades of a
+light source baked into the picture. Every other surface on this desk takes its
+light from the aesthetic: a knob is lit by `.pull`, a moulding by `--c` with
+white and black over it, a spine by its own cylinder. An ornament carrying its
+own sun is the one thing on the board that does not change when the room does.
+Gone; what is left is `currentColor`, `--brass` and `--glow`, which is what
+decision 86 said a decoration was made of in the first place.
+
+Nothing structural was lost, because nothing structural was painted that way —
+a real part of a drawing names a token, and a wash of `#fff` at 0.2 never does.
+
+**A viewBox may be a function of the object.** A clock's case is not one
+shape: a wall clock is a disc, an alarm clock has feet and two bells, a cuckoo
+hangs a pendulum below itself. One viewBox big enough for all three letterboxed
+the wall clock inside a square tile and left a band of nothing top and bottom,
+which is what "it doesn't fill the space" was. Each states its own now, tight
+to what it actually draws, and the kind's default box is that proportion — so
+an instrument put down at its own size fills its cell exactly. A die does the
+same per number of sides, because a triangle and an icosahedron reach different
+distances into the box.
+
+**And the palette is a palette.** The first pass was a rounded rectangle with
+one radius per corner and a hole punched by `fill-rule`, which read as a blob.
+It is drawn from the real thing now, turned upside down so the straight edge is
+at the top where the rows start: a board with the corners eased off, a **notch**
+along the bottom where the forearm goes, and a **thumb hole** through it.
+
+Two mask layers rather than one path, and the reason is the one thing the first
+version could not do: the board stretches to however many rows the menu has,
+and **the hole must not**. A thumb is the same size whatever you are holding;
+stretched, it became a wide oval on a long menu and wandered under whichever
+row was beside it. `mask-composite: exclude` subtracts a fixed-size ellipse
+from a stretched silhouette, which is exactly the shape of that problem.
+
+**The palette is the photograph, and the photograph is upside down.** A walnut
+board with the corners eased, a thumb hole through it and the wrist notch
+bitten out of a corner — turned over, both of those move from the top right to
+the bottom left, which is the whole reason it works as a menu: the bottom left
+is the one part of a menu with nothing in it. `padding-left` keeps every row
+clear of both, so the mask can never cut through anything you have to read at
+any length. **No paint**, which is Timothy's word and also the system's: an
+object here does not paint its own colour, the aesthetic does, and the board
+reads `--wood` like every other wooden surface in the app. It is **dark**, so
+the tokens are overridden for its own subtree the way the phone's bar and a
+drawer front already do, and every control inside comes along with no rule of
+its own.
+
+Three things about the mask, each of which was wrong once. The board's **eased
+corners are `border-radius`**, not a rounded rectangle in a stretched SVG —
+stretched, a corner is drawn as an ellipse on a long menu — which leaves the
+mask nothing to shape and only subtracting, from a flat gradient that covers
+everything. The **hole and the notch are fixed sizes**: a thumb and a wrist are
+the same size whatever you are holding, and a hole stretched with the element
+is a wide oval on a twelve-row menu. And the notch is the **corner** it takes
+out, bounded by a curve whose control point sits away from that corner, which
+is what leaves a concave edge rather than a chamfer or a bulge — inside out it
+keeps the corner and removes the board, and the first version did exactly that
+at full size and left a wedge hanging off the bottom of the menu with "Delete"
+bitten in half.
+
+*Against:* the flat artwork is flatter than what it replaced, and a few of the
+decorations leaned on their highlights for depth — the dome and the carriage
+clock most of all. That is the trade the aesthetic system asks for everywhere
+else and they are no worse off than a drawer front, which has never been
+allowed to paint its own light either.
+
+---
+
+## 186 · A book turns by being pushed
+
+*2026-09-21*
+
+A bound book turns by being pushed, and this one had two chevrons in a bar
+under it. Dragging across the spread turns the page now, the way it does in
+Apple Books.
+
+**The turn itself was already written.** `turnPage()` has advanced, re-rendered
+and laid a two-faced leaf over the result since the reading surface existed;
+what it had was no way in but a button. So this is a gesture and nothing else:
+the spread follows the finger, and letting go past `BOOK_TURN` calls the
+function that was already there.
+
+**Damped, because a book is hinged at the spine.** The far edge travels and the
+spine does not, so a page tracking the finger one for one reads as a loose
+sheet rather than a bound one. A third of the travel is enough to say the book
+is listening.
+
+**It commits on release, never mid-drag.** `turnPage()` re-renders, and a
+render mid-gesture takes the element these pointers are being delivered to out
+of the document — the trap `gestures.md` already names for the pinch. The
+spread eases back if the push was short, because a page you did not push far
+enough falls back against the spine.
+
+**The tap is not consumed.** `mode` stays null until the finger has actually
+travelled `BOOK_SLOP`, which is deliberately larger than `WOBBLE`: tapping the
+paper puts a caret in it (decision 82), and losing that to a twitch would be
+the worse trade. A vertical drag hands the gesture back entirely, because up
+and down belongs to the page's own scrolling — and `.scrolling`, the scroll
+mode, is never claimed at all, since sideways means nothing there.
+
+*Against:* the page does not peel under the finger the way a real one does —
+it slides, and the leaf flips at the end. A live peel wants `turnPage()` to
+build its leaf before the render rather than after, which is a rewrite of the
+one piece of this that already worked.
+
+---
+
+## 187 · The camera: you go to the object, the object does not come to you
+
+*2026-09-21*
+
+Tapping a note used to replace the screen with a reading surface — a sheet of
+Letter on a stage, the desk gone. That is the right answer for a book you mean
+to sit with and the wrong one for a note you want to glance into, because
+everything it was next to goes away with it, and where a thing sits among its
+neighbours is most of what Bureau is for.
+
+So the board zooms instead. `S.zoomOn` holds an id, `applyZoom()` in motion.js
+solves for the transform that puts that tile in the middle of the viewport at
+the largest scale that still fits it, and `#drawergrid` is slid and scaled
+there. The neighbours are still on screen, dimmed and a little desaturated but
+plainly *there*; the tile keeps its own size in cells, its own colour, its own
+edge and its own place on the grid. A 2×3 note under the camera is a 2×3 note.
+
+**One transform on one element.** Not a transform per tile, and not a re-layout
+at a bigger cell size: the grid is one element and the compositor does the whole
+move, so the cost is the same for four tiles and four hundred. That is also why
+the scroller is frozen (`.camerascroll`) — a `scrollTop` underneath a transform
+is two things arguing about the same pixels.
+
+**It is a camera, not a container.** Nothing is reparented, no box is rewritten,
+nothing is saved. `zoomOut()` sets the id back to null. This is the whole reason
+it is cheap enough to be the ordinary way a note opens.
+
+**But the id has to be cleared when the board changes, and there is exactly one
+place that knows.** Go into a drawer, walk to the next desk, delete the object
+or file it elsewhere and the tile the camera is pointed at is not on the screen
+any more — while `S.zoomOn` still names it, so `zoomedIn()` answers true and the
+way out below swallows every click on the board from then on. It reads as the
+app having stopped listening, which is the worst kind of bug to find. It is
+cleared in `applyZoom()`, which runs after every render and is already the one
+thing that asks whether the tile is there, rather than at each of the dozen
+places that can change what is on the board.
+
+(Note the pair of names, which is a trap: `S.zoomId` is the *instrument's*
+full-screen zoom from decision 182 and `S.zoomOn` is the camera. Two different
+things one letter apart.)
+
+**The transform breaks the drag maths, so nothing may be dragged through it.**
+`cellW()` measures `.grid`'s own bounding rect (the invariant in CLAUDE.md), and
+a scaled rect divided by a column count gives a cell four times too wide. The
+guard is one line at the top of `onDown`: a press inside a zoomed grid that is
+not inside the reading face is refused outright. You come out first, then you
+move things. Pressing anywhere off the tile backs the camera off, and Escape
+does it after the surfaces and before the inline edit.
+
+**The words are counter-scaled, and that is the whole trick.** A tile's caption
+type is 12px because you read it across a desk. Magnified four times it is 48px
+and one line holds three words. So the reading face is written at
+`CAM_READ / k` and the same transform lands it back at 17px on the screen,
+which means the object is magnified and *only the type is not*. `camScale()` is
+shared between `applyZoom()` and `zoomFace()` so the size the words are
+paginated at and the size they are shown at cannot come apart.
+
+**How it reads is the object's own answer, not the camera's.** `readOf(o)` —
+scroll or book, exactly as on the reading surface. A scroll is a column you
+push; a book is pages you turn, paginated **against this tile** rather than
+against a sheet of paper that is not on the screen, which is why `pagesOf()`
+now takes a box and keys its cache on it. Anything that is not words — an
+instrument, a picture, a control — gets no reading face at all: it is already
+the whole of itself, and the camera just brings it close enough to use.
+
+**The reading face takes the tile's name row over.** A tile's name is drawn at
+the tile's own size, so the camera magnifies it along with everything else and
+it lands as a banner lying across the words. The face carries its own head —
+one line, clipped — and `camreading` on the tile hides the row underneath.
+
+**Everything in it is in `em`, and the three numbers the pagination also needs
+are written inline.** The two paddings and the head's height go onto the
+element as `--zpx`/`--zpy`/`--zhead` from `zoomFace()`, because board.css
+measuring one page box and `pagesOf()` measuring another is a pair of numbers
+that agree until somebody edits one. Note also that **the reading surface's own
+page rules are written at two classes in chrome.css**, which loads after
+board.css and therefore wins a tie: `.spread .page` set the type to 14.5px, the
+position to relative and the page number to centred, and each of those had to
+be restated at three classes here. A stylesheet that loads later is not a
+stylesheet that is more specific, and the difference is invisible until the
+same element is used in two places.
+
+*Against:* two ways to read the same object now exist — the camera and the
+reading surface — and only the second can be full-screen, have its own bar or
+be written in. The honest split is that the camera is for looking into
+something and the surface is for sitting with it, and a 1×1 note under the
+camera is still a 1×1 note, which is a postage stamp however close you get.

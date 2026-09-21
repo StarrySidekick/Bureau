@@ -19,7 +19,7 @@ import { openGuide } from './guide.js';
 /* Cyclic at *function* level only — motion.js imports render() from here and
    this imports sprayAt() from there, and neither is called while the modules
    are loading. That is the graph the app already has; keep it that way. */
-import { sprayAt, SPRAYS, sprayNow, sprayMark, hopIntoCollector } from './motion.js';
+import { sprayAt, SPRAYS, sprayNow, sprayMark, hopIntoCollector , applyZoom, zoomOut, zoomedIn } from './motion.js';
 import { APP_VERSION, DATA_V, save, saveIfDirty, storeSize, install } from './persist.js';
 
 /* The desk is nothing but the grid. There is no toolbar: New, Arrange and
@@ -1327,6 +1327,11 @@ function render(){
   bindSortables();
   sizeGrid();
   repositionPanel();   // a bubble is pinned to a tile, and the tiles just moved
+  /* The camera, re-applied. `render()` replaces `#app`, so the element
+     carrying the transform goes with it — exactly why the bubble above has to
+     be repositioned here too, and the precedent for doing it here at all.
+     See decision 187. */
+  applyZoom();
   /* The heap, re-bound to the tiles that have just been built. `render()`
      replaces `#app` wholesale, so a body's element is detached a moment later —
      bodies are kept by **id**, so a render in the middle of a fall is invisible

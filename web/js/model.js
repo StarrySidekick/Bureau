@@ -476,7 +476,7 @@ const BUILTIN_KINDS = {
   candle:   {act:'candle', nm:'Candle',    ic:'sun',   c:3,  ds:'Burns down while you work',
      attrs:[], size:[2,5], phoneSize:[2,5], onclick:'active', burn:120, body:'' },
   bell:     {act:'bell',   nm:'Desk bell', ic:'ring',  c:12, ds:'Press it and it rings. That is all',
-     attrs:[], size:[3,2], phoneSize:[3,2], onclick:'active', body:'' },
+     attrs:[], size:[4,3], phoneSize:[4,3], onclick:'active', body:'' },
   clock:    {act:'clock',  nm:'Clock',     ic:'clock', c:9,  ds:'The time, and one alarm',
      attrs:[], size:[4,4], phoneSize:[4,4], onclick:'active', clock:'wall', body:'' },
   die:      {act:'die',    nm:'Die',       ic:'grid',  c:14, ds:'Press it and it rolls',

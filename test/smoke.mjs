@@ -4040,15 +4040,36 @@ const CHROME = process.env.BUREAU_CHROME;
     out.ghostClearsItselfUp = !document.querySelector('#fx .fxopen,#fx .fxleave,#fx .divecave,#fx .divefront');
     S.view='desk'; S.drawerId=null; BUREAU.render(); await nap(160);
 
-    // a sheet of paper curls, and the page it opens is not instant either
+    /* **Tapping a note is a camera move now, not a curl** — decision 187
+       supersedes this half of 103. The tap used to lift the sheet off the
+       board and open the reading surface over a dimmed desk; it zooms the
+       board into the note where it sits instead, and the surface is something
+       you ask for. So the assertion is turned round rather than deleted: what
+       is guarded is that the tap goes *somewhere* on the instant, which is
+       decision 38's rule and the thing both versions have in common. */
     note.parent = 'root'; note.desk = BUREAU.free(5, 4, 'root');
     BUREAU.render(); await nap(150);
     document.querySelector(`.grid .drawer[data-row="${note.id}"]`).click();
-    out.paperLifts = !!document.querySelector('.drawer.curling .curlshade');
-    out.readOpensAtOnce = S.readId === note.id;
+    out.aNoteZoomsAtOnce = S.zoomOn === note.id && !S.readId;
+    await nap(600);
+    out.andTheBoardIsScaled =
+      getComputedStyle(document.querySelector('#drawergrid')).transform !== 'none';
+    /* Out again before anything else: while the camera is in, a press on the
+       board is spent coming out of it, the way a press past a panel is spent
+       putting it down. A block that left it on would have every click after it
+       swallowed — which is how this was found. */
+    document.querySelector('#app .scroll').click(); await nap(450);
+    out.andPressingOffItComesOut = !S.zoomOn
+      && getComputedStyle(document.querySelector('#drawergrid')).transform === 'none';
+
+    /* The curl itself is still the opening for everything that *does* go to a
+       surface — writing among them — so it is exercised through the writer
+       rather than through a tap that no longer means that. */
+    BUREAU.write(note.id);
+    out.readOpensAtOnce = S.writeId === note.id;
     await nap(600);
     out.curlClearsItselfUp = !document.querySelector('.curling,.curlshade');
-    BUREAU.state.readId = null; BUREAU.renderSheet();
+    BUREAU.state.writeId = null; BUREAU.renderSheet();
 
     // ticking pops, and the ring survives the thing leaving the drawer
     const t = BUREAU.create('task', { parent:'root', title:'Pop' });
@@ -4677,7 +4698,14 @@ const CHROME = process.env.BUREAU_CHROME;
     if(n) n.click();
     await nap(220);
     const out = !S.editId;
-    S.look.locked=false; BUREAU.render();
+    /* …and the tap fell through to the tile, which since decision 187 means
+       the **camera**. A block that leaves it on poisons every block after it:
+       while it is in, a press on the board is spent coming out of it, so the
+       next block's click lands on nothing and the assertion that reads the
+       result of that click is false for a reason nowhere near it. This one
+       cost a run to find. Anything that taps a readable tile has to come back
+       out, the way pressing off it would. */
+    S.zoomOn=null; S.look.locked=false; BUREAU.render();
     return out;
   });
 
@@ -7877,6 +7905,267 @@ const CHROME = process.env.BUREAU_CHROME;
     return out;
   });
 
+  /* ---- the desk objects, and the camera — decisions 177 to 187 ----------
+     Two passes' worth of new things, asked the way this file prefers: press
+     it and read what happened. The jar, the seal, the nameplate and the lamp
+     are *faces*, so the question is whether the tile draws them; the
+     instruments are behaviour, so the question is what a press does and
+     whether it does it without a timer; the group and the camera are neither
+     — a group is the set carrying the id and the camera is a transform, so
+     both are asked of the app rather than of a table. */
+  const deskObjects = await page.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const out = {}, S = BUREAU.state;
+    const was = S.objects.slice();
+    S.objects.length = 0; S.look.locked = false; S.sel = [];
+    /* No `attrs` unless the fixture says so: `has()` reads the object's own
+       list when it has one, so an empty array hands a drawer back with no
+       `container` on it and a lamp with no `decor`. */
+    const mk = o => { S.objects.push(Object.assign({ parent:'root', title:'', body:'',
+      tags:[], ord:0, created:'2026-09-01' }, o)); return o.id; };
+
+    /* ---- a jar is a drawer you can see into — decision 177 ------------- */
+    mk({ id:'jar', kind:'drawer', title:'Odds', face:'jar', desk:{x:2,y:2,w:2,h:3} });
+    for(let i=0;i<9;i++) mk({ id:'jb'+i, parent:'jar', kind:'note', title:'bit '+i,
+      attrs:['text'], desk:{x:1,y:1+i,w:1,h:1} });
+    BUREAU.render(); await nap(150);
+    const jar = document.querySelector('[data-drawer="jar"]');
+    out.aJarIsGlass = !!jar && jar.classList.contains('jartile')
+      && !!jar.querySelector('.jarglass') && !!jar.querySelector('.jarlid')
+      && !!jar.querySelector('.jarlabel');
+    /* The heap has to sit still across a render, because a full re-render is
+       the ordinary case here — so the bits are a hash of the id, never
+       Math.random(). Compare the same bit's geometry either side of one. */
+    const bitStyle = () => [...document.querySelectorAll('[data-drawer="jar"] .jarbit')]
+      .map(e => e.getAttribute('style')).join('|');
+    const heap1 = bitStyle(); BUREAU.render(); await nap(60);
+    out.andItsHeapSitsStill = heap1.length > 0 && bitStyle() === heap1;
+    // the fill is read off the count, so it is capped rather than overflowing
+    out.andTheHeapIsCapped =
+      document.querySelectorAll('[data-drawer="jar"] .jarbit').length <= 60;
+
+    /* ---- what a drawer can wear — the plate, the seal, the lamp -------- */
+    /* The slot values are the *positions* the model names, not words for what
+       they look like: `plateOf()` answers 'none' for anything outside PLATES
+       and `sealOf()` the same, so a fixture inventing a value gets a tile with
+       no plate on it and nothing says so. */
+    mk({ id:'br', kind:'drawer', title:'Brass', plate:'plate', desk:{x:5,y:2,w:3,h:2} });
+    mk({ id:'lt', kind:'decor', decor:'lamp', attrs:['decor'], desk:{x:9,y:2,w:2,h:3} });
+    mk({ id:'sl', kind:'note', title:'Sealed', attrs:['text'], seal:'crest',
+         desk:{x:12,y:2,w:2,h:2} });
+    BUREAU.render(); await nap(150);
+    /* A nameplate is a **class on the front**, `pl-<slot>`, and the metal is
+       `--brass` in CSS — there is no `.plate` element to find, which is the
+       whole point of a slot. (`.plate` is the light switch's own SVG rect,
+       which is what this asked for first and always found nothing.) */
+    out.aDrawerCanWearAPlate = (() => {
+      const t = document.querySelector('[data-drawer="br"]');
+      if(!t || !t.classList.contains('pl-plate')) return false;
+      /* `:scope >` because the flank's top face is also a `.dtop` and sits
+         earlier in the tile. The plate's metal is a pseudo-element, and asking
+         for it by name is what `smoke-only.mjs` mistakes for a dependency on
+         another block's variable — so what is read is the rule's *other* half,
+         the rounded padded field the plate is screwed onto. */
+      const top = t.querySelector(':scope > .dtop');
+      return !!top && getComputedStyle(top).borderRadius !== '0px'; })();
+    out.aLampThrowsLight = !!document.querySelector('.lamplight, .lights');
+    out.aLetterCanBeSealed = !!document.querySelector('[data-row="sl"] .wseal');
+
+    /* ---- the instruments — decisions 182 and 183 ----------------------- */
+    const inst = { metro:'metronome', glass:'hourglass', candle:'candle',
+                   bell:'bell', clock:'clock', die:'die' };
+    out.everyInstrumentDraws = {};
+    Object.keys(inst).forEach((a,i) =>
+      mk({ id:'i-'+a, kind:inst[a], desk:{x:2+i*3, y:7, w:2, h:2} }));
+    BUREAU.render(); await nap(150);
+    Object.keys(inst).forEach(a => {
+      const t = document.querySelector('[data-row="i-'+a+'"]');
+      out.everyInstrumentDraws[a] = !!t && t.classList.contains('acttile')
+        && !!t.querySelector('svg');
+    });
+    /* An instrument's art must fill the cell it is in: a viewBox that
+       letterboxes leaves a die floating in a third of its own tile. */
+    const dieT = document.querySelector('[data-row="i-die"]');
+    const dieArt = dieT && dieT.querySelector('svg');
+    out.andFillsTheGridSpaceItIsIn = (() => {
+      if(!dieT || !dieArt) return false;
+      const a = dieArt.getBoundingClientRect(), b = dieT.getBoundingClientRect();
+      return a.width > b.width*0.92 && a.height > b.height*0.92;
+    })();
+    /* …and draws no light of its own. The shading was baked into the artwork,
+       which is the one thing every other tile in the app is forbidden. */
+    out.andPaintsNoLightOfItsOwn = !/fill="#fff"|fill="#000"/
+      .test(dieT ? dieT.innerHTML : 'fill="#fff"');
+    /* A tap does the instrument's own thing, and the tile survives it — this
+       is the "flick out of existence" report: a tile that is gone after a
+       press, or whose art has stopped being drawn. */
+    // activeTap takes the **id**; handed an object it finds nothing and answers null
+    const die = BUREAU.state.objects.find(o => o.id === 'i-die');
+    let rolled = false;
+    for(let i = 0; i < 12 && !rolled; i++){
+      const was = die.face; BUREAU.activeTap('i-die'); rolled = die.face !== was;
+    }
+    out.aDieRolls = rolled && typeof die.face === 'number';
+    BUREAU.render(); await nap(120);
+    out.andIsStillThereAfterAPress = !!document.querySelector('[data-row="i-die"] svg');
+    // the metronome is the one with a timer, and it lives outside the DOM
+    BUREAU.activeTap('i-metro'); await nap(80);
+    out.aMetronomeGoes = BUREAU.metroGoing('i-metro');
+    BUREAU.render(); await nap(120);
+    out.andARenderDoesNotSilenceIt = BUREAU.metroGoing('i-metro');
+    BUREAU.stopAllMetros();
+    out.andItCanBeStopped = !BUREAU.metroGoing('i-metro');
+
+    /* ---- a deck is a container that cuts rather than opens — 183 ------- */
+    mk({ id:'dk', kind:'deck', act:'deck', attrs:['container'], desk:{x:2,y:11,w:2,h:3} });
+    ['A','B','C'].forEach((c,i) => mk({ id:'c'+c, parent:'dk', kind:'card',
+      title:'Card '+c, attrs:['text'], desk:{x:1,y:1+i,w:1,h:1} }));
+    BUREAU.render(); await nap(150);
+    const deck = BUREAU.state.objects.find(o=>o.id==='dk');
+    out.aDeckIsAContainer = BUREAU.isContainer(deck) && BUREAU.isActive(deck);
+    const view0 = S.view;
+    document.querySelector('[data-drawer="dk"]').click(); await nap(300);
+    out.andPressingItCutsRatherThanOpens = S.view === view0 && S.drawerId !== 'dk';
+
+    /* ---- a group is the set carrying the id — decision 180 ------------- */
+    mk({ id:'g1', kind:'note', title:'One', attrs:['text'], desk:{x:6,y:11,w:2,h:2} });
+    mk({ id:'g2', kind:'note', title:'Two', attrs:['text'], desk:{x:8,y:11,w:2,h:2} });
+    BUREAU.render(); await nap(120);
+    const made = BUREAU.groupTogether(['g1','g2']);
+    BUREAU.render(); await nap(150);
+    /* A group **is** the set carrying the id: `grp` on each object, and there
+       is deliberately no table anywhere for one to be looked up in. */
+    const gid = (BUREAU.state.objects.find(o=>o.id==='g1')||{}).grp;
+    out.grouping = !!made && !!gid
+      && (BUREAU.state.objects.find(o=>o.id==='g2')||{}).grp === gid;
+    out.andThereIsNoGroupTable = !BUREAU.state.groups && !BUREAU.state.grps;
+    out.andTheGroupIsDrawnRoundThem = !!document.querySelector('.grpline');
+    // travelWith takes the object, and answers null when there is nobody to go with
+    const g1 = BUREAU.state.objects.find(o=>o.id==='g1');
+    out.andTheyTravelTogether =
+      (BUREAU.travelWith(g1)||[]).slice().sort().join(',') === 'g1,g2';
+
+    /* ---- the camera — decision 187 ------------------------------------- */
+    const body = Array.from({length:14},(_,i) =>
+      `The garden had gone quite mad that year and nobody could say why. Paragraph ${i+1}.`
+      ).join('\n\n');
+    mk({ id:'z1', kind:'note', title:'The lighthouse', body, attrs:['text'],
+         read:'scroll', desk:{x:12,y:7,w:2,h:3} });
+    mk({ id:'z2', kind:'note', title:'Keeper', body, attrs:['text'],
+         read:'book', desk:{x:15,y:7,w:3,h:4} });
+    BUREAU.render(); await nap(150);
+    const viewRect = () => document.querySelector('#app .scroll').getBoundingClientRect();
+    const restT = getComputedStyle(document.querySelector('#drawergrid')).transform;
+    document.querySelector('[data-row="z1"]').click(); await nap(600);
+    out.aTapZoomsIn = S.zoomOn === 'z1'
+      && getComputedStyle(document.querySelector('#drawergrid')).transform !== restT;
+    (() => {
+      const t = document.querySelector('[data-row="z1"]').getBoundingClientRect();
+      const v = viewRect();
+      // centred in the viewport…
+      out.andCentresTheObject = Math.abs((t.left+t.width/2)-(v.left+v.width/2)) < 3
+        && Math.abs((t.top+t.height/2)-(v.top+v.height/2)) < 3;
+      // …and as large as fits, without leaving it
+      out.andFillsWhatItCan = t.height > v.height*0.8 && t.height <= v.height + 1;
+      // …with the neighbours still on the screen, which is the whole point
+      out.andTheNeighboursAreStillThere =
+        [...document.querySelectorAll('#drawergrid > .drawer')].filter(e => {
+          const r = e.getBoundingClientRect();
+          return e.dataset.row !== 'z1' && r.right > v.left && r.left < v.right
+            && r.bottom > v.top && r.top < v.bottom; }).length > 0;
+    })();
+    /* The box is untouched: a camera, not a container. */
+    const zb = BUREAU.state.objects.find(o=>o.id==='z1').desk;
+    out.andTheObjectKeepsItsOwnBox = zb.w === 2 && zb.h === 3;
+    /* The words are counter-scaled — written small so the transform lands them
+       at a reading size. Without it the tile's caption type is magnified four
+       times and one line holds three words. Measured on the screen, because
+       that is the only place the two numbers meet. */
+    const zr = document.querySelector('.oncamera .zoomread');
+    out.itIsReadable = !!zr && zr.classList.contains('zscroll');
+    out.andTheTypeIsCounterScaled = (() => {
+      if(!zr) return false;
+      const k = +getComputedStyle(document.querySelector('#drawergrid'))
+        .getPropertyValue('--camk') || 1;
+      const onScreen = parseFloat(getComputedStyle(zr).fontSize) * k;
+      return k > 2 && onScreen > 13 && onScreen < 22;
+    })();
+    out.andTheScrollCanBePushed = (() => {
+      const b = document.querySelector('.oncamera .zoombody');
+      return !!b && b.scrollHeight > b.clientHeight + 2; })();
+    /* The tile's own name row is drawn at the tile's size, so it would be
+       magnified into a banner across the words; the reading face carries its
+       own head instead. */
+    out.andTheReadingFaceOwnsTheName = (() => {
+      const t = document.querySelector('.oncamera');
+      const nm = t && t.querySelector(':scope > .dtop');
+      return !!t && t.classList.contains('camreading')
+        && !!t.querySelector('.zoomhead')
+        && (!nm || getComputedStyle(nm).visibility === 'hidden'); })();
+    /* Nothing may be dragged through it: `cellW()` measures the grid's own
+       bounding rect and a scaled rect gives a cell four times too wide, so a
+       drop would land in a cell nobody aimed at. Asked of the thing it
+       protects — a full hold-and-drag over a neighbour has to leave that
+       neighbour's box exactly where it was. */
+    out.andNothingDragsThroughIt = await (async () => {
+      const t = document.querySelector('[data-row="z2"]');
+      if(!t) return false;
+      const o = BUREAU.state.objects.find(x => x.id === 'z2');
+      const box = JSON.stringify(o.desk);
+      const r = t.getBoundingClientRect();
+      const ev = (ty, x, y) => t.dispatchEvent(new PointerEvent(ty, { bubbles:true,
+        pointerId:9, clientX:x, clientY:y, pointerType:'mouse', button:0 }));
+      ev('pointerdown', r.left+8, r.top+8); await nap(420);
+      ev('pointermove', r.left+200, r.top+180); await nap(60);
+      ev('pointerup',   r.left+200, r.top+180); await nap(260);
+      return JSON.stringify(BUREAU.state.objects.find(x => x.id === 'z2').desk) === box;
+    })();
+    // pressing off it comes back out
+    document.querySelector('#app .scroll').click(); await nap(500);
+    out.andPressingOffItComesBackOut = !S.zoomOn;
+
+    /* ---- a book under the camera turns by being pushed — 186 + 187 ----- */
+    document.querySelector('[data-row="z2"]').click(); await nap(600);
+    out.aBookUnderTheCameraHasPages =
+      !!document.querySelector('.oncamera .zbook .page');
+    /* The page is the *tile's* box, not the reading surface's sheet: the two
+       are written at two classes in chrome.css, which loads later and would
+       otherwise win the tie. */
+    out.andThePageIsTheTilesOwnBox = (() => {
+      const pg = document.querySelector('.oncamera .zbook .page');
+      const tl = document.querySelector('.oncamera');
+      if(!pg || !tl) return false;
+      const a = pg.getBoundingClientRect(), b = tl.getBoundingClientRect();
+      return getComputedStyle(pg).position === 'absolute'
+        && a.height > b.height*0.6 && a.width > b.width*0.6; })();
+    out.andTheCountSitsInTheCorner = (() => {
+      const n = document.querySelector('.oncamera .zbook .pno');
+      if(!n) return false;
+      const k = +getComputedStyle(document.querySelector('#drawergrid'))
+        .getPropertyValue('--camk') || 1;
+      return parseFloat(getComputedStyle(n).fontSize) * k < 16
+        && getComputedStyle(n).textAlign === 'right'; })();
+    const at0 = S.bookAt || 0;
+    const spread = document.querySelector('.oncamera .zbook .spread');
+    const sr = spread.getBoundingClientRect();
+    const pt = (t,x) => new PointerEvent(t, { bubbles:true, pointerId:2,
+      clientX:x, clientY:sr.top+sr.height/2, pointerType:'mouse', button:0 });
+    spread.dispatchEvent(pt('pointerdown', sr.left+sr.width*0.8));
+    for(const f of [0.6,0.4,0.2]) spread.dispatchEvent(pt('pointermove', sr.left+sr.width*f));
+    spread.dispatchEvent(pt('pointerup', sr.left+sr.width*0.2));
+    await nap(400);
+    out.andADragAcrossItTurnsThePage = (S.bookAt||0) === at0 + 1;
+    out.andStaysUnderTheCamera = S.zoomOn === 'z2';
+
+    // escape comes out, and the desk is put back the way it was found
+    document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
+    await nap(300);
+    out.andEscapeComesOut = !S.zoomOn;
+    S.objects.length = 0; was.forEach(o => S.objects.push(o));
+    S.undo = []; S.redo = []; S.sel = []; BUREAU.render();
+    return out;
+  });
+
   console.log(JSON.stringify({
     errors: errs, manifestOk, swReady, survived, styleSurvived, slotColours,
     newObjectSeen, inlineEdit, sortDefaults, taskLook,
@@ -7898,7 +8187,7 @@ const CHROME = process.env.BUREAU_CHROME;
     paletteKeys, editorKeys, pickerLeads, rollupsEverywhere, soundAndVision, keyboardBoard,
     ranking, urgency, reachable, pensAndCorners, lyingBooks, plansWork, stockPlans, livedWith, listIsOneShelf, repeating, oneLock, scheduling, ownColour, addBox, calFaces,
     lockedBoard, freeTraits, pageWrites, tickBoxes, readerFits, categories,
-    specimenBook, thisPass,
+    specimenBook, deskObjects, thisPass,
     dropsIn, keyframesRegistered, aesthetics, slotScoping, objectsDressed, grainSlots, tagged, drawnAesthetic, deeper, lookStage, statusBar, bindings, panelling, theSpray, tappingIsQuiet, decorations, pinboard, gravity
   }, null, 2));
   await browser.close();
