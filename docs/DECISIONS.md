@@ -7951,3 +7951,88 @@ bare board, which is the half of it that says least. The pin is at the tile's
 centre rather than at an edge, which means a string emerges from under the card
 it leaves; an edge pin would need a side chosen per pair and would move every
 time either tile did.
+
+---
+
+## 183 · The deck
+
+*2026-09-21*
+
+A deck of cards you cut to: a stack on the board with one card showing, and a
+press turns a different one up. Prompts, exercises, questions to ask yourself —
+the things a pile of index cards is for and that no drawer can be, because a
+drawer's whole job is to show you everything in it.
+
+**It is a container, and that is the entire design.** `deck` carries
+`container` like any drawer and `act:'deck'` like any instrument, so every verb
+it needs already existed: *drop a card in* is filing, *take one out* is a
+reparent, *open it to see the lot* is a dive, and the archive, the undo and the
+rollups all came along without being told. What the deck itself stores is three
+things and they are all about the top — which child is showing (`top`), whether
+it is face up (`faceup`), and what the back looks like (`back`).
+
+**A card is an ordinary object.** Not a card type: a note, a task, a quote,
+anything. The thing that makes it a card is being in the deck, which is what
+"containing is an attribute" has meant since the beginning.
+
+**A press cuts the deck rather than opening it**, which is the one place this
+departs from what a container does. `tileTap()` asks `isContainer(o) &&
+!isActive(o)`, so a deck falls through to its own tap and every other drawer is
+untouched; going *in* is a button on the zoom. The cut never picks the card
+already showing, because a cut that changes nothing reads as a press that did
+nothing.
+
+**Five backs, drawn rather than named.** A back is a *pattern* — lattice, rays,
+dots, chevron, plain — and the ink in all five is `--glow`, so each aesthetic
+prints its own without a rule per aesthetic. The word on a face-up card is the
+one piece of an instrument's artwork that is text somebody wrote, so it is a
+`foreignObject`: an SVG `<text>` does not wrap, and a card's writing has to.
+
+*Against:* holding a deck and dragging the top card straight out onto the board
+is not built. It is the gesture that was asked for and it wants `gestures.js`
+to carry an object that has no tile on the board, which is a flying element and
+a new carry path in the fiddliest file in the app. *Deal the top one out* on
+the zoom does the same job from one press, and dropping a card onto a deck —
+the other half — works already because a deck is a container.
+
+---
+
+## 184 · What comes in the post
+
+*2026-09-21*
+
+Three shapes and a seal. A **letter** is a sheet that was folded and sent: the
+creases are still in it, at the thirds, drawn as two hairlines with a thread of
+light under each — which is what a fold looks like once the sheet has been
+opened out and pressed flat. A **telegram** is few words and every one of them
+paid for, so it is set in a monospace, upper case, on a ruled form. A
+**postcard** is the one object on this desk with **two sides**.
+
+**Turning it over is a state of the tile, not a 3-D flip.** `flip` on the
+object, spliced in with the size classes so every branch of `drawTile()` gets
+it, and the back is a rule down the middle with an address panel and a dashed
+stamp box. A card on a desk is picked up and put down the other way round; the
+spin is the one thing a CSS 3-D flip is good at and it is not what this is. It
+is also the only press in the app that turns a thing over rather than opening
+it, which is why `flip` is its own click action rather than a variety of read.
+
+**The wax seal is a colour, and that is deliberately not a slot.** Everything
+else painted on this desk stores a *position* and lets the aesthetic say what
+it is made of (decision 33). A stick of sealing wax does not work that way: it
+is red, and it is red in Golf 97 too. So `sealc` is a literal hex and `seal`
+names the impression — a star, an initial, a crest, a bee, or plain wax. The
+impression is `currentColor` at low opacity rather than a second hue, because a
+pressed mark is the same wax seen from a different angle and not ink printed on
+it. The blob is four unequal radii: wax poured out of a stick spreads
+unevenly, and a perfect disc reads as a sticker.
+
+**One element, and only on something that has one.** The seal joins the
+conditional layers in `drawTile()` beside the flank and the grain, on the same
+bargain decision 99 struck: an element on every tile to carry nothing costs a
+fifth of a render at three thousand objects.
+
+*Against:* the three are a category rather than three majors, which puts them
+one press further in — the front page of the picker is a thing you read. And
+the seal is offered to every object rather than to letters alone, which is
+right (you seal what you like) and means one more row in the Look door for
+things nobody will ever seal.

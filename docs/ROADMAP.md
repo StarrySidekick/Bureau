@@ -38,7 +38,7 @@ are pure additions: no gesture changed, no migration, nothing on an existing
 desk moved. The plate is the seventh slot family, so the picker, the pin, the
 scope class and the specimen book's matrix all came along from one table row.
 
-### Phase 2 — the overlay layer
+### Phase 2 — the overlay layer — DONE (v1.72)
 
 **One piece of machinery, three features**, which is why they go together: an
 absolutely positioned layer inside `.grid`, drawn from the tiles' rectangles
@@ -61,14 +61,14 @@ and nothing else.
 Nothing in the layer may take a pointer event, and nothing in it may be read to
 decide what a cell means — see the falling-board rule in `gestures.md`.
 
-### Phase 3 — groups
+### Phase 3 — groups — DONE (v1.72)
 
 `grp` on the object, the perimeter from phase 2, "Group together" on the
 context menu, and **select mode**: once a selection is open, a plain tap adds
 to it instead of opening. That last one is four lines in `wire.js` — the
 shift/⌘-click branch already toggles membership; it grows a second condition.
 
-### Phase 4 — the interaction rework
+### Phase 4 — the interaction rework — DONE (v1.72)
 
 The risky one, and it is all in `gestures.js`, the fiddliest file in the app.
 
@@ -80,7 +80,7 @@ The risky one, and it is all in `gestures.js`, the fiddliest file in the app.
 - The `touchmove` invariant gets *simpler*, not harder: a locked board no
   longer arms a drag, so there is no scroll to steal there.
 
-### Phase 5 — the zoom surface, and six active objects
+### Phase 5 — the zoom surface, and six active objects — DONE (v1.72)
 
 `sheet.js` has three surfaces — read, write, view. This is a fourth, `S.zoomId`,
 rendered into `#sheetHost` so it does not fight `render()`.
@@ -98,7 +98,7 @@ wax left is *computed at render*, never counted down by a timer. And **sound is
 synthesised**: the Web Audio API, no files in `SHELL` and no dependency, which
 is what a metronome and a bell need and all they need.
 
-### Phase 6 — the deck of cards
+### Phase 6 — the deck of cards — DONE (v1.73)
 
 A card is an **ordinary object parented to the deck**, which makes "drag a card
 onto a deck to put it in" the filing that already works and "pull the top card
@@ -106,7 +106,21 @@ off" a `keepSize()` and a reparent. The deck stores which child is on top and
 whether it is face up. Tap cycles it; hold opens the zoom, where the backs,
 borders and new cards are.
 
-### Phase 7 — letters, wax seals, postcards
+### Still open
+
+**Holding a deck and dragging the top card straight out** (decision 183's
+*Against*). It wants `gestures.js` to carry an object that has no tile on the
+board — a flying element and a new carry path in the fiddliest file in the app.
+*Deal the top one out* on the deck's zoom does the same job from one press, and
+the other half of the gesture, dropping a card onto a deck, already works
+because a deck is a container.
+
+**A per-group colour.** A group's outline is `--brass` because a group *is* the
+set carrying the id (decision 180) and there is deliberately no table to hang
+one on. If it turns out to want one, that is the table arriving, and it should
+arrive on purpose rather than by accident.
+
+### Phase 7 — letters, wax seals, postcards — DONE (v1.73)
 
 Last because a **postcard has two sides** and so does a card, and building the
 flip twice is how two flips end up disagreeing.

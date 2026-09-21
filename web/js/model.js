@@ -414,6 +414,38 @@ const BUILTIN_KINDS = {
   poem:    {shape:'verse', parchment:true, nm:'Poem',    ic:'feather', c:10, key:'"', ds:'Lines, kept as written', size:[5,7], onclick:'read', attrs:['text'], body:'' },
   place:   {shape:'card', nm:'Place',   ic:'flag',    c:7, key:'1', ds:'Somewhere in the story',  size:[5,6], onclick:'read', attrs:['text','media','relates'], narrative:true, gathers:'world',
             body:'**Feels like —** \n\n**Who is there —** \n\n**What happened here —** ' },
+  /* ---- what comes in the post — decision 184 -----------------------------
+     A **letter** is a sheet that was folded and sent: the creases are still in
+     it, and it may carry a seal. A **postcard** is the other half of the same
+     idea and the one object on this desk with **two sides** — a picture on the
+     front and the writing on the back, and pressing it turns it over rather
+     than opening anything. Both are ordinary objects with ordinary bodies; the
+     difference from a note is entirely what they are drawn as, which is what a
+     shape is for.
+
+     They are a **category** with the note-ish types, not two more majors: the
+     picker's front page is a thing you read. */
+  post:    {cat:true, shape:'letter', nm:'Post', ic:'send', c:5, key:'9',
+     ds:'Something that came in the post — press it and say which',
+     family:['letter','postcard','telegram'],
+     famSub:'What came?',
+     attrs:['text'], size:[4,4], onclick:'read', body:'' },
+  letter:  {shape:'letter', nm:'Letter', ic:'send', c:5,
+     ds:'A sheet that was folded and sent', seal:'none',
+     attrs:['text','date','relates'], size:[4,5], phoneSize:[4,5], onclick:'read',
+     body:'Dear —\n\n\n\nYours,\n' },
+  /* Two sides, and `flip` is which one is showing. It is the only object in
+     the app whose press turns it over, which is why `onclick` is `flip` and
+     not `read`: a postcard you cannot turn over is a photograph. */
+  postcard:{shape:'postcard', nm:'Postcard', ic:'image', c:9,
+     ds:'A picture one side, the writing the other', onclick:'flip',
+     attrs:['text','media','location'], mediaType:'image',
+     size:[5,4], phoneSize:[5,4], body:'' },
+  telegram:{shape:'telegram', nm:'Telegram', ic:'send', c:15,
+     ds:'Few words, and every one of them paid for',
+     attrs:['text','date'], size:[5,3], phoneSize:[5,3], onclick:'read',
+     body:'ARRIVING THURSDAY STOP\nBRING THE KEYS STOP' },
+
   /* ---- an instrument: something that runs — decision 182 -----------------
      Six things that are not information. Everything else on this desk is
      something you wrote down; a metronome, an hourglass, a candle, a bell, a
@@ -434,7 +466,7 @@ const BUILTIN_KINDS = {
      the object first, so a type somebody invents can be a die by saying so. */
   instrument:{cat:true, nm:'Instrument', ic:'clock', c:13,
      ds:'Something that runs — press it and say which',
-     family:['metronome','hourglass','candle','bell','clock','die'],
+     family:['metronome','hourglass','candle','bell','clock','die','deck'],
      famSub:'What sort of instrument?',
      attrs:[], size:[3,4], onclick:'active', body:'' },
   metronome:{act:'metro',  nm:'Metronome', ic:'clock', c:11, ds:'Keeps time, and you can hear it',
@@ -449,6 +481,16 @@ const BUILTIN_KINDS = {
      attrs:[], size:[4,4], phoneSize:[4,4], onclick:'active', clock:'wall', body:'' },
   die:      {act:'die',    nm:'Die',       ic:'grid',  c:14, ds:'Press it and it rolls',
      attrs:[], size:[2,2], phoneSize:[2,2], onclick:'active', sides:6, face:1, body:'' },
+  /* A **deck** is the one instrument that holds things, which is why it is a
+     container carrying `act` rather than an instrument that learned to hold:
+     everything a container already does — filing a card into it by dropping
+     one, opening it to see the lot, the archive, undo — comes along untouched,
+     and all the deck itself adds is which card is on top. See decision 183. */
+  deck:     {act:'deck', face:'deck', nm:'Deck', ic:'copy', c:10, key:'4',
+     ds:'Cards you cut to — drop things in, press it to turn one up',
+     attrs:['container'], layout:'grid', size:[3,4], phoneSize:[3,4],
+     onclick:'active', faceup:true, back:'lattice',
+     seed:[{kind:'note', title:'Write on me'}], body:'' },
   /* ---- a fragment: one piece of a world -----------------------------------
      Ten types that only ever come up when you are building a world or telling
      a story, behind one press. Underneath they are nearly the same object — a
@@ -563,7 +605,7 @@ const PRIMARY = ['drawer','magic','project','life','goal',
                  'book','checklist','calendar','jar','moodboard','timeline',
                  'note','fragment','label','recipe','achievement',
                  'task','progressbar','counter','appt',
-                 'image','audio','video','decoration','instrument','control','generator'];
+                 'image','audio','video','post','decoration','instrument','control','generator'];
 const isPrimary = k => PRIMARY.includes(k);
 
 /* ---- a category is a type you press to be *asked which* -----------------
@@ -1098,6 +1140,23 @@ const PLATES = {
   engraved: 'Engraved'
 };
 const PLATE_SLOTS = Object.keys(PLATES);
+/* ---- the wax seal — decision 184 ---------------------------------------
+   Not a slot family and deliberately not: a plate is one of five *positions*
+   an aesthetic dresses, and a seal is a blob of coloured wax with a mark
+   pressed into it — the colour is a colour (somebody's sealing wax is red,
+   and it is red in 1997 too) and the impression is a drawing. So it is two
+   plain fields, `seal` naming the impression and `sealc` the wax, read the
+   ordinary per-object-then-per-type way.
+
+   `none` is first and is what everything already made is wearing. */
+const SEALS = {
+  none:'Unsealed', blob:'Plain wax', star:'A star', initial:'An initial',
+  crest:'A crest', bee:'A bee'
+};
+const SEAL_KEYS = Object.keys(SEALS);
+const sealOf = o => { const k = (o && o.seal) || K(o && o.kind).seal;
+  return SEALS[k] ? k : 'none'; };
+const isSealed = o => sealOf(o) !== 'none';
 const plateOf = o => {
   const k = slotKey(slotRaw(o,'plate'));
   return PLATES[k] ? k : 'none';
@@ -1422,6 +1481,7 @@ const SHAPES = {
      else could — and it is the best-looking edge in the app, so it is a shape
      now like every other. A fragment still wears it without being asked: see
      `tornOf()` in tiles.js, which answers for the shape *or* the family. */
+  letter:'Folded letter', postcard:'Postcard', telegram:'Telegram',
   torn:'Torn edge', dream:'Dashed', none:'None'
 };
 /* ---- and two that are still drawn but no longer offered ----------------
@@ -2565,7 +2625,7 @@ export { homeFor, ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds,
   slotKey, slotFrom, slotRaw, slotSrc,
   BINDINGS, BINDING_SLOTS, bindingOf, FRAMES, FRAME_SLOTS, frameOf, isWindow,
   PANELS, PANEL_SLOTS, panelOf, KNOBS, KNOB_SLOTS, knobOf,
-  PLATES, PLATE_SLOTS, plateOf,
+  PLATES, PLATE_SLOTS, plateOf, SEALS, SEAL_KEYS, sealOf, isSealed,
   BORDER_SLOTS, borderOf, TEXTURE_SLOTS, textureOf, STOCKS, STOCK_SLOTS, stockOf,
   KNOBSIZES, knobSizeOf, answered, marginOf, marginPlus, iconOf, TSIZES, textSizeOf, mediaTypeOf, isPicture,
   isMedia, isPlayable, acceptFor, acceptAny, MEDIA_EXT, isDecor,

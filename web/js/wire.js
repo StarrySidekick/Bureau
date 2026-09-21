@@ -11,7 +11,7 @@ import { toast, fits, setGridSize, toggleDone, spawnNext, del, delMany, delDrawe
   pushSet, pushSets, setPin, togglePin, drawerForTag, create, spawnInto, randomThing,
   holdIt, unholdIt, unholdMany, undoToast, someKind, becomeKind , toggleFree } from './mutations.js';
 import { spinTo, pending, placeAtPending, tileTap, turnPage, clearPages } from './tiles.js';
-import { bpmOf, minsOf, burnOf, sidesOf, metroGoing, startMetro, mindTheTime, actOf } from './active.js';
+import { bpmOf, minsOf, burnOf, sidesOf, metroGoing, startMetro, mindTheTime, actOf, deckTop } from './active.js';
 import { DECOR, LIFE_ART } from './decor.js';
 import { render, renderSoon, sizeGrid, toggleSettings, settingsPanel, reveal, goShelf, goShelfTo, deskMap } from './views.js';
 import { closeGuide, guideOpen, saveGuide } from './guide.js';
@@ -991,6 +991,35 @@ function wire(){
       return;
     }
 
+    /* ---- what a deck does that is not a setting — decision 183 ---------
+       Three verbs, and every one of them is something a container already
+       does: make a child, move a child out to the board the deck is on, and
+       walk into it. None of them needed new machinery, which is the whole
+       argument for a deck being a container. */
+    const dk=t.closest('[data-adeck]');
+    if(dk){
+      const [what,id]=dk.dataset.adeck.split(':');
+      const d=byId(id); if(!d) return;
+      if(what==='add'){
+        const c=create('note', {parent:id, title:''});
+        if(c){ d.top=c.id; save(); renderSheet(); render(); toast('A card'); }
+      } else if(what==='deal'){
+        const c=deckTop(d);
+        if(!c){ toast('Nothing to deal'); return; }
+        /* Out onto the board the deck is standing on, keeping its size and
+           losing its position — a box's place belongs to a coordinate space
+           and the deck's is not the desk's. `keepSize()` is the one way to
+           say that, and `ensureBox()` places it. */
+        pushSets('Dealt', [[c.id,'parent',c.parent],[c.id,'desk',c.desk],
+          [c.id,'phone',c.phone],[id,'top',d.top]]);
+        c.parent=d.parent; keepSize(c); delete d.top;
+        save(); closeSheet(); render(); reveal(c.id); toast('Dealt', true);
+      } else if(what==='open'){
+        closeSheet(); S.view='drawer'; S.drawerId=id; render();
+      }
+      return;
+    }
+
     const c=t.closest('[data-c]');
     if(c){ const [cmd,id]=c.dataset.c.split(':'); closeCtx();
       if(cmd==='open'||cmd==='write') openWriter(id);
@@ -1548,6 +1577,17 @@ function wire(){
     /* What is left of the panel's buttons once every one-of-many list became a
        select: swatches, the knob's own colours, and the read switch in the
        reading header — which is a header, not a panel. */
+    /* The wax. A literal hex or the empty string for the default red — never
+       a slot, because a stick of sealing wax does not change colour when the
+       desk does. See decision 184. */
+    const wx=t.closest('[data-osealc]');
+    if(wx){
+      const id=wx.dataset.id, o=byId(id);
+      if(o){ pushSet('Wax', id, 'sealc', o.sealc);
+        if(wx.dataset.osealc) o.sealc=wx.dataset.osealc; else delete o.sealc;
+        save(); refreshPanel(); render(); }
+      return;
+    }
     const pn=t.closest('[data-ocolour],[data-oic],[data-pboard],[data-pknobc],[data-pwood],[data-prailknobc],[data-oread],[data-fkind],[data-fdesk],[data-prio],[data-diff],[data-repday]');
     if(pn){
       const id=pn.dataset.id, o=byId(id) || cfgOf(id);

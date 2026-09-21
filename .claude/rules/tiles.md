@@ -1,6 +1,7 @@
 ---
 paths:
   - "web/js/tiles.js"
+  - "web/js/active.js"
   - "web/css/board.css"
 ---
 # Tiles
@@ -483,6 +484,25 @@ four relative arcs starting a pixel off centre and wound off to one side. In a
 `aspect-ratio` and not by a width in `cqw` — a proportion of the width is the
 wrong number in a column — and `.fieldin` has to restate `height:auto`, because
 the base rule is `height:100%` and that is the whole tile.
+
+**Nothing an instrument does ticks by re-rendering.** `active.js`, and this is
+the rule the whole file is built on. A clock's hands and an hourglass's sand
+are infinite CSS animations with a **negative `animation-delay` written
+inline**, so they are already however far through they should be on the first
+frame and cost no timer at all. A candle stores `litAt` and `burn` and the wax
+is arithmetic done while the tile is built. Only the metronome needs an
+interval, because a noise on the beat cannot be derived, and it lives in a
+module map **outside the DOM** the way a playing sound does (decision 71), so
+an unrelated render cannot silence one. `MINUTE` is one shared tick for the two
+things that have to *finish* — an alarm and a guttering candle — started only
+while something needs watching. Reach for the animation first, the timestamp
+second and a timer only when there is no third answer. Sound is synthesised
+through Web Audio: no files in `SHELL`, no dependency, and the context is made
+on the first press because a browser will not start one before a gesture. A
+**deck** is the odd one: an instrument that is also a container, so its press
+cuts rather than opens (`isContainer(o) && !isActive(o)` in `tileTap`) and
+everything else it does is what a container already did. See decisions 182
+and 183.
 
 **A string is a relation drawn on the board, and it is written in cells.**
 `boardStrings()` in tiles.js, one SVG at `inset:0` whose viewBox is

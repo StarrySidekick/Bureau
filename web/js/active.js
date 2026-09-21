@@ -111,6 +111,24 @@ const burnOf   = o => Math.min(1440, Math.max(5, Math.round(num(o.burn, 120))));
 const sidesOf  = o => (DICE.includes(o.sides) ? o.sides : 6);
 const clockOf  = o => (CLOCKS[o.clock] ? o.clock : 'wall');
 const DICE = [4, 6, 8, 10, 12, 20];
+/* Five card backs, drawn rather than named colours: a back is a *pattern*, and
+   the ink in all five is `--glow` so each aesthetic prints its own. */
+const BACKS = {
+  lattice:{nm:'Lattice', art:`<g stroke="var(--glow)" stroke-width="1" opacity=".55">${
+    Array.from({length:9},(_,i)=>`<path d="M${20+i*10} 22 L${20+i*10} 142"/>`).join('')}${
+    Array.from({length:13},(_,i)=>`<path d="M18 ${24+i*10} L102 ${24+i*10}"/>`).join('')}</g>`},
+  rays:{nm:'Rays', art:`<g stroke="var(--glow)" stroke-width="1.2" opacity=".6">${
+    Array.from({length:16},(_,i)=>{const a=i*22.5*Math.PI/180;
+      return `<path d="M60 82 L${(60+Math.cos(a)*44).toFixed(1)} ${(82+Math.sin(a)*60).toFixed(1)}"/>`;
+    }).join('')}</g><circle cx="60" cy="82" r="9" fill="var(--glow)" opacity=".7"/>`},
+  dots:{nm:'Dots', art:`<g fill="var(--glow)" opacity=".55">${
+    Array.from({length:7},(_,r)=>Array.from({length:5},(_,c)=>
+      `<circle cx="${24+c*18}" cy="${28+r*18}" r="3"/>`).join('')).join('')}</g>`},
+  chevron:{nm:'Chevron', art:`<g stroke="var(--glow)" stroke-width="2" fill="none" opacity=".5">${
+    Array.from({length:8},(_,i)=>`<path d="M18 ${30+i*15} L60 ${20+i*15} L102 ${30+i*15}"/>`).join('')}</g>`},
+  plain:{nm:'Plain', art:`<rect x="24" y="26" width="72" height="112" rx="4" fill="none"
+    stroke="var(--glow)" stroke-width="1.4" opacity=".6"/>`}
+};
 const CLOCKS = { wall:'Wall clock', alarm:'Alarm clock', cuckoo:'Cuckoo clock' };
 
 /* How far through it is, 0..1, read from a stamp rather than counted down —
@@ -119,6 +137,16 @@ function through(at, mins){
   if(!at) return 0;
   const done = (Date.now() - at) / (Math.max(1, mins) * 60000);
   return Math.max(0, Math.min(1, done));
+}
+/* What a deck holds, and which of it is on top. `childrenOf` would run a
+   magic drawer's rule, which a deck has not got — and going through it would
+   couple this module to the whole containment reader for a list of siblings.
+   `parent` is the question and `parent` is the answer. */
+const deckCards = o => (o ? S.objects.filter(x => x.parent === o.id) : []);
+function deckTop(o){
+  const kids = deckCards(o);
+  if(!kids.length) return null;
+  return kids.find(x => x.id === o.top) || kids[0];
 }
 const burning = o => actOf(o) === 'candle' && !!o.litAt && through(o.litAt, burnOf(o)) < 1;
 const waxLeft = o => o.litAt ? 1 - through(o.litAt, burnOf(o)) : 1;
@@ -367,6 +395,79 @@ const ACTIVE = {
           ? `<button class="azchip" data-aset="${o.id}:alarm:">Clear</button>` : ''}</div>`
   },
 
+  /* ---- the deck — decision 183 -----------------------------------------
+     The one instrument that is a **container**. Everything else here knows a
+     setting; a deck knows what is in it, and what is in it is ordinary
+     objects — so "drag a card onto a deck" is the filing that already works
+     and "take the top one off" is a reparent, neither of which needed a line
+     of new machinery.
+
+     What the deck itself stores is three things and they are all about the
+     *top*: which child is showing (`top`), whether it is face up (`faceup`),
+     and what the back looks like (`back`). Tapping cuts the deck — a new top,
+     picked at random — which is what a deck of prompts is for and why the top
+     is stored rather than derived from the order. */
+  deck: {
+    nm:'Deck', vb:'0 0 120 160', kind:'deck', holds:true,
+    art(o){
+      const kids = deckCards(o), n = kids.length;
+      const top = deckTop(o), up = o.faceup !== false;
+      const back = BACKS[o.back] ? o.back : 'lattice';
+      /* Two cards peeking out from under the top one, so a deck reads as a
+         stack rather than as one card. Offset and turned a little, by a hash
+         of the deck's own id so the fan is the same on every render. */
+      const under = Math.min(2, Math.max(0, n - 1));
+      const pile = Array.from({length:under}, (_,i)=>
+        `<rect x="${10 + (i+1)*2.5}" y="${12 - (i+1)*2.5}" width="100" height="140" rx="9"
+          fill="var(--paper-2)" stroke="rgba(0,0,0,.22)" stroke-width="1.5"
+          transform="rotate(${(i%2?1:-1)*(1.6+i)} 60 82)"/>`).join('');
+      const faceArt = (!n)
+        ? `<text x="60" y="86" text-anchor="middle" font-size="12" opacity=".55"
+             fill="var(--ink, #2A2118)">Empty</text>`
+        : up
+        ? `<foreignObject x="16" y="18" width="88" height="128">
+             <div xmlns="http://www.w3.org/1999/xhtml" class="dkword">${
+               esc(String((top && top.title) || '').slice(0, 90))}</div>
+           </foreignObject>`
+        : BACKS[back].art;
+      return `<g class="dkBody">${pile}
+        <rect x="10" y="12" width="100" height="140" rx="9"
+          fill="${up ? 'var(--paper-2)' : 'currentColor'}"
+          stroke="rgba(0,0,0,.26)" stroke-width="1.5"/>
+        ${up ? '' : `<rect x="16" y="18" width="88" height="128" rx="6" fill="none"
+          stroke="var(--glow)" stroke-width="1.4" opacity=".7"/>`}
+        ${faceArt}
+        ${n ? `<text x="60" y="150" text-anchor="middle" font-size="9"
+          fill="${up ? 'var(--ink, #2A2118)' : 'var(--glow)'}" opacity=".6">${n}</text>` : ''}
+      </g>`;
+    },
+    /* A press **cuts the deck**: a different card on top, picked at random and
+       never the one already showing, because a cut that changes nothing reads
+       as a press that did nothing. */
+    tap(o){
+      const kids = deckCards(o);
+      if(kids.length < 2) return null;
+      let pick = kids[Math.floor(Math.random()*kids.length)];
+      if(pick.id === o.top) pick = kids[(kids.indexOf(pick) + 1) % kids.length];
+      o.top = pick.id;
+      return 'cut';
+    },
+    say(o){
+      const n = deckCards(o).length;
+      return n ? `${n} card${n===1?'':'s'}` : 'Empty — add some';
+    },
+    zoom: o => azSay('Which way up the top card sits')
+      + azRing(o.id, 'faceup', [[1,'Face up'],[0,'Face down']], o.faceup === false ? 0 : 1)
+      + azSay('The back')
+      + azRing(o.id, 'back', Object.entries(BACKS).map(([k,v])=>[k, v.nm]),
+          BACKS[o.back] ? o.back : 'lattice')
+      + `<div class="azrow" style="margin-top:14px">
+          <button class="azchip azdo" data-adeck="add:${o.id}">Add a card</button>
+          <button class="azchip azdo" data-adeck="deal:${o.id}">Deal the top one out</button>
+          <button class="azchip azdo" data-adeck="open:${o.id}">Open it</button>
+        </div>`
+  },
+
   /* ---- the die ---------------------------------------------------------
      `sides` is the shape and `face` is what it is showing. A d6 gets pips
      because a d6 has pips; everything else gets its number, because a
@@ -505,7 +606,7 @@ function checkAlarms(){
 const guttered = () => S.objects.some(o =>
   actOf(o) === 'candle' && o.litAt && through(o.litAt, burnOf(o)) >= 1);
 
-export { ACTIVE, ACT_KIND, DICE, CLOCKS,
+export { ACTIVE, ACT_KIND, DICE, CLOCKS, BACKS, deckCards, deckTop,
   actOf, isActive, activeArt, activeTap, activeSay, activeName, activeZoom,
   bpmOf, minsOf, burnOf, sidesOf, clockOf, burning, waxLeft, sandGone,
   activeFlame, metroGoing, startMetro, stopMetro, stopAllMetros,

@@ -13,7 +13,7 @@ import { S, K, KINDS, KEYS, T, ATTRS, USER_ATTRS, FIELDS, fieldOf, OPS, ROLLS,
   CALVIEWS, calViewOf, weekStartOf, showsWeekends, KNOBSIZES, knobSizeOf,
   TSIZES, textSizeOf, mediaTypeOf, isPicture, isMedia, isDecor,
   bindingOf, FRAMES, FRAME_SLOTS, frameOf, panelOf, knobOf, plateOf, borderOf, textureOf,
-  slotRaw, homeFor, acceptAny, groupOf , boardLocked } from './model.js';
+  slotRaw, homeFor, acceptAny, groupOf , boardLocked , SEALS, sealOf, isSealed } from './model.js';
 import { GRID, lay, boxOk, freeSpot, anySpot, sizeOfKind, toPhoneSize, keepSize } from './grid.js';
 import { randomBoard, randomFront, hexOf, objColour, objSlots, famSlots, famAll, FAMS, styleKey, stockNow, CHECKS, checkNow } from './look.js';
 import { CLICKS, clickOf, gridTile, pending } from './tiles.js';
@@ -984,6 +984,23 @@ function objectPanelBody(id, sec){
      is the same shape every other look property has. Offered to anything
      carrying the trait, whether or not it has a relation yet, because that is
      how every other row here behaves. See decision 178. */
+  /* The seal, offered to anything that is not a container — a drawer is not a
+     thing you seal. Two rows, because the impression and the wax are two
+     different answers: which mark was pressed into it, and what the stick was
+     made of. The wax is a literal colour and not a slot, for the reason
+     decision 184 gives. */
+  if(!isRoot && !cont){
+    out.push(prow('Seal', pcycle(id, 'seal', Object.entries(SEALS), sealOf(d)),
+      'a blob of wax with a mark pressed into it'));
+    if(isSealed(d)) out.push(prow('Wax',
+      `<div class="pickgrid sw">${
+        [['','\u2014'],['#8E3B38','Red'],['#2E6B52','Green'],['#2A241C','Black'],
+         ['#9A7B2F','Gold'],['#5E4A72','Violet']].map(([hex,nm])=>
+        `<button data-osealc="${hex}" data-id="${id}" title="${esc(nm)}"
+          class="${(d.sealc||'')===hex?'on':''}"
+          style="background:${hex||'var(--paper)'};${hex?'':'border-style:dashed'}"></button>`).join('')
+      }</div>`));
+  }
   if(!isRoot && has(d,'relates'))
     out.push(prow('String', swatches(id,'strc', d.strc),
       'what the thread to a related object is made of'));

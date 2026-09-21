@@ -214,6 +214,7 @@ clause at the bottom of each file — that list is each module's public surface.
 | `motion.js` | Every movement: `openTile()` (drawer, cabinet, curl, lift), `pop()`, and the pager that slides between boards. Nothing in it ever delays a state change. |
 | `gravity.js` | A board that has **let go** — the rigid-body solver behind Sand and Tumbling. Reads nothing but the tiles' rectangles; writes nothing but their transforms. |
 | `plans.js` | A **plan** — a saved board, in `S.plans`, captured and stamped. Not an object and not on any grid. |
+| `active.js` | The **instruments** — a metronome, an hourglass, a candle, a bell, a clock, a die and a deck. One table, and one rule: nothing ticks by re-rendering. |
 | `guide.js` | The **specimen book** — every aesthetic and everything each one dresses, generated out of the running app. `guideDoc()` builds it, `openGuide()` shows it. |
 | `persist.js` | localStorage read/write, **versioned `MIGRATIONS`**, JSON export/import, IndexedDB image assets, the paste bridge. |
 | `wire.js` | One delegated listener set on `#frame`. All interaction routes through here — to add an action, add a `data-act` and a case in `act()`. |
@@ -241,6 +242,7 @@ any file has been opened has loaded none of them.
 | `look.md` | Aesthetics and the sixteen slots; families, positions and pins; edges, radii and shadows; decorations; the specimen book. | `look.js`, `guide.js`, `decor.js`, `board.css`, `chrome.css` |
 | `gestures.md` | Drag, drop, hold, tap, pinch, toss and swipe; the holding space and the rail pull; the lock; the one delegated listener. | `gestures.js`, `wire.js` |
 | `motion.md` | Every movement: the dive and the way back, the pager, the spray, filing, the hop, gravity and tilt. | `motion.js`, `gravity.js`, `motion.css` |
+| `tiles.md` (also) | The instruments and their timekeeping. | `active.js` |
 | `model.md` | Objects, attributes and kinds; containers, sorting drawers and rules; dates, deadlines, ranks and repeats; plans; the controls table. | `model.js`, `mutations.js`, `plans.js`, `stockplans.js` |
 | `panels.md` | Panels, menus and bubbles; the object editor, the picker, settings and the When page; the reading and writing surfaces. | `panels.js`, `sheet.js`, `chrome.css` |
 | `render.md` | What a render is and is not; passes; what you typed is what you read; storage and the worker. | `persist.js`, `boot.js`, `util.js`, `views.js`, `sw.js`, `index.html` |

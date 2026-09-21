@@ -9,7 +9,7 @@ import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, chi
   isPicture, isMedia, isPlayable, isDecor, mediaTypeOf, frameOf, isWindow,
   boardLocked, prioOf, repeatSaid, urgencyOf, urgeSaid, durSaid, standsProud, shelfDepth, bookDepth, faceCue, anyFaceCue,
   calViewOf, weekStartOf, calCols, borderOf, textureOf, marginOf, isFragmentKind, gravityOn,
-  groupOf } from './model.js';
+  groupOf, sealOf, isSealed } from './model.js';
 import { CELL, gridOf, drawCols, drawRows, lay, overlaps, boxOk, freeSpot, anySpot, roomFor, gridRows, sizeOfKind, sideways,
   ensureBox, shelfRows, shelfOrigin, shelfAt, colsOf } from './grid.js';
 import { create, toast, fits, toggleDone, someKind, ctlSpec, ctlSaid, ctlIsOn,
@@ -327,6 +327,9 @@ const CLICKS = {
   toggle:   'Flip the switch',
   // a sound or a video: press to start it, press again to stop — decision 144
   play:     'Play it, and press again to stop',
+  // a postcard has two sides, and this is the only press in the app that
+  // turns a thing over rather than opening it — decision 184
+  flip:     'Turn it over',
   // a lamp and a candle are the two things on the desk that burn — decision 179
   light:    'Light it, and press again to put it out'
 };
@@ -438,7 +441,13 @@ function playPress(id){
 
 function tileTap(id){
   const o=byId(id); if(!o) return;
-  if(isContainer(o)){
+  /* A container opens — **unless it is an instrument**. A deck is a container
+     carrying `act`, and a press on one cuts it rather than diving into it:
+     what you want from a deck across the desk is a different card showing, and
+     going *in* to see all of them is a button on its zoom. `isActive()` and
+     not a branch on the name, so a type somebody invents that carries `act`
+     behaves the same way. See decision 183. */
+  if(isContainer(o) && !isActive(o)){
     openTile(id, ()=>{ S.view='drawer'; S.drawerId=id; S.kindFilter=null; render(); });
     return;
   }
@@ -481,16 +490,23 @@ function tileTap(id){
          it: the state changed and the board was rebuilt before either class
          went on, which is decision 38's rule and the reason a test can read
          the new face the instant the tap lands. */
-      if(out === 'ring' || out === 'roll'){
-        const el = document.querySelector(`[data-row="${id}"]`);
+      if(out === 'ring' || out === 'roll' || out === 'cut'){
+        const el = document.querySelector(`[data-row="${id}"],[data-drawer="${id}"]`);
         if(el){
-          const cls = out === 'ring' ? 'ringing' : 'rolling';
+          const cls = out === 'ring' ? 'ringing' : out === 'roll' ? 'rolling' : 'cutting';
           el.classList.add(cls);
           setTimeout(()=>el.classList.remove(cls), 950);
         }
       }
       if(out === true && actOf(o) === 'metro') toast('Keeping time');
       if(out === false && actOf(o) === 'metro') toast('Stopped');
+      return; }
+    /* Over, not open. A postcard is the one object with two sides, so its
+       press is a *state* of the tile rather than a surface — the writing is
+       already on the desk, on the back of the thing you are looking at. */
+    case 'flip': {
+      pushSet('Turned over', id, 'flip', o.flip);
+      o.flip = !o.flip; save(); render();
       return; }
     case 'light': {
       const on = isLit(o);
@@ -589,6 +605,10 @@ function gridTile(o, arr, parentId){
        about. The desk's answer needs no class — it is the `:where()`-weighted
        rule on the root. See decision 149. */
     o.check && CHECKS[o.check] ? 'ck-'+o.check : '',
+    /* A postcard showing its back. Spliced in with the size classes for their
+       reason: one class list written here reaches every branch of drawTile(),
+       including the ones nobody has thought about. See decision 184. */
+    o.flip ? 'flipped' : '',
     has(o,'movable')   ? 'freemovable' : '',
     has(o,'resizable') ? 'freesizable' : ''].filter(Boolean).join(' ');
   /* Samples are on no board at all, so they get no perspective — a type drawn
@@ -872,7 +892,12 @@ function drawTile(o, arr, box, persp){
   const layers = (html.includes('class="dpanel"') ? '' : PANEL_LAYER)
     + (textureOf(o)==='none' ? '' : GRAIN_LAYER)
     + (standsOut(o, persp, box) ? SIDE_LAYER : '')
-    + faceLayers(o, persp, box);
+    + faceLayers(o, persp, box)
+    /* A seal is one element and only on something that has one — the same
+       bargain the flank and the grain strike two lines up, for the same
+       reason: an element on every tile to carry nothing is a fifth of a render
+       at three thousand objects. See decision 184. */
+    + (isSealed(o) ? sealLayer(o) : '');
   return html.slice(0, i+1) + layers + html.slice(i+1);
 }
 function drawTileFace(o, arr, box, persp){
@@ -1363,6 +1388,22 @@ function drawTileFace(o, arr, box, persp){
       <div class="mbwall" style="--mbcols:${g.cols};--mbrows:${rows}">${cells.join('')
         || '<span class="clempty">Open it and arrange some pictures</span>'}</div>
       ${rollTag(o)}
+      ${handles}
+    </button>`;
+  }
+
+  /* ---- a deck: the one instrument that holds things — decision 183 ------
+     Drawn by the same table every other instrument is drawn by, so the stack,
+     the back and the card on top are all in one place in active.js. It sits
+     here rather than with the others because a deck is a **container** and
+     `drawTile()` answers those first — which is the whole point of it being
+     one: dropping a card in, opening it to see the lot and taking one out are
+     things a container already does. */
+  if(cont && faceOf(o)==='deck'){
+    return `<button class="drawer otile acttile act-deck${sel}" data-drawer="${o.id}"
+      title="${esc(o.title || 'Deck')} · ${esc(activeSay(o))}"
+      style="--c:${colour};${place}">
+      ${activeArt(o)}
       ${handles}
     </button>`;
   }
@@ -1978,6 +2019,32 @@ function flowSorted(kids, cid){
    **no relations on it at all**, which returns the empty string rather than an
    empty SVG, because most boards have none and an element per board that
    draws nothing is still an element per board. */
+/* ---- the wax seal — decision 184 ---------------------------------------
+   A blob of wax with a mark pressed into it, stuck across the corner of
+   whatever carries one. The **wax is a colour and not a slot**, which is the
+   one place this departs from decision 33: a stick of sealing wax is red, and
+   it is red in Golf 97 too — the aesthetic dresses the desk it is lying on,
+   not the wax. The impression is `currentColor` at low opacity, because a
+   pressed mark is the *same* wax seen from a different angle rather than ink
+   printed on it.
+
+   The blob is four unequal radii, not a circle: wax poured out of a stick
+   spreads unevenly, and a perfect disc reads as a sticker. */
+const SEAL_ART = {
+  blob:'',
+  star:'<path d="M12 4.5 14.4 10l6 .7-4.5 4.1 1.3 5.9L12 17.8 6.8 20.7l1.3-5.9L3.6 10.7l6-.7Z"/>',
+  initial:'<path d="M8 6h3l5 8V6h3v12h-3l-5-8v8H8Z"/>',
+  crest:'<path d="M12 4l7 2.6v5.2c0 4-3 7.4-7 8.6-4-1.2-7-4.6-7-8.6V6.6Z"/>'
+    + '<path d="M12 7.6 15.6 9v3.4c0 2.2-1.5 4-3.6 4.7-2.1-.7-3.6-2.5-3.6-4.7V9Z" opacity=".45"/>',
+  bee:'<ellipse cx="12" cy="13.5" rx="4" ry="5.5"/>'
+    + '<path d="M8.4 11.6h7.2M8.2 14h7.6M9 16.4h6" stroke="currentColor" stroke-width="1" opacity=".5" fill="none"/>'
+    + '<ellipse cx="7.4" cy="9.4" rx="3.4" ry="2.2" opacity=".55" transform="rotate(-24 7.4 9.4)"/>'
+    + '<ellipse cx="16.6" cy="9.4" rx="3.4" ry="2.2" opacity=".55" transform="rotate(24 16.6 9.4)"/>'
+};
+const sealLayer = o => `<i class="wseal ws-${sealOf(o)}" aria-hidden="true"
+  style="--wax:${esc(o.sealc || '#8E3B38')}"><svg viewBox="0 0 24 24">${
+  SEAL_ART[sealOf(o)] || ''}</svg></i>`;
+
 const FIX = n => (Math.round(n*1000)/1000);
 /* ---- what a lamp does — decision 179 -----------------------------------
    `decor.js` has drawn an oil lamp and a candlestick since decision 86 and

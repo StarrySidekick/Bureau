@@ -36,7 +36,7 @@ meaning, containers are finite, and opening one is a small deliberate act.
 | --- | --- |
 | **Object** | Anything that sits on a grid. The unit of everything. |
 | **Attribute** | One capability — a checkbox, a date, the ability to contain. Attributes decide what an object can do and how it draws. |
-| **Type** (`kind` in code) | A named preset of attributes, plus a colour, an icon, a key, a starting size and a body template. Forty-odd built in, twenty-six of which are the major categories the picker leads with; you can invent more at runtime. |
+| **Type** (`kind` in code) | A named preset of attributes, plus a colour, an icon, a key, a starting size and a body template. Forty-odd built in, twenty-eight of which are the major categories the picker leads with; you can invent more at runtime. |
 | **Field** | The named, typed value some attributes carry (`due`, `price`, `prio`). Only fields can be sorted, filtered or totalled. |
 | **Drawer** | An object whose type carries `container`. It holds other objects, including other drawers. |
 | **Sorting drawer** | A drawer that carries `magic` as well. It holds nothing and shows whatever matches its rule. `magic` in the code; **sorting drawer** in the interface. |
@@ -204,7 +204,9 @@ decision 130.
 | 23 | **Video** | The video, filling whatever box it is in. |
 | 24 | **Decoration** | Something to stand on the shelf. A category: an ornament, or a window. |
 | 25 | **Control** | A switch on the board for one of the desk's own settings. |
-| 26 | **Spawner** | Press it and it makes one of something — or one of anything. |
+| 26 | **Post** | Something that came in the post. A category: letter, postcard, telegram. |
+| 27 | **Instrument** | Something that *runs*. A category: metronome, hourglass, candle, desk bell, clock, die, deck. |
+| 28 | **Spawner** | Press it and it makes one of something — or one of anything. |
 
 A container that says what it makes still promotes that type to the front of
 the row, wherever it sits in the order: you opened the picker *inside* it.
