@@ -13,7 +13,7 @@ import { shelfRows, shelvesOf, shelfAt, setShelf, freeSpot, anySpot, roomFor, bo
 import { create, setPin, togglePin, del, delMany, delDrawer, undo, redo, toggleDone, spawnNext, setGridSize,
   CONTROLS, ctlSaid, ctlIsOn, ctlPress,
   holdIt, unholdIt } from './mutations.js';
-import { applyLook, applyStyle, STYLES, panelSlots, borderSlots, knobSlots, textureSlots,
+import { applyLook, applyStyle, STYLES, panelSlots, borderSlots, knobSlots, plateSlots, textureSlots,
   bindingSlots, stockSlots, famSlots, famAll, dress, styleKey, stockNow, randomLook,
   palNow, CHECKS } from './look.js';
 import { render, sizeGrid, viewHTML, reveal, settingsPanel, goShelf, goShelfTo, shelfShift } from './views.js';
@@ -98,8 +98,8 @@ window.BUREAU = {
   // picking one is more than writing the key: it carries the board, the
   // alpha and the defaults new drawers are born with
   setStyle: applyStyle,
-  // the five workings, named by whichever aesthetic is showing
-  panelSlots, borderSlots, knobSlots, textureSlots, bindingSlots, stockSlots, famSlots, famAll,
+  // the seven families, named by whichever aesthetic is showing
+  panelSlots, borderSlots, knobSlots, plateSlots, textureSlots, bindingSlots, stockSlots, famSlots, famAll,
   dress, styleKey, stockNow, knobOf, isContainer, faceOf,
   // a decoration is tagged rather than dressed — decision 100
   get decorKeys(){ return DECOR_KEYS; }, decorSuits, decorFor, decorRest,

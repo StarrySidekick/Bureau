@@ -7777,3 +7777,98 @@ answer for what has to be everywhere; the rest was never read as carefully at
 47,000 tokens as it will be at 5,000. And the paths are literal file names: a
 new module in `web/js/` belongs in one of the eight lists or its rules never
 load. Add it to the `paths:` of its area when you add it to `SHELL`.
+
+---
+
+## 176 · What the name is written on
+
+*2026-09-21*
+
+A drawer front carries a name and the name was printed straight onto the wood.
+Nothing on a real desk is like that. The name is on *something* screwed to the
+front — a brass plate, a card behind a bezel, a stamped tag bolted at both ends
+— and which of those it is says as much about the room as the knob does. It was
+the one part of a front the app had no word for.
+
+**So it is a slot family, the seventh.** `PLATES` in model.js, `pl` in `FAMS`:
+five positions — printed, plate, card holder, riveted tag, engraved — stored as
+a position and dressed by whichever aesthetic is showing. Victoria's brass plate
+is Carca's copper one, Girando's gilt cartouche and Golf 97's chrome label, and
+the object stores `2` either way. Everything downstream came along without being
+told: the picker, the pin to another aesthetic, the scope class, and the
+specimen book's matrix, which now draws thirty-five fronts nobody wrote out.
+That is the whole argument for the table decision 93 built.
+
+**The metal is never written down.** It is `var(--brass)` — the aesthetic's own
+accent — so seven aesthetics get seven metals from one rule, and a new
+aesthetic gets one for free. The only per-aesthetic CSS is **Starful Gothic**,
+which has no fill at all (decision 101): there a plate is its outline, and the
+rivets come off.
+
+**Position 0 is "printed", and it is first for a reason.** Every front already
+made is wearing it, so nothing on any desk changed and there is no migration.
+A new drawer rolls a plate the way it rolls a knob (decision 92) — but the bag
+is weighted the other way round, sixteen "printed" to one of each of the other
+four. A knob is on every drawer ever made; a plate is a thing somebody went and
+screwed on, and one front in five wearing one is what makes a rack of them read
+as furniture collected rather than bought.
+
+**The plate is `.dtop`'s two pseudo-elements and no new element.** The tile's
+own two are spoken for (decision 99), which is why the moulding is a real
+element — but the name band has never used either, so the ground is `::before`
+and the fixings are `::after`, four screw heads as four background layers. A
+front with no room for a name (`sz-short`, `sz-thin`, 1×1) already hides
+`.dtop`, so it has no room for a plate either and nothing here had to learn
+that.
+
+*Against:* seven families is one more thing on the Look page, and the editor
+only offers it to a plain front — a spine has its name down its back and a jar
+has it on a paper label, and neither is a thing you screw a plate to. The tag
+had a real bug worth recording: `margin-inline:auto` on a flex item takes the
+stretch off, so a three-letter name got a three-letter tag with the rivets
+driven through the word. A width, not a max-width.
+
+---
+
+## 177 · A jar is a drawer you can see into
+
+*2026-09-21*
+
+Every container in Bureau answers *what is in you* the same way: you open it.
+That is right for a drawer, which is a thing with a front, and it is wrong for
+the other half of what sits on a desk. A jar's entire reason for existing is
+that it answers standing shut.
+
+**So the face is the contents.** One bit per object, in that object's own
+colour, settled at the bottom of the glass, with the name on a paper label
+stuck across the front, because that is where a jar's name is. It holds by hand
+like a drawer and nothing else about it is new: it is `face:'jar'` on an
+ordinary container, so the grid inside it, the dive into it, the drop onto it
+and the undo all already worked.
+
+Three rules, and the first is the only one that was ever going to be a bug.
+**The heap has to sit still.** A bit placed with `Math.random()` jumps to a new
+corner of the jar on every render, and this app re-renders the whole board
+whenever anything on it changes (decision 64) — so the four numbers each bit
+needs are a hash of the object's own id, the same trick `tiltOf()` uses for a
+pinned tile's angle. Second, **the fill is read off the count and the bits are
+read off the fill**: past seven rows the jar is simply full, so sixty things in
+a jar is a full jar rather than sixty bits overflowing it. Third, **nothing
+keys on the aesthetic.** Every surface is a token — the lid and its knurl are
+`--brass`, the glass is a wash of the jar's own `--c`, the label is `--paper-2`
+with `--ink` on it — so the jar dresses itself in all seven.
+
+That third one is not taste, it is the specimen book. A *tile* rule keyed on
+`html[data-style]` fails **silently** there: the Types section is drawn once,
+in whichever aesthetic the desk is wearing, with no `[data-sty]` wrapper for
+`chromePatch()` to re-point a rule at — so the jar would render undressed and
+nothing would say so. Decision 98 moved the tile rules onto `<fam>sty-` classes
+for exactly this reason, and a face is not a slot family, so the only way for a
+face to survive that page is to be made of tokens.
+
+*Against:* a jar is a twenty-seventh major type in a picker that is already
+long, and it earns its place only because it does something no other container
+does. There is no capacity setting and there should not be one — a number you
+have to choose before the jar is useful is a question nobody wants asked. What
+it does not do is collect: a jar that filled itself by rule would be a sorting
+drawer made of glass, which you can already ask for by ticking `magic`.

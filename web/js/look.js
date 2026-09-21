@@ -1,4 +1,5 @@
 import { S, K, defaultLook, PANELS, PANEL_SLOTS, KNOBS, KNOB_SLOTS,
+  PLATES, PLATE_SLOTS, plateOf,
   BINDINGS, BINDING_SLOTS, BORDER_SLOTS, TEXTURE_SLOTS, STOCKS, STOCK_SLOTS,
   slotKey, slotRaw, slotSrc, borderOf, textureOf, panelOf, knobOf, bindingOf, stockOf,
   shelfDepth, bookDepth, shelfTurn, faceCue, CUE_DIR, cueSign } from './model.js';
@@ -277,6 +278,13 @@ function randomLook(){
     border:   leaning(sd.border   || 'panel',    'bd'),
     texture:  leaning(sd.texture  || 'none',     'tx'),
     panel:    leaning(sd.panel    || 'cockbead', 'pn'),
+    /* A nameplate is not like a knob, and the bag says so. Every drawer ever
+       made has a knob, so three of the aesthetic's own to one of anything else
+       is the right lean; a plate is a thing somebody went and screwed on, so
+       most fronts still print their name on the wood and the one in five that
+       doesn't is what makes a rack of them read as furniture collected rather
+       than bought. See decision 176. */
+    plate:    pickOf([...Array(16).fill(sd.plate || 'none'), ...bagOf('pl')]),
     // a knob turned out of the front's own wood is the default and stays the
     // commonest; lighter and darker are the occasional piece
     knobtone: pickOf([sd.knobtone, sd.knobtone, sd.knobtone, null, 'light', 'dark'])
@@ -355,6 +363,12 @@ const FAMS = {
        words:PANEL_SLOTS.map(k=>PANELS[k]), read:panelOf},
   kn: {prop:'knob',    slots:KNOB_SLOTS,    says:'knobs',
        words:KNOB_SLOTS.map(k=>KNOBS[k]),   read:knobOf},
+  /* Five things a name can be written on. The seventh family, and the first
+     one whose position 0 is what every object already made is wearing — a
+     name printed straight onto the wood — because a plate nobody chose is a
+     plate on every front in existence. See decision 176. */
+  pl: {prop:'plate',   slots:PLATE_SLOTS,   says:'plates',
+       words:PLATE_SLOTS.map(k=>PLATES[k]), read:plateOf},
   /* Six grains. A texture is what a *surface* is made of, and stone, glass,
      cathedral paper and a 1997 dialog do not share one — so the eleven global
      names became six positions each aesthetic answers for. Migration 24. */
@@ -397,6 +411,7 @@ const knobSlots   = ()=> famSlots('kn');
 const textureSlots= ()=> famSlots('tx');
 const bindingSlots= ()=> famSlots('bn');
 const stockSlots  = ()=> famSlots('st');
+const plateSlots  = ()=> famSlots('pl');
 
 /* ---- who dresses this slot --------------------------------------------
    A stored value may be pinned to the aesthetic it was borrowed from
@@ -447,6 +462,7 @@ const STYLES = {
     textures:['None','Grain','Weave','Wide weave','Herringbone','Wash'],
     stocks:['Plain','Laid','Wove','Card','Aged'],
     bindings:['Plain cloth','Gilt rules','Raised bands','Flat back','Chamfered'],
+    plates:['Printed','Brass plate','Card holder','Riveted tag','Engraved'],
     check:'circle',
     defaults:{knob:'round', border:'panel', texture:'none', knobtone:'light', panel:'cockbead', stock:'plain'},
     cols:['#E9E1CC','#2A241C','#4A4034','#A9793F','#D9B57C',
@@ -476,6 +492,7 @@ const STYLES = {
     textures:['None','Ashlar','Basketweave','Hurdle','Chevron','Patina'],
     stocks:['Plain','Parchment','Linen','Slate','Weathered'],
     bindings:['Vellum','Ruled bands','Cords','Squared back','Bevelled'],
+    plates:['Printed','Copper plate','Slate card','Riveted tag','Chiselled'],
     check:'hard',
     defaults:{knob:'ring', border:'panel', texture:'wideweave', knobtone:'light', panel:'fielded', stock:'plain'},
     cols:['#E8E4D6','#22303F','#7E8B96','#A87A3C','#D4B872',
@@ -500,6 +517,7 @@ const STYLES = {
     textures:['None','Stardust','Nebula','Lattice','Meteors','Aurora'],
     stocks:['Plain','Starcloth','Silk','Shard','Faded'],
     bindings:['Starcloth','Astral rules','Ribs','Flat back','Bevelled'],
+    plates:['Printed','Silver plate','Crystal card','Pinned star','Etched'],
     check:'circle',
     defaults:{knob:'round', border:'panel', texture:'wideweave', knobtone:'light', panel:'ogee', stock:'plain'},
     cols:['#120E20','#EDE7FA','#6E5F96','#9A6BD8','#E3C98A',
@@ -524,6 +542,7 @@ const STYLES = {
     textures:['None','Tufa','Cane','Caning','Parquet','Glaze'],
     stocks:['Plain','Fresco','Canvas','Terracotta','Sun-bleached'],
     bindings:['Buckram','Gilt fillets','Raised cords','Flat back','Chamfered'],
+    plates:['Printed','Gilt cartouche','Scroll card','Wax medallion','Incised'],
     check:'circle',
     defaults:{knob:'round', border:'panel', texture:'wideweave', knobtone:'dark', panel:'ogee', stock:'plain'},
     cols:['#211E1A','#EDE4D2','#7A6E5E','#B98846','#E0C782',
@@ -549,6 +568,7 @@ const STYLES = {
     textures:['None','Dither','Weave','Tiled','Chevron','Gradient'],
     stocks:['Plain','Window','Dialog','Readout','Printout'],
     bindings:['Jewel case','Spine label','Ribbed case','Slim case','Bevelled case'],
+    plates:['Printed','Chrome label','Insert card','Screwed badge','Embossed'],
     check:'ballot',
     defaults:{knob:'square', border:'panel', texture:'fine', knobtone:'light', panel:'plain', stock:'wove'},
     cols:['#D6D3C4','#2A2A24','#8A8878','#12736E','#C8A63C',
@@ -572,6 +592,7 @@ const STYLES = {
     textures:['None','Tooth','Crosshatch','Hatching','Chevron','Wash'],
     stocks:['Plain','Ruled leaf','Tracing','Board','Foxed'],
     bindings:['Cloth','Drawn rules','Drawn bands','Flat back','Chamfered'],
+    plates:['Printed','Drawn plate','Pinned card','Taped tag','Scratched'],
     check:'hard',
     defaults:{knob:'round', border:'plain', texture:'fine', knobtone:'light', panel:'plain', stock:'plain'},
     cols:['#07080C','#F4F6F8','#F4F6F8','#6FD3F5','#7DE8B0',
@@ -599,6 +620,7 @@ const STYLES = {
     textures:['None','Frost','Brushed','Mesh','Chevron','Sheen'],
     stocks:['Plain','Frosted','Satin','Acrylic','Sunlit'],
     bindings:['Frosted case','Chrome rules','Ribs','Flat edge','Bevelled edge'],
+    plates:['Printed','Glass label','Slot card','Clipped tag','Etched'],
     check:'fill',
     defaults:{knob:'round', border:'gloss', texture:'fine', knobtone:'light', panel:'plain', stock:'plain'},
     cols:['#EAF4F7','#0D3541','#5B8C9B','#18A6C4','#7EE8F5',
@@ -692,6 +714,6 @@ export { themeNow, lookVal, setLookVal, applyLook, applyStyle, styleDefaults,
   DARKMODES, darkMode, hasDark, darkNow, systemDark,
   randomFront, randomBoard, randomLook, STYLES, BACKDROPS,
   SLOTS, OBJ0, OBJN, ROLES, slotName, styleNow, palNow, setSlot,
-  BORDER_SLOTS, borderSlots, panelSlots, knobSlots, textureSlots, bindingSlots, stockSlots, stockNow,
+  BORDER_SLOTS, borderSlots, panelSlots, knobSlots, plateSlots, textureSlots, bindingSlots, stockSlots, stockNow,
   FAMS, famSlots, famNames, famAll, styleKey, styleFor, dress, dressAs, CHECKS, checkNow,
   hexOf, objColour, objSlots, isDark, contrast, bestInk };

@@ -141,6 +141,8 @@ const FAMILIES = [
     ds:'How a drawer front is worked. All five are mouldings and all five are lit from the upper left, which is where the knob&rsquo;s highlight is.' },
   { fam:'kn', prop:'knob',    nm:'Knobs',      of:'front',
     ds:'Turned out of the front&rsquo;s own wood: what makes it a knob is the light on it, not a lighter shade painted where it sits.' },
+  { fam:'pl', prop:'plate',   nm:'Nameplates', of:'front',
+    ds:'What the name is written on. Position 0 is printed straight onto the wood, which is what every front made before decision 176 is wearing; the metal on the other four is the aesthetic&rsquo;s own accent, never a colour written down here.' },
   { fam:'tx', prop:'texture', nm:'Grains',     of:'front',
     ds:'What is printed on the surface. Six positions: nothing, the fine tooth of the sheet, a weave, a ruling, a scatter, a pattern.' },
   { fam:'st', prop:'stock',   nm:'Stocks',     of:'paper',
@@ -159,6 +161,7 @@ const pin = (o, sty, over) => {
   o.texture = sty+'/'+(over.texture || 'none');
   o.stock   = sty+'/'+(over.stock   || 'plain');
   o.binding = sty+'/'+(over.binding || 'banded');
+  o.plate   = sty+'/'+(over.plate   || 'none');
   return o;
 };
 const specimen = (of, title, colour) => {
@@ -532,7 +535,7 @@ function guideBody(){
     <header class="gx-head"><h2>Types</h2>
       <p>Every type there is, drawn as the thing it makes. A type is a named preset of attributes,
          so what a thing can <em>do</em> is the attributes and what it <em>looks</em> like is a
-         shape or a face. The ones marked <b>major</b> are the twenty the picker leads with;
+         shape or a face. The ones marked <b>major</b> are the ${PRIMARY.length} the picker leads with;
          the rest sit behind <em>Every other type</em>. Drawn in ${A(here)}.</p></header>
     ${['Drawers','Objects'].map(g=>`
       <h3 class="gx-sub">${g}</h3>

@@ -653,6 +653,23 @@ const SIDE_LAYER = '<i class="dside"><i class="dtop"></i><i class="dbot"></i></i
 /* How many children a collage will draw. A face is a miniature and sixty
    boxes is already more than one reads as an arrangement; past that it is a
    texture, and it is a texture that costs a render. */
+/* ---- how a jar's contents are arranged --------------------------------
+   Four columns, a row every twelve per cent of the glass, and seven rows of
+   it before the jar is simply full. `jitter()` is a cheap deterministic hash
+   of an object's id — four numbers in 0..1, used for the wobble across, the
+   settle down, the size and the turn — so a bit lands in the same place on
+   every render forever. Anything reaching for `Math.random()` here would
+   reshuffle the whole jar every time anything on the board changed. */
+const JAR_PER = 4, JAR_ROW = 12, JAR_ROWS = 7;
+function jitter(id){
+  const out=[];
+  for(let k=0;k<4;k++){
+    let h=2166136261 ^ k;
+    for(let i=0;i<id.length;i++){ h^=id.charCodeAt(i); h=Math.imul(h,16777619); }
+    out.push(((h>>>0)%997)/997);
+  }
+  return out;
+}
 const COLLAGE_MAX = 60;
 
 /* ---- the cover a project wears ------------------------------------------
@@ -1304,6 +1321,48 @@ function drawTileFace(o, arr, box, persp){
     </button>`;
   }
 
+  /* ---- a jar: a drawer you can see into --------------------------------
+     Every other container answers "what is in you" by being opened. A jar
+     answers it standing shut, which is the whole reason a kitchen has them —
+     so its face is its contents, one bit per object in that object's own
+     colour, settled at the bottom of the glass.
+
+     Three rules, and the first one is the only one that was ever going to be
+     a bug. **The heap has to sit still.** A bit placed with `Math.random()`
+     jumps to a new corner of the jar on every render, and this app re-renders
+     the whole board whenever anything on it changes — so the positions are a
+     hash of the object's own id, the same way `tiltOf()` gets a pinned tile's
+     angle. Second, the **fill is read off the count and the bits are read off
+     the fill**, not the other way round: past seven rows the jar is simply
+     full, so a jar with sixty things in it is a full jar rather than sixty
+     overflowing bits. And third, nothing here keys on the aesthetic —
+     everything the glass is made of is a token (`--c`, `--brass`, `--paper-2`,
+     `--ink`), so it dresses itself in all seven, which is what a face has to
+     do to survive the specimen book. See decision 177. */
+  if(cont && faceOf(o)==='jar'){
+    const kids=childrenOf(o), n=kids.length;
+    const rows = n ? Math.min(JAR_ROWS, Math.ceil(n/JAR_PER)) : 0;
+    const bits = kids.slice(0, rows*JAR_PER).map((x,i)=>{
+      const j=jitter(x.id);
+      const left = (i%JAR_PER + .5) * (100/JAR_PER) + (j[0]-.5)*10;
+      const bot  = 3 + Math.floor(i/JAR_PER)*JAR_ROW + (j[1]-.5)*3.5;
+      return `<i class="jarbit" title="${esc(x.title||'')}" style="--k:${objColour(x)};--jb:${
+        (10+j[2]*5).toFixed(1)}%;left:${left.toFixed(1)}%;bottom:${bot.toFixed(1)}%;transform:translateX(-50%) rotate(${
+        Math.round((j[3]-.5)*70)}deg)"></i>`;
+    }).join('');
+    const fill = n ? Math.min(88, 4 + rows*JAR_ROW) : 0;
+    return `<button class="drawer dtile jartile${sel}" data-drawer="${o.id}"
+        title="${esc(o.title||'Untitled')}" style="--c:${colour};--fill:${fill}%;${place}">
+      <i class="jarlid"></i>
+      <span class="jarglass">${bits
+        || '<span class="jarempty">Empty</span>'}<i class="jarfill"></i></span>
+      <i class="jarshine"></i>
+      <span class="jarlabel">${nameField(o)}</span>
+      ${rollTag(o)}
+      ${handles}
+    </button>`;
+  }
+
   /* ---- a goal: a drawer with the knob taken off ------------------------
      The name *is* the face. "Lose 25 pounds" needs nothing printed beside it,
      so it is set as large as the frame allows and everything else is small
@@ -1434,7 +1493,7 @@ function drawTileFace(o, arr, box, persp){
        Victorian front wear a 1997 group box. See decision 98. */
     return `<button class="drawer dtile ${dress(o,'bd')} ${dress(o,'tx')} ks-${
         knobSizeOf(o)} knb-${o.knobpos||'centre'}${
-        doors?' cabinet':''} ${dress(o,'pn')}${sel}" data-drawer="${o.id}"
+        doors?' cabinet':''} ${dress(o,'pn')} ${dress(o,'pl')}${sel}" data-drawer="${o.id}"
       style="--c:${colour};--knob:${knob};${place}">
       ${chips}
       ${/* The wood the front is cut from. Both pseudo-elements are spoken for

@@ -509,6 +509,11 @@ function create(kind, patch){
     o.texture=o.texture||rl.texture||sd.texture;
     o.knobtone=o.knobtone||rl.knobtone||undefined;
     o.panel=o.panel||rl.panel||sd.panel; o.pv = o.pv || 'list';
+    /* The seventh family. `rl.plate` is usually `none` and `none` is truthy,
+       which is the point: most fronts print their name on the wood, and the
+       one in five that does not is what makes a rack of them read as
+       furniture collected rather than bought. See decision 176. */
+    o.plate=o.plate||rl.plate||sd.plate;
     o.layout = o.layout || k.layout || 'list';
     // A type may declare the rule its containers start with — a calendar
     // collects anything dated the moment you make one, rather than being a

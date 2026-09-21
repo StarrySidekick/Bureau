@@ -36,7 +36,7 @@ meaning, containers are finite, and opening one is a small deliberate act.
 | --- | --- |
 | **Object** | Anything that sits on a grid. The unit of everything. |
 | **Attribute** | One capability — a checkbox, a date, the ability to contain. Attributes decide what an object can do and how it draws. |
-| **Type** (`kind` in code) | A named preset of attributes, plus a colour, an icon, a key, a starting size and a body template. Forty-odd built in, twenty of which are the major categories the picker leads with; you can invent more at runtime. |
+| **Type** (`kind` in code) | A named preset of attributes, plus a colour, an icon, a key, a starting size and a body template. Forty-odd built in, twenty-six of which are the major categories the picker leads with; you can invent more at runtime. |
 | **Field** | The named, typed value some attributes carry (`due`, `price`, `prio`). Only fields can be sorted, filtered or totalled. |
 | **Drawer** | An object whose type carries `container`. It holds other objects, including other drawers. |
 | **Sorting drawer** | A drawer that carries `magic` as well. It holds nothing and shows whatever matches its rule. `magic` in the code; **sorting drawer** in the interface. |
@@ -187,23 +187,24 @@ decision 130.
 | 6 | **Prose & Poetry** | Anything made of words. A category: poem, novel, short story, essay, script. |
 | 7 | **Checklist** | Tasks on the outside, tickable without opening it. |
 | 8 | **Calendar** | Whatever it collects, on the day it falls. |
-| 9 | **Collage** | The board inside it, drawn small — an arrangement, not a re-packing. |
-| 10 | **Timeline** | Things in the order they happened. |
-| 11 | **Note** | Something to remember. A category: idea, thought, problem, question, quote. |
-| 12 | **Fragment** | A piece of a world or a story. A category, and *only* a question — there is no generic fragment. |
-| 13 | **Label** | A caption you lay over a run of tiles to say what they are. |
-| 14 | **Recipe** | An index card: what goes in it, and how. It holds nothing. |
-| 15 | **Achievement** | Something you actually did. Picked from what is finished, not written. |
-| 16 | **Task** | A thing to do. |
-| 17 | **Progress bar** | How far along something is — its own milestones, or another object's. |
-| 18 | **Counter** | A number you tap to add to. |
-| 19 | **Event** | Something on a day — a meeting, a shoot, a trip. A diary leaf. `appt` in the code. |
-| 20 | **Image** | A picture on the board. |
-| 21 | **Audio** | A record with a play button in its label. |
-| 22 | **Video** | The video, filling whatever box it is in. |
-| 23 | **Decoration** | Something to stand on the shelf. A category: an ornament, or a window. |
-| 24 | **Control** | A switch on the board for one of the desk's own settings. |
-| 25 | **Spawner** | Press it and it makes one of something — or one of anything. |
+| 9 | **Jar** | Glass. What is in it shows without opening it, one bit per object in its own colour. |
+| 10 | **Collage** | The board inside it, drawn small — an arrangement, not a re-packing. |
+| 11 | **Timeline** | Things in the order they happened. |
+| 12 | **Note** | Something to remember. A category: idea, thought, problem, question, quote. |
+| 13 | **Fragment** | A piece of a world or a story. A category, and *only* a question — there is no generic fragment. |
+| 14 | **Label** | A caption you lay over a run of tiles to say what they are. |
+| 15 | **Recipe** | An index card: what goes in it, and how. It holds nothing. |
+| 16 | **Achievement** | Something you actually did. Picked from what is finished, not written. |
+| 17 | **Task** | A thing to do. |
+| 18 | **Progress bar** | How far along something is — its own milestones, or another object's. |
+| 19 | **Counter** | A number you tap to add to. |
+| 20 | **Event** | Something on a day — a meeting, a shoot, a trip. A diary leaf. `appt` in the code. |
+| 21 | **Image** | A picture on the board. |
+| 22 | **Audio** | A record with a play button in its label. |
+| 23 | **Video** | The video, filling whatever box it is in. |
+| 24 | **Decoration** | Something to stand on the shelf. A category: an ornament, or a window. |
+| 25 | **Control** | A switch on the board for one of the desk's own settings. |
+| 26 | **Spawner** | Press it and it makes one of something — or one of anything. |
 
 A container that says what it makes still promotes that type to the front of
 the row, wherever it sits in the order: you opened the picker *inside* it.
@@ -279,7 +280,9 @@ next, what it is made of), `life` (the same walk with **no bar**, because an
 area of your life has no end for a percentage to be a fraction of — decision
 131), `calendar` (adaptive: a day pad at one cell, pad plus agenda below three
 cells a side, the month grid from there, titles in the cells at twelve by six —
-see decision 80), `moodboard`, `timeline`.
+see decision 80), `jar` (glass: the contents themselves, settled at the
+bottom, with the name on a paper label — decision 177), `moodboard`,
+`timeline`.
 
 **Layout** — how it arranges its children once opened: `grid` or `list`, which
 is the toggle in the bar, plus `book`, `calendar` and `timeline` for anything
@@ -325,6 +328,18 @@ is where the knob's highlight is; thicknesses are px and insets proportional,
 so a moulding is the same moulding at any tile size. The row sits in the
 object editor under Look, for a container drawing as a plain front. See
 decision 88.
+
+**And the name is written on something.** `plate`, per object then per type,
+read through `plateOf(o)`: **Printed** (the default, and what every front made
+before decision 176 is wearing), **Brass plate**, **Card holder**, **Riveted
+tag**, **Engraved**. A slot like the six before it — the position is stored and
+the aesthetic says what it is made of, so Victoria's brass plate is Carca's
+copper one and Golf 97's chrome label. The metal is `--brass`, the aesthetic's
+own accent, never a colour written down; the only aesthetic with a rule of its
+own is Starful Gothic, which has no fill, so there a plate is its outline. The
+row sits under Look for a container drawing as a plain front — a spine's name
+runs down its back and a jar's is on a label, and neither is a thing you screw
+a plate to. A new drawer rolls one, weighted sixteen to one toward printed.
 
 **And a spine is bound.** `binding`, per object then per type, read through
 `bindingOf(o)`: **Plain cloth**, **Gilt rules** (the default), **Raised bands**,
@@ -402,7 +417,7 @@ decision 63.
 **Rollups.** A container can total a field across its children: how many, total,
 average, lowest, highest, or done-out-of. It shows on **every** face it can
 wear — a front, a checklist, a project, a calendar, a timeline, a moodboard, a
-spine — because whether a container tells you what it is worth should not depend
+jar, a spine — because whether a container tells you what it is worth should not depend
 on which coat it has on. Rollups, not formulas: there is no expression language
 and there isn't going to be one.
 

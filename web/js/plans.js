@@ -166,7 +166,7 @@ function stampPlan(planId, intoId, at){
        part of what it is. */
     if(isContainer(c)){
       const rl = randomLook();
-      ['knob','border','texture','panel','knobtone'].forEach(k=>{
+      ['knob','border','texture','panel','plate','knobtone'].forEach(k=>{
         if(c[k] == null && rl[k] != null) c[k] = rl[k];
       });
     }

@@ -484,6 +484,23 @@ four relative arcs starting a pixel off centre and wound off to one side. In a
 wrong number in a column — and `.fieldin` has to restate `height:auto`, because
 the base rule is `height:100%` and that is the whole tile.
 
+**A jar is a drawer you can see into, and its face is made of tokens.**
+`faceOf(o)==='jar'` — the tile is the jar, so the drawer's ground, border and
+padding come off and the silhouette is four elements: a lid, the glass, the
+heap in it and the label across the front. Three rules. The heap has to **sit
+still**, so a bit's position, size and turn are `jitter(id)`, a hash of the
+object's own id, never `Math.random()` — a full re-render is the ordinary case
+here and a random heap reshuffles on every one. The **fill is read off the
+count and the bits off the fill** (`JAR_ROWS` caps it at seven rows), so sixty
+things is a full jar rather than sixty overflowing bits. And **nothing keys on
+the aesthetic**: the lid is `--brass`, the glass a wash of `--c`, the label
+`--paper-2` with `--ink` on it. That last one is not taste — the specimen
+book's Types section is drawn once, in the desk's own aesthetic, with no
+`[data-sty]` wrapper for `chromePatch()` to re-point an `html[data-style]` rule
+at, so a face keyed that way renders undressed there and nothing says so. A
+face is not a slot family and cannot use the `<fam>sty-` escape decision 98
+built, so tokens are the only way it survives that page. See decision 177.
+
 **A collage is the board inside it, drawn small.** `faceOf(o)==='collage'` —
 every child at the box it actually occupies, on the container's own columns.
 A moodboard is an *arrangement*, and the old front re-packed it three to a row,

@@ -12,7 +12,7 @@ import { S, K, KINDS, KEYS, T, ATTRS, USER_ATTRS, FIELDS, fieldOf, OPS, ROLLS,
   relatedTo, backlinksTo, streak, goalPct,
   CALVIEWS, calViewOf, weekStartOf, showsWeekends, KNOBSIZES, knobSizeOf,
   TSIZES, textSizeOf, mediaTypeOf, isPicture, isMedia, isDecor,
-  bindingOf, FRAMES, FRAME_SLOTS, frameOf, panelOf, knobOf, borderOf, textureOf,
+  bindingOf, FRAMES, FRAME_SLOTS, frameOf, panelOf, knobOf, plateOf, borderOf, textureOf,
   slotRaw, homeFor, acceptAny } from './model.js';
 import { GRID, lay, boxOk, freeSpot, anySpot, sizeOfKind, toPhoneSize, keepSize } from './grid.js';
 import { randomBoard, randomFront, hexOf, objColour, objSlots, famSlots, famAll, FAMS, styleKey, stockNow, CHECKS, checkNow } from './look.js';
@@ -995,9 +995,15 @@ function objectPanelBody(id, sec){
     if(faceOf(d)==='spine' || (d[dev()]||{}).w<=1)
       out.push(slotRow('Binding', id, 'bn', slotRaw(d,'binding')||bindingOf(d),
         'how the book is bound \u2014 the spine is the one face that is a made object'));
-    else if(faceOf(d)==='front')
+    else if(faceOf(d)==='front'){
       out.push(slotRow('Panelling', id, 'pn', slotRaw(d,'panel')||panelOf(d),
         'how the front is worked \u2014 a moulding, lit from the upper left like the knob'));
+      /* Only the plain front asks. A spine has its name down its back and a
+         jar has it on a paper label, and neither of those is a thing you screw
+         a plate to. See decision 176. */
+      out.push(slotRow('Nameplate', id, 'pl', slotRaw(d,'plate')||plateOf(d),
+        'what the name is written on \u2014 printed on the wood, or on something fixed to it'));
+    }
   }
   // 6 · the edge
   if(!isRoot) out.push(slotRow('Border', id, 'bd', slotRaw(d,'border')||borderOf(d), 'a slot, named by the aesthetic'));

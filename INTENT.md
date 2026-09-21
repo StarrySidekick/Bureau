@@ -55,6 +55,31 @@ Second, and directly useful to him: **a real personal desk layout that fits his
 life.** `plans.js` exists for exactly this — a plan is a board you can put down
 again. Proposing a concrete arrangement as a plan is legitimate, welcome work.
 
+### Added 2026-09-21 — things that sit on a desk
+
+Timothy went looking for **objects that are on a desk rather than filed in
+one** — a glass jar, a brass plate, string between things, a lamp that lights
+what is round it, wax seals and letters and postcards, a deck of cards, and six
+things that run: a metronome, an hourglass, a candle, a desk bell, a clock and
+a die. Plus two changes to how anything at all is handled: persistent
+**groups**, and a **per-object lock** reached from a palette-shaped menu.
+`ROADMAP.md` §0zb has the whole brief broken into seven phases with what each
+one needs.
+
+**Three of the eight are functions from the list above, arrived at from the
+other end.** *String between objects* is **cross-reference**, which `relates`
+has stored both ways for versions and has never drawn. *Grouping* is **clip** —
+"objects that travel together, which containing and relating both fail to
+express", named in this file as still on the list, and a group is the sentence
+that expresses it. *Wax seals* are **stamp**. So this is not the look work the
+section above says is no longer the default answer: two-thirds of it is the
+function work, asked for as furniture.
+
+The third that is honestly look work is the first that shipped (v1.71, the jar
+and the nameplate), because it was the part with nothing underneath it —
+additive, no gesture touched, no migration. The rest is in order of what it
+needs.
+
 ## Deliberately not next
 
 - **Sync between devices.** It is real and it is coming, *after* the feature set

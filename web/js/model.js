@@ -335,6 +335,19 @@ const BUILTIN_KINDS = {
      what the drawer actually holds. So it is a *face* any container can wear,
      and this is the type that wears it by default. See decision 134. */
   moodboard:{face:'collage', nm:'Collage', ic:'image', c:13, ds:'Pictures, arranged — the board inside it, seen from outside', size:[8,8], attrs:['container'], layout:'grid', body:'' },
+  /* **A jar is a drawer you can see into**, and that is the only difference.
+     Every other container in Bureau answers "what is in you" by being opened;
+     a jar answers it standing shut, which is the whole reason a kitchen has
+     them. What shows through the glass is the contents themselves — one bit
+     per object, in that object's own colour, settled at the bottom — so three
+     things and thirty things are different objects at a glance and neither
+     overflows. The name goes on a paper label stuck across the front, because
+     that is where a jar's name is. It holds by hand like a drawer; a jar that
+     collected by rule would be a sorting drawer made of glass, which is a
+     thing you can already ask for by ticking `magic`. See decision 177. */
+  jar:     {face:'jar', nm:'Jar', ic:'pot', c:15, key:'A',
+     ds:'Glass — what is in it shows without opening it',
+     attrs:['container'], layout:'grid', size:[3,4], phoneSize:[3,4], body:'' },
   quote:   {shape:'quote', nm:'Quote',   ic:'book',    c:5, key:'Z', ds:'Someone else\'s words',      size:[6,4], onclick:'read', attrs:['text','link','rating'],
             body:'> \n\n— ' },
   /* **Story is gone.** It was Prose & Poetry with a different binding: a
@@ -512,7 +525,7 @@ const BUILTIN_KINDS = {
    four drawers lead, because what you are usually doing on a bare board is
    making somewhere to put things. See decision 130. */
 const PRIMARY = ['drawer','magic','project','life','goal',
-                 'book','checklist','calendar','moodboard','timeline',
+                 'book','checklist','calendar','jar','moodboard','timeline',
                  'note','fragment','label','recipe','achievement',
                  'task','progressbar','counter','appt',
                  'image','audio','video','decoration','control','generator'];
@@ -1028,6 +1041,31 @@ const KNOB_SLOTS = Object.keys(KNOBS);
 const knobOf = o => {
   const k = slotKey(slotRaw(o,'knob'));
   return KNOBS[k] ? k : 'round';
+};
+/* ---- the name, and what the name is written on -------------------------
+   A drawer front carries a name and the name was printed straight onto the
+   wood. A real one is not like that: the name is on *something* screwed to
+   the front — a brass plate, a card behind a bezel, a stamped tag — and which
+   of those it is says as much about the desk as the knob does. So it is a
+   slot family like the other six, position stored and the aesthetic deciding
+   what the position is made of: Victoria's brass plate is Golf 97's engraved
+   label and Carca's riveted tag.
+
+   `none` is first and is what every front already made is wearing, because a
+   plate nobody asked for is a plate on every drawer in existence. A new
+   drawer rolls one the way it rolls a knob (decision 92), weighted so most
+   fronts still print their name on the wood. See decision 176. */
+const PLATES = {
+  none:     'Printed',
+  plate:    'Brass plate',
+  holder:   'Card holder',
+  tag:      'Riveted tag',
+  engraved: 'Engraved'
+};
+const PLATE_SLOTS = Object.keys(PLATES);
+const plateOf = o => {
+  const k = slotKey(slotRaw(o,'plate'));
+  return PLATES[k] ? k : 'none';
 };
 /* ---- the edge, and what the front is made of --------------------------
    Two more slot families, read the same way as the three above so a pin
@@ -2442,6 +2480,7 @@ export { homeFor, ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds,
   slotKey, slotFrom, slotRaw, slotSrc,
   BINDINGS, BINDING_SLOTS, bindingOf, FRAMES, FRAME_SLOTS, frameOf, isWindow,
   PANELS, PANEL_SLOTS, panelOf, KNOBS, KNOB_SLOTS, knobOf,
+  PLATES, PLATE_SLOTS, plateOf,
   BORDER_SLOTS, borderOf, TEXTURE_SLOTS, textureOf, STOCKS, STOCK_SLOTS, stockOf,
   KNOBSIZES, knobSizeOf, answered, marginOf, marginPlus, iconOf, TSIZES, textSizeOf, mediaTypeOf, isPicture,
   isMedia, isPlayable, acceptFor, acceptAny, MEDIA_EXT, isDecor,

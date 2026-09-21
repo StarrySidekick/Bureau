@@ -78,13 +78,26 @@ selector that does not get converted fails **silently** — the tile renders,
 just undressed, which is what `slotScoping` in the smoke test exists to catch.
 See decision 98.
 
-**Five families, one table.** `FAMS` in look.js — `bd` border, `pn` panelling,
-`kn` knob, `tx` grain, `bn` binding, `st` stock — each naming the property it
-is stored under, its positions, its fallback words, the key an aesthetic names
-its own under, and the reader. `famSlots(fam, style)` is the picker's list and
-`famAll(fam)` is every other aesthetic's, grouped. Add a family here and the
-pickers, the pins and the scope classes all come along; add it anywhere else
-and none of them do.
+**Seven families, one table.** `FAMS` in look.js — `bd` border, `pn` panelling,
+`kn` knob, `pl` nameplate, `tx` grain, `bn` binding, `st` stock — each naming
+the property it is stored under, its positions, its fallback words, the key an
+aesthetic names its own under, and the reader. `famSlots(fam, style)` is the
+picker's list and `famAll(fam)` is every other aesthetic's, grouped. Add a
+family here and the pickers, the pins, the scope classes and the specimen
+book's matrix all come along; add it anywhere else and none of them do. The
+seventh is the proof: `pl` was a table row, a `FAMILIES` entry in guide.js and
+one line in `pin()`, and thirty-five fronts nobody wrote out appeared in the
+book. See decision 176.
+
+**A nameplate's metal is the aesthetic's accent, never a colour.** `var(--brass)`
+in every `pl-` rule, which is how seven aesthetics get seven metals — brass,
+copper, silver, gilt, chrome — out of one block, and how an eighth would get
+one for nothing. Position 0 is **printed on the wood**, which is what every
+front made before decision 176 is wearing, so there is no migration; the roll
+at birth is weighted sixteen to one toward it, because a knob is on every
+drawer ever made and a plate is a thing somebody screwed on. Starful Gothic is
+the one aesthetic with a rule of its own: it has no fill, so there a plate is
+its outline.
 
 **Nothing on the desk shimmers.** A magic drawer used to be holographic foil,
 lit from `--holox`/`--holoy` on `#frame` — the phone's tilt, or the pointer.

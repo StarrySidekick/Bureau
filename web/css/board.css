@@ -1568,6 +1568,101 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
 .drawer.otile.sh-bar.sz-short{padding:3px 4px}
 .bartile.sz-mini .barcount{display:none}
 
+/* ---- a jar: glass, and what is in it — decision 177 --------------------
+   The tile is the jar, so the drawer's own ground, border and padding all
+   come off and the silhouette is drawn out of four elements: a lid, the
+   glass, the heap inside it and the label stuck across the front. The shadow
+   stays, because a jar is a thing standing on a desk.
+
+   **Nothing here keys on the aesthetic.** Every surface is a token — the lid
+   and its knurl are `--brass`, the glass is a wash of the jar's own `--c`,
+   the label is `--paper-2` with `--ink` on it — so the jar dresses itself in
+   all seven and cannot end up undressed on the specimen book's page, which is
+   what an `html[data-style]` rule on a *tile* would do (decision 98). */
+.drawer.dtile.jartile{
+  background:none;border:0;box-shadow:none;padding:0;overflow:visible;
+  --jarlid:15%;
+}
+.drawer.dtile.jartile:hover{box-shadow:none;filter:brightness(1.05)}
+
+/* the lid, and the knurl round its rim in one repeating gradient */
+.jartile .jarlid{
+  position:absolute;left:10%;right:10%;top:0;height:var(--jarlid);z-index:5;
+  border-radius:3px 3px 2px 2px;
+  background:linear-gradient(180deg,
+    color-mix(in srgb, var(--brass) 52%, #fff),
+    color-mix(in srgb, var(--brass) 64%, var(--paper)) 42%,
+    color-mix(in srgb, var(--brass) 62%, #000));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.42), 0 2px 3px rgba(0,0,0,.26);
+}
+.jartile .jarlid::after{
+  content:"";position:absolute;inset:30% 4% 16%;
+  background:repeating-linear-gradient(90deg,
+    rgba(0,0,0,.22) 0 1px, transparent 1px 4px);
+}
+
+/* the glass: a faint wash of the jar's colour, lit down one side and shaded
+   down the other, with the shoulder as an elliptical radius rather than a
+   drawn curve — a jar is a rectangle with its corners taken off */
+.jartile .jarglass{
+  position:absolute;left:3%;right:3%;top:calc(var(--jarlid) - 3%);bottom:0;
+  overflow:hidden;z-index:1;
+  border-radius:26% 26% 16% 16% / 13% 13% 10% 10%;
+  background:
+    linear-gradient(100deg, rgba(255,255,255,.32) 0 11%,
+      rgba(255,255,255,.08) 11% 44%, rgba(0,0,0,.05) 44% 77%,
+      rgba(255,255,255,.20) 77%),
+    color-mix(in srgb, var(--c) 13%, transparent);
+  box-shadow:
+    inset 0 0 0 1.5px color-mix(in srgb, var(--c) 42%, transparent),
+    inset 0 -10px 16px -10px rgba(0,0,0,.38),
+    0 2px 5px rgba(0,0,0,.20);
+}
+/* how full it is — read off the count, drawn behind the bits */
+.jartile .jarfill{
+  position:absolute;left:0;right:0;bottom:0;height:var(--fill,0%);z-index:0;
+  background:linear-gradient(180deg,
+    color-mix(in srgb, var(--c) 16%, transparent),
+    color-mix(in srgb, var(--c) 30%, transparent));
+  border-top:1px solid color-mix(in srgb, var(--c) 26%, transparent);
+}
+/* one thing in the jar, in its own colour. Not a circle: a pebble, because
+   four identical discs in a row read as a progress meter */
+.jartile .jarbit{
+  position:absolute;z-index:1;width:var(--jb,12%);aspect-ratio:1;
+  border-radius:46% 54% 52% 48% / 52% 44% 56% 48%;
+  background:var(--k);
+  box-shadow:inset 0 1px 1px rgba(255,255,255,.34),
+    inset 0 -1px 2px rgba(0,0,0,.26), 0 1px 1px rgba(0,0,0,.16);
+}
+.jartile .jarempty{
+  position:absolute;left:0;right:0;bottom:16%;text-align:center;
+  font-size:11px;color:color-mix(in srgb, var(--ink) 40%, transparent);
+}
+/* the highlight down the glass, over everything, catching no pointer */
+.jartile .jarshine{
+  position:absolute;left:11%;width:6%;top:calc(var(--jarlid) + 6%);bottom:18%;
+  z-index:4;pointer-events:none;border-radius:var(--pill);
+  background:linear-gradient(180deg, rgba(255,255,255,.55), rgba(255,255,255,.04));
+}
+/* the label: paper, stuck across the front, which is where a jar's name is */
+.jartile .jarlabel{
+  position:absolute;left:1%;right:1%;top:50%;transform:translateY(-44%);z-index:3;
+  padding:5px 7px 6px;text-align:center;
+  background:var(--paper-2);
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.09), 0 1px 3px rgba(0,0,0,.22);
+}
+.jartile .jarlabel .dname{
+  color:var(--ink);font-size:13px;line-height:1.18;text-align:center;
+  -webkit-line-clamp:2;margin-top:0;
+}
+.jartile > .rollup{position:absolute;right:6px;bottom:5px;margin:0;z-index:6}
+/* a jar too small for a label is a jar you can still see into */
+.drawer.dtile.jartile.sz-narrow .jarlabel{padding:3px 4px 4px}
+.drawer.dtile.jartile.sz-narrow .jarlabel .dname{font-size:11px;-webkit-line-clamp:1}
+.drawer.dtile.jartile.sz-short .jarlabel,
+.drawer.dtile.jartile.minitile .jarlabel{display:none}
+
 /* ---- a goal: a drawer with the knob taken off --------------------------
    The name is the face, so it is set as large as the frame allows and
    everything else is small and at the foot. No knob at all: a goal is not a
@@ -2017,6 +2112,114 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
   background:linear-gradient(180deg, rgba(255,255,255,.34), rgba(255,255,255,0) 60%);
   box-shadow:inset 0 0 0 1px rgba(255,255,255,.45), inset 0 -6px 12px -8px rgba(0,0,0,.3) }
 .pn-ogee.pnsty-aero .dpanel::after{ border-radius:8px;opacity:.6 }
+
+/* ---- what the name is written on — decision 176 ------------------------
+   A drawer front carries a name, and until this it was printed straight onto
+   the wood. A real one has the name on *something*, and which something is a
+   slot like the knob and the panelling: five positions, the aesthetic saying
+   what each is made of.
+
+   Both of `.dtop`'s pseudo-elements are free — the tile's two are spoken for
+   (decision 99), which is why the moulding is a real element, and the name
+   band has never used either — so a plate is a ground and its fixings with no
+   new element on the tile. `.dtop` is hidden at `sz-short` and `sz-thin`
+   already, so a front with no room for a name has no room for a plate either
+   and nothing here has to know that.
+
+   **The metal is never written down.** It is `--brass`, which is the
+   aesthetic's own accent — so Victoria's plate is brass, Carca's is copper and
+   Stelaine's is silver without one per-aesthetic rule, exactly the way an edge
+   slot works. The one aesthetic that needs a rule is Starful Gothic, which has
+   no fill at all: there a plate is its outline. */
+.drawer.dtile.pl-plate .dtop,.drawer.dtile.pl-holder .dtop,
+.drawer.dtile.pl-tag .dtop{
+  border-radius:var(--radius-d);padding:4px 8px 5px;margin-top:7px}
+
+/* ---- the plate: metal, screwed on ------------------------------------- */
+.pl-plate .dtop::before{
+  content:"";position:absolute;inset:0;border-radius:2px;z-index:-1;
+  background:linear-gradient(168deg,
+    color-mix(in srgb, var(--brass) 78%, #fff),
+    var(--brass) 44%,
+    color-mix(in srgb, var(--brass) 82%, #000));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.45), inset 0 -1px 0 rgba(0,0,0,.28),
+    0 1px 2px rgba(0,0,0,.30);
+}
+/* Four screw heads, one background layer each, so the fixings cost no element
+   and cannot come adrift from the plate they are holding on. */
+.pl-plate .dtop::after{
+  content:"";position:absolute;inset:0;border-radius:2px;z-index:-1;
+  --screw:radial-gradient(circle at 50% 50%,
+    rgba(0,0,0,.42) 0 1.1px, rgba(255,255,255,.34) 1.1px 2px, transparent 2px);
+  background:var(--screw) 4px 4px/6px 6px no-repeat,
+             var(--screw) calc(100% - 4px) 4px/6px 6px no-repeat,
+             var(--screw) 4px calc(100% - 4px)/6px 6px no-repeat,
+             var(--screw) calc(100% - 4px) calc(100% - 4px)/6px 6px no-repeat;
+}
+/* Engraved into metal reads dark, whatever the front's ink is doing. */
+.pl-plate .dname{color:color-mix(in srgb, var(--brass) 26%, #140F08);
+  text-shadow:0 1px 0 rgba(255,255,255,.30)}
+
+/* ---- the card holder: a bezel with a card in it ----------------------- */
+.pl-holder .dtop::before{
+  content:"";position:absolute;inset:0;border-radius:2px;z-index:-1;
+  background:var(--paper-2);
+  box-shadow:inset 0 0 0 1.5px color-mix(in srgb, var(--brass) 70%, #000),
+    inset 0 1px 3px rgba(0,0,0,.22), 0 1px 2px rgba(0,0,0,.26);
+}
+.pl-holder .dname{color:color-mix(in srgb, var(--ink) 88%, transparent)}
+
+/* ---- the tag: smaller than the front, riveted at both ends ------------ */
+.pl-tag .dtop{width:84%;margin-inline:auto;padding:3px 20px 4px}
+.pl-tag .dtop::before{
+  content:"";position:absolute;inset:0;border-radius:var(--pill);z-index:-1;
+  background:linear-gradient(170deg,
+    color-mix(in srgb, var(--brass) 72%, #fff), var(--brass) 52%,
+    color-mix(in srgb, var(--brass) 84%, #000));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.40), 0 1px 2px rgba(0,0,0,.30);
+}
+.pl-tag .dtop::after{
+  content:"";position:absolute;inset:0;z-index:-1;
+  --rivet:radial-gradient(circle at 50% 50%,
+    rgba(0,0,0,.46) 0 1.3px, rgba(255,255,255,.38) 1.3px 2.4px, transparent 2.4px);
+  background:var(--rivet) 4px 50%/7px 7px no-repeat,
+             var(--rivet) calc(100% - 4px) 50%/7px 7px no-repeat;
+}
+.pl-tag .dname{color:color-mix(in srgb, var(--brass) 24%, #140F08);
+  font-size:13px;-webkit-line-clamp:2}
+
+/* ---- engraved: no plate at all, the name cut into the front ----------- */
+/* The one position with no ground. A letter cut into wood is dark at the top
+   where the cut falls away from the light and lit along the bottom where the
+   far wall of it catches — which is the reverse of the raised lettering every
+   other position wears, and the whole of why it reads as cut rather than
+   printed. */
+.pl-engraved .dname{
+  color:color-mix(in srgb, var(--c) 52%, #000);
+  text-shadow:0 1px 0 color-mix(in srgb, var(--c) 62%, #fff);
+}
+
+/* ---- Starful Gothic: a plate is drawn, because nothing here is filled -- */
+.pl-plate.plsty-starry .dtop::before,
+.pl-holder.plsty-starry .dtop::before,
+.pl-tag.plsty-starry .dtop::before{
+  background:none;box-shadow:none;
+  border:1.4px solid color-mix(in srgb, var(--dink) 76%, transparent);
+}
+.pl-plate.plsty-starry .dtop::after,
+.pl-tag.plsty-starry .dtop::after{background:none}
+.pl-plate.plsty-starry .dname,.pl-holder.plsty-starry .dname,
+.pl-tag.plsty-starry .dname,.pl-engraved.plsty-starry .dname{
+  color:var(--dink);text-shadow:none}
+
+/* ---- Golf 97 and Aeros disagree about corners, as they do everywhere --- */
+.pl-plate.plsty-golf97 .dtop::before,.pl-holder.plsty-golf97 .dtop::before{border-radius:0}
+.pl-plate.plsty-aero .dtop::before,.pl-holder.plsty-aero .dtop::before{border-radius:6px}
+.pl-plate.plsty-aero .dtop::before{
+  background:linear-gradient(180deg,
+    color-mix(in srgb, var(--brass) 64%, #fff) 0 48%,
+    var(--brass) 48%, color-mix(in srgb, var(--brass) 80%, #000));
+}
 
 /* ---- drawer textures: quiet, and drawn over the front colour ----------
    Over the *colour*, and under everything standing on it. A generated `::after`

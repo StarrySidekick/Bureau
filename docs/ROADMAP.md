@@ -5,6 +5,113 @@ Sequenced by dependency, not appetite: item 1 makes everything after it safer.
 
 ---
 
+## 0zb. Asked 2026-09-21 — things that sit on a desk
+
+Timothy went looking for objects that are *on* a desk rather than filed in one,
+and picked eight. They are not one feature: three of them are a look, three
+share a piece of machinery that does not exist yet, and two are the interaction
+model changing underneath everything. Sequenced by what each one needs, not by
+appetite.
+
+**Three things were already here and nobody said so**, which changed the order:
+
+- `decor.js` already draws an **Oil lamp**, a **Candlestick**, a **Mantel
+  clock** and a **Carriage clock**, in inline SVG that reads the aesthetic's
+  own colours. The active objects are behaviour, not artwork.
+- The **per-object lock** is the `movable` attribute (decision 81): it keeps an
+  object's drag on a locked board and wears a pin at the top left. The state is
+  built and stored per object; what it hasn't got is a way to reach it that
+  isn't the object editor. `resizable` is its other half and stays off, because
+  an individually unlocked object is not to be resizable.
+- **Group move already works for a selection** — `g.group` in `gestures.js`,
+  guarded by the `groupMove` block in the smoke test. A group is that selection
+  made to persist.
+
+And one word is taken: **`group` is a kind** (a nation, a race, an order, a
+guild — a worldbuilding type). The grouping feature needs another: `grp` on the
+object, `S.groups` for the set.
+
+### Phase 1 — the still things — DONE (v1.71)
+
+The **glass jar** (decision 177) and the **brass plate** (decision 176). Both
+are pure additions: no gesture changed, no migration, nothing on an existing
+desk moved. The plate is the seventh slot family, so the picker, the pin, the
+scope class and the specimen book's matrix all came along from one table row.
+
+### Phase 2 — the overlay layer
+
+**One piece of machinery, three features**, which is why they go together: an
+absolutely positioned layer inside `.grid`, drawn from the tiles' rectangles
+and nothing else.
+
+- **String between objects.** `relates`/`rel` already stores it, both ways
+  (`backlinksTo`), and draws nothing at all — so the desk knows about every
+  relation on it and has never once shown one. A catenary between two tile
+  centres, colour defaulting to the aesthetic's and settable per relation the
+  way everything else is settable.
+- **The lamp's light.** A radial gradient in a blend layer above the board, not
+  a computation per tile: lighting fifty tiles individually is fifty repaints
+  and one gradient is none. Side profile, so the lamp is a decoration that
+  emits rather than a tile that glows.
+- **A group's outline.** A group's perimeter cannot be a border on each member:
+  the internal edges show, and a non-contiguous group has several disjoint
+  rings. It is one SVG path, marched round the union of the occupied cells.
+
+Nothing in the layer may take a pointer event, and nothing in it may be read to
+decide what a cell means — see the falling-board rule in `gestures.md`.
+
+### Phase 3 — groups
+
+`grp` on the object, the perimeter from phase 2, "Group together" on the
+context menu, and **select mode**: once a selection is open, a plain tap adds
+to it instead of opening. That last one is four lines in `wire.js` — the
+shift/⌘-click branch already toggles membership; it grows a second condition.
+
+### Phase 4 — the interaction rework
+
+The risky one, and it is all in `gestures.js`, the fiddliest file in the app.
+
+- **Hold-to-move only on an unlocked board**, which supersedes the half of
+  decision 81 that let a hold on a locked board open the menu and then carry
+  the tile out of it. That gesture is what the hold is being taken back *from*.
+- **The palette menu**: the context menu reshaped, with a per-object
+  lock/unlock on it. It writes `movable`.
+- The `touchmove` invariant gets *simpler*, not harder: a locked board no
+  longer arms a drag, so there is no scroll to steal there.
+
+### Phase 5 — the zoom surface, and six active objects
+
+`sheet.js` has three surfaces — read, write, view. This is a fourth, `S.zoomId`,
+rendered into `#sheetHost` so it does not fight `render()`.
+
+Then: **metronome**, **hourglass**, **candle**, **desk bell**, **clock**,
+**dice**. Tap does the thing, hold opens the zoom, and the zoom is where the
+settings are — bpm, how much sand, how long the wax lasts and what colour, the
+alarm, which die.
+
+Two disciplines, both of which fall out of rules the app already has. **Nothing
+ticks by re-rendering**: a clock's hands are a CSS animation with a negative
+`animation-delay` off the current time, so they are right on the first frame
+and cost nothing after it; a candle stores `litAt` and its burn length and the
+wax left is *computed at render*, never counted down by a timer. And **sound is
+synthesised**: the Web Audio API, no files in `SHELL` and no dependency, which
+is what a metronome and a bell need and all they need.
+
+### Phase 6 — the deck of cards
+
+A card is an **ordinary object parented to the deck**, which makes "drag a card
+onto a deck to put it in" the filing that already works and "pull the top card
+off" a `keepSize()` and a reparent. The deck stores which child is on top and
+whether it is face up. Tap cycles it; hold opens the zoom, where the backs,
+borders and new cards are.
+
+### Phase 7 — letters, wax seals, postcards
+
+Last because a **postcard has two sides** and so does a card, and building the
+flip twice is how two flips end up disagreeing.
+
+---
+
 ## 0za. Reported 2026-09-13 — three from living with the plans — DONE (v1.70)
 
 Timothy put the ten down and sent three notes back. Every one is the app
