@@ -118,6 +118,15 @@ function applyLook(){
   Object.entries(chromeTokens(cols)).forEach(([k,v])=>el.style.setProperty(k,v));
   const st=STYLES[L.style];
   if(st && st.vars) Object.entries(st.vars).forEach(([k,v])=>el.style.setProperty(k,v));
+  /* How a lamp's light mixes with the board under it, which is the one thing
+     on the desk that cannot be one declaration. `screen` is what light does —
+     it can only lighten — and on parchment lightening a cream board toward a
+     cream glow is very nearly nothing; `overlay` warms *and* lifts, which is
+     what a lamp on a paper desk looks like, and goes muddy on a midnight one
+     because overlay asks the backdrop and a dark backdrop darkens. A token
+     rather than a `data-theme` attribute, which decision 90 took off the root
+     and which nothing has written since. See decision 179. */
+  el.style.setProperty('--lampblend', isDark(palNow()[0]) ? 'screen' : 'overlay');
   // how deep the board sits in the carcass — read by the cavity rules, and on
   // the root so it inherits everywhere rather than needing a class to find
   el.style.setProperty('--deskinset', (L.deskinset==null?8:L.deskinset)+'px');
@@ -684,6 +693,28 @@ function hexOf(c){
 }
 // What an object is actually drawn in: its own colour, else its type's.
 const objColour = o => hexOf(o && o.c!=null ? o.c : K(o&&o.kind).c);
+/* ---- what a string between two objects is made of — decision 178 -------
+   A relation is **not an object**: it is an id sitting in somebody's `rel`,
+   with the other side found by asking (`backlinksTo`). So there is nowhere to
+   hang a colour on the relation itself, and `strc` goes on the object the
+   string leaves *from* — read per object, then per type, then the aesthetic's.
+   That is the shape every other look property has (`objColour` above,
+   `readOf`, `clickOf`), and it says the right thing: a note's threads are the
+   note's, the way its ink is.
+
+   **The default is a slot, and that is the whole reason it needs no table.**
+   Position 11 is Victoria's claret, and whatever the eleventh colour is in
+   each of the other six — so "red string" is the answer on the desk it is a
+   phrase about and the aesthetic answers for itself everywhere else, without
+   seven hand-written keys that would go stale the moment an eighth aesthetic
+   arrived. An aesthetic that wants to say otherwise puts `string` in its
+   `defaults` and is believed. */
+const STRING_SLOT = 11;
+const stringColour = o => hexOf(
+  (o && o.strc != null) ? o.strc
+  : (K(o && o.kind).strc != null) ? K(o.kind).strc
+  : ((styleNow().defaults||{}).string != null) ? styleNow().defaults.string
+  : STRING_SLOT);
 /* What this style calls slot `i`. The five have universal jobs and universal
    names; the eleven are the style's own to name, because they are not the same
    colour from one style to the next and pretending otherwise would put "Rust"
@@ -716,4 +747,4 @@ export { themeNow, lookVal, setLookVal, applyLook, applyStyle, styleDefaults,
   SLOTS, OBJ0, OBJN, ROLES, slotName, styleNow, palNow, setSlot,
   BORDER_SLOTS, borderSlots, panelSlots, knobSlots, plateSlots, textureSlots, bindingSlots, stockSlots, stockNow,
   FAMS, famSlots, famNames, famAll, styleKey, styleFor, dress, dressAs, CHECKS, checkNow,
-  hexOf, objColour, objSlots, isDark, contrast, bestInk };
+  hexOf, objColour, stringColour, STRING_SLOT, objSlots, isDark, contrast, bestInk };

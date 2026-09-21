@@ -8,13 +8,16 @@ import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, chi
   knobSizeOf, answered, sortOf, spanOf, coversDay, lateOn, isLate, iconOf, textSizeOf,
   isPicture, isMedia, isPlayable, isDecor, mediaTypeOf, frameOf, isWindow,
   boardLocked, prioOf, repeatSaid, urgencyOf, urgeSaid, durSaid, standsProud, shelfDepth, bookDepth, faceCue, anyFaceCue,
-  calViewOf, weekStartOf, calCols, borderOf, textureOf, marginOf, isFragmentKind, gravityOn } from './model.js';
+  calViewOf, weekStartOf, calCols, borderOf, textureOf, marginOf, isFragmentKind, gravityOn,
+  groupOf } from './model.js';
 import { CELL, gridOf, drawCols, drawRows, lay, overlaps, boxOk, freeSpot, anySpot, roomFor, gridRows, sizeOfKind, sideways,
   ensureBox, shelfRows, shelfOrigin, shelfAt, colsOf } from './grid.js';
 import { create, toast, fits, toggleDone, someKind, ctlSpec, ctlSaid, ctlIsOn,
-  ctlForm, ctlNum, ctlIndex, ctlPress } from './mutations.js';
-import { DECOR, decorOf, decorSVG, LIFE_ART, lifeSVG } from './decor.js';
-import { hexOf, objColour, dress, dressAs, OBJ0, OBJN, CHECKS, bestInk } from './look.js';
+  ctlForm, ctlNum, ctlIndex, ctlPress, pushSet } from './mutations.js';
+import { DECOR, decorOf, decorEmits, flamePoint, decorSVG, LIFE_ART, lifeSVG } from './decor.js';
+import { isActive, activeArt, activeSay, activeName, activeFlame, actOf,
+  metroGoing, activeTap, burning } from './active.js';
+import { hexOf, objColour, stringColour, dress, dressAs, OBJ0, OBJN, CHECKS, bestInk } from './look.js';
 import { render } from './views.js';
 import { openObj, openWriter, openRead, openViewer } from './sheet.js';
 import { objectPanel, schedulePanel } from './panels.js';
@@ -323,9 +326,18 @@ const CLICKS = {
   // a control is a switch, and pressing a switch flips it — nothing opens
   toggle:   'Flip the switch',
   // a sound or a video: press to start it, press again to stop — decision 144
-  play:     'Play it, and press again to stop'
+  play:     'Play it, and press again to stop',
+  // a lamp and a candle are the two things on the desk that burn — decision 179
+  light:    'Light it, and press again to put it out'
 };
-const clickOf = o => o.onclick || K(o.kind).onclick || 'none';
+/* A decoration that burns answers **before** its type does. `decoration`'s own
+   `onclick` is `'none'` and truthy, so a plain `||` chain would let the type
+   speak first and a lamp would be a picture of a lamp with a switch nobody
+   could reach. The object still wins over both, which is what makes the click
+   configurable on a lamp like everything else. See decision 179. */
+const emitsLight = o => !!(o && isDecor(o) && decorEmits(o));
+const isLit = o => !!(emitsLight(o) && o.lit !== false);
+const clickOf = o => o.onclick || (emitsLight(o) ? 'light' : null) || K(o.kind).onclick || 'none';
 /* A generator presses out a new object beside itself, in whichever direction
    it is set to. `random` drops it wherever there is room. */
 function dispense(g){
@@ -453,6 +465,40 @@ function tileTap(id){
     /* A press starts it and a press stops it, and neither is an opening —
        what answers is the tile itself. See playPress(). */
     case 'play': playPress(id); return;
+    /* Nor is striking a match. A lamp's state is one field and the light is
+       drawn from it on the next render, so this is a mutation and a render
+       and nothing else — no timer, no animation holding anything up. An undo
+       move, because everything that changes a field pushes one (decision 65),
+       and a toast, because a phone has no other way back (decision 128). */
+    /* An instrument does its own thing and the table in active.js says what.
+       The mutation happens there and the render happens here, because an
+       animation never holds a state change up — the tile redraws at once and
+       whatever moves is drawn over the result. See decision 182. */
+    case 'active': {
+      const out = activeTap(id);
+      render();
+      /* The ring and the roll are **drawn over the result**, never instead of
+         it: the state changed and the board was rebuilt before either class
+         went on, which is decision 38's rule and the reason a test can read
+         the new face the instant the tap lands. */
+      if(out === 'ring' || out === 'roll'){
+        const el = document.querySelector(`[data-row="${id}"]`);
+        if(el){
+          const cls = out === 'ring' ? 'ringing' : 'rolling';
+          el.classList.add(cls);
+          setTimeout(()=>el.classList.remove(cls), 950);
+        }
+      }
+      if(out === true && actOf(o) === 'metro') toast('Keeping time');
+      if(out === false && actOf(o) === 'metro') toast('Stopped');
+      return; }
+    case 'light': {
+      const on = isLit(o);
+      pushSet(on ? 'Put it out' : 'Light it', id, 'lit', o.lit);
+      o.lit = on ? false : true;
+      save(); render();
+      toast(on ? 'Out' : 'Lit', true);
+      return; }
     /* Neither is adding one to a counter. The wheels are spun in place rather
        than re-rendered, because a fresh element starts at its final transform
        and the count would blink from 7 to 8 instead of rolling. */
@@ -1516,6 +1562,26 @@ function drawTileFace(o, arr, box, persp){
     </button>`;
   }
 
+  /* ---- an instrument — decision 182 -------------------------------------
+     No tile: no paper, no border, no name printed on it. An instrument is a
+     thing standing on the desk, so it is its drawing and nothing else — the
+     same argument a decoration makes (decision 86) arrived at from the other
+     side, and deliberately *not* the same answer about collision: a metronome
+     takes up room and you cannot stand a drawer where it is.
+
+     It keeps its shadow, because a thing standing on a desk casts one, and it
+     keeps its taps on a locked board for the reason a lamp does: pressing it
+     is the whole of what it is for. */
+  if(isActive(o)){
+    return `<button class="drawer otile acttile act-${actOf(o)}${
+        metroGoing(o.id)?' going':''}${sel}" data-row="${o.id}"
+      title="${esc(o.title || activeName(o))} · ${esc(activeSay(o))}"
+      style="--c:${colour};${place}">
+      ${activeArt(o)}
+      ${handles}
+    </button>`;
+  }
+
   /* ---- a decoration ------------------------------------------------------
      No tile at all: no paper, no border, no shadow, no name — the artwork and
      nothing else, standing on the floor of its box the way an ornament stands
@@ -1528,7 +1594,14 @@ function drawTileFace(o, arr, box, persp){
      being repainted. See decision 86. */
   if(isDecor(o)){
     const own = o.media && o.media.src;
-    return `<button class="drawer otile dectile${sel}" data-row="${o.id}"
+    /* A decoration takes no pointer events on a locked board, because a
+       cut-out's transparent corners would swallow taps meant for whatever it
+       is standing in front of (decision 86). A lamp is the exception that
+       rule never had to consider: it is the one ornament whose whole point is
+       being pressed, so it keeps its taps and says so with a class rather
+       than by a rule anywhere knowing what a lamp is. See decision 179. */
+    return `<button class="drawer otile dectile${clickOf(o)!=='none'?' decact':''}${
+      isLit(o)?' lit':''}${sel}" data-row="${o.id}"
       title="${esc(o.title||DECOR[decorOf(o)]?.nm||'Decoration')}"
       style="--c:${colour};${place}">
       ${own
@@ -1876,6 +1949,171 @@ function flowSorted(kids, cid){
    page is only which slice of it you are looking at. Everything that does
    arithmetic on a box — the drag, the drop, freeSpot() — carries on in the
    real coordinates and needs to know nothing about pages. */
+/* ---- the string between two objects — decision 178 ---------------------
+   `relates` has stored a relation since the app had relations, and has drawn
+   one exactly never: the desk knew about every cross-reference on it and
+   showed you none of them. A string is that fact, put on the board.
+
+   **One SVG in cell coordinates, not one element per string.** The viewBox is
+   the board's own columns and rows, so a line from the middle of one box to
+   the middle of another is written in the same numbers the boxes are written
+   in and nothing here measures anything. Cells are square (grid.js), so the
+   box is cols x rows of them and `preserveAspectRatio="none"` stretches
+   nothing; `vector-effect="non-scaling-stroke"` keeps a string the same two
+   pixels at every grid size, which is what a piece of twine does.
+
+   It draws the **shadow pass first and the colour over it**, two paths rather
+   than a `drop-shadow` on the layer: a filter costs a pass over its whole
+   region on every repaint and this one's region is the entire board, which is
+   the thing look.md says not to do. Two paths per string is a number you can
+   count.
+
+   Four things it refuses. A relation with **one end elsewhere** — in a drawer,
+   on another shelf — because a string to something you cannot see is a line
+   running off the edge of the table. A board that has **let go**, because a
+   falling board's tiles are not where their boxes say they are and every
+   number here is read off a box (`gestures.md`, decision 166a). The same
+   **pair twice**, since `rel` is stored on one side and a mutual relation
+   would otherwise be two strings drawn on top of each other. And a board with
+   **no relations on it at all**, which returns the empty string rather than an
+   empty SVG, because most boards have none and an element per board that
+   draws nothing is still an element per board. */
+const FIX = n => (Math.round(n*1000)/1000);
+/* ---- what a lamp does — decision 179 -----------------------------------
+   `decor.js` has drawn an oil lamp and a candlestick since decision 86 and
+   both of them have been pictures of themselves. A lamp that does not light
+   anything is an ornament of a lamp.
+
+   One element per lit flame, in **per cent of the grid**, which is the same
+   trick the strings use one layer up: cells are square and the grid is
+   `cols x rows` of them, so a circle `2r` cells across is `2r/cols` of the
+   width and `2r/rows` of the height and comes out round without anything
+   being measured. Where the flame *is* comes from `flamePoint()`, which undoes
+   the `xMidYMax meet` letterboxing the artwork is drawn under — a fraction of
+   the tile would walk off the wick the first time anybody resized one.
+
+   It is one blended gradient and **not a computation per tile**: lighting
+   fifty tiles individually is fifty repaints and one gradient over the board
+   is none. It sits under the strings and under the decorations and over the
+   tiles, because light falls *on* things — including on the lamp's own
+   shade, which is why the layer stops at z-index 4 and the cut-out stands
+   above it at 6. */
+function boardLights(kids, shift, g, dv, cid){
+  if(gravityOn()) return '';
+  const cols = drawCols(g, dv), rows = drawRows(g, dv), out = [];
+  kids.forEach(o=>{
+    /* Two things burn: an ornamental lamp or candlestick that has been lit,
+       and the **candle instrument**, which is a different object with a
+       different letterboxing and the same job. One layer serves both rather
+       than each growing its own. See decisions 179 and 182. */
+    if(!isLit(o) && !burning(o)) return;
+    const b = FLOW.get(o.id) || lay(o, dv, cid);
+    const f = flamePoint(o, b.w, b.h) || activeFlame(o, b.w, b.h); if(!f) return;
+    const cx = b.x - shift.x - 1 + f.x, cy = b.y - shift.y - 1 + f.y;
+    /* How far it throws is the drawing's, times whatever this one has been
+       turned up to — a lamp is a lamp and a lamp on a big desk is still a
+       lamp, so the number is in cells and not in tiles. */
+    const r = f.r * (o.reach || 1);
+    out.push(`<i class="lamplight" style="left:${FIX(cx/cols*100)}%;top:${
+      FIX(cy/rows*100)}%;width:${FIX(200*r/cols)}%;height:${FIX(200*r/rows)}%"></i>`);
+  });
+  return out.length ? `<div class="lights" aria-hidden="true">${out.join('')}</div>` : '';
+}
+
+function boardStrings(kids, shift, g, dv, cid){
+  if(gravityOn()) return '';
+  const here = new Map(kids.map(o=>[o.id, o]));
+  /* The same expression the phone's straddle filter uses: a sorted board's
+     boxes are in FLOW for this render only, and gridTile() *deletes* each one
+     as it draws it — so this has to run before the tiles are built, not after. */
+  const boxOf = o => FLOW.get(o.id) || lay(o, dv, cid);
+  /* Three groups, not one list of triples. Interleaved, the second string's
+     shadow is painted over the first string's line — invisible with two
+     relations on a board and obvious with ten. */
+  const seen = new Set(), sh = [], ln = [], pin = [];
+  kids.forEach(a=>{
+    (a.rel||[]).forEach(bid=>{
+      const b = here.get(bid); if(!b || b===a) return;
+      const key = a.id < bid ? a.id+'|'+bid : bid+'|'+a.id;
+      if(seen.has(key)) return;
+      seen.add(key);
+      const ra = boxOf(a), rb = boxOf(b);
+      const ax = ra.x - shift.x - 1 + ra.w/2, ay = ra.y - shift.y - 1 + ra.h/2;
+      const bx = rb.x - shift.x - 1 + rb.w/2, by = rb.y - shift.y - 1 + rb.h/2;
+      /* A string sags, and how much is the span rather than a constant: a
+         thread across two cells that dipped as far as one across twenty would
+         read as a loop of rope. Capped, because a string across a whole desk
+         sagging proportionally would hang off the bottom of the board. */
+      const len = Math.hypot(bx-ax, by-ay);
+      const sag = Math.min(1.7, len*0.15);
+      const d = `M${FIX(ax)} ${FIX(ay)}Q${FIX((ax+bx)/2)} ${FIX((ay+by)/2+sag)} ${FIX(bx)} ${FIX(by)}`;
+      const col = stringColour(a);
+      sh.push(`<path d="${d}"/>`);
+      ln.push(`<path d="${d}" stroke="${col}"/>`);
+      pin.push(`<circle cx="${FIX(ax)}" cy="${FIX(ay)}" r=".11" fill="${col}"/>`
+             + `<circle cx="${FIX(bx)}" cy="${FIX(by)}" r=".11" fill="${col}"/>`);
+    });
+  });
+  if(!ln.length) return '';
+  return `<g class="strsh">${sh.join('')}</g><g class="strln">${ln.join('')
+    }</g><g class="strpin">${pin.join('')}</g>`;
+}
+
+/* ---- the outline round a group — decision 180 --------------------------
+   A group's perimeter cannot be a border on each member: the internal edges
+   show, and a group whose members are not touching has several disjoint rings
+   rather than one. So it is drawn **edge by edge** — every side of every
+   occupied cell that does not have another occupied cell against it — which
+   is a marching-squares outline with the tracing left out, because a set of
+   unit segments *is* the perimeter and nothing here needs it to be one closed
+   path. Disjoint pieces fall out for free, which is the whole reason to do it
+   this way rather than hull-fitting a rectangle.
+
+   It runs along the cell boundary, which is exactly where the tiles' own
+   edges are, so the stroke half-covers them — which is what a line drawn
+   round a tetromino looks like and what says *one piece* rather than *four
+   things near each other*.
+
+   A group of one draws nothing: it is not a group yet, and a member deleted
+   out of a pair leaves the survivor carrying a `grp` that means nothing.
+   That is why there is no cleanup anywhere — see groupTogether(). */
+function boardGroups(kids, shift, cid){
+  if(gravityOn()) return '';
+  const by = new Map();
+  kids.forEach(o=>{ const g=groupOf(o); if(!g) return;
+    if(!by.has(g)) by.set(g, []); by.get(g).push(o); });
+  const out = [];
+  by.forEach(members=>{
+    if(members.length<2) return;
+    const cells = new Set();
+    members.forEach(o=>{
+      const b = FLOW.get(o.id) || lay(o, dev(), cid);
+      for(let x=b.x; x<b.x+b.w; x++) for(let y=b.y; y<b.y+b.h; y++) cells.add(x+','+y);
+    });
+    const d = [];
+    cells.forEach(k=>{
+      const [x,y] = k.split(',').map(Number);
+      const L = x - shift.x - 1, R = L + 1, T = y - shift.y - 1, B = T + 1;
+      if(!cells.has(x+','+(y-1))) d.push(`M${FIX(L)} ${FIX(T)}H${FIX(R)}`);
+      if(!cells.has(x+','+(y+1))) d.push(`M${FIX(L)} ${FIX(B)}H${FIX(R)}`);
+      if(!cells.has((x-1)+','+y)) d.push(`M${FIX(L)} ${FIX(T)}V${FIX(B)}`);
+      if(!cells.has((x+1)+','+y)) d.push(`M${FIX(R)} ${FIX(T)}V${FIX(B)}`);
+    });
+    if(d.length) out.push(`<path d="${d.join('')}"/>`);
+  });
+  return out.length ? `<g class="grpline">${out.join('')}</g>` : '';
+}
+
+/* One layer for both, so a board with neither costs no element and a board
+   with either costs one. The outlines are drawn first and the strings over
+   them: a thread lies on top of everything, a line round a group is part of
+   the board. */
+function boardOverlay(kids, shift, g, dv, cid){
+  const inner = boardGroups(kids, shift, cid) + boardStrings(kids, shift, g, dv, cid);
+  return inner ? `<svg class="strings" viewBox="0 0 ${drawCols(g,dv)} ${drawRows(g,dv)}"
+    preserveAspectRatio="none" aria-hidden="true">${inner}</svg>` : '';
+}
+
 function gridOfContainer(cid){
   const c=container(cid);
   /* You are always arranging, unless the one lock says otherwise — see
@@ -1931,6 +2169,11 @@ function gridOfContainer(cid){
      phone flat on a table. See decision 117. */
   PERSP.cols = standsProud() ? g.shelfW : 0;
   PERSP.rows = standsProud() ? g.shelfH : 0;
+  /* Before the tiles, not after: gridTile() takes each box out of FLOW as it
+     draws it, so a sorted board has nothing left to read by the time the last
+     tile is built. */
+  const strings=boardOverlay(kids, shift, g, dv, c.id);
+  const lights=boardLights(kids, shift, g, dv, c.id);
   const tiles=kids.map(o=>gridTile(o,arr,c.id)).join('');
   SHELFSHIFT.x = SHELFSHIFT.y = 0; PERSP.cols = PERSP.rows = 0;
   /* Exactly the shelves there are. A board is a finite space now — one shelf
@@ -1961,7 +2204,7 @@ function gridOfContainer(cid){
      which is a thing you can aim at rather than a line you have to read. */
   return `<div class="grid g-${dv}${arr===true?' arranging':''}${boardLocked()?' locked':''}${sorted?' sorted':''}${S.look.pinned?' pinboard':''}${gravityOn()?' falling':''}"
        id="drawergrid" data-gridfor="${c.id}"
-       style="${boardVars}--cols:${cols};--rowh:${g.rowh}px;--checkerx:${2*colw}px;--checkery:${2*g.rowh}px;grid-auto-rows:${g.rowh}px;grid-template-rows:repeat(${Math.max(rows,1)},${g.rowh}px)">${tiles}
+       style="${boardVars}--cols:${cols};--rowh:${g.rowh}px;--checkerx:${2*colw}px;--checkery:${2*g.rowh}px;grid-auto-rows:${g.rowh}px;grid-template-rows:repeat(${Math.max(rows,1)},${g.rowh}px)">${tiles}${lights}${strings}
   </div>`;
 }
 

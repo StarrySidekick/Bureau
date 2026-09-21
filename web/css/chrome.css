@@ -3821,6 +3821,56 @@ html[data-theme="walnut"] .toast{background:var(--paper-3);color:var(--ink)}
 .ctxmenu .div{height:1px;background:var(--rule-2);margin:4px 2px}
 .ctxmenu .danger{color:#C0563F}
 
+/* ---- the palette — decision 181 ----------------------------------------
+   A hold opens this on every board now, which makes it the most-reached thing
+   in the app and worth being a *shape* rather than a list in a box. An
+   artist's palette: an organic outline, a warmer ground than an ordinary
+   popup, and a thumb hole.
+
+   The hole is a `mask`, not a painted circle — so the board actually shows
+   through it, the way a hole does. That means it cuts through the buttons as
+   well, which is exactly why the buttons are padded clear of it: nothing is
+   ever behind the hole, so nothing is ever cut. Two mask layers rather than
+   one, because a single radial gradient would also have to describe the
+   outside edge; `luminance` is avoided for the same reason — alpha masking
+   composites the two without a colour space in the middle.
+
+   The outline is four corner radii doing the work of a curve nobody has to
+   draw. It is deliberately *near* a rectangle: a palette that leans too far
+   into the shape stops being a menu you can read down. */
+.ctxmenu.palette{
+  min-width:214px;
+  padding:6px 6px 6px 40px;
+  background:color-mix(in srgb, var(--wood, #3A2C1E) 12%, var(--paper-2));
+  border-radius:34% 14% 26% 16% / 20% 26% 16% 28%;
+  border-color:color-mix(in srgb, var(--brass) 38%, var(--rule));
+  /* the thumb hole: opaque everywhere, transparent in one circle */
+  -webkit-mask:radial-gradient(circle at 21px 68%, #0000 0 11px, #000 11.6px);
+  mask:radial-gradient(circle at 21px 68%, #0000 0 11px, #000 11.6px);
+}
+.ctxmenu.palette button{border-radius:var(--pill);padding-left:12px}
+.ctxmenu.palette .div{margin-left:4px}
+.ctxmenu.palette .ctxhead{padding-left:12px}
+/* The dabs of paint, which is what makes it a palette rather than a blob with
+   a hole in it. Three, off the aesthetic's own accent and glow, sitting in the
+   margin the buttons leave — `::before` and `::after` plus one more would need
+   an element, so it is two pseudo-elements carrying three background layers
+   between them and no element at all. */
+.ctxmenu.palette::before{
+  content:"";position:absolute;left:13px;top:17px;width:16px;height:16px;
+  border-radius:50%;pointer-events:none;
+  background:radial-gradient(circle at 38% 34%,
+    color-mix(in srgb, var(--brass) 92%, #fff), var(--brass) 72%);
+  opacity:.72;
+}
+.ctxmenu.palette::after{
+  content:"";position:absolute;left:11px;top:42px;width:13px;height:13px;
+  border-radius:50%;pointer-events:none;
+  background:radial-gradient(circle at 38% 34%,
+    color-mix(in srgb, var(--glow) 92%, #fff), var(--glow) 72%);
+  opacity:.66;
+}
+
 /* the panel is narrow: sections sit closer, and the style tiles pair up */
 .pbody .section-h{margin:18px 0 8px}
 .panel:not(.wide) .stylegrid{grid-template-columns:repeat(2,1fr)}
@@ -4098,7 +4148,14 @@ kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--rule);border
   color:var(--c);
 }
 .drawer.otile.dectile:hover{box-shadow:none;filter:brightness(1.06)}
-.grid.locked .dectile{pointer-events:none}
+/* A decoration takes no taps on a locked board — a cut-out's transparent
+   corners would swallow the ones meant for whatever it stands in front of
+   (decision 86). A lamp is the exception that rule never had to consider: it
+   is the one ornament whose whole point is being pressed, so `.decact` keeps
+   its taps. The corners are still transparent and still in the way, which is
+   the price; a lamp you cannot switch on from a locked desk is a worse one,
+   given the desk starts locked. See decision 179. */
+.grid.locked .dectile:not(.decact){pointer-events:none}
 /* it stands on the floor of its box rather than floating in the middle */
 .dectile .decart{width:100%;height:100%;display:block;object-fit:contain;object-position:center bottom}
 .dectile.selected{outline:2px solid var(--brass);outline-offset:3px}

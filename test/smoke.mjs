@@ -548,6 +548,68 @@ const CHROME = process.env.BUREAU_CHROME;
       && back.length === 1 && back[0] === a.id;
   });
 
+  /* --- the string: a relation drawn on the board — decision 178.
+     `relates` stored a relation for versions and drew nothing, so the thing
+     worth asserting is not the data but that a **string reaches the tiles**.
+     Its coordinates are the board's own cells against a viewBox of the same
+     cells, which is exact or wildly wrong and never slightly off — so the pins
+     are measured against the real tile rects, the way `maxDrift` measures a
+     tile against its cell. Three refusals are checked with it: a relation with
+     one end on another shelf, the same pair twice, and a board that has let
+     go. */
+  const stringLayer = await page.evaluate(async () => {
+    const S = BUREAU.state;
+    const keep = S.objects.slice(), lock = S.look.locked;
+    S.objects.length = 0; S.look.locked = false;
+    const mk = o => S.objects.push(Object.assign({ id:'s'+Math.random().toString(36).slice(2,7),
+      parent:'root', title:'', body:'', tags:[], ord:0, created:'2026-01-01',
+      attrs:['text','relates'] }, o));
+    mk({ id:'str_a', kind:'note', title:'A' });
+    mk({ id:'str_b', kind:'note', title:'B', c:9 });
+    const a = S.objects.find(o=>o.id==='str_a');
+    // stored on one side; a mutual relation must still be ONE string
+    a.rel = ['str_b'];
+    S.objects.find(o=>o.id==='str_b').rel = ['str_a'];
+    BUREAU.render();
+    await new Promise(r=>setTimeout(r,60));
+    const lines = () => document.querySelectorAll('.strings .strln path').length;
+    const onePerPair = lines() === 1;
+    // the pins sit on the tile centres, to the pixel, in the board's own cells
+    const mid = el => { const r = el.getBoundingClientRect();
+      return { x:r.x+r.width/2, y:r.y+r.height/2 }; };
+    const pins = [...document.querySelectorAll('.strings .strpin circle')].map(mid);
+    const tiles = ['str_a','str_b'].map(id => mid(document.querySelector(`[data-row="${id}"]`)));
+    const far = (p,t) => Math.max(Math.abs(p.x-t.x), Math.abs(p.y-t.y));
+    const drift = pins.length === 2 ? Math.min(
+      Math.max(far(pins[0],tiles[0]), far(pins[1],tiles[1])),
+      Math.max(far(pins[0],tiles[1]), far(pins[1],tiles[0]))) : 999;
+    /* An end that is not on this board draws nothing rather than a line to
+       nowhere. Both sides have to be cleared: the pair above is related both
+       ways round, so leaving b's half in place would leave a perfectly valid
+       string on the board and assert nothing. */
+    a.rel = ['nobody_at_all'];
+    S.objects.find(o=>o.id==='str_b').rel = [];
+    BUREAU.render(); await new Promise(r=>setTimeout(r,40));
+    const refusesOffBoard = lines() === 0;
+    // and the colour is a slot on the end it leaves from, not a hardcoded red
+    a.rel = ['str_b']; a.strc = 8;
+    S.objects.find(o=>o.id==='str_b').rel = ['str_a'];   // and still one string
+    BUREAU.render(); await new Promise(r=>setTimeout(r,40));
+    const stroke = document.querySelector('.strings .strln path').getAttribute('stroke');
+    const ownColour = stroke.toLowerCase() === BUREAU.palNow()[8].toLowerCase()
+      && lines() === 1;
+    // a board that has let go is not where its boxes say it is, so it draws none
+    const wasG = S.look.gravity;
+    S.look.gravity = 'sand';
+    BUREAU.render(); await new Promise(r=>setTimeout(r,60));
+    const refusesFalling = !document.querySelector('.strings');
+    S.look.gravity = wasG;
+    S.objects.length = 0; keep.forEach(o=>S.objects.push(o));
+    S.look.locked = lock; BUREAU.render();
+    return { onePerPair, pinsOnTiles: drift <= 1, drift:+drift.toFixed(2),
+             refusesOffBoard, ownColour, refusesFalling };
+  });
+
   // --- the relations UI actually renders: chips, backlinks, and unlink.
   // It existed as model + CSS + handlers with nothing drawing it for a while,
   // which is exactly the failure this assertion is here to catch.
@@ -6093,12 +6155,17 @@ const CHROME = process.env.BUREAU_CHROME;
     return out;
   });
 
-  /* --- a locked board lets one tile out and shuts again -----------------
-     Holding a tile on a locked board and dragging it still opens the board,
-     because you have demonstrated what you want — but it closes on the drop
-     rather than leaving arrange mode on behind you. And two traits are a
-     standing exception, one object at a time: `movable` keeps its drag,
-     `resizable` keeps its corners, and each says so on the tile. Decision 81. */
+  /* --- a locked board stays locked, and the hold is the menu -------------
+     This asserted decision 81's gesture — hold a tile on a locked board, drag,
+     and the board opened for the length of your finger. **Decision 181
+     supersedes that half of it.** The hold is now the menu on every board, and
+     a gesture that sometimes opens a menu and sometimes silently unlocks the
+     desk and picks a tile up is one gesture with two meanings. So the
+     assertion is turned round: moving from the menu on a locked board must
+     leave the lock alone and leave the tile where it is, and the way to move
+     one thing is the menu's own *Free it to move*, which the object then
+     remembers. The two traits are still a standing exception and are still
+     checked below. */
   const lockedBoard = await phone.evaluate(async () => {
     const nap = n => new Promise(r => setTimeout(r, n));
     const S = BUREAU.state, out = {};
@@ -6114,17 +6181,33 @@ const CHROME = process.env.BUREAU_CHROME;
     const cx = r.left + r.width/2, cy = r.top + r.height/2;
     const ev = (type,x,y) => el().dispatchEvent(new PointerEvent(type,
       { bubbles:true, cancelable:true, pointerId:91, pointerType:'touch', clientX:x, clientY:y }));
+    const was = JSON.stringify(t.phone);
     ev('pointerdown', cx, cy);
     await nap(650);                       // past the 300ms hold and the 250ms menu
+    out.theHoldOpensTheMenu = !!document.querySelector('#ctx.open');
+    out.andItIsAPalette = !!document.querySelector('#ctx.palette');
     // on the tile, not on document: the listeners are delegated from #frame,
     // which an event dispatched above it never reaches
     ev('pointermove', cx+60, cy+40);
     await nap(60);
-    out.opensWhileYouHoldIt = S.look.locked === false;
+    out.movingDoesNotSpendTheLock = S.look.locked === true;
     ev('pointerup', cx+60, cy+40);
     await nap(300);
-    out.shutsAgainOnTheDrop = S.look.locked === true;
+    out.stillLocked = S.look.locked === true;
+    out.andTheTileDidNotMove = JSON.stringify(t.phone) === was;
     out.andTheBoardAgrees = !!document.querySelector('.grid.locked');
+    /* …and the way out is on that menu: one press and the object carries
+       `movable` from then on, which is what makes it a fact about the thing
+       rather than a mode you are in. */
+    BUREAU.ctx(cx, cy, t.id);
+    await nap(80);
+    const freeBtn = document.querySelector(`#ctx [data-c="free:${t.id}"]`);
+    out.theMenuOffersTheWayOut = !!freeBtn;
+    if(freeBtn) freeBtn.click();
+    await nap(200);
+    out.andTheObjectRemembersIt = (t.attrs||[]).includes('movable');
+    out.andWearsThePin = !!document.querySelector(
+      `.grid .drawer[data-row="${t.id}"] .freepin`);
     BUREAU.del(t.id); S.undo=[]; S.redo=[]; BUREAU.render();
     return out;
   });
@@ -7795,7 +7878,7 @@ const CHROME = process.env.BUREAU_CHROME;
     gridClass, offlineWorks, railGone, tabsGone, shelfGone, tileNavigates,
     holdArms, maxDrift,
     settingsIsPanel, pickerPreviews, builderPreview, everyMenuIsAPanel,
-    pasteOk, magicOk, rollupOk, relationsOk, relationsUI,
+    pasteOk, magicOk, rollupOk, relationsOk, relationsUI, stringLayer,
     timeLayer, checklistBox, pluckWorks, checklistMoves, answering, seedAndKnobs, longPress, drawerSize, tagDrawer, groupMove, dropStates,
     adaptiveTiles, bubblePanel, scrollKept, kindSizes,
     phoneGrid, phoneMigration, turnedSideways, pouring,

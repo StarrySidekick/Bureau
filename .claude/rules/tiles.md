@@ -484,6 +484,22 @@ four relative arcs starting a pixel off centre and wound off to one side. In a
 wrong number in a column — and `.fieldin` has to restate `height:auto`, because
 the base rule is `height:100%` and that is the whole tile.
 
+**A string is a relation drawn on the board, and it is written in cells.**
+`boardStrings()` in tiles.js, one SVG at `inset:0` whose viewBox is
+`drawCols × drawRows` — so an endpoint is `box.x - shift.x - 1 + box.w/2`, the
+same arithmetic a tile's own `grid-column` is, and the pins land on the tile
+centres to the pixel on both devices. Built **before** the tiles, because
+`gridTile()` takes each box out of `FLOW` as it draws it and a sorted board
+would have nothing left to read. It refuses four things: an end not on this
+board, a board that has let go (`gravityOn()` — every number here is read off a
+box), the same pair twice, and a board with no relations, which returns the
+empty string rather than an empty element per board. The casing is `--ink` and
+not black, so it is a shadow on a light desk and a halo on a dark one from one
+declaration; three passes and no filter, for the reason look.md gives. The
+colour is `strc` on the end the string leaves from — a relation is an id in
+somebody's `rel` and not an object, so there is nowhere else to put it. See
+decision 178.
+
 **A jar is a drawer you can see into, and its face is made of tokens.**
 `faceOf(o)==='jar'` — the tile is the jar, so the drawer's ground, border and
 padding come off and the silhouette is four elements: a lid, the glass, the

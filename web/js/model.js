@@ -414,6 +414,41 @@ const BUILTIN_KINDS = {
   poem:    {shape:'verse', parchment:true, nm:'Poem',    ic:'feather', c:10, key:'"', ds:'Lines, kept as written', size:[5,7], onclick:'read', attrs:['text'], body:'' },
   place:   {shape:'card', nm:'Place',   ic:'flag',    c:7, key:'1', ds:'Somewhere in the story',  size:[5,6], onclick:'read', attrs:['text','media','relates'], narrative:true, gathers:'world',
             body:'**Feels like —** \n\n**Who is there —** \n\n**What happened here —** ' },
+  /* ---- an instrument: something that runs — decision 182 -----------------
+     Six things that are not information. Everything else on this desk is
+     something you wrote down; a metronome, an hourglass, a candle, a bell, a
+     clock and a die are **instruments** — you press them and they do
+     something, and what they know is a setting rather than a note.
+
+     One **category**, not six majors, for decision 130's reason: they belong
+     to one another and the picker's front page is a thing you read. `cat`
+     because there is no generic instrument to make — pressing it always asks
+     which, the way Fragment does.
+
+     They carry **no attributes at all**, which is unusual and is the point: a
+     die has no body, no date and nothing to tick, and a trait list that said
+     otherwise would put a checkbox on a bell. What each one *knows* —
+     `bpm`, `mins`, `burn`, `sides`, `clock`, `alarm` — is a plain field with a
+     reader in `active.js`, because those are settings on an instrument rather
+     than traits an object has. `act` says which machine, and it is read off
+     the object first, so a type somebody invents can be a die by saying so. */
+  instrument:{cat:true, nm:'Instrument', ic:'clock', c:13,
+     ds:'Something that runs — press it and say which',
+     family:['metronome','hourglass','candle','bell','clock','die'],
+     famSub:'What sort of instrument?',
+     attrs:[], size:[3,4], onclick:'active', body:'' },
+  metronome:{act:'metro',  nm:'Metronome', ic:'clock', c:11, ds:'Keeps time, and you can hear it',
+     attrs:[], size:[3,4], phoneSize:[3,4], onclick:'active', bpm:88, body:'' },
+  hourglass:{act:'glass',  nm:'Hourglass', ic:'clock', c:12, ds:'Tip it over and watch it run',
+     attrs:[], size:[3,4], phoneSize:[3,4], onclick:'active', mins:5, body:'' },
+  candle:   {act:'candle', nm:'Candle',    ic:'sun',   c:3,  ds:'Burns down while you work',
+     attrs:[], size:[2,5], phoneSize:[2,5], onclick:'active', burn:120, body:'' },
+  bell:     {act:'bell',   nm:'Desk bell', ic:'ring',  c:12, ds:'Press it and it rings. That is all',
+     attrs:[], size:[3,2], phoneSize:[3,2], onclick:'active', body:'' },
+  clock:    {act:'clock',  nm:'Clock',     ic:'clock', c:9,  ds:'The time, and one alarm',
+     attrs:[], size:[4,4], phoneSize:[4,4], onclick:'active', clock:'wall', body:'' },
+  die:      {act:'die',    nm:'Die',       ic:'grid',  c:14, ds:'Press it and it rolls',
+     attrs:[], size:[2,2], phoneSize:[2,2], onclick:'active', sides:6, face:1, body:'' },
   /* ---- a fragment: one piece of a world -----------------------------------
      Ten types that only ever come up when you are building a world or telling
      a story, behind one press. Underneath they are nearly the same object — a
@@ -528,7 +563,7 @@ const PRIMARY = ['drawer','magic','project','life','goal',
                  'book','checklist','calendar','jar','moodboard','timeline',
                  'note','fragment','label','recipe','achievement',
                  'task','progressbar','counter','appt',
-                 'image','audio','video','decoration','control','generator'];
+                 'image','audio','video','decoration','instrument','control','generator'];
 const isPrimary = k => PRIMARY.includes(k);
 
 /* ---- a category is a type you press to be *asked which* -----------------
@@ -1930,6 +1965,56 @@ function isAncestor(maybeAncestor, o){
 // Breadcrumb chain from the desk down to this container.
 /* Relations point both ways without being stored twice: A lists B, and B's
    backlinks are found by asking who points at B. */
+/* ---- a group: objects that travel together — decision 180 --------------
+   Containing says "this is inside that" and relating says "this is about
+   that". Neither says **these move as one**, which is the thing a paper desk
+   does with a paperclip and the function `INTENT.md` calls *clip*. So: `grp`,
+   an id on each member, and nothing else — no group object, no `S.groups`
+   table, no lifecycle.
+
+   That is the whole design decision. A group *is* the set of objects carrying
+   the same `grp`, so there is nothing to create, nothing to garbage-collect
+   and nothing that can go stale: delete every member and the group is gone
+   because it was never anywhere else. A member deleted, reparented or
+   ungrouped leaves by having its own field changed, which `del()` and the
+   undo stack already handle without being told.
+
+   **The field is `grp` and not `group`, because `group` is a kind** — a
+   nation, an order, a guild, one of the worldbuilding types. Two meanings of
+   one word in one model is how a reader ends up asking the wrong question.
+
+   A group is per **board**: `groupMates()` only ever answers with siblings,
+   because a set of things that move together across two coordinate spaces is
+   a set of things that cannot move together at all. */
+const groupOf = o => (o && o.grp) || null;
+const groupMates = o => {
+  const g = groupOf(o); if(!g) return [];
+  return S.objects.filter(x => x.grp===g && x.parent===o.parent);
+};
+/* Everything that comes along when this one is picked up, ids only. A
+   selection wins over a group: you have just said which things you mean, and
+   a group you happen to have touched is not an argument against that. Null
+   when the answer is "only this one", which is what every caller was already
+   written to expect. */
+function travelWith(o){
+  if(!o) return null;
+  if(S.sel && S.sel.length>1 && S.sel.includes(o.id)) return S.sel.slice();
+  const mates = groupMates(o);
+  return mates.length>1 ? mates.map(x=>x.id) : null;
+}
+/* One group out of a list of ids, and only the ones that share a parent with
+   the first — see above. Returns the id it wrote, so the caller can say so. */
+function groupTogether(ids){
+  const os = ids.map(byId).filter(Boolean);
+  if(os.length<2) return null;
+  const home = os[0].parent;
+  const mine = os.filter(o=>o.parent===home);
+  if(mine.length<2) return null;
+  const g = uid('g');
+  mine.forEach(o=>{ o.grp = g; });
+  return {grp:g, ids:mine.map(o=>o.id)};
+}
+
 const relatedTo = o => (o&&o.rel||[]).map(byId).filter(Boolean);
 const backlinksTo = id => S.objects.filter(o=>(o.rel||[]).includes(id));
 function relate(aId,bId){
@@ -2490,7 +2575,8 @@ export { homeFor, ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds,
   OPS, WHENS, whenISO, RULE_MAX, rulesOf, matchRule,
   ROLLS, rollup, SORTS, MANUAL, sortOf, childrenOf, beginPass, endPass, isAncestor,
   URGES, WORKDAY, workday, urgencyOf, urgeRank, urgeName, urgeSaid, durSaid,
-  relatedTo, backlinksTo, relate, unrelate, chainOf, tlSpan, streak, goalPct,
+  relatedTo, backlinksTo,
+  groupOf, groupMates, travelWith, groupTogether, relate, unrelate, chainOf, tlSpan, streak, goalPct,
   allUnder, progressOf, projectStat, finishedThings, allTags,
   PRIMARY, isPrimary, ANY, makesAnything, genSaid, ctlOf, barPct, barOf,
   BAR_STEPS, barSteps, barFilled, barGrid,

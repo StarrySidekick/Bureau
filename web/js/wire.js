@@ -3,14 +3,15 @@ import { S, K, KINDS, KEYS, refreshKinds, ATTRS, attrsOf, has, SHAPES,
   FACES, MANUAL, byId, container, cfgOf, isContainer, isAncestor, relate, deskOf,
   unrelate, sensedDevice, reset, T, dz, dev, calViewOf, RULE_MAX, acceptFor, acceptAny,
   boardLocked, repeatOf, repeats, heldObjects, heldCount, marginOf, marginPlus, homeFor,
-  layoutOf, setClFit, genKindOf, makesAnything } from './model.js';
+  layoutOf, setClFit, genKindOf, makesAnything , groupMates, groupTogether } from './model.js';
 import { gridOf, lay, boxOk, freeSpot, anySpot, roomFor, sizeOfKind, toPhoneSize, keepSize,
   shelvesOf, shelfAt, setShelf } from './grid.js';
 import { applyLook, applyStyle, setLookVal, lookVal, STYLES, setSlot, objColour, darkMode } from './look.js';
 import { toast, fits, setGridSize, toggleDone, spawnNext, del, delMany, delDrawer, undo, redo, pushUndo,
   pushSet, pushSets, setPin, togglePin, drawerForTag, create, spawnInto, randomThing,
-  holdIt, unholdIt, unholdMany, undoToast, someKind, becomeKind } from './mutations.js';
+  holdIt, unholdIt, unholdMany, undoToast, someKind, becomeKind , toggleFree } from './mutations.js';
 import { spinTo, pending, placeAtPending, tileTap, turnPage, clearPages } from './tiles.js';
+import { bpmOf, minsOf, burnOf, sidesOf, metroGoing, startMetro, mindTheTime, actOf } from './active.js';
 import { DECOR, LIFE_ART } from './decor.js';
 import { render, renderSoon, sizeGrid, toggleSettings, settingsPanel, reveal, goShelf, goShelfTo, deskMap } from './views.js';
 import { closeGuide, guideOpen, saveGuide } from './guide.js';
@@ -33,7 +34,76 @@ import { save, writeNow, exportBackup, importBackup, importFile, imgFor, pasteOb
    naming, the placing and the reveal cannot drift apart. A blank tag is the
    *No rule yet* way out: the drawer is still made, in the cell you pressed,
    and its editor is opened on the rule builder rather than nothing happening.
-   See decision 131. */
+   See decision 131. *//* What a swatch row is called on the undo stack. One per key a `swatches()`
+   row can write, because "Colour" on the step that changed a *string's*
+   colour is a step that lies about itself. See decision 178. */
+const SWATCH_NM = {c:'Colour', strc:'String colour'};
+
+/* ---- dragging the weight up the arm — decision 182 ---------------------
+   The stepper under it is exact and this is the one you actually use: the
+   real instrument is set by sliding the weight, and so is this one. Up is
+   faster, because up the arm is where the small numbers are and a weight
+   nearer the pivot swings quicker — which is the way round a real metronome
+   works and the opposite of what "up means more" would give you.
+
+   It is a pointer handler and not a gesture in gestures.js on purpose: it is
+   on a **surface**, not on the board, so none of that file's machinery — the
+   grid maths, the shelf shift, the lock — has anything to say about it. The
+   whole drag is one `pointermove` writing one field, and it commits through
+   the same `setActive()` the buttons use, so it cannot disagree with them. */
+const BPM_PER_PX = 0.42;
+function armDrag(e, host){
+  const id = host.dataset.azoomart, o = byId(id);
+  if(!o || !bpmOf) return;
+  const from = bpmOf(o), y0 = e.clientY;
+  let last = from;
+  host.setPointerCapture && host.setPointerCapture(e.pointerId);
+  host.classList.add('dragging');
+  const move = ev => {
+    const want = Math.round((from + (y0 - ev.clientY) * BPM_PER_PX) / 2) * 2;
+    if(want === last) return;
+    last = want;
+    const t = byId(id); if(!t) return;
+    t.bpm = Math.min(240, Math.max(30, want));
+    if(metroGoing(id)) startMetro(id);
+    renderSheet();
+    // the host is replaced by that render, so the new one takes the drag on
+    const next = document.querySelector(`[data-azoomart="${id}"]`);
+    if(next && next !== host) next.classList.add('dragging');
+  };
+  const up = () => {
+    window.removeEventListener('pointermove', move);
+    window.removeEventListener('pointerup', up);
+    window.removeEventListener('pointercancel', up);
+    const t = byId(id);
+    if(t && t.bpm !== from) setActive(id, 'bpm', t.bpm);
+    document.querySelectorAll('.zoomart.dragging').forEach(n=>n.classList.remove('dragging'));
+  };
+  window.addEventListener('pointermove', move);
+  window.addEventListener('pointerup', up);
+  window.addEventListener('pointercancel', up);
+}
+
+/* What each instrument setting is called on the undo stack, and how to read
+   the current value of a number so a stepper adds to the *clamped* one rather
+   than to whatever happens to be stored. Both are tables and not branches, so
+   a seventh instrument adds rows and nothing else. */
+const ACT_NM = {bpm:'Tempo', mins:'Sand', burn:'Burn time', sides:'Die',
+  clock:'Clock', alarm:'Alarm', waxc:'Wax', face:'Face'};
+const ACT_READ = {bpm:bpmOf, mins:minsOf, burn:burnOf, sides:sidesOf};
+const activeNum = (o, key) => (ACT_READ[key] ? ACT_READ[key](o) : (+o[key] || 0));
+function setActive(id, key, val){
+  const o=byId(id); if(!o) return;
+  pushSet(ACT_NM[key] || 'Setting', id, key, o[key]);
+  if(val===null || val==='') delete o[key]; else o[key]=val;
+  /* A metronome already running has to be restarted to pick up a new tempo:
+     the interval was set from the old one and nothing re-reads it. */
+  if(key==='bpm' && metroGoing(id)) startMetro(id);
+  mindTheTime();
+  save(); renderSheet(); render();
+}
+
+
 function makeSorting(kind, tag){
   tag = (tag||'').trim().replace(/^#/,'');
   const at = pending.cell;
@@ -901,6 +971,26 @@ function wire(){
       });
       return;
     }
+    /* ---- the zoom's three controls — decision 182 ----------------------
+       A ring writes a value outright, a stepper adds a delta, and the time
+       field is the browser's own. All three go through `setActive()`, which
+       is the one place a setting lands: it pushes the undo move, clamps
+       through the reader in active.js (so 240 is the top whichever control
+       asked), and re-renders **the surface and the board**, because an
+       instrument is drawn in both. */
+    const az=t.closest('[data-aset],[data-astep]');
+    if(az){
+      if(az.dataset.aset!=null){
+        const [id,key,...rest]=az.dataset.aset.split(':');
+        const raw=rest.join(':');
+        setActive(id, key, raw==='' ? null : (isFinite(+raw) && raw.trim()!=='' ? +raw : raw));
+      } else {
+        const [id,key,d]=az.dataset.astep.split(':');
+        const o=byId(id); if(o) setActive(id, key, activeNum(o, key) + (+d));
+      }
+      return;
+    }
+
     const c=t.closest('[data-c]');
     if(c){ const [cmd,id]=c.dataset.c.split(':'); closeCtx();
       if(cmd==='open'||cmd==='write') openWriter(id);
@@ -925,6 +1015,33 @@ function wire(){
       else if(cmd==='hold'){ if(holdIt(id)){ render(); toast('Into the Void Drawer', true); } }
       else if(cmd==='dupe'){ const o=byId(id); S.objects.push(Object.assign({},o,{id:uid('o'),title:o.title+' (copy)',ord:o.ord+0.1})); render(); }
       else if(cmd==='intodrawer') drawerFromSelection(id);
+      /* Clip, not contain: the things stay where they are and on the board
+         they are on, and all that changes is that they now move as one. One
+         `pushSets` for the lot, because one gesture is one move (decision
+         128) — and a toast with the flag, because a phone has no ⌘Z. */
+      else if(cmd==='group'){
+        const sel = S.sel.includes(id) ? S.sel.slice() : [id];
+        const was = sel.map(x=>[x,'grp',(byId(x)||{}).grp]);
+        const made = groupTogether(sel);
+        if(made){ pushSets('Grouped', was); S.sel=[]; save(); render();
+          toast(`${made.ids.length} things move together`, true); }
+        else toast('Pick two things on the same board');
+      }
+      /* Out of the lock, or back into it. Per object and remembered, which is
+         what makes it a fact about the thing rather than a mode you are in.
+         See decision 181. */
+      else if(cmd==='free'){
+        const free = toggleFree(id);
+        if(free!=null){ render(); toast(free ? 'Free to move' : 'Locked in place', true); }
+      }
+      else if(cmd==='ungroup'){
+        const o=byId(id), mates=groupMates(o);
+        if(mates.length){
+          pushSets('Ungrouped', mates.map(x=>[x.id,'grp',x.grp]));
+          mates.forEach(x=>{ delete x.grp; });
+          save(); render(); toast('Loose again', true);
+        }
+      }
       else if(cmd==='del'){
         const sel = S.sel.includes(id) ? S.sel.slice() : [id];
         if(sel.length>1) delMany(sel); else del(id);
@@ -1339,9 +1456,15 @@ function wire(){
     // a control object on the desk
     const ctl=t.closest('[data-ctl]');
 
-    // shift/⌘ click builds a selection, Finder-style, instead of opening
+    /* Shift/⌘ click builds a selection, Finder-style, instead of opening —
+       and **so does a plain tap once a selection is already open**, which is
+       what makes the lasso a mode rather than a one-shot. A phone has no
+       modifier key, so without this the only multi-selection you could ever
+       make was whatever one rubber band happened to cross. The way out is the
+       same as it always was: a tap on bare board clears, which is the branch
+       immediately below this one. See decision 180. */
     const tile=t.closest('.grid .drawer');
-    if(tile && (e.shiftKey||e.metaKey||e.ctrlKey)){
+    if(tile && (e.shiftKey||e.metaKey||e.ctrlKey||S.sel.length)){
       const id=tile.dataset.drawer||tile.dataset.row||tile.dataset.id;
       if(id){ const i=S.sel.indexOf(id);
         if(i>=0) S.sel.splice(i,1); else S.sel.push(id);
@@ -1431,8 +1554,15 @@ function wire(){
       /* An empty one is the way back to the type's own, and it has to be
          **null**: objColour() tests `o.c!=null`, so an empty string is an
          answer that resolves to the fallback slot rather than to the type. */
-      if(pn.dataset.ocolour!=null){ pushSet('Colour', id, 'c', o.c);
-        o.c = pn.dataset.ocolour==='' ? null : slotVal(pn.dataset.ocolour); }
+      /* `swatches()` has taken a key since it was written and this read `o.c`
+         regardless, so the argument was decoration: a second colour on an
+         object could be *drawn* and never set. It honours the key now, which
+         is what lets a string's colour be a row of the same eleven slots
+         rather than a control of its own. `'c'` when nothing says otherwise,
+         which is every caller that existed before. See decision 178. */
+      if(pn.dataset.ocolour!=null){ const key=pn.dataset.key||'c';
+        pushSet(SWATCH_NM[key]||'Colour', id, key, o[key]);
+        o[key] = pn.dataset.ocolour==='' ? null : slotVal(pn.dataset.ocolour); }
       /* 0 is a real answer and '' is the absence of one, so the empty string
          has to be tested for rather than falsiness. See decision 72. */
       else if(pn.dataset.prio!=null){
@@ -1594,13 +1724,24 @@ function wire(){
     /* A colour of your own. Live while the picker is open — you are choosing
        against the desk behind it — and one undo move for the whole drag, which
        is what pushSet's coalescing is for. See decision 76. */
+    /* The alarm is the one setting that is a time of day, so it is the
+       browser's own time field rather than two steppers — a phone gives you
+       its wheel and a Mac gives you a typed field, and both are better than
+       anything worth writing here. An empty value clears it. */
+    if(e.target.dataset.atime!=null){
+      setActive(e.target.dataset.atime, 'alarm', e.target.value || null);
+      return;
+    }
     if(e.target.dataset.ocolinput!=null){
       const id=e.target.dataset.id, o=byId(id)||cfgOf(id);
       /* renderSoon, not render: a colour input fires on every pixel of the
          drag, and one rebuild per frame is enough. The panel is deliberately
          *not* refreshed — rebuilding the input would close the picker you are
          still holding open. */
-      if(o){ pushSet('Colour', id, 'c', o.c); o.c=e.target.value; save(); renderSoon(); }
+      // the swatch *buttons* carry `data-key`; the input carries its key as the
+      // value of `data-ocolinput`, which is what this has to read
+      const key=e.target.dataset.ocolinput||'c';
+      if(o){ pushSet(SWATCH_NM[key]||'Colour', id, key, o[key]); o[key]=e.target.value; save(); renderSoon(); }
       return;
     }
     // colour pickers: live preview while dragging, committed on 'change'
@@ -1850,6 +1991,18 @@ function wire(){
       if(e.key==='Enter'){ e.preventDefault(); runCmd(cmdAt()); return; }
       if(e.key==='Escape'){ closeCmd(); }
     }
+  });
+
+  /* The metronome's weight. A press on the zoomed artwork of a metronome and
+     nothing else — `armDrag` reads the id off the host, so a die or a bell
+     drawn in the same element is simply not matched. See decision 182. */
+  frame.addEventListener('pointerdown', e=>{
+    const host = e.target.closest('.zoomart[data-azoomart]');
+    if(!host) return;
+    const o = byId(host.dataset.azoomart);
+    if(!o || actOf(o) !== 'metro') return;
+    e.preventDefault();
+    armDrag(e, host);
   });
 
   /* Tapping anywhere else puts an inline edit down. Not `blur`: moving from

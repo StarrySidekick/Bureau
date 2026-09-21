@@ -13,13 +13,14 @@ import { S, K, KINDS, KEYS, T, ATTRS, USER_ATTRS, FIELDS, fieldOf, OPS, ROLLS,
   CALVIEWS, calViewOf, weekStartOf, showsWeekends, KNOBSIZES, knobSizeOf,
   TSIZES, textSizeOf, mediaTypeOf, isPicture, isMedia, isDecor,
   bindingOf, FRAMES, FRAME_SLOTS, frameOf, panelOf, knobOf, plateOf, borderOf, textureOf,
-  slotRaw, homeFor, acceptAny } from './model.js';
+  slotRaw, homeFor, acceptAny, groupOf , boardLocked } from './model.js';
 import { GRID, lay, boxOk, freeSpot, anySpot, sizeOfKind, toPhoneSize, keepSize } from './grid.js';
 import { randomBoard, randomFront, hexOf, objColour, objSlots, famSlots, famAll, FAMS, styleKey, stockNow, CHECKS, checkNow } from './look.js';
 import { CLICKS, clickOf, gridTile, pending } from './tiles.js';
+import { isActive, DICE, CLOCKS } from './active.js';
 import { DECOR, decorOf, decorSVG, decorFor, decorRest, LIFE_ART, LIFE_KEYS, lifeSVG } from './decor.js';
 import { quickAdd, toast, drawerForTag, CONTROLS, CTL_KEYS, ctlSpec } from './mutations.js';
-import { openObj, renderSheet, closeSheet } from './sheet.js';
+import { openObj, renderSheet, closeSheet , openZoom } from './sheet.js';
 import { render, settingsPanel, gridSizeField, shelfCountField } from './views.js';
 import { openingFor } from './motion.js';
 import { plans, planTop, planSize } from './plans.js';
@@ -175,6 +176,11 @@ const draft = ()=> PANEL.draft;
 function openMenu(anchor, html){
   const el=$('#ctx');
   el.innerHTML=html;
+  /* `#ctx` is two things — the palette a hold opens on a tile, and this, a
+     list hung off a bar button — so the shape has to come *off* here as well
+     as go on there. A popup that inherited a thumb hole would have one
+     punched through whichever row happened to be under it. */
+  el.classList.remove('palette');
   el.classList.add('open');                 // measurable only once it is shown
   const r=$('#frame').getBoundingClientRect(), a=anchor.getBoundingClientRect();
   el.style.left = clamp(a.right-r.left-el.offsetWidth, 6, Math.max(6, r.width-el.offsetWidth-6))+'px';
@@ -972,6 +978,15 @@ function objectPanelBody(id, sec){
 
   // 1 · colour
   if(!isRoot) out.push(prow(cont?'Front':'Colour', swatches(id,'c', d.c)));
+  /* The colour of the strings *leaving* this object. A relation is an id in
+     somebody's `rel` and not an object, so there is nowhere to hang a colour
+     on the relation itself — it goes on the end the string leaves from, which
+     is the same shape every other look property has. Offered to anything
+     carrying the trait, whether or not it has a relation yet, because that is
+     how every other row here behaves. See decision 178. */
+  if(!isRoot && has(d,'relates'))
+    out.push(prow('String', swatches(id,'strc', d.strc),
+      'what the thread to a related object is made of'));
   // 2 · face — how a container draws itself on its parent's board. The desk
   //     has no parent and no tile, so it is not asked.
   if(!isRoot && cont) out.push(prow('Face', pcycle(id,'face', Object.entries(FACES), faceOf(d)),
@@ -2175,6 +2190,11 @@ function drawerFromSelection(id){
 
 function openCtx(x,y,id){
   const o=byId(id); if(!o) return;
+  /* An instrument's hold opens the **zoom** instead of the palette: the thing
+     itself as large as the stage allows, with its settings under it. One
+     branch here rather than three in gestures.js, because `openCtx` is where
+     all three of that file's hold paths already converge. See decision 182. */
+  if(isActive(o)){ openZoom(id); return; }
   const el=$('#ctx');
   // If a selection is open and this object is part of it, the menu acts on all
   // of them — the same way a Finder context menu does.
@@ -2183,6 +2203,13 @@ function openCtx(x,y,id){
   el.innerHTML=`
     ${many?`<div class="ctxhead">${sel.length} objects</div>` : ''}
     ${/* one panel for both — a container is an object with children */''}
+    ${/* First, and only on a locked board, because that is the whole of what
+         the hold is now *for* there (decision 181). It writes `movable` onto
+         this object's own attrs, which it then remembers: a thing you let out
+         of the lock stays out until you put it back. */''}
+    ${(!many && boardLocked())?`<button data-c="free:${id}">${
+      has(o,'movable') ? ic('lock',14)+' Lock it in place'
+                       : ic('grip',14)+' Free it to move'}</button>` : ''}
     ${many?'' : `<button data-c="objset:${id}">${ic('brush',14)} Object editor</button>
       ${isContainer(o)
         ? `<button data-c="opendrawer:${id}">${ic('eye',14)} Open</button>`
@@ -2205,6 +2232,13 @@ function openCtx(x,y,id){
     ${(!many && !isContainer(o))?`<button data-c="become:${id}">${ic('flag',14)} Make it a project…</button>`:''}
     ${(!many&&repeats(o))?`<button data-c="nextcopy:${id}">${ic('repeat',14)} Make the next one</button>`:''}
     ${(!many&&(has(o,'check')||has(o,'streak')))?`<button data-c="done:${id}">${ic('check',14)} ${has(o,'streak')?'Mark today':'Complete'}</button>`:''}
+    ${/* Clip. A drawer *contains* and a relation is *about*; this is the third
+         thing a paper desk does and neither of the other two can say it —
+         these stay where they are and on the board they are on, and move as
+         one from now on. Offered when there are several; the way out is
+         offered when this one is already in a group. See decision 180. */''}
+    ${many?`<button data-c="group:${id}">${ic('layers',14)} Group these ${sel.length} together</button>`:''}
+    ${(!many && groupOf(o))?`<button data-c="ungroup:${id}">${ic('cut',14)} Ungroup</button>`:''}
     <button data-c="intodrawer:${id}">${ic('folder',14)} ${many?`Put these ${sel.length} in a new drawer`:'Put this in a new drawer'}</button>
     <button data-c="move:${id}">${ic('folder',14)} Move…</button>
     ${/* "Keep in the drawer" and "Schedule today" are both out: the first is
@@ -2214,8 +2248,14 @@ function openCtx(x,y,id){
     ${many?'':`<button data-c="dupe:${id}">${ic('archive',14)} Duplicate</button>`}
     <div class="div"></div>
     <button class="danger" data-c="del:${id}">${ic('trash',14)} ${many?`Delete ${sel.length}`:'Delete'}</button>`;
+  /* **The palette.** A hold opens this on every board now, which makes it the
+     most-reached thing in the app and worth being a shape rather than a list
+     in a box. An artist's palette: an organic outline with a thumb hole cut
+     through it, the hole punched with a `mask` so the board shows through
+     rather than being painted over. The buttons clear the hole by padding, so
+     nothing is ever behind it. See decision 181. */
   const r=$('#frame').getBoundingClientRect();
-  el.classList.add('open');
+  el.classList.add('open','palette');
   const w=el.offsetWidth,h=el.offsetHeight;
   el.style.left = clamp(x-r.left, 6, r.width-w-6)+'px';
   el.style.top  = clamp(y-r.top,  6, r.height-h-6)+'px';

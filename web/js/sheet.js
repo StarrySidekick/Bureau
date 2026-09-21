@@ -1,6 +1,8 @@
 import { $, $$, esc, ic } from './util.js';
 import { S, K, byId, has, isContainer, READS, readOf, isMedia, mediaTypeOf, iconOf } from './model.js';
 import { bookOf, sheetOf } from './tiles.js';
+import { isActive, activeArt, activeSay, activeName, activeZoom } from './active.js';
+import { objColour } from './look.js';
 import { closePanel, objectPanel } from './panels.js';
 import { toast } from './mutations.js';
 import { render } from './views.js';
@@ -28,19 +30,36 @@ import { render } from './views.js';
    Everything that was a *setting* on the old sheet is in the object editor,
    which is one panel for objects and containers alike. See decision 36. */
 
+/* ---- the fourth surface: the zoom — decision 182 ------------------------
+   Read, write and view are three ways of looking at what an object *says*.
+   This is a way of looking at what an instrument **is**: the thing itself,
+   as large as the stage allows, with its two or three settings under it.
+
+   It is a surface and not a panel for one reason, and it is the same reason
+   the reading surface is one: the thing being looked at has to be the whole
+   screen. A metronome's arm in a 300px popup is a diagram of a metronome.
+
+   It renders into `#sheetHost` like the other three, so `render()` never
+   touches it and changing a setting redraws the instrument without the board
+   behind it flickering. */
+function openZoom(id){
+  const o=byId(id); if(!o) return;
+  S.zoomId=id; S.readId=null; S.writeId=null; S.viewId=null; S.editId=null;
+  renderSheet();
+}
 function openWriter(id){
   const o=byId(id); if(!o) return;
-  S.writeId=id; S.readId=null; S.viewId=null; S.editId=null;
+  S.writeId=id; S.readId=null; S.viewId=null; S.editId=null; S.zoomId=null;
   renderSheet();
 }
 function openRead(id){
   const o=byId(id); if(!o) return;
-  S.readId=id; S.writeId=null; S.viewId=null; S.editId=null; S.bookAt=0; S.readEdit=false;
+  S.readId=id; S.writeId=null; S.viewId=null; S.editId=null; S.zoomId=null; S.bookAt=0; S.readEdit=false;
   renderSheet();
 }
 function openViewer(id){
   const o=byId(id); if(!o) return;
-  S.viewId=id; S.readId=null; S.writeId=null; S.editId=null;
+  S.viewId=id; S.readId=null; S.writeId=null; S.editId=null; S.zoomId=null;
   renderSheet();
 }
 /* What "open this one" means when nothing has said which way: a picture opens
@@ -56,7 +75,7 @@ function openObj(id){
   else objectPanel(id);
 }
 function closeSheet(){
-  S.writeId=null; S.readId=null; S.viewId=null; S.editId=null; S.readEdit=false;
+  S.writeId=null; S.readId=null; S.viewId=null; S.editId=null; S.zoomId=null; S.readEdit=false;
   clearFocus(); renderSheet(); render();
 }
 function clearFocus(){
@@ -202,7 +221,7 @@ function renderSheet(){
   const host=$('#sheetHost');
   // A surface and a panel both take the screen; only one at a time, and a
   // surface is the bigger claim.
-  if(S.writeId || S.readId || S.viewId) closePanel();
+  if(S.writeId || S.readId || S.viewId || S.zoomId) closePanel();
 
   /* The picture. Full screen over a dimmed desk, the image as large as the
      stage allows, and — when there isn't one yet — the mount itself is the
@@ -211,6 +230,27 @@ function renderSheet(){
      change. The file arrives on the picker's own change event long after the
      button was pressed (see imgFor in persist.js), and importImage() calls
      renderSheet() when it lands, so the surface fills itself in. */
+  /* The instrument, big. Its own artwork at the size of the stage, its
+     settings under it, and nothing else on the screen — see openZoom(). */
+  if(S.zoomId){
+    const o=byId(S.zoomId);
+    if(!o || !isActive(o)){ S.zoomId=null; host.innerHTML=''; return; }
+    host.innerHTML=`<div class="viewscrim" data-sheet="close"></div>
+      <div class="viewstage zoomstage" style="--c:${objColour(o)}">
+        <div class="viewhead">
+          <span class="kindbadge">${ic(iconOf(o),12)} ${esc(o.title||activeName(o))}</span>
+          <div style="flex:1"></div>
+          <button class="pill" data-act="objset" data-id="${o.id}" title="Object editor">${
+            ic('brush',13)}<span>Edit</span></button>
+          <button class="iconbtn" data-sheet="close" title="Done">${ic('x',16)}</button>
+        </div>
+        <div class="zoomart" data-azoomart="${o.id}">${activeArt(o, 'big')}</div>
+        <div class="zoomsay">${esc(activeSay(o))}</div>
+        <div class="zoomset">${activeZoom(o)}</div>
+      </div>`;
+    return;
+  }
+
   if(S.viewId){
     const o=byId(S.viewId);
     if(!o){ S.viewId=null; host.innerHTML=''; return; }
@@ -343,5 +383,5 @@ function renderSheet(){
   host.innerHTML=''; clearFocus();
 }
 
-export { openObj, openWriter, openRead, openViewer, closeSheet, renderSheet, words,
+export { openZoom, openObj, openWriter, openRead, openViewer, closeSheet, renderSheet, words,
   mdKey, asMarkdown, copyObject };

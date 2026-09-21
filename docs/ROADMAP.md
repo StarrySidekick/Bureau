@@ -44,11 +44,12 @@ scope class and the specimen book's matrix all came along from one table row.
 absolutely positioned layer inside `.grid`, drawn from the tiles' rectangles
 and nothing else.
 
-- **String between objects.** `relates`/`rel` already stores it, both ways
-  (`backlinksTo`), and draws nothing at all — so the desk knows about every
-  relation on it and has never once shown one. A catenary between two tile
-  centres, colour defaulting to the aesthetic's and settable per relation the
-  way everything else is settable.
+- **String between objects — DONE (v1.72).** Decision 178. One SVG in the
+  board's own cell coordinates, so the pins land on the tile centres with zero
+  pixels of drift on both devices; `strc` on the end the string leaves from,
+  defaulting to slot 11, which is claret on Victoria and each other
+  aesthetic's own answer to the same position. The layer that came with it is
+  what the two below plug into.
 - **The lamp's light.** A radial gradient in a blend layer above the board, not
   a computation per tile: lighting fifty tiles individually is fifty repaints
   and one gradient is none. Side profile, so the lamp is a decoration that

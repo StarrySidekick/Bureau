@@ -3,7 +3,7 @@
    ============================================================ */
 import { $ } from './util.js';
 import { plans, planFrom, stampPlan, planById, planSize, delPlan } from './plans.js';
-import { refreshKinds } from './model.js';
+import { refreshKinds , groupTogether, groupMates, travelWith } from './model.js';
 import { S, KINDS, SHAPES, shapeChoices, SORTS, childrenOf, container, relate, deskOf, has, lateOn, isLate, knobOf,
   urgencyOf, urgeSaid, workday,
   isContainer, faceOf, PRIMARY, isPrimary, inFamily, barPct, marginOf, marginPlus,
@@ -12,11 +12,13 @@ import { S, KINDS, SHAPES, shapeChoices, SORTS, childrenOf, container, relate, d
 import { shelfRows, shelvesOf, shelfAt, setShelf, freeSpot, anySpot, roomFor, boxOk } from './grid.js';
 import { create, setPin, togglePin, del, delMany, delDrawer, undo, redo, toggleDone, spawnNext, setGridSize,
   CONTROLS, ctlSaid, ctlIsOn, ctlPress,
-  holdIt, unholdIt } from './mutations.js';
+  holdIt, unholdIt , toast } from './mutations.js';
 import { applyLook, applyStyle, STYLES, panelSlots, borderSlots, knobSlots, plateSlots, textureSlots,
   bindingSlots, stockSlots, famSlots, famAll, dress, styleKey, stockNow, randomLook,
   palNow, CHECKS } from './look.js';
 import { render, sizeGrid, viewHTML, reveal, settingsPanel, goShelf, goShelfTo, shelfShift } from './views.js';
+import { setMinuteHandler, mindTheTime, checkAlarms, guttered,
+  activeTap, actOf, isActive, metroGoing, stopAllMetros } from './active.js';
 import { overlayHTML, objectPanel, modalNewObject, holdPanel, schedulePanel, closePanel,
   sampleObject, sampleTile, openCtx, tagFirstPanel } from './panels.js';
 import { wire } from './wire.js';
@@ -25,7 +27,7 @@ import { openingFor, stepDrawer, spray, sprayAt, sprayCount, sprayNow, sprayMark
 import { gravityReport, gravitySettle, gravityApply, gravityWake,
   gravityGrab, gravityDrag, gravityDrop } from './gravity.js';
 import { load, writeNow, save, hydrateAssets, pasteObjects, migrate } from './persist.js';
-import { renderSheet, openWriter, openRead, openViewer, closeSheet, asMarkdown } from './sheet.js';
+import { renderSheet, openWriter, openRead, openViewer, closeSheet, asMarkdown , openZoom } from './sheet.js';
 import { DECOR, DECOR_KEYS, decorSVG, decorSuits, decorFor, decorRest } from './decor.js';
 
 /* ---- the keyboard is not a resize — decision 84 ------------------------
@@ -88,6 +90,20 @@ if('serviceWorker' in navigator){
 
 // The console/test surface. `kids` answers "what does this container show?",
 // which is the membership question the magic-drawer rules decide.
+/* ---- the one tick the instruments share — decision 182 ------------------
+   `active.js` owns *when* to look (one interval, started only while something
+   needs watching); this owns what to do about it, because the answer is a
+   render and that module deliberately does not render. An alarm rings and
+   says so; a candle that has guttered out changes only what its tile draws,
+   so the board is redrawn and nothing is stored. */
+setMinuteHandler(()=>{
+  const rang = checkAlarms();
+  if(rang || guttered()) render();
+  if(rang) toast(`${rang.title || 'Alarm'} \u00b7 ${rang.alarm}`);
+  mindTheTime();
+});
+mindTheTime();
+
 window.BUREAU = {
   get state(){ return S; }, render, create, save: writeNow, saveSoon: save,
   get K(){ return KINDS; },
@@ -111,6 +127,13 @@ window.BUREAU = {
      test has to be able to load an old desk rather than trust the list. */
   migrated(d){ migrate(d); return d; },
   paste: pasteObjects, relate, pin: togglePin, setPin, renderSheet,
+  /* The instruments, so a test can press one and read what it did rather than
+     driving a gesture to find out. */
+  activeTap, actOf, isActive, metroGoing, stopAllMetros, checkAlarms, zoom: openZoom,
+  /* Clip — objects that travel together. A group is *the set carrying the
+     id* and there is no table anywhere, so a test has to ask the same reader
+     the board asks rather than looking one up. See decision 180. */
+  groupTogether, groupMates, travelWith,
   // small | extra | large — the three phone grids, for trying on
   setGrid: setGridSize,
   // the four things an object opens onto: its editor, its words, its paper,

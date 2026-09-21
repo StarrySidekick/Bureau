@@ -1568,6 +1568,106 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
 .drawer.otile.sh-bar.sz-short{padding:3px 4px}
 .bartile.sz-mini .barcount{display:none}
 
+/* ---- the outline round a group — decision 180 --------------------------
+   Every side of every occupied cell that has no occupied cell against it,
+   drawn as unit segments rather than traced into one path — so a group whose
+   members are not touching gets several rings without anything having to know
+   that. It runs along the cell boundary, which is where the tiles' own edges
+   are, so the stroke half-covers them: a line drawn round a tetromino rather
+   than a box near one.
+
+   `--brass` and not a colour of its own. A group is an **annotation on the
+   board** — it says these travel together and nothing else — and a per-group
+   colour would need a table for the one thing this design deliberately does
+   not have (see groupTogether(): a group *is* the set carrying the id, so
+   there is nowhere to hang one that cannot go stale). */
+.strings .grpline path{
+  fill:none;stroke:var(--brass);stroke-width:2.6;
+  stroke-linecap:round;vector-effect:non-scaling-stroke;
+  opacity:.92;
+}
+
+/* ---- what a lamp does — decision 179 -----------------------------------
+   One blended gradient per flame, under the strings and under the cut-out
+   itself, over the tiles: light falls *on* things, the lamp's own shade
+   included. `closest-side` on a circle in a square box makes the falloff the
+   radius rather than the diagonal, which is the difference between a lamp and
+   a spotlight.
+
+   **Two blend modes, one for each kind of desk.** `screen` is what light does
+   — it can only lighten — and on parchment lightening a cream board toward a
+   cream glow is nearly nothing. `overlay` on a light desk both warms and
+   lifts, which is what a lamp on a paper desk actually looks like, and would
+   be muddy on a midnight one. `isDark()` already writes the theme onto the
+   root for the shadows to key on, so this asks the same question the same way
+   rather than inventing a second one. */
+.grid > .lights{
+  position:absolute;inset:0;z-index:4;pointer-events:none;overflow:hidden;
+  border-radius:var(--radius);
+}
+.lamplight{
+  position:absolute;transform:translate(-50%,-50%);
+  border-radius:50%;mix-blend-mode:var(--lampblend, overlay);
+  background:radial-gradient(circle closest-side,
+    color-mix(in srgb, var(--glow) 86%, transparent) 0%,
+    color-mix(in srgb, var(--glow) 46%, transparent) 30%,
+    color-mix(in srgb, var(--glow) 16%, transparent) 60%,
+    transparent 78%);
+}
+/* The flame itself, so a lit lamp says so at the wick as well as on the
+   board — the artwork draws its flame in `--glow` either way, and this is
+   the difference between one that is burning and one that is not. */
+.dectile:not(.lit) .decart [fill="var(--glow)"]{opacity:.18}
+
+/* ---- the string between two objects — decision 178 ---------------------
+   One SVG over the whole board, in cell coordinates. It sits above the tiles
+   and below the decorations, because a string pinned between two cards lies
+   *on* them — a thread drawn underneath would be visible only where it
+   crossed bare board, which is the half of it that says least.
+
+   Three passes and no filter: every shadow, then every line, then every pin,
+   so the second string's shadow cannot be painted over the first string's
+   line. A `drop-shadow` on the layer would be one declaration and a pass over
+   the whole board on every repaint, which is what look.md's filter note is
+   about. `non-scaling-stroke` keeps a string two pixels wide whatever the
+   cell measures, because twine has a thickness and a grid has a zoom. */
+.grid > .strings{
+  position:absolute;inset:0;width:100%;height:100%;
+  z-index:5;pointer-events:none;overflow:visible;
+  transition:opacity .16s;
+}
+/* The casing is `--ink` and not black, and that is the whole of what makes a
+   string read on both kinds of desk. A dark shadow under a thread is right on
+   parchment and invisible on a midnight board — where what actually separates
+   a string from the page is a *pale* halo. `--ink` is the page's own opposite
+   in both directions (chromeTokens() derives it from the background), so one
+   declaration is a shadow on Victoria and a glow on Starful Gothic without a
+   theme block or a second rule. */
+.strings .strsh path{
+  fill:none;stroke:color-mix(in srgb, var(--ink) 32%, transparent);stroke-width:4.6;
+  stroke-linecap:round;vector-effect:non-scaling-stroke;
+}
+.strings .strln path{
+  fill:none;stroke-width:2.2;
+  stroke-linecap:round;vector-effect:non-scaling-stroke;
+}
+.strings .strpin circle{
+  stroke:color-mix(in srgb, var(--ink) 34%, transparent);stroke-width:.8;
+  vector-effect:non-scaling-stroke;
+}
+/* A string is read off the boxes, and a tile you are carrying has left its
+   box behind until you let go — so the layer stands down for the length of
+   the gesture rather than drawing every thread to where the tile used to be.
+   `:has()` rather than a class written from gestures.js, because nothing here
+   is worth a line in the fiddliest file in the app; where it is unsupported
+   the strings simply sit still during a drag, which is the old behaviour and
+   not a broken one. */
+.grid:has(.carrying) > .strings,
+.grid:has(.dragging) > .strings{opacity:0}
+/* A board that has let go draws none at all — see boardStrings() — but the
+   class is the honest belt and braces while a fall is starting. */
+.grid.falling > .strings{opacity:0}
+
 /* ---- a jar: glass, and what is in it — decision 177 --------------------
    The tile is the jar, so the drawer's own ground, border and padding all
    come off and the silhouette is drawn out of four elements: a lid, the
@@ -2609,3 +2709,125 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
 }
 .shelfcard{padding:6px}
 .shelfcard .deskmini{aspect-ratio:1}
+
+/* ============================================================
+   things that run — decision 182
+   ============================================================
+   Six instruments, and every one of them moves without a timer. The rule that
+   makes that possible is one line of CSS repeated: an infinite animation with
+   a **negative `animation-delay`** written inline, so it is already however
+   far through it should be on the very first frame. A clock's hands and an
+   hourglass's sand are correct the instant they are drawn and cost the
+   compositor and nothing else after that. See active.js. */
+.drawer.otile.acttile{
+  background:none;border:0;box-shadow:none;padding:0;overflow:visible;
+  align-items:stretch;justify-content:stretch;color:var(--c);
+}
+.drawer.otile.acttile:hover{box-shadow:none;filter:brightness(1.06)}
+/* An instrument keeps its taps on a locked board for a lamp's reason
+   (decision 179): pressing it is the whole of what it is for. */
+.acttile .actart{
+  width:100%;height:100%;display:block;
+  filter:drop-shadow(0 2px 3px rgba(0,0,0,.28));
+}
+.acttile.selected{outline:2px solid var(--brass);outline-offset:3px}
+.acttile .rz::before{background:var(--ink)}
+
+/* ---- the metronome: the arm swings on the beat ------------------------- */
+@keyframes mtSwing{
+  0%   {transform:rotate(-13deg)}
+  50%  {transform:rotate(13deg)}
+  100% {transform:rotate(-13deg)}
+}
+.mtArm{transform-origin:50px 112px}
+.going .mtArm{animation:mtSwing var(--beat,.68s) ease-in-out infinite}
+/* Stopped, it rests off centre — a metronome at rest is not upright. */
+.acttile:not(.going) .mtArm{transform:rotate(-9deg)}
+
+/* ---- the hourglass: two chambers and the stream between them ----------- */
+@keyframes hgDrain{ from{transform:scaleY(1)}   to{transform:scaleY(0)} }
+@keyframes hgFill { from{transform:scaleY(0)}   to{transform:scaleY(1)} }
+@keyframes hgFall { 0%,100%{opacity:.8} 50%{opacity:.35} }
+.hgTop{transform-origin:50% 100%;animation:hgDrain linear 1 forwards}
+.hgBot{transform-origin:50% 100%;animation:hgFill  linear 1 forwards}
+.hgRun{animation:hgFall .5s linear infinite}
+
+/* ---- the candle: the flame moves, the wax does not --------------------- */
+@keyframes cdFlicker{
+  0%,100%{transform:scale(1) translateX(0)}
+  25%    {transform:scale(1.06,.96) translateX(.4px)}
+  60%    {transform:scale(.95,1.05) translateX(-.5px)}
+}
+.cdFlame{animation:cdFlicker 1.6s ease-in-out infinite}
+
+/* ---- the bell: it rocks when struck ------------------------------------ */
+@keyframes blRing{
+  0%{transform:rotate(0)} 15%{transform:rotate(-7deg)} 32%{transform:rotate(6deg)}
+  50%{transform:rotate(-4deg)} 70%{transform:rotate(2.5deg)} 100%{transform:rotate(0)}
+}
+.blBody{transform-origin:60px 80px}
+.acttile.ringing .blBody{animation:blRing .9s cubic-bezier(.3,.7,.3,1) 1}
+
+/* ---- the clock: three hands, one animation each ------------------------ */
+@keyframes clkTurn{ from{transform:rotate(0)} to{transform:rotate(360deg)} }
+.clkhands line{stroke-linecap:round;transform-origin:50px 50px;
+  animation:clkTurn linear infinite}
+.clkh{stroke:var(--glow);stroke-width:4.2;animation-duration:43200s}
+.clkm{stroke:var(--glow);stroke-width:2.8;animation-duration:3600s}
+/* The second hand **steps**, because a clock on a desk ticks and a sweeping
+   second hand is a wall clock in an airport. */
+.clks{stroke:var(--brass);stroke-width:1.4;animation-duration:60s;
+  animation-timing-function:steps(60,end)}
+.clkpin{fill:var(--brass)}
+.clkFace line{stroke:var(--glow);opacity:.75}
+@keyframes ckSwing{0%,100%{transform:translateX(-9px)}50%{transform:translateX(9px)}}
+.ckPend{animation:ckSwing 2s ease-in-out infinite}
+
+/* ---- the die: it tumbles when rolled ----------------------------------- */
+@keyframes dieRoll{
+  0%  {transform:rotate(0) scale(1)}
+  35% {transform:rotate(200deg) scale(.86)}
+  70% {transform:rotate(330deg) scale(1.06)}
+  100%{transform:rotate(360deg) scale(1)}
+}
+.dieBody{transform-origin:50px 50px}
+.acttile.rolling .dieBody{animation:dieRoll .52s cubic-bezier(.3,.8,.35,1) 1}
+
+/* ---- the zoom: the instrument, as big as the stage allows -------------- */
+.viewstage.zoomstage{display:flex;flex-direction:column;align-items:stretch}
+.zoomart{
+  flex:1;min-height:0;display:grid;place-items:center;padding:14px 0 4px;
+  color:var(--c);
+}
+.zoomart .actart{width:auto;height:100%;max-width:100%;
+  filter:drop-shadow(0 4px 10px rgba(0,0,0,.3))}
+/* The weight is the control, so it says so — and while you are dragging it
+   the cursor stays a grab wherever the pointer wanders. */
+.zoomart[data-azoomart] .mtWt{cursor:ns-resize}
+.zoomart.dragging{cursor:ns-resize}
+.zoomart.dragging .mtWt{filter:brightness(1.25)}
+.zoomsay{text-align:center;font-size:13px;color:var(--ink-2);padding:2px 0 10px;
+  font-variant-numeric:tabular-nums}
+.zoomset{padding:0 14px 18px;max-width:520px;margin-inline:auto;width:100%}
+.azsay{margin:12px 0 6px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--ink-3);font-weight:700;text-align:center}
+.azrow{display:flex;flex-wrap:wrap;gap:7px;justify-content:center;align-items:center}
+.azchip{
+  padding:6px 13px;border-radius:var(--pill);border:1px solid var(--rule);
+  background:var(--paper-2);font-size:12.5px;
+}
+.azchip.on{background:color-mix(in srgb,var(--brass) 26%,transparent);
+  border-color:var(--brass);font-weight:600}
+.azstep{gap:14px}
+.azbtn{
+  width:42px;height:42px;border-radius:50%;border:1px solid var(--rule);
+  background:var(--paper-2);font-size:20px;line-height:1;display:grid;place-items:center;
+}
+.azbtn:active{background:var(--paper-3)}
+.aznum{font-size:30px;font-weight:700;font-variant-numeric:tabular-nums;
+  min-width:116px;text-align:center;font-family:var(--serif)}
+.aznum i{font-style:normal;font-size:13px;font-weight:500;color:var(--ink-3);margin-left:5px}
+.aztime{
+  padding:7px 12px;border-radius:var(--radius);border:1px solid var(--rule);
+  background:var(--paper-2);font-size:15px;font-family:inherit;
+}

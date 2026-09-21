@@ -201,7 +201,7 @@ const DECOR = {
     <path d="M2 92h50v8H2Z" fill="#000" opacity=".2"/>` },
 
   /* ---- light and vessels ----------------------------------------------- */
-  candle: { c:3, nm:'Candlestick', aes:['victorian','starry','stelaine'], vb:'3.5 2.5 35 97.5', size:[2,5], svg:`
+  candle: { c:3, nm:'Candlestick', aes:['victorian','starry','stelaine'], vb:'3.5 2.5 35 97.5', size:[2,5], emits:{x:22, y:11, reach:2.4}, svg:`
     <path d="M22 4c3 4 4.5 7 4.5 9.5A4.5 4.5 0 0 1 22 18a4.5 4.5 0 0 1-4.5-4.5C17.5 11 19 8 22 4Z" fill="var(--glow)"/>
     <path d="M22 8c1.4 2 2 3.4 2 4.6A2 2 0 0 1 22 15a2 2 0 0 1-2-2.4c0-1.2.6-2.6 2-4.6Z" fill="#fff" opacity=".7"/>
     <path d="M22 19v3" stroke="#000" stroke-width="1.6" opacity=".45"/>
@@ -218,7 +218,7 @@ const DECOR = {
     <path d="M8 84h7c-1.4 5-2 10-2 16H5c0-6 1-11 3-16Z" fill="#fff" opacity=".26"/>
     <path d="M5 96h34v4H5Z" fill="#000" opacity=".2"/>` },
 
-  lamp: { c:12, nm:'Oil lamp', aes:['victorian','starry','stelaine'], vb:'3.5 6.5 49 93.5', size:[2,4], svg:`
+  lamp: { c:12, nm:'Oil lamp', aes:['victorian','starry','stelaine'], vb:'3.5 6.5 49 93.5', size:[2,4], emits:{x:29, y:20, reach:3.4}, svg:`
     ${/* the chimney: a narrow throat that flares at the lip, the way a duplex
           burner's does — a bulb reads as a light bulb */''}
     <path d="M20 42c0-6 1.5-10 3-13-2-4-2.5-8 0-12 1.5-2.5 4-4 6-5 2 1 4.5 2.5 6 5
@@ -596,6 +596,32 @@ const decorSuits = (k, sty) => (DECOR[k] && DECOR[k].aes || []).includes(sty);
 const decorFor = sty => DECOR_KEYS.filter(k=>decorSuits(k, sty));
 const decorRest = sty => DECOR_KEYS.filter(k=>!decorSuits(k, sty));
 const decorOf = o => (DECOR[o && o.decor] ? o.decor : 'plant');
+/* ---- the two that burn — decision 179 ----------------------------------
+   A lamp and a candle are the only things in this catalogue that *do*
+   something, and what they do is light the board round them. `emits` says
+   where the flame is **in the artwork's own viewBox units** and how far the
+   light reaches, in cells — not as a fraction of the tile, because an SVG
+   drawn `xMidYMax meet` is letterboxed inside whatever box it is given and a
+   fraction of the box would walk off the wick the moment anyone resized one.
+   `flamePoint()` undoes that letterboxing, so the light sits on the flame at
+   any size and any proportion.
+
+   A property of the *drawing*, read off this table, so a decoration somebody
+   adds later lights the room by saying so here and by changing nothing else. */
+const emitsOf = k => (DECOR[k] || {}).emits || null;
+const decorEmits = o => emitsOf(decorOf(o));
+/* Where the flame actually lands inside a box of `w x h` cells, and how far
+   its light reaches. `meet` scales to fit and `xMidYMax` centres it across and
+   stands it on the floor, which is the whole of the arithmetic below. */
+function flamePoint(o, w, h){
+  const e = decorEmits(o); if(!e) return null;
+  const [vx, vy, vw, vh] = String((DECOR[decorOf(o)]||{}).vb || '0 0 100 100')
+    .split(/[\s,]+/).map(Number);
+  const k = Math.min(w/vw, h/vh);
+  return { x: (w - vw*k)/2 + (e.x - vx)*k,
+           y: (h - vh*k)   + (e.y - vy)*k,
+           r: e.reach };
+}
 /* The artwork, as markup. Each states its own viewBox, tight to itself, and
    `xMidYMax` stands it on the floor of whatever box it is drawn into — so a
    row of them lines up along one shelf however differently proportioned they
@@ -607,5 +633,5 @@ function decorSVG(name){
     aria-hidden="true">${d.svg}</svg>`;
 }
 
-export { DECOR, DECOR_KEYS, decorOf, decorSVG, decorSuits, decorFor, decorRest,
+export { DECOR, DECOR_KEYS, decorOf, decorEmits, flamePoint, decorSVG, decorSuits, decorFor, decorRest,
   LIFE_ART, LIFE_KEYS, lifeSVG };

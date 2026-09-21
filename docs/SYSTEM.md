@@ -148,7 +148,7 @@ reason an invented type works everywhere immediately.
 | `priority` | How much it matters to you, 0–5 — a stripe whose weight is the rank. Not urgency, which is derived (see below). | `prio` 0–5 |
 | `price` | What it costs. | `price` money |
 | `answer` | A box on the front to answer it in. Filled means answered. | `answer` text |
-| `relates` | Points at other objects, both ways. | `rel` refs |
+| `relates` | Points at other objects, both ways, and draws a **string** between them when both ends are on the board. | `rel` refs, `strc` colour |
 
 `container` and `magic` are **structural**: they are excluded from `USER_ATTRS`
 and never appear in the attribute picker, so a note cannot be ticked into a

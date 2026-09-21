@@ -2,7 +2,7 @@ import { $, esc, uid, clamp, ROOT, HOLD, D } from './util.js';
 import { S, byId, K, KINDS, KEYS, kindHas, has, isContainer, genKindOf, streak, T, dz, dev,
   repeatOf, repeats, nextRepeat, faceOf, childrenOf, TILT_MODES, tiltMode, GRAVITIES, gravityMode,
   ctlOf, isPrimary,
-  placeOf, cfgOf, isHeld, heldObjects, homeFor } from './model.js';
+  placeOf, cfgOf, isHeld, heldObjects, homeFor , attrsOf } from './model.js';
 import { GRID, PHONE_GRIDS, colsOf, gridOf, shelfRows, freeSpot, anySpot, roomFor, lay, boxOk, sizeOfKind, keepSize } from './grid.js';
 import { randomFront, randomBoard, randomLook, styleDefaults,
   STYLES, CHECKS, DARKMODES, styleKey, applyStyle, applyLook } from './look.js';
@@ -175,6 +175,33 @@ function pushSet(label, id, k, was){
   }
   pushUndo(label, [{set:{id, k, v:was}}]);
 }
+/* ---- letting one thing out of the lock — decision 181 ------------------
+   `movable` has been an attribute since decision 81: an object carrying it
+   keeps its drag on a locked board and wears a pin at the top left to say so.
+   What it has never had is a way in that is not three doors into the object
+   editor — so in practice nothing on any desk has ever carried one, and the
+   feature existed without being reachable. This is the way in, and the hold
+   menu is where it lives.
+
+   It writes the object's **own** attrs, because `attrsOf()` answers the
+   object first and its type second: an object with nothing of its own
+   inherits the type's list, and the moment one thing is said about it the
+   whole list has to be said. So the undo step records `o.attrs` as it was,
+   which is very often `undefined` — and that is the right value to restore,
+   because it means "follow the type" and not "carry nothing".
+
+   Not `resizable`. An object let out of the lock behaves exactly as it would
+   on an unlocked board **except that its corners stay shut**: resizing is
+   arranging, and arranging is what the lock is a switch for. */
+function toggleFree(id){
+  const o=byId(id); if(!o) return null;
+  const now=attrsOf(o), free=now.includes('movable');
+  pushSet(free ? 'Locked in place' : 'Free to move', id, 'attrs', o.attrs);
+  o.attrs = free ? now.filter(a=>a!=='movable') : now.concat('movable');
+  save();
+  return !free;
+}
+
 /* Several fields of several objects at once — a drag that moved a selection, a
    reparent, a group of boxes cleared. One move, so one ⌘Z takes all of it. */
 function pushSets(label, sets){
@@ -842,7 +869,7 @@ function randomThing(parentId){
 // toggleHabit isn't exported — a streak reaches it through toggleDone, which is
 // the one door, so nothing outside has to know a habit ticks differently.
 export { toast, setGridSize, toggleDone, spawnNext, del, delMany, delDrawer, undo, redo,
-  pushUndo, pushSet, pushSets, setPin, togglePin, becomeKind,
+  pushUndo, pushSet, pushSets, toggleFree, setPin, togglePin, becomeKind,
   drawerForTag, create, gather, quickAdd, spawnInto, randomThing,
   CONTROLS, CTL_KEYS, ctlSpec, ctlSaid, ctlIsOn, ctlForm, ctlNum, ctlIndex, ctlPress, someKind,
   fits,

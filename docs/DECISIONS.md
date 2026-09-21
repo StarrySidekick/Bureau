@@ -7872,3 +7872,82 @@ does. There is no capacity setting and there should not be one — a number you
 have to choose before the jar is useful is a question nobody wants asked. What
 it does not do is collect: a jar that filled itself by rule would be a sorting
 drawer made of glass, which you can already ask for by ticking `magic`.
+
+---
+
+## 178 · The string between two objects
+
+*2026-09-21*
+
+`relates` has stored a relation since the app had relations. It has drawn one
+exactly never. The desk knew about every cross-reference on it, offered chips
+for them in a panel three doors in, and on the board — where you actually look
+at your things — showed you nothing. `INTENT.md` names **cross-reference** as
+one of the fifteen functions a paper system serves; this is the half of it that
+was missing, and it is a piece of string.
+
+**One SVG in cell coordinates, not one element per string.** The viewBox is the
+board's own columns and rows, so a line from the middle of one box to the middle
+of another is written in the same numbers a box is written in and nothing here
+measures anything. Cells are square (grid.js), so the layer is `cols × rows` of
+them at `inset:0` and `preserveAspectRatio="none"` stretches nothing;
+`vector-effect="non-scaling-stroke"` keeps a string the same two pixels at every
+grid size, which is what a piece of twine does. Measured against the real tile
+rects the pins land on the tile centres with **zero pixels of drift**, on the
+desk and on a windowed phone shelf alike — which is the point of writing it in
+cells rather than in pixels: it is exact, or it is wildly wrong, and it is never
+slightly off. Guarded as `stringLayer`.
+
+**The casing is `--ink`, and that is the whole of what makes it read on both
+kinds of desk.** A dark shadow under a thread is right on parchment and
+invisible on a midnight board, where what separates a string from the page is a
+*pale* halo. `--ink` is the page's own opposite in both directions
+(`chromeTokens()` derives it from the background), so one declaration is a
+shadow on Victoria and a glow on Starful Gothic with no theme block and no
+second rule. Three passes — every shadow, then every line, then every pin —
+because interleaved, the second string's shadow paints over the first string's
+line. **No filter**: a `drop-shadow` on the layer would be one declaration and a
+pass over the entire board on every repaint, which is what look.md's filter note
+is about.
+
+**A relation is not an object, so the colour goes on the end it leaves from.**
+`rel` is an array of ids with the other side found by asking (`backlinksTo`), so
+there is nowhere to hang a colour on the relation itself — and turning `rel` into
+an array of objects would be a migration touching `relate`, `unrelate`, the
+plan copier and the rule builder for a colour. `strc` is per object, then per
+type, then the aesthetic's, which is the shape `objColour`, `readOf` and
+`clickOf` all have. **The default is slot 11** — Victoria's claret, and whatever
+the eleventh colour is in each of the other six — so "red string" is the answer
+on the desk that phrase is about and every other aesthetic answers for itself,
+without seven hand-written keys that would go stale the moment an eighth
+arrived.
+
+**And `swatches()` has taken a key since it was written, while the handler read
+`o.c` regardless.** So a second colour on an object could be *drawn* and never
+set: the argument was decoration. It honours the key now (`SWATCH_NM` gives each
+one its name on the undo stack), which is what lets a string's colour be a row
+of the same eleven slots rather than a control of its own.
+
+**Four refusals, and the second is the interesting one.** A relation with one
+end elsewhere — in a drawer, on another shelf — draws nothing, because a string
+to something you cannot see is a line running off the edge of the table. A board
+that has **let go** draws none at all: a falling board's tiles are not where
+their boxes say they are and every number here is read off a box, which is
+exactly the class of bug `gestures.md` names as the one this mode produces. The
+same pair twice is one string, since `rel` is stored on one side and a mutual
+relation would otherwise be two drawn on top of each other. And a board with no
+relations returns the empty string rather than an empty SVG.
+
+**A tile you are carrying has left its box behind**, so the layer stands down
+for the length of the gesture: `.grid:has(.carrying)`, in CSS, rather than a
+line in `gestures.js`. Nothing here is worth touching the fiddliest file in the
+app for, and where `:has()` is unsupported the strings simply sit still during a
+drag, which is a cosmetic degradation and not a break.
+
+*Against:* the string is drawn **over** the tiles, so a thread crosses the face
+of anything between its two ends. That is what a string pinned between two cards
+does, and the alternative — underneath — is a line visible only where it crosses
+bare board, which is the half of it that says least. The pin is at the tile's
+centre rather than at an edge, which means a string emerges from under the card
+it leaves; an edge pin would need a side chosen per pair and would move every
+time either tile did.

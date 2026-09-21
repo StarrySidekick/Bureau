@@ -1,6 +1,6 @@
 import { $, $$, clamp, D, ROOT } from './util.js';
 import { S, byId, dev, has, isContainer, isAncestor, childrenOf, container, gatherKind, spanOf,
-  sortOf, boardLocked, heldCount, homeFor, attrsOf } from './model.js';
+  sortOf, boardLocked, heldCount, homeFor, attrsOf, travelWith } from './model.js';
 import { CELL, gridOf, drawCols, drawRows, cellW, lay, boxOk, overlaps, sizeOfKind, keepSize } from './grid.js';
 import { toast, gather, del, pushSets, holdIt, unholdIt } from './mutations.js';
 import { pending, tileTap, fireButton } from './tiles.js';
@@ -336,43 +336,15 @@ function clearBandShift(g){
   if(g.list) g.list.classList.remove('reordering');
 }
 
-/* ---- opening a locked board with the tile already in your hand -----------
-   The iPhone home screen's gesture: hold an icon, the menu comes up, and if you
-   keep holding and start moving, the menu goes and the icon is in your hand.
-   Here that also means the board **unlocks** — you have just demonstrated that
-   you want to rearrange it, and making you find the padlock first would be
-   asking a question you have already answered.
-
-   It writes the state and patches the two elements that show it, and does not
-   render: the tile is under the finger, and render() would replace it. The drop
-   at the end of the drag renders, and everything agrees then — the same rule
-   that lets you type into a tile.
-
-   And it lasts **exactly as long as your finger does**. It used to leave the
-   board open behind you, so one deliberate nudge on a locked desk turned every
-   later tap into a tile you could shove by accident — you had to notice the
-   padlock had changed and put it back. Insisting on one tile is not the same
-   as asking to rearrange the board, so the lock comes back on the drop:
-   `relock` is the flag and onUp() is where it lands. See decision 81. */
-function unlockBoard(g){
-  if(!boardLocked()) return;
-  S.look.locked=false;                   // one switch, not one per board — 74
-  const grid=g.el && g.el.closest('.grid');
-  if(grid) grid.classList.remove('locked');
-  const btn=$('.bartools [data-act="togglelock"]');
-  if(btn) btn.classList.remove('on','locked');
-  g.locked=false;
-  g.relock=true;                         // …and it goes back when you let go
-  g.stuck = grid ? grid.classList.contains('sorted') : false;
-  save();
-}
-/* The other half: the board was only ever open for the length of that drag.
-   No toast — you did not ask for a mode, you moved one thing. */
-function relockBoard(){
-  if(boardLocked()) return;
-  S.look.locked=true;
-  save();
-}
+/* **There is no unlockBoard() any more.** Decision 81 let a hold-then-drag
+   spend the lock for one tile and put it back on the drop, which was a good
+   answer while the hold had nothing else to do. It has something else to do
+   now — the hold *is* the menu, on every board — and a gesture that sometimes
+   opens a menu and sometimes silently unlocks the desk and picks a tile up is
+   one gesture with two meanings. The way to move one thing on a locked board
+   is to let *that thing* out of the lock, which is one press on the menu the
+   hold just opened and which the object then remembers. `relock` went with
+   it. See decision 181. */
 
 /* Where a move/resize would land, in grid cells. Dragging an edge moves that
    edge only; dragging a corner moves both of its edges — same as a window. */
@@ -997,10 +969,15 @@ function onDown(e){
        stuck, locked, axis:null, from:0,
        armed: !stuck && !!hEl,      // a corner grip drags at once; a tile waits
        startedOnFace:!!e.target.closest('.btnface'),
-       // dragging any member of a selection moves the lot, keeping their
-       // relative positions — the offsets are captured up front
-       group: (!stuck && S.sel.includes(d.id) && S.sel.length>1)
-         ? S.sel.map(byId).filter(Boolean).map(o=>({id:o.id, box:lay(o)})) : null,
+       /* Dragging any member of a selection moves the lot, keeping their
+          relative positions — the offsets are captured up front. Since
+          decision 180 it is `travelWith()` rather than the selection alone,
+          which adds the other half: an object carrying a `grp` brings its
+          group. A selection still wins, because you have just said which
+          things you mean and a group you happened to touch is not an argument
+          against that; the reader decides, so nothing here has to. */
+       group: (!stuck && travelWith(d))
+         ? travelWith(d).map(byId).filter(Boolean).map(o=>({id:o.id, box:lay(o)})) : null,
        parent:grid.dataset.gridfor||ROOT,
        box:lay(d), stepX:cellW(grid,g)+g.gap, stepY:g.rowh+g.gap,
        sx:e.clientX, sy:e.clientY, mode:null, ok:true, cand:null};
@@ -1336,20 +1313,27 @@ function onMove(e){
   }
 
   if(G.type==='move' || G.type==='resize'){
-    /* The menu is up and the finger has moved: iOS home-screen behaviour. The
-       menu goes, the tile comes up into your hand — and if the board was locked
-       it opens, because holding a tile and dragging it is not something you do
-       by accident, and it is exactly the thing a locked board refuses. */
+    /* The menu is up and the finger has moved. On an **unlocked** board that
+       is the iPhone home-screen gesture and it still is: the menu goes and the
+       tile comes up into your hand.
+
+       What it no longer does is **open a locked board**. Decision 81 let a
+       hold-then-drag spend the lock for one tile, which was a good answer
+       while the hold had nothing else to do. It has something else to do now:
+       the hold *is* the menu, on every board, and a gesture that sometimes
+       opens a menu and sometimes silently unlocks the desk and picks a tile up
+       is one gesture with two meanings. A locked board is for reading; the way
+       to move one thing on it is to let that thing out of the lock, which is
+       one press on the menu the hold just opened. See decision 181, which
+       supersedes that half of 81. */
     if(G.menu){
       if(Math.abs(dx)<WOBBLE && Math.abs(dy)<WOBBLE) return;
+      if(G.stuck) return;            // locked: the menu stays, nothing is lifted
       G.menu=false;
       closeCtx();
-      if(G.locked) unlockBoard(G);
-      if(!G.stuck){
-        G.armed=true;
-        G.el.classList.add('lifted');
-        if(navigator.vibrate) navigator.vibrate(6);
-      }
+      G.armed=true;
+      G.el.classList.add('lifted');
+      if(navigator.vibrate) navigator.vibrate(6);
     }
     if(G.stuck){
       /* A locked board doesn't refuse the drag any more, it *spends* it: the
@@ -1471,10 +1455,6 @@ function onUp(e){
     if(g.mode==='carry'){ gravityDrop(); gestureFlags.suppressClick=true; }
     return;
   }
-
-  /* A board that opened to let one tile move closes again now. Before any of
-     the branches below, so whichever one renders draws the padlock shut. */
-  if(g.relock) relockBoard();
 
   /* A swipe that got going lets the strip settle where it is heading; one
      that never did was a tap on a locked board, and the tile under it still
