@@ -6199,6 +6199,14 @@ const CHROME = process.env.BUREAU_CHROME;
     /* …and the way out is on that menu: one press and the object carries
        `movable` from then on, which is what makes it a fact about the thing
        rather than a mode you are in. */
+    /* A gesture that opened the menu arms `suppressClick` so its own trailing
+       click cannot also fire, and that flag is spent by the **next** click —
+       which in a browser is the trailing one and in a test is whatever we
+       dispatch next. So send the trailing click the pointerup would have
+       produced, or the press on the menu item below is the one that gets
+       swallowed and the assertion fails for the app being right. */
+    el().dispatchEvent(new MouseEvent('click', {bubbles:true, cancelable:true}));
+    await nap(40);
     BUREAU.ctx(cx, cy, t.id);
     await nap(80);
     const freeBtn = document.querySelector(`#ctx [data-c="free:${t.id}"]`);
