@@ -352,3 +352,26 @@ camera centred it in a box three times taller than the phone. The window is
 against the band between the bar and the rail rather than against the
 scroller's own box. On a Mac the scroller is `flex:1` and the two are the same
 thing, which is why neither showed up there. See decision 188.
+
+**The settle carries the finger's speed on; it does not start again.** The
+pager follows your finger and then eases into place, and the curve it eased on
+(`.26s cubic-bezier(.22,1,.3,1)`) leaves at four and a half times its own
+average — so a strip following a finger at ten pixels a frame **jumped
+fifty-six** on the frame the finger came off, and crawled the last tenth for a
+fifth of a second. One fault read twice: the snap is the app taking the board
+out of your hand, the crawl is it arriving long after it looked as though it
+had. The curve is a mild one now and the **duration is worked out** —
+`SETTLE_LEAD` is the curve's own initial slope, so `T = SETTLE_LEAD x rest / v`
+asks the settle to leave at the speed your finger had, clamped at both ends
+(matching a crawl exactly takes most of a second; matching a flick takes none).
+Keep the constant and the curve together: they are one number said twice, the
+initial slope of a `cubic-bezier(x1,y1,…)` being `y1/x1`. And the transform is
+**flushed with the transition off** first — `pagerMove()` writes once per frame
+and not once per event, so the finger's last move may still have been waiting
+on its frame, and a transition needs a previous value to move from. See
+decision 190.
+
+**Going out is slower than going in.** The camera leaves at `ZOOM_OUT_MS`
+against `ZOOM_MS` arriving, through `.camslow` on the grid. Not a mistake to be
+tidied up: coming back out is the movement you have to be able to *follow*,
+because going in you already know where you are going. See decision 190.

@@ -18,7 +18,7 @@ import { applyLook, applyStyle, STYLES, panelSlots, borderSlots, knobSlots, plat
   palNow, CHECKS } from './look.js';
 import { render, sizeGrid, viewHTML, reveal, settingsPanel, goShelf, goShelfTo, shelfShift } from './views.js';
 import { setMinuteHandler, mindTheTime, checkAlarms, guttered,
-  activeTap, actOf, isActive, metroGoing, stopAllMetros } from './active.js';
+  activeTap, actOf, isActive, metroGoing, stopAllMetros, activeFlame } from './active.js';
 import { overlayHTML, objectPanel, modalNewObject, holdPanel, schedulePanel, closePanel,
   sampleObject, sampleTile, openCtx, tagFirstPanel } from './panels.js';
 import { wire } from './wire.js';
@@ -130,6 +130,9 @@ window.BUREAU = {
   /* The instruments, so a test can press one and read what it did rather than
      driving a gesture to find out. */
   activeTap, actOf, isActive, metroGoing, stopAllMetros, checkAlarms, zoom: openZoom,
+  /* Where a lit flame is, in cells, so a test can ask the reader the light
+     layer asks rather than eyeballing a glow in a screenshot. */
+  activeFlame,
   /* Clip — objects that travel together. A group is *the set carrying the
      id* and there is no table anywhere, so a test has to ask the same reader
      the board asks rather than looking one up. See decision 180. */

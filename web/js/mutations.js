@@ -536,6 +536,11 @@ function create(kind, patch){
       const [w,h] = sizeOfKind(kind, dv, o.parent);
       o[dv] = Object.assign({w, h}, o[dv]||{});
     });
+    /* **A drawer you just made is a drawer you made in order to arrange**, so
+       the board is unlocked when one arrives. The lock is one switch for
+       everything (decision 74), so this is the switch and not a fact about the
+       drawer — which is right: you are about to put things in it. */
+    S.look.locked = false;
     o.board = o.board || randomBoard();
     o.c = o.c || randomFront();
     const sd=styleDefaults();

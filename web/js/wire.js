@@ -1453,10 +1453,13 @@ function wire(){
       const [cid,x,y]=bsz.dataset.boardsize.split(':');
       const o=byId(cid);
       if(o){
-        pushSet('Size', cid, 'desk', o.desk && {...o.desk});
-        const want={...(o.desk||{}), w:+x, h:+y};
-        o.desk = (want.x && !boxOk(want, o.id, 'desk', o.parent))
-          ? {w:+x, h:+y} : want;
+        /* **The board being edited**, like every other resize. A container's
+           inside is its tile times four on the device you are looking at
+           (decision 190), so this writes the same box the corners would. */
+        const dv = dev();
+        pushSet('Size', cid, dv, o[dv] && {...o[dv]});
+        const want={...(o[dv]||{}), w:+x, h:+y};
+        o[dv] = (want.x && !boxOk(want, o.id, dv, o.parent)) ? {w:+x, h:+y} : want;
         save(); render(); refreshPanel();
       }
       return; }

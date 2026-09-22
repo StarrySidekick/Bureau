@@ -8446,3 +8446,117 @@ and the editor field is the answer rather than the gesture. The honest version
 would be resizing a container on either device and having the other follow,
 but the other board's arrangement is somebody's and a silent reflow of it is
 worse than a field.
+
+## 190 · Inside a drawer, the shelves go out the window
+
+*2026-09-22*
+
+Eleven more, and the one with structure behind it is the first.
+
+**The nine shelves are the desk's, and nothing else's.** The desk is one board
+of three screens by three and you start in the middle — decision 141, and still
+right. Every *container* inherited that machinery for no reason: a board was a
+shelf wide by default with the option of more, so a drawer's inside was sized
+by the phone rather than by the drawer. Decision 188 made a container's board
+four cells to a cell of its own tile, and the two rules then disagreed about
+what a board was — the space said sixteen by eight and the shelf said eight by
+fourteen, and `ensureBox()` clamped to whichever was smaller.
+
+So a container's board is **exactly `w × 4` by `h × 4` and nothing else**, and
+the shelves are *derived* from it rather than stored: `shelvesOf()` answers
+`{1,1}` for anything a Mac is drawing, because a Mac draws the whole board, and
+divides the space by the screen on a phone. A 4×2 drawer is sixteen by eight,
+which is two phone screens, so you swipe to the second — the same pager, the
+same dots, no new gesture and no new idea. A 1×1 is four by four, which is less
+than a screen, so it is **centred** in the carcass with the leftover split
+evenly above and below. That last part is `sizeGrid()`: the reveal under the
+bar and the depth of the drawer along the bottom already split the leftover
+half a cell each way, and this is the same arithmetic asked to split a much
+larger number.
+
+The correction inside the correction: `innerOf()` read the **desk** box on both
+devices, on the argument that a coordinate space may not change shape between
+a phone and a Mac. It is a good argument and it is beaten by a plain fact —
+`sizeOfKind()` deliberately halves a container to put it on a phone, so a
+drawer that *looks* four cells by two on a phone is eight by four on the desk,
+and reading the desk box gave it a board of thirty-two by sixteen. Every
+sentence Timothy said about proportion is true of the drawer **he can see**, so
+the box for the device being drawn is the one to read. A drawer's two boards
+can be different shapes; that is what two layouts means.
+
+**The lock is the background.** Unlocked, the board is the checkerboard it has
+always been — graph paper, which is what arranging is done on. Locked, it is
+one quiet surface in the carcass's own colour, running unbroken from the bar
+above it to the drawer below. And the four transparent squares in the corners
+of every tile are gone: they were how you could tell which mode you were in,
+which is a great deal of furniture for one bit of information that a whole
+screen can now carry. The **targets** are untouched — a grip was always bigger
+than the mark that advertised it (decision 81), and the mark was never the
+thing. Making a container unlocks the desk, because you have just made
+somewhere to put things and putting things somewhere is what unlocked is for.
+
+Two traps in four lines of CSS, and both are the same trap. The checkerboard is
+painted on `.grid::before`, so a colour set on `.grid` goes *behind* the squares
+and the rule looks like it was never written; and Starful Gothic restates the
+whole background at `html[data-style="starry"] .grid::before`, which outranks a
+two-class rule. Both failures are silent. See look.md's standing warning about
+selectors that do not get converted.
+
+**The settle carries the finger's speed on; it does not start again.** The
+pager follows your finger and then eases into place on `transform .26s
+cubic-bezier(.22,1,.3,1)`, which sounds gentle and is not: that curve leaves at
+four and a half times its own average. Measured, a strip following a finger at
+ten pixels a frame **jumped fifty-six** on the frame the finger came off, and
+then crawled the last tenth of the distance for a fifth of a second. Both
+halves are one fault read twice — the snap is the app taking the board out of
+your hand, and the crawl is the board arriving long after it looked as though
+it had. That is the "rubber band click" exactly.
+
+The curve is a mild one now (`cubic-bezier(.25,.6,.25,1)`) and the **duration
+is worked out**: an ease-out covering `rest` in `T` leaves at `slope × rest /
+T`, so asking for that to be the speed your finger had gives `T = slope × rest
+/ v`, clamped at both ends because matching a crawl exactly takes most of a
+second and matching a hard flick takes almost none. The first frame is now
+about twice the finger rather than five and a half times, and it decays
+smoothly instead of falling off a cliff. The transform is also **flushed with
+the transition off** before the settle starts: `pagerMove()` writes once per
+frame, not once per event, so the last thing the finger did may still have been
+waiting on its frame — and a transition needs a previous value to move from.
+
+**Three drawings that were wrong, and each was wrong in its own way.**
+
+A **candle** is as long as its timer since decision 188, and an instrument is
+drawn `xMidYMid meet` — so a fifteen-minute candle floated in the middle of a
+tall tile with air above it *and* below it, which reads as a drawing that has
+come loose rather than as a stub. An instrument may state its own
+`preserveAspectRatio` now and the candle stands: the air is all above it, and
+that is the picture of how long it burns for. Its **light** was worse and
+quieter: `activeFlame()` read a fixed 84-unit taper standing at a fixed 24,
+which was right for the two-hour candle it was written against and put the glow
+a tile and a half above the wick for every other length. It asks `candleFull()`
+now — the same two lines the drawing uses, because they have to *be* the same.
+
+A **die** fills its viewBox since the desk-objects pass, and its roll was a
+rotation on a `<g>` inside the SVG. An `<svg>` clips its own viewport, and that
+clip is a second one the tile's `overflow` has nothing to say about — so every
+corner that swung out was shaved off and a throw read as a die sitting still.
+The turn is on `.actart` itself now, an ordinary HTML element with only the
+tile to get past, and the tile already stands aside. The dip in the middle is
+deeper for the same reason: a die that stays the size of its cell has only its
+corners to say it is moving.
+
+A **letter** is an envelope on the board and pressing it takes the letter out —
+which the camera was already doing, except that the flap and the wax went on
+being drawn across the words you had come to read.
+
+**The rest.** A thin tall container stays a drawer: turning one into a book at
+one cell wide was decision 50's answer to a front with no room for a name, and
+there are dedicated books now, so a *container* asks its face and only an
+object wearing `sh-spine` is a spine. And the zoom back out runs at 640ms
+against the 420ms going in, because leaving is the movement you have to be able
+to follow: going in you already know where you are going.
+
+*Against:* a container's board can now be several screens with no way to see it
+whole on a phone, and the dots in the bar are the only thing saying so. That is
+the desk's bargain taken one level down, and it is the bargain Timothy asked
+for.

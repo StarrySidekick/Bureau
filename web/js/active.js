@@ -160,7 +160,7 @@ function deckTop(o){
    viewBox follows it — `vb` may be a function — so the candle is drawn at
    whatever height it turns out to be rather than being letterboxed into a box
    sized for the longest one. */
-const candleFull = o => Math.max(10, Math.min(150,
+const candleFull = o => Math.max(26, Math.min(150,
   Math.round(84 * Math.pow(burnOf(o)/120, 0.55))));
 const burning = o => actOf(o) === 'candle' && !!o.litAt && through(o.litAt, burnOf(o)) < 1;
 const waxLeft = o => o.litAt ? 1 - through(o.litAt, burnOf(o)) : 1;
@@ -297,6 +297,12 @@ const ACTIVE = {
   candle: {
     nm:'Candle', vb: o => { const t = 108 - candleFull(o) - 24;
                             return `0 ${t.toFixed(1)} 60 ${(140-t).toFixed(1)}`; },
+    /* **A candle stands.** Every other instrument is centred in its box, and a
+       candle centred in one floats: the length is the setting now, so a short
+       candle in a tall tile had air above it *and* below it, which reads as a
+       drawing that has come loose rather than as a stub. On the floor, the air
+       is all above and it is the picture of how long it burns for. */
+    par:'xMidYMax meet',
     kind:'candle',
     art(o){
       const lit = burning(o), left = Math.max(0, Math.min(1, waxLeft(o)));
@@ -580,11 +586,17 @@ function activeTap(id){
 const vbOf = o => { const a = ACTIVE[actOf(o)];
   if(!a) return '0 0 100 100';
   return typeof a.vb === 'function' ? a.vb(o) : a.vb; };
+/* How it sits in its box, and an instrument may say. The default is the middle
+   — `xMidYMid meet`, the sentence above — and the candle is the one that says
+   otherwise, because a thing with a foot stands on something. Anything reading
+   the artwork's geometry back out (`activeFlame`) has to ask this too, or the
+   light is placed by one rule and the drawing by another. */
+const parOf = o => { const a = ACTIVE[actOf(o)]; return (a && a.par) || 'xMidYMid meet'; };
 
 function activeArt(o, cls){
   const a = ACTIVE[actOf(o)]; if(!a) return '';
   return `<svg class="actart ${cls||''}" viewBox="${vbOf(o)}"
-    preserveAspectRatio="xMidYMid meet" aria-hidden="true">${a.art(o)}</svg>`;
+    preserveAspectRatio="${parOf(o)}" aria-hidden="true">${a.art(o)}</svg>`;
 }
 /* Where a burning candle's flame is, in cells, inside a box of `w x h` — the
    same contract `flamePoint()` has in decor.js so one light layer serves both,
@@ -597,9 +609,16 @@ function activeFlame(o, w, h){
   const a = ACTIVE[actOf(o)]; if(!a) return null;
   const [vx, vy, vw, vh] = vbOf(o).split(/[\s,]+/).map(Number);
   const k = Math.min(w/vw, h/vh);
-  const ox = (w - vw*k)/2, oy = (h - vh*k)/2;
-  const wax = Math.max(6, 84*Math.max(0, Math.min(1, waxLeft(o))));
-  const top = 24 + (84 - wax);              // the top of the wax, in viewBox units
+  const ox = (w - vw*k)/2;
+  const oy = /YMax/.test(parOf(o)) ? (h - vh*k) : (h - vh*k)/2;
+  /* The same two lines `art()` draws the wax with, and they have to *be* the
+     same: this read a fixed 84-unit taper standing at a fixed 24 for a
+     version, which was right for the two-hour candle it was written against
+     and put the light a tile and a half above the wick for every other
+     length. The wax stands **on 108** whatever it is, so the top of it is
+     what varies and the flame is ten units above that. */
+  const wax = Math.max(3, candleFull(o) * Math.max(0, Math.min(1, waxLeft(o))));
+  const top = 108 - wax;                    // the top of the wax, in viewBox units
   return { x: ox + (30 - vx)*k, y: oy + (top - 10 - vy)*k, r: 2.2 };
 }
 const activeSay = o => { const a = ACTIVE[actOf(o)]; return a && a.say ? a.say(o) : ''; };

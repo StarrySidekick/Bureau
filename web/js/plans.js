@@ -143,24 +143,31 @@ function stampPlan(planId, intoId, at){
   (() => {
     const c = home===ROOT ? null : byId(home);
     if(!c) return;
-    let mx = 0, my = 0;
-    p.objects.forEach(o => {
-      if((o.parent||PLAN_ROOT)!==PLAN_ROOT) return;
-      ['desk','phone'].forEach(dv => { const b = o[dv];
-        if(!b || !b.x) return;
+    /* **Both boards, each against its own extent.** A container's inside is
+       read off the box for the device being drawn (decision 190), so growing
+       the desk box alone left the phone board the size it was and every phone
+       box in the plan failed `boxOk()` there — the same re-flow this whole
+       block exists to prevent, happening on one device only and therefore
+       invisible from the other. */
+    ['desk','phone'].forEach(dv => {
+      let mx = 0, my = 0;
+      p.objects.forEach(o => {
+        if((o.parent||PLAN_ROOT)!==PLAN_ROOT) return;
+        const b = o[dv]; if(!b || !b.x) return;
         mx = Math.max(mx, b.x + b.w - 1);
-        my = Math.max(my, b.y + b.h - 1); });
+        my = Math.max(my, b.y + b.h - 1);
+      });
+      if(!mx && !my) return;
+      const box = (c[dv] && c[dv].w) ? c[dv] : {w:2, h:2};
+      const w = Math.max(box.w, Math.ceil(mx/INNER));
+      const h = Math.max(box.h, Math.ceil(my/INNER));
+      if(w===box.w && h===box.h) return;
+      const want = Object.assign({}, box, {w, h});
+      /* If it no longer fits where it sits, it gives the place up and keeps
+         the size — `ensureBox()`'s bargain, and the only honest way to grow a
+         tile on a board somebody else has arranged. */
+      c[dv] = (want.x && !boxOk(want, c.id, dv, c.parent)) ? {w, h} : want;
     });
-    if(!mx && !my) return;
-    const box = (c.desk && c.desk.w) ? c.desk : {w:2, h:2};
-    const w = Math.max(box.w, Math.ceil(mx/INNER));
-    const h = Math.max(box.h, Math.ceil(my/INNER));
-    if(w===box.w && h===box.h) return;
-    const want = Object.assign({}, box, {w, h});
-    /* If it no longer fits where it sits, it gives the place up and keeps the
-       size — `ensureBox()`'s bargain, and the only honest way to grow a tile
-       on a board somebody else has arranged. */
-    c.desk = (want.x && !boxOk(want, c.id, 'desk', c.parent)) ? {w, h} : want;
   })();
   const map = {};
   // `d` or `o` on the id is a convention, not a fact anything reads — but a

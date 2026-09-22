@@ -5,6 +5,43 @@ Sequenced by dependency, not appetite: item 1 makes everything after it safer.
 
 ---
 
+## 0zg. Reported 2026-09-22 — inside a drawer the shelves go out the window — DONE (v1.78)
+
+Eleven, and the first has structure behind it. Decision 190.
+
+**"When you're inside one of these drawers those rules go out the window."**
+A container's board is now exactly `w×4` by `h×4` and nothing else; the nine
+shelves are the desk's alone. `shelvesOf()` **derives** a container's pages
+from the space divided by the screen, so a 4×2 drawer is sixteen by eight,
+which is two phone screenfuls you swipe between — same pager, same dots, no new
+gesture. A board shorter than the screen is **centred** in the carcass. And the
+board is read off the box for **the device being drawn**, not the desk box on
+both: a container is half the size on a phone, so a drawer that looks four
+cells by two there opened onto thirty-two by sixteen.
+
+**"In locked mode it will simply be a solid background."** The lock is the
+background now: graph paper unlocked, one quiet surface in the carcass's own
+colour locked. The four transparent squares in every tile's corners are gone —
+the targets are untouched. A new container unlocks the desk.
+
+**"A rubber band click bug whenever we swipe to a different shelf."** Measured:
+the strip followed the finger at ten pixels a frame and then **jumped
+fifty-six** on the frame the finger came off, because the settle's curve leaves
+at four and a half times its own average. The curve is mild now and the
+duration is worked out from how far is left and how fast you were going.
+
+**Three drawings.** A candle stands on the floor of its box and its flame is
+placed off the same arithmetic that drew the wax (it was placed off a fixed
+84-unit taper and sat a tile and a half above the wick). A die turns its whole
+picture rather than a `<g>` inside the SVG, which is the only way past the
+SVG's own viewport clip. A letter's envelope opens under the camera.
+
+**And two small ones.** A thin tall container stays a drawer. The zoom back out
+runs at 640ms against 420 going in, because leaving is the movement you have to
+be able to follow.
+
+---
+
 ## 0zf. Reported 2026-09-22 — the drawer sizes did nothing, and the record was unreachable — DONE (v1.77)
 
 Two reports. Decision 189.

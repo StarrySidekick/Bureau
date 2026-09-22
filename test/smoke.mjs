@@ -3919,6 +3919,12 @@ const CHROME = process.env.BUREAU_CHROME;
   const pagerLandsFlat = await phone.evaluate(async () => {
     const nap = n => new Promise(r => setTimeout(r, n));
     const S = BUREAU.state, out = {};
+    /* One finger walks the boards on a **locked** board and carries a tile on
+       an unlocked one, so this has to say which it is rather than take what
+       the block before it left — and since decision 190 making a container
+       unlocks the desk, which several blocks above here do. */
+    const wasLocked = S.look.locked;
+    S.look.locked = true;
     S.view='desk'; S.drawerId=null; BUREAU.render(); await nap(250);
     const grid = document.querySelector('#drawergrid');
     const gr = grid.getBoundingClientRect();
@@ -3945,6 +3951,7 @@ const CHROME = process.env.BUREAU_CHROME;
     // the live board is the real one, so it has to be handed back untouched
     const m = document.querySelector('#app .main');
     out.andTheBoardIsPutBack = !m.style.transform && !m.style.willChange;
+    S.look.locked = wasLocked;
     S.view='desk'; S.drawerId=null; BUREAU.render(); await nap(150);
     return out;
   });
@@ -4282,9 +4289,21 @@ const CHROME = process.env.BUREAU_CHROME;
     many.desk = BUREAU.free(2,2,'root'); BUREAU.render(); await nap(120);
     out.aDrawerStartsAtOneShelf =
       JSON.stringify(BUREAU.shelvesOf(many.id)) === JSON.stringify({w:1,h:1});
+    /* …and it is not *given* more: since decision 190 a container's pages are
+       **derived** from how big it is, so a stored `shelves` on one does
+       nothing and making the drawer bigger is what makes the board bigger.
+       This is a Mac, which draws whatever a board comes to in one go, so the
+       count stays one however large it gets — `ownBoard` is where the phone's
+       two screenfuls are asked about. */
     many.shelves = {w:2,h:2}; BUREAU.render(); await nap(120);
-    out.andCanBeGivenMore =
-      JSON.stringify(BUREAU.shelvesOf(many.id)) === JSON.stringify({w:2,h:2});
+    out.aStoredShelfCountDoesNothing =
+      JSON.stringify(BUREAU.shelvesOf(many.id)) === JSON.stringify({w:1,h:1});
+    delete many.shelves;
+    many.desk = Object.assign({}, many.desk, {w:4, h:4});
+    BUREAU.render(); await nap(120);
+    out.andTheSizeIsWhatGrowsTheBoard =
+      BUREAU.innerOf(many.id, 'desk').cols === 16 &&
+      BUREAU.innerOf(many.id, 'desk').rows === 16;
     /* …and a full board refuses rather than putting the thing somewhere you
        are not looking. It is a message, not a silent placement. */
     const tight = BUREAU.create('drawer', {parent:'root', title:'Tight'});
@@ -4465,18 +4484,17 @@ const CHROME = process.env.BUREAU_CHROME;
     const f = shows(flat), w2 = shows(wide);
     out.shortWearsItsMark = f.mark && !f.name;
     out.roomyKeepsItsName = !w2.mark && w2.name;
-    /* One cell wide is a **spine**: the title runs up the tile. It used to drop
-       its name for its mark, which said it was a drawer and nothing about which
-       drawer — and a book seen spine-on is the shape that already solved that. */
+    /* One cell wide is a **drawer with its name up the front**. It was a spine
+       — decision 50's answer from when a book was a kind of drawer — and there
+       are dedicated books now, so a thin drawer stays a drawer (decision 190).
+       What it must not go back to is dropping the name for its mark: that said
+       it was a drawer and nothing about *which* drawer. */
     const col = document.querySelector(`.grid .drawer[data-drawer="${thin.id}"]`);
-    const ttl = col && col.querySelector('.spinetitle');
-    /* The writing mode is on the `<b>` inside, not on the box — the box is the
-       flex frame that gives the rotated line a definite length to be measured
-       and ellipsised against. A spine whose markup forgets the wrapper prints
-       its title across the book, so the wrapper is what this asks for. */
-    const run = ttl && ttl.querySelector('b');
-    out.oneCellWideIsASpine = !!run && run.textContent.trim() === 'Column'
-      && /vertical/.test(getComputedStyle(run).writingMode);
+    out.oneCellWideIsStillADrawer = !!col && !col.classList.contains('spinetile');
+    const upright = col && col.querySelector(':scope > .dtop .dname');
+    out.andItsNameRunsUpIt = !!upright && upright.textContent.trim() === 'Column'
+      && /vertical/.test(getComputedStyle(upright).writingMode)
+      && getComputedStyle(upright.closest('.dtop')).display !== 'none';
     [tall,wide,big,flat,thin].forEach(d => BUREAU.delDrawer(d.id));
     S.undo=[]; BUREAU.render();
     return out;
@@ -5564,12 +5582,18 @@ const CHROME = process.env.BUREAU_CHROME;
     out.widerThanTallLiesDown = el(flat.id).classList.contains('lying');
     out.tallerThanWideStandsUp = !el(tall.id).classList.contains('lying');
     out.andSoDoesAWideTallOne = !el(big.id).classList.contains('lying');
-    // one cell wide is a spine by the old fallback, and can never be lying
+    /* A thin **drawer** is a drawer — the one-cell-wide fallback that made it a
+       spine is gone (decision 190) — and a thin thing that *asked* to be a
+       spine still is one, and can never be lying. */
     const thin = BUREAU.create('drawer', {parent:'root', title:'Thin'});
     thin.desk = {x:16,y:4,w:1,h:4};
+    const bk = BUREAU.create('drawer', {parent:'root', title:'Slim'});
+    bk.face = 'spine'; bk.desk = {x:18,y:4,w:1,h:4};
     BUREAU.render(); await nap(200);
-    out.aThinDrawerIsStillASpine = el(thin.id).classList.contains('spinetile')
-      && !el(thin.id).classList.contains('lying');
+    out.aThinDrawerIsStillADrawer = !el(thin.id).classList.contains('spinetile');
+    out.andAThinBookIsStillASpine = el(bk.id).classList.contains('spinetile')
+      && !el(bk.id).classList.contains('lying');
+    BUREAU.delDrawer(bk.id);
     /* Same three elements, so a binding gets this for nothing — the whole
        reason it is a class and not a second face. */
     out.sameMarkupBothWays = ['spinetop','spinetitle','spinefoot'].every(c =>
@@ -8498,7 +8522,169 @@ const CHROME = process.env.BUREAU_CHROME;
     S.undo=[]; S.redo=[]; BUREAU.render();
     return out;
   });
+
+  /* --- decision 190: a container's board is only its own, the lock is the
+     board you can see, and three drawings that were wrong ----------------
+     The phone half, because that is where a drawer bigger than the screen
+     has to become pages — and `phone` is already in front from camPhone. */
+  const ownBoard = await phone.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const out = {}, S = BUREAU.state;
+    const was = S.objects.slice();
+    S.objects.length = 0; S.view='desk'; S.drawerId=null; S.zoomOn=null;
+    S.q=''; S.look.locked=false;
+    const mk = o => S.objects.push(Object.assign({ parent:'root', title:'',
+      body:'', tags:[], ord:0, created:'2026-09-01' }, o));
+    /* Sized on the **phone** and nowhere else, which is the case that was
+       broken: a drawer four cells by two on a phone opened onto thirty-two by
+       sixteen, because the board was read off the desk box and a container is
+       deliberately half the size on a phone. */
+    const here = (w,h) => Object.assign(BUREAU.free(w,h,'root'), {w,h});
+    mk({ id:'p1', kind:'drawer', title:'One', phone:here(1,1) });
+    mk({ id:'p2', kind:'drawer', title:'Two', phone:here(2,2) });
+    mk({ id:'p4', kind:'drawer', title:'Wide',phone:here(4,2) });
+    BUREAU.render(); await nap(220);
+    const read = async id => {
+      S.view='drawer'; S.drawerId=id; BUREAU.render(); await nap(240);
+      const g = document.querySelector('#drawergrid');
+      const sc = document.querySelector('#app .scroll');
+      const gr = g.getBoundingClientRect(), sr = sc.getBoundingClientRect();
+      return { /* the **space**, which is what four-cells-to-a-cell is about…  */
+               inner:BUREAU.innerOf(id, 'phone'),
+               /* …and the **window**, which is what a phone can see of it */
+               cols:+g.style.getPropertyValue('--cols'),
+               rows:(getComputedStyle(g).gridTemplateRows||'').split(' ').filter(Boolean).length,
+               shelves:BUREAU.shelvesOf(id),
+               /* how much room is left above the board against below it: a
+                  board shorter than the screen is **centred**, not pushed to
+                  the top, which is what "it should all also be centered" was */
+               over:Math.round(gr.top - sr.top),
+               under:Math.round(sr.bottom - gr.bottom) };
+    };
+    const one = await read('p1'), two = await read('p2'), wide = await read('p4');
+    /* Four cells to a cell, off the box for **the device being looked at** —
+       which is the correction: a container is half the size on a phone, so
+       reading the desk box on both gave a phone-sized 4x2 drawer a board of
+       thirty-two by sixteen. */
+    out.itsOwnTileFourToACell =
+      one.inner.cols===4  && one.inner.rows===4 &&
+      two.inner.cols===8  && two.inner.rows===8 &&
+      wide.inner.cols===16 && wide.inner.rows===8;
+    /* …and what a phone *shows* of it is one screenful, which is 8x8 for the
+       first two and the first half of the third. */
+    out.andAPhoneSeesOneScreenOfIt =
+      one.cols===4 && one.rows===4 && two.cols===8 && two.rows===8 &&
+      wide.cols===8 && wide.rows===8;
+    // and the nine shelves are the desk's alone: a container pages its own board
+    out.noShelvesInsideOne =
+      one.shelves.w===1 && one.shelves.h===1 &&
+      two.shelves.w===1 && two.shelves.h===1 && wide.shelves.w===2;
+    out.aShortBoardIsCentred = Math.abs(one.over - one.under) <= 2 && one.over > 2;
+
+    /* ---- the lock is the background, and nothing else ------------------- */
+    S.view='desk'; S.drawerId=null;
+    const look = on => { S.look.locked = on; BUREAU.render();
+      const g = document.querySelector('#drawergrid');
+      const bg = getComputedStyle(g, '::before');
+      return { squares: bg.backgroundImage !== 'none',
+               colour: bg.backgroundColor,
+               grip: !!document.querySelector('.rz'),
+               mark: getComputedStyle(document.querySelector('.rz')||document.body,
+                 '::before').content };
+    };
+    const shut = look(true), open = look(false);
+    const wood = getComputedStyle(document.querySelector('#frame'))
+      .getPropertyValue('--wood').trim();
+    out.lockedIsOneSurface = !shut.squares && !!wood;
+    out.unlockedIsGraphPaper = open.squares;
+    out.noCornerMarks = open.grip && open.mark === 'none';
+    /* …and a new container turns the board back on, because you have just
+       made somewhere to arrange things and arranging is what unlocked is. */
+    S.look.locked = true;
+    BUREAU.create('drawer', {parent:'root', title:'Fresh'});
+    out.aNewDrawerUnlocks = BUREAU.state.look.locked === false;
+
+    S.objects.length=0; was.forEach(o=>S.objects.push(o));
+    S.undo=[]; S.redo=[]; S.look.locked=false; BUREAU.render();
+    return out;
+  });
   await page.bringToFront();
+
+  const threeDrawings = await page.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const out = {}, S = BUREAU.state;
+    const was = S.objects.slice();
+    S.objects.length = 0; S.look.locked = false; S.zoomOn = null;
+    const mk = o => S.objects.push(Object.assign({ parent:'root', title:'',
+      body:'', tags:[], ord:0, created:'2026-09-01' }, o));
+
+    /* ---- a candle stands, and its flame is where its wick is ------------
+       The wax is as long as the timer is, so a candle centred in its box
+       floats and a light placed off a fixed 84-unit taper sits a tile and a
+       half above the wick on every length but the default. */
+    mk({ id:'cdA', kind:'candle', title:'Short', burn:15,
+         litAt:Date.now()-4*60000, desk:{x:2,y:20,w:2,h:5} });
+    mk({ id:'cdB', kind:'candle', title:'Long', burn:480,
+         litAt:Date.now()-60*60000, desk:{x:5,y:20,w:2,h:5} });
+    BUREAU.render(); await nap(220);
+    const art = id => document.querySelector(`[data-row="${id}"] svg.actart`);
+    out.aCandleStands =
+      (art('cdA').getAttribute('preserveAspectRatio')||'').includes('YMax');
+    /* The wick is the top of the wax, and the light layer has to find it from
+       the same two numbers the drawing used. Ask for both candles: one of
+       them is the length the old arithmetic was written against. */
+    const onTheWick = id => {
+      const o = S.objects.find(x=>x.id===id);
+      const f = BUREAU.activeFlame(o, o.desk.w, o.desk.h);
+      const t = document.querySelector(`[data-row="${id}"]`);
+      const wax = t.querySelector('rect[width="24"]');
+      if(!f || !wax) return false;
+      const tr = t.getBoundingClientRect(), wr = wax.getBoundingClientRect();
+      const cell = tr.width / o.desk.w;
+      // where the light says the flame is, in px down the tile
+      const said = f.y * cell;
+      // and where the top of the wax actually is
+      const real = wr.top - tr.top;
+      return Math.abs(said - real) < cell * 0.9;
+    };
+    out.theLightIsOnTheWick = onTheWick('cdA') && onTheWick('cdB');
+
+    /* ---- the die turns the picture, not a group inside it ---------------
+       An `<svg>` clips its own viewport whatever the tile does, and the die
+       fills its viewBox — so a `<g>` that rotated lost every corner. */
+    mk({ id:'dieZ', kind:'die', title:'Die', sides:6, face:3, desk:{x:9,y:20,w:2,h:2} });
+    BUREAU.render(); await nap(180);
+    const die = document.querySelector('[data-row="dieZ"]');
+    die.classList.add('rolling');
+    await nap(110);
+    const svg = die.querySelector('svg.actart');
+    const turned = getComputedStyle(svg).transform;
+    out.theDieTurnsItsWholePicture = !!turned && turned !== 'none';
+    const dr = die.getBoundingClientRect(), sr = svg.getBoundingClientRect();
+    out.andItIsNotClipped = getComputedStyle(die).overflow === 'visible' &&
+      +getComputedStyle(die).zIndex > 1;
+    die.classList.remove('rolling');
+
+    /* ---- a letter opens under the camera -------------------------------- */
+    mk({ id:'ltr', kind:'letter', title:'Dear you', attrs:['text'],
+         body:'Words on a page. '.repeat(20), desk:{x:12,y:20,w:3,h:4} });
+    BUREAU.render(); await nap(180);
+    const flapOf = () => {
+      const t = document.querySelector('[data-row="ltr"]');
+      const pn = t && t.querySelector('.dpanel');
+      return pn ? getComputedStyle(pn).backgroundImage : 'none';
+    };
+    out.anEnvelopeIsClosedOnTheBoard = flapOf() !== 'none';
+    // the camera is one field and the classes are keyed on it; how you get
+    // there is tested in camLife, and what it looks like is tested here
+    S.zoomOn = 'ltr'; BUREAU.render(); await nap(180);
+    out.andOpenUnderTheCamera = flapOf() === 'none';
+    S.zoomOn = null; BUREAU.render();
+
+    S.objects.length=0; was.forEach(o=>S.objects.push(o));
+    S.undo=[]; S.redo=[]; BUREAU.render();
+    return out;
+  });
 
   console.log(JSON.stringify({
     errors: errs, manifestOk, swReady, survived, styleSurvived, slotColours,
@@ -8521,7 +8707,7 @@ const CHROME = process.env.BUREAU_CHROME;
     paletteKeys, editorKeys, pickerLeads, rollupsEverywhere, soundAndVision, keyboardBoard,
     ranking, urgency, reachable, pensAndCorners, lyingBooks, plansWork, stockPlans, livedWith, listIsOneShelf, repeating, oneLock, scheduling, ownColour, addBox, calFaces,
     lockedBoard, freeTraits, pageWrites, tickBoxes, readerFits, categories,
-    specimenBook, deskObjects, camLife, camPhone, thisPass,
+    specimenBook, deskObjects, camLife, camPhone, ownBoard, threeDrawings, thisPass,
     dropsIn, keyframesRegistered, aesthetics, slotScoping, objectsDressed, grainSlots, tagged, drawnAesthetic, deeper, lookStage, statusBar, bindings, panelling, theSpray, tappingIsQuiet, decorations, pinboard, gravity
   }, null, 2));
   await browser.close();

@@ -640,11 +640,20 @@ staying in it. See decision 187.
 
 **A container's board is its own tile, four cells to a cell.** A 2×2 drawer
 opens onto 8×8, a 1×1 onto 4×4, a 2×4 onto 8×16 — so how big a drawer is on the
-desk is how much it holds, which is what the size you chose ought to mean. It is
-read off the **desk** box on both devices, because a container's inside is a
-coordinate space and a coordinate space may not change shape between a phone and
-a Mac. The desk itself is not a tile and keeps its nine shelves; every other
-board derives how many screenfuls it is rather than storing it. See decision 188.
+board is how much it holds, which is what the size you chose ought to mean. It
+is read off the box for **the device being drawn**: a container is deliberately
+half the size on a phone, so reading the desk box on both gave a drawer that
+looks four cells by two on a phone a board of thirty-two by sixteen. A
+container's two boards may be different shapes; that is what two layouts means.
+
+**And inside one there are no shelves.** The nine belong to the desk, which is
+not a tile. A container's board is exactly its own size times four and nothing
+else, and how many screenfuls that is comes out of the arithmetic rather than
+being stored: the whole board on a Mac, and the space divided by the screen on
+a phone — so a 4×2 drawer is two screenfuls you swipe between, through the same
+pager and the same dots the desk uses. A board shorter than the screen is
+centred in the carcass rather than pinned to the top of it. See decisions 188
+and 190.
 
 **Navigation is the desks, and nothing else.** There are no tabs and no shelf.
 `S.desks` is the row of desks, walked with a sideways swipe and laid out all at

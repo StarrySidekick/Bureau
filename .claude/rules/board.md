@@ -335,14 +335,26 @@ you arranged don't move.
 900px, set in JS, not a media query, because the same classes also need to apply
 when you're editing the *other* device's layout from this one.
 
-**A container's board is its own tile, four cells to a cell.** `innerOf(cid)` in
-grid.js: a 2×2 drawer opens onto 8×8, a 1×1 onto 4×4, a 2×4 onto 8×16. It is
-read off the **desk** box on both devices, never the one for the device being
-drawn — a container's inside is a coordinate space and a coordinate space may
-not change shape between a phone and a Mac, and `sizeOfKind()` halves a
-container to put it on a phone. The desk itself is not a tile and keeps its
-nine shelves; `shelvesOf()` is still the answer for ROOT and `gridOf()` derives
-them for everything else.
+**A container's board is its own tile, four cells to a cell.** `innerOf(cid,
+device)` in grid.js: a 2×2 drawer opens onto 8×8, a 1×1 onto 4×4, a 2×4 onto
+8×16. It is read off the box for **the device being drawn**, and that is the
+whole rule. It read the *desk* box on both for a version, on the argument that
+a coordinate space may not change shape between a phone and a Mac — a good
+argument, beaten by a plain fact: `sizeOfKind()` deliberately halves a
+container to put it on a phone, so a drawer that *looks* four cells by two on a
+phone is eight by four on the desk and opened onto thirty-two by sixteen. A
+container's two boards may be different shapes; that is what two layouts means.
+
+**And inside one there are no shelves.** The nine are the desk's alone
+(decision 141). A container's board is exactly `w*4 x h*4` and `shelvesOf()`
+**derives** its pages rather than reading a stored `shelves`: `{1,1}` on a Mac,
+because a Mac draws the whole board, and the space divided by the screen on a
+phone — so a 4×2 drawer is two screenfuls you swipe between, through the same
+pager and the same dots. A board shorter than the screen is **centred** in the
+carcass, the leftover split evenly between the reveal above and the drawer
+below, which is `sizeGrid()`'s existing half-a-cell arithmetic asked to split a
+bigger number. The desk itself is not a tile and keeps its nine; `shelvesOf()`
+is still the stored answer for ROOT alone. See decision 190.
 
 Three things fall out of it, and all three cost a run to find:
 
@@ -362,6 +374,18 @@ Three things fall out of it, and all three cost a run to find:
   board by the same fraction on every render until there was nothing left.
 
 See decision 188.
+
+**The lock is the background, and that is the whole of how you can tell.**
+Unlocked, a board is the checkerboard — graph paper, which is what arranging is
+done on. Locked, it is one quiet surface in `--wood`, running unbroken from the
+bar above to the drawer below. The four transparent squares in every tile's
+corners are gone: they said the same one bit of information at a great deal of
+furniture, and the **targets** are untouched, because a grip was always bigger
+than the mark advertising it (decision 81). Two traps, both silent: the squares
+are painted on `.grid::before`, so a colour set on `.grid` goes *behind* them
+and the rule reads as never written; and an aesthetic that restates the whole
+background (`html[data-style="starry"] .grid::before`) outranks a two-class
+rule. Making a container unlocks the desk. See decision 190.
 
 **A search sits in the bar, between the dots and the tools.** `searchHits(q,
 scopeId)` in model.js — everything in Bureau from a desk, this drawer and

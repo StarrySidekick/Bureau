@@ -9,7 +9,7 @@ import { S, K, T, byId, has, isContainer, containers, container, childrenOf, cha
   URGES, workday, searchHits } from './model.js';
 import { GRID, PHONE_GRIDS, CELL, COLW, MEASURE, sideways, colsOf, gridKeyOf, SHELVES, shelvesOf,
   shelfRows, shelfOfBox, shelfAt, setShelf, shelfOrigin, SHELF, drawCols, drawRows,
-  lay, gridOf, cellW, ensureBox, PLACED } from './grid.js';
+  lay, gridOf, cellW, ensureBox, innerOf, PLACED } from './grid.js';
 import { themeNow, applyLook, lookVal, STYLES, BACKDROPS, DARKMODES, darkMode, hasDark,
   palNow, styleNow, hexOf, objColour, slotName, OBJ0, CHECKS, dressAs } from './look.js';
 import { gridOfContainer, gridTile, listTile, bookView, calSpan } from './tiles.js';
@@ -563,7 +563,7 @@ function shelfCountField(cid){
      a phone. Six by six, because the board is capped at the desk's own
      twenty-four columns and six times four is twenty-four. */
   const g = gridOf(dev(), cid), now = g.shelves;
-  const box = (byId(cid)||{}).desk || {w:2, h:2};
+  const box = (byId(cid)||{})[dev()] || {w:2, h:2};
   return `<div class="field" style="margin-top:12px"><label>How big it is</label>
       <div class="shelfpick" style="--sw:${BOARD_MAX}">${
         Array.from({length:BOARD_MAX*BOARD_MAX}, (_,i)=>{
@@ -572,8 +572,8 @@ function shelfCountField(cid){
             data-boardsize="${cid}:${x}:${y}" title="${x} × ${y} cells"></button>`;
         }).join('')}</div>
       <div class="mini" style="--k:var(--brass);margin-top:6px">A drawer is as big inside as it is outside: <b>${
-        box.w} × ${box.h}</b> cells on the desk makes <b>${g.cols} × ${g.rows}</b> in here${
-        now.w*now.h>1 ? `, which is ${now.w} × ${now.h} screenfuls — swipe between them` : ''}. Its corners on the desk do the same thing; this is how you reach it from a phone.</div>
+        box.w} × ${box.h}</b> cells out there makes <b>${g.cols} × ${g.rows}</b> in here${
+        now.w*now.h>1 ? `, which is ${now.w} × ${now.h} screenfuls — swipe between them` : ''}. Its own corners do the same thing; this is the way in without a drag.</div>
     </div>`;
 }
 /* Six, because a board is capped at the desk's own twenty-four columns and
@@ -1534,10 +1534,34 @@ function sizeGrid(){
        a style write, which dirties layout and buys the board a second one
        before it can be painted. Rendering was doing two layouts to draw one
        screen. */
-    const over = Math.max(0, room - rows*w);
+    /* **A board smaller than the screen sits in the middle of it.** A
+       container's board is its own tile times four (decision 190), so it is
+       very often shorter than a shelf — and the desk's way of taking up the
+       slack is to split it between the reveal above and the drawer front
+       below, which grows the *rail* by as much as it lowers the board and
+       leaves the thing you came to look at below the middle of the opening.
+       So a short board takes neither: the furniture stays at its minimum, the
+       scroller is given the whole room, and the grid is centred inside it. The
+       width centres itself (`narrowboard` in board.css); this is the other
+       axis.
+
+       **A container's board only.** A desk is nine shelves and is always
+       taller than one, so it can never honestly be short — but the desk drawn
+       on a *Mac window* in `is-phone` (which is what editing the phone layout
+       from a Mac is) has 160px cells and five rows of them in 850px, and
+       measured short. The scroller then centred its children, which on a
+       scroller means the first one overflows the **top** and cannot be
+       scrolled back to: the "You are arranging the iPhone layout" banner went
+       behind the bar and the way out of that mode with it. */
+    const drawn = Math.min(rows, drawRows(g, 'phone'));
+    const short = !!innerOf(cid, 'phone') && drawn*w < room - 1;
+    const over = short ? 0 : Math.max(0, room - drawn*w);
     const gap = gapMin + Math.floor(over/2), deep = railMin + Math.ceil(over/2);
     if(gap!==REVEAL.gap){ REVEAL.gap=gap; sc.style.marginTop = gap+'px'; }
     if(rail && deep!==REVEAL.rail){ REVEAL.rail=deep; rail.style.height = deep+'px'; }
+    const tall = short ? Math.round(room)+'px' : '';
+    if(sc.style.height !== tall) sc.style.height = tall;
+    sc.classList.toggle('midboard', short);
 
   } else if(dev()!=='phone'){
     /* A Mac measures the same two numbers now, because a shelf is the

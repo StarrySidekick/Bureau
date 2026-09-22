@@ -380,6 +380,12 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
   border-radius:var(--radius);
   opacity:var(--board-alpha,1);
   background-color:var(--board-1);
+  /* **The checkerboard is what unlocked looks like** — decision 190. It is
+     graph paper, and graph paper is for arranging: locked, the board is one
+     quiet surface and the squares are noise on something you are only reading.
+     It is also the *whole* of how you can tell which mode you are in, which is
+     why the corner grips stopped drawing their marks — a background you
+     cannot miss beats four eight-pixel squares you can. */
   background-image:conic-gradient(
     var(--board-2) 0 25%, transparent 0 50%,
     var(--board-2) 0 75%, transparent 0);
@@ -390,6 +396,23 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
      this fallback and snapping back to size. */
   background-size:var(--checkerx,var(--checker,160px)) var(--checkery,var(--checker,160px));
   background-position:0 0;
+}
+/* Locked: no squares, and the board takes the carcass's own colour so the
+   surface reads as one piece with the bar above it and the drawer below.
+
+   **It has to be the `::before`, and it has to outrank an aesthetic.** The
+   checkerboard is painted on the pseudo-element, not on `.grid` — so the
+   first go at this set a colour on the element *behind* the squares and the
+   squares went on being drawn over it, which looks exactly like the rule not
+   being there. And Starful Gothic restates the whole background further down
+   the file at `html[data-style="starry"] .grid::before`, which outranks a
+   two-class rule, so the second selector is the same declaration said loudly
+   enough to beat any aesthetic that has its own answer. */
+.grid.locked::before,
+html[data-style] .grid.locked::before{
+  background-image:none;
+  background-color:var(--wood);
+  opacity:1;
 }
 .grid > *{position:relative;z-index:1}
 
@@ -2718,6 +2741,18 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
   max-width:100%;
   margin-inline:auto;
 }
+/* A board shorter than the screen is centred in it rather than sitting on the
+   top edge with the whole rest of the room underneath — see `sizeGrid()`. Only
+   ever a container's: `sizeGrid()` asks `innerOf()` before setting the class,
+   because a desk measured short on a Mac window in `is-phone` and centring a
+   *scroller* is the one alignment that can hide its own first child.
+
+   `safe center` and not `center` for exactly that reason: plain centring
+   overflows **both** ends of a scroller, and the top end cannot be scrolled
+   back to. A browser that does not know the keyword drops the declaration and
+   gets `flex-start`, which is where the board was before. */
+.scroll.midboard{display:flex;flex-direction:column;justify-content:safe center}
+
 /* ---- the search in the bar — decision 188 ------------------------------
    Between the dots and the tools, and it takes the room that is going spare:
    `flex:1` with a `min-width` small enough that a phone's bar still fits the
@@ -2865,22 +2900,31 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
 @keyframes ckSwing{0%,100%{transform:translateX(-9px)}50%{transform:translateX(9px)}}
 .ckPend{animation:ckSwing 2s ease-in-out infinite}
 
-/* ---- the die: it tumbles when rolled ----------------------------------- */
-@keyframes dieRoll{
-  0%  {transform:rotate(0) scale(1)}
-  35% {transform:rotate(200deg) scale(.86)}
-  70% {transform:rotate(330deg) scale(1.06)}
-  100%{transform:rotate(360deg) scale(1)}
-}
-.dieBody{transform-origin:50px 50px}
-.acttile.rolling .dieBody{animation:dieRoll .52s cubic-bezier(.3,.8,.35,1) 1}
-/* A die that tumbles **over** its neighbours rather than under them. A tile
+/* ---- the die: it tumbles when rolled -----------------------------------
+   A die that tumbles **over** its neighbours rather than under them. A tile
    clips its own contents and sits in grid order, so the throw was happening
    inside a box the size of the die and behind whatever was next to it — which
    is the one thing a thrown die never does. Both come off for the length of
-   the roll and go back on with the class. */
+   the roll and go back on with the class.
+
+   **And the turn is on the picture, not on something inside it.** A `<g>`
+   spinning inside an `<svg>` is cut off at the SVG's own viewport, which is a
+   second clip the tile's `overflow` has nothing to say about — and since the
+   die grew to fill its viewBox there is no margin left inside for a corner to
+   swing into, so every corner that left the square was shaved off and a throw
+   read as a die sitting still. `.actart` is an ordinary HTML element: turning
+   *it* has only the tile to get past, and the tile has already stood aside.
+   The dip is deeper than it was for the same reason — a die that stays the
+   size of its cell has only its corners to say it is moving. */
+@keyframes dieRoll{
+  0%  {transform:rotate(0) scale(1)}
+  35% {transform:rotate(200deg) scale(.74)}
+  70% {transform:rotate(330deg) scale(1.04)}
+  100%{transform:rotate(360deg) scale(1)}
+}
 .acttile.rolling{z-index:9;overflow:visible}
-.acttile.rolling .actart{overflow:visible}
+.acttile.rolling .actart{overflow:visible;transform-origin:50% 50%;
+  animation:dieRoll .52s cubic-bezier(.3,.8,.35,1) 1}
 
 /* ---- the zoom: the instrument, as big as the stage allows -------------- */
 .viewstage.zoomstage{display:flex;flex-direction:column;align-items:stretch}
@@ -2994,6 +3038,15 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
 }
 .drawer.otile.sh-letter.sz-short .dpanel,
 .drawer.otile.sh-letter.minitile .dpanel{background-image:none}
+/* **Under the camera the envelope is open.** Pressing a letter takes the
+   letter out of it — that is what the closed front is *for* — so the flap and
+   the wax have no business still being drawn across the words you came to
+   read. The sheet underneath is already a plain one, so taking the two
+   drawings off is the whole of it. */
+.drawer.otile.sh-letter.oncamera .dpanel,
+.drawer.otile.sh-letter.camreading .dpanel{background-image:none}
+.drawer.otile.sh-letter.oncamera .wseal,
+.drawer.otile.sh-letter.camreading .wseal{display:none}
 /* ---- a postcard: a picture one side, the writing the other -------------
    Turning it over is a state of the tile, so the two faces are one element
    with a class on it rather than two elements and a 3-D transform: a card on
@@ -3056,6 +3109,10 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
    here is about making the thing under the camera *usable* once it arrives. */
 #drawergrid.camera{
   transition:transform .42s cubic-bezier(.22,.72,.2,1);
+}
+/* The way back out, which takes longer on purpose — see `ZOOM_OUT_MS`. */
+#drawergrid.camera.camslow{
+  transition:transform .64s cubic-bezier(.3,.15,.2,1);
 }
 /* **Promoted only while it is moving.** A scaled layer is rasterised once and
    then stretched, so a page of words held at four times with `will-change` on

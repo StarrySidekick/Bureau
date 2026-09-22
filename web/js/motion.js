@@ -1274,6 +1274,14 @@ function tiltTo(x, y){
    counting.                                                                  */
 let PG=null;
 
+/* What the settle is made of. `SETTLE_EASE` is a mild ease-out whose initial
+   slope is `SETTLE_LEAD` — keep the two together, they are one number said
+   twice: the slope of a `cubic-bezier(x1,y1,…)` at the start is `y1/x1`. */
+const SETTLE_EASE = 'cubic-bezier(.25,.6,.25,1)';
+const SETTLE_LEAD = 2.4;
+const SETTLE_MIN  = 190;
+const SETTLE_MAX  = 380;
+
 const pagerOn = ()=> !!PG;
 
 /* The desks, in the order they sit in the master space. It does **not** wrap:
@@ -1470,12 +1478,41 @@ function pagerEnd(){
      the very frame the transition was meant to begin on and the strip stuttered
      to a halt instead of gliding to one. */
   const to = step ? -step*size : 0;
-  const ease='transform .26s cubic-bezier(.22,1,.3,1)';
+
+  /* **The settle carries the finger's speed on; it does not start again.**
+     A fixed `.26s cubic-bezier(.22,1,.3,1)` sounds gentle and is not: that
+     curve leaves at four and a half times its own average, so a strip
+     following a finger at ten pixels a frame *jumped fifty-six* on the frame
+     the finger came off and then crawled the last tenth for a fifth of a
+     second. Both halves of that are the same fault read twice — the snap at
+     the start is the app taking the board out of your hand, and the crawl at
+     the end is the board arriving long after it looked as though it had. That
+     is the "it clicks into place rather than being smooth all the way".
+
+     So the curve is a mild one and the **duration is worked out**, from how
+     far is left and how fast you were going: an ease-out that covers `rest`
+     in `T` leaves at `SETTLE_LEAD x rest / T`, so asking for that to be the
+     speed your finger had gives `T = SETTLE_LEAD x rest / v`. Clamped at both
+     ends, because matching a crawl exactly takes most of a second and
+     matching a hard flick takes almost no time at all. */
+  const rest = Math.abs(to - g.at) || 1;
+  const v = Math.max(Math.abs(g.vel), 0.12);
+  const ms = clamp(Math.round(SETTLE_LEAD*rest/v), SETTLE_MIN, SETTLE_MAX);
+  const ease=`transform ${ms}ms ${SETTLE_EASE}`;
+  /* A transition needs a previous value to move from, and the last thing the
+     finger did may still have been waiting on its frame when it came off —
+     `pagerMove` writes once per frame, not once per event. Flush it with the
+     transition off, or the strip steps back to where it was a frame ago
+     before it starts. */
+  g.track.style.transition='none';
+  if(g.carry && g.live) g.live.style.transition='none';
+  slide(g, g.at);
+  void g.track.offsetWidth;
   g.track.style.transition=ease;
   if(g.carry && g.live) g.live.style.transition=ease;
   slide(g, to);
   if(step) commit(g, step, true);
-  setTimeout(()=>{ if(g.el) g.el.remove(); letGo(g); }, 280);
+  setTimeout(()=>{ if(g.el) g.el.remove(); letGo(g); }, ms + 20);
 }
 /* Put the real board back. It is the live element — not a copy — so a
    transform, a transition or the `hidden` it was given when its picture took
@@ -1557,6 +1594,12 @@ const ZOOM_MAX = 7;         // a 1×1 tile magnified any further is a mark
    a move across a board rather than a door opening, and the eye follows a
    travelling thing better than it follows a growing one. */
 const ZOOM_MS = 420;
+/* **Coming out is slower than going in**, and deliberately so. Going in you
+   already know where you are going — the thing you pressed is the thing that
+   grows. Coming out, the board has to reassemble itself around you, and at the
+   same speed that reads as a snap rather than a move: you arrive without
+   having seen where from. Half as long again. */
+const ZOOM_OUT_MS = 640;
 
 function zoomedIn(){ return !!(S.zoomOn && byId(S.zoomOn)); }
 
@@ -1725,7 +1768,8 @@ function applyZoom(){
     camWrite(grid, from);
     void grid.offsetWidth;
     grid.style.transition = '';
-    camMoving(grid);
+    grid.classList.add('camslow');       // the way out takes longer — see ZOOM_OUT_MS
+    camMoving(grid, ZOOM_OUT_MS);
     /* `.camera` **stays on** for the length of the journey: it is the class
        that carries the transition, and taking it off in the same frame the
        target is written leaves nothing to ease — which is how the way out came
@@ -1738,7 +1782,7 @@ function applyZoom(){
       CAM_DIM_KEYS.forEach(k => scroller.classList.remove('cam-'+k));
     }
     clearTimeout(applyZoom.out);
-    applyZoom.out = setTimeout(()=>{ if(!CAM.on) camRest(grid, scroller); }, ZOOM_MS + 40);
+    applyZoom.out = setTimeout(()=>{ if(!CAM.on) camRest(grid, scroller); }, ZOOM_OUT_MS + 40);
     return;
   }
 
@@ -1757,6 +1801,7 @@ function applyZoom(){
     grid.classList.add('camera');
     void grid.offsetWidth;                       // flush: make rest the held value
     grid.style.transition = '';
+    grid.classList.remove('camslow');
     camMoving(grid);
     camWrite(grid, c);
   } else if(arriving){
@@ -1792,6 +1837,7 @@ function applyZoom(){
 function camRest(grid, scroller){
   clearTimeout(applyZoom.out);
   camSettle(grid);
+  grid.classList.remove('camslow');
   if(scroller) CAM_DIM_KEYS.forEach(k => scroller.classList.remove('cam-'+k));
   if(grid.style.transform){ grid.style.transform = ''; grid.style.transformOrigin = ''; }
   grid.style.transition = '';

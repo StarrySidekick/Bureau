@@ -844,15 +844,14 @@
 .rz.ne{top:-7px;right:-7px;cursor:nesw-resize}
 .rz.sw{bottom:-7px;left:-7px;cursor:nesw-resize}
 .rz.se{bottom:-7px;right:-7px;cursor:nwse-resize}
-/* invisible until you go near the tile, then a small corner mark */
-.rz::before{content:"";position:absolute;width:8px;height:8px;background:var(--dink);
-  opacity:0;border-radius:1px;transition:opacity .14s}
-.rz.nw::before{top:6px;left:6px}
-.rz.ne::before{top:6px;right:6px}
-.rz.sw::before{bottom:6px;left:6px}
-.rz.se::before{bottom:6px;right:6px}
-.drawer:hover .rz::before{opacity:.42}
-.rz:hover::before{opacity:1}
+/* **The marks are gone; the board says it instead** — decision 190. Four
+   eight-pixel squares in the corners of every tile were how you could tell the
+   board was unlocked, and they are a lot of furniture for one bit of
+   information — which the checkerboard now carries on its own, across the
+   whole screen and impossible to miss. The grips themselves stay exactly where
+   they were: the *target* is the thing that matters, and it was never the
+   mark. A cursor still changes over one on a Mac. */
+.rz::before{content:none}
 /* A locked board renders no grips at all (tiles.js decides), so there is
    nothing here to hide — bar the one object whose corners the lock let out,
    which renders them on purpose and wears the bracket below to say so. */
@@ -3442,6 +3441,36 @@ html[data-style="golf97"] .check,html[data-style="golf97"] .clbox{border-radius:
    on the knob rather than fighting it */
 .drawer.dtile.sz-short .pull,.drawer.dtile.sz-thin .pull{opacity:.5}
 .drawer.dtile.sz-thin{padding:4px}
+/* **…unless it is thin and tall, where the name runs up the front.** One cell
+   of width has no room *across* for a name, which is why the rule above takes
+   it off — but a thin drawer four cells tall has all the room it needs, only
+   not in that direction. It used to be answered by turning the container into
+   a spine (decision 50), and there are dedicated books now, so a thin drawer
+   stays a drawer (decision 190) and would otherwise be an anonymous slab with
+   a folder on it. A label set up a narrow front is what a narrow drawer wears
+   in the world too, and it is still a drawer: the wood, the knob, the moulding
+   and the grain are all untouched, where a book is a binding, a round back and
+   gilt bands. One cell **square** keeps the mark, because there is no length
+   there to set a name along either.
+
+   The rotation is the spine's, and so is the trap: a `vertical-rl` box's
+   `start` is its *top*, which `rotate(180deg)` flips to the bottom — so a
+   short name on a tall front sits on the tail unless `text-align` says
+   otherwise. No `align-items` can reach it. */
+.drawer.dtile.sz-thin:not(.sz-short) .dmark{display:none}
+/* the knob comes back to full: it was dimmed to let the mark sit on it, and
+   there is no mark here to make room for */
+.drawer.dtile.sz-thin:not(.sz-short) .pull{opacity:1}
+.drawer.dtile.sz-thin:not(.sz-short) .dmark ~ .dtop{
+  display:flex;position:absolute;inset:7px 0 auto;margin:0;height:58%;
+  align-items:center;justify-content:center;z-index:2;
+}
+.drawer.dtile.sz-thin:not(.sz-short) .dmark ~ .dtop .dname{
+  writing-mode:vertical-rl;transform:rotate(180deg);
+  max-height:100%;text-align:center;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;
+  text-shadow:0 1px 1px rgba(0,0,0,.35);
+}
 
 /* the gilt edge carries its own hairline, in leaf rather than in the line slot */
 .drawer.bd-gilt{ border-style:solid;border-width:1px;

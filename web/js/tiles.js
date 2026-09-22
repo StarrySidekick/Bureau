@@ -852,8 +852,13 @@ const FLANKED = 0.5;
    branches of drawTile() below reach the same answer, and this has to agree
    with them — a tile told it is a book and then drawn as a drawer would be
    shaded by a slider that isn't showing it. */
+/* **A narrow drawer is a drawer.** One cell wide used to make a container draw
+   as a spine, from when a book was a kind of drawer and a shelf of them was the
+   only way to have books at all. There are dedicated books now, so a drawer
+   that happens to be thin is just a thin drawer — and a container only wears a
+   spine when it has actually been asked to (`face:'spine'`). See decision 190. */
 const drawsAsSpine = (o, box) => isContainer(o)
-  ? (faceOf(o)==='spine' || box.w<=1)
+  ? faceOf(o)==='spine'
   : shapeOf(o)==='spine';
 /* One condition for the layer and for the numbers that dress it, so a tile can
    never carry one without the other — and now it asks *which* of the two
@@ -1269,7 +1274,7 @@ function drawTileFace(o, arr, box, persp){
      runs up the tile, and it is a book on a shelf rather than a drawer that has
      run out of room. One cell square is still the mark and nothing else, above:
      at 40px a spine has no length to set a name along either. */
-  if(cont && (faceOf(o)==='spine' || box.w<=1)){
+  if(cont && faceOf(o)==='spine'){
     /* **A book wider than it is tall is lying down**, and that is the same test
        a cabinet answers from the other side (decision 54): which way round it
        is, never how big. A 4×1 or a 3×1 asked to be a spine is a book laid

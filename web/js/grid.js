@@ -150,9 +150,30 @@ function colsOf(cid, device){
 /* How many shelves a board is, either way. The desk is three by three; every
    other container is one by one until it is given more — `shelves` on the
    object, which is the "add another shelf" the desk's own editor writes. */
-function shelvesOf(cid){
+/* **Inside a container the shelf system is off.** A shelf is the desk's idea:
+   the desk is three by three of them and you walk between them, because a desk
+   is a room. A drawer is not a room — it is a box whose inside is exactly its
+   outside times four (decision 188) — so it has no shelves of its own to be
+   given or to store. What it has is *pages*, and only because a phone screen is
+   smaller than some drawers: how many screenfuls the board happens to come to,
+   derived, never stated. On a **Mac** the whole board is drawn at once, so
+   there is exactly one of them however big the drawer is.
+
+   Everything that walks between screenfuls — the dots in the bar, the pager,
+   `shelfAt`/`setShelf` — reads this one function, so deriving it here is what
+   makes a four-by-two drawer swipeable rather than silently one page with half
+   its board off the end. See decision 190. */
+function shelvesOf(cid, device){
   const id = cid==null ? hereId() : cid;
   if(id===ROOT) return {w:SHELVES, h:SHELVES};
+  const d = device || dev();
+  const inner = innerOf(id, d);
+  if(inner){
+    if(d !== 'phone') return {w:1, h:1};        // a Mac draws the whole board
+    const sw = Math.max(1, colsOf(id, d)), sh = Math.max(1, shelfRows(d, id));
+    return {w: Math.max(1, Math.ceil(inner.cols/sw)),
+            h: Math.max(1, Math.ceil(inner.rows/sh))};
+  }
   const o = byId(id), s = o && o.shelves;
   return {w:clamp((s&&s.w)||1, 1, SHELVES), h:clamp((s&&s.h)||1, 1, SHELVES)};
 }
@@ -173,23 +194,38 @@ function shelvesOf(cid){
 
    The desk itself is not a tile and keeps its nine shelves. */
 const INNER = 4;
-function innerOf(cid){
+function innerOf(cid, device){
   const id = cid==null ? hereId() : cid;
   if(id===ROOT) return null;
   const o = byId(id); if(!o) return null;
-  /* **The desk box governs, but a phone box will do.** A drawer made on a
-     phone never had a `desk` box at all — `ensureBox()` only fills in the
-     device being looked at — so every drawer made on one answered null here
-     and opened onto a single shelf however big it was. That was the whole of
-     "drawer grid sizes are not proportional at all".
-     A container's phone size is **half** its desk size (`toPhoneSize`), so
-     doubling it recovers the same coordinate space rather than a smaller one:
-     the two boxes cannot be allowed to disagree about how big the inside is.
-     Migration 36 gives every container a desk size so this is only ever the
-     fallback, and `create()` gives new ones both from the start. */
-  const b = (o.desk && o.desk.w && o.desk.h) ? o.desk
-    : (o.phone && o.phone.w && o.phone.h)
-      ? {w: o.phone.w*2, h: o.phone.h*2} : null;
+  const dv = device || dev();
+  /* **The box for the device you are looking at**, and that is the whole rule.
+     It read the *desk* box on both devices for a version, on the argument that
+     a coordinate space should not change shape between them — and a container
+     is deliberately **half the size on a phone** (`toPhoneSize`), so a drawer
+     that looked four cells by two on a phone opened onto thirty-two by
+     sixteen. "A 4×2 drawer gives you an 8×8 and another 8×8 beside it" is the
+     thing being described, and it is only true of the tile you can see.
+
+     The objects inside already store a box per device and `ensureBox()` places
+     each one on the board it is going onto, so the two boards being different
+     shapes costs nothing: they were never one space to begin with. See
+     decision 190.
+
+     The other device's box is the fallback, for a drawer that has only ever
+     been on one board — and it is **converted**, not read across. A container
+     is half the size on a phone (`toPhoneSize`), so a drawer that only has a
+     phone box doubles onto the desk and one that only has a desk box halves
+     onto the phone. Reading it across gives the same drawer two boards four
+     times apart, which is how a drawer made on a phone came to open onto a
+     single shelf however big it was. */
+  const own = o[dv] && o[dv].w && o[dv].h ? o[dv] : null;
+  const other = dv==='phone' ? o.desk : o.phone;
+  const b = own ? own
+    : (other && other.w && other.h)
+      ? (dv==='phone' ? {w:Math.max(1,Math.round(other.w/2)), h:Math.max(1,Math.round(other.h/2))}
+                      : {w:other.w*2, h:other.h*2})
+      : null;
   if(!b) return null;                        // never placed: fall back to a shelf
   return {cols: Math.max(2, Math.round(b.w*INNER)),
           rows: Math.max(2, Math.round(b.h*INNER))};
@@ -215,14 +251,10 @@ const gridOf = (device, cid)=>{
   const rowh = m.w ? m.w/(d==='phone' ? shelfW : GRID.desk.cols) : CELL[d];
   const shelfH = shelfRows(d, cid);
   /* A container sizes its own board from its tile; the desk keeps its shelves.
-     The shelves a container has are then **derived** from that board rather
-     than stored — a phone windows whatever the space turns out to be, so a
-     drawer big enough to need two screens gets two and nobody had to say so. */
-  const inner = innerOf(cid);
-  const sh = inner
-    ? {w: Math.max(1, Math.ceil(inner.cols/Math.max(1, shelfW))),
-       h: Math.max(1, Math.ceil(inner.rows/Math.max(1, shelfH||1)))}
-    : shelvesOf(cid);
+     How many screenfuls that comes to is `shelvesOf()`'s to say — one function,
+     so the dots in the bar, the pager and the board itself cannot disagree. */
+  const inner = innerOf(cid, d);
+  const sh = shelvesOf(cid, d);
   return {cols: inner ? inner.cols : shelfW*sh.w,
           rows: inner ? inner.rows : shelfH*sh.h,
           shelfW, shelfH, shelves:sh, gap:GRID[d].gap, rowh};

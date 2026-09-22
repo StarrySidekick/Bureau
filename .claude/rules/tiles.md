@@ -22,8 +22,13 @@ mark and nothing else, because at 40px a title is three letters and an ellipsis.
 A drawer front at `sz-short` reaches the same answer from the other side — the
 name goes and the mark sits over the knob — and it does it in CSS, off a
 `.dmark` the plain front always renders, so the rule cannot take the name off a
-checklist that happens to be short. At `sz-thin` a container is a spine instead,
-which keeps the name. The classes are spliced into the first `class="` of
+checklist that happens to be short. At `sz-thin` and **tall** the name runs
+*up* the front instead: one cell of width has no room across for a name and a
+four-cell-tall drawer has all the room it needs, only not in that direction.
+That used to be answered by turning the container into a spine; there are
+dedicated books now, so a thin drawer stays a drawer (decision 190) and the
+label is what a narrow front wears in the world too. One cell **square** is
+still the mark alone, from either side. The classes are spliced into the first `class="` of
 whatever `drawTile()` returns, so a new branch gets the behaviour without being
 told. See decisions 26 and 50.
 
@@ -723,3 +728,36 @@ because the finger is resting on words it may be about to push.
 its tile by dividing the available width by the digit count *times 0.62*;
 dividing by the count alone makes a three-digit counter half the size it could
 be. `--digits` is written by the renderer, which is the only place that knows.
+
+**A candle stands, and its light is worked out from the same two lines that
+drew it.** An instrument is drawn `xMidYMid meet` — an instrument sits in the
+middle of its box — and an instrument may now say otherwise with `par` on its
+`ACTIVE` entry, which the candle does (`xMidYMax meet`). It has to: the wax is
+as long as the timer since decision 188, so a short candle centred in a tall
+tile floated with air above it *and* below it, which reads as a drawing that
+has come loose rather than as a stub. On the floor the air is all above, and
+that is the picture of how long it burns for. `activeFlame()` reads `parOf()`
+too — it undoes the letterboxing to place the light, so it has to undo the
+*same* letterboxing. And it reads `candleFull()` rather than the fixed 84-unit
+taper it was written against, which had put the glow a tile and a half above
+the wick on every length but the default. See decision 190.
+
+**An `<svg>` clips its own viewport, and the tile's `overflow` has nothing to
+say about it.** The die's roll was a rotation on a `<g>` inside the artwork,
+and since the die grew to fill its viewBox there was no margin left inside for
+a corner to swing into — so every corner that left the square was shaved off
+and a throw read as a die sitting still. The turn is on `.actart` itself, an
+ordinary HTML element with only the tile to get past, and `.acttile.rolling`
+has already lifted the tile's own clip and put it over its neighbours. The
+general rule: to move a drawing past the edge of its box, move the box.
+
+**A container one cell wide is a spine only if its face says so.** Decision
+50's fallback — a front too thin for a name becomes a spine — was the answer
+before there were dedicated books, and it turned any tall narrow drawer into
+one. `drawsAsSpine()` asks `faceOf(o)` for a container and `shapeOf(o)` for an
+object, so a thin drawer is still a drawer and an object wearing `sh-spine` is
+still a book. See decision 190.
+
+**Under the camera an envelope is open.** Pressing a letter takes the letter
+out of it, which is what the closed front is *for*, so `.sh-letter.oncamera`
+drops the flap and the wax and the plain sheet underneath is what you read.
