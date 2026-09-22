@@ -348,6 +348,15 @@ const BUILTIN_KINDS = {
   jar:     {face:'jar', nm:'Jar', ic:'pot', c:15, key:'A',
      ds:'Glass — what is in it shows without opening it',
      attrs:['container'], layout:'grid', size:[3,4], phoneSize:[3,4], body:'' },
+  /* **A pigeonhole is a drawer with no front.** The panelling is a frame and
+     the middle is open, so what you see is what is in it — the real tiles,
+     small, where they stand on the board inside. A collage shows the same
+     arrangement as outlines; this shows the things. It is a face any container
+     can wear, and a drawer one cell wide wears it without being asked, because
+     that is the shape of a slot in a pigeonhole cabinet. See decision 193. */
+  pigeonhole:{face:'pigeonhole', nm:'Pigeonhole', ic:'grid', c:14,
+     ds:'A drawer with no front — what is in it shows, small, where it stands',
+     attrs:['container'], layout:'grid', size:[2,4], phoneSize:[1,2], body:'' },
   quote:   {shape:'quote', nm:'Quote',   ic:'book',    c:5, key:'Z', ds:'Someone else\'s words',      size:[6,4], onclick:'read', attrs:['text','link','rating'],
             body:'> \n\n— ' },
   /* **Story is gone.** It was Prose & Poetry with a different binding: a
@@ -602,7 +611,7 @@ const BUILTIN_KINDS = {
    four drawers lead, because what you are usually doing on a bare board is
    making somewhere to put things. See decision 130. */
 const PRIMARY = ['drawer','magic','project','life','goal',
-                 'book','checklist','calendar','jar','moodboard','timeline',
+                 'book','checklist','calendar','jar','pigeonhole','moodboard','timeline',
                  'note','fragment','label','recipe','achievement',
                  'task','progressbar','counter','appt',
                  'image','audio','video','post','decoration','instrument','control','generator'];
@@ -1256,7 +1265,7 @@ const panelOf = o => {
 const FACES = {front:'Drawer front', checklist:'Checklist', project:'Project',
                life:'Life area', goal:'Goal',
                calendar:'Calendar', collage:'Collage', timeline:'Timeline',
-               spine:'Book spine'};
+               spine:'Book spine', pigeonhole:'Pigeonhole'};
 
 /* ---- which cover a project wears ---------------------------------------
    A project face is a report; `proj` says what the thing being reported on

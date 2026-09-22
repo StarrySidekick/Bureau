@@ -14,7 +14,7 @@ import { themeNow, applyLook, lookVal, STYLES, BACKDROPS, SURFACES, DARKMODES, d
   palNow, styleNow, hexOf, objColour, slotName, OBJ0, CHECKS, dressAs } from './look.js';
 import { gridOfContainer, gridTile, listTile, bookView, calSpan } from './tiles.js';
 import { gravitySync } from './gravity.js';
-import { openPanel, closePanel, panelKey, repositionPanel, plansPanel } from './panels.js';
+import { openPanel, closePanel, panelKey, repositionPanel, plansPanel, boardRow } from './panels.js';
 import { openGuide } from './guide.js';
 /* Cyclic at *function* level only — motion.js imports render() from here and
    this imports sprayAt() from there, and neither is called while the modules
@@ -36,32 +36,26 @@ import { APP_VERSION, DATA_V, save, saveIfDirty, storeSize, install } from './pe
    its own — it is whoever's desk this is. */
 const boardName = o => !o || o.id===ROOT ? deskTitle() : (o.title||'Untitled');
 
-/* The breadcrumb runs from the desk you are on, not from home: "Finance ›
-   Bills" is where you are, and "Desk › Finance › Bills" is a path back to a
-   house nobody has lived in since there was more than one of them. chainOf()
-   already stops at a desk; a drawer on the *home* desk stops short of it,
-   because home is not an object, so it is put back on the front here. */
 /* The name at the top left is the way to every other desk. Desks are not on
    the shelf any more — they are laid out in space, walked sideways with a
    swipe — so the one thing that has to exist is a way of seeing the whole row
    at once and jumping. That is this: press where you are, and every desk opens
    out, drawn small. See decision 41. */
+/* **Inside a container the bar says which one, and nothing else.** It was a
+   trail — a chevron back, then "Tombo's Desk › Untitled" — which restated the
+   home desk on every board you were not on and spent a button on the way up
+   that the knob along the bottom already is. So the name at the top left is
+   the board you are standing on, in the place the desk's own name stands on
+   the desk, and the knob is the way out. */
 function gridBar(c){
-  let trail = chainOf(c.id);
-  if(!(trail[0] && isDesk(trail[0].id))) trail = [container(deskOf(c.id)), ...trail];
-  const atDesk = trail.length<=1;
+  const atDesk = c.id===ROOT || isDesk(c.id);
   const sh = shelvesOf(c.id), at = shelfAt(c.id);
   const deskBtn = (label)=>`<b class="deskname" data-act="deskmap"
-    title="Every shelf, laid out">${esc(label)}</b>`;
+    title="Every board, laid out">${esc(label)}</b>`;
   return `<div class="gridbar shelf shelf-top">
     <div class="where">
-      ${atDesk ? `<span class="here">${deskBtn(boardName(trail[0]))}</span>` :
-        `<button class="iconbtn" data-act="back" data-id="${c.id}" title="Back">${ic('chevL',17)}</button>
-         <span class="trail">${
-           trail.map((x,i)=>`${i?` ${ic('chevR',9)} `:''}${i===trail.length-1
-             ? `<span class="here">${esc(boardName(x))}</span>`
-             : i===0 ? deskBtn(x.id===ROOT ? deskTitle() : boardName(x))
-             : `<b data-drawer="${x.id}">${esc(boardName(x))}</b>`}`).join('')}</span>`}
+      ${atDesk ? `<span class="here">${deskBtn(boardName(c))}</span>`
+               : `<span class="here">${esc(boardName(c))}</span>`}
       ${has(c,'magic')?`<span class="magicmark big" title="Collects by rule">${ic('sparkle',14)}</span>`:''}
       ${/* The dots are the **shelves of this board**, laid out the way they
            actually are, with the one you are standing on lit. A row of dots
@@ -138,11 +132,11 @@ function gridBar(c){
            A brush, because what it mostly changes is how the thing looks. */''}
       <button class="sqbtn" data-act="drawersettings" data-id="${c.id}"
         title="${c.id===ROOT?'This desk':'Object editor'}">${ic('brush',16)}</button>
-      ${/* …and the gear is the *app*, which is a different question and only
-           worth asking from a desk. Two icons rather than one standing for
-           both. */''}
-      ${c.id===ROOT?`<button class="sqbtn" data-act="appsettings" data-id="${c.id}"
-        title="Settings">${ic('gear',16)}</button>`:''}
+      ${/* …and the gear is the *app*, which is a different question. Inside a
+           container the app has nothing to say that is not about the board,
+           so there it opens Board settings directly. See decision 193. */''}
+      <button class="sqbtn" data-act="appsettings" data-id="${c.id}"
+        title="${c.id===ROOT?'Settings':'Board settings'}">${ic('gear',16)}</button>
     </div>
   </div>`;
 }
@@ -588,6 +582,13 @@ const installed = ()=> window.matchMedia('(display-mode: standalone)').matches |
    doors, each one is the same panel under the same key, and `spec.back` is the
    way out. See decision 66. */
 const SETSECS = {
+  /* **Board settings** — decision 193. Everything about the surface you are
+     standing on, in one door: which aesthetic dresses it, the colour of its
+     squares, what it is made of, whether it lets go, and how big it is. They
+     were scattered across Aesthetics and Appearance, and they are the one set
+     of settings that means something inside a container too — so inside one,
+     the gear opens straight onto this door and nothing else. */
+  board:  ['Board settings', 'grid', 'aesthetic, colour, surface, gravity and size'],
   style:  ['Aesthetics', 'palette', 'the sixteen colours, light and dark'],
   look:   ['Appearance', 'brush',   'the board, the shadows, the grid'],
   /* Depth was four rows at the foot of Appearance and is now eleven, because a
@@ -610,7 +611,7 @@ const SETSECS = {
   paste:  ['Paste in',   'plus',    'objects described as JSON'],
   about:  ['About',      'help',    'which Bureau this is, and starting over']
 };
-function settingsPanel(sec){
+function settingsPanel(sec, cid){
   /* Plans is a door in this list and a **panel of its own** — it is wide, it
      draws boards rather than rows, and it is reached from the picker as well
      as from here. So the row hands over rather than rendering in place. */
@@ -619,22 +620,43 @@ function settingsPanel(sec){
      the screen the way a surface does rather than a column down the edge. */
   if(sec==='guide'){ closePanel(); return openGuide(); }
   const s = SETSECS[sec] ? sec : null;
+  /* Inside a container there is no app to set — the aesthetic, the gravity and
+     the board are all there is — so the door is the whole panel and there is
+     no way back to a list of doors that would all be about somewhere else. */
+  const inside = !!(cid && cid!==ROOT && byId(cid));
   openPanel({key:'settings', title: s ? SETSECS[s][0] : 'Settings',
-    sub: s ? 'Settings' : `Bureau ${APP_VERSION} · ${installed()?'installed':'in a browser tab'}`,
-    back: s ? (()=>settingsPanel()) : null,
-    body:()=>settingsBody(s)});
+    sub: inside ? boardName(byId(cid)) : s ? 'Settings' : `Bureau ${APP_VERSION} · ${installed()?'installed':'in a browser tab'}`,
+    back: (s && !inside) ? (()=>settingsPanel()) : null,
+    body:()=>settingsBody(s, inside ? cid : null)});
 }
-function toggleSettings(){ panelKey()==='settings' ? closePanel() : settingsPanel(); }
+/* The gear: the whole of settings from the desk, and the board you are in
+   from anywhere else. */
+function toggleSettings(){
+  if(panelKey()==='settings') return closePanel();
+  const here = S.view==='drawer' && S.drawerId;
+  here ? settingsPanel('board', S.drawerId) : settingsPanel();
+}
 
-function settingsBody(sec){
+/* Every aesthetic, as a swatch of itself. Drawn in two doors — Board settings,
+   where it is one of the things a board is dressed in, and Aesthetics, where
+   its sixteen colours are — and one function so the two cannot disagree. */
+const stylePicker = ()=> `<div class="stylegrid">${Object.entries(STYLES).map(([k,st])=>
+      `<button class="styletile${(S.look.style||'victorian')===k?' on':''}" data-style3="${k}">
+        <span class="stpv" style="background:${st.cols[0]};border-color:${st.cols[2]}">${
+          [3,5,6,9,11,12].map(i=>`<i style="background:${st.cols[i]}"></i>`).join('')}</span>
+        <b>${st.nm}</b><i>${st.ds}</i></button>`).join('')}</div>
+    <div class="mini" style="--k:var(--brass);margin-top:6px">An aesthetic is sixteen colours, a board, a typeface, and the defaults new drawers are born with. It is the whole desk's, in here as much as out there.</div>`;
+
+function settingsBody(sec, cid){
   const standalone = installed();
   const at = s => sec===s;
+  const inside = !!cid;
   if(!sec) return `<div class="rows osecs">${Object.entries(SETSECS).map(([k,[nm,icon,note]])=>
       `<div class="row" data-ssec="${k}">
         <span class="kindmark">${ic(icon,13)}</span>
         <div class="body"><div class="title">${esc(nm)}</div><div class="snip">${esc(note)}</div></div>
         <span class="rowgo">${ic('chevR',13)}</span></div>`).join('')}</div>
-    <div class="mini" style="--k:var(--brass);margin-top:10px">This board's own colour, layout and lock are in <b>its</b> editor — the brush in the bar — not here. See decision 53.</div>`;
+    <div class="mini" style="--k:var(--brass);margin-top:10px">Inside a container the gear opens its <b>Board settings</b> and nothing else. How a board is laid out and sorted is in its editor — the brush in the bar. See decisions 53 and 193.</div>`;
   return [
     at('about') ? `
 
@@ -647,12 +669,7 @@ function settingsBody(sec){
     <div class="mini" style="--k:var(--brass);margin-top:6px">An installed copy serves itself from its own cache, so it can be a version behind until its second launch. This is the one that is running right now.</div>` : '',
     at('style') ? `
     <div class="section-h"><h2>Aesthetics</h2><div class="rule"></div></div>
-    <div class="stylegrid">${Object.entries(STYLES).map(([k,st])=>
-      `<button class="styletile${(S.look.style||'victorian')===k?' on':''}" data-style3="${k}">
-        <span class="stpv" style="background:${st.cols[0]};border-color:${st.cols[2]}">${
-          [3,5,6,9,11,12].map(i=>`<i style="background:${st.cols[i]}"></i>`).join('')}</span>
-        <b>${st.nm}</b><i>${st.ds}</i></button>`).join('')}</div>
-    <div class="mini" style="--k:var(--brass);margin-top:6px">An aesthetic is sixteen colours, a board, a typeface, and the defaults new drawers are born with. Everything below still works afterwards.</div>
+    ${stylePicker()}
 
     ${/* Light or dark is still not a second axis: it is a second set of
          sixteen that an aesthetic may carry, and Victoria is the one that does.
@@ -677,16 +694,12 @@ function settingsBody(sec){
       ${(S.look.slots&&S.look.slots[S.look.style||'victorian'])
         ? `<button class="pill" style="margin-top:8px" data-act="resetslots">${ic('undo',13)} Back to ${esc(styleNow().nm)}&rsquo;s own sixteen</button>` : ''}
     </div>` : '',
-    at('look') ? `
-    <div class="section-h"><h2>Appearance</h2><div class="rule"></div></div>
-    <div class="field"><label>Background</label>
-      <div class="pickgrid sw" style="margin-top:6px">${BACKDROPS.map(([c,nm])=>
-        `<button data-look="bg" data-val="${c}" title="${nm}" class="${(lookVal('bg')||'')===c?'on':''}" style="background:${c}"></button>`).join('')}</div>
-      <label class="custcol"><input type="color" data-lookinput="bg" value="${lookVal('bg')||palNow()[0]}"><span>Custom background</span></label>
-      ${lookVal('bg')?`<button class="pill" style="margin-left:6px" data-look="bg" data-val="">Reset</button>`:''}
-    </div>
-
-    <div class="field" style="margin-top:12px"><label>Board</label>
+    at('board') ? `
+    <div class="section-h"><h2>Aesthetic</h2><div class="rule"></div></div>
+    ${stylePicker()}
+    <div class="section-h"><h2>The board</h2><div class="rule"></div></div>
+    ${inside ? boardRow(cid, byId(cid), false) : `
+    <div class="field" style="margin-top:12px"><label>Board colour</label>
       <div class="pickgrid sw" style="margin-top:6px">${
         [['#EFEADA|#DDE5CE','Green baize'],['#EFEADA|#E4DCC6','Sand'],['#EDE6D4|#D9E2E4','Slate'],
          ['#F0EBDC|#E8DAD2','Clay'],['#EEE9DA|#E2E2DA','Ash'],['#EFEADA|#EFEADA','Plain']].map(([v,nm])=>{
@@ -708,6 +721,45 @@ function settingsBody(sec){
       ${lookVal('board')?`<button class="pill" style="margin-top:6px" data-look="board" data-val="">Reset</button>`:''}
     </div>
 
+`}
+    ${/* What the board is made of. It was tied to the lock for one version —
+          graph paper unlocked, the carcass locked — and that made the surface
+          you look at all day change under a switch you flick all day. It is a
+          thing you set once, so it is a row. See decision 192. */''}
+    <div class="field" style="margin-top:12px"><label>What the board is made of</label>
+      <div class="filterbar">${Object.entries(SURFACES).map(([v,n])=>
+        `<button class="fchip${(S.look.surface||'grid')===v?' on':''}" data-surface="${v}">${n}</button>`).join('')}</div>
+      <div class="mini" style="--k:var(--brass);margin-top:6px"><b>Graph paper</b> is the checkerboard, two cells to a square, and it is what arranging is done on. <b>Plain</b> is the same colour with nothing drawn on it. <b>The carcass</b> is the wood the bar above and the drawer along the bottom are made of, so the whole screen reads as one piece of furniture. The board's own colour is still the board's own colour — this only says what is drawn on it.</div>
+    </div>
+
+    ${/* The board lets go. It is an experiment and the note says so — but it
+          is a real solver rather than a keyframe, because the interesting half
+          is what a pile *does* when you throw another drawer into it. Nothing
+          moves in the model: the boxes stay exactly where they are and the
+          whole fall is a transform over the top, so switching it off is the
+          arrangement you had. See decision 166. */''}
+    <div class="field" style="margin-top:12px"><label>Gravity</label>
+      <div class="filterbar">${Object.entries(GRAVITIES).map(([v,n])=>
+        `<button class="fchip${gravityMode()===v?' on':''}" data-gravity="${v}">${n}</button>`).join('')}</div>
+      <div class="mini" style="--k:var(--brass);margin-top:6px">Everything on the board you are looking at stops being on the grid and falls into a heap at the bottom of it. <b>Sand</b> is the plain answer: nothing turns, so a thing drops straight down and sits on what is under it. <b>Tumbling</b> gives each one real weight, so it lands on a corner, leans, and the pile finds its own angle. You can pick one out of the heap and throw it, and tapping one still opens it.</div>
+      <div class="mini" style="--k:var(--brass);margin-top:6px">Nothing here changes the desk. Every tile keeps the cell you put it in and the fall is drawn over the top, so switching it off puts the board back exactly as it was.</div>
+      ${gravityOn() && S.device!=='desk' ? `
+      <label class="rangerow" style="margin-top:12px"><span>Which way is down</span><b></b></label>
+      <div class="filterbar">${[['','Down the board'],['1','Wherever the phone leans']].map(([v,n])=>
+        `<button class="fchip${(S.look.gravitytilt?'1':'')===v?' on':''}" data-gravitytilt="${v}">${n}</button>`).join('')}</div>
+      <div class="mini" style="--k:var(--brass);margin-top:6px">Where down actually is, the whole circle of it. Roll the phone and the heap runs to the low edge; turn it right over and everything falls to the top of the screen; lay it flat on a table and nothing moves at all, because a tray held level is not tipping anything anywhere. Half a tilt is half the pull. It asks iPhone for the motion sensor the first time, and it is the same one the cavity reads.</div>` : ''}
+    </div>
+
+    ${inside ? shelfCountField(cid) : gridSizeField(null)}` : '',
+    at('look') ? `
+    <div class="section-h"><h2>Appearance</h2><div class="rule"></div></div>
+    <div class="field"><label>Background</label>
+      <div class="pickgrid sw" style="margin-top:6px">${BACKDROPS.map(([c,nm])=>
+        `<button data-look="bg" data-val="${c}" title="${nm}" class="${(lookVal('bg')||'')===c?'on':''}" style="background:${c}"></button>`).join('')}</div>
+      <label class="custcol"><input type="color" data-lookinput="bg" value="${lookVal('bg')||palNow()[0]}"><span>Custom background</span></label>
+      ${lookVal('bg')?`<button class="pill" style="margin-left:6px" data-look="bg" data-val="">Reset</button>`:''}
+    </div>
+
     ${/* Every tile casts a shadow onto whatever is under it, which is most of
          what makes a board read as things lying *on* a surface rather than as
          coloured rectangles. It is also the single loudest thing in the app, so
@@ -722,24 +774,6 @@ function settingsBody(sec){
       <div class="mini" style="--k:var(--brass);margin-top:6px">Pinned gives every tile a little room around it and tilts it a degree or two, as though a pin went through one of its top corners. The angle comes from the object itself, so nothing moves between renders — and a tile straightens while you carry it.</div>
     </div>
 
-    ${/* The board lets go. It is an experiment and the note says so — but it
-          is a real solver rather than a keyframe, because the interesting half
-          is what a pile *does* when you throw another drawer into it. Nothing
-          moves in the model: the boxes stay exactly where they are and the
-          whole fall is a transform over the top, so switching it off is the
-          arrangement you had. See decision 166. */''}
-    <div class="field" style="margin-top:12px"><label>Gravity</label>
-      <div class="filterbar">${Object.entries(GRAVITIES).map(([v,n])=>
-        `<button class="fchip${gravityMode()===v?' on':''}" data-gravity="${v}">${n}</button>`).join('')}</div>
-      <div class="mini" style="--k:var(--brass);margin-top:6px">Everything on the shelf you are looking at stops being on the grid and falls into a heap at the bottom of it. <b>Sand</b> is the plain answer: nothing turns, so a thing drops straight down and sits on what is under it. <b>Tumbling</b> gives each one real weight, so it lands on a corner, leans, and the pile finds its own angle. You can pick one out of the heap and throw it, and tapping one still opens it.</div>
-      <div class="mini" style="--k:var(--brass);margin-top:6px">Nothing here changes the desk. Every tile keeps the cell you put it in and the fall is drawn over the top, so switching it off puts the board back exactly as it was.</div>
-      ${gravityOn() && S.device!=='desk' ? `
-      <label class="rangerow" style="margin-top:12px"><span>Which way is down</span><b></b></label>
-      <div class="filterbar">${[['','Down the board'],['1','Wherever the phone leans']].map(([v,n])=>
-        `<button class="fchip${(S.look.gravitytilt?'1':'')===v?' on':''}" data-gravitytilt="${v}">${n}</button>`).join('')}</div>
-      <div class="mini" style="--k:var(--brass);margin-top:6px">Where down actually is, the whole circle of it. Roll the phone and the heap runs to the low edge; turn it right over and everything falls to the top of the screen; lay it flat on a table and nothing moves at all, because a tray held level is not tipping anything anywhere. Half a tilt is half the pull. It asks iPhone for the motion sensor the first time, and it is the same one the cavity reads.</div>` : ''}
-    </div>
-
     ${/* How much a checklist front shows — **per device**, like a box is. Two
           lines to a cell is a good Mac front and a bad phone one: the cell is
           the same fifty pixels on both, so a packed line on a phone is a
@@ -748,16 +782,6 @@ function settingsBody(sec){
       <div class="filterbar">${Object.entries(CL_FITS).map(([v,n])=>
         `<button class="fchip${clFit()===v?' on':''}" data-clfit="${v}">${n}</button>`).join('')}</div>
       <div class="mini" style="--k:var(--brass);margin-top:6px">Twice as many packs two lines into every cell of a checklist's height, with the type and the box brought down to suit — a six-cell front shows twelve things to do instead of six. One per cell is a line exactly as tall as the task tile it stands for. Each device answers for itself: a phone is one per cell and a Mac is twice as many, until you say otherwise here.</div>
-    </div>
-
-    ${/* What the board is made of. It was tied to the lock for one version —
-          graph paper unlocked, the carcass locked — and that made the surface
-          you look at all day change under a switch you flick all day. It is a
-          thing you set once, so it is a row. See decision 192. */''}
-    <div class="field" style="margin-top:12px"><label>What the board is made of</label>
-      <div class="filterbar">${Object.entries(SURFACES).map(([v,n])=>
-        `<button class="fchip${(S.look.surface||'grid')===v?' on':''}" data-surface="${v}">${n}</button>`).join('')}</div>
-      <div class="mini" style="--k:var(--brass);margin-top:6px"><b>Graph paper</b> is the checkerboard, two cells to a square, and it is what arranging is done on. <b>Plain</b> is the same colour with nothing drawn on it. <b>The carcass</b> is the wood the bar above and the drawer along the bottom are made of, so the whole screen reads as one piece of furniture. The board's own colour is still the board's own colour — this only says what is drawn on it.</div>
     </div>
 
     ${/* Six tick boxes, each drawn as itself — ticked, because what a box
@@ -803,8 +827,6 @@ function settingsBody(sec){
       <div class="mini" style="--k:var(--brass);margin-top:6px">Off, a tile is the colour and the border and nothing else — flatter, quieter, and easier to read a crowded board off.</div>
     </div>
 
-
-    ${gridSizeField(null)}
 
     <div class="field" style="margin-top:12px"><label>Whose desk this is</label>
       <input data-lookinput="owner" value="${esc(S.look.owner||'')}" placeholder="Your name">

@@ -357,3 +357,11 @@ sheet *is* the screen:
   surround, so `.fullbleed` is `pointer-events:auto` with `background:
   var(--paper)` and `overflow:hidden` — whatever the page does or does not
   reach, there is no pixel here that belongs to the board.
+
+
+**The gear is Settings on the desk and Board settings in a container.**
+`toggleSettings()` asks where you are. `settingsPanel(sec, cid)` with a
+container id opens that one door with no way back, and `settingsBody()` draws the
+container's own board colour (`boardRow()` from panels.js) and size
+(`shelfCountField()`) where the desk draws the app's. The aesthetic picker is
+`stylePicker()`, drawn in both Board settings and Aesthetics. See decision 193.

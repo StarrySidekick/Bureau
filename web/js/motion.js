@@ -525,7 +525,13 @@ function leaveTile(id, go, scrub){
   dive(m, r, mr, 'away', inner);
   m.classList.add('in-diveout');
 
-  const parts=[twin, cave, face, m];
+  /* The bar and the rail fade up on their own animation, which is a child's
+     and not `m`'s — so a scrubbed way out (the pinch) paused the board and let
+     them run on, and they were back at full strength over a board still
+     zoomed into the mouth, two thirds of the way through a gesture your
+     fingers were still holding. They ride the same clock as everything else. */
+  const chrome=[...m.querySelectorAll(':scope > .gridbar, :scope > .deskrail, :scope > .deskknob')];
+  const parts=[twin, cave, face, m, ...chrome];
   const clean=()=>{
     twin.remove(); cave.remove(); face.remove();
     m.classList.remove('in-diveout');

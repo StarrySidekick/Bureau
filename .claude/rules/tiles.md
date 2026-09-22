@@ -761,3 +761,15 @@ still a book. See decision 190.
 **Under the camera an envelope is open.** Pressing a letter takes the letter
 out of it, which is what the closed front is *for*, so `.sh-letter.oncamera`
 drops the flap and the wax and the plain sheet underneath is what you read.
+
+
+**A pigeonhole draws its children with `gridTile()`, and makes them a picture.**
+`pigeonBoard()` in tiles.js lays the children out on the container's real board
+at the real cell size and scales the lot to the opening with one transform. It
+strips every `data-*`, turns nested `<button>`s into `<div>`s, zeroes
+`SHELFSHIFT` while it draws and puts it back, and goes one level deep. Anything
+that adds a way of finding a tile by attribute has to be something this strip
+removes, or the miniature will answer to it. **Which face at this size** is
+`faceAt(o, box)`, not `faceOf(o)`: a front one cell wide and taller than that
+is a pigeonhole unless the object named a face. A one-cell container keeps its
+knob, with its mark printed on it. See decision 193.

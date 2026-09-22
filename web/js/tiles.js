@@ -915,6 +915,59 @@ function jitter(id){
 }
 const COLLAGE_MAX = 60;
 
+/* ---- which face, at this size ------------------------------------------
+   `faceOf()` is the object's answer and knows nothing about the box. A thin
+   tall container — one cell across, more than one down — draws as a
+   pigeonhole unless the object itself has named a face, because a front one
+   cell wide has no room for the name it exists to carry. Only a *front* gives
+   way: a jar, a calendar or a checklist that thin is still what it is. */
+const faceAt = (o, box) => {
+  const f = faceOf(o);
+  if(f!=='front' || (o && o.face)) return f;
+  return box && box.w===1 && box.h>1 ? 'pigeonhole' : f;
+};
+
+/* ---- what a pigeonhole shows -------------------------------------------
+   The children drawn by the one function that draws a tile anywhere, laid out
+   on their own board at its real cell size, then scaled down as one piece to
+   the opening. So every face, colour, edge and mark is the real one, and the
+   miniature cannot drift from the board it is a picture of.
+
+   Three things it has to be careful of. **It is a picture, not a board**: the
+   tiles are made inert — no `data-*` for a lookup to find, no nested buttons
+   (a tile is a `<button>`, and a button in a button is unnested by the parser)
+   and no pointer events — so the drag, the camera and `tileOf()` only ever see
+   the pigeonhole itself. **The window is this board's, not the one being
+   drawn**: `SHELFSHIFT` is the phone's shelf offset for the board you are on,
+   and it is zeroed for the inside and put back. And **one level only**: a
+   pigeonhole inside a pigeonhole shows its frame, not a third board — a face
+   is a miniature, and a miniature of a miniature is a texture that costs a
+   render. */
+const PIGEON = {depth:0, frame:6};
+function pigeonBoard(o, box){
+  if(PIGEON.depth) return '';
+  const dv = dev(), cell = CELL[dv] || 40;
+  const g = gridOf(dv, o.id);
+  const kids = childrenOf(o).slice(0, COLLAGE_MAX);
+  if(!kids.length) return '';
+  const f = box.w<=1 ? 4 : PIGEON.frame;
+  const iw = box.w*cell - 2*f, ih = box.h*cell - 2*f;
+  const bw = g.cols*cell, bh = g.rows*cell;
+  const k = Math.max(0.02, Math.min(iw/bw, ih/bh));
+  const was = {x:SHELFSHIFT.x, y:SHELFSHIFT.y};
+  SHELFSHIFT.x = SHELFSHIFT.y = 0;
+  PIGEON.depth++;
+  let tiles = '';
+  try { tiles = kids.map(x => gridTile(x, false, o.id)).join(''); }
+  finally { PIGEON.depth--; SHELFSHIFT.x = was.x; SHELFSHIFT.y = was.y; }
+  tiles = tiles.replace(/ data-[a-z0-9-]+="[^"]*"/g, '')
+               .replace(/<button\b/g, '<div').replace(/<\/button>/g, '</div>');
+  return `<div class="pgboard" aria-hidden="true" style="width:${bw}px;height:${bh}px;${
+    ''}left:${(f + (iw - bw*k)/2).toFixed(1)}px;top:${(f + (ih - bh*k)/2).toFixed(1)}px;${
+    ''}--rowh:${cell}px;grid-template-columns:repeat(${g.cols},${cell}px);${
+    ''}grid-template-rows:repeat(${g.rows},${cell}px);transform:scale(${k.toFixed(4)})">${tiles}</div>`;
+}
+
 /* ---- the cover a project wears ------------------------------------------
    A piece of work has a shape you know before it exists — a film is a poster,
    an album is a sleeve, a game is a boxed case, an app is an icon — and the
@@ -1200,6 +1253,21 @@ function drawTileFace(o, arr, box, persp){
       </button>`;
     }
     const mark = cont && has(o,'magic') ? 'sparkle' : iconOf(o);
+    /* **A drawer at one cell is still a drawer, so it keeps its knob** — and
+       the mark goes *on* the knob rather than beside it, printed onto the
+       turned wood: the highlight and the shade run over the top of it and it
+       fades as it curves away at the rim, so it reads as a thing on a sphere
+       rather than a sticker on a disc. `minimark` stays on it, because that is
+       what a one-cell tile's mark is called everywhere else. See decision 193. */
+    if(cont){
+      const knob = o.knobc ? esc(o.knobc) : colour;
+      return `<button class="drawer dtile ${dress(o,'bd')} minitile minidrawer${sel}"
+        data-drawer="${o.id}" title="${esc(o.title||'Untitled')}"
+        style="--c:${colour};--knob:${knob};${place}">
+        <span class="pull ${dress(o,'kn')} minipull"><i class="minimark knobmark">${ic(mark,17)}</i><i class="knobgloss"></i></span>
+        ${handles}
+      </button>`;
+    }
     return `<button class="drawer ${cont?`dtile ${dress(o,'bd')}`:`otile ${paper(o)}`} minitile${sel}${
         ''}"
       ${cont?`data-drawer="${o.id}"`:`data-row="${o.id}"`} title="${esc(o.title||'Untitled')}"
@@ -1719,6 +1787,29 @@ function drawTileFace(o, arr, box, persp){
         ${rollTag(o)}
         <span class="clcount">${esc(cap)}</span></div>
       <div class="dbody">${calFace(o, planner)}</div>
+      ${handles}
+    </button>`;
+  }
+
+  /* ---- a pigeonhole: a drawer with no front — decision 193 --------------
+     The panelling and nothing else. The wood is a frame, the middle of it is
+     open, and what you see through it is **what is actually in there**: every
+     child drawn as its own tile, at the place it stands on the board inside,
+     shrunk to fit. A collage shows the same arrangement as coloured outlines;
+     this shows the things themselves, which is what the dive made possible —
+     a container's board is exactly four cells to one of its own, so a quarter
+     of it is precisely the face.
+
+     It is what a **thin tall drawer** wears unless it has been told otherwise
+     (`faceAt()`): one cell across has no room for a name or a knob worth the
+     name, and a slot in a pigeonhole cabinet is exactly that shape. */
+  if(cont && faceAt(o, box)==='pigeonhole'){
+    return `<button class="drawer dtile pigeontile ${dress(o,'pn')}${sel}" data-drawer="${o.id}"
+        title="${esc(o.title||'Untitled')}" style="--c:${colour};${place}">
+      <i class="dpanel"></i>
+      <i class="pgframe"></i>
+      ${pigeonBoard(o, box)}
+      ${has(o,'magic')?`<span class="magicmark pgmagic" title="Collects by rule">${ic('sparkle',11)}</span>`:''}
       ${handles}
     </button>`;
   }

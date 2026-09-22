@@ -2301,7 +2301,7 @@ function openCtx(x,y,id){
 }
 const closeCtx = ()=> $('#ctx').classList.remove('open');
 
-export { plansPanel, planCard,
+export { plansPanel, planCard, boardRow,
   overlayHTML, openPanel, closePanel, refreshPanel, repositionPanel, panelKey, panelBack, draft,
   openMenu, modalNewObject, holdPanel, objectPanel, drawerPanel, modalNewKind,
   renderPreview, modalMove, tagFirstPanel, familyPanel, becomePanel, lifeFirstPanel, donePanel,

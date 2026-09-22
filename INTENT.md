@@ -115,6 +115,18 @@ Three things Timothy said twice, which is the signal to write them down:
 lists, several items long, mixing a structural idea with three small bugs.
 Take the structural one first and say which it was.
 
+### Added 2026-09-22, later — what a board is
+
+Timothy's definition, in his words: *"the new term for the 'grid' or 'shelf' is
+the 'board'. This just refers to any grid space making up a desk, container, or
+shelf. We no longer use the term shelf in this context. The main home is called
+the 'desk' still, and it is made up of boards, a 3x3 grid of them. Inside
+containers the grid space is also called a board, and that board's size is
+determined by the container shape."* Settings follow the word: on the desk the
+board's options (colour, type, aesthetic, gravity, size) are behind **Board
+settings**, and inside a container the gear opens straight onto them. Use
+*board* in anything written from now on. Decision 193.
+
 ## Deliberately not next
 
 - **Sync between devices.** It is real and it is coming, *after* the feature set

@@ -42,7 +42,9 @@ meaning, containers are finite, and opening one is a small deliberate act.
 | **Sorting drawer** | A drawer that carries `magic` as well. It holds nothing and shows whatever matches its rule. `magic` in the code; **sorting drawer** in the interface. |
 | **Life drawer** | A container for an area of your life rather than a piece of work. Reports what is in it and what is next, and never a percentage. |
 | **Control** | An object that is a switch for one of the desk's own settings, standing on the board. |
-| **Desk** | The root container, id `root`. Never drawn as a tile. |
+| **Desk** | The root container, id `root`. Never drawn as a tile. It is made of **boards**, three by three, and you start on the middle one. |
+| **Board** | Any grid space: one of the desk's nine, or the inside of a container, whose size is the container's own tile four cells to a cell. The word Timothy uses for all of them (2026-09-22). **"Shelf" is retired** as a name for a grid space; it survives in the code (`shelvesOf`, `SHELFSHIFT`, `goShelf`) where renaming would be churn, and there it means one screenful of a board. |
+| **Board settings** | The aesthetic, the board's colour, what it is made of, gravity and size — one door in Settings on the desk, and the whole of what the gear opens inside a container. See decision 193. |
 | **Face** | How a container draws itself on its *parent's* board. |
 | **Shape** | How a non-container object draws itself. |
 | **Layout** | How a container arranges its children once you *open* it. |
@@ -314,7 +316,13 @@ the measured cell, written onto the scroller because a list is not a grid and
 Face and layout are two properties because they are two questions. A Checklist
 is `face:checklist, layout:list`, and any container can wear any face.
 
-**A container one cell wide is a spine, whatever face it asked for.** The title
+**A container one cell wide and more than one tall is a pigeonhole** unless it
+has been given a face of its own — the panelling as a frame, open in the middle,
+with its real contents drawn small where they stand on the board inside. One
+cell square keeps its knob, with its mark printed onto it. See decision 193,
+which supersedes the paragraph below and decision 192's mark.
+
+*(Superseded)* **A container one cell wide is a spine, whatever face it asked for.** The title
 runs up the tile, the way it does on a book on a shelf. A front that thin used
 to drop its name and show its mark instead, which said it was a drawer and
 nothing about *which* drawer; a spine is the shape that already solved this, and
@@ -507,9 +515,9 @@ See decision 108.
 **Pinching two fingers together goes up one level** — the parent container, not
 the desk — and pinching again goes up again. A desk refuses: it has no parent,
 because desks sit beside each other rather than inside each other. The knob
-along the bottom is unchanged and still goes straight home in one press; one is
-a step, the other a destination. A surface answers the same gesture by shrinking
-under the fingers.
+along the bottom goes **up one level** too, since decision 193 took the chevron
+out of the bar and left the knob as the one way out you can press. A surface
+answers the same gesture by shrinking under the fingers.
 
 The movement **runs on your fingers**: the four animations a dive is made of are
 paused and scrubbed together by negative `animation-delay`, so the pulled
@@ -594,7 +602,7 @@ of four things layered over them.
 | Surface | What it is for | Where it lives |
 | --- | --- | --- |
 | **The grid** | The app. | `#app`, rebuilt whole by `render()` |
-| **The bar** | Where you are — pressing it opens the shelf map — the square of shelf dots with the one you are on lit, a **search field** (everything in Bureau from a desk, this drawer and everything under it from inside one), and four icon buttons: the lock, grid-or-list, one of anything (a spiral), this board's editor (a brush), and the app's settings (a gear, on a desk only). | inside `#app` |
+| **The bar** | Where you are — pressing it opens the shelf map — the square of shelf dots with the one you are on lit, a **search field** (everything in Bureau from a desk, this drawer and everything under it from inside one), and five icon buttons: the lock, grid-or-list, one of anything (a spiral), this board's editor (a brush), and a gear — Settings on the desk, **Board settings** inside a container. Inside a container the name at the left is that container's own, with no trail back to the desk and no chevron: the knob along the bottom is the way out (decision 193). | inside `#app` |
 | **The carcass** | The wood the app is made of. Everything above the board is one piece of it — the notch strip, the bar and the reveal under it — and along the bottom of a phone is the desk's own drawer front. Tap its **Home Knob** to come out a level; pull it a little for the Void Drawer and the whole way for the type picker. On a Mac the same knob floats in the bottom right corner. Its shape, size, texture and colour are rows in that desk's editor. | inside `#app` |
 | **The camera** | Not a layer at all: the board itself, slid and scaled until one object fills the screen with its neighbours still around it. What an object opens onto by default. | `#drawergrid`, one transform |
 | **Reading** | An object's body as paper — a spread, a page, or a column. Over a dimmed desk. | `#sheetHost`, rendered separately from `render()` |

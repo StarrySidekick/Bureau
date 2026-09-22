@@ -564,6 +564,11 @@
 .bookruler{position:absolute;left:-99999px;top:0;visibility:hidden;
   pointer-events:none;z-index:-1}
 .spread .page:last-child{border-right:0}
+/* The page's padding is where the words start, so the first block keeps no
+   margin of its own on top of it. A paragraph's 1em above was the whole of
+   the words moving up a line's worth when the caret arrived — the field has
+   no margin to lose — and the ruler reads the same rule, so the breaks agree. */
+.spread .page > :first-child{margin-top:0}
 .spread .page h2{font-family:var(--serif);font-size:20px;margin:0 0 12px}
 .spread .pno{position:absolute;bottom:14px;left:0;right:0;text-align:center;font-size:11px;color:var(--ink-3)}
 .spread .thin{color:var(--ink-3)}
@@ -703,6 +708,7 @@
    dress as the page's own ink on a wash of its own stock — which works on all
    five stocks and in all seven aesthetics without naming any of them. */
 .bookstage.fullbleed .bookbar .iconbtn,
+.bookstage.fullbleed .bookbar .pill,
 .bookstage.fullbleed .bookbar .bookcount{
   color:var(--ink-2);
   background:color-mix(in srgb,var(--paper) 78%,transparent);
@@ -801,7 +807,7 @@
    and the textarea fills what is left of it. */
 .page > .pagebody{display:block;width:100%;height:100%;border:0;outline:none;
   padding:0;margin:0;resize:none;background:none;color:inherit;
-  font:inherit;line-height:inherit;font-family:var(--serif)}
+  font:inherit;line-height:inherit}
 .page > .pagebody::placeholder{color:var(--ink-3);opacity:.6}
 /* while it is a field the paper stops pretending to be a spread */
 .bookstage.writingon .spread{grid-template-columns:1fr}
@@ -814,7 +820,16 @@
 .is-phone .bookstage.writingon{--stage-y:10px;--bookchrome:58px}
 .is-phone .bookstage.writingon .bookhead{display:none}
 .is-phone .bookstage.writingon .spread .page{padding:16px 18px 20px}
-/* and the paper says it can be written on, quietly, before you touch it */
+/* **Full screen writes where it reads.** The two phone rules above are for a
+   sheet on a stage, and at five classes they tie with full screen's own page
+   padding and win by coming later — so on a phone the caret arrived with the
+   page's clearance gone, the words jumped up fifty pixels and ran straight
+   under the Done pill in the corner. Full screen keeps its own box whether you
+   are reading or writing in it, which is what "the words do not move when the
+   caret arrives" means. */
+.bookstage.fullbleed.writingon{--stage-y:0px;--bookchrome:0px}
+.is-phone .bookstage.fullbleed.writingon .spread .page{padding:var(--fbclear) 20px var(--fbclearb)}
+/* and the paper says it can be written on, before you touch it */
 .bookstage:not(.writingon) .spread .page{cursor:text}
 .pfoot{margin-top:12px;padding-top:10px;border-top:1px solid var(--rule-2)}
 /* A slider row is a name, a number and a track, and it was a flex row of all
@@ -1275,15 +1290,17 @@ html .drawer.dtile.cltile{background-image:none}
   display:flex;align-items:center;justify-content:center;padding:0;inset:0}
 .projdisc .cd{
   position:relative;width:min(100%,100cqh);aspect-ratio:1;border-radius:50%;
+  /* **Flat, with its grooves and nothing else** — decision 193. It carried a
+     highlight in the upper left and a conic silver sweep for the light
+     catching it, which is a photograph of a record lit from one lamp: the
+     light was painted on, so it stayed where it was painted while the disc
+     turned under it, and it was the one thing on the desk lit from somewhere
+     the aesthetic had not said. The grooves stay — they are the record, not
+     the light on it — and the shadow it throws on the desk stays, because
+     every tile throws one. */
   background:
-    radial-gradient(circle at 34% 30%, rgba(255,255,255,.34), transparent 44%),
-    repeating-radial-gradient(circle at 50% 50%, rgba(255,255,255,.05) 0 2px, transparent 2px 4px),
-    /* **The last stop has to be the first one.** 0% and 100% are the same
-       angle on a cone, so a sweep that starts grey and ends silver meets
-       itself as a hard line down the record — which is the break in the
-       circumference. Closing the loop is the whole fix. */
-    conic-gradient(from 210deg, #6E6A63 0%, #A8A29A 18%, #55514B 40%,
-                   #9E988F 62%, #55514B 80%, #A8A29A 93%, #6E6A63 100%);
+    repeating-radial-gradient(circle at 50% 50%, rgba(255,255,255,.06) 0 2px, transparent 2px 4px),
+    #6A665F;
   box-shadow:0 3px 10px rgba(0,0,0,.5), inset 0 0 0 1px rgba(0,0,0,.3);
 }
 .projdisc .cd b{

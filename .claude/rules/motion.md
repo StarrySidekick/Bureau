@@ -171,7 +171,7 @@ named it. Don't reach for a clip-path to cut a shape out of anything that
 moves; restack it instead. See decision 142.
 
 **The way out is the way in, backwards.** `leaveTile()` in motion.js — the
-knob along the bottom and the chevron at the top of the bar. The board you are
+knob along the bottom (the chevron in the bar is gone, decision 193). The board you are
 standing in shrinks into the front it came out of, the board you arrive on
 starts zoomed in on that front and settles back around it, and the carcass and
 the front close over the mouth behind you. It is the **same four animations run
@@ -406,3 +406,14 @@ Two things fall out of it and both cost a look to find:
   because a factor is two pixels at the start and ten at the end.
 
 See decision 192.
+
+
+**Every picture in a dive is the grid and nothing else.** The bar and the rail
+are hidden on the arriving board (`divechrome`), on the leaving picture going in
+(`.fxleave`, gone by the first eighth) and on the picture going out (`.fxback`,
+never drawn). A scrubbed way out must put the chrome elements in `scrubDive()`'s
+parts, or their fade runs on its own clock while the fingers hold the rest.
+**And a copy of the scroller in the vertical pager carries no margin**: the
+strip is hung on the scroller's own rect, so its inline `margin-top` is already
+outside it, and a copy that kept it snapped 21px at both ends of the swipe.
+See decision 193.

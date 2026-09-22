@@ -8720,3 +8720,98 @@ and paints the paper itself.
 which mode a board is in is the padlock in the bar — the corner marks are gone
 and the surface no longer answers. That is one small signal for a state that
 changes what every gesture on the board means.
+
+## 193 · Boards, pigeonholes, and the furniture off the dive
+
+*2026-09-22*
+
+Eleven items, and the one with structure behind it is a word.
+
+**Every grid space is a board.** One of the desk's nine, or the inside of a
+container, which is the container's own tile four cells to a cell (decisions
+188 and 190). The desk is still the desk, and it is made of boards, three by
+three. "Shelf" is retired as the name for any of it; the code keeps
+`shelvesOf()` and `goShelf()` where a rename is churn, and there a shelf means
+one screenful of a board. The word matters because the settings are now shaped
+around it: **Board settings** is one door on the desk (the aesthetic, the
+board's colour, what it is made of, gravity, and its size), and inside a
+container, where there is no app to set, the gear opens straight onto that door
+with no way back to a list about somewhere else. The size row there is the
+container's own ("how big it is") and the colour is its own board; the
+aesthetic, the surface and gravity are the desk's, and the door says so by
+being the same door.
+
+**The bar says where you are and nothing else.** Inside a container it was a
+chevron and a trail, "‹ Tombo's Desk › Untitled", restating the home desk on
+every board you were not on. It is the container's name now, in the place the
+desk's own name stands on the desk. The chevron is gone because the knob is the
+same button at the other end of the screen, and the knob now climbs **one level
+at a time** (it went straight home, which was right while the chevron was the
+way up a step).
+
+**A pigeonhole is a drawer with no front.** The panelling is a frame in the
+drawer's colour, the middle is open, and what shows through it is the drawer's
+real contents: each child drawn by `gridTile()`, on its own board at the real
+cell size, then scaled to the opening as one piece. A collage shows the same
+arrangement as outlines; this shows the things. The miniature is a picture and
+not a board: every `data-*` comes off, nested `<button>`s become `<div>`s (a
+button in a button is unnested by the parser), and the layer takes no pointer
+events, so the drag, the camera and `tileOf()` only ever find the pigeonhole.
+`SHELFSHIFT` is zeroed while it draws, because the phone's window offset
+belongs to the board you are on and not the one inside; and it goes one level
+deep, since a pigeonhole in a pigeonhole shows its frame only. The panelling is
+masked to the frame: reeds across an opening are frosted glass.
+
+It is a type and a face any container can wear, and **a container one cell wide
+and more than one tall wears it unless it has named a face** (`faceAt()` in
+tiles.js). That replaces decision 192's answer for a thin front, the mark. Only a
+*front* gives way; a jar or a calendar that thin is still what it is.
+
+**A one-cell drawer keeps its knob, with its mark printed on it.** The mark is
+the knob's colour darkened, fades toward the rim (a mask), and has the knob's
+highlight and shade drawn **over** it, which is the cue that it sits on a
+sphere. No filter, for decision 101's reason.
+
+**The jar's label is on the lid**, a paper band round the cap, so the glass is
+all contents. **The record is flat**: the highlight and the conic sweep were
+light painted onto a disc that turns, so the light turned with it.
+
+**Two snaps, both one number counted twice.**
+
+The vertical pager carries only the scroller, and the scroller keeps the gap
+under the bar as an inline `margin-top`. The strip is hung on the scroller's own
+rect, so the gap is already outside it, and every copy in the strip counted it
+again: the picture stepped down 21px as it took over, and the arriving board
+stepped up 21px as the strip came away. That was the snap at the end of an
+up-and-down swipe, measured frame by frame, and sideways never had it because
+there the pane is the whole of `.main`, where the margin belongs.
+
+In full screen, the caret arriving moved the words up a line and a half. Two
+phone rules for a sheet on a stage tied with full screen's own page padding and
+won by coming later, and the first paragraph's own `1em` margin was a gap the
+textarea did not have. Full screen keeps its box while you write, a page's
+first block keeps no top margin (the ruler reads the same rule, so the breaks
+agree), and the field takes the page's face rather than insisting on the serif.
+
+**And the flash was the entrance.** Every `renderSheet()` rewrites the host, and
+the stage fades in; so putting a caret in the page faded the whole reading in
+again from nothing. A stage already up for the same object is marked `again`
+and does not animate.
+
+**The bar and the rail are off the pictures too.** Decision 192 hid them on the
+board arriving and left them on the two still pictures, so coming out of a
+drawer its own bar and knob shrank back into the front with the board. They are
+hidden on `.fxback` and faded out in the first eighth of `.fxleave`, and when
+the way out is scrubbed (the pinch) their fade rides the same paused clock as
+everything else, rather than running on and arriving over a board still zoomed
+into the mouth.
+
+**The gear on a zoomed note sometimes did nothing.** `onDown` cleared a stale
+`suppressClick` a hundred lines down, below the camera's early returns, so a
+press on a zoomed board never cleared it, and a swipe that had left it up ate
+the next click. It is cleared on the first line now.
+
+*Against:* the gear now means two things depending on where you stand, which is
+the kind of mode this app usually avoids. The defence is that inside a container
+the app-wide doors have nothing to say that is about where you are, and a gear
+that opened a list of them would be a gear that opened somewhere else.

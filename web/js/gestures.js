@@ -730,6 +730,17 @@ function placePen(id, k, iso){
 }
 
 function onDown(e){
+  /* A drag arms suppressClick so its own trailing click can't also fire. If
+     that click never arrives — the pointer left the window, or the drag was
+     synthetic — the flag would sit there and eat somebody else's click later.
+     A new press means the old one is finished with, whatever happened to it.
+
+     **First, before anything can return.** It sat a hundred lines down, below
+     the camera's early returns, so every press on a zoomed board skipped it —
+     and a swipe or a pushed column that had left the flag up ate the next
+     click in there, which was the gear on the note you were reading. Pressing
+     it did nothing, once, then worked; that is what a stale flag looks like. */
+  gestureFlags.suppressClick=false;
   /* **Nothing on the board is dragged while the camera is in.** `cellW()`
      measures `.grid`'s own rect for the drag maths and a transform changes
      that rect, so every number this file works in would be out by the zoom
@@ -836,11 +847,6 @@ function onDown(e){
 
   if(e.button===2) return;
   if(pagerOn()) return;              // a board already in flight owns the screen
-  /* A drag arms suppressClick so its own trailing click can't also fire. If
-     that click never arrives — the pointer left the window, or the drag was
-     synthetic — the flag would sit there and eat somebody else's click later.
-     A new press means the old one is finished with, whatever happened to it. */
-  gestureFlags.suppressClick=false;
   /* The rail along the bottom of a phone: the desk's own drawer front. A press
      that travels up pulls it open onto the new-object picker; one that doesn't
      is a tap, and the knob under it takes you back out. Both start here, which

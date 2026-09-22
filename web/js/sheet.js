@@ -369,8 +369,15 @@ function renderSheet(){
          <button class="iconbtn" data-act="objset" data-id="${r.id}" title="Everything about it but the words">${ic('brush',15)}</button>`;
     // 15, like everything else in the bar — it was the one glyph at 16
     const out = `<button class="iconbtn" data-sheet="close" title="Close">${ic('x',15)}</button>`;
-    host.innerHTML=`<div class="bookscrim" data-sheet="close"></div>
-      <div class="bookstage rm-${mode}${editing?' writingon':''}${S.readFull?' fullbleed':''}">
+    /* **Arriving fades in; staying does not.** Every `renderSheet()` writes
+       the host afresh, and the stage and its scrim carry a fade-in — so
+       putting a caret in the page, turning it, or pressing Done faded the
+       whole reading in again from nothing, which on a full-screen page is the
+       screen flashing. A stage already up for this object is a stage staying,
+       and `again` takes the entrance off it. */
+    const again = !!host.querySelector(`.bookstage[data-for="${r.id}"]`) ? ' again' : '';
+    host.innerHTML=`<div class="bookscrim${again}" data-sheet="close"></div>
+      <div class="bookstage rm-${mode}${editing?' writingon':''}${S.readFull?' fullbleed':''}${again}" data-for="${r.id}">
         <div class="bookhead"><b>${esc(r.title||'Untitled')}</b></div>
         ${editing
           ? `<div class="book"><div class="spread ${sheetOf(r)}"><i class="dgrain"></i>

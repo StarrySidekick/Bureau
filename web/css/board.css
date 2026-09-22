@@ -1714,7 +1714,7 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
    what an `html[data-style]` rule on a *tile* would do (decision 98). */
 .drawer.dtile.jartile{
   background:none;border:0;box-shadow:none;padding:0;overflow:visible;
-  --jarlid:15%;
+  --jarlid:18%;
 }
 .drawer.dtile.jartile:hover{box-shadow:none;filter:brightness(1.05)}
 
@@ -1801,15 +1801,104 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
   box-shadow:inset 0 0 0 1px rgba(0,0,0,.09), 0 1px 3px rgba(0,0,0,.22);
 }
 .jartile .jarlabel .dname{
-  color:var(--ink);font-size:13px;line-height:1.18;text-align:center;
-  -webkit-line-clamp:2;margin-top:0;
+  color:var(--ink);font-size:12px;line-height:1.18;text-align:center;
+  -webkit-line-clamp:1;margin-top:0;
+}
+/* **On the lid, not on the glass** — decision 193. A label across the middle
+   of the jar covers the one thing a jar is for, which is seeing what is in
+   it, so the name goes where a pantry puts it: a paper band round the cap.
+   It keeps the wrap — the cross shading is what says it goes round — and
+   loses a line, because a lid is one line tall. The lid is a few per cent
+   deeper to take it, and it is still the lid that is drawn under it: the band
+   stops short of the lid's ends so the knurl shows either side. */
+.jartile .jarlabel{
+  top:calc(var(--jarlid) * .5);transform:translateY(-50%);
+  left:15%;right:15%;z-index:6;padding:2px 5px 3px;
+  border-radius:4px / 45%;
 }
 .jartile > .rollup{position:absolute;right:6px;bottom:5px;margin:0;z-index:6}
 /* a jar too small for a label is a jar you can still see into */
-.drawer.dtile.jartile.sz-narrow .jarlabel{padding:3px 4px 4px}
-.drawer.dtile.jartile.sz-narrow .jarlabel .dname{font-size:11px;-webkit-line-clamp:1}
+.drawer.dtile.jartile.sz-narrow .jarlabel{padding:1px 3px 2px}
+.drawer.dtile.jartile.sz-narrow .jarlabel .dname{font-size:10.5px;-webkit-line-clamp:1}
 .drawer.dtile.jartile.sz-short .jarlabel,
 .drawer.dtile.jartile.minitile .jarlabel{display:none}
+
+/* ---- a pigeonhole: the panelling, and a hole — decision 193 ------------
+   The tile gives up its ground, its edge and its shadow, and what is left is
+   the frame the panelling is worked into, in the drawer's own `--c`. The
+   middle is open onto the board it is standing on, and in it are the things
+   it holds: `.pgboard`, their real tiles at their real cell size, scaled to
+   the opening in one transform (tiles.js writes the scale, because it is a
+   ratio of two measured lengths and CSS cannot divide one by the other).
+
+   The panelling keeps its lines and gives up its fills. Cockbead is four
+   bands at the rim and sits on the frame as it is; a raised or an ogee panel
+   is a filled field inside the frame, and a filled field over the opening is
+   a drawer front again — so the fields go and their edges stay. */
+.drawer.dtile.pigeontile{
+  background:transparent;border-color:transparent;box-shadow:none;padding:0;
+}
+.drawer.dtile.pigeontile:hover{box-shadow:none;filter:brightness(1.04)}
+.pigeontile .pgframe{
+  position:absolute;inset:0;z-index:2;pointer-events:none;border-radius:inherit;
+  border:6px solid var(--c);
+  box-shadow:0 1px 3px rgba(0,0,0,.30), inset 0 1px 4px rgba(0,0,0,.34),
+    inset 0 0 0 1px rgba(0,0,0,.12);
+}
+.drawer.dtile.pigeontile.sz-narrow .pgframe{border-width:4px}
+/* The moulding is worked into the frame and stops at its inner edge: a mask
+   that is the tile less the opening. Reeds run the whole front of a drawer,
+   and across an opening they are frosted glass — which is the one thing a
+   pigeonhole is not. */
+.drawer.dtile.pigeontile .dpanel{z-index:3;background-color:transparent;
+  --pgf:6px;padding:var(--pgf);
+  -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;
+          mask:linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0)}
+.drawer.dtile.pigeontile.sz-narrow .dpanel{--pgf:4px}
+.drawer.dtile.pigeontile .dpanel::before,
+.drawer.dtile.pigeontile .dpanel::after{background:none !important}
+/* the arrangement itself: inert, and under the frame */
+.pigeontile .pgboard{
+  position:absolute;z-index:1;display:grid;transform-origin:0 0;
+  pointer-events:none;
+}
+.pigeontile .pgboard > .drawer{cursor:default}
+.pigeontile .pgmagic{position:absolute;top:7px;right:7px;z-index:4}
+
+/* ---- a drawer at one cell keeps its knob — decision 193 ----------------
+   The knob fills most of the tile, and the drawer's mark is printed onto it.
+   Three things make the mark sit *on* a sphere rather than on a disc: it is
+   the knob's own colour, darkened, so it reads as a stamp in the wood; it
+   **fades toward the rim** (the mask), which is the surface curving away; and
+   the knob's highlight and shade run **over** it (`.knobgloss`), which is the
+   one cue nothing flat can fake. A little tilt toward the light does the
+   rest. Not a filter, for decision 101's reason: a board of these would be a
+   filter per tile. */
+.drawer.minitile.minidrawer .pull.minipull{
+  width:64%;height:64%;position:relative;display:grid;place-items:center;
+  overflow:hidden;opacity:1;
+}
+.drawer.minitile.minidrawer .pull.minipull.kn-bar{width:80%;height:42%}
+.drawer.minitile.minidrawer .pull.minipull.kn-ring{border-width:3px}
+.drawer.minitile.minidrawer .knobmark{
+  display:grid;place-items:center;width:82%;height:82%;opacity:.9;
+  color:color-mix(in srgb, var(--knob, var(--c)) 38%, #000);
+  -webkit-mask-image:radial-gradient(circle at 46% 44%, #000 34%, transparent 76%);
+          mask-image:radial-gradient(circle at 46% 44%, #000 34%, transparent 76%);
+  transform:perspective(60px) rotateX(9deg) rotateY(-9deg) scale(1.04);
+}
+.drawer.minitile.minidrawer .knobmark svg{width:100%;height:100%}
+.drawer.minitile.minidrawer .kn-diamond .knobmark{transform:rotate(-45deg) scale(.9)}
+.drawer.minitile.minidrawer .kn-ring .knobmark{color:var(--dink);-webkit-mask-image:none;mask-image:none}
+.drawer.minitile.minidrawer .knobgloss{
+  position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:
+    radial-gradient(circle at 34% 28%, rgba(255,255,255,.52) 0 7%,
+      rgba(255,255,255,.14) 22%, transparent 42%),
+    radial-gradient(circle at 50% 50%, transparent 52%, rgba(0,0,0,.28) 100%);
+}
+.drawer.minitile.minidrawer .kn-ring .knobgloss{display:none}
 
 /* ---- a goal: a drawer with the knob taken off --------------------------
    The name is the face, so it is set as large as the frame allows and
@@ -3214,6 +3303,13 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   border-bottom:1px solid color-mix(in srgb, var(--ink) 14%, transparent);
   opacity:.75;
+  /* **Clear of the two controls.** They sit in the tile's top right corner at
+     a fixed size on the screen, and the head is one line running the tile's
+     width — so a long name, and every name once it became a field you type
+     into, ran straight under them. In `em`, because the type is counter-scaled
+     the same way the controls are, so five of them is the same room on the
+     screen at any magnification. */
+  padding-right:5em;box-sizing:border-box;
 }
 .zoomread .zoombody{flex:1 1 auto;min-height:0;position:relative}
 /* A scroll is a column you push. `overscroll-behavior` keeps a flick that
@@ -3247,7 +3343,9 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
   overflow-y:auto;overscroll-behavior:contain;
 }
 .zoomread input.zoomhead{
-  border:0;outline:none;background:transparent;padding:0;
+  /* the rule under the name stays: it is the page's head, typed in or not */
+  border:0;border-bottom:1px solid color-mix(in srgb, var(--ink) 14%, transparent);
+  outline:none;background:transparent;padding:0 5em 0 0;width:100%;
   font-size:1.02em;font-weight:600;line-height:1.25;color:inherit;
   font-family:inherit;
 }

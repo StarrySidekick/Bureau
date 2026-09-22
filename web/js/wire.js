@@ -574,10 +574,16 @@ function act(name, el){
        the way in was a camera going somewhere and the way out has to be the
        same camera coming back, or the drawer you went into is not the drawer
        you came out of. Walking off a desk is not a dive and keeps its settle:
-       desks sit beside each other rather than inside each other. */
+       desks sit beside each other rather than inside each other.
+
+       **Up one, not straight home.** The chevron in the bar used to be the
+       way up a level and the knob the way home; the chevron is gone (the bar
+       says where you are and nothing else), so the knob is the one way out
+       and it has to be able to climb a drawer inside a drawer a step at a
+       time. Out of a drawer on the desk that is the desk, as it always was. */
     case 'railout': {
       if(S.view==='drawer' && S.drawerId){
-        const from = S.drawerId, up = deskOf(from);
+        const from = S.drawerId, o0 = byId(from), up = (o0 && o0.parent) || deskOf(from);
         if(up && up!==from){
           leaveTile(from, ()=>{
             S.view = up===ROOT ? 'desk' : 'drawer';

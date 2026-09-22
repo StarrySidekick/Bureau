@@ -138,12 +138,28 @@
    *transform* in reverse, so at the first frame of coming out the board is
    still zoomed into the mouth it is leaving through. Hidden then, visible when
    it lands — which is the same sentence as going in. */
-.main.in-dive > .gridbar,.main.in-dive > .deskrail,
-.main.in-diveout > .gridbar,.main.in-diveout > .deskrail{
+.main.in-dive > .gridbar,.main.in-dive > .deskrail,.main.in-dive > .deskknob,
+.main.in-diveout > .gridbar,.main.in-diveout > .deskrail,.main.in-diveout > .deskknob{
   animation:divechrome var(--divems,.52s) linear both}
 @keyframes divechrome{
   0%,72% {opacity:0; visibility:hidden}
   100%   {opacity:1; visibility:visible}
+}
+/* **And the pictures carry none of it either.** Decision 192 took the bar and
+   the rail off the board *arriving* and left them on the two still pictures —
+   so coming out, the drawer you were in shrank back into its front with its
+   own bar across the top and its knob along the bottom, the pair Timothy
+   photographed floating round a tile-sized board; and going in, the desk's own
+   bar flew past the camera magnified five times. What travels is the grid and
+   what is on it. The picture you are leaving loses its furniture on the first
+   eighth rather than the first frame, so the tap does not blink the bar out.
+   `.fxleave *` switches every animation off, and these outrank it by a class. */
+.fxback > .gridbar,.fxback > .deskrail,.fxback > .deskknob{visibility:hidden !important}
+.fxleave > .gridbar,.fxleave > .deskrail,.fxleave > .deskknob{
+  animation:divechromeout var(--divems,.52s) linear both !important}
+@keyframes divechromeout{
+  0%    {opacity:1; visibility:visible}
+  12.5%,100% {opacity:0; visibility:hidden}
 }
 /* The board you are leaving, as a still picture, growing past the camera —
    the half of the movement that makes the other half read as travel rather
@@ -342,6 +358,8 @@
    sheet of paper that is briefly the wrong size is a sheet that repaginates. */
 .bookscrim,.writescrim{animation:veilin .3s ease-out}
 .bookstage,.writestage{animation:veilin .3s ease-out .04s both}
+/* a surface re-drawn in place is not a surface arriving — see renderSheet() */
+.bookscrim.again,.bookstage.again{animation:none}
 @keyframes veilin{from{opacity:0} to{opacity:1}}
 
 /* everything else that opens gives a small nod, so a tap is never silent */
@@ -411,6 +429,15 @@
 /* a pane's copy of the board is a picture of one: nothing in it scrolls, and
    the grid inside it must not try to be measured */
 .pager .pane .scroll{overflow:hidden}
+/* **Up and down, the pane *is* the scroller's box**, because the strip is hung
+   on the scroller's own rect — so the gap the scroller keeps under the bar
+   (`revealStyle()`, an inline margin) is already outside it. Carried into the
+   copy, it was counted twice: every board in the strip sat a gap lower than the
+   real one, the picture stepped down 21px as it took over and the arriving
+   board stepped up 21px as the strip came away. That was the snap at the end
+   of a vertical swipe, and sideways never had it because there the pane is the
+   whole of `.main`, where the margin belongs. Inline, hence the `!important`. */
+.ax-y .pane > .scroll{margin-top:0 !important}
 /* One finger navigates on **either** board now (decision 192), so the browser
    must not also read that finger as a scroll — and there is nothing to scroll
    to on a phone, where the board is one screenful and a bigger one pages. */

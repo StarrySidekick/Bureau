@@ -104,9 +104,9 @@ const CHROME = process.env.BUREAU_CHROME;
   await page.fill('[data-fieldfor]', 'Order the brass pulls');
   await page.press('[data-fieldfor]', 'Enter');
   await page.waitForTimeout(400);
-  // the desk name in the bar opens the desk map now, so going home is the
-  // back button — which is what it is there for
-  await page.click('.gridbar [data-act="back"]');
+  // the desk name in the bar opens the desk map now, and the bar has no back
+  // button inside a container (decision 193) — the knob is the way out
+  await page.click('[data-act="railout"]');
   await page.waitForTimeout(250);
   await page.click('.gridbar [data-act="appsettings"]');
   await page.waitForTimeout(320);
@@ -2267,7 +2267,7 @@ const CHROME = process.env.BUREAU_CHROME;
     el.click(); await nap(700);
     out.wentIn = S.view === 'drawer' && S.drawerId === id;
 
-    document.querySelector('.gridbar [data-act="back"]').click();
+    document.querySelector('[data-act="railout"]').click();
     out.andComesStraightBackOut = S.view === 'desk' && !S.drawerId;
     await nap(40);
 
@@ -4268,17 +4268,18 @@ const CHROME = process.env.BUREAU_CHROME;
     out.deskOfIsAlwaysHome = BUREAU.deskOf('d_ideas') === 'root';
     out.oneShelfForAllOfThem = (S.pins||[]).length > 0 && !('shelf' in S.deskCfg);
 
-    /* A drawer is somewhere you went *into*, so the breadcrumb roots at the
-       desk and the way back up is the chevron. */
+    /* Inside a container the bar names that container and nothing else — no
+       trail back to the desk and no chevron — and the knob is the way up,
+       one level at a time. See decision 193. */
     const outer = S.objects.find(o => o.kind === 'drawer' && o.parent === 'root');
     S.view='drawer'; S.drawerId=outer.id; BUREAU.render(); await nap(200);
-    out.aDrawerIsSomewhereYouWent = !!document.querySelector('[data-act="back"]');
+    out.noChevronInTheBar = !document.querySelector('.gridbar [data-act="back"]');
     const inner = BUREAU.create('drawer', {parent:outer.id, title:'Drafts'});
     inner.desk = BUREAU.free(2,2,outer.id);
     S.drawerId = inner.id; BUREAU.render(); await nap(200);
-    out.breadcrumbRootsAtTheDesk = bar().includes('Drafts') && bar().includes(outer.title);
-    document.querySelector('[data-act="back"]').click(); await nap(200);
-    out.backGoesUpOne = S.drawerId === outer.id;
+    out.barNamesOnlyWhereYouAre = bar().includes('Drafts') && !bar().includes(outer.title);
+    document.querySelector('[data-act="railout"]').click(); await nap(700);
+    out.theKnobGoesUpOne = S.drawerId === outer.id;
 
     /* Scope still exists as a rule clause and now has one answer: there is one
        desk, so `desk` and `all` reach the same things. The machinery is kept
@@ -8868,17 +8869,16 @@ const CHROME = process.env.BUREAU_CHROME;
     delete S.look.surface; BUREAU.applyLook && BUREAU.applyLook(); BUREAU.render();
     out.andTheWayBackIsTheSquares = !el.dataset.surface && squares();
 
-    /* ---- and a thin front is a mark, not a name turned over ------------- */
+    /* ---- and a thin front is not a name turned over ---------------------
+       Decision 192 made it the mark; decision 193 makes it a pigeonhole, which
+       is the shape of a slot one cell wide. Either way no name runs up it. */
     const t = BUREAU.create('drawer', {parent:'root', title:'Column'});
     t.phone = Object.assign(BUREAU.free(1,4,'root'), {w:1, h:4});
     BUREAU.render(); await nap(180);
     const thin = document.querySelector(`[data-drawer="${t.id}"]`);
     if(thin){
       const nm = thin.querySelector(':scope > .dtop');
-      const mk = thin.querySelector(':scope > .dmark');
-      out.aThinFrontWearsItsMark =
-        !!mk && getComputedStyle(mk).display !== 'none' &&
-        (!nm || getComputedStyle(nm).display === 'none');
+      out.aThinDrawerIsAPigeonhole = thin.classList.contains('pigeontile') && !nm;
     }
 
     S.look.locked = wasLocked;
@@ -8887,6 +8887,94 @@ const CHROME = process.env.BUREAU_CHROME;
     return out;
   });
   await page.bringToFront();
+
+  /* --- decision 193: boards, pigeonholes, and the furniture off the dive ---
+     Nine reports. The ones asserted here are the ones a regression would hide:
+     the vertical pager landing where the real board is (the pane carried the
+     scroller's margin twice and snapped 21px as it came away), the bar and the
+     rail off both pictures in a dive, a stale suppressClick eating the gear on
+     a zoomed note, the full-screen editor keeping its words where they were,
+     and a pigeonhole drawing its contents inert. */
+  const boards193 = await phone.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const out = {}, S = BUREAU.state;
+    const M = await import('./js/motion.js');
+    const Gs = await import('./js/gestures.js');
+    S.view='desk'; S.drawerId=null; S.zoomOn=null; S.q=''; BUREAU.render(); await nap(200);
+
+    /* the vertical pager: the picture and the real board share a top */
+    const real = document.querySelector('#app #drawergrid').getBoundingClientRect().top;
+    if(M.pagerBegin('y', -1)){
+      await nap(60);
+      const cur = document.querySelector('.pager .pane.cur .grid');
+      out.theUpDownPictureSitsOnTheBoard = !!cur && Math.abs(cur.getBoundingClientRect().top - real) < 1;
+      M.pagerCancel(); await nap(60);
+    } else out.theUpDownPictureSitsOnTheBoard = 'no neighbour';
+
+    /* a pigeonhole draws its children, inert */
+    const was = S.objects.slice();
+    const ph = BUREAU.create('pigeonhole', {parent:'root', title:'Slots'});
+    ph.phone = Object.assign(BUREAU.free(1,2,'root'), {w:1, h:2});
+    const a = BUREAU.create('note', {parent:ph.id, title:'Inside'});
+    BUREAU.render(); await nap(200);
+    const pt = document.querySelector(`#app [data-drawer="${ph.id}"]`);
+    out.aPigeonholeShowsWhatIsInIt = !!pt && pt.classList.contains('pigeontile')
+      && pt.querySelectorAll('.pgboard > .drawer').length === 1;
+    out.andWhatItShowsIsAPicture = !!pt && !pt.querySelector('.pgboard [data-row], .pgboard [data-drawer], .pgboard button')
+      && !document.querySelector(`#app [data-row="${a.id}"]`);
+
+    /* a 1x1 drawer keeps its knob, with the mark on it */
+    const one = BUREAU.create('drawer', {parent:'root', title:'One'});
+    one.phone = Object.assign(BUREAU.free(1,1,'root'), {w:1, h:1});
+    BUREAU.render(); await nap(150);
+    const ot = document.querySelector(`#app [data-drawer="${one.id}"]`);
+    out.aOneCellDrawerHasItsKnob = !!ot && !!ot.querySelector('.pull .knobmark svg');
+
+    /* inside a container: its name only, no chevron, and a gear that opens
+       straight onto Board settings */
+    S.view='drawer'; S.drawerId=ph.id; BUREAU.render(); await nap(200);
+    const where = (document.querySelector('.gridbar .where')||{}).textContent || '';
+    out.theBarSaysOnlyWhereYouAre = where.includes('Slots') && !document.querySelector('.gridbar [data-act="back"]');
+    document.querySelector('.gridbar [data-act="appsettings"]').click(); await nap(250);
+    const title = (document.querySelector('#panel .ptop b, #panel h1, #panel .ptitle')||{}).textContent || '';
+    out.theGearIsBoardSettings = /Board settings/.test(document.querySelector('#panel').textContent)
+      && !document.querySelector('#panel [data-act="panelback"]')
+      && !!document.querySelector('#panel [data-gravity]') && !!document.querySelector('#panel [data-style3]');
+    BUREAU.closePanel(); await nap(100);
+    S.view='desk'; S.drawerId=null; BUREAU.render(); await nap(150);
+    document.querySelector('.gridbar [data-act="appsettings"]').click(); await nap(250);
+    out.theDeskHasABoardSettingsDoor = !!document.querySelector('#panel [data-ssec="board"]');
+    BUREAU.closePanel(); await nap(100);
+
+    /* a stale flag must not eat the gear on a zoomed note */
+    const n = BUREAU.create('note', {parent:'root', title:'Read me', body:'Words.'});
+    n.phone = Object.assign(BUREAU.free(3,3,'root'), {w:3, h:3});
+    BUREAU.render(); await nap(150);
+    M.zoomInto(n.id); BUREAU.render(); await nap(700);
+    Gs.gestureFlags.suppressClick = true;
+    const gear = document.querySelector('.camtool[data-act="camset"]');
+    if(gear){
+      const r = gear.getBoundingClientRect(), x=r.x+r.width/2, y=r.y+r.height/2;
+      gear.dispatchEvent(new PointerEvent('pointerdown', {bubbles:true, clientX:x, clientY:y, pointerId:9, isPrimary:true}));
+      gear.dispatchEvent(new PointerEvent('pointerup', {bubbles:true, clientX:x, clientY:y, pointerId:9, isPrimary:true}));
+      gear.click(); await nap(200);
+      out.theZoomedGearAnswersFirstTime = /^object:/.test((document.querySelector('#panel')||{dataset:{}}).dataset.panel||'');
+    } else out.theZoomedGearAnswersFirstTime = 'no gear';
+    BUREAU.closePanel(); M.zoomOut(); BUREAU.render(); await nap(300);
+
+    /* full screen: the caret arrives without the words moving */
+    S.readFull = true; BUREAU.read(n.id); await nap(450);
+    const top1 = document.querySelector('#sheetHost .page').firstElementChild.getBoundingClientRect().top;
+    S.readEdit = true; BUREAU.renderSheet(); await nap(80);
+    const f = document.querySelector('#sheetHost .page > .pagebody');
+    out.theWordsStayPutWhenYouWrite = !!f && Math.abs(f.getBoundingClientRect().top - top1) < 2;
+    out.andTheStageDoesNotFadeAgain = !!document.querySelector('#sheetHost .bookstage.again');
+    S.readEdit = false; S.readFull = false; BUREAU.closeSheet(); await nap(150);
+
+    S.objects.length=0; was.forEach(o=>S.objects.push(o));
+    S.undo=[]; S.redo=[]; S.view='desk'; S.drawerId=null; BUREAU.render();
+    return out;
+  });
 
   console.log(JSON.stringify({
     errors: errs, manifestOk, swReady, survived, styleSurvived, slotColours,
@@ -8909,7 +8997,7 @@ const CHROME = process.env.BUREAU_CHROME;
     paletteKeys, editorKeys, pickerLeads, rollupsEverywhere, soundAndVision, keyboardBoard,
     ranking, urgency, reachable, pensAndCorners, lyingBooks, plansWork, stockPlans, livedWith, listIsOneShelf, repeating, oneLock, scheduling, ownColour, addBox, calFaces,
     lockedBoard, freeTraits, pageWrites, tickBoxes, readerFits, categories,
-    specimenBook, deskObjects, camLife, camPhone, ownBoard, threeDrawings, fullScreen, openingIn, thisPass,
+    specimenBook, deskObjects, camLife, camPhone, ownBoard, threeDrawings, fullScreen, openingIn, boards193, thisPass,
     dropsIn, keyframesRegistered, aesthetics, slotScoping, objectsDressed, grainSlots, tagged, drawnAesthetic, deeper, lookStage, statusBar, bindings, panelling, theSpray, tappingIsQuiet, decorations, pinboard, gravity
   }, null, 2));
   await browser.close();

@@ -40,7 +40,9 @@ face**, with the bar and the rail not drawn while the camera travels (192);
 **full screen means the screen** (191); and **one hold means one thing** on
 both kinds of board (192). Decisions 187–192 are the whole of it and are worth
 reading before touching the camera, the dive, a container's board or the
-reading surface.
+reading surface. **v1.81** (decision 193) named every grid space a **board**,
+made the gear open Board settings inside a container, took the chevron out of
+the bar and added the **pigeonhole** — the face a one-cell-wide drawer wears.
 
 **Start here each session:** `docs/SYSTEM.md` is the reference for what Bureau is
 made of — objects, attributes, types, drawers, the grid, the surfaces, storage.
