@@ -45,3 +45,14 @@ change.** Where you are changes immediately; only the DOM waits, and only while
 an opaque strip is over it. It exists for the pager, where the rebuild used to
 land on the very frame the settle transition began on. `render()` supersedes a
 pending one, so nothing renders twice.
+
+
+**A background page gets no compositor frames, so a CSS transition never
+advances there.** The smoke test's phone context is a second page in the same
+browser, and for most of that file it is *behind* the desk one — so anything
+measuring an **animated end state** rather than a layout reads whatever the
+first frame wrote and nothing after it. The camera eases in from rest, so every
+reading came back as the identity transform while the inline style said exactly
+the right thing, and it looked for a while like the app was broken. `await
+phone.bringToFront()` before such a block, and `page.bringToFront()` after.
+Layout measurements are unaffected, which is why this had never come up.

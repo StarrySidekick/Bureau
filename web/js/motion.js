@@ -1623,13 +1623,32 @@ const CAM_DIM_KEYS = Object.keys(CAM_DIMS);
    the transform **cleared**, because the numbers being solved for are in the
    board's own untransformed space and reading a rect that already carries the
    answer is how a zoom walks away from itself one render at a time. */
+/* **What the camera fills is the opening, not the scroller.** On a Mac the
+   scroller is `flex:1` and the two are the same box; on a phone it is as tall
+   as its own rows (see `sizeGrid`), so a drawer with a four-row board gave a
+   two-hundred-pixel "screen" and the camera magnified a note by three per cent
+   and called it done. The opening is the band between the bar and the rail,
+   which is what the board sits in on both devices and what you are actually
+   looking through. */
+function camView(grid, scroller){
+  const raw = (scroller || grid.parentElement).getBoundingClientRect();
+  const main = grid.closest('.main');
+  if(!main) return raw;
+  const m = main.getBoundingClientRect();
+  const bar = main.querySelector('.gridbar'), rail = main.querySelector('.deskrail');
+  const top = bar ? bar.getBoundingClientRect().bottom : m.top;
+  const bottom = rail ? rail.getBoundingClientRect().top : m.bottom;
+  const h = Math.max(120, bottom - top);
+  return {left: raw.left, width: raw.width, top, height: h,
+          right: raw.left + raw.width, bottom: top + h};
+}
 function camSolve(grid, on, scroller){
   const had = grid.style.transform, hadT = grid.style.transition;
   grid.style.transition = 'none';
   grid.style.transform = '';
   const g = grid.getBoundingClientRect();
   const t = on.getBoundingClientRect();
-  const view = (scroller || grid.parentElement).getBoundingClientRect();
+  const view = camView(grid, scroller);
   grid.style.transform = had; grid.style.transition = hadT;
   /* Measured off the real rect rather than off the box, because a tile that
      has been resized is whatever it is; `camScale()` answers the same question
@@ -1738,12 +1757,27 @@ function applyZoom(){
     grid.classList.add('camera');
     void grid.offsetWidth;                       // flush: make rest the held value
     grid.style.transition = '';
-  } else {
+    camMoving(grid);
+    camWrite(grid, c);
+  } else if(arriving){
+    // moving straight from one tile to another: it already has somewhere to go
     grid.classList.add('camera');
+    camMoving(grid);
+    camWrite(grid, c);
+  } else {
+    /* **An ordinary re-render is not a movement.** `render()` hands back a new
+       grid with no transform on it, and `.camera` carries a transition — so
+       writing the target straight onto it animates the zoom again from nothing,
+       on every keystroke while you are writing in the thing you are reading.
+       Put on with the transition suppressed, and the frame is simply drawn
+       where the camera already was. */
+    grid.classList.add('camera');
+    grid.style.transition = 'none';
+    camWrite(grid, c);
+    void grid.offsetWidth;
+    grid.style.transition = '';
+    camSettle(grid);
   }
-  if(arriving) camMoving(grid);
-  else camSettle(grid);          // an ordinary re-render is not a movement
-  camWrite(grid, c);
   Object.assign(CAM, c, {on: S.zoomOn});
   if(scroller){
     scroller.classList.add('camerascroll');

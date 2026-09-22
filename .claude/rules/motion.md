@@ -339,3 +339,16 @@ asked before the drawer because when both are true the camera is the one you
 are looking through. The two-finger swipe is not offered there at all: it walks
 the shelves and the desks, and under the camera it competes with the finger
 that pushes the words.
+
+
+**Two things about a phone that the camera's maths has to know.** Its board is
+**windowed to one shelf**, and its scroller is **as tall as its own rows**
+rather than as tall as the screen. Both were invisible until the camera asked
+about them, and both broke it in the same change: drawing the whole board
+instead of one shelf squashed the cells (the columns are `1fr`, the rows are
+measured px) and tripled the scroller, so the tile measured narrow and the
+camera centred it in a box three times taller than the phone. The window is
+**moved** to the zoomed tile rather than removed, and `camView()` solves
+against the band between the bar and the rail rather than against the
+scroller's own box. On a Mac the scroller is `flex:1` and the two are the same
+thing, which is why neither showed up there. See decision 188.

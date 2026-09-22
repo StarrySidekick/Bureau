@@ -5,6 +5,44 @@ Sequenced by dependency, not appetite: item 1 makes everything after it safer.
 
 ---
 
+## 0ze. Reported 2026-09-22 — the camera went too far and to the wrong place — DONE (v1.76)
+
+One report, one cause, and it was mine from the pass before. Item 16 of 0zd —
+"you can use the off screen desk space on the left and right, but not the top
+and bottom" — was answered by taking the phone's window *off* while the camera
+was in, so the whole board was drawn. That broke two things at once, neither of
+them visible in the change:
+
+- the board went from eight columns to twenty-four in the same render, and the
+  columns are `1fr` against measured px rows, so the **cells squashed** to a
+  third of their width and the tile measured narrow;
+- the phone's scroller is **as tall as its own rows**, so it went from one
+  screenful to three, and the camera centred the tile in a box three times
+  taller than the phone.
+
+Together: four times the magnification instead of one and a half, and the note
+a long way off the bottom. The window is **moved** to the thing being read
+instead, which changes no geometry at all — same columns, same cells, same
+scroller, only which part of the board they show. The camera also solves
+against the **opening** now (the band between the bar and the rail) rather than
+the scroller, which is the same fact met from the other side: on a Mac the two
+are the same box, which is why it had never shown up there.
+
+Three more, found on the way: an ordinary re-render no longer re-animates the
+zoom (it was easing in again on every keystroke while you were writing in the
+thing you were reading); the phone's drawer rack is back to two cells square
+and four across, because matching it to the new desk boxes put a wall of
+drawers across the whole screen with nowhere left to make anything; and the
+search field no longer draws itself over the shelf dots on a narrow bar.
+
+Guarded by `camPhone`, which had to learn that **a background page gets no
+compositor frames** — the phone context is a second page and for most of the
+file it is behind the desk one, so a transition never advances and every
+reading came back as the identity transform while the app was doing exactly the
+right thing.
+
+---
+
 ## 0zd. Reported 2026-09-21 — twenty-four from a day with the camera — DONE (v1.75)
 
 The camera shipped and Timothy lived in it for a day. Most of this is the

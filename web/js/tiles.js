@@ -2370,18 +2370,33 @@ function gridOfContainer(cid){
   /* On a phone the board is **windowed** to one shelf; on a Mac the whole
      thing is drawn and the scroller reaches the rows you cannot see. So the
      shift is zero on a Mac and everything below reads the same either way. */
-  /* **The camera needs board on all four sides, so it takes the window off.**
+  /* **The camera needs board on all four sides, so the window moves to it.**
      A phone draws one shelf and nothing else, which is right for a board you
      are standing on and wrong for one you are looking *into*: zoomed, there
-     were neighbours to the left and right (the shelf is wider than the tile)
-     and a hard edge above and below, where the shelf simply stopped. While the
-     camera is on something on this board the whole board is drawn, so what is
-     round the thing you are reading is what is actually round it. It costs a
-     bigger frame for as long as you are in and nothing at all the rest of the
-     time. See decision 188. */
-  const camHere = !!(S.zoomOn && byId(S.zoomOn) && byId(S.zoomOn).parent===c.id);
-  const windowed = dv==='phone' && !camHere;
-  const shift = windowed ? shelfOrigin(c.id, dv) : {x:0, y:0};
+     were neighbours to the left and right and a hard edge above and below,
+     where the shelf simply stopped.
+
+     The window is **re-centred on the thing being read** rather than taken
+     off. Taking it off was the first answer and it broke the camera outright:
+     the board went from eight columns to twenty-four in the same render, and
+     since the columns are `1fr` the cells squashed to a third of their width
+     while the rows stayed put — and the scroller, which on a phone is as tall
+     as its own rows, went from one screen to three, so `camSolve()` centred
+     the tile in a box three times taller than the screen and put it somewhere
+     off the bottom. Moving the window changes **no** geometry at all: the same
+     number of columns, the same cells, the same scroller — only which part of
+     the board they are showing. See decision 188. */
+  const camOn = S.zoomOn && byId(S.zoomOn);
+  const camHere = !!(camOn && camOn.parent===c.id);
+  const windowed = dv==='phone';
+  let shift = windowed ? shelfOrigin(c.id, dv) : {x:0, y:0};
+  if(windowed && camHere){
+    const cb = lay(camOn, dv, c.id);
+    const fit = (want, span, all) =>
+      Math.max(0, Math.min(Math.max(0, all - span), Math.round(want)));
+    shift = {x: fit(cb.x + cb.w/2 - g.shelfW/2 - 1, g.shelfW, g.cols),
+             y: fit(cb.y + cb.h/2 - g.shelfH/2 - 1, g.shelfH, g.rows)};
+  }
   let kids=childrenOf(c);
   FLOW.clear();
   /* An object with no box yet is left off this frame rather than drawn at the
@@ -2445,8 +2460,7 @@ function gridOfContainer(cid){
      or nine — so it is neither "as tall as the tallest thing on it" nor "at
      least a screen": it is the shelves, and running out of them is what "it
      won't fit" means. */
-  const cols = windowed ? drawCols(g, dv) : g.cols;
-  const rows = windowed ? drawRows(g, dv) : g.rows;
+  const cols = drawCols(g, dv), rows = drawRows(g, dv);
 
   // a drawer may carry its own board, which overrides the global one
   const bd = c.board ? String(c.board).split('|') : null;

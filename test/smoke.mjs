@@ -8352,6 +8352,78 @@ const CHROME = process.env.BUREAU_CHROME;
     return out;
   });
 
+  /* ---- the camera on a phone — decision 188 ------------------------------
+     The one that broke, and the two facts about a phone that broke it: its
+     board is **windowed to one shelf**, and its scroller is **as tall as its
+     own rows** rather than as tall as the screen. Drawing the whole board
+     instead of one shelf squashed the cells (`1fr` columns against measured
+     px rows) and tripled the scroller, so the tile measured narrow, the scale
+     came out at four times rather than one and a half, and the camera centred
+     it in a box three times taller than the phone. Guarded here because the
+     Mac cannot see either of them: there the scroller *is* the opening. */
+  /* **The phone page has to be in front for this one.** It is a second page in
+     the same browser and therefore a *background* page for most of this file —
+     and a background page gets no compositor frames, so a CSS transition never
+     advances and the computed transform sits at whatever the first frame wrote.
+     The camera eases in from rest, so every reading here came back as identity
+     while the inline style said exactly the right thing. Anything that measures
+     an **animated end state** rather than a layout needs this; nothing else in
+     this file did, which is why it had never come up. */
+  await phone.bringToFront();
+  const camPhone = await phone.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const out = {}, S = BUREAU.state;
+    const was = S.objects.slice();
+    S.view='desk'; S.drawerId=null; S.zoomOn=null; S.q=''; S.look.locked=false;
+    BUREAU.render(); await nap(200);
+    // on the shelf being looked at, or its tile is never drawn at all
+    const box = Object.assign(BUREAU.free(4,3,'root'), {w:4,h:3});
+    S.objects.push({id:'pz', kind:'note', parent:'root', title:'Keeper',
+      attrs:['text'], read:'scroll', tags:[], ord:0, created:'2026-09-01',
+      body:'Words and more words. '.repeat(40), phone:box});
+    BUREAU.render(); await nap(250);
+    const grid = () => document.querySelector('#drawergrid');
+    const tile = () => document.querySelector('[data-row="pz"]');
+    const cols = () => +grid().style.getPropertyValue('--cols');
+    const sc   = () => document.querySelector('#app .scroll');
+    if(!tile()) return {noTile:true};
+    const colsBefore = cols(), scH = sc().getBoundingClientRect().height;
+    const cellBefore = grid().getBoundingClientRect().width / colsBefore;
+    if(BUREAU.gestureFlags) BUREAU.gestureFlags.suppressClick = false;
+    tile().click(); await nap(80);
+    if(!S.zoomOn){ tile().click(); await nap(80); }
+    await nap(820);
+    out.itZooms = S.zoomOn === 'pz';
+    /* **The board does not change size to zoom into it.** Same columns, same
+       cells, same scroller — the window moves, nothing grows. */
+    out.theBoardIsUnchanged = cols() === colsBefore
+      && Math.abs(sc().getBoundingClientRect().height - scH) < 2;
+    out.andTheCellsStaySquare = (() => {
+      const g = grid().getBoundingClientRect();
+      const k = +grid().style.getPropertyValue('--camk') || 1;
+      return Math.abs((g.width/cols())/k - cellBefore) < 1.5; })();
+    /* …and the thing being read is in the middle of the **opening** — the band
+       between the bar and the rail — rather than of a scroller that may be a
+       different size from it. */
+    out.andItLandsInTheOpening = (() => {
+      const t = tile().getBoundingClientRect();
+      const main = grid().closest('.main');
+      const bar = main.querySelector('.gridbar'), rail = main.querySelector('.deskrail');
+      const top = bar ? bar.getBoundingClientRect().bottom : 0;
+      const bot = rail ? rail.getBoundingClientRect().top : innerHeight;
+      const v = sc().getBoundingClientRect();
+      return Math.abs((t.left+t.width/2) - (v.left+v.width/2)) < 3
+          && Math.abs((t.top+t.height/2) - (top+bot)/2) < 3
+          && t.top > top - 2 && t.bottom < bot + 2; })();
+    // and it is bigger than it was, which is the whole point
+    out.andIsLargerThanItWas =
+      tile().getBoundingClientRect().width > 4*cellBefore + 4;
+    S.zoomOn=null; S.objects.length=0; was.forEach(o=>S.objects.push(o));
+    S.undo=[]; S.redo=[]; BUREAU.render();
+    return out;
+  });
+  await page.bringToFront();
+
   console.log(JSON.stringify({
     errors: errs, manifestOk, swReady, survived, styleSurvived, slotColours,
     newObjectSeen, inlineEdit, sortDefaults, taskLook,
@@ -8373,7 +8445,7 @@ const CHROME = process.env.BUREAU_CHROME;
     paletteKeys, editorKeys, pickerLeads, rollupsEverywhere, soundAndVision, keyboardBoard,
     ranking, urgency, reachable, pensAndCorners, lyingBooks, plansWork, stockPlans, livedWith, listIsOneShelf, repeating, oneLock, scheduling, ownColour, addBox, calFaces,
     lockedBoard, freeTraits, pageWrites, tickBoxes, readerFits, categories,
-    specimenBook, deskObjects, camLife, thisPass,
+    specimenBook, deskObjects, camLife, camPhone, thisPass,
     dropsIn, keyframesRegistered, aesthetics, slotScoping, objectsDressed, grainSlots, tagged, drawnAesthetic, deeper, lookStage, statusBar, bindings, panelling, theSpray, tappingIsQuiet, decorations, pinboard, gravity
   }, null, 2));
   await browser.close();

@@ -8292,6 +8292,12 @@ else. They are `div role="button"` and not `<button>`: a tile is itself a
 button, and a button inside a button is a parse error the browser fixes by
 unnesting — silently, which is why they did not appear at all the first time.
 
+**An ordinary re-render is not a movement.** `render()` hands back a new grid
+with no transform on it and `.camera` carries a transition, so writing the
+target straight onto it animates the zoom again from nothing — on every
+keystroke while you are writing in the thing you are reading. Arriving eases;
+staying is drawn where the camera already was, with the transition suppressed.
+
 **Holding what you are reading writes in it.** `S.editId` was already the
 board's in-place edit — an `<input>` for the name, a `<textarea>` for the body,
 both carrying `data-inline` so one handler in wire.js writes the field as you
@@ -8304,11 +8310,33 @@ push.
 leave it alone — `S.look.camdim`, one class on the scroller. Leaving it alone
 is the most honest reading of a camera and is why it is offered at all.
 
-**A phone takes the window off while the camera is in.** It draws one shelf,
+**A phone moves its window to whatever the camera is on.** It draws one shelf,
 which is right for a board you are standing on and wrong for one you are
 looking into: there were neighbours to the left and right and a hard edge above
-and below, where the shelf simply stopped. The whole board is drawn for as long
-as you are in.
+and below, where the shelf simply stopped. The shelf-sized window is re-centred
+on the thing being read.
+
+Taking the window *off* was the first answer and it broke the camera outright.
+Two things went at once, and both are worth remembering because neither is
+visible in the code that caused them. The board went from eight columns to
+twenty-four in the same render, and since the columns are `1fr` the cells
+squashed to a third of their width while the rows stayed at their measured
+height — so the tile measured narrow and `camScale()` asked for four times
+rather than one and a half. And the scroller, which on a phone is **as tall as
+its own rows** rather than as tall as the screen, went from one screenful to
+three: the camera then centred the tile in a box three times taller than the
+phone and put it a long way off the bottom. "Way too far and to the wrong
+place", which was exactly right. Moving the window changes no geometry at all —
+the same columns, the same cells, the same scroller — only which part of the
+board they show.
+
+**And what the camera fills is the opening, not the scroller.** Same cause, met
+from the other side: on a Mac the scroller is `flex:1` and the two are the same
+box, so nobody had noticed the difference. On a phone a four-row drawer gives a
+two-hundred-pixel scroller, and the camera was magnifying a note by three per
+cent and calling it done. `camView()` takes the band between the bar and the
+rail, which is what the board sits in on both devices and what you are actually
+looking through.
 
 **An instrument zooms in where it sits**, like everything else; the sheet it
 used to open is gone and its settings lead its own editor. And a **record**,

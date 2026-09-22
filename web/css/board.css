@@ -2724,7 +2724,7 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
    four buttons beside it. It is furniture, so it wears the board's own rule
    and paper rather than a field's outline. */
 .barsearch{
-  flex:1 1 auto;min-width:78px;max-width:320px;
+  flex:1 1 60px;min-width:0;max-width:320px;
   display:flex;align-items:center;gap:6px;
   padding:0 9px;height:30px;border-radius:var(--pill);
   background:color-mix(in srgb, var(--ink) 5%, transparent);
@@ -2749,7 +2749,15 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
   padding:10px 16px 6px;font-size:12px;color:var(--ink-3);
   font-variant-numeric:tabular-nums;
 }
-.is-phone .barsearch{max-width:none;min-width:56px;padding:0 7px}
+.is-phone .barsearch{max-width:none;padding:0 7px}
+/* The bar is one row and the search takes what is spare, so the two things
+   either side of it have to say they will not be squeezed: `.where` shrinks
+   (it clips its own crumbs) but the **shelf dots** are a map you aim at and do
+   not, and the tools are targets. Without this the search's `flex:1` took the
+   room from the dots and drew itself straight over them. */
+.gridbar > .where{min-width:0;flex:0 1 auto;overflow:hidden}
+.gridbar > .where > .shelfmark{flex:0 0 auto}
+.gridbar > .bartools{flex:0 0 auto}
 
 /* ---- the nine dots in the bar ------------------------------------------
    The desks were a row and their dots were a row. Nine shelves are a *square*,
