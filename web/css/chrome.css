@@ -581,18 +581,111 @@
    nothing but a reading margin, which is the one thing neither the tile nor the
    sheet of Letter could give. It is a property of the opening rather than of
    the object: read it any other way and the paper is back. */
-.bookstage.fullbleed{--paperw:100%}
-.bookstage.fullbleed .book{width:100%;margin:0}
-.bookstage.fullbleed .spread{
-  height:auto;min-height:var(--avail-h);border:0;border-radius:0;box-shadow:none;
+/* **Full screen means the screen.** The first version took the paper away
+   and left everything else: the stage kept its 6vw by 4vh inset, the title
+   still stood over the sheet and the bar still sat under it, so "edge to edge"
+   was a wider page inside the same window — the margins said you were still
+   looking at a thing in a place. It is the whole screen now, top to bottom and
+   side to side, over the bar and over the carcass, with the way out floating
+   in the corner and the pinch that closes any surface still closing this one.
+   See decision 191.
+
+   The **ruler** takes the same class and the same numbers, and it has to:
+   pagination fills an offscreen twin until a block stops fitting, so a twin
+   measured against the letter-shaped sheet breaks a full-screen page for a
+   box it is not. That is the trap panels.md names, met from the one direction
+   nothing had been written for. `pagesOf()` carries the flag in its cache key
+   for the same reason it carries the window size. */
+.bookstage.fullbleed,.bookruler.fullbleed{
+  --stage-x:0px;--stage-y:0px;--bookchrome:0px;--pages:1;
+  --avail-w:100vw;--avail-h:var(--vvh,100vh);
+  --pageh:var(--vvh,100vh);--pagew:100vw;--paperw:100vw;
+}
+.bookstage.fullbleed{
+  top:var(--vvt,0px);left:0;right:0;height:var(--vvh,100vh);gap:0;
+}
+/* The title goes with the rest of it: a name printed over the words is the
+   furniture this mode exists to get rid of, and you pressed the thing to get
+   here, so you know what you are reading. */
+.bookstage.fullbleed .bookhead{display:none}
+.bookstage.fullbleed .book{margin:0}
+/* **Both boxes are stated in lengths, not in per cents.** The ruler is an
+   absolutely positioned offscreen box with no size of its own, so a `100%`
+   width or height on anything inside it resolves against nothing and the twin
+   shrinks to fit its own contents — which never overflows, so a whole body
+   measures as one page and runs off the bottom of the screen. The stage is
+   exactly the viewport, so saying the viewport twice is saying the same
+   number, and it is the one the ruler can also read. */
+.bookstage.fullbleed .spread,.bookruler.fullbleed .spread{
+  height:var(--pageh);min-height:0;border:0;border-radius:0;box-shadow:none;
   grid-template-columns:1fr;background:var(--paper);
 }
-.bookstage.fullbleed .spread .page{
+/* The **text** keeps off the notch and the home indicator; the paper does not.
+   That is the whole difference between edge to edge and unreadable. */
+.bookstage.fullbleed .spread .page,.bookruler.fullbleed .spread .page{
   border-right:0;
-  padding:clamp(20px,5vw,72px) clamp(18px,7vw,120px) clamp(28px,6vw,84px);
+  padding:calc(env(safe-area-inset-top) + clamp(22px,4.5vw,64px))
+          max(clamp(18px,7vw,120px), calc((100% - 68ch) / 2))
+          calc(env(safe-area-inset-bottom) + clamp(28px,5vw,72px));
 }
+/* The sideways figure is the **measure**, said the way scroll mode already
+   says it: a percentage in `padding` resolves against the page's own width, so
+   one declaration centres every paragraph, list and heading at once. A line of
+   prose running the whole of a 1280px screen is not reading, and full screen
+   is the one place where the paper stops holding the column in for you. On a
+   phone `100% - 68ch` is negative and the `max()` picks the edge inset, which
+   is what you want there anyway. */
 .bookstage.fullbleed .spread .pno{display:none}
-.is-phone .bookstage.fullbleed .spread .page{padding:22px 20px 30px}
+.is-phone .bookstage.fullbleed .spread .page,
+.is-phone .bookruler.fullbleed .spread .page{
+  padding:calc(env(safe-area-inset-top) + 26px) 20px
+          calc(env(safe-area-inset-bottom) + 30px);
+}
+/* ---- and the bar becomes two things floating over the page ------------
+   The way out, top right, which is what was asked for. And the page turns,
+   bottom centre and **only where they are the only way**: a swipe across the
+   spread turns a page on a phone, and a Mac has no swipe and no arrow keys
+   here (a surface owns the keys while it is up, and `boardKey` bows out), so
+   hiding them there would be a book you could open and not read. Scroll mode
+   has nothing to turn, so there it really is the one control.
+
+   They are `position:absolute` inside a bar that has become a full-size layer
+   with `pointer-events:none`, so the paper under them stays tappable — the
+   page is the field (decision 82) and a transparent strip over it would eat
+   the caret. */
+.bookstage.fullbleed .bookbar{
+  position:absolute;inset:0;z-index:3;margin:0;width:auto;max-width:none;
+  display:block;pointer-events:none;
+}
+.bookstage.fullbleed .bktools{display:none}
+.bookstage.fullbleed.writingon .bktools{
+  display:flex;position:absolute;pointer-events:auto;
+  top:calc(env(safe-area-inset-top) + 12px);left:12px;
+}
+.bookstage.fullbleed .bkout{
+  position:absolute;pointer-events:auto;
+  top:calc(env(safe-area-inset-top) + 12px);right:12px;
+}
+.bookstage.fullbleed .bkturn{
+  position:absolute;pointer-events:auto;left:0;right:0;
+  justify-content:center;
+  bottom:calc(env(safe-area-inset-bottom) + 12px);
+}
+.bookstage.rm-scroll.fullbleed .bkturn{display:none}
+/* Light on dark was right over the scrim and is invisible over paper, so both
+   dress as the page's own ink on a wash of its own stock — which works on all
+   five stocks and in all seven aesthetics without naming any of them. */
+.bookstage.fullbleed .bookbar .iconbtn,
+.bookstage.fullbleed .bookbar .bookcount{
+  color:var(--ink-2);
+  background:color-mix(in srgb,var(--paper) 78%,transparent);
+  border:1px solid var(--rule-2);
+  -webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);
+}
+.bookstage.fullbleed .bookbar .bookcount{
+  border-radius:var(--pill);padding:4px 11px;min-width:0;line-height:1.5;
+}
+.bookstage.fullbleed .bookbar .iconbtn:hover{color:var(--ink);border-color:var(--brass)}
 
 /* ---- one bar under the paper — decision 84 ---------------------------
    Everything you can press, in one row, at the end of the sheet a thumb

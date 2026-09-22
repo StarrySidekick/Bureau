@@ -8560,3 +8560,74 @@ to follow: going in you already know where you are going.
 whole on a phone, and the dots in the bar are the only thing saying so. That is
 the desk's bargain taken one level down, and it is the bargain Timothy asked
 for.
+
+## 191 · Full screen means the screen
+
+*2026-09-22*
+
+The expand in the camera's corner hands an object to the reading surface with
+the paper taken away (decision 188). It took the *paper* away and left
+everything else: the stage kept its 6vw by 4vh inset, the title still stood
+over the sheet and the bar still sat under it. So "edge to edge" was a wider
+page inside the same window, and the margins went on saying you were looking at
+a thing in a place — which is the one thing this mode exists not to say.
+
+It is the whole screen now. Top to bottom and side to side, over the bar and
+over the carcass, with the title gone and the bar reduced to **the way out,
+floating in the top right corner**. The pinch that closes any surface already
+closed this one, so there are two ways back and neither of them is a strip of
+furniture.
+
+Three things had to come with it, and one of them was already quietly wrong.
+
+**The ruler is the same box.** Pagination fills an offscreen twin until a block
+stops fitting (`pagesOf()`), and the twin is a bare `.bookruler` — so a
+full-screen page was being broken against the letter-shaped sheet, and had been
+since the expand shipped. The twin takes the `fullbleed` class now and the
+stylesheet names `.bookruler` beside `.bookstage` the way the base rule already
+does. `S.readFull` is in the cache key for the same reason the window size is:
+same body, same window, different page box.
+
+And a trap inside the trap. The first version wrote `height:100%` on the
+spread, which is right for a stage that is exactly the viewport and **nothing
+at all** for a ruler — an absolutely positioned offscreen box with no size of
+its own, against which a per cent resolves to auto. The twin came out 40 by 56
+against a 390 by 844 page, nothing ever overflowed it, and a whole body
+measured as one page that ran off the bottom of the screen. Both boxes are
+stated in lengths now, because the stage *is* the viewport and saying the
+viewport twice is saying one number. The general rule: **a per cent needs
+something to be a per cent of**, and an offscreen measuring twin has nothing.
+
+**Full screen is one column.** A spread is two letter-shaped pages side by
+side, which is a book on a table; the whole screen is one page. `pagesOf()` and
+`bookOf()` were asking `spreadOf()` separately, which is how a body could be
+broken for two columns and then drawn in one with half of it unreachable —
+`spreadNow()` is the one reader now and full screen overrules the object.
+
+**And the column keeps a measure.** Full screen is the one place where the
+paper stops holding the line in for you, and a line of prose running the whole
+of a 1280px screen is not reading. Said in the page's own padding, exactly as
+scroll mode has always said it: a percentage there resolves against the page's
+width, so one declaration centres every paragraph, list and heading at once and
+none of them needs a rule of its own. On a phone `100% - 68ch` is negative and
+the `max()` picks the edge inset, which is what you want there anyway.
+
+The page turns stay, at the bottom centre, and **only where they are the only
+way**: a swipe across the spread turns a page on a phone, and a Mac has no
+swipe and no arrow keys here — a surface owns the keys while it is up and
+`boardKey()` bows out — so hiding them there would be a book you could open and
+not read. Scroll mode has nothing to turn, so there it really is the one
+control. They and the way out dress as the page's own ink on a wash of its own
+stock, which works on all five stocks and in all seven aesthetics without
+naming any of them; light on dark was right over the scrim and is invisible
+over paper.
+
+The **text** keeps off the notch and the home indicator and the paper does not,
+which is the whole difference between edge to edge and unreadable. The bar
+becomes a full-size layer with `pointer-events:none` and two `auto` children,
+because the page is the field (decision 82) and a transparent strip over it
+would eat the caret.
+
+*Against:* the title is gone, so a full-screen reading does not say what it is
+of. You pressed the thing to get here, so you know — and the alternative is the
+banner this mode exists to remove.

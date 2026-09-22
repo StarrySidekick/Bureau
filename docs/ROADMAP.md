@@ -5,6 +5,25 @@ Sequenced by dependency, not appetite: item 1 makes everything after it safer.
 
 ---
 
+## 0zh. Reported 2026-09-22 — full screen means the screen — DONE (v1.79)
+
+Decision 191. **"Going full screen on a note brings it like real full screen,
+not with margins showing it still in the space."** It was taking the *paper*
+away and leaving the window: the stage kept its inset, the title stood over the
+sheet and the bar sat under it. It is the whole screen now, top to bottom and
+side to side, with the title gone and the bar reduced to the way out floating
+in the top right — and the pinch that closes any surface still closes this one.
+
+Three things came with it, all of which fail silently: the pagination ruler
+takes the same class and the same numbers (it was breaking full-screen pages
+against the letter-shaped sheet, and had been since the expand shipped); both
+boxes are stated in lengths rather than per cents, because the offscreen ruler
+has no size of its own for a per cent to resolve against; and full screen is
+one column, asked once through `spreadNow()` rather than twice through
+`spreadOf()`. The column keeps a measure, said in the page's own padding.
+
+---
+
 ## 0zg. Reported 2026-09-22 — inside a drawer the shelves go out the window — DONE (v1.78)
 
 Eleven, and the first has structure behind it. Decision 190.

@@ -8686,6 +8686,101 @@ const CHROME = process.env.BUREAU_CHROME;
     return out;
   });
 
+  /* --- decision 191: full screen means the screen ----------------------
+     The expand under the camera used to take the *paper* away and leave the
+     window: the stage kept its inset, the title stood over the sheet and the
+     bar sat under it. The load-bearing assertion here is `theRulerIsTheSameBox`
+     — pagination fills an offscreen twin, and a twin measured against the
+     letter-shaped sheet breaks a full-screen page for a box it is not, which
+     is invisible until you count the pages. */
+  const fullScreen = await page.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const out = {}, S = BUREAU.state;
+    const was = S.objects.slice();
+    S.objects.length = 0; S.zoomOn = null; S.look.locked = false;
+    S.objects.push({id:'fs', kind:'note', parent:'root', title:'The long one',
+      attrs:['text'], tags:[], ord:0, created:'2026-09-01',
+      body:('A paragraph with enough words in it to wrap more than once on any '
+          + 'screen this could be read on. ').repeat(3) + '\n\n'});
+    const o = S.objects[0];
+    o.body = o.body.repeat(14);
+    BUREAU.render(); await nap(150);
+
+    const open = (full, mode) => { o.read = mode;
+      S.readFull = full; S.readId = 'fs'; S.readEdit = false; S.bookAt = 0;
+      BUREAU.renderSheet(); };
+    const stageBox = () => { const e = document.querySelector('.bookstage');
+      const r = e.getBoundingClientRect();
+      return [Math.round(r.x), Math.round(r.y), Math.round(r.width), Math.round(r.height)]; };
+
+    /* ---- the inset one, so the difference is the assertion -------------- */
+    open(false, 'book'); await nap(220);
+    const inset = stageBox();
+    out.anOrdinaryReadingIsInset = inset[0] > 4 && inset[2] < innerWidth - 8;
+
+    /* ---- and full screen is the screen ---------------------------------- */
+    open(true, 'book'); await nap(260);
+    const full = stageBox();
+    out.fullScreenIsTheWholeScreen =
+      full[0] === 0 && full[2] === innerWidth && full[3] >= innerHeight - 1;
+    const sp = document.querySelector('.spread').getBoundingClientRect();
+    out.andSoIsThePaper =
+      Math.round(sp.width) === innerWidth && Math.round(sp.height) >= innerHeight - 1;
+    out.theTitleBannerIsGone =
+      getComputedStyle(document.querySelector('.bookhead')).display === 'none';
+    /* The way out is the one thing left, and it is in the top right corner —
+       which is what was asked for, so it is what is asked about. */
+    const x = document.querySelector('.bkout .iconbtn').getBoundingClientRect();
+    out.theWayOutIsTopRight = x.top < innerHeight * 0.2 && x.left > innerWidth * 0.7;
+    out.andTheToolsAreNot =
+      getComputedStyle(document.querySelector('.bktools')).display === 'none';
+
+    /* ---- the ruler is the same box, or the breaks are for another page ---
+       Built the way `pagesOf()` builds one, and compared against the page
+       actually on the screen. It came out 40 by 56 against a 390 by 844 page
+       the first time, because `height:100%` inside an absolutely positioned
+       box with no size of its own resolves against nothing — so nothing ever
+       overflowed the twin and a whole body measured as one page. */
+    out.theRulerIsTheSameBox = (() => {
+      const live = document.querySelector('.spread .page');
+      const r = document.createElement('div');
+      r.className = 'bookruler fullbleed';
+      r.innerHTML = '<div class="book"><div class="spread"><div class="page"></div></div></div>';
+      document.getElementById('frame').appendChild(r);
+      const twin = r.querySelector('.page');
+      const ok = Math.abs(twin.clientWidth - live.clientWidth) <= 1
+              && Math.abs(twin.clientHeight - live.clientHeight) <= 1;
+      r.remove(); return ok; })();
+    // …and it shows: a long body is several pages, not one
+    const count = document.querySelector('.bookcount');
+    out.andALongBodyIsSeveralPages = !!count && /of ([2-9]|\d\d)/.test(count.textContent);
+
+    /* ---- one column, whatever the object would do ------------------------
+       A spread is two letter-shaped pages on a table; the whole screen is one
+       column and the stylesheet says so, so `pagesOf()` and `bookOf()` both
+       have to count one or half the body is drawn nowhere. */
+    out.fullScreenIsOneColumn =
+      document.querySelectorAll('.spread .page').length === 1;
+
+    /* ---- a measure, because a line the width of a Mac is not reading ----- */
+    const para = document.querySelector('.spread .page p');
+    if(para){ const pr = para.getBoundingClientRect();
+      out.theColumnKeepsAMeasure = pr.width <= Math.min(innerWidth, 760);
+      // …and it is centred rather than left against the edge
+      out.andIsCentred = Math.abs((innerWidth - pr.width)/2 - pr.left) <= 2; }
+
+    /* ---- scroll mode has nothing to turn, so it really is the one control */
+    open(true, 'scroll'); await nap(220);
+    out.scrollHasNoTurns =
+      getComputedStyle(document.querySelector('.bkturn')).display === 'none';
+
+    BUREAU.closeSheet && BUREAU.closeSheet();
+    S.readFull = false; S.readId = null;
+    S.objects.length=0; was.forEach(x=>S.objects.push(x));
+    S.undo=[]; S.redo=[]; BUREAU.renderSheet(); BUREAU.render();
+    return out;
+  });
+
   console.log(JSON.stringify({
     errors: errs, manifestOk, swReady, survived, styleSurvived, slotColours,
     newObjectSeen, inlineEdit, sortDefaults, taskLook,
@@ -8707,7 +8802,7 @@ const CHROME = process.env.BUREAU_CHROME;
     paletteKeys, editorKeys, pickerLeads, rollupsEverywhere, soundAndVision, keyboardBoard,
     ranking, urgency, reachable, pensAndCorners, lyingBooks, plansWork, stockPlans, livedWith, listIsOneShelf, repeating, oneLock, scheduling, ownColour, addBox, calFaces,
     lockedBoard, freeTraits, pageWrites, tickBoxes, readerFits, categories,
-    specimenBook, deskObjects, camLife, camPhone, ownBoard, threeDrawings, thisPass,
+    specimenBook, deskObjects, camLife, camPhone, ownBoard, threeDrawings, fullScreen, thisPass,
     dropsIn, keyframesRegistered, aesthetics, slotScoping, objectsDressed, grainSlots, tagged, drawnAesthetic, deeper, lookStage, statusBar, bindings, panelling, theSpray, tappingIsQuiet, decorations, pinboard, gravity
   }, null, 2));
   await browser.close();

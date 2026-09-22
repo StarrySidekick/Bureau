@@ -2560,6 +2560,13 @@ function listTile(o){
    answer is cached against everything that could change it, so turning a page
    costs nothing and only the first look at a body measures at all. */
 const PAGES = {key:null, list:null};
+/* **Whether this reading is a two-page spread**, and full screen overrules the
+   object. A spread is two letter-shaped pages side by side, which is a book on
+   a table; the whole screen is one column, and the stylesheet says so with
+   `grid-template-columns:1fr`. One reader, because `pagesOf()` and `bookOf()`
+   asking separately is how the body came to be broken for two columns and then
+   drawn in one — half of it silently unreachable. */
+const spreadNow = o => !S.readFull && spreadOf(o);
 const clearPages = ()=>{ PAGES.key=null; PAGES.list=null; };
 const headOf = o => o.media&&o.media.src
   ? `<img class="scrollimg" src="${esc(o.media.src)}" alt="${esc(o.title||'')}">` : '';
@@ -2572,17 +2579,22 @@ const headOf = o => o.media&&o.media.src
    sets them and are then made bigger by the same transform that made the tile
    bigger. It is in the cache key for the same reason the window is. */
 function pagesOf(o, box){
-  const two = box ? false : spreadOf(o);
+  const full = !box && !!S.readFull;
+  const two = box ? false : spreadNow(o);
   // the window is in the key because the sheet is sized from it, and a
-  // narrower window means fewer lines to a page
-  const key=[o.id, two?'two':'one', (o.body||'').length,
+  // narrower window means fewer lines to a page — and so is full screen, which
+  // is a different page box for the same body on the same window
+  const key=[o.id, two?'two':'one', full?'full':'', (o.body||'').length,
              (o.media&&o.media.assetId)||'', innerWidth, innerHeight,
              box?`${Math.round(box.w)}x${Math.round(box.h)}@${
                box.fs?box.fs.toFixed(1):''}`:''].join('|');
   if(PAGES.key===key) return PAGES.list;
 
   const ruler=document.createElement('div');
-  ruler.className='bookruler';
+  /* The twin has to be measured in the box the words will be **set** in, and
+     full screen is a different box — see the fullbleed block in chrome.css,
+     which names `.bookruler` beside `.bookstage` for exactly this. */
+  ruler.className='bookruler'+(full?' fullbleed':'');
   ruler.innerHTML=`<div class="book"><div class="spread">
     <div class="page"></div>${two?'<div class="page"></div>':''}</div></div>`;
   document.getElementById('frame').appendChild(ruler);
@@ -2646,7 +2658,7 @@ function bookOf(o, left, right){
       <div class="page">${headOf(o)}${o.body?md(o.body):'<p class="thin">Nothing written yet.</p>'}</div>
     </div>${bar('')}</div>`;
   }
-  const pages=pagesOf(o), two=spreadOf(o), step=two?2:1;
+  const pages=pagesOf(o), two=spreadNow(o), step=two?2:1;
   const at=Math.min(Math.max(0,S.bookAt||0), Math.max(0,pages.length-1));
   const last=Math.min(at+step, pages.length);
   // one page is not a book: nothing to turn, so nothing to press

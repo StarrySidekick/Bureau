@@ -306,3 +306,35 @@ floor and looks like the stage is broken. See decision 51.
 twenty shapes as chips were four hundred pixels you had to read like a wall. New
 settings go in as `psel()`; if a group is genuinely multi-select, put the chips
 behind a `pgroup()` disclosure.
+
+**Full screen means the screen.** The expand under the camera hands the object
+to the reading surface with `S.readFull`, and that is now the whole screen —
+the stage loses its inset, the title goes, and the bar becomes two things
+floating over the page: the way out at the top right, and the page turns at the
+bottom centre and **only in book mode**, where a Mac has no other way to turn
+one (a surface owns the keys while it is up and `boardKey()` bows out). The
+pinch that closes any surface closes this one. See decision 191.
+
+Three things travel with it and every one of them fails silently:
+
+- **The ruler takes the same class and the same numbers.** `pagesOf()` fills an
+  offscreen `.bookruler` until a block stops fitting, so a twin measured
+  against the letter-shaped sheet breaks a full-screen page for a box it is
+  not — which nobody notices until they count the pages. The stylesheet names
+  `.bookruler.fullbleed` beside `.bookstage.fullbleed`, and `S.readFull` is in
+  the cache key for the reason the window size is.
+- **Both boxes are stated in lengths, never per cents.** The ruler is an
+  absolutely positioned offscreen box with **no size of its own**, so a `100%`
+  height inside it resolves against nothing and the twin shrinks to its own
+  contents: it came out 40 by 56 against a 390 by 844 page, nothing ever
+  overflowed, and a whole body measured as one page. The stage is exactly the
+  viewport, so saying the viewport twice is saying one number.
+- **Full screen is one column**, whatever the object would do. Ask
+  `spreadNow(o)` and never `spreadOf(o)` from a reader: the two were asked
+  separately, which is how a body came to be broken for two columns and drawn
+  in one with half of it unreachable.
+
+And the column keeps a **measure** — said in the page's own padding, the way
+scroll mode says it, because a percentage there resolves against the page's
+width and one declaration centres every block at once. Full screen is the one
+place where the paper stops holding the line in for you.
