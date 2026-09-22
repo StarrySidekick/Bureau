@@ -4513,8 +4513,10 @@ const CHROME = process.env.BUREAU_CHROME;
        upside down is worse than no name. See decision 192. */
     const thinMark = col && col.querySelector(':scope > .dmark');
     const thinName = col && col.querySelector(':scope > .dtop');
-    out.andItWearsItsMarkInstead = !!thinMark
-      && getComputedStyle(thinMark).display !== 'none'
+    /* Decision 193 changed the answer again: a front one cell wide and taller
+       is a **pigeonhole** — its panelling as a frame and its contents drawn
+       small — and still no name run up it. */
+    out.andItIsAPigeonholeInstead = !!col && col.classList.contains('pigeontile')
       && (!thinName || getComputedStyle(thinName).display === 'none');
     [tall,wide,big,flat,thin].forEach(d => BUREAU.delDrawer(d.id));
     S.undo=[]; BUREAU.render();
@@ -8895,6 +8897,9 @@ const CHROME = process.env.BUREAU_CHROME;
      rail off both pictures in a dive, a stale suppressClick eating the gear on
      a zoomed note, the full-screen editor keeping its words where they were,
      and a pigeonhole drawing its contents inert. */
+  // the pager builds its picture on the next frame, and a tab in the
+  // background is given no frames at all
+  await phone.bringToFront();
   const boards193 = await phone.evaluate(async () => {
     const nap = n => new Promise(r => setTimeout(r, n));
     const out = {}, S = BUREAU.state;
@@ -8907,7 +8912,8 @@ const CHROME = process.env.BUREAU_CHROME;
     if(M.pagerBegin('y', -1)){
       await nap(60);
       const cur = document.querySelector('.pager .pane.cur .grid');
-      out.theUpDownPictureSitsOnTheBoard = !!cur && Math.abs(cur.getBoundingClientRect().top - real) < 1;
+      out.theUpDownPictureSitsOnTheBoard = !!cur && Math.abs(cur.getBoundingClientRect().top - real) < 1
+        || {real, cur: cur && cur.getBoundingClientRect().top, look: {p:S.look.parallax, i:S.look.deskinset}};
       M.pagerCancel(); await nap(60);
     } else out.theUpDownPictureSitsOnTheBoard = 'no neighbour';
 
@@ -8975,6 +8981,7 @@ const CHROME = process.env.BUREAU_CHROME;
     S.undo=[]; S.redo=[]; S.view='desk'; S.drawerId=null; BUREAU.render();
     return out;
   });
+  await page.bringToFront();
 
   console.log(JSON.stringify({
     errors: errs, manifestOk, swReady, survived, styleSurvived, slotColours,
