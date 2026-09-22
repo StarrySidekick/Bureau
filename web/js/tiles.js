@@ -10,7 +10,7 @@ import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, chi
   boardLocked, prioOf, repeatSaid, urgencyOf, urgeSaid, durSaid, standsProud, shelfDepth, bookDepth, faceCue, anyFaceCue,
   calViewOf, weekStartOf, calCols, borderOf, textureOf, marginOf, isFragmentKind, gravityOn,
   groupOf, sealOf, isSealed } from './model.js';
-import { CELL, gridOf, drawCols, drawRows, lay, overlaps, boxOk, freeSpot, anySpot, roomFor, gridRows, sizeOfKind, sideways,
+import { CELL, gridOf, drawCols, drawRows, lay, overlaps, boxOk, freeSpot, anySpot, roomFor, gridRows, sizeOfKind, sideways, innerOf,
   ensureBox, shelfRows, shelfOrigin, shelfAt, colsOf } from './grid.js';
 import { create, toast, fits, toggleDone, someKind, ctlSpec, ctlSaid, ctlIsOn,
   ctlForm, ctlNum, ctlIndex, ctlPress, pushSet } from './mutations.js';
@@ -416,6 +416,52 @@ function stopSounds(){
     if(!v.paused){ v.pause(); const t=v.closest('[data-row]'); if(t) markSounding(t.dataset.row,false); } });
   SOUNDING = null;
 }
+/* ---- a hand on the record — decision 188 -------------------------------
+   The DJ's gesture, and it is the honest one for an `<audio>` element: you
+   cannot play one backwards, but you can *move the needle*, which is what a
+   hand on a disc actually does. `scratchGrab` stops the sound and remembers
+   where it was; `scratchTo` moves `currentTime` by however far the disc has
+   been turned; `scratchGo` puts it back where it found it and lets go.
+
+   One turn is `SCRATCH_TURN` seconds of audio, so dragging slowly crawls
+   through it and flicking it back runs backwards through it — slower, faster
+   and in reverse from one gesture, without decoding anything. A true reverse
+   *playback* wants the whole file in an AudioBuffer, which is a different
+   feature and a much larger one; this is the part that is about your hand. */
+const SCRATCH_TURN = 1.8;
+function scratchAudio(id){
+  const o=byId(id); if(!o) return null;
+  const src = o.media && o.media.src;
+  if(!src || mediaTypeOf(o)==='video') return null;
+  let a = SOUNDS.get(id);
+  if(a && a.forSrc !== src){ a.pause(); a = null; }
+  if(!a){
+    a = new Audio(src); a.forSrc = src; a.preload='auto';
+    a.addEventListener('ended', ()=>markSounding(id,false));
+    SOUNDS.set(id, a);
+  }
+  return a;
+}
+function scratchGrab(id){
+  const a = scratchAudio(id); if(!a) return null;
+  const was = !a.paused;
+  if(was) a.pause();
+  markSounding(id, false);
+  return {a, was, at: a.currentTime || 0};
+}
+function scratchTo(g, turns){
+  if(!g || !g.a) return;
+  const d = g.a.duration;
+  let t = g.at + turns*SCRATCH_TURN;
+  if(isFinite(d) && d>0) t = Math.max(0, Math.min(d - .05, t));
+  else t = Math.max(0, t);
+  try{ g.a.currentTime = t; }catch(e){}
+}
+function scratchGo(g, id){
+  if(!g || !g.a) return;
+  if(g.was){ stopSounds(); g.a.play().then(()=>markSounding(id,true)).catch(()=>{}); }
+}
+
 function playPress(id){
   const o=byId(id); if(!o) return;
   const src = o.media && o.media.src;
@@ -640,7 +686,21 @@ function zoomFace(o, box){
      at cannot come apart. See decision 187. */
   const fs = CAM_READ / camScale(box.w, box.h);
   const sty = `font-size:${fs.toFixed(2)}px;--zpx:${ZPAD.x}em;--zpy:${ZPAD.y}em;--zhead:${ZHEAD}em`;
-  const head = `<div class="zoomhead">${esc(o.title||'Untitled')}</div>`;
+  /* **Editing happens where you are reading.** `S.editId` is the app's own
+     in-place edit (a name that is an `<input>`, a body that is a `<textarea>`,
+     both carrying `data-inline` so wire.js's one handler writes the field as
+     you type) — and under the camera it is simply the same thing at the same
+     size, because the tile the fields are in is the thing filling the screen.
+     Nothing new was needed but a place to put them. See decision 188. */
+  const editing = S.editId === o.id;
+  const head = editing
+    ? `<input class="inlinename zoomhead" data-inline="${o.id}:title"
+         value="${esc(o.title||'')}" placeholder="Untitled" autocomplete="off">`
+    : `<div class="zoomhead" data-edit="${o.id}">${esc(o.title||'Untitled')}</div>`;
+  if(editing)
+    return `<div class="zoomread zwrite" style="${sty}">${head}<div class="zoombody"
+      ><textarea class="inlinebody camwrite" data-inline="${o.id}:body"
+        placeholder="Write…">${esc(o.body||'')}</textarea></div></div>`;
   if(readOf(o)==='scroll')
     return `<div class="zoomread zscroll" style="${sty}">${head}<div class="zoombody">${
       o.body ? md(o.body) : '<p class="thin">Nothing written yet.</p>'}</div></div>`;
@@ -654,6 +714,31 @@ function zoomFace(o, box){
     </div></div></div></div>`;
 }
 
+/* ---- the two controls the camera carries — decision 188 ----------------
+   Pinned to the top right of the tile and **counter-scaled**, like the words:
+   written at 1/k so the transform lands them at the size a button should be,
+   whatever the object is magnified by. They are the two things you want the
+   moment you are close enough to read something and the board is no longer
+   offering its own chrome — the whole screen out, and what this thing is.
+
+   The expand is only for words: a picture, an instrument or a control has no
+   "edge to edge" to go to, it is already the whole of itself. */
+function camTools(o, box){
+  const k = camScale(box.w, box.h) || 1;
+  const words = has(o,'text') && !isMedia(o) && !isActive(o) && !has(o,'control');
+  /* `div role="button"`, **never `<button>`**: a tile is itself a `<button>`,
+     and a button inside a button is a parse error the browser fixes by
+     unnesting it — silently, which is why these did not appear at all the
+     first time. Same reason `.kindtile` and `.helditem` are divs. */
+  const tool = (act, label, glyph) =>
+    `<div class="camtool" role="button" tabindex="0" data-act="${act}"
+       data-id="${o.id}" title="${label}" aria-label="${label}">${glyph}</div>`;
+  return `<div class="camtools" style="transform:scale(${(1/k).toFixed(4)})">
+    ${words ? tool('camfull','Full screen', ic('expand',15)) : ''}
+    ${tool('camset','Settings', ic('gear',15))}
+  </div>`;
+}
+
 function gridTile(o, arr, parentId){
   let box;
   if(FLOW.has(o.id)){ box=FLOW.get(o.id); FLOW.delete(o.id); }
@@ -663,7 +748,7 @@ function gridTile(o, arr, parentId){
      there is a reading face is a fact about the tile — it is what takes the
      tile's own name row over — and a class is how a fact about a tile reaches
      the stylesheet. Empty for everything that is already the whole of itself. */
-  const camFace = S.zoomOn===o.id ? zoomFace(o, box) : '';
+  const camFace = S.zoomOn===o.id ? (camTools(o, box) + zoomFace(o, box)) : '';
   /* Stamped on the same way the size classes are — the first `class="` of
      whatever drawTile() returns — so the two traits that let an object out of
      a locked board reach every face without one of them being told. */
@@ -681,7 +766,7 @@ function gridTile(o, arr, parentId){
        reason — one class list here reaches every branch of drawTile() — and
        the *contents* are spliced the same way, just below. See decision 187. */
     S.zoomOn===o.id ? 'oncamera' : '',
-    camFace ? 'camreading' : '',
+    (S.zoomOn===o.id && camFace.includes('zoomread')) ? 'camreading' : '',
     o.flip ? 'flipped' : '',
     has(o,'movable')   ? 'freemovable' : '',
     has(o,'resizable') ? 'freesizable' : ''].filter(Boolean).join(' ');
@@ -836,7 +921,11 @@ const COLLAGE_MAX = 60;
 function discHTML(o){
   const t = (o.title||'').trim().slice(0, 42);
   const pid = 'cdp_'+o.id;
-  return `<i class="cd"><b></b>${t?`
+  /* **Under the camera the record is a record you can put a hand on.** The
+     hook is one attribute; gestures.js does the rest. Only while zoomed,
+     because a disc on the board is a tile you pick up and drag. */
+  const scratch = S.zoomOn===o.id ? ` data-scratch="${o.id}"` : '';
+  return `<i class="cd"${scratch}><b></b>${t?`
     <svg class="cdtext" viewBox="0 0 100 100" aria-hidden="true">
       <defs><path id="${esc(pid)}" fill="none"
         d="M 13 50 A 37 37 0 0 1 87 50 A 37 37 0 0 1 13 50"></path></defs>
@@ -1911,8 +2000,12 @@ function drawTileFace(o, arr, box, persp){
   if(shapeOf(o)==='tally'){
     return `<button class="drawer otile ${paper(o)} sh-tally cnttile${sel}" data-row="${o.id}" style="--c:${colour};${place}">
       ${chips}
-      <span class="cntlabel">${esc(o.title||'Untitled')}</span>
-      <span class="cntnum" data-act="countup" data-id="${o.id}">${digitWheel(o.count||0)}</span>
+      ${/* The name is the tooltip, not a caption: a counter is read across a
+           desk and the word above the number was the thing that kept it
+           small. The digits have the whole tile now. See decision 188. */''}
+      <span class="cntnum" data-act="countup" data-id="${o.id}"
+        style="--digits:${String(Math.trunc(o.count||0)).replace('-','').length||1}"
+        title="${esc(o.title||'Untitled')}">${digitWheel(o.count||0)}</span>
       ${handles}
     </button>`;
   }
@@ -2277,7 +2370,18 @@ function gridOfContainer(cid){
   /* On a phone the board is **windowed** to one shelf; on a Mac the whole
      thing is drawn and the scroller reaches the rows you cannot see. So the
      shift is zero on a Mac and everything below reads the same either way. */
-  const shift = dv==='phone' ? shelfOrigin(c.id, dv) : {x:0, y:0};
+  /* **The camera needs board on all four sides, so it takes the window off.**
+     A phone draws one shelf and nothing else, which is right for a board you
+     are standing on and wrong for one you are looking *into*: zoomed, there
+     were neighbours to the left and right (the shelf is wider than the tile)
+     and a hard edge above and below, where the shelf simply stopped. While the
+     camera is on something on this board the whole board is drawn, so what is
+     round the thing you are reading is what is actually round it. It costs a
+     bigger frame for as long as you are in and nothing at all the rest of the
+     time. See decision 188. */
+  const camHere = !!(S.zoomOn && byId(S.zoomOn) && byId(S.zoomOn).parent===c.id);
+  const windowed = dv==='phone' && !camHere;
+  const shift = windowed ? shelfOrigin(c.id, dv) : {x:0, y:0};
   let kids=childrenOf(c);
   FLOW.clear();
   /* An object with no box yet is left off this frame rather than drawn at the
@@ -2286,7 +2390,22 @@ function gridOfContainer(cid){
      frame in question is the first one at launch. See decision 141. */
   if(sorted) flowSorted(kids, c.id);          // a sort overrides hand placement
   else kids = kids.filter(o=>!!ensureBox(o, dv, c.id));
-  if(dv==='phone'){
+  /* **A board can get smaller.** Its size is its container's tile times four
+     now, so resizing a drawer resizes the coordinate space inside it, and
+     anything that was placed against the old one can be left off the end —
+     where it is drawn outside the grid, or not at all. Re-place it, once,
+     keeping the size and giving up the place, which is the same licence
+     `ensureBox()` takes for something that has never been in a grid. Desks
+     never shrink, so this is a drawer's problem alone — asked as "does this
+     board derive its size from a tile", which is the same question. */
+  if(!sorted && innerOf(c.id)) kids.forEach(o=>{
+    const b = lay(o, dv, c.id);
+    if(b.x>=1 && b.y>=1 && b.x+b.w-1<=g.cols && b.y+b.h-1<=g.rows) return;
+    const keep = {w: Math.min(b.w, g.cols), h: Math.min(b.h, g.rows)};
+    o[dv] = null;
+    o[dv] = anySpot(keep.w, keep.h, dv, c.id);
+  });
+  if(windowed){
     /* A box from before this board had shelves — or from a phone whose shelves
        were a different height — can straddle a seam, and half a tile on each
        of two screens is a tile you can read neither half of. Re-place it, once:
@@ -2326,7 +2445,8 @@ function gridOfContainer(cid){
      or nine — so it is neither "as tall as the tallest thing on it" nor "at
      least a screen": it is the shelves, and running out of them is what "it
      won't fit" means. */
-  const cols = drawCols(g, dv), rows = drawRows(g, dv);
+  const cols = windowed ? drawCols(g, dv) : g.cols;
+  const rows = windowed ? drawRows(g, dv) : g.rows;
 
   // a drawer may carry its own board, which overrides the global one
   const bd = c.board ? String(c.board).split('|') : null;
@@ -2348,7 +2468,12 @@ function gridOfContainer(cid){
      been cut into pieces. The checkerboard is one surface and it runs straight
      through; which shelf you are on is answered by the map of dots in the bar,
      which is a thing you can aim at rather than a line you have to read. */
-  return `<div class="grid g-${dv}${arr===true?' arranging':''}${boardLocked()?' locked':''}${sorted?' sorted':''}${S.look.pinned?' pinboard':''}${gravityOn()?' falling':''}"
+  /* A board smaller than the screen it is on says so, and board.css pins it to
+     its own columns rather than letting ten columns' worth of screen stretch
+     four cells across it. Only ever true on a phone, and only since a
+     container's board became its own tile. See decision 188. */
+  const narrow = dv==='phone' && cols < g.shelfW;
+  return `<div class="grid g-${dv}${narrow?' narrowboard':''}${arr===true?' arranging':''}${boardLocked()?' locked':''}${sorted?' sorted':''}${S.look.pinned?' pinboard':''}${gravityOn()?' falling':''}"
        id="drawergrid" data-gridfor="${c.id}"
        style="${boardVars}--cols:${cols};--rowh:${g.rowh}px;--checkerx:${2*colw}px;--checkery:${2*g.rowh}px;grid-auto-rows:${g.rowh}px;grid-template-rows:repeat(${Math.max(rows,1)},${g.rowh}px)">${tiles}${lights}${strings}
   </div>`;
@@ -2579,5 +2704,6 @@ function bookView(c, items){
    is for; reading one object is what its own page is for, and `read: scroll`
    (the *object's* setting, a different thing entirely) is untouched. */
 export { spinTo, CLICKS, clickOf, fireButton, tileTap, pending, placeAtPending, SHELFSHIFT,
+  scratchGrab, scratchTo, scratchGo,
   gridTile, gridOfContainer, listTile, bookOf, bookView, sheetOf, turnPage, clearPages,
   calSpan };

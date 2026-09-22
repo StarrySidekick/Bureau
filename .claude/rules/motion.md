@@ -317,3 +317,25 @@ font size that a swallowed click had never changed. The camera is also cleared
 by `applyZoom()` whenever the tile it names is not on the board being drawn, so
 navigating away is safe; staying on the same board and not pressing off it is
 not.
+
+**The camera moves, and a transition needs something to move from.** Going in,
+the class that carries the transition cannot go on in the same frame the
+transform is first written; coming out, `render()` has just replaced `#app`, so
+the element being asked to animate has never carried a transform at all. Both
+ends put the grid where it is *coming from* with the transition suppressed,
+flush the layout (`void grid.offsetWidth`) so the engine holds that value, and
+write the target on the next line. `CAM` in motion.js is the other end of a
+journey the DOM no longer remembers, which is why it is kept at all.
+
+**`will-change:transform` is worn only while the move is running.** A promoted
+layer is rasterised once and then stretched, so a page of words held at four
+times with it on is a picture of words. `camSettle()` takes it off when the
+move ends and the browser redraws the text at the size it actually reached.
+
+**Pinching while the camera is in comes out of it, and tracks.** `camScrub(t)`
+interpolates between where the camera is and rest; `camScrubEnd(t)` finishes
+past 0.42 and falls back in short of it — the dive's bargain (decision 103),
+asked before the drawer because when both are true the camera is the one you
+are looking through. The two-finger swipe is not offered there at all: it walks
+the shelves and the desks, and under the camera it competes with the finger
+that pushes the words.

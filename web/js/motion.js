@@ -1507,7 +1507,8 @@ export { still, tileOf, tileRect, openingFor, openTile, leaveTile, enter, pop, c
   spray, sprayAt, sprayCount, SPRAYS, sprayNow, sprayMark,
   pagerBegin, pagerMove, pagerEnd, pagerCancel, pagerOn, stepDrawer,
   applyTilt, askTilt, tiltTo, tiltRecentre, tiltDown ,
-  zoomInto, zoomOut, zoomedIn, applyZoom, camScale, CAM_READ, ZOOM_MS };
+  zoomInto, zoomOut, zoomedIn, applyZoom, camScale, CAM_READ, ZOOM_MS,
+  camScrub, camScrubEnd, camScrubbable, CAM_DIMS };
 
 
 /* ============================================================
@@ -1602,10 +1603,71 @@ function zoomOut(){
   return true;
 }
 
+/* ---- what the camera is currently showing -----------------------------
+   One record of the transform that is actually on the grid right now, so
+   `applyZoom()` can tell **entering** from **staying** from **leaving** — the
+   three cases that need three different animations and could not be told apart
+   from `S.zoomOn` alone, because a render happens in all of them.
+
+   `k` and the two translations are kept because the pinch scrubs between this
+   and rest, and a scrub needs both ends of the journey rather than just the
+   one it is going to. */
+const CAM = {on:null, k:1, tx:0, ty:0};
+/* What the desk does round the thing you are reading. Named here rather than
+   in look.js because it is a property of the *camera*, not of the aesthetic —
+   every style answers it the same way. */
+const CAM_DIMS = {fade:'Fade it back', dark:'Darken the room', none:'Leave it alone'};
+const CAM_DIM_KEYS = Object.keys(CAM_DIMS);
+
 /* Where the camera has to sit for this tile to fill the screen. Measured with
    the transform **cleared**, because the numbers being solved for are in the
    board's own untransformed space and reading a rect that already carries the
    answer is how a zoom walks away from itself one render at a time. */
+function camSolve(grid, on, scroller){
+  const had = grid.style.transform, hadT = grid.style.transition;
+  grid.style.transition = 'none';
+  grid.style.transform = '';
+  const g = grid.getBoundingClientRect();
+  const t = on.getBoundingClientRect();
+  const view = (scroller || grid.parentElement).getBoundingClientRect();
+  grid.style.transform = had; grid.style.transition = hadT;
+  /* Measured off the real rect rather than off the box, because a tile that
+     has been resized is whatever it is; `camScale()` answers the same question
+     from the cells for the callers that have no rect yet. */
+  const k = Math.max(1, Math.min(ZOOM_MAX,
+    Math.min((view.width  - ZOOM_PAD*2) / Math.max(1, t.width),
+             (view.height - ZOOM_PAD*2) / Math.max(1, t.height))));
+  /* The grid is scaled about its own top-left, so a point `p` cells in lands
+     at `g.left + TX + p*k`. Solve that for the tile's centre sitting in the
+     middle of what you can see. */
+  const tcx = t.left + t.width/2 - g.left, tcy = t.top + t.height/2 - g.top;
+  return {k,
+    tx: (view.left + view.width/2) - g.left - tcx*k,
+    ty: (view.top  + view.height/2) - g.top  - tcy*k};
+}
+const camWrite = (grid, c) => {
+  grid.style.transformOrigin = '0 0';
+  grid.style.transform =
+    `translate(${c.tx.toFixed(1)}px, ${c.ty.toFixed(1)}px) scale(${c.k.toFixed(4)})`;
+  grid.style.setProperty('--camk', c.k.toFixed(4));
+};
+/* **A scaled layer is rasterised once and then stretched**, which is what made
+   the words fuzzy at four times. `will-change:transform` (and the `.moving`
+   class that carries it) is therefore worn only *while the move is running*
+   and taken off at the end, so the browser re-rasterises the text at the size
+   it has actually ended up. It is the same trade every promoted layer makes;
+   the difference is that this one stops. */
+function camSettle(grid){
+  grid.classList.remove('camoving');
+  grid.style.willChange = '';
+}
+function camMoving(grid, ms){
+  grid.classList.add('camoving');
+  grid.style.willChange = 'transform';
+  clearTimeout(camMoving.t);
+  camMoving.t = setTimeout(()=>camSettle(grid), (ms||ZOOM_MS) + 60);
+}
+
 function applyZoom(){
   const grid = document.querySelector('#drawergrid');
   const scroller = document.querySelector('#app .scroll');
@@ -1620,42 +1682,120 @@ function applyZoom(){
      listening. Cleared here rather than at each of the dozen places that can
      change the board, because this one runs after all of them. */
   if(!on) S.zoomOn = null;
+
+  /* ---- leaving ---------------------------------------------------------
+     The way *out* is the way in played backwards, which it was not: the class
+     came off and the transform was cleared in the same frame, so the board
+     snapped back from four times to one with nothing drawn in between. It eases
+     to rest first and tidies up when it gets there. */
   if(!on){
-    if(grid.style.transform){
-      grid.style.transform = '';
-      grid.style.transformOrigin = '';
+    if(!CAM.on){ camRest(grid, scroller); return; }
+    const from = {k:CAM.k, tx:CAM.tx, ty:CAM.ty};
+    CAM.on = null;
+    if(still()){ camRest(grid, scroller); return; }
+    /* **The grid this is running on is a different element from the one that
+       was zoomed.** `render()` replaces `#app` wholesale, and `zoomOut()` is
+       followed by a render — so the element arriving here has never carried a
+       transform and there is nothing for a transition to move *from*. It is
+       put back where the camera was, with the transition suppressed, and the
+       layout is flushed to make that the value the engine holds; the target on
+       the next line is then a change it can animate. `CAM` is kept for exactly
+       this: the other end of a journey the DOM no longer remembers. */
+    grid.classList.add('camera');
+    grid.style.transition = 'none';
+    camWrite(grid, from);
+    void grid.offsetWidth;
+    grid.style.transition = '';
+    camMoving(grid);
+    /* `.camera` **stays on** for the length of the journey: it is the class
+       that carries the transition, and taking it off in the same frame the
+       target is written leaves nothing to ease — which is how the way out came
+       to be instant while the way in was not. Only the scroller's classes go
+       now, so the neighbours brighten and the room lifts *while* the board
+       travels rather than after it. */
+    camWrite(grid, {k:1, tx:0, ty:0});
+    if(scroller){
+      scroller.classList.remove('camerascroll');
+      CAM_DIM_KEYS.forEach(k => scroller.classList.remove('cam-'+k));
     }
-    grid.classList.remove('camera');
-    if(scroller) scroller.classList.remove('camerascroll');
+    clearTimeout(applyZoom.out);
+    applyZoom.out = setTimeout(()=>{ if(!CAM.on) camRest(grid, scroller); }, ZOOM_MS + 40);
     return;
   }
-  // cleared first: the tile's rect has to be the one it has at rest
-  grid.style.transition = 'none';
-  const had = grid.style.transform;
-  grid.style.transform = '';
-  const g = grid.getBoundingClientRect();
-  const t = on.getBoundingClientRect();
-  const view = (scroller || grid.parentElement).getBoundingClientRect();
-  grid.style.transform = had;
-  // …and back on for the move itself, on the next frame so the clear above
-  // cannot be coalesced into it and skip the animation
-  requestAnimationFrame(()=>{ grid.style.transition = ''; });
 
-  /* Measured off the real rect rather than off the box, because a tile that
-     has been resized is whatever it is; `camScale()` answers the same question
-     from the cells for the callers that have no rect yet. */
-  const k = Math.max(1, Math.min(ZOOM_MAX,
-    Math.min((view.width  - ZOOM_PAD*2) / Math.max(1, t.width),
-             (view.height - ZOOM_PAD*2) / Math.max(1, t.height))));
-  /* The grid is scaled about its own top-left, so a point `p` cells in lands
-     at `g.left + TX + p*k`. Solve that for the tile's centre sitting in the
-     middle of what you can see. */
-  const tcx = t.left + t.width/2 - g.left, tcy = t.top + t.height/2 - g.top;
-  const TX = (view.left + view.width/2)  - g.left - tcx*k;
-  const TY = (view.top  + view.height/2) - g.top  - tcy*k;
-  grid.style.transformOrigin = '0 0';
-  grid.style.transform = `translate(${TX.toFixed(1)}px, ${TY.toFixed(1)}px) scale(${k.toFixed(4)})`;
-  grid.style.setProperty('--camk', k.toFixed(4));
-  grid.classList.add('camera');
-  if(scroller) scroller.classList.add('camerascroll');
+  const c = camSolve(grid, on, scroller);
+  /* ---- arriving --------------------------------------------------------
+     A transition needs a *previous* value to move from, and a class that turns
+     one on in the same frame the transform is first written has none — which is
+     why the first version snapped in and only moved when you zoomed from one
+     tile straight to another. So the grid is put at rest **with the transition
+     suppressed**, the layout is flushed to make that the value the engine holds,
+     and the target is written on the next line. */
+  const arriving = CAM.on !== S.zoomOn;
+  if(arriving && !CAM.on && !still()){
+    grid.style.transition = 'none';
+    camWrite(grid, {k:1, tx:0, ty:0});
+    grid.classList.add('camera');
+    void grid.offsetWidth;                       // flush: make rest the held value
+    grid.style.transition = '';
+  } else {
+    grid.classList.add('camera');
+  }
+  if(arriving) camMoving(grid);
+  else camSettle(grid);          // an ordinary re-render is not a movement
+  camWrite(grid, c);
+  Object.assign(CAM, c, {on: S.zoomOn});
+  if(scroller){
+    scroller.classList.add('camerascroll');
+    /* What the rest of the desk does while you are in: fade it, darken the
+       room round it, or leave it alone. One class, written from the setting,
+       because the three are CSS and nothing here needs to know which. */
+    const dim = CAM_DIMS[S.look && S.look.camdim] ? S.look.camdim : 'fade';
+    CAM_DIM_KEYS.forEach(k => scroller.classList.toggle('cam-'+k, k===dim));
+  }
+}
+/* Everything off, with nothing in flight. */
+function camRest(grid, scroller){
+  clearTimeout(applyZoom.out);
+  camSettle(grid);
+  if(scroller) CAM_DIM_KEYS.forEach(k => scroller.classList.remove('cam-'+k));
+  if(grid.style.transform){ grid.style.transform = ''; grid.style.transformOrigin = ''; }
+  grid.style.transition = '';
+  grid.style.removeProperty('--camk');
+  grid.classList.remove('camera');
+  if(scroller) scroller.classList.remove('camerascroll');
+  CAM.on = null; CAM.k = 1; CAM.tx = CAM.ty = 0;
+}
+
+/* ---- scrubbing the camera out -----------------------------------------
+   Pinching in on a board goes up a level (decision 109). Pinching while the
+   camera is *in* means the nearer thing: come back out of it — and it tracks
+   the fingers rather than waiting for them, the way the dive does (decision
+   103's scrub). `t` runs 0 (where the camera is) to 1 (rest), and the numbers
+   are interpolated rather than re-solved, because re-solving mid-gesture reads
+   a rect that already carries the answer.
+
+   The transition is off while a finger is driving it: a transition on a value
+   being written every frame is a smoothing filter on the thing that is already
+   smooth, and it makes the board lag the hand. */
+function camScrubbable(){ return !!CAM.on; }
+function camScrub(t){
+  const grid = document.querySelector('#drawergrid');
+  if(!grid || !CAM.on) return;
+  const u = Math.max(0, Math.min(1, t));
+  grid.style.transition = 'none';
+  grid.style.willChange = 'transform';
+  camWrite(grid, {k: CAM.k + (1 - CAM.k)*u,
+                  tx: CAM.tx*(1-u), ty: CAM.ty*(1-u)});
+}
+/* Let go. Past halfway it finishes coming out; short of it, it falls back in.
+   Either way the transition goes back on for the last of the journey. */
+function camScrubEnd(t){
+  const grid = document.querySelector('#drawergrid');
+  if(!grid || !CAM.on) return false;
+  grid.style.transition = '';
+  if(t > 0.42){ zoomOut(); render(); return true; }
+  camMoving(grid);
+  camWrite(grid, CAM);
+  return false;
 }

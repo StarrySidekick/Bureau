@@ -703,3 +703,23 @@ in the stylesheet and once in the script. Note the trap it walked into:
 **chrome.css loads after board.css**, so `.spread .page`'s 14.5px type, relative
 position and centred page number each beat a two-class rule here on source
 order and had to be restated at three. See decision 187.
+
+**The camera's two controls are counter-scaled, and they are not `<button>`s.**
+`camTools(o, box)` writes `transform:scale(1/k)` inline with the corner as its
+origin, so they land at button size whatever the object is magnified by. They
+are `div role="button"`: a tile is itself a `<button>`, and a button inside a
+button is a parse error the browser fixes by **unnesting** — silently, which is
+why they did not appear at all the first time. Same reason `.kindtile` and
+`.helditem` are divs.
+
+**Writing under the camera is the board's own in-place edit.** `S.editId` was
+already an `<input>` for the name and a `<textarea>` for the body, both carrying
+`data-inline` so one handler in wire.js writes the field as you type; zoomed it
+is the same two fields at the counter-scaled size. Nothing new was needed but a
+way to reach it — a hold longer than the board's own (520ms in gestures.js),
+because the finger is resting on words it may be about to push.
+
+**A digit's advance is about six tenths of its font size.** The counter fills
+its tile by dividing the available width by the digit count *times 0.62*;
+dividing by the count alone makes a three-digit counter half the size it could
+be. `--digits` is written by the renderer, which is the only place that knows.

@@ -17,12 +17,12 @@ import { S, K, KINDS, KEYS, T, ATTRS, USER_ATTRS, FIELDS, fieldOf, OPS, ROLLS,
 import { GRID, lay, boxOk, freeSpot, anySpot, sizeOfKind, toPhoneSize, keepSize } from './grid.js';
 import { randomBoard, randomFront, hexOf, objColour, objSlots, famSlots, famAll, FAMS, styleKey, stockNow, CHECKS, checkNow } from './look.js';
 import { CLICKS, clickOf, gridTile, pending } from './tiles.js';
-import { isActive, DICE, CLOCKS } from './active.js';
+import { isActive, activeZoom, activeSay, activeName, DICE, CLOCKS } from './active.js';
 import { DECOR, decorOf, decorSVG, decorFor, decorRest, LIFE_ART, LIFE_KEYS, lifeSVG } from './decor.js';
 import { quickAdd, toast, drawerForTag, CONTROLS, CTL_KEYS, ctlSpec } from './mutations.js';
 import { openObj, renderSheet, closeSheet , openZoom } from './sheet.js';
 import { render, settingsPanel, gridSizeField, shelfCountField } from './views.js';
-import { openingFor } from './motion.js';
+import { openingFor, zoomInto } from './motion.js';
 import { plans, planTop, planSize } from './plans.js';
 import { save } from './persist.js';
 
@@ -884,6 +884,16 @@ function objectPanelBody(id, sec){
     .map(k=>[k, KINDS[k].nm]);
 
   const out=[];
+  /* **An instrument's own settings lead its editor.** They were on a sheet of
+     their own, opened by the long press; the long press is the camera now, so
+     they need a home, and the top of the thing's own editor is the honest one —
+     a metronome's tempo and a die's number of sides are what that object *is*,
+     which is the question this panel answers. Same markup, same `data-a*`
+     verbs, so wire.js's handlers did not move. See decision 188. */
+  if(!isRoot && !sec && isActive(d))
+    out.push(`<div class="section-h">${esc(activeName(d))}</div>
+      <div class="mini">${esc(activeSay(d))}</div>
+      <div class="zoomset">${activeZoom(d)}</div>`);
   // what it is filed under and what it points at, held back to the foot — see
   // the note on the Tags row below
   const filing=[];
@@ -2211,7 +2221,12 @@ function openCtx(x,y,id){
      itself as large as the stage allows, with its settings under it. One
      branch here rather than three in gestures.js, because `openCtx` is where
      all three of that file's hold paths already converge. See decision 182. */
-  if(isActive(o)){ openZoom(id); return; }
+  /* **An instrument zooms in where it sits**, like everything else. It used to
+     open a sheet of its own — the artwork suddenly enormous on a scrim with its
+     settings underneath — which is the thing decision 187 replaced everywhere
+     else and had simply not reached here. The settings it used to carry are on
+     the gear the camera puts in the corner. See decision 188. */
+  if(isActive(o)){ zoomInto(id); render(); return; }
   const el=$('#ctx');
   // If a selection is open and this object is part of it, the menu acts on all
   // of them — the same way a Finder context menu does.

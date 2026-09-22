@@ -685,11 +685,20 @@ function seed(){
   // The drawers whose whole job is a rule are magic drawers — they collect and
   // never hold. The rest are ordinary containers you file into.
   const MG = (o)=> DR(Object.assign({kind:'magic'}, o));
-  /* Ten drawer fronts in a rack, at the size a drawer starts at, packed four
-     across and three down — which is **one shelf** on either device, because a
-     shelf is eight columns on both now (decision 141). The rest of the shelf is
-     left clear on purpose: what a drawer holds is behind it, so a wall of them
-     is the whole point and it takes a corner.
+  /* Ten drawer fronts in a rack, **four cells by three**, two across and five
+     down — which is one shelf on either device, because a shelf is
+     eight columns on both (decision 141). They were two cells square, packed
+     four across; a drawer's board is its own tile times four since decision
+     188, so two square is sixty-four cells and a real drawer wants more than
+     that. Four by three is a hundred and ninety-two, which holds what these
+     hold with room to put more in.
+
+     The two **samplers** are six square — five hundred and seventy-six cells,
+     which is what one of every type needs — and they are authored *below* the
+     rack rather than in it. A sampler is not something you want on the shelf
+     you work on, and six columns of the eight is the whole rack's width. They
+     land on the shelves under the middle one, wherever the measured shelf
+     height puts them, which is exactly where they belong.
 
      Authored on the *first* shelf and moved to the middle one at first render
      by centreDesk(), for the reason it exists: a shelf is as tall as whatever
@@ -701,25 +710,32 @@ function seed(){
      shelf until you say otherwise, and a sample desk that demonstrates saying
      otherwise is worth more than one that quietly never needs to. */
   const drawers = [
-    MG({id:'d_today', title:'Today',        c:6, layout:'list', filter:{due:'today', scope:'all'},      desk:{x:1,y:1,w:2,h:2},  phone:{x:1,y:1,w:2,h:2}}),
+    MG({id:'d_today', title:'Today',        c:6, layout:'list', filter:{due:'today', scope:'all'},      desk:{x:1,y:1,w:4,h:3},  phone:{x:1,y:1,w:4,h:3}}),
     /* The inbox **collects**; it does not hold. Everything loose on a desk —
        made and not yet put away — shows up in it, and stays exactly where it
        was made. A drawer that took what you made would be filing your desk for
        you, which is the one thing the desk is for. See decision 45. */
-    MG({id:'d_in',    title:'Inbox',        c:5, layout:'list', filter:{loose:true, scope:'all'}, desk:{x:3,y:1,w:2,h:2},  phone:{x:3,y:1,w:2,h:2}}),
+    MG({id:'d_in',    title:'Inbox',        c:5, layout:'list', filter:{loose:true, scope:'all'}, desk:{x:5,y:1,w:4,h:3},  phone:{x:5,y:1,w:4,h:3}}),
     // everything still to do, wherever it lives — the drawer that answers "what
     // is outstanding" without caring which project it is outstanding in
-    MG({id:'d_all',   title:'Everything',   c:9, layout:'list', filter:{kinds:['task'], scope:'all'},   desk:{x:5,y:1,w:2,h:2},  phone:{x:5,y:1,w:2,h:2}}),
-    DR({id:'d_ideas', title:'Idea Bin',     c:12, shelves:{w:2,h:1}, desk:{x:7,y:1,w:2,h:2},  phone:{x:7,y:1,w:2,h:2}}),
-    DR({id:'d_studio',title:'Studio',       c:9,  shelves:{w:2,h:1}, desk:{x:1,y:3,w:2,h:2},  phone:{x:1,y:3,w:2,h:2}}),
-    MG({id:'d_open',  title:'Open Questions',c:10,filter:{kinds:['question'], rule:{f:'answer',op:'is',v:''}},              desk:{x:3,y:3,w:2,h:2},  phone:{x:3,y:3,w:2,h:2}}),
-    DR({id:'d_keep',  title:'Keeping Up',   c:8,  shelves:{w:2,h:1}, desk:{x:5,y:3,w:2,h:2},  phone:{x:5,y:3,w:2,h:2}}),
-    MG({id:'d_done',  title:'Done & Dusted',c:5, filter:{done:true, scope:'all'},                       desk:{x:7,y:3,w:2,h:2},  phone:{x:7,y:3,w:2,h:2}}),
+    MG({id:'d_all',   title:'Everything',   c:9, layout:'list', filter:{kinds:['task'], scope:'all'},   desk:{x:1,y:4,w:4,h:3},  phone:{x:1,y:4,w:4,h:3}}),
+    DR({id:'d_ideas', title:'Idea Bin',     c:12, desk:{x:5,y:4,w:4,h:3}, phone:{x:5,y:4,w:4,h:3}}),
+    DR({id:'d_studio',title:'Studio',       c:9,  desk:{x:1,y:7,w:4,h:3}, phone:{x:1,y:7,w:4,h:3}}),
+    MG({id:'d_open',  title:'Open Questions',c:10,filter:{kinds:['question'], rule:{f:'answer',op:'is',v:''}},              desk:{x:5,y:7,w:4,h:3},  phone:{x:5,y:7,w:4,h:3}}),
+    DR({id:'d_keep',  title:'Keeping Up',   c:8,  desk:{x:1,y:10,w:4,h:3},  phone:{x:1,y:10,w:4,h:3}}),
+    MG({id:'d_done',  title:'Done & Dusted',c:5, filter:{done:true, scope:'all'},                       desk:{x:5,y:10,w:4,h:3}, phone:{x:5,y:10,w:4,h:3}}),
+    /* **They are four cells by three now, and the samplers are six square.**
+       A drawer's board is its own tile times four since decision 188, so a 2×2
+       drawer holds 64 cells — which is a real drawer and far too small for a
+       sampler with one of every type in it. The `shelves` each of these used
+       to carry is gone with the same decision: how many screenfuls a board is
+       comes out of how big it is now, so stating it was a second answer to a
+       settled question. */
     /* These two were **desks** — drawers promoted out into a row of their own.
        There is one desk now and it is nine shelves, so they are drawers on it
        like everything else. See decision 141. */
-    DR({id:'d_write', title:'Writing Desk', c:7,  shelves:{w:2,h:1}, desk:{x:1,y:5,w:2,h:2},  phone:{x:1,y:5,w:2,h:2}}),
-    DR({id:'d_kitch', title:'Kitchen',      c:11, shelves:{w:2,h:1}, desk:{x:3,y:5,w:2,h:2},  phone:{x:3,y:5,w:2,h:2}}),
+    DR({id:'d_write', title:'Writing Desk', c:7,  desk:{x:1,y:13,w:4,h:3}, phone:{x:1,y:13,w:4,h:3}}),
+    DR({id:'d_kitch', title:'Kitchen',      c:11, desk:{x:5,y:13,w:4,h:3},  phone:{x:5,y:13,w:4,h:3}}),
     /* One of every type there is, in two drawers rather than on the desk.
        They used to lie on the desk itself in a column that ran to row 102,
        which was fine when a board was as tall as whatever was on it and is
@@ -729,8 +745,8 @@ function seed(){
        a change across every kind at once — is better served by a board of its
        own. Nine shelves each, which is a thousand cells against the six
        hundred they need. See decision 141. */
-    DR({id:'d_alldr', title:'Every drawer', c:14, shelves:{w:3,h:3}, desk:{x:5,y:5,w:2,h:2}, phone:{x:5,y:5,w:2,h:2}}),
-    DR({id:'d_allob', title:'Every object', c:15, shelves:{w:3,h:3}, desk:{x:7,y:5,w:2,h:2}, phone:{x:7,y:5,w:2,h:2}})
+    DR({id:'d_alldr', title:'Every drawer', c:14, desk:{x:1,y:22,w:6,h:6},  phone:{x:1,y:22,w:6,h:6}}),
+    DR({id:'d_allob', title:'Every object', c:15, desk:{x:1,y:29,w:6,h:6}, phone:{x:1,y:29,w:6,h:6}})
   ];
 
   // The app's own buttons live on the desk, on the grid, and move like anything
@@ -2075,6 +2091,39 @@ function groupTogether(ids){
   return {grp:g, ids:mine.map(o=>o.id)};
 }
 
+/* ---- the search in the bar — decision 188 ------------------------------
+   **What it looks through is where you are standing.** On a desk it is every
+   object in Bureau; inside a drawer it is that drawer and everything under it,
+   however deep — which is the same rule the breadcrumb follows and means the
+   field answers the question you would have asked out loud: "where is it" on a
+   desk, "what have I got in here" in a drawer.
+
+   It matches a title, a body or a tag, and it ranks a title match first,
+   because a word in the name is what you were thinking of and a word in the
+   body is where it turned up. Held objects and the archive are out: a search
+   is for things on the desk, and a thing in the Void Drawer is somewhere you
+   put it on purpose. */
+function searchHits(q, scopeId){
+  const t = String(q||'').trim().toLowerCase();
+  if(!t) return [];
+  const root = scopeId && scopeId!==ROOT && byId(scopeId) ? scopeId : null;
+  // isAncestor takes the **object**, not its id — it walks `o.parent` upwards
+  const inScope = o => !root || o.parent===root || isAncestor(root, o);
+  const hit = o => {
+    const nm = (o.title||'').toLowerCase();
+    if(nm.includes(t)) return 2;
+    if((o.tags||[]).some(g => String(g).toLowerCase().includes(t))) return 1;
+    if((o.body||'').toLowerCase().includes(t)) return 1;
+    return 0;
+  };
+  return S.objects
+    .filter(o => o.parent!==HOLD && !o.archived && o.id!==root && inScope(o))
+    .map(o => ({o, w: hit(o)}))
+    .filter(r => r.w)
+    .sort((a,b) => b.w - a.w
+      || String(a.o.title||'').localeCompare(String(b.o.title||'')))
+    .map(r => r.o);
+}
 const relatedTo = o => (o&&o.rel||[]).map(byId).filter(Boolean);
 const backlinksTo = id => S.objects.filter(o=>(o.rel||[]).includes(id));
 function relate(aId,bId){
@@ -2609,7 +2658,7 @@ function marginPlus(o, text){
   return t ? marginOf(o).concat({d:D.iso(D.today()), t}) : marginOf(o);
 }
 
-export { homeFor, ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds, K,
+export { homeFor, ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds, K, searchHits,
   attrsOf, has, kindHas, T, dz, S, sensedDevice, reset, defaultLook, dev, byId,
   deskTitle, rootObj, container, cfgOf, isContainer, FACES, faceOf, layoutOf, SHAPES,
   SHAPES_KEPT, shapeName, shapeChoices,

@@ -136,7 +136,9 @@ const P = {
   arrowD:'M12 5v14M6 13l6 6 6-6',
   arrowL:'M19 12H5M11 6l-6 6 6 6',
   arrowR:'M5 12h14M13 6l6 6-6 6',
-  book:'M4 4h7a2 2 0 0 1 2 2v14a2 2 0 0 0-2-2H4zM20 4h-7a2 2 0 0 0-2 2v14a2 2 0 0 1 2-2h7z'
+  book:'M4 4h7a2 2 0 0 1 2 2v14a2 2 0 0 0-2-2H4zM20 4h-7a2 2 0 0 0-2 2v14a2 2 0 0 1 2-2h7z',
+  // four corners pushed outwards: the whole screen, please
+  expand:'M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5'
 };
 function ic(n,s){ s=s||16; return `<svg viewBox="0 0 24 24" width="${s}" height="${s}" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="${P[n]||P.note}"/></svg>`; }
 
@@ -222,7 +224,12 @@ function plain(src){
   const out=[];
   String(src).split(/\r?\n/).forEach(raw=>{
     let l=raw.trim();
-    if(!l){ if(out.length && out[out.length-1]!=='') out.push(''); return; }
+    /* **Every blank row is kept.** A run of them used to be reduced to one, on
+       the argument that a tile is a caption and a caption has no room for
+       spacing — but a note with three empty rows in it is a note somebody put
+       three empty rows in, and the tile is a picture of the note. `.tiletext`
+       is `pre-wrap` for the same reason. */
+    if(!l){ if(out.length) out.push(''); return; }
     if(/^([-*_]\s*){3,}$/.test(l)) return;           // a rule is a mark, not words
     l = l.replace(/^#{1,6}\s+/,'')
          .replace(/^>\s?/,'')

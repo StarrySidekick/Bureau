@@ -1,15 +1,17 @@
 import { $, $$, clamp, D, ROOT } from './util.js';
 import { S, byId, dev, has, isContainer, isAncestor, childrenOf, container, gatherKind, spanOf,
-  sortOf, boardLocked, heldCount, homeFor, attrsOf, travelWith } from './model.js';
+  sortOf, boardLocked, heldCount, homeFor, attrsOf, travelWith, isMedia } from './model.js';
 import { CELL, gridOf, drawCols, drawRows, cellW, lay, boxOk, overlaps, sizeOfKind, keepSize } from './grid.js';
 import { toast, gather, del, pushSets, holdIt, unholdIt } from './mutations.js';
-import { pending, tileTap, fireButton, turnPage } from './tiles.js';
+import { pending, tileTap, fireButton, turnPage,
+  scratchGrab, scratchTo, scratchGo } from './tiles.js';
 import { modalNewObject, holdPanel, openCtx, closeCtx, schedulePanel, refreshPanel,
   closePanel } from './panels.js';
 import { render, shelfShift, reveal } from './views.js';
 import { gravityGrab, gravityDrag, gravityDrop } from './gravity.js';
 import { closeSheet, renderSheet } from './sheet.js';
-import { pagerBegin, pagerMove, pagerEnd, pagerCancel, pagerOn, leaveTile, toss, fileTo , zoomedIn } from './motion.js';
+import { pagerBegin, pagerMove, pagerEnd, pagerCancel, pagerOn, leaveTile, toss, fileTo , zoomedIn,
+  camScrub, camScrubEnd, camScrubbable } from './motion.js';
 import { save } from './persist.js';
 
 /* ============================================================
@@ -29,6 +31,20 @@ const HOLD_TOUCH = 300, HOLD_MOUSE = 200, MENU_AFTER = 250, WOBBLE = 6;
    first is deliberately larger than `WOBBLE`: a tap on the page puts a caret
    in it (decision 82) and losing that to a twitch would be the worse trade. */
 const BOOK_SLOP = 14, BOOK_TURN = 54;
+/* The hold that turns the thing under the camera into a field. Longer than the
+   board's own 300ms because the finger is resting on words it may be about to
+   push, and a page that turned into a caret because you paused mid-swipe is
+   worse than one that needed an extra beat. */
+const CAM_EDIT_MS = 520, CAMEDIT = {t:null, x:0, y:0};
+function camEditOff(e){
+  if(!CAMEDIT.t) return;
+  if(e && Math.hypot(e.clientX-CAMEDIT.x, e.clientY-CAMEDIT.y) < 7) return;
+  clearTimeout(CAMEDIT.t); CAMEDIT.t = null;
+}
+/* wire.js owns `startEdit` (it focuses the field after the render), so this is
+   the one hook it hands down rather than a second copy of it. */
+let startEditing = ()=>{};
+const setCamEditor = fn => { startEditing = fn; };
 
 /* Refusing `selectstart` stops a *new* selection; it does nothing about one
    that is already on the screen. Safari will happily keep a highlight — and the
@@ -728,6 +744,41 @@ function onDown(e){
      See decision 187. */
   if(zoomedIn() && e.target.closest('#drawergrid')
      && !e.target.closest('.zoomread')) return;
+  /* ---- a hand on the record — decision 188 ------------------------------
+     Zoomed onto a disc, a drag turns it and moves the needle with it. The
+     press is claimed outright (it is not a tap and not a page) and the angle
+     is measured from the disc's own centre, so the hand stays on the spot it
+     grabbed however far round it goes. */
+  const disc = e.target.closest('.cd[data-scratch]');
+  if(disc && zoomedIn()){
+    const r = disc.getBoundingClientRect();
+    const cx = r.left + r.width/2, cy = r.top + r.height/2;
+    const grip = scratchGrab(disc.dataset.scratch);
+    disc.classList.add('scratching');
+    G = {type:'scratch', el:disc, id:disc.dataset.scratch, grip,
+         cx, cy, a0: Math.atan2(e.clientY-cy, e.clientX-cx), turns:0, moved:false};
+    return;
+  }
+  /* ---- holding what you are reading writes in it — decision 188 ----------
+     A hold on the thing under the camera turns it into the two fields the
+     board has always had — `.inlinename` for the title, `.inlinebody` for the
+     words — at the size you are reading at. It is `startEdit()` and nothing
+     else: the machinery existed for a double tap on a tile, and all that was
+     missing was a way to reach it from in here.
+
+     It is armed rather than immediate, and cancelled by any real movement,
+     because the two gestures it shares this space with are the page turn and
+     the scroll and both of those begin with a finger on the words. A press on
+     a control, a field already up, or a tile that has nothing to write in is
+     not this gesture at all. */
+  if(zoomedIn() && !e.target.closest('input,textarea,button,a,.camtools')){
+    const zo = byId(S.zoomOn);
+    if(zo && has(zo,'text') && !isMedia(zo) && S.editId!==S.zoomOn){
+      clearTimeout(CAMEDIT.t);
+      CAMEDIT.x = e.clientX; CAMEDIT.y = e.clientY;
+      CAMEDIT.t = setTimeout(()=>{ CAMEDIT.t = null; startEditing(S.zoomOn); }, CAM_EDIT_MS);
+    }
+  }
 
   /* ---- a book turns by dragging across it — decision 186 -----------------
      A book on paper turns by being pushed, and this one had only two chevrons
@@ -1100,7 +1151,21 @@ function onDown(e){
 }
 function onMove(e){
   cancelHold(e);
+  camEditOff(e);          // a finger that travels is pushing the page, not writing
   if(!G) return;
+  if(G.type==='scratch'){
+    const a = Math.atan2(e.clientY-G.cy, e.clientX-G.cx);
+    /* The shortest way round, or crossing the twelve o'clock line reads as a
+       whole turn in the wrong direction and the needle jumps a bar. */
+    let d = a - G.a0;
+    while(d >  Math.PI) d -= Math.PI*2;
+    while(d < -Math.PI) d += Math.PI*2;
+    G.a0 = a; G.turns += d/(Math.PI*2);
+    if(Math.abs(G.turns) > .01) G.moved = true;
+    G.el.style.transform = `rotate(${(G.turns*360).toFixed(1)}deg)`;
+    scratchTo(G.grip, G.turns);
+    return;
+  }
   const dx=e.clientX-G.sx, dy=e.clientY-G.sy;
 
   /* The spread follows the finger, **damped**, because a bound book is hinged
@@ -1502,8 +1567,18 @@ function applyDrag(G, dx, dy){
 }
 function onUp(e){
   cancelHold();
+  camEditOff();
   stopPan();
   if(!G) return;
+  if(G.type==='scratch'){
+    const g=G; G=null;
+    g.el.classList.remove('scratching');
+    g.el.style.transform = '';
+    scratchGo(g.grip, g.id);
+    // a hand that turned the record was a gesture; one that did not is a tap
+    if(g.moved) gestureFlags.suppressClick = true;
+    return;
+  }
   const g=G; G=null;
   const dx=e.clientX-g.sx;
 
@@ -1955,6 +2030,12 @@ function sheetScale(p){
 }
 function zoomBegin(){
   if(sheetOpen()){ Z={sheet:true, at:0}; return true; }
+  /* **The camera is the nearer thing to be inside.** Pinching while it is in
+     comes back out of it rather than going up a level, and it *tracks* — the
+     board follows the fingers to rest and falls back in if you let go short,
+     exactly as the dive does. Asked before the drawer, because when both are
+     true the camera is the one you are looking through. See decision 187. */
+  if(camScrubbable()){ Z={cam:true, at:0}; return true; }
   if(S.view!=='drawer' || !S.drawerId) return false;
   const here=byId(S.drawerId);
   // a desk has no parent, which is exactly what makes it the top of the stack
@@ -1976,11 +2057,14 @@ function zoomBegin(){
 function zoomMove(d){
   if(!Z || !TWO.d0) return;
   Z.at = clamp((1 - d/TWO.d0) / (1-PINCH_FULL), 0, 1);
-  if(Z.sheet) sheetScale(Z.at); else Z.grip.set(Z.at);
+  if(Z.cam) camScrub(Z.at);
+  else if(Z.sheet) sheetScale(Z.at);
+  else Z.grip.set(Z.at);
 }
 function zoomEnd(){
   const z=Z; Z=null;
   if(!z) return;
+  if(z.cam){ camScrubEnd(z.at); return; }
   if(z.sheet){
     sheetScale(0);
     if(z.at>=PINCH_DO) closeSheet();
@@ -2030,6 +2114,11 @@ function onTouchMove(e){
     }
   }
   if(TWO.mode==='nothing') return;
+  /* **No walking off the board while you are inside something on it.** The
+     two-finger swipe is how you reach the next shelf and the next desk, and
+     under the camera it is competing with the finger that pushes the words —
+     so it is simply not offered there. Pinching is still the way out. */
+  if(zoomedIn()){ TWO.mode='nothing'; return; }
   swipeMove(TWO, mx - TWO.x, my - TWO.y);
 }
 function onTouchEnd(e){
@@ -2067,6 +2156,7 @@ const dragArmed = ()=> !!(G && G.armed);
    committing and putting it back. See decision 109. */
 function onCancel(){
   cancelHold();
+  camEditOff();
   if(G && G.type==='fall') gravityDrop();
   if(G && G.type==='band'){ clearRow(G); clearBandShift(G); }
   /* A cancelled page falls back against the spine. Without this, iOS taking
@@ -2087,4 +2177,4 @@ function onCancel(){
 }
 
 export { onDown, onMove, onUp, onCancel, onTouchStart, onTouchMove, onTouchEnd,
-  gestureFlags, dragArmed };
+  gestureFlags, dragArmed, setCamEditor };

@@ -23,7 +23,7 @@ import { openPanel, closePanel, refreshPanel, panelKey, panelBack, draft, modalN
   schedulePanel, quickISO, SCHED, SCHED_PENS, plansPanel, tagFirstPanel,
   familyPanel, becomePanel, lifeFirstPanel, donePanel } from './panels.js';
 import { onDown, onMove, onUp, onCancel, onTouchStart, onTouchMove, onTouchEnd,
-  gestureFlags, dragArmed } from './gestures.js';
+  gestureFlags, dragArmed, setCamEditor } from './gestures.js';
 import { enter, leaveTile, pagerOn, applyTilt, askTilt , zoomOut, zoomedIn } from './motion.js';
 import { gravityApply, gravityWake } from './gravity.js';
 import { planFrom, stampPlan, planById, delPlan, planSize, renamePlan } from './plans.js';
@@ -620,6 +620,17 @@ function act(name, el){
       break;
     }
     case 'drawersettings': case 'objset': objectPanel(el.dataset.id); break;
+    /* ---- the two the camera carries — decision 188 --------------------
+       The whole screen, and what this thing is. `camfull` hands the object to
+       the reading surface **full bleed** — the camera keeps the object's own
+       size on purpose, which is the point of it and also its one limit, so
+       "bigger than the tile" has to be somewhere else. The camera comes off
+       behind it: two things claiming the screen is the trap decision 148
+       already names for the editor and a surface. */
+    case 'camfull': {
+      const id = el.dataset.id;
+      zoomOut(); S.readFull = true; openRead(id); render(); break; }
+    case 'camset': objectPanel(el.dataset.id); break;
     case 'panelclose': closePanel(); break;
     case 'panelback': panelBack(); break;
     // the little calendar — reachable from the swipe, the menu and a key
@@ -701,7 +712,7 @@ function act(name, el){
     case 'appsettings': toggleSettings(); break;
     // the two surfaces an object opens onto, each reachable from the other
     case 'editthis': openWriter(el.dataset.id); break;
-    case 'readthis': openRead(el.dataset.id); break;
+    case 'readthis': S.readFull=false; openRead(el.dataset.id); break;
     // the spread redraws inside the turn, so whichever surface is showing one
     // has to be the thing that gets redrawn
     case 'bookprev': turnPage(-1, S.readId?renderSheet:render); break;
@@ -874,6 +885,10 @@ function wire(){
   /* Turn a name into a field and put the caret at the end of it. One place,
      because three gestures reach it now: a tap on the words, a double tap on
      the tile it was always, and the menu. */
+  /* The hold under the camera calls this — gestures.js arms the timer and
+     wire.js owns the function, because starting an edit is a render plus a
+     focus and the focus has to happen after it. See decision 188. */
+  setCamEditor(id => startEdit(id));
   function startEdit(id){
     const o=byId(id); if(!o) return;
     S.editId=o.id; S.sel=[];
@@ -1119,6 +1134,11 @@ function wire(){
     // reads it on the next event and the two vars turn round with it
     const tfl=t.closest('[data-tiltflip]');
     if(tfl){ S.look.tiltflip = !!tfl.dataset.tiltflip; save(); refreshPanel(); return; }
+    /* Which of the three the desk does while the camera is in. Written onto
+       `S.look` like every other look setting, so it travels with the desk and
+       `applyZoom()` reads it on the next render. See decision 188. */
+    const cdm=t.closest('[data-camdim]');
+    if(cdm){ S.look.camdim = cdm.dataset.camdim; save(); render(); refreshPanel(); return; }
 
     const plx=t.closest('[data-parallax]');
     if(plx){
@@ -1771,6 +1791,21 @@ function wire(){
 
   // inline field edits
   frame.addEventListener('input', e=>{
+    /* ---- the field in the bar — decision 188 -------------------------
+       It re-renders on every keystroke, which a board this size can afford
+       (the render is the same one every other change causes) — and the caret
+       is put back because `render()` replaces `#app` and takes the field with
+       it. The selection is restored too, or typing in the middle of a word
+       jumps to the end on the next letter. `S.q` is **not saved**: a search is
+       where you are looking, not something the desk is. */
+    if(e.target.dataset.search!=null){
+      const at = e.target.selectionStart;
+      S.q = e.target.value;
+      render();
+      const f = document.querySelector('.searchin');
+      if(f){ f.focus(); try{ f.setSelectionRange(at, at); }catch(err){} }
+      return;
+    }
     /* A colour of your own. Live while the picker is open — you are choosing
        against the desk behind it — and one undo move for the whole drag, which
        is what pushSet's coalescing is for. See decision 76. */
@@ -2012,6 +2047,12 @@ function wire(){
       if(o){ e.target.value=''; save(); render();
         const el=document.querySelector(`[data-contadd="${id}"]`); el&&el.focus(); }
       return;
+    }
+    /* The field in the bar. Escape empties it and gives the board back — the
+       one key it has to answer, because a search you cannot get out of is a
+       mode, and the whole point of this one is that it is not. */
+    if(e.target.classList.contains('searchin') && e.key==='Escape'){
+      e.preventDefault(); S.q=''; render(); return;
     }
     /* Finishing an inline edit. Return commits the name (and moves to the body
        if there is one); Escape puts the tile back. The value is already in the

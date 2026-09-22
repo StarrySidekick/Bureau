@@ -5,6 +5,53 @@ Sequenced by dependency, not appetite: item 1 makes everything after it safer.
 
 ---
 
+## 0zd. Reported 2026-09-21 — twenty-four from a day with the camera — DONE (v1.75)
+
+The camera shipped and Timothy lived in it for a day. Most of this is the
+second pass over it; three are structural and the rest are things that looked
+wrong once you were close enough to see them. Decision 188.
+
+**The camera, made habitable.** It moves now, in and out, and tracks the pinch
+on the way out; it stays crisp (the promoted layer is dropped when the move
+ends); it has lost its brass ring; it carries an **expand** to the full-bleed
+reader and a **gear** to the object's editor; **holding** what you are reading
+turns it into the two fields the board has always had; what the rest of the
+desk does is a **choice** of fade, darken or nothing; the two-finger swipe is
+not offered while you are in one; and a phone draws its whole board rather than
+one shelf, so there is board on all four sides instead of two. Instruments zoom
+in where they sit like everything else, and a **record**, zoomed, is a record
+you can put a hand on.
+
+**A drawer is as big inside as it is outside** — four cells to a cell. This is
+the structural one: it re-lays the seed, derives a container's shelves instead
+of storing them, and turned up three latent bugs in the grid maths on the way
+(a board that can shrink, a new box clamped to the shelf but not to the board,
+and a phone measurement that fed back on itself).
+
+**A search in the bar**, between the shelf dots and the lock: everything in
+Bureau from a desk, this drawer and everything under it from inside one.
+
+**And the things that looked wrong close up:** a letter is an envelope you open,
+a counter is its number filling the tile, a candle is as long as it burns for,
+the record's circumference closes, the jar's label is shorter and curved, the
+nameplate is narrower, a die tumbles over its neighbours, a note keeps its
+blank rows and scrolls in its own tile on the board, and the palette went back
+to paper.
+
+### Still open
+
+**Reverse *playback* on a record.** The scratch moves the needle, which is the
+DJ gesture and the honest one for an `<audio>` element. Playing the file
+backwards wants the whole thing decoded into an AudioBuffer and a source node
+per gesture — a different feature, and a much larger one.
+
+**The samplers are two six-square drawers below the rack.** Five hundred and
+seventy-six cells against the six hundred-odd one of everything needs, so they
+are close to full. The specimen book is the real "see every type" tool now; if
+they ever overflow, that is the thing to point at rather than a bigger drawer.
+
+---
+
 ## 0zc. Reported 2026-09-21 — six back from living with 0zb — DONE (v1.74)
 
 Timothy put the eight down and sent six notes back, one of them carrying a

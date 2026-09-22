@@ -549,7 +549,7 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
 .drawer.otile.sh-verse{background:var(--paper-2);text-align:center;align-items:center;justify-content:center;
   border-left:1px solid var(--rule)}
 .drawer.otile.sh-verse .dname{text-align:center;font-family:var(--serif)}
-.drawer.otile.sh-verse .tiletext{text-align:center;font-family:var(--serif);font-style:italic;white-space:pre-line}
+.drawer.otile.sh-verse .tiletext{text-align:center;font-family:var(--serif);font-style:italic;white-space:pre-wrap}
 /* an ingredient reads like a line off a recipe card */
 .drawer.otile.sh-index{background:#F6F1E2;border:1px solid var(--rule);padding-left:18px;
   background-image:linear-gradient(rgba(90,120,150,.18) 1px,transparent 1px);background-size:100% 100%}
@@ -1108,7 +1108,9 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
 .tlnode.above b{order:1} .tlnode.above u{order:2}
 /* a button sits on a tile rather than floating */
 .drawer.btntile{background:var(--paper-2);border:1px solid var(--rule);box-shadow:var(--shadow)}
-/* counter digits fill the tile */
+/* The counter's digits are sized in **chrome.css**, which loads after this
+   file and wins a tie — see the note there. This line is the one that was
+   here, kept as the floor. */
 .cntnum{font-size:clamp(30px, min(60cqw, 62cqh), 260px)}
 /* the book, floating in the middle like a real one */
 .bookscrim{position:absolute;inset:0;z-index:60;background:rgba(20,16,12,.55);backdrop-filter:blur(2px)}
@@ -1745,11 +1747,26 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
   z-index:4;pointer-events:none;border-radius:var(--pill);
   background:linear-gradient(180deg, rgba(255,255,255,.55), rgba(255,255,255,.04));
 }
-/* the label: paper, stuck across the front, which is where a jar's name is */
+/* The label: paper, stuck across the front, which is where a jar's name is —
+   **a fifth shorter than the glass and curved onto it**. It ran the full width
+   and sat flat, which is a rectangle on a photograph of a jar rather than paper
+   wrapped round one. Three things do the wrapping, and none of them is an
+   image: the ends are pulled in (`left`/`right` at 11%, which is the old 1%
+   less a tenth of the width at each end), the top and bottom edges bow with a
+   `border-radius` given **two radii per corner** so the curve is wide and
+   shallow rather than round, and the shading runs *across* — lighter in the
+   middle where the paper faces you, darker at the ends where it turns away.
+   That last one is the whole of the illusion; the rest is the silhouette. */
 .jartile .jarlabel{
-  position:absolute;left:1%;right:1%;top:50%;transform:translateY(-44%);z-index:3;
-  padding:5px 7px 6px;text-align:center;
-  background:var(--paper-2);
+  position:absolute;left:11%;right:11%;top:50%;transform:translateY(-44%);z-index:3;
+  padding:5px 6px 6px;text-align:center;
+  border-radius:50% 50% 50% 50% / 14% 14% 14% 14%;
+  background:
+    linear-gradient(90deg,
+      rgba(0,0,0,.16) 0, rgba(0,0,0,.05) 9%,
+      rgba(255,255,255,.10) 32%, rgba(255,255,255,.10) 68%,
+      rgba(0,0,0,.05) 91%, rgba(0,0,0,.16) 100%),
+    var(--paper-2);
   box-shadow:inset 0 0 0 1px rgba(0,0,0,.09), 0 1px 3px rgba(0,0,0,.22);
 }
 .jartile .jarlabel .dname{
@@ -2231,9 +2248,14 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
    Stelaine's is silver without one per-aesthetic rule, exactly the way an edge
    slot works. The one aesthetic that needs a rule is Starful Gothic, which has
    no fill at all: there a plate is its outline. */
+/* A tenth off the width, taken evenly from both ends so the plate stays
+   centred on the front. A nameplate is a piece of metal screwed to a drawer and
+   it was running very nearly the full width of one, which reads as a band
+   rather than a plate. */
 .drawer.dtile.pl-plate .dtop,.drawer.dtile.pl-holder .dtop,
 .drawer.dtile.pl-tag .dtop{
-  border-radius:var(--radius-d);padding:4px 8px 5px;margin-top:7px}
+  border-radius:var(--radius-d);padding:4px 8px 5px;margin-top:7px;
+  margin-inline:5%;}
 
 /* ---- the plate: metal, screwed on ------------------------------------- */
 .pl-plate .dtop::before{
@@ -2682,6 +2704,53 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
   max-width:100%;
   margin-inline:auto;
 }
+/* **A phone constrains only the boards that are smaller than its screen**, and
+   `narrowboard` is the renderer saying which those are. It cannot be every
+   board the way it is on a Mac: a width pinned to the columns fights the
+   cavity, whose whole mechanism is a *margin* on the grid that leaves the
+   board smaller than the opening (decision 116) — and a board with both ends
+   up measuring itself at the inset width, feeding that back through
+   `MEASURE.phone.w`, and never getting its full width back when the cavity is
+   turned off. Since a drawer's board became its own tile times four, a 1×1
+   drawer is four columns and *does* need pinning; a full one never did. */
+.is-phone .grid.narrowboard{
+  width:calc(var(--cols) * var(--rowh));
+  max-width:100%;
+  margin-inline:auto;
+}
+/* ---- the search in the bar — decision 188 ------------------------------
+   Between the dots and the tools, and it takes the room that is going spare:
+   `flex:1` with a `min-width` small enough that a phone's bar still fits the
+   four buttons beside it. It is furniture, so it wears the board's own rule
+   and paper rather than a field's outline. */
+.barsearch{
+  flex:1 1 auto;min-width:78px;max-width:320px;
+  display:flex;align-items:center;gap:6px;
+  padding:0 9px;height:30px;border-radius:var(--pill);
+  background:color-mix(in srgb, var(--ink) 5%, transparent);
+  box-shadow:inset 0 0 0 1px var(--rule-2);
+  color:var(--ink-3);
+}
+.barsearch:focus-within{
+  color:var(--ink-2);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--brass) 55%, var(--rule));
+}
+.barsearch svg{flex:0 0 auto}
+.searchin{
+  flex:1;min-width:0;border:0;outline:none;background:transparent;
+  font-family:inherit;font-size:12.5px;color:var(--ink);
+}
+.searchin::placeholder{color:var(--ink-3)}
+/* Safari draws its own decorations inside a `type=search`; the clear button is
+   worth keeping and the magnifier is not, because there is one beside it. */
+.searchin::-webkit-search-decoration{-webkit-appearance:none}
+/* What the search found, said once above the list. */
+.searchsaid{
+  padding:10px 16px 6px;font-size:12px;color:var(--ink-3);
+  font-variant-numeric:tabular-nums;
+}
+.is-phone .barsearch{max-width:none;min-width:56px;padding:0 7px}
+
 /* ---- the nine dots in the bar ------------------------------------------
    The desks were a row and their dots were a row. Nine shelves are a *square*,
    so the dots are one too — a map you can aim at rather than a count you have
@@ -2797,6 +2866,13 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
 }
 .dieBody{transform-origin:50px 50px}
 .acttile.rolling .dieBody{animation:dieRoll .52s cubic-bezier(.3,.8,.35,1) 1}
+/* A die that tumbles **over** its neighbours rather than under them. A tile
+   clips its own contents and sits in grid order, so the throw was happening
+   inside a box the size of the die and behind whatever was next to it — which
+   is the one thing a thrown die never does. Both come off for the length of
+   the roll and go back on with the class. */
+.acttile.rolling{z-index:9;overflow:visible}
+.acttile.rolling .actart{overflow:visible}
 
 /* ---- the zoom: the instrument, as big as the stage allows -------------- */
 .viewstage.zoomstage{display:flex;flex-direction:column;align-items:stretch}
@@ -2866,14 +2942,50 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
    has been opened out and pressed flat again. The tile's own two
    pseudo-elements are spent on half the object shapes (decision 99), so both
    creases are one `background-image` of two layers on `.dpanel`. */
+/* ---- a letter is an envelope — decision 188 ----------------------------
+   It was the *sheet*: a flat rectangle with two creases in it where the folds
+   had been. That is the letter after you have opened it, and the thing on the
+   desk is the thing before you have — an **envelope**, closed, with a seal on
+   the flap and a name written across the front where an address goes. Pressing
+   it takes the letter out, which is what the camera does anyway: the zoomed
+   face is the page, so what "opening" means was already right and only the
+   closed state was missing.
+
+   Drawn as one stretched SVG on `.dpanel`, the way the palette's silhouette
+   is, because an envelope is two diagonals meeting and gradients cannot make
+   two diagonals meet. **The flap and nothing else**: the back's other three
+   seams were drawn too for a version, and a flap plus a bottom V is a great
+   X across the tile — which is the *back* of an envelope, read literally,
+   and not the side you write the name on. `preserveAspectRatio="none"` so the flap keeps its
+   proportion of whatever box the tile is — a real envelope's flap is a
+   fraction of the envelope, not a fixed number of millimetres. */
 .drawer.otile.sh-letter .dpanel{
-  background-image:
-    linear-gradient(180deg, rgba(0,0,0,.16) 0 1px, rgba(255,255,255,.34) 1px 2px, transparent 2px),
-    linear-gradient(180deg, rgba(0,0,0,.16) 0 1px, rgba(255,255,255,.34) 1px 2px, transparent 2px);
-  background-size:100% 2px, 100% 2px;
-  background-position:0 33.3%, 0 66.6%;
+  background-image:url('data:image/svg+xml;utf8,\
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 62" preserveAspectRatio="none">\
+<path d="M0 0 H100 L50 29 Z" fill="rgba(255,255,255,.22)"/>\
+<path d="M0 0 L50 29 L100 0" stroke="rgba(0,0,0,.22)" stroke-width="1" fill="none"/>\
+</svg>');
+  background-size:100% 100%;
   background-repeat:no-repeat;
 }
+/* The front of an envelope carries a name, not a letter: the body comes off
+   the face and the name sits where an address is written. */
+.drawer.otile.sh-letter .dbody{display:none}
+.drawer.otile.sh-letter > .dtop{
+  position:absolute;left:14%;right:14%;top:72%;margin:0;
+  justify-content:center;text-align:center;
+}
+.drawer.otile.sh-letter > .dtop .dname{
+  text-align:center;font-family:var(--serif);letter-spacing:.02em;
+  border-bottom:1px solid var(--rule-2);padding-bottom:3px;
+}
+/* …and the seal sits on the point of the flap, which is where wax goes. */
+.drawer.otile.sh-letter .wseal{
+  right:auto;bottom:auto;left:50%;top:47%;transform:translate(-50%,-50%);
+  width:clamp(18px, 20%, 34px);
+}
+.drawer.otile.sh-letter.sz-short .dpanel,
+.drawer.otile.sh-letter.minitile .dpanel{background-image:none}
 /* ---- a postcard: a picture one side, the writing the other -------------
    Turning it over is a state of the tile, so the two faces are one element
    with a class on it rather than two elements and a 3-D transform: a card on
@@ -2936,8 +3048,14 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
    here is about making the thing under the camera *usable* once it arrives. */
 #drawergrid.camera{
   transition:transform .42s cubic-bezier(.22,.72,.2,1);
-  will-change:transform;
 }
+/* **Promoted only while it is moving.** A scaled layer is rasterised once and
+   then stretched, so a page of words held at four times with `will-change` on
+   is a picture of words — which is what "the text looks pixelated" was. The
+   class and the inline `will-change` both come off when the move settles
+   (`camSettle()` in motion.js) and the browser redraws the text at the size it
+   actually ended up. */
+#drawergrid.camoving{will-change:transform}
 /* The scroller stops scrolling while the camera is in: the position is the
    transform's to decide, and a scrollTop underneath it would fight for the
    same pixels. */
@@ -2946,21 +3064,58 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
    little desaturated, so the neighbours are still legibly *there* (which is
    the whole point of zooming on the board rather than opening a surface) and
    still plainly not what you are reading. */
-.camerascroll #drawergrid > .drawer:not(.oncamera){
+/* **What the rest of the desk does is a choice**, `S.look.camdim`, written onto
+   the scroller as a class. *Fade* steps the neighbours back, *darken* leaves
+   them alone and dims the room around them instead, and *nothing* leaves the
+   desk exactly as it is — which is the most honest reading of "you just zoomed
+   in on it" and the reason it is offered at all. Whichever it is, nothing but
+   the tile under the camera takes a press. */
+.camerascroll #drawergrid > .drawer:not(.oncamera){pointer-events:none}
+.camerascroll.cam-fade #drawergrid > .drawer:not(.oncamera){
   opacity:.5;filter:saturate(.72);
   transition:opacity .42s, filter .42s;
-  pointer-events:none;
 }
-.camerascroll #drawergrid > .strings,
-.camerascroll #drawergrid > .lights{opacity:.4;transition:opacity .42s}
-/* The one under the camera keeps its own edge and gains a ring, because at 4×
-   a tile's one-pixel border is four pixels and reads as a frame it never had.
-   The ring is drawn *outside* the box so it takes no room from the contents. */
-#drawergrid > .drawer.oncamera{
-  z-index:8;
-  outline:1.5px solid color-mix(in srgb, var(--brass) 55%, transparent);
-  outline-offset:2px;
+.camerascroll.cam-fade #drawergrid > .strings,
+.camerascroll.cam-fade #drawergrid > .lights{opacity:.4;transition:opacity .42s}
+/* Darkening is the *room*, not the tiles: one wash over the scroller, under
+   the tile being read, so the neighbours keep their own colour and simply have
+   less light on them. `pointer-events:none` because it is over the board. */
+.camerascroll.cam-dark::after{
+  content:"";position:absolute;inset:0;z-index:6;pointer-events:none;
+  background:rgba(0,0,0,.42);
+  animation:camdark .42s ease both;
 }
+.camerascroll.cam-dark{position:relative}
+@keyframes camdark{from{opacity:0}to{opacity:1}}
+/* The one under the camera is simply in front. It wore a brass ring for a
+   version — at four times a tile's own edge is four pixels and the thought was
+   that it needed saying which tile this was — but the whole screen is that
+   tile, so the ring was answering a question nobody was asking and reading as
+   a frame the object had never had. */
+#drawergrid > .drawer.oncamera{z-index:8}
+/* ---- the two controls the camera carries — decision 188 ----------------
+   Top right of the tile, **counter-scaled** by `1/k` written inline so they
+   land at button size whatever the object is magnified by — the same trick the
+   words use, and for the same reason. `transform-origin` is the corner they are
+   pinned to, or scaling would walk them off it. */
+.camtools{
+  position:absolute;top:0;right:0;z-index:6;
+  display:flex;gap:6px;padding:8px 9px;
+  transform-origin:100% 0;
+}
+.camtool{
+  width:30px;height:30px;display:grid;place-items:center;
+  border:0;border-radius:9px;cursor:pointer;color:var(--ink-2);
+  background:color-mix(in srgb, var(--paper) 82%, transparent);
+  box-shadow:0 1px 3px rgba(0,0,0,.18), inset 0 0 0 1px var(--rule-2);
+  backdrop-filter:blur(6px);
+}
+.camtool:hover{color:var(--ink);background:var(--paper)}
+/* A drawer's insides read light, so its controls have to as well. */
+.drawer.dtile .camtool{color:var(--dink-2);
+  background:color-mix(in srgb, #000 28%, transparent)}
+.drawer.dtile .camtool:hover{color:var(--dink)}
+
 /* ---- what you read once you are there ---------------------------------
    The words under the camera are **counter-scaled**: written small and
    magnified back to a reading size by the same transform that magnified the
@@ -2999,6 +3154,21 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
 .zoomread h1{font-size:1.5em} .zoomread h2{font-size:1.28em} .zoomread h3{font-size:1.1em}
 .zoomread ul,.zoomread ol{margin:0 0 .75em;padding-left:1.4em}
 .zoomread li{margin:0 0 .3em}
+/* ---- writing in it, where it sits — decision 188 -----------------------
+   The same two fields the board has always had (`.inlinename`, `.inlinebody`),
+   at the size the camera is showing. They inherit the counter-scaled type from
+   `.zoomread`, so the caret and the words are the size you are reading at. */
+.zoomread.zwrite .zoombody{display:flex}
+.zoomread .camwrite{
+  flex:1;width:100%;border:0;outline:none;resize:none;background:transparent;
+  font:inherit;line-height:inherit;color:inherit;padding:0;
+  overflow-y:auto;overscroll-behavior:contain;
+}
+.zoomread input.zoomhead{
+  border:0;outline:none;background:transparent;padding:0;
+  font-size:1.02em;font-weight:600;line-height:1.25;color:inherit;
+  font-family:inherit;
+}
 /* A tile that is being read hides the face it was printing instead — the
    caption *and* the name row, which is the tile's own and therefore drawn at
    the tile's own size: 12px of caption at 4x is a 48px banner lying across the

@@ -334,3 +334,39 @@ you arranged don't move.
 **`.is-desk` / `.is-phone` on `#frame`** drive responsive rules — the breakpoint is
 900px, set in JS, not a media query, because the same classes also need to apply
 when you're editing the *other* device's layout from this one.
+
+**A container's board is its own tile, four cells to a cell.** `innerOf(cid)` in
+grid.js: a 2×2 drawer opens onto 8×8, a 1×1 onto 4×4, a 2×4 onto 8×16. It is
+read off the **desk** box on both devices, never the one for the device being
+drawn — a container's inside is a coordinate space and a coordinate space may
+not change shape between a phone and a Mac, and `sizeOfKind()` halves a
+container to put it on a phone. The desk itself is not a tile and keeps its
+nine shelves; `shelvesOf()` is still the answer for ROOT and `gridOf()` derives
+them for everything else.
+
+Three things fall out of it, and all three cost a run to find:
+
+- **A board can get smaller.** Resizing a drawer resizes the space inside it, so
+  `gridOfContainer()` re-places anything left off the end — keeping the size and
+  giving up the place, which is the licence `ensureBox()` already takes.
+- **A new box is clamped to the board as well as the shelf.** A note's phone
+  size is a shelf wide and a 1×1 drawer is four columns, so the old
+  shelf-only clamp let a ten-wide box onto a four-column board; `anySpot()`
+  then looked for a place for it for ever and the object was drawn nowhere.
+- **A board narrower than the screen is pinned to its own columns**
+  (`narrowboard`), and on a phone *only* those are. A width pinned to the
+  columns fights the cavity, whose mechanism is a margin on the grid, and a
+  board with both ends up measuring itself at the inset width and never getting
+  its full width back. For the same reason `MEASURE.phone.w` is one **shelf's**
+  width and not the drawn board's: feeding the drawn width back in shrank the
+  board by the same fraction on every render until there was nothing left.
+
+See decision 188.
+
+**A search sits in the bar, between the dots and the tools.** `searchHits(q,
+scopeId)` in model.js — everything in Bureau from a desk, this drawer and
+everything under it from inside one, matching a title, a body or a tag and
+ranking a title match first. `S.q` is **not saved**: a search is where you are
+looking, not something the desk is. While it has something in it the board is
+the matches, as a list, because the answers come from all over the desk and
+putting them on a grid would invent coordinates that mean nothing.

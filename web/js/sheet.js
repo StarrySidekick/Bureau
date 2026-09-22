@@ -57,6 +57,9 @@ function openRead(id){
   S.readId=id; S.writeId=null; S.viewId=null; S.editId=null; S.zoomId=null; S.bookAt=0; S.readEdit=false;
   renderSheet();
 }
+/* Full bleed is a property of *this opening*, not of the object — it is what
+   the camera's expand asked for — so it is cleared by anything that opens the
+   reader another way and by closing it. Set it immediately before the call. */
 function openViewer(id){
   const o=byId(id); if(!o) return;
   S.viewId=id; S.readId=null; S.writeId=null; S.editId=null; S.zoomId=null;
@@ -76,6 +79,7 @@ function openObj(id){
 }
 function closeSheet(){
   S.writeId=null; S.readId=null; S.viewId=null; S.editId=null; S.zoomId=null; S.readEdit=false;
+  S.readFull=false;
   clearFocus(); renderSheet(); render();
 }
 function clearFocus(){
@@ -366,7 +370,7 @@ function renderSheet(){
     // 15, like everything else in the bar — it was the one glyph at 16
     const out = `<button class="iconbtn" data-sheet="close" title="Close">${ic('x',15)}</button>`;
     host.innerHTML=`<div class="bookscrim" data-sheet="close"></div>
-      <div class="bookstage rm-${mode}${editing?' writingon':''}">
+      <div class="bookstage rm-${mode}${editing?' writingon':''}${S.readFull?' fullbleed':''}">
         <div class="bookhead"><b>${esc(r.title||'Untitled')}</b></div>
         ${editing
           ? `<div class="book"><div class="spread ${sheetOf(r)}"><i class="dgrain"></i>

@@ -570,8 +570,30 @@
 /* An empty row somebody typed on purpose keeps its room — see `md()` in
    util.js. `1lh` is the element's own line box, so the gap is exactly one line
    of the type it sits in rather than a number that has to be kept in step. */
-.prose .vspace,.contbody .vspace,.spread .page .vspace,.writepaper .vspace{
+.prose .vspace,.contbody .vspace,.spread .page .vspace,.writepaper .vspace,
+.zoomread .vspace{
   height:1lh;margin:0}
+/* ---- edge to edge — decision 188 --------------------------------------
+   The camera keeps an object at its own size on the board, which is the whole
+   point of it and also its one limit: a 2×3 note is a 2×3 note however close
+   you get. The expand in its corner hands the object to the reading surface
+   with the **paper taken away** — the words run to the edges of the screen with
+   nothing but a reading margin, which is the one thing neither the tile nor the
+   sheet of Letter could give. It is a property of the opening rather than of
+   the object: read it any other way and the paper is back. */
+.bookstage.fullbleed{--paperw:100%}
+.bookstage.fullbleed .book{width:100%;margin:0}
+.bookstage.fullbleed .spread{
+  height:auto;min-height:var(--avail-h);border:0;border-radius:0;box-shadow:none;
+  grid-template-columns:1fr;background:var(--paper);
+}
+.bookstage.fullbleed .spread .page{
+  border-right:0;
+  padding:clamp(20px,5vw,72px) clamp(18px,7vw,120px) clamp(28px,6vw,84px);
+}
+.bookstage.fullbleed .spread .pno{display:none}
+.is-phone .bookstage.fullbleed .spread .page{padding:22px 20px 30px}
+
 /* ---- one bar under the paper — decision 84 ---------------------------
    Everything you can press, in one row, at the end of the sheet a thumb
    reaches. Three columns rather than a flex row: the tools weigh whatever they
@@ -1137,7 +1159,12 @@ html .drawer.dtile.cltile{background-image:none}
   background:
     radial-gradient(circle at 34% 30%, rgba(255,255,255,.34), transparent 44%),
     repeating-radial-gradient(circle at 50% 50%, rgba(255,255,255,.05) 0 2px, transparent 2px 4px),
-    conic-gradient(from 210deg, #6E6A63, #A8A29A 18%, #55514B 40%, #9E988F 62%, #6E6A63 84%, #A8A29A);
+    /* **The last stop has to be the first one.** 0% and 100% are the same
+       angle on a cone, so a sweep that starts grey and ends silver meets
+       itself as a hard line down the record — which is the break in the
+       circumference. Closing the loop is the whole fix. */
+    conic-gradient(from 210deg, #6E6A63 0%, #A8A29A 18%, #55514B 40%,
+                   #9E988F 62%, #55514B 80%, #A8A29A 93%, #6E6A63 100%);
   box-shadow:0 3px 10px rgba(0,0,0,.5), inset 0 0 0 1px rgba(0,0,0,.3);
 }
 .projdisc .cd b{
@@ -1155,6 +1182,13 @@ html .drawer.dtile.cltile{background-image:none}
    record and needs no clamp. */
 .projdisc .cd .cdtext{position:absolute;inset:0;width:100%;height:100%;
   pointer-events:none;overflow:visible}
+/* ---- the disc under the camera — decision 188 --------------------------
+   Zoomed, a record is a record: the whole disc, and a hand on it. `.scratching`
+   is written by the gesture, not by a render, so the rotation can follow the
+   finger at frame rate — and it turns the spin animation off, because a disc
+   that is also being driven by a keyframe fights the hand. */
+.cd[data-scratch]{cursor:grab;touch-action:none}
+.cd.scratching{cursor:grabbing;animation:none !important}
 .projdisc .cd .cdtext text{
   font-family:var(--serif);font-size:9px;font-weight:600;letter-spacing:.06em;
   fill:rgba(255,255,255,.94);paint-order:stroke;
@@ -1707,8 +1741,26 @@ html .drawer.dtile.cltile{background-image:none}
    it, and collapsing them into one run is what made every body on the board
    read as a wall. Runs of blank lines are already reduced to one by plain(),
    so this cannot open a gap the writing didn't ask for. */
+/* `pre-wrap`, not `pre-line`: **`pre-line` collapses a run of white space**,
+   and a newline is white space, so three Returns came out as one line break
+   however faithfully `plain()` had kept them. The only thing `pre-wrap` also
+   keeps is leading space, which on a note is indentation somebody typed. */
+/* **A note you can read on the board.** The body scrolls in its own tile when
+   there is more of it than fits, so you can push through a long note without
+   going into it — and when it runs out, the scroll chains to the board, which
+   is what makes it feel like part of the desk rather than a window on it.
+   Horizontal stays clipped: a line that does not fit wraps.
+
+   It cannot take the drag away: the drag is armed by a 300ms hold, and the
+   hold is what keeps the finger still long enough that no native scroll has
+   begun (see gestures.md). A quick flick scrolls, a hold picks the tile up. */
 .tiletext{font-family:var(--serif);font-size:11.5px;color:var(--ink-3);line-height:1.45;
-  overflow:hidden;height:100%;white-space:pre-line}
+  overflow-x:hidden;overflow-y:auto;height:100%;white-space:pre-wrap;
+  -webkit-overflow-scrolling:touch;scrollbar-width:none}
+.tiletext::-webkit-scrollbar{width:0;height:0}
+/* …but not at a glance-sized tile, where a scrollbar's worth of travel is one
+   line and the gesture is worth more as the board's. */
+.sz-mini .tiletext,.sz-short .tiletext{overflow-y:hidden}
 /* Twice the 19px a checkbox is everywhere else. A tick on a tile is a target
    you hit with a thumb while the tile under it is also a drag handle, and 19px
    was small enough that missing it picked the task up instead. A one-row tile
@@ -2515,13 +2567,34 @@ html .drawer.dtile.cltile{background-image:none}
   font-style:italic;color:var(--ink);overflow-wrap:anywhere;
   display:-webkit-box;-webkit-line-clamp:6;-webkit-box-orient:vertical;overflow:hidden}
 /* A counter is a number with a caption */
+/* **A counter is its number and nothing else** — decision 188. The name came
+   off the face: a count is read across a desk, and a word above it was the
+   thing keeping it small. It is on the tooltip and in the editor, which is
+   where a caption belongs once the tile has one thing to say.
+
+   So the digits take the whole tile. `min(92cqw, 88cqh)` and not `52cqw`:
+   whichever axis runs out first decides, which is what lets a wide counter be
+   as large as a tall one. `cqh` needs `container-type:size` rather than
+   `inline-size` — an inline-size container has no height to answer with — and
+   the padding comes down to two pixels, because eight of a forty-eight pixel
+   cell is a third of it. */
 .drawer.cnttile{
-  background:var(--c);align-items:center;justify-content:center;gap:4px;text-align:center;padding:8px;
+  background:var(--c);align-items:center;justify-content:center;gap:0;text-align:center;padding:2px;
   border-radius:var(--radius-d);border-color:transparent;
 }
-.cntnum{font-family:var(--serif);font-size:clamp(30px,52cqw,180px);line-height:1;font-weight:600;
+/* …and **how many digits there are** is part of the width. A three-digit count
+   sized at 92% of the tile's width is three times too wide and the ends are
+   clipped off, which is the one thing a counter must not do. `--digits` is
+   written onto the element by the renderer — it is the only place that knows —
+   and the width each digit may take is the tile's, divided by it — times
+   **0.62**, because a digit's advance is about six tenths of its font size and
+   not all of it. Dividing by the count alone makes a three-digit counter half
+   the size it could be. */
+.cntnum{font-family:var(--serif);
+  font-size:clamp(20px, min(calc(92cqw / (var(--digits,1) * 0.62)), 88cqh), 420px);
+  line-height:.94;font-weight:600;
   color:#F8F3E6;font-variant-numeric:tabular-nums;cursor:pointer}
-.cntlabel{font-size:clamp(10px,5cqw,15px);color:rgba(248,243,230,.82);overflow-wrap:anywhere;line-height:1.2;order:-1}
+.cntlabel{display:none}
 .drawer.cnttile{container-type:size}
 /* A character is a portrait with a name plate */
 .drawer.chartile{padding:0;overflow:hidden;background:var(--paper-2);align-items:stretch}
@@ -3849,30 +3922,17 @@ html[data-theme="walnut"] .toast{background:var(--paper-3);color:var(--ink)}
   padding:10px 14px 22px 92px;
   border:0;box-shadow:none;border-radius:20px;
   filter:drop-shadow(0 7px 16px rgba(0,0,0,.36));
-  /* The wood. `--wood` is the aesthetic's own, like every other surface in the
-     app, so the palette is walnut in Victoria and whatever the board is made
-     of everywhere else. The grain is two low-alpha rules over it, at a fixed
-     px pitch, because a grain is a fixed thickness at any size. */
-  background:
-    repeating-linear-gradient(97deg,
-      rgba(255,255,255,.035) 0 1px, transparent 1px 7px),
-    repeating-linear-gradient(97deg,
-      rgba(0,0,0,.05) 0 2px, transparent 2px 13px),
-    linear-gradient(152deg,
-      color-mix(in srgb, var(--wood) 84%, #fff),
-      var(--wood) 44%,
-      color-mix(in srgb, var(--wood) 82%, #000));
-  /* Light on dark, the same trick the phone's bar and a drawer front play: the
-     tokens are overridden for this subtree and every control inside comes
-     along without a rule of its own. See board.css's `.is-phone .gridbar`. */
-  --ink:#F4EEE0;
-  --ink-2:rgba(244,238,224,.76);
-  --ink-3:rgba(244,238,224,.54);
-  --rule:rgba(244,238,224,.20);
-  --rule-2:rgba(244,238,224,.10);
-  --paper-2:rgba(255,255,255,.09);
-  --paper-3:rgba(255,255,255,.15);
-  color:var(--ink);
+  /* **A pale board and no grain.** It was walnut with two rules of figure over
+     it for a version, which is the photograph read literally — and a menu is a
+     thing you read, so the wood was competing with the words and every row had
+     to be reversed out in light ink to survive it. The shape is the palette;
+     the surface is the app's own paper, lifted a shade towards the wood so it
+     still reads as a board rather than as a card. One gradient, no texture, and
+     the ordinary ink. */
+  background:linear-gradient(152deg,
+    color-mix(in srgb, var(--wood) 13%, var(--paper)),
+    color-mix(in srgb, var(--wood) 20%, var(--paper)) 48%,
+    color-mix(in srgb, var(--wood) 28%, var(--paper)));
   --pal-hole:url('data:image/svg+xml;utf8,\
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">\
 <ellipse cx="50" cy="50" rx="49" ry="49" fill="%23fff"/></svg>');
@@ -3902,12 +3962,12 @@ html[data-theme="walnut"] .toast{background:var(--paper-3);color:var(--ink)}
    does — on the element's own shadow rather than a layer, so it follows the
    mask and dies away into the hole and the notch with it. */
 .ctxmenu.palette{
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.16),
-             inset 0 -1px 0 rgba(0,0,0,.22);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.42),
+             inset 0 -1px 0 rgba(0,0,0,.10);
 }
 .ctxmenu.palette button{border-radius:var(--pill);padding-left:12px}
-.ctxmenu.palette button:hover{background:var(--paper-3)}
-.ctxmenu.palette .div{margin-left:4px;background:var(--rule)}
+.ctxmenu.palette button:hover{background:color-mix(in srgb, var(--ink) 8%, transparent)}
+.ctxmenu.palette .div{margin-left:4px;background:color-mix(in srgb, var(--ink) 16%, transparent)}
 .ctxmenu.palette .ctxhead{padding-left:12px;color:var(--ink-3)}
 
 /* the panel is narrow: sections sit closer, and the style tiles pair up */

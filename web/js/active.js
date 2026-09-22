@@ -148,6 +148,20 @@ function deckTop(o){
   if(!kids.length) return null;
   return kids.find(x => x.id === o.top) || kids[0];
 }
+/* **How long a candle burns for is how long a candle is.** The wax used to be
+   a fraction of a fixed 84 units whatever the timer said, so a fifteen-minute
+   candle and a four-hour one were the same taper and the only thing the setting
+   changed was how fast it went down — which is the one thing you cannot see.
+   The length is the setting now and the wax left is a fraction of *that*.
+
+   The curve is gentle rather than linear (the default's own length to the power
+   of a bit over a half) because a day-long candle at true proportion is
+   seventeen times a fifteen-minute one and there is no tile that fits both. The
+   viewBox follows it — `vb` may be a function — so the candle is drawn at
+   whatever height it turns out to be rather than being letterboxed into a box
+   sized for the longest one. */
+const candleFull = o => Math.max(10, Math.min(150,
+  Math.round(84 * Math.pow(burnOf(o)/120, 0.55))));
 const burning = o => actOf(o) === 'candle' && !!o.litAt && through(o.litAt, burnOf(o)) < 1;
 const waxLeft = o => o.litAt ? 1 - through(o.litAt, burnOf(o)) : 1;
 const sandGone = o => o.flipAt ? through(o.flipAt, minsOf(o)) : 1;
@@ -281,10 +295,12 @@ const ACTIVE = {
      own because the shared minute tick asks whether it has, not because
      anything counted it down. */
   candle: {
-    nm:'Candle', vb:'0 0 60 140', kind:'candle',
+    nm:'Candle', vb: o => { const t = 108 - candleFull(o) - 24;
+                            return `0 ${t.toFixed(1)} 60 ${(140-t).toFixed(1)}`; },
+    kind:'candle',
     art(o){
       const lit = burning(o), left = Math.max(0, Math.min(1, waxLeft(o)));
-      const full = 84, h = Math.max(6, full*left), y = 24 + (full - h);
+      const full = candleFull(o), h = Math.max(3, full*left), y = 108 - h;
       const wax = o.waxc || 'currentColor';
       return `<g class="cdBody">
         ${lit?`<g class="cdFlame" style="transform-origin:30px ${(y-6).toFixed(1)}px">

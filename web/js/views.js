@@ -6,7 +6,7 @@ import { S, K, T, byId, has, isContainer, containers, container, childrenOf, cha
   spanOf, coversDay, lastDay, boardLocked,
   TILT_MODES, tiltMode, tiltsDesk, tiltsWindows, tiltClasses, cueFlipped,
   GRAVITIES, gravityMode, gravityOn,
-  URGES, workday } from './model.js';
+  URGES, workday, searchHits } from './model.js';
 import { GRID, PHONE_GRIDS, CELL, COLW, MEASURE, sideways, colsOf, gridKeyOf, SHELVES, shelvesOf,
   shelfRows, shelfOfBox, shelfAt, setShelf, shelfOrigin, SHELF, drawCols, drawRows,
   lay, gridOf, cellW, ensureBox, PLACED } from './grid.js';
@@ -19,7 +19,7 @@ import { openGuide } from './guide.js';
 /* Cyclic at *function* level only — motion.js imports render() from here and
    this imports sprayAt() from there, and neither is called while the modules
    are loading. That is the graph the app already has; keep it that way. */
-import { sprayAt, SPRAYS, sprayNow, sprayMark, hopIntoCollector , applyZoom, zoomOut, zoomedIn } from './motion.js';
+import { sprayAt, SPRAYS, sprayNow, sprayMark, hopIntoCollector , applyZoom, zoomOut, zoomedIn, CAM_DIMS } from './motion.js';
 import { APP_VERSION, DATA_V, save, saveIfDirty, storeSize, install } from './persist.js';
 
 /* The desk is nothing but the grid. There is no toolbar: New, Arrange and
@@ -77,6 +77,24 @@ function gridBar(c){
           const x=i%sh.w, y=(i/sh.w)|0;
           return `<i class="${x===at.x&&y===at.y?'on':''}" data-shelfgo="${c.id}:${x}:${y}"></i>`;
         }).join('')}</span>`:''}
+    </div>
+    ${/* ---- the search — decision 188 -----------------------------------
+         Between the shelf dots and the lock, which is where it belongs: the
+         dots say *where* you are and the tools say what you can do, and
+         finding something is the question in between. What it looks through is
+         the board you are on — everything in Bureau from a desk, this drawer
+         and everything under it from inside one — so the same field answers
+         "where is it" and "what have I got in here" without a mode.
+
+         It is a `type="search"` so a phone gives it the right keyboard and its
+         own clear button, and it is **not** inside a form: Return does nothing
+         but close the keyboard, because the results are already there. */''}
+    <div class="barsearch">
+      ${ic('search',14)}
+      <input class="searchin" type="search" data-search="${c.id}"
+        value="${esc(S.q||'')}" autocomplete="off" enterkeyhint="done"
+        placeholder="${c.id===ROOT?'Search the desk\u2026':'Search in here\u2026'}"
+        aria-label="Search">
     </div>
     <div class="bartools">
       ${/* The lock comes first, because it is the one that changes what every
@@ -198,6 +216,25 @@ function onThisShelf(cid, items){
    it differently. */
 const isListView = v => v!=='grid' && v!=='book' && v!=='calendar' && v!=='timeline';
 
+/* What a board shows while the field has something in it: the matches, as a
+   list, in the order `searchHits()` ranked them. A **list** rather than a grid
+   because the answers have no places — they come from all over the desk, and
+   putting them on a grid would invent coordinates that mean nothing. Pressing
+   one does whatever pressing it anywhere does. */
+function searchBoard(c){
+  const q = String(S.q||'').trim();
+  const hits = searchHits(q, c.id);
+  return `<div class="scroll flushlist">
+    <div class="searchsaid">${hits.length
+      ? `${hits.length} ${hits.length===1?'thing':'things'} matching \u201c${esc(q)}\u201d`
+      : `Nothing matching \u201c${esc(q)}\u201d`}${
+      c.id===ROOT ? '' : ` in ${esc(boardName(c))}`}</div>
+    ${hits.length
+      ? `<div class="listgrid">${hits.map(listTile).join('')}</div>`
+      : `<div class="empty"><div class="big">No matches</div>Try part of a name, a tag, or a word from inside it.</div>`}
+  </div>`;
+}
+
 function viewDesk(){
   const c=rootObj(), view=c.layout||'grid';
   if(view!=='grid'){
@@ -217,6 +254,7 @@ function viewDesk(){
   }
   // the bar sits above the scroller, not inside it — it carries the pins now,
   // and navigation that scrolls away is navigation you can't reach
+  if(String(S.q||'').trim()) return `${gridBar(c)}${searchBoard(c)}`;
   return `
   ${gridBar(c)}
   <div class="scroll deskscroll"${revealStyle()}>
@@ -389,6 +427,8 @@ function viewTimeline(d, items){
 function viewDrawer(){
   const d=byId(S.drawerId);
   if(!d || !isContainer(d)) return viewDesk();
+  // the field in the bar replaces the board, exactly as it does on a desk
+  if(String(S.q||'').trim()) return `${gridBar(d)}${searchBoard(d)}`;
   const all=childrenOf(d);
   let items=all;
   if(S.kindFilter) items=items.filter(o=>o.kind===S.kindFilter);
@@ -501,16 +541,18 @@ function shelfCountField(cid){
   if(cid===ROOT) return `<div class="field" style="margin-top:12px"><label>Shelves</label>
       <div class="mini" style="--k:var(--brass)">The Desk is <b>three by three</b>, and you start in the middle. Swipe up, down, left or right to walk them; on a Mac the middle row is on the screen at once and the other two are up and down the scroller.</div>
     </div>`;
-  const now = shelvesOf(cid);
+  /* **A drawer no longer chooses**: since decision 188 its board is its own
+     tile, four cells to a cell, so how many shelves it is comes out of how big
+     it is on the desk — and a picker offering a second answer to a question
+     the tile has already settled is a control that either does nothing or
+     fights the resize. It says what the board *is* instead, and points at the
+     thing that decides. */
+  const g = gridOf(dev(), cid), now = g.shelves;
+  const box = (byId(cid)||{}).desk;
   return `<div class="field" style="margin-top:12px"><label>Shelves</label>
-      <div class="shelfpick" style="--sw:${SHELVES}">${
-        Array.from({length:SHELVES*SHELVES}, (_,i)=>{
-          const x=i%SHELVES+1, y=((i/SHELVES)|0)+1;
-          return `<button class="shelfopt${x<=now.w&&y<=now.h?' on':''}"
-            data-shelfsize="${cid}:${x}:${y}" title="${x} × ${y}"></button>`;
-        }).join('')}</div>
-      <div class="mini" style="--k:var(--brass);margin-top:6px">A shelf is one screenful. This board is <b>${now.w} × ${now.h}</b>${
-        now.w*now.h>1 ? ` — swipe between them` : ''}. Press a corner to make it that many; nothing is thrown away if you make it smaller, it is put back on a shelf that fits.</div>
+      <div class="mini" style="--k:var(--brass)">A drawer is as big inside as it is outside: <b>${
+        box ? `${box.w} × ${box.h}` : 'its'}</b> cells on the desk makes <b>${g.cols} × ${g.rows}</b> in here${
+        now.w*now.h>1 ? `, which is ${now.w} × ${now.h} screenfuls — swipe between them` : ''}. Resize the drawer itself to change it.</div>
     </div>`;
 }
 const installed = ()=> window.matchMedia('(display-mode: standalone)').matches || !!window.navigator.standalone;
@@ -781,6 +823,19 @@ function settingsBody(sec){
     <div class="section-h"><h2>Depth and light</h2><div class="rule"></div></div>
     <div class="mini" style="--k:var(--brass)">All of this is the phone's: it is about a board you tilt and hold, and a Mac sits still on a desk. Open the iPhone layout to set it.</div>`;
       return `
+    ${/* ---- what the desk does while you are in something — decision 188 --
+         Three answers rather than one. Fading the neighbours says "this is the
+         thing", darkening the room says "the light is here" and leaving it
+         alone says "you have simply come closer", which is the most honest
+         reading of a camera and is why it is offered at all. It lives in Depth
+         and light because it is about how solid the desk looks, which is what
+         that door is for. */''}
+    <div class="section-h"><h2>Zooming in</h2><div class="rule"></div></div>
+    <div class="mini" style="--k:var(--brass)">Tapping something zooms the board into it where it sits. This is what the <b>rest</b> of the desk does while you are in there.</div>
+    <div class="field" style="margin-top:10px">
+      <div class="filterbar">${Object.entries(CAM_DIMS).map(([v,n])=>
+        `<button class="fchip${(S.look.camdim||'fade')===v?' on':''}" data-camdim="${v}">${n}</button>`).join('')}</div>
+    </div>
     <div class="section-h"><h2>Looking in</h2><div class="rule"></div></div>
     <div class="mini" style="--k:var(--brass)">Tilting the phone can move two different things, and they are worth having apart. <b>The desk</b> sets the board into the carcass and slides it behind the opening. <b>Windows</b> leave the desk still and move the view behind a window's frame, which is the same idea with a frame you can actually see. It asks iPhone for the motion sensor the first time you switch either on, and both stand still while you are carrying a tile or reading.</div>
     <div class="field" style="margin-top:10px">
@@ -1435,7 +1490,14 @@ function sizeGrid(){
     const gapMin = parseFloat(getComputedStyle(sc).getPropertyValue('--gapmin'))||0;
     const railMin = rail ? (parseFloat(getComputedStyle(rail).minHeight)||0) : 0;
     const room = main.clientHeight - barH - gapMin - railMin;
-    const boardW = w * drawCols(g);
+    /* **One shelf's width, not the drawn board's.** They were the same number
+       until a container's board became its own tile times four, and then a
+       drawer narrower than a shelf started measuring itself: the grid is
+       `cols × rowh` wide, `rowh` is derived from this, and feeding the drawn
+       width back in shrank the board by the same fraction on every render
+       until there was nothing left of it. A shelf is the unit; what is drawn
+       is a window onto it. See decision 188. */
+    const boardW = w * g.shelfW;
     const was = shelfRows('phone', cid);
     if(MEASURE.phone.room!==room || Math.abs(MEASURE.phone.w-boardW)>0.5){
       MEASURE.phone.room=room; MEASURE.phone.w=boardW;

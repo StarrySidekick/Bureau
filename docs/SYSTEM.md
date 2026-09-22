@@ -594,7 +594,7 @@ of four things layered over them.
 | Surface | What it is for | Where it lives |
 | --- | --- | --- |
 | **The grid** | The app. | `#app`, rebuilt whole by `render()` |
-| **The bar** | Where you are — pressing it opens the shelf map — the square of shelf dots with the one you are on lit, and four icon buttons: the lock, grid-or-list, one of anything (a spiral), this board's editor (a brush), and the app's settings (a gear, on a desk only). | inside `#app` |
+| **The bar** | Where you are — pressing it opens the shelf map — the square of shelf dots with the one you are on lit, a **search field** (everything in Bureau from a desk, this drawer and everything under it from inside one), and four icon buttons: the lock, grid-or-list, one of anything (a spiral), this board's editor (a brush), and the app's settings (a gear, on a desk only). | inside `#app` |
 | **The carcass** | The wood the app is made of. Everything above the board is one piece of it — the notch strip, the bar and the reveal under it — and along the bottom of a phone is the desk's own drawer front. Tap its **Home Knob** to come out a level; pull it a little for the Void Drawer and the whole way for the type picker. On a Mac the same knob floats in the bottom right corner. Its shape, size, texture and colour are rows in that desk's editor. | inside `#app` |
 | **The camera** | Not a layer at all: the board itself, slid and scaled until one object fills the screen with its neighbours still around it. What an object opens onto by default. | `#drawergrid`, one transform |
 | **Reading** | An object's body as paper — a spread, a page, or a column. Over a dimmed desk. | `#sheetHost`, rendered separately from `render()` |
@@ -622,12 +622,29 @@ magnified the tile lands the words at a reading size: the object is magnified
 and only the type is not. Anything that is not words is left alone, because an
 instrument, a picture or a control is already the whole of itself.
 
+Once you are there it carries two controls, counter-scaled so they stay button
+sized: **expand**, which hands the object to the reading surface full bleed —
+the camera keeps an object at its own size, which is the point of it and also
+its one limit — and a **gear** to its editor. **Holding** what you are reading
+turns it into the two fields the board has always had, at the size you are
+reading at. What the rest of the desk does while you are in is a choice: fade
+it, darken the room, or leave it alone (`S.look.camdim`). Pinching comes back
+out and tracks the fingers; the two-finger swipe is not offered there at all.
+
 Nothing may be dragged through the camera. `cellW()` measures the grid's own
 bounding rect, so a scaled rect gives a cell four times too wide; a press inside
 a zoomed grid that is not inside the reading face is refused. Pressing off the
 tile, or Escape, backs it off. The full reading surface is still there for
 sitting with a book — the camera is for looking into something, the surface for
 staying in it. See decision 187.
+
+**A container's board is its own tile, four cells to a cell.** A 2×2 drawer
+opens onto 8×8, a 1×1 onto 4×4, a 2×4 onto 8×16 — so how big a drawer is on the
+desk is how much it holds, which is what the size you chose ought to mean. It is
+read off the **desk** box on both devices, because a container's inside is a
+coordinate space and a coordinate space may not change shape between a phone and
+a Mac. The desk itself is not a tile and keeps its nine shelves; every other
+board derives how many screenfuls it is rather than storing it. See decision 188.
 
 **Navigation is the desks, and nothing else.** There are no tabs and no shelf.
 `S.desks` is the row of desks, walked with a sideways swipe and laid out all at
@@ -694,7 +711,10 @@ decision 51.
 | Pull up the rail along the bottom | A drawer front follows your finger; carry it a quarter of the screen and it opens the type picker, with nowhere in mind. A phone |
 | Tap the knob on that rail | Out one level: out of a drawer to its desk, from a desk to home |
 | Hold a tile, then move | The menu goes and the tile is in your hand, iOS-style — and the board unlocks |
-| Tap an object set to read | The board zooms into it where it sits, neighbours and all, and it becomes readable in place. Press off it, or Escape, to come back out. Decision 187 |
+| Tap an object set to read | The board zooms into it where it sits, neighbours and all, and it becomes readable in place. Press off it, or Escape, to come back out; pinch and it tracks your fingers on the way. Decisions 187 and 188 |
+| Hold what you are reading, zoomed | Its name and its words become fields where they are, at the size you are reading at. Decision 188 |
+| Hold a record, zoomed | A hand on the disc: turning it moves the needle, so the same drag is slower, faster and backwards. Decision 188 |
+| Type in the bar's search | The board becomes the matches — everything in Bureau from a desk, this drawer and everything under it from inside one. Escape empties it. Decision 188 |
 | Drag across a spread | Turns the page, on the reading surface and under the camera alike. Damped, because a book is hinged at the spine; committed on release, never mid-drag. Decision 186 |
 | Tap a page while reading | The paper becomes the field — the body, in the page's own face. Decision 82 |
 | Tap the words on anything | They become a field — on an **unlocked** board only. A tile, a list band, a line on a checklist front |

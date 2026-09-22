@@ -156,6 +156,32 @@ function shelvesOf(cid){
   const o = byId(id), s = o && o.shelves;
   return {w:clamp((s&&s.w)||1, 1, SHELVES), h:clamp((s&&s.h)||1, 1, SHELVES)};
 }
+/* ---- a drawer is as big inside as it is outside -----------------------
+   **A container's board is its own tile, four cells to a cell.** A 2×2 drawer
+   opens onto 8×8, a 1×1 onto 4×4, a 2×4 onto 8×16. Before this every drawer
+   opened onto exactly one shelf whatever size it was on the desk, so a drawer
+   you had deliberately made small held precisely as much as one you had made
+   big, and the size you chose said nothing at all.
+
+   It is read off the **desk** box on both devices, never the one for the
+   device being drawn. A container's inside is a coordinate space and a
+   coordinate space may not change shape between a phone and a Mac — the boxes
+   in it are the same numbers on both, and halving the container (which is what
+   `sizeOfKind()` does to put it on a phone) would otherwise halve the grid
+   those numbers are measured against. The desk box is the one both devices can
+   agree on.
+
+   The desk itself is not a tile and keeps its nine shelves. */
+const INNER = 4;
+function innerOf(cid){
+  const id = cid==null ? hereId() : cid;
+  if(id===ROOT) return null;
+  const o = byId(id); if(!o) return null;
+  const b = o.desk;
+  if(!b || !b.w || !b.h) return null;        // never placed: fall back to a shelf
+  return {cols: Math.max(2, Math.round(b.w*INNER)),
+          rows: Math.max(2, Math.round(b.h*INNER))};
+}
 /* The geometry of one board. `cid` says which; left out it is the one on the
    screen. The row height is derived from the measured width rather than read
    out of CELL, so a board with a different column count answers correctly even
@@ -172,11 +198,21 @@ function shelvesOf(cid){
    not over this board's — that is what makes a drawer's eight columns the same
    size as the desk's, rather than three times as big. */
 const gridOf = (device, cid)=>{
-  const d=device||dev(), shelfW=colsOf(cid, d), sh=shelvesOf(cid);
+  const d=device||dev(), shelfW=colsOf(cid, d);
   const m=MEASURE[d];
   const rowh = m.w ? m.w/(d==='phone' ? shelfW : GRID.desk.cols) : CELL[d];
   const shelfH = shelfRows(d, cid);
-  return {cols: shelfW*sh.w, rows: shelfH*sh.h,
+  /* A container sizes its own board from its tile; the desk keeps its shelves.
+     The shelves a container has are then **derived** from that board rather
+     than stored — a phone windows whatever the space turns out to be, so a
+     drawer big enough to need two screens gets two and nobody had to say so. */
+  const inner = innerOf(cid);
+  const sh = inner
+    ? {w: Math.max(1, Math.ceil(inner.cols/Math.max(1, shelfW))),
+       h: Math.max(1, Math.ceil(inner.rows/Math.max(1, shelfH||1)))}
+    : shelvesOf(cid);
+  return {cols: inner ? inner.cols : shelfW*sh.w,
+          rows: inner ? inner.rows : shelfH*sh.h,
           shelfW, shelfH, shelves:sh, gap:GRID[d].gap, rowh};
 };
 
@@ -488,9 +524,20 @@ function ensureBox(o, device, parentId){
      Mac. Boards differ in columns (decisions 48 and 60), so a ten-wide box put
      on an eight-column phone board is one freeSpot() would look for for ever
      and never find. */
+  /* **A shelf, or the board, whichever is smaller.** A phone used to clamp to
+     the shelf alone, on the reasonable argument that a shelf is a screen and
+     nothing may be wider than one — and that was the same number as the board
+     until a container's board became its own tile times four (decision 188).
+     A 1×1 drawer is four columns now, and a note's phone size is a shelf
+     wide, so the clamp let a ten-wide box onto a four-column board: `anySpot`
+     then looked for a place for it for ever, found none, and the object was
+     drawn nowhere at all. Take the min of both and it cannot happen either
+     way round. */
   const gg=gridOf(dv, home), one = dv==='phone';
-  const w=Math.min(b && b.w ? b.w : dw, one ? gg.shelfW : gg.cols);
-  const h=Math.min((b && b.h) ? b.h : dh, one ? gg.shelfH : gg.rows);
+  const capW = one ? Math.min(gg.shelfW, gg.cols) : gg.cols;
+  const capH = one ? Math.min(gg.shelfH, gg.rows) : gg.rows;
+  const w=Math.min(b && b.w ? b.w : dw, capW);
+  const h=Math.min((b && b.h) ? b.h : dh, capH);
   /* `anySpot` rather than `freeSpot`: an object being placed for the first
      time already exists, so it has to end up somewhere even on a full board.
      See the note there. */
@@ -507,8 +554,14 @@ function ensureBox(o, device, parentId){
    and scrolled rather than windowed. These two are what every renderer and
    every measurement uses; `g.cols`/`g.rows` are for the model. Getting the
    wrong one is the single easiest mistake in this file to make. */
-const drawCols = (g, device)=> (device||dev())==='phone' ? g.shelfW : g.cols;
-const drawRows = (g, device)=> (device||dev())==='phone' ? g.shelfH : g.rows;
+/* A phone draws one shelf — **or the whole board, if it is smaller than one**,
+   which a drawer's own grid very often is. Drawing a shelf's worth of columns
+   round a four-column board would stretch four tiles across ten cells' worth
+   of screen and put every one of them somewhere its box does not say. */
+const drawCols = (g, device)=> (device||dev())==='phone'
+  ? Math.min(g.shelfW, g.cols) : g.cols;
+const drawRows = (g, device)=> (device||dev())==='phone'
+  ? Math.min(g.shelfH, g.rows) : g.rows;
 
 /* Width of one grid column in px, measured rather than assumed — the grid is
    fluid so this changes with the window and the rail. It divides by the
@@ -521,7 +574,7 @@ function cellW(grid,g){
 }
 
 export { GRID, PHONE_GRIDS, PHONE_MAX_H, PHONE_MAX_NEW, CELL, COLW, MEASURE, sideways,
-  SHELVES, DESK_SHELF_COLS, colsOf, gridKeyOf, shelvesOf,
+  SHELVES, DESK_SHELF_COLS, INNER, colsOf, gridKeyOf, shelvesOf, innerOf,
   shelfRows, shelfOfBox, shelfAt, setShelf, shelfOrigin, SHELF, fitSpot,
   gridOf, drawCols, drawRows, lay, overlaps, boxOk, freeSpot, anySpot, roomFor, gridRows, sizeOfKind, toPhoneSize,
   ensureBox, keepSize, cellW, PLACED };

@@ -1033,9 +1033,13 @@ const CHROME = process.env.BUREAU_CHROME;
   // their relative positions
   const groupMove = await page.evaluate(async () => {
     const S = BUREAU.state;
-    S.sel = ['d_open', 'd_keep']; BUREAU.render();
+    /* The bottom row of the rack, which has clear board below it: the seed is
+       a denser desk since decision 188 and a six-cell drag out of the middle
+       of it lands on another drawer, which `boxOk()` rightly refuses. What is
+       being asked is whether a selection travels together, not how far. */
+    S.sel = ['d_write', 'd_kitch']; BUREAU.render();
     await new Promise(r2 => setTimeout(r2, 150));
-    const t = document.querySelector('.grid .drawer[data-drawer="d_open"]');
+    const t = document.querySelector('.grid .drawer[data-drawer="d_write"]');
     const grid = document.querySelector('#drawergrid');
     const cell = parseFloat(getComputedStyle(grid).getPropertyValue('--rowh'));
     const r = t.getBoundingClientRect();
@@ -1043,16 +1047,16 @@ const CHROME = process.env.BUREAU_CHROME;
     const ev = (type, cx, cy) => t.dispatchEvent(new PointerEvent(type,
       { bubbles: true, clientX: cx, clientY: cy, pointerId: 7, isPrimary: true }));
     const dv = S.device;
-    const before = { open: { ...S.objects.find(o => o.id === 'd_open')[dv] },
-                     keep: { ...S.objects.find(o => o.id === 'd_keep')[dv] } };
+    const before = { open: { ...S.objects.find(o => o.id === 'd_write')[dv] },
+                     keep: { ...S.objects.find(o => o.id === 'd_kitch')[dv] } };
     ev('pointerdown', x, y);
     await new Promise(r2 => setTimeout(r2, 320));     // the hold arms the drag
     ev('pointermove', x, y + cell * 6);
     ev('pointermove', x, y + cell * 6);
     ev('pointerup', x, y + cell * 6);
     await new Promise(r2 => setTimeout(r2, 150));
-    const after = { open: S.objects.find(o => o.id === 'd_open')[dv],
-                    keep: S.objects.find(o => o.id === 'd_keep')[dv] };
+    const after = { open: S.objects.find(o => o.id === 'd_write')[dv],
+                    keep: S.objects.find(o => o.id === 'd_kitch')[dv] };
     S.sel = []; BUREAU.render();
     return after.open.y === before.open.y + 6 && after.keep.y === before.keep.y + 6
         && after.open.x === before.open.x && after.keep.x === before.keep.x;
@@ -2007,10 +2011,15 @@ const CHROME = process.env.BUREAU_CHROME;
              offTheDesk: !all.some(o => o.parent === 'root'),
              inTwoDrawers: homes.size === 2
                && [...homes].every(id => ['d_alldr','d_allob'].includes(id)),
-             /* Nine shelves apiece, and no box until the board they are on has
-                been measured: a seed cannot know how tall a shelf is. */
-             roomForThem: ['d_alldr','d_allob'].every(id =>
-               JSON.stringify(BUREAU.shelvesOf(id)) === JSON.stringify({w:3,h:3})),
+             /* Room for one of every type. Since decision 188 a container's
+                board is its own tile times four, so this is a question about
+                how big the *drawer* is rather than about a `shelves` it used
+                to carry — six cells square makes twenty-four, which is five
+                hundred and seventy-six cells against the six hundred-odd one
+                of everything needs. */
+             roomForThem: ['d_alldr','d_allob'].every(id => {
+               const d = BUREAU.state.objects.find(o=>o.id===id);
+               return d && d.desk.w >= 6 && d.desk.h >= 6; }),
              knobIsMedium: BUREAU.K.drawer.knobsize === undefined
                && getComputedStyle(document.querySelector('.grid .dtile .pull')).width !== '' };
   });
@@ -3498,11 +3507,20 @@ const CHROME = process.env.BUREAU_CHROME;
       Number.isFinite(px(t)) && Math.abs(px(t)) <= 1);
     out.andNothingElseCarriesTheNumbers = ts.every(t =>
       !!t.style.getPropertyValue('--px') === !!t.querySelector(':scope > .dside'));
-    // The sign is the whole cue: left of the middle is negative, right positive.
-    const lefts = flanked.filter(t => t.getBoundingClientRect().left < innerWidth/2 - 60);
-    const rights = flanked.filter(t => t.getBoundingClientRect().right > innerWidth/2 + 60);
-    out.leftOfCentreIsNegative = lefts.length > 0 && lefts.every(t => px(t) < 0);
-    out.rightOfCentreIsPositive = rights.length > 0 && rights.every(t => px(t) > 0);
+    /* The sign is the whole cue: left of the middle is negative, right
+       positive. Asked of **each tile against the board's own middle** rather
+       than of two buckets carved out of the screen with a dead zone — the
+       buckets depended on what happened to be on the board when this ran, and
+       a desk whose tiles all sat one side of the line emptied one of them and
+       failed on `length > 0` rather than on anything about the cue. */
+    const mid = document.querySelector('#drawergrid').getBoundingClientRect();
+    const side = t => { const r = t.getBoundingClientRect();
+      return (r.left + r.width/2) - (mid.left + mid.width/2); };
+    const off = flanked.filter(t => Math.abs(side(t)) > 20);
+    out.leftOfCentreIsNegative = off.length > 0
+      && off.filter(t => side(t) < 0).every(t => px(t) < 0);
+    out.rightOfCentreIsPositive = off.length > 0
+      && off.filter(t => side(t) > 0).every(t => px(t) > 0);
 
     // Only things with thickness carry a flank, and a spine's is its own curve.
     out.furnitureHasAFlank = flanked.length > 0
@@ -4058,7 +4076,11 @@ const CHROME = process.env.BUREAU_CHROME;
        board is spent coming out of it, the way a press past a panel is spent
        putting it down. A block that left it on would have every click after it
        swallowed — which is how this was found. */
-    document.querySelector('#app .scroll').click(); await nap(450);
+    /* Long enough for the way *out* to finish: since decision 188 it eases back
+       rather than snapping, and the transform is only cleared once it has
+       arrived (ZOOM_MS and a little). `!S.zoomOn` is true immediately — it is
+       the tidying up that takes the time. */
+    document.querySelector('#app .scroll').click(); await nap(820);
     out.andPressingOffItComesOut = !S.zoomOn
       && getComputedStyle(document.querySelector('#drawergrid')).transform === 'none';
 
@@ -4881,7 +4903,15 @@ const CHROME = process.env.BUREAU_CHROME;
     out.keptWords = /A heading/.test(printed) && /affords pulling/.test(printed)
                  && /one/.test(printed) && /a link/.test(printed);
     // …and the line structure survives, because a note has paragraphs in it
-    out.keptLines = getComputedStyle(t).whiteSpace === 'pre-line' && /\n/.test(printed);
+    /* `pre-wrap`, not `pre-line`, since decision 188: `pre-line` collapses a
+       *run* of white space and a newline is white space, so three Returns came
+       out as one break however faithfully plain() had kept them. */
+    out.keptLines = getComputedStyle(t).whiteSpace === 'pre-wrap' && /\n/.test(printed);
+    // …and a run of blank rows is kept as a run
+    n.body = 'One.\n\n\n\nFour rows down.';
+    BUREAU.render(); await nap(120);
+    const t2 = document.querySelector(`.grid .drawer[data-row="${n.id}"] .tiletext`);
+    out.keptBlankRuns = !!t2 && /\n\s*\n\s*\n/.test(t2.textContent);
     // a hyphenated word keeps its hyphen — the old strip() replaced every one
     n.body = 'twenty-one of them'; BUREAU.render(); await nap(120);
     out.hyphenSurvives = /twenty-one/.test(
@@ -8121,7 +8151,7 @@ const CHROME = process.env.BUREAU_CHROME;
       return JSON.stringify(BUREAU.state.objects.find(x => x.id === 'z2').desk) === box;
     })();
     // pressing off it comes back out
-    document.querySelector('#app .scroll').click(); await nap(500);
+    document.querySelector('#app .scroll').click(); await nap(820);
     out.andPressingOffItComesBackOut = !S.zoomOn;
 
     /* ---- a book under the camera turns by being pushed — 186 + 187 ----- */
@@ -8166,6 +8196,162 @@ const CHROME = process.env.BUREAU_CHROME;
     return out;
   });
 
+  /* ---- living in the camera, and a drawer's own board — decision 188 -----
+     The second pass over the camera (it moves, it stays crisp, it carries two
+     controls and you can write in it), plus the three structural things that
+     came with it: a container's board is its own tile, there is a search in
+     the bar, and the things that were looked at properly. */
+  const camLife = await page.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const out = {}, S = BUREAU.state;
+    const was = S.objects.slice();
+    S.objects.length = 0; S.look.locked = false; S.sel = []; S.q = '';
+    const mk = o => { S.objects.push(Object.assign({ parent:'root', title:'', body:'',
+      tags:[], ord:0, created:'2026-09-01' }, o)); return o.id; };
+
+    /* ---- a drawer is as big inside as it is outside --------------------- */
+    mk({ id:'b1', kind:'drawer', title:'One',  desk:{x:2,y:18,w:1,h:1} });
+    mk({ id:'b2', kind:'drawer', title:'Two',  desk:{x:4,y:18,w:2,h:2} });
+    mk({ id:'b3', kind:'drawer', title:'Tall', desk:{x:7,y:18,w:2,h:4} });
+    BUREAU.render(); await nap(200);
+    const board = async id => {
+      S.view='drawer'; S.drawerId=id; BUREAU.render(); await nap(220);
+      const g = document.querySelector('#drawergrid');
+      return { cols:+g.style.getPropertyValue('--cols'),
+               rows:(getComputedStyle(g).gridTemplateRows||'').split(' ').filter(Boolean).length,
+               cell:+(g.getBoundingClientRect().width/+g.style.getPropertyValue('--cols')).toFixed(1) };
+    };
+    const one = await board('b1'), two = await board('b2'), tall = await board('b3');
+    out.fourCellsToACell =
+      one.cols===4  && one.rows===4 &&
+      two.cols===8  && two.rows===8 &&
+      tall.cols===8 && tall.rows===16;
+    // …and the cell is the same size in all of them, which is what makes it
+    // a bigger drawer rather than a bigger picture of one
+    out.andTheCellDoesNotChange =
+      Math.abs(one.cell - two.cell) < .6 && Math.abs(two.cell - tall.cell) < .6;
+    S.view='desk'; S.drawerId=null; BUREAU.render(); await nap(150);
+
+    /* ---- the search in the bar ------------------------------------------ */
+    mk({ id:'s1', kind:'note', title:'Soup recipe', body:'leeks', attrs:['text'],
+         parent:'b2', desk:{x:1,y:1,w:3,h:2} });
+    mk({ id:'s2', kind:'note', title:'Nothing like it', body:'A soup of a book.',
+         attrs:['text'], desk:{x:11,y:18,w:3,h:2} });
+    BUREAU.render(); await nap(180);
+    const bar = document.querySelector('.gridbar');
+    out.searchIsInTheBar = !!bar.querySelector('.barsearch .searchin');
+    out.andSitsBetweenTheDotsAndTheTools =
+      [...bar.children].map(e=>e.className.split(' ')[0]).join('>') === 'where>barsearch>bartools';
+    const hits = () => [...document.querySelectorAll('.listgrid [data-row],.listgrid [data-drawer]')]
+      .map(e => e.dataset.row || e.dataset.drawer).sort();
+    S.q = 'soup'; BUREAU.render(); await nap(180);
+    // a desk looks through everything, wherever it lives
+    out.aDeskLooksThroughEverything = hits().join(',') === 's1,s2';
+    // a title match outranks a body match
+    out.andRanksTheNameFirst =
+      (document.querySelector('.listgrid [data-row]')||{}).dataset === undefined
+      || document.querySelector('.listgrid [data-row]').dataset.row === 's1';
+    S.q=''; S.view='drawer'; S.drawerId='b2'; BUREAU.render(); await nap(150);
+    S.q='soup'; BUREAU.render(); await nap(180);
+    out.aDrawerLooksThroughItself = hits().join(',') === 's1';
+    S.q=''; S.view='desk'; S.drawerId=null; BUREAU.render(); await nap(150);
+
+    /* ---- the camera, second pass ---------------------------------------- */
+    const body = 'One.\n\n\n\nFour rows down.\n\n'
+      + Array.from({length:9},(_,i)=>`Paragraph ${i+1}.`).join('\n\n');
+    mk({ id:'z', kind:'note', title:'Keeper', body, attrs:['text'], read:'scroll',
+         desk:{x:15,y:18,w:3,h:4} });
+    BUREAU.render(); await nap(180);
+    const grid = () => document.querySelector('#drawergrid');
+    const kOf = t => t==='none' ? 1 : +t.split('(')[1].split(',')[0];
+    /* A gesture in an earlier block arms `suppressClick`, and that flag is
+       spent by the **next** click it sees — which in a test is whatever is
+       dispatched next, three hundred lines later. Clear it, and press again if
+       the first press was the one that got swallowed. */
+    if(BUREAU.gestureFlags) BUREAU.gestureFlags.suppressClick = false;
+    S.zoomOn = null;
+    document.querySelector('[data-row="z"]').click();
+    await nap(70);
+    if(!S.zoomOn){ document.querySelector('[data-row="z"]').click(); await nap(70); }
+    const early = kOf(getComputedStyle(grid()).transform);
+    await nap(720);
+    const settled = kOf(getComputedStyle(grid()).transform);
+    // it *moves*: part way there a frame after the tap, all the way after
+    out.theZoomIsSmooth = early > 1.02 && early < settled - 0.2;
+    // …and lets go of the layer when it arrives, or the words are a picture
+    out.andIsNotPromotedAtRest = getComputedStyle(grid()).willChange !== 'transform';
+    out.andWearsNoRing = (() => { const t = document.querySelector('.oncamera');
+      return !!t && getComputedStyle(t).outlineStyle === 'none'; })();
+    out.itCarriesTwoControls =
+      [...document.querySelectorAll('.camtools .camtool')].map(e=>e.dataset.act).join(',')
+      === 'camfull,camset';
+    // …which are divs, because a button inside a tile's own button unnests
+    out.andTheyAreNotButtons =
+      [...document.querySelectorAll('.camtools .camtool')]
+        .every(e => e.tagName.toLowerCase() === 'div');
+    out.blankRowsSurvive = document.querySelectorAll('.zoomread .vspace').length >= 2;
+    // what the desk does round it is a choice
+    out.dimIsAChoice = (() => {
+      const sc = document.querySelector('#app .scroll');
+      const had = [...sc.classList].filter(c=>c.startsWith('cam-')).join();
+      S.look.camdim = 'dark'; BUREAU.render();
+      const now = [...document.querySelector('#app .scroll').classList]
+        .filter(c=>c.startsWith('cam-')).join();
+      S.look.camdim = 'fade'; BUREAU.render();
+      return had === 'cam-fade' && now === 'cam-dark'; })();
+    await nap(120);
+    // holding it writes in it, at the size you are reading at
+    S.editId = 'z'; BUREAU.render(); await nap(200);
+    out.youCanWriteInIt = !!document.querySelector('.zoomread .camwrite')
+      && !!document.querySelector('input.zoomhead');
+    S.editId = null; BUREAU.render(); await nap(150);
+    // and the way out moves too, from where the camera was
+    document.querySelector('#app .scroll').click();
+    await nap(70);
+    out.andTheWayOutMovesToo = kOf(getComputedStyle(grid()).transform) > 1.2;
+    await nap(760);
+    out.andEndsAtRest = !S.zoomOn && getComputedStyle(grid()).transform === 'none';
+
+    /* ---- and the things that were looked at properly -------------------- */
+    mk({ id:'let', kind:'letter', title:'To Marianne', body:'Dear —', attrs:['text'],
+         seal:'crest', desk:{x:2,y:24,w:4,h:5} });
+    mk({ id:'cnt', kind:'counter', title:'Days', count:128, desk:{x:7,y:24,w:2,h:2} });
+    mk({ id:'wax', kind:'candle', burn:15,  desk:{x:10,y:24,w:2,h:3} });
+    mk({ id:'wax2',kind:'candle', burn:360, desk:{x:13,y:24,w:2,h:3} });
+    BUREAU.render(); await nap(220);
+    // a letter is an envelope: a flap, a seal on it, and no body on the face
+    out.aLetterIsAnEnvelope = (() => {
+      const t = document.querySelector('[data-row="let"]');
+      const panel = t && t.querySelector('.dpanel');
+      const bdy = t && t.querySelector('.dbody');
+      return !!panel && /svg/.test(getComputedStyle(panel).backgroundImage)
+        && !!t.querySelector('.wseal')
+        && (!bdy || getComputedStyle(bdy).display === 'none'); })();
+    // a counter is its number, and the number fills the tile
+    out.aCounterIsItsNumber = (() => {
+      const t = document.querySelector('[data-row="cnt"]'),
+            n = t && t.querySelector('.cntnum'),
+            l = t && t.querySelector('.cntlabel');
+      if(!t || !n) return false;
+      const a = n.getBoundingClientRect(), r = t.getBoundingClientRect();
+      /* Measured across, not down: the **width** is what binds on a counter of
+         more than one digit, and a three-digit number in a square tile can
+         never be six tenths of its height however large the type is. */
+      return (!l || getComputedStyle(l).display === 'none')
+        && a.width > r.width*0.6 && a.width <= r.width + 1; })();
+    // a candle is as long as it burns for
+    out.aCandleIsAsLongAsItBurns = (() => {
+      const h = id => { const v = (document.querySelector(`[data-row="${id}"] svg`)||{})
+        .getAttribute ? document.querySelector(`[data-row="${id}"] svg`).getAttribute('viewBox') : null;
+        return v ? +v.split(' ')[3] : null; };
+      const short = h('wax'), long = h('wax2');
+      return short && long && long > short*1.4; })();
+
+    S.objects.length = 0; was.forEach(o => S.objects.push(o));
+    S.undo = []; S.redo = []; S.sel = []; S.q = ''; BUREAU.render();
+    return out;
+  });
+
   console.log(JSON.stringify({
     errors: errs, manifestOk, swReady, survived, styleSurvived, slotColours,
     newObjectSeen, inlineEdit, sortDefaults, taskLook,
@@ -8187,7 +8373,7 @@ const CHROME = process.env.BUREAU_CHROME;
     paletteKeys, editorKeys, pickerLeads, rollupsEverywhere, soundAndVision, keyboardBoard,
     ranking, urgency, reachable, pensAndCorners, lyingBooks, plansWork, stockPlans, livedWith, listIsOneShelf, repeating, oneLock, scheduling, ownColour, addBox, calFaces,
     lockedBoard, freeTraits, pageWrites, tickBoxes, readerFits, categories,
-    specimenBook, deskObjects, thisPass,
+    specimenBook, deskObjects, camLife, thisPass,
     dropsIn, keyframesRegistered, aesthetics, slotScoping, objectsDressed, grainSlots, tagged, drawnAesthetic, deeper, lookStage, statusBar, bindings, panelling, theSpray, tappingIsQuiet, decorations, pinboard, gravity
   }, null, 2));
   await browser.close();

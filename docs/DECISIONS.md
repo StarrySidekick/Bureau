@@ -8249,3 +8249,111 @@ reading surface — and only the second can be full-screen, have its own bar or
 be written in. The honest split is that the camera is for looking into
 something and the surface is for sitting with it, and a 1×1 note under the
 camera is still a 1×1 note, which is a postage stamp however close you get.
+
+---
+
+## 188 · Living in the camera
+
+*2026-09-21*
+
+Decision 187 made the camera what a tap means. This is what it took to make it
+somewhere you can actually work, plus the things a day with it turned up.
+
+**It moves, and it stays crisp.** The zoom in was a snap and the zoom out was
+worse. Two causes, and both are the same shape: a CSS transition needs a
+*previous* value to move from, and the camera never had one. Going in, the
+class that carries the transition went on in the same frame the transform was
+first written; coming out, `render()` had just replaced `#app`, so the element
+being asked to animate had never carried a transform at all. Both ends now put
+the grid where it is *coming from* with the transition suppressed, flush the
+layout so the engine holds that value, and write the target on the next line.
+`CAM` exists for the second of those: it is the other end of a journey the DOM
+no longer remembers. And `will-change:transform` is worn **only while the move
+is running** — a promoted layer is rasterised once and then stretched, which is
+what "the text looks pixelated" was.
+
+**The pinch comes back out of it, and tracks.** Pinching goes up a level
+(decision 109); inside the camera the nearer thing to be inside is the camera,
+so it backs out of that instead — and it scrubs, the way the dive does, rather
+than waiting for you to let go. `camScrub(t)` interpolates between where the
+camera is and rest; past 0.42 of the way it finishes, short of it it falls back
+in.
+
+**The two-finger swipe is not offered while you are in.** It walks the shelves
+and the desks, and under the camera it was competing with the finger that
+pushes the words. Pinching is the way out.
+
+**Two controls, counter-scaled.** The whole screen (`camfull`) and what this
+thing is (`camset`), written at 1/k so they land at button size whatever the
+object is magnified by. The first hands the object to the reading surface
+**full bleed** — the camera keeps an object at its own size, which is the point
+of it and also its one limit, so "bigger than the tile" has to be somewhere
+else. They are `div role="button"` and not `<button>`: a tile is itself a
+button, and a button inside a button is a parse error the browser fixes by
+unnesting — silently, which is why they did not appear at all the first time.
+
+**Holding what you are reading writes in it.** `S.editId` was already the
+board's in-place edit — an `<input>` for the name, a `<textarea>` for the body,
+both carrying `data-inline` so one handler in wire.js writes the field as you
+type. Under the camera it is the same two fields at the size you are reading
+at. Nothing new was needed but a way to reach it, and a hold longer than the
+board's own (520ms) because the finger is resting on words it may be about to
+push.
+
+**What the rest of the desk does is a choice.** Fade it, darken the room, or
+leave it alone — `S.look.camdim`, one class on the scroller. Leaving it alone
+is the most honest reading of a camera and is why it is offered at all.
+
+**A phone takes the window off while the camera is in.** It draws one shelf,
+which is right for a board you are standing on and wrong for one you are
+looking into: there were neighbours to the left and right and a hard edge above
+and below, where the shelf simply stopped. The whole board is drawn for as long
+as you are in.
+
+**An instrument zooms in where it sits**, like everything else; the sheet it
+used to open is gone and its settings lead its own editor. And a **record**,
+zoomed, is a record you can put a hand on: dragging turns it and moves the
+needle with it. That is the honest DJ gesture for an `<audio>` element — you
+cannot play one backwards, but you can move the needle, which is what a hand on
+a disc actually does. One turn is 1.8 seconds of audio, so the same drag gives
+you slower, faster and backwards. A true reverse *playback* wants the whole
+file in an AudioBuffer and is a different feature.
+
+**A drawer is as big inside as it is outside.** Four cells to a cell: a 2×2
+drawer opens onto 8×8, a 1×1 onto 4×4, a 2×4 onto 8×16. Every drawer used to
+open onto exactly one shelf whatever size it was, so a drawer you had
+deliberately made small held precisely as much as one you had made big and the
+size you chose said nothing at all. It is read off the **desk** box on both
+devices: a container's inside is a coordinate space, and a coordinate space may
+not change shape between a phone and a Mac. A board can now get *smaller*, so
+`gridOfContainer()` re-places anything left off the end of one — keeping the
+size and giving up the place, which is the licence `ensureBox()` already takes.
+
+**A search in the bar, between the dots and the tools.** The dots say where you
+are and the tools say what you can do; finding something is the question in
+between. What it looks through is the board you are on — everything in Bureau
+from a desk, this drawer and everything under it from inside one — so one field
+answers "where is it" and "what have I got in here" with no mode. `S.q` is not
+saved: a search is where you are looking, not something the desk is.
+
+**And a handful of things looked at properly.** A **letter** is an envelope,
+closed, with a seal on the flap and a name where an address goes — the flat
+creased sheet was the letter *after* you had opened it, and pressing it takes
+it out, which is what the camera already did. A **counter** is its number and
+nothing else, filling the tile, sized by how many digits there are. A **candle**
+is as long as it burns for, rather than a fraction of the same taper whatever
+the timer says. The **record's** conic gradient closes on the colour it started
+with, because 0% and 100% are the same angle on a cone and a sweep that does
+not close meets itself as a hard line. The **jar's** label is a fifth shorter
+and shaded across so it reads as paper wrapped round glass. The **nameplate**
+is a tenth narrower. A **die** tumbles over its neighbours rather than under
+them. A note keeps **every blank row** it was written with, on the tile and in
+the page. A note's body **scrolls in its own tile** on the board, chaining to
+the board when it runs out. And the **palette** lost its wood grain and went
+back to paper: a menu is a thing you read, and the figure was competing with
+the words.
+
+*Against:* the camera is now a place with furniture in it, which is the thing
+decision 187 was pleased not to be. Two buttons and an edit mode is the most it
+should ever carry; the moment it wants a third the answer is the reading
+surface, which is what `camfull` is for.
