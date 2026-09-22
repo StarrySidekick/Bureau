@@ -523,6 +523,19 @@ function create(kind, patch){
     ord:Math.min(0,...S.objects.map(o=>o.ord||0))-1, created:T
   }, patch||{});
   if(kindHas(kind,'container')){
+    /* **A container states its size on both boards the moment it exists**,
+       even though only one of them is being looked at. Its own board is its
+       tile times four (decision 188) and that is read off the desk box — so a
+       drawer made on a phone, which only ever got a `phone` box, had no size
+       for the desk to state and opened onto a single shelf however big you
+       made it. A box carrying a **size and no position** is exactly what
+       `ensureBox()` knows how to place, so the other board fills itself in the
+       first time it is drawn. Anything the caller passed wins. */
+    ['desk','phone'].forEach(dv=>{
+      if(o[dv] && o[dv].w) return;
+      const [w,h] = sizeOfKind(kind, dv, o.parent);
+      o[dv] = Object.assign({w, h}, o[dv]||{});
+    });
     o.board = o.board || randomBoard();
     o.c = o.c || randomFront();
     const sd=styleDefaults();

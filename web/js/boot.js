@@ -9,7 +9,7 @@ import { S, KINDS, SHAPES, shapeChoices, SORTS, childrenOf, container, relate, d
   isContainer, faceOf, PRIMARY, isPrimary, inFamily, barPct, marginOf, marginPlus,
   prioOf, repeatOf, repeatSaid, nextRepeat, boardLocked, BINDINGS, bindingOf, PANELS, panelOf,
   isHeld, heldObjects, tiltMode, READS, goalStanding } from './model.js';
-import { shelfRows, shelvesOf, shelfAt, setShelf, freeSpot, anySpot, roomFor, boxOk } from './grid.js';
+import { shelfRows, shelvesOf, shelfAt, setShelf, freeSpot, anySpot, roomFor, boxOk, innerOf, colsOf } from './grid.js';
 import { create, setPin, togglePin, del, delMany, delDrawer, undo, redo, toggleDone, spawnNext, setGridSize,
   CONTROLS, ctlSaid, ctlIsOn, ctlPress,
   holdIt, unholdIt , toast } from './mutations.js';
@@ -198,6 +198,11 @@ window.BUREAU = {
      after layout — the three seams a performance pass needs to time separately,
      because "the swipe feels slow" is three different costs in a trench coat. */
   step: stepDrawer, viewHTML, sizeGrid,
+  /* A container's board is its own tile times four (decision 188), and a test
+     has to be able to ask the reader rather than re-derive the arithmetic. */
+  innerOf,
+  // how wide one shelf is on this board — the thing the per-board grain decides
+  shelfW: cid => colsOf(cid, 'phone'),
   /* Putting the shelf somewhere by hand, without a phone to tilt: the smoke
      test drives this, and so does anyone tuning the throw. −1 to 1 on each
      axis. See decision 108. */

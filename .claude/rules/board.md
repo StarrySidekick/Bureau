@@ -370,3 +370,20 @@ ranking a title match first. `S.q` is **not saved**: a search is where you are
 looking, not something the desk is. While it has something in it the board is
 the matches, as a list, because the answers come from all over the desk and
 putting them on a grid would invent coordinates that mean nothing.
+
+
+**A box with a size and no position is not a placed box.** `ensureBox()` has
+always drawn that line at `b.w && b.x`, and everything else has to draw it in
+the same place. Since decision 189 a container is **born** with its size on
+both boards — that is what lets a drawer made on a phone have a desk box for
+its own grid to be read off — so `o[dv]` is truthy from the moment it exists,
+and anything testing `o[dv]` alone for "has it been placed" is now wrong.
+`placeAtPending()` was, and threw away the size you had just dragged out.
+
+**The per-board grain is the desk's, not a container's.** Decision 60 let each
+board choose how fine its grid was and decision 188 derives a container's from
+its tile; both cannot set the same number. The setting still decides the desk's
+columns and how wide a **shelf** is — which is how much of a big drawer you see
+at once — and a container's editor carries *how big it is* instead. That field
+has to exist: capacity is read off the desk box, and a phone can only drag the
+phone one.

@@ -13,7 +13,7 @@ import { S, K, KINDS, KEYS, T, ATTRS, USER_ATTRS, FIELDS, fieldOf, OPS, ROLLS,
   CALVIEWS, calViewOf, weekStartOf, showsWeekends, KNOBSIZES, knobSizeOf,
   TSIZES, textSizeOf, mediaTypeOf, isPicture, isMedia, isDecor,
   bindingOf, FRAMES, FRAME_SLOTS, frameOf, panelOf, knobOf, plateOf, borderOf, textureOf,
-  slotRaw, homeFor, acceptAny, groupOf , boardLocked , SEALS, sealOf, isSealed } from './model.js';
+  slotRaw, homeFor, acceptAny, groupOf , boardLocked , SEALS, sealOf, isSealed, isDisc } from './model.js';
 import { GRID, lay, boxOk, freeSpot, anySpot, sizeOfKind, toPhoneSize, keepSize } from './grid.js';
 import { randomBoard, randomFront, hexOf, objColour, objSlots, famSlots, famAll, FAMS, styleKey, stockNow, CHECKS, checkNow } from './look.js';
 import { CLICKS, clickOf, gridTile, pending } from './tiles.js';
@@ -2225,8 +2225,15 @@ function openCtx(x,y,id){
      open a sheet of its own — the artwork suddenly enormous on a scrim with its
      settings underneath — which is the thing decision 187 replaced everywhere
      else and had simply not reached here. The settings it used to carry are on
-     the gear the camera puts in the corner. See decision 188. */
-  if(isActive(o)){ zoomInto(id); render(); return; }
+     the gear the camera puts in the corner.
+
+     **A record answers the same way**, which is the half of decision 188 that
+     never got wired up: the scratch was built and the only way to reach the
+     zoomed disc it needs was a gesture nobody had connected, so holding one
+     opened the palette like anything else. `isDisc()` asks about the *face*, so
+     a sound object and a project wearing an album cover both come here. See
+     decision 188. */
+  if(isActive(o) || isDisc(o)){ zoomInto(id); render(); return; }
   const el=$('#ctx');
   // If a selection is open and this object is part of it, the menu acts on all
   // of them — the same way a Finder context menu does.

@@ -1469,6 +1469,14 @@ const isDecor = o => has(o,'decor');
    file at all, and it is what decides which things open onto the media surface
    rather than onto paper. See decision 71. */
 const isMedia = o => has(o,'media');
+/* **A record**: anything drawn as a disc. A sound object is one, and so is a
+   project wearing the song or album cover — the two are the same drawing
+   (`discHTML`) seen twice, so they answer the same question here. Asked as a
+   *face*, never as a type's name: something you invent that wears an album
+   cover is a record too. It is what routes the long press to the camera rather
+   than the palette, the way an instrument's does. See decision 188. */
+const isDisc = o => !!o && (mediaTypeOf(o)==='audio'
+  || projCoverOf(o)==='song' || projCoverOf(o)==='album');
 const isPlayable = o => isMedia(o) && mediaTypeOf(o)!=='image';
 /* What the file picker should be willing to show for it. */
 /* **Extensions as well as the wildcard, because a wildcard is not a list.**
@@ -2666,7 +2674,7 @@ function marginPlus(o, text){
   return t ? marginOf(o).concat({d:D.iso(D.today()), t}) : marginOf(o);
 }
 
-export { homeFor, ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds, K, searchHits,
+export { homeFor, ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds, K, searchHits, isDisc,
   attrsOf, has, kindHas, T, dz, S, sensedDevice, reset, defaultLook, dev, byId,
   deskTitle, rootObj, container, cfgOf, isContainer, FACES, faceOf, layoutOf, SHAPES,
   SHAPES_KEPT, shapeName, shapeChoices,

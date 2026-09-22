@@ -177,8 +177,20 @@ function innerOf(cid){
   const id = cid==null ? hereId() : cid;
   if(id===ROOT) return null;
   const o = byId(id); if(!o) return null;
-  const b = o.desk;
-  if(!b || !b.w || !b.h) return null;        // never placed: fall back to a shelf
+  /* **The desk box governs, but a phone box will do.** A drawer made on a
+     phone never had a `desk` box at all — `ensureBox()` only fills in the
+     device being looked at — so every drawer made on one answered null here
+     and opened onto a single shelf however big it was. That was the whole of
+     "drawer grid sizes are not proportional at all".
+     A container's phone size is **half** its desk size (`toPhoneSize`), so
+     doubling it recovers the same coordinate space rather than a smaller one:
+     the two boxes cannot be allowed to disagree about how big the inside is.
+     Migration 36 gives every container a desk size so this is only ever the
+     fallback, and `create()` gives new ones both from the start. */
+  const b = (o.desk && o.desk.w && o.desk.h) ? o.desk
+    : (o.phone && o.phone.w && o.phone.h)
+      ? {w: o.phone.w*2, h: o.phone.h*2} : null;
+  if(!b) return null;                        // never placed: fall back to a shelf
   return {cols: Math.max(2, Math.round(b.w*INNER)),
           rows: Math.max(2, Math.round(b.h*INNER))};
 }

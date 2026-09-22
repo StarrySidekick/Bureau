@@ -604,8 +604,16 @@ function placeAtPending(o){
     const said = pending.cell && pending.cell.w
       ? [pending.cell.w, pending.cell.h] : null;
     pending.cell=null;
-    const [w,h] = said || sizeOfKind(o.kind, dv, o.parent);
-    o[dv]=o[dv]||anySpot(w,h,dv,o.parent); return;
+    /* **A box with a size and no position is not a placed box.** A container
+       is born knowing its size on both boards (decision 188), so `o[dv]` is
+       already an object here — and `o[dv] || …` took that for a placement,
+       threw the size you had just dragged out away, and left the thing at its
+       type's default. `ensureBox()` has always drawn the line at `b.w && b.x`;
+       this is the same line. A sketched size still wins over the born one. */
+    const born = (o[dv] && o[dv].w) ? [o[dv].w, o[dv].h] : null;
+    const [w,h] = said || born || sizeOfKind(o.kind, dv, o.parent);
+    if(!(o[dv] && o[dv].x)) o[dv] = anySpot(w,h,dv,o.parent);
+    return;
   }
   // a sketched box wins over the kind's own size
   const [kw,kh]=sizeOfKind(o.kind, dv, pending.cell.parent);

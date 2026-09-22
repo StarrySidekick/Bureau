@@ -509,8 +509,17 @@ function bytes(n){ return n<1024? n+' B' : n<1048576? (n/1024).toFixed(1)+' KB' 
    follows until it is asked directly, which is where a drawer you have never
    thought about gets its answer from. The two readings live in the same field
    because they are the same question at two scopes, and the copy says which. */
+/* **A container no longer gets one of these.** Since decision 188 its board is
+   its own tile, four cells to a cell, and a second control that could make a
+   2×2 drawer hold ten columns instead of eight would muddy the one rule
+   Timothy actually asked for. The setting still decides the **desk's** columns
+   and how wide a shelf is — which is how much of a big drawer you see at once
+   — so it has not lost its job, only its reach into a coordinate space that is
+   now derived. The drawer's own size, which is the thing that decides, is the
+   field below this one. */
 function gridSizeField(cid){
   const app = cid==null;
+  if(!app && cid!==ROOT && byId(cid)) return '';
   const now = app ? (S.look.grid||'small') : gridKeyOf(cid);
   const own = app ? null : (cfgOf(cid)||{}).grid;
   return `<div class="field" style="margin-top:12px"><label>${app?'iPhone grid':'This board'}</label>
@@ -541,20 +550,35 @@ function shelfCountField(cid){
   if(cid===ROOT) return `<div class="field" style="margin-top:12px"><label>Shelves</label>
       <div class="mini" style="--k:var(--brass)">The Desk is <b>three by three</b>, and you start in the middle. Swipe up, down, left or right to walk them; on a Mac the middle row is on the screen at once and the other two are up and down the scroller.</div>
     </div>`;
-  /* **A drawer no longer chooses**: since decision 188 its board is its own
-     tile, four cells to a cell, so how many shelves it is comes out of how big
-     it is on the desk — and a picker offering a second answer to a question
-     the tile has already settled is a control that either does nothing or
-     fights the resize. It says what the board *is* instead, and points at the
-     thing that decides. */
+  /* **A drawer no longer chooses how many shelves it is — it chooses how big
+     it is.** Since decision 188 its board is its own tile, four cells to a
+     cell, so the shelves come out of the size and a picker offering a second
+     answer to a settled question is a control that either does nothing or
+     fights the resize. The same grid of buttons now sets the **size on the
+     desk**, which is the thing that decides.
+
+     It has to be here and not only on the tile's corners, because a drawer's
+     capacity is read off its *desk* box and a phone can only drag the phone
+     one — so without this there was no way at all to make a drawer bigger from
+     a phone. Six by six, because the board is capped at the desk's own
+     twenty-four columns and six times four is twenty-four. */
   const g = gridOf(dev(), cid), now = g.shelves;
-  const box = (byId(cid)||{}).desk;
-  return `<div class="field" style="margin-top:12px"><label>Shelves</label>
-      <div class="mini" style="--k:var(--brass)">A drawer is as big inside as it is outside: <b>${
-        box ? `${box.w} × ${box.h}` : 'its'}</b> cells on the desk makes <b>${g.cols} × ${g.rows}</b> in here${
-        now.w*now.h>1 ? `, which is ${now.w} × ${now.h} screenfuls — swipe between them` : ''}. Resize the drawer itself to change it.</div>
+  const box = (byId(cid)||{}).desk || {w:2, h:2};
+  return `<div class="field" style="margin-top:12px"><label>How big it is</label>
+      <div class="shelfpick" style="--sw:${BOARD_MAX}">${
+        Array.from({length:BOARD_MAX*BOARD_MAX}, (_,i)=>{
+          const x=i%BOARD_MAX+1, y=((i/BOARD_MAX)|0)+1;
+          return `<button class="shelfopt${x<=box.w&&y<=box.h?' on':''}"
+            data-boardsize="${cid}:${x}:${y}" title="${x} × ${y} cells"></button>`;
+        }).join('')}</div>
+      <div class="mini" style="--k:var(--brass);margin-top:6px">A drawer is as big inside as it is outside: <b>${
+        box.w} × ${box.h}</b> cells on the desk makes <b>${g.cols} × ${g.rows}</b> in here${
+        now.w*now.h>1 ? `, which is ${now.w} × ${now.h} screenfuls — swipe between them` : ''}. Its corners on the desk do the same thing; this is how you reach it from a phone.</div>
     </div>`;
 }
+/* Six, because a board is capped at the desk's own twenty-four columns and
+   four cells to a cell makes six the largest that means anything. */
+const BOARD_MAX = 6;
 const installed = ()=> window.matchMedia('(display-mode: standalone)').matches || !!window.navigator.standalone;
 
 /* ---- settings, in the shape of the questions it asks ------------------

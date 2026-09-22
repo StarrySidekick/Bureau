@@ -36,9 +36,9 @@
    localStorage — a plan is stored *inside* that snapshot, so a plan carrying a
    photograph would be a data URL smuggled past the one place that stops them.
    A plan is an arrangement; it is not an asset store. */
-import { S, K, T, isContainer, container } from './model.js';
+import { S, K, T, byId, isContainer, container } from './model.js';
 import { uid, ROOT } from './util.js';
-import { GRID, ensureBox, boxOk, freeSpot, anySpot } from './grid.js';
+import { GRID, INNER, ensureBox, boxOk, freeSpot, anySpot } from './grid.js';
 import { rescaleOneBoard } from './persist.js';
 import { randomLook } from './look.js';
 
@@ -131,6 +131,37 @@ function planFrom(cid, nm){
 function stampPlan(planId, intoId, at){
   const p = planById(planId); if(!p) return [];
   const home = intoId || ROOT;
+  /* **A plan is an arrangement, so the drawer grows to hold it.** Since
+     decision 188 a container's board is its own tile, four cells to a cell —
+     so a plan authored eight cells across and twelve down no longer fits a
+     drawer somebody made two cells square, and every box would fail `boxOk()`
+     and be re-flowed by `anySpot()`, which is the one thing a plan exists to
+     prevent. The drawer is raised to the plan's own extent rather than the
+     plan being squeezed into the drawer; it is never shrunk, because a big
+     drawer holding a small plan is fine and the size was somebody's choice.
+     The desk is not a tile and needs none of this. */
+  (() => {
+    const c = home===ROOT ? null : byId(home);
+    if(!c) return;
+    let mx = 0, my = 0;
+    p.objects.forEach(o => {
+      if((o.parent||PLAN_ROOT)!==PLAN_ROOT) return;
+      ['desk','phone'].forEach(dv => { const b = o[dv];
+        if(!b || !b.x) return;
+        mx = Math.max(mx, b.x + b.w - 1);
+        my = Math.max(my, b.y + b.h - 1); });
+    });
+    if(!mx && !my) return;
+    const box = (c.desk && c.desk.w) ? c.desk : {w:2, h:2};
+    const w = Math.max(box.w, Math.ceil(mx/INNER));
+    const h = Math.max(box.h, Math.ceil(my/INNER));
+    if(w===box.w && h===box.h) return;
+    const want = Object.assign({}, box, {w, h});
+    /* If it no longer fits where it sits, it gives the place up and keeps the
+       size — `ensureBox()`'s bargain, and the only honest way to grow a tile
+       on a board somebody else has arranged. */
+    c.desk = (want.x && !boxOk(want, c.id, 'desk', c.parent)) ? {w, h} : want;
+  })();
   const map = {};
   // `d` or `o` on the id is a convention, not a fact anything reads — but a
   // drawer whose id starts `o` is confusing in a console and free to avoid.

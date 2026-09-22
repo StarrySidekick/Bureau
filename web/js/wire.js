@@ -1441,6 +1441,25 @@ function wire(){
       }
       return; }
 
+    /* **How big a drawer is**, which since decision 188 is also how much it
+       holds. It writes the **desk** box, because that is the one a container's
+       board is read off — the phone box is where the tile sits and nothing
+       more. A shrink throws nothing away: anything left outside is re-placed
+       the next time the board is drawn. If the new size will not fit where the
+       drawer currently sits, the position is given up and kept (`keepSize`'s
+       bargain) so `ensureBox()` can find it somewhere it does. */
+    const bsz=t.closest('[data-boardsize]');
+    if(bsz){
+      const [cid,x,y]=bsz.dataset.boardsize.split(':');
+      const o=byId(cid);
+      if(o){
+        pushSet('Size', cid, 'desk', o.desk && {...o.desk});
+        const want={...(o.desk||{}), w:+x, h:+y};
+        o.desk = (want.x && !boxOk(want, o.id, 'desk', o.parent))
+          ? {w:+x, h:+y} : want;
+        save(); render(); refreshPanel();
+      }
+      return; }
     /* How many shelves a board is. A shrink throws nothing away: what is left
        outside is re-placed the next time the board is drawn. See decision 141. */
     const shz=t.closest('[data-shelfsize]');

@@ -4748,7 +4748,13 @@ const CHROME = process.env.BUREAU_CHROME;
     out.aDrawerFollowsToo = cols() === 8;
     const was = { ...o.phone };
     BUREAU.setGrid('large', d.id);  await nap(350);
-    out.itCanHaveItsOwn = cols() === 10 && d.grid === 'large';
+    /* **A container's columns are its own tile times four now** (decision 188),
+       so the per-board grain no longer reaches them — it decides the desk's
+       columns and how wide a shelf is, which is how much of a big drawer you
+       see at once, and the drawer's *size* decides the rest. The setting is
+       still stored and still asked; what is turned round here is which number
+       it is expected to move. */
+    out.itCanHaveItsOwn = d.grid === 'large' && BUREAU.shelfW(d.id) === 10;
     out.andTheBoxesCameWithIt = o.phone.w >= was.w;
     // …and the desk it is on is untouched
     S.view='desk'; S.drawerId=null; BUREAU.render(); await nap(250);
@@ -4757,7 +4763,8 @@ const CHROME = process.env.BUREAU_CHROME;
     BUREAU.setGrid('extra'); await nap(350);
     out.theAppDefaultMoves = cols() === 9;
     S.view='drawer'; S.drawerId=d.id; BUREAU.render(); await nap(250);
-    out.andTheBoardWithAnAnswerKeepsIt = cols() === 10;
+    // …and the board with an answer of its own keeps it: its shelf is still ten
+    out.andTheBoardWithAnAnswerKeepsIt = BUREAU.shelfW(d.id) === 10;
     BUREAU.setGrid('small');
     S.view='desk'; S.drawerId=null;
     BUREAU.delDrawer(d.id); S.objects=S.objects.filter(x=>x.id!==o.id); S.undo=[];
@@ -8201,6 +8208,12 @@ const CHROME = process.env.BUREAU_CHROME;
      controls and you can write in it), plus the three structural things that
      came with it: a container's board is its own tile, there is a search in
      the bar, and the things that were looked at properly. */
+  /* In front, for the same reason `camPhone` is: this block measures an
+     **animated** end state, and a background page gets no compositor frames, so
+     a transition sits at whatever the first frame wrote. The phone page exists
+     by now, and which of the two is frontmost is not something to leave to
+     chance. See the note in render.md. */
+  await page.bringToFront();
   const camLife = await page.evaluate(async () => {
     const nap = n => new Promise(r => setTimeout(r, n));
     const out = {}, S = BUREAU.state;
@@ -8226,6 +8239,32 @@ const CHROME = process.env.BUREAU_CHROME;
       one.cols===4  && one.rows===4 &&
       two.cols===8  && two.rows===8 &&
       tall.cols===8 && tall.rows===16;
+    /* **And a drawer made on a phone is proportional too.** `ensureBox()` only
+       ever fills in the device being looked at, so a drawer made on a phone had
+       no `desk` box at all — and since a container's board is read off that
+       box, every one of them opened onto a single shelf however big it was.
+       Three answers now: `create()` gives a container a size on both boards,
+       `innerOf()` falls back to the phone box doubled, and migration 36 repairs
+       a desk that already has such drawers on it. */
+    out.aContainerIsBornWithBothSizes = (() => {
+      const d = BUREAU.create('drawer', {parent:'root', title:'Born'});
+      const ok = !!(d.desk && d.desk.w && d.phone && d.phone.w);
+      BUREAU.del(d.id); S.undo=[]; return ok; })();
+    out.andAPhoneOnlyDrawerStillAnswers = (() => {
+      S.objects.push({id:'legacy', kind:'drawer', parent:'root', title:'Old',
+        tags:[], ord:0, created:'2026-09-01', desk:null, phone:{x:1,y:1,w:3,h:2}});
+      // a container's phone size is half its desk size, so doubling recovers it
+      const g = BUREAU.innerOf('legacy');
+      S.objects = S.objects.filter(o => o.id !== 'legacy');
+      return !!g && g.cols === 24 && g.rows === 16; })();
+    out.andAnOldDeskIsRepaired = (() => {
+      const d = BUREAU.migrated({v:35, objects:[
+        {id:'p', kind:'drawer', attrs:['container'], phone:{x:1,y:1,w:2,h:3}},
+        {id:'q', kind:'note', attrs:['text'], phone:{x:1,y:5,w:4,h:2}}]});
+      const by = k => d.objects.find(o=>o.id===k);
+      return by('p').desk.w === 4 && by('p').desk.h === 6
+        && !by('p').desk.x                 // a size, never a place
+        && !by('q').desk; })();            // …and only containers get one
     // …and the cell is the same size in all of them, which is what makes it
     // a bigger drawer rather than a bigger picture of one
     out.andTheCellDoesNotChange =
@@ -8273,11 +8312,17 @@ const CHROME = process.env.BUREAU_CHROME;
     document.querySelector('[data-row="z"]').click();
     await nap(70);
     if(!S.zoomOn){ document.querySelector('[data-row="z"]').click(); await nap(70); }
+    /* Sampled a third of the way through rather than a sixth: the frame the
+       click lands on has a render in it, and on a busy board the first painted
+       frame of the ease can fall the wrong side of a tighter window. What is
+       being asked is that it is *between* rest and its destination, not where
+       exactly it had got to. */
+    await nap(80);
     const early = kOf(getComputedStyle(grid()).transform);
     await nap(720);
     const settled = kOf(getComputedStyle(grid()).transform);
-    // it *moves*: part way there a frame after the tap, all the way after
-    out.theZoomIsSmooth = early > 1.02 && early < settled - 0.2;
+    // it *moves*: part way there while it runs, all the way once it has
+    out.theZoomIsSmooth = early > 1.02 && early < settled - 0.1;
     // …and lets go of the layer when it arrives, or the words are a picture
     out.andIsNotPromotedAtRest = getComputedStyle(grid()).willChange !== 'transform';
     out.andWearsNoRing = (() => { const t = document.querySelector('.oncamera');
@@ -8311,6 +8356,37 @@ const CHROME = process.env.BUREAU_CHROME;
     out.andTheWayOutMovesToo = kOf(getComputedStyle(grid()).transform) > 1.2;
     await nap(760);
     out.andEndsAtRest = !S.zoomOn && getComputedStyle(grid()).transform === 'none';
+
+    /* ---- a record is held, not pressed --------------------------------- */
+    mk({ id:'disc', kind:'audio', title:'A take', attrs:['media'],
+         media:{assetId:'x', type:'audio', label:'take.wav',
+           src:'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA='},
+         desk:{x:19,y:18,w:3,h:3} });
+    BUREAU.render(); await nap(200);
+    out.aRecordIsDrawnAsOne = !!document.querySelector('[data-row="disc"] .cd');
+    /* The **hold** zooms it rather than opening the palette — the half of
+       decision 188 that was built and never wired up, so the only way to reach
+       the scratch was a gesture nobody had connected. `openCtx` is where all
+       three of gestures.js's hold paths converge, which is why one branch there
+       serves the long press on every device. */
+    (() => { const r = document.querySelector('[data-row="disc"]').getBoundingClientRect();
+      BUREAU.ctx(r.left+r.width/2, r.top+r.height/2, 'disc'); })();
+    await nap(780);
+    out.andHoldingItZoomsIn = S.zoomOn === 'disc';
+    out.andTheDiscTakesAHand = !!document.querySelector('.oncamera .cd[data-scratch]');
+    out.andTurnsUnderIt = (() => {
+      const disc = document.querySelector('.cd[data-scratch]');
+      if(!disc) return false;
+      const d = disc.getBoundingClientRect();
+      const cx = d.left+d.width/2, cy = d.top+d.height/2;
+      const ev = (ty,x,y) => disc.dispatchEvent(new PointerEvent(ty, {bubbles:true,
+        pointerId:4, clientX:x, clientY:y, pointerType:'mouse', button:0}));
+      ev('pointerdown', cx+d.width*0.4, cy);
+      ev('pointermove', cx, cy+d.height*0.4);
+      const turned = /rotate/.test(disc.style.transform||'');
+      ev('pointerup', cx, cy+d.height*0.4);
+      return turned; })();
+    S.zoomOn = null; BUREAU.render(); await nap(200);
 
     /* ---- and the things that were looked at properly -------------------- */
     mk({ id:'let', kind:'letter', title:'To Marianne', body:'Dear —', attrs:['text'],

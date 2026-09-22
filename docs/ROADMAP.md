@@ -5,6 +5,48 @@ Sequenced by dependency, not appetite: item 1 makes everything after it safer.
 
 ---
 
+## 0zf. Reported 2026-09-22 — the drawer sizes did nothing, and the record was unreachable — DONE (v1.77)
+
+Two reports. Decision 189.
+
+**"Drawer grid sizes are not proportional or correlated at all."** They were
+not, and the feature was written correctly. A container's board is read off its
+**desk** box, and `ensureBox()` only ever fills in the device you are looking
+at — so a drawer made on a phone had no desk box at all and fell back to a
+single shelf, whatever size it was. `create()` gives a container its size on
+both boards now, `innerOf()` falls back to the phone box doubled, and migration
+36 repairs desks that already have such drawers on them.
+
+That turned up two more of the same shape, because **a box with a size and no
+position is not a placed box**: a sketched size was being thrown away in favour
+of the one the container was born with, and a plan stamped into a small drawer
+no longer fitted — the drawer grows to the plan now.
+
+The per-board grain is the desk's from here on: decision 60 let each board
+choose its own and decision 188 derives a container's, and both cannot set the
+same number. In its place, a container's editor carries **how big it is**,
+which also gives a phone the only way it has to change a drawer's capacity.
+
+**"Don't know how to get to the tap and hold larger music disc."** There was no
+way: holding a record was supposed to zoom into it like an instrument, the
+scratch that needs the zoomed disc was built, and the two were never joined up.
+They are now — and the camera's drag guard, which refuses every press on a
+zoomed board, had to learn its second exemption, since it was eating the
+scratch three lines before that gesture's own branch could see it.
+
+### Still open
+
+**A drawer's capacity is a field, not a gesture, on a phone.** It is read off
+the desk box and a phone can only drag the phone one. Resizing on either device
+and having the other follow is the honest version; a silent reflow of an
+arrangement somebody made on the other board is worse than a field, so it is a
+field.
+
+**A record's artwork is soft at four times.** The disc is CSS gradients, which
+rasterise and stretch where text re-renders. Nothing has asked for it yet.
+
+---
+
 ## 0ze. Reported 2026-09-22 — the camera went too far and to the wrong place — DONE (v1.76)
 
 One report, one cause, and it was mine from the pass before. Item 16 of 0zd —

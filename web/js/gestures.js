@@ -742,8 +742,14 @@ function onDown(e){
      than gestures that move it, and blocking them blocked the whole point of
      having zoomed in. Everything outside it on the board is still refused.
      See decision 187. */
+  /* Nothing on a zoomed board may be picked up — the cell maths is measured
+     off the grid's own rect and a scaled rect gives a cell four times too wide.
+     The exemptions are the two things you are *meant* to do in there: push the
+     words, and put a hand on a record. Without the second the scratch was
+     built and unreachable — this line ate the press before its own branch,
+     three lines below, ever saw it. */
   if(zoomedIn() && e.target.closest('#drawergrid')
-     && !e.target.closest('.zoomread')) return;
+     && !e.target.closest('.zoomread, .cd[data-scratch]')) return;
   /* ---- a hand on the record — decision 188 ------------------------------
      Zoomed onto a disc, a drag turns it and moves the needle with it. The
      press is claimed outright (it is not a tap and not a page) and the angle

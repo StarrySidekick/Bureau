@@ -8385,3 +8385,64 @@ the words.
 decision 187 was pleased not to be. Two buttons and an edit mode is the most it
 should ever carry; the moment it wants a third the answer is the reading
 surface, which is what `camfull` is for.
+
+
+---
+
+## 189 · The size a drawer is, and the thing you hold
+
+*2026-09-22*
+
+Two reports, and the first is the more interesting because the feature was
+written correctly and did nothing.
+
+**A container's board is read off its desk box, and `ensureBox()` only ever
+fills in the device you are looking at.** So a drawer made on a phone had no
+desk box at all — not a small one, none — and `innerOf()` answered null and
+fell back to a single shelf. Every drawer made on a phone opened onto exactly
+the same board however big it was, which is "drawer grid sizes are not
+proportional or correlated at all", exactly. Three answers, because the hole
+has three edges: `create()` gives a container its **size on both boards** the
+moment it exists (a box with a size and no position is what `ensureBox()`
+knows how to place, so the other board fills itself in the first time it is
+drawn); `innerOf()` falls back to the phone box **doubled**, since a
+container's phone size is half its desk size; and migration 36 repairs a desk
+that already has such drawers on it.
+
+That change broke two things in the same way, and both are the same sentence:
+**a box with a size and no position is not a placed box.** `ensureBox()` has
+always drawn that line at `b.w && b.x`. `placeAtPending()` drew it at `o[dv]`
+alone, so the size you had just dragged out was thrown away in favour of the
+one the container had been born with. And `stampPlan()` copies boxes straight
+in, so a plan authored eight cells across and twelve down no longer fitted a
+drawer two cells square — the drawer grows to the plan now, because a plan is
+an arrangement and the alternative is every box failing `boxOk()` and being
+re-flowed, which is the one thing a plan exists to prevent.
+
+**And the per-board grain no longer reaches a container's columns.** Decision
+60 let each board choose how fine its grid was; decision 188 derives it. Both
+cannot set the same number, and the derived one is the rule Timothy asked for —
+so the control is the desk's now, where it still decides the columns and how
+wide a shelf is, which is how much of a big drawer you see at once. In its
+place, a container's editor carries **how big it is**: the same grid of
+buttons, setting the desk box. That has to exist, because capacity is read off
+the desk box and a phone can only drag the phone one — without it there was no
+way at all to make a drawer bigger from a phone.
+
+**The other report is a wire that was never connected.** Holding a record was
+supposed to zoom into it, the way holding an instrument does; the scratch that
+needs the zoomed disc was built and the only way to reach it was a gesture
+nobody had joined up, so holding one opened the palette like anything else.
+`isDisc()` asks about the *face* — a sound object and a project wearing an
+album cover are the same drawing seen twice — and `openCtx` is where all three
+of gestures.js's hold paths converge, so one branch there serves every device.
+The camera's drag guard then had to learn its second exemption: it refuses
+every press on a zoomed board because the cell maths is measured off the grid's
+own rect, and it was eating the scratch three lines before that gesture's own
+branch could see it.
+
+*Against:* a drawer's capacity now depends on a box that a phone cannot drag,
+and the editor field is the answer rather than the gesture. The honest version
+would be resizing a container on either device and having the other follow,
+but the other board's arrangement is somebody's and a silent reflow of it is
+worse than a field.

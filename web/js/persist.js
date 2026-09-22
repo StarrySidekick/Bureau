@@ -18,7 +18,7 @@ import { stockPlans } from './stockplans.js';
    Bureau is this phone running" is exactly the question you ask when a change
    appears not to have deployed. Shown in Settings, so it can be read off the
    device rather than guessed at. */
-const APP_VERSION = '1.76';
+const APP_VERSION = '1.77';
 const KEY = 'bureau.v1';
 const install = {deferred:null};   // the browser's install prompt, when one is on offer
 let saveTimer = null;
@@ -266,7 +266,7 @@ function rescalePhone(d, from, cols){
    skips all of them, an old backup replays only what it is missing. These
    used to be ad-hoc per-load mutations inside adopt(); a new repair that
    should run once belongs here, as the next numbered step. */
-const DATA_V = 35;
+const DATA_V = 36;
 const MIGRATIONS = [
   // Drawers and objects were two arrays and a drawer could not live inside
   // anything. foldDrawers also replays the old dense flow to give v1 drawers
@@ -947,6 +947,24 @@ const MIGRATIONS = [
     const have = new Set((d.plans||[]).map(p=>p && p.stock).filter(Boolean));
     const add = stockPlans().filter(p=>!have.has(p.stock));
     if(add.length) d.plans = (d.plans||[]).concat(add);
+  }},
+  /* **Every container gets a size on the desk board.** Its own grid is its
+     tile times four since decision 188, and that is read off the desk box — so
+     a drawer made on a phone, which only ever had a `phone` box, opened onto a
+     single shelf however big it was. A container's phone size is half its desk
+     size, so doubling recovers the same coordinate space; the **size only** is
+     written, never a position, because where it sits on a desk it has never
+     been on is `ensureBox()`'s to decide. */
+  {v:36, up(d){
+    (d.objects||[]).forEach(o=>{
+      if(!o || !o.phone || !o.phone.w) return;
+      const isCont = (o.attrs||[]).includes('container')
+        || (o.kind==='drawer' || o.kind==='magic' || o.kind==='project');
+      if(!isCont) return;
+      if(o.desk && o.desk.w) return;
+      o.desk = Object.assign({}, o.desk||{},
+        {w: Math.max(1, o.phone.w*2), h: Math.max(1, o.phone.h*2)});
+    });
   }},
 ];
 function migrate(d){
