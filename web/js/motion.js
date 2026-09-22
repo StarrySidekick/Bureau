@@ -48,10 +48,10 @@ const tileRect = id => { const el=tileOf(id); return el ? el.getBoundingClientRe
 /* Place a floating box over the frame, in the frame's own coordinates. */
 // where a point sits inside a box, as a percentage — a transform origin
 const pct = (v, size) => `${(v/Math.max(1,size)*100).toFixed(1)}%`;
-function at(el, r){
-  const f=frameRect();
-  el.style.left=(r.left-f.left)+'px'; el.style.top=(r.top-f.top)+'px';
-  el.style.width=r.width+'px'; el.style.height=r.height+'px';
+function at(el, r, grow){
+  const f=frameRect(), n=grow||0;
+  el.style.left=(r.left-f.left-n)+'px'; el.style.top=(r.top-f.top-n)+'px';
+  el.style.width=(r.width+n*2)+'px'; el.style.height=(r.height+n*2)+'px';
 }
 
 /* Everything a tile is *found* by, taken off a copy of one. `tileOf()` scopes
@@ -206,13 +206,18 @@ function openTile(id, go){
     go();
 
     if(twin && mr){
+      /* **What the mouth opens onto is the board you are arriving on**, and
+         every layer in the movement has to be given the same rect or the
+         window and what is framed in it pull apart. Read after `go()`, because
+         that is when the arriving board exists and is laid out. */
+      const inner = boardRect($('#app .main')) || mr;
       /* A picture of a board, not a second board. Ids go for the reason
          `faceOf()` takes them off a flying front, and so does everything a
          tile is found by — see `anonymise()`. */
       picture(twin);
       twin.className='fxleave';
       at(twin, mr);
-      dive(twin, r, mr, 'away');
+      dive(twin, r, mr, 'away', inner);
 
       /* The inside of the drawer, which is dark. It sits **over** the picture
          and under the board you are arriving on, so the mouth is dark before
@@ -221,8 +226,8 @@ function openTile(id, go){
          own travel, so it stays over the window as the window opens. */
       const cave=document.createElement('i');
       cave.className='divecave';
-      at(cave, r);
-      dive(cave, r, mr, 'away');
+      at(cave, r, BLEED);
+      dive(cave, r, mr, 'away', inner);
 
       /* The front itself, over **everything** — the only one of the three that
          is above the board you are arriving on, because it is the thing you go
@@ -230,10 +235,10 @@ function openTile(id, go){
          through it. */
       const face=document.createElement('div');
       face.className='divefront';
-      at(face, r);
+      at(face, r, BLEED);
       face.appendChild(faceOf(el));
       picture(face);
-      dive(face, r, mr, 'away');
+      dive(face, r, mr, 'away', inner);
 
       /* Three layers, in three places, and the order is the whole of the
          effect: the picture and the dark of the carcass go **under** the board
@@ -248,7 +253,7 @@ function openTile(id, go){
       if(app) app.classList.add('diving');
       setTimeout(()=>{ twin.remove(); cave.remove(); face.remove();
         const a=$('#app'); if(a) a.classList.remove('diving'); }, OPEN_MS.dive);
-      enter('dive', r, true);
+      enter('dive', r, true, inner);
     } else enter('dive', r);
     return;
   }
@@ -479,6 +484,11 @@ function leaveTile(id, go, scrub){
   const m0 = $('#app .main');
   const twin = (m0 && !still() && fx()) ? m0.cloneNode(true) : null;
   const mr = twin && m0.getBoundingClientRect();
+  /* The board you are **leaving**, measured before the render takes it away.
+     Out is the way in played backwards, so the thing framed into the mouth is
+     the board that is shrinking back into the drawer — which is this one, not
+     the one arriving. Same number, other end. */
+  const inner = (twin && boardRect(m0)) || mr;
 
   go();
 
@@ -492,19 +502,19 @@ function leaveTile(id, go, scrub){
   picture(twin);
   twin.className='fxback';
   at(twin, mr);
-  dive(twin, r, mr, 'into');
+  dive(twin, r, mr, 'into', inner);
 
   const cave=document.createElement('i');
   cave.className='divecave back';
-  at(cave, r);
-  dive(cave, r, mr, 'away');
+  at(cave, r, BLEED);
+  dive(cave, r, mr, 'away', inner);
 
   const face=document.createElement('div');
   face.className='divefront back';
-  at(face, r);
+  at(face, r, BLEED);
   face.appendChild(faceOf(el));
   picture(face);
-  dive(face, r, mr, 'away');
+  dive(face, r, mr, 'away', inner);
 
   fx().appendChild(cave);
   fx().appendChild(face);
@@ -512,7 +522,7 @@ function leaveTile(id, go, scrub){
 
   /* The board you have arrived on, coming back down out of the drawer — the
      picture's exact inverse, which is what it was on the way in as well. */
-  dive(m, r, mr, 'away');
+  dive(m, r, mr, 'away', inner);
   m.classList.add('in-diveout');
 
   const parts=[twin, cave, face, m];
@@ -614,16 +624,60 @@ const ease = easer(EASE);
    later than it used to. Overshooting by a quarter brings the moment the world
    is sealed forward to about five sixths of the way through, which is where
    the fade starts. */
-const OVER = 1.28;
-const zoomFor = (r, mr) => OVER * Math.min(7, Math.max(2.2,
-  Math.max(mr.width/Math.max(1,r.width), mr.height/Math.max(1,r.height))));
+/* **How far past the target the mouth is carried.** It existed because the
+   mouth had to be off the edges of the screen before the front covering it
+   began to fade, and while the thing the mouth grew into was the whole
+   carcass it cost nothing to see. Now that it grows into the **board** it is
+   the whole of the gap Timothy is looking at: the same number that pushes the
+   mouth out past the board at the end holds the board in from the mouth at
+   the start, by exactly that factor, all the way through — a 22% margin of
+   dark inside the drawer's own face for the length of the movement.
 
-function dive(el, r, mr, going){
+   So it is 1 when a board is named and 1.28 when nothing is: flush inside the
+   face, which is what a drawer four cells to a cell *is*. What sealed the
+   edge is `BLEED` below — a couple of pixels of front and carcass past the
+   mouth, which is a hairline rather than a fifth of the tile. See decision
+   192. */
+const OVER = 1.28;
+/* A hairline of overlap, in px, on the two layers whose job is to cover the
+   seam. Not a scale: it is the same two pixels at every moment of the
+   movement, where a factor would be two at the start and ten at the end. */
+const BLEED = 2;
+const zoomFor = (r, mr, over) => (over===undefined ? OVER : over) * Math.min(7,
+  Math.max(2.2, Math.max(mr.width/Math.max(1,r.width), mr.height/Math.max(1,r.height))));
+
+/* The board inside a `.main`, which is what a mouth opens onto. The grid
+   itself and not the scroller: a board shorter than the screen is centred in
+   its carcass (decision 190), so the scroller is the room and the grid is the
+   thing. A layout that is not a grid — a list, a book — has no grid to ask
+   about, and falls back to the room it is in and then to the whole carcass,
+   which is where this started. */
+function boardRect(main){
+  if(!main) return null;
+  const g = main.querySelector('.grid') || main.querySelector('.scroll');
+  const r = g && g.getBoundingClientRect();
+  return (r && r.width) ? r : null;
+}
+
+/* **The board, not the whole carcass.** `.main` is the bar, the board and the
+   drawer front along the bottom, and framing all three into the drawer's mouth
+   put a strip of bar above the front you were opening and a strip of rail
+   below it — furniture floating around a tile, on a tile-sized screen. Since
+   decision 188 a container's board is its own tile times four, which means the
+   board and the front are the **same shape**: so the thing that grows out of
+   the mouth is the board, flush to the front's own edges, and the bar and the
+   rail are not drawn at all until it has arrived. Pass the board's rect as
+   `inner` and every layer in the movement reads the same number; leave it out
+   and this is exactly what it was. See decision 192. */
+function dive(el, r, mr, going, inner){
   const cx = r.left+r.width/2 - mr.left, cy = r.top+r.height/2 - mr.top;
   el.style.setProperty('--divex', cx.toFixed(1)+'px');
   el.style.setProperty('--divey', cy.toFixed(1)+'px');
   if(!going) return;
-  const z = zoomFor(r, mr), dx = mr.width/2 - cx, dy = mr.height/2 - cy;
+  const b = (inner && inner.width) ? inner : mr;
+  const z = zoomFor(r, b, (inner && inner.width) ? 1 : undefined);
+  const dx = (b.left + b.width/2 - mr.left) - cx;
+  const dy = (b.top + b.height/2 - mr.top) - cy;
   const step = (k, s) =>
     `translate(${(dx*k).toFixed(1)}px,${(dy*k).toFixed(1)}px) scale(${s.toFixed(4)})`;
   const way = going==='away'
@@ -635,14 +689,14 @@ function dive(el, r, mr, going){
 
 /* The board that has just been rendered, arriving. Set after go() because
    render() replaces #app wholesale and would take the class with it. */
-function enter(kind, from, zoom){
+function enter(kind, from, zoom, inner){
   const m=$('#app .main');
   if(!m || still()) return;
   /* Where the movement comes from. A dive grows out of the tile you touched,
      so the transform origin is that tile's centre in the arriving board's own
      coordinates — the one number that makes this a movement *through
      something* rather than a box getting bigger. */
-  if(from) dive(m, from, m.getBoundingClientRect(), zoom && 'into');
+  if(from) dive(m, from, m.getBoundingClientRect(), zoom && 'into', inner);
   const cls='in-'+kind;
   m.classList.add(cls);
   setTimeout(()=>m.classList.remove(cls), 520);

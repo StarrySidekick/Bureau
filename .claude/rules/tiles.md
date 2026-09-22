@@ -19,16 +19,16 @@ every tile, and the stylesheet only ever *takes away* what there is no longer
 room for — a tile crossing a threshold loses a line rather than rearranging
 itself. 1×1 is handled in `gridTile()` rather than in CSS: the tile is the type's
 mark and nothing else, because at 40px a title is three letters and an ellipsis.
-A drawer front at `sz-short` reaches the same answer from the other side — the
-name goes and the mark sits over the knob — and it does it in CSS, off a
-`.dmark` the plain front always renders, so the rule cannot take the name off a
-checklist that happens to be short. At `sz-thin` and **tall** the name runs
-*up* the front instead: one cell of width has no room across for a name and a
-four-cell-tall drawer has all the room it needs, only not in that direction.
-That used to be answered by turning the container into a spine; there are
-dedicated books now, so a thin drawer stays a drawer (decision 190) and the
-label is what a narrow front wears in the world too. One cell **square** is
-still the mark alone, from either side. The classes are spliced into the first `class="` of
+A drawer front at `sz-short` **or** `sz-thin` reaches the same answer from the
+other side — the name goes and the mark sits over the knob — and it does it in
+CSS, off a `.dmark` the plain front always renders, so the rule cannot take the
+name off a checklist that happens to be short. The name ran *up* a thin tall
+front for one version and came out **turned right over** on the device it
+shipped to: `writing-mode:vertical-rl` plus `rotate(180deg)` is the spine's
+pair, and either one of them not taking leaves the other doing the whole job.
+A name printed upside down is worse than no name. So what a one-cell-wide
+drawer says is what *kind* of drawer it is, and a thin container is still a
+drawer — only `face:'spine'` makes one a book. See decisions 190 and 192. The classes are spliced into the first `class="` of
 whatever `drawTile()` returns, so a new branch gets the behaviour without being
 told. See decisions 26 and 50.
 

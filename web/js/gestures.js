@@ -817,6 +817,22 @@ function onDown(e){
     }
   }
 
+  /* ---- and what is left in there is the scroll, which is the browser's ----
+     A press on the words of something under the camera that is *not* a paged
+     spread is a scroll and nothing else. It used to fall through to the tile
+     branch, where a locked board spends a drag it cannot use by walking the
+     shelves (`G.stuck`) — so pushing a zoomed note's column up sent you to
+     the next screenful of desk instead, which is "scrolling is still quite
+     buggy because it's registering swipes to go to other desks", exactly.
+
+     Claimed by claiming **nothing**: `G` stays null, the finger belongs to
+     the browser, and `.zoomread` asks for `touch-action:pan-y` so the column
+     really does scroll. The hold that starts writing is armed above and the
+     page turn is the branch just before, so both survive. See decision 192. */
+  if(zoomedIn() && e.target.closest('.zoomread')
+     && !e.target.closest('button,input,textarea,select,a,.camtools')){
+    G = null; return;
+  }
 
   if(e.button===2) return;
   if(pagerOn()) return;              // a board already in flight owns the screen
@@ -915,7 +931,7 @@ function onDown(e){
        stepX:cw+g.gap, stepY:CELL[dev()]+g.gap, sx:e.clientX, sy:e.clientY, mode:null,
        add:e.shiftKey||e.metaKey||e.ctrlKey, hits:[],
        falling: grid.classList.contains('falling'),
-       locked, axis:null, from:0, canSketch:!locked, held:false};
+       locked, axis:null, from:0, canSketch:false, held:false};
     const g0=G;
     holdTimer=setTimeout(()=>{
       holdTimer=null;
@@ -1269,7 +1285,12 @@ function onMove(e){
   }
 
   if(G.type==='sketch'){
-    // locked, and moved before the hold landed: the finger walks the boards
+    /* **Moved before the hold landed: the finger walks the boards**, and that
+       is now true on both kinds of board. An unlocked one used to sketch from
+       the first pixel of movement, which meant the one-finger swipe existed
+       only while the padlock was shut and arranging cost you the gesture you
+       navigate with. One hold, one meaning: move and you walk, hold and you
+       draw a size out. See decision 192. */
     if(!G.canSketch){ swipeMove(G, dx, dy); return; }
     if(!G.mode || !G.ghost){
       if(Math.abs(dx)<6 && Math.abs(dy)<6) return;

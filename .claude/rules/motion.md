@@ -375,3 +375,34 @@ decision 190.
 against `ZOOM_MS` arriving, through `.camslow` on the grid. Not a mistake to be
 tidied up: coming back out is the movement you have to be able to *follow*,
 because going in you already know where you are going. See decision 190.
+
+**A drawer's mouth opens onto its board, not onto the whole carcass.**
+`dive(el, r, mr, going, inner)` — `mr` is still the element's own coordinate
+space and `inner` is the box that must *become* the mouth. Pass the board's
+rect (`boardRect()`: the grid, then the scroller, then nothing) and the thing
+that grows out of the front is the board, flush to the front's own edges;
+leave it out and this is what it always was. Every layer in the movement —
+the leaving picture, the carcass, the front, and the arriving board — must be
+given the **same** rect, or the window and what is framed in it pull apart.
+Going in it is the *arriving* board, read after `go()`; coming out it is the
+*leaving* one, read before the render takes it away.
+
+Two things fall out of it and both cost a look to find:
+
+- **The bar and the rail are not drawn while the camera travels.** They are
+  `.main`'s other two children, so framing the board into the mouth leaves
+  them above and below it — furniture floating round a tile-sized opening.
+  `divechrome` hides them by `visibility` as well as `opacity` (a bar you
+  cannot see and can still press is worse than one you can see) and fades them
+  up at 72%. Forward in *both* directions: `in-diveout` runs its transform in
+  reverse, so its first frame is the zoomed-in one too.
+- **`OVER` was the inset.** It carried the mouth 28% past its target so the
+  front covering it was off the edges of the screen before it faded — free
+  while the target was the carcass, and the whole of the gap once the target
+  is the board: the same factor that overshoots at the end holds the board in
+  from the mouth at the start, by exactly that much, the whole way through. It
+  is **1** when a board is named. What seals the edge instead is `BLEED`, two
+  pixels of front and carcass past the mouth — a fixed px and not a factor,
+  because a factor is two pixels at the start and ten at the end.
+
+See decision 192.

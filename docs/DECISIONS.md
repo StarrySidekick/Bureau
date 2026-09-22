@@ -8631,3 +8631,92 @@ would eat the caret.
 *Against:* the title is gone, so a full-screen reading does not say what it is
 of. You pressed the thing to get here, so you know — and the alternative is the
 banner this mode exists to remove.
+
+## 192 · The mouth opens onto the board
+
+*2026-09-22*
+
+Eight, and the first is the one with an idea behind it.
+
+**A drawer opens onto its own board, flush to its own face.** The dive framed
+`.main` into the drawer's mouth — the bar, the board and the drawer front along
+the bottom, all three — which was right when a container's inside was a shelf
+and had nothing to do with the size of its front. Since decision 188 the board
+*is* the tile times four, so the board and the face are the **same shape**, and
+framing the carcass into the mouth put a strip of bar above the front you were
+opening and a strip of rail below it: furniture floating round a tile-sized
+opening. `dive()` takes the board's own rect now and every layer in the
+movement reads the same number; leave it out and this is exactly what it was.
+
+And the bar and the rail are **not drawn while the camera travels**, fading up
+as it lands — `visibility` as well as `opacity`, because a bar you cannot see
+and can still press is worse than one you can see. The scroller keeps the room
+they take, or the board would jump a bar's height on arrival.
+
+The third part is the one that was hiding. `OVER` carried the mouth 28% past
+its target so it would be off the edges of the screen before the front covering
+it began to fade — invisible while the target was the whole carcass, and *the
+whole of the gap* once the target is the board: the same factor that pushes the
+mouth out past the board at the end holds the board in from the mouth at the
+start, by exactly that much, all the way through. A 22% margin of the drawer's
+dark inside its own face, for the length of the movement. It is 1 when a board
+is named, and what seals the edge is `BLEED` — two pixels of front and carcass
+past the mouth, the same two at every moment, where a factor is two at the
+start and ten at the end.
+
+**The lock is not the background**, which takes back half of decision 190 four
+hours after shipping it. Tying the surface to the lock made the thing you look
+at all day change under a switch you flick all day, and the checkerboard is
+what Timothy wants to be looking at. What survives is the *option*:
+`S.look.surface` is graph paper, a plain sheet, or the carcass's own wood, and
+it is a thing you set once, so it is a row in Settings rather than a
+consequence of a gesture. The corner marks stay gone: that was a separate ask
+in the same message, and the padlock in the bar says which mode you are in.
+
+**One hold, one meaning.** A bare cell on a locked board wanted 300ms before it
+would sketch, and on an unlocked one it sketched from the first pixel — so the
+one-finger swipe that walks the shelves existed only while the padlock was
+shut, and arranging cost you the gesture you navigate with. `canSketch` starts
+false on both now: move and the finger walks the boards, hold and it draws a
+size out. The phone grid takes `touch-action:none` on both for the same reason
+the locked one already did.
+
+**Three bugs, and two of them were mine from the last round.**
+
+A thin tall drawer's name ran *up* the front — a label set along a narrow
+drawer, which is what a narrow drawer wears in the world — and on the device it
+shipped to it came out turned right over. `writing-mode:vertical-rl` plus
+`rotate(180deg)` is the spine's pair and either one of them not taking leaves
+the other doing the whole job. A name printed upside down is worse than no
+name, and the mark was already the answer at one cell of height, so one rule
+covers thin and short alike and a one-cell-wide drawer says what *kind* of
+drawer it is. A thin container is still a drawer; only `face:'spine'` makes one
+a book.
+
+Pushing a zoomed note's column walked the shelves instead of scrolling it. A
+press inside `.zoomread` fell through to the tile branch, where a locked board
+*spends* a drag it cannot use by walking the boards (`G.stuck`) — so the
+commonest gesture in the camera was answered by the gesture furthest from it.
+It is claimed by claiming **nothing**: `G` stays null, the finger belongs to
+the browser, and `.zoomread` asks for `touch-action:pan-y`, which is the narrow
+way back out of the board's `touch-action:none` — up and down is the column's,
+sideways is still nobody's, so a diagonal flick cannot turn into a shelf change
+half way down a note.
+
+And full screen was solid in every way but the two that mattered. The page's
+top padding and the floating way-out were two numbers said in two places, so
+the first line of a note ran straight under the ×; they read one token now
+(`--fbclear`), and the same at the foot for the page turns. The turns are
+centred by a full-width strip, which was taking the presses with it — a
+transparent 28px band across the bottom of the page that no part of looks like
+a control and none of which you can put a caret in. And the stage is
+`pointer-events:none` with its children `auto`, so a press on the surround
+falls through to the scrim and closes the reading: right for a sheet floating
+in the middle of a desk, and "you can tap stuff that's behind the screen" when
+the sheet *is* the screen. Full screen has no surround, so it takes the presses
+and paints the paper itself.
+
+*Against:* with the lock back out of the background, the only thing saying
+which mode a board is in is the padlock in the bar — the corner marks are gone
+and the surface no longer answers. That is one small signal for a state that
+changes what every gesture on the board means.

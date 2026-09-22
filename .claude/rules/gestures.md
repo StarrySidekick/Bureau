@@ -153,9 +153,15 @@ builds the same board windowed one shelf over. See decisions 38 and 141.
 
 **Tapping bare board does nothing on a phone; holding it makes something
 there.** One way in, and it is the good one: **holding a bare cell** lights that
-cell, sizes a box as you drag, and opens the picker on it when you let go. On a
-locked board the difference is purely *when you move*: move first and the finger
-walks the boards, hold first and it sketches. There was a second — pulling a
+cell, sizes a box as you drag, and opens the picker on it when you let go. The
+difference is purely *when you move*, and it is the same on **both** boards
+since decision 192: move first and the finger walks the shelves, hold first and
+it sketches. `canSketch` starts false either way — it used to start true on an
+unlocked board, which sketched from the first pixel and meant the one-finger
+swipe existed only while the padlock was shut, so arranging cost you the
+gesture you navigate with. The phone grid takes `touch-action:none` on both for
+the same reason the locked one always did; `.zoomread` asks for `pan-y` to get
+its own scroll back out of that. There was a second — pulling a
 drawer front up out of the shelf (decision 43) — and it went with the shelf,
 which is no loss: pulling made a thing with nowhere in mind, and holding a cell
 makes one *there*, which is what a grid is for. See decisions 47 and 53.
@@ -223,3 +229,12 @@ transition off): a tile that lags your thumb reads as a tile you have not picked
 up. One `pushSets` for the whole shuffle, and `toast(…, true)` — a reorder with
 nothing in front of it is a way back that only exists on a keyboard. See
 decision 168.
+
+**A press inside `.zoomread` is claimed by claiming nothing.** A zoomed note's
+column is pushed, and the press used to fall through to the tile branch — where
+a locked board *spends* a drag it cannot use by walking the shelves
+(`G.stuck`), so the commonest gesture in the camera was answered by the gesture
+furthest from it. `onDown` returns with `G` left null, the finger belongs to the
+browser, and the column scrolls. It sits **after** the page-turn branch (a
+paged spread is a turn, not a scroll) and **after** the hold that starts
+writing (which is armed, not claimed), so both survive. See decision 192.

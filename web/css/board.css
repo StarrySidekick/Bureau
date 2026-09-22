@@ -380,12 +380,12 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
   border-radius:var(--radius);
   opacity:var(--board-alpha,1);
   background-color:var(--board-1);
-  /* **The checkerboard is what unlocked looks like** — decision 190. It is
-     graph paper, and graph paper is for arranging: locked, the board is one
-     quiet surface and the squares are noise on something you are only reading.
-     It is also the *whole* of how you can tell which mode you are in, which is
-     why the corner grips stopped drawing their marks — a background you
-     cannot miss beats four eight-pixel squares you can. */
+  /* **The checkerboard is the board**, in both modes — decision 192, which
+     takes 190's second half back. Tying it to the lock made the surface you
+     look at all day change under a switch you flick all day, and the
+     checkerboard is the one Timothy wants to be looking at. What is left of
+     190 is the *option*: `S.look.surface` picks graph paper, a plain sheet or
+     the carcass's own wood, and it is a thing you set once. */
   background-image:conic-gradient(
     var(--board-2) 0 25%, transparent 0 50%,
     var(--board-2) 0 75%, transparent 0);
@@ -397,8 +397,12 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
   background-size:var(--checkerx,var(--checker,160px)) var(--checkery,var(--checker,160px));
   background-position:0 0;
 }
-/* Locked: no squares, and the board takes the carcass's own colour so the
-   surface reads as one piece with the bar above it and the drawer below.
+/* ---- what the board is made of — decision 192 -------------------------
+   Three answers, and the default is the squares. `plain` is the board colour
+   with nothing drawn on it; `wood` is the carcass's own, so the surface reads
+   as one piece with the bar above it and the drawer below. `S.look.surface`
+   writes `data-surface` onto the root, and both of these only ever *take the
+   drawing away* — the colour underneath is the one the board already had.
 
    **It has to be the `::before`, and it has to outrank an aesthetic.** The
    checkerboard is painted on the pseudo-element, not on `.grid` — so the
@@ -408,8 +412,12 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
    the file at `html[data-style="starry"] .grid::before`, which outranks a
    two-class rule, so the second selector is the same declaration said loudly
    enough to beat any aesthetic that has its own answer. */
-.grid.locked::before,
-html[data-style] .grid.locked::before{
+html[data-surface="plain"] .grid::before,
+html[data-style][data-surface="plain"] .grid::before{
+  background-image:none;
+}
+html[data-surface="wood"] .grid::before,
+html[data-style][data-surface="wood"] .grid::before{
   background-image:none;
   background-color:var(--wood);
   opacity:1;
@@ -3209,11 +3217,20 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
 }
 .zoomread .zoombody{flex:1 1 auto;min-height:0;position:relative}
 /* A scroll is a column you push. `overscroll-behavior` keeps a flick that
-   reaches the end from walking the board behind it. */
+   reaches the end from walking the board behind it.
+
+   **And the grid has to give the finger back.** A phone board is
+   `touch-action:none`, because one finger walks the shelves there (decision
+   192) — which is right for the board and wrong for the one thing on it you
+   are meant to push. `pan-y` is the narrow way back: up and down is the
+   column's, sideways is still nobody's, so a diagonal flick cannot turn into
+   a shelf change half way down a note. */
 .zoomread.zscroll .zoombody{
   overflow-y:auto;overscroll-behavior:contain;
   -webkit-overflow-scrolling:touch;
+  touch-action:pan-y;
 }
+.zoomread{touch-action:pan-y}
 .zoomread p{margin:0 0 .75em}
 .zoomread h1,.zoomread h2,.zoomread h3{margin:0 0 .45em;line-height:1.2}
 .zoomread h1{font-size:1.5em} .zoomread h2{font-size:1.28em} .zoomread h3{font-size:1.1em}

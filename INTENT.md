@@ -80,6 +80,41 @@ and the nameplate), because it was the part with nothing underneath it —
 additive, no gesture touched, no migration. The rest is in order of what it
 needs.
 
+### Added 2026-09-22 — the camera, and then five rounds of living with it
+
+Five reports in one day, each one a list, and they are all the same kind of
+work: **the desk objects are built and now they have to behave.** The camera
+(decision 187) was the big idea — you go to the object where it sits, rather
+than the object coming to you — and everything since has been the consequences
+of it meeting the rest of the app.
+
+What came out of it that is worth carrying forward:
+
+- **A container's board is its own tile, four cells to a cell**, read off the
+  box for the device you are looking at, and inside one the desk's nine
+  shelves do not apply at all: a board is exactly `w×4` by `h×4`, centred if
+  it is smaller than the screen and paged if it is bigger (decisions 188, 190,
+  192). This is the rule the drawer sizes finally mean something under.
+- **A drawer opens onto that board, flush to its own face** (192). The two are
+  the same shape now, so the opening is a window rather than a box growing.
+- **Full screen means the screen** (191).
+- **One hold, one meaning**, on both kinds of board (192).
+
+Three things Timothy said twice, which is the signal to write them down:
+
+1. *Proportion.* He asked for it three rounds running before it was right,
+   because each fix was true of one device and not the other. The answer that
+   held is per-device.
+2. *Don't put furniture round the thing I am looking at.* The bar and the rail
+   during a dive, the title banner in full screen, the margins round a
+   "full screen" page. Every time, the fix was to take the frame away.
+3. *Give me the option rather than the decision.* The locked/unlocked
+   background was a rule; it is a setting now.
+
+**Timothy's standing note on this stretch:** the reports arrive as spoken
+lists, several items long, mixing a structural idea with three small bugs.
+Take the structural one first and say which it was.
+
 ## Deliberately not next
 
 - **Sync between devices.** It is real and it is coming, *after* the feature set

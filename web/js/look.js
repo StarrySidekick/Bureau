@@ -236,10 +236,25 @@ function applyLook(){
      re-dresses on a switch; picked one stays picked, everywhere. See
      decision 100. */
   el.dataset.checks = CHECKS[L.check] ? L.check : (CHECKS[styleNow().check] ? styleNow().check : 'circle');
+  /* **What the board is made of**, which is one attribute for the same reason
+     the tick box is: the squares are painted on `.grid::before` and an
+     aesthetic may restate the whole of that background, so the answer has to
+     be somewhere that can outrank one. `grid` is the default and writes
+     nothing, so a desk that has never been asked is a desk with graph paper
+     on it. See decision 192. */
+  if(SURFACES[L.surface] && L.surface !== 'grid') el.dataset.surface = L.surface;
+  else delete el.dataset.surface;
   // the theme block still owns the shadows, and which one is showing is the
   // style's background rather than a switch of its own
   document.documentElement.dataset.theme = themeNow();
 }
+
+/* The three things a board can be made of. Graph paper is for arranging and
+   is the default; a plain sheet is the same colour with nothing drawn on it;
+   the carcass is the wood the bar and the drawer front are, so the whole
+   screen reads as one piece of furniture. Named here rather than in the
+   settings panel, because `applyLook()` has to validate what it writes. */
+const SURFACES = {grid:'Graph paper', plain:'Plain', wood:'The carcass'};
 
 /* A board for a new drawer: one hue, two lightnesses, low saturation. Picking
    from a hue wheel rather than at random keeps it mild — nothing neon, and the
@@ -743,7 +758,7 @@ const BACKDROPS = [
 
 export { themeNow, lookVal, setLookVal, applyLook, applyStyle, styleDefaults,
   DARKMODES, darkMode, hasDark, darkNow, systemDark,
-  randomFront, randomBoard, randomLook, STYLES, BACKDROPS,
+  randomFront, randomBoard, randomLook, STYLES, BACKDROPS, SURFACES,
   SLOTS, OBJ0, OBJN, ROLES, slotName, styleNow, palNow, setSlot,
   BORDER_SLOTS, borderSlots, panelSlots, knobSlots, plateSlots, textureSlots, bindingSlots, stockSlots, stockNow,
   FAMS, famSlots, famNames, famAll, styleKey, styleFor, dress, dressAs, CHECKS, checkNow,

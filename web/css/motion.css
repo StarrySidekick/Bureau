@@ -125,6 +125,26 @@
   87.5% {transform:var(--dive7,scale(.92))}
   100%  {transform:var(--dive8,none); opacity:1}
 }
+/* **The furniture is not part of the journey.** `.main` is the bar, the board
+   and the drawer front along the bottom, and the movement now frames the
+   *board* into the drawer's mouth (see `dive()`), which leaves the bar above
+   the mouth and the rail below it — two strips of furniture floating around a
+   tile-sized opening, which is what "they're floating on the top and bottom of
+   the object" was. They are not drawn while the camera is travelling and fade
+   up as it lands: `visibility` as well as `opacity`, so nothing in them can be
+   pressed on the way. The scroller keeps the room they take, or the board
+   would jump a bar's height when they come back. See decision 192. */
+/* Forward in both directions, and that is not a slip: `in-diveout` runs its
+   *transform* in reverse, so at the first frame of coming out the board is
+   still zoomed into the mouth it is leaving through. Hidden then, visible when
+   it lands — which is the same sentence as going in. */
+.main.in-dive > .gridbar,.main.in-dive > .deskrail,
+.main.in-diveout > .gridbar,.main.in-diveout > .deskrail{
+  animation:divechrome var(--divems,.52s) linear both}
+@keyframes divechrome{
+  0%,72% {opacity:0; visibility:hidden}
+  100%   {opacity:1; visibility:visible}
+}
 /* The board you are leaving, as a still picture, growing past the camera —
    the half of the movement that makes the other half read as travel rather
    than as a box getting bigger. Same origin, same clock, same curve. */
@@ -391,15 +411,18 @@
 /* a pane's copy of the board is a picture of one: nothing in it scrolls, and
    the grid inside it must not try to be measured */
 .pager .pane .scroll{overflow:hidden}
-/* a locked board is where one finger navigates, so the browser must not also
-   read that finger as a scroll — there is nothing to scroll to on a page */
-.is-phone .grid.locked{touch-action:none}
+/* One finger navigates on **either** board now (decision 192), so the browser
+   must not also read that finger as a scroll — and there is nothing to scroll
+   to on a phone, where the board is one screenful and a bigger one pages. */
+.is-phone .grid{touch-action:none}
 
 @media (prefers-reduced-motion: reduce){
   .fxopen,.fxring,#fx > *{display:none}
   .drawer.curling,.drawer.lifting,.drawer.popped,
   .main.in-drawer,.main.in-cabinet,.main.in-back,
   .main.in-dive,.main.in-diveout{animation:none}
+  .main.in-dive > .gridbar,.main.in-dive > .deskrail,
+  .main.in-diveout > .gridbar,.main.in-diveout > .deskrail{animation:none}
   .curlshade{display:none}
 }
 

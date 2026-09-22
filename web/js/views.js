@@ -10,7 +10,7 @@ import { S, K, T, byId, has, isContainer, containers, container, childrenOf, cha
 import { GRID, PHONE_GRIDS, CELL, COLW, MEASURE, sideways, colsOf, gridKeyOf, SHELVES, shelvesOf,
   shelfRows, shelfOfBox, shelfAt, setShelf, shelfOrigin, SHELF, drawCols, drawRows,
   lay, gridOf, cellW, ensureBox, innerOf, PLACED } from './grid.js';
-import { themeNow, applyLook, lookVal, STYLES, BACKDROPS, DARKMODES, darkMode, hasDark,
+import { themeNow, applyLook, lookVal, STYLES, BACKDROPS, SURFACES, DARKMODES, darkMode, hasDark,
   palNow, styleNow, hexOf, objColour, slotName, OBJ0, CHECKS, dressAs } from './look.js';
 import { gridOfContainer, gridTile, listTile, bookView, calSpan } from './tiles.js';
 import { gravitySync } from './gravity.js';
@@ -748,6 +748,16 @@ function settingsBody(sec){
       <div class="filterbar">${Object.entries(CL_FITS).map(([v,n])=>
         `<button class="fchip${clFit()===v?' on':''}" data-clfit="${v}">${n}</button>`).join('')}</div>
       <div class="mini" style="--k:var(--brass);margin-top:6px">Twice as many packs two lines into every cell of a checklist's height, with the type and the box brought down to suit — a six-cell front shows twelve things to do instead of six. One per cell is a line exactly as tall as the task tile it stands for. Each device answers for itself: a phone is one per cell and a Mac is twice as many, until you say otherwise here.</div>
+    </div>
+
+    ${/* What the board is made of. It was tied to the lock for one version —
+          graph paper unlocked, the carcass locked — and that made the surface
+          you look at all day change under a switch you flick all day. It is a
+          thing you set once, so it is a row. See decision 192. */''}
+    <div class="field" style="margin-top:12px"><label>What the board is made of</label>
+      <div class="filterbar">${Object.entries(SURFACES).map(([v,n])=>
+        `<button class="fchip${(S.look.surface||'grid')===v?' on':''}" data-surface="${v}">${n}</button>`).join('')}</div>
+      <div class="mini" style="--k:var(--brass);margin-top:6px"><b>Graph paper</b> is the checkerboard, two cells to a square, and it is what arranging is done on. <b>Plain</b> is the same colour with nothing drawn on it. <b>The carcass</b> is the wood the bar above and the drawer along the bottom are made of, so the whole screen reads as one piece of furniture. The board's own colour is still the board's own colour — this only says what is drawn on it.</div>
     </div>
 
     ${/* Six tick boxes, each drawn as itself — ticked, because what a box

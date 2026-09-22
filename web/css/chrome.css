@@ -600,9 +600,26 @@
   --stage-x:0px;--stage-y:0px;--bookchrome:0px;--pages:1;
   --avail-w:100vw;--avail-h:var(--vvh,100vh);
   --pageh:var(--vvh,100vh);--pagew:100vw;--paperw:100vw;
+  /* **Where the two floating controls are, said once.** The way out and the
+     page turns sit over the paper, so the paper has to keep its words out
+     from under them — and the first version said the two numbers in two
+     places, which put the first line of a note straight through the ×.
+     `--fbclear` is what a control costs at the top or the bottom, and both
+     the control's own offset and the page's padding read it. */
+  --fbedge:12px; --fbctl:34px;
+  --fbclear:calc(env(safe-area-inset-top) + var(--fbedge) + var(--fbctl) + 10px);
+  --fbclearb:calc(env(safe-area-inset-bottom) + var(--fbedge) + var(--fbctl) + 10px);
 }
+/* **Solid, and it claims its own pointers.** The stage is `pointer-events:
+   none` with its children `auto`, so a press on the surround falls through to
+   the scrim behind and closes the reading — which is right for a sheet
+   floating in the middle of a desk, and is "you can tap stuff that's behind
+   the screen" when the sheet *is* the screen. Full screen has no surround, so
+   it takes the presses and paints the paper itself: whatever the page does or
+   does not reach, there is no pixel here that belongs to the board. */
 .bookstage.fullbleed{
   top:var(--vvt,0px);left:0;right:0;height:var(--vvh,100vh);gap:0;
+  pointer-events:auto;overflow:hidden;background:var(--paper);
 }
 /* The title goes with the rest of it: a name printed over the words is the
    furniture this mode exists to get rid of, and you pressed the thing to get
@@ -624,9 +641,9 @@
    That is the whole difference between edge to edge and unreadable. */
 .bookstage.fullbleed .spread .page,.bookruler.fullbleed .spread .page{
   border-right:0;
-  padding:calc(env(safe-area-inset-top) + clamp(22px,4.5vw,64px))
+  padding:max(var(--fbclear), calc(env(safe-area-inset-top) + clamp(22px,4.5vw,64px)))
           max(clamp(18px,7vw,120px), calc((100% - 68ch) / 2))
-          calc(env(safe-area-inset-bottom) + clamp(28px,5vw,72px));
+          max(var(--fbclearb), calc(env(safe-area-inset-bottom) + clamp(28px,5vw,72px)));
 }
 /* The sideways figure is the **measure**, said the way scroll mode already
    says it: a percentage in `padding` resolves against the page's own width, so
@@ -638,8 +655,13 @@
 .bookstage.fullbleed .spread .pno{display:none}
 .is-phone .bookstage.fullbleed .spread .page,
 .is-phone .bookruler.fullbleed .spread .page{
-  padding:calc(env(safe-area-inset-top) + 26px) 20px
-          calc(env(safe-area-inset-bottom) + 30px);
+  padding:var(--fbclear) 20px var(--fbclearb);
+}
+/* Scroll mode has nothing to turn, so the room the turns would want goes back
+   to the words. The **ruler never sees this**, and must not: pagination only
+   ever runs for a paged spread. */
+.bookstage.rm-scroll.fullbleed .spread .page{
+  padding-bottom:calc(env(safe-area-inset-bottom) + 30px);
 }
 /* ---- and the bar becomes two things floating over the page ------------
    The way out, top right, which is what was asked for. And the page turns,
@@ -664,13 +686,18 @@
 }
 .bookstage.fullbleed .bkout{
   position:absolute;pointer-events:auto;
-  top:calc(env(safe-area-inset-top) + 12px);right:12px;
+  top:calc(env(safe-area-inset-top) + var(--fbedge));right:var(--fbedge);
 }
+/* The turns are **centred by a full-width strip that catches nothing**. It
+   has to span the width to centre in it, and it must not take the presses
+   with it: a transparent 28px band across the bottom of the page is a band of
+   words you cannot put a caret in, and no part of it looks like a control. */
 .bookstage.fullbleed .bkturn{
-  position:absolute;pointer-events:auto;left:0;right:0;
+  position:absolute;pointer-events:none;left:0;right:0;
   justify-content:center;
-  bottom:calc(env(safe-area-inset-bottom) + 12px);
+  bottom:calc(env(safe-area-inset-bottom) + var(--fbedge));
 }
+.bookstage.fullbleed .bkturn > *{pointer-events:auto}
 .bookstage.rm-scroll.fullbleed .bkturn{display:none}
 /* Light on dark was right over the scrim and is invisible over paper, so both
    dress as the page's own ink on a wash of its own stock — which works on all
@@ -3534,36 +3561,18 @@ html[data-style="golf97"] .check,html[data-style="golf97"] .clbox{border-radius:
    on the knob rather than fighting it */
 .drawer.dtile.sz-short .pull,.drawer.dtile.sz-thin .pull{opacity:.5}
 .drawer.dtile.sz-thin{padding:4px}
-/* **…unless it is thin and tall, where the name runs up the front.** One cell
-   of width has no room *across* for a name, which is why the rule above takes
-   it off — but a thin drawer four cells tall has all the room it needs, only
-   not in that direction. It used to be answered by turning the container into
-   a spine (decision 50), and there are dedicated books now, so a thin drawer
-   stays a drawer (decision 190) and would otherwise be an anonymous slab with
-   a folder on it. A label set up a narrow front is what a narrow drawer wears
-   in the world too, and it is still a drawer: the wood, the knob, the moulding
-   and the grain are all untouched, where a book is a binding, a round back and
-   gilt bands. One cell **square** keeps the mark, because there is no length
-   there to set a name along either.
+/* **A thin front wears its mark and no name at all.** The name ran *up* it
+   for one version — a label set along a narrow drawer, which is what a narrow
+   drawer wears in the world — and on the device it shipped to it came out
+   turned right over: `writing-mode:vertical-rl` plus `rotate(180deg)` is the
+   spine's pair, and either one of them not taking leaves the other doing the
+   whole job. A name printed upside down is worse than no name, and the mark
+   above was already the answer at one cell of height. So one rule covers both
+   thin and short, and the thing a one-cell-wide drawer says is what *kind* of
+   drawer it is. See decision 192, which takes back half of 190.
 
-   The rotation is the spine's, and so is the trap: a `vertical-rl` box's
-   `start` is its *top*, which `rotate(180deg)` flips to the bottom — so a
-   short name on a tall front sits on the tail unless `text-align` says
-   otherwise. No `align-items` can reach it. */
-.drawer.dtile.sz-thin:not(.sz-short) .dmark{display:none}
-/* the knob comes back to full: it was dimmed to let the mark sit on it, and
-   there is no mark here to make room for */
-.drawer.dtile.sz-thin:not(.sz-short) .pull{opacity:1}
-.drawer.dtile.sz-thin:not(.sz-short) .dmark ~ .dtop{
-  display:flex;position:absolute;inset:7px 0 auto;margin:0;height:58%;
-  align-items:center;justify-content:center;z-index:2;
-}
-.drawer.dtile.sz-thin:not(.sz-short) .dmark ~ .dtop .dname{
-  writing-mode:vertical-rl;transform:rotate(180deg);
-  max-height:100%;text-align:center;white-space:nowrap;
-  overflow:hidden;text-overflow:ellipsis;
-  text-shadow:0 1px 1px rgba(0,0,0,.35);
-}
+   What has not come back is the **spine**: a thin container is still a drawer
+   and only a `face:'spine'` makes one a book. */
 
 /* the gilt edge carries its own hairline, in leaf rather than in the line slot */
 .drawer.bd-gilt{ border-style:solid;border-width:1px;

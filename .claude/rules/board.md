@@ -375,17 +375,26 @@ Three things fall out of it, and all three cost a run to find:
 
 See decision 188.
 
-**The lock is the background, and that is the whole of how you can tell.**
-Unlocked, a board is the checkerboard — graph paper, which is what arranging is
-done on. Locked, it is one quiet surface in `--wood`, running unbroken from the
-bar above to the drawer below. The four transparent squares in every tile's
-corners are gone: they said the same one bit of information at a great deal of
-furniture, and the **targets** are untouched, because a grip was always bigger
-than the mark advertising it (decision 81). Two traps, both silent: the squares
-are painted on `.grid::before`, so a colour set on `.grid` goes *behind* them
-and the rule reads as never written; and an aesthetic that restates the whole
-background (`html[data-style="starry"] .grid::before`) outranks a two-class
-rule. Making a container unlocks the desk. See decision 190.
+**What a board is made of is a setting, and it is the same in both modes.**
+`S.look.surface` — graph paper (the default, and what arranging is done on), a
+plain sheet, or `--wood`, the carcass's own, so the whole screen reads as one
+piece of furniture. `applyLook()` writes `data-surface` onto the root and only
+when there is something to say, so a desk that has never been asked has none.
+It was tied to the **lock** for four hours (decision 190) and that was wrong
+twice over: the surface you look at all day changed under a switch you flick
+all day, and the checkerboard is the one to be looking at. See decision 192.
+
+Two traps here, both silent: the squares are painted on `.grid::before`, so a
+colour set on `.grid` goes *behind* them and the rule reads as never written;
+and an aesthetic that restates the whole background
+(`html[data-style="starry"] .grid::before`) outranks a two-class rule, so the
+override says itself twice — once plainly and once loudly enough to beat one.
+
+The four transparent squares in every tile's corners stay gone, which is the
+half of 190 that was asked for on its own. The **targets** are untouched: a
+grip was always bigger than the mark advertising it (decision 81). What says
+which mode you are in is the padlock in the bar. Making a container unlocks the
+desk.
 
 **A search sits in the bar, between the dots and the tools.** `searchHits(q,
 scopeId)` in model.js — everything in Bureau from a desk, this drawer and

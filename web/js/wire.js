@@ -1188,6 +1188,16 @@ function wire(){
       }
       return; }
 
+    /* What the board is made of — graph paper, plain, or the carcass's own
+       wood. Graph paper is the default, so it is **deleted** rather than
+       stored: `applyLook()` writes the attribute only when there is something
+       to say, and a key meaning "the default" in every backup is a key nobody
+       needed. Same shape as the spray and the tick box. See decision 192. */
+    const srf=t.closest('button[data-surface]');
+    if(srf){ const v=srf.dataset.surface;
+      if(v && v!=='grid') S.look.surface = v; else delete S.look.surface;
+      applyLook(); save(); render(); refreshPanel(); return; }
+
     const chk=t.closest('button[data-checks]');
     // an empty value is the way back to the aesthetic's own, and it has to
     // be deleted rather than stored as '' — applyLook() tests the key

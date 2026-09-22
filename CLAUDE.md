@@ -29,6 +29,19 @@ Everything in the requirements list is implemented **except** sync between
 devices (export/import JSON is the bridge). Images, sound and video are all
 real.
 
+**Where the last stretch of work got to (v1.80, 2026-09-22).** Five rounds in
+one day, all of them living with the **camera** (decision 187 — you go to the
+object where it sits). What settled out of them and is now load-bearing:
+a container's board is **its own tile, four cells to a cell**, read off the box
+for the device being drawn, with no shelves inside one — a board is exactly
+`w×4` by `h×4`, centred if it is smaller than the screen and paged if it is
+bigger (188, 190, 192); a drawer **opens onto that board flush to its own
+face**, with the bar and the rail not drawn while the camera travels (192);
+**full screen means the screen** (191); and **one hold means one thing** on
+both kinds of board (192). Decisions 187–192 are the whole of it and are worth
+reading before touching the camera, the dive, a container's board or the
+reading surface.
+
 **Start here each session:** `docs/SYSTEM.md` is the reference for what Bureau is
 made of — objects, attributes, types, drawers, the grid, the surfaces, storage.
 `docs/ROADMAP.md` holds the current plan in dependency order, and

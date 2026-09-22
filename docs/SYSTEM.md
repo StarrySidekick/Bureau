@@ -646,6 +646,13 @@ half the size on a phone, so reading the desk box on both gave a drawer that
 looks four cells by two on a phone a board of thirty-two by sixteen. A
 container's two boards may be different shapes; that is what two layouts means.
 
+**A drawer opens onto that board, flush to its own face.** The two are the same
+shape, so the dive frames the *board* into the drawer's mouth rather than the
+whole carcass — and the bar and the drawer front along the bottom are not drawn
+at all while the camera travels, fading up as it lands. What you go through is
+a window the size of the front, not a box growing inside furniture. See
+decision 192.
+
 **And inside one there are no shelves.** The nine belong to the desk, which is
 not a tile. A container's board is exactly its own size times four and nothing
 else, and how many screenfuls that is comes out of the arithmetic rather than
@@ -654,6 +661,14 @@ a phone — so a 4×2 drawer is two screenfuls you swipe between, through the sa
 pager and the same dots the desk uses. A board shorter than the screen is
 centred in the carcass rather than pinned to the top of it. See decisions 188
 and 190.
+
+**What a board is made of is a setting.** `S.look.surface` — graph paper (the
+checkerboard, two cells to a square, and what arranging is done on), a plain
+sheet, or `--wood`, the carcass's own, so the whole screen reads as one piece
+of furniture. It is the same on a locked board and an unlocked one: it was
+tied to the lock for four hours and that made the surface you look at all day
+change under a switch you flick all day. Which mode a board is in is the
+padlock in the bar. See decision 192.
 
 **Navigation is the desks, and nothing else.** There are no tabs and no shelf.
 `S.desks` is the row of desks, walked with a sideways swipe and laid out all at

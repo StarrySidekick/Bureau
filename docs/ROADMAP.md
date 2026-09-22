@@ -5,6 +5,32 @@ Sequenced by dependency, not appetite: item 1 makes everything after it safer.
 
 ---
 
+## 0zi. Reported 2026-09-22 — the mouth opens onto the board — DONE (v1.80)
+
+Eight. Decision 192.
+
+**"The grid space should push to the borders of the exterior drawer face."**
+A container's board is its own tile times four, so the two are the same shape —
+and the dive was framing the whole carcass into the mouth, which put a strip of
+bar above the front and a strip of rail below it and held the board in from the
+face by the overshoot factor all the way through. The board is the thing that
+grows out of the mouth now, flush to the face, and the bar and the rail are not
+drawn until it lands.
+
+**"Reverse that decision about locked and unlocked backgrounds."** Done, and
+what survives is the option: *What the board is made of* in Settings — graph
+paper, plain, or the carcass's own wood.
+
+**"Make the hold the same in locked and unlocked."** It is, and the one-finger
+swipe that walks the shelves now works on both.
+
+Three bugs: a thin drawer's name came out upside down (it is the mark again);
+pushing a zoomed note's column walked the shelves instead of scrolling it; and
+full screen let a tap reach the board behind it and ran its first line under
+the way-out.
+
+---
+
 ## 0zh. Reported 2026-09-22 — full screen means the screen — DONE (v1.79)
 
 Decision 191. **"Going full screen on a note brings it like real full screen,

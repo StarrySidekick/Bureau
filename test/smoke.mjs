@@ -2179,11 +2179,25 @@ const CHROME = process.env.BUREAU_CHROME;
     const zoom = twin && parseFloat(twin.style.getPropertyValue('--divez'));
     out.theZoomIsMeasured = zoom > 1 && Math.abs(sc(twin, '--dive8') - zoom) < .01;
     out.andTheTwoHalvesAgree = Math.abs(sc(twin, '--dive8') * sc(main, '--dive0') - 1) < .01;
-    /* and it grows by the same factor each frame, not the same amount — the
-       waypoint sits below the arithmetic middle, which is what a steady camera
-       does and a linear ramp does not */
+    /* **It grows by the same factor each frame, not the same amount** — the
+       waypoint sits below where a linear ramp would put it *at the same
+       moment*, which is what a steady camera does and a ramp does not.
+
+       The fraction is read out of the waypoint rather than guessed at: the
+       same `step()` writes the translate and the scale, so the translate at
+       stop 4 over the translate at stop 8 **is** the eased fraction the scale
+       was taken at. It used to be a hand-tuned .62, which was not a fact about
+       the curve at all — it was a fact about how big `z` happened to be, and
+       it failed the day decision 192 took the overshoot out of the zoom while
+       changing nothing whatever about the shape. */
+    const trav = (el, k) => { const v = el ? el.style.getPropertyValue(k) : '';
+      const m = /translate\(([-\d.]+)px,\s*([-\d.]+)px\)/.exec(v);
+      return m ? Math.max(Math.abs(+m[1]), Math.abs(+m[2])) : 0; };
+    const far = trav(twin, '--dive8');
+    const at = far > 1 ? trav(twin, '--dive4') / far : 0.7743;   // centred both ways
     const mid = sc(twin, '--dive4');
-    out.theCameraMovesSteadily = mid > 1 && mid < 1 + (zoom - 1) * .62;
+    out.theCameraMovesSteadily = mid > 1 && at > 0 && at < 1
+      && mid < 1 + (zoom - 1) * at - 0.01;
     /* **And the easing is in the numbers, not on the animation.** A CSS timing
        function applies to every segment rather than to the run, so a bezier
        here is one ease-in-out per gap and the camera stops dead at each
@@ -4491,10 +4505,16 @@ const CHROME = process.env.BUREAU_CHROME;
        it was a drawer and nothing about *which* drawer. */
     const col = document.querySelector(`.grid .drawer[data-drawer="${thin.id}"]`);
     out.oneCellWideIsStillADrawer = !!col && !col.classList.contains('spinetile');
-    const upright = col && col.querySelector(':scope > .dtop .dname');
-    out.andItsNameRunsUpIt = !!upright && upright.textContent.trim() === 'Column'
-      && /vertical/.test(getComputedStyle(upright).writingMode)
-      && getComputedStyle(upright.closest('.dtop')).display !== 'none';
+    /* …and what it says is what **kind** of drawer it is. The name ran up the
+       front for one version and came out turned right over on the device it
+       shipped to — `vertical-rl` and `rotate(180deg)` are a pair, and either
+       one not taking leaves the other doing the whole job. A name printed
+       upside down is worse than no name. See decision 192. */
+    const thinMark = col && col.querySelector(':scope > .dmark');
+    const thinName = col && col.querySelector(':scope > .dtop');
+    out.andItWearsItsMarkInstead = !!thinMark
+      && getComputedStyle(thinMark).display !== 'none'
+      && (!thinName || getComputedStyle(thinName).display === 'none');
     [tall,wide,big,flat,thin].forEach(d => BUREAU.delDrawer(d.id));
     S.undo=[]; BUREAU.render();
     return out;
@@ -8593,10 +8613,12 @@ const CHROME = process.env.BUREAU_CHROME;
                  '::before').content };
     };
     const shut = look(true), open = look(false);
-    const wood = getComputedStyle(document.querySelector('#frame'))
-      .getPropertyValue('--wood').trim();
-    out.lockedIsOneSurface = !shut.squares && !!wood;
-    out.unlockedIsGraphPaper = open.squares;
+    /* **The lock is not the surface.** It was for four hours — graph paper
+       unlocked, the carcass locked — and that made the thing you look at all
+       day change under a switch you flick all day. Both boards are graph
+       paper, and which of the three a board is made of is a setting;
+       `openingIn` is where that is asked about. See decision 192. */
+    out.bothBoardsAreGraphPaper = shut.squares && open.squares;
     out.noCornerMarks = open.grip && open.mark === 'none';
     /* …and a new container turns the board back on, because you have just
        made somewhere to arrange things and arranging is what unlocked is. */
@@ -8781,6 +8803,91 @@ const CHROME = process.env.BUREAU_CHROME;
     return out;
   });
 
+  /* --- decision 192: the mouth opens onto the board, the lock is not the
+     background, and one hold means one thing ------------------------------
+     The load-bearing assertion is `theBoardIsFlushWithTheFace`: a container's
+     board is its own tile times four (decision 188), so the two are the same
+     shape — and the movement framed the whole *carcass* into the mouth, which
+     put a strip of bar above the front you were opening and a strip of rail
+     below it, and held the board in from the front's edges by the overshoot
+     factor the whole way. */
+  const openingIn = await phone.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const out = {}, S = BUREAU.state;
+    const was = S.objects.slice(), wasLocked = S.look.locked;
+    S.objects.length = 0; S.view='desk'; S.drawerId=null; S.zoomOn=null; S.q='';
+    const d = BUREAU.create('drawer', {parent:'root', title:'Opening'});
+    d.phone = Object.assign(BUREAU.free(2,2,'root'), {w:2, h:2});
+    for(let i=0;i<3;i++) BUREAU.create('note', {parent:d.id, title:'n'+i});
+    S.look.locked = true; BUREAU.render(); await nap(250);
+
+    const tile = document.querySelector(`[data-drawer="${d.id}"]`);
+    if(!tile) return {noTile:true};
+    const tr = tile.getBoundingClientRect();
+    tile.click();
+    await nap(45);
+    const g = document.querySelector('#drawergrid');
+    const gr = g.getBoundingClientRect();
+    /* Flush, and that means all four edges: the board starts **as** the
+       drawer's face and grows out of it, rather than sitting inside it with
+       a margin of the carcass's dark all the way round. */
+    out.theBoardIsFlushWithTheFace =
+      Math.abs(gr.width - tr.width) <= 3 && Math.abs(gr.height - tr.height) <= 3;
+    out.andConcentricWithIt =
+      Math.abs((gr.x+gr.width/2) - (tr.x+tr.width/2)) <= 3 &&
+      Math.abs((gr.y+gr.height/2) - (tr.y+tr.height/2)) <= 3;
+    /* And the furniture is not part of the journey. `visibility`, not just
+       opacity: a bar you cannot see and can still press is worse than one you
+       can see. */
+    const vis = sel => { const e = document.querySelector('#app '+sel);
+      return e ? getComputedStyle(e).visibility : 'gone'; };
+    out.theBarIsNotDrawnOnTheWayIn = vis('.gridbar') === 'hidden';
+    out.norIsTheRail = ['hidden','gone'].includes(vis('.deskrail'));
+    await nap(700);
+    out.andBothAreBackOnArrival = vis('.gridbar') === 'visible';
+    out.andTheBoardIsTheBoard =
+      document.querySelector('#drawergrid').getBoundingClientRect().width > tr.width * 2;
+
+    /* ---- the lock is not the background any more ----------------------- */
+    S.view='desk'; S.drawerId=null; BUREAU.render(); await nap(200);
+    const squares = () => { const e = document.querySelector('#drawergrid');
+      return getComputedStyle(e, '::before').backgroundImage !== 'none'; };
+    S.look.locked = true;  BUREAU.render(); const shut = squares();
+    S.look.locked = false; BUREAU.render(); const open = squares();
+    out.bothBoardsAreGraphPaper = shut && open;
+    /* …and which of the three it is, is a setting. The attribute is written by
+       `applyLook()` and only when there is something to say, so the default
+       leaves the root alone. */
+    const el = document.documentElement;
+    delete S.look.surface; BUREAU.applyLook && BUREAU.applyLook();
+    out.graphPaperSaysNothing = !el.dataset.surface;
+    S.look.surface = 'wood'; BUREAU.applyLook && BUREAU.applyLook(); BUREAU.render();
+    out.theCarcassIsAnOption = el.dataset.surface === 'wood' && !squares();
+    S.look.surface = 'plain'; BUREAU.applyLook && BUREAU.applyLook(); BUREAU.render();
+    out.andSoIsPlain = el.dataset.surface === 'plain' && !squares();
+    delete S.look.surface; BUREAU.applyLook && BUREAU.applyLook(); BUREAU.render();
+    out.andTheWayBackIsTheSquares = !el.dataset.surface && squares();
+
+    /* ---- and a thin front is a mark, not a name turned over ------------- */
+    const t = BUREAU.create('drawer', {parent:'root', title:'Column'});
+    t.phone = Object.assign(BUREAU.free(1,4,'root'), {w:1, h:4});
+    BUREAU.render(); await nap(180);
+    const thin = document.querySelector(`[data-drawer="${t.id}"]`);
+    if(thin){
+      const nm = thin.querySelector(':scope > .dtop');
+      const mk = thin.querySelector(':scope > .dmark');
+      out.aThinFrontWearsItsMark =
+        !!mk && getComputedStyle(mk).display !== 'none' &&
+        (!nm || getComputedStyle(nm).display === 'none');
+    }
+
+    S.look.locked = wasLocked;
+    S.objects.length=0; was.forEach(o=>S.objects.push(o));
+    S.undo=[]; S.redo=[]; S.view='desk'; S.drawerId=null; BUREAU.render();
+    return out;
+  });
+  await page.bringToFront();
+
   console.log(JSON.stringify({
     errors: errs, manifestOk, swReady, survived, styleSurvived, slotColours,
     newObjectSeen, inlineEdit, sortDefaults, taskLook,
@@ -8802,7 +8909,7 @@ const CHROME = process.env.BUREAU_CHROME;
     paletteKeys, editorKeys, pickerLeads, rollupsEverywhere, soundAndVision, keyboardBoard,
     ranking, urgency, reachable, pensAndCorners, lyingBooks, plansWork, stockPlans, livedWith, listIsOneShelf, repeating, oneLock, scheduling, ownColour, addBox, calFaces,
     lockedBoard, freeTraits, pageWrites, tickBoxes, readerFits, categories,
-    specimenBook, deskObjects, camLife, camPhone, ownBoard, threeDrawings, fullScreen, thisPass,
+    specimenBook, deskObjects, camLife, camPhone, ownBoard, threeDrawings, fullScreen, openingIn, thisPass,
     dropsIn, keyframesRegistered, aesthetics, slotScoping, objectsDressed, grainSlots, tagged, drawnAesthetic, deeper, lookStage, statusBar, bindings, panelling, theSpray, tappingIsQuiet, decorations, pinboard, gravity
   }, null, 2));
   await browser.close();

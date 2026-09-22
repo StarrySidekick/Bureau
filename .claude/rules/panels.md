@@ -338,3 +338,22 @@ And the column keeps a **measure** — said in the page's own padding, the way
 scroll mode says it, because a percentage there resolves against the page's
 width and one declaration centres every block at once. Full screen is the one
 place where the paper stops holding the line in for you.
+
+Three more, all of them decision 192 and all of them the same shape — a thing
+that was right for a sheet floating in the middle of a desk and wrong when the
+sheet *is* the screen:
+
+- **The page's padding and the floating controls read one token.** `--fbclear`
+  and `--fbclearb` are what a control costs at the top and the foot, and both
+  the control's own offset and the page's padding are said in them. Two numbers
+  in two places ran the first line of a note straight under the ×.
+- **The strip that centres the page turns catches nothing.** It has to span the
+  width to centre in it; `pointer-events:none` on the strip and `auto` on its
+  children, or there is a transparent band across the foot of the page that no
+  part of looks like a control and none of which you can put a caret in.
+- **The stage takes its own presses and paints its own paper.** `.bookstage` is
+  `pointer-events:none` with its children `auto`, so a press on the surround
+  falls through to the scrim and closes the reading. Full screen has no
+  surround, so `.fullbleed` is `pointer-events:auto` with `background:
+  var(--paper)` and `overflow:hidden` — whatever the page does or does not
+  reach, there is no pixel here that belongs to the board.

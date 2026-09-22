@@ -114,6 +114,10 @@ window.BUREAU = {
   // picking one is more than writing the key: it carries the board, the
   // alpha and the defaults new drawers are born with
   setStyle: applyStyle,
+  /* What the board is made of is written onto the root by applyLook(), so a
+     test that changes the setting has to ask the same function the settings
+     panel asks rather than restating the rule. See decision 192. */
+  applyLook,
   // the seven families, named by whichever aesthetic is showing
   panelSlots, borderSlots, knobSlots, plateSlots, textureSlots, bindingSlots, stockSlots, famSlots, famAll,
   dress, styleKey, stockNow, knobOf, isContainer, faceOf,
