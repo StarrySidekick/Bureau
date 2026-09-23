@@ -7,6 +7,13 @@ const URL = process.env.BUREAU_URL || 'http://127.0.0.1:8000/index.html';
 // Somewhere that already has a Chromium playwright didn't download itself:
 //   BUREAU_CHROME=/opt/pw-browsers/chromium node test/smoke.mjs
 const CHROME = process.env.BUREAU_CHROME;
+/* Proportional boards are a setting and off by default (decision 195). The
+   blocks about decisions 188-192 turn it on for themselves and off again the
+   way the switch does, which gives every drawer the screenfuls it needs. */
+const PROP_ON = () => { BUREAU.state.look.proportional = true; BUREAU.render(); };
+const PROP_OFF = () => { const b = document.createElement('button');
+  b.dataset.proportional = ''; b.style.display = 'none';
+  document.querySelector('#frame').appendChild(b); b.click(); b.remove(); };
 
 (async () => {
   const browser = await chromium.launch(CHROME ? { executablePath: CHROME } : {});
@@ -2019,7 +2026,8 @@ const CHROME = process.env.BUREAU_CHROME;
                 of everything needs. */
              roomForThem: ['d_alldr','d_allob'].every(id => {
                const d = BUREAU.state.objects.find(o=>o.id===id);
-               return d && d.desk.w >= 6 && d.desk.h >= 6; }),
+               return d && d.desk.w >= 6 && d.desk.h >= 6
+                 && d.shelves && d.shelves.w === 3 && d.shelves.h === 3; }),
              knobIsMedium: BUREAU.K.drawer.knobsize === undefined
                && getComputedStyle(document.querySelector('.grid .dtile .pull')).width !== '' };
   });
@@ -2096,6 +2104,7 @@ const CHROME = process.env.BUREAU_CHROME;
   });
 
   /* --- going in, rather than it coming out — decision 103 ---------------- */
+  await page.evaluate(PROP_ON);   // this block is about decisions 188-192
   const goingIn = await page.evaluate(async () => {
     const nap = n => new Promise(r => setTimeout(r, n));
     const S = BUREAU.state, out = {};
@@ -2250,6 +2259,7 @@ const CHROME = process.env.BUREAU_CHROME;
     S.view = 'desk'; S.drawerId = null; BUREAU.render(); await nap(150);
     return out;
   });
+  await page.evaluate(PROP_OFF);
 
   /* --- and coming back out, which is the same camera in reverse ----------
      The knob along the bottom and the chevron at the top both play the dive
@@ -4256,6 +4266,7 @@ const CHROME = process.env.BUREAU_CHROME;
   await page.evaluate(() => { const S=BUREAU.state;
     S.view='desk'; S.drawerId=null; S.look.locked=false; BUREAU.render(); });
   await page.waitForTimeout(300);
+  await page.evaluate(PROP_ON);   // this block is about decisions 188-192
   const desks = await page.evaluate(async () => {
     const nap = n => new Promise(r => setTimeout(r, n));
     const S = BUREAU.state, out = {};
@@ -4347,6 +4358,7 @@ const CHROME = process.env.BUREAU_CHROME;
     BUREAU.render();
     return out;
   });
+  await page.evaluate(PROP_OFF);
 
   /* --- a thing that lasts more than a day. `date` is the day it falls on;
      `span` is the days it occupies, which a calendar has to mark all of and a
@@ -4775,6 +4787,7 @@ const CHROME = process.env.BUREAU_CHROME;
   /* --- how fine a board's grid is, per board. A column count is a coordinate
      space, so setting one rescales the boxes on that board — and only on that
      board. See decision 60. */
+  await phone.evaluate(PROP_ON);   // this block is about decisions 188-192
   const perBoardGrid = await phone.evaluate(async () => {
     const nap = n => new Promise(r => setTimeout(r, n));
     const S = BUREAU.state, out = {};
@@ -4812,6 +4825,7 @@ const CHROME = process.env.BUREAU_CHROME;
     BUREAU.render(); await nap(250);
     return out;
   });
+  await phone.evaluate(PROP_OFF);
 
   /* --- and nothing new arrives bigger than three cells either way. An object
      used to come out at the full width of the board, which is a first object
@@ -8360,6 +8374,7 @@ const CHROME = process.env.BUREAU_CHROME;
      by now, and which of the two is frontmost is not something to leave to
      chance. See the note in render.md. */
   await page.bringToFront();
+  await page.evaluate(PROP_ON);   // this block is about decisions 188-192
   const camLife = await page.evaluate(async () => {
     const nap = n => new Promise(r => setTimeout(r, n));
     const out = {}, S = BUREAU.state;
@@ -8573,6 +8588,7 @@ const CHROME = process.env.BUREAU_CHROME;
     S.undo = []; S.redo = []; S.sel = []; S.q = ''; BUREAU.render();
     return out;
   });
+  await page.evaluate(PROP_OFF);
 
   /* ---- the camera on a phone — decision 188 ------------------------------
      The one that broke, and the two facts about a phone that broke it: its
@@ -8592,6 +8608,7 @@ const CHROME = process.env.BUREAU_CHROME;
      an **animated end state** rather than a layout needs this; nothing else in
      this file did, which is why it had never come up. */
   await phone.bringToFront();
+  await phone.evaluate(PROP_ON);   // this block is about decisions 188-192
   const camPhone = await phone.evaluate(async () => {
     const nap = n => new Promise(r => setTimeout(r, n));
     const out = {}, S = BUREAU.state;
@@ -8644,11 +8661,13 @@ const CHROME = process.env.BUREAU_CHROME;
     S.undo=[]; S.redo=[]; BUREAU.render();
     return out;
   });
+  await phone.evaluate(PROP_OFF);
 
   /* --- decision 190: a container's board is only its own, the lock is the
      board you can see, and three drawings that were wrong ----------------
      The phone half, because that is where a drawer bigger than the screen
      has to become pages — and `phone` is already in front from camPhone. */
+  await phone.evaluate(PROP_ON);   // this block is about decisions 188-192
   const ownBoard = await phone.evaluate(async () => {
     const nap = n => new Promise(r => setTimeout(r, n));
     const out = {}, S = BUREAU.state;
@@ -8732,8 +8751,10 @@ const CHROME = process.env.BUREAU_CHROME;
     S.undo=[]; S.redo=[]; S.look.locked=false; BUREAU.render();
     return out;
   });
+  await phone.evaluate(PROP_OFF);
   await page.bringToFront();
 
+  await page.evaluate(PROP_ON);   // this block is about decisions 188-192
   const threeDrawings = await page.evaluate(async () => {
     const nap = n => new Promise(r => setTimeout(r, n));
     const out = {}, S = BUREAU.state;
@@ -8809,6 +8830,7 @@ const CHROME = process.env.BUREAU_CHROME;
     S.undo=[]; S.redo=[]; BUREAU.render();
     return out;
   });
+  await page.evaluate(PROP_OFF);
 
   /* --- decision 191: full screen means the screen ----------------------
      The expand under the camera used to take the *paper* away and leave the
@@ -8817,6 +8839,7 @@ const CHROME = process.env.BUREAU_CHROME;
      — pagination fills an offscreen twin, and a twin measured against the
      letter-shaped sheet breaks a full-screen page for a box it is not, which
      is invisible until you count the pages. */
+  await page.evaluate(PROP_ON);   // this block is about decisions 188-192
   const fullScreen = await page.evaluate(async () => {
     const nap = n => new Promise(r => setTimeout(r, n));
     const out = {}, S = BUREAU.state;
@@ -8904,6 +8927,7 @@ const CHROME = process.env.BUREAU_CHROME;
     S.undo=[]; S.redo=[]; BUREAU.renderSheet(); BUREAU.render();
     return out;
   });
+  await page.evaluate(PROP_OFF);
 
   /* --- decision 192: the mouth opens onto the board, the lock is not the
      background, and one hold means one thing ------------------------------
@@ -8913,6 +8937,7 @@ const CHROME = process.env.BUREAU_CHROME;
      put a strip of bar above the front you were opening and a strip of rail
      below it, and held the board in from the front's edges by the overshoot
      factor the whole way. */
+  await phone.evaluate(PROP_ON);   // this block is about decisions 188-192
   const openingIn = await phone.evaluate(async () => {
     const nap = n => new Promise(r => setTimeout(r, n));
     const out = {}, S = BUREAU.state;
@@ -8987,6 +9012,7 @@ const CHROME = process.env.BUREAU_CHROME;
     S.undo=[]; S.redo=[]; S.view='desk'; S.drawerId=null; BUREAU.render();
     return out;
   });
+  await phone.evaluate(PROP_OFF);
   await page.bringToFront();
 
   /* --- decision 193: boards, pigeonholes, and the furniture off the dive ---

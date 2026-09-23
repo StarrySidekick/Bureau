@@ -793,8 +793,12 @@ function seed(){
        a change across every kind at once — is better served by a board of its
        own. Nine shelves each, which is a thousand cells against the six
        hundred they need. See decision 141. */
-    DR({id:'d_alldr', title:'Every drawer', c:14, desk:{x:1,y:22,w:6,h:6},  phone:{x:5,y:5,w:2,h:2}}),
-    DR({id:'d_allob', title:'Every object', c:15, desk:{x:1,y:29,w:6,h:6}, phone:{x:7,y:5,w:2,h:2}})
+    /* …and nine screenfuls stated as well, because proportional boards are
+       off by default (decision 195) and a sampler of one screen cannot hold
+       one of everything. With them on the six-square tile decides and this
+       is not read. */
+    DR({id:'d_alldr', title:'Every drawer', c:14, desk:{x:1,y:22,w:6,h:6},  phone:{x:5,y:5,w:2,h:2}, shelves:{w:3,h:3}}),
+    DR({id:'d_allob', title:'Every object', c:15, desk:{x:1,y:29,w:6,h:6}, phone:{x:7,y:5,w:2,h:2}, shelves:{w:3,h:3}})
   ];
 
   // The app's own buttons live on the desk, on the grid, and move like anything
