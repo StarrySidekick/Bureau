@@ -1158,6 +1158,13 @@ const PROP_OFF = () => { const b = document.createElement('button');
       if(e) e.scrollIntoView({block:'center', inline:'nearest'}); }, fromSel);
     await page.waitForTimeout(80);
     const b = await (await page.$(fromSel)).boundingBox();
+    /* A target named by selector is measured **after** the source has been
+       scrolled in: measured before, a source two rows away from it scrolled
+       the board by two rows and the drop landed on bare cells. */
+    if (typeof to === 'string') {
+      const t = await (await page.$(to)).boundingBox();
+      to = { x: t.x + t.width / 2, y: t.y + t.height / 2 };
+    }
     await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
     await page.mouse.down();
     await page.waitForTimeout(320);                 // the hold arms the drag
@@ -1216,9 +1223,8 @@ const PROP_OFF = () => { const b = document.createElement('button');
       if(e) e.scrollIntoView({block:'center', inline:'nearest'}); });
   }, two);
   await page.waitForTimeout(120);
-  const tb = await (await page.$(`.grid .drawer[data-row="${two[1]}"]`)).boundingBox();
   const gatherAim = await drop(`.grid .drawer[data-row="${two[0]}"]`,
-    { x: tb.x + tb.width/2, y: tb.y + tb.height/2 });
+    `.grid .drawer[data-row="${two[1]}"]`);
   const gathered = await page.evaluate(ids => {
     const a = BUREAU.state.objects.find(o => o.id===ids[0]);
     const c = BUREAU.state.objects.find(o => o.id===a.parent);

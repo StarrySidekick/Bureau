@@ -1,5 +1,5 @@
 import { esc } from './util.js';
-import { S, byId } from './model.js';
+import { S, byId, K } from './model.js';
 import { save } from './persist.js';
 
 /* ============================================================
@@ -211,6 +211,12 @@ const dial = () => Array.from({length:12}, (_,i)=>{
    browser's own time field for the one setting that is a time of day. Each
    writes through a `data-a*` attribute that wire.js dispatches, which is the
    same delegated-listener shape everything else on the desk uses. */
+/* Face up or down, off the deck and then its type. The ring writes `1`/`0`,
+   a deck from before it wrote nothing, and the type says a new deck lies face
+   down (decision 201) — so the test is "is it anything that means down",
+   never `=== false`, which read a stored 0 as face up. */
+const faceUp = o => { const v = o.faceup!=null ? o.faceup : K(o.kind).faceup;
+  return !(v===false || v===0 || v==='0'); };
 const azRing = (id, key, opts, cur) => `<div class="azrow">${opts.map(([v,n])=>
   `<button class="azchip${String(v)===String(cur)?' on':''}" data-aset="${id}:${key}:${esc(String(v))}"
     >${esc(n)}</button>`).join('')}</div>`;
@@ -437,7 +443,7 @@ const ACTIVE = {
        `activeArt()`. */
     html(o){
       const kids = deckCards(o), n = kids.length;
-      const top = deckTop(o), up = o.faceup !== false;
+      const top = deckTop(o), up = faceUp(o);
       const back = BACKS[o.back] ? o.back : 'rider';
       const idx = `<span class="dkidx">${n}</span>`;
       const inner = !n
@@ -478,7 +484,7 @@ const ACTIVE = {
       return n ? `${n} card${n===1?'':'s'}` : 'Empty — add some';
     },
     zoom: o => azSay('Which way up the top card sits')
-      + azRing(o.id, 'faceup', [[1,'Face up'],[0,'Face down']], o.faceup === false ? 0 : 1)
+      + azRing(o.id, 'faceup', [[1,'Face up'],[0,'Face down']], faceUp(o) ? 1 : 0)
       + azSay('The back')
       + azRing(o.id, 'back', Object.entries(BACKS).map(([k,v])=>[k, v.nm]),
           BACKS[o.back] ? o.back : 'rider')
@@ -611,7 +617,7 @@ function activeArt(o, cls){
   const a = ACTIVE[actOf(o)]; if(!a) return '';
   /* An instrument that has to fill its box rather than sit in the middle of
      it is HTML, and says so with `html` — the deck, which is a card. */
-  if(a.html) return `<div class="actart dkcard dkBody ${o.faceup !== false ? 'up' : 'down'} ${cls||''}"
+  if(a.html) return `<div class="actart dkcard dkBody ${faceUp(o) ? 'up' : 'down'} ${cls||''}"
     aria-hidden="true">${a.html(o)}</div>`;
   return `<svg class="actart ${cls||''}" viewBox="${vbOf(o)}"
     preserveAspectRatio="${parOf(o)}" aria-hidden="true">${a.art(o)}</svg>`;
