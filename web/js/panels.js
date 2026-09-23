@@ -13,7 +13,9 @@ import { S, K, KINDS, KEYS, T, ATTRS, USER_ATTRS, FIELDS, fieldOf, OPS, ROLLS,
   CALVIEWS, calViewOf, calShowOf, CALSHOWS, weekStartOf, showsWeekends, KNOBSIZES, knobSizeOf,
   TSIZES, textSizeOf, mediaTypeOf, isPicture, isMedia, isDecor,
   bindingOf, FRAMES, FRAME_SLOTS, frameOf, panelOf, knobOf, plateOf, borderOf, textureOf,
-  slotRaw, homeFor, acceptAny, groupOf , boardLocked , SEALS, sealOf, isSealed, isDisc } from './model.js';
+  slotRaw, homeFor, acceptAny, groupOf , boardLocked , SEALS, sealOf, isSealed, isDisc,
+  makesOf, madeAtSize } from './model.js';
+import { newOfKind } from './wire.js';
 import { GRID, lay, boxOk, freeSpot, anySpot, sizeOfKind, toPhoneSize, keepSize } from './grid.js';
 import { randomBoard, randomFront, hexOf, objColour, objSlots, famSlots, famAll, FAMS, styleKey, stockNow, CHECKS, checkNow } from './look.js';
 import { CLICKS, clickOf, gridTile, pending } from './tiles.js';
@@ -449,15 +451,82 @@ function plansHere(){
     ps.length>PLANS_HERE ? `<button class="subtle-btn" data-act="allplans">${ic('grid',12)} All ${ps.length} plans</button>` : ''}`;
 }
 
+/* ---- what a board makes, as rows in its own editor ---------------------
+   Two questions, because they are two things a board can say: which types its
+   picker offers (a row of chips and a list to add from), and which sizes are
+   a type without asking (a sentence per rule — this wide, this tall, makes
+   this). Every control writes through `setField()` under a `makes.` key, so
+   undo, the desk's own settings target and the refresh come along. The number
+   fields are `[lo, hi]` spans; an empty top means "or more". See decision 199. */
+function makesRows(id, d){
+  const m = makesOf(d) || {only:null, sizes:[]};
+  const kinds = pickGroups().flatMap(g=>g.ks).map(k=>[k, KINDS[k].nm]);
+  const only = m.only || [];
+  const num = (key, v, ph)=>`<input class="pfield" type="number" min="1" max="99" style="width:5em"
+    data-oset="${id}:${key}" value="${v==null?'':esc(String(v))}" placeholder="${esc(ph)}">`;
+  const span = s => Array.isArray(s) ? s : s==null ? [1,null] : [s,s];
+  // the rows as stored, not as makesOf() cleans them, so the index a field
+  // writes is the index it was drawn from
+  const raw = (d.makes && Array.isArray(d.makes.sizes)) ? d.makes.sizes : [];
+  const picks = `<div class="tagrow">${only.map(k=>
+      `<span class="realtag">${esc(K(k).nm)}<b data-oclick="${id}:makes.drop:${k}" title="Take it off this board">✕</b></span>`).join('')
+      || '<span class="clempty">Everything — the whole picker</span>'}</div>
+    ${psel(id,'makes.add', [['','Add a type…'], ...kinds.filter(([k])=>!only.includes(k))], '')}
+    <button class="subtle-btn" data-act="boardkind" data-id="${id}">${ic('sparkle',12)} A new type for this board</button>`;
+  const rules = raw.map((r,i)=>{
+    if(!r) return '';
+    const [w0,w1]=span(r.w), [h0,h1]=span(r.h);
+    return `<div class="makesrule" style="margin-bottom:10px">
+      <div style="display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin-bottom:5px">
+        ${num(`makes.sz.${i}.w0`, w0, '1')}<span>to</span>${num(`makes.sz.${i}.w1`, w1, 'any')}<span>wide,</span>
+        ${num(`makes.sz.${i}.h0`, h0, '1')}<span>to</span>${num(`makes.sz.${i}.h1`, h1, 'any')}<span>tall</span></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px">
+        ${psel(id,`makes.sz.${i}.kind`, [['','Take this rule off'], ...kinds.map(([k,n])=>[k,'makes a '+n])], r.kind||'')}
+        ${psel(id,`makes.sz.${i}.turn`, [['','this way up'],['1','either way round']], r.turn?'1':'')}</div>
+    </div>`;
+  }).join('');
+  return [
+    prow('Its picker offers', picks, only.length ? 'the rest is under Everything' : 'or name the few this board is for'),
+    prow('Sketched at a size', rules + psel(id,'makes.size', [['','Add a size that makes…'], ...kinds], ''),
+      raw.length ? 'made there and then, with no picker' : 'a box this shape becomes one type, with no picker')
+  ];
+}
+
 function modalNewObject(){
   /* Where the thing will land, which decides what the picker leads with. The
      cell a hold sketched knows its container; failing that it is the board you
      are looking at. */
   const home = (pending.cell && pending.cell.parent) || homeFor((S.view==='drawer' && S.drawerId) || ROOT);
+  /* **The board may already know.** A box sketched at a size one of its
+     rules covers is made as that rule's type with no picker at all — a
+     one-by-three on a shelf of books is a book. Only a *sketched* box has a
+     size; a hold, the knob and the rail pull carry none and still ask. The
+     type's own question (a family, a tag, a life) is answered as asked, so
+     the rule names what gets made rather than which door opens. See
+     decision 199. */
+  const board = container(home), says = makesOf(board);
+  const cell = pending.cell;
+  const sized = says && cell && madeAtSize(board, cell.w, cell.h);
+  if(sized){ newOfKind(sized, true); return; }
   const lead = majors(home);
   const c = byId(home);
   const made = c && isContainer(c) && takesTyping(c) ? genSaid(c) : null;
   const rest = pickGroups(true);
+  const full = ()=> `
+      <div class="section-h"><h2>${made?'In here':'Put down'}</h2><div class="rule"></div><span class="n">${
+        made ? 'this drawer makes a '+esc(made) : 'the things a desk is made of'}</span></div>
+      <div class="kindgrid">${lead.map(k=>kindTile(k)).join('')}</div>
+      ${plansHere()}${
+      rest.length ? `<details class="pgroup allkinds"><summary>Every other type</summary>${
+        rest.map(g=>`
+          <div class="section-h"><h2>${g.nm}</h2><div class="rule"></div>${g.note?`<span class="n">${g.note}</span>`:''}</div>
+          <div class="kindgrid">${g.ks.map(k=>kindTile(k)).join('')}</div>`).join('')}</details>` : ''}`;
+  /* **A board that names its types offers those.** The handful it says,
+     drawn the way the majors are, and a new type made for it from here joins
+     them; everything else is one disclosure further in, never gone — a
+     palette that could not be got out of would be a board you could not put
+     a note on. */
+  const only = says && says.only;
   openPanel({
     key:'newobject', wide:true, title:'New object',
     sub:'Every type is drawn as the thing it makes',
@@ -466,15 +535,12 @@ function modalNewObject(){
        rarer answer to "what am I making"; leading with it put a row of saved
        arrangements above the thing you opened the picker for. Types, then the
        arrangements, then everything else. */
-    body:()=> `
-      <div class="section-h"><h2>${made?'In here':'Put down'}</h2><div class="rule"></div><span class="n">${
-        made ? 'this drawer makes a '+esc(made) : 'the things a desk is made of'}</span></div>
-      <div class="kindgrid">${lead.map(k=>kindTile(k)).join('')}</div>
-      ${plansHere()}${
-      rest.length ? `<details class="pgroup allkinds"><summary>Every other type</summary>${
-        rest.map(g=>`
-          <div class="section-h"><h2>${g.nm}</h2><div class="rule"></div>${g.note?`<span class="n">${g.note}</span>`:''}</div>
-          <div class="kindgrid">${g.ks.map(k=>kindTile(k)).join('')}</div>`).join('')}</details>` : ''}`
+    body:()=> only ? `
+      <div class="section-h"><h2>On this board</h2><div class="rule"></div><span class="n">what ${
+        esc(home===ROOT ? 'the desk' : (board.title||'this drawer'))} makes</span></div>
+      <div class="kindgrid boardmakes">${only.map(k=>kindTile(k)).join('')}</div>
+      <button class="subtle-btn" data-act="boardkind" data-id="${home}">${ic('sparkle',12)} A new type for this board</button>
+      <details class="pgroup allkinds boardall"><summary>Everything</summary>${full()}</details>` : full()
   });
 }
 /* ---- a sorting drawer is asked what it sorts, before it exists ----------
@@ -1205,6 +1271,10 @@ function objectPanelBody(id, sec){
       d.addbox==='hide'?'hide':''),
       'a front one cell tall has no room for it'));
   }
+  /* What the Magic Selector puts down on this board (decision 199). A sorting
+     drawer is left out: a sketch on one is made where the drawer lives, and
+     that board answers for it. The desk asks too — it is a container. */
+  if(cont && !magic) out.push(...makesRows(id, d));
   if(!isRoot && !cont && spawns){
     /* `random` leads the list rather than sitting in it alphabetically: a
        spawner that makes one of anything is a different thing from a spawner
@@ -1723,7 +1793,10 @@ function sizeSliders(p, [w,h], cols){
     <span class="s">H</span><input class="pslide" type="range" min="1" max="20" step="1" value="${h}" data-${p}szh>
     <b id="${p}szout">${w} × ${h}</b></div>`;
 }
-function modalNewKind(from, editKey){
+/* `forBoard` is a container the new type is being made *for* — its picker's
+   or its editor's "A new type for this board" — and saving puts the type on
+   that board's short list. See decision 199. */
+function modalNewKind(from, editKey, forBoard){
   const ex = editKey ? K(editKey) : null;
   const base = ex || (from ? K(from.kind) : null);
   const seedAttrs = ex ? (ex.attrs||['text']).slice() : from ? attrsOf(from).slice() : ['text'];
@@ -1746,7 +1819,7 @@ function modalNewKind(from, editKey){
     key:'kindform', wide:true, title:ex?'Edit '+esc(ex.nm):'New type',
     sub:'A type is a name for a set of traits',
     draft:{c, attrs:seedAttrs, ic:(base&&base.ic)||'note', ds:'',
-           fromId:from&&from.id, editKey:editKey||null,
+           fromId:from&&from.id, editKey:editKey||null, forBoard:forBoard||null,
            size, phoneSize, onclick:(base&&base.onclick)||'read',
            read:(base&&base.read)||'book',
            sort, shape:(base&&base.shape)||'card', face:(base&&base.face)||'front',

@@ -140,6 +140,11 @@ function planFrom(cid, nm){
     // with a different number of columns — a column count is a coordinate
     // space (decision 48) and a plan is boxes in it
     cols: GRID.phone.cols,
+    /* What the Magic Selector makes on the board it came off. It is a fact
+       about the board rather than about anything on it, so it rides on the
+       plan and is given to the container the plan is put down in. Kind names
+       only — nothing in it is an id to re-point. See decision 199. */
+    makes: c.makes ? JSON.parse(JSON.stringify(c.makes)) : undefined,
     objects
   };
   plans().push(p);
@@ -155,6 +160,12 @@ function planFrom(cid, nm){
 function stampPlan(planId, intoId, at){
   const p = planById(planId); if(!p) return [];
   const home = intoId || ROOT;
+  /* A board the plan says what to make on, put down in a container that says
+     nothing yet, says it too. Never over a board that already answers — that
+     was somebody's choice — and never onto the desk, whose picker is every
+     board's way in. See decision 199. */
+  if(p.makes && home!==ROOT && byId(home) && !byId(home).makes)
+    byId(home).makes = JSON.parse(JSON.stringify(p.makes));
   /* **A plan is an arrangement, so the drawer grows to hold it.** Since
      decision 188 a container's board is its own tile, four cells to a cell —
      so a plan authored eight cells across and twelve down no longer fits a

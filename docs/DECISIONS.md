@@ -9129,3 +9129,109 @@ Migration 40 gives the new boxes to stock plans on a desk **only where every box
 is still the shipped one**; a plan anybody has edited, and every board already
 put down from a plan, is theirs and is left alone. A phone that measures fifteen
 rows still has one spare row under the line.
+## 199 · A board says what the Magic Selector makes on it
+
+*2026-09-23*
+
+Timothy asked for containers to decide what the Magic Selector puts down on
+them: "either it being specific objects based on size, like only putting books
+down when you make 1x2, 1x3, 1x4 shapes, or having a smaller selection than
+what is normally available, or having special types that it's custom made."
+
+Those are three things, and they are one field. A container may carry
+`makes = {only, sizes}`:
+
+- **A smaller selection.** `only` is the types this board's picker offers.
+  Opened on that board — by a sketch, a hold, the Home Knob or the rail pull —
+  the picker leads with them under *On this board* and puts the whole of the
+  ordinary picker under *Everything*, one disclosure further in. It narrows;
+  it never locks. A board that could not be got out of its own list would be a
+  board you could not leave a note on, and the note is the thing you most
+  often reach for somewhere it was not planned.
+- **Specific objects by size.** `sizes` is a list of rules, each a span of
+  widths, a span of heights and a type, with `turn` for "either way round". A
+  box *sketched* at a size a rule covers is made as that type with no picker
+  at all, which is the whole point of the rule: drawing a one-by-three on a
+  shelf is already the answer to "what is it". A span is `[lo, hi]` with `hi`
+  null for "or more", because "one wide and two or more tall" is how a book is
+  said and a list of exact sizes is not. The first rule that fits wins. Only a
+  sketch has a size — a hold, the knob and the rail pull carry none and still
+  ask — and the type's own question is still asked (a Prose & Poetry made by a
+  rule is the plain one, because the rule has already said which; a sorting
+  drawer still asks its tag), so a rule names what gets made rather than which
+  door opens.
+- **Types made for it.** `only` holds any kind key, including the ones you
+  invent. *A new type for this board*, in the narrowed picker and in the
+  board's editor, opens the ordinary type builder carrying the board it is
+  for; saving puts the new type straight on that board's list.
+
+**Where it is said.** In the board's own editor under *Behaviour*, as two rows:
+*Its picker offers* (chips, each with a cross, and a list to add from) and
+*Sketched at a size* (a sentence per rule — this to this wide, this to this
+tall, makes this, this way up or either). Every control writes through
+`setField()` under a `makes.` key, so the edit is one undo step like any other
+row, and the desk's own settings are the same target. A sorting drawer is left
+out: it holds nothing, and a sketch on one is made on the board it lives on,
+which answers for it.
+
+**Reading it.** `makesOf(c)` and `madeAtSize(c, w, h)` in model.js, and never
+the field: a type since deleted, or a category like Fragment that is only a
+question, drops out rather than being offered as a tile that does nothing.
+Null means every type, which is what every board said before this, so nothing
+needed migrating for a board.
+
+**It travels.** It is a field on the object (or `S.deskCfg` for the desk), so a
+save and an export keep it. A plan captures the `makes` of the board it came
+off as `plan.makes`, and stamping gives it to the container it is put down in
+— only if that container says nothing yet, because a board that already
+answers was answered by somebody. Nothing in it is an id, so nothing needs
+re-pointing.
+
+**One stock board says it.** The Books board makes a book (Prose & Poetry,
+drawn as a spine) of any box one cell wide and two or more tall. Migration 41
+writes that onto the stock plan by key where the stored plan says nothing,
+the same way 39 wrote `life` and `sec`: it is what the board is *for*. No other
+stock board clearly wanted one, so none has it.
+
+## 200 · The opened calendar is its face, bigger
+
+Timothy: "The calendar that you actually see when you click the face … should
+really look like a full screen version of that calendar face, matching the
+color and the general aesthetic, just with more space to be able to show
+information."
+
+It did not. The face was a drawer front in the calendar's own colour, written
+in `--dink`, with the aesthetic's border slot round it; pressing it opened onto
+paper cells with grey rules on the page ground, a paper pill for *Today* and a
+filter row for the span. Two different objects, one of them only reached by
+pressing the other.
+
+- **The same element, not a copy of its look.** `calFront(o, inner)` in tiles.js
+  wraps the opened month, week or day in `drawer dtile caltile` with
+  `calBorder(o)`, `--c` from `objColour()` and the two layers every tile gets
+  (`.dpanel`, and `.dgrain` when there is a grain). So every aesthetic's rule
+  for a calendar front — the drawn line in Starful Gothic, the group box in
+  Golf 97, the gloss in Aeros, dark and light alike — dresses the opened one
+  without a rule of its own, and a new one will too. It is a `div` outside any
+  `.grid`, and every gesture that picks a tile up asks for `.grid .drawer`, so
+  it is not something you can drag.
+- **The head is the face's name row.** The calendar's name in `.dname` over the
+  span it shows in `.clcount`; the steps, *Today* and Month/Week/Day are the
+  face's count chip made pressable, dark glass on the wood. The hint about
+  dropping moved into a tooltip: the face has no hint either.
+- **A day is the face's day.** No box round it — a hairline over each week —
+  today lit from behind at the face's 20%, the days either side drawn back at
+  the face's opacity, and each thing on a day is the face's coloured mark with
+  its name beside it. A run is still a bar, in its own colour over the wood. On
+  a phone a name wraps to two lines rather than being cut to four letters.
+- **One day is the tear-off pad** the smallest face wears, the size of the
+  screen and still a drop target; the day's list stays under the front, where
+  a picked day's list sits in the other two spans.
+
+Nothing it does changed: the cells are still `.mcell` carrying `data-calday`,
+the items still `.mitem` carrying `data-row`, the buttons the same `data-act`
+and `data-calview`, so tapping, picking a day, adding to it, dropping on it and
+the pens all go through the handlers they always did. A container wearing the
+calendar *layout* without the calendar face gets the same front in its own
+colour, which is the point: what you open is what the thing is. The CSS is one
+block in chrome.css headed with this decision.

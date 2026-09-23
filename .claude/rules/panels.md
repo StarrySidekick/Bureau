@@ -40,6 +40,14 @@ what it makes still leads with that type wherever it sits in the order,
 promoted into the row if it isn't a major. Adding a major is one name in
 `PRIMARY`. See decision 130.
 
+**A board may narrow the picker, or skip it.** `makes` on a container
+(`makesOf()`, `madeAtSize()` in model.js): `only` is what `modalNewObject()`
+leads with under *On this board*, the ordinary picker whole under *Everything*
+— narrowed, never locked; `sizes` are rules a *sketched* box (`pending.cell.w`
+and `.h`) is checked against before any panel opens, and a match goes straight
+to `newOfKind(kind, true)`. Edited as `makes.*` keys through `setField()`.
+See decision 199.
+
 **Five of the majors are *categories*: you press them to be asked which.**
 `family` on a kind is the list, and it leads with that kind where that is a
 real thing to make — the first kind of note is a Note. **Note** (idea, thought,

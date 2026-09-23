@@ -306,7 +306,7 @@ function setField(el){
     else if(key==='kind') pushSets('Type changed', [[id,'kind',o.kind],[id,'attrs',clone(o.attrs)],[id,'milestones',clone(o.milestones)]]);
     else if(key==='knobtone') pushSets('Changed', [[id,'knobtone',o.knobtone],[id,'knobc',o.knobc]]);
     else if(!/^rep\./.test(key)){       // the repeat writer records its own
-      const uk = UNDOKEY[key] || (/^rule\./.test(key) ? 'filter' : key);
+      const uk = UNDOKEY[key] || (/^rule\./.test(key) ? 'filter' : /^makes\./.test(key) ? 'makes' : key);
       pushSet('Changed', id, uk, clone(o[uk]));
     }
   }
@@ -342,6 +342,37 @@ function setField(el){
       o.repeat = n;
     }
     pushSet('Repeat', id, 'repeat', was);
+    save();
+    return;
+  }
+  /* `makes.*` — what the Magic Selector puts down on this board (decision
+     198). One writer for the lot, on a copy, so a half-edited rule never
+     reaches the model: `add`/`drop` a type from the picker's short list,
+     `size` starts a rule for a type, and `sz.<n>.<field>` edits one. A rule
+     whose type is cleared is taken off, and a board left saying nothing says
+     null, which is everything. */
+  if(key.startsWith('makes.')){
+    const m = clone(t.makes) || {};
+    let only = Array.isArray(m.only) ? m.only : [];
+    const sizes = Array.isArray(m.sizes) ? m.sizes : [];
+    const part = key.slice(6), sz = part.match(/^sz\.(\d+)\.(\w+)$/);
+    if(part==='add'){ if(KINDS[v] && !only.includes(v)) only.push(v); }
+    else if(part==='drop') only = only.filter(k=>k!==v);
+    else if(part==='size'){ if(KINDS[v]) sizes.push({w:[1,1], h:[2,null], kind:v}); }
+    else if(sz && sizes[+sz[1]]){
+      const r = sizes[+sz[1]], f = sz[2];
+      if(f==='kind'){ if(KINDS[v]) r.kind = v; else sizes.splice(+sz[1], 1); }
+      else if(f==='turn'){ if(v) r.turn = true; else delete r.turn; }
+      else if(/^[wh][01]$/.test(f)){
+        const ax = f[0], s0 = r[ax];
+        const span = Array.isArray(s0) ? s0.slice() : s0==null ? [1,null] : [s0,s0];
+        const n = parseInt(v,10);
+        span[+f[1]] = f[1]==='0' ? Math.max(1, Math.min(99, n||1))
+                                 : (n>0 ? Math.min(99, n) : null);
+        r[ax] = span;
+      }
+    }
+    t.makes = only.length || sizes.length ? {only: only.length ? only : null, sizes} : null;
     save();
     return;
   }
@@ -523,7 +554,13 @@ function act(name, el){
       refreshKinds();
       // the object that inspired it now simply *is* that kind
       if(dk.fromId){ const o=byId(dk.fromId); if(o){ o.kind=key; o.attrs=null; } }
-      closePanel(); save(); render(); renderSheet(); toast(`“${nm}” is now a type`);
+      /* Made *for* a board, from its picker or its editor: it goes straight
+         onto that board's short list, which is the reason it was made there.
+         Through setField so it is undoable like any other row. See decision 199. */
+      const forBoard = dk.forBoard && !dk.editKey && cfgOf(dk.forBoard);
+      if(forBoard) setField({dataset:{oset:dk.forBoard+':makes.add'}, value:key});
+      closePanel(); save(); render(); renderSheet();
+      toast(forBoard ? `“${nm}” is a type, and this board makes it` : `“${nm}” is now a type`);
       break;
     }
     case 'resetkind': {
@@ -531,6 +568,8 @@ function act(name, el){
       toast('Back to the built-in'); break;
     }
     case 'editkind': modalNewKind(null, el.dataset.id); break;
+    // a type made for one board joins that board's picker — decision 199
+    case 'boardkind': modalNewKind(null, null, el.dataset.id||ROOT); break;
     case 'delkind': {
       const key=el.dataset.id;
       if(S.objects.some(o=>o.kind===key)){ toast('Something still uses that type'); return; }
@@ -2337,4 +2376,4 @@ function wire(){
   document.addEventListener('visibilitychange', ()=>{ if(document.hidden) writeNow(); });
 }
 
-export { wire };
+export { wire, newOfKind };

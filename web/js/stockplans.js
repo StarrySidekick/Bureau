@@ -115,6 +115,9 @@ function build(spec){
        a piece of work. The Life drawer's question offers the first two and
        the Project question the third; the Plans door groups by it. */
     sec: spec.sec || null,
+    /* What the Magic Selector makes on the board (decision 199), given to the
+       container the plan is put down in. */
+    makes: spec.makes || undefined,
     made: D.iso(D.today()),
     cols: 8,
     objects
@@ -376,7 +379,10 @@ const SPECS = [
   /* Books: how far into this one, what is next, and two things you take out
      of a book — the lines worth keeping and what you made of it — each with a
      drawer that collects it off this board. */
-  {key:'books', sec:'experience', inbox:'note', nm:'Books', ic:'book', c:11, of:'life', life:'books', on:[
+  /* A shelf of books is spines, so a box sketched one cell wide and two or
+     more tall on it is a book, with no picker in between (decision 199). */
+  {key:'books', sec:'experience', inbox:'note', nm:'Books', ic:'book', c:11, of:'life', life:'books',
+   makes:{only:null, sizes:[{w:[1,1], h:[2,null], kind:'book'}]}, on:[
     LABEL('Reading', [1,1,8,1], 11),
     {k:'progressbar', t:'How far into it', b:[1,2,8,1], set:{c:11}},
     {k:'checklist', t:'To read', b:[1,3,5,4], set:{c:11}},

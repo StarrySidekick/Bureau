@@ -12,7 +12,7 @@ import { GRID, PHONE_GRIDS, CELL, COLW, MEASURE, sideways, colsOf, gridKeyOf, SH
   lay, gridOf, cellW, ensureBox, innerOf, PLACED, proportional } from './grid.js';
 import { themeNow, applyLook, lookVal, STYLES, BACKDROPS, SURFACES, DARKMODES, darkMode, hasDark,
   palNow, styleNow, hexOf, objColour, slotName, OBJ0, CHECKS, dressAs } from './look.js';
-import { gridOfContainer, gridTile, listTile, bookView, calSpan } from './tiles.js';
+import { gridOfContainer, gridTile, listTile, bookView, calSpan, calFront } from './tiles.js';
 import { gravitySync } from './gravity.js';
 import { openPanel, closePanel, panelKey, repositionPanel, plansPanel, boardRow } from './panels.js';
 import { openGuide } from './guide.js';
@@ -314,22 +314,33 @@ function viewCalendar(d, items){
     : view==='week'
       ? `${from.toLocaleDateString(undefined,{day:'numeric',month:'short'})} – ${to.toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'})}`
       : anchor.toLocaleDateString(undefined,{month:'long',year:'numeric'});
+  /* The head is the face's name row grown a pair of hands: the calendar's own
+     name over the span it shows — the face's `.dname` and `.clcount` — with
+     the steps either side and the span chooser, all drawn on the front's
+     colour rather than as paper chrome beside it. See decision 200. */
   const head = `
-  <div class="monthhead">
-    <button class="sqbtn" data-act="monthstep" data-id="${d.id}" data-step="-1" title="Back">${ic('chevL',15)}</button>
-    <b>${esc(label)}</b>
-    <button class="sqbtn" data-act="monthstep" data-id="${d.id}" data-step="1" title="Forward">${ic('chevR',15)}</button>
-    <button class="pill" data-act="monthtoday" data-id="${d.id}">Today</button>
-    <div class="filterbar calviews">${Object.entries(CALVIEWS).map(([v,n])=>
-      `<button class="fchip${view===v?' on':''}" data-calview="${d.id}:${v}">${n}</button>`).join('')}</div>
-    <span class="mhint">Drop a dated object on a day to schedule it</span>
+  <div class="dtop calohead">
+    <span class="calonav">
+      <button class="calobtn" data-act="monthstep" data-id="${d.id}" data-step="-1" title="Back">${ic('chevL',15)}</button>
+      <button class="calobtn" data-act="monthstep" data-id="${d.id}" data-step="1" title="Forward">${ic('chevR',15)}</button>
+      <button class="calobtn" data-act="monthtoday" data-id="${d.id}">Today</button></span>
+    <span class="caloname"><span class="dname">${esc(d.title||'Untitled')}</span>
+      <span class="clcount">${esc(label)}</span></span>
+    <span class="calviews">${Object.entries(CALVIEWS).map(([v,n])=>
+      `<button class="calobtn${view===v?' on':''}" data-calview="${d.id}:${v}">${n}</button>`).join('')}</span>
   </div>`;
-  // The day view is the day panel and nothing above it — a one-square grid is
-  // a border round a list.
+  const hint = 'Drop a dated object on a day to schedule it';
+  /* The day view is the face's one-square day, full size — the pad a small
+     face wears, still a drop target — with the day's own list under the front,
+     where the list for a picked day sits in the other two spans. */
   if(view==='day'){
     const iso=D.iso(anchor);
+    const pad = `<div class="dbody"><div class="calopday${iso===T?' today':''}" data-calday="${d.id}:${iso}" title="${hint}">
+      <u>${esc(anchor.toLocaleDateString(undefined,{month:'long'}))}</u>
+      <b>${anchor.getDate()}</b>
+      <i>${esc(anchor.toLocaleDateString(undefined,{weekday:'long'}))}</i></div></div>`;
     // the head already says which day it is, so the panel doesn't say it again
-    return head + dayPanel(d, iso, (byDay[iso]||[]).map(x=>x.o), true);
+    return calFront(d, head + pad) + dayPanel(d, iso, (byDay[iso]||[]).map(x=>x.o), true);
   }
   const cells=[];
   for(let dt=new Date(from); dt<=to; dt=D.add(dt,1)){
@@ -346,11 +357,11 @@ function viewCalendar(d, items){
     </div>`);
   }
   const sel=S.calDay;
-  return `${head}
-  <div class="monthgrid cal-${view}" style="--dcols:${cols.length}">
+  return `${calFront(d, `${head}
+  <div class="dbody"><div class="monthgrid cal-${view}" style="--dcols:${cols.length}" title="${hint}">
     ${cols.map(n=>`<i class="dow">${DOWNAME[n]}</i>`).join('')}
     ${cells.join('')}
-  </div>
+  </div></div>`)}
   ${sel?dayPanel(d, sel, (byDay[sel]||[]).map(x=>x.o)):''}`;
 }
 

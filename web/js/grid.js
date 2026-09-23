@@ -366,7 +366,10 @@ const SHELF = {};
 function shelfAt(cid){
   const id = cid==null ? hereId() : cid;
   const sh = shelvesOf(id), at = SHELF[id];
-  const mid = {x:(sh.w-1)>>1, y:(sh.h-1)>>1};
+  /* The desk opens on its middle shelf; a container opens on its **first
+     page**, because its pages are a column that grows at the bottom
+     (decision 198) and the middle of five pages is nowhere in particular. */
+  const mid = id===ROOT ? {x:(sh.w-1)>>1, y:(sh.h-1)>>1} : {x:0, y:0};
   if(!at) return mid;
   return {x:clamp(at.x, 0, sh.w-1), y:clamp(at.y, 0, sh.h-1)};
 }

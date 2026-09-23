@@ -4302,15 +4302,6 @@ kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--rule);border
 /* ============================================================
    The time layer — a month you can open, a timeline you can zoom
    ============================================================ */
-.monthhead{display:flex;align-items:center;gap:9px;margin:2px 0 12px;flex-wrap:wrap}
-.monthhead b{font-family:var(--serif);font-size:19px;font-weight:600;min-width:190px}
-.monthhead .mhint{margin-left:auto;font-size:11.5px;color:var(--ink-3)}
-/* month / week / day rides in the head, so it can't scroll away from the dates
-   it is describing — an inline strip, not the padded bar a filter row gets */
-.monthhead .calviews{padding:0;overflow:visible;gap:4px}
-.is-phone .monthhead .mhint{display:none}
-.is-phone .monthhead b{font-size:16px;min-width:0;flex:1}
-
 .monthgrid{display:grid;grid-template-columns:repeat(var(--dcols,7),1fr);gap:5px}
 /* one week gets the height a whole month spends on six of them */
 .monthgrid.cal-week .mcell{min-height:220px}
@@ -4345,6 +4336,92 @@ kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--rule);border
 .dropday{outline:2.5px solid var(--glow)!important;outline-offset:-2px;
   background:color-mix(in srgb,var(--brass) 20%,transparent)!important}
 .dayp{margin-top:18px;max-width:900px}
+
+/* ============================================================
+   The opened calendar is its face, bigger — decision 200
+   ============================================================
+   The front you press is the front you open onto: `calFront()` in tiles.js
+   draws the opened month as the same `.drawer.dtile.caltile` element, so the
+   colour, the border slot and every aesthetic's rule for a calendar front come
+   with it. Everything here only says what that front does at full size — it
+   grows to its contents rather than being a sized tile, it is not something
+   you pick up, and its day cells are the face's (no box round a day, today
+   lit from behind, the days either side drawn back) with room for the names.
+   Every colour is `--dink`, the ink a front is written in, never `--ink`. */
+.drawer.dtile.calopen{container-type:normal;cursor:default;padding:16px 20px 20px;
+  margin:2px 0 4px;min-width:0}
+.drawer.dtile.calopen:hover,.drawer.dtile.calopen:active{filter:none}
+.drawer.dtile.calopen > .calohead{display:grid;grid-template-columns:1fr auto 1fr;
+  align-items:center;gap:10px;margin:2px 0 12px;padding:0}
+.calohead .calonav{display:flex;gap:6px;justify-self:start}
+.calohead .calviews{display:flex;gap:4px;justify-self:end}
+.calohead .caloname{display:flex;flex-direction:column;align-items:center;min-width:0}
+.drawer.dtile.calopen .calohead .dname{font-size:24px;-webkit-line-clamp:1;width:auto;
+  white-space:nowrap;text-overflow:ellipsis;max-width:100%}
+.drawer.dtile.calopen .calohead .clcount{margin:1px 0 0;font-size:11.5px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--dink-2);white-space:nowrap}
+/* the face's count chip, made pressable: dark glass on the wood, light ink */
+.calobtn{display:inline-grid;place-items:center;min-width:32px;height:30px;padding:0 9px;
+  border-radius:var(--pill);background:rgba(0,0,0,.20);border:1px solid rgba(255,255,255,.14);
+  color:var(--dink-2);font:inherit;font-size:12.5px;cursor:pointer;transition:.13s}
+.calobtn:hover{color:var(--dink);background:rgba(0,0,0,.30)}
+.calobtn.on{background:rgba(255,255,255,.22);border-color:rgba(255,255,255,.32);
+  color:var(--dink);font-weight:600}
+.drawer.dtile.calopen > .dbody{margin-top:0;overflow:visible}
+.calopen .monthgrid{gap:1px}
+.calopen .monthgrid .dow{color:var(--dink-3);font-weight:500;font-size:11px;padding-bottom:6px}
+/* a day is the face's day: no box, a rule over each week, today lit */
+.calopen .mcell{border:0;border-radius:2px;background:none;min-height:104px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.13);padding:6px 5px 5px;gap:3px}
+.calopen .mcell > b{align-self:center;font-size:14px;color:var(--dink-2)}
+.calopen .mcell:has(.mitem) > b,.calopen .mcell.today > b{color:var(--dink)}
+.calopen .mcell.today{background:rgba(255,255,255,.20);border-color:transparent}
+.calopen .mcell.out{background:none;opacity:.42}
+.calopen .mcell.out > b{opacity:1}
+.calopen .mcell:not(.pad):hover{background:rgba(255,255,255,.08)}
+.calopen .mcell.today:hover{background:rgba(255,255,255,.24)}
+.calopen .mcell.sel{outline:2px solid rgba(255,255,255,.62);outline-offset:-2px;
+  background:rgba(255,255,255,.14)}
+/* what is on a day: the face's coloured mark, with its name beside it */
+.calopen .mitem{position:relative;background:none;border:0;border-radius:3px;
+  color:var(--dink);font-size:12px;line-height:1.35;padding:1px 4px 1px 14px}
+.calopen .mitem::before{content:"";position:absolute;left:3px;top:calc(1px + .675em - 3px);
+  width:6px;height:6px;border-radius:50%;background:var(--k);
+  box-shadow:0 0 0 1px rgba(255,255,255,.55)}
+.calopen .mitem.done{color:var(--dink-3)}
+/* a run is a bar in its own colour, laid over the wood */
+.calopen .mitem.runs{background:color-mix(in srgb,var(--k) 62%,rgba(0,0,0,.3));
+  border:0;border-radius:3px 0 0 3px;padding-left:6px}
+.calopen .mitem.runs::before{content:none}
+.calopen .mitem.runs.cont{border-radius:0}
+.calopen .mcell > u{color:var(--dink-3);align-self:center}
+/* one day: the tear-off pad the smallest face wears, the size of the screen */
+.calopday{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+  min-height:min(46vh,380px);border-radius:2px;cursor:pointer;color:var(--dink);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.13)}
+/* a whole screen of today wants less light than a cell of it */
+.calopday.today{background:rgba(255,255,255,.08)}
+.calopday u{text-decoration:none;font-size:13px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--dink-2)}
+.calopday b{font-family:var(--serif);font-weight:600;line-height:1;font-size:clamp(96px,18vw,200px)}
+.calopday i{font-style:normal;font-size:15px;color:var(--dink-2)}
+/* a phone: the name has the top line to itself and the hands go under it */
+.is-phone .drawer.dtile.calopen{padding:12px 8px 12px}
+.is-phone .drawer.dtile.calopen > .calohead{grid-template-columns:auto 1fr;
+  grid-template-areas:"name name" "nav views";row-gap:8px;margin-bottom:8px}
+.is-phone .calohead .caloname{grid-area:name}
+.is-phone .calohead .calonav{grid-area:nav}
+.is-phone .calohead .calviews{grid-area:views}
+.is-phone .drawer.dtile.calopen .calohead .dname{font-size:19px}
+.is-phone .calobtn{height:28px;min-width:28px;padding:0 8px;font-size:12px}
+.is-phone .calopen .mcell{min-height:74px;padding:4px 1px 3px;gap:2px}
+.is-phone .calopen .mcell > b{font-size:12px}
+.is-phone .calopen .monthgrid .dow{font-size:9.5px;letter-spacing:.04em}
+.is-phone .calopen .mitem{font-size:9.5px;line-height:1.25;padding:0 2px 0 8px;white-space:normal;
+  overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.is-phone .calopen .mitem::before{left:1px;width:4px;height:4px;top:calc(.625em - 2px)}
+.is-phone .calopen .mitem.runs{padding-left:3px}
+.is-phone .calopday{min-height:240px}
 
 .tlbar{display:flex;align-items:center;gap:11px;margin:2px 0 14px;max-width:420px}
 .tlbar .s{font-size:12.5px;color:var(--ink-2);white-space:nowrap}

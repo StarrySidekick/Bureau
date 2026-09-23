@@ -215,6 +215,17 @@ function calSpan(c, anchor, view){
   return {from:weekStartOn(new Date(y,m,1), sun),
           to:D.add(weekStartOn(new Date(y,m+1,0), sun), 6), month:m};
 }
+/* **The opened calendar is its face, bigger.** The month you open onto used to
+   be paper cells on the page ground — a different object from the coloured
+   front you pressed. It is the same front now: the same element classes, the
+   same colour, the same border slot and the same two layers under it, so every
+   aesthetic's rule for a calendar front dresses the opened one without being
+   told. It is a `div` outside any `.grid`, which is what keeps every gesture
+   that asks for `.grid .drawer` off it. See decision 200. */
+function calFront(o, inner){
+  return `<div class="drawer dtile caltile calopen${calBorder(o, false)}" style="--c:${objColour(o)}">
+    ${PANEL_LAYER}${textureOf(o)==='none' ? '' : GRAIN_LAYER}${inner}</div>`;
+}
 
 /* ---- the small calendar faces — decision 80 ---------------------------
    Below the month a calendar face is a desk calendar: the tear-off day pad,
@@ -2951,4 +2962,4 @@ function bookView(c, items){
 export { spinTo, CLICKS, clickOf, fireButton, intoOf, tileTap, pending, placeAtPending, SHELFSHIFT,
   scratchGrab, scratchTo, scratchGo,
   gridTile, gridOfContainer, listTile, bookOf, bookView, sheetOf, turnPage, clearPages,
-  calSpan };
+  calSpan, calFront };

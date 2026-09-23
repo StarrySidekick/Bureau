@@ -1914,6 +1914,35 @@ function homeFor(id){
   }
   return ROOT;
 }
+/* ---- what the Magic Selector makes on a board -------------------------
+   A board may say what gets put down on it: `makes.only` is the handful of
+   types its picker offers (everything else one disclosure further in), and
+   `makes.sizes` are rules that skip the picker altogether — a box sketched at
+   a size a rule covers is made as that rule's type there and then. A span is
+   `[lo, hi]` in cells on the board being drawn, `hi` null for "or more";
+   `turn` lets the rule match either way round. Read through here, never off
+   the field, so a type since deleted (or a category, which makes nothing by
+   itself) drops out rather than offering a tile that does nothing. Null means
+   everything, which is what every board said before it could say anything.
+   See decision 199. */
+const spanOk = (n, s) => { const [lo, hi] = Array.isArray(s) ? s : [s, s];
+  return n >= (lo||1) && (hi==null || n <= hi); };
+function makesOf(c){
+  const m = c && c.makes;
+  if(!m || typeof m!=='object') return null;
+  const only = (Array.isArray(m.only) ? m.only : []).filter(k=>KINDS[k]);
+  const sizes = (Array.isArray(m.sizes) ? m.sizes : [])
+    .filter(r=>r && KINDS[r.kind] && !K(r.kind).cat);
+  return only.length || sizes.length ? {only: only.length ? only : null, sizes} : null;
+}
+// the type a box of w×h becomes on this board without asking, or null
+function madeAtSize(c, w, h){
+  const m = makesOf(c);
+  if(!m || !w || !h) return null;
+  const r = m.sizes.find(r=>(spanOk(w, r.w) && spanOk(h, r.h))
+                        || (r.turn && spanOk(h, r.w) && spanOk(w, r.h)));
+  return r ? r.kind : null;
+}
 /* ---- clauses ----------------------------------------------------------
    A magic drawer used to carry exactly one `filter.rule`. The shorthands
    already stacked — kinds AND tag AND loose AND the rule — but the *free*
@@ -2761,6 +2790,7 @@ export { homeFor, ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds,
   KNOBSIZES, knobSizeOf, answered, marginOf, marginPlus, iconOf, TSIZES, textSizeOf, mediaTypeOf, isPicture,
   isMedia, isPlayable, acceptFor, acceptAny, MEDIA_EXT, isDecor,
   spawnByOf, genKindOf, takesTyping, showsAddBox, keepsDone, showsContainers,
+  makesOf, madeAtSize,
   CALVIEWS, calViewOf, calShowOf, CALSHOWS, weekStartOf, showsWeekends, calCols,
   CL_FITS, clFit, setClFit, clPerCell,
   OPS, WHENS, whenISO, RULE_MAX, rulesOf, matchRule,

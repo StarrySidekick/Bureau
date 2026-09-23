@@ -214,6 +214,33 @@ decision 130.
 A container that says what it makes still promotes that type to the front of
 the row, wherever it sits in the order: you opened the picker *inside* it.
 
+**A board can say what the Magic Selector makes on it.** A container (the desk
+included, through `S.deskCfg`) may carry `makes`:
+
+```js
+makes: {
+  only:  ['note', 'task', 'marginalia'] | null,   // what its picker offers
+  sizes: [{ w:[1,1], h:[2,null], kind:'book', turn:false }]  // sizes that skip it
+}
+```
+
+`only` narrows the picker opened on that board — by a sketch, a hold, the
+knob or the rail pull — to those types under *On this board*, with a type made
+for it one button away and everything else under *Everything*, one disclosure
+further in. `sizes` are rules: a box **sketched** at a size one covers is made
+as that type there and then, with no picker (the type's own question — a
+family, a tag, a life — is still asked). Each axis is a span `[lo, hi]` in
+cells on the board being drawn, `hi` null for "or more"; `turn` lets it match
+either way round; the first rule that fits wins. Only a sketch has a size, so
+a plain hold still asks. Null, or nothing left in it, is every type — how every
+board behaved before. Read it through `makesOf()` and `madeAtSize()` in
+model.js, which drop a type since deleted and a category (which makes nothing
+by itself); edit it from the board's own editor, under *Behaviour*: *Its picker
+offers* and *Sketched at a size*. It is saved and exported with the object,
+carried by a plan (`plan.makes`) and given to the container a plan is put down
+in when that container says nothing yet. The stock **Books** board makes a
+book of any box one cell wide and two or more tall. Decision 199.
+
 ### Everything else
 
 | Group | Types |

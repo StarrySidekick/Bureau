@@ -9203,6 +9203,115 @@ const PROP_OFF = () => { const b = document.createElement('button');
     S.undo=[]; S.redo=[]; S.view='desk'; S.drawerId=null; BUREAU.render();
     return out;
   });
+
+  /* --- a board says what the Magic Selector makes on it -------------------
+     Decision 198. A container may name the few types its picker offers
+     (everything else one disclosure further in) and sizes that are a type
+     outright: a box sketched one cell wide and three tall on a shelf of books
+     is a book, with no picker. Both are set in its own editor, travel in a
+     plan, and are kept by a save. */
+  const boardMakes = await page.evaluate(async () => {
+    const nap = ms => new Promise(r => setTimeout(r, ms));
+    const S = BUREAU.state, out = {};
+    const locked = S.look.locked; S.look.locked = false;
+    const d = BUREAU.create('drawer', {parent:'root', title:'Library'});
+    // ---- the editor writes it -------------------------------------------
+    BUREAU.panel(d.id, 'does'); await nap(150);
+    const set = async (key, v) => {
+      const el = document.querySelector(`#panel [data-oset="${d.id}:${key}"]`);
+      if(!el) return false;
+      el.value = v; el.dispatchEvent(new Event(el.tagName==='SELECT' ? 'change' : 'input', {bubbles:true}));
+      await nap(60); return true;
+    };
+    out.theEditorAsks = !!document.querySelector(`#panel [data-oset="${d.id}:makes.add"]`)
+      && !!document.querySelector(`#panel [data-oset="${d.id}:makes.size"]`);
+    await set('makes.add', 'note'); await set('makes.add', 'task'); await set('makes.add', 'image');
+    const offList = document.querySelector(`#panel [data-oclick="${d.id}:makes.drop:image"]`);
+    if(offList){ offList.click(); await nap(60); }
+    out.aShortList = JSON.stringify(d.makes && d.makes.only) === '["note","task"]';
+    await set('makes.size', 'book');
+    await set('makes.sz.0.h1', '6');
+    out.aSizeRule = !!d.makes && d.makes.sizes.length === 1 && d.makes.sizes[0].kind === 'book'
+      && JSON.stringify(d.makes.sizes[0].w) === '[1,1]' && JSON.stringify(d.makes.sizes[0].h) === '[2,6]';
+    // one field, edited in a run, is one move (pushSet coalesces) — so one
+    // undo takes the board back to saying nothing
+    BUREAU.undo(); await nap(40);
+    out.undoable = !d.makes;
+    d.makes = {only:['note','task'], sizes:[{w:[1,1], h:[2,null], kind:'book'}]};
+    BUREAU.closePanel();
+
+    // ---- a sketch inside it --------------------------------------------
+    S.view='drawer'; S.drawerId=d.id; S.sel=[]; BUREAU.render(); await nap(350);
+    const grid = () => document.querySelector('#app .grid');
+    const r = grid().getBoundingClientRect();
+    const cell = parseFloat(getComputedStyle(grid()).getPropertyValue('--rowh')) || 40;
+    // re-queried every time: a render replaces the grid, and a detached one
+    // hears nothing
+    const ev = (t, x, y) => grid().dispatchEvent(new PointerEvent(t,
+      {clientX:x, clientY:y, bubbles:true, pointerId:1, pointerType:'mouse', button:0}));
+    const sketch = async (cx, cy, dw, dh) => {
+      const x = r.left + cell*(cx-0.5), y = r.top + cell*(cy-0.5);
+      ev('pointerdown', x, y); await nap(420);
+      ev('pointermove', x + cell*dw, y + cell*dh); await nap(50);
+      ev('pointerup', x + cell*dw, y + cell*dh); await nap(350);
+    };
+    await sketch(2, 2, 2, 1);                       // three by two: no rule
+    const panel = document.querySelector('#panel');
+    out.aWideBoxAsks = !!panel && panel.dataset.panel === 'newobject';
+    const lead = [...document.querySelectorAll('#panel .boardmakes .kindtile')]
+      .map(t => t.dataset.new || t.dataset.family);
+    out.thePickerOffersTheShortList = JSON.stringify(lead) === '["note","task"]';
+    out.withEverythingOneDoorIn = !!document.querySelector('#panel details.boardall .kindtile[data-new="image"]');
+    const n0 = S.objects.length;
+    const t = document.querySelector('#panel .boardmakes .kindtile[data-new="task"]');
+    if(t){ t.click(); await nap(400); }
+    const made = S.objects[S.objects.length-1];
+    out.andMakesWhatYouPress = S.objects.length === n0+1 && made.kind === 'task' && made.parent === d.id;
+    BUREAU.closePanel(); S.sel=[]; BUREAU.render(); await nap(150);
+    const n1 = S.objects.length;
+    await sketch(6, 2, 0, 2);                       // one by three: a book
+    const book = S.objects[S.objects.length-1];
+    out.aTallThinBoxIsABook = S.objects.length === n1+1 && book.kind === 'book' && book.parent === d.id
+      && book[S.device].w === 1 && book[S.device].h === 3;
+    out.withNoPickerInBetween = !document.querySelector('#panel');
+
+    // a type made for this board, from its own picker, joins the short list
+    BUREAU.pick(); await nap(200);
+    const forIt = document.querySelector('#panel [data-act="boardkind"]');
+    if(forIt){ forIt.click(); await nap(200); }
+    const knm = document.querySelector('#knm');
+    if(knm){ knm.value = 'Marginalia'; knm.dispatchEvent(new Event('input', {bubbles:true})); }
+    const saveKind = document.querySelector('#panel [data-act="savekind"]');
+    if(saveKind){ saveKind.click(); await nap(200); }
+    out.aTypeMadeForItJoinsIt = !!S.kinds.marginalia && !!d.makes && d.makes.only.includes('marginalia');
+    BUREAU.closePanel();
+    BUREAU.pick(); await nap(200);
+    out.andIsOfferedThere = !!document.querySelector('#panel .boardmakes .kindtile[data-new="marginalia"]');
+    BUREAU.closePanel();
+    delete S.kinds.marginalia; BUREAU.refreshKinds();
+    d.makes.only = d.makes.only.filter(k => k !== 'marginalia');
+
+    // ---- it travels in a plan, and a save keeps it -----------------------
+    const pl = BUREAU.planFrom(d.id, 'Library plan');
+    out.aPlanCarriesIt = !!pl && !!pl.makes && pl.makes.sizes[0].kind === 'book';
+    const d2 = BUREAU.create('drawer', {parent:'root', title:'Second library', noSeed:true});
+    const got = BUREAU.stampPlan(pl.id, d2.id);
+    out.andGivesItToWhereItIsPutDown = JSON.stringify(d2.makes) === JSON.stringify(pl.makes);
+    BUREAU.save();
+    let stored = null; try { stored = JSON.parse(localStorage.getItem('bureau.v1')); } catch(e){}
+    const back = stored && stored.objects.find(o => o.id === d.id);
+    out.aSaveKeepsIt = !!back && JSON.stringify(back.makes) === JSON.stringify(d.makes);
+    // the stock Books board says it too, by migration on a desk that had it
+    const books = BUREAU.migrated({v:39, objects:[], plans:[{id:'x', stock:'books', nm:'Books', objects:[]}]});
+    out.theBooksBoardSaysSpines = !!books.plans[0].makes && books.plans[0].makes.sizes[0].kind === 'book';
+
+    BUREAU.delPlan(pl.id);
+    S.view='desk'; S.drawerId=null;
+    BUREAU.delMany([...got.map(o=>o.id), made.id, book.id, d2.id, d.id]);
+    S.look.locked = locked; S.undo=[]; S.redo=[]; BUREAU.render();
+    return out;
+  });
+  await page.screenshot({ path: 'test/shots/board-makes.png' });
   await page.bringToFront();
 
   /* --- 2026-09-23: inside a container, sideways is the drawer beside it ---
@@ -9273,7 +9382,7 @@ const PROP_OFF = () => { const b = document.createElement('button');
     ranking, urgency, reachable, pensAndCorners, lyingBooks, plansWork, stockPlans, livedWith, boardsComeWith, saysWhatItHolds, listIsOneShelf, repeating, oneLock, scheduling, ownColour, addBox, calFaces,
     lockedBoard, freeTraits, pageWrites, tickBoxes, readerFits, categories,
     specimenBook, deskObjects, camLife, camPhone, ownBoard, threeDrawings, fullScreen, openingIn, boards193, sideways, thisPass,
-    dropsIn, keyframesRegistered, aesthetics, slotScoping, objectsDressed, grainSlots, tagged, drawnAesthetic, deeper, lookStage, statusBar, bindings, panelling, theSpray, tappingIsQuiet, decorations, pinboard, gravity
+    dropsIn, keyframesRegistered, aesthetics, slotScoping, objectsDressed, grainSlots, tagged, drawnAesthetic, deeper, lookStage, statusBar, bindings, panelling, theSpray, tappingIsQuiet, decorations, pinboard, gravity, boardMakes
   }, null, 2));
   await browser.close();
 })();

@@ -19,7 +19,7 @@ import { plans, stampPlan } from './plans.js';
    Bureau is this phone running" is exactly the question you ask when a change
    appears not to have deployed. Shown in Settings, so it can be read off the
    device rather than guessed at. */
-const APP_VERSION = '1.89';
+const APP_VERSION = '1.90';
 const KEY = 'bureau.v1';
 const install = {deferred:null};   // the browser's install prompt, when one is on offer
 let saveTimer = null;
@@ -267,7 +267,7 @@ function rescalePhone(d, from, cols){
    skips all of them, an old backup replays only what it is missing. These
    used to be ad-hoc per-load mutations inside adopt(); a new repair that
    should run once belongs here, as the next numbered step. */
-const DATA_V = 40;
+const DATA_V = 41;
 const MIGRATIONS = [
   // Drawers and objects were two arrays and a drawer could not live inside
   // anything. foldDrawers also replays the old dense flow to give v1 drawers
@@ -1042,6 +1042,16 @@ const MIGRATIONS = [
       boxed.forEach(o=>{ const n = now.get(o.id); if(!n) return;
         o.desk = Object.assign({}, n.desk); o.phone = Object.assign({}, n.phone); });
     });
+  }},
+  /* ---- what a stock board makes ---------------------------------------
+     `makes` (decision 199) is what a board is *for*, like `life` and `sec`,
+     so it is written onto a stock plan by key — and only where that plan does
+     not say anything yet, so one somebody has changed is left alone. */
+  {v:41, up(d){
+    const fresh = {};
+    stockPlans().forEach(p=>{ fresh[p.stock] = p; });
+    (d.plans||[]).forEach(p=>{ const f = p && p.stock && fresh[p.stock];
+      if(f && f.makes && !p.makes) p.makes = JSON.parse(JSON.stringify(f.makes)); });
   }},
 ];
 function migrate(d){
