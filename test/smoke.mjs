@@ -5848,7 +5848,12 @@ const CHROME = process.env.BUREAU_CHROME;
     /* A drawer is given its own knob, edge, grain and panelling at birth
        (decision 92) and a plan stamped them without one, so the ten laid out a
        row of identical fronts wearing the aesthetic's default. */
-    const room = BUREAU.create('drawer', {parent:'root', title:'Look room'});
+    /* A Life drawer, which is what the stock boards are authored for: its
+       board is twenty by twenty, and the room beside the plan is where a
+       spawner's work lands. A plain drawer grows only to the plan's own eight
+       by twelve, which the Books board fills, so a quote made there got a
+       one-cell hole and had nothing to shrink into (decision 194). */
+    const room = BUREAU.create('life', {parent:'root', title:'Look room', noSeed:true});
     const seen = {border:new Set(), knob:new Set(), texture:new Set(), panel:new Set()};
     let conts = 0;
     BUREAU.plans().filter(p => p.stock).forEach(p => {

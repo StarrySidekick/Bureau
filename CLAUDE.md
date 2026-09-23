@@ -43,7 +43,7 @@ reading before touching the camera, the dive, a container's board or the
 reading surface. **v1.81** (decision 193) named every grid space a **board**,
 made the gear open Board settings inside a container, took the chevron out of
 the bar and added the **pigeonhole** — the face a one-cell-wide drawer wears.
-**v1.82** (decision 194) replaced the ten stock plans with ten boards that are
+**v1.82–1.83** (decision 194) replaced the ten stock plans with ten boards that are
 each the base station for one thing (see INTENT.md, 2026-09-23), added the
 **Link** and **Review** types, and let a plan's rules name the board it is put
 down on.

@@ -277,7 +277,7 @@ const SPECS = [
 
   /* Films: the list, a deck for the night you cannot pick, and a review for
      each one seen, which the Seen drawer collects off this board. */
-  {key:'films', nm:'Films', ic:'film', c:9, of:'drawer', on:[
+  {key:'films', nm:'Films', ic:'film', c:9, of:'life', on:[
     LABEL('Films', [1,1,8,1], 9),
     {k:'checklist', t:'Watchlist', b:[1,2,5,5], set:{c:9}},
     {k:'deck', t:'Pick for me', b:[6,2,3,4], set:{c:10}, kids:CARDS([
@@ -295,7 +295,7 @@ const SPECS = [
   /* Books: how far into this one, what is next, and two things you take out
      of a book — the lines worth keeping and what you made of it — each with a
      drawer that collects it off this board. */
-  {key:'books', nm:'Books', ic:'book', c:11, of:'drawer', on:[
+  {key:'books', nm:'Books', ic:'book', c:11, of:'life', on:[
     LABEL('Reading', [1,1,8,1], 11),
     {k:'progressbar', t:'How far into it', b:[1,2,8,1], set:{c:11}},
     {k:'checklist', t:'To read', b:[1,3,5,4], set:{c:11}},
