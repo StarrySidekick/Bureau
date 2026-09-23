@@ -137,9 +137,19 @@ function openTile(id, go){
   // it is the same tap, so it does not get a second animation
   if(el.classList.contains('curling') || el.classList.contains('lifting')){ go(); return; }
 
+  // the same tap arriving a second time as a click: the surface is already
+  // growing out of this tile, and a second grow would start it again from small
+  if(el.classList.contains('sheetsource')){ go(); return; }
+
   // curl and lift happen to the tile itself: it stays on the board, and what
   // opens over it is a surface rather than another board
   if(how==='curl' || how==='lift'){
+    /* **Unless what opens is a surface, and then the tile becomes it.** The
+       surface is drawn first — `go()` is never held up — and the tile is
+       scaled up out of its own cell into it (decision 203). A curl or a lift
+       under a scrim arriving on top of it was never seen anyway. Anything
+       else a paper shape opens onto (its panel, the When page) keeps the nod. */
+    if(surfaceGoing(go) && growSheet(id)) return;
     const cls = how==='curl' ? 'curling' : 'lifting';
     el.classList.add(cls);
     /* The underside of the curl is a real child rather than a pseudo-element:
@@ -148,7 +158,6 @@ function openTile(id, go){
     let shade=null;
     if(how==='curl'){ shade=document.createElement('i'); shade.className='curlshade'; el.appendChild(shade); }
     setTimeout(()=>{ el.classList.remove(cls); if(shade) shade.remove(); }, OPEN_MS[how]);
-    go();
     return;
   }
 
@@ -274,6 +283,157 @@ function openTile(id, go){
   go();
   enter(how);
   setTimeout(()=>ghost.remove(), OPEN_MS[how]);
+}
+
+/* ---- a surface grows out of its tile — decision 203 ---------------------
+   The camera (decision 187) brought you to the object where it sat, and it is
+   tabled. Opening is a surface again — the reading, the writing, the picture
+   or the instrument, full screen over a dimmed desk — and what makes it read
+   as *this* object opening rather than a screen appearing is that the tile
+   visibly becomes it: the surface starts exactly on the tile's rect and grows
+   to its own, while a picture of the tile rides the same curve and dissolves
+   into it. Closing is the same thing backwards, into wherever the tile is on
+   the board that has just been drawn.
+
+   **The surface is live from the first frame.** It is rendered at its own size
+   before any of this runs and only *wears* a transform, so a test, or a hand,
+   can type in it or turn its page while it is still growing — decision 38.
+   Web Animations rather than a class: the keyframes need the two rects, which
+   only exist at the moment of the tap, and an animation made in script leaves
+   nothing behind on the element when it ends.
+
+   **The paper is the thing mapped onto the tile, not the stage.** The stage is
+   the whole screen with the sheet somewhere in the middle of it; mapping that
+   onto a 2×2 note would open a smaller sheet out of the middle of the note.
+   The title above and the bar below grow along with the paper, outside it.
+
+   Scaled on both axes separately, so a square tile stretches into a tall page
+   on the way. That is what the crossfade is for: the stretch happens while the
+   picture of the tile is going and the paper is coming, and neither is ever
+   fully visible at a proportion it does not have. Animating the box's width
+   and height instead would be a layout a frame and a rewrap of every word. */
+const SHEET_MS = 380, SHEET_OUT_MS = 420;
+const SHEET_EASE = 'cubic-bezier(.4,0,.2,1)';
+const sheetStage = ()=>{ const h=$('#sheetHost');
+  return h && h.querySelector('.bookstage,.writestage,.viewstage'); };
+const sheetPaper = st => st.querySelector('.spread,.writepaper,.zoomart,.viewpaper') || st;
+const sheetScrim = ()=>{ const h=$('#sheetHost');
+  return h && h.querySelector('.bookscrim,.writescrim,.viewscrim'); };
+/* Run the opening, and say whether it put a surface up. */
+function surfaceGoing(go){
+  go();
+  return !!(S.readId || S.writeId || S.viewId || S.zoomId);
+}
+/* The transform, with its origin at `er`'s top left, that lands the box `p`
+   (somewhere inside `er`) exactly on the box `t`. */
+function flipTo(er, p, t){
+  const sx = t.width  / Math.max(1, p.width), sy = t.height / Math.max(1, p.height);
+  const tx = t.left - er.left - (p.left - er.left) * sx;
+  const ty = t.top  - er.top  - (p.top  - er.top)  * sy;
+  return `translate(${tx.toFixed(2)}px,${ty.toFixed(2)}px) scale(${sx.toFixed(4)},${sy.toFixed(4)})`;
+}
+/* A copy of something that can fly over the sheet host without being found by
+   anything that looks for the real one — ids, the tile lookups, and the three
+   attributes wire.js dispatches on. */
+function flyCopy(el){
+  const c = picture(el.cloneNode(true));
+  const src = el.querySelectorAll('textarea'), dst = c.querySelectorAll('textarea');
+  // a clone carries a textarea's *default* value, not what was typed into it
+  dst.forEach((t, i)=>{ if(src[i]) t.value = src[i].value; });
+  [c, ...c.querySelectorAll('[data-w],[data-act],[data-sheet],[data-oread]')].forEach(n=>{
+    n.removeAttribute('data-w'); n.removeAttribute('data-act');
+    n.removeAttribute('data-sheet'); n.removeAttribute('data-oread'); });
+  return c;
+}
+function growSheet(id){
+  const el = tileOf(id), st = sheetStage(), host = $('#sheetHost');
+  if(still() || !el || !st || !host || !el.isConnected) return false;
+  const t = el.getBoundingClientRect(); if(!t.width || !t.height) return false;
+  const er = st.getBoundingClientRect(), p = sheetPaper(st).getBoundingClientRect();
+  if(!p.width || !p.height) return false;
+
+  const from = flipTo(er, p, t);
+  st.style.transformOrigin = '0 0';
+  const grow = st.animate([{transform: from, opacity: 0}, {opacity: 1, offset: .45}, {transform: 'none', opacity: 1}],
+             {duration: SHEET_MS, easing: SHEET_EASE});
+  const scrim = sheetScrim();
+  const veil = scrim && scrim.animate([{opacity: 0}, {opacity: 1}], {duration: SHEET_MS, easing: 'ease-out'});
+
+  /* The tile, over the surface, going the same way on the same clock. The
+     real one is hidden meanwhile, or there are two of it — one growing and one
+     still sitting in its cell behind the scrim. */
+  const fly = document.createElement('div');
+  fly.className = 'sheetfly';
+  at(fly, t);
+  fly.appendChild(picture(faceOf(el)));
+  host.appendChild(fly);
+  fly.animate([{transform: 'none', opacity: 1}, {opacity: 1, offset: .1}, {opacity: 0, offset: .45},
+               {transform: flipTo(t, t, p), opacity: 0}],
+              {duration: SHEET_MS, easing: SHEET_EASE, fill: 'forwards'});
+  el.classList.add('sheetsource');
+  /* Ended on the clock and not on the animation's own `finish`, and the two
+     animations are cancelled rather than trusted to have run out: a page that
+     is not being painted (a background tab, a test's second page) gets no
+     frames, and a surface left wearing its first keyframe is a sheet the size
+     of a note that every tap after it lands on. */
+  setTimeout(()=>{ fly.remove(); el.classList.remove('sheetsource');
+    grow.cancel(); if(veil) veil.cancel(); st.style.transformOrigin=''; }, SHEET_MS + 40);
+  return true;
+}
+/* Closing, in two halves, because the tile it lands in does not exist yet:
+   `closeSheet()` asks for this *before* it clears the surface — the paper is
+   read while it is still there — and calls what comes back *after* the render
+   that puts the board back. No tile on that board (it was deleted, filed, or
+   is on another shelf) and the surface simply goes, as it always did. */
+function shrinkSheet(id){
+  const st = sheetStage();
+  if(still() || !id || !st) return null;
+  const paper = sheetPaper(st), p = paper.getBoundingClientRect();
+  if(!p.width || !p.height) return null;
+  const card = flyCopy(paper);
+  // nothing that sizes it survives leaving the stage — `--pageh` is the stage's
+  Object.assign(card.style, {width: p.width+'px', height: p.height+'px', margin: '0',
+    flex: 'none', maxWidth: 'none', minHeight: '0', boxSizing: 'border-box'});
+  /* …and neither does anything the stage's own rules said about the paper: a
+     scroll's measure is padding written at `.bookstage.rm-scroll`, and a copy
+     outside the stage set its column flush left on the first frame of the
+     way out. Said inline off the real one, for the sheet and its pages. */
+  const KEEP = ['padding','fontSize','lineHeight','borderRadius','boxShadow','backgroundColor','border'];
+  const pages = [paper, ...paper.querySelectorAll('.page')], copies = [card, ...card.querySelectorAll('.page')];
+  pages.forEach((n, i)=>{ const c = copies[i]; if(!c) return;
+    const cs = getComputedStyle(n); KEEP.forEach(k=>{ c.style[k] = cs[k]; }); });
+  const scrolled = [...paper.querySelectorAll('.page,.writebody')].map(n=>n.scrollTop);
+  const scrim = sheetScrim(), cs = scrim && getComputedStyle(scrim);
+  const veilBg = cs ? cs.backgroundColor : 'rgba(20,16,12,.55)';
+  const veilBlur = cs ? cs.backdropFilter : '';
+  return ()=>{
+    const el = tileOf(id), host = $('#sheetHost');
+    if(!el || !host) return;
+    const t = el.getBoundingClientRect(); if(!t.width || !t.height) return;
+    const veil = document.createElement('div');
+    veil.className = 'sheetveil';
+    veil.style.background = veilBg;
+    if(veilBlur && veilBlur !== 'none') veil.style.backdropFilter = veilBlur;
+    const fly = document.createElement('div');
+    fly.className = 'sheetfly';
+    at(fly, p);
+    fly.appendChild(card);
+    [...card.querySelectorAll('.page,.writebody')].forEach((n, i)=>{ n.scrollTop = scrolled[i]||0; });
+    const face = document.createElement('div');
+    face.className = 'sheetfly';
+    at(face, t);
+    face.appendChild(picture(faceOf(el)));
+    host.append(veil, fly, face);
+    const o = {duration: SHEET_OUT_MS, easing: SHEET_EASE, fill: 'forwards'};
+    veil.animate([{opacity: 1}, {opacity: 0}], o);
+    fly.animate([{transform: 'none', opacity: 1}, {opacity: 1, offset: .35}, {opacity: 0, offset: .8},
+                 {transform: flipTo(p, p, t), opacity: 0}], o);
+    face.animate([{transform: flipTo(t, t, p), opacity: 0}, {opacity: 0, offset: .25},
+                  {opacity: 1, offset: .7}, {transform: 'none', opacity: 1}], o);
+    el.classList.add('sheetsource');
+    setTimeout(()=>{ veil.remove(); fly.remove(); face.remove();
+      el.classList.remove('sheetsource'); }, SHEET_OUT_MS + 40);
+  };
 }
 
 /* ---- and coming back out ----------------------------------------------
@@ -1620,7 +1780,8 @@ export { still, tileOf, tileRect, openingFor, openTile, leaveTile, enter, pop, c
   pagerBegin, pagerMove, pagerEnd, pagerCancel, pagerOn, stepDrawer,
   applyTilt, askTilt, tiltTo, tiltRecentre, tiltDown ,
   zoomInto, zoomOut, zoomedIn, applyZoom, camScale, CAM_READ, ZOOM_MS,
-  camScrub, camScrubEnd, camScrubbable, CAM_DIMS };
+  camScrub, camScrubEnd, camScrubbable, CAM_DIMS, CAMERA,
+  growSheet, shrinkSheet, SHEET_MS };
 
 
 /* ============================================================
@@ -1662,6 +1823,15 @@ export { still, tileOf, tileRect, openingFor, openTile, leaveTile, enter, pop, c
    rather than arranging, and is enforced rather than hoped for (`zoomedIn()`
    in gestures.js). */
 
+/* **Tabled, per Timothy, 2026-09-23.** "The zoom thing that we kind of
+   invented for notes honestly just isn't working that well" — opening goes
+   back to the object scaling up into a surface of its own (`growSheet()`,
+   decision 203). Everything below is left in place and switched off here
+   rather than deleted: `zoomInto()` refuses, `zoomedIn()` answers false, and
+   every path in gestures.js and wire.js that asks is therefore inert. Turn it
+   back on and it is the camera of decisions 187-192 again, untouched. */
+const CAMERA = false;
+
 const ZOOM_PAD = 22;        // how much board still shows round the edges
 const ZOOM_MAX = 7;         // a 1×1 tile magnified any further is a mark
 
@@ -1676,7 +1846,7 @@ const ZOOM_MS = 420;
    having seen where from. Half as long again. */
 const ZOOM_OUT_MS = 640;
 
-function zoomedIn(){ return !!(S.zoomOn && byId(S.zoomOn)); }
+function zoomedIn(){ return CAMERA && !!(S.zoomOn && byId(S.zoomOn)); }
 
 /* How far in the camera goes for a box of this many cells. **One function, two
    callers**, and that is the whole of why it exists: `applyZoom()` needs it
@@ -1711,7 +1881,7 @@ const CAM_READ = 17;
    doing it, so a tap files and *then* the movement is drawn over the result
    (decision 38). */
 function zoomInto(id){
-  const o = byId(id); if(!o) return false;
+  const o = byId(id); if(!o || !CAMERA) return false;
   S.zoomOn = id;
   return true;
 }

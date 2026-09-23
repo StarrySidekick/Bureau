@@ -9381,3 +9381,71 @@ today added, to the next copy, so a repeating task can wear the tracker too.
 could tag it, which is the other half of a luggage tag); the string between a
 tag and what it collects is not drawn; and a year of squares for a habit is
 still decision 197's open item — the tracker at its largest is about a season.
+---
+
+## 203 · Opening scales the object up; the camera is tabled
+
+*2026-09-23*
+
+Timothy, after two days with the camera: "The Zoom thing that we kind of
+invented for notes and other similar objects honestly just isn't working that
+well. So I want to go back to, instead of us zooming in on the object, the
+object scaling up to fill the screen as the animation instead. Sort of similar
+to what we had before, but a smoother animation to show us that. For now, we
+will table the old animation and display."
+
+So a tap on a note opens the **reading surface** again — the sheet over a
+dimmed desk that decision 187 replaced — and an instrument's hold opens its own
+surface (decision 182's zoom) again. What is new is how they arrive:
+**`growSheet()`** in motion.js starts the surface exactly on the tile's rect and
+scales it to its own, while a picture of the tile rides the same curve over it
+and dissolves; **`shrinkSheet()`** is the same thing backwards, into wherever
+the tile is on the board that has just been drawn. `openTile()` does it for any
+curl or lift whose opening turns out to be a surface, so reading, writing and
+the picture all get it, and the curl and the lift stay the nod for a paper
+shape that opens a panel.
+
+Four things in it were decided rather than fallen into:
+
+- **The paper is mapped onto the tile, not the stage.** The stage is the whole
+  screen with the sheet somewhere in it; mapping that onto a 2×2 note opened a
+  smaller sheet out of the middle of the note. The title and the bar grow along
+  with the paper, outside it.
+- **Both axes scale separately, and a crossfade covers it.** A square tile
+  becoming a tall page stretches on the way. The picture of the tile goes out
+  and the paper comes in across the first half, so neither is ever fully shown
+  at a proportion it does not have. Animating width and height instead would be
+  a layout a frame and a rewrap of every word.
+- **Nothing waits.** The surface is rendered at its own size before the
+  movement begins and only wears a transform, so it can be typed in or turned
+  while it is growing (decision 38); closing clears the state on the spot and
+  the shrinking sheet is a picture in the sheet host. The movement is Web
+  Animations rather than a class, because the keyframes need two rects that
+  only exist at the moment of the tap, and it is **cancelled on the clock**
+  rather than trusted to finish: a page that gets no frames (a background tab,
+  a test's second page) would otherwise leave a sheet the size of a note.
+- **Fast out, slow in, 380ms in and 420ms out.** `cubic-bezier(.4,0,.2,1)`;
+  the first curve tried, `(.2,.8,.2,1)`, was six tenths of the way there in
+  the first sixth and read as a jump rather than a growth. Out is a little
+  longer, which is decision 190's reason: coming back you have to see where to.
+
+**The camera is tabled, not deleted.** `CAMERA = false` in motion.js:
+`zoomInto()` refuses, `zoomedIn()` answers false, and every path in gestures.js
+and wire.js that asks — the pinch scrub, the press that backs out, the swipe
+that is not offered, `camfull` — is inert. `applyZoom()` still runs after a
+render and clears any stale `S.zoomOn`. Decisions 187–192 describe it exactly
+as it will be if the constant is turned back on. What goes with it for now:
+the record's scratch (a hold on a record is the palette again), reading "where
+it sits" with the neighbours round it, and the camera's two controls and dim
+setting, which are no longer drawn.
+
+The smoke blocks that asserted the camera were turned round rather than
+deleted: each asks the same question of the surface — it opens on the instant,
+it grows out of the tile and ends at rest, the object's box is untouched, how
+it reads is its own answer, nothing on the board can be pressed through it, a
+book turns by being pushed, and Escape comes back out.
+
+*Against:* the thing decision 187 was right about is still true — a note's
+neighbours are half of what it means, and a surface over a dimmed desk loses
+them. The grow is the answer to "where did this come from"; it is not an answer
+to "what was next to it".

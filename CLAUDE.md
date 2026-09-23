@@ -59,8 +59,21 @@ becomes a drawer through `makeFromPlan()`. **v1.87** (decision 197): boards are
 **eight by fourteen**, the bottom two rows an *Add to this…* line; a paste can
 lay out and fill a plan (`docs/examples/lived-in.json`, screenshotted by
 `test/lived-in.mjs`); calendars have a face setting, checklists can carry their
-name, spawners can file `into` a drawer, and a container can be `undated`. **v1.88** only stops a checklist line saying "Today". What comes next
-is `docs/ROADMAP.md` §0zj, the brain dump first.
+name, spawners can file `into` a drawer, and a container can be `undated`. **v1.88** only stops a checklist line saying "Today".
+
+**v1.89–1.93 (2026-09-23), decisions 198–203, one brief from Timothy.**
+**The camera is tabled** (203): opening a note scales the tile up into the
+full-screen surface in `sheet.js` and shrinks it back on close (`growSheet`/
+`shrinkSheet` in motion.js); `CAMERA=false` keeps decisions 187–192's code in
+place and inert, so read those as history, not as how things open. **Inside a
+container, sideways is the container beside it** on the board it sits on and
+up/down is its pages, a column that grows at the bottom (198). Checklist
+fronts scroll with the name and add box on top; the stock boards fill their
+twelve rows. A board can say what the Magic Selector makes on it (199). The
+opened calendar is its face, bigger (200). The selector is violet, the deck is
+one Rider-backed card, a Link is a portal (201). The habit tracker face, the
+Tag on the desk and implicit tags through `tagsOf()`/`tagMatch()` (202). What
+comes next is `docs/ROADMAP.md` §0zj, the brain dump first.
 
 **Start here each session:** `docs/SYSTEM.md` is the reference for what Bureau is
 made of — objects, attributes, types, drawers, the grid, the surfaces, storage.
@@ -245,7 +258,7 @@ clause at the bottom of each file — that list is each module's public surface.
 | `sheet.js` | The three surfaces an object opens onto — reading, writing, and the picture — rendered into `#sheetHost`, **separately** from `render()`. |
 | `panels.js` | `openPanel()` — **every menu in the app** — plus `openMenu()` for a popup hung off a button, the command palette (⌘K), the context menu, and `sampleObject`/`sampleTile` for drawing a type as the thing it makes. |
 | `gestures.js` | Pointer-based drag, resize, lasso, swipe. The fiddliest code in the app. |
-| `motion.js` | Every movement: `openTile()` (drawer, cabinet, curl, lift), `pop()`, the pager that slides between boards, and **the camera** (`applyZoom`/`camScale`) that zooms the board into one object where it sits. Nothing in it ever delays a state change. |
+| `motion.js` | Every movement: `openTile()` (drawer, cabinet, curl, lift), `growSheet()`/`shrinkSheet()` (an object scaling up into its surface and back), `pop()`, the pager that slides between boards and to the drawer beside this one, and **the camera** (`applyZoom`/`camScale`), tabled behind `CAMERA=false` since decision 203. Nothing in it ever delays a state change. |
 | `gravity.js` | A board that has **let go** — the rigid-body solver behind Sand and Tumbling. Reads nothing but the tiles' rectangles; writes nothing but their transforms. |
 | `plans.js` | A **plan** — a saved board, in `S.plans`, captured and stamped. Not an object and not on any grid. |
 | `active.js` | The **instruments** — a metronome, an hourglass, a candle, a bell, a clock, a die and a deck. One table, and one rule: nothing ticks by re-rendering. |

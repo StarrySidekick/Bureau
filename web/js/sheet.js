@@ -6,6 +6,7 @@ import { objColour } from './look.js';
 import { closePanel, objectPanel } from './panels.js';
 import { toast } from './mutations.js';
 import { render } from './views.js';
+import { shrinkSheet } from './motion.js';
 
 /* ============================================================
    15 · the two surfaces an object opens onto
@@ -78,9 +79,14 @@ function openObj(id){
   else objectPanel(id);
 }
 function closeSheet(){
+  /* The surface goes back into its tile (decision 203): read now, while the
+     paper is still on the screen, and drawn after the render that puts the
+     tile back. Never instead of either — the state is cleared on this line. */
+  const land = shrinkSheet(S.readId || S.writeId || S.viewId || S.zoomId);
   S.writeId=null; S.readId=null; S.viewId=null; S.editId=null; S.zoomId=null; S.readEdit=false;
   S.readFull=false;
   clearFocus(); renderSheet(); render();
+  if(land) land();
 }
 function clearFocus(){
   $$('.drawer.focused').forEach(e=>e.classList.remove('focused'));

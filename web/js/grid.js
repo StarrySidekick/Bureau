@@ -506,13 +506,30 @@ function freeSpotIn(w,h,device,parentId,prefer){
    with nowhere to be is worse than no object (decision 46).
 
    The first ask is the common case and costs exactly what it always did. */
+/* **Half its size, then a new page, then smaller still** (decision 198). Once
+   a full container could grow, asking `freeSpot()` first meant every object
+   that did not fit at its full size grew the board instead of stepping down a
+   cell — the seed's Studio drawer went to two pages to hold a timeline it had
+   always held at three by three. So the step-down runs on the pages there are
+   until the object is half the size it asked for, a page is added only then,
+   and past that it steps down as it always did. */
 function fitSpot(w,h,device,parentId,prefer){
   let a=Math.max(1,w|0), b=Math.max(1,h|0);
-  for(let i=0;i<12;i++){
-    const spot=freeSpot(a,b,device,parentId,prefer);
+  const minA=Math.ceil(a/2), minB=Math.ceil(b/2);
+  let grown=false;
+  for(let i=0;i<40;i++){
+    const spot = grown ? freeSpot(a,b,device,parentId,prefer)
+                       : freeSpotIn(a,b,device,parentId,prefer);
     if(spot) return spot;
+    if(!grown && a<=minA && b<=minB){
+      grown=true;
+      if(growDown(parentId)){ a=Math.max(1,w|0); b=Math.max(1,h|0); }
+      continue;
+    }
     if(a<=1 && b<=1) return null;
-    if(a>=b) a--; else b--;
+    if(!grown){
+      if(a>=b && a>minA) a--; else if(b>minB) b--; else a--;
+    } else if(a>=b) a--; else b--;
   }
   return null;
 }

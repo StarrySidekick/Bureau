@@ -287,6 +287,17 @@ picture before you let go, because letting go rebuilds `#app`. If you ever make
 something render mid-gesture, that picture won't exist and the middle of the
 strip will be empty.
 
+**Opening grows the object into its surface, and the camera is tabled.**
+`CAMERA = false` in motion.js (Timothy, 2026-09-23): a tap reads on the
+surface again, and `growSheet()` scales the surface out of the tile's own rect
+while a picture of the tile dissolves into it; `closeSheet()` asks
+`shrinkSheet()` for the way back *before* it clears anything and runs it after
+the render, because the tile it lands in does not exist until then. The paper
+is what maps onto the tile, not the stage. The animations are cancelled on a
+timer rather than trusted to finish, so a page with no frames never keeps a
+note-sized sheet. The paragraphs below about the camera describe it as it
+will be when the constant is turned back on. See decision 203.
+
 **The camera scales the board, and nothing may be dragged through it.**
 `S.zoomOn` names one object; `applyZoom()` slides and scales `#drawergrid` until
 that tile is centred and as large as fits, with the neighbours still on screen

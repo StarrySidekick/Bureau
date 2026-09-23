@@ -361,6 +361,20 @@
 /* a surface re-drawn in place is not a surface arriving — see renderSheet() */
 .bookscrim.again,.bookstage.again{animation:none}
 @keyframes veilin{from{opacity:0} to{opacity:1}}
+/* **Opened from a tile, the surface grows out of it** (decision 203) — the
+   keyframes are made in motion.js, because they need the tile's rect and the
+   paper's, and only these three rules are fixed. A transform and not a size,
+   which keeps the note above true: the stage's box never changes, so nothing
+   repaginates while it grows. `.sheetfly` is a picture of the tile or of the
+   paper, over the surface; `.sheetveil` is the scrim going on a way out, when
+   the real one has already gone with the surface; and the tile the surface
+   came out of is hidden while a picture of it is in the air. */
+.sheetfly{position:absolute;z-index:62;pointer-events:none;transform-origin:0 0;overflow:hidden}
+.sheetfly > *{pointer-events:none}
+/* nothing that flies carries a filter, nor starts a tile's own entrance again */
+.sheetfly *{filter:none !important;animation:none !important}
+.sheetveil{position:absolute;inset:0;z-index:60;pointer-events:none}
+#app .sheetsource{visibility:hidden}
 
 /* everything else that opens gives a small nod, so a tap is never silent */
 .drawer.lifting{z-index:14;animation:liftnod .34s cubic-bezier(.2,.9,.3,1)}

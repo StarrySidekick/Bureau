@@ -21,7 +21,7 @@ import { hexOf, objColour, stringColour, dress, dressAs, OBJ0, OBJN, CHECKS, bes
 import { render } from './views.js';
 import { openObj, openWriter, openRead, openViewer } from './sheet.js';
 import { objectPanel, schedulePanel } from './panels.js';
-import { openTile, openingFor , zoomInto, zoomOut, zoomedIn, camScale, CAM_READ } from './motion.js';
+import { openTile, openingFor , zoomInto, zoomOut, zoomedIn, camScale, CAM_READ, CAMERA } from './motion.js';
 import { save } from './persist.js';
 
 /* ============================================================
@@ -552,10 +552,15 @@ function tileTap(id){
        screen at its own aspect, and magnifying a 4×3 tile to fill a phone is
        not the same thing as showing the photograph. Sound and video the same —
        what you want there is the controls, not a bigger picture of a record. */
+    /* **And the camera is tabled** (Timothy, 2026-09-23): reading is the
+       surface again, and the tile grows up into it — `openTile()` sees a
+       surface go up and scales the object out of its own cell to fill the
+       screen. See decision 203. */
     case 'read':
       if(isMedia(o)){ openTile(id, ()=>openViewer(id)); break; }
       S.bookAt = 0;
-      zoomInto(id); render();
+      if(CAMERA){ zoomInto(id); render(); break; }
+      openTile(id, ()=>openRead(id));
       break;
     // the editor is the writing surface now: the body, full screen, and nothing
     // else on it. Every *setting* is in the object's own panel.

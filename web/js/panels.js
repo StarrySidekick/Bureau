@@ -24,7 +24,7 @@ import { DECOR, decorOf, decorSVG, decorFor, decorRest, LIFE_ART, LIFE_KEYS, lif
 import { quickAdd, toast, drawerForTag, CONTROLS, CTL_KEYS, ctlSpec } from './mutations.js';
 import { openObj, renderSheet, closeSheet , openZoom } from './sheet.js';
 import { render, settingsPanel, gridSizeField, shelfCountField } from './views.js';
-import { openingFor, zoomInto } from './motion.js';
+import { openingFor, zoomInto, CAMERA, growSheet } from './motion.js';
 import { plans, planTop, planSize } from './plans.js';
 import { save } from './persist.js';
 
@@ -2375,7 +2375,11 @@ function openCtx(x,y,id){
      opened the palette like anything else. `isDisc()` asks about the *face*, so
      a sound object and a project wearing an album cover both come here. See
      decision 188. */
-  if(isActive(o) || isDisc(o)){ zoomInto(id); render(); return; }
+  /* With the camera tabled (decision 203) an instrument goes back to its own
+     surface, grown out of the tile; a record has nothing to scratch without
+     the camera, so its hold is the palette like anything else's. */
+  if(CAMERA && (isActive(o) || isDisc(o))){ zoomInto(id); render(); return; }
+  if(!CAMERA && isActive(o)){ openZoom(id); growSheet(id); return; }
   const el=$('#ctx');
   // If a selection is open and this object is part of it, the menu acts on all
   // of them — the same way a Finder context menu does.

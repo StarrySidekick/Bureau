@@ -4167,31 +4167,24 @@ const PROP_OFF = () => { const b = document.createElement('button');
     out.ghostClearsItselfUp = !document.querySelector('#fx .fxopen,#fx .fxleave,#fx .divecave,#fx .divefront');
     S.view='desk'; S.drawerId=null; BUREAU.render(); await nap(160);
 
-    /* **Tapping a note is a camera move now, not a curl** — decision 187
-       supersedes this half of 103. The tap used to lift the sheet off the
-       board and open the reading surface over a dimmed desk; it zooms the
-       board into the note where it sits instead, and the surface is something
-       you ask for. So the assertion is turned round rather than deleted: what
-       is guarded is that the tap goes *somewhere* on the instant, which is
-       decision 38's rule and the thing both versions have in common. */
+    /* **Tapping a note opens the surface again, grown out of the tile** —
+       decision 203 tables the camera of 187, which had tabled the curl. The
+       assertion has been turned round twice now and guards the same thing each
+       time: the tap goes *somewhere* on the instant (decision 38), and the
+       movement is drawn over the result — a picture of the tile in the sheet
+       host, the surface wearing a transform — and clears itself up. */
     note.parent = 'root'; note.desk = BUREAU.free(5, 4, 'root');
     BUREAU.render(); await nap(150);
     document.querySelector(`.grid .drawer[data-row="${note.id}"]`).click();
-    out.aNoteZoomsAtOnce = S.zoomOn === note.id && !S.readId;
+    out.aNoteOpensAtOnce = S.readId === note.id && !S.zoomOn
+      && !!document.querySelector('#sheetHost .bookstage');
+    out.andGrowsOutOfItsTile = !!document.querySelector('#sheetHost .sheetfly')
+      && document.querySelector('#sheetHost .bookstage').getAnimations().length > 0;
     await nap(600);
-    out.andTheBoardIsScaled =
-      getComputedStyle(document.querySelector('#drawergrid')).transform !== 'none';
-    /* Out again before anything else: while the camera is in, a press on the
-       board is spent coming out of it, the way a press past a panel is spent
-       putting it down. A block that left it on would have every click after it
-       swallowed — which is how this was found. */
-    /* Long enough for the way *out* to finish: since decision 188 it eases back
-       rather than snapping, and the transform is only cleared once it has
-       arrived (ZOOM_MS and a little). `!S.zoomOn` is true immediately — it is
-       the tidying up that takes the time. */
-    document.querySelector('#app .scroll').click(); await nap(820);
-    out.andPressingOffItComesOut = !S.zoomOn
-      && getComputedStyle(document.querySelector('#drawergrid')).transform === 'none';
+    out.andTheGrowClearsItselfUp = !document.querySelector('.sheetfly,.sheetsource')
+      && getComputedStyle(document.querySelector('#sheetHost .bookstage')).transform === 'none';
+    BUREAU.closeSheet(); await nap(600);
+    out.andClosingPutsItBack = !S.readId && !document.querySelector('.sheetfly,.sheetveil,.sheetsource');
 
     /* The curl itself is still the opening for everything that *does* go to a
        surface — writing among them — so it is exercised through the writer
@@ -4858,7 +4851,10 @@ const PROP_OFF = () => { const b = document.createElement('button');
        result of that click is false for a reason nowhere near it. This one
        cost a run to find. Anything that taps a readable tile has to come back
        out, the way pressing off it would. */
-    S.zoomOn=null; S.look.locked=false; BUREAU.render();
+    /* Since decision 203 it opens the reading surface instead, which is a
+       surface left up for the next block to click through; put it down too. */
+    S.zoomOn=null; if(S.readId) BUREAU.closeSheet();
+    S.look.locked=false; BUREAU.render();
     return out;
   });
 
@@ -8415,8 +8411,14 @@ const PROP_OFF = () => { const b = document.createElement('button');
     out.andTheyTravelTogether =
       (BUREAU.travelWith(g1)||[]).slice().sort().join(',') === 'g1,g2';
 
-    /* ---- the camera — decision 187 ------------------------------------- */
-    const body = Array.from({length:14},(_,i) =>
+    /* ---- the camera — decision 187, tabled by 203 ---------------------- */
+    /* The camera brought you to the object where it sat; it is switched off
+       now (Timothy, 2026-09-23), and a tap opens the surface again with the
+       tile scaled up out of its own cell to fill the screen. What 187 cared
+       about that still holds is asked of the new movement: the object keeps
+       its own box, how it reads is its own answer, nothing is dragged while it
+       is open, a book turns by being pushed, and Escape comes back out. */
+    const body = Array.from({length:40},(_,i) =>
       `The garden had gone quite mad that year and nobody could say why. Paragraph ${i+1}.`
       ).join('\n\n');
     mk({ id:'z1', kind:'note', title:'The lighthouse', body, attrs:['text'],
@@ -8424,99 +8426,61 @@ const PROP_OFF = () => { const b = document.createElement('button');
     mk({ id:'z2', kind:'note', title:'Keeper', body, attrs:['text'],
          read:'book', desk:{x:15,y:7,w:3,h:4} });
     BUREAU.render(); await nap(150);
-    const viewRect = () => document.querySelector('#app .scroll').getBoundingClientRect();
-    const restT = getComputedStyle(document.querySelector('#drawergrid')).transform;
-    document.querySelector('[data-row="z1"]').click(); await nap(600);
-    out.aTapZoomsIn = S.zoomOn === 'z1'
-      && getComputedStyle(document.querySelector('#drawergrid')).transform !== restT;
+    const M = await import('./js/motion.js');
+    out.theCameraIsTabled = M.CAMERA === false && M.zoomInto('z1') === false
+      && !S.zoomOn && !M.zoomedIn();
+    const tileR = document.querySelector('[data-row="z1"]').getBoundingClientRect();
+    document.querySelector('[data-row="z1"]').click(); await nap(40);
+    out.aTapOpensTheSurface = S.readId === 'z1' && !S.zoomOn
+      && !!document.querySelector('#sheetHost .bookstage');
+    /* …starting on the tile: part way through, the paper is still smaller
+       than it will be and bigger than the tile it came out of, and a picture
+       of the tile is riding over it. */
+    await nap(80);
     (() => {
-      const t = document.querySelector('[data-row="z1"]').getBoundingClientRect();
-      const v = viewRect();
-      // centred in the viewport…
-      out.andCentresTheObject = Math.abs((t.left+t.width/2)-(v.left+v.width/2)) < 3
-        && Math.abs((t.top+t.height/2)-(v.top+v.height/2)) < 3;
-      // …and as large as fits, without leaving it
-      out.andFillsWhatItCan = t.height > v.height*0.8 && t.height <= v.height + 1;
-      // …with the neighbours still on the screen, which is the whole point
-      out.andTheNeighboursAreStillThere =
-        [...document.querySelectorAll('#drawergrid > .drawer')].filter(e => {
-          const r = e.getBoundingClientRect();
-          return e.dataset.row !== 'z1' && r.right > v.left && r.left < v.right
-            && r.bottom > v.top && r.top < v.bottom; }).length > 0;
+      const sp = document.querySelector('#sheetHost .bookstage .spread').getBoundingClientRect();
+      out.andItGrowsOutOfTheTile = !!document.querySelector('#sheetHost .sheetfly')
+        && sp.width > tileR.width - 1 && sp.width < innerWidth * 0.97;
     })();
-    /* The box is untouched: a camera, not a container. */
+    await nap(520);
+    (() => {
+      const st = document.querySelector('#sheetHost .bookstage');
+      const sp = document.querySelector('#sheetHost .bookstage .spread').getBoundingClientRect();
+      out.andFillsTheScreen = getComputedStyle(st).transform === 'none'
+        && sp.width > tileR.width * 1.5 && !document.querySelector('.sheetfly,.sheetsource');
+    })();
+    /* The box is untouched: opening is not a container. */
     const zb = BUREAU.state.objects.find(o=>o.id==='z1').desk;
     out.andTheObjectKeepsItsOwnBox = zb.w === 2 && zb.h === 3;
-    /* The words are counter-scaled — written small so the transform lands them
-       at a reading size. Without it the tile's caption type is magnified four
-       times and one line holds three words. Measured on the screen, because
-       that is the only place the two numbers meet. */
-    const zr = document.querySelector('.oncamera .zoomread');
-    out.itIsReadable = !!zr && zr.classList.contains('zscroll');
-    out.andTheTypeIsCounterScaled = (() => {
-      if(!zr) return false;
-      const k = +getComputedStyle(document.querySelector('#drawergrid'))
-        .getPropertyValue('--camk') || 1;
-      const onScreen = parseFloat(getComputedStyle(zr).fontSize) * k;
-      return k > 2 && onScreen > 13 && onScreen < 22;
-    })();
+    // how it reads is still the object's own answer
+    out.itIsReadable = !!document.querySelector('#sheetHost .bookstage.rm-scroll');
     out.andTheScrollCanBePushed = (() => {
-      const b = document.querySelector('.oncamera .zoombody');
+      const b = document.querySelector('#sheetHost .bookstage .page');
       return !!b && b.scrollHeight > b.clientHeight + 2; })();
-    /* The tile's own name row is drawn at the tile's size, so it would be
-       magnified into a banner across the words; the reading face carries its
-       own head instead. */
-    out.andTheReadingFaceOwnsTheName = (() => {
-      const t = document.querySelector('.oncamera');
-      const nm = t && t.querySelector(':scope > .dtop');
-      return !!t && t.classList.contains('camreading')
-        && !!t.querySelector('.zoomhead')
-        && (!nm || getComputedStyle(nm).visibility === 'hidden'); })();
-    /* Nothing may be dragged through it: `cellW()` measures the grid's own
-       bounding rect and a scaled rect gives a cell four times too wide, so a
-       drop would land in a cell nobody aimed at. Asked of the thing it
-       protects — a full hold-and-drag over a neighbour has to leave that
-       neighbour's box exactly where it was. */
-    out.andNothingDragsThroughIt = await (async () => {
-      const t = document.querySelector('[data-row="z2"]');
-      if(!t) return false;
-      const o = BUREAU.state.objects.find(x => x.id === 'z2');
-      const box = JSON.stringify(o.desk);
-      const r = t.getBoundingClientRect();
-      const ev = (ty, x, y) => t.dispatchEvent(new PointerEvent(ty, { bubbles:true,
-        pointerId:9, clientX:x, clientY:y, pointerType:'mouse', button:0 }));
-      ev('pointerdown', r.left+8, r.top+8); await nap(420);
-      ev('pointermove', r.left+200, r.top+180); await nap(60);
-      ev('pointerup',   r.left+200, r.top+180); await nap(260);
-      return JSON.stringify(BUREAU.state.objects.find(x => x.id === 'z2').desk) === box;
-    })();
-    // pressing off it comes back out
-    document.querySelector('#app .scroll').click(); await nap(820);
-    out.andPressingOffItComesBackOut = !S.zoomOn;
+    /* Nothing is dragged while it is open: the surface and its scrim are over
+       the whole board, so wherever a finger lands on the screen — asked at
+       twenty-five points across it — it lands on the surface, never a tile. */
+    out.andNothingDragsThroughIt = (() => {
+      const hits = [];
+      for(let i = 1; i <= 5; i++) for(let j = 1; j <= 5; j++){
+        const hit = document.elementFromPoint(innerWidth*i/6, innerHeight*j/6);
+        hits.push(!!hit && !!hit.closest('#sheetHost') && !hit.closest('[data-row],[data-drawer]'));
+      }
+      return hits.every(Boolean); })();
+    // closing shrinks it back into the tile, and the state is gone at once
+    if(!S.readId){ S.readId = 'z1'; BUREAU.renderSheet(); }
+    BUREAU.closeSheet();
+    out.andClosingShrinksItBack = !S.readId && !document.querySelector('#sheetHost .bookstage')
+      && !!document.querySelector('#sheetHost .sheetfly');
+    await nap(600);
+    out.andPutsTheTileBack = !document.querySelector('.sheetfly,.sheetveil,.sheetsource');
 
-    /* ---- a book under the camera turns by being pushed — 186 + 187 ----- */
+    /* ---- a book turns by being pushed — 186, on the surface ------------ */
+    if(BUREAU.gestureFlags) BUREAU.gestureFlags.suppressClick = false;
     document.querySelector('[data-row="z2"]').click(); await nap(600);
-    out.aBookUnderTheCameraHasPages =
-      !!document.querySelector('.oncamera .zbook .page');
-    /* The page is the *tile's* box, not the reading surface's sheet: the two
-       are written at two classes in chrome.css, which loads later and would
-       otherwise win the tie. */
-    out.andThePageIsTheTilesOwnBox = (() => {
-      const pg = document.querySelector('.oncamera .zbook .page');
-      const tl = document.querySelector('.oncamera');
-      if(!pg || !tl) return false;
-      const a = pg.getBoundingClientRect(), b = tl.getBoundingClientRect();
-      return getComputedStyle(pg).position === 'absolute'
-        && a.height > b.height*0.6 && a.width > b.width*0.6; })();
-    out.andTheCountSitsInTheCorner = (() => {
-      const n = document.querySelector('.oncamera .zbook .pno');
-      if(!n) return false;
-      const k = +getComputedStyle(document.querySelector('#drawergrid'))
-        .getPropertyValue('--camk') || 1;
-      return parseFloat(getComputedStyle(n).fontSize) * k < 16
-        && getComputedStyle(n).textAlign === 'right'; })();
+    out.aBookHasPages = !!document.querySelector('#sheetHost .bookstage.rm-book .page');
     const at0 = S.bookAt || 0;
-    const spread = document.querySelector('.oncamera .zbook .spread');
+    const spread = document.querySelector('#sheetHost .bookstage .spread');
     const sr = spread.getBoundingClientRect();
     const pt = (t,x) => new PointerEvent(t, { bubbles:true, pointerId:2,
       clientX:x, clientY:sr.top+sr.height/2, pointerType:'mouse', button:0 });
@@ -8524,13 +8488,14 @@ const PROP_OFF = () => { const b = document.createElement('button');
     for(const f of [0.6,0.4,0.2]) spread.dispatchEvent(pt('pointermove', sr.left+sr.width*f));
     spread.dispatchEvent(pt('pointerup', sr.left+sr.width*0.2));
     await nap(400);
-    out.andADragAcrossItTurnsThePage = (S.bookAt||0) === at0 + 1;
-    out.andStaysUnderTheCamera = S.zoomOn === 'z2';
+    // a spread on a Mac turns two pages at a time, so it is asked as forward
+    out.andADragAcrossItTurnsThePage = (S.bookAt||0) > at0;
+    out.andStaysOpen = S.readId === 'z2';
 
     // escape comes out, and the desk is put back the way it was found
     document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
-    await nap(300);
-    out.andEscapeComesOut = !S.zoomOn;
+    await nap(600);
+    out.andEscapeComesOut = !S.readId && !document.querySelector('.sheetfly,.sheetveil');
     S.objects.length = 0; was.forEach(o => S.objects.push(o));
     S.undo = []; S.redo = []; S.sel = []; BUREAU.render();
     return out;
@@ -8629,13 +8594,19 @@ const PROP_OFF = () => { const b = document.createElement('button');
     out.aDrawerLooksThroughItself = hits().join(',') === 's1';
     S.q=''; S.view='desk'; S.drawerId=null; BUREAU.render(); await nap(150);
 
-    /* ---- the camera, second pass ---------------------------------------- */
+    /* ---- the camera, second pass — and what replaced it (203) ------------ */
+    /* The camera is tabled, so the second pass is asked of the surface that
+       replaced it: the movement is smooth — part way through while it runs and
+       at rest once it has arrived, with nothing left promoted or hidden —
+       blank rows still survive, you can write in it, and the way out moves too,
+       back into the tile. The camera's own two controls and its dim setting
+       are not drawn while it is off. */
     const body = 'One.\n\n\n\nFour rows down.\n\n'
       + Array.from({length:9},(_,i)=>`Paragraph ${i+1}.`).join('\n\n');
     mk({ id:'z', kind:'note', title:'Keeper', body, attrs:['text'], read:'scroll',
          desk:{x:15,y:18,w:3,h:4} });
     BUREAU.render(); await nap(180);
-    const grid = () => document.querySelector('#drawergrid');
+    const stage = () => document.querySelector('#sheetHost .bookstage');
     const kOf = t => t==='none' ? 1 : +t.split('(')[1].split(',')[0];
     /* A gesture in an earlier block arms `suppressClick`, and that flag is
        spent by the **next** click it sees — which in a test is whatever is
@@ -8645,82 +8616,65 @@ const PROP_OFF = () => { const b = document.createElement('button');
     S.zoomOn = null;
     document.querySelector('[data-row="z"]').click();
     await nap(70);
-    if(!S.zoomOn){ document.querySelector('[data-row="z"]').click(); await nap(70); }
-    /* Sampled a third of the way through rather than a sixth: the frame the
-       click lands on has a render in it, and on a busy board the first painted
-       frame of the ease can fall the wrong side of a tighter window. What is
-       being asked is that it is *between* rest and its destination, not where
-       exactly it had got to. */
-    await nap(80);
-    const early = kOf(getComputedStyle(grid()).transform);
-    await nap(720);
-    const settled = kOf(getComputedStyle(grid()).transform);
-    // it *moves*: part way there while it runs, all the way once it has
-    out.theZoomIsSmooth = early > 1.02 && early < settled - 0.1;
-    // …and lets go of the layer when it arrives, or the words are a picture
-    out.andIsNotPromotedAtRest = getComputedStyle(grid()).willChange !== 'transform';
-    out.andWearsNoRing = (() => { const t = document.querySelector('.oncamera');
-      return !!t && getComputedStyle(t).outlineStyle === 'none'; })();
-    out.itCarriesTwoControls =
-      [...document.querySelectorAll('.camtools .camtool')].map(e=>e.dataset.act).join(',')
-      === 'camfull,camset';
-    // …which are divs, because a button inside a tile's own button unnests
-    out.andTheyAreNotButtons =
-      [...document.querySelectorAll('.camtools .camtool')]
-        .every(e => e.tagName.toLowerCase() === 'div');
-    out.blankRowsSurvive = document.querySelectorAll('.zoomread .vspace').length >= 2;
-    // what the desk does round it is a choice
-    out.dimIsAChoice = (() => {
-      const sc = document.querySelector('#app .scroll');
-      const had = [...sc.classList].filter(c=>c.startsWith('cam-')).join();
-      S.look.camdim = 'dark'; BUREAU.render();
-      const now = [...document.querySelector('#app .scroll').classList]
-        .filter(c=>c.startsWith('cam-')).join();
-      S.look.camdim = 'fade'; BUREAU.render();
-      return had === 'cam-fade' && now === 'cam-dark'; })();
-    await nap(120);
-    // holding it writes in it, at the size you are reading at
-    S.editId = 'z'; BUREAU.render(); await nap(200);
-    out.youCanWriteInIt = !!document.querySelector('.zoomread .camwrite')
-      && !!document.querySelector('input.zoomhead');
-    S.editId = null; BUREAU.render(); await nap(150);
-    // and the way out moves too, from where the camera was
-    document.querySelector('#app .scroll').click();
+    if(!S.readId){ document.querySelector('[data-row="z"]').click(); await nap(70); }
+    /* Sampled a third of the way through, for the reason the camera's was:
+       the frame the click lands on has a render in it. What is asked is that
+       the surface is *between* the tile and its own size, not where exactly. */
+    await nap(50);
+    const early = stage() ? kOf(getComputedStyle(stage()).transform) : 0;
+    await nap(520);
+    const settled = stage() ? kOf(getComputedStyle(stage()).transform) : 0;
+    // it *moves*: scaled down toward the tile while it runs, at rest after
+    out.theGrowIsSmooth = early > 0.05 && early < 0.98 && settled === 1;
+    // …and leaves nothing behind: no picture in the air, no tile hidden
+    out.andLeavesNothingBehind = !document.querySelector('.sheetfly,.sheetsource')
+      && getComputedStyle(document.querySelector('[data-row="z"]')).visibility !== 'hidden';
+    out.andTheCameraDrawsNothing = !document.querySelector('.camtools,.oncamera,.zoomread')
+      && ![...document.querySelector('#app .scroll').classList].some(c=>c.startsWith('cam-'));
+    out.blankRowsSurvive = document.querySelectorAll('#sheetHost .page .vspace').length >= 2;
+    // you can write on the page you are reading, which is what holding did
+    S.readEdit = true; BUREAU.renderSheet(); await nap(120);
+    out.youCanWriteInIt = !!document.querySelector('#sheetHost .pagebody');
+    S.readEdit = false; BUREAU.renderSheet(); await nap(80);
+    // and the way out moves too, back into the tile it came from
+    BUREAU.closeSheet();
     await nap(70);
-    out.andTheWayOutMovesToo = kOf(getComputedStyle(grid()).transform) > 1.2;
-    await nap(760);
-    out.andEndsAtRest = !S.zoomOn && getComputedStyle(grid()).transform === 'none';
+    out.andTheWayOutMovesToo = !S.readId && (() => {
+      const f = document.querySelector('#sheetHost .sheetfly');
+      return !!f && kOf(getComputedStyle(f).transform) !== 1; })();
+    await nap(560);
+    out.andEndsAtRest = !document.querySelector('.sheetfly,.sheetveil,.sheetsource');
 
-    /* ---- a record is held, not pressed --------------------------------- */
+    /* ---- a record is held like anything else, while the camera is off ---- */
     mk({ id:'disc', kind:'audio', title:'A take', attrs:['media'],
          media:{assetId:'x', type:'audio', label:'take.wav',
            src:'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA='},
          desk:{x:19,y:18,w:3,h:3} });
     BUREAU.render(); await nap(200);
     out.aRecordIsDrawnAsOne = !!document.querySelector('[data-row="disc"] .cd');
-    /* The **hold** zooms it rather than opening the palette — the half of
-       decision 188 that was built and never wired up, so the only way to reach
-       the scratch was a gesture nobody had connected. `openCtx` is where all
-       three of gestures.js's hold paths converge, which is why one branch there
-       serves the long press on every device. */
+    /* The hold used to zoom it so it could be scratched (188); the scratch
+       needs the camera, so with the camera tabled the hold is the palette,
+       the way it is for everything else — never a zoom nobody can see. */
     (() => { const r = document.querySelector('[data-row="disc"]').getBoundingClientRect();
       BUREAU.ctx(r.left+r.width/2, r.top+r.height/2, 'disc'); })();
-    await nap(780);
-    out.andHoldingItZoomsIn = S.zoomOn === 'disc';
-    out.andTheDiscTakesAHand = !!document.querySelector('.oncamera .cd[data-scratch]');
-    out.andTurnsUnderIt = (() => {
-      const disc = document.querySelector('.cd[data-scratch]');
-      if(!disc) return false;
-      const d = disc.getBoundingClientRect();
-      const cx = d.left+d.width/2, cy = d.top+d.height/2;
-      const ev = (ty,x,y) => disc.dispatchEvent(new PointerEvent(ty, {bubbles:true,
-        pointerId:4, clientX:x, clientY:y, pointerType:'mouse', button:0}));
-      ev('pointerdown', cx+d.width*0.4, cy);
-      ev('pointermove', cx, cy+d.height*0.4);
-      const turned = /rotate/.test(disc.style.transform||'');
-      ev('pointerup', cx, cy+d.height*0.4);
-      return turned; })();
+    await nap(300);
+    out.andHoldingItOpensThePalette = !S.zoomOn
+      && document.querySelector('#ctx').classList.contains('open');
+    document.querySelector('#ctx').classList.remove('open');
     S.zoomOn = null; BUREAU.render(); await nap(200);
+    /* …and an instrument's hold is its own surface again (decision 182's
+       zoom), grown out of the tile the way a note's reading is. */
+    mk({ id:'bell', kind:'bell', desk:{x:23,y:18,w:2,h:2} });
+    BUREAU.render(); await nap(200);
+    (() => { const r = document.querySelector('[data-row="bell"]').getBoundingClientRect();
+      BUREAU.ctx(r.left+r.width/2, r.top+r.height/2, 'bell'); })();
+    await nap(40);
+    out.anInstrumentsHoldIsItsSurface = S.zoomId === 'bell' && !S.zoomOn
+      && !!document.querySelector('#sheetHost .zoomstage')
+      && !!document.querySelector('#sheetHost .sheetfly');
+    await nap(500);
+    BUREAU.closeSheet(); await nap(500);
+    out.andItGoesBackIntoItsTile = !S.zoomId && !document.querySelector('.sheetfly,.sheetveil,.sheetsource');
 
     /* ---- and the things that were looked at properly -------------------- */
     mk({ id:'let', kind:'letter', title:'To Marianne', body:'Dear —', attrs:['text'],
@@ -8801,35 +8755,39 @@ const PROP_OFF = () => { const b = document.createElement('button');
     if(!tile()) return {noTile:true};
     const colsBefore = cols(), scH = sc().getBoundingClientRect().height;
     const cellBefore = grid().getBoundingClientRect().width / colsBefore;
+    /* **The camera is tabled (decision 203)**, so what a phone is asked now
+       is the surface growing out of a tile on the shelf being looked at: it
+       starts on that tile, ends filling the screen, leaves the board exactly
+       as it was, and goes back into the tile on the way out. The two phone
+       facts this block was written for still matter — the tile is found on
+       the shelf in view, and nothing about the board changes to open it. */
     if(BUREAU.gestureFlags) BUREAU.gestureFlags.suppressClick = false;
-    tile().click(); await nap(80);
-    if(!S.zoomOn){ tile().click(); await nap(80); }
-    await nap(820);
-    out.itZooms = S.zoomOn === 'pz';
-    /* **The board does not change size to zoom into it.** Same columns, same
-       cells, same scroller — the window moves, nothing grows. */
+    const tr = tile().getBoundingClientRect();
+    tile().click(); await nap(40);
+    if(!S.readId){ tile().click(); await nap(40); }
+    await nap(60);
+    const stage = () => document.querySelector('#sheetHost .bookstage');
+    out.itOpens = S.readId === 'pz' && !S.zoomOn && !!stage();
+    out.growingOutOfTheTile = !!document.querySelector('#sheetHost .sheetfly')
+      && !!stage() && getComputedStyle(stage()).transform !== 'none';
+    await nap(560);
+    /* **The board does not change size to open it.** Same columns, same
+       cells, same scroller. */
     out.theBoardIsUnchanged = cols() === colsBefore
       && Math.abs(sc().getBoundingClientRect().height - scH) < 2;
-    out.andTheCellsStaySquare = (() => {
-      const g = grid().getBoundingClientRect();
-      const k = +grid().style.getPropertyValue('--camk') || 1;
-      return Math.abs((g.width/cols())/k - cellBefore) < 1.5; })();
-    /* …and the thing being read is in the middle of the **opening** — the band
-       between the bar and the rail — rather than of a scroller that may be a
-       different size from it. */
-    out.andItLandsInTheOpening = (() => {
-      const t = tile().getBoundingClientRect();
-      const main = grid().closest('.main');
-      const bar = main.querySelector('.gridbar'), rail = main.querySelector('.deskrail');
-      const top = bar ? bar.getBoundingClientRect().bottom : 0;
-      const bot = rail ? rail.getBoundingClientRect().top : innerHeight;
-      const v = sc().getBoundingClientRect();
-      return Math.abs((t.left+t.width/2) - (v.left+v.width/2)) < 3
-          && Math.abs((t.top+t.height/2) - (top+bot)/2) < 3
-          && t.top > top - 2 && t.bottom < bot + 2; })();
-    // and it is bigger than it was, which is the whole point
-    out.andIsLargerThanItWas =
-      tile().getBoundingClientRect().width > 4*cellBefore + 4;
+    out.andTheCellsStaySquare = Math.abs(grid().getBoundingClientRect().width / cols()
+      - cellBefore) < 1.5;
+    // and it fills the screen, which is the whole point
+    out.andFillsTheScreen = (() => {
+      const st = stage(); if(!st) return false;
+      const p = st.querySelector('.spread').getBoundingClientRect();
+      return getComputedStyle(st).transform === 'none'
+        && p.width > innerWidth * 0.8 && p.height > tr.height * 1.5; })();
+    BUREAU.closeSheet(); await nap(40);
+    out.andGoesBackIntoTheTile = !S.readId && !!document.querySelector('#sheetHost .sheetfly');
+    await nap(560);
+    out.andTheTileIsBack = !document.querySelector('.sheetfly,.sheetveil,.sheetsource')
+      && !!tile() && getComputedStyle(tile()).visibility !== 'hidden';
     S.zoomOn=null; S.objects.length=0; was.forEach(o=>S.objects.push(o));
     S.undo=[]; S.redo=[]; BUREAU.render();
     return out;
@@ -8993,11 +8951,13 @@ const PROP_OFF = () => { const b = document.createElement('button');
       return pn ? getComputedStyle(pn).backgroundImage : 'none';
     };
     out.anEnvelopeIsClosedOnTheBoard = flapOf() !== 'none';
-    // the camera is one field and the classes are keyed on it; how you get
-    // there is tested in camLife, and what it looks like is tested here
-    S.zoomOn = 'ltr'; BUREAU.render(); await nap(180);
-    out.andOpenUnderTheCamera = flapOf() === 'none';
-    S.zoomOn = null; BUREAU.render();
+    /* It opened under the camera; with the camera tabled (decision 203) a
+       tap opens it onto its page, and the envelope on the board stays shut. */
+    if(BUREAU.gestureFlags) BUREAU.gestureFlags.suppressClick = false;
+    document.querySelector('[data-row="ltr"]').click(); await nap(450);
+    out.andOpensOntoItsPage = S.readId === 'ltr' && !!document.querySelector('#sheetHost .bookstage .page');
+    BUREAU.closeSheet(); await nap(450);
+    out.andStaysAnEnvelopeOnTheBoard = flapOf() !== 'none';
 
     S.objects.length=0; was.forEach(o=>S.objects.push(o));
     S.undo=[]; S.redo=[]; BUREAU.render();
@@ -9250,13 +9210,14 @@ const PROP_OFF = () => { const b = document.createElement('button');
     out.theDeskHasABoardSettingsDoor = !!document.querySelector('#panel [data-ssec="board"]');
     BUREAU.closePanel(); await nap(100);
 
-    /* a stale flag must not eat the gear on a zoomed note */
+    /* a stale flag must not eat the gear on an open note — the camera's gear
+       until decision 203 tabled it, the reading surface's own since */
     const n = BUREAU.create('note', {parent:'root', title:'Read me', body:'Words.'});
     n.phone = Object.assign(BUREAU.free(3,3,'root'), {w:3, h:3});
     BUREAU.render(); await nap(150);
-    M.zoomInto(n.id); BUREAU.render(); await nap(700);
+    BUREAU.read(n.id); await nap(450);
     Gs.gestureFlags.suppressClick = true;
-    const gear = document.querySelector('.camtool[data-act="camset"]');
+    const gear = document.querySelector('#sheetHost [data-act="objset"]');
     if(gear){
       const r = gear.getBoundingClientRect(), x=r.x+r.width/2, y=r.y+r.height/2;
       gear.dispatchEvent(new PointerEvent('pointerdown', {bubbles:true, clientX:x, clientY:y, pointerId:9, isPrimary:true}));
@@ -9264,7 +9225,7 @@ const PROP_OFF = () => { const b = document.createElement('button');
       gear.click(); await nap(200);
       out.theZoomedGearAnswersFirstTime = /^object:/.test((document.querySelector('#panel')||{dataset:{}}).dataset.panel||'');
     } else out.theZoomedGearAnswersFirstTime = 'no gear';
-    BUREAU.closePanel(); M.zoomOut(); BUREAU.render(); await nap(300);
+    BUREAU.closePanel(); BUREAU.closeSheet(); await nap(450);
 
     /* full screen: the caret arrives without the words moving */
     S.readFull = true; BUREAU.read(n.id); await nap(450);
