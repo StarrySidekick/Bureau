@@ -126,6 +126,13 @@ magic drawer collecting that tag or makes one. If you are tempted to add a
 filter UI, add a drawer instead — that is the same instinct that deleted the
 tabs (decision 22).
 
+**Match a tag through `tagMatch()`, never `o.tags.includes()`.** A thing answers
+to the tags written on it, to what it is and carries and is doing (`task`,
+`note` for an idea, `checklist`, `due-week`, `late`…), and to the tags on every
+drawer it is filed inside — `tagsOf(o)`, derived and never stored. A tag may be
+an expression (`task & due-week`, `!done`). A Tag (`face:'tag'`) is a sorting
+drawer that also collects drawers. See decision 202.
+
 **A file is what its name says when its type says nothing.** `accept="audio/*"`
 is a request the picker has to translate, and `audio/wave`, `audio/x-wav` and the
 empty string are not what it translated it to — a `.wav` came back greyed out and

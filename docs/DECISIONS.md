@@ -9280,3 +9280,104 @@ shape: long, the portal at the left and the name beside it; squarish, the
 portal in the middle and the name under it; one cell, the portal alone. The
 press is unchanged. This is not decision 42's shimmer — nothing reacts to the
 hand; it is a thing that is always turning, like the clock.
+## 202 · The habit face, and the tag you can put on the desk
+
+Timothy asked for two things. A **habit tracker**: "says the name of the habit,
+and a visual set of dots, pips or blocks to represent each day one did or
+didn't do it", shaped by how often it is owed — once a day, twice a day, twice
+a week. And a **tag on the desk**: "a visual, resizable, modifiable form of the
+tag", a luggage tag with a pointed left end and a hole through it, which opens
+as a sorting drawer onto everything that is that tag or underneath it — and
+tags that come from what a thing already is, so "every checklist, every task,
+every task due in a week" needs no one to write anything.
+
+**The tag system as it stood.** Audited before anything was added. It worked:
+a tag written on a thing, pressing one to open `drawerForTag()`, the sorting
+drawer's question, `#tag` in a quick add, the palette. Three things were wrong.
+Adding and taking off a tag pushed **no undo move**, which decision 65 says
+everything that changes a field must. A sorting drawer made for a tag nothing
+yet carried showed **"any tag"** in its own rule sentence, because the blank
+offered only the tags things carried — so the drawer said one thing and did
+another. And a repeating task's `history` was **shared** with the copy ticking
+it spawned (`Object.assign` hands both objects one array) and **never grew**,
+so a habit that is "a task that repeats" (decision 160) had no record of the
+days it was done.
+
+**A thing answers to more than it carries.** `tagsOf(o)` in model.js is the
+one list, and every match goes through it — a sorting drawer's `tag`, the
+`@tag` clause, a Tag. It is the tags you wrote, plus what the thing is (its
+type's key and name, its category — an idea is a `note`), plus what it carries
+(every attribute, `drawer` for anything that holds, the face a drawer wears,
+the kind of media), plus what it is doing (`done`/`undone`, `late`,
+`due-today`, `due-week`, `due-month`, `dated`, `habit`, `repeats`,
+`answered`/`unanswered`, `loose`), plus the tags written on anything it is
+filed inside — which is what "underneath that tag" means. Derived every time
+and never stored, like urgency: a task goes `late` the morning it does. Tags
+are compared lowercased, and a slash makes a family (`work` answers for
+`work/film`).
+
+**A tag may be a few tags.** `task & due-week` is two, both required; `!done`
+must be absent; `&`, `+` and `,` all join. There is still no OR, for decision
+63's reason: a union is two tags on the board, which you can see.
+
+**The Tag** is a built-in kind, `tag`: `container` + `magic`, `face:'tag'`,
+`asksTag`, four by two, born sorted A–Z. It is a sorting drawer in the shape it
+always should have had, not a new mechanism — `inContainer()`'s magic path
+does all of it — and it may replace the sorting drawer one day. Three choices
+in it:
+
+- **It collects drawers.** A sorting drawer refuses containers, because a rack
+  of drawers inside a drawer is a desk with two of everything. A tag cannot:
+  "every checklist" is a question whose answer is drawers. `showsContainers()`
+  says yes for the tag face, beside the time faces.
+- **It is born sorted.** What it collects was arranged on other boards, and
+  read off here those boxes land on top of each other. A packed board is the
+  honest picture of a collection.
+- **It has no name of its own.** Its face prints the tag it collects, read
+  live, so changing the tag changes what is written on it. A name you give it
+  wins. The bar calls an untitled board that collects a tag by the tag.
+
+The silhouette is a card clipped to a pentagon with the eyelet punched by a
+mask — the board shows through the hole — a brass ring over the punched edge,
+and a loop of string. Wider than tall it lies with the point left; taller than
+wide it hangs point up; one cell square it is the silhouette and the hole,
+which is its mark. The point is half the short side, so a long tag has a long
+body. The tile gives up its ground, edge and shadow the way the jar does
+(decision 177) and takes a `drop-shadow`, because a filter follows a clipped
+shape and a box-shadow does not.
+
+Placing one asks the sorting drawer's question with **two lists**: the tags
+you wrote, and "what things already are", both counted off the desk. The rule
+sentence's tag blank always lists the tag it has, and a field beside it takes
+any tag, including an expression. The object editor shows the tags a thing
+answers to under the ones you wrote, in paper rather than brass, pressable.
+
+**The habit tracker** is a face (a shape, `tracker`) and a type that wears it.
+It is not the Habit type back — decision 160 stands: a habit is the `streak`
+trait, and this is the record of it. How often is the **repeat rule plus one
+number, `times`** — `habitPlan()`: no rule or a daily rule is a day; a weekly
+rule with weekdays is a day owed only on those; a weekly rule with none is a
+week; a month is a month; `every` widens the period. So twice a day is a day
+asking for two, twice a week is a week asking for two. No migration: `times`
+is new and absent means one.
+
+Drawn as one **group** per period holding as many pips as it asks for, lit for
+each time logged, oldest first so today is always bottom right; a day not owed
+is a dash; the period you are in is ringed and not yet a miss. The unit is
+half a cell each way, so a bigger tile shows more of the past rather than
+bigger dots. It says one number: how far into this period when it asks for
+more than one, otherwise how many periods running.
+
+Logging counts up to what the day asks for and a further press clears the
+day — one button walked round, because a tile has no room for a plus and a
+minus. A weekly habit takes one a day. It pushes an undo move and saves. The
+period you are in carries `data-check`, so pressing it logs whatever the
+tile's own press is set to. The tracker is offered in the Shape ring only to
+something carrying `streak` or a repeat rule; the editor's Cadence gains a
+**Times** row on a habit. A ticked repeating task now carries its history, with
+today added, to the next copy, so a repeating task can wear the tracker too.
+
+*Not done:* a tag cannot be *written* by a drop (dropping a thing on a Tag
+could tag it, which is the other half of a luggage tag); the string between a
+tag and what it collects is not drawn; and a year of squares for a habit is
+still decision 197's open item — the tracker at its largest is about a season.

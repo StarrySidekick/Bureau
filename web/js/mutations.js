@@ -2,7 +2,7 @@ import { $, esc, uid, clamp, ROOT, HOLD, D } from './util.js';
 import { S, byId, K, KINDS, KEYS, kindHas, has, isContainer, genKindOf, streak, T, dz, dev,
   repeatOf, repeats, nextRepeat, faceOf, childrenOf, TILT_MODES, tiltMode, GRAVITIES, gravityMode,
   ctlOf, isPrimary,
-  placeOf, cfgOf, isHeld, heldObjects, homeFor , attrsOf } from './model.js';
+  placeOf, cfgOf, isHeld, heldObjects, homeFor , attrsOf, habitPlan, habitOn, tagSlug } from './model.js';
 import { GRID, PHONE_GRIDS, colsOf, gridOf, shelfRows, freeSpot, anySpot, roomFor, lay, boxOk, sizeOfKind, keepSize } from './grid.js';
 import { randomFront, randomBoard, randomLook, styleDefaults,
   STYLES, CHECKS, DARKMODES, styleKey, applyStyle, applyLook } from './look.js';
@@ -97,8 +97,14 @@ function toggleDone(id){
          on generated to-dos, and it is worth having: it tells you the thing in
          front of you came from a rule rather than from you, which is the
          difference between "I wrote this down" and "this comes round". */
+      /* **The history comes round with it**, and today is added to it. A
+         repeating task is what a habit is (decision 160), and the record of
+         the days it was done lived on the copy that was just archived — so a
+         tracker on the next one started empty every time. A fresh array, too:
+         `Object.assign` handed both objects the *same* one, so a day logged
+         on either was logged on both. See decision 202. */
       S.objects.push(Object.assign({},o,{id:uid('o'), done:false, doneAt:null, due:nd,
-        ord:o.ord+0.5, fromRepeat:true,
+        ord:o.ord+0.5, fromRepeat:true, history:[...(o.history||[]), T],
         repeat: (r && typeof o.repeat==='object')
           ? Object.assign({}, r, {made:(r.made||0)+1}) : o.repeat}));
       o.kind='achievement';   // the archive is a magic drawer; nothing needs moving
@@ -109,12 +115,26 @@ function toggleDone(id){
   if(o.done) pop(id, was);
   if(o.done && clAt>=0) clRefill(o.parent, clAt);
 }
+/* **Logging a habit counts up to what the day asks for, then clears.** A habit
+   done twice a day is pressed twice, and a third press is the way back to
+   none — one button, walked round, rather than a plus and a minus on a tile
+   with room for neither. A weekly habit takes one a day: doing it twice on a
+   Tuesday is still Tuesday. An undo move, which it never had (decision 65),
+   carrying the whole list because that is the field that changed. */
 function toggleHabit(id){
   const o=byId(id); if(!o) return;
-  o.history=o.history||[];
-  const i=o.history.indexOf(T);
-  if(i>=0) o.history.splice(i,1); else { o.history.push(T); toast(`${o.title} · ${streak(o)+0} day streak`); }
-  render();
+  const was = (o.history||[]).slice();
+  const plan = habitPlan(o);
+  const cap = plan.per==='day' ? plan.times : 1;
+  const today = habitOn(o, T);
+  pushSet('Logged', id, 'history', was);
+  if(today >= cap) o.history = was.filter(d=>d!==T);
+  else {
+    o.history = was.concat(T);
+    toast(cap>1 ? `${o.title} · ${today+1} of ${cap} today`
+                : `${o.title} · ${streak(o)+0} day streak`);
+  }
+  save(); render();
 }
 /* ------------------------------------------------------------
    6b · undo — a stack of moves, not a single bin
@@ -486,7 +506,11 @@ function fits(kind, home, dv, cell){
 function drawerForTag(tag){
   const t=String(tag||'').replace(/^#/,'').trim();
   if(!t) return null;
-  let d=S.objects.find(o=>isContainer(o)&&has(o,'magic')&&(o.filter||{}).tag===t);
+  /* The tag it already has, compared the way tags are matched — "Film" and
+     "film" are one tag since decision 202, so asking for one must not make a
+     second drawer beside the first. A Tag on the desk counts: it is a sorting
+     drawer in another shape. */
+  let d=S.objects.find(o=>isContainer(o)&&has(o,'magic')&&tagSlug((o.filter||{}).tag)===tagSlug(t));
   if(!d){
     d=create('magic',{title:'#'+t, parent:ROOT});
     d.filter={tag:t};

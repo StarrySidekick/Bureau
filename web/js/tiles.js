@@ -9,7 +9,7 @@ import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, chi
   isPicture, isMedia, isPlayable, isDecor, mediaTypeOf, frameOf, isWindow,
   boardLocked, prioOf, repeatSaid, urgencyOf, urgeSaid, durSaid, standsProud, shelfDepth, bookDepth, faceCue, anyFaceCue,
   calViewOf, calShowOf, weekStartOf, calCols, borderOf, textureOf, marginOf, isFragmentKind, gravityOn,
-  groupOf, sealOf, isSealed } from './model.js';
+  groupOf, sealOf, isSealed, habitPlan, habitPeriods, habitRun } from './model.js';
 import { CELL, gridOf, drawCols, drawRows, lay, overlaps, boxOk, freeSpot, anySpot, roomFor, gridRows, sizeOfKind, sideways, innerOf,
   ensureBox, shelfRows, shelfOrigin, shelfAt, colsOf } from './grid.js';
 import { create, toast, fits, toggleDone, someKind, ctlSpec, ctlSaid, ctlIsOn,
@@ -681,6 +681,85 @@ function sizeClass(box){
   return c.join(' ');
 }
 
+/* ---- a habit tracker: the name, and a pip for every time it was owed ------
+   Decision 202. One **group** per period — a day, a week, a month — holding as
+   many pips as the period asks for, lit for each time it was logged. A day a
+   weekday habit is not owed on is a rest mark rather than a miss. The period
+   you are in is ringed and still open, so an empty one is not yet a miss.
+
+   How much history shows is read off the box, the way a bar's blocks are: the
+   unit is **half a cell** across and half a cell down, a group of one pip is
+   one unit wide and a group of several is wider, and the grid is filled oldest
+   first so today is always the last thing drawn — bottom right. So a bigger
+   tile shows more of the past rather than bigger dots. */
+function trackerGrid(o, box){
+  const plan = habitPlan(o);
+  const gu = plan.times<=1 ? 1 : Math.ceil(plan.times*0.6 + 0.6);
+  const short = box.h<=1;
+  const named = !short || box.w>=6;
+  const across = Math.max(1, box.w*2 - 1 - (short && named ? box.w : 0));
+  const cols = Math.max(1, Math.floor(across / gu));
+  const rows = short ? 1 : Math.max(1, Math.floor((box.h - 0.9) * 2));
+  return {plan, gu, cols, rows, named, n:Math.min(cols*rows, 400)};
+}
+const HAB_PER = {day:'today', week:'this week', month:'this month', year:'this year'};
+function trackerFace(o, box){
+  const g = trackerGrid(o, box);
+  const ps = habitPeriods(o, g.n), cur = ps[ps.length-1];
+  const run = habitRun(o);
+  const word = g.plan.per==='day' && g.plan.every>1 ? 'these days' : HAB_PER[g.plan.per];
+  const unit = g.plan.per==='day' ? (g.plan.every>1 ? 'stretch' : 'day') : g.plan.per;
+  /* What it says in words is the one number you want: how far into this
+     period, when the period asks for more than one; otherwise how long the
+     run is, which is what a daily habit is for. */
+  const said = cur.need>1 ? `${Math.min(cur.got,cur.need)}/${cur.need} ${word}`
+             : `${run} ${unit}${run===1?'':'s'} running`;
+  const pips = ps.map(p=>{
+    const lit = Math.min(p.got, Math.max(p.need,1));
+    const label = p.from===p.to ? D.short(p.from) : `${D.short(p.from)} – ${D.short(p.to)}`;
+    const inner = !p.need
+      ? `<i class="habpip rest"></i>`
+      : Array.from({length:p.need}, (_,i)=>`<i class="habpip${i<lit?' on':''}"></i>`).join('');
+    return `<span class="habgrp${p.now?' now':''}${!p.need?' rest':''}${p.need&&p.got>=p.need?' met':''}${
+      p.need>1?' many':''}${!p.now&&p.need&&p.got<p.need?' miss':''}"${
+      p.now?` data-check="${o.id}"`:''} title="${esc(label)} — ${p.need?`${p.got} of ${p.need}`:'not owed'}">${inner}</span>`;
+  }).join('');
+  return {g, said, pips};
+}
+
+/* ---- a tag: a luggage tag, and nothing else on it — decision 202 ---------
+   The body is a card clipped to the silhouette — a point at one end, square
+   at the other — with the eyelet punched through the point by a mask, so the
+   board shows through the hole rather than a painted circle pretending to be
+   one. Which way it points is which way round the box is (a cabinet's test,
+   decision 54): wider than tall and it lies with the point to the left, taller
+   and it hangs with the point up. The point is always as long as half the
+   short side, so a long tag is a long body and not a long point. Written on it
+   is the tag it collects, read live, unless it has been given a name of its
+   own. One cell square it is the silhouette and the hole — the mark. */
+function tagFace(o, box, sel, place, handles){
+  const cell = CELL[dev()] || 44;
+  const upright = box.h > box.w;
+  const mini = box.w<=1 && box.h<=1;
+  const long = upright ? box.h : box.w, side = upright ? box.w : box.h;
+  const tp = mini ? 34 : Math.min(40, side/long*50);
+  const hr = Math.max(2.5, Math.min(8, side*cell*0.1));
+  const tg = (o.filter||{}).tag || '';
+  const n = childrenOf(o).length;
+  const said = o.title || tg || 'No tag yet';
+  const name = S.editId===o.id ? nameField(o)
+    : `<b class="dname tagname${!o.title&&!tg?' notag':''}" data-edit="${o.id}">${esc(said)}</b>`;
+  return `<button class="drawer dtile tagtile${upright?' upright':''}${mini?' minitag':''}${sel}" data-drawer="${o.id}"
+      title="${esc(tg ? '#'+tg : 'A tag with nothing to collect yet')} — ${n} ${n===1?'thing':'things'}"
+      style="--c:${objColour(o)};--tp:${tp.toFixed(1)}%;--hr:${hr.toFixed(1)}px;${place}">
+    ${box.w*box.h>=3 && !mini ? `<svg class="tagloop" viewBox="0 0 40 24" aria-hidden="true"><path d="M40 12 C 30 3, 14 1, 6 6 C 0 10, 1 19, 9 19 C 16 19, 22 15, 26 11"/></svg>` : ''}
+    <span class="tagcard"></span>
+    <i class="tageye"></i>
+    ${mini ? '' : `<span class="tagtext">${name}<u class="tagn">${n}</u></span>`}
+    ${handles}
+  </button>`;
+}
+
 /* One tile, for anything. A container gets the drawer front and a preview of
    what is inside it; everything else gets its attributes rendered directly.
    This is the only place that decides how an object looks on a grid, at any
@@ -1294,6 +1373,8 @@ function drawTileFace(o, arr, box, persp){
         ${handles}
       </button>`;
     }
+    // a tag at one cell is still a tag: the silhouette and the hole — decision 202
+    if(cont && faceOf(o)==='tag') return tagFace(o, box, sel, place, handles);
     const mark = cont && has(o,'magic') ? 'sparkle' : iconOf(o);
     /* **A drawer at one cell is still a drawer, so it keeps its knob** — and
        the mark goes *on* the knob rather than beside it, printed onto the
@@ -1434,6 +1515,8 @@ function drawTileFace(o, arr, box, persp){
      inside a button is invalid and unfocusable — the same reason the text field
      tile is a div. Clicking it still opens it: wire.js goes by [data-drawer]
      and the .drawer class, not by the tag. */
+  if(cont && faceOf(o)==='tag') return tagFace(o, box, sel, place, handles);
+
   if(cont && faceOf(o)==='checklist'){
     const items=childrenOf(o);
     /* Whether the *box* is drawn, which is not the same question as whether the
@@ -2180,6 +2263,24 @@ function drawTileFace(o, arr, box, persp){
       <div class="dtop">${nameField(o)}<span class="barcount">${lit}/${g.n}</span></div>
       <div class="barblocks">${Array.from({length:g.n}, (_,i)=>
         `<i class="barblock${i<lit?' on':''}"${own?` data-barset="${o.id}:${i+1}"`:''}></i>`).join('')}</div>
+      ${handles}
+    </div>`;
+  }
+
+  /* ---- a habit tracker — decision 202 ------------------------------------
+     A `<div>` for the bar's reason: the name becomes an input when it is
+     edited in place. The period you are in carries `data-check`, so pressing
+     today's pips logs it whatever the tile's own press is set to — the way a
+     task's box ticks it whatever a press on the rest of the task does. */
+  if(shapeOf(o)==='tracker'){
+    const {g, said, pips} = trackerFace(o, box);
+    return `<div class="drawer otile ${paper(o)} sh-tracker habtile${g.named?'':' habbare'}${sel}"
+        data-row="${o.id}" role="button" tabindex="0"
+        title="${esc(o.title||'Untitled')} — ${esc(said)}${repeatSaid(o)?' · '+esc(repeatSaid(o)):''}"
+        style="--c:${colour};--hcols:${g.cols};--hrows:${g.rows};--hgu:${g.gu};${place}">
+      ${chips}
+      ${g.named ? `<div class="dtop">${nameField(o)}<span class="habcount">${esc(said)}</span></div>` : ''}
+      <div class="habpips">${pips}</div>
       ${handles}
     </div>`;
   }

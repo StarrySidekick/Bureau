@@ -128,7 +128,7 @@ const FIELDS = {
   '@kind':  {key:'kind',   type:'text', nm:'Type',              meta:true, pick:'kinds',  get:o=>o.kind},
   '@in':    {key:'parent', type:'text', nm:'Filed in',          meta:true, pick:'conts',  get:o=>o.parent||ROOT},
   '@under': {key:'parent', type:'text', nm:'Anywhere inside',   meta:true, pick:'conts',  list:true, get:o=>ancestorIds(o)},
-  '@tag':   {key:'tags',   type:'text', nm:'Tag',               meta:true, pick:'tags',   list:true, get:o=>o.tags||[]},
+  '@tag':   {key:'tags',   type:'text', nm:'Tag',               meta:true, pick:'tags',   list:true, get:o=>tagsOf(o)},
   '@trait': {key:'attrs',  type:'text', nm:'Carries the trait', meta:true, pick:'attrs',  list:true, get:o=>attrsOf(o)},
   '@title': {key:'title',  type:'text', nm:'Name',              meta:true, get:o=>o.title||''},
   '@body':  {key:'body',   type:'text', nm:'Words',             meta:true, get:o=>o.body||''},
@@ -187,6 +187,19 @@ const BUILTIN_KINDS = {
      *before* it exists rather than leaving you to find the rule builder.
      See decision 131. */
   magic:   {nm:'Sorting drawer', ic:'sparkle', c:10, key:'Q', ds:'Collects by a rule instead of holding — pick the tag it sorts for', attrs:['container','magic'], layout:'grid', size:[2,2], phoneSize:[2,2], asksTag:true, body:'' },
+  /* **A tag you can put on the desk.** A sorting drawer in the shape of a
+     luggage tag — the point, the punched hole, the name on the body — and
+     nothing else is different: it is `magic`, it asks which tag before it
+     exists, and pressing it opens the drawer that collects everything answering
+     to that tag. The tag may be one you wrote or one a thing carries by being
+     what it is (`tagsOf()`), or a few of them with `&` between. It collects
+     drawers as well, because "every checklist" is a question about drawers —
+     see showsContainers(). **Born sorted**, A–Z: what it collects was
+     arranged on other boards, in their coordinates, and read off here those
+     boxes land on top of one another — a packed board is the honest picture
+     of a collection. It may replace the sorting drawer one day; for now
+     it is the same machine with a truer silhouette. See decision 202. */
+  tag:     {face:'tag', nm:'Tag', ic:'tag', c:3, key:'', ds:'Everything that answers to a tag — a tag of yours, or one a thing has by being what it is', attrs:['container','magic'], layout:'grid', sort:'az', size:[4,2], phoneSize:[4,2], asksTag:true, body:'' },
   /* The third drawer. A project is a piece of work and it finishes; a **life
      drawer** is an area of your life and it does not — money, health, the
      people in it — so it reports what is in it and what is next and draws no
@@ -313,6 +326,14 @@ const BUILTIN_KINDS = {
      See decision 133. */
   progressbar:{shape:'bar', nm:'Progress bar', ic:'bar', c:13, key:'J', ds:'How far along something is — its own milestones, or another object\'s',
      attrs:['text','progress'], size:[5,1], phoneSize:[5,1], onclick:'read', target:30, steps:10, body:'' },
+  /* **A habit tracker** is the `streak` trait wearing the face that shows it:
+     the name, and a pip for every time you owed it — a day, or a week with two
+     in it, or a day with three. It is not the Habit type back (decision 160):
+     a habit is still a thing that comes round, and this is the record of it,
+     which is why ticking one logs the day rather than spawning the next copy.
+     How often is the repeat rule plus `times`; see habitPlan(). */
+  tracker: {shape:'tracker', nm:'Habit tracker', ic:'grid', c:6, key:'', ds:'The days you did it and the days you did not, as many times a day or a week as it asks',
+     attrs:['text','streak'], size:[6,2], phoneSize:[6,2], onclick:'check', body:'' },
   image:   {nm:'Image',   ic:'image',   c:15, key:'G', ds:'A picture on the board',   size:[6,4], onclick:'read', attrs:['media'], body:'' },
   /* A window is an Image that admits there is somewhere on the other side of
      it. Same attribute, same surface, same file — what differs is that the
@@ -653,10 +674,10 @@ const BUILTIN_KINDS = {
    The order is the order they are drawn in, and it is not alphabetical: the
    four drawers lead, because what you are usually doing on a bare board is
    making somewhere to put things. See decision 130. */
-const PRIMARY = ['drawer','magic','project','life','goal',
+const PRIMARY = ['drawer','magic','tag','project','life','goal',
                  'book','checklist','calendar','jar','pigeonhole','moodboard','timeline',
                  'note','fragment','label','recipe','achievement',
-                 'task','progressbar','counter','appt',
+                 'task','progressbar','tracker','counter','appt',
                  'image','audio','video','post','decoration','instrument','control','generator','outlink'];
 const isPrimary = k => PRIMARY.includes(k);
 
@@ -1312,7 +1333,7 @@ const panelOf = o => {
 const FACES = {front:'Drawer front', checklist:'Checklist', project:'Project',
                life:'Life area', goal:'Goal',
                calendar:'Calendar', collage:'Collage', timeline:'Timeline',
-               spine:'Book spine', pigeonhole:'Pigeonhole'};
+               spine:'Book spine', pigeonhole:'Pigeonhole', tag:'Luggage tag'};
 
 /* ---- which cover a project wears ---------------------------------------
    A project face is a report; `proj` says what the thing being reported on
@@ -1469,7 +1490,12 @@ const DONE_FACES = ['checklist','project','calendar','timeline'];
 const keepsDone = c => DONE_FACES.includes(faceOf(c)) || (isContainer(c) && has(c,'progress'));
 // laid out along time rather than in a grid — by face, or by how it opens
 const TIME_FACES = ['calendar','timeline'];
-const showsContainers = c => TIME_FACES.includes(faceOf(c)) || TIME_FACES.includes(layoutOf(c));
+/* **And a tag.** "Every checklist" and "everything tagged film" are both
+   questions whose answer is very often a drawer, and a tag that could not
+   collect one would be a tag that lied about what carries it. See decision
+   202. */
+const showsContainers = c => TIME_FACES.includes(faceOf(c)) || TIME_FACES.includes(layoutOf(c))
+  || faceOf(c)==='tag';
 
 /* What a pile of these becomes. Dropping one object on another is only a
    gesture if both agree what they add up to — two tasks are a checklist, two
@@ -1586,12 +1612,20 @@ const SHAPES = {
    shapeChoices() puts it back at the head of the ring for that one object, and
    one press walks it into the list for good. */
 const SHAPES_KEPT = {sliver:'Sliver', bar:'Bar'};
-const shapeName = k => SHAPES[k] || SHAPES_KEPT[k] || SHAPES.card;
+/* **A face only a habit can wear.** The tracker draws a history, and a thing
+   with no history to draw would be a row of empty pips saying nothing — so it
+   is offered to what carries `streak` or a repeat rule and to nothing else, the
+   way a kept shape is offered only to the thing already wearing it. */
+const SHAPES_HABIT = {tracker:'Habit tracker'};
+const shapeName = k => SHAPES[k] || SHAPES_KEPT[k] || SHAPES_HABIT[k] || SHAPES.card;
 /* The ring a *particular* object's Shape row walks: the offered list, with the
-   one it is actually wearing at the front when that is one of the kept two. */
-const shapeChoices = cur => {
+   one it is actually wearing at the front when that is one of the kept two,
+   and the tracker at the end for anything that keeps a history. */
+const shapeChoices = (cur, o) => {
   const all = Object.entries(SHAPES);
-  return (SHAPES[cur] || !SHAPES_KEPT[cur]) ? all : [[cur, SHAPES_KEPT[cur]], ...all];
+  const ring = (SHAPES[cur] || !SHAPES_KEPT[cur]) ? all : [[cur, SHAPES_KEPT[cur]], ...all];
+  return (o && (has(o,'streak') || repeats(o))) || SHAPES_HABIT[cur]
+    ? [...ring, ...Object.entries(SHAPES_HABIT)] : ring;
 };
 const shapeOf = o => (o && o.shape) || K(o&&o.kind).shape || 'card';
 
@@ -1883,7 +1917,7 @@ function inContainer(c,o){
        them. A drawer that swallowed everything you made would file your desk
        for you, which is the one thing the desk is for. */
     if(f.loose && !isDesk(o.parent||ROOT)) return false;
-    if(f.tag && !(o.tags||[]).includes(f.tag)) return false;
+    if(f.tag && !tagMatch(o, f.tag)) return false;
     if(f.kinds && f.kinds.length && !f.kinds.includes(o.kind)) return false;
     const rs=rulesOf(f);
     if(rs.length && !rs.every(r=>matchRule(o,r))) return false;
@@ -2613,6 +2647,82 @@ function streak(o){
   while(set.has(D.iso(d))){ n++; d=D.add(d,-1); }
   return n;
 }
+/* ---- how often a habit is owed — decision 202 --------------------------
+   A habit's rhythm is its repeat rule plus one number, `times`: how many of
+   it the period asks for. So "twice a day" is a day with two, "twice a week"
+   is a week with two and no days named, and "Monday, Wednesday and Friday" is
+   a day that is only owed on three of seven. No new rule, because a repeat
+   already says the period; only the count was missing.
+
+     per     the period one group of pips stands for: day, week, month
+     every   how many of those make one period (every 2 days is a 2-day period)
+     times   how many it asks for in one
+     days    the weekdays a daily habit is owed on, or null for every day */
+const HABIT_MAX_TIMES = 12;
+function habitPlan(o){
+  const r = repeatOf(o);
+  const times = Math.max(1, Math.min(HABIT_MAX_TIMES, Math.round(+(o && o.times) || 1)));
+  const every = r ? Math.max(1, Math.round(r.every||1)) : 1;
+  if(!r || r.unit==='day') return {per:'day', every, times, days:null};
+  if(r.unit==='week' && (r.days||[]).length) return {per:'day', every:1, times, days:r.days.slice()};
+  return {per:r.unit==='year' ? 'year' : r.unit, every, times, days:null};
+}
+// how many times it was logged on one day — a history may hold a day twice
+const habitOn = (o, iso) => (o && o.history || []).reduce((n,d)=>n+(d===iso?1:0), 0);
+/* Where the period holding `iso` starts and ends, inclusive. Weeks start on
+   the desk's own first day (Monday unless a calendar has said otherwise is
+   too clever; the week a habit is counted in is Monday to Sunday). A period of
+   several days is counted from a fixed day so it does not slide with today. */
+function habitPeriod(plan, iso){
+  const d = D.parse(iso);
+  if(plan.per==='day'){
+    if(plan.every<=1) return {from:iso, to:iso};
+    const n = Math.floor((d - new Date(2000,0,3)) / 864e5);
+    const from = D.addISO('2000-01-03', n - (n % plan.every));
+    return {from, to:D.addISO(from, plan.every-1)};
+  }
+  if(plan.per==='week'){
+    const back = (d.getDay()+6)%7;
+    const n = Math.floor((D.add(d,-back) - new Date(2000,0,3)) / (7*864e5));
+    const from = D.addISO('2000-01-03', 7*(n - (n % plan.every)));
+    return {from, to:D.addISO(from, 7*plan.every-1)};
+  }
+  if(plan.per==='month') return {from:D.iso(new Date(d.getFullYear(), d.getMonth(), 1)),
+                                 to:D.iso(new Date(d.getFullYear(), d.getMonth()+1, 0))};
+  return {from:`${d.getFullYear()}-01-01`, to:`${d.getFullYear()}-12-31`};
+}
+/* The last `n` periods, oldest first, ending with the one today is in. Each
+   says what it asked for (`need`, 0 on a day it was not owed), what it got,
+   and whether it is the one you are in — which is still open, so an empty one
+   is not yet a miss. */
+function habitPeriods(o, n){
+  const plan = habitPlan(o), out = [];
+  const logged = {}; (o.history||[]).forEach(d=>logged[d]=(logged[d]||0)+1);
+  let at = habitPeriod(plan, T);
+  for(let i=0; i<n; i++){
+    let got = 0;
+    for(let d=at.from; d<=at.to; d=D.addISO(d,1)) got += logged[d]||0;
+    const owed = !plan.days || plan.days.includes(D.parse(at.from).getDay());
+    out.push({from:at.from, to:at.to, need:owed?plan.times:0, got, now:i===0});
+    at = habitPeriod(plan, D.addISO(at.from, -1));
+  }
+  return out.reverse();
+}
+/* How many periods in a row it has been kept, counting back from the last
+   finished one — and the one you are in, if it is already met. A day it was
+   not owed neither breaks the run nor adds to it. */
+function habitRun(o){
+  const per = habitPlan(o).per;
+  const ps = habitPeriods(o, per==='day' ? 400 : per==='week' ? 104 : per==='month' ? 36 : 10).reverse();
+  let n = 0;
+  for(const p of ps){
+    if(!p.need) continue;
+    if(p.got >= p.need){ n++; continue; }
+    if(p.now) continue;
+    break;
+  }
+  return n;
+}
 const goalPct = o => !o.milestones||!o.milestones.length ? 0 : Math.round(100*o.milestones.filter(m=>m.done).length/o.milestones.length);
 /* What a bar is actually drawn at. `goalPct` is an object's own milestones and
    nothing else; **anything drawn as a bar asks this instead**, because a
@@ -2758,6 +2868,97 @@ function projectStat(c){
 }
 const allTags = ()=>{ const m={}; S.objects.forEach(o=>(o.tags||[]).forEach(t=>m[t]=(m[t]||0)+1)); return Object.entries(m).sort((a,b)=>b[1]-a[1]); };
 
+/* ---- the tags a thing answers to without being told — decision 202 -----
+   A tag used to be only a word you wrote on a thing, which made "every
+   checklist" or "every task due this week" a rule-builder question when it is
+   obviously a tag: a note is already a note, and saying so again by hand is the
+   filing the desk should be doing for you. So a thing **answers to** more than
+   it carries:
+
+     · what it is — its type's key and its name ("progressbar", "progress-bar"),
+       and the category it is listed under (an idea is a note)
+     · what it carries — every attribute ("check", "date", "repeat", "media"),
+       "drawer" for anything that holds, and the face a drawer wears
+     · what it is doing — done / undone, late, due-today, due-week, due-month,
+       dated, repeats, habit, loose, answered / unanswered
+     · where it is — the tags written on anything it is filed inside, which is
+       what "everything underneath that tag" means
+
+   Derived every time and **never stored**, like urgency, so a task that goes
+   late is tagged late the morning it does without anything writing to it. One
+   function, and everything that matches a tag asks it: a sorting drawer's
+   `tag`, the `@tag` clause, a Tag on the desk. */
+const tagSlug = s => String(s||'').trim().toLowerCase().replace(/^#/,'')
+  .replace(/[^\w/-]+/g,'-').replace(/^-+|-+$/g,'');
+function implicitTags(o){
+  if(!o) return [];
+  const out = new Set();
+  const k = K(o.kind);
+  if(o.kind) out.add(tagSlug(o.kind));
+  if(k.nm) out.add(tagSlug(k.nm));
+  if(FAMILY_OF[o.kind]) out.add(FAMILY_OF[o.kind]);
+  attrsOf(o).forEach(a=>out.add(a));
+  if(isContainer(o)){ out.add('drawer'); const f=faceOf(o); if(f && f!=='front') out.add(f); }
+  if(has(o,'media')) out.add(mediaTypeOf(o));
+  if(has(o,'check')) out.add(o.done ? 'done' : 'undone');
+  if(has(o,'streak') || (has(o,'repeat') && repeats(o))) out.add(has(o,'streak') ? 'habit' : 'repeats');
+  if(has(o,'answer')) out.add(answered(o) ? 'answered' : 'unanswered');
+  if(isLate(o)) out.add('late');
+  if(has(o,'date') && o.due && !o.done){
+    out.add('dated');
+    const n = D.until(o.due);
+    if(n===0) out.add('due-today');
+    if(n!=null && n>=0 && n<=7) out.add('due-week');
+    if(n!=null && n>=0 && n<=31) out.add('due-month');
+  }
+  if(isDesk(o.parent||ROOT)) out.add('loose');
+  out.delete('');
+  return [...out];
+}
+// the words written on everything it is filed inside, innermost first
+function inheritedTags(o){
+  const out=[]; let at=o && o.parent;
+  for(let i=0;i<32 && at && at!==ROOT;i++){
+    const p = upOf(at); if(!p) break;
+    (p.tags||[]).forEach(t=>out.push(t));
+    at = p.parent;
+  }
+  return out;
+}
+/* Everything it answers to: written, derived, and inherited. Lowercased,
+   because a tag you typed as "Film" and one you typed as "film" are one tag. */
+const tagsOf = o => o ? [...new Set([...(o.tags||[]), ...implicitTags(o), ...inheritedTags(o)]
+  .map(tagSlug).filter(Boolean))] : [];
+/* **A tag may be a few tags.** "task & due-week" is two, both required, and
+   `!done` is one that must be absent. `&`, `+` and `,` all join — whichever
+   you reach for — and there is still no OR, for decision 63's reason: a union
+   is two tags on the board, which is a thing you can see. A written tag with a
+   slash in it is a place in a family, so `work` also answers for `work/film`. */
+const tagTerms = expr => String(expr||'').split(/\s*[&+,]\s*|\s+and\s+/i)
+  .map(t=>t.trim()).filter(Boolean)
+  .map(t=>{ const not=/^(!|not\s+)/i.test(t); return {not, t:tagSlug(t.replace(/^(!|not\s+)/i,''))}; })
+  .filter(x=>x.t);
+function tagMatch(o, expr){
+  const terms = tagTerms(expr);
+  if(!terms.length) return true;
+  const mine = tagsOf(o);
+  const hit = t => mine.some(m => m===t || m.startsWith(t+'/'));
+  return terms.every(x => x.not ? !hit(x.t) : hit(x.t));
+}
+/* Every tag the desk answers to, counted: what was written first (they are
+   yours), then what things carry by being what they are. `own` says which. */
+function everyTag(){
+  const own={}, imp={};
+  S.objects.forEach(o=>{
+    if(isHeld(o)) return;
+    (o.tags||[]).forEach(t=>{ t=tagSlug(t); if(t) own[t]=(own[t]||0)+1; });
+    implicitTags(o).forEach(t=>imp[t]=(imp[t]||0)+1);
+  });
+  const by = m => Object.entries(m).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]));
+  return [...by(own).map(([t,n])=>({t,n,own:true})),
+          ...by(imp).filter(([t])=>!own[t]).map(([t,n])=>({t,n,own:false}))];
+}
+
 /* Every entry in the margin, oldest first, defensive about the shape because
    this is a list on an object and a hand-edited backup could carry anything. */
 function marginOf(o){
@@ -2802,6 +3003,8 @@ export { homeFor, ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds,
   relatedTo, backlinksTo,
   groupOf, groupMates, travelWith, groupTogether, relate, unrelate, chainOf, tlSpan, streak, goalPct,
   allUnder, progressOf, projectStat, finishedThings, allTags,
+  tagSlug, implicitTags, tagsOf, tagTerms, tagMatch, everyTag,
+  habitPlan, habitOn, habitPeriod, habitPeriods, habitRun, HABIT_MAX_TIMES, SHAPES_HABIT,
   PRIMARY, isPrimary, ANY, makesAnything, genSaid, ctlOf, barPct, barOf,
   BAR_STEPS, barSteps, barFilled, barGrid,
   familyOf, isCategory, inFamily, isFragmentKind, familyList,

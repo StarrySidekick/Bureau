@@ -139,7 +139,7 @@ reason an invented type works everywhere immediately.
 | `decor` | Stands **above** the board: it may overlap anything, nothing makes room for it, and it wears no tile. Decision 86 | — |
 | `spawn` | Makes new objects — on a press, or as you type into it. | — |
 | `total` | Adds a field up across what it holds. | — |
-| `streak` | A daily cadence and a tickable history. No due date, no overdue. | — |
+| `streak` | A cadence and a tickable history. No due date, no overdue. How often is the repeat rule plus `times` (decision 202). | `history` dates, `times` |
 | `progress` | Ordered milestones and a progress bar. | — |
 | `media` | An image, video or audio file — all three real. A transparent PNG stays transparent. Any of them opens onto the media surface. | — |
 | `link` | A web address it points at. | `url` text |
@@ -183,6 +183,7 @@ decision 130.
 | --- | --- | --- |
 | 1 | **Drawer** | A container. Holds what you file in it. |
 | 2 | **Sorting drawer** | Collects by a rule instead of holding. Asks which tag before it exists, then lands you on the rule. `magic` in the code. |
+| 2a | **Tag** | A sorting drawer shaped like a luggage tag — point, eyelet, string. Prints the tag it collects, collects drawers too, opens sorted. Decision 202. |
 | 3 | **Project** | A piece of work, and everything it is made of. A drawer front whose knob is a dial. |
 | 4 | **Life drawer** | An area of your life rather than a piece of work. Reports the same walk with **no bar** — it never finishes. |
 | 5 | **Goal** | Something you are trying to reach. A playing card, laid down. |
@@ -199,6 +200,7 @@ decision 130.
 | 16 | **Achievement** | Something you actually did. Picked from what is finished, not written. |
 | 17 | **Task** | A thing to do. |
 | 18 | **Progress bar** | How far along something is — its own milestones, or another object's. |
+| 18a | **Habit tracker** | The name and a pip for every time it was owed: a day, a day with three, a week with two. The `streak` trait wearing the `tracker` face. Decision 202. |
 | 19 | **Counter** | A number you tap to add to. |
 | 20 | **Event** | Something on a day — a meeting, a shoot, a trip. A diary leaf. `appt` in the code. |
 | 21 | **Image** | A picture on the board. |
@@ -476,6 +478,31 @@ dragged.
 filter bar. Clicking a tag calls `drawerForTag()`, which finds the magic drawer
 collecting that tag or makes one. If a filter UI ever seems necessary, the
 answer is a drawer.
+
+**A thing answers to more tags than it carries** (decision 202). `tagsOf(o)` in
+model.js is the one list and everything that matches a tag asks it — a sorting
+drawer's `tag`, the `@tag` clause, a Tag on the desk:
+
+- the tags **you wrote**, compared lowercased; `work` also answers for `work/film`
+- what it **is** — the type's key and name, and its category (an idea is a `note`)
+- what it **carries** — every attribute, `drawer` for anything that holds, the
+  face a drawer wears, `image` / `audio` / `video`
+- what it is **doing** — `done` / `undone`, `late`, `due-today`, `due-week`,
+  `due-month`, `dated`, `habit`, `repeats`, `answered` / `unanswered`, `loose`
+- where it is **filed** — the tags written on every drawer it is inside, which is
+  "underneath that tag"
+
+Derived on every match and never stored. A tag may be several: `task & due-week`
+needs both, `!done` needs one absent (`&`, `+` and `,` all join; there is no OR).
+`everyTag()` counts the lot for the pickers, written ones first.
+
+**A Tag is a sorting drawer shaped like a luggage tag.** `face:'tag'`: a card
+clipped to a point with the eyelet punched through by a mask, lying down when
+wide and hanging when tall, the silhouette alone at one cell. It prints the tag
+it collects, read live, unless it has been named; it **collects drawers** (the
+tag face is in `showsContainers()`), because "every checklist" is a question
+about drawers; and it is born sorted A–Z, because what it collects was arranged
+on other boards.
 
 ### 7a. The Void Drawer
 
@@ -1012,6 +1039,14 @@ the start, `#tag` anywhere, and `!today` / `!tomorrow` / `!week`.
   `streak` trait stays — a history of dates, a streak counted back from today,
   and no overdue, which is the guilt-generating pattern that makes habit
   trackers unpleasant — and anything can wear it. See decision 160.
+- **A habit's rhythm is its repeat rule plus `times`** — `habitPlan()`: a day,
+  a day owed only on named weekdays, a week, a month, each asking for `times`.
+  The **tracker** face (`shape:'tracker'`, offered only to something with
+  `streak` or a repeat) draws one group of pips per period, oldest first, the
+  current one ringed and pressable; a bigger tile shows more of the past.
+  Logging counts up to what the day asks for and one more press clears the day.
+  A ticked repeating task carries its history, plus today, to the next copy.
+  See decision 202.
 - A goal has ordered milestones; progress is the fraction done.
 - Completed things go to the archive, which is a magic drawer whose rule is
   `done`. Nothing is moved to get them there.

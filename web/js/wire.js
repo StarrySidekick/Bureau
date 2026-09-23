@@ -110,7 +110,12 @@ function makeSorting(kind, tag){
   closePanel();
   pending.cell = at;
   const o = create(kind||'magic', at?{parent:at.parent}:undefined);
-  if(tag){ o.filter = Object.assign({}, o.filter, {tag}); o.title = '#'+tag; }
+  /* A **Tag** on the desk wears no title of its own: its face prints the tag
+     it collects, read live, so changing the tag in its editor changes what is
+     written on it rather than leaving the old word behind. A sorting drawer is
+     a front with a name on it, and takes the tag as that name. */
+  if(tag){ o.filter = Object.assign({}, o.filter, {tag});
+    if(faceOf(o)!=='tag') o.title = '#'+tag; }
   placeAtPending(o);
   save(); render(); reveal(o.id);
   /* **And then you are standing in Collects, whichever way you came.** The tag
@@ -578,8 +583,14 @@ function act(name, el){
     }
     case 'addtag': {
       const o=byId(el.dataset.id||S.openId); if(!o) return;
-      const t=prompt('Tag'); if(t){ o.tags=o.tags||[]; const v=t.trim().replace(/^#/,'');
-        if(v && !o.tags.includes(v)) o.tags.push(v); save(); refreshPanel(); render(); }
+      /* An undo move, which adding and removing a tag never had — decision 65
+         says anything that changes a field pushes one, and a tag written on
+         the wrong thing is the commonest slip in filing. A fresh array, so the
+         step holds the list as it was rather than the same list. */
+      const t=prompt('Tag'); if(t){ const v=t.trim().replace(/^#/,'');
+        if(v && !(o.tags||[]).includes(v)){ pushSet('Tagged', o.id, 'tags', (o.tags||[]).slice());
+          o.tags=[...(o.tags||[]), v]; }
+        save(); refreshPanel(); render(); }
       break;
     }
     case 'addmile': { const o=byId(el.dataset.id||S.openId); if(!o) return;
@@ -1618,7 +1629,9 @@ function wire(){
 
     const ut=t.closest('[data-untag]');
     if(ut){ const o=byId(S.openId); if(!o) return;
-      o.tags=(o.tags||[]).filter(x=>x!==ut.dataset.untag); save(); refreshPanel(); render(); return; }
+      pushSet('Untagged', o.id, 'tags', (o.tags||[]).slice());
+      o.tags=(o.tags||[]).filter(x=>x!==ut.dataset.untag); save(); refreshPanel(); render();
+      toast(`Took off #${ut.dataset.untag}`, true); return; }
 
     // a tag opens the magic drawer that collects it, making one if need be
     // a tag takes you somewhere else, so what was open about the thing you

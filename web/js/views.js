@@ -34,7 +34,11 @@ import { APP_VERSION, DATA_V, save, saveIfDirty, storeSize, install } from './pe
    editor now and the bar is shorter for it. */
 /* What a container is called at the top of its own board. Home has no title of
    its own — it is whoever's desk this is. */
-const boardName = o => !o || o.id===ROOT ? deskTitle() : (o.title||'Untitled');
+/* A Tag on the desk has no name of its own — its face prints the tag it
+   collects (decision 202) — so an untitled board that collects a tag is
+   called by it rather than "Untitled". */
+const boardName = o => !o || o.id===ROOT ? deskTitle()
+  : (o.title || ((o.filter||{}).tag ? '#'+o.filter.tag : '') || 'Untitled');
 
 /* The name at the top left is the way to every other desk. Desks are not on
    the shelf any more — they are laid out in space, walked sideways with a

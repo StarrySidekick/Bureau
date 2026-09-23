@@ -389,7 +389,16 @@ function guideBody(){
       body:'A line or two.'});
     o.shape = k;
     return {key:k, nm, html:sampleTile(o,196,140,1.35)};
-  });
+  }).concat(
+    /* The tracker is offered only to a habit, so it is drawn on one — a daily
+       one and a twice-a-week one, because the difference between a pip and a
+       group of pips is the whole of what it says. See decision 202. */
+    [['Habit tracker', null], ['Habit tracker, twice a week', {every:1, unit:'week', days:[], from:'date'}]]
+      .map(([nm, rule])=>{
+        const o = sampleObject({kind:'tracker', attrs:['text','streak'], shape:'tracker', title:nm, size:[6,2]});
+        if(rule){ o.repeat = rule; o.times = 2; }
+        return {key:'tracker', nm, html:sampleTile(o,196,140,1.35)};
+      }));
   /* No `spawn` in the attrs, and that is not a detail: a container carrying it
      with no `spawnBy` of its own answers `click`, which is the spawner branch,
      and the spawner branch sits above every face — so a sample asking for nine

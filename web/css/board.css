@@ -3478,3 +3478,144 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
   position:absolute;left:auto;right:0;bottom:0;text-align:right;
   font-size:.66em;opacity:.55;
 }
+
+/* ==== decision 202 · the habit tracker and the tag on the desk ============
+   Two faces, both new, both here in one block so they can be read — and
+   merged — as one piece. Nothing in either keys on the aesthetic: every
+   surface is `--c`, `--paper-*`, `--ink-*`, `--brass` or `--dink`, so both
+   dress themselves in all seven and survive the specimen book (decision 98). */
+
+/* ---- a habit tracker: a grid of periods, each a group of pips ----------
+   `--hcols` and `--hrows` are written by trackerGrid() off the box, in units
+   of half a cell, so the pips stay one size and a bigger tile shows more of
+   the past. A group of several pips sits on a faint pill so a week of two
+   reads as one week; the period you are in is ringed. */
+.habtile .dtop{flex:0 0 auto;align-items:baseline;gap:6px;min-width:0}
+.drawer.otile.habtile .dtop .dname{flex:1;min-width:0;white-space:nowrap;text-overflow:ellipsis;
+  display:block;-webkit-line-clamp:none}
+.habtile .habcount{margin-left:auto;font-size:11px;color:var(--ink-3);
+  font-variant-numeric:tabular-nums;flex:0 0 auto;white-space:nowrap}
+.habpips{
+  flex:1;min-height:0;display:grid;gap:2px 3px;margin-top:4px;
+  grid-template-columns:repeat(var(--hcols,7),1fr);
+  grid-template-rows:repeat(var(--hrows,1),1fr);
+}
+.habgrp{
+  display:flex;align-items:center;justify-content:center;gap:2px;min-width:0;min-height:0;
+  border-radius:var(--pill);
+}
+.habgrp.many{background:color-mix(in srgb,var(--c) 8%,transparent)}
+.habgrp.many.met{background:color-mix(in srgb,var(--c) 18%,transparent)}
+.habgrp.now{box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--c) 70%,transparent);cursor:pointer}
+.habgrp.now:hover{box-shadow:inset 0 0 0 2px var(--c)}
+.habpip{
+  flex:0 1 auto;height:62%;max-height:18px;aspect-ratio:1;border-radius:50%;min-width:0;
+  background:transparent;
+  box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--c) 45%,transparent);
+  transition:background .14s, box-shadow .14s;
+}
+.habpip.on{
+  background:var(--c);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.34), inset 0 0 0 1px color-mix(in srgb,var(--c) 70%,#000);
+}
+/* a missed period is the hollow pip, a little fainter than an open one, so the
+   run reads as a run and a gap as a gap without a second colour */
+.habgrp.miss .habpip{box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--c) 28%,transparent)}
+/* a day it was not owed: a short dash, neither a miss nor a mark */
+.habpip.rest{height:2px;aspect-ratio:auto;width:36%;border-radius:1px;
+  background:color-mix(in srgb,var(--ink) 18%,transparent);box-shadow:none}
+.drawer.otile.sh-tracker.sz-short{flex-direction:row;align-items:center;gap:8px;padding:3px 6px}
+.habtile.sz-short .dtop{flex:0 0 42%;max-width:42%}
+.habtile.sz-short .habpips{margin-top:0;height:100%}
+.habtile.sz-short .habcount{display:none}
+.habtile.habbare .habpips{margin-top:0}
+
+/* ---- a tag on the desk: a luggage tag ----------------------------------
+   The tile gives up its ground, edge, padding and shadow — the jar's bargain
+   — and the tag is `.tagcard`, clipped to the silhouette and punched with a
+   mask. The shadow is a `drop-shadow` on the tile, because a box-shadow on a
+   clipped element is clipped with it and a filter follows the shape. `--tp` is
+   how far the point runs in; `--hr` is the eyelet's radius. The hole sits in
+   the middle of the point, the eyelet ring (brass, like every fitting on the
+   desk) over the punched edge, and the string leaves through it. */
+.drawer.dtile.tagtile{
+  background:none;border:0;box-shadow:none;padding:0;overflow:visible;border-radius:0;
+  filter:drop-shadow(0 1px 1.5px rgba(0,0,0,.28)) drop-shadow(0 3px 5px rgba(0,0,0,.14));
+  --hx:calc(var(--tp) * .62);
+}
+.drawer.dtile.tagtile:hover{box-shadow:none;
+  filter:drop-shadow(0 1px 1.5px rgba(0,0,0,.3)) drop-shadow(0 5px 9px rgba(0,0,0,.2)) brightness(1.05)}
+.tagtile > .dpanel,.tagtile > .dgrain,.tagtile > .dside,.tagtile > .dwash,
+.tagtile > .dsweep,.tagtile > .darris,.tagtile > .drecess{display:none}
+.tagtile .tagcard{
+  position:absolute;inset:2px;z-index:0;
+  clip-path:polygon(0 50%, var(--tp) 0, 100% 0, 100% 100%, var(--tp) 100%);
+  -webkit-mask:radial-gradient(circle at var(--hx) 50%, transparent var(--hr), #000 calc(var(--hr) + .6px));
+          mask:radial-gradient(circle at var(--hx) 50%, transparent var(--hr), #000 calc(var(--hr) + .6px));
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,0) 40%, rgba(0,0,0,.10)),
+    var(--c);
+}
+/* the fold line where the point meets the body, pressed rather than drawn */
+.tagtile .tagcard::after{
+  content:"";position:absolute;top:0;bottom:0;left:var(--tp);width:1px;
+  background:linear-gradient(180deg, transparent, rgba(0,0,0,.18) 20%, rgba(0,0,0,.18) 80%, transparent);
+}
+.tagtile .tageye{
+  position:absolute;z-index:2;pointer-events:none;
+  left:calc(2px + var(--hx));top:50%;
+  width:calc(var(--hr) * 2 + 5px);aspect-ratio:1;border-radius:50%;
+  transform:translate(-50%,-50%);
+  border:2.5px solid color-mix(in srgb, var(--brass) 80%, #fff);
+  box-shadow:inset 0 1px 1px rgba(0,0,0,.35), 0 1px 0 rgba(255,255,255,.25);
+}
+.tagtile .tagloop{
+  position:absolute;z-index:3;pointer-events:none;overflow:visible;
+  width:34px;height:20px;top:50%;
+  left:calc(2px + var(--hx) - 34px);transform:translateY(-58%);
+}
+.tagtile .tagloop path{fill:none;stroke:color-mix(in srgb, var(--ink) 55%, var(--paper));
+  stroke-width:1.6;stroke-linecap:round}
+.tagtile .tagtext{
+  position:absolute;z-index:1;top:2px;bottom:2px;right:8px;
+  left:calc(2px + var(--tp) + 6px);
+  display:flex;align-items:center;gap:6px;min-width:0;
+}
+.tagtile .tagname{
+  flex:1;min-width:0;font-family:var(--serif);font-size:15px;font-weight:600;
+  color:var(--dink);line-height:1.15;
+  display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;
+}
+.tagtile .tagname.notag{font-weight:400;font-style:italic;color:var(--dink-2)}
+.tagtile .tagn{flex:0 0 auto;text-decoration:none;font-size:11px;color:var(--dink-2);
+  font-variant-numeric:tabular-nums;padding:1px 6px;border-radius:var(--pill);
+  background:rgba(0,0,0,.18)}
+.tagtile .inlinename{min-width:0;flex:1}
+/* hung up rather than laid down: the point at the top, the words below it */
+.tagtile.upright{--hx:50%}
+.tagtile.upright .tagcard{
+  clip-path:polygon(50% 0, 100% var(--tp), 100% 100%, 0 100%, 0 var(--tp));
+  -webkit-mask:radial-gradient(circle at 50% calc(var(--tp) * .62), transparent var(--hr), #000 calc(var(--hr) + .6px));
+          mask:radial-gradient(circle at 50% calc(var(--tp) * .62), transparent var(--hr), #000 calc(var(--hr) + .6px));
+}
+.tagtile.upright .tagcard::after{top:var(--tp);left:0;right:0;bottom:auto;width:auto;height:1px;
+  background:linear-gradient(90deg, transparent, rgba(0,0,0,.18) 20%, rgba(0,0,0,.18) 80%, transparent)}
+.tagtile.upright .tageye{left:50%;top:calc(2px + var(--tp) * .62)}
+.tagtile.upright .tagloop{left:50%;top:calc(2px + var(--tp) * .62 - 30px);
+  transform:translateX(-50%) rotate(90deg)}
+.tagtile.upright .tagtext{left:6px;right:6px;top:calc(2px + var(--tp) + 4px);bottom:6px;
+  flex-direction:column;justify-content:center;text-align:center}
+.tagtile.upright .tagname{flex:0 1 auto;-webkit-line-clamp:4;overflow-wrap:anywhere}
+/* smaller, it says less: one line of name, then no count */
+.tagtile.sz-short .tagname{font-size:12.5px;-webkit-line-clamp:1}
+.tagtile.sz-narrow:not(.upright) .tagn{display:none}
+.tagtile.sz-thin .tagname{font-size:11px}
+.tagtile.minitag .tageye{width:calc(var(--hr) * 2 + 3px);border-width:1.5px}
+
+/* the tags a thing answers to without anybody writing them, in the object
+   editor and the tag question: the same tag, in paper rather than brass */
+.realtag.implied{background:var(--paper-3);color:var(--ink-2);cursor:pointer}
+.realtag.implied::before{background:color-mix(in srgb,var(--ink) 30%,transparent)}
+.realtag.implied u{color:var(--ink-3)}
+.tagrow.impliedrow{margin-top:6px}
+.tagrow.impliedrow:empty{display:none}

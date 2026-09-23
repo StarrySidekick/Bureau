@@ -5,7 +5,7 @@ import { S, K, KINDS, KEYS, T, ATTRS, USER_ATTRS, FIELDS, fieldOf, OPS, ROLLS,
   SORTS, MANUAL, sortOf, FACES, SHAPES, shapeChoices, READS, OPENINGS, openingOf,
   faceOf, layoutOf, shapeOf, readOf, byId, container, cfgOf, deskTitle,
   rootObj, containers, isContainer, isAncestor, childrenOf, has, kindHas,
-  attrsOf, allTags, placeOf, deskList, deskOf, isDesk, spanOf, heldObjects,
+  attrsOf, allTags, everyTag, tagsOf, habitPlan, HABIT_MAX_TIMES, placeOf, deskList, deskOf, isDesk, spanOf, heldObjects,
   dev, takesTyping, genKindOf, genSaid, ANY, ctlOf, barOf,
   PRIMARY, isPrimary, inFamily, familyList, finishedThings, answered, marginOf, isLate,
   PRIOS, prioOf, prioName, DIFFS, diffOf, diffName, REPEAT_UNITS, repeatOf, repeats, repeatSaid,
@@ -553,19 +553,26 @@ function modalNewObject(){
    Anything more than a tag is still the rule builder's job, and *No rule yet*
    is the way through to it — this is a shortcut past the common case, not a
    gate in front of the uncommon one. See decision 131. */
+/* **Two lists, because there are two kinds of tag** (decision 202): the ones
+   you wrote, and the ones a thing answers to by being what it is — a task, a
+   checklist, due this week. Both are counted off the desk as it is now, so
+   nothing is offered that would open onto an empty drawer, and the field takes
+   any tag at all, including a few joined with `&`. */
 function tagFirstPanel(kind){
   const k=K(kind);
   openPanel({
     key:'newtag', title:k.nm, sub:'What should it sort for?',
     body:()=>{
-      const tags=allTags();
-      return `<div class="section-h"><h2>A tag</h2><div class="rule"></div><span class="n">${
-          tags.length? 'everything carrying it, wherever it lives' : 'nothing on this desk is tagged yet'}</span></div>
-        <div class="tagrow">${tags.map(([t,n])=>
-          `<button class="realtag" data-newtag="${esc(kind)}:${esc(t)}">${esc(t)}<u>${n}</u></button>`).join('')
+      const all=everyTag(), own=all.filter(x=>x.own), imp=all.filter(x=>!x.own);
+      const chip = x => `<button class="realtag${x.own?'':' implied'}" data-newtag="${esc(kind)}:${esc(x.t)}">${esc(x.t)}<u>${x.n}</u></button>`;
+      return `<div class="section-h"><h2>A tag of yours</h2><div class="rule"></div><span class="n">${
+          own.length? 'everything carrying it, wherever it lives' : 'nothing on this desk is tagged yet'}</span></div>
+        <div class="tagrow">${own.map(chip).join('')
           || '<span class="clempty">Tag something and it will be offered here</span>'}</div>
-        <div class="field"><label>Or a tag it does not have yet</label>
-          <div class="rangerow"><input id="newtagin" data-kind="${esc(kind)}" placeholder="a tag of your own"
+        <div class="section-h"><h2>What things already are</h2><div class="rule"></div><span class="n">no one had to write these</span></div>
+        <div class="tagrow">${imp.map(chip).join('')}</div>
+        <div class="field"><label>Or type one — two or more with &amp; between</label>
+          <div class="rangerow"><input id="newtagin" data-kind="${esc(kind)}" placeholder="task &amp; due-week"
             ><button class="pill" data-act="newtagmake" data-id="${esc(kind)}">Make it</button></div></div>
         <button class="subtle-btn" data-newtag="${esc(kind)}:">${ic('sliders',12)} No rule yet — I will set it up inside</button>`;
     }
@@ -1008,8 +1015,13 @@ function objectPanelBody(id, sec){
     filing.push(prow('Tags',
       `<div class="tagrow">${(o.tags||[]).map(t=>
         `<span class="realtag" data-tagdrawer="${esc(t)}" title="Open a drawer for #${esc(t)}">${esc(t)}<b data-untag="${esc(t)}">\u2715</b></span>`).join('')}
-        <button class="add" data-act="addtag" data-id="${id}">+ tag</button></div>`,
-      (o.tags||[]).length ? 'press one to open a drawer for it' : 'what it is filed under'));
+        <button class="add" data-act="addtag" data-id="${id}">+ tag</button></div>${
+        /* and the ones nobody wrote, quieter, because they are what it *is*
+           rather than what you filed it under — pressable all the same, since a
+           tag is a tag whoever wrote it. See decision 202. */''}
+        <div class="tagrow impliedrow">${tagsOf(o).filter(t=>!(o.tags||[]).map(x=>String(x).toLowerCase()).includes(t)).map(t=>
+          `<span class="realtag implied" data-tagdrawer="${esc(t)}" title="Open a drawer for #${esc(t)}">${esc(t)}</span>`).join('')}</div>`,
+      (o.tags||[]).length ? 'press one to open a drawer for it' : 'what it is filed under — and, below, what it answers to anyway'));
     const rel=relatedTo(o), back=backlinksTo(id).filter(x=>x.id!==id);
     if(has(o,'relates') || rel.length || back.length){
       const chip=(x,rm)=>`<span class="relchip" style="--k:${objColour(x)}" data-openrel="${x.id}">
@@ -1113,7 +1125,7 @@ function objectPanelBody(id, sec){
   /* `shapeChoices` rather than the table: two shapes are still drawn and no
      longer offered (a task's sliver, a bar's blocks), and an object wearing one
      has to be able to say so and to walk off it. */
-  if(!isRoot && !cont) out.push(prow('Shape', pcycle(id,'shape', shapeChoices(shapeOf(d)), shapeOf(d))));
+  if(!isRoot && !cont) out.push(prow('Shape', pcycle(id,'shape', shapeChoices(shapeOf(d), d), shapeOf(d))));
   if(!isRoot && cont){
     if(faceOf(d)==='spine' || (d[dev()]||{}).w<=1)
       out.push(slotRow('Binding', id, 'bn', slotRaw(d,'binding')||bindingOf(d),
@@ -1354,6 +1366,18 @@ function objectPanelBody(id, sec){
       f.push(prow(has(o,'streak')?'Cadence':'Repeats',
         psel(id,'rep.on', [['','Never'],['1','Yes — on a rule']], r?'1':''),
         r ? esc(repeatSaid(o)) : ''));
+      /* **How many of it the period asks for** — the half of a habit's rhythm
+         a repeat rule cannot say. Twice a day is a day asking for two; twice a
+         week is a week (no days named) asking for two. Only on a habit: a task
+         that repeats is one thing to do, and done is done. See decision 202. */
+      if(has(o,'streak')){
+        const hp = habitPlan(o);
+        const per = hp.per==='day' ? (hp.every>1 ? `${hp.every} days` : 'day') : hp.per;
+        f.push(prow('Times',
+          `<input class="pfield num" type="number" min="1" max="${HABIT_MAX_TIMES}" data-oset="${id}:times" value="${hp.times}">`,
+          `a ${per}${hp.days ? ', on the days named below' : ''} — ${
+            r ? 'the rule says which period' : 'every day until it has a rule'}`));
+      }
       if(r){
         f.push(prow('Every',
           `<input class="pfield num" type="number" min="1" max="99" data-oset="${id}:rep.every" value="${r.every||1}">`
@@ -1549,7 +1573,7 @@ function objectPanelBody(id, sec){
     const PICKS = {
       kinds: ()=> KEYS.filter(k=>!K(k).cat).map(k=>[k, K(k).nm]),
       conts: ()=> [[ROOT,'The Desk'], ...containers().map(c=>[c.id, (c.title||'Untitled')+' · '+K(c.kind).nm])],
-      tags:  ()=> allTags().map(([t,n])=>[t, '#'+t+' ('+n+')']),
+      tags:  ()=> everyTag().map(x=>[x.t, '#'+x.t+' ('+x.n+')'+(x.own?'':' · by what it is')]),
       attrs: ()=> USER_ATTRS.map(a=>[a, ATTRS[a].nm]),
       yesno: ()=> [['true','Yes'],['false','No']]
     };
@@ -1655,9 +1679,18 @@ function objectPanelBody(id, sec){
         <span class="rclause"><b>from</b>
           <span class="rblank">${psel(id,'filter.loose',
             [['','anywhere'],['1','loose on a desk']], fl.loose?'1':'')}</span></span>
+        ${/* The tag it collects is offered from everything the desk answers
+             to, and **the one it already has is always in the list** — a tag
+             nothing carries yet, or two joined with `&`, used to be missing
+             from it, so the blank read "any tag" over a drawer that was
+             collecting one. The field beside it takes any tag at all.
+             See decision 202. */''}
         <span class="rclause"><b>tagged</b>
           <span class="rblank">${psel(id,'filter.tag',
-            [['','any tag'], ...allTags().map(([t])=>[t,'#'+t])], fl.tag||'')}</span></span>
+            [['','any tag'],
+             ...(fl.tag && !everyTag().some(x=>x.t===fl.tag) ? [[fl.tag, '#'+fl.tag]] : []),
+             ...everyTag().map(x=>[x.t,'#'+x.t])], fl.tag||'')}</span>
+          <span class="rblank">${pfield(id,'filter.tag', fl.tag||'', '', 'or type: task & due-week')}</span></span>
         ${clauses}
         ${scope}
       </div>
@@ -1728,7 +1761,9 @@ function sampleObject(spec){
     ...(a.includes('price')    ? {price:'12.50'} : {}),
     ...(a.includes('duration') ? {dur:45} : {}),
     ...(a.includes('location') ? {loc:'The shed'} : {}),
-    ...(a.includes('streak')   ? {history:[T]} : {history:[]}),
+    /* A few days out of the last fortnight, so a habit tracker drawn as a
+       sample has a history to draw rather than one pip lit. */
+    ...(a.includes('streak')   ? {history:[0,1,2,4,5,7,8,9,12].map(n=>D.addISO(T,-n))} : {history:[]}),
     ...(a.includes('progress') ? {milestones:[{t:'One',done:true},{t:'Two',done:false}]} : {milestones:[]}),
     done:false,
     link:{label:spec.title||'Press', target:''},

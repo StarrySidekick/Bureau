@@ -1038,6 +1038,82 @@ const PROP_OFF = () => { const b = document.createElement('button');
     return kept;
   });
 
+  // --- a tag answers for what a thing is, a Tag on the desk opens onto it, and a habit is pips
+  /* Decision 202. Four things a tag has to get right — two tags at once, a
+     category (an idea is a note), a `!` that excludes, and "underneath": a
+     thing filed inside a drawer carrying the tag — and that a Tag collects
+     drawers, because "every checklist" is a question about drawers. Then the
+     tile: a luggage tag with a hole, which opens onto what it collects. And a
+     habit tracker asked for twice a week draws weeks of two pips each. */
+  const tagProbe = await page.evaluate(async () => {
+    const S = BUREAU.state, out = {}, made = [];
+    const iso = n => { const d = new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()+n);
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
+    const mk = (k, p) => { const o = BUREAU.create(k, Object.assign({parent:'root'}, p)); made.push(o.id); return o; };
+    S.view = 'desk'; S.drawerId = null;
+    const a = mk('task', {title:'Tag probe A', due:iso(2), tags:['probe']});
+    const b = mk('task', {title:'Tag probe B', due:iso(20), tags:['probe']});
+    const idea = mk('idea', {title:'Tag probe idea'});
+    const both = mk('tag', {}); both.filter = {tag:'task & due-week & probe'};
+    const k1 = BUREAU.kids(both.id);
+    out.twoAtOnce = k1.includes(a.id) && !k1.includes(b.id);
+    const notes = mk('tag', {}); notes.filter = {tag:'note'};
+    out.category = BUREAU.kids(notes.id).includes(idea.id);
+    const not = mk('tag', {}); not.filter = {tag:'probe & !due-week'};
+    out.notTerm = BUREAU.kids(not.id).includes(b.id) && !BUREAU.kids(not.id).includes(a.id);
+    const d = mk('drawer', {title:'Probe drawer', tags:['probezone']});
+    const inside = mk('note', {title:'Filed inside', parent:d.id});
+    const zone = mk('tag', {}); zone.filter = {tag:'probezone'};
+    out.underneath = BUREAU.kids(zone.id).includes(inside.id) && BUREAU.kids(zone.id).includes(d.id);
+    const cl = mk('checklist', {title:'Probe list'});
+    const lists = mk('tag', {}); lists.filter = {tag:'checklist'};
+    out.drawersToo = BUREAU.kids(lists.id).includes(cl.id);
+    // the old sorting drawer reads the same function
+    const sd = mk('magic', {}); sd.filter = {tag:'probe'};
+    out.sortingDrawer = BUREAU.kids(sd.id).includes(a.id) && BUREAU.kids(sd.id).includes(b.id);
+    // the habit: twice a week, drawn eight by two
+    const hab = mk('tracker', {title:'Swim probe', times:2,
+      repeat:{every:1, unit:'week', days:[], from:'date', ends:null, paused:false, made:0}, history:[iso(-8)]});
+    // the rest of the made things off the board, so the two tiles have room
+    made.forEach(id => { const o = S.objects.find(x => x.id === id);
+      if(o !== both && o !== hab) o.parent = 'nowhere-probe'; });
+    both[S.device] = onThisShelf(4, 2);
+    BUREAU.render();
+    hab[S.device] = onThisShelf(8, 2);
+    BUREAU.render();
+    await new Promise(r => setTimeout(r, 200));
+    const t = document.querySelector(`.tagtile[data-drawer="${both.id}"]`);
+    out.luggage = !!t && !!t.querySelector('.tagcard') && !!t.querySelector('.tageye')
+      && /task & due-week/.test(t.textContent);
+    const h = document.querySelector(`.habtile[data-row="${hab.id}"]`);
+    const groups = h ? [...h.querySelectorAll('.habgrp')] : [];
+    out.weeksOfTwo = groups.length === 14 && groups.every(g => g.querySelectorAll('.habpip').length === 2)
+      && !!h.querySelector('.habgrp.now');
+    made.forEach(id => { const o = S.objects.find(x => x.id === id); if(o && o.parent === 'nowhere-probe') o.parent = 'root'; });
+    return { out, made, tag: both.id, hab: hab.id };
+  });
+  // pressing this week's pips logs today, and pressing the Tag opens onto what it collects
+  await page.click(`.habtile[data-row="${tagProbe.hab}"] .habgrp.now`);
+  await page.waitForTimeout(250);
+  tagProbe.out.logged = await page.evaluate(id => {
+    const o = BUREAU.state.objects.find(x => x.id === id);
+    const now = document.querySelector(`.habtile[data-row="${id}"] .habgrp.now`);
+    return (o.history || []).length === 2 && !!now && now.querySelectorAll('.habpip.on').length === 1;
+  }, tagProbe.hab);
+  await page.click(`.tagtile[data-drawer="${tagProbe.tag}"]`);
+  await page.waitForTimeout(700);
+  tagProbe.out.opens = await page.evaluate(id => {
+    const S = BUREAU.state;
+    return S.view === 'drawer' && S.drawerId === id
+      && [...document.querySelectorAll('#app .grid .drawer[data-row]')].some(el => /Tag probe A/.test(el.textContent));
+  }, tagProbe.tag);
+  const tagsAndHabits = await page.evaluate(({ made, out }) => {
+    const S = BUREAU.state;
+    S.objects = S.objects.filter(o => !made.includes(o.id));
+    S.view = 'desk'; S.drawerId = null; S.openId = null; BUREAU.render();
+    return Object.values(out).every(Boolean) || out;
+  }, tagProbe);
+
   // --- group move: dragging one member of a selection moves the lot, keeping
   // their relative positions
   const groupMove = await page.evaluate(async () => {
@@ -9370,7 +9446,7 @@ const PROP_OFF = () => { const b = document.createElement('button');
     holdArms, maxDrift,
     settingsIsPanel, pickerPreviews, builderPreview, everyMenuIsAPanel,
     pasteOk, magicOk, rollupOk, relationsOk, relationsUI, stringLayer,
-    timeLayer, checklistBox, pluckWorks, checklistMoves, answering, seedAndKnobs, longPress, drawerSize, tagDrawer, groupMove, dropStates,
+    timeLayer, checklistBox, pluckWorks, checklistMoves, answering, seedAndKnobs, longPress, drawerSize, tagDrawer, tagsAndHabits, groupMove, dropStates,
     adaptiveTiles, bubblePanel, scrollKept, kindSizes,
     phoneGrid, phoneMigration, turnedSideways, pouring,
     noDupIds, undoWorks, readViews, paperSize, readPaper, readBar, movement, pager, desks, spans,
