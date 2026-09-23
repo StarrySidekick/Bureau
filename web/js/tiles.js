@@ -1,4 +1,4 @@
-import { esc, ic, clamp, D, md, plain, oneline, outURL, whereTo } from './util.js';
+import { esc, ic, clamp, D, md, plain, oneline, outURL, whereTo, ROOT } from './util.js';
 import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, childrenOf, container,
   clPerCell,
   rollup, streak, barPct, barSteps, barFilled, barGrid, projectStat, progressOf, tlSpan,
@@ -1440,9 +1440,19 @@ function drawTileFace(o, arr, box, persp){
        to open to tell apart. `clhead` puts the name on the top line with how
        many of how many are done, which is also the only place a ticked line
        still counts for anything on the front. */
-    const head = !!o.clhead && rows>=2;
+    /* **On by default since 2026-09-23** — `clhead:'0'` puts it away. The front
+       scrolls now (below), so the line it takes is no longer a task you cannot
+       reach, and two lists side by side are two lists you can tell apart. */
+    const head = o.clhead!=='0' && rows>=2;
     const ticks = items.filter(x=>has(x,'check')), doneN = ticks.filter(x=>x.done).length;
-    const shown=items.filter(x=>!x.done).slice(0, Math.max(1, rows-(adds?1:0)-(head?1:0)));
+    /* **Every undone line, and the front scrolls** (2026-09-23). It used to cut
+       the list at however many lines the box had room for, so a list of twenty
+       showed its first ten and the rest were a drawer you had to open. The
+       lines keep their task-sized height (`--clrows` still divides the face)
+       and the name and the add box stay put at the top while the lines go
+       under them — see `.clstick` and `.clscroll` in chrome.css. */
+    const shown=items.filter(x=>!x.done);
+    const stuck=(head?1:0)+(adds?1:0);
     /* With nothing to show the front is a label again: a stack of zero lines
        is an anonymous coloured square — and so is the picker's sample. */
     if(!shown.length && !adds){
@@ -1466,11 +1476,11 @@ function drawTileFace(o, arr, box, persp){
             checklist anywhere took a task out of it instead of picking the
             drawer up. The words fall through to the tile, which is what gives
             a checklist front its drag back. */''}
-      <div class="dbody"><div class="clist">
-        ${head?`<span class="clhead"><b>${esc(o.title||'Untitled')}</b>${
+      <div class="dbody"><div class="clist" style="--clk:${stuck}">
+        ${stuck?`<div class="clstick">${head?`<span class="clhead"><b>${esc(o.title||'Untitled')}</b>${
           ticks.length?`<u>${doneN} of ${ticks.length}</u>`:`<u>${items.length}</u>`}</span>`:''}
         ${adds?`<label class="cladd">${ic('plus',11)}
-          <input data-contadd="${o.id}" placeholder="Add a ${esc(made)}…"></label>`:''}
+          <input data-contadd="${o.id}" placeholder="Add a ${esc(made)}…"></label>`:''}</div>`:''}
         ${/* A line says **when**, when the thing has a day (decision 197): a
               list of bills or chores without their dates is a list of names.
               Not *today*, though: a task typed into a list is born on today,
@@ -2618,7 +2628,11 @@ function gridOfContainer(cid){
      `ensureBox()` takes for something that has never been in a grid. Desks
      never shrink, so this is a drawer's problem alone — asked as "does this
      board derive its size from a tile", which is the same question. */
-  if(!sorted && innerOf(c.id)) kids.forEach(o=>{
+  /* Every container now, not only a proportional one: a drawer is one screen
+     wide since 2026-09-23 (`shelvesOf()`), so what was on the second screenful
+     to the right of it is off the end and comes back onto the column — at the
+     bottom, growing a page if it has to. */
+  if(!sorted && c.id!==ROOT) kids.forEach(o=>{
     const b = lay(o, dv, c.id);
     if(b.x>=1 && b.y>=1 && b.x+b.w-1<=g.cols && b.y+b.h-1<=g.rows) return;
     const keep = {w: Math.min(b.w, g.cols), h: Math.min(b.h, g.rows)};

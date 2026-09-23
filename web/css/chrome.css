@@ -1094,14 +1094,29 @@ html .drawer.dtile.cltile{background-image:none}
 /* one cell tall is exactly one task — the body is the whole face, so the
    sz-short rule that hides a body it has no room for doesn't apply here */
 .drawer.sz-short.cltile .dbody{display:block}
-.clist{display:flex;flex-direction:column;overflow:hidden;height:100%}
+/* **The front scrolls** (2026-09-23): every undone line is on it, at the same
+   task-sized height, and what the face has no room for is a flick further
+   down. `pan-y` gives the finger back from a phone board's `touch-action:none`
+   the way a scroll-read note does (board.css, decision 192): up and down is
+   the list's, sideways still walks the board. `contain` keeps a flick that
+   reaches the end from scrolling the desk behind it. */
+.clist{display:flex;flex-direction:column;overflow-x:hidden;overflow-y:auto;height:100%;
+  overscroll-behavior:contain;touch-action:pan-y;scrollbar-width:none}
+.clist::-webkit-scrollbar{display:none}
+/* The name and the add box stand still at the top while the lines go under
+   them. One sticky block rather than two, because the second one would need to
+   know how tall the first is; its height is the same `--clrows` arithmetic
+   the lines use, times how many of the two it holds (`--clk`). */
+.clstick{position:sticky;top:0;z-index:1;display:flex;flex-direction:column;
+  flex:0 0 calc(100% * var(--clk,1) / var(--clrows,4));min-height:0;background:var(--paper-2)}
+.clstick > .clhead,.cltile .clstick > .cladd{flex:1 1 0}
 /* 10px at the sides — the task tile's own one-row padding (sz-short), so the
    box on a line and the box on a loose task stand at the same x */
 .cline{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--dink);
   font-family:var(--serif);font-weight:600;
   cursor:pointer;padding:0 10px;overflow:hidden;overflow-wrap:anywhere;line-height:1.25;
   flex:0 0 calc(100%/var(--clrows,4));min-height:0}
-.cline + .cline,.cladd + .cline{border-top:1px solid var(--rule)}
+.cline + .cline,.cladd + .cline,.clstick + .cline{border-top:1px solid var(--rule)}
 /* Twice as many lines to the cell is half the room per line, so the type and
    the box come down to suit — the `min(38px,82%)` on the box already follows
    the line, and this is the part that does not. The rule stays a hairline: it

@@ -2282,16 +2282,16 @@ const boardLocked = ()=> S.look.locked !== false;
 
 /* ---- the box at the top of a container that takes dictation ------------
    `takesTyping(c)` says a container *can* be typed into; `showsAddBox(c, box)`
-   says whether the box is drawn on its **front**. It is off unless asked for:
-   a checklist face spends a whole task-sized line on the box (decision 79),
-   so the default is every line showing a task and `addbox:'show'` is the
-   opt-in. Even asked for, it goes by itself at two cells tall or less — there
-   the line is worth more as an item. Automatic, so nobody has to notice.
+   says whether the box is drawn on its **front**. It is **on unless put
+   away** (`addbox:'hide'`), since 2026-09-23: a checklist front scrolls now, so
+   the line the box takes no longer costs a task you cannot see — the task is
+   one flick further down. It still goes by itself on a front one cell tall,
+   where it would be the whole face. It was opt-in from decisions 77 to 197.
 
    Inside the container the box is always there — that board has room, and it is
    the only way in for a magic one. See decision 77. */
 const showsAddBox = (c, box)=>
-  takesTyping(c) && c.addbox==='show' && !(box && box.h<=2);
+  takesTyping(c) && c.addbox!=='hide' && !(box && box.h<=1);
 
 /* ---- how much it matters, 0 to 5 --------------------------------------
    Priority was three words — low, mid, high — which is a shape you outgrow the

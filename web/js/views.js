@@ -7,7 +7,7 @@ import { S, K, T, byId, has, isContainer, containers, container, childrenOf, cha
   TILT_MODES, tiltMode, tiltsDesk, tiltsWindows, tiltClasses, cueFlipped,
   GRAVITIES, gravityMode, gravityOn,
   URGES, workday, searchHits } from './model.js';
-import { GRID, PHONE_GRIDS, CELL, COLW, MEASURE, sideways, colsOf, gridKeyOf, SHELVES, shelvesOf,
+import { GRID, PHONE_GRIDS, CELL, COLW, MEASURE, sideways, colsOf, gridKeyOf, SHELVES, PAGES_MAX, shelvesOf,
   shelfRows, shelfOfBox, shelfAt, setShelf, shelfOrigin, SHELF, drawCols, drawRows,
   lay, gridOf, cellW, ensureBox, innerOf, PLACED, proportional } from './grid.js';
 import { themeNow, applyLook, lookVal, STYLES, BACKDROPS, SURFACES, DARKMODES, darkMode, hasDark,
@@ -559,17 +559,19 @@ function shelfCountField(cid){
   /* With proportional boards off (decision 195, the default) a drawer is
      screenfuls again, and this is the picker it had before 188: the shape of
      the board, drawn as the grid it makes. */
+  /* **Pages, in a column** (2026-09-23). A container is one screen wide and
+     grows downward — sideways is the drawer beside it now — so the picker is
+     how many pages long it is, and a full board adds one at the bottom by
+     itself. */
   if(!proportional()){
     const had = shelvesOf(cid);
-    return `<div class="field" style="margin-top:12px"><label>How big it is inside</label>
-      <div class="shelfpick" style="--sw:${SHELVES}">${
-        Array.from({length:SHELVES*SHELVES}, (_,i)=>{
-          const x=i%SHELVES+1, y=((i/SHELVES)|0)+1;
-          return `<button class="shelfopt${x<=had.w&&y<=had.h?' on':''}"
-            data-shelfsize="${cid}:${x}:${y}" title="${x} × ${y} screenfuls"></button>`;
-        }).join('')}</div>
-      <div class="mini" style="--k:var(--brass);margin-top:6px">A square is one screenful. This board is <b>${had.w} × ${had.h}</b>${
-        had.w*had.h>1 ? ', and you swipe between them' : ''}. Making it smaller throws nothing away: what no longer fits is put back where there is room. The size of the drawer on the desk is its own business while <b>proportional boards</b> are off in Board settings.</div>
+    return `<div class="field" style="margin-top:12px"><label>How long it is inside</label>
+      <div class="shelfpick" style="--sw:${PAGES_MAX}">${
+        Array.from({length:PAGES_MAX}, (_,i)=>
+          `<button class="shelfopt${i+1<=had.h?' on':''}"
+            data-shelfsize="${cid}:1:${i+1}" title="${i+1} page${i?'s':''}"></button>`).join('')}</div>
+      <div class="mini" style="--k:var(--brass);margin-top:6px">A square is one page. This board is <b>${had.h} page${had.h>1?'s':''}</b> long${
+        had.h>1 ? ' — swipe up and down between them' : ''}; swiping sideways goes to the drawer beside this one. When it fills up, another page is added at the bottom. Making it shorter throws nothing away: what no longer fits is put back where there is room.</div>
     </div>`;
   }
   const g = gridOf(dev(), cid), now = g.shelves;
@@ -1131,6 +1133,47 @@ function goShelf(cid, dx, dy, soon){
   const at = shelfAt(cid);
   const moved = setShelf(cid, at.x+dx, at.y+dy);
   if(!moved) return false;
+  if(soon) renderSoon(); else render();
+  return true;
+}
+/* ---- the drawer beside this one ----------------------------------------
+   **Inside a container, sideways is the next container over** (2026-09-23).
+   Up and down walks the pages of the board you are in; left and right walks
+   the board it sits *on*, so a drawer is somewhere — "Kitchen is to the right
+   of Garden" is something a thumb can learn.
+
+   The order is **reading order in lanes**. A lane is a band of the parent
+   board as tall as the first container in it: anything whose top edge starts
+   inside that band is in the lane, ordered left to right. At the end of a lane
+   the next one down carries on, and backwards the lane above — the way a line
+   of text wraps, which is the only way "the one to the right" still has an
+   answer at the right-hand edge. A container never placed on this device has
+   no position to be beside anything and is left out. Undefined at either end,
+   which is what makes the strip give rather than carry you round. */
+function sideDrawer(cid, dir){
+  const o = byId(cid); if(!o) return null;
+  const up = o.parent || ROOT, dv = dev();
+  const boxes = childrenOf(container(up))
+    .filter(c=>isContainer(c) && c[dv] && c[dv].x && c[dv].w)
+    .map(c=>({id:c.id, b:lay(c, dv, up)}))
+    .sort((a,b)=> a.b.y-b.b.y || a.b.x-b.b.x);
+  const lanes = [];
+  boxes.forEach(it=>{
+    const lane = lanes[lanes.length-1];
+    if(lane && it.b.y < lane.bottom) lane.items.push(it);
+    else lanes.push({bottom: it.b.y + it.b.h, items:[it]});
+  });
+  const order = lanes.flatMap(l=>l.items.sort((a,b)=> a.b.x-b.b.x || a.b.y-b.b.y)).map(it=>it.id);
+  const i = order.indexOf(cid);
+  return i<0 ? null : (order[i+dir] || null);
+}
+/* Going there. The parent board's shelf follows, so the way back out lands on
+   the screenful the new drawer is on rather than the one you went in from. */
+function goSideDrawer(id, soon){
+  const d = byId(id); if(!d || !isContainer(d)) return false;
+  const up = d.parent || ROOT, b = d[dev()];
+  if(b && b.x) setShelf(up, shelfOfBox(b, dev(), up).x, shelfOfBox(b, dev(), up).y);
+  S.view='drawer'; S.drawerId=id; S.kindFilter=null;
   if(soon) renderSoon(); else render();
   return true;
 }
@@ -1700,5 +1743,5 @@ function sizeGrid(){
 
 export { render, renderSoon, sizeGrid, shelfTop, shelfLeft, shelfShift, centreDesk,
   reveal, deskMap, viewHTML, previewHTML,
-  goShelf, goShelfTo, gridSizeField, shelfCountField,
+  goShelf, goShelfTo, sideDrawer, goSideDrawer, gridSizeField, shelfCountField,
   settingsPanel, toggleSettings };

@@ -702,9 +702,9 @@ const PROP_OFF = () => { const b = document.createElement('button');
              marks: marks === 3, zooms };
   });
 
-  // --- a checklist face is a stack of task-sized lines: the add box is opt-in,
-  // one line per cell of height, and ticking a line refills the face from
-  // inside the drawer — the record stays inside. See decision 79.
+  // --- a checklist face is a stack of task-sized lines that scrolls, with its
+  // name and the add box on top by default; ticking a line takes it off the
+  // face and the record stays inside. See decision 79 and 2026-09-23.
   const checklistBox = await page.evaluate(async () => {
     const nap = n => new Promise(r => setTimeout(r, n));
     const S = BUREAU.state;
@@ -714,11 +714,10 @@ const PROP_OFF = () => { const b = document.createElement('button');
     await nap(200);
     const front = () => document.querySelector(`.drawer[data-drawer="${cl.id}"]`);
     const startsRight = cl.desk.w === 4 && cl.desk.h === 6;
-    // the box is opt-in now: a line of the front is a task you could have seen
-    const offByDefault = !!front() && !front().querySelector('input[data-contadd]');
-    cl.addbox = 'show'; BUREAU.render(); await nap(200);
+    // the box is on by default since the front scrolls (2026-09-23)
     const box = front() && front().querySelector('input[data-contadd]');
-    if (!box) return { hasBox: false, offByDefault };
+    const onByDefault = !!box;
+    if (!box) return { hasBox: false, onByDefault };
     box.value = 'Passport';
     box.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
     await nap(250);
@@ -738,9 +737,14 @@ const PROP_OFF = () => { const b = document.createElement('button');
     }
     await nap(200);
     const before = lines().map(l => l.textContent.trim());
-    // the default density; `roomy` in Settings is the old one
-    const per = 2;
-    const linesFitTheHeight = before.length === cl.desk.h * per - 1;
+    /* Every undone line is on the front now and the list scrolls under the
+       name and the box (2026-09-23): fourteen things, fourteen lines, and the
+       list is taller than the face it is printed on. */
+    const list = front().querySelector('.clist');
+    const allOnTheFront = before.length === 14;
+    const scrolls = list.scrollHeight > list.clientHeight + 4
+      && getComputedStyle(list).overflowY === 'auto';
+    const saysItsName = !!front().querySelector('.clstick .clhead b');
     /* Ticking a shown line takes it off the face, keeps the task inside the
        drawer, and the next thing waiting inside steps onto the bottom of the
        stack. The top line is the newest made — create() orders newest first —
@@ -752,9 +756,7 @@ const PROP_OFF = () => { const b = document.createElement('button');
     const t0 = S.objects.find(o => o.id === topId);
     const leavesTheFace = t0.done && !after.includes(before[0]);
     const staysInside = t0.parent === cl.id;
-    const surfaced = after[after.length - 1];
-    const refillsFromBelow = after.length === before.length
-      && !!surfaced && !before.includes(surfaced);
+    const closesUp = after.length === before.length - 1;
     // reaching for the box must not open the drawer out from under you
     const box2 = front() && front().querySelector('input[data-contadd]');
     if (box2) box2.click();
@@ -762,8 +764,8 @@ const PROP_OFF = () => { const b = document.createElement('button');
     const boxDoesNotOpen = S.view === 'desk';
     S.objects = S.objects.filter(o => o.id !== cl.id && o.parent !== cl.id);
     BUREAU.render();
-    return { hasBox: true, offByDefault, startsRight, made, onFront,
-             linesFitTheHeight, leavesTheFace, staysInside, refillsFromBelow, boxDoesNotOpen };
+    return { hasBox: true, onByDefault, startsRight, made, onFront, allOnTheFront, scrolls,
+             saysItsName, leavesTheFace, staysInside, closesUp, boxDoesNotOpen };
   });
 
   /* --- a line on a checklist front can be taken back off it. Real pointer
@@ -6002,9 +6004,11 @@ const PROP_OFF = () => { const b = document.createElement('button');
     const far = BUREAU.create('note', {parent:big.id, title:'Far out'});
     far.desk = {x:13, y:15, w:2, h:2}; far.phone = {x:1, y:1, w:2, h:2};
     pressIn('proportional', '');
-    out.switchingOffKeepsThePlace = !S.look.proportional
-      && BUREAU.shelvesOf(big.id).w >= 2 && BUREAU.shelvesOf(big.id).h >= 2
-      && far.desk.x === 13 && far.desk.y === 15;
+    /* A container is one screen wide and grows downward since 2026-09-23, so
+       the board keeps its length and what was out to the side comes back onto
+       the column when it is next drawn. */
+    out.switchingOffKeepsTheLength = !S.look.proportional
+      && BUREAU.shelvesOf(big.id).w === 1 && BUREAU.shelvesOf(big.id).h >= 2;
     [plain, film, life, ff, box, busy, big].filter(Boolean).forEach(c => {
       S.objects.filter(o => o.parent === c.id).forEach(o => BUREAU.del(o.id));
       BUREAU.del(c.id); });
@@ -6397,7 +6401,8 @@ const PROP_OFF = () => { const b = document.createElement('button');
     return out;
   });
 
-  /* --- the add box is opt-in, and even then it goes by itself when short - */
+  /* --- the add box is on unless put away, and it goes by itself at one cell
+     tall (2026-09-23: the front scrolls, so the line it takes costs nothing) */
   const addBox = await page.evaluate(async () => {
     const nap = ms => new Promise(r => setTimeout(r, ms));
     const S = BUREAU.state, out = {};
@@ -6405,16 +6410,15 @@ const PROP_OFF = () => { const b = document.createElement('button');
     c[S.device] = Object.assign(BUREAU.free(4,6,'root'), {w:4,h:6});
     BUREAU.render(); await nap(200);
     const front = () => document.querySelector(`.grid .drawer[data-drawer="${c.id}"]`);
-    // off unless asked: every line of the front is a task you could have seen
-    out.offByDefault = !!front() && !front().querySelector('.cladd');
-    c.addbox = 'show'; BUREAU.render(); await nap(200);
-    out.canBeAskedFor = !!front().querySelector('.cladd');
-    // …and inside it the box is always there, asked for or not
-    c.addbox = ''; S.view='drawer'; S.drawerId=c.id; BUREAU.render(); await nap(220);
+    out.onByDefault = !!front() && !!front().querySelector('.cladd');
+    c.addbox = 'hide'; BUREAU.render(); await nap(200);
+    out.canBePutAway = !front().querySelector('.cladd');
+    // …and inside it the box is always there, put away or not
+    S.view='drawer'; S.drawerId=c.id; BUREAU.render(); await nap(220);
     out.insideItAlways = !!document.querySelector(`[data-contadd="${c.id}"]`);
     S.view='desk'; S.drawerId=null;
-    // even asked for, it goes by itself at two cells tall
-    c.addbox = 'show'; c[S.device] = Object.assign({}, c[S.device], {h:2});
+    // it goes by itself at one cell tall
+    c.addbox = ''; c[S.device] = Object.assign({}, c[S.device], {h:1});
     BUREAU.render(); await nap(200);
     out.goesWhenShort = !!front() && !front().querySelector('.cladd');
     c[S.device] = Object.assign({}, c[S.device], {h:6});
@@ -9201,6 +9205,52 @@ const PROP_OFF = () => { const b = document.createElement('button');
   });
   await page.bringToFront();
 
+  /* --- 2026-09-23: inside a container, sideways is the drawer beside it ---
+     Up and down walks the pages of the board you are in, and they are a
+     column: a container is one screen wide, and a full one grows a page at the
+     bottom. Left and right walks the board it sits on, in reading order, and
+     carries on into the next lane at the end of one. */
+  await phone.bringToFront();
+  const sideways = await phone.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const out = {}, S = BUREAU.state;
+    const M = await import('./js/motion.js'), V = await import('./js/views.js');
+    const was = S.objects.slice();
+    // an empty desk, so the seed's own drawers are not between ours
+    S.objects.length=0; was.filter(o => o.parent!=='root').forEach(o=>S.objects.push(o));
+    S.view='desk'; S.drawerId=null; BUREAU.render(); await nap(150);
+    /* three drawers on the shelf you are on: two in a lane, one in the lane
+       under it */
+    const mk = (t, x, y) => { const d = BUREAU.create('drawer', {parent:'root', title:t});
+      d.phone = hereBox({x, y, w:2, h:2}); return d; };
+    const a = mk('A', 1, 1), b = mk('B', 5, 1), c = mk('C', 1, 5);
+    BUREAU.render(); await nap(150);
+    out.readingOrder = V.sideDrawer(a.id, 1) === b.id && V.sideDrawer(b.id, -1) === a.id;
+    out.theLaneWraps = V.sideDrawer(b.id, 1) === c.id && V.sideDrawer(c.id, -1) === b.id
+      && V.sideDrawer(c.id, 1) === null && V.sideDrawer(a.id, -1) === null;
+    S.view='drawer'; S.drawerId=a.id; BUREAU.render(); await nap(200);
+    out.oneScreenWide = BUREAU.shelvesOf(a.id).w === 1;
+    if(M.pagerBegin('x', -1)){
+      M.pagerMove(-260); await nap(40); M.pagerEnd(); await nap(450);
+      out.aSwipeGoesNextDoor = S.view==='drawer' && S.drawerId === b.id;
+    } else out.aSwipeGoesNextDoor = 'no neighbour';
+    // a stored second screenful to the side is read by nothing
+    b.shelves = {w:2, h:1}; BUREAU.render(); await nap(120);
+    out.noBoardToTheRight = JSON.stringify(BUREAU.shelvesOf(b.id)) === JSON.stringify({w:1,h:1});
+    // and a full board grows a page at the bottom instead of refusing
+    for(let i=0; i<60; i++) BUREAU.create('note', {parent:b.id, title:'n'+i});
+    BUREAU.render(); await nap(250);
+    out.aFullBoardGrowsDown = BUREAU.shelvesOf(b.id).h > 1 && BUREAU.shelvesOf(b.id).w === 1;
+    if(M.pagerBegin('y', -1)){
+      M.pagerMove(-400); await nap(40); M.pagerEnd(); await nap(450);
+      out.upAndDownWalksThePages = S.drawerId === b.id && BUREAU.shelfAt(b.id).y === 1;
+    } else out.upAndDownWalksThePages = 'no page below';
+    S.objects.length=0; was.forEach(o=>S.objects.push(o));
+    S.undo=[]; S.redo=[]; S.view='desk'; S.drawerId=null; BUREAU.render();
+    return out;
+  });
+  await page.bringToFront();
+
   console.log(JSON.stringify({
     errors: errs, manifestOk, swReady, survived, styleSurvived, slotColours,
     newObjectSeen, inlineEdit, sortDefaults, taskLook,
@@ -9222,7 +9272,7 @@ const PROP_OFF = () => { const b = document.createElement('button');
     paletteKeys, editorKeys, pickerLeads, rollupsEverywhere, soundAndVision, keyboardBoard,
     ranking, urgency, reachable, pensAndCorners, lyingBooks, plansWork, stockPlans, livedWith, boardsComeWith, saysWhatItHolds, listIsOneShelf, repeating, oneLock, scheduling, ownColour, addBox, calFaces,
     lockedBoard, freeTraits, pageWrites, tickBoxes, readerFits, categories,
-    specimenBook, deskObjects, camLife, camPhone, ownBoard, threeDrawings, fullScreen, openingIn, boards193, thisPass,
+    specimenBook, deskObjects, camLife, camPhone, ownBoard, threeDrawings, fullScreen, openingIn, boards193, sideways, thisPass,
     dropsIn, keyframesRegistered, aesthetics, slotScoping, objectsDressed, grainSlots, tagged, drawnAesthetic, deeper, lookStage, statusBar, bindings, panelling, theSpray, tappingIsQuiet, decorations, pinboard, gravity
   }, null, 2));
   await browser.close();

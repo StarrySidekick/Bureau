@@ -97,6 +97,7 @@ function build(spec){
   const inbox = spec.inbox===false ? [] :
     [{k:'generator', t:'Add to this…', b:[1,13,8,2], set:{genKind:spec.inbox||'task', c:spec.c}}];
   (spec.on||[]).concat(inbox).forEach(s=>add(s, PLAN_ROOT));
+  if(!spec.raw) fillRows(objects.filter(o=>o.parent===PLAN_ROOT && o.desk && o.title!=='Add to this…'));
   objects.forEach(o=>{
     ['tracks','into'].forEach(k=>{
       if(typeof o[k]==='string' && o[k][0]==='@') o[k] = refs[o[k].slice(1)] || null; });
@@ -118,6 +119,48 @@ function build(spec){
     cols: 8,
     objects
   };
+}
+
+/* ---- the rows above the way in are all used ----------------------------
+   **Twelve rows of board, and every plan fills them** (2026-09-23). The boards
+   were authored when twelve was the whole height and most came out at ten or
+   eleven, so with the *Add to this…* line on thirteen and fourteen (decision
+   197) nearly every board had an empty band across it just above the line.
+   Timothy: "we still don't seem to be using the whole 14 tall grid space".
+
+   Re-authoring thirty-three layouts by hand would be thirty-three chances to
+   get one wrong, so the missing rows are **inserted**: one board row at a time
+   is doubled, everything spanning it grows by one and everything below it
+   moves down by one. Which row is chosen is the whole of the craft. A row is
+   good when, across all eight columns, it runs through things that are
+   already tall — a note or a checklist gains a line and nobody notices — and
+   bad when it runs through a one-row thing, because a label or a link two
+   rows tall is a different object, or through nothing, because that opens a
+   gap. Nothing moves sideways and the order of edges never changes, so what
+   touched still touches and nothing can come to overlap. */
+const PLAN_ROWS = 12;
+function fillRows(top){
+  const bottom = () => top.reduce((m,o)=>Math.max(m, o.desk.y+o.desk.h-1), 0);
+  for(let n = PLAN_ROWS - bottom(); n > 0; n--){
+    const used = bottom();
+    let best = 0, bestScore = -Infinity;
+    for(let r=1; r<=used; r++){
+      let score = 0;
+      for(let x=1; x<=8; x++){
+        const o = top.find(o=>o.desk.x<=x && x<=o.desk.x+o.desk.w-1
+                            && o.desk.y<=r && r<=o.desk.y+o.desk.h-1);
+        score += !o ? -3 : o.desk.h===1 ? -12 : o.desk.h===2 ? 1 : 2 + o.desk.h/8;
+      }
+      if(score > bestScore){ bestScore = score; best = r; }
+    }
+    if(!best) break;
+    top.forEach(o=>{
+      const b = o.desk;
+      if(b.y > best) b.y++;
+      else if(b.y + b.h - 1 >= best) b.h++;
+      o.phone = Object.assign({}, b);
+    });
+  }
 }
 
 /* Shorthands for the things that recur, so a rule reads as the sentence the
@@ -858,7 +901,9 @@ const SPECS = [
 
 ];
 
-const stockPlans = ()=> SPECS.map(build);
+/* `raw` is the boards as authored, before `fillRows()` — only migration 40
+   asks, to tell a stock plan nobody has touched from one somebody has. */
+const stockPlans = raw => SPECS.map(sp=>build(raw ? Object.assign({}, sp, {raw:true}) : sp));
 // which ten there are, for a migration that has to know what it already added
 const STOCK_KEYS = SPECS.map(s=>s.key);
 

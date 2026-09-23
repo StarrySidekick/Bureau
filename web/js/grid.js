@@ -174,8 +174,31 @@ function shelvesOf(cid, device){
     return {w: Math.max(1, Math.ceil(inner.cols/sw)),
             h: Math.max(1, Math.ceil(inner.rows/sh))};
   }
+  /* **A container is one screen wide and grows downward** (2026-09-23).
+     Sideways inside a drawer now walks to the drawer beside it on the board it
+     sits on (`sideDrawer()` in views.js), so a second screenful to the right
+     was a board you could no longer reach by the gesture that used to reach
+     it — and migration 38 had given a lot of drawers one, because a phone box
+     ten columns wide divided by eight desk columns is two. Stored `w` is read
+     by nothing now; the pages are a column, and a board that runs out of room
+     grows another one at the bottom (`growDown()`), up to `PAGES_MAX`. */
   const o = byId(id), s = o && o.shelves;
-  return {w:clamp((s&&s.w)||1, 1, SHELVES), h:clamp((s&&s.h)||1, 1, SHELVES)};
+  return {w:1, h:clamp((s&&s.h)||1, 1, PAGES_MAX)};
+}
+const PAGES_MAX = 9;
+/* A board that grows: any container not sized from its tile. The desk is nine
+   fixed shelves and a proportional board is exactly its tile times four. */
+const growsDown = cid => cid!=null && cid!==ROOT && !innerOf(cid) && !!byId(cid);
+/* One more page at the bottom, when there is room for one. Written as a fact —
+   the board is that big now — and counted in `PLACED` so the render that asked
+   saves it, the same as a box ensureBox() invented. */
+function growDown(cid){
+  if(!growsDown(cid)) return false;
+  const o = byId(cid), h = shelvesOf(cid).h;
+  if(h >= PAGES_MAX) return false;
+  o.shelves = {w:1, h:h+1};
+  PLACED.n++;
+  return true;
 }
 /* ---- a drawer is as big inside as it is outside -----------------------
    **A container's board is its own tile, four cells to a cell.** A 2×2 drawer
@@ -434,7 +457,16 @@ function boxOk(box, id, device, parentId){
    get to, failing silently, which is the shape of bug decision 141 keeps
    producing. The scan still *starts* near the shelf you are on either way:
    what changes is how far it may run from there. */
+/* **A full container grows a page rather than saying no** (2026-09-23): the
+   next page pops on at the bottom, which is how a drawer got longer before it
+   had shelves. Only when every page there is has been looked through, so a hole
+   higher up is still used first. */
 function freeSpot(w,h,device,parentId,prefer){
+  const spot = freeSpotIn(w,h,device,parentId,prefer);
+  if(spot || !growDown(parentId)) return spot;
+  return freeSpot(w,h,device,parentId,prefer);
+}
+function freeSpotIn(w,h,device,parentId,prefer){
   const dv=device||dev(), home=parentId||ROOT, g=gridOf(dv, home);
   const oneShelfOnly = dv==='phone';
   w=Math.min(w, oneShelfOnly ? g.shelfW : g.cols);
@@ -651,7 +683,7 @@ function cellW(grid,g){
 }
 
 export { GRID, PHONE_GRIDS, PHONE_MAX_H, PHONE_MAX_NEW, CELL, COLW, MEASURE, sideways,
-  SHELVES, DESK_SHELF_COLS, INNER, proportional, shelvesToHold, colsOf, gridKeyOf, shelvesOf, innerOf,
+  SHELVES, DESK_SHELF_COLS, INNER, PAGES_MAX, growsDown, growDown, proportional, shelvesToHold, colsOf, gridKeyOf, shelvesOf, innerOf,
   shelfRows, shelfOfBox, oneShelf, shelfAt, setShelf, shelfOrigin, SHELF, fitSpot,
   gridOf, drawCols, drawRows, lay, overlaps, boxOk, freeSpot, anySpot, roomFor, gridRows, sizeOfKind, toPhoneSize,
   ensureBox, keepSize, cellW, PLACED };

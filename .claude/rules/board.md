@@ -32,6 +32,15 @@ See decision 22. The three that used to be pinned still ship, as ordinary
 drawers on the desk: **Today** (anything due, every desk), **Inbox** (where a
 new object lands when nobody said), **Everything** (every unfinished task).
 
+**Inside a container, sideways is the next container over; up and down is its
+pages** (decision 198). `shelvesOf()` gives every non-proportional container
+`w:1` whatever it stores, and `freeSpot()` grows a page at the bottom
+(`growDown()`) when a board is full. `sideDrawer()` in views.js is the one
+reader of "the drawer beside this one" — lanes in reading order on the parent
+board — and the pager in motion.js asks it only when its own shelves run out
+sideways. Don't give a container a second screenful to the side again: that is
+a board the sideways swipe can no longer reach.
+
 **There is one desk and it is nine shelves.** A **shelf** is one screenful of
 board and it is the unit everything else is counted in; the Desk is three by
 three and you start in the middle; every other container is one shelf, with the

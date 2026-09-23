@@ -1188,8 +1188,8 @@ function objectPanelBody(id, sec){
   /* A list-faced front may spend its top line on its name (decision 197). */
   if(!isRoot && cont && faceOf(d)==='checklist'){
     out.push(prow('Its name', psel(id,'clhead',
-      [['','On the tooltip — every line is an item'],['1','On the front, with how many are done']],
-      d.clhead?'1':'')));
+      [['1','On the front, with how many are done'],['0','On the tooltip only']],
+      d.clhead==='0'?'0':'1')));
   }
   // whether what goes into it is born on today or with no day — decision 197
   if(!isRoot && cont && !has(d,'magic')){
@@ -1198,13 +1198,12 @@ function objectPanelBody(id, sec){
   }
   if(!isRoot && cont && takesTyping(d)){
     out.push(prow('Typing in it makes', psel(id,'genKind', objectKinds, genKindOf(d))));
-    /* The add box costs a task-sized line of the front, so showing it is the
-       opt-in and every line showing an item is the default; inside the drawer
-       the box is there either way. See decisions 77 and 79. */
+    /* On the front by default since the front scrolls (2026-09-23); inside
+       the drawer the box is there either way. See decisions 77 and 79. */
     out.push(prow('The add box', psel(id,'addbox',
-      [['','Inside it only — every line shows an item'],['show','On its front too — it takes a line']],
-      d.addbox==='show'?'show':''),
-      'even shown, it goes by itself at two cells tall'));
+      [['','On its front too'],['hide','Inside it only']],
+      d.addbox==='hide'?'hide':''),
+      'a front one cell tall has no room for it'));
   }
   if(!isRoot && !cont && spawns){
     /* `random` leads the list rather than sitting in it alphabetically: a

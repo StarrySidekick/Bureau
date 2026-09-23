@@ -9073,3 +9073,59 @@ no-spend days); a habit's history drawn as a year of squares; a goal with a
 number (three months of runway is a sum, not three milestones); and the brain
 dump that sorts itself by kind, which is the thing a board's *Add to this…*
 line is waiting for.
+
+## 198 · Sideways is the drawer next door, down is the next page, and lists scroll
+
+*2026-09-23*
+
+Timothy, after living in the boards: inside a drawer, swiping left and right
+should take you to the drawer beside it on the desk, and swiping up and down
+should walk the pages of the one you are in — which should grow at the bottom,
+"what we had a long time ago", rather than having a board to the right of it.
+And three smaller things: a checklist should scroll, show its name and have its
+add box on; and the layouts do not use the fourteen rows they were given.
+
+**A container is one screen wide and grows downward.** `shelvesOf()` answers
+`w:1` for every container that is not proportional (the desk keeps its nine,
+a proportional board is still its tile times four). The stored `w` is read by
+nothing: migration 38 had given many drawers a second screenful to the right,
+because a phone box ten columns wide over eight desk columns is two, and that
+was the "extra board to the right of each thing". What was out there comes
+back onto the column the next time the board is drawn — `gridOfContainer()`
+now re-places anything off the end of *any* container, not only a
+proportional one. **`freeSpot()` grows a page** when every page there is has
+been searched and there is still nowhere (`growDown()`, up to `PAGES_MAX` =
+nine), so a full drawer says yes and the new page appears under the last one.
+The drawer editor's shelf picker is a row of pages.
+
+**Sideways inside a container is `sideDrawer()`** in views.js: the containers
+on the board this one sits on, in reading order by **lanes** — a lane is a band
+as tall as the first container in it, anything whose top starts inside the band
+is in it, left to right; the next lane down carries on at the end of one. The
+pager builds the neighbour as a whole-screen pane the way it built the next
+desk before decision 141, and committing goes through `goSideDrawer()`, which
+also moves the parent board's shelf to where the new drawer is, so the way out
+lands next to it. A proportional board wider than the screen still walks its
+own columns first. Nothing at either end, so the strip gives.
+
+**A checklist front scrolls.** Every undone line is on it, at the same
+task-sized height, and `.clist` is a scroller with `pan-y` (the same way back
+from a phone board's `touch-action:none` that a scroll-read note uses). The
+name (`clhead`) and the add box are **on by default** now and stand still in a
+sticky `.clstick` at the top while the lines go under them; `clhead:'0'` and
+`addbox:'hide'` put them away. The argument of decision 79 — a label costs a
+line — was an argument about a front that could not scroll. The box still goes
+by itself on a front one cell tall.
+
+**The stock boards fill their twelve rows.** Most were authored to ten or
+eleven when twelve was the whole height, so with *Add to this…* on thirteen and
+fourteen there was an empty band across nearly every board. `fillRows()` in
+stockplans.js inserts the missing rows rather than re-authoring thirty-three
+layouts: it doubles the board row that runs through the tallest things in all
+eight columns and through no one-row thing (a label two rows tall is a
+different object) and no gap, then repeats. Nothing moves sideways and no edge
+changes order, so nothing that touched stops touching and nothing can overlap.
+Migration 40 gives the new boxes to stock plans on a desk **only where every box
+is still the shipped one**; a plan anybody has edited, and every board already
+put down from a plan, is theirs and is left alone. A phone that measures fifteen
+rows still has one spare row under the line.

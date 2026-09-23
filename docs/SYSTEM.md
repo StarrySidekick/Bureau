@@ -671,6 +671,13 @@ pager and the same dots the desk uses. A board shorter than the screen is
 centred in the carcass rather than pinned to the top of it. See decisions 188
 and 190.
 
+**Since decision 198, with proportional boards off (the default), a container
+is one screen wide and grows downward.** Its pages are a column; up and down
+walks them, and a full board adds a page at the bottom by itself rather than
+refusing. **Sideways inside a container is the container beside it** on the
+board it sits on, in reading order by lanes (`sideDrawer()` in views.js), and
+the lane below carries on at the end of one.
+
 **What a board is made of is a setting.** `S.look.surface` — graph paper (the
 checkerboard, two cells to a square, and what arranging is done on), a plain
 sheet, or `--wood`, the carcass's own, so the whole screen reads as one piece
@@ -738,7 +745,7 @@ decision 51.
 | --- | --- |
 | Click a tile | Whatever that object says — see below |
 | Two fingers up / down | The next page of this board, and the one before |
-| Two fingers left / right | The next desk, and the one before |
+| Two fingers left / right | On the desk, the next shelf; inside a container, the container beside it on the board it sits on (decision 198) |
 | Swipe sideways on a board that isn't a grid | The next desk. A list, a scroll, a book or a calendar has no bare cells to start the one-finger swipe from, so the scroller is the surface — sideways only, because up and down is its own scrolling |
 | Hold a bare cell | Lights it; drag to size a box, let go for the picker — on a locked board too. A *tap* on bare board does nothing |
 | Pull up the rail along the bottom | A drawer front follows your finger; carry it a quarter of the screen and it opens the type picker, with nowhere in mind. A phone |

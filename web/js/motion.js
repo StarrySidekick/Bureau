@@ -3,7 +3,7 @@ import { S, byId, isContainer, has, childrenOf, shapeOf, openingOf, deskOf,
   tiltMode, tiltsDesk, tiltsWindows, gravityTilts , dev } from './model.js';
 import { lay, shelvesOf, shelfAt , CELL, proportional } from './grid.js';
 import { objColour, styleNow } from './look.js';
-import { render, renderSoon, previewHTML, goShelf } from './views.js';
+import { render, renderSoon, previewHTML, goShelf, sideDrawer, goSideDrawer } from './views.js';
 
 /* ============================================================
    20 · motion — the movements the desk makes
@@ -1393,7 +1393,16 @@ function pagerBegin(axis, dir){
     if(x<0 || y<0 || x>=sh.w || y>=sh.h) return null;
     return {...me, shelf:{x,y}};
   };
-  const prev=to(-1), next=to(1);
+  /* Inside a container, sideways runs out of shelves at once (a container is
+     one screen wide, `shelvesOf()`) and carries on to the **container beside
+     it** on the board it sits on — `sideDrawer()` in views.js. A proportional
+     board wider than the screen still walks its own columns first. */
+  const beside = n => {
+    if(axis!=='x' || here===ROOT) return null;
+    const id = sideDrawer(here, n);
+    return id ? {view:'drawer', drawerId:id} : null;
+  };
+  const prev=to(-1)||beside(-1), next=to(1)||beside(1);
   if(!prev && !next) return false;
 
   const r=host.getBoundingClientRect(), fr=frameRect();
@@ -1592,7 +1601,9 @@ function letGo(g){
 /* goShelf() clamps and renders, so a shelf that has gone away between the
    swipe starting and it ending simply lands on the nearest one. */
 function commit(g, step, soon){
-  if(g.axis==='x') goShelf(g.here, step, 0, soon);
+  const spot = step<0 ? g.prev : g.next;
+  if(spot && !spot.shelf && spot.drawerId) goSideDrawer(spot.drawerId, soon);
+  else if(g.axis==='x') goShelf(g.here, step, 0, soon);
   else             goShelf(g.here, 0, step, soon);
 }
 function pagerCancel(){

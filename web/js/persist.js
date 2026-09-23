@@ -19,7 +19,7 @@ import { plans, stampPlan } from './plans.js';
    Bureau is this phone running" is exactly the question you ask when a change
    appears not to have deployed. Shown in Settings, so it can be read off the
    device rather than guessed at. */
-const APP_VERSION = '1.88';
+const APP_VERSION = '1.89';
 const KEY = 'bureau.v1';
 const install = {deferred:null};   // the browser's install prompt, when one is on offer
 let saveTimer = null;
@@ -267,7 +267,7 @@ function rescalePhone(d, from, cols){
    skips all of them, an old backup replays only what it is missing. These
    used to be ad-hoc per-load mutations inside adopt(); a new repair that
    should run once belongs here, as the next numbered step. */
-const DATA_V = 39;
+const DATA_V = 40;
 const MIGRATIONS = [
   // Drawers and objects were two arrays and a drawer could not live inside
   // anything. foldDrawers also replays the old dense flow to give v1 drawers
@@ -1020,6 +1020,28 @@ const MIGRATIONS = [
     const gone = new Set(RETIRED_KEYS);
     const add = stockPlans().filter(p=>!have.has(p.stock) && !gone.has(p.stock));
     if(add.length) d.plans = d.plans.concat(add);
+  }},
+  /* **The stock boards fill their twelve rows** (2026-09-23, `fillRows()` in
+     stockplans.js). A plan is yours once it is on the desk, so this touches
+     one only when every box on it is still exactly the one it shipped with —
+     an untouched stock plan is the app's layout and gets the app's new one; a
+     plan anybody has moved a tile on is theirs and is left alone. Boards
+     already put down from a plan are arrangements and are never touched. */
+  {v:40, up(d){
+    const raw = {}, fresh = {};
+    stockPlans(true).forEach(p=>{ raw[p.stock] = p; });
+    stockPlans().forEach(p=>{ fresh[p.stock] = p; });
+    const same = (a, b)=> !!a && !!b && a.x===b.x && a.y===b.y && a.w===b.w && a.h===b.h;
+    (d.plans||[]).forEach(p=>{
+      const r = p && p.stock && raw[p.stock], f = r && fresh[p.stock];
+      if(!f || !Array.isArray(p.objects)) return;
+      const was = new Map(r.objects.map(o=>[o.id, o])), now = new Map(f.objects.map(o=>[o.id, o]));
+      const boxed = p.objects.filter(o=>o && o.desk);
+      if(!boxed.every(o=>was.has(o.id) && same(o.desk, was.get(o.id).desk)
+                         && same(o.phone, was.get(o.id).phone))) return;
+      boxed.forEach(o=>{ const n = now.get(o.id); if(!n) return;
+        o.desk = Object.assign({}, n.desk); o.phone = Object.assign({}, n.phone); });
+    });
   }},
 ];
 function migrate(d){
