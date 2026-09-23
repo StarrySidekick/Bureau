@@ -209,6 +209,7 @@ decision 130.
 | 26 | **Post** | Something that came in the post. A category: letter, postcard, telegram. |
 | 27 | **Instrument** | Something that *runs*. A category: metronome, hourglass, candle, desk bell, clock, die, deck. |
 | 28 | **Spawner** | Press it and it makes one of something — or one of anything. |
+| 29 | **Link** | Sends you somewhere else — a site, an app, a number to call. Says where under its name. `outlink` in the code. |
 
 A container that says what it makes still promotes that type to the front of
 the row, wherever it sits in the order: you opened the picker *inside* it.
@@ -927,8 +928,14 @@ the start, `#tag` anywhere, and `!today` / `!tomorrow` / `!week`.
   on *this* screen, and a short handset gives twelve. `planCard()` draws the
   miniature at the plan's own measured width for the same reason; it drew every
   one on twenty-four, which put nine cards in ten in the left third of the card.
-- **Ten of them ship with the desk** — `stockplans.js`, one per job a paper
-  system does, and `docs/FUNCTIONS.md` is where they come from. They are
+- **Ten of them ship with the desk** — `stockplans.js`, each the base-station
+  board for one thing: Health, Finances, Exercise and Nutrition (a part of your
+  life); Travel, Films and Books (something you take in); Short Film, Song and
+  Essay (a piece of work). Each carries what to do next, a calendar of **its
+  own board** (a rule `@under` the plan, re-pointed at stamping), something
+  that helps you do it — a deck to cut, a timer, a metronome — and Links out
+  to where the work happens. They replaced ten organised by paper job in
+  decision 194; migration 37 took those off by key. They are
   **ordinary plans, not a new category**: they arrive with the seed on a fresh
   desk and by migration 35 on an existing one, and after that they are yours to
   rename, edit or throw away, with nothing putting them back. `stock` names

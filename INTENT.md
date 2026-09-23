@@ -127,6 +127,31 @@ board's options (colour, type, aesthetic, gravity, size) are behind **Board
 settings**, and inside a container the gear opens straight onto them. Use
 *board* in anything written from now on. Decision 193.
 
+### Added 2026-09-23 — a board is the base station for one thing
+
+Timothy's words: a board, once fully customised, is *"catered to a specific
+kind of activity or project or aspect of one's life"*, the base station for
+it, and it can send you on to other apps. His notes behind it: brain-dumping
+tasks, thoughts, ideas, questions and problems and having them sorted by kind;
+all projects in one place, each with its own board; the same for each part of
+a life; a calendar filled from the rest of the app; habits charted; boards for
+activities (painting, composition, music practice) with links out and small
+tools (number and prompt generators); Claude able to make boards, layouts,
+tasks and notes; and catalogues of notes, essays, stories and creations that
+are visual and personal. His four headings: Project Management (ideating,
+prioritising, outlining, creating, scheduling, maintaining), Life Management,
+Writing Tool, Catalog.
+
+**First of it (v1.82, decision 194):** the ten stock plans were replaced by ten
+such boards (Health, Finances, Exercise, Nutrition, Travel, Films, Books, Short
+Film, Song, Essay), and two types were added for them, **Link** and
+**Review**. Still on his list, not built: Partner, Family, Friends,
+Communities, Home; Music, Visual art, Games; and the rest of the project kinds
+(feature film, play, musical, TV show, short story, application, blog post,
+website, novel, poem, album, game, device, fantasy world, physical object).
+The brain dump that sorts itself by kind is the biggest idea in the notes and
+is not started.
+
 ## Deliberately not next
 
 - **Sync between devices.** It is real and it is coming, *after* the feature set

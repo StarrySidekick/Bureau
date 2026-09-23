@@ -1940,6 +1940,22 @@ html .drawer.dtile.cltile{background-image:none}
 .drawer.btntile.bs-round{border-radius:50%}
 .drawer.btntile.bs-rounded{border-radius:14px}
 .drawer.btntile.bs-square{border-radius:0}
+/* A Link: a button that goes somewhere outside Bureau, and says where. The
+   face is the whole tile, padded rather than inset by a percentage (which
+   resolves against the width and ate a short tile's height), the name leading
+   and the host under it, and the out-arrow in the corner so it reads as
+   leaving before you have read a word. See decision 194. */
+.drawer.btntile.outtile .btnface.outface{
+  margin:3px;width:calc(100% - 6px);height:calc(100% - 6px);border-radius:10px;
+  display:flex;flex-direction:column;justify-content:center;align-items:flex-start;
+  gap:1px;padding:3px 30px 3px 12px;position:relative;text-align:left;overflow:hidden}
+.outface b{font-size:13px;font-weight:650;line-height:1.15;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.outface u{text-decoration:none;font-size:10px;font-weight:500;opacity:.72;
+  letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.outface .outarrow{position:absolute;top:50%;right:10px;transform:translateY(-50%);
+  display:grid;place-items:center;opacity:.8}
+.outface .outarrow svg{stroke:currentColor}
 .tilestars{font-size:12px;color:var(--dink);letter-spacing:1px;margin-top:2px}
 .tilestars span{opacity:.32}
 .counter{display:inline-flex;align-items:center;gap:10px}

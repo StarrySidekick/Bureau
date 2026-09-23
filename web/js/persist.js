@@ -5,7 +5,7 @@ import { toast, create, pushUndo } from './mutations.js';
 import { render } from './views.js';
 import { renderSheet } from './sheet.js';
 import { closePanel } from './panels.js';
-import { stockPlans } from './stockplans.js';
+import { stockPlans, RETIRED_KEYS } from './stockplans.js';
 
 /* ============================================================
    19b · persistence — everything stays on this device
@@ -18,7 +18,7 @@ import { stockPlans } from './stockplans.js';
    Bureau is this phone running" is exactly the question you ask when a change
    appears not to have deployed. Shown in Settings, so it can be read off the
    device rather than guessed at. */
-const APP_VERSION = '1.81';
+const APP_VERSION = '1.82';
 const KEY = 'bureau.v1';
 const install = {deferred:null};   // the browser's install prompt, when one is on offer
 let saveTimer = null;
@@ -266,7 +266,7 @@ function rescalePhone(d, from, cols){
    skips all of them, an old backup replays only what it is missing. These
    used to be ad-hoc per-load mutations inside adopt(); a new repair that
    should run once belongs here, as the next numbered step. */
-const DATA_V = 36;
+const DATA_V = 37;
 const MIGRATIONS = [
   // Drawers and objects were two arrays and a drawer could not live inside
   // anything. foldDrawers also replays the old dense flow to give v1 drawers
@@ -965,6 +965,24 @@ const MIGRATIONS = [
       o.desk = Object.assign({}, o.desk||{},
         {w: Math.max(1, o.phone.w*2), h: Math.max(1, o.phone.h*2)});
     });
+  }},
+  /* ---- ten boards in place of the ten jobs -----------------------------
+     The ten plans migration 35 added were one per job a paper system does;
+     Timothy asked for them to go and for boards to take their place, each the
+     base station for one part of a life, one thing taken in or one piece of
+     work (decision 194). Taken off **by their stock key and only by it**, so a
+     plan somebody saved themselves is never touched, and a type that had been
+     given one of them to open fitted to is unhooked rather than left pointing
+     at nothing — `delPlan()`'s rule, for `delPlan()`'s reason. The new ten are
+     added the way 35 added the old: by key, once. */
+  {v:37, up(d){
+    const gone = new Set(RETIRED_KEYS);
+    const out = (d.plans||[]).filter(p=>p && p.stock && gone.has(p.stock)).map(p=>p.id);
+    d.plans = (d.plans||[]).filter(p=>!(p && p.stock && gone.has(p.stock)));
+    Object.values(d.kinds||{}).forEach(k=>{ if(k && out.includes(k.plan)) delete k.plan; });
+    const have = new Set(d.plans.map(p=>p && p.stock).filter(Boolean));
+    const add = stockPlans().filter(p=>!have.has(p.stock));
+    if(add.length) d.plans = d.plans.concat(add);
   }},
 ];
 function migrate(d){

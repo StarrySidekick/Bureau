@@ -1,4 +1,4 @@
-import { $, $$, esc, ic, uid, D, ROOT, pastTense } from './util.js';
+import { $, $$, esc, ic, uid, D, ROOT, pastTense, outURL } from './util.js';
 import { S, K, KINDS, KEYS, refreshKinds, ATTRS, attrsOf, has, SHAPES,
   FACES, MANUAL, byId, container, cfgOf, isContainer, isAncestor, relate, deskOf,
   unrelate, sensedDevice, reset, T, dz, dev, calViewOf, RULE_MAX, acceptFor, acceptAny,
@@ -356,7 +356,10 @@ function setField(el){
       o.link=Object.assign({label:'Open',target:''}, o.link);
       if(key==='linklabel') o.link.label=v;
       else if(key==='linktarget'){ if(v) o.link.target=v; }
-      else if(v) o.link.target=v;
+      /* An address is kept as it will be opened: a bare host gains its
+         https, and a thing that is not an address at all is refused rather
+         than stored as a link that goes nowhere. See decision 194. */
+      else if(v){ const u=outURL(v); if(u) o.link.target=u; else toast('That is not an address'); }
       break;
     }
     case 'filter.tag': if(o) o.filter=Object.assign({}, o.filter, {tag:v||undefined}); break;

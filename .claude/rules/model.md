@@ -296,14 +296,30 @@ prevent — silently, on the board you would most want to put one down. Eight by
 at most **twelve** rows fits a phone shelf, a Mac shelf and any drawer at once;
 twelve and not thirteen because a shelf is as tall as whatever fits on *this*
 screen and a short handset gives twelve. **Ten ship with the desk** —
-`stockplans.js`, one per job in `docs/FUNCTIONS.md` — as *ordinary* plans and
-not a merged-on-read category: seeded on a fresh desk, added by migration 35 on
-an existing one, and after that yours to rename or throw away. `stock` is read
-by one thing only, a later migration adding an eleventh. Two ids travel through
-a plan, `rel` and **`tracks`**; a rule naming a container (`@in`, `@under`) does
-**not**, so collect by tag inside a plan. And `planCard()` measures the
+`stockplans.js`, each a **base-station board** for a part of your life, a thing
+you take in or a piece of work (decision 194; the first ten, one per paper job,
+were retired by migration 37 by `RETIRED_KEYS` and nothing else) — as
+*ordinary* plans and not a merged-on-read category: seeded on a fresh desk,
+added by migration on an existing one, and after that yours to rename or throw
+away. `stock` is read by migrations only. **Three** ids travel through a plan:
+`rel`, **`tracks`**, and a rule's value on `@in`/`@under` — the board a plan was
+captured off becomes `__plan`, and `__plan` becomes the board it is put down
+on (`repointRules()`), which is what `HERE` in stockplans.js means and what
+gives a plan a calendar of its own board. A rule naming any *other* container
+is left alone. And `planCard()` measures the
 miniature's width off the plan's own boxes — it drew every one on twenty-four,
-which put a shelf-wide plan in the left third of its card. See decision 172.
+which put a shelf-wide plan in the left third of its card. See decisions 172
+and 194.
+
+**A Link is a button that goes somewhere outside, and it says where.** The
+`outlink` type is the `button` trait with an address; `outURL()` in util.js is
+the one test of whether a target is an address (any scheme but `javascript:`,
+`data:` and `vbscript:`, and a bare host gains `https://`), which is also how a
+container id in the same field is told apart. `fireButton()` opens a site in a
+new window and hands any other scheme to the system by navigating. The tile
+is decided by **where it points**, never by the type, and an empty one draws as
+a Link saying *no address yet*, because pressing it opens the editor. See
+decision 194.
 
 **A type can be born with things inside it.** `seed:[{kind,title}]` on a kind
 makes those children when the container is created, placed at the top of its

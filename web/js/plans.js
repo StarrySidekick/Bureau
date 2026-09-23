@@ -59,12 +59,33 @@ const planKids = (p, pid) => (p && p.objects || []).filter(o=>o.parent===pid);
 const DOING = ['done','doneAt','due','dead','soft','till','count','rating','answer',
                'history','fromRepeat','media','doneOn'];
 
+/* **A rule can name the board it sits on.** `@in` and `@under` compare against
+   a container's id, so a sorting drawer or a calendar asking "anything inside
+   this project" named the project it was captured from, and put down in a
+   second project it went on collecting the first one's things. The value is
+   re-pointed like `rel` and `tracks` are: the board the plan came off becomes
+   PLAN_ROOT in the plan, and PLAN_ROOT becomes the board it is put down on.
+   A rule naming some *other* container is left alone, because that container
+   is not being copied and still exists. This is what lets a stock plan carry
+   a calendar of its own board. See decision 194. */
+const REPOINT = new Set(['@in','@under']);
+function repointRules(o, swap){
+  const f = o.filter;
+  if(!f || !Array.isArray(f.rules) || !f.rules.some(r=>r && REPOINT.has(r.f))) return;
+  o.filter = Object.assign({}, f, {rules: f.rules.map(r=>{
+    if(!r || !REPOINT.has(r.f)) return r;
+    const to = swap(String(r.v??''));
+    return to ? Object.assign({}, r, {v:to}) : r;
+  })});
+}
+
 /* One object, cleaned and re-pointed. `map` is old id → new id; anything the
    map does not know about is dropped rather than left dangling, which is what
    `rel` needs — a relation to something outside the plan cannot come along,
    because the thing at the other end is not being copied. */
-function planCopy(o, map, parent){
+function planCopy(o, map, parent, from){
   const c = Object.assign({}, o);
+  repointRules(c, v => v===from ? PLAN_ROOT : map[v]);
   DOING.forEach(k=>{ delete c[k]; });
   /* A milestone is structure — the steps a piece of work is made of — so it
      travels; whether each one is ticked is doing, so it does not. */
@@ -105,7 +126,7 @@ function planFrom(cid, nm){
     });
   };
   walk(cid, PLAN_ROOT);
-  const objects = out.map(([o, into])=>planCopy(o, map, into===PLAN_ROOT ? PLAN_ROOT : into));
+  const objects = out.map(([o, into])=>planCopy(o, map, into===PLAN_ROOT ? PLAN_ROOT : into, cid));
   const p = {
     id: uid('pl_'),
     nm: nm || c.title || K(c.kind).nm,
@@ -189,6 +210,7 @@ function stampPlan(planId, intoId, at){
     // the same re-pointing capture does, for the same reason: a bar put down
     // twice must read the copy beside it and not the first one
     if(o.tracks) c.tracks = map[o.tracks] || null;
+    repointRules(c, v => v===PLAN_ROOT ? home : map[v]);
     /* **A drawer that came out of a plan rolls its own look, like any other.**
        `create()` gives every container its own knob, edge, grain and panelling
        from this aesthetic's vocabulary at birth (decision 92), and a plan

@@ -242,7 +242,7 @@ const BUILTIN_KINDS = {
   note:    {shape:'note', nm:'Note',    ic:'note',    c:10, key:'O', ds:'Something to remember — press it and say which',
      /* Quote is one of these: it is somebody's words written down, which is the
         same act as the other five with the authorship changed. */
-     family:['note','idea','thought','problem','question','quote'], famSub:'What sort of thing is it?',
+     family:['note','idea','thought','problem','question','quote','review'], famSub:'What sort of thing is it?',
      attrs:['text'], size:[4,4], onclick:'read', body:'' },
   idea:    {shape:'idea', nm:'Idea',    ic:'bulb',    c:12, key:'I', ds:'A spark, unformed',         size:[4,4], onclick:'read', attrs:['text'], body:'**The spark —** \n\n**Why it might work —** \n\n**What it needs —** ' },
   /* The smallest of the writing types, and deliberately so. An idea is a
@@ -596,6 +596,24 @@ const BUILTIN_KINDS = {
      type: an event either lasts a run of days or takes a duration, and both
      are fields it can already carry. Three by two, which is the leaf plus a
      name that fits. */
+  /* A **Link** sends you somewhere else — a site, an app, a number to call.
+     The Button type went in decision 135 because a button that opened another
+     drawer was a drawer you could already press; a board that is the base
+     station for a piece of your life needs the other half, the way *out* to
+     wherever the work actually happens, and nothing else says it. The `button`
+     trait was kept for exactly this, so the type is one line and the press,
+     the editor and the tile were already there. It opens nothing until it has
+     an address, and pressing an empty one opens its editor to give it one.
+     See decision 194. */
+  outlink: {nm:'Link', ic:'arrow', c:9, ds:'Sends you somewhere else — a site, an app, a number to call',
+     size:[4,1], phoneSize:[4,1], onclick:'none', attrs:['button'], body:'' },
+  /* A **review** is what you made of a film, a book, an album or a game — the
+     one thing all of the experience boards collect. A rating, the day, a link
+     to where it lives, and two prompts. A note would hold the words and lose
+     the stars; a quote is somebody else's words. See decision 194. */
+  review:  {shape:'index', nm:'Review', ic:'star', c:13, ds:'Something you watched, read, heard or played, and what you made of it',
+     size:[5,3], onclick:'read', attrs:['text','rating','date','link'],
+     body:'**What stayed with me —** \n\n**Who I would give it to —** ' },
   appt:    {shape:'event', nm:'Event',   ic:'calendar',c:8, key:'V', ds:'Something on a day — a meeting, a shoot, a trip',
      size:[6,2], phoneSize:[5,2], onclick:'when', attrs:['text','date','span','duration','location'], body:'' }
 };
@@ -614,7 +632,7 @@ const PRIMARY = ['drawer','magic','project','life','goal',
                  'book','checklist','calendar','jar','pigeonhole','moodboard','timeline',
                  'note','fragment','label','recipe','achievement',
                  'task','progressbar','counter','appt',
-                 'image','audio','video','post','decoration','instrument','control','generator'];
+                 'image','audio','video','post','decoration','instrument','control','generator','outlink'];
 const isPrimary = k => PRIMARY.includes(k);
 
 /* ---- a category is a type you press to be *asked which* -----------------

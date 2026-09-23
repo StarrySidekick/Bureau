@@ -8815,3 +8815,62 @@ the next click. It is cleared on the first line now.
 the kind of mode this app usually avoids. The defence is that inside a container
 the app-wide doors have nothing to say that is about where you are, and a gear
 that opened a list of them would be a gear that opened somewhere else.
+
+## 194 · Boards for a thing, not plans for a job
+
+Timothy's brief, 2026-09-23: *a board, once it is fully customised, is catered
+to one activity, project or part of a life, and it is the base station for it* —
+somewhere you go to move that thing forward, which may send you on to another
+app. He asked for the ten stock plans to go and for a new set built that way,
+from a list of thirty-three (nine parts of a life, six things you take in,
+eighteen kinds of work), choosing the ten Bureau can honestly build.
+
+**The ten.** Health, Finances, Exercise, Nutrition; Travel, Films, Books; Short
+Film, Song, Essay. Chosen by what the furniture already does well: every one of
+them is a repeat rule, a calendar, a checklist, a deck, a timer or a writing
+surface doing its ordinary job. Fantasy World is the obvious eleventh and was
+left out because the World type already *is* that board; Partner, Family and
+Friends need something Bureau has not got (a person, and when you last saw
+them), and Album, Novel, Play and the rest are Song, Essay and Short Film
+scaled up, which is better done after living with these.
+
+**Each carries four things**, which is what makes a board somewhere you go
+rather than somewhere you file: what to do next; *when*, as a calendar of this
+board only; something that helps you do it — a deck to cut when you cannot
+decide (workouts, dinners, films, what to read next, prompts for a stuck song),
+a timer (a two-minute rest, a twenty-five-minute candle to sprint by), a
+metronome at a running cadence; and the way out, as Links.
+
+**Two types, because the boards needed them.** A **Link** (`outlink`) is the
+`button` trait with an address, drawn with the host under its name and an
+out-arrow, so you know where you will land before you press. Decision 135
+removed the Button type because a button that opened a drawer was a drawer you
+could already press; the half nothing else says is the way *out*, and the trait
+was kept for exactly this, so the type is one line. `outURL()` accepts any
+scheme but the three that run code in the page, and a bare host gains https —
+so `tel:`, `mailto:` and an app's own scheme all work, and the stock boards use
+https addresses because on a phone those open the app itself where it is
+installed. A **Review** is what you made of a film, a book, an album or a game:
+a rating, the day, a link and two prompts. A note would hold the words and lose
+the stars, and a quote is somebody else's words. It is in the Note family.
+
+**A rule can name the board it is on.** `@in`/`@under` compare container ids,
+so they could not travel through a plan, and decision 172 said to collect by tag
+instead. A tag does not follow what you make on the board, though, and a
+calendar that collects the whole desk is not the calendar of a project. So a
+rule's value is re-pointed like `rel` and `tracks`: captured off a board, that
+board's id becomes `__plan`; put down, `__plan` becomes the board it lands on.
+Any other container id is left as it was, because that container still exists.
+
+**Retired by key.** Migration 37 takes the first ten off by `RETIRED_KEYS` and
+nothing else, so a plan Timothy saved himself is never touched, and a type
+given one to open fitted to is unhooked, as `delPlan()` would.
+
+*Against:* the boards are eight by twelve and mostly full, which is right in a
+Project or Life drawer (twenty by twenty, with the rest as room to work) and
+cramped in a plain drawer grown to two by three, where a spawner has almost
+nowhere to put what it makes. And a plan put into a Project lands on top of the
+project's own spawner at the top of the board, so a few tiles move. Both are
+proposals to Timothy rather than changes made here: a plan put on the desk
+could make its own drawer, and a plan put on a board that already has things on
+it could find one clear place for the whole arrangement.

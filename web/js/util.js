@@ -317,4 +317,34 @@ function pastTense(title){
   return p ? p + m[2] : s;
 }
 
-export { $, $$, esc, uid, clamp, ROOT, HOLD, D, ic, md, plain, oneline, pastTense };
+/* ---- somewhere outside Bureau -------------------------------------------
+   A Link sends you to another app or site, so what it stores is an address
+   and what matters is whether it is one. Any scheme is an address — `https:`
+   is a site, `mailto:` and `tel:` are the phone's own apps, and an app that
+   registers one (`spotify:`, `shortcuts:`) answers to it — except the three
+   that run something in the page rather than going anywhere. A bare
+   `letterboxd.com` is what people actually type, so a thing that looks like a
+   host is taken to be one. Anything else is not an address, which is also how
+   a container id in the same field is told apart from a URL. */
+const NOT_OUT = /^(javascript|data|vbscript):/i;
+function outURL(s){
+  const t = String(s==null?'':s).trim();
+  if(!t || NOT_OUT.test(t)) return '';
+  if(/^[a-z][a-z0-9+.-]*:/i.test(t)) return t;
+  if(/^[\w-]+(\.[\w-]+)+(:\d+)?([/?#]|$)/.test(t)) return 'https://'+t;
+  return '';
+}
+/* Where an address goes, said the way you would say it: the host of a site
+   without its `www.`, the number for a call, the address for a mail, and the
+   app's own name for anything else. */
+function whereTo(u){
+  const t = outURL(u); if(!t) return '';
+  const m = /^([a-z][a-z0-9+.-]*):(?:\/\/)?([^/?#]*)/i.exec(t);
+  if(!m) return '';
+  const sch = m[1].toLowerCase();
+  if(sch==='http' || sch==='https') return m[2].replace(/^www\./i,'');
+  if(sch==='mailto' || sch==='tel' || sch==='sms') return decodeURIComponent(t.slice(sch.length+1)).split('?')[0];
+  return sch;
+}
+
+export { $, $$, esc, uid, clamp, ROOT, HOLD, D, ic, md, plain, oneline, pastTense, outURL, whereTo };

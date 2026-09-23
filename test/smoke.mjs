@@ -5779,7 +5779,7 @@ const CHROME = process.env.BUREAU_CHROME;
        board with things on it already, a taken box sends that one tile to
        anySpot() and the shape is deliberately given up. */
     const room = BUREAU.create('drawer', {parent:'root', title:'Empty room'});
-    const p = ps.find(x => x.stock === 'workbench');
+    const p = ps.find(x => x.stock === 'shortfilm');
     const saved = boxes(p);
     const made = BUREAU.stampPlan(p.id, room.id);
     const top = made.filter(o => o.parent === room.id);
@@ -5804,10 +5804,32 @@ const CHROME = process.env.BUREAU_CHROME;
       saved.every(q => boxes(p).some(r => r === q)) &&
       !made.some(o => boxes(p).some(q => q.desk === o.desk || q.phone === o.phone));
 
+    /* **A board's own calendar is of that board** (decision 194). The rule
+       `@under` the plan's root is re-pointed at the drawer it lands in, so a
+       second copy in a second drawer collects its own things and not the
+       first one's — and nothing is left pointing at the plan's root. */
+    const cal = made.find(o => o.kind === 'calendar');
+    const under = o => (o.filter.rules || []).find(r => r.f === '@under');
+    out.theCalendarIsOfThisBoard = !!cal && under(cal).v === room.id;
+    out.noRuleLeftOnThePlan = ps.every(pp => pp.objects.every(o =>
+      !o.filter || !(o.filter.rules || []).some(r => r.f === '@under' && r.v !== '__plan')));
+    const dated = BUREAU.create('task', {parent:room.id, title:'Dated here'});
+    const elsewhere = BUREAU.create('task', {parent:'root', title:'Dated elsewhere'});
+    const inCal = BUREAU.kids(cal.id);
+    out.itCollectsHereOnly = inCal.includes(dated.id) && !inCal.includes(elsewhere.id);
+    BUREAU.del(dated.id); BUREAU.del(elsewhere.id);
+    /* **Every board has a way out**, and a Link draws as one: the host under
+       its name, the whole face the press. */
+    out.everyBoardHasALink = ps.every(pp => pp.objects.some(o => o.kind === 'outlink'));
+
     // …and they really draw, which a box being legal does not say
     S.view = 'drawer'; S.drawerId = room.id; BUREAU.render(); await nap(200);
     out.everyTileDraws = top.every(o => document.querySelector(
       `#app .grid .drawer[data-drawer="${o.id}"], #app .grid .drawer[data-row="${o.id}"]`));
+    const link = top.find(o => o.kind === 'outlink');
+    const lt = link && document.querySelector(`#app .drawer.outtile[data-row="${link.id}"]`);
+    out.aLinkSaysWhereItGoes = !!lt && lt.querySelector('.outface u').textContent === 'studiobinder.com'
+      && !!lt.querySelector('[data-fire]');
     S.view = 'desk'; S.drawerId = null;
     twice.concat(made).forEach(o => BUREAU.del(o.id));
     BUREAU.del(room.id);
@@ -5856,7 +5878,7 @@ const CHROME = process.env.BUREAU_CHROME;
        Reading Desk's spawner goes on the board *and* into the Quotes drawer,
        and nothing said the second half. */
     S.view = 'drawer'; S.drawerId = room.id;
-    BUREAU.stampPlan(BUREAU.plans().find(p => p.stock === 'reading').id, room.id);
+    BUREAU.stampPlan(BUREAU.plans().find(p => p.stock === 'books').id, room.id);
     BUREAU.render(); await nap(250);
     const q = BUREAU.create('quote', {parent:room.id, title:'A line worth keeping'});
     BUREAU.render(); await nap(120);

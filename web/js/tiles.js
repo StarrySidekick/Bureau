@@ -1,4 +1,4 @@
-import { esc, ic, clamp, D, md, plain, oneline } from './util.js';
+import { esc, ic, clamp, D, md, plain, oneline, outURL, whereTo } from './util.js';
 import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, childrenOf, container,
   clPerCell,
   rollup, streak, barPct, barSteps, barFilled, barGrid, projectStat, progressOf, tlSpan,
@@ -368,7 +368,17 @@ function dispense(g){
 function fireButton(o){
   const tg=o.link&&o.link.target;
   if(!tg){ objectPanel(o.id); return; }
-  if(/^https?:/.test(tg)){ window.open(tg,'_blank','noopener'); return; }
+  /* A site opens beside Bureau, so the desk is still there when you come back.
+     Any other scheme is another app on this device (a call, a mail, an app
+     that registered one) and is handed to the system by navigating: a
+     `window.open` of `tel:` from an installed web app opens a blank window on
+     some phones and nothing at all on others. */
+  const out=outURL(tg);
+  if(out){
+    if(/^https?:/i.test(out)) window.open(out,'_blank','noopener');
+    else location.href=out;
+    return;
+  }
   const dest=byId(tg);
   if(dest && isContainer(dest)){ S.view='drawer'; S.drawerId=tg; render(); }
   else if(dest) openObj(tg);
@@ -2021,6 +2031,29 @@ function drawTileFace(o, arr, box, persp){
     </button>`;
   }
   // a button object is the button: it fills its tile rather than sitting in it
+  /* **A button that goes somewhere outside is a Link**, and it says where.
+     What you want to know before pressing a thing that leaves Bureau is where
+     you will land, so the host sits under the name. Its whole face is the
+     press, with padding rather than the button's percentage margin: that
+     margin resolves against the *width*, so on a four-by-one tile it ate the
+     height and left a slot. Decided by where it points, never by the type, so
+     an invented type carrying `button` gets it too — and one pointing nowhere
+     yet is drawn as the Link it is about to be, saying so, because pressing
+     it opens the editor to give it an address. See decision 194. */
+  const tgt = o.link && o.link.target;
+  if(has(o,'button') && (!tgt || outURL(tgt))){
+    const to = tgt ? whereTo(tgt) : 'no address yet';
+    return `<button class="drawer otile ${paper(o)} sh-button btntile outtile${sel}" data-row="${o.id}"
+      style="--c:${colour};${place}" title="${esc(to)}">
+      ${chips}
+      <span class="btnface outface" data-fire="${o.id}">
+        <b>${esc(o.title||(o.link&&o.link.label)||'Link')}</b>
+        <u>${esc(to)}</u>
+        <i class="outarrow">${ic('arrow',14)}</i>
+      </span>
+      ${handles}
+    </button>`;
+  }
   if(has(o,'button')){
     return `<button class="drawer otile ${paper(o)} sh-button btntile bs-${o.btnshape||'rounded'}${sel}" data-row="${o.id}"
       style="--c:${colour};${place}">

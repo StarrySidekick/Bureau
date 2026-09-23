@@ -1,4 +1,4 @@
-import { $, $$, esc, ic, uid, clamp, D, ROOT, pastTense } from './util.js';
+import { $, $$, esc, ic, uid, clamp, D, ROOT, pastTense, outURL } from './util.js';
 import { S, K, KINDS, KEYS, T, ATTRS, USER_ATTRS, FIELDS, fieldOf, OPS, ROLLS,
   URGES, workday, urgencyOf, urgeRank, urgeSaid, durSaid,
   WHENS, whenISO, RULE_MAX, rulesOf,
@@ -1371,7 +1371,7 @@ function objectPanelBody(id, sec){
       const L=o.link||{};
       f.push(prow('Button', pfield(id,'linklabel',L.label,'','Open')
         + psel(id,'linktarget',[['','Nothing yet'],...containers().map(c=>[c.id, c.title||'Untitled'])], L.target||'')
-        + pfield(id,'linkurl', /^https?:/.test(L.target||'')?L.target:'', '', '…or a link')));
+        + pfield(id,'linkurl', outURL(L.target)?L.target:'', '', '…or an address — a site, tel:, mailto:')));
     }
     if(f.length) out.push(`<div class="section-h"><h2>Fields</h2><div class="rule"></div></div>${f.join('')}`);
   }
