@@ -152,6 +152,13 @@ website, novel, poem, album, game, device, fantasy world, physical object).
 The brain dump that sorts itself by kind is the biggest idea in the notes and
 is not started.
 
+**Then (v1.84, decision 195), in his words:** Life and Project drawers were
+always meant to *"come prepackaged with this plan within them already when you
+made them"*, so they do now; a plan pressed on the desk makes its own drawer;
+a plan laid on a busy board moves as one. And *"the proportional drawer rule
+makes the layout system very wonky"*: proportional boards are a setting, **off
+by default**, and a container is screenfuls again.
+
 ## Deliberately not next
 
 - **Sync between devices.** It is real and it is coming, *after* the feature set

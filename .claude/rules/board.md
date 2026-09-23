@@ -345,6 +345,16 @@ container to put it on a phone, so a drawer that *looks* four cells by two on a
 phone is eight by four on the desk and opened onto thirty-two by sixteen. A
 container's two boards may be different shapes; that is what two layouts means.
 
+**Proportional boards are a setting, and off by default** (decision 195).
+`proportional()` in grid.js reads `S.look.proportional`; off, `innerOf()`
+answers null and a container is `o.shelves` screenfuls, which is everything
+before decision 188 and the reason `innerOf()` returning null was always the
+fallback. Everything in the paragraphs below about a board being its tile
+times four is true **only with it on**. Going off (the switch, and migration
+38 once for every desk) calls `shelvesToHold()` on each container so nothing
+past the first screenful is re-placed. The dive's `boardRect()` answers null
+with it off, because a board of screenfuls is not the front's shape.
+
 **And inside one there are no shelves.** The nine are the desk's alone
 (decision 141). A container's board is exactly `w*4 x h*4` and `shelvesOf()`
 **derives** its pages rather than reading a stored `shelves`: `{1,1}` on a Mac,

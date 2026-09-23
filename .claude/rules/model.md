@@ -321,6 +321,18 @@ is decided by **where it points**, never by the type, and an empty one draws as
 a Link saying *no address yet*, because pressing it opens the editor. See
 decision 194.
 
+**A board comes with the thing it is for, and a plan moves as one.** A kind's
+`plan` is read by `create()`, and a type that stamped one does **not** also
+get its `seed` (the two both claim the top of the board). Film, Song, Trip and
+`writing` (Essay or post) carry the stock plans; a plan's `life` names the Life
+drawing it is the board for, and `makeLife()` lays it out. Pressing a plan on
+the **desk** makes a container of the plan's `of` kind and stamps into that.
+`stampPlan()` places the whole top level at one offset found by
+`clearOffset()`, growing the container through `growFor()` when there is none,
+and only then falls back to one box at a time; with screenfuls it also gives
+the container a screen of room beside a plan that fills its own. See decision
+195.
+
 **A type can be born with things inside it.** `seed:[{kind,title}]` on a kind
 makes those children when the container is created, placed at the top of its
 board rather than left to `ensureBox()`. One level only — a seeded child's own

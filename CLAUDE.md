@@ -32,7 +32,8 @@ real.
 **Where the last stretch of work got to (v1.80, 2026-09-22).** Five rounds in
 one day, all of them living with the **camera** (decision 187 — you go to the
 object where it sits). What settled out of them and is now load-bearing:
-a container's board is **its own tile, four cells to a cell**, read off the box
+a container's board is **its own tile, four cells to a cell** (now only with
+proportional boards on, decision 195), read off the box
 for the device being drawn, with no shelves inside one — a board is exactly
 `w×4` by `h×4`, centred if it is smaller than the screen and paged if it is
 bigger (188, 190, 192); a drawer **opens onto that board flush to its own
@@ -46,7 +47,11 @@ the bar and added the **pigeonhole** — the face a one-cell-wide drawer wears.
 **v1.82–1.83** (decision 194) replaced the ten stock plans with ten boards that are
 each the base station for one thing (see INTENT.md, 2026-09-23), added the
 **Link** and **Review** types, and let a plan's rules name the board it is put
-down on.
+down on. **v1.84** (decision 195) made **proportional boards a setting, off
+by default** (so decisions 188–192 describe a mode, and a container is
+screenfuls unless it is on), gave Film, Song, Trip, Essay or post and seven
+kinds of Life drawer their board at birth, made a plan pressed on the desk
+build its own drawer, and made a plan move as one onto a busy board.
 
 **Start here each session:** `docs/SYSTEM.md` is the reference for what Bureau is
 made of — objects, attributes, types, drawers, the grid, the surfaces, storage.
@@ -222,7 +227,7 @@ clause at the bottom of each file — that list is each module's public surface.
 | --- | --- |
 | `util.js` | `$`, `esc`, `uid`, the `D` date object, icons (`ic`), markdown (`md`). All dates are `YYYY-MM-DD` strings in local time — never `Date` objects in state, never UTC. |
 | `model.js` | ATTRS + KINDS (**the heart of the app** — see below and `docs/SYSTEM.md`), seed data, `S`, `inContainer()`, `childrenOf()`, `streak()`, `goalPct()`, relations. |
-| `grid.js` | Grid geometry: `GRID`, `CELL`, `lay()`, `boxOk()`, `freeSpot()`, `ensureBox()`, and `innerOf()` — **a container's board is its own tile, four cells to a cell**. Lives here, not in the views. |
+| `grid.js` | Grid geometry: `GRID`, `CELL`, `lay()`, `boxOk()`, `freeSpot()`, `ensureBox()`, and `innerOf()` — **a container's board is its own tile, four cells to a cell** when proportional boards are on, and screenfuls otherwise. Lives here, not in the views. |
 | `look.js` | Styles, the sixteen colour slots, `hexOf`/`objColour`, `applyLook()`. |
 | `mutations.js` | `toggleDone`, `del`, `create`, `quickAdd`, repeat scheduling, `toast`. |
 | `tiles.js` | `gridTile()` — the one place that decides how an object looks on a grid — plus rows, cards, list bands, book/scroll entries, and what a click does (`tileTap`). |

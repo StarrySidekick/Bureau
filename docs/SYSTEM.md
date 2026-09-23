@@ -935,7 +935,11 @@ the start, `#tag` anywhere, and `!today` / `!tomorrow` / `!week`.
   own board** (a rule `@under` the plan, re-pointed at stamping), something
   that helps you do it — a deck to cut, a timer, a metronome — and Links out
   to where the work happens. They replaced ten organised by paper job in
-  decision 194; migration 37 took those off by key. They are
+  decision 194; migration 37 took those off by key. **A Film, a Song, a Trip,
+  an Essay or post, and a Life drawer made for seven of its parts are born
+  holding theirs** (decision 195); pressed on the desk, a plan makes its own
+  drawer; and laid on a board with things on it, a plan moves as one to the
+  first clear place. They are
   **ordinary plans, not a new category**: they arrive with the seed on a fresh
   desk and by migration 35 on an existing one, and after that they are yours to
   rename, edit or throw away, with nothing putting them back. `stock` names

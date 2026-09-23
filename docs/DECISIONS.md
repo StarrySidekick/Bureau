@@ -8874,3 +8874,75 @@ project's own spawner at the top of the board, so a few tiles move. Both are
 proposals to Timothy rather than changes made here: a plan put on the desk
 could make its own drawer, and a plan put on a board that already has things on
 it could find one clear place for the whole arrangement.
+
+## 195 · A board comes with the thing it is for, and proportion is a choice
+
+Timothy, on decision 194's two proposals: yes to both, and more. *"The
+original intention of those life drawer and project objects was that they
+would come prepackaged with this plan within them already when you made
+them."* And: *"the proportional drawer rule makes the layout system very
+wonky … make proportional container space an optional feature that's
+toggleable in the settings, and by default off."*
+
+**Proportional boards are a setting, off by default.** `S.look.proportional`,
+in Board settings as *How big a drawer is inside*: **Screenfuls** or **As big
+as its front**. Off, `innerOf()` answers null and a container is `o.shelves`
+screenfuls, one unless it says otherwise, which is exactly what it was before
+decision 188; the size picker in Board settings goes back to the grid of
+screenfuls. On, everything from 188 to 192 is as it was. The wonkiness was
+real: a plan is an arrangement, and under 188 the same arrangement was a
+squeeze in a two-by-two drawer and a field in a five-by-five, so a plan's
+fit depended on a size somebody chose for a different reason.
+
+Two things keep the switch from costing an arrangement. Going to screenfuls
+re-places anything past the end of the smaller board, keeping sizes and giving
+up places. So **migration 38** (for every desk, because the default changed
+under it) and the switch itself give each container the screenfuls it needs
+to hold what is already in it (`shelvesToHold()`, twelve rows to a screen, the
+short handset's). And the dive's mouth opens flush onto the board only when
+the board is the front's shape: `boardRect()` answers null with proportion
+off, and the mouth opens onto the carcass the way it did before 192.
+
+**A type is born holding its board.** A **Film** holds Short Film, a **Song**
+holds Song, a **Trip** holds Travel, and a new **Essay or post** (`writing`, in
+the Project family) holds Essay: `plan` on the built-in kind, which
+`planForKind()` has read since decision 121. A **Life drawer** asks what part
+of a life it is, as it always has, and seven of the answers now come with a
+board: a plan carries `life`, the drawing a Life drawer wears, and
+`makeLife()` lays it out inside. Three drawings were added for it: Health (a
+stethoscope), Films (a reel) and Books (a pile of books). The picker says
+*with its board* under the ones that have one.
+
+**A type that brings a board does not also bring its seed.** The seed is a
+spawner placed along the top, and the plan's label is there too. `create()`
+seeds only when no plan was stamped, so a Film whose plan somebody deleted
+still gets "Add to this film…".
+
+**A plan pressed on the desk makes its own drawer.** Of the kind in the plan's
+`of` (a container that is not a sorting drawer, else a plain drawer), named
+for the plan, in its colour, wearing its Life drawing, placed where you
+pressed, and the plan inside it. One undo move for the lot. Inside a drawer a
+plan is still laid out where you are standing.
+
+**The arrangement moves as one.** `stampPlan()` used to try each box where it
+was saved and send the ones that hit something to `anySpot()` one at a time,
+so a plan laid on a board with anything on it scattered in exactly the place
+it met the board. `clearOffset()` finds the first place, top first and the
+saved one before any other, where *every* box fits (on the board, no bigger
+than a screen, across no seam on a phone, on top of nothing), reading the
+board's other things once rather than asking `boxOk()`, which would count the
+plan's own boxes as siblings. No room and `growFor()` gives the container
+another screenful (down, then across) or, when proportional, a taller tile,
+and asks again. Only then does it fall back to one box at a time.
+
+**And room beside it.** With screenfuls, a container a plan is stamped into is
+given as many as the plan covers, plus one across when the plan fills more
+than three fifths of them, because a base station needs room for what you make
+there. A spawner on a full board presses things out on top of each other, which
+is the failure 194 recorded.
+
+*Against:* two answers to "how big is a drawer inside" is one more setting, and
+the kind of mode this app usually avoids. The defence is Timothy's own standing
+note from 2026-09-22, *give me the option rather than the decision*, and that
+the two answers are each right for a different desk: one where drawers are
+places you go, and one where the size of a front is what it holds.
