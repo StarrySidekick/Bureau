@@ -9235,3 +9235,48 @@ the pens all go through the handlers they always did. A container wearing the
 calendar *layout* without the calendar face gets the same front in its own
 colour, which is the point: what you open is what the thing is. The CSS is one
 block in chrome.css headed with this decision.
+## 201 · A purple selector, one card, and a portal
+
+Three things Timothy asked for, all of them about a thing looking like what it
+is.
+
+**The Magic Selector is violet.** The band you drag out of a bare cell — and
+the lasso it becomes over tiles — was drawn in `--ink`, so the one magic tool
+on the board was the colour of a ruled line. It is violet now (`#7C3AED` for
+the sketch, a fuller `#8B5CF6` wash once it has hold of something) with a soft
+glow, in every aesthetic and not a slot: it is a fact about the tool, the way
+the red of "can't go here" is. The white halo it already wore carries it on a
+dark board. `.ghost.bad` sits later in the cascade at the same weight, so a box
+that cannot land is still red and loses the glow. The drag ghost of a moved
+tile is not the selector and stays ink.
+
+**A deck is one card.** It was two cards fanned under the top one, drawn in a
+fixed viewBox and letterboxed into its box — a small picture of a stack,
+reading as its outline twice. It is now one card that *is* its box, drawn as
+HTML (an instrument may carry `html` instead of `art`, and `activeArt()` takes
+it), because an SVG cannot fill an arbitrary aspect without stretching the
+pattern on its back. The edge is the goal card's (decision 146): the same
+corner and inset off `--checkerx`, the same concentric rule, the same linen
+tooth, restated under `.dkcard` because the goal's rules are keyed on the goal
+tile. Face up it is card white with the top card's words and the count as an
+index in two opposite corners; face down it wears its back. The new default
+back is the **rider** — a fine filigree lattice in the deck's colour inside a
+white margin, with a wheel medallion — drawn as a repeating twelve-unit SVG
+tile in a data URI, so the grain is the same fineness on a one-cell deck as on
+the camera's full-screen one. The other five backs remain, sliced rather than
+stretched. The deck type's colour moved from slot 10 to 11 (Victoria's claret)
+so it is red where the aesthetic has a red; a deck that stored nothing takes
+the rider back and the new colour with no migration. At one cell a deck stays
+a card rather than becoming the anonymous mark. Cutting, dealing, flipping and
+filing are untouched.
+
+**A Link is a portal.** A dark well with a lit rim, the object's colour in its
+throat and violet round it, and two swirls turning opposite ways at 7s and 11s
+— transforms on two pseudo-elements, so the compositor does it. A render
+replaces the tile, so the phase is a negative delay read off the clock into a
+77s cycle both periods divide, the instruments' trick (decision 182); reduced
+motion stills it. The tile is a size container and lays itself out off its own
+shape: long, the portal at the left and the name beside it; squarish, the
+portal in the middle and the name under it; one cell, the portal alone. The
+press is unchanged. This is not decision 42's shimmer — nothing reacts to the
+hand; it is a thing that is always turning, like the clock.

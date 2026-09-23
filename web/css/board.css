@@ -1180,8 +1180,25 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
    identical layers. Fixed px, so the dash is the same size on a 1×1 as on a
    nine-cell band. */
 .ghost.band{--ghostdash:var(--ghostline) 0 6px, transparent 6px 11px}
-.ghost.picking{--ghostline:var(--brass);background:color-mix(in srgb,var(--brass) 18%,transparent);
-  box-shadow:0 0 0 2px rgba(255,255,255,.4)}
+/* ---- the Magic Selector is violet — decision 201 ------------------------
+   It was the page's ink, which made the one magic thing on the board the same
+   black as a ruled line. Violet, in every aesthetic and not a slot, because it
+   is a fact about the tool rather than a colour of the room — the way the red
+   of "can't go here" is. Legible both ways round: the white halo the ghost
+   already wore carries it on a dark board and the deep violet line carries it
+   on parchment, and the glow is what says magic rather than selection.
+   Both halves of it — sketching a new object over bare cells, and lassoing the
+   ones it touches — are the same tool, so both are violet; the lasso is the
+   fuller wash, because it has got hold of something. `.ghost.bad` in
+   chrome.css is later in the cascade at the same weight, so a box that cannot
+   land stays red and loses the glow with nothing said here. */
+.ghost.band{
+  --magic:#7C3AED;--ghostline:var(--magic);
+  background:color-mix(in srgb,var(--magic) 14%,transparent);
+  box-shadow:0 0 0 2px rgba(255,255,255,.55), 0 0 14px 1px rgba(139,92,246,.55), var(--shadow-lg);
+}
+.ghost.picking{--ghostline:#8B5CF6;background:color-mix(in srgb,#8B5CF6 26%,transparent);
+  box-shadow:0 0 0 2px rgba(255,255,255,.45), 0 0 18px 3px rgba(139,92,246,.6)}
 /* a spawner: a press with an arrow.
    `.drawer.otile.gentile`, three classes, and not `.drawer.gentile` — an
    object became paper in decision 99 and `.drawer.otile{background:var(--paper-2)}`
@@ -3061,16 +3078,90 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
   background:var(--paper-2);font-size:15px;font-family:inherit;
 }
 
-/* ---- the deck — decision 183 -------------------------------------------
-   The word on the top card is the one piece of an instrument's artwork that
-   is text a person wrote, so it is a `foreignObject` rather than an SVG
-   `<text>`: a card's writing has to wrap, and `<text>` does not wrap. It takes
-   the aesthetic's own serif like every other name on the desk. */
-.dkword{
-  width:100%;height:100%;display:flex;align-items:center;justify-content:center;
-  text-align:center;font-family:var(--serif);font-size:12px;line-height:1.25;
-  color:var(--ink);padding:2px;overflow:hidden;hyphens:auto;overflow-wrap:anywhere;
+/* ---- the deck — decisions 183 and 198 ----------------------------------
+   **One card that is its box.** HTML rather than SVG (see `html` on the deck
+   in active.js), so it fills the tile at any aspect with no letterbox. The
+   corner, the rule and the tooth are the goal card's own numbers, restated
+   here rather than shared by selector: the goal's rules are keyed on
+   `.goaltile.playcard` and a card that is an instrument is not a goal tile.
+   Same die, same corner — `--cardr` and `--cardin` off `--checkerx`, and the
+   inner arc is the outer one less the inset, for decision 146's reason. The
+   face is card white whatever the aesthetic, because a card's colour is the
+   ink printed on it; `--c` is the rule, the index and the back. */
+/* two classes, because `.acttile .actart{display:block}` is two */
+.acttile .dkcard,.dkcard{
+  --cardr:clamp(5px, calc(var(--checkerx, 100px) * .115), 18px);
+  --cardin:clamp(3px, calc(var(--checkerx, 100px) * .055), 9px);
+  position:relative;box-sizing:border-box;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
+  background-color:#F7F3E8;
+  background-image:
+    repeating-linear-gradient(0deg, rgba(0,0,0,.022) 0 1px, transparent 1px 4px),
+    repeating-linear-gradient(90deg, rgba(0,0,0,.022) 0 1px, transparent 1px 4px);
+  border-radius:var(--cardr);
+  box-shadow:0 1px 2px rgba(0,0,0,.22), 0 6px 14px rgba(0,0,0,.16),
+             inset 0 0 0 1px rgba(0,0,0,.16);
+  container-type:inline-size;
 }
+.dkcard .dkrule{
+  position:absolute;inset:var(--cardin);z-index:1;pointer-events:none;
+  border:1px solid color-mix(in srgb, var(--c) 78%, transparent);
+  border-radius:max(0px, var(--cardr) - var(--cardin));
+}
+/* The word on the top card is the one piece of an instrument that is text a
+   person wrote. It takes the aesthetic's serif like every other name on the
+   desk, but it is printed on white card, so it is the card's ink and never
+   `--ink` — Starful Gothic's pale ink on card white was nothing. */
+.dkword{
+  position:relative;z-index:2;max-width:100%;max-height:100%;
+  display:flex;align-items:center;justify-content:center;
+  text-align:center;font-family:var(--serif);font-size:clamp(9px, 10cqw, 26px);
+  line-height:1.2;color:#241E16;padding:calc(var(--cardin) + 1.3em) calc(var(--cardin) + .6em);
+  overflow:hidden;hyphens:auto;overflow-wrap:anywhere;
+}
+.dkword.dkempty{color:rgba(36,30,22,.5);font-style:italic}
+.dkcard .dkidx{
+  position:absolute;z-index:2;line-height:1;color:var(--c);
+  font-family:var(--serif);font-weight:700;font-size:clamp(9px, 8cqw, 18px);
+  left:calc(var(--cardin) + clamp(3px, calc(var(--checkerx, 100px) * .035), 8px));
+  top:calc(var(--cardin) + clamp(2px, calc(var(--checkerx, 100px) * .028), 7px));
+}
+.dkcard .dkidx.flip{
+  left:auto;top:auto;transform:rotate(180deg);
+  right:calc(var(--cardin) + clamp(3px, calc(var(--checkerx, 100px) * .035), 8px));
+  bottom:calc(var(--cardin) + clamp(2px, calc(var(--checkerx, 100px) * .028), 7px));
+}
+/* **The back.** Inside the rule, in the deck's colour, with a white margin
+   round it — the margin is the card, showing. Two inset rings are the red line
+   and the white line a printed back has at its edge. */
+.dkcard .dkback{
+  position:absolute;inset:calc(var(--cardin) + 2px);z-index:2;
+  border-radius:max(0px, var(--cardr) - var(--cardin) - 2px);
+  background-color:var(--c);overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:inset 0 0 0 1.5px var(--c), inset 0 0 0 2.5px #F7F3E8;
+}
+.dkcard.down .dkrule{display:none}
+/* The rider lattice: a twelve-unit tile of crossed diagonals, a ring at every
+   node, a leaf pointing into every diamond and a seed in its middle, printed in
+   card white over `--c`. A **repeating tile, never a drawing scaled to the
+   card**, so the grain is the same fineness on a 1×1 deck as on the camera's
+   full-screen one — which is what makes it read as print rather than as
+   pattern. The white is a literal because the card is; it is the one colour a
+   back has that is not the deck's. */
+.dkcard .dkback.bk-rider{
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cg fill='none' stroke='%23F7F3E8' stroke-width='.55'%3E%3Cpath d='M0 0L12 12M12 0L0 12'/%3E%3Ccircle cx='6' cy='6' r='2'/%3E%3Ccircle cx='0' cy='0' r='2'/%3E%3Ccircle cx='12' cy='0' r='2'/%3E%3Ccircle cx='0' cy='12' r='2'/%3E%3Ccircle cx='12' cy='12' r='2'/%3E%3Cpath d='M6 1.3q1.1 1.1 0 2.3q-1.1-1.2 0-2.3M6 8.4q1.1 1.1 0 2.3q-1.1-1.2 0-2.3M1.3 6q1.1-1.1 2.3 0q-1.2 1.1-2.3 0M8.4 6q1.1-1.1 2.3 0q-1.2 1.1-2.3 0'/%3E%3C/g%3E%3Cg fill='%23F7F3E8'%3E%3Ccircle cx='6' cy='6' r='.75'/%3E%3Ccircle cx='0' cy='0' r='.75'/%3E%3Ccircle cx='12' cy='0' r='.75'/%3E%3Ccircle cx='0' cy='12' r='.75'/%3E%3Ccircle cx='12' cy='12' r='.75'/%3E%3Ccircle cx='6' cy='0' r='.55'/%3E%3Ccircle cx='0' cy='6' r='.55'/%3E%3Ccircle cx='12' cy='6' r='.55'/%3E%3Ccircle cx='6' cy='12' r='.55'/%3E%3C/g%3E%3C/svg%3E");
+  background-size:9px 9px;background-position:center;
+}
+.dkcard .dkmed{width:clamp(18px, 36cqw, 150px);height:auto;flex:0 0 auto}
+.dkcard .dkpat{position:absolute;inset:0;width:100%;height:100%}
+/* a 1×1 deck has no room for an index, and its medallion would be a blot */
+.acttile.sz-mini .dkidx,.acttile.sz-mini .dkmed{display:none}
+/* Under the camera the card stands at a card's own proportion, as big as the
+   stage allows — a deck is the one instrument whose drawing is not an SVG,
+   so it cannot lean on `meet` for that. */
+.zoomart .dkcard{height:100%;width:auto;aspect-ratio:5/7;max-width:100%;
+  --cardr:18px;--cardin:10px}
 @keyframes dkCut{
   0%  {transform:translateY(0) rotate(0)}
   40% {transform:translateY(-7px) rotate(-3deg)}

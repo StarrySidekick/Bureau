@@ -514,11 +514,14 @@ const BUILTIN_KINDS = {
      container carrying `act` rather than an instrument that learned to hold:
      everything a container already does — filing a card into it by dropping
      one, opening it to see the lot, the archive, undo — comes along untouched,
-     and all the deck itself adds is which card is on top. See decision 183. */
-  deck:     {act:'deck', face:'deck', nm:'Deck', ic:'copy', c:10, key:'4',
+     and all the deck itself adds is which card is on top. See decision 183.
+     Slot 11 is Victoria's claret — the nearest a slot comes to the red of a
+     rider back, and each aesthetic's own eleventh everywhere else. A new deck
+     lies face down, because the back is the thing Timothy asked to see. */
+  deck:     {act:'deck', face:'deck', nm:'Deck', ic:'copy', c:11, key:'4',
      ds:'Cards you cut to — drop things in, press it to turn one up',
      attrs:['container'], layout:'grid', size:[3,4], phoneSize:[3,4],
-     onclick:'active', faceup:true, back:'lattice',
+     onclick:'active', faceup:false, back:'rider',
      seed:[{kind:'note', title:'Write on me'}], body:'' },
   /* ---- a fragment: one piece of a world -----------------------------------
      Ten types that only ever come up when you are building a world or telling

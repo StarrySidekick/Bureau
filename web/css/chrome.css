@@ -1971,6 +1971,111 @@ html .drawer.dtile.cltile{background-image:none}
 .outface .outarrow{position:absolute;top:50%;right:10px;transform:translateY(-50%);
   display:grid;place-items:center;opacity:.8}
 .outface .outarrow svg{stroke:currentColor}
+
+/* ---- a Link is a portal — decision 201 ----------------------------------
+   A link is the one thing on a board that is a way *out*, and the tile was a
+   coloured button with an arrow on it, which is what every button is. It is a
+   portal now: a dark well with a lit rim, the object's own colour in its
+   throat and the Magic Selector's violet round it, two swirls turning in it
+   in opposite directions at different speeds, and the face it sits on dusked
+   towards night so the glow has something to be a glow against.
+
+   Laid out off the tile's **own** shape, not its cell count: the tile is a
+   size container, so a long link has the portal at its left end and the name
+   beside it, a squarish one has the portal in the middle and the name under
+   it, and one cell square is the portal and nothing else (the name is on the
+   tooltip, which is what `sz-mini` means everywhere). Everything is sized in
+   `cqh`/`cqmin` off that container.
+
+   **The turning is compositor-only** — a `transform` on two pseudo-elements,
+   with the radial masks that shape them symmetrical, so a turned mask is the
+   same mask. Its phase is `--pt`, a negative delay read off the clock by
+   tiles.js, so a re-render does not start it again. Reduced motion stills it
+   and leaves the portal. */
+.drawer.btntile.outtile{container:portal / size}
+.drawer.btntile.outtile .btnface.outface{
+  --magic:#8B5CF6;--ps:min(calc(100cqh - 14px), 36cqw);
+  background-color:color-mix(in srgb, var(--c) 52%, #120A26);
+  background-image:
+    radial-gradient(closest-side circle at calc(7px + var(--ps) / 2) 50%,
+      color-mix(in srgb, var(--magic) 48%, transparent), transparent),
+    linear-gradient(90deg, rgba(10,4,24,.0), rgba(10,4,24,.28));
+  background-size:calc(var(--ps) * 2.4) 100%, 100% 100%;
+  background-position:calc(var(--ps) * -0.2 + 7px) 0, 0 0;
+  background-repeat:no-repeat;
+  padding-left:calc(var(--ps) + 18px);
+}
+.outface .portal{
+  position:absolute;left:7px;top:50%;width:var(--ps);height:var(--ps);
+  transform:translateY(-50%);border-radius:50%;pointer-events:none;
+  background:radial-gradient(circle closest-side,
+    #06020F 0 26%,
+    color-mix(in srgb, var(--c) 55%, #2A0F5C) 52%,
+    color-mix(in srgb, var(--magic) 80%, #fff) 80%,
+    #F3E8FF 88%,
+    color-mix(in srgb, var(--magic) 45%, transparent) 93%,
+    transparent 100%);
+  box-shadow:0 0 calc(var(--ps) * .22) color-mix(in srgb, var(--magic) 70%, transparent),
+             inset 0 0 calc(var(--ps) * .12) rgba(0,0,0,.6);
+}
+.outface .portal::before,.outface .portal::after{
+  content:'';position:absolute;inset:0;border-radius:50%;
+  animation:portalTurn 7s linear infinite;animation-delay:var(--pt, 0s);
+}
+/* the outer swirl: four lit arms, only in the throat — the mask keeps them off
+   the dark middle and inside the rim */
+.outface .portal::before{
+  background:conic-gradient(from 0deg,
+    transparent 0 6%, rgba(233,213,255,.8) 14%, transparent 26%,
+    rgba(196,181,253,.55) 38%, transparent 50%,
+    rgba(233,213,255,.8) 64%, transparent 76%,
+    rgba(196,181,253,.55) 88%, transparent 100%);
+  -webkit-mask:radial-gradient(circle closest-side, transparent 22%, #000 42%, #000 70%, transparent 80%);
+          mask:radial-gradient(circle closest-side, transparent 22%, #000 42%, #000 70%, transparent 80%);
+}
+/* the inner swirl turns the other way and slower, which is what makes two
+   rotating patterns read as a vortex rather than as a wheel */
+.outface .portal::after{
+  background:repeating-conic-gradient(from 20deg,
+    rgba(255,255,255,.22) 0 7deg, transparent 7deg 40deg);
+  -webkit-mask:radial-gradient(circle closest-side, transparent 8%, #000 18%, #000 44%, transparent 58%);
+          mask:radial-gradient(circle closest-side, transparent 8%, #000 18%, #000 44%, transparent 58%);
+  animation-name:portalTurnBack;animation-duration:11s;
+}
+@keyframes portalTurn{to{transform:rotate(360deg)}}
+@keyframes portalTurnBack{to{transform:rotate(-360deg)}}
+.outface b{position:relative;text-shadow:0 1px 6px rgba(10,4,24,.55)}
+.outface u{position:relative}
+/* a long link says more when it is taller */
+.drawer.btntile.outtile .outface b{font-size:clamp(13px, 18cqh, 20px)}
+.drawer.btntile.outtile .outface u{font-size:clamp(10px, 12cqh, 13px)}
+/* Squarish: the portal stands in the middle and the name is under it. */
+@container portal (max-aspect-ratio: 8/5){
+  .drawer.btntile.outtile .btnface.outface{
+    --ps:min(64cqmin, calc(100cqh - 46px));
+    align-items:center;justify-content:flex-end;text-align:center;
+    padding:6px 8px 8px;
+    background-size:100% 100%, 100% 100%;
+    background-position:0 0, 0 0;
+    background-image:
+      radial-gradient(closest-side circle at 50% calc(8px + var(--ps) / 2),
+        color-mix(in srgb, var(--magic) 48%, transparent), transparent 160%),
+      linear-gradient(180deg, rgba(10,4,24,.0), rgba(10,4,24,.28));
+  }
+  .outface .portal{left:50%;top:8px;transform:translateX(-50%)}
+  .outface .outarrow{display:none}
+  .drawer.btntile.outtile .outface b{font-size:clamp(12px, 9cqw, 20px)}
+  .drawer.btntile.outtile .outface u{font-size:clamp(10px, 6cqw, 13px)}
+}
+/* One cell square: the portal is the tile. */
+.drawer.btntile.outtile.sz-mini .btnface.outface{padding:0;--ps:calc(100cqmin - 10px)}
+.drawer.btntile.outtile.sz-mini .outface .portal{left:50%;top:50%;transform:translate(-50%,-50%)}
+.drawer.btntile.outtile.sz-mini .outface b,
+.drawer.btntile.outtile.sz-mini .outface u,
+.drawer.btntile.outtile.sz-mini .outface .outarrow{display:none}
+@media (prefers-reduced-motion: reduce){
+  .outface .portal::before,.outface .portal::after{animation:none}
+}
 .tilestars{font-size:12px;color:var(--dink);letter-spacing:1px;margin-top:2px}
 .tilestars span{opacity:.32}
 .counter{display:inline-flex;align-items:center;gap:10px}

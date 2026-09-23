@@ -1279,7 +1279,11 @@ function drawTileFace(o, arr, box, persp){
      line: a **control** at one cell is a push button, which is already a mark
      and already says its own state, and an anonymous disc would take the state
      away. See ctlSwitch(). */
-  if(box.w<=1 && box.h<=1 && !has(o,'control')){
+  /* …and two more since decision 201: a **deck** at one cell is still one
+     card, and a **Link** at one cell is its portal — both are already a mark,
+     and the anonymous stamp would be less of one. */
+  const onePortal = has(o,'button') && (!(o.link && o.link.target) || outURL(o.link.target));
+  if(box.w<=1 && box.h<=1 && !has(o,'control') && !(cont && faceOf(o)==='deck') && !onePortal){
     /* A calendar at one cell is still a calendar: the tear-off day pad — the
        month small, today big — not an anonymous mark. See decision 80. */
     if(cont && faceOf(o)==='calendar'){
@@ -2122,7 +2126,12 @@ function drawTileFace(o, arr, box, persp){
      height and left a slot. Decided by where it points, never by the type, so
      an invented type carrying `button` gets it too — and one pointing nowhere
      yet is drawn as the Link it is about to be, saying so, because pressing
-     it opens the editor to give it an address. See decision 194. */
+     it opens the editor to give it an address. See decision 194.
+     The `.portal` is the way through, drawn and turned by the stylesheet
+     alone. A render replaces it, so its phase is read off the clock the way
+     an instrument's is (decision 182) — a negative delay into a 77s cycle,
+     which both of its turns (7s and 11s) divide — and a board rebuilt under
+     it carries on turning rather than snapping back. Decision 201. */
   const tgt = o.link && o.link.target;
   if(has(o,'button') && (!tgt || outURL(tgt))){
     const to = tgt ? whereTo(tgt) : 'no address yet';
@@ -2130,6 +2139,7 @@ function drawTileFace(o, arr, box, persp){
       style="--c:${colour};${place}" title="${esc(to)}">
       ${chips}
       <span class="btnface outface" data-fire="${o.id}">
+        <i class="portal" aria-hidden="true" style="--pt:-${((Date.now()/1000) % 77).toFixed(2)}s"></i>
         <b>${esc(o.title||(o.link&&o.link.label)||'Link')}</b>
         <u>${esc(to)}</u>
         <i class="outarrow">${ic('arrow',14)}</i>

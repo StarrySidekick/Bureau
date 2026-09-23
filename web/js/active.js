@@ -111,9 +111,16 @@ const burnOf   = o => Math.min(1440, Math.max(5, Math.round(num(o.burn, 120))));
 const sidesOf  = o => (DICE.includes(o.sides) ? o.sides : 6);
 const clockOf  = o => (CLOCKS[o.clock] ? o.clock : 'wall');
 const DICE = [4, 6, 8, 10, 12, 20];
-/* Five card backs, drawn rather than named colours: a back is a *pattern*, and
-   the ink in all five is `--glow` so each aesthetic prints its own. */
+/* Six card backs, drawn rather than named colours: a back is a *pattern*.
+   The first is the **rider** — the fine filigree lattice off the back of a
+   Bicycle deck, in the deck's own colour inside a white margin — and it is the
+   default, because a deck of cards that does not look like one is a box. The
+   stylesheet draws it (`.dkback.bk-rider`): a lattice that fine is a repeating
+   tile rather than a drawing, and a tile keeps its grain at any card size where
+   a drawing would be stretched with the card. So its `art` is empty. The other
+   five are drawings whose ink is `--glow`, so each aesthetic prints its own. */
 const BACKS = {
+  rider:{nm:'Rider', art:''},
   lattice:{nm:'Lattice', art:`<g stroke="var(--glow)" stroke-width="1" opacity=".55">${
     Array.from({length:9},(_,i)=>`<path d="M${20+i*10} 22 L${20+i*10} 142"/>`).join('')}${
     Array.from({length:13},(_,i)=>`<path d="M18 ${24+i*10} L102 ${24+i*10}"/>`).join('')}</g>`},
@@ -416,37 +423,44 @@ const ACTIVE = {
      is stored rather than derived from the order. */
   deck: {
     nm:'Deck', vb:'0 0 120 160', kind:'deck', holds:true,
-    art(o){
+    /* **One card, and it fills its box.** The deck was two cards fanned out
+       under the top one, drawn in a 120×160 viewBox and letterboxed into
+       whatever box it stood in — a small picture of a stack floating in a
+       tile, reading as its outline twice. It is one card now, and HTML rather
+       than SVG, because the card has to *be* the box at any aspect while the
+       lattice on its back keeps its own grain instead of stretching with it.
+       The edge is the goal card's (decision 146) — the same die-cut corner,
+       the same concentric rule, the same linen tooth — because a goal and a
+       deck are the two cards on the desk and they should look as if they came
+       out of one box. How many cards there are is the index, in two opposite
+       corners, the way a goal's standing is. `html` beats `art` in
+       `activeArt()`. */
+    html(o){
       const kids = deckCards(o), n = kids.length;
       const top = deckTop(o), up = o.faceup !== false;
-      const back = BACKS[o.back] ? o.back : 'lattice';
-      /* Two cards peeking out from under the top one, so a deck reads as a
-         stack rather than as one card. Offset and turned a little, by a hash
-         of the deck's own id so the fan is the same on every render. */
-      const under = Math.min(2, Math.max(0, n - 1));
-      const pile = Array.from({length:under}, (_,i)=>
-        `<rect x="${10 + (i+1)*2.5}" y="${12 - (i+1)*2.5}" width="100" height="140" rx="9"
-          fill="var(--paper-2)" stroke="rgba(0,0,0,.22)" stroke-width="1.5"
-          transform="rotate(${(i%2?1:-1)*(1.6+i)} 60 82)"/>`).join('');
-      const faceArt = (!n)
-        ? `<text x="60" y="86" text-anchor="middle" font-size="12" opacity=".55"
-             fill="var(--ink, #2A2118)">Empty</text>`
+      const back = BACKS[o.back] ? o.back : 'rider';
+      const idx = `<span class="dkidx">${n}</span>`;
+      const inner = !n
+        ? `<span class="dkword dkempty">Empty</span>`
         : up
-        ? `<foreignObject x="16" y="18" width="88" height="128">
-             <div xmlns="http://www.w3.org/1999/xhtml" class="dkword">${
-               esc(String((top && top.title) || '').slice(0, 90))}</div>
-           </foreignObject>`
-        : BACKS[back].art;
-      return `<g class="dkBody">${pile}
-        <rect x="10" y="12" width="100" height="140" rx="9"
-          fill="${up ? 'var(--paper-2)' : 'currentColor'}"
-          stroke="rgba(0,0,0,.26)" stroke-width="1.5"/>
-        ${up ? '' : `<rect x="16" y="18" width="88" height="128" rx="6" fill="none"
-          stroke="var(--glow)" stroke-width="1.4" opacity=".7"/>`}
-        ${faceArt}
-        ${n ? `<text x="60" y="150" text-anchor="middle" font-size="9"
-          fill="${up ? 'var(--ink, #2A2118)' : 'var(--glow)'}" opacity=".6">${n}</text>` : ''}
-      </g>`;
+        ? `${idx}<span class="dkword">${esc(String((top && top.title) || '').slice(0, 90))}</span>${
+            idx.replace('dkidx', 'dkidx flip')}`
+        : `<i class="dkback bk-${back}">${back === 'rider'
+            /* the medallion a rider back has in its middle — a wheel, since
+               that is what the deck is named after */
+            ? `<svg class="dkmed" viewBox="0 0 40 40" aria-hidden="true">
+                <circle cx="20" cy="20" r="18" fill="var(--c)" stroke="#F7F3E8" stroke-width="1.4"/>
+                <circle cx="20" cy="20" r="15" fill="none" stroke="#F7F3E8" stroke-width=".6"/>
+                <circle cx="20" cy="20" r="10" fill="none" stroke="#F7F3E8" stroke-width="1.1"/>
+                <g stroke="#F7F3E8" stroke-width=".5">${Array.from({length:12}, (_,i)=>{
+                  const a = i*30*Math.PI/180;
+                  return `<path d="M20 20 L${(20+Math.cos(a)*10).toFixed(2)} ${(20+Math.sin(a)*10).toFixed(2)}"/>`;
+                }).join('')}</g>
+                <circle cx="20" cy="20" r="2" fill="#F7F3E8"/>
+              </svg>`
+            : `<svg class="dkpat" viewBox="16 18 88 128" preserveAspectRatio="xMidYMid slice"
+                aria-hidden="true">${BACKS[back].art}</svg>`}</i>`;
+      return `<i class="dkrule" aria-hidden="true"></i>${inner}`;
     },
     /* A press **cuts the deck**: a different card on top, picked at random and
        never the one already showing, because a cut that changes nothing reads
@@ -467,7 +481,7 @@ const ACTIVE = {
       + azRing(o.id, 'faceup', [[1,'Face up'],[0,'Face down']], o.faceup === false ? 0 : 1)
       + azSay('The back')
       + azRing(o.id, 'back', Object.entries(BACKS).map(([k,v])=>[k, v.nm]),
-          BACKS[o.back] ? o.back : 'lattice')
+          BACKS[o.back] ? o.back : 'rider')
       + `<div class="azrow" style="margin-top:14px">
           <button class="azchip azdo" data-adeck="add:${o.id}">Add a card</button>
           <button class="azchip azdo" data-adeck="deal:${o.id}">Deal the top one out</button>
@@ -595,6 +609,10 @@ const parOf = o => { const a = ACTIVE[actOf(o)]; return (a && a.par) || 'xMidYMi
 
 function activeArt(o, cls){
   const a = ACTIVE[actOf(o)]; if(!a) return '';
+  /* An instrument that has to fill its box rather than sit in the middle of
+     it is HTML, and says so with `html` — the deck, which is a card. */
+  if(a.html) return `<div class="actart dkcard dkBody ${o.faceup !== false ? 'up' : 'down'} ${cls||''}"
+    aria-hidden="true">${a.html(o)}</div>`;
   return `<svg class="actart ${cls||''}" viewBox="${vbOf(o)}"
     preserveAspectRatio="${parOf(o)}" aria-hidden="true">${a.art(o)}</svg>`;
 }
