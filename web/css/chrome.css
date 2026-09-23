@@ -5575,3 +5575,11 @@ input,textarea,select,[contenteditable],
 /* A Life drawer option that is born holding its board says so, under its
    name and quieter than it. See decision 195. */
 .lifeopt u{display:block;text-decoration:none;font-size:10px;font-weight:500;opacity:.66;margin-top:1px}
+/* A list of plans is thirty-three boards now (decision 196), and at 190px a
+   phone panel fits one to a row: fifteen project boards were a long scroll of
+   cards each the width of the screen. Two to a row on a narrow panel. */
+.plancard{min-width:0}
+@media (max-width:520px){
+  .deskmapgrid:has(> .plancard){grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .deskmapgrid:has(> .plancard) .plancard b{font-size:13px}
+}

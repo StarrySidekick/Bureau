@@ -193,7 +193,12 @@ const BUILTIN_KINDS = {
      percentage, because a bar at 60% against "Family" is a nonsense. Same
      machinery as a project with the one thing taken off that would lie.
      See decision 131. */
-  life:    {face:'life', nm:'Life drawer', ic:'target', c:12, key:'L', ds:'A part of your life rather than a piece of work — it is never finished',
+  /* **Wears a drawer front, for now** (decision 196). It wore `life` — a
+     drawing of the thing lying on the desk, or the project report without its
+     percentage — and Timothy asked for the plain front while the boards
+     inside are what the type is about. The face is still there to pick in the
+     editor, and a drawer that chose it keeps it. */
+  life:    {face:'front', nm:'Life drawer', ic:'target', c:12, key:'L', ds:'A part of your life rather than a piece of work — it is never finished',
      attrs:['text','container','relates'], asksLife:true,
      seed:[{kind:'generator', title:'Add to this…', sz:[8,2]}],
      layout:'grid', size:[5,5], phoneSize:[4,4], body:'' },
@@ -380,7 +385,7 @@ const BUILTIN_KINDS = {
      A world holds the people, places and things the stories are set in, and
      that distinction is why it stays: a character outlives the book they first
      appeared in. */
-  world:   {narrative:true, nm:'World',   ic:'star',    c:9, key:'F', ds:'The people, places and things a story is set in', size:[8,8], attrs:['text','container'], layout:'grid', body:'' },
+  world:   {narrative:true, nm:'World',   ic:'star',    c:9, key:'F', ds:'The people, places and things a story is set in', size:[8,8], attrs:['text','container'], layout:'grid', plan:'pl_stock_world', body:'' },
   /* Four things that are made of other things, and were being kept as notes
      because no type could hold anything. A film is a piece of work with a date
      and a shape, so it reports like a project; a novel and a short story are
@@ -407,6 +412,7 @@ const BUILTIN_KINDS = {
      ds:'A game, and everything it is made of',
      attrs:['text','container','date','progress','media','relates'],
      seed:[{kind:'generator', title:'Add to this game…', sz:[8,2]}],
+     plan:'pl_stock_game',
      layout:'grid', size:[6,8], phoneSize:[5,7], body:'' },
   song:    {face:'project', proj:'song', film:true, nm:'Song', ic:'music', c:10, key:';',
      ds:'A song, and everything it is made of',
@@ -417,6 +423,7 @@ const BUILTIN_KINDS = {
      ds:'Software, and everything it is made of',
      attrs:['text','container','date','progress','media','relates'],
      seed:[{kind:'generator', title:'Add to this app…', sz:[8,2]}],
+     plan:'pl_stock_application',
      layout:'grid', size:[5,5], phoneSize:[4,4], body:'' },
   artpiece:{face:'project', proj:'art', nm:'Art piece', ic:'image', c:12, key:'3',
      ds:'A painting, a print, a drawing — and the work behind it',
@@ -591,6 +598,8 @@ const BUILTIN_KINDS = {
         in from either, and it honestly is both — a thing you write and a piece
         of work you are making. `inFamily()` keeps it out of the flat list. */
      family:['project','film','novel','game','song','album','app','artpiece','trip','writing','script'],
+     // and the boards it offers beside them, the plans marked for a piece of work
+     boards:'project',
      famSub:'What is the work?',
      attrs:['text','container','date','progress','media','relates'],
      // born with a spawner inside it rather than a box bolted to its front:

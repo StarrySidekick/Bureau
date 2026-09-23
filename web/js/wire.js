@@ -129,21 +129,43 @@ function makeSorting(kind, tag){
    all happen in one place so they cannot drift. An empty answer is the way out
    — "no object, just a drawer" — and makes the plain reporting front.
    See decision 136. */
-function makeLife(kind, art){
+function makeLife(kind, planId){
+  /* **Born holding its board** (decisions 195 and 196). The question a Life
+     drawer asks is now *which board*, drawn as the boards themselves, and the
+     answer is a plan id rather than a drawing: the drawings stayed on the
+     picker for one version and are off the front (decision 196), and a plan's
+     `life` still names one so a front can wear it again. An empty answer is
+     the plain drawer it always was. */
+  return makeFromPlan(planId, kind||'life');
+}
+
+/* ---- a container, made already holding a board -----------------------
+   The one place a plan becomes a drawer: pressed on the desk, picked as the
+   answer to a Life drawer's question, or picked from a category's own list of
+   boards. The container is the plan's `of` kind unless the question named one,
+   named for the plan and in its colour, placed where the hold was, and the
+   plan stamped inside it with no seed beside it. One undo move for the lot,
+   with the Undo on the toast. See decisions 195 and 196. */
+function makeFromPlan(planId, kind, whereId){
   const at = pending.cell;
   closePanel();
+  const pl = planId ? planById(planId) : null;
+  const where = whereId || (at && at.parent) || homeFor((S.view==='drawer' && S.drawerId) || ROOT);
+  const ok = k => k && KINDS[k] && kindHas(k,'container') && !kindHas(k,'magic');
+  const kk = ok(kind) ? kind : (pl && ok(pl.of)) ? pl.of : 'drawer';
+  const box = create(kk, {parent:where, noSeed:!!pl});
+  if(pl){
+    box.title = pl.nm || '';
+    if(pl.c!=null) box.c = pl.c;
+    if(pl.life && LIFE_ART[pl.life]) box.lifeart = pl.life;
+  }
   pending.cell = at;
-  /* **Born holding its board** (decision 195). A part of a life with a plan
-     made for it lays that plan out inside, which is what a Life drawer was
-     always meant to be: the base station for that part, not an empty front
-     with its name on. The plan replaces the seed rather than landing on top of
-     it — its own spawners and lists are the way in. */
-  const pl = art ? plans().find(p=>p && p.life===art) : null;
-  const o = create(kind||'life', Object.assign(at?{parent:at.parent}:{}, pl?{noSeed:true}:{}));
-  if(art && LIFE_ART[art]){ o.lifeart=art; o.title=LIFE_ART[art].nm; o.c=LIFE_ART[art].c; }
-  placeAtPending(o);
-  if(pl) stampPlan(pl.id, o.id);
-  save(); render(); reveal(o.id);
+  placeAtPending(box);
+  const made = pl ? stampPlan(pl.id, box.id) : [];
+  pushUndo(pl ? 'Lay out a plan' : 'Make a drawer', [box].concat(made).map(o=>({add:o.id})));
+  save(); render(); reveal(box.id);
+  if(pl) toast(`${pl.nm||'A plan'}, laid out inside`, true);
+  return box;
 }
 
 /* An **achievement**, made out of the thing you finished. The plaque takes
@@ -1310,34 +1332,30 @@ function wire(){
          this work inside a drawer as well as on the desk. */
       const cell = pending.cell;
       const where = (cell && cell.parent) || (S.view==='drawer' && S.drawerId) || ROOT;
-      const pl = planById(pp.dataset.planput);
-      /* **On the desk a plan makes its own drawer** (decision 195). A board is
-         the base station for one thing, so the arrangement goes *inside* a
-         container of the kind it was made for — a Life drawer for Health, a
-         Film for a Short Film — placed where you pressed, named for the plan
-         and wearing its colour. Spilled loose across the desk it was nine
-         things in a heap with nothing to call them by. Inside a drawer it is
-         still laid out where you are standing, as before. */
-      let box = null;
-      if(pl && isDesk(where)){
-        const kk = (pl.of && KINDS[pl.of] && kindHas(pl.of,'container') && !kindHas(pl.of,'magic')) ? pl.of : 'drawer';
-        box = create(kk, {parent:where, title:pl.nm||'', noSeed:true});
-        if(pl.c!=null) box.c = pl.c;
-        if(pl.life && LIFE_ART[pl.life] && faceOf(box)==='life') box.lifeart = pl.life;
+      /* **On the desk a plan makes its own drawer** (decision 195): the
+         board goes inside a container of the kind it was made for, placed
+         where you pressed. Inside a drawer it is laid out where you are
+         standing, as before. */
+      if(isDesk(where) && planById(pp.dataset.planput)){
         pending.cell = cell;
-        placeAtPending(box);
-      }
-      const home = box ? box.id : where;
-      const made = stampPlan(pp.dataset.planput, home, box ? null : cell);
+        makeFromPlan(pp.dataset.planput, null, where);
+        return; }
+      const made = stampPlan(pp.dataset.planput, where, cell);
       pending.cell = null;
-      if(!made.length && !box){ toast('That plan is empty'); return; }
+      if(!made.length){ toast('That plan is empty'); return; }
       // one move, so ⌘Z takes the whole arrangement back off in one press
-      pushUndo('Lay out a plan', (box?[box]:[]).concat(made).map(o=>({add:o.id})));
+      pushUndo('Lay out a plan', made.map(o=>({add:o.id})));
       closePanel(); save(); render();
-      const top = box || made.filter(o=>o.parent===home)[0];
+      const top = made.filter(o=>o.parent===where)[0];
       if(top) reveal(top.id);
-      toast(box ? `${pl.nm||'A plan'}, laid out inside` : `Laid out ${made.length} thing${made.length===1?'':'s'}`, true);
+      toast(`Laid out ${made.length} thing${made.length===1?'':'s'}`, true);
       return; }
+
+    /* A board picked as the answer to a Life drawer's question, or from a
+       category's own list of boards: a container made holding it. */
+    const pm=t.closest('[data-planmake]');
+    if(pm){ const kind = (pm.closest('[data-makekind]')||{dataset:{}}).dataset.makekind;
+      makeFromPlan(pm.dataset.planmake, kind||null); return; }
 
     /* The little calendar. A day sets the day it sits on; a quick pill is the
        same write with the arithmetic done for you; the arrows walk the month

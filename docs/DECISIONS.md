@@ -8946,3 +8946,58 @@ the kind of mode this app usually avoids. The defence is Timothy's own standing
 note from 2026-09-22, *give me the option rather than the decision*, and that
 the two answers are each right for a different desk: one where drawers are
 places you go, and one where the size of a front is what it holds.
+
+## 196 · The whole list, and the Life drawer asks which board
+
+Timothy: *"let's add the rest of the projects, experiences, and aspects."* And
+two reports: Life drawers made from the picker came out empty, while projects
+worked; and *"for life drawers, just make the faces of them be the drawer face
+for now, not those vector drawings."*
+
+**Twenty-three more boards**, thirty-three in all, built the way decision 194
+built the ten. Parts of a life: Partner, Family, Friends, Communities, Home.
+Things you take in: Music, Visual Art, Games. Pieces of work: Feature Film,
+Play, Musical, TV Show, Short Story, Application, Blog Post, Website, Novel,
+Poem, Album, Game, Device, Fantasy World, and **Handmade Object**, which is the
+word offered for "physical object": a thing you make with your hands, which
+covers a chair, a quilt and a sculpture and does not sound like a category in
+a warehouse. Each plan now says which list it belongs in (`sec`: `life`,
+`experience`, `project`).
+
+**Why the Life drawers were empty.** Migration 37 put the ten stock plans on
+Timothy's desk at v1.82, before a plan said which part of a life it was for
+(`life`, added at v1.84). Projects worked because a type names its plan by id.
+**Migration 39** writes `life`, `sec` and `of` onto every stock plan by key
+(what a plan is *for*, never anything anybody arranged: boxes, names and
+contents are left alone) and adds the twenty-three.
+
+**The Life drawer asks which board, and shows the boards.** Its question was
+which of nine drawings to wear; with the drawings off the front it became the
+question that matters, and the answers are the plans marked `life` and
+`experience`, each drawn as the miniature it lays out, in two lists. No board,
+just a drawer, is still an answer. A plan somebody made themselves joins a
+list by carrying a `sec`.
+
+**The Project question offers boards beside the types.** A category may name
+`boards`; the Project category names `project`, and under its types is *Or
+start from a board*: every project plan, each making the container its plan is
+for (a Feature Film makes a Film, an Application an App, a Blog Post an Essay
+or post) already holding it. Types that hold a board by themselves: Film (Short
+Film), Song, Trip (Travel), Essay or post (Essay), Game, App (Application) and
+World (Fantasy World).
+
+**One place a plan becomes a drawer.** `makeFromPlan()` in wire.js is the desk
+press, the Life answer and the Project board: the kind, the name, the colour,
+the place under the hold, the stamp with no seed, one undo move, and the Undo
+on the toast.
+
+**A Life drawer wears a drawer front, for now.** The kind's face is `front`.
+The `life` face (the drawing, or the report without its percentage) is still
+in the editor's list of faces, a drawer that chose it keeps it, and a plan's
+`life` still names the drawing, so the front can wear it again when it is
+wanted.
+
+**A list of plans is grouped, and two to a row on a phone.** The Plans door
+draws Yours, then the three lists, each headed and counted; on a panel narrower
+than 520px a plan card is half the width, because fifteen project boards one
+to a row was a scroll the length of a book.

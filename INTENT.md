@@ -145,11 +145,7 @@ Writing Tool, Catalog.
 **First of it (v1.82, decision 194):** the ten stock plans were replaced by ten
 such boards (Health, Finances, Exercise, Nutrition, Travel, Films, Books, Short
 Film, Song, Essay), and two types were added for them, **Link** and
-**Review**. Still on his list, not built: Partner, Family, Friends,
-Communities, Home; Music, Visual art, Games; and the rest of the project kinds
-(feature film, play, musical, TV show, short story, application, blog post,
-website, novel, poem, album, game, device, fantasy world, physical object).
-The brain dump that sorts itself by kind is the biggest idea in the notes and
+**Review**. The rest of his list followed in decision 196. The brain dump that sorts itself by kind is the biggest idea in the notes and
 is not started.
 
 **Then (v1.84, decision 195), in his words:** Life and Project drawers were
@@ -158,6 +154,12 @@ made them"*, so they do now; a plan pressed on the desk makes its own drawer;
 a plan laid on a busy board moves as one. And *"the proportional drawer rule
 makes the layout system very wonky"*: proportional boards are a setting, **off
 by default**, and a container is screenfuls again.
+
+**Then (v1.86, decision 196):** the rest of the list is built, thirty-three
+boards in all. The Life drawer asks which board, drawn as the boards, and wears
+a plain drawer front for now; the Project question offers every project board
+under its types. Not on his list and still not started: the brain dump that
+sorts itself by kind.
 
 ## Deliberately not next
 

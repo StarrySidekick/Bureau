@@ -283,7 +283,13 @@ function familyPanel(cat){
   openPanel({key:'newobject', wide:true, back:()=>modalNewObject(),
     title:d.nm, sub:d.famSub || 'Which one?',
     body:()=>`<div class="kindgrid">${ks.map(k=>kindTile(k, true)).join('')}</div>
-      ${d.ds?`<div class="mini" style="--k:var(--brass);margin-top:12px">${esc(d.ds)}</div>`:''}`});
+      ${d.ds?`<div class="mini" style="--k:var(--brass);margin-top:12px">${esc(d.ds)}</div>`:''}${
+      /* **Or start from a board** (decision 196). A category may name the
+         `boards` it offers — the plans carrying that `sec` — and each makes
+         the container its plan is for, already holding it. A Film holds the
+         Short Film board by itself; a Feature Film is here. */
+      d.boards && plans().some(p=>p && p.sec===d.boards) ? `<div class="section-h" style="margin-top:14px"><h2>Or start from a board</h2><div class="rule"></div></div>
+        <div class="deskmapgrid">${plans().filter(p=>p && p.sec===d.boards).map(p=>planCard(p,'planmake')).join('')}</div>` : ''}`});
 }
 
 /* ---- a thing that turned out to be a project ---------------------------
@@ -315,16 +321,20 @@ function becomePanel(id, cat){
    is the one place both halves land, exactly as `makeSorting()` is for the
    sorting drawer. See decision 136. */
 function lifeFirstPanel(kind){
+  /* **Which board**, drawn as the boards (decision 196). It asked which of
+     nine drawings the drawer would wear; the drawings are off the front for
+     now, and the question worth asking is which part of a life this is the
+     base station for — so the answers are the plans made for one, as the
+     miniature each lays out, in two lists. A plan you made yourself joins
+     them by carrying a `sec`. */
   const k=K(kind);
-  openPanel({key:'newlife', title:k.nm, sub:'What part of your life?',
-    body:()=>`<div class="lifepick">${LIFE_KEYS.map(key=>{
-        const a=LIFE_ART[key];
-        return `<button class="lifeopt" data-newlife="${kind}:${key}" style="--k:${hexOf(a.c)}"
-            title="${esc(a.ds)}"><span class="lifeoptart">${lifeSVG(key)}</span>
-          <b>${esc(a.nm)}</b>${plans().some(p=>p && p.life===key) ? '<u>with its board</u>' : ''}</button>`;
-      }).join('')}</div>
-      <div class="mini" style="--k:var(--brass);margin-top:12px">Each is a drawing, so it takes the aesthetic's own colours. Put your own picture on it later and that wins — a life drawer carrying an image wears the image.</div>
-      <button class="subtle-btn" data-newlife="${kind}:" style="margin-top:10px">${ic('folder',12)} No object — just a drawer</button>`});
+  const of = sec => plans().filter(p=>p && p.sec===sec);
+  const row = (h, ps) => ps.length ? `<div class="section-h"><h2>${h}</h2><div class="rule"></div></div>
+      <div class="deskmapgrid">${ps.map(p=>planCard(p,'newlife',kind+':')).join('')}</div>` : '';
+  openPanel({key:'newlife', wide:true, title:k.nm, sub:'What part of your life is it for?',
+    body:()=>`${row('A part of your life', of('life'))}${row('Something you take in', of('experience'))}
+      <div class="mini" style="--k:var(--brass);margin-top:12px">Each is laid out inside the drawer the moment it is made, with room beside it for what you add.</div>
+      <button class="subtle-btn" data-newlife="${kind}:" style="margin-top:10px">${ic('folder',12)} No board, just a drawer</button>`});
 }
 
 /* ---- an achievement is picked, not written -----------------------------
@@ -374,7 +384,7 @@ function majors(homeId){
    nothing to walk. Drawn rather than listed for the same reason the type
    picker draws its types (decision 67): a list of names is not what you are
    choosing between when the thing you are choosing is an arrangement. */
-function planCard(p, act){
+function planCard(p, act, pre){
   const top = planTop(p);
   const far = (k, s)=> top.reduce((m,o)=>{const b=o.desk||{}; return Math.max(m,(b[k]||1)+(b[s]||1)-1)},0);
   const rows = Math.max(6, far('y','h'));
@@ -386,7 +396,7 @@ function planCard(p, act){
      twenty-four wide, so the width is measured the way the height already was
      and floored at a shelf, or a plan holding one tile would be drawn enormous. */
   const cols = Math.max(8, far('x','w'));
-  return `<button class="deskcard plancard" data-${act}="${p.id}">
+  return `<button class="deskcard plancard" data-${act}="${pre||''}${p.id}">
     <span class="deskmini" style="--dcols:${cols};--drows:${rows}">
       ${top.map(o=>{ const b=o.desk||{x:1,y:1,w:2,h:2};
         return `<i style="--k:${objColour(o)};grid-column:${b.x||1}/span ${b.w||1};grid-row:${b.y||1}/span ${b.h||1}"></i>`;
@@ -409,8 +419,13 @@ function plansPanel(){
       const c = byId(home);
       const where = home===ROOT ? 'the desk' : (c && c.title) || 'this drawer';
       if(!ps.length) return `<div class="mini" style="--k:var(--brass)">Nothing saved yet. Arrange a drawer the way you want it, open <b>its</b> editor with the brush in the bar, and press <b>Save as a plan</b>. Then it can be put down again anywhere — or given to a type, so every one you make opens fitted to it.</div>`;
-      return `<div class="deskmapgrid">${ps.map(p=>planCard(p,'planput')).join('')}</div>
-        <div class="mini" style="--k:var(--brass);margin-top:10px">Pressing one lays it out on <b>${esc(where)}</b>. Everything comes back unticked and undated — a plan carries what a thing <i>is</i>, never the record of having done it.</div>
+      /* Grouped by what each is the board for (decision 196): thirty-three
+         in one grid is a wall. Yours, which carry no `sec`, come first. */
+      const SECS = [[null,'Yours'],['life','A part of your life'],['experience','Something you take in'],['project','A piece of work']];
+      return `${SECS.map(([sec,h])=>{ const g = ps.filter(p=>(p.sec||null)===sec);
+          return g.length ? `<div class="section-h"><h2>${h}</h2><div class="rule"></div><span class="n">${g.length}</span></div>
+            <div class="deskmapgrid">${g.map(p=>planCard(p,'planput')).join('')}</div>` : ''; }).join('')}
+        <div class="mini" style="--k:var(--brass);margin-top:10px">${home===ROOT ? 'Pressing one on the desk makes a drawer of the right kind with the board inside it.' : `Pressing one lays it out on <b>${esc(where)}</b>.`} Everything comes back unticked and undated — a plan carries what a thing <i>is</i>, never the record of having done it.</div>
         <div class="section-h" style="margin-top:14px"><h2>Keeping them</h2><div class="rule"></div></div>
         <div class="rows">${ps.map(p=>`<div class="row">
           <span class="kindmark">${ic(p.ic||'grid',13)}</span>

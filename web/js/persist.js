@@ -18,7 +18,7 @@ import { stockPlans, RETIRED_KEYS } from './stockplans.js';
    Bureau is this phone running" is exactly the question you ask when a change
    appears not to have deployed. Shown in Settings, so it can be read off the
    device rather than guessed at. */
-const APP_VERSION = '1.85';
+const APP_VERSION = '1.86';
 const KEY = 'bureau.v1';
 const install = {deferred:null};   // the browser's install prompt, when one is on offer
 let saveTimer = null;
@@ -266,7 +266,7 @@ function rescalePhone(d, from, cols){
    skips all of them, an old backup replays only what it is missing. These
    used to be ad-hoc per-load mutations inside adopt(); a new repair that
    should run once belongs here, as the next numbered step. */
-const DATA_V = 38;
+const DATA_V = 39;
 const MIGRATIONS = [
   // Drawers and objects were two arrays and a drawer could not live inside
   // anything. foldDrawers also replays the old dense flow to give v1 drawers
@@ -999,6 +999,26 @@ const MIGRATIONS = [
       const sh = shelvesToHold(o, objs);
       if(sh.w>1 || sh.h>1) o.shelves = sh;
     });
+  }},
+  /* ---- the rest of the boards, and what the first ten forgot -----------
+     Migration 37 added the ten boards before they said what part of a life
+     they were for, which list they belong in, or (for Films and Books) that
+     they go in a Life drawer — so on a desk that had already run it, picking
+     Health for a Life drawer found no board and made an empty one. Those three
+     fields are *what the plan is for* rather than anything anybody arranges,
+     so they are written onto the stock plans by key; the boxes, names and
+     contents are left exactly as they are. Then the twenty-three that followed
+     (decision 196) are added, by key, once. */
+  {v:39, up(d){
+    const fresh = {};
+    stockPlans().forEach(p=>{ fresh[p.stock] = p; });
+    d.plans = d.plans || [];
+    d.plans.forEach(p=>{ const f = p && p.stock && fresh[p.stock]; if(!f) return;
+      p.life = f.life; p.sec = f.sec; p.of = f.of; });
+    const have = new Set(d.plans.map(p=>p && p.stock).filter(Boolean));
+    const gone = new Set(RETIRED_KEYS);
+    const add = stockPlans().filter(p=>!have.has(p.stock) && !gone.has(p.stock));
+    if(add.length) d.plans = d.plans.concat(add);
   }},
 ];
 function migrate(d){

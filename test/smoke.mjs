@@ -5768,7 +5768,9 @@ const PROP_OFF = () => { const b = document.createElement('button');
     const nap = ms => new Promise(r => setTimeout(r, ms));
     const S = BUREAU.state, out = {};
     const ps = BUREAU.plans().filter(p => p.stock);
-    out.tenOfThem = ps.length === 10;
+    // ten, then the twenty-three that followed (decision 196)
+    out.tenOfThem = ps.length === 33;
+    out.everyOneSaysWhichList = ps.every(p => ['life','experience','project'].includes(p.sec));
     out.everyOneNamed = ps.every(p => p.nm && p.ic && p.c != null);
     out.everyOneHasThingsOnIt = ps.every(p => BUREAU.planSize(p) > 0);
     // a plan is not an object: nothing on any board answers to one
@@ -5948,10 +5950,19 @@ const PROP_OFF = () => { const b = document.createElement('button');
       b.dataset[attr] = val; b.style.display = 'none';
       document.querySelector('#frame').appendChild(b); b.click(); b.remove(); };
     const had0 = new Set(S.objects.map(o => o.id));
-    pressIn('newlife', 'life:health');
+    pressIn('newlife', 'life:pl_stock_health');
     const life = S.objects.find(o => !had0.has(o.id) && o.lifeart === 'health');
     out.aLifeDrawerHoldsItsBoard = !!life
       && S.objects.some(o => o.parent === life.id && o.kind === 'calendar');
+    // …and wears a drawer front, not the drawing (decision 196)
+    out.aLifeDrawerWearsAFront = !!life && BUREAU.faceOf(life) === 'front';
+    // a board picked from the Project question makes the kind it is for
+    const had2 = new Set(S.objects.map(o => o.id));
+    pressIn('planmake', 'pl_stock_featurefilm');
+    const ff = S.objects.find(o => !had2.has(o.id) && o.title === 'Feature Film');
+    out.aProjectBoardMakesItsKind = !!ff && ff.kind === 'film'
+      && S.objects.filter(o => o.parent === ff.id).some(o => o.kind === 'script');
+    // and the Life question offers the boards, both lists of them
     // a plan pressed on the desk makes a drawer and goes in it
     S.view = 'desk'; S.drawerId = null; BUREAU.render(); await nap(150);
     const had1 = new Set(S.objects.map(o => o.id));
@@ -5988,7 +5999,7 @@ const PROP_OFF = () => { const b = document.createElement('button');
     out.switchingOffKeepsThePlace = !S.look.proportional
       && BUREAU.shelvesOf(big.id).w >= 2 && BUREAU.shelvesOf(big.id).h >= 2
       && far.desk.x === 13 && far.desk.y === 15;
-    [plain, film, life, box, busy, big].filter(Boolean).forEach(c => {
+    [plain, film, life, ff, box, busy, big].filter(Boolean).forEach(c => {
       S.objects.filter(o => o.parent === c.id).forEach(o => BUREAU.del(o.id));
       BUREAU.del(c.id); });
     S.undo = []; S.redo = []; BUREAU.render();
@@ -7715,7 +7726,9 @@ const PROP_OFF = () => { const b = document.createElement('button');
 
     // ---- a life drawer reports, and never claims to be finished -----------
     {
-      const l = put('life', {title:'Health'});
+      /* The face is asked for by name: a Life drawer wears a plain front
+         by default since decision 196, and the face is still there to pick. */
+      const l = put('life', {title:'Health', face:'life'});
       BUREAU.create('task', {parent:l.id, title:'Book the dentist'});
       BUREAU.render(); await nap(220);
       const t = tile(l.id);

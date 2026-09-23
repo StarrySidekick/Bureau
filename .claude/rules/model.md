@@ -333,6 +333,16 @@ and only then falls back to one box at a time; with screenfuls it also gives
 the container a screen of room beside a plan that fills its own. See decision
 195.
 
+**Thirty-three boards, in three lists, and one maker.** A plan's `sec` (`life`,
+`experience`, `project`) says which list it is drawn in: the Life drawer's
+question offers the first two as miniatures (`lifeFirstPanel()`), a category
+naming `boards` offers its list under its types (`familyPanel()`), and the
+Plans door groups by it. **Every** path that turns a plan into a drawer goes
+through `makeFromPlan()` in wire.js. Fields describing what a stock plan is
+*for* (`life`, `sec`, `of`) may be rewritten by a migration by key, as 39 did;
+anything a person could have arranged may not. A Life drawer's kind face is
+`front` since decision 196. See decision 196.
+
 **A type can be born with things inside it.** `seed:[{kind,title}]` on a kind
 makes those children when the container is created, placed at the top of its
 board rather than left to `ensureBox()`. One level only — a seeded child's own

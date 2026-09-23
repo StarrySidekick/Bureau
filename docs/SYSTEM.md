@@ -928,7 +928,10 @@ the start, `#tag` anywhere, and `!today` / `!tomorrow` / `!week`.
   on *this* screen, and a short handset gives twelve. `planCard()` draws the
   miniature at the plan's own measured width for the same reason; it drew every
   one on twenty-four, which put nine cards in ten in the left third of the card.
-- **Ten of them ship with the desk** — `stockplans.js`, each the base-station
+- **Thirty-three ship with the desk** (ten in decision 194, twenty-three more
+  in 196), in three lists: a part of a life, something you take in, a piece of
+  work. The first ten were:
+- `stockplans.js`, each the base-station
   board for one thing: Health, Finances, Exercise and Nutrition (a part of your
   life); Travel, Films and Books (something you take in); Short Film, Song and
   Essay (a piece of work). Each carries what to do next, a calendar of **its

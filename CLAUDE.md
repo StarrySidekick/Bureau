@@ -51,7 +51,11 @@ down on. **v1.84** (decision 195) made **proportional boards a setting, off
 by default** (so decisions 188–192 describe a mode, and a container is
 screenfuls unless it is on), gave Film, Song, Trip, Essay or post and seven
 kinds of Life drawer their board at birth, made a plan pressed on the desk
-build its own drawer, and made a plan move as one onto a busy board.
+build its own drawer, and made a plan move as one onto a busy board. **v1.86**
+(decision 196) built the rest of the list, **thirty-three boards** in three
+lists (`sec`), made the Life drawer ask *which board* and wear a plain front,
+put *Or start from a board* under the Project types, and routed every plan that
+becomes a drawer through `makeFromPlan()`.
 
 **Start here each session:** `docs/SYSTEM.md` is the reference for what Bureau is
 made of — objects, attributes, types, drawers, the grid, the surfaces, storage.
