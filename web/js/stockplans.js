@@ -70,6 +70,15 @@ function build(spec){
       id, parent, kind:s.k, title:s.t||'', body:s.body||'',
       tags:[], milestones:[], history:[], ord:objects.length
     }, s.set||{});
+    /* A list on one of these boards says what it is (decision 197): two
+       unnamed checklists side by side are two lists you open to tell apart.
+       Authoring shorthand — this is a spec being written out, not a type
+       being asked what it can do. */
+    if(s.k==='checklist' && parent===PLAN_ROOT && o.clhead==null) o.clhead='1';
+    /* …and what you type into one has no day until you give it one: a stage,
+       a film to watch and a part to buy are not due today, and a list whose
+       every line reads overdue tomorrow is a list you stop looking at. */
+    if(s.k==='checklist' && parent===PLAN_ROOT && o.undated==null) o.undated='1';
     if(s.b){
       const box = {x:s.b[0], y:s.b[1], w:s.b[2], h:s.b[3]};
       o.desk = box; o.phone = Object.assign({}, box);
@@ -77,9 +86,20 @@ function build(spec){
     objects.push(o);
     (s.kids||[]).forEach(k=>add(k, id));
   };
-  (spec.on||[]).forEach(s=>add(s, PLAN_ROOT));
+  /* **The bottom two rows are the way in** (decision 197). A board is eight
+     by fourteen on the screens it is used on (a Mac a window high, and every
+     iPhone since the X gives fourteen or fifteen), and the plans were authored
+     to twelve, from when a short handset set the height, so two rows stood
+     empty on every board. They hold the line a Project and a Life drawer used
+     to be seeded with, which a board that is the base station for something
+     needs most: somewhere to throw a thing before deciding where it goes. On a
+     screen shorter than fourteen it goes to the next screenful by itself. */
+  const inbox = spec.inbox===false ? [] :
+    [{k:'generator', t:'Add to this…', b:[1,13,8,2], set:{genKind:spec.inbox||'task', c:spec.c}}];
+  (spec.on||[]).concat(inbox).forEach(s=>add(s, PLAN_ROOT));
   objects.forEach(o=>{
-    if(typeof o.tracks==='string' && o.tracks[0]==='@') o.tracks = refs[o.tracks.slice(1)] || null;
+    ['tracks','into'].forEach(k=>{
+      if(typeof o[k]==='string' && o[k][0]==='@') o[k] = refs[o[k].slice(1)] || null; });
   });
   return {
     id: `pl_stock_${spec.key}`,
@@ -103,16 +123,24 @@ function build(spec){
 /* Shorthands for the things that recur, so a rule reads as the sentence the
    builder would have written. */
 const LABEL = (t, b, c)=>({k:'label', t, b, set:{c}});
-const SORTS = (t, filter, b, set)=>({k:'magic', t, b, set:Object.assign({filter}, set||{})});
-const MAKES = (t, kind, b, c)=>({k:'generator', t, b, set:{genKind:kind, c}});
+const MAKES = (t, kind, b, c, into)=>({k:'generator', t, b, set:into ? {genKind:kind, c, into} : {genKind:kind, c}});
+/* A drawer that is a list with its name on it: where a spawner on the same
+   board files what it makes (decision 197). It was a sorting drawer collecting
+   by type from this board, which showed a knob and nothing else, and could not
+   be filed into because a sorting drawer holds nothing. */
+const LIST = (t, ref, b, c)=>({k:'drawer', t, ref, b, set:{c, face:'checklist', clhead:'1', undated:'1', layout:'list'}});
 /* **This board**, as a rule. `@under` the plan's own root is re-pointed at the
    board it is put down on (`repointRules()` in plans.js), so a calendar or a
    sorting drawer in one of these collects what is inside *this* project and
    not everything on the desk. That is the whole difference between a board
    that is a base station and one that is a window onto the rest. */
 const HERE = {f:'@under', op:'is', v:PLAN_ROOT};
-const CAL = (t, b, c, view)=>({k:'calendar', t, b,
-  set:{c, calview:view||'month', filter:{rules:[{f:'date', op:'any'}, HERE]}}});
+/* Its face says what is coming by default (decision 197): a month of dots
+   says a day is busy and never with what, and the next thing is often next
+   month. `show` is `marks` where the month *is* the point (a habit's run),
+   `titles` for a week, and `agenda` otherwise. */
+const CAL = (t, b, c, view, show)=>({k:'calendar', t, b,
+  set:{c, calview:view||'month', calshow:show||'agenda', filter:{rules:[{f:'date', op:'any'}, HERE]}}});
 /* The way out: a Link to wherever the work actually happens. An https address
    opens the app itself on a phone that has it, which is why none of these
    use an app's own scheme. */
@@ -218,7 +246,7 @@ const SPECS = [
     ])},
     {k:'metronome', t:'Cadence', b:[4,4,3,4], set:{c:11, bpm:170}},
     {k:'hourglass', t:'Rest', b:[7,4,2,4], set:{c:12, mins:2}},
-    CAL('The month', [1,8,4,4], 7),
+    CAL('The month', [1,8,4,4], 7, 'month', 'marks'),
     {k:'drawer', t:'Routines', b:[5,8,4,2], set:{c:14}, kids:[
       {k:'note', t:'Warm-up'},
       {k:'note', t:'Strength A'},
@@ -233,7 +261,7 @@ const SPECS = [
      can decide. Recipes live in a drawer and are cards you write on. */
   {key:'nutrition', sec:'life', nm:'Nutrition', ic:'pot', c:11, of:'life', life:'nutrition', on:[
     LABEL('Eating', [1,1,8,1], 11),
-    CAL('This week', [1,2,8,3], 7, 'week'),
+    CAL('This week', [1,2,8,3], 7, 'week', 'titles'),
     {k:'checklist', t:'Groceries', b:[1,5,4,5], set:{c:6}, kids:[
       {k:'task', t:'Greens'},
       {k:'task', t:'Fruit'},
@@ -287,7 +315,7 @@ const SPECS = [
 
   /* Films: the list, a deck for the night you cannot pick, and a review for
      each one seen, which the Seen drawer collects off this board. */
-  {key:'films', sec:'experience', nm:'Films', ic:'film', c:9, of:'life', life:'films', on:[
+  {key:'films', sec:'experience', inbox:'note', nm:'Films', ic:'film', c:9, of:'life', life:'films', on:[
     LABEL('Films', [1,1,8,1], 9),
     {k:'checklist', t:'Watchlist', b:[1,2,5,5], set:{c:9}},
     {k:'deck', t:'Pick for me', b:[6,2,3,4], set:{c:10}, kids:CARDS([
@@ -295,8 +323,8 @@ const SPECS = [
       'Not in English', 'A documentary', 'A director you love, one you have not seen',
       'The one a friend keeps recommending'
     ])},
-    MAKES('Just watched…', 'review', [1,7,8,1], 13),
-    SORTS('Seen', {kinds:['review'], rules:[HERE]}, [1,8,4,4], {c:5, layout:'list'}),
+    MAKES('Just watched…', 'review', [1,7,8,1], 13, '@seen'),
+    LIST('Seen', 'seen', [1,8,4,4], 5),
     LINK('Letterboxd', 'https://letterboxd.com', [5,8,4,1], 9),
     LINK('Where to stream it', 'https://www.justwatch.com', [5,9,4,1], 9),
     LINK('Showtimes', 'https://www.fandango.com', [5,10,4,1], 9)
@@ -305,7 +333,7 @@ const SPECS = [
   /* Books: how far into this one, what is next, and two things you take out
      of a book — the lines worth keeping and what you made of it — each with a
      drawer that collects it off this board. */
-  {key:'books', sec:'experience', nm:'Books', ic:'book', c:11, of:'life', life:'books', on:[
+  {key:'books', sec:'experience', inbox:'note', nm:'Books', ic:'book', c:11, of:'life', life:'books', on:[
     LABEL('Reading', [1,1,8,1], 11),
     {k:'progressbar', t:'How far into it', b:[1,2,8,1], set:{c:11}},
     {k:'checklist', t:'To read', b:[1,3,5,4], set:{c:11}},
@@ -314,10 +342,10 @@ const SPECS = [
       'Under two hundred pages', 'Something you know nothing about',
       'A reread', 'Poems'
     ])},
-    MAKES('A line worth keeping…', 'quote', [1,7,4,1], 5),
-    MAKES('Just finished…', 'review', [5,7,4,1], 13),
-    SORTS('Quotes', {kinds:['quote'], rules:[HERE]}, [1,8,4,3], {c:5}),
-    SORTS('Finished', {kinds:['review'], rules:[HERE]}, [5,8,4,3], {c:13, layout:'list'}),
+    MAKES('A line worth keeping…', 'quote', [1,7,4,1], 5, '@quotes'),
+    MAKES('Just finished…', 'review', [5,7,4,1], 13, '@finished'),
+    LIST('Quotes', 'quotes', [1,8,4,3], 5),
+    LIST('Finished', 'finished', [5,8,4,3], 13),
     LINK('Library', 'https://www.libbyapp.com', [1,11,4,1], 9),
     LINK('The StoryGraph', 'https://app.thestorygraph.com', [5,11,4,1], 9)
   ]},
@@ -342,8 +370,8 @@ const SPECS = [
       {k:'task', t:'Sound and colour'},
       {k:'task', t:'Festivals and release'}
     ]},
-    {k:'question', t:'What is it about?', b:[5,3,4,2], set:{c:10}},
-    {k:'script', t:'Script', b:[5,5,4,3], set:{c:9, onclick:'write'}},
+    {k:'question', t:'What is it about?', b:[5,3,4,3], set:{c:10}},
+    {k:'script', t:'Script', b:[5,6,4,2], set:{c:9, onclick:'write'}},
     {k:'outline', t:'Beats', b:[1,8,4,2], set:{c:14}},
     {k:'moodboard', t:'Look book', b:[5,8,4,2], set:{c:13}},
     CAL('Shoot days', [1,10,4,3], 7),
@@ -386,8 +414,8 @@ const SPECS = [
     {k:'candle', t:'Sprint', b:[7,2,2,5], set:{c:3, burn:25}},
     {k:'outline', t:'Outline', b:[1,4,3,4], set:{c:14}},
     {k:'essay', t:'Draft', b:[4,4,3,4], set:{c:7, onclick:'write'}},
-    MAKES('A source…', 'quote', [1,8,8,1], 5),
-    SORTS('Sources', {kinds:['quote'], rules:[HERE]}, [1,9,4,3], {c:5}),
+    MAKES('A source…', 'quote', [1,8,8,1], 5, '@sources'),
+    LIST('Sources', 'sources', [1,9,4,3], 5),
     {k:'checklist', t:'Passes', b:[5,9,4,3], set:{c:6}, kids:[
       {k:'task', t:'Zero draft, just get it down'},
       {k:'task', t:'Structure'},
@@ -511,7 +539,7 @@ const SPECS = [
 
   /* ---- something you take in, continued ------------------------------- */
 
-  {key:'music', sec:'experience', nm:'Music', ic:'music', c:10, of:'life', on:[
+  {key:'music', sec:'experience', inbox:'note', nm:'Music', ic:'music', c:10, of:'life', on:[
     LABEL('Music', [1,1,8,1], 10),
     {k:'checklist', t:'To listen to', b:[1,2,5,4], set:{c:10}},
     {k:'deck', t:'Put something on', b:[6,2,3,4], set:{c:12}, kids:CARDS([
@@ -519,15 +547,15 @@ const SPECS = [
       'A genre you never play', 'What you loved at sixteen',
       'A live recording', 'Something a friend sent you'
     ])},
-    MAKES('Just heard…', 'review', [1,6,8,1], 13),
-    SORTS('Heard', {kinds:['review'], rules:[HERE]}, [1,7,4,4], {c:5, layout:'list'}),
+    MAKES('Just heard…', 'review', [1,6,8,1], 13, '@heard'),
+    LIST('Heard', 'heard', [1,7,4,4], 5),
     CAL('Gigs', [5,7,4,3], 7),
     LINK('Spotify', 'https://open.spotify.com', [5,10,4,1], 9),
     LINK('Gigs near me', 'https://www.songkick.com', [1,11,4,1], 9),
     LINK('Bandcamp', 'https://bandcamp.com', [5,11,4,1], 9)
   ]},
 
-  {key:'visual', sec:'experience', nm:'Visual Art', ic:'image', c:12, of:'life', on:[
+  {key:'visual', sec:'experience', inbox:'note', nm:'Visual Art', ic:'image', c:12, of:'life', on:[
     LABEL('Art', [1,1,8,1], 12),
     {k:'moodboard', t:'What stays with me', b:[1,2,5,4], set:{c:13}},
     {k:'deck', t:'Look closer', b:[6,2,3,4], set:{c:10}, kids:CARDS([
@@ -542,7 +570,7 @@ const SPECS = [
     LINK('The Met', 'https://www.metmuseum.org/art/collection', [5,11,4,1], 9)
   ]},
 
-  {key:'games', sec:'experience', nm:'Games', ic:'grid', c:14, of:'life', on:[
+  {key:'games', sec:'experience', inbox:'note', nm:'Games', ic:'grid', c:14, of:'life', on:[
     LABEL('Games', [1,1,8,1], 14),
     {k:'progressbar', t:'How far into it', b:[1,2,8,1], set:{c:14}},
     {k:'checklist', t:'Backlog', b:[1,3,5,4], set:{c:14}},
@@ -550,9 +578,9 @@ const SPECS = [
       'The one you stopped halfway', 'Something short', 'Co-op with a friend',
       'A board game night', 'A classic', 'The newest thing you own'
     ])},
-    MAKES('Just finished…', 'review', [1,7,5,1], 13),
+    MAKES('Just finished…', 'review', [1,7,5,1], 13, '@gfinished'),
     {k:'die', t:'Roll', b:[6,7,2,2], set:{c:14, sides:20}},
-    SORTS('Finished', {kinds:['review'], rules:[HERE]}, [1,8,5,3], {c:5, layout:'list'}),
+    LIST('Finished', 'gfinished', [1,8,5,3], 5),
     LINK('Backloggd', 'https://backloggd.com', [1,11,4,1], 9),
     LINK('BoardGameGeek', 'https://boardgamegeek.com', [5,11,4,1], 9)
   ]},
@@ -569,8 +597,8 @@ const SPECS = [
       {k:'task', t:'Edit'}, {k:'task', t:'Sound and music'}, {k:'task', t:'Colour'},
       {k:'task', t:'Festivals and distribution'}
     ]},
-    {k:'question', t:'What is it about?', b:[5,3,4,2], set:{c:10}},
-    {k:'script', t:'Screenplay', b:[5,5,4,3], set:{c:9, onclick:'write'}},
+    {k:'question', t:'What is it about?', b:[5,3,4,3], set:{c:10}},
+    {k:'script', t:'Screenplay', b:[5,6,4,2], set:{c:9, onclick:'write'}},
     {k:'outline', t:'Treatment', b:[1,8,4,2], set:{c:14}},
     {k:'drawer', t:'Characters', b:[5,8,4,2], set:{c:13}, kids:[
       {k:'character', t:'The lead'}, {k:'character', t:'Who is in the way'}
@@ -675,13 +703,13 @@ const SPECS = [
     {k:'question', t:'What is the one point?', b:[1,2,6,2], set:{c:10}},
     {k:'candle', t:'Sprint', b:[7,2,2,5], set:{c:3, burn:25}},
     {k:'essay', t:'Draft', b:[1,4,6,4], set:{c:7, onclick:'write'}},
-    MAKES('A link to cite…', 'quote', [1,8,8,1], 5),
+    MAKES('A link to cite…', 'quote', [1,8,8,1], 5, '@bsources'),
     {k:'checklist', t:'Before it goes up', b:[1,9,4,3], set:{c:6}, kids:[
       {k:'task', t:'Headline'}, {k:'task', t:'First line'}, {k:'task', t:'Pictures'},
       {k:'task', t:'Every link works'}, {k:'task', t:'Read it once more'},
       {k:'task', t:'Publish'}, {k:'task', t:'Tell people'}
     ]},
-    SORTS('Sources', {kinds:['quote'], rules:[HERE]}, [5,9,4,3], {c:5}),
+    LIST('Sources', 'bsources', [5,9,4,3], 5),
     LINK('Publish', 'https://substack.com', [1,12,4,1], 9),
     LINK('Tighten a sentence', 'https://hemingwayapp.com', [5,12,4,1], 9)
   ]},

@@ -55,7 +55,11 @@ build its own drawer, and made a plan move as one onto a busy board. **v1.86**
 (decision 196) built the rest of the list, **thirty-three boards** in three
 lists (`sec`), made the Life drawer ask *which board* and wear a plain front,
 put *Or start from a board* under the Project types, and routed every plan that
-becomes a drawer through `makeFromPlan()`.
+becomes a drawer through `makeFromPlan()`. **v1.87** (decision 197): boards are
+**eight by fourteen**, the bottom two rows an *Add to this…* line; a paste can
+lay out and fill a plan (`docs/examples/lived-in.json`, screenshotted by
+`test/lived-in.mjs`); calendars have a face setting, checklists can carry their
+name, spawners can file `into` a drawer, and a container can be `undated`.
 
 **Start here each session:** `docs/SYSTEM.md` is the reference for what Bureau is
 made of — objects, attributes, types, drawers, the grid, the surfaces, storage.
@@ -78,6 +82,7 @@ node test/smoke-only.mjs gravity    # one block of it, in seconds; --list names 
 node test/version.mjs         # CACHE, APP_VERSION and SHELL agree; the commit hook runs this too
 node test/scale-probe.mjs     # what a render costs as the desk fills up
 node scripts/catalogue.mjs out.html   # the specimen book, to a file (Settings opens it too)
+node test/lived-in.mjs        # the lived-in desk, every board screenshotted on both devices
 ```
 
 Open it over http, never as a `file://` URL — the service worker won't register

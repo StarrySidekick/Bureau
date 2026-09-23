@@ -5583,3 +5583,45 @@ input,textarea,select,[contenteditable],
   .deskmapgrid:has(> .plancard){grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
   .deskmapgrid:has(> .plancard) .plancard b{font-size:13px}
 }
+/* ---- decision 197: faces that say what they hold ----------------------
+   A list-faced front with its name on the top line, and how many are done. */
+.clhead{display:flex;align-items:baseline;gap:8px;padding:0 10px;
+  flex:0 0 calc(100%/var(--clrows,4));min-height:0;align-items:center;
+  border-bottom:1px solid var(--rule);font-family:var(--serif)}
+.clhead b{flex:1;min-width:0;font-size:13px;font-weight:700;color:var(--dink);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.clhead u{flex:0 0 auto;text-decoration:none;font-family:var(--sans);font-size:10px;
+  color:var(--dink-3);font-variant-numeric:tabular-nums}
+.cltile.cldense .clhead{padding:0 8px}
+.cltile.cldense .clhead b{font-size:11.5px}
+/* the day a line falls on, or the stars on a review, at the line's far end */
+.cline .cltext{flex:1;min-width:0}
+.cldue,.clstars{flex:0 0 auto;text-decoration:none;font-family:var(--sans);font-weight:500;
+  font-size:10px;color:var(--dink-3);font-variant-numeric:tabular-nums;white-space:nowrap}
+.cldue.late{color:#B4412F;font-weight:700}
+.clstars{letter-spacing:1px;color:var(--brass)}
+/* a thing you cannot tick wears its type's mark where the box would be */
+.clmark{flex:0 0 auto;width:min(38px,82%);display:grid;place-items:center;color:var(--dink-3)}
+/* a calendar's marks in the colours of the things on the day */
+.cday u.cmarks{display:flex;gap:2px;justify-content:center;margin-top:1px;letter-spacing:0}
+.cday u.cmarks s{display:block;width:5px;height:5px;border-radius:50%;background:var(--k);
+  box-shadow:0 0 0 1px rgba(255,255,255,.55)}
+/* the span and the list together: side by side when wide, stacked when tall */
+.caltile .dbody.calboth{display:flex;flex-direction:column;gap:4px;min-height:0}
+.caltile .dbody.calboth > .calgrid{flex:1 1 auto;min-height:0}
+.caltile .dbody.calboth > .calnext{flex:0 0 auto;justify-content:flex-start;padding:2px 2px 0;
+  border-top:1px solid rgba(255,255,255,.16)}
+.caltile .dbody.calboth.calside{flex-direction:row}
+.caltile .dbody.calboth.calside > .calgrid{flex:1 1 55%}
+.caltile .dbody.calboth.calside > .calnext{flex:1 1 45%;border-top:0;padding:0 0 0 8px;
+  border-left:1px solid rgba(255,255,255,.16)}
+/* the agenda face at any size carries its own name above the day */
+.calbig .calagcap{display:flex;flex-direction:column;line-height:1.2}
+.calbig .calagcap b{font-family:var(--serif);font-size:13px;color:var(--dink);font-weight:700;
+  overflow:hidden;text-overflow:ellipsis}
+.calbig .calrow{font-size:12.5px;padding:3px 0}
+.calbig .calrow u{font-size:10px}
+/* an answer wraps */
+.ansbox textarea{flex:1;min-width:0;border:0;background:none;outline:none;font:inherit;font-size:12.5px;
+  color:var(--ink);resize:none;padding:0;line-height:1.35;overflow:auto}
+.ansbox textarea::placeholder{color:var(--ink-3)}

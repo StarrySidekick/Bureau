@@ -9001,3 +9001,74 @@ wanted.
 draws Yours, then the three lists, each headed and counted; on a panel narrower
 than 520px a plan card is half the width, because fifteen project boards one
 to a row was a scroll the length of a book.
+
+## 197 · Living in the boards, and faces that say what they hold
+
+Timothy asked three things. Whether the boards used the whole grid, because a
+board is eight by fourteen and the bottom rows were empty. To fill some of the
+boards as if they were his, with his own goals in them, and use that to tune
+them. And which existing objects needed more to work in this paradigm, naming
+the calendar, whose face showed no information.
+
+**The rows.** The plans were authored to twelve on purpose, from decision 172's
+rule that a short handset gives twelve. Measured: fifteen on every current
+iPhone in a browser, fourteen on a Mac window 800 to 900 tall, twelve on an
+iPhone SE. So a board is authored to fourteen, and the two rows that were empty
+on every board hold **the way in**: an *Add to this…* line eight wide and two
+tall, which is the seed a Project and a Life drawer lost in decision 195, and
+the one thing a base station needs most (somewhere to throw a thing before
+deciding where it goes). On a phone shorter than the plan, looking for one
+clear place is skipped (the seam between screens would cut through it
+anywhere) and what crosses the seam moves on its own. The unmeasured row guess
+is fourteen, because a plan laid out from a Mac places its phone boxes against
+it, and at twelve every fourteen-row board scattered on the phone.
+
+**Living in them.** `docs/examples/lived-in.json` is eleven boards filled the
+way Timothy might fill them (Health, Money, Moving, Home, a short film called
+Low Tide, Magitiles, Bureau, his site, Films, Books, Games), pasted through
+**Paste in**, and `test/lived-in.mjs` screenshots each on both devices. To make
+it possible, a pasted drawer can name a **plan** and **fill** it: by the title
+of a thing on the board, a list of children goes into a container and an object
+sets what a person would have written or pressed there (an answer, a body, the
+ticks on a list by title, the dates on its lines by title, a link's address).
+That is also the bridge to Claude making boards: a board arrives lived in rather
+than as a heap of objects beside an empty one.
+
+What living in them showed, and what changed:
+
+- **A calendar said a day was busy and never with what**, and nothing past this
+  month. `calshow` on a calendar: *marks* (as it was, now in the colours of the
+  things on the day), *titles* (names in the cells at any size), *agenda* (the
+  list of what is coming, at any size) and *both* (the days and the list, side
+  by side on a wide face and stacked on a tall one). The stock boards use
+  agenda, except Exercise's month (marks: the ticks of a daily habit are the
+  chart of it) and Nutrition's week (titles). An agenda row says Today,
+  Tomorrow, the weekday within the week, and the date after that.
+- **Two unnamed lists side by side** (Parts and Build) are two lists you open to
+  tell apart. `clhead` puts a checklist's name on its top line with *n of m*
+  done, which is also the only place a ticked line still counts on the front.
+  Opt-in, because decision 79's argument (a label costs a line) still holds
+  for a lone list; the stock boards turn it on.
+- **A list without its dates is a list of names.** A line with a day says it at
+  the far end, late in red; a review says its stars; and a thing that cannot be
+  ticked wears its type's mark where the box would be.
+- **Everything was born on today**, so a watchlist of four films read "Today"
+  and would read overdue tomorrow. A container carrying `undated` makes what
+  goes into it with no day unless the maker said one. Every list on a stock
+  board is undated.
+- **"Just watched…" pressed reviews out onto the board**, where a base station
+  silts up. A spawner's `into` names a drawer it files into, carried through a
+  plan like `tracks`. The collectors (Seen, Quotes, Finished, Heard, Sources)
+  were sorting drawers, which showed a knob and could not be filed into; they
+  are plain drawers wearing the list face with their names on.
+- **A written answer read as its first five words.** The answer box is a
+  textarea as tall as the words, up to two lines on a two-tall tile and three
+  on a bigger one. The film boards' question is three tall.
+- **A bar reading a goal lit 3.3 of ten blocks.** A bar tracking something
+  counts in its steps: a goal's milestones, a checklist's lines.
+
+*Not done, and worth doing next:* a counter that starts again each day (water,
+no-spend days); a habit's history drawn as a year of squares; a goal with a
+number (three months of runway is a sum, not three milestones); and the brain
+dump that sorts itself by kind, which is the thing a board's *Add to this…*
+line is waiting for.

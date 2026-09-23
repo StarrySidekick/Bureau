@@ -522,6 +522,13 @@ function create(kind, patch){
     desk:null, phone:null,
     ord:Math.min(0,...S.objects.map(o=>o.ord||0))-1, created:T
   }, patch||{});
+  /* **A list can make things with no day** (decision 197). Everything that can
+     carry a date is born on today, which is right for a task you type onto a
+     board and wrong for a watchlist: four films filed "Today" read as overdue
+     the next morning. A container carrying `undated` makes what goes into it
+     without one, unless the maker said a day outright. */
+  { const par = o.parent && byId(o.parent);
+    if(par && par.undated && !(patch && 'due' in patch)) o.due = null; }
   if(kindHas(kind,'container')){
     /* **A container states its size on both boards the moment it exists**,
        even though only one of them is being looked at. Its own board is its

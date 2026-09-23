@@ -1,0 +1,331 @@
+[
+  {
+    "plan": "Health",
+    "title": "Health",
+    "fill": {
+      "Next appointment": {
+        "title": "Annual physical",
+        "due": "2026-10-14",
+        "body": "**Who —** Dr. Alvarez, the practice on Main\n\n**Bring —** insurance card, this list"
+      },
+      "Ask the doctor": {
+        "body": "**Since last time —** Lower back after long edit days\n\n**I want to ask —** Is the knee worth a scan?"
+      },
+      "Checkups": {
+        "dates": {
+          "Physical": "2026-10-14",
+          "Dentist cleaning": "2026-11-05",
+          "Eye exam": "2027-02-01"
+        }
+      },
+      "Records": [
+        {
+          "type": "note",
+          "title": "Vitamin D, 2000 IU",
+          "body": "Mornings. Started March."
+        }
+      ]
+    },
+    "children": [
+      {
+        "type": "task",
+        "title": "Refill the prescription",
+        "due": "2026-09-30"
+      }
+    ]
+  },
+  {
+    "plan": "Finances",
+    "title": "Money",
+    "fill": {
+      "Bills": {
+        "dates": {
+          "Rent": "2026-10-01",
+          "Phone": "2026-10-08",
+          "Internet": "2026-10-12",
+          "Credit card": "2026-10-20",
+          "Look over the month": "2026-09-30"
+        }
+      },
+      "Savings": {
+        "title": "Three months of runway",
+        "dead": "2026-12-31",
+        "milestones": [
+          "A first cushion"
+        ]
+      },
+      "No-spend days": {
+        "count": 6
+      },
+      "Your bank": {
+        "url": ""
+      }
+    },
+    "children": [
+      {
+        "type": "task",
+        "title": "Cancel the streaming service I never open",
+        "due": "2026-09-26"
+      },
+      {
+        "type": "task",
+        "title": "Invoice the September work",
+        "due": "2026-10-02",
+        "prio": 4
+      }
+    ]
+  },
+  {
+    "plan": "Exercise",
+    "title": "Moving",
+    "fill": {
+      "Move today": {
+        "due": "2026-09-23"
+      },
+      "Routines": [
+        {
+          "type": "note",
+          "title": "Tuesday run",
+          "body": "5k easy, strides at the end"
+        }
+      ]
+    },
+    "children": [
+      {
+        "type": "task",
+        "title": "Sign up for the Thanksgiving 10k",
+        "due": "2026-10-05"
+      },
+      {
+        "type": "event",
+        "title": "Turkey trot 10k",
+        "due": "2026-11-26"
+      }
+    ]
+  },
+  {
+    "plan": "Home",
+    "title": "Home",
+    "fill": {
+      "Chores": {
+        "dates": {
+          "Laundry": "2026-09-27",
+          "Clean the kitchen": "2026-09-25",
+          "Bins out": "2026-09-29",
+          "Change the sheets": "2026-10-03",
+          "Deep clean one room": "2026-10-11"
+        }
+      },
+      "Fix and maintain": {
+        "title": "Fix and maintain",
+        "dates": {
+          "Replace the air filter": "2026-10-15"
+        }
+      },
+      "Shopping": [
+        "Picture hooks",
+        "Descaler for the kettle"
+      ]
+    }
+  },
+  {
+    "plan": "Short Film",
+    "type": "Film",
+    "title": "Low Tide",
+    "fill": {
+      "What is it about?": "A night ferry pilot has one crossing left to decide whether he is staying.",
+      "Stages": {
+        "tick": [
+          "Logline",
+          "Script locked"
+        ],
+        "dates": {
+          "Shoot": "2026-10-24",
+          "Picture lock": "2026-11-30",
+          "Festivals and release": "2027-01-15"
+        }
+      },
+      "Beats": {
+        "body": "## I.\n- The last shift\n- The passenger who won't sit\n\n## II.\n- Fog\n- The radio\n\n## III.\n- The far dock"
+      }
+    },
+    "children": [
+      {
+        "type": "event",
+        "title": "Shoot day one, the dock",
+        "due": "2026-10-24"
+      },
+      {
+        "type": "event",
+        "title": "Shoot day two, the boat",
+        "due": "2026-10-25"
+      },
+      {
+        "type": "task",
+        "title": "Hire the gimbal",
+        "due": "2026-10-17"
+      },
+      {
+        "type": "link",
+        "title": "Review cuts",
+        "url": "https://frame.io"
+      }
+    ]
+  },
+  {
+    "plan": "Device",
+    "title": "Magitiles",
+    "fill": {
+      "What does it do?": "Touch tiles that sit together as one control surface. One big board to prove it, then a small chip in each tile.",
+      "Parts": {
+        "children": [
+          "ESP32-C3 modules for the tiles",
+          "Magnets"
+        ],
+        "tick": [
+          "Microcontroller"
+        ]
+      },
+      "Build": {
+        "tick": [
+          "Breadboard it",
+          "Firmware that blinks"
+        ]
+      }
+    },
+    "children": [
+      {
+        "type": "task",
+        "title": "First LVGL screen on the P4 board",
+        "due": "2026-10-04"
+      },
+      {
+        "type": "link",
+        "title": "Espressif docs",
+        "url": "https://docs.espressif.com"
+      }
+    ]
+  },
+  {
+    "plan": "Application",
+    "title": "Bureau",
+    "fill": {
+      "Who is it for, and what does it do?": "Me. A desk where each part of my life has its own board.",
+      "Build": {
+        "tick": [
+          "Sketch the screens",
+          "Prototype",
+          "The one feature that matters"
+        ]
+      },
+      "Repository": {
+        "url": "https://github.com/StarrySidekick/Bureau"
+      }
+    },
+    "children": [
+      {
+        "type": "task",
+        "title": "A brain dump that sorts itself",
+        "prio": 5
+      },
+      {
+        "type": "task",
+        "title": "Sync between my phone and the Mac",
+        "prio": 3
+      },
+      {
+        "type": "task",
+        "title": "Live in these boards for a week",
+        "due": "2026-09-30"
+      }
+    ]
+  },
+  {
+    "plan": "Website",
+    "title": "timothyvlangas.com",
+    "fill": {
+      "What is it for?": "Films, writing and the things I build, in one place I own.",
+      "Launch": {
+        "tick": [
+          "Domain"
+        ],
+        "dates": {
+          "Launch": "2026-12-01"
+        }
+      }
+    },
+    "children": [
+      {
+        "type": "task",
+        "title": "Export the posts off Squarespace",
+        "due": "2026-10-10"
+      }
+    ]
+  },
+  {
+    "plan": "Films",
+    "title": "Films",
+    "fill": {
+      "Watchlist": [
+        "Past Lives",
+        "Perfect Days",
+        "Close-Up",
+        "The Zone of Interest"
+      ],
+      "Seen": [
+        {
+          "type": "review",
+          "title": "Aftersun",
+          "rating": 5,
+          "due": "2026-09-14",
+          "body": "**What stayed with me —** The rave. Every cut back to it.\n\n**Who I would give it to —** Anyone with a dad."
+        }
+      ]
+    }
+  },
+  {
+    "plan": "Books",
+    "title": "Books",
+    "fill": {
+      "How far into it": {
+        "at": 6
+      },
+      "To read": [
+        "The Creative Act",
+        "Bird by Bird",
+        "Sculpting in Time"
+      ],
+      "Finished": [
+        {
+          "type": "review",
+          "title": "In the Blink of an Eye",
+          "rating": 5,
+          "due": "2026-09-02",
+          "body": "**What stayed with me —** The rule of six. Emotion first, always.\n\n**Who I would give it to —** Anyone who edits."
+        }
+      ]
+    }
+  },
+  {
+    "plan": "Games",
+    "title": "Games",
+    "fill": {
+      "Backlog": [
+        "Mario Kart World",
+        "Hollow Knight: Silksong"
+      ],
+      "How far into it": {
+        "at": 3
+      },
+      "Finished": [
+        {
+          "type": "review",
+          "title": "Donkey Kong Bananza",
+          "rating": 4,
+          "due": "2026-09-10",
+          "body": "**What stayed with me —** Punching through a whole mountain.\n\n**Who I would give it to —** Listed it on eBay the day I finished."
+        }
+      ]
+    }
+  }
+]

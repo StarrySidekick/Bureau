@@ -107,6 +107,8 @@ function planCopy(o, map, parent, from){
      own milestones when nothing is tracked, which is the right answer for a
      bar whose subject did not come along. */
   if(o.tracks) c.tracks = map[o.tracks] || null;
+  // where a spawner files what it makes is an id too (decision 197)
+  if(o.into) c.into = map[o.into] || null;
   return c;
 }
 
@@ -236,6 +238,7 @@ function stampPlan(planId, intoId, at){
     // the same re-pointing capture does, for the same reason: a bar put down
     // twice must read the copy beside it and not the first one
     if(o.tracks) c.tracks = map[o.tracks] || null;
+    if(o.into) c.into = map[o.into] || null;
     repointRules(c, v => v===PLAN_ROOT ? home : map[v]);
     /* **A drawer that came out of a plan rolls its own look, like any other.**
        `create()` gives every container its own knob, edge, grain and panelling
@@ -297,8 +300,16 @@ function stampPlan(planId, intoId, at){
      down, or across; or a taller tile when boards are proportional) and asked
      again. Only when that runs out does it fall back to one box at a time. */
   ['desk','phone'].forEach(dv=>{
-    let off = clearOffset(top, dv, home);
-    for(let tries=0; !off && tries<3 && growFor(top, dv, home); tries++) off = clearOffset(top, dv, home);
+    /* A plan taller than this phone's screenful cannot sit whole on one: the
+       seam between screens would cut through it wherever it went, so looking
+       for a place (and growing the drawer to find one) is wasted. It keeps
+       the places it was saved at and what crosses the seam moves on its own,
+       which on a fourteen-row plan and a twelve-row phone is the last line. */
+    const g0 = gridOf(dv, home);
+    const tall = top.reduce((m,o)=>{ const b=o[dv]; return b && b.y ? Math.max(m, b.y+b.h-1) : m; }, 0);
+    const seamed = dv==='phone' && tall > g0.shelfH;
+    let off = seamed ? null : clearOffset(top, dv, home);
+    if(!seamed) for(let tries=0; !off && tries<3 && growFor(top, dv, home); tries++) off = clearOffset(top, dv, home);
     if(off){
       top.forEach(o=>{ const b=o[dv]; if(b && b.w && b.x)
         o[dv] = Object.assign({}, b, {x:b.x+off.dx, y:b.y+off.dy}); });

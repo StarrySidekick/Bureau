@@ -343,6 +343,15 @@ through `makeFromPlan()` in wire.js. Fields describing what a stock plan is
 anything a person could have arranged may not. A Life drawer's kind face is
 `front` since decision 196. See decision 196.
 
+**A board is eight by fourteen, the bottom two rows the way in.** `build()` in
+stockplans.js appends the *Add to this…* spawner at `[1,13,8,2]` to every
+plan, and names and undates every top-level checklist (`clhead`, `undated`).
+`into` on a spawner is an id like `tracks` and is re-pointed through a plan the
+same way; `intoOf()` in tiles.js refuses a sorting drawer, which holds nothing.
+`undated` on a container is read by `create()` and nowhere else. A paste may
+carry `plan` and `fill`; `fillOne()` in persist.js is the list of what a fill
+may set, and nothing in it may arrange a board. See decision 197.
+
 **A type can be born with things inside it.** `seed:[{kind,title}]` on a kind
 makes those children when the container is created, placed at the top of its
 board rather than left to `ensureBox()`. One level only — a seeded child's own

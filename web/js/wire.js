@@ -10,7 +10,7 @@ import { applyLook, applyStyle, setLookVal, lookVal, STYLES, setSlot, objColour,
 import { toast, fits, setGridSize, toggleDone, spawnNext, del, delMany, delDrawer, undo, redo, pushUndo,
   pushSet, pushSets, setPin, togglePin, drawerForTag, create, spawnInto, randomThing,
   holdIt, unholdIt, unholdMany, undoToast, someKind, becomeKind , toggleFree } from './mutations.js';
-import { spinTo, pending, placeAtPending, tileTap, turnPage, clearPages } from './tiles.js';
+import { spinTo, pending, placeAtPending, tileTap, turnPage, clearPages, intoOf } from './tiles.js';
 import { bpmOf, minsOf, burnOf, sidesOf, metroGoing, startMetro, mindTheTime, actOf, deckTop } from './active.js';
 import { DECOR, LIFE_ART } from './decor.js';
 import { render, renderSoon, sizeGrid, toggleSettings, settingsPanel, reveal, goShelf, goShelfTo, deskMap } from './views.js';
@@ -2119,6 +2119,15 @@ function wire(){
          two different questions. `random` is resolved here and once, the way
          dispense() resolves it. */
       const kind = makesAnything(src) ? someKind() : genKindOf(src);
+      // a spawner that files into a drawer puts the line there (decision 197)
+      const dest = intoOf(src);
+      if(dest){
+        if(!fits(kind, dest.id)) return;
+        create(kind,{parent:dest.id, title:text});
+        e.target.value=''; save(); render(); toast(`Filed in ${dest.title||'the drawer'}`);
+        const el=document.querySelector(`[data-fieldfor="${src.id}"]`); el&&el.focus();
+        return;
+      }
       if(!fits(kind, src.parent)) return;
       const t=create(kind,{parent:src.parent, title:text});
       /* Land it directly beneath the field that made it, at the **type's**

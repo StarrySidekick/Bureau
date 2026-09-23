@@ -305,7 +305,12 @@ const gridOf = (device, cid)=>{
    The fallback is a nominal twelve rather than zero: the geometry has to be
    answerable before the first measurement, and sizeGrid() re-renders when the
    real number turns out to be different. */
-const SHELF_ROWS_GUESS = 12;
+/* Fourteen since decision 197: what a Mac window and every iPhone since the X
+   actually measure (fourteen or fifteen), and the height the stock boards are
+   authored to. It matters most for the device you are *not* on — a plan laid
+   out from a Mac places its phone boxes against this number, and at twelve a
+   fourteen-row board was taken to be taller than a phone and scattered. */
+const SHELF_ROWS_GUESS = 14;
 function shelfRows(device, cid){
   const d=device||dev();
   const m=MEASURE[d];

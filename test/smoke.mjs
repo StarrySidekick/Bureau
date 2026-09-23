@@ -5781,8 +5781,8 @@ const PROP_OFF = () => { const b = document.createElement('button');
     const boxes = p => p.objects.filter(o => o.parent === '__plan');
     out.everyPlanIsAShelf = ps.every(p => boxes(p).every(o =>
       o.desk && o.phone &&
-      o.desk.x + o.desk.w - 1 <= 8 && o.desk.y + o.desk.h - 1 <= 12 &&
-      o.phone.x + o.phone.w - 1 <= 8 && o.phone.y + o.phone.h - 1 <= 12));
+      o.desk.x + o.desk.w - 1 <= 8 && o.desk.y + o.desk.h - 1 <= 14 &&
+      o.phone.x + o.phone.w - 1 <= 8 && o.phone.y + o.phone.h - 1 <= 14));
     // and nothing on one overlaps anything else on it, per device
     const clear = (p, dv) => { const b = boxes(p).map(o => o[dv]);
       return b.every((a, i) => b.every((c, j) => i === j ||
@@ -5900,6 +5900,10 @@ const PROP_OFF = () => { const b = document.createElement('button');
        and nothing said the second half. */
     S.view = 'drawer'; S.drawerId = room.id;
     BUREAU.stampPlan(BUREAU.plans().find(p => p.stock === 'books').id, room.id);
+    /* The Books board files its quotes into a plain drawer since decision
+       197, so the sorting drawer this is about is put down by hand. */
+    const sorter = BUREAU.create('magic', {parent:room.id, title:'Every quote', filter:{kinds:['quote']}});
+    sorter.desk = {x:9, y:1, w:2, h:2}; sorter.phone = {x:9, y:1, w:2, h:2};
     BUREAU.render(); await nap(250);
     const q = BUREAU.create('quote', {parent:room.id, title:'A line worth keeping'});
     BUREAU.render(); await nap(120);
@@ -5943,7 +5947,9 @@ const PROP_OFF = () => { const b = document.createElement('button');
     const fk = S.objects.filter(o => o.parent === film.id);
     out.aFilmHoldsItsBoard = fk.some(o => o.kind === 'progressbar')
       && fk.some(o => o.kind === 'outlink');
-    out.andNotTheSeedToo = !fk.some(o => o.kind === 'generator');
+    // the board's own way in is there, and the type's seed is not
+    out.andNotTheSeedToo = !fk.some(o => o.kind === 'generator' && /film/i.test(o.title))
+      && fk.some(o => o.kind === 'generator' && o.title === 'Add to this…');
     out.withRoomBeside = (film.shelves || {}).w >= 2;
     // a Life drawer made for Health, through the question it asks
     const pressIn = (attr, val) => { const b = document.createElement('button');
@@ -6002,6 +6008,80 @@ const PROP_OFF = () => { const b = document.createElement('button');
     [plain, film, life, ff, box, busy, big].filter(Boolean).forEach(c => {
       S.objects.filter(o => o.parent === c.id).forEach(o => BUREAU.del(o.id));
       BUREAU.del(c.id); });
+    S.undo = []; S.redo = []; BUREAU.render();
+    return out;
+  });
+
+  /* --- a board that says what it holds (decision 197) -------------------
+     Fourteen rows, the bottom two a way in; a spawner that files into a
+     drawer; a list that makes things with no day; a list-faced front with its
+     name and its count and the day on each line; a calendar whose face lists
+     what is coming; an answer that wraps; and a paste that lays out a board and
+     fills it. */
+  const saysWhatItHolds = await page.evaluate(async () => {
+    const nap = ms => new Promise(r => setTimeout(r, ms));
+    const S = BUREAU.state, out = {};
+    const ps = BUREAU.plans().filter(p => p.stock);
+    const top = p => p.objects.filter(o => o.parent === '__plan');
+    out.fourteenRows = ps.every(p => Math.max(...top(p).map(o => o.desk.y + o.desk.h - 1)) === 14);
+    out.theBottomIsAWayIn = ps.every(p => top(p).some(o => o.kind === 'generator'
+      && o.desk.y === 13 && o.desk.h === 2 && o.desk.w === 8));
+    // a pasted board, filled by the titles of the things on it
+    const had = new Set(S.objects.map(o => o.id));
+    BUREAU.paste(JSON.stringify([{plan:'Films', title:'My films',
+      fill:{Watchlist:['Close-Up','Past Lives'], Seen:[{type:'review', title:'Aftersun', rating:5}]}}]), 'root');
+    const box = S.objects.find(o => !had.has(o.id) && o.parent === 'root');
+    const inside = id => S.objects.filter(o => o.parent === id);
+    const wl = box && inside(box.id).find(o => o.title === 'Watchlist');
+    const seen = box && inside(box.id).find(o => o.title === 'Seen');
+    out.aPasteLaysOutABoard = !!box && box.title === 'My films' && inside(box.id).length > 5;
+    out.andFillsItByTitle = !!wl && inside(wl.id).length === 2 && !!seen && inside(seen.id).length === 1;
+    // what goes into a list made undated has no day
+    out.aWatchlistIsUndated = !!wl && inside(wl.id).every(o => !o.due);
+    // the spawner files into Seen rather than onto the board
+    const sp = inside(box.id).find(o => o.kind === 'generator' && /watched/i.test(o.title));
+    out.theSpawnerFilesIntoSeen = !!sp && sp.into === seen.id;
+    S.view = 'drawer'; S.drawerId = box.id; BUREAU.render(); await nap(300);
+    const before = inside(seen.id).length;
+    const field = document.querySelector(`[data-fieldfor="${sp.id}"]`);
+    if(field){ field.value = 'Close-Up'; field.dispatchEvent(new KeyboardEvent('keydown', {key:'Enter', bubbles:true})); }
+    await nap(200);
+    out.aTypedLineLandsInIt = inside(seen.id).length === before + 1
+      && !inside(box.id).some(o => o.kind === 'review');
+    // the list-faced front carries its name, its count and its lines' days
+    BUREAU.render(); await nap(200);
+    const wt = document.querySelector(`#app .drawer[data-drawer="${wl.id}"]`);
+    out.aListSaysItsName = !!wt && !!wt.querySelector('.clhead b')
+      && wt.querySelector('.clhead b').textContent === 'Watchlist';
+    const st = document.querySelector(`#app .drawer[data-drawer="${seen.id}"]`);
+    out.aReviewWearsItsStars = !!st && !!st.querySelector('.clstars') && !st.querySelector('.clbox');
+    const dated = BUREAU.create('task', {parent:wl.id, title:'Dated one', due:'2030-01-02'});
+    BUREAU.render(); await nap(150);
+    out.aLineSaysItsDay = !!document.querySelector(`#app .drawer[data-drawer="${wl.id}"] .cldue`);
+    BUREAU.del(dated.id);
+    // a calendar that lists what is coming, past the end of this month
+    const cal = BUREAU.create('calendar', {parent:box.id, title:'Soon', calshow:'agenda',
+      filter:{rules:[{f:'date', op:'any'}, {f:'@under', op:'is', v:box.id}]}});
+    cal.desk = {x:9, y:1, w:4, h:4}; cal.phone = {x:1, y:1, w:4, h:4};
+    const fd = new Date(); fd.setDate(fd.getDate() + 40);
+    const fiso = `${fd.getFullYear()}-${String(fd.getMonth()+1).padStart(2,'0')}-${String(fd.getDate()).padStart(2,'0')}`;
+    const far = BUREAU.create('task', {parent:box.id, title:'Next month thing', due:fiso});
+    BUREAU.render(); await nap(200);
+    const ct = document.querySelector(`#app .drawer[data-drawer="${cal.id}"]`);
+    out.theAgendaListsWhatIsComing = !!ct && ct.classList.contains('calagenda')
+      && [...ct.querySelectorAll('.calrow b')].some(b => b.textContent === 'Next month thing');
+    cal.calshow = 'both'; BUREAU.render(); await nap(150);
+    const cb = document.querySelector(`#app .drawer[data-drawer="${cal.id}"]`);
+    out.bothIsTheDaysAndTheList = !!cb && !!cb.querySelector('.calgrid') && !!cb.querySelector('.calboth .calnext');
+    // an answer wraps
+    const q = BUREAU.create('question', {parent:box.id, title:'Why?', answer:'Because the long answer needs more than one line to be read at all'});
+    q.desk = {x:13, y:1, w:4, h:3}; BUREAU.render(); await nap(150);
+    const qa = document.querySelector(`#app .drawer[data-row="${q.id}"] textarea[data-answer]`);
+    out.anAnswerWraps = !!qa && +qa.getAttribute('rows') >= 2;
+    S.view = 'desk'; S.drawerId = null;
+    [q, far, cal].forEach(o => BUREAU.del(o.id));
+    const all = [], walk = id => S.objects.filter(o => o.parent === id).forEach(o => { walk(o.id); all.push(o.id); });
+    walk(box.id); all.forEach(id => BUREAU.del(id)); BUREAU.del(box.id);
     S.undo = []; S.redo = []; BUREAU.render();
     return out;
   });
@@ -9140,7 +9220,7 @@ const PROP_OFF = () => { const b = document.createElement('button');
     settingsHasDoors, settingsBack,
     wordsNotSource, deadlines, twoClauses, undoEverything, savesOnlyChanges,
     paletteKeys, editorKeys, pickerLeads, rollupsEverywhere, soundAndVision, keyboardBoard,
-    ranking, urgency, reachable, pensAndCorners, lyingBooks, plansWork, stockPlans, livedWith, boardsComeWith, listIsOneShelf, repeating, oneLock, scheduling, ownColour, addBox, calFaces,
+    ranking, urgency, reachable, pensAndCorners, lyingBooks, plansWork, stockPlans, livedWith, boardsComeWith, saysWhatItHolds, listIsOneShelf, repeating, oneLock, scheduling, ownColour, addBox, calFaces,
     lockedBoard, freeTraits, pageWrites, tickBoxes, readerFits, categories,
     specimenBook, deskObjects, camLife, camPhone, ownBoard, threeDrawings, fullScreen, openingIn, boards193, thisPass,
     dropsIn, keyframesRegistered, aesthetics, slotScoping, objectsDressed, grainSlots, tagged, drawnAesthetic, deeper, lookStage, statusBar, bindings, panelling, theSpray, tappingIsQuiet, decorations, pinboard, gravity

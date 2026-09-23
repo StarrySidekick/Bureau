@@ -1387,6 +1387,11 @@ const takesTyping = c => has(c,'spawn') && spawnByOf(c)==='type';
    else — a calendar layout on an ordinary drawer gets them too. */
 const CALVIEWS = {month:'Month', week:'Week', day:'Day'};
 const calViewOf = o => (o && o.calview) || K(o&&o.kind).calview || 'month';
+/* What a calendar's face shows — the span with marks, the span with titles,
+   the list of what is coming, or both. See decision 197. */
+const CALSHOWS = {marks:'The days, marked', titles:'The days, with names in them',
+                  agenda:'What is coming, as a list', both:'The days and what is coming'};
+const calShowOf = o => (o && CALSHOWS[o.calshow] && o.calshow) || K(o&&o.kind).calshow || 'marks';
 const weekStartOf = o => (o && o.weekStart) || K(o&&o.kind).weekStart || 'mon';
 const showsWeekends = o => ((o && o.weekends) ?? K(o&&o.kind).weekends) !== false;
 /* The days of the week a calendar draws, in the order it draws them. 0 is
@@ -2614,8 +2619,16 @@ function barPct(o){
    ten — a default rather than a rule, and the one number the type builder
    exposes. */
 const BAR_STEPS = 10;
+/* A bar reading something else counts in *its* steps when it has them
+   (decision 197): three milestones on a savings goal are three blocks, and a
+   bar of ten lighting 3.3 of them says less than one of three lit does. The
+   same for a checklist it reads: nine stages are nine blocks. */
+const trackedSteps = o => { const t = o && o.tracks && byId(o.tracks); if(!t) return 0;
+  if(has(t,'streak')) return 0;
+  if(isContainer(t)){ const n = allUnder(t).filter(x=>has(x,'check')).length; if(n) return n; }
+  return (t.milestones||[]).length; };
 const barSteps = o => Math.max(1, Math.min(60,
-  (o && o.steps) || K(o&&o.kind).steps || ((o && o.milestones||[]).length) || BAR_STEPS));
+  (o && o.steps) || K(o&&o.kind).steps || ((o && o.milestones||[]).length) || trackedSteps(o) || BAR_STEPS));
 // how many of them are lit, which is the percentage quantised to the blocks
 const barFilled = o => Math.round(barPct(o)/100 * barSteps(o));
 /* How the blocks are laid out in the box the tile was given. **Two to a cell
@@ -2748,7 +2761,7 @@ export { homeFor, ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds,
   KNOBSIZES, knobSizeOf, answered, marginOf, marginPlus, iconOf, TSIZES, textSizeOf, mediaTypeOf, isPicture,
   isMedia, isPlayable, acceptFor, acceptAny, MEDIA_EXT, isDecor,
   spawnByOf, genKindOf, takesTyping, showsAddBox, keepsDone, showsContainers,
-  CALVIEWS, calViewOf, weekStartOf, showsWeekends, calCols,
+  CALVIEWS, calViewOf, calShowOf, CALSHOWS, weekStartOf, showsWeekends, calCols,
   CL_FITS, clFit, setClFit, clPerCell,
   OPS, WHENS, whenISO, RULE_MAX, rulesOf, matchRule,
   ROLLS, rollup, SORTS, MANUAL, sortOf, childrenOf, beginPass, endPass, isAncestor,

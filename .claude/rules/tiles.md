@@ -773,3 +773,13 @@ removes, or the miniature will answer to it. **Which face at this size** is
 `faceAt(o, box)`, not `faceOf(o)`: a front one cell wide and taller than that
 is a pigeonhole unless the object named a face. A one-cell container keeps its
 knob, with its mark printed on it. See decision 193.
+
+
+**A calendar's face is a setting and a checklist may carry its name.**
+`calShowOf()` (marks, titles, agenda, both) decides the face at three cells a
+side and up; below that the pad and agenda faces are what they were. A
+checklist's `clhead` spends its top line on the name and *n of m*; each line
+says its day (`cldue`) or its stars, and a thing that cannot be ticked wears
+its type's mark instead of the box, because a box on a review would tick it.
+The answer box is a `<textarea>`: `gestures.js` already leaves one alone. See
+decision 197.

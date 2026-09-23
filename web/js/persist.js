@@ -6,6 +6,7 @@ import { render } from './views.js';
 import { renderSheet } from './sheet.js';
 import { closePanel } from './panels.js';
 import { stockPlans, RETIRED_KEYS } from './stockplans.js';
+import { plans, stampPlan } from './plans.js';
 
 /* ============================================================
    19b · persistence — everything stays on this device
@@ -18,7 +19,7 @@ import { stockPlans, RETIRED_KEYS } from './stockplans.js';
    Bureau is this phone running" is exactly the question you ask when a change
    appears not to have deployed. Shown in Settings, so it can be read off the
    device rather than guessed at. */
-const APP_VERSION = '1.86';
+const APP_VERSION = '1.87';
 const KEY = 'bureau.v1';
 const install = {deferred:null};   // the browser's install prompt, when one is on offer
 let saveTimer = null;
@@ -1315,11 +1316,65 @@ function kindFromName(n){
   const partial=KEYS.find(k=>k.startsWith(t)||t.startsWith(k));
   return partial||'note';
 }
-const SPEC_FIELDS=['body','due','dead','soft','till','done','count','rating','price','prio','loc','dur','url','repeat','rel'];
+const SPEC_FIELDS=['body','due','dead','soft','till','done','count','rating','price','prio','loc','dur','url','repeat','rel','answer'];
 
+/* **A pasted drawer can be a board** (decision 197). `plan` names one — by
+   its name, its stock key or its id — and the container is made the way
+   `makeFromPlan()` makes one: the plan's own kind unless `type` names a
+   container, no seed, the board stamped inside. `fill` then says what is *on*
+   that board, by the title of the thing it is about: a list of children goes
+   into a container ("Stages": ["Logline", …]), and an object sets what a
+   person would have written or pressed there — an answer, a body, the
+   ticks on a list, the tempo, a link's address. Nothing in it can arrange
+   the board; that is the plan's. This is what lets something outside Bureau
+   (Claude, a script, a note in another app) hand over a whole board already
+   lived in, rather than a heap of objects beside an empty one. */
+const planByWord = w => { const t=String(w||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+  if(!t) return null;
+  return plans().find(p=>p && (p.id===w || p.stock===t
+    || String(p.nm||'').toLowerCase().replace(/[^a-z0-9]/g,'')===t)) || null; };
+const FILL_FIELDS = ['answer','body','due','dead','soft','till','dur','prio','rating','count',
+  'bpm','mins','burn','sides','at','target','calview','calshow','loc'];
+function fillOne(o, v, tally){
+  if(!o || v==null) return;
+  const list = Array.isArray(v) ? v : Array.isArray(v.children) ? v.children : null;
+  if(list && isContainer(o)) list.forEach(c=>addSpec(c, o.id, tally));
+  if(Array.isArray(v) || typeof v!=='object') { if(typeof v==='string' && has(o,'answer')) o.answer=v; return; }
+  FILL_FIELDS.forEach(f=>{ if(v[f]!=null) o[f]=v[f]; });
+  if(v.title) o.title=String(v.title);
+  if(v.done!=null) o.done=!!v.done;
+  if(v.url && has(o,'button')) o.link=Object.assign({label:o.title||'Open'}, o.link, {target:String(v.url)});
+  // the ticks on a list, by the titles of the things ticked
+  if(Array.isArray(v.tick)) S.objects.filter(x=>x.parent===o.id && v.tick.includes(x.title))
+    .forEach(x=>{ x.done=true; x.doneAt=x.doneAt||D.iso(D.today()); });
+  if(Array.isArray(v.milestones) && Array.isArray(o.milestones))
+    o.milestones.forEach(m=>{ if(v.milestones.includes(m.t)) m.done=true; });
+  // a date on everything inside, by title: {"dates":{"Shoot":"2026-10-12"}}
+  if(v.dates && typeof v.dates==='object') S.objects.filter(x=>x.parent===o.id && v.dates[x.title])
+    .forEach(x=>{ x.due=v.dates[x.title]; });
+}
 function addSpec(spec, parentId, tally){
   if(spec==null) return;
   if(typeof spec==='string') spec={type:'task', title:spec};   // a bare line is a task
+  const pl = spec.plan ? planByWord(spec.plan) : null;
+  if(pl){
+    const said = spec.type||spec.kind ? kindFromName(spec.type||spec.kind) : null;
+    const ok = k => k && KINDS[k] && kindHas(k,'container') && !kindHas(k,'magic');
+    const kk = ok(said) ? said : ok(pl.of) ? pl.of : 'drawer';
+    const box = create(kk, {parent:parentId, noSeed:true, title:String(spec.title||spec.name||pl.nm||'Untitled')});
+    box.c = spec.colour||spec.color||(pl.c!=null ? pl.c : box.c);
+    if(pl.life) box.lifeart = pl.life;
+    const [dw,dh]=sizeOfKind(kk, dev());
+    box[dev()] = Object.assign({}, box[dev()]||{}, anySpot(dw,dh,dev(),parentId));
+    const made = stampPlan(pl.id, box.id);
+    tally.drawers++; tally.made.push(box.id, ...made.map(x=>x.id));
+    const inside = made.filter(x=>x.parent===box.id), all = made;
+    const find = t => { const k=String(t).toLowerCase();
+      return inside.find(x=>String(x.title||'').toLowerCase()===k) || all.find(x=>String(x.title||'').toLowerCase()===k); };
+    Object.entries(spec.fill||{}).forEach(([t,v])=>fillOne(find(t), v, tally));
+    (Array.isArray(spec.children)?spec.children:[]).forEach(c=>addSpec(c, box.id, tally));
+    return box;
+  }
   const asked=kindFromName(spec.type||spec.kind);
   const kids=Array.isArray(spec.children)?spec.children:[];
   // something with children has to be able to hold them
@@ -1327,6 +1382,8 @@ function addSpec(spec, parentId, tally){
   const o=create(kind,{parent:parentId, title:String(spec.title||spec.name||'Untitled')});
   if(spec.tags) o.tags=[].concat(spec.tags).map(String);
   SPEC_FIELDS.forEach(f=>{ if(spec[f]!=null) o[f]=spec[f]; });
+  // a Link keeps its address where the Link reads it
+  if(spec.url && has(o,'button')) o.link=Object.assign({label:o.title||'Open'}, o.link, {target:String(spec.url)});
   if(spec.colour||spec.color) o.c=spec.colour||spec.color;
   if(spec.shape) o.shape=spec.shape;
   if(spec.face)  o.face=spec.face;

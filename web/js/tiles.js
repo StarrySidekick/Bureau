@@ -8,7 +8,7 @@ import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, chi
   knobSizeOf, answered, sortOf, spanOf, coversDay, lateOn, isLate, iconOf, textSizeOf,
   isPicture, isMedia, isPlayable, isDecor, mediaTypeOf, frameOf, isWindow,
   boardLocked, prioOf, repeatSaid, urgencyOf, urgeSaid, durSaid, standsProud, shelfDepth, bookDepth, faceCue, anyFaceCue,
-  calViewOf, weekStartOf, calCols, borderOf, textureOf, marginOf, isFragmentKind, gravityOn,
+  calViewOf, calShowOf, weekStartOf, calCols, borderOf, textureOf, marginOf, isFragmentKind, gravityOn,
   groupOf, sealOf, isSealed } from './model.js';
 import { CELL, gridOf, drawCols, drawRows, lay, overlaps, boxOk, freeSpot, anySpot, roomFor, gridRows, sizeOfKind, sideways, innerOf,
   ensureBox, shelfRows, shelfOrigin, shelfAt, colsOf } from './grid.js';
@@ -192,7 +192,7 @@ function calFace(o, titles){
     const said = titles
       ? on.slice(0,2).map(x=>`<em>${esc(x.title||'Untitled')}</em>`).join('')
         + (n>2?`<u>+${n-2}</u>`:'')
-      : n?`<u>${n>3?'•••':'•'.repeat(n)}</u>`:'';
+      : n?`<u class="cmarks">${on.slice(0,3).map(x=>`<s style="--k:${objColour(x)}"></s>`).join('')}</u>`:'';
     cells.push(`<i class="cday${iso===T?' today':''}${n?' has':''}${
         month!=null&&dt.getMonth()!==month?' out':''}" data-calday="${o.id}:${iso}">
       <b>${dt.getDate()}</b>${said}</i>`);
@@ -304,7 +304,7 @@ const calBorder = (o, snug) => `${snug?' calsnug':''}${
 /* An agenda row: when first, then what — a calendar's own order of asking. */
 const calRow = x => `<span class="calrow${isLate(x)&&!coversDay(x,T)?' late':''}" data-row="${x.id}"
   title="${esc(x.title||'Untitled')}">
-  <u>${coversDay(x,T)?'Today':esc(D.short(x.due))}</u><b>${esc(x.title||'Untitled')}</b></span>`;
+  <u>${coversDay(x,T)?'Today':esc(D.human(x.due))}</u><b>${esc(x.title||'Untitled')}</b></span>`;
 
 /* What a click on an object does. The editor is no longer the default — it
    lives on the context menu. `onclick` is per-object, falling back to the
@@ -349,6 +349,18 @@ function dispense(g){
   const kind = makesAnything(g) ? someKind() : genKindOf(g);
   // a press on a full shelf makes nothing and says why — decision 141
   if(!fits(kind, g.parent)) return;
+  /* **A spawner can file into a drawer** (decision 197). What it makes goes
+     straight into `into` — "Just watched…" into Seen — rather than landing
+     beside it on the board, where a base station would silt up with reviews.
+     The drawer the thing lands in says so, the way a filing does. */
+  const dest = intoOf(g);
+  if(dest){
+    if(!fits(kind, dest.id)) return;
+    create(kind,{parent:dest.id});
+    save(); render();
+    toast(`Filed in ${dest.title||'the drawer'}`);
+    return;
+  }
   const dir=g.genDir||'down';
   const o=create(kind,{parent:g.parent});
   const dv=dev(), b=lay(g), [w,h]=sizeOfKind(kind, dv, g.parent);
@@ -365,6 +377,11 @@ function dispense(g){
   if(el){ el.classList.add('swallow'); setTimeout(()=>el.classList.remove('swallow'),420); }
   toast(`Made a ${K(kind).nm.toLowerCase()}`);
 }
+/* Where a spawner files what it makes: a drawer that holds (a sorting drawer
+   holds nothing), still on the desk, and not the spawner's own ancestor chain
+   gone missing. Null means "beside me on the board", which is what it was. */
+const intoOf = g => { const d = g && g.into && byId(g.into);
+  return d && isContainer(d) && !has(d,'magic') ? d : null; };
 function fireButton(o){
   const tg=o.link&&o.link.target;
   if(!tg){ objectPanel(o.id); return; }
@@ -1416,7 +1433,16 @@ function drawTileFace(o, arr, box, persp){
        type and the box to suit. See decision 140. */
     const per=clPerCell();
     const rows=Math.max(1, (box.h|0) * per);
-    const shown=items.filter(x=>!x.done).slice(0, Math.max(1, rows-(adds?1:0)));
+    /* **Its name, when it asks** (decision 197). A front spending a line on a
+       label is a front showing one less task (decision 79), and that is still
+       the default — but on a board that is the base station for something, two
+       unnamed lists side by side ("Parts" and "Build") are two lists you have
+       to open to tell apart. `clhead` puts the name on the top line with how
+       many of how many are done, which is also the only place a ticked line
+       still counts for anything on the front. */
+    const head = !!o.clhead && rows>=2;
+    const ticks = items.filter(x=>has(x,'check')), doneN = ticks.filter(x=>x.done).length;
+    const shown=items.filter(x=>!x.done).slice(0, Math.max(1, rows-(adds?1:0)-(head?1:0)));
     /* With nothing to show the front is a label again: a stack of zero lines
        is an anonymous coloured square — and so is the picker's sample. */
     if(!shown.length && !adds){
@@ -1441,14 +1467,25 @@ function drawTileFace(o, arr, box, persp){
             drawer up. The words fall through to the tile, which is what gives
             a checklist front its drag back. */''}
       <div class="dbody"><div class="clist">
+        ${head?`<span class="clhead"><b>${esc(o.title||'Untitled')}</b>${
+          ticks.length?`<u>${doneN} of ${ticks.length}</u>`:`<u>${items.length}</u>`}</span>`:''}
         ${adds?`<label class="cladd">${ic('plus',11)}
           <input data-contadd="${o.id}" placeholder="Add a ${esc(made)}…"></label>`:''}
+        ${/* A line says **when**, when the thing has a day (decision 197): a
+              list of bills or chores without their dates is a list of names.
+              And a thing you cannot tick — a review, a quote, a note filed in
+              a list-faced drawer — wears its type's mark where the box goes,
+              because a box on it would tick something that is not a task. */''}
         ${shown.map(x=>
         `<span class="cline" data-pluck="${x.id}"
            title="${esc(x.title||'Untitled')}">
-           <i class="clbox" data-check="${x.id}"
-              title="Tick it — or hold it to take it out"></i>${
-           nameField(x, 'cltext')}</span>`).join('')
+           ${has(x,'check')
+             ? `<i class="clbox" data-check="${x.id}"
+              title="Tick it — or hold it to take it out"></i>`
+             : `<i class="clmark">${ic(K(x.kind).ic,12)}</i>`}${
+           nameField(x, 'cltext')}${
+           has(x,'rating')&&x.rating ? `<u class="clstars">${'★'.repeat(x.rating)}</u>`
+           : x.due ? `<u class="cldue${isLate(x)?' late':''}">${esc(D.human(x.due))}</u>` : ''}</span>`).join('')
         || `<span class="clempty">Nothing yet — type above</span>`}</div></div>
       ${handles}
     </${adds?'div':'button'}>`;
@@ -1784,10 +1821,31 @@ function drawTileFace(o, arr, box, persp){
         ${handles}
       </button>`;
     }
+    /* **What the face shows is a setting** (decision 197): `calshow`, per
+       calendar then per type. *Marks* is what it always was — the span, with a
+       coloured mark on each busy day. *Titles* prints the names in the cells
+       at any size. *Agenda* is the list of what is coming, at any size, which
+       is the one that says something when the next thing is next month. *Both*
+       is the span and the list together, side by side on a wide face and one
+       above the other on a tall one. A month of dots told you a day was busy
+       and never with what, and a calendar on a board that is the base station
+       for something is mostly asked "what is next". */
+    const show = calShowOf(o);
+    if(show==='agenda'){
+      const soon=calSoon(o, Math.max(2, Math.floor((box.h-1)*2.2)));
+      return `<button class="drawer dtile caltile calagenda calbig${sel}${calBorder(o,true)}"
+          data-drawer="${o.id}" title="${esc(o.title||'Untitled')}" style="--c:${colour};--crows:${box.h};${place}">
+        <div class="calagtop">${calPad(o)}
+          <span class="calagcap"><b>${esc(o.title||'Untitled')}</b>${esc(D.today().toLocaleDateString(undefined,{weekday:'long'}))}</span></div>
+        <div class="calnext">${soon.map(calRow).join('') || '<span class="calquiet">Nothing coming up</span>'}</div>
+        ${handles}
+      </button>`;
+    }
     /* Words need a day cell about 90px wide: twelve desk cells across seven
        days. A phone board is at most ten columns, so the planner is a desk
-       face by arithmetic rather than by rule. */
-    const planner = box.w>=12 && box.h>=6;
+       face by arithmetic rather than by rule — unless the face was told to. */
+    const planner = show==='titles' || (box.w>=12 && box.h>=6);
+    const both = show==='both', side = both && box.w >= box.h*1.5;
     const at=D.parse(o.month||T)||D.today(), view=calViewOf(o);
     const cap = view==='day' ? at.toLocaleDateString(undefined,{weekday:'long',day:'numeric'})
       : at.toLocaleDateString(undefined, view==='week'?{month:'short',day:'numeric'}:{month:'long'});
@@ -1796,7 +1854,9 @@ function drawTileFace(o, arr, box, persp){
       <div class="dtop"><span class="dname">${esc(o.title||'Untitled')}</span>
         ${rollTag(o)}
         <span class="clcount">${esc(cap)}</span></div>
-      <div class="dbody">${calFace(o, planner)}</div>
+      <div class="dbody${both?` calboth${side?' calside':''}`:''}">${calFace(o, planner)}${
+        both ? `<div class="calnext">${calSoon(o, side ? Math.max(3, box.h*2) : Math.max(2, box.h))
+          .map(calRow).join('') || '<span class="calquiet">Nothing coming up</span>'}</div>` : ''}</div>
       ${handles}
     </button>`;
   }
@@ -2252,10 +2312,16 @@ function drawTileFace(o, arr, box, persp){
            placeholder="Anything else…">${esc(o.body||'')}</textarea></div>`
       : has(o,'text')&&o.body?`<div class="dbody"><div class="tiletext">${esc(plain(o.body).slice(0,BODY_ON_FACE))}</div></div>`:'<div class="dbody"></div>'}
     ${bits.length?`<div class="dfoot"><span class="tilemeta">${bits.join(' · ')}</span></div>`:''}
+    ${/* **An answer wraps** (decision 197). It was a one-line input, so a
+          logline written into "What is it about?" read as its first five
+          words and an ellipsis — the answer is the thing a question on a
+          board exists to hold. A textarea as many lines as the words need,
+          up to three, and scrolls past that. */''}
     ${asks?`<label class="ansbox">
       <i>${answered(o)?ic('check',11):ic('help',11)}</i>
-      <input data-answer="${o.id}" value="${esc(o.answer||'')}"
-        placeholder="${answered(o)?'':'Write the answer…'}"></label>`:''}
+      <textarea data-answer="${o.id}" rows="${Math.max(1, Math.min((box.h||2)>=3 ? 3 : 2,
+          Math.ceil(String(o.answer||'').length / Math.max(8, (box.w||4)*7))))}"
+        placeholder="${answered(o)?'':'Write the answer…'}">${esc(o.answer||'')}</textarea></label>`:''}
     ${handles}
   </${raw?'div':'button'}>`;
 }
@@ -2866,7 +2932,7 @@ function bookView(c, items){
    a grid/list toggle again. Reading a whole drawer end to end is what a book
    is for; reading one object is what its own page is for, and `read: scroll`
    (the *object's* setting, a different thing entirely) is untouched. */
-export { spinTo, CLICKS, clickOf, fireButton, tileTap, pending, placeAtPending, SHELFSHIFT,
+export { spinTo, CLICKS, clickOf, fireButton, intoOf, tileTap, pending, placeAtPending, SHELFSHIFT,
   scratchGrab, scratchTo, scratchGo,
   gridTile, gridOfContainer, listTile, bookOf, bookView, sheetOf, turnPage, clearPages,
   calSpan };

@@ -10,7 +10,7 @@ import { S, K, KINDS, KEYS, T, ATTRS, USER_ATTRS, FIELDS, fieldOf, OPS, ROLLS,
   PRIMARY, isPrimary, inFamily, familyList, finishedThings, answered, marginOf, isLate,
   PRIOS, prioOf, prioName, DIFFS, diffOf, diffName, REPEAT_UNITS, repeatOf, repeats, repeatSaid,
   relatedTo, backlinksTo, streak, goalPct,
-  CALVIEWS, calViewOf, weekStartOf, showsWeekends, KNOBSIZES, knobSizeOf,
+  CALVIEWS, calViewOf, calShowOf, CALSHOWS, weekStartOf, showsWeekends, KNOBSIZES, knobSizeOf,
   TSIZES, textSizeOf, mediaTypeOf, isPicture, isMedia, isDecor,
   bindingOf, FRAMES, FRAME_SLOTS, frameOf, panelOf, knobOf, plateOf, borderOf, textureOf,
   slotRaw, homeFor, acceptAny, groupOf , boardLocked , SEALS, sealOf, isSealed, isDisc } from './model.js';
@@ -1179,9 +1179,22 @@ function objectPanelBody(id, sec){
      so it was answering a question about appearance from the page about
      behaviour. See decision 148. */
   if(cal){
+    // what the face shows: marks, names, the list, or both — decision 197
+    out.push(prow('Its face', psel(id,'calshow', Object.entries(CALSHOWS), calShowOf(d))));
     out.push(prow('Shows', psel(id,'calview', Object.entries(CALVIEWS), calViewOf(d))
       + psel(id,'weekStart',[['mon','Week starts Monday'],['sun','Week starts Sunday']], weekStartOf(d))
       + psel(id,'weekends',[['1','Weekends shown'],['','Weekends hidden']], showsWeekends(d)?'1':'')));
+  }
+  /* A list-faced front may spend its top line on its name (decision 197). */
+  if(!isRoot && cont && faceOf(d)==='checklist'){
+    out.push(prow('Its name', psel(id,'clhead',
+      [['','On the tooltip — every line is an item'],['1','On the front, with how many are done']],
+      d.clhead?'1':'')));
+  }
+  // whether what goes into it is born on today or with no day — decision 197
+  if(!isRoot && cont && !has(d,'magic')){
+    out.push(prow('New things in it', psel(id,'undated',
+      [['','Are put on today'],['1','Have no day until you give one']], d.undated?'1':'')));
   }
   if(!isRoot && cont && takesTyping(d)){
     out.push(prow('Typing in it makes', psel(id,'genKind', objectKinds, genKindOf(d))));
@@ -1197,6 +1210,13 @@ function objectPanelBody(id, sec){
     /* `random` leads the list rather than sitting in it alphabetically: a
        spawner that makes one of anything is a different thing from a spawner
        that makes scenes, and it is the one you reach for on an empty desk. */
+    /* Where it puts what it makes: beside itself, or into a drawer on the
+       same board (decision 197). Sorting drawers are left out, because they
+       hold nothing. */
+    const sibs = S.objects.filter(x=>x.parent===d.parent && isContainer(x) && !has(x,'magic'));
+    out.push(prow('Puts it', psel(id,'into',
+      [['','Beside itself, on the board'], ...sibs.map(x=>[x.id, 'Into '+(x.title||'Untitled')])],
+      d.into && sibs.some(x=>x.id===d.into) ? d.into : '')));
     out.push(prow('It makes', psel(id,'genKind', [[ANY,'One of anything'], ...objectKinds], genKindOf(d))
       + psel(id,'genDir',[['down','Down'],['up','Up'],['left','Left'],['right','Right'],['random','Anywhere']], d.genDir||'down')));
   }

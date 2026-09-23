@@ -161,6 +161,14 @@ a plain drawer front for now; the Project question offers every project board
 under its types. Not on his list and still not started: the brain dump that
 sorts itself by kind.
 
+**Then (v1.87, decision 197):** boards are eight by fourteen with a way in along
+the bottom; eleven of them were filled as if they were his
+(`docs/examples/lived-in.json`, through Paste in) and what that showed was
+fixed: calendars that list what is coming, lists with their names, dates and
+counts, spawners that file into a drawer, lists that make undated things, and
+answers that wrap. Named next: a counter that resets daily, a habit's year of
+squares, a goal with a number, and the brain dump.
+
 ## Deliberately not next
 
 - **Sync between devices.** It is real and it is coming, *after* the feature set
