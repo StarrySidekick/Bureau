@@ -9050,7 +9050,8 @@ What living in them showed, and what changed:
   Opt-in, because decision 79's argument (a label costs a line) still holds
   for a lone list; the stock boards turn it on.
 - **A list without its dates is a list of names.** A line with a day says it at
-  the far end, late in red; a review says its stars; and a thing that cannot be
+  the far end, late in red (except today, which every freshly typed task is on,
+  so the word would be on every line and mean nothing); a review says its stars; and a thing that cannot be
   ticked wears its type's mark where the box would be.
 - **Everything was born on today**, so a watchlist of four films read "Today"
   and would read overdue tomorrow. A container carrying `undated` makes what

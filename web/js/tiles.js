@@ -1473,6 +1473,8 @@ function drawTileFace(o, arr, box, persp){
           <input data-contadd="${o.id}" placeholder="Add a ${esc(made)}…"></label>`:''}
         ${/* A line says **when**, when the thing has a day (decision 197): a
               list of bills or chores without their dates is a list of names.
+              Not *today*, though: a task typed into a list is born on today,
+              so every fresh line would say so and the word would mean nothing.
               And a thing you cannot tick — a review, a quote, a note filed in
               a list-faced drawer — wears its type's mark where the box goes,
               because a box on it would tick something that is not a task. */''}
@@ -1485,7 +1487,7 @@ function drawTileFace(o, arr, box, persp){
              : `<i class="clmark">${ic(K(x.kind).ic,12)}</i>`}${
            nameField(x, 'cltext')}${
            has(x,'rating')&&x.rating ? `<u class="clstars">${'★'.repeat(x.rating)}</u>`
-           : x.due ? `<u class="cldue${isLate(x)?' late':''}">${esc(D.human(x.due))}</u>` : ''}</span>`).join('')
+           : x.due && (x.due!==T || isLate(x)) ? `<u class="cldue${isLate(x)?' late':''}">${esc(D.human(x.due))}</u>` : ''}</span>`).join('')
         || `<span class="clempty">Nothing yet — type above</span>`}</div></div>
       ${handles}
     </${adds?'div':'button'}>`;

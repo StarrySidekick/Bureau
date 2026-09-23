@@ -915,7 +915,7 @@ const PROP_OFF = () => { const b = document.createElement('button');
     box.dispatchEvent(new Event('input', { bubbles: true }));
     await nap(150);
     const nowAnswered = tile().classList.contains('answered') && !!q.answer;
-    const caretKept = document.querySelector(`input[data-answer="${q.id}"]`) === box;
+    const caretKept = document.querySelector(`[data-answer="${q.id}"]`) === box;
     BUREAU.render(); await nap(150);
     const survivesRender = tile().classList.contains('answered');
     S.objects = S.objects.filter(o => o.id !== q.id);
