@@ -5,6 +5,45 @@ Sequenced by dependency, not appetite: item 1 makes everything after it safer.
 
 ---
 
+## 0zj. Asked 2026-09-23 — a board is the base station for one thing — DONE (v1.82–1.88)
+
+Timothy's brief, recorded in INTENT.md (2026-09-23): each board, once
+customised, is the base station for one part of a life, one thing taken in, or
+one piece of work, and can send you on to other apps. Four rounds, decisions
+194–197:
+
+- **194** — the ten paper-job stock plans retired (migration 37, by key) and ten
+  boards in their place; the **Link** and **Review** types; a plan's `@in` /
+  `@under` rules re-pointed at the board it lands on.
+- **195** — **proportional boards a setting, off by default** (a container is
+  screenfuls again; migration 38 sized existing drawers to hold what they
+  held); Film, Song, Trip, Essay or post and Life drawers born holding their
+  board; a plan pressed on the desk makes its own drawer; a plan moves as one
+  onto a busy board.
+- **196** — the whole list: **thirty-three boards** in three lists (`sec`); the
+  Life drawer asks which board and wears a plain front; *Or start from a board*
+  under the Project types; `makeFromPlan()` the one path; migration 39 fixed
+  the empty Life drawers on desks that ran 37 early.
+- **197** — boards are **8×14**, the bottom two rows an *Add to this…* line;
+  Paste in can lay out and **fill** a plan (`docs/examples/lived-in.json`,
+  `test/lived-in.mjs`); calendar face setting (`calshow`); checklist name and
+  count (`clhead`), dates and stars on lines; spawner `into`; `undated`
+  containers; answers wrap; bars count their tracked steps.
+
+**Next, in the order Timothy's notes suggest:**
+
+1. **The brain dump that sorts itself by kind** — the biggest idea in his notes
+   (tasks, thoughts, ideas, questions, problems identified as typed, then a list
+   of each kind where a task is given its when, its board and whether it needs
+   splitting). Every board's *Add to this…* line is where it would land.
+2. **A counter that resets each day** (water, no-spend days).
+3. **A habit's history as a year of squares** — the chart his notes ask for.
+4. **A goal with a number** (runway is a sum, not three milestones).
+5. **Claude making boards** — Paste in with `plan` + `fill` is the format;
+   what is missing is the way in from Claude's side.
+6. Not built on his list: nothing — all thirty-three boards exist. What is
+   worth doing is living in them (load `lived-in.json`) and tuning.
+
 ## 0zi. Reported 2026-09-22 — the mouth opens onto the board — DONE (v1.80)
 
 Eight. Decision 192.

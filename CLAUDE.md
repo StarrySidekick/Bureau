@@ -59,7 +59,8 @@ becomes a drawer through `makeFromPlan()`. **v1.87** (decision 197): boards are
 **eight by fourteen**, the bottom two rows an *Add to this…* line; a paste can
 lay out and fill a plan (`docs/examples/lived-in.json`, screenshotted by
 `test/lived-in.mjs`); calendars have a face setting, checklists can carry their
-name, spawners can file `into` a drawer, and a container can be `undated`.
+name, spawners can file `into` a drawer, and a container can be `undated`. **v1.88** only stops a checklist line saying "Today". What comes next
+is `docs/ROADMAP.md` §0zj, the brain dump first.
 
 **Start here each session:** `docs/SYSTEM.md` is the reference for what Bureau is
 made of — objects, attributes, types, drawers, the grid, the surfaces, storage.
