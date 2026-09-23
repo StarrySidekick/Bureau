@@ -909,7 +909,7 @@ const PROP_OFF = () => { const b = document.createElement('button');
     BUREAU.render(); await nap(200);
     const tile = () => document.querySelector(`.drawer[data-row="${q.id}"]`);
     const noTick = !tile().querySelector('[data-check]');
-    const box = tile().querySelector('input[data-answer]');
+    const box = tile().querySelector('[data-answer]');
     const startsOpen = !!box && tile().classList.contains('unanswered');
     box.value = 'Because it is a property, not a species.';
     box.dispatchEvent(new Event('input', { bubbles: true }));
