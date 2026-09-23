@@ -462,6 +462,38 @@ const LIFE_ART = {
       <ellipse cx="75" cy="72" rx="24" ry="5.6" fill="var(--paper-2, #F1EBDA)"/>
     </g>` },
 
+  /* Three added with the boards (decision 195), each an object you would
+     find lying on that part of a desk: a stethoscope, a reel and a pile of
+     books. Same vocabulary as the nine — the type's colour for the body,
+     brass for metal, glow for the light — so every aesthetic dresses them. */
+  health: { nm:'Health', ds:'A stethoscope', c:8, vb:'4 6 92 88', svg:`
+    <path d="M28 10v26a18 18 0 0 0 36 0V10" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round"/>
+    <circle cx="28" cy="10" r="5" fill="var(--brass)"/>
+    <circle cx="64" cy="10" r="5" fill="var(--brass)"/>
+    <path d="M46 54v10a16 16 0 0 0 32 0V58" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round"/>
+    <circle cx="78" cy="50" r="12" fill="var(--brass)"/>
+    <circle cx="78" cy="50" r="7" fill="var(--glow)" opacity=".6"/>
+    <circle cx="78" cy="50" r="12" fill="none" stroke="#fff" stroke-width="1.4" opacity=".25"/>` },
+
+  films: { nm:'Films', ds:'A reel of film', c:9, vb:'4 4 92 92', svg:`
+    <circle cx="46" cy="46" r="38" fill="currentColor"/>
+    <circle cx="46" cy="46" r="38" fill="none" stroke="#000" stroke-width="2" opacity=".18"/>
+    <circle cx="46" cy="24" r="9" fill="var(--ink, #2A2118)" opacity=".75"/>
+    <circle cx="46" cy="68" r="9" fill="var(--ink, #2A2118)" opacity=".75"/>
+    <circle cx="24" cy="46" r="9" fill="var(--ink, #2A2118)" opacity=".75"/>
+    <circle cx="68" cy="46" r="9" fill="var(--ink, #2A2118)" opacity=".75"/>
+    <circle cx="46" cy="46" r="6" fill="var(--brass)"/>
+    <path d="M78 64c6 8 10 16 14 26" stroke="var(--ink, #2A2118)" stroke-width="7" opacity=".7" fill="none"/>` },
+
+  books: { nm:'Books', ds:'A pile of books', c:11, vb:'2 14 96 74', svg:`
+    <rect x="8" y="64" width="84" height="16" rx="2" fill="currentColor"/>
+    <rect x="8" y="64" width="84" height="16" rx="2" fill="#000" opacity=".12"/>
+    <rect x="14" y="46" width="72" height="16" rx="2" fill="currentColor"/>
+    <rect x="20" y="28" width="62" height="16" rx="2" fill="currentColor"/>
+    <rect x="20" y="28" width="62" height="16" rx="2" fill="#fff" opacity=".1"/>
+    <path d="M88 66v12M82 48v12M78 30v12" stroke="var(--paper-2, #F1EBDA)" stroke-width="3" opacity=".8"/>
+    <path d="M24 52h40M30 34h30M16 70h50" stroke="var(--brass)" stroke-width="2.4" stroke-linecap="round"/>` },
+
   experiences: { nm:'Experiences', ds:'A camera', c:15, vb:'2 14 96 72', svg:`
     <path d="M34 22h32l5 8H29Z" fill="currentColor"/>
     <path d="M6 30h88a6 6 0 0 1 6 6v34a6 6 0 0 1-6 6H6a6 6 0 0 1-6-6V36a6 6 0 0 1 6-6Z" fill="currentColor"/>

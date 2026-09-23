@@ -1,7 +1,7 @@
 import { $, clamp, ROOT } from './util.js';
 import { S, byId, isContainer, has, childrenOf, shapeOf, openingOf, deskOf,
   tiltMode, tiltsDesk, tiltsWindows, gravityTilts , dev } from './model.js';
-import { lay, shelvesOf, shelfAt , CELL } from './grid.js';
+import { lay, shelvesOf, shelfAt , CELL, proportional } from './grid.js';
 import { objColour, styleNow } from './look.js';
 import { render, renderSoon, previewHTML, goShelf } from './views.js';
 
@@ -659,7 +659,11 @@ const zoomFor = (r, mr, over) => (over===undefined ? OVER : over) * Math.min(7,
    about, and falls back to the room it is in and then to the whole carcass,
    which is where this started. */
 function boardRect(main){
-  if(!main) return null;
+  /* Only a proportional board is the front's own shape (decision 188), and
+     only then is it the thing a mouth opens flush onto. With them off
+     (decision 195, the default) a board is a screenful whatever the front
+     is, so the mouth opens onto the carcass the way it did before 192. */
+  if(!main || !proportional()) return null;
   const g = main.querySelector('.grid') || main.querySelector('.scroll');
   const r = g && g.getBoundingClientRect();
   return (r && r.width) ? r : null;

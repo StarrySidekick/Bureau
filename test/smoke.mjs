@@ -5909,6 +5909,78 @@ const CHROME = process.env.BUREAU_CHROME;
     return out;
   });
 
+  /* --- a board comes with the thing it is for (decision 195) -----------
+     Proportional boards are a setting and off by default, so a container is
+     screenfuls again; a Film, a Trip, a Song, an Essay or post and a Life
+     drawer made for one of seven parts of a life are born holding their board;
+     a plan pressed on the desk makes its own drawer; and a plan laid on a
+     board that already has something on it moves as one. */
+  const boardsComeWith = await page.evaluate(async () => {
+    const nap = ms => new Promise(r => setTimeout(r, ms));
+    const S = BUREAU.state, out = {};
+    out.offByDefault = !S.look.proportional;
+    const plain = BUREAU.create('drawer', {parent:'root', title:'Plain'});
+    out.aDrawerIsScreenfuls = BUREAU.innerOf(plain.id, 'desk') === null
+      && BUREAU.shelvesOf(plain.id).w === 1;
+    // a Film is born holding the Short Film board, and not the seed as well
+    const film = BUREAU.create('film', {parent:'root', title:'A film'});
+    const fk = S.objects.filter(o => o.parent === film.id);
+    out.aFilmHoldsItsBoard = fk.some(o => o.kind === 'progressbar')
+      && fk.some(o => o.kind === 'outlink');
+    out.andNotTheSeedToo = !fk.some(o => o.kind === 'generator');
+    out.withRoomBeside = (film.shelves || {}).w >= 2;
+    // a Life drawer made for Health, through the question it asks
+    const pressIn = (attr, val) => { const b = document.createElement('button');
+      b.dataset[attr] = val; b.style.display = 'none';
+      document.querySelector('#frame').appendChild(b); b.click(); b.remove(); };
+    const had0 = new Set(S.objects.map(o => o.id));
+    pressIn('newlife', 'life:health');
+    const life = S.objects.find(o => !had0.has(o.id) && o.lifeart === 'health');
+    out.aLifeDrawerHoldsItsBoard = !!life
+      && S.objects.some(o => o.parent === life.id && o.kind === 'calendar');
+    // a plan pressed on the desk makes a drawer and goes in it
+    S.view = 'desk'; S.drawerId = null; BUREAU.render(); await nap(150);
+    const had1 = new Set(S.objects.map(o => o.id));
+    pressIn('planput', 'pl_stock_books');
+    const made = S.objects.filter(o => !had1.has(o.id));
+    const box = made.find(o => o.parent === 'root');
+    out.onTheDeskItMakesADrawer = !!box && BUREAU.isContainer(box) && box.title === 'Books'
+      && made.filter(o => o.parent === 'root').length === 1;
+    out.andItWearsItsPart = !!box && box.lifeart === 'books';
+    // onto a board with something in the way, the arrangement moves as one
+    const busy = BUREAU.create('drawer', {parent:'root', title:'Busy'});
+    const n = BUREAU.create('note', {parent:busy.id, title:'In the way'});
+    n.desk = {x:1, y:1, w:4, h:3}; n.phone = {x:1, y:1, w:4, h:3};
+    const plan = BUREAU.planById('pl_stock_health');
+    const saved = plan.objects.filter(o => o.parent === '__plan');
+    const put = BUREAU.stampPlan(plan.id, busy.id).filter(o => o.parent === busy.id);
+    const ov = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+    out.nothingLandsOnIt = put.every(o => !ov(o.desk, n.desk) && !ov(o.phone, n.phone));
+    const d0 = put[0], s0 = saved.find(q => q.title === d0.title && q.kind === d0.kind);
+    out.theShapeSurvives = ['desk', 'phone'].every(dv => put.every(o => {
+      const q = saved.find(x => x.title === o.title && x.kind === o.kind);
+      return q && o[dv].x - q[dv].x === d0[dv].x - s0[dv].x && o[dv].y - q[dv].y === d0[dv].y - s0[dv].y;
+    }));
+    // proportional, when asked for, is decision 188 exactly
+    S.look.proportional = true;
+    out.onItIsTheTileTimesFour = !!BUREAU.innerOf(plain.id, 'desk')
+      && BUREAU.innerOf(plain.id, 'desk').cols === plain.desk.w * 4;
+    // and going back to screenfuls keeps what a big board held
+    const big = BUREAU.create('drawer', {parent:'root', title:'Big'});
+    big.desk = Object.assign({}, big.desk, {w:5, h:5});
+    const far = BUREAU.create('note', {parent:big.id, title:'Far out'});
+    far.desk = {x:13, y:15, w:2, h:2}; far.phone = {x:1, y:1, w:2, h:2};
+    pressIn('proportional', '');
+    out.switchingOffKeepsThePlace = !S.look.proportional
+      && BUREAU.shelvesOf(big.id).w >= 2 && BUREAU.shelvesOf(big.id).h >= 2
+      && far.desk.x === 13 && far.desk.y === 15;
+    [plain, film, life, box, busy, big].filter(Boolean).forEach(c => {
+      S.objects.filter(o => o.parent === c.id).forEach(o => BUREAU.del(o.id));
+      BUREAU.del(c.id); });
+    S.undo = []; S.redo = []; BUREAU.render();
+    return out;
+  });
+
   /* The list half needs a phone, because the window is where the grid's is —
      one shelf there, the whole board on a Mac. */
   const listIsOneShelf = await phone.evaluate(async () => {
@@ -9029,7 +9101,7 @@ const CHROME = process.env.BUREAU_CHROME;
     settingsHasDoors, settingsBack,
     wordsNotSource, deadlines, twoClauses, undoEverything, savesOnlyChanges,
     paletteKeys, editorKeys, pickerLeads, rollupsEverywhere, soundAndVision, keyboardBoard,
-    ranking, urgency, reachable, pensAndCorners, lyingBooks, plansWork, stockPlans, livedWith, listIsOneShelf, repeating, oneLock, scheduling, ownColour, addBox, calFaces,
+    ranking, urgency, reachable, pensAndCorners, lyingBooks, plansWork, stockPlans, livedWith, boardsComeWith, listIsOneShelf, repeating, oneLock, scheduling, ownColour, addBox, calFaces,
     lockedBoard, freeTraits, pageWrites, tickBoxes, readerFits, categories,
     specimenBook, deskObjects, camLife, camPhone, ownBoard, threeDrawings, fullScreen, openingIn, boards193, thisPass,
     dropsIn, keyframesRegistered, aesthetics, slotScoping, objectsDressed, grainSlots, tagged, drawnAesthetic, deeper, lookStage, statusBar, bindings, panelling, theSpray, tappingIsQuiet, decorations, pinboard, gravity

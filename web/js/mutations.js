@@ -580,11 +580,18 @@ function create(kind, patch){
      and nesting and all, rather than `seed:`'s list of titles one level deep.
      The plan comes first and `seed` is still read after it, so a type that had
      one keeps working and a type can honestly have both. See decision 121. */
+  let planned = false;
   if(!(patch&&patch.noSeed) && kindHas(kind,'container')){
     const pid = planForKind(kind);
-    if(pid) stampPlan(pid, o.id);
+    if(pid) planned = stampPlan(pid, o.id).length > 0;
   }
-  if(!(patch&&patch.noSeed)) seedInto(o, kind);
+  /* **A type that opens onto a board does not also get the seed.** The seed
+     is a spawner along the top, placed rather than left to ensureBox, and a
+     plan's own first row is there too — so a Film came out with "Add to this
+     film…" lying across the plan's label. The plan is the whole of what the
+     type is born holding; the seed is for a type that has none, or whose plan
+     has been thrown away. See decision 195. */
+  if(!(patch&&patch.noSeed) && !planned) seedInto(o, kind);
   delete o.noSeed;
   return o;
 }

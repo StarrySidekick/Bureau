@@ -3,9 +3,9 @@ import { S, K, KINDS, KEYS, refreshKinds, ATTRS, attrsOf, has, SHAPES,
   FACES, MANUAL, byId, container, cfgOf, isContainer, isAncestor, relate, deskOf,
   unrelate, sensedDevice, reset, T, dz, dev, calViewOf, RULE_MAX, acceptFor, acceptAny,
   boardLocked, repeatOf, repeats, heldObjects, heldCount, marginOf, marginPlus, homeFor,
-  layoutOf, setClFit, genKindOf, makesAnything , groupMates, groupTogether } from './model.js';
+  layoutOf, setClFit, genKindOf, makesAnything , groupMates, groupTogether, isDesk, faceOf, kindHas } from './model.js';
 import { gridOf, lay, boxOk, freeSpot, anySpot, roomFor, sizeOfKind, toPhoneSize, keepSize,
-  shelvesOf, shelfAt, setShelf } from './grid.js';
+  shelvesOf, shelfAt, setShelf, shelvesToHold } from './grid.js';
 import { applyLook, applyStyle, setLookVal, lookVal, STYLES, setSlot, objColour, darkMode } from './look.js';
 import { toast, fits, setGridSize, toggleDone, spawnNext, del, delMany, delDrawer, undo, redo, pushUndo,
   pushSet, pushSets, setPin, togglePin, drawerForTag, create, spawnInto, randomThing,
@@ -26,7 +26,7 @@ import { onDown, onMove, onUp, onCancel, onTouchStart, onTouchMove, onTouchEnd,
   gestureFlags, dragArmed, setCamEditor } from './gestures.js';
 import { enter, leaveTile, pagerOn, applyTilt, askTilt , zoomOut, zoomedIn } from './motion.js';
 import { gravityApply, gravityWake } from './gravity.js';
-import { planFrom, stampPlan, planById, delPlan, planSize, renamePlan } from './plans.js';
+import { plans, planFrom, stampPlan, planById, delPlan, planSize, renamePlan } from './plans.js';
 import { save, writeNow, exportBackup, importBackup, importFile, imgFor, pasteObjects, install , assetDel } from './persist.js';
 
 /* A sorting drawer, made with its rule already in it. Both ways into
@@ -133,9 +133,16 @@ function makeLife(kind, art){
   const at = pending.cell;
   closePanel();
   pending.cell = at;
-  const o = create(kind||'life', at?{parent:at.parent}:undefined);
+  /* **Born holding its board** (decision 195). A part of a life with a plan
+     made for it lays that plan out inside, which is what a Life drawer was
+     always meant to be: the base station for that part, not an empty front
+     with its name on. The plan replaces the seed rather than landing on top of
+     it — its own spawners and lists are the way in. */
+  const pl = art ? plans().find(p=>p && p.life===art) : null;
+  const o = create(kind||'life', Object.assign(at?{parent:at.parent}:{}, pl?{noSeed:true}:{}));
   if(art && LIFE_ART[art]){ o.lifeart=art; o.title=LIFE_ART[art].nm; o.c=LIFE_ART[art].c; }
   placeAtPending(o);
+  if(pl) stampPlan(pl.id, o.id);
   save(); render(); reveal(o.id);
 }
 
@@ -1207,6 +1214,23 @@ function wire(){
       if(v && v!=='grid') S.look.surface = v; else delete S.look.surface;
       applyLook(); save(); render(); refreshPanel(); return; }
 
+    /* Proportional boards, on or off (decision 195). Off is the default and
+       is **deleted** rather than stored, like the surface. Going off gives
+       every container the screenfuls it needs to hold what it holds already,
+       so the switch never re-places an arrangement; going on needs nothing,
+       because the tile is already a size. No undo move: `S.look` has no id
+       for a step to point at, and the way back is the same press. */
+    const prp=t.closest('button[data-proportional]');
+    if(prp){
+      if(prp.dataset.proportional) S.look.proportional = true;
+      else if(S.look.proportional){
+        delete S.look.proportional;
+        S.objects.forEach(o=>{ if(!isContainer(o)) return;
+          const sh = shelvesToHold(o, S.objects);
+          if(sh.w>1 || sh.h>1) o.shelves = sh; });
+      }
+      save(); render(); refreshPanel(); return; }
+
     const chk=t.closest('button[data-checks]');
     // an empty value is the way back to the aesthetic's own, and it has to
     // be deleted rather than stored as '' — applyLook() tests the key
@@ -1285,16 +1309,34 @@ function wire(){
          room. `pending.cell` also names the container, which is what makes
          this work inside a drawer as well as on the desk. */
       const cell = pending.cell;
-      const home = (cell && cell.parent) || (S.view==='drawer' && S.drawerId) || ROOT;
-      const made = stampPlan(pp.dataset.planput, home, cell);
+      const where = (cell && cell.parent) || (S.view==='drawer' && S.drawerId) || ROOT;
+      const pl = planById(pp.dataset.planput);
+      /* **On the desk a plan makes its own drawer** (decision 195). A board is
+         the base station for one thing, so the arrangement goes *inside* a
+         container of the kind it was made for — a Life drawer for Health, a
+         Film for a Short Film — placed where you pressed, named for the plan
+         and wearing its colour. Spilled loose across the desk it was nine
+         things in a heap with nothing to call them by. Inside a drawer it is
+         still laid out where you are standing, as before. */
+      let box = null;
+      if(pl && isDesk(where)){
+        const kk = (pl.of && KINDS[pl.of] && kindHas(pl.of,'container') && !kindHas(pl.of,'magic')) ? pl.of : 'drawer';
+        box = create(kk, {parent:where, title:pl.nm||'', noSeed:true});
+        if(pl.c!=null) box.c = pl.c;
+        if(pl.life && LIFE_ART[pl.life] && faceOf(box)==='life') box.lifeart = pl.life;
+        pending.cell = cell;
+        placeAtPending(box);
+      }
+      const home = box ? box.id : where;
+      const made = stampPlan(pp.dataset.planput, home, box ? null : cell);
       pending.cell = null;
-      if(!made.length){ toast('That plan is empty'); return; }
+      if(!made.length && !box){ toast('That plan is empty'); return; }
       // one move, so ⌘Z takes the whole arrangement back off in one press
-      pushUndo('Lay out a plan', made.map(o=>({add:o.id})));
+      pushUndo('Lay out a plan', (box?[box]:[]).concat(made).map(o=>({add:o.id})));
       closePanel(); save(); render();
-      const top = made.filter(o=>o.parent===home)[0];
+      const top = box || made.filter(o=>o.parent===home)[0];
       if(top) reveal(top.id);
-      toast(`Laid out ${made.length} thing${made.length===1?'':'s'}`);
+      toast(box ? `${pl.nm||'A plan'}, laid out inside` : `Laid out ${made.length} thing${made.length===1?'':'s'}`, true);
       return; }
 
     /* The little calendar. A day sets the day it sits on; a quick pill is the

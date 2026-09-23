@@ -321,7 +321,7 @@ function lifeFirstPanel(kind){
         const a=LIFE_ART[key];
         return `<button class="lifeopt" data-newlife="${kind}:${key}" style="--k:${hexOf(a.c)}"
             title="${esc(a.ds)}"><span class="lifeoptart">${lifeSVG(key)}</span>
-          <b>${esc(a.nm)}</b></button>`;
+          <b>${esc(a.nm)}</b>${plans().some(p=>p && p.life===key) ? '<u>with its board</u>' : ''}</button>`;
       }).join('')}</div>
       <div class="mini" style="--k:var(--brass);margin-top:12px">Each is a drawing, so it takes the aesthetic's own colours. Put your own picture on it later and that wins — a life drawer carrying an image wears the image.</div>
       <button class="subtle-btn" data-newlife="${kind}:" style="margin-top:10px">${ic('folder',12)} No object — just a drawer</button>`});

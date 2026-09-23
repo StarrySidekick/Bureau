@@ -329,7 +329,17 @@ const BUILTIN_KINDS = {
      opening a page about it. See decision 144. */
   audio:   {nm:'Audio',   ic:'music',   c:10, key:'U', ds:'Something to listen to',    size:[4,4], phoneSize:[3,3], onclick:'play', attrs:['text','media','duration'], mediaType:'audio', body:'' },
   video:   {nm:'Video',   ic:'film',    c:9, key:'&', ds:'Something to watch',        size:[6,4], onclick:'play', attrs:['text','media','duration'], mediaType:'video', body:'' },
-  trip:    {shape:'card', proj:'trip', nm:'Trip',    ic:'flag',    c:9, key:'P', ds:'Somewhere you are going',   size:[8,6], attrs:['container','date','span','location'], layout:'grid', body:'' },
+  trip:    {shape:'card', proj:'trip', nm:'Trip',    ic:'flag',    c:9, key:'P', ds:'Somewhere you are going',   size:[8,6], attrs:['container','date','span','location'], layout:'grid', plan:'pl_stock_travel', body:'' },
+  /* An **essay or a post** as a piece of work — the claim, the outline, the
+     draft, the sources and the passes — rather than the Essay note, which is
+     the words. Its own type because the Essay board needed a front to be the
+     inside of, and "Essay" was taken by the page you write on. A project's
+     front; born holding the stock Essay board. See decision 195. */
+  writing: {face:'front', nm:'Essay or post', ic:'feather', c:7,
+     ds:'An essay, an article or a blog post, and the work around it',
+     attrs:['text','container','date','progress','media','relates'],
+     plan:'pl_stock_essay',
+     layout:'grid', size:[5,5], phoneSize:[4,4], body:'' },
   /* A **collage** is a container whose face is the board inside it, drawn
      small — not a separate wall of thumbnails that had to be kept in step with
      what the drawer actually holds. So it is a *face* any container can wear,
@@ -390,6 +400,8 @@ const BUILTIN_KINDS = {
   film:    {face:'project', proj:'film', film:true, nm:'Film', ic:'clapper', c:9, key:'!', ds:'A film, and everything it is made of',
      attrs:['text','container','date','progress','media','relates'],
      seed:[{kind:'generator', title:'Add to this film…', sz:[8,2]}],
+     // born holding its board, the stock Short Film plan (decision 195)
+     plan:'pl_stock_shortfilm',
      layout:'grid', size:[6,9], phoneSize:[4,6], body:'' },
   game:    {face:'project', proj:'game', nm:'Game', ic:'grid', c:9, key:'5',
      ds:'A game, and everything it is made of',
@@ -399,6 +411,7 @@ const BUILTIN_KINDS = {
   song:    {face:'project', proj:'song', film:true, nm:'Song', ic:'music', c:10, key:';',
      ds:'A song, and everything it is made of',
      attrs:['text','container','date','progress','media','relates'],
+     plan:'pl_stock_song',
      layout:'grid', size:[5,5], phoneSize:[4,4], body:'' },
   app:     {face:'project', proj:'app', nm:'App', ic:'grid', c:14, key:'7',
      ds:'Software, and everything it is made of',
@@ -577,7 +590,7 @@ const BUILTIN_KINDS = {
         type drawn twice on one screen: both are families, so it is one press
         in from either, and it honestly is both — a thing you write and a piece
         of work you are making. `inFamily()` keeps it out of the flat list. */
-     family:['project','film','novel','game','song','album','app','artpiece','trip','script'],
+     family:['project','film','novel','game','song','album','app','artpiece','trip','writing','script'],
      famSub:'What is the work?',
      attrs:['text','container','date','progress','media','relates'],
      // born with a spawner inside it rather than a box bolted to its front:

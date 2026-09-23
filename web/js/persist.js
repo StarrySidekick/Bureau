@@ -1,6 +1,6 @@
 import { D, uid, clamp, ROOT } from './util.js';
 import { S, K, KINDS, KEYS, kindHas, has, byId, isContainer, refreshKinds, defaultLook, dev } from './model.js';
-import { GRID, PHONE_GRIDS, overlaps, gridOf, freeSpot, anySpot, sizeOfKind, keepSize } from './grid.js';
+import { GRID, PHONE_GRIDS, overlaps, gridOf, freeSpot, anySpot, sizeOfKind, keepSize, shelvesToHold } from './grid.js';
 import { toast, create, pushUndo } from './mutations.js';
 import { render } from './views.js';
 import { renderSheet } from './sheet.js';
@@ -18,7 +18,7 @@ import { stockPlans, RETIRED_KEYS } from './stockplans.js';
    Bureau is this phone running" is exactly the question you ask when a change
    appears not to have deployed. Shown in Settings, so it can be read off the
    device rather than guessed at. */
-const APP_VERSION = '1.83';
+const APP_VERSION = '1.84';
 const KEY = 'bureau.v1';
 const install = {deferred:null};   // the browser's install prompt, when one is on offer
 let saveTimer = null;
@@ -266,7 +266,7 @@ function rescalePhone(d, from, cols){
    skips all of them, an old backup replays only what it is missing. These
    used to be ad-hoc per-load mutations inside adopt(); a new repair that
    should run once belongs here, as the next numbered step. */
-const DATA_V = 37;
+const DATA_V = 38;
 const MIGRATIONS = [
   // Drawers and objects were two arrays and a drawer could not live inside
   // anything. foldDrawers also replays the old dense flow to give v1 drawers
@@ -983,6 +983,22 @@ const MIGRATIONS = [
     const have = new Set(d.plans.map(p=>p && p.stock).filter(Boolean));
     const add = stockPlans().filter(p=>!have.has(p.stock));
     if(add.length) d.plans = d.plans.concat(add);
+  }},
+  /* ---- a container is screenfuls again, unless you say otherwise -------
+     Proportional boards became a setting, off by default (decision 195), so a
+     desk arriving here goes back to shelves — and a drawer arranged at five
+     by five would have everything past the first screenful re-placed, which
+     keeps sizes and throws the arrangement away. So each container is given
+     the screenfuls it needs to hold what is already in it, and a desk that
+     never had more than one shelf's worth anywhere changes nothing. */
+  {v:38, up(d){
+    if(d.look && d.look.proportional) return;
+    const objs = d.objects||[];
+    objs.forEach(o=>{
+      if(!o || !(Array.isArray(o.attrs) ? o.attrs.includes('container') : kindHas(o.kind,'container'))) return;
+      const sh = shelvesToHold(o, objs);
+      if(sh.w>1 || sh.h>1) o.shelves = sh;
+    });
   }},
 ];
 function migrate(d){

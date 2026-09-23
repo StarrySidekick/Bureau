@@ -86,6 +86,10 @@ function build(spec){
     stock: spec.key,
     nm: spec.nm, ic: spec.ic, c: spec.c,
     of: spec.of || 'drawer',
+    /* Which part of a life it is the board for, by the drawing a Life drawer
+       wears (decor.js). Choosing that part when making one lays this board
+       out inside it; see decision 195. */
+    life: spec.life || null,
     made: D.iso(D.today()),
     cols: 8,
     objects
@@ -126,9 +130,11 @@ const CARDS = list => list.map(t=>({k:'note', t}));
    board only), something that helps you do it (a timer, a deck to cut, a
    prompt), and the way out to the app or site where the thing itself
    happens. Chosen from Timothy's list of thirty-three as the ten Bureau's
-   furniture can honestly build today. Authored eight by twelve, and meant for
-   a Project or a Life drawer, whose board is twenty by twenty: the rest of
-   that board is the room new things land in. See decision 194. */
+   furniture can honestly build today. Authored eight by twelve, one screenful;
+   the drawer they go into is given a second screen beside it as room for what
+   you make there. A Life drawer made for Health, Money, Exercise, Nutrition,
+   Travel, Films or Books is born holding its board, and so are a Film, a Song,
+   a Trip and an Essay or post. See decisions 194 and 195. */
 const SPECS = [
 
   /* ---- a part of your life ------------------------------------------ */
@@ -138,7 +144,7 @@ const SPECS = [
      three. The checkups repeat from the day they were *done*, because the next
      cleaning is six months after the last one and not six months after the
      day it was meant to be. */
-  {key:'health', nm:'Health', ic:'drop', c:8, of:'life', on:[
+  {key:'health', nm:'Health', ic:'drop', c:8, of:'life', life:'health', on:[
     LABEL('Health', [1,1,8,1], 8),
     {k:'appt', t:'Next appointment', b:[1,2,4,3], set:{c:8,
       body:'**Who —** \n\n**Bring —** '}},
@@ -166,7 +172,7 @@ const SPECS = [
      so ticking a milestone is the whole of keeping it true. The bank is left
      without an address on purpose: pressing it opens its editor, which is the
      one place a Link teaches you that it can be pointed anywhere. */
-  {key:'money', nm:'Finances', ic:'bar', c:13, of:'life', on:[
+  {key:'money', nm:'Finances', ic:'bar', c:13, of:'life', life:'money', on:[
     LABEL('Money', [1,1,8,1], 13),
     {k:'checklist', t:'Bills', b:[1,2,4,5], set:{c:6}, kids:[
       AGAIN('Rent', 1, 'month'),
@@ -196,7 +202,7 @@ const SPECS = [
      exercise the day after you last exercised. The deck is the one thing a
      training plan never has — what to do *today*, turned up rather than
      decided. The metronome is set to a running cadence. */
-  {key:'exercise', nm:'Exercise', ic:'star', c:6, of:'life', on:[
+  {key:'exercise', nm:'Exercise', ic:'star', c:6, of:'life', life:'exercise', on:[
     LABEL('Moving', [1,1,8,1], 6),
     {k:'progressbar', t:'Thirty days', b:[1,2,8,1], set:{c:6, tracks:'@move', target:30}},
     {k:'task', t:'Move today', ref:'move', b:[1,3,8,1],
@@ -221,7 +227,7 @@ const SPECS = [
   /* Eating is the week: what is for dinner on which day (typed straight into
      the week's days), what to buy for it, and a deck for the evening nobody
      can decide. Recipes live in a drawer and are cards you write on. */
-  {key:'nutrition', nm:'Nutrition', ic:'pot', c:11, of:'life', on:[
+  {key:'nutrition', nm:'Nutrition', ic:'pot', c:11, of:'life', life:'nutrition', on:[
     LABEL('Eating', [1,1,8,1], 11),
     CAL('This week', [1,2,8,3], 7, 'week'),
     {k:'checklist', t:'Groceries', b:[1,5,4,5], set:{c:6}, kids:[
@@ -246,9 +252,9 @@ const SPECS = [
   /* ---- something you go and take in --------------------------------- */
 
   /* A trip is a span of days and three lists — what to pack, what is booked
-     and what you want to see — and it is meant to be laid out inside a Trip,
-     which already carries the dates and the place. */
-  {key:'travel', nm:'Travel', ic:'flag', c:9, of:'trip', on:[
+     and what you want to see. A Trip is born holding it, and so is a Life
+     drawer made for Travel. */
+  {key:'travel', nm:'Travel', ic:'flag', c:9, of:'life', life:'travel', on:[
     LABEL('The trip', [1,1,8,1], 9),
     {k:'appt', t:'Getting there', b:[1,2,8,2], set:{c:8}},
     {k:'checklist', t:'Packing', b:[1,4,4,5], set:{c:6}, kids:[
@@ -277,7 +283,7 @@ const SPECS = [
 
   /* Films: the list, a deck for the night you cannot pick, and a review for
      each one seen, which the Seen drawer collects off this board. */
-  {key:'films', nm:'Films', ic:'film', c:9, of:'life', on:[
+  {key:'films', nm:'Films', ic:'film', c:9, of:'life', life:'films', on:[
     LABEL('Films', [1,1,8,1], 9),
     {k:'checklist', t:'Watchlist', b:[1,2,5,5], set:{c:9}},
     {k:'deck', t:'Pick for me', b:[6,2,3,4], set:{c:10}, kids:CARDS([
@@ -295,7 +301,7 @@ const SPECS = [
   /* Books: how far into this one, what is next, and two things you take out
      of a book — the lines worth keeping and what you made of it — each with a
      drawer that collects it off this board. */
-  {key:'books', nm:'Books', ic:'book', c:11, of:'life', on:[
+  {key:'books', nm:'Books', ic:'book', c:11, of:'life', life:'books', on:[
     LABEL('Reading', [1,1,8,1], 11),
     {k:'progressbar', t:'How far into it', b:[1,2,8,1], set:{c:11}},
     {k:'checklist', t:'To read', b:[1,3,5,4], set:{c:11}},
@@ -332,8 +338,7 @@ const SPECS = [
       {k:'task', t:'Sound and colour'},
       {k:'task', t:'Festivals and release'}
     ]},
-    {k:'question', t:'What is it about?', b:[5,3,4,2], set:{c:10,
-      body:'**The logline —** \n\n**Why now —** '}},
+    {k:'question', t:'What is it about?', b:[5,3,4,2], set:{c:10}},
     {k:'script', t:'Script', b:[5,5,4,3], set:{c:9, onclick:'write'}},
     {k:'outline', t:'Beats', b:[1,8,4,2], set:{c:14}},
     {k:'moodboard', t:'Look book', b:[5,8,4,2], set:{c:13}},
@@ -371,7 +376,7 @@ const SPECS = [
   /* An essay is a claim, the structure that carries it, the draft and the
      sources, and the passes a draft goes through before it is finished. The
      candle is a writing sprint: light it and write until it is out. */
-  {key:'essay', nm:'Essay', ic:'feather', c:7, of:'project', on:[
+  {key:'essay', nm:'Essay', ic:'feather', c:7, of:'writing', on:[
     LABEL('The essay', [1,1,8,1], 7),
     {k:'question', t:'What am I arguing?', b:[1,2,6,2], set:{c:10}},
     {k:'candle', t:'Sprint', b:[7,2,2,5], set:{c:3, burn:25}},

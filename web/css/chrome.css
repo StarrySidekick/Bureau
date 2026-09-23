@@ -5572,3 +5572,6 @@ input,textarea,select,[contenteditable],
 /* The page's own text stays selectable and the caret still lands — the turn
    only claims the gesture once the finger has actually travelled, so a press
    that goes nowhere is still a press on the paper. */
+/* A Life drawer option that is born holding its board says so, under its
+   name and quieter than it. See decision 195. */
+.lifeopt u{display:block;text-decoration:none;font-size:10px;font-weight:500;opacity:.66;margin-top:1px}

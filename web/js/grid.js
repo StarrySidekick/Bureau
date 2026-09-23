@@ -194,9 +194,37 @@ function shelvesOf(cid, device){
 
    The desk itself is not a tile and keeps its nine shelves. */
 const INNER = 4;
+/* **Proportional boards are a setting, and off by default** (decision 195).
+   Decision 188 made a container's board its tile times four, and a plan laid
+   out in one then depended on how big somebody had made the front: the same
+   board was a squeeze in a two-by-two drawer and a field in a five-by-five.
+   Off, a container is what it was before 188 — `o.shelves` screenfuls, one
+   unless it says otherwise — and every board is the same size to arrange on.
+   `S.look.proportional` turns 188 back on; everything below it is untouched,
+   because `innerOf()` answering null was always the way back to shelves. */
+const proportional = () => !!(S.look && S.look.proportional);
+/* How many screenfuls a container needs to hold what is already in it, off
+   the boxes on both devices. Read when the setting goes off (and once, by
+   migration 38, for desks that had it on without a key) so a board arranged
+   at five by five is not re-placed into one shelf: that re-placing keeps
+   sizes and gives up places, and a place is the thing somebody arranged.
+   Twelve rows to a shelf, the short handset's, because a shelf is as tall as
+   the screen is and the smaller answer is the one that holds on both. */
+const SHELF_ROWS_FIT = 12;
+function shelvesToHold(o, objects){
+  let mx = 0, my = 0;
+  (objects||[]).forEach(k=>{
+    if(!k || k.parent!==o.id) return;
+    ['desk','phone'].forEach(dv=>{ const b=k[dv];
+      if(b && b.x && b.w){ mx=Math.max(mx, b.x+b.w-1); my=Math.max(my, b.y+b.h-1); } });
+  });
+  const had = o.shelves || {};
+  return {w: clamp(Math.max(had.w||1, Math.ceil(mx/DESK_SHELF_COLS)), 1, SHELVES),
+          h: clamp(Math.max(had.h||1, Math.ceil(my/SHELF_ROWS_FIT)), 1, SHELVES)};
+}
 function innerOf(cid, device){
   const id = cid==null ? hereId() : cid;
-  if(id===ROOT) return null;
+  if(id===ROOT || !proportional()) return null;
   const o = byId(id); if(!o) return null;
   const dv = device || dev();
   /* **The box for the device you are looking at**, and that is the whole rule.
@@ -618,7 +646,7 @@ function cellW(grid,g){
 }
 
 export { GRID, PHONE_GRIDS, PHONE_MAX_H, PHONE_MAX_NEW, CELL, COLW, MEASURE, sideways,
-  SHELVES, DESK_SHELF_COLS, INNER, colsOf, gridKeyOf, shelvesOf, innerOf,
-  shelfRows, shelfOfBox, shelfAt, setShelf, shelfOrigin, SHELF, fitSpot,
+  SHELVES, DESK_SHELF_COLS, INNER, proportional, shelvesToHold, colsOf, gridKeyOf, shelvesOf, innerOf,
+  shelfRows, shelfOfBox, oneShelf, shelfAt, setShelf, shelfOrigin, SHELF, fitSpot,
   gridOf, drawCols, drawRows, lay, overlaps, boxOk, freeSpot, anySpot, roomFor, gridRows, sizeOfKind, toPhoneSize,
   ensureBox, keepSize, cellW, PLACED };

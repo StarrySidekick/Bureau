@@ -36,9 +36,10 @@
    localStorage — a plan is stored *inside* that snapshot, so a plan carrying a
    photograph would be a data URL smuggled past the one place that stops them.
    A plan is an arrangement; it is not an asset store. */
-import { S, K, T, byId, isContainer, container } from './model.js';
-import { uid, ROOT } from './util.js';
-import { GRID, INNER, ensureBox, boxOk, freeSpot, anySpot } from './grid.js';
+import { S, K, T, byId, isContainer, container, childrenOf, has } from './model.js';
+import { uid, ROOT, clamp } from './util.js';
+import { GRID, INNER, SHELVES, ensureBox, boxOk, freeSpot, anySpot, gridOf, lay, overlaps,
+         oneShelf, proportional } from './grid.js';
 import { rescaleOneBoard } from './persist.js';
 import { randomLook } from './look.js';
 
@@ -161,9 +162,34 @@ function stampPlan(planId, intoId, at){
      plan being squeezed into the drawer; it is never shrunk, because a big
      drawer holding a small plan is fine and the size was somebody's choice.
      The desk is not a tile and needs none of this. */
+  const planExtent = dv => {
+    let mx = 0, my = 0, cells = 0;
+    planTop(p).forEach(o => { const b = o[dv]; if(!b || !b.x) return;
+      mx = Math.max(mx, b.x + b.w - 1); my = Math.max(my, b.y + b.h - 1); cells += b.w*b.h; });
+    return {mx, my, cells};
+  };
+  /* **Screenfuls, when boards are not proportional** (decision 195, the
+     default). The drawer is given as many screens as the plan covers — and
+     one more across when the plan fills most of them, because a board that is
+     the base station for something has to have room beside it for what you
+     make there: a spawner on a full board presses things out on top of each
+     other. Never fewer than it had. */
+  if(home!==ROOT && byId(home) && !proportional()){
+    const c = byId(home), had = c.shelves || {w:1, h:1};
+    let nw = 1, nh = 1, full = false;
+    ['desk','phone'].forEach(dv => {
+      const e = planExtent(dv); if(!e.mx) return;
+      const g = gridOf(dv, home);
+      const w = Math.ceil(e.mx/g.shelfW), h = Math.ceil(e.my/g.shelfH);
+      nw = Math.max(nw, w); nh = Math.max(nh, h);
+      if(e.cells > 0.6 * w*g.shelfW * h*g.shelfH) full = true;
+    });
+    c.shelves = {w:clamp(Math.max(had.w||1, nw + (full?1:0)), 1, SHELVES),
+                 h:clamp(Math.max(had.h||1, nh), 1, SHELVES)};
+  }
   (() => {
     const c = home===ROOT ? null : byId(home);
-    if(!c) return;
+    if(!c || !proportional()) return;
     /* **Both boards, each against its own extent.** A container's inside is
        read off the box for the device being drawn (decision 190), so growing
        the desk box alone left the phone board the size it was and every phone
@@ -259,20 +285,81 @@ function stampPlan(planId, intoId, at){
         {x:Math.max(1,(o[dv].x||1)+dx), y:Math.max(1,(o[dv].y||1)+dy)}); });
     });
   }
-  /* Only the top level can collide — everything deeper is going into a
-     container that has just been created empty. Try where it was saved; if
-     something is already there, that one thing finds a spot and the rest stay
-     put, which is better than re-flowing the board and better than refusing. */
-  top.forEach(o=>{
-    ['desk','phone'].forEach(dv=>{
+  /* **The arrangement moves as one** (decision 195). Only the top level can
+     collide — everything deeper is going into a container that has just been
+     created empty. Where it was saved, if that is clear; otherwise the first
+     place on this board, top first, where the *whole* plan fits — which is
+     what happens when you lay one out on a board that already has things on
+     it. It used to try each box where it was saved and send the ones that hit
+     something to `anySpot()` one by one, so the few that collided scattered
+     and the rest stayed: the shape broken in exactly the place it met the
+     board. No room anywhere and the container is given more (a screenful
+     down, or across; or a taller tile when boards are proportional) and asked
+     again. Only when that runs out does it fall back to one box at a time. */
+  ['desk','phone'].forEach(dv=>{
+    let off = clearOffset(top, dv, home);
+    for(let tries=0; !off && tries<3 && growFor(top, dv, home); tries++) off = clearOffset(top, dv, home);
+    if(off){
+      top.forEach(o=>{ const b=o[dv]; if(b && b.w && b.x)
+        o[dv] = Object.assign({}, b, {x:b.x+off.dx, y:b.y+off.dy}); });
+    }
+    top.forEach(o=>{
       const b = o[dv];
       if(!b || !b.w){ ensureBox(o, dv, home); return; }
-      if(boxOk(b, o.id, dv, home)) return;
+      if(off || boxOk(b, o.id, dv, home)) return;
       const spot = anySpot(b.w, b.h, dv, home);
       o[dv] = spot ? Object.assign({}, spot, {w:b.w, h:b.h}) : b;
     });
   });
   return made;
+}
+/* The offset that puts every box of a plan somewhere clear on this board, or
+   null. `boxOk()` asked of each would see the plan's own other boxes as
+   siblings — they are already in `S.objects` — so the board's other things are
+   read once and the rules are asked directly: on the board, no bigger than a
+   screen, not across a seam on a phone, and on top of nothing. Row by row from
+   the top, so it lands as high as it can; the saved place first. */
+function clearOffset(top, dv, home){
+  const boxes = top.map(o=>o[dv]).filter(b=>b && b.w && b.x);
+  if(!boxes.length) return {dx:0, dy:0};
+  const g = gridOf(dv, home);
+  const mine = new Set(top.map(o=>o.id));
+  const sibs = childrenOf(container(home))
+    .filter(d=>!mine.has(d.id) && !has(d,'decor') && d[dv] && d[dv].x && d[dv].w)
+    .map(d=>lay(d, dv, home));
+  const ok = (dx, dy)=> boxes.every(b=>{
+    const nb = {x:b.x+dx, y:b.y+dy, w:b.w, h:b.h};
+    if(nb.x<1 || nb.y<1 || nb.x+nb.w-1>g.cols || nb.y+nb.h-1>g.rows) return false;
+    if(nb.w>g.shelfW || nb.h>g.shelfH) return false;
+    if(dv==='phone' && !oneShelf(nb, g)) return false;
+    return !sibs.some(s=>overlaps(nb, s));
+  });
+  if(ok(0, 0)) return {dx:0, dy:0};
+  const x0 = Math.min(...boxes.map(b=>b.x)), y0 = Math.min(...boxes.map(b=>b.y));
+  const x1 = Math.max(...boxes.map(b=>b.x+b.w-1)), y1 = Math.max(...boxes.map(b=>b.y+b.h-1));
+  for(let dy=1-y0; dy<=g.rows-y1; dy++)
+    for(let dx=1-x0; dx<=g.cols-x1; dx++) if(ok(dx, dy)) return {dx, dy};
+  return null;
+}
+/* More room for a plan that found none: a screenful down, then across, on a
+   board of screenfuls; a taller tile on a proportional one. False when there
+   is nothing left to give, or the plan is going onto the desk, which is the
+   size it is. */
+function growFor(top, dv, home){
+  const c = home===ROOT ? null : byId(home);
+  if(!c) return false;
+  if(!proportional()){
+    const had = c.shelves || {w:1, h:1};
+    if((had.h||1) < SHELVES){ c.shelves = {w:had.w||1, h:(had.h||1)+1}; return true; }
+    if((had.w||1) < SHELVES){ c.shelves = {w:(had.w||1)+1, h:had.h||1}; return true; }
+    return false;
+  }
+  const bs = top.map(o=>o[dv]).filter(b=>b && b.w);
+  const tall = bs.length ? Math.max(...bs.map(b=>(b.y||1)+b.h-1)) - Math.min(...bs.map(b=>b.y||1)) + 1 : 4;
+  const box = (c[dv] && c[dv].w) ? c[dv] : {w:2, h:2};
+  const want = Object.assign({}, box, {h: box.h + Math.ceil(tall/INNER)});
+  c[dv] = (want.x && !boxOk(want, c.id, dv, c.parent)) ? {w:want.w, h:want.h} : want;
+  return true;
 }
 
 /* A plan is the same shape whichever way it was made, so a *type* that opens

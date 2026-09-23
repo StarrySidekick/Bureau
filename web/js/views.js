@@ -9,7 +9,7 @@ import { S, K, T, byId, has, isContainer, containers, container, childrenOf, cha
   URGES, workday, searchHits } from './model.js';
 import { GRID, PHONE_GRIDS, CELL, COLW, MEASURE, sideways, colsOf, gridKeyOf, SHELVES, shelvesOf,
   shelfRows, shelfOfBox, shelfAt, setShelf, shelfOrigin, SHELF, drawCols, drawRows,
-  lay, gridOf, cellW, ensureBox, innerOf, PLACED } from './grid.js';
+  lay, gridOf, cellW, ensureBox, innerOf, PLACED, proportional } from './grid.js';
 import { themeNow, applyLook, lookVal, STYLES, BACKDROPS, SURFACES, DARKMODES, darkMode, hasDark,
   palNow, styleNow, hexOf, objColour, slotName, OBJ0, CHECKS, dressAs } from './look.js';
 import { gridOfContainer, gridTile, listTile, bookView, calSpan } from './tiles.js';
@@ -556,6 +556,22 @@ function shelfCountField(cid){
      one — so without this there was no way at all to make a drawer bigger from
      a phone. Six by six, because the board is capped at the desk's own
      twenty-four columns and six times four is twenty-four. */
+  /* With proportional boards off (decision 195, the default) a drawer is
+     screenfuls again, and this is the picker it had before 188: the shape of
+     the board, drawn as the grid it makes. */
+  if(!proportional()){
+    const had = shelvesOf(cid);
+    return `<div class="field" style="margin-top:12px"><label>How big it is inside</label>
+      <div class="shelfpick" style="--sw:${SHELVES}">${
+        Array.from({length:SHELVES*SHELVES}, (_,i)=>{
+          const x=i%SHELVES+1, y=((i/SHELVES)|0)+1;
+          return `<button class="shelfopt${x<=had.w&&y<=had.h?' on':''}"
+            data-shelfsize="${cid}:${x}:${y}" title="${x} × ${y} screenfuls"></button>`;
+        }).join('')}</div>
+      <div class="mini" style="--k:var(--brass);margin-top:6px">A square is one screenful. This board is <b>${had.w} × ${had.h}</b>${
+        had.w*had.h>1 ? ', and you swipe between them' : ''}. Making it smaller throws nothing away: what no longer fits is put back where there is room. The size of the drawer on the desk is its own business while <b>proportional boards</b> are off in Board settings.</div>
+    </div>`;
+  }
   const g = gridOf(dev(), cid), now = g.shelves;
   const box = (byId(cid)||{})[dev()] || {w:2, h:2};
   return `<div class="field" style="margin-top:12px"><label>How big it is</label>
@@ -730,6 +746,18 @@ function settingsBody(sec, cid){
       <div class="filterbar">${Object.entries(SURFACES).map(([v,n])=>
         `<button class="fchip${(S.look.surface||'grid')===v?' on':''}" data-surface="${v}">${n}</button>`).join('')}</div>
       <div class="mini" style="--k:var(--brass);margin-top:6px"><b>Graph paper</b> is the checkerboard, two cells to a square, and it is what arranging is done on. <b>Plain</b> is the same colour with nothing drawn on it. <b>The carcass</b> is the wood the bar above and the drawer along the bottom are made of, so the whole screen reads as one piece of furniture. The board's own colour is still the board's own colour — this only says what is drawn on it.</div>
+    </div>
+
+    ${/* Whether a container is as big inside as its front is outside
+          (decision 188) or a number of screenfuls (before it, and the default
+          again since decision 195). One answer for the whole desk, because
+          the other is a desk where two drawers the same size hold different
+          amounts for no reason you can see. */''}
+    <div class="field" style="margin-top:12px"><label>How big a drawer is inside</label>
+      <div class="filterbar">
+        <button class="fchip${proportional()?'':' on'}" data-proportional="">Screenfuls</button>
+        <button class="fchip${proportional()?' on':''}" data-proportional="1">As big as its front</button></div>
+      <div class="mini" style="--k:var(--brass);margin-top:6px"><b>Screenfuls</b>: every drawer opens onto one screen, or as many as you give it, whatever size its front is on the desk. <b>As big as its front</b>: four cells inside for every cell of the front, so a small drawer holds a little and a big one a lot. Switching to screenfuls gives every drawer enough of them to hold what is already in it.</div>
     </div>
 
     ${/* The board lets go. It is an experiment and the note says so — but it
