@@ -7351,6 +7351,11 @@ const PROP_OFF = () => { const b = document.createElement('button');
     out.justTheOne = document.querySelectorAll('meta[name="theme-color"]').length === 1;
     out.isTheWood = meta() === wood();
     out.notThePaper = meta() !== '#ede7db';
+    /* An iPhone's home screen reads the status bar from this and not from
+       theme-color; `default` is a light bar. Translucent lets the wood show
+       through (decision 207). */
+    out.andTheIPhoneLetsTheWoodShow = (document.querySelector(
+      'meta[name="apple-mobile-web-app-status-bar-style"]')||{}).content === 'black-translucent';
     // a desk that names its own wood takes the status bar with it
     S.deskCfg = S.deskCfg || {};
     S.deskCfg.wood = '#4b2e12';

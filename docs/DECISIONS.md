@@ -9611,3 +9611,28 @@ drawn at the top of its Board settings, the panel titled by its name and
 pressable to rename, and a door out of it (Look, Behaviour…) comes back to
 Settings rather than to a second copy of the editor. `objBackTo()` in
 panels.js is how Settings tells the editor where Back goes.
+
+## 207 · The status bar on an iPhone is the wood, for real this time
+
+*2026-09-24.* Timothy: the strip the clock and the Wi-Fi sit in was still
+cream on his phone, after decision 89 set `theme-color` to the wood.
+
+Decision 89 was right about a browser and wrong about a Home Screen app. An
+installed web app on an iPhone does not paint its status bar from
+`theme-color`; it paints it from `apple-mobile-web-app-status-bar-style`, and
+ours said `default`, which is a light bar. So the meta 89 wrote was obeyed
+everywhere except the one place it was for.
+
+It is `black-translucent` now. iOS draws no bar at all: the page runs up under
+the clock, `.app` pads itself by `env(safe-area-inset-top)` (it already did,
+and `viewport-fit=cover` was already set), and what shows through is `.app`'s
+own `--wood`, so a desk with its own wood and an aesthetic with its own take
+the status bar with them, which `theme-color` never could on a phone. The
+clock and the battery are drawn white, which every aesthetic's wood carries;
+Golf 97's grey is the lightest and still reads.
+
+`theme-color` stays and `paintStatusBar()` still keeps it in step, because a
+browser tab and Android do read it. And iOS may read the Home Screen meta only
+when the app is added, so an install from before this can need removing and
+adding again. The row count is unchanged: the room was always measured from
+below the inset.

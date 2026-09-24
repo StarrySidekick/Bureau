@@ -17,7 +17,15 @@
 <meta name="theme-color" content="#3A2C1E">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<!-- …except on an iPhone's home screen, which ignores theme-color for the status
+     bar and paints it from this instead. `default` is a light bar, which is why
+     the strip stayed cream above the wood whatever theme-color said.
+     `black-translucent` paints nothing: the page runs up under the clock, `.app`
+     pads itself by the safe-area inset, and the wood behind it is the status
+     bar. The clock is drawn white, which every aesthetic's wood carries.
+     iOS may read this only when the app is added to the Home Screen, so an
+     install that predates it can need removing and adding again. Decision 207. -->
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Bureau">
 <meta name="description" content="A desk for everything you keep.">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
