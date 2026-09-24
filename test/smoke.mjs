@@ -2148,6 +2148,16 @@ const PROP_OFF = () => { const b = document.createElement('button');
       Math.abs(h(bar) + gap + h(sc()) + h(rail) - main.clientHeight) < 1.5;
     out.clearsTheCurveOfTheScreen = h(rail) >= 30
       && g().getBoundingClientRect().bottom <= innerHeight - 30;
+    /* **One more row** is a setting (decision 205): it takes the reveal away
+       and slims the drawer front, and the rows follow by arithmetic. */
+    {
+      const railMin = () => parseFloat(getComputedStyle(document.querySelector('.deskrail')).minHeight);
+      const before = railMin();
+      BUREAU.state.look.rows = 'fit'; BUREAU.applyLook(); BUREAU.render(); await new Promise(r => setTimeout(r, 200));
+      out.oneMoreRowSlimsTheFurniture = railMin() < before
+        && parseFloat(getComputedStyle(sc()).getPropertyValue('--gapmin')) === 0;
+      delete BUREAU.state.look.rows; BUREAU.applyLook(); BUREAU.render(); await new Promise(r => setTimeout(r, 200));
+    }
     /* The desk is **nine shelves**, three by three, and you start in the
        middle one. See decision 141. */
     out.nineShelves = JSON.stringify(BUREAU.shelvesOf('root')) === JSON.stringify({w:3,h:3});

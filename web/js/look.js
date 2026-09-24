@@ -244,6 +244,13 @@ function applyLook(){
      on it. See decision 192. */
   if(SURFACES[L.surface] && L.surface !== 'grid') el.dataset.surface = L.surface;
   else delete el.dataset.surface;
+  /* **How tall a phone board is** (decision 205). The default keeps a strip
+     of wood above the board and the drawer front at its full depth, which is
+     eight by fourteen on an iPhone; `fit` trims both until one more row goes
+     in. The rows are still measured, never stated: this only moves two
+     minimums sizeGrid() already reads (`--gapmin` and the rail's
+     `min-height`), so the extra row arrives by arithmetic. */
+  if(L.rows === 'fit') el.dataset.rows = 'fit'; else delete el.dataset.rows;
   // the theme block still owns the shadows, and which one is showing is the
   // style's background rather than a switch of its own
   document.documentElement.dataset.theme = themeNow();

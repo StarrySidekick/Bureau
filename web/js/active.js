@@ -167,6 +167,10 @@ function deckTop(o){
    viewBox follows it — `vb` may be a function — so the candle is drawn at
    whatever height it turns out to be rather than being letterboxed into a box
    sized for the longest one. */
+/* Where the candlestick photograph sits in the candle's own units: 0.4 of a
+   unit to the pixel, socket centre (173px) on x 30, rim (4px) a little above
+   the wax's foot at 108 so the socket's lip covers it. */
+const CANDLE = {x: 30 - 173*0.4, y: 108 - 4*0.4 - 2, w: 337*0.4, h: 360*0.4};
 const candleFull = o => Math.max(26, Math.min(150,
   Math.round(84 * Math.pow(burnOf(o)/120, 0.55))));
 const burning = o => actOf(o) === 'candle' && !!o.litAt && through(o.litAt, burnOf(o)) < 1;
@@ -308,8 +312,15 @@ const ACTIVE = {
      own because the shared minute tick asks whether it has, not because
      anything counted it down. */
   candle: {
+    /* **The holder is a photograph** (decision 205): a silver chamber
+       candlestick, 337×360 in `img/tools/candle.png`, drawn at 0.4 of a unit
+       to the pixel so its socket (x 173, rim at y 4) is under the wax at
+       x 30, y 108. The wax and the flame stay drawn, because they are the
+       state: how long it is, and whether it is burning. The viewBox is as
+       wide as the photograph and as tall as the candle, so the tile is the
+       object at any length. */
     nm:'Candle', vb: o => { const t = 108 - candleFull(o) - 24;
-                            return `0 ${t.toFixed(1)} 60 ${(140-t).toFixed(1)}`; },
+                            return `${CANDLE.x} ${t.toFixed(1)} ${CANDLE.w} ${(CANDLE.y + CANDLE.h - t).toFixed(1)}`; },
     /* **A candle stands.** Every other instrument is centred in its box, and a
        candle centred in one floats: the length is the setting now, so a short
        candle in a tall tile had air above it *and* below it, which reads as a
@@ -327,11 +338,14 @@ const ACTIVE = {
             a6.5 6.5 0 0 1-6.5-6.5C23.5 ${(y-10).toFixed(1)} 25.5 ${(y-14).toFixed(1)} 30 ${(y-20).toFixed(1)}Z"
             fill="var(--glow)"/>
     </g>`:''}
-    <rect x="18" y="${y.toFixed(1)}" width="24" height="${h.toFixed(1)}" rx="1.5" fill="${wax}"/>
-    
-    <path d="M12 108h36c1.6 5-1 9-6 10H18c-5-1-7.6-5-6-10Z" fill="var(--brass)"/>
-        <path d="M27 118h6v10h-6Z" fill="var(--brass)"/>
-        <path d="M8 128h44c2 4 3 7 3 10H5c0-3 1-6 3-10Z" fill="var(--brass)"/>
+    <rect x="18" y="${y.toFixed(1)}" width="24" height="${(h+6).toFixed(1)}" rx="1.5" fill="${wax}"/>
+    ${/* round, not flat: light down the left, shade down the right, the same
+         gradient every candle shares (identical, so one id is harmless) */''}
+    <defs><linearGradient id="cdWaxShade" x1="0" x2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity=".28"/><stop offset=".35" stop-color="#fff" stop-opacity=".08"/>
+      <stop offset=".7" stop-color="#000" stop-opacity=".06"/><stop offset="1" stop-color="#000" stop-opacity=".3"/></linearGradient></defs>
+    <rect x="18" y="${y.toFixed(1)}" width="24" height="${(h+6).toFixed(1)}" rx="1.5" fill="url(#cdWaxShade)"/>
+    <image href="img/tools/candle.png" x="${CANDLE.x}" y="${CANDLE.y}" width="${CANDLE.w}" height="${CANDLE.h}"/>
     </g>`;
     },
     tap(o){

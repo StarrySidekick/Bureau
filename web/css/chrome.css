@@ -5240,6 +5240,20 @@ input,textarea,select,[contenteditable],
   min-height:calc(env(safe-area-inset-bottom) * 0.5 + 46px);
   padding-left:10px;padding-right:10px;
 }
+/* **One more row** (decision 205): no reveal above the board, and the drawer
+   front at the least it can be with the bar in it, reserving less of the
+   home-indicator inset. The arithmetic on a 390×844 iPhone: 844 less 47 of
+   status bar and 57 of drawer front is 740, and 740 over a 48.75 cell is
+   15.2 rows; the default's 7px reveal and 63px front leave 727, which is
+   14.9 and floors to fourteen. Checked the same way against every current
+   iPhone size (see the decision). */
+html[data-rows="fit"] .is-phone .scroll.deskscroll{--gapmin:0px}
+html[data-rows="fit"] .is-phone .deskrail.withbar{
+  min-height:calc(env(safe-area-inset-bottom) * 0.4 + 40px);
+  padding-bottom:calc(env(safe-area-inset-bottom) * 0.4);
+}
+html[data-rows="fit"] .is-phone .gridbar.inrail .sqbtn{width:25px;height:25px}
+
 /* The bar itself, set into the wood. `.is-phone .gridbar` gives it the
    light-on-dark tokens it had up top; the wood and the padding it does not
    need, because the rail is both. */

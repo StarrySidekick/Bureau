@@ -783,6 +783,15 @@ function settingsBody(sec, cid){
       <div class="mini" style="--k:var(--brass);margin-top:6px"><b>Graph paper</b> is the checkerboard, two cells to a square, and it is what arranging is done on. <b>Plain</b> is the same colour with nothing drawn on it. <b>The carcass</b> is the wood the bar above and the drawer along the bottom are made of, so the whole screen reads as one piece of furniture. The board's own colour is still the board's own colour — this only says what is drawn on it.</div>
     </div>
 
+    ${/* How tall a phone board is (decision 205). Two answers, because both
+          are good: the wood above the board is furniture Timothy likes, and
+          the row it costs is a row. */''}
+    <div class="field" style="margin-top:12px"><label>Board height on a phone</label>
+      <div class="filterbar">${[['','Wood above the board'],['fit','One more row']].map(([v,n])=>
+        `<button class="fchip${(S.look.rows||'')===v?' on':''}" data-rows="${v}">${n}</button>`).join('')}</div>
+      <div class="mini" style="--k:var(--brass);margin-top:6px"><b>Wood above the board</b> keeps a strip of the carcass under the status bar and the drawer front at its full depth: eight by fourteen on an iPhone. <b>One more row</b> takes the strip away and slims the drawer front until a fifteenth row fits.</div>
+    </div>
+
     ${/* Whether a container is as big inside as its front is outside
           (decision 188) or a number of screenfuls (before it, and the default
           again since decision 195). One answer for the whole desk, because

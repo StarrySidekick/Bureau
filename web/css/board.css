@@ -1323,7 +1323,11 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
 .drawer.gentile.garden.gensolo:active{transform:scale(.94)}
 /* Bigger, the bed is a strip down the middle and the line you type into lies
    on it like a plant label. */
-.gentile.garden.genbig{padding:6px 10px}
+/* Five classes, because the ground rule above says `padding:0` at four and
+   would otherwise win, running the label out through the grass to the edge. */
+.drawer.otile.gentile.garden.genbig{padding:6px 12px 6px 10px}
+.drawer.otile.gentile.garden.genbig.gensquare{padding:8px 10px 10px}
+.drawer.otile.gentile.garden.genbig.sz-short{padding:4px 10px 4px 8px}
 .gentile.garden.genbig .gbed{inset:10% 6%}
 .gentile.garden.genbig .genico svg{width:clamp(22px,20cqw,40px)}
 .gentile.garden.genbig.gensquare .genico svg{width:auto;height:100%}

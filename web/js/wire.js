@@ -1283,6 +1283,10 @@ function wire(){
        stored: `applyLook()` writes the attribute only when there is something
        to say, and a key meaning "the default" in every backup is a key nobody
        needed. Same shape as the spray and the tick box. See decision 192. */
+    // how tall a phone board is (decision 205): the default is deleted, not stored
+    const rws=t.closest('button[data-rows]');
+    if(rws){ if(rws.dataset.rows==='fit') S.look.rows='fit'; else delete S.look.rows;
+      applyLook(); save(); render(); refreshPanel(); return; }
     const srf=t.closest('button[data-surface]');
     if(srf){ const v=srf.dataset.surface;
       if(v && v!=='grid') S.look.surface = v; else delete S.look.surface;

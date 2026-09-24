@@ -524,7 +524,7 @@ const BUILTIN_KINDS = {
   hourglass:{act:'glass',  nm:'Hourglass', ic:'clock', c:12, ds:'Tip it over and watch it run',
      attrs:[], size:[3,4], phoneSize:[3,4], onclick:'active', mins:5, body:'' },
   candle:   {act:'candle', nm:'Candle',    ic:'sun',   c:3,  ds:'Burns down while you work',
-     attrs:[], size:[2,5], phoneSize:[2,5], onclick:'active', burn:120, body:'' },
+     attrs:[], size:[3,4], phoneSize:[3,4], onclick:'active', burn:120, body:'' },
   bell:     {act:'bell',   nm:'Desk bell', ic:'ring',  c:12, ds:'Press it and it rings. That is all',
      attrs:[], size:[2,4], phoneSize:[2,4], onclick:'active', body:'' },
   clock:    {act:'clock',  nm:'Clock',     ic:'clock', c:9,  ds:'The time, and one alarm',
