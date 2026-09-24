@@ -3612,6 +3612,14 @@ const PROP_OFF = () => { const b = document.createElement('button');
       && !document.getElementById('frame').classList.contains('tilt-desk');
 
     S.look.parallax='desk'; BUREAU.applyLook(); BUREAU.render(); await nap(160);
+    /* The tilt insets the board, which makes the cell smaller and can add a
+       row — and a board with one more row cuts its shelves somewhere else, so
+       the two bottom corners placed against the old count can land on a shelf
+       that is not drawn. Put them against the count there is now. Since the
+       bar moved into the rail (decision 204) there is a row to spare for it. */
+    corners.slice(2).forEach((o, i) => {
+      o.phone = hereBox({x: i ? shelfW-2 : 1, y: BUREAU.shelfRows - 3, w:3, h:3}); });
+    BUREAU.render(); await nap(160);
     const ts = tiles();
     /* The numbers and the layer are one condition, so nothing can carry a side
        without knowing where it stands, or the other way about. */
