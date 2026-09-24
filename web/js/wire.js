@@ -708,6 +708,8 @@ function act(name, el){
       break;
     }
     case 'drawersettings': case 'objset': objectPanel(el.dataset.id); break;
+    // the desk's editor, as the first door of Settings (decision 206)
+    case 'boardeditor': objectPanel(el.dataset.id, null, ()=>settingsPanel()); break;
     /* ---- the two the camera carries — decision 188 --------------------
        The whole screen, and what this thing is. `camfull` hands the object to
        the reading surface **full bleed** — the camera keeps the object's own

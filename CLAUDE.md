@@ -86,7 +86,10 @@ pictures live in `web/img/` (see `docs/IMAGES.md`).
 **v2.00** (decision 205): *One more row* is a Board setting (8×15, the default
 keeps the wood and 8×14); the tools are photographs with their moving parts
 drawn over them at measured coordinates, and the clock's hands turn for the
-first time.
+first time. **v2.01** (decision 206): the rail's buttons are turned like the
+knob, the board's name is on the top lip (`.toplip`), and the brush is gone:
+the gear opens the desk's editor as a door of Settings, and a drawer's editor
+at the top of its Board settings.
 
 **Start here each session:** `docs/SYSTEM.md` is the reference for what Bureau is
 made of — objects, attributes, types, drawers, the grid, the surfaces, storage.

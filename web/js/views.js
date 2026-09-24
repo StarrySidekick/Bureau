@@ -14,7 +14,7 @@ import { themeNow, applyLook, lookVal, STYLES, BACKDROPS, SURFACES, DARKMODES, d
   palNow, styleNow, hexOf, objColour, slotName, OBJ0, CHECKS, dressAs } from './look.js';
 import { gridOfContainer, gridTile, listTile, bookView, calSpan, calFront } from './tiles.js';
 import { gravitySync } from './gravity.js';
-import { openPanel, closePanel, panelKey, repositionPanel, plansPanel, boardRow } from './panels.js';
+import { openPanel, closePanel, panelKey, repositionPanel, plansPanel, boardRow, objectPanelBody, objBackTo } from './panels.js';
 import { openGuide } from './guide.js';
 /* Cyclic at *function* level only — motion.js imports render() from here and
    this imports sprayAt() from there, and neither is called while the modules
@@ -75,6 +75,8 @@ function gridBar(c){
           return `<i class="${x===at.x&&y===at.y?'on':''}" data-shelfgo="${c.id}:${x}:${y}"></i>`;
         }).join('')}</span>`:''}
     </div>`;
+  const lockBtn = `<button class="sqbtn${boardLocked()?' on locked':''}" data-act="togglelock"
+        title="${boardLocked()?'Everything is locked — tap to unlock':'Everything is unlocked — tap to lock'}">${ic(boardLocked()?'lock':'unlock',16)}</button>`;
   const tools = `    <div class="bartools">
       ${/* The lock comes first, because it is the one that changes what every
            other gesture on the board means — and on a locked board it is the
@@ -84,8 +86,7 @@ function gridBar(c){
            opens the menu either way. */''}
       ${/* One switch for every board there is, not one per board. See
            decision 74. */''}
-      <button class="sqbtn${boardLocked()?' on locked':''}" data-act="togglelock"
-        title="${boardLocked()?'Everything is locked — tap to unlock':'Everything is unlocked — tap to lock'}">${ic(boardLocked()?'lock':'unlock',16)}</button>
+      ${lockBtn}
       ${/* **Grid or list**, and only those two. How a board sorts itself is a
            thing you set once and live with — that is a row in its own editor —
            but which of the two ways of *looking* at it you want is something
@@ -108,15 +109,10 @@ function gridBar(c){
       ${/* The star promoted a drawer into a desk of its own. There is one desk
            now and it is nine shelves wide, so what the star bought — room — is
            bought by putting the drawer on a shelf instead. See decision 141. */''}
-      ${/* The brush is *this board*, whichever board it is. A drawer is an
-           object and opens its object editor; a desk is a container without a
-           tile and opens the same editor for itself — how it is laid out, what
-           it sorts by, what colour its board is. It used to be that the desk
-           had no editor at all and the gear stood in for one, which meant the
-           only way to repaint one desk was a setting that repainted them all.
-           A brush, because what it mostly changes is how the thing looks. */''}
-      <button class="sqbtn" data-act="drawersettings" data-id="${c.id}"
-        title="${c.id===ROOT?'This desk':'Object editor'}">${ic('brush',16)}</button>
+      ${/* The brush was *this board's* editor, beside the gear. Since decision
+           206 it is woven into the gear: the desk's editor is the first door
+           of Settings, and a drawer's editor heads its Board settings. One
+           button for "set this up", not two that had to be told apart. */''}
       ${/* …and the gear is the *app*, which is a different question. Inside a
            container the app has nothing to say that is not about the board,
            so there it opens Board settings directly. See decision 193. */''}
@@ -130,7 +126,20 @@ function gridBar(c){
      fifteen on an installed iPhone where it was eight by fourteen. The bar is
      handed to `deskRail()` rather than drawn here, and the knob keeps the
      middle of the wood. */
-  if(S.device==='phone'){ RAILBAR = {where, find:searchBtn(c), tools}; return ''; }
+  /* **The name is on the top lip** (decision 206): the strip of wood above
+     the board carries where you are, and the drawer front keeps the tools.
+     With *One more row* there is no strip to put it on, so it rides in the
+     drawer front as it did. */
+  if(S.device==='phone'){
+    const lip = S.look.rows !== 'fit';
+    /* Two a side round the knob: the search and the lock on the left, the
+       list, the spiral and the gear on the right. */
+    // with the name in the front too (One more row), the lock joins the
+    // right-hand group so the name has room to be read
+    RAILBAR = lip ? {where:'', find:searchBtn(c)+lockBtn, tools: tools.replace(lockBtn, '')}
+                  : {where, find:searchBtn(c), tools};
+    return lip ? `<div class="toplip">${where}</div>` : '';
+  }
   return `<div class="gridbar shelf shelf-top">${where}${searchBtn(c)}${tools}</div>`;
 }
 /* What `gridBar()` left for the rail to draw on a phone, reset by viewHTML()
@@ -675,8 +684,15 @@ function settingsPanel(sec, cid){
      the board are all there is — so the door is the whole panel and there is
      no way back to a list of doors that would all be about somewhere else. */
   const inside = !!(cid && cid!==ROOT && byId(cid));
-  openPanel({key:'settings', title: s ? SETSECS[s][0] : 'Settings',
-    sub: inside ? boardName(byId(cid)) : s ? 'Settings' : `Bureau ${APP_VERSION} · ${installed()?'installed':'in a browser tab'}`,
+  /* Inside a container the drawer's own editor is woven in above its Board
+     settings (decision 206), so its fields write to it and its doors come back
+     here; the panel's title is the drawer's name, pressable to rename, the way
+     the editor's own is. */
+  if(inside){ S.openId = cid; objBackTo(()=>settingsPanel('board', cid), cid); }
+  openPanel({key:'settings',
+    title: inside ? `<span class="pheadname" data-headname="${cid}" tabindex="0"
+      title="Press to rename">${esc(byId(cid).title||'Untitled')}</span>` : s ? SETSECS[s][0] : 'Settings',
+    sub: inside ? 'Settings for this drawer' : s ? 'Settings' : `Bureau ${APP_VERSION} · ${installed()?'installed':'in a browser tab'}`,
     back: (s && !inside) ? (()=>settingsPanel()) : null,
     body:()=>settingsBody(s, inside ? cid : null)});
 }
@@ -702,12 +718,19 @@ function settingsBody(sec, cid){
   const standalone = installed();
   const at = s => sec===s;
   const inside = !!cid;
-  if(!sec) return `<div class="rows osecs">${Object.entries(SETSECS).map(([k,[nm,icon,note]])=>
+  /* **The desk's own editor is the first door** (decision 206). It was the
+     brush in the bar: how this desk is laid out, sorted and painted. */
+  if(!sec) return `<div class="rows osecs">
+      <div class="row" data-act="boardeditor" data-id="${ROOT}">
+        <span class="kindmark">${ic('brush',13)}</span>
+        <div class="body"><div class="title">This desk</div><div class="snip">how it is laid out, sorted and painted, and saving it as a plan</div></div>
+        <span class="rowgo">${ic('chevR',13)}</span></div>
+      ${Object.entries(SETSECS).map(([k,[nm,icon,note]])=>
       `<div class="row" data-ssec="${k}">
         <span class="kindmark">${ic(icon,13)}</span>
         <div class="body"><div class="title">${esc(nm)}</div><div class="snip">${esc(note)}</div></div>
         <span class="rowgo">${ic('chevR',13)}</span></div>`).join('')}</div>
-    <div class="mini" style="--k:var(--brass);margin-top:10px">Inside a container the gear opens its <b>Board settings</b> and nothing else. How a board is laid out and sorted is in its editor — the brush in the bar. See decisions 53 and 193.</div>`;
+    <div class="mini" style="--k:var(--brass);margin-top:10px">Inside a drawer the gear opens that drawer: its own editor, then its Board settings. See decisions 193 and 206.</div>`;
   return [
     at('about') ? `
 
@@ -745,7 +768,8 @@ function settingsBody(sec, cid){
       ${(S.look.slots&&S.look.slots[S.look.style||'victorian'])
         ? `<button class="pill" style="margin-top:8px" data-act="resetslots">${ic('undo',13)} Back to ${esc(styleNow().nm)}&rsquo;s own sixteen</button>` : ''}
     </div>` : '',
-    at('board') ? `
+    at('board') ? `${inside ? `<div class="woven">${objectPanelBody(cid, null)}</div>
+    <div class="section-h" style="margin-top:18px"><h2>Board settings</h2><div class="rule"></div></div>` : ''}
     <div class="section-h"><h2>Aesthetic</h2><div class="rule"></div></div>
     ${stylePicker()}
     <div class="section-h"><h2>The board</h2><div class="rule"></div></div>
@@ -1665,7 +1689,7 @@ function sizeGrid(){
   if(dev()==='phone' && main){
     // the bar rides in the rail on a phone (decision 204); only a bar that is
     // still standing above the board takes room from it
-    const bar=main.querySelector(':scope > .gridbar, :scope > .searchtop'), rail=main.querySelector('.deskrail');
+    const bar=main.querySelector(':scope > .gridbar, :scope > .searchtop, :scope > .toplip'), rail=main.querySelector('.deskrail');
     const barH = bar ? bar.getBoundingClientRect().height : 0;
     // read the floor, not the margin — the margin is what this writes
     const gapMin = parseFloat(getComputedStyle(sc).getPropertyValue('--gapmin'))||0;

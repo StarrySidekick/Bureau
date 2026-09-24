@@ -1925,13 +1925,18 @@ const PROP_OFF = () => { const b = document.createElement('button');
     out.noSortPopup = !document.querySelector('[data-sortby]');
     // the lock is the leftmost of them, because it decides what every other
     // gesture on the board means
-    const tools = [...document.querySelectorAll('.bartools .sqbtn')];
-    out.lockIsLeftmost = tools[0] && tools[0].dataset.act === 'togglelock';
+    const tools = [...document.querySelectorAll('.gridbar .sqbtn')];
+    // leftmost of the tools; on a phone the search and the lock share the
+    // left of the knob since decision 206, and the lock is the first tool
+    out.lockIsLeftmost = !!tools.find(t => t.dataset.act !== 'searchopen')
+      && tools.find(t => t.dataset.act !== 'searchopen').dataset.act === 'togglelock';
     /* …and the desk has an editor of its own — the same panel a drawer opens,
        for the board you are standing on. The gear beside it is the *app*, which
        is a different question, and it is only offered from a desk. */
-    out.deskHasAnEditor = tools.some(t => t.dataset.act === 'drawersettings'
-      && t.dataset.id === 'root');
+    /* Since decision 206 the desk's editor is the first door of Settings,
+       not a brush of its own. */
+    out.deskHasAnEditor = !tools.some(t => t.dataset.act === 'drawersettings')
+      && tools.some(t => t.dataset.act === 'appsettings');
     out.andTheGearIsStillTheApp = tools.some(t => t.dataset.act === 'appsettings');
     /* Grid or list is a **tool** — the one thing about how a board looks that
        you change while you are working — and it is two states, not the five
@@ -1950,7 +1955,8 @@ const PROP_OFF = () => { const b = document.createElement('button');
     document.querySelector('.bartools [data-act="randomobject"]').click(); await nap(320);
     out.oneOfAnything = S.objects.length === wasN + 1;
     BUREAU.del(S.objects[S.objects.length-1].id); S.undo = []; BUREAU.render(); await nap(120);
-    document.querySelector('.bartools [data-act="drawersettings"]').click(); await nap(280);
+    document.querySelector('.gridbar [data-act="appsettings"]').click(); await nap(280);
+    document.querySelector('#panel [data-act="boardeditor"]').click(); await nap(280);
     // …and it asks one question at a time now: how a board sorts and how fine
     // its grid is are Behaviour, what it is painted in is Look. See decision 66.
     out.theDeskHasDoors = document.querySelectorAll('#panel [data-osec]').length >= 2;
@@ -2066,7 +2072,7 @@ const PROP_OFF = () => { const b = document.createElement('button');
 
     /* The name in the bar opens the **shelf map**: the nine, laid out as they
        actually are, and pressing one goes there. */
-    document.querySelector('.gridbar .deskname').click(); await nap(250);
+    document.querySelector('.gridbar .deskname, .toplip .deskname').click(); await nap(250);
     out.theNameOpensTheMap = document.querySelectorAll('#panel .shelfcard').length === 9;
     document.querySelector('#panel .shelfcard[data-shelfgo="root:2:0"]').click(); await nap(250);
     out.aCardJumps = JSON.stringify(BUREAU.shelfAt('root')) === JSON.stringify({x:2,y:0});
@@ -4370,7 +4376,7 @@ const PROP_OFF = () => { const b = document.createElement('button');
   const desks = await page.evaluate(async () => {
     const nap = n => new Promise(r => setTimeout(r, n));
     const S = BUREAU.state, out = {};
-    const bar = () => (document.querySelector('.gridbar .where')||{}).textContent
+    const bar = () => (document.querySelector('.gridbar .where, .toplip .where')||{}).textContent
       .replace(/\s+/g,' ').trim();
 
     out.oneDeskOnly = S.desks.length === 1 && S.desks[0] === 'root';
@@ -5832,7 +5838,8 @@ const PROP_OFF = () => { const b = document.createElement('button');
     document.querySelector('#panel [data-act="panelclose"]')?.click();
     S.view = 'desk'; S.drawerId = null; BUREAU.render(); await nap(200);
     const before2 = BUREAU.plans().length;
-    document.querySelector('.gridbar [data-act="drawersettings"]').click(); await nap(320);
+    document.querySelector('.gridbar [data-act="appsettings"]').click(); await nap(320);
+    document.querySelector('#panel [data-act="boardeditor"]').click(); await nap(320);
     const deskBtn = document.querySelector('#panel [data-act="saveplan"]');
     out.theDeskOffersItToo = !!deskBtn;
     deskBtn.click(); await nap(340);
@@ -9255,7 +9262,7 @@ const PROP_OFF = () => { const b = document.createElement('button');
     /* inside a container: its name only, no chevron, and a gear that opens
        straight onto Board settings */
     S.view='drawer'; S.drawerId=ph.id; BUREAU.render(); await nap(200);
-    const where = (document.querySelector('.gridbar .where')||{}).textContent || '';
+    const where = (document.querySelector('.gridbar .where, .toplip .where')||{}).textContent || '';
     out.theBarSaysOnlyWhereYouAre = where.includes('Slots') && !document.querySelector('.gridbar [data-act="back"]');
     document.querySelector('.gridbar [data-act="appsettings"]').click(); await nap(250);
     const title = (document.querySelector('#panel .ptop b, #panel h1, #panel .ptitle')||{}).textContent || '';

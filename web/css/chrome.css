@@ -5252,7 +5252,25 @@ html[data-rows="fit"] .is-phone .deskrail.withbar{
   min-height:calc(env(safe-area-inset-bottom) * 0.4 + 40px);
   padding-bottom:calc(env(safe-area-inset-bottom) * 0.4);
 }
-html[data-rows="fit"] .is-phone .gridbar.inrail .sqbtn{width:25px;height:25px}
+html[data-rows="fit"] .is-phone .gridbar.inrail .sqbtn{width:28px;height:28px}
+
+/* ---- the top lip — decision 206 ----------------------------------------
+   The strip of wood above the board carries the board's name and its dots,
+   centred, in the light-on-dark the bar used. It is a child of `.main`, so
+   sizeGrid() counts it the way it counted the bar up there. */
+.is-phone .toplip{
+  flex:0 0 auto;height:22px;display:flex;align-items:center;justify-content:center;
+  padding:0 16px;margin-top:2px;
+  --ink:#F4EEE0;--ink-2:rgba(244,238,224,.74);--ink-3:rgba(244,238,224,.52);
+  --brass:var(--glow);color:var(--ink);
+}
+.toplip .where{display:flex;align-items:center;gap:7px;min-width:0}
+.toplip .here{font-family:var(--serif);font-size:14.5px;font-weight:600;letter-spacing:.02em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;
+  text-shadow:0 -1px 0 rgba(0,0,0,.45)}
+.toplip .here .deskname{border-bottom:1.5px dotted color-mix(in srgb,var(--ink-3) 60%,transparent)}
+.toplip .shelfmark{margin-left:2px}
+.is-phone .main > .toplip ~ .scroll.deskscroll{--gapmin:4px}
 
 /* The bar itself, set into the wood. `.is-phone .gridbar` gives it the
    light-on-dark tokens it had up top; the wood and the padding it does not
@@ -5270,9 +5288,36 @@ html[data-rows="fit"] .is-phone .gridbar.inrail .sqbtn{width:25px;height:25px}
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .railside .here .deskname{border-bottom:1.5px dotted color-mix(in srgb,var(--ink-3) 60%,transparent)}
 .railside .shelfmark{margin-left:2px;flex:0 0 auto}
-.is-phone .gridbar.inrail .bartools{gap:3px}
-.is-phone .gridbar.inrail .sqbtn{width:27px;height:27px;flex:0 0 auto}
-.railside .sqbtn svg{width:15px;height:15px}
+/* **The rail's buttons are turned like the knob** (decision 206): the same
+   sphere of the desk's own wood, lit from the upper left and falling into
+   shade, set a little proud of the front with a shadow under it, and the mark
+   pressed into the face rather than printed on a tile. A size that sits with
+   the knob rather than under it. The lock, locked, and the search, open,
+   take a ring of the style's Glow, the way a lit dot in the bar does. */
+.is-phone .gridbar.inrail .sqbtn{
+  width:31px;height:31px;flex:0 0 auto;border:0;border-radius:50%;
+  --knob:var(--wood);
+  background:
+    radial-gradient(circle at 34% 28%,
+      color-mix(in srgb, var(--knob) 78%, #fff) 0%,
+      var(--knob) 34%,
+      color-mix(in srgb, var(--knob) 82%, #000) 72%,
+      color-mix(in srgb, var(--knob) 58%, #000) 100%);
+  box-shadow:
+    inset 0 1px 1px rgba(255,255,255,.16),
+    inset 0 -2px 3px rgba(0,0,0,.34),
+    0 2px 3px rgba(0,0,0,.42);
+  color:color-mix(in srgb, var(--knob) 30%, #F4EEE0);
+}
+.is-phone .gridbar.inrail .sqbtn svg{width:15px;height:15px;
+  filter:drop-shadow(0 -1px 0 rgba(0,0,0,.55)) drop-shadow(0 1px 0 rgba(255,255,255,.14))}
+.is-phone .gridbar.inrail .sqbtn:active{transform:translateY(1px);
+  box-shadow:inset 0 1px 1px rgba(255,255,255,.1), inset 0 -1px 2px rgba(0,0,0,.3), 0 1px 1px rgba(0,0,0,.4)}
+.is-phone .gridbar.inrail .sqbtn.on{color:var(--glow);
+  box-shadow:inset 0 1px 1px rgba(255,255,255,.16), inset 0 -2px 3px rgba(0,0,0,.34),
+    0 0 0 1.5px color-mix(in srgb, var(--glow) 55%, transparent), 0 2px 3px rgba(0,0,0,.42)}
+.is-phone .gridbar.inrail .bartools{gap:6px}
+.is-phone .gridbar.inrail .railleft{gap:6px}
 
 /* The knob **is a drawer pull**: it carries `.pull`, so all six shapes, the
    three sizes and the light on it are the ones every knob on the board already

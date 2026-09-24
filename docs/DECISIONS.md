@@ -9580,3 +9580,34 @@ off the picture:
 
 The metronome, the hourglass and the clock now start at the proportions of their
 photographs (2×4, 2×4 and 3×4).
+
+## 206 · The tools turned like the knob, the name on the lip, and one gear
+
+*2026-09-24.* Three from Timothy.
+
+**The rail's buttons are turned like the knob.** The search, the lock, the
+list, the spiral and the gear were flat squares with a hairline edge on a
+drawer front whose knob is a lit sphere of wood. They are the same sphere now:
+the desk's own `--wood` under the knob's radial light, a shadow under each, and
+the mark pressed into the face with a two-way drop shadow. 31px against a knob
+of about 34, so they sit with it rather than under it. Two a side: the search
+and the lock on the left, the list, the spiral and the gear on the right. A lit
+state (locked, the search open) is a ring of the style's Glow.
+
+**The name is on the top lip.** The board's name and its dots are on the strip
+of wood above the board (`.toplip`, a child of `.main`, so `sizeGrid()` counts
+it like the bar it replaced up there). With *One more row* there is no strip to
+put it on, because the row is made of it, so there the name rides in the drawer
+front as before, beside the search, and the lock joins the right-hand group so
+the name has room. The lip costs 22px less a 3px narrower reveal and every
+current iPhone still measures fourteen rows in the default mode.
+
+**The brush is woven into the gear.** It opened this board's object editor,
+beside a gear that opened Settings on the desk and Board settings in a drawer:
+two buttons for "set this up". Now there is one. On the desk the first door of
+Settings is **This desk**, the desk's editor, whose Back comes to Settings.
+Inside a drawer the gear opens that drawer: its own editor (`objectPanelBody`)
+drawn at the top of its Board settings, the panel titled by its name and
+pressable to rename, and a door out of it (Look, Behaviour…) comes back to
+Settings rather than to a second copy of the editor. `objBackTo()` in
+panels.js is how Settings tells the editor where Back goes.

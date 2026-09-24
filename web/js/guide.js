@@ -269,27 +269,34 @@ function chromePlate(s){
      all. So the specimen carries `is-phone`, which is where those rules live —
      the class is on `#frame` in the app and means exactly the same here. */
   const bar = `
-  <div class="gx-bar is-phone">
-    <div class="gridbar shelf shelf-top">
+  <div class="gx-bar is-phone" style="background:var(--wood)">
+    <div class="toplip">
       <div class="where">
-        <button class="iconbtn">${B('chevL',17)}</button>
-        <span class="trail"><b>Desk</b> ${B('chevR',9)} <span class="here">Kitchen</span></span>
+        <span class="here">Kitchen</span>
         <span class="shelfmark" style="--sw:3">${
           Array.from({length:9},(_,i)=>`<i class="${i===4?'on':''}"></i>`).join('')}</span>
-      </div>
-      <div class="bartools">
-        <button class="sqbtn on locked">${B('lock',16)}</button>
-        <button class="sqbtn">${B('brush',16)}</button>
-        <button class="sqbtn">${B('gear',16)}</button>
       </div>
     </div>
   </div>`;
 
+  /* The drawer front with the bar in it, and the tools turned like the knob
+     (decisions 204 and 206). */
   const rail = `
   <div class="gx-rail is-phone">
-    <nav class="deskrail ks-med" style="height:46px">
+    <nav class="deskrail withbar ks-med" style="height:52px">
       <i class="dgrain"></i>
-      <i class="pull railknob"></i>
+      <div class="gridbar inrail">
+        <div class="railside railleft">
+          <button class="sqbtn searchbtn">${B('search',16)}</button>
+          <button class="sqbtn on locked">${B('lock',16)}</button>
+        </div>
+        <i class="pull railknob"></i>
+        <div class="railside railright"><div class="bartools">
+          <button class="sqbtn">${B('list',16)}</button>
+          <button class="sqbtn">${B('spiral',16)}</button>
+          <button class="sqbtn">${B('gear',16)}</button>
+        </div></div>
+      </div>
     </nav>
   </div>`;
 

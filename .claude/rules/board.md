@@ -415,6 +415,12 @@ grip was always bigger than the mark advertising it (decision 81). What says
 which mode you are in is the padlock in the bar. Making a container unlocks the
 desk.
 
+**The name is on the top lip, the tools in the drawer front** (decision 206):
+`.toplip` is a child of `.main` above the board and is counted as a bar; with
+*One more row* on it is not drawn and the name goes back into the rail. The
+brush is gone from the bar; its editor is a door of Settings (the desk) or the
+top of Board settings (a drawer).
+
 **On a phone the bar is in the drawer front** (decision 204): `gridBar()`
 hands its halves to `deskRail()` through `RAILBAR`, wrapped in `.gridbar.inrail`
 either side of the knob, and the row it used to cost is board (8×15 installed).

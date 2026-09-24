@@ -926,9 +926,20 @@ const OBJSECS = {
   collect:['Collects',  'sparkle',  'what fills it, and what it totals'],
   adv:    ['Advanced',  'gear',     'its fields, and which traits it carries']
 };
-function objectPanel(id, sec){
+/* Where the object editor goes back to when it was opened from Settings
+   rather than from a tile (decision 206): the gear's panel, so walking into
+   the editor from there is a door and not a dead end. Any other way in clears
+   it. */
+let OBJBACK = null, OBJWOVEN = null;
+/* `woven` is the container whose editor is drawn *inside* Settings: a door
+   opened from there comes straight back to Settings, since the editor's own
+   top level is the page it came from. */
+const objBackTo = (fn, woven) => { OBJBACK = fn; OBJWOVEN = woven || null; };
+function objectPanel(id, sec, from){
   const o = id===ROOT ? null : byId(id);
   if(id!==ROOT && !o) return;
+  if(from !== undefined){ OBJBACK = from; OBJWOVEN = null; }
+  else if(!sec){ OBJBACK = null; OBJWOVEN = null; }
   /* **The editor closes the surface, not the other way round.** `renderSheet()`
      closes any open panel, on the argument that a surface is the bigger claim
      — which is right when you open a surface. It is wrong when you press the
@@ -951,7 +962,7 @@ function objectPanel(id, sec){
     title: heading,
     sub: s ? (id===ROOT ? esc(deskTitle()) : esc(o.title||'Untitled'))
            : id===ROOT ? 'The desk itself' : esc(K(o.kind).nm)+' · editor',
-    back: s ? (()=>objectPanel(id)) : null,
+    back: s ? (OBJWOVEN===id && OBJBACK ? OBJBACK : (()=>objectPanel(id, null, OBJBACK))) : OBJBACK,
     body:()=>objectPanelBody(id, s)});
 }
 /* The gear in the bar opens the same panel for the container you are *inside*,
@@ -2467,5 +2478,5 @@ export { plansPanel, planCard, boardRow,
   openMenu, modalNewObject, holdPanel, objectPanel, drawerPanel, modalNewKind,
   renderPreview, modalMove, tagFirstPanel, familyPanel, becomePanel, lifeFirstPanel, donePanel,
   sampleObject, sampleTile, kindSample,
-  openCmd, closeCmd, cmdList, cmdMove, cmdAt, runCmd, drawerFromSelection, openCtx, closeCtx,
+  objectPanelBody, objBackTo, openCmd, closeCmd, cmdList, cmdMove, cmdAt, runCmd, drawerFromSelection, openCtx, closeCtx,
   schedulePanel, quickISO, SCHED, SCHED_PENS };
