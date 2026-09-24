@@ -1,7 +1,7 @@
 /* Bureau — service worker.
    Bump CACHE when you change anything in css/ or js/ (or index.html) and the
    next launch picks it up. New js/css files must also be added to SHELL. */
-const CACHE = 'bureau-v197';
+const CACHE = 'bureau-v198';
 const SHELL = [
   './',
   './index.html',
@@ -32,7 +32,34 @@ const SHELL = [
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/maskable-512.png',
-  './icons/apple-touch-icon.png'
+  './icons/apple-touch-icon.png',
+  // the bundled public-domain pictures and cut-outs (decision 204, docs/IMAGES.md)
+  './img/decor/bookend.png',
+  './img/decor/bust.png',
+  './img/decor/candle.png',
+  './img/decor/carriage.png',
+  './img/decor/clock.png',
+  './img/decor/cog.png',
+  './img/decor/dome.png',
+  './img/decor/figurine.png',
+  './img/decor/jardiniere.png',
+  './img/decor/lamp.png',
+  './img/decor/plant.png',
+  './img/decor/vase.png',
+  './img/decor/volute.png',
+  './img/tools/bell.png',
+  './img/pictures/p01.jpg',
+  './img/pictures/p02.jpg',
+  './img/pictures/p03.jpg',
+  './img/pictures/p04.jpg',
+  './img/pictures/p05.jpg',
+  './img/pictures/p06.jpg',
+  './img/pictures/p07.jpg',
+  './img/pictures/p08.jpg',
+  './img/pictures/p09.jpg',
+  './img/pictures/p10.jpg',
+  './img/pictures/p11.jpg',
+  './img/pictures/p12.jpg'
 ];
 
 /* `cache:'reload'` makes each shell fetch go to the network instead of the

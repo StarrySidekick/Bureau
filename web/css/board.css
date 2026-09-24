@@ -3045,7 +3045,7 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
   0%{transform:rotate(0)} 15%{transform:rotate(-7deg)} 32%{transform:rotate(6deg)}
   50%{transform:rotate(-4deg)} 70%{transform:rotate(2.5deg)} 100%{transform:rotate(0)}
 }
-.blBody{transform-origin:60px 80px}
+.blBody{transform-origin:92px 40px}  /* the handle of the photographed bell (204) */
 .acttile.ringing .blBody{animation:blRing .9s cubic-bezier(.3,.7,.3,1) 1}
 
 /* ---- the clock: three hands, one animation each ------------------------ */

@@ -9513,3 +9513,23 @@ shares. The corners of a face-up card say **which card it is** in the deck, the
 **Small ones.** A Tag starts 2×1 and a Letter 3×2. A record is just a record:
 the play and pause mark is gone from the middle and whether it is playing is
 whether it is turning.
+
+**Pictures that ship with the app.** Timothy asked for public-domain images to
+fill collages while testing, and for photographs of real objects in place of the
+drawn decorations. Everything under `web/img/` is CC0 or public domain, from
+the Met, the Cleveland Museum of Art and Wikimedia Commons, and
+`docs/IMAGES.md` says where each came from. Twelve paintings are sample
+pictures (`PICTURES` in mutations.js): a thing made at random that holds a
+picture gets one, and a collage made at random is laid with three or four.
+They are named by `media.url`, which `snapshot()` keeps where it strips `src`,
+and `hydrateAssets()` puts back at once because there is nothing to fetch from
+the store. Twelve decorations are photographs cut out to PNG (a potted plant, a
+jardinière, two clocks, a clock under glass, a bust, a figurine, a candlestick,
+a lamp, a vase, a watch movement, a wall bracket and a bookend), drawn as an
+`<image>` inside the same `<svg>` with a viewBox of the picture's own pixels, so
+standing on the floor, the tile's shape and `flamePoint()` all work unchanged.
+They do not take the style's colours, which is the price. The fern and the palm
+had no clean photograph and stay drawn. Of the tools only the **bell** is a
+photograph: the others draw their state (the swing, the sand, the wax, the
+hands, the face, the top card), and a photograph cannot. All of it is in
+`SHELL`, 2.2 MB, so it works offline.

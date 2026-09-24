@@ -1,7 +1,7 @@
 import { $, esc, uid, clamp, ROOT, HOLD, D } from './util.js';
 import { S, byId, K, KINDS, KEYS, kindHas, has, isContainer, genKindOf, streak, T, dz, dev,
   repeatOf, repeats, nextRepeat, faceOf, childrenOf, TILT_MODES, tiltMode, GRAVITIES, gravityMode,
-  ctlOf, isPrimary, SECONDARY,
+  ctlOf, isPrimary, SECONDARY, isPicture, isDecor,
   placeOf, cfgOf, isHeld, heldObjects, homeFor , attrsOf, habitPlan, habitOn, tagSlug } from './model.js';
 import { GRID, PHONE_GRIDS, colsOf, gridOf, shelfRows, freeSpot, anySpot, roomFor, lay, boxOk, sizeOfKind, keepSize } from './grid.js';
 import { randomFront, randomBoard, randomLook, styleDefaults,
@@ -911,7 +911,20 @@ function someKind(){
    postcard made while trying things out has something in it. They are named
    by `media.url` rather than stored: the file is in the shell, cached with
    the rest of the app, and `snapshot()` keeps the url while it strips `src`. */
-const PICTURES = [];
+const PICTURES = [
+  {f:'p01.jpg', t:'The Great Wave'},
+  {f:'p02.jpg', t:'The Oxbow'},
+  {f:'p03.jpg', t:'Still Life with Flowers and Fruit'},
+  {f:'p04.jpg', t:'Empress Josephine rose'},
+  {f:'p05.jpg', t:'Map of Alexandria'},
+  {f:'p06.jpg', t:'Boulevard Montmartre, Winter Morning'},
+  {f:'p07.jpg', t:'Northeaster'},
+  {f:'p08.jpg', t:'The Horse Fair'},
+  {f:'p09.jpg', t:'Young Woman with a Water Pitcher'},
+  {f:'p10.jpg', t:'Moonlight, Strandgade 30'},
+  {f:'p11.jpg', t:'Wheat Field with Cypresses'},
+  {f:'p12.jpg', t:'Piazza San Marco'},
+];
 const samplePicture = ()=> PICTURES.length ? PICTURES[Math.floor(Math.random()*PICTURES.length)] : null;
 function pictureMedia(p){
   const url = 'img/pictures/'+p.f;
@@ -921,7 +934,7 @@ function pictureMedia(p){
    anything that holds one, and a collage is laid with three or four. */
 function furnish(o){
   if(!o) return o;
-  if(has(o,'media') && K(o.kind).mediaType==='image' && !(o.media && (o.media.src||o.media.assetId))){
+  if(isPicture(o) && !isDecor(o) && !(o.media && (o.media.src||o.media.assetId))){
     const p = samplePicture(); if(p) o.media = pictureMedia(p);
   }
   if(faceOf(o)==='collage' && !S.objects.some(x=>x.parent===o.id)){

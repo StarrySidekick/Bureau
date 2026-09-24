@@ -351,16 +351,13 @@ const ACTIVE = {
      The one instrument with no state at all. It rings, and that is the whole
      of it — there is nothing to store, so nothing is stored. */
   bell: {
-    nm:'Desk bell', vb:'8 0 104 92', kind:'bell',
+    /* A photograph since decision 204: a public-domain hand bell, cut out to
+       PNG. The bell is the one instrument with nothing to show but itself, so
+       it is the one that can be a picture; the others draw their state (the
+       hands, the sand, the wax, the face of the die) and stay drawn. */
+    nm:'Desk bell', vb:'0 0 184 360', kind:'bell',
     art(){
-      return `<g class="blBody">
-        <path d="M60 10a34 34 0 0 1 34 34v22H26V44a34 34 0 0 1 34-34Z" fill="var(--brass)"/>
-    
-    <rect x="55" y="2" width="10" height="10" rx="3" fill="var(--brass)"/>
-    <rect x="18" y="66" width="84" height="9" rx="3" fill="var(--brass)"/>
-    <rect x="10" y="75" width="100" height="11" rx="4" fill="currentColor"/>
-    
-    </g>`;
+      return `<g class="blBody"><image href="img/tools/bell.png" x="0" y="0" width="184" height="360"/></g>`;
     },
     tap(){ ding(); return 'ring'; },
     say: () => 'Press it',
