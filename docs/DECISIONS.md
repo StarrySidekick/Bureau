@@ -9533,3 +9533,50 @@ had no clean photograph and stay drawn. Of the tools only the **bell** is a
 photograph: the others draw their state (the swing, the sand, the wax, the
 hands, the face, the top card), and a photograph cannot. All of it is in
 `SHELL`, 2.2 MB, so it works offline.
+
+## 205 · One more row as a setting, and the tools as photographs
+
+*2026-09-24.* Three things from Timothy after living with 204.
+
+**Why the board was still eight by fourteen.** Moving the bar into the drawer
+front gave back 42px, and the drawer front grew 12px to hold it: 46px plus half
+the home-indicator inset against 34px before. On a 390×844 iPhone the board then
+had 727px of room, and 727 over a 48.75px cell is 14.9 rows, which floors to
+fourteen, 4px short of a fifteenth. The rows are measured, never stated, so the
+fix is the two minimums `sizeGrid()` reads. He likes the strip of wood above the
+board, so both are offered: **Board height on a phone** in Board settings, *Wood
+above the board* (the default, 8×14) or *One more row* (`S.look.rows = 'fit'`,
+written as `data-rows` by `applyLook()`), which sets `--gapmin` to zero and the
+drawer front to 40px plus four tenths of the inset. Checked by simulating the
+insets on 375×812, 390×844, 393×852, 402×874, 430×932 and 440×956: fourteen and
+fifteen on every one. Switching re-cuts the desk's shelves, so things can move a
+row between shelves, the way they do between two phones.
+
+**The garden's label ran to its edge.** `padding:0` on the ground rule is four
+classes and the big garden's padding was three; it is five now.
+
+**The tools are photographs, with what moves drawn on top.** Timothy asked
+whether they could be pictures even though they animate. They can, if the
+photograph is the object and the state is drawn over it at coordinates measured
+off the picture:
+
+- **Metronome.** Mälzel's own, 1815, front cover off. Its rod and weight were
+  retouched out of the photograph; ours swings from its pivot (109.5, 313).
+- **Hourglass.** A gilt sandglass of about 1500. Its own sand is baked into the
+  lower bulb, so the lower bulb is covered in its empty-glass colour (feathered
+  at the top so the photographed glass shows above it), the moving sand is drawn
+  in round bulb shapes, and the front pillar and arcade are drawn again from the
+  photograph over it. The sand's `transform-box` is its own box now.
+- **Clock.** A table clock by Edward East, about 1665, hands painted out, is the
+  new default face (`table`); the three drawn ones stay as choices. Ours turn at
+  the measured dial centre. Finding this showed that **no clock had ever turned**:
+  `.clkhands line{animation:…}` is two selectors heavy and resets the duration to
+  zero, which beat the one-class durations on each hand, so every clock read
+  twelve. The durations are stated with `.clkhands` in front now.
+- **Candle.** A silver chamber candlestick holds the drawn wax and flame, which
+  are the state; the wax has a little shading so it reads round.
+- **The d6** is six photographs of one Roman ivory die, one per face. The other
+  dice have no such set and stay drawn, and the deck stays drawn, as asked.
+
+The metronome, the hourglass and the clock now start at the proportions of their
+photographs (2×4, 2×4 and 3×4).

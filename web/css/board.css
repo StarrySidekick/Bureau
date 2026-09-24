@@ -3056,13 +3056,22 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
 @keyframes clkTurn{ from{transform:rotate(0)} to{transform:rotate(360deg)} }
 .clkhands line{stroke-linecap:round;transform-origin:50px 50px;
   animation:clkTurn linear infinite}
-.clkh{stroke:var(--glow);stroke-width:4.2;animation-duration:43200s}
-.clkm{stroke:var(--glow);stroke-width:2.8;animation-duration:3600s}
+/* `.clkhands` in front of each, because the shorthand above is two selectors
+   heavy and resets the duration to zero, which outranked a one-class
+   duration: every clock on the desk had read twelve o'clock since it was
+   built (found in decision 205). */
+.clkhands .clkh{stroke:var(--glow);stroke-width:4.2;animation-duration:43200s}
+.clkhands .clkm{stroke:var(--glow);stroke-width:2.8;animation-duration:3600s}
 /* The second hand **steps**, because a clock on a desk ticks and a sweeping
    second hand is a wall clock in an airport. */
-.clks{stroke:var(--brass);stroke-width:1.4;animation-duration:60s;
+.clkhands .clks{stroke:var(--brass);stroke-width:1.4;animation-duration:60s;
   animation-timing-function:steps(60,end)}
 .clkpin{fill:var(--brass)}
+/* On the photographed table clock the hands are blued steel, as its own were,
+   and the second hand a darker brass (decision 205). */
+.clkPhoto .clkhands .clkh,.clkPhoto .clkhands .clkm{stroke:#1E2230}
+.clkPhoto .clkhands .clks{stroke:#7A5A22}
+.clkPhoto .clkpin{fill:#1E2230}
 .clkFace line{stroke:var(--glow);opacity:.75}
 @keyframes ckSwing{0%,100%{transform:translateX(-9px)}50%{transform:translateX(9px)}}
 .ckPend{animation:ckSwing 2s ease-in-out infinite}

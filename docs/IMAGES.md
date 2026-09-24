@@ -29,12 +29,19 @@ images, trimmed of their borders and scaled to 900px on the long side.
 | File | What it is | Source page | Licence | Author / institution |
 | --- | --- | --- | --- | --- |
 | `bell.png` | Hand bell, Java, 13th–14th century | https://www.metmuseum.org/art/collection/search/37686 | CC0 | The Metropolitan Museum of Art |
+| `candle.png` | Silver chamber candlestick, 1802–3 | https://www.metmuseum.org/art/collection/search/232287 | CC0 | John Emes; The Metropolitan Museum of Art |
+| `metro.png` | Metronome by Johann Nepomuk Mälzel, Paris 1815 (Kunsthistorisches Museum, Vienna; front cover off) | https://commons.wikimedia.org/wiki/File:Metronom_M%C3%A4lzel_1815.jpg | Public domain (PD-self) | Photo: Andreas Praefcke |
+| `glass.png` | Half-hour sandglass, ca. 1500–25, gilded silver and bronze | https://www.metmuseum.org/art/collection/search/191871 | CC0 | The Metropolitan Museum of Art |
+| `clock.png` | Table or bracket clock by Edward East, ca. 1665 (hands painted out) | https://www.metmuseum.org/art/collection/search/203669 | CC0 | The Metropolitan Museum of Art |
+| `d6-1.png` … `d6-6.png` | Ivory die, Egypt, Roman Period; one photograph per face (accession number painted off face 1) | https://www.metmuseum.org/art/collection/search/547957 | CC0 | The Metropolitan Museum of Art |
 
-Only the bell ships as a photograph. A metronome, an hourglass, a candle, a clock,
-a die and a deck each draw their own state (the swing, the sand, the wax, the
-hands, the face, the top card), which a photograph cannot, so they stay drawn.
-The fern and the parlour palm have no clean public-domain photograph yet and
-stay drawn too.
+Every tool but the deck is a photograph now (decision 205), with the part that
+moves drawn on top of it: the metronome's rod and weight (retouched out of the
+photograph), the hourglass's sand (the photograph's own is covered, and its
+front pillar redrawn over ours), the clock's hands (the photographed ones
+painted out), the candle's wax and flame, and the d6's faces,
+which are six photographs of one die. The fern and the parlour palm have no clean
+public-domain photograph yet and stay drawn, as do the other dice.
 
 ## Pictures — `web/img/pictures/`
 

@@ -83,6 +83,10 @@ picker leads with twelve physical things (`PRIMARY`), the old majors are
 `SECONDARY` under *More types*, plans are a dropdown. The spawner is a garden
 patch; a deck is face up and deals when face down; bundled public-domain
 pictures live in `web/img/` (see `docs/IMAGES.md`).
+**v2.00** (decision 205): *One more row* is a Board setting (8×15, the default
+keeps the wood and 8×14); the tools are photographs with their moving parts
+drawn over them at measured coordinates, and the clock's hands turn for the
+first time.
 
 **Start here each session:** `docs/SYSTEM.md` is the reference for what Bureau is
 made of — objects, attributes, types, drawers, the grid, the surfaces, storage.

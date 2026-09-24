@@ -109,7 +109,7 @@ const bpmOf    = o => Math.min(240, Math.max(30, Math.round(num(o.bpm, 88))));
 const minsOf   = o => Math.min(180, Math.max(1, Math.round(num(o.mins, 5))));
 const burnOf   = o => Math.min(1440, Math.max(5, Math.round(num(o.burn, 120))));
 const sidesOf  = o => (DICE.includes(o.sides) ? o.sides : 6);
-const clockOf  = o => (CLOCKS[o.clock] ? o.clock : 'wall');
+const clockOf  = o => (CLOCKS[o.clock] ? o.clock : 'table');
 const DICE = [4, 6, 8, 10, 12, 20];
 /* Six card backs, drawn rather than named colours: a back is a *pattern*.
    The first is the **rider** — the fine filigree lattice off the back of a
@@ -136,7 +136,7 @@ const BACKS = {
   plain:{nm:'Plain', art:`<rect x="24" y="26" width="72" height="112" rx="4" fill="none"
     stroke="var(--glow)" stroke-width="1.4" opacity=".6"/>`}
 };
-const CLOCKS = { wall:'Wall clock', alarm:'Alarm clock', cuckoo:'Cuckoo clock' };
+const CLOCKS = { table:'Table clock', wall:'Wall clock', alarm:'Alarm clock', cuckoo:'Cuckoo clock' };
 
 /* How far through it is, 0..1, read from a stamp rather than counted down —
    so a candle left burning while the app was shut has burned. */
@@ -236,23 +236,27 @@ const ACTIVE = {
      animation whose duration is the beat, so the pendulum keeps time with the
      clicks without either being told about the other. */
   metro: {
-    nm:'Metronome', vb:'0 0 100 132', kind:'metronome',
+    /* **A photograph with a drawn arm** (decision 205): Mälzel's own
+       metronome, Paris 1815, with its front cover off so the scale shows.
+       The photographed rod and weight are retouched out of the picture, and
+       ours swings from the photograph's own pivot (109.5, 313) up the scale
+       to y 68, so the thing that moves is the only thing drawn. */
+    nm:'Metronome', vb:'0 0 213 480', kind:'metronome',
     art(o){
       const beat = 60 / bpmOf(o);
-      const y = 104 - (bpmOf(o) - 30) / 210 * 66;     // the weight rides the scale
+      const y = 285 - (bpmOf(o) - 30) / 210 * 190;     // the weight rides the scale
       return `<g class="mtBody">
-        <path d="M50 4 88 124H12Z" fill="currentColor"/>
-    <path d="M6 124h88v6H6Z" fill="var(--brass)"/>
-    <g stroke="var(--glow)" stroke-width="1.2" opacity=".55">
-          ${Array.from({length:9},(_,i)=>`<path d="M40 ${38+i*8}h20"/>`).join('')}
-        </g>
-        <g class="mtArm" style="--beat:${beat}s">
-          <line x1="50" y1="112" x2="50" y2="14" stroke="var(--brass)" stroke-width="3"
+        <image href="img/tools/metro.png" x="0" y="0" width="213" height="480"/>
+        <g class="mtArm" style="--beat:${beat}s;transform-origin:109.5px 313px">
+          <line x1="109.5" y1="313" x2="109.5" y2="62" stroke="#3B2E1E" stroke-width="5"
             stroke-linecap="round"/>
-          <rect class="mtWt" x="40" y="${y.toFixed(1)}" width="20" height="11" rx="2"
-            fill="var(--brass)"/>
-    </g>
-        <circle cx="50" cy="112" r="4" fill="var(--brass)"/>
+          <line x1="108.6" y1="311" x2="108.6" y2="64" stroke="#C9A860" stroke-width="2"
+            stroke-linecap="round" opacity=".85"/>
+          <path class="mtWt" d="M95 ${y.toFixed(1)}h29l-5 22h-19Z" fill="#B8913F"
+            stroke="#5A4320" stroke-width="1.5" stroke-linejoin="round"/>
+          <path d="M98 ${(y+3).toFixed(1)}h10l-2 16h-5Z" fill="#fff" opacity=".22"/>
+        </g>
+        <circle cx="109.5" cy="313" r="5" fill="#8C6B2E" stroke="#3B2E1E" stroke-width="1.5"/>
       </g>`;
     },
     tap(o){
@@ -274,29 +278,53 @@ const ACTIVE = {
      The sand is two `scaleY`s and a falling stream, all three one animation
      started in the past by however much has already run. Nothing counts. */
   glass: {
-    nm:'Hourglass', vb:'0 0 100 130', kind:'hourglass',
+    /* **A photograph with drawn sand** (decision 205): a half-hour sandglass
+       of about 1500 in gilt metal, Met 191871. Its own pink sand is baked
+       into the lower bulb, so the lower bulb is covered in its empty-glass
+       colour first, the moving sand goes on that, and the front pillar and
+       the arcade are drawn again from the same photograph over the top, so
+       the sand is *behind* them the way it is in the real thing. Bulb
+       insides, the neck and the pillar are measured off the picture. */
+    nm:'Hourglass', vb:'0 0 257 480', kind:'hourglass',
     art(o){
       const mins = minsOf(o), gone = sandGone(o);
       const dur = mins*60, delay = -gone*dur;
       const run = o.flipAt && gone < 1;
-      const sty = run ? `animation-duration:${dur}s;animation-delay:${delay}s`
-                      : `animation:none`;
+      const box = 'transform-box:fill-box;transform-origin:50% 100%';
+      const sty = run ? `${box};animation-duration:${dur}s;animation-delay:${delay}s`
+                      : `${box};animation:none`;
       // with nothing running the glass shows where it was left
-      const top = run ? '' : `transform:scaleY(${(1-gone).toFixed(3)})`;
-      const bot = run ? '' : `transform:scaleY(${gone.toFixed(3)})`;
+      const top = run ? '' : `;transform:scaleY(${(1-gone).toFixed(3)})`;
+      const bot = run ? '' : `;transform:scaleY(${gone.toFixed(3)})`;
+      const IMG = `href="img/tools/glass.png" x="0" y="0" width="257" height="480"`;
+      const UP = 'M50 80H202C204 150 196 180 150 205C136 213 130 220 130 226H122C122 220 116 213 102 205C56 180 48 150 50 80Z';
+      const LO = 'M122 236H130C130 244 140 252 160 262C200 282 208 320 208 420H48C48 320 56 282 92 262C112 252 122 244 122 236Z';
       return `<g class="hgBody">
-        <path d="M14 6h72v10H14Zm0 108h72v10H14Z" fill="var(--brass)"/>
-    
-    <path d="M20 16h60c0 24-22 40-22 49s22 25 22 49H20c0-24 22-40 22-49S20 40 20 16Z"
-          fill="none" stroke="currentColor" stroke-width="2" opacity=".5"/>
-        <clipPath id="hgT"><path d="M22 18h56c0 22-21 38-21 46H43c0-8-21-24-21-46Z"/></clipPath>
-        <clipPath id="hgB"><path d="M43 66h14c0 8 21 24 21 46H22c0-22 21-38 21-46Z"/></clipPath>
-        <g clip-path="url(#hgT)"><rect class="hgTop" x="20" y="16" width="60" height="50"
-          fill="var(--glow)" style="${sty};${top}"/></g>
-        <g clip-path="url(#hgB)"><rect class="hgBot" x="20" y="64" width="60" height="50"
-          fill="var(--glow)" style="${sty};${bot}"/></g>
-        ${run?`<rect class="hgRun" x="49" y="64" width="2" height="44" fill="var(--glow)"/>`:''}
-    </g>`;
+        <image ${IMG}/>
+        <defs>
+          <clipPath id="hgPT"><path d="${UP}"/></clipPath>
+          <clipPath id="hgPB"><path d="${LO}"/></clipPath>
+          <clipPath id="hgPF"><rect x="117" y="344" width="20" height="46"/><rect x="0" y="388" width="257" height="92"/></clipPath>
+          <linearGradient id="hgGlass" x1="0" x2="1"><stop offset="0" stop-color="rgb(160,150,130)"/>
+            <stop offset=".3" stop-color="rgb(196,184,160)"/><stop offset=".6" stop-color="rgb(178,166,142)"/>
+            <stop offset="1" stop-color="rgb(140,130,112)"/></linearGradient>
+          <linearGradient id="hgFade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/>
+            <stop offset=".2" stop-color="#fff" stop-opacity="1"/></linearGradient>
+          <mask id="hgCover" maskContentUnits="userSpaceOnUse"><rect x="40" y="296" width="176" height="130" fill="url(#hgFade)"/></mask>
+          <linearGradient id="hgSand" x1="0" x2="1"><stop offset="0" stop-color="rgb(140,100,74)"/>
+            <stop offset=".35" stop-color="rgb(182,140,108)"/><stop offset="1" stop-color="rgb(126,88,64)"/></linearGradient>
+        </defs>
+        ${/* the photograph's own sand, covered with the colour of its empty glass */''}
+        <path d="${LO}" fill="url(#hgGlass)" mask="url(#hgCover)"/>
+        ${/* the sand above sinks in the middle as it runs; the pile below is a
+             mound; both scale from their floor, so the shapes keep */''}
+        <g clip-path="url(#hgPT)"><path class="hgTop" d="M40 226V84Q126 104 216 84V226Z"
+          fill="url(#hgSand)" opacity=".9" style="${sty}${top}"/></g>
+        <g clip-path="url(#hgPB)"><path class="hgBot" d="M40 420V300Q128 262 216 300V420Z"
+          fill="url(#hgSand)" style="${sty}${bot}"/></g>
+        ${run?`<rect class="hgRun" x="124" y="224" width="4" height="190" fill="rgb(172,130,98)"/>`:''}
+        <image ${IMG} clip-path="url(#hgPF)"/>
+      </g>`;
     },
     tap(o){ o.flipAt = Date.now(); return true; },
     say: o => o.flipAt && sandGone(o) < 1
@@ -384,9 +412,17 @@ const ACTIVE = {
   clock: {
     nm:'Clock', kind:'clock',
     /* Tight to each case: a disc, a disc with feet and a bell, a long case. */
-    vb: o => ({wall:'2 10 96 96', alarm:'0 0 100 118', cuckoo:'0 0 100 118'})[clockOf(o)],
+    vb: o => ({table:'0 0 390 480', wall:'2 10 96 96', alarm:'0 0 100 118', cuckoo:'0 0 100 118'})[clockOf(o)],
     art(o){
       const f = clockOf(o);
+      /* **The table clock is a photograph** (decision 205), and the default:
+         Edward East, London, about 1665, Met 203669, with its own hands
+         painted out of the picture. Ours turn at the dial's measured centre
+         (193.3, 252.2), sized to reach the chapter ring, and the photograph's
+         numerals are the dial. */
+      if(f === 'table') return `<g class="clkBody clkPhoto">
+        <image href="img/tools/clock.png" x="0" y="0" width="390" height="480"/>
+        <g transform="translate(193.3 252.2) scale(2.5) translate(-50 -50)">${hands()}</g></g>`;
       const case_ = f === 'alarm'
         ? `<circle cx="26" cy="15" r="11" fill="var(--brass)"/>
            <circle cx="74" cy="15" r="11" fill="var(--brass)"/>
@@ -549,6 +585,10 @@ const ACTIVE = {
         : `<text x="50" y="${n===4?68:n===10||n===12?58:54}" text-anchor="middle"
              font-size="${n===20?30:34}" font-weight="700" fill="var(--glow)"
              dominant-baseline="middle">${f}</text>`;
+      /* **A d6 is six photographs** (decision 205): one Roman ivory die from
+         Egypt, Met 547957, shot face on, one picture per face. The other
+         dice have no such die and stay drawn. */
+      if(n === 6) return `<g class="dieBody"><image href="img/tools/d6-${f}.png" x="2" y="2" width="96" height="96"/></g>`;
       return `<g class="dieBody">${body}${mark}</g>`;
     },
     tap(o){
