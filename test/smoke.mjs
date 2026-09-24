@@ -2146,7 +2146,7 @@ const PROP_OFF = () => { const b = document.createElement('button');
     const main = document.querySelector('#app .main');
     // the bar is in the rail since decision 204, so above the board there is
     // only the reveal; a bar still standing up there would count
-    const bar = document.querySelector('#app .main > .gridbar');
+    const bar = document.querySelector('#app .main > .gridbar, #app .main > .toplip');
     const rail = document.querySelector('.deskrail');
     const h = e => e ? e.getBoundingClientRect().height : 0;
     const gap = parseFloat(getComputedStyle(sc()).marginTop);

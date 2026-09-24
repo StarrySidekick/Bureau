@@ -5260,7 +5260,7 @@ html[data-rows="fit"] .is-phone .gridbar.inrail .sqbtn{width:28px;height:28px}
    sizeGrid() counts it the way it counted the bar up there. */
 .is-phone .toplip{
   flex:0 0 auto;height:22px;display:flex;align-items:center;justify-content:center;
-  padding:0 16px;margin-top:2px;
+  padding:0 16px;
   --ink:#F4EEE0;--ink-2:rgba(244,238,224,.74);--ink-3:rgba(244,238,224,.52);
   --brass:var(--glow);color:var(--ink);
 }
