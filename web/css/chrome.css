@@ -4178,81 +4178,72 @@ html[data-theme="walnut"] .toast{background:var(--paper-3);color:var(--ink)}
 .ctxmenu .div{height:1px;background:var(--rule-2);margin:4px 2px}
 .ctxmenu .danger{color:#C0563F}
 
-/* ---- the palette — decisions 181 and 185 ------------------------------
-   A real artist's palette from the photograph Timothy sent, **turned upside
-   down and with no paint on it**: a walnut board with the corners eased, a
-   **thumb hole** through it and the **wrist notch** bitten out of one corner.
-   Upside down moves both of those from the top right to the bottom left —
-   which is the whole reason this works as a menu, because the bottom left is
-   the one part of a menu with nothing in it.
-
-   **The gutter is the palette and the rows sit beside it.** `padding-left`
-   keeps every row clear of the hole and the notch, so the mask can never cut
-   through anything you have to read at any menu length. That is the rule that
-   makes masking safe here at all, and the first version broke it: the notch
-   was a sweep along the bottom of a *stretched* silhouette, so it wandered
-   under the last row and bit the bottom off "Delete".
-
-   **Three mask layers, and the bottom one is a flat gradient.** The board's
-   own eased corners are `border-radius` on the element — a true fixed radius —
-   rather than a rounded rectangle in a stretched SVG, which would draw them as
-   ellipses on a long menu. So the mask has nothing left to shape and only has
-   to *subtract*: `mask-composite:exclude` takes the hole and then the notch
-   out of a layer that covers everything. Both are **fixed sizes**: a thumb and
-   a wrist are the same size whatever you are holding, and a hole stretched
-   with the element is a wide oval on a twelve-row menu. */
-.ctxmenu.palette{
-  min-width:250px;
-  padding:10px 14px 22px 92px;
-  border:0;box-shadow:none;border-radius:20px;
-  filter:drop-shadow(0 7px 16px rgba(0,0,0,.36));
-  /* **A pale board and no grain.** It was walnut with two rules of figure over
-     it for a version, which is the photograph read literally — and a menu is a
-     thing you read, so the wood was competing with the words and every row had
-     to be reversed out in light ink to survive it. The shape is the palette;
-     the surface is the app's own paper, lifted a shade towards the wood so it
-     still reads as a board rather than as a card. One gradient, no texture, and
-     the ordinary ink. */
-  background:linear-gradient(152deg,
-    color-mix(in srgb, var(--wood) 13%, var(--paper)),
-    color-mix(in srgb, var(--wood) 20%, var(--paper)) 48%,
-    color-mix(in srgb, var(--wood) 28%, var(--paper)));
-  --pal-hole:url('data:image/svg+xml;utf8,\
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">\
-<ellipse cx="50" cy="50" rx="49" ry="49" fill="%23fff"/></svg>');
-  /* The wrist notch: the removed shape is the corner itself, bounded by one
-     curve whose control point sits *away* from the corner — which is what
-     makes the edge left behind concave, curving into the board, rather than a
-     chamfer or a bulge. It is easy to get inside out and easy to make too
-     big: the first try took the whole of its own box and left a wedge hanging
-     off the bottom of the menu. */
-  --pal-notch:url('data:image/svg+xml;utf8,\
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">\
-<path fill="%23fff" d="M0 100 V42 Q28 64 80 100 Z"/></svg>');
-  /* `calc(100% - Npx)` in a mask position resolves as `(box - image) - N`, so
-     it puts the image's **bottom** N px above the element's — which is how a
-     thumb hole stays the same distance up from the wrist however many rows
-     the menu has. 78 clears the notch's 52 with board to spare. */
-  -webkit-mask:var(--pal-hole) 22px calc(100% - 78px)/54px 60px no-repeat,
-               var(--pal-notch) 0 100%/66px 52px no-repeat,
-               linear-gradient(#fff,#fff);
-  -webkit-mask-composite:xor,xor,source-over;
-  mask:var(--pal-hole) 22px calc(100% - 78px)/54px 60px no-repeat,
-       var(--pal-notch) 0 100%/66px 52px no-repeat,
-       linear-gradient(#fff,#fff);
-  mask-composite:exclude,exclude,add;
+/* ---- the palette is a ring — decision 204 -----------------------------
+   It was an artist's palette with a thumb hole (decisions 181 and 185), a list
+   beside the finger. It is a **round palette centred on the finger** now: the
+   element is a point at the place you are holding, the board of the palette is
+   a disc drawn round it with the hole punched out of the middle (so the thing
+   you are holding shows through), and every action is a blob of paint at
+   `--x`/`--y` on the ring. Opening flings the blobs out from under the thumb
+   one after another, which is the only movement and never holds anything up:
+   the buttons are live the instant the menu is. */
+.ctxmenu.radial{
+  width:0;height:0;min-width:0;padding:0;border:0;background:none;box-shadow:none;
+  overflow:visible;border-radius:0;
 }
-/* The inner edge of the board catches the light the way the rim of a real one
-   does — on the element's own shadow rather than a layer, so it follows the
-   mask and dies away into the hole and the notch with it. */
-.ctxmenu.palette{
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.42),
-             inset 0 -1px 0 rgba(0,0,0,.10);
+.ctxmenu.radial::before{
+  content:'';position:absolute;left:0;top:0;pointer-events:none;
+  width:calc(var(--rad,96px) * 2 + 74px);aspect-ratio:1;
+  transform:translate(-50%,-50%);border-radius:50%;
+  background:radial-gradient(circle at 38% 32%,
+    color-mix(in srgb, var(--wood) 10%, var(--paper)),
+    color-mix(in srgb, var(--wood) 26%, var(--paper)) 72%,
+    color-mix(in srgb, var(--wood) 34%, var(--paper)));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.42), inset 0 -2px 6px rgba(0,0,0,.10);
+  filter:drop-shadow(0 8px 18px rgba(0,0,0,.34));
+  -webkit-mask:radial-gradient(circle, transparent 0 30px, #000 31px);
+  mask:radial-gradient(circle, transparent 0 30px, #000 31px);
 }
-.ctxmenu.palette button{border-radius:var(--pill);padding-left:12px}
-.ctxmenu.palette button:hover{background:color-mix(in srgb, var(--ink) 8%, transparent)}
-.ctxmenu.palette .div{margin-left:4px;background:color-mix(in srgb, var(--ink) 16%, transparent)}
-.ctxmenu.palette .ctxhead{padding-left:12px;color:var(--ink-3)}
+.ctxmenu.radial.flung::before{animation:radboard .22s cubic-bezier(.2,.9,.3,1.2) both}
+@keyframes radboard{from{transform:translate(-50%,-50%) scale(.25);opacity:0}}
+/* the lip of the thumb hole, so the hole reads as cut through a board */
+.radhole{position:absolute;left:0;top:0;width:62px;height:62px;border-radius:50%;
+  transform:translate(-50%,-50%);pointer-events:none;
+  box-shadow:inset 0 2px 4px rgba(0,0,0,.28), 0 0 0 1px color-mix(in srgb, var(--wood) 40%, transparent)}
+.ctxmenu.radial .ctxhead{position:absolute;left:0;top:calc(-1 * var(--rad,96px) - 52px);
+  transform:translateX(-50%);white-space:nowrap;padding:3px 10px;border-radius:var(--pill);
+  background:var(--paper);color:var(--ink-2);font-size:12px;box-shadow:var(--shadow)}
+.ctxmenu.radial button.radblob{
+  position:absolute;left:0;top:0;width:66px;padding:0;gap:3px;
+  display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
+  background:none;border-radius:0;text-align:center;
+  transform:translate(calc(var(--x) - 50%), calc(var(--y) - 23px));
+}
+.ctxmenu.radial button.radblob:hover{background:none}
+.ctxmenu.radial.flung button.radblob{
+  animation:radfling .3s cubic-bezier(.2,.9,.25,1.25) both;
+  animation-delay:calc(var(--i) * 18ms);
+}
+@keyframes radfling{
+  from{transform:translate(-50%, -23px) scale(.2);opacity:0}
+}
+/* A blob of paint: slightly irregular, glossy, the icon pressed into it. */
+.radpaint{width:44px;height:44px;display:grid;place-items:center;
+  border-radius:52% 48% 46% 54% / 50% 54% 46% 50%;
+  background:radial-gradient(circle at 34% 30%, color-mix(in srgb, #fff 55%, var(--paper)),
+    var(--paper) 55%, color-mix(in srgb, var(--wood) 14%, var(--paper)));
+  color:var(--ink);box-shadow:0 0 0 3px var(--paint, transparent),
+    0 3px 7px -2px rgba(0,0,0,.35), inset 0 -2px 3px rgba(0,0,0,.10);
+  transition:transform .12s}
+.radblob:hover .radpaint,.radblob:active .radpaint{transform:scale(1.1)}
+.radblob b{font-size:10.5px;font-weight:600;line-height:1.1;color:var(--ink);
+  padding:1px 5px;border-radius:var(--pill);
+  background:color-mix(in srgb, var(--paper) 86%, transparent);white-space:nowrap}
+.radblob.danger .radpaint{background:radial-gradient(circle at 34% 30%, #F2B6A6, #D2644A 60%, #A9472F);color:#fff}
+.radblob.danger b{color:#B24A33}
+@media (prefers-reduced-motion: reduce){
+  .ctxmenu.radial.flung::before,.ctxmenu.radial.flung button.radblob{animation:none}
+}
 
 /* the panel is narrow: sections sit closer, and the style tiles pair up */
 .pbody .section-h{margin:18px 0 8px}
@@ -5239,6 +5230,36 @@ input,textarea,select,[contenteditable],
     var(--wood-2) 100%);
   box-shadow:inset 0 5px 8px -6px rgba(0,0,0,.55);
 }
+/* ---- the bar, in the drawer front — decision 204 ----------------------
+   On a phone the bar is not across the top any more: its two halves ride in
+   the rail either side of the knob, and the row it used to cost is board.
+   Two equal side columns keep the knob on the centre line whatever the board
+   is called. The wood is dark, so the bar's light-on-dark tokens come with it,
+   the same override `.is-phone .gridbar` made up top. */
+.is-phone .deskrail.withbar{
+  min-height:calc(env(safe-area-inset-bottom) * 0.5 + 46px);
+  padding-left:10px;padding-right:10px;
+}
+/* The bar itself, set into the wood. `.is-phone .gridbar` gives it the
+   light-on-dark tokens it had up top; the wood and the padding it does not
+   need, because the rail is both. */
+.is-phone .gridbar.inrail{
+  position:relative;z-index:1;width:100%;height:100%;padding:0;background:none;
+  display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);
+  align-items:center;column-gap:8px;
+}
+.railside{position:relative;z-index:1;display:flex;align-items:center;gap:5px;min-width:0}
+.railleft{justify-content:flex-start}
+.railright{justify-content:flex-end}
+.is-phone .gridbar.inrail .where{display:flex;align-items:center;gap:5px;min-width:0;flex:0 1 auto;overflow:hidden}
+.is-phone .gridbar.inrail .here{font-family:var(--serif);font-size:15px;font-weight:600;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.railside .here .deskname{border-bottom:1.5px dotted color-mix(in srgb,var(--ink-3) 60%,transparent)}
+.railside .shelfmark{margin-left:2px;flex:0 0 auto}
+.is-phone .gridbar.inrail .bartools{gap:3px}
+.is-phone .gridbar.inrail .sqbtn{width:27px;height:27px;flex:0 0 auto}
+.railside .sqbtn svg{width:15px;height:15px}
+
 /* The knob **is a drawer pull**: it carries `.pull`, so all six shapes, the
    three sizes and the light on it are the ones every knob on the board already
    has — the desk and the things standing on it are made of the same material

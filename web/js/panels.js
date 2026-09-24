@@ -7,7 +7,7 @@ import { S, K, KINDS, KEYS, T, ATTRS, USER_ATTRS, FIELDS, fieldOf, OPS, ROLLS,
   rootObj, containers, isContainer, isAncestor, childrenOf, has, kindHas,
   attrsOf, allTags, everyTag, tagsOf, habitPlan, HABIT_MAX_TIMES, placeOf, deskList, deskOf, isDesk, spanOf, heldObjects,
   dev, takesTyping, genKindOf, genSaid, ANY, ctlOf, barOf,
-  PRIMARY, isPrimary, inFamily, familyList, finishedThings, answered, marginOf, isLate,
+  PRIMARY, SECONDARY, isPrimary, inFamily, familyList, finishedThings, answered, marginOf, isLate,
   PRIOS, prioOf, prioName, DIFFS, diffOf, diffName, REPEAT_UNITS, repeatOf, repeats, repeatSaid,
   relatedTo, backlinksTo, streak, goalPct,
   CALVIEWS, calViewOf, calShowOf, CALSHOWS, weekStartOf, showsWeekends, KNOBSIZES, knobSizeOf,
@@ -182,7 +182,8 @@ function openMenu(anchor, html){
      list hung off a bar button — so the shape has to come *off* here as well
      as go on there. A popup that inherited a thumb hole would have one
      punched through whichever row happened to be under it. */
-  el.classList.remove('palette');
+  el.classList.remove('palette','radial','flung');
+  el.style.removeProperty('--rad');
   el.classList.add('open');                 // measurable only once it is shown
   const r=$('#frame').getBoundingClientRect(), a=anchor.getBoundingClientRect();
   el.style.left = clamp(a.right-r.left-el.offsetWidth, 6, Math.max(6, r.width-el.offsetWidth-6))+'px';
@@ -210,7 +211,7 @@ function pickGroups(skipPrimary){
        make — so it is never listed as a type anywhere, including in the
        pickers that deliberately show everything. */
     if(K(k).cat) return;
-    if(skipPrimary && isPrimary(k) && !S.kinds[k]) return;
+    if(skipPrimary && (isPrimary(k) || SECONDARY.includes(k)) && !S.kinds[k]) return;
     /* …and neither is a type its category already covers. Drawing Idea both
        in the picker's own list and behind the Note tile is the "decide twice"
        this exists to remove — one press further in is where it lives now, and
@@ -261,7 +262,7 @@ function kindTile(k, inFam, becomeId){
   return `<div class="kindtile${fam?' kindcat':''}" ${act} role="button" tabindex="0"
       style="--k:${hexOf(d.c)}" title="${esc(d.ds||'')}">
     <div class="kpv">${sampleTile(kindSample(k), 146, 82)}</div>
-    <div class="krow"><span class="nm">${esc(d.nm)}</span>
+    <div class="krow"><span class="nm">${esc((!becomeId && d.pickNm) || d.nm)}</span>
       ${fam?`<span class="kmore">${fam.length}${ic('chevR',11)}</span>`
            :(d.key&&!becomeId)?`<span class="kbd">${esc(d.key)}</span>`:''}</div>
     ${(fam||becomeId)?'':`<button class="kedit" data-act="editkind" data-id="${k}" title="Edit ${esc(d.nm)}">${ic('sliders',12)}</button>`}
@@ -446,9 +447,11 @@ const PLANS_HERE = 3;
 function plansHere(){
   const ps = plans();
   if(!ps.length) return '';
-  return `<div class="section-h"><h2>Plans</h2><div class="rule"></div><span class="n">a board you saved, laid out where you pressed</span></div>
+  /* A dropdown since decision 204, beside the one holding the other types:
+     the picker opens on the twelve things and nothing else. */
+  return `<details class="pgroup plansdrop"><summary>Plans <span class="n">a board you saved, laid out where you pressed</span></summary>
     <div class="deskmapgrid">${ps.slice(0,PLANS_HERE).map(p=>planCard(p,'planput')).join('')}</div>${
-    ps.length>PLANS_HERE ? `<button class="subtle-btn" data-act="allplans">${ic('grid',12)} All ${ps.length} plans</button>` : ''}`;
+    ps.length>PLANS_HERE ? `<button class="subtle-btn" data-act="allplans">${ic('grid',12)} All ${ps.length} plans</button>` : ''}</details>`;
 }
 
 /* ---- what a board makes, as rows in its own editor ---------------------
@@ -516,11 +519,13 @@ function modalNewObject(){
       <div class="section-h"><h2>${made?'In here':'Put down'}</h2><div class="rule"></div><span class="n">${
         made ? 'this drawer makes a '+esc(made) : 'the things a desk is made of'}</span></div>
       <div class="kindgrid">${lead.map(k=>kindTile(k)).join('')}</div>
-      ${plansHere()}${
-      rest.length ? `<details class="pgroup allkinds"><summary>Every other type</summary>${
+      ${(()=>{ const more = SECONDARY.filter(k => KINDS[k] && !lead.includes(k));
+        return (more.length || rest.length) ? `<details class="pgroup allkinds"><summary>More types</summary>${
+        more.length ? `<div class="kindgrid">${more.map(k=>kindTile(k)).join('')}</div>` : ''}${
         rest.map(g=>`
           <div class="section-h"><h2>${g.nm}</h2><div class="rule"></div>${g.note?`<span class="n">${g.note}</span>`:''}</div>
-          <div class="kindgrid">${g.ks.map(k=>kindTile(k)).join('')}</div>`).join('')}</details>` : ''}`;
+          <div class="kindgrid">${g.ks.map(k=>kindTile(k)).join('')}</div>`).join('')}</details>` : ''; })()}
+      ${plansHere()}`;
   /* **A board that names its types offers those.** The handful it says,
      drawn the way the majors are, and a new type made for it from here joins
      them; everything else is one disclosure further in, never gone — a
@@ -2385,65 +2390,75 @@ function openCtx(x,y,id){
   // of them — the same way a Finder context menu does.
   const sel = S.sel.includes(id) ? S.sel.slice() : [id];
   const many = sel.length>1;
-  el.innerHTML=`
-    ${many?`<div class="ctxhead">${sel.length} objects</div>` : ''}
-    ${/* one panel for both — a container is an object with children */''}
-    ${/* First, and only on a locked board, because that is the whole of what
-         the hold is now *for* there (decision 181). It writes `movable` onto
-         this object's own attrs, which it then remembers: a thing you let out
-         of the lock stays out until you put it back. */''}
-    ${(!many && boardLocked())?`<button data-c="free:${id}">${
-      has(o,'movable') ? ic('lock',14)+' Lock it in place'
-                       : ic('grip',14)+' Free it to move'}</button>` : ''}
-    ${many?'' : `<button data-c="objset:${id}">${ic('brush',14)} Object editor</button>
-      ${isContainer(o)
-        ? `<button data-c="opendrawer:${id}">${ic('eye',14)} Open</button>`
-        : `${isMedia(o)?`<button data-c="view:${id}">${ic(
-               mediaTypeOf(o)==='audio'?'music':mediaTypeOf(o)==='video'?'film':'image',14)} ${
-               o.media&&o.media.src
-                 ? (mediaTypeOf(o)==='image'?'View picture':'Play it')
-                 : (mediaTypeOf(o)==='audio'?'Add a sound'
-                   :mediaTypeOf(o)==='video'?'Add a video':'Add a picture')}</button>`:''}
-           ${has(o,'text')?`<button data-c="read:${id}">${ic('eye',14)} Read</button>
-             <button data-c="write:${id}">${ic('edit',14)} Write…</button>`:''}`}`}
-    ${/* The four facts that decide what you do next, in one place: the day it
-         sits on, both deadlines, how long the work is, and how much it matters.
-         Offered to anything that is not a container, because the panel offers
-         the traits it hasn't got rather than refusing. See decision 122. */''}
-    ${(!many && !isContainer(o))?`<button data-c="when:${id}">${ic('calendar',14)} When…</button>`:''}
-    ${/* A task you keep adding to is a project. Offered to anything that is
-         not already a container, because `isContainer()` is the structural
-         question and "is it a task" is a branch on a name. */''}
-    ${(!many && !isContainer(o))?`<button data-c="become:${id}">${ic('flag',14)} Make it a project…</button>`:''}
-    ${(!many&&repeats(o))?`<button data-c="nextcopy:${id}">${ic('repeat',14)} Make the next one</button>`:''}
-    ${(!many&&(has(o,'check')||has(o,'streak')))?`<button data-c="done:${id}">${ic('check',14)} ${has(o,'streak')?'Mark today':'Complete'}</button>`:''}
-    ${/* Clip. A drawer *contains* and a relation is *about*; this is the third
-         thing a paper desk does and neither of the other two can say it —
-         these stay where they are and on the board they are on, and move as
-         one from now on. Offered when there are several; the way out is
-         offered when this one is already in a group. See decision 180. */''}
-    ${many?`<button data-c="group:${id}">${ic('layers',14)} Group these ${sel.length} together</button>`:''}
-    ${(!many && groupOf(o))?`<button data-c="ungroup:${id}">${ic('cut',14)} Ungroup</button>`:''}
-    <button data-c="intodrawer:${id}">${ic('folder',14)} ${many?`Put these ${sel.length} in a new drawer`:'Put this in a new drawer'}</button>
-    <button data-c="move:${id}">${ic('folder',14)} Move…</button>
-    ${/* "Keep in the drawer" and "Schedule today" are both out: the first is
-         what dropping a tile on the rail already does, and the second is one
-         press inside When… next to the other four answers. A menu earns its
-         length by holding what has nowhere else to be. */''}
-    ${many?'':`<button data-c="dupe:${id}">${ic('archive',14)} Duplicate</button>`}
-    <div class="div"></div>
-    <button class="danger" data-c="del:${id}">${ic('trash',14)} ${many?`Delete ${sel.length}`:'Delete'}</button>`;
-  /* **The palette.** A hold opens this on every board now, which makes it the
-     most-reached thing in the app and worth being a shape rather than a list
-     in a box. An artist's palette: an organic outline with a thumb hole cut
-     through it, the hole punched with a `mask` so the board shows through
-     rather than being painted over. The buttons clear the hole by padding, so
-     nothing is ever behind it. See decision 181. */
+  /* ---- the palette is a ring — decision 204 ----------------------------
+     A hold opens this on every board, which makes it the most-reached thing
+     in the app. It was an artist's palette with a thumb hole, read as a list
+     in a box beside the finger; it is a **ring round the finger** now: the
+     place you are holding is the hole in the middle, and each thing you can do
+     is a round blob of paint laid out radially and flung out from under your
+     thumb when it opens. Labels are one or two words because they sit under a
+     blob, not beside a row. Same `data-c` answers as ever, so nothing that
+     acts on the menu had to learn anything. The items, in the order they go
+     round clockwise from the top: */
+  const it = (c, icon, label, cls)=> ({c, icon, label, cls:cls||''});
+  const items = [];
+  // First, and only on a locked board, because that is the whole of what
+  // the hold is now *for* there (decision 181).
+  if(!many && boardLocked()) items.push(has(o,'movable')
+    ? it(`free:${id}`, 'lock', 'Lock it') : it(`free:${id}`, 'grip', 'Free it'));
+  if(!many){
+    items.push(it(`objset:${id}`, 'brush', 'Editor'));
+    if(isContainer(o)) items.push(it(`opendrawer:${id}`, 'eye', 'Open'));
+    else {
+      if(isMedia(o)){
+        const mt = mediaTypeOf(o), full = o.media && o.media.src;
+        items.push(it(`view:${id}`, mt==='audio'?'music':mt==='video'?'film':'image',
+          full ? (mt==='image'?'View':'Play') : (mt==='audio'?'Add sound':mt==='video'?'Add video':'Add picture')));
+      }
+      if(has(o,'text')){ items.push(it(`read:${id}`, 'eye', 'Read')); items.push(it(`write:${id}`, 'edit', 'Write')); }
+    }
+    // The four facts that decide what you do next (decision 122).
+    if(!isContainer(o)) items.push(it(`when:${id}`, 'calendar', 'When'));
+    if(!isContainer(o)) items.push(it(`become:${id}`, 'flag', 'Project'));
+    if(repeats(o)) items.push(it(`nextcopy:${id}`, 'repeat', 'Next one'));
+    if(has(o,'check')||has(o,'streak')) items.push(it(`done:${id}`, 'check', has(o,'streak')?'Today':'Complete'));
+  }
+  // Clip (decision 180).
+  if(many) items.push(it(`group:${id}`, 'layers', `Group ${sel.length}`));
+  if(!many && groupOf(o)) items.push(it(`ungroup:${id}`, 'cut', 'Ungroup'));
+  items.push(it(`intodrawer:${id}`, 'folder', 'New drawer'));
+  items.push(it(`move:${id}`, 'folder', 'Move'));
+  if(!many) items.push(it(`dupe:${id}`, 'archive', 'Duplicate'));
+  items.push(it(`del:${id}`, 'trash', many?`Delete ${sel.length}`:'Delete', 'danger'));
+  /* Up to eight go round one ring; more than that and the ring widens rather
+     than the blobs crowding, so a long menu is a bigger circle, not a
+     tighter one. */
+  const n = items.length, R = n<=6 ? 84 : n<=8 ? 96 : 112;
+  // each blob sits in a smear of a different paint, round the wheel
+  const PAINTS = ['#C8553D','#E0A43A','#7FA54E','#3E7C8C','#4A5FA8','#8A5BA6','#B0677E','#8C6A3F'];
+  const pad = 36;                      // half a blob and its label
+  el.innerHTML = `<i class="radhole" aria-hidden="true"></i>${
+    many?`<div class="ctxhead">${sel.length} objects</div>`:''}${
+    items.map((m,i)=>{
+      const a = -Math.PI/2 + i*2*Math.PI/n;
+      const x = Math.cos(a)*R, y = Math.sin(a)*R;
+      return `<button class="radblob ${m.cls}" data-c="${m.c}" title="${esc(m.label)}"
+        style="--x:${x.toFixed(1)}px;--y:${y.toFixed(1)}px;--i:${i};--paint:${PAINTS[i%PAINTS.length]}">
+        <span class="radpaint">${ic(m.icon,17)}</span><b>${esc(m.label)}</b></button>`;
+    }).join('')}`;
   const r=$('#frame').getBoundingClientRect();
-  el.classList.add('open','palette');
-  const w=el.offsetWidth,h=el.offsetHeight;
-  el.style.left = clamp(x-r.left, 6, r.width-w-6)+'px';
-  el.style.top  = clamp(y-r.top,  6, r.height-h-6)+'px';
+  el.classList.add('open','palette','radial');
+  el.style.setProperty('--rad', R+'px');
+  /* Centred on the finger, and nudged in from the edges only as far as it
+     takes for the whole ring to be on the screen, so it still reads as coming
+     from where you are holding. */
+  const span = R + pad;
+  const cx = clamp(x - r.left, span, Math.max(span, r.width - span));
+  const cy = clamp(y - r.top,  span, Math.max(span, r.height - span));
+  el.style.left = cx+'px';
+  el.style.top  = cy+'px';
+  // restart the fling on every open, including one straight after another
+  el.classList.remove('flung'); void el.offsetWidth; el.classList.add('flung');
 }
 const closeCtx = ()=> $('#ctx').classList.remove('open');
 

@@ -333,11 +333,14 @@ const gridOf = (device, cid)=>{
    authored to. It matters most for the device you are *not* on — a plan laid
    out from a Mac places its phone boxes against this number, and at twelve a
    fourteen-row board was taken to be taller than a phone and scattered. */
-const SHELF_ROWS_GUESS = 14;
+/* A phone guesses fifteen since decision 204: the bar rides in the drawer
+   front, so the row it took is board, and an installed iPhone measures
+   fifteen where it measured fourteen. A Mac still has its bar on top. */
+const SHELF_ROWS_GUESS = 14, PHONE_ROWS_GUESS = 15;
 function shelfRows(device, cid){
   const d=device||dev();
   const m=MEASURE[d];
-  if(!m.room || !m.w) return SHELF_ROWS_GUESS;
+  if(!m.room || !m.w) return d==='phone' ? PHONE_ROWS_GUESS : SHELF_ROWS_GUESS;
   const cell = m.w / (d==='phone' ? colsOf(cid, d) : GRID.desk.cols);
   return Math.max(4, Math.floor(m.room / Math.max(1, cell)));
 }

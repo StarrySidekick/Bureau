@@ -19,7 +19,7 @@ import { plans, stampPlan } from './plans.js';
    Bureau is this phone running" is exactly the question you ask when a change
    appears not to have deployed. Shown in Settings, so it can be read off the
    device rather than guessed at. */
-const APP_VERSION = '1.94';
+const APP_VERSION = '1.95';
 const KEY = 'bureau.v1';
 const install = {deferred:null};   // the browser's install prompt, when one is on offer
 let saveTimer = null;
@@ -1149,6 +1149,9 @@ function assetDel(id){
 }
 // After a load, put the pictures back on the objects that reference them.
 function hydrateAssets(){
+  /* A **bundled** picture (decision 204) is a file that ships with the app,
+     named by `media.url`, and needs no store at all: it comes back at once. */
+  S.objects.forEach(o=>{ if(o.media && o.media.url && !o.media.src) o.media.src = o.media.url; });
   const want=S.objects.filter(o=>o.media&&o.media.assetId&&!o.media.src);
   if(!want.length) return;
   /* A picture is stored as a data URL and comes back ready to use; a sound or a

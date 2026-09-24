@@ -1923,7 +1923,7 @@ function camView(grid, scroller){
   const main = grid.closest('.main');
   if(!main) return raw;
   const m = main.getBoundingClientRect();
-  const bar = main.querySelector('.gridbar'), rail = main.querySelector('.deskrail');
+  const bar = main.querySelector(':scope > .gridbar'), rail = main.querySelector('.deskrail');
   const top = bar ? bar.getBoundingClientRect().bottom : m.top;
   const bottom = rail ? rail.getBoundingClientRect().top : m.bottom;
   const h = Math.max(120, bottom - top);

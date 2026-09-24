@@ -7,7 +7,7 @@ import { S, K, KINDS, KEYS, refreshKinds, ATTRS, attrsOf, has, SHAPES,
 import { gridOf, lay, boxOk, freeSpot, anySpot, roomFor, sizeOfKind, toPhoneSize, keepSize,
   shelvesOf, shelfAt, setShelf, shelvesToHold } from './grid.js';
 import { applyLook, applyStyle, setLookVal, lookVal, STYLES, setSlot, objColour, darkMode } from './look.js';
-import { toast, fits, setGridSize, toggleDone, spawnNext, del, delMany, delDrawer, undo, redo, pushUndo,
+import { dealTop, furnish, toast, fits, setGridSize, toggleDone, spawnNext, del, delMany, delDrawer, undo, redo, pushUndo,
   pushSet, pushSets, setPin, togglePin, drawerForTag, create, spawnInto, randomThing,
   holdIt, unholdIt, unholdMany, undoToast, someKind, becomeKind , toggleFree } from './mutations.js';
 import { spinTo, pending, placeAtPending, tileTap, turnPage, clearPages, intoOf } from './tiles.js';
@@ -819,6 +819,16 @@ function act(name, el){
        mode you are in — reading your desks, or arranging them — and unlocking
        each drawer as you walked into it was arrange-mode by another name.
        See decision 74. */
+    /* The magnifier in the bar puts the field along the top of the screen
+       (decision 204). Focused in the same click, because a phone only raises
+       the keyboard for a focus that happens inside the gesture. */
+    case 'searchopen': {
+      S.searchOn = true; render();
+      const f = document.querySelector('.searchin');
+      if(f){ f.focus(); try{ const n=f.value.length; f.setSelectionRange(n, n); }catch(err){} }
+      break;
+    }
+    case 'searchclose': { S.searchOn = false; S.q = ''; render(); break; }
     case 'togglelock': {
       S.look.locked = !boardLocked();
       save(); render(); refreshPanel();
@@ -849,9 +859,9 @@ function act(name, el){
       const home = homeFor((S.view==='drawer' && S.drawerId) || ROOT);
       const kind = someKind();
       if(!fits(kind, home)) break;
-      const o = create(kind, {parent:home});
+      const o = furnish(create(kind, {parent:home}));
       save(); render(); reveal(o.id);
-      toast(`A ${K(kind).nm.toLowerCase()}, at random`);
+      toast(`A ${(K(kind).pickNm||K(kind).nm).toLowerCase()}, at random`);
       break;
     }
     /* The specimen book. It is a document rather than a board, so it takes the
@@ -1107,16 +1117,8 @@ function wire(){
         const c=create('note', {parent:id, title:''});
         if(c){ d.top=c.id; save(); renderSheet(); render(); toast('A card'); }
       } else if(what==='deal'){
-        const c=deckTop(d);
-        if(!c){ toast('Nothing to deal'); return; }
-        /* Out onto the board the deck is standing on, keeping its size and
-           losing its position — a box's place belongs to a coordinate space
-           and the deck's is not the desk's. `keepSize()` is the one way to
-           say that, and `ensureBox()` places it. */
-        pushSets('Dealt', [[c.id,'parent',c.parent],[c.id,'desk',c.desk],
-          [c.id,'phone',c.phone],[id,'top',d.top]]);
-        c.parent=d.parent; keepSize(c); delete d.top;
-        save(); closeSheet(); render(); reveal(c.id); toast('Dealt', true);
+        const c=dealTop(id);
+        if(c){ closeSheet(); render(); reveal(c.id); toast('Dealt', true); }
       } else if(what==='open'){
         closeSheet(); S.view='drawer'; S.drawerId=id; render();
       }
@@ -2214,7 +2216,7 @@ function wire(){
        one key it has to answer, because a search you cannot get out of is a
        mode, and the whole point of this one is that it is not. */
     if(e.target.classList.contains('searchin') && e.key==='Escape'){
-      e.preventDefault(); S.q=''; render(); return;
+      e.preventDefault(); S.q=''; S.searchOn=false; render(); return;
     }
     /* Finishing an inline edit. Return commits the name (and moves to the body
        if there is one); Escape puts the tile back. The value is already in the

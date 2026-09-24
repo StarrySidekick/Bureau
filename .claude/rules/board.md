@@ -415,6 +415,15 @@ grip was always bigger than the mark advertising it (decision 81). What says
 which mode you are in is the padlock in the bar. Making a container unlocks the
 desk.
 
+**On a phone the bar is in the drawer front** (decision 204): `gridBar()`
+hands its halves to `deskRail()` through `RAILBAR`, wrapped in `.gridbar.inrail`
+either side of the knob, and the row it used to cost is board (8×15 installed).
+Anything measuring the room above the board asks for `:scope > .gridbar`, a bar
+that is a child of `.main`; the one in the rail is not, and must not be counted.
+The search is a ring button there, and pressing it sets `S.searchOn`, which
+draws `.searchtop` along the top of the screen and gives the board to the
+matches.
+
 **A search sits in the bar, between the dots and the tools.** `searchHits(q,
 scopeId)` in model.js — everything in Bureau from a desk, this drawer and
 everything under it from inside one, matching a title, a body or a tag and

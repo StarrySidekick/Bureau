@@ -9449,3 +9449,67 @@ book turns by being pushed, and Escape comes back out.
 neighbours are half of what it means, and a surface over a dimmed desk loses
 them. The grow is the answer to "where did this come from"; it is not an answer
 to "what was next to it".
+
+## 204 · The bar in the drawer front, a ring for a menu, and a garden
+
+*2026-09-24.* One brief from Timothy, thirteen items. The structural one first,
+as his standing note asks: **the bar moved into the drawer front.**
+
+**The bar rides in the rail, on a phone.** Everything that sat across the top of
+the screen (the board's name, the dots, the search, the five tools) is drawn in
+the drawer front along the bottom, in two equal columns either side of the Home
+Knob, which keeps the middle of the wood. `gridBar()` hands its halves to
+`deskRail()` through `RAILBAR` instead of drawing them, and they are still
+wrapped in a `.gridbar` (with `inrail`) so everything that looks for the bar
+finds it. `sizeGrid()` and `camView()` ask for a bar that is a *child* of
+`.main`, which this is not, so the forty-odd pixels it took are board: an
+installed iPhone measures fifteen rows where it measured fourteen, and a browser
+tab sixteen. The unmeasured phone guess is fifteen (`PHONE_ROWS_GUESS`); a Mac
+keeps its bar on top and its guess of fourteen, because it has no rail to put
+one in. The rail's pull and tap still start anywhere on the wood, buttons
+included: a tap on a button is still that button's click, and a pull from one
+opens the drawer like a pull from the knob.
+
+**The search is a button.** A magnifier in a ring, between the dots and the
+tools. Pressing it sets `S.searchOn` (not saved, like `S.q`) and the board gives
+way to a field along the top of the screen, full width at 18px with a Done
+button, and the matches under it running edge to edge. Done or Escape clears
+both.
+
+**The hold opens a ring round the finger.** The palette was a list beside the
+finger with a thumb hole cut in it (181, 185). It is a round palette centred
+where you are holding: the element is a point, the board is a disc drawn round
+it with the hole punched out so the thing you are holding shows through, and
+each action is a blob of paint at `--x`/`--y` on the ring, each in a different
+paint, labelled in a word or two. Opening flings them out from under the thumb
+one after another; the buttons are live the instant the menu is. More than eight
+widens the ring rather than crowding it, and near an edge the ring is nudged in
+only as far as it takes to fit. The `data-c` answers are unchanged, so nothing
+that acts on the menu had to learn anything; `openMenu()` takes the ring off the
+shared element the way it took the palette off.
+
+**The picker leads with twelve physical things**: Drawer, Book, Calendar,
+Checklist, Image, Note, Disc, Garden, Decoration, Tag, Tool, Card. The old
+majors are `SECONDARY` and are drawn first inside a *More types* dropdown, ahead
+of every other type; plans are a dropdown of their own under it. The picker
+shows a physical name where a type has one (`pickNm`: Book for Prose & Poetry,
+Disc for Audio, Garden for the Spawner, Tool for Instrument, Card for Goal);
+everywhere else the type keeps its name, so an editor row, a toast from the
+editor and every test that names a type are unchanged.
+
+**The spawner is a garden patch.** Grass round a bed of turned soil, the
+Carcassonne field rather than a button: more green than brown, furrows across,
+a scatter of lighter blades. The mark is a seedling in the spawner's own colour,
+and one that makes anything flowers. Bigger, the line you type into lies on the
+bed like a plant label.
+
+**A deck lies face up by default** (201 said down). Face up a press cuts, as
+before; face down a press **deals** the top card onto the board, beside the deck
+where there is room (right, below, left, above) and wherever there is room
+otherwise, through `dealTop()`, which the zoom's *Deal the top one out* now
+shares. The corners of a face-up card say **which card it is** in the deck, the
+24th of 64 says 24, not how many there are.
+
+**Small ones.** A Tag starts 2×1 and a Letter 3×2. A record is just a record:
+the play and pause mark is gone from the middle and whether it is playing is
+whether it is turning.

@@ -75,6 +75,15 @@ one Rider-backed card, a Link is a portal (201). The habit tracker face, the
 Tag on the desk and implicit tags through `tagsOf()`/`tagMatch()` (202). What
 comes next is `docs/ROADMAP.md` §0zj, the brain dump first.
 
+**v1.95 (2026-09-24), decision 204.** On a phone **the bar is in the drawer
+front** either side of the knob (`.gridbar.inrail`), so a board is 8×15 on an
+installed iPhone; the search is a ring button that opens a full-width field at
+the top. The hold menu is a **ring of paint blobs round the finger**. The
+picker leads with twelve physical things (`PRIMARY`), the old majors are
+`SECONDARY` under *More types*, plans are a dropdown. The spawner is a garden
+patch; a deck is face up and deals when face down; bundled public-domain
+pictures live in `web/img/` (see `docs/IMAGES.md`).
+
 **Start here each session:** `docs/SYSTEM.md` is the reference for what Bureau is
 made of — objects, attributes, types, drawers, the grid, the surfaces, storage.
 `docs/ROADMAP.md` holds the current plan in dependency order, and

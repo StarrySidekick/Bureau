@@ -12,13 +12,13 @@ import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, chi
   groupOf, sealOf, isSealed, habitPlan, habitPeriods, habitRun } from './model.js';
 import { CELL, gridOf, drawCols, drawRows, lay, overlaps, boxOk, freeSpot, anySpot, roomFor, gridRows, sizeOfKind, sideways, innerOf,
   ensureBox, shelfRows, shelfOrigin, shelfAt, colsOf } from './grid.js';
-import { create, toast, fits, toggleDone, someKind, ctlSpec, ctlSaid, ctlIsOn,
+import { dealTop, create, toast, fits, toggleDone, someKind, ctlSpec, ctlSaid, ctlIsOn,
   ctlForm, ctlNum, ctlIndex, ctlPress, pushSet } from './mutations.js';
 import { DECOR, decorOf, decorEmits, flamePoint, decorSVG, LIFE_ART, lifeSVG } from './decor.js';
 import { isActive, activeArt, activeSay, activeName, activeFlame, actOf,
-  metroGoing, activeTap, burning } from './active.js';
+  metroGoing, activeTap, burning, faceUp } from './active.js';
 import { hexOf, objColour, stringColour, dress, dressAs, OBJ0, OBJN, CHECKS, bestInk } from './look.js';
-import { render } from './views.js';
+import { render, reveal } from './views.js';
 import { openObj, openWriter, openRead, openViewer } from './sheet.js';
 import { objectPanel, schedulePanel } from './panels.js';
 import { openTile, openingFor , zoomInto, zoomOut, zoomedIn, camScale, CAM_READ, CAMERA } from './motion.js';
@@ -586,6 +586,14 @@ function tileTap(id){
        animation never holds a state change up — the tile redraws at once and
        whatever moves is drawn over the result. See decision 182. */
     case 'active': {
+      /* A deck lying **face down** deals: the top card comes off onto the
+         board beside it. Face up it cuts, which is what it always did.
+         Decision 204. */
+      if(actOf(o)==='deck' && !faceUp(o)){
+        const c = dealTop(id);
+        if(c){ render(); reveal(c.id); toast('Dealt', true); }
+        return;
+      }
       const out = activeTap(id);
       render();
       /* The ring and the roll are **drawn over the result**, never instead of
@@ -1102,6 +1110,22 @@ function pigeonBoard(o, box){
    markup for all of them: eight faces that report the same walk must not be
    eight blocks of markup, which is decision 131's rule from the other side.
    See decision 135. */
+/* The mark a garden patch wears: a seedling, two leaves on a stem, in the
+   spawner's own colour. One that makes anything carries a flower instead of
+   the second pair of leaves, because it could come up as anything. */
+function sproutSVG(any){
+  return `<svg class="sprout" viewBox="0 0 40 40" aria-hidden="true">
+    <path d="M20 36 C20 30 20 24 20 17" fill="none" stroke="#3E5A1E" stroke-width="2.6" stroke-linecap="round"/>
+    <path d="M20 27 C13 27 8 22 7 15 C14 15 19 19 20 27Z" fill="var(--c)" stroke="#2F4516" stroke-width=".9"/>
+    <path d="M20 23 C27 23 32 18 33 11 C26 11 21 15 20 23Z" fill="var(--c)" stroke="#2F4516" stroke-width=".9"/>
+    ${any
+      ? `<g transform="translate(20 12)">${[0,72,144,216,288].map(a=>
+          `<ellipse cx="0" cy="-4.2" rx="2.6" ry="4" fill="#F4E9C8" stroke="#8a6d2b" stroke-width=".5" transform="rotate(${a})"/>`).join('')}
+          <circle r="2.4" fill="#D9A43A"/></g>`
+      : `<path d="M20 18 C17 14 17 10 20 6 C23 10 23 14 20 18Z" fill="var(--c)" stroke="#2F4516" stroke-width=".9"/>`}
+    <ellipse cx="20" cy="36.5" rx="7" ry="2" fill="#4A2E17" opacity=".55"/>
+  </svg>`;
+}
 /* One disc, drawn once. A record cover and a sound object are the same
    object seen twice — silver, a label in the thing's own colour, and the name
    printed round it — so they share this rather than each carrying a copy that
@@ -1339,13 +1363,19 @@ function drawTileFace(o, arr, box, persp){
        press — true of a coloured pill, and the wrong way round here: the box
        at the top of a drawer has always had a mark at its head, and that is
        the thing this is now. */
+    /* **A spawner is a garden patch** (decision 204): a bed of turned soil
+       set in grass, the Carcassonne field rather than a button, because what
+       it makes comes up out of it. The sprout is the mark, in the object's own
+       colour, and one that makes *anything* flowers. The bed is an element
+       rather than a pseudo-element because `.drawer` already spends both. */
     return `<${big?'div':'button'} class="drawer ${
-        big?`otile ${paper(o)} genbig addline${round2?' gensquare':''}`:'gensolo bd-none'} sh-press gentile${
+        big?`otile genbig addline${round2?' gensquare':''}`:'gensolo bd-none'} sh-press gentile garden${
         any?' genany':''}${sel}" data-row="${o.id}"
         ${big?'role="button" tabindex="0"':''}
         title="${esc(o.title||('New '+made))}" style="--c:${colour};${place}">
+      <i class="gbed" aria-hidden="true"></i>
       ${chips}
-      <span class="genico">${ic(any?'sparkle':'spiral', big?22:26)}</span>
+      <span class="genico">${sproutSVG(any)}</span>
       ${big?`<input class="fieldin" data-fieldfor="${o.id}"
           placeholder="${esc(o.title||('New '+made+'…'))}">
         <span class="k">return</span>`:''}
@@ -2183,8 +2213,9 @@ function drawTileFace(o, arr, box, persp){
         data-row="${o.id}"
         title="${esc(o.title||'Untitled')} — press to play" style="--c:${colour};${place}">
       ${chips}
+      ${/* Just the record: nothing in the middle but the spindle hole
+           (decision 204). Whether it is playing is whether it is turning. */''}
       <span class="projdisc snddisc${src?'':' blank'}">${discHTML(o)}</span>
-      <span class="medbtn${src?'':' blank'}">${ic(src?(on?'pause':'play'):'plus',20)}</span>
       ${handles}
     </button>`;
   }

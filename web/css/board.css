@@ -1290,6 +1290,50 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
 .gentile.genbig.sz-thin{flex-direction:column;justify-content:center}
 .gentile.genbig.sz-narrow{padding:4px 8px;gap:6px}
 .gentile.genbig.sz-narrow .fieldin{font-size:12px}
+/* ---- a spawner is a garden patch — decision 204 -----------------------
+   Grass round a bed of turned soil, the way a field is drawn on a Carcassonne
+   tile: more green than brown, the furrows running across, a scatter of lighter
+   blades in the grass. What it makes comes up out of the bed, so the mark is a
+   seedling. Stated at four classes, because `.drawer.otile.gentile` and the
+   `.addline` look both say the ground at three and this has to win both. */
+.drawer.gentile.garden,.drawer.otile.gentile.garden.genbig{
+  background-color:#6F9444;
+  background-image:
+    radial-gradient(circle at 18% 22%, rgba(214,236,150,.55) 0 1px, transparent 1.6px),
+    radial-gradient(circle at 72% 64%, rgba(214,236,150,.45) 0 1px, transparent 1.6px),
+    radial-gradient(circle at 40% 82%, rgba(40,70,20,.35) 0 1.2px, transparent 1.8px),
+    linear-gradient(160deg, #7FA54E, #5E823A);
+  background-size:9px 9px, 13px 11px, 11px 13px, 100% 100%;
+  border:1px solid #4E6E2C;border-radius:var(--radius);
+  box-shadow:inset 0 0 0 2px rgba(214,236,150,.18), 0 2px 5px -2px rgba(0,0,0,.35);
+  position:relative;overflow:hidden;padding:0;
+}
+.gbed{
+  position:absolute;inset:16%;border-radius:calc(var(--radius) * .6);
+  background-color:#7A5130;
+  background-image:
+    repeating-linear-gradient(0deg, rgba(0,0,0,.0) 0 3px, rgba(40,22,10,.45) 3px 4.5px, rgba(255,220,170,.10) 4.5px 5.5px),
+    linear-gradient(180deg, #8A5E38, #6A4424);
+  box-shadow:inset 0 1px 2px rgba(0,0,0,.45), 0 0 0 1.5px rgba(60,90,30,.6);
+  pointer-events:none;
+}
+.gentile.garden .genico{position:relative;z-index:1;opacity:1;color:inherit}
+.gentile.garden.gensolo .genico svg,.gentile.garden .genico svg.sprout{stroke-width:initial}
+.gentile.garden.gensolo .genico svg{width:84cqw}
+.drawer.gentile.garden.gensolo:active{transform:scale(.94)}
+/* Bigger, the bed is a strip down the middle and the line you type into lies
+   on it like a plant label. */
+.gentile.garden.genbig{padding:6px 10px}
+.gentile.garden.genbig .gbed{inset:10% 6%}
+.gentile.garden.genbig .genico svg{width:clamp(22px,20cqw,40px)}
+.gentile.garden.genbig.gensquare .genico svg{width:auto;height:100%}
+.gentile.garden.genbig .fieldin{position:relative;z-index:1;
+  background:rgba(247,240,222,.92);border-radius:3px;padding:3px 7px;color:#3A2A18;
+  box-shadow:0 1px 2px rgba(0,0,0,.35)}
+.gentile.garden.genbig .fieldin::placeholder{color:#7a6448}
+.gentile.garden.genbig .k{position:relative;z-index:1;color:#F4EEDC;
+  text-shadow:0 1px 1px rgba(0,0,0,.5)}
+
 /* ---- a sound, and a moving picture --------------------------------------
    A sound is a record with a play button in the middle of it: no card, no
    ground, no edge — the same argument the song cover makes one file over, and
@@ -2867,24 +2911,18 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
    gets `flex-start`, which is where the board was before. */
 .scroll.midboard{display:flex;flex-direction:column;justify-content:safe center}
 
-/* ---- the search in the bar — decision 188 ------------------------------
-   Between the dots and the tools, and it takes the room that is going spare:
-   `flex:1` with a `min-width` small enough that a phone's bar still fits the
-   four buttons beside it. It is furniture, so it wears the board's own rule
-   and paper rather than a field's outline. */
-.barsearch{
-  flex:1 1 60px;min-width:0;max-width:320px;
-  display:flex;align-items:center;gap:6px;
-  padding:0 9px;height:30px;border-radius:var(--pill);
-  background:color-mix(in srgb, var(--ink) 5%, transparent);
-  box-shadow:inset 0 0 0 1px var(--rule-2);
-  color:var(--ink-3);
+/* The search is a magnifier in a ring (decision 204) until it is pressed,
+   and then it is a field along the top of the screen, full width and big
+   enough to read, with Done to give the board back. */
+.sqbtn.searchbtn{border-radius:50%}
+.searchtop{
+  flex:0 0 auto;display:flex;align-items:center;gap:10px;
+  margin:8px 12px 6px;padding:0 6px 0 14px;height:48px;border-radius:var(--pill);
+  background:var(--paper);color:var(--ink-3);
+  box-shadow:inset 0 0 0 1.5px color-mix(in srgb, var(--brass) 55%, var(--rule)),
+             0 6px 16px -10px rgba(0,0,0,.5);
 }
-.barsearch:focus-within{
-  color:var(--ink-2);
-  box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--brass) 55%, var(--rule));
-}
-.barsearch svg{flex:0 0 auto}
+.searchtop svg{flex:0 0 auto}
 .searchin{
   flex:1;min-width:0;border:0;outline:none;background:transparent;
   font-family:inherit;font-size:12.5px;color:var(--ink);
@@ -2893,12 +2931,23 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
 /* Safari draws its own decorations inside a `type=search`; the clear button is
    worth keeping and the magnifier is not, because there is one beside it. */
 .searchin::-webkit-search-decoration{-webkit-appearance:none}
+.searchtop .searchin{font-size:18px}
+.searchdone{
+  flex:0 0 auto;height:36px;padding:0 14px;border-radius:var(--pill);
+  font:inherit;font-size:14px;font-weight:600;color:var(--ink-2);
+  background:var(--paper-2);border:1px solid var(--rule);cursor:pointer;
+}
+/* The matches run edge to edge on both devices, the way an eight-wide tile
+   does, and nothing sits between the field and the first of them but the
+   count. */
+.scroll.searchlist{padding-left:0;padding-right:0}
+.searchlist .listgrid{width:100%}
+.is-phone .main > .scroll.searchlist{background:var(--paper)}
 /* What the search found, said once above the list. */
 .searchsaid{
   padding:10px 16px 6px;font-size:12px;color:var(--ink-3);
   font-variant-numeric:tabular-nums;
 }
-.is-phone .barsearch{max-width:none;padding:0 7px}
 /* The bar is one row and the search takes what is spare, so the two things
    either side of it have to say they will not be squeezed: `.where` shrinks
    (it clips its own crumbs) but the **shelf dots** are a map you aim at and do

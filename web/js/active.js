@@ -213,7 +213,7 @@ const dial = () => Array.from({length:12}, (_,i)=>{
    same delegated-listener shape everything else on the desk uses. */
 /* Face up or down, off the deck and then its type. The ring writes `1`/`0`,
    a deck from before it wrote nothing, and the type says a new deck lies face
-   down (decision 201) — so the test is "is it anything that means down",
+   up (decision 204; it was down from 201) — so the test is "is it anything that means down",
    never `=== false`, which read a stored 0 as face up. */
 const faceUp = o => { const v = o.faceup!=null ? o.faceup : K(o.kind).faceup;
   return !(v===false || v===0 || v==='0'); };
@@ -445,7 +445,10 @@ const ACTIVE = {
       const kids = deckCards(o), n = kids.length;
       const top = deckTop(o), up = faceUp(o);
       const back = BACKS[o.back] ? o.back : 'rider';
-      const idx = `<span class="dkidx">${n}</span>`;
+      /* The corners say **which card this is**, counting through the deck —
+         the twenty-fourth of sixty-four says 24 — not how many there are,
+         which is what they said until decision 204. */
+      const idx = `<span class="dkidx">${top ? kids.indexOf(top)+1 : n}</span>`;
       const inner = !n
         ? `<span class="dkword dkempty">Empty</span>`
         : up
@@ -480,8 +483,9 @@ const ACTIVE = {
       return 'cut';
     },
     say(o){
-      const n = deckCards(o).length;
-      return n ? `${n} card${n===1?'':'s'}` : 'Empty — add some';
+      const kids = deckCards(o), n = kids.length, top = deckTop(o);
+      if(!n) return 'Empty — add some';
+      return faceUp(o) ? `Card ${kids.indexOf(top)+1} of ${n}` : `${n} card${n===1?'':'s'}, face down — press to deal one`;
     },
     zoom: o => azSay('Which way up the top card sits')
       + azRing(o.id, 'faceup', [[1,'Face up'],[0,'Face down']], faceUp(o) ? 1 : 0)
@@ -674,4 +678,4 @@ export { ACTIVE, ACT_KIND, DICE, CLOCKS, BACKS, deckCards, deckTop,
   actOf, isActive, activeArt, activeTap, activeSay, activeName, activeZoom,
   bpmOf, minsOf, burnOf, sidesOf, clockOf, burning, waxLeft, sandGone,
   activeFlame, metroGoing, startMetro, stopMetro, stopAllMetros,
-  mindTheTime, setMinuteHandler, checkAlarms, guttered, ding };
+  mindTheTime, setMinuteHandler, checkAlarms, guttered, ding, faceUp };

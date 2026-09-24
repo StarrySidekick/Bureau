@@ -1,7 +1,7 @@
 import { $, esc, uid, clamp, ROOT, HOLD, D } from './util.js';
 import { S, byId, K, KINDS, KEYS, kindHas, has, isContainer, genKindOf, streak, T, dz, dev,
   repeatOf, repeats, nextRepeat, faceOf, childrenOf, TILT_MODES, tiltMode, GRAVITIES, gravityMode,
-  ctlOf, isPrimary,
+  ctlOf, isPrimary, SECONDARY,
   placeOf, cfgOf, isHeld, heldObjects, homeFor , attrsOf, habitPlan, habitOn, tagSlug } from './model.js';
 import { GRID, PHONE_GRIDS, colsOf, gridOf, shelfRows, freeSpot, anySpot, roomFor, lay, boxOk, sizeOfKind, keepSize } from './grid.js';
 import { randomFront, randomBoard, randomLook, styleDefaults,
@@ -897,9 +897,39 @@ function someKind(){
   /* …and never a **category**, which is not a type at all but a question. A
      spawner set to anything would otherwise press out a Fragment, which is the
      one thing in KINDS that nothing knows how to draw as itself. */
-  const pool = KEYS.filter(k => isPrimary(k) && !K(k).cat && !K(k).family
-    && !kindHas(k,'container') && !kindHas(k,'control') && !kindHas(k,'decor'));
+  /* Out of the picker's first two rows (decision 204 moved most of the old
+     majors into the second), plus the collage, which `furnish()` lays with
+     pictures so it is worth seeing. */
+  const pool = KEYS.filter(k => (isPrimary(k) || SECONDARY.includes(k) || k==='moodboard') && !K(k).cat && !K(k).family
+    && (k==='moodboard' || !kindHas(k,'container')) && !kindHas(k,'control') && !kindHas(k,'decor'));
   return pool[Math.floor(Math.random()*pool.length)] || 'note';
+}
+
+/* ---- pictures that ship with the app — decision 204 --------------------
+   A dozen public-domain paintings and photographs under `img/pictures/`
+   (where each came from is docs/IMAGES.md), so a collage, an image or a
+   postcard made while trying things out has something in it. They are named
+   by `media.url` rather than stored: the file is in the shell, cached with
+   the rest of the app, and `snapshot()` keeps the url while it strips `src`. */
+const PICTURES = [];
+const samplePicture = ()=> PICTURES.length ? PICTURES[Math.floor(Math.random()*PICTURES.length)] : null;
+function pictureMedia(p){
+  const url = 'img/pictures/'+p.f;
+  return {type:'image', url, src:url, label:p.t};
+}
+/* Whatever a thing made at random needs so it is not a blank: a picture for
+   anything that holds one, and a collage is laid with three or four. */
+function furnish(o){
+  if(!o) return o;
+  if(has(o,'media') && K(o.kind).mediaType==='image' && !(o.media && (o.media.src||o.media.assetId))){
+    const p = samplePicture(); if(p) o.media = pictureMedia(p);
+  }
+  if(faceOf(o)==='collage' && !S.objects.some(x=>x.parent===o.id)){
+    const n = 3 + Math.floor(Math.random()*2);
+    const pool = PICTURES.slice().sort(()=>Math.random()-.5).slice(0, n);
+    pool.forEach(p=>{ const c = create('image', {parent:o.id, title:p.t}); if(c) c.media = pictureMedia(p); });
+  }
+  return o;
 }
 
 const WORDS='brass ledger cedar tide quarry lantern vellum thistle harbour ember slate poppy compass juniper marrow'.split(' ');
@@ -916,10 +946,36 @@ function randomThing(parentId){
   // create() gives a container its own look now (decision 92), so this only
   // rerolls the two that make a sample desk worth looking at
   if(isContainer(o)){ o.c=randomFront(); o.board=randomBoard(); }
+  furnish(o);
   const g=gridOf(undefined, home), dv=dev();
   const w=1+Math.floor(Math.random()*8), h=1+Math.floor(Math.random()*8);
   o[dv]=anySpot(Math.min(w,g.shelfW), h, dv, home);
   return o;
+}
+
+/* ---- dealing a card out of a deck — decision 204 -----------------------
+   Out onto the board the deck is standing on, **beside the deck** where there
+   is room (right, below, left, above) and wherever `ensureBox()` finds room
+   otherwise. It keeps its size and loses its position, because a box's place
+   belongs to a coordinate space and the deck's is not the board's. One undo
+   move, and a toast carrying it, because a phone has no other way back. */
+function dealTop(id){
+  const d=byId(id); if(!d) return null;
+  const kids=S.objects.filter(x=>x.parent===id);
+  const c=kids.find(x=>x.id===d.top) || kids[0];
+  if(!c){ toast('Nothing to deal'); return null; }
+  pushSets('Dealt', [[c.id,'parent',c.parent],[c.id,'desk',c.desk],
+    [c.id,'phone',c.phone],[id,'top',d.top]]);
+  c.parent=d.parent; keepSize(c); delete d.top;
+  const dv=dev(), b=d[dv];
+  if(b && b.x){
+    const [dw,dh]=sizeOfKind(c.kind, dv, d.parent);
+    const w=(c[dv]&&c[dv].w)||dw, h=(c[dv]&&c[dv].h)||dh;
+    const tries=[{x:b.x+b.w, y:b.y}, {x:b.x, y:b.y+b.h}, {x:b.x-w, y:b.y}, {x:b.x, y:b.y-h}];
+    const at=tries.find(t=>boxOk({x:t.x, y:t.y, w, h}, c.id, dv, d.parent));
+    if(at) c[dv]={x:at.x, y:at.y, w, h};
+  }
+  save(); return c;
 }
 
 // toggleHabit isn't exported — a streak reaches it through toggleDone, which is
@@ -929,4 +985,4 @@ export { toast, setGridSize, toggleDone, spawnNext, del, delMany, delDrawer, und
   drawerForTag, create, gather, quickAdd, spawnInto, randomThing,
   CONTROLS, CTL_KEYS, ctlSpec, ctlSaid, ctlIsOn, ctlForm, ctlNum, ctlIndex, ctlPress, someKind,
   fits,
-  holdIt, unholdIt, unholdMany, undoToast };
+  holdIt, unholdIt, unholdMany, undoToast, dealTop, furnish, PICTURES };

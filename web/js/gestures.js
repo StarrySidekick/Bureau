@@ -1031,7 +1031,7 @@ function onDown(e){
         G.menu=true; G.armed=false;
         G.el.classList.remove('lifted');
         gestureFlags.suppressClick=true;
-        openCtx(r.left+Math.min(r.width/2,140), r.top+r.height/2, g0.id);
+        openCtx(e.clientX, e.clientY, g0.id);   // the ring opens round the finger (204)
       }, MENU_AFTER);
     }, e.pointerType==='touch' ? HOLD_TOUCH : HOLD_MOUSE);
     holdFrom={x:e.clientX,y:e.clientY};
@@ -1075,7 +1075,7 @@ function onDown(e){
           if(navigator.vibrate) navigator.vibrate([4,40,10]);
           G.menu=true;
           gestureFlags.suppressClick=true;
-          openCtx(r.left+Math.min(r.width/2,140), r.top+r.height/2, g0.id);
+          openCtx(e.clientX, e.clientY, g0.id);   // the ring opens round the finger (204)
         }, HOLD_TOUCH + MENU_AFTER);
         holdFrom={x:e.clientX,y:e.clientY};
       }
@@ -1149,7 +1149,7 @@ function onDown(e){
           clearCarry(G.el);
           G.el.classList.remove('lifted');   // down, but still under the finger
           gestureFlags.suppressClick=true;   // and swallow the tap that follows
-          openCtx(r.left+r.width/2, r.top+Math.min(r.height/2, 60), id);
+          openCtx(e.clientX, e.clientY, id);   // the ring opens round the finger (204)
         }, MENU_AFTER);
       }, touch ? HOLD_TOUCH : HOLD_MOUSE);
       holdFrom={x:e.clientX,y:e.clientY};

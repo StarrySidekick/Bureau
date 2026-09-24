@@ -56,8 +56,7 @@ function gridBar(c){
   const sh = shelvesOf(c.id), at = shelfAt(c.id);
   const deskBtn = (label)=>`<b class="deskname" data-act="deskmap"
     title="Every board, laid out">${esc(label)}</b>`;
-  return `<div class="gridbar shelf shelf-top">
-    <div class="where">
+  const where = `    <div class="where">
       ${atDesk ? `<span class="here">${deskBtn(boardName(c))}</span>`
                : `<span class="here">${esc(boardName(c))}</span>`}
       ${has(c,'magic')?`<span class="magicmark big" title="Collects by rule">${ic('sparkle',14)}</span>`:''}
@@ -75,26 +74,8 @@ function gridBar(c){
           const x=i%sh.w, y=(i/sh.w)|0;
           return `<i class="${x===at.x&&y===at.y?'on':''}" data-shelfgo="${c.id}:${x}:${y}"></i>`;
         }).join('')}</span>`:''}
-    </div>
-    ${/* ---- the search — decision 188 -----------------------------------
-         Between the shelf dots and the lock, which is where it belongs: the
-         dots say *where* you are and the tools say what you can do, and
-         finding something is the question in between. What it looks through is
-         the board you are on — everything in Bureau from a desk, this drawer
-         and everything under it from inside one — so the same field answers
-         "where is it" and "what have I got in here" without a mode.
-
-         It is a `type="search"` so a phone gives it the right keyboard and its
-         own clear button, and it is **not** inside a form: Return does nothing
-         but close the keyboard, because the results are already there. */''}
-    <div class="barsearch">
-      ${ic('search',14)}
-      <input class="searchin" type="search" data-search="${c.id}"
-        value="${esc(S.q||'')}" autocomplete="off" enterkeyhint="done"
-        placeholder="${c.id===ROOT?'Search the desk\u2026':'Search in here\u2026'}"
-        aria-label="Search">
-    </div>
-    <div class="bartools">
+    </div>`;
+  const tools = `    <div class="bartools">
       ${/* The lock comes first, because it is the one that changes what every
            other gesture on the board means — and on a locked board it is the
            button you reach for before you can do anything else. A phone has no
@@ -141,7 +122,42 @@ function gridBar(c){
            so there it opens Board settings directly. See decision 193. */''}
       <button class="sqbtn" data-act="appsettings" data-id="${c.id}"
         title="${c.id===ROOT?'Settings':'Board settings'}">${ic('gear',16)}</button>
-    </div>
+    </div>`;
+  /* **On a phone the bar is the drawer front** (decision 204). Everything that
+     used to sit across the top of the screen rides in the rail along the
+     bottom, either side of the knob, so the board starts under the status bar
+     and the forty-odd pixels the bar took are a row of board instead: eight by
+     fifteen on an installed iPhone where it was eight by fourteen. The bar is
+     handed to `deskRail()` rather than drawn here, and the knob keeps the
+     middle of the wood. */
+  if(S.device==='phone'){ RAILBAR = {where, find:searchBtn(c), tools}; return ''; }
+  return `<div class="gridbar shelf shelf-top">${where}${searchBtn(c)}${tools}</div>`;
+}
+/* What `gridBar()` left for the rail to draw on a phone, reset by viewHTML()
+   before every build so a board with no bar (a panel preview) draws a plain
+   drawer front rather than the last board's tools. */
+let RAILBAR = null;
+
+/* ---- the search is a button, and pressing it is a place ----------------
+   It was a field in the bar, and a field in the bar is a field a third of the
+   width of the screen with a placeholder cut off at "Search th". So the bar
+   carries a magnifier in a ring, and pressing it puts the field along the top
+   of the screen, full width and a size you can read, with the matches under
+   it running edge to edge the way a row of eight-wide tiles does. Done, or
+   Escape, or clearing it and pressing Done, gives the board back. `S.searchOn`
+   is **not saved**, for the reason `S.q` is not: a search is where you are
+   looking, not something the desk is. */
+const searchOpen = ()=> !!S.searchOn || !!String(S.q||'').trim();
+const searchBtn = c => `<button class="sqbtn searchbtn${searchOpen()?' on':''}"
+    data-act="searchopen" data-id="${c.id}" title="Search" aria-label="Search">${ic('search',16)}</button>`;
+function searchTop(c){
+  return `<div class="searchtop">
+    ${ic('search',20)}
+    <input class="searchin" type="search" data-search="${c.id}"
+      value="${esc(S.q||'')}" autocomplete="off" enterkeyhint="done"
+      placeholder="${c.id===ROOT?'Search the desk\u2026':'Search in '+esc(boardName(c))+'\u2026'}"
+      aria-label="Search">
+    <button class="searchdone" data-act="searchclose">Done</button>
   </div>`;
 }
 
@@ -221,8 +237,10 @@ const isListView = v => v!=='grid' && v!=='book' && v!=='calendar' && v!=='timel
    one does whatever pressing it anywhere does. */
 function searchBoard(c){
   const q = String(S.q||'').trim();
+  if(!q) return `<div class="scroll flushlist searchlist"><div class="searchsaid">${
+    c.id===ROOT ? 'Everything in Bureau' : 'Everything in '+esc(boardName(c))}: a name, a tag, or a word from inside it.</div></div>`;
   const hits = searchHits(q, c.id);
-  return `<div class="scroll flushlist">
+  return `<div class="scroll flushlist searchlist">
     <div class="searchsaid">${hits.length
       ? `${hits.length} ${hits.length===1?'thing':'things'} matching \u201c${esc(q)}\u201d`
       : `Nothing matching \u201c${esc(q)}\u201d`}${
@@ -235,6 +253,7 @@ function searchBoard(c){
 
 function viewDesk(){
   const c=rootObj(), view=c.layout||'grid';
+  if(searchOpen()) return `${gridBar(c)}${searchTop(c)}${searchBoard(c)}`;
   if(view!=='grid'){
     const all=childrenOf(c);
     const items = isListView(view) ? onThisShelf(c.id, all) : all;
@@ -252,7 +271,6 @@ function viewDesk(){
   }
   // the bar sits above the scroller, not inside it — it carries the pins now,
   // and navigation that scrolls away is navigation you can't reach
-  if(String(S.q||'').trim()) return `${gridBar(c)}${searchBoard(c)}`;
   return `
   ${gridBar(c)}
   <div class="scroll deskscroll"${revealStyle()}>
@@ -437,7 +455,7 @@ function viewDrawer(){
   const d=byId(S.drawerId);
   if(!d || !isContainer(d)) return viewDesk();
   // the field in the bar replaces the board, exactly as it does on a desk
-  if(String(S.q||'').trim()) return `${gridBar(d)}${searchBoard(d)}`;
+  if(searchOpen()) return `${gridBar(d)}${searchTop(d)}${searchBoard(d)}`;
   const all=childrenOf(d);
   let items=all;
   if(S.kindFilter) items=items.filter(o=>o.kind===S.kindFilter);
@@ -1335,12 +1353,21 @@ const cavityWalls = ()=> S.device==='phone'
    +'<i class="cavwall cw-bottom"></i><i class="cavwall cw-left"></i>' : '';
 
 function deskRail(){
-  const r=railCfg();
-  return `<nav class="deskrail ${dressAs('tx',r.tex)} ks-${r.size}" data-rail style="height:${REVEAL.rail}px">
+  const r=railCfg(), b=RAILBAR;
+  /* With the bar in it (decision 204) the front is three columns: where you
+     are and the search on the left, the knob in the middle where it always
+     was, and the tools on the right. The two sides are equal columns so the
+     knob stays on the centre line whatever the board is called. It is still
+     a `.gridbar`, with `inrail` to say where, so everything that looks for
+     the bar finds it; what measures the room above the board asks for a bar
+     that is a *child* of `.main`, which this is not. */
+  return `<nav class="deskrail${b?' withbar':''} ${dressAs('tx',r.tex)} ks-${r.size}" data-rail style="height:${REVEAL.rail}px">
     <i class="dgrain"></i>
+    ${b?`<div class="gridbar inrail"><div class="railside railleft">${b.where}${b.find}</div>`:''}
     <i class="pull railknob ${dressAs('kn',r.knob)}" data-act="railout"
       ${r.knobc?`style="--knob:${esc(r.knobc)}"`:''}
       title="Home Knob — tap for home, pull up to make something"></i>
+    ${b?`<div class="railside railright">${b.tools}</div></div>`:''}
   </nav>`;
 }
 
@@ -1384,6 +1411,7 @@ function viewHTML(){
      opened and closed around the string build and nothing else — see
      childrenOf() in model.js. */
   beginPass();
+  RAILBAR = null;
   try{
     const body = S.view==='drawer' ? viewDrawer()
                : viewDesk();        // the desk is the only other place there is
@@ -1626,7 +1654,9 @@ function sizeGrid(){
   const sc=grid.parentElement, main=grid.closest('.main');
   const cid = grid.dataset.gridfor || ROOT;
   if(dev()==='phone' && main){
-    const bar=main.querySelector('.gridbar'), rail=main.querySelector('.deskrail');
+    // the bar rides in the rail on a phone (decision 204); only a bar that is
+    // still standing above the board takes room from it
+    const bar=main.querySelector(':scope > .gridbar, :scope > .searchtop'), rail=main.querySelector('.deskrail');
     const barH = bar ? bar.getBoundingClientRect().height : 0;
     // read the floor, not the margin — the margin is what this writes
     const gapMin = parseFloat(getComputedStyle(sc).getPropertyValue('--gapmin'))||0;

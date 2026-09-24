@@ -199,7 +199,7 @@ const BUILTIN_KINDS = {
      boxes land on top of one another — a packed board is the honest picture
      of a collection. It may replace the sorting drawer one day; for now
      it is the same machine with a truer silhouette. See decision 202. */
-  tag:     {face:'tag', nm:'Tag', ic:'tag', c:3, key:'', ds:'Everything that answers to a tag — a tag of yours, or one a thing has by being what it is', attrs:['container','magic'], layout:'grid', sort:'az', size:[4,2], phoneSize:[4,2], asksTag:true, body:'' },
+  tag:     {face:'tag', nm:'Tag', ic:'tag', c:3, key:'', ds:'Everything that answers to a tag — a tag of yours, or one a thing has by being what it is', attrs:['container','magic'], layout:'grid', sort:'az', size:[2,1], phoneSize:[2,1], asksTag:true, body:'' },
   /* The third drawer. A project is a piece of work and it finishes; a **life
      drawer** is an area of your life and it does not — money, health, the
      people in it — so it reports what is in it and what is next and draws no
@@ -234,7 +234,7 @@ const BUILTIN_KINDS = {
      the pieces it is made of, and it opens as a book both ways round:
      `layout:'book'` pages through what it holds and `read:'book'` pages
      through its own body. See decision 130. */
-  book:    {face:'spine', binding:'banded', nm:'Prose & Poetry', ic:'book', c:11, key:'B',
+  book:    {face:'spine', binding:'banded', nm:'Prose & Poetry', pickNm:'Book', ic:'book', c:11, key:'B',
      ds:'Anything made of words — press it and say which',
      family:['book','poem','novel','shortstory','essay','script'], famSub:'What are you writing?',
      attrs:['text','container','relates'], layout:'book', read:'book',
@@ -307,7 +307,7 @@ const BUILTIN_KINDS = {
      **challenge**, and the same object walks between the three as its dates
      move. Three stored types would have made you re-declare a dream as a goal
      the day you finally put a date on it. See decision 135. */
-  goal:    {face:'goal', nm:'Goal', ic:'target', c:13, key:'E',
+  goal:    {face:'goal', nm:'Goal', pickNm:'Card', ic:'target', c:13, key:'E',
      ds:'Something you are trying to reach, and the work that gets you there',
      attrs:['text','container','date','deadline','progress','relates'],
      seed:[{kind:'generator', title:'What gets you there…', sz:[8,2]}],
@@ -353,7 +353,7 @@ const BUILTIN_KINDS = {
   /* Sound and moving pictures are things you put on a desk, not a corner of
      film-making — so they are majors, and pressing one plays it rather than
      opening a page about it. See decision 144. */
-  audio:   {nm:'Audio',   ic:'music',   c:10, key:'U', ds:'Something to listen to',    size:[4,4], phoneSize:[3,3], onclick:'play', attrs:['text','media','duration'], mediaType:'audio', body:'' },
+  audio:   {nm:'Audio', pickNm:'Disc',   ic:'music',   c:10, key:'U', ds:'Something to listen to',    size:[4,4], phoneSize:[3,3], onclick:'play', attrs:['text','media','duration'], mediaType:'audio', body:'' },
   video:   {nm:'Video',   ic:'film',    c:9, key:'&', ds:'Something to watch',        size:[6,4], onclick:'play', attrs:['text','media','duration'], mediaType:'video', body:'' },
   trip:    {shape:'card', proj:'trip', nm:'Trip',    ic:'flag',    c:9, key:'P', ds:'Somewhere you are going',   size:[8,6], attrs:['container','date','span','location'], layout:'grid', plan:'pl_stock_travel', body:'' },
   /* An **essay or a post** as a piece of work — the claim, the outline, the
@@ -482,7 +482,7 @@ const BUILTIN_KINDS = {
      attrs:['text'], size:[4,4], onclick:'read', body:'' },
   letter:  {shape:'letter', nm:'Letter', ic:'send', c:5,
      ds:'A sheet that was folded and sent', seal:'none',
-     attrs:['text','date','relates'], size:[4,5], phoneSize:[4,5], onclick:'read',
+     attrs:['text','date','relates'], size:[3,2], phoneSize:[3,2], onclick:'read',
      body:'Dear —\n\n\n\nYours,\n' },
   /* Two sides, and `flip` is which one is showing. It is the only object in
      the app whose press turns it over, which is why `onclick` is `flip` and
@@ -514,7 +514,7 @@ const BUILTIN_KINDS = {
      reader in `active.js`, because those are settings on an instrument rather
      than traits an object has. `act` says which machine, and it is read off
      the object first, so a type somebody invents can be a die by saying so. */
-  instrument:{cat:true, nm:'Instrument', ic:'clock', c:13,
+  instrument:{cat:true, nm:'Instrument', pickNm:'Tool', ic:'clock', c:13,
      ds:'Something that runs — press it and say which',
      family:['metronome','hourglass','candle','bell','clock','die','deck'],
      famSub:'What sort of instrument?',
@@ -540,9 +540,9 @@ const BUILTIN_KINDS = {
      rider back, and each aesthetic's own eleventh everywhere else. A new deck
      lies face down, because the back is the thing Timothy asked to see. */
   deck:     {act:'deck', face:'deck', nm:'Deck', ic:'copy', c:11, key:'4',
-     ds:'Cards you cut to — drop things in, press it to turn one up',
+     ds:'Cards you cut to. Face up a press cuts it; face down a press deals the top card onto the board',
      attrs:['container'], layout:'grid', size:[3,4], phoneSize:[3,4],
-     onclick:'active', faceup:false, back:'rider',
+     onclick:'active', faceup:true, back:'rider',
      seed:[{kind:'note', title:'Write on me'}], body:'' },
   /* ---- a fragment: one piece of a world -----------------------------------
      Ten types that only ever come up when you are building a world or telling
@@ -573,7 +573,7 @@ const BUILTIN_KINDS = {
      one new answer is `genKind:'random'` — a spawner that makes one of
      *anything*, which is the thing you want on a desk you are trying to fill
      rather than a desk you are running. See decision 133. */
-  generator:{shape:'press', nm:'Spawner', ic:'spiral', c:13, key:'6',
+  generator:{shape:'press', nm:'Spawner', pickNm:'Garden', ic:'spiral', c:13, key:'6',
      ds:'Press it and it makes one of something — or one of anything. Bigger, you name what it makes.',
      size:[1,1], phoneSize:[1,1], onclick:'generate', attrs:['spawn'], spawnBy:'click', body:'' },
   /* A counter is its number. It carried no `shape` at all, so shapeOf() fell
@@ -674,11 +674,19 @@ const BUILTIN_KINDS = {
    The order is the order they are drawn in, and it is not alphabetical: the
    four drawers lead, because what you are usually doing on a bare board is
    making somewhere to put things. See decision 130. */
-const PRIMARY = ['drawer','magic','tag','project','life','goal',
-                 'book','checklist','calendar','jar','pigeonhole','moodboard','timeline',
-                 'note','fragment','label','recipe','achievement',
-                 'task','progressbar','tracker','counter','appt',
-                 'image','audio','video','post','decoration','instrument','control','generator','outlink'];
+/* **Twelve, and physical** (decision 204). The picker leads with the things a
+   desk is actually made of — a drawer, a book, a calendar, a checklist, a
+   picture, a note, a record, a garden, an ornament, a tag, a tool and a card
+   — and every other major is one dropdown further in (`SECONDARY`), ahead of
+   the rest. The gaps get filled later; this is the physical-object idea first. */
+const PRIMARY = ['drawer','book','calendar','checklist','image','note',
+                 'audio','generator','decoration','tag','instrument','goal'];
+/* What used to lead and does not any more, still in its stated order, drawn
+   first inside the dropdown. */
+const SECONDARY = ['magic','project','life','task','jar','pigeonhole','moodboard','timeline',
+                 'fragment','label','recipe','achievement',
+                 'progressbar','tracker','counter','appt',
+                 'video','post','control','outlink'];
 const isPrimary = k => PRIMARY.includes(k);
 
 /* ---- a category is a type you press to be *asked which* -----------------
@@ -3005,7 +3013,7 @@ export { homeFor, ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds,
   allUnder, progressOf, projectStat, finishedThings, allTags,
   tagSlug, implicitTags, tagsOf, tagTerms, tagMatch, everyTag,
   habitPlan, habitOn, habitPeriod, habitPeriods, habitRun, HABIT_MAX_TIMES, SHAPES_HABIT,
-  PRIMARY, isPrimary, ANY, makesAnything, genSaid, ctlOf, barPct, barOf,
+  PRIMARY, SECONDARY, isPrimary, ANY, makesAnything, genSaid, ctlOf, barPct, barOf,
   BAR_STEPS, barSteps, barFilled, barGrid,
   familyOf, isCategory, inFamily, isFragmentKind, familyList,
   PROJ_COVERS, projCoverOf, lifeArtOf,

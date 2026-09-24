@@ -5374,14 +5374,15 @@ const PROP_OFF = () => { const b = document.createElement('button');
     out.itPlays = !!document.querySelector('.viewstage audio.viewplayer');
     BUREAU.closeSheet(); BUREAU.render(); await nap(150);
     /* …and on the board it is a **record with a play button in it**, which is
-       decision 144 walking part of decision 71 back: pressing the tile plays
+       decision 144 walking part of decision 71 back (the button went in 204:
+       it is a record with only its hole in the middle): pressing the tile plays
        the sound. The half of 71 that still holds is the expensive half — there
        is **no media element on the board**. The audio lives in a module map
        outside the DOM, so a hundred sounds on one desk cost a hundred discs
        and nothing else, and an unrelated render cannot silence one. */
     const tile = document.querySelector(`.grid .drawer[data-row="${a.id}"]`);
     out.tileIsAFace = !!tile && !tile.querySelector('audio')
-      && !!tile.querySelector('.snddisc') && !!tile.querySelector('.medbtn');
+      && !!tile.querySelector('.snddisc') && !tile.querySelector('.medbtn');
     BUREAU.del(a.id); S.undo=[]; S.redo=[]; BUREAU.render();
     return out;
   });
@@ -7871,7 +7872,8 @@ const PROP_OFF = () => { const b = document.createElement('button');
     out.threeKindsOfDrawer = ['magic','project','life'].every(k =>
       BUREAU.K[k].attrs.includes('container'));
     out.magicIsCalledSorting = /sorting/i.test(BUREAU.K.magic.nm);
-    out.generatorIsCalledSpawner = /spawner/i.test(BUREAU.K.generator.nm);
+    out.generatorIsCalledSpawner = /spawner/i.test(BUREAU.K.generator.nm)
+      && /garden/i.test(BUREAU.K.generator.pickNm);   // and a Garden in the picker (204)
 
     // ---- a book is a container that reads as one --------------------------
     {
@@ -8398,6 +8400,17 @@ const PROP_OFF = () => { const b = document.createElement('button');
     const view0 = S.view;
     document.querySelector('[data-drawer="dk"]').click(); await nap(300);
     out.andPressingItCutsRatherThanOpens = S.view === view0 && S.drawerId !== 'dk';
+    /* Face up by default since decision 204, and the corners say which card
+       this is in the deck rather than how many there are. */
+    const top = BUREAU.state.objects.find(o=>o.id===deck.top) || {};
+    const order = BUREAU.state.objects.filter(o=>o.parent==='dk').map(o=>o.id);
+    out.aDeckIsFaceUpAndCountsItsCard = !!document.querySelector('[data-drawer="dk"] .dkcard.up')
+      && (document.querySelector('[data-drawer="dk"] .dkidx')||{}).textContent === String(order.indexOf(top.id)+1);
+    /* Face down, a press deals the top card out onto the board. */
+    deck.faceup = 0; BUREAU.render(); await nap(120);
+    document.querySelector('[data-drawer="dk"]').click(); await nap(200);
+    out.faceDownItDeals = BUREAU.state.objects.filter(o=>o.parent==='dk').length === 2
+      && BUREAU.state.objects.some(o=>/^c[ABC]$/.test(o.id) && o.parent==='root');
 
     /* ---- a group is the set carrying the id — decision 180 ------------- */
     mk({ id:'g1', kind:'note', title:'One', attrs:['text'], desk:{x:6,y:11,w:2,h:2} });
@@ -8583,9 +8596,17 @@ const PROP_OFF = () => { const b = document.createElement('button');
          attrs:['text'], desk:{x:11,y:18,w:3,h:2} });
     BUREAU.render(); await nap(180);
     const bar = document.querySelector('.gridbar');
-    out.searchIsInTheBar = !!bar.querySelector('.barsearch .searchin');
-    out.andSitsBetweenTheDotsAndTheTools =
-      [...bar.children].map(e=>e.className.split(' ')[0]).join('>') === 'where>barsearch>bartools';
+    /* A magnifier in a ring since decision 204, and pressing it puts the
+       field along the top of the screen with the board given over to it. */
+    out.searchIsInTheBar = !!bar.querySelector('.searchbtn') && !bar.querySelector('.searchin');
+    out.andSitsBetweenTheDotsAndTheTools = (() => {
+      const w = bar.querySelector('.where'), f = bar.querySelector('.searchbtn'), t = bar.querySelector('.bartools');
+      return !!(w && f && t) && (w.compareDocumentPosition(f) & 4) && (f.compareDocumentPosition(t) & 4); })();
+    bar.querySelector('.searchbtn').click(); await nap(150);
+    out.pressingItOpensTheField = !!document.querySelector('#app .searchtop .searchin')
+      && document.activeElement === document.querySelector('.searchin');
+    document.querySelector('[data-act="searchclose"]').click(); await nap(150);
+    out.andDoneGivesTheBoardBack = !document.querySelector('.searchtop') && !!document.querySelector('#drawergrid');
     const hits = () => [...document.querySelectorAll('.listgrid [data-row],.listgrid [data-drawer]')]
       .map(e => e.dataset.row || e.dataset.drawer).sort();
     S.q = 'soup'; BUREAU.render(); await nap(180);
