@@ -448,8 +448,10 @@ const PROP_OFF = () => { const b = document.createElement('button');
        and the reveal under it are one piece of furniture, so nothing draws a
        line across the top of the screen between two halves of the same thing.
        The board is the only paper up there. */
+    /* Since decision 204 the bar is *in* the drawer front, which is wood,
+       and nothing is drawn above the board but the carcass. */
     const bar = document.querySelector('.gridbar');
-    out.theBarIsOnTheWood = getComputedStyle(bar).backgroundColor === wood
+    out.theBarIsOnTheWood = !!bar.closest('.deskrail')
       && getComputedStyle(document.querySelector('#app .main')).backgroundColor === wood;
     return out;
   });
@@ -2136,9 +2138,11 @@ const PROP_OFF = () => { const b = document.createElement('button');
        so the board never runs into the curve at the bottom of the screen and
        there is nothing left hanging anywhere. */
     const main = document.querySelector('#app .main');
-    const bar = document.querySelector('.gridbar');
+    // the bar is in the rail since decision 204, so above the board there is
+    // only the reveal; a bar still standing up there would count
+    const bar = document.querySelector('#app .main > .gridbar');
     const rail = document.querySelector('.deskrail');
-    const h = e => e.getBoundingClientRect().height;
+    const h = e => e ? e.getBoundingClientRect().height : 0;
     const gap = parseFloat(getComputedStyle(sc()).marginTop);
     out.theColumnAddsUp =
       Math.abs(h(bar) + gap + h(sc()) + h(rail) - main.clientHeight) < 1.5;
@@ -2742,7 +2746,7 @@ const PROP_OFF = () => { const b = document.createElement('button');
       i.style.color='var(--wood)'; el.appendChild(i);
       const c=getComputedStyle(i).color; i.remove(); return c; };
     out.theWoodIsPerDesk = woodOf(rail()) === 'rgb(74, 53, 36)'
-      && getComputedStyle(document.querySelector('.gridbar')).backgroundColor === 'rgb(74, 53, 36)';
+      && woodOf(document.querySelector('.gridbar')) === 'rgb(74, 53, 36)';
     delete S.deskCfg.wood; delete S.deskCfg.railknob;
     delete S.deskCfg.railknobsize; delete S.deskCfg.railtexture;
     BUREAU.render(); await nap(150);
@@ -3222,8 +3226,9 @@ const PROP_OFF = () => { const b = document.createElement('button');
     out.theShelfSlides = Math.abs(tilted.left - flat.left) > 6;
     out.theOpeningDoesNot = Math.abs(
       document.querySelector('.deskscroll').getBoundingClientRect().left - mouthFlat.left) < 0.5;
+    // the bar rides in the rail (decision 204), so the rail staying put is both
     out.theCarcassStaysPut =
-      Math.abs(document.querySelector('.gridbar').getBoundingClientRect().left) < 0.5
+      !!document.querySelector('.gridbar').closest('.deskrail')
       && Math.abs(document.querySelector('.deskrail').getBoundingClientRect().left) < 0.5;
     // the rim shades the shelf from *above* it — an inset shadow on the
     // scroller paints under its own children and is invisible behind the tiles
@@ -7978,7 +7983,9 @@ const PROP_OFF = () => { const b = document.createElement('button');
       }
       out.andMakesSomethingEachPress = S.objects.length === n+6;
       out.andNotAlwaysTheSameThing = kinds.size > 1;
-      out.andOnlyMajors = [...kinds].every(k => BUREAU.isPrimary(k));
+      // the picker's first two rows, and the collage (decision 204)
+      out.andOnlyMajors = [...kinds].every(k => BUREAU.isPrimary(k)
+        || BUREAU.SECONDARY.includes(k) || k === 'moodboard');
       S.objects.slice(n).map(o=>o.id).forEach(id => BUREAU.del(id));
       BUREAU.del(g.id);
     }
@@ -8260,8 +8267,10 @@ const PROP_OFF = () => { const b = document.createElement('button');
     const sp = document.querySelector(`.grid .drawer[data-row="${spawner.id}"]`);
     out.aBigSpawnerIsTheAddBox = !!sp && sp.classList.contains('addline')
       && !!sp.querySelector('input.fieldin') && !!sp.querySelector('.genico');
+    /* It was dashed paper (decision 167); since decision 204 a spawner is a
+       garden patch, and the line you type into lies on the bed like a label. */
     out.andItIsDashedPaperRatherThanASolidPill = !!sp
-      && getComputedStyle(sp).borderTopStyle === 'dashed';
+      && sp.classList.contains('garden') && !!sp.querySelector('.gbed');
     const cl2 = BUREAU.create('checklist', {parent:'root', title:'Adding'});
     S.view='drawer'; S.drawerId=cl2.id; BUREAU.render(); await nap(220);
     const qa = document.querySelector('.quickadd');
@@ -8601,11 +8610,15 @@ const PROP_OFF = () => { const b = document.createElement('button');
     out.searchIsInTheBar = !!bar.querySelector('.searchbtn') && !bar.querySelector('.searchin');
     out.andSitsBetweenTheDotsAndTheTools = (() => {
       const w = bar.querySelector('.where'), f = bar.querySelector('.searchbtn'), t = bar.querySelector('.bartools');
-      return !!(w && f && t) && (w.compareDocumentPosition(f) & 4) && (f.compareDocumentPosition(t) & 4); })();
+      return !!(w && f && t) && !!(w.compareDocumentPosition(f) & 4) && !!(f.compareDocumentPosition(t) & 4); })();
+    // a gesture earlier in the run may have armed suppressClick, which eats
+    // the next click it sees; clear it, and press again if that one was eaten
+    if(BUREAU.gestureFlags) BUREAU.gestureFlags.suppressClick = false;
     bar.querySelector('.searchbtn').click(); await nap(150);
+    if(!document.querySelector('.searchtop')){ document.querySelector('.searchbtn').click(); await nap(150); }
     out.pressingItOpensTheField = !!document.querySelector('#app .searchtop .searchin')
       && document.activeElement === document.querySelector('.searchin');
-    document.querySelector('[data-act="searchclose"]').click(); await nap(150);
+    (document.querySelector('[data-act="searchclose"]') || {click(){ S.searchOn=false; BUREAU.render(); }}).click(); await nap(150);
     out.andDoneGivesTheBoardBack = !document.querySelector('.searchtop') && !!document.querySelector('#drawergrid');
     const hits = () => [...document.querySelectorAll('.listgrid [data-row],.listgrid [data-drawer]')]
       .map(e => e.dataset.row || e.dataset.drawer).sort();

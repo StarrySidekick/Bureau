@@ -6,7 +6,7 @@ import { plans, planFrom, stampPlan, planById, planSize, delPlan } from './plans
 import { refreshKinds , groupTogether, groupMates, travelWith } from './model.js';
 import { S, KINDS, SHAPES, shapeChoices, SORTS, childrenOf, container, relate, deskOf, has, lateOn, isLate, knobOf,
   urgencyOf, urgeSaid, workday,
-  isContainer, faceOf, PRIMARY, isPrimary, inFamily, barPct, marginOf, marginPlus,
+  isContainer, faceOf, PRIMARY, SECONDARY, isPrimary, inFamily, barPct, marginOf, marginPlus,
   prioOf, repeatOf, repeatSaid, nextRepeat, boardLocked, BINDINGS, bindingOf, PANELS, panelOf,
   isHeld, heldObjects, tiltMode, READS, goalStanding } from './model.js';
 import { shelfRows, shelvesOf, shelfAt, setShelf, freeSpot, anySpot, roomFor, boxOk, innerOf, colsOf } from './grid.js';
@@ -182,7 +182,7 @@ window.BUREAU = {
      drawer asks on the way in — decisions 130 and 131. Exposed so a test asks
      the app which types are majors rather than keeping a second copy of the
      list that goes stale the moment one is added. */
-  get PRIMARY(){ return PRIMARY; }, isPrimary, inFamily, tagFirst: tagFirstPanel,
+  get PRIMARY(){ return PRIMARY; }, get SECONDARY(){ return SECONDARY; }, isPrimary, inFamily, tagFirst: tagFirstPanel,
   /* The switch table behind a control, and what one is showing — decision 132.
      A control's state is the desk's, not the object's, so there is nothing on
      the object for a test to read. */
