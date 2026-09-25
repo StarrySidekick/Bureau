@@ -443,7 +443,12 @@ const PROP_OFF = () => { const b = document.createElement('button');
     out.andTheBoardStopsOnIt = Math.abs(sc.getBoundingClientRect().bottom - rr.top) < 1.5;
     /* …and the bar has room to breathe: the board is inset into the carcass,
        so there is a reveal above it as well as below. */
-    out.theBarBreathes = parseFloat(getComputedStyle(sc).marginTop) >= 7;
+    /* Since decision 208 the top half of that reveal is the lip's own height
+       above its floor, so the name sits in the middle of the wood; the
+       breathing room is the two together. */
+    const lipEl = main.querySelector(':scope > .toplip');
+    const lipExtra = lipEl ? lipEl.getBoundingClientRect().height - (parseFloat(getComputedStyle(lipEl).minHeight)||0) : 0;
+    out.theBarBreathes = parseFloat(getComputedStyle(sc).marginTop) + lipExtra >= 7;
     /* …and the wood is **continuous**: the strip above the bar, the bar itself
        and the reveal under it are one piece of furniture, so nothing draws a
        line across the top of the screen between two halves of the same thing.
@@ -9458,7 +9463,8 @@ const PROP_OFF = () => { const b = document.createElement('button');
     const lead = [...document.querySelectorAll('#panel .boardmakes .kindtile')]
       .map(t => t.dataset.new || t.dataset.family);
     out.thePickerOffersTheShortList = JSON.stringify(lead) === '["note","task"]';
-    out.withEverythingOneDoorIn = !!document.querySelector('#panel details.boardall .kindtile[data-new="image"]');
+    // Image is a category since decision 208 (a Painting is its subtype)
+    out.withEverythingOneDoorIn = !!document.querySelector('#panel details.boardall .kindtile[data-new="image"], #panel details.boardall .kindtile[data-family="image"]');
     const n0 = S.objects.length;
     const t = document.querySelector('#panel .boardmakes .kindtile[data-new="task"]');
     if(t){ t.click(); await nap(400); }
