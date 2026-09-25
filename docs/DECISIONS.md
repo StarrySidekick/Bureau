@@ -9695,3 +9695,60 @@ bronze horse and a teacup (docs/IMAGES.md).
 lays out every menu, setting, editor row and type as it ships, for Timothy to
 rearrange, cut and annotate; the arrangement is stored with the page for the
 next session to read back and build. Nothing in the app reads it.
+
+## 209 · A phone board can scroll instead of paging
+
+*2026-09-25.* Timothy: "make an option to be able to smooth scroll down the
+pages of a board or the board of a desk, instead of the rigid swipe to each
+page."
+
+**A setting, and the rigid swipe stays the default.** `S.look.flow` is unset
+(page by page) or `'scroll'`, under *Moving down a phone board* in Settings
+beside the board's height; the default is deleted rather than stored, like
+every other row there. `flows()` in grid.js is the one question — a phone,
+and the setting on — so the window, the rows drawn and every reader of the
+shift cannot disagree about it.
+
+**Up and down, a scrolling phone is drawn the way a Mac is.** `drawRows()`
+answers the whole board's rows, `shelfOrigin()` answers a vertical shift of
+zero, and the scroller becomes a viewport exactly one shelf tall — the same
+`rows × cell` it was as a page, written by `sizeGrid()` and carried in the
+markup through `REVEAL.h` so a pager pane is built at its real height. The
+cell does not change: it is still the width over the columns, square, and the
+scroller carries no scrollbar because a classic one would take its width out
+of the board. Which shelf you are on is where you have scrolled to — the
+Mac's `onBoardScroll()` now listens on a scrolling phone too, patches the dots
+without a render, and so `freeSpot()` still starts from the shelf you are
+looking at. Arriving at a board scrolls to the row you are on
+(`SHELFSCROLL`), a render keeps the offset (`SCROLL`, as on a Mac), and
+switching the setting either way is treated as arriving.
+
+**Sideways is untouched.** The columns stay windowed one shelf wide and the
+sideways swipe still walks the shelves, or on into the drawer beside this one;
+the panes it builds are scrolled to where you are, so the neighbour does not
+show its top while you are halfway down. `pagerBegin()` refuses the vertical
+axis, which is what lets the finger fall through to the browser, and the phone
+grid takes `touch-action:pan-y` instead of `none`.
+
+**The finger is kept by two holds that are not a drag.** The touchmove guard
+in wire.js asks `holdsFinger()` rather than `dragArmed()`: a held bare cell
+(the Magic Selector about to be dragged out) and a tile whose menu has just
+opened (which the next movement lifts) would otherwise start a native scroll
+and lose the gesture to a `pointercancel`. On a paging board the grid refuses
+every pan anyway, so there it changes nothing.
+
+**Everything else was already in board cells.** The drop, the sketch and the
+knob's aim read a cell off the grid's own rect, which moves with the scroll,
+and add the shift back — zero vertically now — so none of them changed; the
+edge pan that a Mac drag always had (`autoPan()`) now has something to pan on
+a phone. A dot in another row is a smooth scroll to that row
+(`scrollToShelf()`), a change of column is a render, and `reveal()` changes
+column only and lets its own scroll bring the row into view. The seam rule is
+kept: a tile still may not straddle two shelves, which in this mode is a line
+nobody can see, and is also what keeps a box meaning the same thing when the
+setting goes off again. The list view shows the whole column, as the grid does.
+
+The rim's inset shading is an absolute box inside the scroller, so it would
+have covered the first screenful and scrolled away; it is `position:sticky` at
+the end of the column, pulled up by its own height (`--flowh`). The tilt's
+four cavity walls were not given the same treatment and scroll with the board.

@@ -11,7 +11,7 @@ import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, chi
   calViewOf, calShowOf, weekStartOf, calCols, borderOf, textureOf, marginOf, isFragmentKind, gravityOn,
   groupOf, sealOf, isSealed, habitPlan, habitPeriods, habitRun } from './model.js';
 import { CELL, gridOf, drawCols, drawRows, lay, overlaps, boxOk, freeSpot, anySpot, roomFor, gridRows, sizeOfKind, sideways, innerOf,
-  ensureBox, shelfRows, shelfOrigin, shelfAt, colsOf } from './grid.js';
+  ensureBox, shelfRows, shelfOrigin, shelfAt, colsOf, flows } from './grid.js';
 import { dealTop, create, toast, fits, toggleDone, someKind, ctlSpec, ctlSaid, ctlIsOn,
   ctlForm, ctlNum, ctlIndex, ctlPress, pushSet } from './mutations.js';
 import { DECOR, decorOf, decorEmits, flamePoint, decorSVG, LIFE_ART, lifeSVG } from './decor.js';
@@ -2768,7 +2768,7 @@ function gridOfContainer(cid){
     const fit = (want, span, all) =>
       Math.max(0, Math.min(Math.max(0, all - span), Math.round(want)));
     shift = {x: fit(cb.x + cb.w/2 - g.shelfW/2 - 1, g.shelfW, g.cols),
-             y: fit(cb.y + cb.h/2 - g.shelfH/2 - 1, g.shelfH, g.rows)};
+             y: flows(dv) ? 0 : fit(cb.y + cb.h/2 - g.shelfH/2 - 1, g.shelfH, g.rows)};
   }
   let kids=childrenOf(c);
   FLOW.clear();
@@ -2815,8 +2815,10 @@ function gridOfContainer(cid){
       o[dv]=null;
       o[dv]=anySpot(keep.w, keep.h, dv, c.id);
     });
+    // the rows actually drawn, which on a phone that scrolls is the whole column
+    const tall = drawRows(g, dv);
     kids = kids.filter(o=>{ const b=FLOW.get(o.id)||lay(o, dv, c.id);
-      return b.x>shift.x && b.x<=shift.x+g.shelfW && b.y>shift.y && b.y<=shift.y+g.shelfH; });
+      return b.x>shift.x && b.x<=shift.x+g.shelfW && b.y>shift.y && b.y<=shift.y+tall; });
   }
   SHELFSHIFT.x = shift.x; SHELFSHIFT.y = shift.y;
   /* Where the middle of this board is, for the shelf's perspective — once,

@@ -5015,6 +5015,24 @@ input,textarea,select,[contenteditable],
    surface with a heading, rather than as a board set into a desk. */
 .is-phone .scroll.deskscroll{overflow:hidden;padding:0;flex:0 0 auto;
   --gapmin:7px;margin-top:var(--gapmin)}
+/* ---- …unless it scrolls — decision 209 --------------------------------
+   `S.look.flow = 'scroll'` draws the whole column of shelves and makes the
+   scroller a viewport one shelf tall (sizeGrid() writes the height). Native
+   momentum, and no scroll chaining into the carcass behind it. No scrollbar:
+   a classic one takes its width out of the board, and the cell is the width
+   over the columns, so every cell would shrink by a sixth of a scrollbar. */
+.is-phone.flowscroll .scroll.deskscroll{overflow-x:hidden;overflow-y:auto;
+  -webkit-overflow-scrolling:touch;overscroll-behavior:contain;scrollbar-width:none}
+.is-phone.flowscroll .scroll.deskscroll::-webkit-scrollbar{display:none}
+/* The grid gives the vertical pan back to the browser; sideways is still the
+   finger's, for the pager. A tile's `manipulation` intersects to the same. */
+.is-phone.flowscroll .grid{touch-action:pan-y}
+/* The rim's inset shading is an absolute box at `inset:0`, which inside a
+   scroller covers the first screenful and scrolls away with it. Stuck to the
+   viewport instead: the last thing in the column, as tall as the viewport and
+   pulled up by its own height so it adds nothing to the scroll. */
+.is-phone.flowscroll .scroll.deskscroll::after{position:sticky;display:block;
+  top:0;bottom:0;height:var(--flowh,100%);margin-top:calc(-1 * var(--flowh,0px))}
 /* ---- and set into the wood, while the cavity is on --------------------
    The shelf slides behind the opening's edge, and with the board flush to the
    screen that edge is the *bezel* — which is not drawn, so a tile leaving the

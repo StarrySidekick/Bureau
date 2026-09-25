@@ -96,6 +96,9 @@ objects (`RAILART` in views.js); a phone board is at most **8×14** unless
 *One more row* is on; the name on the lip is big and on the left; every
 decoration is a photograph (eight new ones); and **Painting** is Image's first
 subtype (`family`), hanging one of 26 Met paintings from `img/paintings/`.
+**v2.05** (decision 209): *Moving down a phone board* can be **Smooth scroll**
+(`S.look.flow`, `flows()` in grid.js): the column of shelves is drawn whole and
+scrolls natively; sideways still pages.
 The **Bureau Workshop** artifact (https://claude.ai/artifact/4TjyQZ5xcuxCYFgfnRm76k)
 holds Timothy's own rearrangement of every menu and type: read its
 `workshop/state` document before reorganising menus or types.

@@ -291,6 +291,19 @@ window of `shelfW × shelfH` cells onto it, so drag, drop and `freeSpot()` know
 nothing about which one you are looking at. The one rule is that nothing may
 straddle a seam **on a phone**, enforced in `boxOk()`.
 
+**Unless the phone scrolls** (decision 209). `S.look.flow = 'scroll'` and
+`flows()` in grid.js: vertically a phone is then drawn the way a Mac is —
+`drawRows()` is the whole board, `shelfOrigin()` gives a y shift of zero, and
+`.deskscroll` is a native-momentum viewport exactly one shelf tall (height
+written by `sizeGrid()`, carried in the markup as `REVEAL.h`), with the grid
+at `touch-action:pan-y`. The columns stay windowed and the sideways swipe
+still pages; `pagerBegin()` refuses the vertical axis. Which shelf you are on
+is where you have scrolled to (`onBoardScroll()`, as on a Mac), `SCROLL` is
+restored across a render, and `goShelfTo()` turns a change of row into a
+`scrollToShelf()` rather than a render. Ask `flows()`, never the setting: it
+is also false on a Mac. The seam rule stands in this mode, invisible, so a box
+means the same thing when the setting goes off.
+
 **But a board cell is not a screen cell, and the boundary between them is two
 functions.** `gridTile()` subtracts the shelf as it draws (`SHELFSHIFT`), so
 anything that reads a cell *off* the screen has to add it back and anything

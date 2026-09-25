@@ -2178,6 +2178,15 @@ const gestureFlags = {suppressClick:false, tapped:null};
    and the long-press context menu that iOS fires at about the same moment the
    hold arms. */
 const dragArmed = ()=> !!(G && G.armed);
+/* What the touchmove guard in wire.js asks, which is one question wider than
+   `dragArmed()`. A phone board that scrolls (decision 209) gives the finger to
+   the browser (`touch-action:pan-y`), so two holds that are not an armed drag
+   also have to keep it: a held bare cell, which is the Magic Selector about to
+   be dragged out, and a tile whose menu has just opened, which the next
+   movement lifts. On a paging board the grid refuses every pan anyway, so
+   there this changes nothing. */
+const holdsFinger = ()=> !!(G && (G.armed || G.held
+  || (G.menu && G.el && G.el.closest && G.el.closest('.grid'))));
 
 /* This does **not** touch the zoom, and that is deliberate. `pointercancel` is
    wired here, and iOS fires one for both pointers the moment it decides a
@@ -2210,4 +2219,4 @@ function onCancel(){
 }
 
 export { onDown, onMove, onUp, onCancel, onTouchStart, onTouchMove, onTouchEnd,
-  gestureFlags, dragArmed, setCamEditor };
+  gestureFlags, dragArmed, holdsFinger, setCamEditor };

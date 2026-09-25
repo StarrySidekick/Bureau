@@ -1,6 +1,6 @@
 import { $, clamp, ROOT } from './util.js';
 import { S, dev, gravityMode, gravityOn, gravityTilts } from './model.js';
-import { gridOf, drawCols, drawRows, shelfAt } from './grid.js';
+import { gridOf, drawCols, drawRows, shelfAt, flows } from './grid.js';
 import { still, tiltDown, applyTilt } from './motion.js';
 
 /* ============================================================
@@ -172,7 +172,8 @@ function keyNow(){
    you were looking at, which reads exactly like everything vanishing. */
 function pen(g){
   const rows = g.shelfH * g.rowh;
-  const top = dev()==='phone' ? 0 : shelfAt(W.cid).y * rows;
+  // a phone that scrolls draws its whole column, so it pens the way a Mac does
+  const top = dev()==='phone' && !flows() ? 0 : shelfAt(W.cid).y * rows;
   return {w: drawCols(g)*g.rowh, h: rows, y0: top};
 }
 /* The board is the back panel of a slot and the slot has four sides, which is

@@ -1,7 +1,7 @@
 import { $, clamp, ROOT } from './util.js';
 import { S, byId, isContainer, has, childrenOf, shapeOf, openingOf, deskOf,
   tiltMode, tiltsDesk, tiltsWindows, gravityTilts , dev } from './model.js';
-import { lay, shelvesOf, shelfAt , CELL, proportional } from './grid.js';
+import { lay, shelvesOf, shelfAt , CELL, proportional, flows } from './grid.js';
 import { objColour, styleNow } from './look.js';
 import { render, renderSoon, previewHTML, goShelf, sideDrawer, goSideDrawer } from './views.js';
 
@@ -1534,6 +1534,10 @@ function pane(cls, html){
    draws nothing and commits on release, so one code path covers both. */
 function pagerBegin(axis, dir){
   if(PG) return true;
+  /* A phone that scrolls (`flows()`, decision 209) has no vertical pages to
+     walk: the column is all drawn and the scroller is what carries you down
+     it. Refusing here is what lets the finger fall through to the browser. */
+  if(axis==='y' && flows()) return false;
   const app=$('#app');
   const host = axis==='x' ? $('#app .main') : $('#app .scroll');
   if(!app || !host || !host.getBoundingClientRect().width) return false;
@@ -1614,6 +1618,17 @@ function pagerBegin(axis, dir){
      finger going left reveals `next`. Nothing else changes: both panes exist
      from the start, so the geometry and the commit are what they always were. */
   const prevPane=pane('prev'), nextPane=pane('next');
+  /* On a phone that scrolls, the shelf beside this one is the same column of
+     rows at the same height — so its copy is scrolled to where you are, or the
+     strip would show its top while you were halfway down. Only a shelf of this
+     board: the drawer beside this one is arrived at from the top. Asked once
+     the pane is in the document, because a detached scroller cannot scroll. */
+  const liveSc = host.querySelector('.scroll.deskscroll');
+  const keepY = (p, spot)=>{
+    if(!p || !spot || !spot.shelf || !liveSc || !flows()) return;
+    const s = p.querySelector('.scroll.deskscroll');
+    if(s) s.scrollTop = liveSc.scrollTop;
+  };
   const fill=(p, spot)=>{ if(p && spot) p.innerHTML = side(axis, spot); };
   const near = dir<0 ? nextPane : prevPane, nearSpot = dir<0 ? next : prev;
   const far  = dir<0 ? prevPane : nextPane, farSpot  = dir<0 ? prev : next;
@@ -1623,6 +1638,7 @@ function pagerBegin(axis, dir){
   track.appendChild(nextPane);
   el.appendChild(track);
   $('#app').after(el);        // over the board, under #fx and any panel
+  keepY(near, nearSpot);
   host.style.willChange='transform';
   PG.el=el; PG.track=track; PG.live=host; PG.carry=true;
 
@@ -1630,6 +1646,7 @@ function pagerBegin(axis, dir){
   requestAnimationFrame(()=>{
     if(PG!==mine) return;
     fill(far, farSpot);
+    keepY(far, farSpot);
     // …and the still picture, which is what lets #app be rebuilt on release
     const cur=pane('cur');
     const twin=host.cloneNode(true);

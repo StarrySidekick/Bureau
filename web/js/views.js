@@ -9,7 +9,7 @@ import { S, K, T, byId, has, isContainer, containers, container, childrenOf, cha
   URGES, workday, searchHits, sortOf } from './model.js';
 import { GRID, PHONE_GRIDS, CELL, COLW, MEASURE, sideways, colsOf, gridKeyOf, SHELVES, PAGES_MAX, shelvesOf,
   shelfRows, shelfOfBox, shelfAt, setShelf, shelfOrigin, SHELF, drawCols, drawRows,
-  lay, gridOf, cellW, ensureBox, innerOf, PLACED, proportional } from './grid.js';
+  lay, gridOf, cellW, ensureBox, innerOf, PLACED, proportional, flows } from './grid.js';
 import { themeNow, applyLook, lookVal, STYLES, BACKDROPS, SURFACES, DARKMODES, darkMode, hasDark,
   palNow, styleNow, hexOf, objColour, slotName, OBJ0, CHECKS, dressAs } from './look.js';
 import { gridOfContainer, gridTile, listTile, bookView, calSpan, calFront } from './tiles.js';
@@ -275,8 +275,13 @@ function searchTop(c){
    So the numbers are held here and written into the markup as it is built, the
    same way gridOfContainer() writes the checker squares from the last measured
    cell. A board drawn off-screen is drawn at the size it will be. */
-const REVEAL = {gap:7, rail:30, lip:0};
-const revealStyle = ()=> S.device==='phone' ? ` style="margin-top:${REVEAL.gap}px"` : '';
+/* `h` is the viewport of a phone board that scrolls (decision 209): one
+   shelf tall, however many rows are drawn inside it. Zero until measured, and
+   then only written while the phone is scrolling rather than paging. `lip` is
+   the top lip's height (decision 208). */
+const REVEAL = {gap:7, rail:30, lip:0, h:0};
+const revealStyle = ()=> S.device!=='phone' ? ''
+  : ` style="margin-top:${REVEAL.gap}px${flows() && REVEAL.h ? `;height:${REVEAL.h}px;--flowh:${REVEAL.h}px` : ''}"`;
 
 /* ---- a list is a column of eight-by-ones -------------------------------
    A list exists to look at things one after another, so a row of one is a
@@ -322,7 +327,8 @@ function onThisShelf(cid, items){
     const b = o[dv];
     if(!b || !b.w) return true;
     const at = shelfOfBox(b, dv, cid);
-    return at.x===here.x && at.y===here.y;
+    // a phone that scrolls shows the whole column, as its grid does
+    return at.x===here.x && (flows() || at.y===here.y);
   });
 }
 /* Which layouts the window applies to: the **list** and nothing else. A grid
@@ -909,6 +915,14 @@ function settingsBody(sec, cid){
       <div class="mini" style="--k:var(--brass);margin-top:6px"><b>Wood above the board</b> keeps a strip of the carcass under the status bar and the drawer front at its full depth: eight by fourteen on an iPhone. <b>One more row</b> takes the strip away and slims the drawer front until a fifteenth row fits.</div>
     </div>
 
+    ${/* How a phone gets from one page of a board to the next, up and down
+          (decision 209). Sideways is a swipe either way. */''}
+    <div class="field" style="margin-top:12px"><label>Moving down a phone board</label>
+      <div class="filterbar">${[['','Page by page'],['scroll','Smooth scroll']].map(([v,n])=>
+        `<button class="fchip${(S.look.flow||'')===v?' on':''}" data-flow="${v}">${n}</button>`).join('')}</div>
+      <div class="mini" style="--k:var(--brass);margin-top:6px"><b>Page by page</b> swipes one screenful at a time. <b>Smooth scroll</b> runs the pages of a board together into one column you scroll through; sideways is still a swipe to the next shelf, or the drawer beside this one.</div>
+    </div>
+
     ${/* Whether a container is as big inside as its front is outside
           (decision 188) or a number of screenfuls (before it, and the default
           again since decision 195). One answer for the whole desk, because
@@ -1276,7 +1290,7 @@ function bindSortables(){ /* delegation handles it; keep quick-add focused */ }
    meant moving a tile two rows down on a long desk threw you back to the first
    screen, mid-gesture. Remembered per place, so *navigating* still starts at
    the top: going into a drawer and coming back is a new view, not a redraw. */
-const SCROLL = {key:null, top:0};
+const SCROLL = {key:null, top:0, flow:false};
 const viewKey = ()=> S.view==='drawer' ? 'drawer:'+S.drawerId : 'desk';
 
 /* ---- which shelf of a board you are on --------------------------------
@@ -1290,10 +1304,7 @@ const viewKey = ()=> S.view==='drawer' ? 'drawer:'+S.drawerId : 'desk';
    in the morning whatever you were doing at midnight. */
 function goShelf(cid, dx, dy, soon){
   const at = shelfAt(cid);
-  const moved = setShelf(cid, at.x+dx, at.y+dy);
-  if(!moved) return false;
-  if(soon) renderSoon(); else render();
-  return true;
+  return goShelfTo(cid, at.x+dx, at.y+dy, soon);
 }
 /* ---- the drawer beside this one ----------------------------------------
    **Inside a container, sideways is the next container over** (2026-09-23).
@@ -1337,9 +1348,32 @@ function goSideDrawer(id, soon){
   return true;
 }
 function goShelfTo(cid, x, y, soon){
+  const was = shelfAt(cid);
   if(!setShelf(cid, x, y)) return false;
+  /* **On a phone that scrolls, down is a scroll and not a render** (decision
+     209). The whole column is already drawn, so a new row of shelves is a
+     place further down the same scroller; only a new column is a new window. */
+  if(flows()){
+    const at = shelfAt(cid);
+    if(at.x!==was.x){ if(soon) renderSoon(); else render(); }
+    if(at.y!==was.y) scrollToShelf(cid, at.y);
+    return true;
+  }
   if(soon) renderSoon(); else render();
   return true;
+}
+/* Scroll the live board to the top of a row of shelves — smoothly, unless
+   asked not to move. SCROLL follows at once, so a render landing mid-glide
+   puts the board where it is going rather than where it was. */
+function scrollToShelf(cid, y){
+  const sc = $('#app .scroll.deskscroll'), grid = sc && sc.querySelector('#drawergrid');
+  if(!sc || !grid || (grid.dataset.gridfor||ROOT)!==cid) return;
+  const g = gridOf(dev(), cid);
+  const top = grid.offsetTop + y * g.shelfH * (CELL[dev()] + g.gap);
+  SCROLL.top = top;
+  const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  try{ sc.scrollTo({top, behavior: still ? 'auto' : 'smooth'}); }
+  catch(_){ sc.scrollTop = top; }
 }
 /* How far the shelf you are on is from the board's origin, in cells.
 
@@ -1409,7 +1443,10 @@ function reveal(id){
   const home = o && (o.parent||ROOT);
   if(o && dev()==='phone' && (S.view==='drawer' ? S.drawerId===home : home===ROOT)){
     const s = shelfOfBox(lay(o, dev(), home), dev(), home);
-    goShelfTo(home, s.x, s.y);
+    /* A phone that scrolls only has to change column; the scroll below
+       brings the row into view, and a glide to the shelf's top would fight
+       it (decision 209). */
+    goShelfTo(home, s.x, flows() ? shelfAt(home).y : s.y);
   }
   const el=document.querySelector(`#app .grid .drawer[data-row="${id}"],#app .grid .drawer[data-drawer="${id}"]`);
   const sc=$('#app .scroll');
@@ -1629,7 +1666,8 @@ function render(){
      on the frame is a fact about the desk and not about the sensor's mood.
      See decision 108. */
   frame.className = (S.device==='desk' ? 'is-desk' : 'is-phone')
-    + (S.device==='desk' ? '' : tiltClasses());
+    + (S.device==='desk' ? '' : tiltClasses())
+    + (S.device!=='desk' && flows() ? ' flowscroll' : '');
   document.documentElement.dataset.theme = themeNow();
   applyLook();          // the custom colours are per theme, so repaint them
   /* The wood is per desk, and it is the whole carcass rather than the rail: the
@@ -1648,7 +1686,12 @@ function render(){
   const placed = PLACED.n;      // ensureBox() may invent boxes as this builds
   $('#app').innerHTML = viewHTML();
   const key=viewKey(), now=$('#app .scroll');
-  if(key!==wasKey) SCROLL.top=0;
+  /* Turning the phone's scroll on or off is arriving somewhere as well: the
+     scroller changes from a window to a column, and the offset it had means
+     nothing in the other one (decision 209). */
+  const flowed = flows(), moved = key!==wasKey || flowed!==SCROLL.flow;
+  SCROLL.flow = flowed;
+  if(moved) SCROLL.top=0;
   /* On a Mac nothing is windowed: the whole board is drawn and the shelf-rows
      you are not on are above and below in the scroller. So arriving at a board
      means scrolling to the row you are on — which for the desk is the middle
@@ -1659,22 +1702,25 @@ function render(){
      as tall as the cell and the cell is not known until the board has been
      laid out once, so doing it here scrolls to a guess and then never corrects
      it. See wantScroll below. */
-  if(key!==wasKey && S.device!=='phone') SHELFSCROLL.want = true;
+  /* A phone that scrolls is drawn the way a Mac is, up and down, so it
+     arrives the same way. */
+  if(moved && (S.device!=='phone' || flowed)) SHELFSCROLL.want = true;
   /* Only when there is something to restore. Writing `scrollTop` on an element
      that was inserted a moment ago forces the browser to lay the whole board
      out then and there so it can work out the scroll range — nine milliseconds
      of every render, to put a scroller back to the top it already starts at. A
-     phone board never scrolls at all (`overflow:hidden`, and the pages are the
-     scrolling), and a board you have just navigated to starts at zero, so the
-     write is skipped in both of the common cases and the layout happens once,
-     where it belongs: at paint. */
+     paging phone board never scrolls at all (`overflow:hidden`, and the pages
+     are the scrolling), and a board you have just navigated to starts at zero,
+     so the write is skipped in both of the common cases and the layout
+     happens once, where it belongs: at paint. A phone that scrolls (decision
+     209) keeps its offset across a render the way a Mac does. */
   if(now && SCROLL.top) now.scrollTop=SCROLL.top;
   SCROLL.key=key;
   /* …and on a Mac the shelf you are on **is where you have scrolled to**. The
      scroller is a brand-new element every render, so this cannot leak; it
      patches the dots in place rather than rendering, because re-laying a board
      out on every scroll event is the one thing a scroll must never do. */
-  if(now && S.device!=='phone') now.addEventListener('scroll', onBoardScroll, {passive:true});
+  if(now && (S.device!=='phone' || flowed)) now.addEventListener('scroll', onBoardScroll, {passive:true});
   bindSortables();
   sizeGrid();
   repositionPanel();   // a bubble is pinned to a tile, and the tiles just moved
@@ -1711,7 +1757,8 @@ const SHELFSCROLL = {want:false};
 function onBoardScroll(e){
   const sc=e.currentTarget;
   const cid=(S.view==='drawer'&&S.drawerId)||ROOT;
-  const g=gridOf('desk', cid);
+  // the device's own rows: a phone that scrolls reads this too (decision 209)
+  const g=gridOf(dev(), cid);
   const rowH=g.shelfH*g.rowh;
   if(!(rowH>0) || g.shelves.h<2) return;
   const y=Math.round(sc.scrollTop/rowH);
@@ -1846,8 +1893,21 @@ function sizeGrid(){
     if(lip && lip.style.height !== lipH+'px') lip.style.height = lipH+'px';
     if(gap!==REVEAL.gap){ REVEAL.gap=gap; sc.style.marginTop = gap+'px'; }
     if(rail && deep!==REVEAL.rail){ REVEAL.rail=deep; rail.style.height = deep+'px'; }
-    const tall = short ? Math.round(room)+'px' : '';
-    if(sc.style.height !== tall) sc.style.height = tall;
+    /* **A phone that scrolls is given a viewport** (decision 209): exactly the
+       height the shelf would have been, with every row of the column drawn
+       inside it. Compared as numbers, because the style hands a length back
+       as a string of its own and a string that differs by how it prints is a
+       write, and a write is a second layout. `--flowh` is the same number for
+       the sticky rim shading in chrome.css. */
+    const flowH = !short && flows('phone') ? drawn*w : 0;
+    if(flowH && Math.abs(flowH-REVEAL.h)>0.01) REVEAL.h = flowH;
+    const tall = short ? Math.round(room)+'px' : flowH ? flowH+'px' : '';
+    const hNow = parseFloat(sc.style.height)||0, hWant = parseFloat(tall)||0;
+    if(Math.abs(hNow-hWant)>0.01 || (!tall && sc.style.height)) sc.style.height = tall;
+    if(flowH){
+      if(Math.abs((parseFloat(sc.style.getPropertyValue('--flowh'))||0)-flowH)>0.01)
+        sc.style.setProperty('--flowh', flowH+'px');
+    } else if(sc.style.getPropertyValue('--flowh')) sc.style.removeProperty('--flowh');
     sc.classList.toggle('midboard', short);
 
   } else if(dev()!=='phone'){
@@ -1914,10 +1974,11 @@ function sizeGrid(){
   }
   if(changed){ sizing=true; try{ render(); } finally { sizing=false; } return; }
   /* The scroll the last render asked for, now that a row's height is known. */
-  if(SHELFSCROLL.want && dev()!=='phone'){
+  // …on a Mac, and on a phone that scrolls rather than pages (decision 209)
+  if(SHELFSCROLL.want && (dev()!=='phone' || flows())){
     SHELFSCROLL.want=false;
     const cid = grid.dataset.gridfor || ROOT;
-    const gg = gridOf('desk', cid);
+    const gg = gridOf(dev(), cid);
     if(gg.shelves.h>1 && sc){
       SCROLL.top = shelfAt(cid).y * gg.shelfH * cell;
       sc.scrollTop = SCROLL.top;

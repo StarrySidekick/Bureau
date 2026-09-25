@@ -23,7 +23,7 @@ import { openPanel, closePanel, refreshPanel, panelKey, panelBack, draft, modalN
   schedulePanel, quickISO, SCHED, SCHED_PENS, plansPanel, tagFirstPanel,
   familyPanel, becomePanel, lifeFirstPanel, donePanel } from './panels.js';
 import { onDown, onMove, onUp, onCancel, onTouchStart, onTouchMove, onTouchEnd,
-  gestureFlags, dragArmed, setCamEditor } from './gestures.js';
+  gestureFlags, dragArmed, holdsFinger, setCamEditor } from './gestures.js';
 import { enter, leaveTile, pagerOn, applyTilt, askTilt , zoomOut, zoomedIn } from './motion.js';
 import { gravityApply, gravityWake } from './gravity.js';
 import { plans, planFrom, stampPlan, planById, delPlan, planSize, renamePlan } from './plans.js';
@@ -947,7 +947,7 @@ function wire(){
   /* …and the same is true of a one-finger swipe on a locked board: once the
      strip is following the finger, a native scroll underneath it would be two
      things moving at once. */
-  frame.addEventListener('touchmove', e=>{ if(dragArmed()||pagerOn()) e.preventDefault(); }, {passive:false});
+  frame.addEventListener('touchmove', e=>{ if(holdsFinger()||pagerOn()) e.preventDefault(); }, {passive:false});
 
   /* Two fingers: pages up and down, pinned drawers left and right. Non-passive
      because a two-finger swipe that also scrolls the page underneath reads as
@@ -1320,6 +1320,11 @@ function wire(){
     const rws=t.closest('button[data-rows]');
     if(rws){ if(rws.dataset.rows==='fit') S.look.rows='fit'; else delete S.look.rows;
       applyLook(); save(); render(); refreshPanel(); return; }
+    // page by page or one smooth scroll down a phone board (decision 209):
+    // the default is deleted, not stored
+    const flw=t.closest('button[data-flow]');
+    if(flw){ if(flw.dataset.flow==='scroll') S.look.flow='scroll'; else delete S.look.flow;
+      save(); render(); refreshPanel(); return; }
     const srf=t.closest('button[data-surface]');
     if(srf){ const v=srf.dataset.surface;
       if(v && v!=='grid') S.look.surface = v; else delete S.look.surface;

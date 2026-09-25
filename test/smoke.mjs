@@ -2207,6 +2207,96 @@ const PROP_OFF = () => { const b = document.createElement('button');
     return out;
   });
 
+  /* --- a phone board can scroll instead — decision 209. `S.look.flow` set to
+     'scroll' draws the whole column of shelves in a viewport one shelf tall:
+     up and down is the scroller, sideways is still the pager. Everything that
+     reads a cell off the screen has to agree, so a drop is made after
+     scrolling and checked against the cell it was aimed at. */
+  await phone.bringToFront();
+  const scrolling = await phone.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const out = {};
+    const S = BUREAU.state;
+    const g = () => document.querySelector('#drawergrid');
+    const sc = () => document.querySelector('#app .scroll.deskscroll');
+    const rows = () => +/repeat\((\d+),/.exec(g().style.gridTemplateRows)[1];
+    const press = v => { const b = document.createElement('button');
+      b.dataset.flow = v; b.style.display = 'none';
+      document.querySelector('#frame').appendChild(b); b.click(); b.remove(); };
+    const wasLock = S.look.locked;
+    // the block before swipes with synthetic touches, which arm suppressClick
+    // and send no click to spend it — spend it here or it eats the first press
+    document.querySelector('#frame').dispatchEvent(new MouseEvent('click', { bubbles:true }));
+    S.view = 'desk'; S.drawerId = null; S.look.locked = false;
+    BUREAU.goShelfTo('root', 1, 1); BUREAU.render(); await nap(150);
+    const R = BUREAU.shelfRows;
+    press('scroll'); await nap(250);
+    out.stored = S.look.flow === 'scroll';
+    // the whole column is drawn, in a viewport exactly one shelf tall
+    const cell = g().getBoundingClientRect().width / 8;
+    out.wholeColumnDrawn = rows() === 3 * R;
+    out.oneShelfTall = Math.abs(sc().getBoundingClientRect().height - R * cell) < 1;
+    out.scrollsNatively = getComputedStyle(sc()).overflowY === 'auto'
+      && getComputedStyle(g()).touchAction === 'pan-y';
+    out.sidewaysStillWindowed = JSON.stringify(BUREAU.shelfShift('root')) === JSON.stringify({x:8, y:0});
+    // it arrives on the shelf you were on, which for the desk is the middle one
+    out.arrivesOnTheMiddle = Math.abs(sc().scrollTop - R * cell) < 2;
+    // scrolling is which shelf you are on, and the dots follow without a render
+    sc().scrollTop = sc().scrollHeight; await nap(150);
+    const dots = () => [...document.querySelectorAll('#app .shelfmark i')].findIndex(i => i.classList.contains('on'));
+    out.scrollIsTheShelf = BUREAU.shelfAt('root').y === 2 && dots() === 7;
+    const top = sc().scrollTop;
+    BUREAU.render();
+    out.renderKeepsTheScroll = Math.abs(sc().scrollTop - top) < 1;
+    // a tile on the bottom shelf, dragged two across and one down while scrolled
+    S.objects.forEach(o => { if (o.parent === 'root' && o.phone && o.phone.x >= 9 && o.phone.x <= 16
+      && o.phone.y > 2 * R) o.phone = { x: 1, y: 1, w: 1, h: 1 }; });
+    BUREAU.create('note', { title: 'Down the column', parent: 'root' });
+    const n = S.objects.find(o => o.title === 'Down the column');
+    n.phone = { x: 10, y: 2 * R + 3, w: 2, h: 1 };
+    BUREAU.render(); sc().scrollTop = sc().scrollHeight; await nap(100);
+    const tile = () => document.querySelector(`#drawergrid .drawer[data-row="${n.id}"]`);
+    out.lowTileDrawn = !!tile();
+    if (tile()) {
+      const r = tile().getBoundingClientRect();
+      let x = r.left + r.width / 2, y = r.top + r.height / 2;
+      const ev = (t, o) => (tile() || document.querySelector('#frame')).dispatchEvent(new PointerEvent(t, Object.assign(
+        { bubbles:true, cancelable:true, pointerId:7, pointerType:'touch', clientX:x, clientY:y }, o)));
+      ev('pointerdown'); await nap(360);
+      ev('pointermove', { clientX: x + cell, clientY: y + cell / 2 }); await nap(40);
+      ev('pointermove', { clientX: x + 2 * cell, clientY: y + cell }); await nap(80);
+      ev('pointerup', { clientX: x + 2 * cell, clientY: y + cell }); await nap(250);
+      document.querySelector('#frame').dispatchEvent(new MouseEvent('click', { bubbles:true }));
+      out.dropLandsWhereAimed = n.phone.x === 12 && n.phone.y === 2 * R + 4;
+    }
+    // two fingers up and down walk nothing now; sideways still walks a shelf
+    const el = document.querySelector('#frame');
+    const T = (x,y,i) => ({identifier:i, target:el, clientX:x, clientY:y});
+    const mk = (t,list) => { const e = new Event(t,{bubbles:true,cancelable:true});
+      e.touches=list; e.targetTouches=list; e.changedTouches=list; return e; };
+    const swipe = (dx,dy) => { el.dispatchEvent(mk('touchstart',[T(200,460,1),T(240,460,2)]));
+      el.dispatchEvent(mk('touchmove',[T(200+dx,460+dy,1),T(240+dx,460+dy,2)]));
+      el.dispatchEvent(mk('touchend',[])); };
+    const wasTop = sc().scrollTop;
+    swipe(0, 160); await nap(300);
+    out.noVerticalPager = BUREAU.shelfAt('root').y === 2 && !document.querySelector('.pager');
+    swipe(-160, 0); await nap(400);
+    out.sidewaysStillPages = BUREAU.shelfAt('root').x === 2 && Math.abs(sc().scrollTop - wasTop) < 2;
+    // a swipe arms suppressClick and a synthetic touch sends no click to spend it
+    document.querySelector('#frame').dispatchEvent(new MouseEvent('click', { bubbles:true }));
+    // a dot in another row is a scroll to that row
+    BUREAU.goShelfTo('root', 1, 0); await nap(900);
+    out.aDotScrollsThere = sc().scrollTop < 2 && BUREAU.shelfAt('root').x === 1;
+    // and off again is the rigid page it was
+    press(''); await nap(250);
+    out.offIsPagesAgain = !('flow' in S.look) && rows() === R
+      && getComputedStyle(sc()).overflowY === 'hidden' && sc().scrollTop === 0;
+    BUREAU.del(n.id);
+    S.look.locked = wasLock;
+    BUREAU.goShelfTo('root', 1, 1); BUREAU.render(); await nap(150);
+    return out;
+  });
+
   /* --- going in, rather than it coming out — decision 103 ---------------- */
   await page.evaluate(PROP_ON);   // this block is about decisions 188-192
   const goingIn = await page.evaluate(async () => {
@@ -9470,7 +9560,7 @@ const PROP_OFF = () => { const b = document.createElement('button');
   console.log(JSON.stringify({
     errors: errs, manifestOk, swReady, survived, styleSurvived, slotColours,
     newObjectSeen, inlineEdit, sortDefaults, taskLook,
-    shelfTools, homeKnob, gridSizes, keeping, versionShown, sampler, paging, pageCoords, pagerGround, goingIn, comingOut,
+    shelfTools, homeKnob, gridSizes, keeping, versionShown, sampler, paging, scrolling, pageCoords, pagerGround, goingIn, comingOut,
     makingOnAPhone, railDrawer, railIsFurniture, holding, holdingOut, reported, cavity, depth, windows, tossing, pinch, pagerLandsFlat, deskDots,
     listSwipe, shadows, textureDepth,
     gridClass, offlineWorks, railGone, tabsGone, shelfGone, tileNavigates,

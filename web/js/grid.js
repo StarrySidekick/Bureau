@@ -400,8 +400,17 @@ function setShelf(cid, x, y){
    shelf system and the one place to get it wrong. See decision 141. */
 function shelfOrigin(cid, device){
   const g=gridOf(device, cid), at=shelfAt(cid);
-  return {x: at.x*g.shelfW, y: at.y*g.shelfH};
+  return {x: at.x*g.shelfW, y: flows(device) ? 0 : at.y*g.shelfH};
 }
+/* **A phone board can scroll instead of paging** (decision 209). `S.look.flow`
+   — unset is the rigid swipe, a shelf at a time; `'scroll'` draws the whole
+   column of shelves the phone is standing in and lets the scroller carry you
+   down it, the way a Mac's board has always been reached. Sideways is still
+   one shelf at a time. Vertically the phone then behaves as a Mac does: the
+   shift is zero, the rows are all drawn, and which shelf you are on is where
+   you have scrolled to. One question, asked here, so the window, the drawn
+   rows and every reader of the shift cannot disagree about it. */
+const flows = device => (device||dev())==='phone' && !!(S.look && S.look.flow==='scroll');
 
 // Tolerate a drawer that predates x/y, or one hand-edited into nonsense.
 function lay(d, device, cid){
@@ -701,7 +710,9 @@ function ensureBox(o, device, parentId){
    of screen and put every one of them somewhere its box does not say. */
 const drawCols = (g, device)=> (device||dev())==='phone'
   ? Math.min(g.shelfW, g.cols) : g.cols;
-const drawRows = (g, device)=> (device||dev())==='phone'
+/* …and on a phone that scrolls (`flows()`), the whole column: every row of the
+   board, in a scroller one shelf tall. The columns stay windowed. */
+const drawRows = (g, device)=> (device||dev())==='phone' && !flows(device)
   ? Math.min(g.shelfH, g.rows) : g.rows;
 
 /* Width of one grid column in px, measured rather than assumed — the grid is
@@ -716,6 +727,6 @@ function cellW(grid,g){
 
 export { GRID, PHONE_GRIDS, PHONE_MAX_H, PHONE_MAX_NEW, CELL, COLW, MEASURE, sideways,
   SHELVES, DESK_SHELF_COLS, INNER, PAGES_MAX, growsDown, growDown, proportional, shelvesToHold, colsOf, gridKeyOf, shelvesOf, innerOf,
-  shelfRows, shelfOfBox, oneShelf, shelfAt, setShelf, shelfOrigin, SHELF, fitSpot,
+  shelfRows, shelfOfBox, oneShelf, shelfAt, setShelf, shelfOrigin, SHELF, fitSpot, flows,
   gridOf, drawCols, drawRows, lay, overlaps, boxOk, freeSpot, anySpot, roomFor, gridRows, sizeOfKind, toPhoneSize,
   ensureBox, keepSize, cellW, PLACED };
