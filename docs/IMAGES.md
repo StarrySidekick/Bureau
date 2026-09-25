@@ -23,6 +23,14 @@ images, trimmed of their borders and scaled to 900px on the long side.
 | `cog.png` | Watch movement (repeating watch) | https://commons.wikimedia.org/wiki/File:Repeating_watch_MET_DP352206.jpg | CC0 | The Metropolitan Museum of Art |
 | `volute.png` | Console d'applique (scroll wall bracket), 18th century | https://www.metmuseum.org/art/collection/search/189668 | CC0 | The Metropolitan Museum of Art |
 | `bookend.png` | Copper bookend, ca. 1900 | https://commons.wikimedia.org/wiki/File:Bookends,_ca._1900_(CH_52027759-2).jpg | Public domain | Cooper Hewitt, Smithsonian Design Museum |
+| `globe.png` | Celestial globe, after 1621 | https://www.metmuseum.org/art/collection/search/207816 | CC0 | Willem Jansz Blaeu; The Metropolitan Museum of Art |
+| `inkstand.png` | Inkstand, 1773 | https://www.metmuseum.org/art/collection/search/1981 | CC0 | William Crolius; The Metropolitan Museum of Art |
+| `teapot.png` | Teapot, ca. 1765 | https://www.metmuseum.org/art/collection/search/197634 | CC0 | The Metropolitan Museum of Art |
+| `pitcher.png` | Pitcher, 1875–85 | https://www.metmuseum.org/art/collection/search/5854 | CC0 | Union Porcelain Works; The Metropolitan Museum of Art |
+| `candelabrum.png` | Candelabrum, after 1846 | https://www.metmuseum.org/art/collection/search/658639 | CC0 | Augustus Welby Northmore Pugin; The Metropolitan Museum of Art |
+| `casket.png` | Casket, 1875 or 1876 | https://www.metmuseum.org/art/collection/search/231639 | CC0 | R. & S. Garrard & Co.; The Metropolitan Museum of Art |
+| `horse.png` | Trotting horse, probably 1587–91 | https://www.metmuseum.org/art/collection/search/195196 | CC0 | Giambologna; The Metropolitan Museum of Art |
+| `teacup.png` | Cup and saucer, 1882–90 | https://www.metmuseum.org/art/collection/search/13402 | CC0 | Ott and Brewer; The Metropolitan Museum of Art |
 
 ## Tools — `web/img/tools/`
 
@@ -40,8 +48,9 @@ moves drawn on top of it: the metronome's rod and weight (retouched out of the
 photograph), the hourglass's sand (the photograph's own is covered, and its
 front pillar redrawn over ours), the clock's hands (the photographed ones
 painted out), the candle's wax and flame, and the d6's faces,
-which are six photographs of one die. The fern and the parlour palm have no clean
-public-domain photograph yet and stay drawn, as do the other dice.
+which are six photographs of one die. The other dice stay drawn. Every
+decoration is a photograph since decision 208: the drawn fern and parlour palm
+are gone.
 
 ## Pictures — `web/img/pictures/`
 
@@ -59,3 +68,39 @@ public-domain photograph yet and stay drawn, as do the other dice.
 | `p10.jpg` | Moonlight, Strandgade 30, 1900–06 | https://www.metmuseum.org/art/collection/search/441933 | CC0 | Vilhelm Hammershøi; The Metropolitan Museum of Art |
 | `p11.jpg` | Wheat Field with Cypresses, 1889 | https://www.metmuseum.org/art/collection/search/436535 | CC0 | Vincent van Gogh; The Metropolitan Museum of Art |
 | `p12.jpg` | Piazza San Marco, late 1720s | https://www.metmuseum.org/art/collection/search/435839 | CC0 | Canaletto; The Metropolitan Museum of Art |
+
+## Paintings — `web/img/paintings/`
+
+What a **Painting** hangs (decision 208): Impressionist and Post-Impressionist
+paintings from the Met's open-access collection, trimmed of any photographed
+border and scaled to 900px on the long side. The Met marks its Monets as not
+public domain, so there are none.
+
+| File | What it is | Source page | Licence | Author / institution |
+| --- | --- | --- | --- | --- |
+| `a01.jpg` | By the Seashore, 1883 | https://www.metmuseum.org/art/collection/search/437430 | CC0 | Auguste Renoir; The Metropolitan Museum of Art |
+| `a02.jpg` | Bouquet of Chrysanthemums, 1881 | https://www.metmuseum.org/art/collection/search/438012 | CC0 | Auguste Renoir; The Metropolitan Museum of Art |
+| `a03.jpg` | A Road in Louveciennes, ca. 1870 | https://www.metmuseum.org/art/collection/search/437436 | CC0 | Auguste Renoir; The Metropolitan Museum of Art |
+| `a04.jpg` | The Dance Class, 1874 | https://www.metmuseum.org/art/collection/search/438817 | CC0 | Edgar Degas; The Metropolitan Museum of Art |
+| `a05.jpg` | A Woman Seated beside a Vase of Flowers (Madame Paul Valpinçon?), 1865 | https://www.metmuseum.org/art/collection/search/436121 | CC0 | Edgar Degas; The Metropolitan Museum of Art |
+| `a06.jpg` | The Garden of the Tuileries on a Spring Morning, 1899 | https://www.metmuseum.org/art/collection/search/437313 | CC0 | Camille Pissarro; The Metropolitan Museum of Art |
+| `a07.jpg` | The Harvest, Pontoise (La Récolte, Pontoise), 1881 | https://www.metmuseum.org/art/collection/search/459108 | CC0 | Camille Pissarro; The Metropolitan Museum of Art |
+| `a08.jpg` | Barges at Pontoise, 1876 | https://www.metmuseum.org/art/collection/search/437302 | CC0 | Camille Pissarro; The Metropolitan Museum of Art |
+| `a09.jpg` | The Bridge at Villeneuve-la-Garenne, 1872 | https://www.metmuseum.org/art/collection/search/437680 | CC0 | Alfred Sisley; The Metropolitan Museum of Art |
+| `a10.jpg` | Rue Eugène Moussoir at Moret: Winter, 1891 | https://www.metmuseum.org/art/collection/search/437686 | CC0 | Alfred Sisley; The Metropolitan Museum of Art |
+| `a11.jpg` | Allée of Chestnut Trees, 1878 | https://www.metmuseum.org/art/collection/search/459121 | CC0 | Alfred Sisley; The Metropolitan Museum of Art |
+| `a12.jpg` | Young Woman Knitting, ca. 1883 | https://www.metmuseum.org/art/collection/search/437159 | CC0 | Berthe Morisot; The Metropolitan Museum of Art |
+| `a13.jpg` | Chrysanthemums in the Garden at Petit-Gennevilliers, 1893 | https://www.metmuseum.org/art/collection/search/671456 | CC0 | Gustave Caillebotte; The Metropolitan Museum of Art |
+| `a14.jpg` | Still Life with Apples and a Pot of Primroses, ca. 1890 | https://www.metmuseum.org/art/collection/search/435882 | CC0 | Paul Cézanne; The Metropolitan Museum of Art |
+| `a15.jpg` | The Gulf of Marseille Seen from L'Estaque, ca. 1885 | https://www.metmuseum.org/art/collection/search/435872 | CC0 | Paul Cézanne; The Metropolitan Museum of Art |
+| `a16.jpg` | Mont Sainte-Victoire and the Viaduct of the Arc River Valley, 1882–85 | https://www.metmuseum.org/art/collection/search/435877 | CC0 | Paul Cézanne; The Metropolitan Museum of Art |
+| `a17.jpg` | Irises, 1890 | https://www.metmuseum.org/art/collection/search/436528 | CC0 | Vincent van Gogh; The Metropolitan Museum of Art |
+| `a18.jpg` | Sunflowers, 1887 | https://www.metmuseum.org/art/collection/search/436524 | CC0 | Vincent van Gogh; The Metropolitan Museum of Art |
+| `a19.jpg` | Olive Trees, 1889 | https://www.metmuseum.org/art/collection/search/437998 | CC0 | Vincent van Gogh; The Metropolitan Museum of Art |
+| `a20.jpg` | Gray Weather, Grande Jatte, ca. 1886–88 | https://www.metmuseum.org/art/collection/search/438015 | CC0 | Georges Seurat; The Metropolitan Museum of Art |
+| `a21.jpg` | Ia Orana Maria (Hail Mary), 1891 | https://www.metmuseum.org/art/collection/search/438821 | CC0 | Paul Gauguin; The Metropolitan Museum of Art |
+| `a22.jpg` | Tahitian Landscape, 1892 | https://www.metmuseum.org/art/collection/search/436451 | CC0 | Paul Gauguin; The Metropolitan Museum of Art |
+| `a23.jpg` | Boating, 1874 | https://www.metmuseum.org/art/collection/search/436947 | CC0 | Edouard Manet; The Metropolitan Museum of Art |
+| `a24.jpg` | The Monet Family in Their Garden at Argenteuil, 1874 | https://www.metmuseum.org/art/collection/search/436965 | CC0 | Edouard Manet; The Metropolitan Museum of Art |
+| `a25.jpg` | At the Seaside, ca. 1892 | https://www.metmuseum.org/art/collection/search/10464 | CC0 | William Merritt Chase; The Metropolitan Museum of Art |
+| `a26.jpg` | Pines Along the Shore, 1896 | https://www.metmuseum.org/art/collection/search/459095 | CC0 | Henri-Edmond Cross (Henri-Edmond Delacroix); The Metropolitan Museum of Art |

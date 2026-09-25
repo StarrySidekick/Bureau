@@ -6,7 +6,7 @@ import { S, K, T, byId, has, isContainer, containers, container, childrenOf, cha
   spanOf, coversDay, lastDay, boardLocked,
   TILT_MODES, tiltMode, tiltsDesk, tiltsWindows, tiltClasses, cueFlipped,
   GRAVITIES, gravityMode, gravityOn,
-  URGES, workday, searchHits } from './model.js';
+  URGES, workday, searchHits, sortOf } from './model.js';
 import { GRID, PHONE_GRIDS, CELL, COLW, MEASURE, sideways, colsOf, gridKeyOf, SHELVES, PAGES_MAX, shelvesOf,
   shelfRows, shelfOfBox, shelfAt, setShelf, shelfOrigin, SHELF, drawCols, drawRows,
   lay, gridOf, cellW, ensureBox, innerOf, PLACED, proportional } from './grid.js';
@@ -132,13 +132,22 @@ function gridBar(c){
      drawer front as it did. */
   if(S.device==='phone'){
     const lip = S.look.rows !== 'fit';
-    /* Two a side round the knob: the search and the lock on the left, the
-       list, the spiral and the gear on the right. */
-    // with the name in the front too (One more row), the lock joins the
-    // right-hand group so the name has room to be read
-    RAILBAR = lip ? {where:'', find:searchBtn(c)+lockBtn, tools: tools.replace(lockBtn, '')}
-                  : {where, find:searchBtn(c), tools};
-    return lip ? `<div class="toplip">${where}</div>` : '';
+    /* **Two a side round the knob, and each one is the thing it does**
+       (decision 208). Left to right: the gear, the lock, the knob, a Scrabble
+       tile for the sort, a magnifying glass for the search. The list toggle
+       went into the tile's menu, because grid or list is a way of ordering
+       what you look at; the spiral is on the Mac's bar and nowhere here. With
+       *One more row* the name rides in the front ahead of the gear. */
+    const locked = boardLocked();
+    RAILBAR = {
+      where: lip ? '' : where,
+      left: railObj('gear', 'appsettings', c.id, c.id===ROOT?'Settings':'Board settings')
+          + railObj(locked?'lock':'unlock', 'togglelock', '',
+              locked?'Everything is locked — tap to unlock':'Everything is unlocked — tap to lock', locked),
+      right: railObj('tile', 'sortmenu', c.id, 'Sort and view', false, sortOf(c))
+          + railObj('glass', 'searchopen', c.id, 'Search', searchOpen())
+    };
+    return lip ? `<div class="toplip"${REVEAL.lip?` style="height:${REVEAL.lip}px"`:''}>${where}</div>` : '';
   }
   return `<div class="gridbar shelf shelf-top">${where}${searchBtn(c)}${tools}</div>`;
 }
@@ -146,6 +155,90 @@ function gridBar(c){
    before every build so a board with no bar (a panel preview) draws a plain
    drawer front rather than the last board's tools. */
 let RAILBAR = null;
+
+/* ---- the things in the drawer front — decision 208 ----------------------
+   The knob is a turned sphere of the desk's own wood, and the buttons either
+   side of it were the same sphere with a glyph pressed in: five knobs, four
+   of which you had to read. Now each is the object it stands for, drawn in
+   its own material under the same lamp (lit from the upper left, a shadow
+   under it), so you find the search by looking for a magnifying glass, not
+   for a circle with a circle in it.
+
+   Materials rather than the style's colours, on purpose: a brass padlock is
+   brass on every aesthetic the way the photographed tools are. The gradients
+   are declared inside each drawing with a fixed id; a pager pane can put a
+   second copy on the screen, and a duplicate id resolving to an identical
+   gradient draws the same thing. */
+const GEAR_PATH = (()=>{
+  // ten square-shouldered teeth, drawn once: a cog is a polygon, not a glyph
+  const n=10, ro=18.5, ri=14.2, pts=[];
+  for(let i=0;i<n;i++){
+    const a=i*2*Math.PI/n, t=Math.PI/n;
+    for(const [r, da] of [[ri,-t*.62],[ro,-t*.38],[ro,t*.38],[ri,t*.62]])
+      pts.push(`${(20+r*Math.cos(a+da)).toFixed(2)} ${(20+r*Math.sin(a+da)).toFixed(2)}`);
+  }
+  return 'M'+pts.join('L')+'Z';
+})();
+const BRASS = id => `<linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#F6DE94"/><stop offset=".42" stop-color="#C99C40"/>
+    <stop offset="1" stop-color="#6E4C14"/></linearGradient>`;
+/* Scrabble values, because the tile shows the sort it is on: S for as you
+   arranged it, A and Z for the two alphabeticals, and the letter keeps the
+   number printed in its corner that it has on the board. */
+const TILE_FACE = {az:['A',1], za:['Z',10]};
+const RAILART = {
+  glass: ()=> `<defs>${BRASS('ro-gb')}
+      <radialGradient id="ro-gl" cx=".36" cy=".3" r=".85">
+        <stop offset="0" stop-color="#F2FAFB" stop-opacity=".9"/>
+        <stop offset=".45" stop-color="#A9C3C8" stop-opacity=".42"/>
+        <stop offset="1" stop-color="#2F4A50" stop-opacity=".78"/></radialGradient>
+      <linearGradient id="ro-gh" gradientUnits="userSpaceOnUse" x1="27" y1="34" x2="34" y2="27">
+        <stop offset="0" stop-color="#240E05"/><stop offset=".5" stop-color="#6B3419"/>
+        <stop offset="1" stop-color="#2A1107"/></linearGradient></defs>
+    <path d="M25.5 25.5 36 36" stroke="url(#ro-gh)" stroke-width="6.4" stroke-linecap="round"/>
+    <path d="M23.6 23.6 27.4 27.4" stroke="url(#ro-gb)" stroke-width="7"/>
+    <circle cx="16" cy="16" r="11.6" fill="url(#ro-gl)" stroke="url(#ro-gb)" stroke-width="3.4"/>
+    <circle cx="16" cy="16" r="9.9" fill="none" stroke="#000" stroke-opacity=".25" stroke-width=".8"/>
+    <path d="M9.4 13.4a7.4 7.4 0 0 1 4.5-4.6" stroke="#fff" stroke-opacity=".8" stroke-width="1.7"
+      fill="none" stroke-linecap="round"/>`,
+  tile: sort => { const [ch, pts] = TILE_FACE[sort] || ['S', 1];
+    return `<defs><linearGradient id="ro-mp" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#F7EACB"/><stop offset=".55" stop-color="#E3C792"/>
+        <stop offset="1" stop-color="#C39F5E"/></linearGradient></defs>
+    <rect x="4" y="6" width="32" height="31.5" rx="3.6" fill="#7A5A2A"/>
+    <rect x="4" y="3" width="32" height="31.5" rx="3.6" fill="url(#ro-mp)"/>
+    <rect x="4.8" y="3.8" width="30.4" height="29.9" rx="3" fill="none" stroke="#fff" stroke-opacity=".5" stroke-width=".9"/>
+    <text x="18.6" y="26.4" text-anchor="middle" font-family="'Helvetica Neue',Arial,sans-serif"
+      font-weight="700" font-size="19.5" fill="#fff" fill-opacity=".45">${ch}</text>
+    <text x="18.6" y="25.6" text-anchor="middle" font-family="'Helvetica Neue',Arial,sans-serif"
+      font-weight="700" font-size="19.5" fill="#2B2016">${ch}</text>
+    <text x="32.2" y="31" text-anchor="end" font-family="'Helvetica Neue',Arial,sans-serif"
+      font-weight="700" font-size="${pts>9?5.6:6.8}" fill="#2B2016">${pts}</text>`; },
+  /* Locked, the shackle is home in the body; open, it is lifted and its short
+     leg stands clear — which is how you read a padlock across a room. */
+  lock: open => `<defs>${BRASS('ro-lb')}
+      <linearGradient id="ro-ls" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#6C7074"/><stop offset=".45" stop-color="#E6E9EB"/>
+        <stop offset="1" stop-color="#4A4E52"/></linearGradient></defs>
+    <path d="${open?'M27 19V8.5a7 7 0 0 0-14 0V12':'M27 19V12a7 7 0 0 0-14 0V19'}" fill="none"
+      stroke="url(#ro-ls)" stroke-width="3.8" stroke-linecap="round"/>
+    <rect x="8.5" y="17.5" width="23" height="18.5" rx="3.4" fill="url(#ro-lb)"/>
+    <rect x="9.3" y="18.3" width="21.4" height="16.9" rx="2.8" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width=".8"/>
+    <path d="M20 23.4a2.4 2.4 0 0 0-1.2 4.5l-.9 3.8h4.2l-.9-3.8A2.4 2.4 0 0 0 20 23.4Z" fill="#2A1A08"/>`,
+  gear: ()=> `<defs><radialGradient id="ro-gr" cx=".34" cy=".3" r=".9">
+        <stop offset="0" stop-color="#F8E3A0"/><stop offset=".45" stop-color="#C29338"/>
+        <stop offset="1" stop-color="#5E400F"/></radialGradient></defs>
+    <path d="${GEAR_PATH}" fill="url(#ro-gr)"/>
+    <circle cx="20" cy="20" r="10.2" fill="none" stroke="#000" stroke-opacity=".28" stroke-width="1.2"/>
+    <circle cx="20" cy="20" r="6.2" fill="#5A3C10"/>
+    <circle cx="20" cy="20" r="5.2" fill="url(#ro-gr)"/>
+    <circle cx="20" cy="20" r="2.1" fill="#24170A"/>`
+};
+RAILART.unlock = ()=> RAILART.lock(true);
+const railObj = (art, act, id, title, on, arg)=>
+  `<button class="railobj ro-${art}${on?' on':''}${act==='togglelock'&&on?' locked':''}" data-act="${act}"${
+    id?` data-id="${esc(id)}"`:''} title="${esc(title)}" aria-label="${esc(title)}">
+    <svg viewBox="0 0 40 40" aria-hidden="true">${RAILART[art](arg)}</svg></button>`;
 
 /* ---- the search is a button, and pressing it is a place ----------------
    It was a field in the bar, and a field in the bar is a field a third of the
@@ -182,7 +275,7 @@ function searchTop(c){
    So the numbers are held here and written into the markup as it is built, the
    same way gridOfContainer() writes the checker squares from the last measured
    cell. A board drawn off-screen is drawn at the size it will be. */
-const REVEAL = {gap:7, rail:30};
+const REVEAL = {gap:7, rail:30, lip:0};
 const revealStyle = ()=> S.device==='phone' ? ` style="margin-top:${REVEAL.gap}px"` : '';
 
 /* ---- a list is a column of eight-by-ones -------------------------------
@@ -1396,11 +1489,11 @@ function deskRail(){
      that is a *child* of `.main`, which this is not. */
   return `<nav class="deskrail${b?' withbar':''} ${dressAs('tx',r.tex)} ks-${r.size}" data-rail style="height:${REVEAL.rail}px">
     <i class="dgrain"></i>
-    ${b?`<div class="gridbar inrail"><div class="railside railleft">${b.where}${b.find}</div>`:''}
+    ${b?`<div class="gridbar inrail${b.where?' named':''}"><div class="railside railleft">${b.where}${b.left}</div>`:''}
     <i class="pull railknob ${dressAs('kn',r.knob)}" data-act="railout"
       ${r.knobc?`style="--knob:${esc(r.knobc)}"`:''}
       title="Home Knob — tap for home, pull up to make something"></i>
-    ${b?`<div class="railside railright">${b.tools}</div></div>`:''}
+    ${b?`<div class="railside railright">${b.right}</div></div>`:''}
   </nav>`;
 }
 
@@ -1690,7 +1783,11 @@ function sizeGrid(){
     // the bar rides in the rail on a phone (decision 204); only a bar that is
     // still standing above the board takes room from it
     const bar=main.querySelector(':scope > .gridbar, :scope > .searchtop, :scope > .toplip'), rail=main.querySelector('.deskrail');
-    const barH = bar ? bar.getBoundingClientRect().height : 0;
+    /* The lip is measured at its floor, because its height is what this
+       writes: it takes the top half of the leftover (below). */
+    const lip = bar && bar.classList.contains('toplip') ? bar : null;
+    const barH = lip ? (parseFloat(getComputedStyle(lip).minHeight)||0)
+               : bar ? bar.getBoundingClientRect().height : 0;
     // read the floor, not the margin — the margin is what this writes
     const gapMin = parseFloat(getComputedStyle(sc).getPropertyValue('--gapmin'))||0;
     const railMin = rail ? (parseFloat(getComputedStyle(rail).minHeight)||0) : 0;
@@ -1737,7 +1834,16 @@ function sizeGrid(){
     const drawn = Math.min(rows, drawRows(g, 'phone'));
     const short = !!innerOf(cid, 'phone') && drawn*w < room - 1;
     const over = short ? 0 : Math.max(0, room - drawn*w);
-    const gap = gapMin + Math.floor(over/2), deep = railMin + Math.ceil(over/2);
+    /* With the name on the lip, the top half of the leftover is the lip's
+       rather than a reveal under it: the wood above the board is one strip
+       either way, and this way the name is in the middle of it (decision
+       208). Since the board stopped at fourteen rows that leftover can be a
+       cell or more, and a name sitting on top of an empty band of wood reads
+       as a name that slipped. */
+    const top = Math.floor(over/2), deep = railMin + Math.ceil(over/2);
+    const gap = gapMin + (lip ? 0 : top), lipH = lip ? Math.round(barH + top) : 0;
+    if(lip && lipH!==REVEAL.lip){ REVEAL.lip=lipH; }
+    if(lip && lip.style.height !== lipH+'px') lip.style.height = lipH+'px';
     if(gap!==REVEAL.gap){ REVEAL.gap=gap; sc.style.marginTop = gap+'px'; }
     if(rail && deep!==REVEAL.rail){ REVEAL.rail=deep; rail.style.height = deep+'px'; }
     const tall = short ? Math.round(room)+'px' : '';
@@ -1822,4 +1928,4 @@ function sizeGrid(){
 export { render, renderSoon, sizeGrid, shelfTop, shelfLeft, shelfShift, centreDesk,
   reveal, deskMap, viewHTML, previewHTML,
   goShelf, goShelfTo, sideDrawer, goSideDrawer, gridSizeField, shelfCountField,
-  settingsPanel, toggleSettings };
+  settingsPanel, toggleSettings, railObj };

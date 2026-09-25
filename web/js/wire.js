@@ -9,7 +9,7 @@ import { gridOf, lay, boxOk, freeSpot, anySpot, roomFor, sizeOfKind, toPhoneSize
 import { applyLook, applyStyle, setLookVal, lookVal, STYLES, setSlot, objColour, darkMode } from './look.js';
 import { dealTop, furnish, toast, fits, setGridSize, toggleDone, spawnNext, del, delMany, delDrawer, undo, redo, pushUndo,
   pushSet, pushSets, setPin, togglePin, drawerForTag, create, spawnInto, randomThing,
-  holdIt, unholdIt, unholdMany, undoToast, someKind, becomeKind , toggleFree } from './mutations.js';
+  holdIt, unholdIt, unholdMany, undoToast, someKind, becomeKind , toggleFree, galleryOf, hangPainting } from './mutations.js';
 import { spinTo, pending, placeAtPending, tileTap, turnPage, clearPages, intoOf } from './tiles.js';
 import { bpmOf, minsOf, burnOf, sidesOf, metroGoing, startMetro, mindTheTime, actOf, deckTop } from './active.js';
 import { DECOR, LIFE_ART } from './decor.js';
@@ -19,7 +19,7 @@ import { openObj, openWriter, openRead, openViewer, closeSheet, renderSheet, wor
   mdKey, copyObject } from './sheet.js';
 import { openPanel, closePanel, refreshPanel, panelKey, panelBack, draft, modalNewObject, modalNewKind, modalMove, renderPreview, holdPanel,
   objectPanel,
-  drawerFromSelection, openCtx, closeCtx, openCmd, closeCmd, cmdList, cmdMove, cmdAt, runCmd,
+  drawerFromSelection, openCtx, closeCtx, sortMenu, openCmd, closeCmd, cmdList, cmdMove, cmdAt, runCmd,
   schedulePanel, quickISO, SCHED, SCHED_PENS, plansPanel, tagFirstPanel,
   familyPanel, becomePanel, lifeFirstPanel, donePanel } from './panels.js';
 import { onDown, onMove, onUp, onCancel, onTouchStart, onTouchMove, onTouchEnd,
@@ -842,6 +842,25 @@ function act(name, el){
        is not a special case, and undoable for anything that has an id to hang
        a step on. The other three layouts are what a container *is* and stay in
        its editor: this is the one you flip while you are working. */
+    /* The Scrabble tile in the drawer front and what its menu says (decision
+       208). The sort goes through setField(), the one writer the editor's
+       "Sorted by" row uses, so the undo and the desk's own config come along. */
+    case 'sortmenu': sortMenu(el, el.dataset.id || ROOT); break;
+    case 'setsort': {
+      closeCtx();
+      setField({dataset:{oset:`${el.dataset.id||ROOT}:sort`}, value:el.dataset.v});
+      render(); refreshPanel();
+      break;
+    }
+    case 'setlayout': {
+      closeCtx();
+      const cid = el.dataset.id || ROOT, t = cfgOf(cid); if(!t) break;
+      const o = byId(cid);
+      if(o && t===o) pushSet('Changed', cid, 'layout', o.layout);
+      t.layout = el.dataset.v==='grid' ? 'grid' : 'list';
+      save(); render(); refreshPanel();
+      break;
+    }
     case 'togglelayout': {
       const cid = (el.dataset.id) || ((S.view==='drawer' && S.drawerId) || ROOT);
       const t = cfgOf(cid); if(!t) break;
@@ -1253,6 +1272,18 @@ function wire(){
     /* Which of the ten a decoration is. It clears any file of your own —
        two answers to one question is a picker that lies about what is
        showing. See decision 86. */
+    /* Which painting a Painting is (decision 208). One undoable move for the
+       picture and the name together, because hanging a new one renames it
+       when the name was the old painting's. */
+    const pnt=t.closest('[data-painting]');
+    if(pnt){ const [id,f]=pnt.dataset.painting.split(':');
+      const o=byId(id), gal=galleryOf(o), p=gal && gal.find(x=>x.f===f);
+      if(o && p){
+        pushSets('Painting', [[id,'media',clone(o.media)],[id,'title',o.title]]);
+        hangPainting(o, p); save(); render(); refreshPanel();
+      }
+      return;
+    }
     const dec=t.closest('[data-decor]');
     if(dec){ const [id,name]=dec.dataset.decor.split(':');
       const o=byId(id);

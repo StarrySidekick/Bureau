@@ -553,6 +553,11 @@ function create(kind, patch){
      without one, unless the maker said a day outright. */
   { const par = o.parent && byId(o.parent);
     if(par && par.undated && !(patch && 'due' in patch)) o.due = null; }
+  /* A type that hangs from a gallery (a Painting, decision 208) is born with
+     one of its pictures on it; a blank painting is not a thing. A caller
+     that brought its own media keeps it. */
+  { const gal = GALLERIES[k.gallery];
+    if(gal && !(patch && patch.media)) hangPainting(o, gal[Math.floor(Math.random()*gal.length)]); }
   if(kindHas(kind,'container')){
     /* **A container states its size on both boards the moment it exists**,
        even though only one of them is being looked at. Its own board is its
@@ -927,14 +932,62 @@ const PICTURES = [
 ];
 const samplePicture = ()=> PICTURES.length ? PICTURES[Math.floor(Math.random()*PICTURES.length)] : null;
 function pictureMedia(p){
-  const url = 'img/pictures/'+p.f;
+  const url = (p.dir||'img/pictures/')+p.f;
   return {type:'image', url, src:url, label:p.t};
+}
+/* ---- the paintings — decision 208 --------------------------------------
+   Twenty-six Impressionist and Post-Impressionist paintings from the Met's
+   open-access collection, under `img/paintings/` (docs/IMAGES.md says where
+   each came from). A **Painting** is the Image type's subtype that is always
+   one of these: a type that says `gallery:'paintings'` is born holding one at
+   random and its editor picks among them, where an Image holds whatever you
+   gave it. The Met marks its Monets as not public domain, so there are none. */
+const PAINTINGS = [
+  ['a01','By the Seashore','Renoir','1883'],
+  ['a02','Bouquet of Chrysanthemums','Renoir','1881'],
+  ['a03','A Road in Louveciennes','Renoir','c. 1870'],
+  ['a04','The Dance Class','Degas','1874'],
+  ['a05','A Woman Seated beside a Vase of Flowers','Degas','1865'],
+  ['a06','The Garden of the Tuileries on a Spring Morning','Pissarro','1899'],
+  ['a07','The Harvest, Pontoise','Pissarro','1881'],
+  ['a08','Barges at Pontoise','Pissarro','1876'],
+  ['a09','The Bridge at Villeneuve-la-Garenne','Sisley','1872'],
+  ['a10','Rue Eugène Moussoir at Moret: Winter','Sisley','1891'],
+  ['a11','Allée of Chestnut Trees','Sisley','1878'],
+  ['a12','Young Woman Knitting','Morisot','c. 1883'],
+  ['a13','Chrysanthemums in the Garden at Petit-Gennevilliers','Caillebotte','1893'],
+  ['a14','Still Life with Apples and a Pot of Primroses','Cézanne','c. 1890'],
+  ['a15','The Gulf of Marseille Seen from L’Estaque','Cézanne','c. 1885'],
+  ['a16','Mont Sainte-Victoire and the Viaduct','Cézanne','1882–85'],
+  ['a17','Irises','Van Gogh','1890'],
+  ['a18','Sunflowers','Van Gogh','1887'],
+  ['a19','Olive Trees','Van Gogh','1889'],
+  ['a20','Gray Weather, Grande Jatte','Seurat','c. 1886–88'],
+  ['a21','Ia Orana Maria','Gauguin','1891'],
+  ['a22','Tahitian Landscape','Gauguin','1892'],
+  ['a23','Boating','Manet','1874'],
+  ['a24','The Monet Family in Their Garden at Argenteuil','Manet','1874'],
+  ['a25','At the Seaside','Chase','c. 1892'],
+  ['a26','Pines Along the Shore','Cross','1896']
+].map(([f,t,a,d])=>({f:f+'.jpg', t, a, d, dir:'img/paintings/'}));
+const GALLERIES = {paintings: PAINTINGS};
+const galleryOf = o => o && GALLERIES[K(o.kind).gallery] || null;
+/* Hang one of a gallery's paintings on an object. The name follows the
+   painting while it is still the painting's name — a title you wrote
+   yourself is never overwritten. */
+function hangPainting(o, p){
+  const was = o.media && o.media.label;
+  o.media = pictureMedia(p);
+  if(!o.title || o.title===was) o.title = p.t;
 }
 /* Whatever a thing made at random needs so it is not a blank: a picture for
    anything that holds one, and a collage is laid with three or four. */
 function furnish(o){
   if(!o) return o;
-  if(isPicture(o) && !isDecor(o) && !(o.media && (o.media.src||o.media.assetId))){
+  const gal = galleryOf(o);
+  if(gal && !(o.media && (o.media.src||o.media.assetId))){
+    hangPainting(o, gal[Math.floor(Math.random()*gal.length)]);
+  } else if(isPicture(o) && !isDecor(o) && !(o.media && (o.media.src||o.media.assetId))){
     const p = samplePicture(); if(p) o.media = pictureMedia(p);
   }
   if(faceOf(o)==='collage' && !S.objects.some(x=>x.parent===o.id)){
@@ -998,4 +1051,4 @@ export { toast, setGridSize, toggleDone, spawnNext, del, delMany, delDrawer, und
   drawerForTag, create, gather, quickAdd, spawnInto, randomThing,
   CONTROLS, CTL_KEYS, ctlSpec, ctlSaid, ctlIsOn, ctlForm, ctlNum, ctlIndex, ctlPress, someKind,
   fits,
-  holdIt, unholdIt, unholdMany, undoToast, dealTop, furnish, PICTURES };
+  holdIt, unholdIt, unholdMany, undoToast, dealTop, furnish, PICTURES, PAINTINGS, galleryOf, hangPainting };

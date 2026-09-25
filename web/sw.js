@@ -1,7 +1,7 @@
 /* Bureau — service worker.
    Bump CACHE when you change anything in css/ or js/ (or index.html) and the
    next launch picks it up. New js/css files must also be added to SHELL. */
-const CACHE = 'bureau-v203';
+const CACHE = 'bureau-v204';
 const SHELL = [
   './',
   './index.html',
@@ -47,6 +47,14 @@ const SHELL = [
   './img/decor/plant.png',
   './img/decor/vase.png',
   './img/decor/volute.png',
+  './img/decor/globe.png',
+  './img/decor/inkstand.png',
+  './img/decor/teapot.png',
+  './img/decor/pitcher.png',
+  './img/decor/candelabrum.png',
+  './img/decor/casket.png',
+  './img/decor/horse.png',
+  './img/decor/teacup.png',
   './img/tools/bell.png',
   './img/tools/candle.png',
   './img/tools/clock.png',
@@ -69,7 +77,34 @@ const SHELL = [
   './img/pictures/p09.jpg',
   './img/pictures/p10.jpg',
   './img/pictures/p11.jpg',
-  './img/pictures/p12.jpg'
+  './img/pictures/p12.jpg',
+  // the paintings a Painting hangs (decision 208)
+  './img/paintings/a01.jpg',
+  './img/paintings/a02.jpg',
+  './img/paintings/a03.jpg',
+  './img/paintings/a04.jpg',
+  './img/paintings/a05.jpg',
+  './img/paintings/a06.jpg',
+  './img/paintings/a07.jpg',
+  './img/paintings/a08.jpg',
+  './img/paintings/a09.jpg',
+  './img/paintings/a10.jpg',
+  './img/paintings/a11.jpg',
+  './img/paintings/a12.jpg',
+  './img/paintings/a13.jpg',
+  './img/paintings/a14.jpg',
+  './img/paintings/a15.jpg',
+  './img/paintings/a16.jpg',
+  './img/paintings/a17.jpg',
+  './img/paintings/a18.jpg',
+  './img/paintings/a19.jpg',
+  './img/paintings/a20.jpg',
+  './img/paintings/a21.jpg',
+  './img/paintings/a22.jpg',
+  './img/paintings/a23.jpg',
+  './img/paintings/a24.jpg',
+  './img/paintings/a25.jpg',
+  './img/paintings/a26.jpg'
 ];
 
 /* `cache:'reload'` makes each shell fetch go to the network instead of the

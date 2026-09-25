@@ -19,7 +19,7 @@ import { plans, stampPlan } from './plans.js';
    Bureau is this phone running" is exactly the question you ask when a change
    appears not to have deployed. Shown in Settings, so it can be read off the
    device rather than guessed at. */
-const APP_VERSION = '2.03';
+const APP_VERSION = '2.04';
 const KEY = 'bureau.v1';
 const install = {deferred:null};   // the browser's install prompt, when one is on offer
 let saveTimer = null;
@@ -267,7 +267,7 @@ function rescalePhone(d, from, cols){
    skips all of them, an old backup replays only what it is missing. These
    used to be ad-hoc per-load mutations inside adopt(); a new repair that
    should run once belongs here, as the next numbered step. */
-const DATA_V = 41;
+const DATA_V = 42;
 const MIGRATIONS = [
   // Drawers and objects were two arrays and a drawer could not live inside
   // anything. foldDrawers also replays the old dense flow to give v1 drawers
@@ -1052,6 +1052,16 @@ const MIGRATIONS = [
     stockPlans().forEach(p=>{ fresh[p.stock] = p; });
     (d.plans||[]).forEach(p=>{ const f = p && p.stock && fresh[p.stock];
       if(f && f.makes && !p.makes) p.makes = JSON.parse(JSON.stringify(f.makes)); });
+  }},
+  /* ---- every decoration is a photograph ---------------------------------
+     The fern and the parlour palm were the last two drawn ones and are gone
+     (decision 208). `decorOf()` would fall back to the plant anyway, but a
+     stored name that resolves to something else is a desk that looks right
+     and says wrong, so each becomes the photograph nearest it. */
+  {v:42, up(d){
+    const to = {fern:'plant', palm:'jardiniere'};
+    (d.objects||[]).forEach(o=>{ if(o && to[o.decor]) o.decor = to[o.decor]; });
+    Object.values(d.kinds||{}).forEach(k=>{ if(k && to[k.decor]) k.decor = to[k.decor]; });
   }},
 ];
 function migrate(d){

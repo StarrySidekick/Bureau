@@ -9636,3 +9636,62 @@ browser tab and Android do read it. And iOS may read the Home Screen meta only
 when the app is added, so an install from before this can need removing and
 adding again. The row count is unchanged: the room was always measured from
 below the inset.
+
+## 208 · Things in the drawer front, eight by fourteen, and a Painting
+
+*2026-09-25.* Timothy, one brief: the board is eight by fourteen by default;
+the controls in the drawer front are real objects, not knobs; the name on the
+lip is bigger and on the left; every decoration is a cut image, with more of
+them; and a new **Painting** type, a subtype of Image, holding one of twenty to
+thirty public-domain Impressionist paintings.
+
+**The drawer front holds five things, and four of them are what they do.**
+Left to right: a brass **gear** (Settings, or Board settings in a drawer), a
+brass **padlock** whose shackle lifts when the board is unlocked, the **Home
+Knob**, a maple **Scrabble tile** (how the board is sorted, and grid or list),
+and a **magnifying glass** (search). Each is an inline SVG in its own material
+(`RAILART` in views.js), at the knob's height by the knob's own clamp, with a
+shadow under it. Materials, not the aesthetic's colours, for the reason the
+photographed tools are: a padlock is brass whatever the room is. The tile
+shows the sort it is on, with its Scrabble value (S 1 as arranged, A 1, Z 10),
+and opens `sortMenu()` in panels.js: grid or list, and the nine sorts. The
+list toggle moved into it; the spiral stays on the Mac's bar only. The front
+keeps at least 24px clear of each edge, because an iPhone's bottom corners are
+curved.
+
+**Fourteen rows is a ceiling on a phone.** `shelfRows()` in grid.js caps the
+measured count at `PHONE_ROWS` unless *One more row* is on. A screen with room
+for fifteen or sixteen used to get them, which moved every shelf boundary with
+the handset and left the stock boards, authored to fourteen, a spare row on
+some phones. What a big screen has left over goes to the wood: the top half
+into the lip (`sizeGrid()` writes its height, measured from its min-height,
+and `REVEAL.lip` writes it into the markup), the bottom half into the drawer
+front. A shelf's height is a coordinate space, so a phone that measured
+fifteen re-places what was on its last row the way it always did when a
+window got shorter.
+
+**The name on the lip is 22px, on the left, in the middle of the wood.** It
+stands above the gear. With *One more row* the name rides in the drawer front
+ahead of the gear and the shelf dots are not drawn there: the name opens the
+same map.
+
+**A Painting is the first subtype of Image.** A subtype was already a thing
+the code had: a type's `family`, which is how a Note is asked "which sort"
+(idea, thought, problem…). Image now has `family:['image','painting']`, so
+pressing Image asks *What sort of picture?* The Painting kind carries
+`gallery:'paintings'`; `create()` hangs one of the twenty-six at random
+(`hangPainting()` in mutations.js), in the gilt frame, named after the
+painting until you name it yourself; *Which painting* in its editor picks
+among them as thumbnails. No Monets: the Met marks its Monets as not public
+domain. The files are in the shell, about 3.5MB.
+
+**Every decoration is a photograph.** The fern and the parlour palm were the
+last two drawn, and are gone; migration 42 gives a desk holding one the plant
+or the jardinière. Eight new ones, cut out of the Met's photographs: a
+celestial globe, an inkstand, a teapot, a pitcher, a candelabrum, a casket, a
+bronze horse and a teacup (docs/IMAGES.md).
+
+**The Workshop.** A separate page (a Claude artifact, not part of the app)
+lays out every menu, setting, editor row and type as it ships, for Timothy to
+rearrange, cut and annotate; the arrangement is stored with the page for the
+next session to read back and build. Nothing in the app reads it.

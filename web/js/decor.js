@@ -46,41 +46,9 @@ const DECOR = {
   plant: { c:6, nm:'Potted plant', aes:['victorian','carca','girando','aero'], png:'img/decor/plant.png', vb:'0 0 360 273', size:[4,3] },
   jardiniere: { c:13, nm:'Jardinière', aes:['victorian','girando','stelaine'], png:'img/decor/jardiniere.png', vb:'0 0 264 360', size:[3,4] },
 
-  fern: { c:7, nm:'Fern', aes:['victorian','carca','girando'], vb:'5 1.5 82 98.5', size:[4,5], svg:`
-    <g stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round">
-      <path d="M46 62C42 44 30 28 8 20"/><path d="M46 62c4-18 16-34 38-42"/>
-      <path d="M46 58C44 40 36 20 24 6"/><path d="M46 58c2-18 10-38 22-52"/>
-      <path d="M46 56c0-16 0-32 0-48"/>
-    </g>
-    <g fill="currentColor">
-      <ellipse cx="14" cy="26" rx="7" ry="3.4" transform="rotate(24 14 26)"/>
-      <ellipse cx="24" cy="34" rx="6.4" ry="3.2" transform="rotate(22 24 34)"/>
-      <ellipse cx="34" cy="44" rx="5.6" ry="3" transform="rotate(20 34 44)"/>
-      <ellipse cx="78" cy="26" rx="7" ry="3.4" transform="rotate(-24 78 26)"/>
-      <ellipse cx="68" cy="34" rx="6.4" ry="3.2" transform="rotate(-22 68 34)"/>
-      <ellipse cx="58" cy="44" rx="5.6" ry="3" transform="rotate(-20 58 44)"/>
-      <ellipse cx="29" cy="13" rx="5.6" ry="3" transform="rotate(48 29 13)"/>
-      <ellipse cx="63" cy="13" rx="5.6" ry="3" transform="rotate(-48 63 13)"/>
-      <ellipse cx="46" cy="9" rx="4" ry="6"/>
-    </g>
-    <path d="M26 62h40c3 12 3 24 0 34a5 5 0 0 1-4 4H30a5 5 0 0 1-4-4c-3-10-3-22 0-34Z" fill="var(--brass)"/>
-    <path d="M22 58h48v7H22Z" fill="var(--brass)"/>
-    
-    ` },
-
-  palm: { c:8, nm:'Parlour palm', aes:['victorian','girando','aero'], vb:'2.5 -1.5 79 101.5', size:[3,4], svg:`
-    <g stroke="var(--brass)" stroke-width="2.6" fill="none" stroke-linecap="round" opacity=".8">
-      <path d="M42 64V22"/><path d="M42 46C38 34 30 26 16 22"/><path d="M42 42c4-12 12-20 26-24"/>
-    </g>
-    <path d="M42 24C34 12 20 6 4 8c6 14 22 20 38 16Z" fill="currentColor"/>
-    <path d="M42 24C50 12 64 6 80 8c-6 14-22 20-38 16Z" fill="currentColor" opacity=".84"/>
-    <path d="M42 22C38 8 28 0 14 0c0 12 12 22 28 22Z" fill="currentColor" opacity=".7"/>
-    <path d="M42 22C46 8 56 0 70 0c0 12-12 22-28 22Z" fill="currentColor" opacity=".62"/>
-    <path d="M42 26c-4-8-2-18 2-26 6 8 6 18 0 26Z" fill="currentColor" opacity=".9"/>
-    <path d="M24 62h36l-4 34a4 4 0 0 1-4 4H32a4 4 0 0 1-4-4Z" fill="var(--brass)"/>
-    <path d="M20 56h44v7H20Z" fill="var(--brass)"/>
-    <path d="M22 66h40M25 82h34" stroke="var(--glow)" stroke-width="1.5" opacity=".5"/>
-    ` },
+  /* The fern and the parlour palm were drawings, and every decoration is a
+     photograph now (decision 208); migration 42 hands a desk that had one the
+     plant or the jardinière. */
 
   /* ---- clocks ---------------------------------------------------------- */
   clock: { c:5, nm:'Mantel clock', aes:['victorian','golf97'], png:'img/decor/clock.png', vb:'0 0 257 360', size:[3,4] },
@@ -117,7 +85,19 @@ const DECOR = {
      turns whose radius tapers as it goes — even turns, tightening to the eye —
      because a hand-drawn coil reads as wire. See decision 92. */
   volute: { c:12, nm:'Wall bracket', aes:['girando','victorian','carca'], png:'img/decor/volute.png', vb:'0 0 301 360', size:[3,4] },
-  bookend: { c:11, nm:'Bookend', aes:['victorian','carca','golf97','starry'], png:'img/decor/bookend.png', vb:'0 0 360 331', size:[4,4] }
+  bookend: { c:11, nm:'Bookend', aes:['victorian','carca','golf97','starry'], png:'img/decor/bookend.png', vb:'0 0 360 331', size:[4,4] },
+
+  /* ---- eight more, decision 208 -----------------------------------------
+     Things that stand on a writer's desk, cut out of the Met's photographs
+     the same way (docs/IMAGES.md). */
+  globe: { c:9, nm:'Globe', aes:['victorian','starry','carca'], png:'img/decor/globe.png', vb:'0 0 301 360', size:[3,4] },
+  inkstand: { c:14, nm:'Inkstand', aes:['victorian','stelaine','golf97'], png:'img/decor/inkstand.png', vb:'0 0 360 322', size:[4,3] },
+  teapot: { c:14, nm:'Teapot', aes:['victorian','aero','girando'], png:'img/decor/teapot.png', vb:'0 0 360 207', size:[4,2] },
+  pitcher: { c:6, nm:'Pitcher', aes:['victorian','girando','aero'], png:'img/decor/pitcher.png', vb:'0 0 360 344', size:[3,3] },
+  candelabrum: { c:13, nm:'Candelabrum', aes:['victorian','starry','stelaine'], png:'img/decor/candelabrum.png', vb:'0 0 175 360', size:[2,4] },
+  casket: { c:11, nm:'Casket', aes:['victorian','carca','starry'], png:'img/decor/casket.png', vb:'0 0 332 360', size:[3,4] },
+  horse: { c:12, nm:'Bronze horse', aes:['victorian','girando','carca'], png:'img/decor/horse.png', vb:'0 0 360 326', size:[4,4] },
+  teacup: { c:13, nm:'Teacup', aes:['victorian','aero','golf97'], png:'img/decor/teacup.png', vb:'0 0 360 184', size:[3,2] }
 };
 
 /* ============================================================
@@ -394,8 +374,7 @@ function flamePoint(o, w, h){
    photograph is an `<image>` inside the same `<svg>`, with a viewBox of its
    own pixels, so standing on the floor of the tile, `flamePoint()` and the
    tile's shape all work as they did. It does not take the style's colours,
-   which is the price. Where no clean photograph was found (the fern and the
-   palm) the drawing stays. */
+   which is the price. Since decision 208 there are no drawn ones left. */
 function decorSVG(name){
   const d = DECOR[name] || DECOR.plant;
   const [, , w, h] = d.vb.split(' ');

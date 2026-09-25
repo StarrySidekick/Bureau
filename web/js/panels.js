@@ -21,7 +21,7 @@ import { randomBoard, randomFront, hexOf, objColour, objSlots, famSlots, famAll,
 import { CLICKS, clickOf, gridTile, pending } from './tiles.js';
 import { isActive, activeZoom, activeSay, activeName, DICE, CLOCKS } from './active.js';
 import { DECOR, decorOf, decorSVG, decorFor, decorRest, LIFE_ART, LIFE_KEYS, lifeSVG } from './decor.js';
-import { quickAdd, toast, drawerForTag, CONTROLS, CTL_KEYS, ctlSpec } from './mutations.js';
+import { quickAdd, toast, drawerForTag, CONTROLS, CTL_KEYS, ctlSpec, galleryOf } from './mutations.js';
 import { openObj, renderSheet, closeSheet , openZoom } from './sheet.js';
 import { render, settingsPanel, gridSizeField, shelfCountField } from './views.js';
 import { openingFor, zoomInto, CAMERA, growSheet } from './motion.js';
@@ -188,6 +188,27 @@ function openMenu(anchor, html){
   const r=$('#frame').getBoundingClientRect(), a=anchor.getBoundingClientRect();
   el.style.left = clamp(a.right-r.left-el.offsetWidth, 6, Math.max(6, r.width-el.offsetWidth-6))+'px';
   el.style.top  = clamp(a.bottom-r.top+6,              6, Math.max(6, r.height-el.offsetHeight-6))+'px';
+}
+
+/* **What the Scrabble tile opens** (decision 208): how this board orders
+   what is on it, and whether it is a grid or a list. The sort was a bar toggle
+   once and went into the editor because cycling seven states is no tool; a
+   menu of them hung off one piece in the drawer front is, and grid or list
+   came along because it answers the same question — in what order do I see
+   these. The editor's "Sorted by" row writes the same field. */
+function sortMenu(anchor, cid){
+  const c = container(cid), cur = sortOf(c) || MANUAL, lay = layoutOf(c)==='grid' ? 'grid' : 'list';
+  const b = (act, v, label, on)=> `<button data-act="${act}" data-id="${esc(cid)}" data-v="${v}"${
+    on?' class="on"':''}>${esc(label)}</button>`;
+  openMenu(anchor, `<div class="ctxhead">Show it</div>
+    ${b('setlayout','grid','On the grid', lay==='grid')}${b('setlayout','list','As a list', lay==='list')}
+    <div class="div"></div><div class="ctxhead">Sorted by</div>
+    ${[[MANUAL,'As I arranged them'], ...Object.entries(SORTS).map(([k,[nm]])=>[k,nm])]
+      .map(([v,n])=> b('setsort', v, n, v===cur)).join('')}`);
+  /* openMenu hangs a list *below* its button; from the drawer front there is
+     no below, so it stands on the wood instead, right-aligned to the tile. */
+  const el=$('#ctx'), r=$('#frame').getBoundingClientRect(), a=anchor.getBoundingClientRect();
+  el.style.top = clamp(a.top - r.top - el.offsetHeight - 8, 6, Math.max(6, r.height-el.offsetHeight-6))+'px';
 }
 
 /* Every type falls in exactly one group. `scene` used to be listed under both
@@ -1494,6 +1515,17 @@ function objectPanelBody(id, sec){
         own ? 'a file of your own is showing — remove it below to use one of these'
             : 'they take this object’s colour and the aesthetic’s'));
     }
+    /* A Painting picks one of its gallery's (decision 208), drawn as itself:
+       choosing a painting by its name would be choosing blind. */
+    const gal = galleryOf(o);
+    if(gal){
+      const on = o.media && o.media.url;
+      f.push(prow('Which painting',
+        `<div class="paintpick">${gal.map(p=>{ const u=p.dir+p.f;
+          return `<button class="paintopt${on===u?' on':''}" data-painting="${id}:${p.f}"
+            title="${esc(p.t)}, ${esc(p.a)}, ${esc(p.d)}"><img src="${u}" alt="" loading="lazy"><u>${esc(p.a)}</u></button>`; }).join('')}</div>`,
+        on ? esc((gal.find(p=>p.dir+p.f===on)||{}).t||'') : 'from the Metropolitan Museum of Art, public domain'));
+    }
     if(has(o,'media')){
       const mt=mediaTypeOf(o), src=o.media&&o.media.src;
       const noun = mt==='audio' ? 'sound' : mt==='video' ? 'video' : 'picture';
@@ -2475,7 +2507,7 @@ const closeCtx = ()=> $('#ctx').classList.remove('open');
 
 export { plansPanel, planCard, boardRow,
   overlayHTML, openPanel, closePanel, refreshPanel, repositionPanel, panelKey, panelBack, draft,
-  openMenu, modalNewObject, holdPanel, objectPanel, drawerPanel, modalNewKind,
+  openMenu, sortMenu, modalNewObject, holdPanel, objectPanel, drawerPanel, modalNewKind,
   renderPreview, modalMove, tagFirstPanel, familyPanel, becomePanel, lifeFirstPanel, donePanel,
   sampleObject, sampleTile, kindSample,
   objectPanelBody, objBackTo, openCmd, closeCmd, cmdList, cmdMove, cmdAt, runCmd, drawerFromSelection, openCtx, closeCtx,

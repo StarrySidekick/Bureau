@@ -334,7 +334,15 @@ const BUILTIN_KINDS = {
      How often is the repeat rule plus `times`; see habitPlan(). */
   tracker: {shape:'tracker', nm:'Habit tracker', ic:'grid', c:6, key:'', ds:'The days you did it and the days you did not, as many times a day or a week as it asks',
      attrs:['text','streak'], size:[6,2], phoneSize:[6,2], onclick:'check', body:'' },
-  image:   {nm:'Image',   ic:'image',   c:15, key:'G', ds:'A picture on the board',   size:[6,4], onclick:'read', attrs:['media'], body:'' },
+  /* **An Image has subtypes** (decision 208): a type's `family` is the list of
+     its subtypes, the way a Note's is idea, thought and the rest, and it
+     leads with the Image itself. The first is a Painting. */
+  image:   {nm:'Image',   ic:'image',   c:15, key:'G', ds:'A picture on the board',   size:[6,4], onclick:'read', attrs:['media'], body:'',
+     family:['image','painting'], famSub:'What sort of picture?' },
+  /* A Painting is an Image that is always one of the twenty-six hung in
+     `img/paintings/` (`gallery` names the list in mutations.js): born with
+     one at random, in a gilt frame, and its editor picks among them. */
+  painting:{nm:'Painting', ic:'image',  c:13, ds:'An Impressionist painting, framed', size:[5,4], onclick:'read', attrs:['media'], mediaType:'image', frame:'gilt', gallery:'paintings', body:'' },
   /* A window is an Image that admits there is somewhere on the other side of
      it. Same attribute, same surface, same file — what differs is that the
      frame is *in front of* the picture rather than around it, so the view

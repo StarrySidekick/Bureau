@@ -3938,6 +3938,17 @@ html[data-style="golf97"] .check,html[data-style="golf97"] .clbox{border-radius:
 .decopt .decart{width:100%;height:100%}
 .decopt u{text-decoration:none;font-size:10.5px;color:var(--ink-3);text-align:center}
 .decopt.on u{color:var(--ink)}
+/* The painting picker (decision 208): the paintings themselves, cropped to
+   one shape so the grid reads as a wall of them, with the painter under each. */
+.paintpick{display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:8px;margin-top:6px}
+.paintopt{display:flex;flex-direction:column;gap:4px;padding:4px;border:1px solid var(--rule);
+  border-radius:var(--radius);background:var(--paper-2)}
+.paintopt img{display:block;width:100%;aspect-ratio:5/4;object-fit:cover;border-radius:2px}
+.paintopt:hover{border-color:var(--brass)}
+.paintopt.on{border-color:var(--brass);box-shadow:inset 0 0 0 1px var(--brass)}
+.paintopt u{text-decoration:none;font-size:10.5px;color:var(--ink-3);text-align:center;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.paintopt.on u{color:var(--ink)}
 .kindmark{
   width:22px;height:22px;flex:0 0 auto;border-radius:var(--radius);display:grid;place-items:center;margin-top:0px;
   background:color-mix(in srgb,var(--k) 17%, transparent);color:var(--k);
@@ -5258,14 +5269,18 @@ html[data-rows="fit"] .is-phone .gridbar.inrail .sqbtn{width:28px;height:28px}
    The strip of wood above the board carries the board's name and its dots,
    centred, in the light-on-dark the bar used. It is a child of `.main`, so
    sizeGrid() counts it the way it counted the bar up there. */
+/* Since decision 208 the name is **bigger and on the left**, standing where
+   the gear stands below it, and centred top to bottom in the lip — which is
+   now as tall as its floor plus the top half of whatever the fourteen rows
+   leave over (sizeGrid() writes the height; the floor is the min-height). */
 .is-phone .toplip{
-  flex:0 0 auto;height:22px;display:flex;align-items:center;justify-content:center;
-  padding:0 16px;
+  flex:0 0 auto;min-height:32px;height:32px;display:flex;align-items:center;justify-content:flex-start;
+  padding:0 max(24px, calc(env(safe-area-inset-right) + 14px)) 0 max(24px, calc(env(safe-area-inset-left) + 14px));
   --ink:#F4EEE0;--ink-2:rgba(244,238,224,.74);--ink-3:rgba(244,238,224,.52);
   --brass:var(--glow);color:var(--ink);
 }
-.toplip .where{display:flex;align-items:center;gap:7px;min-width:0}
-.toplip .here{font-family:var(--serif);font-size:14.5px;font-weight:600;letter-spacing:.02em;
+.toplip .where{display:flex;align-items:center;gap:10px;min-width:0}
+.toplip .here{font-family:var(--serif);font-size:22px;line-height:1.1;font-weight:600;letter-spacing:.01em;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;
   text-shadow:0 -1px 0 rgba(0,0,0,.45)}
 .toplip .here .deskname{border-bottom:1.5px dotted color-mix(in srgb,var(--ink-3) 60%,transparent)}
@@ -5318,6 +5333,35 @@ html[data-rows="fit"] .is-phone .gridbar.inrail .sqbtn{width:28px;height:28px}
     0 0 0 1.5px color-mix(in srgb, var(--glow) 55%, transparent), 0 2px 3px rgba(0,0,0,.42)}
 .is-phone .gridbar.inrail .bartools{gap:6px}
 .is-phone .gridbar.inrail .railleft{gap:6px}
+
+/* ---- the things in the drawer front — decision 208 ----------------------
+   Each control is the object it does, drawn in its own material (views.js
+   `RAILART`), standing proud of the wood with a shadow under it, at the
+   knob's own height: the same clamp off the drawer front's depth, so a
+   deeper front or a bigger knob takes them with it. The two sides spread
+   their pair evenly rather than huddling at the knob, and the front keeps a
+   thumb's width clear of each edge, because the bottom corners of an iPhone
+   are curved and a control in the curve is half a control. */
+.is-phone .deskrail.withbar{
+  padding-left:max(24px, calc(env(safe-area-inset-left) + 14px));
+  padding-right:max(24px, calc(env(safe-area-inset-right) + 14px));
+}
+.is-phone .gridbar.inrail .railside{justify-content:space-evenly;gap:8px}
+.is-phone .gridbar.inrail.named .railleft{justify-content:flex-start;gap:10px}
+/* with the name in the front there is room for the name or the dots, and the
+   name opens the same map the dots are a small copy of */
+.is-phone .gridbar.inrail.named .shelfmark{display:none}
+.railobj{
+  flex:0 0 auto;padding:0;border:0;background:none;border-radius:0;
+  height:calc(clamp(26px, 74cqh, 38px) * var(--kscale,1) * 1.08);aspect-ratio:1;width:auto;
+  filter:drop-shadow(0 2px 1.6px rgba(0,0,0,.55));
+  -webkit-tap-highlight-color:transparent;transition:transform .12s, filter .12s;
+}
+.railobj svg{display:block;width:100%;height:100%;overflow:visible}
+.railobj:active{transform:translateY(1px) scale(.95);filter:drop-shadow(0 1px 1px rgba(0,0,0,.55))}
+/* open, the glass catches the Glow the way a lit dot does */
+.railobj.ro-glass.on{filter:drop-shadow(0 2px 1.6px rgba(0,0,0,.55))
+  drop-shadow(0 0 5px color-mix(in srgb, var(--glow) 75%, transparent))}
 
 /* The knob **is a drawer pull**: it carries `.pull`, so all six shapes, the
    three sizes and the light on it are the ones every knob on the board already

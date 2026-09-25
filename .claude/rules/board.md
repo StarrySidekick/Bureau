@@ -454,3 +454,16 @@ columns and how wide a **shelf** is — which is how much of a big drawer you se
 at once — and a container's editor carries *how big it is* instead. That field
 has to exist: capacity is read off the desk box, and a phone can only drag the
 phone one.
+
+**The drawer front holds objects, not knobs** (decision 208). On a phone
+`gridBar()` hands `RAILBAR = {where, left, right}` to `deskRail()`: gear and
+padlock left of the knob, Scrabble tile (`sortmenu`, which opens `sortMenu()`)
+and magnifying glass right of it, each `railObj()` drawing its `RAILART` at the
+knob's height. The `data-act`s are the ones the old buttons had, so anything
+pressing `togglelock`, `searchopen` or `appsettings` still finds them. The Mac
+bar is unchanged.
+
+**A phone board is at most fourteen rows** unless *One more row* is on
+(`PHONE_ROWS` in `shelfRows()`); the leftover goes to the lip and the drawer
+front. The lip is measured at its **min-height**, because its height is what
+`sizeGrid()` writes.

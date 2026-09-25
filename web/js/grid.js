@@ -336,13 +336,22 @@ const gridOf = (device, cid)=>{
 /* A phone guesses fifteen since decision 204: the bar rides in the drawer
    front, so the row it took is board, and an installed iPhone measures
    fifteen where it measured fourteen. A Mac still has its bar on top. */
-const SHELF_ROWS_GUESS = 14, PHONE_ROWS_GUESS = 15;
+/* **A phone board is eight by fourteen by default** (decision 208). It was
+   however many rows the screen had room for, which was fifteen on some
+   iPhones and fourteen on others, so a stock board authored to fourteen had a
+   spare row on one phone and not the other, and a shelf boundary that moved
+   with the handset. Fourteen is now a ceiling: a screen with room for more
+   gives the leftover to the wood, and one with room for fewer still gets what
+   fits. *One more row* is the way to ask for every row the screen has. */
+const SHELF_ROWS_GUESS = 14, PHONE_ROWS_GUESS = 15, PHONE_ROWS = 14;
+const phoneCap = ()=> S.look && S.look.rows === 'fit' ? Infinity : PHONE_ROWS;
 function shelfRows(device, cid){
   const d=device||dev();
   const m=MEASURE[d];
-  if(!m.room || !m.w) return d==='phone' ? PHONE_ROWS_GUESS : SHELF_ROWS_GUESS;
+  if(!m.room || !m.w) return d==='phone' ? Math.min(PHONE_ROWS_GUESS, phoneCap()) : SHELF_ROWS_GUESS;
   const cell = m.w / (d==='phone' ? colsOf(cid, d) : GRID.desk.cols);
-  return Math.max(4, Math.floor(m.room / Math.max(1, cell)));
+  const fit = Math.max(4, Math.floor(m.room / Math.max(1, cell)));
+  return d==='phone' ? Math.min(fit, phoneCap()) : fit;
 }
 /* Which shelf a box is on, as {x,y} in shelves. */
 function shelfOfBox(b, device, cid){

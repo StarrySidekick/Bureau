@@ -90,6 +90,15 @@ first time. **v2.01** (decision 206): the rail's buttons are turned like the
 knob, the board's name is on the top lip (`.toplip`), and the brush is gone:
 the gear opens the desk's editor as a door of Settings, and a drawer's editor
 at the top of its Board settings.
+**v2.04** (decision 208): the drawer front holds a gear, a padlock, the knob,
+a Scrabble tile (sort, and grid or list) and a magnifying glass, drawn as the
+objects (`RAILART` in views.js); a phone board is at most **8×14** unless
+*One more row* is on; the name on the lip is big and on the left; every
+decoration is a photograph (eight new ones); and **Painting** is Image's first
+subtype (`family`), hanging one of 26 Met paintings from `img/paintings/`.
+The **Bureau Workshop** artifact (https://claude.ai/artifact/4TjyQZ5xcuxCYFgfnRm76k)
+holds Timothy's own rearrangement of every menu and type: read its
+`workshop/state` document before reorganising menus or types.
 
 **Start here each session:** `docs/SYSTEM.md` is the reference for what Bureau is
 made of — objects, attributes, types, drawers, the grid, the surfaces, storage.

@@ -43,6 +43,7 @@
    this page does not draw simply matches nothing, and choosing which ones
    mattered is how you miss one. */
 import { $, esc, ic } from './util.js';
+import { railObj } from './views.js';
 import { S, KEYS, K, SHAPES, FACES, PROJ_COVERS, isCategory, familyOf,
          isContainer, PRIMARY } from './model.js';
 import { STYLES, palNow, applyLook, styleNow, famSlots, FAMS, ROLES, OBJ0,
@@ -279,23 +280,17 @@ function chromePlate(s){
     </div>
   </div>`;
 
-  /* The drawer front with the bar in it, and the tools turned like the knob
-     (decisions 204 and 206). */
+  /* The drawer front with the bar in it (decision 204), and each control the
+     object it does (decision 208) — drawn by the rail's own `railObj()`, so
+     the specimen cannot drift from the drawer front. */
   const rail = `
   <div class="gx-rail is-phone">
     <nav class="deskrail withbar ks-med" style="height:52px">
       <i class="dgrain"></i>
       <div class="gridbar inrail">
-        <div class="railside railleft">
-          <button class="sqbtn searchbtn">${B('search',16)}</button>
-          <button class="sqbtn on locked">${B('lock',16)}</button>
-        </div>
+        <div class="railside railleft">${railObj('gear','','','Settings')}${railObj('lock','','','Locked',true)}</div>
         <i class="pull railknob"></i>
-        <div class="railside railright"><div class="bartools">
-          <button class="sqbtn">${B('list',16)}</button>
-          <button class="sqbtn">${B('spiral',16)}</button>
-          <button class="sqbtn">${B('gear',16)}</button>
-        </div></div>
+        <div class="railside railright">${railObj('tile','','','Sort')}${railObj('glass','','','Search')}</div>
       </div>
     </nav>
   </div>`;
