@@ -373,3 +373,11 @@ container id opens that one door with no way back, and `settingsBody()` draws th
 container's own board colour (`boardRow()` from panels.js) and size
 (`shelfCountField()`) where the desk draws the app's. The aesthetic picker is
 `stylePicker()`, drawn in both Board settings and Aesthetics. See decision 193.
+
+**A sketched box opens the shape ring, not the picker** (decision 210).
+`shapeRing(rect, cell)` in panels.js draws the hold menu's ring in `#ctx`
+(`.shapering`) with the seven types `shapeKinds()` ranks nearest the drawn
+`w×h` at their default size on this device, and *More…* for the picker.
+Blobs are `data-act="ringmake"`/`"ringmore"` in wire.js, which lift
+`pending.cell` before `closeCtx()`, because closing a shape ring without a
+choice clears it. A category's blob carries `data-ask` and asks which.

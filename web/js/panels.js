@@ -182,7 +182,7 @@ function openMenu(anchor, html){
      list hung off a bar button — so the shape has to come *off* here as well
      as go on there. A popup that inherited a thumb hole would have one
      punched through whichever row happened to be under it. */
-  el.classList.remove('palette','radial','flung');
+  el.classList.remove('palette','radial','flung','shapering');
   el.style.removeProperty('--rad');
   el.classList.add('open');                 // measurable only once it is shown
   const r=$('#frame').getBoundingClientRect(), a=anchor.getBoundingClientRect();
@@ -209,6 +209,66 @@ function sortMenu(anchor, cid){
      no below, so it stands on the wood instead, right-aligned to the tile. */
   const el=$('#ctx'), r=$('#frame').getBoundingClientRect(), a=anchor.getBoundingClientRect();
   el.style.top = clamp(a.top - r.top - el.offsetHeight - 8, 6, Math.max(6, r.height-el.offsetHeight-6))+'px';
+}
+
+/* ---- the shape ring — decision 210 --------------------------------------
+   A box dragged out with the Magic Selector is already half an answer: a
+   one-by-three is nearly always a book, a two-by-two a drawer, a three-by-three
+   a drawer or a calendar. So a sketched box opens the hold menu's ring of
+   paint rather than the whole picker, and the ring holds the types whose
+   default size on this device is **nearest the shape you drew**, closest at
+   the top going clockwise, with *More…* last for everything else.
+
+   Nearness is the cells you would have to add or take away (`|Δw| + |Δh|`),
+   then how far the proportions differ, then how prominent the type is — the
+   picker's front row, then *More types*, then the rest — so a tie goes to the
+   thing you reach for. A board that names what it makes (`makes.only`,
+   decision 199) has those counted half a cell nearer. Categories that only
+   ask a question (`cat`) and controls are left out; a family's members are in
+   it by name, so the Painting is there when you drew a painting's shape. */
+const RING_N = 7;
+function shapeKinds(w, h, home){
+  const dv = dev(), only = (makesOf(container(home))||{}).only || [];
+  const rank = k => PRIMARY.includes(k) ? 0 : SECONDARY.includes(k) ? 1 : 2;
+  return KEYS.filter(k => KINDS[k] && !K(k).cat && !kindHas(k,'control'))
+    .map(k => { const [kw, kh] = sizeOfKind(k, dv, home);
+      return {k, d: Math.abs(kw-w) + Math.abs(kh-h) - (only.includes(k) ? .5 : 0),
+        a: Math.abs(Math.log((kw/kh)/(w/h))), r: rank(k)}; })
+    .sort((p, q) => p.d-q.d || p.a-q.a || p.r-q.r)
+    .map(x => x.k)
+    /* A subtype whose category is already in the ring rides in its blob —
+       pressing the category asks which, the way the picker does — so one
+       shape is not answered by a book and then two kinds of book. */
+    .filter((k, i, all) => !all.slice(0, i).some(j => j!==k && (K(j).family||[]).includes(k)));
+}
+function shapeRing(rect, cell){
+  const el = $('#ctx'), home = cell.parent;
+  // a board with a rule for this size still makes it without asking (199)
+  const sized = makesOf(container(home)) && madeAtSize(container(home), cell.w, cell.h);
+  if(sized){ newOfKind(sized, true); return; }
+  const ks = shapeKinds(cell.w, cell.h, home).slice(0, RING_N);
+  const PAINTS = ['#C8553D','#E0A43A','#7FA54E','#3E7C8C','#4A5FA8','#8A5BA6','#B0677E','#8C6A3F'];
+  // a category's blob asks which of its family (the Image blob offers the Painting)
+  const items = ks.map(k => ({act:`data-act="ringmake" data-kind="${k}"${
+      (K(k).family||[]).length>1 ? ' data-ask="1"' : ''}`, icon:K(k).ic||'note', label:K(k).nm}))
+    .concat({act:'data-act="ringmore"', icon:'plus', label:'More…'});
+  const n = items.length, R = n<=6 ? 84 : n<=8 ? 96 : 112, pad = 36;
+  el.innerHTML = `<i class="radhole" aria-hidden="true"></i>
+    <div class="ctxhead">${cell.w} × ${cell.h}</div>${
+    items.map((m,i)=>{
+      const a = -Math.PI/2 + i*2*Math.PI/n, x = Math.cos(a)*R, y = Math.sin(a)*R;
+      return `<button class="radblob" ${m.act} title="${esc(m.label)}"
+        style="--x:${x.toFixed(1)}px;--y:${y.toFixed(1)}px;--i:${i};--paint:${PAINTS[i%PAINTS.length]}">
+        <span class="radpaint">${ic(m.icon,17)}</span><b>${esc(m.label)}</b></button>`;
+    }).join('')}`;
+  const r = $('#frame').getBoundingClientRect();
+  el.classList.add('open','palette','radial','shapering');
+  el.style.setProperty('--rad', R+'px');
+  // round the middle of the box you drew, nudged on screen only as far as it must
+  const span = R + pad;
+  el.style.left = clamp(rect.left + rect.width/2  - r.left, span, Math.max(span, r.width  - span))+'px';
+  el.style.top  = clamp(rect.top  + rect.height/2 - r.top,  span + 30, Math.max(span + 30, r.height - span))+'px';
+  el.classList.remove('flung'); void el.offsetWidth; el.classList.add('flung');
 }
 
 /* Every type falls in exactly one group. `scene` used to be listed under both
@@ -2490,6 +2550,7 @@ function openCtx(x,y,id){
         <span class="radpaint">${ic(m.icon,17)}</span><b>${esc(m.label)}</b></button>`;
     }).join('')}`;
   const r=$('#frame').getBoundingClientRect();
+  el.classList.remove('shapering');
   el.classList.add('open','palette','radial');
   el.style.setProperty('--rad', R+'px');
   /* Centred on the finger, and nudged in from the edges only as far as it
@@ -2503,11 +2564,17 @@ function openCtx(x,y,id){
   // restart the fling on every open, including one straight after another
   el.classList.remove('flung'); void el.offsetWidth; el.classList.add('flung');
 }
-const closeCtx = ()=> $('#ctx').classList.remove('open');
+/* A shape ring put down without a choice takes its cell with it, or the next
+   object made any other way would land in a box drawn for something else. */
+function closeCtx(){
+  const el = $('#ctx');
+  if(el.classList.contains('shapering') && el.classList.contains('open')) pending.cell = null;
+  el.classList.remove('open','shapering');
+}
 
 export { plansPanel, planCard, boardRow,
   overlayHTML, openPanel, closePanel, refreshPanel, repositionPanel, panelKey, panelBack, draft,
-  openMenu, sortMenu, modalNewObject, holdPanel, objectPanel, drawerPanel, modalNewKind,
+  openMenu, sortMenu, shapeRing, shapeKinds, modalNewObject, holdPanel, objectPanel, drawerPanel, modalNewKind,
   renderPreview, modalMove, tagFirstPanel, familyPanel, becomePanel, lifeFirstPanel, donePanel,
   sampleObject, sampleTile, kindSample,
   objectPanelBody, objBackTo, openCmd, closeCmd, cmdList, cmdMove, cmdAt, runCmd, drawerFromSelection, openCtx, closeCtx,

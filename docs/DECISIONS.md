@@ -9752,3 +9752,38 @@ The rim's inset shading is an absolute box inside the scroller, so it would
 have covered the first screenful and scrolled away; it is `position:sticky` at
 the end of the column, pulled up by its own height (`--flowh`). The tilt's
 four cavity walls were not given the same treatment and scroll with the board.
+
+## 210 · The shape you draw is the question
+
+*2026-09-26.* Timothy: the object maker you reach through the Magic Selector
+should be an autocomplete in the ring of paint the hold menu wears; the shape
+you draw decides which types it offers, off each type's default size. "1x3 is
+most likely a book, 2x2 is most likely a drawer, 3x3 could be a drawer or a
+calendar."
+
+**A sketched box opens the shape ring**, round the middle of the box, headed
+with its size (`3 × 3`). Seven blobs, nearest first clockwise from the top,
+and *More…* last, which opens the whole picker on the same cell. A hold with
+no box, the knob and the rail pull still open the picker: they carry no shape.
+
+**Nearness is `shapeKinds(w, h, home)` in panels.js.** Every type that can be
+made (not a `cat`, which is only a question, and not a control), at its
+default size **on this device** through `sizeOfKind()`, ordered by the cells
+you would add or take away (`|Δw| + |Δh|`), then by how far the proportions
+differ, then by prominence: the picker's front row, then *More types*, then
+the rest. A board's `makes.only` counts half a cell nearer, and its
+`makes.sizes` rules still make the thing without asking (decision 199). On a
+phone that gives books first for 1×3, drawers for 2×2, checklist and calendar
+for 3×3, and a task for 3×1; the Mac's cells are smaller, so its sizes, and
+its answers, differ.
+
+**A subtype rides in its category's blob.** Where a category is in the ring,
+its family members are left out, and pressing the category asks which (the
+Image blob offers the Painting): one shape answered by a book and then two
+kinds of book is a ring spent on one answer. A member whose category is not in
+the ring is listed by name.
+
+**A ring put down without a choice takes its cell with it** (`closeCtx()`), or
+the next thing made another way would land in a box drawn for something else.
+The release's trailing click is swallowed, because it lands on the board and
+would close the ring it just opened.

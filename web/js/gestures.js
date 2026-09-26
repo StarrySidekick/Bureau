@@ -5,7 +5,7 @@ import { CELL, gridOf, drawCols, drawRows, cellW, lay, boxOk, overlaps, sizeOfKi
 import { toast, gather, del, pushSets, holdIt, unholdIt } from './mutations.js';
 import { pending, tileTap, fireButton, turnPage,
   scratchGrab, scratchTo, scratchGo } from './tiles.js';
-import { modalNewObject, holdPanel, openCtx, closeCtx, schedulePanel, refreshPanel,
+import { modalNewObject, shapeRing, holdPanel, openCtx, closeCtx, schedulePanel, refreshPanel,
   closePanel } from './panels.js';
 import { render, shelfShift, reveal } from './views.js';
 import { gravityGrab, gravityDrag, gravityDrop } from './gravity.js';
@@ -1666,6 +1666,8 @@ function onUp(e){
   if(g.type==='swipe'){ if(S.sel.length){ S.sel=[]; render(); } return; }
 
   if(g.type==='sketch'){
+    // where the box was on the screen, for the shape ring to open round
+    const drawn = g.ghost ? g.ghost.getBoundingClientRect() : null;
     if(g.ghost) g.ghost.remove();
     if(g.hits && g.hits.length){        // it was a lasso, not a sketch
       S.sel = g.add ? [...new Set([...S.sel, ...g.hits])] : g.hits;
@@ -1697,6 +1699,13 @@ function onUp(e){
       : (g.ok
       ? {x:g.cand.x, y:g.cand.y, w:g.cand.w, h:g.cand.h, parent:home}
       : {x:g.x0, y:g.y0, parent:home});
+    /* **A box you drew is answered by the shape ring** (decision 210): the
+       types nearest that shape, round the middle of it. A hold with no box,
+       or a box the board refused, still opens the whole picker. The click
+       this release leaves behind would land on the board and close the ring,
+       so it is swallowed; the next press clears the flag either way. */
+    const c = pending.cell;
+    if(drawn && c && c.w && c.h){ gestureFlags.suppressClick = true; shapeRing(drawn, c); return; }
     modalNewObject();
     return;
   }

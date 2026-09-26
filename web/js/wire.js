@@ -846,6 +846,14 @@ function act(name, el){
        208). The sort goes through setField(), the one writer the editor's
        "Sorted by" row uses, so the undo and the desk's own config come along. */
     case 'sortmenu': sortMenu(el, el.dataset.id || ROOT); break;
+    /* A blob on the shape ring (decision 210): the type, made in the box you
+       drew, with its family question already answered by the blob itself.
+       The cell is lifted off before the ring closes, because closing a ring
+       without a choice throws its cell away. */
+    case 'ringmake': { const at = pending.cell; closeCtx(); pending.cell = at;
+      newOfKind(el.dataset.kind, !el.dataset.ask); break; }
+    case 'ringmore': { const at = pending.cell; closeCtx(); pending.cell = at;
+      modalNewObject(); break; }
     case 'setsort': {
       closeCtx();
       setField({dataset:{oset:`${el.dataset.id||ROOT}:sort`}, value:el.dataset.v});

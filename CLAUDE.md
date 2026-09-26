@@ -99,6 +99,9 @@ subtype (`family`), hanging one of 26 Met paintings from `img/paintings/`.
 **v2.05** (decision 209): *Moving down a phone board* can be **Smooth scroll**
 (`S.look.flow`, `flows()` in grid.js): the column of shelves is drawn whole and
 scrolls natively; sideways still pages.
+**v2.06** (decision 210): a box drawn with the Magic Selector opens the
+**shape ring** (`shapeRing()`/`shapeKinds()` in panels.js), the types nearest
+that shape at their default size, with *More…* for the whole picker.
 The **Bureau Workshop** artifact (https://claude.ai/artifact/4TjyQZ5xcuxCYFgfnRm76k)
 holds Timothy's own rearrangement of every menu and type: read its
 `workshop/state` document before reorganising menus or types.
