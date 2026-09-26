@@ -9376,7 +9376,9 @@ const PROP_OFF = () => { const b = document.createElement('button');
     const title = (document.querySelector('#panel .ptop b, #panel h1, #panel .ptitle')||{}).textContent || '';
     out.theGearIsBoardSettings = /Board settings/.test(document.querySelector('#panel').textContent)
       && !document.querySelector('#panel [data-act="panelback"]')
-      && !!document.querySelector('#panel [data-gravity]') && !!document.querySelector('#panel [data-style3]');
+      && !!document.querySelector('#panel [data-gravity]')
+      // the aesthetic is the whole desk's and lives in Global Settings (213)
+      && !document.querySelector('#panel [data-style3]');
     BUREAU.closePanel(); await nap(100);
     S.view='desk'; S.drawerId=null; BUREAU.render(); await nap(150);
     document.querySelector('.gridbar [data-act="appsettings"]').click(); await nap(250);
