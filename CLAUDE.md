@@ -101,7 +101,8 @@ subtype (`family`), hanging one of 26 Met paintings from `img/paintings/`.
 scrolls natively; sideways still pages.
 **v2.06** (decision 210): a box drawn with the Magic Selector opens the
 **shape ring** (`shapeRing()`/`shapeKinds()` in panels.js), the types nearest
-that shape at their default size, with *More…* for the whole picker.
+that shape at their default size, each drawn as its miniature (212), with
+*More…* for the whole picker.
 Decision 211 put the drawer front the right way round: glass, letter block
 (the sort, in place of the Scrabble tile), knob, padlock, gear.
 The **Bureau Workshop** artifact (https://claude.ai/artifact/4TjyQZ5xcuxCYFgfnRm76k)

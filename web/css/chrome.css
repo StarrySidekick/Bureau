@@ -4224,13 +4224,13 @@ html[data-theme="walnut"] .toast{background:var(--paper-3);color:var(--ink)}
 .ctxmenu.radial .ctxhead{position:absolute;left:0;top:calc(-1 * var(--rad,96px) - 52px);
   transform:translateX(-50%);white-space:nowrap;padding:3px 10px;border-radius:var(--pill);
   background:var(--paper);color:var(--ink-2);font-size:12px;box-shadow:var(--shadow)}
-.ctxmenu.radial button.radblob{
+.ctxmenu.radial .radblob{
   position:absolute;left:0;top:0;width:66px;padding:0;gap:3px;
   display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
   background:none;border-radius:0;text-align:center;
   transform:translate(calc(var(--x) - 50%), calc(var(--y) - 23px));
 }
-.ctxmenu.radial button.radblob:hover{background:none}
+.ctxmenu.radial .radblob:hover{background:none}
 .ctxmenu.radial.flung button.radblob{
   animation:radfling .3s cubic-bezier(.2,.9,.25,1.25) both;
   animation-delay:calc(var(--i) * 18ms);
@@ -4247,6 +4247,18 @@ html[data-theme="walnut"] .toast{background:var(--paper-3);color:var(--ink)}
     0 3px 7px -2px rgba(0,0,0,.35), inset 0 -2px 3px rgba(0,0,0,.10);
   transition:transform .12s}
 .radblob:hover .radpaint,.radblob:active .radpaint{transform:scale(1.1)}
+/* The shape ring's blobs hold the thing itself (decision 212): the picker's
+   own miniature in a bigger well, taking no pointer events so a press is the
+   blob's and never the sample tile's (which is a real tile, with a tile's
+   click). */
+.ctxmenu.radial .radblob{cursor:pointer}
+.radpaint.radtile{width:60px;height:60px;overflow:hidden;
+  background:radial-gradient(circle at 34% 30%, color-mix(in srgb, #fff 40%, var(--paper)),
+    var(--paper) 60%, color-mix(in srgb, var(--wood) 16%, var(--paper)))}
+.radtile .pvscale{pointer-events:none;flex:0 0 auto}
+.radtile .pvscale *{pointer-events:none}
+.ctxmenu.radial.shapering .radblob{width:74px;transform:translate(calc(var(--x) - 50%), calc(var(--y) - 31px))}
+.ctxmenu.radial.shapering .radblob:has(> .radpaint:not(.radtile)){transform:translate(calc(var(--x) - 50%), calc(var(--y) - 23px))}
 .radblob b{font-size:10.5px;font-weight:600;line-height:1.1;color:var(--ink);
   padding:1px 5px;border-radius:var(--pill);
   background:color-mix(in srgb, var(--paper) 86%, transparent);white-space:nowrap}

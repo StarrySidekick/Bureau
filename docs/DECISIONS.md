@@ -9786,7 +9786,7 @@ the ring is listed by name.
 **A ring put down without a choice takes its cell with it** (`closeCtx()`), or
 the next thing made another way would land in a box drawn for something else.
 The release's trailing click lands on the board and would close the ring it
-just opened, so a ring ignores a close for its first 400ms (`ringJustOpened()`).
+just opened, so a ring ignores a close for its first 250ms (`ringJustOpened()`).
 Swallowing it with `suppressClick` was tried first and left the flag up
 wherever no click followed, eating the next real one.
 
@@ -9807,3 +9807,24 @@ than the screen leaves none, so the lip shrank as you opened one and the
 board jumped by the difference. `sizeGrid()` now sizes the lip off what a
 full shelf would leave, on every board, and a short board's scroller gives it
 that share.
+
+## 212 · The shape ring shows the things themselves
+
+*2026-09-26.* Timothy: keep the preview of what the object will actually look
+like as the picture on the wheel.
+
+Each blob in the shape ring is now the type drawn by `sampleTile()`, the
+picker's own miniature at the type's default shape, set in a larger well of
+paint (60px) on a wider ring. *More…* keeps its plus. Two things came with it:
+
+- **A blob is a `div` with a button's role.** A sample tile is a real tile,
+  which is a `<button>`, and a button inside a button is unnested by the
+  parser, taking the layout with it; the same reason `.kindtile` is a div. The
+  ring's CSS now says `.radblob`, not `button.radblob`.
+- **The miniature takes no pointer events**, so a press is the blob's and
+  never the sample's: a sample sits in a `.grid`, and wire.js would otherwise
+  read a press on it as a press on a tile.
+
+The guard against the release's own click is 250ms, not 400: that click comes
+within a few milliseconds, and 400 was long enough to swallow a deliberate
+press beside the ring.

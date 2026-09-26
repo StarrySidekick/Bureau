@@ -249,17 +249,24 @@ function shapeRing(rect, cell){
   const ks = shapeKinds(cell.w, cell.h, home).slice(0, RING_N);
   const PAINTS = ['#C8553D','#E0A43A','#7FA54E','#3E7C8C','#4A5FA8','#8A5BA6','#B0677E','#8C6A3F'];
   // a category's blob asks which of its family (the Image blob offers the Painting)
+  /* **Each blob is the thing it makes** (decision 212): the type drawn by
+     `sampleTile()` at its own default shape, the picker's miniature set in a
+     well of paint. The blob is a `div` with a button's role, because a tile is
+     a `<button>` and one inside another is unnested by the parser, taking the
+     layout with it (the same reason `.kindtile` is a div). */
   const items = ks.map(k => ({act:`data-act="ringmake" data-kind="${k}"${
-      (K(k).family||[]).length>1 ? ' data-ask="1"' : ''}`, icon:K(k).ic||'note', label:K(k).nm}))
-    .concat({act:'data-act="ringmore"', icon:'plus', label:'More…'});
-  const n = items.length, R = n<=6 ? 84 : n<=8 ? 96 : 112, pad = 36;
+      (K(k).family||[]).length>1 ? ' data-ask="1"' : ''}`,
+      art:`<span class="radpaint radtile" style="--k:${hexOf(K(k).c)}">${sampleTile(kindSample(k), 46, 46)}</span>`,
+      label:K(k).nm}))
+    .concat({act:'data-act="ringmore"', art:`<span class="radpaint">${ic('plus',17)}</span>`, label:'More…'});
+  const n = items.length, R = n<=6 ? 96 : n<=8 ? 114 : 128, pad = 44;
   el.innerHTML = `<i class="radhole" aria-hidden="true"></i>
     <div class="ctxhead">${cell.w} × ${cell.h}</div>${
     items.map((m,i)=>{
       const a = -Math.PI/2 + i*2*Math.PI/n, x = Math.cos(a)*R, y = Math.sin(a)*R;
-      return `<button class="radblob" ${m.act} title="${esc(m.label)}"
+      return `<div class="radblob" role="button" tabindex="0" ${m.act} title="${esc(m.label)}"
         style="--x:${x.toFixed(1)}px;--y:${y.toFixed(1)}px;--i:${i};--paint:${PAINTS[i%PAINTS.length]}">
-        <span class="radpaint">${ic(m.icon,17)}</span><b>${esc(m.label)}</b></button>`;
+        ${m.art}<b>${esc(m.label)}</b></div>`;
     }).join('')}`;
   const r = $('#frame').getBoundingClientRect();
   el.classList.add('open','palette','radial','shapering');
@@ -276,7 +283,7 @@ function shapeRing(rect, cell){
    left the flag up wherever no click came (a synthetic release), eating the
    next real one; asking how long the ring has been open cannot go stale. */
 let RING_AT = 0;
-const ringJustOpened = ()=> $('#ctx').classList.contains('shapering') && Date.now() - RING_AT < 400;
+const ringJustOpened = ()=> $('#ctx').classList.contains('shapering') && Date.now() - RING_AT < 250;
 
 /* Every type falls in exactly one group. `scene` used to be listed under both
    Writing and Film, because the two filters were written independently.
