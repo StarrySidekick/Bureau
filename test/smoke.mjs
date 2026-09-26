@@ -2593,8 +2593,10 @@ const PROP_OFF = () => { const b = document.createElement('button');
     const ghost = document.querySelector('.ghost');
     out.theGhostIsOnThisShelf = !!ghost && +getComputedStyle(ghost).gridRowStart <= per;
     ev(frame, 'pointerup', x + 40, y + 40); await nap(300);
-    out.thePickerOpened = !!document.querySelector('#panel');
-    const chip = document.querySelector('#panel .kindgrid button');
+    /* A drawn box opens the shape ring now (decision 210); a blob in it
+       makes that type in the box. */
+    out.thePickerOpened = !!document.querySelector('#ctx.shapering.open');
+    const chip = document.querySelector('#ctx.shapering [data-act="ringmake"]:not([data-ask])');
     if(chip){ chip.click(); await nap(350); }
     const made = S.objects.filter(o => o.parent === 'root' && o.id !== t.id);
     out.itMadeOne = made.length === 1;
@@ -7958,6 +7960,12 @@ const PROP_OFF = () => { const b = document.createElement('button');
     out.theBandIsASketchAndNotALasso = !!ghost && !/picking|bad/.test(ghost.className);
     sketch.ev('pointerup', sketch.at.x + sketch.cell*2.4, sketch.at.y + sketch.cell*1.4);
     await nap(320);
+    /* The ring first (decision 210), and More… on it is the whole picker
+       on the same cell. */
+    out.andItOpensTheShapeRing = !!document.querySelector('#ctx.shapering.open')
+      && /\d+ × \d+/.test((document.querySelector('#ctx .ctxhead')||{}).textContent||'');
+    const more = document.querySelector('#ctx.shapering [data-act="ringmore"]');
+    if(more){ more.click(); await nap(320); }
     out.andItOpensThePicker = !!document.querySelector('#panel')
       && document.querySelector('#panel').dataset.panel === 'newobject'
       && S.sel.length === 0;
@@ -9458,6 +9466,12 @@ const PROP_OFF = () => { const b = document.createElement('button');
       ev('pointerup', x + cell*dw, y + cell*dh); await nap(350);
     };
     await sketch(2, 2, 2, 1);                       // three by two: no rule
+    /* The shape ring leads with what the board makes (decision 210), and
+       More… is the picker this block was written against. */
+    const ringKinds = [...document.querySelectorAll('#ctx.shapering [data-act="ringmake"]')].map(b=>b.dataset.kind);
+    out.theRingLeadsWithWhatTheBoardMakes = ringKinds.includes('note') && ringKinds.includes('task');
+    const ringMore = document.querySelector('#ctx.shapering [data-act="ringmore"]');
+    if(ringMore){ ringMore.click(); await nap(320); }
     const panel = document.querySelector('#panel');
     out.aWideBoxAsks = !!panel && panel.dataset.panel === 'newobject';
     const lead = [...document.querySelectorAll('#panel .boardmakes .kindtile')]

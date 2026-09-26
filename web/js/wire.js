@@ -19,7 +19,7 @@ import { openObj, openWriter, openRead, openViewer, closeSheet, renderSheet, wor
   mdKey, copyObject } from './sheet.js';
 import { openPanel, closePanel, refreshPanel, panelKey, panelBack, draft, modalNewObject, modalNewKind, modalMove, renderPreview, holdPanel,
   objectPanel,
-  drawerFromSelection, openCtx, closeCtx, sortMenu, openCmd, closeCmd, cmdList, cmdMove, cmdAt, runCmd,
+  drawerFromSelection, openCtx, closeCtx, ringJustOpened, sortMenu, openCmd, closeCmd, cmdList, cmdMove, cmdAt, runCmd,
   schedulePanel, quickISO, SCHED, SCHED_PENS, plansPanel, tagFirstPanel,
   familyPanel, becomePanel, lifeFirstPanel, donePanel } from './panels.js';
 import { onDown, onMove, onUp, onCancel, onTouchStart, onTouchMove, onTouchEnd,
@@ -1059,7 +1059,8 @@ function wire(){
     // a gesture that ended in a drag leaves one click behind; drop it
     if(gestureFlags.suppressClick){ gestureFlags.suppressClick=false; return; }
     const t=e.target;
-    if(!t.closest('#ctx')) closeCtx();
+    // …but not the click the shape ring's own release leaves behind (210)
+    if(!t.closest('#ctx') && !ringJustOpened()) closeCtx();
     /* Typing into a tile is not clicking the tile. A checklist front carries a
        real input inside a [data-drawer], so without this, reaching for the box
        opens the drawer out from under you. Every field in the app is driven by

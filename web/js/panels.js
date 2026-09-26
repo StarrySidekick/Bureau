@@ -223,7 +223,7 @@ function sortMenu(anchor, cid){
    then how far the proportions differ, then how prominent the type is — the
    picker's front row, then *More types*, then the rest — so a tie goes to the
    thing you reach for. A board that names what it makes (`makes.only`,
-   decision 199) has those counted half a cell nearer. Categories that only
+   decision 199) has those first, nearest of them first. Categories that only
    ask a question (`cat`) and controls are left out; a family's members are in
    it by name, so the Painting is there when you drew a painting's shape. */
 const RING_N = 7;
@@ -232,9 +232,9 @@ function shapeKinds(w, h, home){
   const rank = k => PRIMARY.includes(k) ? 0 : SECONDARY.includes(k) ? 1 : 2;
   return KEYS.filter(k => KINDS[k] && !K(k).cat && !kindHas(k,'control'))
     .map(k => { const [kw, kh] = sizeOfKind(k, dv, home);
-      return {k, d: Math.abs(kw-w) + Math.abs(kh-h) - (only.includes(k) ? .5 : 0),
+      return {k, o: only.includes(k) ? 0 : 1, d: Math.abs(kw-w) + Math.abs(kh-h),
         a: Math.abs(Math.log((kw/kh)/(w/h))), r: rank(k)}; })
-    .sort((p, q) => p.d-q.d || p.a-q.a || p.r-q.r)
+    .sort((p, q) => p.o-q.o || p.d-q.d || p.a-q.a || p.r-q.r)
     .map(x => x.k)
     /* A subtype whose category is already in the ring rides in its blob —
        pressing the category asks which, the way the picker does — so one
@@ -269,7 +269,14 @@ function shapeRing(rect, cell){
   el.style.left = clamp(rect.left + rect.width/2  - r.left, span, Math.max(span, r.width  - span))+'px';
   el.style.top  = clamp(rect.top  + rect.height/2 - r.top,  span + 30, Math.max(span + 30, r.height - span))+'px';
   el.classList.remove('flung'); void el.offsetWidth; el.classList.add('flung');
+  RING_AT = Date.now();
 }
+/* The release that opened a shape ring leaves a click behind, and it lands on
+   the board, which closes any open menu. Swallowing it with `suppressClick`
+   left the flag up wherever no click came (a synthetic release), eating the
+   next real one; asking how long the ring has been open cannot go stale. */
+let RING_AT = 0;
+const ringJustOpened = ()=> $('#ctx').classList.contains('shapering') && Date.now() - RING_AT < 400;
 
 /* Every type falls in exactly one group. `scene` used to be listed under both
    Writing and Film, because the two filters were written independently.
@@ -2574,7 +2581,7 @@ function closeCtx(){
 
 export { plansPanel, planCard, boardRow,
   overlayHTML, openPanel, closePanel, refreshPanel, repositionPanel, panelKey, panelBack, draft,
-  openMenu, sortMenu, shapeRing, shapeKinds, modalNewObject, holdPanel, objectPanel, drawerPanel, modalNewKind,
+  openMenu, sortMenu, shapeRing, shapeKinds, ringJustOpened, modalNewObject, holdPanel, objectPanel, drawerPanel, modalNewKind,
   renderPreview, modalMove, tagFirstPanel, familyPanel, becomePanel, lifeFirstPanel, donePanel,
   sampleObject, sampleTile, kindSample,
   objectPanelBody, objBackTo, openCmd, closeCmd, cmdList, cmdMove, cmdAt, runCmd, drawerFromSelection, openCtx, closeCtx,

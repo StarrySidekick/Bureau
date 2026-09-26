@@ -1701,11 +1701,9 @@ function onUp(e){
       : {x:g.x0, y:g.y0, parent:home});
     /* **A box you drew is answered by the shape ring** (decision 210): the
        types nearest that shape, round the middle of it. A hold with no box,
-       or a box the board refused, still opens the whole picker. The click
-       this release leaves behind would land on the board and close the ring,
-       so it is swallowed; the next press clears the flag either way. */
+       or a box the board refused, still opens the whole picker. */
     const c = pending.cell;
-    if(drawn && c && c.w && c.h){ gestureFlags.suppressClick = true; shapeRing(drawn, c); return; }
+    if(drawn && c && c.w && c.h){ shapeRing(drawn, c); return; }
     modalNewObject();
     return;
   }
