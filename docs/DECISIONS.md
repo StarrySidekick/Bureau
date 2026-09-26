@@ -9800,3 +9800,10 @@ And the Scrabble tile is tried as a child's **letter block**: a painted cube
 letter raised on the front, S as you arranged it, A or Z for the
 alphabeticals. `RAILART.block` in views.js; the Scrabble drawing is gone
 rather than kept beside it, since there is one sort control.
+
+**And the lip is one height on every board.** Decision 208 gave the lip the
+top half of whatever a board left over, and a proportional drawer shorter
+than the screen leaves none, so the lip shrank as you opened one and the
+board jumped by the difference. `sizeGrid()` now sizes the lip off what a
+full shelf would leave, on every board, and a short board's scroller gives it
+that share.

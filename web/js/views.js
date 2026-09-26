@@ -1889,8 +1889,15 @@ function sizeGrid(){
        208). Since the board stopped at fourteen rows that leftover can be a
        cell or more, and a name sitting on top of an empty band of wood reads
        as a name that slipped. */
-    const top = Math.floor(over/2), deep = railMin + Math.ceil(over/2);
-    const gap = gapMin + (lip ? 0 : top), lipH = lip ? Math.round(barH + top) : 0;
+    /* **The lip is one height on every board** (decision 211): what a full
+       shelf would leave above it, whether or not this board is short. A
+       short board takes none of the leftover, and a lip sized off *its*
+       leftover shrank on the way into a small drawer, so the board jumped
+       by the difference the moment it opened. A short board's scroller gives
+       the lip its share instead. */
+    const lipTop = lip ? Math.floor(Math.max(0, room - rows*w)/2) : 0;
+    const top = Math.floor(over/2), deep = railMin + (short ? 0 : Math.ceil(over/2));
+    const gap = gapMin + (lip ? 0 : top), lipH = lip ? Math.round(barH + lipTop) : 0;
     if(lip && lipH!==REVEAL.lip){ REVEAL.lip=lipH; }
     if(lip && lip.style.height !== lipH+'px') lip.style.height = lipH+'px';
     if(gap!==REVEAL.gap){ REVEAL.gap=gap; sc.style.marginTop = gap+'px'; }
@@ -1903,7 +1910,7 @@ function sizeGrid(){
        the sticky rim shading in chrome.css. */
     const flowH = !short && flows('phone') ? drawn*w : 0;
     if(flowH && Math.abs(flowH-REVEAL.h)>0.01) REVEAL.h = flowH;
-    const tall = short ? Math.round(room)+'px' : flowH ? flowH+'px' : '';
+    const tall = short ? Math.round(room - lipTop)+'px' : flowH ? flowH+'px' : '';
     const hNow = parseFloat(sc.style.height)||0, hWant = parseFloat(tall)||0;
     if(Math.abs(hNow-hWant)>0.01 || (!tall && sc.style.height)) sc.style.height = tall;
     if(flowH){
