@@ -105,6 +105,9 @@ that shape at their default size, each drawn as its miniature (212), with
 *More…* for the whole picker.
 Decision 211 put the drawer front the right way round: glass, letter block
 (the sort, in place of the Scrabble tile), knob, padlock, gear.
+**v2.11** (decision 213): Settings as Timothy arranged them in the Workshop:
+Aesthetics folded into **Global Settings**, labels renamed, five settings cut
+(migration 43 resets them to their defaults).
 The **Bureau Workshop** artifact (https://claude.ai/artifact/4TjyQZ5xcuxCYFgfnRm76k)
 holds Timothy's own rearrangement of every menu and type: read its
 `workshop/state` document before reorganising menus or types.

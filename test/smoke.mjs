@@ -131,7 +131,7 @@ const PROP_OFF = () => { const b = document.createElement('button');
   const settingsHasDoors = await page.evaluate(() =>
     document.querySelectorAll('#panel [data-ssec]').length >= 4
     && !document.querySelector('#panel [data-style3]'));
-  await page.click('#panel [data-ssec="style"]');
+  await page.click('#panel [data-ssec="look"]');
   await page.waitForTimeout(260);
   const settingsBack = await page.evaluate(() => !!document.querySelector('#panel [data-act="panelback"]'));
   await shot('02-settings');
@@ -182,7 +182,7 @@ const PROP_OFF = () => { const b = document.createElement('button');
   const styleSurvived = await page.evaluate(() => BUREAU.state.look.style);
   await page.click('.gridbar [data-act="appsettings"]');
   await page.waitForTimeout(250);
-  await page.click('#panel [data-ssec="style"]');
+  await page.click('#panel [data-ssec="look"]');
   await page.waitForTimeout(220);
   await page.click('[data-style3="victorian"]');
   await page.waitForTimeout(200);

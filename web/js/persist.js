@@ -19,7 +19,7 @@ import { plans, stampPlan } from './plans.js';
    Bureau is this phone running" is exactly the question you ask when a change
    appears not to have deployed. Shown in Settings, so it can be read off the
    device rather than guessed at. */
-const APP_VERSION = '2.10';
+const APP_VERSION = '2.11';
 const KEY = 'bureau.v1';
 const install = {deferred:null};   // the browser's install prompt, when one is on offer
 let saveTimer = null;
@@ -267,7 +267,7 @@ function rescalePhone(d, from, cols){
    skips all of them, an old backup replays only what it is missing. These
    used to be ad-hoc per-load mutations inside adopt(); a new repair that
    should run once belongs here, as the next numbered step. */
-const DATA_V = 42;
+const DATA_V = 43;
 const MIGRATIONS = [
   // Drawers and objects were two arrays and a drawer could not live inside
   // anything. foldDrawers also replays the old dense flow to give v1 drawers
@@ -1062,6 +1062,25 @@ const MIGRATIONS = [
     const to = {fern:'plant', palm:'jardiniere'};
     (d.objects||[]).forEach(o=>{ if(o && to[o.decor]) o.decor = to[o.decor]; });
     Object.values(d.kinds||{}).forEach(k=>{ if(k && to[k.decor]) k.decor = to[k.decor]; });
+  }},
+  /* ---- five settings cut from the panel (decision 213) ------------------
+     Timothy cut them in the Workshop. A setting nobody can reach must not be
+     left on an answer, so each goes back to its default: laid flat, the
+     checklist front each device's own, the aesthetic's tick box, shadows on,
+     and drawers as screenfuls, which needs what migration 38 did when that
+     became the default, so nothing past the first screenful is re-placed. */
+  {v:43, up(d){
+    const L = d.look || (d.look = {});
+    ['pinned','clfit','check','shadows'].forEach(k=>{ delete L[k]; });
+    if(L.proportional){
+      delete L.proportional;
+      const objs = d.objects||[];
+      objs.forEach(o=>{
+        if(!o || !(Array.isArray(o.attrs) ? o.attrs.includes('container') : kindHas(o.kind,'container'))) return;
+        const sh = shelvesToHold(o, objs);
+        if(sh.w>1 || sh.h>1) o.shelves = sh;
+      });
+    }
   }},
 ];
 function migrate(d){

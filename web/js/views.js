@@ -659,7 +659,7 @@ function gridSizeField(cid){
   if(!app && cid!==ROOT && byId(cid)) return '';
   const now = app ? (S.look.grid||'small') : gridKeyOf(cid);
   const own = app ? null : (cfgOf(cid)||{}).grid;
-  return `<div class="field" style="margin-top:12px"><label>${app?'iPhone grid':'This board'}</label>
+  return `<div class="field" style="margin-top:12px"><label>${app?'Grid Width':'This board'}</label>
       <div class="filterbar">${Object.entries(PHONE_GRIDS).map(([k,n])=>
         `<button class="fchip${now===k?' on':''}${!app&&own!==k?' inherited':''}"
           data-gridsize="${k}"${app?'':` data-gridfor="${cid}"`}>${
@@ -749,9 +749,12 @@ const SETSECS = {
      were scattered across Aesthetics and Appearance, and they are the one set
      of settings that means something inside a container too — so inside one,
      the gear opens straight onto this door and nothing else. */
-  board:  ['Board settings', 'grid', 'aesthetic, colour, surface, gravity and size'],
-  style:  ['Aesthetics', 'palette', 'the sixteen colours, light and dark'],
-  look:   ['Appearance', 'brush',   'the board, the shadows, the grid'],
+  board:  ['Board settings', 'grid', 'colour, background, grid size, pages and gravity'],
+  /* **Global Settings** (decision 213, Timothy's own arrangement in the
+     Workshop): the aesthetic, its palette and light or dark, and what is left
+     of Appearance, in one door. Aesthetics was its own door and is gone; a
+     desk that asks for it by its old key is given this one. */
+  look:   ['Global Settings', 'palette', 'aesthetic, palette, light and dark, and the rest'],
   /* Depth was four rows at the foot of Appearance and is now eleven, because a
      drawer wants a different answer from a book and both wanted trying out. A
      panel asks one question, and "how solid does this desk look" is not the
@@ -761,15 +764,15 @@ const SETSECS = {
   /* Urgency is scaled by one number — how much work a day holds — and it is
      not a look, a board or a backup, so it is its own door rather than a row
      wedged into someone else's. See decisions 66 and 120. */
-  time:   ['Time and urgency','clock', "a day's work, and what makes a thing urgent"],
+  time:   ['Time','clock', "a day's work, and what makes a thing urgent"],
   /* Not a setting at all: a door out to the specimen book, which is every
      aesthetic and everything each one dresses, generated out of the desk that
      is running. It sits among the look doors because that is what you are
      looking at when you want it. See decision 143. */
-  guide:  ['Specimen book','book', 'every aesthetic, and everything it dresses'],
+  guide:  ['Specimen Book','book', 'every aesthetic, and everything it dresses'],
   plans:  ['Plans',      'grid',    'boards you saved, to lay out again'],
-  things: ['Your things','archive', 'how much there is, and getting it out'],
-  paste:  ['Paste in',   'plus',    'objects described as JSON'],
+  things: ['Your Things','archive', 'how much there is, and getting it out'],
+  paste:  ['Paste an Object', 'plus',    'objects described as JSON'],
   about:  ['About',      'help',    'which Bureau this is, and starting over']
 };
 function settingsPanel(sec, cid){
@@ -780,6 +783,7 @@ function settingsPanel(sec, cid){
   /* And the specimen book is not a panel either: it is a document, so it takes
      the screen the way a surface does rather than a column down the edge. */
   if(sec==='guide'){ closePanel(); return openGuide(); }
+  if(sec==='style') sec = 'look';          // Aesthetics was folded in (213)
   const s = SETSECS[sec] ? sec : null;
   /* Inside a container there is no app to set — the aesthetic, the gravity and
      the board are all there is — so the door is the whole panel and there is
@@ -805,9 +809,9 @@ function toggleSettings(){
   here ? settingsPanel('board', S.drawerId) : settingsPanel();
 }
 
-/* Every aesthetic, as a swatch of itself. Drawn in two doors — Board settings,
-   where it is one of the things a board is dressed in, and Aesthetics, where
-   its sixteen colours are — and one function so the two cannot disagree. */
+/* Every aesthetic, as a swatch of itself, at the head of Global Settings
+   (decision 213). It was in two doors, Board settings and Aesthetics; it is
+   the whole desk's, so it is in the one door that is about the whole desk. */
 const stylePicker = ()=> `<div class="stylegrid">${Object.entries(STYLES).map(([k,st])=>
       `<button class="styletile${(S.look.style||'victorian')===k?' on':''}" data-style3="${k}">
         <span class="stpv" style="background:${st.cols[0]};border-color:${st.cols[2]}">${
@@ -842,40 +846,11 @@ function settingsBody(sec, cid){
       <div class="s"><b>${standalone?'Installed':'Browser'}</b>running as</div>
     </div>
     <div class="mini" style="--k:var(--brass);margin-top:6px">An installed copy serves itself from its own cache, so it can be a version behind until its second launch. This is the one that is running right now.</div>` : '',
-    at('style') ? `
-    <div class="section-h"><h2>Aesthetics</h2><div class="rule"></div></div>
-    ${stylePicker()}
-
-    ${/* Light or dark is still not a second axis: it is a second set of
-         sixteen that an aesthetic may carry, and Victoria is the one that does.
-         The default follows the phone, because the desk should already be
-         dark when you pick it up at night. */''}
-    <div class="field" style="margin-top:12px"><label>Light and dark</label>
-      <select class="psel" data-darkmode>${Object.entries(DARKMODES).map(([v,n])=>
-        `<option value="${v}"${darkMode()===v?' selected':''}>${n}</option>`).join('')}</select>
-      <div class="mini" style="--k:var(--brass);margin-top:6px">${hasDark()
-        ? `${esc(styleNow().nm)} has a walnut set of its own — the same sixteen slots after dark, so every drawer keeps the colour you gave it.`
-        : `${esc(styleNow().nm)} is one light and has no dark set, so this changes nothing here. Victoria does.`}</div>
-    </div>
-
-    <div class="field" style="margin-top:14px"><label>What ${esc(styleNow().nm)} is made of</label>
-      <div class="mini" style="--k:var(--brass);margin:2px 0 8px">The first five dress the app itself. The other eleven are what drawers and objects are painted in. A slot is a <b>position</b>, not a colour: a drawer holds slot 11, and slot 11 is a claret here and a deep sea blue in Aeros. Changing aesthetic swaps every tile to that aesthetic's answer; changing back puts each one exactly where it was.</div>
-      ${[[0,OBJ0,'chrome'],[OBJ0,16,'']].map(([a,b,cls])=>
-        `<div class="slotgrid ${cls}">${palNow().slice(a,b).map((c,n)=>{
-          const i=a+n;
-          return `<label class="slot${cls?' chrome':''}" title="${slotName(i)}">
-            <b style="background:${c}"><input type="color" data-slot="${i}" value="${c}"></b>
-            <span>${slotName(i)}</span></label>`;}).join('')}</div>`).join('')}
-      ${(S.look.slots&&S.look.slots[S.look.style||'victorian'])
-        ? `<button class="pill" style="margin-top:8px" data-act="resetslots">${ic('undo',13)} Back to ${esc(styleNow().nm)}&rsquo;s own sixteen</button>` : ''}
-    </div>` : '',
     at('board') ? `${inside ? `<div class="woven">${objectPanelBody(cid, null)}</div>
     <div class="section-h" style="margin-top:18px"><h2>Board settings</h2><div class="rule"></div></div>` : ''}
-    <div class="section-h"><h2>Aesthetic</h2><div class="rule"></div></div>
-    ${stylePicker()}
     <div class="section-h"><h2>The board</h2><div class="rule"></div></div>
     ${inside ? boardRow(cid, byId(cid), false) : `
-    <div class="field" style="margin-top:12px"><label>Board colour</label>
+    <div class="field" style="margin-top:12px"><label>Board Color</label>
       <div class="pickgrid sw" style="margin-top:6px">${
         [['#EFEADA|#DDE5CE','Green baize'],['#EFEADA|#E4DCC6','Sand'],['#EDE6D4|#D9E2E4','Slate'],
          ['#F0EBDC|#E8DAD2','Clay'],['#EEE9DA|#E2E2DA','Ash'],['#EFEADA|#EFEADA','Plain']].map(([v,nm])=>{
@@ -902,7 +877,7 @@ function settingsBody(sec, cid){
           graph paper unlocked, the carcass locked — and that made the surface
           you look at all day change under a switch you flick all day. It is a
           thing you set once, so it is a row. See decision 192. */''}
-    <div class="field" style="margin-top:12px"><label>What the board is made of</label>
+    <div class="field" style="margin-top:12px"><label>Board Background Type</label>
       <div class="filterbar">${Object.entries(SURFACES).map(([v,n])=>
         `<button class="fchip${(S.look.surface||'grid')===v?' on':''}" data-surface="${v}">${n}</button>`).join('')}</div>
       <div class="mini" style="--k:var(--brass);margin-top:6px"><b>Graph paper</b> is the checkerboard, two cells to a square, and it is what arranging is done on. <b>Plain</b> is the same colour with nothing drawn on it. <b>The carcass</b> is the wood the bar above and the drawer along the bottom are made of, so the whole screen reads as one piece of furniture. The board's own colour is still the board's own colour — this only says what is drawn on it.</div>
@@ -911,7 +886,7 @@ function settingsBody(sec, cid){
     ${/* How tall a phone board is (decision 205). Two answers, because both
           are good: the wood above the board is furniture Timothy likes, and
           the row it costs is a row. */''}
-    <div class="field" style="margin-top:12px"><label>Board height on a phone</label>
+    <div class="field" style="margin-top:12px"><label>Grid Height</label>
       <div class="filterbar">${[['','Wood above the board'],['fit','One more row']].map(([v,n])=>
         `<button class="fchip${(S.look.rows||'')===v?' on':''}" data-rows="${v}">${n}</button>`).join('')}</div>
       <div class="mini" style="--k:var(--brass);margin-top:6px"><b>Wood above the board</b> keeps a strip of the carcass under the status bar and the drawer front at its full depth: eight by fourteen on an iPhone. <b>One more row</b> takes the strip away and slims the drawer front until a fifteenth row fits.</div>
@@ -919,24 +894,15 @@ function settingsBody(sec, cid){
 
     ${/* How a phone gets from one page of a board to the next, up and down
           (decision 209). Sideways is a swipe either way. */''}
-    <div class="field" style="margin-top:12px"><label>Moving down a phone board</label>
+    <div class="field" style="margin-top:12px"><label>Page Navigation Style</label>
       <div class="filterbar">${[['','Page by page'],['scroll','Smooth scroll']].map(([v,n])=>
         `<button class="fchip${(S.look.flow||'')===v?' on':''}" data-flow="${v}">${n}</button>`).join('')}</div>
       <div class="mini" style="--k:var(--brass);margin-top:6px"><b>Page by page</b> swipes one screenful at a time. <b>Smooth scroll</b> runs the pages of a board together into one column you scroll through; sideways is still a swipe to the next shelf, or the drawer beside this one.</div>
     </div>
 
-    ${/* Whether a container is as big inside as its front is outside
-          (decision 188) or a number of screenfuls (before it, and the default
-          again since decision 195). One answer for the whole desk, because
-          the other is a desk where two drawers the same size hold different
-          amounts for no reason you can see. */''}
-    <div class="field" style="margin-top:12px"><label>How big a drawer is inside</label>
-      <div class="filterbar">
-        <button class="fchip${proportional()?'':' on'}" data-proportional="">Screenfuls</button>
-        <button class="fchip${proportional()?' on':''}" data-proportional="1">As big as its front</button></div>
-      <div class="mini" style="--k:var(--brass);margin-top:6px"><b>Screenfuls</b>: every drawer opens onto one screen, or as many as you give it, whatever size its front is on the desk. <b>As big as its front</b>: four cells inside for every cell of the front, so a small drawer holds a little and a big one a lot. Switching to screenfuls gives every drawer enough of them to hold what is already in it.</div>
-    </div>
-
+    ${/* *How big a drawer is inside* was a row here (decisions 188 and 195)
+          and is cut (213): every drawer is screenfuls. The mode is still in
+          the code behind `S.look.proportional`, which nothing sets now. */''}
     ${/* The board lets go. It is an experiment and the note says so — but it
           is a real solver rather than a keyframe, because the interesting half
           is what a pile *does* when you throw another drawer into it. Nothing
@@ -957,52 +923,47 @@ function settingsBody(sec, cid){
 
     ${inside ? shelfCountField(cid) : gridSizeField(null)}` : '',
     at('look') ? `
-    <div class="section-h"><h2>Appearance</h2><div class="rule"></div></div>
-    <div class="field"><label>Background</label>
+    ${/* Timothy's order (decision 213): the aesthetic and its colours first,
+         then the room it sits in. How things sit, what a checklist front shows,
+         the tick boxes and the shadows were cut: each is left at its default
+         (migration 43) rather than stuck on an answer nobody can reach. */''}
+    <div class="section-h"><h2>Aesthetic</h2><div class="rule"></div></div>
+    ${stylePicker()}
+    ${/* Light or dark is still not a second axis: it is a second set of
+         sixteen that an aesthetic may carry, and Victoria is the one that does.
+         The default follows the phone, because the desk should already be
+         dark when you pick it up at night. */''}
+    <div class="field" style="margin-top:12px"><label>Light and dark</label>
+      <select class="psel" data-darkmode>${Object.entries(DARKMODES).map(([v,n])=>
+        `<option value="${v}"${darkMode()===v?' selected':''}>${n}</option>`).join('')}</select>
+      <div class="mini" style="--k:var(--brass);margin-top:6px">${hasDark()
+        ? `${esc(styleNow().nm)} has a walnut set of its own — the same sixteen slots after dark, so every drawer keeps the colour you gave it.`
+        : `${esc(styleNow().nm)} is one light and has no dark set, so this changes nothing here. Victoria does.`}</div>
+    </div>
+
+    <div class="field" style="margin-top:14px"><label>Palette</label>
+      <div class="mini" style="--k:var(--brass);margin:2px 0 8px">The first five dress the app itself. The other eleven are what drawers and objects are painted in. A slot is a <b>position</b>, not a colour: a drawer holds slot 11, and slot 11 is a claret here and a deep sea blue in Aeros. Changing aesthetic swaps every tile to that aesthetic's answer; changing back puts each one exactly where it was.</div>
+      ${[[0,OBJ0,'chrome'],[OBJ0,16,'']].map(([a,b,cls])=>
+        `<div class="slotgrid ${cls}">${palNow().slice(a,b).map((c,n)=>{
+          const i=a+n;
+          return `<label class="slot${cls?' chrome':''}" title="${slotName(i)}">
+            <b style="background:${c}"><input type="color" data-slot="${i}" value="${c}"></b>
+            <span>${slotName(i)}</span></label>`;}).join('')}</div>`).join('')}
+      ${(S.look.slots&&S.look.slots[S.look.style||'victorian'])
+        ? `<button class="pill" style="margin-top:8px" data-act="resetslots">${ic('undo',13)} Back to ${esc(styleNow().nm)}&rsquo;s own sixteen</button>` : ''}
+    </div>
+    <div class="section-h"><h2>The room</h2><div class="rule"></div></div>
+    <div class="field" style="margin-top:12px"><label>Background</label>
       <div class="pickgrid sw" style="margin-top:6px">${BACKDROPS.map(([c,nm])=>
         `<button data-look="bg" data-val="${c}" title="${nm}" class="${(lookVal('bg')||'')===c?'on':''}" style="background:${c}"></button>`).join('')}</div>
       <label class="custcol"><input type="color" data-lookinput="bg" value="${lookVal('bg')||palNow()[0]}"><span>Custom background</span></label>
       ${lookVal('bg')?`<button class="pill" style="margin-left:6px" data-look="bg" data-val="">Reset</button>`:''}
     </div>
 
-    ${/* Every tile casts a shadow onto whatever is under it, which is most of
-         what makes a board read as things lying *on* a surface rather than as
-         coloured rectangles. It is also the single loudest thing in the app, so
-         it is worth being able to see the desk with it off. */''}
-    ${/* Pinned rather than laid flat — a little air and a degree or two of
-         tilt, off a hash of each object's id so it never changes. It is the one
-         setting in the app that is purely about mood, which is reason enough to
-         have it. See decision 75. */''}
-    <div class="field" style="margin-top:12px"><label>How things sit</label>
-      <div class="filterbar">${[['','Laid flat on the board'],['1','Pinned to it']].map(([v,n])=>
-        `<button class="fchip${(S.look.pinned?'1':'')===v?' on':''}" data-pinned="${v}">${n}</button>`).join('')}</div>
-      <div class="mini" style="--k:var(--brass);margin-top:6px">Pinned gives every tile a little room around it and tilts it a degree or two, as though a pin went through one of its top corners. The angle comes from the object itself, so nothing moves between renders — and a tile straightens while you carry it.</div>
-    </div>
-
-    ${/* How much a checklist front shows — **per device**, like a box is. Two
-          lines to a cell is a good Mac front and a bad phone one: the cell is
-          the same fifty pixels on both, so a packed line on a phone is a
-          twenty-four pixel task. See decision 140, as amended. */''}
-    <div class="field" style="margin-top:12px"><label>What a checklist front shows${dev()==='phone'?' on a phone':' on a Mac'}</label>
-      <div class="filterbar">${Object.entries(CL_FITS).map(([v,n])=>
-        `<button class="fchip${clFit()===v?' on':''}" data-clfit="${v}">${n}</button>`).join('')}</div>
-      <div class="mini" style="--k:var(--brass);margin-top:6px">Twice as many packs two lines into every cell of a checklist's height, with the type and the box brought down to suit — a six-cell front shows twelve things to do instead of six. One per cell is a line exactly as tall as the task tile it stands for. Each device answers for itself: a phone is one per cell and a Mac is twice as many, until you say otherwise here.</div>
-    </div>
-
-    ${/* Six tick boxes, each drawn as itself — ticked, because what a box
-          looks like when it is ticked is the half you actually live with. */''}
-    <div class="field" style="margin-top:12px"><label>Tick boxes</label>
-      <div class="checkpick">${[['','However the aesthetic ticks'], ...Object.entries(CHECKS)].map(([v,n])=>
-        `<button class="checkopt${(S.look.check||'')===v?' on':''}" data-checks="${v}" title="${n}">
-          <span data-checks="${v||(styleNow().check||'square')}"><i class="check on" style="--k:var(--brass)">${ic('check',12)}</i></span>
-          <u>${n}</u></button>`).join('')}</div>
-      <div class="mini" style="--k:var(--brass);margin-top:6px">Everywhere a box is drawn — a task on the board, a row in a list, a line on a checklist front. Tasks and checklists follow the desk rather than each carrying their own. The first follows the aesthetic and changes with it; the rest stay where you put them.</div>
-    </div>
-
     ${/* Things that come out of a tile when a new one lands. Real physics
           rather than a keyframe — see decision 85 — so it is a flavour rather
           than a switch: how many, how big, and which shapes. */''}
-    <div class="field" style="margin-top:12px"><label>When something new arrives</label>
+    <div class="field" style="margin-top:12px"><label>Default Confetti Type</label>
       <div class="checkpick">${(()=>{
         const cs=getComputedStyle(document.documentElement);
         const ink=cs.getPropertyValue('--brass').trim()||'#A9793F';
@@ -1026,14 +987,7 @@ function settingsBody(sec, cid){
       <div class="mini" style="--k:var(--brass);margin-top:6px">Thrown out of a new object as it lands on the board, and then pulled down. They take its colour and the aesthetic's own accent, so a burst belongs to the desk it happened on.</div>
     </div>
 
-    <div class="field" style="margin-top:12px"><label>Shadows</label>
-      <div class="filterbar">${[['1','Things cast a shadow'],['','Laid flat']].map(([v,n])=>
-        `<button class="fchip${(S.look.shadows===false?'':'1')===v?' on':''}" data-shadows="${v}">${n}</button>`).join('')}</div>
-      <div class="mini" style="--k:var(--brass);margin-top:6px">Off, a tile is the colour and the border and nothing else — flatter, quieter, and easier to read a crowded board off.</div>
-    </div>
-
-
-    <div class="field" style="margin-top:12px"><label>Whose desk this is</label>
+    <div class="field" style="margin-top:12px"><label>Desk Owner</label>
       <input data-lookinput="owner" value="${esc(S.look.owner||'')}" placeholder="Your name">
       <div class="mini" style="--k:var(--brass);margin-top:6px">Used for the title at the top of the desk.</div>
     </div>
@@ -1169,7 +1123,7 @@ function settingsBody(sec, cid){
     <div class="mini" style="--k:var(--brass);margin-top:6px">A <b>hard</b> deadline can reach every rung — missing it costs something. A <b>soft</b> one is a day you gave yourself, so it always reads one rung lower and never reaches Behind. A thing with no deadline has no urgency at all, which is a different answer from Room.</div>
     <div class="mini" style="--k:var(--brass);margin-top:6px">Give a drawer <b>Sorted by → Most urgent first</b>, or a magic drawer the rule <b>Urgency is more than 2</b>, and this becomes a board.</div>` : '',
     at('things') ? `
-    <div class="section-h"><h2>Your things</h2><div class="rule"></div></div>
+    <div class="section-h"><h2>Statistics</h2><div class="rule"></div></div>
     <div class="statline">
       <div class="s"><b>${S.objects.length}</b>objects</div>
       <div class="s"><b>${containers().length}</b>drawers</div>

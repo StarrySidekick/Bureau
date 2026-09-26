@@ -9828,3 +9828,33 @@ paint (60px) on a wider ring. *More…* keeps its plus. Two things came with it:
 The guard against the release's own click is 250ms, not 400: that click comes
 within a few milliseconds, and 400 was long enough to swallow a deliberate
 press beside the ring.
+
+## 213 · Settings as Timothy arranged them in the Workshop
+
+*2026-09-26.* Timothy rearranged the Settings panel in the Bureau Workshop
+artifact (decision 208); this is that arrangement, built.
+
+- **Aesthetics is gone as a door.** The aesthetic picker, *Light and dark* and
+  the sixteen-colour palette (*Palette*, was "What Victoria is made of") head
+  **Global Settings**, which is Appearance renamed. The picker is no longer in
+  Board settings: an aesthetic is the whole desk's, and so is this door. A
+  request for the old `style` door opens `look`.
+- **Renamed.** Board colour → Board Color; What the board is made of → Board
+  Background Type; Board height on a phone → Grid Height; iPhone grid → Grid
+  Width; Moving down a phone board → Page Navigation Style; When something new
+  arrives → Default Confetti Type; Whose desk this is → Desk Owner; and the
+  count at the top of Your Things → Statistics. Doors: Time and urgency →
+  Time, Specimen book → Specimen Book, Your things → Your Things, Paste in →
+  Paste an Object.
+- **Cut from the panel:** How big a drawer is inside, How things sit, What a
+  checklist front shows, Tick boxes, Shadows. **Migration 43** returns each to
+  its default (screenfuls, laid flat, each device's own checklist front, the
+  aesthetic's tick box, shadows on), because a setting nobody can reach must
+  not be left on an answer. Going back to screenfuls does what migration 38
+  did, so nothing past a drawer's first screenful is re-placed. The code
+  behind each is untouched and a test may still set the state directly.
+- **Inside a drawer** the gear still opens its Board settings, now without the
+  aesthetic; the aesthetic is set from the desk's gear.
+
+The Workshop's own copy of "what ships" was not rebuilt, so its Changes tab
+still reads these as changes from before; they are the arrangement, done.
