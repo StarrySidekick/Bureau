@@ -9787,3 +9787,14 @@ the ring is listed by name.
 the next thing made another way would land in a box drawn for something else.
 The release's trailing click is swallowed, because it lands on the board and
 would close the ring it just opened.
+
+## 211 · The drawer front the right way round, and a letter block
+
+*2026-09-26.* Timothy: the order was reversed. "Right to left: magnifying
+glass, Scrabble piece, knob, lock, gear" read as left to right in decision 208.
+So, left to right: **magnifying glass, letter block, knob, padlock, gear**.
+And the Scrabble tile is tried as a child's **letter block**: a painted cube
+(red front, blue top, green side, each inside a routed border) with the sort's
+letter raised on the front, S as you arranged it, A or Z for the
+alphabeticals. `RAILART.block` in views.js; the Scrabble drawing is gone
+rather than kept beside it, since there is one sort control.

@@ -102,6 +102,8 @@ scrolls natively; sideways still pages.
 **v2.06** (decision 210): a box drawn with the Magic Selector opens the
 **shape ring** (`shapeRing()`/`shapeKinds()` in panels.js), the types nearest
 that shape at their default size, with *More…* for the whole picker.
+Decision 211 put the drawer front the right way round: glass, letter block
+(the sort, in place of the Scrabble tile), knob, padlock, gear.
 The **Bureau Workshop** artifact (https://claude.ai/artifact/4TjyQZ5xcuxCYFgfnRm76k)
 holds Timothy's own rearrangement of every menu and type: read its
 `workshop/state` document before reorganising menus or types.

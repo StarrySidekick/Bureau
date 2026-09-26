@@ -133,19 +133,20 @@ function gridBar(c){
   if(S.device==='phone'){
     const lip = S.look.rows !== 'fit';
     /* **Two a side round the knob, and each one is the thing it does**
-       (decision 208). Left to right: the gear, the lock, the knob, a Scrabble
-       tile for the sort, a magnifying glass for the search. The list toggle
-       went into the tile's menu, because grid or list is a way of ordering
-       what you look at; the spiral is on the Mac's bar and nowhere here. With
-       *One more row* the name rides in the front ahead of the gear. */
+       (decision 208, mirrored in 211). Left to right: a magnifying glass for
+       the search, a letter block for the sort, the knob, the padlock, the
+       gear. The list toggle went into the block's menu, because grid or list
+       is a way of ordering what you look at; the spiral is on the Mac's bar
+       and nowhere here. With *One more row* the name rides in the front ahead
+       of the glass. */
     const locked = boardLocked();
     RAILBAR = {
       where: lip ? '' : where,
-      left: railObj('gear', 'appsettings', c.id, c.id===ROOT?'Settings':'Board settings')
-          + railObj(locked?'lock':'unlock', 'togglelock', '',
-              locked?'Everything is locked — tap to unlock':'Everything is unlocked — tap to lock', locked),
-      right: railObj('tile', 'sortmenu', c.id, 'Sort and view', false, sortOf(c))
-          + railObj('glass', 'searchopen', c.id, 'Search', searchOpen())
+      left: railObj('glass', 'searchopen', c.id, 'Search', searchOpen())
+          + railObj('block', 'sortmenu', c.id, 'Sort and view', false, sortOf(c)),
+      right: railObj(locked?'lock':'unlock', 'togglelock', '',
+              locked?'Everything is locked — tap to unlock':'Everything is unlocked — tap to lock', locked)
+          + railObj('gear', 'appsettings', c.id, c.id===ROOT?'Settings':'Board settings')
     };
     return lip ? `<div class="toplip"${REVEAL.lip?` style="height:${REVEAL.lip}px"`:''}>${where}</div>` : '';
   }
@@ -182,10 +183,9 @@ const GEAR_PATH = (()=>{
 const BRASS = id => `<linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1">
     <stop offset="0" stop-color="#F6DE94"/><stop offset=".42" stop-color="#C99C40"/>
     <stop offset="1" stop-color="#6E4C14"/></linearGradient>`;
-/* Scrabble values, because the tile shows the sort it is on: S for as you
-   arranged it, A and Z for the two alphabeticals, and the letter keeps the
-   number printed in its corner that it has on the board. */
-const TILE_FACE = {az:['A',1], za:['Z',10]};
+/* The block shows the sort it is on: S as you arranged it, A and Z for the
+   two alphabeticals. */
+const BLOCK_FACE = {az:'A', za:'Z'};
 const RAILART = {
   glass: ()=> `<defs>${BRASS('ro-gb')}
       <radialGradient id="ro-gl" cx=".36" cy=".3" r=".85">
@@ -201,19 +201,21 @@ const RAILART = {
     <circle cx="16" cy="16" r="9.9" fill="none" stroke="#000" stroke-opacity=".25" stroke-width=".8"/>
     <path d="M9.4 13.4a7.4 7.4 0 0 1 4.5-4.6" stroke="#fff" stroke-opacity=".8" stroke-width="1.7"
       fill="none" stroke-linecap="round"/>`,
-  tile: sort => { const [ch, pts] = TILE_FACE[sort] || ['S', 1];
-    return `<defs><linearGradient id="ro-mp" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0" stop-color="#F7EACB"/><stop offset=".55" stop-color="#E3C792"/>
-        <stop offset="1" stop-color="#C39F5E"/></linearGradient></defs>
-    <rect x="4" y="6" width="32" height="31.5" rx="3.6" fill="#7A5A2A"/>
-    <rect x="4" y="3" width="32" height="31.5" rx="3.6" fill="url(#ro-mp)"/>
-    <rect x="4.8" y="3.8" width="30.4" height="29.9" rx="3" fill="none" stroke="#fff" stroke-opacity=".5" stroke-width=".9"/>
-    <text x="18.6" y="26.4" text-anchor="middle" font-family="'Helvetica Neue',Arial,sans-serif"
-      font-weight="700" font-size="19.5" fill="#fff" fill-opacity=".45">${ch}</text>
-    <text x="18.6" y="25.6" text-anchor="middle" font-family="'Helvetica Neue',Arial,sans-serif"
-      font-weight="700" font-size="19.5" fill="#2B2016">${ch}</text>
-    <text x="32.2" y="31" text-anchor="end" font-family="'Helvetica Neue',Arial,sans-serif"
-      font-weight="700" font-size="${pts>9?5.6:6.8}" fill="#2B2016">${pts}</text>`; },
+  /* A child's letter block (decision 211, in place of the Scrabble tile):
+     a painted cube seen from above and to the right, each face its own
+     colour inside a routed border, the letter raised on the front. */
+  block: sort => { const ch = BLOCK_FACE[sort] || 'S';
+    return `<path d="M4 11 11 4h25l-7 7Z" fill="#2F6DB5"/>
+    <path d="M6.6 10 11.6 5h21.8l-5 5Z" fill="none" stroke="#fff" stroke-opacity=".45" stroke-width=".9"/>
+    <path d="M29 11 36 4v25l-7 7Z" fill="#2E7A36"/>
+    <path d="M30.2 12.4 34.8 7.8v20.6l-4.6 4.6Z" fill="none" stroke="#fff" stroke-opacity=".3" stroke-width=".9"/>
+    <rect x="4" y="11" width="25" height="25" fill="#C8342B"/>
+    <rect x="5.6" y="12.6" width="21.8" height="21.8" fill="none" stroke="#F6D36B" stroke-width="1.3"/>
+    <path d="M4 11h25v25" fill="none" stroke="#000" stroke-opacity=".22" stroke-width=".8"/>
+    <text x="16.5" y="31.2" text-anchor="middle" font-family="'Arial Rounded MT Bold','Helvetica Neue',Arial,sans-serif"
+      font-weight="800" font-size="18" fill="#7A1C14">${ch}</text>
+    <text x="16" y="30.4" text-anchor="middle" font-family="'Arial Rounded MT Bold','Helvetica Neue',Arial,sans-serif"
+      font-weight="800" font-size="18" fill="#F6D36B">${ch}</text>`; },
   /* Locked, the shackle is home in the body; open, it is lifted and its short
      leg stands clear — which is how you read a padlock across a room. */
   lock: open => `<defs>${BRASS('ro-lb')}

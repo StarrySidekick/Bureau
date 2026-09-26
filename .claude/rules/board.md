@@ -469,9 +469,9 @@ has to exist: capacity is read off the desk box, and a phone can only drag the
 phone one.
 
 **The drawer front holds objects, not knobs** (decision 208). On a phone
-`gridBar()` hands `RAILBAR = {where, left, right}` to `deskRail()`: gear and
-padlock left of the knob, Scrabble tile (`sortmenu`, which opens `sortMenu()`)
-and magnifying glass right of it, each `railObj()` drawing its `RAILART` at the
+`gridBar()` hands `RAILBAR = {where, left, right}` to `deskRail()`:
+magnifying glass and letter block (`sortmenu`, which opens `sortMenu()`) left
+of the knob, padlock and gear right of it (decision 211), each `railObj()` drawing its `RAILART` at the
 knob's height. The `data-act`s are the ones the old buttons had, so anything
 pressing `togglelock`, `searchopen` or `appsettings` still finds them. The Mac
 bar is unchanged.

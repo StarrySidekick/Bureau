@@ -288,9 +288,9 @@ function chromePlate(s){
     <nav class="deskrail withbar ks-med" style="height:52px">
       <i class="dgrain"></i>
       <div class="gridbar inrail">
-        <div class="railside railleft">${railObj('gear','','','Settings')}${railObj('lock','','','Locked',true)}</div>
+        <div class="railside railleft">${railObj('glass','','','Search')}${railObj('block','','','Sort')}</div>
         <i class="pull railknob"></i>
-        <div class="railside railright">${railObj('tile','','','Sort')}${railObj('glass','','','Search')}</div>
+        <div class="railside railright">${railObj('lock','','','Locked',true)}${railObj('gear','','','Settings')}</div>
       </div>
     </nav>
   </div>`;
