@@ -3767,3 +3767,25 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
 .boardshape i{width:12px;height:12px;border-radius:2px;display:block;
   box-shadow:inset 0 0 0 1px var(--rule)}
 .boardshape i.on{background:var(--brass);box-shadow:none}
+
+/* ---- the tools — decision 220 -----------------------------------------
+   A tool on a board is the drawing and nothing else, like every instrument,
+   with the drop shadow a thing standing on a desk throws. A tossed coin spins
+   on its edge, which is `rotateY`, and slows as it settles; the spool glows
+   while it is holding a thread, and the first thing tied is ringed until the
+   second is pressed. */
+.acttile .toolBody{filter:drop-shadow(0 1.5px 1.2px rgba(0,0,0,.45))}
+.coinspin{animation:coinspin .95s cubic-bezier(.2,.7,.3,1) 1;transform-origin:50% 50%}
+@keyframes coinspin{
+  0%{transform:perspective(200px) rotateY(0) scale(1)}
+  30%{transform:perspective(200px) rotateY(900deg) scale(1.12)}
+  100%{transform:perspective(200px) rotateY(1440deg) scale(1)}
+}
+.acttile.threading .actart,.railobj.ro-spool.on{
+  filter:drop-shadow(0 0 5px color-mix(in srgb, var(--glow) 80%, transparent))}
+.drawer.tiedfrom{outline:2px dashed #C9362B;outline-offset:3px}
+.railpick{margin-top:6px}
+.fchip.railchip{padding:3px;width:38px;height:38px;display:inline-grid;place-items:center}
+.fchip.railchip svg{width:28px;height:28px;overflow:visible}
+.fchip.railchip:not(.on){opacity:.5}
+@media (prefers-reduced-motion: reduce){ .coinspin{animation:none} }

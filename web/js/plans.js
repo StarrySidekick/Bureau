@@ -151,6 +151,8 @@ function planFrom(cid, nm){
        them. */
     sorts: Array.isArray(c.sortCycle) ? c.sortCycle.slice() : undefined,
     sort: c.sort || undefined,
+    // which tools its drawer front carries, either side of the knob (decision 220)
+    rail: c.rail ? JSON.parse(JSON.stringify(c.rail)) : undefined,
     objects
   };
   /* **Its boards, when it has more than one** (decision 219): which cells of
@@ -186,7 +188,9 @@ function stampPlan(planId, intoId, at){
   // …and how it sorts, onto a board that has not said (decision 215)
   if(home!==ROOT && byId(home)){ const hb = byId(home);
     if(Array.isArray(p.sorts) && !hb.sortCycle) hb.sortCycle = p.sorts.slice();
-    if(p.sort && !hb.sort) hb.sort = p.sort; }
+    if(p.sort && !hb.sort) hb.sort = p.sort;
+    // …and what its drawer front carries, onto a board that has not said (220)
+    if(p.rail && !hb.rail) hb.rail = JSON.parse(JSON.stringify(p.rail)); }
   /* **A plan is an arrangement, so the drawer grows to hold it.** Since
      decision 188 a container's board is its own tile, four cells to a cell —
      so a plan authored eight cells across and twelve down no longer fits a

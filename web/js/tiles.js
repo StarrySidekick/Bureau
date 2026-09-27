@@ -9,7 +9,7 @@ import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, chi
   isPicture, isMedia, isPlayable, isDecor, isBackdrop, fillOf, mediaTypeOf, frameOf, isWindow,
   boardLocked, prioOf, repeatSaid, urgencyOf, urgeSaid, durSaid, standsProud, shelfDepth, bookDepth, faceCue, anyFaceCue,
   calViewOf, calShowOf, weekStartOf, calCols, borderOf, textureOf, marginOf, isFragmentKind, gravityOn,
-  groupOf, sealOf, isSealed, habitPlan, habitPeriods, habitRun } from './model.js';
+  groupOf, sealOf, isSealed, habitPlan, habitPeriods, habitRun, relate } from './model.js';
 import { GRID, CELL, gridOf, drawCols, drawRows, lay, overlaps, boxOk, freeSpot, anySpot, roomFor, gridRows, sizeOfKind, sideways, innerOf,
   ensureBox, shelfRows, shelfOrigin, shelfAt, shelfOfBox, colsOf, flows, boardsOf, nearestBoard, isBoard, reachable } from './grid.js';
 import { dealTop, create, toast, fits, toggleDone, someKind, ctlSpec, ctlSaid, ctlIsOn,
@@ -523,8 +523,18 @@ function playPress(id){
   else { a.pause(); markSounding(id,false); }
 }
 
+/* What a tool does when it is pressed is what its button in the drawer front
+   does, and those handlers are in wire.js, which registers the one entry
+   point here when it wires the frame (decision 220). A registry rather than
+   an import, so this module does not reach back into the one that calls it. */
+const TOOLS = {press:null};
 function tileTap(id){
   const o=byId(id); if(!o) return;
+  /* **Tying with the spool** (decision 220). Pressing the spool picks up the
+     thread; the next thing pressed is where it starts and the one after is
+     where it is tied, and nothing else a tap would do happens in between. The
+     spool itself, pressed again, puts the thread down. */
+  if(S.threading && actOf(o)!=='spool'){ threadTo(id); return; }
   /* A container opens — **unless it is an instrument**. A deck is a container
      carrying `act`, and a press on one cuts it rather than diving into it:
      what you want from a deck across the desk is a different card showing, and
@@ -595,6 +605,10 @@ function tileTap(id){
         return;
       }
       const out = activeTap(id);
+      if(typeof out === 'string' && out.startsWith('tool:')){
+        if(TOOLS.press) TOOLS.press(out.slice(5), o);
+        return;
+      }
       render();
       /* The ring and the roll are **drawn over the result**, never instead of
          it: the state changed and the board was rebuilt before either class
@@ -1397,7 +1411,10 @@ function drawTileFace(o, arr, box, persp){
      card, and a **Link** at one cell is its portal — both are already a mark,
      and the anonymous stamp would be less of one. */
   const onePortal = has(o,'button') && (!(o.link && o.link.target) || outURL(o.link.target));
-  if(box.w<=1 && box.h<=1 && !has(o,'control') && !(cont && faceOf(o)==='deck') && !onePortal){
+  /* …and an instrument, since the tools made one cell their size (decision
+     220): a padlock at one cell is a padlock, not a stamp saying "Padlock". */
+  if(box.w<=1 && box.h<=1 && !has(o,'control') && !(cont && faceOf(o)==='deck') && !onePortal
+     && !isActive(o)){
     /* A calendar at one cell is still a calendar: the tear-off day pad — the
        month small, today big — not an anonymous mark. See decision 80. */
     if(cont && faceOf(o)==='calendar'){
@@ -2102,7 +2119,8 @@ function drawTileFace(o, arr, box, persp){
      is the whole of what it is for. */
   if(isActive(o)){
     return `<button class="drawer otile acttile act-${actOf(o)}${
-        metroGoing(o.id)?' going':''}${sel}" data-row="${o.id}"
+        metroGoing(o.id)?' going':''}${S.threading && actOf(o)==='spool' ? ' threading' : ''}${
+        S.threading && S.threading.from===o.id ? ' tiedfrom' : ''}${sel}" data-row="${o.id}"
       title="${esc(o.title || activeName(o))} · ${esc(activeSay(o))}"
       style="--c:${colour};${place}">
       ${activeArt(o)}
@@ -2652,6 +2670,8 @@ function boardLights(kids, shift, g, dv, cid){
   return out.length ? `<div class="lights" aria-hidden="true">${out.join('')}</div>` : '';
 }
 
+// how far in from a tile's corner its string is pinned, in cells
+const PIN_IN = 0.24;
 function boardStrings(kids, shift, g, dv, cid){
   if(gravityOn()) return '';
   const here = new Map(kids.map(o=>[o.id, o]));
@@ -2670,8 +2690,12 @@ function boardStrings(kids, shift, g, dv, cid){
       if(seen.has(key)) return;
       seen.add(key);
       const ra = boxOf(a), rb = boxOf(b);
-      const ax = ra.x - shift.x - 1 + ra.w/2, ay = ra.y - shift.y - 1 + ra.h/2;
-      const bx = rb.x - shift.x - 1 + rb.w/2, by = rb.y - shift.y - 1 + rb.h/2;
+      /* **Pinned at the top-left corner** (decision 220), a little in from it
+         so the pin sits on the card rather than on the board beside it. It
+         was the centre, which ran every string across the face of both
+         things it tied and hid the words it was meant to connect. */
+      const ax = ra.x - shift.x - 1 + PIN_IN, ay = ra.y - shift.y - 1 + PIN_IN;
+      const bx = rb.x - shift.x - 1 + PIN_IN, by = rb.y - shift.y - 1 + PIN_IN;
       /* A string sags, and how much is the span rather than a constant: a
          thread across two cells that dipped as far as one across twenty would
          read as a loop of rope. Capped, because a string across a whole desk
@@ -2925,6 +2949,23 @@ function vacancies(cid, dv, g, shift, cols, rows, cam){
   return {all: none===nx*ny, html};
 }
 
+/* The two presses the thread is waiting for. The first is remembered and
+   marked; the second ties them — `relate()`, which is what the Related row
+   in the editor has always written, so the string is drawn by the layer that
+   has always drawn one — and puts the thread down. Pressing the first thing
+   again lets go of it. */
+function threadTo(id){
+  const T = S.threading, o = byId(id); if(!T || !o) return;
+  if(!T.from){ T.from = id; render(); toast(`Tied to ${o.title||'that'} — now press what it goes to`); return; }
+  if(T.from === id){ T.from = null; render(); toast('Let go — press something to start from'); return; }
+  const a = byId(T.from);
+  pushSet('Tied with string', T.from, 'rel', a && a.rel ? a.rel.slice() : []);
+  relate(T.from, id);
+  S.threading = null;
+  save(); render();
+  toast(`Tied ${a && a.title ? a.title : 'it'} to ${o.title||'that'}`, true);
+}
+
 /* List view is the same tile, stretched into a band. Same silhouettes, same
    colours — a drawer still looks like a drawer, a task still comes to a point. */
 /* One row of a list. The same tile stretched into a band — same silhouettes,
@@ -3165,5 +3206,5 @@ function bookView(c, items){
    (the *object's* setting, a different thing entirely) is untouched. */
 export { spinTo, CLICKS, clickOf, fireButton, intoOf, tileTap, pending, placeAtPending, SHELFSHIFT,
   scratchGrab, scratchTo, scratchGo,
-  gridTile, gridOfContainer, listTile, boardVarsOf, bookOf, bookView, sheetOf, turnPage, clearPages,
+  gridTile, gridOfContainer, listTile, boardVarsOf, TOOLS, threadTo, bookOf, bookView, sheetOf, turnPage, clearPages,
   calSpan, calFront };

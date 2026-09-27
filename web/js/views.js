@@ -10,7 +10,7 @@ import { S, K, T, byId, has, isContainer, containers, container, childrenOf, cha
 import { GRID, PHONE_GRIDS, CELL, COLW, MEASURE, sideways, colsOf, gridKeyOf, SHELVES, PAGES_MAX, shelvesOf,
   shelfRows, shelfOfBox, shelfAt, setShelf, shelfOrigin, SHELF, drawCols, drawRows,
   lay, gridOf, cellW, ensureBox, innerOf, PLACED, proportional, flows,
-  isBoard, boardsOf, reachable, boardHolds } from './grid.js';
+  isBoard, boardsOf, reachable, boardHolds, removeBoard, SPAN } from './grid.js';
 import { themeNow, applyLook, lookVal, STYLES, BACKDROPS, SURFACES, DARKMODES, darkMode, hasDark,
   palNow, styleNow, hexOf, objColour, slotName, OBJ0, CHECKS, dressAs } from './look.js';
 import { gridOfContainer, gridTile, listTile, boardVarsOf, bookView, calSpan, calFront } from './tiles.js';
@@ -22,6 +22,7 @@ import { openGuide } from './guide.js';
    are loading. That is the graph the app already has; keep it that way. */
 import { sprayAt, SPRAYS, sprayNow, sprayMark, hopIntoCollector , applyZoom, zoomOut, zoomedIn, CAM_DIMS } from './motion.js';
 import { APP_VERSION, DATA_V, save, saveIfDirty, storeSize, install } from './persist.js';
+import { TOOLART } from './active.js';
 
 /* The desk is nothing but the grid. There is no toolbar: New, Arrange and
    Settings are control objects sitting on it, so the grid is the whole page. */
@@ -145,20 +146,65 @@ function gridBar(c){
        is a way of ordering what you look at; the spiral is on the Mac's bar
        and nowhere here. With *One more row* the name rides in the front ahead
        of the glass. */
-    const locked = boardLocked();
+    /* **Which tools, and which side, is the board's** (decision 220): up to
+       three either side of the knob, from the six there are, and a flow can
+       say. `railToolsOf()` is the one reader; the default is the four the
+       front has carried since decision 211. */
+    const rt = railToolsOf(c.id);
     RAILBAR = {
       where: lip ? '' : where,
-      left: railObj('glass', 'searchopen', c.id, 'Search', searchOpen())
-          + railObj('block', 'sortcycle', c.id,
-              `Sorted: ${(SORT_FACES[sortOf(c)||MANUAL]||SORT_FACES[MANUAL])[1]} — tap for the next, hold for line view`,
-              false, sortOf(c)||MANUAL),
-      right: railObj(locked?'lock':'unlock', 'togglelock', '',
-              locked?'Everything is locked — tap to unlock':'Everything is unlocked — tap to lock', locked)
-          + railObj('gear', 'appsettings', c.id, c.id===ROOT?'Settings':'Board settings')
+      left: rt.left.map(t=>railTool(t, c)).join(''),
+      right: rt.right.map(t=>railTool(t, c)).join('')
     };
     return lip ? `<div class="toplip"${REVEAL.lip?` style="height:${REVEAL.lip}px"`:''}>${where}</div>` : '';
   }
   return `<div class="gridbar shelf shelf-top">${where}${searchBtn(c)}${tools}</div>`;
+}
+/* ---- the tools in the drawer front — decision 220 ---------------------
+   Six, and a board carries up to three each side of the knob, in the order
+   it says. The glass, the block, the padlock and the gear are the four the
+   front has always had; the spool of thread and the spiral coin are new, and
+   each of the six is also an object a board can hold (`TOOLART`, the tool
+   rows of `ACTIVE`). */
+const RAIL_TOOLS = ['glass','block','lock','gear','spool','coin'];
+const RAIL_NAMES = {glass:'Magnifying glass', block:'Letter block', lock:'Padlock',
+  gear:'Gear', spool:'Spool of thread', coin:'Spiral coin'};
+const RAIL_DEFAULT = {left:['glass','block'], right:['lock','gear']};
+function railToolsOf(cid){
+  const r = (cfgOf(cid)||{}).rail;
+  if(!r || typeof r!=='object') return {left:RAIL_DEFAULT.left.slice(), right:RAIL_DEFAULT.right.slice()};
+  const seen = new Set();
+  const side = list => (Array.isArray(list)?list:[]).filter(t=>RAIL_TOOLS.includes(t) && !seen.has(t) && seen.add(t)).slice(0,3);
+  return {left:side(r.left), right:side(r.right)};
+}
+function railTool(t, c){
+  if(t==='glass') return railObj('glass', 'searchopen', c.id, 'Search', searchOpen());
+  if(t==='block') return railObj('block', 'sortcycle', c.id,
+    `Sorted: ${(SORT_FACES[sortOf(c)||MANUAL]||SORT_FACES[MANUAL])[1]} — tap for the next, hold for line view`,
+    false, sortOf(c)||MANUAL);
+  if(t==='lock'){ const locked = boardLocked();
+    return railObj(locked?'lock':'unlock', 'togglelock', '',
+      locked?'Everything is locked — tap to unlock':'Everything is unlocked — tap to lock', locked); }
+  if(t==='gear') return railObj('gear', 'appsettings', c.id, c.id===ROOT?'Settings':'Board settings');
+  if(t==='spool') return railObj('spool', 'spool', c.id,
+    S.threading ? 'Tying — press two things, or the spool to stop' : 'Spool of thread — press it, then two things to tie', !!S.threading);
+  if(t==='coin') return railObj('coin', 'coinspin', c.id, 'Spiral coin — one of anything, anywhere on this board');
+  return '';
+}
+/* The row in a board's settings that says which tools its drawer front
+   carries: the six, once for each side, pressed on and off. A tool is on one
+   side at most, so pressing it on one side takes it off the other. */
+function railToolsField(cid){
+  const rt = railToolsOf(cid);
+  const side = (k, nm) => `<div class="railpick"><span class="mini" style="--k:var(--brass)">${nm}</span>
+    <div class="filterbar">${RAIL_TOOLS.map(t=>
+      `<button class="fchip railchip${rt[k].includes(t)?' on':''}" data-railtool="${cid}:${k}:${t}"
+        title="${esc(RAIL_NAMES[t])}"><svg viewBox="0 0 40 40" aria-hidden="true">${
+        (t==='lock'?TOOLART.lock(false):TOOLART[t](t==='block'?MANUAL:undefined))}</svg></button>`).join('')}</div></div>`;
+  return `<div class="field" style="margin-top:12px"><label>Drawer Front</label>
+    ${side('left','Left of the knob')}${side('right','Right of the knob')}
+    <div class="mini" style="--k:var(--brass);margin-top:6px">Up to three either side, on a phone. The knob stays in the middle whatever is beside it, and every one of these is also a tool you can put on a board.</div>
+  </div>`;
 }
 /* What `gridBar()` left for the rail to draw on a phone, reset by viewHTML()
    before every build so a board with no bar (a panel preview) draws a plain
@@ -178,76 +224,15 @@ let RAILBAR = null;
    are declared inside each drawing with a fixed id; a pager pane can put a
    second copy on the screen, and a duplicate id resolving to an identical
    gradient draws the same thing. */
-const GEAR_PATH = (()=>{
-  // ten square-shouldered teeth, drawn once: a cog is a polygon, not a glyph
-  const n=10, ro=18.5, ri=14.2, pts=[];
-  for(let i=0;i<n;i++){
-    const a=i*2*Math.PI/n, t=Math.PI/n;
-    for(const [r, da] of [[ri,-t*.62],[ro,-t*.38],[ro,t*.38],[ri,t*.62]])
-      pts.push(`${(20+r*Math.cos(a+da)).toFixed(2)} ${(20+r*Math.sin(a+da)).toFixed(2)}`);
-  }
-  return 'M'+pts.join('L')+'Z';
-})();
-const BRASS = id => `<linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1">
-    <stop offset="0" stop-color="#F6DE94"/><stop offset=".42" stop-color="#C99C40"/>
-    <stop offset="1" stop-color="#6E4C14"/></linearGradient>`;
 /* Which way the block turns on its next draw (decision 215): set by the tap
    that changed the sort, read once by the build, so only the render that
    shows the new letter plays the turn. */
 let BLOCKFLIP = '';
 const flipBlock = axis => { BLOCKFLIP = axis; };
-const RAILART = {
-  glass: ()=> `<defs>${BRASS('ro-gb')}
-      <radialGradient id="ro-gl" cx=".36" cy=".3" r=".85">
-        <stop offset="0" stop-color="#F2FAFB" stop-opacity=".9"/>
-        <stop offset=".45" stop-color="#A9C3C8" stop-opacity=".42"/>
-        <stop offset="1" stop-color="#2F4A50" stop-opacity=".78"/></radialGradient>
-      <linearGradient id="ro-gh" gradientUnits="userSpaceOnUse" x1="27" y1="34" x2="34" y2="27">
-        <stop offset="0" stop-color="#240E05"/><stop offset=".5" stop-color="#6B3419"/>
-        <stop offset="1" stop-color="#2A1107"/></linearGradient></defs>
-    <path d="M25.5 25.5 36 36" stroke="url(#ro-gh)" stroke-width="6.4" stroke-linecap="round"/>
-    <path d="M23.6 23.6 27.4 27.4" stroke="url(#ro-gb)" stroke-width="7"/>
-    <circle cx="16" cy="16" r="11.6" fill="url(#ro-gl)" stroke="url(#ro-gb)" stroke-width="3.4"/>
-    <circle cx="16" cy="16" r="9.9" fill="none" stroke="#000" stroke-opacity=".25" stroke-width=".8"/>
-    <path d="M9.4 13.4a7.4 7.4 0 0 1 4.5-4.6" stroke="#fff" stroke-opacity=".8" stroke-width="1.7"
-      fill="none" stroke-linecap="round"/>`,
-  /* A child's letter block, face on (decision 215): one painted face in a
-     routed border with the sort's letter raised on it, the face the colour
-     that sort is given in `SORT_FACES`. It was drawn in perspective (211);
-     a block seen face on is the thing you turn to read. */
-  block: sort => { const [ch,,col] = SORT_FACES[sort] || SORT_FACES[MANUAL];
-    return `<rect x="5" y="6" width="30" height="30" rx="3" fill="#000" fill-opacity=".28"/>
-    <rect x="5" y="4" width="30" height="30" rx="3" fill="${col}"/>
-    <rect x="5" y="4" width="30" height="30" rx="3" fill="url(#ro-bk)"/>
-    <defs><linearGradient id="ro-bk" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#fff" stop-opacity=".28"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/>
-      <stop offset="1" stop-color="#000" stop-opacity=".22"/></linearGradient></defs>
-    <rect x="7.4" y="6.4" width="25.2" height="25.2" rx="1.6" fill="none" stroke="#F6D36B" stroke-width="1.4"/>
-    <text x="20.6" y="27.6" text-anchor="middle" font-family="'Arial Rounded MT Bold','Helvetica Neue',Arial,sans-serif"
-      font-weight="800" font-size="19" fill="#000" fill-opacity=".35">${ch}</text>
-    <text x="20" y="26.8" text-anchor="middle" font-family="'Arial Rounded MT Bold','Helvetica Neue',Arial,sans-serif"
-      font-weight="800" font-size="19" fill="#F6D36B">${ch}</text>`; },
-  /* Locked, the shackle is home in the body; open, it is lifted and its short
-     leg stands clear — which is how you read a padlock across a room. */
-  lock: open => `<defs>${BRASS('ro-lb')}
-      <linearGradient id="ro-ls" x1="0" y1="0" x2="1" y2="0">
-        <stop offset="0" stop-color="#6C7074"/><stop offset=".45" stop-color="#E6E9EB"/>
-        <stop offset="1" stop-color="#4A4E52"/></linearGradient></defs>
-    <path d="${open?'M27 19V8.5a7 7 0 0 0-14 0V12':'M27 19V12a7 7 0 0 0-14 0V19'}" fill="none"
-      stroke="url(#ro-ls)" stroke-width="3.8" stroke-linecap="round"/>
-    <rect x="8.5" y="17.5" width="23" height="18.5" rx="3.4" fill="url(#ro-lb)"/>
-    <rect x="9.3" y="18.3" width="21.4" height="16.9" rx="2.8" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width=".8"/>
-    <path d="M20 23.4a2.4 2.4 0 0 0-1.2 4.5l-.9 3.8h4.2l-.9-3.8A2.4 2.4 0 0 0 20 23.4Z" fill="#2A1A08"/>`,
-  gear: ()=> `<defs><radialGradient id="ro-gr" cx=".34" cy=".3" r=".9">
-        <stop offset="0" stop-color="#F8E3A0"/><stop offset=".45" stop-color="#C29338"/>
-        <stop offset="1" stop-color="#5E400F"/></radialGradient></defs>
-    <path d="${GEAR_PATH}" fill="url(#ro-gr)"/>
-    <circle cx="20" cy="20" r="10.2" fill="none" stroke="#000" stroke-opacity=".28" stroke-width="1.2"/>
-    <circle cx="20" cy="20" r="6.2" fill="#5A3C10"/>
-    <circle cx="20" cy="20" r="5.2" fill="url(#ro-gr)"/>
-    <circle cx="20" cy="20" r="2.1" fill="#24170A"/>`
-};
-RAILART.unlock = ()=> RAILART.lock(true);
+/* The drawings are in active.js since decision 220, where every tool that is
+   also an object on a board is drawn from the same table (`TOOLART`). */
+const RAILART = TOOLART;
+
 const railObj = (art, act, id, title, on, arg)=>{
   const flip = art==='block' && BLOCKFLIP ? ` flip-${BLOCKFLIP}` : '';
   if(flip) BLOCKFLIP = '';
@@ -928,7 +913,7 @@ function settingsBody(sec, cid){
       <div class="mini" style="--k:var(--brass);margin-top:6px">Where down actually is, the whole circle of it. Roll the phone and the heap runs to the low edge; turn it right over and everything falls to the top of the screen; lay it flat on a table and nothing moves at all, because a tray held level is not tipping anything anywhere. Half a tilt is half the pull. It asks iPhone for the motion sensor the first time, and it is the same one the cavity reads.</div>` : ''}
     </div>
 
-    ${inside ? shelfCountField(cid) : gridSizeField(null)}` : '',
+    ${inside ? shelfCountField(cid)+railToolsField(cid) : gridSizeField(null)}` : '',
     at('look') ? `
     ${/* Timothy's order (decision 213): the aesthetic and its colours first,
          then the room it sits in. How things sit, what a checklist front shows,
@@ -1403,6 +1388,28 @@ function centreDesk(){
   return moved || true;
 }
 
+/* ---- the desk down to the boards it uses — decision 220 ----------------
+   Migration 46 marks a desk from before boards were added one at a time, and
+   this does the work the first time there is a measurement to do it with:
+   every board with nothing on it, on either device, is taken away, one at a
+   time so the rectangle can close up behind each, and never the last. Where
+   you are standing is forgotten, so the desk opens on what is left. */
+function trimDesk(){
+  const cfg = S.deskCfg;
+  if(!cfg || !cfg.trim) return false;
+  const dv = dev();
+  if(!MEASURE[dv].w || !MEASURE[dv].room) return false;
+  delete cfg.trim;
+  for(let n=0; n<SPAN*SPAN; n++){
+    const all = boardsOf(ROOT);
+    if(all.length<=1) break;
+    const empty = all.find(b=>!boardHolds(ROOT, b.x, b.y));
+    if(!empty || !removeBoard(ROOT, empty.x, empty.y)) break;
+  }
+  delete SHELF[ROOT];
+  return true;
+}
+
 /* ---- show me the thing I just made -----------------------------------
    A board is a coordinate space, so a new object goes in the first free room
    scanning from the top. On a phone an object is full width, which means the
@@ -1662,7 +1669,8 @@ function render(){
   /* Put what is already on the desk onto the **middle** shelf, once per
      device. It needs a measurement, so on the very first render it does
      nothing and sizeGrid's re-render picks it up. See centreDesk(). */
-  const centred = centreDesk();
+  const trimmed = trimDesk();
+  const centred = centreDesk() || trimmed;
   const placed = PLACED.n;      // ensureBox() may invent boxes as this builds
   $('#app').innerHTML = viewHTML();
   const key=viewKey(), now=$('#app .scroll');
@@ -1975,5 +1983,5 @@ function sizeGrid(){
 
 export { render, renderSoon, sizeGrid, shelfTop, shelfLeft, shelfShift, centreDesk,
   reveal, deskMap, viewHTML, previewHTML,
-  goShelf, goShelfTo, sideDrawer, goSideDrawer, gridSizeField, shelfCountField,
+  goShelf, goShelfTo, sideDrawer, goSideDrawer, gridSizeField, shelfCountField, railToolsField, railToolsOf, RAIL_TOOLS,
   settingsPanel, toggleSettings, railObj, flipBlock };

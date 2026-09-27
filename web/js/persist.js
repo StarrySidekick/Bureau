@@ -19,7 +19,7 @@ import { plans, stampPlan } from './plans.js';
    Bureau is this phone running" is exactly the question you ask when a change
    appears not to have deployed. Shown in Settings, so it can be read off the
    device rather than guessed at. */
-const APP_VERSION = '2.16';
+const APP_VERSION = '2.17';
 const KEY = 'bureau.v1';
 const install = {deferred:null};   // the browser's install prompt, when one is on offer
 let saveTimer = null;
@@ -267,7 +267,7 @@ function rescalePhone(d, from, cols){
    skips all of them, an old backup replays only what it is missing. These
    used to be ad-hoc per-load mutations inside adopt(); a new repair that
    should run once belongs here, as the next numbered step. */
-const DATA_V = 45;
+const DATA_V = 46;
 const MIGRATIONS = [
   // Drawers and objects were two arrays and a drawer could not live inside
   // anything. foldDrawers also replays the old dense flow to give v1 drawers
@@ -1121,6 +1121,22 @@ const MIGRATIONS = [
       p.objects = f.objects;
       if(f.boards) p.boards = f.boards; else delete p.boards;
     });
+  }},
+  /* ---- one board to start with (decision 220) ----------------------------
+     Timothy: the desk he has should be one board too, not the three by three
+     45 kept. Which boards are empty is a question about where things sit, and
+     a board's height is measured, so this only asks for it: `trim` on the
+     desk's config, and the first render with a measurement takes away every
+     board that has nothing on it on either device (`trimDesk()` in views.js)
+     — never the last. And the stock flows that now say what their drawer
+     front carries say it, where nobody has. */
+  {v:46, up(d){
+    d.deskCfg = d.deskCfg || {layout:'grid', sort:null};
+    d.deskCfg.trim = true;
+    const fresh = {};
+    stockPlans().forEach(p=>{ fresh[p.stock] = p; });
+    (d.plans||[]).forEach(p=>{ const f = p && p.stock && fresh[p.stock];
+      if(f && f.rail && !p.rail) p.rail = JSON.parse(JSON.stringify(f.rail)); });
   }},
 ];
 function migrate(d){

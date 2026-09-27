@@ -10056,3 +10056,46 @@ swipes intact.
   undone. A drawer's row keeps its name, a face drawn past its box is cut at the
   row, and a row swipe may now start on the name, which runs most of the way
   across the tile.
+
+## 220 · The tools are objects, a spool and a coin, and a board's own drawer front
+
+*2026-09-27.* Timothy, the same day as 219: the desk he has should be one board
+too; the drawer front's glass, block, padlock and gear should also be object
+types, one cell each, doing what they do; a **spool of thread** that ties
+things with string, and string pinned at the top-left corner rather than the
+centre; a flow can say which tools its drawer front carries, nought to six,
+three either side of the knob; and a **spiral coin** that makes a random
+object in a random place, and spins when tossed.
+
+- **Tools are instruments.** Six rows of `ACTIVE` (`tglass`, `tblock`,
+  `tlock`, `tgear`, `spool`, `coin`), six kinds under a **Tool** category in
+  the picker's front row, and one table of drawings, `TOOLART`, moved out of
+  views.js into active.js so the drawer front and the objects draw the same
+  thing. A tool's `tap()` only names itself (`tool:glass`); `tileTap()` hands
+  that to `TOOLS.press`, which wire.js registers, and `toolPress()` calls the
+  handler the drawer-front button already had. One cell each; an instrument at
+  one cell is no longer drawn as the anonymous mini tile.
+- **The spool** sets `S.threading` (not saved). The next two things pressed
+  are tied with `relate()` (`threadTo()` in tiles.js), with an undo step and a
+  toast; nothing else a tap does happens between; the spool pressed again puts
+  the thread down.
+- **Strings are pinned a quarter-cell in from each tile's top-left corner**
+  (`PIN_IN`), so they no longer cross the words of both things they tie.
+- **The coin** picks a kind with `someKind()` and a place with
+  `randomSpot()` — every place on every board it fits, one at random — and the
+  board walks there. The coin turns on its edge over the result
+  (`.coinspin`), after the render, as decision 38 asks.
+- **A board's drawer front is its own.** `rail: {left:[…], right:[…]}` on the
+  board's config, three a side at most, a tool on one side only, read through
+  `railToolsOf()`; the default is the four of decision 211. The **Drawer
+  Front** row in Board settings and the desk's editor presses them on and off.
+  The desk keeps its gear, because on a phone it is the only way into
+  Settings. A plan carries `rail` like `sorts`, and gives it to a board that
+  has not said; Brain Dump, Project Management, Brainstorm and Novel say.
+  The Mac's bar is unchanged.
+- **Migration 46** marks the desk `trim`, and the first render with a
+  measurement (`trimDesk()`) takes away every board with nothing on it on
+  either device, never the last. A board's height on the device you are not
+  on is the guess (fourteen rows), so on the other device a few things may sit
+  a row or two from where they were; nothing is lost, and anything left on a
+  slot is put back on a board.

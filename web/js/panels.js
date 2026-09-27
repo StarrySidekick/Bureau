@@ -24,7 +24,7 @@ import { isActive, activeZoom, activeSay, activeName, DICE, CLOCKS } from './act
 import { DECOR, decorOf, decorSVG, decorFor, decorRest, LIFE_ART, LIFE_KEYS, lifeSVG } from './decor.js';
 import { quickAdd, toast, drawerForTag, CONTROLS, CTL_KEYS, ctlSpec, galleryOf, PAINTINGS, pictureMedia } from './mutations.js';
 import { openObj, renderSheet, closeSheet , openZoom } from './sheet.js';
-import { render, settingsPanel, gridSizeField, shelfCountField } from './views.js';
+import { render, settingsPanel, gridSizeField, shelfCountField, railToolsField } from './views.js';
 import { openingFor, zoomInto, CAMERA, growSheet } from './motion.js';
 import { plans, planTop, planSize } from './plans.js';
 import { save } from './persist.js';
@@ -1419,6 +1419,8 @@ function objectPanelBody(id, sec){
     out.push(gridSizeField(id));
     // and how many screenfuls it is — decision 141
     out.push(shelfCountField(id));
+    // and what its drawer front carries — decision 220
+    out.push(railToolsField(id));
     /* A desk is somewhere you stand, so its editor is also where the carcass it
        is drawn in is asked about: the wood, and the drawer along the bottom of
        a phone that you tap to come out of and pull to make something. It is a

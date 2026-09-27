@@ -6,15 +6,15 @@ import { S, K, KINDS, KEYS, refreshKinds, ATTRS, attrsOf, has, SHAPES,
   layoutOf, setClFit, genKindOf, makesAnything , groupMates, groupTogether, isDesk, faceOf, kindHas,
   sortOf, sortCycleOf, SORT_FACES } from './model.js';
 import { gridOf, lay, boxOk, freeSpot, anySpot, roomFor, sizeOfKind, toPhoneSize, keepSize,
-  shelvesOf, shelfAt, setShelf, shelvesToHold, addBoard, removeBoard } from './grid.js';
+  shelvesOf, shelfAt, setShelf, shelvesToHold, addBoard, removeBoard, randomSpot } from './grid.js';
 import { applyLook, applyStyle, setLookVal, lookVal, STYLES, setSlot, objColour, darkMode } from './look.js';
 import { dealTop, furnish, toast, fits, setGridSize, toggleDone, spawnNext, del, delMany, delDrawer, undo, redo, pushUndo,
   pushSet, pushSets, setPin, togglePin, drawerForTag, create, spawnInto, randomThing,
   holdIt, unholdIt, unholdMany, undoToast, someKind, becomeKind , toggleFree, galleryOf, hangPainting } from './mutations.js';
-import { spinTo, pending, placeAtPending, tileTap, turnPage, clearPages, intoOf } from './tiles.js';
+import { spinTo, pending, placeAtPending, tileTap, turnPage, clearPages, intoOf, TOOLS } from './tiles.js';
 import { bpmOf, minsOf, burnOf, sidesOf, metroGoing, startMetro, mindTheTime, actOf, deckTop } from './active.js';
 import { DECOR, LIFE_ART } from './decor.js';
-import { render, renderSoon, sizeGrid, toggleSettings, settingsPanel, reveal, goShelf, goShelfTo, deskMap, flipBlock } from './views.js';
+import { render, renderSoon, sizeGrid, toggleSettings, settingsPanel, reveal, goShelf, goShelfTo, deskMap, flipBlock, railToolsOf } from './views.js';
 import { closeGuide, guideOpen, saveGuide } from './guide.js';
 import { openObj, openWriter, openRead, openViewer, closeSheet, renderSheet, words,
   mdKey, copyObject } from './sheet.js';
@@ -929,6 +929,15 @@ function act(name, el){
        trick with no spawner in the way — `someKind()` is the single resolver
        both go through, so what the button makes and what a spawner set to
        "one of anything" presses out cannot be two different bags. */
+    /* The spool, from the drawer front or a board: pick up the thread, or put
+       it down. The next two things pressed are tied (`threadTo()` in tiles.js). */
+    case 'spool': {
+      if(S.threading){ S.threading = null; render(); toast('Thread put down'); break; }
+      S.threading = {from:null}; render();
+      toast('Press the first thing to tie');
+      break;
+    }
+    case 'coinspin': toolPress('coin', el.dataset.id, null); break;
     case 'randomobject': {
       const home = homeFor((S.view==='drawer' && S.drawerId) || ROOT);
       const kind = someKind();
@@ -982,8 +991,47 @@ function act(name, el){
   }
 }
 
+/* ---- the tools, pressed wherever they are — decision 220 -------------
+   A tool on a board and its button in the drawer front are one thing in two
+   places, so a press on either lands here, in the handler the button already
+   had. `cid` is the board it is for: the one a tile lies on, the one the
+   drawer front is the front of. */
+function toolPress(tool, cid, el){
+  const board = cid || (S.view==='drawer' && S.drawerId) || ROOT;
+  const as = {dataset:{id:board}};
+  if(tool==='glass') return act('searchopen', as);
+  if(tool==='block') return act('sortcycle', as);
+  if(tool==='lock')  return act('togglelock', as);
+  if(tool==='gear')  return act('appsettings', as);
+  if(tool==='spool') return act('spool', as);
+  if(tool==='coin')  return coinToss(board, el);
+}
+/* **The spiral coin** (decision 220): one of anything, somewhere on this
+   board — a kind from the same bag the spiral button and a spawner set to
+   anything draw from (`someKind()`), in a place picked at random from every
+   place on every board it would fit (`randomSpot()`), and the board walks
+   there to show it. The coin spins over the result: the object exists and the
+   board is rebuilt before the class goes on, as decision 38 asks. */
+function coinToss(board, el){
+  const home = homeFor(board), dv = dev();
+  const kind = someKind();
+  const [w,h] = sizeOfKind(kind, dv, home);
+  const spot = randomSpot(w, h, dv, home);
+  if(!spot && !fits(kind, home)) return;
+  const o = furnish(create(kind, {parent:home}));
+  if(spot) o[dv] = spot;
+  save(); render(); reveal(o.id);
+  toast(`A ${(K(kind).pickNm||K(kind).nm).toLowerCase()}, wherever the coin said`);
+  const spin = document.querySelectorAll(el && el.dataset && el.dataset.row
+    ? `[data-row="${el.dataset.row}"] .actart` : '.railobj.ro-coin svg');
+  spin.forEach(n=>{ n.classList.remove('coinspin'); void n.getBoundingClientRect(); n.classList.add('coinspin');
+    setTimeout(()=>n.classList.remove('coinspin'), 1000); });
+}
+
 function wire(){
   const frame=$('#frame');
+  TOOLS.press = (tool, o) => toolPress(tool, (o && o.parent) || ROOT,
+    o ? {dataset:{row:o.id}} : null);
 
   frame.addEventListener('pointerdown', onDown);
   frame.addEventListener('pointermove', onMove);
@@ -1490,6 +1538,24 @@ function wire(){
       goShelfTo(cid, +x, +y);
       return; }
 
+    /* A tool on or off one side of a board's drawer front (decision 220). One
+       side at most: pressing it on the left takes it off the right. Three a
+       side, and a fourth says so rather than pushing one off. */
+    const rtl=t.closest('[data-railtool]');
+    if(rtl){
+      const [cid,side,tool]=rtl.dataset.railtool.split(':');
+      const cfg = cfgOf(cid); if(!cfg) return;
+      const now = railToolsOf(cid), had = now[side].includes(tool);
+      if(!had && now[side].length>=3){ toast('Three a side — take one off first'); return; }
+      /* The desk's gear is the way into Settings on a phone, and there is no
+         other; a drawer's Board settings are in its own editor too. */
+      if(had && cid===ROOT && tool==='gear'){ toast('The desk keeps its gear — it is the way into Settings'); return; }
+      if(cid!==ROOT) pushSet('Drawer front', cid, 'rail', cfg.rail ? JSON.parse(JSON.stringify(cfg.rail)) : undefined);
+      ['left','right'].forEach(k=>{ now[k] = now[k].filter(x=>x!==tool); });
+      if(!had) now[side].push(tool);
+      cfg.rail = now;
+      save(); render(); refreshPanel();
+      return; }
     /* **The plus on an empty slot makes a board there** (decision 219), and
        you are standing on it the moment it exists. The desk map's plus cards
        are the same press, so a Mac, which has no empty slot to swipe to,
@@ -2509,4 +2575,4 @@ function wire(){
   document.addEventListener('visibilitychange', ()=>{ if(document.hidden) writeNow(); });
 }
 
-export { wire, newOfKind, blockHold };
+export { wire, newOfKind, blockHold, toolPress };

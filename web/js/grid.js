@@ -679,6 +679,22 @@ function freeSpotIn(w,h,device,parentId,prefer){
   }
   return null;
 }
+/* **Somewhere at random** (decision 220): every place on every board this
+   size would fit, and one of them. What the spiral coin tosses for. Null on a
+   board with nowhere, which the caller turns into the usual refusal. */
+function randomSpot(w,h,device,parentId){
+  const dv=device||dev(), home=parentId||ROOT, g=gridOf(dv, home);
+  w=Math.min(w, dv==='phone' ? g.shelfW : g.cols); h=Math.min(h, dv==='phone' ? g.shelfH : g.rows);
+  const all=[];
+  boardsOf(home).forEach(b=>{
+    const x0=b.x*g.shelfW, y0=b.y*g.shelfH;
+    for(let y=1; y<=g.shelfH-h+1; y++) for(let x=1; x<=g.shelfW-w+1; x++){
+      const box={x:x0+x, y:y0+y, w, h};
+      if(boxOk(box, null, dv, home)) all.push(box);
+    }
+  });
+  return all.length ? all[Math.floor(Math.random()*all.length)] : null;
+}
 /* ---- room for one this size, or the largest one there is room for ------
    `freeSpot` asks one question: is there a hole exactly this shape? On the
    Desk, twenty-four columns wide, the answer is nearly always yes. Inside a
@@ -895,7 +911,7 @@ function cellW(grid,g){
 
 export { GRID, PHONE_GRIDS, PHONE_MAX_H, PHONE_MAX_NEW, CELL, COLW, MEASURE, sideways,
   SHELVES, DESK_SHELF_COLS, INNER, PAGES_MAX, SPAN, isBoard, boardsOf, reachable, addBoard, removeBoard,
-  ensureBoards, boardHolds, startOf, nearestBoard, onBoards, growsDown, growDown, proportional, shelvesToHold, colsOf, gridKeyOf, shelvesOf, innerOf,
+  ensureBoards, boardHolds, startOf, nearestBoard, onBoards, randomSpot, growsDown, growDown, proportional, shelvesToHold, colsOf, gridKeyOf, shelvesOf, innerOf,
   shelfRows, shelfOfBox, oneShelf, shelfAt, setShelf, shelfOrigin, SHELF, fitSpot, flows,
   gridOf, drawCols, drawRows, lay, overlaps, boxOk, freeSpot, anySpot, roomFor, gridRows, sizeOfKind, toPhoneSize,
   ensureBox, keepSize, cellW, PLACED };

@@ -498,3 +498,10 @@ bar is unchanged.
 (`PHONE_ROWS` in `shelfRows()`); the leftover goes to the lip and the drawer
 front. The lip is measured at its **min-height**, because its height is what
 `sizeGrid()` writes.
+
+**A board's drawer front is its own** (decision 220). `rail:{left,right}` on
+the board's config, three a side at most, read only through `railToolsOf()`
+in views.js; `railTool()` draws each from `TOOLART` in active.js. The desk
+keeps its gear. The same six tools are objects (`ACTIVE` rows `tglass`,
+`tblock`, `tlock`, `tgear`, `spool`, `coin`), and a press on either lands in
+`toolPress()` in wire.js, so the object and the button cannot drift apart.

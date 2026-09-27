@@ -153,6 +153,9 @@ function build(spec){
     /* What the Magic Selector makes on the board (decision 199), given to the
        container the plan is put down in. */
     makes: spec.makes || undefined,
+    /* The tools in its drawer front, up to three each side of the knob
+       (decision 220), given to the container the flow is put down in. */
+    rail: spec.rail || undefined,
     made: D.iso(D.today()),
     cols: 8,
     /* The boards it is laid out on, when there is more than one, the one it
@@ -821,7 +824,7 @@ const SPECS = [
     LINK('Free hosting', 'https://pages.github.com', [5,11,4,1], 9)
   ]},
 
-  {key:'novel', sec:'project', nm:'Novel', ic:'book', c:11, of:'project', on:[
+  {key:'novel', rail:{left:['glass'], right:['spool','gear']}, sec:'project', nm:'Novel', ic:'book', c:11, of:'project', on:[
     LABEL('The novel', [1,1,8,1], 11),
     {k:'question', t:'What is it about?', b:[1,2,6,2], set:{c:10}},
     {k:'candle', t:'Sprint', b:[7,2,2,5], set:{c:3, burn:45}},
@@ -1079,7 +1082,7 @@ const SPECS = [
   ]},
 
   // "Allows you to easily add anything to a bucket and helps you sort it."
-  {key:'braindump', sec:'work', inbox:'note', nm:'Brain Dump', ic:'inbox', c:5, of:'drawer', on:[
+  {key:'braindump', rail:{left:['glass','block','coin'], right:['lock','gear']}, sec:'work', inbox:'note', nm:'Brain Dump', ic:'inbox', c:5, of:'drawer', on:[
     LABEL('Brain dump', [1,1,8,1], 5),
     MAKES('Get it out of your head…', 'note', [1,2,8,1], 5, '@bdjar'),
     {k:'jar', t:'The bucket', ref:'bdjar', b:[1,3,4,5], set:{c:5}},
@@ -1096,7 +1099,7 @@ const SPECS = [
   ]},
 
   // "Helps me prioritize all my projects and focus."
-  {key:'projectmgmt', sec:'work', nm:'Project Management', ic:'target', c:13, of:'drawer', on:[
+  {key:'projectmgmt', rail:{left:['glass','block'], right:['spool','lock','gear']}, sec:'work', nm:'Project Management', ic:'target', c:13, of:'drawer', on:[
     LABEL('Projects', [1,1,8,1], 13),
     LIST('Now, three at most', 'pmnow', [1,2,4,4], 9),
     LIST('Next', 'pmnext', [5,2,4,4], 6),
@@ -1138,7 +1141,7 @@ const SPECS = [
     ]}
   ]},
 
-  {key:'brainstorming', sec:'work', inbox:'idea', nm:'Brainstorm', ic:'sparkle', c:10, of:'drawer', on:[
+  {key:'brainstorming', rail:{left:['coin','glass'], right:['spool','gear']}, sec:'work', inbox:'idea', nm:'Brainstorm', ic:'sparkle', c:10, of:'drawer', on:[
     LABEL('Brainstorm', [1,1,8,1], 10),
     {k:'note', t:'The question', b:[1,2,8,2], set:{c:12}, body:'What are we trying to solve?'},
     MAKES('Another idea…', 'idea', [1,4,8,1], 10, '@bsall'),

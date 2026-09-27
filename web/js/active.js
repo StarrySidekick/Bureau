@@ -1,5 +1,5 @@
 import { esc } from './util.js';
-import { S, byId, K } from './model.js';
+import { S, byId, K, SORT_FACES, MANUAL, sortOf, container, boardLocked } from './model.js';
 import { save } from './persist.js';
 
 /* ============================================================
@@ -45,6 +45,119 @@ import { save } from './persist.js';
    they need. The context is made on the first press, never at load, because a
    browser will not start one before a gesture and a suspended context that
    nobody asked for is a warning in the console on every launch. */
+
+/* ---- the tools — decision 220 ----------------------------------------
+   The things in the drawer front, drawn as the objects they are (decision
+   208), and since decision 220 also **objects you can put on a board**: a
+   magnifying glass, a letter block, a padlock, a gear, a spool of thread and a
+   spiral coin. One table of drawings for both places, forty units square, lit
+   from the upper left. They were in views.js while only the rail drew them. */
+/* An Archimedean spiral from the centre of a forty-unit coin: the radius
+   grows by the same amount every turn, which is the spiral a die strikes. */
+const SPIRAL_PATH = (()=>{
+  const pts = [];
+  for(let t=0; t<=11.6; t+=0.28){ const r = 0.6 + 0.92*t;
+    pts.push(`${(20+r*Math.cos(t)).toFixed(2)} ${(20+r*Math.sin(t)).toFixed(2)}`); }
+  return 'M'+pts.join('L');
+})();
+const GEAR_PATH = (()=>{
+  // ten square-shouldered teeth, drawn once: a cog is a polygon, not a glyph
+  const n=10, ro=18.5, ri=14.2, pts=[];
+  for(let i=0;i<n;i++){
+    const a=i*2*Math.PI/n, t=Math.PI/n;
+    for(const [r, da] of [[ri,-t*.62],[ro,-t*.38],[ro,t*.38],[ri,t*.62]])
+      pts.push(`${(20+r*Math.cos(a+da)).toFixed(2)} ${(20+r*Math.sin(a+da)).toFixed(2)}`);
+  }
+  return 'M'+pts.join('L')+'Z';
+})();
+const BRASS = id => `<linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#F6DE94"/><stop offset=".42" stop-color="#C99C40"/>
+    <stop offset="1" stop-color="#6E4C14"/></linearGradient>`;
+const TOOLART = {
+  glass: ()=> `<defs>${BRASS('ro-gb')}
+      <radialGradient id="ro-gl" cx=".36" cy=".3" r=".85">
+        <stop offset="0" stop-color="#F2FAFB" stop-opacity=".9"/>
+        <stop offset=".45" stop-color="#A9C3C8" stop-opacity=".42"/>
+        <stop offset="1" stop-color="#2F4A50" stop-opacity=".78"/></radialGradient>
+      <linearGradient id="ro-gh" gradientUnits="userSpaceOnUse" x1="27" y1="34" x2="34" y2="27">
+        <stop offset="0" stop-color="#240E05"/><stop offset=".5" stop-color="#6B3419"/>
+        <stop offset="1" stop-color="#2A1107"/></linearGradient></defs>
+    <path d="M25.5 25.5 36 36" stroke="url(#ro-gh)" stroke-width="6.4" stroke-linecap="round"/>
+    <path d="M23.6 23.6 27.4 27.4" stroke="url(#ro-gb)" stroke-width="7"/>
+    <circle cx="16" cy="16" r="11.6" fill="url(#ro-gl)" stroke="url(#ro-gb)" stroke-width="3.4"/>
+    <circle cx="16" cy="16" r="9.9" fill="none" stroke="#000" stroke-opacity=".25" stroke-width=".8"/>
+    <path d="M9.4 13.4a7.4 7.4 0 0 1 4.5-4.6" stroke="#fff" stroke-opacity=".8" stroke-width="1.7"
+      fill="none" stroke-linecap="round"/>`,
+  /* A child's letter block, face on (decision 215): one painted face in a
+     routed border with the sort's letter raised on it, the face the colour
+     that sort is given in `SORT_FACES`. It was drawn in perspective (211);
+     a block seen face on is the thing you turn to read. */
+  block: sort => { const [ch,,col] = SORT_FACES[sort] || SORT_FACES[MANUAL];
+    return `<rect x="5" y="6" width="30" height="30" rx="3" fill="#000" fill-opacity=".28"/>
+    <rect x="5" y="4" width="30" height="30" rx="3" fill="${col}"/>
+    <rect x="5" y="4" width="30" height="30" rx="3" fill="url(#ro-bk)"/>
+    <defs><linearGradient id="ro-bk" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity=".28"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000" stop-opacity=".22"/></linearGradient></defs>
+    <rect x="7.4" y="6.4" width="25.2" height="25.2" rx="1.6" fill="none" stroke="#F6D36B" stroke-width="1.4"/>
+    <text x="20.6" y="27.6" text-anchor="middle" font-family="'Arial Rounded MT Bold','Helvetica Neue',Arial,sans-serif"
+      font-weight="800" font-size="19" fill="#000" fill-opacity=".35">${ch}</text>
+    <text x="20" y="26.8" text-anchor="middle" font-family="'Arial Rounded MT Bold','Helvetica Neue',Arial,sans-serif"
+      font-weight="800" font-size="19" fill="#F6D36B">${ch}</text>`; },
+  /* Locked, the shackle is home in the body; open, it is lifted and its short
+     leg stands clear — which is how you read a padlock across a room. */
+  lock: open => `<defs>${BRASS('ro-lb')}
+      <linearGradient id="ro-ls" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#6C7074"/><stop offset=".45" stop-color="#E6E9EB"/>
+        <stop offset="1" stop-color="#4A4E52"/></linearGradient></defs>
+    <path d="${open?'M27 19V8.5a7 7 0 0 0-14 0V12':'M27 19V12a7 7 0 0 0-14 0V19'}" fill="none"
+      stroke="url(#ro-ls)" stroke-width="3.8" stroke-linecap="round"/>
+    <rect x="8.5" y="17.5" width="23" height="18.5" rx="3.4" fill="url(#ro-lb)"/>
+    <rect x="9.3" y="18.3" width="21.4" height="16.9" rx="2.8" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width=".8"/>
+    <path d="M20 23.4a2.4 2.4 0 0 0-1.2 4.5l-.9 3.8h4.2l-.9-3.8A2.4 2.4 0 0 0 20 23.4Z" fill="#2A1A08"/>`,
+  gear: ()=> `<defs><radialGradient id="ro-gr" cx=".34" cy=".3" r=".9">
+        <stop offset="0" stop-color="#F8E3A0"/><stop offset=".45" stop-color="#C29338"/>
+        <stop offset="1" stop-color="#5E400F"/></radialGradient></defs>
+    <path d="${GEAR_PATH}" fill="url(#ro-gr)"/>
+    <circle cx="20" cy="20" r="10.2" fill="none" stroke="#000" stroke-opacity=".28" stroke-width="1.2"/>
+    <circle cx="20" cy="20" r="6.2" fill="#5A3C10"/>
+    <circle cx="20" cy="20" r="5.2" fill="url(#ro-gr)"/>
+    <circle cx="20" cy="20" r="2.1" fill="#24170A"/>`,
+
+  /* **A spool of thread** (decision 220): a turned wooden bobbin with red
+     thread wound on it and the end hanging loose, which is what you pick up
+     to tie one thing to another. */
+  spool: ()=> `<defs><linearGradient id="ro-sw" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#6E4019"/><stop offset=".45" stop-color="#DDAE72"/>
+        <stop offset="1" stop-color="#553010"/></linearGradient>
+      <linearGradient id="ro-st" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#5E0F0C"/><stop offset=".42" stop-color="#D9473B"/>
+        <stop offset="1" stop-color="#4E0B09"/></linearGradient></defs>
+    <ellipse cx="20" cy="36" rx="13" ry="2.6" fill="#000" fill-opacity=".3"/>
+    <rect x="10.5" y="9" width="19" height="23" fill="url(#ro-st)"/>
+    ${[11,13.2,15.4,17.6,19.8,22,24.2,26.4,28.6,30.8].map(y=>
+      `<path d="M10.5 ${y}h19" stroke="#000" stroke-opacity=".2" stroke-width=".6"/>`).join('')}
+    <rect x="7" y="5.5" width="26" height="4.6" rx="1.8" fill="url(#ro-sw)"/>
+    <rect x="7" y="31" width="26" height="4.6" rx="1.8" fill="url(#ro-sw)"/>
+    <ellipse cx="20" cy="7.8" rx="3" ry="1" fill="#2A1707"/>
+    <path d="M29.5 18c4.5.6 6 4.4 4 8.4-1 2-.6 3.6.8 4.8" stroke="#C9362B" stroke-width="1.2"
+      fill="none" stroke-linecap="round"/>`,
+  /* **The spiral coin** (decision 220): a brass coin with a spiral struck in
+     it, the spiral that has always meant "one of anything". Tossing it is how
+     the board picks something to make and somewhere to put it. */
+  coin: ()=> `<defs><radialGradient id="ro-cn" cx=".34" cy=".28" r=".9">
+        <stop offset="0" stop-color="#FCEBB0"/><stop offset=".5" stop-color="#D2A447"/>
+        <stop offset="1" stop-color="#734F12"/></radialGradient></defs>
+    <circle cx="20" cy="21.4" r="16" fill="#000" fill-opacity=".3"/>
+    <circle cx="20" cy="20" r="16" fill="url(#ro-cn)"/>
+    <circle cx="20" cy="20" r="13.6" fill="none" stroke="#6E4C14" stroke-opacity=".6" stroke-width="1"/>
+    <path d="${SPIRAL_PATH}" stroke="#5A3C0E" stroke-width="1.7" fill="none" stroke-linecap="round"/>
+    <path d="${SPIRAL_PATH}" stroke="#FFF1C4" stroke-opacity=".45" stroke-width=".6" fill="none"
+      stroke-linecap="round" transform="translate(-.5 -.5)"/>
+    <path d="M9 15a12 12 0 0 1 6.6-6.4" stroke="#fff" stroke-opacity=".6" stroke-width="1.6"
+      fill="none" stroke-linecap="round"/>`
+};
+TOOLART.unlock = ()=> TOOLART.lock(true);
 
 /* ---- the noise ---------------------------------------------------------- */
 let AC = null;
@@ -230,7 +343,29 @@ const azStep = (id, key, val, unit, step) => `<div class="azrow azstep">
   <button class="azbtn" data-astep="${id}:${key}:${step}" aria-label="More">+</button></div>`;
 const azSay = t => `<p class="azsay">${esc(t)}</p>`;
 
+/* One row of `ACTIVE` for a tool. `arg` is what the drawing is drawn from —
+   the sort for the block, whether the board is unlocked for the padlock. */
+const tool = (art, nm, say, arg) => ({
+  nm, kind: art==='spool'||art==='coin' ? art : 't'+art, vb:'0 0 40 40', tool:art,
+  art: o => `<g class="toolBody">${TOOLART[art==='lock' && arg(o) ? 'unlock' : art](arg(o))}</g>`,
+  tap: ()=> 'tool:'+art,
+  say: ()=> say,
+  zoom: ()=> azSay(say)
+});
 const ACTIVE = {
+
+  /* ---- the tools — decision 220 ----------------------------------------
+     A tool on a board is the button in the drawer front, as an object: it
+     does what that button does, for the board it is lying on. The tap here
+     only says which; `tileTap()` hands it to wire.js, which is where the
+     buttons' own handlers are, so the object and the button cannot come to
+     do two different things. Each is one cell. */
+  tglass: tool('glass', 'Magnifying glass', 'Search this board', ()=>'glass'),
+  tblock: tool('block', 'Letter block', 'The next sort', o=>sortOf(container(o.parent||'root'))||MANUAL),
+  tlock:  tool('lock',  'Padlock', 'Lock or unlock', ()=>!boardLocked()),
+  tgear:  tool('gear',  'Gear', 'This board’s settings', ()=>null),
+  spool:  tool('spool', 'Spool of thread', 'Tie one thing to another', ()=>null),
+  coin:   tool('coin',  'Spiral coin', 'One of anything, anywhere', ()=>null),
   /* ---- the metronome ---------------------------------------------------
      A wedge with a scale up it and a bar that swings. The swing is a CSS
      animation whose duration is the beat, so the pendulum keeps time with the
@@ -725,7 +860,7 @@ function checkAlarms(){
 const guttered = () => S.objects.some(o =>
   actOf(o) === 'candle' && o.litAt && through(o.litAt, burnOf(o)) >= 1);
 
-export { ACTIVE, ACT_KIND, DICE, CLOCKS, BACKS, deckCards, deckTop,
+export { TOOLART, ACTIVE, ACT_KIND, DICE, CLOCKS, BACKS, deckCards, deckTop,
   actOf, isActive, activeArt, activeTap, activeSay, activeName, activeZoom,
   bpmOf, minsOf, burnOf, sidesOf, clockOf, burning, waxLeft, sandGone,
   activeFlame, metroGoing, startMetro, stopMetro, stopAllMetros,

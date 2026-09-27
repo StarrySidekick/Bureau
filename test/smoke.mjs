@@ -9692,6 +9692,65 @@ const PROP_OFF = () => { const b = document.createElement('button');
     boardsYouAdd.aRowStillSwipes = await fresh.evaluate(id => !BUREAU.state.objects.find(o=>o.id===id), rowAt.id);
   } else boardsYouAdd.aRowStillSwipes = 'no row';
   await fresh.screenshot({ path: 'test/shots/219-line.png' });
+
+  /* ---- the tools, the thread and the coin — decision 220 ---------------
+     The drawer front's four buttons are objects too, one cell each, and do
+     on a tap what the button does; the spool ties the next two things pressed
+     and the string is pinned at the top-left corner; the coin makes one of
+     anything somewhere on the board. A board says which tools its drawer
+     front carries, three a side at most, and a flow can say it for the board
+     it makes. A desk from before is taken down to the boards it uses. */
+  await fresh.evaluate(() => { const S = BUREAU.state; S.deskCfg.layout = 'grid'; S.view='desk'; S.drawerId=null;
+    BUREAU.goShelfTo('root', 0, 0); BUREAU.render(); });
+  await fresh.waitForTimeout(300);
+  const toolsOnTheBoard = await fresh.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const out = {}, S = BUREAU.state, B = BUREAU, T = await import('./js/tiles.js');
+    const ids = {};
+    for(const k of ['tglass','tblock','tlock','tgear','spool','coin']) ids[k] = B.create(k, {parent:'root'}).id;
+    B.render(); await nap(250);
+    out.eachIsItsDrawing = Object.values(ids).every(id => document.querySelector(`[data-row="${id}"] .toolBody`));
+    out.oneCellEach = Object.values(ids).every(id => { const o = S.objects.find(x=>x.id===id); return o.phone && o.phone.w===1 && o.phone.h===1; });
+    const was = !!S.look.locked; T.tileTap(ids.tlock); out.padlockLocks = !!S.look.locked !== was;
+    T.tileTap(ids.tlock);
+    T.tileTap(ids.tglass); out.glassSearches = !!S.searchOn; S.searchOn = false; S.q = ''; B.render();
+    const sw = S.deskCfg.sort; T.tileTap(ids.tblock); out.blockSorts = S.deskCfg.sort !== sw; S.deskCfg.sort = null; B.render();
+    const n = S.objects.length; T.tileTap(ids.coin); await nap(150);
+    out.coinMakesOne = S.objects.length === n + 1;
+    const a = S.objects.find(o=>o.id==='d_today'), b = S.objects.find(o=>o.id==='d_in');
+    a.rel = []; T.tileTap(ids.spool); out.spoolPicksUp = !!S.threading;
+    T.tileTap(a.id); out.firstIsHeld = S.threading && S.threading.from === a.id && S.view === 'desk';
+    T.tileTap(b.id); await nap(150);
+    out.secondTies = (a.rel||[]).includes(b.id) && !S.threading && S.view === 'desk';
+    const pin = document.querySelector('.strings .strpin circle');
+    const tile = document.querySelector(`[data-drawer="${a.id}"]`);
+    if(pin && tile){ const pr = pin.getBoundingClientRect(), tr = tile.getBoundingClientRect();
+      out.pinnedAtTheCorner = Math.abs(pr.x - tr.x) < tr.width*0.25 && Math.abs(pr.y - tr.y) < tr.height*0.25;
+    } else out.pinnedAtTheCorner = 'no pin';
+    // the drawer front, the board's own
+    const tools = () => ['.railleft', '.railright'].map(s => [...document.querySelectorAll(s+' .railobj')]
+      .map(e => e.className.match(/ro-(\w+)/)[1]).join(','));
+    // the padlock draws as `unlock` while the board is open
+    out.defaultFront = JSON.stringify(tools()).replace('unlock','lock') === JSON.stringify(['glass,block', 'lock,gear']);
+    S.deskCfg.rail = {left:['coin'], right:['spool','glass','gear']}; B.render(); await nap(150);
+    out.frontIsTheBoards = JSON.stringify(tools()) === JSON.stringify(['coin', 'spool,glass,gear']);
+    const knob = document.querySelector('.railknob').getBoundingClientRect();
+    out.knobStaysCentred = Math.abs(knob.x + knob.width/2 - innerWidth/2) < 3;
+    S.deskCfg.rail = {left:[], right:['gear']}; B.render(); await nap(150);
+    out.noneOnOneSide = JSON.stringify(tools()) === JSON.stringify(['', 'gear']);
+    delete S.deskCfg.rail; B.render();
+    const pl = S.plans.find(p=>p.stock==='brainstorming');
+    out.flowSaysItsFront = !!(pl && pl.rail && pl.rail.left.includes('coin'));
+    // a desk from before, trimmed to what it uses
+    S.deskCfg.shelves = {w:3, h:3}; delete S.deskCfg.boards;
+    S.objects.filter(o=>o.parent==='root').forEach(o=>['desk','phone'].forEach(dv=>{ const b=o[dv];
+      if(b && b.x) o[dv] = {...b, x:b.x + (dv==='phone' ? B.shelfW('root') : 8), y:b.y + (dv==='phone' ? B.shelfRows : 14)}; }));
+    S.deskCfg.trim = true; B.render(); await nap(250);
+    out.oldDeskTrimmed = B.boardsOf('root').length === 1 && !S.deskCfg.trim
+      && S.objects.filter(o=>o.parent==='root' && o.phone && o.phone.x).every(o=>o.phone.x <= B.shelfW('root'));
+    return out;
+  });
+  await fresh.screenshot({ path: 'test/shots/220-tools.png' });
   await freshCtx.close();
 
   console.log(JSON.stringify({
@@ -9717,7 +9776,7 @@ const PROP_OFF = () => { const b = document.createElement('button');
     lockedBoard, freeTraits, pageWrites, tickBoxes, readerFits, categories,
     specimenBook, deskObjects, camLife, camPhone, ownBoard, threeDrawings, fullScreen, openingIn, boards193, sideways, thisPass,
     dropsIn, keyframesRegistered, aesthetics, slotScoping, objectsDressed, grainSlots, tagged, drawnAesthetic, deeper, lookStage, statusBar, bindings, panelling, theSpray, tappingIsQuiet, decorations, pinboard, gravity, boardMakes,
-    boardsYouAdd
+    boardsYouAdd, toolsOnTheBoard
   }, null, 2));
   await browser.close();
 })();

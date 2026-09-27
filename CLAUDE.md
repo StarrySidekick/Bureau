@@ -134,6 +134,14 @@ container is the container beside it; one finger is its boards. Flows have no
 title row and can be several boards (`boards`/`start`/`dims` on a plan;
 Project Management is three across, Novel five down). Line view draws each row
 as the tile at 8×1 on a striped list, which undoes 217's painting of the rows.
+**v2.17** (decision 220): the drawer front's glass, block, padlock and gear
+are also **Tool** objects, one cell each, plus a **spool of thread** (tap it,
+then two things, and they are tied) and a **spiral coin** (one of anything,
+somewhere random on the board). Tools are `ACTIVE` rows whose tap is handed to
+wire.js through `TOOLS.press`; `TOOLART` in active.js draws both the objects
+and the front. A board carries its own front (`rail`, three a side, Board
+settings → Drawer Front), and a flow can say it. Strings pin at the top-left
+corner. Migration 46 trims an old desk to the boards it uses.
 The **Bureau Workshop** artifact (https://claude.ai/artifact/4TjyQZ5xcuxCYFgfnRm76k)
 holds Timothy's own rearrangement of every menu and type: read its
 `workshop/state` document before reorganising menus or types.

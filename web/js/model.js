@@ -560,6 +560,29 @@ const BUILTIN_KINDS = {
      attrs:[], size:[3,4], phoneSize:[3,4], onclick:'active', clock:'table', body:'' },
   die:      {act:'die',    nm:'Die',       ic:'grid',  c:14, ds:'Press it and it rolls',
      attrs:[], size:[2,2], phoneSize:[2,2], onclick:'active', sides:6, face:1, body:'' },
+  /* **Tools** (decision 220): the drawer front's buttons as objects a board
+     can hold, one cell each, doing on a tap what the button does — plus the
+     two the front can carry that were never buttons before, a spool of
+     thread for tying things together and a spiral coin that makes one of
+     anything somewhere on the board. `act` says which, through `ACTIVE`, so a
+     tool is an instrument as far as the rest of the app is concerned. */
+  tool:{cat:true, nm:'Tool', ic:'gear', c:12,
+     ds:'The drawer front\u2019s tools, as things you can put on a board',
+     family:['tglass','tblock','tlock','tgear','spool','coin'],
+     famSub:'Which tool?',
+     attrs:[], size:[1,1], phoneSize:[1,1], onclick:'active', body:'' },
+  tglass:{act:'tglass', nm:'Magnifying glass', ic:'search', c:12, ds:'Searches the board it lies on',
+     attrs:[], size:[1,1], phoneSize:[1,1], onclick:'active', body:'' },
+  tblock:{act:'tblock', nm:'Letter block', ic:'grid', c:12, ds:'Turns the board it lies on to its next sort',
+     attrs:[], size:[1,1], phoneSize:[1,1], onclick:'active', body:'' },
+  tlock: {act:'tlock',  nm:'Padlock', ic:'lock', c:12, ds:'Locks and unlocks every board',
+     attrs:[], size:[1,1], phoneSize:[1,1], onclick:'active', body:'' },
+  tgear: {act:'tgear',  nm:'Gear', ic:'gear', c:12, ds:'Opens the settings of the board it lies on',
+     attrs:[], size:[1,1], phoneSize:[1,1], onclick:'active', body:'' },
+  spool: {act:'spool',  nm:'Spool of thread', ic:'pin', c:11, ds:'Press it, then two things, and they are tied with string',
+     attrs:[], size:[1,1], phoneSize:[1,1], onclick:'active', body:'' },
+  coin:  {act:'coin',   nm:'Spiral coin', ic:'spiral', c:12, ds:'Toss it and it makes one of anything, somewhere on the board',
+     attrs:[], size:[1,1], phoneSize:[1,1], onclick:'active', body:'' },
   /* A **deck** is the one instrument that holds things, which is why it is a
      container carrying `act` rather than an instrument that learned to hold:
      everything a container already does — filing a card into it by dropping
@@ -710,7 +733,7 @@ const BUILTIN_KINDS = {
    the rest. The gaps get filled later; this is the physical-object idea first. */
 /* The front row as Timothy laid it out in the Workshop (decision 218). */
 const PRIMARY = ['drawer','tag','life','checklist','calendar','book','note','goal',
-                 'image','decoration','audio','video','moodboard','instrument',
+                 'image','decoration','audio','video','moodboard','instrument','tool',
                  'generator','project','anything'];
 /* What used to lead and does not any more, still in its stated order, drawn
    first inside the dropdown. */

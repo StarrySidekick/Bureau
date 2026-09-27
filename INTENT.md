@@ -180,6 +180,12 @@ five in a column); and line view was meant to stripe the *background*, not
 repaint the objects, which should still look like 8×1 versions of themselves,
 swipes and all. Built as decision 219 (v2.16).
 
+**Then, the same day (decision 220, v2.17):** his own desk down to one board
+too; the drawer front's tools as objects you can put on a board; a spool of
+thread for tying things with string, pinned at the top-left corner; a board's
+drawer front chosen per board and per flow, up to three tools either side of
+the knob; and a spiral coin that makes one of anything somewhere random.
+
 ## Deliberately not next
 
 - **Sync between devices.** It is real and it is coming, *after* the feature set
