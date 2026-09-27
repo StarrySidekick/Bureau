@@ -150,6 +150,8 @@ the vortex, and its name and address run round the rim (`portalWords()`); a
 record has a real hole in the middle.
 **v2.20** (decision 223): a portal is a circle, a square or an arch (`pshape`)
 in its own colour, and the coin makes any of them.
+**v2.21** (decision 224): an empty slot is heavier to swipe onto than a board
+(`SLOT_PULL`, `SLOT_FAR` in motion.js), and a disc's hole is CD-sized.
 The **Bureau Workshop** artifact (https://claude.ai/artifact/4TjyQZ5xcuxCYFgfnRm76k)
 holds Timothy's own rearrangement of every menu and type: read its
 `workshop/state` document before reorganising menus or types.

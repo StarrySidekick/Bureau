@@ -10160,3 +10160,19 @@ spiral coin makes portals with any of those.
   draws its rim along its own edge, as an inset shadow.
 - **`furnish()` rolls both** for a portal with no address yet, so the spiral
   coin and the spiral button make any of the three in any colour.
+
+## 224 · An empty slot is heavier to reach, and the hole is a CD's
+
+*2026-09-27.* Timothy: make it physically harder to swipe onto an empty plus
+slot, to show it is not more board but the chance to make some; and the hole
+in the disc was not showing.
+
+- **The pager gives less towards a slot.** `pagerBegin()` marks which of its
+  two neighbours is an empty slot; `pagerMove()` follows the finger at
+  `SLOT_PULL` (0.55) of its pace towards one, and `pagerEnd()` needs the strip
+  to have gone `SLOT_FAR` (0.42) of the screen to arrive, and takes no flick.
+  A board is a flick away; a slot is a deliberate pull.
+- **The hole was there, at five per cent of the radius**: a pinprick of the
+  board's cream on a phone, reading as a dot on the label rather than a hole.
+  It is a compact disc's proportion now, thirteen and a half per cent, with a
+  dark edge and a faint lighter ring round it so it reads as cut through.

@@ -2224,11 +2224,15 @@ const PROP_OFF = () => { const b = document.createElement('button');
     out.andBackAcross = at().x === 1;
     /* The row does not wrap. Off the edge is an empty slot with a plus on
        it (decision 219), and one step further is nothing: the strip gives. */
+    /* …and a slot is heavier to reach than a board (decision 224): the swipe
+       that turned a board does not reach one, a long pull does. */
     BUREAU.goShelfTo('root', 2, 2); await nap(200);
     swipe(-160,0); await nap(260);
+    const heavy = at().x === 2;
+    swipe(-380,0); await nap(260);
     const slot = at().x === 3 && !BUREAU.isBoard('root', 3, 2);
-    swipe(-160,0); await nap(260);
-    out.stopsAtTheEdge = slot && at().x === 3;
+    swipe(-380,0); await nap(260);
+    out.stopsAtTheEdge = heavy && slot && at().x === 3;
     BUREAU.goShelfTo('root', 1, 1); await nap(200);
     return out;
   });
@@ -9631,7 +9635,7 @@ const PROP_OFF = () => { const b = document.createElement('button');
       out.aSwipeGoesNextDoor = S.view==='drawer' && S.drawerId === b.id;
     } else out.aSwipeGoesNextDoor = 'no neighbour';
     if(M.pagerBegin('x', -1)){
-      M.pagerMove(-260); await nap(40); M.pagerEnd(); await nap(450);
+      M.pagerMove(-400); await nap(40); M.pagerEnd(); await nap(450);
       out.oneFingerFindsASlot = S.drawerId === b.id && BUREAU.shelfAt(b.id).x === 1
         && !!document.querySelector('#drawergrid.vacant .addboard');
     } else out.oneFingerFindsASlot = 'no slot';

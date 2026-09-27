@@ -1507,6 +1507,10 @@ const SETTLE_MIN  = 190;
 const SETTLE_MAX  = 380;
 
 const pagerOn = ()=> !!PG;
+/* How much heavier an empty slot is (decision 224): the strip follows the
+   finger at this fraction of its pace, and has to be let go this far across
+   the screen, as a share of it, to arrive. */
+const SLOT_PULL = 0.55, SLOT_FAR = 0.42;
 
 /* The desks, in the order they sit in the master space. It does **not** wrap:
    a row you can walk off the end of is a row you can learn — "Finance is two
@@ -1576,7 +1580,13 @@ function pagerBegin(axis, dir, two){
   if(!prev && !next) return false;
 
   const r=host.getBoundingClientRect(), fr=frameRect();
-  PG={axis, here, prev, next, at:0, w:r.width, h:r.height,
+  /* **An empty slot is heavier to reach than a board** (decision 224). It is
+     not more of the board, it is the chance to make some, so the strip gives
+     at a little over half the finger's pace towards one and letting go has to
+     have carried it most of the way — a board is a flick away, a slot is a
+     deliberate pull. */
+  const slot = sp => !!(sp && sp.shelf && !isBoard(here, sp.shelf.x, sp.shelf.y));
+  PG={axis, here, prev, next, prevSlot:slot(prev), nextSlot:slot(next), at:0, w:r.width, h:r.height,
       last:0, vel:0, t:performance.now(), flat:still()};
   if(PG.flat) return true;
 
@@ -1694,7 +1704,8 @@ function pagerMove(d){
   // nothing that way: the strip still gives, but only a third as much, which
   // is the whole of how a screen says "this is the end"
   const open = d>0 ? PG.prev : PG.next;
-  let v = clamp(open ? d : d*0.32, -size, size);
+  const heavy = d>0 ? PG.prevSlot : PG.nextSlot;
+  let v = clamp(open ? d*(heavy ? SLOT_PULL : 1) : d*0.32, -size, size);
   // smoothed, because one sample of a touch stream is mostly noise
   const now=performance.now(), dt=Math.max(1, now-PG.t);
   PG.vel = PG.vel*0.4 + ((v-PG.last)/dt)*0.6;
@@ -1713,10 +1724,12 @@ function pagerEnd(){
   if(!PG) return;
   const g=PG;
   const size = g.axis==='x' ? g.w : g.h;
-  const far  = Math.abs(g.at) > Math.min(size*0.24, 110);
+  const toSlot = g.at>0 ? g.prevSlot : g.nextSlot;
+  const far  = Math.abs(g.at) > (toSlot ? size*SLOT_FAR : Math.min(size*0.24, 110));
   // a flick is short but fast; it still has to have gone somewhere, or every
-  // quick tap-and-slip off a locked board would change drawer
-  const flick= Math.abs(g.vel) > 0.9 && Math.abs(g.at) > 30;
+  // quick tap-and-slip off a locked board would change drawer. Towards an
+  // empty slot a flick is not enough on its own (decision 224).
+  const flick= !toSlot && Math.abs(g.vel) > 0.9 && Math.abs(g.at) > 30;
   let step = 0;
   if(far || flick){
     const dir = (flick ? -Math.sign(g.vel) : (g.at>0 ? -1 : 1));

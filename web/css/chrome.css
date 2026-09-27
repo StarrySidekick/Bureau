@@ -6110,10 +6110,15 @@ html[data-rows="fit"] .is-phone .gridbar.inrail .sqbtn{width:28px;height:28px}
    centre stuck to the record rather than as the spindle hole every real disc
    has. It is cut through now: a mask on the whole disc, so the board shows
    through the middle and the hole turns with it without anything to turn. */
+/* **A CD's hole, not a spindle's** (decision 224): at five per cent of the
+   radius it was a pinprick of cream on a phone and read as a dot on the
+   label. Thirteen and a half is a compact disc's proportion, and the dark
+   edge round it is what makes it read as cut through rather than painted. */
 .projdisc .cd{
-  -webkit-mask:radial-gradient(circle closest-side, transparent 0 5%, #000 5.6%);
-          mask:radial-gradient(circle closest-side, transparent 0 5%, #000 5.6%)}
-.projdisc .cd b::after{display:none}
+  -webkit-mask:radial-gradient(circle closest-side, transparent 0 13.5%, #000 14.1%);
+          mask:radial-gradient(circle closest-side, transparent 0 13.5%, #000 14.1%)}
+.projdisc .cd b::after{display:block;inset:30.6%;background:none;
+  box-shadow:0 0 0 1.6px rgba(0,0,0,.4), 0 0 0 3.5px rgba(255,255,255,.14)}
 /* …and a record lying on the desk has no side to stand proud on: the flank
    a card shows is a rectangle, and a disc is not one. */
 .sndtile > .dside,.projtile.bare > .dside{display:none}
