@@ -18,6 +18,12 @@ const PROP_OFF = () => { const b = document.createElement('button');
 (async () => {
   const browser = await chromium.launch(CHROME ? { executablePath: CHROME } : {});
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  /* A portal set to Glimpse asks WordPress's screenshot service for a picture
+     of its page (decision 226). The suite must not depend on the network, and
+     a sandbox may refuse the host outright, so the answer is a blank picture
+     from here. */
+  const BLANK_PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=', 'base64');
+  await ctx.route('https://s0.wp.com/**', r => r.fulfill({ status: 200, contentType: 'image/png', body: BLANK_PNG }));
   /* ---- finding something to press, on a board that is nine screens ------
      A phone draws **one shelf of nine**, so "the first root child" and "the
      first tile on the board" stop being the same thing: a block that picks an
