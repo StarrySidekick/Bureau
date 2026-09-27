@@ -783,3 +783,11 @@ says its day (`cldue`) or its stars, and a thing that cannot be ticked wears
 its type's mark instead of the box, because a box on a review would tick it.
 The answer box is a `<textarea>`: `gestures.js` already leaves one alone. See
 decision 197.
+
+
+**A background is the one tile under the others.** `isBackdrop(o)` (the
+`backdrop` attribute) draws `.bgtile fill-<key>` and nothing else: no panel,
+grain or flank, `z-index:0` against every other tile's 1, no taps on a locked
+board. `boxOk()` lets it and everything else overlap, and the lasso skips it,
+so a box drawn over one is a sketch. Fills are `FILLS` in model.js plus a
+`fill-<key>` rule in board.css, drawn off `--c` in px. See decision 216.

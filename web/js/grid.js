@@ -452,11 +452,11 @@ function boxOk(box, id, device, parentId){
      snaps, it drags, it pages — it is only the overlap rule that lets go.
      See decision 86. */
   const me = id && byId(id);
-  if(me && has(me,'decor')) return true;
+  if(me && (has(me,'decor') || has(me,'backdrop'))) return true;
   // Only objects that have actually been placed can be collided with. Without
   // this, everything unplaced reads as sitting at 1,1 and blocks the corner.
   return !childrenOf(container(parentId||ROOT))
-    .some(d=>d.id!==id && !has(d,'decor') && hasBox(d,dv)
+    .some(d=>d.id!==id && !has(d,'decor') && !has(d,'backdrop') && hasBox(d,dv)
              && overlaps(box, lay(d,device,parentId||ROOT)));
 }
 /* The lowest free spot, **on the shelf you are looking at first**. A board is

@@ -6,7 +6,7 @@ import { S, K, T, byId, has, isContainer, containers, container, childrenOf, cha
   spanOf, coversDay, lastDay, boardLocked,
   TILT_MODES, tiltMode, tiltsDesk, tiltsWindows, tiltClasses, cueFlipped,
   GRAVITIES, gravityMode, gravityOn,
-  URGES, workday, searchHits, sortOf } from './model.js';
+  URGES, workday, searchHits, sortOf, SORT_FACES, MANUAL } from './model.js';
 import { GRID, PHONE_GRIDS, CELL, COLW, MEASURE, sideways, colsOf, gridKeyOf, SHELVES, PAGES_MAX, shelvesOf,
   shelfRows, shelfOfBox, shelfAt, setShelf, shelfOrigin, SHELF, drawCols, drawRows,
   lay, gridOf, cellW, ensureBox, innerOf, PLACED, proportional, flows } from './grid.js';
@@ -143,7 +143,9 @@ function gridBar(c){
     RAILBAR = {
       where: lip ? '' : where,
       left: railObj('glass', 'searchopen', c.id, 'Search', searchOpen())
-          + railObj('block', 'sortmenu', c.id, 'Sort and view', false, sortOf(c)),
+          + railObj('block', 'sortcycle', c.id,
+              `Sorted: ${(SORT_FACES[sortOf(c)||MANUAL]||SORT_FACES[MANUAL])[1]} — tap for the next, hold for line view`,
+              false, sortOf(c)||MANUAL),
       right: railObj(locked?'lock':'unlock', 'togglelock', '',
               locked?'Everything is locked — tap to unlock':'Everything is unlocked — tap to lock', locked)
           + railObj('gear', 'appsettings', c.id, c.id===ROOT?'Settings':'Board settings')
@@ -183,9 +185,11 @@ const GEAR_PATH = (()=>{
 const BRASS = id => `<linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1">
     <stop offset="0" stop-color="#F6DE94"/><stop offset=".42" stop-color="#C99C40"/>
     <stop offset="1" stop-color="#6E4C14"/></linearGradient>`;
-/* The block shows the sort it is on: S as you arranged it, A and Z for the
-   two alphabeticals. */
-const BLOCK_FACE = {az:'A', za:'Z'};
+/* Which way the block turns on its next draw (decision 215): set by the tap
+   that changed the sort, read once by the build, so only the render that
+   shows the new letter plays the turn. */
+let BLOCKFLIP = '';
+const flipBlock = axis => { BLOCKFLIP = axis; };
 const RAILART = {
   glass: ()=> `<defs>${BRASS('ro-gb')}
       <radialGradient id="ro-gl" cx=".36" cy=".3" r=".85">
@@ -201,21 +205,22 @@ const RAILART = {
     <circle cx="16" cy="16" r="9.9" fill="none" stroke="#000" stroke-opacity=".25" stroke-width=".8"/>
     <path d="M9.4 13.4a7.4 7.4 0 0 1 4.5-4.6" stroke="#fff" stroke-opacity=".8" stroke-width="1.7"
       fill="none" stroke-linecap="round"/>`,
-  /* A child's letter block (decision 211, in place of the Scrabble tile):
-     a painted cube seen from above and to the right, each face its own
-     colour inside a routed border, the letter raised on the front. */
-  block: sort => { const ch = BLOCK_FACE[sort] || 'S';
-    return `<path d="M4 11 11 4h25l-7 7Z" fill="#2F6DB5"/>
-    <path d="M6.6 10 11.6 5h21.8l-5 5Z" fill="none" stroke="#fff" stroke-opacity=".45" stroke-width=".9"/>
-    <path d="M29 11 36 4v25l-7 7Z" fill="#2E7A36"/>
-    <path d="M30.2 12.4 34.8 7.8v20.6l-4.6 4.6Z" fill="none" stroke="#fff" stroke-opacity=".3" stroke-width=".9"/>
-    <rect x="4" y="11" width="25" height="25" fill="#C8342B"/>
-    <rect x="5.6" y="12.6" width="21.8" height="21.8" fill="none" stroke="#F6D36B" stroke-width="1.3"/>
-    <path d="M4 11h25v25" fill="none" stroke="#000" stroke-opacity=".22" stroke-width=".8"/>
-    <text x="16.5" y="31.2" text-anchor="middle" font-family="'Arial Rounded MT Bold','Helvetica Neue',Arial,sans-serif"
-      font-weight="800" font-size="18" fill="#7A1C14">${ch}</text>
-    <text x="16" y="30.4" text-anchor="middle" font-family="'Arial Rounded MT Bold','Helvetica Neue',Arial,sans-serif"
-      font-weight="800" font-size="18" fill="#F6D36B">${ch}</text>`; },
+  /* A child's letter block, face on (decision 215): one painted face in a
+     routed border with the sort's letter raised on it, the face the colour
+     that sort is given in `SORT_FACES`. It was drawn in perspective (211);
+     a block seen face on is the thing you turn to read. */
+  block: sort => { const [ch,,col] = SORT_FACES[sort] || SORT_FACES[MANUAL];
+    return `<rect x="5" y="6" width="30" height="30" rx="3" fill="#000" fill-opacity=".28"/>
+    <rect x="5" y="4" width="30" height="30" rx="3" fill="${col}"/>
+    <rect x="5" y="4" width="30" height="30" rx="3" fill="url(#ro-bk)"/>
+    <defs><linearGradient id="ro-bk" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity=".28"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000" stop-opacity=".22"/></linearGradient></defs>
+    <rect x="7.4" y="6.4" width="25.2" height="25.2" rx="1.6" fill="none" stroke="#F6D36B" stroke-width="1.4"/>
+    <text x="20.6" y="27.6" text-anchor="middle" font-family="'Arial Rounded MT Bold','Helvetica Neue',Arial,sans-serif"
+      font-weight="800" font-size="19" fill="#000" fill-opacity=".35">${ch}</text>
+    <text x="20" y="26.8" text-anchor="middle" font-family="'Arial Rounded MT Bold','Helvetica Neue',Arial,sans-serif"
+      font-weight="800" font-size="19" fill="#F6D36B">${ch}</text>`; },
   /* Locked, the shackle is home in the body; open, it is lifted and its short
      leg stands clear — which is how you read a padlock across a room. */
   lock: open => `<defs>${BRASS('ro-lb')}
@@ -237,10 +242,12 @@ const RAILART = {
     <circle cx="20" cy="20" r="2.1" fill="#24170A"/>`
 };
 RAILART.unlock = ()=> RAILART.lock(true);
-const railObj = (art, act, id, title, on, arg)=>
-  `<button class="railobj ro-${art}${on?' on':''}${act==='togglelock'&&on?' locked':''}" data-act="${act}"${
+const railObj = (art, act, id, title, on, arg)=>{
+  const flip = art==='block' && BLOCKFLIP ? ` flip-${BLOCKFLIP}` : '';
+  if(flip) BLOCKFLIP = '';
+  return `<button class="railobj ro-${art}${flip}${on?' on':''}${act==='togglelock'&&on?' locked':''}" data-act="${act}"${
     id?` data-id="${esc(id)}"`:''} title="${esc(title)}" aria-label="${esc(title)}">
-    <svg viewBox="0 0 40 40" aria-hidden="true">${RAILART[art](arg)}</svg></button>`;
+    <svg viewBox="0 0 40 40" aria-hidden="true">${RAILART[art](arg)}</svg></button>`; };
 
 /* ---- the search is a button, and pressing it is a place ----------------
    It was a field in the bar, and a field in the bar is a field a third of the
@@ -770,7 +777,7 @@ const SETSECS = {
      is running. It sits among the look doors because that is what you are
      looking at when you want it. See decision 143. */
   guide:  ['Specimen Book','book', 'every aesthetic, and everything it dresses'],
-  plans:  ['Plans',      'grid',    'boards you saved, to lay out again'],
+  plans:  ['Flows',      'grid',    'boards set up for one kind of work, to lay out again'],
   things: ['Your Things','archive', 'how much there is, and getting it out'],
   paste:  ['Paste an Object', 'plus',    'objects described as JSON'],
   about:  ['About',      'help',    'which Bureau this is, and starting over']
@@ -828,7 +835,7 @@ function settingsBody(sec, cid){
   if(!sec) return `<div class="rows osecs">
       <div class="row" data-act="boardeditor" data-id="${ROOT}">
         <span class="kindmark">${ic('brush',13)}</span>
-        <div class="body"><div class="title">This desk</div><div class="snip">how it is laid out, sorted and painted, and saving it as a plan</div></div>
+        <div class="body"><div class="title">This desk</div><div class="snip">how it is laid out, sorted and painted, and saving it as a flow</div></div>
         <span class="rowgo">${ic('chevR',13)}</span></div>
       ${Object.entries(SETSECS).map(([k,[nm,icon,note]])=>
       `<div class="row" data-ssec="${k}">
@@ -1952,4 +1959,4 @@ function sizeGrid(){
 export { render, renderSoon, sizeGrid, shelfTop, shelfLeft, shelfShift, centreDesk,
   reveal, deskMap, viewHTML, previewHTML,
   goShelf, goShelfTo, sideDrawer, goSideDrawer, gridSizeField, shelfCountField,
-  settingsPanel, toggleSettings, railObj };
+  settingsPanel, toggleSettings, railObj, flipBlock };

@@ -470,7 +470,7 @@ phone one.
 
 **The drawer front holds objects, not knobs** (decision 208). On a phone
 `gridBar()` hands `RAILBAR = {where, left, right}` to `deskRail()`:
-magnifying glass and letter block (`sortmenu`, which opens `sortMenu()`) left
+magnifying glass (`searchopen`, which also closes it) and letter block (`sortcycle`: a tap is the next sort in `sortCycleOf()`, a hold swaps grid and line view, decision 215) left
 of the knob, padlock and gear right of it (decision 211), each `railObj()` drawing its `RAILART` at the
 knob's height. The `data-act`s are the ones the old buttons had, so anything
 pressing `togglelock`, `searchopen` or `appsettings` still finds them. The Mac

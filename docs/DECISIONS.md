@@ -9880,3 +9880,62 @@ add box) are left out, since a field inside a button is invalid and Safari
 could hand the tap to it. It is a picture and takes no pointer events.
 Chromium cannot show this is the cause, so it stays a best reading until the
 phone says otherwise.
+
+## 215 · Sorting is data, and the letter block cycles it
+
+*2026-09-27.* Timothy: with a sort on, objects sorted across the whole desk
+rather than within the board; and a rethink — the letter block cycles
+Custom, A to Z, Newest, Oldest and Recently changed on a tap, a hold swaps
+grid for "line view", the block is a flat square that turns to a new letter,
+and each board can carry its own sort options, set in a flow.
+
+- **A sort stays on its shelf.** `flowSorted()` packed the whole desk from
+  shelf (0,0), so a sorted desk moved everything off the screen you were on
+  and it looked like the objects had vanished. Each object is now sorted
+  among the ones on its own shelf (`shelfOfBox()`), filling that shelf first.
+- **The sorts are a table.** `SORT_FACES` in model.js gives each sort its
+  letter, its name and its colour; `SORT_CYCLE` is the default five, and
+  `sortCycleOf(c)` reads the board's own `sortCycle`, then its type's, then
+  the desk's, then the default. Nothing branches on a sort's name to draw it.
+- **Tap cycles, hold swaps.** The block (`sortcycle`) writes the next sort
+  through the same `setField` the editor uses, so it pushes an undo, and the
+  block turns on one axis then the other (`flipBlock`, a CSS rotate from
+  90°). A hold of 450ms (`blockHold()` in wire.js, armed in gestures.js)
+  toggles the board between grid and list; the list *is* line view, since a
+  row there is already the eight-by-one strip (decision 168). The toasts say
+  "Grid view" and "Line view".
+- **Per board, and in the flow.** Board settings has *The letter block
+  cycles*, one chip per sort; it will not take the last one away. A flow
+  captures `sortCycle` and `sort` (`planFrom`) and gives them to the board it
+  lays out when that board has none of its own (`stampPlan`).
+
+## 216 · Subtypes on the ring, a Background, and plans are flows
+
+*2026-09-27.* Same brief.
+
+- **The ring is the palette and the things.** The well behind each
+  miniature on the shape ring is gone. On the hold ring the order is
+  unchanged but the ring is turned so Delete, always last, lands at the lower
+  right.
+- **A question is asked on the ring.** A blob that is a category, or a type
+  with `variants`, opens a second ring of its choices round the same box
+  (`ringInto()`), eight a page, with Back and the next page as blobs. A type
+  names its list in `variants`, and `VARIANTS` in panels.js says how to list,
+  name and apply each one: a Decoration's ornaments, a Painting's 26
+  paintings, a Background's fills. They are subtypes in everything but
+  storage (a `decor`, a `media` or a `fill` on the object), and the big
+  picker's family panel shows them as tiles too, through the same
+  `data-new` path with a `data-v`.
+- **Background** (`backdrop` attribute, `background` type): a colour, a check,
+  a gingham, stripes, dots, linen, felt or cork, drawn off the object's own
+  colour with fixed px repeats. It is the one tile under the others
+  (`z-index:0`), it collides with nothing either way (`boxOk()`), the Magic
+  Selector's lasso does not count it, and on a locked board it takes no
+  taps. On an unlocked board a press on it picks it up, like any tile.
+- **Plans are flows** in every word the app shows; the code keeps `plan`,
+  `S.plans` and `plans.js`, the same way `KINDS` kept its name when kinds
+  became types. A flow is the whole environment for one kind of work. The
+  Workshop has a Flows tab (the 33 stock boards plus Brain dump and Project
+  management) where each flow's purpose, board, tools and sorts are written
+  down; it is the brief for the flows to come, not something the app reads.
+- **Search toggles.** Pressing the glass again closes the search.

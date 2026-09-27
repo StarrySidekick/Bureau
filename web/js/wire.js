@@ -3,7 +3,8 @@ import { S, K, KINDS, KEYS, refreshKinds, ATTRS, attrsOf, has, SHAPES,
   FACES, MANUAL, byId, container, cfgOf, isContainer, isAncestor, relate, deskOf,
   unrelate, sensedDevice, reset, T, dz, dev, calViewOf, RULE_MAX, acceptFor, acceptAny,
   boardLocked, repeatOf, repeats, heldObjects, heldCount, marginOf, marginPlus, homeFor,
-  layoutOf, setClFit, genKindOf, makesAnything , groupMates, groupTogether, isDesk, faceOf, kindHas } from './model.js';
+  layoutOf, setClFit, genKindOf, makesAnything , groupMates, groupTogether, isDesk, faceOf, kindHas,
+  sortOf, sortCycleOf, SORT_FACES } from './model.js';
 import { gridOf, lay, boxOk, freeSpot, anySpot, roomFor, sizeOfKind, toPhoneSize, keepSize,
   shelvesOf, shelfAt, setShelf, shelvesToHold } from './grid.js';
 import { applyLook, applyStyle, setLookVal, lookVal, STYLES, setSlot, objColour, darkMode } from './look.js';
@@ -13,7 +14,7 @@ import { dealTop, furnish, toast, fits, setGridSize, toggleDone, spawnNext, del,
 import { spinTo, pending, placeAtPending, tileTap, turnPage, clearPages, intoOf } from './tiles.js';
 import { bpmOf, minsOf, burnOf, sidesOf, metroGoing, startMetro, mindTheTime, actOf, deckTop } from './active.js';
 import { DECOR, LIFE_ART } from './decor.js';
-import { render, renderSoon, sizeGrid, toggleSettings, settingsPanel, reveal, goShelf, goShelfTo, deskMap } from './views.js';
+import { render, renderSoon, sizeGrid, toggleSettings, settingsPanel, reveal, goShelf, goShelfTo, deskMap, flipBlock } from './views.js';
 import { closeGuide, guideOpen, saveGuide } from './guide.js';
 import { openObj, openWriter, openRead, openViewer, closeSheet, renderSheet, words,
   mdKey, copyObject } from './sheet.js';
@@ -21,7 +22,7 @@ import { openPanel, closePanel, refreshPanel, panelKey, panelBack, draft, modalN
   objectPanel,
   drawerFromSelection, openCtx, closeCtx, ringJustOpened, sortMenu, openCmd, closeCmd, cmdList, cmdMove, cmdAt, runCmd,
   schedulePanel, quickISO, SCHED, SCHED_PENS, plansPanel, tagFirstPanel,
-  familyPanel, becomePanel, lifeFirstPanel, donePanel } from './panels.js';
+  familyPanel, becomePanel, lifeFirstPanel, donePanel, ringInto, variantPatch } from './panels.js';
 import { onDown, onMove, onUp, onCancel, onTouchStart, onTouchMove, onTouchEnd,
   gestureFlags, dragArmed, holdsFinger, setCamEditor } from './gestures.js';
 import { enter, leaveTile, pagerOn, applyTilt, askTilt , zoomOut, zoomedIn } from './motion.js';
@@ -167,9 +168,9 @@ function makeFromPlan(planId, kind, whereId){
   pending.cell = at;
   placeAtPending(box);
   const made = pl ? stampPlan(pl.id, box.id) : [];
-  pushUndo(pl ? 'Lay out a plan' : 'Make a drawer', [box].concat(made).map(o=>({add:o.id})));
+  pushUndo(pl ? 'Lay out a flow' : 'Make a drawer', [box].concat(made).map(o=>({add:o.id})));
   save(); render(); reveal(box.id);
-  if(pl) toast(`${pl.nm||'A plan'}, laid out inside`, true);
+  if(pl) toast(`${pl.nm||'A flow'}, laid out inside`, true);
   return box;
 }
 
@@ -205,7 +206,23 @@ function makeDone(kind, srcId){
    answer still has to land where you pressed. See decisions 131 and 135. */
 /* `asked` is "the family question is already answered", which is what the tiles
    inside a family panel carry. Everything else a type asks it still asks. */
-function newOfKind(kind, asked){
+/* The letter block's two gestures (decision 215). The hold is timed by
+   gestures.js, which calls this; the tap that follows a hold is refused by
+   the timestamp rather than a flag, so a hold that leaves no click behind
+   leaves nothing armed either. */
+let BLOCK_HELD = 0, FLIPS = 0;
+function blockHold(cid){
+  BLOCK_HELD = Date.now();
+  const t = cfgOf(cid); if(!t) return;
+  const o = byId(cid);
+  const to = layoutOf(container(cid))==='grid' ? 'list' : 'grid';
+  if(o && t===o) pushSet('Changed', cid, 'layout', o.layout);
+  t.layout = to;
+  if(navigator.vibrate) navigator.vibrate(8);
+  save(); render(); refreshPanel();
+  toast(to==='grid' ? 'Grid view' : 'Line view');
+}
+function newOfKind(kind, asked, patch){
   if(!KINDS[kind]) return;
   const at = pending.cell;
   closePanel();
@@ -226,7 +243,7 @@ function newOfKind(kind, asked){
   if(k.asksLife){ lifeFirstPanel(kind); return; }
   if(k.asksDone){ donePanel(kind); return; }
   if(!asked && k.family){ familyPanel(kind); return; }
-  const o = create(kind, at?{parent:at.parent}:undefined);
+  const o = create(kind, Object.assign(at?{parent:at.parent}:{}, patch||{}));
   placeAtPending(o);
   save(); render();
   /* …and then it is scrolled to. A board is a coordinate space, so a new
@@ -779,7 +796,7 @@ function act(name, el){
       const p = planFrom(cid);
       if(!p){ toast('Nothing to save'); break; }
       save(); refreshPanel();
-      toast(`Saved “${p.nm}” as a plan — ${planSize(p)} thing${planSize(p)===1?'':'s'}`);
+      toast(`Saved “${p.nm}” as a flow — ${planSize(p)} thing${planSize(p)===1?'':'s'}`);
       break;
     }
     case 'allplans': plansPanel(); break;
@@ -825,6 +842,8 @@ function act(name, el){
        (decision 204). Focused in the same click, because a phone only raises
        the keyboard for a focus that happens inside the gesture. */
     case 'searchopen': {
+      // pressed again while it is open, the glass puts the search away
+      if(S.searchOn || String(S.q||'').trim()){ S.searchOn = false; S.q = ''; render(); break; }
       S.searchOn = true; render();
       const f = document.querySelector('.searchin');
       if(f){ f.focus(); try{ const n=f.value.length; f.setSelectionRange(n, n); }catch(err){} }
@@ -846,12 +865,36 @@ function act(name, el){
        208). The sort goes through setField(), the one writer the editor's
        "Sorted by" row uses, so the undo and the desk's own config come along. */
     case 'sortmenu': sortMenu(el, el.dataset.id || ROOT); break;
+    /* **A tap on the letter block is the next sort** (decision 215). The
+       orders it steps through are data (`sortCycleOf()`), the write is the
+       editor's own `setField()`, and the block turns to its new face on the
+       render that shows it, one axis and then the other. A hold is the other
+       question, grid or line, and ends in a click too: that click is not a tap. */
+    case 'sortcycle': {
+      if(Date.now() - BLOCK_HELD < 700) break;
+      const cid = el.dataset.id || ROOT, c = container(cid);
+      const list = sortCycleOf(c), cur = sortOf(c) || MANUAL;
+      const next = list[(list.indexOf(cur)+1) % list.length] || MANUAL;
+      FLIPS++;
+      flipBlock(FLIPS % 2 ? 'y' : 'x');
+      setField({dataset:{oset:`${cid}:sort`}, value:next});
+      render(); refreshPanel();
+      toast(`Sorted: ${(SORT_FACES[next]||SORT_FACES[MANUAL])[1]}`);
+      break;
+    }
     /* A blob on the shape ring (decision 210): the type, made in the box you
        drew, with its family question already answered by the blob itself.
        The cell is lifted off before the ring closes, because closing a ring
        without a choice throws its cell away. */
-    case 'ringmake': { const at = pending.cell; closeCtx(); pending.cell = at;
-      newOfKind(el.dataset.kind, !el.dataset.ask); break; }
+    /* A blob that is a question asks it on the ring (decision 216): a
+       category's family, a type's variants, a page at a time. A variant blob
+       makes the type already set to it. */
+    case 'ringmake': {
+      if(el.dataset.ask && !el.dataset.v){ ringInto(el.dataset.kind, 0); break; }
+      const at = pending.cell; closeCtx(); pending.cell = at;
+      newOfKind(el.dataset.kind, true, variantPatch(el.dataset.kind, el.dataset.v)); break; }
+    case 'ringpage': ringInto(el.dataset.kind, +el.dataset.page||0); break;
+    case 'ringback': ringInto(null); break;
     case 'ringmore': { const at = pending.cell; closeCtx(); pending.cell = at;
       modalNewObject(); break; }
     case 'setsort': {
@@ -877,7 +920,7 @@ function act(name, el){
       if(o && t===o) pushSet('Changed', cid, 'layout', o.layout);
       t.layout = to;
       save(); render(); refreshPanel();
-      toast(to==='grid' ? 'On the grid' : 'As a list');
+      toast(to==='grid' ? 'Grid view' : 'Line view');
       break;
     }
     /* One of anything, on the board you are looking at. The spawner's own
@@ -1284,6 +1327,19 @@ function wire(){
     /* Which painting a Painting is (decision 208). One undoable move for the
        picture and the name together, because hanging a new one renames it
        when the name was the old painting's. */
+    /* One order in or out of a board's letter-block cycle (decision 215). The
+       desk's own list lives in S.look, a drawer's on the drawer; the last
+       order cannot be taken out, or the block would have nothing to show. */
+    const sc=t.closest('[data-sortcyc]');
+    if(sc){ const [id,k]=sc.dataset.sortcyc.split(':');
+      const c=container(id), o=byId(id);
+      const cur=sortCycleOf(c).slice(), at=cur.indexOf(k);
+      if(at>=0){ if(cur.length>1) cur.splice(at,1); } else cur.push(k);
+      if(o){ pushSet('Changed', id, 'sortCycle', clone(o.sortCycle)); o.sortCycle=cur; }
+      else S.look.sortCycle=cur;
+      save(); render(); refreshPanel();
+      return;
+    }
     const pnt=t.closest('[data-painting]');
     if(pnt){ const [id,f]=pnt.dataset.painting.split(':');
       const o=byId(id), gal=galleryOf(o), p=gal && gal.find(x=>x.f===f);
@@ -1445,9 +1501,9 @@ function wire(){
         return; }
       const made = stampPlan(pp.dataset.planput, where, cell);
       pending.cell = null;
-      if(!made.length){ toast('That plan is empty'); return; }
+      if(!made.length){ toast('That flow is empty'); return; }
       // one move, so ⌘Z takes the whole arrangement back off in one press
-      pushUndo('Lay out a plan', made.map(o=>({add:o.id})));
+      pushUndo('Lay out a flow', made.map(o=>({add:o.id})));
       closePanel(); save(); render();
       const top = made.filter(o=>o.parent===where)[0];
       if(top) reveal(top.id);
@@ -1589,7 +1645,7 @@ function wire(){
        tile is *inside* that family's panel. Without it the lead member re-asks
        and the panel re-opens on itself. See kindTile(). */
     if(nk && !t.closest('[data-act]')){
-      newOfKind(nk.dataset.new, nk.hasAttribute('data-asked')); return; }
+      newOfKind(nk.dataset.new, nk.hasAttribute('data-asked'), variantPatch(nk.dataset.new, nk.dataset.v)); return; }
 
     // month / week / day — the same calendar over a different span
     const cv=t.closest('[data-calview]');
@@ -2442,4 +2498,4 @@ function wire(){
   document.addEventListener('visibilitychange', ()=>{ if(document.hidden) writeNow(); });
 }
 
-export { wire, newOfKind };
+export { wire, newOfKind, blockHold };

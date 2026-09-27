@@ -906,7 +906,7 @@ function someKind(){
      majors into the second), plus the collage, which `furnish()` lays with
      pictures so it is worth seeing. */
   const pool = KEYS.filter(k => (isPrimary(k) || SECONDARY.includes(k) || k==='moodboard') && !K(k).cat && !K(k).family
-    && (k==='moodboard' || !kindHas(k,'container')) && !kindHas(k,'control') && !kindHas(k,'decor'));
+    && (k==='moodboard' || !kindHas(k,'container')) && !kindHas(k,'control') && !kindHas(k,'decor') && !kindHas(k,'backdrop'));
   return pool[Math.floor(Math.random()*pool.length)] || 'note';
 }
 
@@ -1051,4 +1051,4 @@ export { toast, setGridSize, toggleDone, spawnNext, del, delMany, delDrawer, und
   drawerForTag, create, gather, quickAdd, spawnInto, randomThing,
   CONTROLS, CTL_KEYS, ctlSpec, ctlSaid, ctlIsOn, ctlForm, ctlNum, ctlIndex, ctlPress, someKind,
   fits,
-  holdIt, unholdIt, unholdMany, undoToast, dealTop, furnish, PICTURES, PAINTINGS, galleryOf, hangPainting };
+  holdIt, unholdIt, unholdMany, undoToast, dealTop, furnish, PICTURES, PAINTINGS, galleryOf, hangPainting, pictureMedia };

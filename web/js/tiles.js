@@ -6,12 +6,12 @@ import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, chi
   projCoverOf, lifeArtOf, goalStanding, GOAL_STANDINGS,
   makesAnything, ctlOf, takesTyping, showsAddBox,
   knobSizeOf, answered, sortOf, spanOf, coversDay, lateOn, isLate, iconOf, textSizeOf,
-  isPicture, isMedia, isPlayable, isDecor, mediaTypeOf, frameOf, isWindow,
+  isPicture, isMedia, isPlayable, isDecor, isBackdrop, fillOf, mediaTypeOf, frameOf, isWindow,
   boardLocked, prioOf, repeatSaid, urgencyOf, urgeSaid, durSaid, standsProud, shelfDepth, bookDepth, faceCue, anyFaceCue,
   calViewOf, calShowOf, weekStartOf, calCols, borderOf, textureOf, marginOf, isFragmentKind, gravityOn,
   groupOf, sealOf, isSealed, habitPlan, habitPeriods, habitRun } from './model.js';
 import { CELL, gridOf, drawCols, drawRows, lay, overlaps, boxOk, freeSpot, anySpot, roomFor, gridRows, sizeOfKind, sideways, innerOf,
-  ensureBox, shelfRows, shelfOrigin, shelfAt, colsOf, flows } from './grid.js';
+  ensureBox, shelfRows, shelfOrigin, shelfAt, shelfOfBox, colsOf, flows } from './grid.js';
 import { dealTop, create, toast, fits, toggleDone, someKind, ctlSpec, ctlSaid, ctlIsOn,
   ctlForm, ctlNum, ctlIndex, ctlPress, pushSet } from './mutations.js';
 import { DECOR, decorOf, decorEmits, flamePoint, decorSVG, LIFE_ART, lifeSVG } from './decor.js';
@@ -939,7 +939,7 @@ function gridTile(o, arr, parentId){
    *is* rather than from what it is called, so a type invented at runtime gets a
    sensible answer without being told. */
 const depthOf = o =>
-    isDecor(o)      ? 0           /* a cut-out with no box to have sides — see below */
+    isDecor(o) || isBackdrop(o) ? 0  /* a cut-out, or a cloth, with no box to have sides */
   : isContainer(o)  ? 1           // furniture, standing on the shelf
   : shapeOf(o)==='spine' ? 0.9    // a book is nearly as deep as the drawer beside it
   : has(o,'media')  ? 0.55        // a framed thing has a frame's thickness
@@ -2120,6 +2120,14 @@ function drawTileFace(o, arr, box, persp){
      A built-in is inlined so it can take the style's own colours; a file you
      chose is an <img>, because a picture somebody picked has no business
      being repainted. See decision 86. */
+  /* **A background lies under everything else** (decision 216): no name, no
+     edge and no hardware, only its fill in its own colour. Below the other
+     tiles by `z-index`, and on a locked board it takes no taps, so the things
+     standing on it are what you press. */
+  if(isBackdrop(o)){
+    return `<button class="drawer otile bgtile fill-${fillOf(o)}${sel}" data-row="${o.id}"
+      title="${esc(o.title||'Background')}" style="--c:${colour};${place}">${handles}</button>`;
+  }
   if(isDecor(o)){
     const own = o.media && o.media.src;
     /* A decoration takes no pointer events on a locked board, because a
@@ -2510,11 +2518,23 @@ function flowSorted(kids, cid){
   const free=(b)=> !taken.some(t=>overlaps(b,t));
   const shelves=[];
   for(let sy=0;sy<g.shelves.h;sy++) for(let sx=0;sx<g.shelves.w;sx++) shelves.push([sx,sy]);
+  /* **Each shelf sorts itself** (decision 215). The desk is nine shelves, and
+     packing the whole sorted list from the first one pulled everything on the
+     desk into its top-left screen, so turning a sort on emptied the shelf you
+     were standing on. A thing is sorted among the things on its own shelf, the
+     one its stored box is on (or the one you are looking at, if it has never
+     been placed), and only overflows to another when its own is full. A drawer
+     is one shelf wide, so there it is the column of pages it always was. */
+  const here = shelfAt(cid);
+  const homeOf = o => { const b=o[dv];
+    return (b && b.w && b.x) ? shelfOfBox(b, dv, cid) : here; };
   kids.forEach(o=>{
     let [w,h]=(o[dv]&&o[dv].w) ? [o[dv].w,o[dv].h] : sizeOfKind(o.kind, dv, cid);
     w=Math.min(w, g.shelfW); h=Math.min(h, g.shelfH);
     let put=null;
-    for(const [sx,sy] of shelves){
+    const hs = homeOf(o);
+    const order = [[hs.x, hs.y], ...shelves.filter(([sx,sy])=> sx!==hs.x || sy!==hs.y)];
+    for(const [sx,sy] of order){
       const x0=sx*g.shelfW, y0=sy*g.shelfH;
       for(let y=1;y<=g.shelfH-h+1 && !put;y++) for(let x=1;x<=g.shelfW-w+1;x++){
         const b={x:x0+x, y:y0+y, w, h}; if(free(b)){ put=b; break; }

@@ -67,6 +67,7 @@ const ATTRS = {
      is also the one thing allowed to overlap, and the one nothing has to make
      room for. See decision 86. */
   decor:    {nm:'Decoration', ds:'Stands above the board rather than in it — it may overlap anything, and nothing makes room for it'},
+  backdrop: {nm:'Background', ds:'Lies under the board’s other things: they may stand on it, and it makes room for nothing'},
   /* The one thing on the board that is about the *desk* rather than about
      anything on it. A control is a switch for one of the desk's own settings —
      the lock, the shadows, the aesthetic — sitting on the grid like a light
@@ -342,7 +343,7 @@ const BUILTIN_KINDS = {
   /* A Painting is an Image that is always one of the twenty-six hung in
      `img/paintings/` (`gallery` names the list in mutations.js): born with
      one at random, in a gilt frame, and its editor picks among them. */
-  painting:{nm:'Painting', ic:'image',  c:13, ds:'An Impressionist painting, framed', size:[5,4], onclick:'read', attrs:['media'], mediaType:'image', frame:'gilt', gallery:'paintings', body:'' },
+  painting:{nm:'Painting', ic:'image',  c:13, ds:'An Impressionist painting, framed', size:[5,4], onclick:'read', attrs:['media'], mediaType:'image', frame:'gilt', gallery:'paintings', variants:'paintings', body:'' },
   /* A window is an Image that admits there is somewhere on the other side of
      it. Same attribute, same surface, same file — what differs is that the
      frame is *in front of* the picture rather than around it, so the view
@@ -357,7 +358,13 @@ const BUILTIN_KINDS = {
      through it. One press in from Decoration rather than a tile of its own in
      a list that is already long. */
   decoration:{shape:'decor', nm:'Decoration', ic:'plant', c:6, key:'', ds:'Something to stand on the shelf — a plant, a bookend, a little figure', attrs:['decor','media'], size:[4,5], phoneSize:[2,3], mediaType:'image', onclick:'none', decor:'plant',
-     family:['decoration','window'], famSub:'What is standing there?', body:'' },
+     family:['decoration','window'], famSub:'What is standing there?', variants:'decor', body:'' },
+  /* A **background** is the one thing drawn *under* the board's other tiles
+     (decision 216): a colour, a check or a weave laid down so things can stand
+     on it. Like a decoration it collides with nothing in either direction, and
+     it takes no taps on a locked board. Which fill is a subtype, chosen on the
+     ring (`variants`), never a row in its editor. */
+  background:{nm:'Background', ic:'layers', c:12, ds:'A colour, a check or a weave laid under other things', attrs:['backdrop'], size:[8,6], phoneSize:[4,4], onclick:'none', fill:'solid', variants:'fills', body:'' },
   /* Sound and moving pictures are things you put on a desk, not a corner of
      film-making — so they are majors, and pressing one plays it rather than
      opening a page about it. See decision 144. */
@@ -692,7 +699,7 @@ const PRIMARY = ['drawer','book','calendar','checklist','image','note',
 /* What used to lead and does not any more, still in its stated order, drawn
    first inside the dropdown. */
 const SECONDARY = ['magic','project','life','task','jar','pigeonhole','moodboard','timeline',
-                 'fragment','label','recipe','achievement',
+                 'fragment','label','background','recipe','achievement',
                  'progressbar','tracker','counter','appt',
                  'video','post','control','outlink'];
 const isPrimary = k => PRIMARY.includes(k);
@@ -1565,6 +1572,15 @@ const isPicture = o => has(o,'media') && mediaTypeOf(o)==='image';
    never the kind's name — a type you invent that ticks the trait is a
    decoration too. See decision 86. */
 const isDecor = o => has(o,'decor');
+/* …and its opposite: a background lies *under* the board (decision 216). */
+const isBackdrop = o => has(o,'backdrop');
+/* The fills a background comes in. Each is drawn by a `fill-<key>` rule in
+   board.css off the object's own `--c`, so the list here is the whole of
+   what a new fill needs besides its CSS. */
+const FILLS = { solid:{nm:'Solid'}, check:{nm:'Checkerboard'}, gingham:{nm:'Gingham'},
+  stripe:{nm:'Stripes'}, dots:{nm:'Polka dots'}, linen:{nm:'Linen'}, felt:{nm:'Felt'}, cork:{nm:'Cork'} };
+const FILL_KEYS = Object.keys(FILLS);
+const fillOf = o => { const f = (o && o.fill) || K(o && o.kind).fill; return FILLS[f] ? f : 'solid'; };
 /* …and the other two. Audio and Video were real types with a mark, a size and a
    place in the picker, and the file input was `accept="image/*"` — so they
    existed in order to tell you they were not implemented, which is a promise
@@ -2135,6 +2151,31 @@ const SORTS = {
    says nothing follows its type, and a type that says nothing is manual.
    Manual is the answer for a drawer, and deliberately so: a grid is a place. */
 const MANUAL = 'manual';
+/* ---- the letter block — decision 215 -----------------------------------
+   Sorting is data, like everything else here. `SORT_FACES` says what each
+   order looks like on the block in the drawer front (a letter, a name, the
+   colour of that face of the block) and `SORT_CYCLE` is the order a tap steps
+   through. A board may carry its own `sortCycle` — a flow can hand one to the
+   boards it lays out — then its type's, then the desk's `S.look.sortCycle`,
+   then this. Anything named that is not a sort is dropped rather than drawn. */
+const SORT_FACES = {
+  manual:   ['C', 'Custom',            '#C8342B'],
+  az:       ['A', 'A to Z',            '#2F6DB5'],
+  za:       ['Z', 'Z to A',            '#2F6DB5'],
+  made:     ['N', 'Newest first',      '#2E7A36'],
+  madeup:   ['O', 'Oldest first',      '#C77A12'],
+  edited:   ['M', 'Recently changed',  '#7A4A9C'],
+  editedup: ['E', 'Least recently changed', '#7A4A9C'],
+  prio:     ['P', 'Most important first',  '#8C3F5A'],
+  prioup:   ['L', 'Least important first', '#8C3F5A'],
+  urgent:   ['U', 'Most urgent first',     '#B0452C']
+};
+const SORT_CYCLE = ['manual','az','made','madeup','edited'];
+const sortCycleOf = c => {
+  const list = (c && c.sortCycle) || (c && K(c.kind).sortCycle) || (S.look && S.look.sortCycle) || SORT_CYCLE;
+  const ok = list.filter(k => k===MANUAL || SORTS[k]);
+  return ok.length ? ok : SORT_CYCLE;
+};
 const sortOf = c => { const v=(c && c.sort) || K(c&&c.kind).sort || MANUAL;
   return SORTS[v] ? v : null; };
 /* ---- what a container shows, and the one place it is worth remembering ----
@@ -3008,13 +3049,13 @@ export { homeFor, ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds,
   PLATES, PLATE_SLOTS, plateOf, SEALS, SEAL_KEYS, sealOf, isSealed,
   BORDER_SLOTS, borderOf, TEXTURE_SLOTS, textureOf, STOCKS, STOCK_SLOTS, stockOf,
   KNOBSIZES, knobSizeOf, answered, marginOf, marginPlus, iconOf, TSIZES, textSizeOf, mediaTypeOf, isPicture,
-  isMedia, isPlayable, acceptFor, acceptAny, MEDIA_EXT, isDecor,
+  isMedia, isPlayable, acceptFor, acceptAny, MEDIA_EXT, isDecor, isBackdrop, FILLS, FILL_KEYS, fillOf,
   spawnByOf, genKindOf, takesTyping, showsAddBox, keepsDone, showsContainers,
   makesOf, madeAtSize,
   CALVIEWS, calViewOf, calShowOf, CALSHOWS, weekStartOf, showsWeekends, calCols,
   CL_FITS, clFit, setClFit, clPerCell,
   OPS, WHENS, whenISO, RULE_MAX, rulesOf, matchRule,
-  ROLLS, rollup, SORTS, MANUAL, sortOf, childrenOf, beginPass, endPass, isAncestor,
+  ROLLS, rollup, SORTS, MANUAL, sortOf, SORT_FACES, SORT_CYCLE, sortCycleOf, childrenOf, beginPass, endPass, isAncestor,
   URGES, WORKDAY, workday, urgencyOf, urgeRank, urgeName, urgeSaid, durSaid,
   relatedTo, backlinksTo,
   groupOf, groupMates, travelWith, groupTogether, relate, unrelate, chainOf, tlSpan, streak, goalPct,

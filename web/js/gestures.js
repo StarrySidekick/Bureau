@@ -1,4 +1,5 @@
 import { $, $$, clamp, D, ROOT } from './util.js';
+import { blockHold } from './wire.js';
 import { S, byId, dev, has, isContainer, isAncestor, childrenOf, container, gatherKind, spanOf,
   sortOf, boardLocked, heldCount, homeFor, attrsOf, travelWith, isMedia } from './model.js';
 import { CELL, gridOf, drawCols, drawRows, cellW, lay, boxOk, overlaps, sizeOfKind, keepSize } from './grid.js';
@@ -729,6 +730,7 @@ function placePen(id, k, iso){
   toast(o[k] ? `${said} ${D.human(o[k]).toLowerCase()}` : `${said} — taken off`);
 }
 
+let BLOCK_T = 0;
 function onDown(e){
   /* A drag arms suppressClick so its own trailing click can't also fire. If
      that click never arrives — the pointer left the window, or the drag was
@@ -859,6 +861,13 @@ function onDown(e){
       ? {type:'homeedge'}
       : {type:'rail', el:railEl, onKnob:!!e.target.closest('.railknob'),
          sx:e.clientX, sy:e.clientY, mode:null, pull:null};
+    /* **Holding the letter block is grid or line** (decision 215). A tap is
+       the click and cycles the sort; still there after a beat, with the
+       finger not pulling the drawer, it is the other question. */
+    const blk = G.type==='rail' && e.target.closest('.ro-block');
+    if(blk){ const g0 = G, cid = blk.dataset.id || ROOT;
+      clearTimeout(BLOCK_T);
+      BLOCK_T = setTimeout(()=>{ if(G===g0 && !g0.pull && !g0.mode) blockHold(cid); }, 450); }
     return;
   }
   /* ---- the Home Knob, on a Mac ----------------------------------------
@@ -1317,7 +1326,7 @@ function onMove(e){
        model is not what is on the screen. What the band still says truthfully
        is how big the thing you are dragging out will be. */
     const hits = G.falling ? []
-      : childrenOf(container(G.parent)).filter(o=>overlaps(box, lay(o)));
+      : childrenOf(container(G.parent)).filter(o=>!has(o,'backdrop') && overlaps(box, lay(o)));
     G.hits=hits.map(o=>o.id);
     G.ok = G.falling || (!hits.length && boxOk(box,null,dev(),G.parent));
     G.ghost.className='ghost band'+(hits.length?' picking':(G.ok?'':' bad'));

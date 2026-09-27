@@ -145,6 +145,11 @@ function planFrom(cid, nm){
        plan and is given to the container the plan is put down in. Kind names
        only — nothing in it is an id to re-point. See decision 199. */
     makes: c.makes ? JSON.parse(JSON.stringify(c.makes)) : undefined,
+    /* The orders its letter block steps through, and the one it is on
+       (decision 215): a flow says how its boards sort as much as what is on
+       them. */
+    sorts: Array.isArray(c.sortCycle) ? c.sortCycle.slice() : undefined,
+    sort: c.sort || undefined,
     objects
   };
   plans().push(p);
@@ -166,6 +171,10 @@ function stampPlan(planId, intoId, at){
      board's way in. See decision 199. */
   if(p.makes && home!==ROOT && byId(home) && !byId(home).makes)
     byId(home).makes = JSON.parse(JSON.stringify(p.makes));
+  // …and how it sorts, onto a board that has not said (decision 215)
+  if(home!==ROOT && byId(home)){ const hb = byId(home);
+    if(Array.isArray(p.sorts) && !hb.sortCycle) hb.sortCycle = p.sorts.slice();
+    if(p.sort && !hb.sort) hb.sort = p.sort; }
   /* **A plan is an arrangement, so the drawer grows to hold it.** Since
      decision 188 a container's board is its own tile, four cells to a cell —
      so a plan authored eight cells across and twelve down no longer fits a

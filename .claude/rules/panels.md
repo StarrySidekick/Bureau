@@ -385,3 +385,12 @@ Each blob is the type's `sampleTile()` miniature (decision 212) inside a real
 `<button>` (decision 214: a `div role="button"` did nothing when tapped on an
 iPhone); the miniature's own buttons are rewritten as spans and its fields
 dropped, and it takes no pointer events.
+
+
+**A subtype is chosen on the ring.** A blob carrying `data-ask` opens its
+choices round the same box (`ringInto()`); a choice carrying `data-v` makes
+the type with `variantPatch(kind, v)` applied. A type's `variants` names a
+list in `VARIANTS` (panels.js), which is the only place to add one; the
+picker's family panel draws the same list as tiles. Labels on the shape ring
+are capped and ellipsed, because a painting's title is a sentence. See
+decision 216.

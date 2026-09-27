@@ -108,6 +108,14 @@ Decision 211 put the drawer front the right way round: glass, letter block
 **v2.11** (decision 213): Settings as Timothy arranged them in the Workshop:
 Aesthetics folded into **Global Settings**, labels renamed, five settings cut
 (migration 43 resets them to their defaults).
+**v2.13** (decisions 215–216): a sort stays on its shelf; the letter block is
+a flat square that **cycles the board's sorts on a tap** (`SORT_FACES`,
+`sortCycleOf()`, per board and carried by a flow) and **swaps grid and line
+view on a hold**; the glass closes the search too. Subtypes are chosen on the
+ring (`VARIANTS`, `ringInto()`): a Decoration's ornaments, a Painting's
+paintings, a **Background**'s fills (a new type drawn under the other tiles).
+Delete sits at the ring's lower right. **Plans are called flows** in the
+interface; the code still says plan.
 The **Bureau Workshop** artifact (https://claude.ai/artifact/4TjyQZ5xcuxCYFgfnRm76k)
 holds Timothy's own rearrangement of every menu and type: read its
 `workshop/state` document before reorganising menus or types.

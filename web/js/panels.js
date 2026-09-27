@@ -2,7 +2,7 @@ import { $, $$, esc, ic, uid, clamp, D, ROOT, pastTense, outURL } from './util.j
 import { S, K, KINDS, KEYS, T, ATTRS, USER_ATTRS, FIELDS, fieldOf, OPS, ROLLS,
   URGES, workday, urgencyOf, urgeRank, urgeSaid, durSaid,
   WHENS, whenISO, RULE_MAX, rulesOf,
-  SORTS, MANUAL, sortOf, FACES, SHAPES, shapeChoices, READS, OPENINGS, openingOf,
+  SORTS, MANUAL, sortOf, SORT_FACES, sortCycleOf, FACES, SHAPES, shapeChoices, READS, OPENINGS, openingOf,
   faceOf, layoutOf, shapeOf, readOf, byId, container, cfgOf, deskTitle,
   rootObj, containers, isContainer, isAncestor, childrenOf, has, kindHas,
   attrsOf, allTags, everyTag, tagsOf, habitPlan, HABIT_MAX_TIMES, placeOf, deskList, deskOf, isDesk, spanOf, heldObjects,
@@ -18,10 +18,11 @@ import { S, K, KINDS, KEYS, T, ATTRS, USER_ATTRS, FIELDS, fieldOf, OPS, ROLLS,
 import { newOfKind } from './wire.js';
 import { GRID, lay, boxOk, freeSpot, anySpot, sizeOfKind, toPhoneSize, keepSize } from './grid.js';
 import { randomBoard, randomFront, hexOf, objColour, objSlots, famSlots, famAll, FAMS, styleKey, stockNow, CHECKS, checkNow } from './look.js';
+import { FILLS, FILL_KEYS } from './model.js';
 import { CLICKS, clickOf, gridTile, pending } from './tiles.js';
 import { isActive, activeZoom, activeSay, activeName, DICE, CLOCKS } from './active.js';
 import { DECOR, decorOf, decorSVG, decorFor, decorRest, LIFE_ART, LIFE_KEYS, lifeSVG } from './decor.js';
-import { quickAdd, toast, drawerForTag, CONTROLS, CTL_KEYS, ctlSpec, galleryOf } from './mutations.js';
+import { quickAdd, toast, drawerForTag, CONTROLS, CTL_KEYS, ctlSpec, galleryOf, PAINTINGS, pictureMedia } from './mutations.js';
 import { openObj, renderSheet, closeSheet , openZoom } from './sheet.js';
 import { render, settingsPanel, gridSizeField, shelfCountField } from './views.js';
 import { openingFor, zoomInto, CAMERA, growSheet } from './motion.js';
@@ -241,12 +242,53 @@ function shapeKinds(w, h, home){
        shape is not answered by a book and then two kinds of book. */
     .filter((k, i, all) => !all.slice(0, i).some(j => j!==k && (K(j).family||[]).includes(k)));
 }
-function shapeRing(rect, cell){
+/* ---- subtypes are chosen on the ring — decision 216 ---------------------
+   A type may name `variants`, a list its objects are born from: which
+   ornament a Decoration is, which painting a Painting hangs, which fill a
+   Background lies in. Each entry is a **subtype** in all but storage — it is
+   offered on the ring and in the picker as a thing you make, never as a row
+   buried in the editor. `list` is the keys, `nm` a key's name, `patch` what
+   `create()` is handed. Add a list here and a type naming it gets the lot. */
+const VARIANTS = {
+  decor:     { list: ()=> decorFor(styleKey()).concat(decorRest(styleKey())),
+               nm: v => (DECOR[v]||{}).nm || v, patch: v => ({decor:v}) },
+  paintings: { list: ()=> PAINTINGS.map(p=>p.f),
+               nm: v => (PAINTINGS.find(p=>p.f===v)||{}).t || v,
+               patch: v => { const p = PAINTINGS.find(q=>q.f===v); return p ? {media:pictureMedia(p), title:p.t} : {}; } },
+  fills:     { list: ()=> FILL_KEYS, nm: v => FILLS[v].nm, patch: v => ({fill:v}) }
+};
+const variantsOf = k => (KINDS[k] && VARIANTS[K(k).variants]) || null;
+const variantPatch = (k, v) => { const vs = variantsOf(k); return vs && v ? vs.patch(v) : {}; };
+/* What a blob opens onto when it is a question. A family lists its members,
+   and the member that *is* the category spreads its own variants inline (the
+   Decoration's ring is the ornaments themselves, and the Window beside them);
+   a kind with variants and no family is its variants. */
+function ringChoices(k){
+  const fam = K(k).family ? familyList(k) : [];
+  const out = [];
+  const spread = m => variantsOf(m).list().forEach(v => out.push({k:m, v}));
+  if(!fam.length){ if(variantsOf(k)) spread(k); return out; }
+  fam.forEach(m => {
+    if(m===k && variantsOf(m)) spread(m);
+    else out.push({k:m, ask: m!==k && (!!variantsOf(m) || (K(m).family||[]).length>1)});
+  });
+  return out;
+}
+const asksOnRing = k => !!variantsOf(k) || (K(k).family||[]).length>1;
+/* A blob's picture: the thing it makes, drawn by `sampleTile()` with the
+   variant already applied, and made inert (decision 214). */
+const ringArt = (k, v) => `<span class="radpaint radtile" style="--k:${hexOf(K(k).c)}">${
+  sampleTile(Object.assign(kindSample(k), variantPatch(k, v)), 46, 46).replace(/<(\/?)button\b/g, '<$1span')
+    .replace(/<input\b[^>]*>|<textarea\b[^>]*>[\s\S]*?<\/textarea>/g, '')}</span>`;
+const RING_PAGE = 8;
+let RINGAT = null;
+function shapeRing(rect, cell, kind, page){
   const el = $('#ctx'), home = cell.parent;
+  RINGAT = {rect, cell};
   // a board with a rule for this size still makes it without asking (199)
-  const sized = makesOf(container(home)) && madeAtSize(container(home), cell.w, cell.h);
+  const sized = !kind && makesOf(container(home)) && madeAtSize(container(home), cell.w, cell.h);
   if(sized){ newOfKind(sized, true); return; }
-  const ks = shapeKinds(cell.w, cell.h, home).slice(0, RING_N);
+  const ks = kind ? [] : shapeKinds(cell.w, cell.h, home).slice(0, RING_N);
   const PAINTS = ['#C8553D','#E0A43A','#7FA54E','#3E7C8C','#4A5FA8','#8A5BA6','#B0677E','#8C6A3F'];
   // a category's blob asks which of its family (the Image blob offers the Painting)
   /* **Each blob is the thing it makes** (decision 212): the type drawn by
@@ -258,16 +300,26 @@ function shapeRing(rect, cell){
      and one inside another is unnested by the parser, so the miniature's
      buttons are written as spans and its fields (a checklist's add box) are
      left out: it is a picture and is never pressed. */
-  const items = ks.map(k => ({act:`data-act="ringmake" data-kind="${k}"${
-      (K(k).family||[]).length>1 ? ' data-ask="1"' : ''}`,
-      art:`<span class="radpaint radtile" style="--k:${hexOf(K(k).c)}">${
-        sampleTile(kindSample(k), 46, 46).replace(/<(\/?)button\b/g, '<$1span')
-          .replace(/<input\b[^>]*>|<textarea\b[^>]*>[\s\S]*?<\/textarea>/g, '')}</span>`,
-      label:K(k).nm}))
-    .concat({act:'data-act="ringmore"', art:`<span class="radpaint">${ic('plus',17)}</span>`, label:'More…'});
+  let items;
+  if(!kind){
+    items = ks.map(k => ({act:`data-act="ringmake" data-kind="${k}"${asksOnRing(k) ? ' data-ask="1"' : ''}`,
+        art: ringArt(k), label:K(k).nm}))
+      .concat({act:'data-act="ringmore"', art:`<span class="radpaint">${ic('plus',17)}</span>`, label:'More…'});
+  } else {
+    /* One question further in: the choices, a page of eight at a time, with
+       the way back and (when there are more) the next page on the ring too. */
+    const all = ringChoices(kind), pages = Math.max(1, Math.ceil(all.length / RING_PAGE));
+    const pg = ((page||0) % pages + pages) % pages;
+    items = all.slice(pg*RING_PAGE, pg*RING_PAGE + RING_PAGE).map(c => ({
+        act:`data-act="ringmake" data-kind="${c.k}"${c.v ? ` data-v="${esc(c.v)}"` : ''}${c.ask ? ' data-ask="1"' : ''}`,
+        art: ringArt(c.k, c.v), label: c.v ? variantsOf(c.k).nm(c.v) : K(c.k).nm}));
+    if(pages > 1) items.push({act:`data-act="ringpage" data-kind="${kind}" data-page="${pg+1}"`,
+        art:`<span class="radpaint">${ic('chevR',17)}</span>`, label:`${pg+1} of ${pages}`});
+    items.push({act:'data-act="ringback"', art:`<span class="radpaint">${ic('chevL',17)}</span>`, label:'Back'});
+  }
   const n = items.length, R = n<=6 ? 96 : n<=8 ? 114 : 128, pad = 44;
   el.innerHTML = `<i class="radhole" aria-hidden="true"></i>
-    <div class="ctxhead">${cell.w} × ${cell.h}</div>${
+    <div class="ctxhead">${kind ? esc(K(kind).famSub || K(kind).nm) : `${cell.w} × ${cell.h}`}</div>${
     items.map((m,i)=>{
       const a = -Math.PI/2 + i*2*Math.PI/n, x = Math.cos(a)*R, y = Math.sin(a)*R;
       return `<button class="radblob" ${m.act} title="${esc(m.label)}"
@@ -290,6 +342,8 @@ function shapeRing(rect, cell){
    next real one; asking how long the ring has been open cannot go stale. */
 let RING_AT = 0;
 const ringJustOpened = ()=> $('#ctx').classList.contains('shapering') && Date.now() - RING_AT < 250;
+// the ring asks its next question round the same box it was opened for
+const ringInto = (kind, page) => RINGAT && shapeRing(RINGAT.rect, RINGAT.cell, kind, page);
 
 /* Every type falls in exactly one group. `scene` used to be listed under both
    Writing and Film, because the two filters were written independently.
@@ -370,6 +424,15 @@ function kindTile(k, inFam, becomeId){
   </div>`;
 }
 
+/* A variant drawn as a type tile: pressing it makes the type already set to
+   it, through the ordinary `data-new` path (decision 216). */
+function variantTile(k, v){
+  return `<div class="kindtile" data-new="${k}" data-asked data-v="${esc(v)}" role="button" tabindex="0"
+      style="--k:${hexOf(K(k).c)}">
+    <div class="kpv">${sampleTile(Object.assign(kindSample(k), variantPatch(k, v)), 146, 82)}</div>
+    <div class="krow"><span class="nm">${esc(variantsOf(k).nm(v))}</span></div>
+  </div>`;
+}
 /* ---- the family behind a category --------------------------------------
    The same grid of drawn types, one press in, with the way back in the head —
    a replaced panel with no chevron is a dead end, which is what `spec.back`
@@ -386,13 +449,14 @@ function familyPanel(cat){
   if(!ks.length) return;
   openPanel({key:'newobject', wide:true, back:()=>modalNewObject(),
     title:d.nm, sub:d.famSub || 'Which one?',
-    body:()=>`<div class="kindgrid">${ks.map(k=>kindTile(k, true)).join('')}</div>
+    body:()=>`<div class="kindgrid">${ks.map(k=> variantsOf(k)
+        ? variantsOf(k).list().map(v=>variantTile(k, v)).join('') : kindTile(k, true)).join('')}</div>
       ${d.ds?`<div class="mini" style="--k:var(--brass);margin-top:12px">${esc(d.ds)}</div>`:''}${
       /* **Or start from a board** (decision 196). A category may name the
          `boards` it offers — the plans carrying that `sec` — and each makes
          the container its plan is for, already holding it. A Film holds the
          Short Film board by itself; a Feature Film is here. */
-      d.boards && plans().some(p=>p && p.sec===d.boards) ? `<div class="section-h" style="margin-top:14px"><h2>Or start from a board</h2><div class="rule"></div></div>
+      d.boards && plans().some(p=>p && p.sec===d.boards) ? `<div class="section-h" style="margin-top:14px"><h2>Or start from a flow</h2><div class="rule"></div></div>
         <div class="deskmapgrid">${plans().filter(p=>p && p.sec===d.boards).map(p=>planCard(p,'planmake')).join('')}</div>` : ''}`});
 }
 
@@ -505,7 +569,7 @@ function planCard(p, act, pre){
       ${top.map(o=>{ const b=o.desk||{x:1,y:1,w:2,h:2};
         return `<i style="--k:${objColour(o)};grid-column:${b.x||1}/span ${b.w||1};grid-row:${b.y||1}/span ${b.h||1}"></i>`;
       }).join('')}</span>
-    <b>${esc(p.nm||'Untitled plan')}</b>
+    <b>${esc(p.nm||'Untitled flow')}</b>
     <u>${top.length} on it${planSize(p)>top.length?` · ${planSize(p)} in all`:''}</u>
   </button>`;
 }
@@ -515,25 +579,25 @@ function planCard(p, act, pre){
    the desk is made *with*, like a type, and "what arrangements have I saved"
    is not the same question as "how much is on this device". See decision 121. */
 function plansPanel(){
-  openPanel({key:'plans', wide:true, title:'Plans',
+  openPanel({key:'plans', wide:true, title:'Flows',
     sub:'Boards you saved, to lay out again',
     body:()=>{
       const ps = plans();
       const home = (S.view==='drawer' && S.drawerId) || ROOT;
       const c = byId(home);
       const where = home===ROOT ? 'the desk' : (c && c.title) || 'this drawer';
-      if(!ps.length) return `<div class="mini" style="--k:var(--brass)">Nothing saved yet. Arrange a drawer the way you want it, open <b>its</b> editor with the brush in the bar, and press <b>Save as a plan</b>. Then it can be put down again anywhere — or given to a type, so every one you make opens fitted to it.</div>`;
+      if(!ps.length) return `<div class="mini" style="--k:var(--brass)">Nothing saved yet. Arrange a drawer the way you want it, open <b>its</b> editor with the brush in the bar, and press <b>Save as a flow</b>. Then it can be put down again anywhere — or given to a type, so every one you make opens fitted to it.</div>`;
       /* Grouped by what each is the board for (decision 196): thirty-three
          in one grid is a wall. Yours, which carry no `sec`, come first. */
       const SECS = [[null,'Yours'],['life','A part of your life'],['experience','Something you take in'],['project','A piece of work']];
       return `${SECS.map(([sec,h])=>{ const g = ps.filter(p=>(p.sec||null)===sec);
           return g.length ? `<div class="section-h"><h2>${h}</h2><div class="rule"></div><span class="n">${g.length}</span></div>
             <div class="deskmapgrid">${g.map(p=>planCard(p,'planput')).join('')}</div>` : ''; }).join('')}
-        <div class="mini" style="--k:var(--brass);margin-top:10px">${home===ROOT ? 'Pressing one on the desk makes a drawer of the right kind with the board inside it.' : `Pressing one lays it out on <b>${esc(where)}</b>.`} Everything comes back unticked and undated — a plan carries what a thing <i>is</i>, never the record of having done it.</div>
+        <div class="mini" style="--k:var(--brass);margin-top:10px">${home===ROOT ? 'Pressing one on the desk makes a drawer of the right kind with the board inside it.' : `Pressing one lays it out on <b>${esc(where)}</b>.`} Everything comes back unticked and undated — a flow carries what a thing <i>is</i>, never the record of having done it.</div>
         <div class="section-h" style="margin-top:14px"><h2>Keeping them</h2><div class="rule"></div></div>
         <div class="rows">${ps.map(p=>`<div class="row">
           <span class="kindmark">${ic(p.ic||'grid',13)}</span>
-          <div class="body"><input class="pfield" data-planname="${p.id}" value="${esc(p.nm||'')}" placeholder="Untitled plan">
+          <div class="body"><input class="pfield" data-planname="${p.id}" value="${esc(p.nm||'')}" placeholder="Untitled flow">
             <div class="snip">${planSize(p)} things · saved ${esc(p.made||'')}</div></div>
           <button class="subtle-btn" data-act="delplan" data-id="${p.id}">${ic('trash',12)}</button>
         </div>`).join('')}</div>`;
@@ -550,9 +614,9 @@ function plansHere(){
   if(!ps.length) return '';
   /* A dropdown since decision 204, beside the one holding the other types:
      the picker opens on the twelve things and nothing else. */
-  return `<details class="pgroup plansdrop"><summary>Plans <span class="n">a board you saved, laid out where you pressed</span></summary>
+  return `<details class="pgroup plansdrop"><summary>Flows <span class="n">a board set up for one kind of work, laid out where you pressed</span></summary>
     <div class="deskmapgrid">${ps.slice(0,PLANS_HERE).map(p=>planCard(p,'planput')).join('')}</div>${
-    ps.length>PLANS_HERE ? `<button class="subtle-btn" data-act="allplans">${ic('grid',12)} All ${ps.length} plans</button>` : ''}</details>`;
+    ps.length>PLANS_HERE ? `<button class="subtle-btn" data-act="allplans">${ic('grid',12)} All ${ps.length} flows</button>` : ''}</details>`;
 }
 
 /* ---- what a board makes, as rows in its own editor ---------------------
@@ -1159,8 +1223,8 @@ function objectPanelBody(id, sec){
      a board to save, and the desk is a container. See decision 121. */
   if(!sec && cont){
     const held = S.objects.filter(x=>x.parent===id).length;
-    out.push(prow('Plan',
-      held ? `<button class="pill" data-act="saveplan" data-id="${id}">${ic('grid',13)} Save as a plan</button>`
+    out.push(prow('Flow',
+      held ? `<button class="pill" data-act="saveplan" data-id="${id}">${ic('grid',13)} Save as a flow</button>`
            : `<span class="mini" style="--k:var(--brass)">Nothing in it to save yet</span>`,
       held ? `${held} on this board, and whatever is inside them` : ''));
   }
@@ -1327,6 +1391,13 @@ function objectPanelBody(id, sec){
     out.push(prow('Sorted by', psel(id,'sort',
       [[MANUAL,'As I arranged them'], ...Object.entries(SORTS).map(([k,[nm]])=>[k,nm])],
       sortOf(d)||MANUAL)));
+    /* Which orders this board's letter block steps through (decision 215),
+       in the order they come round. A board that says nothing follows the
+       desk's list; a flow can hand one down. */
+    { const cyc = sortCycleOf(d);
+      out.push(prow('The letter block cycles', `<div class="filterbar">${Object.entries(SORT_FACES).map(([k,[ch,nm]])=>
+        `<button class="fchip${cyc.includes(k)?' on':''}" data-sortcyc="${id}:${k}" title="${esc(nm)}"><b>${ch}</b> ${esc(nm)}</button>`).join('')}</div>`,
+        'tap the block for the next; hold it for line view')); }
     /* Not here any more: locking is one switch for everything, and it is the
        padlock in the bar. A lock is which mode you are in, not a fact about one
        board. See decision 74. */
@@ -2041,10 +2112,10 @@ function modalNewKind(from, editKey, forBoard){
            that whole arrangement inside it, boxes and nesting and all. This is
            what `seed:` was reaching for and could not say: seed is a list of
            titles one level deep, and a shoot day is a board. See decision 121. */''}
-      ${row('Opens fitted to','a plan you saved — every one you make arrives with it inside',
+      ${row('Opens fitted to','a flow — every one you make arrives with it inside',
         `<select class="psel" data-kplan><option value="">Empty</option>${
-          plans().map(p=>`<option value="${p.id}"${(base&&base.plan)===p.id?' selected':''}>${esc(p.nm||'Untitled plan')}</option>`).join('')}</select>${
-          plans().length ? '' : `<div class="mini" style="--k:var(--brass);margin-top:6px">No plans saved yet — arrange a drawer, then <b>Save as a plan</b> in its own editor.</div>`}`,
+          plans().map(p=>`<option value="${p.id}"${(base&&base.plan)===p.id?' selected':''}>${esc(p.nm||'Untitled flow')}</option>`).join('')}</select>${
+          plans().length ? '' : `<div class="mini" style="--k:var(--brass);margin-top:6px">No flows saved yet — arrange a drawer, then <b>Save as a flow</b> in its own editor.</div>`}`,
         'kplan', ` id="kplanrow"${sort==='object'?' style="display:none"':''}`)}
       ${/* a container's contents have a default order, like everything else a
            type decides. Manual is a real answer, and the one a drawer gives. */''}
@@ -2563,7 +2634,10 @@ function openCtx(x,y,id){
   el.innerHTML = `<i class="radhole" aria-hidden="true"></i>${
     many?`<div class="ctxhead">${sel.length} objects</div>`:''}${
     items.map((m,i)=>{
-      const a = -Math.PI/2 + i*2*Math.PI/n;
+      /* Delete is always last, and the ring is turned so the last lands at
+         the lower right (decision 216): the one press that loses something
+         sits where a thumb has to reach for it, not where it rests. */
+      const a = Math.PI/4 - (n-1-i)*2*Math.PI/n;
       const x = Math.cos(a)*R, y = Math.sin(a)*R;
       return `<button class="radblob ${m.cls}" data-c="${m.c}" title="${esc(m.label)}"
         style="--x:${x.toFixed(1)}px;--y:${y.toFixed(1)}px;--i:${i};--paint:${PAINTS[i%PAINTS.length]}">
@@ -2594,7 +2668,7 @@ function closeCtx(){
 
 export { plansPanel, planCard, boardRow,
   overlayHTML, openPanel, closePanel, refreshPanel, repositionPanel, panelKey, panelBack, draft,
-  openMenu, sortMenu, shapeRing, shapeKinds, ringJustOpened, modalNewObject, holdPanel, objectPanel, drawerPanel, modalNewKind,
+  openMenu, sortMenu, shapeRing, shapeKinds, ringJustOpened, ringInto, VARIANTS, variantsOf, variantPatch, modalNewObject, holdPanel, objectPanel, drawerPanel, modalNewKind,
   renderPreview, modalMove, tagFirstPanel, familyPanel, becomePanel, lifeFirstPanel, donePanel,
   sampleObject, sampleTile, kindSample,
   objectPanelBody, objBackTo, openCmd, closeCmd, cmdList, cmdMove, cmdAt, runCmd, drawerFromSelection, openCtx, closeCtx,

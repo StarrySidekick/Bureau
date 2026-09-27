@@ -4252,9 +4252,10 @@ html[data-theme="walnut"] .toast{background:var(--paper-3);color:var(--ink)}
    blob's and never the sample tile's (which is a real tile, with a tile's
    click). */
 .ctxmenu.radial .radblob{cursor:pointer}
-.radpaint.radtile{width:60px;height:60px;overflow:hidden;
-  background:radial-gradient(circle at 34% 30%, color-mix(in srgb, #fff 40%, var(--paper)),
-    var(--paper) 60%, color-mix(in srgb, var(--wood) 16%, var(--paper)))}
+/* No well round the miniature (decision 216): the palette and the thing
+   itself, nothing between them. */
+.radpaint.radtile{width:60px;height:60px;overflow:visible;border-radius:0;
+  background:none;box-shadow:none}
 .radtile .pvscale{pointer-events:none;flex:0 0 auto}
 .radtile .pvscale *{pointer-events:none}
 .ctxmenu.radial.shapering .radblob{width:74px;transform:translate(calc(var(--x) - 50%), calc(var(--y) - 31px))}
@@ -4262,6 +4263,7 @@ html[data-theme="walnut"] .toast{background:var(--paper-3);color:var(--ink)}
 .radblob b{font-size:10.5px;font-weight:600;line-height:1.1;color:var(--ink);
   padding:1px 5px;border-radius:var(--pill);
   background:color-mix(in srgb, var(--paper) 86%, transparent);white-space:nowrap}
+.ctxmenu.radial.shapering .radblob b{max-width:88px;overflow:hidden;text-overflow:ellipsis}
 .radblob.danger .radpaint{background:radial-gradient(circle at 34% 30%, #F2B6A6, #D2644A 60%, #A9472F);color:#fff}
 .radblob.danger b{color:#B24A33}
 @media (prefers-reduced-motion: reduce){
@@ -5389,6 +5391,16 @@ html[data-rows="fit"] .is-phone .gridbar.inrail .sqbtn{width:28px;height:28px}
 }
 .railobj svg{display:block;width:100%;height:100%;overflow:visible}
 .railobj:active{transform:translateY(1px) scale(.95);filter:drop-shadow(0 1px 1px rgba(0,0,0,.55))}
+/* The letter block turns to its new face (decision 215): drawn already
+   showing the new letter, and the turn plays over it, the first half edge-on
+   so the letter arrives with the face. Around the upright axis or the level
+   one, alternately, so two taps in a row do not look like one stuck turn. */
+.railobj.ro-block svg{transform-origin:50% 50%;backface-visibility:hidden}
+.railobj.ro-block.flip-y svg{animation:blockturny .42s cubic-bezier(.3,.7,.3,1.15)}
+.railobj.ro-block.flip-x svg{animation:blockturnx .42s cubic-bezier(.3,.7,.3,1.15)}
+@keyframes blockturny{0%{transform:perspective(120px) rotateY(-90deg)}100%{transform:perspective(120px) rotateY(0)}}
+@keyframes blockturnx{0%{transform:perspective(120px) rotateX(90deg)}100%{transform:perspective(120px) rotateX(0)}}
+@media (prefers-reduced-motion: reduce){ .railobj.ro-block svg{animation:none!important} }
 /* open, the glass catches the Glow the way a lit dot does */
 .railobj.ro-glass.on{filter:drop-shadow(0 2px 1.6px rgba(0,0,0,.55))
   drop-shadow(0 0 5px color-mix(in srgb, var(--glow) 75%, transparent))}
