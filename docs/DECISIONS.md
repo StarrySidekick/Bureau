@@ -9858,3 +9858,25 @@ artifact (decision 208); this is that arrangement, built.
 
 The Workshop's own copy of "what ships" was not rebuilt, so its Changes tab
 still reads these as changes from before; they are the arrangement, done.
+
+## 214 · The shape ring's blobs are buttons again
+
+*2026-09-27.* Timothy: after drawing a box with the Magic Selector, nothing
+could be placed; objects did not appear.
+
+It did not reproduce in Chromium, by mouse or by touch (CDP touch events),
+on the desk or in a drawer, paging or smooth-scrolling: the ring opened and a
+tap on a blob made the object in the drawn box every time. What changed for
+the ring on the day it broke is decision 212, which turned each blob from a
+`<button>` into a `div role="button"` so a miniature (itself a tile, and a
+tile is a `<button>`) could sit inside it. Safari on an iPhone is the known
+exception here: it does not reliably send a tap on a plain element up to a
+click listener on an ancestor, which is how every press in Bureau is
+answered, and the hold menu, which works on the phone, is made of buttons.
+
+So the blobs are `<button>`s again, and the miniature inside one is made fit
+to be there: its buttons are rewritten as spans and its fields (a checklist's
+add box) are left out, since a field inside a button is invalid and Safari
+could hand the tap to it. It is a picture and takes no pointer events.
+Chromium cannot show this is the cause, so it stays a best reading until the
+phone says otherwise.

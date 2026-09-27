@@ -251,12 +251,18 @@ function shapeRing(rect, cell){
   // a category's blob asks which of its family (the Image blob offers the Painting)
   /* **Each blob is the thing it makes** (decision 212): the type drawn by
      `sampleTile()` at its own default shape, the picker's miniature set in a
-     well of paint. The blob is a `div` with a button's role, because a tile is
-     a `<button>` and one inside another is unnested by the parser, taking the
-     layout with it (the same reason `.kindtile` is a div). */
+     well of paint. The blob is a real `<button>` (decision 214): a `div` with a
+     button's role drew right and, on an iPhone, did nothing when pressed,
+     because Safari does not send a tap on a plain element up to a listener on
+     an ancestor the way it does a button's. A tile is itself a `<button>`,
+     and one inside another is unnested by the parser, so the miniature's
+     buttons are written as spans and its fields (a checklist's add box) are
+     left out: it is a picture and is never pressed. */
   const items = ks.map(k => ({act:`data-act="ringmake" data-kind="${k}"${
       (K(k).family||[]).length>1 ? ' data-ask="1"' : ''}`,
-      art:`<span class="radpaint radtile" style="--k:${hexOf(K(k).c)}">${sampleTile(kindSample(k), 46, 46)}</span>`,
+      art:`<span class="radpaint radtile" style="--k:${hexOf(K(k).c)}">${
+        sampleTile(kindSample(k), 46, 46).replace(/<(\/?)button\b/g, '<$1span')
+          .replace(/<input\b[^>]*>|<textarea\b[^>]*>[\s\S]*?<\/textarea>/g, '')}</span>`,
       label:K(k).nm}))
     .concat({act:'data-act="ringmore"', art:`<span class="radpaint">${ic('plus',17)}</span>`, label:'More…'});
   const n = items.length, R = n<=6 ? 96 : n<=8 ? 114 : 128, pad = 44;
@@ -264,9 +270,9 @@ function shapeRing(rect, cell){
     <div class="ctxhead">${cell.w} × ${cell.h}</div>${
     items.map((m,i)=>{
       const a = -Math.PI/2 + i*2*Math.PI/n, x = Math.cos(a)*R, y = Math.sin(a)*R;
-      return `<div class="radblob" role="button" tabindex="0" ${m.act} title="${esc(m.label)}"
+      return `<button class="radblob" ${m.act} title="${esc(m.label)}"
         style="--x:${x.toFixed(1)}px;--y:${y.toFixed(1)}px;--i:${i};--paint:${PAINTS[i%PAINTS.length]}">
-        ${m.art}<b>${esc(m.label)}</b></div>`;
+        ${m.art}<b>${esc(m.label)}</b></button>`;
     }).join('')}`;
   const r = $('#frame').getBoundingClientRect();
   el.classList.add('open','palette','radial','shapering');

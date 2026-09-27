@@ -381,6 +381,7 @@ container's own board colour (`boardRow()` from panels.js) and size
 Blobs are `data-act="ringmake"`/`"ringmore"` in wire.js, which lift
 `pending.cell` before `closeCtx()`, because closing a shape ring without a
 choice clears it. A category's blob carries `data-ask` and asks which.
-Each blob is the type's `sampleTile()` miniature (decision 212), so a blob
-is a `div role="button"`, never a `<button>`, and the sample inside it takes
-no pointer events.
+Each blob is the type's `sampleTile()` miniature (decision 212) inside a real
+`<button>` (decision 214: a `div role="button"` did nothing when tapped on an
+iPhone); the miniature's own buttons are rewritten as spans and its fields
+dropped, and it takes no pointer events.
