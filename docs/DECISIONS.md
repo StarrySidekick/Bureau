@@ -10176,3 +10176,13 @@ in the disc was not showing.
   board's cream on a phone, reading as a dot on the label rather than a hole.
   It is a compact disc's proportion now, thirteen and a half per cent, with a
   dark edge and a faint lighter ring round it so it reads as cut through.
+
+## 225 · The vortex is the shape of the portal
+
+*2026-09-27.* Timothy: the portal should stretch to its shape, not stay a
+circle inside a filled shape. The swirls are drawn in a square (`.pwhirl`)
+stretched sideways by `--pa`, the tile's width over its height, so they turn
+as an oval the opening's own proportions and fill it; a square or an arch
+has corners, so there the square is taller by the diagonal and the swirls
+run out to the edge. The throat's rings on those two use `farthest-side`, so
+they reach the edges too.

@@ -2358,7 +2358,11 @@ function drawTileFace(o, arr, box, persp){
       style="--c:${colour};${place}" title="${esc(nm)} — ${esc(to)}">
       ${chips}
       <span class="btnface outface" data-fire="${o.id}">
-        <i class="portal" aria-hidden="true" style="--pt:-${((Date.now()/1000) % 77).toFixed(2)}s"><i class="pswirl"></i><i class="pswirl back"></i></i>
+        ${/* The swirls are drawn in a square and the square is stretched to the
+             portal's own proportions (`--pa`, width over height), so the whole
+             vortex takes the shape of the opening rather than a round one
+             turning inside it (decision 225). */''}
+        <i class="portal" aria-hidden="true" style="--pt:-${((Date.now()/1000) % 77).toFixed(2)}s;--pa:${(Math.max(1,box.w)/Math.max(1,box.h)).toFixed(3)}"><i class="pwhirl"><i class="pswirl"></i><i class="pswirl back"></i></i></i>
         ${box.w*box.h>1 ? portalWords(o.id, nm, to, box, ps) : ''}
       </span>
       ${handles}

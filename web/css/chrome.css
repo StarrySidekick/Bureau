@@ -6084,21 +6084,37 @@ html[data-rows="fit"] .is-phone .gridbar.inrail .sqbtn{width:28px;height:28px}
     inset 0 0 0 2.5px color-mix(in srgb, var(--c) 18%, #fff),
     inset 0 0 12px 4px color-mix(in srgb, var(--c) 70%, #fff)}
 .ptltile .outface .portal::before,.ptltile .outface .portal::after{display:none}
-.ptltile .pswirl{position:absolute;left:50%;top:50%;width:max(100cqw,100cqh);aspect-ratio:1;
-  translate:-50% -50%;border-radius:50%;pointer-events:none;
+/* **The vortex is the shape** (decision 225). `.pwhirl` is a square as tall
+   as the opening, stretched sideways by `--pa` to be exactly as wide, so a
+   swirl turning inside it is stretched to the opening's own proportions and
+   fills it, an oval in an oval, not a circle in a box. A square or an arch
+   has corners, so there the square is taller than the opening by the
+   diagonal and its swirls run all the way out to the edge. */
+.ptltile .pwhirl{position:absolute;left:50%;top:50%;height:100%;aspect-ratio:1;
+  transform:translate(-50%,-50%) scaleX(var(--pa,1));pointer-events:none}
+.ptltile.pt-square .pwhirl,.ptltile.pt-arch .pwhirl{height:142%}
+.ptltile .pswirl{position:absolute;inset:0;border-radius:50%;pointer-events:none;
   background:conic-gradient(from 0deg,
     transparent 0 6%, rgba(233,213,255,.7) 14%, transparent 26%,
     rgba(196,181,253,.5) 38%, transparent 50%,
     rgba(233,213,255,.7) 64%, transparent 76%,
     rgba(196,181,253,.5) 88%, transparent 100%);
-  -webkit-mask:radial-gradient(circle closest-side, transparent 8%, #000 30%, #000 62%, transparent 74%);
-          mask:radial-gradient(circle closest-side, transparent 8%, #000 30%, #000 62%, transparent 74%);
+  -webkit-mask:radial-gradient(circle closest-side, transparent 8%, #000 30%, #000 80%, transparent 97%);
+          mask:radial-gradient(circle closest-side, transparent 8%, #000 30%, #000 80%, transparent 97%);
   animation:portalTurn 7s linear infinite;animation-delay:var(--pt,0s)}
 .ptltile .pswirl.back{
   background:repeating-conic-gradient(from 20deg, rgba(255,255,255,.2) 0 7deg, transparent 7deg 40deg);
-  -webkit-mask:radial-gradient(circle closest-side, transparent 4%, #000 12%, #000 36%, transparent 50%);
-          mask:radial-gradient(circle closest-side, transparent 4%, #000 12%, #000 36%, transparent 50%);
+  -webkit-mask:radial-gradient(circle closest-side, transparent 4%, #000 12%, #000 55%, transparent 78%);
+          mask:radial-gradient(circle closest-side, transparent 4%, #000 12%, #000 55%, transparent 78%);
   animation-name:portalTurnBack;animation-duration:11s}
+/* …and the throat's rings follow the opening out to its corners too. */
+.drawer.btntile.outtile.ptltile.pt-square .outface .portal,
+.drawer.btntile.outtile.ptltile.pt-arch .outface .portal{
+  background:radial-gradient(ellipse farthest-side,
+    #05030A 0 18%,
+    color-mix(in srgb, var(--c) 48%, #0B0616) 46%,
+    color-mix(in srgb, var(--c) 82%, #0B0616) 78%,
+    color-mix(in srgb, var(--c) 92%, #0B0616) 100%)}
 .ptlwords{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
 .ptlwords text{font-family:var(--serif);font-weight:600;letter-spacing:.04em;
   fill:#FBF6FF;paint-order:stroke;stroke:rgba(18,6,40,.8);stroke-width:2.2px;stroke-linejoin:round}

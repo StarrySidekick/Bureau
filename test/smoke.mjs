@@ -6096,7 +6096,9 @@ const PROP_OFF = () => { const b = document.createElement('button');
         seen.add(q.pshape); cs.add(q.c); BUREAU.del(q.id); }
       link.pshape = 'arch'; BUREAU.render(); await nap(120);
       const la = document.querySelector(`#app .drawer.outtile[data-row="${link.id}"]`);
-      out.portalsComeInThreeShapes = seen.size === 3 && cs.size > 3 && !!la && la.classList.contains('pt-arch'); }
+      out.portalsComeInThreeShapes = seen.size === 3 && cs.size > 3 && !!la && la.classList.contains('pt-arch')
+        // …and the vortex is stretched to the opening, not a circle inside it (225)
+        && !!la.querySelector('.portal .pwhirl') && !!la.querySelector('.portal').style.getPropertyValue('--pa'); }
     S.view = 'desk'; S.drawerId = null;
     twice.concat(made).forEach(o => BUREAU.del(o.id));
     BUREAU.del(room.id);
