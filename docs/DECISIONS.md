@@ -9939,3 +9939,12 @@ and each board can carry its own sort options, set in a flow.
   management) where each flow's purpose, board, tools and sorts are written
   down; it is the brief for the flows to come, not something the app reads.
 - **Search toggles.** Pressing the glass again closes the search.
+
+## 217 · Line view is the checkerboard in rows
+
+*2026-09-27.* Timothy: line view should have the checkerboard's colours,
+alternating down the rows. The paper rows of a list take `--board-1` and
+`--board-2` in turn (`:nth-child(odd of .listband)`), so a board reads as the
+same surface in grid and in line view, and a board painted its own colours
+stripes in them. A drawer's row keeps its front's colour and still counts in
+the alternation. Only the colour is set, so a stock keeps its tooth.

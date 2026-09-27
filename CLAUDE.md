@@ -114,8 +114,10 @@ a flat square that **cycles the board's sorts on a tap** (`SORT_FACES`,
 view on a hold**; the glass closes the search too. Subtypes are chosen on the
 ring (`VARIANTS`, `ringInto()`): a Decoration's ornaments, a Painting's
 paintings, a **Background**'s fills (a new type drawn under the other tiles).
-Delete sits at the ring's lower right. **Plans are called flows** in the
+Delete sits at the ring’s lower right. **Plans are called flows** in the
 interface; the code still says plan.
+**v2.14** (decision 217): line view stripes its paper rows in the board's two
+checkerboard colours.
 The **Bureau Workshop** artifact (https://claude.ai/artifact/4TjyQZ5xcuxCYFgfnRm76k)
 holds Timothy's own rearrangement of every menu and type: read its
 `workshop/state` document before reorganising menus or types.
