@@ -8909,6 +8909,18 @@ const PROP_OFF = () => { const b = document.createElement('button');
          never be six tenths of its height however large the type is. */
       return (!l || getComputedStyle(l).display === 'none')
         && a.width > r.width*0.6 && a.width <= r.width + 1; })();
+    /* …and it is **wheels, one per height of width** (decision 221): a 2×2 is
+       one wheel showing the last digit, a 3×1 three showing the last three,
+       and there is no tile behind them. */
+    mk({ id:'cnt3', kind:'counter', title:'Three', count:128, desk:{x:16,y:24,w:3,h:1} });
+    BUREAU.render(); await nap(150);
+    out.wheelsByShape = (() => {
+      const w = id => document.querySelectorAll(`[data-row="${id}"] .wheel`).length;
+      const shows = id => [...document.querySelectorAll(`[data-row="${id}"] .wheel b`)]
+        .map(b => -parseFloat(b.style.transform.replace(/[^0-9.-]/g,''))).join('');
+      const t = document.querySelector('[data-row="cnt"]'), cs = t && getComputedStyle(t);
+      return w('cnt') === 1 && shows('cnt') === '8' && w('cnt3') === 3 && shows('cnt3') === '128'
+        && cs.backgroundImage === 'none' && cs.backgroundColor === 'rgba(0, 0, 0, 0)' && cs.borderTopWidth === '0px'; })();
     // a candle is as long as it burns for
     out.aCandleIsAsLongAsItBurns = (() => {
       const h = id => { const v = (document.querySelector(`[data-row="${id}"] svg`)||{})

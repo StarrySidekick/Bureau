@@ -142,6 +142,9 @@ wire.js through `TOOLS.press`; `TOOLART` in active.js draws both the objects
 and the front. A board carries its own front (`rail`, three a side, Board
 settings → Drawer Front), and a flow can say it. Strings pin at the top-left
 corner. Migration 46 trims an old desk to the boards it uses.
+**v2.18** (decision 221): a **counter is its wheels**: no tile behind them,
+one wheel per height of width (`wheelsFor()`), showing the last digits of the
+count, and the whole tile is one target (tap counts, hold drags).
 The **Bureau Workshop** artifact (https://claude.ai/artifact/4TjyQZ5xcuxCYFgfnRm76k)
 holds Timothy's own rearrangement of every menu and type: read its
 `workshop/state` document before reorganising menus or types.

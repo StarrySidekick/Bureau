@@ -10099,3 +10099,25 @@ object in a random place, and spins when tossed.
   on is the guess (fourteen rows), so on the other device a few things may sit
   a row or two from where they were; nothing is lost, and anything left on a
   slot is put back on a board.
+
+## 221 · A counter is its wheels
+
+*2026-09-27.* Timothy: the counter should be just the black number roller,
+with no coloured tile and no border round it; one cell, a two-by-two or a
+two-by-three shows a single wheel, and a tile made wider than it is tall shows
+another wheel for the extra width.
+
+- **The tile is the wheels.** No paper, no `--c` background, no border, no
+  moulding or grain layer; a drop shadow, as the photographed tools have. Each
+  wheel is the tile's height and an equal share of its width.
+- **How many is the shape**: `wheelsFor(box)` is the width over the height,
+  rounded down, at least one and at most eight. A 2×1 is two, a 3×1 three, a
+  4×2 two, and 1×1, 2×2 and 2×3 are one.
+- **They show the last digits, from zero** (`wheelDigits()`): two wheels at
+  107 read 07. `spinTo()` reads how many from `data-wheels`, so the roll on a
+  tap still turns the wheels in place.
+- **The whole tile is one target.** The number was a `countup` button of its
+  own, and gestures.js refused to start a drag on it; once it filled the tile
+  that made a counter impossible to move. A tap is now the counter's `count`
+  tap through `clickOf()`, and a hold carries it like anything else.
+- A counter at one cell is a wheel, not the anonymous one-cell mark.

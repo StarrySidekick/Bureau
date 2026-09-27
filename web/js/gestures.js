@@ -1058,11 +1058,11 @@ function onDown(e){
 
   // a field inside a tile is for typing in, not for dragging the tile by
   if(e.target.closest('input,textarea,select')) return;
-  // a tick, a counter or a button inside a tile is its own target
-  // A tick or a counter is its own target. A button tile carries data-fire on
-  // the tile itself, so only its face counts — otherwise the whole thing would
-  // be undraggable.
-  if(e.target.closest('[data-check],.cntnum')) return;
+  // A tick is its own target. A button tile carries data-fire on the tile
+  // itself, so only its face counts — otherwise the whole thing would be
+  // undraggable. A counter was one too, until its wheels became the whole
+  // tile (decision 221): now its tap is the tile's tap, and it drags.
+  if(e.target.closest('[data-check]')) return;
   const dEl=e.target.closest('.grid .drawer[data-drawer],.grid .drawer[data-row],.grid .drawer[data-id]');
   if(dEl){
     const grid=dEl.closest('.grid');

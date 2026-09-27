@@ -51,20 +51,33 @@ function drawerPreview(d, items){
 }
 /* A number as a stack of wheels: each column holds 0–9 and is slid to the
    digit it should show, so changing the count spins them like a slot machine. */
-function digitWheel(n){
-  return String(n).split('').map(d=>
+function digitWheel(n, wheels){
+  return wheelDigits(n, wheels).split('').map(d=>
     /\d/.test(d)
       ? `<i class="wheel"><b style="transform:translateY(${-d}em)">${
-          [0,1,2,3,4,5,6,7,8,9].map(x=>`<u>${x}</u>`).join('')}</b></i>`
+          [0,1,2,3,4,5,6,7,8,9].map(x=>`<u><s>${x}</s></u>`).join('')}</b></i>`
       : `<i class="wheel plain">${esc(d)}</i>`).join('');
+}
+/* **A counter is a row of number wheels and nothing else** (decision 221).
+   How many is the tile's shape: one while it is no wider than it is tall,
+   and another for every further height of width — a 2×1 is two wheels, a
+   3×1 three, a 4×2 two, and a 1×1, a 2×2 or a 2×3 one. They show the last
+   digits of the count, from zero, the way a tally counter's wheels do: two
+   wheels at 107 read 07. Given no number of wheels, the count as written. */
+const wheelsFor = box => Math.max(1, Math.min(8, Math.floor((box.w||1) / Math.max(1, box.h||1))));
+function wheelDigits(n, wheels){
+  const v = Math.abs(Math.trunc(Number(n)||0));
+  if(!wheels) return String(v);
+  return String(v % Math.pow(10, wheels)).padStart(wheels, '0');
 }
 
 /* Move the existing wheels rather than replacing them — a fresh element starts
    at its final transform, which is why rebuilding never animated. */
 function spinTo(el, n){
-  const digits=String(n).split('');
+  const count = +el.dataset.wheels || 0;
+  const digits=wheelDigits(n, count).split('');
   const wheels=[...el.querySelectorAll('.wheel')];
-  if(wheels.length!==digits.length){ el.innerHTML=digitWheel(n); return; }
+  if(wheels.length!==digits.length){ el.innerHTML=digitWheel(n, count); return; }
   digits.forEach((d,i)=>{
     const b=wheels[i].querySelector('b');
     if(b && /\d/.test(d)) b.style.transform=`translateY(-${d}em)`;
@@ -1413,8 +1426,9 @@ function drawTileFace(o, arr, box, persp){
   const onePortal = has(o,'button') && (!(o.link && o.link.target) || outURL(o.link.target));
   /* …and an instrument, since the tools made one cell their size (decision
      220): a padlock at one cell is a padlock, not a stamp saying "Padlock". */
+  /* …and a counter, which at one cell is one wheel (decision 221). */
   if(box.w<=1 && box.h<=1 && !has(o,'control') && !(cont && faceOf(o)==='deck') && !onePortal
-     && !isActive(o)){
+     && !isActive(o) && shapeOf(o)!=='tally'){
     /* A calendar at one cell is still a calendar: the tear-off day pad — the
        month small, today big — not an anonymous mark. See decision 80. */
     if(cont && faceOf(o)==='calendar'){
@@ -2391,14 +2405,16 @@ function drawTileFace(o, arr, box, persp){
 
   /* A counter is its number, not a title and a body. */
   if(shapeOf(o)==='tally'){
-    return `<button class="drawer otile ${paper(o)} sh-tally cnttile${sel}" data-row="${o.id}" style="--c:${colour};${place}">
+    /* No paper, no colour behind it and no border (decision 221): the wheels
+       are the object, as the photographed tools are. The name is the tooltip,
+       as it has been since decision 188. The wheels fill the tile now, so they
+       are no longer a button of their own: a tap on the counter is its `count`
+       tap (`clickOf()`), and a hold carries it like any other tile. */
+    const n = wheelsFor(box);
+    return `<button class="drawer otile sh-tally cnttile${sel}" data-row="${o.id}" style="--c:${colour};${place}">
       ${chips}
-      ${/* The name is the tooltip, not a caption: a counter is read across a
-           desk and the word above the number was the thing that kept it
-           small. The digits have the whole tile now. See decision 188. */''}
-      <span class="cntnum" data-act="countup" data-id="${o.id}"
-        style="--digits:${String(Math.trunc(o.count||0)).replace('-','').length||1}"
-        title="${esc(o.title||'Untitled')}">${digitWheel(o.count||0)}</span>
+      <span class="cntnum" data-wheels="${n}"
+        style="--wheels:${n}" title="${esc(o.title||'Untitled')}">${digitWheel(o.count||0, n)}</span>
       ${handles}
     </button>`;
   }

@@ -6017,3 +6017,24 @@ html[data-rows="fit"] .is-phone .gridbar.inrail .sqbtn{width:28px;height:28px}
 .ansbox textarea{flex:1;min-width:0;border:0;background:none;outline:none;font:inherit;font-size:12.5px;
   color:var(--ink);resize:none;padding:0;line-height:1.35;overflow:auto}
 .ansbox textarea::placeholder{color:var(--ink-3)}
+
+/* ---- a counter is its wheels — decision 221 ---------------------------
+   No tile behind them: no colour, no paper, no border, no moulding, no grain,
+   and the shadow a thing standing on a desk throws. One black cylinder per
+   wheel, each the tile's height and an equal share of its width, the digit
+   standing in the middle of it. `1em` is the tile's height, which is what the
+   roll's `translateY(-Nem)` counts in; the glyph is sized on its own `<s>` so
+   a wheel narrower than it is tall still fits its digit. */
+.drawer.otile.cnttile{background:none;border:0;box-shadow:none;padding:0;border-radius:0;
+  filter:drop-shadow(0 2px 2px rgba(0,0,0,.45))}
+.drawer.otile.cnttile::before,.drawer.otile.cnttile::after,
+.cnttile > .dpanel,.cnttile > .dgrain,.cnttile > .dside{display:none}
+.cnttile .cntnum{width:100%;height:100%;gap:1px;font-size:100cqh;line-height:1;
+  font-family:var(--serif);font-weight:600;color:#EFE7D2}
+.cnttile .wheel{flex:1 1 0;min-width:0;height:1em;width:auto;margin:0;border-radius:3px;
+  background:linear-gradient(#0E0B08,#2A241C 16%,#3C352B 50%,#2A241C 84%,#0E0B08);
+  box-shadow:inset 0 0 5px rgba(0,0,0,.85)}
+.cnttile .wheel b u{height:1em;display:flex;align-items:center;justify-content:center}
+.cnttile .wheel b u s{text-decoration:none;line-height:1;
+  font-size:min(.74em, calc(100cqw / var(--wheels,1) * 1.2));
+  text-shadow:0 1px 0 rgba(0,0,0,.8)}
