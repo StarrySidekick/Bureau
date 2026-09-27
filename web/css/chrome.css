@@ -1536,20 +1536,36 @@ html .drawer.dtile.cltile{background-image:none}
      of the cabinet. On a phone the column is the whole width and this is a
      no-op, which is where it has to be flush to both edges. */
   margin-inline:auto}
+/* **A row is the tile at eight by one** (decision 219): its own face,
+   shape and colour, exactly as tall as a cell and as wide as eight. Only the
+   size is said here — everything else is the tile's own dress. */
 .drawer.listband{
-  position:relative;height:var(--listrow,48px);min-height:0;padding:0 12px;justify-content:center;
-  box-shadow:none;cursor:pointer;
+  position:relative;height:var(--listrow,48px);min-height:0;width:100%;flex:0 0 auto;
+  cursor:pointer;
 }
-.drawer.listband + .drawer.listband{margin-top:-1px}
-/* **Line view is the checkerboard laid in rows** (decision 217): the paper
-   rows take the board's own two colours, alternating down the list, so a
-   board looks like the same surface whichever way you look at it. Counted
-   among the bands only (`of .listband`), so a drawer's row keeps its front's
-   colour and still takes its turn in the count. Colour only, never the
-   shorthand, so a stock's tooth stays on the paper. */
-.listgrid > .drawer.otile.listband:nth-child(odd of .listband){background-color:var(--board-1)}
-.listgrid > .drawer.otile.listband:nth-child(even of .listband){background-color:var(--board-2)}
+/* **The stripes are the list, not the rows** (decision 219, which corrects
+   217): the board's two colours, a row each, painted on the column the rows
+   stand on — so they show wherever a tile's shape does not reach the edge,
+   and below the last one for a board's height, the way the checkerboard shows
+   round the tiles on a grid. A board painted its own colours carries them
+   here through `boardVarsOf()`. */
+.listgrid{
+  background:repeating-linear-gradient(to bottom,
+    var(--board-1) 0 var(--listrow,48px),
+    var(--board-2) var(--listrow,48px) calc(2 * var(--listrow,48px)));
+  min-height:calc(14 * var(--listrow,48px));
+}
 .drawer.listband:hover{filter:brightness(1.05);z-index:1}
+/* A row is a row: whatever a face draws past its own box on a grid (a
+   record's disc, a plant's leaves) is cut at the row's edge rather than laid
+   over the ones below it. */
+.listgrid > .drawer.listband{overflow:hidden}
+/* **A drawer's row keeps its name.** A front one cell tall wears its type's
+   mark rather than three letters and an ellipsis — right at two or three cells
+   across, and wrong across eight, where a list of drawers read as a list of
+   identical folders. In a row the name comes back. */
+.listgrid .drawer.dtile.listband.sz-short .dmark{display:none}
+.listgrid .drawer.dtile.listband.sz-short .dmark ~ .dtop{display:flex}
 .drawer.listband .dtop{gap:10px;align-items:center;width:100%;min-width:0}
 /* **One line, and it has to say so at four classes.** A row is one cell tall, so
    a name that wraps is a name cut in half by the band's own overflow — and

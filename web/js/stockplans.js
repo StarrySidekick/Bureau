@@ -96,8 +96,43 @@ function build(spec){
      screen shorter than fourteen it goes to the next screenful by itself. */
   const inbox = spec.inbox===false ? [] :
     [{k:'generator', t:'Add to this…', b:[1,13,8,2], set:{genKind:spec.inbox||'task', c:spec.c}}];
-  (spec.on||[]).concat(inbox).forEach(s=>add(s, PLAN_ROOT));
+  /* **No title across the top** (decision 219). Every board opened with a
+     label eight cells wide saying what it was, directly under the lip that
+     already says it, so the first row of every flow was the name twice. It
+     is dropped as the spec is read and everything below it moves up a row;
+     `fillRows()` then gives the row back to what is on the board. */
+  const untitled = list => {
+    const top = (list||[]).filter(o=>!(o.k==='label' && o.b && o.b[1]===1 && o.b[2]===8 && o.b[3]===1));
+    const cut = top.length < (list||[]).length;
+    return top.map(o=> cut && o.b ? Object.assign({}, o, {b:[o.b[0], Math.max(1, o.b[1]-1), o.b[2], o.b[3]]}) : o);
+  };
+  const main = untitled(spec.on).concat(inbox);
+  main.forEach(s=>add(s, PLAN_ROOT));
   if(!spec.raw) fillRows(objects.filter(o=>o.parent===PLAN_ROOT && o.desk && o.title!=='Add to this…'));
+  /* **More than one board** (decision 219). `boards` is a list of the others,
+     each at a step from this one — `at:[1,0]` is the board to the right,
+     `[0,-1]` the one above — and each authored eight by fourteen on its own,
+     the way the main one is. They are written into one coordinate space here,
+     a board being `BOARD_W × BOARD_H` cells of it, and `stampPlan()` reads
+     them back out board by board against whatever a board measures where the
+     flow is put down. */
+  let cells = null, start = null;
+  if(Array.isArray(spec.boards) && spec.boards.length){
+    const at = [{x:0, y:0}].concat(spec.boards.map(bd=>({x:bd.at[0], y:bd.at[1]})));
+    const mx = Math.min(...at.map(c=>c.x)), my = Math.min(...at.map(c=>c.y));
+    cells = at.map(c=>({x:c.x-mx, y:c.y-my}));
+    start = cells[0];
+    const move = (o, c)=>{ ['desk','phone'].forEach(dv=>{ const b=o[dv]; if(!b) return;
+      o[dv] = Object.assign({}, b, {x:b.x + c.x*BOARD_W, y:b.y + c.y*BOARD_H}); }); };
+    objects.filter(o=>o.parent===PLAN_ROOT).forEach(o=>move(o, start));
+    spec.boards.forEach((bd, i)=>{
+      const from = objects.length;
+      untitled(bd.on).forEach(s=>add(s, PLAN_ROOT));
+      const mine = objects.slice(from).filter(o=>o.parent===PLAN_ROOT);
+      if(!spec.raw && !bd.raw) fillRows(mine.filter(o=>o.desk));
+      mine.forEach(o=>move(o, cells[i+1]));
+    });
+  }
   objects.forEach(o=>{
     ['tracks','into'].forEach(k=>{
       if(typeof o[k]==='string' && o[k][0]==='@') o[k] = refs[o[k].slice(1)] || null; });
@@ -120,9 +155,17 @@ function build(spec){
     makes: spec.makes || undefined,
     made: D.iso(D.today()),
     cols: 8,
+    /* The boards it is laid out on, when there is more than one, the one it
+       opens on, and how big a board was when its boxes were written. */
+    boards: cells || undefined,
+    start: start || undefined,
+    dims: cells ? {desk:{w:BOARD_W, h:BOARD_H}, phone:{w:BOARD_W, h:BOARD_H}} : undefined,
     objects
   };
 }
+/* One board of a flow, as it is authored: eight across, twelve rows of board
+   and the two-row way in under them. */
+const BOARD_W = 8, BOARD_H = 14;
 
 /* ---- the rows above the way in are all used ----------------------------
    **Twelve rows of board, and every plan fills them** (2026-09-23). The boards
@@ -782,18 +825,50 @@ const SPECS = [
     LABEL('The novel', [1,1,8,1], 11),
     {k:'question', t:'What is it about?', b:[1,2,6,2], set:{c:10}},
     {k:'candle', t:'Sprint', b:[7,2,2,5], set:{c:3, burn:45}},
-    {k:'world', t:'The world', b:[1,4,3,3], set:{c:9}},
-    {k:'outline', t:'Chapters', b:[4,4,3,4], set:{c:14}},
-    {k:'drawer', t:'Characters', b:[1,7,3,2], set:{c:13}, kids:[
-      {k:'character', t:'Who it is about'}, {k:'character', t:'Who is in the way'}
-    ]},
+    {k:'outline', t:'Chapters', b:[1,4,6,4], set:{c:14}},
     {k:'counter', t:'Writing days', b:[5,8,4,2], set:{c:8}},
-    {k:'checklist', t:'Drafts', b:[1,9,4,3], set:{c:6}, kids:[
+    {k:'checklist', t:'Drafts', b:[1,8,4,4], set:{c:6}, kids:[
       {k:'task', t:'Outline'}, {k:'task', t:'First draft'}, {k:'task', t:'Second draft'},
       {k:'task', t:'Beta readers'}, {k:'task', t:'Revise'}, {k:'task', t:'Query agents'}
     ]},
     LINK('Query agents', 'https://querytracker.net', [5,10,4,1], 9),
     LINK('Thesaurus', 'https://www.thesaurus.com', [5,11,4,1], 9)
+  ],
+  /* **Five boards in a column** (decision 219): the novel at the top, and
+     under it, one swipe down each, the people, the place, what you read and
+     the rewriting. A book is long, and each of these fills a board by
+     itself before it is finished. */
+  boards:[
+    {at:[0,1], on:[
+      MAKES('Someone new…', 'character', [1,1,8,1], 13, '@nvcast'),
+      {k:'drawer', t:'The cast', ref:'nvcast', b:[1,2,4,6], set:{c:13}, kids:[
+        {k:'character', t:'Who it is about'}, {k:'character', t:'Who is in the way'}
+      ]},
+      {k:'note', t:'What each one wants', b:[5,2,4,6], set:{c:12,
+        body:'**Wants —** \n\n**Needs —** \n\n**Stands in the way —** '}},
+      {k:'note', t:'Voices', b:[1,8,8,3], set:{c:10}, body:'A line of dialogue for each of them, to hear them by.'}
+    ]},
+    {at:[0,2], on:[
+      {k:'world', t:'The world', b:[1,1,4,5], set:{c:9}},
+      {k:'note', t:'Rules of the place', b:[5,1,4,5], set:{c:9}},
+      {k:'moodboard', t:'What it looks like', b:[1,6,8,5], set:{c:11}}
+    ]},
+    {at:[0,3], on:[
+      MAKES('Something to look up…', 'task', [1,1,8,1], 7, '@nvresearch'),
+      LIST('To look up', 'nvresearch', [1,2,4,6], 7),
+      {k:'note', t:'Notes', b:[5,2,4,6], set:{c:12}},
+      LINK('Library catalogue', 'https://www.worldcat.org', [1,8,4,1], 9),
+      LINK('Wikipedia', 'https://www.wikipedia.org', [5,8,4,1], 9)
+    ]},
+    {at:[0,4], on:[
+      {k:'checklist', t:'Revision passes', b:[1,1,4,6], set:{c:6}, kids:[
+        {k:'task', t:'Structure'}, {k:'task', t:'Character'}, {k:'task', t:'Scene by scene'},
+        {k:'task', t:'Line edit'}, {k:'task', t:'Proofread'}
+      ]},
+      {k:'note', t:'What readers said', b:[5,1,4,6], set:{c:10}},
+      {k:'counter', t:'Words cut', b:[1,7,4,2], set:{c:8}},
+      {k:'candle', t:'Editing sprint', b:[5,7,4,2], set:{c:3, burn:30}}
+    ]}
   ]},
 
   {key:'poem', sec:'project', nm:'Poem', ic:'feather', c:10, of:'project', on:[
@@ -1034,6 +1109,33 @@ const SPECS = [
       'Finish before you start', 'What is due first?', 'Ship the smallest version'
     ])},
     {k:'hourglass', t:'Deep work', b:[7,9,2,3], set:{c:12, mins:50}}
+  ],
+  /* **Three boards across** (decision 219): what is on now in the middle,
+     where it opens; everything not yet started to the left, which is where
+     you reach for the next one; what is finished to the right, which is where
+     you look back. */
+  boards:[
+    {at:[-1,0], on:[
+      MAKES('Someday, maybe…', 'task', [1,1,8,1], 12, '@pmsome'),
+      LIST('Someday', 'pmsome', [1,2,4,7], 12),
+      LIST('Ideas for projects', 'pmideas', [5,2,4,5], 10),
+      {k:'note', t:'Picking the next one', b:[5,7,4,2], set:{c:5,
+        body:'**Why now —** \n\n**What it replaces —** \n\n**First step —** '}},
+      {k:'die', t:'Can’t choose', b:[1,9,2,2], set:{c:14, sides:6}},
+      {k:'note', t:'The rule', b:[3,9,6,2], set:{c:5}, body:'Nothing moves to Now until something in Now is finished.'}
+    ]},
+    {at:[1,0], on:[
+      LIST('Finished', 'pmdone', [1,1,4,7], 6),
+      {k:'counter', t:'Shipped this year', b:[5,1,4,2], set:{c:13}},
+      {k:'note', t:'Looking back', b:[5,3,4,5], set:{c:12,
+        body:'**What went well —** \n\n**What took longer —** \n\n**Next time —** '}},
+      Object.assign(AGAIN('Weekly review', 1, 'week'), {b:[1,11,8,1]}),
+      {k:'deck', t:'Review', b:[1,8,4,3], set:{c:10}, kids:CARDS([
+        'What did you finish?', 'What stalled, and why?', 'What should stop?',
+        'Who needs an update?', 'What is next week’s one thing?'
+      ])},
+      CAL('This month', [5,8,4,3], 7)
+    ]}
   ]},
 
   {key:'brainstorming', sec:'work', inbox:'idea', nm:'Brainstorm', ic:'sparkle', c:10, of:'drawer', on:[

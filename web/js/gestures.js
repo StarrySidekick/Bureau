@@ -2,7 +2,7 @@ import { $, $$, clamp, D, ROOT } from './util.js';
 import { blockHold } from './wire.js';
 import { S, byId, dev, has, isContainer, isAncestor, childrenOf, container, gatherKind, spanOf,
   sortOf, boardLocked, heldCount, homeFor, attrsOf, travelWith, isMedia } from './model.js';
-import { CELL, gridOf, drawCols, drawRows, cellW, lay, boxOk, overlaps, sizeOfKind, keepSize } from './grid.js';
+import { CELL, gridOf, drawCols, drawRows, cellW, lay, boxOk, overlaps, sizeOfKind, keepSize, isBoard } from './grid.js';
 import { toast, gather, del, pushSets, holdIt, unholdIt } from './mutations.js';
 import { pending, tileTap, fireButton, turnPage,
   scratchGrab, scratchTo, scratchGo } from './tiles.js';
@@ -687,7 +687,7 @@ function swipeMove(g, dx, dy){
     gestureFlags.suppressClick=true;      // it was a swipe, not a tap
     // the sign says which way you are going, so the pager can build that board
     // first and leave the one behind you for the next frame
-    if(!pagerBegin(g.axis, Math.sign(g.axis==='y' ? dy : dx))){ g.axis='dead'; return; }
+    if(!pagerBegin(g.axis, Math.sign(g.axis==='y' ? dy : dx), g===TWO)){ g.axis='dead'; return; }
   }
   pagerMove((g.axis==='y' ? dy : dx) - g.from);
 }
@@ -948,6 +948,10 @@ function onDown(e){
        falling: grid.classList.contains('falling'),
        locked, axis:null, from:0, canSketch:false, held:false};
     const g0=G;
+    /* **A slot with no board on it is not somewhere to make anything**
+       (decision 219): the plus makes the board first. So a hold there never
+       becomes the Magic Selector, and a finger that moves still walks. */
+    if(!isBoard(home, Math.floor((cx-1)/g.shelfW), Math.floor((cy-1)/g.shelfH))) return;
     holdTimer=setTimeout(()=>{
       holdTimer=null;
       if(G!==g0 || G.mode) return;
@@ -1009,8 +1013,13 @@ function onDown(e){
      you shuffle an A–Z list would be a gesture whose result vanished on the
      next render. The bar says which sort it is on, so there is nowhere for this
      to be a surprise. */
+  /* The name no longer stands aside (decision 219): a row is the tile at 8×1
+     now and its name runs most of the way across it, so a thumb swiping a
+     row nearly always starts on the words. A tap on them still edits — a
+     band that never moved leaves the click alone — and a field being typed
+     in keeps the finger. */
   const bandEl = e.target.closest('[data-listfor] .listband');
-  if(bandEl && !e.target.closest('[data-check],[data-edit]')){
+  if(bandEl && !e.target.closest('[data-check],input,textarea,[contenteditable="true"]')){
     const list=bandEl.closest('[data-listfor]');
     const cid=list.dataset.listfor;
     const id=bandEl.dataset.row||bandEl.dataset.drawer;

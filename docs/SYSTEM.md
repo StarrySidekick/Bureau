@@ -42,7 +42,7 @@ meaning, containers are finite, and opening one is a small deliberate act.
 | **Sorting drawer** | A drawer that carries `magic` as well. It holds nothing and shows whatever matches its rule. `magic` in the code; **sorting drawer** in the interface. |
 | **Life drawer** | A container for an area of your life rather than a piece of work. Reports what is in it and what is next, and never a percentage. |
 | **Control** | An object that is a switch for one of the desk's own settings, standing on the board. |
-| **Desk** | The root container, id `root`. Never drawn as a tile. It is made of **boards**, three by three, and you start on the middle one. |
+| **Desk** | The root container, id `root`. Never drawn as a tile. It is made of **boards**: one on a fresh desk, more wherever you walk off the edge and press the plus (decision 219); a desk from before that is three by three, and you start on the middle one. |
 | **Board** | Any grid space: one of the desk's nine, or the inside of a container, whose size is the container's own tile four cells to a cell. The word Timothy uses for all of them (2026-09-22). **"Shelf" is retired** as a name for a grid space; it survives in the code (`shelvesOf`, `SHELFSHIFT`, `goShelf`) where renaming would be churn, and there it means one screenful of a board. |
 | **Board settings** | The aesthetic, the board's colour, what it is made of, gravity and size — one door in Settings on the desk, and the whole of what the gear opens inside a container. See decision 193. |
 | **Face** | How a container draws itself on its *parent's* board. |
@@ -732,6 +732,13 @@ refusing. **Sideways inside a container is the container beside it** on the
 board it sits on, in reading order by lanes (`sideDrawer()` in views.js), and
 the lane below carries on at the end of one.
 
+**Since decision 219 a board is as many boards as you make of it.** The desk
+and every container store a rectangle and which of its cells are boards; one
+step off the edge is an empty slot with a plus on it, in any direction, and
+the plus makes a board there. A container still adds one under itself when it
+is full. One finger walks a container's own boards; two fingers sideways go
+to the container beside it.
+
 **What a board is made of is a setting.** `S.look.surface` — graph paper (the
 checkerboard, two cells to a square, and what arranging is done on), a plain
 sheet, or `--wood`, the carcass's own, so the whole screen reads as one piece
@@ -799,7 +806,8 @@ decision 51.
 | --- | --- |
 | Click a tile | Whatever that object says — see below |
 | Two fingers up / down | The next page of this board, and the one before |
-| Two fingers left / right | On the desk, the next shelf; inside a container, the container beside it on the board it sits on (decision 198) |
+| Two fingers left / right | On the desk, the next board; inside a container, the container beside it on the board it sits on (decisions 198, 219) |
+| One finger off the edge of the boards | An empty slot: the carcass with a plus on it, which makes a board there (decision 219) |
 | Swipe sideways on a board that isn't a grid | The next desk. A list, a scroll, a book or a calendar has no bare cells to start the one-finger swipe from, so the scroller is the surface — sideways only, because up and down is its own scrolling |
 | Hold a bare cell | Lights it; drag to size a box, let go for the picker — on a locked board too. A *tap* on bare board does nothing |
 | Pull up the rail along the bottom | A drawer front follows your finger; carry it a quarter of the screen and it opens the type picker, with nowhere in mind. A phone |

@@ -169,6 +169,17 @@ counts, spawners that file into a drawer, lists that make undated things, and
 answers that wrap. Named next: a counter that resets daily, a habit's year of
 squares, a goal with a number, and the brain dump.
 
+### Added 2026-09-27 — boards you add
+
+Timothy: the desk starts as **a single board**, and swiping off it shows the
+carcass with a plus that makes a board there, so the desk can grow *"to any
+size you desire basically in any direction"*; containers the same; the swipe
+to the container beside this one is **two fingers** now; flows drop the title
+row the lip already states, and can come with **several boards** (three across,
+five in a column); and line view was meant to stripe the *background*, not
+repaint the objects, which should still look like 8×1 versions of themselves,
+swipes and all. Built as decision 219 (v2.16).
+
 ## Deliberately not next
 
 - **Sync between devices.** It is real and it is coming, *after* the feature set

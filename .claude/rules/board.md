@@ -32,8 +32,22 @@ See decision 22. The three that used to be pinned still ship, as ordinary
 drawers on the desk: **Today** (anything due, every desk), **Inbox** (where a
 new object lands when nobody said), **Everything** (every unfinished task).
 
+**Boards are added, not given** (decision 219). The desk and every
+non-proportional container are a rectangle (`shelves`) and a list of which of
+its cells are boards (`boards`, absent meaning all). A fresh desk is one; an
+old one is nine (migration 45). One step off the edge of the boards is an
+**empty slot** — `reachable()`, `shelfAt()` may answer with one, and the grid
+is drawn `.vacant` with a plus (`data-addboard`). `addBoard()` to the left or
+above moves every box by a board through `shiftBoard()`, the one writer;
+`removeBoard()` takes only an empty board and never the last. `boxOk()`
+refuses a box on a slot (`onBoards()`) and `freeSpot()` walks only the boards,
+so ask `isBoard()`/`boardsOf()` and never loop over `g.shelves.w × h` as if
+every cell were one. **Two fingers sideways inside a container** is the
+container beside it; one finger is this board's own boards and slots.
+
 **Inside a container, sideways is the next container over; up and down is its
-pages** (decision 198). `shelvesOf()` gives every non-proportional container
+pages** (decision 198) — *with two fingers since decision 219; the rest of
+this paragraph is history.* `shelvesOf()` gives every non-proportional container
 `w:1` whatever it stores, and `freeSpot()` grows a page at the bottom
 (`growDown()`) when a board is full. `sideDrawer()` in views.js is the one
 reader of "the drawer beside this one" — lanes in reading order on the parent
@@ -41,7 +55,8 @@ board — and the pager in motion.js asks it only when its own shelves run out
 sideways. Don't give a container a second screenful to the side again: that is
 a board the sideways swipe can no longer reach.
 
-**There is one desk and it is nine shelves.** A **shelf** is one screenful of
+**There is one desk and it is nine shelves** — *until decision 219: it is as
+many boards as you have made, and nine is what an old desk migrated to.* A **shelf** is one screenful of
 board and it is the unit everything else is counted in; the Desk is three by
 three and you start in the middle; every other container is one shelf, with the
 option of more (`shelves` on the object, `shelvesOf(cid)` to read it). The row
@@ -326,7 +341,10 @@ is **one** borrowed `#rowact` element positioned over the row that is moving, no
 a strip in every band: a list is the one place that can hold two hundred of
 something.
 
-**And a row is an eight-by-one.** A list is for looking at things one after
+**And a row is an eight-by-one** — since decision 219 literally: `listTile()`
+draws the tile at `{w:8,h:1}` with `listband` spliced on, the stripes are the
+`.listgrid` background, and what follows about the band's own name and
+snippet is history. A list is for looking at things one after
 another, so a row is the strip the same object would be on a grid at eight cells
 by one — one cell tall, standing **flush** against the one above it, in a column
 eight cells wide. On a phone that is the board's own width, so a task in a list

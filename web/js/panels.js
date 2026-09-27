@@ -1223,7 +1223,7 @@ function objectPanelBody(id, sec){
       filing.push(prow('Related',
         `<div class="relrow">${rel.map(x=>chip(x,true)).join('')}
           ${has(o,'relates')?`<button class="add" data-act="addrel" data-id="${id}">+ link</button>`
-            :`<span class="mini" style="--k:var(--brass);padding:0">Tick <b>Related</b> under Advanced to link from here</span>`}</div>
+            :`<span class="mini" style="--k:var(--brass);padding:0">Tick <b>Related</b> under Behaviour to link from here</span>`}</div>
         ${back.length?`<div class="statline" style="margin:10px 0 4px"><div class="s">Pointed at by</div></div>
           <div class="relrow">${back.map(x=>chip(x,false)).join('')}</div>`:''}`,
         rel.length+back.length ? `${rel.length+back.length}` : ''));

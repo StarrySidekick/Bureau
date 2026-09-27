@@ -9991,3 +9991,68 @@ is; this is the rest.
   Dump**, **Project Management** and **Brainstorm**. The Brainstorm key is
   `brainstorming` because `brainstorm` is a retired stock key and migration 37
   would take it off again. Migration 44 adds them to an existing desk.
+
+## 219 · Boards you add, two fingers to the drawer next door, and a list of tiles
+
+*2026-09-27.* Timothy's brief, one list: the desk starts as one board, and
+walking off its edge shows the carcass with a plus on it that makes a board
+there, in any direction; containers the same; the swipe to the container beside
+this one moves to two fingers; flows lose the title across their top row and
+can carry several boards; and line view keeps each object's own face, with the
+stripes of decision 217 on the background rather than on the rows, the row
+swipes intact.
+
+- **A board is a rectangle and a list of which cells of it are boards.**
+  `shelves` (`{w,h}`, on the object, or on `S.deskCfg` for the desk) is the
+  rectangle; `boards` (`["x,y", …]`) is which cells are boards, and absent
+  means all of them, which is every board before this. `isBoard()`,
+  `boardsOf()`, `reachable()`, `addBoard()`, `removeBoard()`, `ensureBoards()`
+  in grid.js. The rectangle runs to nine either way (`SPAN`).
+- **An empty slot is somewhere you can stand**, one step off the edge of the
+  boards and never two (`reachable()`). `shelfAt()` may answer with one;
+  `gridOfContainer()` draws it as `.grid.vacant` with a `.noboard` overlay and
+  the plus (`data-addboard`), and a Mac, which draws the whole rectangle, shows
+  a hole the same way where a board was never made. The desk map
+  (`deskMap()`) is the rectangle one slot wider on every side, a plus card on
+  each slot a board could go and a cross on an empty board; it is how a Mac
+  grows its desk outward.
+- **Adding a board to the left or above moves every number by a board**:
+  every box on it on both devices, `SHELF`, and `start`. `shiftBoard()` is the
+  one writer. A board goes away only when it is empty on both devices
+  (`boardHolds()`), never the last, and the rectangle then gives back any edge
+  row or column with no board in it.
+- **`boxOk()` refuses a box on a slot that is not a board** (`onBoards()`),
+  `freeSpot()` walks only the boards, the Magic Selector does not start on a
+  slot, and anything found sitting on one is re-placed by
+  `gridOfContainer()` as a box off the end of a board already was.
+- **A container still grows by itself when it is full** (`growDown()`), a
+  board under the lowest one in the column you are on, up to nine boards.
+  Sorting drawers stay one board: they hold nothing.
+- **One finger walks the boards and the slots; two fingers sideways inside a
+  container is the container beside it** (`pagerBegin(axis, dir, two)`).
+  Two fingers up and down, and two fingers on the desk, walk the boards as
+  one finger does. Decision 198's `sideDrawer()` is unchanged.
+- **A fresh desk is one board** and its seed is packed to fit it, on both
+  devices. **Migration 45** writes `{w:3,h:3}` onto a desk that had none, so an
+  existing desk keeps its nine; puts a container's stored width back to the one
+  it has been drawn at since 198; and rebuilds the stock flows by key, keeping
+  their names.
+- **No title row on a flow.** `build()` in stockplans.js drops a label eight
+  cells wide on row one and moves the rest up a row, and `fillRows()` gives the
+  row back. Boards already laid out from a flow keep theirs: they are yours.
+- **A flow can be several boards.** A spec's `boards:[{at:[dx,dy], on:[…]}]`
+  are the others, each authored eight by fourteen; the plan carries `boards`,
+  `start` and `dims` (how big a board was when its boxes were written), and
+  `planFrom()` writes the same three off a container that has more than one
+  board. `stampPlan()` makes the boards round the one you are on (or round an
+  empty container's only board), reads each box out of the board it was written
+  on and into the board that stands for it, and leaves you on `start`.
+  **Project Management** is three across (someday to the left, finished to the
+  right) and **Novel** five down (the cast, the world, research, revision).
+- **Line view is the tile at eight by one** (`listTile()`), on a column
+  striped in the board's two colours a row at a time (`.listgrid`, with
+  `boardVarsOf()` carrying a board's own). Decision 217 painted the rows
+  themselves and so turned every paper object into the board; that half is
+  undone. A drawer's row keeps its name, a face drawn past its box is cut at the
+  row, and a row swipe may now start on the name, which runs most of the way
+  across the tile.

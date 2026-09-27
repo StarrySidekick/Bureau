@@ -6,7 +6,7 @@ import { S, K, KINDS, KEYS, refreshKinds, ATTRS, attrsOf, has, SHAPES,
   layoutOf, setClFit, genKindOf, makesAnything , groupMates, groupTogether, isDesk, faceOf, kindHas,
   sortOf, sortCycleOf, SORT_FACES } from './model.js';
 import { gridOf, lay, boxOk, freeSpot, anySpot, roomFor, sizeOfKind, toPhoneSize, keepSize,
-  shelvesOf, shelfAt, setShelf, shelvesToHold } from './grid.js';
+  shelvesOf, shelfAt, setShelf, shelvesToHold, addBoard, removeBoard } from './grid.js';
 import { applyLook, applyStyle, setLookVal, lookVal, STYLES, setSlot, objColour, darkMode } from './look.js';
 import { dealTop, furnish, toast, fits, setGridSize, toggleDone, spawnNext, del, delMany, delDrawer, undo, redo, pushUndo,
   pushSet, pushSets, setPin, togglePin, drawerForTag, create, spawnInto, randomThing,
@@ -1475,11 +1475,34 @@ function wire(){
     /* The shelf map, and the nine dots in the bar it is the big version of:
        press a shelf and you are on it. One handler for both, because they are
        the same press — decision 141. */
+    // the cross on an empty board's card, which sits inside the card's own press
+    const rb=t.closest('[data-boardremove]');
+    if(rb){
+      const [cid,x,y]=rb.dataset.boardremove.split(':');
+      if(!removeBoard(cid, +x, +y)){ toast('Only an empty board can be taken away, and never the last one'); return; }
+      save(); render(); refreshPanel();
+      toast('Board taken away');
+      return; }
     const sg=t.closest('[data-shelfgo]');
     if(sg){
       const [cid,x,y]=sg.dataset.shelfgo.split(':');
       if(panelKey()==='deskmap') closePanel();
       goShelfTo(cid, +x, +y);
+      return; }
+
+    /* **The plus on an empty slot makes a board there** (decision 219), and
+       you are standing on it the moment it exists. The desk map's plus cards
+       are the same press, so a Mac, which has no empty slot to swipe to,
+       grows its desk from there. */
+    const ab=t.closest('[data-addboard]');
+    if(ab){
+      const [cid,x,y]=ab.dataset.addboard.split(':');
+      const got = addBoard(cid, +x, +y);
+      if(!got){ toast('No room for another board that way'); return; }
+      if(panelKey()==='deskmap') closePanel();
+      setShelf(cid, got.x, got.y);
+      save(); render();
+      toast('A new board');
       return; }
 
     /* A plan, drawn as the board it will lay out — pressing one lays it out
@@ -1703,20 +1726,6 @@ function wire(){
         save(); render(); refreshPanel();
       }
       return; }
-    /* How many shelves a board is. A shrink throws nothing away: what is left
-       outside is re-placed the next time the board is drawn. See decision 141. */
-    const shz=t.closest('[data-shelfsize]');
-    if(shz){
-      const [cid,x,y]=shz.dataset.shelfsize.split(':');
-      const o=byId(cid);
-      if(o){
-        pushSet('Shelves', cid, 'shelves', o.shelves);
-        o.shelves={w:+x, h:+y};
-        setShelf(cid, Math.min(shelfAt(cid).x, +x-1), Math.min(shelfAt(cid).y, +y-1));
-        save(); render(); refreshPanel();
-      }
-      return; }
-
     /* How much a checklist front shows — a fact about the desk, so it lands in
        S.look and every checklist on every board agrees at the next render. */
     const cf=t.closest('[data-clfit]');

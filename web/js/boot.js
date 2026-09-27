@@ -9,7 +9,8 @@ import { S, KINDS, SHAPES, shapeChoices, SORTS, childrenOf, container, relate, d
   isContainer, faceOf, PRIMARY, SECONDARY, isPrimary, inFamily, barPct, marginOf, marginPlus,
   prioOf, repeatOf, repeatSaid, nextRepeat, boardLocked, BINDINGS, bindingOf, PANELS, panelOf,
   isHeld, heldObjects, tiltMode, READS, goalStanding } from './model.js';
-import { shelfRows, shelvesOf, shelfAt, setShelf, freeSpot, anySpot, roomFor, boxOk, innerOf, colsOf } from './grid.js';
+import { shelfRows, shelvesOf, shelfAt, setShelf, freeSpot, anySpot, roomFor, boxOk, innerOf, colsOf,
+  isBoard, boardsOf, addBoard, removeBoard } from './grid.js';
 import { create, setPin, togglePin, del, delMany, delDrawer, undo, redo, toggleDone, spawnNext, setGridSize,
   CONTROLS, ctlSaid, ctlIsOn, ctlPress,
   holdIt, unholdIt , toast } from './mutations.js';
@@ -237,6 +238,8 @@ window.BUREAU = {
      which one you are on, and how to get to another. See decision 141. */
   get shelfRows(){ return shelfRows(); }, shelvesOf, shelfAt, setShelf,
   shelfShift, goShelf, goShelfTo,
+  // the boards a board is made of, and making or taking one (decision 219)
+  isBoard, boardsOf, addBoard, removeBoard,
   // is there room for one of these here — the question "it won't fit" answers
   roomFor: (w,h,parent)=> roomFor(w,h,S.device,parent||'root'),
   // somewhere free to put a fixture, so a test needn't hardcode a coordinate

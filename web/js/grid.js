@@ -165,38 +165,184 @@ function colsOf(cid, device){
    its board off the end. See decision 190. */
 function shelvesOf(cid, device){
   const id = cid==null ? hereId() : cid;
-  if(id===ROOT) return {w:SHELVES, h:SHELVES};
   const d = device || dev();
-  const inner = innerOf(id, d);
+  const inner = id===ROOT ? null : innerOf(id, d);
   if(inner){
     if(d !== 'phone') return {w:1, h:1};        // a Mac draws the whole board
     const sw = Math.max(1, colsOf(id, d)), sh = Math.max(1, shelfRows(d, id));
     return {w: Math.max(1, Math.ceil(inner.cols/sw)),
             h: Math.max(1, Math.ceil(inner.rows/sh))};
   }
-  /* **A container is one screen wide and grows downward** (2026-09-23).
-     Sideways inside a drawer now walks to the drawer beside it on the board it
-     sits on (`sideDrawer()` in views.js), so a second screenful to the right
-     was a board you could no longer reach by the gesture that used to reach
-     it — and migration 38 had given a lot of drawers one, because a phone box
-     ten columns wide divided by eight desk columns is two. Stored `w` is read
-     by nothing now; the pages are a column, and a board that runs out of room
-     grows another one at the bottom (`growDown()`), up to `PAGES_MAX`. */
-  const o = byId(id), s = o && o.shelves;
-  return {w:1, h:clamp((s&&s.h)||1, 1, PAGES_MAX)};
+  /* **The desk and every container are as many boards as you have made**
+     (decision 219). A board is added by walking off the edge of the ones
+     there are and pressing the plus on the empty slot, in any direction, so
+     what is stored is the rectangle they span (`shelves`) and which cells of
+     it are boards (`boards`). The desk was a fixed three by three, and a
+     container one screen wide that grew at the bottom; both are now this. */
+  return boardRect(id);
 }
 const PAGES_MAX = 9;
-/* A board that grows: any container not sized from its tile. The desk is nine
-   fixed shelves and a proportional board is exactly its tile times four. */
+/* The most boards a board may run to, either way. Nine, as the desk was: a
+   limit a thumb never meets, which exists so a runaway loop cannot build a
+   thousand screens. */
+const SPAN = 9;
+/* Where a board's rectangle and its list are kept: the desk's on its own
+   config (it is not an object), everything else's on the object. */
+const boardCfg = id => id===ROOT ? (S.deskCfg || (S.deskCfg = {layout:'grid', sort:null})) : byId(id);
+function boardRect(id){
+  const o = boardCfg(id), s = o && o.shelves;
+  return {w:clamp((s&&s.w)||1, 1, SPAN), h:clamp((s&&s.h)||1, 1, SPAN)};
+}
+/* The boards of a board, as a set of "x,y". No list means every cell of the
+   rectangle is one — which is every board before decision 219, and the
+   compact way to store a full rectangle. Cached against the list itself,
+   because `boxOk()` asks inside every loop of `freeSpot()`. */
+const BOARDSETS = new WeakMap();
+function boardList(id){
+  const o = boardCfg(id), r = boardRect(id);
+  const list = o && Array.isArray(o.boards) ? o.boards : null;
+  if(!list) return null;
+  let got = BOARDSETS.get(list);
+  if(!got){
+    got = new Set(list.filter(k=>{ const [x,y]=String(k).split(',').map(Number);
+      return x>=0 && y>=0 && x<r.w && y<r.h; }));
+    BOARDSETS.set(list, got);
+  }
+  return got.size ? got : null;
+}
+/* Is there a board at this cell of the rectangle? Always yes on a
+   proportional container, whose pages are derived and all real. */
+function isBoard(cid, x, y){
+  const id = cid==null ? hereId() : cid;
+  const r = shelvesOf(id);
+  if(x<0 || y<0 || x>=r.w || y>=r.h) return false;
+  if(id!==ROOT && innerOf(id)) return true;
+  const set = boardList(id);
+  return !set || set.has(x+','+y);
+}
+/* Every board there is, in reading order. */
+function boardsOf(cid){
+  const id = cid==null ? hereId() : cid, r = shelvesOf(id), out = [];
+  for(let y=0; y<r.h; y++) for(let x=0; x<r.w; x++) if(isBoard(id, x, y)) out.push({x, y});
+  return out;
+}
+/* A magic drawer holds nothing, so it has nothing to put on a second board. */
+const growsNot = id => id!==ROOT && !!byId(id) && has(byId(id), 'magic');
+/* **An empty slot is somewhere you can stand**, if a board is next to it:
+   one step off the edge of the boards there are, never two. That is where
+   the carcass is drawn with a plus on it. */
+function reachable(cid, x, y){
+  const id = cid==null ? hereId() : cid;
+  if(isBoard(id, x, y)) return true;
+  if(id!==ROOT && innerOf(id)) return false;       // a proportional board is its tile
+  if(growsNot(id)) return false;
+  return isBoard(id, x-1, y) || isBoard(id, x+1, y) || isBoard(id, x, y-1) || isBoard(id, x, y+1);
+}
+/* One step for each device: how many cells a board is on it. */
+const boardStep = (id, dv) => ({w: colsOf(id, dv), h: shelfRows(dv, id)});
+/* **Adding a board**, anywhere a step off the edge. To the right or below it
+   is a new cell of the rectangle; to the left or above it the rectangle grows
+   that way and **everything moves over by a board** — every box on it on both
+   devices, the board you are standing on and the one it opens on — because a
+   box is in cells counted from the top-left corner, and the corner has moved.
+   Nothing changes place on the screen: it is only the numbers. */
+function addBoard(cid, x, y){
+  const id = cid==null ? hereId() : cid;
+  const o = boardCfg(id); if(!o) return null;
+  if(isBoard(id, x, y)) return {x, y};
+  const r = boardRect(id);
+  const sx = x<0 ? -x : 0, sy = y<0 ? -y : 0;
+  const w = Math.max(r.w + sx, x + sx + 1), h = Math.max(r.h + sy, y + sy + 1);
+  if(w > SPAN || h > SPAN) return null;
+  const had = boardsOf(id).map(b=>(b.x+sx)+','+(b.y+sy));
+  if(sx || sy) shiftBoard(id, sx, sy);
+  had.push((x+sx)+','+(y+sy));
+  o.shelves = {w, h};
+  if(w*h===had.length) delete o.boards; else o.boards = had;
+  return {x:x+sx, y:y+sy};
+}
+/* Everything on a board moved by whole boards, on both devices, plus where
+   you are standing and where it opens. By `parent`, never `childrenOf()`: a
+   sorting drawer on the board shows things that live somewhere else. */
+function shiftBoard(id, sx, sy){
+  ['desk','phone'].forEach(dv=>{
+    const st = boardStep(id, dv);
+    S.objects.forEach(k=>{
+      if(!k || (k.parent||ROOT)!==id) return;
+      const b = k[dv]; if(!b || !b.x) return;
+      k[dv] = Object.assign({}, b, {x:b.x + sx*st.w, y:b.y + sy*st.h});
+    });
+  });
+  if(SHELF[id]) SHELF[id] = {x:SHELF[id].x+sx, y:SHELF[id].y+sy};
+  const o = boardCfg(id);
+  if(o && o.start) o.start = {x:(o.start.x||0)+sx, y:(o.start.y||0)+sy};
+}
+/* Is anything on this board, on either device? A board is taken away only
+   when it is empty, and it has to be empty on both. */
+function boardHolds(id, x, y){
+  return S.objects.some(k=>{
+    if(!k || (k.parent||ROOT)!==id) return false;
+    return ['desk','phone'].some(dv=>{
+      const b = k[dv]; if(!b || !b.x || !b.w) return false;
+      const st = boardStep(id, dv);
+      return Math.floor((b.x-1)/st.w)===x && Math.floor((b.y-1)/st.h)===y;
+    });
+  });
+}
+/* **Taking a board away**, which only an empty one can be, and never the
+   last. The rectangle then gives up any edge row or column with no board
+   left in it — moving everything back by a board if that edge was the left
+   or the top, the same bookkeeping as adding one. */
+function removeBoard(cid, x, y){
+  const id = cid==null ? hereId() : cid;
+  const o = boardCfg(id); if(!o || !isBoard(id, x, y)) return false;
+  const all = boardsOf(id);
+  if(all.length<=1 || boardHolds(id, x, y)) return false;
+  let keep = all.filter(b=>b.x!==x || b.y!==y);
+  const minX = Math.min(...keep.map(b=>b.x)), minY = Math.min(...keep.map(b=>b.y));
+  const maxX = Math.max(...keep.map(b=>b.x)), maxY = Math.max(...keep.map(b=>b.y));
+  if(minX || minY){ shiftBoard(id, -minX, -minY); keep = keep.map(b=>({x:b.x-minX, y:b.y-minY})); }
+  const w = maxX-minX+1, h = maxY-minY+1;
+  o.shelves = {w, h};
+  if(keep.length===w*h) delete o.boards; else o.boards = keep.map(b=>b.x+','+b.y);
+  return true;
+}
+/* The boards a flow puts down, made sure of: each named cell becomes a board,
+   in the order given, growing the rectangle as it has to. The cells are
+   relative to `at` and the answer is where each one ended up, because adding
+   one to the left or above moves the others. */
+function ensureBoards(cid, cells, at){
+  const id = cid==null ? hereId() : cid;
+  let origin = at || {x:0, y:0};
+  const out = cells.map(()=>null);
+  cells.forEach((c, i)=>{
+    const want = {x:origin.x + c.x, y:origin.y + c.y};
+    if(isBoard(id, want.x, want.y)){ out[i] = want; return; }
+    const got = addBoard(id, want.x, want.y);
+    if(!got) return;
+    const dx = got.x - want.x, dy = got.y - want.y;
+    origin = {x:origin.x+dx, y:origin.y+dy};
+    for(let j=0; j<i; j++) if(out[j]) out[j] = {x:out[j].x+dx, y:out[j].y+dy};
+    out[i] = got;
+  });
+  return out;
+}
+/* A board that grows by itself: any container not sized from its tile. The
+   desk grows too, but only when you ask it to. */
 const growsDown = cid => cid!=null && cid!==ROOT && !innerOf(cid) && !!byId(cid);
-/* One more page at the bottom, when there is room for one. Written as a fact —
-   the board is that big now — and counted in `PLACED` so the render that asked
+/* **A full container adds a board under the one you are on**, under the last
+   board of that column, when there is room for one. Written as a fact — the
+   board is that big now — and counted in `PLACED` so the render that asked
    saves it, the same as a box ensureBox() invented. */
 function growDown(cid){
-  if(!growsDown(cid)) return false;
-  const o = byId(cid), h = shelvesOf(cid).h;
-  if(h >= PAGES_MAX) return false;
-  o.shelves = {w:1, h:h+1};
+  if(!growsDown(cid) || growsNot(cid)) return false;
+  const all = boardsOf(cid);
+  if(all.length >= PAGES_MAX) return false;
+  const at = shelfAt(cid);
+  const col = isBoard(cid, at.x, at.y) ? at.x : (all[0]||{x:0}).x;
+  const inCol = all.filter(b=>b.x===col);
+  let y = inCol.length ? Math.max(...inCol.map(b=>b.y)) + 1 : 0;
+  if(!addBoard(cid, col, y)) return false;
   PLACED.n++;
   return true;
 }
@@ -377,18 +523,31 @@ const oneShelf = (b, g)=>
 const SHELF = {};
 function shelfAt(cid){
   const id = cid==null ? hereId() : cid;
-  const sh = shelvesOf(id), at = SHELF[id];
-  /* The desk opens on its middle shelf; a container opens on its **first
-     page**, because its pages are a column that grows at the bottom
-     (decision 198) and the middle of five pages is nowhere in particular. */
-  const mid = id===ROOT ? {x:(sh.w-1)>>1, y:(sh.h-1)>>1} : {x:0, y:0};
-  if(!at) return mid;
-  return {x:clamp(at.x, 0, sh.w-1), y:clamp(at.y, 0, sh.h-1)};
+  const at = SHELF[id];
+  /* **Where you are may be an empty slot** (decision 219): one step off the
+     edge of the boards, where the carcass is drawn with a plus on it. Any
+     further out, or a board that has since gone, lands on the nearest one. */
+  if(at && reachable(id, at.x, at.y)) return {x:at.x, y:at.y};
+  return nearestBoard(id, at || startOf(id));
+}
+/* Where a board opens: the one it says (`start`, which a flow writes), else
+   the desk's middle board, else a container's first. */
+function startOf(id){
+  const o = boardCfg(id), sh = shelvesOf(id);
+  if(o && o.start && isBoard(id, o.start.x, o.start.y)) return {x:o.start.x, y:o.start.y};
+  if(id===ROOT){ const mid = {x:(sh.w-1)>>1, y:(sh.h-1)>>1};
+    if(isBoard(id, mid.x, mid.y)) return mid; }
+  return boardsOf(id)[0] || {x:0, y:0};
+}
+function nearestBoard(id, p){
+  const all = boardsOf(id);
+  if(!all.length) return {x:0, y:0};
+  return all.reduce((best, b)=>
+    (Math.abs(b.x-p.x)+Math.abs(b.y-p.y) < Math.abs(best.x-p.x)+Math.abs(best.y-p.y)) ? b : best);
 }
 function setShelf(cid, x, y){
   const id = cid==null ? hereId() : cid;
-  const sh = shelvesOf(id);
-  const to = {x:clamp(x, 0, sh.w-1), y:clamp(y, 0, sh.h-1)};
+  const to = reachable(id, x, y) ? {x, y} : nearestBoard(id, {x, y});
   const was = shelfAt(id);
   SHELF[id] = to;
   return to.x!==was.x || to.y!==was.y;
@@ -431,6 +590,13 @@ function lay(d, device, cid){
   return {x:clamp(b.x||1,1,Math.max(1,g.cols-w+1)),
           y:clamp(b.y||1,1,Math.max(1,g.rows-h+1)), w, h};
 }
+function onBoards(box, g, id){
+  if(id!==ROOT && innerOf(id)) return true;         // a proportional board is all board
+  const x0 = Math.floor((box.x-1)/g.shelfW), x1 = Math.floor((box.x+box.w-2)/g.shelfW);
+  const y0 = Math.floor((box.y-1)/g.shelfH), y1 = Math.floor((box.y+box.h-2)/g.shelfH);
+  for(let y=y0; y<=y1; y++) for(let x=x0; x<=x1; x++) if(!isBoard(id, x, y)) return false;
+  return true;
+}
 const overlaps = (a,b)=> a.x < b.x+b.w && b.x < a.x+a.w && a.y < b.y+b.h && b.y < a.y+a.h;
 /* Every check below is scoped to one container's grid. Collisions only matter
    between siblings — two objects in different drawers can share coordinates,
@@ -445,6 +611,10 @@ function boxOk(box, id, device, parentId){
   // nothing bigger than a screen, and nothing across the seam between two
   if(box.w>g.shelfW || box.h>g.shelfH) return false;
   if(dv==='phone' && !oneShelf(box, g)) return false;
+  /* …and nothing on a slot that is not a board (decision 219). A box on a
+     phone is on one board; on a Mac it may lie across several, and every one
+     of them has to be there. */
+  if(!onBoards(box, g, parentId||ROOT)) return false;
   /* A **decoration** is above the board rather than in it, so collision does
      not apply to it in either direction: it may stand anywhere, including in
      front of something, and nothing has to make room for one. The board is
@@ -496,9 +666,7 @@ function freeSpotIn(w,h,device,parentId,prefer){
   w=Math.min(w, oneShelfOnly ? g.shelfW : g.cols);
   h=Math.min(h, oneShelfOnly ? g.shelfH : g.rows);
   const p = prefer || shelfAt(home);
-  const order=[];
-  for(let sy=0; sy<g.shelves.h; sy++) for(let sx=0; sx<g.shelves.w; sx++)
-    order.push([sx, sy, Math.abs(sx-p.x)+Math.abs(sy-p.y)]);
+  const order=boardsOf(home).map(b=>[b.x, b.y, Math.abs(b.x-p.x)+Math.abs(b.y-p.y)]);
   order.sort((a,b)=> a[2]-b[2] || a[1]-b[1] || a[0]-b[0]);
   for(const [sx,sy] of order){
     const x0=sx*g.shelfW, y0=sy*g.shelfH;
@@ -572,7 +740,7 @@ function anySpot(w,h,device,parentId,prefer){
   const spot = freeSpot(w,h,device,parentId,prefer);
   if(spot) return spot;
   const dv=device||dev(), home=parentId||ROOT, gg=gridOf(dv, home);
-  const at = prefer || shelfAt(home);
+  const at = nearestBoard(home, prefer || shelfAt(home));
   const one = dv==='phone';
   return {x: at.x*gg.shelfW+1, y: at.y*gg.shelfH+1,
           w: Math.min(w, one ? gg.shelfW : gg.cols),
@@ -726,7 +894,8 @@ function cellW(grid,g){
 }
 
 export { GRID, PHONE_GRIDS, PHONE_MAX_H, PHONE_MAX_NEW, CELL, COLW, MEASURE, sideways,
-  SHELVES, DESK_SHELF_COLS, INNER, PAGES_MAX, growsDown, growDown, proportional, shelvesToHold, colsOf, gridKeyOf, shelvesOf, innerOf,
+  SHELVES, DESK_SHELF_COLS, INNER, PAGES_MAX, SPAN, isBoard, boardsOf, reachable, addBoard, removeBoard,
+  ensureBoards, boardHolds, startOf, nearestBoard, onBoards, growsDown, growDown, proportional, shelvesToHold, colsOf, gridKeyOf, shelvesOf, innerOf,
   shelfRows, shelfOfBox, oneShelf, shelfAt, setShelf, shelfOrigin, SHELF, fitSpot, flows,
   gridOf, drawCols, drawRows, lay, overlaps, boxOk, freeSpot, anySpot, roomFor, gridRows, sizeOfKind, toPhoneSize,
   ensureBox, keepSize, cellW, PLACED };

@@ -143,6 +143,12 @@ dispatches at `#frame` cannot see any of this** — `#frame` is never replaced �
 so the pinch tests fire at the element the fingers land on and assert it really
 has gone.
 
+**Two fingers sideways inside a container is the container beside it**
+(decision 219); one finger walks this board's boards and the empty slots off
+their edge, where the plus is. `pagerBegin(axis, dir, two)` — the third
+argument is `g===TWO`. A row in a list swipes from anywhere but its tick box
+or a field being typed in.
+
 **Two fingers navigate; on a locked board, one does.** Both go through the
 pager in `motion.js`, which draws the shelf either side of this one and slides
 the strip with your finger rather than committing at a threshold. A locked board

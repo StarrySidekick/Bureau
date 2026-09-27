@@ -125,6 +125,15 @@ from every picker (`isCut()`), Decoration's subtypes are Plant, Physical
 Object, Painting and Window, and **Random** (`anything`) makes one of the
 others. Eight new stock flows, three of them in a fourth list, *Getting work
 done* (`sec:'work'`).
+**v2.16** (decision 219): **boards you add**. A fresh desk is one board; one
+step off the edge of the boards is an empty slot (the carcass and a plus) that
+makes a board there, in any direction, on the desk and in any container
+(`shelves` is the rectangle, `boards` which cells are boards; `addBoard()`,
+`removeBoard()`, `isBoard()` in grid.js). Two fingers sideways inside a
+container is the container beside it; one finger is its boards. Flows have no
+title row and can be several boards (`boards`/`start`/`dims` on a plan;
+Project Management is three across, Novel five down). Line view draws each row
+as the tile at 8×1 on a striped list, which undoes 217's painting of the rows.
 The **Bureau Workshop** artifact (https://claude.ai/artifact/4TjyQZ5xcuxCYFgfnRm76k)
 holds Timothy's own rearrangement of every menu and type: read its
 `workshop/state` document before reorganising menus or types.
@@ -170,6 +179,9 @@ screenshots to `test/shots/` — look at
 them, this is a visual app and a passing assertion doesn't mean it looks right.
 
 **Writing a phone block: the board is nine screens and you are on one of them.**
+A fresh desk is one board since decision 219, so the suite makes the desk
+three by three once, right after the first load, and the one-board desk is
+tested in a context of its own (`boardsYouAdd`).
 Two window helpers are injected on the context for it, and between them they
 cost three forty-minute runs to learn. `hereBox(box)` puts a box on the shelf
 you are *looking at* — the desk starts on the middle one, where the shift is

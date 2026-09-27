@@ -85,6 +85,16 @@ const PROP_OFF = () => { const b = document.createElement('button');
 
   await page.goto(URL);
   await page.waitForTimeout(700);
+  /* **The suite was written against a desk of nine boards**, three by three,
+     which is what every desk made before decision 219 is (migration 45). A
+     fresh desk is one board now, so the desk is made the one the suite was
+     written for, once, before anything else, and centred again the way a
+     desk that had been used was; the phone page shares this storage. The
+     one-board desk is tested on its own in `boardsYouAdd`, in a context of
+     its own. */
+  await page.evaluate(() => { const S = BUREAU.state;
+    S.deskCfg.shelves = {w:3, h:3}; S.centred = {}; BUREAU.render(); BUREAU.save(); });
+  await page.waitForTimeout(400);
   await shot('01-desk');
 
   // manifest + sw
@@ -9561,13 +9571,19 @@ const PROP_OFF = () => { const b = document.createElement('button');
       && V.sideDrawer(c.id, 1) === null && V.sideDrawer(a.id, -1) === null;
     S.view='drawer'; S.drawerId=a.id; BUREAU.render(); await nap(200);
     out.oneScreenWide = BUREAU.shelvesOf(a.id).w === 1;
-    if(M.pagerBegin('x', -1)){
+    /* **Two fingers sideways is the drawer next door** (decision 219); one
+       finger walks this drawer's own boards, and off the edge of them is an
+       empty slot with a plus on it. */
+    if(M.pagerBegin('x', -1, true)){
       M.pagerMove(-260); await nap(40); M.pagerEnd(); await nap(450);
       out.aSwipeGoesNextDoor = S.view==='drawer' && S.drawerId === b.id;
     } else out.aSwipeGoesNextDoor = 'no neighbour';
-    // a stored second screenful to the side is read by nothing
-    b.shelves = {w:2, h:1}; BUREAU.render(); await nap(120);
-    out.noBoardToTheRight = JSON.stringify(BUREAU.shelvesOf(b.id)) === JSON.stringify({w:1,h:1});
+    if(M.pagerBegin('x', -1)){
+      M.pagerMove(-260); await nap(40); M.pagerEnd(); await nap(450);
+      out.oneFingerFindsASlot = S.drawerId === b.id && BUREAU.shelfAt(b.id).x === 1
+        && !!document.querySelector('#drawergrid.vacant .addboard');
+    } else out.oneFingerFindsASlot = 'no slot';
+    BUREAU.goShelfTo(b.id, 0, 0); await nap(150);
     // and a full board grows a page at the bottom instead of refusing
     for(let i=0; i<60; i++) BUREAU.create('note', {parent:b.id, title:'n'+i});
     BUREAU.render(); await nap(250);
@@ -9581,6 +9597,102 @@ const PROP_OFF = () => { const b = document.createElement('button');
     return out;
   });
   await page.bringToFront();
+
+  /* ---- boards you add — decision 219 -----------------------------------
+     A fresh desk is one board. Walking off its edge is an empty slot, the
+     carcass with a plus on it, and pressing the plus makes a board there, in
+     any direction: to the left or above, everything moves over by a board in
+     the numbers and nowhere on the screen. An empty board can be taken away;
+     one with anything on it cannot, nor the last. Flows have no title across
+     the top, and some are several boards. Line view draws each row as the
+     tile at eight by one, on stripes, and a row still swipes. A desk from
+     before this is still nine boards. In its own context, because the rest of
+     the suite runs on a desk made three by three. */
+  const freshCtx = await browser.newContext({ viewport:{width:390,height:844}, hasTouch:true });
+  const fresh = await freshCtx.newPage();
+  fresh.on('pageerror', e => errs.push('PAGEERROR (fresh): ' + e.message));
+  await fresh.goto(URL); await fresh.waitForTimeout(900);
+  const boardsYouAdd = await fresh.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const out = {}, S = BUREAU.state, B = BUREAU;
+    out.startsAsOne = JSON.stringify(B.boardsOf('root')) === JSON.stringify([{x:0,y:0}]);
+    out.seedFitsOnIt = S.objects.filter(o=>o.parent==='root' && o.phone && o.phone.x)
+      .every(o=>B.boxOk(o.phone, o.id, 'phone', 'root'));
+    B.goShelfTo('root', 1, 0); await nap(200);
+    out.offTheEdgeIsASlot = !!document.querySelector('#drawergrid.vacant .addboard')
+      && !document.querySelector('#drawergrid .drawer');
+    B.goShelfTo('root', 2, 0); await nap(150);
+    out.butNotTwoOff = B.shelfAt('root').x === 0 || B.shelfAt('root').x === 1;
+    B.goShelfTo('root', 1, 0); await nap(150);
+    document.querySelector('.addboard').click(); await nap(200);
+    out.thePlusMakesOne = B.boardsOf('root').length === 2 && B.isBoard('root', 1, 0)
+      && B.shelfAt('root').x === 1 && !document.querySelector('#drawergrid.vacant');
+    const t = S.objects.find(o=>o.id==='d_today'), was = {...t.phone};
+    B.goShelfTo('root', -1, 0); await nap(150);
+    document.querySelector('.addboard').click(); await nap(200);
+    out.leftMovesTheNumbers = t.phone.x === was.x + B.shelfW('root') && t.phone.y === was.y
+      && B.shelvesOf('root').w === 3 && B.shelfAt('root').x === 0;
+    B.goShelfTo('root', 1, -1); await nap(150);
+    document.querySelector('.addboard').click(); await nap(200);
+    out.upToo = B.shelvesOf('root').h === 2 && B.isBoard('root', 1, 0) && !B.isBoard('root', 0, 0)
+      && t.phone.y === was.y + B.shelfRows;
+    // the dots are the boards' own shape, gaps and all
+    out.dotsHaveGaps = document.querySelectorAll('.shelfmark i.gap').length === 2;
+    out.fullOneStays = !B.removeBoard('root', 1, 1);
+    // the one above goes, and the rectangle gives its row back
+    out.emptyOneGoes = B.removeBoard('root', 1, 0) && B.boardsOf('root').length === 3
+      && B.shelvesOf('root').h === 1 && t.phone.y === was.y;
+    // the one on the left goes, and the numbers move back
+    out.andTheRectShrinks = B.removeBoard('root', 0, 0) && B.shelvesOf('root').w === 2
+      && t.phone.x === was.x;
+    out.lastNeverGoes = B.removeBoard('root', 1, 0) && !B.removeBoard('root', 0, 0)
+      && B.boardsOf('root').length === 1;
+    B.render(); await nap(150);
+    // nothing is made on a slot
+    out.noRoomOnASlot = !B.boxOk({x:B.shelfW('root')+1, y:1, w:1, h:1}, null, 'phone', 'root');
+    // flows: no title row, and Project Management is three across
+    const pl = S.plans.find(p=>p.stock==='projectmgmt'), nv = S.plans.find(p=>p.stock==='novel');
+    out.noTitleRow = S.plans.filter(p=>p.stock).every(p=>!p.objects.some(o=>o.parent==='__plan'
+      && o.kind==='label' && o.desk && o.desk.y===1 && o.desk.w===8));
+    out.flowsCarryBoards = !!(pl && pl.boards && pl.boards.length===3 && nv && nv.boards.length===5);
+    const P = await import('./js/plans.js');
+    const d = B.create('drawer', {parent:'root', title:'PM'});
+    P.stampPlan(pl.id, d.id); B.render(); await nap(150);
+    out.stampedAcross = JSON.stringify(B.shelvesOf(d.id)) === JSON.stringify({w:3,h:1})
+      && B.shelfAt(d.id).x === 1
+      && S.objects.filter(o=>o.parent===d.id && o.phone && o.phone.x)
+           .every(o=>B.boxOk(o.phone, o.id, 'phone', d.id));
+    // line view: the tile at eight by one, the stripes behind it
+    S.view = 'desk'; S.drawerId = null; B.goShelfTo('root', 0, 0);
+    S.deskCfg.layout = 'list'; B.render(); await nap(200);
+    const row = document.querySelector('[data-listfor] .listband.otile');
+    const lg = document.querySelector('[data-listfor]');
+    out.rowIsTheTile = !!row && row.classList.contains('sz-short') && !row.querySelector('.bandsnip');
+    out.stripesBehind = !!lg && getComputedStyle(lg).backgroundImage.includes('linear-gradient');
+    out.rowKeepsItsPaper = !!row && getComputedStyle(row).backgroundColor
+      !== getComputedStyle(document.documentElement).getPropertyValue('--board-1');
+    S.deskCfg.layout = 'grid'; B.render();
+    // a desk from before this is nine boards
+    const M = await import('./js/persist.js');
+    const old = {v:44, objects:[], deskCfg:{layout:'grid'}, plans:[]};
+    M.migrate(old);
+    out.oldDeskIsNine = !!old.deskCfg.shelves && old.deskCfg.shelves.w===3 && old.deskCfg.shelves.h===3;
+    return out;
+  });
+  /* …and the swipe on a row is still the swipe on a row: left deletes. */
+  await fresh.evaluate(() => { BUREAU.goShelfTo('root', 0, 0); BUREAU.state.deskCfg.layout = 'list'; BUREAU.render(); });
+  await fresh.waitForTimeout(300);
+  const rowAt = await fresh.evaluate(() => { const el = document.querySelector('[data-listfor] .listband[data-row]');
+    if(!el) return null; el.scrollIntoView(); const r = el.getBoundingClientRect();
+    return {id:el.dataset.row, x:r.x + r.width/2, y:r.y + r.height/2}; });
+  if(rowAt){
+    await fresh.mouse.move(rowAt.x, rowAt.y); await fresh.mouse.down();
+    for(let i=1; i<=15; i++){ await fresh.mouse.move(rowAt.x - 12*i, rowAt.y); await fresh.waitForTimeout(16); }
+    await fresh.mouse.up(); await fresh.waitForTimeout(400);
+    boardsYouAdd.aRowStillSwipes = await fresh.evaluate(id => !BUREAU.state.objects.find(o=>o.id===id), rowAt.id);
+  } else boardsYouAdd.aRowStillSwipes = 'no row';
+  await fresh.screenshot({ path: 'test/shots/219-line.png' });
+  await freshCtx.close();
 
   console.log(JSON.stringify({
     errors: errs, manifestOk, swReady, survived, styleSurvived, slotColours,
@@ -9604,7 +9716,8 @@ const PROP_OFF = () => { const b = document.createElement('button');
     ranking, urgency, reachable, pensAndCorners, lyingBooks, plansWork, stockPlans, livedWith, boardsComeWith, saysWhatItHolds, listIsOneShelf, repeating, oneLock, scheduling, ownColour, addBox, calFaces,
     lockedBoard, freeTraits, pageWrites, tickBoxes, readerFits, categories,
     specimenBook, deskObjects, camLife, camPhone, ownBoard, threeDrawings, fullScreen, openingIn, boards193, sideways, thisPass,
-    dropsIn, keyframesRegistered, aesthetics, slotScoping, objectsDressed, grainSlots, tagged, drawnAesthetic, deeper, lookStage, statusBar, bindings, panelling, theSpray, tappingIsQuiet, decorations, pinboard, gravity, boardMakes
+    dropsIn, keyframesRegistered, aesthetics, slotScoping, objectsDressed, grainSlots, tagged, drawnAesthetic, deeper, lookStage, statusBar, bindings, panelling, theSpray, tappingIsQuiet, decorations, pinboard, gravity, boardMakes,
+    boardsYouAdd
   }, null, 2));
   await browser.close();
 })();

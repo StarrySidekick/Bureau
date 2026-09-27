@@ -19,7 +19,7 @@ import { plans, stampPlan } from './plans.js';
    Bureau is this phone running" is exactly the question you ask when a change
    appears not to have deployed. Shown in Settings, so it can be read off the
    device rather than guessed at. */
-const APP_VERSION = '2.15';
+const APP_VERSION = '2.16';
 const KEY = 'bureau.v1';
 const install = {deferred:null};   // the browser's install prompt, when one is on offer
 let saveTimer = null;
@@ -267,7 +267,7 @@ function rescalePhone(d, from, cols){
    skips all of them, an old backup replays only what it is missing. These
    used to be ad-hoc per-load mutations inside adopt(); a new repair that
    should run once belongs here, as the next numbered step. */
-const DATA_V = 44;
+const DATA_V = 45;
 const MIGRATIONS = [
   // Drawers and objects were two arrays and a drawer could not live inside
   // anything. foldDrawers also replays the old dense flow to give v1 drawers
@@ -1096,6 +1096,31 @@ const MIGRATIONS = [
     const gone = new Set(RETIRED_KEYS);
     const add = stockPlans().filter(p=>!have.has(p.stock) && !gone.has(p.stock));
     if(add.length) d.plans = d.plans.concat(add);
+  }},
+  /* ---- boards you add (decision 219) ------------------------------------
+     A fresh desk is one board now and grows where you walk off its edge. A
+     desk that was already here was three by three, and is said to be, so
+     nothing on it moves. A container's pages were a column one screen wide
+     whatever `w` said (decision 198), and a sideways board is something it
+     can have now, so the stored width is put back to the one it has been
+     drawn at. The flows lose the title across their top row, which the lip
+     above the board already says: stock plans are rebuilt by key, keeping
+     their names, because nothing inside one can be arranged but by capturing
+     a new plan. */
+  {v:45, up(d){
+    d.deskCfg = d.deskCfg || {layout:'grid', sort:null};
+    if(!d.deskCfg.shelves) d.deskCfg.shelves = {w:3, h:3};
+    (d.objects||[]).forEach(o=>{
+      if(o && o.shelves && typeof o.shelves==='object')
+        o.shelves = {w:1, h:clamp(o.shelves.h||1, 1, 9)};
+    });
+    const fresh = {};
+    stockPlans().forEach(p=>{ fresh[p.stock] = p; });
+    (d.plans||[]).forEach(p=>{ const f = p && p.stock && fresh[p.stock];
+      if(!f) return;
+      p.objects = f.objects;
+      if(f.boards) p.boards = f.boards; else delete p.boards;
+    });
   }},
 ];
 function migrate(d){

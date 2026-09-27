@@ -2978,6 +2978,8 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
 }
 .shelfmark i:hover{background:color-mix(in srgb, var(--bar-ink, #EDE3CE) 62%, transparent)}
 .shelfmark i.on{background:var(--glow);transform:scale(1.25)}
+/* a slot of the rectangle with no board on it holds its place and says nothing */
+.shelfmark i.gap,.shelfmark i.gap:hover{background:none;cursor:default}
 
 /* ---- and the big version of it ----------------------------------------
    Nine cards in a three-by-three, each drawing what is actually on that shelf.
@@ -2988,6 +2990,18 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
 }
 .shelfcard{padding:6px}
 .shelfcard .deskmini{aspect-ratio:1}
+/* The slots round the boards (decision 219): a dashed plus where one could
+   be added, nothing at all where it could not, and a cross on a board that is
+   empty and could be taken away. */
+.shelfcard{position:relative}
+.shelfcard.addcard{border-style:dashed;align-items:center;justify-content:center;
+  color:var(--ink-3);min-height:64px}
+.shelfcard.addcard:hover{color:var(--brass)}
+.shelfgap{display:block}
+.shelfcard .boardgo{position:absolute;top:4px;right:4px;width:18px;height:18px;
+  border-radius:50%;display:grid;place-items:center;cursor:pointer;
+  background:var(--paper-2);color:var(--ink-3);box-shadow:0 0 0 1px var(--rule)}
+.shelfcard .boardgo:hover{color:var(--ink);box-shadow:0 0 0 1px var(--brass)}
 
 /* ============================================================
    things that run — decision 182
@@ -3718,3 +3732,38 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
   radial-gradient(circle, rgba(255,230,190,.25) 0 1px, transparent 1.5px);
   background-size:7px 7px, 11px 11px;background-position:0 0, 3px 5px}
 .bgtile .rz::before{background:var(--ink)}
+
+/* ---- a slot with no board on it — decision 219 -------------------------
+   The desk and every container are as many boards as you have made, and one
+   step off the edge of them is an empty slot: the carcass, with a plus on
+   it. `.noboard` covers exactly the slot's cells, so a Mac, which draws the
+   whole rectangle, shows a hole in the paper where a board was never made,
+   and a phone standing on one draws nothing else (`.vacant`, which takes the
+   paper away too). The plus is the only thing on it that does anything: a
+   swipe that starts on the bare wood still walks the boards. */
+.grid.vacant::before{display:none}
+.noboard{display:flex;align-items:center;justify-content:center;pointer-events:none;
+  background:var(--wood);border-radius:var(--radius);
+  box-shadow:inset 0 0 0 1px var(--wood-2),inset 0 8px 16px -10px rgba(0,0,0,.6)}
+.grid.vacant .noboard{background:transparent;box-shadow:none}
+.addboard{width:68px;height:68px;border-radius:50%;padding:0;cursor:pointer;pointer-events:auto;
+  display:grid;place-items:center;
+  border:2px dashed color-mix(in srgb,#fff 50%,transparent);
+  background:color-mix(in srgb,#000 14%,transparent);
+  color:color-mix(in srgb,#fff 82%,transparent)}
+.addboard:hover,.addboard:focus-visible{border-style:solid;color:#fff;
+  background:color-mix(in srgb,#000 24%,transparent)}
+/* A Mac draws the whole rectangle at the desk's own cell, so a desk more than
+   three boards across is wider than the window and scrolls sideways rather
+   than squashing every cell to fit. */
+.is-desk .grid.wideboard{max-width:none}
+.is-desk .scroll.deskscroll{overflow-x:auto}
+
+/* The shape the boards make, in a board's settings (decision 219): the dots
+   from the bar, drawn big enough to read, with the slots that are not boards
+   left hollow. */
+.boardshape{display:inline-grid;grid-template-columns:repeat(var(--sw,1), 12px);gap:3px;
+  padding:4px;border-radius:var(--radius);background:rgba(0,0,0,.06)}
+.boardshape i{width:12px;height:12px;border-radius:2px;display:block;
+  box-shadow:inset 0 0 0 1px var(--rule)}
+.boardshape i.on{background:var(--brass);box-shadow:none}

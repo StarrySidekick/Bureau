@@ -1,7 +1,7 @@
 import { $, clamp, ROOT } from './util.js';
 import { S, byId, isContainer, has, childrenOf, shapeOf, openingOf, deskOf,
   tiltMode, tiltsDesk, tiltsWindows, gravityTilts , dev } from './model.js';
-import { lay, shelvesOf, shelfAt , CELL, proportional, flows } from './grid.js';
+import { lay, shelvesOf, shelfAt , CELL, proportional, flows, reachable, isBoard } from './grid.js';
 import { objColour, styleNow } from './look.js';
 import { render, renderSoon, previewHTML, goShelf, sideDrawer, goSideDrawer } from './views.js';
 
@@ -1532,7 +1532,7 @@ function pane(cls, html){
    let the gesture fall through to whatever else it might have been. When the
    desk is set to reduced motion it still begins — as a `flat` pager, which
    draws nothing and commits on release, so one code path covers both. */
-function pagerBegin(axis, dir){
+function pagerBegin(axis, dir, two){
   if(PG) return true;
   /* A phone that scrolls (`flows()`, decision 209) has no vertical pages to
      walk: the column is all drawn and the scroller is what carries you down
@@ -1549,24 +1549,30 @@ function pagerBegin(axis, dir){
      Undefined at either end, which is what makes the strip give rather than
      carry you round to the other side. */
   const here = hereBoard();
-  const sh = shelvesOf(here), at = shelfAt(here);
+  const at = shelfAt(here);
   const dx = axis==='x' ? 1 : 0, dy = axis==='x' ? 0 : 1;
   const me = {view:S.view, drawerId:S.drawerId};
+  /* **The next board, or the empty slot beside the last one** (decision
+     219). A phone can stand one step off the edge of the boards, where the
+     carcass is drawn with a plus on it; a Mac draws the whole board and walks
+     only the boards there are. */
+  const phone = dev()==='phone';
   const to = n => {
     const x=at.x+dx*n, y=at.y+dy*n;
-    if(x<0 || y<0 || x>=sh.w || y>=sh.h) return null;
+    if(!(phone ? reachable(here, x, y) : isBoard(here, x, y))) return null;
     return {...me, shelf:{x,y}};
   };
-  /* Inside a container, sideways runs out of shelves at once (a container is
-     one screen wide, `shelvesOf()`) and carries on to the **container beside
-     it** on the board it sits on — `sideDrawer()` in views.js. A proportional
-     board wider than the screen still walks its own columns first. */
+  /* **Two fingers sideways inside a container is the container beside it**
+     on the board it sits on — `sideDrawer()` in views.js (decision 219).
+     One finger walks this container's own boards, which reach sideways now
+     too, so the two could no longer share a gesture. Two fingers up and down,
+     and two fingers on the desk, walk the boards like one does. */
   const beside = n => {
-    if(axis!=='x' || here===ROOT) return null;
     const id = sideDrawer(here, n);
     return id ? {view:'drawer', drawerId:id} : null;
   };
-  const prev=to(-1)||beside(-1), next=to(1)||beside(1);
+  const sideways = two && axis==='x' && here!==ROOT;
+  const prev = sideways ? beside(-1) : to(-1), next = sideways ? beside(1) : to(1);
   if(!prev && !next) return false;
 
   const r=host.getBoundingClientRect(), fr=frameRect();

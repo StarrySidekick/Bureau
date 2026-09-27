@@ -9,10 +9,11 @@ import { S, K, T, byId, has, isContainer, containers, container, childrenOf, cha
   URGES, workday, searchHits, sortOf, SORT_FACES, MANUAL } from './model.js';
 import { GRID, PHONE_GRIDS, CELL, COLW, MEASURE, sideways, colsOf, gridKeyOf, SHELVES, PAGES_MAX, shelvesOf,
   shelfRows, shelfOfBox, shelfAt, setShelf, shelfOrigin, SHELF, drawCols, drawRows,
-  lay, gridOf, cellW, ensureBox, innerOf, PLACED, proportional, flows } from './grid.js';
+  lay, gridOf, cellW, ensureBox, innerOf, PLACED, proportional, flows,
+  isBoard, boardsOf, reachable, boardHolds } from './grid.js';
 import { themeNow, applyLook, lookVal, STYLES, BACKDROPS, SURFACES, DARKMODES, darkMode, hasDark,
   palNow, styleNow, hexOf, objColour, slotName, OBJ0, CHECKS, dressAs } from './look.js';
-import { gridOfContainer, gridTile, listTile, bookView, calSpan, calFront } from './tiles.js';
+import { gridOfContainer, gridTile, listTile, boardVarsOf, bookView, calSpan, calFront } from './tiles.js';
 import { gravitySync } from './gravity.js';
 import { openPanel, closePanel, panelKey, repositionPanel, plansPanel, boardRow, objectPanelBody, objBackTo } from './panels.js';
 import { openGuide } from './guide.js';
@@ -52,13 +53,13 @@ const boardName = o => !o || o.id===ROOT ? deskTitle()
    the board you are standing on, in the place the desk's own name stands on
    the desk, and the knob is the way out. */
 function gridBar(c){
-  const atDesk = c.id===ROOT || isDesk(c.id);
   const sh = shelvesOf(c.id), at = shelfAt(c.id);
   const deskBtn = (label)=>`<b class="deskname" data-act="deskmap"
     title="Every board, laid out">${esc(label)}</b>`;
   const where = `    <div class="where">
-      ${atDesk ? `<span class="here">${deskBtn(boardName(c))}</span>`
-               : `<span class="here">${esc(boardName(c))}</span>`}
+      ${/* A container is as many boards as you make of it now (decision
+           219), so its name opens the same map the desk's does. */''}
+      <span class="here">${deskBtn(boardName(c))}</span>
       ${has(c,'magic')?`<span class="magicmark big" title="Collects by rule">${ic('sparkle',14)}</span>`:''}
       ${/* The dots are the **shelves of this board**, laid out the way they
            actually are, with the one you are standing on lit. A row of dots
@@ -68,11 +69,16 @@ function gridBar(c){
            one shelf, which on a Mac — where the whole row is on the screen at
            once — means the two rows you are not looking at. Pressing one goes
            there. See decision 141. */''}
-      ${(sh.w*sh.h)>1?`<span class="shelfmark" style="--sw:${sh.w}"
-          title="Which shelf you are on — swipe to walk them">${
+      ${/* …and only the boards there are (decision 219): a slot of the
+           rectangle with no board on it is a gap in the square, so the dots
+           are the shape the boards actually make. */''}
+      ${boardsOf(c.id).length>1?`<span class="shelfmark" style="--sw:${sh.w}"
+          title="Which board you are on — swipe to walk them">${
         Array.from({length:sh.w*sh.h}, (_,i)=>{
           const x=i%sh.w, y=(i/sh.w)|0;
-          return `<i class="${x===at.x&&y===at.y?'on':''}" data-shelfgo="${c.id}:${x}:${y}"></i>`;
+          return isBoard(c.id, x, y)
+            ? `<i class="${x===at.x&&y===at.y?'on':''}" data-shelfgo="${c.id}:${x}:${y}"></i>`
+            : `<i class="gap"></i>`;
         }).join('')}</span>`:''}
     </div>`;
   const lockBtn = `<button class="sqbtn${boardLocked()?' on locked':''}" data-act="togglelock"
@@ -368,10 +374,15 @@ function searchBoard(c){
   </div>`;
 }
 
+/* Standing on an empty slot (decision 219): a phone one step off the edge of
+   the boards, in a way of looking at the board that is windowed to one — the
+   grid or the list. There is nothing to list, so both draw the slot. */
+const onSlot = (cid, view) => dev()==='phone' && (view==='grid' || isListView(view))
+  && (()=>{ const at=shelfAt(cid); return !isBoard(cid, at.x, at.y); })();
 function viewDesk(){
   const c=rootObj(), view=c.layout||'grid';
   if(searchOpen()) return `${gridBar(c)}${searchTop(c)}${searchBoard(c)}`;
-  if(view!=='grid'){
+  if(view!=='grid' && !onSlot(c.id, view)){
     const all=childrenOf(c);
     const items = isListView(view) ? onThisShelf(c.id, all) : all;
     const elsewhere = !items.length && all.length;
@@ -383,7 +394,7 @@ function viewDesk(){
           elsewhere ? `There ${all.length===1?'is one thing':`are ${all.length} things`} on the other shelves — the dots in the bar walk between them.`
                     : 'Hold a bare cell — that is the Magic Selector — and drag out the size you want.'}</div>`
         : view==='book'   ? bookView(c, items)
-        : `<div class="listgrid" data-listfor="${c.id}">${items.map(listTile).join('')}</div>`}
+        : `<div class="listgrid" data-listfor="${c.id}" style="${boardVarsOf(c)}">${items.map(listTile).join('')}</div>`}
     </div>`;
   }
   // the bar sits above the scroller, not inside it — it carries the pins now,
@@ -582,7 +593,8 @@ function viewDrawer(){
      first, then its type's. Falling straight to 'grid' meant a type that says
      it opens as a calendar only did so if something had written `layout` onto
      the object, which create() does and the seed doesn't. */
-  const view = layoutOf(d);
+  const slot = onSlot(d.id, layoutOf(d));
+  const view = slot ? 'grid' : layoutOf(d);
   // a drawer is one shelf unless it says otherwise, so this is usually a no-op
   if(isListView(view)) items = onThisShelf(d.id, items);
   const elsewhere = !items.length && held;
@@ -599,7 +611,7 @@ function viewDrawer(){
       <button class="fchip${!S.kindFilter?' on':''}" data-kind="">All</button>
       ${kinds.map(k=>`<button class="fchip${S.kindFilter===k?' on':''}" data-kind="${k}" style="--k:${hexOf(K(k).c)}">${K(k).nm}</button>`).join('')}
     </div>`:''}
-    ${has(d,'text')&&(d.body||'').trim()
+    ${!slot&&has(d,'text')&&(d.body||'').trim()
       ? `<div class="contbody">${md(d.body)}</div>` : ''}
     ${/* The box at the top of a drawer **is a spawner**, and now says so: the
          same dashed rule, the same spiral, the same field and the same
@@ -608,7 +620,7 @@ function viewDrawer(){
          spawner's does. It was a plus in a dashed box doing the identical job
          a scroll away from a tile that looked like a control. One machine,
          one look. See decision 167. */''}
-    ${takesTyping(d)&&view!=='calendar' ? `<div class="quickadd addline">
+    ${!slot&&takesTyping(d)&&view!=='calendar' ? `<div class="quickadd addline">
       <button class="addpress" data-contnew="${d.id}"
         title="Make a ${esc(genSaid(d))}">${ic(makesAnything(d)?'sparkle':'spiral',15)}</button>
       <input data-contadd="${d.id}" placeholder="Add a ${esc(genSaid(d))}…">
@@ -628,7 +640,7 @@ function viewDrawer(){
             : 'Drag something in, or hold a bare cell with the Magic Selector.'}</div>`
         : view==='book'
         ? bookView(d, items)
-        : `<div class="listgrid" data-listfor="${d.id}">${items.map(o=>listTile(o)).join('')}</div>`}
+        : `<div class="listgrid" data-listfor="${d.id}" style="${boardVarsOf(d)}">${items.map(o=>listTile(o)).join('')}</div>`}
   </div>`;
 }
 
@@ -691,37 +703,24 @@ function gridSizeField(cid){
    the room everything else is in, and a desk you can shrink to one shelf is
    the app before this. See decision 141. */
 function shelfCountField(cid){
-  if(cid===ROOT) return `<div class="field" style="margin-top:12px"><label>Shelves</label>
-      <div class="mini" style="--k:var(--brass)">The Desk is <b>three by three</b>, and you start in the middle. Swipe up, down, left or right to walk them; on a Mac the middle row is on the screen at once and the other two are up and down the scroller.</div>
-    </div>`;
-  /* **A drawer no longer chooses how many shelves it is — it chooses how big
-     it is.** Since decision 188 its board is its own tile, four cells to a
-     cell, so the shelves come out of the size and a picker offering a second
-     answer to a settled question is a control that either does nothing or
-     fights the resize. The same grid of buttons now sets the **size on the
-     desk**, which is the thing that decides.
-
-     It has to be here and not only on the tile's corners, because a drawer's
-     capacity is read off its *desk* box and a phone can only drag the phone
-     one — so without this there was no way at all to make a drawer bigger from
-     a phone. Six by six, because the board is capped at the desk's own
-     twenty-four columns and six times four is twenty-four. */
-  /* With proportional boards off (decision 195, the default) a drawer is
-     screenfuls again, and this is the picker it had before 188: the shape of
-     the board, drawn as the grid it makes. */
-  /* **Pages, in a column** (2026-09-23). A container is one screen wide and
-     grows downward — sideways is the drawer beside it now — so the picker is
-     how many pages long it is, and a full board adds one at the bottom by
-     itself. */
-  if(!proportional()){
-    const had = shelvesOf(cid);
+  /* **How many boards, and where, is something you do on the board**
+     (decision 219): walk off the edge to an empty slot and press its plus.
+     So this is no longer a picker — it is the shape the boards make, and the
+     door to the map, which can add and take away. A drawer's size-picker below
+     is the proportional mode's, where the tile decides and none of this
+     applies. */
+  if(cid===ROOT || !proportional()){
+    const sh = shelvesOf(cid), n = boardsOf(cid).length;
+    const magic = cid!==ROOT && has(container(cid),'magic');
     return `<div class="field" style="margin-top:12px"><label>Board Count</label>
-      <div class="shelfpick" style="--sw:${PAGES_MAX}">${
-        Array.from({length:PAGES_MAX}, (_,i)=>
-          `<button class="shelfopt${i+1<=had.h?' on':''}"
-            data-shelfsize="${cid}:1:${i+1}" title="${i+1} page${i?'s':''}"></button>`).join('')}</div>
-      <div class="mini" style="--k:var(--brass);margin-top:6px">A square is one page. This board is <b>${had.h} page${had.h>1?'s':''}</b> long${
-        had.h>1 ? ' — swipe up and down between them' : ''}; swiping sideways goes to the drawer beside this one. When it fills up, another page is added at the bottom. Making it shorter throws nothing away: what no longer fits is put back where there is room.</div>
+      <div class="boardshape" style="--sw:${sh.w}">${
+        Array.from({length:sh.w*sh.h}, (_,i)=>{ const x=i%sh.w, y=(i/sh.w)|0;
+          return `<i class="${isBoard(cid,x,y)?'on':''}"></i>`; }).join('')}</div>
+      <div class="mini" style="--k:var(--brass);margin-top:6px">${cid===ROOT?'The desk':'This drawer'} is <b>${n} board${n>1?'s':''}</b>. ${magic
+        ? 'A sorting drawer collects rather than holds, so it stays one board.'
+        : 'Swipe off the edge of a board to an empty space and press the plus to add one there, in any direction.'}${
+        cid===ROOT ? '' : ' Two fingers sideways goes to the drawer beside this one.'}
+        <button class="fchip" data-act="deskmap" style="margin-left:4px">Lay out the boards</button></div>
     </div>`;
   }
   const g = gridOf(dev(), cid), now = g.shelves;
@@ -1221,27 +1220,44 @@ function shelfCard(cid, sx, sy){
   const kids=childrenOf(container(cid)).filter(o=>!!ensureBox(o, dv, cid));
   const here=kids.map(o=>[o, lay(o, dv, cid)])
     .filter(([,b])=> b.x>x0 && b.x<=x0+g.shelfW && b.y>y0 && b.y<=y0+g.shelfH);
+  /* An empty board can be taken away from here, and it has to be empty on
+     both devices; never the last one. */
+  const canGo = !here.length && boardsOf(cid).length>1 && !boardHolds(cid, sx, sy);
   return `<button class="deskcard shelfcard${on?' on':''}" data-shelfgo="${cid}:${sx}:${sy}">
     <span class="deskmini" style="--dcols:${g.shelfW};--drows:${g.shelfH}">
       ${here.map(([o,b])=>
         `<i style="--k:${objColour(o)};grid-column:${b.x-x0}/span ${b.w};grid-row:${b.y-y0}/span ${b.h}"></i>`
       ).join('')}</span>
     <u>${on?'you are here':here.length ? here.length+' on it' : 'empty'}</u>
+    ${canGo ? `<span class="boardgo" role="button" data-boardremove="${cid}:${sx}:${sy}"
+      title="Take this board away" aria-label="Take this board away">${ic('x',11)}</span>` : ''}
   </button>`;
 }
-/* Nine cards in a three-by-three, which is the whole point: a map you can aim
-   at rather than a list you have to translate. A board with one shelf has
-   nothing to map, so the door says so instead of drawing a single card. */
+/* **The boards as they are laid out, and a plus on every slot you could add
+   one to** (decision 219): the rectangle, one slot wider on every side. On a
+   phone the same plus is on the slot itself, a swipe off the edge; on a Mac,
+   which draws the whole board and has no slot to swipe to, this is the way
+   the desk grows outward. */
 function deskMap(){
   const cid = (S.view==='drawer' && S.drawerId) || ROOT;
-  const sh = shelvesOf(cid);
+  const sh = shelvesOf(cid), n = boardsOf(cid).length;
+  const grows = !innerOf(cid) && !(cid!==ROOT && has(container(cid),'magic'));
+  const pad = grows ? 1 : 0, W = sh.w + 2*pad, H = sh.h + 2*pad;
+  const cards = [];
+  for(let j=0; j<H; j++) for(let i=0; i<W; i++){
+    const x = i-pad, y = j-pad;
+    if(isBoard(cid, x, y)) cards.push(shelfCard(cid, x, y));
+    else if(grows && reachable(cid, x, y))
+      cards.push(`<button class="deskcard shelfcard addcard" data-addboard="${cid}:${x}:${y}"
+        title="Add a board here">${ic('plus',18)}<u>add a board</u></button>`);
+    else cards.push(`<span class="shelfgap"></span>`);
+  }
   openPanel({key:'deskmap', wide:true, title: cid===ROOT ? deskTitle() : boardName(container(cid)),
-    sub: sh.w*sh.h>1 ? 'Nine shelves — swipe between them, or jump' : 'One shelf',
-    body:()=> sh.w*sh.h<=1
-      ? `<div class="mini" style="--k:var(--brass)">This board is one shelf. The <b>Desk</b> is nine — three across and three down, and you start in the middle. Swipe up, down, left or right to walk them.</div>`
-      : `<div class="shelfmap" style="--sw:${sh.w}">${
-          Array.from({length:sh.w*sh.h}, (_,i)=>shelfCard(cid, i%sh.w, (i/sh.w)|0)).join('')}</div>
-        <div class="mini" style="--k:var(--brass);margin-top:10px">The Desk is nine shelves and you start in the middle one. Swiping walks them; on a Mac the middle row is all on the screen at once and the other two are up and down the scroller.</div>`});
+    sub: n>1 ? `${n} boards — swipe between them, or jump` : 'One board',
+    body:()=> `<div class="shelfmap" style="--sw:${W}">${cards.join('')}</div>
+        <div class="mini" style="--k:var(--brass);margin-top:10px">${grows
+          ? 'Swipe off the edge of a board to an empty space and press the plus to add one there, in any direction. An empty board can be taken away with its cross.'
+          : 'This board is the size of its drawer.'}${cid===ROOT ? '' : ' Two fingers sideways goes to the drawer beside this one.'}</div>`});
 }
 
 /* ============================================================

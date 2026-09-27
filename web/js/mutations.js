@@ -492,10 +492,10 @@ function fits(kind, home, dv, cell){
   const [w,h] = cell && cell.w ? [cell.w, cell.h] : sizeOfKind(kind, d, home);
   if(roomFor(w, h, d, home)) return true;
   const c = byId(home);
-  const many = c && (c.shelves||{}).w*(c.shelves||{}).h > 1;
+  // a board is added where you want it now (decision 219), so that is the way out
   toast(home===ROOT
-    ? 'No room on the Desk — all nine shelves are full'
-    : `No room in ${c && c.title ? c.title : 'here'} — give it another shelf in its editor${many?'':''}`);
+    ? 'No room on the Desk — swipe off the edge of a board and press the plus for another'
+    : `No room in ${c && c.title ? c.title : 'here'} — swipe off the edge of its board and press the plus for another`);
   return false;
 }
 /* Tag filtering has no mode and no filter bar on purpose. A tag you care about

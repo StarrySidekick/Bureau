@@ -10,8 +10,8 @@ import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, chi
   boardLocked, prioOf, repeatSaid, urgencyOf, urgeSaid, durSaid, standsProud, shelfDepth, bookDepth, faceCue, anyFaceCue,
   calViewOf, calShowOf, weekStartOf, calCols, borderOf, textureOf, marginOf, isFragmentKind, gravityOn,
   groupOf, sealOf, isSealed, habitPlan, habitPeriods, habitRun } from './model.js';
-import { CELL, gridOf, drawCols, drawRows, lay, overlaps, boxOk, freeSpot, anySpot, roomFor, gridRows, sizeOfKind, sideways, innerOf,
-  ensureBox, shelfRows, shelfOrigin, shelfAt, shelfOfBox, colsOf, flows } from './grid.js';
+import { GRID, CELL, gridOf, drawCols, drawRows, lay, overlaps, boxOk, freeSpot, anySpot, roomFor, gridRows, sizeOfKind, sideways, innerOf,
+  ensureBox, shelfRows, shelfOrigin, shelfAt, shelfOfBox, colsOf, flows, boardsOf, nearestBoard, isBoard, reachable } from './grid.js';
 import { dealTop, create, toast, fits, toggleDone, someKind, ctlSpec, ctlSaid, ctlIsOn,
   ctlForm, ctlNum, ctlIndex, ctlPress, pushSet } from './mutations.js';
 import { DECOR, decorOf, decorEmits, flamePoint, decorSVG, LIFE_ART, lifeSVG } from './decor.js';
@@ -2516,8 +2516,8 @@ function flowSorted(kids, cid){
      allowed to make. Shelf by shelf, reading order, which is what a sorted
      board *is*: the first thing in the top-left corner of the first shelf. */
   const free=(b)=> !taken.some(t=>overlaps(b,t));
-  const shelves=[];
-  for(let sy=0;sy<g.shelves.h;sy++) for(let sx=0;sx<g.shelves.w;sx++) shelves.push([sx,sy]);
+  // the boards there are, never the empty slots between them (decision 219)
+  const shelves=boardsOf(cid).map(b=>[b.x,b.y]);
   /* **Each shelf sorts itself** (decision 215). The desk is nine shelves, and
      packing the whole sorted list from the first one pulled everything on the
      desk into its top-left screen, so turning a sort on emptied the shelf you
@@ -2525,7 +2525,7 @@ function flowSorted(kids, cid){
      one its stored box is on (or the one you are looking at, if it has never
      been placed), and only overflows to another when its own is full. A drawer
      is one shelf wide, so there it is the column of pages it always was. */
-  const here = shelfAt(cid);
+  const here = nearestBoard(cid, shelfAt(cid));
   const homeOf = o => { const b=o[dv];
     return (b && b.w && b.x) ? shelfOfBox(b, dv, cid) : here; };
   kids.forEach(o=>{
@@ -2810,9 +2810,15 @@ function gridOfContainer(cid){
      wide since 2026-09-23 (`shelvesOf()`), so what was on the second screenful
      to the right of it is off the end and comes back onto the column — at the
      bottom, growing a page if it has to. */
-  if(!sorted && c.id!==ROOT) kids.forEach(o=>{
+  /* …and, on any board, anything sitting where there is no board: a board is
+     taken away only when it is empty (decision 219), so this is a box from a
+     desk that was arranged some other way, and it is put back on one. */
+  if(!sorted) kids.forEach(o=>{
     const b = lay(o, dv, c.id);
-    if(b.x>=1 && b.y>=1 && b.x+b.w-1<=g.cols && b.y+b.h-1<=g.rows) return;
+    const on = shelfOfBox(b, dv, c.id);
+    const inside = b.x>=1 && b.y>=1 && b.x+b.w-1<=g.cols && b.y+b.h-1<=g.rows;
+    // the desk never shrank under anything, so only a missing board moves it
+    if(isBoard(c.id, on.x, on.y) && (inside || c.id===ROOT)) return;
     const keep = {w: Math.min(b.w, g.cols), h: Math.min(b.h, g.rows)};
     o[dv] = null;
     o[dv] = anySpot(keep.w, keep.h, dv, c.id);
@@ -2886,10 +2892,37 @@ function gridOfContainer(cid){
      four cells across it. Only ever true on a phone, and only since a
      container's board became its own tile. See decision 188. */
   const narrow = dv==='phone' && cols < g.shelfW;
-  return `<div class="grid g-${dv}${narrow?' narrowboard':''}${arr===true?' arranging':''}${boardLocked()?' locked':''}${sorted?' sorted':''}${S.look.pinned?' pinboard':''}${gravityOn()?' falling':''}"
+  /* **The slots with no board on them** (decision 219), in whatever part of
+     the rectangle is drawn: the one you are on, on a phone; its column, on a
+     phone that scrolls; all of it, on a Mac. Each is the carcass with a plus
+     on it, and when that is all there is the grid gives up its paper too. */
+  const holes = vacancies(c.id, dv, g, shift, cols, rows, camHere);
+  const vacant = holes.all;
+  return `<div class="grid g-${dv}${narrow?' narrowboard':''}${vacant?' vacant':''}${
+      dv!=='phone' && cols > GRID.desk.cols ? ' wideboard' : ''}${arr===true?' arranging':''}${boardLocked()?' locked':''}${sorted?' sorted':''}${S.look.pinned?' pinboard':''}${gravityOn()?' falling':''}"
        id="drawergrid" data-gridfor="${c.id}"
-       style="${boardVars}--cols:${cols};--rowh:${g.rowh}px;--checkerx:${2*colw}px;--checkery:${2*g.rowh}px;grid-auto-rows:${g.rowh}px;grid-template-rows:repeat(${Math.max(rows,1)},${g.rowh}px)">${tiles}${lights}${strings}
+       style="${boardVars}--cols:${cols};--rowh:${g.rowh}px;--checkerx:${2*colw}px;--checkery:${2*g.rowh}px;grid-auto-rows:${g.rowh}px;grid-template-rows:repeat(${Math.max(rows,1)},${g.rowh}px)">${vacant?'':tiles+lights+strings}${holes.html}
   </div>`;
+}
+
+/* Which drawn slots have no board, as overlays over the grid. A slot is
+   `shelfW × shelfH` cells of the drawn window, and `shift` is where that
+   window starts in board cells. */
+function vacancies(cid, dv, g, shift, cols, rows, cam){
+  if(cam || (cid!==ROOT && innerOf(cid))) return {all:false, html:''};
+  const x0 = Math.floor(shift.x / g.shelfW), y0 = Math.floor(shift.y / g.shelfH);
+  const nx = Math.max(1, Math.ceil(cols / g.shelfW)), ny = Math.max(1, Math.ceil(rows / g.shelfH));
+  let html = '', none = 0;
+  for(let j=0; j<ny; j++) for(let i=0; i<nx; i++){
+    const x = x0+i, y = y0+j;
+    if(isBoard(cid, x, y)) continue;
+    none++;
+    const add = reachable(cid, x, y);
+    html += `<div class="noboard" style="grid-column:${i*g.shelfW+1}/span ${Math.min(g.shelfW, cols-i*g.shelfW)};grid-row:${
+      j*g.shelfH+1}/span ${Math.min(g.shelfH, rows-j*g.shelfH)}">${add ? `<button class="addboard"
+        data-addboard="${cid}:${x}:${y}" title="Add a board here" aria-label="Add a board here">${ic('plus',26)}</button>` : ''}</div>`;
+  }
+  return {all: none===nx*ny, html};
 }
 
 /* List view is the same tile, stretched into a band. Same silhouettes, same
@@ -2908,27 +2941,29 @@ function gridOfContainer(cid){
    A list was a place you could look at things and not much else; that is the
    gap this closes. See gestures.js for the three that are gestures. */
 function listTile(o){
-  const colour=objColour(o);
-  const cont=isContainer(o);
-  const img = has(o,'media') && o.media && o.media.src;
-  const attr = cont ? `data-drawer="${o.id}"` : `data-row="${o.id}"`;
-  // a row being typed in is a div: an input inside a button is unfocusable
-  const raw = S.editId===o.id;
-  return `<${raw?'div':'button'} class="drawer ${cont?'dtile':'otile'} sh-${cont?'front':shapeOf(o)} listband${S.sel.includes(o.id)?' selected':''}${
-      raw?' editing':''}" ${attr} style="--c:${colour}">
-    <div class="dtop">
-      ${has(o,'check')?`<span class="check tilecheck${o.done?' on':''}" data-check="${o.id}">${ic('check',12)}</span>`:''}
-      ${img?`<img class="bandimg" src="${esc(o.media.src)}" alt="">`:''}
-      ${nameField(o)}
-      ${o.body?`<span class="bandsnip">${esc(oneline(o.body).slice(0,120))}</span>`:''}
-      ${o.due?`<span class="mchip">${esc(dateSaid(o))}</span>`:''}
-      ${deadSaid(o)?(u=>`<span class="mchip deadchip${u?' u'+u.rank:''}${
-        !(has(o,'deadline')&&o.dead)?' soft':''}${isLate(o)?' late':''}"${
-        u?` title="${esc(urgeSaid(o))}"`:''}>${esc(deadSaid(o))}</span>`)(urgencyOf(o)):''}
-      ${cont&&rollup(o)?`<span class="mchip">${esc(rollup(o))}</span>`:''}
-      ${cont?`<span class="pull ${dress(o,'kn')}"${o.knobc?` style="--knob:${esc(o.knobc)}"`:''}></span>`:''}
-    </div>
-  </${raw?'div':'button'}>`;
+  /* **A row is the tile itself, eight cells by one** (decision 219, which
+     corrects 217). It was a band of its own — a name, a snippet and a chip on
+     a strip — and decision 217 then painted every paper band in the board's
+     two colours, so a note, an idea and a problem all came out as the board.
+     The stripes were meant for the *background*: the rows are now whatever
+     the same object draws on a grid at 8×1, face, shape and colour, standing
+     on a list that is striped a row at a time. `listband` and the `data-row`
+     or `data-drawer` the tile already carries are what the swipe to delete,
+     the swipe to date, the hold to reorder and the tap all key on, so those
+     come along unchanged. No grips: a row is resized by nothing. */
+  const box = {x:1, y:1, w:8, h:1};
+  const sz = [sizeClass(box), 'listband', o.check && CHECKS[o.check] ? 'ck-'+o.check : '',
+    o.flip ? 'flipped' : ''].filter(Boolean).join(' ');
+  const html = drawTile(o, false, box, null);
+  return html.replace('class="', `class="${sz} `);
+}
+/* The board's own two colours for a list's stripes, the same ones its grid is
+   painted in, so a board painted its own colours stripes in them. */
+function boardVarsOf(c){
+  const bd = c && c.board ? String(c.board).split('|') : null;
+  let v = bd ? `--board-1:${esc(bd[0])};--board-2:${esc(bd[1]||bd[0])};` : '';
+  if(c && c.boardAlpha!=null) v += `--board-alpha:${c.boardAlpha};`;
+  return v;
 }
 
 /* Reading an object: three ways of looking at one body, chosen by readOf().
@@ -3130,5 +3165,5 @@ function bookView(c, items){
    (the *object's* setting, a different thing entirely) is untouched. */
 export { spinTo, CLICKS, clickOf, fireButton, intoOf, tileTap, pending, placeAtPending, SHELFSHIFT,
   scratchGrab, scratchTo, scratchGo,
-  gridTile, gridOfContainer, listTile, bookOf, bookView, sheetOf, turnPage, clearPages,
+  gridTile, gridOfContainer, listTile, boardVarsOf, bookOf, bookView, sheetOf, turnPage, clearPages,
   calSpan, calFront };

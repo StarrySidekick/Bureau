@@ -39,7 +39,8 @@
 import { S, K, T, byId, isContainer, container, childrenOf, has } from './model.js';
 import { uid, ROOT, clamp } from './util.js';
 import { GRID, INNER, SHELVES, ensureBox, boxOk, freeSpot, anySpot, gridOf, lay, overlaps,
-         oneShelf, proportional } from './grid.js';
+         oneShelf, proportional, boardsOf, ensureBoards, shelfAt, setShelf, nearestBoard, startOf,
+         addBoard, colsOf, shelfRows, growDown, onBoards } from './grid.js';
 import { rescaleOneBoard } from './persist.js';
 import { randomLook } from './look.js';
 
@@ -152,6 +153,17 @@ function planFrom(cid, nm){
     sort: c.sort || undefined,
     objects
   };
+  /* **Its boards, when it has more than one** (decision 219): which cells of
+     the rectangle are boards, the one it opens on, and how big a board was
+     on each device, so the boxes can be read back out board by board on a
+     screen that measures differently. */
+  const bs = boardsOf(cid);
+  if(bs.length > 1 && !(cid!==ROOT && proportional())){
+    p.boards = bs.map(b=>({x:b.x, y:b.y}));
+    p.start = nearestBoard(cid, startOf(cid));
+    p.dims = {desk:{w:colsOf(cid,'desk'), h:shelfRows('desk', cid)},
+              phone:{w:colsOf(cid,'phone'), h:shelfRows('phone', cid)}};
+  }
   plans().push(p);
   return p;
 }
@@ -190,25 +202,10 @@ function stampPlan(planId, intoId, at){
       mx = Math.max(mx, b.x + b.w - 1); my = Math.max(my, b.y + b.h - 1); cells += b.w*b.h; });
     return {mx, my, cells};
   };
-  /* **Screenfuls, when boards are not proportional** (decision 195, the
-     default). The drawer is given as many screens as the plan covers — and
-     one more across when the plan fills most of them, because a board that is
-     the base station for something has to have room beside it for what you
-     make there: a spawner on a full board presses things out on top of each
-     other. Never fewer than it had. */
-  if(home!==ROOT && byId(home) && !proportional()){
-    const c = byId(home), had = c.shelves || {w:1, h:1};
-    let nw = 1, nh = 1, full = false;
-    ['desk','phone'].forEach(dv => {
-      const e = planExtent(dv); if(!e.mx) return;
-      const g = gridOf(dv, home);
-      const w = Math.ceil(e.mx/g.shelfW), h = Math.ceil(e.my/g.shelfH);
-      nw = Math.max(nw, w); nh = Math.max(nh, h);
-      if(e.cells > 0.6 * w*g.shelfW * h*g.shelfH) full = true;
-    });
-    c.shelves = {w:clamp(Math.max(had.w||1, nw + (full?1:0)), 1, SHELVES),
-                 h:clamp(Math.max(had.h||1, nh), 1, SHELVES)};
-  }
+  /* A board of boards (decision 219) needs nothing of the kind: a flow that
+     is several boards makes those boards below, and one that is one board
+     fits on one. The screenful of room it used to be given beside it is a
+     board you walk off the edge and add now, when you want it. */
   (() => {
     const c = home===ROOT ? null : byId(home);
     if(!c || !proportional()) return;
@@ -238,6 +235,22 @@ function stampPlan(planId, intoId, at){
       c[dv] = (want.x && !boxOk(want, c.id, dv, c.parent)) ? {w, h} : want;
     });
   })();
+  /* **Several boards** (decision 219), put down around the one you are on —
+     or, in a container that is empty, which is what a flow made into its own
+     drawer always is, round its only board. Worked out before the copies go
+     into `S.objects`, because making a board to the left moves everything
+     already there, and these are not there yet. */
+  const multi = Array.isArray(p.boards) && p.boards.length>1 && p.dims
+    && !(home!==ROOT && proportional());
+  let spots = null, startSpot = null;
+  if(multi){
+    const st = p.start || p.boards[0];
+    const wasEmpty = !S.objects.some(o=>o.parent===home);
+    const here = wasEmpty ? boardsOf(home)[0] || {x:0, y:0} : nearestBoard(home, shelfAt(home));
+    spots = ensureBoards(home, p.boards.map(b=>({x:b.x-st.x, y:b.y-st.y})), here);
+    startSpot = spots[p.boards.findIndex(b=>b.x===st.x && b.y===st.y)] || spots[0];
+    if(wasEmpty && home!==ROOT && byId(home) && startSpot) byId(home).start = {x:startSpot.x, y:startSpot.y};
+  }
   const map = {};
   // `d` or `o` on the id is a convention, not a fact anything reads — but a
   // drawer whose id starts `o` is confusing in a console and free to avoid.
@@ -285,11 +298,29 @@ function stampPlan(planId, intoId, at){
     if(K(c.kind) && c.done) c.done = false;
     return c;
   });
+  /* Each box read out of the board it was written on and into the board that
+     stands for it here, rescaled if a board is a different number of columns
+     on this device. A box whose board did not come (the rectangle was full)
+     keeps its size and is placed like anything new. */
+  if(multi){
+    made.filter(o=>o.parent===home).forEach(o=>['desk','phone'].forEach(dv=>{
+      const b = o[dv], dm = p.dims[dv]; if(!b || !b.x || !dm) return;
+      const bx = Math.floor((b.x-1)/dm.w), by = Math.floor((b.y-1)/dm.h);
+      const i = p.boards.findIndex(c=>c.x===bx && c.y===by);
+      const to = i>=0 ? spots[i] : null;
+      if(!to){ o[dv] = {w:b.w, h:b.h}; return; }
+      const g = gridOf(dv, home), k = g.shelfW/dm.w;
+      const rx = Math.round((b.x-1-bx*dm.w)*k), w = Math.max(1, Math.min(g.shelfW, Math.round(b.w*k)));
+      const ry = b.y-1-by*dm.h, h = Math.min(b.h, g.shelfH);
+      o[dv] = {x: to.x*g.shelfW + Math.min(rx, g.shelfW-w) + 1,
+               y: to.y*g.shelfH + Math.min(ry, Math.max(0, g.shelfH-h)) + 1, w, h};
+    }));
+  }
   S.objects.push(...made);
   /* A plan arranged on an eight-column phone put down on a ten-column one is
      boxes in the wrong coordinate space. The same rescale a stored desk gets
      when the grid size changes, applied to just the board being stamped. */
-  if(p.cols && p.cols !== GRID.phone.cols)
+  if(!multi && p.cols && p.cols !== GRID.phone.cols)
     rescaleOneBoard(made, home, p.cols, GRID.phone.cols);
   const top = made.filter(o=>o.parent===home);
   /* Laid out **where you asked**. Holding a bare cell is how you make a thing
@@ -298,7 +329,7 @@ function stampPlan(planId, intoId, at){
      arrangement shifts by one offset — its top-left corner to that cell — so
      the shape of it survives the move, which is the only reason it is a plan
      and not a list. */
-  if(at && (at.x || at.y)){
+  if(!multi && at && (at.x || at.y)){
     ['desk','phone'].forEach(dv=>{
       const boxed = top.filter(o=>o[dv] && o[dv].w);
       if(!boxed.length) return;
@@ -327,7 +358,7 @@ function stampPlan(planId, intoId, at){
        which on a fourteen-row plan and a twelve-row phone is the last line. */
     const g0 = gridOf(dv, home);
     const tall = top.reduce((m,o)=>{ const b=o[dv]; return b && b.y ? Math.max(m, b.y+b.h-1) : m; }, 0);
-    const seamed = dv==='phone' && tall > g0.shelfH;
+    const seamed = multi || (dv==='phone' && tall > g0.shelfH);
     let off = seamed ? null : clearOffset(top, dv, home);
     if(!seamed) for(let tries=0; !off && tries<3 && growFor(top, dv, home); tries++) off = clearOffset(top, dv, home);
     if(off){
@@ -338,10 +369,14 @@ function stampPlan(planId, intoId, at){
       const b = o[dv];
       if(!b || !b.w){ ensureBox(o, dv, home); return; }
       if(off || boxOk(b, o.id, dv, home)) return;
-      const spot = anySpot(b.w, b.h, dv, home);
+      const g1 = gridOf(dv, home);
+      const spot = anySpot(b.w, b.h, dv, home,
+        {x:Math.floor((b.x-1)/g1.shelfW), y:Math.floor((b.y-1)/g1.shelfH)});
       o[dv] = spot ? Object.assign({}, spot, {w:b.w, h:b.h}) : b;
     });
   });
+  // …and you are standing on the board it opens on
+  if(multi && startSpot) setShelf(home, startSpot.x, startSpot.y);
   return made;
 }
 /* The offset that puts every box of a plan somewhere clear on this board, or
@@ -363,6 +398,7 @@ function clearOffset(top, dv, home){
     if(nb.x<1 || nb.y<1 || nb.x+nb.w-1>g.cols || nb.y+nb.h-1>g.rows) return false;
     if(nb.w>g.shelfW || nb.h>g.shelfH) return false;
     if(dv==='phone' && !oneShelf(nb, g)) return false;
+    if(!onBoards(nb, g, home)) return false;          // decision 219
     return !sibs.some(s=>overlaps(nb, s));
   });
   if(ok(0, 0)) return {dx:0, dy:0};
@@ -379,12 +415,8 @@ function clearOffset(top, dv, home){
 function growFor(top, dv, home){
   const c = home===ROOT ? null : byId(home);
   if(!c) return false;
-  if(!proportional()){
-    const had = c.shelves || {w:1, h:1};
-    if((had.h||1) < SHELVES){ c.shelves = {w:had.w||1, h:(had.h||1)+1}; return true; }
-    if((had.w||1) < SHELVES){ c.shelves = {w:(had.w||1)+1, h:had.h||1}; return true; }
-    return false;
-  }
+  // a board under the one you are on (decision 219), up to three more
+  if(!proportional()) return boardsOf(home).length < SHELVES*SHELVES && growDown(home);
   const bs = top.map(o=>o[dv]).filter(b=>b && b.w);
   const tall = bs.length ? Math.max(...bs.map(b=>(b.y||1)+b.h-1)) - Math.min(...bs.map(b=>b.y||1)) + 1 : 4;
   const box = (c[dv] && c[dv].w) ? c[dv] : {w:2, h:2};

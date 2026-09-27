@@ -834,21 +834,25 @@ function seed(){
      that actually hold things get a second one side by side — a drawer is one
      shelf until you say otherwise, and a sample desk that demonstrates saying
      otherwise is worth more than one that quietly never needs to. */
+  /* **A fresh desk is one board** (decision 219), and grows where you walk
+     off its edge. So the rack is the phone's packing on both devices, two
+     cells square and four across, which puts every drawer — the samplers
+     too — on that one board, with room under it to make things. */
   const drawers = [
-    MG({id:'d_today', title:'Today',        c:6, layout:'list', filter:{due:'today', scope:'all'},      desk:{x:1,y:1,w:4,h:3},  phone:{x:1,y:1,w:2,h:2}}),
+    MG({id:'d_today', title:'Today',        c:6, layout:'list', filter:{due:'today', scope:'all'},      desk:{x:1,y:1,w:2,h:2},  phone:{x:1,y:1,w:2,h:2}}),
     /* The inbox **collects**; it does not hold. Everything loose on a desk —
        made and not yet put away — shows up in it, and stays exactly where it
        was made. A drawer that took what you made would be filing your desk for
        you, which is the one thing the desk is for. See decision 45. */
-    MG({id:'d_in',    title:'Inbox',        c:5, layout:'list', filter:{loose:true, scope:'all'}, desk:{x:5,y:1,w:4,h:3},  phone:{x:3,y:1,w:2,h:2}}),
+    MG({id:'d_in',    title:'Inbox',        c:5, layout:'list', filter:{loose:true, scope:'all'}, desk:{x:3,y:1,w:2,h:2},  phone:{x:3,y:1,w:2,h:2}}),
     // everything still to do, wherever it lives — the drawer that answers "what
     // is outstanding" without caring which project it is outstanding in
-    MG({id:'d_all',   title:'Everything',   c:9, layout:'list', filter:{kinds:['task'], scope:'all'},   desk:{x:1,y:4,w:4,h:3},  phone:{x:5,y:1,w:2,h:2}}),
-    DR({id:'d_ideas', title:'Idea Bin',     c:12, desk:{x:5,y:4,w:4,h:3}, phone:{x:7,y:1,w:2,h:2}}),
-    DR({id:'d_studio',title:'Studio',       c:9,  desk:{x:1,y:7,w:4,h:3}, phone:{x:1,y:3,w:2,h:2}}),
-    MG({id:'d_open',  title:'Open Questions',c:10,filter:{kinds:['question'], rule:{f:'answer',op:'is',v:''}},              desk:{x:5,y:7,w:4,h:3},  phone:{x:3,y:3,w:2,h:2}}),
-    DR({id:'d_keep',  title:'Keeping Up',   c:8,  desk:{x:1,y:10,w:4,h:3},  phone:{x:5,y:3,w:2,h:2}}),
-    MG({id:'d_done',  title:'Done & Dusted',c:5, filter:{done:true, scope:'all'},                       desk:{x:5,y:10,w:4,h:3}, phone:{x:7,y:3,w:2,h:2}}),
+    MG({id:'d_all',   title:'Everything',   c:9, layout:'list', filter:{kinds:['task'], scope:'all'},   desk:{x:5,y:1,w:2,h:2},  phone:{x:5,y:1,w:2,h:2}}),
+    DR({id:'d_ideas', title:'Idea Bin',     c:12, desk:{x:7,y:1,w:2,h:2}, phone:{x:7,y:1,w:2,h:2}}),
+    DR({id:'d_studio',title:'Studio',       c:9,  desk:{x:1,y:3,w:2,h:2}, phone:{x:1,y:3,w:2,h:2}}),
+    MG({id:'d_open',  title:'Open Questions',c:10,filter:{kinds:['question'], rule:{f:'answer',op:'is',v:''}},              desk:{x:3,y:3,w:2,h:2},  phone:{x:3,y:3,w:2,h:2}}),
+    DR({id:'d_keep',  title:'Keeping Up',   c:8,  desk:{x:5,y:3,w:2,h:2},  phone:{x:5,y:3,w:2,h:2}}),
+    MG({id:'d_done',  title:'Done & Dusted',c:5, filter:{done:true, scope:'all'},                       desk:{x:7,y:3,w:2,h:2}, phone:{x:7,y:3,w:2,h:2}}),
     /* **They are four cells by three now, and the samplers are six square.**
        A drawer's board is its own tile times four since decision 188, so a 2×2
        drawer holds 64 cells — which is a real drawer and far too small for a
@@ -859,8 +863,8 @@ function seed(){
     /* These two were **desks** — drawers promoted out into a row of their own.
        There is one desk now and it is nine shelves, so they are drawers on it
        like everything else. See decision 141. */
-    DR({id:'d_write', title:'Writing Desk', c:7,  desk:{x:1,y:13,w:4,h:3}, phone:{x:1,y:5,w:2,h:2}}),
-    DR({id:'d_kitch', title:'Kitchen',      c:11, desk:{x:5,y:13,w:4,h:3},  phone:{x:3,y:5,w:2,h:2}}),
+    DR({id:'d_write', title:'Writing Desk', c:7,  desk:{x:1,y:5,w:2,h:2}, phone:{x:1,y:5,w:2,h:2}}),
+    DR({id:'d_kitch', title:'Kitchen',      c:11, desk:{x:3,y:5,w:2,h:2},  phone:{x:3,y:5,w:2,h:2}}),
     /* One of every type there is, in two drawers rather than on the desk.
        They used to lie on the desk itself in a column that ran to row 102,
        which was fine when a board was as tall as whatever was on it and is
@@ -874,8 +878,8 @@ function seed(){
        off by default (decision 195) and a sampler of one screen cannot hold
        one of everything. With them on the six-square tile decides and this
        is not read. */
-    DR({id:'d_alldr', title:'Every drawer', c:14, desk:{x:1,y:22,w:6,h:6},  phone:{x:5,y:5,w:2,h:2}, shelves:{w:3,h:3}}),
-    DR({id:'d_allob', title:'Every object', c:15, desk:{x:1,y:29,w:6,h:6}, phone:{x:7,y:5,w:2,h:2}, shelves:{w:3,h:3}})
+    DR({id:'d_alldr', title:'Every drawer', c:14, desk:{x:5,y:5,w:2,h:2},  phone:{x:5,y:5,w:2,h:2}, shelves:{w:3,h:3}}),
+    DR({id:'d_allob', title:'Every object', c:15, desk:{x:7,y:5,w:2,h:2}, phone:{x:7,y:5,w:2,h:2}, shelves:{w:3,h:3}})
   ];
 
   // The app's own buttons live on the desk, on the grid, and move like anything
