@@ -18,7 +18,7 @@ import { S, K, KINDS, KEYS, T, ATTRS, USER_ATTRS, FIELDS, fieldOf, OPS, ROLLS,
 import { newOfKind } from './wire.js';
 import { GRID, lay, boxOk, freeSpot, anySpot, sizeOfKind, toPhoneSize, keepSize } from './grid.js';
 import { randomBoard, randomFront, hexOf, objColour, objSlots, famSlots, famAll, FAMS, styleKey, stockNow, CHECKS, checkNow } from './look.js';
-import { FILLS, FILL_KEYS } from './model.js';
+import { FILLS, FILL_KEYS, isCut } from './model.js';
 import { CLICKS, clickOf, gridTile, pending } from './tiles.js';
 import { isActive, activeZoom, activeSay, activeName, DICE, CLOCKS } from './active.js';
 import { DECOR, decorOf, decorSVG, decorFor, decorRest, LIFE_ART, LIFE_KEYS, lifeSVG } from './decor.js';
@@ -231,7 +231,7 @@ const RING_N = 7;
 function shapeKinds(w, h, home){
   const dv = dev(), only = (makesOf(container(home))||{}).only || [];
   const rank = k => PRIMARY.includes(k) ? 0 : SECONDARY.includes(k) ? 1 : 2;
-  return KEYS.filter(k => KINDS[k] && !K(k).cat && !kindHas(k,'control'))
+  return KEYS.filter(k => KINDS[k] && !K(k).cat && !K(k).makesAny && !isCut(k) && !kindHas(k,'control'))
     .map(k => { const [kw, kh] = sizeOfKind(k, dv, home);
       return {k, o: only.includes(k) ? 0 : 1, d: Math.abs(kw-w) + Math.abs(kh-h),
         a: Math.abs(Math.log((kw/kh)/(w/h))), r: rank(k)}; })
@@ -255,7 +255,12 @@ const VARIANTS = {
   paintings: { list: ()=> PAINTINGS.map(p=>p.f),
                nm: v => (PAINTINGS.find(p=>p.f===v)||{}).t || v,
                patch: v => { const p = PAINTINGS.find(q=>q.f===v); return p ? {media:pictureMedia(p), title:p.t} : {}; } },
-  fills:     { list: ()=> FILL_KEYS, nm: v => FILLS[v].nm, patch: v => ({fill:v}) }
+  fills:     { list: ()=> FILL_KEYS, nm: v => FILLS[v].nm, patch: v => ({fill:v}) },
+  // Decoration's two subtypes split the ornaments by the `plant` mark (218)
+  plants:    { list: ()=> VARIANTS.decor.list().filter(k=>DECOR[k].plant),
+               nm: v => (DECOR[v]||{}).nm || v, patch: v => ({decor:v}) },
+  objects:   { list: ()=> VARIANTS.decor.list().filter(k=>!DECOR[k].plant),
+               nm: v => (DECOR[v]||{}).nm || v, patch: v => ({decor:v}) }
 };
 const variantsOf = k => (KINDS[k] && VARIANTS[K(k).variants]) || null;
 const variantPatch = (k, v) => { const vs = variantsOf(k); return vs && v ? vs.patch(v) : {}; };
@@ -365,7 +370,7 @@ function pickGroups(skipPrimary){
     /* A category is only ever a question — there is no generic Fragment to
        make — so it is never listed as a type anywhere, including in the
        pickers that deliberately show everything. */
-    if(K(k).cat) return;
+    if(K(k).cat || isCut(k)) return;
     if(skipPrimary && (isPrimary(k) || SECONDARY.includes(k)) && !S.kinds[k]) return;
     /* …and neither is a type its category already covers. Drawing Idea both
        in the picker's own list and behind the Note tile is the "decide twice"
@@ -410,7 +415,9 @@ function kindTile(k, inFam, becomeId){
      because what you are choosing between at that moment is still "what am I
      putting down" — a chevron says the answer is one more press, and the
      count says how many are behind it. See decision 135. */
-  const fam = !inFam && d.family && familyList(k);
+  const fam = !becomeId && ((!inFam && d.family && familyList(k))
+    // a type with variants asks which, one press in, as a category does (218)
+    || (variantsOf(k) && variantsOf(k).list()));
   const act = becomeId ? `data-become="${becomeId}:${k}"`
             : fam ? `data-family="${k}"`
             : `data-new="${k}"${inFam?' data-asked':''}`;
@@ -446,11 +453,14 @@ function variantTile(k, v){
    `data-new` path with the cell still remembered. See decision 135. */
 function familyPanel(cat){
   const d=K(cat), ks=familyList(cat);
+  // a type with no family but a list of variants is asked the same way (218)
+  if(!ks.length && variantsOf(cat)) return openPanel({key:'newobject', wide:true, back:()=>modalNewObject(),
+    title:d.nm, sub:'Which one?',
+    body:()=>`<div class="kindgrid">${variantsOf(cat).list().map(v=>variantTile(cat, v)).join('')}</div>`});
   if(!ks.length) return;
   openPanel({key:'newobject', wide:true, back:()=>modalNewObject(),
     title:d.nm, sub:d.famSub || 'Which one?',
-    body:()=>`<div class="kindgrid">${ks.map(k=> variantsOf(k)
-        ? variantsOf(k).list().map(v=>variantTile(k, v)).join('') : kindTile(k, true)).join('')}</div>
+    body:()=>`<div class="kindgrid">${ks.map(k=> variantsOf(k) ? kindTile(k) : kindTile(k, true)).join('')}</div>
       ${d.ds?`<div class="mini" style="--k:var(--brass);margin-top:12px">${esc(d.ds)}</div>`:''}${
       /* **Or start from a board** (decision 196). A category may name the
          `boards` it offers — the plans carrying that `sec` — and each makes
@@ -589,7 +599,7 @@ function plansPanel(){
       if(!ps.length) return `<div class="mini" style="--k:var(--brass)">Nothing saved yet. Arrange a drawer the way you want it, open <b>its</b> editor with the brush in the bar, and press <b>Save as a flow</b>. Then it can be put down again anywhere — or given to a type, so every one you make opens fitted to it.</div>`;
       /* Grouped by what each is the board for (decision 196): thirty-three
          in one grid is a wall. Yours, which carry no `sec`, come first. */
-      const SECS = [[null,'Yours'],['life','A part of your life'],['experience','Something you take in'],['project','A piece of work']];
+      const SECS = [[null,'Yours'],['life','A part of your life'],['experience','Something you take in'],['project','A piece of work'],['work','Getting work done']];
       return `${SECS.map(([sec,h])=>{ const g = ps.filter(p=>(p.sec||null)===sec);
           return g.length ? `<div class="section-h"><h2>${h}</h2><div class="rule"></div><span class="n">${g.length}</span></div>
             <div class="deskmapgrid">${g.map(p=>planCard(p,'planput')).join('')}</div>` : ''; }).join('')}
@@ -654,8 +664,8 @@ function makesRows(id, d){
     </div>`;
   }).join('');
   return [
-    prow('Its picker offers', picks, only.length ? 'the rest is under Everything' : 'or name the few this board is for'),
-    prow('Sketched at a size', rules + psel(id,'makes.size', [['','Add a size that makes…'], ...kinds], ''),
+    prow('Picker Settings', picks, only.length ? 'the rest is under Everything' : 'or name the few this board is for'),
+    prow('Auto Objects', rules + psel(id,'makes.size', [['','Add a size that makes…'], ...kinds], ''),
       raw.length ? 'made there and then, with no picker' : 'a box this shape becomes one type, with no picker')
   ];
 }
@@ -1085,12 +1095,15 @@ function objectStage(id){
    you open an editor to do — a task's dates live in the When page, a
    milestone list in Collects, a picture in the media row. Behind one door,
    named for what it is. See decision 148. */
+/* **Two doors** (decision 218). Timothy's Workshop folded Collects and
+   Advanced into Behaviour, and moved the decoration and painting pickers
+   into Look, where choosing which one a thing is sits beside its colour.
+   The old names still open Behaviour, so nothing that asks for them breaks. */
 const OBJSECS = {
   look:   ['Look',      'palette',  'colour, face, edges, hardware'],
-  does:   ['Behaviour', 'sliders',  'what it does when you touch it'],
-  collect:['Collects',  'sparkle',  'what fills it, and what it totals'],
-  adv:    ['Advanced',  'gear',     'its fields, and which traits it carries']
+  does:   ['Behaviour', 'sliders',  'what it does, what it collects, its fields and traits']
 };
+const OBJALIAS = {collect:'does', adv:'does'};
 /* Where the object editor goes back to when it was opened from Settings
    rather than from a tile (decision 206): the gear's panel, so walking into
    the editor from there is a door and not a dead end. Any other way in clears
@@ -1115,6 +1128,7 @@ function objectPanel(id, sec, from){
      still up. */
   if(S.writeId || S.readId || S.viewId) closeSheet();
   S.openId = id;                    // what the field handlers in wire.js act on
+  if(OBJALIAS[sec]) sec = OBJALIAS[sec];
   const s = OBJSECS[sec] ? sec : null;
   /* The heading *is* the rename field on the top level: press it and it becomes
      an input, and the panel's own title is the one place a thing is called
@@ -1139,7 +1153,8 @@ function objectPanelBody(id, sec){
   const isRoot = id===ROOT;
   const o = isRoot ? null : byId(id);
   if(!isRoot && !o) return '';
-  const at = s => sec===s;      // the top level is the doors, not everything at once
+  // the top level is the doors, not everything at once; Behaviour holds the two folded in
+  const at = s => sec===s || (sec==='does' && (s==='collect' || s==='adv'));
   /* Where a write lands and what a read sees. cfgOf() is deskCfg for the desk
      and the object itself for everything else, so one target serves both — the
      desk is a container without a tile, not a special case. */
@@ -1177,9 +1192,7 @@ function objectPanelBody(id, sec){
        turns it into the box (see `pheadname` below); everything else about
        the top of this panel is the thing itself. */
     out.push(objectStage(id));
-    out.push(prow('Type', `<select class="psel" data-oset="${id}:kind">${typeOptions(o.kind)}</select>`,
-      'swaps its traits, keeps its data'));
-    out.push(prow('Lives in', psel(id,'parent',
+    out.push(prow('Location', psel(id,'parent',
       moveTargets(id).map(c=>[c.id, c.id===ROOT?'The Desk':(c.title||'Untitled')]), o.parent||ROOT)));
     /* **Tags and links are on the card, at the bottom of it.** They were
        behind a door called "Tags and links", which is a door in front of a row
@@ -1231,9 +1244,7 @@ function objectPanelBody(id, sec){
   /* …and the doors. Which ones there are depends on what the thing is: only a
      container collects, and the desk has no traits of its own to tick. */
   if(!sec){
-    const doors = ['look','does','collect','adv'].filter(s=>
-        (s!=='collect' || (cont && !isRoot))
-     && (s!=='adv'     || !isRoot));
+    const doors = ['look','does'];
     out.push(`<div class="rows osecs">${doors.map(s=>{
       const [nm,icon,note]=OBJSECS[s];
       return `<div class="row" data-osec="${id}:${s}">
@@ -1437,7 +1448,7 @@ function objectPanelBody(id, sec){
        shelves, so a drawer is only ever the first — and the row it is on is
        the shelf picker above. See decision 141. */
   } else if(!isRoot){
-    out.push(prow('Clicking it', psel(id,'onclick', Object.entries(CLICKS), clickOf(d))));
+    out.push(prow('On Tap/Click', psel(id,'onclick', Object.entries(CLICKS), clickOf(d))));
     if(has(d,'text')) out.push(prow('Opens as', psel(id,'read', Object.entries(READS), readOf(d))));
   }
   /* **Opening is in Look now.** It names which *animation* a thing opens with
@@ -1458,10 +1469,8 @@ function objectPanelBody(id, sec){
       d.clhead==='0'?'0':'1')));
   }
   // whether what goes into it is born on today or with no day — decision 197
-  if(!isRoot && cont && !has(d,'magic')){
-    out.push(prow('New things in it', psel(id,'undated',
-      [['','Are put on today'],['1','Have no day until you give one']], d.undated?'1':'')));
-  }
+  /* "New things in it" (undated) was cut from the editor in the Workshop
+     (decision 218); a flow still sets it, and `create()` still reads it. */
   if(!isRoot && cont && takesTyping(d)){
     out.push(prow('Typing in it makes', psel(id,'genKind', objectKinds, genKindOf(d))));
     /* On the front by default since the front scrolls (2026-09-23); inside
@@ -1516,12 +1525,13 @@ function objectPanelBody(id, sec){
 
   }
 
-  if(at('adv')) {
+  if(at('adv') || at('look')) {
   /* ---- the fields its traits carry. Every one is gated on an attribute,
      never on a type's name — which is what lets an invented type get the right
      fields the moment it ticks the trait. ---- */
   if(!isRoot){
-    const f=[];
+    const f=[], pick=[];
+    const inLook = sec==='look';
     if(has(o,'date')) f.push(prow(has(o,'progress')?'Target date':'On', pfield(id,'due',o.due,'date'),
       has(o,'deadline') ? 'the day it sits on' : ''));
     /* The day it is *owed*, which is not the day it sits on. Only for something
@@ -1659,7 +1669,7 @@ function objectPanelBody(id, sec){
          the same disclosure every slot family has. See decision 100. */
       const here = decorFor(styleKey()), rest = decorRest(styleKey());
       const showing = !own && rest.includes(decorOf(o));
-      f.push(prow('Which one',
+      pick.push(prow('Decoration Selector',
         `<div class="decpick">${here.map(opt).join('')}</div>`
         + (rest.length ? pgroup('From other aesthetics',
             `<div class="decpick">${rest.map(opt).join('')}</div>`, showing) : ''),
@@ -1671,7 +1681,7 @@ function objectPanelBody(id, sec){
     const gal = galleryOf(o);
     if(gal){
       const on = o.media && o.media.url;
-      f.push(prow('Which painting',
+      pick.push(prow('Painting Selector',
         `<div class="paintpick">${gal.map(p=>{ const u=p.dir+p.f;
           return `<button class="paintopt${on===u?' on':''}" data-painting="${id}:${p.f}"
             title="${esc(p.t)}, ${esc(p.a)}, ${esc(p.d)}"><img src="${u}" alt="" loading="lazy"><u>${esc(p.a)}</u></button>`; }).join('')}</div>`,
@@ -1700,7 +1710,10 @@ function objectPanelBody(id, sec){
         + psel(id,'linktarget',[['','Nothing yet'],...containers().map(c=>[c.id, c.title||'Untitled'])], L.target||'')
         + pfield(id,'linkurl', outURL(L.target)?L.target:'', '', '…or an address — a site, tel:, mailto:')));
     }
-    if(f.length) out.push(`<div class="section-h"><h2>Fields</h2><div class="rule"></div></div>${f.join('')}`);
+    /* In Look the two pickers are all this block says; in Behaviour it is
+       the fields without them (decision 218). */
+    if(inLook) out.push(pick.join(''));
+    else if(f.length) out.push(`<div class="section-h"><h2>Fields</h2><div class="rule"></div></div>${f.join('')}`);
   }
 
   }
@@ -2599,28 +2612,19 @@ function openCtx(x,y,id){
   // First, and only on a locked board, because that is the whole of what
   // the hold is now *for* there (decision 181).
   if(!many && boardLocked()) items.push(has(o,'movable')
-    ? it(`free:${id}`, 'lock', 'Lock it') : it(`free:${id}`, 'grip', 'Free it'));
+    ? it(`free:${id}`, 'lock', 'Lock') : it(`free:${id}`, 'grip', 'Unlock'));
   if(!many){
-    items.push(it(`objset:${id}`, 'brush', 'Editor'));
-    if(isContainer(o)) items.push(it(`opendrawer:${id}`, 'eye', 'Open'));
-    else {
-      if(isMedia(o)){
-        const mt = mediaTypeOf(o), full = o.media && o.media.src;
-        items.push(it(`view:${id}`, mt==='audio'?'music':mt==='video'?'film':'image',
-          full ? (mt==='image'?'View':'Play') : (mt==='audio'?'Add sound':mt==='video'?'Add video':'Add picture')));
-      }
-      if(has(o,'text')){ items.push(it(`read:${id}`, 'eye', 'Read')); items.push(it(`write:${id}`, 'edit', 'Write')); }
-    }
-    // The four facts that decide what you do next (decision 122).
+    items.push(it(`objset:${id}`, 'brush', 'Edit'));
+    /* Open, View, Read, Write, Next one and Complete were cut in the Workshop
+       (decision 218): a tap already opens, reads, plays or ticks a thing, so
+       the ring keeps what a tap cannot do. */
     if(!isContainer(o)) items.push(it(`when:${id}`, 'calendar', 'When'));
-    if(!isContainer(o)) items.push(it(`become:${id}`, 'flag', 'Project'));
-    if(repeats(o)) items.push(it(`nextcopy:${id}`, 'repeat', 'Next one'));
-    if(has(o,'check')||has(o,'streak')) items.push(it(`done:${id}`, 'check', has(o,'streak')?'Today':'Complete'));
+    if(!isContainer(o)) items.push(it(`become:${id}`, 'flag', 'Convert into Project'));
   }
   // Clip (decision 180).
   if(many) items.push(it(`group:${id}`, 'layers', `Group ${sel.length}`));
   if(!many && groupOf(o)) items.push(it(`ungroup:${id}`, 'cut', 'Ungroup'));
-  items.push(it(`intodrawer:${id}`, 'folder', 'New drawer'));
+  items.push(it(`intodrawer:${id}`, 'folder', 'Add to New Drawer'));
   items.push(it(`move:${id}`, 'folder', 'Move'));
   if(!many) items.push(it(`dupe:${id}`, 'archive', 'Duplicate'));
   items.push(it(`del:${id}`, 'trash', many?`Delete ${sel.length}`:'Delete', 'danger'));

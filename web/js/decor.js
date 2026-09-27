@@ -43,8 +43,8 @@
 const DECOR = {
 
   /* ---- plants ---------------------------------------------------------- */
-  plant: { c:6, nm:'Potted plant', aes:['victorian','carca','girando','aero'], png:'img/decor/plant.png', vb:'0 0 360 273', size:[4,3] },
-  jardiniere: { c:13, nm:'Jardinière', aes:['victorian','girando','stelaine'], png:'img/decor/jardiniere.png', vb:'0 0 264 360', size:[3,4] },
+  plant: { c:6, nm:'Potted plant', plant:true, aes:['victorian','carca','girando','aero'], png:'img/decor/plant.png', vb:'0 0 360 273', size:[4,3] },
+  jardiniere: { c:13, nm:'Jardinière', plant:true, aes:['victorian','girando','stelaine'], png:'img/decor/jardiniere.png', vb:'0 0 264 360', size:[3,4] },
 
   /* The fern and the parlour palm were drawings, and every decoration is a
      photograph now (decision 208); migration 42 hands a desk that had one the

@@ -245,10 +245,11 @@ const PROP_OFF = () => { const b = document.createElement('button');
     await wait();
     await click('[data-c^="objset"]');                 out.drawer = (key() || '').split(':')[0];
     out.oneName = key() === 'object:' + d.id;
-    /* The editor's top is name, type, where it lives and a row of doors; the
-       rows are one press in. Every one-of-many list in them is still a select
-       rather than a wall of chips. See decision 66. */
-    out.doors = document.querySelectorAll('#panel [data-osec]').length >= 4;
+    /* The editor's top is its name, where it lives and a row of doors; the
+       rows are one press in. Two doors since the Workshop folded Collects and
+       Advanced into Behaviour (decision 218). Every one-of-many list in them
+       is still a select rather than a wall of chips. See decision 66. */
+    out.doors = document.querySelectorAll('#panel [data-osec]').length === 2;
     BUREAU.panel(d.id, 'look'); await wait();
     const p = document.querySelector('#panel');
     out.wayBack = !!p.querySelector('[data-act="panelback"]');
@@ -5438,7 +5439,8 @@ const PROP_OFF = () => { const b = document.createElement('button');
       reachable.add(e.dataset.family);
       ((BUREAU.K[e.dataset.family] || {}).family || []).forEach(k => reachable.add(k));
     });
-    out.everythingIsStillThere = Object.keys(BUREAU.K).every(k => reachable.has(k));
+    // …bar the ones cut in the Workshop, which no picker offers (decision 218)
+    out.everythingIsStillThere = Object.keys(BUREAU.K).every(k => reachable.has(k) || ['magic','recipe'].includes(k));
     document.querySelector('#panel [data-act="panelclose"]').click();
     // …and inside a container that says what it makes, that type comes first
     await nap(120);
@@ -5976,9 +5978,10 @@ const PROP_OFF = () => { const b = document.createElement('button');
     const nap = ms => new Promise(r => setTimeout(r, ms));
     const S = BUREAU.state, out = {};
     const ps = BUREAU.plans().filter(p => p.stock);
-    // ten, then the twenty-three that followed (decision 196)
-    out.tenOfThem = ps.length === 33;
-    out.everyOneSaysWhichList = ps.every(p => ['life','experience','project'].includes(p.sec));
+    // ten, then the twenty-three that followed (decision 196), then the eight
+    // Timothy named in the Workshop (decision 218)
+    out.tenOfThem = ps.length === 41;
+    out.everyOneSaysWhichList = ps.every(p => ['life','experience','project','work'].includes(p.sec));
     out.everyOneNamed = ps.every(p => p.nm && p.ic && p.c != null);
     out.everyOneHasThingsOnIt = ps.every(p => BUREAU.planSize(p) > 0);
     // a plan is not an object: nothing on any board answers to one

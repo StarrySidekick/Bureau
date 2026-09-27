@@ -604,7 +604,7 @@ const SPECS = [
     LINK('Bandcamp', 'https://bandcamp.com', [5,11,4,1], 9)
   ]},
 
-  {key:'visual', sec:'experience', inbox:'note', nm:'Visual Art', ic:'image', c:12, of:'life', on:[
+  {key:'visual', sec:'experience', inbox:'note', nm:'Artwork', ic:'image', c:12, of:'life', on:[
     LABEL('Art', [1,1,8,1], 12),
     {k:'moodboard', t:'What stays with me', b:[1,2,5,4], set:{c:13}},
     {k:'deck', t:'Look closer', b:[6,2,3,4], set:{c:10}, kids:CARDS([
@@ -903,6 +903,153 @@ const SPECS = [
     ]},
     LINK('Materials', 'https://www.mcmaster.com', [5,10,4,1], 9),
     LINK('How others did it', 'https://www.instructables.com', [5,11,4,1], 9)
+  ]},
+
+  /* ============================================================
+     The flows Timothy added in the Workshop (decision 218)
+     ============================================================
+     Named there with a purpose and nothing on the board yet, so these are a
+     first pass at each: the same four things every board carries (what to do
+     next, when, something that helps, the way out), in his words where he
+     gave any. `work` is a fourth list: flows for getting work done rather
+     than for one part of a life or one piece of work. */
+
+  {key:'food', sec:'experience', inbox:'note', nm:'Food', ic:'pot', c:11, of:'life', on:[
+    LABEL('Food', [1,1,8,1], 11),
+    {k:'checklist', t:'Places to eat', b:[1,2,4,4], set:{c:11}},
+    {k:'deck', t:'What to cook', b:[5,2,4,4], set:{c:10}, kids:CARDS([
+      'Something new from a cookbook', 'A dish from childhood', 'Whatever is in the fridge',
+      'One pot, one hour', 'Cook for a friend', 'A cuisine you have never made'
+    ])},
+    {k:'checklist', t:'To cook', b:[1,6,4,4], set:{c:6}},
+    CAL('Meals', [5,6,4,4], 7, 'week', 'titles'),
+    MAKES('Just ate…', 'review', [1,10,8,1], 13),
+    LINK('Resy', 'https://resy.com', [1,11,4,1], 9),
+    LINK('NYT Cooking', 'https://cooking.nytimes.com', [5,11,4,1], 9)
+  ]},
+
+  {key:'artwork', sec:'project', inbox:'note', nm:'Artwork', ic:'image', c:12, of:'artpiece', on:[
+    LABEL('The artwork', [1,1,8,1], 12),
+    {k:'progressbar', t:'Where it stands', b:[1,2,8,1], set:{c:13, tracks:'@awstages'}},
+    {k:'checklist', t:'Stages', ref:'awstages', b:[1,3,4,4], set:{c:12}, kids:[
+      {k:'task', t:'Sketches'}, {k:'task', t:'Reference'}, {k:'task', t:'Materials'},
+      {k:'task', t:'First layer'}, {k:'task', t:'Develop'}, {k:'task', t:'Finish'},
+      {k:'task', t:'Photograph it'}, {k:'task', t:'Frame or share'}
+    ]},
+    {k:'moodboard', t:'References', b:[5,3,4,4], set:{c:13}},
+    {k:'checklist', t:'Materials to get', b:[1,7,4,3], set:{c:6}},
+    {k:'hourglass', t:'Work session', b:[5,7,2,3], set:{c:12, mins:45}},
+    {k:'deck', t:'Prompts', b:[7,7,2,3], set:{c:10}, kids:CARDS([
+      'Only three colours', 'Work bigger', 'Draw it from memory',
+      'The ten-minute version', 'Change the light', 'Leave something out'
+    ])},
+    MAKES('A note on it…', 'note', [1,10,8,1], 12),
+    LINK('Cara', 'https://cara.app', [1,11,4,1], 9),
+    LINK('Instagram', 'https://www.instagram.com', [5,11,4,1], 9)
+  ]},
+
+  // "Managing one's long list of concepts and ideas for creative work, sort of
+  // like a brain dump but more specifically for creative works."
+  {key:'ideas', sec:'project', inbox:'idea', nm:'Ideas', ic:'bulb', c:12, of:'drawer', on:[
+    LABEL('Ideas', [1,1,8,1], 12),
+    MAKES('An idea…', 'idea', [1,2,8,1], 12, '@ijar'),
+    {k:'jar', t:'Unsorted', ref:'ijar', b:[1,3,3,4], set:{c:12}},
+    LIST('Worth making', 'iworth', [4,3,5,4], 6),
+    LIST('Someday', 'isomeday', [1,7,4,3], 5),
+    LIST('Making now', 'inow', [5,7,4,3], 9),
+    {k:'deck', t:'Turn it over', b:[1,10,3,2], set:{c:10}, kids:CARDS([
+      'What if it were a film?', 'What if it were a song?', 'Make it half as long',
+      'Who is it for?', 'What is the smallest version?', 'Combine it with the last one'
+    ])},
+    {k:'die', t:'Pick one', b:[4,10,2,2], set:{c:14, sides:6}},
+    LINK('Are.na', 'https://www.are.na', [6,10,3,1], 9),
+    {k:'note', t:'The one I keep coming back to', b:[6,11,3,1], set:{c:12}}
+  ]},
+
+  {key:'script', sec:'project', nm:'Script', ic:'clapper', c:9, of:'project', on:[
+    LABEL('The script', [1,1,8,1], 9),
+    {k:'progressbar', t:'Where it stands', b:[1,2,8,1], set:{c:13, tracks:'@scstages'}},
+    {k:'checklist', t:'Stages', ref:'scstages', b:[1,3,4,5], set:{c:9}, kids:[
+      {k:'task', t:'Logline'}, {k:'task', t:'Outline'}, {k:'task', t:'Beat sheet'},
+      {k:'task', t:'First draft'}, {k:'task', t:'Table read'}, {k:'task', t:'Rewrite'},
+      {k:'task', t:'Polish'}, {k:'task', t:'Send it out'}
+    ]},
+    {k:'script', t:'Draft', b:[5,3,4,5], set:{c:9}},
+    {k:'deck', t:'Stuck?', b:[1,8,3,3], set:{c:10}, kids:CARDS([
+      'Cut the first line of the scene', 'What does she want right now?', 'Enter late, leave early',
+      'Say it without dialogue', 'What could go wrong?', 'Read it out loud'
+    ])},
+    MAKES('A character…', 'character', [4,8,5,1], 13, '@scchars'),
+    LIST('Characters', 'scchars', [4,9,5,2], 13),
+    LINK('WriterDuet', 'https://www.writerduet.com', [1,11,4,1], 9),
+    LINK('The Black List', 'https://blcklst.com', [5,11,4,1], 9)
+  ]},
+
+  {key:'videoessay', sec:'project', nm:'Video Essay', ic:'film', c:13, of:'project', on:[
+    LABEL('The video essay', [1,1,8,1], 13),
+    {k:'progressbar', t:'Where it stands', b:[1,2,8,1], set:{c:13, tracks:'@vestages'}},
+    {k:'checklist', t:'Stages', ref:'vestages', b:[1,3,4,5], set:{c:13}, kids:[
+      {k:'task', t:'Thesis'}, {k:'task', t:'Research'}, {k:'task', t:'Outline'},
+      {k:'task', t:'Script'}, {k:'task', t:'Record the voiceover'}, {k:'task', t:'Gather footage'},
+      {k:'task', t:'Rough cut'}, {k:'task', t:'Graphics'}, {k:'task', t:'Final cut'},
+      {k:'task', t:'Thumbnail and title'}, {k:'task', t:'Publish'}
+    ]},
+    {k:'moodboard', t:'Clips and stills', b:[5,3,4,3], set:{c:13}},
+    {k:'checklist', t:'Sources', ref:'vesources', b:[5,6,4,2], set:{c:7}},
+    {k:'note', t:'Thesis', b:[1,8,4,2], set:{c:12}, body:'One sentence: what are you arguing?'},
+    CAL('Schedule', [5,8,4,2], 7),
+    MAKES('A source…', 'task', [1,10,8,1], 7, '@vesources'),
+    LINK('YouTube Studio', 'https://studio.youtube.com', [1,11,4,1], 9),
+    LINK('Internet Archive', 'https://archive.org', [5,11,4,1], 9)
+  ]},
+
+  // "Allows you to easily add anything to a bucket and helps you sort it."
+  {key:'braindump', sec:'work', inbox:'note', nm:'Brain Dump', ic:'inbox', c:5, of:'drawer', on:[
+    LABEL('Brain dump', [1,1,8,1], 5),
+    MAKES('Get it out of your head…', 'note', [1,2,8,1], 5, '@bdjar'),
+    {k:'jar', t:'The bucket', ref:'bdjar', b:[1,3,4,5], set:{c:5}},
+    LIST('Do', 'bddo', [5,3,4,3], 6),
+    LIST('Someday', 'bdsome', [5,6,4,2], 12),
+    LIST('Keep', 'bdkeep', [1,8,4,3], 11),
+    {k:'hourglass', t:'Ten minutes', b:[5,8,2,3], set:{c:12, mins:10}},
+    {k:'deck', t:'Sort it', b:[7,8,2,3], set:{c:10}, kids:CARDS([
+      'Two minutes or less? Do it now', 'Does it have a day? Give it one', 'Is it someone else’s? Send it',
+      'Will you care in a month?', 'Is it a project in disguise?', 'Bin it'
+    ])},
+    {k:'note', t:'The rule', b:[1,11,4,1], set:{c:5}, body:'Empty the bucket once a day: do it, date it, file it or bin it.'},
+    LINK('Apple Notes', 'https://www.icloud.com/notes', [5,11,4,1], 9)
+  ]},
+
+  // "Helps me prioritize all my projects and focus."
+  {key:'projectmgmt', sec:'work', nm:'Project Management', ic:'target', c:13, of:'drawer', on:[
+    LABEL('Projects', [1,1,8,1], 13),
+    LIST('Now, three at most', 'pmnow', [1,2,4,4], 9),
+    LIST('Next', 'pmnext', [5,2,4,4], 6),
+    LIST('Waiting on someone', 'pmwait', [1,6,4,3], 12),
+    LIST('Paused', 'pmpaused', [5,6,4,3], 5),
+    CAL('Deadlines', [1,9,4,2], 7),
+    LINK('Google Calendar', 'https://calendar.google.com', [1,11,4,1], 9),
+    {k:'deck', t:'Focus', b:[5,9,2,3], set:{c:10}, kids:CARDS([
+      'What one thing moves it most?', 'What can you drop?', 'What is blocked, and by whom?',
+      'Finish before you start', 'What is due first?', 'Ship the smallest version'
+    ])},
+    {k:'hourglass', t:'Deep work', b:[7,9,2,3], set:{c:12, mins:50}}
+  ]},
+
+  {key:'brainstorming', sec:'work', inbox:'idea', nm:'Brainstorm', ic:'sparkle', c:10, of:'drawer', on:[
+    LABEL('Brainstorm', [1,1,8,1], 10),
+    {k:'note', t:'The question', b:[1,2,8,2], set:{c:12}, body:'What are we trying to solve?'},
+    MAKES('Another idea…', 'idea', [1,4,8,1], 10, '@bsall'),
+    LIST('Everything, no judging', 'bsall', [1,5,4,5], 10),
+    LIST('The best three', 'bsbest', [5,5,4,3], 13),
+    {k:'hourglass', t:'Five minutes', b:[5,8,2,2], set:{c:12, mins:5}},
+    {k:'die', t:'Pick one at random', b:[7,8,2,2], set:{c:14, sides:6}},
+    {k:'deck', t:'Oblique turns', b:[1,10,4,2], set:{c:10}, kids:CARDS([
+      'Reverse it', 'Make it absurd', 'What would a child do?',
+      'Steal from another field', 'Make it free', 'Make it ten times bigger'
+    ])},
+    {k:'note', t:'Next step', b:[5,10,4,1], set:{c:6}},
+    LINK('Are.na', 'https://www.are.na', [5,11,4,1], 9)
   ]}
 
 ];

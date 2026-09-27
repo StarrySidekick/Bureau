@@ -9948,3 +9948,46 @@ alternating down the rows. The paper rows of a list take `--board-1` and
 same surface in grid and in line view, and a board painted its own colours
 stripes in them. A drawer's row keeps its front's colour and still counts in
 the alternation. Only the colour is set, so a stock keeps its tooth.
+
+## 218 · The Workshop's second pass: the editor, the ring, the types and the flows
+
+*2026-09-27.* Timothy rearranged the Workshop again and asked for it built.
+What decision 213 and 211 had already done (Settings, the rail) is left as it
+is; this is the rest.
+
+- **The object editor has two doors.** Collects and Advanced are folded into
+  Behaviour; the decoration and painting pickers moved into Look, named
+  *Decoration Selector* and *Painting Selector*. The old door names still open
+  Behaviour (`OBJALIAS`). Renamed: Lives in → Location, Clicking it → On
+  Tap/Click, How long it is inside → Board Count, Its picker offers → Picker
+  Settings, Sketched at a size → Auto Objects. **Cut:** the Type row (a thing
+  changes type through Convert into Project now) and *New things in it*
+  (`undated` is still set by a flow and read by `create()`). The empty
+  section *On Tap/Click & Hold* he added was left out: it held nothing yet.
+- **The hold ring** keeps what a tap cannot do: Lock/Unlock, Edit, When,
+  Convert into Project, Group, Add to New Drawer, Move, Duplicate, Delete.
+  Open, View, Read, Write, Next one and Complete are cut. Its labels wrap to
+  two lines rather than shortening his names.
+- **Time** is gone from Settings. Migration 44 returns the workday to its
+  default, because a setting nobody can reach must not be left on an answer.
+- **Types.** Renamed: Life drawer → Aspect of Life, Prose & Poetry → Text,
+  Art piece → Artwork, Instrument → Doodad. The front row of the picker is his
+  order (`PRIMARY`), now seventeen. **Cut:** Sorting drawer and Recipe are
+  offered nowhere (`CUT_KINDS`, `isCut()`); the kinds remain, since objects
+  are made of them and a tag still makes a sorting drawer. **Decoration's
+  subtypes** are Plant, Physical Object, Painting (moved from Image, which no
+  longer asks anything) and Window. Plant and Physical Object are the
+  photographed ornaments split by a `plant` mark in decor.js, chosen on the
+  ring and in the picker through `VARIANTS` (decision 216); a type with
+  variants now opens a panel of them in the picker the way a category does.
+  **Random** (`anything`, `makesAny`) is one of the others, resolved through
+  `someKind()` when it is made, so no object is ever of that kind. Its key is
+  not `random`, which a spawner stores and which must never reach `K()`.
+- **Flows.** Visual Art is called Artwork. Eight new stock flows, a first
+  pass at each from the purpose he wrote, with the four things every board
+  carries (what next, when, something that helps, a way out): **Food**
+  (experience), **Artwork**, **Ideas**, **Script** and **Video Essay**
+  (projects), and a fourth list, **Getting work done** (`sec:'work'`): **Brain
+  Dump**, **Project Management** and **Brainstorm**. The Brainstorm key is
+  `brainstorming` because `brainstorm` is a retired stock key and migration 37
+  would take it off again. Migration 44 adds them to an existing desk.

@@ -126,7 +126,7 @@ function makeSorting(kind, tag){
      no reason to open. Landing on the rule means the sentence you just made is
      the first thing you read, with every remaining blank in it. */
   if(tag) toast(`Sorting for #${tag}`);
-  objectPanel(o.id, 'collect');
+  objectPanel(o.id, 'does');
 }
 
 /* A **life drawer**, made already wearing the object it is for. Same shape as
@@ -224,6 +224,8 @@ function blockHold(cid){
 }
 function newOfKind(kind, asked, patch){
   if(!KINDS[kind]) return;
+  // Random is one of the others, chosen now (decision 218)
+  if(K(kind).makesAny){ kind = someKind(); asked = true; }
   const at = pending.cell;
   closePanel();
   pending.cell = at;

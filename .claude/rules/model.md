@@ -414,3 +414,12 @@ blank only shows when there is more than one desk. See decisions 141 and 159.
 **A sort is per object then per type.** Ask `sortOf(c)`, never `c.sort`. `manual`
 is a real stored value — it is what lets one container refuse a type that sorts —
 so writing `null` to mean "unsorted" reintroduces the bug it was there to stop.
+
+
+**A cut type stays a kind.** `CUT_KINDS`/`isCut()` (decision 218): Sorting
+drawer and Recipe are offered by no picker, ring or random pick, and every
+object made of them keeps working. Ask `isCut(k)` wherever a list of types is
+built for making something. **Random is `anything`**, a kind carrying
+`makesAny` that `newOfKind()` resolves through `someKind()` before anything
+is made; `someKind()` must skip it or it could pick itself. Stock flows are
+in four lists now: `life`, `experience`, `project` and `work`.

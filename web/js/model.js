@@ -212,7 +212,7 @@ const BUILTIN_KINDS = {
      percentage — and Timothy asked for the plain front while the boards
      inside are what the type is about. The face is still there to pick in the
      editor, and a drawer that chose it keeps it. */
-  life:    {face:'front', nm:'Life drawer', ic:'target', c:12, key:'L', ds:'A part of your life rather than a piece of work — it is never finished',
+  life:    {face:'front', nm:'Aspect of Life', ic:'target', c:12, key:'L', ds:'A part of your life rather than a piece of work — it is never finished',
      attrs:['text','container','relates'], asksLife:true,
      seed:[{kind:'generator', title:'Add to this…', sz:[8,2]}],
      layout:'grid', size:[5,5], phoneSize:[4,4], body:'' },
@@ -235,7 +235,7 @@ const BUILTIN_KINDS = {
      the pieces it is made of, and it opens as a book both ways round:
      `layout:'book'` pages through what it holds and `read:'book'` pages
      through its own body. See decision 130. */
-  book:    {face:'spine', binding:'banded', nm:'Prose & Poetry', pickNm:'Book', ic:'book', c:11, key:'B',
+  book:    {face:'spine', binding:'banded', nm:'Text', ic:'book', c:11, key:'B',
      ds:'Anything made of words — press it and say which',
      family:['book','poem','novel','shortstory','essay','script'], famSub:'What are you writing?',
      attrs:['text','container','relates'], layout:'book', read:'book',
@@ -338,8 +338,9 @@ const BUILTIN_KINDS = {
   /* **An Image has subtypes** (decision 208): a type's `family` is the list of
      its subtypes, the way a Note's is idea, thought and the rest, and it
      leads with the Image itself. The first is a Painting. */
-  image:   {nm:'Image',   ic:'image',   c:15, key:'G', ds:'A picture on the board',   size:[6,4], onclick:'read', attrs:['media'], body:'',
-     family:['image','painting'], famSub:'What sort of picture?' },
+  /* The Painting moved to Decoration in the Workshop (decision 218), so an
+     Image is a picture of your own and asks nothing. */
+  image:   {nm:'Image',   ic:'image',   c:15, key:'G', ds:'A picture on the board',   size:[6,4], onclick:'read', attrs:['media'], body:'' },
   /* A Painting is an Image that is always one of the twenty-six hung in
      `img/paintings/` (`gallery` names the list in mutations.js): born with
      one at random, in a gilt frame, and its editor picks among them. */
@@ -358,12 +359,25 @@ const BUILTIN_KINDS = {
      through it. One press in from Decoration rather than a tile of its own in
      a list that is already long. */
   decoration:{shape:'decor', nm:'Decoration', ic:'plant', c:6, key:'', ds:'Something to stand on the shelf — a plant, a bookend, a little figure', attrs:['decor','media'], size:[4,5], phoneSize:[2,3], mediaType:'image', onclick:'none', decor:'plant',
-     family:['decoration','window'], famSub:'What is standing there?', variants:'decor', body:'' },
+     family:['plant','ornament','painting','window'], famSub:'What is standing there?', body:'' },
+  /* **Decoration's subtypes** (decision 218, from the Workshop): a Plant, a
+     Physical Object, the Painting and the Window. The first two are the
+     photographed ornaments split by the `plant` mark on each in decor.js, and
+     which one is chosen on the ring (`variants`). Both are decorations in
+     everything else: the same traits, the same tile. */
+  plant:   {shape:'decor', nm:'Plant', ic:'plant', c:6, ds:'Something green on the shelf', attrs:['decor','media'], size:[4,5], phoneSize:[2,3], mediaType:'image', onclick:'none', decor:'plant', variants:'plants', body:'' },
+  ornament:{shape:'decor', nm:'Physical Object', ic:'plant', c:12, ds:'A clock, a bust, a globe, a teapot — something that stands there', attrs:['decor','media'], size:[3,4], phoneSize:[2,3], mediaType:'image', onclick:'none', decor:'clock', variants:'objects', body:'' },
   /* A **background** is the one thing drawn *under* the board's other tiles
      (decision 216): a colour, a check or a weave laid down so things can stand
      on it. Like a decoration it collides with nothing in either direction, and
      it takes no taps on a locked board. Which fill is a subtype, chosen on the
      ring (`variants`), never a row in its editor. */
+  /* **Random** (decision 218): a type that is one of the others, picked when
+     it is made. Its key is `anything` and not `random`, because `random` is
+     what a spawner stores to mean the same thing and must never reach `K()`.
+     `newOfKind()` resolves it through `someKind()` before anything is made,
+     so no object is ever of this kind. */
+  anything:{nm:'Random', ic:'sparkle', c:10, ds:'One of anything, picked when it is made', attrs:['text'], size:[4,3], makesAny:true, body:'' },
   background:{nm:'Background', ic:'layers', c:12, ds:'A colour, a check or a weave laid under other things', attrs:['backdrop'], size:[8,6], phoneSize:[4,4], onclick:'none', fill:'solid', variants:'fills', body:'' },
   /* Sound and moving pictures are things you put on a desk, not a corner of
      film-making — so they are majors, and pressing one plays it rather than
@@ -461,7 +475,7 @@ const BUILTIN_KINDS = {
      seed:[{kind:'generator', title:'Add to this app…', sz:[8,2]}],
      plan:'pl_stock_application',
      layout:'grid', size:[5,5], phoneSize:[4,4], body:'' },
-  artpiece:{face:'project', proj:'art', nm:'Art piece', ic:'image', c:12, key:'3',
+  artpiece:{face:'project', proj:'art', nm:'Artwork', ic:'image', c:12, key:'3',
      ds:'A painting, a print, a drawing — and the work behind it',
      attrs:['text','container','date','progress','media','relates'],
      layout:'grid', size:[6,6], phoneSize:[5,5], body:'' },
@@ -529,7 +543,7 @@ const BUILTIN_KINDS = {
      reader in `active.js`, because those are settings on an instrument rather
      than traits an object has. `act` says which machine, and it is read off
      the object first, so a type somebody invents can be a die by saying so. */
-  instrument:{cat:true, nm:'Instrument', pickNm:'Tool', ic:'clock', c:13,
+  instrument:{cat:true, nm:'Doodad', ic:'clock', c:13,
      ds:'Something that runs — press it and say which',
      family:['metronome','hourglass','candle','bell','clock','die','deck'],
      famSub:'What sort of instrument?',
@@ -694,14 +708,21 @@ const BUILTIN_KINDS = {
    picture, a note, a record, a garden, an ornament, a tag, a tool and a card
    — and every other major is one dropdown further in (`SECONDARY`), ahead of
    the rest. The gaps get filled later; this is the physical-object idea first. */
-const PRIMARY = ['drawer','book','calendar','checklist','image','note',
-                 'audio','generator','decoration','tag','instrument','goal'];
+/* The front row as Timothy laid it out in the Workshop (decision 218). */
+const PRIMARY = ['drawer','tag','life','checklist','calendar','book','note','goal',
+                 'image','decoration','audio','video','moodboard','instrument',
+                 'generator','project','anything'];
 /* What used to lead and does not any more, still in its stated order, drawn
    first inside the dropdown. */
-const SECONDARY = ['magic','project','life','task','jar','pigeonhole','moodboard','timeline',
-                 'fragment','label','background','recipe','achievement',
+const SECONDARY = ['task','jar','pigeonhole','timeline',
+                 'fragment','label','background','achievement',
                  'progressbar','tracker','counter','appt',
-                 'video','post','control','outlink'];
+                 'post','control','outlink'];
+/* **Cut in the Workshop** (decision 218): no picker offers these. The kinds
+   stay, because objects are made of them and a tag still makes a sorting
+   drawer; ask `isCut(k)` before listing a type anywhere it could be made. */
+const CUT_KINDS = ['magic','recipe'];
+const isCut = k => CUT_KINDS.includes(k);
 const isPrimary = k => PRIMARY.includes(k);
 
 /* ---- a category is a type you press to be *asked which* -----------------
@@ -3049,7 +3070,7 @@ export { homeFor, ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds,
   PLATES, PLATE_SLOTS, plateOf, SEALS, SEAL_KEYS, sealOf, isSealed,
   BORDER_SLOTS, borderOf, TEXTURE_SLOTS, textureOf, STOCKS, STOCK_SLOTS, stockOf,
   KNOBSIZES, knobSizeOf, answered, marginOf, marginPlus, iconOf, TSIZES, textSizeOf, mediaTypeOf, isPicture,
-  isMedia, isPlayable, acceptFor, acceptAny, MEDIA_EXT, isDecor, isBackdrop, FILLS, FILL_KEYS, fillOf,
+  isMedia, isPlayable, acceptFor, acceptAny, MEDIA_EXT, isDecor, CUT_KINDS, isCut, isBackdrop, FILLS, FILL_KEYS, fillOf,
   spawnByOf, genKindOf, takesTyping, showsAddBox, keepsDone, showsContainers,
   makesOf, madeAtSize,
   CALVIEWS, calViewOf, calShowOf, CALSHOWS, weekStartOf, showsWeekends, calCols,

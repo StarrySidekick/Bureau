@@ -4272,6 +4272,11 @@ html[data-theme="walnut"] .toast{background:var(--paper-3);color:var(--ink)}
   padding:1px 5px;border-radius:var(--pill);
   background:color-mix(in srgb, var(--paper) 86%, transparent);white-space:nowrap}
 .ctxmenu.radial.shapering .radblob b{max-width:88px;overflow:hidden;text-overflow:ellipsis}
+/* The hold ring's labels wrap instead (decision 218): "Convert into Project"
+   and "Add to New Drawer" are the names Timothy chose, and cut short they
+   would say something else. Two lines at most, centred under the blob. */
+.ctxmenu.radial:not(.shapering) .radblob{width:104px}
+.ctxmenu.radial:not(.shapering) .radblob b{white-space:normal;max-width:104px;text-align:center}
 .radblob.danger .radpaint{background:radial-gradient(circle at 34% 30%, #F2B6A6, #D2644A 60%, #A9472F);color:#fff}
 .radblob.danger b{color:#B24A33}
 @media (prefers-reduced-motion: reduce){

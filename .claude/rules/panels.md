@@ -394,3 +394,11 @@ list in `VARIANTS` (panels.js), which is the only place to add one; the
 picker's family panel draws the same list as tiles. Labels on the shape ring
 are capped and ellipsed, because a painting's title is a sentence. See
 decision 216.
+
+
+**The object editor has two doors, Look and Behaviour** (decision 218).
+Collects and Advanced were folded into Behaviour: `at('collect')` and
+`at('adv')` are true inside it, and `OBJALIAS` sends a request for either old
+name there. The decoration and painting pickers are the one part of the
+fields block drawn in Look instead. A door is only added back if the
+Workshop asks for it.

@@ -905,7 +905,7 @@ function someKind(){
   /* Out of the picker's first two rows (decision 204 moved most of the old
      majors into the second), plus the collage, which `furnish()` lays with
      pictures so it is worth seeing. */
-  const pool = KEYS.filter(k => (isPrimary(k) || SECONDARY.includes(k) || k==='moodboard') && !K(k).cat && !K(k).family
+  const pool = KEYS.filter(k => (isPrimary(k) || SECONDARY.includes(k) || k==='moodboard') && !K(k).cat && !K(k).family && !K(k).makesAny
     && (k==='moodboard' || !kindHas(k,'container')) && !kindHas(k,'control') && !kindHas(k,'decor') && !kindHas(k,'backdrop'));
   return pool[Math.floor(Math.random()*pool.length)] || 'note';
 }

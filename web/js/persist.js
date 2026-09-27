@@ -19,7 +19,7 @@ import { plans, stampPlan } from './plans.js';
    Bureau is this phone running" is exactly the question you ask when a change
    appears not to have deployed. Shown in Settings, so it can be read off the
    device rather than guessed at. */
-const APP_VERSION = '2.14';
+const APP_VERSION = '2.15';
 const KEY = 'bureau.v1';
 const install = {deferred:null};   // the browser's install prompt, when one is on offer
 let saveTimer = null;
@@ -267,7 +267,7 @@ function rescalePhone(d, from, cols){
    skips all of them, an old backup replays only what it is missing. These
    used to be ad-hoc per-load mutations inside adopt(); a new repair that
    should run once belongs here, as the next numbered step. */
-const DATA_V = 43;
+const DATA_V = 44;
 const MIGRATIONS = [
   // Drawers and objects were two arrays and a drawer could not live inside
   // anything. foldDrawers also replays the old dense flow to give v1 drawers
@@ -1081,6 +1081,21 @@ const MIGRATIONS = [
         if(sh.w>1 || sh.h>1) o.shelves = sh;
       });
     }
+  }},
+  /* ---- the Workshop's second pass (decision 218) ------------------------
+     The Time door was cut, so the workday goes back to its default. Visual
+     Art is called Artwork, on a stock plan still wearing the old name. And
+     the eight flows Timothy named are added by key, once, the way 39 added
+     the twenty-three. */
+  {v:44, up(d){
+    const L = d.look || (d.look = {});
+    delete L.workday;
+    d.plans = d.plans || [];
+    d.plans.forEach(p=>{ if(p && p.stock==='visual' && p.nm==='Visual Art') p.nm = 'Artwork'; });
+    const have = new Set(d.plans.map(p=>p && p.stock).filter(Boolean));
+    const gone = new Set(RETIRED_KEYS);
+    const add = stockPlans().filter(p=>!have.has(p.stock) && !gone.has(p.stock));
+    if(add.length) d.plans = d.plans.concat(add);
   }},
 ];
 function migrate(d){

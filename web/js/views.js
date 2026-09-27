@@ -715,7 +715,7 @@ function shelfCountField(cid){
      itself. */
   if(!proportional()){
     const had = shelvesOf(cid);
-    return `<div class="field" style="margin-top:12px"><label>How long it is inside</label>
+    return `<div class="field" style="margin-top:12px"><label>Board Count</label>
       <div class="shelfpick" style="--sw:${PAGES_MAX}">${
         Array.from({length:PAGES_MAX}, (_,i)=>
           `<button class="shelfopt${i+1<=had.h?' on':''}"
@@ -771,7 +771,8 @@ const SETSECS = {
   /* Urgency is scaled by one number — how much work a day holds — and it is
      not a look, a board or a backup, so it is its own door rather than a row
      wedged into someone else's. See decisions 66 and 120. */
-  time:   ['Time','clock', "a day's work, and what makes a thing urgent"],
+  /* Time was cut in the Workshop (decision 218); the workday is back at its
+     default (migration 44) and the ladder is explained where urgency is set. */
   /* Not a setting at all: a door out to the specimen book, which is every
      aesthetic and everything each one dresses, generated out of the desk that
      is running. It sits among the look doors because that is what you are

@@ -118,6 +118,13 @@ Delete sits at the ring’s lower right. **Plans are called flows** in the
 interface; the code still says plan.
 **v2.14** (decision 217): line view stripes its paper rows in the board's two
 checkerboard colours.
+**v2.15** (decision 218): the Workshop's second pass. The object editor has
+two doors (Look, Behaviour); the hold ring keeps what a tap cannot do; the
+Time door is gone; types renamed and reordered, Sorting drawer and Recipe cut
+from every picker (`isCut()`), Decoration's subtypes are Plant, Physical
+Object, Painting and Window, and **Random** (`anything`) makes one of the
+others. Eight new stock flows, three of them in a fourth list, *Getting work
+done* (`sec:'work'`).
 The **Bureau Workshop** artifact (https://claude.ai/artifact/4TjyQZ5xcuxCYFgfnRm76k)
 holds Timothy's own rearrangement of every menu and type: read its
 `workshop/state` document before reorganising menus or types.
