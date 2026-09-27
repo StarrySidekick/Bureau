@@ -6085,6 +6085,14 @@ const PROP_OFF = () => { const b = document.createElement('button');
     out.aLinkSaysWhereItGoes = !!lt && lt.classList.contains('ptltile')
       && (said ? said.textContent.trim() === 'studiobinder.com' : lt.title.includes('studiobinder.com'))
       && !!lt.querySelector('[data-fire] .portal') && BUREAU.K.outlink.nm === 'Portal';
+    /* …in one of three openings and any object colour, and one the coin makes
+       is any of them (decision 223). */
+    { const M = await import('./js/mutations.js'), seen = new Set(), cs = new Set();
+      for(let i=0; i<40; i++){ const q = M.furnish(BUREAU.create('outlink', {parent:'root'}));
+        seen.add(q.pshape); cs.add(q.c); BUREAU.del(q.id); }
+      link.pshape = 'arch'; BUREAU.render(); await nap(120);
+      const la = document.querySelector(`#app .drawer.outtile[data-row="${link.id}"]`);
+      out.portalsComeInThreeShapes = seen.size === 3 && cs.size > 3 && !!la && la.classList.contains('pt-arch'); }
     S.view = 'desk'; S.drawerId = null;
     twice.concat(made).forEach(o => BUREAU.del(o.id));
     BUREAU.del(room.id);

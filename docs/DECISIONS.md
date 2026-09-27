@@ -10141,3 +10141,22 @@ a circle at its left end, and the words are woven into it, circular.
   dark dot painted on the label; the board shows through the spindle hole.
   The flank a tile shows when it stands proud is taken off a record, because
   a disc has no rectangle to stand on.
+
+## 223 · A portal's opening and its colour
+
+*2026-09-27.* Timothy: portals can be circular, square or an arch (flat along
+the bottom, a rounded arch on top), in any of the aesthetic's colours, and the
+spiral coin makes portals with any of those.
+
+- **`pshape`** on the object, `circle | square | arch` (`PORTAL_SHAPES` in
+  tiles.js), a **Portal shape** row in the editor's Look door. Circle is the
+  oval that fills the box, which is a circle on a square tile, and the default.
+  An arch's head is as round as half its width allows; a square's corners are
+  eased. The words follow the opening: round the oval, straight along a
+  square's top and bottom, over an arch's head and along its foot.
+- **The colour is the object's own** `--c`, any of the aesthetic's object
+  slots, from the throat to the rim and the glow, where it was the Magic
+  Selector's violet at the rim whatever the object said. A square or an arch
+  draws its rim along its own edge, as an inset shadow.
+- **`furnish()` rolls both** for a portal with no address yet, so the spiral
+  coin and the spiral button make any of the three in any colour.

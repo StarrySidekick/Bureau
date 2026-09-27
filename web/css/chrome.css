@@ -6054,14 +6054,35 @@ html[data-rows="fit"] .is-phone .gridbar.inrail .sqbtn{width:28px;height:28px}
   background:none;border:0;box-shadow:none;display:block;overflow:visible}
 .drawer.btntile.outtile.ptltile .outface .portal{position:absolute;inset:3%;left:3%;top:3%;width:auto;height:auto;
   transform:none;border-radius:50%;overflow:hidden;
+  /* **In the object's own colour** (decision 223): any of the aesthetic's
+     object slots, deep in the throat, bright at the rim and in the glow. */
   background:radial-gradient(ellipse closest-side,
-    #06020F 0 22%,
-    color-mix(in srgb, var(--c) 58%, #2A0F5C) 50%,
-    color-mix(in srgb, #8B5CF6 70%, #1A0B38) 76%,
-    color-mix(in srgb, #8B5CF6 85%, #fff) 90%,
-    #F3E8FF 96%, rgba(243,232,255,.6) 100%);
-  box-shadow:0 0 14px color-mix(in srgb, #8B5CF6 65%, transparent),
+    #05030A 0 22%,
+    color-mix(in srgb, var(--c) 48%, #0B0616) 50%,
+    color-mix(in srgb, var(--c) 82%, #0B0616) 76%,
+    color-mix(in srgb, var(--c) 72%, #fff) 90%,
+    color-mix(in srgb, var(--c) 18%, #fff) 96%,
+    color-mix(in srgb, var(--c) 30%, transparent) 100%);
+  box-shadow:0 0 14px color-mix(in srgb, var(--c) 70%, transparent),
              inset 0 0 12px rgba(0,0,0,.55)}
+/* The three openings (decision 223). An arch's head is as round as half its
+   width allows and its foot is flat; a square is a square with its corners
+   just eased. The swirls inside are the same circles clipped by each. */
+.drawer.btntile.outtile.ptltile.pt-square .outface .portal{border-radius:14%}
+.drawer.btntile.outtile.ptltile.pt-arch .outface .portal{
+  border-radius:47cqw 47cqw 5% 5% / min(47cqw, 58cqh) min(47cqw, 58cqh) 5% 5%}
+/* …and the lit rim is the opening's own edge, not an oval inside it: the
+   throat's colour runs out to the corners and the rim is drawn inset. */
+.drawer.btntile.outtile.ptltile.pt-square .outface .portal,
+.drawer.btntile.outtile.ptltile.pt-arch .outface .portal{
+  background:radial-gradient(ellipse closest-side,
+    #05030A 0 22%,
+    color-mix(in srgb, var(--c) 48%, #0B0616) 52%,
+    color-mix(in srgb, var(--c) 82%, #0B0616) 84%,
+    color-mix(in srgb, var(--c) 90%, #0B0616) 100%);
+  box-shadow:0 0 14px color-mix(in srgb, var(--c) 70%, transparent),
+    inset 0 0 0 2.5px color-mix(in srgb, var(--c) 18%, #fff),
+    inset 0 0 12px 4px color-mix(in srgb, var(--c) 70%, #fff)}
 .ptltile .outface .portal::before,.ptltile .outface .portal::after{display:none}
 .ptltile .pswirl{position:absolute;left:50%;top:50%;width:max(100cqw,100cqh);aspect-ratio:1;
   translate:-50% -50%;border-radius:50%;pointer-events:none;

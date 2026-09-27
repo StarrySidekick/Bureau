@@ -5,7 +5,7 @@ import { S, byId, K, KINDS, KEYS, kindHas, has, isContainer, genKindOf, streak, 
   placeOf, cfgOf, isHeld, heldObjects, homeFor , attrsOf, habitPlan, habitOn, tagSlug } from './model.js';
 import { GRID, PHONE_GRIDS, colsOf, gridOf, shelfRows, freeSpot, anySpot, roomFor, lay, boxOk, sizeOfKind, keepSize } from './grid.js';
 import { randomFront, randomBoard, randomLook, styleDefaults,
-  STYLES, CHECKS, DARKMODES, styleKey, applyStyle, applyLook } from './look.js';
+  STYLES, CHECKS, DARKMODES, styleKey, applyStyle, applyLook, OBJ0, OBJN } from './look.js';
 import { render, reveal } from './views.js';
 import { tileRect, pop, clRefill } from './motion.js';
 import { planForKind, stampPlan } from './plans.js';
@@ -989,6 +989,12 @@ function furnish(o){
     hangPainting(o, gal[Math.floor(Math.random()*gal.length)]);
   } else if(isPicture(o) && !isDecor(o) && !(o.media && (o.media.src||o.media.assetId))){
     const p = samplePicture(); if(p) o.media = pictureMedia(p);
+  }
+  /* A portal the coin or the spiral makes is any of them (decision 223): one
+     of the three openings, in any of the aesthetic's object colours. */
+  if(has(o,'button') && !(o.link && o.link.target)){
+    o.pshape = ['circle','square','arch'][Math.floor(Math.random()*3)];
+    o.c = OBJ0 + Math.floor(Math.random()*OBJN);
   }
   if(faceOf(o)==='collage' && !S.objects.some(x=>x.parent===o.id)){
     const n = 3 + Math.floor(Math.random()*2);

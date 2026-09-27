@@ -148,6 +148,8 @@ count, and the whole tile is one target (tap counts, hold drags).
 **v2.19** (decision 222): the Link is called a **Portal**, the whole tile is
 the vortex, and its name and address run round the rim (`portalWords()`); a
 record has a real hole in the middle.
+**v2.20** (decision 223): a portal is a circle, a square or an arch (`pshape`)
+in its own colour, and the coin makes any of them.
 The **Bureau Workshop** artifact (https://claude.ai/artifact/4TjyQZ5xcuxCYFgfnRm76k)
 holds Timothy's own rearrangement of every menu and type: read its
 `workshop/state` document before reorganising menus or types.

@@ -1223,23 +1223,44 @@ function projCover(o, cov, st){
    bottom for the address, hanging from it. Each is centred on its arc, and
    squeezed to fit only when it would run off it. Two half-arcs rather than
    one closed path, for the reason `discHTML()` gives. */
-function portalWords(id, nm, to, box){
+/* The three openings a portal can be (decision 223). */
+const PORTAL_SHAPES = {circle:'Circle', square:'Square', arch:'Arch'};
+function portalWords(id, nm, to, box, shape){
   const W = 100*Math.max(1, box.w), H = 100*Math.max(1, box.h);
   const cx = W/2, cy = H/2, m = Math.min(W, H);
   const fs = Math.max(9, Math.min(m*0.16, 22));
   const rx = W/2 - fs*1.35, ry = H/2 - fs*1.35;
-  const top = `M ${cx-rx} ${cy} A ${rx} ${ry} 0 0 1 ${cx+rx} ${cy}`;
-  const bot = `M ${cx-rx} ${cy} A ${rx} ${ry} 0 0 0 ${cx+rx} ${cy}`;
-  // how much arc there is, roughly, for `textLength` to fit a long name to
-  const arc = Math.PI * Math.sqrt((rx*rx + ry*ry)/2) * 0.9;
-  const fit = (t, size) => t.length*size*0.56 > arc ? ` textLength="${arc.toFixed(1)}" lengthAdjust="spacingAndGlyphs"` : '';
+  /* The words follow the opening. Round: two halves of the oval. Square:
+     straight along the top edge and the bottom one. An arch: over its curved
+     head, which is a half-oval as tall as half its width can be, and straight
+     along its flat foot. */
+  let top, bot, topLen, botLen;
+  if(shape==='square'){
+    const y0 = fs*1.55, y1 = H - fs*1.05, x0 = fs*1.1, x1 = W - fs*1.1;
+    top = `M ${x0} ${y0} L ${x1} ${y0}`; bot = `M ${x0} ${y1} L ${x1} ${y1}`;
+    topLen = botLen = (x1-x0)*0.94;
+  } else if(shape==='arch'){
+    const ar = Math.min(W/2, H*0.62), ay = ar;         // the head's centre line
+    const hx = W/2 - fs*1.35, hy = ar - fs*1.35;
+    top = `M ${cx-hx} ${ay} A ${hx} ${hy} 0 0 1 ${cx+hx} ${ay}`;
+    const y1 = H - fs*1.05, x0 = fs*1.3, x1 = W - fs*1.3;
+    bot = `M ${x0} ${y1} L ${x1} ${y1}`;
+    topLen = Math.PI * Math.sqrt((hx*hx + hy*hy)/2) * 0.9; botLen = (x1-x0)*0.94;
+  } else {
+    top = `M ${cx-rx} ${cy} A ${rx} ${ry} 0 0 1 ${cx+rx} ${cy}`;
+    bot = `M ${cx-rx} ${cy} A ${rx} ${ry} 0 0 0 ${cx+rx} ${cy}`;
+    topLen = botLen = Math.PI * Math.sqrt((rx*rx + ry*ry)/2) * 0.9;
+  }
+  const straight = shape==='square';
+  // how much line there is, roughly, for `textLength` to fit a long name to
+  const fit = (t, size, len) => t.length*size*0.56 > len ? ` textLength="${len.toFixed(1)}" lengthAdjust="spacingAndGlyphs"` : '';
   const pid = 'ptl_'+id;
   return `<svg class="ptlwords" viewBox="0 0 ${W} ${H}" aria-hidden="true">
     <defs><path id="${esc(pid)}t" d="${top}"/><path id="${esc(pid)}b" d="${bot}"/></defs>
     <text class="ptlname" font-size="${fs.toFixed(1)}"><textPath href="#${esc(pid)}t" startOffset="50%"
-      text-anchor="middle"${fit(nm, fs)}>${esc(nm)}</textPath></text>
-    <text class="ptlto" font-size="${(fs*0.72).toFixed(1)}" dy="${(fs*0.62).toFixed(1)}"><textPath href="#${esc(pid)}b" startOffset="50%"
-      text-anchor="middle"${fit(to, fs*0.72)}>${esc(to)}</textPath></text>
+      text-anchor="middle"${fit(nm, fs, topLen)}>${esc(nm)}</textPath></text>
+    <text class="ptlto" font-size="${(fs*0.72).toFixed(1)}" dy="${straight || shape==='arch' ? 0 : (fs*0.62).toFixed(1)}"><textPath href="#${esc(pid)}b" startOffset="50%"
+      text-anchor="middle"${fit(to, fs*0.72, botLen)}>${esc(to)}</textPath></text>
   </svg>`;
 }
 
@@ -2330,12 +2351,15 @@ function drawTileFace(o, arr, box, persp){
   if(has(o,'button') && (!tgt || outURL(tgt))){
     const to = tgt ? whereTo(tgt) : 'no address yet';
     const nm = o.title || (o.link && o.link.label) || 'Portal';
-    return `<button class="drawer otile sh-button btntile outtile ptltile${sel}" data-row="${o.id}"
+    /* Round, square or an arch (decision 223): the opening's own shape,
+       which the words follow too. */
+    const ps = PORTAL_SHAPES[o.pshape] ? o.pshape : 'circle';
+    return `<button class="drawer otile sh-button btntile outtile ptltile pt-${ps}${sel}" data-row="${o.id}"
       style="--c:${colour};${place}" title="${esc(nm)} — ${esc(to)}">
       ${chips}
       <span class="btnface outface" data-fire="${o.id}">
         <i class="portal" aria-hidden="true" style="--pt:-${((Date.now()/1000) % 77).toFixed(2)}s"><i class="pswirl"></i><i class="pswirl back"></i></i>
-        ${box.w*box.h>1 ? portalWords(o.id, nm, to, box) : ''}
+        ${box.w*box.h>1 ? portalWords(o.id, nm, to, box, ps) : ''}
       </span>
       ${handles}
     </button>`;
@@ -3256,5 +3280,5 @@ function bookView(c, items){
    (the *object's* setting, a different thing entirely) is untouched. */
 export { spinTo, CLICKS, clickOf, fireButton, intoOf, tileTap, pending, placeAtPending, SHELFSHIFT,
   scratchGrab, scratchTo, scratchGo,
-  gridTile, gridOfContainer, listTile, boardVarsOf, TOOLS, threadTo, bookOf, bookView, sheetOf, turnPage, clearPages,
+  gridTile, gridOfContainer, listTile, boardVarsOf, TOOLS, threadTo, PORTAL_SHAPES, bookOf, bookView, sheetOf, turnPage, clearPages,
   calSpan, calFront };

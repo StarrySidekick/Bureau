@@ -19,7 +19,7 @@ import { newOfKind } from './wire.js';
 import { GRID, lay, boxOk, freeSpot, anySpot, sizeOfKind, toPhoneSize, keepSize } from './grid.js';
 import { randomBoard, randomFront, hexOf, objColour, objSlots, famSlots, famAll, FAMS, styleKey, stockNow, CHECKS, checkNow } from './look.js';
 import { FILLS, FILL_KEYS, isCut } from './model.js';
-import { CLICKS, clickOf, gridTile, pending } from './tiles.js';
+import { CLICKS, clickOf, gridTile, pending, PORTAL_SHAPES } from './tiles.js';
 import { isActive, activeZoom, activeSay, activeName, DICE, CLOCKS } from './active.js';
 import { DECOR, decorOf, decorSVG, decorFor, decorRest, LIFE_ART, LIFE_KEYS, lifeSVG } from './decor.js';
 import { quickAdd, toast, drawerForTag, CONTROLS, CTL_KEYS, ctlSpec, galleryOf, PAINTINGS, pictureMedia } from './mutations.js';
@@ -1318,6 +1318,10 @@ function objectPanelBody(id, sec){
      longer offered (a task's sliver, a bar's blocks), and an object wearing one
      has to be able to say so and to walk off it. */
   if(!isRoot && !cont) out.push(prow('Shape', pcycle(id,'shape', shapeChoices(shapeOf(d), d), shapeOf(d))));
+  /* A portal's opening (decision 223): round, square or an arch. Any button
+     with no address yet, or one that goes somewhere outside, draws as one. */
+  if(!isRoot && has(d,'button') && !(d.link && d.link.target && !outURL(d.link.target)))
+    out.push(prow('Portal shape', pcycle(id,'pshape', Object.entries(PORTAL_SHAPES), PORTAL_SHAPES[d.pshape] ? d.pshape : 'circle')));
   if(!isRoot && cont){
     if(faceOf(d)==='spine' || (d[dev()]||{}).w<=1)
       out.push(slotRow('Binding', id, 'bn', slotRaw(d,'binding')||bindingOf(d),
