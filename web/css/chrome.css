@@ -6038,3 +6038,61 @@ html[data-rows="fit"] .is-phone .gridbar.inrail .sqbtn{width:28px;height:28px}
 .cnttile .wheel b u s{text-decoration:none;line-height:1;
   font-size:min(.74em, calc(100cqw / var(--wheels,1) * 1.2));
   text-shadow:0 1px 0 rgba(0,0,0,.8)}
+
+/* ---- a Portal is the whole object — decision 222 -----------------------
+   No button behind it. The tile is the portal: an oval the shape of its box,
+   the object's own colour deep in the throat, the Magic Selector's violet at
+   a lit rim, and two swirls turning inside it the opposite ways. The swirls
+   are circles as big as the long side, clipped by the oval, so what turns is
+   round and only the opening is oval — a turned oval wobbles. The words are
+   an SVG over it (`portalWords()` in tiles.js). */
+.drawer.otile.btntile.outtile.ptltile{background:none;border:0;box-shadow:none;padding:0;
+  overflow:visible}
+.drawer.otile.btntile.outtile.ptltile::before,.drawer.otile.btntile.outtile.ptltile::after,
+.ptltile > .dpanel,.ptltile > .dgrain,.ptltile > .dside{display:none}
+.drawer.btntile.outtile.ptltile .btnface.outface{position:absolute;inset:0;padding:0;
+  background:none;border:0;box-shadow:none;display:block;overflow:visible}
+.drawer.btntile.outtile.ptltile .outface .portal{position:absolute;inset:3%;left:3%;top:3%;width:auto;height:auto;
+  transform:none;border-radius:50%;overflow:hidden;
+  background:radial-gradient(ellipse closest-side,
+    #06020F 0 22%,
+    color-mix(in srgb, var(--c) 58%, #2A0F5C) 50%,
+    color-mix(in srgb, #8B5CF6 70%, #1A0B38) 76%,
+    color-mix(in srgb, #8B5CF6 85%, #fff) 90%,
+    #F3E8FF 96%, rgba(243,232,255,.6) 100%);
+  box-shadow:0 0 14px color-mix(in srgb, #8B5CF6 65%, transparent),
+             inset 0 0 12px rgba(0,0,0,.55)}
+.ptltile .outface .portal::before,.ptltile .outface .portal::after{display:none}
+.ptltile .pswirl{position:absolute;left:50%;top:50%;width:max(100cqw,100cqh);aspect-ratio:1;
+  translate:-50% -50%;border-radius:50%;pointer-events:none;
+  background:conic-gradient(from 0deg,
+    transparent 0 6%, rgba(233,213,255,.7) 14%, transparent 26%,
+    rgba(196,181,253,.5) 38%, transparent 50%,
+    rgba(233,213,255,.7) 64%, transparent 76%,
+    rgba(196,181,253,.5) 88%, transparent 100%);
+  -webkit-mask:radial-gradient(circle closest-side, transparent 8%, #000 30%, #000 62%, transparent 74%);
+          mask:radial-gradient(circle closest-side, transparent 8%, #000 30%, #000 62%, transparent 74%);
+  animation:portalTurn 7s linear infinite;animation-delay:var(--pt,0s)}
+.ptltile .pswirl.back{
+  background:repeating-conic-gradient(from 20deg, rgba(255,255,255,.2) 0 7deg, transparent 7deg 40deg);
+  -webkit-mask:radial-gradient(circle closest-side, transparent 4%, #000 12%, #000 36%, transparent 50%);
+          mask:radial-gradient(circle closest-side, transparent 4%, #000 12%, #000 36%, transparent 50%);
+  animation-name:portalTurnBack;animation-duration:11s}
+.ptlwords{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
+.ptlwords text{font-family:var(--serif);font-weight:600;letter-spacing:.04em;
+  fill:#FBF6FF;paint-order:stroke;stroke:rgba(18,6,40,.8);stroke-width:2.2px;stroke-linejoin:round}
+.ptlwords .ptlto{font-family:var(--sans);font-weight:500;letter-spacing:.08em;fill:#E9DDFF}
+@media (prefers-reduced-motion: reduce){ .ptltile .pswirl{animation:none} }
+
+/* ---- a record has a hole in the middle — decision 222 -----------------
+   The middle of the label was a dark dot painted on it, which read as a
+   centre stuck to the record rather than as the spindle hole every real disc
+   has. It is cut through now: a mask on the whole disc, so the board shows
+   through the middle and the hole turns with it without anything to turn. */
+.projdisc .cd{
+  -webkit-mask:radial-gradient(circle closest-side, transparent 0 5%, #000 5.6%);
+          mask:radial-gradient(circle closest-side, transparent 0 5%, #000 5.6%)}
+.projdisc .cd b::after{display:none}
+/* …and a record lying on the desk has no side to stand proud on: the flank
+   a card shows is a rectangle, and a disc is not one. */
+.sndtile > .dside,.projtile.bare > .dside{display:none}

@@ -6079,8 +6079,12 @@ const PROP_OFF = () => { const b = document.createElement('button');
       `#app .grid .drawer[data-drawer="${o.id}"], #app .grid .drawer[data-row="${o.id}"]`));
     const link = top.find(o => o.kind === 'outlink');
     const lt = link && document.querySelector(`#app .drawer.outtile[data-row="${link.id}"]`);
-    out.aLinkSaysWhereItGoes = !!lt && lt.querySelector('.outface u').textContent === 'studiobinder.com'
-      && !!lt.querySelector('[data-fire]');
+    /* A Portal since decision 222: the tile is the portal, and where it goes
+       runs round the bottom of its rim. */
+    const said = lt && lt.querySelector('.ptlto');
+    out.aLinkSaysWhereItGoes = !!lt && lt.classList.contains('ptltile')
+      && (said ? said.textContent.trim() === 'studiobinder.com' : lt.title.includes('studiobinder.com'))
+      && !!lt.querySelector('[data-fire] .portal') && BUREAU.K.outlink.nm === 'Portal';
     S.view = 'desk'; S.drawerId = null;
     twice.concat(made).forEach(o => BUREAU.del(o.id));
     BUREAU.del(room.id);
@@ -8909,6 +8913,14 @@ const PROP_OFF = () => { const b = document.createElement('button');
          never be six tenths of its height however large the type is. */
       return (!l || getComputedStyle(l).display === 'none')
         && a.width > r.width*0.6 && a.width <= r.width + 1; })();
+    /* A record has a hole in the middle, cut through rather than painted on
+       (decision 222), and no flank. */
+    mk({ id:'rec', kind:'audio', title:'Blue in Green', desk:{x:20,y:24,w:3,h:3} });
+    BUREAU.render(); await nap(120);
+    out.aRecordHasAHole = (() => { const t = document.querySelector('[data-row="rec"]'),
+        cd = t && t.querySelector('.cd'), cs = cd && getComputedStyle(cd), sd = t && t.querySelector('.dside');
+      return !!cd && /radial-gradient/.test(cs.maskImage || cs.webkitMaskImage || '')
+        && (!sd || getComputedStyle(sd).display === 'none'); })();
     /* …and it is **wheels, one per height of width** (decision 221): a 2×2 is
        one wheel showing the last digit, a 3×1 three showing the last three,
        and there is no tile behind them. */

@@ -703,7 +703,8 @@ const BUILTIN_KINDS = {
      the editor and the tile were already there. It opens nothing until it has
      an address, and pressing an empty one opens its editor to give it one.
      See decision 194. */
-  outlink: {nm:'Link', ic:'arrow', c:9, ds:'Sends you somewhere else — a site, an app, a number to call',
+  /* Called a **Portal** since decision 222: the key stays `outlink`. */
+  outlink: {nm:'Portal', ic:'arrow', c:9, ds:'A way out of Bureau — a site, an app, a number to call',
      size:[4,1], phoneSize:[4,1], onclick:'none', attrs:['button'], body:'' },
   /* A **review** is what you made of a film, a book, an album or a game — the
      one thing all of the experience boards collect. A rating, the day, a link

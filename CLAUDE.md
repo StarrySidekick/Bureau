@@ -145,6 +145,9 @@ corner. Migration 46 trims an old desk to the boards it uses.
 **v2.18** (decision 221): a **counter is its wheels**: no tile behind them,
 one wheel per height of width (`wheelsFor()`), showing the last digits of the
 count, and the whole tile is one target (tap counts, hold drags).
+**v2.19** (decision 222): the Link is called a **Portal**, the whole tile is
+the vortex, and its name and address run round the rim (`portalWords()`); a
+record has a real hole in the middle.
 The **Bureau Workshop** artifact (https://claude.ai/artifact/4TjyQZ5xcuxCYFgfnRm76k)
 holds Timothy's own rearrangement of every menu and type: read its
 `workshop/state` document before reorganising menus or types.

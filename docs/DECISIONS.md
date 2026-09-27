@@ -10121,3 +10121,23 @@ another wheel for the extra width.
   that made a counter impossible to move. A tap is now the counter's `count`
   tap through `clickOf()`, and a hold carries it like anything else.
 - A counter at one cell is a wheel, not the anonymous one-cell mark.
+
+## 222 · Portals, and a record with a hole in it
+
+*2026-09-27.* Timothy: a music disc should not have a centre, like an actual
+one; Links are called **Portals**, the portal is the whole object rather than
+a circle at its left end, and the words are woven into it, circular.
+
+- **The Link type is called Portal** in the interface. Its key stays
+  `outlink`, so nothing is migrated.
+- **The tile is the portal**: no button behind it, an oval the shape of its
+  box, the vortex turning inside it on two swirls that are circles clipped by
+  the oval (a turned oval wobbles). One cell is the portal alone.
+- **The words go round it** (`portalWords()` in tiles.js): an SVG in the
+  tile's own proportion, so the letters are not stretched; the name along the
+  top of the rim and where it goes along the bottom, both reading left to
+  right, each squeezed onto its arc only when it would run off it.
+- **A record's middle is cut through**, a mask on the disc, where it was a
+  dark dot painted on the label; the board shows through the spindle hole.
+  The flank a tile shows when it stands proud is taken off a record, because
+  a disc has no rectangle to stand on.

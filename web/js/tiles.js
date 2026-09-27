@@ -1215,6 +1215,34 @@ function projCover(o, cov, st){
   }
 }
 
+/* The words round a portal, as SVG, because type on a curve is the one thing
+   CSS cannot set. The viewBox is the tile's own proportion, so the oval the
+   words follow is the oval the portal is and the letters are not stretched.
+   Two arcs of one ellipse just inside the rim, each running left to right so
+   both read upright: over the top for the name, standing on it, and under the
+   bottom for the address, hanging from it. Each is centred on its arc, and
+   squeezed to fit only when it would run off it. Two half-arcs rather than
+   one closed path, for the reason `discHTML()` gives. */
+function portalWords(id, nm, to, box){
+  const W = 100*Math.max(1, box.w), H = 100*Math.max(1, box.h);
+  const cx = W/2, cy = H/2, m = Math.min(W, H);
+  const fs = Math.max(9, Math.min(m*0.16, 22));
+  const rx = W/2 - fs*1.35, ry = H/2 - fs*1.35;
+  const top = `M ${cx-rx} ${cy} A ${rx} ${ry} 0 0 1 ${cx+rx} ${cy}`;
+  const bot = `M ${cx-rx} ${cy} A ${rx} ${ry} 0 0 0 ${cx+rx} ${cy}`;
+  // how much arc there is, roughly, for `textLength` to fit a long name to
+  const arc = Math.PI * Math.sqrt((rx*rx + ry*ry)/2) * 0.9;
+  const fit = (t, size) => t.length*size*0.56 > arc ? ` textLength="${arc.toFixed(1)}" lengthAdjust="spacingAndGlyphs"` : '';
+  const pid = 'ptl_'+id;
+  return `<svg class="ptlwords" viewBox="0 0 ${W} ${H}" aria-hidden="true">
+    <defs><path id="${esc(pid)}t" d="${top}"/><path id="${esc(pid)}b" d="${bot}"/></defs>
+    <text class="ptlname" font-size="${fs.toFixed(1)}"><textPath href="#${esc(pid)}t" startOffset="50%"
+      text-anchor="middle"${fit(nm, fs)}>${esc(nm)}</textPath></text>
+    <text class="ptlto" font-size="${(fs*0.72).toFixed(1)}" dy="${(fs*0.62).toFixed(1)}"><textPath href="#${esc(pid)}b" startOffset="50%"
+      text-anchor="middle"${fit(to, fs*0.72)}>${esc(to)}</textPath></text>
+  </svg>`;
+}
+
 /* ---- a switch is a piece of hardware, and hardware comes in sizes -------
    One cell is a **push button**: a disc you press, because at 40px a lever has
    no throw to read. One cell in either direction is a **light switch**: a
@@ -2291,17 +2319,23 @@ function drawTileFace(o, arr, box, persp){
      an instrument's is (decision 182) — a negative delay into a 77s cycle,
      which both of its turns (7s and 11s) divide — and a board rebuilt under
      it carries on turning rather than snapping back. Decision 201. */
+  /* **A Portal is the whole object** (decision 222). The Link was a dark
+     button with a portal at its left end and its name set beside it; now the
+     tile *is* the portal — an oval the shape of its box, the vortex turning in
+     it — and the words go round it: the name along the top of the rim and
+     where it goes along the bottom, each on its own curve (`portalWords()`),
+     the way lettering runs round a seal. One cell is the portal alone, and
+     the name is on the tooltip. */
   const tgt = o.link && o.link.target;
   if(has(o,'button') && (!tgt || outURL(tgt))){
     const to = tgt ? whereTo(tgt) : 'no address yet';
-    return `<button class="drawer otile ${paper(o)} sh-button btntile outtile${sel}" data-row="${o.id}"
-      style="--c:${colour};${place}" title="${esc(to)}">
+    const nm = o.title || (o.link && o.link.label) || 'Portal';
+    return `<button class="drawer otile sh-button btntile outtile ptltile${sel}" data-row="${o.id}"
+      style="--c:${colour};${place}" title="${esc(nm)} — ${esc(to)}">
       ${chips}
       <span class="btnface outface" data-fire="${o.id}">
-        <i class="portal" aria-hidden="true" style="--pt:-${((Date.now()/1000) % 77).toFixed(2)}s"></i>
-        <b>${esc(o.title||(o.link&&o.link.label)||'Link')}</b>
-        <u>${esc(to)}</u>
-        <i class="outarrow">${ic('arrow',14)}</i>
+        <i class="portal" aria-hidden="true" style="--pt:-${((Date.now()/1000) % 77).toFixed(2)}s"><i class="pswirl"></i><i class="pswirl back"></i></i>
+        ${box.w*box.h>1 ? portalWords(o.id, nm, to, box) : ''}
       </span>
       ${handles}
     </button>`;
