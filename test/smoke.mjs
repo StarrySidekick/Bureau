@@ -599,11 +599,15 @@ const PROP_OFF = () => { const b = document.createElement('button');
     await new Promise(r=>setTimeout(r,60));
     const lines = () => document.querySelectorAll('.strings .strln path').length;
     const onePerPair = lines() === 1;
-    // the pins sit on the tile centres, to the pixel, in the board's own cells
+    /* the pins sit a quarter-cell in from each tile's top-left corner
+       (decision 220), to the pixel, in the board's own cells */
     const mid = el => { const r = el.getBoundingClientRect();
       return { x:r.x+r.width/2, y:r.y+r.height/2 }; };
+    const cell = parseFloat(getComputedStyle(document.querySelector('#drawergrid')).getPropertyValue('--rowh'));
+    const corner = el => { const r = el.getBoundingClientRect();
+      return { x:r.x + 0.24*cell, y:r.y + 0.24*cell }; };
     const pins = [...document.querySelectorAll('.strings .strpin circle')].map(mid);
-    const tiles = ['str_a','str_b'].map(id => mid(document.querySelector(`[data-row="${id}"]`)));
+    const tiles = ['str_a','str_b'].map(id => corner(document.querySelector(`[data-row="${id}"]`)));
     const far = (p,t) => Math.max(Math.abs(p.x-t.x), Math.abs(p.y-t.y));
     const drift = pins.length === 2 ? Math.min(
       Math.max(far(pins[0],tiles[0]), far(pins[1],tiles[1])),
@@ -2089,7 +2093,9 @@ const PROP_OFF = () => { const b = document.createElement('button');
     /* The name in the bar opens the **shelf map**: the nine, laid out as they
        actually are, and pressing one goes there. */
     document.querySelector('.gridbar .deskname, .toplip .deskname').click(); await nap(250);
-    out.theNameOpensTheMap = document.querySelectorAll('#panel .shelfcard').length === 9;
+    // nine boards, and a plus card on every slot round them (decision 219)
+    out.theNameOpensTheMap = document.querySelectorAll('#panel .shelfcard:not(.addcard)').length === 9
+      && document.querySelectorAll('#panel .shelfcard.addcard').length === 12;
     document.querySelector('#panel .shelfcard[data-shelfgo="root:2:0"]').click(); await nap(250);
     out.aCardJumps = JSON.stringify(BUREAU.shelfAt('root')) === JSON.stringify({x:2,y:0});
     BUREAU.goShelfTo('root', 1, 1); await nap(150);
@@ -2134,8 +2140,9 @@ const PROP_OFF = () => { const b = document.createElement('button');
                 of everything needs. */
              roomForThem: ['d_alldr','d_allob'].every(id => {
                const d = BUREAU.state.objects.find(o=>o.id===id);
-               return d && d.desk.w >= 6 && d.desk.h >= 6
-                 && d.shelves && d.shelves.w === 3 && d.shelves.h === 3; }),
+               /* Nine boards each since decision 219 packed the seed onto one
+                  board of the desk: the room is the boards, not the tile. */
+               return d && d.shelves && d.shelves.w === 3 && d.shelves.h === 3; }),
              knobIsMedium: BUREAU.K.drawer.knobsize === undefined
                && getComputedStyle(document.querySelector('.grid .dtile .pull')).width !== '' };
   });
@@ -2215,10 +2222,13 @@ const PROP_OFF = () => { const b = document.createElement('button');
     out.twoFingersSidewaysWalksShelves = at().x === 2;
     swipe(160,0); await nap(260);
     out.andBackAcross = at().x === 1;
-    // the row does not wrap: the edge gives rather than carrying you round
+    /* The row does not wrap. Off the edge is an empty slot with a plus on
+       it (decision 219), and one step further is nothing: the strip gives. */
     BUREAU.goShelfTo('root', 2, 2); await nap(200);
     swipe(-160,0); await nap(260);
-    out.stopsAtTheEdge = at().x === 2;
+    const slot = at().x === 3 && !BUREAU.isBoard('root', 3, 2);
+    swipe(-160,0); await nap(260);
+    out.stopsAtTheEdge = slot && at().x === 3;
     BUREAU.goShelfTo('root', 1, 1); await nap(200);
     return out;
   });
@@ -6000,10 +6010,14 @@ const PROP_OFF = () => { const b = document.createElement('button');
     /* One shelf, on both devices. Eight columns by twelve rows is what fits a
        phone shelf, a Mac shelf and the inside of any drawer at once. */
     const boxes = p => p.objects.filter(o => o.parent === '__plan');
+    /* …or several such boards (decision 219), each box inside one of them:
+       a board of a flow is eight by fourteen wherever it sits. */
+    const inABoard = b => b && ((b.x-1) % 8) + b.w <= 8 && ((b.y-1) % 14) + b.h <= 14;
     out.everyPlanIsAShelf = ps.every(p => boxes(p).every(o =>
-      o.desk && o.phone &&
-      o.desk.x + o.desk.w - 1 <= 8 && o.desk.y + o.desk.h - 1 <= 14 &&
-      o.phone.x + o.phone.w - 1 <= 8 && o.phone.y + o.phone.h - 1 <= 14));
+      o.desk && o.phone && (p.boards
+        ? inABoard(o.desk) && inABoard(o.phone)
+        : o.desk.x + o.desk.w - 1 <= 8 && o.desk.y + o.desk.h - 1 <= 14 &&
+          o.phone.x + o.phone.w - 1 <= 8 && o.phone.y + o.phone.h - 1 <= 14)));
     // and nothing on one overlaps anything else on it, per device
     const clear = (p, dv) => { const b = boxes(p).map(o => o[dv]);
       return b.every((a, i) => b.every((c, j) => i === j ||
@@ -6171,7 +6185,9 @@ const PROP_OFF = () => { const b = document.createElement('button');
     // the board's own way in is there, and the type's seed is not
     out.andNotTheSeedToo = !fk.some(o => o.kind === 'generator' && /film/i.test(o.title))
       && fk.some(o => o.kind === 'generator' && o.title === 'Add to this…');
-    out.withRoomBeside = (film.shelves || {}).w >= 2;
+    /* No spare screen beside it any more (decision 219): a board is added
+       where you want one, so a Film is the board its flow is. */
+    out.withRoomBeside = BUREAU.boardsOf(film.id).length === 1;
     // a Life drawer made for Health, through the question it asks
     const pressIn = (attr, val) => { const b = document.createElement('button');
       b.dataset[attr] = val; b.style.display = 'none';
@@ -6226,8 +6242,11 @@ const PROP_OFF = () => { const b = document.createElement('button');
     /* A container is one screen wide and grows downward since 2026-09-23, so
        the board keeps its length and what was out to the side comes back onto
        the column when it is next drawn. */
+    /* …and since decision 219 a board may be wider than one, so what was out
+       to the side keeps a board to be on rather than coming back onto the
+       column. */
     out.switchingOffKeepsTheLength = !S.look.proportional
-      && BUREAU.shelvesOf(big.id).w === 1 && BUREAU.shelvesOf(big.id).h >= 2;
+      && BUREAU.shelvesOf(big.id).h >= 2 && BUREAU.shelvesOf(big.id).w >= 1;
     [plain, film, life, ff, box, busy, big].filter(Boolean).forEach(c => {
       S.objects.filter(o => o.parent === c.id).forEach(o => BUREAU.del(o.id));
       BUREAU.del(c.id); });
@@ -6246,7 +6265,8 @@ const PROP_OFF = () => { const b = document.createElement('button');
     const S = BUREAU.state, out = {};
     const ps = BUREAU.plans().filter(p => p.stock);
     const top = p => p.objects.filter(o => o.parent === '__plan');
-    out.fourteenRows = ps.every(p => Math.max(...top(p).map(o => o.desk.y + o.desk.h - 1)) === 14);
+    // fourteen rows a board, on a flow of several boards too (decision 219)
+    out.fourteenRows = ps.every(p => Math.max(...top(p).map(o => ((o.desk.y - 1) % 14) + o.desk.h)) === 14);
     out.theBottomIsAWayIn = ps.every(p => top(p).some(o => o.kind === 'generator'
       && o.desk.y === 13 && o.desk.h === 2 && o.desk.w === 8));
     // a pasted board, filled by the titles of the things on it
