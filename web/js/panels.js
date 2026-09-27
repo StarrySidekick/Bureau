@@ -19,7 +19,7 @@ import { newOfKind } from './wire.js';
 import { GRID, lay, boxOk, freeSpot, anySpot, sizeOfKind, toPhoneSize, keepSize } from './grid.js';
 import { randomBoard, randomFront, hexOf, objColour, objSlots, famSlots, famAll, FAMS, styleKey, stockNow, CHECKS, checkNow } from './look.js';
 import { FILLS, FILL_KEYS, isCut } from './model.js';
-import { CLICKS, clickOf, gridTile, pending, PORTAL_SHAPES } from './tiles.js';
+import { CLICKS, clickOf, gridTile, pending, PORTAL_SHAPES, PORTAL_STYLES, PORTAL_EDGES } from './tiles.js';
 import { isActive, activeZoom, activeSay, activeName, DICE, CLOCKS } from './active.js';
 import { DECOR, decorOf, decorSVG, decorFor, decorRest, LIFE_ART, LIFE_KEYS, lifeSVG } from './decor.js';
 import { quickAdd, toast, drawerForTag, CONTROLS, CTL_KEYS, ctlSpec, galleryOf, PAINTINGS, pictureMedia } from './mutations.js';
@@ -1321,7 +1321,11 @@ function objectPanelBody(id, sec){
   /* A portal's opening (decision 223): round, square or an arch. Any button
      with no address yet, or one that goes somewhere outside, draws as one. */
   if(!isRoot && has(d,'button') && !(d.link && d.link.target && !outURL(d.link.target)))
-    out.push(prow('Portal shape', pcycle(id,'pshape', Object.entries(PORTAL_SHAPES), PORTAL_SHAPES[d.pshape] ? d.pshape : 'circle')));
+  { out.push(prow('Portal shape', pcycle(id,'pshape', Object.entries(PORTAL_SHAPES), PORTAL_SHAPES[d.pshape] ? d.pshape : 'circle')));
+    // what is in it and what is on its edge — decision 226
+    out.push(prow('In the portal', pcycle(id,'pstyle', Object.entries(PORTAL_STYLES), PORTAL_STYLES[d.pstyle] ? d.pstyle : 'vortex'),
+      d.pstyle==='glimpse' ? 'a picture of the page, from WordPress\u2019s screenshot service' : ''));
+    out.push(prow('Portal edge', pcycle(id,'pedge', Object.entries(PORTAL_EDGES), PORTAL_EDGES[d.pedge] ? d.pedge : 'none'))); }
   if(!isRoot && cont){
     if(faceOf(d)==='spine' || (d[dev()]||{}).w<=1)
       out.push(slotRow('Binding', id, 'bn', slotRaw(d,'binding')||bindingOf(d),

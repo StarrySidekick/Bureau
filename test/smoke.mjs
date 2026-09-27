@@ -6098,7 +6098,17 @@ const PROP_OFF = () => { const b = document.createElement('button');
       const la = document.querySelector(`#app .drawer.outtile[data-row="${link.id}"]`);
       out.portalsComeInThreeShapes = seen.size === 3 && cs.size > 3 && !!la && la.classList.contains('pt-arch')
         // …and the vortex is stretched to the opening, not a circle inside it (225)
-        && !!la.querySelector('.portal .pwhirl') && !!la.querySelector('.portal').style.getPropertyValue('--pa'); }
+        && !!la.querySelector('.portal .pwhirl') && !!la.querySelector('.portal').style.getPropertyValue('--pa');
+      /* What is in it and on its edge (decision 226): each style draws its own
+         inside, vines draw a vine, and the frame is the carcass's wood. */
+      const lay = async (st, ed) => { link.pstyle = st; link.pedge = ed; BUREAU.render(); await nap(80);
+        return document.querySelector(`#app .drawer.outtile[data-row="${link.id}"]`); };
+      const dr = await lay('drift','vines'), drOk = !!dr.querySelector('.pdrift') && !!dr.querySelector('.pvines path');
+      const rg = await lay('rings','glow'), rgOk = rg.querySelectorAll('.pring').length === 6 && rg.classList.contains('pe-glow');
+      const gl = await lay('glimpse','none'), glOk = !!gl.querySelector('.pshot') && /mshots/.test(gl.querySelector('.pshot').style.backgroundImage);
+      const fr = getComputedStyle(gl.querySelector('.portal'), '::after').boxShadow;
+      out.portalStylesAndEdges = drOk && rgOk && glOk && fr !== 'none';
+      link.pstyle = 'vortex'; link.pedge = 'none'; BUREAU.render(); }
     S.view = 'desk'; S.drawerId = null;
     twice.concat(made).forEach(o => BUREAU.del(o.id));
     BUREAU.del(room.id);

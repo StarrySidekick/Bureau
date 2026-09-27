@@ -6138,3 +6138,92 @@ html[data-rows="fit"] .is-phone .gridbar.inrail .sqbtn{width:28px;height:28px}
 /* …and a record lying on the desk has no side to stand proud on: the flank
    a card shows is a rectangle, and a disc is not one. */
 .sndtile > .dside,.projtile.bare > .dside{display:none}
+
+/* ---- a portal's frame, its edge and what is in it — decision 226 -------
+   **The frame is the carcass's wood**, drawn on the portal's own `::after`
+   so it sits over whatever is in the opening (an inset shadow is painted
+   under the children, and a glimpse or a drift would cover it). A square,
+   and an arch, fill their cells to the edge; the oval keeps a margin for its
+   glow. */
+.drawer.btntile.outtile.ptltile .outface .portal,
+.drawer.btntile.outtile.ptltile.pt-square .outface .portal,
+.drawer.btntile.outtile.ptltile.pt-arch .outface .portal{--pfr:5px;
+  box-shadow:0 2px 7px rgba(0,0,0,.45)}
+.drawer.btntile.outtile.ptltile.pt-circle .outface .portal{
+  background:radial-gradient(ellipse closest-side,
+    #05030A 0 22%,
+    color-mix(in srgb, var(--c) 48%, #0B0616) 52%,
+    color-mix(in srgb, var(--c) 82%, #0B0616) 84%,
+    color-mix(in srgb, var(--c) 92%, #0B0616) 100%)}
+.drawer.btntile.outtile.ptltile.pt-square .outface .portal{inset:0;left:0;top:0;border-radius:4px}
+.drawer.btntile.outtile.ptltile.pt-arch .outface .portal{inset:0;left:0;top:0;
+  border-radius:50cqw 50cqw 4px 4px / min(50cqw, 58cqh) min(50cqw, 58cqh) 4px 4px}
+.drawer.btntile.outtile.ptltile .outface .portal::after{display:block;content:'';position:absolute;inset:0;
+  border-radius:inherit;pointer-events:none;z-index:3;animation:none;background:none;-webkit-mask:none;mask:none;
+  box-shadow:inset 0 0 0 var(--pfr) var(--wood),
+    inset 0 0 0 calc(var(--pfr) + 1.5px) rgba(0,0,0,.5),
+    inset 0 0 14px calc(var(--pfr) + 2px) rgba(0,0,0,.45),
+    inset 0 1px 0 calc(var(--pfr) - 3px) rgba(255,255,255,.12)}
+.ptlwords{z-index:4}
+.ptltile .pvines{position:absolute;inset:0;width:100%;height:100%;overflow:visible;
+  pointer-events:none;z-index:4;filter:drop-shadow(0 1px 1px rgba(0,0,0,.45))}
+.ptltile.pt-circle .pvines{inset:0}
+.pvstem{fill:none;stroke:#3E5A24;stroke-linecap:round;stroke-linejoin:round}
+.pvleaf ellipse{fill:#5F8B35;stroke:#2C4214;stroke-width:.7}
+/* **A glow** is the portal's own colour breathing round the frame. */
+.drawer.btntile.outtile.ptltile.pe-glow .outface .portal{animation:pglow 3.4s ease-in-out infinite}
+@keyframes pglow{
+  0%,100%{box-shadow:0 2px 7px rgba(0,0,0,.45), 0 0 6px 1px color-mix(in srgb, var(--c) 70%, transparent)}
+  50%{box-shadow:0 2px 7px rgba(0,0,0,.45), 0 0 22px 7px color-mix(in srgb, var(--c) 80%, #fff 10%)}}
+
+/* **Drift**: two fields sliding past behind the frame, stars near and cloud
+   far, each moving exactly one of its own tiles per loop so there is no seam. */
+.ptltile .pdrift{position:absolute;inset:-64px;pointer-events:none;
+  background-image:
+    radial-gradient(1.4px 1.4px at 12% 18%, #fff 60%, transparent),
+    radial-gradient(1px 1px at 38% 72%, rgba(255,255,255,.85) 60%, transparent),
+    radial-gradient(1.8px 1.8px at 66% 34%, #fff 60%, transparent),
+    radial-gradient(1px 1px at 84% 86%, rgba(255,255,255,.7) 60%, transparent),
+    radial-gradient(1.2px 1.2px at 52% 8%, rgba(255,255,255,.8) 60%, transparent);
+  background-size:64px 64px;animation:pdrift 9s linear infinite;animation-delay:var(--pt,0s)}
+.ptltile .pdrift.far{
+  background-image:
+    radial-gradient(closest-side at 30% 40%, color-mix(in srgb, var(--c) 60%, transparent), transparent),
+    radial-gradient(closest-side at 75% 70%, color-mix(in srgb, var(--c) 45%, #fff 10%), transparent),
+    radial-gradient(closest-side at 60% 15%, rgba(255,255,255,.14), transparent);
+  background-size:128px 128px;opacity:.8;mix-blend-mode:screen;
+  animation:pdriftfar 26s linear infinite;animation-delay:var(--pt,0s)}
+@keyframes pdrift{to{transform:translate(-64px,32px) translate(0,32px)}}
+@keyframes pdriftfar{to{transform:translate(64px,-64px)}}
+
+/* **Tunnel**: rings the opening's own shape, let go one after another from
+   the middle and gathering speed as they come, the way a tunnel's walls do. */
+.ptltile .prings{position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:radial-gradient(ellipse closest-side, #000 0 12%, transparent 60%)}
+.ptltile .pring{position:absolute;inset:0;border-radius:inherit;
+  border:2px solid color-mix(in srgb, var(--c) 55%, #fff);opacity:0;
+  box-shadow:0 0 8px color-mix(in srgb, var(--c) 70%, transparent), inset 0 0 8px color-mix(in srgb, var(--c) 70%, transparent);
+  animation:pring 3.6s cubic-bezier(.55,0,.9,.6) infinite;
+  animation-delay:calc(var(--k) * -0.6s)}
+@keyframes pring{
+  0%{transform:scale(.02);opacity:0}
+  15%{opacity:.9}
+  100%{transform:scale(1.05);opacity:.25}}
+
+/* **Glimpse**: the page, a picture of it, drifting slowly as if seen through
+   glass, its colour taken out and the portal's put back in, darkening to the
+   frame. The vortex is under it, so a portal with no picture yet — offline,
+   or while the screenshot is being made — still has something in it. */
+.ptltile .pshot{position:absolute;inset:0;background-size:cover;background-position:top center;background-repeat:no-repeat;
+  filter:saturate(.45) contrast(1.1) brightness(.92);transform-origin:50% 30%;
+  animation:pglimpse 26s ease-in-out infinite alternate}
+.ptltile .ptint{position:absolute;inset:0;pointer-events:none;
+  background:color-mix(in srgb, var(--c) 80%, transparent);mix-blend-mode:color}
+.ptltile .ptint::after{content:'';position:absolute;inset:0;
+  background:
+    repeating-linear-gradient(0deg, rgba(0,0,0,.14) 0 1px, transparent 1px 3px),
+    radial-gradient(ellipse closest-side, transparent 55%, rgba(5,3,10,.6) 100%)}
+@keyframes pglimpse{from{transform:scale(1.04)}to{transform:scale(1.14) translate(-2%, 2%)}}
+@media (prefers-reduced-motion: reduce){
+  .ptltile .pdrift,.ptltile .pring,.ptltile .pshot,.ptltile.pe-glow .outface .portal{animation:none}
+  .ptltile .pring{opacity:.5;transform:scale(calc(.25 + var(--k) * .15))}}

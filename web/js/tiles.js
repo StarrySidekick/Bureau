@@ -1225,6 +1225,89 @@ function projCover(o, cov, st){
    one closed path, for the reason `discHTML()` gives. */
 /* The three openings a portal can be (decision 223). */
 const PORTAL_SHAPES = {circle:'Circle', square:'Square', arch:'Arch'};
+/* **What is in the opening** (decision 226). The vortex it has always had;
+   a **drift**, a field of stars and cloud scrolling past as if seen through
+   it; **rings**, a tunnel falling away; and a **glimpse** of where it goes —
+   the page itself, as a picture, washed in the portal's colour. */
+const PORTAL_STYLES = {vortex:'Vortex', drift:'Drift', rings:'Tunnel', glimpse:'Glimpse'};
+/* …and what is on its edge: nothing but the wood, vines, or a glow. */
+const PORTAL_EDGES = {none:'Plain', vines:'Vines', glow:'Glow'};
+/* The glimpse is a **screenshot**, not the page. A live page cannot sit on a
+   board: most sites refuse to be framed, and a board is rebuilt on every
+   render, which would load the site again every time anything moved. A
+   picture of it is cached like any other. It comes from WordPress's public
+   screenshot service, which is the one thing here that sends an address off
+   the device, so it is only asked for on a portal set to Glimpse, only for a
+   web address, and a portal with none shows its vortex. */
+const shotOf = t => { const u = outURL(t);
+  return u && /^https?:/i.test(u) ? `https://s0.wp.com/mshots/v1/${encodeURIComponent(u)}?w=800&h=600` : ''; };
+function portalInside(style, tgt){
+  const whirl = `<i class="pwhirl"><i class="pswirl"></i><i class="pswirl back"></i></i>`;
+  if(style==='drift') return `<i class="pdrift"></i><i class="pdrift far"></i>`;
+  /* Six rings at once, each let go a sixth of a turn after the last, so the
+     tunnel never empties; each is the opening's own shape. */
+  if(style==='rings') return `<i class="prings">${[0,1,2,3,4,5].map(k=>`<i class="pring" style="--k:${k}"></i>`).join('')}</i>`;
+  if(style==='glimpse'){ const src = tgt ? shotOf(tgt) : '';
+    /* A background rather than an <img>: a picture that fails to come — no
+       network, a site the service cannot reach — is then nothing at all, and
+       the vortex under it shows, where an <img> draws a broken-picture mark. */
+    return whirl + (src ? `<i class="pshot" style="background-image:url('${esc(src)}')"></i><i class="ptint"></i>` : ''); }
+  return whirl;
+}
+/* **Vines up the frame** (decision 226): a stem that wanders either side of
+   the edge all the way round it, with a leaf every so often, alternating
+   sides and turned along the stem. Drawn by walking the outline — the oval,
+   the square or the arch, in the tile's own proportion like the words — and
+   stepping along it evenly. The same object always grows the same vine,
+   because its id seeds the wander. */
+function portalVines(id, box, shape){
+  const W = 100*Math.max(1, box.w), H = 100*Math.max(1, box.h), cx = W/2, cy = H/2;
+  // the stem runs along the middle of the wooden frame, not outside it
+  const inset = (shape==='circle' ? Math.min(W,H)*0.03 : 0) + 3;
+  const pts = [];
+  if(shape==='square'){
+    const x0=inset, y0=inset, x1=W-inset, y1=H-inset;
+    [[x0,y1,x0,y0],[x0,y0,x1,y0],[x1,y0,x1,y1],[x1,y1,x0,y1]].forEach(([a,b,c,d])=>{
+      for(let i=0;i<40;i++) pts.push([a+(c-a)*i/40, b+(d-b)*i/40]); });
+  } else if(shape==='arch'){
+    const ar = Math.min(W/2, H*0.58), x0=inset, x1=W-inset, y1=H-inset;
+    for(let i=0;i<30;i++) pts.push([x0, y1-(y1-ar)*i/30]);
+    for(let i=0;i<=60;i++){ const a = Math.PI + Math.PI*i/60; pts.push([cx + (cx-inset)*Math.cos(a), ar + (ar-inset)*Math.sin(a)]); }
+    for(let i=0;i<30;i++) pts.push([x1, ar+(y1-ar)*i/30]);
+    for(let i=0;i<30;i++) pts.push([x1-(x1-x0)*i/30, y1]);
+  } else {
+    const rx = W/2-inset, ry = H/2-inset;
+    for(let i=0;i<160;i++){ const a = Math.PI*2*i/160; pts.push([cx+rx*Math.cos(a), cy+ry*Math.sin(a)]); }
+  }
+  pts.push(pts[0]);
+  const len=[0]; for(let i=1;i<pts.length;i++) len.push(len[i-1]+Math.hypot(pts[i][0]-pts[i-1][0], pts[i][1]-pts[i-1][1]));
+  const total = len[len.length-1];
+  const at = d => { let i=1; while(i<len.length-1 && len[i]<d) i++;
+    const f = (d-len[i-1])/Math.max(1e-6, len[i]-len[i-1]), p=pts[i-1], q=pts[i];
+    return {x:p[0]+(q[0]-p[0])*f, y:p[1]+(q[1]-p[1])*f, a:Math.atan2(q[1]-p[1], q[0]-p[0])}; };
+  let seed = [...String(id)].reduce((h,c)=>(h*31+c.charCodeAt(0))|0, 7);
+  const rnd = ()=>{ seed = (seed*1103515245+12345)&0x7fffffff; return seed/0x7fffffff; };
+  const step = 4, n = Math.floor(total/step), m = Math.min(W,H), amp = Math.max(1.5, m*0.014);
+  const phase = rnd()*6.28, stem = [], leaves = [];
+  const leafEvery = Math.max(5, Math.round(m*0.11/step));
+  for(let k=0;k<=n;k++){
+    const p = at(k*step), nx = -Math.sin(p.a), ny = Math.cos(p.a);
+    const w = Math.sin(k*0.35 + phase) * amp;
+    stem.push(`${(p.x+nx*w).toFixed(1)} ${(p.y+ny*w).toFixed(1)}`);
+    if(k % leafEvery === 0 && k){
+      /* Small, and leaning inward more than out, so a vine keeps to its own
+         frame rather than climbing onto the tile next door. */
+      const side = (k/leafEvery)%2 ? 1 : -0.55, s = m*(0.026 + rnd()*0.018);
+      const lx = p.x+nx*(w+side*s*0.8), ly = p.y+ny*(w+side*s*0.8);
+      const deg = (p.a*180/Math.PI) + side*35 + (rnd()-0.5)*30;
+      leaves.push(`<ellipse cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" rx="${s.toFixed(1)}" ry="${(s*0.45).toFixed(1)}"
+        transform="rotate(${deg.toFixed(0)} ${lx.toFixed(1)} ${ly.toFixed(1)})"/>`);
+    }
+  }
+  return `<svg class="pvines" viewBox="0 0 ${W} ${H}" aria-hidden="true">
+    <path class="pvstem" d="M${stem.join('L')}" stroke-width="${Math.max(1.4, m*0.012).toFixed(2)}"/>
+    <g class="pvleaf">${leaves.join('')}</g></svg>`;
+}
 function portalWords(id, nm, to, box, shape){
   const W = 100*Math.max(1, box.w), H = 100*Math.max(1, box.h);
   const cx = W/2, cy = H/2, m = Math.min(W, H);
@@ -2354,7 +2437,10 @@ function drawTileFace(o, arr, box, persp){
     /* Round, square or an arch (decision 223): the opening's own shape,
        which the words follow too. */
     const ps = PORTAL_SHAPES[o.pshape] ? o.pshape : 'circle';
-    return `<button class="drawer otile sh-button btntile outtile ptltile pt-${ps}${sel}" data-row="${o.id}"
+    /* What is in the opening, and what grows on its edge (decision 226). */
+    const pv = PORTAL_STYLES[o.pstyle] ? o.pstyle : 'vortex';
+    const pe = PORTAL_EDGES[o.pedge] ? o.pedge : 'none';
+    return `<button class="drawer otile sh-button btntile outtile ptltile pt-${ps} pv-${pv} pe-${pe}${sel}" data-row="${o.id}"
       style="--c:${colour};${place}" title="${esc(nm)} — ${esc(to)}">
       ${chips}
       <span class="btnface outface" data-fire="${o.id}">
@@ -2362,7 +2448,8 @@ function drawTileFace(o, arr, box, persp){
              portal's own proportions (`--pa`, width over height), so the whole
              vortex takes the shape of the opening rather than a round one
              turning inside it (decision 225). */''}
-        <i class="portal" aria-hidden="true" style="--pt:-${((Date.now()/1000) % 77).toFixed(2)}s;--pa:${(Math.max(1,box.w)/Math.max(1,box.h)).toFixed(3)}"><i class="pwhirl"><i class="pswirl"></i><i class="pswirl back"></i></i></i>
+        <i class="portal" aria-hidden="true" style="--pt:-${((Date.now()/1000) % 77).toFixed(2)}s;--pa:${(Math.max(1,box.w)/Math.max(1,box.h)).toFixed(3)}">${portalInside(pv, tgt)}</i>
+        ${pe==='vines' ? portalVines(o.id, box, ps) : ''}
         ${box.w*box.h>1 ? portalWords(o.id, nm, to, box, ps) : ''}
       </span>
       ${handles}
@@ -3284,5 +3371,5 @@ function bookView(c, items){
    (the *object's* setting, a different thing entirely) is untouched. */
 export { spinTo, CLICKS, clickOf, fireButton, intoOf, tileTap, pending, placeAtPending, SHELFSHIFT,
   scratchGrab, scratchTo, scratchGo,
-  gridTile, gridOfContainer, listTile, boardVarsOf, TOOLS, threadTo, PORTAL_SHAPES, bookOf, bookView, sheetOf, turnPage, clearPages,
+  gridTile, gridOfContainer, listTile, boardVarsOf, TOOLS, threadTo, PORTAL_SHAPES, PORTAL_STYLES, PORTAL_EDGES, bookOf, bookView, sheetOf, turnPage, clearPages,
   calSpan, calFront };

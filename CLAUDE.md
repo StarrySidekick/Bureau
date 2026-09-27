@@ -154,6 +154,10 @@ in its own colour, and the coin makes any of them.
 (`SLOT_PULL`, `SLOT_FAR` in motion.js), and a disc's hole is CD-sized.
 **v2.22** (decision 225): a portal's vortex is stretched to its opening
 (`.pwhirl`, `--pa`), not a circle turning inside it.
+**v2.23** (decision 226): a portal's frame is the carcass's wood, a square
+or arch fills its cells, the edge can be vines or a glow (`pedge`), and the
+inside can be a vortex, a drift, a tunnel or a glimpse of the page
+(`pstyle`, a screenshot from WordPress mShots).
 The **Bureau Workshop** artifact (https://claude.ai/artifact/4TjyQZ5xcuxCYFgfnRm76k)
 holds Timothy's own rearrangement of every menu and type: read its
 `workshop/state` document before reorganising menus or types.

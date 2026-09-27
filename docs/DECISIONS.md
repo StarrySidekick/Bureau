@@ -10186,3 +10186,38 @@ as an oval the opening's own proportions and fill it; a square or an arch
 has corners, so there the square is taller by the diagonal and the swirls
 run out to the edge. The throat's rings on those two use `farthest-side`, so
 they reach the edges too.
+
+## 226 · A portal's frame, its edge, and what is in it
+
+*2026-09-27.* Timothy: a square portal should reach the edges of its cells,
+its border should be the carcass's colour, there should be an option for
+vines (or "vibes") on the border, and the inside should have options: three
+more besides the vortex, one a scrolling texture and one the link itself,
+rendered with a filter over it.
+
+- **The frame is `--wood`**, drawn on the portal's own `::after` so it sits
+  over whatever is in the opening; the rim is no longer a lit ring of the
+  object's colour. A **square and an arch fill their cells** (inset 0); the
+  oval keeps a margin.
+- **Portal edge** (`pedge`): Plain, **Vines** (`portalVines()`: a stem
+  wandering along the middle of the frame with small leaves, walked round the
+  outline of each shape, seeded by the object's id so it never reshuffles)
+  and **Glow** (the object's colour breathing round the frame). "Vibes" was
+  heard as possibly "vines", so both readings are offered.
+- **In the portal** (`pstyle`, `PORTAL_STYLES`): **Vortex** as before;
+  **Drift**, two fields of stars and cloud sliding past at different speeds,
+  each moving exactly one of its own tiles per loop so there is no seam;
+  **Tunnel**, six rings the opening's own shape let go one after another and
+  gathering speed; and **Glimpse**, a picture of the page, desaturated,
+  washed in the portal's colour with scanlines and a vignette, drifting
+  slowly.
+- **A glimpse is a screenshot, not the live page.** Most sites refuse to be
+  framed, and a board is rebuilt on every render, which would reload the site
+  every time anything moved; a picture is cached like any other. It comes from
+  WordPress's public mShots service, which is the one place Bureau sends an
+  address off the device, so only a portal set to Glimpse asks, only for a
+  web address, and it is a CSS background so a picture that never arrives
+  leaves the vortex under it showing rather than a broken-image mark. It could
+  not be seen working from the build sandbox, whose network refuses the host.
+- **The coin** gives a new portal a random style (not Glimpse: it has no
+  address) and a random edge, as well as its shape and colour.

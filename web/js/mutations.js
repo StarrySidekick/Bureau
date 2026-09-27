@@ -994,6 +994,10 @@ function furnish(o){
      of the three openings, in any of the aesthetic's object colours. */
   if(has(o,'button') && !(o.link && o.link.target)){
     o.pshape = ['circle','square','arch'][Math.floor(Math.random()*3)];
+    // …what is in it and what is on its edge (decision 226). Not a glimpse:
+    // a portal the coin makes goes nowhere yet, so there is no page to show.
+    o.pstyle = ['vortex','drift','rings'][Math.floor(Math.random()*3)];
+    o.pedge = ['none','vines','glow'][Math.floor(Math.random()*3)];
     o.c = OBJ0 + Math.floor(Math.random()*OBJN);
   }
   if(faceOf(o)==='collage' && !S.objects.some(x=>x.parent===o.id)){
