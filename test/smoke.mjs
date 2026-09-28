@@ -8427,14 +8427,17 @@ const PROP_OFF = () => { const b = document.createElement('button');
       const said = (gt.querySelector('input')||{}).placeholder || '';
       out.anySpawnerSaysAnything = /anything/i.test(said + ' ' + gt.textContent);
       const n = S.objects.length;
-      const kinds = new Set();
+      const before = new Set(S.objects.map(o => o.id));
+      /* Counted on the board: a drawer or a list made at random brings two to
+         four things inside it since decision 244, so the desk grows by more
+         than one a press and only what lands beside the spawner is its. */
+      const beside = () => S.objects.filter(o => !before.has(o.id) && o.parent === g.parent);
       for(let i=0;i<6;i++){
         tile(g.id).dispatchEvent(new MouseEvent('click',{bubbles:true}));
         await nap(120);
-        const made = S.objects[S.objects.length-1];
-        kinds.add(made.kind);
       }
-      out.andMakesSomethingEachPress = S.objects.length === n+6;
+      const kinds = new Set(beside().map(o => o.kind));
+      out.andMakesSomethingEachPress = beside().length === 6;
       out.andNotAlwaysTheSameThing = kinds.size > 1;
       // the picker's first two rows, and the collage (decision 204)
       // out of what the fifteen open onto (decision 240)
@@ -10044,8 +10047,10 @@ const PROP_OFF = () => { const b = document.createElement('button');
     T.tileTap(ids.tlock);
     T.tileTap(ids.tglass); out.glassSearches = !!S.searchOn; S.searchOn = false; S.q = ''; B.render();
     const sw = S.deskCfg.sort; T.tileTap(ids.tblock); out.blockSorts = S.deskCfg.sort !== sw; S.deskCfg.sort = null; B.render();
-    const n = S.objects.length; T.tileTap(ids.coin); await nap(150);
-    out.coinMakesOne = S.objects.length === n + 1;
+    // one on the board: a random drawer brings its own contents (decision 244)
+    const onRoot = () => S.objects.filter(o => o.parent === 'root').length;
+    const n = onRoot(); T.tileTap(ids.coin); await nap(150);
+    out.coinMakesOne = onRoot() === n + 1;
     const a = S.objects.find(o=>o.id==='d_today'), b = S.objects.find(o=>o.id==='d_in');
     a.rel = []; T.tileTap(ids.spool); out.spoolPicksUp = !!S.threading;
     T.tileTap(a.id); out.firstIsHeld = S.threading && S.threading.from === a.id && S.view === 'desk';
