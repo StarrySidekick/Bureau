@@ -18,7 +18,8 @@ import { DECOR, LIFE_ART } from './decor.js';
 import { render, renderSoon, sizeGrid, toggleSettings, settingsPanel, reveal, goShelf, goShelfTo, openOverview, closeOverview, refreshOverview, overviewOn, overAsk, overCid, flipBlock, railToolsOf } from './views.js';
 import { closeGuide, guideOpen, saveGuide } from './guide.js';
 import { openObj, openWriter, openRead, openViewer, closeSheet, renderSheet, words,
-  mdKey, copyObject } from './sheet.js';
+  mdKey, mdTool, copyObject } from './sheet.js';
+import { wordsToType, clearTypeWords, clearOwnWords, wordFrom } from './words.js';
 import { openPanel, closePanel, refreshPanel, panelKey, panelBack, draft, modalNewObject, modalNewKind, modalMove, renderPreview, holdPanel,
   objectPanel,
   drawerFromSelection, openCtx, closeCtx, ringJustOpened, sortMenu, openCmd, closeCmd, cmdList, cmdMove, cmdAt, runCmd,
@@ -466,7 +467,17 @@ function setField(el){
     case 'target': t.target = v==='' ? null : Math.max(1, parseInt(v,10)||30); break;
     // normal is the absence of an answer, not the number 1 stored on every
     // object that was ever looked at in the editor
-    case 'tsize': t.tsize = (v==='' || +v===1) ? null : +v; break;
+    /* 100% is not stored — unless something under the object (its type's
+       own size, or a default you set for the type or the desk) says
+       otherwise, and then it is said as `-`, which stops the layers
+       (decision 247) and reads as 100%. */
+    case 'tsize': {
+      if(v==='' || +v!==1){ t.tsize = v==='' ? null : +v; break; }
+      const was=t.tsize; delete t.tsize;
+      const under = o && ((wordFrom(o,'tsize') && wordFrom(o,'tsize')!=='its own') || K(o.kind).tsize);
+      t.tsize = under ? '-' : null; if(was===undefined && !under) delete t.tsize;
+      break;
+    }
     case 'mtype': if(o) o.media=Object.assign({label:'untitled'}, o.media, {type:v}); break;
     case 'linklabel': case 'linktarget': case 'linkurl': {
       if(!o) break;
@@ -782,6 +793,34 @@ function act(name, el){
       break;
     }
     case 'drawersettings': case 'objset': objectPanel(el.dataset.id); break;
+    // how the words are set, straight from the page they are set on (247)
+    case 'objwords': objectPanel(el.dataset.id, 'words'); break;
+    /* One object's words become the default for its type, or for every
+       written thing — and come off again. The defaults live in `S.look`, which
+       has no id for an undo step to point at, the same bargain the desk's own
+       settings make; putting one object back to its type is undoable. */
+    case 'wordstype': case 'wordsall': {
+      const o=byId(el.dataset.id); if(!o) break;
+      const n=wordsToType(o, name==='wordsall' ? '*' : o.kind);
+      save(); render(); refreshPanel(); renderSheet();
+      toast(name==='wordsall' ? `Every written thing now takes ${n} setting${n===1?'':'s'} from this one`
+        : `Every ${K(o.kind).nm.toLowerCase()} now takes ${n} setting${n===1?'':'s'} from this one`);
+      break;
+    }
+    case 'wordsclear': {
+      const o=byId(el.dataset.id); if(!o) break;
+      const was=clearOwnWords(o);
+      pushSets('Words', Object.keys(was).map(k=>[o.id, k, was[k]]));
+      save(); render(); refreshPanel(); renderSheet(); toast('Back to its type', true);
+      break;
+    }
+    case 'wordstypeclear': case 'wordsallclear': {
+      const o=byId(el.dataset.id); if(!o) break;
+      clearTypeWords(name==='wordsallclear' ? '*' : o.kind);
+      save(); render(); refreshPanel(); renderSheet();
+      toast(name==='wordsallclear' ? 'Desk defaults forgotten' : `${K(o.kind).nm} defaults forgotten`);
+      break;
+    }
     // the desk's editor, as the first door of Settings (decision 206)
     // the desk's editor lives in its Board settings now (decision 233)
     case 'boardeditor': settingsPanel('board', el.dataset.id && el.dataset.id!==ROOT ? el.dataset.id : undefined); break;
@@ -1216,6 +1255,11 @@ function wire(){
        opens the drawer out from under you. Every field in the app is driven by
        the input/change listeners below, so nothing here wants the click. */
     if(t.closest('input,textarea,select')) return;
+
+    /* The formatting strip over a field being written in (decision 247):
+       every press is one mark, put into whichever field is open. */
+    const mdb=t.closest('[data-md]');
+    if(mdb){ mdTool($('#sheetHost .pagebody') || $('#sheetHost .writebody'), mdb.dataset.md); return; }
 
     /* The page you are reading is the page you write on: a tap on the paper
        puts a caret in it. Not a second surface holding the same words in a
@@ -2525,6 +2569,16 @@ function wire(){
     if(!o || actOf(o) !== 'metro') return;
     e.preventDefault();
     armDrag(e, host);
+  });
+
+  /* Pressing the formatting strip must not take the caret out of the field
+     it is formatting — a blur would close a phone's keyboard between every
+     mark. So the press is refused and only the click is answered. */
+  frame.addEventListener('pointerdown', e=>{
+    if(e.target.closest('.mdbar')) e.preventDefault();
+  });
+  frame.addEventListener('mousedown', e=>{
+    if(e.target.closest('.mdbar')) e.preventDefault();
   });
 
   /* Tapping anywhere else puts an inline edit down. Not `blur`: moving from

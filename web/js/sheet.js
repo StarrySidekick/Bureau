@@ -7,6 +7,7 @@ import { closePanel, objectPanel } from './panels.js';
 import { toast } from './mutations.js';
 import { render } from './views.js';
 import { shrinkSheet } from './motion.js';
+import { wordStyle } from './words.js';
 
 /* ============================================================
    15 · the two surfaces an object opens onto
@@ -186,9 +187,123 @@ function mdKey(e, ta){
     const k=(e.key||'').toLowerCase();
     if(k==='b') return wrapSel(ta, '**');
     if(k==='i') return wrapSel(ta, '*');
+    if(k==='u') return wrapSel(ta, '++');
     return false;                     // ⌘K is the palette, ⌘Z is the browser's
   }
   if(e.key==='Enter' && !e.shiftKey && !meta) return listReturn(ta);
+  return false;
+}
+
+/* ---- the formatting strip — decision 247 --------------------------------
+   A phone has no ⌘B, so every mark the page can carry is a button over the
+   field. It is still markdown going into a textarea — the page typesets it,
+   decision 68's bargain — and every press goes through `put()`, so the
+   field's own undo takes each one back. The strip is pressed without taking
+   the caret: wire.js refuses the pointerdown that would blur the field. */
+const MDTOOLS = [
+  ['h','H','Heading \u2014 press again for a smaller one'],
+  ['b','<b>B</b>','Bold'], ['i','<i>I</i>','Italic'], ['u','<u>U</u>','Underline'],
+  ['s','<s>S</s>','Struck through'], ['mark','\u2592','Highlight'], ['code','{ }','Code in a line'],
+  '|',
+  ['ul','\u2022','Bullet list'], ['ol','1.','Numbered list'], ['task','\u2610','Tick boxes'],
+  ['quote','\u201c','Quotation'], ['pull','\u275d','Pull quote'], ['callout','!','Callout'],
+  '|',
+  ['centre','\u2194','Centred line'], ['right','\u21e5','Line to the right'],
+  ['hr','\u2014','Rule'], ['pbreak','\u2042','Page break'],
+  '|',
+  ['table','\u25a6','Table'], ['codeblock','</>','Block of code'], ['link','\u2197','Link'], ['img','\u25a3','Picture by its address'],
+];
+const mdBar = () => `<div class="mdbar" role="toolbar" aria-label="Formatting">${MDTOOLS.map(t=>
+  t==='|' ? '<span class="mdsep"></span>'
+    : `<button type="button" data-md="${t[0]}" title="${t[2]}">${t[1]}</button>`).join('')}</div>`;
+
+/* The lines the selection touches, as [from, to] offsets of whole lines. */
+function linesOf(ta){
+  const v=ta.value, a=ta.selectionStart, b=ta.selectionEnd;
+  const from=v.lastIndexOf('\n', a-1)+1;
+  let to=v.indexOf('\n', b>a && v[b-1]==='\n' ? b-1 : b); if(to<0) to=v.length;
+  return [from, to];
+}
+/* Put `mark` at the head of every line the selection touches, or take it off
+   if every one already has it — a toggle, the way ⌘B is. A numbered list
+   counts; any other list mark on the line is replaced rather than stacked. */
+function prefixLines(ta, mark, numbered){
+  const [from,to]=linesOf(ta);
+  const lines=ta.value.slice(from,to).split('\n');
+  const strip = l => l.replace(/^(\s*)([-*+] \[[ xX]\] |[-*+] |\d+[.)] |>> ?|> ?|!!! ?|#{1,4} )/, '$1');
+  const has = l => numbered ? /^\s*\d+[.)] /.test(l) : l.startsWith(mark);
+  const all = lines.every(l=>!l.trim() || has(l));
+  const out = lines.map((l,n)=> !l.trim() && lines.length>1 ? l
+    : all ? strip(l) : (numbered ? `${n+1}. ` : mark) + strip(l));
+  ta.setSelectionRange(from, to);
+  put(ta, out.join('\n'));
+  ta.setSelectionRange(from, from + out.join('\n').length);
+}
+/* A block of its own: on a line of its own, with a blank row either side so
+   it does not run into the paragraph it was typed beside. */
+function insertBlock(ta, text, caretAt){
+  const v=ta.value, a=ta.selectionStart;
+  const before = v.slice(0,a), after = v.slice(ta.selectionEnd);
+  const pre = !before || /\n\n$/.test(before) ? '' : /\n$/.test(before) ? '\n' : '\n\n';
+  const post = !after || /^\n\n/.test(after) ? '' : /^\n/.test(after) ? '\n' : '\n\n';
+  put(ta, pre + text + post);
+  if(caretAt!=null){ const at=a+pre.length+caretAt; ta.setSelectionRange(at, at); }
+}
+function mdTool(ta, what){
+  if(!ta) return false;
+  ta.focus();
+  const sel = ta.value.slice(ta.selectionStart, ta.selectionEnd);
+  switch(what){
+    case 'b': return wrapSel(ta, '**');
+    case 'i': return wrapSel(ta, '*');
+    case 'u': return wrapSel(ta, '++');
+    case 's': return wrapSel(ta, '~~');
+    case 'mark': return wrapSel(ta, '==');
+    case 'code': return wrapSel(ta, '`');
+    case 'ul': return prefixLines(ta, '- ');
+    case 'ol': return prefixLines(ta, '', true);
+    case 'task': return prefixLines(ta, '- [ ] ');
+    case 'quote': return prefixLines(ta, '> ');
+    case 'pull': return prefixLines(ta, '>> ');
+    case 'callout': return prefixLines(ta, '!!! ');
+    case 'h': {
+      /* One button for four levels: none, then #, ##, ###, and round to none.
+         The page draws # as its biggest heading. */
+      const [from,to]=linesOf(ta);
+      const line=ta.value.slice(from, to).split('\n')[0];
+      const m=line.match(/^(#{1,4}) /), n=m?m[1].length:0;
+      const next = n>=3 ? '' : '#'.repeat(n+1)+' ';
+      const bare = line.replace(/^#{1,4} /,'');
+      ta.setSelectionRange(from, from+line.length);
+      put(ta, next+bare);
+      return true;
+    }
+    case 'centre': case 'right': {
+      const [from,to]=linesOf(ta);
+      const line=ta.value.slice(from,to).split('\n')[0];
+      const bare=line.replace(/^->\s*/,'').replace(/\s*(<-|->)$/,'');
+      const on = what==='centre' ? /^->.*<-$/.test(line) : /^->.*->$/.test(line);
+      ta.setSelectionRange(from, from+line.length);
+      put(ta, on ? bare : `-> ${bare} ${what==='centre'?'<-':'->'}`);
+      return true;
+    }
+    case 'hr': return insertBlock(ta, '---'), true;
+    case 'pbreak': return insertBlock(ta, '+++'), true;
+    case 'codeblock': return insertBlock(ta, '```\n'+(sel||'')+'\n```', 4), true;
+    case 'table': return insertBlock(ta, '| Heading | Heading |\n|---|---|\n| | |\n| | |', 2), true;
+    case 'link': {
+      const a=ta.selectionStart;
+      put(ta, `[${sel||'words'}](https://)`);
+      const at=a+(sel||'words').length+3; ta.setSelectionRange(at, at+8);
+      return true;
+    }
+    case 'img': {
+      const a=ta.selectionStart;
+      insertBlock(ta, `![${sel||'picture'}](https://)`);
+      const at=ta.value.indexOf('](https://)', a)+2; if(at>1) ta.setSelectionRange(at, at+8);
+      return true;
+    }
+  }
   return false;
 }
 
@@ -324,10 +439,12 @@ function renderSheet(){
           ${has(o,'text')?`<button class="pill" data-act="readthis" data-id="${o.id}">${ic('eye',13)} Read</button>`:''}
           ${/* Out as words, not as a backup. See decision 68. */''}
           <button class="pill" data-act="copymd" data-id="${o.id}" title="Copy as markdown">${ic('archive',13)} Copy</button>
+          <button class="pill" data-act="objwords" data-id="${o.id}" title="Typeface, size, ink, paper and layout">${ic('type',13)} Words</button>
           <button class="pill" data-act="objset" data-id="${o.id}">${ic('brush',13)} Edit</button>
           <button class="iconbtn" data-sheet="close" title="Done">${ic('x',16)}</button>
         </div>
-        <div class="writepaper">
+        ${mdBar()}
+        <div class="writepaper ${wordStyle(o).cls}" style="${wordStyle(o).vars}">
           <textarea class="writetitle" rows="1" data-w="title"
             placeholder="Untitled ${esc(k.nm.toLowerCase())}">${esc(o.title||'')}</textarea>
           <textarea class="writebody" data-w="body"
@@ -367,10 +484,12 @@ function renderSheet(){
        three times what a mark does. The mode keeps its name where there is
        room for it — the stylesheet takes it off on a phone. */
     const tools = editing
-      ? `<button class="pill" data-act="pagedone">${ic('check',13)}<span>Done</span></button>`
+      ? `<button class="pill" data-act="pagedone">${ic('check',13)}<span>Done</span></button>
+         <button class="iconbtn" data-act="objwords" data-id="${r.id}" title="Typeface, size, ink, paper and layout">${ic('type',15)}</button>`
       : `<button class="iconbtn readmode" data-oread="${next}" data-id="${r.id}"
            title="Reading as a ${READS[mode].toLowerCase()} — tap for ${READS[next].toLowerCase()}">
            ${ic(mode==='scroll'?'feather':'book',15)}<span>${READS[mode]}</span></button>
+         <button class="iconbtn" data-act="objwords" data-id="${r.id}" title="Typeface, size, ink, paper and layout">${ic('type',15)}</button>
          <button class="iconbtn" data-act="copymd" data-id="${r.id}" title="Copy as markdown">${ic('copy',15)}</button>
          <button class="iconbtn" data-act="objset" data-id="${r.id}" title="Everything about it but the words">${ic('brush',15)}</button>`;
     // 15, like everything else in the bar — it was the one glyph at 16
@@ -385,8 +504,9 @@ function renderSheet(){
     host.innerHTML=`<div class="bookscrim${again}" data-sheet="close"></div>
       <div class="bookstage rm-${mode}${editing?' writingon':''}${S.readFull?' fullbleed':''}${again}" data-for="${r.id}">
         <div class="bookhead"><b>${esc(r.title||'Untitled')}</b></div>
+        ${editing ? mdBar() : ''}
         ${editing
-          ? `<div class="book"><div class="spread ${sheetOf(r)}"><i class="dgrain"></i>
+          ? `<div class="book ${wordStyle(r).cls}" style="${wordStyle(r).vars}"><div class="spread ${sheetOf(r)}"><i class="dgrain"></i>
              <div class="page">
               <textarea class="pagebody" data-w="body"
                 placeholder="Write.">${esc(r.body||'')}</textarea></div></div>
@@ -401,4 +521,4 @@ function renderSheet(){
 }
 
 export { openZoom, openObj, openWriter, openRead, openViewer, closeSheet, renderSheet, words,
-  mdKey, asMarkdown, copyObject };
+  mdKey, mdTool, asMarkdown, copyObject };

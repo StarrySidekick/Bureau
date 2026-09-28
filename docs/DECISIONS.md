@@ -10821,3 +10821,79 @@ customizer artifact."*
   arrangement, all of it built, is kept in the page's database as
   `workshop/state-2026-09-27`, and the live one starts empty.
 
+
+## 247 · The words: how a written thing is set, on its face and on its page
+
+**2026-09-28, v2.44–2.45.** Timothy asked for font colour, background colour,
+font size on the face and in the reader, a face that is only text, working
+book and scroll views, and a better editor, and to err on the side of more
+customisation rather than less.
+
+**Before this** a note's type was the aesthetic's, its ink was the aesthetic's,
+its sheet was `--paper-2`, the reader was 14.5px on a 1.75 leading whatever you
+read, and the colour slot on paper only coloured accents. The one setting was
+the face's text size.
+
+**What it is now.**
+
+- **Twenty-two fields**, all optional, all per object, read through
+  `wordOf(o, key)` in `words.js`: typeface (`tfont`, thirty-two system stacks),
+  a second face for the name and headings (`hfont`), `ink`, paper colour
+  (`paperc`, where `none` is no paper at all), weight, italic, case, letter
+  spacing, line spacing, alignment; on the face, text size (`tsize`, now eight
+  steps from 60% to 300%), name size, what it shows, where the words sit, plain
+  or formatted, a halo, and a layer (over the others may overlap them); on the
+  page, reading size, margins, paragraphs, drop capital and a **layout**.
+- **Four layers, first answer wins:** the object, your default for its type
+  (`S.look.words[kind]`), your default for every written thing
+  (`S.look.words['*']`), the type's own `words`. Kept in `S.look` and not as a
+  copy of the kind in `S.kinds`, because an overridden kind moves to *Yours* in
+  the picker and freezes every other field of the type. **`-` is an answer**:
+  it means the plain default, and stops the layers the way any answer does, so
+  an object can decline what its type says. The first chip of every row writes
+  it when something below is set.
+- **One drawer of it, `wordStyle(o)`**, returns a class per choice and the
+  custom properties they read. The tile (spliced with the size classes, vars in
+  `place`), the reading surface's `.book`, the ruler that measures the pages
+  and the writing surface all ask it, and the ruler's cache key includes it —
+  a page measured in one face and drawn in another loses its last lines.
+  Every CSS rule is gated by its class, so an object that says nothing draws
+  exactly as it did.
+- **Ink is chosen when it is not said.** With a paper colour and no ink, the
+  ink is whichever of a near-black and a near-white reads better on it, by
+  contrast ratio (decision 87's rule).
+- **Ten page layouts** (`doc`): Plain, Manuscript, Essay, Magazine, Letter,
+  Screenplay, Poem, Notebook, Typewritten, Broadsheet. A layout sets a typeface
+  only where you have not (`:not(.w-font)`), so your choices always win. For a
+  screenplay, `md()` marks a paragraph whose first line is a bold name as a
+  `cue` and a capitals line ending in `TO:` as a `trans` — classes a plain page
+  ignores — and the first paragraph of a body is `first`, for a drop capital
+  or a lede.
+- **The page carries more.** Tables, fenced code, `~~struck~~`, `==highlight==`,
+  `++underline++`, `![a picture](address)`, `-> centred <-`, `-> right ->`,
+  `>> pull quote`, `!!! callout`, and `+++`, a page break, which the paginator
+  obeys and a scroll draws as an asterism. `plain()` takes every one of them
+  off a face. The pull quote is `blockquote.pullq`, not `.pull`: that is the
+  knob, and every `.pull` rule in the app drew a lit wooden sphere round it.
+- **A formatting strip** over the field in both editing surfaces, twenty marks.
+  Still markdown into a textarea (decision 68 holds: no contenteditable), each
+  press through `put()` so the field's own undo takes it back, and the
+  pointerdown on the strip is refused so the caret — and a phone's keyboard —
+  stay where they are. ⌘U joins ⌘B and ⌘I.
+- **The Words door** in the object editor, for anything with `text` that is not
+  a container: the tile and a page of it drawn live at the top, every row saying
+  where an inherited answer comes from, and at the foot *Every <type> like
+  this*, *Every written thing like this*, *Back to its type* and the two
+  forgets. **Aa** in the reader's bar and the writer's head opens it.
+- **Pagination, v2.44:** a block taller than what is left of a page is split
+  there (words by Range, lists and tables by item, a table repeating its head)
+  and the rest starts the next page, as `.cont` so it is neither indented nor
+  drop-capped; a heading never ends a page; long words break.
+
+**Not done, deliberately.** No web fonts: nothing to cache, nothing to fetch,
+and on a Mac and an iPhone the first name in every stack is really installed
+(Linux and the test browser fall back, which is why a screenshot from CI shows
+fewer faces than the phone does). No columns in the magazine layout: a
+multi-column box inside a fixed-height page overflows sideways, which is the
+clipping this work set out to end. The camera's reading face (tabled,
+decision 203) does not read the words.

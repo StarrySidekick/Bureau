@@ -70,6 +70,8 @@ const P = {
   pot:'M4 9h16v3a7 7 0 0 1-7 7h-2a7 7 0 0 1-7-7zM2 11h2M20 11h2M8.5 6c0-1.5 1-1.5 1-3M12 6c0-1.5 1-1.5 1-3M15.5 6c0-1.5 1-1.5 1-3',
   clapper:'M3 8h18v12H3zM3 8l2.5-4h13L21 8M8.5 4 6.5 8M13.5 4l-2 4M18.5 4l-2 4',
   help:'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18M9.5 9.4a2.6 2.6 0 0 1 5 .9c0 1.7-2.5 2.1-2.5 3.6M12 17.6h.01',
+  // two capitals, a big and a small: how the words are set (decision 247)
+  type:'M2.5 20 8 4l5.5 16M4.4 14.5h7.2M14.5 20l3.5-9 3.5 9M15.7 17h4.6',
   feather:'M20.2 4a5.5 5.5 0 0 0-7.8 0L4 12.4V20h7.6l8.6-8.5a5.5 5.5 0 0 0 0-7.5M16 8 4.5 19.5M15 12H9',
   grid:'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z',
   inbox:'M3 13h5l2 3h4l2-3h5M3 13 6 4h12l3 9v7H3z',
@@ -147,10 +149,17 @@ function ic(n,s){ s=s||16; return `<svg viewBox="0 0 24 24" width="${s}" height=
    ============================================================ */
 function md(src){
   if(!src||!src.trim()) return '<p style="color:var(--ink-3)">Nothing written yet.</p>';
+  /* The marks a page can carry beyond the first set (decision 247): ~~struck~~,
+     ==highlighted==, ++underlined++ and a picture by its address. An image goes
+     before a link, because `![a](b)` contains one. */
   const inline = t => esc(t)
     .replace(/`([^`]+)`/g,'<code>$1</code>')
+    .replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g,'<img class="mdimg" src="$2" alt="$1" loading="lazy">')
     .replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>')
     .replace(/(^|\W)\*([^*\n]+)\*/g,'$1<em>$2</em>')
+    .replace(/~~([^~]+)~~/g,'<del>$1</del>')
+    .replace(/==([^=]+)==/g,'<mark>$1</mark>')
+    .replace(/\+\+([^+]+)\+\+/g,'<u>$1</u>')
     .replace(/\[([^\]]+)\]\(([^)]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
   /* **What you typed is what you see.** Every non-blank line used to become its
      own `<p>` and every blank line was thrown away — so a single Return between
@@ -161,13 +170,42 @@ function md(src){
        a blank row  the paragraph ends; every further blank keeps its room
 
      A block — a heading, a rule, a quote, a list item — always closes the
-     paragraph first, which is what `close()` is for. */
-  const out=[]; let list=null, para=null, blanks=0;
-  const flush=()=>{ if(para!==null){ out.push(`<p>${para}</p>`); para=null; } };
-  const close=()=>{ flush(); if(list){out.push(`</${list}>`); list=null;} };
-  const line = t => { if(list) close(); para = para===null ? t : para+'<br>'+t; };
+     paragraph first, which is what `close()` is for.
+
+     A paragraph is told a little about itself so a page layout can set it
+     (decision 247): the first one in the body is `first` (a drop capital, a
+     lede), one whose first line is a name in bold is a `cue` (a screenplay's
+     character and dialogue) and one that is capitals ending in TO: is a
+     `trans`ition. Classes and nothing else: a plain page ignores all three. */
+  const out=[]; let list=null, para=null, pcls='', blanks=0, fence=null, table=null, paras=0;
+  const flush=()=>{ if(para!==null){ out.push(`<p${pcls?` class="${pcls}"`:''}>${para}</p>`); para=null; pcls=''; } };
+  const endTable=()=>{ if(!table) return;
+    const [head, ...rows] = table.rows;
+    const al = table.align;
+    const cell = (tag,c,i) => `<${tag}${al[i]?` style="text-align:${al[i]}"`:''}>${inline(c)}</${tag}>`;
+    out.push(`<table><thead><tr>${head.map((c,i)=>cell('th',c,i)).join('')}</tr></thead><tbody>${
+      rows.map(r=>`<tr>${head.map((_,i)=>cell('td', r[i]||'', i)).join('')}</tr>`).join('')}</tbody></table>`);
+    table=null; };
+  const close=()=>{ flush(); endTable(); if(list){out.push(`</${list}>`); list=null;} };
+  const line = t => { if(list) close(); endTable();
+    if(para===null){
+      const cls=[];
+      if(!paras++) cls.push('first');
+      if(/^<strong>[^<]+<\/strong>$/.test(t)) cls.push('cue');
+      if(/^[A-Z][A-Z .\-]+TO:$/.test(t)) cls.push('trans');
+      pcls=cls.join(' '); para=t;
+    } else para=para+'<br>'+t; };
+  const cells = l => l.replace(/^\|/,'').replace(/\|$/,'').split('|').map(c=>c.trim());
   src.split(/\r?\n/).forEach(raw=>{
+    /* A fenced block keeps every character and every space it was typed
+       with, which is the whole reason to fence one. */
+    if(fence!==null){
+      if(/^\s*```/.test(raw)){ out.push(`<pre><code>${esc(fence.join('\n'))}</code></pre>`); fence=null; blanks=0; }
+      else fence.push(raw);
+      return;
+    }
     const l=raw.trim();
+    if(/^```/.test(l)){ close(); fence=[]; blanks=0; return; }
     if(!l){
       /* The **first** blank of a run ends what was being written and nothing
          more — that is the ordinary gap between two paragraphs, and it is the
@@ -182,9 +220,23 @@ function md(src){
     }
     blanks=0;
     let m;
+    // a table is rows between pipes; a row of dashes under the first is its rule
+    if(/^\|.*\|$/.test(l)){
+      if(table && /^\|[\s:|-]+\|$/.test(l) && table.rows.length===1){
+        table.align = cells(l).map(c=> /^:-+:$/.test(c)?'center' : /-+:$/.test(c)?'right' : /^:-+/.test(c)?'left' : '');
+        return;
+      }
+      if(!table){ flush(); if(list){out.push(`</${list}>`); list=null;} table={rows:[], align:[]}; }
+      table.rows.push(cells(l)); return;
+    }
+    if(/^\+\+\+$/.test(l)){ close(); out.push('<hr class="pbreak">'); return; }
     if(/^---+$/.test(l)){ close(); out.push('<hr>'); return; }
     if((m=l.match(/^(#{1,4})\s+(.*)$/))){ close(); const n=Math.min(m[1].length+1,4); out.push(`<h${n}>${inline(m[2])}</h${n}>`); return; }
+    if((m=l.match(/^>>\s?(.*)$/))){ close(); out.push(`<blockquote class="pullq">${inline(m[1])}</blockquote>`); return; }
     if((m=l.match(/^>\s?(.*)$/))){ close(); out.push(`<blockquote>${inline(m[1])}</blockquote>`); return; }
+    if((m=l.match(/^!!!\s?(.*)$/))){ close(); out.push(`<aside class="callout">${inline(m[1])}</aside>`); return; }
+    if((m=l.match(/^->\s*(.*?)\s*<-$/))){ close(); out.push(`<p class="centre">${inline(m[1])}</p>`); return; }
+    if((m=l.match(/^->\s*(.*?)\s*->$/))){ close(); out.push(`<p class="right">${inline(m[1])}</p>`); return; }
     if((m=l.match(/^[-*]\s+\[([ xX])\]\s+(.*)$/))){
       if(list!=='ul'){close(); out.push('<ul>'); list='ul';}
       const on=m[1].toLowerCase()==='x';
@@ -194,6 +246,7 @@ function md(src){
     if((m=l.match(/^\d+[.)]\s+(.*)$/))){ if(list!=='ol'){close(); out.push('<ol>'); list='ol';} out.push(`<li>${inline(m[1])}</li>`); return; }
     line(inline(l));
   });
+  if(fence!==null) out.push(`<pre><code>${esc(fence.join('\n'))}</code></pre>`);
   close();
   return out.join('');
 }
@@ -219,6 +272,7 @@ function plain(src){
     .replace(/`([^`]+)`/g,'$1')
     .replace(/\*\*([^*]+)\*\*/g,'$1')
     .replace(/(^|\W)\*([^*\n]+)\*/g,'$1$2')
+    .replace(/~~([^~]+)~~/g,'$1').replace(/==([^=]+)==/g,'$1').replace(/\+\+([^+]+)\+\+/g,'$1')
     // `_` only between non-word characters, or snake_case_names lose their spine
     .replace(/(^|\W)_([^_\n]+)_(?=\W|$)/g,'$1$2');
   const out=[];
@@ -231,6 +285,10 @@ function plain(src){
        is `pre-wrap` for the same reason. */
     if(!l){ if(out.length) out.push(''); return; }
     if(/^([-*_]\s*){3,}$/.test(l)) return;           // a rule is a mark, not words
+    if(/^(\+\+\+|```.*)$/.test(l)) return;          // a page break, a fence
+    if(/^\|[\s:|-]+\|$/.test(l)) return;             // a table's rule
+    if(/^\|.*\|$/.test(l)) l = l.replace(/^\||\|$/g,'').split('|').map(c=>c.trim()).join('   ');
+    l = l.replace(/^->\s*(.*?)\s*(<-|->)$/,'$1').replace(/^(>>|!!!)\s?/,'');
     l = l.replace(/^#{1,6}\s+/,'')
          .replace(/^>\s?/,'')
          .replace(/^[-*+]\s+\[[ xX]\]\s+/,'')        // a task box

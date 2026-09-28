@@ -1790,7 +1790,13 @@ const iconOf = o => (o && o.ic) || K(o&&o.kind).ic || 'note';
    answer, multiplied. Per object, then per type, then 1. */
 const TSIZES = [['0.8','Smaller'],['1','Normal'],['1.25','Larger'],
                 ['1.6','Large'],['2','Largest']];
-const textSizeOf = o => +(((o && o.tsize) || K(o&&o.kind).tsize || 1)) || 1;
+/* Your default for a type, or for every written thing, sits between the
+   object and the type's own (decision 247) — the same four layers words.js
+   reads every other setting of how a thing is printed through. */
+const wordLayer = (o, key) => { const w=S.look&&S.look.words; if(!w||!o) return null;
+  const t=w[o.kind]&&w[o.kind][key]; if(t!=null&&t!=='') return t;
+  const a=!has(o,'container')&&has(o,'text')&&w['*']&&w['*'][key]; return a!=null&&a!==''&&a!==false?a:null; };
+const textSizeOf = o => +(((o && o.tsize) || wordLayer(o,'tsize') || K(o&&o.kind).tsize || 1)) || 1;
 
 /* Which sort of media a thing holds. The object's own answer first, then the
    type's — an Audio object with nothing in it yet is still for audio, and

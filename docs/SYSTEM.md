@@ -669,6 +669,19 @@ of four things layered over them.
 | **Popup** | Picking one of a handful — Sort, the context menu. Hangs off the button that opened it. | borrowed context-menu element |
 | **Command palette** | ⌘K. The one thing that kept a scrim, because it is a search field you type into blind. | `#frame` |
 
+**How a written thing is set is its own set of fields** (decision 247):
+typeface, ink, paper, weight, case, spacing, alignment, three sizes (the face's
+words, the face's name, the page), what the face shows and where, a halo, a
+layer, margins, paragraphs, a drop capital and one of ten page layouts. Each is
+read object first, then your default for its type, then your default for every
+written thing (`S.look.words`), then the type's own; `wordStyle(o)` in
+`words.js` turns the answer into classes and custom properties for the tile,
+the reading surface, the ruler that paginates it and the writing surface. The
+editor's **Words** door holds them all. The page understands tables, code,
+strikes, highlights, underlines, pictures, centred and right lines, pull
+quotes, callouts and `+++` page breaks, and both editing surfaces carry a
+formatting strip that writes them.
+
 **Tapping an object zooms into it where it sits.** `S.zoomOn` names one object
 and `applyZoom()` slides and scales `#drawergrid` until that tile is centred at
 the largest scale that still fits the viewport. The tile keeps its size in

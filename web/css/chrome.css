@@ -6415,3 +6415,255 @@ html[data-rows="fit"] .is-phone .gridbar.inrail .sqbtn{width:28px;height:28px}
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pushsays u{text-decoration:none;font-size:11px;color:var(--ink-3);
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ============================================================
+   The words — decision 247
+   ============================================================
+   How a written thing is set: typeface, ink, paper, weight, case, spacing,
+   alignment, size on the face and size on the page, and a layout for the
+   page. `wordStyle()` in words.js writes one class per choice and the custom
+   properties they read, onto the tile, onto the reading surface's `.book`,
+   onto the ruler that measures its pages and onto the writing surface — so
+   every rule here is gated by a class and a thing nobody has set anything on
+   is drawn exactly as it was. At the end of the file, after every rule it
+   has to beat. */
+
+/* ---- on the face ---- */
+.drawer.otile.w-font :is(.tiletext,.inlinebody,.qbody,.tilemeta,.cline){font-family:var(--tfam)}
+.drawer.otile.w-hfont :is(.dname,.inlinename){font-family:var(--thfam)}
+.drawer.otile.w-weight :is(.dname,.tiletext,.inlinebody,.qbody,.inlinename){font-weight:var(--tweight)}
+.drawer.otile.w-italic :is(.dname,.tiletext,.inlinebody,.qbody,.inlinename){font-style:italic}
+.drawer.otile.w-case-upper :is(.dname,.tiletext,.qbody){text-transform:uppercase}
+.drawer.otile.w-case-lower :is(.dname,.tiletext,.qbody){text-transform:lowercase}
+.drawer.otile.w-case-title :is(.dname,.tiletext,.qbody){text-transform:capitalize}
+.drawer.otile.w-case-caps :is(.dname,.tiletext,.qbody){font-variant:small-caps}
+.drawer.otile.w-track :is(.dname,.tiletext,.qbody,.inlinebody){letter-spacing:var(--track)}
+.drawer.otile.w-lead :is(.tiletext,.inlinebody){line-height:calc(1.45 * var(--tlead))}
+.drawer.otile.w-ns .dname{font-size:calc(15.5px * var(--tscale,1) * var(--tnscale))}
+.drawer.otile.w-ns.sz-narrow .dname{font-size:calc(12.5px * var(--tscale,1) * var(--tnscale))}
+.drawer.otile.w-ns .dname{-webkit-line-clamp:4}
+/* The ink is the tile's own `--ink`, written inline, so `--dink` (declared
+   on `.drawer.otile` as the ink) follows it without a rule. The body is
+   printed a step softer than the name everywhere, and a chosen ink is a
+   chosen colour — so it is the ink, not a ghost of it. */
+.drawer.otile.w-ink .tiletext{color:var(--tink)}
+.drawer.otile.w-al-left :is(.dname,.tiletext,.inlinebody,.qbody){text-align:left}
+.drawer.otile.w-al-centre :is(.dname,.tiletext,.inlinebody,.qbody){text-align:center}
+.drawer.otile.w-al-right :is(.dname,.tiletext,.inlinebody,.qbody){text-align:right}
+.drawer.otile.w-al-justify :is(.tiletext,.inlinebody){text-align:justify;hyphens:auto}
+.drawer.otile.w-al-centre > .dtop{justify-content:center}
+.drawer.otile.w-al-right > .dtop{justify-content:flex-end}
+/* Where the words sit in the tile. The body stops filling its box and the box
+   puts it at the middle or the foot — so a short line on a tall face can sit
+   where you want it rather than always at the top. */
+.drawer.otile:is(.w-v-middle,.w-v-bottom) > .dbody{display:flex;flex-direction:column}
+.drawer.otile.w-v-middle > .dbody{justify-content:center}
+.drawer.otile.w-v-bottom > .dbody{justify-content:flex-end}
+.drawer.otile:is(.w-v-middle,.w-v-bottom) .tiletext{height:auto;max-height:100%;flex:0 1 auto}
+.drawer.otile.w-v-middle.w-only-title{justify-content:center}
+.drawer.otile.w-v-bottom.w-only-title{justify-content:flex-end}
+/* What the face shows: the name and the words, or one of them. With only the
+   words, the name row goes unless it is holding a tick box. */
+.drawer.otile.w-only-title > .dbody{display:none}
+.drawer.otile.w-only-body > .dtop .dname{display:none}
+.drawer.otile.w-only-body > .dtop:not(:has(.check,.inlinename)){display:none}
+/* The paper's own colour, four classes deep because a shape may paint its
+   ground at three (the index card). The stock's grain stays on top of it. */
+.drawer.otile.w-paper.w-paper{background-color:var(--tpaper)}
+/* **No paper at all.** The words are on the board: no ground, no edge, no
+   shadow, no mount, no grain, no flank and no clipped outline — the same list
+   the None shape takes away, for any shape, so a note can keep its shape's
+   type and lose its sheet. */
+.drawer.otile.w-clear.w-clear{background-color:transparent;background-image:none;
+  border-color:transparent;box-shadow:none;filter:none;clip-path:none}
+.drawer.otile.w-clear > :is(.dpanel,.dgrain,.dside){display:none}
+.drawer.otile.w-clear::before,.drawer.otile.w-clear::after{display:none}
+.drawer.otile.w-clear:hover{box-shadow:none}
+.drawer.otile.w-clear.selected{outline:2px dashed var(--brass);outline-offset:-2px}
+/* A halo round the letters, for words that have to be read over something —
+   a picture, a background, another tile. Text shadows, so it follows every
+   letter's own shape at any size. */
+.drawer.otile.w-halo-soft :is(.dname,.tiletext,.qbody){text-shadow:0 0 3px var(--paper),0 0 7px var(--paper),0 0 12px var(--paper)}
+.drawer.otile.w-halo-light :is(.dname,.tiletext,.qbody){text-shadow:0 0 2px #fff,0 0 6px #fff,0 0 12px rgba(255,255,255,.8)}
+.drawer.otile.w-halo-dark :is(.dname,.tiletext,.qbody){text-shadow:0 0 2px #000,0 0 6px rgba(0,0,0,.85),0 0 12px rgba(0,0,0,.6)}
+.drawer.otile.w-halo-shadow :is(.dname,.tiletext,.qbody){text-shadow:1px 2px 3px rgba(0,0,0,.5)}
+.drawer.otile.w-halo-outline :is(.dname,.tiletext,.qbody){text-shadow:
+  -1px -1px 0 var(--paper),1px -1px 0 var(--paper),-1px 1px 0 var(--paper),1px 1px 0 var(--paper),
+  0 -1px 0 var(--paper),0 1px 0 var(--paper),-1px 0 0 var(--paper),1px 0 0 var(--paper)}
+/* Over the others: a caption across a picture. `boxOk()` lets it overlap
+   (grid.js), and this lifts it above the tiles it lies on. */
+.drawer.otile.w-above{z-index:3}
+/* The face, formatted: the page's own blocks, small. */
+.drawer .tiletext.tmd{white-space:normal}
+.drawer .tiletext.tmd > *{margin:0 0 .45em}
+.drawer .tiletext.tmd :is(h2,h3,h4){font-size:1.15em;line-height:1.25;font-family:var(--thfam,var(--serif))}
+.drawer .tiletext.tmd :is(ul,ol){padding-left:1.2em}
+.drawer .tiletext.tmd blockquote{border-left:2px solid var(--rule);padding-left:.6em;font-style:italic}
+.drawer .tiletext.tmd img{max-width:100%;height:auto}
+
+/* ---- on the page, and on the ruler that measures it ---- */
+.book.w-font :is(.page,.pagebody){font-family:var(--tfam)}
+.book.w-hfont .page :is(h1,h2,h3,h4){font-family:var(--thfam)}
+.book.w-weight :is(.page,.pagebody){font-weight:var(--tweight)}
+.book.w-italic :is(.page,.pagebody){font-style:italic}
+.book.w-case-upper :is(.page,.pagebody){text-transform:uppercase}
+.book.w-case-lower :is(.page,.pagebody){text-transform:lowercase}
+.book.w-case-title .page{text-transform:capitalize}
+.book.w-case-caps :is(.page,.pagebody){font-variant:small-caps}
+.book.w-track :is(.page,.pagebody){letter-spacing:var(--track)}
+.book.w-ink :is(.page,.pagebody){color:var(--tink)}
+.book.w-paper .spread.spread{background-color:var(--tpaper)}
+.book.w-clear .spread.spread{background:transparent;border-color:transparent}
+.book.w-clear .spread .page{border-color:transparent}
+/* Headings in em, so a page set larger sets its headings larger with it. */
+.book .spread .page h2{font-size:1.38em}
+.book .spread .page h3{font-size:1.15em;margin:1.1em 0 .4em}
+.book .spread .page h4{font-size:1em;margin:1em 0 .35em}
+.book.w-rs .spread .page{font-size:calc(14.5px * var(--rscale))}
+.book.w-lead .spread .page{line-height:calc(1.75 * var(--tlead))}
+.book.w-al-left .page{text-align:left}
+.book.w-al-centre .page{text-align:center}
+.book.w-al-right .page{text-align:right}
+.book.w-al-justify .page{text-align:justify;hyphens:auto}
+/* The margins of a page and the measure of a scroll are one setting. */
+.book[class*="w-me-"] .spread .page{padding-left:calc(38px * var(--margx));padding-right:calc(38px * var(--margx))}
+.bookstage.rm-scroll .book[class*="w-me-"] .spread .page{
+  padding-left:max(18px, calc((100% - var(--measure)) / 2));padding-right:max(18px, calc((100% - var(--measure)) / 2))}
+.book.w-gap .page p{margin:0 0 .9em;text-indent:0}
+.book.w-indent .page p{margin:0}
+.book.w-indent .page p + p:not(.vspace){text-indent:1.6em}
+.book.w-indent .page p.cont{text-indent:0}
+.book.w-drop .page p.first::first-letter{float:left;font-size:3.3em;line-height:.85;
+  padding:.06em .08em 0 0;font-family:var(--thfam,var(--serif));color:var(--c, currentColor)}
+
+/* ---- what the page can hold, beyond paragraphs ---- */
+.spread .page :is(del){opacity:.6}
+.spread .page mark{background:color-mix(in srgb, #F2D64B 55%, transparent);color:inherit;padding:0 .1em;border-radius:2px}
+.spread .page u{text-decoration-thickness:1px;text-underline-offset:.15em}
+.spread .page .mdimg{display:block;max-width:100%;max-height:60vh;margin:.4em auto;border-radius:3px}
+.spread .page p.centre{text-align:center}
+.spread .page p.right{text-align:right}
+.spread .page pre{font-family:var(--mono);font-size:.86em;line-height:1.5;background:var(--paper-3);
+  padding:.7em .9em;border-radius:6px;white-space:pre-wrap;overflow-wrap:anywhere;margin:0 0 1em}
+.spread .page code{font-family:var(--mono);font-size:.88em}
+.spread .page table{border-collapse:collapse;width:100%;margin:0 0 1em;font-size:.92em;line-height:1.45}
+.spread .page :is(th,td){border-bottom:1px solid var(--rule-2);padding:.35em .5em;text-align:left;vertical-align:top}
+.spread .page th{font-weight:700;border-bottom-color:var(--rule)}
+.spread .page blockquote.pullq{border:0;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);
+  margin:.6em 8% 1em;padding:.5em 0;text-align:center;font-size:1.3em;line-height:1.4;font-style:italic;color:var(--ink)}
+.spread .page .callout{background:color-mix(in srgb, var(--c, #C9A646) 14%, transparent);
+  border-left:3px solid var(--c, #C9A646);padding:.55em .8em;margin:0 0 1em;border-radius:0 5px 5px 0}
+.spread .page hr.pbreak{border:0;margin:1.2em 0;text-align:center;overflow:visible}
+.spread .page hr.pbreak::after{content:'\2042';color:var(--ink-3)}
+
+/* ---- the page layouts ----
+   Each sets a page the way that kind of document is set: a typeface when you
+   have not chosen one (`:not(.w-font)`), a measure, a leading, and how
+   paragraphs are told apart. Anything you set yourself is later in no rule
+   here and wins by being a class of its own. */
+/* Manuscript: a submission. Times, double spaced, paragraphs indented and no
+   gap between them, headings centred. */
+.book.doc-manuscript:not(.w-font) .page{font-family:'Times New Roman',Times,serif}
+.book.doc-manuscript:not(.w-lead) .spread .page{line-height:2.1}
+.book.doc-manuscript:not(.w-gap) .page p{margin:0}
+.book.doc-manuscript:not(.w-gap) .page p + p:not(.vspace,.cont){text-indent:2.4em}
+.book.doc-manuscript .page :is(h2,h3,h4){text-align:center;font-weight:400;text-transform:uppercase;letter-spacing:.06em;font-size:1em}
+/* Essay: justified, hyphenated, indented, headings in small capitals. */
+.book.doc-essay:not(.w-font) .page{font-family:Charter,'Iowan Old Style',Georgia,serif}
+.book.doc-essay:not([class*="w-al-"]) .page{text-align:justify;hyphens:auto}
+.book.doc-essay:not(.w-gap) .page p{margin:0}
+.book.doc-essay:not(.w-gap) .page p + p:not(.vspace,.cont){text-indent:1.5em}
+.book.doc-essay .page :is(h2,h3,h4){font-variant:small-caps;letter-spacing:.05em;text-align:center;font-weight:600}
+/* Magazine: a drop capital, a first line in capitals, justified columns of
+   type, big headlines and pull quotes. */
+.book.doc-magazine:not(.w-font) .page{font-family:Georgia,'Times New Roman',serif}
+.book.doc-magazine:not([class*="w-al-"]) .page{text-align:justify;hyphens:auto}
+.book.doc-magazine:not(.w-nodrop) .page p.first::first-letter{float:left;font-size:3.6em;line-height:.82;
+  padding:.05em .08em 0 0;font-weight:700;font-family:var(--thfam,'Didot','Bodoni 72',Georgia,serif)}
+.book.doc-magazine .page p.first::first-line{font-variant:small-caps;letter-spacing:.04em}
+.book.doc-magazine:not(.w-hfont) .page :is(h2,h3){font-family:'Avenir Next','Helvetica Neue',sans-serif;font-weight:800;letter-spacing:-.01em}
+.book.doc-magazine .page h2{font-size:1.9em;line-height:1.1}
+/* Letter: a generous head, a readable face, paragraphs apart, the closing to
+   the right. */
+.book.doc-letter:not(.w-font) .page{font-family:Palatino,'Palatino Linotype','Book Antiqua',serif}
+.book.doc-letter .spread .page{padding-top:max(34px, 9%)}
+.book.doc-letter .page p.first{margin-bottom:1.2em}
+.book.doc-letter .page p.right,.book.doc-letter .page p:last-child:not(.first){text-align:right}
+/* Screenplay: Courier at twelve, sluglines in capitals, a character's name
+   over the middle and their lines in a narrow column, transitions right. A
+   cue is a paragraph whose first line is a name in bold — the Script type's
+   own template writes one. */
+.book.doc-screenplay:not(.w-font) :is(.page,.pagebody){font-family:Courier,'Courier Prime','Courier New',monospace}
+.book.doc-screenplay:not(.w-lead) .spread .page{line-height:1.45}
+.book.doc-screenplay .page p{margin:0 0 1em}
+.book.doc-screenplay .page :is(h2,h3,h4){font-family:inherit;font-size:1em;font-weight:700;text-transform:uppercase;margin:1.4em 0 1em}
+.book.doc-screenplay .page p.cue{margin-left:17%;margin-right:17%}
+.book.doc-screenplay .page p.cue > strong:first-child{display:block;margin-left:23%;font-weight:400;text-transform:uppercase}
+.book.doc-screenplay .page p.cue > strong:first-child + br{display:none}
+.book.doc-screenplay .page p.trans{text-align:right;text-transform:uppercase}
+/* Poem: centred, airy, stanzas well apart. */
+.book.doc-poem:not(.w-font) .page{font-family:'Iowan Old Style',Palatino,Georgia,serif}
+.book.doc-poem:not([class*="w-al-"]) .page{text-align:center}
+.book.doc-poem:not(.w-lead) .spread .page{line-height:1.9}
+.book.doc-poem .page p{margin:0 0 1.6em}
+.book.doc-poem .page :is(h2,h3){font-variant:small-caps;letter-spacing:.08em;font-weight:400;margin-bottom:1.4em}
+/* Notebook: handwriting on a ruled leaf with a margin. The rules are a period
+   of one line, from the top of the writing, so every line sits on one. */
+.book.doc-notebook:not(.w-font) :is(.page,.pagebody){font-family:'Bradley Hand',Noteworthy,'Segoe Print','Comic Sans MS',cursive}
+.book.doc-notebook .spread .page{padding-left:calc(38px + 2.2em);
+  background-image:linear-gradient(to right, transparent calc(38px + 1.2em), rgba(190,70,60,.42) calc(38px + 1.2em), rgba(190,70,60,.42) calc(38px + 1.2em + 1px), transparent calc(38px + 1.2em + 1px)),
+    repeating-linear-gradient(to bottom, transparent 0 calc(1lh - 1px), rgba(80,110,160,.26) calc(1lh - 1px) 1lh);
+  background-origin:padding-box,content-box;background-clip:padding-box;background-attachment:local}
+.book.doc-notebook .page :is(p,ul,ol,blockquote,h2,h3,h4,table,pre){margin-top:0;margin-bottom:1lh}
+.book.doc-notebook .page :is(h2,h3,h4){font-size:1em;line-height:inherit;text-decoration:underline}
+/* Typewritten: an old machine — the typeface, a little air between letters,
+   headings underlined in capitals. */
+.book.doc-typewritten:not(.w-font) :is(.page,.pagebody){font-family:'American Typewriter','Courier Prime','Courier New',monospace}
+.book.doc-typewritten:not(.w-track) .page{letter-spacing:.02em}
+.book.doc-typewritten .page :is(h2,h3,h4){font-family:inherit;font-size:1em;text-transform:uppercase;text-decoration:underline;font-weight:400}
+/* Broadsheet: a newspaper. Small tight serif, justified, a heavy headline
+   over a rule, and a first paragraph set larger as the lede. */
+.book.doc-broadsheet:not(.w-font) .page{font-family:Georgia,'Times New Roman',serif}
+.book.doc-broadsheet:not([class*="w-al-"]) .page{text-align:justify;hyphens:auto}
+.book.doc-broadsheet:not(.w-lead) .spread .page{line-height:1.5}
+.book.doc-broadsheet .page p{margin:0 0 .6em}
+.book.doc-broadsheet .page p.first{font-size:1.18em;font-weight:600}
+.book.doc-broadsheet .page h2{font-family:var(--thfam,'Didot','Bodoni 72',Georgia,serif);font-size:2em;line-height:1.05;
+  font-weight:800;text-align:center;border-bottom:3px double var(--ink);padding-bottom:.25em;margin-bottom:.6em}
+
+/* ---- the writing surface follows the typeface, the ink and the paper ---- */
+.writepaper.w-font .writebody{font-family:var(--tfam)}
+.writepaper.w-hfont .writetitle{font-family:var(--thfam)}
+.writepaper.w-ink :is(.writebody,.writetitle){color:var(--tink)}
+.writepaper.w-paper{background-color:var(--tpaper)}
+.writepaper.w-rs .writebody{font-size:calc(16px * var(--rscale))}
+
+/* ---- the formatting strip over the field — decision 247 ---- */
+.mdbar{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;padding:4px;margin:0 auto 6px;
+  width:var(--paperw, 100%);max-width:100%;background:rgba(20,16,12,.72);border-radius:10px;
+  -webkit-overflow-scrolling:touch}
+.mdbar::-webkit-scrollbar{display:none}
+.mdbar button{flex:0 0 auto;min-width:34px;height:32px;padding:0 8px;border:0;border-radius:7px;
+  background:transparent;color:#EDE4CF;font:600 13px/1 var(--sans);cursor:pointer}
+.mdbar button:hover,.mdbar button:active{background:rgba(255,255,255,.14)}
+.mdbar button i{font-style:italic;font-family:var(--serif)}
+.mdbar .mdsep{flex:0 0 1px;background:rgba(255,255,255,.18);margin:6px 3px}
+.writestage .mdbar{background:var(--paper-3);width:100%}
+.writestage .mdbar button{color:var(--ink)}
+.writestage .mdbar button:hover{background:var(--rule-2)}
+
+/* ---- the Words door ---- */
+.wsec{margin:18px 0 6px;padding-top:10px;border-top:1px solid var(--rule);font:600 17px/1.2 var(--serif);color:var(--ink)}
+.wchips{display:flex;flex-wrap:wrap;gap:4px}
+.wchips .pchip{font-size:12.5px}
+.wkeep{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.wkeep .pill[disabled]{opacity:.4;pointer-events:none}
+/* A page of it, small: the reading surface's own classes on the reading
+   surface's own markup, scaled down, so what you see is what you will read. */
+.wordsample{height:190px;overflow:hidden;border-radius:6px;margin:4px 0 6px;position:relative}
+.wordsample .book{width:166%;margin:0;transform:scale(.6);transform-origin:0 0}
+.wordsample .spread{height:316px;grid-template-columns:1fr}
+.wordsample .spread .page{border-right:0}
+.bookstage.writingon:not(.fullbleed){--bookchrome:156px}
+.is-phone .bookstage.writingon:not(.fullbleed){--bookchrome:102px}
+.bookstage.fullbleed.writingon .mdbar{position:absolute;top:8px;left:50%;transform:translateX(-50%);z-index:5;width:min(96%,720px)}

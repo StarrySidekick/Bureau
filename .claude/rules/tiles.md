@@ -808,3 +808,14 @@ grain or flank, `z-index:0` against every other tile's 1, no taps on a locked
 board. `boxOk()` lets it and everything else overlap, and the lasso skips it,
 so a box drawn over one is a sketch. Fills are `FILLS` in model.js plus a
 `fill-<key>` rule in board.css, drawn off `--c` in px. See decision 216.
+
+
+**How the words are set is one answer, `wordStyle(o)`** (decision 247), in
+words.js: classes spliced with the size classes, custom properties in
+`place`. The reader's `.book`, the ruler in `pagesOf()` and the writer carry
+the same answer, and the ruler's cache key includes `wordKey(o)` — measure a
+page in one face and draw it in another and the last lines are cut off.
+Every rule is gated by its class, so an object that says nothing draws as it
+did. A face may print **formatted** (`facemd:'md'`) as an opt-in; plain words
+are still the default of decision 68. Never name a class `.pull`: that is the
+knob.

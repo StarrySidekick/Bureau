@@ -213,6 +213,17 @@ each flow, with Timothy's answers in its `answers` collection (one document per
 card, `{key, value}`): read it before building life knobs, aspect subtypes or
 reworking the flows.
 
+**v2.44–2.45** (decision 247): **the words.** A paragraph taller than a page
+runs on to the next one (`splitToFit()` in tiles.js). Every written object has
+a **Words** door: twenty-two fields (typeface, ink, paper or none, weight,
+case, spacing, alignment, face and page sizes, what the face shows, halo,
+layer, margins, a drop capital, ten page layouts), read through `wordOf()` and
+drawn by `wordStyle()` in `words.js`, with type and desk defaults in
+`S.look.words` and `-` meaning "the plain default". `md()` draws tables, code,
+strikes, highlights, pictures, pull quotes (`.pullq`, never `.pull`, which is
+the knob), callouts and `+++` page breaks; a formatting strip sits over both
+editing surfaces.
+
 **Start here each session:** `docs/SYSTEM.md` is the reference for what Bureau is
 made of — objects, attributes, types, drawers, the grid, the surfaces, storage.
 `docs/ROADMAP.md` holds the current plan in dependency order, and
@@ -399,6 +410,7 @@ clause at the bottom of each file — that list is each module's public surface.
 | `tiles.js` | `gridTile()` — the one place that decides how an object looks on a grid — plus rows, cards, list bands, book/scroll entries, and what a click does (`tileTap`). |
 | `views.js` | The desk and a drawer — the only two places there are. Also the time layouts (`viewMonth`, `viewTimeline`), the zoom out to every board (`openOverview()`) and the settings panel's body. `render()` replaces `#app`'s innerHTML wholesale, then saves. |
 | `sheet.js` | The three surfaces an object opens onto — reading, writing, and the picture — rendered into `#sheetHost`, **separately** from `render()`. |
+| `words.js` | How a written thing is set (decision 247): the typefaces, inks, papers and layouts, `wordOf()` through four layers, and `wordStyle()`, the one class-and-property answer the tile, the reader, the ruler and the writer all draw from. |
 | `setup.js` | The **setup card** (decision 229): the questions a new drawer, project, goal, counter and the rest ask on their first tap, `SETUPS` and `STEPS`, drawn into `#setup` beside `#app`. Every answer writes a field the editor already has. |
 | `panels.js` | `openPanel()` — **every menu in the app** — plus `openMenu()` for a popup hung off a button, the command palette (⌘K), the context menu, and `sampleObject`/`sampleTile` for drawing a type as the thing it makes. |
 | `gestures.js` | Pointer-based drag, resize, lasso, swipe. The fiddliest code in the app. |

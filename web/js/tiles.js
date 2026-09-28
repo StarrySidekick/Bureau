@@ -1,3 +1,4 @@
+import { wordStyle, wordOf, wordKey } from './words.js';
 import { esc, ic, clamp, D, md, plain, oneline, outURL, whereTo, ROOT, pastTense } from './util.js';
 import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, childrenOf, container,
   clPerCell,
@@ -1018,7 +1019,10 @@ function gridTile(o, arr, parentId){
     (S.zoomOn===o.id && camFace.includes('zoomread')) ? 'camreading' : '',
     o.flip ? 'flipped' : '',
     has(o,'movable')   ? 'freemovable' : '',
-    has(o,'resizable') ? 'freesizable' : ''].filter(Boolean).join(' ');
+    has(o,'resizable') ? 'freesizable' : '',
+    /* How the words are set (decision 247), spliced with the size classes for
+       their reason; the custom properties ride in `place`. */
+    wordStyle(o).cls].filter(Boolean).join(' ');
   /* Samples are on no board at all, so they get no perspective — a type drawn
      in the picker is a specimen, not a thing standing somewhere. */
   const persp = arr===false ? null : perspOf(box);
@@ -1569,7 +1573,7 @@ function drawTileFace(o, arr, box, persp){
      the flank you see, the shadow you throw and the light on a curved spine are
      facts about where a thing stands, not about what the phone is doing.
      See decision 117. */
-  const place = `${ts!==1?`--tscale:${ts};`:''}${
+  const place = `${wordStyle(o).vars}${ts!==1?`--tscale:${ts};`:''}${
     tilt?`--tilt:${tilt.deg}deg;--pinx:${tilt.right?'100%':'0%'};`:''
   }${hasPersp(o, persp, box) ? `--px:${persp.x};--py:${persp.y};--depth:${depthOf(o)};` : ''
   }grid-column:${box.x} / span ${box.w};grid-row:${box.y} / span ${box.h}`;
@@ -2875,7 +2879,12 @@ function drawTileFace(o, arr, box, persp){
     ${edit && has(o,'text')
       ? `<div class="dbody"><textarea class="inlinebody" data-inline="${o.id}:body"
            placeholder="Anything else…">${esc(o.body||'')}</textarea></div>`
-      : has(o,'text')&&o.body?`<div class="dbody"><div class="tiletext">${esc(plain(o.body).slice(0,BODY_ON_FACE))}</div></div>`:'<div class="dbody"></div>'}
+      : has(o,'text')&&o.body?`<div class="dbody">${wordOf(o,'facemd')==='md'
+          /* Formatted, when it is asked for (decision 247): a heading and a
+             list on a face are the exception somebody chose, not the rule
+             decision 68 set — the default is still the words with the marks off. */
+          ? `<div class="tiletext tmd">${md(o.body.slice(0,BODY_ON_FACE))}</div>`
+          : `<div class="tiletext">${esc(plain(o.body).slice(0,BODY_ON_FACE))}</div>`}</div>`:'<div class="dbody"></div>'}
     ${bits.length?`<div class="dfoot"><span class="tilemeta">${bits.join(' · ')}</span></div>`:''}
     ${/* **An answer wraps** (decision 197). It was a one-line input, so a
           logline written into "What is it about?" read as its first five
@@ -3364,7 +3373,7 @@ function listTile(o){
      the swipe to date, the hold to reorder and the tap all key on, so those
      come along unchanged. No grips: a row is resized by nothing. */
   const box = {x:1, y:1, w:8, h:1};
-  const sz = [sizeClass(box), 'listband', o.check && CHECKS[o.check] ? 'ck-'+o.check : '',
+  const sz = [sizeClass(box), 'listband', o.check && CHECKS[o.check] ? 'ck-'+o.check : '', wordStyle(o).cls,
     o.flip ? 'flipped' : ''].filter(Boolean).join(' ');
   const html = drawTile(o, false, box, null);
   return html.replace('class="', `class="${sz} `);
@@ -3451,6 +3460,8 @@ function splitToFit(el, over){
   if(lo<0){ el.replaceChildren(...orig.cloneNode(true).childNodes); return null; }
   el.replaceChildren(piece(null, cuts[lo]));
   const tail=orig.cloneNode(false);
+  // a paragraph carried on is not a new one: no drop capital, no indent
+  tail.classList.remove('first'); tail.classList.add('cont');
   tail.appendChild(piece(cuts[lo], null));
   // the space the cut was made at would sit at the head of the new page
   const first=document.createTreeWalker(tail, NodeFilter.SHOW_TEXT).nextNode();
@@ -3473,7 +3484,9 @@ function pagesOf(o, box){
   const key=[o.id, two?'two':'one', full?'full':'', (o.body||'').length,
              (o.media&&o.media.assetId)||'', innerWidth, innerHeight,
              box?`${Math.round(box.w)}x${Math.round(box.h)}@${
-               box.fs?box.fs.toFixed(1):''}`:''].join('|');
+               box.fs?box.fs.toFixed(1):''}`:'',
+             // the typeface, size, spacing and layout the page is set in
+             wordKey(o)].join('|');
   if(PAGES.key===key) return PAGES.list;
 
   const ruler=document.createElement('div');
@@ -3481,7 +3494,8 @@ function pagesOf(o, box){
      full screen is a different box — see the fullbleed block in chrome.css,
      which names `.bookruler` beside `.bookstage` for exactly this. */
   ruler.className='bookruler'+(full?' fullbleed':'');
-  ruler.innerHTML=`<div class="book"><div class="spread">
+  const ws=wordStyle(o);
+  ruler.innerHTML=`<div class="book ${ws.cls}" style="${ws.vars}"><div class="spread">
     <div class="page"></div>${two?'<div class="page"></div>':''}</div></div>`;
   document.getElementById('frame').appendChild(ruler);
   const cell=ruler.querySelector('.page');
@@ -3504,13 +3518,22 @@ function pagesOf(o, box){
   const pages=[]; let cur=[];
   const turn = ()=>{ pages.push(cur.map(x=>x.outerHTML).join('')); cur=[]; cell.replaceChildren(); };
   cell.replaceChildren();
+  /* A `+++` in the body is a page break you asked for, and it is not drawn;
+     and a heading is never left alone at the foot of a page — it goes over
+     with the paragraph it is the heading of. */
+  const isHead = n => n && /^H[1-6]$/.test(n.tagName);
   while(queue.length){
     const b=queue.shift();
+    if(b.matches && b.matches('hr.pbreak')){ if(cur.length) turn(); continue; }
     cell.appendChild(b); cur.push(b);
     if(!over()) continue;
     const tail=splitToFit(b, over);
     if(tail){ turn(); queue.unshift(tail); continue; }
-    if(cur.length>1){ cur.pop(); b.remove(); turn(); queue.unshift(b); }
+    if(cur.length>1){
+      cur.pop(); b.remove(); queue.unshift(b);
+      if(cur.length>1 && isHead(cur[cur.length-1])){ const h=cur.pop(); h.remove(); queue.unshift(h); }
+      turn();
+    }
   }
   if(cur.length) pages.push(cur.map(x=>x.outerHTML).join(''));
   ruler.remove();
@@ -3540,6 +3563,7 @@ function pagesOf(o, box){
    page turns' guests any more. */
 function bookOf(o, left, right){
   const mode=readOf(o);
+  const ws=wordStyle(o), book=`<div class="book ${ws.cls}" style="${ws.vars}">`;
   const bar = mid => `<div class="bookbar">
     <span class="bktools">${left||''}</span>
     <span class="bkturn">${mid}</span>
@@ -3547,7 +3571,7 @@ function bookOf(o, left, right){
   if(mode==='scroll'){
     // the same sheet, the same size — the column inside it scrolls instead of
     // the paper growing to fit what is on it
-    return `<div class="book"><div class="spread scrolling ${sheetOf(o)}"><i class="dgrain"></i>
+    return `${book}<div class="spread scrolling ${sheetOf(o)}"><i class="dgrain"></i>
       <div class="page">${headOf(o)}${o.body?md(o.body):'<p class="thin">Nothing written yet.</p>'}</div>
     </div>${bar('')}</div>`;
   }
@@ -3559,7 +3583,7 @@ function bookOf(o, left, right){
     `<button class="iconbtn" data-act="bookprev" title="Back"${at<=0?' disabled':''}>${ic('chevL',15)}</button>
      <span class="bookcount">${two&&last>at+1?`${at+1}–${last}`:at+1} of ${pages.length}</span>
      <button class="iconbtn" data-act="booknext" title="On"${at+step>=pages.length?' disabled':''}>${ic('chevR',15)}</button>`;
-  return `<div class="book"><div class="spread ${sheetOf(o)}"><i class="dgrain"></i>
+  return `${book}<div class="spread ${sheetOf(o)}"><i class="dgrain"></i>
       <div class="page">${pages[at]||''}<span class="pno">${at+1}</span></div>
       ${two?`<div class="page">${pages[at+1]||''}${pages[at+1]?`<span class="pno">${at+2}</span>`:''}</div>`:''}
     </div>${bar(turn)}</div>`;

@@ -1,3 +1,4 @@
+import { wordOf } from './words.js';
 import { clamp, ROOT } from './util.js';
 import { S, dev, byId, has, childrenOf, container, cfgOf, deskOf, K, kindHas } from './model.js';
 
@@ -667,12 +668,15 @@ function boxOk(box, id, device, parentId){
      still a coordinate space and a decoration still has a box in it — it
      snaps, it drags, it pages — it is only the overlap rule that lets go.
      See decision 86. */
+  /* Words set **over the others** (decision 247) float the same way: a
+     caption written across a picture has to be allowed to lie on it. */
+  const floats = d => has(d,'decor') || has(d,'backdrop') || wordOf(d,'layer')==='above';
   const me = id && byId(id);
-  if(me && (has(me,'decor') || has(me,'backdrop'))) return true;
+  if(me && floats(me)) return true;
   // Only objects that have actually been placed can be collided with. Without
   // this, everything unplaced reads as sitting at 1,1 and blocks the corner.
   return !childrenOf(container(parentId||ROOT))
-    .some(d=>d.id!==id && !has(d,'decor') && !has(d,'backdrop') && hasBox(d,dv)
+    .some(d=>d.id!==id && !floats(d) && hasBox(d,dv)
              && overlaps(box, lay(d,device,parentId||ROOT)));
 }
 /* The lowest free spot, **on the shelf you are looking at first**. A board is

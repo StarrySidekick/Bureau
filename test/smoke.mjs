@@ -1719,6 +1719,44 @@ const PROP_OFF = () => { const b = document.createElement('button');
     const norm = s => s.replace(/\s+/g, ' ').trim();
     out.longParagraphPaginates = n > 2 && fits && norm(words) === norm(huge);
 
+    /* **The words — decision 247.** A typeface, an ink, a paper and a layout
+       reach the face, the page and the ruler alike; the new marks are drawn;
+       a page break starts a page; a type default is inherited and a `-`
+       answer stops it; no paper at all takes the sheet away; and the
+       formatting strip writes into the field without taking the caret. */
+    o.body = '# Head\n\n**MARA**\nYou said.\n\n~~a~~ ==b== ++c++\n\n| x | y |\n|---|---|\n| 1 | 2 |\n\n+++\n\nAfter the break.';
+    Object.assign(o, { tfont:'mono', ink:'#8E2B25', paperc:'#D6E3EF', doc:'screenplay', rsize:'1.3' });
+    S.bookAt = 0; open('book');
+    const pg = document.querySelector('.bookstage .spread .page');
+    const bkw = document.querySelector('.bookstage .book');
+    out.wordsOnPage = bkw.classList.contains('doc-screenplay') && bkw.classList.contains('w-font')
+      && getComputedStyle(pg).color === 'rgb(142, 43, 37)'
+      && Math.abs(parseFloat(getComputedStyle(pg).fontSize) - 14.5 * 1.3) < 0.2;
+    out.newMarksDrawn = !!pg.querySelector('del') && !!pg.querySelector('mark') && !!pg.querySelector('u')
+      && !!pg.querySelector('table td') && !!pg.querySelector('p.cue');
+    out.pageBreakBreaks = !pg.textContent.includes('After the break') && document.querySelectorAll('.bookstage .spread .page')[1]?.textContent.includes('After the break');
+    S.readId = null; BUREAU.renderSheet(); BUREAU.render();
+    const tileOf = id => document.querySelector(`.drawer[data-row="${id}"]`);
+    const t1 = tileOf(o.id);
+    out.wordsOnFace = !!t1 && t1.classList.contains('w-font') && t1.classList.contains('w-paper')
+      && getComputedStyle(t1).backgroundColor === 'rgb(214, 227, 239)';
+    const o2 = BUREAU.create('note', { parent: 'root', title: 'Inherits', body: 'words' });
+    S.look.words = { note: { tfont: 'typewriter' } };
+    BUREAU.render();
+    out.typeDefaultInherited = !!tileOf(o2.id) && tileOf(o2.id).classList.contains('w-font');
+    o2.tfont = '-'; BUREAU.render();
+    out.dashStopsTheType = !!tileOf(o2.id) && !tileOf(o2.id).classList.contains('w-font');
+    o2.paperc = 'none'; BUREAU.render();
+    out.noPaper = getComputedStyle(tileOf(o2.id)).backgroundColor === 'rgba(0, 0, 0, 0)';
+    delete S.look.words;
+    o.read = 'book'; S.readId = o.id; S.readEdit = true; BUREAU.renderSheet();
+    const ta = document.querySelector('.pagebody');
+    ta.focus(); ta.setSelectionRange(0, 0);
+    document.querySelector('[data-md="h"]').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    document.querySelector('[data-md="h"]').click();
+    out.stripWrites = o.body.startsWith('## Head') && document.activeElement === ta;
+    S.readEdit = false; BUREAU.del(o2.id);
+
     S.readId = null; BUREAU.renderSheet();
     BUREAU.del(o.id); S.undo = [];
     return out;
@@ -5362,10 +5400,10 @@ const PROP_OFF = () => { const b = document.createElement('button');
     BUREAU.panel(n.id, 'look'); await nap(220);
     /* Text size is a **ramp of letters**, not a list of words — the Books
        app's control, and right for the same reason every other Look row is a
-       cycle: the answer is a thing you look at. Five buttons, each drawn at
-       the size it sets. See decision 148. */
+       cycle: the answer is a thing you look at. Eight buttons since decision
+       247 (60% to 300%), each drawn at the size it sets. See decision 148. */
     const tsz = v => document.querySelector(`#panel [data-oclick="${n.id}:tsize:${v}"]`);
-    out.textSizeIsOffered = document.querySelectorAll('#panel .tsizerow .tsz').length === 5;
+    out.textSizeIsOffered = document.querySelectorAll('#panel .tsizerow .tsz').length === 8;
     out.andEachIsDrawnAtItsSize = (() => {
       const b = [...document.querySelectorAll('#panel .tsizerow .tsz')]
         .map(e => parseFloat(getComputedStyle(e).fontSize));

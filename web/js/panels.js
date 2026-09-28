@@ -28,6 +28,10 @@ import { render, settingsPanel, boardDimsField, shelfCountField, railToolsField 
 import { openingFor, zoomInto, CAMERA, growSheet } from './motion.js';
 import { plans, planTop, planSize } from './plans.js';
 import { save } from './persist.js';
+import { FONTS, INKS, PAPERS, WEIGHTS, CASES, TRACKS, ALIGNS, VALIGNS, LEADS, SHOWS, HALOS, LAYERS,
+  FACEMD, RSIZES, MEASURES, PARAS, DROPS, DOCS, wordOf, wordFrom, wordStyle, isWritten, typeHasWords, ownWords } from './words.js';
+import { sheetOf } from './tiles.js';
+import { md } from './util.js';
 
 /* ============================================================
    16 · overlays
@@ -966,13 +970,13 @@ const pgroup=(label,body,open)=>`<details class="pgroup"${open?' open':''}><summ
    are unchanged — TSIZES is still the table — these are three of them; the
    other two are reachable by pressing on past the end, because the row wraps
    the way every cycle in this panel does. See decision 148. */
-const TSIZE_STEPS = ['0.8','1','1.25','1.6','2'];
+const TSIZE_STEPS = ['0.6','0.8','1','1.25','1.6','2','2.5','3'];
 function tsizeRow(id, cur){
   const now = String(cur);
   const i = Math.max(0, TSIZE_STEPS.indexOf(now));
   return `<div class="tsizerow">${TSIZE_STEPS.map((v,n)=>
     `<button class="tsz${i===n?' on':''}" data-oclick="${id}:tsize:${v}"
-       style="font-size:${11 + n*4}px" title="${esc((TSIZES.find(t=>t[0]===v)||[,''])[1])}"
+       style="font-size:${9 + n*3}px" title="${esc((TSIZES.find(t=>t[0]===v)||[,''])[1])}"
        >A</button>`).join('')}</div>`;
 }
 
@@ -1111,6 +1115,80 @@ function objectStage(id){
     <div class="stagetile">${sampleTile(twin, 300, 176)}</div></div>`;
 }
 
+/* ---- the Words door — decision 247 -------------------------------------
+   Everything about how a written thing is printed, on its face and on its
+   page, in one place: the typeface (each drawn in itself), the ink and the
+   paper, the weight, case, spacing and alignment, what the face shows and
+   where, how big the words are in three places, and how a long piece is laid
+   out. Every row says under it where the answer is coming from when it is not
+   the object's own — a type default or a desk one — and the foot of the door
+   is where an object's settings become its type's, or everybody's. */
+/* The first chip is the plain default, and when a type or the desk has said
+   something else it has to be *said* rather than cleared, or pressing it
+   would hand the object straight back the answer it is walking away from —
+   so it writes `-`, which stops the layers and draws as nothing. */
+const plainVal = (id, key) => { const o=byId(id), f=o?wordFrom(o,key):'';
+  return f && f!=='its own' ? '-' : ''; };
+const wchips = (id, key, table, cur, styleOf) => `<div class="wchips">${
+  (Array.isArray(table) ? table : Object.entries(table)).map(([v,nm])=>
+    `<button class="pchip${String(cur==='-'?'':cur)===String(v)?' on':''}" data-oclick="${id}:${key}:${esc(String(v)||plainVal(id,key))}"
+      ${styleOf?`style="${esc(styleOf(v))}"`:''}>${esc(nm)}</button>`).join('')}</div>`;
+const wswatch = (id, key, list, cur) => `<div class="pickgrid sw wsw">${list.map(([v,nm])=>
+  `<button data-oclick="${id}:${key}:${esc(v||plainVal(id,key))}" title="${esc(nm)}" class="${(cur==='-'?'':String(cur||''))===v?'on':''}"
+    style="background:${v==='none' ? 'repeating-conic-gradient(#ccc 0 25%, #fff 0 50%) 0 0/10px 10px'
+      : v || 'var(--paper)'};${v?'':'border-style:dashed'}"></button>`).join('')}
+  <label class="swown${cur && /^#/.test(cur) && !list.some(([v])=>v===cur)?' on':''}" title="A colour of your own"
+    ${cur && /^#/.test(cur)?`style="--own:${esc(cur)}"`:''}>
+    <input type="color" data-ocolinput="${key}" data-id="${id}" value="${esc(/^#/.test(cur||'')?cur:'#333333')}"></label></div>`;
+function wordsDoor(id, d){
+  const o=[], from = k => wordFrom(d,k);
+  const row = (label, key, body, note) => o.push(prow(label, body, note || (from(key) && from(key)!=='its own' ? 'from '+from(key) : '')));
+  o.push(objectStage(id));
+  const ws=wordStyle(d);
+  o.push(`<div class="wordsample"><div class="book ${ws.cls}" style="${ws.vars}"><div class="spread ${sheetOf(d)}">
+    <div class="page">${md((d.body||'').slice(0,700) || '# A heading\n\nThe words as they will be read, set the way this page is set. A second sentence, so there is a line to wrap.')}</div></div></div></div>`);
+  o.push('<div class="wsec">The type</div>');
+  row('Typeface', 'tfont', wchips(id,'tfont', Object.entries(FONTS).map(([k,[nm]])=>[k,nm]), wordOf(d,'tfont'),
+    k=>FONTS[k][1] ? 'font-family:'+FONTS[k][1] : ''));
+  row('Name in', 'hfont', wchips(id,'hfont', Object.entries(FONTS).map(([k,[nm]])=>[k, k?nm:'Same as the words']), wordOf(d,'hfont'),
+    k=>FONTS[k][1] ? 'font-family:'+FONTS[k][1] : ''), 'the name on the face, and the headings on the page');
+  row('Weight', 'tweight', wchips(id,'tweight', WEIGHTS, wordOf(d,'tweight'), v=>v?'font-weight:'+v:''));
+  row('Italic', 'titalic', wchips(id,'titalic', [['','Upright'],['true','Italic']], String(wordOf(d,'titalic')||'')));
+  row('Case', 'tcase', wchips(id,'tcase', CASES, wordOf(d,'tcase')));
+  row('Letter spacing', 'track', wchips(id,'track', TRACKS, wordOf(d,'track')));
+  row('Line spacing', 'lead', wchips(id,'lead', LEADS, wordOf(d,'lead')));
+  row('Alignment', 'talign', wchips(id,'talign', ALIGNS, wordOf(d,'talign')));
+  o.push('<div class="wsec">Ink and paper</div>');
+  row('Ink', 'ink', wswatch(id,'ink', INKS, wordOf(d,'ink')), from('ink') && from('ink')!=='its own' ? 'from '+from('ink') : 'unset, it is chosen to read on the paper');
+  row('Ink from the aesthetic', 'ink', swatches(id,'ink', typeof d.ink==='number' ? d.ink : null));
+  row('Paper', 'paperc', wswatch(id,'paperc', PAPERS, wordOf(d,'paperc')), 'the chequered one is no paper at all: the words straight on the board');
+  row('Paper from the aesthetic', 'paperc', swatches(id,'paperc', typeof d.paperc==='number' ? d.paperc : null));
+  o.push('<div class="wsec">On the face</div>');
+  row('Words size', 'tsize', tsizeRow(id, textSizeOf(d)));
+  row('Name size', 'nsize', wchips(id,'nsize', [['','Same'],['0.75','Smaller'],['1.3','Larger'],['1.7','Large'],['2.2','Huge']], wordOf(d,'nsize')));
+  row('Shows', 'shows', wchips(id,'shows', SHOWS, wordOf(d,'shows')));
+  row('Sits', 'tvalign', wchips(id,'tvalign', VALIGNS, wordOf(d,'tvalign')), 'where the words sit in the tile');
+  row('Formatting', 'facemd', wchips(id,'facemd', FACEMD, wordOf(d,'facemd')), 'plain words, or headings and lists drawn small');
+  row('Halo', 'halo', wchips(id,'halo', HALOS, wordOf(d,'halo')), 'for words read over a picture or another tile');
+  row('Layer', 'layer', wchips(id,'layer', LAYERS, wordOf(d,'layer')), 'over the others may lie on top of other tiles');
+  o.push('<div class="wsec">On the page</div>');
+  row('Layout', 'doc', wchips(id,'doc', DOCS, wordOf(d,'doc')), 'how a long piece is set when it is read');
+  row('Reading size', 'rsize', wchips(id,'rsize', RSIZES.map(v=>[v, Math.round(v*100)+'%']), String(wordOf(d,'rsize')||'1').replace(/^$/,'1')));
+  row('Margins', 'measure', wchips(id,'measure', MEASURES, wordOf(d,'measure')), 'the margins of a page, the width of a scroll');
+  row('Paragraphs', 'paras', wchips(id,'paras', PARAS, wordOf(d,'paras')));
+  row('Drop capital', 'dropcap', wchips(id,'dropcap', DROPS, wordOf(d,'dropcap')));
+  o.push('<div class="wsec">Keeping it</div>');
+  const tn = K(d.kind).nm.toLowerCase();
+  o.push(`<div class="wkeep">
+    <button class="pill" data-act="wordstype" data-id="${id}"${ownWords(d)?'':' disabled'}>Every ${esc(tn)} like this</button>
+    <button class="pill" data-act="wordsall" data-id="${id}"${ownWords(d)?'':' disabled'}>Every written thing like this</button>
+    <button class="pill" data-act="wordsclear" data-id="${id}"${ownWords(d)?'':' disabled'}>Back to its type</button>
+    ${typeHasWords(d.kind)?`<button class="pill" data-act="wordstypeclear" data-id="${id}">Forget the ${esc(tn)} defaults</button>`:''}
+    ${typeHasWords('*')?`<button class="pill" data-act="wordsallclear" data-id="${id}">Forget the desk defaults</button>`:''}
+  </div>`);
+  return o.join('');
+}
+
 /* ---- one panel, one question ------------------------------------------
    The object editor was nineteen rows in one column — name, type, where it
    lives, shape, colour, a wall of thirty marks, text size, edge, border, knob,
@@ -1144,6 +1222,7 @@ function objectStage(id){
    The old names still open Behaviour, so nothing that asks for them breaks. */
 const OBJSECS = {
   look:   ['Look',      'palette',  'colour, face, edges, hardware'],
+  words:  ['Words',     'feather',  'typeface, ink, paper, sizes, how the page is laid out'],
   does:   ['Behaviour', 'sliders',  'what it does, what it collects, its fields and traits']
 };
 const OBJALIAS = {collect:'does', adv:'does'};
@@ -1287,7 +1366,7 @@ function objectPanelBody(id, sec){
   /* …and the doors. Which ones there are depends on what the thing is: only a
      container collects, and the desk has no traits of its own to tick. */
   if(!sec){
-    const doors = ['look','does'];
+    const doors = isWritten(d) ? ['look','words','does'] : ['look','does'];
     out.push(`<div class="rows osecs">${doors.map(s=>{
       const [nm,icon,note]=OBJSECS[s];
       return `<div class="row" data-osec="${id}:${s}">
@@ -1461,6 +1540,8 @@ function objectPanelBody(id, sec){
     [['rounded','Rounded'],['round','Round'],['square','Square']], d.btnshape||'rounded')));
 
   }
+
+  if(at('words') && isWritten(d)) out.push(wordsDoor(id, d));
 
   if(at('does')) {
   /* ---- how it behaves ---- */
