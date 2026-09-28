@@ -1075,6 +1075,16 @@ function clipMedia(c){
   const url = 'img/clips/'+c.f+'.mp4';
   return {type:'video', url, src:url, label:c.t, poster:'img/clips/'+c.f+'.jpg', loop:true};
 }
+/* ---- the sounds — decision 244 ----------------------------------------
+   Public-domain recordings (docs/IMAGES.md says where each came from), a
+   minute at most, mono MP3 under `img/sounds/`, beside the clips. An Audio
+   made at random is born holding one, so it plays rather than being a blank
+   disc. Filled in from `img/sounds/titles.json`'s order when they land. */
+const SOUNDS = [];
+function soundMedia(c){
+  const url = 'img/sounds/'+c.f+'.mp3';
+  return {type:'audio', url, src:url, label:c.t};
+}
 const GALLERIES = {paintings: PAINTINGS};
 const galleryOf = o => o && GALLERIES[K(o.kind).gallery] || null;
 /* Hang one of a gallery's paintings on an object. The name follows the
@@ -1220,6 +1230,10 @@ function furnish(o, depth){
     hangPainting(o, gal[Math.floor(Math.random()*gal.length)]);
   } else if(isPicture(o) && !isDecor(o) && !(o.media && (o.media.src||o.media.assetId))){
     const p = samplePicture(); if(p) o.media = pictureMedia(p);
+  } else if(mediaTypeOf(o)==='audio' && SOUNDS.length && !(o.media && (o.media.src||o.media.assetId))){
+    const c = pick(SOUNDS);
+    o.media = soundMedia(c);
+    if(!o.title || o.title===K(o.kind).nm) o.title = c.t;
   } else if(mediaTypeOf(o)==='video' && !(o.media && (o.media.src||o.media.assetId))){
     const c = CLIPS[Math.floor(Math.random()*CLIPS.length)];
     o.media = clipMedia(c);
