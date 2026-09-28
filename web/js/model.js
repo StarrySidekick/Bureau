@@ -1629,9 +1629,9 @@ const faceOf = o => (o && o.face) || K(o&&o.kind).face || 'front';
 /* The ten photographed buttons a Button may be (decision 243), under
    `img/buttons/`; where each came from is docs/IMAGES.md. */
 const BUTTON_IMGS = [
-  {f:'b01', t:'Button 1'}, {f:'b02', t:'Button 2'}, {f:'b03', t:'Button 3'}, {f:'b04', t:'Button 4'},
-  {f:'b05', t:'Button 5'}, {f:'b06', t:'Button 6'}, {f:'b07', t:'Button 7'}, {f:'b08', t:'Button 8'},
-  {f:'b09', t:'Button 9'}, {f:'b10', t:'Button 10'}];
+  {f:'b01', t:'Fabergé bell push'}, {f:'b02', t:'Turtle bell push'}, {f:'b03', t:'Elephant bell push'},
+  {f:'b04', t:'Emergency stop'}, {f:'b05', t:'Street doorbell'}, {f:'b06', t:'Doorbell'},
+  {f:'b07', t:'Push switch'}, {f:'b08', t:'Telegraph key'}, {f:'b09', t:'Play button'}, {f:'b10', t:'Sport button'}];
 /* What pressing a Button does (decision 243), per object then per type. */
 const DOES = {make:'Makes something', open:'Opens something', switch:'Flips a switch'};
 const doesOf = o => { const v = (o && o.does) || K(o&&o.kind).does; return DOES[v] ? v : null; };
