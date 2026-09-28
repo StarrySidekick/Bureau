@@ -5,7 +5,7 @@ import { S, K, KINDS, KEYS, T, ATTRS, USER_ATTRS, FIELDS, fieldOf, OPS, ROLLS,
   SORTS, MANUAL, sortOf, SORT_FACES, sortCycleOf, FACES, SHAPES, shapeChoices, READS, OPENINGS, openingOf,
   faceOf, layoutOf, shapeOf, readOf, byId, container, cfgOf, deskTitle,
   rootObj, containers, isContainer, isAncestor, childrenOf, has, kindHas,
-  attrsOf, allTags, everyTag, tagsOf, habitPlan, HABIT_MAX_TIMES, placeOf, deskList, deskOf, isDesk, spanOf, heldObjects,
+  attrsOf, allTags, everyTag, tagsOf, habitPlan, HABIT_MAX_TIMES, measureOf, placeOf, deskList, deskOf, isDesk, spanOf, heldObjects,
   dev, takesTyping, genKindOf, genSaid, ANY, ctlOf, barOf,
   PRIMARY, SECONDARY, isPrimary, inFamily, familyList, finishedThings, answered, marginOf, isLate,
   PRIOS, prioOf, prioName, DIFFS, diffOf, diffName, REPEAT_UNITS, repeatOf, repeats, repeatSaid,
@@ -24,7 +24,7 @@ import { isActive, activeZoom, activeSay, activeName, DICE, CLOCKS } from './act
 import { DECOR, decorOf, decorSVG, decorFor, decorRest, LIFE_ART, LIFE_KEYS, lifeSVG } from './decor.js';
 import { quickAdd, toast, drawerForTag, CONTROLS, CTL_KEYS, ctlSpec, galleryOf, PAINTINGS, pictureMedia } from './mutations.js';
 import { openObj, renderSheet, closeSheet , openZoom } from './sheet.js';
-import { render, settingsPanel, gridSizeField, shelfCountField, railToolsField } from './views.js';
+import { render, settingsPanel, boardDimsField, shelfCountField, railToolsField } from './views.js';
 import { openingFor, zoomInto, CAMERA, growSheet } from './motion.js';
 import { plans, planTop, planSize } from './plans.js';
 import { save } from './persist.js';
@@ -1436,7 +1436,7 @@ function objectPanelBody(id, sec){
        every container opens onto a board — a desk you keep six big drawers on
        and a checklist you keep forty lines in do not want the same grain. See
        decision 60. */
-    out.push(gridSizeField(id));
+    out.push(boardDimsField(id));
     // and how many screenfuls it is — decision 141
     out.push(shelfCountField(id));
     // and what its drawer front carries — decision 220
@@ -1591,6 +1591,20 @@ function objectPanelBody(id, sec){
          week is a week (no days named) asking for two. Only on a habit: a task
          that repeats is one thing to do, and done is done. See decision 202. */
       if(has(o,'streak')){
+        const hp = habitPlan(o);
+        const per = hp.per==='day' ? (hp.every>1 ? `${hp.every} days` : 'day') : hp.per;
+        /* **An amount instead of a count** (decision 232): what it is
+           measured in, how much the period asks for, and how much one tap is.
+           With a goal the number of taps is worked out and Times steps aside. */
+        const m = o.measure || {}, ms = measureOf(o);
+        const fld = (k, v, ph, w, num) => `<input class="pfield${num?' num':''}"${num?' type="number" min="0" step="any"':''}
+          style="width:${w}" data-oset="${id}:measure.${k}" value="${esc(v==null?'':String(v))}" placeholder="${esc(ph)}">`;
+        f.push(prow('Measured in',
+          fld('goal', m.goal, 'goal', '5.5em', true) + fld('unit', m.unit, 'oz, pages, km', '8em')
+          + `<span class="mini" style="align-self:center">a ${per}, and each tap is</span>` + fld('step', m.step, '1', '4.5em', true),
+          ms ? `${ms.taps} tap${ms.taps===1?'':'s'} a ${per}` : 'leave the goal empty to count taps'));
+      }
+      if(has(o,'streak') && !measureOf(o)){
         const hp = habitPlan(o);
         const per = hp.per==='day' ? (hp.every>1 ? `${hp.every} days` : 'day') : hp.per;
         f.push(prow('Times',

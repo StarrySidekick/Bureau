@@ -10347,3 +10347,97 @@ when it is made at random.
   a 200, which is what a plain cache hit is. A request with a Range header for
   something cached is cut to those bytes and answered 206; anything else goes
   to the network as before.
+
+## 231 · A round portal on a long tile stays round
+
+*2026-09-28.* Timothy: a circular portal on a tile that is not square should
+not make an oval; keep the circle, at the left with the title on the right
+when it is wide, at the bottom with the words on top when it is tall.
+
+A round portal whose box is not square is drawn as `.pcirc`, a square the size
+of the short side, at the left (`pside-wide`) or the foot (`pside-tall`), and
+the throat, the frame, the vines and the glow are drawn inside it exactly as
+on a square tile. The name and the address are set beside it as ordinary
+words on the board (`.pwords`), no longer round the rim. A square or an arch
+still fills its cells, and a round portal on a square tile keeps its words on
+the rim. The class was first called `.pring`, which an existing keyframe of
+the tunnel's rings already answered to: the square was animated down to a
+pixel. Worth knowing before naming anything on a portal.
+
+## 232 · A habit measured in an amount
+
+*2026-09-28.* Timothy: measure a habit in ounces — drink 64 ounces of water a
+day — with each counter standing for some of it.
+
+- **`measure: {unit, goal, step}`** on a habit: what it is counted in, how
+  much a period asks for, and how much one tap is. The number of taps a period
+  is owed is `ceil(goal / step)` (`measureOf()` in model.js), so 64 oz at 8 a
+  glass is a day asking for eight. Nothing else moved: a tap is still one entry
+  in `history`, the rule still says the period, and the streak is the same.
+- **The face says the amount**: `24/64 oz today`, and the toast after a tap
+  the same. Up to twelve taps a period are pips; past that each period is a
+  glass filling (`.habfill`), because sixty-four dots a day is not readable.
+- **The editor** has *Measured in*: the goal, the unit and how much a tap is,
+  in place of *Times* while there is a goal; clearing the goal counts taps
+  again. The setup card asks *Is it an amount?* with Water, Pages and Minutes
+  and a line for anything else ("64 oz, 8 at a time").
+
+## 233 · "This desk" is Board settings
+
+*2026-09-28.* Timothy: the *This desk* row in Settings was not in the Workshop
+and did not relate to anything; he thought Board settings was for that.
+
+It was the desk's own editor (how it is laid out, sorted and painted, and
+saving it as a flow) as a row of its own above a Board settings door that was
+the desk's board. Inside a drawer the two were already one panel (decision
+206). Now the desk's is too: Board settings opens with the desk's editor woven
+in at the top and the board's own settings under it, and the row is gone.
+`boardeditor` still answers, opening Board settings.
+
+## 234 · A board can be taken away with things on it
+
+*2026-09-28.* Timothy: boards should be deletable from the board view even if
+there are objects on them, with the option of putting those objects in the
+Void Drawer; he could not get the desk down to one board.
+
+- **Every board but the home one and the last has a cross** in the zoomed-out
+  view. An empty board goes at once. One with things on it asks, over the
+  boards: *Put them in the Void Drawer*, *Delete them with the board*, or *Keep
+  the board*. Either way the things are one undo move (`holdMany()` beside
+  `holdIt()`, or `delMany()`), with the Undo on the toast; the board itself has
+  no undo, since the desk's rectangle is not an object, but an empty board is
+  one press to put back. `onBoard()` in grid.js lists what is on a board by the
+  same test `boardHolds()` makes.
+- **A drawer's boards are in its Board settings** (*See every board*), with
+  the same crosses. The pinch inside a drawer still goes up a level, tracking
+  the fingers (decision 109); making the first pinch open the drawer's boards
+  instead was built and taken back out, because it would have cost that
+  gesture. Asked.
+
+## 235 · A board's own width and height
+
+*2026-09-28.* Timothy: instead of *One more row* and the grid width, let each
+board's width and height be set from two to twelve, and fit it on the screen as
+best it can.
+
+- **`bw` and `bh`** on a board's config (the desk's `deskCfg` or the drawer),
+  read by `dimsOf()` in grid.js. Stated, the board is that many cells each way
+  on both devices: `colsOf()` answers the width and `shelfRows()` the height.
+  Unstated it is what it was (the three widths, as many rows as fit up to
+  fourteen), so nothing changed for a board nobody touched.
+- **The cell is whatever fits**: the screen's width over the columns or the
+  room over the rows, the smaller (`gridOf()`). A board that runs out of height
+  first is drawn narrower and centred (`narrowboard`), and a board shorter than
+  the room is centred in it as a short drawer is, with the name's strip at its
+  floor. On a Mac the row of boards across (up to three) is fitted to the
+  window. Because a narrow board's own width no longer measures the screen,
+  `sizeGrid()` reads the scroller's content box for these boards.
+- **Changing a board's shape re-lays it** (`setBoardDims()`): each device's
+  boxes go through `rescaleOneBoard()`, keeping their board and their place on
+  it, scaled across; anything left overlapping or too big is given the first
+  free place on any board, and a board is added beside the others when there
+  is none. Nothing is left where it cannot be seen.
+- **Board settings** has *Width* and *Height* sliders and *Fit the screen*;
+  the desk editor's grid-width row became the same sliders. *Grid Height*
+  (*One more row*) is gone from the panel; a desk that had it on keeps it for
+  every board without a shape of its own.

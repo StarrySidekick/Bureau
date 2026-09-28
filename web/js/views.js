@@ -10,7 +10,7 @@ import { S, K, T, byId, has, isContainer, containers, container, childrenOf, cha
 import { GRID, PHONE_GRIDS, CELL, COLW, MEASURE, sideways, colsOf, gridKeyOf, SHELVES, PAGES_MAX, shelvesOf,
   shelfRows, shelfOfBox, shelfAt, setShelf, shelfOrigin, SHELF, drawCols, drawRows,
   lay, gridOf, cellW, ensureBox, innerOf, PLACED, proportional, flows,
-  isBoard, boardsOf, reachable, boardHolds, removeBoard, SPAN, startOf } from './grid.js';
+  isBoard, boardsOf, reachable, boardHolds, removeBoard, SPAN, startOf, dimsOf, DIM_MIN, DIM_MAX } from './grid.js';
 import { themeNow, applyLook, lookVal, STYLES, BACKDROPS, SURFACES, DARKMODES, darkMode, hasDark,
   palNow, styleNow, hexOf, objColour, slotName, OBJ0, CHECKS, dressAs } from './look.js';
 import { gridOfContainer, gridTile, listTile, boardVarsOf, bookView, calSpan, calFront } from './tiles.js';
@@ -658,21 +658,29 @@ function bytes(n){ return n<1024? n+' B' : n<1048576? (n/1024).toFixed(1)+' KB' 
    — so it has not lost its job, only its reach into a coordinate space that is
    now derived. The drawer's own size, which is the thing that decides, is the
    field below this one. */
-function gridSizeField(cid){
-  const app = cid==null;
-  if(!app && cid!==ROOT && byId(cid)) return '';
-  const now = app ? (S.look.grid||'small') : gridKeyOf(cid);
-  const own = app ? null : (cfgOf(cid)||{}).grid;
-  return `<div class="field" style="margin-top:12px"><label>${app?'Grid Width':'This board'}</label>
-      <div class="filterbar">${Object.entries(PHONE_GRIDS).map(([k,n])=>
-        `<button class="fchip${now===k?' on':''}${!app&&own!==k?' inherited':''}"
-          data-gridsize="${k}"${app?'':` data-gridfor="${cid}"`}>${
-          k[0].toUpperCase()+k.slice(1)} · ${n} across</button>`).join('')}
-        ${app||!own?'':`<button class="fchip" data-gridsize="" data-gridfor="${cid}">Follow the desk</button>`}</div>
-      <div class="mini" style="--k:var(--brass);margin-top:6px">Fewer columns, bigger cells. The rows are whatever fits — a cell is square, so the columns decide both. ${
-        app ? 'Every board that has not been asked this question itself.'
-            : (own ? 'This board only.' : 'Following the desk — pick one to give this board its own.')}${
-        S.device==='phone' ? ` Right now a shelf is <b>${colsOf(app?null:cid, 'phone')} × ${shelfRows('phone', app?null:cid)}</b>.` : ''}</div>
+/* **A board's width and height, two to twelve each** (decision 235). This was
+   three widths for the whole app (Small, Extra, Large) and *One more row*;
+   Timothy asked for the shape of each board, each way. The numbers shown are
+   what the board is now on this device, so a board that has not been asked
+   shows what the screen gave it; moving either says it, and "Fit the screen"
+   takes both back. Changing one re-lays what is on the board: every thing stays
+   on its own board, scaled across when the width changes, and whatever no
+   longer fits is re-placed. */
+function boardDimsField(cid){
+  const id = cid==null ? ROOT : cid;
+  if(id!==ROOT && (innerOf(id) || !byId(id))) return '';
+  const dm = dimsOf(id), dv = dev();
+  const w = colsOf(id, dv), h = shelfRows(dv, id);
+  const one = (k, v, nm) => `<label class="rangerow"><span>${nm}</span>
+      <input type="range" min="${DIM_MIN}" max="${DIM_MAX}" step="1" value="${v}" data-boarddim="${k}" data-id="${id}">
+      <b data-boarddimsaid="${k}">${v}</b></label>`;
+  return `<div class="field" style="margin-top:12px"><label>Board Size</label>
+      ${one('w', w, 'Width')}${one('h', h, 'Height')}
+      ${dm ? `<button class="fchip" data-act="boarddimfit" data-id="${id}" style="margin-top:6px">Fit the screen</button>` : ''}
+      <div class="mini" style="--k:var(--brass);margin-top:6px">${dm
+        ? `This board is <b>${w} × ${h}</b> on both devices, with its cells as big as fit on the screen.`
+        : `This board is <b>${w} × ${h}</b>: as many rows as the screen has room for. Set either to give it a shape of its own.`}
+        Everything on it stays on it; what no longer fits is moved to where it does.</div>
     </div>`;
 }
 /* ---- how many shelves a board is --------------------------------------
@@ -740,7 +748,7 @@ const SETSECS = {
      were scattered across Aesthetics and Appearance, and they are the one set
      of settings that means something inside a container too — so inside one,
      the gear opens straight onto this door and nothing else. */
-  board:  ['Board settings', 'grid', 'colour, background, grid size, pages and gravity'],
+  board:  ['Board settings', 'grid', 'this desk: how it is laid out, sorted and painted, its colour, grid size and pages'],
   /* **Global Settings** (decision 213, Timothy's own arrangement in the
      Workshop): the aesthetic, its palette and light or dark, and what is left
      of Appearance, in one door. Aesthetics was its own door and is gone; a
@@ -786,6 +794,11 @@ function settingsPanel(sec, cid){
      here; the panel's title is the drawer's name, pressable to rename, the way
      the editor's own is. */
   if(inside){ S.openId = cid; objBackTo(()=>settingsPanel('board', cid), cid); }
+  /* **…and on the desk too** (decision 233). "This desk" was a row of its own
+     at the top of Settings, opening the desk's editor, beside a Board settings
+     door that was the desk's board; they were two halves of one thing. So the
+     desk's editor is woven into its Board settings the way a drawer's is. */
+  else if(s==='board') objBackTo(()=>settingsPanel('board'), ROOT);
   openPanel({key:'settings',
     title: inside ? `<span class="pheadname" data-headname="${cid}" tabindex="0"
       title="Press to rename">${esc(byId(cid).title||'Untitled')}</span>` : s ? SETSECS[s][0] : 'Settings',
@@ -818,16 +831,12 @@ function settingsBody(sec, cid){
   /* **The desk's own editor is the first door** (decision 206). It was the
      brush in the bar: how this desk is laid out, sorted and painted. */
   if(!sec) return `<div class="rows osecs">
-      <div class="row" data-act="boardeditor" data-id="${ROOT}">
-        <span class="kindmark">${ic('brush',13)}</span>
-        <div class="body"><div class="title">This desk</div><div class="snip">how it is laid out, sorted and painted, and saving it as a flow</div></div>
-        <span class="rowgo">${ic('chevR',13)}</span></div>
       ${Object.entries(SETSECS).map(([k,[nm,icon,note]])=>
       `<div class="row" data-ssec="${k}">
         <span class="kindmark">${ic(icon,13)}</span>
         <div class="body"><div class="title">${esc(nm)}</div><div class="snip">${esc(note)}</div></div>
         <span class="rowgo">${ic('chevR',13)}</span></div>`).join('')}</div>
-    <div class="mini" style="--k:var(--brass);margin-top:10px">Inside a drawer the gear opens that drawer: its own editor, then its Board settings. See decisions 193 and 206.</div>`;
+    <div class="mini" style="--k:var(--brass);margin-top:10px">Board settings is the board you are on: on the desk, the desk's own editor and then its board; inside a drawer the gear opens that drawer's. See decisions 206 and 233.</div>`;
   return [
     at('about') ? `
 
@@ -838,8 +847,8 @@ function settingsBody(sec, cid){
       <div class="s"><b>${standalone?'Installed':'Browser'}</b>running as</div>
     </div>
     <div class="mini" style="--k:var(--brass);margin-top:6px">An installed copy serves itself from its own cache, so it can be a version behind until its second launch. This is the one that is running right now.</div>` : '',
-    at('board') ? `${inside ? `<div class="woven">${objectPanelBody(cid, null)}</div>
-    <div class="section-h" style="margin-top:18px"><h2>Board settings</h2><div class="rule"></div></div>` : ''}
+    at('board') ? `<div class="woven">${objectPanelBody(inside ? cid : ROOT, null)}</div>
+    <div class="section-h" style="margin-top:18px"><h2>Board settings</h2><div class="rule"></div></div>
     <div class="section-h"><h2>The board</h2><div class="rule"></div></div>
     ${inside ? boardRow(cid, byId(cid), false) : `
     <div class="field" style="margin-top:12px"><label>Board Color</label>
@@ -875,14 +884,9 @@ function settingsBody(sec, cid){
       <div class="mini" style="--k:var(--brass);margin-top:6px"><b>Graph paper</b> is the checkerboard, two cells to a square, and it is what arranging is done on. <b>Plain</b> is the same colour with nothing drawn on it. <b>The carcass</b> is the wood the bar above and the drawer along the bottom are made of, so the whole screen reads as one piece of furniture. The board's own colour is still the board's own colour — this only says what is drawn on it.</div>
     </div>
 
-    ${/* How tall a phone board is (decision 205). Two answers, because both
-          are good: the wood above the board is furniture Timothy likes, and
-          the row it costs is a row. */''}
-    <div class="field" style="margin-top:12px"><label>Grid Height</label>
-      <div class="filterbar">${[['','Wood above the board'],['fit','One more row']].map(([v,n])=>
-        `<button class="fchip${(S.look.rows||'')===v?' on':''}" data-rows="${v}">${n}</button>`).join('')}</div>
-      <div class="mini" style="--k:var(--brass);margin-top:6px"><b>Wood above the board</b> keeps a strip of the carcass under the status bar and the drawer front at its full depth: eight by fourteen on an iPhone. <b>One more row</b> takes the strip away and slims the drawer front until a fifteenth row fits.</div>
-    </div>
+    ${/* The board's own shape (decision 235), in place of *Grid Height* and
+          the three grid widths: two sliders, two to twelve. */''}
+    ${boardDimsField(inside ? cid : ROOT)}
 
     ${/* How a phone gets from one page of a board to the next, up and down
           (decision 209). Sideways is a swipe either way. */''}
@@ -913,7 +917,7 @@ function settingsBody(sec, cid){
       <div class="mini" style="--k:var(--brass);margin-top:6px">Where down actually is, the whole circle of it. Roll the phone and the heap runs to the low edge; turn it right over and everything falls to the top of the screen; lay it flat on a table and nothing moves at all, because a tray held level is not tipping anything anywhere. Half a tilt is half the pull. It asks iPhone for the motion sensor the first time, and it is the same one the cavity reads.</div>` : ''}
     </div>
 
-    ${inside ? shelfCountField(cid)+railToolsField(cid) : gridSizeField(null)}` : '',
+    ${inside ? shelfCountField(cid)+railToolsField(cid) : ''}` : '',
     at('look') ? `
     ${/* Timothy's order (decision 213): the aesthetic and its colours first,
          then the room it sits in. How things sit, what a checklist front shows,
@@ -1203,7 +1207,7 @@ function settingsBody(sec, cid){
    The movement never holds anything up: going in, the board is navigated
    to and rendered at once, and the zoomed picture grows into it on top and
    is taken away when it has. */
-const OVER = {on:false, cid:ROOT};
+const OVER = {on:false, cid:ROOT, ask:null};
 const overviewOn = ()=> OVER.on;
 function homeBoard(cid){
   const cfg = cid===ROOT ? (S.deskCfg || (S.deskCfg = {layout:'grid', sort:null})) : byId(cid);
@@ -1218,7 +1222,9 @@ function overCard(cid, x, y, home){
   const kids=childrenOf(container(cid)).filter(o=>!!ensureBox(o, dv, cid));
   const here=kids.map(o=>[o, lay(o, dv, cid)])
     .filter(([,b])=> b.x>x0 && b.x<=x0+g.shelfW && b.y>y0 && b.y<=y0+g.shelfH);
-  const canGo = !isHome && !here.length && boardsOf(cid).length>1 && !boardHolds(cid, x, y);
+  /* Any board but the home one and the last, full or empty (decision 234):
+     a board with things on it asks where they go before it goes. */
+  const canGo = !isHome && boardsOf(cid).length>1;
   return `<button class="ovcard${on?' on':''}${isHome?' home':''}" data-shelfgo="${cid}:${x}:${y}"
       title="${isHome?'The home board':'Go to this board'}">
     <span class="ovboard" style="--dcols:${g.shelfW};--drows:${g.shelfH}">
@@ -1250,7 +1256,16 @@ function overviewHTML(){
     else cards.push(`<span class="ovgap"></span>`);
   }
   const n = boardsOf(cid).length;
-  return `<div class="ovhead"><b>${esc(cid===ROOT ? deskTitle() : boardName(container(cid)))}</b>
+  /* The question a full board asks before it goes, over the boards. */
+  const a = OVER.ask;
+  const ask = a ? `<div class="ovask" role="dialog">
+      <b>${a.n} thing${a.n===1?' is':'s are'} on this board</b>
+      <i>Taking it away takes ${a.n===1?'it':'them'} too, unless ${a.n===1?'it goes':'they go'} somewhere first.</i>
+      <button class="pill" data-act="ovremove" data-at="${a.cid}:${a.x}:${a.y}" data-mode="hold">${ic('archive',13)} Put ${a.n===1?'it':'them'} in the Void Drawer</button>
+      <button class="pill ovdanger" data-act="ovremove" data-at="${a.cid}:${a.x}:${a.y}" data-mode="del">${ic('x',12)} Delete ${a.n===1?'it':'them'} with the board</button>
+      <button class="subtle-btn" data-act="ovkeep">Keep the board</button>
+    </div>` : '';
+  return `${ask}<div class="ovhead"><b>${esc(cid===ROOT ? deskTitle() : boardName(container(cid)))}</b>
       <i>${n} board${n>1?'s':''} · press one to go there, a plus to add one</i>
       <button class="ovclose" data-act="overclose" title="Back to the board" aria-label="Back to the board">${ic('x',16)}</button></div>
     <div class="ovgrid" style="--sw:${W};--cw:${cw}px;--gap:${gap}px;--ar:${aspect};${boardVarsOf(cfgOf(cid))}">${cards.join('')}</div>`;
@@ -1273,7 +1288,7 @@ function overFocus(host, card){
 }
 function openOverview(cid){
   if(S.readId || S.writeId || S.viewId) return false;
-  OVER.on = true; OVER.cid = cid || ROOT;
+  OVER.on = true; OVER.cid = cid || ROOT; OVER.ask = null;
   closePanel();
   const host = drawOverview();
   const grid = host.querySelector('.ovgrid'), card = host.querySelector('.ovcard.on');
@@ -1289,9 +1304,11 @@ function openOverview(cid){
   return true;
 }
 function refreshOverview(){ if(OVER.on) drawOverview().classList.add('open'); }
+function overAsk(a){ OVER.ask = a; refreshOverview(); }
+const overCid = ()=> OVER.cid;
 function closeOverview(to){
   const host = $('#overview');
-  OVER.on = false;
+  OVER.on = false; OVER.ask = null;
   if(!host) return;
   if(to) goShelfTo(to.cid, to.x, to.y);
   const card = to ? host.querySelector(`.ovcard[data-shelfgo="${to.cid}:${to.x}:${to.y}"]`) : host.querySelector('.ovcard.on');
@@ -1892,7 +1909,14 @@ function sizeGrid(){
        width back in shrank the board by the same fraction on every render
        until there was nothing left of it. A shelf is the unit; what is drawn
        is a window onto it. See decision 188. */
-    const boardW = w * g.shelfW;
+    /* A board with a stated shape may be drawn narrower than the screen
+       (decision 235), so its own width is no measure of the screen's: the
+       scroller's content box is. Every other board still measures itself,
+       which is the same number when it fills the width. */
+    const cs = getComputedStyle(sc);
+    const boardW = dimsOf(cid)
+      ? sc.clientWidth - (parseFloat(cs.paddingLeft)||0) - (parseFloat(cs.paddingRight)||0)
+      : w * g.shelfW;
     const was = shelfRows('phone', cid);
     if(MEASURE.phone.room!==room || Math.abs(MEASURE.phone.w-boardW)>0.5){
       MEASURE.phone.room=room; MEASURE.phone.w=boardW;
@@ -1925,7 +1949,7 @@ function sizeGrid(){
        scrolled back to: the "You are arranging the iPhone layout" banner went
        behind the bar and the way out of that mode with it. */
     const drawn = Math.min(rows, drawRows(g, 'phone'));
-    const short = !!innerOf(cid, 'phone') && drawn*w < room - 1;
+    const short = (!!innerOf(cid, 'phone') || !!dimsOf(cid)) && drawn*w < room - 1;
     const over = short ? 0 : Math.max(0, room - drawn*w);
     /* With the name on the lip, the top half of the leftover is the lip's
        rather than a reveal under it: the wood above the board is one strip
@@ -1939,7 +1963,9 @@ function sizeGrid(){
        leftover shrank on the way into a small drawer, so the board jumped
        by the difference the moment it opened. A short board's scroller gives
        the lip its share instead. */
-    const lipTop = lip ? Math.floor(Math.max(0, room - rows*w)/2) : 0;
+    // …except on a board of a stated shape (decision 235), which is centred in
+    // the whole room like a short drawer, so the name keeps only its floor
+    const lipTop = lip && !dimsOf(cid) ? Math.floor(Math.max(0, room - rows*w)/2) : 0;
     const top = Math.floor(over/2), deep = railMin + (short ? 0 : Math.ceil(over/2));
     const gap = gapMin + (lip ? 0 : top), lipH = lip ? Math.round(barH + lipTop) : 0;
     if(lip && lipH!==REVEAL.lip){ REVEAL.lip=lipH; }
@@ -2040,6 +2066,6 @@ function sizeGrid(){
 }
 
 export { render, renderSoon, sizeGrid, shelfTop, shelfLeft, shelfShift, centreDesk,
-  reveal, openOverview, closeOverview, refreshOverview, overviewOn, viewHTML, previewHTML,
-  goShelf, goShelfTo, sideDrawer, goSideDrawer, gridSizeField, shelfCountField, railToolsField, railToolsOf, RAIL_TOOLS,
+  reveal, openOverview, closeOverview, refreshOverview, overviewOn, overAsk, overCid, viewHTML, previewHTML,
+  goShelf, goShelfTo, sideDrawer, goSideDrawer, boardDimsField, shelfCountField, railToolsField, railToolsOf, RAIL_TOOLS,
   settingsPanel, toggleSettings, railObj, flipBlock };

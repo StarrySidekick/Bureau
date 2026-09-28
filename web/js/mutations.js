@@ -2,8 +2,8 @@ import { $, esc, uid, clamp, ROOT, HOLD, D } from './util.js';
 import { S, byId, K, KINDS, KEYS, kindHas, has, isContainer, genKindOf, streak, T, dz, dev,
   repeatOf, repeats, nextRepeat, faceOf, childrenOf, TILT_MODES, tiltMode, GRAVITIES, gravityMode,
   ctlOf, isPrimary, SECONDARY, isPicture, isDecor,
-  placeOf, cfgOf, isHeld, heldObjects, homeFor , attrsOf, habitPlan, habitOn, tagSlug, mediaTypeOf } from './model.js';
-import { GRID, PHONE_GRIDS, colsOf, gridOf, shelfRows, freeSpot, anySpot, roomFor, lay, boxOk, sizeOfKind, keepSize } from './grid.js';
+  placeOf, cfgOf, isHeld, heldObjects, homeFor , attrsOf, habitPlan, habitOn, tagSlug, mediaTypeOf, measureOf, amountSaid } from './model.js';
+import { GRID, PHONE_GRIDS, colsOf, gridOf, shelfRows, freeSpot, anySpot, roomFor, lay, boxOk, sizeOfKind, keepSize, shelvesOf, addBoard } from './grid.js';
 import { randomFront, randomBoard, randomLook, styleDefaults,
   STYLES, CHECKS, DARKMODES, styleKey, applyStyle, applyLook, OBJ0, OBJN } from './look.js';
 import { render, reveal } from './views.js';
@@ -131,7 +131,9 @@ function toggleHabit(id){
   if(today >= cap) o.history = was.filter(d=>d!==T);
   else {
     o.history = was.concat(T);
-    toast(cap>1 ? `${o.title} · ${today+1} of ${cap} today`
+    const ms = measureOf(o);
+    toast(ms ? `${o.title} · ${amountSaid(Math.min((today+1)*ms.step, ms.goal))} of ${amountSaid(ms.goal)}${ms.unit?' '+ms.unit:''} today`
+        : cap>1 ? `${o.title} · ${today+1} of ${cap} today`
                 : `${o.title} · ${streak(o)+0} day streak`);
   }
   save(); render();
@@ -333,6 +335,19 @@ function holdIt(id){
   save();
   return true;
 }
+/* Several into the Void Drawer as **one move**, the way `unholdMany()` takes
+   several out: the Undo on the toast puts every one of them back where it
+   was. Taking a board away with things on it is what asks for this. */
+function holdMany(ids){
+  const live = ids.map(byId).filter(o=>o && !isHeld(o) && o.id!==ROOT);
+  if(!live.length) return 0;
+  pushSets('Held', live.flatMap(o=>[[o.id,'parent',o.parent], [o.id,'desk',o.desk],
+    [o.id,'phone',o.phone], [o.id,'ord',o.ord]]));
+  let last = heldObjects().reduce((m,x)=>Math.max(m, x.ord||0), 0);
+  live.forEach(o=>{ o.parent=HOLD; keepSize(o); o.ord=++last; });
+  save();
+  return live.length;
+}
 /* Out of the drawer and onto the board you are standing on. The box is left
    null on purpose: ensureBox() places it on the next render, which is the one
    thing that knows what room this board has. */
@@ -439,6 +454,51 @@ function setGridSize(key, cid){
   save(); render();
   toast(`${key[0].toUpperCase()+key.slice(1)} — ${cols} across`);
 }
+
+/* ---- a board's own shape — decision 235 ------------------------------
+   `part` is `w` or `h`, `val` two to twelve, or null to hand it back to the
+   screen. Measured either side on **both** devices, because a stated shape is
+   the same on both and each device's boxes are in its own old shelf. The
+   boxes are re-laid by `rescaleOneBoard()`, the same move a grid width has
+   always made: each keeps its board and its place on it, scaled across. */
+function setBoardDims(cid, part, val){
+  const id = cid || ROOT;
+  const c = id===ROOT ? (S.deskCfg || (S.deskCfg = {layout:'grid', sort:null})) : byId(id);
+  if(!c) return;
+  const was = {};
+  ['desk','phone'].forEach(dv=>{ was[dv] = [colsOf(id, dv), shelfRows(dv, id)]; });
+  const v = val==null || val==='' ? null : clamp(Math.round(+val), 2, 12);
+  if(part==='fit'){ delete c.bw; delete c.bh; }
+  else if(part==='w'){ if(v) c.bw = v; else delete c.bw; }
+  else { if(v) c.bh = v; else delete c.bh; }
+  ['desk','phone'].forEach(dv=>{
+    const to = [colsOf(id, dv), shelfRows(dv, id)];
+    if(to[0]===was[dv][0] && to[1]===was[dv][1]) return;
+    rescaleOneBoard(S.objects, id, was[dv][0], to[0], dv, [was[dv][1], to[1]]);
+    /* **What no longer fits goes somewhere it does.** A smaller board holds
+       less, and the rescale keeps each thing on its own board even when that
+       means on top of a neighbour. So anything left overlapping, or bigger
+       than the board now is, is given the first free place on any board,
+       and when there is none a board is added beside the others for it —
+       nothing is ever left where it cannot be seen. By `parent`, never
+       `childrenOf()`, for the reason `shiftBoard()` gives. */
+    const mine = S.objects.filter(o=>o && (o.parent||ROOT)===id && o[dv] && o[dv].x && !has(o,'decor') && !has(o,'backdrop'));
+    const bad = mine.filter(o=>!boxOk(o[dv], o.id, dv, id));
+    bad.forEach(o=>{ const b = o[dv]; o[dv] = null; o.__w = Math.min(b.w, to[0]); o.__h = Math.min(b.h, to[1]); });
+    bad.forEach(o=>{
+      let spot = freeSpot(o.__w, o.__h, dv, id);
+      for(let tries=0; !spot && tries<SPAN_TRIES; tries++){
+        const r = shelvesOf(id);
+        if(!addBoard(id, r.w, 0) && !addBoard(id, 0, r.h)) break;
+        spot = freeSpot(o.__w, o.__h, dv, id);
+      }
+      if(spot) o[dv] = spot; else o[dv] = {w:o.__w, h:o.__h};
+      delete o.__w; delete o.__h;
+    });
+  });
+  save();
+}
+const SPAN_TRIES = 8;
 
 /* ---- a drawer is a drawer ---------------------------------------------
    Promoting one into a desk of its own is gone with the row of desks it was
@@ -1083,9 +1143,9 @@ function dealTop(id){
 
 // toggleHabit isn't exported — a streak reaches it through toggleDone, which is
 // the one door, so nothing outside has to know a habit ticks differently.
-export { toast, setGridSize, toggleDone, spawnNext, del, delMany, delDrawer, undo, redo,
+export { toast, setGridSize, setBoardDims, toggleDone, spawnNext, del, delMany, delDrawer, undo, redo,
   pushUndo, pushSet, pushSets, toggleFree, setPin, togglePin, becomeKind, seedInto,
   drawerForTag, create, gather, quickAdd, spawnInto, randomThing,
   CONTROLS, CTL_KEYS, ctlSpec, ctlSaid, ctlIsOn, ctlForm, ctlNum, ctlIndex, ctlPress, someKind,
   fits,
-  holdIt, unholdIt, unholdMany, undoToast, dealTop, furnish, PICTURES, PAINTINGS, galleryOf, hangPainting, pictureMedia, CLIPS };
+  holdIt, holdMany, unholdIt, unholdMany, undoToast, dealTop, furnish, PICTURES, PAINTINGS, galleryOf, hangPainting, pictureMedia, CLIPS };

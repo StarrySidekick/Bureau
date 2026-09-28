@@ -9,9 +9,9 @@ import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, chi
   isPicture, isMedia, isPlayable, isDecor, isBackdrop, fillOf, mediaTypeOf, frameOf, isWindow,
   boardLocked, prioOf, repeatSaid, urgencyOf, urgeSaid, durSaid, standsProud, shelfDepth, bookDepth, faceCue, anyFaceCue,
   calViewOf, calShowOf, weekStartOf, calCols, borderOf, textureOf, marginOf, isFragmentKind, gravityOn,
-  groupOf, sealOf, isSealed, habitPlan, habitPeriods, habitRun, relate } from './model.js';
+  groupOf, sealOf, isSealed, habitPlan, habitPeriods, habitRun, relate, measureOf, amountSaid } from './model.js';
 import { GRID, CELL, gridOf, drawCols, drawRows, lay, overlaps, boxOk, freeSpot, anySpot, roomFor, gridRows, sizeOfKind, sideways, innerOf,
-  ensureBox, shelfRows, shelfOrigin, shelfAt, shelfOfBox, colsOf, flows, boardsOf, nearestBoard, isBoard, reachable } from './grid.js';
+  ensureBox, shelfRows, shelfOrigin, shelfAt, shelfOfBox, colsOf, flows, boardsOf, nearestBoard, isBoard, reachable, dimsOf, MEASURE } from './grid.js';
 import { dealTop, create, toast, fits, toggleDone, someKind, ctlSpec, ctlSaid, ctlIsOn,
   ctlForm, ctlNum, ctlIndex, ctlPress, pushSet } from './mutations.js';
 import { DECOR, decorOf, decorEmits, flamePoint, decorSVG, LIFE_ART, lifeSVG } from './decor.js';
@@ -771,9 +771,12 @@ function sizeClass(box){
    one unit wide and a group of several is wider, and the grid is filled oldest
    first so today is always the last thing drawn — bottom right. So a bigger
    tile shows more of the past rather than bigger dots. */
+/* Past a dozen taps a period is drawn as a glass filling rather than a row of
+   pips (decision 232): sixty-four dots a day is not a thing you can read. */
+const HAB_PIPS_MAX = 12;
 function trackerGrid(o, box){
   const plan = habitPlan(o);
-  const gu = plan.times<=1 ? 1 : Math.ceil(plan.times*0.6 + 0.6);
+  const gu = plan.times<=1 || plan.times>HAB_PIPS_MAX ? 1 : Math.ceil(plan.times*0.6 + 0.6);
   const short = box.h<=1;
   const named = !short || box.w>=6;
   const across = Math.max(1, box.w*2 - 1 - (short && named ? box.w : 0));
@@ -791,17 +794,24 @@ function trackerFace(o, box){
   /* What it says in words is the one number you want: how far into this
      period, when the period asks for more than one; otherwise how long the
      run is, which is what a daily habit is for. */
-  const said = cur.need>1 ? `${Math.min(cur.got,cur.need)}/${cur.need} ${word}`
+  const ms = measureOf(o);
+  // a measured habit says the amount, in its own unit (decision 232)
+  const amt = n => amountSaid(Math.min(n*ms.step, ms.goal));
+  const said = ms ? `${amt(cur.got)}/${amountSaid(ms.goal)}${ms.unit?' '+ms.unit:''} ${word}`
+             : cur.need>1 ? `${Math.min(cur.got,cur.need)}/${cur.need} ${word}`
              : `${run} ${unit}${run===1?'':'s'} running`;
   const pips = ps.map(p=>{
     const lit = Math.min(p.got, Math.max(p.need,1));
     const label = p.from===p.to ? D.short(p.from) : `${D.short(p.from)} – ${D.short(p.to)}`;
     const inner = !p.need
       ? `<i class="habpip rest"></i>`
+      : p.need > HAB_PIPS_MAX
+      ? `<i class="habfill" style="--f:${(lit/p.need).toFixed(3)}"></i>`
       : Array.from({length:p.need}, (_,i)=>`<i class="habpip${i<lit?' on':''}"></i>`).join('');
     return `<span class="habgrp${p.now?' now':''}${!p.need?' rest':''}${p.need&&p.got>=p.need?' met':''}${
       p.need>1?' many':''}${!p.now&&p.need&&p.got<p.need?' miss':''}"${
-      p.now?` data-check="${o.id}"`:''} title="${esc(label)} — ${p.need?`${p.got} of ${p.need}`:'not owed'}">${inner}</span>`;
+      p.now?` data-check="${o.id}"`:''} title="${esc(label)} — ${!p.need ? 'not owed'
+        : ms ? `${amt(p.got)} of ${amountSaid(ms.goal)}${ms.unit?' '+ms.unit:''}` : `${p.got} of ${p.need}`}">${inner}</span>`;
   }).join('');
   return {g, said, pips};
 }
@@ -2488,6 +2498,28 @@ function drawTileFace(o, arr, box, persp){
     /* What is in the opening, and what grows on its edge (decision 226). */
     const pv = PORTAL_STYLES[o.pstyle] ? o.pstyle : 'vortex';
     const pe = PORTAL_EDGES[o.pedge] ? o.pedge : 'none';
+    /* **A round portal on a tile that is not square stays round** (decision
+       231). It used to stretch to an oval; now the circle is as big as the
+       short side, at the left of a wide tile with the name to its right, or at
+       the foot of a tall one with the name above it. A square and an arch
+       still fill their cells. */
+    const side = ps==='circle' && box.w!==box.h ? (box.w>box.h ? 'wide' : 'tall') : '';
+    if(side){
+      const m = Math.min(box.w, box.h), sq = {w:m, h:m};
+      const pq = (m / Math.max(box.w, box.h)).toFixed(4);
+      return `<button class="drawer otile sh-button btntile outtile ptltile pt-circle pside-${side} pv-${pv} pe-${pe}${sel}" data-row="${o.id}"
+      style="--c:${colour};${place};--pq:${pq}" title="${esc(nm)} — ${esc(to)}">
+      ${chips}
+      <span class="btnface outface" data-fire="${o.id}">
+        <span class="pcirc">
+          <i class="portal" aria-hidden="true" style="--pt:-${((Date.now()/1000) % 77).toFixed(2)}s;--pa:1">${portalInside(pv, tgt)}</i>
+          ${pe==='vines' ? portalVines(o.id, sq, 'circle') : ''}
+        </span>
+        <span class="pwords"><b>${esc(nm)}</b>${to ? `<u>${esc(to)}</u>` : ''}</span>
+      </span>
+      ${handles}
+    </button>`;
+    }
     return `<button class="drawer otile sh-button btntile outtile ptltile pt-${ps} pv-${pv} pe-${pe}${sel}" data-row="${o.id}"
       style="--c:${colour};${place}" title="${esc(nm)} — ${esc(to)}">
       ${chips}
@@ -3128,7 +3160,9 @@ function gridOfContainer(cid){
      its own columns rather than letting ten columns' worth of screen stretch
      four cells across it. Only ever true on a phone, and only since a
      container's board became its own tile. See decision 188. */
-  const narrow = dv==='phone' && cols < g.shelfW;
+  const narrow = dv==='phone' && (cols < g.shelfW
+    // a board of a stated shape whose cells were set by its height (235)
+    || (!!dimsOf(c.id) && MEASURE.phone.w > 0 && g.rowh*g.shelfW < MEASURE.phone.w - 1));
   /* **The slots with no board on them** (decision 219), in whatever part of
      the rectangle is drawn: the one you are on, on a phone; its column, on a
      phone that scrolls; all of it, on a Mac. Each is the carcass with a plus

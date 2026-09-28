@@ -6281,3 +6281,24 @@ html[data-rows="fit"] .is-phone .gridbar.inrail .sqbtn{width:28px;height:28px}
   animation:setupmark 2.4s ease-in-out infinite}
 @keyframes setupmark{50%{transform:scale(1.15)}}
 @media (prefers-reduced-motion: reduce){.setupmark{animation:none}}
+
+/* ---- a round portal beside its name — decision 231 ---------------------
+   On a tile that is not square the circle keeps its shape: it is the short
+   side's size, in a square `.pring` at the left (wide) or the foot (tall), and
+   everything the full-tile portal draws — the throat, the frame, the vines —
+   is drawn inside that square (`.pcirc`) as it would be on a square tile. The name and
+   the address are set in the rest of the tile as ordinary words, on the board. */
+.ptltile[class*="pside-"] .pcirc{position:absolute;display:block;aspect-ratio:1}
+.ptltile.pside-wide .pcirc{left:0;top:0;bottom:0;height:100%;width:auto}
+.ptltile.pside-tall .pcirc{left:0;bottom:0;width:100%;height:auto}
+.ptltile[class*="pside-"] .pwords{position:absolute;display:flex;flex-direction:column;justify-content:center;
+  gap:2px;min-width:0;overflow:hidden;color:var(--ink);pointer-events:none}
+.ptltile.pside-wide .pwords{left:calc(100% * var(--pq));right:0;top:0;bottom:0;padding:0 6px 0 10px;text-align:left}
+.ptltile.pside-tall .pwords{left:0;right:0;top:0;bottom:calc(100% * var(--pq));padding:6px 6px 6px;
+  align-items:center;justify-content:flex-end;text-align:center}
+.ptltile[class*="pside-"] .pwords b{font-family:var(--serif);font-weight:600;line-height:1.1;
+  font-size:clamp(12px, 34cqmin, 22px);overflow:hidden;text-overflow:ellipsis;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;text-shadow:none}
+.ptltile[class*="pside-"] .pwords u{text-decoration:none;font-size:clamp(9px, 18cqmin, 13px);
+  color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:.04em}
+.drawer.ptltile[class*="pside-"]{container-type:size}

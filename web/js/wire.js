@@ -7,15 +7,15 @@ import { S, K, KINDS, KEYS, refreshKinds, ATTRS, attrsOf, has, SHAPES,
   layoutOf, setClFit, genKindOf, makesAnything , groupMates, groupTogether, isDesk, faceOf, kindHas,
   sortOf, sortCycleOf, SORT_FACES } from './model.js';
 import { gridOf, lay, boxOk, freeSpot, anySpot, roomFor, sizeOfKind, toPhoneSize, keepSize,
-  shelvesOf, shelfAt, setShelf, shelvesToHold, addBoard, removeBoard, randomSpot } from './grid.js';
+  shelvesOf, shelfAt, setShelf, shelvesToHold, addBoard, removeBoard, onBoard, randomSpot, colsOf, shelfRows } from './grid.js';
 import { applyLook, applyStyle, setLookVal, lookVal, STYLES, setSlot, objColour, darkMode } from './look.js';
-import { dealTop, furnish, toast, fits, setGridSize, toggleDone, spawnNext, del, delMany, delDrawer, undo, redo, pushUndo,
+import { dealTop, furnish, toast, fits, setGridSize, setBoardDims, toggleDone, spawnNext, del, delMany, delDrawer, undo, redo, pushUndo,
   pushSet, pushSets, setPin, togglePin, drawerForTag, create, spawnInto, randomThing,
-  holdIt, unholdIt, unholdMany, undoToast, someKind, becomeKind , toggleFree, galleryOf, hangPainting } from './mutations.js';
+  holdIt, holdMany, unholdIt, unholdMany, undoToast, someKind, becomeKind , toggleFree, galleryOf, hangPainting } from './mutations.js';
 import { spinTo, pending, placeAtPending, tileTap, turnPage, clearPages, intoOf, TOOLS } from './tiles.js';
 import { bpmOf, minsOf, burnOf, sidesOf, metroGoing, startMetro, mindTheTime, actOf, deckTop } from './active.js';
 import { DECOR, LIFE_ART } from './decor.js';
-import { render, renderSoon, sizeGrid, toggleSettings, settingsPanel, reveal, goShelf, goShelfTo, openOverview, closeOverview, refreshOverview, overviewOn, flipBlock, railToolsOf } from './views.js';
+import { render, renderSoon, sizeGrid, toggleSettings, settingsPanel, reveal, goShelf, goShelfTo, openOverview, closeOverview, refreshOverview, overviewOn, overAsk, overCid, flipBlock, railToolsOf } from './views.js';
 import { closeGuide, guideOpen, saveGuide } from './guide.js';
 import { openObj, openWriter, openRead, openViewer, closeSheet, renderSheet, words,
   mdKey, copyObject } from './sheet.js';
@@ -350,7 +350,7 @@ function setField(el){
     else if(key==='kind') pushSets('Type changed', [[id,'kind',o.kind],[id,'attrs',clone(o.attrs)],[id,'milestones',clone(o.milestones)]]);
     else if(key==='knobtone') pushSets('Changed', [[id,'knobtone',o.knobtone],[id,'knobc',o.knobc]]);
     else if(!/^rep\./.test(key)){       // the repeat writer records its own
-      const uk = UNDOKEY[key] || (/^rule\./.test(key) ? 'filter' : /^makes\./.test(key) ? 'makes' : key);
+      const uk = UNDOKEY[key] || (/^measure\./.test(key) ? 'measure' : /^rule\./.test(key) ? 'filter' : /^makes\./.test(key) ? 'makes' : key);
       pushSet('Changed', id, uk, clone(o[uk]));
     }
   }
@@ -365,6 +365,19 @@ function setField(el){
      One writer for every row of it, because they all edit one object and a
      half-written rule should never reach the model. `rep.on` turns it on and
      off; everything else edits what is already there. See decision 73. */
+  /* `measure.<unit|goal|step>` — a habit counted in an amount (decision
+     232). A measure with no goal is not one, so clearing the goal takes the
+     whole thing off and the habit counts taps again. */
+  if(key.startsWith('measure.')){
+    if(!o) return;
+    const part = key.slice(8), m = Object.assign({}, o.measure);
+    if(part==='unit') m.unit = String(v||'').trim().slice(0, 24);
+    else m[part] = v==='' || v==null ? undefined : Math.max(0, +v || 0);
+    if(!(+m.goal > 0) && part==='goal') delete o.measure;
+    else o.measure = m;
+    save();
+    return;
+  }
   if(key.startsWith('rep.')){
     if(!o) return;
     const part = key.slice(4);
@@ -514,6 +527,22 @@ function act(name, el){
     case 'setupskip': setupSkip(); break;
     case 'setupclose': closeSetup(); break;
     case 'overclose': closeOverview(); break;
+    case 'ovkeep': overAsk(null); break;
+    case 'boarddimfit': setBoardDims(el.dataset.id, 'fit'); render(); refreshPanel(); toast('This board fits the screen'); break;
+    /* A full board taken away: what was on it goes to the Void Drawer or is
+       deleted, as one move with the Undo on the toast, and then the board
+       goes. The board itself has no undo — the desk's rectangle is not an
+       object — but an empty board is one press to put back. */
+    case 'ovremove': {
+      const [cid,x,y] = el.dataset.at.split(':'), ids = onBoard(cid, +x, +y);
+      const n = ids.length;
+      if(el.dataset.mode==='hold') holdMany(ids); else if(n) delMany(ids);
+      overAsk(null);
+      if(!removeBoard(cid, +x, +y)){ toast('That board cannot be taken away'); break; }
+      save(); render(); refreshOverview();
+      toast(el.dataset.mode==='hold' ? `Board taken away · ${n} in the Void Drawer` : `Board and ${n} thing${n===1?'':'s'} taken away`, true);
+      break;
+    }
     // one step is one screenful, so it steps by whatever the calendar is showing
     case 'monthstep': {
       const d=byId(el.dataset.id); if(!d) return;
@@ -754,7 +783,8 @@ function act(name, el){
     }
     case 'drawersettings': case 'objset': objectPanel(el.dataset.id); break;
     // the desk's editor, as the first door of Settings (decision 206)
-    case 'boardeditor': objectPanel(el.dataset.id, null, ()=>settingsPanel()); break;
+    // the desk's editor lives in its Board settings now (decision 233)
+    case 'boardeditor': settingsPanel('board', el.dataset.id && el.dataset.id!==ROOT ? el.dataset.id : undefined); break;
     /* ---- the two the camera carries — decision 188 --------------------
        The whole screen, and what this thing is. `camfull` hands the object to
        the reading surface **full bleed** — the camera keeps the object's own
@@ -1554,6 +1584,9 @@ function wire(){
     const rb=t.closest('[data-boardremove]');
     if(rb){
       const [cid,x,y]=rb.dataset.boardremove.split(':');
+      /* A board with things on it asks where they go first (decision 234). */
+      const on = onBoard(cid, +x, +y);
+      if(on.length && overviewOn()){ overAsk({cid, x:+x, y:+y, n:on.length}); return; }
       if(!removeBoard(cid, +x, +y)){ toast('Only an empty board can be taken away, and never the last one'); return; }
       save(); render(); refreshPanel(); refreshOverview();
       toast('Board taken away');
@@ -2167,6 +2200,11 @@ function wire(){
        it. The selection is restored too, or typing in the middle of a word
        jumps to the end on the next letter. `S.q` is **not saved**: a search is
        where you are looking, not something the desk is. */
+    // the number beside a board-size slider follows it as it moves
+    if(e.target.dataset.boarddim!=null){
+      const b = e.target.parentElement.querySelector('[data-boarddimsaid]'); if(b) b.textContent = e.target.value;
+      return;
+    }
     if(e.target.dataset.search!=null){
       const at = e.target.selectionStart;
       S.q = e.target.value;
@@ -2348,6 +2386,13 @@ function wire(){
     }
     /* Light or dark. Not a theme switch: it chooses which of a style's sets of
        sixteen is showing, and `auto` hands the question to the phone. */
+    // a board's shape, on letting go of the slider (decision 235)
+    if(e.target.dataset.boarddim!=null){
+      setBoardDims(e.target.dataset.id, e.target.dataset.boarddim, e.target.value);
+      render(); refreshPanel();
+      toast(`This board — ${colsOf(e.target.dataset.id,dev())} × ${shelfRows(dev(), e.target.dataset.id)}`);
+      return;
+    }
     if(e.target.dataset.darkmode!=null){
       S.look.dark=e.target.value; applyLook(); save(); render(); refreshPanel(); return;
     }

@@ -11,7 +11,7 @@ import { S, KINDS, SHAPES, shapeChoices, SORTS, childrenOf, container, relate, d
   isHeld, heldObjects, tiltMode, READS, goalStanding, dz } from './model.js';
 import { shelfRows, shelvesOf, shelfAt, setShelf, freeSpot, anySpot, roomFor, boxOk, innerOf, colsOf,
   isBoard, boardsOf, addBoard, removeBoard } from './grid.js';
-import { create, setPin, togglePin, del, delMany, delDrawer, undo, redo, toggleDone, spawnNext, setGridSize,
+import { create, setBoardDims, setPin, togglePin, del, delMany, delDrawer, undo, redo, toggleDone, spawnNext, setGridSize,
   CONTROLS, ctlSaid, ctlIsOn, ctlPress,
   holdIt, unholdIt , toast } from './mutations.js';
 import { applyLook, applyStyle, STYLES, panelSlots, borderSlots, knobSlots, plateSlots, textureSlots,
@@ -111,7 +111,7 @@ window.BUREAU = {
   get state(){ return S; }, render, create, save: writeNow, saveSoon: save,
   // making a type the way the picker does, pressing a tile the way a finger
   // does, the zoom out to every board and the setup card (decisions 227, 229)
-  newOfKind, tap: tileTap, dz, openOverview, closeOverview, overviewOn, openSetup, setupOpen, SETUPS,
+  newOfKind, tap: tileTap, dz, setBoardDims, openOverview, closeOverview, overviewOn, openSetup, setupOpen, SETUPS,
   get K(){ return KINDS; },
   get shapes(){ return SHAPES; }, shapeChoices,
   // every aesthetic there is, so a test can walk them all rather than
@@ -215,7 +215,7 @@ window.BUREAU = {
      has to be able to ask the reader rather than re-derive the arithmetic. */
   innerOf,
   // how wide one shelf is on this board — the thing the per-board grain decides
-  shelfW: cid => colsOf(cid, 'phone'),
+  shelfW: (cid, dv) => colsOf(cid, dv || 'phone'),
   /* Putting the shelf somewhere by hand, without a phone to tilt: the smoke
      test drives this, and so does anyone tuning the throw. −1 to 1 on each
      axis. See decision 108. */

@@ -2765,9 +2765,26 @@ function streak(o){
      times   how many it asks for in one
      days    the weekdays a daily habit is owed on, or null for every day */
 const HABIT_MAX_TIMES = 12;
+/* ---- a habit measured in an amount — decision 232 ----------------------
+   "Drink 64 ounces of water a day": `measure` is `{unit, goal, step}` — what
+   it is counted in, how much the period asks for, and how much one tap is.
+   Nothing else changes: a tap is still one entry in `history`, and the number
+   of taps a period asks for is the goal over the step, so 64 oz at 8 a glass
+   is a day asking for eight. A goal with no step is one unit a tap. */
+const MEASURE_TAPS_MAX = 400;
+function measureOf(o){
+  const m = o && o.measure;
+  if(!m || !(+m.goal > 0)) return null;
+  const step = +m.step > 0 ? +m.step : 1, goal = +m.goal;
+  return {unit:String(m.unit||'').trim(), goal, step,
+    taps:Math.max(1, Math.min(MEASURE_TAPS_MAX, Math.ceil(goal/step - 1e-9)))};
+}
+// an amount said the way you would say it: no trailing ".0", at most two places
+const amountSaid = n => String(Math.round(n*100)/100);
 function habitPlan(o){
   const r = repeatOf(o);
-  const times = Math.max(1, Math.min(HABIT_MAX_TIMES, Math.round(+(o && o.times) || 1)));
+  const ms = measureOf(o);
+  const times = ms ? ms.taps : Math.max(1, Math.min(HABIT_MAX_TIMES, Math.round(+(o && o.times) || 1)));
   const every = r ? Math.max(1, Math.round(r.every||1)) : 1;
   if(!r || r.unit==='day') return {per:'day', every, times, days:null};
   if(r.unit==='week' && (r.days||[]).length) return {per:'day', every:1, times, days:r.days.slice()};
@@ -3110,7 +3127,7 @@ export { homeFor, ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds,
   groupOf, groupMates, travelWith, groupTogether, relate, unrelate, chainOf, tlSpan, streak, goalPct,
   allUnder, progressOf, projectStat, finishedThings, allTags,
   tagSlug, implicitTags, tagsOf, tagTerms, tagMatch, everyTag,
-  habitPlan, habitOn, habitPeriod, habitPeriods, habitRun, HABIT_MAX_TIMES, SHAPES_HABIT,
+  habitPlan, habitOn, habitPeriod, habitPeriods, habitRun, HABIT_MAX_TIMES, measureOf, amountSaid, SHAPES_HABIT,
   PRIMARY, SECONDARY, isPrimary, ANY, makesAnything, genSaid, ctlOf, barPct, barOf,
   BAR_STEPS, barSteps, barFilled, barGrid,
   familyOf, isCategory, inFamily, isFragmentKind, familyList,

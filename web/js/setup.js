@@ -248,6 +248,31 @@ const STEPS = {
         mwf:[R('week',[1,3,5]),1], week:[R('week'),1], week3:[R('week'),3]};
       const [r, n] = map[v] || map.day;
       o.repeat = r; if(n>1) o.times = n; else delete o.times;
+      return 'habit.amount';
+    }},
+  /* An amount rather than a count (decision 232). The presets are the ones
+     that come up; anything else is said in words, "64 oz, 8 at a time". */
+  'habit.amount': {
+    q:'Is it an amount?', sub:'Each tap can stand for some of it, and the tracker fills as you go.',
+    text:{ph:'64 oz, 8 at a time', go:'Measure it'},
+    ask:()=>[choice('none', 'No \u2014 just whether I did it'),
+             choice('water', 'Water', '64 oz a day, a glass of 8 a tap'),
+             choice('pages', 'Pages', '20 a day, 5 a tap'),
+             choice('minutes', 'Minutes', '30 a day, 5 a tap')],
+    answer:(o,v)=>{
+      const PRESET = {water:{unit:'oz', goal:64, step:8}, pages:{unit:'pages', goal:20, step:5},
+                      minutes:{unit:'min', goal:30, step:5}};
+      let m = PRESET[v] || null;
+      if(!m && v && v!=='none'){
+        // "64 oz, 8 at a time" · "10000 steps 1000" · "3 litres"
+        const nums = String(v).match(/\d+(?:\.\d+)?/g) || [];
+        const unit = (String(v).replace(/\d+(?:\.\d+)?/g,' ').replace(/,|\bat a time\b|\ba tap\b|\beach\b|\bper\b/gi,' ')
+          .trim().split(/\s+/)[0]) || '';
+        if(!nums.length){ toast('Say how much, like 64 oz'); return 'habit.amount'; }
+        m = {unit, goal:+nums[0], step: nums[1] ? +nums[1] : 1};
+      }
+      pushSet('Changed', o.id, 'measure', o.measure);
+      if(m){ o.measure = m; delete o.times; } else delete o.measure;
       return null;
     }},
   'portal.where': {

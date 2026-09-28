@@ -1981,8 +1981,13 @@ const PROP_OFF = () => { const b = document.createElement('button');
     document.querySelector('.bartools [data-act="randomobject"]').click(); await nap(320);
     out.oneOfAnything = S.objects.length === wasN + 1;
     BUREAU.del(S.objects[S.objects.length-1].id); S.undo = []; BUREAU.render(); await nap(120);
+    // the gear toggles, so whatever panel an earlier block left up goes first
+    BUREAU.closePanel(); await nap(120);
     document.querySelector('.gridbar [data-act="appsettings"]').click(); await nap(280);
-    document.querySelector('#panel [data-act="boardeditor"]').click(); await nap(280);
+    // the desk's editor is woven into its Board settings (decision 233)
+    out.noThisDeskRow = !document.querySelector('#panel [data-act="boardeditor"]');
+    const bd1 = document.querySelector('#panel [data-ssec="board"]');
+    out.theBoardDoorIsThere = !!bd1; if(bd1) bd1.click(); await nap(280);
     // …and it asks one question at a time now: how a board sorts and how fine
     // its grid is are Behaviour, what it is painted in is Look. See decision 66.
     out.theDeskHasDoors = document.querySelectorAll('#panel [data-osec]').length >= 2;
@@ -1990,7 +1995,8 @@ const PROP_OFF = () => { const b = document.createElement('button');
     let body = document.querySelector('#panel .pbody');
     out.theDeskEditorSorts = /Sorted by/.test(body.textContent)
       && !!body.querySelector('[data-oset="root:sort"]');
-    out.andSaysHowWideTheGridIs = !!body.querySelector('[data-gridsize]');
+    // its shape is two sliders now (decision 235)
+    out.andSaysHowWideTheGridIs = !!body.querySelector('[data-boarddim="w"]') && !!body.querySelector('[data-boarddim="h"]');
     BUREAU.panel('root', 'look'); await nap(220);
     body = document.querySelector('#panel .pbody');
     out.andPaintsThisDeskAlone = !!body.querySelector('[data-pboard][data-id="root"]');
@@ -2120,6 +2126,20 @@ const PROP_OFF = () => { const b = document.createElement('button');
     const cross = document.querySelector('#overview .ovgo[data-boardremove="root:3:0"]');
     if(cross) cross.click(); await nap(250);
     out.aCrossTakesOneAway = BUREAU.boardsOf('root').length === had && BUREAU.overviewOn();
+    /* A board with something on it asks where it goes, and the Void Drawer
+       keeps it (decision 234). */
+    document.querySelector('#overview .ovadd[data-addboard="root:3:0"]').click(); await nap(250);
+    const dv = S.device==='desk' ? 'desk' : 'phone';
+    const lodger = BUREAU.create('note', {parent:'root', title:'On the far board'});
+    lodger[dv] = {x: 3*BUREAU.shelfW('root', dv) + 1, y:1, w:2, h:2};
+    BUREAU.render(); BUREAU.openOverview('root'); await nap(350);
+    document.querySelector('#overview .ovgo[data-boardremove="root:3:0"]').click(); await nap(250);
+    out.aFullBoardAsks = !!document.querySelector('#overview .ovask')
+      && BUREAU.boardsOf('root').length === had + 1;
+    document.querySelector('#overview [data-act="ovremove"][data-mode="hold"]').click(); await nap(300);
+    out.itsThingsGoToTheVoid = lodger.parent === '__hold' && BUREAU.boardsOf('root').length === had
+      && !document.querySelector('#overview .ovask');
+    BUREAU.del(lodger.id);
     const nine = document.querySelectorAll('#overview .ovcard:not(.ovadd)').length === 9;
     document.querySelector('#overview .ovcard[data-shelfgo="root:2:0"]').click(); await nap(420);
     out.aCardJumps = nine && JSON.stringify(BUREAU.shelfAt('root')) === JSON.stringify({x:2,y:0})
@@ -5993,7 +6013,8 @@ const PROP_OFF = () => { const b = document.createElement('button');
     S.view = 'desk'; S.drawerId = null; BUREAU.render(); await nap(200);
     const before2 = BUREAU.plans().length;
     document.querySelector('.gridbar [data-act="appsettings"]').click(); await nap(320);
-    document.querySelector('#panel [data-act="boardeditor"]').click(); await nap(320);
+    const bd2 = document.querySelector('#panel [data-ssec="board"]');
+    out.theBoardDoorIsThere = !!bd2; if(bd2) bd2.click(); await nap(320);
     const deskBtn = document.querySelector('#panel [data-act="saveplan"]');
     out.theDeskOffersItToo = !!deskBtn;
     deskBtn.click(); await nap(340);
@@ -9958,8 +9979,68 @@ const PROP_OFF = () => { const b = document.createElement('button');
   await sp.screenshot({ path: 'test/shots/229-setup.png' });
   await setupCtx.close();
 
+  /* --- decisions 231–235: a round portal beside its name, a habit in ounces,
+     and a board's own width and height. In a phone context of its own, on a
+     fresh one-board desk. */
+  const shapeCtx = await browser.newContext({ viewport:{width:390,height:844}, hasTouch:true });
+  const sh = await shapeCtx.newPage();
+  sh.on('pageerror', e => errs.push('PAGEERROR (shapes): ' + e.message));
+  await sh.goto(URL); await sh.waitForTimeout(900);
+  const shapes = await sh.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const out = {}, S = BUREAU.state, B = BUREAU;
+    S.objects.filter(o => o.parent === 'root').forEach(o => { o.parent = '__hold'; });
+    B.render(); await nap(150);
+    // a round portal on a wide tile is a circle at the left and words beside it
+    const pt = B.create('outlink', {parent:'root', title:'Wikipedia'});
+    pt.link = {label:'Open', target:'https://en.wikipedia.org'}; pt.phone = {x:1, y:1, w:4, h:1};
+    const tall = B.create('outlink', {parent:'root', title:'Weather'});
+    tall.link = {label:'Open', target:'https://weather.gov'}; tall.phone = {x:1, y:2, w:2, h:4};
+    B.render(); await nap(250);
+    const circ = el => { const r = el && el.getBoundingClientRect(); return r && Math.abs(r.width - r.height) < 1.5; };
+    const wideT = document.querySelector(`[data-row="${pt.id}"]`), tallT = document.querySelector(`[data-row="${tall.id}"]`);
+    out.aWidePortalIsRound = wideT.classList.contains('pside-wide') && circ(wideT.querySelector('.pcirc'));
+    out.withItsNameBeside = /Wikipedia/.test(wideT.querySelector('.pwords').textContent)
+      && wideT.querySelector('.pwords').getBoundingClientRect().left >= wideT.querySelector('.pcirc').getBoundingClientRect().right - 1;
+    out.aTallOneSitsAtTheFoot = tallT.classList.contains('pside-tall') && circ(tallT.querySelector('.pcirc'))
+      && tallT.querySelector('.pwords').getBoundingClientRect().bottom <= tallT.querySelector('.pcirc').getBoundingClientRect().top + 1;
+    // a habit counted in ounces: 64 a day, 8 a tap
+    const h = B.create('tracker', {parent:'root', title:'Water'});
+    h.measure = {unit:'oz', goal:64, step:8}; h.phone = {x:1, y:6, w:8, h:2};
+    B.render(); await nap(200);
+    for(let i=0;i<3;i++){ document.querySelector(`[data-row="${h.id}"] [data-check]`).click(); await nap(120); }
+    out.aHabitCountsOunces = /24\/64 oz/.test(document.querySelector(`[data-row="${h.id}"] .habcount`).textContent)
+      && document.querySelectorAll(`[data-row="${h.id}"] .habgrp.now .habpip`).length === 8;
+    h.measure = {unit:'oz', goal:64, step:1}; B.render(); await nap(150);
+    out.aLongOneIsAGlass = !!document.querySelector(`[data-row="${h.id}"] .habgrp.now .habfill`);
+    B.panel(h.id, 'does'); await nap(250);
+    out.theEditorAsksTheAmount = !!document.querySelector(`#panel [data-oset="${h.id}:measure.goal"]`);
+    B.closePanel(); await nap(100);
+    // a board four by four: square, centred, and everything on it still fits
+    B.setBoardDims('root', 'w', 4); B.setBoardDims('root', 'h', 4); B.render(); await nap(450);
+    const g = document.querySelector('#drawergrid').getBoundingClientRect();
+    out.aBoardHasItsShape = B.shelfW('root') === 4 && B.shelfRows === 4 && Math.abs(g.width - g.height) < 2;
+    out.andEverythingStillFits = S.objects.filter(o => o.parent === 'root' && o.phone && o.phone.x)
+      .every(o => B.boxOk(o.phone, o.id, 'phone', 'root'));
+    B.setBoardDims('root', 'w', 3); B.setBoardDims('root', 'h', 10); B.render(); await nap(450);
+    const g2 = document.querySelector('#drawergrid').getBoundingClientRect();
+    out.aTallOneShrinksItsCells = g2.width < innerWidth - 20 && g2.bottom <= innerHeight
+      && Math.abs(g2.width/3 - g2.height/10) < 1;
+    B.setBoardDims('root', 'fit'); B.render(); await nap(300);
+    out.andFitsTheScreenAgain = B.shelfW('root') === 8;
+    document.querySelector('.gridbar [data-act="appsettings"], [data-act="appsettings"]').click(); await nap(300);
+    document.querySelector('#panel [data-ssec="board"]').click(); await nap(300);
+    out.boardSettingsHasTheSliders = !!document.querySelector('#panel [data-boarddim="w"]')
+      && !!document.querySelector('#panel [data-boarddim="h"]')
+      && !document.querySelector('#panel [data-rows]');
+    B.closePanel();
+    return out;
+  });
+  await sh.screenshot({ path: 'test/shots/235-shapes.png' });
+  await shapeCtx.close();
+
   console.log(JSON.stringify({
-    errors: errs, settingUp, manifestOk, swReady, survived, styleSurvived, slotColours,
+    errors: errs, settingUp, shapes, manifestOk, swReady, survived, styleSurvived, slotColours,
     newObjectSeen, inlineEdit, sortDefaults, taskLook,
     shelfTools, homeKnob, gridSizes, keeping, versionShown, sampler, paging, scrolling, pageCoords, pagerGround, goingIn, comingOut,
     makingOnAPhone, railDrawer, railIsFurniture, holding, holdingOut, reported, cavity, depth, windows, tossing, pinch, pagerLandsFlat, deskDots,

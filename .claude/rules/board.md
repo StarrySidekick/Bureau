@@ -126,6 +126,16 @@ into that card on top. A touch pinch commits in `zoomBegin()`; a trackpad pinch
 is a `wheel` with `ctrlKey` in wire.js. Inside a container a pinch still goes up
 a level; the container's Board settings open the same zoom for it.
 
+**A board may state its own shape** (decision 235). `dimsOf(cid)` reads `bw`/`bh`
+(two to twelve) off the board's own config, never the desk's; `colsOf()` and
+`shelfRows()` answer them first, on both devices, and `gridOf()` then makes the
+cell the smaller of width over columns and room over rows. Such a board is
+`narrowboard` when its height set the cell, and `sizeGrid()` measures the
+screen from the scroller's content box for it, because the grid's own width is
+no longer the screen's. Change a shape through `setBoardDims()`, which rescales
+both devices' boxes and re-places anything that no longer fits, adding a board
+if it must. A board with no shape is exactly what it was before.
+
 **What was already on the desk is moved to the middle shelf once**, per device,
 by `centreDesk()` — and it has to happen at first render rather than in the
 migration, because a shelf's height is measured. `S.centred` is stored, because

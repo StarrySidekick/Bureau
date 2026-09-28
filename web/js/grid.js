@@ -143,7 +143,28 @@ function gridKeyOf(cid){
    new object may never be wider than a shelf, because a shelf is a screen.
    This is what `colsOf()` has always meant on a phone — the change is that on
    a Mac it is now a third of the board rather than all of it. */
+/* ---- a board's own width and height — decision 235 --------------------
+   Any board, the desk or a drawer, may say how many cells wide and tall it
+   is, from two to twelve each way (`bw`, `bh` on its config). Said, it is the
+   same shape on both devices, and the cell is **whatever fits**: the screen's
+   width over the columns or the room over the rows, the smaller — so a tall
+   narrow board is drawn with smaller cells, centred, rather than running off
+   the screen. Unsaid, a board is what it was: the phone's three widths and
+   as many rows as fit, capped at fourteen. Only the board's own answer counts;
+   a drawer does not take the desk's, because the desk is a room and a drawer
+   is a box, and they are rarely the same shape. */
+const DIM_MIN = 2, DIM_MAX = 12;
+function dimsOf(cid){
+  const id = cid==null ? hereId() : cid;
+  if(id!==ROOT && innerOf(id)) return null;     // a proportional board is its tile
+  const c = boardCfg(id); if(!c) return null;
+  const ok = v => Number.isInteger(+v) && +v>=DIM_MIN && +v<=DIM_MAX ? +v : null;
+  const w = ok(c.bw), h = ok(c.bh);
+  return w || h ? {w, h} : null;
+}
 function colsOf(cid, device){
+  const dm = dimsOf(cid);
+  if(dm && dm.w) return dm.w;
   if((device||dev())!=='phone') return DESK_SHELF_COLS;
   return PHONE_GRIDS[gridKeyOf(cid)];
 }
@@ -288,6 +309,18 @@ function boardHolds(id, x, y){
       return Math.floor((b.x-1)/st.w)===x && Math.floor((b.y-1)/st.h)===y;
     });
   });
+}
+/* Everything on a board, on either device, by id — what taking it away would
+   take with it (decision 234). The same test `boardHolds()` makes. */
+function onBoard(id, x, y){
+  return S.objects.filter(k=>{
+    if(!k || (k.parent||ROOT)!==id) return false;
+    return ['desk','phone'].some(dv=>{
+      const b = k[dv]; if(!b || !b.x || !b.w) return false;
+      const st = boardStep(id, dv);
+      return Math.floor((b.x-1)/st.w)===x && Math.floor((b.y-1)/st.h)===y;
+    });
+  }).map(k=>k.id);
 }
 /* **Taking a board away**, which only an empty one can be, and never the
    last. The rectangle then gives up any edge row or column with no board
@@ -445,8 +478,17 @@ function innerOf(cid, device){
 const gridOf = (device, cid)=>{
   const d=device||dev(), shelfW=colsOf(cid, d);
   const m=MEASURE[d];
-  const rowh = m.w ? m.w/(d==='phone' ? shelfW : GRID.desk.cols) : CELL[d];
   const shelfH = shelfRows(d, cid);
+  let rowh = m.w ? m.w/(d==='phone' ? shelfW : GRID.desk.cols) : CELL[d];
+  /* A board with a stated shape fits the screen both ways (decision 235):
+     on a phone one shelf is the whole width and the whole room; on a Mac the
+     row of boards across (at most three are drawn side by side) and the room
+     of one shelf-row. The smaller cell wins. */
+  if(dimsOf(cid) && m.w){
+    const across = d==='phone' ? shelfW : Math.max(GRID.desk.cols, shelfW*Math.min(3, shelvesOf(cid, d).w));
+    rowh = m.w/across;
+    if(m.room) rowh = Math.min(rowh, m.room/shelfH);
+  }
   /* A container sizes its own board from its tile; the desk keeps its shelves.
      How many screenfuls that comes to is `shelvesOf()`'s to say — one function,
      so the dots in the bar, the pager and the board itself cannot disagree. */
@@ -493,6 +535,8 @@ const SHELF_ROWS_GUESS = 14, PHONE_ROWS_GUESS = 15, PHONE_ROWS = 14;
 const phoneCap = ()=> S.look && S.look.rows === 'fit' ? Infinity : PHONE_ROWS;
 function shelfRows(device, cid){
   const d=device||dev();
+  const dm = dimsOf(cid);
+  if(dm && dm.h) return dm.h;
   const m=MEASURE[d];
   if(!m.room || !m.w) return d==='phone' ? Math.min(PHONE_ROWS_GUESS, phoneCap()) : SHELF_ROWS_GUESS;
   const cell = m.w / (d==='phone' ? colsOf(cid, d) : GRID.desk.cols);
@@ -910,8 +954,8 @@ function cellW(grid,g){
 }
 
 export { GRID, PHONE_GRIDS, PHONE_MAX_H, PHONE_MAX_NEW, CELL, COLW, MEASURE, sideways,
-  SHELVES, DESK_SHELF_COLS, INNER, PAGES_MAX, SPAN, isBoard, boardsOf, reachable, addBoard, removeBoard,
-  ensureBoards, boardHolds, startOf, nearestBoard, onBoards, randomSpot, growsDown, growDown, proportional, shelvesToHold, colsOf, gridKeyOf, shelvesOf, innerOf,
+  SHELVES, DESK_SHELF_COLS, INNER, dimsOf, DIM_MIN, DIM_MAX, PAGES_MAX, SPAN, isBoard, boardsOf, reachable, addBoard, removeBoard,
+  ensureBoards, boardHolds, onBoard, startOf, nearestBoard, onBoards, randomSpot, growsDown, growDown, proportional, shelvesToHold, colsOf, gridKeyOf, shelvesOf, innerOf,
   shelfRows, shelfOfBox, oneShelf, shelfAt, setShelf, shelfOrigin, SHELF, fitSpot, flows,
   gridOf, drawCols, drawRows, lay, overlaps, boxOk, freeSpot, anySpot, roomFor, gridRows, sizeOfKind, toPhoneSize,
   ensureBox, keepSize, cellW, PLACED };

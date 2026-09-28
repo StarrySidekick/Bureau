@@ -168,6 +168,13 @@ put down plain, carrying `setup`, and its first tap opens a full-screen card of
 questions (`setup.js`) that writes the fields the editor has. A Video made at
 random is one of ten public-domain clips (`web/img/clips/`, `CLIPS` in
 mutations.js), and the worker answers a ranged request out of the cache.
+**v2.27** (decisions 231–235): a round portal on a long tile stays round
+beside its words (`.pcirc`, `.pwords`); a habit can be **measured**
+(`measure: {unit, goal, step}`, `measureOf()`); *This desk* is folded into
+Board settings; a board can be taken away with things on it, into the Void
+Drawer (`holdMany()`, `onBoard()`); and **every board has its own width and
+height, two to twelve** (`bw`/`bh`, `dimsOf()`, `setBoardDims()`), fitted to
+the screen.
 The **Bureau Workshop** artifact (https://claude.ai/artifact/4TjyQZ5xcuxCYFgfnRm76k)
 holds Timothy's own rearrangement of every menu and type: read its
 `workshop/state` document before reorganising menus or types.
