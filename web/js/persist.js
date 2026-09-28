@@ -5,7 +5,7 @@ import { toast, create, pushUndo } from './mutations.js';
 import { render } from './views.js';
 import { renderSheet } from './sheet.js';
 import { closePanel } from './panels.js';
-import { stockPlans, RETIRED_KEYS } from './stockplans.js';
+import { stockPlans, RETIRED_KEYS, CUT_KEYS } from './stockplans.js';
 import { plans, stampPlan } from './plans.js';
 
 /* ============================================================
@@ -19,7 +19,7 @@ import { plans, stampPlan } from './plans.js';
    Bureau is this phone running" is exactly the question you ask when a change
    appears not to have deployed. Shown in Settings, so it can be read off the
    device rather than guessed at. */
-const APP_VERSION = '2.27';
+const APP_VERSION = '2.28';
 const KEY = 'bureau.v1';
 const install = {deferred:null};   // the browser's install prompt, when one is on offer
 let saveTimer = null;
@@ -267,7 +267,7 @@ function rescalePhone(d, from, cols){
    skips all of them, an old backup replays only what it is missing. These
    used to be ad-hoc per-load mutations inside adopt(); a new repair that
    should run once belongs here, as the next numbered step. */
-const DATA_V = 46;
+const DATA_V = 47;
 const MIGRATIONS = [
   // Drawers and objects were two arrays and a drawer could not live inside
   // anything. foldDrawers also replays the old dense flow to give v1 drawers
@@ -1137,6 +1137,34 @@ const MIGRATIONS = [
     stockPlans().forEach(p=>{ fresh[p.stock] = p; });
     (d.plans||[]).forEach(p=>{ const f = p && p.stock && fresh[p.stock];
       if(f && f.rail && !p.rail) p.rail = JSON.parse(JSON.stringify(f.rail)); });
+  }},
+  /* ---- the aspects are types, and their flows are rebuilt (236, 237) -----
+     Timothy reworked every flow on the Bureau Scope page. The stock flows are
+     rebuilt by key as 45 did (their arrangement is the flow; a flow you saved
+     yourself has no `stock` and is not touched), Things is added, and Ideas,
+     which he cut, is taken off. A Life drawer made for one of the aspects
+     becomes that aspect's type, keeping everything in it and its own look:
+     only the kind changes, so its knob is the aspect's from now on. */
+  {v:47, up(d){
+    const fresh = {};
+    stockPlans().forEach(p=>{ fresh[p.stock] = p; });
+    const cut = new Set(CUT_KEYS);
+    d.plans = (d.plans||[]).filter(p=>!(p && p.stock && cut.has(p.stock)));
+    const have = new Set();
+    d.plans.forEach(p=>{ const f = p && p.stock && fresh[p.stock];
+      if(!f) return;
+      have.add(p.stock);
+      ['objects','of','sec','boards','start','dims','makes','life'].forEach(k=>{
+        if(f[k]!==undefined) p[k] = f[k]; else delete p[k]; });
+      if(f.rail && !p.rail) p.rail = JSON.parse(JSON.stringify(f.rail));
+    });
+    // only the new one: a stock flow somebody threw away stays thrown away
+    if(fresh.things && !have.has('things')) d.plans.push(fresh.things);
+    const ASPECT = {health:1, money:1, exercise:1, nutrition:1, travel:1, family:1, partner:1,
+                    friends:1, home:1, films:1, books:1};
+    (d.objects||[]).forEach(o=>{
+      if(o && o.kind==='life' && o.lifeart && ASPECT[o.lifeart]) o.kind = 'lf_'+o.lifeart;
+    });
   }},
 ];
 function migrate(d){

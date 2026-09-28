@@ -10441,3 +10441,72 @@ best it can.
   the desk editor's grid-width row became the same sliders. *Grid Height*
   (*One more row*) is gone from the panel; a desk that had it on keeps it for
   every board without a shape of its own.
+
+## 236 · The aspects of life are types, known by their knobs
+
+*2026-09-28.* Timothy answered the Bureau Scope page
+(https://claude.ai/artifact/MjuzPyN2CXcdYmN4MRxqJY, its `answers` collection):
+shaped knobs, not the drawings; an aspect changes its knob and the rest is
+filled in to suit; one more aspect, *Things*; Project under Drawer for now;
+every flow has a type, with a new Drawer subtype, *Workflow*; a setup card per
+flow, generally; the pinch inside a drawer shows its boards only when it has
+more than one; and a board may be twenty-four tall, twelve wide.
+
+- **Seventeen aspect types**, `lf_<key>`, generated from one table
+  (`LIFE_ASPECTS` in model.js) and listed as Aspect of Life's `family`. Each
+  carries its knob shape (`kshape`), the knob's material (`knobc`), a front
+  (`look`: colour, moulding, grain, applied by `create()` before the random
+  roll and by the setup card when a plain drawer becomes one), and its flow
+  (`plan`), laid out when it is made. Books wears the book face, as asked.
+  *Things* is new: the car, the laptop, the phone and the rest.
+- **The knob shapes** (`KSHAPES`, `kshapeOf()` in tiles.js): plus, coin, fist,
+  apple, heart, hand, teacup, doorbell, door knob, compass, film reel, music
+  note, paint-splashed, die, plate and nut. Each is the ordinary lit knob cut
+  to a silhouette by a CSS mask (`.pullshape`, `.ks-*` in chrome.css), the
+  holes (a die's pips, a reel's windows, a keyhole) drawn inside the mask's
+  own SVG so they are real holes; the shadow is a drop-shadow on the outer
+  span because a mask cuts a box-shadow away. Any drawer can take one: *Knob
+  shape* in the editor's Look door, where *Round* is the aesthetic's own.
+- **Workflow** is a Drawer subtype whose family is Brainstorm, Brain Dump and
+  Project Management (`wf_<key>`, `WORKFLOWS`), each with its flow. The
+  drawer's setup card asks *A way of working* beside a project, a part of your
+  life, a tag and a place to keep things. The Ideas flow is cut.
+- **A drawer of several boards zooms out to them on the first pinch**, and a
+  pinch from there goes up a level; a drawer of one board keeps the tracked
+  pinch back out (decision 109). The same on a trackpad.
+- **Height to twenty-four** (`DIM_MAX_H`); width stays at twelve.
+
+## 237 · The flows of a life, rebuilt from what each is for
+
+*2026-09-28.* Timothy wrote what each aspect's board is for on the Scope page,
+and every one of them was rebuilt from it (stockplans.js):
+
+- **Health**: appointments first (the calendar, the next one, the checkups,
+  what to ask, records, the portal), and a second board of the body, water,
+  sleep and steps as measured habits (decision 232) and the numbers.
+- **Finances**: what there is, four portals (bank, card, investments, budget),
+  the savings goal and its bar, financial goals, bills and when they are owed.
+- **Exercise**: the fitness app as a big portal, the routine, minutes a day,
+  what it is for, sessions, a rest timer and a cadence.
+- **Nutrition**: good for me, go easy on, allergies, and what is easier on
+  reflux and what sets it off.
+- **Partner**: dates, date ideas, gift ideas, things to tell her, the
+  anniversary. **Family** and **Friends**: everyone, check-ins, plans, and
+  (friends) where you wish you had them. **Communities**: part of, would like
+  to join, gatherings. **Home**: a list of chores per room, and a second board
+  for fixing, shopping and manuals. **Things**: the car, the laptop, the phone
+  and everything else, each with what comes round.
+- **Travel**: want to go, been, somewhere new, and the next trip, with a second
+  board for its bookings. **Films**: favourites by genre and a big Letterboxd
+  portal. **Books**: to read, favourites, book notes, on my shelves, libraries.
+  **Music**, **Artwork**, **Games** and **Food** as he described them.
+- **Each has its own setup questions** (`ASPECT_STEPS` in setup.js), asked
+  after it is chosen: the water and sleep goals and the patient portal; the
+  bank and what you are saving for; the fitness app, the routine and minutes a
+  day; allergies and whether to keep the reflux lists; her name; who is in the
+  family (each a card and a monthly check-in); rooms; where you want to go; the
+  Letterboxd name; what to read, play and eat next. An answer writes into what
+  the flow marked `sref`, found anywhere inside the drawer.
+- **Migration 47** rebuilds the stock flows by key (a flow you saved yourself
+  has no `stock` and is untouched), adds Things, takes Ideas off, and makes a
+  Life drawer that was made for Health, Money and the rest the type it is.

@@ -2,13 +2,13 @@ import { $, $$, clamp, D, ROOT } from './util.js';
 import { blockHold } from './wire.js';
 import { S, byId, dev, has, isContainer, isAncestor, childrenOf, container, gatherKind, spanOf,
   sortOf, boardLocked, heldCount, homeFor, attrsOf, travelWith, isMedia } from './model.js';
-import { CELL, gridOf, drawCols, drawRows, cellW, lay, boxOk, overlaps, sizeOfKind, keepSize, isBoard } from './grid.js';
+import { CELL, gridOf, drawCols, drawRows, cellW, lay, boxOk, overlaps, sizeOfKind, keepSize, isBoard, boardsOf } from './grid.js';
 import { toast, gather, del, pushSets, holdIt, unholdIt } from './mutations.js';
 import { pending, tileTap, fireButton, turnPage,
   scratchGrab, scratchTo, scratchGo } from './tiles.js';
 import { modalNewObject, shapeRing, holdPanel, openCtx, closeCtx, schedulePanel, refreshPanel,
   closePanel } from './panels.js';
-import { render, shelfShift, reveal, openOverview, overviewOn } from './views.js';
+import { render, shelfShift, reveal, openOverview, closeOverview, overviewOn, overCid } from './views.js';
 import { gravityGrab, gravityDrag, gravityDrop } from './gravity.js';
 import { closeSheet, renderSheet } from './sheet.js';
 import { pagerBegin, pagerMove, pagerEnd, pagerCancel, pagerOn, leaveTile, toss, fileTo , zoomedIn,
@@ -2102,8 +2102,23 @@ function zoomBegin(){
      you add a board to it or take one away. Committed at once rather than
      scrubbed: the picture of all the boards is drawn by growing out of the
      one you were on. */
-  if(overviewOn()) return false;
+  /* **A drawer of several boards zooms out to them first** (Timothy,
+     answering decision 234): the next pinch from there goes up a level. A
+     drawer of one board has nothing to zoom out to, so its pinch is still the
+     tracked way back out (decision 109). From the desk's own zoom there is
+     nowhere further. */
+  if(overviewOn()){
+    const at = overCid();
+    if(at===ROOT) return false;
+    const up = (byId(at)||{}).parent || ROOT;
+    closeOverview();
+    S.view = up===ROOT ? 'desk' : 'drawer'; S.drawerId = up===ROOT ? null : up;
+    S.kindFilter = null; render(); Z = null;
+    return true;
+  }
   if(S.view!=='drawer' || !S.drawerId){ openOverview(ROOT); Z=null; return true; }
+  if(boardsOf(S.drawerId).length > 1 && !has(byId(S.drawerId)||{}, 'magic')){
+    openOverview(S.drawerId); Z=null; return true; }
   const here=byId(S.drawerId);
   // a desk has no parent, which is exactly what makes it the top of the stack
   const up = here && here.parent;

@@ -133,6 +133,10 @@ function build(spec){
       mine.forEach(o=>move(o, cells[i+1]));
     });
   }
+  /* A list the setup card writes into is named by its `ref` (decision 237):
+     `sref:{fam:'people'}` on the spec marks the list made with ref `fam`. */
+  Object.entries(spec.sref||{}).forEach(([ref, name])=>{
+    const o = objects.find(x=>x.id===refs[ref]); if(o) o.sref = name; });
   objects.forEach(o=>{
     ['tracks','into'].forEach(k=>{
       if(typeof o[k]==='string' && o[k][0]==='@') o[k] = refs[o[k].slice(1)] || null; });
@@ -236,7 +240,8 @@ const CAL = (t, b, c, view, show)=>({k:'calendar', t, b,
 /* The way out: a Link to wherever the work actually happens. An https address
    opens the app itself on a phone that has it, which is why none of these
    use an app's own scheme. */
-const LINK = (t, url, b, c)=>({k:'outlink', t, b, set:{c, link:{label:t, target:url}}});
+// `sref` marks it for the setup card of the aspect it belongs to (decision 237)
+const LINK = (t, url, b, c, sref)=>({k:'outlink', t, b, set:Object.assign({c, link:{label:t, target:url}}, sref ? {sref} : {})});
 // a task that comes back, which is what a checkup, a bill and a habit all are
 const AGAIN = (t, every, unit, from)=>({k:'task', t,
   set:{attrs:['text','check','date','repeat'],
@@ -263,17 +268,20 @@ const SPECS = [
 
   /* ---- a part of your life ------------------------------------------ */
 
-  /* Health is mostly remembering: when the next appointment is, what you meant
-     to ask, and the checkups that come round once a year and are forgotten for
-     three. The checkups repeat from the day they were *done*, because the next
-     cleaning is six months after the last one and not six months after the
-     day it was meant to be. */
-  {key:'health', sec:'life', nm:'Health', ic:'drop', c:8, of:'life', life:'health', on:[
-    LABEL('Health', [1,1,8,1], 8),
-    {k:'appt', t:'Next appointment', b:[1,2,4,3], set:{c:8,
-      body:'**Who —** \n\n**Bring —** '}},
-    CAL('Coming up', [5,2,4,3], 7),
-    {k:'checklist', t:'Checkups', b:[1,5,4,4], set:{c:6}, kids:[
+  /* ---- the aspects of life, rebuilt — decision 237 ------------------------
+     Each of these was reworked from what Timothy wrote it is for on the Bureau
+     Scope page (2026-09-28), and each is the flow of its own aspect type
+     (`lf_…`, decision 236), laid out inside it the moment it is made. A thing
+     marked `sref` is where that aspect's setup card writes an answer: the
+     water goal, the Letterboxd name, the people in the family. */
+
+  // "primarily for managing and scheduling appointments, while also
+  // maintaining things like sleep, water consumption, and other bodily stuff"
+  {key:'health', sec:'life', nm:'Health', ic:'drop', c:8, of:'lf_health', life:'health', on:[
+    CAL('Appointments', [1,1,5,4], 7),
+    {k:'appt', t:'Next appointment', b:[6,1,3,4], set:{c:8, sref:'nextappt',
+      body:'**Who —** \n\n**Where —** \n\n**Bring —** '}},
+    {k:'checklist', t:'Book these', b:[1,5,4,4], set:{c:6}, kids:[
       AGAIN('Physical', 1, 'year', 'done'),
       AGAIN('Dentist cleaning', 6, 'month', 'done'),
       AGAIN('Eye exam', 1, 'year', 'done'),
@@ -287,163 +295,350 @@ const SPECS = [
       {k:'note', t:'Insurance'},
       {k:'note', t:'Results'}
     ]},
-    LINK('Patient portal', 'https://www.mychart.org', [5,9,4,1], 9),
+    LINK('Patient portal', 'https://www.mychart.org', [5,9,4,1], 9, 'portal'),
     LINK('Find a doctor', 'https://www.zocdoc.com', [5,10,4,1], 9)
-  ]},
+  ], boards:[{at:[1,0], on:[
+    // the body, day by day: a measured habit each (decision 232)
+    {k:'tracker', t:'Water', b:[1,1,8,2], set:{c:9, sref:'water', measure:{unit:'oz', goal:64, step:8}}},
+    {k:'tracker', t:'Sleep', b:[1,3,8,2], set:{c:10, sref:'sleep', measure:{unit:'hours', goal:8, step:1}}},
+    {k:'tracker', t:'Steps', b:[1,5,8,2], set:{c:6, sref:'steps', measure:{unit:'steps', goal:8000, step:1000}}},
+    {k:'tracker', t:'Vitamins', b:[1,7,8,2], set:{c:13}},
+    {k:'note', t:'Numbers', b:[1,9,8,3], set:{c:12,
+      body:'**Weight —** \n\n**Blood pressure —** \n\n**Resting heart rate —** '}}
+  ]}]},
 
-  /* Money is a list of things that come round, the days they are owed, and one
-     number you are trying to move. The bar reads the goal's own milestones,
-     so ticking a milestone is the whole of keeping it true. The bank is left
-     without an address on purpose: pressing it opens its editor, which is the
-     one place a Link teaches you that it can be pointed anywhere. */
-  {key:'money', sec:'life', nm:'Finances', ic:'bar', c:13, of:'life', life:'money', on:[
-    LABEL('Money', [1,1,8,1], 13),
-    {k:'checklist', t:'Bills', b:[1,2,4,5], set:{c:6}, kids:[
-      AGAIN('Rent', 1, 'month'),
-      AGAIN('Phone', 1, 'month'),
-      AGAIN('Internet', 1, 'month'),
-      AGAIN('Credit card', 1, 'month'),
-      AGAIN('Look over the month', 1, 'month')
-    ]},
-    CAL('When it is owed', [5,2,4,4], 7),
-    {k:'goal', t:'Savings', ref:'save', b:[1,7,4,3], set:{c:13, milestones:[
+  // "access to all my financial apps, knowing kind of how much money I have
+  // in any given time, listing my financial goals, my savings goals"
+  {key:'money', sec:'life', nm:'Finances', ic:'bar', c:13, of:'lf_money', life:'money', on:[
+    {k:'note', t:'What there is', b:[1,1,4,4], set:{c:13, sref:'balances',
+      body:'**Checking —** \n\n**Savings —** \n\n**Investments —** \n\n**Owed —** \n\n*As of —*'}},
+    LINK('Your bank', '', [5,1,4,1], 9, 'bank'),
+    LINK('Credit card', '', [5,2,4,1], 9, 'card'),
+    LINK('Investments', '', [5,3,4,1], 9, 'invest'),
+    LINK('Budget', 'https://www.ynab.com', [5,4,4,1], 9, 'budget'),
+    {k:'goal', t:'Savings', ref:'save', b:[1,5,4,3], set:{c:13, sref:'savings', milestones:[
       {t:'A first cushion', done:false},
       {t:'One month of expenses', done:false},
       {t:'Three months', done:false}
     ]}},
-    {k:'progressbar', t:'', b:[5,6,4,1], set:{c:13, tracks:'@save'}},
-    {k:'counter', t:'No-spend days', b:[5,7,4,3], set:{c:6}},
-    {k:'drawer', t:'Statements', b:[1,10,4,2], set:{c:14}, kids:[
-      {k:'note', t:'Budget'},
-      {k:'note', t:'Where each account lives'}
+    {k:'checklist', t:'Financial goals', b:[5,5,4,4], set:{c:6, sref:'goals'}, kids:[
+      {k:'task', t:'Three months put by'},
+      {k:'task', t:'Pay off the card'},
+      {k:'task', t:'Put something into retirement every month'}
     ]},
-    LINK('Your bank', '', [5,10,4,1], 9),
-    LINK('Credit report', 'https://www.annualcreditreport.com', [5,11,4,1], 9)
+    {k:'progressbar', t:'', b:[1,8,4,1], set:{c:13, tracks:'@save'}},
+    {k:'checklist', t:'Bills', b:[1,9,4,3], set:{c:6}, kids:[
+      AGAIN('Rent', 1, 'month'),
+      AGAIN('Phone', 1, 'month'),
+      AGAIN('Card', 1, 'month'),
+      AGAIN('Look over the month', 1, 'month')
+    ]},
+    CAL('When it is owed', [5,9,4,3], 7)
   ]},
 
-  /* Moving, every day, and the bar is the run of it: thirty days, counted from
-     the day you last moved rather than the day it was due, because you
-     exercise the day after you last exercised. The deck is the one thing a
-     training plan never has — what to do *today*, turned up rather than
-     decided. The metronome is set to a running cadence. */
-  {key:'exercise', sec:'life', nm:'Exercise', ic:'star', c:6, of:'life', life:'exercise', on:[
-    LABEL('Moving', [1,1,8,1], 6),
-    {k:'progressbar', t:'Thirty days', b:[1,2,8,1], set:{c:6, tracks:'@move', target:30}},
-    {k:'task', t:'Move today', ref:'move', b:[1,3,8,1],
-     set:{c:6, attrs:['text','check','date','repeat','streak'],
-          repeat:{every:1, unit:'day', days:[], from:'done', ends:null, paused:false, made:0}}},
-    {k:'deck', t:'Today', b:[1,4,3,4], set:{c:10}, kids:CARDS([
-      'A run, easy pace', 'Push, pull, legs', 'Thirty minutes of yoga',
-      'A long walk, no phone', 'Intervals: one hard, two easy', 'Rest, and stretch'
+  // "being able to link into another app meant for exercising, tracking my
+  // fitness goals by routine"
+  {key:'exercise', sec:'life', nm:'Exercise', ic:'star', c:6, of:'lf_exercise', life:'exercise', on:[
+    LINK('Your fitness app', 'https://www.strava.com', [1,1,8,2], 9, 'app'),
+    {k:'checklist', t:'The routine', b:[1,3,4,5], set:{c:6, sref:'routine'}, kids:[
+      AGAIN('Strength', 1, 'week'),
+      AGAIN('A run', 1, 'week'),
+      AGAIN('Strength again', 1, 'week'),
+      AGAIN('A long walk', 1, 'week')
+    ]},
+    {k:'tracker', t:'Moved today', b:[5,3,4,2], set:{c:6, sref:'minutes', measure:{unit:'min', goal:30, step:10}}},
+    {k:'goal', t:'What it is for', b:[5,5,4,3], set:{c:13, sref:'goal', milestones:[
+      {t:'Three sessions a week, a month running', done:false},
+      {t:'A first milestone of your own', done:false}
+    ]}},
+    CAL('Sessions', [1,8,4,4], 7),
+    {k:'hourglass', t:'Rest', b:[5,8,2,2], set:{c:12, mins:1}},
+    {k:'metronome', t:'Cadence', b:[7,8,2,2], set:{c:6, bpm:170}},
+    LINK('Apple Fitness', 'https://www.apple.com/apple-fitness-plus/', [5,10,4,1], 9),
+    LINK('Nike Run Club', 'https://www.nike.com/nrc-app', [5,11,4,1], 9)
+  ]},
+
+  // "identifying healthy foods and less healthy foods, identifying my
+  // allergies if I were to have any, identifying things that are good for
+  // GERD and bad for GERD"
+  {key:'nutrition', sec:'life', nm:'Nutrition', ic:'pot', c:2, of:'lf_nutrition', life:'nutrition', on:[
+    {k:'note', t:'Good for me', b:[1,1,4,4], set:{c:6, sref:'good',
+      body:'Oats\n\nGreens\n\nBeans and lentils\n\nFish\n\nBerries'}},
+    {k:'note', t:'Go easy on', b:[5,1,4,4], set:{c:1, sref:'bad',
+      body:'Fried food\n\nSugary drinks\n\nProcessed meat'}},
+    {k:'note', t:'Allergies and intolerances', b:[1,5,4,2], set:{c:8, sref:'allergies', body:'None known yet.'}},
+    {k:'tracker', t:'Water', b:[5,5,4,2], set:{c:9, measure:{unit:'oz', goal:64, step:8}}},
+    // the usual lists; what is true for one person is found by keeping these
+    {k:'note', t:'Reflux: easier on it', b:[1,7,4,4], set:{c:6, sref:'gerdgood',
+      body:'Oatmeal\n\nBananas and melon\n\nGinger\n\nLean protein\n\nGreen vegetables\n\n*Smaller meals, and nothing in the three hours before bed*'}},
+    {k:'note', t:'Reflux: triggers', b:[5,7,4,4], set:{c:1, sref:'gerdbad',
+      body:'Coffee\n\nAlcohol\n\nChocolate and mint\n\nTomatoes and citrus\n\nFried, fatty or spicy food\n\n*Big meals late*'}},
+    LINK('Look a food up', 'https://fdc.nal.usda.gov', [1,11,4,1], 9),
+    LINK('Eat right', 'https://www.eatright.org', [5,11,4,1], 9)
+  ]},
+
+  // "planning dates, buying gifts, identifying what I wanna say to her at any
+  // given time"
+  {key:'partner', sec:'life', nm:'Partner', ic:'star', c:1, of:'lf_partner', life:'partner', on:[
+    CAL('Dates', [1,1,4,4], 7),
+    {k:'checklist', t:'Date ideas', b:[5,1,4,4], set:{c:1, sref:'dates'}, kids:[
+      AGAIN('Date night', 1, 'week'),
+      {k:'task', t:'Somewhere neither of us has been'},
+      {k:'task', t:'Cook something new together'}
+    ]},
+    {k:'checklist', t:'Gift ideas', b:[1,5,4,4], set:{c:13, sref:'gifts'}},
+    {k:'note', t:'Things to tell her', b:[5,5,4,4], set:{c:12, sref:'say',
+      body:'**Soon —** \n\n**When the time is right —** \n\n**Just because —** '}},
+    {k:'appt', t:'Anniversary', b:[1,9,4,2], set:{c:8, sref:'anniv'}},
+    {k:'deck', t:'Pick a date', b:[5,9,2,3], set:{c:10}, kids:CARDS([
+      'Go back to where you met', 'A walk somewhere new', 'Board games and takeout',
+      'A show, a museum or a gig', 'Breakfast out, phones away', 'Cook her favourite'
     ])},
-    {k:'metronome', t:'Cadence', b:[4,4,3,4], set:{c:11, bpm:170}},
-    {k:'hourglass', t:'Rest', b:[7,4,2,4], set:{c:12, mins:2}},
-    CAL('The month', [1,8,4,4], 7, 'month', 'marks'),
-    {k:'drawer', t:'Routines', b:[5,8,4,2], set:{c:14}, kids:[
-      {k:'note', t:'Warm-up'},
-      {k:'note', t:'Strength A'},
-      {k:'note', t:'Strength B'}
-    ]},
-    LINK('Strava', 'https://www.strava.com', [5,10,4,1], 9),
-    LINK('A stretch to follow', 'https://www.youtube.com/results?search_query=20+minute+full+body+stretch', [5,11,4,1], 9)
+    LINK('Book a table', 'https://www.opentable.com', [7,9,2,1], 9),
+    LINK('Things to do', 'https://www.eventbrite.com', [7,10,2,1], 9),
+    LINK('Flowers', 'https://www.bloomsybox.com', [1,11,4,1], 9)
   ]},
 
-  /* Eating is the week: what is for dinner on which day (typed straight into
-     the week's days), what to buy for it, and a deck for the evening nobody
-     can decide. Recipes live in a drawer and are cards you write on. */
-  {key:'nutrition', sec:'life', nm:'Nutrition', ic:'pot', c:11, of:'life', life:'nutrition', on:[
-    LABEL('Eating', [1,1,8,1], 11),
-    CAL('This week', [1,2,8,3], 7, 'week', 'titles'),
-    {k:'checklist', t:'Groceries', b:[1,5,4,5], set:{c:6}, kids:[
-      {k:'task', t:'Greens'},
-      {k:'task', t:'Fruit'},
-      {k:'task', t:'Something for breakfast'},
-      {k:'task', t:'Protein for three dinners'}
+  // "keeping light tabs on all my family members to make sure they're OK and
+  // planning opportunities to see them or do things with them"
+  {key:'family', sec:'life', nm:'Family', ic:'star', c:12, of:'lf_family', life:'family', on:[
+    LIST('Everyone', 'fam', [1,1,4,4], 12),
+    {k:'checklist', t:'Check in', b:[5,1,4,4], set:{c:6, sref:'checkin'}, kids:[
+      AGAIN('Call home', 1, 'week'),
+      AGAIN('Message someone you have not in a while', 1, 'month')
     ]},
-    {k:'deck', t:'What is for dinner?', b:[5,5,4,3], set:{c:10}, kids:CARDS([
-      'Stir-fry, whatever is in the fridge', 'Tacos', 'Pasta and greens',
-      'Soup and bread', 'A grain bowl', 'Eggs, any way', 'Something new from the drawer'
+    CAL('Birthdays and visits', [1,5,4,4], 7),
+    {k:'checklist', t:'Next time we are together', b:[5,5,4,4], set:{c:13}, kids:[
+      {k:'task', t:'Plan the next visit'},
+      {k:'task', t:'Something to do together'}
+    ]},
+    {k:'moodboard', t:'Photographs', b:[1,9,4,3], set:{c:13}},
+    LINK('Video call', 'https://meet.google.com', [5,9,4,1], 9),
+    LINK('Send a card', 'https://www.paperlesspost.com', [5,10,4,1], 9)
+  ], sref:{fam:'people'}},
+
+  // "finding opportunities to spend time with friends and keeping light tabs
+  // on making sure that they're at least somewhat OK and identifying where I
+  // might have gaps where I wish I had friends"
+  {key:'friends', sec:'life', nm:'Friends', ic:'star', c:7, of:'lf_friends', life:'friends', on:[
+    LIST('Friends', 'frd', [1,1,4,4], 7),
+    {k:'checklist', t:'Check in', b:[5,1,4,4], set:{c:6, sref:'checkin'}, kids:[
+      AGAIN('Text someone you have not in a while', 1, 'week'),
+      AGAIN('Plan something for everyone', 1, 'month')
+    ]},
+    CAL('Plans', [1,5,4,3], 7),
+    {k:'deck', t:'Something to do', b:[5,5,4,3], set:{c:10}, kids:CARDS([
+      'Dinner at somebody’s place', 'A walk and a coffee', 'Game night',
+      'See a show', 'Go somewhere for the day', 'Just call'
     ])},
-    {k:'drawer', t:'Recipes', b:[5,8,4,2], set:{c:11}, kids:[
-      {k:'recipe', t:'The weeknight standby'},
-      {k:'recipe', t:'One to try'}
-    ]},
-    {k:'counter', t:'Glasses of water', b:[1,10,4,2], set:{c:5}},
-    LINK('Groceries delivered', 'https://www.instacart.com', [5,10,4,1], 9),
-    LINK('Find a recipe', 'https://www.seriouseats.com', [5,11,4,1], 9)
-  ]},
+    {k:'question', t:'Where do I wish I had friends?', b:[1,8,4,4], set:{c:10, sref:'gaps',
+      body:'**Near home —** \n\n**Who like what I like —** \n\n**At work —** '}},
+    LINK('Meetups', 'https://www.meetup.com', [5,8,4,1], 9),
+    LINK('Something on', 'https://www.eventbrite.com', [5,9,4,1], 9),
+    LINK('Split the bill', 'https://www.splitwise.com', [5,10,4,1], 9)
+  ], sref:{frd:'people'}},
 
-  /* ---- something you go and take in --------------------------------- */
-
-  /* A trip is a span of days and three lists — what to pack, what is booked
-     and what you want to see. A Trip is born holding it, and so is a Life
-     drawer made for Travel. */
-  {key:'travel', sec:'experience', nm:'Travel', ic:'flag', c:9, of:'life', life:'travel', on:[
-    LABEL('The trip', [1,1,8,1], 9),
-    {k:'appt', t:'Getting there', b:[1,2,8,2], set:{c:8}},
-    {k:'checklist', t:'Packing', b:[1,4,4,5], set:{c:6}, kids:[
-      {k:'task', t:'Passport or ID'},
-      {k:'task', t:'Chargers'},
-      {k:'task', t:'Toiletries'},
-      {k:'task', t:'Clothes for each day'},
-      {k:'task', t:'Something to read'},
-      {k:'task', t:'Medication'}
+  // "identifying what communities I'd like to be a part of more, or keeping
+  // track of social gatherings"
+  {key:'communities', sec:'life', nm:'Communities', ic:'flag', c:4, of:'lf_communities', on:[
+    LIST('Part of', 'cin', [1,1,4,4], 4),
+    LIST('Would like to join', 'cwant', [5,1,4,4], 12),
+    CAL('Gatherings', [1,5,5,4], 7),
+    {k:'checklist', t:'Show up', b:[6,5,3,4], set:{c:6}, kids:[
+      AGAIN('Go to the next one', 1, 'month'),
+      {k:'task', t:'Offer to help with something'}
     ]},
-    CAL('Day by day', [5,4,4,3], 7),
-    {k:'drawer', t:'Bookings', b:[5,7,4,2], set:{c:14}, kids:[
-      {k:'note', t:'Flights'},
+    {k:'question', t:'What could I give?', b:[1,9,4,3], set:{c:10}},
+    LINK('Meetups', 'https://www.meetup.com', [5,9,4,1], 9),
+    LINK('Volunteer', 'https://www.volunteermatch.org', [5,10,4,1], 9),
+    LINK('Local events', 'https://www.eventbrite.com', [5,11,4,1], 9)
+  ], sref:{cwant:'want'}},
+
+  // "managing chores mostly": a list per room, and the rest on a board beside
+  {key:'home', sec:'life', nm:'Home', ic:'folder', c:5, of:'lf_home', life:'home', on:[
+    {k:'checklist', t:'Kitchen', b:[1,1,4,4], set:{c:6, sref:'room'}, kids:[
+      AGAIN('Wipe down', 1, 'day'), AGAIN('Clean the fridge', 1, 'month'), AGAIN('Bins out', 1, 'week')]},
+    {k:'checklist', t:'Bathroom', b:[5,1,4,4], set:{c:9, sref:'room'}, kids:[
+      AGAIN('Clean the sink and mirror', 1, 'week'), AGAIN('Scrub the shower', 2, 'week'), AGAIN('New towels', 1, 'week')]},
+    {k:'checklist', t:'Bedroom', b:[1,5,4,4], set:{c:10, sref:'room'}, kids:[
+      AGAIN('Change the sheets', 2, 'week'), AGAIN('Laundry', 1, 'week')]},
+    {k:'checklist', t:'Living room', b:[5,5,4,4], set:{c:5, sref:'room'}, kids:[
+      AGAIN('Vacuum', 1, 'week'), AGAIN('Dust', 2, 'week')]},
+    {k:'tracker', t:'Ten minutes of tidying', b:[1,9,8,2], set:{c:6}},
+    CAL('This month', [1,11,4,2], 7),
+    LINK('Find a pro', 'https://www.thumbtack.com', [5,11,4,1], 9)
+  ], boards:[{at:[1,0], on:[
+    {k:'checklist', t:'Fix and maintain', b:[1,1,4,5], set:{c:8}, kids:[
+      AGAIN('Replace the air filter', 3, 'month', 'done'),
+      AGAIN('Test the smoke alarms', 6, 'month', 'done'),
+      {k:'task', t:'The thing that drips'}
+    ]},
+    {k:'checklist', t:'Shopping', b:[5,1,4,5], set:{c:11}, kids:[
+      {k:'task', t:'Light bulbs'}, {k:'task', t:'Batteries'}, {k:'task', t:'Bin bags'}
+    ]},
+    {k:'drawer', t:'Manuals and warranties', b:[1,6,4,3], set:{c:14}},
+    LINK('Hardware', 'https://www.homedepot.com', [5,6,4,1], 9)
+  ]}]},
+
+  // new: "more about managing your stuff, like your car, laptop, all that stuff"
+  {key:'things', sec:'life', nm:'Things', ic:'sliders', c:15, of:'lf_things', on:[
+    {k:'drawer', t:'The car', b:[1,1,4,4], set:{c:15, face:'checklist', clhead:'1', layout:'list'}, kids:[
+      AGAIN('Oil change', 6, 'month', 'done'),
+      AGAIN('Rotate the tyres', 6, 'month', 'done'),
+      AGAIN('Registration', 1, 'year'),
+      AGAIN('Inspection', 1, 'year'),
+      {k:'note', t:'Insurance, VIN and plate'}
+    ]},
+    {k:'drawer', t:'The laptop', b:[5,1,4,4], set:{c:14, face:'checklist', clhead:'1', layout:'list'}, kids:[
+      AGAIN('Back it up', 1, 'month', 'done'),
+      AGAIN('Install the updates', 1, 'month', 'done'),
+      {k:'note', t:'Serial, warranty and where it was bought'}
+    ]},
+    {k:'drawer', t:'The phone', b:[1,5,4,3], set:{c:9, face:'checklist', clhead:'1', layout:'list'}, kids:[
+      AGAIN('Back it up', 1, 'month', 'done'),
+      {k:'note', t:'Serial and plan'}
+    ]},
+    LIST('Everything else', 'more', [5,5,4,3], 12),
+    CAL('Due', [1,8,4,4], 7),
+    {k:'note', t:'Warranties and receipts', b:[5,8,4,2], set:{c:13}},
+    LINK('Find a mechanic', 'https://repairpal.com', [5,10,4,1], 9),
+    LINK('Apple support', 'https://support.apple.com', [5,11,4,1], 9)
+  ], sref:{more:'things'}},
+
+  /* ---- something you take in ------------------------------------------ */
+
+  // "keeping track of all the places I'd like to visit and finding new places
+  // to visit, and also some amount of trip planning"
+  {key:'travel', sec:'experience', nm:'Travel', ic:'flag', c:9, of:'lf_travel', life:'travel', on:[
+    LIST('Want to go', 'twant', [1,1,4,6], 9),
+    LIST('Been', 'tbeen', [5,1,4,3], 5),
+    {k:'deck', t:'Somewhere new', b:[5,4,4,3], set:{c:10}, kids:CARDS([
+      'A city you know one thing about', 'Somewhere a train can take you',
+      'Where a book you loved is set', 'The coast in winter',
+      'A friend’s home town', 'A country whose food you love'
+    ])},
+    LINK('Find somewhere new', 'https://www.atlasobscura.com', [1,7,4,1], 9),
+    LINK('Map', 'https://www.google.com/maps', [1,8,4,1], 9),
+    {k:'appt', t:'Next trip', b:[5,7,4,2], set:{c:8, sref:'trip'}},
+    CAL('Trips', [1,9,4,3], 7),
+    {k:'checklist', t:'Packing', b:[5,9,4,3], set:{c:6}, kids:[
+      {k:'task', t:'Passport or ID'}, {k:'task', t:'Chargers'}, {k:'task', t:'Medication'}
+    ]}
+  ], boards:[{at:[1,0], on:[
+    {k:'drawer', t:'Bookings', b:[1,1,4,4], set:{c:14}, kids:[
+      {k:'note', t:'Getting there'},
       {k:'note', t:'Where we are staying'},
       {k:'note', t:'Getting around'}
     ]},
-    {k:'drawer', t:'Want to see', b:[1,9,4,3], set:{c:12}, kids:[
-      {k:'note', t:'Eat'},
-      {k:'note', t:'See'},
-      {k:'note', t:'Do'}
+    {k:'drawer', t:'While we are there', b:[5,1,4,4], set:{c:12}, kids:[
+      {k:'note', t:'Eat'}, {k:'note', t:'See'}, {k:'note', t:'Do'}
     ]},
-    LINK('Flights', 'https://www.google.com/travel/flights', [5,9,4,1], 9),
-    LINK('Getting around', 'https://www.rome2rio.com', [5,10,4,1], 9),
-    LINK('Map', 'https://www.google.com/maps', [5,11,4,1], 9)
+    LINK('Flights', 'https://www.google.com/travel/flights', [1,5,4,1], 9),
+    LINK('Getting around', 'https://www.rome2rio.com', [5,5,4,1], 9),
+    LINK('Somewhere to stay', 'https://www.airbnb.com', [1,6,4,1], 9),
+    {k:'note', t:'Day by day', b:[1,7,8,5], set:{c:9}}
+  ]}], sref:{twant:'want'}},
+
+  // "keep track of my favorite movies in each genre, with a link to
+  // Letterboxd so that I can do most of the organizing there"
+  {key:'films', sec:'experience', inbox:'note', nm:'Films', ic:'film', c:9, of:'lf_films', life:'films', on:[
+    LINK('Letterboxd', 'https://letterboxd.com', [1,1,8,2], 9, 'letterboxd'),
+    LIST('Drama', 'fdrama', [1,3,4,3], 9),
+    LIST('Comedy', 'fcomedy', [5,3,4,3], 13),
+    LIST('Horror and thrillers', 'fhorror', [1,6,4,3], 1),
+    LIST('Science fiction', 'fscifi', [5,6,4,3], 10),
+    LIST('Animation', 'fanim', [1,9,4,3], 6),
+    LIST('Documentary', 'fdoc', [5,9,4,3], 12)
   ]},
 
-  /* Films: the list, a deck for the night you cannot pick, and a review for
-     each one seen, which the Seen drawer collects off this board. */
-  {key:'films', sec:'experience', inbox:'note', nm:'Films', ic:'film', c:9, of:'life', life:'films', on:[
-    LABEL('Films', [1,1,8,1], 9),
-    {k:'checklist', t:'Watchlist', b:[1,2,5,5], set:{c:9}},
-    {k:'deck', t:'Pick for me', b:[6,2,3,4], set:{c:10}, kids:CARDS([
-      'The one you have meant to see for a year', 'Something from before 1970',
-      'Not in English', 'A documentary', 'A director you love, one you have not seen',
-      'The one a friend keeps recommending'
-    ])},
-    MAKES('Just watched…', 'review', [1,7,8,1], 13, '@seen'),
-    LIST('Seen', 'seen', [1,8,4,4], 5),
-    LINK('Letterboxd', 'https://letterboxd.com', [5,8,4,1], 9),
-    LINK('Where to stream it', 'https://www.justwatch.com', [5,9,4,1], 9),
-    LINK('Showtimes', 'https://www.fandango.com', [5,10,4,1], 9)
-  ]},
-
-  /* Books: how far into this one, what is next, and two things you take out
-     of a book — the lines worth keeping and what you made of it — each with a
-     drawer that collects it off this board. */
-  /* A shelf of books is spines, so a box sketched one cell wide and two or
-     more tall on it is a book, with no picker in between (decision 199). */
-  {key:'books', sec:'experience', inbox:'note', nm:'Books', ic:'book', c:11, of:'life', life:'books',
+  // "keeping track of the books I want to read, my favorite books, recording
+  // book notes, the physical books that I have, and some way to track down
+  // libraries"
+  {key:'books', sec:'experience', inbox:'note', nm:'Books', ic:'book', c:11, of:'lf_books', life:'books',
    makes:{only:null, sizes:[{w:[1,1], h:[2,null], kind:'book'}]}, on:[
-    LABEL('Reading', [1,1,8,1], 11),
-    {k:'progressbar', t:'How far into it', b:[1,2,8,1], set:{c:11}},
-    {k:'checklist', t:'To read', b:[1,3,5,4], set:{c:11}},
-    {k:'deck', t:'What next?', b:[6,3,3,4], set:{c:10}, kids:CARDS([
-      'Something somebody gave you', 'A classic you pretend to have read',
-      'Under two hundred pages', 'Something you know nothing about',
-      'A reread', 'Poems'
+    LIST('To read', 'bto', [1,1,4,4], 11),
+    LIST('Favourites', 'bfav', [5,1,4,4], 13),
+    MAKES('A note on a book…', 'note', [1,5,8,1], 5, '@bnotes'),
+    LIST('Book notes', 'bnotes', [1,6,4,4], 5),
+    LIST('On my shelves', 'bshelf', [5,6,4,4], 14),
+    LINK('Libby', 'https://www.libbyapp.com', [1,10,4,1], 9),
+    LINK('Find a library', 'https://www.worldcat.org/libraries', [5,10,4,1], 9, 'library'),
+    LINK('The StoryGraph', 'https://app.thestorygraph.com', [1,11,4,1], 9),
+    LINK('Bookshop', 'https://bookshop.org', [5,11,4,1], 9)
+  ], sref:{bto:'toread'}},
+
+  // "keeping track of my favorite songs, artists, musical inspirations"
+  {key:'music', sec:'experience', inbox:'note', nm:'Music', ic:'music', c:10, of:'lf_music', on:[
+    LIST('Favourite songs', 'msongs', [1,1,4,5], 10),
+    LIST('Artists', 'martists', [5,1,4,5], 12),
+    {k:'moodboard', t:'Inspirations', b:[1,6,5,4], set:{c:13}},
+    {k:'deck', t:'Put something on', b:[6,6,3,4], set:{c:10}, kids:CARDS([
+      'An album start to finish', 'Something from the year you were born',
+      'A genre you never play', 'What you loved at sixteen',
+      'A live recording', 'Something a friend sent you'
     ])},
-    MAKES('A line worth keeping…', 'quote', [1,7,4,1], 5, '@quotes'),
-    MAKES('Just finished…', 'review', [5,7,4,1], 13, '@finished'),
-    LIST('Quotes', 'quotes', [1,8,4,3], 5),
-    LIST('Finished', 'finished', [5,8,4,3], 13),
-    LINK('Library', 'https://www.libbyapp.com', [1,11,4,1], 9),
-    LINK('The StoryGraph', 'https://app.thestorygraph.com', [5,11,4,1], 9)
-  ]},
+    LINK('Spotify', 'https://open.spotify.com', [1,10,4,1], 9, 'player'),
+    LINK('Bandcamp', 'https://bandcamp.com', [5,10,4,1], 9),
+    LINK('Gigs near me', 'https://www.songkick.com', [1,11,8,1], 9)
+  ], sref:{martists:'artists'}},
+
+  // "finding new artwork to view, finding museums, keeping track of my
+  // favorite artists and artwork"
+  {key:'visual', sec:'experience', inbox:'note', nm:'Artwork', ic:'image', c:3, of:'lf_visual', on:[
+    {k:'moodboard', t:'Favourite works', b:[1,1,5,4], set:{c:13}},
+    LIST('Artists', 'aartists', [6,1,3,4], 12),
+    LIST('Museums to visit', 'amuseums', [1,5,4,4], 3),
+    CAL('Shows and openings', [5,5,4,4], 7),
+    {k:'deck', t:'Look closer', b:[1,9,3,3], set:{c:10}, kids:CARDS([
+      'Draw what you see for five minutes', 'What is the light doing?',
+      'Stand where the artist stood', 'What would you take home?',
+      'Read nothing, then read the label', 'Find the oldest thing in the room'
+    ])},
+    LINK('Find new art', 'https://artsandculture.google.com', [4,9,5,1], 9),
+    LINK('Find a museum', 'https://www.artsy.net/institutions', [4,10,5,1], 9),
+    LINK('The Met', 'https://www.metmuseum.org/art/collection', [4,11,5,1], 9)
+  ], sref:{amuseums:'museums'}},
+
+  // "keep track of games that I need to play; keep track of my favorite games"
+  {key:'games', sec:'experience', inbox:'note', nm:'Games', ic:'grid', c:14, of:'lf_games', on:[
+    LIST('To play', 'gto', [1,1,4,5], 14),
+    LIST('Favourites', 'gfav', [5,1,4,5], 13),
+    {k:'progressbar', t:'How far into this one', b:[1,6,8,1], set:{c:14}},
+    {k:'deck', t:'What to play', b:[1,7,3,4], set:{c:10}, kids:CARDS([
+      'The one you stopped halfway', 'Something short', 'Co-op with a friend',
+      'A board game night', 'A classic', 'The newest thing you own'
+    ])},
+    {k:'die', t:'Roll', b:[4,7,2,2], set:{c:14, sides:20}},
+    MAKES('Just finished…', 'review', [6,7,3,1], 13, '@gdone'),
+    LIST('Finished', 'gdone', [6,8,3,3], 5),
+    LINK('Backloggd', 'https://backloggd.com', [1,11,4,1], 9),
+    LINK('BoardGameGeek', 'https://boardgamegeek.com', [5,11,4,1], 9)
+  ], sref:{gto:'toplay'}},
+
+  // "restaurants that I want to try, foods that I want to try, recipes that I
+  // want to try"
+  {key:'food', sec:'experience', inbox:'note', nm:'Food', ic:'pot', c:6, of:'lf_food', on:[
+    LIST('Restaurants to try', 'frest', [1,1,4,5], 6),
+    LIST('Foods to try', 'ffoods', [5,1,4,5], 13),
+    LIST('Recipes to try', 'frecipes', [1,6,4,5], 2),
+    {k:'deck', t:'Tonight', b:[5,6,4,3], set:{c:10}, kids:CARDS([
+      'Somewhere you have walked past a hundred times', 'A cuisine you have never had',
+      'Cook the recipe you saved last month', 'Breakfast for dinner',
+      'The place a friend keeps mentioning', 'Something with one ingredient you have never used'
+    ])},
+    LINK('Book a table', 'https://www.opentable.com', [5,9,4,1], 9),
+    LINK('Recipes', 'https://cooking.nytimes.com', [5,10,4,1], 9),
+    LINK('Near me', 'https://www.google.com/maps/search/restaurants', [1,11,8,1], 9)
+  ], sref:{frest:'restaurants'}},
+
+
+
+
+
+  /* ---- something you go and take in --------------------------------- */
+
+
+
 
   /* ---- a piece of work ---------------------------------------------- */
 
@@ -531,154 +726,15 @@ const SPECS = [
 
   /* ---- a part of your life, continued -------------------------------- */
 
-  {key:'partner', sec:'life', nm:'Partner', ic:'star', c:1, of:'life', life:'partner', on:[
-    LABEL('Us', [1,1,8,1], 1),
-    CAL('Our dates', [1,2,4,4], 7),
-    {k:'checklist', t:'Plans together', b:[5,2,4,4], set:{c:1}, kids:[
-      AGAIN('Date night', 1, 'week'),
-      {k:'task', t:'A trip, just us'},
-      {k:'task', t:'Something neither of us has done'}
-    ]},
-    {k:'deck', t:'Date ideas', b:[1,6,3,4], set:{c:10}, kids:CARDS([
-      'Cook something neither of you has made', 'A walk somewhere new',
-      'Go back to where you met', 'Board games and takeout',
-      'A show, a museum or a gig', 'Breakfast out, phones away'
-    ])},
-    {k:'note', t:'Things they love', b:[4,6,5,2], set:{c:12,
-      body:'**Gifts —** \n\n**Food —** \n\n**Small things —** '}},
-    {k:'appt', t:'Anniversary', b:[4,8,5,2], set:{c:8}},
-    LINK('Book a table', 'https://www.opentable.com', [1,10,4,1], 9),
-    LINK('Something to do', 'https://www.eventbrite.com', [5,10,4,1], 9)
-  ]},
 
-  {key:'family', sec:'life', nm:'Family', ic:'star', c:12, of:'life', life:'family', on:[
-    LABEL('Family', [1,1,8,1], 12),
-    CAL('Birthdays and visits', [1,2,4,4], 7),
-    {k:'checklist', t:'Keep in touch', b:[5,2,4,4], set:{c:6}, kids:[
-      AGAIN('Call home', 1, 'week'),
-      AGAIN('Write to someone', 1, 'month'),
-      {k:'task', t:'Plan the next visit'}
-    ]},
-    {k:'drawer', t:'People', b:[1,6,4,3], set:{c:14}, kids:[
-      {k:'note', t:'Parents', body:'**Birthdays —** \n\n**Sizes —** \n\n**Remember —** '},
-      {k:'note', t:'Brothers and sisters'},
-      {k:'note', t:'Everyone else'}
-    ]},
-    {k:'checklist', t:'Gifts', b:[5,6,4,3], set:{c:13}},
-    {k:'moodboard', t:'Photographs', b:[1,9,4,3], set:{c:13}},
-    LINK('Video call', 'https://meet.google.com', [5,9,4,1], 9),
-    LINK('Send a card', 'https://www.paperlesspost.com', [5,10,4,1], 9)
-  ]},
 
-  {key:'friends', sec:'life', nm:'Friends', ic:'star', c:7, of:'life', life:'friends', on:[
-    LABEL('Friends', [1,1,8,1], 7),
-    {k:'checklist', t:'Reach out', b:[1,2,4,5], set:{c:6}, kids:[
-      AGAIN('Text someone you have not in a while', 1, 'week'),
-      AGAIN('Plan something for everyone', 1, 'month')
-    ]},
-    CAL('Plans', [5,2,4,3], 7),
-    {k:'deck', t:'Something to do', b:[5,5,3,4], set:{c:10}, kids:CARDS([
-      'Dinner at somebody’s place', 'A walk and a coffee', 'Game night',
-      'See a show', 'Go somewhere for the day', 'Just call'
-    ])},
-    {k:'drawer', t:'People', b:[1,7,4,3], set:{c:14}, kids:[
-      {k:'note', t:'Close'},
-      {k:'note', t:'From a long time ago'},
-      {k:'note', t:'New'}
-    ]},
-    LINK('Find something on', 'https://www.eventbrite.com', [5,9,4,1], 9),
-    LINK('Split the bill', 'https://www.splitwise.com', [5,10,4,1], 9)
-  ]},
 
-  {key:'communities', sec:'life', nm:'Communities', ic:'flag', c:5, of:'life', on:[
-    LABEL('Communities', [1,1,8,1], 5),
-    {k:'drawer', t:'Groups I am in', b:[1,2,4,3], set:{c:14}, kids:[
-      {k:'note', t:'A club'},
-      {k:'note', t:'Online'},
-      {k:'note', t:'The neighbourhood'}
-    ]},
-    CAL('Meetings and events', [5,2,4,4], 7),
-    {k:'checklist', t:'Show up', b:[1,5,4,4], set:{c:6}, kids:[
-      AGAIN('Go to the next meeting', 1, 'month'),
-      {k:'task', t:'Offer to help with something'}
-    ]},
-    {k:'question', t:'What could I give?', b:[5,6,4,3], set:{c:10}},
-    LINK('Meetups', 'https://www.meetup.com', [1,9,4,1], 9),
-    LINK('Volunteer', 'https://www.volunteermatch.org', [1,10,4,1], 9),
-    LINK('Local events', 'https://www.eventbrite.com', [5,9,4,1], 9)
-  ]},
 
-  {key:'home', sec:'life', nm:'Home', ic:'folder', c:5, of:'life', life:'home', on:[
-    LABEL('Home', [1,1,8,1], 5),
-    {k:'checklist', t:'Chores', b:[1,2,4,5], set:{c:6}, kids:[
-      AGAIN('Laundry', 1, 'week'),
-      AGAIN('Clean the kitchen', 1, 'week'),
-      AGAIN('Bins out', 1, 'week'),
-      AGAIN('Change the sheets', 2, 'week'),
-      AGAIN('Deep clean one room', 1, 'month')
-    ]},
-    {k:'checklist', t:'Fix and maintain', b:[5,2,4,4], set:{c:8}, kids:[
-      AGAIN('Replace the air filter', 3, 'month', 'done'),
-      AGAIN('Test the smoke alarms', 6, 'month', 'done'),
-      {k:'task', t:'The thing that drips'}
-    ]},
-    CAL('This month', [5,6,4,3], 7),
-    {k:'drawer', t:'Manuals and warranties', b:[1,7,4,2], set:{c:14}},
-    {k:'checklist', t:'Shopping', b:[1,9,4,3], set:{c:11}, kids:[
-      {k:'task', t:'Light bulbs'},
-      {k:'task', t:'Batteries'}
-    ]},
-    LINK('Find a pro', 'https://www.thumbtack.com', [5,9,4,1], 9),
-    LINK('Hardware', 'https://www.homedepot.com', [5,10,4,1], 9)
-  ]},
 
   /* ---- something you take in, continued ------------------------------- */
 
-  {key:'music', sec:'experience', inbox:'note', nm:'Music', ic:'music', c:10, of:'life', on:[
-    LABEL('Music', [1,1,8,1], 10),
-    {k:'checklist', t:'To listen to', b:[1,2,5,4], set:{c:10}},
-    {k:'deck', t:'Put something on', b:[6,2,3,4], set:{c:12}, kids:CARDS([
-      'An album start to finish', 'Something from the year you were born',
-      'A genre you never play', 'What you loved at sixteen',
-      'A live recording', 'Something a friend sent you'
-    ])},
-    MAKES('Just heard…', 'review', [1,6,8,1], 13, '@heard'),
-    LIST('Heard', 'heard', [1,7,4,4], 5),
-    CAL('Gigs', [5,7,4,3], 7),
-    LINK('Spotify', 'https://open.spotify.com', [5,10,4,1], 9),
-    LINK('Gigs near me', 'https://www.songkick.com', [1,11,4,1], 9),
-    LINK('Bandcamp', 'https://bandcamp.com', [5,11,4,1], 9)
-  ]},
 
-  {key:'visual', sec:'experience', inbox:'note', nm:'Artwork', ic:'image', c:12, of:'life', on:[
-    LABEL('Art', [1,1,8,1], 12),
-    {k:'moodboard', t:'What stays with me', b:[1,2,5,4], set:{c:13}},
-    {k:'deck', t:'Look closer', b:[6,2,3,4], set:{c:10}, kids:CARDS([
-      'Draw what you see for five minutes', 'What is the light doing?',
-      'Stand where the artist stood', 'What would you take home?',
-      'Read nothing, then read the label', 'Find the oldest thing in the room'
-    ])},
-    {k:'checklist', t:'Shows to see', b:[1,6,4,4], set:{c:12}},
-    CAL('Openings', [5,6,4,4], 7),
-    MAKES('Just saw…', 'review', [1,10,8,1], 13),
-    LINK('Arts and Culture', 'https://artsandculture.google.com', [1,11,4,1], 9),
-    LINK('The Met', 'https://www.metmuseum.org/art/collection', [5,11,4,1], 9)
-  ]},
 
-  {key:'games', sec:'experience', inbox:'note', nm:'Games', ic:'grid', c:14, of:'life', on:[
-    LABEL('Games', [1,1,8,1], 14),
-    {k:'progressbar', t:'How far into it', b:[1,2,8,1], set:{c:14}},
-    {k:'checklist', t:'Backlog', b:[1,3,5,4], set:{c:14}},
-    {k:'deck', t:'What to play', b:[6,3,3,4], set:{c:10}, kids:CARDS([
-      'The one you stopped halfway', 'Something short', 'Co-op with a friend',
-      'A board game night', 'A classic', 'The newest thing you own'
-    ])},
-    MAKES('Just finished…', 'review', [1,7,5,1], 13, '@gfinished'),
-    {k:'die', t:'Roll', b:[6,7,2,2], set:{c:14, sides:20}},
-    LIST('Finished', 'gfinished', [1,8,5,3], 5),
-    LINK('Backloggd', 'https://backloggd.com', [1,11,4,1], 9),
-    LINK('BoardGameGeek', 'https://boardgamegeek.com', [5,11,4,1], 9)
-  ]},
 
   /* ---- a piece of work, continued ------------------------------------ */
 
@@ -992,19 +1048,6 @@ const SPECS = [
      gave any. `work` is a fourth list: flows for getting work done rather
      than for one part of a life or one piece of work. */
 
-  {key:'food', sec:'experience', inbox:'note', nm:'Food', ic:'pot', c:11, of:'life', on:[
-    LABEL('Food', [1,1,8,1], 11),
-    {k:'checklist', t:'Places to eat', b:[1,2,4,4], set:{c:11}},
-    {k:'deck', t:'What to cook', b:[5,2,4,4], set:{c:10}, kids:CARDS([
-      'Something new from a cookbook', 'A dish from childhood', 'Whatever is in the fridge',
-      'One pot, one hour', 'Cook for a friend', 'A cuisine you have never made'
-    ])},
-    {k:'checklist', t:'To cook', b:[1,6,4,4], set:{c:6}},
-    CAL('Meals', [5,6,4,4], 7, 'week', 'titles'),
-    MAKES('Just ate…', 'review', [1,10,8,1], 13),
-    LINK('Resy', 'https://resy.com', [1,11,4,1], 9),
-    LINK('NYT Cooking', 'https://cooking.nytimes.com', [5,11,4,1], 9)
-  ]},
 
   {key:'artwork', sec:'project', inbox:'note', nm:'Artwork', ic:'image', c:12, of:'artpiece', on:[
     LABEL('The artwork', [1,1,8,1], 12),
@@ -1026,23 +1069,6 @@ const SPECS = [
     LINK('Instagram', 'https://www.instagram.com', [5,11,4,1], 9)
   ]},
 
-  // "Managing one's long list of concepts and ideas for creative work, sort of
-  // like a brain dump but more specifically for creative works."
-  {key:'ideas', sec:'project', inbox:'idea', nm:'Ideas', ic:'bulb', c:12, of:'drawer', on:[
-    LABEL('Ideas', [1,1,8,1], 12),
-    MAKES('An idea…', 'idea', [1,2,8,1], 12, '@ijar'),
-    {k:'jar', t:'Unsorted', ref:'ijar', b:[1,3,3,4], set:{c:12}},
-    LIST('Worth making', 'iworth', [4,3,5,4], 6),
-    LIST('Someday', 'isomeday', [1,7,4,3], 5),
-    LIST('Making now', 'inow', [5,7,4,3], 9),
-    {k:'deck', t:'Turn it over', b:[1,10,3,2], set:{c:10}, kids:CARDS([
-      'What if it were a film?', 'What if it were a song?', 'Make it half as long',
-      'Who is it for?', 'What is the smallest version?', 'Combine it with the last one'
-    ])},
-    {k:'die', t:'Pick one', b:[4,10,2,2], set:{c:14, sides:6}},
-    LINK('Are.na', 'https://www.are.na', [6,10,3,1], 9),
-    {k:'note', t:'The one I keep coming back to', b:[6,11,3,1], set:{c:12}}
-  ]},
 
   {key:'script', sec:'project', nm:'Script', ic:'clapper', c:9, of:'project', on:[
     LABEL('The script', [1,1,8,1], 9),
@@ -1082,7 +1108,7 @@ const SPECS = [
   ]},
 
   // "Allows you to easily add anything to a bucket and helps you sort it."
-  {key:'braindump', rail:{left:['glass','block','coin'], right:['lock','gear']}, sec:'work', inbox:'note', nm:'Brain Dump', ic:'inbox', c:5, of:'drawer', on:[
+  {key:'braindump', rail:{left:['glass','block','coin'], right:['lock','gear']}, sec:'work', inbox:'note', nm:'Brain Dump', ic:'inbox', c:5, of:'wf_braindump', on:[
     LABEL('Brain dump', [1,1,8,1], 5),
     MAKES('Get it out of your head…', 'note', [1,2,8,1], 5, '@bdjar'),
     {k:'jar', t:'The bucket', ref:'bdjar', b:[1,3,4,5], set:{c:5}},
@@ -1099,7 +1125,7 @@ const SPECS = [
   ]},
 
   // "Helps me prioritize all my projects and focus."
-  {key:'projectmgmt', rail:{left:['glass','block'], right:['spool','lock','gear']}, sec:'work', nm:'Project Management', ic:'target', c:13, of:'drawer', on:[
+  {key:'projectmgmt', rail:{left:['glass','block'], right:['spool','lock','gear']}, sec:'work', nm:'Project Management', ic:'target', c:13, of:'wf_projectmgmt', on:[
     LABEL('Projects', [1,1,8,1], 13),
     LIST('Now, three at most', 'pmnow', [1,2,4,4], 9),
     LIST('Next', 'pmnext', [5,2,4,4], 6),
@@ -1141,7 +1167,7 @@ const SPECS = [
     ]}
   ]},
 
-  {key:'brainstorming', rail:{left:['coin','glass'], right:['spool','gear']}, sec:'work', inbox:'idea', nm:'Brainstorm', ic:'sparkle', c:10, of:'drawer', on:[
+  {key:'brainstorming', rail:{left:['coin','glass'], right:['spool','gear']}, sec:'work', inbox:'idea', nm:'Brainstorm', ic:'sparkle', c:10, of:'wf_brainstorming', on:[
     LABEL('Brainstorm', [1,1,8,1], 10),
     {k:'note', t:'The question', b:[1,2,8,2], set:{c:12}, body:'What are we trying to solve?'},
     MAKES('Another idea…', 'idea', [1,4,8,1], 10, '@bsall'),
@@ -1172,5 +1198,8 @@ const STOCK_KEYS = SPECS.map(s=>s.key);
    is never touched. */
 const RETIRED_KEYS = ['morning','brainstorm','workbench','shootday','daylog',
                       'review','reading','tiers','goals','practice'];
+/* Cut on the Bureau Scope page (2026-09-28): Ideas was Brain Dump and
+   Brainstorm again. Migration 47 takes it off a desk by this list. */
+const CUT_KEYS = ['ideas'];
 
-export { stockPlans, STOCK_KEYS, RETIRED_KEYS };
+export { stockPlans, STOCK_KEYS, RETIRED_KEYS, CUT_KEYS };

@@ -7,7 +7,7 @@ import { S, K, KINDS, KEYS, refreshKinds, ATTRS, attrsOf, has, SHAPES,
   layoutOf, setClFit, genKindOf, makesAnything , groupMates, groupTogether, isDesk, faceOf, kindHas,
   sortOf, sortCycleOf, SORT_FACES } from './model.js';
 import { gridOf, lay, boxOk, freeSpot, anySpot, roomFor, sizeOfKind, toPhoneSize, keepSize,
-  shelvesOf, shelfAt, setShelf, shelvesToHold, addBoard, removeBoard, onBoard, randomSpot, colsOf, shelfRows } from './grid.js';
+  shelvesOf, shelfAt, setShelf, shelvesToHold, addBoard, removeBoard, onBoard, randomSpot, colsOf, shelfRows, boardsOf } from './grid.js';
 import { applyLook, applyStyle, setLookVal, lookVal, STYLES, setSlot, objColour, darkMode } from './look.js';
 import { dealTop, furnish, toast, fits, setGridSize, setBoardDims, toggleDone, spawnNext, del, delMany, delDrawer, undo, redo, pushUndo,
   pushSet, pushSets, setPin, togglePin, drawerForTag, create, spawnInto, randomThing,
@@ -2603,8 +2603,11 @@ function wire(){
     clearTimeout(PINCHT); PINCHT = setTimeout(()=>{ PINCHW = 0; }, 260);
     PINCHW += e.deltaY;
     if(overviewOn()){ if(PINCHW < -40){ PINCHW = 0; closeOverview(); } return; }
-    if(S.view==='drawer' || S.readId || S.writeId || S.viewId) return;
-    if(PINCHW > 40){ PINCHW = 0; openOverview(ROOT); }
+    if(S.readId || S.writeId || S.viewId) return;
+    // a drawer of several boards zooms out to them; one of one board does not
+    const here = S.view==='drawer' && S.drawerId;
+    if(here && (boardsOf(here).length < 2 || has(byId(here)||{},'magic'))) return;
+    if(PINCHW > 40){ PINCHW = 0; openOverview(here || ROOT); }
   }, {passive:false});
 
   document.addEventListener('keydown', e=>{

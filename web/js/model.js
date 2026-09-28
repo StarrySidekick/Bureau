@@ -716,6 +716,66 @@ const BUILTIN_KINDS = {
   appt:    {shape:'event', nm:'Event',   ic:'calendar',c:8, key:'V', ds:'Something on a day — a meeting, a shoot, a trip',
      size:[6,2], phoneSize:[5,2], onclick:'when', attrs:['text','date','span','duration','location'], body:'' }
 };
+
+/* ---- the aspects of life, each a type — decision 236 --------------------
+   Timothy (answering the Bureau Scope page): an aspect of life is a subtype of
+   Aspect of Life, which is a subtype of Drawer, and each is recognised by its
+   **knob**, a shape of its own: a plus for Health, a coin for Finances, a fist
+   for Exercise. Each comes with the front that fits it (colour, moulding,
+   grain and a knob material, `look` and `knobc`) and its flow (`plan`), laid
+   out inside it the moment it exists, which is what a Film has done since
+   decision 195. Books wears the book face rather than a knob, as he asked.
+   *Things* is new: the car, the laptop and the rest of what you own.
+
+   The table is the whole of it; nothing branches on these names. Columns:
+   key, name, front colour slot, knob shape, knob colour, moulding, grain, the
+   stock flow, the icon, and what it is for. */
+const LIFE_ASPECTS = [
+  ['health','Health',8,'plus','#EFE9DC','fielded','none','health','drop','Appointments, and keeping up with sleep, water and the rest'],
+  ['money','Finances',13,'coin','#C9A24A','cockbead','fine','money','bar','Every account in one place, what you have, and what you are saving for'],
+  ['exercise','Exercise',6,'fist','#C9A88A','plain','weave','exercise','star','A routine, the goals it is for, and the app you train with'],
+  ['nutrition','Nutrition',2,'apple','#B8322C','cockbead','wash','nutrition','pot','What is good for you, what is not, and what to avoid'],
+  ['partner','Partner',1,'heart','#C23B4A','ogee','none','partner','star','Dates, gifts, and the things you want to tell her'],
+  ['family','Family',12,'hand','#D8C3A0','fielded','none','family','star','Keeping light tabs on everyone, and times to see them'],
+  ['friends','Friends',7,'cup','#EFE9DC','cockbead','wash','friends','star','Time with friends, how they are, and where you wish you had more'],
+  ['communities','Communities',4,'bell','#B8923E','reeded','none','communities','flag','The groups you are in, the ones you would like to be, and when they meet'],
+  ['home','Home',5,'doorknob','#B8923E','fielded','fine','home','folder','The chores, room by room'],
+  ['things','Things',15,'nut','#A7ABB1','plain','herring','things','sliders','What you own that needs looking after: the car, the laptop, the rest'],
+  ['travel','Travel',9,'compass','#B8923E','cockbead','weave','travel','flag','Places you want to go, finding new ones, and the next trip'],
+  ['films','Films',9,'reel','#A7ABB1','plain','none','films','film','Favourites by genre, with Letterboxd doing the rest'],
+  ['books','Books',11,null,null,null,null,'books','book','What to read, favourites, notes, the shelf you own, and libraries'],
+  ['music','Music',10,'note','#2A241C','ogee','none','music','music','Favourite songs, artists and what inspires you'],
+  ['visual','Artwork',3,'paint','#EFE9DC','fielded','wash','visual','image','Art to see, museums, and favourite artists'],
+  ['games','Games',14,'die','#EFE9DC','cockbead','none','games','grid','Games to play and favourite games'],
+  ['food','Food',6,'plate','#EFE9DC','plain','fine','food','pot','Restaurants, foods and recipes to try'],
+];
+LIFE_ASPECTS.forEach(([key, nm, c, ks, kc, panel, tex, flow, ic, ds])=>{
+  BUILTIN_KINDS['lf_'+key] = Object.assign({nm, ic, c, ds, aspect:key,
+    attrs:['text','container','relates'], setup:'aspect', plan:'pl_stock_'+flow,
+    layout:'grid', body:''},
+    ks ? {face:'front', kshape:ks, knobc:kc, look:{c, panel, texture:tex}, size:[5,5], phoneSize:[4,4]}
+       : {face:'spine', binding:'banded', look:{c}, size:[3,9], phoneSize:[2,6]});
+});
+/* Aspect of Life is asked which, and the plain one ("no board, just a
+   drawer") is its own answer on the setup card rather than a member. */
+BUILTIN_KINDS.life.family = LIFE_ASPECTS.map(a=>'lf_'+a[0]);
+BUILTIN_KINDS.life.famSub = 'What part of your life is it for?';
+
+/* ---- a way of working — decision 236 -----------------------------------
+   Timothy: every flow has a type, so the three *Getting work done* flows are
+   subtypes of a new Drawer subtype, **Workflow**. */
+const WORKFLOWS = [
+  ['brainstorming','Brainstorm',10,'sparkle','Ideas out fast, timed, with prompts to push on'],
+  ['braindump','Brain Dump',5,'inbox','Everything out of your head, sorted later'],
+  ['projectmgmt','Project Management',13,'target','Several projects at once: what is next and when'],
+];
+BUILTIN_KINDS.workflow = {nm:'Workflow', ic:'target', c:5, face:'front', setup:'workflow',
+  ds:'A drawer laid out for a way of working', attrs:['container'], layout:'grid',
+  family:WORKFLOWS.map(w=>'wf_'+w[0]), famSub:'Which way of working?', size:[2,2], phoneSize:[2,2], body:''};
+WORKFLOWS.forEach(([key, nm, c, ic, ds])=>{
+  BUILTIN_KINDS['wf_'+key] = {nm, ic, c, ds, face:'front', attrs:['container'], layout:'grid',
+    plan:'pl_stock_'+key, size:[2,2], phoneSize:[2,2], body:''};
+});
 /* ---- the major categories ----------------------------------------------
    Forty types is an inventory, not a choice. These are the twenty that answer
    "what am I putting down" nearly every time, and the picker leads with them;
@@ -748,6 +808,8 @@ const SECONDARY = ['task','jar','pigeonhole','timeline',
 const CUT_KINDS = ['magic','recipe'];
 const isCut = k => CUT_KINDS.includes(k);
 const isPrimary = k => PRIMARY.includes(k);
+// the aspects and the ways of working, for the setup card and the tests
+const ASPECT_KINDS = LIFE_ASPECTS.map(a=>'lf_'+a[0]), WORKFLOW_KINDS = WORKFLOWS.map(w=>'wf_'+w[0]);
 
 /* ---- a category is a type you press to be *asked which* -----------------
    Twenty majors was already an ordering rather than a hierarchy, and five
@@ -3128,7 +3190,7 @@ export { homeFor, ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds,
   allUnder, progressOf, projectStat, finishedThings, allTags,
   tagSlug, implicitTags, tagsOf, tagTerms, tagMatch, everyTag,
   habitPlan, habitOn, habitPeriod, habitPeriods, habitRun, HABIT_MAX_TIMES, measureOf, amountSaid, SHAPES_HABIT,
-  PRIMARY, SECONDARY, isPrimary, ANY, makesAnything, genSaid, ctlOf, barPct, barOf,
+  PRIMARY, SECONDARY, isPrimary, ASPECT_KINDS, WORKFLOW_KINDS, ANY, makesAnything, genSaid, ctlOf, barPct, barOf,
   BAR_STEPS, barSteps, barFilled, barGrid,
   familyOf, isCategory, inFamily, isFragmentKind, familyList,
   PROJ_COVERS, projCoverOf, lifeArtOf,

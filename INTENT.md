@@ -201,6 +201,17 @@ there. Major setting choices would be what we are deciding between."* Built as
 decisions 227–230 (v2.24–2.25); what each type asks is in decision 229 and is the
 first draft of a list he means to go through.
 
+### Added 2026-09-28 — the Scope page answered
+
+Timothy answered the Bureau Scope page: shaped knobs for each aspect of life
+(a plus for Health, a fist for Exercise, a heart for Partner and so on), the
+aspects as types under Aspect of Life under Drawer, a new aspect *Things*,
+every flow with a type and a Workflow subtype for the ways of working, a setup
+card per flow, Ideas cut, and a note on what each life flow is for. Built as
+decisions 236–237 (v2.28). The project flows were all marked *rework* with no
+notes beyond the films (casting, storyboard, props, locations, script); they
+are next.
+
 ## Deliberately not next
 
 - **Sync between devices.** It is real and it is coming, *after* the feature set

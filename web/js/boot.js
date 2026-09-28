@@ -8,9 +8,9 @@ import { S, KINDS, SHAPES, shapeChoices, SORTS, childrenOf, container, relate, d
   urgencyOf, urgeSaid, workday,
   isContainer, faceOf, PRIMARY, SECONDARY, isPrimary, inFamily, barPct, marginOf, marginPlus,
   prioOf, repeatOf, repeatSaid, nextRepeat, boardLocked, BINDINGS, bindingOf, PANELS, panelOf,
-  isHeld, heldObjects, tiltMode, READS, goalStanding, dz } from './model.js';
+  isHeld, heldObjects, tiltMode, READS, goalStanding, dz, ASPECT_KINDS } from './model.js';
 import { shelfRows, shelvesOf, shelfAt, setShelf, freeSpot, anySpot, roomFor, boxOk, innerOf, colsOf,
-  isBoard, boardsOf, addBoard, removeBoard } from './grid.js';
+  isBoard, boardsOf, addBoard, removeBoard, dimsOf } from './grid.js';
 import { create, setBoardDims, setPin, togglePin, del, delMany, delDrawer, undo, redo, toggleDone, spawnNext, setGridSize,
   CONTROLS, ctlSaid, ctlIsOn, ctlPress,
   holdIt, unholdIt , toast } from './mutations.js';
@@ -111,7 +111,7 @@ window.BUREAU = {
   get state(){ return S; }, render, create, save: writeNow, saveSoon: save,
   // making a type the way the picker does, pressing a tile the way a finger
   // does, the zoom out to every board and the setup card (decisions 227, 229)
-  newOfKind, tap: tileTap, dz, setBoardDims, openOverview, closeOverview, overviewOn, openSetup, setupOpen, SETUPS,
+  newOfKind, tap: tileTap, dz, setBoardDims, dimsOf, ASPECT_KINDS, openOverview, closeOverview, overviewOn, openSetup, setupOpen, SETUPS,
   get K(){ return KINDS; },
   get shapes(){ return SHAPES; }, shapeChoices,
   // every aesthetic there is, so a test can walk them all rather than

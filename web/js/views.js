@@ -10,7 +10,7 @@ import { S, K, T, byId, has, isContainer, containers, container, childrenOf, cha
 import { GRID, PHONE_GRIDS, CELL, COLW, MEASURE, sideways, colsOf, gridKeyOf, SHELVES, PAGES_MAX, shelvesOf,
   shelfRows, shelfOfBox, shelfAt, setShelf, shelfOrigin, SHELF, drawCols, drawRows,
   lay, gridOf, cellW, ensureBox, innerOf, PLACED, proportional, flows,
-  isBoard, boardsOf, reachable, boardHolds, removeBoard, SPAN, startOf, dimsOf, DIM_MIN, DIM_MAX } from './grid.js';
+  isBoard, boardsOf, reachable, boardHolds, removeBoard, SPAN, startOf, dimsOf, DIM_MIN, DIM_MAX, DIM_MAX_H } from './grid.js';
 import { themeNow, applyLook, lookVal, STYLES, BACKDROPS, SURFACES, DARKMODES, darkMode, hasDark,
   palNow, styleNow, hexOf, objColour, slotName, OBJ0, CHECKS, dressAs } from './look.js';
 import { gridOfContainer, gridTile, listTile, boardVarsOf, bookView, calSpan, calFront } from './tiles.js';
@@ -658,7 +658,8 @@ function bytes(n){ return n<1024? n+' B' : n<1048576? (n/1024).toFixed(1)+' KB' 
    — so it has not lost its job, only its reach into a coordinate space that is
    now derived. The drawer's own size, which is the thing that decides, is the
    field below this one. */
-/* **A board's width and height, two to twelve each** (decision 235). This was
+/* **A board's width and height** (decision 235): two to twelve across, two
+   to twenty-four down. This was
    three widths for the whole app (Small, Extra, Large) and *One more row*;
    Timothy asked for the shape of each board, each way. The numbers shown are
    what the board is now on this device, so a board that has not been asked
@@ -672,7 +673,7 @@ function boardDimsField(cid){
   const dm = dimsOf(id), dv = dev();
   const w = colsOf(id, dv), h = shelfRows(dv, id);
   const one = (k, v, nm) => `<label class="rangerow"><span>${nm}</span>
-      <input type="range" min="${DIM_MIN}" max="${DIM_MAX}" step="1" value="${v}" data-boarddim="${k}" data-id="${id}">
+      <input type="range" min="${DIM_MIN}" max="${k==='h' ? DIM_MAX_H : DIM_MAX}" step="1" value="${v}" data-boarddim="${k}" data-id="${id}">
       <b data-boarddimsaid="${k}">${v}</b></label>`;
   return `<div class="field" style="margin-top:12px"><label>Board Size</label>
       ${one('w', w, 'Width')}${one('h', h, 'Height')}

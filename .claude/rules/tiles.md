@@ -729,6 +729,14 @@ its tile by dividing the available width by the digit count *times 0.62*;
 dividing by the count alone makes a three-digit counter half the size it could
 be. `--digits` is written by the renderer, which is the only place that knows.
 
+**A knob can be a shape** (decision 236). `knobHTML()` asks `kshapeOf(o)` (the
+object's `kshape`, else its type's; `round` means the aesthetic's own) and, for
+a shape, draws `.pull.pullshape.ks-<shape>` with one `<i>` inside: the `<i>`
+is the lit knob gradient cut by the shape's `--kmask`, and the outer span
+carries a drop-shadow, because the mask would cut a box-shadow off with
+everything else. Holes are drawn in the mask's own SVG. A type's `knobc` is
+the knob's material when the object has none of its own.
+
 **A counter's drum, figures and typeface are three tokens** (decision 228):
 `wheelVars()` writes `--wheel`, `--wink` and `--wfont` from `wheelc`, `wink`
 and `wfont`, and the drum's shading is `color-mix()`ed off `--wheel`, so a new

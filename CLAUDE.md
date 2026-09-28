@@ -175,6 +175,12 @@ Board settings; a board can be taken away with things on it, into the Void
 Drawer (`holdMany()`, `onBoard()`); and **every board has its own width and
 height, two to twelve** (`bw`/`bh`, `dimsOf()`, `setBoardDims()`), fitted to
 the screen.
+**v2.28** (decisions 236–237): the **aspects of life are types** (`lf_*`,
+`LIFE_ASPECTS` in model.js), each with a **shaped knob** (`kshape`, masks in
+chrome.css), its own front and its flow; **Workflow** is a Drawer subtype
+(`wf_*`); the life flows were rebuilt from Timothy's notes, each with setup
+questions (`ASPECT_STEPS`, `sref` markers); migration 47; a drawer of several
+boards pinches out to them; boards run to 24 tall.
 The **Bureau Workshop** artifact (https://claude.ai/artifact/4TjyQZ5xcuxCYFgfnRm76k)
 holds Timothy's own rearrangement of every menu and type: read its
 `workshop/state` document before reorganising menus or types.

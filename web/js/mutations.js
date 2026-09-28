@@ -467,7 +467,7 @@ function setBoardDims(cid, part, val){
   if(!c) return;
   const was = {};
   ['desk','phone'].forEach(dv=>{ was[dv] = [colsOf(id, dv), shelfRows(dv, id)]; });
-  const v = val==null || val==='' ? null : clamp(Math.round(+val), 2, 12);
+  const v = val==null || val==='' ? null : clamp(Math.round(+val), 2, part==='h' ? 24 : 12);
   if(part==='fit'){ delete c.bw; delete c.bh; }
   else if(part==='w'){ if(v) c.bw = v; else delete c.bw; }
   else { if(v) c.bh = v; else delete c.bh; }
@@ -619,6 +619,11 @@ function create(kind, patch){
   { const gal = GALLERIES[k.gallery];
     if(gal && !(patch && patch.media)) hangPainting(o, gal[Math.floor(Math.random()*gal.length)]); }
   if(kindHas(kind,'container')){
+    /* **A type may say what it looks like** (decision 236): an aspect of life
+       comes with its own front colour, knob, moulding and grain, where an
+       ordinary drawer rolls them. Filled in before the roll, so the roll only
+       answers what the type left open; anything the caller passed wins. */
+    if(k.look) Object.keys(k.look).forEach(key=>{ if(o[key]==null) o[key] = k.look[key]; });
     /* **A container states its size on both boards the moment it exists**,
        even though only one of them is being looked at. Its own board is its
        tile times four (decision 188) and that is read off the desk box — so a

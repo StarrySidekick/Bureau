@@ -1459,9 +1459,19 @@ function ringFor(o){
   if(!isContainer(o) || !has(o,'progress')) return null;
   return clamp(Math.round(barPct(o)), 0, 100);
 }
+/* **A knob in the shape of what the drawer is for** (decision 236): per object,
+   then per type, the way every look property is. The shape is a mask over the
+   ordinary lit knob, so it keeps the knob's colour and light; the dial ring
+   still goes round it for a drawer that reports. */
+const KSHAPES = {round:'Round (its aesthetic\u2019s)', plus:'Plus', coin:'Coin', fist:'Fist', apple:'Apple',
+  heart:'Heart', hand:'Hand', cup:'Teacup', bell:'Doorbell', doorknob:'Door knob', compass:'Compass',
+  reel:'Film reel', note:'Music note', paint:'Paint-splashed', die:'Die', plate:'Plate', nut:'Nut'};
+const kshapeOf = o => { const k = (o && o.kshape) ? o.kshape : K(o && o.kind).kshape;
+  return k && k!=='round' && KSHAPES[k] ? k : ''; };
 function knobHTML(o, ring){
-  return `<span class="pull ${dress(o,'kn')}${ring==null?'':' pullring'}"${
-    ring==null?'':` style="--ring:${ring}%" title="${ring}% done"`}></span>`;
+  const ks = kshapeOf(o);
+  return `<span class="pull ${ks ? 'pullshape ks-'+ks : dress(o,'kn')}${ring==null?'':' pullring'}"${
+    ring==null?'':` style="--ring:${ring}%" title="${ring}% done"`}>${ks ? '<i></i>' : ''}</span>`;
 }
 
 const GRAIN_LAYER = '<i class="dgrain"></i>';
@@ -1636,7 +1646,7 @@ function drawTileFace(o, arr, box, persp){
        rather than a sticker on a disc. `minimark` stays on it, because that is
        what a one-cell tile's mark is called everywhere else. See decision 193. */
     if(cont){
-      const knob = o.knobc ? esc(o.knobc) : colour;
+      const knob = (o.knobc || K(o.kind).knobc) ? esc(o.knobc || K(o.kind).knobc) : colour;
       return `<button class="drawer dtile ${dress(o,'bd')} minitile minidrawer${sel}"
         data-drawer="${o.id}" title="${esc(o.title||'Untitled')}"
         style="--c:${colour};--knob:${knob};${place}">
@@ -2274,7 +2284,7 @@ function drawTileFace(o, arr, box, persp){
        light on it, not a lighter shade painted where it sits. Lighter and
        darker are still a choice, and so is a colour outright; the shading is in
        the stylesheet, on `--knob`, so all three get it. */
-    const knob = o.knobc ? esc(o.knobc)
+    const knob = (o.knobc || K(o.kind).knobc) ? esc(o.knobc || K(o.kind).knobc)
       : o.knobtone==='dark' ? `color-mix(in srgb, ${colour} 78%, #000)`
       : o.knobtone==='light' ? `color-mix(in srgb, ${colour} 74%, #fff)`
       : colour;
@@ -3453,5 +3463,5 @@ function bookView(c, items){
    (the *object's* setting, a different thing entirely) is untouched. */
 export { spinTo, CLICKS, clickOf, fireButton, intoOf, tileTap, pending, placeAtPending, SHELFSHIFT,
   scratchGrab, scratchTo, scratchGo,
-  gridTile, gridOfContainer, listTile, boardVarsOf, TOOLS, threadTo, WHEEL_COLOURS, WHEEL_INKS, WHEEL_FONTS, PORTAL_SHAPES, PORTAL_STYLES, PORTAL_EDGES, bookOf, bookView, sheetOf, turnPage, clearPages,
+  gridTile, gridOfContainer, listTile, boardVarsOf, TOOLS, threadTo, KSHAPES, kshapeOf, WHEEL_COLOURS, WHEEL_INKS, WHEEL_FONTS, PORTAL_SHAPES, PORTAL_STYLES, PORTAL_EDGES, bookOf, bookView, sheetOf, turnPage, clearPages,
   calSpan, calFront };

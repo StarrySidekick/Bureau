@@ -6299,7 +6299,8 @@ const PROP_OFF = () => { const b = document.createElement('button');
     const busy = BUREAU.create('drawer', {parent:'root', title:'Busy'});
     const n = BUREAU.create('note', {parent:busy.id, title:'In the way'});
     n.desk = {x:1, y:1, w:4, h:3}; n.phone = {x:1, y:1, w:4, h:3};
-    const plan = BUREAU.planById('pl_stock_health');
+    // a one-board flow: Health is two boards since decision 237
+    const plan = BUREAU.planById('pl_stock_money');
     const saved = plan.objects.filter(o => o.parent === '__plan');
     const put = BUREAU.stampPlan(plan.id, busy.id).filter(o => o.parent === busy.id);
     const ov = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
@@ -9901,7 +9902,8 @@ const PROP_OFF = () => { const b = document.createElement('button');
     const tl = document.querySelector(`[data-drawer="${d.id}"]`);
     if(tl) tl.click(); await nap(350);
     out.theFirstTapAsks = B.setupOpen() && !!document.querySelector('#setup .suq')
-      && document.querySelectorAll('#setup .suchoice').length === 4 && S.view === 'desk';
+      // four, and a way of working since decision 236
+      && document.querySelectorAll('#setup .suchoice').length === 5 && S.view === 'desk';
     out.fillsTheScreen = (() => { const r = document.querySelector('#setup').getBoundingClientRect();
       return r.width >= innerWidth - 1 && r.height >= innerHeight - 1; })();
     pick('work'); await nap(200);
@@ -9979,7 +9981,7 @@ const PROP_OFF = () => { const b = document.createElement('button');
   await sp.screenshot({ path: 'test/shots/229-setup.png' });
   await setupCtx.close();
 
-  /* --- decisions 231–235: a round portal beside its name, a habit in ounces,
+  /* --- decisions 231–237: a round portal beside its name, a habit in ounces,
      and a board's own width and height. In a phone context of its own, on a
      fresh one-board desk. */
   const shapeCtx = await browser.newContext({ viewport:{width:390,height:844}, hasTouch:true });
@@ -10034,6 +10036,39 @@ const PROP_OFF = () => { const b = document.createElement('button');
       && !!document.querySelector('#panel [data-boarddim="h"]')
       && !document.querySelector('#panel [data-rows]');
     B.closePanel();
+    // a board may be twenty-four tall and still only twelve across
+    B.setBoardDims('root', 'h', 24); B.setBoardDims('root', 'w', 20);
+    out.heightRunsToTwentyFour = B.dimsOf('root').h === 24 && B.dimsOf('root').w === 12;
+    B.setBoardDims('root', 'fit'); B.render(); await nap(250);
+    /* Decisions 236–237: the aspects are types with shaped knobs, chosen on
+       the setup card as their knobs, laid out with their flow and asked their
+       own questions; a Workflow is a drawer; migration 47. */
+    const pick = v => { const e = document.querySelector(`#setup [data-setupv="${v}"]`); if(e) e.click(); return !!e; };
+    B.newOfKind('life'); await nap(200);
+    const lf = S.objects[S.objects.length-1];
+    B.tap(lf.id); await nap(300);
+    out.theAspectsAreChosenAsKnobs = document.querySelectorAll('#setup .suchoice').length === B.ASPECT_KINDS.length + 1
+      && !!document.querySelector('#setup [data-setupv="lf_health"] .pullshape.ks-plus');
+    pick('lf_health'); await nap(350);
+    out.anAspectIsItsType = lf.kind === 'lf_health' && B.boardsOf(lf.id).length === 2
+      && S.objects.some(o => o.parent === lf.id && o.sref === 'water');
+    pick('80'); await nap(200); pick('none'); await nap(200);
+    document.querySelector('#setup [data-act="setupnext"][data-empty]').click(); await nap(450);
+    const water = S.objects.find(o => o.parent === lf.id && o.sref === 'water');
+    const sleep = S.objects.find(o => o.parent === lf.id && o.sref === 'sleep');
+    out.itsQuestionsFillItIn = water.measure.goal === 80 && !sleep.measure && !lf.setup;
+    S.view = 'desk'; S.drawerId = null; B.render(); await nap(250);
+    out.itWearsItsKnob = !!document.querySelector(`[data-drawer="${lf.id}"] .pull.ks-plus`);
+    B.newOfKind('drawer'); await nap(200);
+    const wf = S.objects[S.objects.length-1];
+    B.tap(wf.id); await nap(300); pick('flow'); await nap(250); pick('wf_braindump'); await nap(450);
+    out.aWayOfWorkingIsADrawer = wf.kind === 'wf_braindump' && S.objects.some(o => o.parent === wf.id);
+    S.view = 'desk'; S.drawerId = null; B.render(); await nap(200);
+    const old = B.migrated({v:46, objects:[{id:'x1', kind:'life', lifeart:'money', parent:'root', title:'Money'}],
+      plans:[{id:'pl_stock_ideas', stock:'ideas', objects:[]}, {id:'pl_stock_health', stock:'health', objects:[]}]});
+    out.migrationMakesAspects = old.objects[0].kind === 'lf_money'
+      && !old.plans.some(p => p.stock === 'ideas') && old.plans.some(p => p.stock === 'things')
+      && old.plans.find(p => p.stock === 'health').objects.length > 5;
     return out;
   });
   await sh.screenshot({ path: 'test/shots/235-shapes.png' });

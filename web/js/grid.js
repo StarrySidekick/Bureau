@@ -153,13 +153,15 @@ function gridKeyOf(cid){
    as many rows as fit, capped at fourteen. Only the board's own answer counts;
    a drawer does not take the desk's, because the desk is a room and a drawer
    is a box, and they are rarely the same shape. */
-const DIM_MIN = 2, DIM_MAX = 12;
+/* Two to twelve across and two to twenty-four down (Timothy, 2026-09-28): a
+   phone is tall, and a list board wants the length. */
+const DIM_MIN = 2, DIM_MAX = 12, DIM_MAX_H = 24;
 function dimsOf(cid){
   const id = cid==null ? hereId() : cid;
   if(id!==ROOT && innerOf(id)) return null;     // a proportional board is its tile
   const c = boardCfg(id); if(!c) return null;
-  const ok = v => Number.isInteger(+v) && +v>=DIM_MIN && +v<=DIM_MAX ? +v : null;
-  const w = ok(c.bw), h = ok(c.bh);
+  const ok = (v, mx) => Number.isInteger(+v) && +v>=DIM_MIN && +v<=mx ? +v : null;
+  const w = ok(c.bw, DIM_MAX), h = ok(c.bh, DIM_MAX_H);
   return w || h ? {w, h} : null;
 }
 function colsOf(cid, device){
@@ -954,7 +956,7 @@ function cellW(grid,g){
 }
 
 export { GRID, PHONE_GRIDS, PHONE_MAX_H, PHONE_MAX_NEW, CELL, COLW, MEASURE, sideways,
-  SHELVES, DESK_SHELF_COLS, INNER, dimsOf, DIM_MIN, DIM_MAX, PAGES_MAX, SPAN, isBoard, boardsOf, reachable, addBoard, removeBoard,
+  SHELVES, DESK_SHELF_COLS, INNER, dimsOf, DIM_MIN, DIM_MAX, DIM_MAX_H, PAGES_MAX, SPAN, isBoard, boardsOf, reachable, addBoard, removeBoard,
   ensureBoards, boardHolds, onBoard, startOf, nearestBoard, onBoards, randomSpot, growsDown, growDown, proportional, shelvesToHold, colsOf, gridKeyOf, shelvesOf, innerOf,
   shelfRows, shelfOfBox, oneShelf, shelfAt, setShelf, shelfOrigin, SHELF, fitSpot, flows,
   gridOf, drawCols, drawRows, lay, overlaps, boxOk, freeSpot, anySpot, roomFor, gridRows, sizeOfKind, toPhoneSize,

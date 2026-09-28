@@ -423,3 +423,12 @@ built for making something. **Random is `anything`**, a kind carrying
 `makesAny` that `newOfKind()` resolves through `someKind()` before anything
 is made; `someKind()` must skip it or it could pick itself. Stock flows are
 in four lists now: `life`, `experience`, `project` and `work`.
+
+**The aspects of life and the workflows are generated types** (decision 236).
+`LIFE_ASPECTS` and `WORKFLOWS` in model.js are tables, and a loop right after
+`BUILTIN_KINDS` writes `lf_<key>` and `wf_<key>` into it, before `FAMILY_OF` is
+computed; add an aspect by adding a row. A type may carry `look` (fields a new
+container starts with before the random roll), `kshape`, `knobc` and `plan`.
+A stock flow names its type in `of`, and the setup card writes into objects
+the flow marks `sref` (decision 237). Stock flows live in the desk's data, so
+changing one needs a migration that rebuilds them by `stock` key (45, 47).

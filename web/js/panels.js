@@ -19,7 +19,7 @@ import { newOfKind } from './wire.js';
 import { GRID, lay, boxOk, freeSpot, anySpot, sizeOfKind, toPhoneSize, keepSize } from './grid.js';
 import { randomBoard, randomFront, hexOf, objColour, objSlots, famSlots, famAll, FAMS, styleKey, stockNow, CHECKS, checkNow } from './look.js';
 import { FILLS, FILL_KEYS, isCut } from './model.js';
-import { CLICKS, clickOf, gridTile, pending, PORTAL_SHAPES, PORTAL_STYLES, PORTAL_EDGES, WHEEL_COLOURS, WHEEL_INKS, WHEEL_FONTS } from './tiles.js';
+import { CLICKS, clickOf, gridTile, pending, PORTAL_SHAPES, PORTAL_STYLES, PORTAL_EDGES, WHEEL_COLOURS, WHEEL_INKS, WHEEL_FONTS, KSHAPES, kshapeOf } from './tiles.js';
 import { isActive, activeZoom, activeSay, activeName, DICE, CLOCKS } from './active.js';
 import { DECOR, decorOf, decorSVG, decorFor, decorRest, LIFE_ART, LIFE_KEYS, lifeSVG } from './decor.js';
 import { quickAdd, toast, drawerForTag, CONTROLS, CTL_KEYS, ctlSpec, galleryOf, PAINTINGS, pictureMedia } from './mutations.js';
@@ -1362,6 +1362,9 @@ function objectPanelBody(id, sec){
   if(!isRoot && cont) out.push(slotRow('Texture', id, 'tx', slotRaw(d,'texture')||textureOf(d), 'what the surface is made of'));
   // 8 · the hardware
   if(!isRoot && cont){
+    // a knob in the shape of what it is for (decision 236); round is the slot below
+    out.push(prow('Knob shape', pcycle(id,'kshape', Object.entries(KSHAPES), kshapeOf(d) || 'round'),
+      K(d.kind).kshape ? 'its type\u2019s is ' + KSHAPES[K(d.kind).kshape].toLowerCase() : ''));
     out.push(slotRow('Knob', id, 'kn', slotRaw(d,'knob')||knobOf(d)));
     out.push(prow('Knob size', pcycle(id,'knobsize', Object.entries(KNOBSIZES), knobSizeOf(d))
       + pcycle(id,'knobpos', [['centre','Centre'],['bottom','Bottom']], d.knobpos||'centre')));
