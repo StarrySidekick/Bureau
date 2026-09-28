@@ -13,7 +13,7 @@ import { shelfRows, shelvesOf, shelfAt, setShelf, freeSpot, anySpot, roomFor, bo
   isBoard, boardsOf, addBoard, removeBoard, dimsOf } from './grid.js';
 import { create, setBoardDims, setPin, togglePin, del, delMany, delDrawer, undo, redo, toggleDone, spawnNext, setGridSize,
   CONTROLS, ctlSaid, ctlIsOn, ctlPress,
-  holdIt, unholdIt , toast } from './mutations.js';
+  holdIt, unholdIt , toast, someKind, furnish, loadTexts } from './mutations.js';
 import { applyLook, applyStyle, STYLES, panelSlots, borderSlots, knobSlots, plateSlots, textureSlots,
   bindingSlots, stockSlots, famSlots, famAll, dress, styleKey, stockNow, randomLook,
   palNow, CHECKS } from './look.js';
@@ -85,6 +85,10 @@ hydrateAssets();
 if(!restored) writeNow();
 save();
 
+/* The words a random thing is born with (decision 244), fetched once the
+   desk is up rather than parsed on the way to it. */
+setTimeout(loadTexts, 1200);
+
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
     navigator.serviceWorker.register('sw.js').catch(()=>{ /* file:// or unsupported */ });
@@ -108,6 +112,7 @@ setMinuteHandler(()=>{
 mindTheTime();
 
 window.BUREAU = {
+  someKind, furnish, loadTexts,
   get state(){ return S; }, render, create, save: writeNow, saveSoon: save,
   // making a type the way the picker does, pressing a tile the way a finger
   // does, the zoom out to every board and the setup card (decisions 227, 229)

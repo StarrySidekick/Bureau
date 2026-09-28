@@ -10706,3 +10706,53 @@ object is weaved into the button as well."*
   stay: a desk that has them keeps them, and the flows still press out
   scenes with spawners. Nothing is migrated.
 
+## 244 · One of anything is random all the way through
+
+*2026-09-28.* Timothy: *"I want to make sure that the random function on the
+spiral coin … actually generates truly random sets of objects with random
+parameters … if it generates a note, it should be able to randomly decide
+things like texture and border … for text-based notes, I want to have some
+preloaded random text … Edgar Allan Poe short stories, or other public domain
+short stories … poems … if it's missing anything or doesn't randomly choose
+between certain parameters, I need to know."*
+
+What it was doing, measured: `someKind()` could return 36 types. It never
+made a Note (a type heading a family was left out, and Note heads one), a
+container of any sort, anything that runs, or an ornament. `furnish()` gave a
+picture, a clip, a portal's look and a collage's pictures, and nothing else:
+no colour, no edge, no paper, no shape, no words, no day. A random note was
+"Untitled" and empty.
+
+- **The whole of what the fifteen reach** (`someKind()`), drawn in two steps:
+  one of the fifteen at random, then one of its members. Flat, a third of all
+  tosses were a part of your life or a kind of project laying a whole flow
+  down. Left out: what needs a question first (a tag, an aspect of life, an
+  achievement), categories, Random itself, what was cut, a Background (it
+  would lie under a whole board) and a deck with no cards.
+- **`roll()`**, run by `furnish()` before anything else, varies whatever the
+  type has: an object's colour, border, stock, a plain sheet's shape (half the
+  time), its text size (a quarter) and a wax seal (one in ten); a day for
+  anything dated (none, three times in ten); stars, priority; which ornament,
+  which fill, which button and what it makes; a counter's count, drums,
+  figures and typeface; a metronome's tempo, an hourglass's minutes, a
+  candle's burn, a die's sides, a clock's kind. A drawer gets a two-word name
+  and two to four random things inside, one level deep; a checklist, its
+  tasks, each with a chore for a name. A kind with its own flow keeps its name
+  and its laid-out board.
+- **Words** (`data/texts.json`, sources in docs/TEXTS.md): public-domain
+  stories, fables, poems, Shakespeare's speeches, essay openings, first lines
+  of novels and letters. A poem gets a poem, a quotation a first line, a
+  letter a letter, a script a speech; a note takes anything. The title is the
+  work's and the author and year close the body. Fetched once, a second after
+  the first render, not imported; a thing made before it arrives is filled
+  when it does. A type whose prompts are the point (an idea, a problem, a
+  question) keeps them.
+- **A random portal goes somewhere**: one of eight places made for wandering
+  (Wikipedia's random article, Gutenberg, the Met's open access, APOD, the
+  Internet Archive, Wikisource, a random Commons file, the Public Domain
+  Review), in any shape, any inside (a glimpse among them now) and any edge.
+- A spawner set to anything, and a Button making anything, furnish what they
+  make the same way.
+- **Still not random:** an Audio made at random is a blank disc, because no
+  sound ships with the app; and a thing's size is its type's.
+

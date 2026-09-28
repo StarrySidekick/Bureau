@@ -1048,6 +1048,36 @@ const PROP_OFF = () => { const b = document.createElement('button');
     return out;
   });
 
+  /* --- one of anything is random all the way through (decision 244): every
+     one of the fifteen can come up, and what comes up is dressed, worded,
+     dated and filled at random rather than born blank. */
+  const randomAllTheWay = await page.evaluate(async () => {
+    const B = BUREAU, S = B.state, out = {};
+    await B.loadTexts();
+    const got = new Set();
+    for (let i = 0; i < 3000; i++) got.add(B.someKind());
+    out.everyMaster = B.MASTERS.filter(([m]) => m !== 'tag').every(([m, also]) =>
+      [...got].some(k => k === m || (also||[]).includes(k) || ((B.K[m]||{}).family||[]).includes(k)
+        || ((B.K[m]||{}).family||[]).some(f => ((B.K[f]||{}).family||[]).includes(k))));
+    out.aPlainNote = got.has('note');
+    out.neverACategory = [...got].every(k => !B.K[k].cat && !B.K[k].makesAny);
+    const made = [];
+    const mk = k => { const o = B.furnish(B.create(k, { parent: 'root' })); made.push(o.id); return o; };
+    const notes = Array.from({ length: 12 }, () => mk('note'));
+    out.noteHasWords = notes.every(o => (o.body || '').length > 20 && o.title && o.title !== 'Note');
+    out.looksDiffer = new Set(notes.map(o => [o.c, o.border, o.stock].join())).size > 3;
+    out.poemIsAPoem = /  \n/.test(mk('poem').body || '');
+    const cl = mk('checklist');
+    const kids = S.objects.filter(x => x.parent === cl.id);
+    out.aChecklistHasThingsToDo = kids.length >= 2 && kids.every(x => x.kind === 'task' && x.title);
+    out.aPortalGoesSomewhere = /^https:/.test((mk('outlink').link || {}).target || '');
+    out.aDieHasSides = [4, 6, 8, 10, 12, 20].includes(mk('die').sides);
+    out.anOrnamentIsChosen = !!mk('decoration').decor;
+    S.objects = S.objects.filter(x => !made.includes(x.id) && !made.includes(x.parent));
+    S.undo = []; B.render();
+    return out;
+  });
+
   /* --- an achievement is a task you did (decision 242): the task's sliver
      and size, no box, a gilt frame, and its name said in the past. */
   const achievementLook = await page.evaluate(async () => {
@@ -10258,7 +10288,7 @@ const PROP_OFF = () => { const b = document.createElement('button');
     holdArms, maxDrift,
     settingsIsPanel, pickerPreviews, builderPreview, everyMenuIsAPanel,
     pasteOk, magicOk, rollupOk, relationsOk, relationsUI, stringLayer,
-    timeLayer, checklistBox, pluckWorks, checklistMoves, listFace, achievementLook, buttonWorks, answering, seedAndKnobs, longPress, drawerSize, tagDrawer, tagsAndHabits, groupMove, dropStates,
+    timeLayer, checklistBox, pluckWorks, checklistMoves, listFace, achievementLook, buttonWorks, randomAllTheWay, answering, seedAndKnobs, longPress, drawerSize, tagDrawer, tagsAndHabits, groupMove, dropStates,
     adaptiveTiles, bubblePanel, scrollKept, kindSizes,
     phoneGrid, phoneMigration, turnedSideways, pouring,
     noDupIds, undoWorks, readViews, paperSize, readPaper, readBar, movement, pager, desks, spans,

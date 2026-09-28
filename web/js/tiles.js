@@ -12,7 +12,7 @@ import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, chi
   groupOf, sealOf, isSealed, habitPlan, habitPeriods, habitRun, relate, measureOf, amountSaid } from './model.js';
 import { GRID, CELL, gridOf, drawCols, drawRows, lay, overlaps, boxOk, freeSpot, anySpot, roomFor, gridRows, sizeOfKind, sideways, innerOf,
   ensureBox, shelfRows, shelfOrigin, shelfAt, shelfOfBox, colsOf, flows, boardsOf, nearestBoard, isBoard, reachable, dimsOf, MEASURE } from './grid.js';
-import { dealTop, create, toast, fits, toggleDone, someKind, ctlSpec, ctlSaid, ctlIsOn,
+import { dealTop, create, toast, fits, toggleDone, someKind, furnish, ctlSpec, ctlSaid, ctlIsOn,
   ctlForm, ctlNum, ctlIndex, ctlPress, pushSet } from './mutations.js';
 import { DECOR, decorOf, decorEmits, flamePoint, decorSVG, LIFE_ART, lifeSVG } from './decor.js';
 import { isActive, activeArt, activeSay, activeName, activeFlame, actOf,
@@ -418,13 +418,16 @@ function dispense(g){
   const dest = intoOf(g);
   if(dest){
     if(!fits(kind, dest.id)) return;
-    create(kind,{parent:dest.id});
+    const made = create(kind,{parent:dest.id});
+    // one of anything is random all the way through (decision 244)
+    if(makesAnything(g)) furnish(made);
     save(); render();
     toast(`Filed in ${dest.title||'the drawer'}`);
     return;
   }
   const dir=g.genDir||'down';
   const o=create(kind,{parent:g.parent});
+  if(makesAnything(g)) furnish(o);
   const dv=dev(), b=lay(g), [w,h]=sizeOfKind(kind, dv, g.parent);
   const spots={
     down:  {x:b.x,        y:b.y+b.h, w, h},

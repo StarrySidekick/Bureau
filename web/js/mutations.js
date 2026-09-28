@@ -1,7 +1,8 @@
 import { $, esc, uid, clamp, ROOT, HOLD, D } from './util.js';
 import { S, byId, K, KINDS, KEYS, kindHas, has, isContainer, genKindOf, streak, T, dz, dev,
   repeatOf, repeats, nextRepeat, faceOf, childrenOf, TILT_MODES, tiltMode, GRAVITIES, gravityMode,
-  ctlOf, isPrimary, SECONDARY, inMaster, isCut, doesOf, isPicture, isDecor,
+  ctlOf, isPrimary, SECONDARY, MASTERS, inMaster, isCut, doesOf, isPicture, isDecor, shapeOf, isBackdrop,
+  BORDER_SLOTS, STOCK_SLOTS, SEAL_KEYS, TSIZES, FILL_KEYS, BUTTON_IMGS,
   placeOf, cfgOf, isHeld, heldObjects, homeFor , attrsOf, habitPlan, habitOn, tagSlug, mediaTypeOf, measureOf, amountSaid } from './model.js';
 import { GRID, PHONE_GRIDS, colsOf, gridOf, shelfRows, freeSpot, anySpot, roomFor, lay, boxOk, sizeOfKind, keepSize, shelvesOf, addBoard } from './grid.js';
 import { randomFront, randomBoard, randomLook, styleDefaults,
@@ -9,6 +10,9 @@ import { randomFront, randomBoard, randomLook, styleDefaults,
 import { render, reveal } from './views.js';
 import { tileRect, pop, clRefill } from './motion.js';
 import { planForKind, stampPlan } from './plans.js';
+import { DECOR_KEYS } from './decor.js';
+import { DICE, CLOCKS } from './active.js';
+import { WHEEL_COLOURS, WHEEL_INKS, WHEEL_FONTS, PORTAL_SHAPES, PORTAL_STYLES, PORTAL_EDGES } from './tiles.js';
 import { closeSheet } from './sheet.js';
 import { assetDel, rescaleOneBoard, rescaleBoxes, save } from './persist.js';
 
@@ -965,17 +969,27 @@ function ctlPress(id){
    decoration is a machine for making furniture, and what you want out of one
    is work. See decision 133. */
 function someKind(){
-  /* …and never a **category**, which is not a type at all but a question. A
-     spawner set to anything would otherwise press out a Fragment, which is the
-     one thing in KINDS that nothing knows how to draw as itself. */
-  /* Out of the picker's first two rows (decision 204 moved most of the old
-     majors into the second), plus the collage, which `furnish()` lays with
-     pictures so it is worth seeing. */
-  /* Out of what the fifteen open onto since decision 240, less what runs,
-     what stands, what lies underneath, and what was cut. */
-  const pool = KEYS.filter(k => inMaster(k) && !isCut(k) && !K(k).act && !K(k).cat && !K(k).family && !K(k).makesAny
-    && (k==='moodboard' || !kindHas(k,'container')) && !kindHas(k,'control') && !kindHas(k,'decor') && !kindHas(k,'backdrop'));
-  return pool[Math.floor(Math.random()*pool.length)] || 'note';
+  /* **Anything the fifteen reach** (decision 244). It was the paper and the
+     pictures only: no Note (Note heads a family, and heads were left out), no
+     drawer or list, no clock or candle, no ornament. What stays out is what
+     cannot exist without a question answered first (a tag and a sorting
+     drawer need their rule, an aspect of life its part of your life, an
+     achievement the thing you did), a category (a question, not a thing),
+     Random itself, what was cut, a Background (it would lie under a whole
+     board) and a deck (a deck of no cards is a box). */
+  const ok = k => KINDS[k] && !isCut(k) && !K(k).cat && !K(k).makesAny
+    && !K(k).asksTag && !K(k).asksLife && !K(k).asksDone
+    && !kindHas(k,'backdrop') && K(k).act!=='deck' && !kindHas(k,'control');
+  /* **One of the fifteen, then one of what it holds.** Flat, a third of the
+     tosses were a part of your life or a kind of project, each laying a whole
+     flow down, because there are thirty-four of those and one Jar. */
+  const bags = MASTERS.map(([m, also])=>{
+    const seen = new Set(), walk = k => { if(!k || seen.has(k) || !KINDS[k]) return; seen.add(k); (K(k).family||[]).forEach(walk); };
+    walk(m); (also||[]).forEach(walk);
+    return [...seen].filter(ok);
+  }).filter(b=>b.length);
+  const bag = bags[Math.floor(Math.random()*bags.length)];
+  return bag ? bag[Math.floor(Math.random()*bag.length)] : 'note';
 }
 
 /* ---- pictures that ship with the app — decision 204 --------------------
@@ -1071,10 +1085,136 @@ function hangPainting(o, p){
   o.media = pictureMedia(p);
   if(!o.title || o.title===was) o.title = p.t;
 }
+/* ---- the words a random thing is born with — decision 244 --------------
+   Public-domain writing (docs/TEXTS.md says where each came from) in
+   `data/texts.json`: stories, fables, poems, Shakespeare's speeches, essay
+   openings, first lines of novels and letters. Fetched once after the first
+   render rather than imported, so the app does not parse two hundred
+   kilobytes of Poe to boot; a thing made before it arrives is filled the
+   moment it does, if its words are still empty. */
+let TEXTS = null, TEXTS_AT = null;
+const WAITING = new Set();
+function loadTexts(){
+  if(TEXTS || TEXTS_AT) return TEXTS_AT;
+  TEXTS_AT = fetch('data/texts.json').then(r=>r.json()).then(list=>{
+    TEXTS = Array.isArray(list) ? list : [];
+    let any = false;
+    WAITING.forEach(id=>{ const o = byId(id); if(o && wordless(o)){ writeText(o); any = true; } });
+    WAITING.clear();
+    if(any){ save(); render(); }
+  }).catch(()=>{ TEXTS = []; });
+  return TEXTS_AT;
+}
+const pick = a => a[Math.floor(Math.random()*a.length)];
+const chance = p => Math.random() < p;
+/* Which writing suits which type: a poem wants a poem, a script a speech, a
+   quotation a first line, a letter a letter; a note, a thought or an idea
+   takes anything. Asked of the type's shape and traits, not its name. */
+function textKindsFor(o){
+  const sh = shapeOf(o);
+  if(sh==='verse') return ['poem'];
+  if(sh==='quote') return ['opening'];
+  if(sh==='letter' || sh==='postcard' || sh==='telegram') return ['letter'];
+  if(sh==='page') return ['speech'];
+  if(K(o.kind).narrative) return ['fable','opening'];
+  return ['story','fable','poem','opening','essay','speech','letter'];
+}
+/* Nothing written yet: empty, or still the type's own prompts. Prompts are
+   kept on a type whose writing is generic (an idea's three questions are the
+   point of an idea) and replaced where the writing is specific (a script's
+   stage direction is a placeholder for a script). */
+function wordless(o){
+  const tpl = K(o.kind).body || '';
+  return !o.body || (o.body===tpl && textKindsFor(o).length < 7);
+}
+function writeText(o){
+  const ks = textKindsFor(o);
+  const pool = (TEXTS||[]).filter(t=>ks.includes(t.k));
+  const t = pool.length ? pick(pool) : null;
+  if(!t) return false;
+  const by = [t.a, t.d].filter(Boolean).join(', ');
+  o.body = shapeOf(o)==='quote' ? `${t.body}\n\n— ${t.a}, *${t.t}*`
+    : `${t.body}${by ? `\n\n*${by}*` : ''}`;
+  if(!o.title || o.title===K(o.kind).nm) o.title = t.t;
+  return true;
+}
+// where a portal made at random goes: places made for wandering
+const WANDER = [['A random article','https://en.wikipedia.org/wiki/Special:Random'],
+  ['Project Gutenberg','https://www.gutenberg.org/ebooks/search/?sort_order=random'],
+  ['The Met, open access','https://www.metmuseum.org/art/collection/search?showOnly=openAccess'],
+  ['Astronomy Picture of the Day','https://apod.nasa.gov/apod/astropix.html'],
+  ['The Internet Archive','https://archive.org/'],
+  ['Wikisource','https://en.wikisource.org/wiki/Special:Random'],
+  ['A random Commons picture','https://commons.wikimedia.org/wiki/Special:Random/File'],
+  ['The Public Domain Review','https://publicdomainreview.org/']];
+// two of these name a drawer made at random: "Cedar ledger", "Harbour thistle"
+const NAMES = 'brass ledger cedar tide quarry lantern vellum thistle harbour ember slate poppy compass juniper marrow orchard cobalt linen saffron pewter'.split(' ');
+/* Things to do, for a task made at random: the ordinary run of a week. */
+const CHORES = ['Water the plants','Call the bank','Return the library books','Buy stamps','Oil the hinge on the back door',
+  'Book a haircut','Back up the laptop','Clear the inbox','Pay the electric bill','Sharpen the kitchen knives',
+  'Write to Grandma','Renew the passport','Take the bins out','Wash the car','Replace the smoke alarm battery',
+  'Make a dentist appointment','Order printer ink','Tidy the desk drawer','Defrost the freezer','Fix the wobbly chair',
+  'Plan next week','Read one chapter','Go for a run','Frame the print','Sort the photos from the trip'];
+/* A shape a sheet of paper can be cut to. A type whose shape *is* what it is
+   (a quotation, a verse, a plaque, a portrait) keeps it; one wearing plain
+   paper may come off any pad. */
+const PAPER_SHAPES = ['card','rounded','note','tornnote','idea','index','torn','dream'];
+/* **A thing made at random is random in every way it can be** (decision 244):
+   the type, and then its colour, its edge, its paper, its shape, its words,
+   its day and whatever its own type lets it choose — which ornament, which
+   fill, which button, which clock, how many sides. A container gets two to
+   four random things inside it, one level deep. */
+function roll(o, depth){
+  if(!isContainer(o)){
+    o.c = randomFront();
+    // paper looks are for things drawn on paper: not an ornament, a fill, a
+    // button, a counter's wheels or anything that runs
+    if(!isDecor(o) && !isBackdrop(o) && !doesOf(o) && !has(o,'count') && !K(o.kind).act){
+      o.border = pick(BORDER_SLOTS);
+      o.stock = pick(STOCK_SLOTS);
+      if(PAPER_SHAPES.includes(shapeOf(o)) && chance(.5)) o.shape = pick(PAPER_SHAPES);
+      if(chance(.25)) o.tsize = pick(TSIZES)[0];
+      if(chance(.1)) o.seal = pick(SEAL_KEYS.filter(k=>k!=='none'));
+    }
+  }
+  // a kind with its own flow is named for what it is (Health, a Feature Film)
+  if(isContainer(o) && !planForKind(o.kind) && (!o.title || o.title===K(o.kind).nm)){
+    const w = pick(NAMES)+' '+pick(NAMES); o.title = w[0].toUpperCase()+w.slice(1); }
+  if(has(o,'check') && !o.title) o.title = pick(CHORES);
+  else if(has(o,'text') && wordless(o)){
+    if(!writeText(o)){ WAITING.add(o.id); loadTexts(); }
+  }
+  if(has(o,'date')) o.due = chance(.3) ? null : dz(Math.floor(Math.random()*42)-14);
+  if(has(o,'rating')) o.rating = 1 + Math.floor(Math.random()*5);
+  if(has(o,'priority')) o.prio = Math.floor(Math.random()*6);
+  if(isDecor(o)) o.decor = pick(DECOR_KEYS);
+  if(isBackdrop(o)) o.fill = pick(FILL_KEYS);
+  if(doesOf(o)){ o.bimg = pick(BUTTON_IMGS).f;
+    let k = someKind(), n = 0; while(kindHas(k,'container') && n++ < 8) k = someKind(); o.genKind = k; }
+  if(has(o,'count')){ o.count = Math.floor(Math.random()*1000);
+    o.wheelc = pick(WHEEL_COLOURS)[0]; o.wink = pick(WHEEL_INKS)[0]; o.wfont = pick(Object.keys(WHEEL_FONTS)); }
+  const act = K(o.kind).act;
+  if(act==='metro') o.bpm = 40 + Math.floor(Math.random()*169);
+  if(act==='glass') o.mins = pick([1,2,3,5,10,15,20,30,60]);
+  if(act==='candle') o.burn = pick([15,30,60,90,120,240]);
+  if(act==='die') o.sides = pick(DICE);
+  if(act==='clock') o.clock = pick(Object.keys(CLOCKS));
+  // …and one that came with its flow laid out is already full
+  if(isContainer(o) && !has(o,'magic') && depth < 1 && !K(o.kind).act && !S.objects.some(x=>x.parent===o.id)){
+    const n = 2 + Math.floor(Math.random()*3);
+    const makes = has(o,'spawn') && genKindOf(o);
+    for(let i=0; i<n; i++){
+      let k = makes || someKind(), tries = 0;
+      while(!makes && kindHas(k,'container') && tries++ < 8) k = someKind();
+      furnish(create(k, {parent:o.id}), depth+1);
+    }
+  }
+}
 /* Whatever a thing made at random needs so it is not a blank: a picture for
    anything that holds one, and a collage is laid with three or four. */
-function furnish(o){
+function furnish(o, depth){
   if(!o) return o;
+  roll(o, depth||0);
   const gal = galleryOf(o);
   if(gal && !(o.media && (o.media.src||o.media.assetId))){
     hangPainting(o, gal[Math.floor(Math.random()*gal.length)]);
@@ -1087,12 +1227,19 @@ function furnish(o){
   }
   /* A portal the coin or the spiral makes is any of them (decision 223): one
      of the three openings, in any of the aesthetic's object colours. */
+  /* **And it goes somewhere** (decision 244): a portal made at random opens
+     onto a place made for wandering, rather than onto nothing. */
   if(has(o,'button') && !(o.link && o.link.target)){
-    o.pshape = ['circle','square','arch'][Math.floor(Math.random()*3)];
-    // …what is in it and what is on its edge (decision 226). Not a glimpse:
-    // a portal the coin makes goes nowhere yet, so there is no page to show.
-    o.pstyle = ['vortex','drift','rings'][Math.floor(Math.random()*3)];
-    o.pedge = ['none','vines','glow'][Math.floor(Math.random()*3)];
+    const [nm, url] = pick(WANDER);
+    o.link = Object.assign({}, o.link, {label:nm, target:url});
+    if(!o.title || o.title===K(o.kind).nm) o.title = nm;
+  }
+  if(has(o,'button') && o.link && o.link.target && !o.pstyle){
+    o.pshape = pick(Object.keys(PORTAL_SHAPES));
+    // …what is in it and what is on its edge (decision 226), a glimpse of the
+    // page among them now that it goes somewhere
+    o.pstyle = pick(Object.keys(PORTAL_STYLES));
+    o.pedge = pick(Object.keys(PORTAL_EDGES));
     o.c = OBJ0 + Math.floor(Math.random()*OBJN);
   }
   if(faceOf(o)==='collage' && !S.objects.some(x=>x.parent===o.id)){
@@ -1154,6 +1301,6 @@ function dealTop(id){
 export { toast, setGridSize, setBoardDims, toggleDone, spawnNext, del, delMany, delDrawer, undo, redo,
   pushUndo, pushSet, pushSets, toggleFree, setPin, togglePin, becomeKind, seedInto,
   drawerForTag, create, gather, quickAdd, spawnInto, randomThing,
-  CONTROLS, CTL_KEYS, ctlSpec, ctlSaid, ctlIsOn, ctlForm, ctlNum, ctlIndex, ctlPress, someKind,
+  loadTexts, CONTROLS, CTL_KEYS, ctlSpec, ctlSaid, ctlIsOn, ctlForm, ctlNum, ctlIndex, ctlPress, someKind,
   fits,
   holdIt, holdMany, unholdIt, unholdMany, undoToast, dealTop, furnish, PICTURES, PAINTINGS, galleryOf, hangPainting, pictureMedia, CLIPS };
