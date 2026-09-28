@@ -1699,6 +1699,26 @@ const PROP_OFF = () => { const b = document.createElement('button');
     out.storyIsGone = !BUREAU.K.story;
     out.textOpensAsBook = BUREAU.K.book.read === 'book' && BUREAU.K.book.layout === 'book';
 
+    /* **A paragraph taller than a page runs on to the next one.** It used to
+       be given a page of its own and cut off at the foot, the rest out of
+       reach, and a long address ran off the side. Every page fits, and every
+       word of the body is on one of them. */
+    const huge = 'One paragraph that never breaks, https://example.com/' + 'x'.repeat(300) + ' and goes on. '
+      + 'Words and more words, carried on past the foot of the page. '.repeat(120);
+    o.body = huge; S.readFull = false;
+    open('book');
+    let fits = true, words = '', n = 0;
+    for (let guard = 0; guard < 60; guard++) {
+      document.querySelectorAll('.bookstage .spread .page').forEach(p => {
+        if (p.scrollHeight > p.clientHeight + 1 || p.scrollWidth > p.clientWidth + 1) fits = false;
+        const c = p.cloneNode(true); c.querySelector('.pno')?.remove(); words += c.textContent + ' '; n++;
+      });
+      if (!document.querySelector('[data-act="booknext"]:not([disabled])')) break;
+      S.bookAt += document.querySelectorAll('.bookstage .spread .page').length; BUREAU.renderSheet();
+    }
+    const norm = s => s.replace(/\s+/g, ' ').trim();
+    out.longParagraphPaginates = n > 2 && fits && norm(words) === norm(huge);
+
     S.readId = null; BUREAU.renderSheet();
     BUREAU.del(o.id); S.undo = [];
     return out;

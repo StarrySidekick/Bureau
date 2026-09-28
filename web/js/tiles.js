@@ -3404,6 +3404,59 @@ const clearPages = ()=>{ PAGES.key=null; PAGES.list=null; };
 const headOf = o => o.media&&o.media.src
   ? `<img class="scrollimg" src="${esc(o.media.src)}" alt="${esc(o.title||'')}">` : '';
 
+/* Split `el`, already on the ruler's page and overflowing it, so that as much
+   of it as fits stays; return the rest as a new element of the same kind, or
+   null when not even one piece of it fits. A list or a table gives up whole
+   items (a numbered list carries its count on), anything else gives up words,
+   cut with a Range so a bold run or a link crossing the break comes out as a
+   bold run or a link on both pages. */
+function splitToFit(el, over){
+  const tag=el.tagName;
+  if(tag==='UL' || tag==='OL' || tag==='TABLE'){
+    const box = tag==='TABLE' ? el.tBodies[0] : el;
+    if(!box) return null;
+    const moved=[];
+    while(over() && box.lastElementChild){ moved.unshift(box.lastElementChild); box.lastElementChild.remove(); }
+    if(!box.children.length){ moved.forEach(n=>box.appendChild(n)); return null; }
+    if(!moved.length) return null;
+    const tail=el.cloneNode(false);
+    if(tag==='TABLE'){
+      if(el.tHead) tail.appendChild(el.tHead.cloneNode(true));
+      const tb=document.createElement('tbody'); moved.forEach(n=>tb.appendChild(n)); tail.appendChild(tb);
+    } else {
+      moved.forEach(n=>tail.appendChild(n));
+      if(tag==='OL') tail.start=(el.start||1)+box.children.length;
+    }
+    return tail;
+  }
+  if(!/^(P|BLOCKQUOTE|PRE)$/.test(tag)) return null;
+  const orig=el.cloneNode(true);
+  const cuts=[];
+  const walk=document.createTreeWalker(orig, NodeFilter.SHOW_TEXT);
+  for(let n; (n=walk.nextNode());){
+    const t=n.nodeValue;
+    for(let i=1; i<t.length; i++) if(/\s/.test(t[i]) && !/\s/.test(t[i-1])) cuts.push([n,i]);
+  }
+  if(!cuts.length) return null;
+  const piece=(from, to)=>{ const r=document.createRange();
+    if(from) r.setStart(from[0], from[1]); else r.setStart(orig, 0);
+    if(to) r.setEnd(to[0], to[1]); else r.setEnd(orig, orig.childNodes.length);
+    return r.cloneContents(); };
+  let lo=-1, hi=cuts.length-1;
+  while(lo<hi){
+    const mid=Math.ceil((lo+hi+1)/2);
+    el.replaceChildren(piece(null, cuts[mid]));
+    if(over()) hi=mid-1; else lo=mid;
+  }
+  if(lo<0){ el.replaceChildren(...orig.cloneNode(true).childNodes); return null; }
+  el.replaceChildren(piece(null, cuts[lo]));
+  const tail=orig.cloneNode(false);
+  tail.appendChild(piece(cuts[lo], null));
+  // the space the cut was made at would sit at the head of the new page
+  const first=document.createTreeWalker(tail, NodeFilter.SHOW_TEXT).nextNode();
+  if(first) first.nodeValue=first.nodeValue.replace(/^\s+/, '');
+  return tail;
+}
 /* `box` is optional and is what the camera passes: a book read **inside its
    own tile** paginates against that tile, not against the reading surface's
    sheet. The tile's own coordinate space never changes when the camera moves
@@ -3439,19 +3492,26 @@ function pagesOf(o, box){
            if(box.fs){ cell.style.fontSize=box.fs+'px'; cell.style.lineHeight='1.45'; } }
   cell.innerHTML=headOf(o)+md(o.body||'');
 
-  const blocks=[...cell.children];
+  /* **A paragraph runs on to the next page.** Breaking only *between* blocks
+     meant one paragraph taller than a page was given a page to itself and cut
+     off at its foot, the rest unreachable: the page does not scroll, and there
+     was no page two to turn to. So a block that does not fit is split where
+     the page ends, the head stays and the tail becomes the next block — which
+     may split again. What cannot be split (a heading, a picture) still gets a
+     page of its own, and only then may it overflow. */
+  const over = ()=> cell.scrollHeight > cell.clientHeight+1;
+  const queue=[...cell.children];
   const pages=[]; let cur=[];
+  const turn = ()=>{ pages.push(cur.map(x=>x.outerHTML).join('')); cur=[]; cell.replaceChildren(); };
   cell.replaceChildren();
-  blocks.forEach(b=>{
+  while(queue.length){
+    const b=queue.shift();
     cell.appendChild(b); cur.push(b);
-    // one block always gets a page, however tall it is — the alternative is a
-    // page that holds nothing and a body that never ends
-    if(cur.length>1 && cell.scrollHeight > cell.clientHeight+1){
-      cur.pop();
-      pages.push(cur.map(x=>x.outerHTML).join(''));
-      cur=[b]; cell.replaceChildren(b);
-    }
-  });
+    if(!over()) continue;
+    const tail=splitToFit(b, over);
+    if(tail){ turn(); queue.unshift(tail); continue; }
+    if(cur.length>1){ cur.pop(); b.remove(); turn(); queue.unshift(b); }
+  }
   if(cur.length) pages.push(cur.map(x=>x.outerHTML).join(''));
   ruler.remove();
   if(!pages.length) pages.push('<p class="thin">Nothing written yet.</p>');
