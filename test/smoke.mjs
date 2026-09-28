@@ -4295,11 +4295,16 @@ const PROP_OFF = () => { const b = document.createElement('button');
     /* Held for the hold, then carried at whatever pace the steps say. The pace
        is the whole experiment: the same path travelled slowly is a move and
        travelled fast is a throw. */
+    /* Where the finger lets go is said as a place on the screen — the left
+       edge, the middle — and the steps are aimed at it from wherever the tile
+       starts, because a tile's width is the type's size and not the test's
+       (the phone takes the size you set, 2026-09-28). */
     const carry = async (pid, step, ms, n, endAt) => {
       const el = await window.aTileOnAShelf('#app .grid .drawer[data-row]');
       const id = el.dataset.row, r = el.getBoundingClientRect();
       const o = {bubbles:true, cancelable:true, pointerId:pid, pointerType:'touch', isPrimary:true};
       const x0 = r.left + r.width/2, y0 = r.top + Math.min(r.height/2, 20);
+      if(typeof endAt === 'function'){ endAt = endAt(x0) - x0; if(!step) step = endAt / (n + 1); }
       el.dispatchEvent(new PointerEvent('pointerdown', {...o, clientX:x0, clientY:y0}));
       await nap(340);
       for(let i=1;i<=n;i++){
@@ -4311,10 +4316,10 @@ const PROP_OFF = () => { const b = document.createElement('button');
       return id;
     };
     // carried to the edge at a working pace: still a move
-    out.aSlowCarryIsNotAThrow = alive(await carry(61, -14, 30, 14, -220));
+    out.aSlowCarryIsNotAThrow = alive(await carry(61, 0, 30, 14, () => 6));
     await nap(200);
     // …and flicked off it
-    const thrown = await carry(62, -30, 8, 8, -260);
+    const thrown = await carry(62, -30, 8, 8, x0 => Math.min(3, x0 - 260));
     out.aHardFlickThrowsIt = !alive(thrown);
     out.andTheTileFliesOff = !!document.querySelector('#fx .fxtoss');
     /* The picture must not answer to the id of the thing that has just been
@@ -4326,7 +4331,7 @@ const PROP_OFF = () => { const b = document.createElement('button');
     BUREAU.undo(); await nap(220);
     out.undoBringsItBack = alive(thrown);
     // fast, but let go in the middle of the board: a move, and a refused one
-    out.fastButNotOffTheEdgeIsAMove = alive(await carry(63, 12, 8, 8, 96));
+    out.fastButNotOffTheEdgeIsAMove = alive(await carry(63, 0, 8, 8, () => innerWidth / 2));
     S.look.locked = wasLocked; S.view='desk'; S.drawerId=null; BUREAU.render();
     return out;
   });
@@ -4762,8 +4767,12 @@ const PROP_OFF = () => { const b = document.createElement('button');
       await nap(420);
       return up;
     };
+    /* Where it starts is read **after** finding the tile: aTileOnAShelf()
+       walks to another board when this one has nothing on it, and a swipe
+       that carried it back again read as not arriving at all. */
+    const fromTile = await window.aTileOnAShelf();
     const beforeOne = BUREAU.shelfAt('root');
-    out.oneFingerFromATile = await oneFinger(await window.aTileOnAShelf(), 21);
+    out.oneFingerFromATile = await oneFinger(fromTile, 21);
     out.lockedSwipeArrives = S.view === 'desk'
       && JSON.stringify(BUREAU.shelfAt('root')) !== JSON.stringify(beforeOne);
     S.view='desk'; S.drawerId=null; BUREAU.render(); await nap(200);
@@ -5367,8 +5376,14 @@ const PROP_OFF = () => { const b = document.createElement('button');
     const made = ['note','task','drawer','checklist','image','moodboard','timeline']
       .map(k => BUREAU.create(k, { parent:'root', title:k }));
     BUREAU.render(); await nap(300);
-    out.noneWiderThanThree = made.every(o => o.phone.w <= 3);
-    out.noneTallerThanThree = made.every(o => o.phone.h <= 3);
+    /* **The phone takes the size you set** (2026-09-28): no cap at three and
+       no halving, just the type's size (or its own phone size), held to the
+       board's width and a screenful tall. It used to assert the three-cell
+       cap, which was the app's guess rather than anybody's choice. */
+    const want = o => { const p = BUREAU.K[o.kind].phoneSize, s = BUREAU.K[o.kind].size;
+      const [w,h] = p && p[0] ? p : s; return [Math.min(w, 8), Math.min(h, 14)]; };
+    out.noneWiderThanThree = made.every(o => o.phone.w === want(o)[0]);
+    out.noneTallerThanThree = made.every(o => o.phone.h === want(o)[1]);
     // …and the desk's own stated size is untouched by the phone's mapping
     out.theMacKeepsItsSizes = BUREAU.K.moodboard.size[0] >= made[5].phone.w;
     S.objects = S.objects.filter(o => !made.includes(o));

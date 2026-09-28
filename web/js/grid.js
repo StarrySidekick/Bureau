@@ -76,12 +76,6 @@ const DESK_SHELF_COLS = GRID.desk.cols / SHELVES;    // eight, and 24 = 3 × 8
    allowed to ask for one. Not the page height — that is measured — just a cap
    on what the size mapping and a type's stated phone size may claim. */
 const PHONE_MAX_H = 14;
-/* …and a cap on how big a *new* object is, in either direction. A note that
-   arrives eight cells wide is a note that has decided the board is about it;
-   three is a tile you can read from across the room and still fit two beside.
-   The stated sizes in KINDS are the desk's, and this is what they come out as
-   on a phone unless the type says otherwise — and then this trims that too. */
-const PHONE_MAX_NEW = 3;
 const CELL = {desk:40, phone:48};   // the cell of the board on screen, measured
 /* The column width, which on both devices is now the same number as the cell.
    Kept separate because it is *measured* separately — the one caller that has
@@ -816,36 +810,15 @@ const gridRows = (device,parentId)=> childrenOf(container(parentId||ROOT))
   .reduce((m,d)=>{const b=lay(d,device,parentId||ROOT);return Math.max(m,b.y+b.h-1)},0);
 /* An object that has never been in a grid has no box. Give it one the first
    time it needs to be placed, rather than storing coordinates for everything. */
-/* Each kind declares the size its objects start at — a task is a wide sliver,
-   a drawer a big square. Editable per kind in the kind builder.
-
-   It declares it for the *desk*. A phone is 8 columns to the desk's 24, so
-   copying the number across would make a 4×1 task half a screen wide and a
-   6×6 drawer three quarters of one.
-
-   An **object** takes the whole width, because a phone is a column and the
-   things in a column are rows. Its height comes across 1:1 — a phone cell
-   (~39px) and a desk cell (~58px) are within a third of each other — and is
-   capped, because nothing taller than a screenful can be seen at all.
-
-   A **container** is halved instead of filled, which keeps the fraction of the
-   screen it had before: two drawers across is what the phone desk looks like,
-   and a book spine that fills the width is not a spine. */
+/* **The phone takes the size you set** (Timothy, 2026-09-28). This used to
+   work out a phone size of its own — an object capped at three cells, a
+   container halved — and every one of those rules was the app's guess, not a
+   choice anybody made. The sizes are chosen in the Workshop now, so the phone
+   uses them: a type's own phone size if it states one, otherwise its size,
+   held only to the board's width (sizeOfKind) and to a screenful tall.
+   `isCont` is still accepted so no caller has to change. */
 function toPhoneSize(w, h, isCont){
-  const half = n => Math.max(1, Math.round(n/2));
-  const cap  = n => clamp(n, 1, PHONE_MAX_NEW);
-  /* Both directions, and both kinds of thing. An object used to arrive at the
-     full width of the board — which is right for a column of rows and wrong for
-     a desk, because the first thing you make owns the screen and the second has
-     nowhere to go. Three cells is a tile you can read from across the room with
-     room for two more beside it, and resizing it is one drag away. */
-  /* Half, but never below two a side (or the desk size, if that is smaller):
-     half of a 2×2 drawer is the 1×1 mark with no room for its name, and since
-     the Workshop's sizes (2026-09-28) most containers are born 2×2 with their
-     phone size worked out rather than stated. */
-  const halfC = n => Math.max(Math.min(n, 2), half(n));
-  if(isCont) return [cap(halfC(w)), cap(halfC(h))];
-  return [cap(w), cap(Math.min(PHONE_MAX_H, Math.max(1, h)))];
+  return [Math.max(1, w), clamp(h, 1, PHONE_MAX_H)];
 }
 /* A kind may also state its phone size outright, in which case the mapping
    above is only the default it started from. The type builder writes one the
@@ -898,10 +871,7 @@ function rangeOfKind(k, device, cid){
   }
   let [[w0,w1],[h0,h1]] = r;
   const dv = device || dev();
-  if(dv==='phone' && kindHas(k,'container') && !d.phoneSize){
-    const half = n => Math.max(1, Math.round(n/2));
-    [w0,w1,h0,h1] = [half(w0),half(w1),half(h0),half(h1)];
-  }
+  // the same range on both devices, trimmed to the board below (2026-09-28)
   const cols = dv==='phone' ? colsOf(cid, 'phone') : gridOf('desk', cid).shelfW;
   const rows = dv==='phone' ? PHONE_MAX_H : gridOf('desk', cid).shelfH;
   w1 = clamp(w1, 1, cols); w0 = clamp(w0, 1, w1);
@@ -1014,7 +984,7 @@ function cellW(grid,g){
   return (r.width - g.gap*(n-1))/n;
 }
 
-export { GRID, PHONE_GRIDS, PHONE_MAX_H, PHONE_MAX_NEW, rangeOfKind, inRange, randomSizeOf, CELL, COLW, MEASURE, sideways,
+export { GRID, PHONE_GRIDS, PHONE_MAX_H, rangeOfKind, inRange, randomSizeOf, CELL, COLW, MEASURE, sideways,
   SHELVES, DESK_SHELF_COLS, INNER, dimsOf, DIM_MIN, DIM_MAX, DIM_MAX_H, PAGES_MAX, SPAN, isBoard, boardsOf, reachable, addBoard, removeBoard,
   ensureBoards, boardHolds, onBoard, startOf, nearestBoard, onBoards, randomSpot, growsDown, growDown, proportional, shelvesToHold, colsOf, gridKeyOf, shelvesOf, innerOf,
   shelfRows, shelfOfBox, oneShelf, shelfAt, setShelf, shelfOrigin, SHELF, fitSpot, flows,

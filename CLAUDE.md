@@ -226,7 +226,7 @@ editing surfaces.
 
 **v2.46** (decision 248): **every type's size is the Workshop's**
 (`WORKSHOP_SIZES` in model.js, applied after every type is built; `phone:null`
-means worked out), a stated phone size is no longer trimmed to three wide,
+means the same size as on a Mac, with nothing halved or capped),
 and on a phone the reader is sized from the keyboard-free height (`--rvh`,
 `--kbh` in boot.js) with a 6px inset, so the keyboard comes up over the page.
 
@@ -505,22 +505,18 @@ attribute registry is `ATTRS`; the presets are `BUILTIN_KINDS` merged with
 - **Layouts are stored per device.** Each drawer has both `desk: {x,y,w,h}` and
   `phone: {x,y,w,h}`. Resizing must only touch `d[dev()]`. `dev()` returns the
   layout currently being *edited*, which is not always the physical device.
-- **A drawer starts at 2×2, and a derived phone size never halves a container
-  below two a side.** The derivation halves a container, and half of two is one —
-  the mini tile, which has no room for a name. It used to be that every 2×2
-  kind had to state `phoneSize`; since the Workshop's sizes (decision 248) most
-  containers are 2×2 with their phone size worked out, so `toPhoneSize()` floors
-  a container at `min(n, 2)` instead.
-- **A kind's `size` is the desk size.** `sizeOfKind(kind, device)` maps it: on a
-  phone an object goes full width at the same height, and a container is halved
-  so it keeps the fraction of the screen it had. Never use `K(k).size` directly
-  to place something — a 6×6 drawer copied straight onto a 10-column phone grid
-  is three quarters of the screen, which is what this
-  function exists to stop. Anything drawing a *preview* of a phone box goes
-  through `toPhoneSize()` so the preview can't drift from the placement. A kind
-  may also carry `phoneSize`, set from the type builder's second pair of
-  sliders, and `sizeOfKind()` prefers it over the derivation — the derivation is
-  a good default and a bad rule. Read the size through `sizeOfKind()` and both
+- **The phone takes the size you set** (2026-09-28). A type's own `phoneSize`
+  if it states one, otherwise its `size`, held only to the board's width and a
+  screenful tall (`PHONE_MAX_H`). There is no halving of containers and no
+  three-cell cap any more: those were the app's guesses, and the sizes are
+  Timothy's choices in the Workshop now. The same goes for a type's range.
+- **A kind's `size` is the desk size, and the phone's too.** `sizeOfKind(kind,
+  device)` trims it to the board it lands on. Never use `K(k).size` directly
+  to place something: it may be wider than the board it lands on. Anything
+  drawing a *preview* of a phone box goes through `toPhoneSize()` so the
+  preview can't drift from the placement. A kind may also carry `phoneSize`,
+  set in the Workshop or the type builder's second pair of sliders, and
+  `sizeOfKind()` prefers it. Read the size through `sizeOfKind()` and both
   cases come along; read `K(k).size` and neither does.
 - **Two lengths of press, and the difference is whether you moved.** 300ms arms
   the drag; a touch still holding 250ms later, within 6px, becomes the context

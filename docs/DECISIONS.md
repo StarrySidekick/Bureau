@@ -10935,3 +10935,12 @@ come up over the page rather than shrink it.
 - **The Workshop's snapshot** was regenerated (and now captures the Words
   door) and spliced into the page, so its Sizes tab reads the new sizes as
   how it ships.
+
+**Amended the same day, v2.47.** Timothy: the worked-out phone size was an
+invention; use the sizes he chose. So there is no derived phone size at all:
+`toPhoneSize()` returns the size itself (held to a screenful tall) and
+`sizeOfKind()` trims it to the board's width; `rangeOfKind()` no longer halves
+a container's range on a phone; `PHONE_MAX_NEW`, the three-cell cap, is gone.
+A type that states its own `phoneSize` (the magnifying glass at 7×1, Games
+at 4×4) keeps it. The floor of two a side added above is gone with the
+halving it was patching. Objects already on a desk keep the boxes they have.
