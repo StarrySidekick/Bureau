@@ -2163,10 +2163,15 @@ const PROP_OFF = () => { const b = document.createElement('button');
     out.scrollIsNotALayout = !document.querySelector('.scrollview');
     /* …and one of anything, wherever there is room. The spawner's own trick
        with no spawner in the way. */
-    const wasN = S.objects.length;
+    const wasN = S.objects.length, wasIds = new Set(S.objects.map(o => o.id));
     document.querySelector('.bartools [data-act="randomobject"]').click(); await nap(320);
-    out.oneOfAnything = S.objects.length === wasN + 1;
-    BUREAU.del(S.objects[S.objects.length-1].id); S.undo = []; BUREAU.render(); await nap(120);
+    /* One on the board, whatever came inside it: a random drawer brings two to
+       four things of its own since decision 244, and every one of them is
+       taken off again, or it is on the desk for every block after this. */
+    const fresh = S.objects.filter(o => !wasIds.has(o.id));
+    out.oneOfAnything = fresh.filter(o => !fresh.some(p => p.id === o.parent)).length === 1;
+    const freshIds = new Set(fresh.map(o => o.id));
+    S.objects = S.objects.filter(o => !freshIds.has(o.id)); S.undo = []; BUREAU.render(); await nap(120);
     // the gear toggles, so whatever panel an earlier block left up goes first
     BUREAU.closePanel(); await nap(120);
     document.querySelector('.gridbar [data-act="appsettings"]').click(); await nap(280);
