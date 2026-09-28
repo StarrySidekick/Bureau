@@ -296,8 +296,12 @@ const STEPS = {
     answer:(o,v)=>{ pushSet('Changed', o.id, 'face', o.face); o.face = v==='front' ? undefined : v; return 'name'; }},
   'project.what': {
     q:'What are you making?', sub:'A kind of work, or a flow laid out inside it ready to use.',
-    ask:()=>familyList('project').filter(k=>KINDS[k]).map(k=>choice('kind:'+k, K(k).nm, K(k).ds||'', typeArt(k)))
-      .concat(plans().filter(p=>p && p.sec==='project').map(p=>choice('plan:'+p.id, p.nm||'A flow', 'a flow, laid out inside', planArt(p)))),
+    /* Every kind of work is a type with its flow now (decision 238), so the
+       flows are only offered here when they are one you saved yourself. */
+    ask:()=>{ const typed = new Set(Object.values(KINDS).map(d=>d.plan).filter(Boolean));
+      return familyList('project').filter(k=>KINDS[k]).map(k=>choice('kind:'+k, K(k).nm, K(k).ds||'', typeArt(k)))
+        .concat(plans().filter(p=>p && p.sec==='project' && !typed.has(p.id))
+          .map(p=>choice('plan:'+p.id, p.nm||'A flow', 'a flow you saved, laid out inside', planArt(p)))); },
     group: v => v.startsWith('plan:') ? 'Or start from a flow' : 'A kind of work',
     answer:(o,v)=>{
       if(v.startsWith('plan:')) layFlow(o, v.slice(5));

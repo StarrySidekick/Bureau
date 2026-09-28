@@ -180,7 +180,9 @@ the screen.
 chrome.css), its own front and its flow; **Workflow** is a Drawer subtype
 (`wf_*`); the life flows were rebuilt from Timothy's notes, each with setup
 questions (`ASPECT_STEPS`, `sref` markers); migration 47; a drawer of several
-boards pinches out to them; boards run to 24 tall.
+boards pinches out to them; boards run to 24 tall. **v2.29** (decision 238): every
+project flow is a type (`pj_*`, `PROJECT_TYPES`), a film is its departments
+(`FILM_DEPARTMENTS`), and the project flows were rebuilt.
 The **Bureau Workshop** artifact (https://claude.ai/artifact/4TjyQZ5xcuxCYFgfnRm76k)
 holds Timothy's own rearrangement of every menu and type: read its
 `workshop/state` document before reorganising menus or types.

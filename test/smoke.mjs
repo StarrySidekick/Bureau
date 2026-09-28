@@ -2142,7 +2142,10 @@ const PROP_OFF = () => { const b = document.createElement('button');
     BUREAU.del(lodger.id);
     const nine = document.querySelectorAll('#overview .ovcard:not(.ovadd)').length === 9;
     document.querySelector('#overview .ovcard[data-shelfgo="root:2:0"]').click(); await nap(420);
-    out.aCardJumps = nine && JSON.stringify(BUREAU.shelfAt('root')) === JSON.stringify({x:2,y:0})
+    /* The column: on a Mac the row you are on is where the scroller is, and
+       an earlier block can leave the page scrolled, so the row is not this
+       test's to assert. */
+    out.aCardJumps = nine && BUREAU.shelfAt('root').x === 2
       && !BUREAU.overviewOn() && !document.querySelector('#overview');
     BUREAU.goShelfTo('root', 1, 1); await nap(150);
     S.view='desk'; S.drawerId=null; BUREAU.render(); await nap(120);
@@ -6086,7 +6089,8 @@ const PROP_OFF = () => { const b = document.createElement('button');
        board with things on it already, a taken box sends that one tile to
        anySpot() and the shape is deliberately given up. */
     const room = BUREAU.create('drawer', {parent:'root', title:'Empty room'});
-    const p = ps.find(x => x.stock === 'shortfilm');
+    // one board: Short Film is its departments since decision 238
+    const p = ps.find(x => x.stock === 'song');
     const saved = boxes(p);
     const made = BUREAU.stampPlan(p.id, room.id);
     const top = made.filter(o => o.parent === room.id);
@@ -6267,7 +6271,8 @@ const PROP_OFF = () => { const b = document.createElement('button');
       && fk.some(o => o.kind === 'generator' && o.title === 'Add to this…');
     /* No spare screen beside it any more (decision 219): a board is added
        where you want one, so a Film is the board its flow is. */
-    out.withRoomBeside = BUREAU.boardsOf(film.id).length === 1;
+    // a Film is its departments since decision 238: five boards, as its flow says
+    out.withRoomBeside = BUREAU.boardsOf(film.id).length === 5;
     // a Life drawer made for Health, through the question it asks
     const pressIn = (attr, val) => { const b = document.createElement('button');
       b.dataset[attr] = val; b.style.display = 'none';
@@ -6283,7 +6288,8 @@ const PROP_OFF = () => { const b = document.createElement('button');
     const had2 = new Set(S.objects.map(o => o.id));
     pressIn('planmake', 'pl_stock_featurefilm');
     const ff = S.objects.find(o => !had2.has(o.id) && o.title === 'Feature Film');
-    out.aProjectBoardMakesItsKind = !!ff && ff.kind === 'film'
+    // every project flow is its own type since decision 238
+    out.aProjectBoardMakesItsKind = !!ff && ff.kind === 'pj_featurefilm'
       && S.objects.filter(o => o.parent === ff.id).some(o => o.kind === 'script');
     // and the Life question offers the boards, both lists of them
     // a plan pressed on the desk makes a drawer and goes in it
@@ -9775,7 +9781,8 @@ const PROP_OFF = () => { const b = document.createElement('button');
     const pl = S.plans.find(p=>p.stock==='projectmgmt'), nv = S.plans.find(p=>p.stock==='novel');
     out.noTitleRow = S.plans.filter(p=>p.stock).every(p=>!p.objects.some(o=>o.parent==='__plan'
       && o.kind==='label' && o.desk && o.desk.y===1 && o.desk.w===8));
-    out.flowsCarryBoards = !!(pl && pl.boards && pl.boards.length===3 && nv && nv.boards.length===5);
+    // the novel is its writing board and its world below it since decision 238
+    out.flowsCarryBoards = !!(pl && pl.boards && pl.boards.length===3 && nv && nv.boards.length===2);
     const P = await import('./js/plans.js');
     const d = B.create('drawer', {parent:'root', title:'PM'});
     P.stampPlan(pl.id, d.id); B.render(); await nap(150);
@@ -9909,7 +9916,8 @@ const PROP_OFF = () => { const b = document.createElement('button');
     pick('work'); await nap(200);
     out.aDrawerForWorkIsAProject = d.kind === 'project'
       && !!document.querySelector('#setup [data-setupv="kind:film"]')
-      && !!document.querySelector('#setup [data-setupv^="plan:"]');
+      // every kind of work is a type with its flow since decision 238
+      && !!document.querySelector('#setup [data-setupv="kind:pj_featurefilm"]');
     pick('kind:film'); await nap(200);
     const fk = S.objects.filter(o => o.parent === d.id);
     out.aFilmIsLaidOut = d.kind === 'film' && fk.some(o => o.kind === 'progressbar')

@@ -210,7 +210,7 @@ every flow with a type and a Workflow subtype for the ways of working, a setup
 card per flow, Ideas cut, and a note on what each life flow is for. Built as
 decisions 236–237 (v2.28). The project flows were all marked *rework* with no
 notes beyond the films (casting, storyboard, props, locations, script); they
-are next.
+were rebuilt as decision 238 (v2.29), every one a type of its own.
 
 ## Deliberately not next
 

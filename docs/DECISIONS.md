@@ -10510,3 +10510,35 @@ and every one of them was rebuilt from it (stockplans.js):
 - **Migration 47** rebuilds the stock flows by key (a flow you saved yourself
   has no `stock` and is untouched), adds Things, takes Ideas off, and makes a
   Life drawer that was made for Health, Money and the rest the type it is.
+
+## 238 · Every project flow is a type, and a film is its departments
+
+*2026-09-28.* Timothy marked every project flow *rework* on the Scope page,
+wrote "casting, storyboard, props, locations, script" for the two films, and
+answered that a flow nearly always has a type.
+
+- **A type for every project flow.** Eleven new project types (`pj_*`,
+  `PROJECT_TYPES` in model.js): Feature Film, TV Show, Video Essay, Play,
+  Musical, Screenplay (the Script flow; *Script* is still the page type),
+  Novel, Short Story, Poem, Blog Post, Website, Album, Handmade Object and
+  Device, each a project front with the cover that suits it and born holding
+  its flow. Novel, Short Story and Album already named types that page like a
+  book or list their tracks, so the *project* of each is a type of its own.
+  Artwork (`artpiece`) gains its flow. The Project question lists the types
+  once each and offers a flow only when it is one you saved yourself.
+- **A film is its departments** (`FILM_DEPARTMENTS` in stockplans.js): the
+  first board is the stages, what it is about, the script, the beats and the
+  shoot days; to its right *Casting* (roles, characters, auditions, contacts,
+  casting days) and *Storyboard* (the boards, the shot list, the look); below
+  *Props and wardrobe* and *Locations* (the list, scouting photos, permits,
+  notes). Short Film and Feature Film both.
+- **The rest were rebuilt from the verbs** on the Scope page: each has
+  somewhere to make the thing (a script, an essay, a poem, lyrics), its stages
+  as a checklist that its bar reads (`STAGES`), a question for what it is
+  about, and the way out to where the work is done. Where it earns them, a
+  second board: TV Show's episodes, Album's tracks, Musical's songs, Video
+  Essay's sources and clips, Novel's world and people. Measured habits
+  (decision 232) are the words, pages and hours a day where writing or making
+  is the work.
+- The flows change inside migration 47, which has not shipped yet, so one
+  migration carries both 237 and this.

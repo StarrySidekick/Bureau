@@ -673,7 +673,9 @@ const BUILTIN_KINDS = {
         type drawn twice on one screen: both are families, so it is one press
         in from either, and it honestly is both — a thing you write and a piece
         of work you are making. `inFamily()` keeps it out of the flat list. */
-     family:['project','film','novel','game','song','album','app','artpiece','trip','writing','script'],
+     family:['project','film','pj_featurefilm','pj_tvshow','pj_videoessay','pj_play','pj_musical','pj_script',
+       'pj_novel','pj_shortstory','pj_poem','writing','pj_blogpost','app','pj_website','game','song','pj_album',
+       'artpiece','pj_handmade','pj_device','world','trip'],
      // and the boards it offers beside them, the plans marked for a piece of work
      boards:'project',
      famSub:'What is the work?',
@@ -760,6 +762,36 @@ LIFE_ASPECTS.forEach(([key, nm, c, ks, kc, panel, tex, flow, ic, ds])=>{
    drawer") is its own answer on the setup card rather than a member. */
 BUILTIN_KINDS.life.family = LIFE_ASPECTS.map(a=>'lf_'+a[0]);
 BUILTIN_KINDS.life.famSub = 'What part of your life is it for?';
+
+/* ---- every project flow has a type — decision 238 ------------------------
+   Timothy: "for the most part a flow always has a corresponding type". The
+   project flows that had none get one here, a project front with the cover
+   that suits it, born holding its flow. Novel, Short Story and Album already
+   named book-shaped and list-shaped types, so the *projects* of them are
+   types of their own; the Script flow's is a Screenplay, beside the Script
+   page. Columns: key, name, cover, colour, icon, what it is. */
+const PROJECT_TYPES = [
+  ['featurefilm','Feature Film','film',9,'clapper','A feature, department by department'],
+  ['tvshow','TV Show','film',9,'film','A series: the bible, the pilot and the episodes'],
+  ['videoessay','Video Essay','film',13,'film','An argument made with footage, from research to publishing'],
+  ['play','Play','plain',8,'feather','A play, from the first draft to opening night'],
+  ['musical','Musical','album',12,'music','The book, the songs and the staging'],
+  ['script','Screenplay','film',9,'clapper','A script on its own, beat by beat'],
+  ['novel','Novel','novel',11,'book','A novel, and everything around the manuscript'],
+  ['shortstory','Short Story','novel',14,'feather','One story, drafted and sent out'],
+  ['poem','Poem','plain',10,'feather','A poem, its drafts and a way in'],
+  ['blogpost','Blog Post','plain',5,'send','A post, from the idea to sharing it'],
+  ['website','Website','app',13,'grid','A site: its pages, its look and its launch'],
+  ['album','Album','album',10,'music','A record, track by track'],
+  ['handmade','Handmade Object','art',6,'star','Something made by hand, materials to finish'],
+  ['device','Device','app',15,'sliders','A thing with parts, wiring and code'],
+];
+PROJECT_TYPES.forEach(([key, nm, proj, c, ic, ds])=>{
+  BUILTIN_KINDS['pj_'+key] = {face:'project', proj, nm, ic, c, ds,
+    attrs:['text','container','date','progress','media','relates'], plan:'pl_stock_'+key,
+    layout:'grid', size:[6,6], phoneSize:[5,5], body:''};
+});
+BUILTIN_KINDS.artpiece.plan = 'pl_stock_artwork';
 
 /* ---- a way of working — decision 236 -----------------------------------
    Timothy: every flow has a type, so the three *Getting work done* flows are

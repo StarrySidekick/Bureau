@@ -248,6 +248,43 @@ const AGAIN = (t, every, unit, from)=>({k:'task', t,
        repeat:{every, unit, days:[], from:from||'date', ends:null, paused:false, made:0}}});
 // a card in a deck, which is a prompt when the deck is a generator
 const CARDS = list => list.map(t=>({k:'note', t}));
+/* The stages of a piece of work, a checklist its progress bar reads
+   (decision 238): ticking a stage is the whole of keeping the bar true. */
+const STAGES = (ref, list, b, c)=>({k:'checklist', t:'Stages', ref, b, set:{c}, kids:list.map(t=>({k:'task', t}))});
+/* **A film is its departments** (Timothy: "casting, storyboard, props,
+   locations, script"), a board each round the one the film opens on: casting
+   and the storyboard to the right, props and wardrobe below, locations below
+   and to the right. The script is on the first board, with the stages. */
+const FILM_DEPARTMENTS = c => [
+  {at:[1,0], on:[
+    LIST('Roles to cast', 'roles', [1,1,4,5], c),
+    {k:'drawer', t:'Characters', b:[5,1,4,4], set:{c:13}, kids:[
+      {k:'character', t:'The lead'}, {k:'character', t:'Who is in the way'}]},
+    {k:'checklist', t:'Auditions', b:[5,5,4,4], set:{c:6}},
+    {k:'note', t:'Contacts and agents', b:[1,6,4,3], set:{c:12}},
+    CAL('Casting days', [1,9,4,3], 7),
+    LINK('Post a casting call', 'https://www.backstage.com', [5,9,4,1], 9),
+    LINK('Find crew', 'https://www.staffmeup.com', [5,10,4,1], 9)
+  ]},
+  {at:[2,0], on:[
+    {k:'moodboard', t:'Storyboard', b:[1,1,8,6], set:{c:13}},
+    {k:'checklist', t:'Shot list', b:[1,7,5,5], set:{c:9}},
+    {k:'note', t:'The look', b:[6,7,3,5], set:{c:12, body:'**Lenses —** \n\n**Light —** \n\n**Colour —** '}}
+  ]},
+  {at:[0,1], on:[
+    {k:'checklist', t:'Props', b:[1,1,4,6], set:{c:6}},
+    {k:'checklist', t:'Wardrobe', b:[5,1,4,6], set:{c:10}},
+    {k:'moodboard', t:'References', b:[1,7,8,5], set:{c:13}}
+  ]},
+  {at:[1,1], on:[
+    LIST('Locations', 'locs', [1,1,4,5], c),
+    {k:'moodboard', t:'Scouting photos', b:[5,1,4,5], set:{c:13}},
+    {k:'checklist', t:'Permits and permissions', b:[1,6,4,4], set:{c:8}},
+    LINK('Map', 'https://www.google.com/maps', [5,6,4,1], 9),
+    LINK('Find a location', 'https://www.peerspace.com', [5,7,4,1], 9),
+    {k:'note', t:'Notes from the recce', b:[5,8,4,3], set:{c:12}}
+  ]}
+];
 
 /* ============================================================
    The ten
@@ -642,81 +679,289 @@ const SPECS = [
 
   /* ---- a piece of work ---------------------------------------------- */
 
-  /* A short film is a run of stages from a logline to a festival, and the bar
-     reads the list of them, so the number on it is the work and nothing you
-     maintain. The question comes first because it is the one a short film
-     most often never answers. */
+  /* ---- a piece of work, rebuilt — decision 238 -----------------------------
+     Timothy marked every project flow *rework* on the Bureau Scope page, and
+     wrote for the two films: casting, storyboard, props, locations, script.
+     So a film is its departments, a board each, and the rest were rebuilt
+     from the verbs proposed there (plan, make, schedule, track, reference),
+     each with somewhere to make the thing, somewhere to see how far along it
+     is, and the way out to where the work is done. Each is the flow of its
+     own type (decision 236). */
+
   {key:'shortfilm', sec:'project', nm:'Short Film', ic:'clapper', c:9, of:'film', on:[
-    LABEL('The film', [1,1,8,1], 9),
-    {k:'progressbar', t:'Where it stands', b:[1,2,8,1], set:{c:13, tracks:'@stages'}},
-    {k:'checklist', t:'Stages', ref:'stages', b:[1,3,4,5], set:{c:9}, kids:[
-      {k:'task', t:'Logline'},
-      {k:'task', t:'Script locked'},
-      {k:'task', t:'Cast and crew'},
-      {k:'task', t:'Locations'},
-      {k:'task', t:'Shot list'},
-      {k:'task', t:'Shoot'},
-      {k:'task', t:'Picture lock'},
-      {k:'task', t:'Sound and colour'},
-      {k:'task', t:'Festivals and release'}
-    ]},
-    {k:'question', t:'What is it about?', b:[5,3,4,3], set:{c:10}},
-    {k:'script', t:'Script', b:[5,6,4,2], set:{c:9, onclick:'write'}},
+    {k:'progressbar', t:'Where it stands', b:[1,1,8,1], set:{c:13, tracks:'@sfstages'}},
+    STAGES('sfstages', ['Logline','Script locked','Cast','Crew','Locations','Shot list','Shoot','Picture lock','Sound and colour','Festivals'], [1,2,4,6], 9),
+    {k:'question', t:'What is it about?', b:[5,2,4,3], set:{c:10, sref:'logline'}},
+    {k:'script', t:'Script', b:[5,5,4,3], set:{c:9, onclick:'write'}},
     {k:'outline', t:'Beats', b:[1,8,4,2], set:{c:14}},
-    {k:'moodboard', t:'Look book', b:[5,8,4,2], set:{c:13}},
-    CAL('Shoot days', [1,10,4,3], 7),
-    LINK('Call sheets', 'https://www.studiobinder.com', [5,10,4,1], 9),
-    LINK('Festivals', 'https://filmfreeway.com', [5,11,4,1], 9)
-  ]},
+    CAL('Shoot days', [5,8,4,4], 7),
+    {k:'appt', t:'First shoot day', b:[1,10,4,2], set:{c:8, sref:'shoot'}},
+    LINK('Call sheets', 'https://www.studiobinder.com', [1,12,4,1], 9),
+    LINK('Festivals', 'https://filmfreeway.com', [5,12,4,1], 9)
+  ], boards: FILM_DEPARTMENTS(9)},
 
-  /* A song is written against a tempo, so the metronome sits beside the words;
-     the deck is for being stuck, and the voice memo is where the tune is
-     before it is anywhere else. */
+  {key:'featurefilm', sec:'project', nm:'Feature Film', ic:'clapper', c:9, of:'pj_featurefilm', on:[
+    {k:'progressbar', t:'Where it stands', b:[1,1,8,1], set:{c:13, tracks:'@ffstages'}},
+    STAGES('ffstages', ['Treatment','First draft','Rewrite','Financing','Casting','Crew','Locations','Schedule','Shoot','Edit','Sound and music','Colour','Festivals and distribution'], [1,2,4,7], 9),
+    {k:'question', t:'What is it about?', b:[5,2,4,3], set:{c:10, sref:'logline'}},
+    {k:'script', t:'Screenplay', b:[5,5,4,3], set:{c:9, onclick:'write'}},
+    {k:'outline', t:'Treatment', b:[5,8,4,2], set:{c:14}},
+    CAL('Production', [1,9,4,3], 7),
+    {k:'appt', t:'First shoot day', b:[5,10,4,2], set:{c:8, sref:'shoot'}},
+    LINK('Schedule and budget', 'https://www.studiobinder.com', [1,12,4,1], 9),
+    LINK('Festivals', 'https://filmfreeway.com', [5,12,4,1], 9)
+  ], boards: FILM_DEPARTMENTS(9)},
+
+  {key:'tvshow', sec:'project', nm:'TV Show', ic:'film', c:9, of:'pj_tvshow', on:[
+    {k:'question', t:'What is the show?', b:[1,1,4,3], set:{c:10, sref:'logline'}},
+    {k:'note', t:'The bible', b:[5,1,4,5], set:{c:14, body:'**The world —** \n\n**The rules —** \n\n**The tone —** \n\n**Where it goes —** '}},
+    {k:'drawer', t:'Characters', b:[1,4,4,3], set:{c:13}, kids:[
+      {k:'character', t:'The lead'}, {k:'character', t:'Who is in the way'}, {k:'character', t:'The friend'}]},
+    {k:'script', t:'Pilot', b:[5,6,4,3], set:{c:9, onclick:'write'}},
+    STAGES('tvstages', ['Pitch','Bible','Pilot','Pilot rewrite','Episodes broken','Series pitch'], [1,7,4,5], 9),
+    {k:'progressbar', t:'Where it stands', b:[5,9,4,1], set:{c:13, tracks:'@tvstages'}},
+    LINK('Screenplay', 'https://www.writerduet.com', [5,10,4,1], 9)
+  ], boards:[{at:[1,0], on:[
+    {k:'drawer', t:'Episode 1', b:[1,1,4,3], set:{c:9, face:'checklist', clhead:'1', layout:'list'}, kids:[{k:'outline', t:'Beats'}]},
+    {k:'drawer', t:'Episode 2', b:[5,1,4,3], set:{c:9, face:'checklist', clhead:'1', layout:'list'}, kids:[{k:'outline', t:'Beats'}]},
+    {k:'drawer', t:'Episode 3', b:[1,4,4,3], set:{c:9, face:'checklist', clhead:'1', layout:'list'}, kids:[{k:'outline', t:'Beats'}]},
+    {k:'drawer', t:'Episode 4', b:[5,4,4,3], set:{c:9, face:'checklist', clhead:'1', layout:'list'}, kids:[{k:'outline', t:'Beats'}]},
+    {k:'drawer', t:'Episode 5', b:[1,7,4,3], set:{c:9, face:'checklist', clhead:'1', layout:'list'}, kids:[{k:'outline', t:'Beats'}]},
+    {k:'drawer', t:'Episode 6', b:[5,7,4,3], set:{c:9, face:'checklist', clhead:'1', layout:'list'}, kids:[{k:'outline', t:'Beats'}]},
+    {k:'outline', t:'The season', b:[1,10,8,3], set:{c:14}}
+  ]}]},
+
+  {key:'videoessay', sec:'project', nm:'Video Essay', ic:'film', c:13, of:'pj_videoessay', on:[
+    {k:'progressbar', t:'Where it stands', b:[1,1,8,1], set:{c:13, tracks:'@vestages'}},
+    {k:'question', t:'What is the argument?', b:[1,2,4,3], set:{c:10, sref:'logline'}},
+    STAGES('vestages', ['Research','Outline','Script','Record the voice','Gather footage','Edit','Sound','Thumbnail and title','Publish'], [5,2,4,6], 13),
+    {k:'essay', t:'Script', b:[1,5,4,4], set:{c:7, onclick:'write'}},
+    {k:'tracker', t:'Words a day', b:[1,9,4,2], set:{c:13, measure:{unit:'words', goal:500, step:100}}},
+    CAL('Publishing', [5,8,4,3], 7),
+    LINK('Your channel', 'https://studio.youtube.com', [1,11,4,1], 9, 'channel'),
+    LINK('Footage', 'https://archive.org/details/movies', [5,11,4,1], 9)
+  ], boards:[{at:[1,0], on:[
+    LIST('Sources', 'vesrc', [1,1,4,6], 12),
+    {k:'drawer', t:'Clips', b:[5,1,4,6], set:{c:13}},
+    {k:'moodboard', t:'Look', b:[1,7,4,5], set:{c:13}},
+    {k:'note', t:'Edit notes', b:[5,7,4,5], set:{c:9}}
+  ]}]},
+
   {key:'song', sec:'project', nm:'Song', ic:'music', c:10, of:'song', on:[
-    LABEL('The song', [1,1,8,1], 10),
-    {k:'poem', t:'Lyrics', b:[1,2,5,5], set:{c:10, onclick:'write'}},
-    {k:'metronome', t:'Tempo', b:[6,2,3,4], set:{c:11, bpm:92}},
-    {k:'deck', t:'Stuck?', b:[6,6,3,3], set:{c:12}, kids:CARDS([
-      'Write the title first', 'Say it plainer', 'Change key for the chorus',
-      'Swap the verse and the bridge', 'Half the tempo', 'Take a word out of every line',
-      'Steal a rhythm from somebody talking'
-    ])},
-    {k:'note', t:'Chords and form', b:[1,7,5,2], set:{c:14,
-      body:'**Verse —** \n\n**Chorus —** \n\n**Bridge —** '}},
-    {k:'audio', t:'Voice memo', b:[1,9,3,3], set:{c:10}},
-    {k:'checklist', t:'To finish it', b:[4,9,5,3], set:{c:6}, kids:[
-      {k:'task', t:'Demo'},
-      {k:'task', t:'Arrangement'},
-      {k:'task', t:'Record'},
-      {k:'task', t:'Mix and master'},
-      {k:'task', t:'Release'}
-    ]},
-    LINK('Rhymes', 'https://www.rhymezone.com', [1,12,4,1], 9),
-    LINK('Chords', 'https://www.hooktheory.com', [5,12,4,1], 9)
+    {k:'poem', t:'Lyrics', b:[1,1,4,6], set:{c:10}},
+    {k:'note', t:'Chords and structure', b:[5,1,4,4], set:{c:12, body:'**Key —** \n\n**Verse —** \n\n**Chorus —** \n\n**Bridge —** '}},
+    {k:'metronome', t:'Tempo', b:[5,5,2,2], set:{c:10, bpm:92}},
+    {k:'counter', t:'Takes', b:[7,5,2,2], set:{c:10}},
+    {k:'audio', t:'Voice memo', b:[1,7,4,3], set:{c:10}},
+    STAGES('sgstages', ['Idea','Lyrics','Demo','Arrangement','Record','Mix','Master','Release'], [5,7,4,5], 10),
+    {k:'progressbar', t:'Where it stands', b:[1,10,4,1], set:{c:13, tracks:'@sgstages'}},
+    LINK('Distribute it', 'https://distrokid.com', [1,11,4,1], 9)
   ]},
 
-  /* An essay is a claim, the structure that carries it, the draft and the
-     sources, and the passes a draft goes through before it is finished. The
-     candle is a writing sprint: light it and write until it is out. */
-  {key:'essay', sec:'project', nm:'Essay', ic:'feather', c:7, of:'writing', on:[
-    LABEL('The essay', [1,1,8,1], 7),
-    {k:'question', t:'What am I arguing?', b:[1,2,6,2], set:{c:10}},
-    {k:'candle', t:'Sprint', b:[7,2,2,5], set:{c:3, burn:25}},
-    {k:'outline', t:'Outline', b:[1,4,3,4], set:{c:14}},
-    {k:'essay', t:'Draft', b:[4,4,3,4], set:{c:7, onclick:'write'}},
-    MAKES('A source…', 'quote', [1,8,8,1], 5, '@sources'),
-    LIST('Sources', 'sources', [1,9,4,3], 5),
-    {k:'checklist', t:'Passes', b:[5,9,4,3], set:{c:6}, kids:[
-      {k:'task', t:'Zero draft, just get it down'},
-      {k:'task', t:'Structure'},
-      {k:'task', t:'Line edit'},
-      {k:'task', t:'Read it out loud'},
-      {k:'task', t:'Title and first line'},
-      {k:'task', t:'Send it'}
-    ]},
-    LINK('Tighten a sentence', 'https://hemingwayapp.com', [1,12,4,1], 9),
-    LINK('Thesaurus', 'https://www.thesaurus.com', [5,12,4,1], 9)
+  {key:'album', sec:'project', nm:'Album', ic:'music', c:10, of:'pj_album', on:[
+    {k:'progressbar', t:'Where it stands', b:[1,1,8,1], set:{c:13, tracks:'@alstages'}},
+    {k:'question', t:'What is the record about?', b:[1,2,4,3], set:{c:10, sref:'logline'}},
+    STAGES('alstages', ['Songs written','Demos','Tracklist','Recording','Mixing','Mastering','Artwork','Release'], [5,2,4,5], 10),
+    {k:'moodboard', t:'Artwork', b:[1,5,4,4], set:{c:13}},
+    CAL('Sessions and release', [5,7,4,4], 7),
+    {k:'metronome', t:'Tempo', b:[1,9,2,2], set:{c:10, bpm:100}},
+    LINK('Distribute it', 'https://distrokid.com', [3,9,2,1], 9),
+    LINK('Bandcamp', 'https://bandcamp.com', [3,10,2,1], 9)
+  ], boards:[{at:[1,0], on:[
+    {k:'song', t:'Track 1', b:[1,1,4,3], set:{c:10}},
+    {k:'song', t:'Track 2', b:[5,1,4,3], set:{c:10}},
+    {k:'song', t:'Track 3', b:[1,4,4,3], set:{c:10}},
+    {k:'song', t:'Track 4', b:[5,4,4,3], set:{c:10}},
+    {k:'song', t:'Track 5', b:[1,7,4,3], set:{c:10}},
+    {k:'song', t:'Track 6', b:[5,7,4,3], set:{c:10}},
+    {k:'note', t:'Tracklist', b:[1,10,8,3], set:{c:12}}
+  ]}]},
+
+  {key:'musical', sec:'project', nm:'Musical', ic:'music', c:12, of:'pj_musical', on:[
+    {k:'question', t:'What is it about?', b:[1,1,4,3], set:{c:10, sref:'logline'}},
+    {k:'script', t:'Book', b:[5,1,4,3], set:{c:9, onclick:'write'}},
+    {k:'drawer', t:'Characters', b:[1,4,4,3], set:{c:13}, kids:[
+      {k:'character', t:'The lead'}, {k:'character', t:'Who is in the way'}]},
+    {k:'outline', t:'Scenes and songs', b:[5,4,4,4], set:{c:14}},
+    STAGES('mustages', ['Story','Song list','Book draft','Songs demoed','Table read','Workshop','Staging'], [1,7,4,5], 12),
+    {k:'progressbar', t:'Where it stands', b:[5,8,4,1], set:{c:13, tracks:'@mustages'}},
+    {k:'metronome', t:'Tempo', b:[5,9,2,2], set:{c:10, bpm:110}},
+    LINK('Rehearsal space', 'https://www.peerspace.com', [7,9,2,1], 9)
+  ], boards:[{at:[1,0], on:[
+    {k:'poem', t:'Opening number', b:[1,1,4,4], set:{c:10}},
+    {k:'poem', t:'The I want song', b:[5,1,4,4], set:{c:10}},
+    {k:'poem', t:'Act one finale', b:[1,5,4,4], set:{c:10}},
+    {k:'poem', t:'Eleven o’clock number', b:[5,5,4,4], set:{c:10}},
+    {k:'audio', t:'Demos', b:[1,9,8,3], set:{c:10}}
+  ]}]},
+
+  {key:'play', sec:'project', nm:'Play', ic:'feather', c:8, of:'pj_play', on:[
+    {k:'question', t:'What is it about?', b:[1,1,4,3], set:{c:10, sref:'logline'}},
+    {k:'script', t:'The play', b:[5,1,4,4], set:{c:9, onclick:'write'}},
+    {k:'drawer', t:'Characters', b:[1,4,4,3], set:{c:13}, kids:[
+      {k:'character', t:'The lead'}, {k:'character', t:'Who is in the way'}]},
+    {k:'outline', t:'Scenes', b:[5,5,4,3], set:{c:14}},
+    STAGES('plstages', ['Idea','First draft','Reading','Rewrite','Casting','Rehearsals','Tech','Opening'], [1,7,4,5], 8),
+    {k:'progressbar', t:'Where it stands', b:[5,8,4,1], set:{c:13, tracks:'@plstages'}},
+    CAL('Rehearsals and shows', [5,9,4,3], 7)
   ]},
+
+  {key:'script', sec:'project', nm:'Screenplay', ic:'clapper', c:9, of:'pj_script', on:[
+    {k:'question', t:'What is it about?', b:[1,1,4,3], set:{c:10, sref:'logline'}},
+    {k:'script', t:'The script', b:[5,1,4,5], set:{c:9, onclick:'write'}},
+    {k:'outline', t:'Beats', b:[1,4,4,4], set:{c:14}},
+    {k:'tracker', t:'Pages a day', b:[5,6,4,2], set:{c:9, measure:{unit:'pages', goal:3, step:1}}},
+    STAGES('scstages', ['Logline','Treatment','Beat sheet','First draft','Notes','Rewrite','Polish'], [1,8,4,4], 9),
+    {k:'progressbar', t:'Where it stands', b:[5,8,4,1], set:{c:13, tracks:'@scstages'}},
+    {k:'drawer', t:'Characters', b:[5,9,4,2], set:{c:13}},
+    LINK('Write it', 'https://www.writerduet.com', [5,11,4,1], 9)
+  ]},
+
+  {key:'novel', rail:{left:['glass'], right:['spool','gear']}, sec:'project', nm:'Novel', ic:'book', c:11, of:'pj_novel', on:[
+    {k:'question', t:'What is it about?', b:[1,1,4,3], set:{c:10, sref:'logline'}},
+    {k:'tracker', t:'Words a day', b:[5,1,4,2], set:{c:11, sref:'words', measure:{unit:'words', goal:1000, step:250}}},
+    {k:'candle', t:'Write until it burns down', b:[5,3,2,2], set:{c:12}},
+    {k:'hourglass', t:'Sprint', b:[7,3,2,2], set:{c:12, mins:25}},
+    STAGES('nvstages', ['Premise','Outline','First draft','Second draft','Readers','Final draft','Query or publish'], [1,4,4,5], 11),
+    {k:'outline', t:'Chapters', b:[5,5,4,4], set:{c:14}},
+    {k:'progressbar', t:'Where it stands', b:[1,9,4,1], set:{c:13, tracks:'@nvstages'}},
+    {k:'book', t:'The manuscript', b:[5,9,2,3], set:{c:11}},
+    LINK('Find an agent', 'https://querytracker.net', [1,10,4,1], 9),
+    LINK('Write it', 'https://www.literatureandlatte.com/scrivener', [1,11,4,1], 9)
+  ], boards:[{at:[0,1], on:[
+    {k:'drawer', t:'Characters', b:[1,1,4,4], set:{c:13}, kids:[
+      {k:'character', t:'The lead'}, {k:'character', t:'Who is in the way'}, {k:'character', t:'The one who helps'}]},
+    {k:'world', t:'The world', b:[5,1,4,4], set:{c:9}},
+    {k:'drawer', t:'Places', b:[1,5,4,3], set:{c:12}, kids:[{k:'place', t:'Where it starts'}]},
+    {k:'drawer', t:'Research', b:[5,5,4,3], set:{c:14}},
+    {k:'moodboard', t:'Look and feel', b:[1,8,8,4], set:{c:13}}
+  ]}]},
+
+  {key:'shortstory', sec:'project', nm:'Short Story', ic:'feather', c:14, of:'pj_shortstory', on:[
+    {k:'question', t:'What is it about?', b:[1,1,4,3], set:{c:10, sref:'logline'}},
+    {k:'essay', t:'The story', b:[5,1,4,5], set:{c:14, onclick:'write'}},
+    {k:'drawer', t:'Characters', b:[1,4,4,3], set:{c:13}, kids:[{k:'character', t:'The lead'}]},
+    {k:'tracker', t:'Words a day', b:[5,6,4,2], set:{c:14, measure:{unit:'words', goal:500, step:100}}},
+    STAGES('ssstages', ['Idea','Draft','Rest it','Rewrite','Readers','Submit'], [1,7,4,5], 14),
+    {k:'progressbar', t:'Where it stands', b:[5,8,4,1], set:{c:13, tracks:'@ssstages'}},
+    {k:'candle', t:'Write until it burns down', b:[5,9,2,2], set:{c:12}},
+    LINK('Where to send it', 'https://chillsubs.com', [7,9,2,1], 9)
+  ]},
+
+  {key:'poem', sec:'project', nm:'Poem', ic:'feather', c:10, of:'pj_poem', on:[
+    {k:'poem', t:'The poem', b:[1,1,5,6], set:{c:10}},
+    {k:'deck', t:'A way in', b:[6,1,3,4], set:{c:10}, kids:CARDS([
+      'Begin with an object on the table', 'Write it as a letter', 'Only questions',
+      'Fourteen lines', 'The weather, and something else', 'Steal a first line'])},
+    {k:'hourglass', t:'Ten minutes', b:[6,5,3,2], set:{c:12, mins:10}},
+    {k:'drawer', t:'Drafts', b:[1,7,4,3], set:{c:14}},
+    {k:'note', t:'Lines worth keeping', b:[5,7,4,3], set:{c:12}},
+    LINK('Where to send it', 'https://chillsubs.com', [1,10,8,1], 9)
+  ]},
+
+  {key:'essay', sec:'project', nm:'Essay', ic:'feather', c:7, of:'writing', on:[
+    {k:'question', t:'What is the argument?', b:[1,1,4,3], set:{c:10, sref:'logline'}},
+    {k:'essay', t:'The essay', b:[5,1,4,5], set:{c:7, onclick:'write'}},
+    {k:'outline', t:'Outline', b:[1,4,4,4], set:{c:14}},
+    {k:'tracker', t:'Words a day', b:[5,6,4,2], set:{c:7, sref:'words', measure:{unit:'words', goal:500, step:100}}},
+    LIST('Sources', 'esrc', [1,8,4,4], 12),
+    STAGES('esstages', ['Research','Outline','Draft','Cut','Edit','Publish'], [5,8,4,4], 7),
+    LINK('Look it up', 'https://scholar.google.com', [1,12,4,1], 9),
+    {k:'progressbar', t:'Where it stands', b:[5,12,4,1], set:{c:13, tracks:'@esstages'}}
+  ]},
+
+  {key:'blogpost', sec:'project', nm:'Blog Post', ic:'send', c:5, of:'pj_blogpost', on:[
+    {k:'question', t:'Who is it for, and what will they get?', b:[1,1,4,3], set:{c:10, sref:'logline'}},
+    {k:'essay', t:'The post', b:[5,1,4,5], set:{c:5, onclick:'write'}},
+    {k:'outline', t:'Headings', b:[1,4,4,3], set:{c:14}},
+    {k:'appt', t:'Publish on', b:[1,7,4,2], set:{c:8, sref:'publish'}},
+    STAGES('bpstages', ['Idea','Draft','Pictures','Edit','Title and summary','Publish','Share it'], [5,6,4,6], 5),
+    {k:'moodboard', t:'Pictures', b:[1,9,4,3], set:{c:13}},
+    LINK('Your blog', '', [1,12,4,1], 9, 'site'),
+    {k:'progressbar', t:'Where it stands', b:[5,12,4,1], set:{c:13, tracks:'@bpstages'}}
+  ]},
+
+  {key:'application', sec:'project', nm:'Application', ic:'grid', c:14, of:'app', on:[
+    {k:'question', t:'What does it do, for whom?', b:[1,1,4,3], set:{c:10, sref:'logline'}},
+    {k:'progressbar', t:'This release', b:[5,1,4,1], set:{c:13, tracks:'@apstages'}},
+    STAGES('apstages', ['Sketch','Prototype','Core feature','Test with someone','Polish','Ship'], [5,2,4,5], 14),
+    {k:'moodboard', t:'Screens', b:[1,4,4,4], set:{c:13}},
+    {k:'checklist', t:'Bugs', b:[5,7,4,4], set:{c:1}},
+    {k:'problem', t:'The hard part', b:[1,8,4,3], set:{c:10}},
+    LINK('The repository', 'https://github.com', [1,11,4,1], 9, 'repo'),
+    LINK('Design', 'https://www.figma.com', [5,11,4,1], 9)
+  ]},
+
+  {key:'website', sec:'project', nm:'Website', ic:'grid', c:13, of:'pj_website', on:[
+    {k:'question', t:'Who is it for, and what should they do?', b:[1,1,4,3], set:{c:10, sref:'logline'}},
+    {k:'outline', t:'Pages', b:[5,1,4,4], set:{c:14}},
+    {k:'moodboard', t:'Look', b:[1,4,4,4], set:{c:13}},
+    STAGES('wbstages', ['Pages and words','Look','Build','Content in','Test on a phone','Launch'], [5,5,4,5], 13),
+    {k:'essay', t:'The words', b:[1,8,4,3], set:{c:7, onclick:'write'}},
+    {k:'progressbar', t:'Where it stands', b:[5,10,4,1], set:{c:13, tracks:'@wbstages'}},
+    LINK('The site', '', [1,11,4,1], 9, 'site'),
+    LINK('Hosting', 'https://pages.github.com', [5,11,4,1], 9)
+  ]},
+
+  {key:'game', sec:'project', nm:'Game', ic:'grid', c:9, of:'game', on:[
+    {k:'question', t:'What does the player do?', b:[1,1,4,3], set:{c:10, sref:'logline'}},
+    {k:'book', t:'The rules', b:[5,1,2,4], set:{c:9}},
+    {k:'die', t:'Test roll', b:[7,1,2,2], set:{c:14, sides:6}},
+    {k:'deck', t:'Cards to try', b:[7,3,2,2], set:{c:10}, kids:CARDS(['A card', 'Another card'])},
+    STAGES('gmstages', ['Core loop','Paper prototype','First playtest','Rules rewrite','Art','Second playtest','Release'], [1,4,4,5], 9),
+    {k:'outline', t:'Mechanics', b:[5,5,4,4], set:{c:14}},
+    {k:'progressbar', t:'Where it stands', b:[1,9,4,1], set:{c:13, tracks:'@gmstages'}},
+    {k:'note', t:'Playtest notes', b:[1,10,4,2], set:{c:12}},
+    LINK('Print and play', 'https://www.thegamecrafter.com', [5,9,4,1], 9),
+    LINK('Engine', 'https://godotengine.org', [5,10,4,1], 9)
+  ]},
+
+  {key:'world', sec:'project', nm:'Fantasy World', ic:'star', c:9, of:'world', on:[
+    {k:'question', t:'What makes it different?', b:[1,1,4,3], set:{c:10, sref:'logline'}},
+    {k:'timeline', t:'History', b:[5,1,4,3], set:{c:9}},
+    {k:'drawer', t:'Places', b:[1,4,4,4], set:{c:12}, kids:[{k:'place', t:'The capital'}, {k:'place', t:'The edge of the map'}]},
+    {k:'drawer', t:'Peoples and groups', b:[5,4,4,4], set:{c:13}, kids:[{k:'group', t:'Those in power'}]},
+    {k:'drawer', t:'Laws of the world', b:[1,8,4,4], set:{c:14}, kids:[{k:'law', t:'How magic works'}, {k:'law', t:'What it costs'}]},
+    {k:'die', t:'Roll for it', b:[5,8,2,2], set:{c:14, sides:20}},
+    {k:'deck', t:'What if…', b:[7,8,2,2], set:{c:10}, kids:CARDS(['A war nobody remembers', 'A god who left', 'A trade route', 'A forbidden word'])},
+    {k:'drawer', t:'Characters', b:[5,10,4,2], set:{c:13}}
+  ]},
+
+  {key:'device', sec:'project', nm:'Device', ic:'sliders', c:15, of:'pj_device', on:[
+    {k:'question', t:'What does it do?', b:[1,1,4,3], set:{c:10, sref:'logline'}},
+    {k:'checklist', t:'Parts', b:[5,1,4,5], set:{c:15}},
+    {k:'moodboard', t:'Sketches and wiring', b:[1,4,4,4], set:{c:13}},
+    STAGES('dvstages', ['Sketch','Parts ordered','Breadboard','Firmware','Enclosure','Test','Done'], [5,6,4,5], 15),
+    {k:'problem', t:'What is not working', b:[1,8,4,3], set:{c:1}},
+    {k:'progressbar', t:'Where it stands', b:[1,11,4,1], set:{c:13, tracks:'@dvstages'}},
+    LINK('Parts', 'https://www.digikey.com', [5,11,4,1], 9),
+    LINK('Code', 'https://github.com', [5,12,4,1], 9)
+  ]},
+
+  {key:'handmade', sec:'project', nm:'Handmade Object', ic:'star', c:6, of:'pj_handmade', on:[
+    {k:'question', t:'What is it, and who is it for?', b:[1,1,4,3], set:{c:10, sref:'logline'}},
+    {k:'checklist', t:'Materials', b:[5,1,4,5], set:{c:6}},
+    {k:'moodboard', t:'References', b:[1,4,4,4], set:{c:13}},
+    STAGES('hmstages', ['Design','Materials','Make a test','Make it','Finish','Give it or keep it'], [5,6,4,5], 6),
+    {k:'tracker', t:'Hours at the bench', b:[1,8,4,2], set:{c:6, measure:{unit:'hours', goal:1, step:0.5}}},
+    {k:'hourglass', t:'One session', b:[1,10,2,2], set:{c:12, mins:45}},
+    {k:'progressbar', t:'Where it stands', b:[3,10,2,1], set:{c:13, tracks:'@hmstages'}},
+    LINK('Supplies', 'https://www.etsy.com', [5,11,4,1], 9)
+  ]},
+
+  {key:'artwork', sec:'project', inbox:'note', nm:'Artwork', ic:'image', c:12, of:'artpiece', on:[
+    {k:'question', t:'What is it about?', b:[1,1,4,3], set:{c:10, sref:'logline'}},
+    {k:'moodboard', t:'Studies', b:[5,1,4,5], set:{c:13}},
+    {k:'moodboard', t:'References', b:[1,4,4,4], set:{c:13}},
+    {k:'tracker', t:'Hours making', b:[5,6,4,2], set:{c:12, measure:{unit:'hours', goal:1, step:0.5}}},
+    STAGES('awstages', ['Sketches','Studies','Materials','Underpainting','The work','Finish','Photograph it'], [1,8,4,4], 12),
+    {k:'progressbar', t:'Where it stands', b:[5,8,4,1], set:{c:13, tracks:'@awstages'}},
+    {k:'hourglass', t:'A timed study', b:[5,9,2,2], set:{c:12, mins:20}},
+    LINK('Supplies', 'https://www.blickart.com', [7,9,2,1], 9)
+  ]},
+
+
+
   /* ============================================================
      The twenty-three that followed (decision 196)
      ============================================================
@@ -738,306 +983,20 @@ const SPECS = [
 
   /* ---- a piece of work, continued ------------------------------------ */
 
-  {key:'featurefilm', sec:'project', nm:'Feature Film', ic:'clapper', c:9, of:'film', on:[
-    LABEL('The film', [1,1,8,1], 9),
-    {k:'progressbar', t:'Where it stands', b:[1,2,8,1], set:{c:13, tracks:'@ffstages'}},
-    {k:'checklist', t:'Stages', ref:'ffstages', b:[1,3,4,5], set:{c:9}, kids:[
-      {k:'task', t:'Treatment'}, {k:'task', t:'First draft'}, {k:'task', t:'Rewrite'},
-      {k:'task', t:'Financing'}, {k:'task', t:'Casting'}, {k:'task', t:'Crew'},
-      {k:'task', t:'Locations'}, {k:'task', t:'Schedule'}, {k:'task', t:'Shoot'},
-      {k:'task', t:'Edit'}, {k:'task', t:'Sound and music'}, {k:'task', t:'Colour'},
-      {k:'task', t:'Festivals and distribution'}
-    ]},
-    {k:'question', t:'What is it about?', b:[5,3,4,3], set:{c:10}},
-    {k:'script', t:'Screenplay', b:[5,6,4,2], set:{c:9, onclick:'write'}},
-    {k:'outline', t:'Treatment', b:[1,8,4,2], set:{c:14}},
-    {k:'drawer', t:'Characters', b:[5,8,4,2], set:{c:13}, kids:[
-      {k:'character', t:'The lead'}, {k:'character', t:'Who is in the way'}
-    ]},
-    CAL('Production', [1,10,4,3], 7),
-    LINK('Schedule and budget', 'https://www.studiobinder.com', [5,10,4,1], 9),
-    LINK('Write the screenplay', 'https://www.writerduet.com', [5,11,4,1], 9),
-    LINK('Festivals', 'https://filmfreeway.com', [5,12,4,1], 9)
-  ]},
 
-  {key:'play', sec:'project', nm:'Play', ic:'feather', c:8, of:'project', on:[
-    LABEL('The play', [1,1,8,1], 8),
-    {k:'question', t:'What is it about?', b:[1,2,5,2], set:{c:10}},
-    {k:'drawer', t:'Characters', b:[6,2,3,3], set:{c:13}, kids:[
-      {k:'character', t:'Who it is about'}, {k:'character', t:'Who is in the way'}
-    ]},
-    {k:'script', t:'The script', b:[1,4,5,4], set:{c:9, onclick:'write'}},
-    {k:'outline', t:'Acts and scenes', b:[6,5,3,3], set:{c:14}},
-    {k:'checklist', t:'To the stage', b:[1,8,4,4], set:{c:6}, kids:[
-      {k:'task', t:'First draft'}, {k:'task', t:'Table read'}, {k:'task', t:'Rewrite'},
-      {k:'task', t:'Find a theatre'}, {k:'task', t:'Cast'}, {k:'task', t:'Rehearse'},
-      {k:'task', t:'Opening night'}
-    ]},
-    CAL('Rehearsals', [5,8,4,3], 7),
-    LINK('Share it with theatres', 'https://newplayexchange.org', [5,11,4,1], 9)
-  ]},
 
-  {key:'musical', sec:'project', nm:'Musical', ic:'music', c:12, of:'project', on:[
-    LABEL('The musical', [1,1,8,1], 12),
-    {k:'question', t:'What is it about?', b:[1,2,5,2], set:{c:10}},
-    {k:'metronome', t:'Tempo', b:[6,2,3,4], set:{c:11, bpm:112}},
-    {k:'script', t:'The book', b:[1,4,5,3], set:{c:9, onclick:'write'}},
-    {k:'drawer', t:'Songs', b:[1,7,5,2], set:{c:10}, kids:[
-      {k:'poem', t:'Opening number'}, {k:'poem', t:'The I want song'},
-      {k:'poem', t:'Eleven o’clock number'}
-    ]},
-    {k:'outline', t:'Song list', b:[6,6,3,3], set:{c:14}},
-    {k:'checklist', t:'To the stage', b:[1,9,4,3], set:{c:6}, kids:[
-      {k:'task', t:'Book draft'}, {k:'task', t:'Score demos'}, {k:'task', t:'Workshop reading'},
-      {k:'task', t:'Orchestration'}, {k:'task', t:'Cast'}, {k:'task', t:'Rehearse'},
-      {k:'task', t:'Opening night'}
-    ]},
-    CAL('Workshops and rehearsals', [5,9,4,3], 7),
-    LINK('Rhymes', 'https://www.rhymezone.com', [1,12,4,1], 9),
-    LINK('Notation', 'https://musescore.com', [5,12,4,1], 9)
-  ]},
 
-  {key:'tvshow', sec:'project', nm:'TV Show', ic:'film', c:9, of:'project', on:[
-    LABEL('The show', [1,1,8,1], 9),
-    {k:'question', t:'What keeps it going?', b:[1,2,5,2], set:{c:10,
-      body:'**The premise —** \n\n**Why it runs for seasons —** '}},
-    {k:'note', t:'Show bible', b:[6,2,3,4], set:{c:14}},
-    {k:'drawer', t:'Characters', b:[1,4,5,2], set:{c:13}, kids:[
-      {k:'character', t:'The lead'}, {k:'character', t:'The ensemble'}
-    ]},
-    {k:'checklist', t:'Episodes', b:[1,6,4,5], set:{c:9}, kids:[
-      {k:'task', t:'Pilot'}, {k:'task', t:'Episode two'}, {k:'task', t:'Episode three'},
-      {k:'task', t:'Episode four'}, {k:'task', t:'Episode five'}, {k:'task', t:'Finale'}
-    ]},
-    {k:'script', t:'Pilot', b:[5,6,4,3], set:{c:9, onclick:'write'}},
-    {k:'outline', t:'Season arc', b:[5,9,4,2], set:{c:14}},
-    LINK('Write the scripts', 'https://www.writerduet.com', [1,11,4,1], 9),
-    LINK('The Black List', 'https://blcklst.com', [5,11,4,1], 9)
-  ]},
 
-  {key:'shortstory', sec:'project', nm:'Short Story', ic:'feather', c:14, of:'project', on:[
-    LABEL('The story', [1,1,8,1], 14),
-    {k:'question', t:'What changes?', b:[1,2,6,2], set:{c:10}},
-    {k:'candle', t:'Sprint', b:[7,2,2,5], set:{c:3, burn:25}},
-    {k:'drawer', t:'People and places', b:[1,4,3,3], set:{c:13}, kids:[
-      {k:'character', t:'Who it is about'}, {k:'place', t:'Where it happens'}
-    ]},
-    {k:'essay', t:'Draft', b:[4,4,3,4], set:{c:7, onclick:'write'}},
-    {k:'outline', t:'Scenes', b:[1,7,3,2], set:{c:14}},
-    {k:'checklist', t:'Passes', b:[1,9,4,3], set:{c:6}, kids:[
-      {k:'task', t:'Draft'}, {k:'task', t:'Cut a third'}, {k:'task', t:'Read it aloud'},
-      {k:'task', t:'Title'}, {k:'task', t:'Send it out'}
-    ]},
-    LINK('Submit it', 'https://www.submittable.com', [5,9,4,1], 9),
-    LINK('Where to send it', 'https://duotrope.com', [5,10,4,1], 9),
-    LINK('Thesaurus', 'https://www.thesaurus.com', [5,11,4,1], 9)
-  ]},
 
-  {key:'application', sec:'project', nm:'Application', ic:'grid', c:14, of:'app', on:[
-    LABEL('The app', [1,1,8,1], 14),
-    {k:'progressbar', t:'Where it stands', b:[1,2,8,1], set:{c:13, tracks:'@build'}},
-    {k:'question', t:'Who is it for, and what does it do?', b:[1,3,5,2], set:{c:10}},
-    {k:'moodboard', t:'Screens', b:[6,3,3,3], set:{c:13}},
-    {k:'checklist', t:'Build', ref:'build', b:[1,5,5,5], set:{c:14}, kids:[
-      {k:'task', t:'Sketch the screens'}, {k:'task', t:'Prototype'},
-      {k:'task', t:'The one feature that matters'}, {k:'task', t:'Test it with someone'},
-      {k:'task', t:'Fix what they found'}, {k:'task', t:'Ship it'}
-    ]},
-    {k:'problem', t:'What is broken', b:[6,6,3,4], set:{c:8}},
-    LINK('Repository', 'https://github.com', [1,10,4,1], 9),
-    LINK('Design', 'https://www.figma.com', [5,10,4,1], 9),
-    LINK('Ask Claude', 'https://claude.ai', [1,11,4,1], 9)
-  ]},
 
-  {key:'blogpost', sec:'project', nm:'Blog Post', ic:'send', c:5, of:'writing', on:[
-    LABEL('The post', [1,1,8,1], 5),
-    {k:'question', t:'What is the one point?', b:[1,2,6,2], set:{c:10}},
-    {k:'candle', t:'Sprint', b:[7,2,2,5], set:{c:3, burn:25}},
-    {k:'essay', t:'Draft', b:[1,4,6,4], set:{c:7, onclick:'write'}},
-    MAKES('A link to cite…', 'quote', [1,8,8,1], 5, '@bsources'),
-    {k:'checklist', t:'Before it goes up', b:[1,9,4,3], set:{c:6}, kids:[
-      {k:'task', t:'Headline'}, {k:'task', t:'First line'}, {k:'task', t:'Pictures'},
-      {k:'task', t:'Every link works'}, {k:'task', t:'Read it once more'},
-      {k:'task', t:'Publish'}, {k:'task', t:'Tell people'}
-    ]},
-    LIST('Sources', 'bsources', [5,9,4,3], 5),
-    LINK('Publish', 'https://substack.com', [1,12,4,1], 9),
-    LINK('Tighten a sentence', 'https://hemingwayapp.com', [5,12,4,1], 9)
-  ]},
 
-  {key:'website', sec:'project', nm:'Website', ic:'grid', c:13, of:'app', on:[
-    LABEL('The site', [1,1,8,1], 13),
-    {k:'question', t:'What is it for?', b:[1,2,5,2], set:{c:10}},
-    {k:'outline', t:'Pages', b:[6,2,3,3], set:{c:14}},
-    {k:'moodboard', t:'Look and feel', b:[1,4,5,3], set:{c:13}},
-    {k:'checklist', t:'Launch', b:[1,7,4,5], set:{c:6}, kids:[
-      {k:'task', t:'Domain'}, {k:'task', t:'Sitemap'}, {k:'task', t:'Words for each page'},
-      {k:'task', t:'Design'}, {k:'task', t:'Build'}, {k:'task', t:'Test it on a phone'},
-      {k:'task', t:'Launch'}
-    ]},
-    {k:'essay', t:'The words', b:[5,7,4,3], set:{c:7, onclick:'write'}},
-    LINK('Domains', 'https://domains.squarespace.com', [5,10,4,1], 9),
-    LINK('Free hosting', 'https://pages.github.com', [5,11,4,1], 9)
-  ]},
 
-  {key:'novel', rail:{left:['glass'], right:['spool','gear']}, sec:'project', nm:'Novel', ic:'book', c:11, of:'project', on:[
-    LABEL('The novel', [1,1,8,1], 11),
-    {k:'question', t:'What is it about?', b:[1,2,6,2], set:{c:10}},
-    {k:'candle', t:'Sprint', b:[7,2,2,5], set:{c:3, burn:45}},
-    {k:'outline', t:'Chapters', b:[1,4,6,4], set:{c:14}},
-    {k:'counter', t:'Writing days', b:[5,8,4,2], set:{c:8}},
-    {k:'checklist', t:'Drafts', b:[1,8,4,4], set:{c:6}, kids:[
-      {k:'task', t:'Outline'}, {k:'task', t:'First draft'}, {k:'task', t:'Second draft'},
-      {k:'task', t:'Beta readers'}, {k:'task', t:'Revise'}, {k:'task', t:'Query agents'}
-    ]},
-    LINK('Query agents', 'https://querytracker.net', [5,10,4,1], 9),
-    LINK('Thesaurus', 'https://www.thesaurus.com', [5,11,4,1], 9)
-  ],
-  /* **Five boards in a column** (decision 219): the novel at the top, and
-     under it, one swipe down each, the people, the place, what you read and
-     the rewriting. A book is long, and each of these fills a board by
-     itself before it is finished. */
-  boards:[
-    {at:[0,1], on:[
-      MAKES('Someone new…', 'character', [1,1,8,1], 13, '@nvcast'),
-      {k:'drawer', t:'The cast', ref:'nvcast', b:[1,2,4,6], set:{c:13}, kids:[
-        {k:'character', t:'Who it is about'}, {k:'character', t:'Who is in the way'}
-      ]},
-      {k:'note', t:'What each one wants', b:[5,2,4,6], set:{c:12,
-        body:'**Wants —** \n\n**Needs —** \n\n**Stands in the way —** '}},
-      {k:'note', t:'Voices', b:[1,8,8,3], set:{c:10}, body:'A line of dialogue for each of them, to hear them by.'}
-    ]},
-    {at:[0,2], on:[
-      {k:'world', t:'The world', b:[1,1,4,5], set:{c:9}},
-      {k:'note', t:'Rules of the place', b:[5,1,4,5], set:{c:9}},
-      {k:'moodboard', t:'What it looks like', b:[1,6,8,5], set:{c:11}}
-    ]},
-    {at:[0,3], on:[
-      MAKES('Something to look up…', 'task', [1,1,8,1], 7, '@nvresearch'),
-      LIST('To look up', 'nvresearch', [1,2,4,6], 7),
-      {k:'note', t:'Notes', b:[5,2,4,6], set:{c:12}},
-      LINK('Library catalogue', 'https://www.worldcat.org', [1,8,4,1], 9),
-      LINK('Wikipedia', 'https://www.wikipedia.org', [5,8,4,1], 9)
-    ]},
-    {at:[0,4], on:[
-      {k:'checklist', t:'Revision passes', b:[1,1,4,6], set:{c:6}, kids:[
-        {k:'task', t:'Structure'}, {k:'task', t:'Character'}, {k:'task', t:'Scene by scene'},
-        {k:'task', t:'Line edit'}, {k:'task', t:'Proofread'}
-      ]},
-      {k:'note', t:'What readers said', b:[5,1,4,6], set:{c:10}},
-      {k:'counter', t:'Words cut', b:[1,7,4,2], set:{c:8}},
-      {k:'candle', t:'Editing sprint', b:[5,7,4,2], set:{c:3, burn:30}}
-    ]}
-  ]},
 
-  {key:'poem', sec:'project', nm:'Poem', ic:'feather', c:10, of:'project', on:[
-    LABEL('The poem', [1,1,8,1], 10),
-    {k:'poem', t:'Draft', b:[1,2,5,6], set:{c:10, onclick:'write'}},
-    {k:'deck', t:'A way in', b:[6,2,3,4], set:{c:12}, kids:CARDS([
-      'Start with an object on your desk', 'Write it to someone who cannot answer',
-      'One sentence, however long', 'Begin with a smell',
-      'Say the opposite of what you mean', 'Only words of one syllable'
-    ])},
-    {k:'hourglass', t:'Ten minutes', b:[6,6,3,4], set:{c:12, mins:10}},
-    {k:'checklist', t:'Before it is done', b:[1,8,5,3], set:{c:6}, kids:[
-      {k:'task', t:'Read it aloud'}, {k:'task', t:'Cut the first line'},
-      {k:'task', t:'Check every line break'}, {k:'task', t:'Title'}, {k:'task', t:'Send it'}
-    ]},
-    LINK('Rhymes', 'https://www.rhymezone.com', [1,11,4,1], 9),
-    LINK('Poetry Foundation', 'https://www.poetryfoundation.org', [5,11,4,1], 9)
-  ]},
 
-  {key:'album', sec:'project', nm:'Album', ic:'music', c:10, of:'project', on:[
-    LABEL('The album', [1,1,8,1], 10),
-    {k:'progressbar', t:'Where it stands', b:[1,2,8,1], set:{c:13, tracks:'@tracks'}},
-    {k:'checklist', t:'Tracks', ref:'tracks', b:[1,3,4,6], set:{c:10}, kids:[
-      {k:'task', t:'The opener'}, {k:'task', t:'The single'},
-      {k:'task', t:'The slow one'}, {k:'task', t:'The closer'}
-    ]},
-    {k:'metronome', t:'Tempo', b:[5,3,3,4], set:{c:11, bpm:100}},
-    {k:'moodboard', t:'Artwork', b:[5,7,4,3], set:{c:13}},
-    {k:'checklist', t:'Release', b:[1,9,4,3], set:{c:6}, kids:[
-      {k:'task', t:'Mix'}, {k:'task', t:'Master'}, {k:'task', t:'Artwork'},
-      {k:'task', t:'Distributor'}, {k:'task', t:'Release date'}, {k:'task', t:'Tell people'}
-    ]},
-    CAL('Sessions and release', [5,10,4,3], 7),
-    LINK('Distribution', 'https://distrokid.com', [1,12,4,1], 9)
-  ]},
 
-  {key:'game', sec:'project', nm:'Game', ic:'grid', c:9, of:'game', on:[
-    LABEL('The game', [1,1,8,1], 9),
-    {k:'question', t:'What is the fun?', b:[1,2,5,2], set:{c:10,
-      body:'**The core loop —** \n\n**What the player feels —** '}},
-    {k:'die', t:'Test roll', b:[6,2,2,2], set:{c:14, sides:6}},
-    {k:'deck', t:'Mechanics to try', b:[1,4,3,4], set:{c:12}, kids:CARDS([
-      'Push your luck', 'Hidden information', 'Set collection',
-      'Worker placement', 'Deck building', 'A timer'
-    ])},
-    {k:'outline', t:'Rules', b:[4,4,5,4], set:{c:14}},
-    {k:'checklist', t:'Playtest', b:[1,8,4,4], set:{c:6}, kids:[
-      {k:'task', t:'Paper prototype'}, {k:'task', t:'First playtest'},
-      {k:'task', t:'Fix the rules'}, {k:'task', t:'Art'},
-      {k:'task', t:'Second playtest'}, {k:'task', t:'Release'}
-    ]},
-    {k:'drawer', t:'Art and assets', b:[5,8,4,2], set:{c:13}},
-    LINK('Put it out', 'https://itch.io', [5,10,4,1], 9),
-    LINK('Engine', 'https://godotengine.org', [5,11,4,1], 9)
-  ]},
 
-  {key:'device', sec:'project', nm:'Device', ic:'sliders', c:15, of:'project', on:[
-    LABEL('The device', [1,1,8,1], 15),
-    {k:'question', t:'What does it do?', b:[1,2,5,2], set:{c:10}},
-    {k:'checklist', t:'Parts', b:[6,2,3,5], set:{c:11}, kids:[
-      {k:'task', t:'Microcontroller'}, {k:'task', t:'Power'}, {k:'task', t:'Enclosure'}
-    ]},
-    {k:'moodboard', t:'Sketches', b:[1,4,5,3], set:{c:13}},
-    {k:'checklist', t:'Build', b:[1,7,4,5], set:{c:6}, kids:[
-      {k:'task', t:'Breadboard it'}, {k:'task', t:'Firmware that blinks'},
-      {k:'task', t:'Schematic'}, {k:'task', t:'Board'},
-      {k:'task', t:'Enclosure'}, {k:'task', t:'Live with it for a week'}
-    ]},
-    {k:'problem', t:'What is not working', b:[5,7,4,3], set:{c:8}},
-    LINK('Parts', 'https://www.digikey.com', [5,10,4,1], 9),
-    LINK('Circuit boards', 'https://jlcpcb.com', [5,11,4,1], 9)
-  ]},
 
-  {key:'world', sec:'project', nm:'Fantasy World', ic:'star', c:9, of:'world', on:[
-    LABEL('The world', [1,1,8,1], 9),
-    {k:'question', t:'What is different here?', b:[1,2,5,2], set:{c:10}},
-    {k:'die', t:'Fate', b:[6,2,2,2], set:{c:14, sides:20}},
-    {k:'drawer', t:'People', b:[1,4,4,3], set:{c:13}, kids:[
-      {k:'character', t:'Someone who matters'}, {k:'group', t:'A people or an order'}
-    ]},
-    {k:'drawer', t:'Places', b:[5,4,4,3], set:{c:7}, kids:[
-      {k:'place', t:'Where it starts'}, {k:'place', t:'Where nobody goes'}
-    ]},
-    {k:'timeline', t:'History', b:[1,7,8,2], set:{c:5}},
-    {k:'drawer', t:'Laws and magic', b:[1,9,4,3], set:{c:8}, kids:[
-      {k:'law', t:'How magic works'}, {k:'law', t:'What it costs'}
-    ]},
-    {k:'deck', t:'What if', b:[5,9,3,4], set:{c:12}, kids:CARDS([
-      'A war nobody remembers starting', 'A god that has gone quiet',
-      'A trade route that just closed', 'A child with the wrong gift',
-      'A map that is wrong on purpose', 'A festival everybody dreads'
-    ])},
-    LINK('Draw the map', 'https://inkarnate.com', [1,12,4,1], 9)
-  ]},
 
-  {key:'handmade', sec:'project', nm:'Handmade Object', ic:'star', c:6, of:'project', on:[
-    LABEL('The object', [1,1,8,1], 6),
-    {k:'question', t:'What is it, and who is it for?', b:[1,2,5,2], set:{c:10}},
-    {k:'moodboard', t:'Sketches and references', b:[6,2,3,4], set:{c:13}},
-    {k:'checklist', t:'Materials', b:[1,4,5,4], set:{c:11}, kids:[
-      {k:'task', t:'The material'}, {k:'task', t:'Fixings'}, {k:'task', t:'Finish'}
-    ]},
-    {k:'hourglass', t:'Glue sets', b:[6,6,3,4], set:{c:12, mins:30}},
-    {k:'checklist', t:'Steps', b:[1,8,4,4], set:{c:6}, kids:[
-      {k:'task', t:'Sketch it'}, {k:'task', t:'Measure twice'}, {k:'task', t:'Rough it out'},
-      {k:'task', t:'Refine'}, {k:'task', t:'Finish'}, {k:'task', t:'Photograph it'}
-    ]},
-    LINK('Materials', 'https://www.mcmaster.com', [5,10,4,1], 9),
-    LINK('How others did it', 'https://www.instructables.com', [5,11,4,1], 9)
-  ]},
 
   /* ============================================================
      The flows Timothy added in the Workshop (decision 218)
@@ -1049,63 +1008,9 @@ const SPECS = [
      than for one part of a life or one piece of work. */
 
 
-  {key:'artwork', sec:'project', inbox:'note', nm:'Artwork', ic:'image', c:12, of:'artpiece', on:[
-    LABEL('The artwork', [1,1,8,1], 12),
-    {k:'progressbar', t:'Where it stands', b:[1,2,8,1], set:{c:13, tracks:'@awstages'}},
-    {k:'checklist', t:'Stages', ref:'awstages', b:[1,3,4,4], set:{c:12}, kids:[
-      {k:'task', t:'Sketches'}, {k:'task', t:'Reference'}, {k:'task', t:'Materials'},
-      {k:'task', t:'First layer'}, {k:'task', t:'Develop'}, {k:'task', t:'Finish'},
-      {k:'task', t:'Photograph it'}, {k:'task', t:'Frame or share'}
-    ]},
-    {k:'moodboard', t:'References', b:[5,3,4,4], set:{c:13}},
-    {k:'checklist', t:'Materials to get', b:[1,7,4,3], set:{c:6}},
-    {k:'hourglass', t:'Work session', b:[5,7,2,3], set:{c:12, mins:45}},
-    {k:'deck', t:'Prompts', b:[7,7,2,3], set:{c:10}, kids:CARDS([
-      'Only three colours', 'Work bigger', 'Draw it from memory',
-      'The ten-minute version', 'Change the light', 'Leave something out'
-    ])},
-    MAKES('A note on it…', 'note', [1,10,8,1], 12),
-    LINK('Cara', 'https://cara.app', [1,11,4,1], 9),
-    LINK('Instagram', 'https://www.instagram.com', [5,11,4,1], 9)
-  ]},
 
 
-  {key:'script', sec:'project', nm:'Script', ic:'clapper', c:9, of:'project', on:[
-    LABEL('The script', [1,1,8,1], 9),
-    {k:'progressbar', t:'Where it stands', b:[1,2,8,1], set:{c:13, tracks:'@scstages'}},
-    {k:'checklist', t:'Stages', ref:'scstages', b:[1,3,4,5], set:{c:9}, kids:[
-      {k:'task', t:'Logline'}, {k:'task', t:'Outline'}, {k:'task', t:'Beat sheet'},
-      {k:'task', t:'First draft'}, {k:'task', t:'Table read'}, {k:'task', t:'Rewrite'},
-      {k:'task', t:'Polish'}, {k:'task', t:'Send it out'}
-    ]},
-    {k:'script', t:'Draft', b:[5,3,4,5], set:{c:9}},
-    {k:'deck', t:'Stuck?', b:[1,8,3,3], set:{c:10}, kids:CARDS([
-      'Cut the first line of the scene', 'What does she want right now?', 'Enter late, leave early',
-      'Say it without dialogue', 'What could go wrong?', 'Read it out loud'
-    ])},
-    MAKES('A character…', 'character', [4,8,5,1], 13, '@scchars'),
-    LIST('Characters', 'scchars', [4,9,5,2], 13),
-    LINK('WriterDuet', 'https://www.writerduet.com', [1,11,4,1], 9),
-    LINK('The Black List', 'https://blcklst.com', [5,11,4,1], 9)
-  ]},
 
-  {key:'videoessay', sec:'project', nm:'Video Essay', ic:'film', c:13, of:'project', on:[
-    LABEL('The video essay', [1,1,8,1], 13),
-    {k:'progressbar', t:'Where it stands', b:[1,2,8,1], set:{c:13, tracks:'@vestages'}},
-    {k:'checklist', t:'Stages', ref:'vestages', b:[1,3,4,5], set:{c:13}, kids:[
-      {k:'task', t:'Thesis'}, {k:'task', t:'Research'}, {k:'task', t:'Outline'},
-      {k:'task', t:'Script'}, {k:'task', t:'Record the voiceover'}, {k:'task', t:'Gather footage'},
-      {k:'task', t:'Rough cut'}, {k:'task', t:'Graphics'}, {k:'task', t:'Final cut'},
-      {k:'task', t:'Thumbnail and title'}, {k:'task', t:'Publish'}
-    ]},
-    {k:'moodboard', t:'Clips and stills', b:[5,3,4,3], set:{c:13}},
-    {k:'checklist', t:'Sources', ref:'vesources', b:[5,6,4,2], set:{c:7}},
-    {k:'note', t:'Thesis', b:[1,8,4,2], set:{c:12}, body:'One sentence: what are you arguing?'},
-    CAL('Schedule', [5,8,4,2], 7),
-    MAKES('A source…', 'task', [1,10,8,1], 7, '@vesources'),
-    LINK('YouTube Studio', 'https://studio.youtube.com', [1,11,4,1], 9),
-    LINK('Internet Archive', 'https://archive.org', [5,11,4,1], 9)
-  ]},
 
   // "Allows you to easily add anything to a bucket and helps you sort it."
   {key:'braindump', rail:{left:['glass','block','coin'], right:['lock','gear']}, sec:'work', inbox:'note', nm:'Brain Dump', ic:'inbox', c:5, of:'wf_braindump', on:[
