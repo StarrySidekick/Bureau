@@ -10,7 +10,7 @@ import { S, KINDS, SHAPES, shapeChoices, SORTS, childrenOf, container, relate, d
   prioOf, repeatOf, repeatSaid, nextRepeat, boardLocked, BINDINGS, bindingOf, PANELS, panelOf,
   isHeld, heldObjects, tiltMode, READS, goalStanding, dz, ASPECT_KINDS } from './model.js';
 import { shelfRows, shelvesOf, shelfAt, setShelf, freeSpot, anySpot, roomFor, boxOk, innerOf, colsOf,
-  isBoard, boardsOf, addBoard, removeBoard, dimsOf } from './grid.js';
+  isBoard, boardsOf, addBoard, removeBoard, dimsOf, rangeOfKind, randomSizeOf, inRange } from './grid.js';
 import { create, setBoardDims, setPin, togglePin, del, delMany, delDrawer, undo, redo, toggleDone, spawnNext, setGridSize,
   CONTROLS, ctlSaid, ctlIsOn, ctlPress,
   holdIt, unholdIt , toast, someKind, furnish, loadTexts } from './mutations.js';
@@ -112,7 +112,7 @@ setMinuteHandler(()=>{
 mindTheTime();
 
 window.BUREAU = {
-  someKind, furnish, loadTexts,
+  someKind, furnish, loadTexts, rangeOfKind, randomSizeOf, inRange,
   get state(){ return S; }, render, create, save: writeNow, saveSoon: save,
   // making a type the way the picker does, pressing a tile the way a finger
   // does, the zoom out to every board and the setup card (decisions 227, 229)

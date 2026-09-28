@@ -4,7 +4,7 @@ import { S, byId, K, KINDS, KEYS, kindHas, has, isContainer, genKindOf, streak, 
   ctlOf, isPrimary, SECONDARY, MASTERS, inMaster, isCut, doesOf, isPicture, isDecor, shapeOf, isBackdrop,
   BORDER_SLOTS, STOCK_SLOTS, SEAL_KEYS, TSIZES, FILL_KEYS, BUTTON_IMGS,
   placeOf, cfgOf, isHeld, heldObjects, homeFor , attrsOf, habitPlan, habitOn, tagSlug, mediaTypeOf, measureOf, amountSaid } from './model.js';
-import { GRID, PHONE_GRIDS, colsOf, gridOf, shelfRows, freeSpot, anySpot, roomFor, lay, boxOk, sizeOfKind, keepSize, shelvesOf, addBoard } from './grid.js';
+import { GRID, PHONE_GRIDS, colsOf, gridOf, shelfRows, freeSpot, anySpot, roomFor, lay, boxOk, sizeOfKind, keepSize, shelvesOf, addBoard, randomSizeOf } from './grid.js';
 import { randomFront, randomBoard, randomLook, styleDefaults,
   STYLES, CHECKS, DARKMODES, styleKey, applyStyle, applyLook, OBJ0, OBJN } from './look.js';
 import { render, reveal } from './views.js';
@@ -1187,6 +1187,15 @@ const PAPER_SHAPES = ['card','rounded','note','tornnote','idea','index','torn','
    fill, which button, which clock, how many sides. A container gets two to
    four random things inside it, one level deep. */
 function roll(o, depth){
+  /* **Its size, rolled inside its type's range** (decision 246), on both
+     boards, as a size with no position: whoever places it (the coin, the
+     spawner, the drawer it is born in) puts it somewhere that size fits. A
+     box that already has a place keeps it. */
+  ['desk','phone'].forEach(dv=>{
+    if(o[dv] && o[dv].x!=null) return;
+    const [w,h] = randomSizeOf(o.kind, dv, o.parent);
+    o[dv] = {w, h};
+  });
   if(!isContainer(o)){
     o.c = randomFront();
     // paper looks are for things drawn on paper: not an ornament, a fill, a

@@ -1066,6 +1066,11 @@ const PROP_OFF = () => { const b = document.createElement('button');
     const notes = Array.from({ length: 12 }, () => mk('note'));
     out.noteHasWords = notes.every(o => (o.body || '').length > 20 && o.title && o.title !== 'Note');
     out.looksDiffer = new Set(notes.map(o => [o.c, o.border, o.stock].join())).size > 3;
+    // …and come in more than one size, each inside the type's range (decision 246)
+    const dv = S.device, [[w0,w1],[h0,h1]] = B.rangeOfKind('note', dv, 'root');
+    out.sizesDiffer = new Set(notes.map(o => o[dv].w+'x'+o[dv].h)).size > 2;
+    out.sizesInRange = notes.every(o => o[dv].w>=w0 && o[dv].w<=w1 && o[dv].h>=h0 && o[dv].h<=h1);
+    out.aRecordStaysRound = [1,2,3,4,5].every(() => { const r = mk('audio'); return r[dv].w === r[dv].h; });
     out.poemIsAPoem = /  \n/.test(mk('poem').body || '');
     const cl = mk('checklist');
     const kids = S.objects.filter(x => x.parent === cl.id);

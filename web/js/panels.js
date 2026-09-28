@@ -16,7 +16,7 @@ import { S, K, KINDS, KEYS, T, ATTRS, USER_ATTRS, FIELDS, fieldOf, OPS, ROLLS,
   slotRaw, homeFor, acceptAny, groupOf , boardLocked , SEALS, sealOf, isSealed, isDisc,
   makesOf, madeAtSize } from './model.js';
 import { newOfKind } from './wire.js';
-import { GRID, lay, boxOk, freeSpot, anySpot, sizeOfKind, toPhoneSize, keepSize } from './grid.js';
+import { GRID, lay, boxOk, freeSpot, anySpot, sizeOfKind, toPhoneSize, keepSize, inRange, rangeOfKind } from './grid.js';
 import { randomBoard, randomFront, hexOf, objColour, objSlots, famSlots, famAll, FAMS, styleKey, stockNow, CHECKS, checkNow } from './look.js';
 import { FILLS, FILL_KEYS, isCut, BUTTON_IMGS, DOES, doesOf } from './model.js';
 import { CLICKS, clickOf, gridTile, pending, PORTAL_SHAPES, PORTAL_STYLES, PORTAL_EDGES, WHEEL_COLOURS, WHEEL_INKS, WHEEL_FONTS, VINYLS, KSHAPES, kshapeOf } from './tiles.js';
@@ -233,9 +233,11 @@ function shapeKinds(w, h, home){
   const rank = k => PRIMARY.includes(k) ? 0 : SECONDARY.includes(k) ? 1 : 2;
   return KEYS.filter(k => KINDS[k] && !K(k).cat && !K(k).makesAny && !isCut(k) && !kindHas(k,'control'))
     .map(k => { const [kw, kh] = sizeOfKind(k, dv, home);
-      return {k, o: only.includes(k) ? 0 : 1, d: Math.abs(kw-w) + Math.abs(kh-h),
-        a: Math.abs(Math.log((kw/kh)/(w/h))), r: rank(k)}; })
-    .sort((p, q) => p.o-q.o || p.d-q.d || p.a-q.a || p.r-q.r)
+      /* A type whose range the box falls inside comes before one whose
+         default merely happens to be near it (decision 246). */
+      return {k, o: only.includes(k) ? 0 : 1, i: inRange(k, w, h, dv, home) ? 0 : 1,
+        d: Math.abs(kw-w) + Math.abs(kh-h), a: Math.abs(Math.log((kw/kh)/(w/h))), r: rank(k)}; })
+    .sort((p, q) => p.o-q.o || p.i-q.i || p.d-q.d || p.a-q.a || p.r-q.r)
     .map(x => x.k)
     /* A subtype whose category is already in the ring rides in its blob —
        pressing the category asks which, the way the picker does — so one

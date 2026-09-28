@@ -7,7 +7,7 @@ import { S, K, KINDS, KEYS, refreshKinds, ATTRS, attrsOf, has, SHAPES,
   layoutOf, setClFit, genKindOf, makesAnything , groupMates, groupTogether, isDesk, faceOf, kindHas,
   sortOf, sortCycleOf, SORT_FACES } from './model.js';
 import { gridOf, lay, boxOk, freeSpot, anySpot, roomFor, sizeOfKind, toPhoneSize, keepSize,
-  shelvesOf, shelfAt, setShelf, shelvesToHold, addBoard, removeBoard, onBoard, randomSpot, colsOf, shelfRows, boardsOf } from './grid.js';
+  shelvesOf, shelfAt, setShelf, shelvesToHold, addBoard, removeBoard, onBoard, randomSpot, colsOf, shelfRows, boardsOf, randomSizeOf } from './grid.js';
 import { applyLook, applyStyle, setLookVal, lookVal, STYLES, setSlot, objColour, darkMode } from './look.js';
 import { dealTop, furnish, toast, fits, setGridSize, setBoardDims, toggleDone, spawnNext, del, delMany, delDrawer, undo, redo, pushUndo,
   pushSet, pushSets, setPin, togglePin, drawerForTag, create, spawnInto, randomThing,
@@ -1071,7 +1071,8 @@ function toolPress(tool, cid, el){
 function coinToss(board, el){
   const home = homeFor(board), dv = dev();
   const kind = someKind();
-  const [w,h] = sizeOfKind(kind, dv, home);
+  // a size from its range, not its default (decision 246)
+  const [w,h] = randomSizeOf(kind, dv, home);
   const spot = randomSpot(w, h, dv, home);
   if(!spot && !fits(kind, home)) return;
   const o = furnish(create(kind, {parent:home}));

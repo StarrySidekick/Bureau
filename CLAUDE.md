@@ -196,9 +196,17 @@ decoration is pressed by its traced outline (`hit` in decor.js, from
 did (sliver, no box, gilt, `past`). The **Button** (`does`: make, open,
 switch) replaces the Control and the Spawner in the pickers, wears one of ten
 photographed clothing buttons (`bimg`), and wider is the photograph and a line.
+**v2.36–2.43** (decisions 244–246): one of anything is random all the way
+through (`roll()` in mutations.js: type from the fifteen, look, words from
+`data/texts.json`, sounds, a size); a record has a `vinyl` colour and a
+printed label so it visibly turns; and every type has a **range** of sizes
+beside its default (`rangeOfKind()`, `randomSizeOf()`, `inRange()` in
+grid.js), edited in the Workshop's Sizes tab. **The Workshop's snapshot is
+made by `scripts/workshop-snapshot.mjs`**: rerun it and splice its JSON into
+the page's `#shipped` script whenever menus, types, sizes or flows change.
 The **Bureau Workshop** artifact (https://claude.ai/artifact/4TjyQZ5xcuxCYFgfnRm76k)
-holds Timothy's own rearrangement of every menu and type: read its
-`workshop/state` document before reorganising menus or types.
+holds Timothy's own rearrangement of every menu, type, size and flow: read its
+`workshop/state` document before reorganising menus or types, or setting sizes.
 The **Bureau Scope** artifact (https://claude.ai/artifact/MjuzPyN2CXcdYmN4MRxqJY,
 2026-09-28) holds the knob proposal for each aspect of life and the verbs for
 each flow, with Timothy's answers in its `answers` collection (one document per

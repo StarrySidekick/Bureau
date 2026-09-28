@@ -435,7 +435,8 @@ function dispense(g){
   const dir=g.genDir||'down';
   const o=create(kind,{parent:g.parent});
   if(makesAnything(g)) furnish(o);
-  const dv=dev(), b=lay(g), [w,h]=sizeOfKind(kind, dv, g.parent);
+  // one of anything came with a size from its range (decision 246)
+  const dv=dev(), b=lay(g), [w,h]=(o[dv] && o[dv].w) ? [o[dv].w, o[dv].h] : sizeOfKind(kind, dv, g.parent);
   const spots={
     down:  {x:b.x,        y:b.y+b.h, w, h},
     up:    {x:b.x,        y:Math.max(1,b.y-h), w, h},

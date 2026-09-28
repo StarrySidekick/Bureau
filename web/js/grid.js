@@ -860,6 +860,52 @@ function sizeOfKind(k, device, cid){
   const [pw,ph] = toPhoneSize(w, h, kindHas(k,'container'));
   return [Math.min(pw, cols), ph];
 }
+/* ---- the size a type comes in, and the sizes it goes to — decision 246 --
+   A type has a **default** (`size`, above), which is what it is made at when
+   there is only one answer, and a **range**, which is the sizes it is
+   reasonably made at: what a thing made at random is rolled between, and
+   what a box drawn with the Magic Selector is measured against when the
+   picker guesses from a shape. The range is not a limit. You can drag
+   anything bigger; nothing *makes* it bigger for you.
+
+   `range` on the kind is `[[wmin,wmax],[hmin,hmax]]` in desk cells, as
+   `size` is; Timothy sets them in the Workshop and they are written here.
+   A kind that states none gets half to double its default, and a kind whose
+   drawing *is* its proportions (anything that runs, an ornament, a
+   one-cell tool) stays at its default. A `square` kind (a record) keeps its
+   two sides equal. On a phone a container's range halves, the way its size
+   does, and every range is cut to the board it is on. */
+function rangeOfKind(k, device, cid){
+  const d = K(k), [w,h] = d.size || [4,4];
+  let r = d.range;
+  if(!r){
+    const fixed = d.act || kindHas(k,'decor') || (w===1 && h===1);
+    r = fixed ? [[w,w],[h,h]]
+      : [[Math.max(1, Math.ceil(w/2)), Math.min(8, w*2)], [Math.max(1, Math.ceil(h/2)), Math.min(12, h*2)]];
+  }
+  let [[w0,w1],[h0,h1]] = r;
+  const dv = device || dev();
+  if(dv==='phone' && kindHas(k,'container') && !d.phoneSize){
+    const half = n => Math.max(1, Math.round(n/2));
+    [w0,w1,h0,h1] = [half(w0),half(w1),half(h0),half(h1)];
+  }
+  const cols = dv==='phone' ? colsOf(cid, 'phone') : gridOf('desk', cid).shelfW;
+  const rows = dv==='phone' ? PHONE_MAX_H : gridOf('desk', cid).shelfH;
+  w1 = clamp(w1, 1, cols); w0 = clamp(w0, 1, w1);
+  h1 = clamp(h1, 1, rows); h0 = clamp(h0, 1, h1);
+  return [[w0,w1],[h0,h1]];
+}
+const inRange = (k, w, h, device, cid) => {
+  const [[w0,w1],[h0,h1]] = rangeOfKind(k, device, cid);
+  return w>=w0 && w<=w1 && h>=h0 && h<=h1;
+};
+// a size rolled inside the range, for a thing made at random
+function randomSizeOf(k, device, cid){
+  const [[w0,w1],[h0,h1]] = rangeOfKind(k, device, cid);
+  const roll = (a,b) => a + Math.floor(Math.random()*(b-a+1));
+  if(K(k).square){ const lo = Math.max(w0,h0), n = roll(lo, Math.max(lo, Math.min(w1,h1))); return [n, n]; }
+  return [roll(w0,w1), roll(h0,h1)];
+}
 /* Rendering is the one thing that writes state without being a mutation:
    `ensureBox()` invents a box the first time an object appears in a layout, and
    that is a fact worth keeping. `render()` used to cover it by saving after
@@ -955,7 +1001,7 @@ function cellW(grid,g){
   return (r.width - g.gap*(n-1))/n;
 }
 
-export { GRID, PHONE_GRIDS, PHONE_MAX_H, PHONE_MAX_NEW, CELL, COLW, MEASURE, sideways,
+export { GRID, PHONE_GRIDS, PHONE_MAX_H, PHONE_MAX_NEW, rangeOfKind, inRange, randomSizeOf, CELL, COLW, MEASURE, sideways,
   SHELVES, DESK_SHELF_COLS, INNER, dimsOf, DIM_MIN, DIM_MAX, DIM_MAX_H, PAGES_MAX, SPAN, isBoard, boardsOf, reachable, addBoard, removeBoard,
   ensureBoards, boardHolds, onBoard, startOf, nearestBoard, onBoards, randomSpot, growsDown, growDown, proportional, shelvesToHold, colsOf, gridKeyOf, shelvesOf, innerOf,
   shelfRows, shelfOfBox, oneShelf, shelfAt, setShelf, shelfOrigin, SHELF, fitSpot, flows,

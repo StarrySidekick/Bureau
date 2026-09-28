@@ -390,7 +390,7 @@ const BUILTIN_KINDS = {
   /* Sound and moving pictures are things you put on a desk, not a corner of
      film-making — so they are majors, and pressing one plays it rather than
      opening a page about it. See decision 144. */
-  audio:   {nm:'Audio',   ic:'music',   c:10, key:'U', ds:'Something to listen to',    size:[4,4], phoneSize:[3,3], onclick:'play', attrs:['text','media','duration'], mediaType:'audio', body:'' },
+  audio:   {square:true, nm:'Audio',   ic:'music',   c:10, key:'U', ds:'Something to listen to',    size:[4,4], phoneSize:[3,3], onclick:'play', attrs:['text','media','duration'], mediaType:'audio', body:'' },
   video:   {nm:'Video',   ic:'film',    c:9, key:'&', ds:'Something to watch',        size:[6,4], onclick:'play', attrs:['text','media','duration'], mediaType:'video', body:'' },
   trip:    {shape:'card', proj:'trip', nm:'Trip',    ic:'flag',    c:9, key:'P', ds:'Somewhere you are going',   size:[8,6], attrs:['container','date','span','location'], layout:'grid', plan:'pl_stock_travel', body:'' },
   /* An **essay or a post** as a piece of work — the claim, the outline, the

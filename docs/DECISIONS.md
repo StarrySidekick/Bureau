@@ -10782,3 +10782,42 @@ only asymmetric thing left, and it is hidden below three cells.
   editor and rolled for a record made at random. The label is still the
   object's colour.
 
+## 246 · A size, and a range of sizes, for every type
+
+*2026-09-28.* Timothy: *"size ranges for each type slash subtype … there's a
+default setting, which is like what it will generate if it only has one
+choice. And then there's a generation range … a reasonable range of what
+something would normally be … That doesn't necessarily mean you can't make
+something larger than that … I want to be able to adjust this in our
+customizer artifact."*
+
+- **Default** is `size` (and `phoneSize`), unchanged: what a type is made at
+  when there is one answer.
+- **Range** is `range: [[wmin,wmax],[hmin,hmax]]` on the kind, in desk cells.
+  `rangeOfKind()` in grid.js answers it for a device and a board: the stated
+  one, or half to double the default where none is stated; the default alone
+  for a type whose drawing is its proportions (anything that runs, an
+  ornament, a one-cell tool); halved for a container on a phone, the way its
+  size is; and cut to the board. A `square` kind (a record) keeps its sides
+  equal. It is not a limit: a drag still takes anything anywhere.
+- **Random rolls inside it** (`randomSizeOf()`): `roll()` gives a thing made
+  at random a rolled size on both boards, as a size with no position, and the
+  coin, the spawner and the drawer it is born in place it at that size.
+- **The palette ring's shape guess reads it** (`inRange()`): where a board
+  names its own types, a type whose range the drawn box falls in comes before
+  one whose default happens to be near. That is the hook the auto picker comes
+  back through.
+- **The Workshop has a Sizes tab**: every type under its master, its default,
+  its range and its phone size in number fields, with a picture of the range
+  on an eight-wide board. What Timothy changes is listed on the Changes tab
+  and is written into `range` (and `size`, `phoneSize`) when he asks.
+- **The Workshop was rebuilt to match the app** (v2.43): `scripts/workshop-
+  snapshot.mjs` reads the running app (the drawer front, the Mac bar, every
+  Settings door, the editor's rows across fifteen sample types, the hold
+  ring, the fifteen, every type with its sizes, every flow) and prints the
+  page's snapshot, so it is made the way the specimen book is and cannot
+  drift. The types tree hangs under the fifteen; Getting work done is a flows
+  group; cut types have a heading of their own. Timothy's previous
+  arrangement, all of it built, is kept in the page's database as
+  `workshop/state-2026-09-27`, and the live one starts empty.
+
