@@ -565,7 +565,7 @@ const BUILTIN_KINDS = {
      the machine that already did it (`dispense()`, the portal's way out,
      `ctlPress()`). It carries none of their traits, because `button` draws a
      portal and `control` a switch plate. Square it is a photograph of a
-     real button (`bimg`, chosen on the ring); wider, the box to its right is
+     real clothing button (`bimg`, chosen on the ring); wider, the box to its right is
      where you type what it makes, the garden's old line. */
   button:   {setup:'button', shape:'pushbutton', nm:'Button', ic:'target', c:1,
      ds:'Press it and something happens: it makes a thing, opens one, or flips a switch',
@@ -1629,9 +1629,9 @@ const faceOf = o => (o && o.face) || K(o&&o.kind).face || 'front';
 /* The ten photographed buttons a Button may be (decision 243), under
    `img/buttons/`; where each came from is docs/IMAGES.md. */
 const BUTTON_IMGS = [
-  {f:'b01', t:'Fabergé bell push'}, {f:'b02', t:'Turtle bell push'}, {f:'b03', t:'Elephant bell push'},
-  {f:'b04', t:'Emergency stop'}, {f:'b05', t:'Street doorbell'}, {f:'b06', t:'Doorbell'},
-  {f:'b07', t:'Push switch'}, {f:'b08', t:'Telegraph key'}, {f:'b09', t:'Play button'}, {f:'b10', t:'Sport button'}];
+  {f:'b01', t:'Red four-hole'}, {f:'b02', t:'Horn'}, {f:'b03', t:'Antler'}, {f:'b04', t:'Trouser button'},
+  {f:'b05', t:'Mother of pearl'}, {f:'b06', t:'Thread-covered'}, {f:'b07', t:'Brass'}, {f:'b08', t:'Enamel violet'},
+  {f:'b09', t:'Railway uniform'}, {f:'b10', t:'Cut steel'}];
 /* What pressing a Button does (decision 243), per object then per type. */
 const DOES = {make:'Makes something', open:'Opens something', switch:'Flips a switch'};
 const doesOf = o => { const v = (o && o.does) || K(o&&o.kind).does; return DOES[v] ? v : null; };

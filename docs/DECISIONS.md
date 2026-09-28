@@ -10681,8 +10681,13 @@ object is weaved into the button as well."*
   `ctlPress()`, which now accepts a Button). It carries none of the old
   traits: `button` draws a portal and `control` a switch plate, so a Button
   wearing either would have been drawn as the thing it replaces.
-- **Ten photographs of real buttons** (`BUTTON_IMGS`, `img/buttons/`, sources
-  in docs/IMAGES.md), chosen on the ring as a Painting is (`variants:
+- **Ten photographs of real clothing buttons** (`BUTTON_IMGS`,
+  `img/buttons/`, sources in docs/IMAGES.md): a red four-hole, horn, antler,
+  a trouser button, mother of pearl, thread-covered, brass, enamel, a railway
+  uniform button and cut steel. Timothy's correction the same day: *"I
+  literally mean like a button on like a shirt, not like a electronic
+  button"*; the first ten were bell pushes and push switches. Chosen on the
+  ring as a Painting is (`variants:
   'buttons'`, `bimg`). A type with a setup card may now still ask its
   variants on the ring and in the picker: the card is about what it does,
   the ring about which one it is.

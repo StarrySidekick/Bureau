@@ -959,7 +959,7 @@ const PROP_OFF = () => { const b = document.createElement('button');
       const r = line.getBoundingClientRect();
       window.__lf = { ls: ls.id, note: note.id };
       return {
-        isAType: BUREAU.K.list.face === 'list' && BUREAU.isPrimary('list'),
+        isAType: BUREAU.K.list.face === 'list' && BUREAU.inMaster('list'),
         everyKind: lines.length === 3 && ['A note in it', 'A task in it', 'A drawer in it'].every(t => named.includes(t)),
         taskKeepsItsBox: !!el.querySelector(`.lline[data-open="${task.id}"] .clbox[data-check="${task.id}"]`),
         noteWearsAMark: !!el.querySelector(`.lline[data-open="${note.id}"] .clmark`),
@@ -1908,7 +1908,8 @@ const PROP_OFF = () => { const b = document.createElement('button');
        and its key opens the second screen rather than making one. So the
        shortcut and the tile are the same act, which is decision 135's whole
        point — and the test has to answer the question. */
-    const picker = !!document.querySelector('[data-family="note"]');
+    // …inside Paper since decision 240, one of the fifteen
+    const picker = !!document.querySelector('[data-family="m_paper"]');
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'O', bubbles: true }));  // Note
     await nap(300);
     // the family leads with the plain one, which is a type like any other here
@@ -10117,7 +10118,8 @@ const PROP_OFF = () => { const b = document.createElement('button');
     S.view = 'desk'; S.drawerId = null; B.render(); await nap(200);
     // the picker makes a project outright rather than asking first
     B.pick(); await nap(250);
-    out.thePickerAsksNothingFirst = !!document.querySelector('#panel .kindtile[data-new="project"]')
+    // a project is a Drawer's first answer since decision 240
+    out.thePickerAsksNothingFirst = !!document.querySelector('#panel .kindtile[data-new="drawer"]')
       && !document.querySelector('#panel .kindtile[data-family="project"]');
     B.closePanel(); await nap(150);
     // a counter: the look question, then the three rows (decision 228)

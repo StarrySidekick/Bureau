@@ -195,7 +195,7 @@ decoration is pressed by its traced outline (`hit` in decor.js, from
 `scripts/decor-hits.mjs`), on locked boards too. An achievement is a task you
 did (sliver, no box, gilt, `past`). The **Button** (`does`: make, open,
 switch) replaces the Control and the Spawner in the pickers, wears one of ten
-photographed buttons (`bimg`), and wider is the photograph and a line.
+photographed clothing buttons (`bimg`), and wider is the photograph and a line.
 The **Bureau Workshop** artifact (https://claude.ai/artifact/4TjyQZ5xcuxCYFgfnRm76k)
 holds Timothy's own rearrangement of every menu and type: read its
 `workshop/state` document before reorganising menus or types.

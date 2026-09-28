@@ -54,23 +54,23 @@ are gone.
 
 ## Buttons — `web/img/buttons/` (decision 243)
 
-What a **Button** is a photograph of: ten real push buttons, cut out or cropped
-to the part you press (the round ones as circles, the doorbell plate as a
-rounded square, the rest cut out of plain museum or studio backgrounds with
-their cast shadows removed), longest side 240px.
+What a **Button** is a photograph of: ten buttons off clothes, of different
+kinds, each cut out as the round of the button (an ellipse fitted to it, and
+where the background shows through its thread holes those stay see-through),
+longest side 240px. Cooper Hewitt's images reach Commons as public domain.
 
 | File | What it is | Source page | Licence | Author / institution |
 | --- | --- | --- | --- | --- |
-| `b01.png` | Domed bell push, bowenite, guilloché pink enamel, silver-gilt, House of Fabergé, St Petersburg, c. 1895–1915 | https://clevelandart.org/art/1966.472 | CC0 | Cleveland Museum of Art |
-| `b02.png` | Turtle bell push, House of Fabergé, St Petersburg, c. 1895–1915 | https://clevelandart.org/art/1966.473 | CC0 | Cleveland Museum of Art |
-| `b03.png` | Elephant bell push, House of Fabergé (workmaster Henrik Wigström), St Petersburg, after 1903 | https://clevelandart.org/art/1966.474 | CC0 | Cleveland Museum of Art |
-| `b04.png` | Red mushroom-head emergency stop button on a grey box, old style | https://commons.wikimedia.org/wiki/File:AlterNotaus_Schalter.jpg | CC0 | Clemenspool (Wikimedia Commons) |
-| `b05.png` | Old cast-iron doorbell plate with a white push ("Muebles a domicilio, piso 2º, M. Guridi"), Bergara, Spain | https://commons.wikimedia.org/wiki/File:Bergara_-_Viejo_pulsador.jpg | CC0 | Zarateman (Wikimedia Commons) |
-| `b06.png` | Grey square outdoor doorbell push with a bell symbol | https://commons.wikimedia.org/wiki/File:Doorbell_button_(53244196905).jpg | CC0 | Abdulla Al Muhairi (via Flickr, Wikimedia Commons) |
-| `b07.png` | KM2-1 industrial pushbutton switch with red-brown plunger, Soviet Union, 1986 | https://commons.wikimedia.org/wiki/File:KM2-1_pushbutton_switch,_Soviet_Union,_1986_01.jpg | CC0 | Retired electrician (Wikimedia Commons) |
-| `b08.png` | Bakelite telegraph signalling key, c. 1935–40 | https://commons.wikimedia.org/wiki/File:Seinsleutel_voor_een_telegraaf_-_INDUS_V09644.JPG | CC0 | Industriemuseum Gent (INDUS), via Wikimedia Belgium |
-| `b09.png` | Chrome "play" push button with green ring light, Naim Audio CD5 CD player | https://commons.wikimedia.org/wiki/File:Naim_Audio_CD5_Play_button_(2638115277).jpg | CC0 | Markus Kniebes (via Flickr, Wikimedia Commons) |
-| `b10.png` | Chrome-ringed "Sport" button from a Fiat 500 Abarth dashboard | https://commons.wikimedia.org/wiki/File:%2213_-_ITALY_-_Tasto_Sport_500_Abarth.jpg | Public domain | Jacapa090 (Wikimedia Commons) |
+| `b01.png` | Red four-hole plastic button (one of an assortment) | https://commons.wikimedia.org/wiki/File:Botones.jpg | Public domain | Jorge Barrios, Wikimedia Commons |
+| `b02.png` | Horn button, four holes, still sewn, USA, late 19th century | https://commons.wikimedia.org/wiki/File:Buttons_(USA),_late_19th_century_(CH_18682977).jpg | Public domain | Cooper Hewitt, Smithsonian Design Museum |
+| `b03.png` | Antler button, two holes, still sewn, USA, late 19th century | https://commons.wikimedia.org/wiki/File:Buttons_(USA),_late_19th_century_(CH_18682977-2).jpg | Public domain | Cooper Hewitt, Smithsonian Design Museum |
+| `b04.png` | Four-hole metal trouser button, Brownells Ltd, Hobart | https://commons.wikimedia.org/wiki/File:Brownell%27s_trouser_button.jpg | CC0 | Wikimedia Commons |
+| `b05.png` | Carved mother-of-pearl button, France, 19th century | https://commons.wikimedia.org/wiki/File:Button_(France),_19th_century_(CH_18323109).jpg | Public domain | Cooper Hewitt, Smithsonian Design Museum |
+| `b06.png` | Thread-covered button, France, 1750–99 | https://commons.wikimedia.org/wiki/File:Buttons_(France),_1750%E2%80%9399_(CH_18556995).jpg | Public domain | Cooper Hewitt, Smithsonian Design Museum |
+| `b07.png` | Brass button with a scalloped border (Met 51.47.259) | https://commons.wikimedia.org/wiki/File:Button_MET_51.47.259.jpg | CC0 | The Metropolitan Museum of Art |
+| `b08.png` | Enamel button painted with a violet (Met 51.47.831) | https://commons.wikimedia.org/wiki/File:Button_MET_51.47.831.jpg | CC0 | The Metropolitan Museum of Art |
+| `b09.png` | Uniform button of the Bonn-Cölner-Eisenbahn, with a locomotive | https://commons.wikimedia.org/wiki/File:Bce03.jpg | Public domain | Bonn-Cölner-Eisenbahn |
+| `b10.png` | Cut-steel button (Met 51.47.1815) | https://commons.wikimedia.org/wiki/File:Button_MET_51.47.1815.jpg | CC0 | The Metropolitan Museum of Art |
 
 ## Pictures — `web/img/pictures/`
 
