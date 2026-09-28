@@ -968,6 +968,118 @@ const familyList = cat => {
   return own.concat(mine);
 };
 
+/* ---- the sizes Timothy set in the Workshop — 2026-09-28 ---------------
+   Every type's default, its range and its phone size as the Workshop's Sizes
+   tab left them, applied **last**, over whatever the type's own line says —
+   the life aspects and the project types are made in loops above, so this is
+   the one place all of them can be said. `phone:null` is the Workshop's
+   *work it out*: the stated phone size comes off and `sizeOfKind()` derives
+   one. To take the next round in, replace this table with the Workshop's
+   `workshop/state` sizes (only the ones that differ from what shipped). */
+const WORKSHOP_SIZES = {
+  drawer:{size:[2,2], range:[[1,4],[1,4]], phone:null},
+  life:{size:[2,2], range:[[1,4],[1,4]], phone:null},
+  lf_health:{size:[2,2], range:[[1,4],[1,4]], phone:null},
+  lf_money:{size:[2,2], range:[[1,4],[1,4]], phone:null},
+  lf_exercise:{size:[2,2], range:[[1,4],[1,4]], phone:null},
+  lf_books:{size:[1,3], range:[[1,2],[2,5]], phone:null},
+  lf_music:{size:[2,2], range:[[1,3],[1,3]], phone:null},
+  lf_visual:{size:[3,3], range:[[1,5],[1,5]], phone:null},
+  lf_games:{size:[2,3], range:[[1,4],[1,5]], phone:[4,4]},
+  lf_food:{size:[2,2], range:[[1,4],[1,4]], phone:null},
+  trip:{size:[3,2], range:[[1,4],[1,3]], phone:null},
+  project:{size:[2,2], range:[[1,4],[1,4]], phone:null},
+  writing:{size:[3,3], range:[[2,8],[2,8]], phone:null},
+  film:{size:[2,2], range:[[1,4],[1,4]], phone:null},
+  game:{size:[2,4], range:[[1,4],[1,5]], phone:null},
+  lf_nutrition:{size:[2,2], range:[[1,4],[1,4]], phone:null},
+  lf_partner:{size:[2,2], range:[[1,4],[1,4]], phone:null},
+  lf_family:{size:[2,2], range:[[1,4],[1,4]], phone:null},
+  lf_friends:{size:[2,2], range:[[1,4],[1,4]], phone:null},
+  lf_communities:{size:[2,2], range:[[1,4],[1,4]], phone:null},
+  lf_home:{size:[2,2], range:[[1,4],[1,4]], phone:null},
+  lf_things:{size:[2,2], range:[[1,4],[1,4]], phone:null},
+  lf_travel:{size:[2,2], range:[[1,4],[1,4]], phone:null},
+  lf_films:{size:[2,2], range:[[1,4],[1,4]], phone:null},
+  song:{size:[2,2], range:[[1,4],[1,4]], phone:null},
+  app:{size:[2,2], range:[[1,4],[1,4]], phone:null},
+  artpiece:{size:[2,2], range:[[1,4],[1,4]], phone:null},
+  pj_featurefilm:{size:[2,2], range:[[1,4],[1,4]], phone:null},
+  pj_tvshow:{size:[2,2], range:[[1,4],[1,4]], phone:null},
+  pj_videoessay:{size:[2,3], range:[[1,4],[1,4]], phone:null},
+  pj_play:{size:[2,2], range:[[1,4],[1,4]], phone:null},
+  pj_musical:{size:[2,2], range:[[1,4],[1,4]], phone:null},
+  pj_script:{size:[2,2], range:[[1,4],[1,4]], phone:null},
+  pj_novel:{size:[2,2], range:[[1,4],[1,4]], phone:null},
+  pj_shortstory:{size:[2,2], range:[[1,4],[1,4]], phone:null},
+  pj_poem:{size:[2,2], range:[[1,4],[1,4]], phone:null},
+  pj_blogpost:{size:[2,2], range:[[1,4],[1,4]], phone:null},
+  pj_website:{size:[2,2], range:[[1,4],[1,4]], phone:null},
+  pj_album:{size:[2,2], range:[[1,4],[1,4]], phone:null},
+  pj_handmade:{size:[2,2], range:[[1,4],[1,4]], phone:null},
+  pj_device:{size:[2,2], range:[[1,4],[1,4]], phone:null},
+  checklist:{size:[4,6], range:[[2,8],[3,13]], phone:null},
+  timeline:{size:[8,3], range:[[4,8],[3,6]], phone:null},
+  appt:{size:[3,1], range:[[2,4],[1,3]], phone:null},
+  tag:{size:[2,1], range:[[1,3],[1,2]], phone:null},
+  book:{size:[1,3], range:[[1,2],[2,5]], phone:null},
+  novel:{size:[1,3], range:[[1,2],[2,5]], phone:null},
+  shortstory:{size:[1,3], range:[[1,2],[2,5]], phone:null},
+  moodboard:{size:[3,3], range:[[2,8],[2,8]], phone:null},
+  pigeonhole:{size:[2,3], range:[[1,4],[2,8]], phone:null},
+  jar:{size:[2,3], range:[[1,4],[1,6]], phone:null},
+  goal:{size:[3,2], range:[[2,4],[1,3]], phone:null},
+  progressbar:{size:[4,1], range:[[2,8],[1,2]], phone:null},
+  tracker:{size:[4,2], range:[[3,8],[1,4]], phone:null},
+  achievement:{size:[3,1], range:[[2,8],[1,2]], phone:null},
+  task:{size:[4,1], range:[[2,8],[1,1]], phone:null},
+  note:{size:[3,3], range:[[2,8],[2,8]], phone:null},
+  idea:{size:[3,3], range:[[3,8],[1,8]], phone:null},
+  thought:{size:[3,3], range:[[3,8],[1,8]], phone:null},
+  problem:{size:[3,3], range:[[3,8],[2,8]], phone:null},
+  outline:{size:[3,3], range:[[2,8],[2,8]], phone:null},
+  script:{size:[3,3], range:[[2,8],[2,8]], phone:null},
+  question:{size:[3,3], range:[[2,8],[2,8]], phone:null},
+  essay:{size:[3,3], range:[[2,8],[2,8]], phone:null},
+  quote:{size:[4,3], range:[[3,8],[2,8]], phone:null},
+  image:{size:[3,3], range:[[2,8],[2,8]], phone:null},
+  painting:{size:[3,3], range:[[2,8],[2,8]], phone:null},
+  video:{size:[3,3], range:[[3,8],[2,8]], phone:null},
+  audio:{size:[2,2], range:[[1,4],[1,4]], phone:null},
+  decoration:{size:[3,3], range:[[1,4],[1,6]], phone:null},
+  window:{size:[2,2], range:[[1,4],[1,6]], phone:null},
+  plant:{size:[2,3], range:[[1,4],[1,6]], phone:null},
+  ornament:{size:[2,2], range:[[1,4],[1,6]], phone:null},
+  background:{size:[4,4], range:[[1,8],[1,14]], phone:null},
+  anything:{size:[2,2], range:[[1,8],[1,14]], phone:null},
+  button:{size:[1,1], range:[[1,8],[1,2]], phone:null},
+  metronome:{size:[2,4], range:[[1,3],[2,6]], phone:null},
+  hourglass:{size:[2,4], range:[[1,3],[2,6]], phone:null},
+  candle:{size:[2,4], range:[[1,3],[3,5]], phone:null},
+  bell:{size:[2,4], range:[[1,3],[3,5]], phone:null},
+  clock:{size:[2,2], range:[[1,4],[1,4]], phone:null},
+  die:{size:[2,2], range:[[1,3],[1,3]], phone:null},
+  tglass:{size:[1,1], range:[[1,2],[1,2]], phone:[7,1]},
+  tblock:{size:[1,1], range:[[1,2],[1,2]], phone:null},
+  tlock:{size:[1,1], range:[[1,2],[1,2]], phone:null},
+  tgear:{size:[1,1], range:[[1,2],[1,2]], phone:null},
+  spool:{size:[1,1], range:[[1,2],[1,2]], phone:null},
+  coin:{size:[1,1], range:[[1,2],[1,2]], phone:null},
+  deck:{size:[2,3], range:[[2,4],[3,6]], phone:null},
+  counter:{size:[2,2], range:[[1,8],[1,4]], phone:null},
+  outlink:{size:[2,2], range:[[1,4],[1,4]], phone:null},
+  album:{size:[2,2], range:[[1,4],[1,4]], phone:null},
+  generator:{size:[1,1], range:[[1,1],[1,1]], phone:null},
+  recipe:{size:[3,2], range:[[2,4],[1,4]], phone:null},
+  control:{size:[2,2], range:[[2,3],[1,3]], phone:null},
+  magic:{size:[2,2], range:[[1,4],[1,4]], phone:null},
+};
+Object.entries(WORKSHOP_SIZES).forEach(([k, s])=>{
+  const kd = BUILTIN_KINDS[k]; if(!kd) return;
+  kd.size = s.size; kd.range = s.range;
+  if(s.phone) kd.phoneSize = s.phone; else delete kd.phoneSize;
+});
+
 // Kinds you invent live in state alongside these; both are read through KINDS.
 let KINDS = Object.assign({}, BUILTIN_KINDS);
 let KEYS = Object.keys(KINDS);

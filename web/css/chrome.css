@@ -820,9 +820,6 @@
    to the paper — which keeps its Letter proportions, so what it gives back is
    a smaller sheet rather than a different shape. The margins come in too: a
    page's margins are set for reading, and at this width they are most of it. */
-.is-phone .bookstage.writingon{--stage-y:10px;--bookchrome:58px}
-.is-phone .bookstage.writingon .bookhead{display:none}
-.is-phone .bookstage.writingon .spread .page{padding:16px 18px 20px}
 /* **Full screen writes where it reads.** The two phone rules above are for a
    sheet on a stage, and at five classes they tie with full screen's own page
    padding and win by coming later — so on a phone the caret arrived with the
@@ -6664,6 +6661,38 @@ html[data-rows="fit"] .is-phone .gridbar.inrail .sqbtn{width:28px;height:28px}
 .wordsample .book{width:166%;margin:0;transform:scale(.6);transform-origin:0 0}
 .wordsample .spread{height:316px;grid-template-columns:1fr}
 .wordsample .spread .page{border-right:0}
-.bookstage.writingon:not(.fullbleed){--bookchrome:156px}
-.is-phone .bookstage.writingon:not(.fullbleed){--bookchrome:102px}
 .bookstage.fullbleed.writingon .mdbar{position:absolute;top:8px;left:50%;transform:translateX(-50%);z-index:5;width:min(96%,720px)}
+
+/* ---- the phone's reading surface, bigger and still — 2026-09-28 ----------
+   Timothy: less room round the book or the scroll on a phone, the book still
+   Letter-shaped, and the keyboard coming up *over* the page rather than the
+   page shrinking to fit above it.
+
+   So on a phone the stage's inset comes in to a few pixels — the page is sized
+   by its width there, and every pixel of inset is a pixel off its height at
+   11/8.5 — and its margins are a phone's rather than a desk's. The height is
+   `--rvh`, the viewport with no keyboard (boot.js), so opening the keyboard
+   changes nothing about the paper; the field keeps `--kbh` of room at its foot
+   so its last lines can be scrolled up out from under the keys.
+
+   The ruler carries the same numbers, or the pages would break for a sheet
+   that is not the one drawn. And **writing looks like reading**: the
+   formatting strip takes the title's slot, which is one fixed height in both,
+   so a tap on the page puts a caret in it and moves nothing. */
+.is-phone :is(.bookstage,.bookruler):not(.fullbleed){--stage-x:6px;--stage-y:10px;--bookchrome:106px;
+  --avail-h:calc(var(--rvh, var(--vvh, 100vh)) - var(--stage-y) * 2 - var(--bookchrome))}
+.is-phone .bookstage:not(.fullbleed){height:calc(var(--rvh, var(--vvh, 100vh)) - var(--stage-y) * 2)}
+.is-phone :is(.bookstage,.bookruler):not(.fullbleed) .spread .page{padding:24px 22px 34px}
+.is-phone .bookstage.rm-scroll:not(.fullbleed) .spread .page{padding:22px 18px 28px}
+/* Full screen is the screen, and the screen with no keyboard in it. */
+.is-phone :is(.bookstage,.bookruler).fullbleed{--avail-h:var(--rvh, var(--vvh, 100vh));--pageh:var(--rvh, var(--vvh, 100vh))}
+.is-phone .bookstage.fullbleed{height:var(--rvh, var(--vvh, 100vh))}
+.is-phone .bookstage .page > .pagebody{padding-bottom:var(--kbh, 0px);scroll-padding-bottom:var(--kbh, 0px);box-sizing:border-box}
+/* one slot above the paper, the same height reading and writing */
+.bookhead{height:40px;display:flex;align-items:flex-end}
+.bookhead b{-webkit-line-clamp:1}
+.bookstage.writingon .bookhead{display:none}
+.bookstage > .mdbar{height:40px;margin:0;flex:0 0 auto;align-items:center}
+/* The bar holds a Done pill while writing and glyphs while reading, and the
+   pill is the taller: one height for both, so the paper does not move. */
+.bookstage .bookbar{height:36px}

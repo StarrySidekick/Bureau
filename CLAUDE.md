@@ -224,6 +224,12 @@ strikes, highlights, pictures, pull quotes (`.pullq`, never `.pull`, which is
 the knob), callouts and `+++` page breaks; a formatting strip sits over both
 editing surfaces.
 
+**v2.46** (decision 248): **every type's size is the Workshop's**
+(`WORKSHOP_SIZES` in model.js, applied after every type is built; `phone:null`
+means worked out), a stated phone size is no longer trimmed to three wide,
+and on a phone the reader is sized from the keyboard-free height (`--rvh`,
+`--kbh` in boot.js) with a 6px inset, so the keyboard comes up over the page.
+
 **Start here each session:** `docs/SYSTEM.md` is the reference for what Bureau is
 made of — objects, attributes, types, drawers, the grid, the surfaces, storage.
 `docs/ROADMAP.md` holds the current plan in dependency order, and
@@ -499,9 +505,12 @@ attribute registry is `ATTRS`; the presets are `BUILTIN_KINDS` merged with
 - **Layouts are stored per device.** Each drawer has both `desk: {x,y,w,h}` and
   `phone: {x,y,w,h}`. Resizing must only touch `d[dev()]`. `dev()` returns the
   layout currently being *edited*, which is not always the physical device.
-- **A drawer starts at 2×2 and states its own `phoneSize`.** The derivation
-  halves a container, and half of two is one — the mini tile, which has no room
-  for a name. Any kind at 2×2 needs the same explicit `phoneSize`.
+- **A drawer starts at 2×2, and a derived phone size never halves a container
+  below two a side.** The derivation halves a container, and half of two is one —
+  the mini tile, which has no room for a name. It used to be that every 2×2
+  kind had to state `phoneSize`; since the Workshop's sizes (decision 248) most
+  containers are 2×2 with their phone size worked out, so `toPhoneSize()` floors
+  a container at `min(n, 2)` instead.
 - **A kind's `size` is the desk size.** `sizeOfKind(kind, device)` maps it: on a
   phone an object goes full width at the same height, and a container is halved
   so it keeps the fraction of the screen it had. Never use `K(k).size` directly

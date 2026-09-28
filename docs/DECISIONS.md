@@ -10897,3 +10897,41 @@ fewer faces than the phone does). No columns in the magazine layout: a
 multi-column box inside a fixed-height page overflows sideways, which is the
 clipping this work set out to end. The camera's reading face (tabled,
 decision 203) does not read the words.
+
+## 248 · The Workshop's sizes, and a phone reader the keyboard does not shrink
+
+**2026-09-28, v2.46.** Timothy set a size, a range and a phone size for 96
+types in the Workshop, and asked for the book and the scroll on a phone to be
+bigger on the screen (the book still Letter-shaped) and for the keyboard to
+come up over the page rather than shrink it.
+
+- **`WORKSHOP_SIZES` in model.js** holds every one of the 96 as the Workshop
+  left them, applied after every type is built — the life aspects and project
+  types are made in loops, so a table read last is the one place all of them
+  can be said. Most containers are now born 2×2, most papers 3×3.
+  `phone:null` is the Workshop's *work it out*: the stated phone size comes
+  off. Only the types that differ from the Workshop's shipped snapshot were
+  written, compared the way its Changes tab compares them.
+- **A derived container never halves below two a side** (`toPhoneSize()`),
+  because a 2×2 drawer with its phone size worked out would otherwise be the
+  1×1 mark with no name.
+- **A stated phone size is no longer trimmed to three wide**, only to the
+  board. The cap is for a size the app guesses; the Workshop states them now,
+  and it showed each type's stated size as its phone size, so the six that
+  state more than three (list, calendar, postcard, telegram, label, games)
+  and the magnifying glass at seven now come out as it showed them.
+- **The phone reader** has a 6px stage inset and a phone's page margins, so
+  the Letter sheet on a 390-wide phone is 378×489 where it was 342×442. It is
+  sized from `--rvh`, the tallest the visual viewport has been at this width
+  (boot.js), not `--vvh`: decision 84 sized it to what the keyboard leaves,
+  which is the shrinking this undoes. `--kbh`, what the keyboard takes, is
+  padding at the foot of the field, so its last lines can be scrolled up out
+  from under the keys. The formatting strip takes the title's slot, which is
+  one height reading and writing, and the bar under the paper is one height
+  whether it holds glyphs or the Done pill: opening the keyboard or tapping
+  into the page moves the paper by nothing. Only the phone: the writing
+  surface and a Mac are as they were. Not testable here on a real iOS
+  keyboard; a keyboard of 300px was simulated through the two properties.
+- **The Workshop's snapshot** was regenerated (and now captures the Words
+  door) and spliced into the page, so its Sizes tab reads the new sizes as
+  how it ships.

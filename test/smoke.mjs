@@ -1100,7 +1100,8 @@ const PROP_OFF = () => { const b = document.createElement('button');
     BUREAU.render(); await nap(200);
     const el = intoView(document.querySelector(`.grid [data-row="${a.id}"]`));
     const out = !el ? { found: false } : {
-      theTasksSize: JSON.stringify(BUREAU.K.achievement.size) === JSON.stringify(BUREAU.K.task.size),
+      // a task's one row; its width is its own since the Workshop's sizes (248)
+      theTasksSize: BUREAU.K.achievement.size[1] === BUREAU.K.task.size[1],
       theTasksShape: el.classList.contains('sh-sliver'),
       noBox: !el.querySelector('.tilecheck'),
       gilded: el.classList.contains('bd-gilt'),
@@ -1557,11 +1558,11 @@ const PROP_OFF = () => { const b = document.createElement('button');
     delete BUREAU.K.smoketype;
     BUREAU.render();
     /* 7×3 is not one of the presets, so the desk size is the stated one. The
-       phone size is stated too — 5×4, which beats the derivation — and then
-       trimmed to the three cells a *new* object gets in either direction: a
-       stated size is a preference about proportion, and the cap is the room
-       there is to have a preference in. See decision 60. */
-    return desk.w === 7 && desk.h === 3 && phone.w === 3 && phone.h === 3;
+       phone size is stated too — 5×4, which beats the derivation — and is
+       what it comes out at: the three-cell cap of decision 60 is for a size
+       the app has to guess, and a stated one is only held to the board
+       (decision 248). */
+    return desk.w === 7 && desk.h === 3 && phone.w === 5 && phone.h === 4;
   });
 
   // ids must be unique — a collision made byId() return the wrong object, so
@@ -5368,8 +5369,8 @@ const PROP_OFF = () => { const b = document.createElement('button');
     BUREAU.render(); await nap(300);
     out.noneWiderThanThree = made.every(o => o.phone.w <= 3);
     out.noneTallerThanThree = made.every(o => o.phone.h <= 3);
-    // …and the desk's own stated sizes are untouched: 24 columns is a desk
-    out.theMacKeepsItsSizes = BUREAU.K.moodboard.size[0] === 8;
+    // …and the desk's own stated size is untouched by the phone's mapping
+    out.theMacKeepsItsSizes = BUREAU.K.moodboard.size[0] >= made[5].phone.w;
     S.objects = S.objects.filter(o => !made.includes(o));
     BUREAU.render();
     return out;
@@ -7242,13 +7243,19 @@ const PROP_OFF = () => { const b = document.createElement('button');
       const c = box('.bkout [data-sheet="close"]');
       return c.left >= 0 && c.right <= innerWidth && c.width > 20;
     })();
-    // …and under a keyboard the whole reader sits in what is left of the screen
+    /* …and a keyboard comes up **over** the page rather than shrinking it
+       (decision 248, undoing 84's fit above it): the paper is sized from the
+       keyboard-free height, and the field keeps the keyboard's height as room
+       at its foot so its last lines can still be scrolled clear. */
     document.querySelector('.bookstage .page').click(); await nap(250);
+    const before = box('.spread');
     const root = document.documentElement.style;
-    root.setProperty('--vvh', '380px'); root.setProperty('--vvt', '0px');
+    root.setProperty('--vvh', '380px'); root.setProperty('--vvt', '0px'); root.setProperty('--kbh', '464px');
     await nap(300);
-    const sp = box('.spread'), bar = box('.bookbar');
-    out.fitsAboveTheKeyboard = sp.top >= 0 && bar.bottom <= 381;
+    const sp = box('.spread');
+    out.fitsAboveTheKeyboard = Math.abs(sp.height - before.height) < 1 && Math.abs(sp.top - before.top) < 1
+      && getComputedStyle(document.querySelector('.pagebody')).paddingBottom === '464px';
+    root.removeProperty('--kbh');
     // and it is still a sheet of Letter paper, just a smaller one
     out.stillLetter = Math.abs((sp.height / sp.width) - (11 / 8.5)) < 0.03;
     root.removeProperty('--vvh'); root.removeProperty('--vvt');
@@ -10110,7 +10117,9 @@ const PROP_OFF = () => { const b = document.createElement('button');
     for(const k of ['tglass','tblock','tlock','tgear','spool','coin']) ids[k] = B.create(k, {parent:'root'}).id;
     B.render(); await nap(250);
     out.eachIsItsDrawing = Object.values(ids).every(id => document.querySelector(`[data-row="${id}"] .toolBody`));
-    out.oneCellEach = Object.values(ids).every(id => { const o = S.objects.find(x=>x.id===id); return o.phone && o.phone.w===1 && o.phone.h===1; });
+    // one cell each, or what the Workshop stated for the phone (a glass seven wide, 248)
+    out.oneCellEach = Object.values(ids).every(id => { const o = S.objects.find(x=>x.id===id), p = B.K[o.kind].phoneSize || [1,1];
+      return o.phone && o.phone.w===Math.min(p[0], 8) && o.phone.h===p[1]; });
     const was = !!S.look.locked; T.tileTap(ids.tlock); out.padlockLocks = !!S.look.locked !== was;
     T.tileTap(ids.tlock);
     T.tileTap(ids.tglass); out.glassSearches = !!S.searchOn; S.searchOn = false; S.q = ''; B.render();

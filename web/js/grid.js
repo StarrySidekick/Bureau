@@ -839,7 +839,12 @@ function toPhoneSize(w, h, isCont){
      a desk, because the first thing you make owns the screen and the second has
      nowhere to go. Three cells is a tile you can read from across the room with
      room for two more beside it, and resizing it is one drag away. */
-  if(isCont) return [cap(half(w)), cap(half(h))];
+  /* Half, but never below two a side (or the desk size, if that is smaller):
+     half of a 2×2 drawer is the 1×1 mark with no room for its name, and since
+     the Workshop's sizes (2026-09-28) most containers are born 2×2 with their
+     phone size worked out rather than stated. */
+  const halfC = n => Math.max(Math.min(n, 2), half(n));
+  if(isCont) return [cap(halfC(w)), cap(halfC(h))];
   return [cap(w), cap(Math.min(PHONE_MAX_H, Math.max(1, h)))];
 }
 /* A kind may also state its phone size outright, in which case the mapping
@@ -859,8 +864,12 @@ function sizeOfKind(k, device, cid){
   }
   const cols = colsOf(cid, 'phone');
   const p = K(k).phoneSize;
-  if(p && p[0]) return [clamp(Math.min(p[0], PHONE_MAX_NEW),1,cols),
-                        clamp(Math.min(p[1], PHONE_MAX_NEW),1,PHONE_MAX_H)];
+  /* A phone size somebody **stated** is what they get, up to the board: the
+     three-cell cap is a rule for a size the app has to guess, and the
+     Workshop is where the answer is now given outright (a magnifying glass
+     seven wide is a search bar across the phone). Height keeps its cap, since
+     a tile taller than a screenful cannot be seen at all. */
+  if(p && p[0]) return [clamp(p[0],1,cols), clamp(p[1],1,PHONE_MAX_H)];
   const [pw,ph] = toPhoneSize(w, h, kindHas(k,'container'));
   return [Math.min(pw, cols), ph];
 }

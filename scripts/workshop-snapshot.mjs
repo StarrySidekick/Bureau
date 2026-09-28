@@ -52,7 +52,7 @@ const got = await page.evaluate(async ({ rail, depth }) => {
     { id: 'rail', name: 'Drawer front', note: 'Along the bottom of the phone, left to right; a board can carry its own' },
     { id: 'bar', name: 'Mac bar', note: 'Across the top of a Mac window' },
     { id: 'settings', name: 'Settings', note: 'The gear, on the desk: a list of doors' },
-    { id: 'editor', name: 'Object editor', note: 'Hold an object, then Editor: the top, then two doors' },
+    { id: 'editor', name: 'Object editor', note: 'Hold an object, then Editor: the top, then three doors' },
     { id: 'hold', name: 'Hold menu', note: 'The ring of paint blobs round your finger' },
     { id: 'palette', name: 'Palette picker', note: 'A box drawn with the Magic Selector: the fifteen on two rings' }];
   const sections = [], items = {};
@@ -136,10 +136,11 @@ const got = await page.evaluate(async ({ rail, depth }) => {
   B.render(); await nap(300);
   const edSecs = { top: { id: 'ed.top', menu: 'editor', name: 'Top', note: 'the type, where it lives, its tags', items: [] },
     look: { id: 'ed.look', menu: 'editor', name: 'Look', note: 'colour, face, edges, hardware', items: [] },
+    words: { id: 'ed.words', menu: 'editor', name: 'Words', note: 'typeface, ink, paper, sizes, how the page is laid out (decision 247)', items: [] },
     does: { id: 'ed.does', menu: 'editor', name: 'Behaviour', note: 'what it does, what it collects, its fields and traits', items: [] } };
   const shows = {};
   for (const o of made) {
-    for (const [door, key] of [[undefined, 'top'], ['look', 'look'], ['does', 'does']]) {
+    for (const [door, key] of [[undefined, 'top'], ['look', 'look'], ['words', 'words'], ['does', 'does']]) {
       B.panel(o.id, door); await nap(160);
       document.querySelectorAll('#panel .prow').forEach(r => { const x = rowOf(r); if (!x) return;
         const it = add(edSecs[key], x.name, x.kind, x.opts, '');
@@ -148,7 +149,7 @@ const got = await page.evaluate(async ({ rail, depth }) => {
     }
   }
   Object.entries(shows).forEach(([id, set]) => { items[id].note = 'Shows on: ' + [...set].join(', '); });
-  sections.push(edSecs.top, edSecs.look, edSecs.does);
+  sections.push(edSecs.top, edSecs.look, edSecs.words, edSecs.does);
 
   // the hold ring, round each sample
   const ring = { id: 'hold.ring', menu: 'hold', name: 'The ring', note: 'clockwise from the top; what shows depends on the thing', items: [] };

@@ -52,10 +52,22 @@ function watchViewport(){
      that window has slid. Safari scrolls the page under a fixed shell to chase
      a caret, so a surface anchored at `top:0` can end up above the screen even
      when it is the right height. */
+  /* And a third: the height with **no keyboard**, which is the tallest the
+     visual viewport has been at this width. The phone's reading surface is
+     sized from it, so the keyboard comes up over the page rather than the page
+     shrinking to fit above it — Timothy's call, 2026-09-28 — and `--kbh`, what
+     the keyboard is taking, is room the field keeps at its foot so the last
+     lines can still be scrolled above it. A new width is a turned phone, and
+     starts the tallest over. */
+  let tall = 0, wide = innerWidth;
   const write = ()=>{
     const el=document.documentElement.style;
+    if(innerWidth !== wide){ wide = innerWidth; tall = 0; }
+    tall = Math.max(tall, vv.height);
     el.setProperty('--vvh', vv.height+'px');
     el.setProperty('--vvt', (vv.offsetTop||0)+'px');
+    el.setProperty('--rvh', tall+'px');
+    el.setProperty('--kbh', Math.max(0, tall - vv.height)+'px');
   };
   vv.addEventListener('resize', write);
   vv.addEventListener('scroll', write);
