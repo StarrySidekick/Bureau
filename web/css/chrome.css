@@ -4288,6 +4288,12 @@ html[data-theme="walnut"] .toast{background:var(--paper-3);color:var(--ink)}
   padding:1px 5px;border-radius:var(--pill);
   background:color-mix(in srgb, var(--paper) 86%, transparent);white-space:nowrap}
 .ctxmenu.radial.shapering .radblob b{max-width:88px;overflow:hidden;text-overflow:ellipsis}
+/* The two rings of the fifteen (decision 240): smaller blobs, so seven fit
+   round the hole and eight round them on a phone's width. */
+.ctxmenu.radial.tworing .radblob{width:62px;transform:translate(calc(var(--x) - 50%), calc(var(--y) - 26px))}
+.ctxmenu.radial.tworing .radpaint.radtile{width:44px;height:44px}
+.ctxmenu.radial.tworing .radblob b{font-size:9.5px;max-width:70px;padding:1px 4px}
+.ctxmenu.radial.tworing::before{width:calc(var(--rad,96px) * 2 + 70px)}
 /* The hold ring's labels wrap instead (decision 218): "Convert into Project"
    and "Add to New Drawer" are the names Timothy chose, and cut short they
    would say something else. Two lines at most, centred under the blob. */

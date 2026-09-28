@@ -10577,3 +10577,49 @@ taught a checklist line to wear a type's mark where the box goes.
   Car, Laptop and Phone drawers keep the checklist face, since what they hold
   is mostly ticked. Existing desks keep the face they have.
 
+## 240 · The fifteen
+
+*2026-09-28.* Timothy, with a hundred and twenty types on the desk: *"a new
+major sort of set of categories that should help us simplify our palette
+picker … Nothing necessarily is being deleted. This is just kind of like the
+master category for all the other things to sort of fit inside of."* And:
+*"the palette picker doesn't really focus on the size of the thing you drew. It
+really just focuses on … the master container or master list. But still
+remains customizable for boards."*
+
+- **Fifteen masters, in his order** (`MASTERS` in model.js). Seven that hold
+  things: Drawer, List, Calendar, Tag, Book, Collage, Jar. Eight that do not:
+  Card, Paper, Picture, Video, Audio, Decoration, Doodad, Portal. `PRIMARY` is
+  their keys; `SECONDARY` is empty.
+- **A master with one member is that type** (Tag, Jar, Video, Audio, Portal),
+  and so are Drawer and Book, whose own setup cards already ask which (a
+  project, a part of your life or a way of working; a novel or a story). The
+  rest are **category kinds** at the foot of `BUILTIN_KINDS` (`m_list`,
+  `m_calendar`, `m_collage`, `m_card`, `m_paper`, `m_picture`) carrying
+  `cat`, `master`, a flat `family` and a `lead` they are drawn as. Last in the
+  table because `FAMILY_OF` takes the first family that names a type.
+- **Where everything went.** List: List, Checklist. Calendar: Calendar,
+  Timeline, Event. Collage: Collage, Pigeonhole. Card: Goal, Habit tracker,
+  Progress bar, Achievement. Paper: every text type, flat (the notes, the
+  task, the label, poem, essay, script, outline, scene, the post, and the
+  worldbuilding fragments). Picture: Image, Painting (out of Decoration).
+  Decoration: Plant, Physical Object, Window, Background. Doodad (the existing
+  `instrument` category) takes the Tool's six, the Counter, the Button and
+  Random.
+- **The ring offers the fifteen, not the nearest shapes.** Two rings: the
+  seven that hold things round the thumb hole, the eight round them, More…
+  last (`.tworing`). What you make still takes the box you drew. A board that
+  names its types (`makes.only`, decision 199) still gets those, nearest shape
+  first, and a size rule still makes without asking.
+- **The picker is the fifteen in two rows**, *Things that hold things* and
+  *Things*, and *Everything else* holds only what no master reaches
+  (`inMaster()`). Inside a master the members are flat, so a Note there does
+  not ask for the note family again.
+- **Control and Spawner are cut from the pickers** (`CUT_KINDS`): the Button
+  is both of them now (decision 243). The kinds stay for what is on a desk
+  and for the flows.
+- `someKind()` (a spawner set to anything, and Random) draws from what the
+  fifteen reach.
+- Labels in his words: Book (the type is still *Text* inside), Audio (was
+  *Disc*). Audio was already a disc by default whatever it holds.
+

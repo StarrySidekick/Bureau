@@ -1,7 +1,7 @@
 import { $, esc, uid, clamp, ROOT, HOLD, D } from './util.js';
 import { S, byId, K, KINDS, KEYS, kindHas, has, isContainer, genKindOf, streak, T, dz, dev,
   repeatOf, repeats, nextRepeat, faceOf, childrenOf, TILT_MODES, tiltMode, GRAVITIES, gravityMode,
-  ctlOf, isPrimary, SECONDARY, isPicture, isDecor,
+  ctlOf, isPrimary, SECONDARY, inMaster, isCut, isPicture, isDecor,
   placeOf, cfgOf, isHeld, heldObjects, homeFor , attrsOf, habitPlan, habitOn, tagSlug, mediaTypeOf, measureOf, amountSaid } from './model.js';
 import { GRID, PHONE_GRIDS, colsOf, gridOf, shelfRows, freeSpot, anySpot, roomFor, lay, boxOk, sizeOfKind, keepSize, shelvesOf, addBoard } from './grid.js';
 import { randomFront, randomBoard, randomLook, styleDefaults,
@@ -970,7 +970,9 @@ function someKind(){
   /* Out of the picker's first two rows (decision 204 moved most of the old
      majors into the second), plus the collage, which `furnish()` lays with
      pictures so it is worth seeing. */
-  const pool = KEYS.filter(k => (isPrimary(k) || SECONDARY.includes(k) || k==='moodboard') && !K(k).cat && !K(k).family && !K(k).makesAny
+  /* Out of what the fifteen open onto since decision 240, less what runs,
+     what stands, what lies underneath, and what was cut. */
+  const pool = KEYS.filter(k => inMaster(k) && !isCut(k) && !K(k).act && !K(k).cat && !K(k).family && !K(k).makesAny
     && (k==='moodboard' || !kindHas(k,'container')) && !kindHas(k,'control') && !kindHas(k,'decor') && !kindHas(k,'backdrop'));
   return pool[Math.floor(Math.random()*pool.length)] || 'note';
 }

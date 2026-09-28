@@ -162,6 +162,15 @@ const PROP_OFF = () => { const b = document.createElement('button');
              paint: getComputedStyle(document.querySelector('[data-drawer="d_in"]')).backgroundColor,
              ink: getComputedStyle(document.documentElement).getPropertyValue('--ink').trim() };
   });
+  /* Stands on the block before it, which left Settings open at its look door.
+     smoke-only keeps this block without that one whenever a later block reads
+     `before`, so it opens the door itself when it is not already open. */
+  if (!(await page.$('[data-style3="starry"]'))) {
+    await page.click('.gridbar [data-act="appsettings"]');
+    await page.waitForTimeout(320);
+    await page.click('#panel [data-ssec="look"]');
+    await page.waitForTimeout(320);
+  }
   await page.click('[data-style3="starry"]');
   await page.waitForTimeout(320);
   const swapped = await page.evaluate(() => {
@@ -222,7 +231,8 @@ const PROP_OFF = () => { const b = document.createElement('button');
   await page.waitForTimeout(400);
   const pickerPreviews = await page.evaluate(() => {
     const tiles = [...document.querySelectorAll('.kindtile')];
-    return tiles.length > 20 && tiles.every(t => t.querySelector('.kpv .pvgrid .drawer'));
+    // the fifteen at least (decision 240), each drawn as the thing it makes
+    return tiles.length >= BUREAU.PRIMARY.length && tiles.every(t => t.querySelector('.kpv .pvgrid .drawer'));
   });
   await shot('27-type-picker');
   // the builder's preview is the same renderer on a draft object
@@ -5537,8 +5547,8 @@ const PROP_OFF = () => { const b = document.createElement('button');
     /* A **category** is drawn as `data-family`, not `data-new`: pressing it
        asks which kind rather than making one. Decision 135. */
     const keyOf = e => e.dataset.new || e.dataset.family;
-    const first = [...panel.querySelectorAll('.kindgrid')][0];
-    const led = [...first.children].map(keyOf);
+    // the fifteen, in two rows (decision 240)
+    const led = [...panel.querySelectorAll('.kindgrid.majors')].flatMap(g => [...g.children]).map(keyOf);
     out.leadsWithTheMajors = led.length === BUREAU.PRIMARY.length
       && led.every(k => BUREAU.isPrimary(k));
     out.drawersLead = BUREAU.isContainer({kind:led[0]}) || led.slice(0,4)
@@ -5555,7 +5565,8 @@ const PROP_OFF = () => { const b = document.createElement('button');
        disclosure, and a type with a home does not need it. `reachable` below is
        what guards that nothing was lost. */
     const leftover = Object.keys(BUREAU.K).filter(k =>
-      !BUREAU.isPrimary(k) && !BUREAU.K[k].cat && !BUREAU.inFamily(k));
+      !BUREAU.isPrimary(k) && !BUREAU.K[k].cat && !BUREAU.inFamily(k)
+      && !BUREAU.inMaster(k) && !BUREAU.isCut(k));
     out.restBehindOneMore = leftover.length
       ? !!panel.querySelector('details.allkinds')
       : !panel.querySelector('details.allkinds');
@@ -5572,8 +5583,15 @@ const PROP_OFF = () => { const b = document.createElement('button');
       const d = BUREAU.K[e.dataset.new] || {};
       if(d.setup) (d.family || []).forEach(k => reachable.add(k));
     });
+    /* …and a Drawer's setup card asks whether it is a project, a part of your
+       life or a way of working, so those are one tap in from the Drawer
+       (decision 240); what each of them opens onto comes with it. */
+    BUREAU.MASTERS.forEach(([m, also]) => { if(all.includes(m)) (also || []).forEach(k => {
+      reachable.add(k); ((BUREAU.K[k] || {}).family || []).forEach(j => reachable.add(j)); }); });
     // …bar the ones cut in the Workshop, which no picker offers (decision 218)
-    out.everythingIsStillThere = Object.keys(BUREAU.K).every(k => reachable.has(k) || ['magic','recipe'].includes(k));
+    /* A category that is only a question (Post, Tool, Fragment) is not a
+       thing to reach: its members are, and they are flat inside a master. */
+    out.everythingIsStillThere = Object.keys(BUREAU.K).every(k => reachable.has(k) || BUREAU.isCut(k) || BUREAU.K[k].cat);
     document.querySelector('#panel [data-act="panelclose"]').click();
     // …and inside a container that says what it makes, that type comes first
     await nap(120);
@@ -8142,7 +8160,7 @@ const PROP_OFF = () => { const b = document.createElement('button');
     /* The ring first (decision 210), and More… on it is the whole picker
        on the same cell. */
     out.andItOpensTheShapeRing = !!document.querySelector('#ctx.shapering.open')
-      && /\d+ × \d+/.test((document.querySelector('#ctx .ctxhead')||{}).textContent||'');
+      && /put down|\d+ × \d+/i.test((document.querySelector('#ctx .ctxhead')||{}).textContent||'');
     const more = document.querySelector('#ctx.shapering [data-act="ringmore"]');
     if(more){ more.click(); await nap(320); }
     out.andItOpensThePicker = !!document.querySelector('#panel')
@@ -8296,8 +8314,8 @@ const PROP_OFF = () => { const b = document.createElement('button');
       out.andMakesSomethingEachPress = S.objects.length === n+6;
       out.andNotAlwaysTheSameThing = kinds.size > 1;
       // the picker's first two rows, and the collage (decision 204)
-      out.andOnlyMajors = [...kinds].every(k => BUREAU.isPrimary(k)
-        || BUREAU.SECONDARY.includes(k) || k === 'moodboard');
+      // out of what the fifteen open onto (decision 240)
+      out.andOnlyMajors = [...kinds].every(k => BUREAU.inMaster(k) || k === 'moodboard');
       S.objects.slice(n).map(o=>o.id).forEach(id => BUREAU.del(id));
       BUREAU.del(g.id);
     }
@@ -9679,7 +9697,8 @@ const PROP_OFF = () => { const b = document.createElement('button');
       .map(t => t.dataset.new || t.dataset.family);
     out.thePickerOffersTheShortList = JSON.stringify(lead) === '["note","task"]';
     // Image is a category since decision 208 (a Painting is its subtype)
-    out.withEverythingOneDoorIn = !!document.querySelector('#panel details.boardall .kindtile[data-new="image"], #panel details.boardall .kindtile[data-family="image"]');
+    // …and a Picture is one of the fifteen since decision 240
+    out.withEverythingOneDoorIn = !!document.querySelector('#panel details.boardall .kindtile[data-family="m_picture"]');
     const n0 = S.objects.length;
     const t = document.querySelector('#panel .boardmakes .kindtile[data-new="task"]');
     if(t){ t.click(); await nap(400); }

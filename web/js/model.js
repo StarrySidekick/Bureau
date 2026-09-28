@@ -243,7 +243,7 @@ const BUILTIN_KINDS = {
      the pieces it is made of, and it opens as a book both ways round:
      `layout:'book'` pages through what it holds and `read:'book'` pages
      through its own body. See decision 130. */
-  book:    {setup:'text', face:'spine', binding:'banded', nm:'Text', ic:'book', c:11, key:'B',
+  book:    {setup:'text', face:'spine', binding:'banded', nm:'Text', pickNm:'Book', ic:'book', c:11, key:'B',
      ds:'Anything made of words — press it and say which',
      family:['book','poem','novel','shortstory','essay','script'], famSub:'What are you writing?',
      attrs:['text','container','relates'], layout:'book', read:'book',
@@ -367,7 +367,7 @@ const BUILTIN_KINDS = {
      through it. One press in from Decoration rather than a tile of its own in
      a list that is already long. */
   decoration:{shape:'decor', nm:'Decoration', ic:'plant', c:6, key:'', ds:'Something to stand on the shelf — a plant, a bookend, a little figure', attrs:['decor','media'], size:[4,5], phoneSize:[2,3], mediaType:'image', onclick:'none', decor:'plant',
-     family:['plant','ornament','painting','window'], famSub:'What is standing there?', body:'' },
+     family:['plant','ornament','window','background'], famSub:'What is standing there?', body:'' },
   /* **Decoration's subtypes** (decision 218, from the Workshop): a Plant, a
      Physical Object, the Painting and the Window. The first two are the
      photographed ornaments split by the `plant` mark on each in decor.js, and
@@ -390,7 +390,7 @@ const BUILTIN_KINDS = {
   /* Sound and moving pictures are things you put on a desk, not a corner of
      film-making — so they are majors, and pressing one plays it rather than
      opening a page about it. See decision 144. */
-  audio:   {nm:'Audio', pickNm:'Disc',   ic:'music',   c:10, key:'U', ds:'Something to listen to',    size:[4,4], phoneSize:[3,3], onclick:'play', attrs:['text','media','duration'], mediaType:'audio', body:'' },
+  audio:   {nm:'Audio',   ic:'music',   c:10, key:'U', ds:'Something to listen to',    size:[4,4], phoneSize:[3,3], onclick:'play', attrs:['text','media','duration'], mediaType:'audio', body:'' },
   video:   {nm:'Video',   ic:'film',    c:9, key:'&', ds:'Something to watch',        size:[6,4], onclick:'play', attrs:['text','media','duration'], mediaType:'video', body:'' },
   trip:    {shape:'card', proj:'trip', nm:'Trip',    ic:'flag',    c:9, key:'P', ds:'Somewhere you are going',   size:[8,6], attrs:['container','date','span','location'], layout:'grid', plan:'pl_stock_travel', body:'' },
   /* An **essay or a post** as a piece of work — the claim, the outline, the
@@ -553,8 +553,11 @@ const BUILTIN_KINDS = {
      the object first, so a type somebody invents can be a die by saying so. */
   instrument:{cat:true, nm:'Doodad', ic:'clock', c:13,
      ds:'Something that runs — press it and say which',
-     family:['metronome','hourglass','candle','bell','clock','die','deck'],
-     famSub:'What sort of instrument?',
+     /* **The tools and the counter are doodads too** (decision 240): one
+        place for the small things that do something when pressed. */
+     family:['button','counter','metronome','hourglass','candle','bell','clock','die','deck',
+             'tglass','tblock','tlock','tgear','spool','coin','anything'],
+     famSub:'Which doodad?', master:true, lead:'clock',
      attrs:[], size:[3,4], onclick:'active', body:'' },
   metronome:{act:'metro',  nm:'Metronome', ic:'clock', c:11, ds:'Keeps time, and you can hear it',
      attrs:[], size:[2,4], phoneSize:[2,4], onclick:'active', bpm:88, body:'' },
@@ -724,7 +727,29 @@ const BUILTIN_KINDS = {
      size:[5,3], onclick:'read', attrs:['text','rating','date','link'],
      body:'**What stayed with me —** \n\n**Who I would give it to —** ' },
   appt:    {shape:'event', nm:'Event',   ic:'calendar',c:8, key:'V', ds:'Something on a day — a meeting, a shoot, a trip',
-     size:[6,2], phoneSize:[5,2], onclick:'when', attrs:['text','date','span','duration','location'], body:'' }
+     size:[6,2], phoneSize:[5,2], onclick:'when', attrs:['text','date','span','duration','location'], body:'' },
+  /* ---- the fifteen — decision 240 ---------------------------------------
+     Timothy's master categories, each a question the picker and the ring ask
+     rather than a thing that is made (`cat`), and each drawn as its `lead`.
+     A master with one member is that member's own type in `MASTERS` and has
+     no row here. Last in the table on purpose: `FAMILY_OF` takes the first
+     family that names a type, and these must not take a Note away from the
+     Note's own family or a Character away from the Fragment. */
+  m_list:    {cat:true, master:true, lead:'list', nm:'List', ic:'list', c:4,
+     ds:'A list of anything, or of things to tick', family:['list','checklist'], famSub:'Which list?', attrs:[], body:'' },
+  m_calendar:{cat:true, master:true, lead:'calendar', nm:'Calendar', ic:'calendar', c:7,
+     ds:'Things laid out along time', family:['calendar','timeline','appt'], famSub:'Which?', attrs:[], body:'' },
+  m_collage: {cat:true, master:true, lead:'moodboard', nm:'Collage', ic:'image', c:14,
+     ds:'Pictures pinned up, or a pigeonhole', family:['moodboard','pigeonhole'], famSub:'Which?', attrs:[], body:'' },
+  m_card:    {cat:true, master:true, lead:'goal', nm:'Card', ic:'target', c:13,
+     ds:'Something you are after, or keeping count of', family:['goal','tracker','progressbar','achievement'], famSub:'Which card?', attrs:[], body:'' },
+  m_paper:   {cat:true, master:true, lead:'note', nm:'Paper', ic:'note', c:10,
+     ds:'Anything written down', famSub:'What is written on it?',
+     family:['note','task','thought','idea','question','problem','quote','review','label',
+             'poem','essay','script','outline','scene','letter','postcard','telegram',
+             'character','place','world','artifact','creature','histevent','law','group'], attrs:[], body:'' },
+  m_picture: {cat:true, master:true, lead:'image', nm:'Picture', ic:'image', c:15,
+     ds:'A photograph, a drawing, or a painting from the Met', family:['image','painting'], famSub:'Which picture?', attrs:[], body:'' }
 };
 
 /* ---- the aspects of life, each a type — decision 236 --------------------
@@ -833,21 +858,51 @@ WORKFLOWS.forEach(([key, nm, c, ic, ds])=>{
    — and every other major is one dropdown further in (`SECONDARY`), ahead of
    the rest. The gaps get filled later; this is the physical-object idea first. */
 /* The front row as Timothy laid it out in the Workshop (decision 218). */
-const PRIMARY = ['drawer','tag','life','checklist','list','calendar','book','note','goal',
-                 'image','decoration','audio','video','moodboard','instrument','tool',
-                 'generator','project','anything'];
-/* What used to lead and does not any more, still in its stated order, drawn
-   first inside the dropdown. */
-const SECONDARY = ['task','jar','pigeonhole','timeline',
-                 'fragment','label','background','achievement',
-                 'progressbar','tracker','counter','appt',
-                 'post','control','outlink'];
-/* **Cut in the Workshop** (decision 218): no picker offers these. The kinds
-   stay, because objects are made of them and a tag still makes a sorting
-   drawer; ask `isCut(k)` before listing a type anywhere it could be made. */
-const CUT_KINDS = ['magic','recipe'];
+/* **The fifteen** (decision 240), Timothy's master categories: seven that
+   hold things and eight that do not, in his order. Every type there is fits
+   inside one of them; nothing was deleted to get here. A master with one
+   member is that type itself (a Drawer's own setup card asks project, life
+   or workflow); the rest are category kinds at the foot of BUILTIN_KINDS. */
+const MASTERS = [
+  ['drawer',     ['drawer','project','life','workflow','trip']],
+  ['m_list',     null],
+  ['m_calendar', null],
+  ['tag',        ['tag']],
+  ['book',       ['book','novel','shortstory']],
+  ['m_collage',  null],
+  ['jar',        ['jar']],
+  ['m_card',     null],
+  ['m_paper',    null],
+  ['m_picture',  null],
+  ['video',      ['video']],
+  ['audio',      ['audio']],
+  ['decoration', null],
+  ['instrument', null],
+  ['outlink',    ['outlink']]
+];
+const MASTER_HOLDS = 7;   // the first seven hold things
+const PRIMARY = MASTERS.map(m=>m[0]);
+/* What used to lead the "More types" dropdown. Every one of them is inside a
+   master now, so the dropdown holds only what no master reaches. */
+const SECONDARY = [];
+/* The Control and the Spawner are the Button now (decision 240): the kinds
+   stay for what is already on a desk and for the flows that press out
+   scenes, and no picker offers them. */
+const CUT_KINDS = ['magic','recipe','control','generator'];
 const isCut = k => CUT_KINDS.includes(k);
 const isPrimary = k => PRIMARY.includes(k);
+/* Everything a master opens onto, through families all the way down, so the
+   picker's "Everything else" can leave it out. Asked lazily: KINDS is built
+   below this line. */
+let REACH = null;
+function masterReach(){
+  if(REACH) return REACH;
+  const seen = new Set(), walk = k => { if(!k || seen.has(k) || !KINDS[k]) return; seen.add(k);
+    (K(k).family||[]).forEach(walk); };
+  MASTERS.forEach(([k, also]) => { walk(k); (also||[]).forEach(walk); });
+  return (REACH = seen);
+}
+const inMaster = k => masterReach().has(k);
 // the aspects and the ways of working, for the setup card and the tests
 const ASPECT_KINDS = LIFE_ASPECTS.map(a=>'lf_'+a[0]), WORKFLOW_KINDS = WORKFLOWS.map(w=>'wf_'+w[0]);
 
@@ -3230,7 +3285,7 @@ export { homeFor, ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds,
   allUnder, progressOf, projectStat, finishedThings, allTags,
   tagSlug, implicitTags, tagsOf, tagTerms, tagMatch, everyTag,
   habitPlan, habitOn, habitPeriod, habitPeriods, habitRun, HABIT_MAX_TIMES, measureOf, amountSaid, SHAPES_HABIT,
-  PRIMARY, SECONDARY, isPrimary, ASPECT_KINDS, WORKFLOW_KINDS, ANY, makesAnything, genSaid, ctlOf, barPct, barOf,
+  PRIMARY, SECONDARY, MASTERS, MASTER_HOLDS, inMaster, isPrimary, ASPECT_KINDS, WORKFLOW_KINDS, ANY, makesAnything, genSaid, ctlOf, barPct, barOf,
   BAR_STEPS, barSteps, barFilled, barGrid,
   familyOf, isCategory, inFamily, isFragmentKind, familyList,
   PROJ_COVERS, projCoverOf, lifeArtOf,

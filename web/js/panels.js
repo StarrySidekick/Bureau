@@ -7,7 +7,7 @@ import { S, K, KINDS, KEYS, T, ATTRS, USER_ATTRS, FIELDS, fieldOf, OPS, ROLLS,
   rootObj, containers, isContainer, isAncestor, childrenOf, has, kindHas,
   attrsOf, allTags, everyTag, tagsOf, habitPlan, HABIT_MAX_TIMES, measureOf, placeOf, deskList, deskOf, isDesk, spanOf, heldObjects,
   dev, takesTyping, genKindOf, genSaid, ANY, ctlOf, barOf,
-  PRIMARY, SECONDARY, isPrimary, inFamily, familyList, finishedThings, answered, marginOf, isLate,
+  PRIMARY, SECONDARY, MASTER_HOLDS, inMaster, isPrimary, inFamily, familyList, finishedThings, answered, marginOf, isLate,
   PRIOS, prioOf, prioName, DIFFS, diffOf, diffName, REPEAT_UNITS, repeatOf, repeats, repeatSaid,
   relatedTo, backlinksTo, streak, goalPct,
   CALVIEWS, calViewOf, calShowOf, CALSHOWS, weekStartOf, showsWeekends, KNOBSIZES, knobSizeOf,
@@ -275,15 +275,17 @@ function ringChoices(k){
   if(!fam.length){ if(variantsOf(k)) spread(k); return out; }
   fam.forEach(m => {
     if(m===k && variantsOf(m)) spread(m);
-    else out.push({k:m, ask: m!==k && (!!variantsOf(m) || (K(m).family||[]).length>1)});
+    /* Inside a master the members are already flat (a Note there is the
+       note, not the note's own family again), so only variants ask. */
+    else out.push({k:m, ask: m!==k && (!!variantsOf(m) || (!K(k).master && (K(m).family||[]).length>1))});
   });
   return out;
 }
 const asksOnRing = k => !K(k).setup && (!!variantsOf(k) || (K(k).family||[]).length>1);
 /* A blob's picture: the thing it makes, drawn by `sampleTile()` with the
    variant already applied, and made inert (decision 214). */
-const ringArt = (k, v) => `<span class="radpaint radtile" style="--k:${hexOf(K(k).c)}">${
-  sampleTile(Object.assign(kindSample(k), variantPatch(k, v)), 46, 46).replace(/<(\/?)button\b/g, '<$1span')
+const ringArt = (k, v, px) => `<span class="radpaint radtile" style="--k:${hexOf(K(k).c)}">${
+  sampleTile(Object.assign(kindSample(k), variantPatch(k, v)), px||46, px||46).replace(/<(\/?)button\b/g, '<$1span')
     .replace(/<input\b[^>]*>|<textarea\b[^>]*>[\s\S]*?<\/textarea>/g, '')}</span>`;
 const RING_PAGE = 8;
 let RINGAT = null;
@@ -293,7 +295,16 @@ function shapeRing(rect, cell, kind, page){
   // a board with a rule for this size still makes it without asking (199)
   const sized = !kind && makesOf(container(home)) && madeAtSize(container(home), cell.w, cell.h);
   if(sized){ newOfKind(sized, true); return; }
-  const ks = kind ? [] : shapeKinds(cell.w, cell.h, home).slice(0, RING_N);
+  /* **The fifteen, not the nearest shapes** (decision 240). The ring used to
+     offer the types whose default size was nearest the box you drew; it
+     offers Timothy's master categories now, whatever you drew, the seven that
+     hold things on an inner ring and the eight that do not round them. The
+     thing you make still takes the box you drew. A board that names its own
+     types (`makes.only`, decision 199) still gets those, nearest shape first,
+     which is what keeps the ring customisable per board. */
+  const only = !kind && ((makesOf(container(home))||{}).only||[]).filter(k=>KINDS[k]);
+  const masters = !kind && !only.length;
+  const ks = kind ? [] : masters ? PRIMARY.filter(k=>KINDS[k]) : shapeKinds(cell.w, cell.h, home).slice(0, RING_N);
   const PAINTS = ['#C8553D','#E0A43A','#7FA54E','#3E7C8C','#4A5FA8','#8A5BA6','#B0677E','#8C6A3F'];
   // a category's blob asks which of its family (the Image blob offers the Painting)
   /* **Each blob is the thing it makes** (decision 212): the type drawn by
@@ -307,8 +318,9 @@ function shapeRing(rect, cell, kind, page){
      left out: it is a picture and is never pressed. */
   let items;
   if(!kind){
-    items = ks.map(k => ({act:`data-act="ringmake" data-kind="${k}"${asksOnRing(k) ? ' data-ask="1"' : ''}`,
-        art: ringArt(k), label:K(k).nm}))
+    items = ks.map((k, i) => ({act:`data-act="ringmake" data-kind="${k}"${asksOnRing(k) ? ' data-ask="1"' : ''}`,
+        art: ringArt(k, null, masters ? 34 : 46), label:(masters && K(k).pickNm) || K(k).nm,
+        inner: masters && i < MASTER_HOLDS}))
       .concat({act:'data-act="ringmore"', art:`<span class="radpaint">${ic('plus',17)}</span>`, label:'More…'});
   } else {
     /* One question further in: the choices, a page of eight at a time, with
@@ -322,17 +334,29 @@ function shapeRing(rect, cell, kind, page){
         art:`<span class="radpaint">${ic('chevR',17)}</span>`, label:`${pg+1} of ${pages}`});
     items.push({act:'data-act="ringback"', art:`<span class="radpaint">${ic('chevL',17)}</span>`, label:'Back'});
   }
-  const n = items.length, R = n<=6 ? 96 : n<=8 ? 114 : 128, pad = 44;
+  const n = items.length;
+  let R = n<=6 ? 96 : n<=8 ? 114 : 128, pad = 44;
+  // two rings: where each blob sits is worked out per ring (decision 240)
+  const RIN = 70, ROUT = 134;
+  if(masters){ R = ROUT; pad = 34; }
+  const inner = items.filter(m=>m.inner), outer = items.filter(m=>!m.inner);
+  const spot = m => {
+    const ring = masters ? (m.inner ? inner : outer) : items, at = ring.indexOf(m);
+    const r = masters ? (m.inner ? RIN : ROUT) : R;
+    const a = -Math.PI/2 + at*2*Math.PI/ring.length;
+    return [Math.cos(a)*r, Math.sin(a)*r];
+  };
   el.innerHTML = `<i class="radhole" aria-hidden="true"></i>
-    <div class="ctxhead">${kind ? esc(K(kind).famSub || K(kind).nm) : `${cell.w} × ${cell.h}`}</div>${
+    <div class="ctxhead">${kind ? esc(K(kind).famSub || K(kind).nm) : masters ? 'Put down' : `${cell.w} × ${cell.h}`}</div>${
     items.map((m,i)=>{
-      const a = -Math.PI/2 + i*2*Math.PI/n, x = Math.cos(a)*R, y = Math.sin(a)*R;
+      const [x, y] = spot(m);
       return `<button class="radblob" ${m.act} title="${esc(m.label)}"
         style="--x:${x.toFixed(1)}px;--y:${y.toFixed(1)}px;--i:${i};--paint:${PAINTS[i%PAINTS.length]}">
         ${m.art}<b>${esc(m.label)}</b></button>`;
     }).join('')}`;
   const r = $('#frame').getBoundingClientRect();
   el.classList.add('open','palette','radial','shapering');
+  el.classList.toggle('tworing', !!masters);
   el.style.setProperty('--rad', R+'px');
   // round the middle of the box you drew, nudged on screen only as far as it must
   const span = R + pad;
@@ -377,6 +401,8 @@ function pickGroups(skipPrimary){
        this exists to remove — one press further in is where it lives now, and
        the object editor's type picker (which passes nothing) still sees it. */
     if(skipPrimary && inFamily(k) && !S.kinds[k]) return;
+    // …and anything one of the fifteen already opens onto (decision 240)
+    if(skipPrimary && inMaster(k) && !S.kinds[k]) return;
     const d=KINDS[k];
     if(S.kinds[k])                    g.Yours.push(k);
     else if(d.narrative)              g.Writing.push(k);
@@ -553,7 +579,9 @@ function donePanel(kind){
    the picker hides. See decision 130. */
 function majors(homeId){
   const home = homeId && byId(homeId);
-  const first = home && isContainer(home) && takesTyping(home) ? genKindOf(home) : null;
+  let first = home && isContainer(home) && takesTyping(home) ? genKindOf(home) : null;
+  // one of the fifteen already has its place in the two rows (decision 240)
+  if(PRIMARY.includes(first)) first = null;
   const rest = PRIMARY.filter(k => KINDS[k] && k!==first);
   return [(first && KINDS[first]) ? first : null, ...rest].filter(Boolean);
 }
@@ -688,15 +716,22 @@ function modalNewObject(){
   const sized = says && cell && madeAtSize(board, cell.w, cell.h);
   if(sized){ newOfKind(sized, true); return; }
   const lead = majors(home);
+  const first = lead.length > PRIMARY.length ? 1 : 0;   // what this drawer makes, if anything
+  const holds = lead.slice(0, first + MASTER_HOLDS), things = lead.slice(first + MASTER_HOLDS);
   const c = byId(home);
   const made = c && isContainer(c) && takesTyping(c) ? genSaid(c) : null;
   const rest = pickGroups(true);
   const full = ()=> `
-      <div class="section-h"><h2>${made?'In here':'Put down'}</h2><div class="rule"></div><span class="n">${
-        made ? 'this drawer makes a '+esc(made) : 'the things a desk is made of'}</span></div>
-      <div class="kindgrid">${lead.map(k=>kindTile(k)).join('')}</div>
+      ${/* **The fifteen, in two rows** (decision 240): the seven that hold
+            things, then the eight that do not. What this drawer makes, when
+            it makes something, leads the first row. */''}
+      <div class="section-h"><h2>${made?'In here':'Things that hold things'}</h2><div class="rule"></div><span class="n">${
+        made ? 'this drawer makes a '+esc(made) : 'drawers, lists, calendars'}</span></div>
+      <div class="kindgrid majors">${holds.map(k=>kindTile(k)).join('')}</div>
+      <div class="section-h"><h2>Things</h2><div class="rule"></div><span class="n">paper, pictures, doodads</span></div>
+      <div class="kindgrid majors">${things.map(k=>kindTile(k)).join('')}</div>
       ${(()=>{ const more = SECONDARY.filter(k => KINDS[k] && !lead.includes(k));
-        return (more.length || rest.length) ? `<details class="pgroup allkinds"><summary>More types</summary>${
+        return (more.length || rest.length) ? `<details class="pgroup allkinds"><summary>Everything else</summary>${
         more.length ? `<div class="kindgrid">${more.map(k=>kindTile(k)).join('')}</div>` : ''}${
         rest.map(g=>`
           <div class="section-h"><h2>${g.nm}</h2><div class="rule"></div>${g.note?`<span class="n">${g.note}</span>`:''}</div>
@@ -2047,7 +2082,11 @@ function sampleTile(o, maxW, maxH, grow){
         ${gridTile(o,false,ROOT)}</div></div></div>`;
 }
 // One built-in or invented type, as an object of that type.
-const kindSample = k => { const d=K(k); return sampleObject({
+/* A master category is drawn as the type it leads with, under its own name
+   (decision 240): the Paper tile is a note called Paper. */
+const kindSample = k => { const d=K(k);
+  if(d.lead && KINDS[d.lead]) return Object.assign(kindSample(d.lead), {id:'__k_'+k, title:d.nm});
+  return sampleObject({
   id:'__k_'+k, kind:k, title:d.nm, attrs:d.attrs, shape:d.shape, face:d.face,
   c:d.c, size:d.size, phoneSize:d.phoneSize, onclick:d.onclick, spawnBy:d.spawnBy}); };
 
