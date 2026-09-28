@@ -396,6 +396,20 @@ are capped and ellipsed, because a painting's title is a sentence. See
 decision 216.
 
 
+**A type with `setup` asks on its first tap, not before it exists** (decision
+229). `newOfKind()` puts it down plain with `setup` set and no seed, and skips
+`asksTag`, `asksLife` and the family panel; `kindTile()` and `asksOnRing()` do
+not ask a family for it either. `tileTap()` checks `needsSetup()` first and
+opens `#setup` (setup.js), a card that fills the screen — the one place a
+centred-card-shaped thing is right, because Timothy asked for it to take the
+screen, and it is a run of questions rather than a menu about what is behind
+it. A step is `{q, sub, ask(o) → choices, text|area, answer(o, v) → next}`;
+every answer writes an existing field and pushes its own undo step, and the
+tile under the card is re-rendered on each. `finish()` clears `setup`, seeds a
+container that is still empty, and walks into a container. Only the picker
+and the shape ring set `setup`: seed data, flows, the coin and `create()` from
+code never do.
+
 **The object editor has two doors, Look and Behaviour** (decision 218).
 Collects and Advanced were folded into Behaviour: `at('collect')` and
 `at('adv')` are true inside it, and `OBJALIAS` sends a request for either old

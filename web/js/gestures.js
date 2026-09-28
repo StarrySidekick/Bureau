@@ -8,7 +8,7 @@ import { pending, tileTap, fireButton, turnPage,
   scratchGrab, scratchTo, scratchGo } from './tiles.js';
 import { modalNewObject, shapeRing, holdPanel, openCtx, closeCtx, schedulePanel, refreshPanel,
   closePanel } from './panels.js';
-import { render, shelfShift, reveal } from './views.js';
+import { render, shelfShift, reveal, openOverview, overviewOn } from './views.js';
 import { gravityGrab, gravityDrag, gravityDrop } from './gravity.js';
 import { closeSheet, renderSheet } from './sheet.js';
 import { pagerBegin, pagerMove, pagerEnd, pagerCancel, pagerOn, leaveTile, toss, fileTo , zoomedIn,
@@ -743,6 +743,8 @@ function onDown(e){
      click in there, which was the gear on the note you were reading. Pressing
      it did nothing, once, then worked; that is what a stale flag looks like. */
   gestureFlags.suppressClick=false;
+  // the zoomed-out boards and a setup card are surfaces, not the board
+  if(e.target.closest && e.target.closest('#overview, #setup')) return;
   /* **Nothing on the board is dragged while the camera is in.** `cellW()`
      measures `.grid`'s own rect for the drag maths and a transform changes
      that rect, so every number this file works in would be out by the zoom
@@ -2094,7 +2096,14 @@ function zoomBegin(){
      exactly as the dive does. Asked before the drawer, because when both are
      true the camera is the one you are looking through. See decision 187. */
   if(camScrubbable()){ Z={cam:true, at:0}; return true; }
-  if(S.view!=='drawer' || !S.drawerId) return false;
+  /* **On the desk, the pinch zooms out to every board** (decision 227). The
+     desk is the top of the stack, so there was nowhere further up to go and
+     the gesture did nothing; now it is how you see the whole desk, and how
+     you add a board to it or take one away. Committed at once rather than
+     scrubbed: the picture of all the boards is drawn by growing out of the
+     one you were on. */
+  if(overviewOn()) return false;
+  if(S.view!=='drawer' || !S.drawerId){ openOverview(ROOT); Z=null; return true; }
   const here=byId(S.drawerId);
   // a desk has no parent, which is exactly what makes it the top of the stack
   const up = here && here.parent;

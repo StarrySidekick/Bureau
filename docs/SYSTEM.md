@@ -657,7 +657,7 @@ of four things layered over them.
 | Surface | What it is for | Where it lives |
 | --- | --- | --- |
 | **The grid** | The app. | `#app`, rebuilt whole by `render()` |
-| **The bar** | Where you are — pressing it opens the shelf map — the square of shelf dots with the one you are on lit, a **search field** (everything in Bureau from a desk, this drawer and everything under it from inside one), and five icon buttons: the lock, grid-or-list, one of anything (a spiral), this board's editor (a brush), and a gear — Settings on the desk, **Board settings** inside a container. Inside a container the name at the left is that container's own, with no trail back to the desk and no chevron: the knob along the bottom is the way out (decision 193). | inside `#app` |
+| **The bar** | Where you are (a pinch out on the desk shows every board, decision 227) — the square of shelf dots with the one you are on lit, a **search field** (everything in Bureau from a desk, this drawer and everything under it from inside one), and five icon buttons: the lock, grid-or-list, one of anything (a spiral), this board's editor (a brush), and a gear — Settings on the desk, **Board settings** inside a container. Inside a container the name at the left is that container's own, with no trail back to the desk and no chevron: the knob along the bottom is the way out (decision 193). | inside `#app` |
 | **The carcass** | The wood the app is made of. Everything above the board is one piece of it — the notch strip, the bar and the reveal under it — and along the bottom of a phone is the desk's own drawer front. Tap its **Home Knob** to come out a level; pull it a little for the Void Drawer and the whole way for the type picker. On a Mac the same knob floats in the bottom right corner. Its shape, size, texture and colour are rows in that desk's editor. | inside `#app` |
 | **The camera** | Not a layer at all: the board itself, slid and scaled until one object fills the screen with its neighbours still around it. What an object opens onto by default. | `#drawergrid`, one transform |
 | **Reading** | An object's body as paper — a spread, a page, or a column. Over a dimmed desk. | `#sheetHost`, rendered separately from `render()` |
@@ -749,7 +749,7 @@ padlock in the bar. See decision 192.
 
 **Navigation is the desks, and nothing else.** There are no tabs and no shelf.
 `S.desks` is the row of desks, walked with a sideways swipe and laid out all at
-once by pressing the name at the top left — an ordered list of ids resolved on
+once by pinching out on the desk (decision 227) — an ordered list of ids resolved on
 read, so a deleted drawer disappears from it by itself. The breadcrumb roots at
 the desk you are on rather than at home, and the row does not wrap. A magic
 drawer is how you keep anything else to hand. There was briefly a strip of

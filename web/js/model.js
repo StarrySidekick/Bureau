@@ -175,7 +175,7 @@ const BUILTIN_KINDS = {
      what a desk full of drawers ought to look like. The phone size is stated
      outright: the derivation halves a container, and half of two is one, which
      is the mini tile that has no room for a name. */
-  drawer:  {nm:'Drawer',  ic:'folder',  c:5, key:'D', ds:'A container on the grid',   attrs:['container'], layout:'grid', size:[2,2], phoneSize:[2,2], body:'' },
+  drawer:  {setup:'drawer', nm:'Drawer',  ic:'folder',  c:5, key:'D', ds:'A container on the grid',   attrs:['container'], layout:'grid', size:[2,2], phoneSize:[2,2], body:'' },
   /* The drawer that collects instead of holding. It was called a *magic*
      drawer, which named the mechanism rather than the job — what you actually
      reach for it to do is sort the desk by a tag, so it is a **sorting
@@ -187,7 +187,7 @@ const BUILTIN_KINDS = {
      nothing and reads as broken, so placing one asks which tag it is for
      *before* it exists rather than leaving you to find the rule builder.
      See decision 131. */
-  magic:   {nm:'Sorting drawer', ic:'sparkle', c:10, key:'Q', ds:'Collects by a rule instead of holding — pick the tag it sorts for', attrs:['container','magic'], layout:'grid', size:[2,2], phoneSize:[2,2], asksTag:true, body:'' },
+  magic:   {setup:'tag', nm:'Sorting drawer', ic:'sparkle', c:10, key:'Q', ds:'Collects by a rule instead of holding — pick the tag it sorts for', attrs:['container','magic'], layout:'grid', size:[2,2], phoneSize:[2,2], asksTag:true, body:'' },
   /* **A tag you can put on the desk.** A sorting drawer in the shape of a
      luggage tag — the point, the punched hole, the name on the body — and
      nothing else is different: it is `magic`, it asks which tag before it
@@ -200,7 +200,7 @@ const BUILTIN_KINDS = {
      boxes land on top of one another — a packed board is the honest picture
      of a collection. It may replace the sorting drawer one day; for now
      it is the same machine with a truer silhouette. See decision 202. */
-  tag:     {face:'tag', nm:'Tag', ic:'tag', c:3, key:'', ds:'Everything that answers to a tag — a tag of yours, or one a thing has by being what it is', attrs:['container','magic'], layout:'grid', sort:'az', size:[2,1], phoneSize:[2,1], asksTag:true, body:'' },
+  tag:     {setup:'tag', face:'tag', nm:'Tag', ic:'tag', c:3, key:'', ds:'Everything that answers to a tag — a tag of yours, or one a thing has by being what it is', attrs:['container','magic'], layout:'grid', sort:'az', size:[2,1], phoneSize:[2,1], asksTag:true, body:'' },
   /* The third drawer. A project is a piece of work and it finishes; a **life
      drawer** is an area of your life and it does not — money, health, the
      people in it — so it reports what is in it and what is next and draws no
@@ -212,7 +212,7 @@ const BUILTIN_KINDS = {
      percentage — and Timothy asked for the plain front while the boards
      inside are what the type is about. The face is still there to pick in the
      editor, and a drawer that chose it keeps it. */
-  life:    {face:'front', nm:'Aspect of Life', ic:'target', c:12, key:'L', ds:'A part of your life rather than a piece of work — it is never finished',
+  life:    {setup:'life', face:'front', nm:'Aspect of Life', ic:'target', c:12, key:'L', ds:'A part of your life rather than a piece of work — it is never finished',
      attrs:['text','container','relates'], asksLife:true,
      seed:[{kind:'generator', title:'Add to this…', sz:[8,2]}],
      layout:'grid', size:[5,5], phoneSize:[4,4], body:'' },
@@ -220,12 +220,12 @@ const BUILTIN_KINDS = {
      `spawn` gives it a box at the top, and `genKind` says a line you type into
      it is a task. Both are ordinary attributes — a type you invent gets the
      same box by ticking the same trait. */
-  checklist:{face:'checklist', nm:'Checklist', ic:'list', c:6, key:'K', ds:'Tasks you can tick and add to without opening it', attrs:['container','spawn'], spawnBy:'type', genKind:'task', layout:'list', size:[4,6], phoneSize:[4,6], body:'' },
+  checklist:{setup:'checklist', face:'checklist', nm:'Checklist', ic:'list', c:6, key:'K', ds:'Tasks you can tick and add to without opening it', attrs:['container','spawn'], spawnBy:'type', genKind:'task', layout:'list', size:[4,6], phoneSize:[4,6], body:'' },
   /* A calendar is a magic drawer wearing a calendar layout: it collects by rule
      like any other, and then draws what it collected on the day each thing is
      due. It holds nothing — the day is the `due` field on the object, not a
      container — so its default rule is "anything with a date". */
-  calendar:{face:'calendar', nm:'Calendar', ic:'calendar', c:7, key:'C', ds:'Whatever it collects, on the day it falls', attrs:['container','magic'], filter:{rule:{f:'date',op:'any'}}, calview:'month', layout:'calendar', size:[4,4], phoneSize:[4,4], body:'' },
+  calendar:{setup:'calendar', face:'calendar', nm:'Calendar', ic:'calendar', c:7, key:'C', ds:'Whatever it collects, on the day it falls', attrs:['container','magic'], filter:{rule:{f:'date',op:'any'}}, calview:'month', layout:'calendar', size:[4,4], phoneSize:[4,4], body:'' },
   /* **Book** is the category for anything made of words that you would keep
      rather than read once: a story, a novel, a notebook, a list you read.
      Story, Novel and Short story are still here behind the dropdown — they are
@@ -235,7 +235,7 @@ const BUILTIN_KINDS = {
      the pieces it is made of, and it opens as a book both ways round:
      `layout:'book'` pages through what it holds and `read:'book'` pages
      through its own body. See decision 130. */
-  book:    {face:'spine', binding:'banded', nm:'Text', ic:'book', c:11, key:'B',
+  book:    {setup:'text', face:'spine', binding:'banded', nm:'Text', ic:'book', c:11, key:'B',
      ds:'Anything made of words — press it and say which',
      family:['book','poem','novel','shortstory','essay','script'], famSub:'What are you writing?',
      attrs:['text','container','relates'], layout:'book', read:'book',
@@ -308,7 +308,7 @@ const BUILTIN_KINDS = {
      **challenge**, and the same object walks between the three as its dates
      move. Three stored types would have made you re-declare a dream as a goal
      the day you finally put a date on it. See decision 135. */
-  goal:    {face:'goal', nm:'Goal', pickNm:'Card', ic:'target', c:13, key:'E',
+  goal:    {setup:'goal', face:'goal', nm:'Goal', pickNm:'Card', ic:'target', c:13, key:'E',
      ds:'Something you are trying to reach, and the work that gets you there',
      attrs:['text','container','date','deadline','progress','relates'],
      seed:[{kind:'generator', title:'What gets you there…', sz:[8,2]}],
@@ -333,7 +333,7 @@ const BUILTIN_KINDS = {
      a habit is still a thing that comes round, and this is the record of it,
      which is why ticking one logs the day rather than spawning the next copy.
      How often is the repeat rule plus `times`; see habitPlan(). */
-  tracker: {shape:'tracker', nm:'Habit tracker', ic:'grid', c:6, key:'', ds:'The days you did it and the days you did not, as many times a day or a week as it asks',
+  tracker: {setup:'habit', shape:'tracker', nm:'Habit tracker', ic:'grid', c:6, key:'', ds:'The days you did it and the days you did not, as many times a day or a week as it asks',
      attrs:['text','streak'], size:[6,2], phoneSize:[6,2], onclick:'check', body:'' },
   /* **An Image has subtypes** (decision 208): a type's `family` is the list of
      its subtypes, the way a Note's is idea, thought and the rest, and it
@@ -646,7 +646,7 @@ const BUILTIN_KINDS = {
   label:   {shape:'band', nm:'Label',   ic:'tag',     c:12, key:'M', ds:'A name for a stretch of board',
      size:[4,1], phoneSize:[4,1], onclick:'none', attrs:['text'],
      tsize:'1.6', border:'gilt', body:'' },
-  counter: {shape:'tally', nm:'Counter',  ic:'target', c:8, key:'X', ds:'A number you tap to add to', size:[3,3], phoneSize:[3,3], onclick:'count', attrs:['count'], body:'' },
+  counter: {setup:'counter', shape:'tally', nm:'Counter',  ic:'target', c:8, key:'X', ds:'A number you tap to add to', size:[3,3], phoneSize:[3,3], onclick:'count', attrs:['count'], body:'' },
   /* You do not write an achievement, you *pick* one: the goal, project or task
      you finished. So placing one asks which, out of what is actually done, and
      prints it in the past tense — "Lost 25 pounds" rather than "Lose 25
@@ -668,7 +668,7 @@ const BUILTIN_KINDS = {
      exists; a project that is only a project does not, and a drawer is what
      everything on this desk is until it says otherwise. See ringFor() in
      tiles.js. */
-  project: {face:'front', nm:'Project', ic:'flag',    c:7, key:'8', ds:'A whole piece of work, and everything it is made of',
+  project: {setup:'project', face:'front', nm:'Project', ic:'flag',    c:7, key:'8', ds:'A whole piece of work, and everything it is made of',
      /* A **script** is here as well as under Prose & Poetry, and that is not a
         type drawn twice on one screen: both are families, so it is one press
         in from either, and it honestly is both — a thing you write and a piece
@@ -704,7 +704,7 @@ const BUILTIN_KINDS = {
      an address, and pressing an empty one opens its editor to give it one.
      See decision 194. */
   /* Called a **Portal** since decision 222: the key stays `outlink`. */
-  outlink: {nm:'Portal', ic:'arrow', c:9, ds:'A way out of Bureau — a site, an app, a number to call',
+  outlink: {setup:'portal', nm:'Portal', ic:'arrow', c:9, ds:'A way out of Bureau — a site, an app, a number to call',
      size:[4,1], phoneSize:[4,1], onclick:'none', attrs:['button'], body:'' },
   /* A **review** is what you made of a film, a book, an album or a game — the
      one thing all of the experience boards collect. A rating, the day, a link

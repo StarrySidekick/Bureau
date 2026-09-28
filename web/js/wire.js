@@ -1,4 +1,5 @@
 import { $, $$, esc, ic, uid, D, ROOT, pastTense, outURL } from './util.js';
+import { SETUPS, setupOpen, closeSetup, setupAnswer, setupNext, setupBack, setupSkip } from './setup.js';
 import { S, K, KINDS, KEYS, refreshKinds, ATTRS, attrsOf, has, SHAPES,
   FACES, MANUAL, byId, container, cfgOf, isContainer, isAncestor, relate, deskOf,
   unrelate, sensedDevice, reset, T, dz, dev, calViewOf, RULE_MAX, acceptFor, acceptAny,
@@ -14,7 +15,7 @@ import { dealTop, furnish, toast, fits, setGridSize, toggleDone, spawnNext, del,
 import { spinTo, pending, placeAtPending, tileTap, turnPage, clearPages, intoOf, TOOLS } from './tiles.js';
 import { bpmOf, minsOf, burnOf, sidesOf, metroGoing, startMetro, mindTheTime, actOf, deckTop } from './active.js';
 import { DECOR, LIFE_ART } from './decor.js';
-import { render, renderSoon, sizeGrid, toggleSettings, settingsPanel, reveal, goShelf, goShelfTo, deskMap, flipBlock, railToolsOf } from './views.js';
+import { render, renderSoon, sizeGrid, toggleSettings, settingsPanel, reveal, goShelf, goShelfTo, openOverview, closeOverview, refreshOverview, overviewOn, flipBlock, railToolsOf } from './views.js';
 import { closeGuide, guideOpen, saveGuide } from './guide.js';
 import { openObj, openWriter, openRead, openViewer, closeSheet, renderSheet, words,
   mdKey, copyObject } from './sheet.js';
@@ -225,7 +226,8 @@ function blockHold(cid){
 function newOfKind(kind, asked, patch){
   if(!KINDS[kind]) return;
   // Random is one of the others, chosen now (decision 218)
-  if(K(kind).makesAny){ kind = someKind(); asked = true; }
+  const random = !!K(kind).makesAny;
+  if(random){ kind = someKind(); asked = true; }
   const at = pending.cell;
   closePanel();
   pending.cell = at;
@@ -236,6 +238,19 @@ function newOfKind(kind, asked, patch){
   if(!fits(kind, (at && at.parent) || homeFor((S.view==='drawer' && S.drawerId) || ROOT),
            undefined, at)) return;
   if(k.picksFile){ $('#imgpicker').click(); return; }
+  /* **A type with a setup is made plain and asks on its first tap**
+     (decision 229): no question before it exists, no family panel, no seed.
+     It is put down as the thing it is, carrying `setup`, and pressing it
+     opens the card that asks the rest — see setup.js. A variant chosen on
+     the ring has already answered, so it is made the ordinary way. */
+  if(k.setup && SETUPS[k.setup] && !patch && !random){
+    const o = create(kind, Object.assign(at?{parent:at.parent}:{}, {noSeed:true}));
+    o.setup = k.setup;
+    placeAtPending(o);
+    save(); render(); reveal(o.id);
+    toast(`Tap the ${k.nm.toLowerCase()} to set it up`);
+    return;
+  }
   /* A type may ask one question before it exists. A sorting drawer with no
      rule is an empty front that reads as broken; a life drawer with no object
      on it is the coloured rectangle the object was there to replace; an
@@ -246,6 +261,8 @@ function newOfKind(kind, asked, patch){
   if(k.asksDone){ donePanel(kind); return; }
   if(!asked && k.family){ familyPanel(kind); return; }
   const o = create(kind, Object.assign(at?{parent:at.parent}:{}, patch||{}));
+  // one of anything is furnished, as the coin's is: a picture, a clip (230)
+  if(random) furnish(o);
   placeAtPending(o);
   save(); render();
   /* …and then it is scrolled to. A board is a coordinate space, so a new
@@ -487,7 +504,13 @@ function act(name, el){
     }
     case 'pin': togglePin(el.dataset.id); break;
     // the name at the top left: every desk at once, small, to jump to
-    case 'deskmap': deskMap(); break;
+    case 'overview': openOverview(el.dataset.id || ROOT); break;
+    // the setup card's own buttons (decision 229)
+    case 'setupnext': setupNext(!!el.dataset.empty); break;
+    case 'setupback': setupBack(); break;
+    case 'setupskip': setupSkip(); break;
+    case 'setupclose': closeSetup(); break;
+    case 'overclose': closeOverview(); break;
     // one step is one screenful, so it steps by whatever the calendar is showing
     case 'monthstep': {
       const d=byId(el.dataset.id); if(!d) return;
@@ -1180,6 +1203,7 @@ function wire(){
     const ed=t.closest('[data-edit]');
     if(ed && !boardLocked()){ startEdit(ed.dataset.edit); return; }
     const undoEl=t.closest('[data-undo]'); if(undoEl){ undoToast(); return; }
+    const suv=t.closest('[data-setupv]'); if(suv){ setupAnswer(suv.dataset.setupv); return; }
     /* ---- renaming from the panel's own heading --------------------------
        The editor's title is what the thing is called, so pressing it is how
        you change it — the same act a tile's name already answers to, in the
@@ -1528,13 +1552,14 @@ function wire(){
     if(rb){
       const [cid,x,y]=rb.dataset.boardremove.split(':');
       if(!removeBoard(cid, +x, +y)){ toast('Only an empty board can be taken away, and never the last one'); return; }
-      save(); render(); refreshPanel();
+      save(); render(); refreshPanel(); refreshOverview();
       toast('Board taken away');
       return; }
     const sg=t.closest('[data-shelfgo]');
     if(sg){
       const [cid,x,y]=sg.dataset.shelfgo.split(':');
-      if(panelKey()==='deskmap') closePanel();
+      // a board pressed in the zoom is walked into (decision 227)
+      if(overviewOn()){ closeOverview({cid, x:+x, y:+y}); return; }
       goShelfTo(cid, +x, +y);
       return; }
 
@@ -1565,7 +1590,9 @@ function wire(){
       const [cid,x,y]=ab.dataset.addboard.split(':');
       const got = addBoard(cid, +x, +y);
       if(!got){ toast('No room for another board that way'); return; }
-      if(panelKey()==='deskmap') closePanel();
+      /* In the zoom you stay zoomed out and see it arrive (decision 227);
+         it is one press further to go there. */
+      if(overviewOn()){ save(); render(); refreshOverview(); toast('A new board'); return; }
       setShelf(cid, got.x, got.y);
       save(); render();
       toast('A new board');
@@ -2343,6 +2370,9 @@ function wire(){
        are in, ⌘B and ⌘I wrap what you selected. sheet.js answers or it doesn't,
        and when it does the browser is kept out of it. See decision 68. */
     if(e.target.dataset.w==='body' && mdKey(e, e.target)){ e.preventDefault(); return; }
+    // Return answers the setup card's one-line question; a list takes ⌘Return
+    if(e.target.id==='setupin' && e.key==='Enter' && (e.target.tagName==='INPUT' || e.metaKey || e.ctrlKey)){
+      e.preventDefault(); setupNext(); return; }
     if(e.target.id==='newtagin' && e.key==='Enter'){
       e.preventDefault();
       makeSorting(e.target.dataset.kind||'magic', e.target.value);
@@ -2512,12 +2542,31 @@ function wire(){
     return false;
   }
 
+  /* **A trackpad's pinch is a wheel with the control key held** — which is
+     how every browser on a Mac reports it. On the desk, pinching in zooms out
+     to every board (decision 227) and spreading comes back; the page's own
+     zoom is refused inside the frame, because a board that scales under the
+     finger is not a thing this app can lay out. Summed over a short run, so
+     one small nudge of the fingers is not a zoom. */
+  let PINCHW = 0, PINCHT = 0;
+  frame.addEventListener('wheel', e=>{
+    if(!e.ctrlKey) return;
+    e.preventDefault();
+    clearTimeout(PINCHT); PINCHT = setTimeout(()=>{ PINCHW = 0; }, 260);
+    PINCHW += e.deltaY;
+    if(overviewOn()){ if(PINCHW < -40){ PINCHW = 0; closeOverview(); } return; }
+    if(S.view==='drawer' || S.readId || S.writeId || S.viewId) return;
+    if(PINCHW > 40){ PINCHW = 0; openOverview(ROOT); }
+  }, {passive:false});
+
   document.addEventListener('keydown', e=>{
     const typing = /input|textarea/i.test(document.activeElement.tagName);
     if((e.metaKey||e.ctrlKey) && e.key.toLowerCase()==='k'){ e.preventDefault(); openCmd(); return; }
     if(e.key==='Escape'){
       // the book covers everything, so it is what Escape is about while it is up
       if(guideOpen()){ closeGuide(); return; }
+      if(overviewOn()){ closeOverview(); return; }
+      if(setupOpen()){ closeSetup(); return; }
       closeCtx(); closeCmd(); closePanel();
       if(S.writeId||S.readId||S.viewId) closeSheet();
       /* …and the camera is a thing that is up, so Escape backs it off — after

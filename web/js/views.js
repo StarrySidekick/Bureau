@@ -10,7 +10,7 @@ import { S, K, T, byId, has, isContainer, containers, container, childrenOf, cha
 import { GRID, PHONE_GRIDS, CELL, COLW, MEASURE, sideways, colsOf, gridKeyOf, SHELVES, PAGES_MAX, shelvesOf,
   shelfRows, shelfOfBox, shelfAt, setShelf, shelfOrigin, SHELF, drawCols, drawRows,
   lay, gridOf, cellW, ensureBox, innerOf, PLACED, proportional, flows,
-  isBoard, boardsOf, reachable, boardHolds, removeBoard, SPAN } from './grid.js';
+  isBoard, boardsOf, reachable, boardHolds, removeBoard, SPAN, startOf } from './grid.js';
 import { themeNow, applyLook, lookVal, STYLES, BACKDROPS, SURFACES, DARKMODES, darkMode, hasDark,
   palNow, styleNow, hexOf, objColour, slotName, OBJ0, CHECKS, dressAs } from './look.js';
 import { gridOfContainer, gridTile, listTile, boardVarsOf, bookView, calSpan, calFront } from './tiles.js';
@@ -55,8 +55,8 @@ const boardName = o => !o || o.id===ROOT ? deskTitle()
    the desk, and the knob is the way out. */
 function gridBar(c){
   const sh = shelvesOf(c.id), at = shelfAt(c.id);
-  const deskBtn = (label)=>`<b class="deskname" data-act="deskmap"
-    title="Every board, laid out">${esc(label)}</b>`;
+  /* The name is a name (decision 227): the map it opened is the zoom now. */
+  const deskBtn = (label)=>`<b class="deskname">${esc(label)}</b>`;
   const where = `    <div class="where">
       ${/* A container is as many boards as you make of it now (decision
            219), so its name opens the same map the desk's does. */''}
@@ -703,9 +703,9 @@ function shelfCountField(cid){
           return `<i class="${isBoard(cid,x,y)?'on':''}"></i>`; }).join('')}</div>
       <div class="mini" style="--k:var(--brass);margin-top:6px">${cid===ROOT?'The desk':'This drawer'} is <b>${n} board${n>1?'s':''}</b>. ${magic
         ? 'A sorting drawer collects rather than holds, so it stays one board.'
-        : 'Swipe off the edge of a board to an empty space and press the plus to add one there, in any direction.'}${
+        : 'Pinch out to see every board and press a plus to add one, in any direction — or swipe off the edge of a board onto the empty space.'}${
         cid===ROOT ? '' : ' Two fingers sideways goes to the drawer beside this one.'}
-        <button class="fchip" data-act="deskmap" style="margin-left:4px">Lay out the boards</button></div>
+        <button class="fchip" data-act="overview" data-id="${cid}" style="margin-left:4px">See every board</button></div>
     </div>`;
   }
   const g = gridOf(dev(), cid), now = g.shelves;
@@ -1179,70 +1179,128 @@ function settingsBody(sec, cid){
    the word — nothing about anyone's data changes, and putting the shelf back
    means putting these two functions back. See decision 53. */
 
-/* ---- every desk, laid out ---------------------------------------------
-   The row of desks is a space you walk, and a space you walk needs a map. The
-   name at the top left opens it: each desk drawn small — its own board colour,
-   its name, and the boxes on it at a fiftieth of the size — in the order they
-   sit in the row, with the one you are on lit. Press one and you are there.
+/* ---- every board, zoomed out — decision 227 --------------------------
+   **Pinch out on the desk and you see all of it.** The name at the top left
+   used to open a panel with the boards drawn in it; Timothy asked for the
+   zoom instead, and for it to be where boards are added and taken away. So
+   it is a surface of its own over the desk (`#overview`, beside `#app` the
+   way a panel is, so `render()` leaves it alone): every board laid out as
+   it actually sits, each drawn small in the board's own checkerboard and
+   framed in the carcass's wood, with what is on it at its real place and
+   size, and a plus on every empty slot one step off the edge.
 
-   The miniature is drawn from the boxes rather than from tiles, on purpose: a
-   desk map is about *shape* — where the rack is, how full the board is — and
-   forty real tiles at 3% would be a smear that costs a render. */
-/* ---- one shelf of a board, drawn small ---------------------------------
-   The desk map was a row of desks; there is one desk, so it is a map of its
-   **shelves** — the nine, laid out as they actually are, each with what is on
-   it drawn at a fiftieth of the size and the one you are standing on lit.
-   Press one and you are there.
+   **It is a picture, not a second board.** The boxes are drawn from the
+   layout rather than as tiles, for the reason the old map gave: this is
+   about shape — where things are, how full a board is — and thirty real
+   tiles at five per cent would be a smear that costs a render.
 
-   Drawn from the boxes rather than from tiles, on purpose: a map is about
-   *shape* — where the rack is, how full a shelf is — and forty real tiles at
-   3% would be a smear that costs a render. */
-function shelfCard(cid, sx, sy){
+   **The home board stays.** It is where the desk opens (`start`), it is
+   drawn with a ring, and it has no cross: every other board can be taken
+   away from here once it is empty on both devices. The home board is pinned
+   the first time the zoom opens so adding a board to the left, which moves
+   every number over by one, cannot move which one it is.
+
+   The movement never holds anything up: going in, the board is navigated
+   to and rendered at once, and the zoomed picture grows into it on top and
+   is taken away when it has. */
+const OVER = {on:false, cid:ROOT};
+const overviewOn = ()=> OVER.on;
+function homeBoard(cid){
+  const cfg = cid===ROOT ? (S.deskCfg || (S.deskCfg = {layout:'grid', sort:null})) : byId(cid);
+  if(!cfg) return {x:0, y:0};
+  if(!(cfg.start && isBoard(cid, cfg.start.x, cfg.start.y))) cfg.start = startOf(cid);
+  return cfg.start;
+}
+function overCard(cid, x, y, home){
   const dv=dev(), g=gridOf(dv, cid), at=shelfAt(cid);
-  const on = at.x===sx && at.y===sy;
-  const x0=sx*g.shelfW, y0=sy*g.shelfH;
-  // an unplaced object has nowhere to draw yet, so it is not on any shelf
+  const on = at.x===x && at.y===y, isHome = home.x===x && home.y===y;
+  const x0=x*g.shelfW, y0=y*g.shelfH;
   const kids=childrenOf(container(cid)).filter(o=>!!ensureBox(o, dv, cid));
   const here=kids.map(o=>[o, lay(o, dv, cid)])
     .filter(([,b])=> b.x>x0 && b.x<=x0+g.shelfW && b.y>y0 && b.y<=y0+g.shelfH);
-  /* An empty board can be taken away from here, and it has to be empty on
-     both devices; never the last one. */
-  const canGo = !here.length && boardsOf(cid).length>1 && !boardHolds(cid, sx, sy);
-  return `<button class="deskcard shelfcard${on?' on':''}" data-shelfgo="${cid}:${sx}:${sy}">
-    <span class="deskmini" style="--dcols:${g.shelfW};--drows:${g.shelfH}">
+  const canGo = !isHome && !here.length && boardsOf(cid).length>1 && !boardHolds(cid, x, y);
+  return `<button class="ovcard${on?' on':''}${isHome?' home':''}" data-shelfgo="${cid}:${x}:${y}"
+      title="${isHome?'The home board':'Go to this board'}">
+    <span class="ovboard" style="--dcols:${g.shelfW};--drows:${g.shelfH}">
       ${here.map(([o,b])=>
-        `<i style="--k:${objColour(o)};grid-column:${b.x-x0}/span ${b.w};grid-row:${b.y-y0}/span ${b.h}"></i>`
+        `<i style="--k:${objColour(o)};grid-column:${b.x-x0}/span ${Math.min(b.w, g.shelfW-(b.x-x0)+1)};grid-row:${b.y-y0}/span ${Math.min(b.h, g.shelfH-(b.y-y0)+1)}"></i>`
       ).join('')}</span>
-    <u>${on?'you are here':here.length ? here.length+' on it' : 'empty'}</u>
-    ${canGo ? `<span class="boardgo" role="button" data-boardremove="${cid}:${sx}:${sy}"
-      title="Take this board away" aria-label="Take this board away">${ic('x',11)}</span>` : ''}
+    <u>${isHome ? 'home' : on ? 'here' : here.length ? here.length+' on it' : 'empty'}</u>
+    ${canGo ? `<span class="ovgo" role="button" data-boardremove="${cid}:${x}:${y}"
+      title="Take this board away" aria-label="Take this board away">${ic('x',12)}</span>` : ''}
   </button>`;
 }
-/* **The boards as they are laid out, and a plus on every slot you could add
-   one to** (decision 219): the rectangle, one slot wider on every side. On a
-   phone the same plus is on the slot itself, a swipe off the edge; on a Mac,
-   which draws the whole board and has no slot to swipe to, this is the way
-   the desk grows outward. */
-function deskMap(){
-  const cid = (S.view==='drawer' && S.drawerId) || ROOT;
-  const sh = shelvesOf(cid), n = boardsOf(cid).length;
+function overviewHTML(){
+  const cid = OVER.cid;
+  const sh = shelvesOf(cid), home = homeBoard(cid);
   const grows = !innerOf(cid) && !(cid!==ROOT && has(container(cid),'magic'));
   const pad = grows ? 1 : 0, W = sh.w + 2*pad, H = sh.h + 2*pad;
+  /* The cards are sized to the screen: as big as they can be with every
+     slot in view, in the proportions of one board on this device. */
+  const g = gridOf(dev(), cid), aspect = g.shelfW / g.shelfH;
+  const gap = 10, availW = Math.max(200, innerWidth - 32), availH = Math.max(200, innerHeight - 150);
+  const cw = Math.floor(Math.min((availW - gap*(W-1))/W, ((availH - gap*(H-1) - 22*H)/H)*aspect));
   const cards = [];
   for(let j=0; j<H; j++) for(let i=0; i<W; i++){
     const x = i-pad, y = j-pad;
-    if(isBoard(cid, x, y)) cards.push(shelfCard(cid, x, y));
+    if(isBoard(cid, x, y)) cards.push(overCard(cid, x, y, home));
     else if(grows && reachable(cid, x, y))
-      cards.push(`<button class="deskcard shelfcard addcard" data-addboard="${cid}:${x}:${y}"
-        title="Add a board here">${ic('plus',18)}<u>add a board</u></button>`);
-    else cards.push(`<span class="shelfgap"></span>`);
+      cards.push(`<button class="ovcard ovadd" data-addboard="${cid}:${x}:${y}"
+        title="Add a board here"><span class="ovboard">${ic('plus',18)}</span><u>add</u></button>`);
+    else cards.push(`<span class="ovgap"></span>`);
   }
-  openPanel({key:'deskmap', wide:true, title: cid===ROOT ? deskTitle() : boardName(container(cid)),
-    sub: n>1 ? `${n} boards — swipe between them, or jump` : 'One board',
-    body:()=> `<div class="shelfmap" style="--sw:${W}">${cards.join('')}</div>
-        <div class="mini" style="--k:var(--brass);margin-top:10px">${grows
-          ? 'Swipe off the edge of a board to an empty space and press the plus to add one there, in any direction. An empty board can be taken away with its cross.'
-          : 'This board is the size of its drawer.'}${cid===ROOT ? '' : ' Two fingers sideways goes to the drawer beside this one.'}</div>`});
+  const n = boardsOf(cid).length;
+  return `<div class="ovhead"><b>${esc(cid===ROOT ? deskTitle() : boardName(container(cid)))}</b>
+      <i>${n} board${n>1?'s':''} · press one to go there, a plus to add one</i>
+      <button class="ovclose" data-act="overclose" title="Back to the board" aria-label="Back to the board">${ic('x',16)}</button></div>
+    <div class="ovgrid" style="--sw:${W};--cw:${cw}px;--gap:${gap}px;--ar:${aspect};${boardVarsOf(cfgOf(cid))}">${cards.join('')}</div>`;
+}
+function drawOverview(){
+  let host = $('#overview');
+  if(!host){ $('#frame').insertAdjacentHTML('beforeend', '<div id="overview" class="overview"></div>'); host = $('#overview'); }
+  host.innerHTML = overviewHTML();
+  return host;
+}
+/* Scale the grid so one card fills the screen — the picture of standing on
+   that board — or back to nothing, which is the picture of all of them. */
+function overFocus(host, card){
+  const grid = host.querySelector('.ovgrid'); if(!grid || !card) return '';
+  const r = card.querySelector('.ovboard').getBoundingClientRect(), gr = grid.getBoundingClientRect();
+  const k = Math.max(innerWidth / r.width, innerHeight / r.height);
+  const ox = r.left + r.width/2 - gr.left, oy = r.top + r.height/2 - gr.top;
+  grid.style.transformOrigin = `${ox}px ${oy}px`;
+  return `translate(${innerWidth/2 - (r.left + r.width/2)}px, ${innerHeight/2 - (r.top + r.height/2)}px) scale(${k.toFixed(3)})`;
+}
+function openOverview(cid){
+  if(S.readId || S.writeId || S.viewId) return false;
+  OVER.on = true; OVER.cid = cid || ROOT;
+  closePanel();
+  const host = drawOverview();
+  const grid = host.querySelector('.ovgrid'), card = host.querySelector('.ovcard.on');
+  const from = overFocus(host, card);
+  if(grid && from && !matchMedia('(prefers-reduced-motion: reduce)').matches){
+    grid.style.transition = 'none'; grid.style.transform = from; host.style.opacity = '0';
+    grid.getBoundingClientRect();
+    grid.style.transition = ''; grid.style.transform = ''; host.style.opacity = '';
+  }
+  host.classList.add('open');
+  if(navigator.vibrate) navigator.vibrate(6);
+  save();                         // pinning the home board is a write
+  return true;
+}
+function refreshOverview(){ if(OVER.on) drawOverview().classList.add('open'); }
+function closeOverview(to){
+  const host = $('#overview');
+  OVER.on = false;
+  if(!host) return;
+  if(to) goShelfTo(to.cid, to.x, to.y);
+  const card = to ? host.querySelector(`.ovcard[data-shelfgo="${to.cid}:${to.x}:${to.y}"]`) : host.querySelector('.ovcard.on');
+  const grid = host.querySelector('.ovgrid');
+  host.style.pointerEvents = 'none';
+  host.id = 'overview-leaving';
+  if(grid && card) grid.style.transform = overFocus(host, card);
+  host.classList.remove('open');
+  setTimeout(()=> host.remove(), 320);
 }
 
 /* ============================================================
@@ -1982,6 +2040,6 @@ function sizeGrid(){
 }
 
 export { render, renderSoon, sizeGrid, shelfTop, shelfLeft, shelfShift, centreDesk,
-  reveal, deskMap, viewHTML, previewHTML,
+  reveal, openOverview, closeOverview, refreshOverview, overviewOn, viewHTML, previewHTML,
   goShelf, goShelfTo, sideDrawer, goSideDrawer, gridSizeField, shelfCountField, railToolsField, railToolsOf, RAIL_TOOLS,
   settingsPanel, toggleSettings, railObj, flipBlock };

@@ -23,6 +23,7 @@ import { openObj, openWriter, openRead, openViewer } from './sheet.js';
 import { objectPanel, schedulePanel } from './panels.js';
 import { openTile, openingFor , zoomInto, zoomOut, zoomedIn, camScale, CAM_READ, CAMERA } from './motion.js';
 import { save } from './persist.js';
+import { needsSetup, openSetup } from './setup.js';
 
 /* ============================================================
    7 · rendering — drawers
@@ -65,6 +66,41 @@ function digitWheel(n, wheels){
    digits of the count, from zero, the way a tally counter's wheels do: two
    wheels at 107 read 07. Given no number of wheels, the count as written. */
 const wheelsFor = box => Math.max(1, Math.min(8, Math.floor((box.w||1) / Math.max(1, box.h||1))));
+/* **What the wheels are made of** (decision 228): the drum's colour, the
+   digit's colour and the typeface the digits are cut in, each per counter.
+   Unset is the black drum and cream digits of decision 221 in the desk's
+   own serif. `c` for the drum is the object's own colour, so a counter can
+   be any slot the aesthetic has. A digit colour left unset is chosen off the
+   drum, because cream figures on an ivory drum are a counter with no count. */
+const WHEEL_COLOURS = [['','Black','#3C352B'],['c','Its colour',''],['#E9E1CC','Ivory'],
+  ['#8E3B38','Red'],['#2E4A6B','Navy'],['#2E6B52','Green'],['#9A7B2F','Brass'],['#6B4A31','Walnut'],['#8A8F94','Steel']];
+const WHEEL_INKS = [['','Cream','#EFE7D2'],['#16120E','Black'],['#FFFFFF','White'],
+  ['#D8452F','Red'],['#E2B85C','Gold'],['#8FE39A','Lamp green'],['#9CC7FF','Blue']];
+const WHEEL_FONTS = {
+  '':'Serif', sans:'Sans', mono:'Mono', typewriter:'Typewriter', didone:'Didone',
+  rounded:'Rounded', condensed:'Condensed', slab:'Slab'};
+const WHEEL_STACKS = {
+  sans:'var(--sans)', mono:'var(--mono)',
+  typewriter:'"American Typewriter","Courier Prime","Courier New",Courier,monospace',
+  didone:'Didot,"Bodoni 72","Bodoni MT","Libre Bodoni",serif',
+  rounded:'ui-rounded,"SF Pro Rounded","Arial Rounded MT Bold",Nunito,sans-serif',
+  condensed:'"DIN Condensed","Bahnschrift Condensed","Arial Narrow","Roboto Condensed",sans-serif',
+  slab:'Rockwell,"Roboto Slab","Courier New",serif'};
+function wheelVars(o){
+  const drum = o.wheelc==='c' ? objColour(o) : (o.wheelc || '');
+  const out = [];
+  if(drum) out.push(`--wheel:${drum}`);
+  const ink = o.wink || (drum && lumOf(drum) > 0.5 ? '#16120E' : '');
+  if(ink) out.push(`--wink:${ink}`);
+  if(WHEEL_STACKS[o.wfont]) out.push(`--wfont:${WHEEL_STACKS[o.wfont]}`);
+  return out.join(';');
+}
+const lumOf = hex => {
+  const h=String(hex).replace('#','');
+  if(!/^[0-9a-f]{3}([0-9a-f]{3})?$/i.test(h)) return 0;
+  const n = h.length===3 ? h.split('').map(c=>parseInt(c+c,16)) : [0,2,4].map(i=>parseInt(h.slice(i,i+2),16));
+  return (0.2126*n[0] + 0.7152*n[1] + 0.0722*n[2]) / 255;
+};
 function wheelDigits(n, wheels){
   const v = Math.abs(Math.trunc(Number(n)||0));
   if(!wheels) return String(v);
@@ -543,6 +579,9 @@ function playPress(id){
 const TOOLS = {press:null};
 function tileTap(id){
   const o=byId(id); if(!o) return;
+  /* **The first tap on a thing that has not been set up asks what it is**
+     (decision 229), before anything a tap would otherwise do. */
+  if(needsSetup(o) && !S.threading){ openSetup(id); return; }
   /* **Tying with the spool** (decision 220). Pressing the spool picks up the
      thread; the next thing pressed is where it starts and the one after is
      where it is tied, and nothing else a tap would do happens in between. The
@@ -1416,6 +1455,8 @@ function knobHTML(o, ring){
 }
 
 const GRAIN_LAYER = '<i class="dgrain"></i>';
+// a function, because nothing at load time may call into another module
+const setupMark = () => `<i class="setupmark" title="Tap to set it up" aria-hidden="true">${ic('sparkle',11)}</i>`;
 const PANEL_LAYER = '<i class="dpanel"></i>';
 function drawTile(o, arr, box, persp){
   const html = drawTileFace(o, arr, box, persp);
@@ -1436,7 +1477,11 @@ function drawTile(o, arr, box, persp){
        bargain the flank and the grain strike two lines up, for the same
        reason: an element on every tile to carry nothing is a fifth of a render
        at three thousand objects. See decision 184. */
-    + (isSealed(o) ? sealLayer(o) : '');
+    + (isSealed(o) ? sealLayer(o) : '')
+    /* A thing still waiting to be set up says so (decision 229), on every
+       face at once and on no sample, which is why it is spliced in here and
+       not written into forty branches of drawTileFace(). */
+    + (o.setup && arr ? setupMark() : '');
   return html.slice(0, i+1) + layers + html.slice(i+1);
 }
 function drawTileFace(o, arr, box, persp){
@@ -2374,7 +2419,10 @@ function drawTileFace(o, arr, box, persp){
           data-row="${o.id}" role="button" tabindex="0"
           title="${esc(o.title||'Untitled')} — press to play" style="--c:${colour};${place}">
         ${chips}
-        ${src?`<video class="tilevid" src="${esc(src)}#t=0.1" preload="metadata"
+        ${src?`<video class="tilevid" src="${esc(src)}#t=0.1" preload="metadata"${
+            /* a bundled clip (decision 230) loops, the way the GIF it was
+               made from did, and shows its own still until it is pressed */
+            o.media.loop ? ' loop' : ''}${o.media.poster ? ` poster="${esc(o.media.poster)}"` : ''}
           playsinline tabindex="-1"></video>`
         :`<span class="vidempty">${ic('film',22)}<b>${esc(o.title||'Add a video')}</b></span>
           <span class="medbtn blank" aria-hidden="true">${ic('plus',20)}</span>`}
@@ -2560,7 +2608,7 @@ function drawTileFace(o, arr, box, persp){
        are no longer a button of their own: a tap on the counter is its `count`
        tap (`clickOf()`), and a hold carries it like any other tile. */
     const n = wheelsFor(box);
-    return `<button class="drawer otile sh-tally cnttile${sel}" data-row="${o.id}" style="--c:${colour};${place}">
+    return `<button class="drawer otile sh-tally cnttile${sel}" data-row="${o.id}" style="--c:${colour};${place};${wheelVars(o)}">
       ${chips}
       <span class="cntnum" data-wheels="${n}"
         style="--wheels:${n}" title="${esc(o.title||'Untitled')}">${digitWheel(o.count||0, n)}</span>
@@ -3371,5 +3419,5 @@ function bookView(c, items){
    (the *object's* setting, a different thing entirely) is untouched. */
 export { spinTo, CLICKS, clickOf, fireButton, intoOf, tileTap, pending, placeAtPending, SHELFSHIFT,
   scratchGrab, scratchTo, scratchGo,
-  gridTile, gridOfContainer, listTile, boardVarsOf, TOOLS, threadTo, PORTAL_SHAPES, PORTAL_STYLES, PORTAL_EDGES, bookOf, bookView, sheetOf, turnPage, clearPages,
+  gridTile, gridOfContainer, listTile, boardVarsOf, TOOLS, threadTo, WHEEL_COLOURS, WHEEL_INKS, WHEEL_FONTS, PORTAL_SHAPES, PORTAL_STYLES, PORTAL_EDGES, bookOf, bookView, sheetOf, turnPage, clearPages,
   calSpan, calFront };

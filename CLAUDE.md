@@ -158,6 +158,15 @@ in its own colour, and the coin makes any of them.
 or arch fills its cells, the edge can be vines or a glow (`pedge`), and the
 inside can be a vortex, a drift, a tunnel or a glimpse of the page
 (`pstyle`, a screenshot from WordPress mShots).
+**v2.24** (decisions 227–229): **pinching out on the desk zooms out to every
+board** (`openOverview()` in views.js, `#overview`), where boards are added and
+taken away, never the home board; the name at the top left opens nothing. A
+counter's drum colour, figure colour and typeface (`wheelc`, `wink`, `wfont`).
+And **setup cards**: a drawer, project, aspect of life, tag, text, goal,
+checklist, calendar, counter, habit tracker or portal made from the picker is
+put down plain, carrying `setup`, and its first tap opens a full-screen card of
+questions (`setup.js`) that writes the fields the editor has. A Random video is
+one of ten public-domain clips (`web/img/clips/`).
 The **Bureau Workshop** artifact (https://claude.ai/artifact/4TjyQZ5xcuxCYFgfnRm76k)
 holds Timothy's own rearrangement of every menu and type: read its
 `workshop/state` document before reorganising menus or types.
@@ -344,8 +353,9 @@ clause at the bottom of each file — that list is each module's public surface.
 | `look.js` | Styles, the sixteen colour slots, `hexOf`/`objColour`, `applyLook()`. |
 | `mutations.js` | `toggleDone`, `del`, `create`, `quickAdd`, repeat scheduling, `toast`. |
 | `tiles.js` | `gridTile()` — the one place that decides how an object looks on a grid — plus rows, cards, list bands, book/scroll entries, and what a click does (`tileTap`). |
-| `views.js` | The desk and a drawer — the only two places there are. Also the time layouts (`viewMonth`, `viewTimeline`), the desk map and the settings panel's body. `render()` replaces `#app`'s innerHTML wholesale, then saves. |
+| `views.js` | The desk and a drawer — the only two places there are. Also the time layouts (`viewMonth`, `viewTimeline`), the zoom out to every board (`openOverview()`) and the settings panel's body. `render()` replaces `#app`'s innerHTML wholesale, then saves. |
 | `sheet.js` | The three surfaces an object opens onto — reading, writing, and the picture — rendered into `#sheetHost`, **separately** from `render()`. |
+| `setup.js` | The **setup card** (decision 229): the questions a new drawer, project, goal, counter and the rest ask on their first tap, `SETUPS` and `STEPS`, drawn into `#setup` beside `#app`. Every answer writes a field the editor already has. |
 | `panels.js` | `openPanel()` — **every menu in the app** — plus `openMenu()` for a popup hung off a button, the command palette (⌘K), the context menu, and `sampleObject`/`sampleTile` for drawing a type as the thing it makes. |
 | `gestures.js` | Pointer-based drag, resize, lasso, swipe. The fiddliest code in the app. |
 | `motion.js` | Every movement: `openTile()` (drawer, cabinet, curl, lift), `growSheet()`/`shrinkSheet()` (an object scaling up into its surface and back), `pop()`, the pager that slides between boards and to the drawer beside this one, and **the camera** (`applyZoom`/`camScale`), tabled behind `CAMERA=false` since decision 203. Nothing in it ever delays a state change. |

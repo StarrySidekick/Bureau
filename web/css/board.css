@@ -230,9 +230,8 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
 /* The name of the desk is a button: it opens every desk at once, drawn small.
    It is not styled as one — a title that looks like a control is a toolbar, and
    there isn't one — but it says so when you reach for it. */
-.deskname{cursor:pointer;font:inherit;color:inherit;transition:color .14s}
-.gridbar .here .deskname{border-bottom:1.5px dotted color-mix(in srgb,var(--ink-3) 60%,transparent)}
-.deskname:hover{color:var(--brass)}
+.deskname{font:inherit;color:inherit}
+/* the name is only a name since decision 227, so it no longer looks pressable */
 .bartools{display:flex;align-items:center;gap:6px;flex:0 0 auto}
 .sqbtn{
   width:30px;height:30px;border-radius:var(--radius);display:grid;place-items:center;
@@ -2981,27 +2980,55 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
 /* a slot of the rectangle with no board on it holds its place and says nothing */
 .shelfmark i.gap,.shelfmark i.gap:hover{background:none;cursor:default}
 
-/* ---- and the big version of it ----------------------------------------
-   Nine cards in a three-by-three, each drawing what is actually on that shelf.
-   The card is the desk map's, which is why it keeps that class: the miniature,
-   its board and its "you are here" are the same three things. */
-.shelfmap{
-  display:grid;grid-template-columns:repeat(var(--sw,3), 1fr);gap:10px;
-}
-.shelfcard{padding:6px}
-.shelfcard .deskmini{aspect-ratio:1}
-/* The slots round the boards (decision 219): a dashed plus where one could
-   be added, nothing at all where it could not, and a cross on a board that is
-   empty and could be taken away. */
-.shelfcard{position:relative}
-.shelfcard.addcard{border-style:dashed;align-items:center;justify-content:center;
-  color:var(--ink-3);min-height:64px}
-.shelfcard.addcard:hover{color:var(--brass)}
-.shelfgap{display:block}
-.shelfcard .boardgo{position:absolute;top:4px;right:4px;width:18px;height:18px;
-  border-radius:50%;display:grid;place-items:center;cursor:pointer;
-  background:var(--paper-2);color:var(--ink-3);box-shadow:0 0 0 1px var(--rule)}
-.shelfcard .boardgo:hover{color:var(--ink);box-shadow:0 0 0 1px var(--brass)}
+/* ---- every board, zoomed out — decision 227 ---------------------------
+   Over the desk and under nothing but a panel: the wood of the carcass as
+   the ground, every board a card in its own checkerboard at its real
+   proportions, the boxes on it in their colours, and a dashed plus where one
+   could be added. The grid scales from the card you were on, which is the
+   whole of the zoom. */
+.overview{position:fixed;inset:0;z-index:60;display:flex;flex-direction:column;align-items:center;
+  padding:calc(env(safe-area-inset-top, 0px) + 14px) 16px calc(env(safe-area-inset-bottom, 0px) + 16px);
+  background:
+    linear-gradient(rgba(0,0,0,.06), rgba(0,0,0,.22)),
+    var(--wood, #6B4A31);
+  opacity:0;transition:opacity .26s ease;overflow:hidden;
+  -webkit-user-select:none;user-select:none}
+.overview.open{opacity:1}
+.ovhead{display:flex;align-items:baseline;gap:10px;width:100%;max-width:980px;color:#F4EBD8;
+  margin-bottom:14px;min-height:30px}
+.ovhead b{font-family:var(--serif);font-size:22px;font-weight:600;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;text-shadow:0 1px 0 rgba(0,0,0,.5)}
+.ovhead i{font-style:normal;font-size:12px;opacity:.72;flex:1;min-width:0}
+.ovclose{margin-left:auto;align-self:center;width:32px;height:32px;border-radius:50%;flex:0 0 auto;
+  display:grid;place-items:center;border:0;cursor:pointer;
+  background:rgba(0,0,0,.28);color:#F4EBD8}
+.ovgrid{flex:1;min-height:0;display:grid;align-content:center;justify-content:center;
+  grid-template-columns:repeat(var(--sw,3), var(--cw));gap:var(--gap,10px);
+  transition:transform .3s cubic-bezier(.2,.7,.2,1);will-change:transform}
+.ovcard{position:relative;display:flex;flex-direction:column;align-items:stretch;gap:4px;
+  padding:0;border:0;background:none;cursor:pointer;font:inherit;color:#F4EBD8}
+.ovboard{position:relative;display:grid;aspect-ratio:var(--ar,.57);width:100%;
+  grid-template-columns:repeat(var(--dcols,8), 1fr);grid-template-rows:repeat(var(--drows,14), 1fr);
+  gap:1px;padding:2px;border-radius:5px;overflow:hidden;
+  background-color:var(--board-1);
+  background-image:conic-gradient(var(--board-2) 0 25%, transparent 0 50%, var(--board-2) 0 75%, transparent 0);
+  background-size:calc(200% / var(--dcols,8) * 1) calc(200% / var(--drows,14) * 1);
+  box-shadow:0 0 0 3px var(--wood-2, #4A3322), 0 6px 14px rgba(0,0,0,.4)}
+.ovboard i{display:block;background:var(--k);border-radius:2px;min-width:0;min-height:0;
+  box-shadow:0 1px 1px rgba(0,0,0,.3)}
+.ovcard u{text-decoration:none;font-size:11px;text-align:center;opacity:.75;white-space:nowrap}
+.ovcard.on .ovboard{box-shadow:0 0 0 3px var(--glow, #E8C872), 0 6px 18px rgba(0,0,0,.45)}
+.ovcard.on u{opacity:1;font-weight:600}
+.ovcard.home u::before{content:"\2302  "}
+.ovadd .ovboard{display:grid;place-items:center;background:rgba(0,0,0,.18);
+  box-shadow:none;outline:2px dashed rgba(244,235,216,.4);outline-offset:-2px;color:rgba(244,235,216,.75)}
+.ovadd .ovboard svg{grid-area:1/1/-1/-1}
+.ovadd:hover .ovboard{color:#F4EBD8;outline-color:rgba(244,235,216,.8)}
+.ovgap{display:block}
+.ovgo{position:absolute;top:-7px;right:-7px;width:22px;height:22px;border-radius:50%;
+  display:grid;place-items:center;cursor:pointer;z-index:2;
+  background:#2A241C;color:#F4EBD8;box-shadow:0 0 0 2px var(--wood, #6B4A31)}
+.ovgo:hover{background:#8E3B38}
 
 /* ============================================================
    things that run — decision 182

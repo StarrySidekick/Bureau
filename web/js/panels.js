@@ -19,7 +19,7 @@ import { newOfKind } from './wire.js';
 import { GRID, lay, boxOk, freeSpot, anySpot, sizeOfKind, toPhoneSize, keepSize } from './grid.js';
 import { randomBoard, randomFront, hexOf, objColour, objSlots, famSlots, famAll, FAMS, styleKey, stockNow, CHECKS, checkNow } from './look.js';
 import { FILLS, FILL_KEYS, isCut } from './model.js';
-import { CLICKS, clickOf, gridTile, pending, PORTAL_SHAPES, PORTAL_STYLES, PORTAL_EDGES } from './tiles.js';
+import { CLICKS, clickOf, gridTile, pending, PORTAL_SHAPES, PORTAL_STYLES, PORTAL_EDGES, WHEEL_COLOURS, WHEEL_INKS, WHEEL_FONTS } from './tiles.js';
 import { isActive, activeZoom, activeSay, activeName, DICE, CLOCKS } from './active.js';
 import { DECOR, decorOf, decorSVG, decorFor, decorRest, LIFE_ART, LIFE_KEYS, lifeSVG } from './decor.js';
 import { quickAdd, toast, drawerForTag, CONTROLS, CTL_KEYS, ctlSpec, galleryOf, PAINTINGS, pictureMedia } from './mutations.js';
@@ -279,7 +279,7 @@ function ringChoices(k){
   });
   return out;
 }
-const asksOnRing = k => !!variantsOf(k) || (K(k).family||[]).length>1;
+const asksOnRing = k => !K(k).setup && (!!variantsOf(k) || (K(k).family||[]).length>1);
 /* A blob's picture: the thing it makes, drawn by `sampleTile()` with the
    variant already applied, and made inert (decision 214). */
 const ringArt = (k, v) => `<span class="radpaint radtile" style="--k:${hexOf(K(k).c)}">${
@@ -415,7 +415,8 @@ function kindTile(k, inFam, becomeId){
      because what you are choosing between at that moment is still "what am I
      putting down" — a chevron says the answer is one more press, and the
      count says how many are behind it. See decision 135. */
-  const fam = !becomeId && ((!inFam && d.family && familyList(k))
+  // a type with a setup asks on its first tap instead (decision 229)
+  const fam = !becomeId && !d.setup && ((!inFam && d.family && familyList(k))
     // a type with variants asks which, one press in, as a category does (218)
     || (variantsOf(k) && variantsOf(k).list()));
   const act = becomeId ? `data-become="${becomeId}:${k}"`
@@ -1326,6 +1327,17 @@ function objectPanelBody(id, sec){
     out.push(prow('In the portal', pcycle(id,'pstyle', Object.entries(PORTAL_STYLES), PORTAL_STYLES[d.pstyle] ? d.pstyle : 'vortex'),
       d.pstyle==='glimpse' ? 'a picture of the page, from WordPress\u2019s screenshot service' : ''));
     out.push(prow('Portal edge', pcycle(id,'pedge', Object.entries(PORTAL_EDGES), PORTAL_EDGES[d.pedge] ? d.pedge : 'none'))); }
+  /* A counter's wheels (decision 228): the drum, the figures and the face
+     the figures are cut in. Literal colours, like the wax, bar the one that
+     is the object's own. */
+  if(!isRoot && shapeOf(d)==='tally'){
+    const sw = (key, list, cur) => `<div class="pickgrid sw">${list.map(([v,nm,show])=>
+      `<button data-oclick="${id}:${key}:${esc(v)}" title="${esc(nm)}" class="${(cur||'')===v?'on':''}"
+        style="background:${v==='c' ? objColour(d) : (v||show)}"></button>`).join('')}</div>`;
+    out.push(prow('Wheels', sw('wheelc', WHEEL_COLOURS, d.wheelc), 'what the drums are painted'));
+    out.push(prow('Figures', sw('wink', WHEEL_INKS, d.wink), 'the colour of the numbers'));
+    out.push(prow('Typeface', pcycle(id,'wfont', Object.entries(WHEEL_FONTS), WHEEL_FONTS[d.wfont] ? d.wfont||'' : '')));
+  }
   if(!isRoot && cont){
     if(faceOf(d)==='spine' || (d[dev()]||{}).w<=1)
       out.push(slotRow('Binding', id, 'bn', slotRaw(d,'binding')||bindingOf(d),

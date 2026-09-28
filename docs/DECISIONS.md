@@ -10221,3 +10221,96 @@ rendered with a filter over it.
   not be seen working from the build sandbox, whose network refuses the host.
 - **The coin** gives a new portal a random style (not Glimpse: it has no
   address) and a random edge, as well as its shape and colour.
+
+## 227 · Zooming out on the desk shows every board
+
+*2026-09-28.* Timothy: zooming out on the main desk should show all of its
+boards, and that is where boards are added or taken away (never the central
+one); the viewer that opened when you pressed the name at the top left is no
+longer a thing.
+
+- **A pinch on the desk commits to the zoom** (`zoomBegin()` in gestures.js
+  calls `openOverview()`). The desk is the top of the stack, so the pinch had
+  nowhere to go and did nothing; inside a container it still goes up a level.
+  On a Mac a trackpad pinch arrives as a `wheel` event with `ctrlKey`, summed
+  over a short run so a nudge is not a zoom; spreading the fingers comes back.
+  The page's own pinch-zoom is refused inside the frame.
+- **`#overview` is a surface beside `#app`**, like a panel, so `render()`
+  leaves it alone and the desk behind it stays live. Every board is drawn
+  where it sits, in the desk's own checkerboard and framed in the carcass
+  wood, with each box on it as a block of its colour at its real place and
+  size. A dashed plus on every slot one step off the edge adds a board there
+  and the view **stays zoomed out** so you see it arrive; a cross on any empty
+  board takes it away.
+- **The home board has no cross.** "The central board" is read as the board
+  the desk opens on, `start`, which `homeBoard()` pins the first time the zoom
+  opens. Pinning is what makes it stable: adding a board to the left moves
+  every coordinate over by one, and `shiftBoard()` already carries `start`
+  with it.
+- **Going in is the zoom run backwards.** Pressing a board sets the shelf and
+  renders straight away; the picture scales so that card fills the screen and
+  is then taken away. The opening is the same movement the other way: the grid
+  starts scaled onto the board you were standing on and eases out.
+- **The name at the top left is only a name.** `deskMap()` and `shelfCard()`
+  are gone and so is the dotted underline that said the name could be pressed.
+  A container's Board settings say *See every board*, which opens the same
+  zoom for that container, since a Mac has no slot to swipe onto there.
+
+## 228 · A counter's wheels, figures and typeface
+
+*2026-09-28.* Timothy: the wheel colour, the font, and the colour of the
+numbers should all be choosable for the counter.
+
+Three fields on the object and three rows in the Look door: **Wheels**
+(`wheelc`: black, the object's own colour, ivory, red, navy, green, brass,
+walnut, steel), **Figures** (`wink`: cream, black, white, red, gold, lamp
+green, blue) and **Typeface** (`wfont`: the desk's serif, sans, mono,
+typewriter, didone, rounded, condensed, slab — system stacks only, because no
+typeface is bundled). The drum's gradient is mixed off the one colour, so
+every drum is lit the way the black one was. Figures left unset on a light
+drum are dark, because cream on ivory is a counter with no count.
+
+## 229 · A thing is set up on its first tap
+
+*2026-09-28.* Timothy: creating a drawer should make a plain drawer, and when
+you tap it the first time a card fills the screen and asks the questions — is
+it a project, an aspect of life — framed as questions like "what are you
+trying to make?", with the pickers in them. The same for every object where it
+makes sense; the major settings are what is being decided.
+
+- **Eleven types carry `setup`**: Drawer, Sorting drawer and Tag, Aspect of
+  Life, Project, Text, Goal, Checklist, Calendar, Counter, Habit tracker and
+  Portal. Made from the picker or the shape ring, one is put down plain,
+  unseeded and carrying `setup`, with a small pulsing mark; nothing is asked
+  before it exists, so `asksTag`, `asksLife` and the Project and Text family
+  panels are not reached from the picker for these (the functions stay, and
+  still answer a variant chosen on the ring and the tests that call them).
+- **The first tap opens the card** (`tileTap()` asks `needsSetup()` before
+  anything else). It fills the screen: the object as it stands at the top,
+  redrawn on every answer, the question large in the serif, and the answers as
+  cards — drawn as the types or the flows they make where they make one.
+- **The questions**, each writing a field the editor already has:
+  - *Drawer*: what is it for — something I am making (it becomes a Project and
+    asks what), a part of my life (an Aspect of Life, and which board), every
+    thing with a tag (a sorting drawer, and which tag), or a place to keep
+    things (what you will mostly keep in it, as `makes`, and its face).
+  - *Project*: what are you making — every kind of work and every project
+    flow; a Film is laid out with its own board as it would have been born
+    (`becomeFresh()`); then when it should be finished, then its name.
+  - *Aspect of Life*: which board. *Tag*: which tag. *Text*: what you are
+    writing. *Goal*: what, by when (`dead`), and the steps as milestones.
+    *Checklist*: what it is for and what goes on it, a line each. *Calendar*:
+    everything or one tag, and a month, a week or a day. *Counter*: what you
+    are counting and a drum-and-figures pair (decision 228). *Habit tracker*:
+    what, and how often. *Portal*: where it goes, its shape, what is in it.
+- **Leaving it as it is** finishes the setup with nothing chosen, seeding a
+  container that is still empty; **the cross** puts the card away and the next
+  tap asks again; **Back** goes to the last question and answering it again
+  overwrites. A container is walked into when it is finished, because the tap
+  that opened the card was a tap to go in.
+- **Nothing else sets `setup`.** Seed data, flows, the spiral coin, Random and
+  `create()` from code already know what they are.
+- This is the one centred card over the screen the panel rules otherwise
+  refuse (decision 23): it is not a menu about something you are looking at,
+  it is the thing introducing itself, and Timothy asked for it to take the
+  screen.

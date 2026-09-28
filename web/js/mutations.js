@@ -1057,7 +1057,7 @@ function dealTop(id){
 // toggleHabit isn't exported — a streak reaches it through toggleDone, which is
 // the one door, so nothing outside has to know a habit ticks differently.
 export { toast, setGridSize, toggleDone, spawnNext, del, delMany, delDrawer, undo, redo,
-  pushUndo, pushSet, pushSets, toggleFree, setPin, togglePin, becomeKind,
+  pushUndo, pushSet, pushSets, toggleFree, setPin, togglePin, becomeKind, seedInto,
   drawerForTag, create, gather, quickAdd, spawnInto, randomThing,
   CONTROLS, CTL_KEYS, ctlSpec, ctlSaid, ctlIsOn, ctlForm, ctlNum, ctlIndex, ctlPress, someKind,
   fits,

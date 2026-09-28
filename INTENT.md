@@ -186,6 +186,21 @@ thread for tying things with string, pinned at the top-left corner; a board's
 drawer front chosen per board and per flow, up to three tools either side of
 the knob; and a spiral coin that makes one of anything somewhere random.
 
+### Added 2026-09-28 — the whole desk, the counter, clips, and setup cards
+
+Timothy: zooming out on the main desk should show all of its boards, and that
+is where new ones are added or taken away (never the central one); the viewer
+behind the name at the top left is no longer a thing. The counter's wheel
+colour, font and number colour should be choosable. Public-domain clips should
+fill a Video made at random. And he wants to start making **setup sequences**:
+a drawer is made as a plain drawer, and the first time you tap it a card fills
+the screen and asks, as a run of questions ("what are you trying to make?")
+with the pickers in them, whether it is a project, an aspect of life and so
+on. *"Do this with all the objects it makes sense to do with and we'll go from
+there. Major setting choices would be what we are deciding between."* Built as
+decisions 227–230 (v2.24); what each type asks is in decision 229 and is the
+first draft of a list he means to go through.
+
 ## Deliberately not next
 
 - **Sync between devices.** It is real and it is coming, *after* the feature set

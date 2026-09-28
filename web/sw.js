@@ -1,7 +1,7 @@
 /* Bureau — service worker.
    Bump CACHE when you change anything in css/ or js/ (or index.html) and the
    next launch picks it up. New js/css files must also be added to SHELL. */
-const CACHE = 'bureau-v223';
+const CACHE = 'bureau-v224';
 const SHELL = [
   './',
   './index.html',
@@ -17,6 +17,7 @@ const SHELL = [
   './js/tiles.js',
   './js/views.js',
   './js/sheet.js',
+  './js/setup.js',
   './js/panels.js',
   './js/gestures.js',
   './js/motion.js',

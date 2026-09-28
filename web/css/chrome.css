@@ -5344,7 +5344,6 @@ html[data-rows="fit"] .is-phone .gridbar.inrail .sqbtn{width:28px;height:28px}
 .toplip .here{font-family:var(--serif);font-size:22px;line-height:1.1;font-weight:600;letter-spacing:.01em;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;
   text-shadow:0 -1px 0 rgba(0,0,0,.45)}
-.toplip .here .deskname{border-bottom:1.5px dotted color-mix(in srgb,var(--ink-3) 60%,transparent)}
 .toplip .shelfmark{margin-left:2px}
 .is-phone .main > .toplip ~ .scroll.deskscroll{--gapmin:4px}
 
@@ -5362,7 +5361,6 @@ html[data-rows="fit"] .is-phone .gridbar.inrail .sqbtn{width:28px;height:28px}
 .is-phone .gridbar.inrail .where{display:flex;align-items:center;gap:5px;min-width:0;flex:0 1 auto;overflow:hidden}
 .is-phone .gridbar.inrail .here{font-family:var(--serif);font-size:15px;font-weight:600;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
-.railside .here .deskname{border-bottom:1.5px dotted color-mix(in srgb,var(--ink-3) 60%,transparent)}
 .railside .shelfmark{margin-left:2px;flex:0 0 auto}
 /* **The rail's buttons are turned like the knob** (decision 206): the same
    sphere of the desk's own wood, lit from the upper left and falling into
@@ -6030,9 +6028,14 @@ html[data-rows="fit"] .is-phone .gridbar.inrail .sqbtn{width:28px;height:28px}
 .drawer.otile.cnttile::before,.drawer.otile.cnttile::after,
 .cnttile > .dpanel,.cnttile > .dgrain,.cnttile > .dside{display:none}
 .cnttile .cntnum{width:100%;height:100%;gap:1px;font-size:100cqh;line-height:1;
-  font-family:var(--serif);font-weight:600;color:#EFE7D2}
+  font-family:var(--wfont, var(--serif));font-weight:600;color:var(--wink, #EFE7D2)}
+/* the drum's colour is one token and the shading is mixed off it (decision
+   228), so an ivory or a red drum is lit the way the black one always was */
 .cnttile .wheel{flex:1 1 0;min-width:0;height:1em;width:auto;margin:0;border-radius:3px;
-  background:linear-gradient(#0E0B08,#2A241C 16%,#3C352B 50%,#2A241C 84%,#0E0B08);
+  --w0:var(--wheel, #3C352B);
+  background:linear-gradient(color-mix(in srgb, var(--w0) 22%, #000),
+    color-mix(in srgb, var(--w0) 72%, #000) 16%, var(--w0) 50%,
+    color-mix(in srgb, var(--w0) 72%, #000) 84%, color-mix(in srgb, var(--w0) 22%, #000));
   box-shadow:inset 0 0 5px rgba(0,0,0,.85)}
 .cnttile .wheel b u{height:1em;display:flex;align-items:center;justify-content:center}
 .cnttile .wheel b u s{text-decoration:none;line-height:1;
@@ -6227,3 +6230,54 @@ html[data-rows="fit"] .is-phone .gridbar.inrail .sqbtn{width:28px;height:28px}
 @media (prefers-reduced-motion: reduce){
   .ptltile .pdrift,.ptltile .pring,.ptltile .pshot,.ptltile.pe-glow .outface .portal{animation:none}
   .ptltile .pring{opacity:.5;transform:scale(calc(.25 + var(--k) * .15))}}
+
+/* ---- setting a thing up — decision 229 --------------------------------
+   The whole screen, in the desk's own paper: the thing being set up drawn as
+   it is at the top (it changes as you answer, because the board behind is
+   rendered on every answer and this draws the object again), the question
+   large in the serif, and the answers as cards you press. One column on a
+   phone, and never wider than a page reads on a Mac. */
+.setup{position:fixed;inset:0;z-index:70;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  background:var(--paper);color:var(--ink);
+  opacity:0;transform:translateY(14px);transition:opacity .22s ease, transform .26s cubic-bezier(.2,.7,.2,1)}
+.setup.open{opacity:1;transform:none}
+.sucard{max-width:680px;margin:0 auto;
+  padding:calc(env(safe-area-inset-top, 0px) + 14px) 16px calc(env(safe-area-inset-bottom, 0px) + 28px)}
+.sutop{display:flex;align-items:center;min-height:34px}
+.sustep{display:flex;gap:6px;flex:1}
+.sustep i{width:7px;height:7px;border-radius:50%;background:var(--rule)}
+.sustep i.on{background:var(--brass)}
+.suclose{width:34px;height:34px;border-radius:50%;border:0;display:grid;place-items:center;cursor:pointer;
+  background:var(--paper-2);color:var(--ink-2)}
+.suwhat{display:flex;justify-content:center;margin:6px 0 18px;pointer-events:none}
+.suq{font-family:var(--serif);font-size:clamp(26px, 7vw, 38px);font-weight:600;line-height:1.12;
+  margin:0 0 8px;letter-spacing:.005em}
+.susub{margin:0 0 20px;color:var(--ink-3);font-size:15px;line-height:1.45}
+.sugroup{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);margin:18px 0 8px}
+.suchoices{display:grid;grid-template-columns:repeat(auto-fill, minmax(150px, 1fr));gap:10px}
+.suchoices:not(.witharts){grid-template-columns:1fr}
+.suchoice{display:flex;flex-direction:column;align-items:flex-start;gap:3px;text-align:left;cursor:pointer;
+  padding:12px 14px;border-radius:12px;border:1px solid var(--rule);background:var(--paper-2);
+  color:var(--ink);font:inherit;transition:border-color .14s, transform .1s}
+.suchoice:hover{border-color:var(--brass)}
+.suchoice:active{transform:scale(.98)}
+.suchoice b{font-size:16px;font-weight:600}
+.suchoice u{text-decoration:none;font-size:12.5px;color:var(--ink-3);line-height:1.35}
+.suart{display:flex;align-items:center;justify-content:center;width:100%;height:92px;margin-bottom:6px;
+  pointer-events:none;overflow:hidden}
+.suart .sumini{width:100%;height:100%;aspect-ratio:auto}
+.suswatch{display:grid;place-items:center;width:64px;height:64px;border-radius:8px;
+  font-family:var(--serif);font-weight:600;font-size:28px;box-shadow:inset 0 0 8px rgba(0,0,0,.6)}
+.sufield{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start;margin-bottom:16px}
+.sufield input,.sufield textarea{flex:1 1 240px;min-width:0;font:inherit;font-size:18px;
+  padding:12px 14px;border-radius:12px;border:1px solid var(--rule);background:var(--paper-2);color:var(--ink)}
+.sufield textarea{flex-basis:100%;line-height:1.5;resize:vertical}
+.sufield .suon{font-size:15px;padding:12px 18px}
+.sufoot{display:flex;justify-content:space-between;align-items:center;margin-top:26px}
+/* the mark on a tile still waiting to be set up */
+.setupmark{position:absolute;top:4px;right:4px;z-index:6;width:18px;height:18px;border-radius:50%;
+  display:grid;place-items:center;pointer-events:none;
+  background:var(--glow);color:#2A241C;box-shadow:0 1px 3px rgba(0,0,0,.35);
+  animation:setupmark 2.4s ease-in-out infinite}
+@keyframes setupmark{50%{transform:scale(1.15)}}
+@media (prefers-reduced-motion: reduce){.setupmark{animation:none}}

@@ -113,11 +113,18 @@ three shelves of a row are all visible at once and a tile lying across two is
 legible, so `boxOk()` refuses it only on a phone. Same shape of rule the page
 break had.
 
-**The name at the top left opens the shelf map**, and the dots beside it are the
-same thing small: nine shelves are a *square*, so the dots are one — a map you
-can aim at rather than a count you have to translate. `deskMap()` in `views.js`
-draws each shelf with what is on it at a fiftieth of the size, and pressing one
-goes there.
+**Pinching out on the desk zooms out to every board** (decision 227), and the
+dots beside the name are the same thing small. The name opens nothing any more.
+`openOverview()` in `views.js` draws `#overview` beside `#app` (so `render()`
+leaves it alone): every board where it sits, in its own checkerboard, with the
+boxes on it at their place and size; a plus on every slot one step off the
+edge, which adds a board and stays zoomed out; a cross on an empty board, never
+on the **home board** (`start`, pinned by `homeBoard()` the first time the zoom
+opens, so adding a board to the left cannot change which one it is). Pressing a
+board walks into it: the state changes and renders at once and the grid grows
+into that card on top. A touch pinch commits in `zoomBegin()`; a trackpad pinch
+is a `wheel` with `ctrlKey` in wire.js. Inside a container a pinch still goes up
+a level; the container's Board settings open the same zoom for it.
 
 **What was already on the desk is moved to the middle shelf once**, per device,
 by `centreDesk()` — and it has to happen at first render rather than in the

@@ -729,6 +729,15 @@ its tile by dividing the available width by the digit count *times 0.62*;
 dividing by the count alone makes a three-digit counter half the size it could
 be. `--digits` is written by the renderer, which is the only place that knows.
 
+**A counter's drum, figures and typeface are three tokens** (decision 228):
+`wheelVars()` writes `--wheel`, `--wink` and `--wfont` from `wheelc`, `wink`
+and `wfont`, and the drum's shading is `color-mix()`ed off `--wheel`, so a new
+drum colour is lit like the black one without a second gradient. `wheelc:'c'`
+is the object's own colour. An unset figure colour on a light drum is dark
+ink, chosen in `wheelVars()` rather than left to the stylesheet. The choices
+are `WHEEL_COLOURS`, `WHEEL_INKS` and `WHEEL_FONTS` in tiles.js, drawn by the
+editor's Look door as literal swatches the way the wax is.
+
 **A candle stands, and its light is worked out from the same two lines that
 drew it.** An instrument is drawn `xMidYMid meet` — an instrument sits in the
 middle of its box — and an instrument may now say otherwise with `par` on its

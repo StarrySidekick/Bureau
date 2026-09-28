@@ -2096,14 +2096,34 @@ const PROP_OFF = () => { const b = document.createElement('button');
     BUREAU.setPin(d.id, null); await nap(200);
     out.putsAStrandedOneBack = d.parent === stood;
 
-    /* The name in the bar opens the **shelf map**: the nine, laid out as they
-       actually are, and pressing one goes there. */
-    document.querySelector('.gridbar .deskname, .toplip .deskname').click(); await nap(250);
-    // nine boards, and a plus card on every slot round them (decision 219)
-    out.theNameOpensTheMap = document.querySelectorAll('#panel .shelfcard:not(.addcard)').length === 9
-      && document.querySelectorAll('#panel .shelfcard.addcard').length === 12;
-    document.querySelector('#panel .shelfcard[data-shelfgo="root:2:0"]').click(); await nap(250);
-    out.aCardJumps = JSON.stringify(BUREAU.shelfAt('root')) === JSON.stringify({x:2,y:0});
+    /* **The name is only a name** (decision 227): the map it opened is the
+       zoom out now, which a pinch on the desk or a trackpad pinch opens —
+       every board laid out as it sits, a plus on every slot round them, a
+       cross on none of the ones holding something and never on the home
+       board, and pressing one walks into it. */
+    const nm = document.querySelector('.gridbar .deskname, .toplip .deskname');
+    if(nm) nm.click(); await nap(200);
+    out.theNameIsOnlyAName = !!nm && !document.querySelector('#overview') && !nm.dataset.act;
+    document.querySelector('#frame').dispatchEvent(new WheelEvent('wheel',
+      {deltaY:60, ctrlKey:true, bubbles:true, cancelable:true})); await nap(380);
+    out.aPinchZoomsOut = BUREAU.overviewOn() && !!document.querySelector('#overview.open');
+    out.zoomOutShowsEveryBoard = document.querySelectorAll('#overview .ovcard:not(.ovadd)').length === 9
+      && document.querySelectorAll('#overview .ovcard.ovadd').length === 12;
+    out.theHomeBoardStays = document.querySelectorAll('#overview .ovcard.home').length === 1
+      && !document.querySelector('#overview .ovcard.home .ovgo');
+    // a plus adds a board and the zoom stays out, so you see it arrive
+    const had = BUREAU.boardsOf('root').length;
+    // to the right, so no board's numbers move
+    document.querySelector('#overview .ovadd[data-addboard="root:3:0"]').click(); await nap(250);
+    out.aPlusAddsHere = BUREAU.boardsOf('root').length === had + 1 && BUREAU.overviewOn();
+    // …and its cross takes it away again, from the zoom
+    const cross = document.querySelector('#overview .ovgo[data-boardremove="root:3:0"]');
+    if(cross) cross.click(); await nap(250);
+    out.aCrossTakesOneAway = BUREAU.boardsOf('root').length === had && BUREAU.overviewOn();
+    const nine = document.querySelectorAll('#overview .ovcard:not(.ovadd)').length === 9;
+    document.querySelector('#overview .ovcard[data-shelfgo="root:2:0"]').click(); await nap(420);
+    out.aCardJumps = nine && JSON.stringify(BUREAU.shelfAt('root')) === JSON.stringify({x:2,y:0})
+      && !BUREAU.overviewOn() && !document.querySelector('#overview');
     BUREAU.goShelfTo('root', 1, 1); await nap(150);
     S.view='desk'; S.drawerId=null; BUREAU.render(); await nap(120);
     return out;
@@ -5468,6 +5488,11 @@ const PROP_OFF = () => { const b = document.createElement('button');
     [...panel.querySelectorAll('[data-family]')].forEach(e => {
       reachable.add(e.dataset.family);
       ((BUREAU.K[e.dataset.family] || {}).family || []).forEach(k => reachable.add(k));
+    });
+    // …and a type with a setup asks for its family on its first tap (229)
+    [...panel.querySelectorAll('[data-new]')].forEach(e => {
+      const d = BUREAU.K[e.dataset.new] || {};
+      if(d.setup) (d.family || []).forEach(k => reachable.add(k));
     });
     // …bar the ones cut in the Workshop, which no picker offers (decision 218)
     out.everythingIsStillThere = Object.keys(BUREAU.K).every(k => reachable.has(k) || ['magic','recipe'].includes(k));
@@ -9827,8 +9852,104 @@ const PROP_OFF = () => { const b = document.createElement('button');
   await fresh.screenshot({ path: 'test/shots/220-tools.png' });
   await freshCtx.close();
 
+  /* --- decision 229: a thing is set up on its first tap -------------------
+     A type with a setup is made plain from the picker, carrying `setup` and a
+     mark, and the first tap opens a card that fills the screen and asks: a
+     drawer what it is for, and down whichever branch the answer takes; a
+     project what you are making, and a Film is laid out with its board.
+     Leaving it as it is finishes with nothing chosen; the cross puts the card
+     away and it asks again. And a counter's wheels, figures and typeface
+     (decision 228). In its own phone context. */
+  const setupCtx = await browser.newContext({ viewport:{width:390,height:844}, hasTouch:true });
+  const sp = await setupCtx.newPage();
+  sp.on('pageerror', e => errs.push('PAGEERROR (setup): ' + e.message));
+  await sp.goto(URL); await sp.waitForTimeout(900);
+  const settingUp = await sp.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const out = {}, S = BUREAU.state, B = BUREAU;
+    const newest = () => S.objects[S.objects.length-1];
+    const pick = v => { const b = document.querySelector(`#setup [data-setupv="${v}"]`); if(b) b.click(); return !!b; };
+    B.newOfKind('drawer'); await nap(200);
+    const d = newest();
+    out.madePlain = d.kind === 'drawer' && d.setup === 'drawer'
+      && !S.objects.some(o => o.parent === d.id);
+    out.wearsTheMark = !!document.querySelector(`[data-drawer="${d.id}"] .setupmark, [data-row="${d.id}"] .setupmark`);
+    B.tap(d.id); await nap(300);
+    out.theFirstTapAsks = B.setupOpen() && !!document.querySelector('#setup .suq')
+      && document.querySelectorAll('#setup .suchoice').length === 4 && S.view === 'desk';
+    out.fillsTheScreen = (() => { const r = document.querySelector('#setup').getBoundingClientRect();
+      return r.width >= innerWidth - 1 && r.height >= innerHeight - 1; })();
+    pick('work'); await nap(200);
+    out.aDrawerForWorkIsAProject = d.kind === 'project'
+      && !!document.querySelector('#setup [data-setupv="kind:film"]')
+      && !!document.querySelector('#setup [data-setupv^="plan:"]');
+    pick('kind:film'); await nap(200);
+    const fk = S.objects.filter(o => o.parent === d.id);
+    out.aFilmIsLaidOut = d.kind === 'film' && fk.some(o => o.kind === 'progressbar')
+      && !fk.some(o => o.kind === 'generator' && /project/i.test(o.title));
+    pick('d30'); await nap(200);
+    out.itHasADay = d.due === B.dz(30);
+    document.querySelector('#setupin').value = 'The Last Video Store';
+    document.querySelector('#setup [data-act="setupnext"]').click(); await nap(500);
+    out.namedAndDone = d.title === 'The Last Video Store' && !d.setup && !B.setupOpen()
+      && S.view === 'drawer' && S.drawerId === d.id;
+    S.view = 'desk'; S.drawerId = null; B.render(); await nap(200);
+    // back, and the plain branch
+    B.newOfKind('drawer'); await nap(200);
+    const k = newest();
+    B.tap(k.id); await nap(250);
+    pick('keep'); await nap(150);
+    document.querySelector('#setup [data-act="setupback"]').click(); await nap(150);
+    out.backAsksAgain = !!document.querySelector('#setup [data-setupv="keep"]');
+    pick('keep'); await nap(150); pick('image'); await nap(150); pick('collage'); await nap(150);
+    document.querySelector('#setup [data-act="setupnext"]').click(); await nap(450);
+    out.aPlainDrawerKeepsWhatYouSaid = k.kind === 'drawer' && k.face === 'collage'
+      && k.makes && k.makes.only[0] === 'image' && !k.setup;
+    S.view = 'desk'; S.drawerId = null; B.render(); await nap(200);
+    // the cross puts it away and it asks again; leaving it finishes it plain
+    B.newOfKind('goal'); await nap(200);
+    const g = newest();
+    B.tap(g.id); await nap(250);
+    document.querySelector('#setup [data-act="setupclose"]').click(); await nap(350);
+    out.theCrossKeepsItWaiting = !B.setupOpen() && g.setup === 'goal' && !document.querySelector('#setup');
+    B.tap(g.id); await nap(250);
+    document.querySelector('#setup [data-act="setupskip"]').click(); await nap(450);
+    out.leavingItFinishesPlain = !g.setup && S.objects.some(o => o.parent === g.id && o.kind === 'generator');
+    S.view = 'desk'; S.drawerId = null; B.render(); await nap(200);
+    // the picker makes a project outright rather than asking first
+    B.pick(); await nap(250);
+    out.thePickerAsksNothingFirst = !!document.querySelector('#panel .kindtile[data-new="project"]')
+      && !document.querySelector('#panel .kindtile[data-family="project"]');
+    B.closePanel(); await nap(150);
+    // a counter: the look question, then the three rows (decision 228)
+    B.newOfKind('counter'); await nap(200);
+    const c = newest();
+    B.tap(c.id); await nap(250);
+    document.querySelector('#setupin').value = 'Glasses of water';
+    document.querySelector('#setup [data-act="setupnext"]').click(); await nap(200);
+    pick('#8E3B38|#E2B85C'); await nap(400);
+    out.aCounterIsAsked = c.title === 'Glasses of water' && c.wheelc === '#8E3B38' && c.wink === '#E2B85C' && !c.setup;
+    c.wfont = 'mono'; B.render(); await nap(200);
+    const num = document.querySelector(`[data-row="${c.id}"] .cntnum`);
+    const wheel = document.querySelector(`[data-row="${c.id}"] .wheel`);
+    out.theFiguresAreGold = !!num && getComputedStyle(num).color === 'rgb(226, 184, 92)';
+    out.theDrumIsRed = !!wheel && /142, 59, 56/.test(getComputedStyle(wheel).backgroundImage);
+    out.inTheTypeface = !!num && /mono|Menlo|Consolas/i.test(getComputedStyle(num).fontFamily);
+    c.wheelc = '#E9E1CC'; delete c.wink; B.render(); await nap(150);
+    const num2 = document.querySelector(`[data-row="${c.id}"] .cntnum`);
+    out.anIvoryDrumGetsDarkFigures = !!num2 && getComputedStyle(num2).color === 'rgb(22, 18, 14)';
+    B.panel(c.id, 'look'); await nap(300);
+    out.theEditorOffersThem = !!document.querySelector('#panel [data-oclick^="' + c.id + ':wheelc:"]')
+      && !!document.querySelector('#panel [data-oclick^="' + c.id + ':wink:"]')
+      && !!document.querySelector('#panel [data-ocycle="' + c.id + ':wfont"]');
+    B.closePanel();
+    return out;
+  });
+  await sp.screenshot({ path: 'test/shots/229-setup.png' });
+  await setupCtx.close();
+
   console.log(JSON.stringify({
-    errors: errs, manifestOk, swReady, survived, styleSurvived, slotColours,
+    errors: errs, settingUp, manifestOk, swReady, survived, styleSurvived, slotColours,
     newObjectSeen, inlineEdit, sortDefaults, taskLook,
     shelfTools, homeKnob, gridSizes, keeping, versionShown, sampler, paging, scrolling, pageCoords, pagerGround, goingIn, comingOut,
     makingOnAPhone, railDrawer, railIsFurniture, holding, holdingOut, reported, cavity, depth, windows, tossing, pinch, pagerLandsFlat, deskDots,
