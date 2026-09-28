@@ -803,7 +803,8 @@ const SPECS = [
     {k:'outline', t:'Scenes', b:[5,5,4,3], set:{c:14}},
     STAGES('plstages', ['Idea','First draft','Reading','Rewrite','Casting','Rehearsals','Tech','Opening'], [1,7,4,5], 8),
     {k:'progressbar', t:'Where it stands', b:[5,8,4,1], set:{c:13, tracks:'@plstages'}},
-    CAL('Rehearsals and shows', [5,9,4,3], 7)
+    CAL('Rehearsals and shows', [5,9,4,3], 7),
+    LINK('Schedule rehearsals', 'https://www.studiobinder.com', [1,12,8,1], 9)
   ]},
 
   {key:'script', sec:'project', nm:'Screenplay', ic:'clapper', c:9, of:'pj_script', on:[
@@ -924,7 +925,8 @@ const SPECS = [
     {k:'drawer', t:'Laws of the world', b:[1,8,4,4], set:{c:14}, kids:[{k:'law', t:'How magic works'}, {k:'law', t:'What it costs'}]},
     {k:'die', t:'Roll for it', b:[5,8,2,2], set:{c:14, sides:20}},
     {k:'deck', t:'What if…', b:[7,8,2,2], set:{c:10}, kids:CARDS(['A war nobody remembers', 'A god who left', 'A trade route', 'A forbidden word'])},
-    {k:'drawer', t:'Characters', b:[5,10,4,2], set:{c:13}}
+    {k:'drawer', t:'Characters', b:[5,10,4,2], set:{c:13}},
+    LINK('Make a map', 'https://inkarnate.com', [1,12,8,1], 9)
   ]},
 
   {key:'device', sec:'project', nm:'Device', ic:'sliders', c:15, of:'pj_device', on:[

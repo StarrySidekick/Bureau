@@ -6089,8 +6089,9 @@ const PROP_OFF = () => { const b = document.createElement('button');
        board with things on it already, a taken box sends that one tile to
        anySpot() and the shape is deliberately given up. */
     const room = BUREAU.create('drawer', {parent:'root', title:'Empty room'});
-    // one board: Short Film is its departments since decision 238
-    const p = ps.find(x => x.stock === 'song');
+    /* One board, with a list its bar reads and a calendar of its own: Short
+       Film is its departments since decision 238, and Play is all three. */
+    const p = ps.find(x => x.stock === 'play');
     const saved = boxes(p);
     const made = BUREAU.stampPlan(p.id, room.id);
     const top = made.filter(o => o.parent === room.id);
