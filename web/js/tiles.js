@@ -74,6 +74,13 @@ const wheelsFor = box => Math.max(1, Math.min(8, Math.floor((box.w||1) / Math.ma
    drum, because cream figures on an ivory drum are a counter with no count. */
 const WHEEL_COLOURS = [['','Black','#3C352B'],['c','Its colour',''],['#E9E1CC','Ivory'],
   ['#8E3B38','Red'],['#2E4A6B','Navy'],['#2E6B52','Green'],['#9A7B2F','Brass'],['#6B4A31','Walnut'],['#8A8F94','Steel']];
+/* **What a record is pressed in** (decision 245): the vinyl's own colour,
+   literal like the wax, bar the one that is the object's own slot. `clear` is
+   translucent, so the board shows through the grooves. */
+const VINYLS = [['','Grey','#6A665F'],['#1B1A18','Black'],['#8E2B2B','Red'],['#23456E','Blue'],
+  ['#2E6B45','Green'],['#C9A23A','Gold'],['#EDE6D6','White'],['#6C3F8C','Purple'],
+  ['rgba(205,214,220,.42)','Clear'],['c','Its colour','']];
+const vinylOf = o => o.vinyl==='c' ? objColour(o) : (o.vinyl || '');
 const WHEEL_INKS = [['','Cream','#EFE7D2'],['#16120E','Black'],['#FFFFFF','White'],
   ['#D8452F','Red'],['#E2B85C','Gold'],['#8FE39A','Lamp green'],['#9CC7FF','Blue']];
 const WHEEL_FONTS = {
@@ -1240,7 +1247,8 @@ function discHTML(o){
      hook is one attribute; gestures.js does the rest. Only while zoomed,
      because a disc on the board is a tile you pick up and drag. */
   const scratch = S.zoomOn===o.id ? ` data-scratch="${o.id}"` : '';
-  return `<i class="cd"${scratch}><b></b>${t?`
+  const vinyl = vinylOf(o);
+  return `<i class="cd"${scratch}${vinyl?` style="--vinyl:${esc(vinyl)}"`:''}><b></b>${t?`
     <svg class="cdtext" viewBox="0 0 100 100" aria-hidden="true">
       <defs><path id="${esc(pid)}" fill="none"
         d="M 13 50 A 37 37 0 0 1 87 50 A 37 37 0 0 1 13 50"></path></defs>
@@ -3568,5 +3576,5 @@ function bookView(c, items){
    (the *object's* setting, a different thing entirely) is untouched. */
 export { spinTo, CLICKS, clickOf, fireButton, intoOf, tileTap, pending, placeAtPending, SHELFSHIFT,
   scratchGrab, scratchTo, scratchGo,
-  gridTile, gridOfContainer, listTile, boardVarsOf, TOOLS, threadTo, KSHAPES, kshapeOf, WHEEL_COLOURS, WHEEL_INKS, WHEEL_FONTS, PORTAL_SHAPES, PORTAL_STYLES, PORTAL_EDGES, bookOf, bookView, sheetOf, turnPage, clearPages,
+  gridTile, gridOfContainer, listTile, boardVarsOf, TOOLS, threadTo, KSHAPES, kshapeOf, WHEEL_COLOURS, WHEEL_INKS, WHEEL_FONTS, VINYLS, PORTAL_SHAPES, PORTAL_STYLES, PORTAL_EDGES, bookOf, bookView, sheetOf, turnPage, clearPages,
   calSpan, calFront };

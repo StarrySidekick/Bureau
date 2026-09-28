@@ -12,7 +12,7 @@ import { tileRect, pop, clRefill } from './motion.js';
 import { planForKind, stampPlan } from './plans.js';
 import { DECOR_KEYS } from './decor.js';
 import { DICE, CLOCKS } from './active.js';
-import { WHEEL_COLOURS, WHEEL_INKS, WHEEL_FONTS, PORTAL_SHAPES, PORTAL_STYLES, PORTAL_EDGES } from './tiles.js';
+import { WHEEL_COLOURS, WHEEL_INKS, WHEEL_FONTS, VINYLS, PORTAL_SHAPES, PORTAL_STYLES, PORTAL_EDGES } from './tiles.js';
 import { closeSheet } from './sheet.js';
 import { assetDel, rescaleOneBoard, rescaleBoxes, save } from './persist.js';
 
@@ -1197,6 +1197,7 @@ function roll(o, depth){
   if(has(o,'date')) o.due = chance(.3) ? null : dz(Math.floor(Math.random()*42)-14);
   if(has(o,'rating')) o.rating = 1 + Math.floor(Math.random()*5);
   if(has(o,'priority')) o.prio = Math.floor(Math.random()*6);
+  if(mediaTypeOf(o)==='audio') o.vinyl = pick(VINYLS)[0];
   if(isDecor(o)) o.decor = pick(DECOR_KEYS);
   if(isBackdrop(o)) o.fill = pick(FILL_KEYS);
   if(doesOf(o)){ o.bimg = pick(BUTTON_IMGS).f;

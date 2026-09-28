@@ -1073,6 +1073,8 @@ const PROP_OFF = () => { const b = document.createElement('button');
     out.aPortalGoesSomewhere = /^https:/.test((mk('outlink').link || {}).target || '');
     out.aDieHasSides = [4, 6, 8, 10, 12, 20].includes(mk('die').sides);
     out.anOrnamentIsChosen = !!mk('decoration').decor;
+    // a record is pressed in a colour too (decision 245)
+    out.aRecordHasAColour = 'vinyl' in mk('audio');
     S.objects = S.objects.filter(x => !made.includes(x.id) && !made.includes(x.parent));
     S.undo = []; B.render();
     return out;

@@ -19,7 +19,7 @@ import { newOfKind } from './wire.js';
 import { GRID, lay, boxOk, freeSpot, anySpot, sizeOfKind, toPhoneSize, keepSize } from './grid.js';
 import { randomBoard, randomFront, hexOf, objColour, objSlots, famSlots, famAll, FAMS, styleKey, stockNow, CHECKS, checkNow } from './look.js';
 import { FILLS, FILL_KEYS, isCut, BUTTON_IMGS, DOES, doesOf } from './model.js';
-import { CLICKS, clickOf, gridTile, pending, PORTAL_SHAPES, PORTAL_STYLES, PORTAL_EDGES, WHEEL_COLOURS, WHEEL_INKS, WHEEL_FONTS, KSHAPES, kshapeOf } from './tiles.js';
+import { CLICKS, clickOf, gridTile, pending, PORTAL_SHAPES, PORTAL_STYLES, PORTAL_EDGES, WHEEL_COLOURS, WHEEL_INKS, WHEEL_FONTS, VINYLS, KSHAPES, kshapeOf } from './tiles.js';
 import { isActive, activeZoom, activeSay, activeName, DICE, CLOCKS } from './active.js';
 import { DECOR, decorOf, decorSVG, decorFor, decorRest, LIFE_ART, LIFE_KEYS, lifeSVG } from './decor.js';
 import { quickAdd, toast, drawerForTag, CONTROLS, CTL_KEYS, ctlSpec, galleryOf, PAINTINGS, pictureMedia } from './mutations.js';
@@ -1377,6 +1377,12 @@ function objectPanelBody(id, sec){
     out.push(prow('Wheels', sw('wheelc', WHEEL_COLOURS, d.wheelc), 'what the drums are painted'));
     out.push(prow('Figures', sw('wink', WHEEL_INKS, d.wink), 'the colour of the numbers'));
     out.push(prow('Typeface', pcycle(id,'wfont', Object.entries(WHEEL_FONTS), WHEEL_FONTS[d.wfont] ? d.wfont||'' : '')));
+  }
+  // what a record is pressed in (decision 245)
+  if(!isRoot && mediaTypeOf(d)==='audio'){
+    out.push(prow('Vinyl', `<div class="pickgrid sw">${VINYLS.map(([v,nm,show])=>
+      `<button data-oclick="${id}:vinyl:${esc(v)}" title="${esc(nm)}" class="${(d.vinyl||'')===v?'on':''}"
+        style="background:${v==='c' ? objColour(d) : (v||show)}"></button>`).join('')}</div>`, 'the colour of the disc'));
   }
   if(!isRoot && cont){
     if(faceOf(d)==='spine' || (d[dev()]||{}).w<=1)

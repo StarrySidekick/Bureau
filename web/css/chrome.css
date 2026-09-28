@@ -1313,13 +1313,25 @@ html .drawer.dtile.cltile{background-image:none}
      the aesthetic had not said. The grooves stay — they are the record, not
      the light on it — and the shadow it throws on the desk stays, because
      every tile throws one. */
+  /* The vinyl is the record's own colour now (decision 245), grey unless it
+     says. The two faint wedges are in the *pressing*, not the light: they
+     turn with the disc, and a perfectly even disc turning is a disc that
+     looks as if it is standing still. */
   background:
+    conic-gradient(from 25deg, rgba(255,255,255,.09) 0 5%, transparent 13% 50%, rgba(255,255,255,.06) 55%, transparent 62%),
     repeating-radial-gradient(circle at 50% 50%, rgba(255,255,255,.06) 0 2px, transparent 2px 4px),
-    #6A665F;
+    var(--vinyl, #6A665F);
   box-shadow:0 3px 10px rgba(0,0,0,.5), inset 0 0 0 1px rgba(0,0,0,.3);
 }
 .projdisc .cd b{
-  position:absolute;inset:32%;border-radius:50%;background:var(--c);
+  position:absolute;inset:32%;border-radius:50%;
+  /* The label is printed, and off-centre (decision 245): a band across it
+     and a mark near the rim, so the turn can be seen at any size, even
+     where the name round it is too small to print. */
+  background:
+    radial-gradient(circle at 50% 20%, rgba(0,0,0,.38) 0 8%, transparent 8.5%),
+    linear-gradient(0deg, transparent 60%, rgba(255,255,255,.5) 60% 67%, transparent 67%),
+    var(--c);
   box-shadow:inset 0 0 0 1px rgba(0,0,0,.35);
 }
 .projdisc .cd b::after{

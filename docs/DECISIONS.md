@@ -10756,3 +10756,24 @@ no colour, no edge, no paper, no shape, no words, no day. A random note was
 - **Still not random:** an Audio made at random is a blank disc, because no
   sound ships with the app; and a thing's size is its type's.
 
+## 245 · A record in any colour, and you can see it turn
+
+*2026-09-28.* Timothy: *"we also want the music disc to be able to be
+different colors, and it sort of lost its ability to appear like it's
+spinning."*
+
+It had not stopped turning: `.sounding` still runs `spinrec`. It had stopped
+*looking* as if it turned, because decision 193 made the disc flat (even
+grooves, a plain round label), and a perfectly round thing turning is
+indistinguishable from one standing still. The name round the label was the
+only asymmetric thing left, and it is hidden below three cells.
+
+- **The label is printed**: a pale band across it and a dark mark near its
+  rim, off-centre, so the turn reads at any size.
+- **Two faint wedges in the pressing**, turning with the disc. They are part
+  of the vinyl, not the light, which is the distinction 193 was drawing.
+- **`vinyl`**: the disc's own colour, from ten (grey, black, red, blue, green,
+  gold, white, purple, clear, or its own slot), chosen under *Vinyl* in its
+  editor and rolled for a record made at random. The label is still the
+  object's colour.
+
