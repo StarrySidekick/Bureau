@@ -1079,8 +1079,18 @@ function clipMedia(c){
    Public-domain recordings (docs/IMAGES.md says where each came from), a
    minute at most, mono MP3 under `img/sounds/`, beside the clips. An Audio
    made at random is born holding one, so it plays rather than being a blank
-   disc. Filled in from `img/sounds/titles.json`'s order when they land. */
-const SOUNDS = [];
+   disc: ragtime, Bach, a Haydn quartet, early jazz, a fiddle duet, a Sousa
+   march, a garden of birds and Apollo 11. */
+const SOUNDS = [
+  ['s01',"Maple Leaf Rag","Scott Joplin",'1916'],
+  ['s02',"Prelude in C major","Kimiko Ishizaka · Bach",'2015'],
+  ['s03',"The Lark, finale","Musopen String Quartet · Haydn",'2012'],
+  ['s04',"Livery Stable Blues","Original Dixieland Jass Band",'1917'],
+  ['s05',"Arkansaw Traveler","Gilliland & Robertson",'1922'],
+  ['s06',"The Stars and Stripes Forever","US Marine Band · Sousa",''],
+  ['s07',"Birds in a garden","Akum20",'2025'],
+  ['s08',"One small step","Neil Armstrong",'1969']
+].map(([f,t,a,d])=>({f, t, a, d}));
 function soundMedia(c){
   const url = 'img/sounds/'+c.f+'.mp3';
   return {type:'audio', url, src:url, label:c.t};

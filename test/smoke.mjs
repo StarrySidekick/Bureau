@@ -1075,6 +1075,10 @@ const PROP_OFF = () => { const b = document.createElement('button');
     out.anOrnamentIsChosen = !!mk('decoration').decor;
     // a record is pressed in a colour too (decision 245)
     out.aRecordHasAColour = 'vinyl' in mk('audio');
+    // …and it has something on it (decision 244)
+    const rec = mk('audio'), src = (rec.media || {}).src || '';
+    out.aRecordPlaysSomething = /img\/sounds\/s\d\d\.mp3$/.test(src)
+      && (await fetch(src)).ok && rec.title !== 'Audio';
     S.objects = S.objects.filter(x => !made.includes(x.id) && !made.includes(x.parent));
     S.undo = []; B.render();
     return out;

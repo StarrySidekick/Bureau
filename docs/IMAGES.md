@@ -141,3 +141,22 @@ Ten short looping MP4s converted from public-domain animated GIFs on Wikimedia C
 - `v10.mp4` — *The Earth Turning* — NASA EPIC (DSCOVR), 2016 — Public domain — https://commons.wikimedia.org/wiki/File:EpicEarth-Globespin(2016May29).gif
 
 A Video made at random (Random, the spiral coin) is born holding one, looping; see `CLIPS` in mutations.js.
+
+## Sounds — `img/sounds/` (decision 244)
+
+What an Audio made at random plays: eight public-domain or CC0 recordings from
+Wikimedia Commons, each licence checked on its own file page. Mono, 44.1 kHz,
+96 kbps MP3, at most a minute, loudness-matched to about −18 LUFS, with a two
+second fade at the end. Most came from Commons' 64 kbps transcodes, because
+the originals were rate-limited.
+
+| File | What it is | Source page | Licence | Performer / author |
+| --- | --- | --- | --- | --- |
+| `s01.mp3` | Maple Leaf Rag (Scott Joplin), piano roll played by Joplin, 1916 — first 60 s | https://commons.wikimedia.org/wiki/File:Maple_leaf_rag_-_played_by_Scott_Joplin_1916_V2.ogg | Public domain | Scott Joplin |
+| `s02.mp3` | Prelude No. 1 in C major, BWV 846 (J. S. Bach), from the Open Well-Tempered Clavier, 2015 — first 60 s | https://commons.wikimedia.org/wiki/File:Kimiko_Ishizaka_-_Bach_-_Well-Tempered_Clavier,_Book_1_-_01_Prelude_No._1_in_C_major,_BWV_846.ogg | CC0 | Kimiko Ishizaka (piano); J. S. Bach |
+| `s03.mp3` | String Quartet Op. 64 No. 5 "The Lark", IV. Finale: Vivace (Haydn), Musopen, 2012 — first 60 s | https://commons.wikimedia.org/wiki/File:Haydn_-_String_Quartet,_Op._64_No._5_in_D_major_'The_Lark'_-_IV._Finale._Vivace_(Musopen_String_Quartet).flac | Public domain | Musopen String Quartet; Joseph Haydn |
+| `s04.mp3` | Livery Stable Blues, Victor 78, recorded 26 Feb 1917 (hiss-reduced transfer) — first 60 s | https://commons.wikimedia.org/wiki/File:Original_Dixieland_Jass_Band_-_Livery_Stable_Blues_(1917)_with_hiss_reduction.ogg | Public domain | Original Dixieland Jass Band |
+| `s05.mp3` | Arkansaw Traveler, fiddle duet, Victor 18956, 1922 — first 60 s | https://commons.wikimedia.org/wiki/File:Henry_C._Gilliland_and_Eck_Robertson_-_Arkansaw_Traveler.flac | Public domain (PD-US-record-expired) | Henry C. Gilliland and Eck Robertson |
+| `s06.mp3` | The Stars and Stripes Forever (Sousa) — first 60 s | https://commons.wikimedia.org/wiki/File:USMC_stars_stripes_forever.ogg | Public domain (US government work) | United States Marine Band; John Philip Sousa |
+| `s07.mp3` | Birds singing in a garden in Abuja, Nigeria, 2025 — 1:50 to 2:50, 1 s fade-in | https://commons.wikimedia.org/wiki/File:Birds_chirping_in_a_garden.ogg | CC0 | Akum20 (Wikimedia Commons) |
+| `s08.mp3` | "That's one small step for man…", Apollo 11, 21 July 1969 — whole clip, 24 s | https://commons.wikimedia.org/wiki/File:Armstrong_Small_Step.ogg | Public domain (NASA) | Neil Armstrong / NASA |

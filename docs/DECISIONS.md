@@ -10753,8 +10753,13 @@ no colour, no edge, no paper, no shape, no words, no day. A random note was
   Review), in any shape, any inside (a glimpse among them now) and any edge.
 - A spawner set to anything, and a Button making anything, furnish what they
   make the same way.
-- **Still not random:** an Audio made at random is a blank disc, because no
-  sound ships with the app; and a thing's size is its type's.
+- **Sounds** (`SOUNDS`, `img/sounds/`, sources in docs/IMAGES.md): an Audio
+  made at random holds one of eight public-domain recordings, a minute at
+  most: Joplin's own Maple Leaf Rag roll, Bach's first prelude, Haydn's Lark,
+  the Original Dixieland Jass Band, Gilliland and Robertson's fiddle, the
+  Marine Band's Stars and Stripes, birds in a garden and Apollo 11. About
+  5.3 MB, in the shell so they play offline.
+- **Still not random:** a thing's size is its type's.
 
 ## 245 · A record in any colour, and you can see it turn
 
