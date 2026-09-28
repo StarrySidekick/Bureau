@@ -7932,12 +7932,19 @@ const PROP_OFF = () => { const b = document.createElement('button');
     BUREAU.render(); await nap(200);
     out.aTileMayGoUnderIt = BUREAU.boxOk({x:bare.x, y:bare.y, w:2, h:2},
       'nobody', S.device, 'root') === true;
-    // on a locked board it is scenery — a cut-out must not swallow taps meant
-    // for what it is standing in front of
+    /* **Pressed by its shape, on either board** (decision 241). A cut-out must
+       not swallow taps meant for what it stands in front of, and it must
+       still be something you can hold, move and delete on a locked board —
+       so the box takes nothing and the traced outline takes the press. */
+    const hitAt = (fx, fy) => { const r = el().getBoundingClientRect();
+      const e = document.elementFromPoint(r.left + r.width*fx, r.top + r.height*fy);
+      return !!e && !!e.closest(`[data-row="${d.id}"]`); };
     S.look.locked = true; BUREAU.render(); await nap(250);
-    out.sceneryWhenLocked = getComputedStyle(el()).pointerEvents === 'none';
+    intoView(el());
+    out.sceneryWhenLocked = getComputedStyle(el()).pointerEvents === 'none' && !hitAt(0.03, 0.03);
+    out.butItsShapeStillTakesAPress = hitAt(0.5, 0.7);
     S.look.locked = false; BUREAU.render(); await nap(200);
-    out.pickUpAgainWhenUnlocked = getComputedStyle(el()).pointerEvents !== 'none';
+    out.pickUpAgainWhenUnlocked = hitAt(0.5, 0.7);
     BUREAU.del(d.id); S.undo=[]; S.redo=[]; BUREAU.render();
     return out;
   });

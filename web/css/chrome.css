@@ -4659,14 +4659,19 @@ kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--rule);border
   color:var(--c);
 }
 .drawer.otile.dectile:hover{box-shadow:none;filter:brightness(1.06)}
-/* A decoration takes no taps on a locked board — a cut-out's transparent
-   corners would swallow the ones meant for whatever it stands in front of
-   (decision 86). A lamp is the exception that rule never had to consider: it
-   is the one ornament whose whole point is being pressed, so `.decact` keeps
-   its taps. The corners are still transparent and still in the way, which is
-   the price; a lamp you cannot switch on from a locked desk is a worse one,
-   given the desk starts locked. See decision 179. */
-.grid.locked .dectile:not(.decact){pointer-events:none}
+/* **A decoration is pressed by its shape** (decision 241). It used to take no
+   taps at all on a locked board, because a cut-out's transparent corners
+   swallowed the ones meant for whatever it stood in front of (decision 86) —
+   and so on the board a desk starts on, an ornament could not be held,
+   moved or deleted. The tile takes nothing now; the photograph's traced
+   outline (`.dechit`) and a drawn one's painted strokes take the press, on
+   either kind of board, and everything else falls through to what is behind.
+   A picture you chose yourself has no outline and is its whole box. */
+.drawer.otile.dectile{pointer-events:none}
+.dectile svg.decart,.dectile svg.decart image{pointer-events:none}
+.dectile svg.decart > :not(image):not(.dechit){pointer-events:visiblePainted}
+.dectile svg.decart .dechit{pointer-events:all}
+.dectile img.decart,.dectile .rz{pointer-events:auto}
 /* it stands on the floor of its box rather than floating in the middle */
 .dectile .decart{width:100%;height:100%;display:block;object-fit:contain;object-position:center bottom}
 .dectile.selected{outline:2px solid var(--brass);outline-offset:3px}

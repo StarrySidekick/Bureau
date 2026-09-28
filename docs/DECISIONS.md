@@ -10623,3 +10623,28 @@ remains customizable for boards."*
 - Labels in his words: Book (the type is still *Text* inside), Audio (was
   *Disc*). Audio was already a disc by default whatever it holds.
 
+## 241 · A decoration is pressed by its shape
+
+*2026-09-28.* Timothy: decorations, because they may overlap other objects,
+*"have a hard time being deleted or being able to be tapped and held."*
+
+They did, for a reason that was stated: on a locked board a decoration took
+no pointer events at all (decision 86), because a cut-out PNG is hit-tested
+as its whole rectangle and its transparent corners swallowed the taps meant
+for whatever it stood in front of. A desk starts locked, so on the board you
+are usually on an ornament could not be held, moved or deleted; on an
+unlocked one it was the other way round and the corners were in the way.
+
+- **The outline takes the press, not the box.** `scripts/decor-hits.mjs`
+  reads each decoration PNG's alpha in the browser and writes its silhouette
+  (28 bands, left edges down, right edges up, padded 2%) into decor.js as
+  `hit`, in the entry's viewBox units. `decorSVG()` lays it over the picture
+  as an invisible `.dechit` polygon. The tile, the SVG and the image take
+  nothing; the polygon takes everything.
+- **On either kind of board.** The locked-board rule is gone, lamp exception
+  and all: a tap on the transparent part reaches what is behind, and a press
+  on the object itself is the object's, locked or not. A hold on it is the
+  ring, with Delete in it.
+- A picture you chose yourself has no traced outline and is still its whole
+  box. Re-run the script after adding or replacing a decoration's picture.
+
