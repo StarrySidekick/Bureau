@@ -10314,6 +10314,13 @@ makes sense; the major settings are what is being decided.
   refuse (decision 23): it is not a menu about something you are looking at,
   it is the thing introducing itself, and Timothy asked for it to take the
   screen.
+- **v2.26: it did not ask.** The picker and the shape ring hand
+  `newOfKind()` a patch on every press, an empty `{}` when no variant was
+  chosen, and the setup was skipped for any patch at all, so nothing made the
+  ordinary way ever carried `setup`. The test had called `newOfKind('drawer')`
+  bare and so never saw it. "A variant was chosen" is now a patch with a key
+  in it, and the smoke block makes its drawer by pressing the picker's tile
+  and opens it with a click on the tile.
 
 ## 230 · Public-domain clips for a Video made at random
 

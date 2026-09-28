@@ -9869,12 +9869,16 @@ const PROP_OFF = () => { const b = document.createElement('button');
     const out = {}, S = BUREAU.state, B = BUREAU;
     const newest = () => S.objects[S.objects.length-1];
     const pick = v => { const b = document.querySelector(`#setup [data-setupv="${v}"]`); if(b) b.click(); return !!b; };
-    B.newOfKind('drawer'); await nap(200);
+    // through the picker's own tile, the way a finger makes one
+    B.pick(); await nap(250);
+    document.querySelector('#panel .kindtile[data-new="drawer"]').click(); await nap(250);
     const d = newest();
     out.madePlain = d.kind === 'drawer' && d.setup === 'drawer'
       && !S.objects.some(o => o.parent === d.id);
     out.wearsTheMark = !!document.querySelector(`[data-drawer="${d.id}"] .setupmark, [data-row="${d.id}"] .setupmark`);
-    B.tap(d.id); await nap(300);
+    // …and a real tap on the tile, not a call to tileTap()
+    const tl = document.querySelector(`[data-drawer="${d.id}"]`);
+    if(tl) tl.click(); await nap(350);
     out.theFirstTapAsks = B.setupOpen() && !!document.querySelector('#setup .suq')
       && document.querySelectorAll('#setup .suchoice').length === 4 && S.view === 'desk';
     out.fillsTheScreen = (() => { const r = document.querySelector('#setup').getBoundingClientRect();

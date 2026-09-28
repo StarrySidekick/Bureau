@@ -243,7 +243,10 @@ function newOfKind(kind, asked, patch){
      It is put down as the thing it is, carrying `setup`, and pressing it
      opens the card that asks the rest — see setup.js. A variant chosen on
      the ring has already answered, so it is made the ordinary way. */
-  if(k.setup && SETUPS[k.setup] && !patch && !random){
+  /* The picker and the ring always hand a patch, empty when no variant was
+     chosen, so "answered" is a patch with something in it. */
+  const chose = !!(patch && Object.keys(patch).length);
+  if(k.setup && SETUPS[k.setup] && !chose && !random){
     const o = create(kind, Object.assign(at?{parent:at.parent}:{}, {noSeed:true}));
     o.setup = k.setup;
     placeAtPending(o);
