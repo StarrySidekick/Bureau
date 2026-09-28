@@ -198,7 +198,7 @@ the screen and asks, as a run of questions ("what are you trying to make?")
 with the pickers in them, whether it is a project, an aspect of life and so
 on. *"Do this with all the objects it makes sense to do with and we'll go from
 there. Major setting choices would be what we are deciding between."* Built as
-decisions 227–230 (v2.24); what each type asks is in decision 229 and is the
+decisions 227–230 (v2.24–2.25); what each type asks is in decision 229 and is the
 first draft of a list he means to go through.
 
 ## Deliberately not next

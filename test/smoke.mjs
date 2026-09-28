@@ -9943,6 +9943,12 @@ const PROP_OFF = () => { const b = document.createElement('button');
       && !!document.querySelector('#panel [data-oclick^="' + c.id + ':wink:"]')
       && !!document.querySelector('#panel [data-ocycle="' + c.id + ':wfont"]');
     B.closePanel();
+    // a Video made at random holds one of the bundled clips, looping (230)
+    const { furnish } = await import('./js/mutations.js');
+    const v = furnish(B.create('video', {parent:'root'})); B.render(); await nap(200);
+    const el = document.querySelector(`[data-row="${v.id}"] video`);
+    out.aRandomVideoHoldsAClip = /^img\/clips\/v\d\d\.mp4$/.test(v.media && v.media.url || '')
+      && !!el && el.loop && /img\/clips\/v\d\d\.jpg$/.test(el.poster) && !!v.title;
     return out;
   });
   await sp.screenshot({ path: 'test/shots/229-setup.png' });

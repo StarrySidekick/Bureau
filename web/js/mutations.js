@@ -2,7 +2,7 @@ import { $, esc, uid, clamp, ROOT, HOLD, D } from './util.js';
 import { S, byId, K, KINDS, KEYS, kindHas, has, isContainer, genKindOf, streak, T, dz, dev,
   repeatOf, repeats, nextRepeat, faceOf, childrenOf, TILT_MODES, tiltMode, GRAVITIES, gravityMode,
   ctlOf, isPrimary, SECONDARY, isPicture, isDecor,
-  placeOf, cfgOf, isHeld, heldObjects, homeFor , attrsOf, habitPlan, habitOn, tagSlug } from './model.js';
+  placeOf, cfgOf, isHeld, heldObjects, homeFor , attrsOf, habitPlan, habitOn, tagSlug, mediaTypeOf } from './model.js';
 import { GRID, PHONE_GRIDS, colsOf, gridOf, shelfRows, freeSpot, anySpot, roomFor, lay, boxOk, sizeOfKind, keepSize } from './grid.js';
 import { randomFront, randomBoard, randomLook, styleDefaults,
   STYLES, CHECKS, DARKMODES, styleKey, applyStyle, applyLook, OBJ0, OBJN } from './look.js';
@@ -970,6 +970,29 @@ const PAINTINGS = [
   ['a25','At the Seaside','Chase','c. 1892'],
   ['a26','Pines Along the Shore','Cross','1896']
 ].map(([f,t,a,d])=>({f:f+'.jpg', t, a, d, dir:'img/paintings/'}));
+/* ---- the clips — decision 230 -----------------------------------------
+   Ten public-domain animated GIFs from Wikimedia Commons — Muybridge's and
+   Marey's motion studies, three optical-toy discs, two Reynaud strips and two
+   NASA globes — made into short looping MP4s under `img/clips/`, each with a
+   still of its first frame (docs/IMAGES.md says where each came from). An
+   MP4 because a Video is a `<video>` and a GIF is not one; the clip `loop`s,
+   which is what the GIF did. A Video made at random is born holding one. */
+const CLIPS = [
+  ['v01','A Race Horse Galloping','Eadweard Muybridge','1887'],
+  ['v02','A Lion Walking','Eadweard Muybridge','1887'],
+  ['v03','Camel Racking','Eadweard Muybridge','1887'],
+  ['v04','Flight of a Gull','Étienne-Jules Marey','1890'],
+  ['v05','Running Rats (phenakistiscope)','Thomas Mann Baynes','1833'],
+  ['v06','Cats and Donkey (phenakistiscope)','Unknown artist','c. 1830'],
+  ['v07','At the Pump (praxinoscope strip)','Émile Reynaud','1878'],
+  ['v08','Pauvre Pierrot','Émile Reynaud','1892'],
+  ['v09','Saturn Turning','NASA/JPL-Caltech/Space Science Institute (Cassini)','2016'],
+  ['v10','The Earth Turning','NASA EPIC (DSCOVR)','2016']
+].map(([f,t,a,d])=>({f, t, a, d}));
+function clipMedia(c){
+  const url = 'img/clips/'+c.f+'.mp4';
+  return {type:'video', url, src:url, label:c.t, poster:'img/clips/'+c.f+'.jpg', loop:true};
+}
 const GALLERIES = {paintings: PAINTINGS};
 const galleryOf = o => o && GALLERIES[K(o.kind).gallery] || null;
 /* Hang one of a gallery's paintings on an object. The name follows the
@@ -989,6 +1012,10 @@ function furnish(o){
     hangPainting(o, gal[Math.floor(Math.random()*gal.length)]);
   } else if(isPicture(o) && !isDecor(o) && !(o.media && (o.media.src||o.media.assetId))){
     const p = samplePicture(); if(p) o.media = pictureMedia(p);
+  } else if(mediaTypeOf(o)==='video' && !(o.media && (o.media.src||o.media.assetId))){
+    const c = CLIPS[Math.floor(Math.random()*CLIPS.length)];
+    o.media = clipMedia(c);
+    if(!o.title) o.title = c.t;
   }
   /* A portal the coin or the spiral makes is any of them (decision 223): one
      of the three openings, in any of the aesthetic's object colours. */
@@ -1061,4 +1088,4 @@ export { toast, setGridSize, toggleDone, spawnNext, del, delMany, delDrawer, und
   drawerForTag, create, gather, quickAdd, spawnInto, randomThing,
   CONTROLS, CTL_KEYS, ctlSpec, ctlSaid, ctlIsOn, ctlForm, ctlNum, ctlIndex, ctlPress, someKind,
   fits,
-  holdIt, unholdIt, unholdMany, undoToast, dealTop, furnish, PICTURES, PAINTINGS, galleryOf, hangPainting, pictureMedia };
+  holdIt, unholdIt, unholdMany, undoToast, dealTop, furnish, PICTURES, PAINTINGS, galleryOf, hangPainting, pictureMedia, CLIPS };

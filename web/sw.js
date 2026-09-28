@@ -1,7 +1,7 @@
 /* Bureau — service worker.
    Bump CACHE when you change anything in css/ or js/ (or index.html) and the
    next launch picks it up. New js/css files must also be added to SHELL. */
-const CACHE = 'bureau-v224';
+const CACHE = 'bureau-v225';
 const SHELL = [
   './',
   './index.html',
@@ -67,6 +67,26 @@ const SHELL = [
   './img/tools/d6-6.png',
   './img/tools/glass.png',
   './img/tools/metro.png',
+  './img/clips/v01.mp4',
+  './img/clips/v01.jpg',
+  './img/clips/v02.mp4',
+  './img/clips/v02.jpg',
+  './img/clips/v03.mp4',
+  './img/clips/v03.jpg',
+  './img/clips/v04.mp4',
+  './img/clips/v04.jpg',
+  './img/clips/v05.mp4',
+  './img/clips/v05.jpg',
+  './img/clips/v06.mp4',
+  './img/clips/v06.jpg',
+  './img/clips/v07.mp4',
+  './img/clips/v07.jpg',
+  './img/clips/v08.mp4',
+  './img/clips/v08.jpg',
+  './img/clips/v09.mp4',
+  './img/clips/v09.jpg',
+  './img/clips/v10.mp4',
+  './img/clips/v10.jpg',
   './img/pictures/p01.jpg',
   './img/pictures/p02.jpg',
   './img/pictures/p03.jpg',
@@ -161,6 +181,35 @@ self.addEventListener('fetch', e => {
           return res;
         })
         .catch(() => caches.match('./index.html').then(r => r || caches.match('./')))
+    );
+    return;
+  }
+
+  /* **A video is asked for in pieces.** Safari fetches a `<video>` with a
+     Range header and will not play one answered with the whole file as a 200,
+     which is what a cache hit is. So a ranged request for something in the
+     cache is cut to the bytes asked for and answered 206 (decision 230, for
+     the bundled clips); anything not cached goes to the network untouched. */
+  const range = req.headers.get('range');
+  if (range) {
+    e.respondWith(
+      caches.match(req.url).then(hit => {
+        if (!hit) return fetch(req);
+        return hit.arrayBuffer().then(buf => {
+          const m = /bytes=(\d*)-(\d*)/.exec(range) || [];
+          const size = buf.byteLength;
+          let start = m[1] === '' || m[1] == null ? NaN : +m[1];
+          let end = m[2] === '' || m[2] == null ? NaN : +m[2];
+          if (isNaN(start)) { start = Math.max(0, size - (end || 0)); end = size - 1; }
+          if (isNaN(end) || end >= size) end = size - 1;
+          if (start >= size || start > end) return new Response(null, {status:416, headers:{'Content-Range':`bytes */${size}`}});
+          return new Response(buf.slice(start, end + 1), {status:206, statusText:'Partial Content', headers:{
+            'Content-Type': hit.headers.get('Content-Type') || 'application/octet-stream',
+            'Content-Range': `bytes ${start}-${end}/${size}`,
+            'Content-Length': String(end - start + 1),
+            'Accept-Ranges': 'bytes'}});
+        });
+      })
     );
     return;
   }

@@ -104,3 +104,20 @@ public domain, so there are none.
 | `a24.jpg` | The Monet Family in Their Garden at Argenteuil, 1874 | https://www.metmuseum.org/art/collection/search/436965 | CC0 | Edouard Manet; The Metropolitan Museum of Art |
 | `a25.jpg` | At the Seaside, ca. 1892 | https://www.metmuseum.org/art/collection/search/10464 | CC0 | William Merritt Chase; The Metropolitan Museum of Art |
 | `a26.jpg` | Pines Along the Shore, 1896 | https://www.metmuseum.org/art/collection/search/459095 | CC0 | Henri-Edmond Cross (Henri-Edmond Delacroix); The Metropolitan Museum of Art |
+
+## Clips — `web/img/clips/` (decision 230)
+
+Ten short looping MP4s converted from public-domain animated GIFs on Wikimedia Commons, each with a poster frame of the same name (`.jpg`).
+
+- `v01.mp4` — *A Race Horse Galloping* — Eadweard Muybridge, 1887 — Public domain — https://commons.wikimedia.org/wiki/File:Muybridge_race_horse_animated.gif
+- `v02.mp4` — *A Lion Walking* — Eadweard Muybridge, 1887 — Public domain — https://commons.wikimedia.org/wiki/File:Eadweard_Muybridge_Animation_of_a_Lion_Walking.gif
+- `v03.mp4` — *Camel Racking* — Eadweard Muybridge, 1887 — Public domain — https://commons.wikimedia.org/wiki/File:Muybridge_Camel_Racking.gif
+- `v04.mp4` — *Flight of a Gull* — Étienne-Jules Marey, 1890 — Public domain — https://commons.wikimedia.org/wiki/File:Anim_go%C3%A9land_Marey.gif
+- `v05.mp4` — *Running Rats (phenakistiscope)* — Thomas Mann Baynes, 1833 — Public domain — https://commons.wikimedia.org/wiki/File:Animated_phenakistiscope_disc_-_Running_rats_Fantascope_by_Thomas_Mann_Baynes_1833.gif
+- `v06.mp4` — *Cats and Donkey (phenakistiscope)* — Unknown artist, c. 1830 — Public domain — https://commons.wikimedia.org/wiki/File:Optical_Toy,_Phenakistiscope_Disc_with_Cats_and_Donkey,_ca._1830.gif
+- `v07.mp4` — *At the Pump (praxinoscope strip)* — Émile Reynaud, 1878 — Public domain — https://commons.wikimedia.org/wiki/File:Roue_%C3%A0_eau,_animation_d%27%C3%89mile_Reynaud.gif
+- `v08.mp4` — *Pauvre Pierrot* — Émile Reynaud, 1892 — Public domain — https://commons.wikimedia.org/wiki/File:Pauvre_Pierrot_animation.gif
+- `v09.mp4` — *Saturn Turning* — NASA/JPL-Caltech/Space Science Institute (Cassini), 2016 — Public domain — https://commons.wikimedia.org/wiki/File:Saturn_Rotation_Cassini.gif
+- `v10.mp4` — *The Earth Turning* — NASA EPIC (DSCOVR), 2016 — Public domain — https://commons.wikimedia.org/wiki/File:EpicEarth-Globespin(2016May29).gif
+
+A Video made at random (Random, the spiral coin) is born holding one, looping; see `CLIPS` in mutations.js.

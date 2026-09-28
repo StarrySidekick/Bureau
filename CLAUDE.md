@@ -158,15 +158,16 @@ in its own colour, and the coin makes any of them.
 or arch fills its cells, the edge can be vines or a glow (`pedge`), and the
 inside can be a vortex, a drift, a tunnel or a glimpse of the page
 (`pstyle`, a screenshot from WordPress mShots).
-**v2.24** (decisions 227–229): **pinching out on the desk zooms out to every
+**v2.24–2.25** (decisions 227–230): **pinching out on the desk zooms out to every
 board** (`openOverview()` in views.js, `#overview`), where boards are added and
 taken away, never the home board; the name at the top left opens nothing. A
 counter's drum colour, figure colour and typeface (`wheelc`, `wink`, `wfont`).
 And **setup cards**: a drawer, project, aspect of life, tag, text, goal,
 checklist, calendar, counter, habit tracker or portal made from the picker is
 put down plain, carrying `setup`, and its first tap opens a full-screen card of
-questions (`setup.js`) that writes the fields the editor has. A Random video is
-one of ten public-domain clips (`web/img/clips/`).
+questions (`setup.js`) that writes the fields the editor has. A Video made at
+random is one of ten public-domain clips (`web/img/clips/`, `CLIPS` in
+mutations.js), and the worker answers a ranged request out of the cache.
 The **Bureau Workshop** artifact (https://claude.ai/artifact/4TjyQZ5xcuxCYFgfnRm76k)
 holds Timothy's own rearrangement of every menu and type: read its
 `workshop/state` document before reorganising menus or types.

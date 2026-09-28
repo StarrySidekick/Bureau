@@ -10314,3 +10314,29 @@ makes sense; the major settings are what is being decided.
   refuse (decision 23): it is not a menu about something you are looking at,
   it is the thing introducing itself, and Timothy asked for it to take the
   screen.
+
+## 230 · Public-domain clips for a Video made at random
+
+*2026-09-28.* Timothy: find some public-domain GIFs to fill the Video object
+when it is made at random.
+
+- **Ten clips** under `web/img/clips/`, all marked public domain on Wikimedia
+  Commons: three Muybridge motion studies (a race horse, a lion, a camel),
+  Marey's gull in flight, two phenakistiscope discs, two Émile Reynaud strips
+  (*At the Pump* and *Pauvre Pierrot*) and two NASA globes (Saturn from
+  Cassini, the Earth from DSCOVR). Where each came from is in docs/IMAGES.md.
+  Newton's cradle and one Muybridge disc were left out for being CC BY-SA.
+- **MP4, not GIF.** A Video is a `<video>`, which cannot play a GIF, so each
+  was converted to H.264 at no more than 480 pixels a side, looped to four to
+  six seconds where the GIF was shorter, with its first frame as a JPEG
+  poster. 2.3 MB for all twenty files, in the shell so they work offline.
+- **`furnish()` gives a Video with nothing in it one of them** (`CLIPS`,
+  `clipMedia()` in mutations.js), named for the clip unless it has a name. So
+  does Random from the picker, which now furnishes what it makes as the coin
+  always did. The media carries `loop` and `poster`, so the tile shows the
+  still and plays round and round when pressed, the way the GIF did.
+- **The worker answers a ranged request out of the cache.** Safari fetches a
+  video in byte ranges and will not play one answered with the whole file as
+  a 200, which is what a plain cache hit is. A request with a Range header for
+  something cached is cut to those bytes and answered 206; anything else goes
+  to the network as before.
