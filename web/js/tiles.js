@@ -2,7 +2,7 @@ import { esc, ic, clamp, D, md, plain, oneline, outURL, whereTo, ROOT, pastTense
 import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, childrenOf, container,
   clPerCell,
   rollup, streak, barPct, barSteps, barFilled, barGrid, projectStat, progressOf, tlSpan,
-  dev, spawnByOf, genKindOf, genSaid,
+  dev, spawnByOf, genKindOf, genSaid, doesOf,
   projCoverOf, lifeArtOf, goalStanding, GOAL_STANDINGS,
   makesAnything, ctlOf, takesTyping, showsAddBox,
   knobSizeOf, answered, sortOf, spanOf, coversDay, lateOn, isLate, iconOf, textSizeOf,
@@ -444,9 +444,29 @@ function dispense(g){
    gone missing. Null means "beside me on the board", which is what it was. */
 const intoOf = g => { const d = g && g.into && byId(g.into);
   return d && isContainer(d) && !has(d,'magic') ? d : null; };
+/* ---- pressing a Button — decision 243 -----------------------------------
+   One press, three machines, and each is the one that already did the job:
+   the spawner's `dispense()`, the way out a portal takes, the control's
+   `ctlPress()`. A line typed into a wide one is made with that name, by the
+   same keypress the line answers to on its own. */
+const opensSaid = o => { const tg = o && o.opens; if(!tg) return '';
+  const d = byId(tg); return d ? (d.title||'Untitled') : String(tg).replace(/^https?:\/\//,'').replace(/\/$/,''); };
+function buttonPress(o){
+  const does = doesOf(o) || 'make';
+  if(does==='make'){
+    const line = document.querySelector(`[data-fieldfor="${o.id}"]`);
+    if(line && line.value.trim()){ line.dispatchEvent(new KeyboardEvent('keydown', {key:'Enter', bubbles:true})); return; }
+    dispense(o); return;
+  }
+  if(does==='open'){ if(!o.opens){ objectPanel(o.id); return; } fireTo(o.opens); return; }
+  ctlPress(o.id);
+}
 function fireButton(o){
   const tg=o.link&&o.link.target;
   if(!tg){ objectPanel(o.id); return; }
+  fireTo(tg);
+}
+function fireTo(tg){
   /* A site opens beside Bureau, so the desk is still there when you come back.
      Any other scheme is another app on this device (a call, a mail, an app
      that registered one) and is handed to the system by navigating: a
@@ -637,6 +657,8 @@ function tileTap(id){
     /* Pressing a control is not an opening either: the thing that answers is
        the board, which is already behind it. */
     case 'toggle': ctlPress(id); return;
+    // a Button: make, open or switch, whichever it is set to (decision 243)
+    case 'press': buttonPress(o); return;
     /* A press starts it and a press stops it, and neither is an opening —
        what answers is the tile itself. See playPress(). */
     case 'play': playPress(id); return;
@@ -1540,6 +1562,31 @@ function drawTileFace(o, arr, box, persp){
   }${hasPersp(o, persp, box) ? `--px:${persp.x};--py:${persp.y};--depth:${depthOf(o)};` : ''
   }grid-column:${box.x} / span ${box.w};grid-row:${box.y} / span ${box.h}`;
   const sel = S.sel.includes(o.id) ? ' selected' : '';
+
+  /* ---- a Button is a button — decision 243 -------------------------------
+     Square, it is a photograph of a real one (`bimg`), and the whole tile is
+     the press. Not square, the button stands at the start of it on the
+     short side and the rest is what it is for: set to **make**, the garden's
+     line you type a name into (return, or the button, makes one called
+     that); set to **open** or **switch**, its name over what it does. */
+  if(shapeOf(o)==='pushbutton'){
+    const long = box.w!==box.h, tall = box.h>box.w;
+    const does = doesOf(o) || 'make';
+    const field = long && does==='make';
+    const said = does==='make' ? 'Makes a '+genSaid(o)
+      : does==='open' ? (opensSaid(o) ? 'Opens '+opensSaid(o) : 'Opens nothing yet')
+      : (()=>{ const c = ctlSpec(o); return c ? c.nm+': '+ctlSaid(o) : 'Flips a switch'; })();
+    const cap = `<span class="pushcap" aria-hidden="true"><img src="img/buttons/${esc(o.bimg||K(o.kind).bimg||'b01')}.png" alt="" draggable="false"></span>`;
+    return `<${field?'div':'button'} class="drawer otile pushtile bd-none${long?(tall?' tall':' wide'):''}${sel}" data-row="${o.id}"
+        ${field?'role="button" tabindex="0"':''} title="${esc((o.title?o.title+' — ':'')+said)}"
+        style="--c:${colour};--bs:${Math.min(box.w, box.h)};${place}">
+      ${chips}${cap}
+      ${field ? `<label class="pushline"><input class="fieldin" data-fieldfor="${o.id}"
+          placeholder="${esc(o.title||('New '+genSaid(o)+'…'))}"></label>`
+        : long ? `<span class="pushsays"><b>${esc(o.title||K(o.kind).nm)}</b><u>${esc(said)}</u></span>` : ''}
+      ${handles}
+    </${field?'div':'button'}>`;
+  }
 
   /* ---- a spawner is a spiral -------------------------------------------
      One cell square is its natural size, and at that size the spiral *is* the

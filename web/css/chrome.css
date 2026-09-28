@@ -6368,3 +6368,35 @@ html[data-rows="fit"] .is-phone .gridbar.inrail .sqbtn{width:28px;height:28px}
 .pull.ks-die{--kmask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cmask id='m'%3E%3Cg fill='white' stroke='white'%3E%3Cpath d='M26 7h48a19 19 0 0 1 19 19v48a19 19 0 0 1-19 19H26A19 19 0 0 1 7 74V26A19 19 0 0 1 26 7Z'/%3E%3C/g%3E%3Cg fill='black' stroke='black'%3E%3Ccircle cx='29' cy='29' r='7.5'/%3E%3Ccircle cx='71' cy='29' r='7.5'/%3E%3Ccircle cx='50' cy='50' r='7.5'/%3E%3Ccircle cx='29' cy='71' r='7.5'/%3E%3Ccircle cx='71' cy='71' r='7.5'/%3E%3C/g%3E%3C/mask%3E%3Crect width='100' height='100' mask='url%28%23m%29'/%3E%3C/svg%3E")}
 .pull.ks-plate{--kmask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cmask id='m'%3E%3Cg fill='white' stroke='white'%3E%3Ccircle cx='50' cy='50' r='47'/%3E%3C/g%3E%3Cg fill='black' stroke='black'%3E%3Ccircle cx='50' cy='50' r='31' fill='none' stroke-width='2.2'/%3E%3C/g%3E%3C/mask%3E%3Crect width='100' height='100' mask='url%28%23m%29'/%3E%3C/svg%3E")}
 .pull.ks-nut{--kmask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cmask id='m'%3E%3Cg fill='white' stroke='white'%3E%3Cpath d='M50 4L90 27V73L50 96L10 73V27Z'/%3E%3C/g%3E%3Cg fill='black' stroke='black'%3E%3Ccircle cx='50' cy='50' r='18'/%3E%3C/g%3E%3C/mask%3E%3Crect width='100' height='100' mask='url%28%23m%29'/%3E%3C/svg%3E")}
+
+/* ---- a Button — decision 243 ------------------------------------------
+   A photograph of a real button and nothing round it: no paper, no edge.
+   Square, the photograph is the tile. Not square, it stands at the start on
+   the short side and the rest is the line you type a name into (the add
+   box's own dashed rule, `.addline`'s look) or its name over what it does. */
+.drawer.otile.pushtile{background:none;border:0;box-shadow:none;padding:0;overflow:visible;
+  display:flex;flex-direction:row;align-items:center;gap:8px;color:var(--ink)}
+.drawer.otile.pushtile.tall{flex-direction:column}
+.drawer.otile.pushtile:hover{box-shadow:none;filter:none}
+.drawer.otile.pushtile > .dpanel,.drawer.otile.pushtile > .dgrain,.drawer.otile.pushtile > .dside{display:none}
+.pushcap{flex:0 0 auto;height:100%;aspect-ratio:1;display:grid;place-items:center;
+  transition:transform .08s ease-out;cursor:pointer}
+.pushtile.tall .pushcap{height:auto;width:100%}
+.pushcap img{width:92%;height:92%;object-fit:contain;display:block;pointer-events:none;
+  filter:drop-shadow(0 2px 2px rgba(0,0,0,.28))}
+/* pressed in, the way a button goes when you press it */
+.pushtile:active .pushcap,.pushtile.swallow .pushcap{transform:translateY(1px) scale(.94)}
+.pushline{flex:1;min-width:0;align-self:stretch;margin:6% 0;display:flex;align-items:center;padding:0 10px;
+  border:1.5px dashed var(--rule);border-radius:var(--radius);
+  background-color:color-mix(in srgb,var(--paper-2) 60%,transparent);cursor:text}
+.pushtile.tall .pushline{align-self:stretch;margin:0 6%;min-height:30px}
+.pushline:focus-within{border-style:solid;border-color:var(--brass);background-color:var(--paper-2)}
+.pushline input{flex:1;min-width:0;border:0;background:none;outline:none;font-size:13.5px;
+  font-family:var(--serif);color:var(--ink)}
+.pushline input::placeholder{color:var(--ink-3)}
+.pushsays{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;text-align:left}
+.pushtile.tall .pushsays{text-align:center}
+.pushsays b{font-family:var(--serif);font-size:13.5px;font-weight:700;color:var(--ink);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pushsays u{text-decoration:none;font-size:11px;color:var(--ink-3);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

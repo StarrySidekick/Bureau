@@ -10665,3 +10665,39 @@ tense. this also goes for the default size."*
   editing it edits what you typed, and a first word `pastTense()` cannot vouch
   for comes back unchanged.
 
+## 243 · The Button
+
+*2026-09-28.* Timothy: *"button is a kind of tool, and it basically the
+control, button, spawner/garden object combined. crop images of 10 actual
+buttons to use for it. has a simple setup card asking 'what happens when you
+tap it?' … when the button isn't equal in sides, it is still a button but with
+a text box to the right of it, like the previous garden object … the garden
+object is weaved into the button as well."*
+
+- **One kind, `button`, in the Doodad.** `does` says what a press is:
+  `make` (the spawner's `dispense()`, with its `genKind`, `into` and
+  `genDir`), `open` (`opens`, a drawer's id or an address, through the same
+  way out a portal takes, `fireTo()`), or `switch` (`ctl`, through
+  `ctlPress()`, which now accepts a Button). It carries none of the old
+  traits: `button` draws a portal and `control` a switch plate, so a Button
+  wearing either would have been drawn as the thing it replaces.
+- **Ten photographs of real buttons** (`BUTTON_IMGS`, `img/buttons/`, sources
+  in docs/IMAGES.md), chosen on the ring as a Painting is (`variants:
+  'buttons'`, `bimg`). A type with a setup card may now still ask its
+  variants on the ring and in the picker: the card is about what it does,
+  the ring about which one it is.
+- **Its setup card asks one question**, *What happens when you tap it?*, and
+  then the one thing that answer needs: which type it makes, which drawer or
+  address it opens, or which switch it flips.
+- **Square it is the photograph; not square, it is the photograph and a
+  line.** The button stands at the start on the short side. Set to make, the
+  rest is the garden's line, `.addline`'s dashed rule: type a name and press
+  return or the button, and one is made with that name. Set to open or
+  switch, the rest is its name over what it does.
+- The editor's *When it is tapped* row leads its Behaviour, with the rows of
+  whichever machine under it; *On Tap/Click* is not offered on a Button,
+  because the press is what it is.
+- **Control and Spawner are cut from the pickers** (decision 240). The kinds
+  stay: a desk that has them keeps them, and the flows still press out
+  scenes with spawners. Nothing is migrated.
+

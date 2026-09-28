@@ -18,7 +18,7 @@ import { applyLook, applyStyle, STYLES, panelSlots, borderSlots, knobSlots, plat
   bindingSlots, stockSlots, famSlots, famAll, dress, styleKey, stockNow, randomLook,
   palNow, CHECKS } from './look.js';
 import { render, sizeGrid, viewHTML, reveal, settingsPanel, goShelf, goShelfTo, shelfShift, openOverview, closeOverview, overviewOn } from './views.js';
-import { openSetup, setupOpen, SETUPS } from './setup.js';
+import { openSetup, setupOpen, SETUPS, setupAnswer, closeSetup } from './setup.js';
 import { tileTap } from './tiles.js';
 import { setMinuteHandler, mindTheTime, checkAlarms, guttered,
   activeTap, actOf, isActive, metroGoing, stopAllMetros, activeFlame } from './active.js';
@@ -111,7 +111,7 @@ window.BUREAU = {
   get state(){ return S; }, render, create, save: writeNow, saveSoon: save,
   // making a type the way the picker does, pressing a tile the way a finger
   // does, the zoom out to every board and the setup card (decisions 227, 229)
-  newOfKind, tap: tileTap, dz, setBoardDims, dimsOf, ASPECT_KINDS, openOverview, closeOverview, overviewOn, openSetup, setupOpen, SETUPS,
+  newOfKind, tap: tileTap, dz, setBoardDims, dimsOf, ASPECT_KINDS, openOverview, closeOverview, overviewOn, openSetup, setupOpen, SETUPS, setupAnswer, closeSetup,
   get K(){ return KINDS; },
   get shapes(){ return SHAPES; }, shapeChoices,
   // every aesthetic there is, so a test can walk them all rather than

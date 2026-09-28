@@ -1,7 +1,7 @@
 import { $, esc, uid, clamp, ROOT, HOLD, D } from './util.js';
 import { S, byId, K, KINDS, KEYS, kindHas, has, isContainer, genKindOf, streak, T, dz, dev,
   repeatOf, repeats, nextRepeat, faceOf, childrenOf, TILT_MODES, tiltMode, GRAVITIES, gravityMode,
-  ctlOf, isPrimary, SECONDARY, inMaster, isCut, isPicture, isDecor,
+  ctlOf, isPrimary, SECONDARY, inMaster, isCut, doesOf, isPicture, isDecor,
   placeOf, cfgOf, isHeld, heldObjects, homeFor , attrsOf, habitPlan, habitOn, tagSlug, mediaTypeOf, measureOf, amountSaid } from './model.js';
 import { GRID, PHONE_GRIDS, colsOf, gridOf, shelfRows, freeSpot, anySpot, roomFor, lay, boxOk, sizeOfKind, keepSize, shelvesOf, addBoard } from './grid.js';
 import { randomFront, randomBoard, randomLook, styleDefaults,
@@ -930,7 +930,8 @@ const ctlIsOn = o => { const c=ctlSpec(o); return (c.cycle||c.range) ? true : !!
    board change, so there is nothing here to defer. */
 const DIAL_DETENTS = 10;
 function ctlPress(id){
-  const o=byId(id); if(!o || !has(o,'control')) return;
+  // a Button set to flip a switch is one too (decision 243)
+  const o=byId(id); if(!o || !(has(o,'control') || doesOf(o)==='switch')) return;
   const c=ctlSpec(o);
   /* A dial is turned, and pressing it is one detent round — ten to the sweep,
      wrapping back to the bottom past the top. A real one is dragged and this

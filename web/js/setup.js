@@ -1,6 +1,6 @@
 import { $, esc, ic, D, ROOT, outURL } from './util.js';
 import { S, K, KINDS, T, dz, byId, has, isContainer, childrenOf, familyList, everyTag, faceOf, genKindOf, ASPECT_KINDS, WORKFLOW_KINDS } from './model.js';
-import { becomeKind, create, pushSet, toast, seedInto } from './mutations.js';
+import { becomeKind, create, pushSet, toast, seedInto, CONTROLS, CTL_KEYS } from './mutations.js';
 import { plans, planById, planTop, stampPlan, planForKind } from './plans.js';
 import { sampleTile, kindSample, closePanel } from './panels.js';
 import { render } from './views.js';
@@ -141,6 +141,7 @@ const SETUPS = {
   counter:{start:'count.what'},
   habit:  {start:'habit.what'},
   portal: {start:'portal.where'},
+  button: {start:'button.does'},
   // an aspect made outright, and a workflow (decision 237)
   aspect: {start: o => aspectStart(o.kind)},
   workflow: {start:'workflow.which'},
@@ -467,6 +468,32 @@ const STEPS = {
     ask:o=>[choice('vortex','A vortex'), choice('drift','Stars drifting past'), choice('rings','A tunnel')]
       .concat(o.link && o.link.target ? [choice('glimpse','A glimpse of the page')] : []),
     answer:(o,v)=>{ pushSet('Changed', o.id, 'pstyle', o.pstyle); o.pstyle=v; return null; }},
+  /* **The Button** (decision 243): one question, "what happens when you tap
+     it?", and then the one thing that answer needs. */
+  'button.does': {
+    q:'What happens when you tap it?', sub:'Anything here can be changed later in its editor.',
+    ask:()=>[choice('make', 'It makes something', 'a note, a task, a thought, one of anything'),
+             choice('open', 'It opens something', 'a drawer, a site, a number to call'),
+             choice('switch', 'It flips a switch', 'the lock, the shadows, the aesthetic')],
+    answer:(o,v)=>{ pushSet('Changed', o.id, 'does', o.does); o.does = v; return 'button.'+v; }},
+  'button.make': {
+    q:'What does it make?', sub:'Pressed, it puts one down beside itself. Wider, you can type its name first.',
+    ask:()=>['note','task','thought','idea','question','image'].filter(k=>KINDS[k])
+      .map(k=>choice(k, K(k).nm, '', typeArt(k))).concat(choice('random', 'One of anything', 'a different thing each time')),
+    answer:(o,v)=>{ pushSet('Changed', o.id, 'genKind', o.genKind); o.genKind = v; return 'name'; }},
+  'button.open': {
+    q:'What does it open?', sub:'A drawer on the desk, or an address.',
+    text:{ph:'example.com, or tel:…', go:'Next'},
+    ask:()=>S.objects.filter(x=>isContainer(x) && x.parent===ROOT).slice(0, 12)
+      .map(x=>choice('id:'+x.id, x.title||'Untitled', K(x.kind).nm)),
+    answer:(o,v)=>{ const t = String(v||'').trim(); if(!t) return 'button.open';
+      pushSet('Changed', o.id, 'opens', o.opens);
+      o.opens = t.startsWith('id:') ? t.slice(3) : (outURL(t) || /^[a-z]+:/i.test(t) ? t : 'https://'+t);
+      return 'name'; }},
+  'button.switch': {
+    q:'Which switch?', sub:'One of the desk’s own settings, flipped or turned a step each press.',
+    ask:()=>CTL_KEYS.map(k=>choice(k, CONTROLS[k].nm, CONTROLS[k].ds||'')),
+    answer:(o,v)=>{ pushSet('Changed', o.id, 'ctl', o.ctl); o.ctl = v; return null; }},
   'name': {
     q:'What is it called?', sub:'Its name, on its front.',
     text:{ph:'A name', go:'Done', field:'title'},

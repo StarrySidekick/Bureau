@@ -991,6 +991,63 @@ const PROP_OFF = () => { const b = document.createElement('button');
     return { found: true, ...rest, ...opened, tidy };
   })();
 
+  /* --- a Button makes, opens or switches, whichever it is set to, and asks
+     which on its first tap (decision 243). Square it is a photograph; wider,
+     the line you type a name into. */
+  const buttonWorks = await page.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const S = BUREAU.state, out = {};
+    S.view = 'desk'; S.drawerId = null; S.look.locked = false;
+    const b = BUREAU.create('button', { parent: 'root' });
+    b.desk = onThisShelf(1, 1);
+    BUREAU.render(); await nap(200);
+    const tile = () => document.querySelector(`.grid [data-row="${b.id}"]`);
+    out.aDoodad = (BUREAU.K.instrument.family || []).includes('button');
+    out.aPhotograph = !!tile() && !!tile().querySelector('.pushcap img[src*="img/buttons/"]');
+    out.photoLoads = await new Promise(r => { const i = new Image(); i.onload = () => r(i.naturalWidth > 0); i.onerror = () => r(false); i.src = 'img/buttons/b01.png'; });
+    // the first tap asks what happens
+    b.setup = 'button';
+    BUREAU.tap(b.id); await nap(250);
+    out.asksWhatHappens = !!document.querySelector('#setup') && /tap it/i.test(document.querySelector('#setup').textContent);
+    BUREAU.setupAnswer('make'); await nap(150);
+    BUREAU.setupAnswer('thought'); await nap(150);
+    BUREAU.closeSetup(); delete b.setup;
+    out.answered = b.does === 'make' && b.genKind === 'thought';
+    // make: a press puts one down
+    let n = S.objects.length;
+    BUREAU.tap(b.id); await nap(200);
+    const made = S.objects[S.objects.length - 1];
+    out.makes = S.objects.length === n + 1 && made.kind === 'thought';
+    BUREAU.del(made.id);
+    // wider, the typed line names it
+    b.desk = Object.assign(onThisShelf(4, 1), { w: 4, h: 1 });
+    BUREAU.render(); await nap(200);
+    const line = tile() && tile().querySelector('input[data-fieldfor]');
+    out.wideHasTheLine = !!line && !!tile().querySelector('.pushcap');
+    if (line) { line.value = 'Called this'; line.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); await nap(200); }
+    const typed = S.objects[S.objects.length - 1];
+    out.typedIsNamed = typed.title === 'Called this' && typed.kind === 'thought';
+    BUREAU.del(typed.id);
+    // switch: a press flips the lock
+    b.does = 'switch'; b.ctl = 'lock';
+    const was = !!S.look.locked;
+    BUREAU.tap(b.id); await nap(150);
+    out.switches = !!S.look.locked === !was;
+    S.look.locked = false;
+    // open: a press walks into the drawer it names
+    const d = BUREAU.create('drawer', { parent: 'root', title: 'Opened by a button', noSeed: true });
+    b.does = 'open'; b.opens = d.id;
+    BUREAU.render(); await nap(150);
+    out.saysWhere = /Opens Opened by a button/.test((tile() || {}).textContent || '');
+    BUREAU.tap(b.id); await nap(250);
+    out.opens = S.view === 'drawer' && S.drawerId === d.id;
+    S.view = 'desk'; S.drawerId = null;
+    BUREAU.del(b.id); BUREAU.del(d.id); S.undo = []; BUREAU.render();
+    // and the Control and the Spawner are no longer offered anywhere
+    out.theOldOnesAreCut = BUREAU.isCut('control') && BUREAU.isCut('generator');
+    return out;
+  });
+
   /* --- an achievement is a task you did (decision 242): the task's sliver
      and size, no box, a gilt frame, and its name said in the past. */
   const achievementLook = await page.evaluate(async () => {
@@ -10199,7 +10256,7 @@ const PROP_OFF = () => { const b = document.createElement('button');
     holdArms, maxDrift,
     settingsIsPanel, pickerPreviews, builderPreview, everyMenuIsAPanel,
     pasteOk, magicOk, rollupOk, relationsOk, relationsUI, stringLayer,
-    timeLayer, checklistBox, pluckWorks, checklistMoves, listFace, achievementLook, answering, seedAndKnobs, longPress, drawerSize, tagDrawer, tagsAndHabits, groupMove, dropStates,
+    timeLayer, checklistBox, pluckWorks, checklistMoves, listFace, achievementLook, buttonWorks, answering, seedAndKnobs, longPress, drawerSize, tagDrawer, tagsAndHabits, groupMove, dropStates,
     adaptiveTiles, bubblePanel, scrollKept, kindSizes,
     phoneGrid, phoneMigration, turnedSideways, pouring,
     noDupIds, undoWorks, readViews, paperSize, readPaper, readBar, movement, pager, desks, spans,

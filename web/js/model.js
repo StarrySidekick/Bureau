@@ -559,6 +559,18 @@ const BUILTIN_KINDS = {
              'tglass','tblock','tlock','tgear','spool','coin','anything'],
      famSub:'Which doodad?', master:true, lead:'clock',
      attrs:[], size:[3,4], onclick:'active', body:'' },
+  /* **The Button** (decision 243): the Control, the Spawner and the old
+     Button in one thing you press. `does` says which of the three a press is
+     (`make`, `open`, `switch`), asked on its setup card; each hands off to
+     the machine that already did it (`dispense()`, the portal's way out,
+     `ctlPress()`). It carries none of their traits, because `button` draws a
+     portal and `control` a switch plate. Square it is a photograph of a
+     real button (`bimg`, chosen on the ring); wider, the box to its right is
+     where you type what it makes, the garden's old line. */
+  button:   {setup:'button', shape:'pushbutton', nm:'Button', ic:'target', c:1,
+     ds:'Press it and something happens: it makes a thing, opens one, or flips a switch',
+     attrs:[], does:'make', genKind:'note', bimg:'b01', variants:'buttons', onclick:'press',
+     size:[1,1], phoneSize:[1,1], body:'' },
   metronome:{act:'metro',  nm:'Metronome', ic:'clock', c:11, ds:'Keeps time, and you can hear it',
      attrs:[], size:[2,4], phoneSize:[2,4], onclick:'active', bpm:88, body:'' },
   hourglass:{act:'glass',  nm:'Hourglass', ic:'clock', c:12, ds:'Tip it over and watch it run',
@@ -1614,6 +1626,15 @@ function goalStanding(o){
 }
 const GOAL_STANDINGS = {goal:'Goal', challenge:'Challenge', dream:'Dream'};
 const faceOf = o => (o && o.face) || K(o&&o.kind).face || 'front';
+/* The ten photographed buttons a Button may be (decision 243), under
+   `img/buttons/`; where each came from is docs/IMAGES.md. */
+const BUTTON_IMGS = [
+  {f:'b01', t:'Button 1'}, {f:'b02', t:'Button 2'}, {f:'b03', t:'Button 3'}, {f:'b04', t:'Button 4'},
+  {f:'b05', t:'Button 5'}, {f:'b06', t:'Button 6'}, {f:'b07', t:'Button 7'}, {f:'b08', t:'Button 8'},
+  {f:'b09', t:'Button 9'}, {f:'b10', t:'Button 10'}];
+/* What pressing a Button does (decision 243), per object then per type. */
+const DOES = {make:'Makes something', open:'Opens something', switch:'Flips a switch'};
+const doesOf = o => { const v = (o && o.does) || K(o&&o.kind).does; return DOES[v] ? v : null; };
 // How a container arranges what it holds, once opened. The kind's is the
 // fallback, so a type that says it opens as a calendar does even when nothing
 // has written `layout` onto the object itself.
@@ -3291,7 +3312,7 @@ export { homeFor, ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds,
   allUnder, progressOf, projectStat, finishedThings, allTags,
   tagSlug, implicitTags, tagsOf, tagTerms, tagMatch, everyTag,
   habitPlan, habitOn, habitPeriod, habitPeriods, habitRun, HABIT_MAX_TIMES, measureOf, amountSaid, SHAPES_HABIT,
-  PRIMARY, SECONDARY, MASTERS, MASTER_HOLDS, inMaster, isPrimary, ASPECT_KINDS, WORKFLOW_KINDS, ANY, makesAnything, genSaid, ctlOf, barPct, barOf,
+  PRIMARY, SECONDARY, MASTERS, MASTER_HOLDS, inMaster, DOES, doesOf, BUTTON_IMGS, isPrimary, ASPECT_KINDS, WORKFLOW_KINDS, ANY, makesAnything, genSaid, ctlOf, barPct, barOf,
   BAR_STEPS, barSteps, barFilled, barGrid,
   familyOf, isCategory, inFamily, isFragmentKind, familyList,
   PROJ_COVERS, projCoverOf, lifeArtOf,

@@ -186,6 +186,16 @@ project flow is a type (`pj_*`, `PROJECT_TYPES`), a film is its departments
 **v2.31** (decision 239): a **List** type and `list` face, the checklist
 generalised to any object: every kind inside, one line each, and a tap on a
 line opens that thing (`data-open`). The stock flows' `LIST()` drawers wear it.
+**v2.32–2.35** (decisions 240–243): **the fifteen** (`MASTERS` in model.js),
+Timothy's master categories, lead the picker in two rows and fill the ring
+on two rings (seven that hold things inside, eight that do not outside)
+instead of the nearest shapes, unless a board names its own types; every
+type sits inside one, and the multi-member ones are `m_*` category kinds. A
+decoration is pressed by its traced outline (`hit` in decor.js, from
+`scripts/decor-hits.mjs`), on locked boards too. An achievement is a task you
+did (sliver, no box, gilt, `past`). The **Button** (`does`: make, open,
+switch) replaces the Control and the Spawner in the pickers, wears one of ten
+photographed buttons (`bimg`), and wider is the photograph and a line.
 The **Bureau Workshop** artifact (https://claude.ai/artifact/4TjyQZ5xcuxCYFgfnRm76k)
 holds Timothy's own rearrangement of every menu and type: read its
 `workshop/state` document before reorganising menus or types.

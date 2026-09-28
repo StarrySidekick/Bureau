@@ -18,7 +18,7 @@ import { S, K, KINDS, KEYS, T, ATTRS, USER_ATTRS, FIELDS, fieldOf, OPS, ROLLS,
 import { newOfKind } from './wire.js';
 import { GRID, lay, boxOk, freeSpot, anySpot, sizeOfKind, toPhoneSize, keepSize } from './grid.js';
 import { randomBoard, randomFront, hexOf, objColour, objSlots, famSlots, famAll, FAMS, styleKey, stockNow, CHECKS, checkNow } from './look.js';
-import { FILLS, FILL_KEYS, isCut } from './model.js';
+import { FILLS, FILL_KEYS, isCut, BUTTON_IMGS, DOES, doesOf } from './model.js';
 import { CLICKS, clickOf, gridTile, pending, PORTAL_SHAPES, PORTAL_STYLES, PORTAL_EDGES, WHEEL_COLOURS, WHEEL_INKS, WHEEL_FONTS, KSHAPES, kshapeOf } from './tiles.js';
 import { isActive, activeZoom, activeSay, activeName, DICE, CLOCKS } from './active.js';
 import { DECOR, decorOf, decorSVG, decorFor, decorRest, LIFE_ART, LIFE_KEYS, lifeSVG } from './decor.js';
@@ -256,6 +256,9 @@ const VARIANTS = {
                nm: v => (PAINTINGS.find(p=>p.f===v)||{}).t || v,
                patch: v => { const p = PAINTINGS.find(q=>q.f===v); return p ? {media:pictureMedia(p), title:p.t} : {}; } },
   fills:     { list: ()=> FILL_KEYS, nm: v => FILLS[v].nm, patch: v => ({fill:v}) },
+  // which of the ten photographed buttons a Button is (decision 243)
+  buttons:   { list: ()=> BUTTON_IMGS.map(b=>b.f), nm: v => (BUTTON_IMGS.find(b=>b.f===v)||{}).t || v,
+               patch: v => ({bimg:v}) },
   // Decoration's two subtypes split the ornaments by the `plant` mark (218)
   plants:    { list: ()=> VARIANTS.decor.list().filter(k=>DECOR[k].plant),
                nm: v => (DECOR[v]||{}).nm || v, patch: v => ({decor:v}) },
@@ -281,7 +284,9 @@ function ringChoices(k){
   });
   return out;
 }
-const asksOnRing = k => !K(k).setup && (!!variantsOf(k) || (K(k).family||[]).length>1);
+/* A setup card asks a type's family itself; its variants (which photograph a
+   Button is) are still asked here, because the card is about what it does. */
+const asksOnRing = k => !!variantsOf(k) || (!K(k).setup && (K(k).family||[]).length>1);
 /* A blob's picture: the thing it makes, drawn by `sampleTile()` with the
    variant already applied, and made inert (decision 214). */
 const ringArt = (k, v, px) => `<span class="radpaint radtile" style="--k:${hexOf(K(k).c)}">${
@@ -442,7 +447,7 @@ function kindTile(k, inFam, becomeId){
      putting down" — a chevron says the answer is one more press, and the
      count says how many are behind it. See decision 135. */
   // a type with a setup asks on its first tap instead (decision 229)
-  const fam = !becomeId && !d.setup && ((!inFam && d.family && familyList(k))
+  const fam = !becomeId && ((!d.setup && !inFam && d.family && familyList(k))
     // a type with variants asks which, one press in, as a category does (218)
     || (variantsOf(k) && variantsOf(k).list()));
   const act = becomeId ? `data-become="${becomeId}:${k}"`
@@ -1199,7 +1204,7 @@ function objectPanelBody(id, sec){
   const view = isRoot ? (cfgOf(id).layout||'grid') : layoutOf(d);
   const cal = cont && (view==='calendar' || faceOf(d)==='calendar');
   const img = isPicture(d);
-  const spawns = has(d,'spawn') || clickOf(d)==='generate';
+  const spawns = has(d,'spawn') || clickOf(d)==='generate' || doesOf(d)==='make';
   const objectKinds = KEYS.filter(k=>!kindHas(k,'container') && !kindHas(k,'control'))
     .map(k=>[k, KINDS[k].nm]);
 
@@ -1508,7 +1513,8 @@ function objectPanelBody(id, sec){
        shelves, so a drawer is only ever the first — and the row it is on is
        the shelf picker above. See decision 141. */
   } else if(!isRoot){
-    out.push(prow('On Tap/Click', psel(id,'onclick', Object.entries(CLICKS), clickOf(d))));
+    // a Button's tap is its press, and *When it is tapped* says which (243)
+    if(!doesOf(d)) out.push(prow('On Tap/Click', psel(id,'onclick', Object.entries(CLICKS), clickOf(d))));
     if(has(d,'text')) out.push(prow('Opens as', psel(id,'read', Object.entries(READS), readOf(d))));
   }
   /* **Opening is in Look now.** It names which *animation* a thing opens with
@@ -1544,6 +1550,19 @@ function objectPanelBody(id, sec){
      drawer is left out: a sketch on one is made where the drawer lives, and
      that board answers for it. The desk asks too — it is a container. */
   if(cont && !magic) out.push(...makesRows(id, d));
+  /* **What a Button's press does** (decision 243), and under it the rows of
+     whichever machine that is: the spawner's, the way out, the switch. */
+  if(!isRoot && doesOf(d)){
+    out.push(prow('When it is tapped', psel(id,'does', Object.entries(DOES), doesOf(d))));
+    if(doesOf(d)==='open'){
+      const places = S.objects.filter(x=>x.id!==id && isContainer(x)).map(x=>[x.id, x.title||'Untitled']);
+      const byName = places.some(([k])=>k===d.opens);
+      out.push(prow('It opens', psel(id,'opens', [['','Nothing yet'], ...places], byName ? d.opens : ''),
+        'a drawer on the desk'));
+      out.push(prow('Or an address', `<input class="pfield" data-oset="${id}:opens" placeholder="example.com"
+        value="${esc(!byName && d.opens ? d.opens : '')}">`, 'a site, a mailto: or a tel:'));
+    }
+  }
   if(!isRoot && !cont && spawns){
     /* `random` leads the list rather than sitting in it alphabetically: a
        spawner that makes one of anything is a different thing from a spawner
@@ -1561,7 +1580,7 @@ function objectPanelBody(id, sec){
   /* Which of the desk's own settings this switch is for. The list is the
      CONTROLS table and nothing else knows it, so adding a switchable setting
      is one row there. See decision 132. */
-  if(!isRoot && has(d,'control')){
+  if(!isRoot && (has(d,'control') || doesOf(d)==='switch')){
     out.push(prow('It switches', psel(id,'ctl',
       CTL_KEYS.map(k=>[k, CONTROLS[k].nm]), ctlOf(d)),
       esc(ctlSpec(d).ds||'')));
