@@ -304,7 +304,7 @@ const BUILTIN_KINDS = {
      ticking a box. A tick says "dealt with"; a question wants the thing you
      worked out, and having it on the front is the whole value of keeping one. */
   question:{shape:'bubble', nm:'Question',ic:'help',    c:10, key:'?', ds:'Open until you have written the answer', size:[4,4], onclick:'read', attrs:['text','answer'], body:'**What I know —** \n\n' },
-  essay:   {shape:'note', nm:'Essay',   ic:'feather', c:7, key:'Y', ds:'Long-form writing',         size:[4,4], onclick:'read', attrs:['text'], body:'> Working thesis.\n\n' },
+  essay:   {shape:'note', writes:'essay', nm:'Essay',   ic:'feather', c:7, key:'Y', ds:'Long-form writing',         size:[4,4], onclick:'read', attrs:['text'], body:'> Working thesis.\n\n' },
   /* A **goal** is a thing you are trying to reach, and it is made of the work
      that gets you there — so it holds that work rather than describing it. Its
      front is a drawer with the knob taken off and the name set as large as the

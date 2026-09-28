@@ -1121,6 +1121,8 @@ const chance = p => Math.random() < p;
    quotation a first line, a letter a letter; a note, a thought or an idea
    takes anything. Asked of the type's shape and traits, not its name. */
 function textKindsFor(o){
+  // a type may say outright what it is written in (an essay is a plain sheet)
+  if(K(o.kind).writes) return [K(o.kind).writes];
   const sh = shapeOf(o);
   if(sh==='verse') return ['poem'];
   if(sh==='quote') return ['opening'];
