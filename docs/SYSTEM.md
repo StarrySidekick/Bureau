@@ -309,7 +309,9 @@ same settings, kept in `S.deskCfg` because it has no object to hang them on.
 **Face** — how it draws on its parent's board: `front` (a drawer front with a
 pull), `checklist` (a stack of task-sized lines — one per cell of height, boxes
 you can tick without opening it; ticking one refills the face from inside the
-drawer, see decision 79), `project` (a front page: progress, counts, what is
+drawer, see decision 79), `list` (the checklist with the task taken out: every
+kind inside, one line each with its type's mark, and a tap on a line opens that
+thing — decision 239), `project` (a front page: progress, counts, what is
 next, what it is made of), `life` (the same walk with **no bar**, because an
 area of your life has no end for a percentage to be a fraction of — decision
 131), `calendar` (adaptive: a day pad at one cell, pad plus agenda below three
@@ -821,6 +823,7 @@ decision 51.
 | Tap a page while reading | The paper becomes the field — the body, in the page's own face. Decision 82 |
 | Tap the words on anything | They become a field — on an **unlocked** board only. A tile, a list band, a line on a checklist front |
 | Tap a checklist line's box | Ticks it. The words are how you change it |
+| Tap a line on a list front | Opens that thing, the way its own tile would. A task on one keeps its box. Decision 239 |
 | Swipe a list row left | Delete it |
 | Hold a band in a list | Picks it up: it follows your finger, the others step aside to leave the gap, and letting go drops it in. Under Manual sort only — it writes `ord`, not a box. Hold still and it is the menu. Decision 168 |
 | Swipe a list row right | The little calendar: today, tomorrow, this weekend, next week, no date, a month to press a day on, and the deadline. See decision 78 |

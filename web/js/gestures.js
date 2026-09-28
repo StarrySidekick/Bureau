@@ -1120,6 +1120,8 @@ function onDown(e){
        stuck, locked, axis:null, from:0,
        armed: !stuck && !!hEl,      // a corner grip drags at once; a tile waits
        startedOnFace:!!e.target.closest('.btnface'),
+       // a line on a list front opens its own object, not the list (239)
+       line:(e.target.closest('.lline[data-open]')||{dataset:{}}).dataset.open||null,
        /* Dragging any member of a selection moves the lot, keeping their
           relative positions — the offsets are captured up front. Since
           decision 180 it is `travelWith()` rather than the selection alone,
@@ -1992,6 +1994,15 @@ function onUp(e){
        no click ever arrives. What is duplicated here is one call, so what is
        skipped is one call: wire.js asks `justTapped(id)` before answering a
        tile again, and everything else the click does still happens. */
+    /* A tap on a list front's line is that line's tap (decision 239): the
+       list is the index and the line is the thing. */
+    if(g.line && byId(g.line)){
+      /* The click that trails it lands on whatever the line and the finger's
+         release have in common, which is the list's own tile — so the tap is
+         recorded against both, or the echo opens the list behind the note. */
+      gestureFlags.tapped = {id: g.line, also: g.id, at: Date.now()};
+      tileTap(g.line); return;
+    }
     gestureFlags.tapped = {id: g.id, at: Date.now()};
     // a tap on a button's face fires it; anywhere else follows the type
     const o=byId(g.id);

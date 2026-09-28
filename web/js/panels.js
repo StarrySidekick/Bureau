@@ -1488,9 +1488,9 @@ function objectPanelBody(id, sec){
       + psel(id,'weekends',[['1','Weekends shown'],['','Weekends hidden']], showsWeekends(d)?'1':'')));
   }
   /* A list-faced front may spend its top line on its name (decision 197). */
-  if(!isRoot && cont && faceOf(d)==='checklist'){
+  if(!isRoot && cont && ['checklist','list'].includes(faceOf(d))){
     out.push(prow('Its name', psel(id,'clhead',
-      [['1','On the front, with how many are done'],['0','On the tooltip only']],
+      [['1',faceOf(d)==='list'?'On the front, with how many are in it':'On the front, with how many are done'],['0','On the tooltip only']],
       d.clhead==='0'?'0':'1')));
   }
   // whether what goes into it is born on today or with no day — decision 197

@@ -10542,3 +10542,38 @@ answered that a flow nearly always has a type.
   is the work.
 - The flows change inside migration 47, which has not shipped yet, so one
   migration carries both 237 and this.
+
+## 239 · A list is the checklist with the task taken out of it
+
+*2026-09-28.* Timothy: *"new type and face: list. This is literally the
+checklist, but just generalized for any object. It just takes whatever's in
+that container and shows it as a list that you can scroll through. I think this
+is like a missing link in our design."*
+
+It was a missing link, and the stock flows had been working round it: the
+`LIST()` drawers (the Brain Dump's *Do*, *Someday* and *Keep*, and the lists a
+spawner files into on the other boards) and a TV show's episodes wore the
+**checklist** face over things that were not tasks, which is why decision 197
+taught a checklist line to wear a type's mark where the box goes.
+
+- **A `list` face and a `List` type.** Every undone thing the container holds,
+  every kind, one line each: its type's mark in its own colour, its name, and
+  on the right a day, stars, or for a container how many it holds. The name and
+  the add box stand at the top and the lines scroll under them. It is built on
+  the checklist's own `.clist`/`.clstick`/`.cline` classes, so the two cannot
+  disagree about how tall a line is or how many fit a cell (decision 140).
+- **A tap on a line opens that thing**, the way its own tile would
+  (`tileTap`). That is the one real difference from a checklist, whose line *is*
+  the task and whose words therefore rename it. The line carries `data-open`;
+  gestures.js answers the tap on pointerup, and the trailing click, which
+  lands on the list's own tile, is recorded against both ids (`also` on
+  `gestureFlags.tapped`) so it does not open the list behind the note.
+- **A task on a list keeps its box**, and the box ticks and plucks exactly as
+  on a checklist, because a list of anything includes tasks.
+- **Typing into one makes a thought** (`genKind:'thought'`), the smallest thing
+  there is to write down; the editor changes it. It is in the front row of the
+  picker beside Checklist, and it asks the checklist's setup questions.
+- **The stock flows' `LIST()` drawers wear it now.** The episodes and the
+  Car, Laptop and Phone drawers keep the checklist face, since what they hold
+  is mostly ticked. Existing desks keep the face they have.
+

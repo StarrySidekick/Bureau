@@ -224,7 +224,10 @@ const MAKES = (t, kind, b, c, into)=>({k:'generator', t, b, set:into ? {genKind:
    board files what it makes (decision 197). It was a sorting drawer collecting
    by type from this board, which showed a knob and nothing else, and could not
    be filed into because a sorting drawer holds nothing. */
-const LIST = (t, ref, b, c)=>({k:'drawer', t, ref, b, set:{c, face:'checklist', clhead:'1', undated:'1', layout:'list'}});
+/* **Wears the list face** since there is one (decision 239): what a spawner
+   files here is a note or an idea as often as a task, and the checklist face
+   renamed a line on a tap where this one opens it. */
+const LIST = (t, ref, b, c)=>({k:'drawer', t, ref, b, set:{c, face:'list', clhead:'1', undated:'1', layout:'list'}});
 /* **This board**, as a rule. `@under` the plan's own root is re-pointed at the
    board it is put down on (`repointRules()` in plans.js), so a calendar or a
    sorting drawer in one of these collects what is inside *this* project and

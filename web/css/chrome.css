@@ -5992,6 +5992,16 @@ html[data-rows="fit"] .is-phone .gridbar.inrail .sqbtn{width:28px;height:28px}
 .clstars{letter-spacing:1px;color:var(--brass)}
 /* a thing you cannot tick wears its type's mark where the box would be */
 .clmark{flex:0 0 auto;width:min(38px,82%);display:grid;place-items:center;color:var(--dink-3)}
+/* A list line (decision 239) is an index entry, not a task: the mark is the
+   thing's own, in its own colour, at the width of the mark rather than of a
+   tick box, and the words open the thing, so they are underlined on hover
+   rather than dotted for renaming. How many a drawer holds sits where a day
+   would. */
+.lline .clmark{width:18px}
+.lline .cltext{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.lline:hover .cltext{text-decoration:underline;text-decoration-style:solid;text-underline-offset:2px}
+.clcount{flex:0 0 auto;text-decoration:none;font-family:var(--sans);font-weight:500;
+  font-size:10px;color:var(--dink-3);font-variant-numeric:tabular-nums;white-space:nowrap}
 /* a calendar's marks in the colours of the things on the day */
 .cday u.cmarks{display:flex;gap:2px;justify-content:center;margin-top:1px;letter-spacing:0}
 .cday u.cmarks s{display:block;width:5px;height:5px;border-radius:50%;background:var(--k);

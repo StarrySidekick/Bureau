@@ -221,6 +221,14 @@ const BUILTIN_KINDS = {
      it is a task. Both are ordinary attributes — a type you invent gets the
      same box by ticking the same trait. */
   checklist:{setup:'checklist', face:'checklist', nm:'Checklist', ic:'list', c:6, key:'K', ds:'Tasks you can tick and add to without opening it', attrs:['container','spawn'], spawnBy:'type', genKind:'task', layout:'list', size:[4,6], phoneSize:[4,6], body:'' },
+  /* **A list is the checklist with the task taken out of it** (decision 239).
+     Whatever the container holds, every kind, one line each with its type's
+     mark, and the front scrolls. A checklist's words rename the line because
+     a line there *is* the task; a list's line opens the thing, because a line
+     there is a note or a drawer or a film and the front is its index. A task
+     filed in one still gets its box. Typing into it makes a thought: the
+     smallest thing there is to write down, and the editor changes it. */
+  list:    {setup:'list', face:'list', nm:'List', ic:'list', c:4, key:'', ds:'Whatever is inside it, one line each, on the front', attrs:['container','spawn'], spawnBy:'type', genKind:'thought', layout:'list', size:[4,6], phoneSize:[4,6], body:'' },
   /* A calendar is a magic drawer wearing a calendar layout: it collects by rule
      like any other, and then draws what it collected on the day each thing is
      due. It holds nothing — the day is the `due` field on the object, not a
@@ -825,7 +833,7 @@ WORKFLOWS.forEach(([key, nm, c, ic, ds])=>{
    — and every other major is one dropdown further in (`SECONDARY`), ahead of
    the rest. The gaps get filled later; this is the physical-object idea first. */
 /* The front row as Timothy laid it out in the Workshop (decision 218). */
-const PRIMARY = ['drawer','tag','life','checklist','calendar','book','note','goal',
+const PRIMARY = ['drawer','tag','life','checklist','list','calendar','book','note','goal',
                  'image','decoration','audio','video','moodboard','instrument','tool',
                  'generator','project','anything'];
 /* What used to lead and does not any more, still in its stated order, drawn
@@ -1496,7 +1504,7 @@ const panelOf = o => {
   return PANELS[p] ? p : 'cockbead';
 };
 
-const FACES = {front:'Drawer front', checklist:'Checklist', project:'Project',
+const FACES = {front:'Drawer front', checklist:'Checklist', list:'List', project:'Project',
                life:'Life area', goal:'Goal',
                calendar:'Calendar', collage:'Collage', timeline:'Timeline',
                spine:'Book spine', pigeonhole:'Pigeonhole', tag:'Luggage tag'};

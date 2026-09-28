@@ -328,7 +328,7 @@ const clone = v => (v && typeof v==='object') ? JSON.parse(JSON.stringify(v)) : 
 const TAP_ECHO = 700;
 function justTapped(id){
   const t = gestureFlags.tapped;
-  if(!t || t.id !== id || Date.now() - t.at > TAP_ECHO) return false;
+  if(!t || (t.id !== id && t.also !== id) || Date.now() - t.at > TAP_ECHO) return false;
   gestureFlags.tapped = null;          // one echo, not every click after it
   return true;
 }
@@ -1935,6 +1935,10 @@ function wire(){
     // a plain click anywhere clears the selection before doing anything else
     if(S.sel.length && !t.closest('#ctx')) S.sel=[];
 
+    /* A line on a list front opens what it names (decision 239). Asked before
+       the tile it sits in, which would otherwise open the list itself. */
+    const ln=t.closest('.grid .lline[data-open]');
+    if(ln){ if(!justTapped(ln.dataset.open)) tileTap(ln.dataset.open); return; }
     // a breadcrumb or a tile — both open the drawer
     const dr=t.closest('[data-drawer]');
     if(dr && (dr.tagName==='B' || dr.classList.contains('drawer'))){

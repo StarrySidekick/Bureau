@@ -183,6 +183,9 @@ questions (`ASPECT_STEPS`, `sref` markers); migration 47; a drawer of several
 boards pinches out to them; boards run to 24 tall. **v2.29** (decision 238): every
 project flow is a type (`pj_*`, `PROJECT_TYPES`), a film is its departments
 (`FILM_DEPARTMENTS`), and the project flows were rebuilt.
+**v2.31** (decision 239): a **List** type and `list` face, the checklist
+generalised to any object: every kind inside, one line each, and a tap on a
+line opens that thing (`data-open`). The stock flows' `LIST()` drawers wear it.
 The **Bureau Workshop** artifact (https://claude.ai/artifact/4TjyQZ5xcuxCYFgfnRm76k)
 holds Timothy's own rearrangement of every menu and type: read its
 `workshop/state` document before reorganising menus or types.
@@ -197,6 +200,8 @@ made of — objects, attributes, types, drawers, the grid, the surfaces, storage
 `docs/ROADMAP.md` holds the current plan in dependency order, and
 `docs/DIAGNOSTIC.md` is the last full review — what is wrong, what it measures
 at, and what is worth taking from Bear, Things 3 and Notion.
+`docs/STOCKTAKE.md` (2026-09-28) is a look at scope rather than code: what is
+missing for Timothy to live in it, and the case for a freeze.
 `docs/FUNCTIONS.md` is the fifteen functions a paper system serves and Bureau's
 answer to each — scoped, not built, and the source of the current plan.
 

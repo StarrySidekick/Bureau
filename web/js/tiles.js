@@ -1864,6 +1864,55 @@ function drawTileFace(o, arr, box, persp){
     </${adds?'div':'button'}>`;
   }
 
+  /* **A list** (decision 239): the checklist face with the task taken out of
+     it. Every kind the container holds, one line each — its type's mark in
+     its own colour, its name, and what it has to say for itself on the right
+     (a day, stars, how many are inside) — and the front scrolls the way a
+     checklist's does, off the same `.clist`/`.clstick` machinery, so the two
+     faces cannot drift apart in how they measure a line.
+
+     The one real difference is what a tap on a line does. A checklist line
+     *is* the task, so its words rename it; a list line is a note or a film or
+     a drawer, and the front is its index, so the line **opens it** as its own
+     tile would (`data-open`, answered in gestures.js and wire.js). A thing that
+     ticks still gets its box, and the box still plucks it out on a hold. */
+  if(cont && faceOf(o)==='list'){
+    const items=childrenOf(o).filter(x=>!x.done);
+    const adds=showsAddBox(o, box);
+    const per=clPerCell();
+    const rows=Math.max(1, (box.h|0) * per);
+    const head = o.clhead!=='0' && rows>=2;
+    const stuck=(head?1:0)+(adds?1:0);
+    if(!items.length && !adds){
+      return `<button class="drawer dtile cltile listtile clidle ${dressAs('bd','gilt')}${sel}" data-drawer="${o.id}"
+          style="--c:${colour};${place}">
+        <div class="dtop">${nameField(o)}</div>
+        <div class="dbody"><span class="clempty">Nothing yet — open it to add</span></div>
+        ${handles}
+      </button>`;
+    }
+    const said = x => has(x,'rating')&&x.rating ? `<u class="clstars">${'★'.repeat(x.rating)}</u>`
+      : x.due && (x.due!==T || isLate(x)) ? `<u class="cldue${isLate(x)?' late':''}">${esc(D.human(x.due))}</u>`
+      : isContainer(x) ? `<u class="clcount">${childrenOf(x).filter(y=>!y.done).length}</u>` : '';
+    return `<${adds?'div':'button'} class="drawer dtile cltile listtile${per>1?' cldense':''} ${dressAs('bd','gilt')}${sel}" data-drawer="${o.id}"
+        ${adds?'role="button" tabindex="0"':''} title="${esc(o.title||'Untitled')}"
+        style="--c:${colour};--clrows:${rows};${place}">
+      <div class="dbody"><div class="clist" style="--clk:${stuck}">
+        ${stuck?`<div class="clstick">${head?`<span class="clhead"><b>${esc(o.title||'Untitled')}</b><u>${items.length}</u></span>`:''}
+        ${adds?`<label class="cladd">${ic('plus',11)}
+          <input data-contadd="${o.id}" placeholder="Add a ${esc(genSaid(o))}…"></label>`:''}</div>`:''}
+        ${items.map(x=>
+        `<span class="cline lline" data-open="${x.id}"${has(x,'check')?` data-pluck="${x.id}"`:''}
+           title="${esc(x.title||'Untitled')}">
+           ${has(x,'check')
+             ? `<i class="clbox" data-check="${x.id}" title="Tick it — or hold it to take it out"></i>`
+             : `<i class="clmark" style="color:${objColour(x)}">${ic(K(x.kind).ic,12)}</i>`}<span class="cltext">${
+           esc(x.title||'Untitled')}</span>${said(x)}</span>`).join('')
+        || `<span class="clempty">Nothing yet — type above</span>`}</div></div>
+      ${handles}
+    </${adds?'div':'button'}>`;
+  }
+
   /* A project is a drawer with a front page. Every other container's face
      either lists what it holds or hides it; a project *reports* on it —
      how far along, how much is left, what is next, and what it is made of —

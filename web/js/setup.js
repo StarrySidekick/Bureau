@@ -136,6 +136,7 @@ const SETUPS = {
   text:   {start:'text.what'},
   goal:   {start:'goal.what'},
   checklist:{start:'list.what'},
+  list:   {start:'list.what'},
   calendar:{start:'cal.shows'},
   counter:{start:'count.what'},
   habit:  {start:'habit.what'},
@@ -290,9 +291,10 @@ const STEPS = {
       if(v) o.makes = {only:[v], sizes:[]}; else delete o.makes; return 'drawer.face'; }},
   'drawer.face': {
     q:'How should it look on the board?', sub:'Its face — what you see before you open it.',
-    ask:()=>[['front','A drawer front','a knob and a name'],['checklist','A list','what is inside, on the front'],
+    ask:()=>[['front','A drawer front','a knob and a name'],['checklist','A checklist','the tasks inside, to tick on the front'],
+      ['list','A list','everything inside, one line each'],
       ['collage','A collage','the pictures inside, pinned up'],['spine','A book spine','standing on a shelf']]
-      .map(([f,nm,n])=>choice(f, nm, n, typeArt(f==='front'?'drawer':f==='checklist'?'checklist':f==='collage'?'moodboard':'book'))),
+      .map(([f,nm,n])=>choice(f, nm, n, typeArt(f==='front'?'drawer':f==='checklist'||f==='list'?f:f==='collage'?'moodboard':'book'))),
     answer:(o,v)=>{ pushSet('Changed', o.id, 'face', o.face); o.face = v==='front' ? undefined : v; return 'name'; }},
   'project.what': {
     q:'What are you making?', sub:'A kind of work, or a flow laid out inside it ready to use.',

@@ -926,6 +926,61 @@ const PROP_OFF = () => { const b = document.createElement('button');
     return { found: true, ...held, andItActuallyMoves: out };
   })();
 
+  /* --- a list is the checklist with the task taken out of it (decision 239):
+     every kind inside, one line each, and a tap on a line opens that thing
+     rather than renaming it or opening the list. Real pointer events, because
+     the line sits inside the list's own tile and the tile's tap is what it
+     has to win against. */
+  const listFace = await (async () => {
+    const set = await page.evaluate(() => {
+      const S = BUREAU.state;
+      S.view = 'desk'; S.drawerId = null; S.sel = []; S.look.locked = false;
+      const ls = BUREAU.create('list', { parent: 'root', title: 'Watch these' });
+      ls.desk = onThisShelf(4, 6);
+      const note = BUREAU.create('note', { parent: ls.id, title: 'A note in it' });
+      const task = BUREAU.create('task', { parent: ls.id, title: 'A task in it' });
+      const box = BUREAU.create('drawer', { parent: ls.id, title: 'A drawer in it' });
+      BUREAU.render();
+      const el = intoView(document.querySelector(`.grid .drawer[data-drawer="${ls.id}"]`));
+      if (!el) return null;
+      const lines = [...el.querySelectorAll('.lline')];
+      const named = lines.map(l => l.querySelector('.cltext').textContent.trim());
+      const line = el.querySelector(`.lline[data-open="${note.id}"] .cltext`);
+      const r = line.getBoundingClientRect();
+      window.__lf = { ls: ls.id, note: note.id };
+      return {
+        isAType: BUREAU.K.list.face === 'list' && BUREAU.isPrimary('list'),
+        everyKind: lines.length === 3 && ['A note in it', 'A task in it', 'A drawer in it'].every(t => named.includes(t)),
+        taskKeepsItsBox: !!el.querySelector(`.lline[data-open="${task.id}"] .clbox[data-check="${task.id}"]`),
+        noteWearsAMark: !!el.querySelector(`.lline[data-open="${note.id}"] .clmark`),
+        drawerSaysHowMany: !!el.querySelector(`.lline[data-open="${box.id}"] .clcount`),
+        takesTyping: !!el.querySelector('input[data-contadd]'),
+        at: [r.left + r.width / 2, r.top + r.height / 2]
+      };
+    });
+    if (!set) return { found: false };
+    await page.mouse.click(...set.at);
+    await page.waitForTimeout(600);
+    const opened = await page.evaluate(() => {
+      const S = BUREAU.state, p = window.__lf;
+      const r = { lineOpensTheThing: S.readId === p.note, notTheList: S.view === 'desk' };
+      BUREAU.closeSheet && BUREAU.closeSheet();
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      return r;
+    });
+    await page.waitForTimeout(400);
+    await page.screenshot({ path: 'test/shots/239-list.png' });
+    const tidy = await page.evaluate(() => {
+      const S = BUREAU.state, p = window.__lf;
+      S.readId = null;
+      S.objects = S.objects.filter(x => x.id !== p.ls && x.parent !== p.ls);
+      S.undo = []; S.view = 'desk'; S.drawerId = null; BUREAU.render();
+      return true;
+    });
+    const { at, ...rest } = set;
+    return { found: true, ...rest, ...opened, tidy };
+  })();
+
   /* --- a question is answered by writing the answer, not by ticking a box.
      Typing must not re-render the board: the input is the thing being typed in,
      and rebuilding it would take the caret with it — so the state class is
@@ -10096,7 +10151,7 @@ const PROP_OFF = () => { const b = document.createElement('button');
     holdArms, maxDrift,
     settingsIsPanel, pickerPreviews, builderPreview, everyMenuIsAPanel,
     pasteOk, magicOk, rollupOk, relationsOk, relationsUI, stringLayer,
-    timeLayer, checklistBox, pluckWorks, checklistMoves, answering, seedAndKnobs, longPress, drawerSize, tagDrawer, tagsAndHabits, groupMove, dropStates,
+    timeLayer, checklistBox, pluckWorks, checklistMoves, listFace, answering, seedAndKnobs, longPress, drawerSize, tagDrawer, tagsAndHabits, groupMove, dropStates,
     adaptiveTiles, bubblePanel, scrollKept, kindSizes,
     phoneGrid, phoneMigration, turnedSideways, pouring,
     noDupIds, undoWorks, readViews, paperSize, readPaper, readBar, movement, pager, desks, spans,
