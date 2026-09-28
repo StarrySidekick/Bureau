@@ -666,7 +666,13 @@ const BUILTIN_KINDS = {
   /* A step larger than everything else, because the name is the whole of it:
      there is nothing else printed on the plate, so it is set the way an
      engraving is set rather than the way a note's title is. */
-  achievement:{shape:'plaque', nm:'Achievement', ic:'trophy', c:12, key:'W', asksDone:true, tsize:1.25, ds:'Something you actually did', size:[6,3], onclick:'read', attrs:['text','date'], body:'' },
+  /* **A task you did** (decision 242): Timothy's words, "regular task objects
+     but without the checkbox and with a gilded frame and in the past tense".
+     So the task's sliver and the task's size, no `check` (so no box), the
+     gilt frame (`gilded`) and the name said in the past on its face (`past`,
+     through `pastTense()`, which leaves a first word it cannot vouch for
+     alone). It was a cast plaque six by three. */
+  achievement:{shape:'sliver', nm:'Achievement', ic:'trophy', c:12, key:'W', asksDone:true, gilded:true, past:true, ds:'Something you actually did', size:[4,1], onclick:'read', attrs:['text','date'], body:'' },
   /* A project is a drawer with a front page. It holds everything a piece of
      work is made of — tasks, events, goals, pictures, notes — so it opens onto
      a board of its own rather than a list, and its front reports on what is

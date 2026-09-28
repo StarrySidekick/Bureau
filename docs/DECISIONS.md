@@ -10648,3 +10648,20 @@ unlocked one it was the other way round and the corners were in the way.
 - A picture you chose yourself has no traced outline and is still its whole
   box. Re-run the script after adding or replacing a decoration's picture.
 
+## 242 · An achievement is a task you did
+
+*2026-09-28.* Timothy: *"achievements should just look like regular task
+objects but without the checkbox and with like a gilded frame and in the past
+tense. this also goes for the default size."*
+
+- **The task's sliver and the task's size** (`shape:'sliver'`, `size:[4,1]`).
+  It was a cast plaque, six by three. Achievements already on a desk keep the
+  size they have; only a new one is born at four by one.
+- **No box**, which needs nothing: an achievement never carried `check`.
+- **A gilt frame whatever its border slot says** (`gilded` on the kind, read
+  in the ordinary tile the way a checklist front forces its own gilt).
+- **Its name in the past, on its face** (`past` on the kind, read by
+  `nameField()` through `pastTense()`). The title is stored as written, so
+  editing it edits what you typed, and a first word `pastTense()` cannot vouch
+  for comes back unchanged.
+

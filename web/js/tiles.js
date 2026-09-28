@@ -1,4 +1,4 @@
-import { esc, ic, clamp, D, md, plain, oneline, outURL, whereTo, ROOT } from './util.js';
+import { esc, ic, clamp, D, md, plain, oneline, outURL, whereTo, ROOT, pastTense } from './util.js';
 import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, childrenOf, container,
   clPerCell,
   rollup, streak, barPct, barSteps, barFilled, barGrid, projectStat, progressOf, tlSpan,
@@ -210,10 +210,12 @@ const BODY_ON_FACE = 1200;
    in without either of them being a tile on a board. See decision 61. */
 function nameField(o, cls, extra){
   const t=o.title||'';
+  // a type that is a thing you did says so in the past (decision 242)
+  const said = K(o&&o.kind).past ? pastTense(t) : t;
   if(S.editId===o.id)
     return `<input class="inlinename ${cls||''}" data-inline="${o.id}:title" value="${esc(t)}"
       placeholder="Untitled" autocomplete="off" enterkeyhint="done">`;
-  return `<span class="${cls||'dname'}${o.done?' done':''}" data-edit="${o.id}">${esc(t||'Untitled')}</span>`;
+  return `<span class="${cls||'dname'}${o.done?' done':''}" data-edit="${o.id}">${esc(said||'Untitled')}</span>`;
 }
 
 /* The face of a calendar container: the span it is set to, with a mark on any
@@ -2789,7 +2791,11 @@ function drawTileFace(o, arr, box, persp){
     return `--plink:${ink};--plcut:${
       ink==='#F7F1E1' ? 'rgba(0,0,0,.55)' : 'rgba(255,255,255,.55)'};`;
   })() : '';
-  return `<${raw?'div':'button'} class="drawer otile ${paper(o)} sh-${shapeOf(o)}${plaque}${o.edge?' edge':''}${sel}${
+  /* A type framed in gilt whatever its border slot says (decision 242), the
+     way a checklist front is. */
+  const stock = K(o.kind).gilded
+    ? `${dressAs('bd','gilt')} ${dress(o,'tx')} ${dress(o,'st')}${tornOf(o)}` : paper(o);
+  return `<${raw?'div':'button'} class="drawer otile ${stock} sh-${shapeOf(o)}${plaque}${o.edge?' edge':''}${sel}${
       edit?' editing':''}${
       asks?(answered(o)?' answered':' unanswered'):''}${prioOf(o)!=null?' prio-'+prioOf(o):''}" data-row="${o.id}"
     style="--c:${colour};${plaqueInk}${has(o,'progress')?`--pct:${barPct(o)}%;`:''}${place}">

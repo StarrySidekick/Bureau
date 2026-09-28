@@ -991,6 +991,28 @@ const PROP_OFF = () => { const b = document.createElement('button');
     return { found: true, ...rest, ...opened, tidy };
   })();
 
+  /* --- an achievement is a task you did (decision 242): the task's sliver
+     and size, no box, a gilt frame, and its name said in the past. */
+  const achievementLook = await page.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const S = BUREAU.state;
+    S.view = 'desk'; S.drawerId = null;
+    const a = BUREAU.create('achievement', { parent: 'root', title: 'Run a marathon' });
+    a.desk = onThisShelf(4, 1);
+    BUREAU.render(); await nap(200);
+    const el = intoView(document.querySelector(`.grid [data-row="${a.id}"]`));
+    const out = !el ? { found: false } : {
+      theTasksSize: JSON.stringify(BUREAU.K.achievement.size) === JSON.stringify(BUREAU.K.task.size),
+      theTasksShape: el.classList.contains('sh-sliver'),
+      noBox: !el.querySelector('.tilecheck'),
+      gilded: el.classList.contains('bd-gilt'),
+      saidInThePast: (el.querySelector('.dname') || {}).textContent === 'Ran a marathon',
+      storedAsWritten: a.title === 'Run a marathon'
+    };
+    BUREAU.del(a.id); S.undo = []; BUREAU.render();
+    return out;
+  });
+
   /* --- a question is answered by writing the answer, not by ticking a box.
      Typing must not re-render the board: the input is the thing being typed in,
      and rebuilding it would take the caret with it — so the state class is
@@ -10177,7 +10199,7 @@ const PROP_OFF = () => { const b = document.createElement('button');
     holdArms, maxDrift,
     settingsIsPanel, pickerPreviews, builderPreview, everyMenuIsAPanel,
     pasteOk, magicOk, rollupOk, relationsOk, relationsUI, stringLayer,
-    timeLayer, checklistBox, pluckWorks, checklistMoves, listFace, answering, seedAndKnobs, longPress, drawerSize, tagDrawer, tagsAndHabits, groupMove, dropStates,
+    timeLayer, checklistBox, pluckWorks, checklistMoves, listFace, achievementLook, answering, seedAndKnobs, longPress, drawerSize, tagDrawer, tagsAndHabits, groupMove, dropStates,
     adaptiveTiles, bubblePanel, scrollKept, kindSizes,
     phoneGrid, phoneMigration, turnedSideways, pouring,
     noDupIds, undoWorks, readViews, paperSize, readPaper, readBar, movement, pager, desks, spans,
