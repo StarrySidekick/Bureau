@@ -178,6 +178,11 @@ the screen.
 The **Bureau Workshop** artifact (https://claude.ai/artifact/4TjyQZ5xcuxCYFgfnRm76k)
 holds Timothy's own rearrangement of every menu and type: read its
 `workshop/state` document before reorganising menus or types.
+The **Bureau Scope** artifact (https://claude.ai/artifact/MjuzPyN2CXcdYmN4MRxqJY,
+2026-09-28) holds the knob proposal for each aspect of life and the verbs for
+each flow, with Timothy's answers in its `answers` collection (one document per
+card, `{key, value}`): read it before building life knobs, aspect subtypes or
+reworking the flows.
 
 **Start here each session:** `docs/SYSTEM.md` is the reference for what Bureau is
 made of — objects, attributes, types, drawers, the grid, the surfaces, storage.
