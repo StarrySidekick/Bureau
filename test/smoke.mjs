@@ -6359,23 +6359,26 @@ const PROP_OFF = () => { const b = document.createElement('button');
       && o.desk.y === 13 && o.desk.h === 2 && o.desk.w === 8));
     // a pasted board, filled by the titles of the things on it
     const had = new Set(S.objects.map(o => o.id));
-    BUREAU.paste(JSON.stringify([{plan:'Films', title:'My films',
-      fill:{Watchlist:['Close-Up','Past Lives'], Seen:[{type:'review', title:'Aftersun', rating:5}]}}]), 'root');
+    /* Games since decision 237: Films became favourites by genre, and Games
+       is the board with a list to play, a list finished and a spawner filing
+       reviews into it, which is what this was written against. */
+    BUREAU.paste(JSON.stringify([{plan:'Games', title:'My games',
+      fill:{'To play':['Outer Wilds','Hades'], Finished:[{type:'review', title:'Celeste', rating:5}]}}]), 'root');
     const box = S.objects.find(o => !had.has(o.id) && o.parent === 'root');
     const inside = id => S.objects.filter(o => o.parent === id);
-    const wl = box && inside(box.id).find(o => o.title === 'Watchlist');
-    const seen = box && inside(box.id).find(o => o.title === 'Seen');
-    out.aPasteLaysOutABoard = !!box && box.title === 'My films' && inside(box.id).length > 5;
+    const wl = box && inside(box.id).find(o => o.title === 'To play');
+    const seen = box && inside(box.id).find(o => o.title === 'Finished');
+    out.aPasteLaysOutABoard = !!box && box.title === 'My games' && inside(box.id).length > 5;
     out.andFillsItByTitle = !!wl && inside(wl.id).length === 2 && !!seen && inside(seen.id).length === 1;
     // what goes into a list made undated has no day
     out.aWatchlistIsUndated = !!wl && inside(wl.id).every(o => !o.due);
     // the spawner files into Seen rather than onto the board
-    const sp = inside(box.id).find(o => o.kind === 'generator' && /watched/i.test(o.title));
+    const sp = inside(box.id).find(o => o.kind === 'generator' && /finished/i.test(o.title));
     out.theSpawnerFilesIntoSeen = !!sp && sp.into === seen.id;
     S.view = 'drawer'; S.drawerId = box.id; BUREAU.render(); await nap(300);
     const before = inside(seen.id).length;
     const field = document.querySelector(`[data-fieldfor="${sp.id}"]`);
-    if(field){ field.value = 'Close-Up'; field.dispatchEvent(new KeyboardEvent('keydown', {key:'Enter', bubbles:true})); }
+    if(field){ field.value = 'Hades'; field.dispatchEvent(new KeyboardEvent('keydown', {key:'Enter', bubbles:true})); }
     await nap(200);
     out.aTypedLineLandsInIt = inside(seen.id).length === before + 1
       && !inside(box.id).some(o => o.kind === 'review');
@@ -6383,7 +6386,7 @@ const PROP_OFF = () => { const b = document.createElement('button');
     BUREAU.render(); await nap(200);
     const wt = document.querySelector(`#app .drawer[data-drawer="${wl.id}"]`);
     out.aListSaysItsName = !!wt && !!wt.querySelector('.clhead b')
-      && wt.querySelector('.clhead b').textContent === 'Watchlist';
+      && wt.querySelector('.clhead b').textContent === 'To play';
     const st = document.querySelector(`#app .drawer[data-drawer="${seen.id}"]`);
     out.aReviewWearsItsStars = !!st && !!st.querySelector('.clstars') && !st.querySelector('.clbox');
     const dated = BUREAU.create('task', {parent:wl.id, title:'Dated one', due:'2030-01-02'});
