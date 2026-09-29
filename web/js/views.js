@@ -1,7 +1,7 @@
 import { $, $$, esc, ic, D, md, clamp, ROOT } from './util.js';
 import { S, K, T, byId, has, isContainer, containers, container, childrenOf, chainOf,
   deskTitle, rootObj, cfgOf, deskIds, deskHere, deskOf, isDesk, allTags, dev,
-  beginPass, endPass,
+  beginPass, endPass, inFront,
   layoutOf, takesTyping, genSaid, makesAnything, CALVIEWS, calViewOf, calCols, CL_FITS, clFit,
   spanOf, coversDay, lastDay, boardLocked,
   TILT_MODES, tiltMode, tiltsDesk, tiltsWindows, tiltClasses, cueFlipped,
@@ -15,7 +15,7 @@ import { themeNow, applyLook, lookVal, STYLES, BACKDROPS, SURFACES, DARKMODES, d
   palNow, styleNow, hexOf, objColour, slotName, OBJ0, CHECKS, dressAs } from './look.js';
 import { gridOfContainer, gridTile, listTile, boardVarsOf, bookView, calSpan, calFront } from './tiles.js';
 import { gravitySync } from './gravity.js';
-import { openPanel, closePanel, panelKey, repositionPanel, plansPanel, boardRow, objectPanelBody, objBackTo } from './panels.js';
+import { openPanel, closePanel, panelKey, repositionPanel, plansPanel, boardRow, objectPanelBody, objBackTo, sampleTile } from './panels.js';
 import { openGuide } from './guide.js';
 /* Cyclic at *function* level only — motion.js imports render() from here and
    this imports sprayAt() from there, and neither is called while the modules
@@ -150,11 +150,10 @@ function gridBar(c){
        three either side of the knob, from the six there are, and a flow can
        say. `railToolsOf()` is the one reader; the default is the four the
        front has carried since decision 211. */
-    const rt = railToolsOf(c.id);
     RAILBAR = {
       where: lip ? '' : where,
-      left: rt.left.map(t=>railTool(t, c)).join(''),
-      right: rt.right.map(t=>railTool(t, c)).join('')
+      left: railSide(c, 'left'),
+      right: railSide(c, 'right')
     };
     return lip ? `<div class="toplip"${REVEAL.lip?` style="height:${REVEAL.lip}px"`:''}>${where}</div>` : '';
   }
@@ -176,6 +175,38 @@ function railToolsOf(cid){
   const seen = new Set();
   const side = list => (Array.isArray(list)?list:[]).filter(t=>RAIL_TOOLS.includes(t) && !seen.has(t) && seen.add(t)).slice(0,3);
   return {left:side(r.left), right:side(r.right)};
+}
+/* ---- six places, and anything can stand in one — decision 252 ---------
+   Three either side of the knob. The board's tools come first, then whatever
+   has been put there, each drawn as its one-by-one self; what is left over is
+   an empty place, which is only shown while a tile is in your hand, because a
+   drawer front with holes in it is a drawer front that looks unfinished. A
+   thing always outranks a tool for a place: it is off the grid while it is
+   there, and a front with no room left for it would lose it (the desk keeps
+   its gear whatever, because it is the only way into Settings). */
+const FRONT_SIDE = 3;
+const frontThings = (cid, side)=> S.objects
+  .filter(o=>(o.parent||ROOT)===cid && o.front===side && inFront(o))
+  .sort((a,b)=>(a.frontAt||0)-(b.frontAt||0));
+function railSide(c, side){
+  const things = frontThings(c.id, side).slice(0, FRONT_SIDE);
+  let tools = railToolsOf(c.id)[side];
+  if(tools.length + things.length > FRONT_SIDE){
+    const keep = c.id===ROOT && tools.includes('gear') ? ['gear'] : [];
+    tools = keep.concat(tools.filter(t=>!keep.includes(t))).slice(0, Math.max(keep.length, FRONT_SIDE - things.length));
+  }
+  const free = Math.max(0, FRONT_SIDE - tools.length - things.length);
+  return tools.map(t=>railTool(t, c)).join('') + things.map(railThing).join('')
+    + `<span class="railslot" data-slot="${esc(c.id)}:${side}" aria-hidden="true"></span>`.repeat(free);
+}
+function railThing(o){
+  const mini = Object.assign({}, o, {id:o.id+'~front', desk:{x:1,y:1,w:1,h:1}, phone:{x:1,y:1,w:1,h:1}});
+  delete mini.front;
+  const nm = o.title || K(o.kind).nm;
+  // a span, not a button: a tile is very often a button itself, and a button
+  // inside a button is closed early by the parser and spills the front apart
+  return `<span class="railobj ro-thing" role="button" tabindex="0" data-act="frontpress" data-id="${esc(o.id)}"
+    title="${esc(nm)} — tap as you would on the board, hold to take it out" aria-label="${esc(nm)}">${sampleTile(mini, 40, 40)}</span>`;
 }
 function railTool(t, c){
   if(t==='glass') return railObj('glass', 'searchopen', c.id, 'Search', searchOpen());
@@ -201,9 +232,14 @@ function railToolsField(cid){
       `<button class="fchip railchip${rt[k].includes(t)?' on':''}" data-railtool="${cid}:${k}:${t}"
         title="${esc(RAIL_NAMES[t])}"><svg viewBox="0 0 40 40" aria-hidden="true">${
         (t==='lock'?TOOLART.lock(false):TOOLART[t](t==='block'?MANUAL:undefined))}</svg></button>`).join('')}</div></div>`;
+  // what stands there besides the tools, each a press away from the board
+  const things = ['left','right'].flatMap(k=>frontThings(cid, k));
+  const stood = things.length ? `<div class="railpick"><span class="mini" style="--k:var(--brass)">Standing in it</span>
+    <div class="filterbar">${things.map(o=>`<button class="fchip" data-act="frontout" data-id="${esc(o.id)}"
+      title="Put it back on the board">${esc(o.title||K(o.kind).nm)} ${ic('x',11)}</button>`).join('')}</div></div>` : '';
   return `<div class="field" style="margin-top:12px"><label>Drawer Front</label>
-    ${side('left','Left of the knob')}${side('right','Right of the knob')}
-    <div class="mini" style="--k:var(--brass);margin-top:6px">Up to three either side, on a phone. The knob stays in the middle whatever is beside it, and every one of these is also a tool you can put on a board.</div>
+    ${side('left','Left of the knob')}${side('right','Right of the knob')}${stood}
+    <div class="mini" style="--k:var(--brass);margin-top:6px">Six places on a phone, three either side, and the knob stays in the middle whatever is beside it. Carry anything on the board onto an empty place to stand it there; hold it there to take it out. Every tool here is also an object you can put on a board.</div>
   </div>`;
 }
 /* What `gridBar()` left for the rail to draw on a phone, reset by viewHTML()
@@ -1950,7 +1986,15 @@ function sizeGrid(){
        scrolled back to: the "You are arranging the iPhone layout" banner went
        behind the bar and the way out of that mode with it. */
     const drawn = Math.min(rows, drawRows(g, 'phone'));
-    const short = (!!innerOf(cid, 'phone') || !!dimsOf(cid)) && drawn*w < room - 1;
+    /* **A board of a stated shape is not short** (decision 249). It was
+       centred in the whole room like a short drawer (decision 235), which took
+       the lip down to its floor and the drawer front to its minimum: a board
+       set to 8×14 sat lower than the same board unstated, the front thin and
+       pushed to the bottom of the screen. It takes the leftover the way the
+       default board does now, the top half on the lip and the rest in the
+       front, so 8×14 stated and 8×14 by default are the same picture and a
+       smaller board still has its name on top. */
+    const short = !!innerOf(cid, 'phone') && drawn*w < room - 1;
     const over = short ? 0 : Math.max(0, room - drawn*w);
     /* With the name on the lip, the top half of the leftover is the lip's
        rather than a reveal under it: the wood above the board is one strip
@@ -1964,9 +2008,7 @@ function sizeGrid(){
        leftover shrank on the way into a small drawer, so the board jumped
        by the difference the moment it opened. A short board's scroller gives
        the lip its share instead. */
-    // …except on a board of a stated shape (decision 235), which is centred in
-    // the whole room like a short drawer, so the name keeps only its floor
-    const lipTop = lip && !dimsOf(cid) ? Math.floor(Math.max(0, room - rows*w)/2) : 0;
+    const lipTop = lip ? Math.floor(Math.max(0, room - rows*w)/2) : 0;
     const top = Math.floor(over/2), deep = railMin + (short ? 0 : Math.ceil(over/2));
     const gap = gapMin + (lip ? 0 : top), lipH = lip ? Math.round(barH + lipTop) : 0;
     if(lip && lipH!==REVEAL.lip){ REVEAL.lip=lipH; }

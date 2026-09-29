@@ -212,6 +212,21 @@ decisions 236–237 (v2.28). The project flows were all marked *rework* with no
 notes beyond the films (casting, storyboard, props, locations, script); they
 were rebuilt as decision 238 (v2.29), every one a type of its own.
 
+### Added 2026-09-29 — eight by fourteen, the page as the face, six places, compounds
+
+Timothy: a calendar seemed to suck up dated objects dropped on it and leave an
+invisible imprint; book and scroll should keep the face's border, paper and
+look, *"the face expanded to the full size of a book"*; video and audio should
+loop, by default; 8×14 is the default board and *"it just works"*, so the
+drawer front and the name on top should go back to how they were at 14 tall;
+the drawer front has **six slots**, three each side of the knob, for any
+object, shown at 1×1; and **compound objects**, a type made of two or more
+objects grouped by default and already related (*"a counter related to an
+object and measuring something about it"*), for spreads, labels and better
+workflows without a whole flow. Built as decisions 249–254 (v2.48); the
+compound scope is `docs/COMPOUNDS.md`. The calendar imprint did not reproduce
+on a fresh desk and is open.
+
 ## Deliberately not next
 
 - **Sync between devices.** It is real and it is coming, *after* the feature set

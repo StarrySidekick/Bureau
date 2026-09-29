@@ -3,7 +3,7 @@
    ============================================================ */
 import { $ } from './util.js';
 import { plans, planFrom, stampPlan, planById, planSize, delPlan } from './plans.js';
-import { refreshKinds , groupTogether, groupMates, travelWith } from './model.js';
+import { refreshKinds , groupTogether, groupMates, travelWith, countOf, inFront } from './model.js';
 import { S, KINDS, SHAPES, shapeChoices, SORTS, childrenOf, container, relate, deskOf, has, lateOn, isLate, knobOf,
   urgencyOf, urgeSaid, workday,
   isContainer, faceOf, PRIMARY, SECONDARY, MASTERS, inMaster, isCut, isPrimary, inFamily, barPct, marginOf, marginPlus,
@@ -153,6 +153,8 @@ window.BUREAU = {
      aesthetic is the dangerous kind of removal — the fallback hides it — so a
      test has to be able to load an old desk rather than trust the list. */
   migrated(d){ migrate(d); return d; },
+  // a counter's readout and a thing in the drawer front (decisions 252, 254)
+  countOf, inFront,
   paste: pasteObjects, relate, pin: togglePin, setPin, renderSheet,
   /* The instruments, so a test can press one and read what it did rather than
      driving a gesture to find out. */

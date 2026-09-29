@@ -11,7 +11,7 @@ import { S, K, KINDS, KEYS, T, ATTRS, USER_ATTRS, FIELDS, fieldOf, OPS, ROLLS,
   PRIOS, prioOf, prioName, DIFFS, diffOf, diffName, REPEAT_UNITS, repeatOf, repeats, repeatSaid,
   relatedTo, backlinksTo, streak, goalPct,
   CALVIEWS, calViewOf, calShowOf, CALSHOWS, weekStartOf, showsWeekends, KNOBSIZES, knobSizeOf,
-  TSIZES, textSizeOf, mediaTypeOf, isPicture, isMedia, isDecor,
+  TSIZES, textSizeOf, mediaTypeOf, loopOf, countsOf, COUNTS, isPicture, isMedia, isDecor,
   bindingOf, FRAMES, FRAME_SLOTS, frameOf, panelOf, knobOf, plateOf, borderOf, textureOf,
   slotRaw, homeFor, acceptAny, groupOf , boardLocked , SEALS, sealOf, isSealed, isDisc,
   makesOf, madeAtSize } from './model.js';
@@ -400,7 +400,7 @@ function pickGroups(skipPrimary){
      never listed here anyway. What was left was a heading over three tiles you
      reach a different way. Anything still marked `film` falls to Containers or
      Objects like everything else. See decision 144. */
-  const g={Containers:[], Objects:[], Writing:[], Cooking:[], Yours:[]};
+  const g={Containers:[], Objects:[], 'Put together':[], Writing:[], Cooking:[], Yours:[]};
   KEYS.forEach(k=>{
     /* A category is only ever a question — there is no generic Fragment to
        make — so it is never listed as a type anywhere, including in the
@@ -416,12 +416,14 @@ function pickGroups(skipPrimary){
     if(skipPrimary && inMaster(k) && !S.kinds[k]) return;
     const d=KINDS[k];
     if(S.kinds[k])                    g.Yours.push(k);
+    else if(d.parts)                  g['Put together'].push(k);
     else if(d.narrative)              g.Writing.push(k);
     else if(d.cooking)                g.Cooking.push(k);
     else if(kindHas(k,'container'))   g.Containers.push(k);
     else                              g.Objects.push(k);
   });
   const note={Containers:'hold other things', Objects:'hold nothing',
+              'Put together':'several things that move as one',
               Writing:'for a world you are making', Yours:'ones you made'};
   return Object.entries(g).filter(([,ks])=>ks.length)
     .map(([nm,ks])=>({nm, ks, note:note[nm]||''}));
@@ -461,11 +463,11 @@ function kindTile(k, inFam, becomeId){
             : `data-new="${k}"${inFam?' data-asked':''}`;
   return `<div class="kindtile${fam?' kindcat':''}" ${act} role="button" tabindex="0"
       style="--k:${hexOf(d.c)}" title="${esc(d.ds||'')}">
-    <div class="kpv">${sampleTile(kindSample(k), 146, 82)}</div>
+    <div class="kpv">${d.parts ? compoundSample(k, 146, 82) : sampleTile(kindSample(k), 146, 82)}</div>
     <div class="krow"><span class="nm">${esc((!becomeId && d.pickNm) || d.nm)}</span>
       ${fam?`<span class="kmore">${fam.length}${ic('chevR',11)}</span>`
            :(d.key&&!becomeId)?`<span class="kbd">${esc(d.key)}</span>`:''}</div>
-    ${(fam||becomeId)?'':`<button class="kedit" data-act="editkind" data-id="${k}" title="Edit ${esc(d.nm)}">${ic('sliders',12)}</button>`}
+    ${(fam||becomeId||d.parts)?'':`<button class="kedit" data-act="editkind" data-id="${k}" title="Edit ${esc(d.nm)}">${ic('sliders',12)}</button>`}
   </div>`;
 }
 
@@ -1690,6 +1692,18 @@ function objectPanelBody(id, sec){
     if(barOf(d) && has(barOf(d),'streak'))
       out.push(prow('Full at', pfield(id,'target', d.target||'', 'number', '30'), 'days in a row'));
   }
+  /* **A counter may read something too** (decision 254): anything on its
+     own board, and then what about it. Its own board only, because a readout
+     of a thing you cannot see from it is a number with no reason. */
+  if(!isRoot && has(d,'count')){
+    const near = S.objects.filter(x=>x.id!==id && (x.parent===d.parent || x.id===d.tracks) && !x.done)
+      .map(x=>[x.id, (x.title||'Untitled')+' · '+K(x.kind).nm]);
+    const how = countsOf(d);
+    out.push(prow('It counts', psel(id,'tracks', [['','Taps, one at a time'], ...near], d.tracks||''),
+      how ? 'a tap opens what it reads' : 'or it reads something on this board'));
+    if(how) out.push(prow('What it reads', psel(id,'counts',
+      [['', 'The obvious thing'], ...Object.entries(COUNTS)], d.counts||''), COUNTS[how].toLowerCase()));
+  }
 
   }
 
@@ -1885,6 +1899,10 @@ function objectPanelBody(id, sec){
                : `<img class="tileimg" src="${esc(src)}" alt="">`}
                  <div class="cap">${esc(o.media.label||'')}</div></div>` : ''),
         isDecor(o) ? 'a cut-out PNG or an SVG stands best' : 'what it is for, then the file'));
+      // a sound or a video goes round until it is told to stop (decision 250)
+      if(mt==='audio' || mt==='video')
+        f.push(prow('When it ends', psel(id,'loop',[['','Play it again'],['0','Stop']], loopOf(o)?'':'0'),
+          loopOf(o) ? 'it loops until you press it' : 'it plays once'));
     }
     if(has(o,'button')){
       const L=o.link||{};
@@ -2188,6 +2206,24 @@ function sampleTile(o, maxW, maxH, grow){
         style="--cols:${b.w};--rowh:${PV_CELL}px;--checker:${2*PV_CELL}px;
                grid-template-rows:repeat(${b.h},${PV_CELL}px);width:${w}px">
         ${gridTile(o,false,ROOT)}</div></div></div>`;
+}
+/* A compound drawn as its parts where they sit (decision 254): each part is
+   its own type's sample, in one little board the size of the footprint. */
+function compoundSample(k, maxW, maxH){
+  const d = K(k), [fw, fh] = d.size;
+  const w = fw*PV_CELL, h = fh*PV_CELL, sc = Math.min(maxW/w, maxH/h, 1);
+  const tiles = d.parts.map((s, i)=>{
+    const kd = K(s.k);
+    const o = sampleObject({id:`__cp_${k}_${i}`, kind:s.k, title:s.t||kd.nm, attrs:kd.attrs,
+      shape:kd.shape, face:kd.face, c:kd.c, size:[s.b[2], s.b[3]]});
+    Object.assign(o, s.set||{});
+    o.desk = {x:s.b[0], y:s.b[1], w:s.b[2], h:s.b[3]}; o.phone = Object.assign({}, o.desk);
+    return gridTile(o, false, ROOT);
+  }).join('');
+  return `<div class="pvscale" aria-hidden="true" style="width:${w*sc}px;height:${h*sc}px;overflow:hidden">
+    <div style="width:${w}px;height:${h}px;transform:scale(${sc});transform-origin:top left">
+      <div class="grid g-desk pvgrid" style="--cols:${fw};--rowh:${PV_CELL}px;--checker:${2*PV_CELL}px;
+        grid-template-rows:repeat(${fh},${PV_CELL}px);width:${w}px">${tiles}</div></div></div>`;
 }
 // One built-in or invented type, as an object of that type.
 /* A master category is drawn as the type it leads with, under its own name

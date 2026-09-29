@@ -2425,7 +2425,8 @@ const PROP_OFF = () => { const b = document.createElement('button');
     const kinds = Object.keys(BUREAU.K);
     const all = S.objects.filter(o => (o.tags||[]).includes('sampler'));
     const homes = new Set(all.map(o => o.parent));
-    return { one: kinds.every(k => all.some(o => o.kind === k)),
+    // a compound is several of the others, each of which is here (decision 254)
+    return { one: kinds.every(k => BUREAU.K[k].parts || all.some(o => o.kind === k)),
              named: all.every(o => o.title === BUREAU.K[o.kind].nm),
              // …and none of it on the desk, which is what a first desk is for
              offTheDesk: !all.some(o => o.parent === 'root'),
@@ -10381,8 +10382,89 @@ const PROP_OFF = () => { const b = document.createElement('button');
   await sh.screenshot({ path: 'test/shots/235-shapes.png' });
   await shapeCtx.close();
 
+  /* --- decisions 249–254: a stated 8×14 is the default board, a clip goes
+     round, the page wears the face, six places in the drawer front, and a
+     compound is several grouped, wired things. A phone context of its own,
+     with a mouse, because the drop into the front is a real carry. */
+  const v248Ctx = await browser.newContext({ viewport:{width:390,height:844} });
+  const v8 = await v248Ctx.newPage();
+  v8.on('pageerror', e => errs.push('PAGEERROR (248): ' + e.message));
+  await v8.goto(URL); await v8.waitForTimeout(900);
+  const v248 = await v8.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const out = {}, S = BUREAU.state, B = BUREAU;
+    S.objects.filter(o => o.parent === 'root').forEach(o => { o.parent = '__hold'; });
+    B.render(); await nap(250);
+    // 249: a board stated at 8×14 is the default one, lip, board and front
+    const at = s => { const e = document.querySelector(s), r = e && e.getBoundingClientRect();
+      return r ? [Math.round(r.top), Math.round(r.bottom)] : null; };
+    const geo = () => JSON.stringify([at('.deskscroll .grid'), at('.toplip'), at('.deskrail')]);
+    const plain = geo();
+    B.setBoardDims('root', 'w', 8); B.setBoardDims('root', 'h', 14); B.render(); await nap(450);
+    out.statedIsTheDefault = geo() === plain && !!document.querySelector('.toplip');
+    B.setBoardDims('root', 'fit'); B.render(); await nap(300);
+    out.oneMoreRowIsOff = B.migrated({v:47, look:{rows:'fit'}, objects:[]}).look.rows === undefined;
+    // 250: a video loops until told not to
+    const v = B.create('video', {parent:'root', title:'Clip'});
+    v.media = {src:'img/clips/none.mp4'}; v.phone = {x:7, y:13, w:2, h:2};
+    B.render(); await nap(150);
+    const vid = () => document.querySelector(`[data-row="${v.id}"] video`);
+    out.aClipLoops = !!vid() && vid().loop === true;
+    v.loop = false; B.render(); await nap(120);
+    out.orPlaysOnce = !!vid() && vid().loop === false;
+    // 251: the page wears the face — its typeface, its paper and its border
+    const n = B.create('note', {parent:'root', title:'Face', body:'Words on the face.'});
+    n.phone = {x:1, y:1, w:4, h:4};
+    B.render(); await nap(200);
+    const tt = document.querySelector(`[data-row="${n.id}"] .tiletext`);
+    S.readId = n.id; S.bookAt = 0; B.renderSheet(); await nap(200);
+    const pg = document.querySelector('.bookstage .page'), sp = document.querySelector('.bookstage .spread');
+    out.thePageIsInTheFacesType = getComputedStyle(pg).fontFamily === getComputedStyle(tt).fontFamily;
+    out.onTheFacesPaper = getComputedStyle(sp).backgroundColor === getComputedStyle(tt.closest('.drawer')).backgroundColor;
+    S.readId = null; B.renderSheet(); await nap(100);
+    // 252: a thing in the drawer front is drawn there, and not on the board
+    const d = B.create('drawer', {parent:'root', title:'Kitchen'});
+    delete d.setup; d.phone = {x:5, y:1, w:2, h:2}; d.front = 'right';
+    B.render(); await nap(200);
+    out.inTheFront = !!document.querySelector(`.deskrail .ro-thing[data-id="${d.id}"]`)
+      && !document.querySelector(`.deskscroll [data-drawer="${d.id}"]`) && B.inFront(d);
+    out.andItsCellsAreFree = B.boxOk({x:5, y:1, w:2, h:2}, null, 'phone', 'root');
+    document.querySelector(`.ro-thing[data-id="${d.id}"]`).click(); await nap(300);
+    out.aTapOpensIt = S.view === 'drawer' && S.drawerId === d.id;
+    S.view = 'desk'; S.drawerId = null; B.render(); await nap(150);
+    // 254: a compound is its parts, grouped, one reading the other
+    B.newOfKind('cp_left', true, {}); await nap(300);
+    const list = S.objects.find(o => o.parent === 'root' && o.kind === 'checklist');
+    const cnt = S.objects.find(o => o.parent === 'root' && o.kind === 'counter');
+    out.aCompoundIsItsParts = !!list && !!cnt && list.grp && list.grp === cnt.grp && cnt.tracks === list.id;
+    ['a','b','c'].forEach(t => B.create('task', {parent:list.id, title:t}));
+    S.objects.find(o => o.parent === list.id && o.title === 'a').done = true;
+    out.theCounterReadsTheList = B.countOf(cnt) === 2;
+    out.andItIsOneUndo = S.undo.length && S.undo[S.undo.length-1].steps.length === 2;
+    out.id = n.id;
+    return out;
+  });
+  /* …and carrying a tile onto an empty place stands it there (252) */
+  {
+    const tile = await v8.locator(`.grid .drawer[data-row="${v248.id}"]`).boundingBox();
+    const cx = tile.x + tile.width/2, cy = tile.y + tile.height/2;
+    await v8.mouse.move(cx, cy); await v8.mouse.down(); await v8.waitForTimeout(400);
+    await v8.mouse.move(cx+4, cy+30); await v8.waitForTimeout(80);
+    const slot = await v8.locator('.deskrail .railleft .railslot').first().boundingBox();
+    v248.placesShowWhileCarrying = !!slot;
+    if(slot){
+      for(let i=1; i<=12; i++){ await v8.mouse.move(cx+(slot.x+slot.width/2-cx)*i/12, cy+(slot.y+slot.height/2-cy)*i/12); await v8.waitForTimeout(25); }
+    }
+    await v8.mouse.up(); await v8.waitForTimeout(400);
+    v248.aCarryStandsItThere = await v8.evaluate(id => BUREAU.state.objects.find(o => o.id === id).front === 'left'
+      && !!document.querySelector(`.deskrail .ro-thing[data-id="${id}"]`), v248.id);
+    delete v248.id;
+  }
+  await v8.screenshot({ path: 'test/shots/248-front.png' });
+  await v248Ctx.close();
+
   console.log(JSON.stringify({
-    errors: errs, settingUp, shapes, manifestOk, swReady, survived, styleSurvived, slotColours,
+    errors: errs, settingUp, shapes, v248, manifestOk, swReady, survived, styleSurvived, slotColours,
     newObjectSeen, inlineEdit, sortDefaults, taskLook,
     shelfTools, homeKnob, gridSizes, keeping, versionShown, sampler, paging, scrolling, pageCoords, pagerGround, goingIn, comingOut,
     makingOnAPhone, railDrawer, railIsFurniture, holding, holdingOut, reported, cavity, depth, windows, tossing, pinch, pagerLandsFlat, deskDots,

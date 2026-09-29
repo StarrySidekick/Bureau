@@ -19,7 +19,7 @@ import { plans, stampPlan } from './plans.js';
    Bureau is this phone running" is exactly the question you ask when a change
    appears not to have deployed. Shown in Settings, so it can be read off the
    device rather than guessed at. */
-const APP_VERSION = '2.47';
+const APP_VERSION = '2.48';
 const KEY = 'bureau.v1';
 const install = {deferred:null};   // the browser's install prompt, when one is on offer
 let saveTimer = null;
@@ -267,7 +267,7 @@ function rescalePhone(d, from, cols){
    skips all of them, an old backup replays only what it is missing. These
    used to be ad-hoc per-load mutations inside adopt(); a new repair that
    should run once belongs here, as the next numbered step. */
-const DATA_V = 47;
+const DATA_V = 48;
 const MIGRATIONS = [
   // Drawers and objects were two arrays and a drawer could not live inside
   // anything. foldDrawers also replays the old dense flow to give v1 drawers
@@ -1165,6 +1165,14 @@ const MIGRATIONS = [
     (d.objects||[]).forEach(o=>{
       if(o && o.kind==='life' && o.lifeart && ASPECT[o.lifeart]) o.kind = 'lf_'+o.lifeart;
     });
+  }},
+  /* ---- eight by fourteen, with the name on top (decision 249) -------------
+     *One more row* left the panel with decision 235, and a desk that had it on
+     kept it with no way to turn it off: the name rode in the drawer front and
+     every phone board was as tall as the screen would take. Timothy: 8×14 is
+     the default and it just works. */
+  {v:48, up(d){
+    if(d.look && d.look.rows==='fit') delete d.look.rows;
   }},
 ];
 function migrate(d){

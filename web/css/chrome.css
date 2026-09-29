@@ -6696,3 +6696,17 @@ html[data-rows="fit"] .is-phone .gridbar.inrail .sqbtn{width:28px;height:28px}
 /* The bar holds a Done pill while writing and glyphs while reading, and the
    pill is the taller: one height for both, so the paper does not move. */
 .bookstage .bookbar{height:36px}
+
+/* ---- six places in the drawer front — decision 252 ---------------------
+   A thing standing there is its one-by-one tile at the tools' height; the
+   miniature is a picture, so the press is the button's and never the tile's.
+   An empty place is a recess in the wood, drawn only while a tile is in your
+   hand, and lit when letting go would stand the tile in it. */
+.railobj.ro-thing{border-radius:4px;overflow:hidden}
+.railobj.ro-thing > *{pointer-events:none}
+.railslot{display:none;flex:0 0 auto;aspect-ratio:1;
+  height:calc(clamp(26px, 74cqh, 38px) * var(--kscale,1) * 1.08);
+  border-radius:6px;border:1.5px dashed rgba(255,244,220,.38);
+  box-shadow:inset 0 2px 5px rgba(0,0,0,.45);transition:background .12s, border-color .12s}
+.deskrail.carrying .railslot{display:block}
+.deskrail .railslot.aim{background:rgba(255,244,220,.16);border-color:rgba(255,244,220,.85)}

@@ -1080,6 +1080,56 @@ Object.entries(WORKSHOP_SIZES).forEach(([k, s])=>{
   if(s.phone) kd.phoneSize = s.phone; else delete kd.phoneSize;
 });
 
+/* ---- compound objects — decision 254 -----------------------------------
+   A type that is **several objects on the grid, grouped from birth**: a
+   label over a drawer, a checklist with a counter reading what is left on
+   it, a draft with its word count. Smaller than a flow, which is a whole
+   board; bigger than one object. Nothing new is stored for one: the parts
+   are ordinary objects sharing a `grp` (decision 180), so they move as one
+   and ungroup like any group, and a part that reads another part does it
+   through the relations that already exist — `tracks` for a counter or a
+   bar, `rel` for anything that is simply about the other.
+
+   Authored in the stock flows' shorthand (`k`, `t`, `b` as a box whose
+   corner is the compound's own 1,1, `set`, `ref`) with `tracks:'@ref'` and
+   `rel:['@ref']` naming another part, and resolved when it is made
+   (`makeCompound()` in mutations.js). The type's size is the footprint, so
+   `fits()` and the Magic Selector ask about the whole of it. */
+const COMPOUNDS = {
+  cp_labelled: {nm:'Labelled drawer', ic:'tag', c:12,
+    ds:'A drawer with a label over it saying what it is for',
+    parts:[{k:'label', t:'What it is for', b:[1,1,4,1], ref:'name'},
+           {k:'drawer', t:'Drawer', b:[1,2,4,3], rel:['@name']}]},
+  cp_left: {nm:'Counted list', ic:'target', c:6,
+    ds:'A checklist and a counter saying how many are left on it',
+    parts:[{k:'checklist', t:'To do', b:[1,1,4,6], ref:'list'},
+           {k:'counter', t:'Left to do', b:[5,1,2,2], tracks:'@list', set:{counts:'open'}}]},
+  cp_barlist: {nm:'Checklist with a bar', ic:'bar', c:13,
+    ds:'A checklist with a progress bar under it filling as you tick',
+    parts:[{k:'checklist', t:'Steps', b:[1,1,4,5], ref:'list'},
+           {k:'progressbar', t:'How far', b:[1,6,4,1], tracks:'@list'}]},
+  cp_run: {nm:'Habit and its run', ic:'grid', c:6,
+    ds:'A habit tracker with a counter showing the days in a row',
+    parts:[{k:'tracker', t:'Every day', b:[1,1,4,2], ref:'habit'},
+           {k:'counter', t:'Days in a row', b:[5,1,2,2], tracks:'@habit', set:{counts:'streak'}}]},
+  cp_draft: {nm:'Draft with a word count', ic:'note', c:10,
+    ds:'A page to write on and a counter keeping its word count',
+    parts:[{k:'note', t:'Draft', b:[1,1,4,4], ref:'page'},
+           {k:'counter', t:'Words', b:[5,1,2,2], tracks:'@page', set:{counts:'words'}}]},
+  cp_spread: {nm:'Spread', ic:'book', c:12,
+    ds:'A heading across two facing pages',
+    parts:[{k:'label', t:'A spread', b:[1,1,8,1]},
+           {k:'note', t:'Left', b:[1,2,4,5]},
+           {k:'note', t:'Right', b:[5,2,4,5]}]},
+};
+Object.entries(COMPOUNDS).forEach(([key, d])=>{
+  const w = Math.max(...d.parts.map(p=>p.b[0]+p.b[2]-1));
+  const h = Math.max(...d.parts.map(p=>p.b[1]+p.b[3]-1));
+  BUILTIN_KINDS[key] = Object.assign({compound:true, key:'', attrs:['text'], body:'',
+    size:[w,h], phoneSize:[w,h]}, d);
+});
+const isCompound = k => !!(KINDS[k] && KINDS[k].parts);
+
 // Kinds you invent live in state alongside these; both are read through KINDS.
 let KINDS = Object.assign({}, BUILTIN_KINDS);
 let KEYS = Object.keys(KINDS);
@@ -1314,6 +1364,8 @@ function seed(){
   const museum=[];
   KEYS.forEach(k=>{
     const d=KINDS[k];
+    // a compound is made of types that are all here already (decision 254)
+    if(d.parts) return;
     const id='k_'+k;
     museum.push(O({id, kind:k, title:d.nm, tags:['sampler'],
       parent: kindHas(k,'container') ? 'd_alldr' : 'd_allob',
@@ -1915,6 +1967,11 @@ const textSizeOf = o => +(((o && o.tsize) || wordLayer(o,'tsize') || K(o&&o.kind
    guessing "image" from an empty field is how an empty sound file came to be
    drawn as a missing photograph. */
 const mediaTypeOf = o => (o && o.media && o.media.type) || K(o&&o.kind).mediaType || 'image';
+/* **A sound or a video loops unless it is told to play once** (decision 250).
+   The object says, then its type, and the answer nobody gave is yes: a clip
+   on a board is something going round, the way the GIF a bundled one was made
+   from did. `false` is the only thing ever stored. */
+const loopOf = o => !!o && o.loop!==false && K(o.kind).loop!==false;
 /* A picture: something that carries media, and whose media is an image. This is
    what opens onto the picture surface rather than onto paper. */
 const isPicture = o => has(o,'media') && mediaTypeOf(o)==='image';
@@ -2240,6 +2297,16 @@ const gravityTilts = ()=> gravityOn() && !!(S.look && S.look.gravitytilt) && S.d
    of things you meant to move rather than a board you arranged. See decision
    107. */
 const isHeld = o => !!o && o.parent===HOLD;
+/* ---- in the drawer front — decision 252 ----------------------------------
+   A board's drawer front has six places, three either side of the knob, and
+   any object on the board can stand in one: `front` says which side. It is
+   still filed on its board (its `parent` does not change, so containment is
+   untouched and a magic drawer still collects it); it is only *drawn* in the
+   front, as its one-by-one self, instead of on the grid, and it gives up its
+   cells while it is there. The front is a phone's, so a Mac, which has no
+   front to draw it in, draws it on the board where its desk box says. */
+const inFront = o => !!o && (o.front==='left' || o.front==='right') && !isHeld(o) && !o.done
+  && S.device==='phone';
 const heldObjects = ()=> S.objects.filter(isHeld).sort((a,b)=>(a.ord||0)-(b.ord||0));
 const heldCount = ()=> S.objects.reduce((n,o)=>n+(isHeld(o)?1:0), 0);
 
@@ -3232,6 +3299,42 @@ function allUnder(c, seen){
   });
   return out;
 }
+/* ---- a counter that reads something — decision 254 ---------------------
+   A counter is a number you tap to add to, and very often the number you
+   want is one that already exists somewhere: how many are left on a list,
+   how many days in a row, how many words in a draft. So a counter may name a
+   `tracks`, the way a progress bar does (decision 133), and then its wheels
+   are a readout of that object rather than a tally: `counts` says what is
+   read, and with nothing said it is the obvious thing for what is tracked.
+   The tap then opens what it reads, because adding one to a readout would be
+   a lie the next render takes back. A tracked object that has gone leaves the
+   counter its own count again. */
+const COUNTS = {open:'Things left to tick', done:'Things ticked', items:'Things in it',
+  streak:'Days in a row', words:'Words', days:'Days until its day'};
+function countsOf(o){
+  const t = o && o.tracks && byId(o.tracks); if(!t) return null;
+  if(o.counts && COUNTS[o.counts]) return o.counts;
+  if(has(t,'streak')) return 'streak';
+  if(isContainer(t)) return 'open';
+  if(t.due) return 'days';
+  return 'words';
+}
+const under = t => S.objects.filter(x=>x.parent===t.id || isAncestor(t.id, x));
+function countOf(o){
+  const how = countsOf(o);
+  if(!how) return (o && o.count) || 0;
+  const t = byId(o.tracks);
+  switch(how){
+    case 'open':   return under(t).filter(x=>has(x,'check') && !x.done && !isHeld(x)).length;
+    case 'done':   return under(t).filter(x=>has(x,'check') && x.done).length;
+    case 'items':  return under(t).filter(x=>!x.done && !isHeld(x)).length;
+    case 'streak': return streak(t);
+    case 'words':  return (String(t.body||'').match(/\S+/g)||[]).length;
+    case 'days':   return t.due ? Math.max(0, Math.round((D.parse(t.due)-D.parse(T))/864e5)) : 0;
+  }
+  return (o && o.count) || 0;
+}
+
 /* How far along a thing is. An object with milestones is its milestones. A
    container is what it holds — every tickable thing under it — because that is
    the number you actually want off the front of a project, and it falls back to
@@ -3398,13 +3501,13 @@ function marginPlus(o, text){
   return t ? marginOf(o).concat({d:D.iso(D.today()), t}) : marginOf(o);
 }
 
-export { homeFor, ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds, K, searchHits, isDisc,
+export { homeFor, COMPOUNDS, isCompound, COUNTS, countsOf, countOf, ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds, K, searchHits, isDisc,
   attrsOf, has, kindHas, T, dz, S, sensedDevice, reset, defaultLook, dev, byId,
   deskTitle, rootObj, container, cfgOf, isContainer, FACES, faceOf, layoutOf, SHAPES,
   SHAPES_KEPT, shapeName, shapeChoices,
   shapeOf, READS, readOf, spreadOf, OPENINGS, openingOf, gathersOf, gatherKind, containers,
   deskIds, deskList, isDesk, deskOf, deskHere,
-  placeOf, isHeld, heldObjects, heldCount,
+  placeOf, isHeld, inFront, heldObjects, heldCount,
   TILT_MODES, tiltMode, tiltsDesk, tiltsWindows, tiltClasses,
   GRAVITIES, gravityMode, gravityOn, gravityTilts, shelfDepth, bookDepth, standsProud, shelfTurn, FACE_CUES, faceCue, anyFaceCue, CUE_DIR, cueFlipped, cueSign,
   spanOf, coversDay, lastDay, lateOn, isLate,
@@ -3416,7 +3519,7 @@ export { homeFor, ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds,
   PANELS, PANEL_SLOTS, panelOf, KNOBS, KNOB_SLOTS, knobOf,
   PLATES, PLATE_SLOTS, plateOf, SEALS, SEAL_KEYS, sealOf, isSealed,
   BORDER_SLOTS, borderOf, TEXTURE_SLOTS, textureOf, STOCKS, STOCK_SLOTS, stockOf,
-  KNOBSIZES, knobSizeOf, answered, marginOf, marginPlus, iconOf, TSIZES, textSizeOf, mediaTypeOf, isPicture,
+  KNOBSIZES, knobSizeOf, answered, marginOf, marginPlus, iconOf, TSIZES, textSizeOf, mediaTypeOf, loopOf, isPicture,
   isMedia, isPlayable, acceptFor, acceptAny, MEDIA_EXT, isDecor, CUT_KINDS, isCut, isBackdrop, FILLS, FILL_KEYS, fillOf,
   spawnByOf, genKindOf, takesTyping, showsAddBox, keepsDone, showsContainers,
   makesOf, madeAtSize,

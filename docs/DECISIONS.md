@@ -10944,3 +10944,126 @@ a container's range on a phone; `PHONE_MAX_NEW`, the three-cell cap, is gone.
 A type that states its own `phoneSize` (the magnifying glass at 7×1, Games
 at 4×4) keeps it. The floor of two a side added above is gone with the
 halving it was patching. Objects already on a desk keep the boxes they have.
+
+## 249 · Eight by fourteen, with the name on top
+
+*2026-09-29.* Timothy: the default board is 8×14 and it just works; the drawer
+front along the bottom looked pushed down and awkward since boards could be
+sized, and the board's name had not gone back to the top on his installed
+phone.
+
+Two causes. **A board of a stated shape was drawn as short** (decision 235):
+centred in the whole room like a small drawer, which took the lip down to its
+32px floor and the drawer front to its minimum, so a board set to 8×14 sat
+lower, with a thin front at the very bottom of the screen, than the same board
+unstated. And **One more row** left the panel with decision 235 while a desk
+that had it on kept it, with no way back: that setting is what puts the name
+in the drawer front instead of on the lip.
+
+- `sizeGrid()` no longer counts a stated shape as short. Its leftover is split
+  the way the default board's is, the top half on the lip and the rest in the
+  front, so a stated 8×14 and the default are the same picture to the pixel,
+  and a smaller board keeps its name on top with the front at full depth.
+  Proportional drawers are still centred.
+- **Migration 48** takes `rows:'fit'` off the desk.
+
+## 250 · A sound or a video goes round
+
+*2026-09-29.* Timothy: video and audio should have an option to loop, and loop
+by default. `loopOf(o)` in model.js: the object, then its type, then yes; the
+only value ever stored is `loop:false`. The tile's `<video>`, the record's
+`Audio` (set at every press, so the editor's change holds for the next play),
+and the viewer's players all ask it. The Behaviour door has *When it ends:
+Play it again / Stop* under the media row. A bundled clip's own `media.loop`
+is no longer read; it looped already and still does.
+
+## 251 · The page wears the face
+
+*2026-09-29.* Timothy: in book and scroll mode keep the border, the paper and
+the rest of what is on the face of a text object; pressing it should be the
+face grown to the size of a book.
+
+The reader drew its own stock and a sans-serif, so a note in Iowan Old Style
+on cream opened onto another app's page. **The face is read off the tile**
+rather than restated: `faceLook(o)` in tiles.js takes the tile's computed
+paper (its colour and background layers, with the shape's `.dpanel` layers on
+top, which is where a telegram keeps its rules), border sides, corners and
+shadow, its body typeface, heading typeface, ink, capitals and letter-spacing
+(in ems, so it grows with the type), and gives them to the `.book` and its
+`.spread`. It is remembered per object, so a thing opened from the palette or
+the search, whose tile is not on the screen, wears the face it was last seen
+in; one never seen opens as before.
+
+**This overturns decision 105's "not the edge"**, at Timothy's asking: the
+page now wears the tile's border. Still one frame, not two: the face's border
+replaces the sheet's own hairline rather than standing inside it, and no `bd-`
+class travels, so decision 88's picture-frame shop does not open again.
+
+The Words door still wins: a typeface, ink or paper set there is already on
+the page through `wordStyle()`, and a page layout (`doc`) keeps its own
+typeface. The pagination ruler wears the same look and the look is in its
+cache key, because a thicker border or another typeface moves the breaks.
+
+## 252 · Six places in the drawer front, and anything can stand in one
+
+*2026-09-29.* Timothy: the drawer front along the bottom has six slots, three
+either side of the knob, for any object, not only the tools: a drawer, a
+button, anything, shown as its one-by-one self.
+
+- **`front: 'left'|'right'` on the object** says it stands there. It stays
+  filed on its board (`parent` is untouched, so containment, magic drawers and
+  search are unchanged); it is drawn in the front instead of on the grid and
+  gives up its cells (`inFront()` in model.js, read by `gridOfContainer()` and
+  `boxOk()`). `keepSize()`, which every reparent goes through, clears it, so
+  a thing that leaves its board leaves its front. A Mac has no front, so there
+  it is drawn on the board where its desk box says.
+- **The six places** are the board's tools first (still `rail` on its config),
+  then its things, in the order they were put there (`frontAt`). A thing
+  outranks a tool for a place, except the desk's gear. An empty place is a
+  dashed recess, drawn only while a tile is in your hand (`.deskrail.carrying`).
+- **Carry a tile onto an empty place** to stand it there: asked before the
+  Void Drawer's mouth, which it sits inside. A tap on it is the tap it would
+  be on the board (`tileTap`); a hold asks *Back on the board* or *Into the
+  Void Drawer*; Board settings → Drawer Front lists what is standing there with
+  a press to put each back. Both ways are an undo move.
+- Its picture is `sampleTile()` of a copy at 1×1 with its own id, inside a
+  **span**, not a button: a tile is often a button itself, and a button inside
+  a button is closed early by the parser and spilled the front apart.
+- The drop ghost is no longer placed on a row past the drawn board: it grew
+  the grid a row and pushed the front down out from under the finger.
+
+## 253 · A date is not a filing
+
+*2026-09-29.* Dropping a thing on a day of a calendar dates it, and files it
+into the calendar only if the calendar holds things; a calendar that collects
+by rule (every stock one) holds nothing, so the thing stays where it was. It
+still flew into the calendar as if filed. Now only a real filing gets the
+flight, and a date gets the bump. This may be some or all of Timothy's report
+that a calendar "sucks up" a dated object and leaves an invisible imprint; a
+fresh desk would not reproduce the imprint, and the report is open until it
+does.
+
+## 254 · Compound objects, and a counter that reads something
+
+*2026-09-29.* Timothy: a type that is two or more objects on the grid,
+grouped by default, and already related, such as a counter measuring
+something about the object beside it. Smaller than a flow. Scope and
+theory in `docs/COMPOUNDS.md`; what is built:
+
+- **A compound is a type with `parts`** (`COMPOUNDS` in model.js), authored in
+  the stock flows' shorthand with `ref` and `tracks:'@ref'` / `rel:['@ref']`.
+  Its size is its footprint. `makeCompound()` in mutations.js makes every part
+  the ordinary way, already set up, places them at their offsets from the cell
+  the Magic Selector drew (or the first place the whole footprint fits, never
+  scattered), gives them one `grp` (decision 180), resolves the references,
+  and records one undo move. No new stored structure: after it is made it is a
+  group of ordinary objects.
+- **Six to start**: Labelled drawer, Counted list, Checklist with a bar, Habit
+  and its run, Draft with a word count, Spread. In the picker under
+  *Everything else → Put together*, each drawn as its parts. Not in the
+  sampler, whose job every part already does.
+- **A counter may read another object** (`tracks`, as a progress bar does):
+  things left to tick, ticked, things in it, days in a row, words, days until
+  its day (`COUNTS`, `countOf()`). The obvious one is chosen when nothing is
+  said. A tap opens what it reads; *It counts* and *What it reads* are in the
+  Behaviour door, offering what is on its own board.

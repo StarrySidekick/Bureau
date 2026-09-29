@@ -1,6 +1,6 @@
 import { wordOf } from './words.js';
 import { clamp, ROOT } from './util.js';
-import { S, dev, byId, has, childrenOf, container, cfgOf, deskOf, K, kindHas } from './model.js';
+import { S, dev, byId, has, childrenOf, container, cfgOf, deskOf, K, kindHas, inFront } from './model.js';
 
 /* ------------------------------------------------------------
    4b · the grid — one coordinate space per device
@@ -669,8 +669,9 @@ function boxOk(box, id, device, parentId){
   if(me && floats(me)) return true;
   // Only objects that have actually been placed can be collided with. Without
   // this, everything unplaced reads as sitting at 1,1 and blocks the corner.
+  // a thing standing in the drawer front has given up its cells (decision 252)
   return !childrenOf(container(parentId||ROOT))
-    .some(d=>d.id!==id && !floats(d) && hasBox(d,dv)
+    .some(d=>d.id!==id && !floats(d) && !inFront(d) && hasBox(d,dv)
              && overlaps(box, lay(d,device,parentId||ROOT)));
 }
 /* The lowest free spot, **on the shelf you are looking at first**. A board is
@@ -912,6 +913,9 @@ const PLACED = {n:0};
    with no position: `keepSize()` writes one and this places it. */
 function keepSize(o){
   ['desk','phone'].forEach(dv=>{ const b=o[dv]; o[dv] = b && b.w ? {w:b.w, h:b.h} : null; });
+  // a drawer front belongs to its board, so a thing that leaves the board
+  // leaves its front too (decision 252) — every reparent comes through here
+  delete o.front;
 }
 function ensureBox(o, device, parentId){
   const dv=device||dev();

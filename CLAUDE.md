@@ -230,6 +230,18 @@ means the same size as on a Mac, with nothing halved or capped),
 and on a phone the reader is sized from the keyboard-free height (`--rvh`,
 `--kbh` in boot.js) with a 6px inset, so the keyboard comes up over the page.
 
+**v2.48** (decisions 249–254): a board of a stated shape is laid out like
+the default one (name on the lip, full drawer front) and migration 48 turns
+off the orphaned *One more row*; video and audio loop unless told to stop
+(`loopOf()`); **the page wears the face** (`faceLook()` in tiles.js reads the
+tile's paper, border, typeface and ink off the board, the Words door still
+winning); **six places in the drawer front** hold any object (`front` on the
+object, `inFront()`, drawn by `railSide()`/`railThing()`); a drop on a
+collecting calendar's day no longer flies into it; and **compound objects**,
+types made of several grouped, wired objects (`COMPOUNDS`, `makeCompound()`),
+with a counter that can read another object (`countOf()`). The scope for
+compounds is `docs/COMPOUNDS.md`.
+
 **Start here each session:** `docs/SYSTEM.md` is the reference for what Bureau is
 made of — objects, attributes, types, drawers, the grid, the surfaces, storage.
 `docs/ROADMAP.md` holds the current plan in dependency order, and

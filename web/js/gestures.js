@@ -1,5 +1,5 @@
 import { $, $$, clamp, D, ROOT } from './util.js';
-import { blockHold } from './wire.js';
+import { blockHold, frontHold } from './wire.js';
 import { S, byId, dev, has, isContainer, isAncestor, childrenOf, container, gatherKind, spanOf,
   sortOf, boardLocked, heldCount, homeFor, attrsOf, travelWith, isMedia } from './model.js';
 import { CELL, gridOf, drawCols, drawRows, cellW, lay, boxOk, overlaps, sizeOfKind, keepSize, isBoard, boardsOf } from './grid.js';
@@ -249,6 +249,8 @@ function openAjar(g){
   }
   g.hold=makePull('ajar');
   g.hold.style.setProperty('--pull', AJAR+'px');
+  // the drawer front's empty places show while something is in your hand
+  const fr=$('.deskrail'); if(fr) fr.classList.add('carrying');
   pullSay(g.hold, holdWord());
   const rail=$('.deskrail');
   const lip = (rail ? rail.getBoundingClientRect().top
@@ -258,6 +260,7 @@ function openAjar(g){
 }
 function closeAjar(g){
   if(!g) return;
+  const fr=$('.deskrail'); if(fr) fr.classList.remove('carrying');
   if(g.knobEl){ g.knobEl.classList.remove('taking','aim'); g.knobEl=null; }
   if(!g.hold) return;
   g.hold.remove(); g.hold=null; g.holdTop=null; g.holdKeep=null;
@@ -420,7 +423,8 @@ function clearAim(g){
               g.tlEl=null; }
   if(g.gatherEl){ g.gatherEl.classList.remove('dropgather'); g.gatherEl=null; }
   if(g.dropEl){ g.dropEl.classList.remove('dropinto'); g.dropEl=null; }
-  g.dropDay=g.dropTl=g.dropOn=g.gatherOn=g.gatherKind=null;
+  if(g.slotEl){ g.slotEl.classList.remove('aim'); g.slotEl=null; }
+  g.dropDay=g.dropTl=g.dropOn=g.gatherOn=g.gatherKind=g.dropSlot=null;
 }
 // Somewhere this object may legally end up: not itself, not inside itself, and
 // not a magic drawer — those collect by rule and hold nothing, so filing into
@@ -519,6 +523,9 @@ function aimHeld(g, px, py){
   grid.appendChild(g.band);
 }
 
+// the empty place under the pointer, if it is one
+const frontSlotAt = (px, py)=>{ const u=document.elementFromPoint(px, py);
+  return u && u.closest ? u.closest('.deskrail .railslot') : null; };
 function aimDrop(g, px, py){
   clearAim(g);
   const d=byId(g.id);
@@ -529,6 +536,16 @@ function aimDrop(g, px, py){
      beat and nothing it can take a drop away from. Everything else in this
      function is a question about the board; this one is a question about
      whether you have left it. See decision 107. */
+  /* An empty place in the drawer front (decision 252) is inside the Void
+     Drawer's mouth, so it is asked first, and the mouth is told it is not
+     being aimed at — or letting go over a place would still hold the thing. */
+  const slot = !g.group && S.device==='phone' && frontSlotAt(px, py);
+  if(slot && (d.parent||ROOT)===slot.dataset.slot.split(':')[0]){
+    if(g.holdOn){ g.holdOn=false; g.hold.classList.remove('aim');
+      g.hold.style.setProperty('--pull', AJAR+'px'); pullSay(g.hold, 'Let go to stand it in the front'); }
+    g.slotEl=slot; g.dropSlot=slot.dataset.slot; slot.classList.add('aim');
+    return;
+  }
   if(aimHold(g, px, py)) return;
   const under=document.elementFromPoint(px, py);
   if(!under) return;
@@ -870,6 +887,12 @@ function onDown(e){
     if(blk){ const g0 = G, cid = blk.dataset.id || ROOT;
       clearTimeout(BLOCK_T);
       BLOCK_T = setTimeout(()=>{ if(G===g0 && !g0.pull && !g0.mode) blockHold(cid); }, 450); }
+    /* …and holding a thing standing in the front asks where it goes
+       (decision 252), on the same beat. */
+    const thing = G.type==='rail' && e.target.closest('.ro-thing');
+    if(thing){ const g0 = G;
+      clearTimeout(BLOCK_T);
+      BLOCK_T = setTimeout(()=>{ if(G===g0 && !g0.pull && !g0.mode) frontHold(thing.dataset.id, thing); }, 450); }
     return;
   }
   /* ---- the Home Knob, on a Mac ----------------------------------------
@@ -1613,8 +1636,15 @@ function applyDrag(G, dx, dy){
       });
       // what is under the pointer is a place to land, not a collision
       aimDrop(G, G.px, G.py);
-      const landing = G.dropDay||G.dropTl||G.dropOn||G.gatherOn;
-      G.ghost.className='ghost'+(landing?' hidden':(G.ok?'':' bad'));
+      /* No ghost where letting go will not put it: over the Void Drawer, a
+         place in the drawer front, or past the edge of the drawn board — a
+         ghost placed on a row the grid has not got grows the grid a row, and
+         that pushed the drawer front down out from under the finger. */
+      const g0=gridOf(undefined, G.parent), sh=shelfShift(G.parent);
+      const off = box.y-sh.y<1 || box.x-sh.x<1
+        || box.y-sh.y+box.h-1>drawRows(g0) || box.x-sh.x+box.w-1>drawCols(g0);
+      const landing = G.dropDay||G.dropTl||G.dropOn||G.gatherOn||G.dropSlot||G.holdOn;
+      G.ghost.className='ghost'+(landing||off?' hidden':(G.ok?'':' bad'));
       place(G.ghost, box, G.parent);
     } else {
       place(G.el, box, G.parent);   // live resize, like dragging a window edge
@@ -1876,9 +1906,20 @@ function onUp(e){
     });
     if(g.ghost) g.ghost.remove();
     const aim={day:g.dropDay, tl:g.dropTl, on:g.dropOn, gath:g.gatherOn,
-               gk:g.gatherKind, hold:!!g.holdOn};
+               gk:g.gatherKind, hold:!!g.holdOn, slot:g.dropSlot};
     clearAim(g); closeAjar(g);
     const d=byId(g.id);
+    /* Into a place in the drawer front (decision 252). Still filed on its
+       board; it is drawn in the front and gives up its cells. */
+    if(d && aim.slot){
+      const side = aim.slot.split(':')[1];
+      pushSets('Into the drawer front', [[d.id,'front',d.front], [d.id,'frontAt',d.frontAt]]);
+      d.front = side==='left' ? 'left' : 'right'; d.frontAt = Date.now();
+      save(); render();
+      if(navigator.vibrate) navigator.vibrate(6);
+      toast('In the drawer front', true);
+      return;
+    }
     /* Into the drawer along the bottom. First, and outside the undo block
        below, because holdIt() records its own move — it is not a box being
        moved or a container being filed into, it is the object leaving the
@@ -1935,15 +1976,23 @@ function onUp(e){
     // the month, because a date it can't be seen on is only half the gesture
     if(d && aim.day){
       const [did,iso]=aim.day.split(':');
-      reschedule(d, iso); fileInto(d, did);
-      save(); render(); fileTo(held, heldAt, did);
+      reschedule(d, iso);
+      /* A calendar that collects by rule holds nothing, so the thing is dated
+         and stays where it was on the board. It used to fly into the calendar
+         anyway, which looked like the calendar had eaten it (decision 253);
+         now only a real filing gets the flight, and a date gets the bump. */
+      const filed = fileInto(d, did);
+      save(); render();
+      if(filed) fileTo(held, heldAt, did); else fileTo(null, null, did);
       toast(`Scheduled ${D.said(iso)}`, true);
       return;
     }
     // dropped along a timeline: the point on the axis is the date
     if(d && aim.tl){
-      reschedule(d, aim.tl.iso); fileInto(d, aim.tl.id);
-      save(); render(); fileTo(held, heldAt, aim.tl.id);
+      reschedule(d, aim.tl.iso);
+      const filed = fileInto(d, aim.tl.id);
+      save(); render();
+      if(filed) fileTo(held, heldAt, aim.tl.id); else fileTo(null, null, aim.tl.id);
       toast(`Placed at ${D.said(aim.tl.iso)}`, true);
       return;
     }

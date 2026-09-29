@@ -134,7 +134,10 @@ cell the smaller of width over columns and room over rows. Such a board is
 screen from the scroller's content box for it, because the grid's own width is
 no longer the screen's. Change a shape through `setBoardDims()`, which rescales
 both devices' boxes and re-places anything that no longer fits, adding a board
-if it must. A board with no shape is exactly what it was before.
+if it must. A board with no shape is exactly what it was before. **It is not
+short** (decision 249): its leftover goes half to the lip and half to the front
+like the default board's, so a stated 8×14 is the default to the pixel; only a
+proportional drawer is centred.
 
 **What was already on the desk is moved to the middle shelf once**, per device,
 by `centreDesk()` — and it has to happen at first render rather than in the
@@ -522,3 +525,12 @@ in views.js; `railTool()` draws each from `TOOLART` in active.js. The desk
 keeps its gear. The same six tools are objects (`ACTIVE` rows `tglass`,
 `tblock`, `tlock`, `tgear`, `spool`, `coin`), and a press on either lands in
 `toolPress()` in wire.js, so the object and the button cannot drift apart.
+
+**Six places, and anything can stand in one** (decision 252). `front:
+'left'|'right'` on an object puts it in its board's front, after the tools
+(`railSide()` in views.js), drawn as its 1×1 self by `railThing()` inside a
+**span** (a button in a button spills the front). It stays filed on the board
+and gives up its cells: `inFront()` is left out of `gridOfContainer()` and
+`boxOk()`, phone only. `keepSize()` clears it on every reparent. Empty places
+(`.railslot`) show only while carrying; `aimDrop()` asks them before the Void
+Drawer's mouth, which they sit inside.

@@ -3,7 +3,7 @@ import { S, byId, K, KINDS, KEYS, kindHas, has, isContainer, genKindOf, streak, 
   repeatOf, repeats, nextRepeat, faceOf, childrenOf, TILT_MODES, tiltMode, GRAVITIES, gravityMode,
   ctlOf, isPrimary, SECONDARY, MASTERS, inMaster, isCut, doesOf, isPicture, isDecor, shapeOf, isBackdrop,
   BORDER_SLOTS, STOCK_SLOTS, SEAL_KEYS, TSIZES, FILL_KEYS, BUTTON_IMGS,
-  placeOf, cfgOf, isHeld, heldObjects, homeFor , attrsOf, habitPlan, habitOn, tagSlug, mediaTypeOf, measureOf, amountSaid } from './model.js';
+  placeOf, cfgOf, isHeld, heldObjects, homeFor , attrsOf, relate, habitPlan, habitOn, tagSlug, mediaTypeOf, measureOf, amountSaid } from './model.js';
 import { GRID, PHONE_GRIDS, colsOf, gridOf, shelfRows, freeSpot, anySpot, roomFor, lay, boxOk, sizeOfKind, keepSize, shelvesOf, addBoard, randomSizeOf } from './grid.js';
 import { randomFront, randomBoard, randomLook, styleDefaults,
   STYLES, CHECKS, DARKMODES, styleKey, applyStyle, applyLook, OBJ0, OBJN } from './look.js';
@@ -794,6 +794,52 @@ function gather(aId, bId, kind){
   return c;
 }
 
+/* ---- a compound, made — decision 254 -----------------------------------
+   Every part is an ordinary object, made the ordinary way and set up already
+   (a part answers its own questions from the table, so none of them asks on
+   its first tap), placed at its offset from one corner, and given the one
+   `grp` that makes them move as one. The corner is the cell the Magic
+   Selector drew when the whole footprint is free there, and otherwise the
+   first place the whole footprint fits: a compound is never scattered to
+   make it fit, because apart it is not the thing it was.
+
+   The other device is given the same arrangement where it has room for it at
+   the same numbers, and only sizes where it has not, which `ensureBox()`
+   then places one by one: the group still moves as one there once it is put
+   back together, and nothing is lost.
+
+   **One undo move**, so the Undo on the toast takes the whole of it back. */
+function makeCompound(kind, at){
+  const d = K(kind); if(!d.parts) return null;
+  const dv = dev(), other = dv==='phone' ? 'desk' : 'phone';
+  const home = homeFor((at && at.parent) || (S.view==='drawer' && S.drawerId) || ROOT);
+  const [fw, fh] = d.size;
+  let o0 = null;
+  if(at && at.x!=null){ const b = {x:at.x, y:at.y, w:fw, h:fh}; if(boxOk(b, null, dv, home)) o0 = b; }
+  if(!o0) o0 = freeSpot(fw, fh, dv, home);
+  if(!o0 || o0.w<fw || o0.h<fh){ toast(`No room for a ${d.nm.toLowerCase()} on this board`); return null; }
+  const otherFits = boxOk({x:o0.x, y:o0.y, w:fw, h:fh}, null, other, home);
+  const grp = uid('g'), refs = {}, made = [];
+  d.parts.forEach(s=>{
+    const o = create(s.k, Object.assign({parent:home, title:s.t||K(s.k).nm, noSeed:true},
+      s.set ? JSON.parse(JSON.stringify(s.set)) : {}));
+    delete o.setup;
+    const box = {x:o0.x+s.b[0]-1, y:o0.y+s.b[1]-1, w:s.b[2], h:s.b[3]};
+    o[dv] = box;
+    o[other] = otherFits ? Object.assign({}, box) : {w:s.b[2], h:s.b[3]};
+    o.grp = grp;
+    if(s.ref) refs[s.ref] = o.id;
+    made.push([o, s]);
+  });
+  const said = r => refs[String(r||'').replace(/^@/, '')];
+  made.forEach(([o, s])=>{
+    if(s.tracks && said(s.tracks)) o.tracks = said(s.tracks);
+    (s.rel||[]).forEach(r=>{ if(said(r)) relate(o.id, said(r)); });
+  });
+  pushUndo(`Made a ${d.nm.toLowerCase()}`, made.map(([o])=>({add:o.id})));
+  return made.map(([o])=>o);
+}
+
 function quickAdd(text, kind, drawerId){
   let t=text.trim(); if(!t) return null;
   let k=kind||'task', due=null; const tags=[];
@@ -1336,7 +1382,7 @@ function dealTop(id){
 // the one door, so nothing outside has to know a habit ticks differently.
 export { toast, setGridSize, setBoardDims, toggleDone, spawnNext, del, delMany, delDrawer, undo, redo,
   pushUndo, pushSet, pushSets, toggleFree, setPin, togglePin, becomeKind, seedInto,
-  drawerForTag, create, gather, quickAdd, spawnInto, randomThing,
+  drawerForTag, create, makeCompound, gather, quickAdd, spawnInto, randomThing,
   loadTexts, CONTROLS, CTL_KEYS, ctlSpec, ctlSaid, ctlIsOn, ctlForm, ctlNum, ctlIndex, ctlPress, someKind,
   fits,
   holdIt, holdMany, unholdIt, unholdMany, undoToast, dealTop, furnish, PICTURES, PAINTINGS, galleryOf, hangPainting, pictureMedia, CLIPS };

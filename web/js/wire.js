@@ -1,15 +1,15 @@
-import { $, $$, esc, ic, uid, D, ROOT, pastTense, outURL } from './util.js';
+import { $, $$, esc, ic, uid, D, ROOT, clamp, pastTense, outURL } from './util.js';
 import { SETUPS, setupOpen, closeSetup, setupAnswer, setupNext, setupBack, setupSkip } from './setup.js';
 import { S, K, KINDS, KEYS, refreshKinds, ATTRS, attrsOf, has, SHAPES,
   FACES, MANUAL, byId, container, cfgOf, isContainer, isAncestor, relate, deskOf,
   unrelate, sensedDevice, reset, T, dz, dev, calViewOf, RULE_MAX, acceptFor, acceptAny,
   boardLocked, repeatOf, repeats, heldObjects, heldCount, marginOf, marginPlus, homeFor,
   layoutOf, setClFit, genKindOf, makesAnything , groupMates, groupTogether, isDesk, faceOf, kindHas,
-  sortOf, sortCycleOf, SORT_FACES } from './model.js';
+  sortOf, sortCycleOf, SORT_FACES, inFront } from './model.js';
 import { gridOf, lay, boxOk, freeSpot, anySpot, roomFor, sizeOfKind, toPhoneSize, keepSize,
   shelvesOf, shelfAt, setShelf, shelvesToHold, addBoard, removeBoard, onBoard, randomSpot, colsOf, shelfRows, boardsOf, randomSizeOf } from './grid.js';
 import { applyLook, applyStyle, setLookVal, lookVal, STYLES, setSlot, objColour, darkMode } from './look.js';
-import { dealTop, furnish, toast, fits, setGridSize, setBoardDims, toggleDone, spawnNext, del, delMany, delDrawer, undo, redo, pushUndo,
+import { dealTop, furnish, toast, fits, makeCompound, setGridSize, setBoardDims, toggleDone, spawnNext, del, delMany, delDrawer, undo, redo, pushUndo,
   pushSet, pushSets, setPin, togglePin, drawerForTag, create, spawnInto, randomThing,
   holdIt, holdMany, unholdIt, unholdMany, undoToast, someKind, becomeKind , toggleFree, galleryOf, hangPainting } from './mutations.js';
 import { spinTo, pending, placeAtPending, tileTap, turnPage, clearPages, intoOf, TOOLS } from './tiles.js';
@@ -22,7 +22,7 @@ import { openObj, openWriter, openRead, openViewer, closeSheet, renderSheet, wor
 import { wordsToType, clearTypeWords, clearOwnWords, wordFrom } from './words.js';
 import { openPanel, closePanel, refreshPanel, panelKey, panelBack, draft, modalNewObject, modalNewKind, modalMove, renderPreview, holdPanel,
   objectPanel,
-  drawerFromSelection, openCtx, closeCtx, ringJustOpened, sortMenu, openCmd, closeCmd, cmdList, cmdMove, cmdAt, runCmd,
+  drawerFromSelection, openCtx, closeCtx, ringJustOpened, sortMenu, openMenu, openCmd, closeCmd, cmdList, cmdMove, cmdAt, runCmd,
   schedulePanel, quickISO, SCHED, SCHED_PENS, plansPanel, tagFirstPanel,
   familyPanel, becomePanel, lifeFirstPanel, donePanel, ringInto, variantPatch } from './panels.js';
 import { onDown, onMove, onUp, onCancel, onTouchStart, onTouchMove, onTouchEnd,
@@ -213,6 +213,31 @@ function makeDone(kind, srcId){
    the timestamp rather than a flag, so a hold that leaves no click behind
    leaves nothing armed either. */
 let BLOCK_HELD = 0, FLIPS = 0;
+/* ---- a thing in the drawer front — decision 252 -------------------------
+   A tap is the tap it would have been on the board; a hold asks where it
+   goes instead, because there is no board under it to drag it onto from
+   there. FRONT_HELD stops the click that follows the hold from pressing it. */
+let FRONT_HELD = 0;
+function frontHold(id, anchor){
+  const o=byId(id); if(!o || !anchor) return;
+  FRONT_HELD = Date.now();
+  if(navigator.vibrate) navigator.vibrate(8);
+  openMenu(anchor, `<div class="ctxhead">${esc(o.title||K(o.kind).nm)}</div>
+    <button data-act="frontout" data-id="${esc(id)}">${ic('grid',13)} Back on the board</button>
+    <button data-act="frontvoid" data-id="${esc(id)}">${ic('archive',13)} Into the Void Drawer</button>`);
+  // from the drawer front there is no below, so it stands on the wood
+  const el=$('#ctx'), r=$('#frame').getBoundingClientRect(), a=anchor.getBoundingClientRect();
+  el.style.top = clamp(a.top - r.top - el.offsetHeight - 8, 6, Math.max(6, r.height-el.offsetHeight-6))+'px';
+}
+/* Out of the front and onto its board, somewhere with room: it gave its
+   cells up when it went in, so its old place may be taken. */
+function frontOut(id){
+  const o=byId(id); if(!o || !o.front) return false;
+  pushSets('Out of the drawer front', [[id,'front',o.front], [id,'frontAt',o.frontAt], [id,'phone',o.phone ? {...o.phone} : o.phone]]);
+  delete o.front; delete o.frontAt;
+  if(o.phone && o.phone.w) o.phone = {w:o.phone.w, h:o.phone.h};
+  return true;
+}
 function blockHold(cid){
   BLOCK_HELD = Date.now();
   const t = cfgOf(cid); if(!t) return;
@@ -239,6 +264,16 @@ function newOfKind(kind, asked, patch){
   if(!fits(kind, (at && at.parent) || homeFor((S.view==='drawer' && S.drawerId) || ROOT),
            undefined, at)) return;
   if(k.picksFile){ $('#imgpicker').click(); return; }
+  /* **A compound is several things** (decision 254): made together where
+     the Magic Selector drew, grouped, and taken back as one. */
+  if(k.parts){
+    pending.cell = null;
+    const made = makeCompound(kind, at);
+    if(!made) return;
+    save(); render(); reveal(made[0].id);
+    toast(`Made a ${k.nm.toLowerCase()} · its parts move together`, true);
+    return;
+  }
   /* **A type with a setup is made plain and asks on its first tap**
      (decision 229): no question before it exists, no family panel, no seed.
      It is put down as the thing it is, carrying `setup`, and pressing it
@@ -478,6 +513,8 @@ function setField(el){
       t.tsize = under ? '-' : null; if(was===undefined && !under) delete t.tsize;
       break;
     }
+    // looping is the default, so the only answer stored is "stop" (decision 250)
+    case 'loop': if(o){ if(v==='0') o.loop=false; else delete o.loop; } break;
     case 'mtype': if(o) o.media=Object.assign({label:'untitled'}, o.media, {type:v}); break;
     case 'linklabel': case 'linktarget': case 'linkurl': {
       if(!o) break;
@@ -994,6 +1031,24 @@ function act(name, el){
     case 'ringback': ringInto(null); break;
     case 'ringmore': { const at = pending.cell; closeCtx(); pending.cell = at;
       modalNewObject(); break; }
+    case 'frontpress': {
+      if(Date.now() - FRONT_HELD < 700) break;
+      if(el.dataset.id) tileTap(el.dataset.id);
+      break;
+    }
+    case 'frontout': {
+      closeCtx();
+      const fid = el.dataset.id;
+      if(!frontOut(fid)) break;
+      save(); render(); reveal(fid); refreshPanel();
+      toast('Back on the board', true);
+      break;
+    }
+    case 'frontvoid': {
+      closeCtx();
+      if(holdIt(el.dataset.id)){ render(); toast('Into the Void Drawer', true); }
+      break;
+    }
     case 'setsort': {
       closeCtx();
       setField({dataset:{oset:`${el.dataset.id||ROOT}:sort`}, value:el.dataset.v});
@@ -1249,7 +1304,8 @@ function wire(){
     if(gestureFlags.suppressClick){ gestureFlags.suppressClick=false; return; }
     const t=e.target;
     // …but not the click the shape ring's own release leaves behind (210)
-    if(!t.closest('#ctx') && !ringJustOpened()) closeCtx();
+    // …nor the one a hold in the drawer front leaves under its menu (252)
+    if(!t.closest('#ctx') && !ringJustOpened() && Date.now() - FRONT_HELD > 900) closeCtx();
     /* Typing into a tile is not clicking the tile. A checklist front carries a
        real input inside a [data-drawer], so without this, reaching for the box
        opens the drawer out from under you. Every field in the app is driven by
@@ -1652,7 +1708,9 @@ function wire(){
       const [cid,side,tool]=rtl.dataset.railtool.split(':');
       const cfg = cfgOf(cid); if(!cfg) return;
       const now = railToolsOf(cid), had = now[side].includes(tool);
-      if(!had && now[side].length>=3){ toast('Three a side — take one off first'); return; }
+      // a thing standing in the front holds its place as much as a tool does
+      const stood = S.objects.filter(o=>(o.parent||ROOT)===cid && o.front===side && inFront(o)).length;
+      if(!had && now[side].length + stood>=3){ toast('Three a side — take one off first'); return; }
       /* The desk's gear is the way into Settings on a phone, and there is no
          other; a drawer's Board settings are in its own editor too. */
       if(had && cid===ROOT && tool==='gear'){ toast('The desk keeps its gear — it is the way into Settings'); return; }
@@ -2734,4 +2792,4 @@ function wire(){
   document.addEventListener('visibilitychange', ()=>{ if(document.hidden) writeNow(); });
 }
 
-export { wire, newOfKind, blockHold, toolPress };
+export { wire, newOfKind, blockHold, frontHold, toolPress };

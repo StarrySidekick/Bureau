@@ -1,4 +1,4 @@
-import { wordStyle, wordOf, wordKey } from './words.js';
+import { wordStyle, wordOf, wordKey, inkOf, isWritten } from './words.js';
 import { esc, ic, clamp, D, md, plain, oneline, outURL, whereTo, ROOT, pastTense } from './util.js';
 import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, childrenOf, container,
   clPerCell,
@@ -7,10 +7,10 @@ import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, chi
   projCoverOf, lifeArtOf, goalStanding, GOAL_STANDINGS,
   makesAnything, ctlOf, takesTyping, showsAddBox,
   knobSizeOf, answered, sortOf, spanOf, coversDay, lateOn, isLate, iconOf, textSizeOf,
-  isPicture, isMedia, isPlayable, isDecor, isBackdrop, fillOf, mediaTypeOf, frameOf, isWindow,
+  isPicture, isMedia, isPlayable, isDecor, isBackdrop, fillOf, mediaTypeOf, loopOf, frameOf, isWindow,
   boardLocked, prioOf, repeatSaid, urgencyOf, urgeSaid, durSaid, standsProud, shelfDepth, bookDepth, faceCue, anyFaceCue,
   calViewOf, calShowOf, weekStartOf, calCols, borderOf, textureOf, marginOf, isFragmentKind, gravityOn,
-  groupOf, sealOf, isSealed, habitPlan, habitPeriods, habitRun, relate, measureOf, amountSaid } from './model.js';
+  groupOf, sealOf, isSealed, habitPlan, habitPeriods, habitRun, relate, measureOf, amountSaid, inFront, countOf, countsOf, COUNTS } from './model.js';
 import { GRID, CELL, gridOf, drawCols, drawRows, lay, overlaps, boxOk, freeSpot, anySpot, roomFor, gridRows, sizeOfKind, sideways, innerOf,
   ensureBox, shelfRows, shelfOrigin, shelfAt, shelfOfBox, colsOf, flows, boardsOf, nearestBoard, isBoard, reachable, dimsOf, MEASURE } from './grid.js';
 import { dealTop, create, toast, fits, toggleDone, someKind, furnish, ctlSpec, ctlSaid, ctlIsOn,
@@ -561,6 +561,7 @@ function scratchAudio(id){
     a.addEventListener('ended', ()=>markSounding(id,false));
     SOUNDS.set(id, a);
   }
+  a.loop = loopOf(o);
   return a;
 }
 function scratchGrab(id){
@@ -591,6 +592,7 @@ function playPress(id){
   if(mediaTypeOf(o)==='video'){
     const v = document.querySelector(`[data-row="${id}"] video`);
     if(!v) return;
+    v.loop = loopOf(o);
     if(v.paused){ stopSounds(); v.muted=false; v.play().then(()=>markSounding(id,true)).catch(()=>{}); }
     else { v.pause(); markSounding(id,false); }
     return;
@@ -602,6 +604,8 @@ function playPress(id){
     a.addEventListener('ended', ()=>markSounding(id,false));
     SOUNDS.set(id, a);
   }
+  // read at every press, so a change in the editor holds for the next play
+  a.loop = loopOf(o);
   if(a.paused){ stopSounds(); a.play().then(()=>markSounding(id,true)).catch(()=>{}); }
   else { a.pause(); markSounding(id,false); }
 }
@@ -731,6 +735,8 @@ function tileTap(id){
        than re-rendered, because a fresh element starts at its final transform
        and the count would blink from 7 to 8 instead of rolling. */
     case 'count': {
+      // a counter reading something opens what it reads (decision 254)
+      if(countsOf(o)){ openObj(o.tracks); return; }
       o.count=(o.count||0)+1; save();
       const w=document.querySelector(`[data-row="${id}"] .cntnum`);
       if(w) spinTo(w, o.count); else render();
@@ -2554,9 +2560,9 @@ function drawTileFace(o, arr, box, persp){
           title="${esc(o.title||'Untitled')} — press to play" style="--c:${colour};${place}">
         ${chips}
         ${src?`<video class="tilevid" src="${esc(src)}#t=0.1" preload="metadata"${
-            /* a bundled clip (decision 230) loops, the way the GIF it was
-               made from did, and shows its own still until it is pressed */
-            o.media.loop ? ' loop' : ''}${o.media.poster ? ` poster="${esc(o.media.poster)}"` : ''}
+            /* it loops unless told to play once (decision 250), and a
+               bundled clip shows its own still until it is pressed */
+            loopOf(o) ? ' loop' : ''}${o.media.poster ? ` poster="${esc(o.media.poster)}"` : ''}
           playsinline tabindex="-1"></video>`
         :`<span class="vidempty">${ic('film',22)}<b>${esc(o.title||'Add a video')}</b></span>
           <span class="medbtn blank" aria-hidden="true">${ic('plus',20)}</span>`}
@@ -2764,10 +2770,13 @@ function drawTileFace(o, arr, box, persp){
        are no longer a button of their own: a tap on the counter is its `count`
        tap (`clickOf()`), and a hold carries it like any other tile. */
     const n = wheelsFor(box);
-    return `<button class="drawer otile sh-tally cnttile${sel}" data-row="${o.id}" style="--c:${colour};${place};${wheelVars(o)}">
+    // a readout says what it reads in its tooltip (decision 254)
+    const reads = countsOf(o), of = reads && byId(o.tracks);
+    const tip = reads ? `${o.title||'Untitled'} — ${COUNTS[reads].toLowerCase()} in ${of.title||K(of.kind).nm}` : (o.title||'Untitled');
+    return `<button class="drawer otile sh-tally cnttile${reads?' reads':''}${sel}" data-row="${o.id}" style="--c:${colour};${place};${wheelVars(o)}">
       ${chips}
       <span class="cntnum" data-wheels="${n}"
-        style="--wheels:${n}" title="${esc(o.title||'Untitled')}">${digitWheel(o.count||0, n)}</span>
+        style="--wheels:${n}" title="${esc(tip)}">${digitWheel(countOf(o), n)}</span>
       ${handles}
     </button>`;
   }
@@ -2817,7 +2826,7 @@ function drawTileFace(o, arr, box, persp){
     urg?` title="${esc(urgeSaid(o))}"`:''}>${esc(deadSaid(o))}</span>`);
   if(has(o,'streak')) bits.push(`${streak(o)}-day streak`);
   if(has(o,'progress')) bits.push(`${barPct(o)}%`);
-  if(has(o,'count')) bits.push(`${o.count||0}`);
+  if(has(o,'count')) bits.push(`${countOf(o)}`);
   if(has(o,'duration')&&o.dur) bits.push(durSaid(o.dur));
   if(has(o,'price')&&o.price) bits.push(esc(o.price));
   if(has(o,'location')&&o.loc) bits.push(esc(o.loc));
@@ -3192,7 +3201,8 @@ function gridOfContainer(cid){
     shift = {x: fit(cb.x + cb.w/2 - g.shelfW/2 - 1, g.shelfW, g.cols),
              y: flows(dv) ? 0 : fit(cb.y + cb.h/2 - g.shelfH/2 - 1, g.shelfH, g.rows)};
   }
-  let kids=childrenOf(c);
+  // what stands in the drawer front is drawn there instead (decision 252)
+  let kids=childrenOf(c).filter(o=>!inFront(o));
   FLOW.clear();
   /* An object with no box yet is left off this frame rather than drawn at the
      origin: `ensureBox()` refuses to place anything before the board has been
@@ -3475,6 +3485,80 @@ function splitToFit(el, over){
    here is the untransformed one, and the words come out at the size a tile
    sets them and are then made bigger by the same transform that made the tile
    bigger. It is in the cache key for the same reason the window is. */
+/* ---- the page wears the face — decision 251 ----------------------------
+   Timothy: pressing a written thing should be the face grown to the size of a
+   book, not a different sheet. The reader drew its own stock, a sans-serif
+   and the page's ink, so a Victorian note in Iowan Old Style on cream with a
+   hairline border opened onto something that looked like another app.
+
+   **The face is read off the tile, not re-derived.** What a tile looks like is
+   the aesthetic, the type's shape, the border family, the stock and the
+   Words door all at once, spread across seven stylesheets' worth of rules;
+   restating that for a page would be a second answer that drifts from the
+   first. The tile on the board is the one answer, so its computed paper,
+   border, corners, shadow, typeface and ink are what the page is given.
+   Remembered per object, so opening one from the palette or the search, where
+   its tile is not on the screen, still wears the face it was last seen in.
+
+   **The Words door still wins**, because that is where you said it outright:
+   a typeface, an ink or a paper set there is on the page already through
+   `wordStyle()`, and a page layout (`doc`) keeps the typeface it is. The
+   pagination ruler wears the same look, or a border or a typeface the page
+   has would move the breaks. */
+const FACE = new Map();
+const NOFACE = {cls:'', vars:'', paper:'', key:''};
+const said = (o,k) => { const v=wordOf(o,k); return v!=null && v!=='' && v!=='-'; };
+const clearPaint = c => !c || c==='transparent' || /rgba\([^)]*,\s*0\)$/.test(c) || /\/\s*0\)$/.test(c);
+function readFace(o, el){
+  const cs=getComputedStyle(el);
+  const txt=el.querySelector('.tiletext,.inlinebody'), nm=el.querySelector('.dname');
+  const cls=[], v=[], p=[];
+  const q = s => String(s).replace(/"/g, "'");
+  if(!said(o,'tfont') && !said(o,'doc')){
+    cls.push('w-font'); v.push(`--tfam:${q(getComputedStyle(txt||el).fontFamily)}`); }
+  if(!said(o,'hfont') && !said(o,'tfont') && !said(o,'doc') && nm){
+    cls.push('w-hfont'); v.push(`--thfam:${q(getComputedStyle(nm).fontFamily)}`); }
+  if(!inkOf(o) && nm){
+    const ink=getComputedStyle(nm).color;
+    cls.push('w-ink');
+    v.push(`--ink:${ink};--ink-2:color-mix(in srgb, ${ink} 82%, transparent);--ink-3:color-mix(in srgb, ${ink} 70%, transparent);--tink:${ink}`);
+  }
+  // the face's capitals and its spacing, said in ems so they grow with the type
+  const ts = txt && getComputedStyle(txt);
+  const CASE = {uppercase:'upper', lowercase:'lower', capitalize:'title'};
+  if(ts && !said(o,'tcase') && CASE[ts.textTransform]) cls.push('w-case-'+CASE[ts.textTransform]);
+  if(ts && !said(o,'track') && ts.letterSpacing!=='normal' && parseFloat(ts.letterSpacing)){
+    cls.push('w-track');
+    v.push(`--track:${(parseFloat(ts.letterSpacing)/(parseFloat(ts.fontSize)||14)).toFixed(3)}em`);
+  }
+  /* The paper is the tile and the panel over it: a shape paints its form (a
+     telegram's rules, a card's lines) on `.dpanel`, which covers the tile, so
+     the panel's layers go on top. */
+  if(!said(o,'paperc') && !clearPaint(cs.backgroundColor)){
+    const pn = el.querySelector('.dpanel'), ps = pn && getComputedStyle(pn);
+    p.push(`background-color:${ps && !clearPaint(ps.backgroundColor) ? ps.backgroundColor : cs.backgroundColor}`);
+    const imgs=[ps && ps.backgroundImage, cs.backgroundImage].filter(x=>x && x!=='none');
+    if(imgs.length) p.push(`background-image:${q(imgs.join(', '))}`);
+  }
+  ['Top','Right','Bottom','Left'].forEach(s=>{
+    const w=cs[`border${s}Width`], st=cs[`border${s}Style`];
+    if(st && st!=='none' && parseFloat(w)>0) p.push(`border-${s.toLowerCase()}:${w} ${st} ${cs[`border${s}Color`]}`);
+  });
+  if(cs.borderRadius) p.push(`border-radius:${cs.borderRadius}`);
+  if(cs.boxShadow && cs.boxShadow!=='none')
+    p.push(`box-shadow:${cs.boxShadow}, 0 30px 60px -20px rgba(0,0,0,.7)`);
+  const paper=p.join(';');
+  const out={cls:cls.join(' '), vars:v.join(';')+(v.length?';':''), paper};
+  out.key=out.cls+'|'+out.vars+'|'+paper;
+  return out;
+}
+function faceLook(o){
+  if(!o || !isWritten(o)) return NOFACE;
+  const el=document.querySelector(`#app .grid .drawer.otile[data-row="${o.id}"]`);
+  if(el) FACE.set(o.id, readFace(o, el));
+  return FACE.get(o.id) || NOFACE;
+}
+
 function pagesOf(o, box){
   const full = !box && !!S.readFull;
   const two = box ? false : spreadNow(o);
@@ -3485,8 +3569,9 @@ function pagesOf(o, box){
              (o.media&&o.media.assetId)||'', innerWidth, innerHeight,
              box?`${Math.round(box.w)}x${Math.round(box.h)}@${
                box.fs?box.fs.toFixed(1):''}`:'',
-             // the typeface, size, spacing and layout the page is set in
-             wordKey(o)].join('|');
+             // the typeface, size, spacing and layout the page is set in, and
+             // the face it wears when it is a page rather than the tile
+             wordKey(o), box ? '' : faceLook(o).key].join('|');
   if(PAGES.key===key) return PAGES.list;
 
   const ruler=document.createElement('div');
@@ -3494,8 +3579,8 @@ function pagesOf(o, box){
      full screen is a different box — see the fullbleed block in chrome.css,
      which names `.bookruler` beside `.bookstage` for exactly this. */
   ruler.className='bookruler'+(full?' fullbleed':'');
-  const ws=wordStyle(o);
-  ruler.innerHTML=`<div class="book ${ws.cls}" style="${ws.vars}"><div class="spread">
+  const ws=wordStyle(o), fc=box ? NOFACE : faceLook(o);
+  ruler.innerHTML=`<div class="book ${ws.cls} ${fc.cls}" style="${ws.vars}${fc.vars}"><div class="spread" style="${fc.paper}">
     <div class="page"></div>${two?'<div class="page"></div>':''}</div></div>`;
   document.getElementById('frame').appendChild(ruler);
   const cell=ruler.querySelector('.page');
@@ -3563,7 +3648,8 @@ function pagesOf(o, box){
    page turns' guests any more. */
 function bookOf(o, left, right){
   const mode=readOf(o);
-  const ws=wordStyle(o), book=`<div class="book ${ws.cls}" style="${ws.vars}">`;
+  const ws=wordStyle(o), fc=faceLook(o);
+  const book=`<div class="book ${ws.cls} ${fc.cls}" style="${ws.vars}${fc.vars}">`;
   const bar = mid => `<div class="bookbar">
     <span class="bktools">${left||''}</span>
     <span class="bkturn">${mid}</span>
@@ -3571,7 +3657,7 @@ function bookOf(o, left, right){
   if(mode==='scroll'){
     // the same sheet, the same size — the column inside it scrolls instead of
     // the paper growing to fit what is on it
-    return `${book}<div class="spread scrolling ${sheetOf(o)}"><i class="dgrain"></i>
+    return `${book}<div class="spread scrolling ${sheetOf(o)}" style="${fc.paper}"><i class="dgrain"></i>
       <div class="page">${headOf(o)}${o.body?md(o.body):'<p class="thin">Nothing written yet.</p>'}</div>
     </div>${bar('')}</div>`;
   }
@@ -3583,7 +3669,7 @@ function bookOf(o, left, right){
     `<button class="iconbtn" data-act="bookprev" title="Back"${at<=0?' disabled':''}>${ic('chevL',15)}</button>
      <span class="bookcount">${two&&last>at+1?`${at+1}–${last}`:at+1} of ${pages.length}</span>
      <button class="iconbtn" data-act="booknext" title="On"${at+step>=pages.length?' disabled':''}>${ic('chevR',15)}</button>`;
-  return `${book}<div class="spread ${sheetOf(o)}"><i class="dgrain"></i>
+  return `${book}<div class="spread ${sheetOf(o)}" style="${fc.paper}"><i class="dgrain"></i>
       <div class="page">${pages[at]||''}<span class="pno">${at+1}</span></div>
       ${two?`<div class="page">${pages[at+1]||''}${pages[at+1]?`<span class="pno">${at+2}</span>`:''}</div>`:''}
     </div>${bar(turn)}</div>`;
@@ -3661,5 +3747,5 @@ function bookView(c, items){
    (the *object's* setting, a different thing entirely) is untouched. */
 export { spinTo, CLICKS, clickOf, fireButton, intoOf, tileTap, pending, placeAtPending, SHELFSHIFT,
   scratchGrab, scratchTo, scratchGo,
-  gridTile, gridOfContainer, listTile, boardVarsOf, TOOLS, threadTo, KSHAPES, kshapeOf, WHEEL_COLOURS, WHEEL_INKS, WHEEL_FONTS, VINYLS, PORTAL_SHAPES, PORTAL_STYLES, PORTAL_EDGES, bookOf, bookView, sheetOf, turnPage, clearPages,
+  gridTile, gridOfContainer, listTile, boardVarsOf, TOOLS, threadTo, KSHAPES, kshapeOf, WHEEL_COLOURS, WHEEL_INKS, WHEEL_FONTS, VINYLS, PORTAL_SHAPES, PORTAL_STYLES, PORTAL_EDGES, bookOf, bookView, sheetOf, faceLook, turnPage, clearPages,
   calSpan, calFront };

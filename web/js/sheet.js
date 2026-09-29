@@ -1,6 +1,6 @@
 import { $, $$, esc, ic } from './util.js';
-import { S, K, byId, has, isContainer, READS, readOf, isMedia, mediaTypeOf, iconOf } from './model.js';
-import { bookOf, sheetOf } from './tiles.js';
+import { S, K, byId, has, isContainer, READS, readOf, isMedia, mediaTypeOf, loopOf, iconOf } from './model.js';
+import { bookOf, sheetOf, faceLook } from './tiles.js';
 import { isActive, activeArt, activeSay, activeName, activeZoom } from './active.js';
 import { objColour } from './look.js';
 import { closePanel, objectPanel } from './panels.js';
@@ -405,9 +405,9 @@ function renderSheet(){
           ${src
             ? (kind==='audio'
                 ? `<div class="viewsound"><span class="vdmark">${ic('music',40)}</span>
-                     <audio class="viewplayer" src="${esc(src)}" controls preload="metadata"></audio></div>`
+                     <audio class="viewplayer" src="${esc(src)}" controls preload="metadata"${loopOf(o)?' loop':''}></audio></div>`
               : kind==='video'
-                ? `<video class="viewimg" src="${esc(src)}" controls preload="metadata" playsinline></video>`
+                ? `<video class="viewimg" src="${esc(src)}" controls preload="metadata" playsinline${loopOf(o)?' loop':''}></video>`
                 : `<img class="viewimg" src="${esc(src)}" alt="${esc(o.title||'')}" draggable="false">`)
             : `<button class="viewdrop" data-act="pickimage" data-id="${o.id}">
                  <span class="vdmark">${ic(kind==='audio'?'music':kind==='video'?'film':'image',40)}</span>
@@ -506,7 +506,7 @@ function renderSheet(){
         <div class="bookhead"><b>${esc(r.title||'Untitled')}</b></div>
         ${editing ? mdBar() : ''}
         ${editing
-          ? `<div class="book ${wordStyle(r).cls}" style="${wordStyle(r).vars}"><div class="spread ${sheetOf(r)}"><i class="dgrain"></i>
+          ? `<div class="book ${wordStyle(r).cls} ${faceLook(r).cls}" style="${wordStyle(r).vars}${faceLook(r).vars}"><div class="spread ${sheetOf(r)}" style="${faceLook(r).paper}"><i class="dgrain"></i>
              <div class="page">
               <textarea class="pagebody" data-w="body"
                 placeholder="Write.">${esc(r.body||'')}</textarea></div></div>
