@@ -522,9 +522,13 @@ const gridOf = (device, cid)=>{
      cannot grow. */
   const id = cid==null ? hereId() : cid;
   const pad = d==='phone' && flows(d) && !inner && !growsNot(id) ? shelfH : 0;
+  /* …and to the left and right (Timothy, 2026-09-29): the phone scrolls
+     every way, so the slot one step off either side is somewhere you can
+     scroll to as well. */
+  const padX = pad ? shelfW : 0;
   return {cols: inner ? inner.cols : shelfW*sh.w,
           rows: inner ? inner.rows : shelfH*sh.h,
-          shelfW, shelfH, shelves:sh, gap:GRID[d].gap, rowh, maxW, maxH, pad};
+          shelfW, shelfH, shelves:sh, gap:GRID[d].gap, rowh, maxW, maxH, pad, padX};
 };
 
 /* ---- how tall a shelf is ----------------------------------------------
@@ -601,9 +605,11 @@ function shelfOfBox(b, device, cid){
 /* …and since decision 272 a phone that scrolls reads across the seam up and
    down, so only the seam sideways, which is still the screen's edge, is
    refused there. */
-const oneShelf = (b, g, device)=>
+/* …and since the phone scrolls sideways too (2026-09-29), no seam is an edge
+   of the screen any more: a thing may lie across one either way. */
+const oneShelf = (b, g, device)=> flows(device) || (
      Math.floor((b.x-1)/g.shelfW) === Math.floor((b.x+b.w-2)/g.shelfW)
-  && (flows(device) || Math.floor((b.y-1)/g.shelfH) === Math.floor((b.y+b.h-2)/g.shelfH));
+  && Math.floor((b.y-1)/g.shelfH) === Math.floor((b.y+b.h-2)/g.shelfH));
 
 /* ---- which shelf you are looking at ------------------------------------
    Remembered per container, in memory, so walking into a drawer and back does
@@ -650,7 +656,7 @@ function setShelf(cid, x, y){
    shelf system and the one place to get it wrong. See decision 141. */
 function shelfOrigin(cid, device){
   const g=gridOf(device, cid), at=shelfAt(cid);
-  return {x: at.x*g.shelfW, y: flows(device) ? -g.pad : at.y*g.shelfH};
+  return flows(device) ? {x: -g.padX, y: -g.pad} : {x: at.x*g.shelfW, y: at.y*g.shelfH};
 }
 /* **A phone board can scroll instead of paging** (decision 209). `S.look.flow`
    — unset is the rigid swipe, a shelf at a time; `'scroll'` draws the whole
@@ -1036,8 +1042,10 @@ function ensureBox(o, device, parentId){
    which a drawer's own grid very often is. Drawing a shelf's worth of columns
    round a four-column board would stretch four tiles across ten cells' worth
    of screen and put every one of them somewhere its box does not say. */
+/* …and a phone that scrolls draws every column, with a pad either side
+   (2026-09-29): it scrolls sideways the way it scrolls down. */
 const drawCols = (g, device)=> (device||dev())==='phone'
-  ? Math.min(g.shelfW, g.cols) : g.cols;
+  ? (flows(device) ? g.cols + 2*(g.padX||0) : Math.min(g.shelfW, g.cols)) : g.cols;
 /* …and on a phone that scrolls (`flows()`), the whole column: every row of the
    board, in a scroller one shelf tall. The columns stay windowed. */
 /* …with the empty tile's worth above and below it (`g.pad`, decision 272). */

@@ -1541,7 +1541,12 @@ function pagerBegin(axis, dir, two){
   /* A phone that scrolls (`flows()`, decision 209) has no vertical pages to
      walk: the column is all drawn and the scroller is what carries you down
      it. Refusing here is what lets the finger fall through to the browser. */
-  if(axis==='y' && flows()) return false;
+  /* …nor sideways ones (2026-09-29): one finger pans the board natively
+     every way. What is left for the pager on such a phone is two fingers
+     sideways inside a container, which is the container beside it. */
+  /* Only on the grid, which is what scrolls: a list is one column of tiles
+     and still swipes to the next. */
+  if(flows() && $('#app #drawergrid') && !(two && axis==='x' && hereBoard()!==ROOT)) return false;
   const app=$('#app');
   const host = axis==='x' ? $('#app .main') : $('#app .scroll');
   if(!app || !host || !host.getBoundingClientRect().width) return false;

@@ -510,7 +510,8 @@ function aimHeld(g, px, py){
   const gr=gridOf(undefined, home), r=grid.getBoundingClientRect(), cw=cellW(grid, gr);
   const sh=shelfShift(home);
   const [w,h]=sizeOfKind(o.kind, dev(), home);
-  const x=clamp(Math.floor((px-r.left)/(cw+gr.gap))+1, 1, Math.max(1, gr.shelfW-w+1)) + sh.x;
+  // the drawn columns, which on a phone that scrolls sideways is all of them (273)
+  const x=clamp(Math.floor((px-r.left)/(cw+gr.gap))+1, 1, Math.max(1, drawCols(gr)-w+1)) + sh.x;
   const y=Math.max(1, Math.floor((py-r.top)/(CELL[dev()]+gr.gap))+1) + sh.y;
   const b={x, y, w, h};
   // shown only where it would actually land: a band over a taken cell is a

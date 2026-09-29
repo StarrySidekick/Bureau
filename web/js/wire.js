@@ -16,7 +16,7 @@ import { keepStill, spinTo, pending, placeAtPending, tileTap, turnPage, clearPag
 import { paintKey, openPaint, wirePaint } from './paint.js';
 import { bpmOf, minsOf, burnOf, sidesOf, metroGoing, startMetro, mindTheTime, actOf, deckTop } from './active.js';
 import { DECOR, LIFE_ART } from './decor.js';
-import { wireSnap, render, renderSoon, sizeGrid, toggleSettings, settingsPanel, reveal, goShelf, goShelfTo, openOverview, closeOverview, refreshOverview, overviewOn, overAsk, overCid, flipBlock, railToolsOf } from './views.js';
+import { wireSnap, render, renderSoon, sizeGrid, toggleSettings, settingsPanel, reveal, goShelf, goShelfTo, openOverview, closeOverview, refreshOverview, overviewOn, overAsk, overCid, flipBlock, railToolsOf, landOnShelf } from './views.js';
 import { closeGuide, guideOpen, saveGuide } from './guide.js';
 import { openObj, openWriter, openRead, openViewer, closeSheet, renderSheet, words,
   mdKey, mdTool, copyObject } from './sheet.js';
@@ -1790,7 +1790,7 @@ function wire(){
          it is one press further to go there. */
       if(overviewOn()){ save(); render(); refreshOverview(); toast('A new tile'); return; }
       setShelf(cid, got.x, got.y);
-      save(); render();
+      save(); render(); landOnShelf(cid);
       toast('A new tile');
       return; }
 

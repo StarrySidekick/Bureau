@@ -1340,7 +1340,7 @@ function bindSortables(){ /* delegation handles it; keep quick-add focused */ }
    meant moving a tile two rows down on a long desk threw you back to the first
    screen, mid-gesture. Remembered per place, so *navigating* still starts at
    the top: going into a drawer and coming back is a new view, not a redraw. */
-const SCROLL = {key:null, top:0, flow:false};
+const SCROLL = {key:null, top:0, left:0, flow:false};
 const viewKey = ()=> S.view==='drawer' ? 'drawer:'+S.drawerId : 'desk';
 
 /* ---- which shelf of a board you are on --------------------------------
@@ -1403,10 +1403,10 @@ function goShelfTo(cid, x, y, soon){
   /* **On a phone that scrolls, down is a scroll and not a render** (decision
      209). The whole column is already drawn, so a new row of shelves is a
      place further down the same scroller; only a new column is a new window. */
+  /* …and across is a scroll too, since the phone scrolls every way. */
   if(flows()){
     const at = shelfAt(cid);
-    if(at.x!==was.x){ if(soon) renderSoon(); else render(); }
-    if(at.y!==was.y) scrollToShelf(cid, at.y);
+    if(at.x!==was.x || at.y!==was.y){ scrollToShelf(cid, at.y, at.x); litDots(cid); }
     return true;
   }
   if(soon) renderSoon(); else render();
@@ -1415,14 +1415,28 @@ function goShelfTo(cid, x, y, soon){
 /* Scroll the live board to the top of a row of shelves — smoothly, unless
    asked not to move. SCROLL follows at once, so a render landing mid-glide
    puts the board where it is going rather than where it was. */
-function scrollToShelf(cid, y){
+/* A glide the app started already knows where it is going, so the tiles it
+   passes on the way are not where you are, until a finger takes over. */
+const GLIDE = {at:0};
+const GLIDE_MS = 900;
+function scrollToShelf(cid, y, x, jump){
   const sc = $('#app .scroll.deskscroll'), grid = sc && sc.querySelector('#drawergrid');
   if(!sc || !grid || (grid.dataset.gridfor||ROOT)!==cid) return;
   const top = tileTop(cid, y, sc, grid);
-  SCROLL.top = top;
-  const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  try{ sc.scrollTo({top, behavior: still ? 'auto' : 'smooth'}); }
-  catch(_){ sc.scrollTop = top; }
+  const across = x!=null && dev()==='phone' && flows();
+  const left = across ? tileLeft(cid, x, sc, grid) : sc.scrollLeft;
+  SCROLL.top = top; SCROLL.left = left; GLIDE.at = Date.now();
+  const still = jump || matchMedia('(prefers-reduced-motion: reduce)').matches;
+  try{ sc.scrollTo({top, left, behavior: still ? 'auto' : 'smooth'}); }
+  catch(_){ sc.scrollTop = top; sc.scrollLeft = left; }
+}
+/* Stand on the tile you are on, now: after a render that moved the numbers
+   under the scroll (a tile added to the left or above), the kept offset is
+   somewhere else. A no-op on a board that does not scroll. */
+function landOnShelf(cid){
+  if(dev()!=='phone' || !flows()) return;
+  const at = shelfAt(cid);
+  scrollToShelf(cid, at.y, at.x, true);
 }
 /* How far the shelf you are on is from the board's origin, in cells.
 
@@ -1538,6 +1552,11 @@ function reveal(id){
   if(er.top < sr.top+8 || er.bottom > sr.bottom-8){
     sc.scrollTop += (er.top - sr.top) - Math.max(12, (sr.height - er.height)/3);
     SCROLL.top = sc.scrollTop;
+  }
+  // …and across, on a phone that scrolls that way too (273)
+  if(er.left < sr.left-1 || er.right > sr.right+1){
+    sc.scrollLeft += (er.left - sr.left) - Math.max(0, (sr.width - er.width)/2);
+    SCROLL.left = sc.scrollLeft;
   }
 }
 
@@ -1729,7 +1748,7 @@ function render(){
   if(soonId){ cancelAnimationFrame(soonId); soonId=0; }
   const frame=$('#frame');
   const wasKey=SCROLL.key, wasEl=$('#app .scroll');
-  if(wasEl) SCROLL.top=wasEl.scrollTop;
+  if(wasEl){ SCROLL.top=wasEl.scrollTop; SCROLL.left=wasEl.scrollLeft; }
   /* Written wholesale, so anything else living on this element has to be
      restated here or it is wiped by the next render — which for `tilting` meant
      the cavity worked until you ticked something and then silently stopped.
@@ -1763,7 +1782,7 @@ function render(){
      nothing in the other one (decision 209). */
   const flowed = flows(), moved = key!==wasKey || flowed!==SCROLL.flow;
   SCROLL.flow = flowed;
-  if(moved) SCROLL.top=0;
+  if(moved){ SCROLL.top=0; SCROLL.left=0; }
   /* On a Mac nothing is windowed: the whole board is drawn and the shelf-rows
      you are not on are above and below in the scroller. So arriving at a board
      means scrolling to the row you are on — which for the desk is the middle
@@ -1777,6 +1796,11 @@ function render(){
   /* A phone that scrolls is drawn the way a Mac is, up and down, so it
      arrives the same way. */
   if(moved && (S.device!=='phone' || flowed)) SHELFSCROLL.want = true;
+  /* A phone scrolls sideways too (273), and a scroller that comes back with
+     nothing to restore across sits at its left edge — the empty pad — which
+     the scroll handler would then read as where you are. So it is put back on
+     the tile you are on, the way arriving does. */
+  if(S.device==='phone' && flowed && !SCROLL.left && $('#app #drawergrid')) SHELFSCROLL.want = true;
   /* Only when there is something to restore. Writing `scrollTop` on an element
      that was inserted a moment ago forces the browser to lay the whole board
      out then and there so it can work out the scroll range — nine milliseconds
@@ -1787,6 +1811,7 @@ function render(){
      happens once, where it belongs: at paint. A phone that scrolls (decision
      209) keeps its offset across a render the way a Mac does. */
   if(now && SCROLL.top) now.scrollTop=SCROLL.top;
+  if(now && SCROLL.left) now.scrollLeft=SCROLL.left;
   SCROLL.key=key;
   /* …and on a Mac the shelf you are on **is where you have scrolled to**. The
      scroller is a brand-new element every render, so this cannot leak; it
@@ -1837,6 +1862,22 @@ function tileTop(cid, y, sc, grid){
   const row = y*g.shelfH + (g.pad||0) - above;
   return Math.max(0, (grid ? grid.offsetTop : 0) + row*cell);
 }
+/* …and across (2026-09-29): a phone scrolls sideways too, and a tile is the
+   screen's width, so the tile you arrive at fills it edge to edge. */
+function tileLeft(cid, x, sc, grid){
+  const g = gridOf(dev(), cid), cell = CELL[dev()] + g.gap;
+  // centred exactly: a tile inset by the cavity leaves the same wood either side
+  const spare = sc ? Math.max(0, sc.clientWidth - g.shelfW*cell)/2 : 0;
+  const col = x*g.shelfW + (g.padX||0);
+  return Math.max(0, (grid ? grid.offsetLeft : 0) + col*cell - spare);
+}
+// which tile the middle of the screen is over, each way
+function tileUnder(sc, grid, g){
+  const cell = CELL[dev()] + g.gap;
+  const midY = (sc.scrollTop - grid.offsetTop + sc.clientHeight/2) / cell - (g.pad||0);
+  const midX = (sc.scrollLeft - grid.offsetLeft + sc.clientWidth/2) / cell - (g.padX||0);
+  return {x: Math.floor(midX / g.shelfW), y: Math.floor(midY / g.shelfH)};
+}
 /* Which tile you are on **is where the middle of the screen is**, on a Mac
    and on a phone that scrolls. The dots are patched in place rather than
    re-rendered: laying a board out on every scroll event is the one thing a
@@ -1844,14 +1885,24 @@ function tileTop(cid, y, sc, grid){
 function onBoardScroll(e){
   const sc=e.currentTarget;
   const cid=(S.view==='drawer'&&S.drawerId)||ROOT;
-  SCROLL.top = sc.scrollTop;
+  SCROLL.top = sc.scrollTop; SCROLL.left = sc.scrollLeft;
   snapSoon(sc);
   const g=gridOf(dev(), cid), grid=sc.querySelector('#drawergrid');
   const cell=CELL[dev()]+g.gap;
   if(!(cell>0) || !grid) return;
-  const mid = (sc.scrollTop - grid.offsetTop + sc.clientHeight/2) / cell - (g.pad||0);
-  const y = Math.floor(mid / g.shelfH);
-  if(!setShelf(cid, shelfAt(cid).x, y)) return;
+  if(Date.now() - GLIDE.at < GLIDE_MS && FINGER.at < GLIDE.at) return;
+  const t = tileUnder(sc, grid, g);
+  /* A scroll the app made (a restore clamped by a narrower board, a turn of
+     the phone) can leave the screen over the empty pad. Only a person walks
+     onto a slot; anything else keeps you where you were. */
+  if(!isBoard(cid, t.x, t.y) && Date.now() - FINGER.at > USER_SCROLL_MS) return;
+  // a Mac draws its whole row of tiles at once, so only down moves you there
+  const x = dev()==='phone' && flows() ? t.x : shelfAt(cid).x;
+  if(!setShelf(cid, x, t.y)) return;
+  litDots(cid);
+}
+// the dot for the tile you are on, patched in place rather than rendered
+function litDots(cid){
   const at=shelfAt(cid);
   $$('#app .shelfmark i').forEach(el=>{
     const p=(el.dataset.shelfgo||'').split(':');
@@ -1898,14 +1949,15 @@ function snapBoard(sc){
   /* *A tile at a time* settles on the nearest whole tile, centred, rather
      than the nearest row: the same scroll, a coarser rest. */
   const cid = grid.dataset.gridfor||ROOT;
-  const top = dev()==='phone' && byTile()
-    ? (()=>{ const mid = (sc.scrollTop - grid.offsetTop + sc.clientHeight/2)/cell - (g.pad||0);
-        const ty = Math.floor(mid / g.shelfH), ok = reachable(cid, shelfAt(cid).x, ty);
-        return Math.min(sc.scrollHeight - sc.clientHeight, tileTop(cid, ok ? ty : shelfAt(cid).y, sc, grid)); })()
+  const whole = dev()==='phone' && byTile();
+  const t = whole ? tileUnder(sc, grid, g) : null;
+  const ok = t && reachable(cid, t.x, t.y), at = ok ? t : shelfAt(cid);
+  const top = whole ? Math.min(sc.scrollHeight - sc.clientHeight, tileTop(cid, at.y, sc, grid))
     : near(sc.scrollTop, grid.offsetTop, sc.scrollHeight - sc.clientHeight);
-  const left = near(sc.scrollLeft, grid.offsetLeft, sc.scrollWidth - sc.clientWidth);
+  const left = whole ? Math.min(sc.scrollWidth - sc.clientWidth, tileLeft(cid, at.x, sc, grid))
+    : near(sc.scrollLeft, grid.offsetLeft, sc.scrollWidth - sc.clientWidth);
   if(Math.abs(top - sc.scrollTop) < 0.75 && Math.abs(left - sc.scrollLeft) < 0.75) return;
-  SCROLL.top = top;
+  SCROLL.top = top; SCROLL.left = left;
   const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
   try{ sc.scrollTo({top, left, behavior: still ? 'auto' : 'smooth'}); }
   catch(_){ sc.scrollTop = top; sc.scrollLeft = left; }
@@ -1927,7 +1979,8 @@ function sizeGrid(){
      costs a letterboxed board while it is sideways and gives it back exactly as
      it was. See `sideways()` in grid.js. */
   if(sideways()) return;
-  const g=gridOf(), w=cellW(grid,g);
+  const g=gridOf();
+  let w=cellW(grid,g);
   if(!(w>0)) return;
   const deskCell = ()=> MEASURE.desk.w ? MEASURE.desk.w/GRID.desk.cols : CELL.desk;
   /* The cell is **square**: the row height is the measured column width, on
@@ -1991,8 +2044,13 @@ function sizeGrid(){
        scroller's content box is. Every other board still measures itself,
        which is the same number when it fills the width. */
     const cs = getComputedStyle(sc);
-    const boardW = dimsOf(cid)
-      ? sc.clientWidth - (parseFloat(cs.paddingLeft)||0) - (parseFloat(cs.paddingRight)||0)
+    /* …and a phone that scrolls sideways draws a board wider than the
+       screen (2026-09-29), so it is never its own measure: the screen is. */
+    /* The cavity's inset is a margin on the grid, so a tile that is to sit
+       inside the opening is the screen less that margin either side. */
+    const gm = flows('phone') ? 2*(parseFloat(getComputedStyle(grid).marginLeft)||0) : 0;
+    const boardW = dimsOf(cid) || flows('phone')
+      ? sc.clientWidth - (parseFloat(cs.paddingLeft)||0) - (parseFloat(cs.paddingRight)||0) - gm
       : w * g.shelfW;
     /* The rows the **screen** shows (decision 272), which since a tile is
        eight is not a tile's height: fourteen on an iPhone, one tile and three
@@ -2002,6 +2060,10 @@ function sizeGrid(){
       MEASURE.phone.room=room; MEASURE.phone.w=boardW;
     }
     const rows=viewRows('phone');
+    /* A phone that scrolls sideways draws its grid as wide as its columns
+       times the cell (2026-09-29), so the grid measures back whatever cell it
+       was given: the cell is the screen's width over a tile's eight. */
+    if(flows('phone') && MEASURE.phone.w > 0) w = MEASURE.phone.w / g.shelfW;
     if(rows!==was && !sizing){ sizing=true; try{ render(); } finally { sizing=false; } return; }
     /* Written only when they have actually changed. The markup already carries
        last render's numbers (see REVEAL), so on an ordinary render these agree
@@ -2126,6 +2188,14 @@ function sizeGrid(){
      no rule has ever asked for. */
   const same = CELL[dev()]===cell && COLW[dev()]===cell;
   const changed = !sizing && Math.abs(CELL[dev()]-cell) > 0.25;
+  /* A scroll is in pixels and the board is in cells, so a cell that comes out
+     a different size than last time (the first measurement after a guess, a
+     rotation back) carries the scroll with it, or the tile you were centred on
+     slides by the difference times every cell above and beside it. */
+  if(changed && CELL[dev()] > 0){
+    const k = cell / CELL[dev()];
+    SCROLL.top *= k; SCROLL.left *= k;
+  }
   if(!same){
     CELL[dev()]=cell; COLW[dev()]=cell;
     grid.style.setProperty('--rowh', cell+'px');
@@ -2140,17 +2210,25 @@ function sizeGrid(){
   if(changed){ sizing=true; try{ render(); } finally { sizing=false; } return; }
   /* The scroll the last render asked for, now that a row's height is known. */
   // …on a Mac, and on a phone that scrolls rather than pages (decision 209)
+  /* …and a board the screen has come to rest off, over a slot you are not
+     standing on, is put back on the tile you are (273). */
+  if(!SHELFSCROLL.want && sc && dev()==='phone' && flows()){
+    const cid = grid.dataset.gridfor || ROOT, at = shelfAt(cid), t = tileUnder(sc, grid, g);
+    if(isBoard(cid, at.x, at.y) && (t.x!==at.x || t.y!==at.y) && !isBoard(cid, t.x, t.y)) SHELFSCROLL.want = true;
+  }
   if(SHELFSCROLL.want && (dev()!=='phone' || flows())){
     SHELFSCROLL.want=false;
     const cid = grid.dataset.gridfor || ROOT;
     if(sc){
-      SCROLL.top = tileTop(cid, shelfAt(cid).y, sc, grid);
+      const at = shelfAt(cid);
+      SCROLL.top = tileTop(cid, at.y, sc, grid);
       sc.scrollTop = SCROLL.top;
+      if(dev()==='phone' && flows()){ SCROLL.left = tileLeft(cid, at.x, sc, grid); sc.scrollLeft = SCROLL.left; }
     }
   }
 }
 
-export { wireSnap, render, renderSoon, sizeGrid, shelfTop, shelfLeft, shelfShift, centreDesk,
+export { landOnShelf, wireSnap, render, renderSoon, sizeGrid, shelfTop, shelfLeft, shelfShift, centreDesk,
   reveal, openOverview, closeOverview, refreshOverview, overviewOn, overAsk, overCid, viewHTML, previewHTML,
   goShelf, goShelfTo, sideDrawer, goSideDrawer, boardDimsField, shelfCountField, railToolsField, railToolsOf, RAIL_TOOLS,
   settingsPanel, toggleSettings, railObj, flipBlock };

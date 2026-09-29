@@ -285,6 +285,11 @@ or to a whole tile with *A tile at a time* (`snapBoard()`, `byTile()`), and
 arriving centres the tile (`tileTop()`). Stated board
 shapes and the 9/10-column grids are retired; migration 50 re-cuts old
 boards into tiles without moving anything.
+**v2.55** (decision 273): **the phone scrolls every way.** Every column is
+drawn with a tile's pad either side (`g.padX`), one finger pans natively both
+ways, the snap and the centring are both ways (`tileLeft()`, `tileUnder()`),
+the pager is only two fingers sideways inside a container, and a thing may
+cross any seam.
 
 **Start here each session:** `docs/SYSTEM.md` is the reference for what Bureau is
 made of — objects, attributes, types, drawers, the grid, the surfaces, storage.

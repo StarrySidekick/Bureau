@@ -15,7 +15,10 @@ views.js), and arriving centres the tile (`tileTop()`). A board's own shape
 (`bw`/`bh`) and the 9/10-column phone grids are retired. Paragraphs below
 that say a shelf is a screen, or that nothing straddles a seam on a phone,
 are history: a phone always scrolls now, and `S.look.flow==='page'` only
-makes the scroll settle on a whole tile (`byTile()`).
+makes the scroll settle on a whole tile (`byTile()`). **Since decision 273
+the phone scrolls sideways too**: every column is drawn with a pad either side
+(`g.padX`), the pager is only two fingers sideways inside a container, and no
+seam is refused.
 
 The grid, the shelves and the cells; measuring, placing and windowing; the carcass, the rail and the knob; a list as a board.
 

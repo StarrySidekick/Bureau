@@ -1143,10 +1143,10 @@ const depthOf = o =>
 /* `top` is the first drawn row of the **screen** (decision 272): a phone draws
    the whole column and shows fourteen rows of it centred on the tile you are
    on, so up and down are measured against that window, not the tile. */
-const PERSP = {cols:0, rows:0, top:0};
+const PERSP = {cols:0, rows:0, top:0, left:0};
 function perspOf(box){
   if(!PERSP.rows || !PERSP.cols) return null;
-  const px = ((box.x - 1 + box.w/2) / PERSP.cols) * 2 - 1;
+  const px = ((box.x - 1 - PERSP.left + box.w/2) / PERSP.cols) * 2 - 1;
   const py = ((box.y - 1 - PERSP.top + box.h/2) / PERSP.rows) * 2 - 1;
   return { x:+clamp(px,-1,1).toFixed(3), y:+clamp(py,-1,1).toFixed(3) };
 }
@@ -3330,7 +3330,7 @@ function gridOfContainer(cid){
     // the rows actually drawn, which on a phone that scrolls is the whole column
     const tall = drawRows(g, dv);
     kids = kids.filter(o=>{ const b=FLOW.get(o.id)||lay(o, dv, c.id);
-      return b.x>shift.x && b.x<=shift.x+g.shelfW && b.y>shift.y && b.y<=shift.y+tall; });
+      return b.x>shift.x && b.x<=shift.x+drawCols(g, dv) && b.y>shift.y && b.y<=shift.y+tall; });
   }
   SHELFSHIFT.x = shift.x; SHELFSHIFT.y = shift.y;
   /* Where the middle of this board is, for the shelf's perspective — once,
@@ -3340,6 +3340,7 @@ function gridOfContainer(cid){
      phone flat on a table. See decision 117. */
   PERSP.cols = standsProud() ? g.shelfW : 0;
   PERSP.rows = standsProud() ? (windowed ? viewRows(dv) : g.shelfH) : 0;
+  PERSP.left = standsProud() && windowed && flows(dv) ? shelfAt(c.id).x*g.shelfW + (g.padX||0) : 0;
   PERSP.top = standsProud() && windowed
     ? Math.max(0, shelfAt(c.id).y*g.shelfH + (g.pad||0) - Math.max(0, Math.floor((viewRows(dv) - g.shelfH)/2))) : 0;
   /* Before the tiles, not after: gridTile() takes each box out of FLOW as it
@@ -3348,7 +3349,7 @@ function gridOfContainer(cid){
   const strings=boardOverlay(kids, shift, g, dv, c.id);
   const lights=boardLights(kids, shift, g, dv, c.id);
   const tiles=kids.map(o=>gridTile(o,arr,c.id)).join('');
-  SHELFSHIFT.x = SHELFSHIFT.y = 0; PERSP.cols = PERSP.rows = PERSP.top = 0;
+  SHELFSHIFT.x = SHELFSHIFT.y = 0; PERSP.cols = PERSP.rows = PERSP.top = PERSP.left = 0;
   /* Exactly the shelves there are. A board is a finite space now — one shelf
      or nine — so it is neither "as tall as the tallest thing on it" nor "at
      least a screen": it is the shelves, and running out of them is what "it

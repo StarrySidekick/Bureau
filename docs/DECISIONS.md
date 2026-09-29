@@ -11441,3 +11441,43 @@ rows of the tile above and three of the tile below, so the viewport is still
   boxes from the block's corner.
 - **Limits**: `SPAN` (tiles either way) is 24 and `PAGES_MAX` 36, since a tile
   is about half what a board was.
+
+## 273 · The phone scrolls every way
+
+*2026-09-29.* Timothy: the smooth scrolling is supposed to be in all
+directions, not just up and down — left and right too — and the sideways
+swipe was buggy.
+
+- **Every column is drawn**, with an empty tile's pad to the left and right
+  as well as above and below (`g.padX`, `drawCols()`), and the grid is exactly
+  its columns times the cell wide (`.flowscroll .grid.g-phone`), so the
+  scroller has something to cross. `touch-action: pan-x pan-y`: one finger
+  pans the board natively, with momentum, every way.
+- **The pager stands down on a scrolling phone** (`pagerBegin()`), except for
+  two fingers sideways inside a container, which is still the container
+  beside it. The one-finger sideways swipe was the pager drawing a preview of
+  the next tile over a board it then replaced, which is where the bugginess
+  was; it is gone rather than fixed.
+- **The snap is both ways**, to the nearest cell, and *A tile at a time*
+  settles on a whole tile both ways. Arriving at a tile centres it both ways
+  (`tileLeft()` beside `tileTop()`); which tile you are on is the one under
+  the middle of the screen (`tileUnder()`), and `goShelfTo()` is a scroll in
+  either direction, never a render. `SCROLL.left` is carried across a render
+  like `SCROLL.top`, and both are rescaled when the cell changes size.
+- **No seam is the edge of the screen any more**, so `oneShelf()` refuses
+  nothing on a scrolling phone: a thing may lie across a seam either way.
+- **The cell is the screen's width over eight.** The grid used to be measured
+  for it, but a grid as wide as its columns times the cell measures back the
+  cell it was given, so it stuck at the first guess; `sizeGrid()` takes it
+  from `MEASURE.phone.w` instead. The depth cue's left and right are measured
+  from the screen (`PERSP.left`), as its up and down already were.
+- **Only a person walks onto an empty slot.** A scroll the app made (a
+  restore clamped by a board still being measured, a turn of the phone) can
+  leave the screen over the pad, and the scroll handler used to take that as
+  where you are. Now it keeps you on your tile unless a finger, wheel or key
+  made the scroll, and `sizeGrid()` puts a screen that came to rest over a
+  slot back on the tile you are on. A glide the app started (`scrollToShelf()`,
+  `GLIDE`) is not read tile by tile on its way, so `goShelfTo()` lands where
+  it said. A plus pressed beside the desk stands you on the new tile
+  (`landOnShelf()`), because a tile added on the left moves every number
+  under the kept scroll.
