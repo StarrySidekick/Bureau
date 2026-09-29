@@ -1,6 +1,6 @@
 import { $, $$, esc, ic } from './util.js';
 import { S, K, byId, has, isContainer, READS, readOf, isMedia, mediaTypeOf, loopOf, iconOf } from './model.js';
-import { bookOf, sheetOf, faceLook } from './tiles.js';
+import { bookOf, sheetOf, faceLook, facePaper } from './tiles.js';
 import { isActive, activeArt, activeSay, activeName, activeZoom } from './active.js';
 import { objColour } from './look.js';
 import { closePanel, objectPanel } from './panels.js';
@@ -506,7 +506,7 @@ function renderSheet(){
         <div class="bookhead"><b>${esc(r.title||'Untitled')}</b></div>
         ${editing ? mdBar() : ''}
         ${editing
-          ? `<div class="book ${wordStyle(r).cls} ${faceLook(r).cls}" style="${wordStyle(r).vars}${faceLook(r).vars}"><div class="spread ${sheetOf(r)}" style="${faceLook(r).paper}"><i class="dgrain"></i>
+          ? `<div class="book ${wordStyle(r).cls} ${faceLook(r).cls}" style="${wordStyle(r).vars}${faceLook(r).vars}"><div class="spread ${sheetOf(r)}" style="${facePaper(faceLook(r))}"><i class="dgrain"></i>
              <div class="page">
               <textarea class="pagebody" data-w="body"
                 placeholder="Write.">${esc(r.body||'')}</textarea></div></div>

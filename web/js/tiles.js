@@ -3564,7 +3564,9 @@ function splitToFit(el, over){
    pagination ruler wears the same look, or a border or a typeface the page
    has would move the breaks. */
 const FACE = new Map();
-const NOFACE = {cls:'', vars:'', paper:'', key:''};
+const NOFACE = {cls:'', vars:'', paper:'', bare:'', key:''};
+// the face's paint and frame, or only its paint on the whole screen (191)
+const facePaper = fc => S.readFull ? fc.bare : fc.paper;
 const said = (o,k) => { const v=wordOf(o,k); return v!=null && v!=='' && v!=='-'; };
 const clearPaint = c => !c || c==='transparent' || /rgba\([^)]*,\s*0\)$/.test(c) || /\/\s*0\)$/.test(c);
 function readFace(o, el){
@@ -3598,15 +3600,19 @@ function readFace(o, el){
     const imgs=[ps && ps.backgroundImage, cs.backgroundImage].filter(x=>x && x!=='none');
     if(imgs.length) p.push(`background-image:${q(imgs.join(', '))}`);
   }
+  /* The frame is kept apart from the paint: full screen is the screen, with
+     no edge and no corners (decision 191), so there the page wears the face's
+     paper and type and none of its frame. */
+  const f=[];
   ['Top','Right','Bottom','Left'].forEach(s=>{
     const w=cs[`border${s}Width`], st=cs[`border${s}Style`];
-    if(st && st!=='none' && parseFloat(w)>0) p.push(`border-${s.toLowerCase()}:${w} ${st} ${cs[`border${s}Color`]}`);
+    if(st && st!=='none' && parseFloat(w)>0) f.push(`border-${s.toLowerCase()}:${w} ${st} ${cs[`border${s}Color`]}`);
   });
-  if(cs.borderRadius) p.push(`border-radius:${cs.borderRadius}`);
+  if(cs.borderRadius) f.push(`border-radius:${cs.borderRadius}`);
   if(cs.boxShadow && cs.boxShadow!=='none')
-    p.push(`box-shadow:${cs.boxShadow}, 0 30px 60px -20px rgba(0,0,0,.7)`);
-  const paper=p.join(';');
-  const out={cls:cls.join(' '), vars:v.join(';')+(v.length?';':''), paper};
+    f.push(`box-shadow:${cs.boxShadow}, 0 30px 60px -20px rgba(0,0,0,.7)`);
+  const paper=p.concat(f).join(';'), bare=p.join(';');
+  const out={cls:cls.join(' '), vars:v.join(';')+(v.length?';':''), paper, bare};
   out.key=out.cls+'|'+out.vars+'|'+paper;
   return out;
 }
@@ -3638,7 +3644,7 @@ function pagesOf(o, box){
      which names `.bookruler` beside `.bookstage` for exactly this. */
   ruler.className='bookruler'+(full?' fullbleed':'');
   const ws=wordStyle(o), fc=box ? NOFACE : faceLook(o);
-  ruler.innerHTML=`<div class="book ${ws.cls} ${fc.cls}" style="${ws.vars}${fc.vars}"><div class="spread" style="${fc.paper}">
+  ruler.innerHTML=`<div class="book ${ws.cls} ${fc.cls}" style="${ws.vars}${fc.vars}"><div class="spread" style="${full ? fc.bare : fc.paper}">
     <div class="page"></div>${two?'<div class="page"></div>':''}</div></div>`;
   document.getElementById('frame').appendChild(ruler);
   const cell=ruler.querySelector('.page');
@@ -3715,7 +3721,7 @@ function bookOf(o, left, right){
   if(mode==='scroll'){
     // the same sheet, the same size — the column inside it scrolls instead of
     // the paper growing to fit what is on it
-    return `${book}<div class="spread scrolling ${sheetOf(o)}" style="${fc.paper}"><i class="dgrain"></i>
+    return `${book}<div class="spread scrolling ${sheetOf(o)}" style="${facePaper(fc)}"><i class="dgrain"></i>
       <div class="page">${headOf(o)}${o.body?md(o.body):'<p class="thin">Nothing written yet.</p>'}</div>
     </div>${bar('')}</div>`;
   }
@@ -3727,7 +3733,7 @@ function bookOf(o, left, right){
     `<button class="iconbtn" data-act="bookprev" title="Back"${at<=0?' disabled':''}>${ic('chevL',15)}</button>
      <span class="bookcount">${two&&last>at+1?`${at+1}–${last}`:at+1} of ${pages.length}</span>
      <button class="iconbtn" data-act="booknext" title="On"${at+step>=pages.length?' disabled':''}>${ic('chevR',15)}</button>`;
-  return `${book}<div class="spread ${sheetOf(o)}" style="${fc.paper}"><i class="dgrain"></i>
+  return `${book}<div class="spread ${sheetOf(o)}" style="${facePaper(fc)}"><i class="dgrain"></i>
       <div class="page">${pages[at]||''}<span class="pno">${at+1}</span></div>
       ${two?`<div class="page">${pages[at+1]||''}${pages[at+1]?`<span class="pno">${at+2}</span>`:''}</div>`:''}
     </div>${bar(turn)}</div>`;
@@ -3805,5 +3811,5 @@ function bookView(c, items){
    (the *object's* setting, a different thing entirely) is untouched. */
 export { keepStill, spinTo, CLICKS, clickOf, fireButton, intoOf, tileTap, pending, placeAtPending, SHELFSHIFT,
   scratchGrab, scratchTo, scratchGo,
-  gridTile, gridOfContainer, listTile, boardVarsOf, TOOLS, threadTo, KSHAPES, kshapeOf, WHEEL_COLOURS, WHEEL_INKS, WHEEL_FONTS, VINYLS, PORTAL_SHAPES, PORTAL_STYLES, PORTAL_EDGES, bookOf, bookView, sheetOf, faceLook, turnPage, clearPages,
+  gridTile, gridOfContainer, listTile, boardVarsOf, TOOLS, threadTo, KSHAPES, kshapeOf, WHEEL_COLOURS, WHEEL_INKS, WHEEL_FONTS, VINYLS, PORTAL_SHAPES, PORTAL_STYLES, PORTAL_EDGES, bookOf, bookView, sheetOf, faceLook, facePaper, turnPage, clearPages,
   calSpan, calFront };

@@ -11142,3 +11142,10 @@ change, perhaps by tying things with string.
   back; inside the drawer it is always there). **Quick list** is a compound:
   a notepad tied with string to a list under it. Counted list and Checklist
   with a bar gained a notepad (set to Task) the same way.
+
+**Amended the same day, v2.50.** Full screen is the screen (decision 191): no
+edge, no corners, no shadow. The face's border was overriding that, so the page
+on the screen came out smaller than the ruler measuring it and the breaks were
+for another page. On the whole screen the page now wears the face's paper and
+type and none of its frame (`facePaper()`); inset, it wears all of it. This
+amends decision 251.

@@ -5953,7 +5953,8 @@ const PROP_OFF = () => { const b = document.createElement('button');
     out.aTapOpensIt = BUREAU.K.task.onclick === 'when';
     BUREAU.ctx(10, 10, t.id); await nap(200);
     const item = document.querySelector('#ctx button[data-c^="when:"]');
-    out.theMenuOffersIt = !!item && /when/i.test(item.textContent);
+    // called Schedule since the Workshop's pass of decision 255
+    out.theMenuOffersIt = !!item && /schedule/i.test(item.textContent);
     /* Two quick options came off the menu: one duplicated the rail drop and
        the other is a press inside the page the menu now leads to. */
     const menu = [...document.querySelectorAll('#ctx button')].map(b => b.textContent);
