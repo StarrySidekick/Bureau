@@ -4,7 +4,7 @@ import { S, byId, K, KINDS, KEYS, kindHas, has, isContainer, genKindOf, streak, 
   ctlOf, isPrimary, SECONDARY, MASTERS, inMaster, isCut, doesOf, isPicture, isDecor, shapeOf, isBackdrop,
   BORDER_SLOTS, STOCK_SLOTS, SEAL_KEYS, TSIZES, FILL_KEYS, BUTTON_IMGS,
   placeOf, cfgOf, isHeld, heldObjects, homeFor , attrsOf, relate, rulesOf, CALSHOWS, SMART, habitPlan, habitOn, tagSlug, mediaTypeOf, measureOf, amountSaid } from './model.js';
-import { GRID, PHONE_GRIDS, colsOf, gridOf, shelfRows, freeSpot, anySpot, roomFor, lay, boxOk, sizeOfKind, keepSize, shelvesOf, addBoard, randomSizeOf } from './grid.js';
+import { TILE, GRID, PHONE_GRIDS, colsOf, gridOf, shelfRows, freeSpot, anySpot, roomFor, lay, boxOk, sizeOfKind, keepSize, shelvesOf, addBoard, randomSizeOf } from './grid.js';
 import { randomFront, randomBoard, randomLook, styleDefaults,
   STYLES, CHECKS, DARKMODES, styleKey, applyStyle, applyLook, OBJ0, OBJN } from './look.js';
 import { render, reveal } from './views.js';
@@ -415,6 +415,8 @@ function unholdMany(ids, intoId){
    honest cost of trying sizes on, and it is why this is a setting rather than
    a gesture. See decisions 48 and 60. */
 function setGridSize(key, cid){
+  // every tile is eight across since decision 272: there is nothing to choose
+  if(TILE) return;
   const cols = PHONE_GRIDS[key];
   if(!cols) return;
   if(cid!=null){
@@ -467,6 +469,8 @@ function setGridSize(key, cid){
    boxes are re-laid by `rescaleOneBoard()`, the same move a grid width has
    always made: each keeps its board and its place on it, scaled across. */
 function setBoardDims(cid, part, val){
+  // retired by decision 272: a board is tiles, every one eight by eight
+  if(TILE) return;
   const id = cid || ROOT;
   const c = id===ROOT ? (S.deskCfg || (S.deskCfg = {layout:'grid', sort:null})) : byId(id);
   if(!c) return;

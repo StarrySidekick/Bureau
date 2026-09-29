@@ -19,7 +19,7 @@ import { plans, stampPlan } from './plans.js';
    Bureau is this phone running" is exactly the question you ask when a change
    appears not to have deployed. Shown in Settings, so it can be read off the
    device rather than guessed at. */
-const APP_VERSION = '2.53';
+const APP_VERSION = '2.54';
 const KEY = 'bureau.v1';
 const install = {deferred:null};   // the browser's install prompt, when one is on offer
 let saveTimer = null;
@@ -267,7 +267,7 @@ function rescalePhone(d, from, cols){
    skips all of them, an old backup replays only what it is missing. These
    used to be ad-hoc per-load mutations inside adopt(); a new repair that
    should run once belongs here, as the next numbered step. */
-const DATA_V = 49;
+const DATA_V = 50;
 const MIGRATIONS = [
   // Drawers and objects were two arrays and a drawer could not live inside
   // anything. foldDrawers also replays the old dense flow to give v1 drawers
@@ -1216,6 +1216,66 @@ const MIGRATIONS = [
       if(f && (p.objects||[]).some(o=>o && o.kind==='goal')){ p.objects = JSON.parse(JSON.stringify(f.objects)); return; }
       (p.objects||[]).forEach(o=>{ if(o && o.kind==='goal'){ o.kind='card'; if(o.face==='goal') delete o.face; } });
     });
+  }},
+  /* ---- a board is tiles, every one eight by eight (decision 272) ---------
+     What was a board — eight by fourteen on a phone, or a shape somebody set
+     — is re-cut into tiles of eight by eight, and **nothing moves**: a box is
+     already in one continuous coordinate space per container, so the cells
+     it is on are the same cells, and all that changes is which rectangles of
+     them are called tiles. Every tile an old board covered is kept (a board
+     fourteen rows tall covers parts of two or three), and so is every tile
+     anything placed is standing on, on either device, whatever height a Mac
+     window happened to measure its boards at.
+
+     Two things do move, because they were in a coordinate space that is
+     gone: a phone board that was nine or ten columns (the grid sizes) and a
+     board of a stated width are rescaled to eight across, the way changing
+     the grid size always rescaled them. The sizes, `bw`/`bh` and `grid`,
+     then come off, and a desk that chose smooth scrolling no longer says so
+     because it is the default. A proportional board is its tile and is left
+     alone. */
+  {v:50, up(d){
+    const T = 8, OLD_H = 14, GRIDS = {small:8, extra:9, large:10};
+    const look = d.look || {};
+    const prop = !!look.proportional;
+    const objs = d.objects || [];
+    d.deskCfg = d.deskCfg || {layout:'grid', sort:null};
+    const cfg = id => id===ROOT ? d.deskCfg : objs.find(o=>o && o.id===id);
+    const ids = new Set([ROOT]);
+    objs.forEach(o=>{ if(!o) return;
+      if(o.parent && o.parent!=='__hold') ids.add(o.parent);
+      if(o.shelves || o.boards) ids.add(o.id); });
+    const appCols = GRIDS[look.grid] || 8;
+    ids.forEach(id=>{
+      const c = cfg(id); if(!c) return;
+      if(prop && id!==ROOT) return;
+      const kids = objs.filter(o=>o && (o.parent||ROOT)===id);
+      const phoneCols = +c.bw || GRIDS[c.grid] || (id===ROOT ? appCols : (GRIDS[d.deskCfg.grid] || appCols));
+      const deskCols = +c.bw || T;
+      const rowsOld = +c.bh || OLD_H;
+      if(phoneCols!==T) rescaleBoxes(kids, phoneCols, T, 'phone', [rowsOld, rowsOld]);
+      if(deskCols!==T) rescaleBoxes(kids, deskCols, T, 'desk', [rowsOld, rowsOld]);
+      const r = c.shelves || {w:1, h:1}, rw = Math.max(1, r.w|0), rh = Math.max(1, r.h|0);
+      const list = Array.isArray(c.boards) && c.boards.length ? c.boards.map(k=>String(k).split(',').map(Number))
+        : Array.from({length:rw*rh}, (_,n)=>[n%rw, Math.floor(n/rw)]);
+      const tiles = new Set();
+      list.forEach(([i,j])=>{
+        for(let ty=Math.floor(j*rowsOld/T); ty<=Math.floor(((j+1)*rowsOld-1)/T); ty++) tiles.add(i+','+ty);
+      });
+      kids.forEach(o=>['desk','phone'].forEach(dv=>{
+        const b = o[dv]; if(!b || !b.x || !b.w) return;
+        for(let ty=Math.floor((b.y-1)/T); ty<=Math.floor((b.y+b.h-2)/T); ty++)
+          for(let tx=Math.floor((b.x-1)/T); tx<=Math.floor((b.x+b.w-2)/T); tx++) tiles.add(tx+','+ty);
+      }));
+      const cells = [...tiles].map(k=>k.split(',').map(Number)).filter(([x,y])=>x>=0 && y>=0);
+      const w = Math.max(1, ...cells.map(([x])=>x+1)), h = Math.max(1, ...cells.map(([,y])=>y+1));
+      c.shelves = {w, h};
+      if(cells.length===w*h) delete c.boards; else c.boards = cells.map(([x,y])=>x+','+y);
+      if(c.start) c.start = {x:c.start.x||0, y:Math.floor(((c.start.y||0)*rowsOld + rowsOld/2)/T)};
+      delete c.bw; delete c.bh; delete c.grid;
+    });
+    delete look.grid;
+    if(look.flow==='scroll') delete look.flow;
   }},
 ];
 function migrate(d){

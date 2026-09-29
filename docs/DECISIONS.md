@@ -11373,3 +11373,71 @@ curvature applied afterwards so the design sits in place.
   name and the knob; on a card it is inside the card under the words. Only a
   plain drawer front, a spine and a card are offered (`paintTarget()`), which
   is what was asked for; the rest can follow by adding a case there.
+
+## 272 · A board is tiles, every one eight by eight
+
+*2026-09-29.* Timothy: move to a tile-based way of dealing with boards. Every
+container has a **board**, and a board is made of **tiles**, every one 8×8.
+What used to be called a board is now a tile; the inside of a container, or
+the desk, is now the board; the home board, above all the others, is the
+**desk**. Smooth scrolling is the default instead of page-to-page, with a
+small snap: when a scroll stops, the edges of the screen line up with the
+edges of the grid. On an iPhone you see the 8×8 tile in the middle and three
+rows of the tile above and three of the tile below, so the viewport is still
+8×14.
+
+- **The names in the code stayed**, as plan did when it became flow: a
+  `shelf`/"board" in `shelves`, `boards`, `boardsOf()`, `addBoard()` is a
+  tile; `TILE = 8` in grid.js. The interface says tile wherever it meant the
+  unit (the dots, the zoom out, adding and taking one away, Board settings'
+  *Tiles* row) and board where it means the whole inside.
+- **A tile is not a screen.** `colsOf()` and `shelfRows()` answer eight;
+  `viewRows()` answers what a shelf's height used to — the rows the screen
+  shows, fourteen on an iPhone — and `sizeGrid()` sizes the lip, the front and
+  the scroller from it. `gridOf()` carries `maxW` (a tile) and `maxH` (the
+  screen, 14), so a thing may be taller than a tile and **lie across the seam
+  up and down**; `oneShelf()` now refuses only the sideways seam on a phone
+  that scrolls, because sideways a tile is still exactly the screen's width.
+  `freeSpot()` asks each tile for a box whose top row is in it, nearest first
+  and, of two as near, the one below.
+- **A phone is one geometry: the scrolling column** (`flows()` is always true
+  on a phone). *A tile at a time* (`S.look.flow==='page'`, `byTile()`) is no
+  longer a second layout — paging an eight-row tile on a fourteen-row screen
+  was six rows of bare wood — it is where a scroll settles: a whole tile,
+  centred, instead of the nearest row. The column is drawn with an
+  empty tile's worth above and below it (`g.pad`, negative `shelfOrigin()`),
+  so the slot one step off the top or bottom is somewhere you scroll to and
+  press the plus on. Sideways still pages a tile at a time.
+- **The snap** (`snapSoon()`/`snapBoard()` in views.js): 170ms after the last
+  scroll event, with no finger down and nothing being carried, the scroller is
+  eased to the nearest whole cell both ways. On a Mac too. **Only after a
+  scroll a person made** — a wheel, a touch or a key within the last 1.5s
+  (`wireSnap()`): a scroll the app made (arriving centred, `reveal()`, a thing
+  brought into view) already put the board where it meant to, and snapping it
+  moved the board out from under whatever had just been measured.
+- **Everything that measured against "the screen is one tile" was moved to
+  the screen.** Gravity's pen is the fourteen visible rows, not the tile; the
+  depth cue's up and down is measured from the middle of the screen
+  (`PERSP.top`); a full tile spills to the tile you can see — below on a
+  phone, beside you on a Mac — before one you cannot. A board shorter than
+  the screen drops the sticky rim, which was a second screen-tall child
+  pushing it off the middle.
+- **Arriving centres the tile** (`tileTop()`): the tile you are on sits in
+  the middle with the leftover split above and below, three rows each on an
+  iPhone. Which tile you are on is whichever the middle of the screen is in.
+- **A fresh desk is three tiles, one above another**, and you stand on the
+  middle one; the seed is moved there by `centreDesk()` as before.
+- **Retired**: a board's own width and height (decision 235) and the phone's
+  nine- and ten-column grids (decisions 48 and 60), because every tile is
+  eight by eight. `dimsOf()` answers null, `setBoardDims()` and `setGridSize()`
+  do nothing, and the rows are gone from Board settings.
+- **Migration 50 moves nothing.** A box was already in one continuous
+  coordinate space per container, so the same cells are re-cut into tiles:
+  every tile an old 8×14 board covered is kept, plus every tile anything placed
+  stands on, on either device. A board of nine or ten columns, or a stated
+  width, is rescaled to eight across first. `bw`, `bh` and `grid` come off.
+- **A flow's board is a block of tiles** (`stampPlan()`): a flow authored as
+  8×14 boards puts each down as two tiles, one above the other, and counts its
+  boxes from the block's corner.
+- **Limits**: `SPAN` (tiles either way) is 24 and `PAGES_MAX` 36, since a tile
+  is about half what a board was.

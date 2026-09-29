@@ -70,6 +70,21 @@ const GRID = {
    onto a board that is exactly nine of them. Nothing straddles a shelf on a
    phone, for the reason nothing straddled a page: half a tile on each of two
    screens is a tile you can read neither half of. See decision 141. */
+/* ---- the tile — decision 272 -------------------------------------------
+   Timothy: every container has a **board**, and a board is made of
+   **tiles**, every one eight cells by eight. What the code calls a shelf or
+   a board (one of the rectangles in `shelves`/`boards`) is a tile in the
+   interface; what the interface calls a board is the whole of a container's
+   inside; and the home board is the **desk**. The names in the code stayed,
+   as plan did when it became flow.
+
+   A tile is not a screen any more. A phone shows eight columns by fourteen
+   rows (`viewRows()`), which is one tile and three rows of the tiles above
+   and below it, and scrolls smoothly down the column rather than paging a
+   tile at a time (`flows()`, now the default). So a thing may lie across the
+   seam between two tiles up and down; sideways a tile is exactly the phone's
+   width, and a seam there is still an edge of the screen. */
+const TILE = 8;
 const SHELVES = 3;                   // the desk is SHELVES × SHELVES of them
 const DESK_SHELF_COLS = GRID.desk.cols / SHELVES;    // eight, and 24 = 3 × 8
 /* A tile taller than a screenful cannot be seen at all, so nothing derived is
@@ -151,7 +166,11 @@ function gridKeyOf(cid){
 /* Two to twelve across and two to twenty-four down (Timothy, 2026-09-28): a
    phone is tall, and a list board wants the length. */
 const DIM_MIN = 2, DIM_MAX = 12, DIM_MAX_H = 24;
+/* **Retired by decision 272**: every tile is eight by eight, so no board
+   states a shape of its own. Kept, answering null, so every reader of it
+   takes the plain path; migration 50 takes `bw`/`bh` off. */
 function dimsOf(cid){
+  if(TILE) return null;
   const id = cid==null ? hereId() : cid;
   if(id!==ROOT && innerOf(id)) return null;     // a proportional board is its tile
   const c = boardCfg(id); if(!c) return null;
@@ -160,6 +179,8 @@ function dimsOf(cid){
   return w || h ? {w, h} : null;
 }
 function colsOf(cid, device){
+  // a tile is eight across on every board and both devices (decision 272)
+  if(TILE) return TILE;
   const dm = dimsOf(cid);
   if(dm && dm.w) return dm.w;
   if((device||dev())!=='phone') return DESK_SHELF_COLS;
@@ -199,11 +220,11 @@ function shelvesOf(cid, device){
      container one screen wide that grew at the bottom; both are now this. */
   return boardRect(id);
 }
-const PAGES_MAX = 9;
+const PAGES_MAX = 36;
 /* The most boards a board may run to, either way. Nine, as the desk was: a
    limit a thumb never meets, which exists so a runaway loop cannot build a
    thousand screens. */
-const SPAN = 9;
+const SPAN = 24;   // tiles, since decision 272: a tile is half what a board was
 /* Where a board's rectangle and its list are kept: the desk's on its own
    config (it is not an object), everything else's on the object. */
 const boardCfg = id => id===ROOT ? (S.deskCfg || (S.deskCfg = {layout:'grid', sort:null})) : byId(id);
@@ -491,9 +512,19 @@ const gridOf = (device, cid)=>{
      so the dots in the bar, the pager and the board itself cannot disagree. */
   const inner = innerOf(cid, d);
   const sh = shelvesOf(cid, d);
+  /* The largest box (decision 272): a tile wide, and as tall as the screen
+     shows, since a phone scrolls down across the seams. A phone that pages
+     is back to one tile each way. */
+  const maxW = shelfW, maxH = d==='phone' && !flows(d) ? shelfH : PHONE_MAX_H;
+  /* A phone that scrolls draws an **empty tile's worth above and below** the
+     board (decision 272), so the slot one step off the top or the bottom is
+     somewhere you can scroll to and press the plus on. Not on a board that
+     cannot grow. */
+  const id = cid==null ? hereId() : cid;
+  const pad = d==='phone' && flows(d) && !inner && !growsNot(id) ? shelfH : 0;
   return {cols: inner ? inner.cols : shelfW*sh.w,
           rows: inner ? inner.rows : shelfH*sh.h,
-          shelfW, shelfH, shelves:sh, gap:GRID[d].gap, rowh};
+          shelfW, shelfH, shelves:sh, gap:GRID[d].gap, rowh, maxW, maxH, pad};
 };
 
 /* ---- how tall a shelf is ----------------------------------------------
@@ -530,13 +561,29 @@ const gridOf = (device, cid)=>{
    fits. *One more row* is the way to ask for every row the screen has. */
 const SHELF_ROWS_GUESS = 14, PHONE_ROWS_GUESS = 15, PHONE_ROWS = 14;
 const phoneCap = ()=> S.look && S.look.rows === 'fit' ? Infinity : PHONE_ROWS;
+/* A tile is eight rows (decision 272); how many rows a screen shows is a
+   different question, and `viewRows()` answers it. */
 function shelfRows(device, cid){
+  if(TILE) return TILE;
   const d=device||dev();
   const dm = dimsOf(cid);
   if(dm && dm.h) return dm.h;
   const m=MEASURE[d];
   if(!m.room || !m.w) return d==='phone' ? Math.min(PHONE_ROWS_GUESS, phoneCap()) : SHELF_ROWS_GUESS;
   const cell = m.w / (d==='phone' ? colsOf(cid, d) : GRID.desk.cols);
+  const fit = Math.max(4, Math.floor(m.room / Math.max(1, cell)));
+  return d==='phone' ? Math.min(fit, phoneCap()) : fit;
+}
+/* **How many rows the screen shows** (decision 272): on a phone as many
+   whole cells as fit, at most fourteen unless *One more row* says every
+   row; on a Mac as many as fit. This is what a shelf's height used to be,
+   and it is now only the height of the window onto the board — what the
+   lip, the drawer front and the scroller are sized from, and the tallest a
+   thing may be, since a thing taller than the screen cannot be seen. */
+function viewRows(device){
+  const d=device||dev(), m=MEASURE[d];
+  if(!m.room || !m.w) return d==='phone' ? Math.min(PHONE_ROWS_GUESS, phoneCap()) : SHELF_ROWS_GUESS;
+  const cell = m.w / (d==='phone' ? TILE : GRID.desk.cols);
   const fit = Math.max(4, Math.floor(m.room / Math.max(1, cell)));
   return d==='phone' ? Math.min(fit, phoneCap()) : fit;
 }
@@ -551,9 +598,12 @@ function shelfOfBox(b, device, cid){
    half of — the same rule a page break had, now in two axes. On a Mac the
    three shelves of a row are all on the screen at once and a tile lying across
    two of them is perfectly legible, so nothing is refused there. */
-const oneShelf = (b, g)=>
+/* …and since decision 272 a phone that scrolls reads across the seam up and
+   down, so only the seam sideways, which is still the screen's edge, is
+   refused there. */
+const oneShelf = (b, g, device)=>
      Math.floor((b.x-1)/g.shelfW) === Math.floor((b.x+b.w-2)/g.shelfW)
-  && Math.floor((b.y-1)/g.shelfH) === Math.floor((b.y+b.h-2)/g.shelfH);
+  && (flows(device) || Math.floor((b.y-1)/g.shelfH) === Math.floor((b.y+b.h-2)/g.shelfH));
 
 /* ---- which shelf you are looking at ------------------------------------
    Remembered per container, in memory, so walking into a drawer and back does
@@ -600,7 +650,7 @@ function setShelf(cid, x, y){
    shelf system and the one place to get it wrong. See decision 141. */
 function shelfOrigin(cid, device){
   const g=gridOf(device, cid), at=shelfAt(cid);
-  return {x: at.x*g.shelfW, y: flows(device) ? 0 : at.y*g.shelfH};
+  return {x: at.x*g.shelfW, y: flows(device) ? -g.pad : at.y*g.shelfH};
 }
 /* **A phone board can scroll instead of paging** (decision 209). `S.look.flow`
    — unset is the rigid swipe, a shelf at a time; `'scroll'` draws the whole
@@ -610,7 +660,14 @@ function shelfOrigin(cid, device){
    shift is zero, the rows are all drawn, and which shelf you are on is where
    you have scrolled to. One question, asked here, so the window, the drawn
    rows and every reader of the shift cannot disagree about it. */
-const flows = device => (device||dev())==='phone' && !!(S.look && S.look.flow==='scroll');
+/* **Always, since decision 272.** A phone is one geometry now: the column of
+   tiles in a scroller fourteen rows tall. *A tile at a time* (`S.look.flow ===
+   'page'`) is not a second layout any more — it is where the scroll settles,
+   a whole tile centred rather than the nearest row of cells (`snapBoard()` in
+   views.js). An eight-row tile paged on a fourteen-row screen was six rows of
+   bare wood. */
+const flows = device => (device||dev())==='phone';
+const byTile = () => !!(S.look && S.look.flow==='page');
 
 // Tolerate a drawer that predates x/y, or one hand-edited into nonsense.
 function lay(d, device, cid){
@@ -627,7 +684,7 @@ function lay(d, device, cid){
      was drawn at eight. */
   const dv2 = device||dev();
   const w=clamp(b.w||2,1,dv2==='phone'?g.shelfW:g.cols),
-        h=clamp(b.h||1,1,dv2==='phone'?g.shelfH:g.rows);
+        h=clamp(b.h||1,1,dv2==='phone'?Math.min(g.maxH, g.rows):g.rows);
   return {x:clamp(b.x||1,1,Math.max(1,g.cols-w+1)),
           y:clamp(b.y||1,1,Math.max(1,g.rows-h+1)), w, h};
 }
@@ -650,8 +707,8 @@ function boxOk(box, id, device, parentId){
      them is off the desk, which is the whole of "it won't fit". */
   if(box.x+box.w-1>g.cols || box.y+box.h-1>g.rows) return false;
   // nothing bigger than a screen, and nothing across the seam between two
-  if(box.w>g.shelfW || box.h>g.shelfH) return false;
-  if(dv==='phone' && !oneShelf(box, g)) return false;
+  if(box.w>g.maxW || box.h>g.maxH) return false;
+  if(dv==='phone' && !oneShelf(box, g, dv)) return false;
   /* …and nothing on a slot that is not a board (decision 219). A box on a
      phone is on one board; on a Mac it may lie across several, and every one
      of them has to be there. */
@@ -708,15 +765,23 @@ function freeSpot(w,h,device,parentId,prefer){
 function freeSpotIn(w,h,device,parentId,prefer){
   const dv=device||dev(), home=parentId||ROOT, g=gridOf(dv, home);
   const oneShelfOnly = dv==='phone';
-  w=Math.min(w, oneShelfOnly ? g.shelfW : g.cols);
-  h=Math.min(h, oneShelfOnly ? g.shelfH : g.rows);
+  w=Math.min(w, oneShelfOnly ? g.maxW : g.cols);
+  h=Math.min(h, oneShelfOnly ? g.maxH : g.rows);
   const p = prefer || shelfAt(home);
   const order=boardsOf(home).map(b=>[b.x, b.y, Math.abs(b.x-p.x)+Math.abs(b.y-p.y)]);
-  order.sort((a,b)=> a[2]-b[2] || a[1]-b[1] || a[0]-b[0]);
+  /* Nearest first, and of two as near, **the one you can see** (decision
+     272): on a phone the tile below, since the board is a column you scroll
+     down and the tile beside you is off the screen; on a Mac the tile beside
+     you, since a row of three is on the screen at once. Then below before
+     above. */
+  const lane = dv==='phone' ? (b => b[0]!==p.x) : (b => b[1]!==p.y);
+  order.sort((a,b)=> a[2]-b[2] || lane(a)-lane(b) || (a[1]<p.y)-(b[1]<p.y) || a[1]-b[1] || a[0]-b[0]);
+  /* Each tile is asked for a box whose **top row** is in it (decision 272):
+     the box may run on into the tile below, which `boxOk()` checks is there. */
   for(const [sx,sy] of order){
     const x0=sx*g.shelfW, y0=sy*g.shelfH;
     const lastX = (oneShelfOnly ? g.shelfW : g.cols-x0) - w + 1;
-    const lastY = (oneShelfOnly ? g.shelfH : g.rows-y0) - h + 1;
+    const lastY = Math.min(g.shelfH, g.rows-y0-h+1);
     for(let y=1;y<=lastY;y++) for(let x=1;x<=lastX;x++){
       const box={x:x0+x, y:y0+y, w, h};
       if(boxOk(box,null,dv,home)) return box;
@@ -729,11 +794,11 @@ function freeSpotIn(w,h,device,parentId,prefer){
    board with nowhere, which the caller turns into the usual refusal. */
 function randomSpot(w,h,device,parentId){
   const dv=device||dev(), home=parentId||ROOT, g=gridOf(dv, home);
-  w=Math.min(w, dv==='phone' ? g.shelfW : g.cols); h=Math.min(h, dv==='phone' ? g.shelfH : g.rows);
+  w=Math.min(w, dv==='phone' ? g.maxW : g.cols); h=Math.min(h, dv==='phone' ? g.maxH : g.rows);
   const all=[];
   boardsOf(home).forEach(b=>{
     const x0=b.x*g.shelfW, y0=b.y*g.shelfH;
-    for(let y=1; y<=g.shelfH-h+1; y++) for(let x=1; x<=g.shelfW-w+1; x++){
+    for(let y=1; y<=Math.min(g.shelfH, g.rows-y0-h+1); y++) for(let x=1; x<=g.shelfW-w+1; x++){
       const box={x:x0+x, y:y0+y, w, h};
       if(boxOk(box, null, dv, home)) all.push(box);
     }
@@ -804,8 +869,8 @@ function anySpot(w,h,device,parentId,prefer){
   const at = nearestBoard(home, prefer || shelfAt(home));
   const one = dv==='phone';
   return {x: at.x*gg.shelfW+1, y: at.y*gg.shelfH+1,
-          w: Math.min(w, one ? gg.shelfW : gg.cols),
-          h: Math.min(h, one ? gg.shelfH : gg.rows)};
+          w: Math.min(w, one ? gg.maxW : gg.cols),
+          h: Math.min(h, one ? gg.maxH : gg.rows)};
 }
 const gridRows = (device,parentId)=> childrenOf(container(parentId||ROOT))
   .reduce((m,d)=>{const b=lay(d,device,parentId||ROOT);return Math.max(m,b.y+b.h-1)},0);
@@ -948,7 +1013,7 @@ function ensureBox(o, device, parentId){
      way round. */
   const gg=gridOf(dv, home), one = dv==='phone';
   const capW = one ? Math.min(gg.shelfW, gg.cols) : gg.cols;
-  const capH = one ? Math.min(gg.shelfH, gg.rows) : gg.rows;
+  const capH = one ? Math.min(gg.maxH, gg.rows) : gg.rows;
   const w=Math.min(b && b.w ? b.w : dw, capW);
   const h=Math.min((b && b.h) ? b.h : dh, capH);
   /* `anySpot` rather than `freeSpot`: an object being placed for the first
@@ -975,8 +1040,9 @@ const drawCols = (g, device)=> (device||dev())==='phone'
   ? Math.min(g.shelfW, g.cols) : g.cols;
 /* …and on a phone that scrolls (`flows()`), the whole column: every row of the
    board, in a scroller one shelf tall. The columns stay windowed. */
-const drawRows = (g, device)=> (device||dev())==='phone' && !flows(device)
-  ? Math.min(g.shelfH, g.rows) : g.rows;
+/* …with the empty tile's worth above and below it (`g.pad`, decision 272). */
+const drawRows = (g, device)=> (device||dev())==='phone'
+  ? (flows(device) ? g.rows + 2*(g.pad||0) : Math.min(g.shelfH, g.rows)) : g.rows;
 
 /* Width of one grid column in px, measured rather than assumed — the grid is
    fluid so this changes with the window and the rail. It divides by the
@@ -988,7 +1054,7 @@ function cellW(grid,g){
   return (r.width - g.gap*(n-1))/n;
 }
 
-export { GRID, PHONE_GRIDS, PHONE_MAX_H, rangeOfKind, inRange, randomSizeOf, CELL, COLW, MEASURE, sideways,
+export { TILE, viewRows, byTile, GRID, PHONE_GRIDS, PHONE_MAX_H, rangeOfKind, inRange, randomSizeOf, CELL, COLW, MEASURE, sideways,
   SHELVES, DESK_SHELF_COLS, INNER, dimsOf, DIM_MIN, DIM_MAX, DIM_MAX_H, PAGES_MAX, SPAN, isBoard, boardsOf, reachable, addBoard, removeBoard,
   ensureBoards, boardHolds, onBoard, startOf, nearestBoard, onBoards, randomSpot, growsDown, growDown, proportional, shelvesToHold, colsOf, gridKeyOf, shelvesOf, innerOf,
   shelfRows, shelfOfBox, oneShelf, shelfAt, setShelf, shelfOrigin, SHELF, fitSpot, flows,

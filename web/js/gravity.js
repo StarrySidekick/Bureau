@@ -1,6 +1,6 @@
 import { $, clamp, ROOT } from './util.js';
 import { S, dev, gravityMode, gravityOn, gravityTilts } from './model.js';
-import { gridOf, drawCols, drawRows, shelfAt, flows } from './grid.js';
+import { gridOf, drawCols, drawRows, shelfAt, flows, viewRows } from './grid.js';
 import { still, tiltDown, applyTilt } from './motion.js';
 
 /* ============================================================
@@ -172,9 +172,16 @@ function keyNow(){
    you were looking at, which reads exactly like everything vanishing. */
 function pen(g){
   const rows = g.shelfH * g.rowh;
-  // a phone that scrolls draws its whole column, so it pens the way a Mac does
-  const top = dev()==='phone' && !flows() ? 0 : shelfAt(W.cid).y * rows;
-  return {w: drawCols(g)*g.rowh, h: rows, y0: top};
+  /* **A phone's pen is the screen** (decision 272): the column is drawn
+     whole with an empty tile's pad above it, and the screen shows the tile
+     you are on and three rows of each neighbour — so that window is what
+     lets go, not the eight rows of the tile alone. */
+  if(dev()==='phone'){
+    const vr = viewRows('phone'), above = Math.max(0, Math.floor((vr - g.shelfH)/2));
+    const row = Math.max(0, shelfAt(W.cid).y*g.shelfH + (g.pad||0) - above);
+    return {w: drawCols(g)*g.rowh, h: vr*g.rowh, y0: row*g.rowh};
+  }
+  return {w: drawCols(g)*g.rowh, h: rows, y0: shelfAt(W.cid).y * rows};
 }
 /* The board is the back panel of a slot and the slot has four sides, which is
    the same shape decision 116 gave the cavity — so a thrown drawer comes back

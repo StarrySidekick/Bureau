@@ -5,6 +5,18 @@ paths:
 ---
 # The board
 
+**Read this first (decision 272): a board is tiles, every one 8×8.** Below,
+"shelf" and "board" in the sense of one screenful mean a **tile** now, and a
+tile is *not* a screen: `viewRows()` is the screen (8×14 on an iPhone),
+`shelfRows()`/`colsOf()` are the tile (eight), a box may cross a tile's seam
+up and down (`maxH`), smooth scroll with an empty tile's pad above and below
+is the default, a stopped scroll snaps to the cells (`snapBoard()` in
+views.js), and arriving centres the tile (`tileTop()`). A board's own shape
+(`bw`/`bh`) and the 9/10-column phone grids are retired. Paragraphs below
+that say a shelf is a screen, or that nothing straddles a seam on a phone,
+are history: a phone always scrolls now, and `S.look.flow==='page'` only
+makes the scroll settle on a whole tile (`byTile()`).
+
 The grid, the shelves and the cells; measuring, placing and windowing; the carcass, the rail and the knob; a list as a board.
 
 These paragraphs were the *How to work in this codebase* section of `CLAUDE.md`,

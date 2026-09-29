@@ -1454,7 +1454,12 @@ function reset(){
     // viewId is the picture surface: what an object made of an image opens onto
     undo:[], redo:[], editing:false, sel:[], readId:null, writeId:null, viewId:null, editId:null, bookAt:0,
     // a desk you have arranged is one you want to look at, so it starts locked
-    deskCfg:{layout:'grid', sort:null},
+    /* **A fresh desk is three tiles, one above another** (decision 272), and
+       you stand on the middle one — the tile and three rows of each of its
+       neighbours, which is what an iPhone shows. The seed is written on the
+       first tile and `centreDesk()` moves it to the middle one on the first
+       measured render. */
+    deskCfg:{layout:'grid', sort:null, shelves:{w:1, h:3}},
     look:defaultLook()
   };
   refreshKinds();

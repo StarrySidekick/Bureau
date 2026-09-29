@@ -273,6 +273,18 @@ dropped together gather into a **deck**, whose press can shuffle, deal or open
 the drawer it is tied to when pressed (`tugOf()`). And **a custom look drawn
 by hand** on a front, a spine or a card: `paint.js`, strokes in `o.art`, the
 painter at `#paint`, its filters and metals in index.html.
+**v2.54** (decision 272): **a board is tiles, every one 8×8.** The old
+"board" is a **tile** in the interface (the code still says shelf/board:
+`TILE`, `boardsOf()`, `addBoard()`), a container's inside is its **board**,
+and the home board is the **desk**. A tile is not a screen: `viewRows()` is
+the 8×14 an iPhone shows (a tile and three rows of each neighbour), things
+may lie across a seam up and down (`maxH`, `oneShelf()` refuses only the
+sideways seam), a phone always scrolls the column with an empty tile's
+worth drawn above and below (`g.pad`), a stopped scroll snaps to the cells,
+or to a whole tile with *A tile at a time* (`snapBoard()`, `byTile()`), and
+arriving centres the tile (`tileTop()`). Stated board
+shapes and the 9/10-column grids are retired; migration 50 re-cuts old
+boards into tiles without moving anything.
 
 **Start here each session:** `docs/SYSTEM.md` is the reference for what Bureau is
 made of — objects, attributes, types, drawers, the grid, the surfaces, storage.
@@ -316,7 +328,9 @@ left, so the file is never changed and the full run is still the gate. It writes
 screenshots to `test/shots/` — look at
 them, this is a visual app and a passing assertion doesn't mean it looks right.
 
-**Writing a phone block: the board is nine screens and you are on one of them.**
+**Writing a phone block: the desk is tiles and you are centred on one** (since
+decision 272 the phone draws the whole column and `hereBox()` puts a box on
+the tile you are centred on; what follows is how it read before).
 A fresh desk is one board since decision 219, so the suite makes the desk
 three by three once, right after the first load, and the one-board desk is
 tested in a context of its own (`boardsYouAdd`).

@@ -40,7 +40,7 @@ import { S, K, T, byId, isContainer, container, childrenOf, has } from './model.
 import { uid, ROOT, clamp } from './util.js';
 import { GRID, INNER, SHELVES, ensureBox, boxOk, freeSpot, anySpot, gridOf, lay, overlaps,
          oneShelf, proportional, boardsOf, ensureBoards, shelfAt, setShelf, nearestBoard, startOf,
-         addBoard, colsOf, shelfRows, growDown, onBoards } from './grid.js';
+         addBoard, colsOf, shelfRows, growDown, onBoards, TILE, PAGES_MAX } from './grid.js';
 import { rescaleOneBoard } from './persist.js';
 import { randomLook } from './look.js';
 
@@ -246,12 +246,24 @@ function stampPlan(planId, intoId, at){
      already there, and these are not there yet. */
   const multi = Array.isArray(p.boards) && p.boards.length>1 && p.dims
     && !(home!==ROOT && proportional());
-  let spots = null, startSpot = null;
+  let spots = null, startSpot = null, blk = null;
   if(multi){
+    /* **Each board it was written on is a block of tiles here** (decision
+       272): a flow's board was eight by fourteen, and a tile is eight by
+       eight, so each stands for as many tiles as it takes to hold one — two
+       down, for every stock flow. The block's top-left tile is where its
+       boxes are counted from. */
+    const k = dm => dm ? {x:Math.max(1, Math.ceil(dm.w/TILE)), y:Math.max(1, Math.ceil(dm.h/TILE))} : {x:1, y:1};
+    blk = {x:Math.max(k(p.dims.desk).x, k(p.dims.phone).x), y:Math.max(k(p.dims.desk).y, k(p.dims.phone).y)};
     const st = p.start || p.boards[0];
     const wasEmpty = !S.objects.some(o=>o.parent===home);
     const here = wasEmpty ? boardsOf(home)[0] || {x:0, y:0} : nearestBoard(home, shelfAt(home));
-    spots = ensureBoards(home, p.boards.map(b=>({x:b.x-st.x, y:b.y-st.y})), here);
+    const cells = [];
+    p.boards.forEach(b=>{ for(let j=0;j<blk.y;j++) for(let i=0;i<blk.x;i++)
+      cells.push({x:(b.x-st.x)*blk.x+i, y:(b.y-st.y)*blk.y+j}); });
+    const got = ensureBoards(home, cells, here);
+    // the tile each block starts at, one per board of the flow
+    spots = p.boards.map((b, n)=>got[n*blk.x*blk.y] || null);
     startSpot = spots[p.boards.findIndex(b=>b.x===st.x && b.y===st.y)] || spots[0];
     if(wasEmpty && home!==ROOT && byId(home) && startSpot) byId(home).start = {x:startSpot.x, y:startSpot.y};
   }
@@ -313,11 +325,11 @@ function stampPlan(planId, intoId, at){
       const i = p.boards.findIndex(c=>c.x===bx && c.y===by);
       const to = i>=0 ? spots[i] : null;
       if(!to){ o[dv] = {w:b.w, h:b.h}; return; }
-      const g = gridOf(dv, home), k = g.shelfW/dm.w;
-      const rx = Math.round((b.x-1-bx*dm.w)*k), w = Math.max(1, Math.min(g.shelfW, Math.round(b.w*k)));
-      const ry = b.y-1-by*dm.h, h = Math.min(b.h, g.shelfH);
-      o[dv] = {x: to.x*g.shelfW + Math.min(rx, g.shelfW-w) + 1,
-               y: to.y*g.shelfH + Math.min(ry, Math.max(0, g.shelfH-h)) + 1, w, h};
+      const g = gridOf(dv, home), bw = blk.x*g.shelfW, bh = blk.y*g.shelfH;
+      const rx = b.x-1-bx*dm.w, w = Math.max(1, Math.min(g.maxW, b.w));
+      const ry = b.y-1-by*dm.h, h = Math.max(1, Math.min(g.maxH, b.h));
+      o[dv] = {x: to.x*g.shelfW + Math.min(rx, Math.max(0, bw-w)) + 1,
+               y: to.y*g.shelfH + Math.min(ry, Math.max(0, bh-h)) + 1, w, h};
     }));
   }
   S.objects.push(...made);
@@ -362,7 +374,8 @@ function stampPlan(planId, intoId, at){
        which on a fourteen-row plan and a twelve-row phone is the last line. */
     const g0 = gridOf(dv, home);
     const tall = top.reduce((m,o)=>{ const b=o[dv]; return b && b.y ? Math.max(m, b.y+b.h-1) : m; }, 0);
-    const seamed = multi || (dv==='phone' && tall > g0.shelfH);
+    // up and down a board scrolls across its seams now (decision 272)
+    const seamed = multi || (dv==='phone' && tall > g0.maxH);
     let off = seamed ? null : clearOffset(top, dv, home);
     if(!seamed) for(let tries=0; !off && tries<3 && growFor(top, dv, home); tries++) off = clearOffset(top, dv, home);
     if(off){
@@ -400,8 +413,8 @@ function clearOffset(top, dv, home){
   const ok = (dx, dy)=> boxes.every(b=>{
     const nb = {x:b.x+dx, y:b.y+dy, w:b.w, h:b.h};
     if(nb.x<1 || nb.y<1 || nb.x+nb.w-1>g.cols || nb.y+nb.h-1>g.rows) return false;
-    if(nb.w>g.shelfW || nb.h>g.shelfH) return false;
-    if(dv==='phone' && !oneShelf(nb, g)) return false;
+    if(nb.w>g.maxW || nb.h>g.maxH) return false;
+    if(dv==='phone' && !oneShelf(nb, g, dv)) return false;
     if(!onBoards(nb, g, home)) return false;          // decision 219
     return !sibs.some(s=>overlaps(nb, s));
   });
@@ -420,7 +433,7 @@ function growFor(top, dv, home){
   const c = home===ROOT ? null : byId(home);
   if(!c) return false;
   // a board under the one you are on (decision 219), up to three more
-  if(!proportional()) return boardsOf(home).length < SHELVES*SHELVES && growDown(home);
+  if(!proportional()) return boardsOf(home).length < PAGES_MAX && growDown(home);
   const bs = top.map(o=>o[dv]).filter(b=>b && b.w);
   const tall = bs.length ? Math.max(...bs.map(b=>(b.y||1)+b.h-1)) - Math.min(...bs.map(b=>b.y||1)) + 1 : 4;
   const box = (c[dv] && c[dv].w) ? c[dv] : {w:2, h:2};

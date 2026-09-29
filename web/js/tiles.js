@@ -12,7 +12,7 @@ import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, chi
   calViewOf, calShowOf, weekStartOf, calCols, borderOf, textureOf, marginOf, isFragmentKind, gravityOn,
   groupOf, sealOf, isSealed, habitPlan, habitPeriods, habitRun, relate, measureOf, amountSaid, inFront, countOf, countsOf, COUNTS, makesSmart, isHeld, habitOn } from './model.js';
 import { GRID, CELL, gridOf, drawCols, drawRows, lay, overlaps, boxOk, freeSpot, anySpot, roomFor, gridRows, sizeOfKind, sideways, innerOf,
-  ensureBox, shelfRows, shelfOrigin, shelfAt, shelfOfBox, colsOf, flows, boardsOf, nearestBoard, isBoard, reachable, dimsOf, MEASURE } from './grid.js';
+  ensureBox, shelfRows, viewRows, shelfOrigin, shelfAt, shelfOfBox, oneShelf, colsOf, flows, boardsOf, nearestBoard, isBoard, reachable, dimsOf, MEASURE } from './grid.js';
 import { dealTop, create, toast, fits, toggleDone, someKind, furnish, ctlSpec, ctlSaid, ctlIsOn,
   ctlForm, ctlNum, ctlIndex, ctlPress, pushSet, reachedGoal, goalOf } from './mutations.js';
 import { DECOR, decorOf, decorEmits, flamePoint, decorSVG, LIFE_ART, lifeSVG } from './decor.js';
@@ -1140,11 +1140,14 @@ const depthOf = o =>
    grid the desk is set to: the same lookup, fifty times, growing with the desk.
    `gridOfContainer()` fills it in once. Zero rows means a Mac or a board that
    has not been measured yet, and no perspective either way. */
-const PERSP = {cols:0, rows:0};
+/* `top` is the first drawn row of the **screen** (decision 272): a phone draws
+   the whole column and shows fourteen rows of it centred on the tile you are
+   on, so up and down are measured against that window, not the tile. */
+const PERSP = {cols:0, rows:0, top:0};
 function perspOf(box){
   if(!PERSP.rows || !PERSP.cols) return null;
   const px = ((box.x - 1 + box.w/2) / PERSP.cols) * 2 - 1;
-  const py = ((box.y - 1 + box.h/2) / PERSP.rows) * 2 - 1;
+  const py = ((box.y - 1 - PERSP.top + box.h/2) / PERSP.rows) * 2 - 1;
   return { x:+clamp(px,-1,1).toFixed(3), y:+clamp(py,-1,1).toFixed(3) };
 }
 /* Only something with real thickness gets the extra element. Paper on the
@@ -3317,10 +3320,10 @@ function gridOfContainer(cid){
        is the portrait one and every box already fits it. */
     if(!sorted && !sideways()) kids.forEach(o=>{
       const b=lay(o, dv, c.id);
-      if(b.w<=g.shelfW && b.h<=g.shelfH
-         && Math.floor((b.x-1)/g.shelfW)===Math.floor((b.x+b.w-2)/g.shelfW)
-         && Math.floor((b.y-1)/g.shelfH)===Math.floor((b.y+b.h-2)/g.shelfH)) return;
-      const keep={w:Math.min(b.w,g.shelfW), h:Math.min(b.h,g.shelfH)};
+      /* Up and down a scrolling phone reads across the seam (decision 272);
+         `oneShelf()` says which seams still count. */
+      if(b.w<=g.maxW && b.h<=g.maxH && oneShelf(b, g, dv)) return;
+      const keep={w:Math.min(b.w,g.maxW), h:Math.min(b.h,g.maxH)};
       o[dv]=null;
       o[dv]=anySpot(keep.w, keep.h, dv, c.id);
     });
@@ -3336,14 +3339,16 @@ function gridOfContainer(cid){
      and that is its own setting, not the tilt's: the perspective reads with the
      phone flat on a table. See decision 117. */
   PERSP.cols = standsProud() ? g.shelfW : 0;
-  PERSP.rows = standsProud() ? g.shelfH : 0;
+  PERSP.rows = standsProud() ? (windowed ? viewRows(dv) : g.shelfH) : 0;
+  PERSP.top = standsProud() && windowed
+    ? Math.max(0, shelfAt(c.id).y*g.shelfH + (g.pad||0) - Math.max(0, Math.floor((viewRows(dv) - g.shelfH)/2))) : 0;
   /* Before the tiles, not after: gridTile() takes each box out of FLOW as it
      draws it, so a sorted board has nothing left to read by the time the last
      tile is built. */
   const strings=boardOverlay(kids, shift, g, dv, c.id);
   const lights=boardLights(kids, shift, g, dv, c.id);
   const tiles=kids.map(o=>gridTile(o,arr,c.id)).join('');
-  SHELFSHIFT.x = SHELFSHIFT.y = 0; PERSP.cols = PERSP.rows = 0;
+  SHELFSHIFT.x = SHELFSHIFT.y = 0; PERSP.cols = PERSP.rows = PERSP.top = 0;
   /* Exactly the shelves there are. A board is a finite space now — one shelf
      or nine — so it is neither "as tall as the tallest thing on it" nor "at
      least a screen": it is the shelves, and running out of them is what "it
@@ -3405,7 +3410,7 @@ function vacancies(cid, dv, g, shift, cols, rows, cam){
     const add = reachable(cid, x, y);
     html += `<div class="noboard" style="grid-column:${i*g.shelfW+1}/span ${Math.min(g.shelfW, cols-i*g.shelfW)};grid-row:${
       j*g.shelfH+1}/span ${Math.min(g.shelfH, rows-j*g.shelfH)}">${add ? `<button class="addboard"
-        data-addboard="${cid}:${x}:${y}" title="Add a board here" aria-label="Add a board here">${ic('plus',26)}</button>` : ''}</div>`;
+        data-addboard="${cid}:${x}:${y}" title="Add a tile here" aria-label="Add a tile here">${ic('plus',26)}</button>` : ''}</div>`;
   }
   return {all: none===nx*ny, html};
 }

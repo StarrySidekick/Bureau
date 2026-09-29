@@ -8,8 +8,8 @@ import { S, K, T, byId, has, isContainer, containers, container, childrenOf, cha
   GRAVITIES, gravityMode, gravityOn,
   URGES, workday, searchHits, sortOf, SORT_FACES, MANUAL } from './model.js';
 import { GRID, PHONE_GRIDS, CELL, COLW, MEASURE, sideways, colsOf, gridKeyOf, SHELVES, PAGES_MAX, shelvesOf,
-  shelfRows, shelfOfBox, shelfAt, setShelf, shelfOrigin, SHELF, drawCols, drawRows,
-  lay, gridOf, cellW, ensureBox, innerOf, PLACED, proportional, flows,
+  shelfRows, viewRows, shelfOfBox, shelfAt, setShelf, shelfOrigin, SHELF, drawCols, drawRows,
+  lay, gridOf, cellW, ensureBox, innerOf, PLACED, proportional, flows, byTile,
   isBoard, boardsOf, reachable, boardHolds, removeBoard, SPAN, startOf, dimsOf, DIM_MIN, DIM_MAX, DIM_MAX_H } from './grid.js';
 import { themeNow, applyLook, lookVal, STYLES, BACKDROPS, SURFACES, DARKMODES, darkMode, hasDark,
   palNow, styleNow, hexOf, objColour, slotName, OBJ0, CHECKS, dressAs } from './look.js';
@@ -74,7 +74,7 @@ function gridBar(c){
            rectangle with no board on it is a gap in the square, so the dots
            are the shape the boards actually make. */''}
       ${boardsOf(c.id).length>1?`<span class="shelfmark" style="--sw:${sh.w}"
-          title="Which board you are on — swipe to walk them">${
+          title="Which tile you are on — swipe to walk them">${
         Array.from({length:sh.w*sh.h}, (_,i)=>{
           const x=i%sh.w, y=(i/sh.w)|0;
           return isBoard(c.id, x, y)
@@ -694,32 +694,11 @@ function bytes(n){ return n<1024? n+' B' : n<1048576? (n/1024).toFixed(1)+' KB' 
    — so it has not lost its job, only its reach into a coordinate space that is
    now derived. The drawer's own size, which is the thing that decides, is the
    field below this one. */
-/* **A board's width and height** (decision 235): two to twelve across, two
-   to twenty-four down. This was
-   three widths for the whole app (Small, Extra, Large) and *One more row*;
-   Timothy asked for the shape of each board, each way. The numbers shown are
-   what the board is now on this device, so a board that has not been asked
-   shows what the screen gave it; moving either says it, and "Fit the screen"
-   takes both back. Changing one re-lays what is on the board: every thing stays
-   on its own board, scaled across when the width changes, and whatever no
-   longer fits is re-placed. */
-function boardDimsField(cid){
-  const id = cid==null ? ROOT : cid;
-  if(id!==ROOT && (innerOf(id) || !byId(id))) return '';
-  const dm = dimsOf(id), dv = dev();
-  const w = colsOf(id, dv), h = shelfRows(dv, id);
-  const one = (k, v, nm) => `<label class="rangerow"><span>${nm}</span>
-      <input type="range" min="${DIM_MIN}" max="${k==='h' ? DIM_MAX_H : DIM_MAX}" step="1" value="${v}" data-boarddim="${k}" data-id="${id}">
-      <b data-boarddimsaid="${k}">${v}</b></label>`;
-  return `<div class="field" style="margin-top:12px"><label>Board Size</label>
-      ${one('w', w, 'Width')}${one('h', h, 'Height')}
-      ${dm ? `<button class="fchip" data-act="boarddimfit" data-id="${id}" style="margin-top:6px">Fit the screen</button>` : ''}
-      <div class="mini" style="--k:var(--brass);margin-top:6px">${dm
-        ? `This board is <b>${w} × ${h}</b> on both devices, with its cells as big as fit on the screen.`
-        : `This board is <b>${w} × ${h}</b>: as many rows as the screen has room for. Set either to give it a shape of its own.`}
-        Everything on it stays on it; what no longer fits is moved to where it does.</div>
-    </div>`;
-}
+/* A board's own width and height (decision 235) is **retired by decision
+   272**: every tile is eight by eight, and a board is as many tiles as you
+   add. The row is gone from Board settings; the name stays so its callers
+   need not change. */
+function boardDimsField(){ return ''; }
 /* ---- how many shelves a board is --------------------------------------
    The Desk is three by three and every other container is one, with the option
    of more — this is the option. Drawn as the grid it makes rather than as two
@@ -742,15 +721,15 @@ function shelfCountField(cid){
   if(cid===ROOT || !proportional()){
     const sh = shelvesOf(cid), n = boardsOf(cid).length;
     const magic = cid!==ROOT && has(container(cid),'magic');
-    return `<div class="field" style="margin-top:12px"><label>Board Count</label>
+    return `<div class="field" style="margin-top:12px"><label>Tiles</label>
       <div class="boardshape" style="--sw:${sh.w}">${
         Array.from({length:sh.w*sh.h}, (_,i)=>{ const x=i%sh.w, y=(i/sh.w)|0;
           return `<i class="${isBoard(cid,x,y)?'on':''}"></i>`; }).join('')}</div>
-      <div class="mini" style="--k:var(--brass);margin-top:6px">${cid===ROOT?'The desk':'This drawer'} is <b>${n} board${n>1?'s':''}</b>. ${magic
-        ? 'A sorting drawer collects rather than holds, so it stays one board.'
-        : 'Pinch out to see every board and press a plus to add one, in any direction — or swipe off the edge of a board onto the empty space.'}${
+      <div class="mini" style="--k:var(--brass);margin-top:6px">${cid===ROOT?'The desk':'This drawer'} is <b>${n} tile${n>1?'s':''}</b>, each eight by eight. ${magic
+        ? 'A sorting drawer collects rather than holds, so it stays one tile.'
+        : 'Pinch out to see every tile and press a plus to add one, in any direction — or scroll or swipe off the edge onto the empty space.'}${
         cid===ROOT ? '' : ' Two fingers sideways goes to the drawer beside this one.'}
-        <button class="fchip" data-act="overview" data-id="${cid}" style="margin-left:4px">See every board</button></div>
+        <button class="fchip" data-act="overview" data-id="${cid}" style="margin-left:4px">See every tile</button></div>
     </div>`;
   }
   const g = gridOf(dev(), cid), now = g.shelves;
@@ -938,16 +917,12 @@ function settingsBody(sec, cid){
       <div class="mini" style="--k:var(--brass);margin-top:6px"><b>Graph paper</b> is the checkerboard, two cells to a square, and it is what arranging is done on. <b>Plain</b> is the same colour with nothing drawn on it. <b>The carcass</b> is the wood the bar above and the drawer along the bottom are made of, so the whole screen reads as one piece of furniture. The board's own colour is still the board's own colour — this only says what is drawn on it.</div>
     </div>
 
-    ${/* The board's own shape (decision 235), in place of *Grid Height* and
-          the three grid widths: two sliders, two to twelve. */''}
-    ${boardDimsField(inside ? cid : ROOT)}
-
-    ${/* How a phone gets from one page of a board to the next, up and down
-          (decision 209). Sideways is a swipe either way. */''}
-    <div class="field" style="margin-top:12px"><label>Page Navigation Style</label>
-      <div class="filterbar">${[['','Page by page'],['scroll','Smooth scroll']].map(([v,n])=>
-        `<button class="fchip${(S.look.flow||'')===v?' on':''}" data-flow="${v}">${n}</button>`).join('')}</div>
-      <div class="mini" style="--k:var(--brass);margin-top:6px"><b>Page by page</b> swipes one screenful at a time. <b>Smooth scroll</b> runs the pages of a board together into one column you scroll through; sideways is still a swipe to the next shelf, or the drawer beside this one.</div>
+    ${/* How a phone gets down a board (decision 209): since decision 272
+          scrolling is the default, and snaps to the cells when it stops. */''}
+    <div class="field" style="margin-top:12px"><label>Moving Down a Board</label>
+      <div class="filterbar">${[['','Smooth scroll'],['page','A tile at a time']].map(([v,n])=>
+        `<button class="fchip${(S.look.flow==='page'?'page':'')===v?' on':''}" data-flow="${v}">${n}</button>`).join('')}</div>
+      <div class="mini" style="--k:var(--brass);margin-top:6px"><b>Smooth scroll</b> runs the tiles of a board together into one column, and when you stop it settles on the nearest row of cells. <b>A tile at a time</b> scrolls the same way and settles on a whole tile, centred. Sideways is a swipe to the next tile either way.</div>
     </div>
 
     ${/* *How big a drawer is inside* was a row here (decisions 188 and 195)
@@ -1261,14 +1236,14 @@ function overCard(cid, x, y, home){
      a board with things on it asks where they go before it goes. */
   const canGo = !isHome && boardsOf(cid).length>1;
   return `<button class="ovcard${on?' on':''}${isHome?' home':''}" data-shelfgo="${cid}:${x}:${y}"
-      title="${isHome?'The home board':'Go to this board'}">
+      title="${isHome?'The tile the desk opens on':'Go to this tile'}">
     <span class="ovboard" style="--dcols:${g.shelfW};--drows:${g.shelfH}">
       ${here.map(([o,b])=>
         `<i style="--k:${objColour(o)};grid-column:${b.x-x0}/span ${Math.min(b.w, g.shelfW-(b.x-x0)+1)};grid-row:${b.y-y0}/span ${Math.min(b.h, g.shelfH-(b.y-y0)+1)}"></i>`
       ).join('')}</span>
     <u>${isHome ? 'home' : on ? 'here' : here.length ? here.length+' on it' : 'empty'}</u>
     ${canGo ? `<span class="ovgo" role="button" data-boardremove="${cid}:${x}:${y}"
-      title="Take this board away" aria-label="Take this board away">${ic('x',12)}</span>` : ''}
+      title="Take this tile away" aria-label="Take this tile away">${ic('x',12)}</span>` : ''}
   </button>`;
 }
 function overviewHTML(){
@@ -1287,21 +1262,21 @@ function overviewHTML(){
     if(isBoard(cid, x, y)) cards.push(overCard(cid, x, y, home));
     else if(grows && reachable(cid, x, y))
       cards.push(`<button class="ovcard ovadd" data-addboard="${cid}:${x}:${y}"
-        title="Add a board here"><span class="ovboard">${ic('plus',18)}</span><u>add</u></button>`);
+        title="Add a tile here"><span class="ovboard">${ic('plus',18)}</span><u>add</u></button>`);
     else cards.push(`<span class="ovgap"></span>`);
   }
   const n = boardsOf(cid).length;
   /* The question a full board asks before it goes, over the boards. */
   const a = OVER.ask;
   const ask = a ? `<div class="ovask" role="dialog">
-      <b>${a.n} thing${a.n===1?' is':'s are'} on this board</b>
+      <b>${a.n} thing${a.n===1?' is':'s are'} on this tile</b>
       <i>Taking it away takes ${a.n===1?'it':'them'} too, unless ${a.n===1?'it goes':'they go'} somewhere first.</i>
       <button class="pill" data-act="ovremove" data-at="${a.cid}:${a.x}:${a.y}" data-mode="hold">${ic('archive',13)} Put ${a.n===1?'it':'them'} in the Void Drawer</button>
-      <button class="pill ovdanger" data-act="ovremove" data-at="${a.cid}:${a.x}:${a.y}" data-mode="del">${ic('x',12)} Delete ${a.n===1?'it':'them'} with the board</button>
-      <button class="subtle-btn" data-act="ovkeep">Keep the board</button>
+      <button class="pill ovdanger" data-act="ovremove" data-at="${a.cid}:${a.x}:${a.y}" data-mode="del">${ic('x',12)} Delete ${a.n===1?'it':'them'} with the tile</button>
+      <button class="subtle-btn" data-act="ovkeep">Keep the tile</button>
     </div>` : '';
   return `${ask}<div class="ovhead"><b>${esc(cid===ROOT ? deskTitle() : boardName(container(cid)))}</b>
-      <i>${n} board${n>1?'s':''} · press one to go there, a plus to add one</i>
+      <i>${n} tile${n>1?'s':''} · press one to go there, a plus to add one</i>
       <button class="ovclose" data-act="overclose" title="Back to the board" aria-label="Back to the board">${ic('x',16)}</button></div>
     <div class="ovgrid" style="--sw:${W};--cw:${cw}px;--gap:${gap}px;--ar:${aspect};${boardVarsOf(cfgOf(cid))}">${cards.join('')}</div>`;
 }
@@ -1443,8 +1418,7 @@ function goShelfTo(cid, x, y, soon){
 function scrollToShelf(cid, y){
   const sc = $('#app .scroll.deskscroll'), grid = sc && sc.querySelector('#drawergrid');
   if(!sc || !grid || (grid.dataset.gridfor||ROOT)!==cid) return;
-  const g = gridOf(dev(), cid);
-  const top = grid.offsetTop + y * g.shelfH * (CELL[dev()] + g.gap);
+  const top = tileTop(cid, y, sc, grid);
   SCROLL.top = top;
   const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
   try{ sc.scrollTo({top, behavior: still ? 'auto' : 'smooth'}); }
@@ -1852,21 +1826,89 @@ function render(){
    The dots are patched in place rather than re-rendered: laying a board out on
    every scroll event is the one thing a scroller must never make you do. */
 const SHELFSCROLL = {want:false};
+/* **Where a tile sits when you arrive at it** (decision 272): in the middle
+   of the screen, with as many rows of the tiles above and below it as the
+   screen has left over — three each on an iPhone, which shows fourteen. In
+   scroller pixels, from the grid's own top. */
+function tileTop(cid, y, sc, grid){
+  const g = gridOf(dev(), cid), cell = CELL[dev()] + g.gap;
+  const shows = sc ? Math.floor(sc.clientHeight / Math.max(1, cell)) : viewRows();
+  const above = Math.max(0, Math.floor((shows - g.shelfH)/2));
+  const row = y*g.shelfH + (g.pad||0) - above;
+  return Math.max(0, (grid ? grid.offsetTop : 0) + row*cell);
+}
+/* Which tile you are on **is where the middle of the screen is**, on a Mac
+   and on a phone that scrolls. The dots are patched in place rather than
+   re-rendered: laying a board out on every scroll event is the one thing a
+   scroller must never make you do. */
 function onBoardScroll(e){
   const sc=e.currentTarget;
   const cid=(S.view==='drawer'&&S.drawerId)||ROOT;
-  // the device's own rows: a phone that scrolls reads this too (decision 209)
-  const g=gridOf(dev(), cid);
-  const rowH=g.shelfH*g.rowh;
-  if(!(rowH>0) || g.shelves.h<2) return;
-  const y=Math.round(sc.scrollTop/rowH);
   SCROLL.top = sc.scrollTop;
+  snapSoon(sc);
+  const g=gridOf(dev(), cid), grid=sc.querySelector('#drawergrid');
+  const cell=CELL[dev()]+g.gap;
+  if(!(cell>0) || !grid) return;
+  const mid = (sc.scrollTop - grid.offsetTop + sc.clientHeight/2) / cell - (g.pad||0);
+  const y = Math.floor(mid / g.shelfH);
   if(!setShelf(cid, shelfAt(cid).x, y)) return;
   const at=shelfAt(cid);
   $$('#app .shelfmark i').forEach(el=>{
     const p=(el.dataset.shelfgo||'').split(':');
     el.classList.toggle('on', +p[1]===at.x && +p[2]===at.y);
   });
+}
+/* ---- the snap — decision 272 -----------------------------------------
+   Timothy: scrolling is smooth, and when it stops the edges of the screen
+   line up with the edges of the grid, so it looks organised. So when the
+   scroller has been still a moment — the momentum spent and no finger on
+   it — it is eased the rest of the way to the nearest whole cell, both ways.
+   Never while a finger is down (it would pull the board out from under it),
+   never while a tile is being carried, whose own pan is moving it, and only
+   after a scroll a person made — a wheel, a touch or a key in the last
+   moment. A scroll the app made (arriving centred, `reveal()`, a thing
+   brought into view) already put the board where it meant to. */
+const FINGER = {n:0, wired:false, sc:null, at:0};
+const USER_SCROLL_MS = 1500;
+let SNAPT = 0;
+/* Wired once from wire(), so the first touch of the first scroll is felt. */
+function wireSnap(){
+  if(FINGER.wired) return;
+  FINGER.wired = true;
+  document.addEventListener('touchstart', e=>{ FINGER.n = e.touches.length; FINGER.at = Date.now(); }, {passive:true, capture:true});
+  const felt = ()=>{ FINGER.at = Date.now(); };
+  document.addEventListener('wheel', felt, {passive:true, capture:true});
+  document.addEventListener('keydown', felt, {passive:true, capture:true});
+  const up = e=>{ FINGER.n = e.touches.length; FINGER.at = Date.now(); if(!FINGER.n && FINGER.sc) snapSoon(FINGER.sc); };
+  document.addEventListener('touchend', up, {passive:true, capture:true});
+  document.addEventListener('touchcancel', up, {passive:true, capture:true});
+}
+function snapSoon(sc){
+  FINGER.sc = sc;
+  clearTimeout(SNAPT);
+  SNAPT = setTimeout(()=>snapBoard(sc), 170);
+}
+function snapBoard(sc){
+  if(!sc || !sc.isConnected || FINGER.n || $('#app .lifted, .pluckchip')) return;
+  if(Date.now() - FINGER.at > USER_SCROLL_MS) return;
+  const grid = sc.querySelector('#drawergrid'); if(!grid) return;
+  const g = gridOf(dev(), grid.dataset.gridfor||ROOT), cell = CELL[dev()] + g.gap;
+  if(!(cell > 4)) return;
+  const near = (v, o, max) => Math.max(0, Math.min(max, Math.round((v - o)/cell)*cell + o));
+  /* *A tile at a time* settles on the nearest whole tile, centred, rather
+     than the nearest row: the same scroll, a coarser rest. */
+  const cid = grid.dataset.gridfor||ROOT;
+  const top = dev()==='phone' && byTile()
+    ? (()=>{ const mid = (sc.scrollTop - grid.offsetTop + sc.clientHeight/2)/cell - (g.pad||0);
+        const ty = Math.floor(mid / g.shelfH), ok = reachable(cid, shelfAt(cid).x, ty);
+        return Math.min(sc.scrollHeight - sc.clientHeight, tileTop(cid, ok ? ty : shelfAt(cid).y, sc, grid)); })()
+    : near(sc.scrollTop, grid.offsetTop, sc.scrollHeight - sc.clientHeight);
+  const left = near(sc.scrollLeft, grid.offsetLeft, sc.scrollWidth - sc.clientWidth);
+  if(Math.abs(top - sc.scrollTop) < 0.75 && Math.abs(left - sc.scrollLeft) < 0.75) return;
+  SCROLL.top = top;
+  const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  try{ sc.scrollTo({top, left, behavior: still ? 'auto' : 'smooth'}); }
+  catch(_){ sc.scrollTop = top; sc.scrollLeft = left; }
 }
 
 /* The graph-paper backdrop in arrange mode has to match the real column width,
@@ -1952,11 +1994,14 @@ function sizeGrid(){
     const boardW = dimsOf(cid)
       ? sc.clientWidth - (parseFloat(cs.paddingLeft)||0) - (parseFloat(cs.paddingRight)||0)
       : w * g.shelfW;
-    const was = shelfRows('phone', cid);
+    /* The rows the **screen** shows (decision 272), which since a tile is
+       eight is not a tile's height: fourteen on an iPhone, one tile and three
+       rows of each neighbour. */
+    const was = viewRows('phone');
     if(MEASURE.phone.room!==room || Math.abs(MEASURE.phone.w-boardW)>0.5){
       MEASURE.phone.room=room; MEASURE.phone.w=boardW;
     }
-    const rows=shelfRows('phone', cid);
+    const rows=viewRows('phone');
     if(rows!==was && !sizing){ sizing=true; try{ render(); } finally { sizing=false; } return; }
     /* Written only when they have actually changed. The markup already carries
        last render's numbers (see REVEAL), so on an ordinary render these agree
@@ -2054,10 +2099,10 @@ function sizeGrid(){
     const sidePad = scs ? (parseFloat(scs.paddingLeft)||0) + (parseFloat(scs.paddingRight)||0) : 0;
     const avail = sc ? Math.max(1, sc.clientWidth - sidePad) : w*drawCols(g);
     const room = sc ? sc.clientHeight : 0;
-    const wasR = shelfRows('desk', cid);
+    const wasR = viewRows('desk');
     MEASURE.desk.w = avail;
     MEASURE.desk.room = room;
-    if(shelfRows('desk', cid)!==wasR && !sizing){
+    if(viewRows('desk')!==wasR && !sizing){
       sizing=true; try{ render(); } finally { sizing=false; } return;
     }
   }
@@ -2098,15 +2143,14 @@ function sizeGrid(){
   if(SHELFSCROLL.want && (dev()!=='phone' || flows())){
     SHELFSCROLL.want=false;
     const cid = grid.dataset.gridfor || ROOT;
-    const gg = gridOf(dev(), cid);
-    if(gg.shelves.h>1 && sc){
-      SCROLL.top = shelfAt(cid).y * gg.shelfH * cell;
+    if(sc){
+      SCROLL.top = tileTop(cid, shelfAt(cid).y, sc, grid);
       sc.scrollTop = SCROLL.top;
     }
   }
 }
 
-export { render, renderSoon, sizeGrid, shelfTop, shelfLeft, shelfShift, centreDesk,
+export { wireSnap, render, renderSoon, sizeGrid, shelfTop, shelfLeft, shelfShift, centreDesk,
   reveal, openOverview, closeOverview, refreshOverview, overviewOn, overAsk, overCid, viewHTML, previewHTML,
   goShelf, goShelfTo, sideDrawer, goSideDrawer, boardDimsField, shelfCountField, railToolsField, railToolsOf, RAIL_TOOLS,
   settingsPanel, toggleSettings, railObj, flipBlock };

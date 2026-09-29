@@ -57,8 +57,18 @@ const PROP_OFF = () => { const b = document.createElement('button');
       return (thing && into) ? { thing, into } : null;
     }) ;
     // …or any tile at all, or a particular sort of one
-    window.aTileOnAShelf = (sel) =>
-      walk(() => document.querySelector(sel || '#app .grid .drawer'));
+    /* …**on the screen**: a phone draws the whole column since decision
+       272, so the first match in the document can be above the fold. */
+    const onScreen = el => { const sc = document.querySelector('#app .deskscroll');
+      if (!sc) return true; const r = el.getBoundingClientRect(), v = sc.getBoundingClientRect();
+      return r.top >= v.top - 1 && r.bottom <= v.bottom + 1; };
+    window.aTileOnAShelf = async (sel) => {
+      const got = await walk(() => { const all = [...document.querySelectorAll(sel || '#app .grid .drawer')];
+        return all.find(onScreen) || all[0] || null; });
+      // drawn but below the fold: brought onto the screen, the way a person would
+      if (got && !onScreen(got)) { got.scrollIntoView({block:'center'}); await nap(120); }
+      return got;
+    };
     /* A **Mac** board is three shelves tall and only the middle row is on the
        screen, so a fixed desk coordinate like {x:1,y:4} is on the shelf above
        the one you are looking at: in the DOM, above the viewport, and out of
@@ -77,8 +87,13 @@ const PROP_OFF = () => { const b = document.createElement('button');
        (0,0) while standing on the middle one — where the desk starts. `hereBox`
        puts a box on the shelf you are looking at. On the desk the shift is
        zero and it changes nothing. See decision 141 and `shelfShift()`. */
+    /* Since decision 272 a phone draws the whole column and the tile you are
+       on is centred in it, so "here" is that tile's corner rather than the
+       drawn window's, which starts an empty tile above the board. */
     window.hereBox = (box, cid) => {
-      const sh = BUREAU.shelfShift(cid || 'root');
+      const id = cid || 'root', sh = BUREAU.shelfShift(id);
+      if (BUREAU.state.device === 'phone') { const at = BUREAU.shelfAt(id);
+        return { ...box, x: box.x + at.x*8, y: box.y + at.y*8 }; }
       return { ...box, x: box.x + sh.x, y: box.y + sh.y };
     };
   });
@@ -98,7 +113,12 @@ const PROP_OFF = () => { const b = document.createElement('button');
      desk that had been used was; the phone page shares this storage. The
      one-board desk is tested on its own in `boardsYouAdd`, in a context of
      its own. */
+  /* A fresh desk is three tiles, one above another, already centred on the
+     middle one (decision 272), so that centring is undone before the desk is
+     made three by three and centred again. */
   await page.evaluate(() => { const S = BUREAU.state;
+    Object.keys(S.centred || {}).forEach(dv => S.objects.forEach(o => {
+      const b = o.parent === 'root' && o[dv]; if (b && b.y) o[dv] = { ...b, y: b.y - 8 }; }));
     S.deskCfg.shelves = {w:3, h:3}; S.centred = {}; BUREAU.render(); BUREAU.save(); });
   await page.waitForTimeout(400);
   await shot('01-desk');
@@ -327,7 +347,8 @@ const PROP_OFF = () => { const b = document.createElement('button');
              cellIsThumbSized: colw > 36 && colw < 62,
              square: Math.abs(colw - rowh) < 1,
              // and the bar is thin enough to leave a real page of them
-             rowsFit: BUREAU.shelfRows >= 12 };
+             // (the screen's rows, not the tile's eight, since decision 272)
+             rowsFit: BUREAU.viewRows('phone') >= 12 };
   });
   /* --- a phone on its side ---------------------------------------------
      Bureau is a portrait desk, and measuring a landscape one is what made
@@ -2246,8 +2267,8 @@ const PROP_OFF = () => { const b = document.createElement('button');
     let body = document.querySelector('#panel .pbody');
     out.theDeskEditorSorts = /Sorted by/.test(body.textContent)
       && !!body.querySelector('[data-oset="root:sort"]');
-    // its shape is two sliders now (decision 235)
-    out.andSaysHowWideTheGridIs = !!body.querySelector('[data-boarddim="w"]') && !!body.querySelector('[data-boarddim="h"]');
+    // its shape was two sliders (decision 235), gone with 272: every tile is 8×8
+    out.andSaysHowWideTheGridIs = !body.querySelector('[data-boarddim]');
     BUREAU.panel('root', 'look'); await nap(220);
     body = document.querySelector('#panel .pbody');
     out.andPaintsThisDeskAlone = !!body.querySelector('[data-pboard][data-id="root"]');
@@ -2288,44 +2309,17 @@ const PROP_OFF = () => { const b = document.createElement('button');
     parked.forEach(o => { o.parent = '__parked'; });
     BUREAU.render(); await nap(200);
     out.smallIsTheDefault = S.look.grid === 'small' && cols() === 8;
-    BUREAU.setGrid('extra'); await nap(400);
-    out.extraIsNine = cols() === 9 && square();
-    BUREAU.setGrid('large'); await nap(400);
-    out.largeIsTen = cols() === 10 && square();
-    // …and the cells get smaller as the columns get more, which is the point
-    const big = 390/8, small = 390/10;
-    out.moreColumnsSmallerCells = big > small;
-    BUREAU.setGrid('small'); await nap(400);
-    /* **A notch at a time is exact; two notches at once is not**, and that is
-       the code's own claim rather than a shortfall in it. Scaling the left
-       *edge* while the width rounds to the nearest cell compresses the gaps: at
-       ten columns the rack sits at local 3,5,7,9 and 0.8 maps those to 3,4,6,7
-       while every tile stays two wide, so two of them land on each other and
-       the loser is dropped into the nearest free box. Going back through nine
-       has no such step and comes home to the cell.
-
-       So the exactness is measured where it is promised, and the jump is
-       measured for what it does promise: a legal board. */
-    out.aTwoNotchJumpStaysLegal = (() => {
-      const g = BUREAU.shelfRows, all = RACK.map(id => S.objects.find(o=>o.id===id).phone);
-      const hit = (a,b) => a.x<b.x+b.w && b.x<a.x+a.w && a.y<b.y+b.h && b.y<a.y+a.h;
-      for(let i=0;i<all.length;i++) for(let j=i+1;j<all.length;j++)
-        if(hit(all[i],all[j])) return false;
-      return all.every(b => ((b.x-1)%8)+b.w <= 8 && ((b.y-1)%g)+b.h <= g);
-    })();
-    /* From where the jump left it, not from where the block started: the jump
-       has already bumped a tile by design, and a later round trip cannot undo
-       that. What is being measured is one notch out and one notch back. */
+    /* **Retired by decision 272**: every tile is eight across, so asking
+       for nine or ten does nothing and moves nothing. */
     const before = rack();
-    BUREAU.setGrid('extra'); await nap(400);
-    BUREAU.setGrid('small'); await nap(400);
-    out.backIsWhereYouWere = (cols() === 8 && rack() === before)
-      || `before ${before} / back ${rack()} / cols ${cols()}`;
+    BUREAU.setGrid('extra'); await nap(300);
+    out.extraIsNine = cols() === 8 && square() && rack() === before;
+    BUREAU.setGrid('large'); await nap(300);
+    out.largeIsTen = cols() === 8 && rack() === before;
     parked.forEach(o => { o.parent = 'root'; });
     BUREAU.render(); await nap(200);
-    /* The whole board is rows now, not rows-less-a-shelf: 8x13, 9x14, 10x15 on
-       a 390pt handset, give or take whatever this one's height rounds to. */
-    out.everyRowIsTheBoards = BUREAU.shelfRows >= 13;
+    // a tile is eight rows; the screen shows more than that
+    out.everyRowIsTheBoards = BUREAU.shelfRows === 8 && BUREAU.viewRows('phone') >= 13;
     return out;
   });
 
@@ -2459,11 +2453,14 @@ const PROP_OFF = () => { const b = document.createElement('button');
     const out = {};
     const g = () => document.querySelector('#drawergrid');
     const sc = () => document.querySelector('#app .scroll');
-    // every row of it is the board's now — the shelf used to take the last one
-    out.rowsMeasured = BUREAU.shelfRows >= 13;
-    out.exactlyOneShelf = /repeat\((\d+),/.exec(g().style.gridTemplateRows)[1] === String(BUREAU.shelfRows);
-    out.neverScrolls = sc().scrollHeight <= sc().clientHeight + 1
-      && getComputedStyle(sc()).overflowY === 'hidden';
+    /* Since decision 272 the screen shows fourteen rows and a tile is eight:
+       the column of tiles is drawn whole, an empty tile's pad above and below,
+       in a scroller exactly as tall as the screen's rows. */
+    out.rowsMeasured = BUREAU.viewRows('phone') >= 13 && BUREAU.shelfRows === 8;
+    out.exactlyOneShelf = /repeat\((\d+),/.exec(g().style.gridTemplateRows)[1] === String(3*8 + 16);
+    const cellH = parseFloat(getComputedStyle(g()).getPropertyValue('--rowh'));
+    out.neverScrolls = getComputedStyle(sc()).overflowY === 'auto'
+      && Math.abs(sc().clientHeight - BUREAU.viewRows('phone')*cellH) < 1.5;
     /* …and the column adds up exactly — bar, the reveal, the rows, the rail —
        so the board never runs into the curve at the bottom of the screen and
        there is nothing left hanging anywhere. */
@@ -2477,7 +2474,7 @@ const PROP_OFF = () => { const b = document.createElement('button');
     out.theColumnAddsUp =
       Math.abs(h(bar) + gap + h(sc()) + h(rail) - main.clientHeight) < 1.5;
     out.clearsTheCurveOfTheScreen = h(rail) >= 30
-      && g().getBoundingClientRect().bottom <= innerHeight - 30;
+      && sc().getBoundingClientRect().bottom <= innerHeight - 30;
     /* **One more row** is a setting (decision 205): it takes the reveal away
        and slims the drawer front, and the rows follow by arithmetic. */
     {
@@ -2494,17 +2491,17 @@ const PROP_OFF = () => { const b = document.createElement('button');
     out.startsInTheMiddle = JSON.stringify(BUREAU.shelfAt('root')) === JSON.stringify({x:1,y:1});
     // nothing may straddle a seam, in either direction: half a tile on each of
     // two screens is a tile you can read neither half of
+    // up and down a thing may cross a seam now (272); sideways never
     const per = BUREAU.shelfRows, wide = 8;
     out.nothingStraddles = BUREAU.kids('root').every(id => {
       const b = BUREAU.state.objects.find(o => o.id === id).phone;
-      return !b || (b.h <= per && b.w <= wide
-        && Math.floor((b.y-1)/per) === Math.floor((b.y+b.h-2)/per)
+      return !b || (b.h <= BUREAU.viewRows('phone') && b.w <= wide
         && Math.floor((b.x-1)/wide) === Math.floor((b.x+b.w-2)/wide));
     });
-    // …and only the shelf you are on is drawn
+    // …and only the column of tiles you are in is drawn
     out.oneShelfDrawn = [...document.querySelectorAll('#drawergrid > .drawer')].every(el => {
       const b = (BUREAU.state.objects.find(o => o.id === (el.dataset.drawer||el.dataset.row))||{}).phone;
-      return !b || (Math.floor((b.x-1)/wide) === 1 && Math.floor((b.y-1)/per) === 1);
+      return !b || Math.floor((b.x-1)/wide) === 1;
     });
     // two fingers, all four ways
     const el = document.querySelector('#frame');
@@ -2515,8 +2512,9 @@ const PROP_OFF = () => { const b = document.createElement('button');
       el.dispatchEvent(mk('touchmove',[T(200+dx,460+dy,1),T(240+dx,460+dy,2)]));
       el.dispatchEvent(mk('touchend',[])); };
     const at = () => BUREAU.shelfAt('root');
+    // up and down is the scroller's now, not the pager's (272)
     swipe(0,-160); await nap(260);
-    out.twoFingersUpGoesDownAShelf = at().y === 2;
+    out.twoFingersUpGoesDownAShelf = at().y === 1 && !document.querySelector('.pager');
     swipe(0,160); await nap(260);
     out.andBack = at().y === 1;
     swipe(-160,0); await nap(260);
@@ -2560,20 +2558,26 @@ const PROP_OFF = () => { const b = document.createElement('button');
     document.querySelector('#frame').dispatchEvent(new MouseEvent('click', { bubbles:true }));
     S.view = 'desk'; S.drawerId = null; S.look.locked = false;
     BUREAU.goShelfTo('root', 1, 1); BUREAU.render(); await nap(150);
-    const R = BUREAU.shelfRows;
-    press('scroll'); await nap(250);
-    out.stored = S.look.flow === 'scroll';
-    // the whole column is drawn, in a viewport exactly one shelf tall
+    /* Decision 272: a tile is eight rows, the column is drawn with an empty
+       tile's pad above and below, and scrolling is how a phone always moves
+       down it. The default stores nothing. */
+    const R = BUREAU.shelfRows, P = 8, V = BUREAU.viewRows('phone');
+    press(''); await nap(250);
+    out.stored = !('flow' in S.look);
     const cell = g().getBoundingClientRect().width / 8;
-    out.wholeColumnDrawn = rows() === 3 * R;
-    out.oneShelfTall = Math.abs(sc().getBoundingClientRect().height - R * cell) < 1;
+    out.wholeColumnDrawn = rows() === 3 * R + 2 * P;
+    out.oneShelfTall = Math.abs(sc().getBoundingClientRect().height - V * cell) < 1;
     out.scrollsNatively = getComputedStyle(sc()).overflowY === 'auto'
       && getComputedStyle(g()).touchAction === 'pan-y';
-    out.sidewaysStillWindowed = JSON.stringify(BUREAU.shelfShift('root')) === JSON.stringify({x:8, y:0});
-    // it arrives on the shelf you were on, which for the desk is the middle one
-    out.arrivesOnTheMiddle = Math.abs(sc().scrollTop - R * cell) < 2;
-    // scrolling is which shelf you are on, and the dots follow without a render
-    sc().scrollTop = sc().scrollHeight; await nap(150);
+    out.sidewaysStillWindowed = JSON.stringify(BUREAU.shelfShift('root')) === JSON.stringify({x:8, y:-P});
+    // it arrives with the tile you were on centred: the middle one, and three
+    // rows of each neighbour on a fourteen-row screen
+    const above = Math.floor((V - R)/2);
+    // walked to from the tile above, so the arrival is this block's own
+    BUREAU.goShelfTo('root', 1, 0); await nap(700); BUREAU.goShelfTo('root', 1, 1); await nap(900);
+    out.arrivesOnTheMiddle = Math.abs(sc().scrollTop - (R + P - above) * cell) < 2;
+    // the tile the middle of the screen is in is the one you are on
+    sc().scrollTop = (2*R + P - above) * cell; sc().dispatchEvent(new Event('scroll')); await nap(150);
     const dots = () => [...document.querySelectorAll('#app .shelfmark i')].findIndex(i => i.classList.contains('on'));
     out.scrollIsTheShelf = BUREAU.shelfAt('root').y === 2 && dots() === 7;
     const top = sc().scrollTop;
@@ -2585,7 +2589,7 @@ const PROP_OFF = () => { const b = document.createElement('button');
     BUREAU.create('note', { title: 'Down the column', parent: 'root' });
     const n = S.objects.find(o => o.title === 'Down the column');
     n.phone = { x: 10, y: 2 * R + 3, w: 2, h: 1 };
-    BUREAU.render(); sc().scrollTop = sc().scrollHeight; await nap(100);
+    BUREAU.render(); sc().scrollTop = (2*R + P - above) * cell; await nap(100);
     const tile = () => document.querySelector(`#drawergrid .drawer[data-row="${n.id}"]`);
     out.lowTileDrawn = !!tile();
     if (tile()) {
@@ -2617,11 +2621,14 @@ const PROP_OFF = () => { const b = document.createElement('button');
     document.querySelector('#frame').dispatchEvent(new MouseEvent('click', { bubbles:true }));
     // a dot in another row is a scroll to that row
     BUREAU.goShelfTo('root', 1, 0); await nap(900);
-    out.aDotScrollsThere = sc().scrollTop < 2 && BUREAU.shelfAt('root').x === 1;
-    // and off again is the rigid page it was
+    out.aDotScrollsThere = Math.abs(sc().scrollTop - (P - above) * cell) < 2 && BUREAU.shelfAt('root').x === 1;
+    // *A tile at a time* scrolls the same way and settles on a whole tile
+    press('page'); await nap(250);
+    sc().dispatchEvent(new WheelEvent('wheel', {bubbles:true, deltaY:40}));
+    sc().scrollTop = (P - above + 1.4) * cell; sc().dispatchEvent(new Event('scroll')); await nap(900);
+    const settled = Math.abs(sc().scrollTop - (P - above) * cell) < 2;
     press(''); await nap(250);
-    out.offIsPagesAgain = !('flow' in S.look) && rows() === R
-      && getComputedStyle(sc()).overflowY === 'hidden' && sc().scrollTop === 0;
+    out.offIsPagesAgain = settled && !('flow' in S.look) && rows() === 3 * R + 2 * P;
     BUREAU.del(n.id);
     S.look.locked = wasLock;
     BUREAU.goShelfTo('root', 1, 1); BUREAU.render(); await nap(150);
@@ -2875,7 +2882,10 @@ const PROP_OFF = () => { const b = document.createElement('button');
     B.render(); await nap(150);
     B.goShelfTo('root', 1, 1); await nap(250);
     out.onTheMiddleShelf = JSON.stringify(B.shelfAt('root')) === JSON.stringify({x:1,y:1});
-    out.shelfShiftIsTheOffset = B.shelfShift('root').y === per
+    /* Since decision 272 the column is drawn whole with an empty tile's pad
+       above it, so the shift up and down is minus the pad, not the tile. */
+    const pad = 8;
+    out.shelfShiftIsTheOffset = B.shelfShift('root').y === -pad
                              && B.shelfShift('root').x === wide;
 
     const frame = document.getElementById('frame'), grid = document.querySelector('.grid');
@@ -2891,7 +2901,7 @@ const PROP_OFF = () => { const b = document.createElement('button');
     out.foundTheTile = !!tile;
     if(tile){
       const drawnAt = +getComputedStyle(tile).gridRowStart;
-      out.drawnAtItsShelfRow = drawnAt === t.phone.y - per;
+      out.drawnAtItsShelfRow = drawnAt === t.phone.y + pad;
       out.andItsShelfColumn = +getComputedStyle(tile).gridColumnStart === t.phone.x - wide;
       const grip = tile.querySelector('.rz.se');
       out.hasAGrip = !!grip;
@@ -2910,14 +2920,17 @@ const PROP_OFF = () => { const b = document.createElement('button');
        object landed a shelf up and a shelf across — where you are not looking.
        That is what "making new objects doesn't work" was: it worked, somewhere
        else. Both axes now. See decisions 102 and 141. */
+    // a cell low on the middle tile, which is the one the screen is centred on
     const gr = document.querySelector('.grid').getBoundingClientRect();
-    const x = gr.left + gr.width * 0.2, y = gr.top + gr.height * 0.75;
+    const cw = gr.width / 8, tileTop = gr.top + (pad + per) * cw;
+    const x = gr.left + gr.width * 0.2, y = tileTop + cw * 5.5;
     out.aimedAtBareBoard = document.elementFromPoint(x, y) === document.querySelector('.grid');
     ev(document.querySelector('.grid'), 'pointerdown', x, y);
     await nap(420);                       // outlast the hold
     ev(frame, 'pointermove', x + 40, y + 40); await nap(60);
     const ghost = document.querySelector('.ghost');
-    out.theGhostIsOnThisShelf = !!ghost && +getComputedStyle(ghost).gridRowStart <= per;
+    out.theGhostIsOnThisShelf = !!ghost && +getComputedStyle(ghost).gridRowStart > pad + per
+      && +getComputedStyle(ghost).gridRowStart <= pad + 2*per;
     ev(frame, 'pointerup', x + 40, y + 40); await nap(300);
     /* A drawn box opens the shape ring now (decision 210); a blob in it
        makes that type in the box. */
@@ -2971,8 +2984,18 @@ const PROP_OFF = () => { const b = document.createElement('button');
     const grid = document.querySelector('#drawergrid');
     const gr = grid.getBoundingClientRect();
     const cell = parseFloat(getComputedStyle(grid).getPropertyValue('--rowh'));
-    // a bare cell, low on the board where the seed leaves room
-    const bare = { x: gr.left + cell/2, y: gr.bottom - cell/2 };
+    // a bare cell, the lowest one the tile has (a tile is eight rows since
+    // decision 272, so the seed may fill the bottom row of it)
+    // on the screen: the grid is the whole column now and runs past it (272)
+    const vis = document.querySelector('#app .deskscroll').getBoundingClientRect();
+    let bare = { x: gr.left + cell/2, y: vis.bottom - cell/2 };
+    for(let y = vis.bottom - cell/2; y > vis.top; y -= cell){
+      let hit = false;
+      for(let x = gr.left + cell/2; x < gr.right; x += cell){
+        if(document.elementFromPoint(x, y) === grid){ bare = {x, y}; hit = true; break; }
+      }
+      if(hit) break;
+    }
     const tap = (el,x,y,type) => el.dispatchEvent(new PointerEvent(type,
       { bubbles:true, cancelable:true, pointerId:11, pointerType:'touch', clientX:x, clientY:y }));
     tap(grid, bare.x, bare.y, 'pointerdown'); tap(grid, bare.x, bare.y, 'pointerup');
@@ -2992,7 +3015,7 @@ const PROP_OFF = () => { const b = document.createElement('button');
     const pr = p && p.getBoundingClientRect();
     out.comesFromTheBottom = !!pr && pr.left < 2 && pr.right > innerWidth - 2
       && pr.bottom >= innerHeight - 1 && pr.top > innerHeight * 0.1;
-    document.querySelector('[data-act="panelclose"]').click();
+    document.querySelector('[data-act="panelclose"]')?.click();
     return out;
   });
 
@@ -3415,8 +3438,14 @@ const PROP_OFF = () => { const b = document.createElement('button');
          by one, so a single free square is not somewhere it fits — and the aim
          clamps x so the box stays on the board, which would walk it straight
          back into whatever is on that row. */
+      /* On the screen and on a tile (decision 272): the grid is the whole
+         column now, with an empty tile's pad above and below the board. */
+      const vis = document.querySelector('#app .deskscroll').getBoundingClientRect();
+      const pad = -BUREAU.shelfShift('root').y;
+      const y0 = Math.max(pad + 1, Math.ceil((vis.top - gr.top)/cell) + 1);
+      const y1 = Math.min(rows - pad, Math.floor((vis.bottom - gr.top)/cell));
       let free = 0;
-      for(let yy=1; yy<=rows && !free; yy++){
+      for(let yy=y0; yy<=y1 && !free; yy++){
         let clear = true;
         for(let xx=1; xx<=cols; xx++) if(taken.has(xx+','+yy)) { clear=false; break; }
         if(clear) free = yy;
@@ -3965,7 +3994,9 @@ const PROP_OFF = () => { const b = document.createElement('button');
     const shelfW = parseInt(cs(document.querySelector('#drawergrid'))
       .getPropertyValue('--cols'), 10) || 9;
     const shelfH = BUREAU.shelfRows;
-    const corners = [[1,1],[shelfW-2,1],[1,shelfH-3],[shelfW-2,shelfH-3]]
+    /* The screen is the tile and three rows of each neighbour (decision
+       272), so its corners are in the rows of the tiles above and below. */
+    const corners = [[1,-2],[shelfW-2,-2],[1,shelfH+2],[shelfW-2,shelfH+2]]
       .map(([x,y],i) => {
         // create() refuses when a board is full, which is a real answer and not
         // an error — see fits() in mutations.js
@@ -4057,7 +4088,7 @@ const PROP_OFF = () => { const b = document.createElement('button');
        that is not drawn. Put them against the count there is now. Since the
        bar moved into the rail (decision 204) there is a row to spare for it. */
     corners.slice(2).forEach((o, i) => {
-      o.phone = hereBox({x: i ? shelfW-2 : 1, y: BUREAU.shelfRows - 3, w:3, h:3}); });
+      o.phone = hereBox({x: i ? shelfW-2 : 1, y: BUREAU.shelfRows + 2, w:3, h:3}); });   // the screen's bottom rows (272)
     BUREAU.render(); await nap(160);
     const ts = tiles();
     /* The numbers and the layer are one condition, so nothing can carry a side
@@ -5349,17 +5380,18 @@ const PROP_OFF = () => { const b = document.createElement('button');
        see at once, and the drawer's *size* decides the rest. The setting is
        still stored and still asked; what is turned round here is which number
        it is expected to move. */
-    out.itCanHaveItsOwn = d.grid === 'large' && BUREAU.shelfW(d.id) === 10;
+    // retired by decision 272: a tile is eight across on every board
+    out.itCanHaveItsOwn = BUREAU.shelfW(d.id) === 8;
     out.andTheBoxesCameWithIt = o.phone.w >= was.w;
     // …and the desk it is on is untouched
     S.view='desk'; S.drawerId=null; BUREAU.render(); await nap(250);
     out.theDeskIsUntouched = cols() === 8 && S.look.grid === 'small';
     // a board with its own answer keeps it when the app default moves
     BUREAU.setGrid('extra'); await nap(350);
-    out.theAppDefaultMoves = cols() === 9;
+    out.theAppDefaultMoves = cols() === 8;
     S.view='drawer'; S.drawerId=d.id; BUREAU.render(); await nap(250);
     // …and the board with an answer of its own keeps it: its shelf is still ten
-    out.andTheBoardWithAnAnswerKeepsIt = BUREAU.shelfW(d.id) === 10;
+    out.andTheBoardWithAnAnswerKeepsIt = BUREAU.shelfW(d.id) === 8;
     BUREAU.setGrid('small');
     S.view='desk'; S.drawerId=null;
     BUREAU.delDrawer(d.id); S.objects=S.objects.filter(x=>x.id!==o.id); S.undo=[];
@@ -6269,9 +6301,10 @@ const PROP_OFF = () => { const b = document.createElement('button');
     /* Where it lands is an offset applied to the whole arrangement, so the
        shape of it survives — which is the only reason it is a plan and not a
        list of titles. */
-    const at = BUREAU.stampPlan(p.id, 'root', {x:9, y:9});
+    // an empty tile's corner: the seed is on the middle tile since 272
+    const at = BUREAU.stampPlan(p.id, 'root', {x:17, y:1});
     const top = at.filter(o => o.parent === 'root');
-    out.landsWhereAsked = Math.min(...top.map(o => o.desk.x)) === 9;
+    out.landsWhereAsked = Math.min(...top.map(o => o.desk.x)) === 17;
     out.andKeepsItsShape = new Set(top.map(o => o.desk.y)).size === top.length;
     at.forEach(o => BUREAU.del(o.id));
 
@@ -6554,7 +6587,8 @@ const PROP_OFF = () => { const b = document.createElement('button');
     /* No spare screen beside it any more (decision 219): a board is added
        where you want one, so a Film is the board its flow is. */
     // a Film is its departments since decision 238: five boards, as its flow says
-    out.withRoomBeside = BUREAU.boardsOf(film.id).length === 5;
+    // …and each of them two tiles, one above the other (decision 272)
+    out.withRoomBeside = BUREAU.boardsOf(film.id).length === 10;
     // a Life drawer made for Health, through the question it asks
     const pressIn = (attr, val) => { const b = document.createElement('button');
       b.dataset[attr] = val; b.style.display = 'none';
@@ -6716,13 +6750,20 @@ const PROP_OFF = () => { const b = document.createElement('button');
     S.deskCfg.layout = 'list';
     const titles = () => Array.from(document.querySelectorAll('#app .listgrid .listband'))
       .map(e => e.textContent);
+    /* A phone scrolls down a column of tiles (decision 272), so a list is a
+       **column**: both tiles of it in one list, and the column beside it in
+       another. */
+    const c3 = BUREAU.create('note', {parent:'root', title:'Shelf C note'});
+    c3.phone = {x:9, y:1, w:2, h:2};
     BUREAU.goShelfTo('root', 0, 0); BUREAU.render(); await nap(250);
     const one = titles();
-    BUREAU.goShelfTo('root', 0, 1); BUREAU.render(); await nap(250);
+    BUREAU.goShelfTo('root', 1, 0); BUREAU.render(); await nap(250);
     const two = titles();
     out.eachShelfIsItsOwnList =
-         one.some(t => t.includes('Shelf A note')) && !one.some(t => t.includes('Shelf B note'))
-      && two.some(t => t.includes('Shelf B note')) && !two.some(t => t.includes('Shelf A note'));
+         one.some(t => t.includes('Shelf A note')) && one.some(t => t.includes('Shelf B note'))
+      && !one.some(t => t.includes('Shelf C note')) && two.some(t => t.includes('Shelf C note'))
+      && !two.some(t => t.includes('Shelf A note'));
+    BUREAU.del(c3.id);
     /* A shelf with nothing on it says where the rest is, rather than drawing an
        empty column that looks like a desk with nothing on it. */
     BUREAU.goShelfTo('root', 2, 2); BUREAU.render(); await nap(250);
@@ -10047,7 +10088,8 @@ const PROP_OFF = () => { const b = document.createElement('button');
   const boardsYouAdd = await fresh.evaluate(async () => {
     const nap = n => new Promise(r => setTimeout(r, n));
     const out = {}, S = BUREAU.state, B = BUREAU;
-    out.startsAsOne = JSON.stringify(B.boardsOf('root')) === JSON.stringify([{x:0,y:0}]);
+    // a fresh desk is three tiles, one above another (decision 272)
+    out.startsAsOne = JSON.stringify(B.boardsOf('root')) === JSON.stringify([{x:0,y:0},{x:0,y:1},{x:0,y:2}]);
     out.seedFitsOnIt = S.objects.filter(o=>o.parent==='root' && o.phone && o.phone.x)
       .every(o=>B.boxOk(o.phone, o.id, 'phone', 'root'));
     B.goShelfTo('root', 1, 0); await nap(200);
@@ -10057,7 +10099,7 @@ const PROP_OFF = () => { const b = document.createElement('button');
     out.butNotTwoOff = B.shelfAt('root').x === 0 || B.shelfAt('root').x === 1;
     B.goShelfTo('root', 1, 0); await nap(150);
     document.querySelector('.addboard').click(); await nap(200);
-    out.thePlusMakesOne = B.boardsOf('root').length === 2 && B.isBoard('root', 1, 0)
+    out.thePlusMakesOne = B.boardsOf('root').length === 4 && B.isBoard('root', 1, 0)
       && B.shelfAt('root').x === 1 && !document.querySelector('#drawergrid.vacant');
     const t = S.objects.find(o=>o.id==='d_today'), was = {...t.phone};
     B.goShelfTo('root', -1, 0); await nap(150);
@@ -10066,19 +10108,22 @@ const PROP_OFF = () => { const b = document.createElement('button');
       && B.shelvesOf('root').w === 3 && B.shelfAt('root').x === 0;
     B.goShelfTo('root', 1, -1); await nap(150);
     document.querySelector('.addboard').click(); await nap(200);
-    out.upToo = B.shelvesOf('root').h === 2 && B.isBoard('root', 1, 0) && !B.isBoard('root', 0, 0)
+    out.upToo = B.shelvesOf('root').h === 4 && B.isBoard('root', 1, 0) && !B.isBoard('root', 0, 0)
       && t.phone.y === was.y + B.shelfRows;
-    // the dots are the boards' own shape, gaps and all
-    out.dotsHaveGaps = document.querySelectorAll('.shelfmark i.gap').length === 2;
-    out.fullOneStays = !B.removeBoard('root', 1, 1);
+    // the dots are the tiles' own shape, gaps and all: six of a three by four
+    out.dotsHaveGaps = document.querySelectorAll('.shelfmark i.gap').length === 6;
+    out.fullOneStays = !B.removeBoard('root', 1, 2);
     // the one above goes, and the rectangle gives its row back
-    out.emptyOneGoes = B.removeBoard('root', 1, 0) && B.boardsOf('root').length === 3
-      && B.shelvesOf('root').h === 1 && t.phone.y === was.y;
+    out.emptyOneGoes = B.removeBoard('root', 1, 0) && B.boardsOf('root').length === 5
+      && B.shelvesOf('root').h === 3 && t.phone.y === was.y;
     // the one on the left goes, and the numbers move back
     out.andTheRectShrinks = B.removeBoard('root', 0, 0) && B.shelvesOf('root').w === 2
       && t.phone.x === was.x;
-    out.lastNeverGoes = B.removeBoard('root', 1, 0) && !B.removeBoard('root', 0, 0)
-      && B.boardsOf('root').length === 1;
+    // …and the last tile of a board never goes, full or empty
+    const lone = B.create('drawer', {parent:'root', title:'Lone'});
+    out.lastNeverGoes = B.removeBoard('root', 1, 0) && B.boardsOf(lone.id).length === 1
+      && !B.removeBoard(lone.id, 0, 0);
+    B.del(lone.id);
     B.render(); await nap(150);
     // nothing is made on a slot
     out.noRoomOnASlot = !B.boxOk({x:B.shelfW('root')+1, y:1, w:1, h:1}, null, 'phone', 'root');
@@ -10091,7 +10136,8 @@ const PROP_OFF = () => { const b = document.createElement('button');
     const P = await import('./js/plans.js');
     const d = B.create('drawer', {parent:'root', title:'PM'});
     P.stampPlan(pl.id, d.id); B.render(); await nap(150);
-    out.stampedAcross = JSON.stringify(B.shelvesOf(d.id)) === JSON.stringify({w:3,h:1})
+    // three boards across, each a block of two tiles down (decision 272)
+    out.stampedAcross = JSON.stringify(B.shelvesOf(d.id)) === JSON.stringify({w:3,h:2})
       && B.shelfAt(d.id).x === 1
       && S.objects.filter(o=>o.parent===d.id && o.phone && o.phone.x)
            .every(o=>B.boxOk(o.phone, o.id, 'phone', d.id));
@@ -10109,7 +10155,8 @@ const PROP_OFF = () => { const b = document.createElement('button');
     const M = await import('./js/persist.js');
     const old = {v:44, objects:[], deskCfg:{layout:'grid'}, plans:[]};
     M.migrate(old);
-    out.oldDeskIsNine = !!old.deskCfg.shelves && old.deskCfg.shelves.w===3 && old.deskCfg.shelves.h===3;
+    // nine boards of 8×14, re-cut into tiles: three across, six down (272)
+    out.oldDeskIsNine = !!old.deskCfg.shelves && old.deskCfg.shelves.w===3 && old.deskCfg.shelves.h===6;
     return out;
   });
   /* …and the swipe on a row is still the swipe on a row: left deletes. */
@@ -10179,11 +10226,12 @@ const PROP_OFF = () => { const b = document.createElement('button');
     const pl = S.plans.find(p=>p.stock==='brainstorming');
     out.flowSaysItsFront = !!(pl && pl.rail && pl.rail.left.includes('coin'));
     // a desk from before, trimmed to what it uses
-    S.deskCfg.shelves = {w:3, h:3}; delete S.deskCfg.boards;
+    // a tile across and a tile down, on a desk three tiles by four
+    S.deskCfg.shelves = {w:3, h:4}; delete S.deskCfg.boards;
     S.objects.filter(o=>o.parent==='root').forEach(o=>['desk','phone'].forEach(dv=>{ const b=o[dv];
-      if(b && b.x) o[dv] = {...b, x:b.x + (dv==='phone' ? B.shelfW('root') : 8), y:b.y + (dv==='phone' ? B.shelfRows : 14)}; }));
+      if(b && b.x) o[dv] = {...b, x:b.x + 8, y:b.y + 8}; }));
     S.deskCfg.trim = true; B.render(); await nap(250);
-    out.oldDeskTrimmed = B.boardsOf('root').length === 1 && !S.deskCfg.trim
+    out.oldDeskTrimmed = B.shelvesOf('root').w === 1 && B.boardsOf('root').length <= 3 && !S.deskCfg.trim
       && S.objects.filter(o=>o.parent==='root' && o.phone && o.phone.x).every(o=>o.phone.x <= B.shelfW('root'));
     return out;
   });
@@ -10339,28 +10387,15 @@ const PROP_OFF = () => { const b = document.createElement('button');
     B.panel(h.id, 'does'); await nap(250);
     out.theEditorAsksTheAmount = !!document.querySelector(`#panel [data-oset="${h.id}:measure.goal"]`);
     B.closePanel(); await nap(100);
-    // a board four by four: square, centred, and everything on it still fits
-    B.setBoardDims('root', 'w', 4); B.setBoardDims('root', 'h', 4); B.render(); await nap(450);
-    const g = document.querySelector('#drawergrid').getBoundingClientRect();
-    out.aBoardHasItsShape = B.shelfW('root') === 4 && B.shelfRows === 4 && Math.abs(g.width - g.height) < 2;
-    out.andEverythingStillFits = S.objects.filter(o => o.parent === 'root' && o.phone && o.phone.x)
-      .every(o => B.boxOk(o.phone, o.id, 'phone', 'root'));
-    B.setBoardDims('root', 'w', 3); B.setBoardDims('root', 'h', 10); B.render(); await nap(450);
-    const g2 = document.querySelector('#drawergrid').getBoundingClientRect();
-    out.aTallOneShrinksItsCells = g2.width < innerWidth - 20 && g2.bottom <= innerHeight
-      && Math.abs(g2.width/3 - g2.height/10) < 1;
-    B.setBoardDims('root', 'fit'); B.render(); await nap(300);
-    out.andFitsTheScreenAgain = B.shelfW('root') === 8;
+    /* A board's own width and height (decision 235) is retired by 272:
+       every tile is eight by eight, so asking for four does nothing, and the
+       sliders are gone from Board settings. */
+    B.setBoardDims('root', 'w', 4); B.render(); await nap(250);
+    out.aBoardHasNoShapeOfItsOwn = B.dimsOf('root') === null && B.colsOf('root', 'phone') === 8 && B.shelfRows === 8;
     document.querySelector('.gridbar [data-act="appsettings"], [data-act="appsettings"]').click(); await nap(300);
     document.querySelector('#panel [data-ssec="board"]').click(); await nap(300);
-    out.boardSettingsHasTheSliders = !!document.querySelector('#panel [data-boarddim="w"]')
-      && !!document.querySelector('#panel [data-boarddim="h"]')
-      && !document.querySelector('#panel [data-rows]');
+    out.boardSettingsHasNoSliders = !document.querySelector('#panel [data-boarddim]');
     B.closePanel();
-    // a board may be twenty-four tall and still only twelve across
-    B.setBoardDims('root', 'h', 24); B.setBoardDims('root', 'w', 20);
-    out.heightRunsToTwentyFour = B.dimsOf('root').h === 24 && B.dimsOf('root').w === 12;
-    B.setBoardDims('root', 'fit'); B.render(); await nap(250);
     /* Decisions 236–237: the aspects are types with shaped knobs, chosen on
        the setup card as their knobs, laid out with their flow and asked their
        own questions; a Workflow is a drawer; migration 47. */
@@ -10371,7 +10406,8 @@ const PROP_OFF = () => { const b = document.createElement('button');
     out.theAspectsAreChosenAsKnobs = document.querySelectorAll('#setup .suchoice').length === B.ASPECT_KINDS.length + 1
       && !!document.querySelector('#setup [data-setupv="lf_health"] .pullshape.ks-plus');
     pick('lf_health'); await nap(350);
-    out.anAspectIsItsType = lf.kind === 'lf_health' && B.boardsOf(lf.id).length === 2
+    // two boards of a flow, each a block of two tiles (decision 272)
+    out.anAspectIsItsType = lf.kind === 'lf_health' && B.boardsOf(lf.id).length === 4
       && S.objects.some(o => o.parent === lf.id && o.sref === 'water');
     pick('80'); await nap(200); pick('none'); await nap(200);
     document.querySelector('#setup [data-act="setupnext"][data-empty]').click(); await nap(450);
@@ -10427,7 +10463,7 @@ const PROP_OFF = () => { const b = document.createElement('button');
     out.orPlaysOnce = !!vid() && vid().loop === false;
     // 251: the page wears the face — its typeface, its paper and its border
     const n = B.create('note', {parent:'root', title:'Face', body:'Words on the face.'});
-    n.phone = {x:1, y:1, w:4, h:4};
+    n.phone = {x:1, y:9, w:4, h:4};   // the middle tile, which is on the screen (272)
     B.render(); await nap(200);
     const tt = document.querySelector(`[data-row="${n.id}"] .tiletext`);
     S.readId = n.id; S.bookAt = 0; B.renderSheet(); await nap(200);
@@ -10530,12 +10566,13 @@ const PROP_OFF = () => { const b = document.createElement('button');
     const face = document.querySelector(`.grid .drawer[data-drawer="${list.id}"]`);
     out.itsNameIsATab = !!face.querySelector('.cltab') && !face.querySelector('.cladd');
     // …a loose notepad puts it beside itself
-    const loose = B.create('notepad', {parent:'root'}); loose.phone = {x:1, y:10, w:4, h:1};
+    // on the bottom tile, clear of the Quick list the middle one took (272)
+    const loose = B.create('notepad', {parent:'root'}); loose.phone = {x:1, y:20, w:4, h:1};
     B.render(); await nap(150);
     const f = document.querySelector(`[data-fieldfor="${loose.id}"]`);
     f.value = '"A quote, said once"'; f.dispatchEvent(new KeyboardEvent('keydown', {key:'Enter', bubbles:true})); await nap(200);
     const q = S.objects.find(o => o.parent === 'root' && o.kind === 'quote');
-    out.aLooseOneLaysItBelow = !!q && q.phone && q.phone.y === 11;
+    out.aLooseOneLaysItBelow = !!q && q.phone && q.phone.y === 21;
     // …and a Button is only the button
     const bt = B.create('button', {parent:'root', title:'Press'}); delete bt.setup; bt.phone = {x:5, y:10, w:3, h:1};
     B.render(); await nap(150);
@@ -10714,6 +10751,71 @@ const PROP_OFF = () => { const b = document.createElement('button');
   await v2.screenshot({ path: 'test/shots/269-cards.png' });
   await v269Ctx.close();
 
+  /* --- decision 272: a board is tiles, every one eight by eight — smooth
+     scroll by default, a snap to the cells, a tile centred on arrival, and
+     an old desk re-cut into tiles without anything moving. A context of its
+     own, so the desk is fresh and the scroll is the default. */
+  const t272Ctx = await browser.newContext({ viewport:{width:390,height:844}, hasTouch:true, isMobile:true });
+  const t2 = await t272Ctx.newPage();
+  t2.on('pageerror', e => errs.push('PAGEERROR (272): ' + e.message));
+  await t2.goto(URL); await t2.waitForTimeout(1200);
+  const tiles272 = await t2.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const out = {}, S = BUREAU.state, B = BUREAU;
+    const sc = () => document.querySelector('#app .deskscroll');
+    const grid = () => document.querySelector('#drawergrid');
+    const cell = () => parseFloat(getComputedStyle(grid()).getPropertyValue('--rowh'));
+    out.aTileIsEightByEight = B.TILE === 8 && B.colsOf('root', 'phone') === 8 && B.shelfRows === 8;
+    out.theScreenIsFourteen = B.viewRows('phone') === 14 && Math.abs(sc().clientHeight/cell() - 14) < 0.1;
+    out.smoothIsTheDefault = B.flows('phone') && !S.look.flow;
+    out.aFreshDeskIsThreeTiles = S.deskCfg.shelves.w === 1 && S.deskCfg.shelves.h === 3 && B.shelfAt('root').y === 1;
+    // the column, with an empty tile's worth above and below it
+    out.theColumnIsDrawnWithItsPad = /repeat\(40,/.test(grid().style.gridTemplateRows)
+      && document.querySelectorAll('#drawergrid .noboard [data-addboard]').length === 2;
+    // the middle tile, and three rows of each neighbour
+    out.theTileIsCentred = Math.abs(sc().scrollTop/cell() - 13) < 0.1;
+    // up and down a thing may cross a seam; sideways it may not
+    const two = B.create('drawer', {parent:'root', title:'Two tiles'}); B.addBoard(two.id, 0, 1);
+    out.itMayCrossASeamDown = B.boxOk({x:1, y:5, w:4, h:6}, null, 'phone', two.id);
+    out.butNotTheScreensEdge = !B.boxOk({x:6, y:9, w:4, h:2}, null, 'phone', 'root');
+    out.orTallerThanTheScreen = !B.boxOk({x:1, y:1, w:2, h:15}, null, 'phone', 'root');
+    // a scroll that stops between cells settles on one
+    // a person's scroll: a wheel, then the scroll it made
+    sc().dispatchEvent(new WheelEvent('wheel', {bubbles:true, deltaY:40}));
+    sc().scrollTop = 14.4*cell(); sc().dispatchEvent(new Event('scroll'));
+    await nap(900);
+    const r = sc().scrollTop/cell();
+    out.itSnapsToTheCells = Math.abs(r - Math.round(r)) < 0.05;
+    // …and a scroll the app made itself is left where it was put, once the
+    // person's last touch is a moment behind it
+    await nap(1600);
+    sc().scrollTop = 15.4*cell(); sc().dispatchEvent(new Event('scroll'));
+    await nap(1800 + 400);
+    out.butNotAScrollTheAppMade = Math.abs(sc().scrollTop/cell() - 15.4) < 0.05;
+    // the tile you are on is the one the middle of the screen is in
+    sc().scrollTop = 22*cell(); sc().dispatchEvent(new Event('scroll')); await nap(400);
+    out.theMiddleSaysWhichTile = B.shelfAt('root').y === 2;
+    // the plus above the top tile adds one there, and nothing moves on the screen
+    const any = S.objects.find(o => o.parent === 'root' && o.phone && o.phone.x);
+    const was = any.phone.y;
+    document.querySelector('#drawergrid [data-addboard="root:0:-1"]').click(); await nap(300);
+    out.aTileGoesOnTop = S.deskCfg.shelves.h === 4 && any.phone.y === was + 8;
+    // an old desk of nine 8×14 boards is the same cells, cut into tiles
+    const old = B.migrated({v:49, look:{grid:'small', flow:'scroll'}, deskCfg:{layout:'grid', shelves:{w:3,h:3}, start:{x:1,y:1}},
+      objects:[{id:'a', kind:'note', parent:'root', phone:{x:9,y:15,w:4,h:4}},
+               {id:'dr', kind:'drawer', parent:'root', phone:{x:1,y:1,w:2,h:2}, bw:6, bh:10},
+               {id:'e', kind:'note', parent:'dr', phone:{x:1,y:12,w:3,h:3}}]});
+    const by = k => old.objects.find(o => o.id === k);
+    out.anOldDeskIsCutIntoTiles = old.deskCfg.shelves.w === 3 && old.deskCfg.shelves.h === 6
+      && old.deskCfg.start.y === 2 && !old.look.grid && !old.look.flow;
+    out.andNothingMoved = by('a').phone.x === 9 && by('a').phone.y === 15;
+    out.aStatedShapeIsGone = by('dr').bw == null && by('dr').bh == null && by('dr').shelves.h === 2
+      && by('e').phone.w === 4;   // six across rescaled to eight
+    return out;
+  });
+  await t2.screenshot({ path: 'test/shots/272-tiles.png' });
+  await t272Ctx.close();
+
   console.log(JSON.stringify({
     errors: errs, settingUp, shapes, v248, v249, v251, manifestOk, swReady, survived, styleSurvived, slotColours,
     newObjectSeen, inlineEdit, sortDefaults, taskLook,
@@ -10737,7 +10839,7 @@ const PROP_OFF = () => { const b = document.createElement('button');
     lockedBoard, freeTraits, pageWrites, tickBoxes, readerFits, categories,
     specimenBook, deskObjects, camLife, camPhone, ownBoard, threeDrawings, fullScreen, openingIn, boards193, sideways, thisPass,
     dropsIn, keyframesRegistered, aesthetics, slotScoping, objectsDressed, grainSlots, tagged, drawnAesthetic, deeper, lookStage, statusBar, bindings, panelling, theSpray, tappingIsQuiet, decorations, pinboard, gravity, boardMakes,
-    boardsYouAdd, toolsOnTheBoard, v269
+    boardsYouAdd, toolsOnTheBoard, v269, tiles272
   }, null, 2));
   await browser.close();
 })();

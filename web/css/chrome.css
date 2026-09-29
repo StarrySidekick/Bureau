@@ -5099,6 +5099,11 @@ input,textarea,select,[contenteditable],
    pulled up by its own height so it adds nothing to the scroll. */
 .is-phone.flowscroll .scroll.deskscroll::after{position:sticky;display:block;
   top:0;bottom:0;height:var(--flowh,100%);margin-top:calc(-1 * var(--flowh,0px))}
+/* A board shorter than the screen does not scroll and is centred instead, so
+   it has no viewport to stick a rim to — and a rim a screen tall would be a
+   second child pushing it off the middle (decision 272: every phone board is
+   a scroller now, the short ones included). */
+.is-phone.flowscroll .scroll.deskscroll.midboard::after{display:none}
 /* ---- and set into the wood, while the cavity is on --------------------
    The shelf slides behind the opening's edge, and with the board flush to the
    screen that edge is the *bezel* — which is not drawn, so a tile leaving the

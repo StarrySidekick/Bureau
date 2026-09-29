@@ -16,7 +16,7 @@ import { keepStill, spinTo, pending, placeAtPending, tileTap, turnPage, clearPag
 import { paintKey, openPaint, wirePaint } from './paint.js';
 import { bpmOf, minsOf, burnOf, sidesOf, metroGoing, startMetro, mindTheTime, actOf, deckTop } from './active.js';
 import { DECOR, LIFE_ART } from './decor.js';
-import { render, renderSoon, sizeGrid, toggleSettings, settingsPanel, reveal, goShelf, goShelfTo, openOverview, closeOverview, refreshOverview, overviewOn, overAsk, overCid, flipBlock, railToolsOf } from './views.js';
+import { wireSnap, render, renderSoon, sizeGrid, toggleSettings, settingsPanel, reveal, goShelf, goShelfTo, openOverview, closeOverview, refreshOverview, overviewOn, overAsk, overCid, flipBlock, railToolsOf } from './views.js';
 import { closeGuide, guideOpen, saveGuide } from './guide.js';
 import { openObj, openWriter, openRead, openViewer, closeSheet, renderSheet, words,
   mdKey, mdTool, copyObject } from './sheet.js';
@@ -615,9 +615,9 @@ function act(name, el){
       const n = ids.length;
       if(el.dataset.mode==='hold') holdMany(ids); else if(n) delMany(ids);
       overAsk(null);
-      if(!removeBoard(cid, +x, +y)){ toast('That board cannot be taken away'); break; }
+      if(!removeBoard(cid, +x, +y)){ toast('That tile cannot be taken away'); break; }
       save(); render(); refreshOverview();
-      toast(el.dataset.mode==='hold' ? `Board taken away · ${n} in the Void Drawer` : `Board and ${n} thing${n===1?'':'s'} taken away`, true);
+      toast(el.dataset.mode==='hold' ? `Tile taken away · ${n} in the Void Drawer` : `Tile and ${n} thing${n===1?'':'s'} taken away`, true);
       break;
     }
     // one step is one screenful, so it steps by whatever the calendar is showing
@@ -1224,6 +1224,7 @@ function coinToss(board, el){
 function wire(){
   const frame=$('#frame');
   wirePaint();
+  wireSnap();
   TOOLS.press = (tool, o) => toolPress(tool, (o && o.parent) || ROOT,
     o ? {dataset:{row:o.id}} : null);
 
@@ -1652,7 +1653,7 @@ function wire(){
     // page by page or one smooth scroll down a phone board (decision 209):
     // the default is deleted, not stored
     const flw=t.closest('button[data-flow]');
-    if(flw){ if(flw.dataset.flow==='scroll') S.look.flow='scroll'; else delete S.look.flow;
+    if(flw){ if(flw.dataset.flow==='page') S.look.flow='page'; else delete S.look.flow;
       save(); render(); refreshPanel(); return; }
     const srf=t.closest('button[data-surface]');
     if(srf){ const v=srf.dataset.surface;
@@ -1744,9 +1745,9 @@ function wire(){
       /* A board with things on it asks where they go first (decision 234). */
       const on = onBoard(cid, +x, +y);
       if(on.length && overviewOn()){ overAsk({cid, x:+x, y:+y, n:on.length}); return; }
-      if(!removeBoard(cid, +x, +y)){ toast('Only an empty board can be taken away, and never the last one'); return; }
+      if(!removeBoard(cid, +x, +y)){ toast('Only an empty tile can be taken away, and never the last one'); return; }
       save(); render(); refreshPanel(); refreshOverview();
-      toast('Board taken away');
+      toast('Tile taken away');
       return; }
     const sg=t.closest('[data-shelfgo]');
     if(sg){
@@ -1784,13 +1785,13 @@ function wire(){
     if(ab){
       const [cid,x,y]=ab.dataset.addboard.split(':');
       const got = addBoard(cid, +x, +y);
-      if(!got){ toast('No room for another board that way'); return; }
+      if(!got){ toast('No room for another tile that way'); return; }
       /* In the zoom you stay zoomed out and see it arrive (decision 227);
          it is one press further to go there. */
-      if(overviewOn()){ save(); render(); refreshOverview(); toast('A new board'); return; }
+      if(overviewOn()){ save(); render(); refreshOverview(); toast('A new tile'); return; }
       setShelf(cid, got.x, got.y);
       save(); render();
-      toast('A new board');
+      toast('A new tile');
       return; }
 
     /* A plan, drawn as the board it will lay out — pressing one lays it out
