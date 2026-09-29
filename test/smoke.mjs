@@ -269,7 +269,7 @@ const PROP_OFF = () => { const b = document.createElement('button');
     document.querySelector(`.grid .drawer[data-drawer="${d.id}"]`)
       .dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, clientX: 200, clientY: 200 }));
     await wait();
-    await click('[data-c^="objset"]');                 out.drawer = (key() || '').split(':')[0];
+    await click('[data-c^="rename"]');                 out.drawer = (key() || '').split(':')[0];
     out.oneName = key() === 'object:' + d.id;
     /* The editor's top is its name, where it lives and a row of doors; the
        rows are one press in. Two doors since the Workshop folded Collects and
@@ -783,7 +783,7 @@ const PROP_OFF = () => { const b = document.createElement('button');
     const allOnTheFront = before.length === 14;
     const scrolls = list.scrollHeight > list.clientHeight + 4
       && getComputedStyle(list).overflowY === 'auto';
-    const saysItsName = !!front().querySelector('.clstick .clhead b');
+    const saysItsName = !!front().querySelector('.clist > .clhead.cltab b');   // a tab since decision 256
     /* Ticking a shown line takes it off the face, keeps the task inside the
        drawer, and the next thing waiting inside steps onto the bottom of the
        stack. The top line is the newest made — create() orders newest first —
@@ -1021,15 +1021,12 @@ const PROP_OFF = () => { const b = document.createElement('button');
     const made = S.objects[S.objects.length - 1];
     out.makes = S.objects.length === n + 1 && made.kind === 'thought';
     BUREAU.del(made.id);
-    // wider, the typed line names it
+    // wider, it is still only the button, with its name beside it: typing is
+    // a notepad's job since decision 258
     b.desk = Object.assign(onThisShelf(4, 1), { w: 4, h: 1 });
     BUREAU.render(); await nap(200);
-    const line = tile() && tile().querySelector('input[data-fieldfor]');
-    out.wideHasTheLine = !!line && !!tile().querySelector('.pushcap');
-    if (line) { line.value = 'Called this'; line.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); await nap(200); }
-    const typed = S.objects[S.objects.length - 1];
-    out.typedIsNamed = typed.title === 'Called this' && typed.kind === 'thought';
-    BUREAU.del(typed.id);
+    out.wideIsOnlyTheButton = !!tile() && !tile().querySelector('input')
+      && !!tile().querySelector('.pushcap') && !!tile().querySelector('.pushsays');
     // switch: a press flips the lock
     b.does = 'switch'; b.ctl = 'lock';
     const was = !!S.look.locked;
@@ -1501,7 +1498,7 @@ const PROP_OFF = () => { const b = document.createElement('button');
     el.dispatchEvent(new MouseEvent('contextmenu', { bubbles:true, clientX:200, clientY:200 }));
   });
   await page.waitForTimeout(120);
-  await page.click('#ctx button[data-c^="objset"]');
+  await page.click('#ctx button[data-c^="rename"]');
   // a panel comes up out of the tile — measure it once the transform has run,
   // or the number you read is a frame of the animation
   await page.waitForTimeout(700);

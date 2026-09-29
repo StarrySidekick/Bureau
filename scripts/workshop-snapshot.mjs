@@ -25,7 +25,8 @@ const depth = await phone.evaluate(async () => {
   const nap = n => new Promise(r => setTimeout(r, n));
   const g = document.querySelector('[data-act="appsettings"]'); if (!g) return [];
   g.click(); await nap(350);
-  const d = document.querySelector('#panel [data-ssec="depth"]'); if (!d) return [];
+  // Depth and light is inside Global Settings since decision 255
+  const d = document.querySelector('#panel [data-ssec="depth"]') || document.querySelector('#panel [data-ssec="look"]'); if (!d) return [];
   d.click(); await nap(350);
   const out = [];
   document.querySelectorAll('#panel .pbody .prow, #panel .pbody .field, #panel .pbody label').forEach(el => {
@@ -124,6 +125,20 @@ const got = await page.evaluate(async ({ rail, depth }) => {
     const sec = { id: 'set.' + d.key, menu: 'settings', name: d.name, note: d.note, items: [] };
     walk(sec);
     if (d.key === 'depth') depth.forEach(x => add(sec, x.name, x.kind, x.opts, x.note));
+    /* Since decision 255 Depth and light is inside Global Settings. Its rows
+       keep the ids they had (`set.depth.…`), because the Workshop's saved
+       arrangement names them by id, and live in the look door. */
+    if (d.key === 'look') {
+      const dsec = { id: 'set.depth', items: sec.items };
+      const head = sec.id + '.depth-and-light';
+      if (items[head]) { sec.items.splice(sec.items.indexOf(head), 1); delete items[head]; }
+      add(dsec, 'Depth and light', 'section', [], '').home = sec.id;
+      depth.filter(x => x.kind === 'slider').forEach(x => { add(dsec, x.name, x.kind, x.opts, x.note).home = sec.id; });
+    }
+    // …and Your Things heads About, keeping its row's old id the same way
+    if (d.key === 'about') sec.items = sec.items.map(id => {
+      if (!/^set\.about\.statistics$/.test(id)) return id;
+      const to = 'set.things.statistics'; items[to] = Object.assign({}, items[id], { id: to }); delete items[id]; return to; });
     if (!sec.items.length) document.querySelectorAll('#panel .pbody button.pill').forEach(b => {
       const n = b.textContent.trim(); if (n && n.length < 40) add(sec, n, 'button', [], ''); });
     sections.push(sec);
