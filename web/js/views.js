@@ -796,7 +796,8 @@ const SETSECS = {
      panel asks one question, and "how solid does this desk look" is not the
      same question as "what colour is the board" — so it is a door, the way the
      object editor's Look is. See decisions 66 and 118. */
-  depth:  ['Depth and light', 'layers', 'how solid things look, and what the tilt moves'],
+  /* …and is folded into Global Settings now (decision 255), under the rest
+     of how the desk looks. `depth` still answers, opening that door. */
   /* Urgency is scaled by one number — how much work a day holds — and it is
      not a look, a board or a backup, so it is its own door rather than a row
      wedged into someone else's. See decisions 66 and 120. */
@@ -808,9 +809,9 @@ const SETSECS = {
      looking at when you want it. See decision 143. */
   guide:  ['Specimen Book','book', 'every aesthetic, and everything it dresses'],
   plans:  ['Flows',      'grid',    'boards set up for one kind of work, to lay out again'],
-  things: ['Your Things','archive', 'how much there is, and getting it out'],
+  /* Your Things is the head of About (decision 255). */
   paste:  ['Paste an Object', 'plus',    'objects described as JSON'],
-  about:  ['About',      'help',    'which Bureau this is, and starting over']
+  about:  ['About',      'help',    'how much there is, getting it out, which Bureau this is, and starting over']
 };
 function settingsPanel(sec, cid){
   /* Plans is a door in this list and a **panel of its own** — it is wide, it
@@ -821,6 +822,8 @@ function settingsPanel(sec, cid){
      the screen the way a surface does rather than a column down the edge. */
   if(sec==='guide'){ closePanel(); return openGuide(); }
   if(sec==='style') sec = 'look';          // Aesthetics was folded in (213)
+  if(sec==='depth') sec = 'look';          // …and Depth and light (255)
+  if(sec==='things') sec = 'about';        // Your Things heads About (255)
   const s = SETSECS[sec] ? sec : null;
   /* Inside a container there is no app to set — the aesthetic, the gravity and
      the board are all there is — so the door is the whole panel and there is
@@ -863,7 +866,8 @@ const stylePicker = ()=> `<div class="stylegrid">${Object.entries(STYLES).map(([
 
 function settingsBody(sec, cid){
   const standalone = installed();
-  const at = s => sec===s;
+  // Depth and light is part of Global Settings, Your Things of About (255)
+  const at = s => sec===s || (s==='depth' && sec==='look') || (s==='things' && sec==='about');
   const inside = !!cid;
   /* **The desk's own editor is the first door** (decision 206). It was the
      brush in the bar: how this desk is laid out, sorted and painted. */
@@ -875,6 +879,19 @@ function settingsBody(sec, cid){
         <span class="rowgo">${ic('chevR',13)}</span></div>`).join('')}</div>
     <div class="mini" style="--k:var(--brass);margin-top:10px">Board settings is the board you are on: on the desk, the desk's own editor and then its board; inside a drawer the gear opens that drawer's. See decisions 206 and 233.</div>`;
   return [
+    at('things') ? `
+    <div class="section-h"><h2>Statistics</h2><div class="rule"></div></div>
+    <div class="statline">
+      <div class="s"><b>${S.objects.length}</b>objects</div>
+      <div class="s"><b>${containers().length}</b>drawers</div>
+      <div class="s"><b>${allTags().length}</b>tags</div>
+      <div class="s"><b>${bytes(storeSize())}</b>on this device</div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+      <button class="pill" data-act="export">${ic('archive',13)} Export a backup</button>
+      <button class="pill" data-act="import">${ic('undo',13)} Restore from a backup</button>
+    </div>
+    <div class="mini" style="--k:var(--brass);margin-top:6px">Everything lives on this device only. Export moves a desk between devices by hand — real sync comes later.</div>` : '',
     at('about') ? `
 
     <div class="section-h"><h2>Version</h2><div class="rule"></div></div>
@@ -1155,19 +1172,6 @@ function settingsBody(sec, cid){
         <div class="body"><div class="snip">${esc(ds)}</div></div></div>`).join('')}</div>
     <div class="mini" style="--k:var(--brass);margin-top:6px">A <b>hard</b> deadline can reach every rung — missing it costs something. A <b>soft</b> one is a day you gave yourself, so it always reads one rung lower and never reaches Behind. A thing with no deadline has no urgency at all, which is a different answer from Room.</div>
     <div class="mini" style="--k:var(--brass);margin-top:6px">Give a drawer <b>Sorted by → Most urgent first</b>, or a magic drawer the rule <b>Urgency is more than 2</b>, and this becomes a board.</div>` : '',
-    at('things') ? `
-    <div class="section-h"><h2>Statistics</h2><div class="rule"></div></div>
-    <div class="statline">
-      <div class="s"><b>${S.objects.length}</b>objects</div>
-      <div class="s"><b>${containers().length}</b>drawers</div>
-      <div class="s"><b>${allTags().length}</b>tags</div>
-      <div class="s"><b>${bytes(storeSize())}</b>on this device</div>
-    </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
-      <button class="pill" data-act="export">${ic('archive',13)} Export a backup</button>
-      <button class="pill" data-act="import">${ic('undo',13)} Restore from a backup</button>
-    </div>
-    <div class="mini" style="--k:var(--brass);margin-top:6px">Everything lives on this device only. Export moves a desk between devices by hand — real sync comes later.</div>` : '',
     at('about') ? `
     ${install.deferred?`<div class="section-h"><h2>Install</h2><div class="rule"></div></div>
       <button class="pill solid" data-act="install">${ic('plus',13)} Install Bureau</button>`:''}
@@ -1184,12 +1188,6 @@ function settingsBody(sec, cid){
       <button class="pill" data-act="pasteschema">${ic('help',13)} What it accepts</button>
     </div>` : '',
     at('about') ? `
-    <div class="section-h"><h2>Testing</h2><div class="rule"></div></div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <button class="pill" data-act="randomten">${ic('sparkle',13)} Add ten at random</button>
-    </div>
-    <div class="mini" style="--k:var(--brass);margin-top:6px">Objects of random kinds, sizes and colours, for seeing how the grid copes. It used to have a twin in the grid bar, which was a testing button on the furniture.</div>
-
     <div class="section-h"><h2>Start over</h2><div class="rule"></div></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <button class="pill" data-act="reseed">Reset to the sample desk</button>

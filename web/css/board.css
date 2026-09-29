@@ -3833,3 +3833,24 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
 .ovask i{font-style:normal;font-size:13px;color:var(--ink-3);margin-bottom:4px}
 .ovask .pill{justify-content:center}
 .ovask .ovdanger{color:#8E3B38}
+
+/* ---- a notepad — decision 258 -------------------------------------------
+   A legal pad: cream-yellow sheets, blue rules, a red margin, and a strip of
+   gum across the top in the object's own colour, which is where a pad is
+   bound and the one place it says which pad it is. The line you write on
+   sits on the first rule; a taller pad is more rules, and still one line. */
+.drawer.otile.padtile{background-color:#F6EDBE;border:1px solid rgba(90,70,30,.28);border-radius:2px;
+  background-image:
+    linear-gradient(90deg, transparent 21px, rgba(196,70,60,.55) 21px 22px, transparent 22px),
+    repeating-linear-gradient(180deg, transparent 0 calc(100% / var(--padrows,1) / 2 - 1px),
+      rgba(70,105,165,.32) calc(100% / var(--padrows,1) / 2 - 1px) calc(100% / var(--padrows,1) / 2));
+  box-shadow:0 1px 1.5px rgba(40,30,15,.18), 0 3px 0 -1px #EFE4AF, 0 4px 3px -1px rgba(40,30,15,.14);
+  overflow:hidden}
+.padgum{position:absolute;left:0;right:0;top:0;height:5px;background:var(--c);opacity:.85;
+  box-shadow:inset 0 -1px 0 rgba(0,0,0,.25)}
+.padline{position:absolute;left:28px;right:8px;top:5px;height:calc((100% - 5px) / var(--padrows,1));
+  display:flex;align-items:center;cursor:text}
+.padin{width:100%;min-width:0;border:0;background:transparent;outline:none;padding:0;
+  font:italic 500 15px/1.2 var(--serif);color:#2A241C;-webkit-user-select:text;user-select:text}
+.padin::placeholder{color:rgba(42,36,28,.42)}
+html[data-theme="dark"] .drawer.otile.padtile{filter:brightness(.88)}

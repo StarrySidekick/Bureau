@@ -398,7 +398,7 @@ const BUILTIN_KINDS = {
      the words. Its own type because the Essay board needed a front to be the
      inside of, and "Essay" was taken by the page you write on. A project's
      front; born holding the stock Essay board. See decision 195. */
-  writing: {face:'front', nm:'Essay or post', ic:'feather', c:7,
+  writing: {face:'front', nm:'Essay', ic:'feather', c:7,
      ds:'An essay, an article or a blog post, and the work around it',
      attrs:['text','container','date','progress','media','relates'],
      plan:'pl_stock_essay',
@@ -567,6 +567,14 @@ const BUILTIN_KINDS = {
      portal and `control` a switch plate. Square it is a photograph of a
      real clothing button (`bimg`, chosen on the ring); wider, the box to its right is
      where you type what it makes, the garden's old line. */
+  /* **A notepad** (decision 258): the garden's line, dressed as what it is.
+     A ruled strip you write a line on; return makes it into whatever it
+     reads as (`smart`, `guessKind()` in mutations.js) or the one type it is
+     set to, and puts it beside itself, into the drawer it is set to, or into
+     whatever it is tied to with string. Four by one: a line is what it is. */
+  notepad:  {shape:'notepad', nm:'Notepad', ic:'feather', c:10,
+     ds:'Write a line and press return: it becomes a note, a task, a thought, whatever it reads as',
+     attrs:['spawn'], spawnBy:'type', genKind:'smart', onclick:'none', size:[4,1], phoneSize:[4,1], body:'' },
   button:   {setup:'button', shape:'pushbutton', nm:'Button', ic:'target', c:1,
      ds:'Press it and something happens: it makes a thing, opens one, or flips a switch',
      attrs:[], does:'make', genKind:'note', bimg:'b01', variants:'buttons', onclick:'press',
@@ -763,7 +771,7 @@ const BUILTIN_KINDS = {
      ds:'Something you are after, or keeping count of', family:['goal','tracker','progressbar','achievement'], famSub:'Which card?', attrs:[], body:'' },
   m_paper:   {cat:true, master:true, lead:'note', nm:'Paper', ic:'note', c:10,
      ds:'Anything written down', famSub:'What is written on it?',
-     family:['note','task','thought','idea','question','problem','quote','review','label',
+     family:['note','task','notepad','thought','idea','question','problem','quote','review','label',
              'poem','essay','script','outline','scene','letter','postcard','telegram',
              'character','place','world','artifact','creature','histevent','law','group'], attrs:[], body:'' },
   m_picture: {cat:true, master:true, lead:'image', nm:'Picture', ic:'image', c:15,
@@ -1053,6 +1061,7 @@ const WORKSHOP_SIZES = {
   background:{size:[4,4], range:[[1,8],[1,14]], phone:null},
   anything:{size:[2,2], range:[[1,8],[1,14]], phone:null},
   button:{size:[1,1], range:[[1,8],[1,2]], phone:null},
+  notepad:{size:[4,1], range:[[2,8],[1,4]], phone:null},
   metronome:{size:[2,4], range:[[1,3],[2,6]], phone:null},
   hourglass:{size:[2,4], range:[[1,3],[2,6]], phone:null},
   candle:{size:[2,4], range:[[1,3],[3,5]], phone:null},
@@ -1100,13 +1109,22 @@ const COMPOUNDS = {
     ds:'A drawer with a label over it saying what it is for',
     parts:[{k:'label', t:'What it is for', b:[1,1,4,1], ref:'name'},
            {k:'drawer', t:'Drawer', b:[1,2,4,3], rel:['@name']}]},
+  /* **A Quick list** (decision 258): a list with a notepad on top, tied to
+     it with string, so what you write on the pad goes into the list. The
+     list's own add box is off its front by default now; this is the way in. */
+  cp_quick: {nm:'Quick list', ic:'list', c:4,
+    ds:'A list with a notepad on top: write a line, and it goes into the list',
+    parts:[{k:'notepad', t:'Notepad', b:[1,1,4,1], rel:['@list']},
+           {k:'list', t:'Quick list', b:[1,2,4,6], ref:'list'}]},
   cp_left: {nm:'Counted list', ic:'target', c:6,
-    ds:'A checklist and a counter saying how many are left on it',
-    parts:[{k:'checklist', t:'To do', b:[1,1,4,6], ref:'list'},
-           {k:'counter', t:'Left to do', b:[5,1,2,2], tracks:'@list', set:{counts:'open'}}]},
+    ds:'A checklist with a notepad on top and a counter saying how many are left',
+    parts:[{k:'notepad', t:'Notepad', b:[1,1,4,1], rel:['@list'], set:{genKind:'task'}},
+           {k:'checklist', t:'To do', b:[1,2,4,5], ref:'list'},
+           {k:'counter', t:'Left to do', b:[5,2,2,2], tracks:'@list', set:{counts:'open'}}]},
   cp_barlist: {nm:'Checklist with a bar', ic:'bar', c:13,
-    ds:'A checklist with a progress bar under it filling as you tick',
-    parts:[{k:'checklist', t:'Steps', b:[1,1,4,5], ref:'list'},
+    ds:'A checklist with a notepad on top and a progress bar under it filling as you tick',
+    parts:[{k:'notepad', t:'Notepad', b:[1,1,4,1], rel:['@list'], set:{genKind:'task'}},
+           {k:'checklist', t:'Steps', b:[1,2,4,4], ref:'list'},
            {k:'progressbar', t:'How far', b:[1,6,4,1], tracks:'@list'}]},
   cp_run: {nm:'Habit and its run', ic:'grid', c:6,
     ds:'A habit tracker with a counter showing the days in a row',
@@ -1816,7 +1834,11 @@ const genKindOf = o => (o && o.genKind) || K(o&&o.kind).genKind || 'task';
    factory. Ask makesAnything() before naming what comes out. */
 const ANY = 'random';
 const makesAnything = o => genKindOf(o)===ANY;
-const genSaid = o => makesAnything(o) ? 'anything' : K(genKindOf(o)).nm.toLowerCase();
+/* …or whatever the line reads as (decision 258): a notepad's default, and
+   like `random` not a kind, so it is asked about before K() is. */
+const SMART = 'smart';
+const makesSmart = o => genKindOf(o)===SMART;
+const genSaid = o => makesAnything(o) ? 'anything' : makesSmart(o) ? 'line' : K(genKindOf(o)).nm.toLowerCase();
 
 /* Which of the desk's own settings a control is a switch for — per object,
    then per type, like every other slot. The table of what each one *is* lives
@@ -2831,8 +2853,12 @@ const boardLocked = ()=> S.look.locked !== false;
 
    Inside the container the box is always there — that board has room, and it is
    the only way in for a magic one. See decision 77. */
+/* **Off the front by default since decision 258**: a list is written into
+   by a notepad on top of it (the Quick list), not by a box built into its
+   face. `addbox:'show'` puts the box back; inside the drawer it is there
+   either way. */
 const showsAddBox = (c, box)=>
-  takesTyping(c) && c.addbox!=='hide' && !(box && box.h<=1);
+  takesTyping(c) && c.addbox==='show' && !(box && box.h<=1);
 
 /* ---- how much it matters, 0 to 5 --------------------------------------
    Priority was three words — low, mid, high — which is a shape you outgrow the
@@ -3501,7 +3527,7 @@ function marginPlus(o, text){
   return t ? marginOf(o).concat({d:D.iso(D.today()), t}) : marginOf(o);
 }
 
-export { homeFor, COMPOUNDS, isCompound, COUNTS, countsOf, countOf, ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds, K, searchHits, isDisc,
+export { homeFor, SMART, makesSmart, COMPOUNDS, isCompound, COUNTS, countsOf, countOf, ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds, K, searchHits, isDisc,
   attrsOf, has, kindHas, T, dz, S, sensedDevice, reset, defaultLook, dev, byId,
   deskTitle, rootObj, container, cfgOf, isContainer, FACES, faceOf, layoutOf, SHAPES,
   SHAPES_KEPT, shapeName, shapeChoices,

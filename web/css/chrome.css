@@ -6687,6 +6687,12 @@ html[data-rows="fit"] .is-phone .gridbar.inrail .sqbtn{width:28px;height:28px}
 /* Full screen is the screen, and the screen with no keyboard in it. */
 .is-phone :is(.bookstage,.bookruler).fullbleed{--avail-h:var(--rvh, var(--vvh, 100vh));--pageh:var(--rvh, var(--vvh, 100vh))}
 .is-phone .bookstage.fullbleed{height:var(--rvh, var(--vvh, 100vh))}
+/* A scroll takes the whole height the stage has, so its bar sat on the
+   iPhone's home strip and the icons in it were cut off (decision 256). The
+   paper stops short of the safe area, and a little more, and the bar rides up
+   with it; a book is shorter than the stage already and is untouched. */
+.is-phone .bookstage.rm-scroll:not(.fullbleed){
+  --avail-h:calc(var(--rvh, var(--vvh, 100vh)) - var(--stage-y) * 2 - var(--bookchrome) - env(safe-area-inset-bottom, 0px) - 14px)}
 .is-phone .bookstage .page > .pagebody{padding-bottom:var(--kbh, 0px);scroll-padding-bottom:var(--kbh, 0px);box-sizing:border-box}
 /* one slot above the paper, the same height reading and writing */
 .bookhead{height:40px;display:flex;align-items:flex-end}
@@ -6710,3 +6716,17 @@ html[data-rows="fit"] .is-phone .gridbar.inrail .sqbtn{width:28px;height:28px}
   box-shadow:inset 0 2px 5px rgba(0,0,0,.45);transition:background .12s, border-color .12s}
 .deskrail.carrying .railslot{display:block}
 .deskrail .railslot.aim{background:rgba(255,244,220,.16);border-color:rgba(255,244,220,.85)}
+
+/* ---- a list's name is a tab — decision 256 ------------------------------
+   Not a line: a strip seventeen pixels tall in the top left, the count at its
+   far end, standing still while the lines scroll under it. The lines and the
+   add box share what is left (`--cltab`), so a front the size of four lines
+   still shows four. */
+/* 14px in, so a string pinned at the corner does not sit on the name */
+.clist > .clhead.cltab{position:sticky;top:0;z-index:2;flex:0 0 var(--cltab);
+  padding:0 8px 0 14px;gap:6px;background:var(--paper-2);border-bottom:1px solid var(--rule)}
+.clist > .clhead.cltab b{font-size:10.5px;letter-spacing:.02em}
+.clist > .clhead.cltab u{font-size:9px}
+.clist .cline{flex-basis:calc((100% - var(--cltab,0px)) / var(--clrows,4))}
+.clist .clstick{top:var(--cltab,0px);flex-basis:calc((100% - var(--cltab,0px)) * var(--clk,1) / var(--clrows,4))}
+.cltab + .cline{border-top:0}

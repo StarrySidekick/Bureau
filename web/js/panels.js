@@ -6,7 +6,7 @@ import { S, K, KINDS, KEYS, T, ATTRS, USER_ATTRS, FIELDS, fieldOf, OPS, ROLLS,
   faceOf, layoutOf, shapeOf, readOf, byId, container, cfgOf, deskTitle,
   rootObj, containers, isContainer, isAncestor, childrenOf, has, kindHas,
   attrsOf, allTags, everyTag, tagsOf, habitPlan, HABIT_MAX_TIMES, measureOf, placeOf, deskList, deskOf, isDesk, spanOf, heldObjects,
-  dev, takesTyping, genKindOf, genSaid, ANY, ctlOf, barOf,
+  dev, takesTyping, genKindOf, genSaid, ANY, SMART, ctlOf, barOf,
   PRIMARY, SECONDARY, MASTER_HOLDS, inMaster, isPrimary, inFamily, familyList, finishedThings, answered, marginOf, isLate,
   PRIOS, prioOf, prioName, DIFFS, diffOf, diffName, REPEAT_UNITS, repeatOf, repeats, repeatSaid,
   relatedTo, backlinksTo, streak, goalPct,
@@ -19,7 +19,7 @@ import { newOfKind } from './wire.js';
 import { GRID, lay, boxOk, freeSpot, anySpot, sizeOfKind, toPhoneSize, keepSize, inRange, rangeOfKind } from './grid.js';
 import { randomBoard, randomFront, hexOf, objColour, objSlots, famSlots, famAll, FAMS, styleKey, stockNow, CHECKS, checkNow } from './look.js';
 import { FILLS, FILL_KEYS, isCut, BUTTON_IMGS, DOES, doesOf } from './model.js';
-import { CLICKS, clickOf, gridTile, pending, PORTAL_SHAPES, PORTAL_STYLES, PORTAL_EDGES, WHEEL_COLOURS, WHEEL_INKS, WHEEL_FONTS, VINYLS, KSHAPES, kshapeOf } from './tiles.js';
+import { CLICKS, clickOf, gridTile, pending, PORTAL_SHAPES, PORTAL_STYLES, PORTAL_EDGES, WHEEL_COLOURS, WHEEL_INKS, WHEEL_FONTS, VINYLS, KSHAPES, kshapeOf, intoOf } from './tiles.js';
 import { isActive, activeZoom, activeSay, activeName, DICE, CLOCKS } from './active.js';
 import { DECOR, decorOf, decorSVG, decorFor, decorRest, LIFE_ART, LIFE_KEYS, lifeSVG } from './decor.js';
 import { quickAdd, toast, drawerForTag, CONTROLS, CTL_KEYS, ctlSpec, galleryOf, PAINTINGS, pictureMedia } from './mutations.js';
@@ -1633,9 +1633,9 @@ function objectPanelBody(id, sec){
     /* On the front by default since the front scrolls (2026-09-23); inside
        the drawer the box is there either way. See decisions 77 and 79. */
     out.push(prow('The add box', psel(id,'addbox',
-      [['','On its front too'],['hide','Inside it only']],
-      d.addbox==='hide'?'hide':''),
-      'a front one cell tall has no room for it'));
+      [['','Inside it only'],['show','On its front too']],
+      d.addbox==='show'?'show':''),
+      'or tie a notepad to it with string'));
   }
   /* What the Magic Selector puts down on this board (decision 199). A sorting
      drawer is left out: a sketch on one is made where the drawer lives, and
@@ -1662,10 +1662,15 @@ function objectPanelBody(id, sec){
        same board (decision 197). Sorting drawers are left out, because they
        hold nothing. */
     const sibs = S.objects.filter(x=>x.parent===d.parent && isContainer(x) && !has(x,'magic'));
+    /* …or into what it is tied to with string (decision 258), which the
+       first answer names when it is what is happening */
+    const tied = !d.into && intoOf(d);
     out.push(prow('Puts it', psel(id,'into',
-      [['','Beside itself, on the board'], ...sibs.map(x=>[x.id, 'Into '+(x.title||'Untitled')])],
-      d.into && sibs.some(x=>x.id===d.into) ? d.into : '')));
-    out.push(prow('It makes', psel(id,'genKind', [[ANY,'One of anything'], ...objectKinds], genKindOf(d))
+      [['', tied ? 'Into '+(tied.title||'Untitled')+', by its string' : 'Beside itself, on the board'],
+       ...sibs.filter(x=>!tied || x.id!==tied.id).map(x=>[x.id, 'Into '+(x.title||'Untitled')])],
+      d.into && sibs.some(x=>x.id===d.into) ? d.into : ''),
+      tied ? 'untie the string to put it beside itself' : 'or tie it to a drawer with the spool'));
+    out.push(prow('It makes', psel(id,'genKind', [[SMART,'Whatever it reads as'], [ANY,'One of anything'], ...objectKinds], genKindOf(d))
       + psel(id,'genDir',[['down','Down'],['up','Up'],['left','Left'],['right','Right'],['random','Anywhere']], d.genDir||'down')));
   }
   /* Which of the desk's own settings this switch is for. The list is the
@@ -2836,11 +2841,11 @@ function openCtx(x,y,id){
   if(!many && boardLocked()) items.push(has(o,'movable')
     ? it(`free:${id}`, 'lock', 'Lock') : it(`free:${id}`, 'grip', 'Unlock'));
   if(!many){
-    items.push(it(`objset:${id}`, 'brush', 'Edit'));
     /* Open, View, Read, Write, Next one and Complete were cut in the Workshop
        (decision 218): a tap already opens, reads, plays or ticks a thing, so
-       the ring keeps what a tap cannot do. */
-    if(!isContainer(o)) items.push(it(`when:${id}`, 'calendar', 'When'));
+       the ring keeps what a tap cannot do. Edit went too (decision 255):
+       its two doors are on the ring by name, after Duplicate. */
+    if(!isContainer(o)) items.push(it(`when:${id}`, 'calendar', 'Schedule'));
     if(!isContainer(o)) items.push(it(`become:${id}`, 'flag', 'Convert into Project'));
   }
   // Clip (decision 180).
@@ -2849,6 +2854,11 @@ function openCtx(x,y,id){
   items.push(it(`intodrawer:${id}`, 'folder', 'Add to New Drawer'));
   items.push(it(`move:${id}`, 'folder', 'Move'));
   if(!many) items.push(it(`dupe:${id}`, 'archive', 'Duplicate'));
+  if(!many){
+    items.push(it(`rename:${id}`, 'type', 'Rename'));
+    items.push(it(`editlook:${id}`, 'brush', 'Edit Look'));
+    items.push(it(`editdoes:${id}`, 'sliders', 'Edit Behavior'));
+  }
   items.push(it(`del:${id}`, 'trash', many?`Delete ${sel.length}`:'Delete', 'danger'));
   /* Up to eight go round one ring; more than that and the ring widens rather
      than the blobs crowding, so a long menu is a bigger circle, not a

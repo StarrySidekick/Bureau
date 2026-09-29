@@ -242,6 +242,16 @@ types made of several grouped, wired objects (`COMPOUNDS`, `makeCompound()`),
 with a counter that can read another object (`countOf()`). The scope for
 compounds is `docs/COMPOUNDS.md`.
 
+**v2.49** (decisions 255–258): the Workshop's ring (Schedule, Rename, Edit Look,
+Edit Behavior; no Edit) and Settings (Depth inside Global Settings, Your Things
+heading About, Testing cut); a phone scroll clears the home strip; a list's
+name is a 17px tab (`.cltab`); a video keeps its first frame as its poster
+(`keepStill()`); the coin makes backgrounds; and **the notepad** (`notepad`,
+`guessKind()`), a ruled line that makes what it reads as and puts it where
+`intoOf()` says: `into`, else **a drawer tied to it with string**, else below
+itself. The Button has no line; a list's front add box is off by default
+(`addbox:'show'`), and the **Quick list** compound is a notepad tied to a list.
+
 **Start here each session:** `docs/SYSTEM.md` is the reference for what Bureau is
 made of — objects, attributes, types, drawers, the grid, the surfaces, storage.
 `docs/ROADMAP.md` holds the current plan in dependency order, and

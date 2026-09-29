@@ -10,7 +10,7 @@ import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, chi
   isPicture, isMedia, isPlayable, isDecor, isBackdrop, fillOf, mediaTypeOf, loopOf, frameOf, isWindow,
   boardLocked, prioOf, repeatSaid, urgencyOf, urgeSaid, durSaid, standsProud, shelfDepth, bookDepth, faceCue, anyFaceCue,
   calViewOf, calShowOf, weekStartOf, calCols, borderOf, textureOf, marginOf, isFragmentKind, gravityOn,
-  groupOf, sealOf, isSealed, habitPlan, habitPeriods, habitRun, relate, measureOf, amountSaid, inFront, countOf, countsOf, COUNTS } from './model.js';
+  groupOf, sealOf, isSealed, habitPlan, habitPeriods, habitRun, relate, measureOf, amountSaid, inFront, countOf, countsOf, COUNTS, makesSmart, isHeld } from './model.js';
 import { GRID, CELL, gridOf, drawCols, drawRows, lay, overlaps, boxOk, freeSpot, anySpot, roomFor, gridRows, sizeOfKind, sideways, innerOf,
   ensureBox, shelfRows, shelfOrigin, shelfAt, shelfOfBox, colsOf, flows, boardsOf, nearestBoard, isBoard, reachable, dimsOf, MEASURE } from './grid.js';
 import { dealTop, create, toast, fits, toggleDone, someKind, furnish, ctlSpec, ctlSaid, ctlIsOn,
@@ -416,7 +416,8 @@ const clickOf = o => o.onclick || (emitsLight(o) ? 'light' : null) || K(o.kind).
 function dispense(g){
   /* `random` is not a kind, so it is resolved *here* and once — asking again
      further down would place the box for one type and make another. */
-  const kind = makesAnything(g) ? someKind() : genKindOf(g);
+  // a press has no words to read, so a smart one makes a note (decision 258)
+  const kind = makesAnything(g) ? someKind() : makesSmart(g) ? 'note' : genKindOf(g);
   // a press on a full shelf makes nothing and says why — decision 141
   if(!fits(kind, g.parent)) return;
   /* **A spawner can file into a drawer** (decision 197). What it makes goes
@@ -454,8 +455,17 @@ function dispense(g){
 /* Where a spawner files what it makes: a drawer that holds (a sorting drawer
    holds nothing), still on the desk, and not the spawner's own ancestor chain
    gone missing. Null means "beside me on the board", which is what it was. */
-const intoOf = g => { const d = g && g.into && byId(g.into);
-  return d && isContainer(d) && !has(d,'magic') ? d : null; };
+/* **…or into what it is tied to** (decision 258). A notepad, a button or a
+   spawner tied with string to a drawer that holds puts what it makes there:
+   the string is the thing you can see saying where the words go, and the
+   spool is how you say it. `into` set in the editor still wins, because it
+   was said outright. Either end of the string will do. */
+const holdsThings = d => !!d && isContainer(d) && !has(d,'magic') && !isHeld(d);
+const intoOf = g => { if(!g) return null;
+  const d = g.into && byId(g.into);
+  if(holdsThings(d)) return d;
+  return (g.rel||[]).map(byId).find(holdsThings)
+    || S.objects.find(x=>holdsThings(x) && (x.rel||[]).includes(g.id)) || null; };
 /* ---- pressing a Button — decision 243 -----------------------------------
    One press, three machines, and each is the one that already did the job:
    the spawner's `dispense()`, the way out a portal takes, the control's
@@ -514,6 +524,24 @@ function fireTo(tg){
    the whole point of holding the element outside `#app` is that playing must
    not be at the mercy of a render. */
 const SOUNDS = new Map();
+/* **A video keeps its first frame as a still** (decision 257). Every render
+   makes a fresh `<video>`, and a fresh one is blank until it has fetched and
+   decoded a frame, so a video nobody had played flickered black whenever
+   anything else on the board was pressed. The frame it painted the first time
+   is kept here, by source, and handed to every later one as its `poster`,
+   which is drawn at once. In memory only: a launch decodes it once again. */
+const STILLS = new Map();
+const stillOf = src => STILLS.get(src) || '';
+function keepStill(v){
+  const src = v.dataset.src; if(!src || STILLS.has(src) || !v.videoWidth) return;
+  try{
+    const k = Math.min(1, 480 / v.videoWidth);
+    const c = document.createElement('canvas');
+    c.width = Math.round(v.videoWidth*k); c.height = Math.round(v.videoHeight*k);
+    c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+    STILLS.set(src, c.toDataURL('image/jpeg', 0.82));
+  }catch(e){ STILLS.set(src, ''); }   // a picture the canvas may not read
+}
 let SOUNDING = null;
 const isSounding = id => SOUNDING===id;
 function markSounding(id, on){
@@ -1591,10 +1619,34 @@ function drawTileFace(o, arr, box, persp){
      short side and the rest is what it is for: set to **make**, the garden's
      line you type a name into (return, or the button, makes one called
      that); set to **open** or **switch**, its name over what it does. */
+  /* ---- a notepad — decision 258 -----------------------------------------
+     A ruled strip you write a line on. Return makes the line into what it
+     reads as, and puts it where the notepad says: beside itself, into its
+     drawer, or into whatever it is tied to with string, which the
+     placeholder names so the page says where the words will go. */
+  if(shapeOf(o)==='notepad'){
+    const dest = intoOf(o);
+    const what = makesSmart(o) ? 'Write something' : makesAnything(o) ? 'Name one of anything'
+      : 'A '+genSaid(o);
+    // the string says where it goes; the line only says what to do
+    const ph = o.title && o.title!==K(o.kind).nm ? o.title : what + '…';
+    return `<div class="drawer otile padtile${box.h>1?' padtall':''}${sel}" data-row="${o.id}" role="button" tabindex="0"
+        title="${esc((o.title||'Notepad')+(dest?' — into '+(dest.title||'the drawer'):' — beside itself'))}"
+        style="--c:${colour};--padrows:${box.h};${place}">
+      ${chips}<i class="padgum" aria-hidden="true"></i>
+      <label class="padline"><input class="fieldin padin" data-fieldfor="${o.id}" autocomplete="off"
+        enterkeyhint="done" placeholder="${esc(ph)}"></label>
+      ${handles}
+    </div>`;
+  }
+
   if(shapeOf(o)==='pushbutton'){
     const long = box.w!==box.h, tall = box.h>box.w;
     const does = doesOf(o) || 'make';
-    const field = long && does==='make';
+    /* **Just the button** (decision 258): the line it grew when wider went,
+       because typing is the notepad's job and a notepad tied to it by string
+       does it. Wider, the name and what it does stand beside it. */
+    const field = false;
     const said = does==='make' ? 'Makes a '+genSaid(o)
       : does==='open' ? (opensSaid(o) ? 'Opens '+opensSaid(o) : 'Opens nothing yet')
       : (()=>{ const c = ctlSpec(o); return c ? c.nm+': '+ctlSaid(o) : 'Flips a switch'; })();
@@ -1884,7 +1936,11 @@ function drawTileFace(o, arr, box, persp){
        and the name and the add box stay put at the top while the lines go
        under them — see `.clstick` and `.clscroll` in chrome.css. */
     const shown=items.filter(x=>!x.done);
-    const stuck=(head?1:0)+(adds?1:0);
+    /* **The name is a tab, not a line** (decision 256): a slim strip in the
+       top left with the count at its end, so a list spends a line on nothing
+       but its lines. `--cltab` is its height, which the lines and the add box
+       leave out of their share. */
+    const stuck=(adds?1:0);
     /* With nothing to show the front is a label again: a stack of zero lines
        is an anonymous coloured square — and so is the picker's sample. */
     if(!shown.length && !adds){
@@ -1908,9 +1964,10 @@ function drawTileFace(o, arr, box, persp){
             checklist anywhere took a task out of it instead of picking the
             drawer up. The words fall through to the tile, which is what gives
             a checklist front its drag back. */''}
-      <div class="dbody"><div class="clist" style="--clk:${stuck}">
-        ${stuck?`<div class="clstick">${head?`<span class="clhead"><b>${esc(o.title||'Untitled')}</b>${
+      <div class="dbody"><div class="clist" style="--clk:${stuck}${head?';--cltab:17px':''}">
+        ${head?`<span class="clhead cltab"><b>${esc(o.title||'Untitled')}</b>${
           ticks.length?`<u>${doneN} of ${ticks.length}</u>`:`<u>${items.length}</u>`}</span>`:''}
+        ${stuck?`<div class="clstick">
         ${adds?`<label class="cladd">${ic('plus',11)}
           <input data-contadd="${o.id}" placeholder="Add a ${esc(made)}…"></label>`:''}</div>`:''}
         ${/* A line says **when**, when the thing has a day (decision 197): a
@@ -1953,7 +2010,7 @@ function drawTileFace(o, arr, box, persp){
     const per=clPerCell();
     const rows=Math.max(1, (box.h|0) * per);
     const head = o.clhead!=='0' && rows>=2;
-    const stuck=(head?1:0)+(adds?1:0);
+    const stuck=(adds?1:0);                  // the name is a tab (decision 256)
     if(!items.length && !adds){
       return `<button class="drawer dtile cltile listtile clidle ${dressAs('bd','gilt')}${sel}" data-drawer="${o.id}"
           style="--c:${colour};${place}">
@@ -1968,8 +2025,9 @@ function drawTileFace(o, arr, box, persp){
     return `<${adds?'div':'button'} class="drawer dtile cltile listtile${per>1?' cldense':''} ${dressAs('bd','gilt')}${sel}" data-drawer="${o.id}"
         ${adds?'role="button" tabindex="0"':''} title="${esc(o.title||'Untitled')}"
         style="--c:${colour};--clrows:${rows};${place}">
-      <div class="dbody"><div class="clist" style="--clk:${stuck}">
-        ${stuck?`<div class="clstick">${head?`<span class="clhead"><b>${esc(o.title||'Untitled')}</b><u>${items.length}</u></span>`:''}
+      <div class="dbody"><div class="clist" style="--clk:${stuck}${head?';--cltab:17px':''}">
+        ${head?`<span class="clhead cltab"><b>${esc(o.title||'Untitled')}</b><u>${items.length}</u></span>`:''}
+        ${stuck?`<div class="clstick">
         ${adds?`<label class="cladd">${ic('plus',11)}
           <input data-contadd="${o.id}" placeholder="Add a ${esc(genSaid(o))}…"></label>`:''}</div>`:''}
         ${items.map(x=>
@@ -2562,7 +2620,7 @@ function drawTileFace(o, arr, box, persp){
         ${src?`<video class="tilevid" src="${esc(src)}#t=0.1" preload="metadata"${
             /* it loops unless told to play once (decision 250), and a
                bundled clip shows its own still until it is pressed */
-            loopOf(o) ? ' loop' : ''}${o.media.poster ? ` poster="${esc(o.media.poster)}"` : ''}
+            loopOf(o) ? ' loop' : ''}${(o.media.poster || stillOf(src)) ? ` poster="${esc(o.media.poster || stillOf(src))}"` : ''} data-src="${esc(src)}"
           playsinline tabindex="-1"></video>`
         :`<span class="vidempty">${ic('film',22)}<b>${esc(o.title||'Add a video')}</b></span>
           <span class="medbtn blank" aria-hidden="true">${ic('plus',20)}</span>`}
@@ -3745,7 +3803,7 @@ function bookView(c, items){
    a grid/list toggle again. Reading a whole drawer end to end is what a book
    is for; reading one object is what its own page is for, and `read: scroll`
    (the *object's* setting, a different thing entirely) is untouched. */
-export { spinTo, CLICKS, clickOf, fireButton, intoOf, tileTap, pending, placeAtPending, SHELFSHIFT,
+export { keepStill, spinTo, CLICKS, clickOf, fireButton, intoOf, tileTap, pending, placeAtPending, SHELFSHIFT,
   scratchGrab, scratchTo, scratchGo,
   gridTile, gridOfContainer, listTile, boardVarsOf, TOOLS, threadTo, KSHAPES, kshapeOf, WHEEL_COLOURS, WHEEL_INKS, WHEEL_FONTS, VINYLS, PORTAL_SHAPES, PORTAL_STYLES, PORTAL_EDGES, bookOf, bookView, sheetOf, faceLook, turnPage, clearPages,
   calSpan, calFront };

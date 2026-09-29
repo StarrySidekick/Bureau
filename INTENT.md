@@ -227,6 +227,18 @@ workflows without a whole flow. Built as decisions 249–254 (v2.48); the
 compound scope is `docs/COMPOUNDS.md`. The calendar imprint did not reproduce
 on a fresh desk and is open.
 
+### Added 2026-09-29, later — the notepad, and strings that carry things
+
+Timothy: an unplayed video flickers when anything else is tapped; the coin
+never makes a background; the Button should be only the button, with a setup
+card saying what it makes; a **notepad** (ruled, 4×1) is the spawner done
+right, turning a typed line into a note, a thought or whatever it reads as;
+a list should be written into by a notepad on top of it, the **Quick list**,
+rather than a box built into it; where a notepad's things go should be easy to
+see and change, perhaps by **tying things with string**; a phone scroll cut off
+the icons under its paper; a list's name should not take a whole row; and the
+Workshop had small changes. Built as decisions 255–258 (v2.49).
+
 ## Deliberately not next
 
 - **Sync between devices.** It is real and it is coming, *after* the feature set

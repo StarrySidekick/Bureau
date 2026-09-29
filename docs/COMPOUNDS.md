@@ -36,6 +36,13 @@ part can be pulled out and is simply an object) and its main open question
 | Habit and its run | habit tracker 4×2, counter 2×2 | counter reads days in a row |
 | Draft with a word count | note 4×4, counter 2×2 | counter reads words |
 | Spread | label 8×1, two notes 4×5 | none |
+| Quick list (v2.49) | notepad 4×1 over list 4×6 | notepad tied to the list with string |
+
+Since v2.49 Counted list and Checklist with a bar carry a notepad on top too,
+and **a string carries things**: a notepad, button or spawner tied to a drawer
+puts what it makes in that drawer (decision 258). That answers most of the
+Workflows section below without new fields: *Capture and file* is a notepad
+tied to a drawer.
 
 Picker: *Everything else → Put together*. The Magic Selector's box is where it
 lands if the whole footprint is free there.

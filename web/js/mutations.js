@@ -840,6 +840,35 @@ function makeCompound(kind, at){
   return made.map(([o])=>o);
 }
 
+/* ---- what a line reads as — decision 258 ---------------------------------
+   A notepad set to `smart` makes whatever the words say they are: a question
+   ends in a question mark, a quote opens with a quotation mark, "idea:" or
+   "what if" is an idea, "problem:" or "bug:" a problem, and an errand (it
+   starts with a doing word, a box, "todo", or asks for a day with !today) is
+   a task. Anything else is a thought when it is short and a note when it runs
+   on. A `/type` at the start still wins, through quickAdd(). The cue a line
+   was recognised by is taken off it, so "idea: a shelf for records" is an
+   idea called "a shelf for records". */
+const ERRANDS = ['buy','call','email','text','send','pay','book','fix','clean','finish','write',
+  'read','watch','make','get','pick','return','schedule','order','check','remember','cancel',
+  'renew','submit','print','post','ship','wash','water','feed','take','bring','ask','tell',
+  'reply','draft','plan','sort','file','move','update','install','charge','collect','visit'];
+function guessKind(text){
+  const t = String(text||'').trim(), lo = t.toLowerCase();
+  const ok = k => KINDS[k] && !isCut(k) ? k : null;
+  const first = (lo.match(/^[a-z']+/)||[''])[0];
+  const cue = (k, re) => ({kind: ok(k) || 'note', text: t.replace(re, '').trim() || t});
+  if(/^\//.test(t)) return {kind:'note', text:t};
+  if(/^(idea|what if)\b:?/i.test(t)) return cue('idea', /^idea\s*:?\s*/i);
+  if(/^(problem|bug|issue)\b\s*:/i.test(t)) return cue('problem', /^(problem|bug|issue)\s*:\s*/i);
+  if(/^(\[ ?\]|- ?\[ ?\]|todo\b:?|to do\b:?)/i.test(t)) return cue('task', /^(\[ ?\]|- ?\[ ?\]|todo\s*:?|to do\s*:?)\s*/i);
+  if(/\?\s*$/.test(t)) return {kind: ok('question') || 'note', text:t};
+  if(/^["“'‘]/.test(t)) return {kind: ok('quote') || 'note', text:t.replace(/^["“'‘]|["”'’]$/g, '').trim() || t};
+  if(/!(today|tomorrow|week)\b/i.test(t) || ERRANDS.includes(first)) return {kind: ok('task') || 'note', text:t};
+  const words = (t.match(/\S+/g)||[]).length;
+  return {kind: words<=12 ? (ok('thought') || 'note') : 'note', text:t};
+}
+
 function quickAdd(text, kind, drawerId){
   let t=text.trim(); if(!t) return null;
   let k=kind||'task', due=null; const tags=[];
@@ -1021,11 +1050,12 @@ function someKind(){
      cannot exist without a question answered first (a tag and a sorting
      drawer need their rule, an aspect of life its part of your life, an
      achievement the thing you did), a category (a question, not a thing),
-     Random itself, what was cut, a Background (it would lie under a whole
-     board) and a deck (a deck of no cards is a box). */
+     Random itself, what was cut, and a deck (a deck of no cards is a box).
+     A Background is in since decision 257, at no more than four by four so it
+     lies under a corner of the board rather than all of it. */
   const ok = k => KINDS[k] && !isCut(k) && !K(k).cat && !K(k).makesAny
     && !K(k).asksTag && !K(k).asksLife && !K(k).asksDone
-    && !kindHas(k,'backdrop') && K(k).act!=='deck' && !kindHas(k,'control');
+    && K(k).act!=='deck' && !kindHas(k,'control');
   /* **One of the fifteen, then one of what it holds.** Flat, a third of the
      tosses were a part of your life or a kind of project, each laying a whole
      flow down, because there are thirty-four of those and one Jar. */
@@ -1240,7 +1270,8 @@ function roll(o, depth){
   ['desk','phone'].forEach(dv=>{
     if(o[dv] && o[dv].x!=null) return;
     const [w,h] = randomSizeOf(o.kind, dv, o.parent);
-    o[dv] = {w, h};
+    // a background under a corner, not the whole board (decision 257)
+    o[dv] = isBackdrop(o) ? {w:Math.min(w,4), h:Math.min(h,4)} : {w, h};
   });
   if(!isContainer(o)){
     o.c = randomFront();
@@ -1382,7 +1413,7 @@ function dealTop(id){
 // the one door, so nothing outside has to know a habit ticks differently.
 export { toast, setGridSize, setBoardDims, toggleDone, spawnNext, del, delMany, delDrawer, undo, redo,
   pushUndo, pushSet, pushSets, toggleFree, setPin, togglePin, becomeKind, seedInto,
-  drawerForTag, create, makeCompound, gather, quickAdd, spawnInto, randomThing,
+  drawerForTag, create, makeCompound, guessKind, gather, quickAdd, spawnInto, randomThing,
   loadTexts, CONTROLS, CTL_KEYS, ctlSpec, ctlSaid, ctlIsOn, ctlForm, ctlNum, ctlIndex, ctlPress, someKind,
   fits,
   holdIt, holdMany, unholdIt, unholdMany, undoToast, dealTop, furnish, PICTURES, PAINTINGS, galleryOf, hangPainting, pictureMedia, CLIPS };

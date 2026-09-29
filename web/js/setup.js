@@ -477,10 +477,18 @@ const STEPS = {
              choice('switch', 'It flips a switch', 'the lock, the shadows, the aesthetic')],
     answer:(o,v)=>{ pushSet('Changed', o.id, 'does', o.does); o.does = v; return 'button.'+v; }},
   'button.make': {
-    q:'What does it make?', sub:'Pressed, it puts one down beside itself. Wider, you can type its name first.',
+    q:'What does it make?', sub:'One each press. To name things as you make them, use a notepad.',
     ask:()=>['note','task','thought','idea','question','image'].filter(k=>KINDS[k])
       .map(k=>choice(k, K(k).nm, '', typeArt(k))).concat(choice('random', 'One of anything', 'a different thing each time')),
-    answer:(o,v)=>{ pushSet('Changed', o.id, 'genKind', o.genKind); o.genKind = v; return 'name'; }},
+    answer:(o,v)=>{ pushSet('Changed', o.id, 'genKind', o.genKind); o.genKind = v; return 'makes.where'; }},
+  /* Where it goes (decision 258): beside it, or into a drawer on the same
+     board. Tying it to one with the spool later says the same thing. */
+  'makes.where': {
+    q:'Where does it go?', sub:'Or tie it to a drawer with string later, and it goes there.',
+    ask:o=>[choice('here', 'Beside the button', 'on the board')].concat(
+      S.objects.filter(x=>x.id!==o.id && x.parent===o.parent && isContainer(x) && !has(x,'magic')).slice(0, 11)
+        .map(x=>choice(x.id, 'Into '+(x.title||'Untitled'), K(x.kind).nm))),
+    answer:(o,v)=>{ pushSet('Changed', o.id, 'into', o.into); if(v && v!=='here') o.into = v; else delete o.into; return 'name'; }},
   'button.open': {
     q:'What does it open?', sub:'A drawer on the desk, or an address.',
     text:{ph:'example.com, or tel:…', go:'Next'},

@@ -11067,3 +11067,78 @@ theory in `docs/COMPOUNDS.md`; what is built:
   its day (`COUNTS`, `countOf()`). The obvious one is chosen when nothing is
   said. A tap opens what it reads; *It counts* and *What it reads* are in the
   Behaviour door, offering what is on its own board.
+
+## 255 · The Workshop's small changes: the ring and two doors
+
+*2026-09-29.* Timothy reorganised the Workshop again. What differed from the
+app, and was built:
+
+- **The hold ring**: *Edit* is gone; *When* is called *Schedule*; *Rename*
+  (edits the name where it sits, or opens a drawer's editor, whose heading is
+  its name), *Edit Look* and *Edit Behavior* (the editor opened at that door)
+  are added before Delete, which stays last.
+- **Depth and light is part of Global Settings**, under the rest of how the
+  desk looks, and **Your Things heads About**. Neither is a door any more;
+  `depth` and `things` still answer, opening the door they are in.
+- **Testing** (Add ten at random) is cut from About.
+- **Essay or post** is called **Essay**. (The Paper family also has an Essay;
+  the two now share a name.)
+
+Not built: the Workshop marks Image, Random, Album and Telegram as not kept.
+Those may be older than this pass (the Workshop keeps its whole arrangement,
+not a diff), and cutting Image would empty the Picture master, so they wait
+to be asked about.
+
+## 256 · A scroll clears the home strip, and a list's name is a tab
+
+*2026-09-29.* Timothy: in scroll view on a phone the icons under the paper were
+cut off; and a checklist or list should not spend a whole row on its name.
+
+- A phone scroll's paper stops short of the safe area and 14px more, so the bar
+  under it clears the home indicator. A book was already shorter.
+- **A list's name is a tab**: a 17px strip in the top left with the count at
+  its end (`.cltab`, `--cltab`), standing still while the lines scroll. The
+  lines and the add box share the rest of the face.
+
+## 257 · A video keeps its first frame; the coin makes backgrounds
+
+*2026-09-29.* Timothy: a video that has not been played flickers when anything
+else is tapped; and the spiral coin never makes a background.
+
+- Every render builds a fresh `<video>`, which is blank until it decodes a
+  frame. The first frame a tile's video paints is kept (`STILLS`,
+  `keepStill()` in tiles.js, on `loadeddata` and `seeked`) and given to every
+  later render as its `poster`, which draws at once. In memory, by source.
+- `someKind()` no longer leaves out Background; a rolled one is at most 4×4 so
+  it lies under a corner of the board rather than all of it.
+
+## 258 · The notepad, the button, the Quick list, and where made things go
+
+*2026-09-29.* Timothy: a button only activates something and needs no text
+box; a **notepad** is the spawner done right, a ruled strip 4×1 that turns a
+typed line into a note, thought or whatever it reads as; lists should get
+their new things from a notepad on top (a **Quick list**) rather than a box
+built into them; and where a notepad's things go should be easy to see and to
+change, perhaps by tying things with string.
+
+- **Notepad** (`notepad`, in the Paper family): a legal pad (cream sheet, blue
+  rules, red margin, a gum strip in its own colour) with one line to write on.
+  Return makes the line. Set to `smart` (its default) it makes what the line
+  reads as (`guessKind()` in mutations.js): a question mark → Question, a
+  quotation mark → Quote, `idea:` or *what if* → Idea, `problem:`/`bug:` →
+  Problem, a box, *todo*, `!today` or a doing word first (buy, call, email…)
+  → Task, otherwise a Thought up to twelve words and a Note past that. The cue
+  is taken off the name, `/type` still wins, and the toast says what it made.
+- **Where it goes**, in order: the drawer `into` names (the editor's *Puts
+  it*), else **a drawer it is tied to with string** (either end of the
+  relation), else beside itself, below. `intoOf()` in tiles.js is the one
+  reader, so a spawner and a button follow the same rule. The editor's *Puts
+  it* row says when a string is doing it.
+- **The Button is only the button**: the line it grew when wider is gone
+  (wider, its name and what it does stand beside it). Its setup card asks what
+  it makes and then *Where does it go?* (beside it, or into a drawer on its
+  board).
+- **A list's add box is off its front by default** (`addbox:'show'` puts it
+  back; inside the drawer it is always there). **Quick list** is a compound:
+  a notepad tied with string to a list under it. Counted list and Checklist
+  with a bar gained a notepad (set to Task) the same way.

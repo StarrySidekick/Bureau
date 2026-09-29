@@ -4,15 +4,15 @@ import { S, K, KINDS, KEYS, refreshKinds, ATTRS, attrsOf, has, SHAPES,
   FACES, MANUAL, byId, container, cfgOf, isContainer, isAncestor, relate, deskOf,
   unrelate, sensedDevice, reset, T, dz, dev, calViewOf, RULE_MAX, acceptFor, acceptAny,
   boardLocked, repeatOf, repeats, heldObjects, heldCount, marginOf, marginPlus, homeFor,
-  layoutOf, setClFit, genKindOf, makesAnything , groupMates, groupTogether, isDesk, faceOf, kindHas,
+  layoutOf, setClFit, genKindOf, makesAnything , makesSmart, groupMates, groupTogether, isDesk, faceOf, kindHas,
   sortOf, sortCycleOf, SORT_FACES, inFront } from './model.js';
 import { gridOf, lay, boxOk, freeSpot, anySpot, roomFor, sizeOfKind, toPhoneSize, keepSize,
   shelvesOf, shelfAt, setShelf, shelvesToHold, addBoard, removeBoard, onBoard, randomSpot, colsOf, shelfRows, boardsOf, randomSizeOf } from './grid.js';
 import { applyLook, applyStyle, setLookVal, lookVal, STYLES, setSlot, objColour, darkMode } from './look.js';
-import { dealTop, furnish, toast, fits, makeCompound, setGridSize, setBoardDims, toggleDone, spawnNext, del, delMany, delDrawer, undo, redo, pushUndo,
+import { dealTop, furnish, toast, fits, makeCompound, guessKind, quickAdd, setGridSize, setBoardDims, toggleDone, spawnNext, del, delMany, delDrawer, undo, redo, pushUndo,
   pushSet, pushSets, setPin, togglePin, drawerForTag, create, spawnInto, randomThing,
   holdIt, holdMany, unholdIt, unholdMany, undoToast, someKind, becomeKind , toggleFree, galleryOf, hangPainting } from './mutations.js';
-import { spinTo, pending, placeAtPending, tileTap, turnPage, clearPages, intoOf, TOOLS } from './tiles.js';
+import { keepStill, spinTo, pending, placeAtPending, tileTap, turnPage, clearPages, intoOf, TOOLS } from './tiles.js';
 import { bpmOf, minsOf, burnOf, sidesOf, metroGoing, startMetro, mindTheTime, actOf, deckTop } from './active.js';
 import { DECOR, LIFE_ART } from './decor.js';
 import { render, renderSoon, sizeGrid, toggleSettings, settingsPanel, reveal, goShelf, goShelfTo, openOverview, closeOverview, refreshOverview, overviewOn, overAsk, overCid, flipBlock, railToolsOf } from './views.js';
@@ -1231,6 +1231,11 @@ function wire(){
     // yet would throw the position away and start from nothing
     if(v.duration && isFinite(v.duration)) v.currentTime = Math.min(0.1, v.duration/2);
   }, true);
+  // …and once it has a frame to show, that frame is kept as its still (257)
+  const still = e=>{ const v=e.target;
+    if(v && v.tagName==='VIDEO' && v.classList.contains('tilevid') && v.paused) keepStill(v); };
+  frame.addEventListener('loadeddata', still, true);
+  frame.addEventListener('seeked', still, true);
 
   /* iOS reads a long press on ordinary text as "select this", and puts a
      magnifier over the tile you are trying to lift. `user-select:none` is
@@ -1412,6 +1417,13 @@ function wire(){
       else if(cmd==='read') openRead(id);
       else if(cmd==='view') openViewer(id);
       else if(cmd==='drawerset'||cmd==='objset') objectPanel(id);
+      // the ring's three doors by name (decision 255)
+      else if(cmd==='editlook') objectPanel(id, 'look');
+      else if(cmd==='editdoes') objectPanel(id, 'does');
+      /* A name edits where it sits; a drawer's name is its editor's heading,
+         which is a field you press. */
+      else if(cmd==='rename'){ const o=byId(id);
+        if(o && !isContainer(o)) startEdit(id); else objectPanel(id); }
       else if(cmd==='opendrawer'){ S.view='drawer'; S.drawerId=id; render(); }
       else if(cmd==='pin') togglePin(id);
       else if(cmd==='done') toggleDone(id);
@@ -2541,26 +2553,36 @@ function wire(){
          with the spiral and tasks with the line — the same machine answering
          two different questions. `random` is resolved here and once, the way
          dispense() resolves it. */
-      const kind = makesAnything(src) ? someKind() : genKindOf(src);
-      // a spawner that files into a drawer puts the line there (decision 197)
+      /* …or, from a notepad, what the line reads as (decision 258), with the
+         cue it was read by taken off the name */
+      const guess = makesSmart(src) ? guessKind(text) : null;
+      const kind = guess ? guess.kind : makesAnything(src) ? someKind() : genKindOf(src);
+      const said = guess ? guess.text : text;
+      // a spawner that files into a drawer puts the line there (decision 197),
+      // and so does one tied to a drawer with string (decision 258)
       const dest = intoOf(src);
       if(dest){
         if(!fits(kind, dest.id)) return;
-        create(kind,{parent:dest.id, title:text});
-        e.target.value=''; save(); render(); toast(`Filed in ${dest.title||'the drawer'}`);
+        const made = guess ? quickAdd(said, kind, dest.id) : create(kind,{parent:dest.id, title:text});
+        if(!made) return;
+        e.target.value=''; save(); render();
+        toast(guess ? `A ${K(made.kind).nm.toLowerCase()}, into ${dest.title||'the drawer'}` : `Filed in ${dest.title||'the drawer'}`);
         const el=document.querySelector(`[data-fieldfor="${src.id}"]`); el&&el.focus();
         return;
       }
       if(!fits(kind, src.parent)) return;
-      const t=create(kind,{parent:src.parent, title:text});
+      const t = guess ? quickAdd(said, kind, src.parent) : create(kind,{parent:src.parent, title:text});
+      if(!t) return;
       /* Land it directly beneath the field that made it, at the **type's**
          size. It used to be the spawner's own width by one row, which was the
          task's shape written out by hand — right for a task and wrong for
          everything else the line can now make. */
-      const dv=dev(), b=lay(src), [w,h]=sizeOfKind(kind, dv, src.parent);
+      const dv=dev(), b=lay(src), [w,h]=sizeOfKind(t.kind, dv, src.parent);
       const want={x:b.x, y:b.y+b.h, w, h};
       t[dv] = boxOk(want,t.id,dv,src.parent) ? want : anySpot(w,h,dv,src.parent);
       e.target.value=''; save(); render();
+      // a notepad says what the line became, since it chose (decision 258)
+      if(guess) toast(`Made a ${K(t.kind).nm.toLowerCase()}`);
       const el=document.querySelector(`[data-fieldfor="${src.id}"]`); el&&el.focus();
       return;
     }

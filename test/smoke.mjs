@@ -748,11 +748,12 @@ const PROP_OFF = () => { const b = document.createElement('button');
     const S = BUREAU.state;
     S.view = 'desk'; S.drawerId = null;
     const cl = BUREAU.create('checklist', { parent: 'root', title: 'Pack' });
+    cl.addbox = 'show';                    // off the front by default since decision 258
     BUREAU.render();
     await nap(200);
     const front = () => document.querySelector(`.drawer[data-drawer="${cl.id}"]`);
     const startsRight = cl.desk.w === 4 && cl.desk.h === 6;
-    // the box is on by default since the front scrolls (2026-09-23)
+    // the box is on when asked for (decision 258; it was the default from 2026-09-23)
     const box = front() && front().querySelector('input[data-contadd]');
     const onByDefault = !!box;
     if (!box) return { hasBox: false, onByDefault };
@@ -946,6 +947,7 @@ const PROP_OFF = () => { const b = document.createElement('button');
       const S = BUREAU.state;
       S.view = 'desk'; S.drawerId = null; S.sel = []; S.look.locked = false;
       const ls = BUREAU.create('list', { parent: 'root', title: 'Watch these' });
+      ls.addbox = 'show';
       ls.desk = onThisShelf(4, 6);
       const note = BUREAU.create('note', { parent: ls.id, title: 'A note in it' });
       const task = BUREAU.create('task', { parent: ls.id, title: 'A task in it' });
@@ -7014,7 +7016,10 @@ const PROP_OFF = () => { const b = document.createElement('button');
     c[S.device] = Object.assign(BUREAU.free(4,6,'root'), {w:4,h:6});
     BUREAU.render(); await nap(200);
     const front = () => document.querySelector(`.grid .drawer[data-drawer="${c.id}"]`);
-    out.onByDefault = !!front() && !!front().querySelector('.cladd');
+    // off by default since decision 258: a notepad writes into a list now
+    out.offByDefault = !!front() && !front().querySelector('.cladd');
+    c.addbox = 'show'; BUREAU.render(); await nap(200);
+    out.onWhenAsked = !!front().querySelector('.cladd');
     c.addbox = 'hide'; BUREAU.render(); await nap(200);
     out.canBePutAway = !front().querySelector('.cladd');
     // …and inside it the box is always there, put away or not
@@ -7022,7 +7027,7 @@ const PROP_OFF = () => { const b = document.createElement('button');
     out.insideItAlways = !!document.querySelector(`[data-contadd="${c.id}"]`);
     S.view='desk'; S.drawerId=null;
     // it goes by itself at one cell tall
-    c.addbox = ''; c[S.device] = Object.assign({}, c[S.device], {h:1});
+    c.addbox = 'show'; c[S.device] = Object.assign({}, c[S.device], {h:1});
     BUREAU.render(); await nap(200);
     out.goesWhenShort = !!front() && !front().querySelector('.cladd');
     c[S.device] = Object.assign({}, c[S.device], {h:6});
@@ -10440,7 +10445,8 @@ const PROP_OFF = () => { const b = document.createElement('button');
     ['a','b','c'].forEach(t => B.create('task', {parent:list.id, title:t}));
     S.objects.find(o => o.parent === list.id && o.title === 'a').done = true;
     out.theCounterReadsTheList = B.countOf(cnt) === 2;
-    out.andItIsOneUndo = S.undo.length && S.undo[S.undo.length-1].steps.length === 2;
+    // three parts since decision 258: a notepad on top writes into the list
+    out.andItIsOneUndo = S.undo.length && S.undo[S.undo.length-1].steps.length === 3;
     out.id = n.id;
     return out;
   });
@@ -10463,8 +10469,70 @@ const PROP_OFF = () => { const b = document.createElement('button');
   await v8.screenshot({ path: 'test/shots/248-front.png' });
   await v248Ctx.close();
 
+  /* --- decisions 255–258: the Workshop's ring and doors, a list's name as a
+     tab, a background from the coin, and the notepad: a line that becomes
+     what it reads as, put where the string says. */
+  const v249Ctx = await browser.newContext({ viewport:{width:390,height:844}, hasTouch:true });
+  const v9 = await v249Ctx.newPage();
+  v9.on('pageerror', e => errs.push('PAGEERROR (249): ' + e.message));
+  await v9.goto(URL); await v9.waitForTimeout(900);
+  const v249 = await v9.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const out = {}, S = BUREAU.state, B = BUREAU;
+    S.objects.filter(o => o.parent === 'root').forEach(o => { o.parent = '__hold'; });
+    B.render(); await nap(250);
+    // 255: the ring has Schedule, Rename and the two doors, and no Edit
+    const t = B.create('task', {parent:'root', title:'Ring me'}); t.phone = {x:5, y:13, w:4, h:1};
+    B.render(); await nap(150);
+    const tr = document.querySelector(`[data-row="${t.id}"]`).getBoundingClientRect();
+    B.ctx(tr.left+20, tr.top+10, t.id); await nap(200);
+    const said = [...document.querySelectorAll('#ctx [data-c]')].map(e => e.dataset.c.split(':')[0]);
+    out.theRingIsTheWorkshops = ['when','rename','editlook','editdoes'].every(c => said.includes(c)) && !said.includes('objset');
+    document.querySelector('#ctx').classList.remove('open'); await nap(100);
+    // …and Settings has no Depth or Your Things door; both live elsewhere now
+    document.querySelector('[data-act="appsettings"]').click(); await nap(300);
+    out.twoDoorsFolded = !document.querySelector('#panel [data-ssec="depth"]') && !document.querySelector('#panel [data-ssec="things"]')
+      && !!document.querySelector('#panel [data-ssec="look"]');
+    document.querySelector('#panel [data-ssec="about"]').click(); await nap(250);
+    out.aboutHasTheCounts = !!document.querySelector('#panel .statline') && !document.querySelector('#panel [data-act="randomten"]');
+    B.closePanel(); await nap(100);
+    // 257: the coin can make a background
+    let bg = false; for(let i=0; i<3000 && !bg; i++) bg = B.someKind() === 'background';
+    out.theCoinMakesBackgrounds = bg;
+    // 258: a Quick list is a notepad tied to a list; what is written goes in
+    B.newOfKind('cp_quick', true, {}); await nap(300);
+    const list = S.objects.find(o => o.parent === 'root' && o.kind === 'list');
+    const pad = S.objects.find(o => o.parent === 'root' && o.kind === 'notepad');
+    out.aQuickListIsTied = !!list && !!pad && (pad.rel||[]).includes(list.id) && pad.grp === list.grp;
+    const line = t0 => { const f = document.querySelector(`[data-fieldfor="${pad.id}"]`);
+      f.value = t0; f.dispatchEvent(new KeyboardEvent('keydown', {key:'Enter', bubbles:true})); };
+    line('Buy oat milk'); await nap(150);
+    line('What is the shelf made of?'); await nap(150);
+    line('idea: a record wall'); await nap(150);
+    const inList = S.objects.filter(o => o.parent === list.id);
+    out.itReadsWhatItIs = ['task','question','idea'].every(k => inList.some(o => o.kind === k))
+      && inList.some(o => o.kind === 'idea' && o.title === 'a record wall');
+    // …the list has its name as a tab and no box of its own on the front
+    const face = document.querySelector(`.grid .drawer[data-drawer="${list.id}"]`);
+    out.itsNameIsATab = !!face.querySelector('.cltab') && !face.querySelector('.cladd');
+    // …a loose notepad puts it beside itself
+    const loose = B.create('notepad', {parent:'root'}); loose.phone = {x:1, y:10, w:4, h:1};
+    B.render(); await nap(150);
+    const f = document.querySelector(`[data-fieldfor="${loose.id}"]`);
+    f.value = '"A quote, said once"'; f.dispatchEvent(new KeyboardEvent('keydown', {key:'Enter', bubbles:true})); await nap(200);
+    const q = S.objects.find(o => o.parent === 'root' && o.kind === 'quote');
+    out.aLooseOneLaysItBelow = !!q && q.phone && q.phone.y === 11;
+    // …and a Button is only the button
+    const bt = B.create('button', {parent:'root', title:'Press'}); delete bt.setup; bt.phone = {x:5, y:10, w:3, h:1};
+    B.render(); await nap(150);
+    out.aButtonHasNoLine = !document.querySelector(`[data-row="${bt.id}"] input`);
+    return out;
+  });
+  await v9.screenshot({ path: 'test/shots/249-notepad.png' });
+  await v249Ctx.close();
+
   console.log(JSON.stringify({
-    errors: errs, settingUp, shapes, v248, manifestOk, swReady, survived, styleSurvived, slotColours,
+    errors: errs, settingUp, shapes, v248, v249, manifestOk, swReady, survived, styleSurvived, slotColours,
     newObjectSeen, inlineEdit, sortDefaults, taskLook,
     shelfTools, homeKnob, gridSizes, keeping, versionShown, sampler, paging, scrolling, pageCoords, pagerGround, goingIn, comingOut,
     makingOnAPhone, railDrawer, railIsFurniture, holding, holdingOut, reported, cavity, depth, windows, tossing, pinch, pagerLandsFlat, deskDots,
