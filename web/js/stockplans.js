@@ -356,11 +356,11 @@ const SPECS = [
     LINK('Credit card', '', [5,2,4,1], 9, 'card'),
     LINK('Investments', '', [5,3,4,1], 9, 'invest'),
     LINK('Budget', 'https://www.ynab.com', [5,4,4,1], 9, 'budget'),
-    {k:'goal', t:'Savings', ref:'save', b:[1,5,4,3], set:{c:13, sref:'savings', milestones:[
-      {t:'A first cushion', done:false},
-      {t:'One month of expenses', done:false},
-      {t:'Three months', done:false}
-    ]}},
+    {k:'checklist', t:'Savings', ref:'save', b:[1,5,4,3], set:{c:13, sref:'savings'}, kids:[
+      {k:'task', t:'A first cushion'},
+      {k:'task', t:'One month of expenses'},
+      {k:'task', t:'Three months'}
+    ]},
     {k:'checklist', t:'Financial goals', b:[5,5,4,4], set:{c:6, sref:'goals'}, kids:[
       {k:'task', t:'Three months put by'},
       {k:'task', t:'Pay off the card'},
@@ -387,10 +387,10 @@ const SPECS = [
       AGAIN('A long walk', 1, 'week')
     ]},
     {k:'tracker', t:'Moved today', b:[5,3,4,2], set:{c:6, sref:'minutes', measure:{unit:'min', goal:30, step:10}}},
-    {k:'goal', t:'What it is for', b:[5,5,4,3], set:{c:13, sref:'goal', milestones:[
-      {t:'Three sessions a week, a month running', done:false},
-      {t:'A first milestone of your own', done:false}
-    ]}},
+    {k:'checklist', t:'What it is for', b:[5,5,4,3], set:{c:13, sref:'goal'}, kids:[
+      {k:'task', t:'Three sessions a week, a month running'},
+      {k:'task', t:'A first milestone of your own'}
+    ]},
     CAL('Sessions', [1,8,4,4], 7),
     {k:'hourglass', t:'Rest', b:[5,8,2,2], set:{c:12, mins:1}},
     {k:'metronome', t:'Cadence', b:[7,8,2,2], set:{c:6, bpm:170}},

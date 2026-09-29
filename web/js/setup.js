@@ -1,5 +1,6 @@
 import { $, esc, ic, D, ROOT, outURL } from './util.js';
-import { S, K, KINDS, T, dz, byId, has, isContainer, childrenOf, familyList, everyTag, faceOf, genKindOf, ASPECT_KINDS, WORKFLOW_KINDS } from './model.js';
+import { S, K, KINDS, T, dz, byId, has, isContainer, childrenOf, familyList, everyTag, faceOf, genKindOf, ASPECT_KINDS, WORKFLOW_KINDS, SUITS, SUIT_NAMES } from './model.js';
+import { BACKS, backHTML } from './active.js';
 import { becomeKind, create, pushSet, toast, seedInto, CONTROLS, CTL_KEYS } from './mutations.js';
 import { plans, planById, planTop, stampPlan, planForKind } from './plans.js';
 import { sampleTile, kindSample, closePanel } from './panels.js';
@@ -58,6 +59,8 @@ const planArt = p => {
 const swatch = (bg, fg, txt) => `<span class="suswatch" style="background:${bg};color:${fg}">${esc(txt||'')}</span>`;
 /* A choice: `v` is what `answer()` is handed. */
 const choice = (v, label, note, art) => ({v, label, note, art});
+// the slots a card is offered in: the deck's claret first, then the rest of a printer's inks
+const CARD_INKS = [11, 13, 6, 7, 9, 4, 2, 12];
 const WHENS = [
   ['30', 'In a month'], ['90', 'In three months'], ['182', 'In six months'],
   ['year', 'By the end of the year'], ['', 'No date — someday']];
@@ -134,7 +137,7 @@ const SETUPS = {
   life:   {start:'life.board'},
   tag:    {start:'tag.which'},
   text:   {start:'text.what'},
-  goal:   {start:'goal.what'},
+  card:   {start:'card.what'},
   checklist:{start:'list.what'},
   list:   {start:'list.what'},
   calendar:{start:'cal.shows'},
@@ -348,23 +351,25 @@ const STEPS = {
     q:'What are you writing?', sub:'It changes the binding and how it opens. The words are the same either way.',
     ask:()=>familyList('book').filter(k=>KINDS[k]).map(k=>choice(k, K(k).nm, K(k).ds||'', typeArt(k))),
     answer:(o,v)=>{ becomeFresh(o, v); return 'name'; }},
-  'goal.what': {
-    q:'What are you trying to accomplish?', sub:'Say it the way you would say it out loud.',
-    text:{ph:'Run a half marathon', go:'Next', field:'title'},
-    answer:(o,v)=>{ if(v){ pushSet('Renamed', o.id, 'title', o.title); o.title=v; } return 'goal.when'; }},
-  'goal.when': {
-    q:'By when?', sub:'The day it is late. Leave it open if it is a someday.',
-    ask:()=>WHENS.map(([v,nm])=>choice('d'+v, nm)),
-    answer:(o,v)=>{ pushSet('Changed', o.id, 'dead', o.dead); const d=whenOf(v.slice(1)); if(d) o.dead=d; else delete o.dead; return 'goal.steps'; }},
-  'goal.steps': {
-    q:'What are the steps to get there?', sub:'One a line. They become its milestones, and the bar fills as you tick them.',
-    area:{ph:'Run 5k without stopping\nRun 10k\nSign up for a race', go:'Done'},
-    answer:(o,v)=>{
-      const lines = String(v||'').split('\n').map(s=>s.trim()).filter(Boolean).slice(0, 20);
-      if(lines.length){ pushSet('Changed', o.id, 'milestones', o.milestones);
-        o.milestones = lines.map(t=>({t, done:false})); }
-      return null;
-    }},
+  /* A card (decision 269): what is written on it, and then only how it
+     looks — its colour, its back and the mark in its corners. */
+  'card.what': {
+    q:'What goes on the card?', sub:'Its name, printed large. Press the card later to write more on it.',
+    text:{ph:'Call Grandma', go:'Next', field:'title', skip:'Leave it blank'},
+    answer:(o,v)=>{ if(v){ pushSet('Renamed', o.id, 'title', o.title); o.title=v; } return 'card.colour'; }},
+  'card.colour': {
+    q:'What colour is it printed in?', sub:'The rule round the face, the corners, and the back.',
+    ask:()=>CARD_INKS.map(n=>choice(String(n), '', '', swatch(hexOf(n), '#F7F3E8', ''))),
+    answer:(o,v)=>{ pushSet('Changed', o.id, 'c', o.c); o.c = +v; return 'card.back'; }},
+  'card.back': {
+    q:'What is on the back?', sub:'What you see when it lies face down, or on top of a face-down deck.',
+    ask:o=>Object.entries(BACKS).map(([k,d])=>choice(k, d.nm, '',
+      `<span class="dkcard down suback" style="--c:${hexOf(o.c!=null?o.c:K(o.kind).c)}">${backHTML(k)}</span>`)),
+    answer:(o,v)=>{ pushSet('Changed', o.id, 'back', o.back); o.back = v; return 'card.suit'; }},
+  'card.suit': {
+    q:'What is in its corners?', sub:'The index a playing card has, in two opposite corners.',
+    ask:()=>Object.keys(SUITS).map(k=>choice(k, SUIT_NAMES[k], '', `<span class="susuit" style="--k:var(--ink)">${SUITS[k]||'\u00B7'}</span>`)),
+    answer:(o,v)=>{ pushSet('Changed', o.id, 'suit', o.suit); if(v==='none') o.suit='none'; else o.suit = v; return null; }},
   'list.what': {
     q:'What is this list for?', sub:'Its name, printed at the top.',
     text:{ph:'Groceries', go:'Next', field:'title'},

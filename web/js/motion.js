@@ -316,13 +316,13 @@ const SHEET_MS = 380, SHEET_OUT_MS = 420;
 const SHEET_EASE = 'cubic-bezier(.4,0,.2,1)';
 const sheetStage = ()=>{ const h=$('#sheetHost');
   return h && h.querySelector('.bookstage,.writestage,.viewstage'); };
-const sheetPaper = st => st.querySelector('.spread,.writepaper,.zoomart,.viewpaper') || st;
+const sheetPaper = st => st.querySelector('.spread,.writepaper,.zoomart,.viewpaper,.cardpaper') || st;
 const sheetScrim = ()=>{ const h=$('#sheetHost');
   return h && h.querySelector('.bookscrim,.writescrim,.viewscrim'); };
 /* Run the opening, and say whether it put a surface up. */
 function surfaceGoing(go){
   go();
-  return !!(S.readId || S.writeId || S.viewId || S.zoomId);
+  return !!(S.readId || S.writeId || S.viewId || S.zoomId || S.cardId);
 }
 /* The transform, with its origin at `er`'s top left, that lands the box `p`
    (somewhere inside `er`) exactly on the box `t`. */

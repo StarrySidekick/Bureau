@@ -18,9 +18,10 @@ import { S, K, KINDS, KEYS, T, ATTRS, USER_ATTRS, FIELDS, fieldOf, OPS, ROLLS,
 import { newOfKind } from './wire.js';
 import { GRID, lay, boxOk, freeSpot, anySpot, sizeOfKind, toPhoneSize, keepSize, inRange, rangeOfKind } from './grid.js';
 import { randomBoard, randomFront, hexOf, objColour, objSlots, famSlots, famAll, FAMS, styleKey, stockNow, CHECKS, checkNow } from './look.js';
-import { FILLS, FILL_KEYS, isCut, BUTTON_IMGS, DOES, doesOf } from './model.js';
+import { FILLS, FILL_KEYS, isCut, BUTTON_IMGS, DOES, doesOf, SUITS, SUIT_NAMES, suitOf, backOf, TUGS, tugOf } from './model.js';
+import { paintTarget, hasArt } from './paint.js';
 import { CLICKS, clickOf, gridTile, pending, PORTAL_SHAPES, PORTAL_STYLES, PORTAL_EDGES, WHEEL_COLOURS, WHEEL_INKS, WHEEL_FONTS, VINYLS, KSHAPES, kshapeOf, intoOf } from './tiles.js';
-import { isActive, activeZoom, activeSay, activeName, DICE, CLOCKS } from './active.js';
+import { isActive, activeZoom, activeSay, activeName, DICE, CLOCKS, BACKS } from './active.js';
 import { DECOR, decorOf, decorSVG, decorFor, decorRest, LIFE_ART, LIFE_KEYS, lifeSVG } from './decor.js';
 import { quickAdd, toast, drawerForTag, CONTROLS, CTL_KEYS, ctlSpec, galleryOf, PAINTINGS, pictureMedia, AT_GOAL } from './mutations.js';
 import { openObj, renderSheet, closeSheet , openZoom } from './sheet.js';
@@ -1402,6 +1403,23 @@ function objectPanelBody(id, sec){
 
   // 1 · colour
   if(!isRoot) out.push(prow(cont?'Front':'Colour', swatches(id,'c', d.c)));
+  /* Drawn by hand (decision 271): a drawer front, a book spine or a card's
+     face, in the painter. Straight under the colour because it is the other
+     half of the same question — what is printed on it. */
+  if(!isRoot && paintTarget(d)){
+    const where = {front:'the drawer front', spine:'the spine', card:'the face of the card'}[paintTarget(d)];
+    out.push(prow('Custom look', `<button class="pill" data-act="paint" data-id="${id}">${ic('brush',13)} Draw a custom look</button>${
+      hasArt(d) ? ` <button class="pill" data-act="unpaint" data-id="${id}">${ic('trash',13)} Take it off</button>` : ''}`,
+      hasArt(d) ? `drawn on ${where} by hand` : `draw on ${where} with a finger`));
+  }
+  /* A card's back, the mark in its corners, and which way up it lies
+     (decision 269) — the setup card's questions, kept where they can be
+     changed. */
+  if(!isRoot && !cont && shapeOf(d)==='playcard'){
+    out.push(prow('Its back', pcycle(id, 'back', Object.entries(BACKS).map(([k,v])=>[k, v.nm]), backOf(d))));
+    out.push(prow('Its corners', pcycle(id, 'suit', Object.keys(SUITS).map(k=>[k, SUIT_NAMES[k]]), suitOf(d))));
+    out.push(prow('It lies', pcycle(id, 'down', [['','Face up'],['1','Face down']], d.down?'1':'')));
+  }
   /* The colour of the strings *leaving* this object. A relation is an id in
      somebody's `rel` and not an object, so there is nowhere to hang a colour
      on the relation itself — it goes on the end the string leaves from, which
@@ -1620,6 +1638,14 @@ function objectPanelBody(id, sec){
     // a Button's tap is its press, and *When it is tapped* says which (243)
     if(!doesOf(d)) out.push(prow('On Tap/Click', psel(id,'onclick', Object.entries(CLICKS), clickOf(d))));
     if(has(d,'text')) out.push(prow('Opens as', psel(id,'read', Object.entries(READS), readOf(d))));
+    /* What its string does to a press (decision 270). Offered to anything
+       that is not a container; a card goes into what it is tied to unless
+       told otherwise. */
+    { const dflt = K(d.kind).tug==='open' ? 'open' : '-';
+      const tied = tugOf(Object.assign({}, d, {tug:'open'}));
+      out.push(prow('Tied to a drawer, a press', psel(id,'tug',
+        [['', (dflt==='open'?'Goes into it':'Does what it always does')+' (its type)'], ...Object.entries(TUGS)], d.tug||''),
+        tied ? `tied to ${esc(tied.title||'Untitled')}` : 'tie it to one with the spool')); }
   }
   /* **Opening is in Look now.** It names which *animation* a thing opens with
      — swing, pull out, curl, lift — and what it does is the same either way,
@@ -2867,6 +2893,9 @@ function openCtx(x,y,id){
        (decision 218): a tap already opens, reads, plays or ticks a thing, so
        the ring keeps what a tap cannot do. Edit went too (decision 255):
        its two doors are on the ring by name, after Duplicate. */
+    /* A deck's press shuffles, so opening it onto a board of every card is
+       here (decision 269): the one thing a tap on it does not do. */
+    if(isContainer(o) && isActive(o)) items.push(it(`dive:${id}`, 'eye', 'Open'));
     if(!isContainer(o)) items.push(it(`when:${id}`, 'calendar', 'Schedule'));
     if(!isContainer(o)) items.push(it(`become:${id}`, 'flag', 'Convert into Project'));
   }

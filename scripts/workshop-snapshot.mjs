@@ -146,7 +146,7 @@ const got = await page.evaluate(async ({ rail, depth }) => {
   B.closePanel(); await nap(100);
 
   // the object editor, across a set of samples, saying which each row is for
-  const samples = ['note', 'task', 'drawer', 'checklist', 'list', 'calendar', 'image', 'audio', 'video', 'button', 'counter', 'outlink', 'decoration', 'goal', 'clock'];
+  const samples = ['note', 'task', 'drawer', 'checklist', 'list', 'calendar', 'image', 'audio', 'video', 'button', 'counter', 'outlink', 'decoration', 'card', 'clock'];
   const made = samples.map(k => { const o = B.create(k, { parent: 'root', title: M.K(k).nm }); delete o.setup; return o; });
   B.render(); await nap(300);
   const edSecs = { top: { id: 'ed.top', menu: 'editor', name: 'Top', note: 'the type, where it lives, its tags', items: [] },

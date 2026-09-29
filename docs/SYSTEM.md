@@ -186,7 +186,7 @@ decision 130.
 | 2a | **Tag** | A sorting drawer shaped like a luggage tag — point, eyelet, string. Prints the tag it collects, collects drawers too, opens sorted. Decision 202. |
 | 3 | **Project** | A piece of work, and everything it is made of. A drawer front whose knob is a dial. |
 | 4 | **Life drawer** | An area of your life rather than a piece of work. Reports the same walk with **no bar** — it never finishes. |
-| 5 | **Goal** | Something you are trying to reach. A playing card, laid down. |
+| 5 | **Card** | Words on a playing card: paper, not a container. Two dropped together make a deck (decision 269). |
 | 6 | **Prose & Poetry** | Anything made of words. A category: poem, novel, short story, essay, script. |
 | 7 | **Checklist** | Tasks on the outside, tickable without opening it. |
 | 8 | **Calendar** | Whatever it collects, on the day it falls. |
@@ -1071,7 +1071,7 @@ the start, `#tag` anywhere, and `!today` / `!tomorrow` / `!week`.
   Logging counts up to what the day asks for and one more press clears the day.
   A ticked repeating task carries its history, plus today, to the next copy.
   See decision 202.
-- A goal has ordered milestones; progress is the fraction done.
+- A progress bar has ordered milestones; progress is the fraction done. (A goal did too, until it became the Card, decision 269.)
 - Completed things go to the archive, which is a magic drawer whose rule is
   `done`. Nothing is moved to get them there.
 - `calendar` and `timeline` are layouts, not types. Nothing in the code knows

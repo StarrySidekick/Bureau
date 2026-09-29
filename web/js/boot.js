@@ -8,7 +8,7 @@ import { S, KINDS, SHAPES, shapeChoices, SORTS, childrenOf, container, relate, d
   urgencyOf, urgeSaid, workday,
   isContainer, faceOf, PRIMARY, SECONDARY, MASTERS, inMaster, isCut, isPrimary, inFamily, barPct, marginOf, marginPlus,
   prioOf, repeatOf, repeatSaid, nextRepeat, boardLocked, BINDINGS, bindingOf, PANELS, panelOf,
-  isHeld, heldObjects, tiltMode, READS, goalStanding, dz, ASPECT_KINDS } from './model.js';
+  isHeld, heldObjects, tiltMode, READS, dz, ASPECT_KINDS } from './model.js';
 import { shelfRows, shelvesOf, shelfAt, setShelf, freeSpot, anySpot, roomFor, boxOk, innerOf, colsOf,
   isBoard, boardsOf, addBoard, removeBoard, dimsOf, rangeOfKind, randomSizeOf, inRange } from './grid.js';
 import { create, setBoardDims, setPin, togglePin, del, delMany, delDrawer, undo, redo, toggleDone, spawnNext, setGridSize,
@@ -30,7 +30,10 @@ import { openingFor, stepDrawer, spray, sprayAt, sprayCount, sprayNow, sprayMark
 import { gravityReport, gravitySettle, gravityApply, gravityWake,
   gravityGrab, gravityDrag, gravityDrop } from './gravity.js';
 import { load, writeNow, save, hydrateAssets, pasteObjects, migrate } from './persist.js';
-import { renderSheet, openWriter, openRead, openViewer, closeSheet, asMarkdown , openZoom } from './sheet.js';
+import { renderSheet, openWriter, openRead, openViewer, closeSheet, asMarkdown , openZoom, openCard } from './sheet.js';
+import { openPaint, closePaint, paintOpen, PT, artLayer } from './paint.js';
+import { gather } from './mutations.js';
+import { tugOf } from './model.js';
 import { DECOR, DECOR_KEYS, decorSVG, decorSuits, decorFor, decorRest } from './decor.js';
 
 /* ---- the keyboard is not a resize — decision 84 ------------------------
@@ -187,8 +190,6 @@ window.BUREAU = {
   get sorts(){ return SORTS; },
   // the ways an object opens to be read — two of them, since decision 156
   get reads(){ return READS; },
-  // a goal with no day owed is a dream, and the word is read rather than stored
-  goalStanding,
   /* Urgency is derived, so there is nothing on an object for a test to read —
      it has to be able to ask the same question the sort and the rule ask. */
   urgency: urgencyOf, urgeSaid, workday,
@@ -248,6 +249,8 @@ window.BUREAU = {
   // the spray, so a test can watch the physics rather than the class — and
   // the reveal, which is now the only thing in the app that sets one off
   spray, sprayAt, sprayCount, sprayNow, sprayMark, reveal,
+  // cards, decks, strings and drawing by hand (decisions 269–271)
+  gather, openCard, openPaint, closePaint, paintOpen, PT, tugOf, artLayer,
   get SPRAYS(){ return SPRAYS; },
   // the ten that ship, so a test can walk them without importing the module
   get decor(){ return DECOR; }, boxOk,

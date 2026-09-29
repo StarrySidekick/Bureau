@@ -13,6 +13,7 @@ import { dealTop, furnish, toast, fits, makeCompound, guessKind, quickAdd, setGr
   pushSet, pushSets, setPin, togglePin, drawerForTag, create, spawnInto, randomThing,
   holdIt, holdMany, unholdIt, unholdMany, undoToast, someKind, becomeKind , toggleFree, galleryOf, hangPainting, reachedGoal } from './mutations.js';
 import { keepStill, spinTo, pending, placeAtPending, tileTap, turnPage, clearPages, intoOf, TOOLS } from './tiles.js';
+import { paintKey, openPaint, wirePaint } from './paint.js';
 import { bpmOf, minsOf, burnOf, sidesOf, metroGoing, startMetro, mindTheTime, actOf, deckTop } from './active.js';
 import { DECOR, LIFE_ART } from './decor.js';
 import { render, renderSoon, sizeGrid, toggleSettings, settingsPanel, reveal, goShelf, goShelfTo, openOverview, closeOverview, refreshOverview, overviewOn, overAsk, overCid, flipBlock, railToolsOf } from './views.js';
@@ -572,6 +573,11 @@ function setField(el){
 function act(name, el){
   switch(name){
     case 'new': modalNewObject(); break;
+    // drawing a custom look, and taking one off (decision 271)
+    case 'paint': openPaint(el.dataset.id); break;
+    case 'unpaint': { const o=byId(el.dataset.id); if(!o || !o.art) break;
+      pushSet('Drawing taken off', o.id, 'art', o.art); delete o.art; save(); render(); refreshPanel();
+      toast('Drawing taken off', true); break; }
     // the free-text half of the sorting drawer's question
     case 'newtagmake': makeSorting(el.dataset.id, ($('#newtagin')||{}).value||''); break;
     // a drawer is made the way everything else is, and then talked to
@@ -1217,6 +1223,7 @@ function coinToss(board, el){
 
 function wire(){
   const frame=$('#frame');
+  wirePaint();
   TOOLS.press = (tool, o) => toolPress(tool, (o && o.parent) || ROOT,
     o ? {dataset:{row:o.id}} : null);
 
@@ -1436,7 +1443,7 @@ function wire(){
       const [what,id]=dk.dataset.adeck.split(':');
       const d=byId(id); if(!d) return;
       if(what==='add'){
-        const c=create('note', {parent:id, title:''});
+        const c=create('card', {parent:id, title:''});
         if(c){ d.top=c.id; save(); renderSheet(); render(); toast('A card'); }
       } else if(what==='deal'){
         const c=dealTop(id);
@@ -1455,6 +1462,8 @@ function wire(){
       else if(cmd==='drawerset'||cmd==='objset') objectPanel(id);
       // the ring's three doors by name (decision 255)
       else if(cmd==='editlook') objectPanel(id, 'look');
+      // a deck's way in, since its press shuffles (decision 269)
+      else if(cmd==='dive'){ closeSheet(); S.view='drawer'; S.drawerId=id; S.kindFilter=null; render(); }
       else if(cmd==='editdoes') objectPanel(id, 'does');
       /* A name edits where it sits; a drawer's name is its editor's heading,
          which is a field you press. */
@@ -2520,7 +2529,7 @@ function wire(){
     const w=e.target.dataset.w;
     if(w){
       // the writing surface, or the page being written on where it lies
-      const o=byId(S.writeId || S.readId); if(!o) return;
+      const o=byId(S.writeId || S.readId || S.cardId); if(!o) return;
       o[w]=e.target.value;
       o.edited=new Date().toISOString().slice(0,10);
       if(w==='title'){ e.target.style.height='auto'; e.target.style.height=e.target.scrollHeight+'px'; }
@@ -2733,7 +2742,7 @@ function wire(){
   function boardKey(e){
     // a surface or a field owns the keys while it is up; so does an open panel's
     // own list, which answers for itself
-    if(S.readId||S.writeId||S.viewId||S.editId) return false;
+    if(S.readId||S.writeId||S.viewId||S.editId||S.cardId) return false;
     const dir=ARROWS[e.key];
     const tiles=dir||S.sel.length ? boardTiles() : null;
     if(dir){
@@ -2781,7 +2790,7 @@ function wire(){
     clearTimeout(PINCHT); PINCHT = setTimeout(()=>{ PINCHW = 0; }, 260);
     PINCHW += e.deltaY;
     if(overviewOn()){ if(PINCHW < -40){ PINCHW = 0; closeOverview(); } return; }
-    if(S.readId || S.writeId || S.viewId) return;
+    if(S.readId || S.writeId || S.viewId || S.cardId) return;
     // a drawer of several boards zooms out to them; one of one board does not
     const here = S.view==='drawer' && S.drawerId;
     if(here && (boardsOf(here).length < 2 || has(byId(here)||{},'magic'))) return;
@@ -2789,6 +2798,8 @@ function wire(){
   }, {passive:false});
 
   document.addEventListener('keydown', e=>{
+    // the painter is a surface of its own and answers its own keys first
+    if(paintKey(e)) return;
     const typing = /input|textarea/i.test(document.activeElement.tagName);
     if((e.metaKey||e.ctrlKey) && e.key.toLowerCase()==='k'){ e.preventDefault(); openCmd(); return; }
     if(e.key==='Escape'){
@@ -2797,7 +2808,7 @@ function wire(){
       if(overviewOn()){ closeOverview(); return; }
       if(setupOpen()){ closeSetup(); return; }
       closeCtx(); closeCmd(); closePanel();
-      if(S.writeId||S.readId||S.viewId) closeSheet();
+      if(S.writeId||S.readId||S.viewId||S.cardId) closeSheet();
       /* …and the camera is a thing that is up, so Escape backs it off — after
          the surfaces, because a surface is the bigger claim, and before the
          selection, because the camera is the nearer one. See decision 187. */

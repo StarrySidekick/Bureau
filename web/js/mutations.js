@@ -697,8 +697,8 @@ function create(kind, patch){
      film…" lying across the plan's label. The plan is the whole of what the
      type is born holding; the seed is for a type that has none, or whose plan
      has been thrown away. See decision 195. */
-  if(!(patch&&patch.noSeed) && !planned) seedInto(o, kind);
-  delete o.noSeed;
+  if(!(patch&&(patch.noSeed||patch.seedless)) && !planned) seedInto(o, kind);
+  delete o.noSeed; delete o.seedless;
   return o;
 }
 /* What a type is born holding. Its own function because `becomeKind()` needs it
@@ -784,10 +784,17 @@ function gather(aId, bId, kind){
   const a=byId(aId), b=byId(bId);
   if(!a || !b || !kind) return null;
   const dv=dev(), home=b.parent, box=lay(b);
-  const c=create(kind, {parent:home, title:K(kind).nm});
+  /* No seed (a flow is still laid): what it is born holding would sit among
+     the two that made it (decision 269). And it wears what the one underneath was wearing — its
+     colour and its back — so two claret cards make a claret deck, with the
+     one you dropped onto on top. */
+  const c=create(kind, {parent:home, title:K(kind).nm, seedless:true});
   a.parent=c.id; b.parent=c.id;
   keepSize(a); keepSize(b);
   b.ord=0; a.ord=1;
+  if(b.c!=null) c.c=b.c;
+  if(b.back) c.back=b.back;
+  c.top=b.id;
   const [kw,kh]=sizeOfKind(kind, dv, home);   // never K(kind).size — a board states its own columns
   const want={x:box.x, y:box.y, w:kw, h:kh};
   c[dv] = boxOk(want, c.id, dv, home) ? want : anySpot(kw, kh, dv, home);

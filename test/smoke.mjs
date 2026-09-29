@@ -8673,11 +8673,11 @@ const PROP_OFF = () => { const b = document.createElement('button');
     const by = k => old.objects.find(o=>o.id===k);
     out.aHabitBecomesARepeatingTask = by('h').kind==='task'
       && !!by('h').repeat && by('h').attrs.includes('repeat');
-    out.aDreamBecomesAGoalOwingNothing = by('d').kind==='goal' && by('d').dead===null;
+    // a dream became a goal (migration 32), and a goal became a card (49)
+    out.aDreamBecomesAGoalOwingNothing = by('d').kind==='card' && by('d').dead===null;
     out.anIngredientBecomesATask = by('i').kind==='task';
-    // and a dream is still *called* one, because that is what it always was
-    out.andAGoalWithNoDayIsStillADream =
-      BUREAU.goalStanding({kind:'goal'}) === 'dream';
+    // …and the card is paper, not a drawer
+    out.andTheCardIsPaper = !BUREAU.has(by('d'), 'container');
 
     /* ---- the new ones -------------------------------------------------- */
     out.thereIsALabel = !!BUREAU.K.label && BUREAU.K.label.size[0] === 4
@@ -10251,14 +10251,14 @@ const PROP_OFF = () => { const b = document.createElement('button');
       && k.makes && k.makes.only[0] === 'image' && !k.setup;
     S.view = 'desk'; S.drawerId = null; B.render(); await nap(200);
     // the cross puts it away and it asks again; leaving it finishes it plain
-    B.newOfKind('goal'); await nap(200);
+    B.newOfKind('card'); await nap(200);
     const g = newest();
     B.tap(g.id); await nap(250);
     document.querySelector('#setup [data-act="setupclose"]').click(); await nap(350);
-    out.theCrossKeepsItWaiting = !B.setupOpen() && g.setup === 'goal' && !document.querySelector('#setup');
+    out.theCrossKeepsItWaiting = !B.setupOpen() && g.setup === 'card' && !document.querySelector('#setup');
     B.tap(g.id); await nap(250);
     document.querySelector('#setup [data-act="setupskip"]').click(); await nap(450);
-    out.leavingItFinishesPlain = !g.setup && S.objects.some(o => o.parent === g.id && o.kind === 'generator');
+    out.leavingItFinishesPlain = !g.setup && g.kind === 'card';
     S.view = 'desk'; S.drawerId = null; B.render(); await nap(200);
     // the picker makes a project outright rather than asking first
     B.pick(); await nap(250);
@@ -10611,6 +10611,109 @@ const PROP_OFF = () => { const b = document.createElement('button');
   await v1.screenshot({ path: 'test/shots/251-habit.png' });
   await v251Ctx.close();
 
+  /* --- decisions 269–271: a card is paper and two make a deck, a string
+     can take a press into a drawer, and a custom look drawn by hand. */
+  const v269Ctx = await browser.newContext({ viewport:{width:1280,height:860} });
+  const v2 = await v269Ctx.newPage();
+  v2.on('pageerror', e => errs.push('PAGEERROR (269): ' + e.message));
+  await v2.goto(URL); await v2.waitForTimeout(900);
+  const v269 = await v2.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const out = {}, S = BUREAU.state, B = BUREAU, K = B.K;
+    S.objects.filter(o => o.parent === 'root').forEach(o => { o.parent = '__hold'; });
+    S.deskCfg.locked = false; B.render(); await nap(200);
+    // 269: the goal is gone, and a card is paper that gathers into a deck
+    out.theGoalIsACard = !K.goal && !!K.card && !B.has({kind:'card'}, 'container') && K.card.gathers === 'deck'
+      && K.m_card.family.includes('card') && K.m_card.family.includes('deck');
+    const a = B.create('card', {parent:'root', title:'Ace', body:'Words on it', c:13, suit:'heart'});
+    const b = B.create('card', {parent:'root', title:'King', back:'dots', c:11});
+    a.desk = {x:1, y:1, w:2, h:3}; b.desk = {x:4, y:1, w:2, h:3};
+    B.render(); await nap(150);
+    const tileA = document.querySelector(`[data-row="${a.id}"]`);
+    out.aCardIsDrawnAsOne = !!tileA && !!tileA.querySelector('.dkcard.up .dkword') && tileA.textContent.includes('\u2665');
+    // pressed, it opens full screen as itself, with its words to write in
+    B.tap(a.id); await nap(450);
+    const title = document.querySelector('#sheetHost .cardstage .cardtitle');
+    out.itOpensAsItself = !!title && !!document.querySelector('#sheetHost .cardpaper.dkcard') && title.value === 'Ace';
+    if(title){ title.value = 'Ace of cups'; title.dispatchEvent(new Event('input', {bubbles:true})); }
+    out.whatYouTypeIsItsName = a.title === 'Ace of cups';
+    B.closeSheet(); await nap(400);
+    // face down it turns over first
+    a.down = true; B.render(); await nap(100);
+    out.faceDownShowsTheBack = !!document.querySelector(`[data-row="${a.id}"] .dkcard.down .dkback`);
+    B.tap(a.id); await nap(200);
+    out.aPressTurnsItOver = !a.down && !B.state.cardId;
+    // two dropped together are a deck, wearing what the lower one wore
+    const d = B.gather(a.id, b.id, 'deck'); B.render(); await nap(150);
+    out.twoCardsAreADeck = !!d && d.kind === 'deck' && a.parent === d.id && b.parent === d.id
+      && d.top === b.id && d.c === 11 && d.back === 'dots' && !S.objects.some(o => o.parent === d.id && o.kind === 'note');
+    out.theDeckShowsItsTopCard = (document.querySelector(`[data-drawer="${d.id}"]`)||{}).textContent.includes('King');
+    // the ring has Open; and a deck can say its press opens it
+    const el = document.querySelector(`[data-drawer="${d.id}"]`), r = el.getBoundingClientRect();
+    B.ctx(r.left + 10, r.top + 10, d.id); await nap(150);
+    out.theRingOpensADeck = !!document.querySelector(`#ctx [data-c="dive:${d.id}"]`);
+    document.querySelector(`#ctx [data-c="dive:${d.id}"]`).click(); await nap(200);
+    out.openIsItsBoard = S.view === 'drawer' && S.drawerId === d.id;
+    S.view = 'desk'; S.drawerId = null; B.render(); await nap(150);
+    d.deckTap = 'open'; B.tap(d.id); await nap(450);
+    out.orItsPressOpensIt = S.view === 'drawer' && S.drawerId === d.id;
+    S.view = 'desk'; S.drawerId = null; delete d.deckTap; B.render(); await nap(150);
+    // 270: a card tied to a drawer goes into it; a notepad still writes
+    const shelf = B.create('drawer', {parent:'root', title:'Shelf'});
+    const c = B.create('card', {parent:'root', title:'The shelf'});
+    B.relate(c.id, shelf.id); B.render(); await nap(150);
+    B.tap(c.id); await nap(450);
+    out.aTiedCardGoesIn = S.view === 'drawer' && S.drawerId === shelf.id && !S.cardId;
+    S.view = 'desk'; S.drawerId = null; B.render(); await nap(150);
+    c.tug = '-'; B.tap(c.id); await nap(450);
+    out.unlessToldNotTo = S.view === 'desk' && S.cardId === c.id;
+    B.closeSheet(); await nap(350);
+    // 271: drawn by hand, on a front, a spine and a card
+    const bk = B.create('book', {parent:'root', title:'Notebook'}); delete bk.setup;
+    bk.desk = {x:8, y:1, w:1, h:4}; B.render(); await nap(150);
+    B.panel(shelf.id, 'look'); await nap(200);
+    out.editLookOffersIt = !!document.querySelector(`#panel [data-act="paint"][data-id="${shelf.id}"]`);
+    B.openPaint(shelf.id); await nap(250);
+    out.thePainterOpens = B.paintOpen() && !!document.querySelector('#paint .ptface .drawer') && !!document.querySelector('#paint .ptart');
+    // a stroke drawn with the finger, mirrored
+    const sv = document.querySelector('#paint .ptart').getBoundingClientRect();
+    document.querySelector('#paint [data-ptmirror]').click(); await nap(50);
+    const ev = (t, x, y) => document.querySelector('#paint .ptstage').dispatchEvent(new PointerEvent(t,
+      {bubbles:true, pointerId:7, clientX:sv.left + x*sv.width, clientY:sv.top + y*sv.height, isPrimary:true}));
+    ev('pointerdown', .1, .2); [.2,.3,.4].forEach(x => ev('pointermove', x, .3)); ev('pointerup', .4, .3);
+    await nap(60);
+    out.aStrokeIsKept = B.PT.strokes.length === 1 && B.PT.strokes[0].m === 'v' && B.PT.strokes[0].p.length >= 6;
+    out.theMirrorIsDrawn = document.querySelectorAll('#paint .ptstrokes path').length >= 4;
+    document.querySelector('#paint [data-pttool="decal"]').click(); await nap(50);
+    ev('pointerdown', .5, .5); ev('pointerup', .5, .5); await nap(60);
+    out.aDecalIsStrokes = B.PT.strokes.length > 1;
+    document.querySelector('#paint [data-pt="done"]').click(); await nap(200);
+    out.itIsOnTheFront = !B.paintOpen() && !!shelf.art && shelf.art.s.length > 1
+      && !!document.querySelector(`[data-drawer="${shelf.id}"] > .artlayer`);
+    B.undo(); B.render(); await nap(100);
+    out.andUndoTakesItOff = !shelf.art && !document.querySelector(`[data-drawer="${shelf.id}"] > .artlayer`);
+    // the spine bends it and turns it away at the edges
+    bk.art = {w:250, h:1000, s:[{t:'emboss', c:'gold', w:14, m:'', p:[0,500, 125,500, 250,500]}]};
+    c.art = {w:500, h:750, s:[{t:'pen', c:'#8E3B38', w:8, m:'', p:[50,50, 450,700]}]};
+    delete c.tug; B.render(); await nap(150);
+    const spineArt = document.querySelector(`[data-drawer="${bk.id}"] .artlayer.art-spine`);
+    out.theSpineIsRound = !!spineArt && !!spineArt.querySelector('mask') && !!spineArt.querySelector('g[filter]');
+    out.aCardCarriesItsDrawing = !!document.querySelector(`[data-row="${c.id}"] .dkcard .artlayer.art-card`);
+    // a goal from before is a card, and what it held walks out beside it
+    const old = B.migrated({v:48, objects:[
+      {id:'g', kind:'goal', title:'Run', parent:'root', face:'goal', setup:'goal',
+       milestones:[{t:'5k', done:true},{t:'10k', done:false}], desk:{x:1,y:1,w:6,h:4}},
+      {id:'s', kind:'generator', title:'What gets you there…', parent:'g'},
+      {id:'t', kind:'task', title:'Buy shoes', parent:'g', desk:{x:2,y:2,w:4,h:1}}]});
+    const by = k => old.objects.find(o => o.id === k);
+    out.aGoalIsACard = by('g').kind === 'card' && !by('g').face && by('g').setup === 'card'
+      && /- \[x\] 5k/.test(by('g').body) && /- \[ \] 10k/.test(by('g').body);
+    out.whatItHeldWalksOut = !by('s') && by('t').parent === 'root' && by('t').desk.w === 4 && by('t').desk.x == null;
+    return out;
+  });
+  await v2.screenshot({ path: 'test/shots/269-cards.png' });
+  await v269Ctx.close();
+
   console.log(JSON.stringify({
     errors: errs, settingUp, shapes, v248, v249, v251, manifestOk, swReady, survived, styleSurvived, slotColours,
     newObjectSeen, inlineEdit, sortDefaults, taskLook,
@@ -10634,7 +10737,7 @@ const PROP_OFF = () => { const b = document.createElement('button');
     lockedBoard, freeTraits, pageWrites, tickBoxes, readerFits, categories,
     specimenBook, deskObjects, camLife, camPhone, ownBoard, threeDrawings, fullScreen, openingIn, boards193, sideways, thisPass,
     dropsIn, keyframesRegistered, aesthetics, slotScoping, objectsDressed, grainSlots, tagged, drawnAesthetic, deeper, lookStage, statusBar, bindings, panelling, theSpray, tappingIsQuiet, decorations, pinboard, gravity, boardMakes,
-    boardsYouAdd, toolsOnTheBoard
+    boardsYouAdd, toolsOnTheBoard, v269
   }, null, 2));
   await browser.close();
 })();

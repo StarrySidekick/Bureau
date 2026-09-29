@@ -305,27 +305,26 @@ const BUILTIN_KINDS = {
      worked out, and having it on the front is the whole value of keeping one. */
   question:{shape:'bubble', nm:'Question',ic:'help',    c:10, key:'?', ds:'Open until you have written the answer', size:[4,4], onclick:'read', attrs:['text','answer'], body:'**What I know —** \n\n' },
   essay:   {shape:'note', writes:'essay', nm:'Essay',   ic:'feather', c:7, key:'Y', ds:'Long-form writing',         size:[4,4], onclick:'read', attrs:['text'], body:'> Working thesis.\n\n' },
-  /* A **goal** is a thing you are trying to reach, and it is made of the work
-     that gets you there — so it holds that work rather than describing it. Its
-     front is a drawer with the knob taken off and the name set as large as the
-     frame allows, because on a goal the name *is* the face: "Lose 25 pounds"
-     needs nothing else printed on it.
+  /* A **card** is a playing card with words on it: paper, not a container.
+     It was the Goal until decision 269, a drawer with the knob taken off that
+     held the work towards something; Timothy: cards and decks are related
+     objects, cards make up decks, and they are no longer called goals. So it
+     is the Bicycle card the goal wore (decision 146) with the drawer taken out
+     of it — a face with a name and a few lines on it, a back (`back`, one of
+     the deck's six) and a corner mark (`suit`).
 
-     What it is *called* is read off the time on it rather than stored — no
-     deadline and it is a **dream**, barely enough time and it is a
-     **challenge**, and the same object walks between the three as its dates
-     move. Three stored types would have made you re-declare a dream as a goal
-     the day you finally put a date on it. See decision 135. */
-  goal:    {setup:'goal', face:'goal', nm:'Goal', pickNm:'Card', ic:'target', c:13, key:'E',
-     ds:'Something you are trying to reach, and the work that gets you there',
-     attrs:['text','container','date','deadline','progress','relates'],
-     seed:[{kind:'generator', title:'What gets you there…', sz:[8,2]}],
-     /* **A playing card, laid on its side.** Three by two is the proportion a
-        card has when you put it down on a table rather than hold it, which is
-        what a goal on a desk is. See the goal tile in tiles.js. */
-     layout:'grid', size:[6,4], phoneSize:[3,2], body:'' },
-  /* A **progress bar** is a goal with the goal taken out of it. A goal is a
-     thing you are trying to reach and its milestones belong to it; a progress
+     Its press opens it **full screen as itself** (`openCard()` in sheet.js),
+     the same card at the size of the stage with the words editable where they
+     are printed. Two dropped on each other gather into a deck (`gathers`),
+     and one tied to a drawer with string goes into that drawer when pressed
+     (`tug`, decision 270). Two by three because that is a deck's own size,
+     and a card that is not the deck's shape cannot be one of its cards. */
+  card:    {shape:'playcard', setup:'card', nm:'Card', ic:'star', c:11, key:'E',
+     ds:'Words on a card. Two dropped together make a deck',
+     attrs:['text','relates'], gathers:'deck', onclick:'read', tug:'open', back:'rider',
+     size:[2,3], phoneSize:[2,3], body:'' },
+  /* A **progress bar** is a goal with the goal taken out of it. A goal was a
+     thing you were trying to reach and its milestones belonged to it; a progress
      bar is a *readout*, and the thing it reads is very often somewhere else —
      the project two desks over, the habit you have been keeping. `tracks`
      names that object and `barPct()` reads it: a container reports how much of
@@ -630,7 +629,7 @@ const BUILTIN_KINDS = {
      ds:'Cards you cut to. Face up a press cuts it; face down a press deals the top card onto the board',
      attrs:['container'], layout:'grid', size:[3,4], phoneSize:[3,4],
      onclick:'active', faceup:true, back:'rider',
-     seed:[{kind:'note', title:'Write on me'}], body:'' },
+     seed:[{kind:'card', title:'Write on me'}], body:'' },
   /* ---- a fragment: one piece of a world -----------------------------------
      Ten types that only ever come up when you are building a world or telling
      a story, behind one press. Underneath they are nearly the same object — a
@@ -777,8 +776,8 @@ const BUILTIN_KINDS = {
      ds:'Things laid out along time', family:['calendar','timeline','appt'], famSub:'Which?', attrs:[], body:'' },
   m_collage: {cat:true, master:true, lead:'moodboard', nm:'Collage', ic:'image', c:14,
      ds:'Pictures pinned up, or a pigeonhole', family:['moodboard','pigeonhole'], famSub:'Which?', attrs:[], body:'' },
-  m_card:    {cat:true, master:true, lead:'goal', nm:'Card', ic:'target', c:13,
-     ds:'Something you are after, or keeping count of', family:['goal','cp_habit','achievement'], famSub:'Which card?', attrs:[], body:'' },
+  m_card:    {cat:true, master:true, lead:'card', nm:'Card', ic:'star', c:11,
+     ds:'A card, a deck of them, or something kept count of', family:['card','deck','cp_habit','achievement'], famSub:'Which card?', attrs:[], body:'' },
   m_paper:   {cat:true, master:true, lead:'note', nm:'Paper', ic:'note', c:10,
      ds:'Anything written down', famSub:'What is written on it?',
      family:['note','task','notepad','thought','idea','question','problem','quote','review','label',
@@ -1049,7 +1048,7 @@ const WORKSHOP_SIZES = {
   moodboard:{size:[3,3], range:[[2,8],[2,8]], phone:null},
   pigeonhole:{size:[2,3], range:[[1,4],[2,8]], phone:null},
   jar:{size:[2,3], range:[[1,4],[1,6]], phone:null},
-  goal:{size:[3,2], range:[[2,4],[1,3]], phone:null},
+  card:{size:[2,3], range:[[2,4],[2,5]], phone:null},
   progressbar:{size:[4,1], range:[[2,8],[1,2]], phone:null},
   tracker:{size:[4,2], range:[[3,8],[1,4]], phone:null},
   achievement:{size:[3,1], range:[[2,8],[1,2]], phone:null},
@@ -1354,14 +1353,10 @@ function seed(){
        repeat:{every:1, unit:'week', days:[1,2,3,4,5], from:'date', ends:null, paused:false, made:0},
        history:[dz(-2),dz(-3),dz(-4),dz(-7)]}),
 
-    O({kind:'goal', title:'Ship Bureau 1.0 to the App Store', parent:'d_keep', tags:['bureau'], due:dz(120),
-       milestones:[{t:'Object model settled',done:true,d:dz(-20)},{t:'Drawers grid, both layouts',done:true,d:dz(-6)},
-                   {t:'Sync working across devices',done:false,d:dz(30)},{t:'Beta with 10 people',done:false,d:dz(70)},
-                   {t:'Submit for review',done:false,d:dz(110)}],
-       body:'**Definition of done —** My own to-dos live in it for a month and I never open Things.'}),
-    O({kind:'goal', title:'Finish the essay collection', parent:'d_keep', tags:['writing'], due:dz(240),
-       milestones:[{t:'Six essays drafted',done:true,d:dz(-40)},{t:'Ten essays drafted',done:false,d:dz(60)},
-                   {t:'Full read-through',done:false,d:dz(150)},{t:'Send to three readers',done:false,d:dz(200)}]}),
+    O({kind:'card', title:'Ship Bureau 1.0', parent:'d_keep', tags:['bureau'], suit:'spade',
+       body:'My own to-dos live in it for a month and I never open Things.'}),
+    O({kind:'card', title:'Finish the essay collection', parent:'d_keep', tags:['writing'], suit:'heart', c:13,
+       body:'Ten drafted, one read-through, three readers.'}),
 
     // A timeline, so a fresh desk shows one — its face is a real date axis, and
     // an axis with nothing on it demonstrates nothing.
@@ -1781,7 +1776,7 @@ const panelOf = o => {
 };
 
 const FACES = {front:'Drawer front', checklist:'Checklist', list:'List', project:'Project',
-               life:'Life area', goal:'Goal',
+               life:'Life area',
                calendar:'Calendar', collage:'Collage', timeline:'Timeline',
                spine:'Book spine', pigeonhole:'Pigeonhole', tag:'Luggage tag'};
 
@@ -1810,24 +1805,6 @@ const projCoverOf = o => { const p = (o && o.proj) || K(o&&o.kind).proj;
    up. See decision 136. */
 const lifeArtOf = o => (o && o.lifeart) || K(o&&o.kind).lifeart || null;
 
-/* ---- what a goal is called depends on the time on it -------------------
-   The same object, read three ways. No deadline at all and it is a **dream**
-   — something you want with nothing yet holding it to a day. A deadline with
-   barely enough room and it is a **challenge**. Anything else is a goal.
-
-   Derived rather than stored, and that is the whole point: putting a date on
-   a dream should make it a goal without you having to re-declare it as one,
-   and letting the date slip past should not leave a Challenge sitting there
-   lying about itself. A finished goal is none of the three. */
-const CHALLENGE_DAYS = 30;
-function goalStanding(o){
-  if(!o) return 'goal';
-  const day = (has(o,'deadline') && o.dead) || (has(o,'softdeadline') && o.soft) || null;
-  if(!day) return 'dream';
-  const left = D.until(day);
-  return (left!=null && left <= CHALLENGE_DAYS) ? 'challenge' : 'goal';
-}
-const GOAL_STANDINGS = {goal:'Goal', challenge:'Challenge', dream:'Dream'};
 const faceOf = o => (o && o.face) || K(o&&o.kind).face || 'front';
 /* The ten photographed buttons a Button may be (decision 243), under
    `img/buttons/`; where each came from is docs/IMAGES.md. */
@@ -2094,7 +2071,7 @@ const SHAPES = {
    object already wearing one still says so honestly in its own editor, because
    shapeChoices() puts it back at the head of the ring for that one object, and
    one press walks it into the list for good. */
-const SHAPES_KEPT = {sliver:'Sliver', bar:'Bar'};
+const SHAPES_KEPT = {sliver:'Sliver', bar:'Bar', playcard:'Playing card'};
 /* **A face only a habit can wear.** The tracker draws a history, and a thing
    with no history to draw would be a row of empty pips saying nothing — so it
    is offered to what carries `streak` or a repeat rule and to nothing else, the
@@ -2111,6 +2088,33 @@ const shapeChoices = (cur, o) => {
     ? [...ring, ...Object.entries(SHAPES_HABIT)] : ring;
 };
 const shapeOf = o => (o && o.shape) || K(o&&o.kind).shape || 'card';
+
+/* ---- a card's corner and its back — decision 269 ------------------------
+   The index a playing card has in two opposite corners, and the pattern on
+   the other side of it. The backs are the deck's six (BACKS in active.js);
+   an unknown one is drawn as the rider there, so this only says which. */
+const SUITS = {spade:'\u2660', heart:'\u2665', diamond:'\u2666', club:'\u2663', star:'\u2605', none:''};
+const SUIT_NAMES = {spade:'Spades', heart:'Hearts', diamond:'Diamonds', club:'Clubs', star:'A star', none:'Nothing'};
+const suitOf = o => { const v=(o&&o.suit)||K(o&&o.kind).suit; return SUITS[v]!=null ? v : 'none'; };
+const backOf = o => (o && o.back) || K(o&&o.kind).back || 'rider';
+
+/* ---- what a string does to a press — decision 270 -----------------------
+   The string is a system and not a picture: what something is tied to can
+   change what it does. A notepad, a button and a spawner put what they make
+   into the drawer they are tied to (decision 258, `intoOf()` in tiles.js);
+   and a thing whose `tug` is `open` goes **into** that drawer when pressed,
+   which is what a card tied to a drawer is for — the card is the drawer's
+   face on another board. Per object, then per type; `-` says no.
+   Either end of the string will do, the same as `intoOf()`. */
+const TUGS = {open:'Goes into what it is tied to', '-':'Does what it always does'};
+function tugOf(o){
+  if(!o) return null;
+  const v = o.tug || K(o.kind).tug;
+  if(v!=='open') return null;
+  const goes = d => !!d && d.id!==o.id && isContainer(d) && !isHeld(d);
+  return (o.rel||[]).map(byId).find(goes)
+    || S.objects.find(x=>goes(x) && (x.rel||[]).includes(o.id)) || null;
+}
 
 /* How an object opens to be read. Three ways of looking at the same body, so
    the choice is one property rather than three click actions: a spread you
@@ -3584,4 +3588,4 @@ export { homeFor, SMART, makesSmart, COMPOUNDS, isCompound, COUNTS, countsOf, co
   BAR_STEPS, barSteps, barFilled, barGrid,
   familyOf, isCategory, inFamily, isFragmentKind, familyList,
   PROJ_COVERS, projCoverOf, lifeArtOf,
-  goalStanding, GOAL_STANDINGS, CHALLENGE_DAYS };
+  SUITS, SUIT_NAMES, suitOf, backOf, TUGS, tugOf };

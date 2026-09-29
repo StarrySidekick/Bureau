@@ -11260,3 +11260,116 @@ type, so they leave the category screens and the ring as well as the flat
 list; the type shortcut skips them too. The kinds stay, so anything already on
 a desk still draws. The coin is the random thing now; Post is a letter or a
 postcard; the album is `pj_album`, the Album project.
+
+## 269 · The goal is a card, and cards make decks
+
+*2026-09-29.* Timothy: cards (goals) and decks are related objects; cards make
+up decks, dragging a card onto another card combines them into a deck, and
+they are no longer called goals. The setup card decides the back, the colour
+and that sort of thing. A card is not a container but a type of paper, and
+tapped it opens full screen as itself, same look, with editable text. A deck
+contains cards; its tap shuffles by default, and its hold ring has **Open**,
+which lays every card out on a grid.
+
+- **`card` replaces `goal`.** Paper (`attrs:['text','relates']`), shape
+  `playcard` (in `SHAPES_KEPT`, so only a card wears it), `gathers:'deck'`,
+  `back`, `suit` (`SUITS`/`suitOf()` in model.js), 2×3 because that is the
+  deck's size and a card not the deck's shape cannot be one of its cards. The
+  Workshop had the goal at 3×2; that was a goal on its side, and a card that
+  stacks into a deck is upright. The goal's standing (dream, challenge, goal),
+  its milestones and its bar went with it; the two stock flows that had a
+  goal (Finances, Exercise) have a checklist there instead, which the
+  progress bar tracking it already reads.
+- **One card, drawn one way.** `cardFace()` and `backHTML()` in active.js
+  draw the face (rule, two corner indexes, what was drawn on it, the name and
+  a few lines of the body) and the back, for the card on the board, the top
+  of a face-up deck (with the deck's count in the corners and the card's own
+  colour, `tint`) and the full-screen card. The tile holds a `.dkcard` rather
+  than being one, so the tile's spliced layers keep working.
+- **The fifth surface is the card itself.** `openCard()` / `S.cardId` in
+  sheet.js: the card at its own proportion, as large as the stage allows (a
+  size container and `min(100cqw, 100cqh × aspect)`, no script measuring), its
+  name and words as two fields set where they are printed. It grows out of the
+  tile and shrinks back like the others (`.cardpaper` in `sheetPaper()`).
+- **Face down turns over first.** `down` on a card shows its back; a press
+  turns it up, the next opens it. Edit Look carries the back, the corners and
+  which way up it lies.
+- **Gathering makes a deck that looks like the pile.** `gather()` makes the
+  container without its seed (`seedless`, a flow is still laid), gives it the
+  colour and back of the card underneath, and puts that card on top. A deck's
+  seed and its *Add a card* make cards, not notes.
+- **A deck's press says what it does**: `deckTap`, shuffle, deal or open,
+  unsaid meaning what it always was (shuffle face up, deal face down,
+  `deckTapOf()`); and the ring offers **Open** (`dive:`) to any container that
+  is an instrument, because its press does not go in. A deck draws two card
+  edges under the top one, since a single card now looks like a deck of one.
+- **Migration 49.** A goal becomes a card and keeps its box; what it held
+  walks out onto the board it stood on, sized as it was and placed afresh; the
+  "What gets you there…" band goes; milestones become `- [x]` and `- [ ]` lines
+  at the foot of its words. Stock flows holding a goal are rebuilt by key.
+
+## 270 · A string can take a press into a drawer
+
+*2026-09-29.* Timothy: when cards are strung to a drawer, the tap brings you
+inside the drawer; that is part of the magic-string system and can be
+translated to other objects, alongside the notepad putting what it writes into
+the drawer it is tied to.
+
+`tug` is a property like `into`: per object, then per type, `open` or `-`.
+`tugOf()` in model.js answers the container a press should go into, reading
+the string from either end the way `intoOf()` does (decision 258), and
+`tileTap()` asks it after the setup card and the spool and before anything
+else. The card's type says `open`; anything that is not a container can be
+told to in Behaviour (*Tied to a drawer, a press*), and a card can be told not
+to. A notepad, a button and a spawner are unchanged: what they make still goes
+where their string goes, which is the other half of the same system.
+
+## 271 · A custom look, drawn by hand
+
+*2026-09-29.* Timothy: Edit Look has *Draw a custom look*, which opens a
+painter with the drawer front, book spine or card face large in the view, to
+draw on with a finger; zoom in and out for detail; a mirror to make things
+look good fast; pencil (palette colours, a sketchy look), emboss (gold or
+silver, shiny), pen and paint; premade filigree decals; and on a spine the
+curvature applied afterwards so the design sits in place.
+
+- **Strokes, not pixels.** `o.art` is `{w, h, s}` in 250 units to a cell of
+  the face, each stroke `{t, c, w, m, p}`: tool, ink (a hex, or a metal), width,
+  mirror, and the points as a flat list of integers. It lives in the object
+  like any other field, so undo (`pushSet('Drew on it', …, 'art')`), export and
+  flows carry it; it is small enough that IndexedDB would be a second place for
+  no gain. A drawing is sharp at every size because it is one SVG stretched to
+  the face (`preserveAspectRatio="none"`); a face resized to another aspect
+  stretches it, which is the honest thing for a border.
+- **The tools** are four inks and an eraser that lifts whole strokes. Pencil is
+  drawn twice, the second a hair off and fainter, through `#pt-f-pencil` (bent
+  and bitten by fine noise); paint through `#pt-f-paint` (a wandering wet
+  edge); emboss is a reflected metal gradient (`#pt-gold`, `-silver`,
+  `-copper`, `-rose`) through `#pt-f-emboss` (specular light on the blurred
+  stroke, a shadow under it); pen is plain. All in index.html, in user space,
+  so one of each serves every drawing. **One filter per run** of strokes with
+  the same tool, never one per stroke (decision 101's finding).
+- **The mirror is per stroke** (`m`: left and right, top and bottom, four
+  ways), so turning it off does not unmirror what was drawn with it on.
+- **Filigree is generated**, nine decals (scroll, curl, corner, rosette, vine,
+  fleur, laurel, star, and a border that fits the whole face) as polylines in
+  a box from −1 to 1. Stamped, a decal becomes ordinary strokes in whatever the
+  last ink was, so a gold scroll is a stamp after choosing Emboss, and it
+  mirrors and bends with everything else.
+- **The spine's curve is a mapping of the points**: across a standing spine
+  (down a lying one, decision 124) a point lands where it would on a
+  half-cylinder seen face on (`bend()`, about 130° of the round), and a mask
+  fades the drawing towards both edges so it turns away with the binding's
+  shading. The painter draws flat; Preview shows it bent.
+- **The painter** is `#paint` beside `#app` like the setup card, so the board
+  behind it is untouched and a stroke redraws only the strokes. Its listeners
+  are on the document in the capture phase and stop there, so a stroke is never
+  read as a drag or a lasso. Two fingers pinch and pan; a trackpad pinch is a
+  ctrl-wheel and two-finger scroll pans; the corner has closer, whole face and
+  further. The face under the strokes is `sampleTile()` of the object with its
+  drawing taken off, so the preview cannot drift from the tile.
+- **Where it sits.** On a front or a spine it is spliced into the tile by
+  `drawTile()` at z-index 1, above the moulding and the grain and below the
+  name and the knob; on a card it is inside the card under the words. Only a
+  plain drawer front, a spine and a card are offered (`paintTarget()`), which
+  is what was asked for; the rest can follow by adding a case there.

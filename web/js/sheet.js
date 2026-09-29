@@ -1,7 +1,8 @@
 import { $, $$, esc, ic } from './util.js';
 import { S, K, byId, has, isContainer, READS, readOf, isMedia, mediaTypeOf, loopOf, iconOf } from './model.js';
+import { lay } from './grid.js';
 import { bookOf, sheetOf, faceLook, facePaper } from './tiles.js';
-import { isActive, activeArt, activeSay, activeName, activeZoom } from './active.js';
+import { isActive, activeArt, activeSay, activeName, activeZoom, cardFace } from './active.js';
 import { objColour } from './look.js';
 import { closePanel, objectPanel } from './panels.js';
 import { toast } from './mutations.js';
@@ -46,25 +47,36 @@ import { wordStyle } from './words.js';
    behind it flickering. */
 function openZoom(id){
   const o=byId(id); if(!o) return;
-  S.zoomId=id; S.readId=null; S.writeId=null; S.viewId=null; S.editId=null;
+  S.zoomId=id; S.readId=null; S.writeId=null; S.viewId=null; S.editId=null; S.cardId=null;
   renderSheet();
 }
 function openWriter(id){
   const o=byId(id); if(!o) return;
-  S.writeId=id; S.readId=null; S.viewId=null; S.editId=null; S.zoomId=null;
+  S.writeId=id; S.readId=null; S.viewId=null; S.editId=null; S.zoomId=null; S.cardId=null;
   renderSheet();
 }
 function openRead(id){
   const o=byId(id); if(!o) return;
-  S.readId=id; S.writeId=null; S.viewId=null; S.editId=null; S.zoomId=null; S.bookAt=0; S.readEdit=false;
+  S.readId=id; S.writeId=null; S.viewId=null; S.editId=null; S.zoomId=null; S.cardId=null; S.bookAt=0; S.readEdit=false;
   renderSheet();
 }
 /* Full bleed is a property of *this opening*, not of the object — it is what
    the camera's expand asked for — so it is cleared by anything that opens the
    reader another way and by closing it. Set it immediately before the call. */
+/* ---- the fifth: a card, as itself — decision 269 ------------------------
+   Timothy: tapped, a card opens full screen as itself, same look and all,
+   with an editable text environment. So it is not the reader: it is the
+   card, at its own proportion and as large as the stage allows, and its name
+   and its words are fields printed where they sit on the face. The drawing
+   on it is under them, and the corners are its corners. */
+function openCard(id){
+  const o=byId(id); if(!o) return;
+  S.cardId=id; S.readId=null; S.writeId=null; S.viewId=null; S.editId=null; S.zoomId=null;
+  renderSheet();
+}
 function openViewer(id){
   const o=byId(id); if(!o) return;
-  S.viewId=id; S.readId=null; S.writeId=null; S.editId=null; S.zoomId=null;
+  S.viewId=id; S.readId=null; S.writeId=null; S.editId=null; S.zoomId=null; S.cardId=null;
   renderSheet();
 }
 /* What "open this one" means when nothing has said which way: a picture opens
@@ -83,8 +95,8 @@ function closeSheet(){
   /* The surface goes back into its tile (decision 203): read now, while the
      paper is still on the screen, and drawn after the render that puts the
      tile back. Never instead of either — the state is cleared on this line. */
-  const land = shrinkSheet(S.readId || S.writeId || S.viewId || S.zoomId);
-  S.writeId=null; S.readId=null; S.viewId=null; S.editId=null; S.zoomId=null; S.readEdit=false;
+  const land = shrinkSheet(S.readId || S.writeId || S.viewId || S.zoomId || S.cardId);
+  S.writeId=null; S.readId=null; S.viewId=null; S.editId=null; S.zoomId=null; S.cardId=null; S.readEdit=false;
   S.readFull=false;
   clearFocus(); renderSheet(); render();
   if(land) land();
@@ -346,7 +358,7 @@ function renderSheet(){
   const host=$('#sheetHost');
   // A surface and a panel both take the screen; only one at a time, and a
   // surface is the bigger claim.
-  if(S.writeId || S.readId || S.viewId || S.zoomId) closePanel();
+  if(S.writeId || S.readId || S.viewId || S.zoomId || S.cardId) closePanel();
 
   /* The picture. Full screen over a dimmed desk, the image as large as the
      stage allows, and — when there isn't one yet — the mount itself is the
@@ -373,6 +385,31 @@ function renderSheet(){
         <div class="zoomsay">${esc(activeSay(o))}</div>
         <div class="zoomset">${activeZoom(o)}</div>
       </div>`;
+    return;
+  }
+
+  if(S.cardId){
+    const o=byId(S.cardId);
+    if(!o){ S.cardId=null; host.innerHTML=''; return; }
+    const b=lay(o);
+    /* The face is `cardFace()`'s with the two fields where its words are
+       printed: the same card, so what you type sits where it will be read. */
+    const face = cardFace(o, null, `<label class="dkword dkfield">
+        <textarea class="cardtitle" rows="1" data-w="title" placeholder="Untitled">${esc(o.title||'')}</textarea>
+        <textarea class="cardbody" data-w="body" placeholder="Write on it.">${esc(o.body||'')}</textarea>
+      </label>`);
+    const again = host.querySelector(`.cardstage[data-for="${o.id}"]`) ? ' again' : '';
+    host.innerHTML=`<div class="viewscrim cardscrim${again}" data-sheet="close"></div>
+      <div class="viewstage cardstage${again}" data-for="${o.id}" style="--c:${objColour(o)}">
+        <div class="viewhead">
+          <div style="flex:1"></div>
+          <button class="pill" data-act="objset" data-id="${o.id}" title="Object editor">${ic('brush',13)}<span>Edit</span></button>
+          <button class="iconbtn" data-sheet="close" title="Done">${ic('x',16)}</button>
+        </div>
+        <div class="cardwrap" style="--car:${(b.w/Math.max(1,b.h)).toFixed(4)}"><div class="cardpaper dkcard up">${face}</div></div>
+      </div>`;
+    const t=$('.cardtitle',host);
+    if(t){ t.style.height='auto'; t.style.height=t.scrollHeight+'px'; }
     return;
   }
 
@@ -520,5 +557,5 @@ function renderSheet(){
   host.innerHTML=''; clearFocus();
 }
 
-export { openZoom, openObj, openWriter, openRead, openViewer, closeSheet, renderSheet, words,
+export { openZoom, openObj, openWriter, openRead, openViewer, openCard, closeSheet, renderSheet, words,
   mdKey, mdTool, asMarkdown, copyObject };

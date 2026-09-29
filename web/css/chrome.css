@@ -6737,3 +6737,86 @@ html[data-rows="fit"] .is-phone .gridbar.inrail .sqbtn{width:28px;height:28px}
 .renamerow .renamein{flex:1;min-width:0;font-size:16px;padding:8px 10px;border-radius:var(--radius);
   border:1px solid var(--rule);background:var(--paper);color:var(--ink);-webkit-user-select:text;user-select:text}
 .ctxmenu .renamerow button{width:auto;flex:0 0 auto}
+
+/* ============================================================
+   a card, full screen — decision 269
+   ============================================================
+   The card as itself, at its own proportion and as large as the stage
+   allows: the wrap is a size container, so the card can ask for the smaller
+   of "the whole width" and "the whole height at this aspect" without a line
+   of script measuring either. The words are the card's own two fields, set
+   where the tile prints them, in the tile's own type. */
+.cardstage .cardwrap{flex:1;min-height:0;container-type:size;display:flex;align-items:center;justify-content:center}
+.cardstage .cardpaper{
+  --cardr:clamp(12px, 3.2cqmin, 26px);--cardin:clamp(8px, 2cqmin, 15px);
+  width:min(100cqw, calc(100cqh * var(--car, .6667)));aspect-ratio:var(--car, .6667);height:auto;
+  flex:none;max-height:100cqh;
+}
+.cardstage .dkfield{position:absolute;inset:calc(var(--cardin) + 2.2em) calc(var(--cardin) + 1.4em);
+  display:flex;flex-direction:column;align-items:stretch;justify-content:center;gap:.6em;padding:0}
+.cardstage .dkfield textarea{
+  display:block;width:100%;border:0;background:transparent;resize:none;outline:none;
+  color:#241E16;text-align:center;font-family:var(--serif);padding:0;margin:0;
+  user-select:text;-webkit-user-select:text}
+.cardstage .cardtitle{font-size:clamp(18px, 8cqw, 44px);font-weight:600;line-height:1.15;overflow:hidden}
+.cardstage .cardbody{font-family:var(--sans, inherit);font-size:clamp(15px, 3.4cqw, 20px);line-height:1.4;
+  color:rgba(36,30,22,.8);flex:0 1 auto;min-height:3em;max-height:62%;overflow-y:auto}
+.cardstage .dkfield textarea::placeholder{color:rgba(36,30,22,.35);font-style:italic}
+.cardstage .dkidx{font-size:clamp(16px, 5cqw, 34px)}
+
+/* ---- the setup card's own pictures for a card ---------------------------- */
+.suart .dkcard.suback{display:block;width:54px;height:76px;margin:0 auto;--cardr:7px;--cardin:4px}
+.suart .susuit{display:block;font-family:var(--serif);font-size:34px;line-height:1;color:var(--ink);text-align:center}
+
+/* ============================================================
+   the painter — decision 271
+   ============================================================
+   A surface of its own over everything, dark so the face is the only lit
+   thing: a head (put down, undo, preview, done), the stage, and two or three
+   rows of tools under it where a thumb reaches. The stage claims every
+   touch — nothing it is given may scroll or zoom the page. */
+.paint{position:fixed;inset:0;z-index:72;display:flex;flex-direction:column;
+  background:#1D1915;color:#EDE5D2;
+  padding:calc(env(safe-area-inset-top, 0px) + 8px) 10px calc(env(safe-area-inset-bottom, 0px) + 8px)}
+.pthead{display:flex;align-items:center;gap:6px;flex:0 0 auto;min-height:40px}
+.pthead .pttitle{font-family:var(--serif);font-weight:600;font-size:16px;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap;min-width:0;margin-left:4px}
+.paint .pill{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.2);color:#EDE5D2}
+.paint .pill.on{background:rgba(226,184,92,.22);border-color:#E2B85C}
+.paint .pill.ptdone{background:#E2B85C;color:#1D1915;border-color:#E2B85C;font-weight:700}
+.paint .iconbtn{color:#EDE5D2}
+.paint .iconbtn[disabled]{opacity:.3}
+.paint .ptredo svg{transform:scaleX(-1)}
+.is-phone .pthead .pill span{display:none}
+.is-phone .pthead .pill{padding:6px 9px}
+.ptstage{flex:1;min-height:0;position:relative;overflow:hidden;touch-action:none;
+  display:flex;align-items:center;justify-content:center;border-radius:12px;
+  background:radial-gradient(circle at 50% 45%, #3A332A, #1D1915 72%);cursor:crosshair}
+.ptcan{position:relative;flex:none;transform-origin:50% 50%;will-change:transform}
+.ptface{position:absolute;inset:0;pointer-events:none}
+.ptface .pvscale{width:100% !important;height:100% !important}
+.ptart{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.ptart.off .ptstrokes,.ptart.off .ptguide{display:none}
+.ptart .ptguide path{stroke:#6FD3E8;stroke-width:1.5;stroke-dasharray:8 8;opacity:.75;vector-effect:non-scaling-stroke}
+.ptzoom{position:absolute;right:8px;bottom:8px;display:flex;flex-direction:column;gap:4px}
+.ptzoom .iconbtn{background:rgba(0,0,0,.45);font-size:18px;font-weight:700;width:34px;height:34px}
+.pttools{flex:0 0 auto;display:flex;flex-direction:column;gap:6px;padding-top:8px}
+.ptrow{display:flex;gap:6px;align-items:center;overflow-x:auto;scrollbar-width:none;padding-bottom:1px}
+.ptrow::-webkit-scrollbar{display:none}
+.ptchip{flex:none;display:inline-flex;align-items:center;gap:5px;padding:7px 11px;border-radius:99px;
+  border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);color:#EDE5D2;font:inherit;font-size:13px;cursor:pointer}
+.ptchip.on{background:#EDE5D2;color:#1D1915;border-color:#EDE5D2}
+.ptchip svg{width:15px;height:15px}
+.ptsizes{display:inline-flex;gap:4px}
+.ptsizes .ptchip{width:34px;height:34px;padding:0;justify-content:center}
+.ptsizes .ptchip i{width:var(--d);height:var(--d);border-radius:50%;background:currentColor}
+.ptink{flex:none;width:28px;height:28px;border-radius:50%;background:var(--k);cursor:pointer;
+  border:2px solid rgba(255,255,255,.25);box-shadow:inset 0 0 0 1px rgba(0,0,0,.25)}
+.ptink.on{border-color:#fff;box-shadow:0 0 0 2px #E2B85C}
+.ptmetal{width:16px;height:16px;border-radius:50%;display:inline-block}
+.ptmetal.m-gold{background:linear-gradient(135deg,#7A5A12,#E9C766 40%,#FFF3C4 55%,#C99A2E 75%,#8A6516)}
+.ptmetal.m-silver{background:linear-gradient(135deg,#5E636B,#C9CED6 40%,#fff 55%,#9DA3AC 75%,#686D75)}
+.ptmetal.m-copper{background:linear-gradient(135deg,#6B2F14,#D98652 40%,#FFD2AE 55%,#B8622F 75%,#76361A)}
+.ptmetal.m-rose{background:linear-gradient(135deg,#7E4A48,#E7AFA2 40%,#FFE7DE 55%,#C98C80 75%,#8A5552)}
+.ptdecals .ptchip svg{width:26px;height:26px}
+.ptsay{font-size:12.5px;opacity:.7;white-space:nowrap}

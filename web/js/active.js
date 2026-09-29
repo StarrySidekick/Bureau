@@ -1,5 +1,6 @@
 import { esc } from './util.js';
-import { S, byId, K, SORT_FACES, MANUAL, sortOf, container, boardLocked } from './model.js';
+import { S, byId, K, SORT_FACES, MANUAL, sortOf, container, boardLocked, SUITS, suitOf } from './model.js';
+import { objColour } from './look.js';
 import { save } from './persist.js';
 
 /* ============================================================
@@ -268,6 +269,48 @@ function deckTop(o){
   if(!kids.length) return null;
   return kids.find(x => x.id === o.top) || kids[0];
 }
+/* ---- a card, either side of it — decision 269 ---------------------------
+   One card and one back, drawn the same way wherever a card is: on the board,
+   on top of a deck, and full screen. The face is the rule, the index in two
+   opposite corners (the suit, or on a deck the count), what was drawn on it,
+   and the words; the back is one of the six. */
+const MEDALLION = `<svg class="dkmed" viewBox="0 0 40 40" aria-hidden="true">
+    <circle cx="20" cy="20" r="18" fill="var(--c)" stroke="#F7F3E8" stroke-width="1.4"/>
+    <circle cx="20" cy="20" r="15" fill="none" stroke="#F7F3E8" stroke-width=".6"/>
+    <circle cx="20" cy="20" r="10" fill="none" stroke="#F7F3E8" stroke-width="1.1"/>
+    <g stroke="#F7F3E8" stroke-width=".5">${Array.from({length:12}, (_,i)=>{
+      const a = i*30*Math.PI/180;
+      return `<path d="M20 20 L${(20+Math.cos(a)*10).toFixed(2)} ${(20+Math.sin(a)*10).toFixed(2)}"/>`;
+    }).join('')}</g>
+    <circle cx="20" cy="20" r="2" fill="#F7F3E8"/>
+  </svg>`;
+/* What a card has drawn on it (decision 271) is paint.js's to draw, and this
+   module is loaded before it and must not import it — an instrument table
+   read at load time would meet a binding not yet made. So paint.js hands its
+   drawer in when the app is wired, and until then a card is drawn without. */
+const CARDART = {draw:null};
+function backHTML(back){
+  const b = BACKS[back] ? back : 'rider';
+  /* the medallion a rider back has in its middle — a wheel, since that is
+     what the deck is named after */
+  return `<i class="dkback bk-${b}">${b === 'rider' ? MEDALLION
+    : `<svg class="dkpat" viewBox="16 18 88 128" preserveAspectRatio="xMidYMid slice"
+        aria-hidden="true">${BACKS[b].art}</svg>`}</i>`;
+}
+// markdown, flattened for a face too small to set it
+const flat = t => String(t||'').replace(/^#+\s*|^>\s*|^[-*+]\s+(\[[ xX]\]\s*)?|^\d+[.)]\s+/gm, '')
+  .replace(/[*_`~]|\[(.*?)\]\(.*?\)/g, (m, a)=>a||'').trim();
+/* `words`, when given, stands where the printed words would: the full-screen
+   card passes its two fields, so they sit exactly where the words are set. */
+function cardFace(c, idx, words){
+  if(!c) return `<i class="dkrule" aria-hidden="true"></i>`;
+  const mark = idx!=null ? idx : (SUITS[suitOf(c)] || '');
+  const i = mark ? `<span class="dkidx">${esc(mark)}</span>` : '';
+  const body = flat(c.body).slice(0, 320);
+  return `<i class="dkrule" aria-hidden="true"></i>${CARDART.draw ? CARDART.draw(c, 'card') : ''}${i}
+    ${words!=null ? words : `<span class="dkword${c.title?'':' dkuntitled'}"><b>${esc(String(c.title||'Untitled').slice(0, 90))}</b>${
+      body ? `<small class="dkbody">${esc(body)}</small>` : ''}</span>`}${i.replace('dkidx', 'dkidx flip')}`;
+}
 /* **How long a candle burns for is how long a candle is.** The wax used to be
    a fraction of a fixed 84 units whatever the timer said, so a fifteen-minute
    candle and a four-hour one were the same taper and the only thing the setting
@@ -334,6 +377,11 @@ const dial = () => Array.from({length:12}, (_,i)=>{
    never `=== false`, which read a stored 0 as face up. */
 const faceUp = o => { const v = o.faceup!=null ? o.faceup : K(o.kind).faceup;
   return !(v===false || v===0 || v==='0'); };
+/* What a press on a deck does (decision 269): shuffle, deal the top card
+   out, or open it onto a board of all of them. Said on the deck; unsaid, it
+   is what it always was — a shuffle face up and a deal face down. */
+const DECK_TAPS = ['shuffle','deal','open'];
+const deckTapOf = o => DECK_TAPS.includes(o && o.deckTap) ? o.deckTap : (faceUp(o) ? 'shuffle' : 'deal');
 const azRing = (id, key, opts, cur) => `<div class="azrow">${opts.map(([v,n])=>
   `<button class="azchip${String(v)===String(cur)?' on':''}" data-aset="${id}:${key}:${esc(String(v))}"
     >${esc(n)}</button>`).join('')}</div>`;
@@ -611,6 +659,7 @@ const ACTIVE = {
      is stored rather than derived from the order. */
   deck: {
     nm:'Deck', vb:'0 0 120 160', kind:'deck', holds:true,
+    tint: o => { const t = deckTop(o); return faceUp(o) && t && t.c!=null ? objColour(t) : null; },
     /* **One card, and it fills its box.** The deck was two cards fanned out
        under the top one, drawn in a 120×160 viewBox and letterboxed into
        whatever box it stood in — a small picture of a stack floating in a
@@ -630,28 +679,12 @@ const ACTIVE = {
       /* The corners say **which card this is**, counting through the deck —
          the twenty-fourth of sixty-four says 24 — not how many there are,
          which is what they said until decision 204. */
-      const idx = `<span class="dkidx">${top ? kids.indexOf(top)+1 : n}</span>`;
-      const inner = !n
-        ? `<span class="dkword dkempty">Empty</span>`
-        : up
-        ? `${idx}<span class="dkword">${esc(String((top && top.title) || '').slice(0, 90))}</span>${
-            idx.replace('dkidx', 'dkidx flip')}`
-        : `<i class="dkback bk-${back}">${back === 'rider'
-            /* the medallion a rider back has in its middle — a wheel, since
-               that is what the deck is named after */
-            ? `<svg class="dkmed" viewBox="0 0 40 40" aria-hidden="true">
-                <circle cx="20" cy="20" r="18" fill="var(--c)" stroke="#F7F3E8" stroke-width="1.4"/>
-                <circle cx="20" cy="20" r="15" fill="none" stroke="#F7F3E8" stroke-width=".6"/>
-                <circle cx="20" cy="20" r="10" fill="none" stroke="#F7F3E8" stroke-width="1.1"/>
-                <g stroke="#F7F3E8" stroke-width=".5">${Array.from({length:12}, (_,i)=>{
-                  const a = i*30*Math.PI/180;
-                  return `<path d="M20 20 L${(20+Math.cos(a)*10).toFixed(2)} ${(20+Math.sin(a)*10).toFixed(2)}"/>`;
-                }).join('')}</g>
-                <circle cx="20" cy="20" r="2" fill="#F7F3E8"/>
-              </svg>`
-            : `<svg class="dkpat" viewBox="16 18 88 128" preserveAspectRatio="xMidYMid slice"
-                aria-hidden="true">${BACKS[back].art}</svg>`}</i>`;
-      return `<i class="dkrule" aria-hidden="true"></i>${inner}`;
+      /* Face up it is **the top card, as that card** (decision 269): its
+         words, its colour and whatever was drawn on it, with the deck's count
+         in the corners where the card's own mark would be. */
+      if(!n) return `<i class="dkrule" aria-hidden="true"></i><span class="dkword dkempty">Empty</span>`;
+      if(up) return cardFace(top, String(kids.indexOf(top)+1));
+      return backHTML(back);
     },
     /* A press **cuts the deck**: a different card on top, picked at random and
        never the one already showing, because a cut that changes nothing reads
@@ -667,9 +700,13 @@ const ACTIVE = {
     say(o){
       const kids = deckCards(o), n = kids.length, top = deckTop(o);
       if(!n) return 'Empty — add some';
-      return faceUp(o) ? `Card ${kids.indexOf(top)+1} of ${n}` : `${n} card${n===1?'':'s'}, face down — press to deal one`;
+      const does = deckTapOf(o);
+      const press = does==='deal' ? 'press to deal one' : does==='open' ? 'press to open it' : 'press to shuffle';
+      return faceUp(o) ? `Card ${kids.indexOf(top)+1} of ${n} — ${press}` : `${n} card${n===1?'':'s'}, face down — ${press}`;
     },
-    zoom: o => azSay('Which way up the top card sits')
+    zoom: o => azSay('What a press does')
+      + azRing(o.id, 'deckTap', [['','Shuffles, or deals when face down'],['shuffle','Shuffles'],['deal','Deals the top card'],['open','Opens it']], o.deckTap||'')
+      + azSay('Which way up the top card sits')
       + azRing(o.id, 'faceup', [[1,'Face up'],[0,'Face down']], faceUp(o) ? 1 : 0)
       + azSay('The back')
       + azRing(o.id, 'back', Object.entries(BACKS).map(([k,v])=>[k, v.nm]),
@@ -807,8 +844,12 @@ function activeArt(o, cls){
   const a = ACTIVE[actOf(o)]; if(!a) return '';
   /* An instrument that has to fill its box rather than sit in the middle of
      it is HTML, and says so with `html` — the deck, which is a card. */
-  if(a.html) return `<div class="actart dkcard dkBody ${faceUp(o) ? 'up' : 'down'} ${cls||''}"
-    aria-hidden="true">${a.html(o)}</div>`;
+  if(a.html){
+    // the card on top wears its own colour, not the deck's
+    const tint = a.tint && a.tint(o);
+    return `<div class="actart dkcard dkBody ${faceUp(o) ? 'up' : 'down'} ${cls||''}"
+    aria-hidden="true"${tint ? ` style="--c:${tint}"` : ''}>${a.html(o)}</div>`;
+  }
   return `<svg class="actart ${cls||''}" viewBox="${vbOf(o)}"
     preserveAspectRatio="${parOf(o)}" aria-hidden="true">${a.art(o)}</svg>`;
 }
@@ -860,7 +901,7 @@ function checkAlarms(){
 const guttered = () => S.objects.some(o =>
   actOf(o) === 'candle' && o.litAt && through(o.litAt, burnOf(o)) >= 1);
 
-export { TOOLART, ACTIVE, ACT_KIND, DICE, CLOCKS, BACKS, deckCards, deckTop,
+export { TOOLART, ACTIVE, ACT_KIND, DICE, CLOCKS, BACKS, CARDART, backHTML, cardFace, deckTapOf, deckCards, deckTop,
   actOf, isActive, activeArt, activeTap, activeSay, activeName, activeZoom,
   bpmOf, minsOf, burnOf, sidesOf, clockOf, burning, waxLeft, sandGone,
   activeFlame, metroGoing, startMetro, stopMetro, stopAllMetros,

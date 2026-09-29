@@ -4,7 +4,7 @@ import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, chi
   clPerCell,
   rollup, streak, barPct, barSteps, barFilled, barGrid, projectStat, progressOf, tlSpan,
   dev, spawnByOf, genKindOf, genSaid, doesOf,
-  projCoverOf, lifeArtOf, goalStanding, GOAL_STANDINGS,
+  projCoverOf, lifeArtOf, backOf, tugOf,
   makesAnything, ctlOf, takesTyping, showsAddBox,
   knobSizeOf, answered, sortOf, spanOf, coversDay, lateOn, isLate, iconOf, textSizeOf,
   isPicture, isMedia, isPlayable, isDecor, isBackdrop, fillOf, mediaTypeOf, loopOf, frameOf, isWindow,
@@ -17,10 +17,11 @@ import { dealTop, create, toast, fits, toggleDone, someKind, furnish, ctlSpec, c
   ctlForm, ctlNum, ctlIndex, ctlPress, pushSet, reachedGoal, goalOf } from './mutations.js';
 import { DECOR, decorOf, decorEmits, flamePoint, decorSVG, LIFE_ART, lifeSVG } from './decor.js';
 import { isActive, activeArt, activeSay, activeName, activeFlame, actOf,
-  metroGoing, activeTap, burning, faceUp } from './active.js';
+  metroGoing, activeTap, burning, faceUp, backHTML, cardFace, deckTapOf } from './active.js';
+import { paintTarget, artLayer } from './paint.js';
 import { hexOf, objColour, stringColour, dress, dressAs, OBJ0, OBJN, CHECKS, bestInk } from './look.js';
 import { render, reveal } from './views.js';
-import { openObj, openWriter, openRead, openViewer } from './sheet.js';
+import { openObj, openWriter, openRead, openViewer, openCard } from './sheet.js';
 import { objectPanel, schedulePanel } from './panels.js';
 import { openTile, openingFor , zoomInto, zoomOut, zoomedIn, camScale, CAM_READ, CAMERA } from './motion.js';
 import { save } from './persist.js';
@@ -663,8 +664,23 @@ function tileTap(id){
      going *in* to see all of them is a button on its zoom. `isActive()` and
      not a branch on the name, so a type somebody invents that carries `act`
      behaves the same way. See decision 183. */
+  /* **Tied to a drawer, it goes into it** (decision 270): a card on string
+     is that drawer's face on another board. `tugOf()` answers only for a
+     thing whose `tug` says so, so a notepad tied to the same drawer still
+     writes and a button still presses. */
+  const tug = tugOf(o);
+  if(tug){
+    openTile(id, ()=>{ S.view='drawer'; S.drawerId=tug.id; S.kindFilter=null; render(); });
+    return;
+  }
   if(isContainer(o) && !isActive(o)){
     openTile(id, ()=>{ S.view='drawer'; S.drawerId=id; S.kindFilter=null; render(); });
+    return;
+  }
+  /* A card lying face down turns over first; the next press opens it. */
+  if(shapeOf(o)==='playcard' && o.down){
+    pushSet('Turned over', id, 'down', o.down);
+    o.down = false; save(); render();
     return;
   }
   switch(clickOf(o)){
@@ -690,6 +706,9 @@ function tileTap(id){
        screen. See decision 203. */
     case 'read':
       if(isMedia(o)){ openTile(id, ()=>openViewer(id)); break; }
+      /* A card opens **as itself** (decision 269): the same card at the size
+         of the stage, with the words editable where they are printed. */
+      if(shapeOf(o)==='playcard'){ openTile(id, ()=>openCard(id)); break; }
       S.bookAt = 0;
       if(CAMERA){ zoomInto(id); render(); break; }
       openTile(id, ()=>openRead(id));
@@ -723,9 +742,15 @@ function tileTap(id){
       /* A deck lying **face down** deals: the top card comes off onto the
          board beside it. Face up it cuts, which is what it always did.
          Decision 204. */
-      if(actOf(o)==='deck' && !faceUp(o)){
+      /* …and since decision 269 a deck can say what its press does: deal,
+         open onto a board of every card, or shuffle, which is the default. */
+      if(actOf(o)==='deck' && deckTapOf(o)==='deal'){
         const c = dealTop(id);
         if(c){ render(); reveal(c.id); toast('Dealt', true); }
+        return;
+      }
+      if(actOf(o)==='deck' && deckTapOf(o)==='open'){
+        openTile(id, ()=>{ S.view='drawer'; S.drawerId=id; S.kindFilter=null; render(); });
         return;
       }
       const out = activeTap(id);
@@ -1579,6 +1604,9 @@ function drawTile(o, arr, box, persp){
        reason: an element on every tile to carry nothing is a fifth of a render
        at three thousand objects. See decision 184. */
     + (isSealed(o) ? sealLayer(o) : '')
+    /* A drawing (decision 271), on a front or a spine; a card draws its own
+       inside the card, under the words. */
+    + (o.art && paintTarget(o) && paintTarget(o)!=='card' ? artLayer(o, paintTarget(o), box) : '')
     /* A thing still waiting to be set up says so (decision 229), on every
        face at once and on no sample, which is why it is spliced in here and
        not written into forty branches of drawTileFace(). */
@@ -1626,6 +1654,22 @@ function drawTileFace(o, arr, box, persp){
      short side and the rest is what it is for: set to **make**, the garden's
      line you type a name into (return, or the button, makes one called
      that); set to **open** or **switch**, its name over what it does. */
+  /* ---- a card — decision 269 -------------------------------------------
+     A playing card on paper: the face (`cardFace()` in active.js, which the
+     deck's top card and the full-screen card draw too) or, lying face down,
+     its back. The card is an inner element rather than the tile itself so
+     the tile keeps being a tile — the handles, the seal and the setup mark
+     are spliced into the button — and the card inside it is the one thing
+     that is round-cornered and white. */
+  if(!cont && shapeOf(o)==='playcard'){
+    const down = !!o.down;
+    return `<button class="drawer otile cardtile bd-none${sel}" data-row="${o.id}"
+        title="${esc(o.title||'Card')}${down?' · face down':''}" style="--c:${colour};${place}">
+      ${chips}<span class="dkcard ${down?'down':'up'}">${down ? backHTML(backOf(o)) : cardFace(o)}</span>
+      ${handles}
+    </button>`;
+  }
+
   /* ---- a notepad — decision 258 -----------------------------------------
      A ruled strip you write a line on. Return makes the line into what it
      reads as, and puts it where the notepad says: beside itself, into its
@@ -2302,47 +2346,6 @@ function drawTileFace(o, arr, box, persp){
       ${rollTag(o)}
       ${handles}
     </button>`;
-  }
-
-  /* ---- a goal: a drawer with the knob taken off ------------------------
-     The name *is* the face. "Lose 25 pounds" needs nothing printed beside it,
-     so it is set as large as the frame allows and everything else is small
-     and at the foot — and the knob comes off, because a goal is not a thing
-     you pull open to rummage in, it is a thing you are walking towards.
-
-     What it is called is read off the time on it rather than stored: no
-     deadline and it is a **dream**, barely enough time and it is a
-     **challenge**. See decision 135. */
-  if(cont && faceOf(o)==='goal'){
-    const st=projectStat(o), pct=progressOf(o), stand=goalStanding(o);
-    const late = pct<100 && isLate(o);
-    /* **A playing card.** A goal is the one thing on this desk that is not
-       furniture and not paper: it is a thing you are holding, and a card is
-       what a held thing looks like. Everything a Bicycle card has and nothing
-       it hasn't — a heavy corner radius, a white face, the linen tooth, a
-       ruled panel inset from the edge, and an **index in two opposite
-       corners**, the second one turned round, which is the detail that makes a
-       rectangle read as a card rather than as a rounded tile.
-
-       The index is the standing (`Goal`, `Challenge`, `Dream`) over the mark;
-       the middle is the name, because the name is still the face. The count
-       is the pip line at the foot, and the run is the hairline it always was.
-       See decision 146. */
-    const mark = ic(iconOf(o), 13);
-    const idx = `<span class="cardidx"><u>${esc(GOAL_STANDINGS[stand][0])}</u>${mark}</span>`;
-    return `<${takesTyping(o)?'div':'button'} class="drawer dtile goaltile playcard stand-${stand} bd-none${sel}"
-        data-drawer="${o.id}" ${takesTyping(o)?'role="button" tabindex="0"':''}
-        title="${esc(o.title||'Untitled')}" style="--c:${colour};--pct:${pct}%;${place}">
-      <i class="cardrule" aria-hidden="true"></i>
-      ${idx}${idx.replace('cardidx','cardidx flip')}
-      <span class="goalstand">${esc(GOAL_STANDINGS[stand])}</span>
-      <span class="goalname">${esc(o.title||'Untitled')}</span>
-      <span class="goalfoot">
-        ${lateOn(o)?`<u class="${late?'late':''}">${esc(deadSaid(o)||dateSaid(o))}</u>`:''}
-        ${st.ticks?`<b>${st.done}/${st.ticks}</b>`:''}</span>
-      <i class="goalbar" aria-hidden="true"></i>
-      ${handles}
-    </${takesTyping(o)?'div':'button'}>`;
   }
 
   /* A calendar is a container drawing what it collects on the day each thing

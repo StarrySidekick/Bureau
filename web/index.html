@@ -171,6 +171,58 @@
     <feComposite in="drawn" in2="chips" operator="in"/>
   </filter>
 </svg>
+<!-- What a hand-drawn look is drawn through (decision 271, paint.js). Every
+     drawing is 250 units to a cell, so these are in user space and serve
+     every one of them at once: the metals are reflected gradients that band
+     across a drawing the way light runs over foil, the emboss lifts a stroke
+     with a lit edge and a shadow under it, the pencil's line is bent and
+     bitten by fine noise, and paint wanders at its edge the way a loaded
+     brush does. One filter per run of strokes with the same tool, never one
+     per stroke. -->
+<svg width="0" height="0" aria-hidden="true" focusable="false"
+     style="position:absolute;pointer-events:none">
+  <defs>
+    <linearGradient id="pt-gold" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="140" y2="110" spreadMethod="reflect">
+      <stop offset="0" stop-color="#7A5A12"/><stop offset=".35" stop-color="#E9C766"/>
+      <stop offset=".55" stop-color="#FFF3C4"/><stop offset=".75" stop-color="#C99A2E"/><stop offset="1" stop-color="#8A6516"/>
+    </linearGradient>
+    <linearGradient id="pt-silver" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="140" y2="110" spreadMethod="reflect">
+      <stop offset="0" stop-color="#5E636B"/><stop offset=".35" stop-color="#C9CED6"/>
+      <stop offset=".55" stop-color="#FFFFFF"/><stop offset=".75" stop-color="#9DA3AC"/><stop offset="1" stop-color="#686D75"/>
+    </linearGradient>
+    <linearGradient id="pt-copper" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="140" y2="110" spreadMethod="reflect">
+      <stop offset="0" stop-color="#6B2F14"/><stop offset=".35" stop-color="#D98652"/>
+      <stop offset=".55" stop-color="#FFD2AE"/><stop offset=".75" stop-color="#B8622F"/><stop offset="1" stop-color="#76361A"/>
+    </linearGradient>
+    <linearGradient id="pt-rose" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="140" y2="110" spreadMethod="reflect">
+      <stop offset="0" stop-color="#7E4A48"/><stop offset=".35" stop-color="#E7AFA2"/>
+      <stop offset=".55" stop-color="#FFE7DE"/><stop offset=".75" stop-color="#C98C80"/><stop offset="1" stop-color="#8A5552"/>
+    </linearGradient>
+  </defs>
+  <filter id="pt-f-emboss" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB">
+    <feGaussianBlur in="SourceAlpha" stdDeviation="2.4" result="soft"/>
+    <feSpecularLighting in="soft" surfaceScale="5" specularConstant="1" specularExponent="18"
+                        lighting-color="#FFFFFF" result="lit">
+      <feDistantLight azimuth="235" elevation="48"/>
+    </feSpecularLighting>
+    <feComposite in="lit" in2="SourceAlpha" operator="in" result="shine"/>
+    <feOffset in="SourceAlpha" dx="2.5" dy="3.5" result="dropped"/>
+    <feGaussianBlur in="dropped" stdDeviation="2.2" result="blurred"/>
+    <feFlood flood-color="#1B120A" flood-opacity=".5"/>
+    <feComposite in2="blurred" operator="in" result="shadow"/>
+    <feMerge><feMergeNode in="shadow"/><feMergeNode in="SourceGraphic"/><feMergeNode in="shine"/></feMerge>
+  </filter>
+  <filter id="pt-f-pencil" x="-3%" y="-3%" width="106%" height="106%" color-interpolation-filters="sRGB">
+    <feTurbulence type="fractalNoise" baseFrequency=".32" numOctaves="2" seed="4" result="grain"/>
+    <feDisplacementMap in="SourceGraphic" in2="grain" scale="3.5" xChannelSelector="R" yChannelSelector="G" result="bent"/>
+    <feColorMatrix in="grain" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -2.4 1.75" result="tooth"/>
+    <feComposite in="bent" in2="tooth" operator="in"/>
+  </filter>
+  <filter id="pt-f-paint" x="-4%" y="-4%" width="108%" height="108%" color-interpolation-filters="sRGB">
+    <feTurbulence type="fractalNoise" baseFrequency=".035" numOctaves="3" seed="11" result="wet"/>
+    <feDisplacementMap in="SourceGraphic" in2="wet" scale="9" xChannelSelector="R" yChannelSelector="G"/>
+  </filter>
+</svg>
 <div id="frame" class="is-desk"><div class="app" id="app"></div></div>
 <!-- The app is ES modules, no bundler: js/boot.js pulls in the rest. The
      section map lives in CLAUDE.md; the old numbered banners are now files. -->

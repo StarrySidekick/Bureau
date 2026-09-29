@@ -19,7 +19,7 @@ import { plans, stampPlan } from './plans.js';
    Bureau is this phone running" is exactly the question you ask when a change
    appears not to have deployed. Shown in Settings, so it can be read off the
    device rather than guessed at. */
-const APP_VERSION = '2.52';
+const APP_VERSION = '2.53';
 const KEY = 'bureau.v1';
 const install = {deferred:null};   // the browser's install prompt, when one is on offer
 let saveTimer = null;
@@ -267,7 +267,7 @@ function rescalePhone(d, from, cols){
    skips all of them, an old backup replays only what it is missing. These
    used to be ad-hoc per-load mutations inside adopt(); a new repair that
    should run once belongs here, as the next numbered step. */
-const DATA_V = 48;
+const DATA_V = 49;
 const MIGRATIONS = [
   // Drawers and objects were two arrays and a drawer could not live inside
   // anything. foldDrawers also replays the old dense flow to give v1 drawers
@@ -1173,6 +1173,49 @@ const MIGRATIONS = [
      the default and it just works. */
   {v:48, up(d){
     if(d.look && d.look.rows==='fit') delete d.look.rows;
+  }},
+  /* ---- the goal is a card (decision 269) ---------------------------------
+     A goal was a container, and a card is paper. What a goal held walks out
+     onto the board it stood on, sized as it was and placed afresh (the space
+     changes, the size does not); the band every goal was born with goes,
+     because it made things into a thing that is no longer there. Milestones
+     become ticked and unticked lines at the foot of the card's words, since
+     a card has nowhere else to keep them. The card keeps its box: a goal laid
+     on its side is a card laid on its side. A stock flow that had a goal in
+     it is rebuilt by key; a flow you saved has its goals named cards. */
+  {v:49, up(d){
+    const objs = d.objects||[];
+    const at = {}; objs.forEach(o=>{ if(o) at[o.id]=o; });
+    const isGoal = id => !!(at[id] && at[id].kind==='goal');
+    const out = id => { let p=id; while(isGoal(p)) p=at[p].parent; return p; };
+    const drop = new Set();
+    objs.forEach(o=>{
+      if(!o || !isGoal(o.parent)) return;
+      if(o.kind==='generator' && /gets you there/i.test(o.title||'')){ drop.add(o.id); return; }
+      o.parent = out(o.parent);
+      ['desk','phone'].forEach(k=>{ o[k] = o[k] && o[k].w ? {w:o[k].w, h:o[k].h} : null; });
+    });
+    d.objects = objs.filter(o=>!(o && drop.has(o.id)));
+    d.objects.forEach(o=>{
+      if(!o || o.kind!=='goal') return;
+      o.kind = 'card';
+      if(o.face==='goal') delete o.face;
+      if(Array.isArray(o.attrs)) delete o.attrs;
+      if(o.setup==='goal') o.setup = 'card';
+      const ms = (o.milestones||[]).filter(m=>m && m.t);
+      if(ms.length) o.body = [String(o.body||'').trim(), ms.map(m=>`- [${m.done?'x':' '}] ${m.t}`).join('\n')]
+        .filter(Boolean).join('\n\n');
+      o.milestones = [];
+    });
+    Object.values(d.kinds||{}).forEach(k=>{ if(!k) return;
+      if(k.genKind==='goal') k.genKind='card'; if(k.gathers==='goal') delete k.gathers; });
+    const fresh = {};
+    stockPlans().forEach(p=>{ fresh[p.stock] = p; });
+    (d.plans||[]).forEach(p=>{ if(!p) return;
+      const f = p.stock && fresh[p.stock];
+      if(f && (p.objects||[]).some(o=>o && o.kind==='goal')){ p.objects = JSON.parse(JSON.stringify(f.objects)); return; }
+      (p.objects||[]).forEach(o=>{ if(o && o.kind==='goal'){ o.kind='card'; if(o.face==='goal') delete o.face; } });
+    });
   }},
 ];
 function migrate(d){
