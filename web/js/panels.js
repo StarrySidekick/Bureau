@@ -22,7 +22,7 @@ import { FILLS, FILL_KEYS, isCut, BUTTON_IMGS, DOES, doesOf } from './model.js';
 import { CLICKS, clickOf, gridTile, pending, PORTAL_SHAPES, PORTAL_STYLES, PORTAL_EDGES, WHEEL_COLOURS, WHEEL_INKS, WHEEL_FONTS, VINYLS, KSHAPES, kshapeOf, intoOf } from './tiles.js';
 import { isActive, activeZoom, activeSay, activeName, DICE, CLOCKS } from './active.js';
 import { DECOR, decorOf, decorSVG, decorFor, decorRest, LIFE_ART, LIFE_KEYS, lifeSVG } from './decor.js';
-import { quickAdd, toast, drawerForTag, CONTROLS, CTL_KEYS, ctlSpec, galleryOf, PAINTINGS, pictureMedia } from './mutations.js';
+import { quickAdd, toast, drawerForTag, CONTROLS, CTL_KEYS, ctlSpec, galleryOf, PAINTINGS, pictureMedia, AT_GOAL } from './mutations.js';
 import { openObj, renderSheet, closeSheet , openZoom } from './sheet.js';
 import { render, settingsPanel, boardDimsField, shelfCountField, railToolsField } from './views.js';
 import { openingFor, zoomInto, CAMERA, growSheet } from './motion.js';
@@ -187,7 +187,7 @@ function openMenu(anchor, html){
      list hung off a bar button — so the shape has to come *off* here as well
      as go on there. A popup that inherited a thumb hole would have one
      punched through whichever row happened to be under it. */
-  el.classList.remove('palette','radial','flung','shapering');
+  el.classList.remove('palette','radial','flung','shapering','renaming');
   el.style.removeProperty('--rad');
   el.classList.add('open');                 // measurable only once it is shown
   const r=$('#frame').getBoundingClientRect(), a=anchor.getBoundingClientRect();
@@ -1114,7 +1114,7 @@ function objectStage(id){
   const b=lay(o), at={x:1, y:1, w:b.w, h:b.h};
   const twin=Object.assign({}, o, {id:'__stage', desk:at, phone:at});
   return `<div class="objstage"><i class="stagefloor"></i>
-    <div class="stagetile">${sampleTile(twin, 300, 176)}</div></div>`;
+    <div class="stagetile">${sampleTile(twin, 320, 220)}</div></div>`;
 }
 
 /* ---- the Words door — decision 247 -------------------------------------
@@ -1298,7 +1298,12 @@ function objectPanelBody(id, sec){
      a metronome's tempo and a die's number of sides are what that object *is*,
      which is the question this panel answers. Same markup, same `data-a*`
      verbs, so wire.js's handlers did not move. See decision 188. */
-  if(!isRoot && !sec && isActive(d))
+  /* …and since decision 264 they are the head of **Behaviour**, under the
+     object drawn big: the hold is the ring for these as for everything, and
+     the ring's Edit Behavior is the door they are behind. */
+  // Behaviour shows the thing it is changing too, big, as Look does (264)
+  if(!isRoot && sec==='does') out.push(objectStage(id));
+  if(!isRoot && sec==='does' && isActive(d))
     out.push(`<div class="section-h">${esc(activeName(d))}</div>
       <div class="mini">${esc(activeSay(d))}</div>
       <div class="zoomset">${activeZoom(d)}</div>`);
@@ -1450,6 +1455,14 @@ function objectPanelBody(id, sec){
     out.push(prow('In the portal', pcycle(id,'pstyle', Object.entries(PORTAL_STYLES), PORTAL_STYLES[d.pstyle] ? d.pstyle : 'vortex'),
       d.pstyle==='glimpse' ? 'a picture of the page, from WordPress\u2019s screenshot service' : ''));
     out.push(prow('Portal edge', pcycle(id,'pedge', Object.entries(PORTAL_EDGES), PORTAL_EDGES[d.pedge] ? d.pedge : 'none'))); }
+  /* A notepad's gum strip (decision 263), in the palette's colours. */
+  if(!isRoot && shapeOf(d)==='notepad'){
+    const cur = d.gum==null ? '' : String(d.gum);
+    out.push(prow('Gum strip', `<div class="pickgrid sw"><button data-oclick="${id}:gum:" title="Its own colour"
+        class="${cur===''?'on':''}" style="background:${objColour(d)}"></button>${objSlots().map(([slot,nm])=>
+      `<button data-oclick="${id}:gum:${slot}" title="${esc(nm)}" class="${cur===String(slot)?'on':''}"
+        style="background:${hexOf(slot)}"></button>`).join('')}</div>`, 'the band across the top of the pad'));
+  }
   /* A counter's wheels (decision 228): the drum, the figures and the face
      the figures are cut in. Literal colours, like the wax, bar the one that
      is the object's own. */
@@ -1708,7 +1721,15 @@ function objectPanelBody(id, sec){
       how ? 'a tap opens what it reads' : 'or it reads something on this board'));
     if(how) out.push(prow('What it reads', psel(id,'counts',
       [['', 'The obvious thing'], ...Object.entries(COUNTS)], d.counts||''), COUNTS[how].toLowerCase()));
+    /* …or counts *to* something (decision 265), and says what happens there */
+    if(!how){
+      out.push(prow('Counts to', pfield(id,'goal', d.goal||'', 'number', 'for ever'), 'leave it empty to count for ever'));
+      if(+d.goal>0) out.push(prow('When it gets there', psel(id,'atGoal', Object.entries(AT_GOAL), d.atGoal||'stay')));
+    }
   }
+  // a bar's goal is its steps; what happens when it is full (decision 265)
+  if(!isRoot && shapeOf(d)==='bar' && !barOf(d))
+    out.push(prow('When it is full', psel(id,'atGoal', Object.entries(AT_GOAL), d.atGoal||'stay')));
 
   }
 
@@ -2818,7 +2839,8 @@ function openCtx(x,y,id){
      surface, grown out of the tile; a record has nothing to scratch without
      the camera, so its hold is the palette like anything else's. */
   if(CAMERA && (isActive(o) || isDisc(o))){ zoomInto(id); render(); return; }
-  if(!CAMERA && isActive(o)){ openZoom(id); growSheet(id); return; }
+  /* …and since decision 264 an instrument's hold is the ring like everything
+     else's; its settings are behind Edit Behavior. */
   const el=$('#ctx');
   // If a selection is open and this object is part of it, the menu acts on all
   // of them — the same way a Finder context menu does.
@@ -2899,7 +2921,7 @@ function openCtx(x,y,id){
 function closeCtx(){
   const el = $('#ctx');
   if(el.classList.contains('shapering') && el.classList.contains('open')) pending.cell = null;
-  el.classList.remove('open','shapering');
+  el.classList.remove('open','shapering','renaming');
 }
 
 export { plansPanel, planCard, boardRow,

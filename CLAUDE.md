@@ -252,6 +252,18 @@ name is a 17px tab (`.cltab`); a video keeps its first frame as its poster
 itself. The Button has no line; a list's front add box is off by default
 (`addbox:'show'`), and the **Quick list** compound is a notepad tied to a list.
 
+**v2.51** (decisions 259–267): Rename on the ring is one field
+(`renameBubble()`); raised bands clear the spine's title; the random is random
+all the way through (achievements, decks, tags, typefaces, knob shapes,
+compounds from the coin; a random Text holds nothing); **Picture is one
+object** (the `image` kind, among the fifteen); the notepad's rules are its
+line's pitch, it has a gum colour, and a tap writes while a hold carries it;
+an **instrument's hold is the ring**, its settings the head of Behaviour, which
+now shows the object big; **Counter is a family** (`m_counter`: Ticker and
+Progress bar) that can count to a `goal` and do what `atGoal` says there
+(`reachedGoal()`); the **Habit tracker is a compound** (`cp_habit`); nine
+Fabergé and porcelain plants; and a corked, clear-glass jar.
+
 **Start here each session:** `docs/SYSTEM.md` is the reference for what Bureau is
 made of — objects, attributes, types, drawers, the grid, the surfaces, storage.
 `docs/ROADMAP.md` holds the current plan in dependency order, and

@@ -11149,3 +11149,105 @@ on the screen came out smaller than the ruler measuring it and the breaks were
 for another page. On the whole screen the page now wears the face's paper and
 type and none of its frame (`facePaper()`); inset, it wears all of it. This
 amends decision 251.
+
+## 259 · Rename is one field
+
+*2026-09-29.* Timothy: Rename on the ring should bring up a small place to
+rename the thing, not the whole editor. It is a bubble over the object with its
+name selected and Done beside it (`renameBubble()`/`renameTo()` in wire.js);
+return keeps it, Escape leaves it. Every kind gets the same bubble: a name
+edited where it sits only exists on the faces that print one.
+
+## 260 · Raised bands stand clear of the title
+
+The four hubs of the *Raised bands* binding were evenly spaced (18/38/62/82%)
+and the inner two ran through the title. They are a pair either side of a wide
+middle panel now (9/23/77/91%), and the title sits between them with 11px to
+spare, standing or lying.
+
+## 261 · Random, all the way through
+
+*2026-09-29.* Timothy: the coin and every other way of making something at
+random should be able to make anything, with anything set, and not miss a
+whole type the way Background was missed.
+
+- `someKind()` now takes an Achievement (given a chore, in the past tense, done
+  some weeks ago), a Deck and a Tag (given a tag to sort for). Only a bare
+  Aspect of Life stays out, since every aspect type is in the bag.
+- `roll()` also rolls a written thing's typeface and ink (sometimes), a
+  notepad's what-it-makes, a container's knob shape, a calendar's span and
+  face, a habit's measure, a bar's steps and how far along, and whether a
+  Button is a switch.
+- One coin toss in twelve lays down a compound.
+- **A Text made at random is its words.** It was given a video, a place and an
+  event to hold, and opening it showed a poem over a filter of those three
+  types, which is what Timothy could not make sense of. A container wearing a
+  spine is no longer filled.
+
+## 262 · Picture is one object
+
+*2026-09-29.* Timothy deleted Image in the Workshop and kept Picture: one
+object. The Image type is called **Picture** and stands among the fifteen in
+place of the Picture category (`m_picture` is gone); Painting is a
+Decoration's, where the Workshop had it.
+
+## 263 · A notepad you can pick up, on paper whose rules are under the words
+
+*2026-09-29.* Timothy: the lines on ruled paper should line up with the words,
+especially on the notepad; the pad was too yellow; its gum strip should take a
+palette colour; and it was hard to hold and drag.
+
+- The notepad's rules are its line's own pitch: one per cell of height, at 78%
+  of it, with the field standing on the first. The paper is nearly white.
+- *Gum strip* in its Look door: the palette, or its own colour (`gum`).
+- The field ignores the finger until it is tapped (`pointer-events:none`
+  unless focused), so a hold carries the pad; a tap focuses it (`tileTap`).
+- A telegram's and an index card's rules are on their writing now, one per
+  line (`1lh`), as laid stock's have been since decision 147.
+
+## 264 · An instrument's hold is the ring
+
+*2026-09-29.* Timothy: the doodads' hold opened their own full-screen surface;
+it should be the ring, with Edit Look and Edit Behavior as for everything, the
+settings kept (a metronome's tempo). The hold now opens the ring; the
+instrument's settings are the head of **Behaviour**, under the object drawn
+big (`objectStage()`), and every Behaviour door has that preview now, as Look
+does. The preview is taller (170px, up to 320×220).
+
+## 265 · Counter is a family; a habit is three things; counting to a goal
+
+*2026-09-29.* Timothy: habit trackers should be compound objects; the counter
+should be a category whose first subtype is the ticker (the wheels), with the
+progress bar as another; and a number object should be able to count to an
+amount and be complete there.
+
+- **Counter** (`m_counter`) is a category under Doodad holding **Ticker** (the
+  `counter` kind, renamed) and **Progress bar** (moved out of Card).
+- **Counting to something**: a ticker's `goal` (*Counts to*, also asked on
+  its setup card), a bar's steps; `atGoal` says what happens there: stays,
+  marked with gilt (the default), is finished, or starts again from nought
+  (`reachedGoal()` in mutations.js).
+- **Habit tracker is a compound** (`cp_habit`, in Card's family): a task that
+  logs the day when ticked (`streak`; its box shows ticked for today), a ticker
+  of the days in a row, and a bar toward thirty days, each reading the habit.
+  The old one-piece Habit tracker kind is cut from the pickers and still
+  draws where it already is. *Habit and its run* is gone, replaced by this.
+
+## 266 · Nine more plants
+
+*2026-09-29.* Timothy: there were two plants. Nine more, all CC0 from the
+Cleveland Museum of Art: eight Fabergé hardstone flowers in rock-crystal pots
+(pansy, wild rose, anemone, violet, lily of the valley, forget-me-nots, a lily
+in a pearl vase, lingonberry) and a Derby porcelain flower pot. Cut out by
+modelling the photograph's gradient backdrop row by row, flood-filling what
+matches it (and its smooth grey cast shadow) from the edges, and keeping the
+largest piece; outlines by `scripts/decor-hits.mjs`. Sources in
+`docs/IMAGES.md`.
+
+## 267 · The jar, again
+
+*2026-09-29.* Timothy: jars looked goofy. A photograph would not do, because a
+jar shows what is in it. Redrawn: a tapered cork, flecked and shaded as a
+cylinder, pushed into a rim of glass; clear glass, barely tinted, lit by soft
+gradients with a thick base; the name on a paper band across the shoulder,
+above the contents.

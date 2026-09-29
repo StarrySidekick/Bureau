@@ -31,6 +31,15 @@ images, trimmed of their borders and scaled to 900px on the long side.
 | `casket.png` | Casket, 1875 or 1876 | https://www.metmuseum.org/art/collection/search/231639 | CC0 | R. & S. Garrard & Co.; The Metropolitan Museum of Art |
 | `horse.png` | Trotting horse, probably 1587–91 | https://www.metmuseum.org/art/collection/search/195196 | CC0 | Giambologna; The Metropolitan Museum of Art |
 | `teacup.png` | Cup and saucer, 1882–90 | https://www.metmuseum.org/art/collection/search/13402 | CC0 | Ott and Brewer; The Metropolitan Museum of Art |
+| `pansy.png` | Flower Study of a Pansy, House of Fabergé, c. 1885–1915 | https://clevelandart.org/art/1966.438 | CC0 | Cleveland Museum of Art |
+| `wildrose.png` | Flower Study of a Wild Rose, House of Fabergé, c. 1885–1915 | https://clevelandart.org/art/1966.440 | CC0 | Cleveland Museum of Art |
+| `anemone.png` | Flower Study of an Anemone, Henrik Wigström, c. 1905–15 | https://clevelandart.org/art/1966.441 | CC0 | Cleveland Museum of Art |
+| `violet.png` | Flower Study of a Violet, House of Fabergé, c. 1885–1915 | https://clevelandart.org/art/1966.442 | CC0 | Cleveland Museum of Art |
+| `lily.png` | Flower Study of a Lily of the Valley, House of Fabergé, c. 1885–1915 | https://clevelandart.org/art/1966.443 | CC0 | Cleveland Museum of Art |
+| `forgetmenot.png` | Flower Study of Forget-Me-Nots, House of Fabergé, c. 1885–1915 | https://clevelandart.org/art/1966.444 | CC0 | Cleveland Museum of Art |
+| `pearls.png` | Flower Study of a Miniature Lily of the Valley, House of Fabergé, c. 1885–1915 | https://clevelandart.org/art/1966.445 | CC0 | Cleveland Museum of Art |
+| `lingonberry.png` | Flower Study of a Lowbush Cranberry or Lingonberry, House of Fabergé, c. 1885–1915 | https://clevelandart.org/art/1966.446 | CC0 | Cleveland Museum of Art |
+| `flowerpot.png` | Flower Pot and Flowers, Derby Porcelain Factory (Bloor period), 1811–48 | https://clevelandart.org/art/1917.606.1 | CC0 | Cleveland Museum of Art |
 
 ## Tools — `web/img/tools/`
 

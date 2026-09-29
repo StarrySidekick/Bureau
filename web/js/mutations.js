@@ -1,9 +1,9 @@
-import { $, esc, uid, clamp, ROOT, HOLD, D } from './util.js';
+import { $, esc, uid, clamp, ROOT, HOLD, D, pastTense } from './util.js';
 import { S, byId, K, KINDS, KEYS, kindHas, has, isContainer, genKindOf, streak, T, dz, dev,
   repeatOf, repeats, nextRepeat, faceOf, childrenOf, TILT_MODES, tiltMode, GRAVITIES, gravityMode,
   ctlOf, isPrimary, SECONDARY, MASTERS, inMaster, isCut, doesOf, isPicture, isDecor, shapeOf, isBackdrop,
   BORDER_SLOTS, STOCK_SLOTS, SEAL_KEYS, TSIZES, FILL_KEYS, BUTTON_IMGS,
-  placeOf, cfgOf, isHeld, heldObjects, homeFor , attrsOf, relate, habitPlan, habitOn, tagSlug, mediaTypeOf, measureOf, amountSaid } from './model.js';
+  placeOf, cfgOf, isHeld, heldObjects, homeFor , attrsOf, relate, rulesOf, CALSHOWS, SMART, habitPlan, habitOn, tagSlug, mediaTypeOf, measureOf, amountSaid } from './model.js';
 import { GRID, PHONE_GRIDS, colsOf, gridOf, shelfRows, freeSpot, anySpot, roomFor, lay, boxOk, sizeOfKind, keepSize, shelvesOf, addBoard, randomSizeOf } from './grid.js';
 import { randomFront, randomBoard, randomLook, styleDefaults,
   STYLES, CHECKS, DARKMODES, styleKey, applyStyle, applyLook, OBJ0, OBJN } from './look.js';
@@ -12,7 +12,8 @@ import { tileRect, pop, clRefill } from './motion.js';
 import { planForKind, stampPlan } from './plans.js';
 import { DECOR_KEYS } from './decor.js';
 import { DICE, CLOCKS } from './active.js';
-import { WHEEL_COLOURS, WHEEL_INKS, WHEEL_FONTS, VINYLS, PORTAL_SHAPES, PORTAL_STYLES, PORTAL_EDGES } from './tiles.js';
+import { WHEEL_COLOURS, WHEEL_INKS, WHEEL_FONTS, VINYLS, PORTAL_SHAPES, PORTAL_STYLES, PORTAL_EDGES, KSHAPES } from './tiles.js';
+import { FONTS, INKS, isWritten } from './words.js';
 import { closeSheet } from './sheet.js';
 import { assetDel, rescaleOneBoard, rescaleBoxes, save } from './persist.js';
 
@@ -869,6 +870,33 @@ function guessKind(text){
   return {kind: words<=12 ? (ok('thought') || 'note') : 'note', text:t};
 }
 
+/* ---- counting to something — decision 265 --------------------------------
+   A ticker counts up for ever unless it is given a `goal`; a progress bar's
+   goal is its number of steps. Reaching it does what `atGoal` says: stay
+   there and say so (the default), be finished (a thing done leaves its board
+   for the archive, as everything done does), or start again from nought,
+   which is a count kept per day or per session. Called after the number has
+   moved, by whatever moved it. */
+const AT_GOAL = {stay:'Stays there, marked', done:'Is finished', reset:'Starts again from nought'};
+const goalOf = o => { if(!o) return 0;
+  if(shapeOf(o)==='bar') return (o.steps || K(o.kind).steps || 10);
+  const g = +o.goal; return g>0 ? g : 0; };
+function reachedGoal(o, n){
+  const g = goalOf(o); if(!g || n < g) return false;
+  const how = AT_GOAL[o.atGoal] ? o.atGoal : 'stay';
+  if(how==='reset'){
+    pushSet('Started again', o.id, shapeOf(o)==='bar' ? 'at' : 'count', n);
+    if(shapeOf(o)==='bar') o.at = 0; else o.count = 0;
+    toast(`Reached ${g} · back to nought`, true); return true;
+  }
+  if(how==='done' && !o.done){
+    pushSets('Finished', [[o.id,'done',o.done], [o.id,'doneAt',o.doneAt]]);
+    o.done = true; o.doneAt = T;
+    toast(`Reached ${g} · finished`, true); return true;
+  }
+  toast(`Reached ${g}`); return true;
+}
+
 function quickAdd(text, kind, drawerId){
   let t=text.trim(); if(!t) return null;
   let k=kind||'task', due=null; const tags=[];
@@ -1053,9 +1081,12 @@ function someKind(){
      Random itself, what was cut, and a deck (a deck of no cards is a box).
      A Background is in since decision 257, at no more than four by four so it
      lies under a corner of the board rather than all of it. */
+  /* Since decision 261 an achievement, a deck and a tag are in too: `roll()`
+     answers the question each would have asked (a thing done, a card, a tag
+     to sort for). Only a bare Aspect of Life stays out, because its types
+     (`lf_*`) are all in the bag and each is that answer already. */
   const ok = k => KINDS[k] && !isCut(k) && !K(k).cat && !K(k).makesAny
-    && !K(k).asksTag && !K(k).asksLife && !K(k).asksDone
-    && K(k).act!=='deck' && !kindHas(k,'control');
+    && !K(k).asksLife && !kindHas(k,'control') && !K(k).parts;
   /* **One of the fifteen, then one of what it holds.** Flat, a third of the
      tosses were a part of your life or a kind of project, each laying a whole
      flow down, because there are thirty-four of those and one Jar. */
@@ -1299,7 +1330,32 @@ function roll(o, depth){
   if(isDecor(o)) o.decor = pick(DECOR_KEYS);
   if(isBackdrop(o)) o.fill = pick(FILL_KEYS);
   if(doesOf(o)){ o.bimg = pick(BUTTON_IMGS).f;
-    let k = someKind(), n = 0; while(kindHas(k,'container') && n++ < 8) k = someKind(); o.genKind = k; }
+    let k = someKind(), n = 0; while(kindHas(k,'container') && n++ < 8) k = someKind(); o.genKind = k;
+    // …and not always a maker: a switch for one of the desk's settings (261)
+    if(chance(.25)){ o.does = 'switch'; o.ctl = pick(CTL_KEYS); } }
+  /* ---- everything else a thing can be set to — decision 261 --------------
+     Timothy: one of anything should be random all the way through, and a
+     Background was missing for a whole version without anybody noticing. So
+     every setting with a table of answers is rolled here, a written thing's
+     typeface and ink included, and what used to be left out because it asks
+     a question first (a tag, a thing you did) is given an answer. */
+  if(isWritten(o)){
+    if(chance(.3)){ const f = Object.keys(FONTS).filter(Boolean); if(f.length) o.tfont = pick(f); }
+    if(chance(.2)){ const ink = INKS.map(x=>x[0]).filter(Boolean); if(ink.length) o.ink = pick(ink); }
+  }
+  if(shapeOf(o)==='notepad') o.genKind = pick([SMART, SMART, 'task', 'note', 'idea', 'question']);
+  if(isContainer(o) && faceOf(o)!=='spine' && chance(.25)) o.kshape = pick(Object.keys(KSHAPES));
+  if(faceOf(o)==='calendar'){ o.calview = pick(['month','week','day']); o.calshow = pick(Object.keys(CALSHOWS)); }
+  if(has(o,'streak') && chance(.3)){
+    const [unit, goal, step] = pick([['oz',64,8],['min',30,5],['pages',20,5],['km',5,1],['glasses',8,1]]);
+    o.measure = {unit, goal, step};
+  }
+  if(shapeOf(o)==='bar'){ o.steps = 3 + Math.floor(Math.random()*10); o.at = Math.floor(Math.random()*(o.steps+1)); }
+  if(K(o.kind).past && !o.title){ o.title = pastTense(pick(CHORES)); o.doneAt = dz(-Math.floor(Math.random()*60)); }
+  if(has(o,'magic') && !((o.filter||{}).tag) && !rulesOf(o.filter||{}).length){
+    const t = pick(TAG_WORDS); o.filter = Object.assign({}, o.filter, {tag:t});
+    if(!o.title || o.title===K(o.kind).nm) o.title = '#'+t;
+  }
   if(has(o,'count')){ o.count = Math.floor(Math.random()*1000);
     o.wheelc = pick(WHEEL_COLOURS)[0]; o.wink = pick(WHEEL_INKS)[0]; o.wfont = pick(Object.keys(WHEEL_FONTS)); }
   const act = K(o.kind).act;
@@ -1309,7 +1365,11 @@ function roll(o, depth){
   if(act==='die') o.sides = pick(DICE);
   if(act==='clock') o.clock = pick(Object.keys(CLOCKS));
   // …and one that came with its flow laid out is already full
-  if(isContainer(o) && !has(o,'magic') && depth < 1 && !K(o.kind).act && !S.objects.some(x=>x.parent===o.id)){
+  /* A book is its words (decision 261): a Text made at random has its body
+     written, and a video, a place and an event put inside it were a book
+     nobody could make sense of. */
+  if(isContainer(o) && !has(o,'magic') && depth < 1 && !K(o.kind).act && faceOf(o)!=='spine'
+     && !S.objects.some(x=>x.parent===o.id)){
     const n = 2 + Math.floor(Math.random()*3);
     const makes = has(o,'spawn') && genKindOf(o);
     for(let i=0; i<n; i++){
@@ -1363,6 +1423,7 @@ function furnish(o, depth){
   return o;
 }
 
+const TAG_WORDS = ['home','work','someday','reading','errands','ideas','film','money','garden','kitchen','travel','music'];
 const WORDS='brass ledger cedar tide quarry lantern vellum thistle harbour ember slate poppy compass juniper marrow'.split(' ');
 function randomThing(parentId){
   const pick=a=>a[Math.floor(Math.random()*a.length)];
@@ -1413,7 +1474,7 @@ function dealTop(id){
 // the one door, so nothing outside has to know a habit ticks differently.
 export { toast, setGridSize, setBoardDims, toggleDone, spawnNext, del, delMany, delDrawer, undo, redo,
   pushUndo, pushSet, pushSets, toggleFree, setPin, togglePin, becomeKind, seedInto,
-  drawerForTag, create, makeCompound, guessKind, gather, quickAdd, spawnInto, randomThing,
+  drawerForTag, create, makeCompound, guessKind, AT_GOAL, goalOf, reachedGoal, gather, quickAdd, spawnInto, randomThing,
   loadTexts, CONTROLS, CTL_KEYS, ctlSpec, ctlSaid, ctlIsOn, ctlForm, ctlNum, ctlIndex, ctlPress, someKind,
   fits,
   holdIt, holdMany, unholdIt, unholdMany, undoToast, dealTop, furnish, PICTURES, PAINTINGS, galleryOf, hangPainting, pictureMedia, CLIPS };

@@ -10,11 +10,11 @@ import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, chi
   isPicture, isMedia, isPlayable, isDecor, isBackdrop, fillOf, mediaTypeOf, loopOf, frameOf, isWindow,
   boardLocked, prioOf, repeatSaid, urgencyOf, urgeSaid, durSaid, standsProud, shelfDepth, bookDepth, faceCue, anyFaceCue,
   calViewOf, calShowOf, weekStartOf, calCols, borderOf, textureOf, marginOf, isFragmentKind, gravityOn,
-  groupOf, sealOf, isSealed, habitPlan, habitPeriods, habitRun, relate, measureOf, amountSaid, inFront, countOf, countsOf, COUNTS, makesSmart, isHeld } from './model.js';
+  groupOf, sealOf, isSealed, habitPlan, habitPeriods, habitRun, relate, measureOf, amountSaid, inFront, countOf, countsOf, COUNTS, makesSmart, isHeld, habitOn } from './model.js';
 import { GRID, CELL, gridOf, drawCols, drawRows, lay, overlaps, boxOk, freeSpot, anySpot, roomFor, gridRows, sizeOfKind, sideways, innerOf,
   ensureBox, shelfRows, shelfOrigin, shelfAt, shelfOfBox, colsOf, flows, boardsOf, nearestBoard, isBoard, reachable, dimsOf, MEASURE } from './grid.js';
 import { dealTop, create, toast, fits, toggleDone, someKind, furnish, ctlSpec, ctlSaid, ctlIsOn,
-  ctlForm, ctlNum, ctlIndex, ctlPress, pushSet } from './mutations.js';
+  ctlForm, ctlNum, ctlIndex, ctlPress, pushSet, reachedGoal, goalOf } from './mutations.js';
 import { DECOR, decorOf, decorEmits, flamePoint, decorSVG, LIFE_ART, lifeSVG } from './decor.js';
 import { isActive, activeArt, activeSay, activeName, activeFlame, actOf,
   metroGoing, activeTap, burning, faceUp } from './active.js';
@@ -645,6 +645,10 @@ function playPress(id){
 const TOOLS = {press:null};
 function tileTap(id){
   const o=byId(id); if(!o) return;
+  /* A tap on a notepad is writing on it (decision 263): its field ignores the
+     finger so a hold can carry the pad, and the tap hands it the caret. */
+  if(shapeOf(o)==='notepad' && !S.threading){
+    const f=document.querySelector(`#app [data-fieldfor="${id}"]`); if(f){ f.focus(); return; } }
   /* **The first tap on a thing that has not been set up asks what it is**
      (decision 229), before anything a tap would otherwise do. */
   if(needsSetup(o) && !S.threading){ openSetup(id); return; }
@@ -765,7 +769,10 @@ function tileTap(id){
     case 'count': {
       // a counter reading something opens what it reads (decision 254)
       if(countsOf(o)){ openObj(o.tracks); return; }
-      o.count=(o.count||0)+1; save();
+      o.count=(o.count||0)+1;
+      // counting to something does what it says when it gets there (265)
+      if(reachedGoal(o, o.count)){ save(); render(); return; }
+      save();
       const w=document.querySelector(`[data-row="${id}"] .cntnum`);
       if(w) spinTo(w, o.count); else render();
       return; }
@@ -1632,7 +1639,7 @@ function drawTileFace(o, arr, box, persp){
     const ph = o.title && o.title!==K(o.kind).nm ? o.title : what + '…';
     return `<div class="drawer otile padtile${box.h>1?' padtall':''}${sel}" data-row="${o.id}" role="button" tabindex="0"
         title="${esc((o.title||'Notepad')+(dest?' — into '+(dest.title||'the drawer'):' — beside itself'))}"
-        style="--c:${colour};--padrows:${box.h};${place}">
+        style="--c:${colour};--padrows:${box.h};${o.gum?`--gum:${/^\d+$/.test(String(o.gum))?hexOf(+o.gum):esc(o.gum)};`:''}${place}">
       ${chips}<i class="padgum" aria-hidden="true"></i>
       <label class="padline"><input class="fieldin padin" data-fieldfor="${o.id}" autocomplete="off"
         enterkeyhint="done" placeholder="${esc(ph)}"></label>
@@ -2831,8 +2838,10 @@ function drawTileFace(o, arr, box, persp){
     // a readout says what it reads in its tooltip (decision 254)
     const reads = countsOf(o), of = reads && byId(o.tracks);
     const tip = reads ? `${o.title||'Untitled'} — ${COUNTS[reads].toLowerCase()} in ${of.title||K(of.kind).nm}` : (o.title||'Untitled');
-    return `<button class="drawer otile sh-tally cnttile${reads?' reads':''}${sel}" data-row="${o.id}" style="--c:${colour};${place};${wheelVars(o)}">
-      ${chips}
+    // counting to something: how far, under the wheels, and gilt once there
+    const goal = !reads && goalOf(o), there = goal && (o.count||0) >= goal;
+    return `<button class="drawer otile sh-tally cnttile${reads?' reads':''}${there?' reached':''}${sel}" data-row="${o.id}" style="--c:${colour};${place};${wheelVars(o)}">
+      ${chips}${goal ? `<u class="cntgoal">of ${goal}</u>` : ''}
       <span class="cntnum" data-wheels="${n}"
         style="--wheels:${n}" title="${esc(tip)}">${digitWheel(countOf(o), n)}</span>
       ${handles}
@@ -2931,7 +2940,8 @@ function drawTileFace(o, arr, box, persp){
     style="--c:${colour};${plaqueInk}${has(o,'progress')?`--pct:${barPct(o)}%;`:''}${place}">
     ${chips}
     <div class="dtop">
-      ${has(o,'check')?`<span class="check tilecheck${o.done?' on':''}" data-check="${o.id}">${ic('check',12)}</span>`:''}
+      ${/* a habit's box is ticked for today, not finished (decision 265) */''}
+      ${has(o,'check')?`<span class="check tilecheck${o.done || (has(o,'streak') && habitOn(o,T)>0)?' on':''}" data-check="${o.id}">${ic('check',12)}</span>`:''}
       ${nameField(o)}
       ${/* A copy a rule made, not a thing you wrote down — Things 3.23 puts the
            same small glyph on generated to-dos, and it is the difference between

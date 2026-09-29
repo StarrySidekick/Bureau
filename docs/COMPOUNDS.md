@@ -33,7 +33,7 @@ part can be pulled out and is simply an object) and its main open question
 | Labelled drawer | label 4×1 over drawer 4×3 | drawer `rel` label |
 | Counted list | checklist 4×6, counter 2×2 | counter reads things left to tick |
 | Checklist with a bar | checklist 4×5, progress bar 4×1 | bar reads the list |
-| Habit and its run | habit tracker 4×2, counter 2×2 | counter reads days in a row |
+| Habit tracker (v2.51, replaces Habit and its run) | a task that logs the day 4×1, ticker 2×2, progress bar 4×1 | ticker and bar both read the habit |
 | Draft with a word count | note 4×4, counter 2×2 | counter reads words |
 | Spread | label 8×1, two notes 4×5 | none |
 | Quick list (v2.49) | notepad 4×1 over list 4×6 | notepad tied to the list with string |

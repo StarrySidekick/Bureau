@@ -408,7 +408,15 @@ const STEPS = {
       .map(([v,nm])=>{ const [bg,fg]=v.split('|'); return choice(v, nm, '', swatch(bg||'#3C352B', fg||'#EFE7D2', '07')); }),
     answer:(o,v)=>{ const [bg,fg]=v.split('|');
       pushSet('Changed', o.id, 'wheelc', o.wheelc); pushSet('Changed', o.id, 'wink', o.wink);
-      if(bg) o.wheelc=bg; else delete o.wheelc; if(fg) o.wink=fg; else delete o.wink; return null; }},
+      if(bg) o.wheelc=bg; else delete o.wheelc; if(fg) o.wink=fg; else delete o.wink; return 'count.goal'; }},
+  /* Counting to something (decision 265): for ever, or to a number, and
+     what happens when it gets there is in its editor. */
+  'count.goal': {
+    q:'Is it counting to something?', sub:'A number to reach. What happens when it gets there is in its editor.',
+    text:{ph:'e.g. 8', go:'Done'},
+    ask:()=>[choice('0','No, for ever'), choice('8','Eight'), choice('10','Ten'), choice('30','Thirty'), choice('100','A hundred')],
+    answer:(o,v)=>{ const n = parseInt(v,10);
+      pushSet('Changed', o.id, 'goal', o.goal); if(n>0) o.goal = n; else delete o.goal; return null; }},
   'habit.what': {
     q:'What do you want to do?', sub:'Something you mean to keep doing.',
     text:{ph:'Stretch', go:'Next', field:'title'},

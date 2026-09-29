@@ -11,7 +11,7 @@ import { gridOf, lay, boxOk, freeSpot, anySpot, roomFor, sizeOfKind, toPhoneSize
 import { applyLook, applyStyle, setLookVal, lookVal, STYLES, setSlot, objColour, darkMode } from './look.js';
 import { dealTop, furnish, toast, fits, makeCompound, guessKind, quickAdd, setGridSize, setBoardDims, toggleDone, spawnNext, del, delMany, delDrawer, undo, redo, pushUndo,
   pushSet, pushSets, setPin, togglePin, drawerForTag, create, spawnInto, randomThing,
-  holdIt, holdMany, unholdIt, unholdMany, undoToast, someKind, becomeKind , toggleFree, galleryOf, hangPainting } from './mutations.js';
+  holdIt, holdMany, unholdIt, unholdMany, undoToast, someKind, becomeKind , toggleFree, galleryOf, hangPainting, reachedGoal } from './mutations.js';
 import { keepStill, spinTo, pending, placeAtPending, tileTap, turnPage, clearPages, intoOf, TOOLS } from './tiles.js';
 import { bpmOf, minsOf, burnOf, sidesOf, metroGoing, startMetro, mindTheTime, actOf, deckTop } from './active.js';
 import { DECOR, LIFE_ART } from './decor.js';
@@ -237,6 +237,29 @@ function frontOut(id){
   delete o.front; delete o.frontAt;
   if(o.phone && o.phone.w) o.phone = {w:o.phone.w, h:o.phone.h};
   return true;
+}
+/* ---- Rename, from the ring — decision 259 --------------------------------
+   One field over the thing, and nothing else: its name, selected, so typing
+   replaces it and return keeps it. Every kind of object gets the same bubble,
+   because a name edited where it sits only exists on the faces that print
+   one, and a drawer's was its whole editor. */
+function renameBubble(id){
+  const o=byId(id); if(!o) return;
+  const tile=document.querySelector(`#app [data-row="${id}"],#app [data-drawer="${id}"]`) || $('#frame');
+  openMenu(tile, `<div class="ctxhead">Rename</div>
+    <div class="renamerow"><input class="renamein" data-rename="${esc(id)}" value="${esc(o.title||'')}"
+      placeholder="${esc(K(o.kind).nm)}" enterkeyhint="done" autocomplete="off">
+    <button class="pill solid" data-act="renamedone" data-id="${esc(id)}">Done</button></div>`);
+  const el=$('#ctx'); el.classList.add('renaming');
+  const f=el.querySelector('.renamein'); if(f){ f.focus(); f.select(); }
+}
+function renameTo(id){
+  const o=byId(id), f=$('#ctx .renamein'); if(!o || !f) return;
+  const v=f.value.trim();
+  closeCtx();
+  if(v===(o.title||'')) return;
+  pushSet('Renamed', id, 'title', o.title); o.title=v;
+  save(); render(); toast(v ? `Called ${v}` : 'Name taken off', true);
 }
 function blockHold(cid){
   BLOCK_HELD = Date.now();
@@ -615,7 +638,9 @@ function act(name, el){
       if(isContainer(o)) delDrawer(id); else del(id);
       save(); break;
     }
-    case 'countup': { const o=byId(el.dataset.id); o.count=(o.count||0)+1; save();
+    case 'countup': { const o=byId(el.dataset.id); o.count=(o.count||0)+1;
+      if(reachedGoal(o, o.count)){ save(); renderSheet(); render(); break; }
+      save();
       // spin in place when it's a tile, so the wheels animate instead of blinking
       const w=el.closest('.cntnum'); if(w){ spinTo(w, o.count); renderSheet(); }
       else { renderSheet(); render(); }
@@ -1031,6 +1056,7 @@ function act(name, el){
     case 'ringback': ringInto(null); break;
     case 'ringmore': { const at = pending.cell; closeCtx(); pending.cell = at;
       modalNewObject(); break; }
+    case 'renamedone': renameTo(el.dataset.id); break;
     case 'frontpress': {
       if(Date.now() - FRONT_HELD < 700) break;
       if(el.dataset.id) tileTap(el.dataset.id);
@@ -1164,6 +1190,16 @@ function toolPress(tool, cid, el){
    board is rebuilt before the class goes on, as decision 38 asks. */
 function coinToss(board, el){
   const home = homeFor(board), dv = dev();
+  /* One toss in twelve is a compound (decision 261): several things, laid
+     out together wherever the whole of it fits. */
+  const cps = KEYS.filter(k=>K(k).parts);
+  if(cps.length && Math.random() < 1/12){
+    const ck = cps[Math.floor(Math.random()*cps.length)], [fw, fh] = K(ck).size;
+    const at = randomSpot(fw, fh, dv, home);
+    const made = makeCompound(ck, at ? Object.assign({parent:home}, at) : {parent:home});
+    if(made){ made.forEach(o=>furnish(o)); save(); render(); reveal(made[0].id);
+      toast(`A ${K(ck).nm.toLowerCase()}, wherever the coin said`, true); return; }
+  }
   const kind = someKind();
   // a size from its range, not its default (decision 246)
   const [w,h] = randomSizeOf(kind, dv, home);
@@ -1422,8 +1458,7 @@ function wire(){
       else if(cmd==='editdoes') objectPanel(id, 'does');
       /* A name edits where it sits; a drawer's name is its editor's heading,
          which is a field you press. */
-      else if(cmd==='rename'){ const o=byId(id);
-        if(o && !isContainer(o)) startEdit(id); else objectPanel(id); }
+      else if(cmd==='rename') renameBubble(id);
       else if(cmd==='opendrawer'){ S.view='drawer'; S.drawerId=id; render(); }
       else if(cmd==='pin') togglePin(id);
       else if(cmd==='done') toggleDone(id);
@@ -1944,6 +1979,8 @@ function wire(){
         const was=o.at||0, want=+n;
         pushSet('Progress', id, 'at', was);
         o.at = was===want ? want-1 : want;
+        // a full bar does what it is set to (decision 265)
+        if(o.at > was) reachedGoal(o, o.at);
         save(); render(); refreshPanel();
       }
       return; }
@@ -2540,6 +2577,8 @@ function wire(){
     // Return answers the setup card's one-line question; a list takes ⌘Return
     if(e.target.id==='setupin' && e.key==='Enter' && (e.target.tagName==='INPUT' || e.metaKey || e.ctrlKey)){
       e.preventDefault(); setupNext(); return; }
+    if(e.target.dataset.rename && e.key==='Enter'){ e.preventDefault(); renameTo(e.target.dataset.rename); return; }
+    if(e.target.dataset.rename && e.key==='Escape'){ closeCtx(); return; }
     if(e.target.id==='newtagin' && e.key==='Enter'){
       e.preventDefault();
       makeSorting(e.target.dataset.kind||'magic', e.target.value);

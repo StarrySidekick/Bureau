@@ -5830,7 +5830,7 @@ html[data-rows="fit"] .is-phone .gridbar.inrail .sqbtn{width:28px;height:28px}
    holds still for anyone who has asked for less movement. */
 .objstage{
   position:sticky;top:-12px;z-index:5;margin:-12px -16px 12px;padding:16px 16px 14px;
-  display:grid;place-items:center;min-height:120px;overflow:hidden;
+  display:grid;place-items:center;min-height:170px;overflow:hidden;
   border-bottom:1px solid var(--rule-2);background:var(--paper-3,var(--paper));
 }
 .panel.bubble .objstage{margin:-10px -14px 10px;padding:12px 14px}
@@ -6730,3 +6730,10 @@ html[data-rows="fit"] .is-phone .gridbar.inrail .sqbtn{width:28px;height:28px}
 .clist .cline{flex-basis:calc((100% - var(--cltab,0px)) / var(--clrows,4))}
 .clist .clstick{top:var(--cltab,0px);flex-basis:calc((100% - var(--cltab,0px)) * var(--clk,1) / var(--clrows,4))}
 .cltab + .cline{border-top:0}
+
+/* ---- Rename, one field — decision 259 ----------------------------------- */
+.ctxmenu.renaming{min-width:min(300px, calc(100vw - 24px))}
+.renamerow{display:flex;gap:6px;align-items:center;padding:4px 4px 6px}
+.renamerow .renamein{flex:1;min-width:0;font-size:16px;padding:8px 10px;border-radius:var(--radius);
+  border:1px solid var(--rule);background:var(--paper);color:var(--ink);-webkit-user-select:text;user-select:text}
+.ctxmenu .renamerow button{width:auto;flex:0 0 auto}

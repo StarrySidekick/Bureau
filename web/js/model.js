@@ -348,7 +348,11 @@ const BUILTIN_KINDS = {
      leads with the Image itself. The first is a Painting. */
   /* The Painting moved to Decoration in the Workshop (decision 218), so an
      Image is a picture of your own and asks nothing. */
-  image:   {nm:'Image',   ic:'image',   c:15, key:'G', ds:'A picture on the board',   size:[6,4], onclick:'read', attrs:['media'], body:'' },
+  /* **Picture** is one object (decision 262): Timothy took Image out of the
+     Picture category in the Workshop and kept the category's name, so the
+     type is called Picture and stands among the fifteen itself. A Painting
+     is a Decoration's. */
+  image:   {nm:'Picture', ic:'image',  c:15, key:'G', ds:'A picture on the board: a photograph, a drawing, anything you have',   size:[6,4], onclick:'read', attrs:['media'], body:'' },
   /* A Painting is an Image that is always one of the twenty-six hung in
      `img/paintings/` (`gallery` names the list in mutations.js): born with
      one at random, in a gilt frame, and its editor picks among them. */
@@ -367,7 +371,7 @@ const BUILTIN_KINDS = {
      through it. One press in from Decoration rather than a tile of its own in
      a list that is already long. */
   decoration:{shape:'decor', nm:'Decoration', ic:'plant', c:6, key:'', ds:'Something to stand on the shelf — a plant, a bookend, a little figure', attrs:['decor','media'], size:[4,5], phoneSize:[2,3], mediaType:'image', onclick:'none', decor:'plant',
-     family:['plant','ornament','window','background'], famSub:'What is standing there?', body:'' },
+     family:['plant','ornament','painting','window','background'], famSub:'What is standing there?', body:'' },
   /* **Decoration's subtypes** (decision 218, from the Workshop): a Plant, a
      Physical Object, the Painting and the Window. The first two are the
      photographed ornaments split by the `plant` mark on each in decor.js, and
@@ -555,7 +559,7 @@ const BUILTIN_KINDS = {
      ds:'Something that runs — press it and say which',
      /* **The tools and the counter are doodads too** (decision 240): one
         place for the small things that do something when pressed. */
-     family:['button','counter','metronome','hourglass','candle','bell','clock','die','deck',
+     family:['button','m_counter','metronome','hourglass','candle','bell','clock','die','deck',
              'tglass','tblock','tlock','tgear','spool','coin','anything'],
      famSub:'Which doodad?', master:true, lead:'clock',
      attrs:[], size:[3,4], onclick:'active', body:'' },
@@ -677,7 +681,13 @@ const BUILTIN_KINDS = {
   label:   {shape:'band', nm:'Label',   ic:'tag',     c:12, key:'M', ds:'A name for a stretch of board',
      size:[4,1], phoneSize:[4,1], onclick:'none', attrs:['text'],
      tsize:'1.6', border:'gilt', body:'' },
-  counter: {setup:'counter', shape:'tally', nm:'Counter',  ic:'target', c:8, key:'X', ds:'A number you tap to add to', size:[3,3], phoneSize:[3,3], onclick:'count', attrs:['count'], body:'' },
+  /* **Counter is a category** (decision 265): the ways of showing an
+     amount. The wheels are the Ticker, the first of them; the Progress bar is
+     the second. Either may count *to* something (`goal`), and says what
+     happens when it gets there (`atGoal`). */
+  m_counter: {cat:true, lead:'counter', nm:'Counter', ic:'target', c:8,
+     ds:'An amount, and how you want to see it', family:['counter','progressbar'], famSub:'How should it show?', attrs:[], body:'' },
+  counter: {setup:'counter', shape:'tally', nm:'Ticker',  ic:'target', c:8, key:'X', ds:'A number on turning wheels: tap it to add one', size:[3,3], phoneSize:[3,3], onclick:'count', attrs:['count'], body:'' },
   /* You do not write an achievement, you *pick* one: the goal, project or task
      you finished. So placing one asks which, out of what is actually done, and
      prints it in the past tense — "Lost 25 pounds" rather than "Lose 25
@@ -768,14 +778,12 @@ const BUILTIN_KINDS = {
   m_collage: {cat:true, master:true, lead:'moodboard', nm:'Collage', ic:'image', c:14,
      ds:'Pictures pinned up, or a pigeonhole', family:['moodboard','pigeonhole'], famSub:'Which?', attrs:[], body:'' },
   m_card:    {cat:true, master:true, lead:'goal', nm:'Card', ic:'target', c:13,
-     ds:'Something you are after, or keeping count of', family:['goal','tracker','progressbar','achievement'], famSub:'Which card?', attrs:[], body:'' },
+     ds:'Something you are after, or keeping count of', family:['goal','cp_habit','achievement'], famSub:'Which card?', attrs:[], body:'' },
   m_paper:   {cat:true, master:true, lead:'note', nm:'Paper', ic:'note', c:10,
      ds:'Anything written down', famSub:'What is written on it?',
      family:['note','task','notepad','thought','idea','question','problem','quote','review','label',
              'poem','essay','script','outline','scene','letter','postcard','telegram',
              'character','place','world','artifact','creature','histevent','law','group'], attrs:[], body:'' },
-  m_picture: {cat:true, master:true, lead:'image', nm:'Picture', ic:'image', c:15,
-     ds:'A photograph, a drawing, or a painting from the Met', family:['image','painting'], famSub:'Which picture?', attrs:[], body:'' }
 };
 
 /* ---- the aspects of life, each a type — decision 236 --------------------
@@ -899,7 +907,7 @@ const MASTERS = [
   ['jar',        ['jar']],
   ['m_card',     null],
   ['m_paper',    null],
-  ['m_picture',  null],
+  ['image',      ['image']],
   ['video',      ['video']],
   ['audio',      ['audio']],
   ['decoration', null],
@@ -914,7 +922,9 @@ const SECONDARY = [];
 /* The Control and the Spawner are the Button now (decision 240): the kinds
    stay for what is already on a desk and for the flows that press out
    scenes, and no picker offers them. */
-const CUT_KINDS = ['magic','recipe','control','generator'];
+/* The Habit tracker is a compound since decision 265 (`cp_habit`): the kind
+   stays for what is already on a desk, and no picker offers it. */
+const CUT_KINDS = ['magic','recipe','control','generator','tracker'];
 const isCut = k => CUT_KINDS.includes(k);
 const isPrimary = k => PRIMARY.includes(k);
 /* Everything a master opens onto, through families all the way down, so the
@@ -1126,10 +1136,18 @@ const COMPOUNDS = {
     parts:[{k:'notepad', t:'Notepad', b:[1,1,4,1], rel:['@list'], set:{genKind:'task'}},
            {k:'checklist', t:'Steps', b:[1,2,4,4], ref:'list'},
            {k:'progressbar', t:'How far', b:[1,6,4,1], tracks:'@list'}]},
-  cp_run: {nm:'Habit and its run', ic:'grid', c:6,
-    ds:'A habit tracker with a counter showing the days in a row',
-    parts:[{k:'tracker', t:'Every day', b:[1,1,4,2], ref:'habit'},
-           {k:'counter', t:'Days in a row', b:[5,1,2,2], tracks:'@habit', set:{counts:'streak'}}]},
+  /* **A Habit tracker is three things** (decision 265): the habit, which is
+     a task that logs the day when it is ticked rather than finishing
+     (`streak`); a ticker saying how many days in a row; and a bar filling
+     toward the run you are after. Each can be moved, resized, restyled or
+     pulled out on its own, which is what the one combined face could not. */
+  cp_habit: {nm:'Habit tracker', ic:'grid', c:6,
+    ds:'A habit you tick each day, a ticker of the days in a row, and a bar toward the run you want',
+    parts:[{k:'task', t:'Every day', b:[1,1,4,1], ref:'habit',
+             set:{attrs:['text','check','streak','repeat'], due:null,
+                  repeat:{every:1, unit:'day', days:[], from:'date', ends:null, paused:false, made:0}}},
+           {k:'counter', t:'Days in a row', b:[5,1,2,2], tracks:'@habit', set:{counts:'streak'}},
+           {k:'progressbar', t:'Toward thirty days', b:[1,2,4,1], tracks:'@habit', set:{target:30}}]},
   cp_draft: {nm:'Draft with a word count', ic:'note', c:10,
     ds:'A page to write on and a counter keeping its word count',
     parts:[{k:'note', t:'Draft', b:[1,1,4,4], ref:'page'},

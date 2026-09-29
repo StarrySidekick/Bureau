@@ -269,7 +269,9 @@ const PROP_OFF = () => { const b = document.createElement('button');
     document.querySelector(`.grid .drawer[data-drawer="${d.id}"]`)
       .dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, clientX: 200, clientY: 200 }));
     await wait();
-    await click('[data-c^="rename"]');                 out.drawer = (key() || '').split(':')[0];
+    // the editor, reached the way Edit was; Rename is its own bubble since 259
+    document.querySelector('#ctx').classList.remove('open'); BUREAU.panel(d.id); await wait();
+    out.drawer = (key() || '').split(':')[0];
     out.oneName = key() === 'object:' + d.id;
     /* The editor's top is its name, where it lives and a row of doors; the
        rows are one press in. Two doors since the Workshop folded Collects and
@@ -1498,7 +1500,7 @@ const PROP_OFF = () => { const b = document.createElement('button');
     el.dispatchEvent(new MouseEvent('contextmenu', { bubbles:true, clientX:200, clientY:200 }));
   });
   await page.waitForTimeout(120);
-  await page.click('#ctx button[data-c^="rename"]');
+  await page.evaluate(() => { document.querySelector('#ctx').classList.remove('open'); BUREAU.panel(window.__narrow); });
   // a panel comes up out of the tile — measure it once the transform has run,
   // or the number you read is a frame of the animation
   await page.waitForTimeout(700);
@@ -9252,19 +9254,18 @@ const PROP_OFF = () => { const b = document.createElement('button');
       && document.querySelector('#ctx').classList.contains('open');
     document.querySelector('#ctx').classList.remove('open');
     S.zoomOn = null; BUREAU.render(); await nap(200);
-    /* …and an instrument's hold is its own surface again (decision 182's
-       zoom), grown out of the tile the way a note's reading is. */
+    /* …and an instrument's hold is the ring like everything else's since
+       decision 264, and its settings are the head of Edit Behavior. */
     mk({ id:'bell', kind:'bell', desk:{x:23,y:18,w:2,h:2} });
     BUREAU.render(); await nap(200);
     (() => { const r = document.querySelector('[data-row="bell"]').getBoundingClientRect();
       BUREAU.ctx(r.left+r.width/2, r.top+r.height/2, 'bell'); })();
-    await nap(40);
-    out.anInstrumentsHoldIsItsSurface = S.zoomId === 'bell' && !S.zoomOn
-      && !!document.querySelector('#sheetHost .zoomstage')
-      && !!document.querySelector('#sheetHost .sheetfly');
-    await nap(500);
-    BUREAU.closeSheet(); await nap(500);
-    out.andItGoesBackIntoItsTile = !S.zoomId && !document.querySelector('.sheetfly,.sheetveil,.sheetsource');
+    await nap(60);
+    out.anInstrumentsHoldIsTheRing = !S.zoomId && document.querySelector('#ctx').classList.contains('open')
+      && !!document.querySelector('#ctx [data-c^="editdoes:"]');
+    document.querySelector('#ctx [data-c^="editdoes:"]').click(); await nap(300);
+    out.itsSettingsAreBehindBehaviour = !!document.querySelector('#panel .objstage') && !!document.querySelector('#panel .zoomset');
+    BUREAU.closePanel(); await nap(200);
 
     /* ---- and the things that were looked at properly -------------------- */
     mk({ id:'let', kind:'letter', title:'To Marianne', body:'Dear —', attrs:['text'],
@@ -9918,7 +9919,8 @@ const PROP_OFF = () => { const b = document.createElement('button');
     out.thePickerOffersTheShortList = JSON.stringify(lead) === '["note","task"]';
     // Image is a category since decision 208 (a Painting is its subtype)
     // …and a Picture is one of the fifteen since decision 240
-    out.withEverythingOneDoorIn = !!document.querySelector('#panel details.boardall .kindtile[data-family="m_picture"]');
+    // …and is one object, Picture, since decision 262
+    out.withEverythingOneDoorIn = !!document.querySelector('#panel details.boardall .kindtile[data-new="image"]');
     const n0 = S.objects.length;
     const t = document.querySelector('#panel .boardmakes .kindtile[data-new="task"]');
     if(t){ t.click(); await nap(400); }
@@ -10265,8 +10267,11 @@ const PROP_OFF = () => { const b = document.createElement('button');
     B.tap(c.id); await nap(250);
     document.querySelector('#setupin').value = 'Glasses of water';
     document.querySelector('#setup [data-act="setupnext"]').click(); await nap(200);
-    pick('#8E3B38|#E2B85C'); await nap(400);
-    out.aCounterIsAsked = c.title === 'Glasses of water' && c.wheelc === '#8E3B38' && c.wink === '#E2B85C' && !c.setup;
+    pick('#8E3B38|#E2B85C'); await nap(300);
+    // …and whether it counts to something (decision 265)
+    pick('8'); await nap(400);
+    out.aCounterIsAsked = c.title === 'Glasses of water' && c.wheelc === '#8E3B38' && c.wink === '#E2B85C'
+      && c.goal === 8 && !c.setup;
     c.wfont = 'mono'; B.render(); await nap(200);
     const num = document.querySelector(`[data-row="${c.id}"] .cntnum`);
     const wheel = document.querySelector(`[data-row="${c.id}"] .wheel`);
@@ -10486,6 +10491,12 @@ const PROP_OFF = () => { const b = document.createElement('button');
     B.ctx(tr.left+20, tr.top+10, t.id); await nap(200);
     const said = [...document.querySelectorAll('#ctx [data-c]')].map(e => e.dataset.c.split(':')[0]);
     out.theRingIsTheWorkshops = ['when','rename','editlook','editdoes'].every(c => said.includes(c)) && !said.includes('objset');
+    // 259: Rename is one field over the thing, not the editor
+    document.querySelector('#ctx [data-c^="rename:"]').click(); await nap(150);
+    const rf = document.querySelector('#ctx.renaming .renamein');
+    out.renameIsOneField = !!rf && !document.querySelector('#panel.open, #panel.show');
+    if(rf){ rf.value = 'Rung'; rf.dispatchEvent(new KeyboardEvent('keydown', {key:'Enter', bubbles:true})); await nap(150); }
+    out.andItRenames = t.title === 'Rung';
     document.querySelector('#ctx').classList.remove('open'); await nap(100);
     // …and Settings has no Depth or Your Things door; both live elsewhere now
     document.querySelector('[data-act="appsettings"]').click(); await nap(300);
@@ -10529,8 +10540,61 @@ const PROP_OFF = () => { const b = document.createElement('button');
   await v9.screenshot({ path: 'test/shots/249-notepad.png' });
   await v249Ctx.close();
 
+  /* --- decisions 259–267: Picture is one object, Counter a family that
+     counts to something, a habit is three things, the random is random all
+     the way through, nine plants, and a notepad you can pick up. */
+  const v251Ctx = await browser.newContext({ viewport:{width:390,height:844}, hasTouch:true });
+  const v1 = await v251Ctx.newPage();
+  v1.on('pageerror', e => errs.push('PAGEERROR (251): ' + e.message));
+  await v1.goto(URL); await v1.waitForTimeout(900);
+  const v251 = await v1.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const out = {}, S = BUREAU.state, B = BUREAU, K = B.K;
+    S.objects.filter(o => o.parent === 'root').forEach(o => { o.parent = '__hold'; });
+    B.render(); await nap(250);
+    // 262: Picture is one of the fifteen and the type itself
+    out.pictureIsOneObject = K.image.nm === 'Picture' && B.MASTERS.some(m => m[0] === 'image') && !K.m_picture;
+    // 265: Counter is a family of Ticker and Progress bar, and a habit is three
+    out.counterIsAFamily = K.m_counter && K.m_counter.family.includes('counter') && K.m_counter.family.includes('progressbar')
+      && K.counter.nm === 'Ticker';
+    B.newOfKind('cp_habit', true, {}); await nap(300);
+    const habit = S.objects.find(o => o.parent === 'root' && o.kind === 'task');
+    const tk = S.objects.find(o => o.parent === 'root' && o.kind === 'counter');
+    const bar = S.objects.find(o => o.parent === 'root' && o.kind === 'progressbar');
+    out.aHabitIsThreeThings = !!habit && !!tk && !!bar && tk.tracks === habit.id && bar.tracks === habit.id
+      && (habit.attrs||[]).includes('streak');
+    B.toggleDone(habit.id); await nap(150);
+    out.tickingItLogsTheDay = !habit.done && (habit.history||[]).length === 1 && B.countOf(tk) === 1
+      && !!document.querySelector(`[data-row="${habit.id}"] .tilecheck.on`);
+    // …a ticker counts to something and does what it says there
+    const c = B.create('counter', {parent:'root', title:'Glasses'}); delete c.setup;
+    c.phone = {x:7, y:1, w:2, h:2}; c.goal = 3; c.atGoal = 'reset'; c.count = 2;
+    B.render(); await nap(150);
+    B.tap(c.id); await nap(150);
+    out.atItsGoalItStartsAgain = c.count === 0;
+    c.atGoal = 'stay'; c.count = 2; B.tap(c.id); await nap(150);
+    out.orStaysThereMarked = c.count === 3 && !!document.querySelector(`[data-row="${c.id}"].reached`);
+    // 261: the bag holds what it used to leave out
+    const seen = new Set(); for(let i=0; i<6000; i++) seen.add(B.someKind());
+    out.theBagHasEverything = ['achievement','deck','tag','background','notepad'].every(k => seen.has(k));
+    const bk = B.create('book', {parent:'root'}); B.furnish(bk);
+    out.aRandomBookHoldsNothingStrange = !S.objects.some(o => o.parent === bk.id);
+    // 266: nine more plants
+    out.moreThanTwoPlants = Object.values(B.decor).filter(d => d.plant).length >= 11;
+    // 263: a notepad takes a tap as writing and a hold as a carry
+    const pad = B.create('notepad', {parent:'root'}); pad.phone = {x:1, y:12, w:4, h:1};
+    B.render(); await nap(150);
+    const f = document.querySelector(`[data-fieldfor="${pad.id}"]`);
+    out.theFieldLetsTheFingerThrough = getComputedStyle(f).pointerEvents === 'none';
+    B.tap(pad.id); await nap(100);
+    out.aTapWrites = document.activeElement === f;
+    return out;
+  });
+  await v1.screenshot({ path: 'test/shots/251-habit.png' });
+  await v251Ctx.close();
+
   console.log(JSON.stringify({
-    errors: errs, settingUp, shapes, v248, v249, manifestOk, swReady, survived, styleSurvived, slotColours,
+    errors: errs, settingUp, shapes, v248, v249, v251, manifestOk, swReady, survived, styleSurvived, slotColours,
     newObjectSeen, inlineEdit, sortDefaults, taskLook,
     shelfTools, homeKnob, gridSizes, keeping, versionShown, sampler, paging, scrolling, pageCoords, pagerGround, goingIn, comingOut,
     makingOnAPhone, railDrawer, railIsFurniture, holding, holdingOut, reported, cavity, depth, windows, tossing, pinch, pagerLandsFlat, deskDots,

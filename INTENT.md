@@ -239,6 +239,19 @@ see and change, perhaps by **tying things with string**; a phone scroll cut off
 the icons under its paper; a list's name should not take a whole row; and the
 Workshop had small changes. Built as decisions 255–258 (v2.49).
 
+### Added 2026-09-29, evening — the counter family, the habit in three, Picture
+
+Timothy: ruled paper's lines should sit under the words (the notepad most of
+all), the pad less yellow, its gum strip a palette colour, and the pad easy to
+pick up; more plants; Image and Picture are one object, Picture; the jar looked
+goofy; a random book opened onto something nobody could read; habit trackers
+should be compound objects, and Counter a category whose ticker and progress
+bar can count *to* something and be complete there; Rename should be a small
+field; the raised-band spine ran its bands through the title; the doodads'
+hold should be the ring, their settings in Behaviour with a bigger preview;
+and random generation should really be able to make anything. Built as
+decisions 259–267 (v2.51).
+
 ## Deliberately not next
 
 - **Sync between devices.** It is real and it is coming, *after* the feature set

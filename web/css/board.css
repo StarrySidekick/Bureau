@@ -814,23 +814,24 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
     transparent 0 4px, var(--glow) 4px 5px, transparent 5px);
   --filletx:linear-gradient(90deg,
     transparent 0 4px, var(--glow) 4px 5px, transparent 5px);
-  /* Four hubs, evenly spaced. They were at 4%, 13%, 87% and 96% — two pairs
-     jammed against the head and the tail with a bare two thirds of leather
-     between them. Five panels, a hub between each pair, the wide middle one
-     for the title. */
+  /* Four hubs. They were at 4%, 13%, 87% and 96% — two pairs jammed
+     against the head and the tail with a bare two thirds of leather between
+     them — and then evenly at 18/38/62/82, which put the inner two straight
+     through the title (decision 260). A pair either side of a wide middle
+     panel: the title's, clear of every band. */
   background:
-    var(--hub) 0 18%/100% 9px no-repeat,
-    var(--hub) 0 38%/100% 9px no-repeat,
-    var(--hub) 0 62%/100% 9px no-repeat,
-    var(--hub) 0 82%/100% 9px no-repeat,
-    var(--fillet) 50% 18%/62% 9px no-repeat,
-    var(--fillet) 50% 38%/62% 9px no-repeat,
-    var(--fillet) 50% 62%/62% 9px no-repeat,
-    var(--fillet) 50% 82%/62% 9px no-repeat;
+    var(--hub) 0 9%/100% 9px no-repeat,
+    var(--hub) 0 23%/100% 9px no-repeat,
+    var(--hub) 0 77%/100% 9px no-repeat,
+    var(--hub) 0 91%/100% 9px no-repeat,
+    var(--fillet) 50% 9%/62% 9px no-repeat,
+    var(--fillet) 50% 23%/62% 9px no-repeat,
+    var(--fillet) 50% 77%/62% 9px no-repeat,
+    var(--fillet) 50% 91%/62% 9px no-repeat;
 }
 .bn-ribbed .spinetop,.bn-ribbed .spinefoot{display:none}
 /* the wide panel in the middle of the five, which is the title's */
-.bn-ribbed .spinetitle{position:absolute;left:0;right:0;top:24%;bottom:24%}
+.bn-ribbed .spinetitle{position:absolute;left:0;right:0;top:calc(23% + 11px);bottom:calc(23% + 11px)}
 
 /* ---- the back itself: flat, and chamfered ------------------------------
    The first three bindings are all *ornament* on the same shape — a round
@@ -1049,16 +1050,16 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
    both layers here too, for the reason the standing block gives. */
 .spinetile.lying.bn-ribbed::before{
   background:
-    var(--hubx) 18% 0/9px 100% no-repeat,
-    var(--hubx) 38% 0/9px 100% no-repeat,
-    var(--hubx) 62% 0/9px 100% no-repeat,
-    var(--hubx) 82% 0/9px 100% no-repeat,
-    var(--filletx) 18% 50%/9px 62% no-repeat,
-    var(--filletx) 38% 50%/9px 62% no-repeat,
-    var(--filletx) 62% 50%/9px 62% no-repeat,
-    var(--filletx) 82% 50%/9px 62% no-repeat;
+    var(--hubx) 9% 0/9px 100% no-repeat,
+    var(--hubx) 23% 0/9px 100% no-repeat,
+    var(--hubx) 77% 0/9px 100% no-repeat,
+    var(--hubx) 91% 0/9px 100% no-repeat,
+    var(--filletx) 9% 50%/9px 62% no-repeat,
+    var(--filletx) 23% 50%/9px 62% no-repeat,
+    var(--filletx) 77% 50%/9px 62% no-repeat,
+    var(--filletx) 91% 50%/9px 62% no-repeat;
 }
-.spinetile.lying.bn-ribbed .spinetitle{top:0;bottom:0;left:24%;right:24%}
+.spinetile.lying.bn-ribbed .spinetitle{top:0;bottom:0;left:calc(23% + 11px);right:calc(23% + 11px)}
 /* Lying down, the back is along the **bottom** (decision 124) — so a flat back
    and a chamfer are the same facets read the other way round, and both are a
    transposition of the standing block rather than a second drawing. */
@@ -3834,23 +3835,118 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
 .ovask .pill{justify-content:center}
 .ovask .ovdanger{color:#8E3B38}
 
-/* ---- a notepad — decision 258 -------------------------------------------
-   A legal pad: cream-yellow sheets, blue rules, a red margin, and a strip of
-   gum across the top in the object's own colour, which is where a pad is
-   bound and the one place it says which pad it is. The line you write on
-   sits on the first rule; a taller pad is more rules, and still one line. */
-.drawer.otile.padtile{background-color:#F6EDBE;border:1px solid rgba(90,70,30,.28);border-radius:2px;
+/* ---- a notepad — decisions 258 and 263 --------------------------------
+   A legal pad: a pale sheet, blue rules, a red margin, and a strip of gum
+   across the top (its own colour, or `gum`). **The rules are the line's own
+   pitch**: one rule per cell of height, at the foot of the line you write on,
+   so the words stand on a rule rather than floating between two. `--pitch`
+   is one cell less the gum, which is exactly the box `.padline` is. The field
+   ignores the finger until it is tapped: a tap writes, a hold carries the pad
+   (decision 263). */
+.drawer.otile.padtile{--gumh:5px;--pitch:calc((100% - var(--gumh)) / var(--padrows,1));
+  background-color:#FBF8EC;border:1px solid rgba(90,70,30,.24);border-radius:2px;
   background-image:
-    linear-gradient(90deg, transparent 21px, rgba(196,70,60,.55) 21px 22px, transparent 22px),
-    repeating-linear-gradient(180deg, transparent 0 calc(100% / var(--padrows,1) / 2 - 1px),
-      rgba(70,105,165,.32) calc(100% / var(--padrows,1) / 2 - 1px) calc(100% / var(--padrows,1) / 2));
-  box-shadow:0 1px 1.5px rgba(40,30,15,.18), 0 3px 0 -1px #EFE4AF, 0 4px 3px -1px rgba(40,30,15,.14);
+    linear-gradient(90deg, transparent 21px, rgba(196,70,60,.5) 21px 22px, transparent 22px),
+    linear-gradient(180deg, transparent 0 calc(78% - 1px), rgba(70,105,165,.34) calc(78% - 1px) 78%, transparent 78%);
+  background-size:100% 100%, 100% var(--pitch);
+  background-position:0 0, 0 var(--gumh);
+  background-repeat:no-repeat, repeat-y;
+  box-shadow:0 1px 1.5px rgba(40,30,15,.18), 0 3px 0 -1px #F1ECD9, 0 4px 3px -1px rgba(40,30,15,.14);
   overflow:hidden}
-.padgum{position:absolute;left:0;right:0;top:0;height:5px;background:var(--c);opacity:.85;
+.padgum{position:absolute;left:0;right:0;top:0;height:var(--gumh);background:var(--gum, var(--c));opacity:.9;
   box-shadow:inset 0 -1px 0 rgba(0,0,0,.25)}
-.padline{position:absolute;left:28px;right:8px;top:5px;height:calc((100% - 5px) / var(--padrows,1));
-  display:flex;align-items:center;cursor:text}
-.padin{width:100%;min-width:0;border:0;background:transparent;outline:none;padding:0;
-  font:italic 500 15px/1.2 var(--serif);color:#2A241C;-webkit-user-select:text;user-select:text}
-.padin::placeholder{color:rgba(42,36,28,.42)}
+.padline{position:absolute;left:28px;right:8px;top:var(--gumh);height:calc(var(--pitch) * .78 - 1px);
+  display:flex;align-items:flex-end;cursor:text}
+/* stronger than `.fieldin`, which fills its box and centres the words in it:
+   here the field is one line tall and stands on the rule */
+.drawer.otile.padtile .padin{width:100%;min-width:0;height:1.25em;border:0;background:transparent;outline:none;
+  padding:0;margin:0 0 -5px;font:italic 500 15px/1.25 var(--serif);color:#2A241C;
+  -webkit-user-select:text;user-select:text;pointer-events:none}
+.drawer.otile.padtile .padin:focus{pointer-events:auto}
+.drawer.otile.padtile .padin::placeholder{color:rgba(42,36,28,.42)}
 html[data-theme="dark"] .drawer.otile.padtile{filter:brightness(.88)}
+
+/* ---- ruled paper rules under the words — decision 263 -------------------
+   A telegram and an index card drew their rules at a fixed pitch across the
+   sheet, so the writing sat between them, across them, anywhere. The rules
+   are on the writing now, one per line box (`1lh`), which is what laid stock
+   has done since decision 147: every rule falls at the foot of a line. */
+.drawer.otile.sh-telegram .dpanel{background:none}
+.drawer.otile:is(.sh-telegram,.sh-index) .tiletext{
+  background-image:repeating-linear-gradient(180deg,
+    transparent 0 calc(1lh - 1px), rgba(70,105,165,.22) calc(1lh - 1px) 1lh);
+  background-origin:content-box;background-clip:content-box}
+.drawer.otile.sh-index{background-image:none}
+
+/* ---- a ticker counting to something — decision 265 ---------------------
+   How far it is going, small under the wheels; and once there, a ring of
+   gilt round the drum, the way an achievement is framed. */
+.cnttile .cntgoal{position:absolute;right:3px;bottom:1px;z-index:2;text-decoration:none;
+  font:600 9px/1 var(--sans);color:var(--ink-3);letter-spacing:.02em;pointer-events:none}
+.cnttile.reached .cntnum{box-shadow:0 0 0 2px var(--glow, #C9A24A), 0 0 10px color-mix(in srgb, var(--glow, #C9A24A) 55%, transparent)}
+
+/* ---- the jar, again — decision 267 --------------------------------------
+   Timothy: the jar looked goofy. The brass lid and its knurl read as a tin,
+   the glass was a tinted slab with hard stripes, and the label sat on the lid.
+   Now: a **cork**, a tapered plug of it shaded as a cylinder and flecked the
+   way cork is, sitting in a rim of glass; **clear glass**, barely tinted, lit
+   by soft gradients rather than stripes, with a thick base; and the name on a
+   paper band round the shoulder, above whatever is inside. Still all tokens
+   and gradients, so it dresses in every aesthetic. */
+.drawer.dtile.jartile{--jarlid:17%}
+.jartile .jarlid{
+  left:31%;right:31%;height:var(--jarlid);border-radius:3px 3px 1px 1px;
+  clip-path:polygon(0 0, 100% 0, 92% 100%, 8% 100%);
+  background:
+    radial-gradient(circle at 30% 40%, rgba(80,48,20,.55) 0 .8px, transparent 1.3px) 0 0/6px 5px,
+    radial-gradient(circle at 70% 60%, rgba(80,48,20,.45) 0 .7px, transparent 1.2px) 2px 1px/5px 7px,
+    radial-gradient(circle at 50% 50%, rgba(255,235,200,.35) 0 .6px, transparent 1px) 1px 3px/4px 6px,
+    linear-gradient(90deg, #7B5230 0%, #B8895A 22%, #D5A874 40%, #C29262 62%, #92653B 86%, #6E4828 100%);
+  box-shadow:none;
+}
+.jartile .jarlid::after{
+  content:"";position:absolute;inset:0 0 auto 0;height:26%;
+  background:linear-gradient(180deg, rgba(255,240,215,.45), rgba(255,240,215,0));
+}
+/* the rim the cork is pushed into: a band of thick glass at the neck */
+.jartile .jarglass::before{
+  content:"";position:absolute;left:26%;right:26%;top:0;height:8%;z-index:3;
+  border-radius:0 0 40% 40% / 0 0 60% 60%;
+  background:linear-gradient(90deg, rgba(0,0,0,.10), rgba(255,255,255,.45) 25%, rgba(255,255,255,.15) 55%, rgba(0,0,0,.12));
+  box-shadow:inset 0 -1px 0 rgba(255,255,255,.5);
+}
+.jartile .jarglass{
+  top:calc(var(--jarlid) - 2%);
+  border-radius:34% 34% 12% 12% / 17% 17% 7% 7%;
+  background:
+    radial-gradient(90% 55% at 50% 0%, rgba(255,255,255,.22), transparent 70%),
+    linear-gradient(90deg, rgba(0,0,0,.09) 0%, rgba(255,255,255,.26) 9%, rgba(255,255,255,.06) 24%,
+      rgba(255,255,255,0) 58%, rgba(255,255,255,.12) 84%, rgba(0,0,0,.12) 100%),
+    color-mix(in srgb, var(--c) 7%, rgba(255,255,255,.16));
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.6),
+    inset 0 0 0 2px color-mix(in srgb, var(--c) 18%, transparent),
+    inset -4px 0 6px -2px rgba(0,0,0,.10),
+    inset 0 -9px 10px -8px rgba(0,0,0,.22),
+    0 3px 7px rgba(0,0,0,.18);
+}
+/* the thick glass of the base, over the heap */
+.jartile .jarglass::after{
+  content:"";position:absolute;left:0;right:0;bottom:0;height:6%;z-index:2;pointer-events:none;
+  background:linear-gradient(180deg, rgba(255,255,255,.28), rgba(255,255,255,.06) 60%, rgba(0,0,0,.10));
+  border-top:1px solid rgba(255,255,255,.35);
+}
+.jartile .jarfill{
+  background:linear-gradient(180deg,
+    color-mix(in srgb, var(--c) 8%, transparent), color-mix(in srgb, var(--c) 18%, transparent));
+  border-top:0;
+}
+.jartile .jarshine{
+  left:10%;width:5%;top:calc(var(--jarlid) + 9%);bottom:14%;
+  background:linear-gradient(180deg, rgba(255,255,255,.6), rgba(255,255,255,.22) 45%, rgba(255,255,255,0));
+  filter:blur(.4px);
+}
+.jartile .jarlabel{
+  top:calc(var(--jarlid) + 9%);transform:none;left:13%;right:13%;z-index:4;
+  padding:2px 5px 3px;border-radius:3px / 40%;
+}
