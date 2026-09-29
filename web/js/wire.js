@@ -5,7 +5,7 @@ import { S, K, KINDS, KEYS, refreshKinds, ATTRS, attrsOf, has, SHAPES,
   unrelate, sensedDevice, reset, T, dz, dev, calViewOf, RULE_MAX, acceptFor, acceptAny,
   boardLocked, repeatOf, repeats, heldObjects, heldCount, marginOf, marginPlus, homeFor,
   layoutOf, setClFit, genKindOf, makesAnything , makesSmart, groupMates, groupTogether, isDesk, faceOf, kindHas,
-  sortOf, sortCycleOf, SORT_FACES, inFront } from './model.js';
+  sortOf, sortCycleOf, SORT_FACES, inFront, isCut } from './model.js';
 import { gridOf, lay, boxOk, freeSpot, anySpot, roomFor, sizeOfKind, toPhoneSize, keepSize,
   shelvesOf, shelfAt, setShelf, shelvesToHold, addBoard, removeBoard, onBoard, randomSpot, colsOf, shelfRows, boardsOf, randomSizeOf } from './grid.js';
 import { applyLook, applyStyle, setLookVal, lookVal, STYLES, setSlot, objColour, darkMode } from './look.js';
@@ -2818,7 +2818,7 @@ function wire(){
          called .toLowerCase() on it unguarded, so any letter that did not
          match one of the first dozen types threw before it could miss. */
       const want = e.key.toLowerCase();
-      const k = KEYS.find(x => (KINDS[x].key||'').toLowerCase()===want);
+      const k = KEYS.find(x => !isCut(x) && (KINDS[x].key||'').toLowerCase()===want);
       // the same way in as pressing the tile: the cell, and the questions
       if(k){ newOfKind(k); return; }
     }

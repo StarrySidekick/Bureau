@@ -11251,3 +11251,12 @@ jar shows what is in it. Redrawn: a tapered cork, flecked and shaded as a
 cylinder, pushed into a rim of glass; clear glass, barely tinted, lit by soft
 gradients with a thick base; the name on a paper band across the shoulder,
 above the contents.
+
+## 268 · Random, Telegram and Album are cut
+
+*2026-09-29.* Timothy: cut Random, Telegram and Album, since there is already
+an Album project. They join `CUT_KINDS`, and `familyList()` now drops a cut
+type, so they leave the category screens and the ring as well as the flat
+list; the type shortcut skips them too. The kinds stay, so anything already on
+a desk still draws. The coin is the random thing now; Post is a letter or a
+postcard; the album is `pj_album`, the Album project.

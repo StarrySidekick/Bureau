@@ -188,7 +188,7 @@ const got = await page.evaluate(async ({ rail, depth }) => {
   // ---- the types: the fifteen first, so the tree nests the way the picker does
   const K = M.K, masters = M.MASTERS.map(m => m[0]);
   const treeFamily = k => { const m = M.MASTERS.find(x => x[0] === k);
-    return m && m[1] ? m[1].filter(x => x !== k) : (K(k).family || []).filter(x => x !== k); };
+    return m && m[1] ? m[1].filter(x => x !== k) : (K(k).family || []).filter(x => x !== k && !M.isCut(x)); };
   const reach = new Set(); M.MASTERS.forEach(([m, also]) => { const walk = k => { if (reach.has(k) || !M.KINDS[k]) return; reach.add(k); (K(k).family || []).forEach(walk); }; walk(m); (also || []).forEach(walk); });
   const order = masters.concat(Object.keys(M.KINDS).filter(k => !masters.includes(k)));
   const kinds = order.filter(k => M.KINDS[k]).map(k => {

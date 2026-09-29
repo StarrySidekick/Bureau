@@ -924,7 +924,10 @@ const SECONDARY = [];
    scenes, and no picker offers them. */
 /* The Habit tracker is a compound since decision 265 (`cp_habit`): the kind
    stays for what is already on a desk, and no picker offers it. */
-const CUT_KINDS = ['magic','recipe','control','generator','tracker'];
+/* Random, Telegram and Album went on 2026-09-29 (decision 268): the coin is
+   the random thing, a telegram was a third kind of post nobody sent, and the
+   Album project (`pj_album`) is the album. */
+const CUT_KINDS = ['magic','recipe','control','generator','tracker','anything','telegram','album'];
 const isCut = k => CUT_KINDS.includes(k);
 const isPrimary = k => PRIMARY.includes(k);
 /* Everything a master opens onto, through families all the way down, so the
@@ -981,7 +984,7 @@ const isFragmentKind = k => FAMILY_OF[k]==='fragment' || k==='fragment' ||
    name a type that has since been deleted from KINDS, and a type you invented
    may say it belongs to one. */
 const familyList = cat => {
-  const own = (familyOf(cat)||[]).filter(k=>KINDS[k]);
+  const own = (familyOf(cat)||[]).filter(k=>KINDS[k] && !isCut(k));
   const mine = KEYS.filter(k=>S.kinds && S.kinds[k] && S.kinds[k].family1===cat && !own.includes(k));
   return own.concat(mine);
 };

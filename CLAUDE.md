@@ -263,6 +263,8 @@ now shows the object big; **Counter is a family** (`m_counter`: Ticker and
 Progress bar) that can count to a `goal` and do what `atGoal` says there
 (`reachedGoal()`); the **Habit tracker is a compound** (`cp_habit`); nine
 Fabergé and porcelain plants; and a corked, clear-glass jar.
+**v2.52** (decision 268): Random, Telegram and Album are cut (`CUT_KINDS`;
+`familyList()` drops a cut type, so no category screen or ring offers one).
 
 **Start here each session:** `docs/SYSTEM.md` is the reference for what Bureau is
 made of — objects, attributes, types, drawers, the grid, the surfaces, storage.

@@ -10582,6 +10582,19 @@ const PROP_OFF = () => { const b = document.createElement('button');
     // 261: the bag holds what it used to leave out
     const seen = new Set(); for(let i=0; i<6000; i++) seen.add(B.someKind());
     out.theBagHasEverything = ['achievement','deck','tag','background','notepad'].every(k => seen.has(k));
+    // 268: Random, Telegram and Album are cut: no picker, ring or coin offers them
+    const gone = ['anything','telegram','album'];
+    out.threeAreCut = gone.every(k => B.isCut(k) && !seen.has(k))
+      && !B.K.post.family.filter(k => !B.isCut(k)).includes('telegram');
+    const drawn = new Set();
+    for(const fam of ['instrument','post','m_writing']){
+      B.pick(); await nap(120);
+      const door = document.querySelector(`#panel [data-family="${fam}"]`);
+      if(door){ door.click(); await nap(120); }
+      document.querySelectorAll('#panel [data-new]').forEach(e => drawn.add(e.dataset.new));
+      document.querySelector('#panel [data-act="panelclose"]')?.click(); await nap(60);
+    }
+    out.noPickerDrawsThem = drawn.size > 0 && !gone.some(k => drawn.has(k));
     const bk = B.create('book', {parent:'root'}); B.furnish(bk);
     out.aRandomBookHoldsNothingStrange = !S.objects.some(o => o.parent === bk.id);
     // 266: nine more plants
