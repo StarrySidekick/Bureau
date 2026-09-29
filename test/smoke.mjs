@@ -5793,6 +5793,11 @@ const PROP_OFF = () => { const b = document.createElement('button');
     // …bar the ones cut in the Workshop, which no picker offers (decision 218)
     /* A category that is only a question (Post, Tool, Fragment) is not a
        thing to reach: its members are, and they are flat inside a master. */
+    /* …and a category inside a category (Counter inside Instrument, v2.51)
+       is one more press, so follow families all the way down. */
+    for(let grew = true; grew; ){ const n = reachable.size;
+      [...reachable].forEach(k => ((BUREAU.K[k] || {}).family || []).forEach(j => reachable.add(j)));
+      grew = reachable.size > n; }
     out.everythingIsStillThere = Object.keys(BUREAU.K).every(k => reachable.has(k) || BUREAU.isCut(k) || BUREAU.K[k].cat);
     document.querySelector('#panel [data-act="panelclose"]').click();
     // …and inside a container that says what it makes, that type comes first
