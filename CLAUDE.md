@@ -340,6 +340,11 @@ reading and writing no box on what it collects, and a packed board steps sizes
 down rather than stacking things in the corner.
 **v2.66** (decision 279): the hold ring is kept on screen by its measured
 labels (`ringReach()`), and a disclosure's note is not shouted.
+**v2.67** (decision 280): a sorting drawer is **packed, not sorted**
+(`packs` in the grid builder), so its things can still be carried out; a move
+there pushes no empty undo; a dropped echo still closes the ring; a
+pigeonhole packs a sorting drawer's miniature; a timeline's end labels sit
+inside the tile.
 
 **Start here each session:** `docs/SYSTEM.md` is the reference for what Bureau is
 made of — objects, attributes, types, drawers, the grid, the surfaces, storage.

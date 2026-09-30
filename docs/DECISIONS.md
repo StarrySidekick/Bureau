@@ -11771,3 +11771,30 @@ it then stood in its real home.
 - **A disclosure's note is said quietly.** The Flows disclosure in the picker
   printed its note in the label's uppercase bold, so it read as one shouted
   line; `.pgroup > summary .n` sets it in the ordinary case and weight.
+
+## 280. What a review of 277 and 278 found (v2.67, 2026-09-30)
+
+A second read of the night's own fixes, looking for what they broke.
+
+- **A sorting drawer is packed, not sorted.** 278 said `sorted` for it so the
+  grid builder would pack it, and `sorted` also puts `.sorted` on the grid,
+  which is what makes gestures.js refuse a drag and say "Sorted boards arrange
+  themselves". So nothing in Open Questions could be carried out, filed or
+  dated. The grid builder asks `packs` (sorted, or a sorting drawer) for the
+  packing and leaves `sorted` meaning sorted.
+- **A move that writes nothing pushes nothing.** The drop guard came after the
+  undo move was pushed, so a nudge inside a sorting drawer left an empty
+  "Moved" on the stack. It is asked before, and a plain move there keeps no
+  fields.
+- **A dropped echo still puts things down.** `tapEcho()` returned before the
+  click listener closed an open ring and let go of a selection, which are the
+  click's side jobs whatever it lands on.
+- **A pigeonhole's miniature packs too**, as its board does, so drawing a
+  sorting drawer in a pigeonhole cannot `ensureBox()` its things in its space;
+  the render-only map is put back as it was afterwards.
+- **A full packed board stops stepping at one cell**, and its last resort is
+  the corner of the tile you are on, which is a tile, not (1,1).
+- **A timeline's end labels sit inside the tile.** Its lanes were measured
+  against the tile's outer width and placed in its padding box, so the last
+  label ran 13px past the right edge; the insets are taken off the content
+  width now and both ends sit ten pixels in.

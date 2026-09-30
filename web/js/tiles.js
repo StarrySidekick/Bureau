@@ -1278,10 +1278,17 @@ function pigeonBoard(o, box){
   const k = Math.max(0.02, Math.min(iw/bw, ih/bh));
   const was = {x:SHELFSHIFT.x, y:SHELFSHIFT.y};
   SHELFSHIFT.x = SHELFSHIFT.y = 0;
+  /* A sorting drawer's things are packed, as its board packs them (decision
+     278): `gridTile()` would otherwise `ensureBox()` each one in this space.
+     The packing is in the one render-only map the board being drawn also
+     uses, so whatever it held for these same things goes back afterwards. */
+  const packs = has(o,'magic'), held = packs ? kids.map(x => [x.id, FLOW.get(x.id)]) : null;
+  if(packs) flowSorted(kids, o.id);
   PIGEON.depth++;
   let tiles = '';
   try { tiles = kids.map(x => gridTile(x, false, o.id)).join(''); }
-  finally { PIGEON.depth--; SHELFSHIFT.x = was.x; SHELFSHIFT.y = was.y; }
+  finally { PIGEON.depth--; SHELFSHIFT.x = was.x; SHELFSHIFT.y = was.y;
+    if(held) held.forEach(([id, b]) => b ? FLOW.set(id, b) : FLOW.delete(id)); }
   tiles = tiles.replace(/ data-[a-z0-9-]+="[^"]*"/g, '')
                .replace(/<button\b/g, '<div').replace(/<\/button>/g, '</div>');
   return `<div class="pgboard" aria-hidden="true" style="width:${bw}px;height:${bh}px;${
@@ -2252,10 +2259,13 @@ function drawTileFace(o, arr, box, persp){
        would have had, else the other, else it is only its dot. */
     /* Two rows or fewer has no room above the rule for a label under the
        name, so it is one lane, below (`tl1`). */
-    const W = (box && box.w || 4) * tileCell(), ins = Math.min(44, .14*W), lab = Math.min(76, .30*W);
-    const axis = Math.max(1, W - 2*ins), ends = {above:-Infinity, below:-Infinity}, one = !!box && box.h <= 2;
+    /* `cqw` is the tile's content box (its 13px padding and 1px border off
+       each side) and the axis is placed in its padding box. */
+    const W = (box && box.w || 4) * tileCell(), Wc = W - 28;
+    const ins = Math.min(44, .14*Wc), lab = Math.min(76, .30*Wc);
+    const axis = Math.max(1, W - 2 - 2*ins), ends = {above:-Infinity, below:-Infinity}, one = !!box && box.h <= 2;
     const lanes = kids.map((x,i)=>{
-      const run = runOf(x), c = ins + pc(x.due||x.created)/100*axis;
+      const run = runOf(x), c = 1 + ins + pc(x.due||x.created)/100*axis;
       const l = run ? c : c - lab/2;
       const shift = Math.max(0, 10 - l) - Math.max(0, l + lab - (W - 10));
       const want = one || i%2 ? 'below' : 'above', other = one ? 'none' : want==='above' ? 'below' : 'above';
@@ -3047,6 +3057,7 @@ function flowSorted(kids, cid){
   const homeOf = o => { const b=o[dv];
     const s = (!packs && b && b.w && b.x) ? shelfOfBox(b, dv, cid) : null;
     return (s && isBoard(cid, s.x, s.y)) ? s : here; };
+  let full=false;                            // not even a single cell is left
   kids.forEach(o=>{
     let [w,h]=(o[dv]&&o[dv].w) ? [o[dv].w,o[dv].h] : sizeOfKind(o.kind, dv, cid);
     w=Math.min(w, g.maxW, g.cols); h=Math.min(h, g.maxH, g.rows);
@@ -3057,7 +3068,7 @@ function flowSorted(kids, cid){
        steps down: a full board put everything after the first on top of it
        in the corner (2026-09-30). The corner is still the last resort. */
     const minW=Math.ceil(w/2), minH=Math.ceil(h/2);
-    for(let a=w, b=h; !put; ){
+    for(let a=w, b=h; !put && !full; ){
       for(const [sx,sy] of order){
         const x0=sx*g.shelfW, y0=sy*g.shelfH;
         for(let y=1;y<=Math.min(g.shelfH, g.rows-y0-b+1) && !put;y++) for(let x=1;x<=Math.min(g.shelfW, g.cols-x0-a+1);x++){
@@ -3065,10 +3076,12 @@ function flowSorted(kids, cid){
         }
         if(put) break;
       }
-      if(put || (a<=1 && b<=1)) break;
+      if(put) break;
+      if(a<=1 && b<=1){ full=true; break; }
       if(a>=b && a>minW) a--; else if(b>minH) b--; else if(a>1) a--; else b--;
     }
-    put=put||{x:1,y:1,w,h};
+    // the corner of the tile you are on, which is a tile, rather than (1,1)
+    put=put||{x:here.x*g.shelfW+1, y:here.y*g.shelfH+1, w, h};
     taken.push(put);
     FLOW.set(o.id, put);                      // render-only; never persisted
   });
@@ -3298,8 +3311,10 @@ function gridOfContainer(cid){
      the grid grew columns to reach it and every other tile was crushed to a
      letter's width; and `ensureBox()` here wrote a box in this space onto a
      thing that lives elsewhere. `flowSorted()` reads no position and writes
-     nothing. */
-  const sorted=sortOf(c) || (has(c,'magic') ? 'manual' : null);
+     nothing. It is **not** sorted, though: `.sorted` on the grid is what
+     makes gestures.js refuse a drag, and a thing in a sorting drawer can
+     still be carried out of it, filed, dated or thrown. */
+  const sorted=sortOf(c), packs = sorted || has(c,'magic');
   const dv=dev(), g=gridOf(dv, c.id);
   /* On a phone the board is **windowed** to one shelf; on a Mac the whole
      thing is drawn and the scroller reaches the rows you cannot see. So the
@@ -3339,7 +3354,7 @@ function gridOfContainer(cid){
      origin: `ensureBox()` refuses to place anything before the board has been
      measured, because a shelf is as tall as whatever fits on this screen. The
      frame in question is the first one at launch. See decision 141. */
-  if(sorted) flowSorted(kids, c.id);          // a sort overrides hand placement
+  if(packs) flowSorted(kids, c.id);           // a sort overrides hand placement
   else kids = kids.filter(o=>!!ensureBox(o, dv, c.id));
   /* **A board can get smaller.** Its size is its container's tile times four
      now, so resizing a drawer resizes the coordinate space inside it, and
@@ -3356,7 +3371,7 @@ function gridOfContainer(cid){
   /* …and, on any board, anything sitting where there is no board: a board is
      taken away only when it is empty (decision 219), so this is a box from a
      desk that was arranged some other way, and it is put back on one. */
-  if(!sorted) kids.forEach(o=>{
+  if(!packs) kids.forEach(o=>{
     const b = lay(o, dv, c.id);
     const on = shelfOfBox(b, dv, c.id);
     const inside = b.x>=1 && b.y>=1 && b.x+b.w-1<=g.cols && b.y+b.h-1<=g.rows;
@@ -3375,7 +3390,7 @@ function gridOfContainer(cid){
     /* …and not while the phone is on its side: the shelf is not being measured
        there (`sideways()` in grid.js), so the geometry this is comparing against
        is the portrait one and every box already fits it. */
-    if(!sorted && !sideways()) kids.forEach(o=>{
+    if(!packs && !sideways()) kids.forEach(o=>{
       const b=lay(o, dv, c.id);
       /* Up and down a scrolling phone reads across the seam (decision 272);
          `oneShelf()` says which seams still count. */

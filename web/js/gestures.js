@@ -2004,10 +2004,14 @@ function onUp(e){
        records that itself. See decision 65. */
     const was = [];
     const keep = (o, ks) => { if(o) ks.forEach(k=>was.push([o.id, k, o[k] && typeof o[k]==='object' ? {...o[k]} : o[k]])); };
+    /* A sorting drawer packs itself and holds nothing (tiles.js), so a plain
+       move on it has no box to write, and so nothing to undo either. */
+    const packs = has(container(g.parent), 'magic');
     if(d && !aim.gath){
       const dv=dev();
       if(aim.day || aim.tl) keep(d, ['due','till','parent','desk','phone']);
       else if(aim.on)       keep(d, ['parent','desk','phone']);
+      else if(packs)        {}
       else if(g.moved)      g.moved.forEach(m=>keep(byId(m.id), [dv]));
       else if(g.cand)       keep(d, [dv]);
       if(was.length) pushSets(aim.day||aim.tl ? 'Scheduled' : aim.on ? 'Filed' : 'Moved', was);
@@ -2062,9 +2066,7 @@ function onUp(e){
       toast(`Filed in ${into?into.title:'the drawer'}`, true);
       return;
     }
-    /* A sorting drawer packs itself and holds nothing (tiles.js), so a box
-       written here would be in its space on a thing that lives elsewhere. */
-    const packs = has(container(g.parent), 'magic');
+    // …and it writes no box: one here would be in its space on a thing that lives elsewhere
     if(packs){ render(); return; }
     if(d && g.moved && g.ok) g.moved.forEach(m=>{ const o=byId(m.id); if(o) o[dev()]={...m.box}; });
     else if(d && g.cand && g.ok) d[dev()]={...g.cand};

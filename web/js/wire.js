@@ -1412,8 +1412,13 @@ function wire(){
   frame.addEventListener('click', e=>{
     // a gesture that ended in a drag leaves one click behind; drop it
     if(gestureFlags.suppressClick){ gestureFlags.suppressClick=false; return; }
-    // …and the one a tap leaves on whatever it put under the finger
-    if(tapEcho(e)) return;
+    /* …and the one a tap leaves on whatever it put under the finger. Its
+       side jobs still happen: an open ring is put down, a selection let go. */
+    if(tapEcho(e)){
+      if(!ringJustOpened() && Date.now() - FRONT_HELD > 900) closeCtx();
+      if(S.sel.length) S.sel=[];
+      return;
+    }
     const t=e.target;
     // …but not the click the shape ring's own release leaves behind (210)
     // …nor the one a hold in the drawer front leaves under its menu (252)
