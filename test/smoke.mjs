@@ -4157,6 +4157,9 @@ const PROP_OFF = () => { const b = document.createElement('button');
        the corners of the shelf being looked at and take them away again. Four
        and not two: `--px` and `--py` are one call, and a corner answers both. */
     const board = S.objects.map(o => [o.id, o.parent, o.desk, o.phone]);
+    /* On the middle tile, which has a tile above it for the top corners to
+       stand on: a block before may have left you on the top one (274). */
+    BUREAU.goShelfTo('root', 1, 1); BUREAU.render(); await nap(300);
     const shelfW = shownCols(document.querySelector('#drawergrid')) || 8;
     const shelfH = BUREAU.shelfRows;
     /* The screen is the tile and three rows of each neighbour (decision
@@ -4349,7 +4352,6 @@ const PROP_OFF = () => { const b = document.createElement('button');
     // The vertical axis reverses with the horizontal one — it is one sign per
     // cue, not one per axis, so a thing above the middle shows its top.
     out.aboveCentreYouSeeTheTop = hi.length > 0 && hi.every(t => faceOf(t,'top') > 0.2 && faceOf(t,'bottom') === 0);
-    out.dbgAbove = hi.length + ' above · ' + hi.map(t => (t.dataset.drawer||t.dataset.row)+':'+t.style.getPropertyValue('--py')+':'+faceOf(t,'top').toFixed(2)+'/'+faceOf(t,'bottom').toFixed(2)).join(' ');
     out.belowCentreYouSeeTheUnderside = lo.length > 0 && lo.every(t => faceOf(t,'bottom') > 0.2 && faceOf(t,'top') === 0);
     const subject = sided.find(t => px(t) < -0.3);          // stands left of centre
     const restL = faceOf(subject,'left'), restR = faceOf(subject,'right');
@@ -4499,8 +4501,8 @@ const PROP_OFF = () => { const b = document.createElement('button');
        edge, the middle — and the steps are aimed at it from wherever the tile
        starts, because a tile's width is the type's size and not the test's
        (the phone takes the size you set, 2026-09-28). */
-    const carry = async (pid, step, ms, n, endAt) => {
-      const el = await window.aTileOnAShelf('#app .grid .drawer[data-row]');
+    const carry = async (pid, step, ms, n, endAt, sel) => {
+      const el = sel ? document.querySelector(sel) : await window.aTileOnAShelf('#app .grid .drawer[data-row]');
       const id = el.dataset.row, r = el.getBoundingClientRect();
       const o = {bubbles:true, cancelable:true, pointerId:pid, pointerType:'touch', isPrimary:true};
       const x0 = r.left + r.width/2, y0 = r.top + Math.min(r.height/2, 20);
@@ -4522,8 +4524,20 @@ const PROP_OFF = () => { const b = document.createElement('button');
     // …and flicked off it
     /* The last move is at the edge wherever the tile started: a phone that
        scrolls sideways (273) may hand over one near the right of the screen. */
-    const thrown = await carry(62, 'all', 8, 8, () => 3);
-    out.dbgThrown = thrown + ' · ' + JSON.stringify((S.objects.find(o=>o.id===thrown)||{}).phone) + ' · scrollLeft ' + document.querySelector('#app .deskscroll').scrollLeft;
+    /* A thing of its own, in the middle of the screen, so the throw has
+       somewhere to travel: the one the helper finds may already be at the
+       left edge of a board of tiles of five (274). */
+    const fling = BUREAU.create('note', {parent:'root', title:'Fling me'});
+    { const sc = document.querySelector('#app .deskscroll'), gr = document.querySelector('#drawergrid');
+      const cell = parseFloat(gr.style.getPropertyValue('--rowh')), sh = BUREAU.shelfShift('root');
+      const cx = Math.floor((sc.scrollLeft + sc.clientWidth/2 - gr.offsetLeft) / cell) + 1 + sh.x;
+      const cy = Math.floor((sc.scrollTop + sc.clientHeight/2 - gr.offsetTop) / cell) + 1 + sh.y;
+      const spots = [];
+      for(let dy=-3; dy<=3; dy++) for(let dx=-1; dx<=1; dx++) spots.push({x:cx+dx, y:cy+dy, w:1, h:1});
+      fling.phone = spots.find(b => BUREAU.boxOk(b, fling.id, 'phone', 'root')) || fling.phone; }
+    BUREAU.render(); await nap(150);
+    window.__fling = fling.id;
+    const thrown = await carry(62, 'all', 8, 8, () => 3, `#app .grid .drawer[data-row="${fling.id}"]`);
     out.aHardFlickThrowsIt = !alive(thrown);
     out.andTheTileFliesOff = !!document.querySelector('#fx .fxtoss');
     /* The picture must not answer to the id of the thing that has just been
@@ -4534,6 +4548,7 @@ const PROP_OFF = () => { const b = document.createElement('button');
     out.thenTidiesItselfUp = !document.querySelector('#fx .fxtoss');
     BUREAU.undo(); await nap(220);
     out.undoBringsItBack = alive(thrown);
+    BUREAU.del(fling.id);
     // fast, but let go in the middle of the board: a move, and a refused one
     out.fastButNotOffTheEdgeIsAMove = alive(await carry(63, 0, 8, 8, () => innerWidth / 2));
     S.look.locked = wasLocked; S.view='desk'; S.drawerId=null; BUREAU.render();
@@ -8493,7 +8508,14 @@ const PROP_OFF = () => { const b = document.createElement('button');
   const gravity = await page.evaluate(async () => {
     const nap = ms => new Promise(r => setTimeout(r, ms));
     const S = BUREAU.state, out = {};
-    S.view='desk'; S.drawerId=null; delete S.look.gravity; BUREAU.render(); await nap(220);
+    /* **Its own board** (decision 274): the suite's desk is fifteen cells by
+       fifteen now and, this far in, holds more than fifty things packed tight
+       enough that some already overlap — no pile can settle clean on that. So
+       the fall happens in a drawer of its own, two tiles by three. */
+    const pileBox = BUREAU.create('drawer', {parent:'root', title:'The pile'});
+    [[1,0],[0,1],[1,1],[0,2],[1,2]].forEach(([x,y]) => BUREAU.addBoard(pileBox.id, x, y));
+    const HOME = pileBox.id;
+    S.view='drawer'; S.drawerId=HOME; delete S.look.gravity; BUREAU.render(); await nap(220);
     /* **A heap needs a pile.** Which shelf the suite has left the desk standing
        on is nobody's business but the block that put it there, and this one ran
        on a shelf-row carrying three tiles out of a hundred and thirty-five —
@@ -8501,8 +8523,8 @@ const PROP_OFF = () => { const b = document.createElement('button');
        own, on the shelf it is on (`freeSpot()` prefers it), and takes them away
        at the end. */
     const mine = [];
-    for(let i=0;i<6;i++){
-      const o = BUREAU.create('note', {parent:'root', title:'falls '+i});
+    for(let i=0;i<8;i++){
+      const o = BUREAU.create('note', {parent:HOME, title:'falls '+i});
       if(o) mine.push(o.id);
     }
     BUREAU.render(); await nap(260);
@@ -8615,7 +8637,7 @@ const PROP_OFF = () => { const b = document.createElement('button');
        is the fall, and what is left of `justmade` is the ring of light. */
     S.look.gravity = 'sand'; BUREAU.gravity.apply();
     BUREAU.gravity.settle(900);
-    const fresh = BUREAU.create('note', {parent:'root', title:'arrives'});
+    const fresh = BUREAU.create('note', {parent:HOME, title:'arrives'});
     BUREAU.render(); BUREAU.reveal(fresh.id); await nap(80);
     const ftile = document.querySelector(`#drawergrid .drawer[data-row="${fresh.id}"]`);
     out.aNewThingIsABodyAtOnce = !!BUREAU.gravity.report().at.find(b=>b.id===fresh.id);
@@ -8673,7 +8695,8 @@ const PROP_OFF = () => { const b = document.createElement('button');
     BUREAU.render(); await nap(200);
 
     out.thereIsASwitchForIt = 'gravity' in BUREAU.CONTROLS;
-    mine.forEach(id => BUREAU.del(id));
+    S.objects = S.objects.filter(o => o.id !== HOME && o.parent !== HOME);
+    S.view='desk'; S.drawerId=null;
     S.undo = []; S.redo = []; BUREAU.render();
     return out;
   });
