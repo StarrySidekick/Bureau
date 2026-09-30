@@ -3465,7 +3465,8 @@ const PROP_OFF = () => { const b = document.createElement('button');
       out.aDropFiles = find(thing.id).parent === into.id;
       out.andTheToastOffersTheWayBack = !!document.querySelector('#toast [data-undo]');
       spendTheClick(); await nap(30);
-      document.querySelector('#toast [data-undo]').click(); await nap(240);
+      const un = document.querySelector('#toast [data-undo]');
+      if(un) un.click(); await nap(240);
       out.andPressingItUnfilesIt = find(thing.id).parent === wasIn;
     }
 
