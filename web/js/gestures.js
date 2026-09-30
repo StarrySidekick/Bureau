@@ -1,8 +1,8 @@
 import { $, $$, clamp, D, ROOT } from './util.js';
-import { blockHold, frontHold } from './wire.js';
+import { blockHold, frontHold, tileHere, tileAway } from './wire.js';
 import { S, byId, dev, has, isContainer, isAncestor, childrenOf, container, gatherKind, spanOf,
   sortOf, boardLocked, heldCount, homeFor, attrsOf, travelWith, isMedia } from './model.js';
-import { CELL, gridOf, drawCols, drawRows, cellW, lay, boxOk, overlaps, sizeOfKind, keepSize, isBoard, boardsOf, zoomOf, zoomRange, snapZoom } from './grid.js';
+import { CELL, gridOf, drawCols, drawRows, cellW, lay, boxOk, overlaps, sizeOfKind, keepSize, isBoard, reachable, boardsOf, zoomOf, zoomRange, snapZoom } from './grid.js';
 import { toast, gather, del, pushSets, holdIt, unholdIt } from './mutations.js';
 import { pending, tileTap, fireButton, turnPage,
   scratchGrab, scratchTo, scratchGo } from './tiles.js';
@@ -20,6 +20,14 @@ import { save } from './persist.js';
    ============================================================ */
 let G=null;
 let holdTimer=null, menuTimer=null, holdFrom=null;
+/* The longer hold that takes a tile away (2026-09-30): past the one that makes
+   a thing, the tile darkens, and still holding at the end of it takes it. */
+let goTimer=null, goEl=null;
+const TILE_GO = 900;
+function stopGoing(){
+  if(goTimer){ clearTimeout(goTimer); goTimer=null; }
+  if(goEl){ goEl.remove(); goEl=null; }
+}
 /* Two lengths of press, and the difference between them is whether you moved.
    A touch that holds for 300ms has picked the tile up. A touch that is *still*
    holding it 250ms later, and has not moved further than a thumb wobbles, did
@@ -85,6 +93,7 @@ function cancelHold(e){
   if(e && holdFrom && Math.abs(e.clientX-holdFrom.x)<WOBBLE && Math.abs(e.clientY-holdFrom.y)<WOBBLE) return;
   if(holdTimer){ clearTimeout(holdTimer); holdTimer=null; }
   if(menuTimer){ clearTimeout(menuTimer); menuTimer=null; }
+  stopGoing();
 }
 
 
@@ -974,22 +983,56 @@ function onDown(e){
        falling: grid.classList.contains('falling'),
        locked, axis:null, from:0, canSketch:false, held:false};
     const g0=G;
-    /* **A slot with no board on it is not somewhere to make anything**
-       (decision 219): the plus makes the board first. So a hold there never
-       becomes the Magic Selector, and a finger that moves still walks. */
-    if(!isBoard(home, Math.floor((cx-1)/g.shelfW), Math.floor((cy-1)/g.shelfH))) return;
+    /* **A slot with no tile on it is not somewhere to make anything**
+       (decision 219), and since 2026-09-30 there is no plus on it either:
+       holding it, unlocked, makes the tile there. A finger that moves still
+       walks, and a locked board holds nothing. */
+    const ti=Math.floor((cx-1)/g.shelfW), tj=Math.floor((cy-1)/g.shelfH);
+    const hold = e.pointerType==='touch' ? HOLD_TOUCH : HOLD_MOUSE;
+    if(!isBoard(home, ti, tj)){
+      if(locked || !reachable(home, ti, tj)) return;
+      holdTimer=setTimeout(()=>{
+        holdTimer=null;
+        if(G!==g0 || G.mode) return;
+        G=null; gestureFlags.suppressClick=true;
+        if(navigator.vibrate) navigator.vibrate(10);
+        tileHere(home, ti, tj, false);
+      }, hold);
+      holdFrom={x:e.clientX,y:e.clientY};
+      return;
+    }
+    /* The middle cell of a tile, held on past the Magic Selector, takes the
+       tile away: only the middle, so a hold anywhere else stays a sketch, and
+       the tile darkens while you decide. Things on it ask where they go. */
+    const centre = !locked && ((cx-1)%g.shelfW+g.shelfW)%g.shelfW===Math.floor(g.shelfW/2)
+      && ((cy-1)%g.shelfH+g.shelfH)%g.shelfH===Math.floor(g.shelfH/2);
     holdTimer=setTimeout(()=>{
       holdTimer=null;
       if(G!==g0 || G.mode) return;
       G.held=true; G.canSketch=true;
       if(navigator.vibrate) navigator.vibrate(6);
+      if(centre){
+        goEl=document.createElement('div');
+        goEl.className='tilegoing';
+        goEl.style.setProperty('--go', TILE_GO+'ms');
+        place(goEl, {x:ti*g.shelfW+1, y:tj*g.shelfH+1, w:g.shelfW, h:g.shelfH}, home);
+        grid.appendChild(goEl);
+        goTimer=setTimeout(()=>{
+          goTimer=null;
+          if(G!==g0) return stopGoing();
+          if(G.ghost) G.ghost.remove();
+          G=null; stopGoing(); gestureFlags.suppressClick=true;
+          if(navigator.vibrate) navigator.vibrate([12,40,12]);
+          tileAway(home, ti, tj);
+        }, TILE_GO);
+      }
       // the cell lights up the moment the hold lands, or nothing has happened
       G.ghost=document.createElement('div');
       G.ghost.className='ghost band';
       place(G.ghost, {x:G.x0, y:G.y0, w:1, h:1}, G.parent);
       G.grid.appendChild(G.ghost);
       G.mode='sketch';
-    }, e.pointerType==='touch' ? HOLD_TOUCH : HOLD_MOUSE);
+    }, hold);
     holdFrom={x:e.clientX,y:e.clientY};
     return;
   }

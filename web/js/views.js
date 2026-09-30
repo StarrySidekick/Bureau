@@ -748,7 +748,7 @@ function shelfCountField(cid){
       <div class="tilemap" style="--sw:${sh.w + 2*pad}">${cells.join('')}</div>
       <div class="mini" style="--k:var(--brass);margin-top:6px">${cid===ROOT?'The desk':'This drawer'} is <b>${n} tile${n>1?'s':''}</b>, each five by five. ${magic
         ? 'A sorting drawer collects rather than holds, so it stays one tile.'
-        : 'Press a tile to take it away, or a plus to add one there. On the board, pinch out and press the plus beside it; an empty tile shows a minus.'}${
+        : 'Press a tile to take it away, or a plus to add one there. On the board, hold an empty slot to add a tile there, or hold the middle of a tile, past the hold that makes a thing, to take it away.'}${
         cid===ROOT ? '' : ' Two fingers sideways goes to the drawer beside this one.'}
         <button class="fchip" data-act="zoomfit" data-id="${cid}" style="margin-left:4px">See every tile</button></div>
     </div>`;

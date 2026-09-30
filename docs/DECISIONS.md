@@ -11642,3 +11642,26 @@ unlocked board only.
   sixty-four-pixel box shrank the whole board mid-drag and nothing could be
   dropped on the board or into a drawer. It is `.tiledrop`. Found by the
   smoke suite before it shipped.
+
+## 276. Tiles are made and taken away by holding (v2.63, 2026-09-30)
+
+Timothy: "get rid of the pluses and the minuses. Tapping and holding empty
+space will just add a new tile there. Tapping and holding a tile in its center
+longer than even the tap and hold to make an object will delete the board."
+
+- **An empty slot is plain wood, always.** Holding it on an unlocked board
+  (the same 300ms/200ms as the Magic Selector) makes a tile there, which clicks
+  into place (decision 275) while the view holds still. A finger that moves
+  first still walks; a locked board holds nothing.
+- **The middle cell of a tile, held on, takes the tile away.** The first hold
+  is still the Magic Selector (the cell lights). Only if that cell is the
+  tile's centre does a second stage start: `.tilegoing` darkens the tile over
+  `TILE_GO` (900ms), and still being there at the end takes it through
+  `tileAway()` in wire.js. Moving or letting go stops it, and a release before
+  then is an ordinary sketch. Only the centre, so every other hold stays a
+  sketch; a tile with things on it asks where they go (decision 234); the tile
+  you arrive on stays.
+- `tileHere()` and `tileAway()` in wire.js are the one path for both, and the
+  Tiles map in Board settings still calls them. `tileCrosses()` draws nothing
+  and `vacancies()` draws no button. `test/safari.mjs` holds a slot and a
+  centre in WebKit.

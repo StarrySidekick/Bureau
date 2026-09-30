@@ -116,24 +116,56 @@ out.rigidSwipeMovesOneTile = await page.evaluate(async () => {
   return Math.abs(moved - 5 * cell) < 2 || Math.abs(sc.scrollTop - (sc.scrollHeight - sc.clientHeight)) < 2;
 });
 
-// ---- a new tile clicks into place, and the slot is plain -----------------
-const grow = await page.evaluate(async () => {
+// ---- holding an empty slot makes a tile there, and it clicks into place --
+const slot = await page.evaluate(async () => {
   const nap = n => new Promise(r => setTimeout(r, n));
   BUREAU.state.look.locked = false; BUREAU.zoomCommit('root', 0.5); await nap(350);
-  const plus = document.querySelector('#drawergrid .addboard');
-  const slot = plus && plus.closest('.noboard');
-  const plain = !!slot && getComputedStyle(slot).boxShadow === 'none'
-    && getComputedStyle(plus).borderStyle === 'none';
-  const n = BUREAU.boardsOf('root').length;
-  if (plus) plus.click(); await nap(120);
-  return { plain, added: BUREAU.boardsOf('root').length === n + 1, anim: !!document.querySelector('.tilegrow') };
+  const g = document.querySelector('#drawergrid'), s = [...g.querySelectorAll('.noboard')]
+    .map(e => e.getBoundingClientRect()).find(r => r.top > 0 && r.bottom < innerHeight && r.left >= 0 && r.right <= innerWidth);
+  return { n: BUREAU.boardsOf('root').length, plus: !!g.querySelector('.addboard,.tiledrop'),
+           x: s && s.x + s.width / 2, y: s && s.y + s.height / 2 };
 });
+out.noPlusNoMinus = !slot.plus;
+await page.mouse.move(slot.x, slot.y); await page.mouse.down(); await nap(450);
+const grew = await page.evaluate(() => !!document.querySelector('.tilegrow'));
+await page.mouse.up();
 await shot('03-new-tile');
 await nap(1100);
-out.theSlotIsPlain = grow.plain;
-out.aNewTileClicksIntoPlace = grow.added && grow.anim
-  && await page.evaluate(() => !document.querySelector('.tilegrow'));
-await shot('04-zoomed-out');
+out.aHeldSlotMakesATile = grew && await page.evaluate(n => BUREAU.boardsOf('root').length === n + 1, slot.n);
+
+// ---- holding the middle of an empty tile long takes it away --------------
+const gone = await page.evaluate(async () => {
+  const nap = n => new Promise(r => setTimeout(r, n));
+  BUREAU.zoomCommit('root', 1); await nap(350);
+  const g = document.querySelector('#drawergrid'), S = BUREAU.state;
+  const home = BUREAU.startOf('root');
+  const b = BUREAU.boardsOf('root').find(b => (b.x !== home.x || b.y !== home.y) && !BUREAU.boardHolds('root', b.x, b.y));
+  if (!b) return null;
+  const cell = parseFloat(document.querySelector('#drawergrid').style.getPropertyValue('--rowh'));
+  return { b, n: BUREAU.boardsOf('root').length, cell };
+});
+out.aLongCentreHoldTakesATile = null;
+if (gone) {
+  const pt = {}; await page.evaluate(b => {
+    const g = document.querySelector('#drawergrid'), sc = document.querySelector('#app .deskscroll');
+    const r = g.getBoundingClientRect(), c = parseFloat(g.style.getPropertyValue('--rowh'));
+    const sh = BUREAU.shelfShift ? BUREAU.shelfShift('root') : { x: 0, y: 0 };
+    const x = r.left + (b.x * 5 + 2 - sh.x + .5) * c, y = r.top + (b.y * 5 + 2 - sh.y + .5) * c;
+    sc.scrollBy(0, y - innerHeight / 2); sc.scrollBy(x - innerWidth / 2, 0);
+    return true;
+  }, gone.b);
+  await nap(400);
+  Object.assign(pt, await page.evaluate(b => {
+    const g = document.querySelector('#drawergrid'), r = g.getBoundingClientRect(), c = parseFloat(g.style.getPropertyValue('--rowh'));
+    const sh = BUREAU.shelfShift('root');
+    return { x: r.left + (b.x * 5 + 2 - sh.x + .5) * c, y: r.top + (b.y * 5 + 2 - sh.y + .5) * c };
+  }, gone.b));
+  await page.mouse.move(pt.x, pt.y); await page.mouse.down(); await nap(700);
+  await shot('04-tile-going');
+  await nap(800); await page.mouse.up(); await nap(300);
+  out.aLongCentreHoldTakesATile = await page.evaluate(n => BUREAU.boardsOf('root').length === n - 1, gone.n);
+}
+await shot('04b-tile-gone');
 
 // ---- into a drawer and back ----------------------------------------------
 out.aDrawerOpens = await page.evaluate(async () => {

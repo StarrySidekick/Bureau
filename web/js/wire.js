@@ -7,7 +7,7 @@ import { S, K, KINDS, KEYS, refreshKinds, ATTRS, attrsOf, has, SHAPES,
   layoutOf, setClFit, genKindOf, makesAnything , makesSmart, groupMates, groupTogether, isDesk, faceOf, kindHas,
   sortOf, sortCycleOf, SORT_FACES, inFront, isCut } from './model.js';
 import { gridOf, lay, boxOk, freeSpot, anySpot, roomFor, sizeOfKind, toPhoneSize, keepSize,
-  shelvesOf, shelfAt, setShelf, shelvesToHold, addBoard, removeBoard, onBoard, randomSpot, colsOf, shelfRows, boardsOf, randomSizeOf, zoomOf } from './grid.js';
+  shelvesOf, shelfAt, setShelf, shelvesToHold, addBoard, removeBoard, onBoard, isBoard, startOf, randomSpot, colsOf, shelfRows, boardsOf, randomSizeOf, zoomOf } from './grid.js';
 import { applyLook, applyStyle, setLookVal, lookVal, STYLES, setSlot, objColour, darkMode } from './look.js';
 import { dealTop, furnish, toast, fits, makeCompound, guessKind, quickAdd, setGridSize, setBoardDims, toggleDone, spawnNext, del, delMany, delDrawer, undo, redo, pushUndo,
   pushSet, pushSets, setPin, togglePin, drawerForTag, create, spawnInto, randomThing,
@@ -1232,6 +1232,38 @@ function coinToss(board, el){
     setTimeout(()=>n.classList.remove('coinspin'), 1000); });
 }
 
+/* ---- a tile made, a tile taken away — 2026-09-30 ------------------------
+   Timothy: no plus and no minus on the board. Holding an empty slot makes a
+   tile there; holding the middle of a tile, longer than the hold that makes a
+   thing, takes it away (gestures.js). The map in Board settings still does
+   both, through these same two. */
+function tileHere(cid, x, y, walk){
+  const got = addBoard(cid, x, y);
+  if(!got){ toast('No room for another tile that way'); return false; }
+  if(overviewOn()){ save(); render(); refreshOverview(); toast('A new tile'); return true; }
+  /* Held where it is, you are looking at it, so you stay (the view kept still
+     if a tile to the left or above moved every number under it); from the map
+     you walk onto it. */
+  if(walk) setShelf(cid, got.x, got.y);
+  save(); render(); refreshPanel();
+  if(walk) landOnShelf(cid); else holdView(cid, x<0, y<0);
+  tileArrives(cid, got.x, got.y);
+  toast('A new tile');
+  return true;
+}
+function tileAway(cid, x, y){
+  /* the one you arrive on stays, as it always has */
+  const cfg = cid===ROOT ? S.deskCfg : byId(cid);
+  const home = cfg && cfg.start && isBoard(cid, cfg.start.x, cfg.start.y) ? cfg.start : startOf(cid);
+  if(home && home.x===x && home.y===y){ toast('The tile you arrive on stays'); return; }
+  /* A board with things on it asks where they go first (decision 234). */
+  const on = onBoard(cid, x, y);
+  if(on.length){ overAsk({cid, x, y, n:on.length}); return; }
+  if(!removeBoard(cid, x, y)){ toast('The last tile stays'); return; }
+  save(); render(); refreshPanel(); refreshOverview();
+  toast('Tile taken away');
+}
+
 function wire(){
   const frame=$('#frame');
   wirePaint();
@@ -1762,12 +1794,7 @@ function wire(){
     const rb=t.closest('[data-boardremove]');
     if(rb){
       const [cid,x,y]=rb.dataset.boardremove.split(':');
-      /* A board with things on it asks where they go first (decision 234). */
-      const on = onBoard(cid, +x, +y);
-      if(on.length){ overAsk({cid, x:+x, y:+y, n:on.length}); return; }
-      if(!removeBoard(cid, +x, +y)){ toast('Only an empty tile can be taken away, and never the last one'); return; }
-      save(); render(); refreshPanel(); refreshOverview();
-      toast('Tile taken away');
+      tileAway(cid, +x, +y);
       return; }
     const sg=t.closest('[data-shelfgo]');
     if(sg){
@@ -1804,20 +1831,7 @@ function wire(){
     const ab=t.closest('[data-addboard]');
     if(ab){
       const [cid,x,y]=ab.dataset.addboard.split(':');
-      const got = addBoard(cid, +x, +y);
-      if(!got){ toast('No room for another tile that way'); return; }
-      /* In the zoom you stay zoomed out and see it arrive (decision 227);
-         it is one press further to go there. */
-      if(overviewOn()){ save(); render(); refreshOverview(); toast('A new tile'); return; }
-      /* Zoomed out you can see it arrive where it is, so you stay where you
-         are (decision 274), the view held still if a tile to the left or
-         above moved every number under it; otherwise you walk onto it. */
-      const out = zoomOf(cid) < 0.95;
-      if(!out) setShelf(cid, got.x, got.y);
-      save(); render();
-      if(out) holdView(cid, +x<0, +y<0); else landOnShelf(cid);
-      tileArrives(cid, got.x, got.y);
-      toast('A new tile');
+      tileHere(cid, +x, +y, zoomOf(cid) >= 0.95);
       return; }
 
     /* A plan, drawn as the board it will lay out — pressing one lays it out
@@ -2889,4 +2903,4 @@ function wire(){
   document.addEventListener('visibilitychange', ()=>{ if(document.hidden) writeNow(); });
 }
 
-export { wire, newOfKind, blockHold, frontHold, toolPress };
+export { wire, newOfKind, blockHold, frontHold, toolPress, tileHere, tileAway };

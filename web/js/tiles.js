@@ -3436,8 +3436,10 @@ function tilePapers(cid, g, shift, cols, rows){
    mark turned over: thick, faint, no ring. A tile with things on it is taken
    away from Board settings' map, which asks where they go. Never the tile the
    board opens on, and never the last. */
+/* …and no minus either, later the same day: a long hold on the middle of a
+   tile takes it away (gestures.js), so this draws nothing. */
 function tileCrosses(cid, g, shift, cols, rows){
-  if(boardLocked() || zoomOf(cid) > 0.95 || (cid!==ROOT && innerOf(cid)) || boardsOf(cid).length < 2) return '';
+  if(true || boardLocked() || zoomOf(cid) > 0.95 || (cid!==ROOT && innerOf(cid)) || boardsOf(cid).length < 2) return '';
   const cfg = cid===ROOT ? S.deskCfg : byId(cid);
   const home = cfg && cfg.start && isBoard(cid, cfg.start.x, cfg.start.y) ? cfg.start : startOf(cid);
   const x0 = Math.floor(shift.x / g.shelfW), y0 = Math.floor(shift.y / g.shelfH);
@@ -3475,11 +3477,9 @@ function vacancies(cid, dv, g, shift, cols, rows, cam){
     const x = x0+i, y = y0+j;
     if(isBoard(cid, x, y)) continue;
     none++;
-    // the plus only on an unlocked board (2026-09-30): locked, nothing is added
-    const add = reachable(cid, x, y) && !boardLocked();
+    // no plus (2026-09-30): holding the slot makes the tile (gestures.js)
     html += `<div class="noboard" style="grid-column:${i*g.shelfW+1}/span ${Math.min(g.shelfW, cols-i*g.shelfW)};grid-row:${
-      j*g.shelfH+1}/span ${Math.min(g.shelfH, rows-j*g.shelfH)}">${add ? `<button class="addboard"
-        data-addboard="${cid}:${x}:${y}" title="Add a tile here" aria-label="Add a tile here">${slotMark(true)}</button>` : ''}</div>`;
+      j*g.shelfH+1}/span ${Math.min(g.shelfH, rows-j*g.shelfH)}"></div>`;
   }
   return {all: none===nx*ny, html};
 }

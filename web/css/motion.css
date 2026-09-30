@@ -528,3 +528,13 @@
 }
 @keyframes growWood{from{background-color:var(--wood)} to{background-color:transparent}}
 @media (prefers-reduced-motion: reduce){ .grid > .tilegrow{display:none} }
+
+/* ---- a tile being taken away — 2026-09-30 --------------------------------
+   Holding the middle of a tile past the Magic Selector: it darkens and sinks
+   a little for as long as the hold has left, and letting go stops it. */
+.grid > .tilegoing{z-index:3;pointer-events:none;border-radius:4px;
+  animation:tileGoing var(--go,900ms) linear both}
+@keyframes tileGoing{
+  from{background:rgba(0,0,0,0);box-shadow:inset 0 0 0 0 rgba(0,0,0,0)}
+  to{background:rgba(0,0,0,.34);box-shadow:inset 0 0 18px 6px rgba(0,0,0,.35)}
+}
