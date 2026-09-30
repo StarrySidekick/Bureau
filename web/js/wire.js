@@ -16,7 +16,7 @@ import { keepStill, spinTo, pending, placeAtPending, tileTap, turnPage, clearPag
 import { paintKey, openPaint, wirePaint } from './paint.js';
 import { bpmOf, minsOf, burnOf, sidesOf, metroGoing, startMetro, mindTheTime, actOf, deckTop } from './active.js';
 import { DECOR, LIFE_ART } from './decor.js';
-import { wireSnap, render, renderSoon, sizeGrid, toggleSettings, settingsPanel, reveal, goShelf, goShelfTo, openOverview, closeOverview, refreshOverview, overviewOn, overAsk, overCid, flipBlock, railToolsOf, landOnShelf, zoomFit, holdView } from './views.js';
+import { wireSnap, render, renderSoon, sizeGrid, toggleSettings, settingsPanel, reveal, goShelf, goShelfTo, openOverview, closeOverview, refreshOverview, overviewOn, overAsk, overCid, flipBlock, railToolsOf, landOnShelf, zoomFit, holdView, setTuck } from './views.js';
 import { closeGuide, guideOpen, saveGuide } from './guide.js';
 import { openObj, openWriter, openRead, openViewer, closeSheet, renderSheet, words,
   mdKey, mdTool, copyObject } from './sheet.js';
@@ -1718,6 +1718,9 @@ function wire(){
     const rws=t.closest('button[data-rows]');
     if(rws){ if(rws.dataset.rows==='fit') S.look.rows='fit'; else delete S.look.rows;
       applyLook(); save(); render(); refreshPanel(); return; }
+    // the phone's lip and drawer front put away, or not (2026-09-30)
+    const tck=t.closest('button[data-tuck]');
+    if(tck){ setTuck(tck.dataset.tuck==='tuck'); refreshPanel(); return; }
     // page by page or one smooth scroll down a phone board (decision 209):
     // the default is deleted, not stored
     const flw=t.closest('button[data-flow]');

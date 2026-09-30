@@ -351,6 +351,10 @@ hole holds the thing held; names in thin tiles hyphenate and keep their
 room; three stylesheet leaks into miniatures closed; `fitSpot()` finds a clear
 spot before one under a decoration (migration 53); a full sorting drawer grows
 a page; the pager's picture is scrolled where the board is.
+**v2.69** (decision 282): **the bars tuck away** on a phone: a flick down on
+the drawer front hides it and the top lip (`S.look.tuck`, `setTuck()` in
+views.js), leaving a faint floating knob; a flick down on it or a hold brings
+them back.
 
 **Start here each session:** `docs/SYSTEM.md` is the reference for what Bureau is
 made of — objects, attributes, types, drawers, the grid, the surfaces, storage.

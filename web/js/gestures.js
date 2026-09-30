@@ -8,7 +8,7 @@ import { pending, tileTap, fireButton, turnPage,
   scratchGrab, scratchTo, scratchGo } from './tiles.js';
 import { modalNewObject, shapeRing, holdPanel, openCtx, closeCtx, schedulePanel, refreshPanel,
   closePanel } from './panels.js';
-import { render, shelfShift, reveal, openOverview, closeOverview, overviewOn, overCid, zoomCommit } from './views.js';
+import { render, shelfShift, reveal, openOverview, closeOverview, overviewOn, overCid, zoomCommit, setTuck } from './views.js';
 import { gravityGrab, gravityDrag, gravityDrop } from './gravity.js';
 import { closeSheet, renderSheet } from './sheet.js';
 import { pagerBegin, pagerMove, pagerEnd, pagerCancel, pagerOn, leaveTile, toss, fileTo , zoomedIn,
@@ -901,6 +901,12 @@ function onDown(e){
       BLOCK_T = setTimeout(()=>{ if(G===g0 && !g0.pull && !g0.mode) blockHold(cid); }, 450); }
     /* …and holding a thing standing in the front asks where it goes
        (decision 252), on the same beat. */
+    /* …and holding the knob when the front is tucked away brings it back
+       (2026-09-30), on the same beat, unless the finger has started a pull. */
+    if(G.type==='rail' && railEl.classList.contains('tucked')){ const g0 = G;
+      clearTimeout(BLOCK_T);
+      BLOCK_T = setTimeout(()=>{ if(G===g0 && !g0.pull && !g0.mode){
+        g0.mode='dead'; gestureFlags.suppressClick=true; setTuck(false); } }, 450); }
     const thing = G.type==='rail' && e.target.closest('.ro-thing');
     if(thing){ const g0 = G;
       clearTimeout(BLOCK_T);
@@ -1555,6 +1561,10 @@ function onMove(e){
     if(!G.pull){
       // sideways first means something else entirely, and that is that
       if(Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 6){ G.mode='dead'; return; }
+      /* **Down is putting the front away** (2026-09-30), or, tucked, getting
+         it back: a flick toward the bottom of the screen, decided when the
+         finger lifts. Nothing else on the rail moves downward. */
+      if(dy > PULL_START){ G.mode='push'; gestureFlags.suppressClick=true; return; }
       if(dy > -PULL_START) return;
       G.pull=makePull();
       G.mode='pull';
@@ -1824,6 +1834,7 @@ function onUp(e){
     return;
   }
   if(g.type==='rail'){
+    if(g.mode==='push'){ clearTimeout(BLOCK_T); setTuck(!g.el.classList.contains('tucked')); return; }
     // a tap: the knob takes you out, and bare rail does nothing at all
     if(!g.pull) return;
     const open = g.at >= PULL_OPEN();

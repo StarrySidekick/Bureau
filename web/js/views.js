@@ -139,7 +139,8 @@ function gridBar(c){
      With *One more row* there is no strip to put it on, so it rides in the
      drawer front as it did. */
   if(S.device==='phone'){
-    const lip = S.look.rows !== 'fit';
+    /* Tucked away (below), there is no lip: the board runs to the top. */
+    const lip = S.look.rows !== 'fit' && !tucked();
     /* **Two a side round the knob, and each one is the thing it does**
        (decision 208, mirrored in 211). Left to right: a magnifying glass for
        the search, a letter block for the sort, the knob, the padlock, the
@@ -156,7 +157,7 @@ function gridBar(c){
       left: railSide(c, 'left'),
       right: railSide(c, 'right')
     };
-    return lip ? `<div class="toplip"${REVEAL.lip?` style="height:${REVEAL.lip}px"`:''}>${where}</div>` : '';
+    return lip ? `<div class="toplip${UNTUCK.lip?' unfold':''}"${REVEAL.lip?` style="height:${REVEAL.lip}px"`:''}>${where}</div>` : '';
   }
   return `<div class="gridbar shelf shelf-top">${where}${searchBtn(c)}${tools}</div>`;
 }
@@ -250,6 +251,24 @@ function railToolsField(cid){
    before every build so a board with no bar (a panel preview) draws a plain
    drawer front rather than the last board's tools. */
 let RAILBAR = null;
+/* ---- tucked away: the whole screen is board -------------------------------
+   On a phone the top lip and the drawer front can be put away (2026-09-30:
+   "a more full screen view"). A flick down on the front pushes both off the
+   screen and leaves the knob floating, faint, where the front was, because the
+   knob is still the way home and into the Void Drawer. A flick down on that
+   knob, or holding it, brings the furniture back. `S.look.tuck`, one setting
+   for every board, kept across launches; a Mac has no furniture to put away.
+   `UNTUCK` is one render's worth of "this just came back", so the lip and the
+   front slide in rather than appear; it is cleared as soon as it is drawn and
+   never holds anything up. */
+const tucked = () => S.device==='phone' && !!(S.look && S.look.tuck);
+const UNTUCK = {lip:false, rail:false};
+function setTuck(on){
+  if(!!(S.look && S.look.tuck) === !!on) return;
+  if(on) S.look.tuck = true; else { delete S.look.tuck; UNTUCK.lip = UNTUCK.rail = true; }
+  save(); render();
+  UNTUCK.lip = UNTUCK.rail = false;
+}
 
 /* ---- the things in the drawer front — decision 208 ----------------------
    The knob is a turned sphere of the desk's own wood, and the buttons either
@@ -953,6 +972,13 @@ function settingsBody(sec, cid){
       <div class="filterbar">${[['','Smooth scroll'],['page','A tile at a time'],['rigid','Rigid swipe']].map(([v,n])=>
         `<button class="fchip${(['page','rigid'].includes(S.look.flow)?S.look.flow:'')===v?' on':''}" data-flow="${v}">${n}</button>`).join('')}</div>
       <div class="mini" style="--k:var(--brass);margin-top:6px"><b>Smooth scroll</b> runs the tiles of a board together, every way, and when you stop it settles on the nearest row of cells. <b>A tile at a time</b> scrolls the same way and settles on a whole tile, centered. <b>Rigid swipe</b> does not scroll at all: the board follows your finger and a swipe moves exactly one tile, up, down or sideways. The swipe switch, a tool for the drawer front or the board, flips between smooth and rigid.</div>
+    </div>
+
+    ${/* Full screen on a phone (2026-09-30): the lip and the front put away. */''}
+    <div class="field" style="margin-top:12px"><label>Top and Bottom Bars</label>
+      <div class="filterbar">${[['','Showing'],['tuck','Tucked away']].map(([v,n])=>
+        `<button class="fchip${(S.look.tuck?'tuck':'')===v?' on':''}" data-tuck="${v}">${n}</button>`).join('')}</div>
+      <div class="mini" style="--k:var(--brass);margin-top:6px"><b>Tucked away</b> takes the name off the top and the drawer front off the bottom, so the board fills the phone's screen. The knob stays, faint, at the bottom: tap it for home and pull it up as before. Flick the drawer front down to tuck it away; flick the knob down, or hold it, to bring it back.</div>
     </div>
 
     ${/* *How big a drawer is inside* was a row here (decisions 188 and 195)
@@ -1710,6 +1736,15 @@ const cavityWalls = ()=> S.device==='phone'
 
 function deskRail(){
   const r=railCfg(), b=RAILBAR;
+  /* Tucked, the front is only its knob, floating where the front was. It is
+     still `.deskrail`, so the pull, the tap home and the Void Drawer are the
+     same gestures on the same element; sizeGrid() leaves a tucked one out of
+     the arithmetic. */
+  if(tucked()) return `<nav class="deskrail tucked ks-${r.size}" data-rail>
+    <i class="pull railknob ${dressAs('kn',r.knob)}" data-act="railout"
+      ${r.knobc?`style="--knob:${esc(r.knobc)}"`:''}
+      title="Home Knob — tap for home, pull up to make something, flick down or hold to bring the drawer front back"></i>
+  </nav>`;
   /* With the bar in it (decision 204) the front is three columns: where you
      are and the search on the left, the knob in the middle where it always
      was, and the tools on the right. The two sides are equal columns so the
@@ -1717,7 +1752,7 @@ function deskRail(){
      a `.gridbar`, with `inrail` to say where, so everything that looks for
      the bar finds it; what measures the room above the board asks for a bar
      that is a *child* of `.main`, which this is not. */
-  return `<nav class="deskrail${b?' withbar':''} ${dressAs('tx',r.tex)} ks-${r.size}" data-rail style="height:${REVEAL.rail}px">
+  return `<nav class="deskrail${b?' withbar':''}${UNTUCK.rail?' unfold':''} ${dressAs('tx',r.tex)} ks-${r.size}" data-rail style="height:${REVEAL.rail}px">
     <i class="dgrain"></i>
     ${b?`<div class="gridbar inrail${b.where?' named':''}"><div class="railside railleft">${b.where}${b.left}</div>`:''}
     <i class="pull railknob ${dressAs('kn',r.knob)}" data-act="railout"
@@ -2236,14 +2271,14 @@ function sizeGrid(){
   if(dev()==='phone' && main){
     // the bar rides in the rail on a phone (decision 204); only a bar that is
     // still standing above the board takes room from it
-    const bar=main.querySelector(':scope > .gridbar, :scope > .searchtop, :scope > .toplip'), rail=main.querySelector('.deskrail');
+    const bar=main.querySelector(':scope > .gridbar, :scope > .searchtop, :scope > .toplip'), rail=main.querySelector('.deskrail:not(.tucked)');
     /* The lip is measured at its floor, because its height is what this
        writes: it takes the top half of the leftover (below). */
     const lip = bar && bar.classList.contains('toplip') ? bar : null;
     const barH = lip ? (parseFloat(getComputedStyle(lip).minHeight)||0)
                : bar ? bar.getBoundingClientRect().height : 0;
     // read the floor, not the margin — the margin is what this writes
-    const gapMin = parseFloat(getComputedStyle(sc).getPropertyValue('--gapmin'))||0;
+    const gapMin = tucked() ? 0 : parseFloat(getComputedStyle(sc).getPropertyValue('--gapmin'))||0;
     const railMin = rail ? (parseFloat(getComputedStyle(rail).minHeight)||0) : 0;
     const room = main.clientHeight - barH - gapMin - railMin;
     /* **One shelf's width, not the drawn board's.** They were the same number
@@ -2321,7 +2356,10 @@ function sizeGrid(){
        smaller board still has its name on top. */
     const short = !!innerOf(cid, 'phone') && drawn*w < room - 1;
     // the window is the screen's rows at no zoom, whatever the zoom draws in it
-    const viewH = flows('phone') ? rows*base : drawn*w;
+    /* Tucked away, the window is the whole room, not whole rows of it: with
+       nothing above or below to take the leftover, a part row of board is
+       better than a strip of nothing at the bottom of the screen. */
+    const viewH = flows('phone') ? (tucked() ? room : rows*base) : drawn*w;
     const over = short ? 0 : Math.max(0, room - viewH);
     /* With the name on the lip, the top half of the leftover is the lip's
        rather than a reveal under it: the wood above the board is one strip
@@ -2463,4 +2501,4 @@ function sizeGrid(){
 export { holdView, zoomCommit, zoomFit, landOnShelf, wireSnap, render, renderSoon, sizeGrid, shelfTop, shelfLeft, shelfShift, centreDesk,
   reveal, openOverview, closeOverview, refreshOverview, overviewOn, overAsk, overCid, viewHTML, previewHTML,
   goShelf, goShelfTo, sideDrawer, goSideDrawer, boardDimsField, shelfCountField, railToolsField, railToolsOf, RAIL_TOOLS,
-  settingsPanel, toggleSettings, railObj, flipBlock };
+  settingsPanel, toggleSettings, railObj, flipBlock, setTuck, tucked };

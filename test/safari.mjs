@@ -167,6 +167,31 @@ if (gone) {
 }
 await shot('04b-tile-gone');
 
+// ---- tucked away: a flick down on the front, and the board fills ---------
+/* The lip and the drawer front put away (2026-09-30). Driven with the pointer
+   the rail's own handler reads: a flick down on the front tucks, a hold on the
+   floating knob brings it back. */
+await page.evaluate(async () => { BUREAU.setZoom('root', 1); BUREAU.render();
+  await new Promise(r => setTimeout(r, 300)); });
+const railAt = () => page.evaluate(() => { const r = document.querySelector('.deskrail').getBoundingClientRect();
+  return { x: r.left + r.width * 0.3, y: r.top + r.height * 0.35, kx: r.left + r.width / 2, ky: r.top + r.height / 2 }; });
+const before = await page.evaluate(() => document.querySelector('#app .deskscroll').getBoundingClientRect().height);
+let at = await railAt();
+await page.mouse.move(at.x, at.y); await page.mouse.down();
+for (let d = 4; d <= 36; d += 8) { await page.mouse.move(at.x, at.y + d); await nap(16); }
+await page.mouse.up(); await nap(600);
+const tuck = await page.evaluate(() => ({ on: !!BUREAU.state.look.tuck, lip: !!document.querySelector('.toplip'),
+  knob: !!document.querySelector('.deskrail.tucked .railknob'),
+  h: document.querySelector('#app .deskscroll').getBoundingClientRect().height }));
+out.aFlickDownTucksTheBarsAway = tuck.on && !tuck.lip && tuck.knob && tuck.h > before + 40;
+await shot('05a-tucked');
+at = await railAt();
+await page.mouse.move(at.kx, at.ky); await page.mouse.down(); await nap(700); await page.mouse.up(); await nap(600);
+out.holdingTheKnobBringsThemBack = await page.evaluate(() => !BUREAU.state.look.tuck
+  && !!document.querySelector('.toplip') && !document.querySelector('.deskrail.tucked'));
+out.stillHome = await page.evaluate(() => BUREAU.state.view === 'desk');
+await shot('05b-untucked');
+
 // ---- into a drawer and back ----------------------------------------------
 out.aDrawerOpens = await page.evaluate(async () => {
   BUREAU.setZoom('root', 1); const S = BUREAU.state;

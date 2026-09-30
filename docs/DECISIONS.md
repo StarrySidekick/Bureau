@@ -11847,3 +11847,24 @@ English for now."
 - **The smoke suite's retired checks test what replaced them**: the home tile's
   middle is cleared for its hold, the pager check is the sideways one, and the
   slot and the next page are reached by scrolling.
+
+## 282. The bars can be tucked away (v2.69, 2026-09-30)
+
+Timothy: "want to have the top and bottom menu/void drawer bar sort of fade
+away or be hidable somehow, so i can see a more full screen view."
+
+- **A flick down on the drawer front tucks it and the top lip away**, and the
+  board takes the whole screen. `S.look.tuck`, one setting for every board,
+  kept across launches, and also a row in Global Settings (*Top and Bottom
+  Bars*). A phone only: a Mac has no furniture round its board.
+- **The knob stays**, floating and faint where the front was, because it is
+  still the way home and into the Void Drawer; it is the same `.deskrail`
+  element (`.tucked`), so tap, pull and the Void Drawer are the same gestures.
+  **A flick down on it, or holding it, brings the bars back**, and they slide
+  in (`UNTUCK`, one render's worth) without holding the render up.
+- `sizeGrid()` leaves a tucked front out of the arithmetic and gives the
+  scroller the whole room rather than whole rows of it, so there is no strip
+  of nothing at the bottom. The tools in the front (glass, block, padlock,
+  gear) are not reachable while tucked; that is the price of the screen.
+- Down on the rail meant nothing before, so no gesture was taken from
+  anything. `test/safari.mjs` drives both directions with the pointer.

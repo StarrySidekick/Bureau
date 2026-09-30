@@ -5512,6 +5512,38 @@ html[data-rows="fit"] .is-phone .gridbar.inrail .sqbtn{width:28px;height:28px}
 }
 .is-phone .railknob:active{filter:brightness(1.14)}
 
+/* ---- tucked away (2026-09-30) ------------------------------------------
+   The lip and the front put away so the board fills the screen, and the knob
+   left floating where the front was: a disc of the same wood as the Mac's
+   knob, faint so it does not sit on the board like a sticker, and whole again
+   under a finger. `position:fixed` for the Mac's reason, since `.main` is
+   replaced on every render. It fades in, and when the furniture comes back
+   the front rises and the lip drops into place; neither holds up the render
+   that put them there. */
+.is-phone .deskrail.tucked{
+  position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) * 0.5 + 14px);
+  width:46px;height:46px;min-height:0;padding:0;margin-left:-23px;
+  border-radius:50%;z-index:40;
+  background:radial-gradient(120% 120% at 32% 26%,
+    color-mix(in srgb, var(--wood) 82%, #fff), var(--wood) 46%, var(--wood-2));
+  box-shadow:0 10px 22px -10px rgba(0,0,0,.55), 0 0 0 1px var(--wood-2),
+             inset 0 1px 0 rgba(255,255,255,.22);
+  opacity:.42;transition:opacity .2s;
+  animation:tuckin .32s ease-out;
+}
+.is-phone .deskrail.tucked:active{opacity:1}
+.is-phone .deskrail.tucked .railknob{width:calc(clamp(22px, 60cqh, 30px) * var(--kscale,1))}
+.is-phone .deskrail.tucked .railknob.kn-bar{
+  width:calc(clamp(30px, 76cqw, 40px) * var(--kscale,1));height:calc(clamp(8px, 22cqh, 12px) * var(--kscale,1))}
+@keyframes tuckin{from{opacity:0;transform:translateY(24px)}to{opacity:.42;transform:none}}
+.is-phone .deskrail.unfold{animation:railup .28s cubic-bezier(.2,.8,.3,1)}
+.is-phone .toplip.unfold{animation:lipdown .28s cubic-bezier(.2,.8,.3,1)}
+@keyframes railup{from{transform:translateY(100%)}to{transform:none}}
+@keyframes lipdown{from{transform:translateY(-100%)}to{transform:none}}
+@media (prefers-reduced-motion: reduce){
+  .is-phone .deskrail.tucked,.is-phone .deskrail.unfold,.is-phone .toplip.unfold{animation:none}
+}
+
 /* ---- …and on a Mac the same knob floats -------------------------------
    There is no rail here: the board fills the window and scrolls, so there is no
    strip of carcass below it for a drawer front to be. The knob stands on its
