@@ -171,7 +171,6 @@ function keyNow(){
    switch on a Mac tipped the whole desk into a heap two screens below the one
    you were looking at, which reads exactly like everything vanishing. */
 function pen(g){
-  const rows = g.shelfH * g.rowh;
   /* **A phone's pen is the screen** (decision 272): the column is drawn
      whole with an empty tile's pad above it, and the screen shows the tile
      you are on and three rows of each neighbour — so that window is what
@@ -181,7 +180,11 @@ function pen(g){
     const row = Math.max(0, shelfAt(W.cid).y*g.shelfH + (g.pad||0) - above);
     return {w: drawCols(g)*g.rowh, h: vr*g.rowh, y0: row*g.rowh};
   }
-  return {w: drawCols(g)*g.rowh, h: rows, y0: shelfAt(W.cid).y * rows};
+  /* …and a Mac's is the rows its window shows, centred on the tile you are
+     on (decision 274): a tile of five is a strip, and a strip is not a pen. */
+  const vr = Math.min(viewRows('desk'), drawRows(g)), above = Math.max(0, Math.floor((vr - g.shelfH)/2));
+  const row = Math.max(0, Math.min(drawRows(g) - vr, shelfAt(W.cid).y*g.shelfH + (g.pad||0) - above));
+  return {w: drawCols(g)*g.rowh, h: vr*g.rowh, y0: row*g.rowh};
 }
 /* The board is the back panel of a slot and the slot has four sides, which is
    the same shape decision 116 gave the cavity — so a thrown drawer comes back

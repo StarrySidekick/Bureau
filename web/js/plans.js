@@ -40,7 +40,7 @@ import { S, K, T, byId, isContainer, container, childrenOf, has } from './model.
 import { uid, ROOT, clamp } from './util.js';
 import { GRID, INNER, SHELVES, ensureBox, boxOk, freeSpot, anySpot, gridOf, lay, overlaps,
          oneShelf, proportional, boardsOf, ensureBoards, shelfAt, setShelf, nearestBoard, startOf,
-         addBoard, colsOf, shelfRows, growDown, growsDown, onBoards, TILE, PAGES_MAX } from './grid.js';
+         addBoard, colsOf, shelfRows, growDown, growsDown, onBoards, shelvesOf, TILE, PAGES_MAX } from './grid.js';
 import { rescaleOneBoard } from './persist.js';
 import { randomLook } from './look.js';
 
@@ -449,8 +449,29 @@ function clearOffset(top, dv, home){
 function growFor(top, dv, home){
   const c = home===ROOT ? null : byId(home);
   if(!c) return false;
-  // a board under the one you are on (decision 219), up to three more
-  if(!proportional()) return boardsOf(home).length < PAGES_MAX && growDown(home);
+  /* **Room the shape of the flow** (decision 274): a flow was written eight
+     wide and a tile is five, and one tile at a time under the one you are on
+     never makes a board wider, nor a whole row deeper. So a board narrower
+     than the flow is given columns of tiles beside it, every row of them, and
+     one wide enough is given rows below, as many as the flow is tall, every
+     column of them; `clearOffset()` then finds the room they make. */
+  if(!proportional()){
+    const bs = top.map(o=>o[dv]).filter(b=>b && b.w && b.x);
+    if(!bs.length) return boardsOf(home).length < PAGES_MAX && growDown(home);
+    const wide = Math.max(...bs.map(b=>b.x+b.w-1)) - Math.min(...bs.map(b=>b.x)) + 1;
+    const tall = Math.max(...bs.map(b=>b.y+(b.h||1)-1)) - Math.min(...bs.map(b=>b.y)) + 1;
+    const g = gridOf(dv, home), sh = shelvesOf(home, dv);
+    const add = (x, y) => boardsOf(home).length < PAGES_MAX && !!addBoard(home, x, y);
+    let grew = false;
+    if(wide > g.cols){
+      const more = Math.ceil((wide - g.cols) / g.shelfW);
+      for(let i=0; i<more; i++) for(let y=0; y<sh.h; y++) grew = add(sh.w+i, y) || grew;
+    } else {
+      const more = Math.ceil(tall / g.shelfH);
+      for(let j=0; j<more; j++) for(let x=0; x<sh.w; x++) grew = add(x, sh.h+j) || grew;
+    }
+    return grew;
+  }
   const bs = top.map(o=>o[dv]).filter(b=>b && b.w);
   const tall = bs.length ? Math.max(...bs.map(b=>(b.y||1)+b.h-1)) - Math.min(...bs.map(b=>b.y||1)) + 1 : 4;
   const box = (c[dv] && c[dv].w) ? c[dv] : {w:2, h:2};

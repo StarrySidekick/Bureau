@@ -217,7 +217,8 @@ function shelvesOf(cid, device){
   const inner = id===ROOT ? null : innerOf(id, d);
   if(inner){
     if(d !== 'phone') return {w:1, h:1};        // a Mac draws the whole board
-    const sw = Math.max(1, colsOf(id, d)), sh = Math.max(1, shelfRows(d, id));
+    // a page of a proportional board is a screenful, not a tile (274)
+    const sw = VIEW_COLS, sh = Math.max(1, viewRows(d));
     return {w: Math.max(1, Math.ceil(inner.cols/sw)),
             h: Math.max(1, Math.ceil(inner.rows/sh))};
   }

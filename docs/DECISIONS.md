@@ -11573,3 +11573,12 @@ default.
   them, out far enough to see the whole board. The zoom carries the point
   under the fingers in board cells (`bx`,`by`), since the pad appearing moves
   the grid's corner under it.
+- **v2.59**: a flick on a rigid swipe has to travel half a cell as well as
+  be fast, so a twitch is not a swipe. A flow put into a drawer that has
+  something in it grows **the shape of the flow** (`growFor()` in plans.js):
+  whole columns of tiles beside the board when the flow is wider than it,
+  whole rows below when it is taller, rather than one tile under the one you
+  are on, which never made a board wider and once grew one forty tiles tall.
+  A Mac's gravity pen is the rows its window shows, centred on the tile you
+  are on, not one row of tiles. And a proportional board's pages are the
+  screen's size, not a tile's.

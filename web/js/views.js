@@ -2054,7 +2054,8 @@ function rigidEnd(){
   const g = gridOf(dev(), RIGID.cid), cell = CELL[dev()] + g.gap;
   const tile = (RIGID.axis==='x' ? g.shelfW : g.shelfH) * cell;
   const v = RIGID.d / Math.max(1, Date.now() - RIGID.t0);
-  const go = Math.abs(RIGID.d) > tile/5 || Math.abs(v) > 0.35;
+  // past a fifth of a tile, or thrown, and a throw has to have gone somewhere
+  const go = Math.abs(RIGID.d) > tile/5 || (Math.abs(v) > 0.35 && Math.abs(RIGID.d) > cell/2);
   const step = go ? (RIGID.d < 0 ? 1 : -1) : 0;
   /* Exactly one tile's width or height from where it set off, never a
      centring: a board that fits the screen but for a row would otherwise

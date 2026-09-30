@@ -930,15 +930,20 @@ const PROP_OFF = () => { const b = document.createElement('button');
   const checklistMoves = await (async () => {
     const set = await page.evaluate(() => {
       const S = BUREAU.state;
-      S.view = 'desk'; S.drawerId = null; S.sel = []; S.look.locked = false;
-      const cl = BUREAU.create('checklist', { parent: 'root', title: 'Carry me' });
-      /* Room asked for **six** wide and the tile drawn **four**, so the two
-         columns to its right are known free and the drag below has somewhere
+      S.sel = []; S.look.locked = false;
+      /* A board of its own, two tiles by two and empty, so the two columns to
+         the right of the tile are known free and the drag below has somewhere
          legal to land. A drop `boxOk()` refuses writes nothing, and a test
-         that lands on an occupied cell fails for a reason that is not this. */
-      cl.desk = Object.assign(onThisShelf(6, 6), { w: 4 });
+         that lands on an occupied cell fails for a reason that is not this.
+         (The suite's desk is fifteen by fifteen since decision 274 and has no
+         six-by-six hole left in it.) */
+      const home = BUREAU.create('drawer', { parent: 'root', title: 'Carry room' });
+      [[1,0],[0,1],[1,1]].forEach(([x,y]) => BUREAU.addBoard(home.id, x, y));
+      S.view = 'drawer'; S.drawerId = home.id;
+      const cl = BUREAU.create('checklist', { parent: home.id, title: 'Carry me' });
+      cl.desk = { x: 1, y: 1, w: 4, h: 6 };
       BUREAU.create('task', { parent: cl.id, title: 'A line to hold' });
-      window.__cm = { cl: cl.id, was: Object.assign({}, cl.desk), lock: S.look.locked };
+      window.__cm = { cl: cl.id, home: home.id, was: Object.assign({}, cl.desk), lock: S.look.locked };
       BUREAU.render();
       const el = intoView(document.querySelector(`.grid .drawer[data-drawer="${cl.id}"]`));
       const w = el && el.querySelector('.cline .cltext');
@@ -968,7 +973,7 @@ const PROP_OFF = () => { const b = document.createElement('button');
       /* Removed outright rather than through delDrawer(), which **keeps the
          contents** and files them one level up — a task left on the desk here
          shifts `kids('root')` and the next block picks a different tile. */
-      S.objects = S.objects.filter(x => x.id !== p.cl && x.parent !== p.cl);
+      S.objects = S.objects.filter(x => x.id !== p.cl && x.parent !== p.cl && x.id !== p.home);
       S.undo = []; S.view = 'desk'; S.look.locked = p.lock; BUREAU.render();
       return moved;
     });
@@ -1373,6 +1378,7 @@ const PROP_OFF = () => { const b = document.createElement('button');
        a denser desk since decision 188 and a six-cell drag out of the middle
        of it lands on another drawer, which `boxOk()` rightly refuses. What is
        being asked is whether a selection travels together, not how far. */
+    const wasLocked = S.look.locked; S.look.locked = false;
     S.sel = ['d_write', 'd_kitch']; BUREAU.render();
     await new Promise(r2 => setTimeout(r2, 150));
     const t = document.querySelector('.grid .drawer[data-drawer="d_write"]');
@@ -1385,17 +1391,25 @@ const PROP_OFF = () => { const b = document.createElement('button');
     const dv = S.device;
     const before = { open: { ...S.objects.find(o => o.id === 'd_write')[dv] },
                      keep: { ...S.objects.find(o => o.id === 'd_kitch')[dv] } };
+    /* Sideways, off the seed, onto the bare tile to the left of it: the desk
+       is three tiles of five across since decision 274, the seed stands on
+       the middle and right ones, and the rows under the rack are its own. */
+    const dx = 1 - before.open.x;
     ev('pointerdown', x, y);
     await new Promise(r2 => setTimeout(r2, 320));     // the hold arms the drag
-    ev('pointermove', x, y + cell * 6);
-    ev('pointermove', x, y + cell * 6);
-    ev('pointerup', x, y + cell * 6);
+    ev('pointermove', x + cell * dx, y);
+    ev('pointermove', x + cell * dx, y);
+    ev('pointerup', x + cell * dx, y);
     await new Promise(r2 => setTimeout(r2, 150));
     const after = { open: S.objects.find(o => o.id === 'd_write')[dv],
                     keep: S.objects.find(o => o.id === 'd_kitch')[dv] };
     S.sel = []; BUREAU.render();
-    return after.open.y === before.open.y + 6 && after.keep.y === before.keep.y + 6
-        && after.open.x === before.open.x && after.keep.x === before.keep.x;
+    const ok = dx < 0 && after.open.x === before.open.x + dx && after.keep.x === before.keep.x + dx
+        && after.open.y === before.open.y && after.keep.y === before.keep.y;
+    // put back, so the blocks after this find the rack where it was
+    Object.assign(after.open, before.open); Object.assign(after.keep, before.keep);
+    S.look.locked = wasLocked; BUREAU.render();
+    return ok;
   });
   await shot('11-new-systems');
 
@@ -2020,8 +2034,11 @@ const PROP_OFF = () => { const b = document.createElement('button');
          thing starts: on an eight-column phone the middle shelf begins at
          column 9. Asking about the position inside its own shelf is the same
          question, and it survives the desk being nine screens. Decision 141. */
-      rescaled: b('d_a').w === 4 && b('d_a').h === 3 && (b('d_a').x - 1) % 8 === 0,
-      inside: all.every(x => x.x >= 1 && ((x.x - 1) % 8) + x.w <= 8),
+      /* …and since decision 274 a thing may lie across a seam, so what is
+         asked is that it is on the board and no wider than the screen. */
+      rescaled: b('d_a').w === 4 && b('d_a').h === 3,
+      inside: all.every(x => x.x >= 1 && x.w <= 8
+        && x.x + x.w - 1 <= BUREAU.shelvesOf('root', 'phone').w * BUREAU.TILE),
       clear,
       nothingElseAdded: BUREAU.state.objects.length === 4,
       deskUntouched: BUREAU.state.objects.find(o=>o.id==='d_b').desk.x === 7
@@ -2512,7 +2529,9 @@ const PROP_OFF = () => { const b = document.createElement('button');
     /* The desk is **nine shelves**, three by three, and you start in the
        middle one. See decision 141. */
     out.nineShelves = JSON.stringify(BUREAU.shelvesOf('root')) === JSON.stringify({w:3,h:3});
-    out.startsInTheMiddle = JSON.stringify(BUREAU.shelfAt('root')) === JSON.stringify({x:1,y:1});
+    // where it opens, asked of the board rather than of whatever the blocks before left
+    out.startsInTheMiddle = JSON.stringify(BUREAU.startOf('root')) === JSON.stringify({x:1,y:1});
+    BUREAU.goShelfTo('root', 1, 1); await nap(300);
     // nothing may straddle a seam, in either direction: half a tile on each of
     // two screens is a tile you can read neither half of
     // up and down a thing may cross a seam now (272); sideways never
@@ -2717,8 +2736,11 @@ const PROP_OFF = () => { const b = document.createElement('button');
     out.aSwipeMovesOneTile = Math.abs(sc().scrollTop - top0 - 5*cell()) < 2
       || Math.abs(sc().scrollTop - (sc().scrollHeight - sc().clientHeight)) < 2;
     // a short drag puts it back where it was
+    // once the glide has come to rest
+    for(let i=0, last=-1; i<20 && Math.abs(sc().scrollTop-last) > 0.5; i++){ last = sc().scrollTop; await nap(100); }
     const top1 = sc().scrollTop;
-    fire('touchstart', [[200, 400]]); fire('touchmove', [[200, 390]]); fire('touchmove', [[200, 385]]);
+    fire('touchstart', [[200, 400]]); await nap(40);
+    fire('touchmove', [[200, 390]]); await nap(40); fire('touchmove', [[200, 385]]); await nap(40);
     fire('touchend', []); await nap(900);
     out.aNudgeGoesBack = Math.abs(sc().scrollTop - top1) < 2;
 
@@ -5598,9 +5620,14 @@ const PROP_OFF = () => { const b = document.createElement('button');
   const newThingsAreSmall = await phone.evaluate(async () => {
     const nap = n => new Promise(r => setTimeout(r, n));
     const S = BUREAU.state, out = {};
-    S.view='desk'; S.drawerId=null; BUREAU.render(); await nap(200);
+    /* On a board with room: a desk of tiles of five is smaller than one of
+       eight, and a full board rightly makes a thing smaller rather than not
+       at all (`fitSpot()`), which is not what this asks. */
+    const room = BUREAU.create('drawer', { parent:'root', title:'Room' });
+    [[1,0],[0,1],[1,1],[0,2],[1,2]].forEach(([x,y]) => BUREAU.addBoard(room.id, x, y));
+    S.view='drawer'; S.drawerId=room.id; BUREAU.render(); await nap(200);
     const made = ['note','task','drawer','checklist','image','moodboard','timeline']
-      .map(k => BUREAU.create(k, { parent:'root', title:k }));
+      .map(k => BUREAU.create(k, { parent:room.id, title:k }));
     BUREAU.render(); await nap(300);
     /* **The phone takes the size you set** (2026-09-28): no cap at three and
        no halving, just the type's size (or its own phone size), held to the
@@ -5612,7 +5639,7 @@ const PROP_OFF = () => { const b = document.createElement('button');
     out.noneTallerThanThree = made.every(o => o.phone.h === want(o)[1]);
     // …and the desk's own stated size is untouched by the phone's mapping
     out.theMacKeepsItsSizes = BUREAU.K.moodboard.size[0] >= made[5].phone.w;
-    S.objects = S.objects.filter(o => !made.includes(o));
+    S.objects = S.objects.filter(o => !made.includes(o) && o !== room); S.view='desk'; S.drawerId=null;
     BUREAU.render();
     return out;
   });
@@ -6493,12 +6520,16 @@ const PROP_OFF = () => { const b = document.createElement('button');
     /* Where it lands is an offset applied to the whole arrangement, so the
        shape of it survives — which is the only reason it is a plan and not a
        list of titles. */
-    // an empty tile's corner: the seed is on the middle tile since 272
-    const at = BUREAU.stampPlan(p.id, 'root', {x:17, y:1});
+    // an empty tile's corner: a column of tiles of its own, since the seed
+    // reaches across the desk's tiles of five (274)
+    const nx = BUREAU.shelvesOf('root').w, col = nx * BUREAU.TILE + 1;
+    [0,1,2].forEach(y => BUREAU.addBoard('root', nx, y));
+    const at = BUREAU.stampPlan(p.id, 'root', {x:col, y:1});
     const top = at.filter(o => o.parent === 'root');
-    out.landsWhereAsked = Math.min(...top.map(o => o.desk.x)) === 17;
+    out.landsWhereAsked = Math.min(...top.map(o => o.desk.x)) === col;
     out.andKeepsItsShape = new Set(top.map(o => o.desk.y)).size === top.length;
     at.forEach(o => BUREAU.del(o.id));
+    [0,1,2].forEach(y => BUREAU.removeBoard('root', nx, y));
 
     // a type may open fitted to one, which is what `seed:` was reaching for
     S.kinds.shootday = {nm:'Shoot day', ic:'clapper', c:9, ds:'', attrs:['container'],
@@ -6779,8 +6810,8 @@ const PROP_OFF = () => { const b = document.createElement('button');
     /* No spare screen beside it any more (decision 219): a board is added
        where you want one, so a Film is the board its flow is. */
     // a Film is its departments since decision 238: five boards, as its flow says
-    // …and each of them two tiles, one above the other (decision 272)
-    out.withRoomBeside = BUREAU.boardsOf(film.id).length === 10;
+    // …and each of them a block of tiles: two by three of five (decision 274)
+    out.withRoomBeside = BUREAU.boardsOf(film.id).length === 30;
     // a Life drawer made for Health, through the question it asks
     const pressIn = (attr, val) => { const b = document.createElement('button');
       b.dataset[attr] = val; b.style.display = 'none';
@@ -6958,10 +6989,14 @@ const PROP_OFF = () => { const b = document.createElement('button');
     BUREAU.del(c3.id);
     /* A shelf with nothing on it says where the rest is, rather than drawing an
        empty column that looks like a desk with nothing on it. */
-    BUREAU.goShelfTo('root', 2, 2); BUREAU.render(); await nap(250);
+    // a column of its own: the seed is eight wide and reaches the third since decision 274
+    const nx = BUREAU.shelvesOf('root').w;
+    BUREAU.addBoard('root', nx, 0);
+    BUREAU.goShelfTo('root', nx, 0); BUREAU.render(); await nap(250);
     const empty = document.querySelector('#app .empty');
     out.anEmptyShelfSaysWhereTheRestIs = !!empty && /Nothing on this shelf/.test(empty.textContent);
     out.andDrawsNoRows = titles().length === 0;
+    BUREAU.removeBoard('root', nx, 0);
     /* **Reordering a windowed list must not renumber over the shelves you
        cannot see.** The bands on screen are a subset, so writing 0..n across
        them would hand out indexes the other shelves already hold. The whole
