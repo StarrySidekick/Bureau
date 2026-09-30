@@ -89,7 +89,17 @@ const GRID = {
    shows eight cells across (`VIEW_COLS`), so a tile is five of them and a
    box may be as wide as the screen (`WIDE`), lying across a seam. The desk
    starts two tiles by three, ten by fifteen. */
-const TILE = 5;
+/* **A tile is one cell** (decision 283; Timothy, 2026-09-30: "tiles are just
+   1x1 grid tiles. that's it"). A board is carved out of the carcass a cell at
+   a time: holding the wood one step off the edge cuts a cell out of it, and a
+   long hold on an empty cell fills it back in. Everything that counts in
+   tiles (`shelves`, `boards`, `start`, `SHELF`) now counts in cells, so the
+   rectangle and the list of what is carved are the board's exact shape, and a
+   board can be any shape at all. A fresh desk or container is eight by
+   fourteen (`FRESH`); migration 54 re-cuts every older board cell by cell, so
+   nothing moves and nothing changes size. */
+const TILE = 1;
+const FRESH = {w:8, h:14};
 /* The cells a phone screen is wide, and the widest a thing may be on either
    device. They were the tile's eight until the tile stopped being the
    screen's width. */
@@ -230,17 +240,19 @@ function shelvesOf(cid, device){
      container one screen wide that grew at the bottom; both are now this. */
   return boardRect(id);
 }
-const PAGES_MAX = 90;       // tiles of five since decision 274
+const PAGES_MAX = 4000;     // cells since decision 283: 90 tiles of five was 2250
 /* The most boards a board may run to, either way. Nine, as the desk was: a
    limit a thumb never meets, which exists so a runaway loop cannot build a
    thousand screens. */
-const SPAN = 40;   // tiles: 24 of eight since decision 272, 40 of five since 274
+const SPAN = 200;  // cells since decision 283; it was 40 tiles of five
 /* Where a board's rectangle and its list are kept: the desk's on its own
    config (it is not an object), everything else's on the object. */
 const boardCfg = id => id===ROOT ? (S.deskCfg || (S.deskCfg = {layout:'grid', sort:null})) : byId(id);
 function boardRect(id){
   const o = boardCfg(id), s = o && o.shelves;
-  return {w:clamp((s&&s.w)||1, 1, SPAN), h:clamp((s&&s.h)||1, 1, SPAN)};
+  // a board that has never been given a shape is the fresh one (decision 283)
+  if(!s) return TILE===1 ? {w:FRESH.w, h:FRESH.h} : {w:1, h:1};
+  return {w:clamp(s.w||1, 1, SPAN), h:clamp(s.h||1, 1, SPAN)};
 }
 /* The boards of a board, as a set of "x,y". No list means every cell of the
    rectangle is one — which is every board before decision 219, and the
@@ -403,10 +415,22 @@ const growsDown = cid => cid!=null && cid!==ROOT && !innerOf(cid) && !!byId(cid)
 /* `shows`: a sorting drawer holds nothing, so nothing is ever *placed* on a
    second board of one; but it packs what it collects (decision 278), and a
    packing that has run out of room asks for a page to show the rest on. */
+const GROW_ROWS = 7;
 function growDown(cid, shows){
   if(!growsDown(cid) || (growsNot(cid) && !shows)) return false;
   const all = boardsOf(cid);
   if(all.length >= PAGES_MAX) return false;
+  /* **A tile of one cell grows by rows** (decision 283): a page of cells
+     under the whole width of the board, since one cell under the column you
+     are in is never room for anything wider than a cell. Below the rectangle,
+     so nothing already counted from the corner moves. */
+  if(TILE===1){
+    const r = boardRect(cid), xs = [...new Set(all.map(b=>b.x))];
+    if(r.h + GROW_ROWS > SPAN) return false;
+    for(let j=0; j<GROW_ROWS; j++) xs.forEach(x=>addBoard(cid, x, r.h + j));
+    PLACED.n++;
+    return true;
+  }
   const at = shelfAt(cid);
   const col = isBoard(cid, at.x, at.y) ? at.x : (all[0]||{x:0}).x;
   const inCol = all.filter(b=>b.x===col);
@@ -870,11 +894,14 @@ function freeSpotIn(w,h,device,parentId,prefer,clearOnly){
   /* Twice: somewhere nothing is standing at all, then somewhere only the
      floating things are (a decoration, a background), which is all a tile has
      ever had to keep clear of. */
-  for(const clear of clearOnly ? [true] : [true, false]) for(const [sx,sy] of order){
+  /* A proportional board's pages are not tiles (decision 195), so once a
+     tile is a cell (283) each page is searched whole from its corner. */
+  const whole = home!==ROOT && !!innerOf(home, dv);
+  for(const clear of clearOnly ? [true] : [true, false]) for(const [sx,sy] of whole ? [[0,0]] : order){
     const x0=sx*g.shelfW, y0=sy*g.shelfH;
     // the top-left cell is in this tile; the box may run on across the seam
-    const lastX = Math.min(g.shelfW, g.cols-x0-w+1);
-    const lastY = Math.min(g.shelfH, g.rows-y0-h+1);
+    const lastX = whole ? g.cols-w+1 : Math.min(g.shelfW, g.cols-x0-w+1);
+    const lastY = whole ? g.rows-h+1 : Math.min(g.shelfH, g.rows-y0-h+1);
     for(let y=1;y<=lastY;y++) for(let x=1;x<=lastX;x++){
       const box={x:x0+x, y:y0+y, w, h};
       if(boxOk(box,null,dv,home,clear)) return box;
@@ -1163,7 +1190,7 @@ function cellW(grid,g){
 }
 
 export { TILE, VIEW_COLS, WIDE, viewRows, byTile, rigidOn, rigidSwipe, padded, ZOOM, ZOOM_MAX, zoomOf, zoomRange, setZoom, snapZoom, GRID, PHONE_GRIDS, PHONE_MAX_H, rangeOfKind, inRange, randomSizeOf, CELL, COLW, MEASURE, sideways,
-  SHELVES, DESK_SHELF_COLS, INNER, dimsOf, DIM_MIN, DIM_MAX, DIM_MAX_H, PAGES_MAX, SPAN, isBoard, boardsOf, reachable, addBoard, removeBoard,
+  SHELVES, DESK_SHELF_COLS, INNER, FRESH, dimsOf, DIM_MIN, DIM_MAX, DIM_MAX_H, PAGES_MAX, SPAN, isBoard, boardsOf, reachable, addBoard, removeBoard,
   ensureBoards, boardHolds, onBoard, startOf, nearestBoard, onBoards, randomSpot, growsDown, growDown, proportional, shelvesToHold, colsOf, gridKeyOf, shelvesOf, innerOf,
   shelfRows, shelfOfBox, oneShelf, shelfAt, setShelf, shelfOrigin, SHELF, fitSpot, flows,
   gridOf, drawCols, drawRows, lay, overlaps, boxOk, freeSpot, anySpot, roomFor, gridRows, sizeOfKind, toPhoneSize,

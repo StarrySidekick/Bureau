@@ -7,7 +7,7 @@ import { S, K, KINDS, KEYS, refreshKinds, ATTRS, attrsOf, has, SHAPES,
   layoutOf, setClFit, genKindOf, makesAnything , makesSmart, groupMates, groupTogether, isDesk, faceOf, kindHas,
   sortOf, sortCycleOf, SORT_FACES, inFront, isCut } from './model.js';
 import { gridOf, lay, boxOk, freeSpot, anySpot, fitSpot, roomFor, sizeOfKind, toPhoneSize, keepSize,
-  shelvesOf, shelfAt, setShelf, shelvesToHold, addBoard, removeBoard, onBoard, isBoard, startOf, randomSpot, colsOf, shelfRows, boardsOf, randomSizeOf, zoomOf } from './grid.js';
+  shelvesOf, shelfAt, setShelf, shelvesToHold, addBoard, removeBoard, onBoard, isBoard, startOf, randomSpot, colsOf, shelfRows, boardsOf, randomSizeOf, zoomOf, TILE } from './grid.js';
 import { applyLook, applyStyle, setLookVal, lookVal, STYLES, setSlot, objColour, darkMode } from './look.js';
 import { dealTop, furnish, toast, fits, makeCompound, guessKind, quickAdd, setGridSize, setBoardDims, toggleDone, spawnNext, del, delMany, delDrawer, undo, redo, pushUndo,
   pushSet, pushSets, setPin, togglePin, drawerForTag, create, spawnInto, randomThing,
@@ -1257,8 +1257,8 @@ function coinToss(board, el){
    both, through these same two. */
 function tileHere(cid, x, y, walk){
   const got = addBoard(cid, x, y);
-  if(!got){ toast('No room for another tile that way'); return false; }
-  if(overviewOn()){ save(); render(); refreshOverview(); toast('A new tile'); return true; }
+  if(!got){ toast(TILE===1 ? 'No room to carve that way' : 'No room for another tile that way'); return false; }
+  if(overviewOn()){ save(); render(); refreshOverview(); toast(TILE===1 ? 'Carved' : 'A new tile'); return true; }
   /* Held where it is, you are looking at it, so you stay (the view kept still
      if a tile to the left or above moved every number under it); from the map
      you walk onto it. */
@@ -1266,20 +1266,20 @@ function tileHere(cid, x, y, walk){
   save(); render(); refreshPanel();
   if(walk) landOnShelf(cid); else holdView(cid, x<0, y<0);
   tileArrives(cid, got.x, got.y);
-  toast('A new tile');
+  toast(TILE===1 ? 'Carved' : 'A new tile');
   return true;
 }
 function tileAway(cid, x, y){
   /* the one you arrive on stays, as it always has */
   const cfg = cid===ROOT ? S.deskCfg : byId(cid);
   const home = cfg && cfg.start && isBoard(cid, cfg.start.x, cfg.start.y) ? cfg.start : startOf(cid);
-  if(home && home.x===x && home.y===y){ toast('The tile you arrive on stays'); return; }
+  if(home && home.x===x && home.y===y){ toast(TILE===1 ? 'The cell you arrive on stays' : 'The tile you arrive on stays'); return; }
   /* A board with things on it asks where they go first (decision 234). */
   const on = onBoard(cid, x, y);
   if(on.length){ overAsk({cid, x, y, n:on.length}); return; }
-  if(!removeBoard(cid, x, y)){ toast('The last tile stays'); return; }
+  if(!removeBoard(cid, x, y)){ toast(TILE===1 ? 'The last cell stays' : 'The last tile stays'); return; }
   save(); render(); refreshPanel(); refreshOverview();
-  toast('Tile taken away');
+  toast(TILE===1 ? 'Filled in' : 'Tile taken away');
 }
 
 function wire(){

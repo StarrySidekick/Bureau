@@ -5,6 +5,16 @@ paths:
 ---
 # The board
 
+**Read this first of all (decision 283): a tile is one cell** (`TILE = 1`).
+`shelves` is the board's rectangle in cells, `boards` the cells carved out
+of it, `start` and `SHELF` are cells, and a phone's pad is one cell of wood.
+A fresh desk or container is eight by fourteen (`FRESH`); holding the wood
+beside the board carves a cell, a long hold on an empty cell fills it back,
+a growing container grows by `GROW_ROWS` under its whole width, and the cut
+is drawn by `carveEdges()` in tiles.js. Everything below that says a tile is
+five or eight cells is history; the code still reads `shelfW`/`shelfH`, which
+are now 1, so it is correct as written wherever it did not assume more.
+
 **Read this first (decision 272): a board is tiles, every one 8×8.** Below,
 "shelf" and "board" in the sense of one screenful mean a **tile** now, and a
 tile is *not* a screen: `viewRows()` is the screen (8×14 on an iPhone),

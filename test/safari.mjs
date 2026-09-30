@@ -75,6 +75,8 @@ await nap(250);
 // ---- a drag at a zoom lands under the finger -----------------------------
 const drag = await page.evaluate(async () => {
   const S = BUREAU.state; S.look.locked = false;
+  // somewhere with two empty rows above it, since a tile is a cell (decision 283)
+  S.objects.find(o => o.id === 'd_in').phone = { x: 1, y: 9, w: 2, h: 2 }; BUREAU.render();
   BUREAU.zoomCommit('root', 1.6); await new Promise(r => setTimeout(r, 350));
   const t = document.querySelector('#drawergrid .drawer[data-drawer="d_in"]');
   t.scrollIntoView({ block: 'center' }); await new Promise(r => setTimeout(r, 150));
@@ -113,14 +115,16 @@ out.rigidSwipeMovesOneTile = await page.evaluate(async () => {
   fire('touchend', []); await nap(900);
   const moved = sc.scrollTop - top0;
   delete BUREAU.state.look.flow; BUREAU.render();
-  return Math.abs(moved - 5 * cell) < 2 || Math.abs(sc.scrollTop - (sc.scrollHeight - sc.clientHeight)) < 2;
+  // a tile's height, or a screenful of whole cells once a tile is a cell (decision 283)
+  const step = BUREAU.TILE === 1 ? Math.floor(sc.clientHeight / cell) * cell : 5 * cell;
+  return Math.abs(moved - step) < 2 || Math.abs(sc.scrollTop - (sc.scrollHeight - sc.clientHeight)) < 2;
 });
 
 // ---- holding an empty slot makes a tile there, and it clicks into place --
 const slot = await page.evaluate(async () => {
   const nap = n => new Promise(r => setTimeout(r, n));
   BUREAU.state.look.locked = false; BUREAU.zoomCommit('root', 0.5); await nap(350);
-  const g = document.querySelector('#drawergrid'), s = [...g.querySelectorAll('.noboard')]
+  const g = document.querySelector('#drawergrid'), s = [...g.querySelectorAll(BUREAU.TILE === 1 ? '.noboard.et,.noboard.eb,.noboard.el,.noboard.er' : '.noboard')]
     .map(e => e.getBoundingClientRect()).find(r => r.top > 0 && r.bottom < innerHeight && r.left >= 0 && r.right <= innerWidth);
   return { n: BUREAU.boardsOf('root').length, plus: !!g.querySelector('.addboard,.tiledrop'),
            x: s && s.x + s.width / 2, y: s && s.y + s.height / 2 };
@@ -150,7 +154,7 @@ if (gone) {
     const g = document.querySelector('#drawergrid'), sc = document.querySelector('#app .deskscroll');
     const r = g.getBoundingClientRect(), c = parseFloat(g.style.getPropertyValue('--rowh'));
     const sh = BUREAU.shelfShift ? BUREAU.shelfShift('root') : { x: 0, y: 0 };
-    const x = r.left + (b.x * 5 + 2 - sh.x + .5) * c, y = r.top + (b.y * 5 + 2 - sh.y + .5) * c;
+    const x = r.left + (b.x * BUREAU.TILE + (BUREAU.TILE >> 1) - sh.x + .5) * c, y = r.top + (b.y * BUREAU.TILE + (BUREAU.TILE >> 1) - sh.y + .5) * c;
     sc.scrollBy(0, y - innerHeight / 2); sc.scrollBy(x - innerWidth / 2, 0);
     return true;
   }, gone.b);
@@ -158,7 +162,7 @@ if (gone) {
   Object.assign(pt, await page.evaluate(b => {
     const g = document.querySelector('#drawergrid'), r = g.getBoundingClientRect(), c = parseFloat(g.style.getPropertyValue('--rowh'));
     const sh = BUREAU.shelfShift('root');
-    return { x: r.left + (b.x * 5 + 2 - sh.x + .5) * c, y: r.top + (b.y * 5 + 2 - sh.y + .5) * c };
+    return { x: r.left + (b.x * BUREAU.TILE + (BUREAU.TILE >> 1) - sh.x + .5) * c, y: r.top + (b.y * BUREAU.TILE + (BUREAU.TILE >> 1) - sh.y + .5) * c };
   }, gone.b));
   await page.mouse.move(pt.x, pt.y); await page.mouse.down(); await nap(700);
   await shot('04-tile-going');

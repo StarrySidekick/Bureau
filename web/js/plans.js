@@ -40,7 +40,7 @@ import { S, K, T, byId, isContainer, container, childrenOf, has } from './model.
 import { uid, ROOT, clamp } from './util.js';
 import { GRID, INNER, SHELVES, ensureBox, boxOk, freeSpot, anySpot, gridOf, lay, overlaps,
          oneShelf, proportional, boardsOf, ensureBoards, shelfAt, setShelf, nearestBoard, startOf,
-         addBoard, colsOf, shelfRows, growDown, growsDown, onBoards, shelvesOf, TILE, PAGES_MAX } from './grid.js';
+         addBoard, colsOf, shelfRows, growDown, growsDown, onBoards, shelvesOf, TILE, SPAN, PAGES_MAX } from './grid.js';
 import { rescaleOneBoard } from './persist.js';
 import { randomLook } from './look.js';
 
@@ -160,7 +160,11 @@ function planFrom(cid, nm){
      on each device, so the boxes can be read back out board by board on a
      screen that measures differently. */
   const bs = boardsOf(cid);
-  if(bs.length > 1 && !(cid!==ROOT && proportional())){
+  /* Not once a tile is a cell (decision 283): every board is many cells, and
+     a flow saved as several boards is put down around the tile you are on
+     rather than where you asked. A saved board is one board; its boxes say
+     how big it has to be. */
+  if(TILE > 1 && bs.length > 1 && !(cid!==ROOT && proportional())){
     p.boards = bs.map(b=>({x:b.x, y:b.y}));
     p.start = nearestBoard(cid, startOf(cid));
     p.dims = {desk:{w:colsOf(cid,'desk'), h:shelfRows('desk', cid)},
@@ -345,7 +349,9 @@ function stampPlan(planId, intoId, at){
       mx = Math.max(mx, b.x+b.w-1 + ((at && at.x) ? at.x-1 : 0));
       my = Math.max(my, b.y+(b.h||1)-1 + ((at && at.y) ? at.y-1 : 0));
     }));
-    const tw = Math.min(8, Math.ceil(mx/TILE)), th = Math.min(12, Math.ceil(my/TILE)), cells = [];
+    /* a tile is a cell since decision 283, so the block is the boxes' own
+       reach, no bigger than the most a board may span */
+    const tw = Math.min(TILE===1 ? SPAN : 8, Math.ceil(mx/TILE)), th = Math.min(TILE===1 ? SPAN : 12, Math.ceil(my/TILE)), cells = [];
     for(let j=0; j<th; j++) for(let i=0; i<tw; i++) cells.push({x:i, y:j});
     if(cells.length > 1) ensureBoards(home, cells, {x:0, y:0});
   }

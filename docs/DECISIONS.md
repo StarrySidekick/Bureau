@@ -11868,3 +11868,48 @@ away or be hidable somehow, so i can see a more full screen view."
   gear) are not reachable while tucked; that is the price of the screen.
 - Down on the rail meant nothing before, so no gesture was taken from
   anything. `test/safari.mjs` drives both directions with the pointer.
+
+## 283. A tile is one cell; a board is carved out of the carcass (v2.70, 2026-09-30)
+
+Timothy: "tiles are just 1x1 grid tiles. that's it. the default new container
+and desk starting size is 8x14 still. you sort of carve each tile of the board
+out of the wood of the carcass, bit by bit. containers and the desk can be
+essentially any size now… bonus point if you can make it look like the board
+is inset within the carcass, so sell the carved out of wood effect."
+
+- **`TILE = 1`.** Everything that counted tiles (`shelves`, `boards`, `start`,
+  `SHELF`, the pad a phone draws round a board) counts cells, so the rectangle
+  and the list of what is carved are the board's exact shape. The geometry was
+  already written against `shelfW`/`shelfH`, which is why this is a constant
+  and not a rewrite. `SPAN` is 200 cells, `PAGES_MAX` 4000.
+- **A fresh desk or container is eight by fourteen** (`FRESH` in grid.js):
+  the seed's `deskCfg.shelves`, and what `boardRect()` answers for a
+  container that has never been given a shape. The seed's magic drawers lost
+  their stated three by three. `centreDesk()` no longer moves anything: there
+  is no middle tile to move the seed down to.
+- **Carving is the gestures decision 276 gave a tile**: holding the wood one
+  step off the edge (orthogonally, never a corner) cuts that cell out, and a
+  long hold on an empty cell fills it back in. Neither the cell you arrive on
+  nor the last cell can be filled.
+- **Migration 54** re-cuts every board: each tile of five becomes its
+  twenty-five cells, `start` moves to its old tile's middle cell, and every
+  container is written out (one tile when it stored nothing) so it keeps its
+  size rather than taking the fresh one. Boxes are in cells already and do not
+  move.
+- **A growing container grows by rows** (`growDown()`, `GROW_ROWS = 7`) under
+  its whole width: one cell under the column you are on is never room for
+  anything wider than a cell. A flow's board is a block of `dims` cells, as it
+  already was (`ceil(dims/TILE)`), and the cap on a single-board flow's block
+  is `SPAN`.
+- **The rigid swipe moves a screenful of whole cells**, and *A tile at a time*
+  is gone from Global Settings (the same as the smooth scroll once a tile is a
+  cell). Arriving at a board no bigger than the screen centres the board, not
+  the cell. The lip's dot map is not drawn (it would be a dot per cell).
+- **The cut is drawn** (`carveEdges()` in tiles.js, `.carve` and `.noboard.e*`
+  in board.css): each board cell that meets wood gets that side's wall, a band
+  of the carcass's own wood, darker on top and left where the light from the
+  top left does not reach and warm and lit on the bottom and right, with a
+  shadow thrown onto the board from the top and left. It is drawn over the
+  things on the board, so a thing against the edge sits under the lip. The
+  wood carries the cut's rim on the side that meets the board. Only edge cells
+  get an element, so the cost is the perimeter.

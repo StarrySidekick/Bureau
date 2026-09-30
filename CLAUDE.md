@@ -355,6 +355,11 @@ a page; the pager's picture is scrolled where the board is.
 the drawer front hides it and the top lip (`S.look.tuck`, `setTuck()` in
 views.js), leaving a faint floating knob; a flick down on it or a hold brings
 them back.
+**v2.70** (decision 283): **a tile is one cell** (`TILE = 1`); a board is
+carved out of the carcass a cell at a time (hold the wood beside it; a long
+hold on an empty cell fills it back); a fresh desk or container is 8×14
+(`FRESH`); migration 54 re-cuts old boards cell by cell, moving nothing; the
+cut is drawn as wooden walls and shadow (`carveEdges()`, `.carve`).
 
 **Start here each session:** `docs/SYSTEM.md` is the reference for what Bureau is
 made of — objects, attributes, types, drawers, the grid, the surfaces, storage.

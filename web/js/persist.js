@@ -19,7 +19,7 @@ import { plans, stampPlan } from './plans.js';
    Bureau is this phone running" is exactly the question you ask when a change
    appears not to have deployed. Shown in Settings, so it can be read off the
    device rather than guessed at. */
-const APP_VERSION = '2.69';
+const APP_VERSION = '2.70';
 const KEY = 'bureau.v1';
 const install = {deferred:null};   // the browser's install prompt, when one is on offer
 let saveTimer = null;
@@ -267,7 +267,7 @@ function rescalePhone(d, from, cols){
    skips all of them, an old backup replays only what it is missing. These
    used to be ad-hoc per-load mutations inside adopt(); a new repair that
    should run once belongs here, as the next numbered step. */
-const DATA_V = 53;
+const DATA_V = 54;
 const MIGRATIONS = [
   // Drawers and objects were two arrays and a drawer could not live inside
   // anything. foldDrawers also replays the old dense flow to give v1 drawers
@@ -1342,6 +1342,35 @@ const MIGRATIONS = [
       ['desk','phone'].forEach(dv=>{ const b = o[dv];
         if(objs.some(t=>t!==o && t.parent===o.parent && !kindHas(t.kind,'backdrop') && ov(b, t[dv])))
           o[dv] = {w:b.w, h:b.h}; });
+    });
+  }},
+  /* ---- a tile is one cell (decision 283) ------------------------------------
+     Timothy: "tiles are just 1x1 grid tiles". A board's rectangle and its list
+     of tiles were counted in tiles of five; they are counted in cells now, so
+     each old tile becomes the twenty-five cells it covered. Boxes are in cells
+     already and do not move. Every container is written out, with the one
+     tile it had when it stored nothing, so a board keeps exactly its size
+     rather than taking the fresh eight by fourteen. */
+  {v:54, up(d){
+    const T = 5, objs = d.objects || [];
+    if(d.look && d.look.proportional) return;
+    d.deskCfg = d.deskCfg || {layout:'grid', sort:null};
+    const cfg = id => id===ROOT ? d.deskCfg : objs.find(o=>o && o.id===id);
+    const ids = new Set([ROOT]);
+    objs.forEach(o=>{ if(!o) return;
+      if(o.parent && o.parent!=='__hold') ids.add(o.parent);
+      if(o.shelves || o.boards || kindHas(o.kind, 'container')) ids.add(o.id); });
+    ids.forEach(id=>{
+      const c = cfg(id); if(!c) return;
+      const r = c.shelves || {w:1, h:1}, rw = Math.max(1, r.w|0), rh = Math.max(1, r.h|0);
+      const list = Array.isArray(c.boards) && c.boards.length ? c.boards.map(k=>String(k).split(',').map(Number))
+        : Array.from({length:rw*rh}, (_,n)=>[n%rw, Math.floor(n/rw)]);
+      const w = Math.min(200, rw*T), h = Math.min(200, rh*T), cells = [];
+      list.forEach(([i,j])=>{ for(let b=0; b<T; b++) for(let a=0; a<T; a++){
+        const x = i*T+a, y = j*T+b; if(x>=0 && y>=0 && x<w && y<h) cells.push(x+','+y); } });
+      c.shelves = {w, h};
+      if(cells.length===w*h) delete c.boards; else c.boards = cells;
+      if(c.start) c.start = {x:(c.start.x||0)*T + 2, y:(c.start.y||0)*T + 2};
     });
   }},
 ];

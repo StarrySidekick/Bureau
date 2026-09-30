@@ -1282,8 +1282,8 @@ function seed(){
        off by default (decision 195) and a sampler of one screen cannot hold
        one of everything. With them on the six-square tile decides and this
        is not read. */
-    DR({id:'d_alldr', title:'Every drawer', c:14, desk:{x:5,y:5,w:2,h:2},  phone:{x:5,y:5,w:2,h:2}, shelves:{w:3,h:3}}),
-    DR({id:'d_allob', title:'Every object', c:15, desk:{x:7,y:5,w:2,h:2}, phone:{x:7,y:5,w:2,h:2}, shelves:{w:3,h:3}})
+    DR({id:'d_alldr', title:'Every drawer', c:14, desk:{x:5,y:5,w:2,h:2},  phone:{x:5,y:5,w:2,h:2}, shelves:{w:15,h:15}}),
+    DR({id:'d_allob', title:'Every object', c:15, desk:{x:7,y:5,w:2,h:2}, phone:{x:7,y:5,w:2,h:2}, shelves:{w:15,h:15}})
   ];
 
   // The app's own buttons live on the desk, on the grid, and move like anything
@@ -1459,11 +1459,10 @@ function reset(){
     // viewId is the picture surface: what an object made of an image opens onto
     undo:[], redo:[], editing:false, sel:[], readId:null, writeId:null, viewId:null, editId:null, bookAt:0,
     // a desk you have arranged is one you want to look at, so it starts locked
-    /* **A fresh desk is two tiles across and three down** (decision 274),
-       ten cells by fifteen, and you stand on the middle row. The seed is
-       written on the first tile and `centreDesk()` moves it down to the
-       middle row on the first measured render. */
-    deskCfg:{layout:'grid', sort:null, shelves:{w:2, h:3}},
+    /* **A fresh desk is eight cells by fourteen** (decision 283): a tile is
+       one cell, and the desk is carved out of the carcass to the size of an
+       iPhone's screen. It was two tiles of five by three (decision 274). */
+    deskCfg:{layout:'grid', sort:null, shelves:{w:8, h:14}},
     look:defaultLook()
   };
   refreshKinds();

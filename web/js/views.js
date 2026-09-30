@@ -10,7 +10,7 @@ import { S, K, T, byId, has, isContainer, containers, container, childrenOf, cha
 import { GRID, PHONE_GRIDS, CELL, COLW, MEASURE, sideways, colsOf, gridKeyOf, SHELVES, PAGES_MAX, shelvesOf,
   shelfRows, viewRows, shelfOfBox, shelfAt, setShelf, shelfOrigin, SHELF, drawCols, drawRows,
   lay, gridOf, cellW, ensureBox, innerOf, PLACED, proportional, flows, byTile, rigidOn, rigidSwipe, padded, zoomOf, zoomRange, setZoom,
-  isBoard, boardsOf, reachable, boardHolds, removeBoard, SPAN, startOf, dimsOf, DIM_MIN, DIM_MAX, DIM_MAX_H, VIEW_COLS } from './grid.js';
+  isBoard, boardsOf, reachable, boardHolds, removeBoard, SPAN, startOf, dimsOf, DIM_MIN, DIM_MAX, DIM_MAX_H, VIEW_COLS, TILE } from './grid.js';
 import { themeNow, applyLook, lookVal, STYLES, BACKDROPS, SURFACES, DARKMODES, darkMode, hasDark,
   palNow, styleNow, hexOf, objColour, slotName, OBJ0, CHECKS, dressAs } from './look.js';
 import { gridOfContainer, gridTile, listTile, boardVarsOf, bookView, calSpan, calFront } from './tiles.js';
@@ -74,7 +74,7 @@ function gridBar(c){
       ${/* …and only the boards there are (decision 219): a slot of the
            rectangle with no board on it is a gap in the square, so the dots
            are the shape the boards actually make. */''}
-      ${boardsOf(c.id).length>1?`<span class="shelfmark" style="--sw:${sh.w}"
+      ${TILE>1 && boardsOf(c.id).length>1?`<span class="shelfmark" style="--sw:${sh.w}"
           title="Which tile you are on — swipe to walk them">${
         Array.from({length:sh.w*sh.h}, (_,i)=>{
           const x=i%sh.w, y=(i/sh.w)|0;
@@ -378,7 +378,9 @@ const listStyle = ()=> ` style="--listrow:${CELL[dev()]}px"`;
    shelf to be on, so it is always shown rather than hidden until it is given
    a box by the next render. */
 function onThisShelf(cid, items){
-  if(S.device!=='phone') return items;
+  /* A tile of one cell (decision 283) would window a list to the things
+     whose corner is in one column of cells: the whole board, as its grid is. */
+  if(S.device!=='phone' || TILE===1) return items;
   const sh = shelvesOf(cid);
   if(sh.w * sh.h <= 1) return items;
   const here = shelfAt(cid), dv = dev();
@@ -969,9 +971,9 @@ function settingsBody(sec, cid){
     ${/* How a phone gets down a board (decision 209): since decision 272
           scrolling is the default, and snaps to the cells when it stops. */''}
     <div class="field" style="margin-top:12px"><label>Moving Down a Board</label>
-      <div class="filterbar">${[['','Smooth scroll'],['page','A tile at a time'],['rigid','Rigid swipe']].map(([v,n])=>
+      <div class="filterbar">${[['','Smooth scroll'],['rigid','Rigid swipe']].map(([v,n])=>
         `<button class="fchip${(['page','rigid'].includes(S.look.flow)?S.look.flow:'')===v?' on':''}" data-flow="${v}">${n}</button>`).join('')}</div>
-      <div class="mini" style="--k:var(--brass);margin-top:6px"><b>Smooth scroll</b> runs the tiles of a board together, every way, and when you stop it settles on the nearest row of cells. <b>A tile at a time</b> scrolls the same way and settles on a whole tile, centered. <b>Rigid swipe</b> does not scroll at all: the board follows your finger and a swipe moves exactly one tile, up, down or sideways. The swipe switch, a tool for the drawer front or the board, flips between smooth and rigid.</div>
+      <div class="mini" style="--k:var(--brass);margin-top:6px"><b>Smooth scroll</b> moves every way, and when you stop it settles on the nearest row of cells. <b>Rigid swipe</b> does not scroll at all: the board follows your finger and a swipe moves exactly one screenful, up, down or sideways. The swipe switch, a tool for the drawer front or the board, flips between smooth and rigid.</div>
     </div>
 
     ${/* Full screen on a phone (2026-09-30): the lip and the front put away. */''}
@@ -1598,6 +1600,9 @@ function centreDesk(){
   const dv = dev();
   S.centred = S.centred || {};
   if(S.centred[dv]) return false;
+  /* A desk carved a cell at a time (decision 283) has no middle tile to move
+     anything down to: what was written at the corner stays at the corner. */
+  if(TILE===1){ S.centred[dv] = true; return false; }
   const g = gridOf(dv, ROOT);
   if(!MEASURE[dv].w || !MEASURE[dv].room) return false;   // not measured yet
   S.centred[dv] = true;
@@ -1627,6 +1632,9 @@ function trimDesk(){
   const dv = dev();
   if(!MEASURE[dv].w || !MEASURE[dv].room) return false;
   delete cfg.trim;
+  /* A tile of one cell (decision 283) would be trimmed to the outline of what
+     stands on it, which is not a desk: the flag is spent and nothing goes. */
+  if(TILE===1) return true;
   for(let n=0; n<SPAN*SPAN; n++){
     const all = boardsOf(ROOT);
     if(all.length<=1) break;
@@ -1998,7 +2006,11 @@ function tileTop(cid, y, sc, grid){
   const g = gridOf(dev(), cid), cell = CELL[dev()] + g.gap;
   const shows = sc ? Math.floor(sc.clientHeight / Math.max(1, cell)) : viewRows();
   const above = Math.max(0, Math.floor((shows - g.shelfH)/2));
-  const row = y*g.shelfH - above + (g.pad||0);
+  /* A board no taller than the screen is centred as a whole (decision 283):
+     a tile is one cell, and centring one cell put the board off-centre by
+     however far that cell was from its middle. */
+  const row = TILE===1 && g.rows <= shows ? (g.rows - shows)/2 + (g.pad||0)
+    : y*g.shelfH - above + (g.pad||0);
   return Math.max(0, (grid ? grid.offsetTop : 0) + row*cell);
 }
 /* **A board wider than the screen is not left half off it** (decision
@@ -2019,8 +2031,10 @@ function tileLeft(cid, x, sc, grid){
   // centred exactly: a tile inset by the cavity leaves the same wood either side
   const spare = sc ? Math.max(0, sc.clientWidth - g.shelfW*cell)/2 : 0;
   const shows = sc ? sc.clientWidth / Math.max(1, cell) : VIEW_COLS;
-  const col = x*g.shelfW - spare/cell;
-  const c = x>=0 && x<g.shelves.w ? inBoard(col, shows, g.cols) : col;
+  const col = TILE===1 && g.cols <= shows ? (g.cols - shows)/2 : x*g.shelfW - spare/cell;
+  const c0 = x>=0 && x<g.shelves.w ? inBoard(col, shows, g.cols) : col;
+  // on whole cells, since centring one cell on an even screen is half of one (283)
+  const c = TILE===1 ? Math.round(c0) : c0;
   return Math.max(0, (grid ? grid.offsetLeft : 0) + (c + (g.padX||0))*cell);
 }
 // which tile the middle of the screen is over, each way
@@ -2132,7 +2146,11 @@ function rigidEnd(){
   RIGID.on = false;
   if(!RIGID.axis || !RIGID.sc.isConnected) return;
   const g = gridOf(dev(), RIGID.cid), cell = CELL[dev()] + g.gap;
-  const tile = (RIGID.axis==='x' ? g.shelfW : g.shelfH) * cell;
+  /* A screenful of whole cells, since a tile is one cell (decision 283) and
+     a swipe that moved one would be a nudge. */
+  const tile = TILE===1
+    ? Math.max(1, Math.floor((RIGID.axis==='x' ? RIGID.sc.clientWidth : RIGID.sc.clientHeight) / cell)) * cell
+    : (RIGID.axis==='x' ? g.shelfW : g.shelfH) * cell;
   const v = RIGID.d / Math.max(1, Date.now() - RIGID.t0);
   // past a fifth of a tile, or thrown, and a throw has to have gone somewhere
   const go = Math.abs(RIGID.d) > tile/5 || (Math.abs(v) > 0.35 && Math.abs(RIGID.d) > cell/2);
