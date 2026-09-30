@@ -770,6 +770,8 @@ function onDown(e){
      click in there, which was the gear on the note you were reading. Pressing
      it did nothing, once, then worked; that is what a stale flag looks like. */
   gestureFlags.suppressClick=false;
+  // …and the same for a tap's echo: a new press is not the old tap's click
+  gestureFlags.tapped=null;
   // the zoomed-out boards and a setup card are surfaces, not the board
   if(e.target.closest && e.target.closest('#overview, #setup')) return;
   /* **Nothing on the board is dragged while the camera is in.** `cellW()`
@@ -2097,10 +2099,12 @@ function onUp(e){
       /* The click that trails it lands on whatever the line and the finger's
          release have in common, which is the list's own tile — so the tap is
          recorded against both, or the echo opens the list behind the note. */
-      gestureFlags.tapped = {id: g.line, also: g.id, at: Date.now()};
+      gestureFlags.tapped = {id: g.line, also: g.id, at: Date.now(), x: e.clientX, y: e.clientY};
       tileTap(g.line); return;
     }
-    gestureFlags.tapped = {id: g.id, at: Date.now()};
+    /* …and where it landed, because the click can arrive on something else
+       entirely: see tapEcho() in wire.js. */
+    gestureFlags.tapped = {id: g.id, at: Date.now(), x: e.clientX, y: e.clientY};
     // a tap on a button's face fires it; anywhere else follows the type
     const o=byId(g.id);
     if(o && has(o,'button') && g.startedOnFace) fireButton(o); else tileTap(g.id);

@@ -6,7 +6,7 @@ import { S, K, KINDS, KEYS, refreshKinds, ATTRS, attrsOf, has, SHAPES,
   boardLocked, repeatOf, repeats, heldObjects, heldCount, marginOf, marginPlus, homeFor,
   layoutOf, setClFit, genKindOf, makesAnything , makesSmart, groupMates, groupTogether, isDesk, faceOf, kindHas,
   sortOf, sortCycleOf, SORT_FACES, inFront, isCut } from './model.js';
-import { gridOf, lay, boxOk, freeSpot, anySpot, roomFor, sizeOfKind, toPhoneSize, keepSize,
+import { gridOf, lay, boxOk, freeSpot, anySpot, fitSpot, roomFor, sizeOfKind, toPhoneSize, keepSize,
   shelvesOf, shelfAt, setShelf, shelvesToHold, addBoard, removeBoard, onBoard, isBoard, startOf, randomSpot, colsOf, shelfRows, boardsOf, randomSizeOf, zoomOf } from './grid.js';
 import { applyLook, applyStyle, setLookVal, lookVal, STYLES, setSlot, objColour, darkMode } from './look.js';
 import { dealTop, furnish, toast, fits, makeCompound, guessKind, quickAdd, setGridSize, setBoardDims, toggleDone, spawnNext, del, delMany, delDrawer, undo, redo, pushUndo,
@@ -390,6 +390,24 @@ function justTapped(id){
   const t = gestureFlags.tapped;
   if(!t || (t.id !== id && t.also !== id) || Date.now() - t.at > TAP_ECHO) return false;
   gestureFlags.tapped = null;          // one echo, not every click after it
+  return true;
+}
+/* **A tap that changed what is under the finger** (2026-09-30). The click
+   that trails a tap lands on whatever is there *by then*, and a tap that
+   opens a drawer has put the drawer's own board there: the note under your
+   finger inside Idea Bin opened too, and Every drawer went on through into
+   the List inside it. iOS Safari sends that click after touchend just the
+   same. So a click at the tap's own point, inside the echo, on anything that
+   is not the tile tapped, is that tap's click, and nothing answers it. On the
+   same tile it is justTapped()'s to answer, as before. */
+function tapEcho(e){
+  const t = gestureFlags.tapped;
+  if(!t || t.x == null || Date.now() - t.at > TAP_ECHO) return false;
+  if(Math.abs(e.clientX - t.x) > 12 || Math.abs(e.clientY - t.y) > 12) return false;
+  const on = e.target.closest && e.target.closest('[data-open],[data-row],[data-drawer]');
+  const id = on && (on.dataset.open || on.dataset.row || on.dataset.drawer);
+  if(id && (id === t.id || id === t.also)) return false;
+  gestureFlags.tapped = null;
   return true;
 }
 function setField(el){
@@ -1394,6 +1412,8 @@ function wire(){
   frame.addEventListener('click', e=>{
     // a gesture that ended in a drag leaves one click behind; drop it
     if(gestureFlags.suppressClick){ gestureFlags.suppressClick=false; return; }
+    // …and the one a tap leaves on whatever it put under the finger
+    if(tapEcho(e)) return;
     const t=e.target;
     // …but not the click the shape ring's own release leaves behind (210)
     // …nor the one a hold in the drawer front leaves under its menu (252)
@@ -2668,7 +2688,7 @@ function wire(){
          everything else the line can now make. */
       const dv=dev(), b=lay(src), [w,h]=sizeOfKind(t.kind, dv, src.parent);
       const want={x:b.x, y:b.y+b.h, w, h};
-      t[dv] = boxOk(want,t.id,dv,src.parent) ? want : anySpot(w,h,dv,src.parent);
+      t[dv] = boxOk(want,t.id,dv,src.parent) ? want : (fitSpot(w,h,dv,src.parent) || anySpot(w,h,dv,src.parent));
       e.target.value=''; save(); render();
       // a notepad says what the line became, since it chose (decision 258)
       if(guess) toast(`Made a ${K(t.kind).nm.toLowerCase()}`);

@@ -11665,3 +11665,69 @@ longer than even the tap and hold to make an object will delete the board."
   Tiles map in Board settings still calls them. `tileCrosses()` draws nothing
   and `vacancies()` draws no button. `test/safari.mjs` holds a slot and a
   centre in WebKit.
+
+## 277. An overnight pass on the phone: taps, hover, fronts and faces (v2.64, 2026-09-30)
+
+Timothy asked for a full pass for bugs, micro inconsistencies, flicker,
+tapping and spelling while he slept. It was done in WebKit at an iPhone's
+size with touch, per the Safari-first note, with probes in the scratchpad
+rather than new tests except where a test was wrong.
+
+- **A tap that changes what is under the finger has its click dropped.** A
+  tap is answered on pointerup and the browser's click follows it, landing on
+  whatever is there *by then*. Opening a drawer put its board there, so the
+  note under your finger inside Idea Bin opened too, Keeping Up opened a card,
+  and Every drawer went straight on into the List inside it. iOS sends the
+  same click after touchend. `justTapped()` only knew the same tile; the tap
+  now records its point, and `tapEcho()` in wire.js drops a click at that
+  point, inside `TAP_ECHO`, on anything that is not the tile tapped. A new
+  press clears it.
+- **Hover is for a pointer that hovers.** All 109 `:hover` rules are inside
+  `@media (hover:hover)`; a selector list mixing `:hover` with `:active`,
+  `:focus-visible` or a class is split so only the hover half is guarded. On
+  the phone the tile left under the finger by a tap kept `.drawer:hover`'s
+  lifted shadow until the next tap somewhere else.
+- **A plain drawer front is three rows**, `1fr auto 1fr`: the name, the knob,
+  nothing. A name of one line leaves the knob exactly centred as before; a
+  name of two moves it down only as far as it must (Open Questions, Done &
+  Dusted, Writing Desk and Every drawer all ran into it). The name keeps its
+  own height, so a nameplate is not stretched. Two doors, a bottom knob and a
+  front too small for a name are untouched.
+- **A plate or card holder on a narrow front** gives back its side padding
+  and sets the name at 10.5px; "Everything" broke as "Everythi / ng" behind
+  one. The tag keeps its rivets and still clips a long word at two cells.
+- **A timeline's labels take the lane with room.** Strict alternation piled
+  three things on one day onto each other and a label centred on the first
+  dot hung off the tile ("ocation recce"). Each lane remembers where its last
+  label ends; an end label slides inward by `--tls` and its dot slides back
+  onto its date; a node with no room in either lane is its dot, with the rest
+  on its title; a timeline two rows tall has one lane, below.
+- **A new Quote says its name.** The template body (`> ` and `— `) is
+  nothing once the marks are off, and being a non-empty string it stopped the
+  title from ever being reached, so a new quote was a blank tile. Its mark is
+  a typographic `“` inside the tile rather than an ASCII `"` cut in half.
+- **What `fits()` promised is what arrives.** The picker, the shape ring, a
+  spawner's press and a spawner's line all ask `fits()`, which says yes if a
+  step-down size fits (`fitSpot()`), and then placed the thing at full size
+  with `anySpot()`, whose last resort is on top of something. On a fresh
+  phone desk the second thing made from the picker overlapped the first and
+  ran off the edge. They place through `fitSpot()` first now, as
+  `ensureBox()` always has. `fits()`'s refusal said to press a plus that 276
+  took away; it says to hold an empty slot.
+- **A tick is a move.** It was the one change with no undo and no Undo on
+  its toast, and a ticked thing leaves the board, so a mis-tap on a phone put
+  a task out of sight with no way back but the archive. `toggleDone()` pushes
+  `done` and `doneAt` as they were, and for a repeat the kind it had and the
+  copy it made (an `add` step, which undo takes away), and the toast carries
+  Undo.
+- **Words.** "right now, it you go in" was the Opening hint on every drawer
+  that dives. Every panel, door, picker screen and setup card was opened and
+  its text put through a dictionary and a doubled-word and a/an check; that
+  was the only error.
+- **The smoke suite runs to the end again.** 276 took the plus and the minus
+  away and updated `safari.mjs` but not `smoke.mjs`, which threw at the plus
+  and never reached the hundred blocks after it. `holdTile()` holds a tile's
+  middle cell with real pointer events, in every context that makes or takes
+  a tile. The spans block counted days from today, which on the 30th are next
+  month's, and stood its calendar on whatever `anySpot()` put it on; it counts
+  from the 10th and adds a column of tiles when there is no room.

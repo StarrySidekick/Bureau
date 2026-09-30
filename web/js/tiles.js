@@ -11,7 +11,7 @@ import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, chi
   boardLocked, prioOf, repeatSaid, urgencyOf, urgeSaid, durSaid, standsProud, shelfDepth, bookDepth, faceCue, anyFaceCue,
   calViewOf, calShowOf, weekStartOf, calCols, borderOf, textureOf, marginOf, isFragmentKind, gravityOn,
   groupOf, sealOf, isSealed, habitPlan, habitPeriods, habitRun, relate, measureOf, amountSaid, inFront, countOf, countsOf, COUNTS, makesSmart, isHeld, habitOn } from './model.js';
-import { GRID, CELL, gridOf, drawCols, drawRows, lay, overlaps, boxOk, freeSpot, anySpot, roomFor, gridRows, sizeOfKind, sideways, innerOf,
+import { GRID, CELL, gridOf, drawCols, drawRows, lay, overlaps, boxOk, freeSpot, anySpot, fitSpot, roomFor, gridRows, sizeOfKind, sideways, innerOf,
   ensureBox, shelfRows, viewRows, shelfOrigin, shelfAt, shelfOfBox, oneShelf, colsOf, flows, boardsOf, nearestBoard, isBoard, reachable, dimsOf, MEASURE, VIEW_COLS, padded, zoomOf, startOf, boardHolds } from './grid.js';
 import { dealTop, create, toast, fits, toggleDone, someKind, furnish, ctlSpec, ctlSaid, ctlIsOn,
   ctlForm, ctlNum, ctlIndex, ctlPress, pushSet, reachedGoal, goalOf } from './mutations.js';
@@ -447,7 +447,7 @@ function dispense(g){
     left:  {x:Math.max(1,b.x-w), y:b.y, w, h}
   };
   const want=spots[dir];
-  o[dv] = (dir!=='random' && want && boxOk(want,o.id,dv,g.parent)) ? want : anySpot(w,h,dv,g.parent);
+  o[dv] = (dir!=='random' && want && boxOk(want,o.id,dv,g.parent)) ? want : (fitSpot(w,h,dv,g.parent) || anySpot(w,h,dv,g.parent));
   save(); render();
   const el=document.querySelector(`[data-row="${g.id}"]`);
   if(el){ el.classList.add('swallow'); setTimeout(()=>el.classList.remove('swallow'),420); }
@@ -831,14 +831,16 @@ function placeAtPending(o){
        this is the same line. A sketched size still wins over the born one. */
     const born = (o[dv] && o[dv].w) ? [o[dv].w, o[dv].h] : null;
     const [w,h] = said || born || sizeOfKind(o.kind, dv, o.parent);
-    if(!(o[dv] && o[dv].x)) o[dv] = anySpot(w,h,dv,o.parent);
+    /* The step-down `fits()` already agreed to, as ensureBox() does, or a
+       full board got the thing at full size on top of what was there. */
+    if(!(o[dv] && o[dv].x)) o[dv] = fitSpot(w,h,dv,o.parent) || anySpot(w,h,dv,o.parent);
     return;
   }
   // a sketched box wins over the kind's own size
   const [kw,kh]=sizeOfKind(o.kind, dv, pending.cell.parent);
   const w=pending.cell.w||kw, h=pending.cell.h||kh;
   const g=gridOf(undefined, pending.cell.parent), box={x:clamp(pending.cell.x,1,g.cols-w+1), y:Math.max(1,pending.cell.y), w, h};
-  o[dv] = boxOk(box, o.id, dv, o.parent) ? box : anySpot(w,h,dv,o.parent);
+  o[dv] = boxOk(box, o.id, dv, o.parent) ? box : (fitSpot(w,h,dv,o.parent) || anySpot(w,h,dv,o.parent));
   // The other device has no box yet. Leaving it null means ensureBox() picks
   // one the first time that layout is opened, rather than inheriting a
   // coordinate that means nothing over there.
@@ -2239,7 +2241,30 @@ function drawTileFace(o, arr, box, persp){
     const runOf = x => { const sp=spanOf(x);
       return sp ? Math.max(1, pc(sp.to)-pc(sp.from)) : 0; };
     const nowPc = (T>=sp.min && T<=sp.max) ? pc(T) : null;
-    return `<button class="drawer dtile tltile ${dress(o,'bd')}${sel}" data-drawer="${o.id}"
+    /* **Where each label goes** (2026-09-30). Strict alternation put three
+       things on one day on top of each other, and a label is centred on its
+       dot, so the first thing on the axis hung half off the tile ("ocation
+       recce"). All in the tile's own pixels, off the stylesheet's numbers: a
+       label is `min(76px, 30cqw)` wide on an axis inset `min(44px, 14cqw)` a
+       side. A label near an end slides inward just far enough to stay 10px
+       inside the tile (`--tls`), and its dot is slid back onto its date. Each
+       lane remembers where its last label ends: a label takes the lane it
+       would have had, else the other, else it is only its dot. */
+    /* Two rows or fewer has no room above the rule for a label under the
+       name, so it is one lane, below (`tl1`). */
+    const W = (box && box.w || 4) * tileCell(), ins = Math.min(44, .14*W), lab = Math.min(76, .30*W);
+    const axis = Math.max(1, W - 2*ins), ends = {above:-Infinity, below:-Infinity}, one = !!box && box.h <= 2;
+    const lanes = kids.map((x,i)=>{
+      const run = runOf(x), c = ins + pc(x.due||x.created)/100*axis;
+      const l = run ? c : c - lab/2;
+      const shift = Math.max(0, 10 - l) - Math.max(0, l + lab - (W - 10));
+      const want = one || i%2 ? 'below' : 'above', other = one ? 'none' : want==='above' ? 'below' : 'above';
+      ends.none = Infinity;
+      const lane = l + shift >= ends[want] ? want : l + shift >= ends[other] ? other : null;
+      if(lane) ends[lane] = l + shift + lab + 4;
+      return {lane: lane || want, bare: !lane, shift: Math.round(shift)};
+    });
+    return `<button class="drawer dtile tltile${one?' tl1':''} ${dress(o,'bd')}${sel}" data-drawer="${o.id}"
       data-tlspan="${o.id}:${sp.min}:${sp.max}" style="--c:${colour};${place}">
       <div class="dtop"><span class="dname">${esc(o.title||'Untitled')}</span>
         ${rollTag(o)}
@@ -2247,9 +2272,9 @@ function drawTileFace(o, arr, box, persp){
       <div class="tlwrap"><i class="tlrule"></i>
         ${nowPc!=null?`<i class="tlnowmark" style="left:${nowPc}%"></i>`:''}
         ${kids.map((x,i)=>{
-          const iso=x.due||x.created, run=runOf(x);
-          return `<span class="tlnode ${i%2?'below':'above'}${run?' lasts':''}"
-            style="left:${pc(iso)}%${run?`;--run:${run}%`:''}">
+          const iso=x.due||x.created, run=runOf(x), ln=lanes[i];
+          return `<span class="tlnode ${ln.lane}${run?' lasts':''}${ln.bare?' bare':''}"
+            style="left:${pc(iso)}%${run?`;--run:${run}%`:''}${ln.shift?`;--tls:${ln.shift}px`:''}"${ln.bare?` title="${esc(x.title||'Untitled')}, ${esc(D.short(iso))}"`:''}>
             <i></i><b>${esc((x.title||'Untitled').slice(0,18))}</b><u>${esc(D.short(iso))}</u></span>`;
         }).join('')}
       </div>
@@ -2873,10 +2898,14 @@ function drawTileFace(o, arr, box, persp){
      what a bare object drawn spine-on says is only that its title is sideways.
      The face is still `spine` on a container, which is where a book lives. */
   if(shapeOf(o)==='quote'){
+    /* The body a new quote is born with is the template, `> ` and `— `,
+       which comes out as nothing once the marks are off: so a new quote was a
+       blank tile and never reached its title (2026-09-30). Cut, then escape. */
+    const said = oneline(o.body||'').replace(/^[—\s]+/,'').replace(/[—\s]+$/,'') || oneline(o.title||'');
     return `<button class="drawer otile ${paper(o)} sh-quote quotetile${sel}" data-row="${o.id}" style="--c:${colour};${place}">
       ${chips}
-      <span class="qmark">"</span>
-      <span class="qbody">${esc(oneline(o.body||o.title||'').replace(/^[—\s]+/,'')).slice(0,180)}</span>
+      <span class="qmark">&ldquo;</span>
+      <span class="qbody">${esc(said.slice(0,180))}</span>
       ${has(o,'rating')&&o.rating?`<span class="tilestars">${'★'.repeat(o.rating)}</span>`:''}
       ${handles}
     </button>`;

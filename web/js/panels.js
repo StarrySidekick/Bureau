@@ -917,8 +917,11 @@ const MARKS = ['note','check','list','bulb','feather','book','star','flag','cloc
    animation you are getting is to tap the thing and watch. */
 // what a desk is called — home has no title of its own
 const deskName = id => id===ROOT ? deskTitle() : ((byId(id)||{}).title || 'Untitled');
-const OPENING_IS = o => openingOf(o)==='auto'
-  ? 'right now, it '+OPENINGS[openingFor(o)].toLowerCase() : '';
+/* "You go in" has its own subject, and "right now, it you go in" was the
+   hint on every drawer that dives (2026-09-30). */
+const OPENING_IS = o => { if(openingOf(o)!=='auto') return '';
+  const s = OPENINGS[openingFor(o)];
+  return 'right now, ' + (/^you /i.test(s) ? '' : 'it ') + s.toLowerCase(); };
 const psel=(id,key,list,cur)=>`<select class="psel" data-oset="${id}:${key}">${
   list.map(([v,n])=>`<option value="${esc(String(v))}"${String(cur==null?'':cur)===String(v)?' selected':''}>${esc(n)}</option>`).join('')}</select>`;
 /* ---- a visual choice is pressed through, not chosen from a list --------

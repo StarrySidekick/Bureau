@@ -18,7 +18,13 @@ which is nearly all of `tileTap`, and fatal for play, where the first call
 started the video and the second stopped it before a frame had gone by. The tap
 branch sets `gestureFlags.suppressClick`, like every other gesture that acts on
 pointerup, and clears the selection the click would have cleared. See decision
-158.
+158. (It is `gestureFlags.tapped` and `justTapped()` in wire.js now, which skip
+one call rather than the whole click.) **And the click can land somewhere
+else**: a tap that opens a drawer has put the drawer's board under the finger
+by the time the click arrives, and it opened whatever was there (iOS sends it
+after touchend just the same). The tap records its point and `tapEcho()` drops
+a click at that point, inside `TAP_ECHO`, on anything but the tile tapped; a
+new press clears it. See decision 277.
 
 **A falling board's tiles are not where their boxes say they are**, and that is
 the one class of bug this mode produces. Anything that reads the model to decide

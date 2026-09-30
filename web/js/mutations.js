@@ -92,11 +92,17 @@ function toggleDone(id){
   const par=byId(o.parent);
   const clAt = (!o.done && par && faceOf(par)==='checklist')
     ? childrenOf(par).filter(x=>!x.done).findIndex(x=>x.id===id) : -1;
+  /* **A tick is a move** (2026-09-30). It was the one change with no undo:
+     a ticked thing leaves the board, so a mis-tap on a phone took a task out
+     of sight with no way back but finding it in the archive. The move is the
+     fields as they were, plus the copy a repeat makes, which undo takes away. */
+  const steps=[{set:{id, k:'done', v:o.done}}, {set:{id, k:'doneAt', v:o.doneAt}}];
   o.done=!o.done;
   if(o.done){
     o.doneAt=T;
     const nd=nextDue(o);
     if(nd){
+      steps.push({set:{id, k:'kind', v:o.kind}});
       const r=repeatOf(o);
       /* `fromRepeat` marks a copy as one — Things 3.23 puts a small repeat glyph
          on generated to-dos, and it is worth having: it tells you the thing in
@@ -108,14 +114,20 @@ function toggleDone(id){
          tracker on the next one started empty every time. A fresh array, too:
          `Object.assign` handed both objects the *same* one, so a day logged
          on either was logged on both. See decision 202. */
-      S.objects.push(Object.assign({},o,{id:uid('o'), done:false, doneAt:null, due:nd,
+      const next=Object.assign({},o,{id:uid('o'), done:false, doneAt:null, due:nd,
         ord:o.ord+0.5, fromRepeat:true, history:[...(o.history||[]), T],
         repeat: (r && typeof o.repeat==='object')
-          ? Object.assign({}, r, {made:(r.made||0)+1}) : o.repeat}));
+          ? Object.assign({}, r, {made:(r.made||0)+1}) : o.repeat});
+      S.objects.push(next);
+      steps.push({add:next.id});
       o.kind='achievement';   // the archive is a magic drawer; nothing needs moving
-      toast(`Done · repeats ${D.human(nd).toLowerCase()}`);
-    } else toast(repeats(o) ? 'Done · that was the last one' : 'Filed under Done & Dusted');
-  } else { o.doneAt=null; }
+      pushUndo('Ticked', steps);
+      toast(`Done · repeats ${D.human(nd).toLowerCase()}`, true);
+    } else {
+      pushUndo('Ticked', steps);
+      toast(repeats(o) ? 'Done · that was the last one' : 'Filed under Done & Dusted', true);
+    }
+  } else { o.doneAt=null; pushUndo('Unticked', steps); }
   render();
   if(o.done) pop(id, was);
   if(o.done && clAt>=0) clRefill(o.parent, clAt);
@@ -561,10 +573,11 @@ function fits(kind, home, dv, cell){
   const [w,h] = cell && cell.w ? [cell.w, cell.h] : sizeOfKind(kind, d, home);
   if(roomFor(w, h, d, home)) return true;
   const c = byId(home);
-  // a board is added where you want it now (decision 219), so that is the way out
+  /* a tile is added where you want it (decision 219), so that is the way
+     out; since decision 276 by holding an empty slot, not pressing a plus */
   toast(home===ROOT
-    ? 'No room on the Desk — swipe off the edge of a board and press the plus for another'
-    : `No room in ${c && c.title ? c.title : 'here'} — swipe off the edge of its board and press the plus for another`);
+    ? 'No room on the Desk — hold an empty slot beside a tile to add another'
+    : `No room in ${c && c.title ? c.title : 'here'} — hold an empty slot beside its board to add a tile`);
   return false;
 }
 /* Tag filtering has no mode and no filter bar on purpose. A tag you care about

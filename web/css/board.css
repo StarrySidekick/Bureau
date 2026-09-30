@@ -90,7 +90,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;paddin
 input,textarea{font:inherit;color:inherit}
 ::-webkit-scrollbar{width:10px;height:10px}
 ::-webkit-scrollbar-thumb{background:var(--rule);border-radius:2px;border:3px solid transparent;background-clip:padding-box}
-::-webkit-scrollbar-thumb:hover{background:var(--ink-3);background-clip:padding-box;border:3px solid transparent}
+@media (hover:hover){::-webkit-scrollbar-thumb:hover{background:var(--ink-3);background-clip:padding-box;border:3px solid transparent}}
 
 /* ============================================================
    App shell
@@ -100,7 +100,7 @@ input,textarea{font:inherit;color:inherit}
 .seg button{padding:4px 11px;border-radius:2px;font-size:12px;color:var(--ink-2);font-weight:500;transition:.15s}
 .seg button[aria-pressed="true"]{background:var(--paper-2);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.14)}
 .iconbtn{width:28px;height:28px;border-radius:var(--radius);display:grid;place-items:center;color:var(--ink-2);transition:.15s}
-.iconbtn:hover{background:var(--paper-3);color:var(--ink)}
+@media (hover:hover){.iconbtn:hover{background:var(--paper-3);color:var(--ink)}}
 .banner{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:var(--radius-lg);font-size:12px;
   background:color-mix(in srgb,var(--brass) 16%,transparent);color:var(--ink);margin-bottom:10px}
 .banner button{margin-left:auto;font-weight:600;color:var(--brass);white-space:nowrap}
@@ -115,7 +115,7 @@ input,textarea{font:inherit;color:inherit}
   display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:var(--radius);
   color:var(--ink-2);font-size:13.5px;font-weight:500;transition:.12s;width:100%;text-align:left;
 }
-.navitem:hover{background:var(--paper-3);color:var(--ink)}
+@media (hover:hover){.navitem:hover{background:var(--paper-3);color:var(--ink)}}
 .navitem.on{background:color-mix(in srgb,var(--brass) 15%, transparent);color:var(--ink)}
 .navitem .ico{width:17px;display:grid;place-items:center;color:var(--ink-3)}
 .navitem.on .ico{color:var(--brass)}
@@ -132,7 +132,7 @@ input,textarea{font:inherit;color:inherit}
 .realtag::before{content:"";position:absolute;left:11px;top:50%;transform:translateY(-50%);
   width:4px;height:4px;border-radius:50%;background:rgba(0,0,0,.42)}
 .realtag b{cursor:pointer;opacity:.7;font-weight:400}
-.realtag b:hover{opacity:1}
+@media (hover:hover){.realtag b:hover{opacity:1}}
 
 .main{flex:1;min-width:0;display:flex;flex-direction:column;position:relative;overflow:hidden}
 .topbar{
@@ -147,10 +147,10 @@ input,textarea{font:inherit;color:inherit}
   display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:var(--pill);font-size:12.5px;
   font-weight:500;background:var(--paper-2);border:1px solid var(--rule);color:var(--ink-2);transition:.15s;white-space:nowrap
 }
-.pill:hover{border-color:var(--brass);color:var(--ink)}
+@media (hover:hover){.pill:hover{border-color:var(--brass);color:var(--ink)}}
 .pill.solid{background:var(--ink);color:var(--paper);border-color:transparent}
 html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
-.pill.solid:hover{opacity:.9}
+@media (hover:hover){.pill.solid:hover{opacity:.9}}
 .scroll{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:6px 22px 120px}
 .is-phone .scroll{padding:4px 12px 110px}
 /* the desk has no toolbar — the grid is the page */
@@ -226,7 +226,7 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .gridbar .trail{display:flex;align-items:center;gap:5px;min-width:0;font-size:13px;color:var(--ink-3)}
 .gridbar .trail b{font-weight:500;color:var(--ink-2);cursor:pointer;white-space:nowrap}
-.gridbar .trail b:hover{color:var(--brass)}
+@media (hover:hover){.gridbar .trail b:hover{color:var(--brass)}}
 /* The name of the desk is a button: it opens every desk at once, drawn small.
    It is not styled as one — a title that looks like a control is a toolbar, and
    there isn't one — but it says so when you reach for it. */
@@ -237,7 +237,7 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
   width:30px;height:30px;border-radius:var(--radius);display:grid;place-items:center;
   color:var(--ink-2);background:var(--paper-2);border:1px solid var(--rule);transition:.14s;
 }
-.sqbtn:hover{border-color:var(--brass);color:var(--ink)}
+@media (hover:hover){.sqbtn:hover{border-color:var(--brass);color:var(--ink)}}
 .sqbtn.on{background:color-mix(in srgb,var(--brass) 20%,transparent);border-color:transparent;color:var(--ink)}
 
 /* ============================================================
@@ -287,7 +287,7 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
   --dink:#F8F3E6;--dink-2:rgba(248,243,230,.76);--dink-3:rgba(248,243,230,.54);
   color:var(--dink);
 }
-.drawer:hover{box-shadow:var(--shadow-lg);filter:brightness(1.07)}
+@media (hover:hover){.drawer:hover{box-shadow:var(--shadow-lg);filter:brightness(1.07)}}
 .drawer:active{filter:brightness(.96)}
 .drawer .dtop{display:flex;align-items:center;gap:7px}
 .drawer .swatch{display:none}
@@ -315,6 +315,23 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
    keeps it from being sliced through the middle of a letter. */
 .drawer.dtile .dname{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;
   overflow:hidden;line-height:1.22;text-align:center;width:100%}
+/* …and the knob is held to that (2026-09-30). It was centred on the whole
+   front, so a name of two lines ran into it on every two-cell front on a
+   phone: Open Questions, Done & Dusted, Writing Desk. So a plain front is
+   three rows: the name's, the knob's, and an empty one. The outer two share
+   what is left equally and a `1fr` row is never shorter than what is in it,
+   so a name of one line leaves the knob exactly in the middle and a name of
+   two moves it down only as far as it has to. The name keeps its own height
+   in its row, so a nameplate round it is not stretched. The knob box drops
+   out (`display:contents`) and the knob restates its layer, the one the box
+   gave it: over the panel and the grain. Two doors, a knob at the bottom and
+   a front too small for a name keep the knob box as it was. */
+.drawer.dtile.knb-centre:not(.cabinet):not(.sz-short):not(.sz-thin){
+  display:grid;grid-template-rows:1fr auto 1fr;grid-template-columns:minmax(0,1fr)}
+.drawer.dtile.knb-centre:not(.cabinet):not(.sz-short):not(.sz-thin) > .dtop{grid-row:1;align-self:start}
+.drawer.dtile.knb-centre:not(.cabinet):not(.sz-short):not(.sz-thin) > .dfoot{display:contents}
+.drawer.dtile.knb-centre:not(.cabinet):not(.sz-short):not(.sz-thin) > .dfoot > .pull{
+  grid-row:2;justify-self:center;position:relative;z-index:1}
 /* ---- a tile shows less as it gets smaller -----------------------------
    Three thresholds, stamped on by sizeClass() in tiles.js. Nothing here moves
    anything: each rule only takes away what there is no longer room for, so a
@@ -487,7 +504,7 @@ html[data-style][data-surface="wood"] .grid::before{
 .prow.tight > div{grid-row:1;grid-column:2;justify-content:flex-end}
 .pchip{padding:4px 9px;border-radius:var(--pill);font-size:11.5px;border:1px solid var(--rule);
   color:var(--ink-2);background:var(--paper);transition:.12s}
-.pchip:hover{border-color:var(--brass);color:var(--ink)}
+@media (hover:hover){.pchip:hover{border-color:var(--brass);color:var(--ink)}}
 .pchip.on{background:color-mix(in srgb,var(--brass) 22%,transparent);color:var(--ink);border-color:transparent}
 .pslide{width:100%;accent-color:var(--brass)}
 /* a size, in cells, for the sizes the presets don't happen to contain */
@@ -566,9 +583,9 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
 .relchip{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:var(--pill);
   font-size:11.5px;cursor:pointer;color:var(--ink);
   background:color-mix(in srgb,var(--k) 16%,transparent);border:1px solid color-mix(in srgb,var(--k) 40%,transparent)}
-.relchip:hover{border-color:var(--k)}
+@media (hover:hover){.relchip:hover{border-color:var(--k)}}
 .relchip b{opacity:.55;font-weight:400}
-.relchip b:hover{opacity:1}
+@media (hover:hover){.relchip b:hover{opacity:1}}
 
 /* ---- more type silhouettes ------------------------------------------- */
 /* a poem: centred, on parchment */
@@ -1137,6 +1154,17 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
   overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow-wrap:anywhere}
 .tlnode u{font-size:clamp(7px, 3.2cqw, 8.5px);text-decoration:none;color:var(--dink-3)}
 .tlnode.above b{order:1} .tlnode.above u{order:2}
+/* Near an end a label slides inward by `--tls` (worked out in tiles.js) and
+   its dot slides back onto its date, or the first thing on the axis is half
+   off the tile; a node with no room for its label in either lane is its dot,
+   and the rest is on its title. */
+.tlnode{translate:var(--tls,0px) 0}
+.tlnode > i{translate:calc(-1 * var(--tls,0px)) 0}
+.tlnode.bare b,.tlnode.bare u{display:none}
+/* two rows or fewer: one lane, below a rule that sits just under the name */
+.tltile.tl1 .tlwrap{top:36px}
+.tltile.tl1 .tlrule{top:4px}
+.tltile.tl1 .tlnode.below{top:4px}
 /* a button sits on a tile rather than floating */
 .drawer.btntile{background:var(--paper-2);border:1px solid var(--rule);box-shadow:var(--shadow)}
 /* The counter's digits are sized in **chrome.css**, which loads after this
@@ -1658,7 +1686,7 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
    object is a readout of that object, and what happened somewhere else is not
    this tile's to change */
 .ownbar .barblock{cursor:pointer}
-.ownbar .barblock:hover{box-shadow:inset 0 0 0 1.5px var(--c)}
+@media (hover:hover){.ownbar .barblock:hover{box-shadow:inset 0 0 0 1.5px var(--c)}}
 .bartile .barcount{margin-left:auto;font-size:11px;color:var(--ink-3);
   font-variant-numeric:tabular-nums;flex:0 0 auto}
 .bartile .dtop{flex:0 0 auto;align-items:baseline;gap:6px}
@@ -1781,7 +1809,7 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
   background:none;border:0;box-shadow:none;padding:0;overflow:visible;
   --jarlid:18%;
 }
-.drawer.dtile.jartile:hover{box-shadow:none;filter:brightness(1.05)}
+@media (hover:hover){.drawer.dtile.jartile:hover{box-shadow:none;filter:brightness(1.05)}}
 
 /* the lid, and the knurl round its rim in one repeating gradient */
 .jartile .jarlid{
@@ -1903,7 +1931,7 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
 .drawer.dtile.pigeontile{
   background:transparent;border-color:transparent;box-shadow:none;padding:0;
 }
-.drawer.dtile.pigeontile:hover{box-shadow:none;filter:brightness(1.04)}
+@media (hover:hover){.drawer.dtile.pigeontile:hover{box-shadow:none;filter:brightness(1.04)}}
 .pigeontile .pgframe{
   position:absolute;inset:0;z-index:2;pointer-events:none;border-radius:inherit;
   border:6px solid var(--c);
@@ -2848,10 +2876,11 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
   background:color-mix(in srgb, var(--bar-ink, #EDE3CE) 34%, transparent);
   transition:background .14s, transform .14s;
 }
-.shelfmark i:hover{background:color-mix(in srgb, var(--bar-ink, #EDE3CE) 62%, transparent)}
+@media (hover:hover){.shelfmark i:hover{background:color-mix(in srgb, var(--bar-ink, #EDE3CE) 62%, transparent)}}
 .shelfmark i.on{background:var(--glow);transform:scale(1.25)}
 /* a slot of the rectangle with no board on it holds its place and says nothing */
-.shelfmark i.gap,.shelfmark i.gap:hover{background:none;cursor:default}
+.shelfmark i.gap{background:none;cursor:default}
+@media (hover:hover){.shelfmark i.gap:hover{background:none;cursor:default}}
 
 /* ---- every board, zoomed out — decision 227 ---------------------------
    Over the desk and under nothing but a panel: the wood of the carcass as
@@ -2899,12 +2928,12 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
 .ovadd .ovboard{display:grid;place-items:center;background:rgba(0,0,0,.18);
   box-shadow:none;outline:2px dashed rgba(244,235,216,.4);outline-offset:-2px;color:rgba(244,235,216,.75)}
 .ovadd .ovboard svg{grid-area:1/1/-1/-1}
-.ovadd:hover .ovboard{color:#F4EBD8;outline-color:rgba(244,235,216,.8)}
+@media (hover:hover){.ovadd:hover .ovboard{color:#F4EBD8;outline-color:rgba(244,235,216,.8)}}
 .ovgap{display:block}
 .ovgo{position:absolute;top:-7px;right:-7px;width:22px;height:22px;border-radius:50%;
   display:grid;place-items:center;cursor:pointer;z-index:2;
   background:#2A241C;color:#F4EBD8;box-shadow:0 0 0 2px var(--wood, #6B4A31)}
-.ovgo:hover{background:#8E3B38}
+@media (hover:hover){.ovgo:hover{background:#8E3B38}}
 
 /* ============================================================
    things that run — decision 182
@@ -2919,7 +2948,7 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
   background:none;border:0;box-shadow:none;padding:0;overflow:visible;
   align-items:stretch;justify-content:stretch;color:var(--c);
 }
-.drawer.otile.acttile:hover{box-shadow:none;filter:brightness(1.06)}
+@media (hover:hover){.drawer.otile.acttile:hover{box-shadow:none;filter:brightness(1.06)}}
 /* An instrument keeps its taps on a locked board for a lamp's reason
    (decision 179): pressing it is the whole of what it is for. */
 /* **No filter, and no shading baked into the drawing.** A `drop-shadow` on an
@@ -3341,11 +3370,11 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
   box-shadow:0 1px 3px rgba(0,0,0,.18), inset 0 0 0 1px var(--rule-2);
   backdrop-filter:blur(6px);
 }
-.camtool:hover{color:var(--ink);background:var(--paper)}
+@media (hover:hover){.camtool:hover{color:var(--ink);background:var(--paper)}}
 /* A drawer's insides read light, so its controls have to as well. */
 .drawer.dtile .camtool{color:var(--dink-2);
   background:color-mix(in srgb, #000 28%, transparent)}
-.drawer.dtile .camtool:hover{color:var(--dink)}
+@media (hover:hover){.drawer.dtile .camtool:hover{color:var(--dink)}}
 
 /* ---- what you read once you are there ---------------------------------
    The words under the camera are **counter-scaled**: written small and
@@ -3485,7 +3514,7 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
 .habgrp.many{background:color-mix(in srgb,var(--c) 8%,transparent)}
 .habgrp.many.met{background:color-mix(in srgb,var(--c) 18%,transparent)}
 .habgrp.now{box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--c) 70%,transparent);cursor:pointer}
-.habgrp.now:hover{box-shadow:inset 0 0 0 2px var(--c)}
+@media (hover:hover){.habgrp.now:hover{box-shadow:inset 0 0 0 2px var(--c)}}
 .habpip{
   flex:0 1 auto;height:62%;max-height:18px;aspect-ratio:1;border-radius:50%;min-width:0;
   background:transparent;
@@ -3521,8 +3550,8 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
   filter:drop-shadow(0 1px 1.5px rgba(0,0,0,.28)) drop-shadow(0 3px 5px rgba(0,0,0,.14));
   --hx:calc(var(--tp) * .62);
 }
-.drawer.dtile.tagtile:hover{box-shadow:none;
-  filter:drop-shadow(0 1px 1.5px rgba(0,0,0,.3)) drop-shadow(0 5px 9px rgba(0,0,0,.2)) brightness(1.05)}
+@media (hover:hover){.drawer.dtile.tagtile:hover{box-shadow:none;
+  filter:drop-shadow(0 1px 1.5px rgba(0,0,0,.3)) drop-shadow(0 5px 9px rgba(0,0,0,.2)) brightness(1.05)}}
 .tagtile > .dpanel,.tagtile > .dgrain,.tagtile > .dside,.tagtile > .dwash,
 .tagtile > .dsweep,.tagtile > .darris,.tagtile > .drecess{display:none}
 .tagtile .tagcard{
@@ -3609,7 +3638,7 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
 .drawer.otile.bgtile{background-color:var(--c);background-image:none;border:0;padding:0;
   border-radius:var(--radius-d);box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--c) 70%, #000 30%)}
 .drawer.otile.bgtile > .dpanel,.drawer.otile.bgtile > .dgrain,.drawer.otile.bgtile > .dside{display:none}
-.drawer.otile.bgtile:hover{filter:brightness(1.03)}
+@media (hover:hover){.drawer.otile.bgtile:hover{filter:brightness(1.03)}}
 .grid.locked .bgtile{pointer-events:none}
 .drawer.otile.bgtile.fill-check{background-image:
   conic-gradient(color-mix(in srgb, var(--c) 55%, #fff) 25%, transparent 0 50%, color-mix(in srgb, var(--c) 55%, #fff) 0 75%, transparent 0);
@@ -3693,14 +3722,17 @@ html[data-surface="wood"] .grid > .tilepaper{display:none}
 .addboard,.tiledrop{width:64px;height:64px;padding:0;cursor:pointer;pointer-events:auto;
   display:grid;place-items:center;border:0;background:none;border-radius:50%;
   color:color-mix(in srgb,#fff 30%,transparent);transition:color .15s}
-.addboard:hover,.addboard:focus-visible,.tiledrop:hover,.tiledrop:focus-visible{
+.addboard:focus-visible,.tiledrop:focus-visible{
   color:color-mix(in srgb,#fff 60%,transparent)}
+@media (hover:hover){.addboard:hover,.tiledrop:hover{
+  color:color-mix(in srgb,#fff 60%,transparent)}}
 /* The minus on an empty tile stands on paper, not wood, so it is the ink's.
    `.tiledrop`, never `.dropboard`: that is the class a grid wears while a
    thing is carried over it, and a rule for a button there shrank the board. */
 .grid > .tileminus{z-index:2;display:flex;align-items:center;justify-content:center;pointer-events:none}
 .tileminus .tiledrop{color:color-mix(in srgb,var(--ink,#333) 26%,transparent)}
-.tileminus .tiledrop:hover,.tileminus .tiledrop:focus-visible{color:color-mix(in srgb,var(--ink,#333) 55%,transparent)}
+.tileminus .tiledrop:focus-visible{color:color-mix(in srgb,var(--ink,#333) 55%,transparent)}
+@media (hover:hover){.tileminus .tiledrop:hover{color:color-mix(in srgb,var(--ink,#333) 55%,transparent)}}
 /* A Mac draws the whole rectangle at the desk's own cell, so a desk more than
    three boards across is wider than the window and scrolls sideways rather
    than squashing every cell to fit. */
@@ -3719,9 +3751,9 @@ html[data-surface="wood"] .grid > .tilepaper{display:none}
 .tilemap .tm.on{background:var(--brass);cursor:pointer;opacity:.75}
 .tilemap .tm.on.full{opacity:1;box-shadow:inset 0 0 0 2px rgba(0,0,0,.18)}
 .tilemap .tm.home{opacity:1;background:var(--brass);box-shadow:inset 0 0 0 3px color-mix(in srgb,#fff 45%,transparent);cursor:default}
-.tilemap button.tm.on:hover{filter:brightness(.85)}
+@media (hover:hover){.tilemap button.tm.on:hover{filter:brightness(.85)}}
 .tilemap .tm.add{box-shadow:inset 0 0 0 1px var(--rule);cursor:pointer}
-.tilemap .tm.add:hover{color:var(--ink)}
+@media (hover:hover){.tilemap .tm.add:hover{color:var(--ink)}}
 .boardshape{display:inline-grid;grid-template-columns:repeat(var(--sw,1), 12px);gap:3px;
   padding:4px;border-radius:var(--radius);background:rgba(0,0,0,.06)}
 .boardshape i{width:12px;height:12px;border-radius:2px;display:block;

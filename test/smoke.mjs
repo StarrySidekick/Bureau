@@ -24,6 +24,37 @@ const PROP_OFF = () => { const b = document.createElement('button');
      from here. */
   const BLANK_PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=', 'base64');
   await ctx.route('https://s0.wp.com/**', r => r.fulfill({ status: 200, contentType: 'image/png', body: BLANK_PNG }));
+  /* Holding a tile, in every context that makes or takes one (below). */
+  const HOLD_TILE = () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    /* **Holding makes and takes a tile** (decision 276): there is no plus on
+       a slot and no minus on a tile any more. `holdTile(x, y, ms)` presses the
+       middle cell of tile (x, y) of the board on the screen, the way a finger
+       (or a Mac's mouse) would, and lets go after `ms`: 450 is past the hold
+       that makes a tile on an empty slot, 1500 past the longer one on a tile's
+       middle that takes it away. The press goes to the grid itself, which is
+       what a bare press lands on (slots and papers take no pointer events). */
+    window.holdTile = async (x, y, ms, cid) => {
+      const g = document.querySelector('#drawergrid'); if (!g) return false;
+      const id = cid || g.dataset.gridfor || 'root';
+      const W = BUREAU.TILE, h = Math.floor(W / 2), sh = BUREAU.shelfShift(id);
+      const at = () => { const r = g.getBoundingClientRect(), c = parseFloat(g.style.getPropertyValue('--rowh'));
+        return { x: r.left + (x * W + h - sh.x + .5) * c, y: r.top + (y * W + h - sh.y + .5) * c }; };
+      let p = at();
+      if (p.x < 0 || p.y < 0 || p.x > innerWidth || p.y > innerHeight) {
+        const sc = document.querySelector('#app .deskscroll');
+        if (sc) { sc.scrollBy(p.x - innerWidth / 2, p.y - innerHeight / 2); await nap(150); p = at(); }
+      }
+      const o = { bubbles: true, cancelable: true, clientX: p.x, clientY: p.y, pointerId: 7, isPrimary: true,
+        button: 0, pointerType: BUREAU.state.device === 'phone' ? 'touch' : 'mouse' };
+      g.dispatchEvent(new PointerEvent('pointerdown', o));
+      await nap(ms);
+      g.dispatchEvent(new PointerEvent('pointerup', o));
+      await nap(80);
+      return true;
+    };
+  };
+  await ctx.addInitScript(HOLD_TILE);
   /* ---- finding something to press, on a board that is nine screens ------
      A phone draws **one shelf of nine**, so "the first root child" and "the
      first tile on the board" stop being the same thing: a block that picks an
@@ -2401,39 +2432,49 @@ const PROP_OFF = () => { const b = document.createElement('button');
     wheel(60); await nap(420);
     out.aPinchZoomsTheBoard = !document.querySelector('#overview') && BUREAU.zoomOf('root') < 1
       && rowh() < cell0 - 1 && !!document.querySelector('#drawergrid.zoomed');
-    /* Out far enough it is every tile (2026-09-30): a faint plus on every
-       slot and a faint minus on every empty tile but the home one, and only
-       on an unlocked board; nothing sits on top of anything, so no crosses. */
+    /* Out far enough it is every tile, and since decision 276 there is no
+       plus on a slot and no minus on a tile: nothing sits on the board but
+       the board, and holding is what makes and takes a tile. */
     const wasLocked = S.look.locked; S.look.locked = false;
     BUREAU.zoomCommit('root', 0.01); await nap(200);
-    const minus = () => [...document.querySelectorAll('#drawergrid .tileminus [data-boardremove]')]
-      .map(b => b.dataset.boardremove.split(':').slice(1).map(Number));
-    out.farOutIsEveryTile = document.querySelectorAll('#drawergrid .addboard').length === 12
-      && !document.querySelector('.tilecross')
-      && minus().every(([x,y]) => !BUREAU.boardHolds('root', x, y));
-    const st = S.deskCfg.start || BUREAU.startOf('root');
-    out.theHomeBoardStays = !minus().some(([x,y]) => x===st.x && y===st.y);
-    // a plus adds a tile, and the board stays zoomed out, so you see it arrive
+    out.farOutIsEveryTile = document.querySelectorAll('#drawergrid .noboard').length >= 12
+      && !document.querySelector('#drawergrid .addboard, #drawergrid .tileminus, .tilecross');
+    // holding a slot adds a tile there, and the board stays zoomed out, so you see it arrive
     const had = BUREAU.boardsOf('root').length;
     // to the right, so no board's numbers move
-    document.querySelector('#drawergrid .addboard[data-addboard="root:3:0"]').click(); await nap(120);
-    out.aPlusAddsHere = BUREAU.boardsOf('root').length === had + 1 && BUREAU.zoomOf('root') < 1;
+    await holdTile(3, 0, 450);
+    out.aHeldSlotAddsHere = BUREAU.boardsOf('root').length === had + 1 && BUREAU.isBoard('root', 3, 0)
+      && BUREAU.zoomOf('root') < 1;
     // …and its squares click into place over it, and are gone again
     out.itClicksIntoPlace = !!document.querySelector('#drawergrid .tilegrow');
     await nap(1100);
     out.andTheAnimationLeaves = !document.querySelector('#drawergrid .tilegrow');
-    // …and, empty, its minus takes it away again
-    const drop = document.querySelector('#drawergrid .tileminus [data-boardremove="root:3:0"]');
-    if(drop) drop.click(); await nap(250);
-    out.aMinusTakesAnEmptyOneAway = !!drop && BUREAU.boardsOf('root').length === had;
-    /* A tile with something on it has no minus: it is taken away from Board
-       settings' map, and asks where its things go (decision 234). */
-    document.querySelector('#drawergrid .addboard[data-addboard="root:3:0"]').click(); await nap(250);
+    // …and, empty, a long hold on its middle takes it away again
+    await holdTile(3, 0, 1500);
+    out.aLongMiddleHoldTakesAnEmptyOneAway = BUREAU.boardsOf('root').length === had && !BUREAU.isBoard('root', 3, 0);
     const dv = S.device==='desk' ? 'desk' : 'phone';
+    /* …but never the tile you arrive on. Its middle is held only if it is
+       bare: a hold on a thing there would pick the thing up instead. */
+    const st = S.deskCfg.start || BUREAU.startOf('root'), mid = Math.floor(BUREAU.TILE/2) + 1;
+    if(BUREAU.boxOk({x:st.x*BUREAU.TILE+mid, y:st.y*BUREAU.TILE+mid, w:1, h:1}, null, dv, 'root')){
+      await holdTile(st.x, st.y, 1500);
+      out.theHomeBoardStays = BUREAU.boardsOf('root').length === had && BUREAU.isBoard('root', st.x, st.y);
+    } else out.theHomeBoardStays = 'its middle is taken';
+    /* A tile with something on it asks where its things go (decision 234),
+       held or pressed on Board settings' map. */
+    await holdTile(3, 0, 450); await nap(1100);
     const lodger = BUREAU.create('note', {parent:'root', title:'On the far board'});
     lodger[dv] = {x: 3*BUREAU.shelfW('root', dv) + 1, y:1, w:2, h:2};
     BUREAU.render(); await nap(200);
-    out.aFullTileHasNoMinus = !document.querySelector('#drawergrid .tileminus [data-boardremove="root:3:0"]');
+    await holdTile(3, 0, 1500);
+    out.aHeldFullTileAsks = !!document.querySelector('#overview .ovask') && BUREAU.boardsOf('root').length === had + 1;
+    /* pressed, not only clicked: the hold left suppressClick up for its own
+       trailing click, and a real press clears it (onDown) before the button's */
+    const keep = document.querySelector('#overview [data-act="ovkeep"]');
+    if(keep){ keep.dispatchEvent(new PointerEvent('pointerdown', {bubbles:true, pointerId:8, isPrimary:true}));
+      keep.click(); } await nap(250);
+    out.keepingTheTileKeepsIt = !!keep && !document.querySelector('#overview .ovask') && BUREAU.isBoard('root', 3, 0)
+      && lodger.parent === 'root';
     BUREAU.settingsPanel('board'); await nap(300);
     const onMap = document.querySelector('#panel .tilemap [data-boardremove="root:3:0"]');
     if(onMap) onMap.click(); await nap(250);
@@ -2444,9 +2485,10 @@ const PROP_OFF = () => { const b = document.createElement('button');
     out.itsThingsGoToTheVoid = lodger.parent === '__hold' && BUREAU.boardsOf('root').length === had
       && !document.querySelector('#overview');
     BUREAU.closePanel(); BUREAU.del(lodger.id);
-    // locked, no plus and no minus: nothing is added or taken away
+    // locked, a held slot makes nothing: nothing is added or taken away
     S.look.locked = true; BUREAU.render(); await nap(120);
-    out.lockedShowsNeither = !document.querySelector('#drawergrid .addboard, #drawergrid .tileminus');
+    await holdTile(3, 0, 450);
+    out.lockedAddsNothing = BUREAU.boardsOf('root').length === had && !BUREAU.isBoard('root', 3, 0);
     S.look.locked = wasLocked; BUREAU.render();
     /* The zoom settles, as a scroll does (2026-09-30): on a Mac, somewhere the
        window is a whole number of cells across, or the whole board. */
@@ -2598,8 +2640,9 @@ const PROP_OFF = () => { const b = document.createElement('button');
     const lockWas = BUREAU.state.look.locked; BUREAU.state.look.locked = false; BUREAU.render(); await nap(150);
     BUREAU.goShelfTo('root', 2, 2); await nap(300);
     BUREAU.goShelfTo('root', 3, 2); await nap(300);
+    // plain wood since decision 276: no plus on it, a hold makes the tile
     const slot = at().x === 3 && !BUREAU.isBoard('root', 3, 2)
-      && !!document.querySelector('#drawergrid [data-addboard="root:3:2"]');
+      && !!document.querySelector('#drawergrid .noboard') && !document.querySelector('#drawergrid [data-addboard]');
     BUREAU.state.look.locked = lockWas; BUREAU.render();
     BUREAU.goShelfTo('root', 4, 2); await nap(300);
     out.stopsAtTheEdge = slot && at().x !== 4;
@@ -5196,17 +5239,33 @@ const PROP_OFF = () => { const b = document.createElement('button');
   const spans = await page.evaluate(async () => {
     const nap = n => new Promise(r => setTimeout(r, n));
     const S = BUREAU.state, out = {};
-    const iso = n => { const d=new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()+n);
+    /* Days counted from the 10th of this month, not from today: the calendar
+       draws this month, and on the 30th "today plus five" is next month's,
+       which failed the block on the last days of every month. */
+    const iso = n => { const d=new Date(); d.setHours(0,0,0,0); d.setDate(10+n);
       return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
 
+    /* Somewhere that is really free: `onThisShelf()` is `anySpot()`, which on
+       a desk with no room puts the box on top of something, and then the drop
+       below lands on that something instead of on the day. A column of tiles
+       to the right when there is no room (so no number moves), taken away
+       again at the end. */
+    const added = [];
+    const roomy = (w, h) => {
+      let b = onThisShelf(w, h);
+      if(BUREAU.boxOk(b, null, S.device, 'root')) return b;
+      const bs = BUREAU.boardsOf('root'), mx = Math.max(...bs.map(t => t.x));
+      [...new Set(bs.map(t => t.y))].forEach(y => { if(BUREAU.addBoard('root', mx+1, y)) added.push([mx+1, y]); });
+      return onThisShelf(w, h);
+    };
     const trip = BUREAU.create('trip', {parent:'root', title:'Lisbon'});
     out.tripLasts = BUREAU.K.trip.attrs.includes('span');
     trip.due = iso(1); trip.till = iso(5);
-    trip.desk = onThisShelf(4, 3);          // on the shelf being looked at, so
+    trip.desk = roomy(4, 3);                // on the shelf being looked at, so
     // a calendar collecting anything dated has to mark all five days — and a
     // trip is a container, which only a layout that runs on time will collect
     const cal = BUREAU.create('calendar', {parent:'root', title:'When'});
-    cal.desk = onThisShelf(6, 6);           // the drop below happens on screen
+    cal.desk = roomy(6, 6);                 // the drop below happens on screen
     cal.filter = {rule:{f:'date',op:'any'}, scope:'all'};
     BUREAU.render(); await nap(150);
     out.aTimeLayoutCollectsContainers = BUREAU.kids(cal.id).includes(trip.id);
@@ -5252,6 +5311,7 @@ const PROP_OFF = () => { const b = document.createElement('button');
       out.movedKeepsItsLength = trip.due === iso(8) && trip.till === iso(12);
     }
     BUREAU.del(trip.id); BUREAU.del(cal.id); S.undo=[];
+    added.reverse().forEach(([x, y]) => BUREAU.removeBoard('root', x, y));
     S.view='desk'; S.drawerId=null; BUREAU.render();
     return out;
   });
@@ -10335,7 +10395,7 @@ const PROP_OFF = () => { const b = document.createElement('button');
     if(M.pagerBegin('x', -1)){
       M.pagerMove(-400); await nap(40); M.pagerEnd(); await nap(450);
       out.oneFingerFindsASlot = S.drawerId === b.id && BUREAU.shelfAt(b.id).x === 1
-        && !!document.querySelector('#drawergrid.vacant .addboard');
+        && !!document.querySelector('#drawergrid.vacant') && !document.querySelector('#drawergrid .addboard');
     } else out.oneFingerFindsASlot = 'no slot';
     BUREAU.goShelfTo(b.id, 0, 0); await nap(150);
     // and a full board grows a page at the bottom instead of refusing
@@ -10363,6 +10423,7 @@ const PROP_OFF = () => { const b = document.createElement('button');
      before this is still nine boards. In its own context, because the rest of
      the suite runs on a desk made three by three. */
   const freshCtx = await browser.newContext({ viewport:{width:390,height:844}, hasTouch:true });
+  await freshCtx.addInitScript(HOLD_TILE);
   const fresh = await freshCtx.newPage();
   fresh.on('pageerror', e => errs.push('PAGEERROR (fresh): ' + e.message));
   await fresh.goto(URL); await fresh.waitForTimeout(900);
@@ -10378,23 +10439,25 @@ const PROP_OFF = () => { const b = document.createElement('button');
       .every(o=>B.boxOk(o.phone, o.id, 'phone', 'root'));
     /* The phone scrolls every way (decision 273), so the slots beside the
        column are drawn in its pad and a step sideways is a scroll onto one. */
-    const plus = (x, y) => document.querySelector(`[data-addboard="root:${x}:${y}"]`);
+    /* …plain wood, with no plus on it since decision 276: holding it is
+       what makes the tile there. */
     B.goShelfTo('root', 2, 0); await nap(200);
-    out.offTheEdgeIsASlot = B.shelfAt('root').x === 2 && !!plus(2, 0)
+    out.offTheEdgeIsASlot = B.shelfAt('root').x === 2 && !B.isBoard('root', 2, 0)
+      && !!document.querySelector('#drawergrid .noboard') && !document.querySelector('[data-addboard]')
       && !S.objects.some(o => o.parent==='root' && o.phone && o.phone.x > 2*B.shelfW('root'));
     B.goShelfTo('root', 3, 0); await nap(150);
     out.butNotTwoOff = B.shelfAt('root').x <= 2;
     B.goShelfTo('root', 2, 0); await nap(150);
-    plus(2, 0).click(); await nap(200);
-    out.thePlusMakesOne = B.boardsOf('root').length === 7 && B.isBoard('root', 2, 0)
+    await holdTile(2, 0, 450); await nap(200);
+    out.aHeldSlotMakesOne = B.boardsOf('root').length === 7 && B.isBoard('root', 2, 0)
       && B.shelfAt('root').x === 2 && !document.querySelector('#drawergrid.vacant');
     const t = S.objects.find(o=>o.id==='d_today'), was = {...t.phone};
     B.goShelfTo('root', -1, 0); await nap(150);
-    plus(-1, 0).click(); await nap(200);
+    await holdTile(-1, 0, 450); await nap(200);
     out.leftMovesTheNumbers = t.phone.x === was.x + B.shelfW('root') && t.phone.y === was.y
       && B.shelvesOf('root').w === 4 && B.shelfAt('root').x === 0;
     B.goShelfTo('root', 1, -1); await nap(150);
-    plus(1, -1).click(); await nap(200);
+    await holdTile(1, -1, 450); await nap(200);
     out.upToo = B.shelvesOf('root').h === 4 && B.isBoard('root', 1, 0) && !B.isBoard('root', 0, 0)
       && t.phone.y === was.y + B.shelfRows;
     // the dots are the tiles' own shape, gaps and all: seven of a four by four
@@ -11047,6 +11110,7 @@ const PROP_OFF = () => { const b = document.createElement('button');
      an old desk re-cut into tiles without anything moving. A context of its
      own, so the desk is fresh and the scroll is the default. */
   const t272Ctx = await browser.newContext({ viewport:{width:390,height:844}, hasTouch:true, isMobile:true });
+  await t272Ctx.addInitScript(HOLD_TILE);
   const t2 = await t272Ctx.newPage();
   t2.on('pageerror', e => errs.push('PAGEERROR (272): ' + e.message));
   await t2.goto(URL); await t2.waitForTimeout(1200);
@@ -11064,8 +11128,10 @@ const PROP_OFF = () => { const b = document.createElement('button');
     out.smoothIsTheDefault = B.flows('phone') && !S.look.flow;
     out.aFreshDeskIsTwoByThree = S.deskCfg.shelves.w === 2 && S.deskCfg.shelves.h === 3 && B.shelfAt('root').y === 1;
     // the column, with an empty tile's worth above and below it
+    // (two tiles by three, a tile of slots round it: fourteen slots, no pluses since 276)
     out.theColumnIsDrawnWithItsPad = /repeat\(25,/.test(grid().style.gridTemplateRows)
-      && document.querySelectorAll('#drawergrid .noboard [data-addboard]').length === 10;
+      && document.querySelectorAll('#drawergrid .noboard').length === 14
+      && !document.querySelector('#drawergrid [data-addboard]');
     // the middle tile, and four rows of each neighbour
     out.theTileIsCentred = Math.abs(sc().scrollTop/cell() - 6) < 0.1;
     // up and down a thing may cross a seam; sideways it may not
@@ -11089,10 +11155,10 @@ const PROP_OFF = () => { const b = document.createElement('button');
     // the tile you are on is the one the middle of the screen is in
     sc().scrollTop = 10*cell(); sc().dispatchEvent(new Event('scroll')); await nap(400);
     out.theMiddleSaysWhichTile = B.shelfAt('root').y === 2;
-    // the plus above the top tile adds one there, and nothing moves on the screen
+    // a hold on the slot above the top tile adds one there, and nothing moves on the screen
     const any = S.objects.find(o => o.parent === 'root' && o.phone && o.phone.x);
     const was = any.phone.y;
-    document.querySelector('#drawergrid [data-addboard="root:0:-1"]').click(); await nap(300);
+    await holdTile(0, -1, 450); await nap(300);
     out.aTileGoesOnTop = S.deskCfg.shelves.h === 4 && any.phone.y === was + B.TILE;
     // an old desk of nine 8×14 boards is the same cells, cut into tiles of eight (50) and then of five (51)
     const old = B.migrated({v:49, look:{grid:'small', flow:'scroll'}, deskCfg:{layout:'grid', shelves:{w:3,h:3}, start:{x:1,y:1}},

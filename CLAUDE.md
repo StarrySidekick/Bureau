@@ -324,6 +324,17 @@ gone for a faint **minus on an empty tile** and a pressable **Tiles map** in
 Board settings; a slot is plain wood with a faint thick plus, unlocked only;
 and a new tile's squares **click into place** (`tileArrives()`). WebKit can
 be installed in the container to check a Safari question (see 275).
+**v2.63** (decision 276): no plus and no minus; **holding an empty slot makes
+a tile there** and holding a tile's middle cell long takes it away
+(`tileHere()`/`tileAway()` in wire.js).
+**v2.64** (decision 277), an overnight pass in WebKit: a tap's trailing click
+no longer lands on what the tap put under the finger (`tapEcho()`); every
+`:hover` is inside `@media (hover:hover)`; a plain drawer front is a
+`1fr auto 1fr` grid so a two-line name clears the knob; timeline labels take
+the lane with room; a new Quote shows its name; a tick is undoable, with
+Undo on its toast; makers place through
+`fitSpot()` as `fits()` promised; and `smoke.mjs` runs to the end again
+(`holdTile()`).
 
 **Start here each session:** `docs/SYSTEM.md` is the reference for what Bureau is
 made of — objects, attributes, types, drawers, the grid, the surfaces, storage.

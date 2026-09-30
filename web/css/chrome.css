@@ -721,7 +721,7 @@
 .bookstage.fullbleed .bookbar .bookcount{
   border-radius:var(--pill);padding:4px 11px;min-width:0;line-height:1.5;
 }
-.bookstage.fullbleed .bookbar .iconbtn:hover{color:var(--ink);border-color:var(--brass)}
+@media (hover:hover){.bookstage.fullbleed .bookbar .iconbtn:hover{color:var(--ink);border-color:var(--brass)}}
 
 /* ---- one bar under the paper — decision 84 ---------------------------
    Everything you can press, in one row, at the end of the sheet a thumb
@@ -755,10 +755,10 @@
   min-width:72px;text-align:center}
 .is-phone .bookcount{min-width:64px}
 .bookbar .iconbtn{color:rgba(244,238,221,.8)}
-.bookbar .iconbtn:hover{background:rgba(255,255,255,.14);color:#fff}
+@media (hover:hover){.bookbar .iconbtn:hover{background:rgba(255,255,255,.14);color:#fff}}
 .bookbar .iconbtn[disabled]{opacity:.35;pointer-events:none}
 .bookbar .pill{background:rgba(255,255,255,.10);border-color:rgba(255,255,255,.22);color:#E9E1CC}
-.bookbar .pill:hover{border-color:var(--brass);color:#fff}
+@media (hover:hover){.bookbar .pill:hover{border-color:var(--brass);color:#fff}}
 /* The mode wears its name where there is room, and its mark where there isn't.
 
    It is the one control in the row that is also a **readout** — it says what
@@ -774,7 +774,7 @@
 .bookbar .readmode{display:inline-flex;align-items:center;justify-content:center;
   gap:6px;width:auto;padding:0 10px;
   background:rgba(255,255,255,.09);box-shadow:inset 0 0 0 1px rgba(255,255,255,.15)}
-.bookbar .readmode:hover{background:rgba(255,255,255,.16)}
+@media (hover:hover){.bookbar .readmode:hover{background:rgba(255,255,255,.16)}}
 .is-phone .bookbar .readmode span{display:none}
 .is-phone .bookbar .readmode{padding:0;width:28px}
 
@@ -863,7 +863,7 @@
   grid-area:1 / 3;display:inline-flex;align-items:center;justify-content:center;
   width:24px;height:20px;margin-left:6px;padding:0;border-radius:5px;cursor:pointer;
   background:transparent;border:1px solid var(--rule);color:var(--ink-3)}
-.dirflip:hover{border-color:var(--brass);color:var(--ink-2)}
+@media (hover:hover){.dirflip:hover{border-color:var(--brass);color:var(--ink-2)}}
 .dirflip.on{background:var(--brass);border-color:var(--brass);color:var(--paper)}
 .dirflip svg{display:block}
 /* A long press on a tile is Bureau's "pick this up". iOS reads the same press
@@ -1010,7 +1010,7 @@
   font-size:9.5px;font-weight:700;letter-spacing:.03em;padding:3px 6px;border-radius:3px;
   background:rgba(0,0,0,.42);color:var(--dink);cursor:pointer;font-variant-numeric:tabular-nums
 }
-.sizebtns b:hover{background:rgba(0,0,0,.68)}
+@media (hover:hover){.sizebtns b:hover{background:rgba(0,0,0,.68)}}
 /* the ✕ needs a real target — a near-miss used to open the thing instead */
 .sizebtns b[data-delDrawer]{padding:4px 9px;font-size:12px;line-height:1}
 .sizebtns::before{content:"";position:absolute;inset:-8px;pointer-events:auto}
@@ -1077,7 +1077,7 @@
    drawer's own padding. See decision 79. */
 .drawer.dtile.cltile{padding:0;background-color:var(--paper-2);
   --dink:var(--ink);--dink-2:var(--ink-2);--dink-3:var(--ink-3)}
-.drawer.dtile.cltile:hover{filter:none}
+@media (hover:hover){.drawer.dtile.cltile:hover{filter:none}}
 /* The gilt wears differently on paper than on a drawer front. The wash goes —
    leaf laid across paper reads as a stain, not light — and the ruled frame
    moves out to the edge: inset 5px it stole 5px of every row, and the whole
@@ -1126,12 +1126,12 @@ html .drawer.dtile.cltile{background-image:none}
 .cltile.cldense .cladd{padding:0 8px}
 .cltile.cldense .cladd input{font-size:11.5px}
 .cltile.cldense .cline .cltext{font-size:11.5px}
-.cline:hover{background:color-mix(in srgb, var(--ink) 5%, transparent)}
+@media (hover:hover){.cline:hover{background:color-mix(in srgb, var(--ink) 5%, transparent)}}
 .cline.done{color:var(--dink-3);text-decoration:line-through}
 /* the task tile's own box — 38px, capped only when a row is shorter than it */
 .clbox{height:min(38px,82%);aspect-ratio:1;width:auto;flex:0 0 auto;border-radius:var(--radius);
   border:2.4px solid var(--dink-3);display:grid;place-items:center;color:var(--dink)}
-.cline:hover .clbox{border-color:var(--ink-2)}
+@media (hover:hover){.cline:hover .clbox{border-color:var(--ink-2)}}
 .cline.done .clbox{background:var(--rule);border-color:transparent}
 .clempty{font-size:11.5px;font-family:var(--sans);font-weight:400;color:var(--dink-3)}
 .cltile:not(.clidle) .clempty{align-self:center;margin:auto 12px}
@@ -1200,7 +1200,7 @@ html .drawer.dtile.cltile{background-image:none}
 .projsoon{display:flex;flex-direction:column;gap:3px;margin-top:8px;flex:1;min-height:0;overflow:hidden}
 .projitem{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--dink-2);
   padding:2px 6px;border-radius:5px;background:rgba(0,0,0,.16);cursor:pointer}
-.projitem:hover{color:var(--dink);background:rgba(0,0,0,.26)}
+@media (hover:hover){.projitem:hover{color:var(--dink);background:rgba(0,0,0,.26)}}
 .projitem i{flex:0 0 auto;display:inline-flex;color:var(--dink-2)}
 .projitem b{flex:1;min-width:0;font-weight:400;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .projitem u{flex:0 0 auto;text-decoration:none;font-size:10px;color:var(--dink-3);font-variant-numeric:tabular-nums}
@@ -1567,7 +1567,7 @@ html .drawer.dtile.cltile{background-image:none}
     var(--board-2) var(--listrow,48px) calc(2 * var(--listrow,48px)));
   min-height:calc(14 * var(--listrow,48px));
 }
-.drawer.listband:hover{filter:brightness(1.05);z-index:1}
+@media (hover:hover){.drawer.listband:hover{filter:brightness(1.05);z-index:1}}
 /* A row is a row: whatever a face draws past its own box on a grid (a
    record's disc, a plant's leaves) is cut at the row's edge rather than laid
    over the ones below it. */
@@ -1615,7 +1615,7 @@ html .drawer.dtile.cltile{background-image:none}
 .readtitle{font-family:var(--serif);font-size:30px;font-weight:600;margin:0 0 10px;letter-spacing:.005em}
 .prose.read{font-size:15.5px;line-height:1.7;max-width:62ch}
 .drawer.addnew{background:none;border:1.5px dashed var(--rule);box-shadow:none;align-items:center;justify-content:center;color:var(--ink-3);--dink:var(--ink-3)}
-.drawer.addnew:hover{border-color:var(--brass);color:var(--brass);filter:none}
+@media (hover:hover){.drawer.addnew:hover{border-color:var(--brass);color:var(--brass);filter:none}}
 
 /* An object sitting directly on a grid. Same tile, no drawer front — it reads
    as a card on the desk rather than something you open. */
@@ -1908,7 +1908,7 @@ html .drawer.dtile.cltile{background-image:none}
 
 /* a coloured edge is a choice, not a default */
 .drawer.otile.edge{border-left:3px solid var(--c)}
-.drawer.otile:hover{filter:none;box-shadow:var(--shadow-lg)}
+@media (hover:hover){.drawer.otile:hover{filter:none;box-shadow:var(--shadow-lg)}}
 /* A style is sixteen colours, a board, and **a typeface** — and an object was
    the one thing on the desk not set in it. A note and a task were pinned to the
    system sans while the drawer beside them followed the style, which read as
@@ -1986,7 +1986,7 @@ html .drawer.dtile.cltile{background-image:none}
 }
 .drawer.btntile .btnface{font-size:14px;font-weight:600;color:#F8F3E6;text-align:center;
   padding:8px 12px;line-height:1.25;overflow-wrap:anywhere}
-.drawer.btntile:hover{filter:brightness(1.09)}
+@media (hover:hover){.drawer.btntile:hover{filter:brightness(1.09)}}
 .drawer.btntile:active{filter:brightness(.94)}
 .drawer.btntile.bs-round{border-radius:50%}
 .drawer.btntile.bs-rounded{border-radius:14px}
@@ -2147,7 +2147,7 @@ html .drawer.dtile.cltile{background-image:none}
   background:var(--paper-2);color:var(--ink-2);font-size:12.5px;font-weight:600;
   display:grid;place-items:center;transition:.14s;
 }
-.priobtn:hover{border-color:var(--brass)}
+@media (hover:hover){.priobtn:hover{border-color:var(--brass)}}
 .priobtn.on{border-color:var(--ink);color:var(--paper);background:var(--ink)}
 .priobtn.p0.on{background:var(--ink-3)}
 .priobtn.p3.on{background:var(--brass);border-color:var(--brass)}
@@ -2196,7 +2196,7 @@ html .drawer.dtile.cltile{background-image:none}
   font-family:var(--sans);cursor:pointer;user-select:none;
 }
 .sday > u{text-decoration:none;grid-area:1/1;line-height:1}
-.sday:hover{border-color:var(--brass)}
+@media (hover:hover){.sday:hover{border-color:var(--brass)}}
 .sday.out{color:var(--ink-3);opacity:.45}
 .sday.today{font-weight:700;color:var(--brass)}
 .sday.today::after{content:"";position:absolute;bottom:3px;width:3px;height:3px;
@@ -2274,7 +2274,7 @@ html .drawer.dtile.cltile{background-image:none}
   pointer-events:auto;display:block;width:9px;height:9px;padding:0;border-radius:50%;
   background:var(--pen);border:1px solid rgba(0,0,0,.42);
   box-shadow:0 0 0 1.5px rgba(255,255,255,.75);cursor:grab;transition:transform .12s}
-.schedpen.onday:hover{transform:scale(1.25)}
+@media (hover:hover){.schedpen.onday:hover{transform:scale(1.25)}}
 .schedpen.onday:active{cursor:grabbing}
 .sday.out .daypens{opacity:.5}
 
@@ -2389,7 +2389,7 @@ html .drawer.dtile.cltile{background-image:none}
 .schedpen.un .btn{
   background:none;box-shadow:inset 0 0 0 1.5px var(--rule);opacity:.75}
 .schedpen.un .btn::before,.schedpen.un .btn::after{opacity:.3}
-.schedpen:hover{border-color:var(--brass)}
+@media (hover:hover){.schedpen:hover{border-color:var(--brass)}}
 /* placed on the month: the card shows the hole it came out of */
 .schedpen.placed{background:transparent;border-style:dotted;color:var(--ink-3)}
 .schedpen.placed .btn{
@@ -2435,7 +2435,7 @@ html .drawer.dtile.cltile{background-image:none}
   position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
   text-decoration:none;font-family:var(--serif);font-weight:700;font-size:15px;
   color:var(--ink);line-height:1;padding-top:2px}
-.rankmark:hover{transform:scale(1.06)}
+@media (hover:hover){.rankmark:hover{transform:scale(1.06)}}
 .rankmark:active{transform:scale(.94)}
 .rankmark.none{color:var(--ink-3)}
 .rankmark.none > u{color:var(--ink-3)}
@@ -2467,7 +2467,7 @@ html .drawer.dtile.cltile{background-image:none}
   display:grid;place-items:center;transition:.12s;
 }
 .ratbtn:first-child{width:26px;height:36px;border-color:var(--rule);font-weight:600}
-.ratbtn:hover{color:var(--ink);border-color:var(--brass)}
+@media (hover:hover){.ratbtn:hover{color:var(--ink);border-color:var(--brass)}}
 .ratbtn.lit{color:var(--brass)}
 .ratbtn.lit svg{fill:var(--brass);stroke:var(--brass)}
 .ratbtn.on{border-color:var(--brass);background:color-mix(in srgb,var(--brass) 15%,transparent)}
@@ -2869,7 +2869,7 @@ html .drawer.dtile.cltile{background-image:none}
   background:var(--paper-2);border:1px solid var(--rule);
   padding:12px 14px 10px 16px;justify-content:center;overflow:hidden;
 }
-.quotetile .qmark{position:absolute;left:6px;top:-10px;font-family:var(--serif);
+.quotetile .qmark{position:absolute;left:6px;top:-2px;font-family:var(--serif);
   font-size:54px;color:var(--c);opacity:.28;line-height:1}
 .quotetile .qbody{font-family:var(--serif);font-size:14.5px;line-height:1.45;
   font-style:italic;color:var(--ink);overflow-wrap:anywhere;
@@ -2964,7 +2964,7 @@ html .drawer.dtile.cltile{background-image:none}
 .drawer.otile.sh-none > .dpanel,
 .drawer.otile.sh-none > .dgrain,
 .drawer.otile.sh-none > .dside{display:none}
-.drawer.otile.sh-none:hover{box-shadow:none}
+@media (hover:hover){.drawer.otile.sh-none:hover{box-shadow:none}}
 
 .drawer.otile.sh-sliver{ padding-right:12px }
 .drawer.otile.sh-sliver .dbody,.drawer.otile.sh-sliver .dfoot{display:none}
@@ -3459,7 +3459,7 @@ html[data-style="golf97"] .check,html[data-style="golf97"] .clbox{border-radius:
   border:calc(4px * var(--kscale,1)) solid var(--knob, var(--c));
   box-shadow:inset 0 1px 1px rgba(255,255,255,.30), 0 1px 2px rgba(0,0,0,.30)}
 .pull.kn-square{border-radius:3px}
-.drawer:hover .pull{opacity:1}
+@media (hover:hover){.drawer:hover .pull{opacity:1}}
 
 /* ---- the knob that is also a dial --------------------------------------
    A project is a drawer, and how far along it is reads off the knob: a ring
@@ -3802,7 +3802,7 @@ html[data-style="golf97"] .check,html[data-style="golf97"] .clbox{border-radius:
   border:1.5px dashed color-mix(in srgb, var(--c) 55%, transparent);
   align-items:center;justify-content:center;padding:8px;
 }
-.drawer.imgtile.empty:hover{border-color:var(--c);background:color-mix(in srgb, var(--c) 17%, transparent)}
+@media (hover:hover){.drawer.imgtile.empty:hover{border-color:var(--c);background:color-mix(in srgb, var(--c) 17%, transparent)}}
 .imgempty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
   color:var(--c);text-align:center;min-width:0;max-width:100%}
 .imgempty b{font-family:var(--serif);font-size:12.5px;font-weight:600;color:var(--ink-2);
@@ -3816,7 +3816,7 @@ html[data-style="golf97"] .check,html[data-style="golf97"] .clbox{border-radius:
   background:var(--paper-2);border-color:var(--rule);align-items:center;justify-content:center;
   gap:5px;--dink:var(--ink);color:var(--ink-2);
 }
-.drawer.ctile:hover{filter:none;border-color:var(--brass);color:var(--ink)}
+@media (hover:hover){.drawer.ctile:hover{filter:none;border-color:var(--brass);color:var(--ink)}}
 .ctile .cico{color:var(--c);display:grid;place-items:center}
 .ctile .clabel{font-size:11.5px;font-weight:600;letter-spacing:.01em}
 
@@ -3835,7 +3835,7 @@ html[data-style="golf97"] .check,html[data-style="golf97"] .clbox{border-radius:
   transition:border-color .15s,background .15s,transform .06s;
   touch-action:pan-y;
 }
-.row:hover{border-color:color-mix(in srgb,var(--k) 40%, var(--rule));background:color-mix(in srgb,var(--k) 4%, var(--paper-2))}
+@media (hover:hover){.row:hover{border-color:color-mix(in srgb,var(--k) 40%, var(--rule));background:color-mix(in srgb,var(--k) 4%, var(--paper-2))}}
 /* The doors of the object editor: one question each, and a chevron that says
    the row goes somewhere rather than setting something. See decision 66. */
 .osecs{margin-top:12px}
@@ -3846,7 +3846,7 @@ html[data-style="golf97"] .check,html[data-style="golf97"] .clbox{border-radius:
   width:19px;height:19px;flex:0 0 auto;border-radius:3px;border:1.8px solid var(--ink-3);margin-top:1px;
   display:grid;place-items:center;transition:.15s;
 }
-.check:hover{border-color:var(--k)}
+@media (hover:hover){.check:hover{border-color:var(--k)}}
 .check.on{background:var(--k);border-color:var(--k);color:#fff}
 .check svg{opacity:0;transform:scale(.5);transition:.15s}
 .check.on svg{opacity:1;transform:scale(1)}
@@ -3949,7 +3949,7 @@ html[data-style="golf97"] .check,html[data-style="golf97"] .clbox{border-radius:
 .checkopt{display:flex;flex-direction:column;align-items:center;gap:5px;
   padding:9px 10px 7px;border:1px solid var(--rule);border-radius:var(--radius);
   background:var(--paper-2);cursor:pointer;transition:.14s;min-width:74px}
-.checkopt:hover{border-color:var(--brass)}
+@media (hover:hover){.checkopt:hover{border-color:var(--brass)}}
 .checkopt.on{border-color:var(--brass);
   box-shadow:inset 0 0 0 1px var(--brass)}
 .checkopt > span{display:grid;place-items:center;height:26px}
@@ -3968,7 +3968,7 @@ html[data-style="golf97"] .check,html[data-style="golf97"] .clbox{border-radius:
 .decopt{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 6px 6px;
   border:1px solid var(--rule);border-radius:var(--radius);background:var(--paper-2);
   cursor:pointer;transition:.14s}
-.decopt:hover{border-color:var(--brass)}
+@media (hover:hover){.decopt:hover{border-color:var(--brass)}}
 .decopt.on{border-color:var(--brass);box-shadow:inset 0 0 0 1px var(--brass)}
 .decopt > span{display:block;width:100%;height:46px;color:var(--c)}
 .decopt .decart{width:100%;height:100%}
@@ -3980,7 +3980,7 @@ html[data-style="golf97"] .check,html[data-style="golf97"] .clbox{border-radius:
 .paintopt{display:flex;flex-direction:column;gap:4px;padding:4px;border:1px solid var(--rule);
   border-radius:var(--radius);background:var(--paper-2)}
 .paintopt img{display:block;width:100%;aspect-ratio:5/4;object-fit:cover;border-radius:2px}
-.paintopt:hover{border-color:var(--brass)}
+@media (hover:hover){.paintopt:hover{border-color:var(--brass)}}
 .paintopt.on{border-color:var(--brass);box-shadow:inset 0 0 0 1px var(--brass)}
 .paintopt u{text-decoration:none;font-size:10.5px;color:var(--ink-3);text-align:center;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -4092,9 +4092,9 @@ html[data-style="golf97"] .check,html[data-style="golf97"] .clbox{border-radius:
 .mediablock .cap{padding:8px 12px;font-size:11.5px;color:var(--ink-3);display:flex;align-items:center;gap:7px}
 .tagrow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:14px 0}
 .tagrow .add,.relrow .add{font-size:11.5px;color:var(--ink-3);border:1px dashed var(--rule);padding:3px 9px;border-radius:var(--pill)}
-.tagrow .add:hover,.relrow .add:hover{color:var(--brass);border-color:var(--brass)}
+@media (hover:hover){.tagrow .add:hover,.relrow .add:hover{color:var(--brass);border-color:var(--brass)}}
 .subtle-btn{font-size:12px;color:var(--ink-3);padding:5px 10px;border-radius:var(--radius);border:1px solid var(--rule)}
-.subtle-btn:hover{color:var(--ink);border-color:var(--brass)}
+@media (hover:hover){.subtle-btn:hover{color:var(--ink);border-color:var(--brass)}}
 
 /* ============================================================
    Streak dots and milestones — the detail sheet is the only place these
@@ -4109,7 +4109,7 @@ html[data-style="golf97"] .check,html[data-style="golf97"] .clbox{border-radius:
 .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--k),color-mix(in srgb,var(--k) 55%,var(--brass)));border-radius:2px;transition:width .5s cubic-bezier(.2,.9,.3,1)}
 .miles{margin-top:11px;display:flex;flex-direction:column;gap:2px}
 .mile{display:flex;align-items:center;gap:9px;padding:6px 8px;border-radius:var(--radius);font-size:13px;cursor:pointer}
-.mile:hover{background:var(--paper-3)}
+@media (hover:hover){.mile:hover{background:var(--paper-3)}}
 .mile.done{color:var(--ink-3)}
 .mile.done .mt{text-decoration:line-through}
 .mile .md{margin-left:auto;font-size:11px;color:var(--ink-3)}
@@ -4147,20 +4147,21 @@ html[data-style="golf97"] .check,html[data-style="golf97"] .clbox{border-radius:
   height:88px;display:grid;place-items:center;pointer-events:none;
   transition:transform .15s
 }
-.kindtile:hover .kpv{transform:translateY(-3px)}
+@media (hover:hover){.kindtile:hover .kpv{transform:translateY(-3px)}}
 .kindtile .krow{display:flex;align-items:center;justify-content:center;gap:5px;max-width:100%}
 .kindtile .nm{font-size:12px;font-weight:600;color:var(--ink-2);transition:color .15s;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.kindtile:hover .nm{color:var(--k)}
+@media (hover:hover){.kindtile:hover .nm{color:var(--k)}}
 .kindtile .kbd{font-family:var(--mono);font-size:9.5px;color:var(--ink-3);border:1px solid var(--rule);border-radius:4px;padding:0 4px}
 /* level with the name but taken out of the flow, so it can't shove the name
    off centre as it fades in — and never over the sample, whose width varies */
 .kedit{position:absolute;bottom:-2px;right:0;width:22px;height:22px;border-radius:var(--radius);
   display:grid;place-items:center;background:var(--paper);
   color:var(--ink-3);opacity:0;transition:.14s}
-.kindtile:hover .kedit,.kindtile:focus-within .kedit{opacity:1}
+.kindtile:focus-within .kedit{opacity:1}
+@media (hover:hover){.kindtile:hover .kedit{opacity:1}}
 .is-phone .kedit{opacity:.6}
-.kedit:hover{background:var(--paper-3);color:var(--ink)}
+@media (hover:hover){.kedit:hover{background:var(--paper-3);color:var(--ink)}}
 
 /* ---- the type builder -------------------------------------------------
    The preview and the name stay put on the left while you work through the
@@ -4181,7 +4182,8 @@ html[data-style="golf97"] .check,html[data-style="golf97"] .clbox{border-radius:
 .cmdinput{width:100%;border:0;background:none;outline:none;font-size:17px;padding:16px 18px;font-family:var(--serif)}
 .cmdlist{max-height:46vh;overflow-y:auto;border-top:1px solid var(--rule-2);padding:6px}
 .cmdrow{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:var(--radius);cursor:pointer;font-size:13px}
-.cmdrow:hover,.cmdrow.on{background:var(--paper-3)}
+.cmdrow.on{background:var(--paper-3)}
+@media (hover:hover){.cmdrow:hover{background:var(--paper-3)}}
 .cmdrow .ic{width:22px;height:22px;border-radius:var(--radius);display:grid;place-items:center;background:color-mix(in srgb,var(--k) 16%,transparent);color:var(--k);flex:0 0 auto}
 .cmdrow .sub{margin-left:auto;font-size:11px;color:var(--ink-3)}
 
@@ -4218,7 +4220,7 @@ html[data-theme="walnut"] .toast{background:var(--paper-3);color:var(--ink)}
 }
 .ctxmenu.open{display:block}
 .ctxmenu button{display:flex;align-items:center;gap:9px;width:100%;padding:7px 10px;border-radius:var(--radius);font-size:12.5px;text-align:left}
-.ctxmenu button:hover{background:var(--paper-3)}
+@media (hover:hover){.ctxmenu button:hover{background:var(--paper-3)}}
 /* the same element serves as a menu hung off a bar button, where one row is
    the current setting rather than an action */
 .ctxmenu button.on{background:color-mix(in srgb,var(--brass) 20%,transparent);font-weight:600}
@@ -4266,7 +4268,7 @@ html[data-theme="walnut"] .toast{background:var(--paper-3);color:var(--ink)}
   background:none;border-radius:0;text-align:center;
   transform:translate(calc(var(--x) - 50%), calc(var(--y) - 23px));
 }
-.ctxmenu.radial .radblob:hover{background:none}
+@media (hover:hover){.ctxmenu.radial .radblob:hover{background:none}}
 .ctxmenu.radial.flung button.radblob{
   animation:radfling .3s cubic-bezier(.2,.9,.25,1.25) both;
   animation-delay:calc(var(--i) * 18ms);
@@ -4282,7 +4284,8 @@ html[data-theme="walnut"] .toast{background:var(--paper-3);color:var(--ink)}
   color:var(--ink);box-shadow:0 0 0 3px var(--paint, transparent),
     0 3px 7px -2px rgba(0,0,0,.35), inset 0 -2px 3px rgba(0,0,0,.10);
   transition:transform .12s}
-.radblob:hover .radpaint,.radblob:active .radpaint{transform:scale(1.1)}
+.radblob:active .radpaint{transform:scale(1.1)}
+@media (hover:hover){.radblob:hover .radpaint{transform:scale(1.1)}}
 /* The shape ring's blobs hold the thing itself (decision 212): the picker's
    own miniature in a bigger well, taking no pointer events so a press is the
    blob's and never the sample tile's (which is a real tile, with a tile's
@@ -4374,7 +4377,7 @@ kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--rule);border
    62% of the viewport. The mark here is a mark: it takes the size the icon
    was drawn at. */
 .addline .addpress svg{width:16px;height:16px}
-.addline .addpress:hover{color:var(--ink)}
+@media (hover:hover){.addline .addpress:hover{color:var(--ink)}}
 .addline .addpress:active{transform:scale(.9)}
 .quickadd{padding:9px 12px;border-radius:var(--radius);
   /* the same column the bands below it stand in — see .listgrid */
@@ -4387,7 +4390,7 @@ kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--rule);border
 .filterbar::-webkit-scrollbar{display:none}
 .fchip{flex:0 0 auto;padding:4px 11px;border-radius:var(--pill);font-size:11.5px;font-weight:500;border:1px solid var(--rule);
   background:var(--paper-2);color:var(--ink-2);white-space:nowrap;transition:.14s;cursor:pointer}
-.fchip:hover{border-color:var(--k,var(--brass));color:var(--ink)}
+@media (hover:hover){.fchip:hover{border-color:var(--k,var(--brass));color:var(--ink)}}
 .fchip.on{background:color-mix(in srgb,var(--k,var(--brass)) 18%,transparent);border-color:transparent;color:var(--ink);font-weight:600}
 .crumbs{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-3);margin-bottom:2px}
 .crumbs b{color:var(--ink-2);font-weight:500}
@@ -4414,7 +4417,7 @@ kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--rule);border
   font-size:12.5px;line-height:1;color:var(--ink-2);padding:6px 10px;
   border:1px solid var(--rule);border-radius:var(--radius);vertical-align:middle}
 .custcol span{display:inline-block;line-height:1}
-.custcol:hover{border-color:var(--brass);color:var(--ink)}
+@media (hover:hover){.custcol:hover{border-color:var(--brass);color:var(--ink)}}
 /* The style's sixteen, as sixteen swatches you can repaint. The first five
    are marked, because changing one of those changes the app rather than a
    drawer — the colour input sits inside the swatch, so the swatch *is* the
@@ -4462,7 +4465,7 @@ kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--rule);border
   width:26px;height:30px;flex:0 0 auto;border-radius:3px;border:1px solid var(--rule);
   background:var(--paper-2);color:var(--ink-3);
   display:flex;align-items:center;justify-content:center}
-.pickgrid.sw .swback:hover{border-color:var(--brass);color:var(--brass)}
+@media (hover:hover){.pickgrid.sw .swback:hover{border-color:var(--brass);color:var(--brass)}}
 
 .custcol input[type=color]{width:26px;height:22px;padding:0;margin:0;flex:0 0 auto;display:block;
   border:1px solid var(--rule);border-radius:3px;background:none;cursor:pointer}
@@ -4486,7 +4489,7 @@ kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--rule);border
 /* days either side of the month: real days you can still drop on, drawn back */
 .mcell.out{background:none}
 .mcell.out > b{opacity:.45}
-.mcell:not(.pad):hover{border-color:var(--brass)}
+@media (hover:hover){.mcell:not(.pad):hover{border-color:var(--brass)}}
 .mcell > b{font-size:11.5px;font-weight:600;color:var(--ink-3);font-variant-numeric:tabular-nums}
 .mcell.today > b{color:var(--brass)}
 .mcell.today{border-color:color-mix(in srgb,var(--brass) 45%,var(--rule))}
@@ -4518,7 +4521,8 @@ kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--rule);border
    Every colour is `--dink`, the ink a front is written in, never `--ink`. */
 .drawer.dtile.calopen{container-type:normal;cursor:default;padding:16px 20px 20px;
   margin:2px 0 4px;min-width:0}
-.drawer.dtile.calopen:hover,.drawer.dtile.calopen:active{filter:none}
+.drawer.dtile.calopen:active{filter:none}
+@media (hover:hover){.drawer.dtile.calopen:hover{filter:none}}
 .drawer.dtile.calopen > .calohead{display:grid;grid-template-columns:1fr auto 1fr;
   align-items:center;gap:10px;margin:2px 0 12px;padding:0}
 .calohead .calonav{display:flex;gap:6px;justify-self:start}
@@ -4532,7 +4536,7 @@ kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--rule);border
 .calobtn{display:inline-grid;place-items:center;min-width:32px;height:30px;padding:0 9px;
   border-radius:var(--pill);background:rgba(0,0,0,.20);border:1px solid rgba(255,255,255,.14);
   color:var(--dink-2);font:inherit;font-size:12.5px;cursor:pointer;transition:.13s}
-.calobtn:hover{color:var(--dink);background:rgba(0,0,0,.30)}
+@media (hover:hover){.calobtn:hover{color:var(--dink);background:rgba(0,0,0,.30)}}
 .calobtn.on{background:rgba(255,255,255,.22);border-color:rgba(255,255,255,.32);
   color:var(--dink);font-weight:600}
 .drawer.dtile.calopen > .dbody{margin-top:0;overflow:visible}
@@ -4546,8 +4550,8 @@ kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--rule);border
 .calopen .mcell.today{background:rgba(255,255,255,.20);border-color:transparent}
 .calopen .mcell.out{background:none;opacity:.42}
 .calopen .mcell.out > b{opacity:1}
-.calopen .mcell:not(.pad):hover{background:rgba(255,255,255,.08)}
-.calopen .mcell.today:hover{background:rgba(255,255,255,.24)}
+@media (hover:hover){.calopen .mcell:not(.pad):hover{background:rgba(255,255,255,.08)}}
+@media (hover:hover){.calopen .mcell.today:hover{background:rgba(255,255,255,.24)}}
 .calopen .mcell.sel{outline:2px solid rgba(255,255,255,.62);outline-offset:-2px;
   background:rgba(255,255,255,.14)}
 /* what is on a day: the face's coloured mark, with its name beside it */
@@ -4612,7 +4616,7 @@ kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--rule);border
 .tlitem b{font-size:12px;font-weight:600;line-height:1.25;overflow:hidden;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .tlitem u{font-size:10px;color:var(--ink-3);text-decoration:none}
-.tlitem:hover b{color:var(--brass)}
+@media (hover:hover){.tlitem:hover b{color:var(--brass)}}
 .tlitem.done b{color:var(--ink-3);text-decoration:line-through}
 
 /* ============================================================
@@ -4670,7 +4674,7 @@ kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--rule);border
      drawn in near-black and the whole set read as silhouettes. */
   color:var(--c);
 }
-.drawer.otile.dectile:hover{box-shadow:none;filter:brightness(1.06)}
+@media (hover:hover){.drawer.otile.dectile:hover{box-shadow:none;filter:brightness(1.06)}}
 /* **A decoration is pressed by its shape** (decision 241). It used to take no
    taps at all on a locked board, because a cut-out's transparent corners
    swallowed the ones meant for whatever it stood in front of (decision 86) —
@@ -4794,9 +4798,9 @@ kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--rule);border
 .writehead .kindbadge{background:rgba(255,255,255,.12);color:#F4EEDD;border-color:transparent}
 .writehead .wcount{font-size:11.5px;color:rgba(244,238,221,.6);font-variant-numeric:tabular-nums}
 .writehead .pill{background:rgba(255,255,255,.10);border-color:rgba(255,255,255,.22);color:#E9E1CC}
-.writehead .pill:hover{border-color:var(--brass);color:#fff}
+@media (hover:hover){.writehead .pill:hover{border-color:var(--brass);color:#fff}}
 .writehead .iconbtn{color:rgba(244,238,221,.75)}
-.writehead .iconbtn:hover{background:rgba(255,255,255,.14);color:#fff}
+@media (hover:hover){.writehead .iconbtn:hover{background:rgba(255,255,255,.14);color:#fff}}
 .writepaper{
   flex:1;min-height:0;width:min(880px,100%);margin:0 auto;
   display:flex;flex-direction:column;gap:6px;
@@ -4843,9 +4847,9 @@ kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--rule);border
 .is-phone .viewhead .pill span{display:none}
 .is-phone .viewhead .pill{padding:6px 8px}
 .viewhead .pill{background:rgba(255,255,255,.10);border-color:rgba(255,255,255,.22);color:#E9E1CC}
-.viewhead .pill:hover{border-color:var(--brass);color:#fff}
+@media (hover:hover){.viewhead .pill:hover{border-color:var(--brass);color:#fff}}
 .viewhead .iconbtn{color:rgba(244,238,221,.75)}
-.viewhead .iconbtn:hover{background:rgba(255,255,255,.14);color:#fff}
+@media (hover:hover){.viewhead .iconbtn:hover{background:rgba(255,255,255,.14);color:#fff}}
 .viewpaper{
   flex:1;min-height:0;width:min(1100px,100%);margin:0 auto;
   display:flex;align-items:center;justify-content:center;
@@ -4866,7 +4870,7 @@ kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--rule);border
   border:2px dashed rgba(244,238,221,.34);border-radius:var(--radius);
   background:rgba(255,255,255,.04);color:#E9E1CC;transition:.16s;padding:20px;
 }
-.viewdrop:hover{border-color:var(--brass);background:rgba(255,255,255,.08)}
+@media (hover:hover){.viewdrop:hover{border-color:var(--brass);background:rgba(255,255,255,.08)}}
 /* A sound has nothing to look at, so the surface gives it the mark it wears on
    the board and the browser's own transport underneath — a player is a control
    nobody should be reimplementing. A video is an image that moves and takes
@@ -4881,7 +4885,7 @@ kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--rule);border
 .viewplayer{width:100%}
 video.viewimg{background:#000}
 .viewdrop .vdmark{color:rgba(244,238,221,.55);display:grid;place-items:center}
-.viewdrop:hover .vdmark{color:var(--brass)}
+@media (hover:hover){.viewdrop:hover .vdmark{color:var(--brass)}}
 .viewdrop b{font-family:var(--serif);font-size:19px;font-weight:600}
 .viewdrop i{font-style:normal;font-size:12.5px;color:rgba(244,238,221,.6)}
 .viewfoot{
@@ -4915,7 +4919,7 @@ video.viewimg{background:#000}
   background:var(--paper-2);color:var(--ink);font:inherit;font-size:12.5px;
   cursor:pointer;text-align:left;transition:border-color .14s, background .14s;
 }
-.pcyc:hover{border-color:var(--brass)}
+@media (hover:hover){.pcyc:hover{border-color:var(--brass)}}
 .pcyc:active{background:var(--paper-3)}
 .pcyc > span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pcyc > u{flex:0 0 auto;text-decoration:none;font-size:10.5px;color:var(--ink-3);
@@ -4931,7 +4935,7 @@ video.viewimg{background:#000}
   flex:0 0 auto;display:flex;align-items:center;justify-content:center;width:30px;
   border:1px solid var(--rule);border-radius:var(--radius);background:var(--paper-2);
   color:var(--ink-3);cursor:pointer}
-.pcycstep:hover{border-color:var(--brass);color:var(--brass)}
+@media (hover:hover){.pcycstep:hover{border-color:var(--brass);color:var(--brass)}}
 .prow > div > .pcyc + .pcyc,
 .prow > div > .pcycrow + .pcycrow{flex:1 1 45%}
 
@@ -4948,7 +4952,7 @@ video.viewimg{background:#000}
   border:1px solid var(--rule);border-radius:var(--radius);background:var(--paper-2);
   color:var(--ink-3);letter-spacing:0}
 .pgroup.slotmore > summary::marker,.pgroup.slotmore > summary::-webkit-details-marker{display:none;content:""}
-.pgroup.slotmore > summary:hover{border-color:var(--brass);color:var(--brass)}
+@media (hover:hover){.pgroup.slotmore > summary:hover{border-color:var(--brass);color:var(--brass)}}
 .pgroup.slotmore[open]{flex:1 1 100%;display:flex;gap:6px;align-items:flex-start}
 .pgroup.slotmore[open] > select{flex:1 1 auto;min-width:0}
 
@@ -4961,7 +4965,7 @@ video.viewimg{background:#000}
   font-family:var(--serif);font-weight:600;line-height:1;
   transition:border-color .14s, background .14s;
 }
-.tsizerow .tsz:hover{border-color:var(--brass)}
+@media (hover:hover){.tsizerow .tsz:hover{border-color:var(--brass)}}
 .tsizerow .tsz.on{border-color:var(--brass);background:var(--paper-3);color:var(--ink)}
 
 /* ---- two squares of the checkerboard, one input each ------------------- */
@@ -4977,7 +4981,7 @@ video.viewimg{background:#000}
 
 /* ---- the heading that is also the name --------------------------------- */
 .pheadname{cursor:text;border-bottom:1px dashed transparent;transition:border-color .14s}
-.pheadname:hover{border-bottom-color:var(--rule-2)}
+@media (hover:hover){.pheadname:hover{border-bottom-color:var(--rule-2)}}
 .pheadin{
   font:inherit;font-size:inherit;font-weight:inherit;font-family:inherit;color:inherit;
   width:100%;max-width:100%;background:var(--paper);border:1px solid var(--brass);
@@ -4999,7 +5003,7 @@ video.viewimg{background:#000}
 .pgroup > summary::-webkit-details-marker{display:none}
 .pgroup > summary::after{content:"+";float:right;font-size:13px;line-height:1}
 .pgroup[open] > summary::after{content:"–"}
-.pgroup > summary:hover{color:var(--ink)}
+@media (hover:hover){.pgroup > summary:hover{color:var(--ink)}}
 .pgroup > *:not(summary){padding:0 11px}
 .pgroup > *:last-child{padding-bottom:11px}
 .pgroup .prow:first-of-type{margin-top:8px}
@@ -5059,14 +5063,14 @@ input,textarea,select,[contenteditable],
 .deskmark{display:inline-flex;align-items:center;gap:5px;margin-left:8px;flex:0 0 auto}
 .deskmark i{width:7px;height:7px;border-radius:50%;background:var(--rule);
   transition:.14s;cursor:pointer;flex:0 0 auto}
-.deskmark i:hover{background:var(--ink-3)}
+@media (hover:hover){.deskmark i:hover{background:var(--ink-3)}}
 .deskmark i.on{background:var(--brass);transform:scale(1.3)}
 .deskmark b{font-size:11.5px;font-variant-numeric:tabular-nums;color:var(--brass);font-weight:700}
 .deskmark b u{text-decoration:none;color:var(--ink-3);font-weight:400}
 .pagemark{display:inline-flex;align-items:center;gap:5px;margin-left:8px;flex:0 0 auto}
 .pagemark i{width:7px;height:7px;border-radius:50%;background:var(--rule);
   cursor:pointer;transition:.14s;display:block}
-.pagemark i:hover{background:var(--ink-3)}
+@media (hover:hover){.pagemark i:hover{background:var(--ink-3)}}
 .pagemark i.on{background:var(--brass);transform:scale(1.25)}
 .pagemark b{font-size:11.5px;font-variant-numeric:tabular-nums;color:var(--brass);font-weight:700}
 .pagemark b u{text-decoration:none;color:var(--ink-3);font-weight:400}
@@ -5521,7 +5525,7 @@ html[data-rows="fit"] .is-phone .gridbar.inrail .sqbtn{width:28px;height:28px}
   width:calc(clamp(30px, 76cqh, 42px) * var(--kscale,1));
   aspect-ratio:auto;height:calc(clamp(8px, 22cqh, 13px) * var(--kscale,1));
 }
-.is-desk .deskknob:hover{transform:translateY(-1px)}
+@media (hover:hover){.is-desk .deskknob:hover{transform:translateY(-1px)}}
 /* Being carried away from: the knob sinks the way a pressed one does, so the
    thing you are dragging out of it is visibly coming *out* of something. */
 .is-desk .deskknob.carrying{transform:scale(.94);cursor:grabbing}
@@ -5688,11 +5692,11 @@ html[data-rows="fit"] .is-phone .gridbar.inrail .sqbtn{width:28px;height:28px}
   position:relative;min-width:0;display:flex;flex-direction:column;align-items:center;gap:6px;
   padding:5px 2px;border-radius:var(--radius-lg);cursor:pointer
 }
-.helditem:hover{background:color-mix(in srgb,var(--ink) 6%,transparent)}
+@media (hover:hover){.helditem:hover{background:color-mix(in srgb,var(--ink) 6%,transparent)}}
 .helditem:focus-visible{outline:2px solid var(--brass);outline-offset:0}
 .helditem .hpv{height:78px;display:grid;place-items:center;pointer-events:none;
   transition:transform .15s}
-.helditem:hover .hpv{transform:translateY(-3px)}
+@media (hover:hover){.helditem:hover .hpv{transform:translateY(-3px)}}
 .helditem .hnm{font-size:11.5px;font-weight:600;color:var(--ink-2);
   width:100%;text-align:center;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -5732,7 +5736,7 @@ html[data-rows="fit"] .is-phone .gridbar.inrail .sqbtn{width:28px;height:28px}
   margin-top:12px;padding:10px;border-radius:var(--radius-lg);
   border:1px solid var(--rule);background:none;color:var(--ink-2);
   font:inherit;font-size:12.5px;cursor:pointer}
-.holdall:hover{border-color:var(--brass);color:var(--ink)}
+@media (hover:hover){.holdall:hover{border-color:var(--brass);color:var(--ink)}}
 /* A panel that is as tall as what is in it. Every other panel on a phone is a
    fixed slab, because every other panel is a form or a list that runs on; this
    one is a drawer, and a drawer with two things in it is not a screen. */
@@ -5752,7 +5756,7 @@ html[data-rows="fit"] .is-phone .gridbar.inrail .sqbtn{width:28px;height:28px}
   display:flex;flex-direction:column;gap:5px;align-items:stretch;text-align:left;
   padding:9px;border:1px solid var(--rule);border-radius:var(--radius);
   background:var(--paper-2);transition:.15s;cursor:pointer}
-.deskcard:hover{border-color:var(--brass)}
+@media (hover:hover){.deskcard:hover{border-color:var(--brass)}}
 .deskcard.on{border-color:var(--brass);box-shadow:inset 0 0 0 2px var(--brass)}
 .deskcard.on u{color:var(--brass);font-weight:600}
 .deskcard b{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -5782,7 +5786,7 @@ html[data-rows="fit"] .is-phone .gridbar.inrail .sqbtn{width:28px;height:28px}
 /* while one is in your hand the rest are scenery: nothing else lights up under
    the pointer, because the only thing being aimed at is the gap */
 .listgrid.reordering .listband{cursor:grabbing}
-.listgrid.reordering .listband:hover{filter:none}
+@media (hover:hover){.listgrid.reordering .listband:hover{filter:none}}
 .drawer.listband.lifted{box-shadow:0 6px 18px -6px rgba(0,0,0,.4);z-index:3}
 .listgrid .listband.dragging{transition:box-shadow .18s;z-index:4;
   opacity:.96;outline:2px solid var(--glow);outline-offset:-1px;box-shadow:var(--shadow-lg)}
@@ -5805,6 +5809,13 @@ html[data-rows="fit"] .is-phone .gridbar.inrail .sqbtn{width:28px;height:28px}
 .drawer.otile.sz-narrow .dname{font-size:calc(12.5px * var(--tscale,1))}
 .drawer.dtile .dname{font-size:calc(15px * var(--tscale,1))}
 .drawer.dtile.sz-narrow .dname{font-size:calc(11.5px * var(--tscale,1))}
+/* A plate or a card holder on a narrow front spent a quarter of its width on
+   its own margins and padding, so a long word broke mid-letter behind one:
+   "Everythi / ng", "Questi…" (2026-09-30). There it gives back most of its
+   side padding and the lettering is a step smaller, which an engraved plate
+   is anyway. The tag keeps its rivets and its room. */
+.drawer.dtile.sz-narrow:is(.pl-plate,.pl-holder) .dtop{padding-inline:4px;margin-inline:3%}
+.drawer.dtile.sz-narrow:is(.pl-plate,.pl-holder) .dname{font-size:calc(10.5px * var(--tscale,1))}
 .drawer .tiletext{font-size:calc(11.5px * var(--tscale,1))}
 .drawer.otile.sh-index .tiletext{font-size:calc(11px * var(--tscale,1))}
 .drawer.otile.sh-page .tiletext{font-size:calc(10.5px * var(--tscale,1))}
@@ -5895,17 +5906,17 @@ html[data-rows="fit"] .is-phone .gridbar.inrail .sqbtn{width:28px;height:28px}
 .grid:not(.locked) [data-edit],
 [data-listfor] [data-edit],
 .cline [data-edit]{cursor:text;border-radius:3px;transition:background .12s}
-.grid:not(.locked) .dname[data-edit]:hover,
+@media (hover:hover){.grid:not(.locked) .dname[data-edit]:hover,
 [data-listfor] .dname[data-edit]:hover{
-  background:color-mix(in srgb,var(--brass) 14%,transparent)}
+  background:color-mix(in srgb,var(--brass) 14%,transparent)}}
 /* a checklist line: the box ticks, the words change */
 .cline .clbox{cursor:pointer}
 /* a row wraps to two lines and then clips — the same clamp the task tile's
    own name wears (.sh-sliver), so the two read identically */
 .cline .cltext{flex:1;min-width:0;display:-webkit-box;-webkit-line-clamp:2;
   -webkit-box-orient:vertical;overflow:hidden;white-space:normal;overflow-wrap:anywhere}
-.cline:hover .cltext{text-decoration:underline;text-decoration-style:dotted;
-  text-underline-offset:2px}
+@media (hover:hover){.cline:hover .cltext{text-decoration:underline;text-decoration-style:dotted;
+  text-underline-offset:2px}}
 .cline .inlinename{font-size:inherit;font-weight:inherit;color:var(--dink);
   font-family:inherit;flex:1;min-width:0}
 /* …and a band being typed in keeps the row's shape while it is a field */
@@ -5939,7 +5950,7 @@ html[data-rows="fit"] .is-phone .gridbar.inrail .sqbtn{width:28px;height:28px}
   width:34px;height:26px;border-radius:var(--radius);cursor:pointer;
   border:1px solid var(--rule);background:var(--paper-3);transition:.14s;
 }
-.shelfopt:hover{border-color:var(--brass)}
+@media (hover:hover){.shelfopt:hover{border-color:var(--brass)}}
 .shelfopt.on{background:color-mix(in srgb, var(--brass) 34%, var(--paper-2));border-color:var(--brass)}
 
 
@@ -6036,7 +6047,7 @@ html[data-rows="fit"] .is-phone .gridbar.inrail .sqbtn{width:28px;height:28px}
    would. */
 .lline .clmark{width:18px}
 .lline .cltext{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.lline:hover .cltext{text-decoration:underline;text-decoration-style:solid;text-underline-offset:2px}
+@media (hover:hover){.lline:hover .cltext{text-decoration:underline;text-decoration-style:solid;text-underline-offset:2px}}
 .clcount{flex:0 0 auto;text-decoration:none;font-family:var(--sans);font-weight:500;
   font-size:10px;color:var(--dink-3);font-variant-numeric:tabular-nums;white-space:nowrap}
 /* a calendar's marks in the colours of the things on the day */
@@ -6306,7 +6317,7 @@ html[data-rows="fit"] .is-phone .gridbar.inrail .sqbtn{width:28px;height:28px}
 .suchoice{display:flex;flex-direction:column;align-items:flex-start;gap:3px;text-align:left;cursor:pointer;
   padding:12px 14px;border-radius:12px;border:1px solid var(--rule);background:var(--paper-2);
   color:var(--ink);font:inherit;transition:border-color .14s, transform .1s}
-.suchoice:hover{border-color:var(--brass)}
+@media (hover:hover){.suchoice:hover{border-color:var(--brass)}}
 .suchoice:active{transform:scale(.98)}
 .suchoice b{font-size:16px;font-weight:600}
 .suchoice u{text-decoration:none;font-size:12.5px;color:var(--ink-3);line-height:1.35}
@@ -6403,7 +6414,7 @@ html[data-rows="fit"] .is-phone .gridbar.inrail .sqbtn{width:28px;height:28px}
 .drawer.otile.pushtile{background:none;border:0;box-shadow:none;padding:0;overflow:visible;
   display:flex;flex-direction:row;align-items:center;gap:8px;color:var(--ink)}
 .drawer.otile.pushtile.tall{flex-direction:column}
-.drawer.otile.pushtile:hover{box-shadow:none;filter:none}
+@media (hover:hover){.drawer.otile.pushtile:hover{box-shadow:none;filter:none}}
 .drawer.otile.pushtile > .dpanel,.drawer.otile.pushtile > .dgrain,.drawer.otile.pushtile > .dside{display:none}
 .pushcap{flex:0 0 auto;height:100%;aspect-ratio:1;display:grid;place-items:center;
   transition:transform .08s ease-out;cursor:pointer}
@@ -6489,7 +6500,7 @@ html[data-rows="fit"] .is-phone .gridbar.inrail .sqbtn{width:28px;height:28px}
   border-color:transparent;box-shadow:none;filter:none;clip-path:none}
 .drawer.otile.w-clear > :is(.dpanel,.dgrain,.dside){display:none}
 .drawer.otile.w-clear::before,.drawer.otile.w-clear::after{display:none}
-.drawer.otile.w-clear:hover{box-shadow:none}
+@media (hover:hover){.drawer.otile.w-clear:hover{box-shadow:none}}
 .drawer.otile.w-clear.selected{outline:2px dashed var(--brass);outline-offset:-2px}
 /* A halo round the letters, for words that have to be read over something —
    a picture, a background, another tile. Text shadows, so it follows every
@@ -6656,12 +6667,13 @@ html[data-rows="fit"] .is-phone .gridbar.inrail .sqbtn{width:28px;height:28px}
 .mdbar::-webkit-scrollbar{display:none}
 .mdbar button{flex:0 0 auto;min-width:34px;height:32px;padding:0 8px;border:0;border-radius:7px;
   background:transparent;color:#EDE4CF;font:600 13px/1 var(--sans);cursor:pointer}
-.mdbar button:hover,.mdbar button:active{background:rgba(255,255,255,.14)}
+.mdbar button:active{background:rgba(255,255,255,.14)}
+@media (hover:hover){.mdbar button:hover{background:rgba(255,255,255,.14)}}
 .mdbar button i{font-style:italic;font-family:var(--serif)}
 .mdbar .mdsep{flex:0 0 1px;background:rgba(255,255,255,.18);margin:6px 3px}
 .writestage .mdbar{background:var(--paper-3);width:100%}
 .writestage .mdbar button{color:var(--ink)}
-.writestage .mdbar button:hover{background:var(--rule-2)}
+@media (hover:hover){.writestage .mdbar button:hover{background:var(--rule-2)}}
 
 /* ---- the Words door ---- */
 .wsec{margin:18px 0 6px;padding-top:10px;border-top:1px solid var(--rule);font:600 17px/1.2 var(--serif);color:var(--ink)}
