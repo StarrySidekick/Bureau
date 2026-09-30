@@ -2594,10 +2594,13 @@ const PROP_OFF = () => { const b = document.createElement('button');
     out.andBackAcross = at().x === 1;
     /* The slot one step off the edge is somewhere to scroll to, and one step
        further is nothing: walking there lands on the slot and no further. */
+    // the plus is only drawn on an unlocked board (275)
+    const lockWas = BUREAU.state.look.locked; BUREAU.state.look.locked = false; BUREAU.render(); await nap(150);
     BUREAU.goShelfTo('root', 2, 2); await nap(300);
     BUREAU.goShelfTo('root', 3, 2); await nap(300);
     const slot = at().x === 3 && !BUREAU.isBoard('root', 3, 2)
       && !!document.querySelector('#drawergrid [data-addboard="root:3:2"]');
+    BUREAU.state.look.locked = lockWas; BUREAU.render();
     BUREAU.goShelfTo('root', 4, 2); await nap(300);
     out.stopsAtTheEdge = slot && at().x !== 4;
     BUREAU.goShelfTo('root', 1, 1); await nap(200);

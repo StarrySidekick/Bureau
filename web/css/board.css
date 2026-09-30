@@ -3690,15 +3690,17 @@ html[data-surface="wood"] .grid > .tilepaper{display:none}
 .noboard{display:flex;align-items:center;justify-content:center;pointer-events:none;
   background:var(--wood)}
 .grid.vacant .noboard{background:transparent}
-.addboard,.dropboard{width:64px;height:64px;padding:0;cursor:pointer;pointer-events:auto;
+.addboard,.tiledrop{width:64px;height:64px;padding:0;cursor:pointer;pointer-events:auto;
   display:grid;place-items:center;border:0;background:none;border-radius:50%;
   color:color-mix(in srgb,#fff 30%,transparent);transition:color .15s}
-.addboard:hover,.addboard:focus-visible,.dropboard:hover,.dropboard:focus-visible{
+.addboard:hover,.addboard:focus-visible,.tiledrop:hover,.tiledrop:focus-visible{
   color:color-mix(in srgb,#fff 60%,transparent)}
-/* The minus on an empty tile stands on paper, not wood, so it is the ink's. */
+/* The minus on an empty tile stands on paper, not wood, so it is the ink's.
+   `.tiledrop`, never `.dropboard`: that is the class a grid wears while a
+   thing is carried over it, and a rule for a button there shrank the board. */
 .grid > .tileminus{z-index:2;display:flex;align-items:center;justify-content:center;pointer-events:none}
-.tileminus .dropboard{color:color-mix(in srgb,var(--ink,#333) 26%,transparent)}
-.tileminus .dropboard:hover,.tileminus .dropboard:focus-visible{color:color-mix(in srgb,var(--ink,#333) 55%,transparent)}
+.tileminus .tiledrop{color:color-mix(in srgb,var(--ink,#333) 26%,transparent)}
+.tileminus .tiledrop:hover,.tileminus .tiledrop:focus-visible{color:color-mix(in srgb,var(--ink,#333) 55%,transparent)}
 /* A Mac draws the whole rectangle at the desk's own cell, so a desk more than
    three boards across is wider than the window and scrolls sideways rather
    than squashing every cell to fit. */

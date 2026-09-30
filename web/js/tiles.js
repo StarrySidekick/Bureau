@@ -3447,7 +3447,7 @@ function tileCrosses(cid, g, shift, cols, rows){
     const x = x0+i, y = y0+j;
     if(!isBoard(cid, x, y) || (x===home.x && y===home.y) || boardHolds(cid, x, y)) continue;
     html += `<div class="tileminus" style="grid-column:${i*g.shelfW+1}/span ${g.shelfW};grid-row:${j*g.shelfH+1}/span ${g.shelfH}"><button
-      class="dropboard" data-boardremove="${cid}:${x}:${y}" title="Take this empty tile away" aria-label="Take this empty tile away">${slotMark(false)}</button></div>`;
+      class="tiledrop" data-boardremove="${cid}:${x}:${y}" title="Take this empty tile away" aria-label="Take this empty tile away">${slotMark(false)}</button></div>`;
   }
   return html;
 }

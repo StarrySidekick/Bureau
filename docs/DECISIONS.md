@@ -11637,3 +11637,8 @@ unlocked board only.
   scratch `PLAYWRIGHT_BROWSERS_PATH` and `npx playwright install-deps webkit`
   (root, apt) give a Safari engine to check a rendering question against,
   which is how this one was found. The suite still runs on Chromium.
+- **v2.62**: the minus's button was first called `.dropboard`, which is the
+  class the grid wears while a thing is carried over it, so the button's
+  sixty-four-pixel box shrank the whole board mid-drag and nothing could be
+  dropped on the board or into a drawer. It is `.tiledrop`. Found by the
+  smoke suite before it shipped.
