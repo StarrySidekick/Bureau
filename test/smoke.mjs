@@ -132,7 +132,7 @@ const PROP_OFF = () => { const b = document.createElement('button');
      made three by three and centred again. */
   await page.evaluate(() => { const S = BUREAU.state;
     Object.keys(S.centred || {}).forEach(dv => S.objects.forEach(o => {
-      const b = o.parent === 'root' && o[dv]; if (b && b.y) o[dv] = { ...b, y: b.y - 8 }; }));
+      const b = o.parent === 'root' && o[dv]; if (b && b.y) o[dv] = { ...b, y: b.y - BUREAU.TILE }; }));
     S.deskCfg.shelves = {w:3, h:3}; S.centred = {}; BUREAU.render(); BUREAU.save(); });
   await page.waitForTimeout(400);
   await shot('01-desk');

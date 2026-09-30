@@ -2255,8 +2255,11 @@ function boardZoomEnd(){
     });
     return;
   }
+  /* The point under the fingers, in board cells: where it was in the
+     grid's pixels, over the cell it was drawn at, plus the grid's shift. */
+  const cell0 = CELL[dev()] || 1, sh = shelfShift(BZ.cid);
   zoomCommit(BZ.cid, Math.max(BZ.min, Math.min(BZ.max, BZ.z)),
-    {z0:BZ.z0, gx:BZ.gx, gy:BZ.gy, sx:BZ.mx - BZ.r.left, sy:BZ.my - BZ.r.top});
+    {bx: BZ.gx/cell0 + sh.x, by: BZ.gy/cell0 + sh.y, sx:BZ.mx - BZ.r.left, sy:BZ.my - BZ.r.top});
 }
 /* **A trackpad's pinch** is a wheel with the control key held: each event
    is a step of the same zoom about the pointer, and it is committed once the

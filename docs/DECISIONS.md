@@ -11567,3 +11567,9 @@ default.
   is held inside the board **sideways only**: held up and down too, a board
   one row taller than the screen put the middle of the screen in the next
   tile, which the snap then walked to.
+- **v2.58**: a Mac is drawn with its pad of slots **only when zoomed out**
+  (`padded(device, cid)`), so at no zoom its board starts at its own corner
+  as it always did, and the pluses and crosses are where Timothy asked for
+  them, out far enough to see the whole board. The zoom carries the point
+  under the fingers in board cells (`bx`,`by`), since the pad appearing moves
+  the grid's corner under it.

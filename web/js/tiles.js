@@ -3272,8 +3272,8 @@ function gridOfContainer(cid){
   const camOn = S.zoomOn && byId(S.zoomOn);
   const camHere = !!(camOn && camOn.parent===c.id);
   const windowed = dv==='phone';
-  // a Mac is drawn with the pad round it too (decision 274), so it has a shift
-  let shift = windowed || padded(dv) ? shelfOrigin(c.id, dv) : {x:0, y:0};
+  // a Mac zoomed out is drawn with the pad round it (decision 274), so it has a shift
+  let shift = windowed || padded(dv, c.id) ? shelfOrigin(c.id, dv) : {x:0, y:0};
   if(windowed && camHere){
     const cb = lay(camOn, dv, c.id);
     const fit = (want, span, all) =>

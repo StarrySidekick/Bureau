@@ -536,7 +536,7 @@ const gridOf = (device, cid)=>{
      somewhere you can scroll to and press the plus on. Not on a board that
      cannot grow. */
   const id = cid==null ? hereId() : cid;
-  const pad = padded(d) && !inner && !growsNot(id) ? shelfH : 0;
+  const pad = padded(d, id) && !inner && !growsNot(id) ? shelfH : 0;
   /* …and to the left and right (Timothy, 2026-09-29): the phone scrolls
      every way, so the slot one step off either side is somewhere you can
      scroll to as well. */
@@ -671,7 +671,8 @@ function setShelf(cid, x, y){
    shelf system and the one place to get it wrong. See decision 141. */
 function shelfOrigin(cid, device){
   const g=gridOf(device, cid), at=shelfAt(cid);
-  return padded(device) ? {x: -g.padX, y: -g.pad} : {x: at.x*g.shelfW, y: at.y*g.shelfH};
+  // a Mac draws its whole board, so its shift is only ever the pad (274)
+  return (device||dev())!=='phone' || flows(device) ? {x: -g.padX, y: -g.pad} : {x: at.x*g.shelfW, y: at.y*g.shelfH};
 }
 /* **A phone board can scroll instead of paging** (decision 209). `S.look.flow`
    — unset is the rigid swipe, a shelf at a time; `'scroll'` draws the whole
@@ -689,10 +690,11 @@ function shelfOrigin(cid, device){
    bare wood. */
 const flows = device => (device||dev())==='phone';
 const byTile = () => !!(S.look && S.look.flow==='page');
-/* **Drawn with a tile's pad round it** (decision 274): a phone that scrolls,
-   since 272, and now a Mac as well, because the zoom out to every tile is
-   gone and the plus on an empty slot is how a tile is added on either. */
-const padded = device => (device||dev())==='phone' ? flows(device) : true;
+/* **Drawn with a tile's pad round it**: a phone that scrolls, since 272,
+   and since decision 274 a Mac **zoomed out**, because the zoom out to every
+   tile is gone and the plus on an empty slot is how a tile is added. At no
+   zoom a Mac's board is what it was, starting at its own corner. */
+const padded = (device, cid) => (device||dev())==='phone' ? flows(device) : zoomOf(cid) < 0.999;
 
 /* ---- the zoom — decision 274 -------------------------------------------
    Timothy: zoom in and out of a board smoothly, rather than a fixed zoom
@@ -713,11 +715,11 @@ function zoomRange(cid, device){
   const id = cid==null ? hereId() : cid, d = device || dev(), m = MEASURE[d];
   if(!m.w) return {min:1, max:ZOOM_MAX};
   const base = m.w / (d==='phone' ? VIEW_COLS : GRID.desk.cols);
-  const was = ZOOM[id]; ZOOM[id] = 1;
   const g = gridOf(d, id);
-  if(was==null) delete ZOOM[id]; else ZOOM[id] = was;
+  // with its pad, which a Mac only draws once it is zoomed out
+  const pads = d==='phone' && !flows(d) ? 0 : (innerOf(id, d) || growsNot(id)) ? 0 : 1;
   const W = m.w, H = d==='phone' ? viewRows('phone')*base : (m.room || viewRows('desk')*base);
-  const fit = Math.min(W / (drawCols(g, d)*base), H / (drawRows(g, d)*base));
+  const fit = Math.min(W / ((g.cols + 2*pads*g.shelfW)*base), H / ((g.rows + 2*pads*g.shelfH)*base));
   return {min: Math.max(0.12, Math.min(1, fit)), max: ZOOM_MAX};
 }
 function setZoom(cid, z){

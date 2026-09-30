@@ -23,8 +23,8 @@ seam is refused.
 **And since decision 274 a tile is five by five** (`TILE`), the phone
 screen is still eight cells across (`VIEW_COLS`) and the widest a thing may
 be is eight (`WIDE`, `g.maxW`), so never read `shelfW` as "the widest a box
-can be". The cell is multiplied by the board's zoom (`zoomOf()`), a Mac is
-drawn with the pad of slots round it (`padded()`), and **there is no zoom out
+can be". The cell is multiplied by the board's zoom (`zoomOf()`), a Mac zoomed
+out is drawn with the pad of slots round it (`padded()`), and **there is no zoom out
 to every board**: the paragraph below about `openOverview()` is history, the
 pinch zooms the board itself (`boardZoomBegin()` in gestures.js) and the
 crosses that take a tile away are on the board when it is zoomed out.

@@ -1455,21 +1455,22 @@ function scrollToShelf(cid, y, x, jump){
   catch(_){ sc.scrollTop = top; sc.scrollLeft = left; }
 }
 /* **Settle a zoom** (decision 274): the new cell is laid out by a render,
-   and the point that was under the fingers (`gx`,`gy`, the grid's own
-   pixels at the zoom it started from `z0`) is put back under them, at
-   `sx`,`sy` in the scroller's own box. Then which tile you are on is the
+   and the point that was under the fingers (`bx`,`by`, in board cells) is
+   put back under them, at `sx`,`sy` in the scroller's own box. Then which tile you are on is the
    one in the middle of the screen, as after any scroll. Returns the zoom it
    settled on, which the board's range may have held back. */
+const g0gap = cid => gridOf(dev(), cid).gap;
 function zoomCommit(cid, z, at){
-  const z0 = at ? at.z0 : zoomOf(cid);
   const got = setZoom(cid, z);
   render();
   const sc = $('#app .scroll.deskscroll'), grid = sc && sc.querySelector('#drawergrid');
   if(!sc || !grid || (grid.dataset.gridfor||ROOT)!==cid) return got;
+  /* The point is carried in board cells, not the grid's pixels: a Mac grows
+     its pad as it zooms out, which moves the grid's corner under it. */
   if(at){
-    const k = got / Math.max(0.01, z0);
-    sc.scrollLeft = grid.offsetLeft + at.gx*k - at.sx;
-    sc.scrollTop  = grid.offsetTop  + at.gy*k - at.sy;
+    const sh = shelfShift(cid), cell = CELL[dev()] + g0gap(cid);
+    sc.scrollLeft = grid.offsetLeft + (at.bx - sh.x)*cell - at.sx;
+    sc.scrollTop  = grid.offsetTop  + (at.by - sh.y)*cell - at.sy;
   }
   SCROLL.left = sc.scrollLeft; SCROLL.top = sc.scrollTop; GLIDE.at = Date.now();
   const g = gridOf(dev(), cid), t = tileUnder(sc, grid, g);
@@ -1502,9 +1503,9 @@ function landOnShelf(cid){
    writes a box *onto* it, has to make the same conversion or it is a shelf
    out. On a Mac it is always zero: the whole board is drawn and scrolled
    rather than windowed, so there is nothing to shift. See decisions 102, 141. */
-/* …and on a Mac too since decision 274, which is drawn with the pad of empty
-   slots round it the way a phone is: the shift is the pad, not zero. */
-const shelfShift = cid => (S.device==='phone' || padded()) ? shelfOrigin(cid) : {x:0, y:0};
+/* …and on a Mac zoomed out since decision 274, which is drawn with the pad
+   of empty slots round it the way a phone is: the shift is the pad. */
+const shelfShift = cid => (S.device==='phone' || padded(undefined, cid)) ? shelfOrigin(cid) : {x:0, y:0};
 const shelfTop  = cid => shelfShift(cid).y;
 const shelfLeft = cid => shelfShift(cid).x;
 

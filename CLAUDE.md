@@ -300,7 +300,7 @@ board's own zoom** (`zoomOf()`/`setZoom()` in grid.js, a pinch or trackpad
 pinch, committed by `zoomCommit()`), which replaces the zoom out to every
 tile: far out is the whole board with a plus on each slot and a cross on
 each tile but the home one, and further out inside a container goes up a
-level; a Mac is drawn with the pad of slots round it too (`padded()`); and a
+level; a Mac zoomed out is drawn with the pad of slots round it too (`padded()`); and a
 board may give **each tile its own checkerboard** (`tilepaper:'each'`).
 
 **Start here each session:** `docs/SYSTEM.md` is the reference for what Bureau is
