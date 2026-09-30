@@ -11582,3 +11582,6 @@ default.
   A Mac's gravity pen is the rows its window shows, centred on the tile you
   are on, not one row of tiles. And a proportional board's pages are the
   screen's size, not a tile's.
+- **v2.60**: a Mac's gravity pen grows above and below until no thing
+  crosses its edges, since the window's rows may run through a tall thing,
+  which was then half falling and half standing.

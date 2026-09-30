@@ -217,6 +217,22 @@ function sync(){
   W.grid = m.grid;
   W.cell = g.rowh;
   const p = pen(g);
+  /* **A Mac's pen cuts through nothing** (decision 274): its edges are the
+     window's rows, which may run through the middle of a tall thing, and a
+     thing half in the pen and half out was both falling and standing. So the
+     pen grows, above and below, until nothing crosses its edges. */
+  if(dev()!=='phone'){
+    let top = p.y0, bot = p.y0 + p.h, moved = true;
+    for(let n=0; moved && n<20; n++){
+      moved = false;
+      m.rects.forEach(r=>{
+        const t = r.top - m.gr.top, b2 = r.bottom - m.gr.top;
+        if(t < top - 0.5 && b2 > top + 0.5){ top = t; moved = true; }
+        if(t < bot - 0.5 && b2 > bot + 0.5){ bot = b2; moved = true; }
+      });
+    }
+    p.y0 = Math.max(0, top); p.h = bot - p.y0;
+  }
   W.w = p.w; W.h = p.h; W.y0 = p.y0;
   W.walls = walls(W.w, W.h, W.y0);
 

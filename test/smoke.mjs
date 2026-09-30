@@ -4349,6 +4349,7 @@ const PROP_OFF = () => { const b = document.createElement('button');
     // The vertical axis reverses with the horizontal one — it is one sign per
     // cue, not one per axis, so a thing above the middle shows its top.
     out.aboveCentreYouSeeTheTop = hi.length > 0 && hi.every(t => faceOf(t,'top') > 0.2 && faceOf(t,'bottom') === 0);
+    out.dbgAbove = hi.length + ' above · ' + hi.map(t => (t.dataset.drawer||t.dataset.row)+':'+t.style.getPropertyValue('--py')+':'+faceOf(t,'top').toFixed(2)+'/'+faceOf(t,'bottom').toFixed(2)).join(' ');
     out.belowCentreYouSeeTheUnderside = lo.length > 0 && lo.every(t => faceOf(t,'bottom') > 0.2 && faceOf(t,'top') === 0);
     const subject = sided.find(t => px(t) < -0.3);          // stands left of centre
     const restL = faceOf(subject,'left'), restR = faceOf(subject,'right');
@@ -4522,6 +4523,7 @@ const PROP_OFF = () => { const b = document.createElement('button');
     /* The last move is at the edge wherever the tile started: a phone that
        scrolls sideways (273) may hand over one near the right of the screen. */
     const thrown = await carry(62, 'all', 8, 8, () => 3);
+    out.dbgThrown = thrown + ' · ' + JSON.stringify((S.objects.find(o=>o.id===thrown)||{}).phone) + ' · scrollLeft ' + document.querySelector('#app .deskscroll').scrollLeft;
     out.aHardFlickThrowsIt = !alive(thrown);
     out.andTheTileFliesOff = !!document.querySelector('#fx .fxtoss');
     /* The picture must not answer to the id of the thing that has just been
