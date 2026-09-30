@@ -2,7 +2,7 @@ import { $, $$, clamp, D, ROOT } from './util.js';
 import { blockHold, frontHold } from './wire.js';
 import { S, byId, dev, has, isContainer, isAncestor, childrenOf, container, gatherKind, spanOf,
   sortOf, boardLocked, heldCount, homeFor, attrsOf, travelWith, isMedia } from './model.js';
-import { CELL, gridOf, drawCols, drawRows, cellW, lay, boxOk, overlaps, sizeOfKind, keepSize, isBoard, boardsOf, zoomOf, zoomRange } from './grid.js';
+import { CELL, gridOf, drawCols, drawRows, cellW, lay, boxOk, overlaps, sizeOfKind, keepSize, isBoard, boardsOf, zoomOf, zoomRange, snapZoom } from './grid.js';
 import { toast, gather, del, pushSets, holdIt, unholdIt } from './mutations.js';
 import { pending, tileTap, fireButton, turnPage,
   scratchGrab, scratchTo, scratchGo } from './tiles.js';
@@ -1627,13 +1627,17 @@ function applyDrag(G, dx, dy){
       /* Both: the animation's transform composes --carryx/--carryy and wins,
          and the inline one carries the tile if the sway never started (reduced
          motion, or a resize grip, which is armed without ever being lifted). */
-      G.el.style.setProperty('--carryx', dx+'px');
-      G.el.style.setProperty('--carryy', dy+'px');
-      G.el.style.transform=`translate(${dx}px,${dy}px)`;
+      /* A zoomed board scales each tile from inside (decision 274), so a
+         transform written on one is in its own unzoomed pixels: the finger's
+         travel is divided by the zoom, or the tile runs ahead of it. */
+      const zk = zkOf(G.el), zx = dx/zk, zy = dy/zk;
+      G.el.style.setProperty('--carryx', zx+'px');
+      G.el.style.setProperty('--carryy', zy+'px');
+      G.el.style.transform=`translate(${zx}px,${zy}px)`;
       if(G.group) G.group.forEach(g2=>{
         if(g2.id===G.id) return;
         const el=document.querySelector(`.grid .drawer[data-row="${g2.id}"],.grid .drawer[data-drawer="${g2.id}"],.grid .drawer[data-id="${g2.id}"]`);
-        if(el){ el.style.transform=`translate(${dx}px,${dy}px)`; el.style.zIndex=49; }
+        if(el){ el.style.transform=`translate(${zx}px,${zy}px)`; el.style.zIndex=49; }
       });
       // what is under the pointer is a place to land, not a collision
       aimDrop(G, G.px, G.py);
@@ -2113,6 +2117,8 @@ function dropFingers(){
 }
 const twice = e => e.__bureau2 ? true : !(e.__bureau2 = 1);
 const apart = (a,b)=> Math.hypot(a.clientX-b.clientX, a.clientY-b.clientY);
+/* How much a tile is scaled from inside by its board's zoom (decision 274). */
+const zkOf = el => { const g = el && el.closest && el.closest('.grid.zoomed'); return g ? (+g.dataset.zk || 1) : 1; };
 
 /* ---- pinching out of somewhere ----------------------------------------
    Two fingers already walk the desks and turn the pages, and both of those are
@@ -2258,8 +2264,9 @@ function boardZoomEnd(){
   /* The point under the fingers, in board cells: where it was in the
      grid's pixels, over the cell it was drawn at, plus the grid's shift. */
   const cell0 = CELL[dev()] || 1, sh = shelfShift(BZ.cid);
-  zoomCommit(BZ.cid, Math.max(BZ.min, Math.min(BZ.max, BZ.z)),
-    {bx: BZ.gx/cell0 + sh.x, by: BZ.gy/cell0 + sh.y, sx:BZ.mx - BZ.r.left, sy:BZ.my - BZ.r.top});
+  // settled on a zoom whose screen is whole cells (snapZoom), drawn from where it was left
+  zoomCommit(BZ.cid, snapZoom(BZ.cid, BZ.z),
+    {bx: BZ.gx/cell0 + sh.x, by: BZ.gy/cell0 + sh.y, sx:BZ.mx - BZ.r.left, sy:BZ.my - BZ.r.top, from: BZ.z});
 }
 /* **A trackpad's pinch** is a wheel with the control key held: each event
    is a step of the same zoom about the pointer, and it is committed once the

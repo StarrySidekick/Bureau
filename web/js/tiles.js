@@ -12,7 +12,7 @@ import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, chi
   calViewOf, calShowOf, weekStartOf, calCols, borderOf, textureOf, marginOf, isFragmentKind, gravityOn,
   groupOf, sealOf, isSealed, habitPlan, habitPeriods, habitRun, relate, measureOf, amountSaid, inFront, countOf, countsOf, COUNTS, makesSmart, isHeld, habitOn } from './model.js';
 import { GRID, CELL, gridOf, drawCols, drawRows, lay, overlaps, boxOk, freeSpot, anySpot, roomFor, gridRows, sizeOfKind, sideways, innerOf,
-  ensureBox, shelfRows, viewRows, shelfOrigin, shelfAt, shelfOfBox, oneShelf, colsOf, flows, boardsOf, nearestBoard, isBoard, reachable, dimsOf, MEASURE, VIEW_COLS, padded, zoomOf, startOf } from './grid.js';
+  ensureBox, shelfRows, viewRows, shelfOrigin, shelfAt, shelfOfBox, oneShelf, colsOf, flows, boardsOf, nearestBoard, isBoard, reachable, dimsOf, MEASURE, VIEW_COLS, padded, zoomOf, startOf, boardHolds } from './grid.js';
 import { dealTop, create, toast, fits, toggleDone, someKind, furnish, ctlSpec, ctlSaid, ctlIsOn,
   ctlForm, ctlNum, ctlIndex, ctlPress, pushSet, reachedGoal, goalOf } from './mutations.js';
 import { DECOR, decorOf, decorEmits, flamePoint, decorSVG, LIFE_ART, lifeSVG } from './decor.js';
@@ -930,8 +930,9 @@ function trackerFace(o, box){
    own. One cell square it is the silhouette and the hole — the mark. */
 /* The cell a tile is drawn inside, which since decision 274 is not the
    cell on the screen: a zoomed board lays its boxes out at the zoomed cell
-   and gives each tile `zoom` (board.css), so inside one the cell is what it
-   is at no zoom and everything written in pixels is scaled with it. */
+   and lays each tile out at no zoom, scaled into its box (board.css), so
+   inside one the cell is what it is at no zoom and everything written in
+   pixels is scaled with it. */
 const tileCell = dv => (CELL[dv || dev()] || 44) / zoomOf();
 function tagFace(o, box, sel, place, handles){
   const cell = tileCell();
@@ -3403,7 +3404,7 @@ function gridOfContainer(cid){
   const zk = zoomOf(c.id);
   return `<div class="grid g-${dv}${zk!==1?' zoomed':''}${narrow?' narrowboard':''}${vacant?' vacant':''}${
       dv!=='phone' && cols > GRID.desk.cols ? ' wideboard' : ''}${arr===true?' arranging':''}${boardLocked()?' locked':''}${sorted?' sorted':''}${S.look.pinned?' pinboard':''}${gravityOn()?' falling':''}"
-       id="drawergrid" data-gridfor="${c.id}"
+       id="drawergrid" data-gridfor="${c.id}"${zk!==1 ? ` data-zk="${zk.toFixed(4)}"` : ''}
        style="${boardVars}${zk!==1 ? `--zk:${zk.toFixed(4)};--rowb:${(g.rowh/zk).toFixed(3)}px;` : ''}--cols:${cols};--rowh:${g.rowh}px;--checkerx:${2*colw}px;--checkery:${2*g.rowh}px;grid-auto-rows:${g.rowh}px;grid-template-rows:repeat(${Math.max(rows,1)},${g.rowh}px)">${papers}${vacant?'':tiles+lights+strings}${holes.html}${crosses}
   </div>`;
 }
@@ -3429,11 +3430,14 @@ function tilePapers(cid, g, shift, cols, rows){
   }
   return html;
 }
-/* **A cross on every tile but the desk's own, zoomed out** (decision 274):
-   what the zoom out to every tile used to offer, on the board itself. A tile
-   with things on it asks where they go first (decision 234). */
+/* **A minus on an empty tile, zoomed out and unlocked** (Timothy,
+   2026-09-30: the crosses were goofy and sat on top of things). Only an empty
+   tile carries one, so it can never cover anything, and it is the plus's own
+   mark turned over: thick, faint, no ring. A tile with things on it is taken
+   away from Board settings' map, which asks where they go. Never the tile the
+   board opens on, and never the last. */
 function tileCrosses(cid, g, shift, cols, rows){
-  if(zoomOf(cid) > 0.95 || (cid!==ROOT && innerOf(cid)) || boardsOf(cid).length < 2) return '';
+  if(boardLocked() || zoomOf(cid) > 0.95 || (cid!==ROOT && innerOf(cid)) || boardsOf(cid).length < 2) return '';
   const cfg = cid===ROOT ? S.deskCfg : byId(cid);
   const home = cfg && cfg.start && isBoard(cid, cfg.start.x, cfg.start.y) ? cfg.start : startOf(cid);
   const x0 = Math.floor(shift.x / g.shelfW), y0 = Math.floor(shift.y / g.shelfH);
@@ -3441,12 +3445,16 @@ function tileCrosses(cid, g, shift, cols, rows){
   let html = '';
   for(let j=0; j<ny; j++) for(let i=0; i<nx; i++){
     const x = x0+i, y = y0+j;
-    if(!isBoard(cid, x, y) || (x===home.x && y===home.y)) continue;
-    html += `<button class="tilecross" data-boardremove="${cid}:${x}:${y}" title="Take this tile away" aria-label="Take this tile away"
-      style="grid-column:${(i+1)*g.shelfW}/span 1;grid-row:${j*g.shelfH+1}/span 1">${ic('x',14)}</button>`;
+    if(!isBoard(cid, x, y) || (x===home.x && y===home.y) || boardHolds(cid, x, y)) continue;
+    html += `<div class="tileminus" style="grid-column:${i*g.shelfW+1}/span ${g.shelfW};grid-row:${j*g.shelfH+1}/span ${g.shelfH}"><button
+      class="dropboard" data-boardremove="${cid}:${x}:${y}" title="Take this empty tile away" aria-label="Take this empty tile away">${slotMark(false)}</button></div>`;
   }
   return html;
 }
+/* The mark on a slot and on an empty tile: a plus or a minus, drawn thick
+   and faint, with nothing round it. */
+const slotMark = plus => `<svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor"
+  stroke-width="3.2" stroke-linecap="round"><path d="${plus ? 'M12 5v14M5 12h14' : 'M5 12h14'}"/></svg>`;
 // a small repeatable generator: the same words give the same throws
 function seeded(str){
   let h = 2166136261;
@@ -3467,10 +3475,11 @@ function vacancies(cid, dv, g, shift, cols, rows, cam){
     const x = x0+i, y = y0+j;
     if(isBoard(cid, x, y)) continue;
     none++;
-    const add = reachable(cid, x, y);
+    // the plus only on an unlocked board (2026-09-30): locked, nothing is added
+    const add = reachable(cid, x, y) && !boardLocked();
     html += `<div class="noboard" style="grid-column:${i*g.shelfW+1}/span ${Math.min(g.shelfW, cols-i*g.shelfW)};grid-row:${
       j*g.shelfH+1}/span ${Math.min(g.shelfH, rows-j*g.shelfH)}">${add ? `<button class="addboard"
-        data-addboard="${cid}:${x}:${y}" title="Add a tile here" aria-label="Add a tile here">${ic('plus',26)}</button>` : ''}</div>`;
+        data-addboard="${cid}:${x}:${y}" title="Add a tile here" aria-label="Add a tile here">${slotMark(true)}</button>` : ''}</div>`;
   }
   return {all: none===nx*ny, html};
 }

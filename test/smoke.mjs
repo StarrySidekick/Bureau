@@ -2401,34 +2401,60 @@ const PROP_OFF = () => { const b = document.createElement('button');
     wheel(60); await nap(420);
     out.aPinchZoomsTheBoard = !document.querySelector('#overview') && BUREAU.zoomOf('root') < 1
       && rowh() < cell0 - 1 && !!document.querySelector('#drawergrid.zoomed');
+    /* Out far enough it is every tile (2026-09-30): a faint plus on every
+       slot and a faint minus on every empty tile but the home one, and only
+       on an unlocked board; nothing sits on top of anything, so no crosses. */
+    const wasLocked = S.look.locked; S.look.locked = false;
     BUREAU.zoomCommit('root', 0.01); await nap(200);
+    const minus = () => [...document.querySelectorAll('#drawergrid .tileminus [data-boardremove]')]
+      .map(b => b.dataset.boardremove.split(':').slice(1).map(Number));
     out.farOutIsEveryTile = document.querySelectorAll('#drawergrid .addboard').length === 12
-      && document.querySelectorAll('#drawergrid .tilecross').length === BUREAU.boardsOf('root').length - 1;
+      && !document.querySelector('.tilecross')
+      && minus().every(([x,y]) => !BUREAU.boardHolds('root', x, y));
     const st = S.deskCfg.start || BUREAU.startOf('root');
-    out.theHomeBoardStays = !document.querySelector(`#drawergrid .tilecross[data-boardremove="root:${st.x}:${st.y}"]`);
+    out.theHomeBoardStays = !minus().some(([x,y]) => x===st.x && y===st.y);
     // a plus adds a tile, and the board stays zoomed out, so you see it arrive
     const had = BUREAU.boardsOf('root').length;
     // to the right, so no board's numbers move
-    document.querySelector('#drawergrid .addboard[data-addboard="root:3:0"]').click(); await nap(250);
+    document.querySelector('#drawergrid .addboard[data-addboard="root:3:0"]').click(); await nap(120);
     out.aPlusAddsHere = BUREAU.boardsOf('root').length === had + 1 && BUREAU.zoomOf('root') < 1;
-    // …and its cross takes it away again
-    const cross = document.querySelector('#drawergrid .tilecross[data-boardremove="root:3:0"]');
-    if(cross) cross.click(); await nap(250);
-    out.aCrossTakesOneAway = BUREAU.boardsOf('root').length === had;
-    /* A tile with something on it asks where it goes, and the Void Drawer
-       keeps it (decision 234). */
+    // …and its squares click into place over it, and are gone again
+    out.itClicksIntoPlace = !!document.querySelector('#drawergrid .tilegrow');
+    await nap(1100);
+    out.andTheAnimationLeaves = !document.querySelector('#drawergrid .tilegrow');
+    // …and, empty, its minus takes it away again
+    const drop = document.querySelector('#drawergrid .tileminus [data-boardremove="root:3:0"]');
+    if(drop) drop.click(); await nap(250);
+    out.aMinusTakesAnEmptyOneAway = !!drop && BUREAU.boardsOf('root').length === had;
+    /* A tile with something on it has no minus: it is taken away from Board
+       settings' map, and asks where its things go (decision 234). */
     document.querySelector('#drawergrid .addboard[data-addboard="root:3:0"]').click(); await nap(250);
     const dv = S.device==='desk' ? 'desk' : 'phone';
     const lodger = BUREAU.create('note', {parent:'root', title:'On the far board'});
     lodger[dv] = {x: 3*BUREAU.shelfW('root', dv) + 1, y:1, w:2, h:2};
     BUREAU.render(); await nap(200);
-    document.querySelector('#drawergrid .tilecross[data-boardremove="root:3:0"]').click(); await nap(250);
-    out.aFullBoardAsks = !!document.querySelector('#overview .ovask')
+    out.aFullTileHasNoMinus = !document.querySelector('#drawergrid .tileminus [data-boardremove="root:3:0"]');
+    BUREAU.settingsPanel('board'); await nap(300);
+    const onMap = document.querySelector('#panel .tilemap [data-boardremove="root:3:0"]');
+    if(onMap) onMap.click(); await nap(250);
+    out.aFullBoardAsks = !!onMap && !!document.querySelector('#overview .ovask')
       && BUREAU.boardsOf('root').length === had + 1;
-    document.querySelector('#overview [data-act="ovremove"][data-mode="hold"]').click(); await nap(300);
+    const hold = document.querySelector('#overview [data-act="ovremove"][data-mode="hold"]');
+    if(hold) hold.click(); await nap(300);
     out.itsThingsGoToTheVoid = lodger.parent === '__hold' && BUREAU.boardsOf('root').length === had
       && !document.querySelector('#overview');
-    BUREAU.del(lodger.id);
+    BUREAU.closePanel(); BUREAU.del(lodger.id);
+    // locked, no plus and no minus: nothing is added or taken away
+    S.look.locked = true; BUREAU.render(); await nap(120);
+    out.lockedShowsNeither = !document.querySelector('#drawergrid .addboard, #drawergrid .tileminus');
+    S.look.locked = wasLocked; BUREAU.render();
+    /* The zoom settles, as a scroll does (2026-09-30): on a Mac, somewhere the
+       window is a whole number of cells across, or the whole board. */
+    BUREAU.setZoom('root', 1); BUREAU.render(); await nap(100);
+    wheel(37); await nap(520);
+    const z = BUREAU.zoomOf('root'), n = 24 / z;
+    out.theZoomSettlesOnWholeCells = z < 1 && (Math.abs(n - Math.round(n)) < 1e-6
+      || Math.abs(z - BUREAU.zoomRange('root').min) < 1e-6);
     // and spreading comes back in, as far as three times
     wheel(-400); await nap(420);
     out.spreadingZoomsIn = BUREAU.zoomOf('root') > 1 && BUREAU.zoomOf('root') <= 3;

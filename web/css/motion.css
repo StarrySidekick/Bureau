@@ -509,3 +509,22 @@
        opacity:0}
 }
 @media (prefers-reduced-motion: reduce){ .fxfile{display:none} }
+
+/* ---- a new tile clicks into place — 2026-09-30 -------------------------
+   The slot's wood for a moment, and the tile's squares dropping into it ring
+   by ring, each with a small overshoot, then the wood letting go. Drawn over a
+   board that already has the tile (`tileArrives()` in motion.js). */
+.grid > .tilegrow{z-index:3;pointer-events:none;display:grid;
+  grid-template-columns:repeat(var(--gw,5),1fr);grid-auto-rows:1fr;
+  background:var(--wood);animation:growWood .3s ease-out var(--grow-out,500ms) both}
+.tilegrow > i{display:block;opacity:0;transform-origin:50% 60%;
+  animation:growCell .28s cubic-bezier(.3,1.7,.55,1) both;
+  box-shadow:0 1px 0 rgba(0,0,0,.08)}
+@keyframes growCell{
+  0%  {opacity:0;transform:translateY(-38%) scale(.5) rotate(-5deg)}
+  55% {opacity:1}
+  75% {transform:translateY(3%) scale(1.07) rotate(.6deg)}
+  100%{opacity:1;transform:none}
+}
+@keyframes growWood{from{background-color:var(--wood)} to{background-color:transparent}}
+@media (prefers-reduced-motion: reduce){ .grid > .tilegrow{display:none} }

@@ -265,6 +265,15 @@ tile, the same on every tile staying the default. Built as decision 274
 (v2.56). It is a trial: a container of one tile is five cells across now, so
 what goes in one is at most five wide until a tile is added beside it.
 
+### Added 2026-09-30, later — living with the zoom
+
+Timothy: the crosses for taking a tile away were goofy and sat on top of
+things; the zoom wants a gentle snap like the scroll's; knobs, text and a
+portal's rim kept their size while the drawer grew ("a major bug"); a new
+tile should click into place; and an empty slot should be just a plus,
+thicker and fainter, with no outline or dotted ring, and only when unlocked.
+Built as decision 275 (v2.61).
+
 ## Deliberately not next
 
 - **Sync between devices.** It is real and it is coming, *after* the feature set

@@ -725,13 +725,30 @@ function shelfCountField(cid){
   if(cid===ROOT || !proportional()){
     const sh = shelvesOf(cid), n = boardsOf(cid).length;
     const magic = cid!==ROOT && has(container(cid),'magic');
+    /* **The map is where a tile with things on it is taken away** (Timothy,
+       2026-09-30): the crosses on the board sat on top of what was there. A
+       tile here is pressed to take it away, asking where its things go if it
+       has any; a gap round it is pressed to add one; the tile the board
+       opens on is marked and stays. */
+    const home = homeBoard(cid), pad = magic ? 0 : 1;
+    const cells = [];
+    for(let y=-pad; y<sh.h+pad; y++) for(let x=-pad; x<sh.w+pad; x++){
+      const at = `${cid}:${x}:${y}`;
+      if(isBoard(cid, x, y)){
+        const isHome = home.x===x && home.y===y, full = boardHolds(cid, x, y);
+        cells.push(isHome || n<2
+          ? `<span class="tm on home" title="${isHome?'The tile this board opens on':'The only tile'}"></span>`
+          : `<button class="tm on${full?' full':''}" data-boardremove="${at}" title="Take this tile away${full?' (it has things on it)':''}"
+              aria-label="Take this tile away"></button>`);
+      } else if(!magic && reachable(cid, x, y)){
+        cells.push(`<button class="tm add" data-addboard="${at}" title="Add a tile here" aria-label="Add a tile here">${ic('plus',11)}</button>`);
+      } else cells.push('<span class="tm"></span>');
+    }
     return `<div class="field" style="margin-top:12px"><label>Tiles</label>
-      <div class="boardshape" style="--sw:${sh.w}">${
-        Array.from({length:sh.w*sh.h}, (_,i)=>{ const x=i%sh.w, y=(i/sh.w)|0;
-          return `<i class="${isBoard(cid,x,y)?'on':''}"></i>`; }).join('')}</div>
-      <div class="mini" style="--k:var(--brass);margin-top:6px">${cid===ROOT?'The desk':'This drawer'} is <b>${n} tile${n>1?'s':''}</b>, each eight by eight. ${magic
+      <div class="tilemap" style="--sw:${sh.w + 2*pad}">${cells.join('')}</div>
+      <div class="mini" style="--k:var(--brass);margin-top:6px">${cid===ROOT?'The desk':'This drawer'} is <b>${n} tile${n>1?'s':''}</b>, each five by five. ${magic
         ? 'A sorting drawer collects rather than holds, so it stays one tile.'
-        : 'Pinch out to see every tile and press a plus to add one, in any direction — or scroll or swipe off the edge onto the empty space.'}${
+        : 'Press a tile to take it away, or a plus to add one there. On the board, pinch out and press the plus beside it; an empty tile shows a minus.'}${
         cid===ROOT ? '' : ' Two fingers sideways goes to the drawer beside this one.'}
         <button class="fchip" data-act="zoomfit" data-id="${cid}" style="margin-left:4px">See every tile</button></div>
     </div>`;
@@ -959,7 +976,8 @@ function settingsBody(sec, cid){
       <div class="mini" style="--k:var(--brass);margin-top:6px">Where down actually is, the whole circle of it. Roll the phone and the heap runs to the low edge; turn it right over and everything falls to the top of the screen; lay it flat on a table and nothing moves at all, because a tray held level is not tipping anything anywhere. Half a tilt is half the pull. It asks iPhone for the motion sensor the first time, and it is the same one the cavity reads.</div>` : ''}
     </div>
 
-    ${inside ? shelfCountField(cid)+railToolsField(cid) : ''}` : '',
+    ${/* the tiles' map on the desk too (2026-09-30): it is where a tile with
+         things on it is taken away */''}${inside ? shelfCountField(cid)+railToolsField(cid) : shelfCountField(ROOT)}` : '',
     at('look') ? `
     ${/* Timothy's order (decision 213): the aesthetic and its colours first,
          then the room it sits in. How things sit, what a checklist front shows,
@@ -1471,12 +1489,39 @@ function zoomCommit(cid, z, at){
     const sh = shelfShift(cid), cell = CELL[dev()] + g0gap(cid);
     sc.scrollLeft = grid.offsetLeft + (at.bx - sh.x)*cell - at.sx;
     sc.scrollTop  = grid.offsetTop  + (at.by - sh.y)*cell - at.sy;
+    /* **The settle is drawn, never waited for** (decision 38): the board is
+       already at the zoom it settled on, and is drawn from the size the
+       fingers left it at to this one, about the same point. */
+    if(at.from && Math.abs(at.from/got - 1) > 0.004 && !matchMedia('(prefers-reduced-motion: reduce)').matches){
+      const ox = (at.bx - sh.x)*cell, oy = (at.by - sh.y)*cell;
+      grid.style.transformOrigin = `${ox}px ${oy}px`;
+      grid.style.transition = 'none';
+      grid.style.transform = `scale(${(at.from/got).toFixed(4)})`;
+      void grid.offsetWidth;
+      grid.style.transition = 'transform .24s cubic-bezier(.2,.8,.3,1)';
+      grid.style.transform = '';
+      setTimeout(()=>{ if(grid.isConnected){ grid.style.transition=''; grid.style.transformOrigin=''; } }, 280);
+    }
   }
   SCROLL.left = sc.scrollLeft; SCROLL.top = sc.scrollTop; GLIDE.at = Date.now();
   const g = gridOf(dev(), cid), t = tileUnder(sc, grid, g);
   if(isBoard(cid, t.x, t.y)) setShelf(cid, t.x, t.y);
   litDots(cid);
+  // …and the scroll settles on the cells, once the settle has been drawn
+  if(at) setTimeout(()=>snapCells(sc), 250);
   return got;
+}
+/* **The view held still after a tile is added to the left or above**,
+   which moves every box a tile along in the numbers and so the grid under a
+   kept scroll: the scroll moves with it. A phone only; a Mac's board is
+   centred in its window and finds its own place. */
+function holdView(cid, left, up){
+  if(dev()!=='phone' || !flows()) return;
+  const sc = $('#app .scroll.deskscroll'); if(!sc) return;
+  const g = gridOf(dev(), cid), cell = CELL[dev()] + g.gap;
+  if(left) sc.scrollLeft += g.shelfW*cell;
+  if(up) sc.scrollTop += g.shelfH*cell;
+  SCROLL.left = sc.scrollLeft; SCROLL.top = sc.scrollTop; GLIDE.at = Date.now();
 }
 /* Out as far as the whole board goes: what "See every tile" in a
    container's Board settings does now there is no zoom out of its own. */
@@ -2085,9 +2130,27 @@ function rigidBack(){
   if(moved && RIGID.sc.isConnected){ RIGID.sc.scrollTop = RIGID.top; RIGID.sc.scrollLeft = RIGID.left; }
 }
 function snapSoon(sc){
+  // a scroller a render has since replaced is nothing to snap, and must not
+  // take the place of the one that replaced it (a zoom settling, 2026-09-30)
+  if(!sc || !sc.isConnected) return;
   FINGER.sc = sc;
   clearTimeout(SNAPT);
   SNAPT = setTimeout(()=>snapBoard(sc), 170);
+}
+/* The scroll eased to the nearest whole cell both ways, whoever moved it:
+   what a zoom settling asks for, and the plain half of `snapBoard()`. */
+function snapCells(sc){
+  if(!sc || !sc.isConnected || rigidSwipe()) return;
+  const grid = sc.querySelector('#drawergrid'); if(!grid) return;
+  const g = gridOf(dev(), grid.dataset.gridfor||ROOT), cell = CELL[dev()] + g.gap;
+  if(!(cell > 4)) return;
+  const near = (v, o, max) => Math.max(0, Math.min(max, Math.round((v - o)/cell)*cell + o));
+  const top = near(sc.scrollTop, grid.offsetTop, sc.scrollHeight - sc.clientHeight);
+  const left = near(sc.scrollLeft, grid.offsetLeft, sc.scrollWidth - sc.clientWidth);
+  if(Math.abs(top - sc.scrollTop) < 0.75 && Math.abs(left - sc.scrollLeft) < 0.75) return;
+  SCROLL.top = top; SCROLL.left = left; GLIDE.at = Date.now();
+  try{ sc.scrollTo({top, left, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'}); }
+  catch(_){ sc.scrollTop = top; sc.scrollLeft = left; }
 }
 function snapBoard(sc){
   if(!sc || !sc.isConnected || FINGER.n || $('#app .lifted, .pluckchip')) return;
@@ -2397,7 +2460,7 @@ function sizeGrid(){
   }
 }
 
-export { zoomCommit, zoomFit, landOnShelf, wireSnap, render, renderSoon, sizeGrid, shelfTop, shelfLeft, shelfShift, centreDesk,
+export { holdView, zoomCommit, zoomFit, landOnShelf, wireSnap, render, renderSoon, sizeGrid, shelfTop, shelfLeft, shelfShift, centreDesk,
   reveal, openOverview, closeOverview, refreshOverview, overviewOn, overAsk, overCid, viewHTML, previewHTML,
   goShelf, goShelfTo, sideDrawer, goSideDrawer, boardDimsField, shelfCountField, railToolsField, railToolsOf, RAIL_TOOLS,
   settingsPanel, toggleSettings, railObj, flipBlock };

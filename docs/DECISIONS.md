@@ -11585,3 +11585,55 @@ default.
 - **v2.60**: a Mac's gravity pen grows above and below until no thing
   crosses its edges, since the window's rows may run through a tall thing,
   which was then half falling and half standing.
+
+## 275 · A zoom that holds its proportions, settles, and adds and takes away tiles quietly
+
+*2026-09-30.* Timothy, after living with 274: the crosses for taking a tile
+away were goofy and sat on top of things; the zoom wants a gentle snap the way
+the scroll has one; knobs, words and a portal's rim kept their size while a
+drawer grew, "a major bug"; a new tile should click into place; and the empty
+slot should be plain, with a thicker, fainter plus and no dotted ring, on an
+unlocked board only.
+
+- **The zoom is a transform on each thing, not CSS `zoom`** (`.grid.zoomed`
+  in board.css). The bug was Safari's: it resolves container units (`cqw`,
+  `cqmin`), which knobs, names and rims are sized in, against the zoomed box
+  and then zooms them again, so at twice the size a knob came out nearly four
+  times too big, and at other sizes wrong the other way. Reproduced in
+  Playwright's WebKit, which the container can now run (see below). Each
+  thing on a zoomed board is laid out at its size at no zoom (its grid area
+  over the zoom) and scaled into its box by the `scale` property from its
+  centre, `translate` taking up the difference; a pinboard's tile takes it up
+  from its pin, a curl from its top edge. A transform written on a tile (the
+  drag, gravity) is in the tile's own unzoomed pixels, so it is divided by the
+  zoom (`zkOf()` in gestures.js, `data-zk` on the grid); a checklist's refill
+  measures a line by its own height. The cell a tile's sums are made in is
+  still `tileCell()`/`--rowb`.
+- **The zoom settles** (`snapZoom()` in grid.js): let go and it eases to the
+  nearest zoom, by ratio, at which the screen is a whole number of cells
+  across (eight at no zoom on a phone, twenty-four on a Mac) or to the whole
+  board, and the scroll then eases to the nearest cell edge (`snapCells()`),
+  so the screen's edges sit on grid lines. The board is at the settled zoom
+  at once and the settle is drawn over it, from the size the fingers left it
+  at (`from` in `zoomCommit()`). A detached scroller can no longer take the
+  place of a pending snap (`snapSoon()`).
+- **No crosses.** An **empty** tile, zoomed out and unlocked, shows a faint
+  minus in its middle (`tileCrosses()` now draws `.tileminus`); since it is
+  empty it covers nothing. A tile with things on it is taken away from the
+  **Tiles map** in Board settings (`shelfCountField()`), now on the desk's
+  Board settings as well as a drawer's: every tile is a button, the home tile
+  is marked and stays, a gap round the tiles is a plus, and a full tile asks
+  where its things go (`overAsk()`, standing on its own over the board).
+- **A slot is plain wood**: no rim, rounding or shading, and its plus is a
+  thick, faint stroke with no ring (`slotMark()`), drawn only on an unlocked
+  board. The minus is the same mark in the ink's colour, on paper.
+- **A new tile clicks into place** (`tileArrives()` in motion.js): the
+  slot's wood stays up for a moment and the tile's squares drop into it ring
+  by ring from the middle, each with a small overshoot and a tick of the
+  phone, then the wood lets go. Drawn over a board that already has the tile.
+  Zoomed out, adding one leaves you where you are (`holdView()` keeps the
+  view still when a tile to the left or above moves every number).
+- **WebKit in the container.** `npx playwright install webkit` into a
+  scratch `PLAYWRIGHT_BROWSERS_PATH` and `npx playwright install-deps webkit`
+  (root, apt) give a Safari engine to check a rendering question against,
+  which is how this one was found. The suite still runs on Chromium.

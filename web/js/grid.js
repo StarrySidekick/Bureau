@@ -723,6 +723,20 @@ function zoomRange(cid, device){
   const fit = Math.min(W / ((g.cols + 2*pads*g.shelfW)*base), H / ((g.rows + 2*pads*g.shelfH)*base));
   return {min: Math.max(0.12, Math.min(1, fit)), max: ZOOM_MAX};
 }
+/* **The zoom settles, as the scroll does** (Timothy, 2026-09-30): let go
+   and it eases to the nearest zoom at which the screen is a whole number of
+   cells across — eight at no zoom on a phone, twenty-four on a Mac — or to
+   the whole board, furthest out; and the scroll's own snap then puts the
+   screen's edges on the grid lines. Nearest by ratio, since a zoom is felt
+   as a ratio. */
+function snapZoom(cid, z){
+  const id = cid==null ? hereId() : cid, r = zoomRange(id);
+  const across = dev()==='phone' ? VIEW_COLS : GRID.desk.cols;
+  const levels = [r.min];
+  for(let n=1; n<=200; n++){ const v = across/n; if(v < r.min) break; if(v <= r.max) levels.push(v); }
+  const want = Math.max(r.min, Math.min(r.max, z));
+  return levels.reduce((best, v)=> Math.abs(Math.log(v/want)) < Math.abs(Math.log(best/want)) ? v : best, levels[0]);
+}
 function setZoom(cid, z){
   const id = cid==null ? hereId() : cid, r = zoomRange(id);
   const v = Math.max(r.min, Math.min(r.max, z));
@@ -1125,7 +1139,7 @@ function cellW(grid,g){
   return (r.width - g.gap*(n-1))/n;
 }
 
-export { TILE, VIEW_COLS, WIDE, viewRows, byTile, rigidOn, rigidSwipe, padded, ZOOM, ZOOM_MAX, zoomOf, zoomRange, setZoom, GRID, PHONE_GRIDS, PHONE_MAX_H, rangeOfKind, inRange, randomSizeOf, CELL, COLW, MEASURE, sideways,
+export { TILE, VIEW_COLS, WIDE, viewRows, byTile, rigidOn, rigidSwipe, padded, ZOOM, ZOOM_MAX, zoomOf, zoomRange, setZoom, snapZoom, GRID, PHONE_GRIDS, PHONE_MAX_H, rangeOfKind, inRange, randomSizeOf, CELL, COLW, MEASURE, sideways,
   SHELVES, DESK_SHELF_COLS, INNER, dimsOf, DIM_MIN, DIM_MAX, DIM_MAX_H, PAGES_MAX, SPAN, isBoard, boardsOf, reachable, addBoard, removeBoard,
   ensureBoards, boardHolds, onBoard, startOf, nearestBoard, onBoards, randomSpot, growsDown, growDown, proportional, shelvesToHold, colsOf, gridKeyOf, shelvesOf, innerOf,
   shelfRows, shelfOfBox, oneShelf, shelfAt, setShelf, shelfOrigin, SHELF, fitSpot, flows,

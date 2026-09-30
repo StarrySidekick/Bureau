@@ -7,7 +7,7 @@ import { S, K, KINDS, KEYS, refreshKinds, ATTRS, attrsOf, has, SHAPES,
   layoutOf, setClFit, genKindOf, makesAnything , makesSmart, groupMates, groupTogether, isDesk, faceOf, kindHas,
   sortOf, sortCycleOf, SORT_FACES, inFront, isCut } from './model.js';
 import { gridOf, lay, boxOk, freeSpot, anySpot, roomFor, sizeOfKind, toPhoneSize, keepSize,
-  shelvesOf, shelfAt, setShelf, shelvesToHold, addBoard, removeBoard, onBoard, randomSpot, colsOf, shelfRows, boardsOf, randomSizeOf } from './grid.js';
+  shelvesOf, shelfAt, setShelf, shelvesToHold, addBoard, removeBoard, onBoard, randomSpot, colsOf, shelfRows, boardsOf, randomSizeOf, zoomOf } from './grid.js';
 import { applyLook, applyStyle, setLookVal, lookVal, STYLES, setSlot, objColour, darkMode } from './look.js';
 import { dealTop, furnish, toast, fits, makeCompound, guessKind, quickAdd, setGridSize, setBoardDims, toggleDone, spawnNext, del, delMany, delDrawer, undo, redo, pushUndo,
   pushSet, pushSets, setPin, togglePin, drawerForTag, create, spawnInto, randomThing,
@@ -16,7 +16,7 @@ import { keepStill, spinTo, pending, placeAtPending, tileTap, turnPage, clearPag
 import { paintKey, openPaint, wirePaint } from './paint.js';
 import { bpmOf, minsOf, burnOf, sidesOf, metroGoing, startMetro, mindTheTime, actOf, deckTop } from './active.js';
 import { DECOR, LIFE_ART } from './decor.js';
-import { wireSnap, render, renderSoon, sizeGrid, toggleSettings, settingsPanel, reveal, goShelf, goShelfTo, openOverview, closeOverview, refreshOverview, overviewOn, overAsk, overCid, flipBlock, railToolsOf, landOnShelf, zoomFit } from './views.js';
+import { wireSnap, render, renderSoon, sizeGrid, toggleSettings, settingsPanel, reveal, goShelf, goShelfTo, openOverview, closeOverview, refreshOverview, overviewOn, overAsk, overCid, flipBlock, railToolsOf, landOnShelf, zoomFit, holdView } from './views.js';
 import { closeGuide, guideOpen, saveGuide } from './guide.js';
 import { openObj, openWriter, openRead, openViewer, closeSheet, renderSheet, words,
   mdKey, mdTool, copyObject } from './sheet.js';
@@ -28,7 +28,7 @@ import { openPanel, closePanel, refreshPanel, panelKey, panelBack, draft, modalN
   familyPanel, becomePanel, lifeFirstPanel, donePanel, ringInto, variantPatch } from './panels.js';
 import { onDown, onMove, onUp, onCancel, onTouchStart, onTouchMove, onTouchEnd,
   gestureFlags, dragArmed, holdsFinger, setCamEditor, wheelZoom } from './gestures.js';
-import { enter, leaveTile, pagerOn, applyTilt, askTilt , zoomOut, zoomedIn } from './motion.js';
+import { enter, leaveTile, pagerOn, applyTilt, askTilt , zoomOut, zoomedIn, tileArrives } from './motion.js';
 import { gravityApply, gravityWake } from './gravity.js';
 import { plans, planFrom, stampPlan, planById, delPlan, planSize, renamePlan } from './plans.js';
 import { save, writeNow, exportBackup, importBackup, importFile, imgFor, pasteObjects, install , assetDel } from './persist.js';
@@ -1809,8 +1809,14 @@ function wire(){
       /* In the zoom you stay zoomed out and see it arrive (decision 227);
          it is one press further to go there. */
       if(overviewOn()){ save(); render(); refreshOverview(); toast('A new tile'); return; }
-      setShelf(cid, got.x, got.y);
-      save(); render(); landOnShelf(cid);
+      /* Zoomed out you can see it arrive where it is, so you stay where you
+         are (decision 274), the view held still if a tile to the left or
+         above moved every number under it; otherwise you walk onto it. */
+      const out = zoomOf(cid) < 0.95;
+      if(!out) setShelf(cid, got.x, got.y);
+      save(); render();
+      if(out) holdView(cid, +x<0, +y<0); else landOnShelf(cid);
+      tileArrives(cid, got.x, got.y);
       toast('A new tile');
       return; }
 

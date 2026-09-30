@@ -303,6 +303,15 @@ each tile but the home one, and further out inside a container goes up a
 level; a Mac zoomed out is drawn with the pad of slots round it too (`padded()`); and a
 board may give **each tile its own checkerboard** (`tilepaper:'each'`).
 
+**v2.61** (decision 275): the zoom is a **transform on each thing**, not CSS
+`zoom`, because Safari zooms container units twice (knobs, names and rims
+came out far too big); it **settles** on a zoom where the screen is whole
+cells across (`snapZoom()`), then the scroll on the cells; the crosses are
+gone for a faint **minus on an empty tile** and a pressable **Tiles map** in
+Board settings; a slot is plain wood with a faint thick plus, unlocked only;
+and a new tile's squares **click into place** (`tileArrives()`). WebKit can
+be installed in the container to check a Safari question (see 275).
+
 **Start here each session:** `docs/SYSTEM.md` is the reference for what Bureau is
 made of — objects, attributes, types, drawers, the grid, the surfaces, storage.
 `docs/ROADMAP.md` holds the current plan in dependency order, and

@@ -1,7 +1,7 @@
 import { $, clamp, ROOT } from './util.js';
 import { S, byId, isContainer, has, childrenOf, shapeOf, openingOf, deskOf,
   tiltMode, tiltsDesk, tiltsWindows, gravityTilts , dev } from './model.js';
-import { lay, shelvesOf, shelfAt , CELL, proportional, flows, reachable, isBoard } from './grid.js';
+import { lay, shelvesOf, shelfAt , CELL, proportional, flows, reachable, isBoard, gridOf, shelfOrigin } from './grid.js';
 import { objColour, styleNow } from './look.js';
 import { render, renderSoon, previewHTML, goShelf, sideDrawer, goSideDrawer } from './views.js';
 
@@ -1183,7 +1183,8 @@ function clRefill(cid, idx){
   if(!tile) return;
   const move=[...tile.querySelectorAll('.cline')].slice(Math.max(0, idx));
   if(!move.length) return;
-  const h=move[0].getBoundingClientRect().height;
+  // its own height, not the one on the screen: a zoomed board scales it (274)
+  const h=move[0].offsetHeight || move[0].getBoundingClientRect().height;
   if(!h) return;
   move.forEach(el=>{ el.style.transition='none'; el.style.transform=`translateY(${h}px)`; });
   void tile.offsetWidth;   // commit the start positions before they move
@@ -1815,7 +1816,46 @@ function pagerCancel(){
   letGo(g);
 }
 
-export { still, tileOf, tileRect, openingFor, openTile, leaveTile, enter, pop, clRefill, toss,
+/* ---- a new tile clicks into place — 2026-09-30 --------------------------
+   Timothy: adding a tile should have a fun little animation, like things
+   clicking into place. The tile is made and the board rendered before any of
+   this (decision 38); what plays over it is the slot's wood, still there for a
+   moment, and the tile's squares dropping into it ring by ring from the
+   middle, each landing with a small overshoot, then the wood letting go. A
+   tick of the phone for each ring. A render meanwhile simply takes it away. */
+const GROW_STEP = 60, GROW_MS = 280;
+function tileArrives(cid, x, y){
+  if(still()) return;
+  const grid = document.querySelector('#drawergrid');
+  if(!grid || (grid.dataset.gridfor||ROOT)!==cid) return;
+  const g = gridOf(undefined, cid), sh = shelfOrigin(cid);
+  const c0 = x*g.shelfW - sh.x, r0 = y*g.shelfH - sh.y;           // 0-based drawn cell
+  if(c0 < 0 || r0 < 0) return;
+  // the tile's own colours if it has them (decision 274), else the board's
+  const own = [...grid.querySelectorAll('.tilepaper')].find(p=>
+    +getComputedStyle(p).gridColumnStart===c0+1 && +getComputedStyle(p).gridRowStart===r0+1);
+  const cols = own ? [own.style.getPropertyValue('--board-1'), own.style.getPropertyValue('--board-2')] : ['var(--board-1)', 'var(--board-2)'];
+  const mx = (g.shelfW-1)/2, my = (g.shelfH-1)/2;
+  let cells = '', last = 0;
+  for(let j=0; j<g.shelfH; j++) for(let i=0; i<g.shelfW; i++){
+    const ring = Math.round(Math.max(Math.abs(i-mx), Math.abs(j-my)));
+    const d = ring*GROW_STEP + Math.round(Math.random()*24);
+    last = Math.max(last, d);
+    // the checkerboard's own parity, counted from the grid's corner
+    const c = cols[((c0+i)+(r0+j))%2 ? 1 : 0];
+    cells += `<i style="background:${c};animation-delay:${d}ms"></i>`;
+  }
+  const el = document.createElement('div');
+  el.className = 'tilegrow';
+  el.style.cssText = `grid-column:${c0+1}/span ${g.shelfW};grid-row:${r0+1}/span ${g.shelfH};`
+    + `--gw:${g.shelfW};--grow-out:${last + GROW_MS}ms`;
+  el.innerHTML = cells;
+  grid.appendChild(el);
+  if(navigator.vibrate){ const rings = Math.ceil(Math.max(mx, my)) + 1;
+    navigator.vibrate(Array.from({length:rings*2-1}, (_,k)=> k%2 ? GROW_STEP-8 : 8)); }
+  setTimeout(()=>el.remove(), last + GROW_MS + 360);
+}
+export { tileArrives, still, tileOf, tileRect, openingFor, openTile, leaveTile, enter, pop, clRefill, toss,
   fileTo, hopIntoCollector,
   spray, sprayAt, sprayCount, SPRAYS, sprayNow, sprayMark,
   pagerBegin, pagerMove, pagerEnd, pagerCancel, pagerOn, stepDrawer,

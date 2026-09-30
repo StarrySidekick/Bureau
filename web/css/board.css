@@ -3652,28 +3652,53 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
    given and scales what is inside: the words, the borders, the shadows. So
    standing closer makes a thing bigger rather than roomier. `--rowb` is the
    cell at no zoom, which is what a tile's own sums are made in. */
-.grid.zoomed > *:not(.tilepaper):not(.lights):not(.strings):not(.tilecross){zoom:var(--zk,1);--rowh:var(--rowb)}
-.grid > .tilecross{z-index:5;align-self:start;justify-self:end;margin:3px;width:26px;height:26px;padding:0;
-  border-radius:50%;display:grid;place-items:center;cursor:pointer;
-  border:1px solid color-mix(in srgb,#fff 45%,transparent);background:rgba(40,24,12,.72);color:#fff;
-  box-shadow:0 2px 6px rgba(0,0,0,.4)}
+/* …and it is a **transform**, not `zoom` (Timothy, 2026-09-30: the knobs,
+   the words and a portal's rim kept their size while the drawer grew). Safari
+   resolves container units (`cqw`, which knobs, names and rims are sized in)
+   against the zoomed box and then zooms them again, so under `zoom` a knob
+   came out nearly four times too big at twice the size. Each thing is laid
+   out at its size at no zoom, the grid area divided by the zoom, and scaled
+   into its box from its centre, `translate` taking up the difference: the
+   same picture in every engine, container units and all. A pinboard's tiles
+   hang from their pin, so theirs is taken up from there. */
+.grid.zoomed > *:not(.tilepaper):not(.lights):not(.strings):not(.noboard):not(.tileminus):not(.tilegrow){
+  --rowh:var(--rowb);
+  width:calc(100% / var(--zk,1));height:calc(100% / var(--zk,1));
+  min-width:0;min-height:0;max-width:none;max-height:none;
+  justify-self:start;align-self:start;
+  scale:var(--zk,1);
+  translate:calc((var(--zk,1) - 1) * 50%) calc((var(--zk,1) - 1) * 50%);
+}
+.grid.zoomed.pinboard > .drawer{
+  width:calc(100% / var(--zk,1) - 6px);height:calc(100% / var(--zk,1) - 6px);
+  translate:calc((var(--zk,1) - 1) * var(--pinx,0%)) 0;
+}
+/* A falling pinboard turns about the centre (below), and a curl hangs from
+   its top edge (motion.css), so each takes up the difference from there. */
+.grid.zoomed.falling.pinboard > .drawer{translate:calc((var(--zk,1) - 1) * 50%) calc((var(--zk,1) - 1) * 50%)}
+.grid.zoomed > .drawer.curling{translate:calc((var(--zk,1) - 1) * 50%) 0}
 .grid > .tilepaper{z-index:1;pointer-events:none;display:block;
   opacity:var(--board-alpha,1);background-color:var(--board-1);
   background-image:conic-gradient(var(--board-2) 0 25%, transparent 0 50%, var(--board-2) 0 75%, transparent 0);
   background-size:var(--checkerx,var(--checker,160px)) var(--checkery,var(--checker,160px))}
 html[data-surface="plain"] .grid > .tilepaper{background-image:none}
 html[data-surface="wood"] .grid > .tilepaper{display:none}
+/* …and it is **plain wood** (Timothy, 2026-09-30): no rim, no rounding and
+   no shading drawn round a slot, which read as the vague outline of a tile
+   that is not there. The carcass runs on unbroken, and the plus is all it
+   carries: thick, faint, and without a ring, on an unlocked board only. */
 .noboard{display:flex;align-items:center;justify-content:center;pointer-events:none;
-  background:var(--wood);border-radius:var(--radius);
-  box-shadow:inset 0 0 0 1px var(--wood-2),inset 0 8px 16px -10px rgba(0,0,0,.6)}
-.grid.vacant .noboard{background:transparent;box-shadow:none}
-.addboard{width:68px;height:68px;border-radius:50%;padding:0;cursor:pointer;pointer-events:auto;
-  display:grid;place-items:center;
-  border:2px dashed color-mix(in srgb,#fff 50%,transparent);
-  background:color-mix(in srgb,#000 14%,transparent);
-  color:color-mix(in srgb,#fff 82%,transparent)}
-.addboard:hover,.addboard:focus-visible{border-style:solid;color:#fff;
-  background:color-mix(in srgb,#000 24%,transparent)}
+  background:var(--wood)}
+.grid.vacant .noboard{background:transparent}
+.addboard,.dropboard{width:64px;height:64px;padding:0;cursor:pointer;pointer-events:auto;
+  display:grid;place-items:center;border:0;background:none;border-radius:50%;
+  color:color-mix(in srgb,#fff 30%,transparent);transition:color .15s}
+.addboard:hover,.addboard:focus-visible,.dropboard:hover,.dropboard:focus-visible{
+  color:color-mix(in srgb,#fff 60%,transparent)}
+/* The minus on an empty tile stands on paper, not wood, so it is the ink's. */
+.grid > .tileminus{z-index:2;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.tileminus .dropboard{color:color-mix(in srgb,var(--ink,#333) 26%,transparent)}
+.tileminus .dropboard:hover,.tileminus .dropboard:focus-visible{color:color-mix(in srgb,var(--ink,#333) 55%,transparent)}
 /* A Mac draws the whole rectangle at the desk's own cell, so a desk more than
    three boards across is wider than the window and scrolls sideways rather
    than squashing every cell to fit. */
@@ -3683,6 +3708,18 @@ html[data-surface="wood"] .grid > .tilepaper{display:none}
 /* The shape the boards make, in a board's settings (decision 219): the dots
    from the bar, drawn big enough to read, with the slots that are not boards
    left hollow. */
+/* The map in a board's settings (2026-09-30): press a tile to take it away,
+   a plus to add one; the home tile is marked and is not a button. */
+.tilemap{display:inline-grid;grid-template-columns:repeat(var(--sw,1), 26px);gap:4px;
+  padding:6px;border-radius:var(--radius);background:rgba(0,0,0,.06)}
+.tilemap .tm{width:26px;height:26px;border-radius:3px;display:grid;place-items:center;padding:0;
+  border:0;background:none;color:var(--ink-3)}
+.tilemap .tm.on{background:var(--brass);cursor:pointer;opacity:.75}
+.tilemap .tm.on.full{opacity:1;box-shadow:inset 0 0 0 2px rgba(0,0,0,.18)}
+.tilemap .tm.home{opacity:1;background:var(--brass);box-shadow:inset 0 0 0 3px color-mix(in srgb,#fff 45%,transparent);cursor:default}
+.tilemap button.tm.on:hover{filter:brightness(.85)}
+.tilemap .tm.add{box-shadow:inset 0 0 0 1px var(--rule);cursor:pointer}
+.tilemap .tm.add:hover{color:var(--ink)}
 .boardshape{display:inline-grid;grid-template-columns:repeat(var(--sw,1), 12px);gap:3px;
   padding:4px;border-radius:var(--radius);background:rgba(0,0,0,.06)}
 .boardshape i{width:12px;height:12px;border-radius:2px;display:block;

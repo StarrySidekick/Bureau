@@ -512,9 +512,11 @@ function step(dt){
    body that has not turned, so a sand board writes half the string a tumbling
    one does and a tile that has come to rest writes nothing at all. */
 function write(){
+  // in the tile's own unzoomed pixels on a zoomed board (decision 274)
+  const zk = (W.grid && +W.grid.dataset.zk) || 1;
   for(const b of W.bodies){
     if(!b.el) continue;
-    const dx = b.x - b.hx, dy = b.y - b.hy;
+    const dx = (b.x - b.hx)/zk, dy = (b.y - b.hy)/zk;
     const t = `translate(${dx.toFixed(2)}px,${dy.toFixed(2)}px)`
             + (b.a ? ` rotate(${b.a.toFixed(4)}rad)` : '');
     if(t !== b.t){ b.t = t; b.el.style.transform = t; }

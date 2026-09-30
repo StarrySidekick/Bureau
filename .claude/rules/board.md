@@ -27,7 +27,10 @@ can be". The cell is multiplied by the board's zoom (`zoomOf()`), a Mac zoomed
 out is drawn with the pad of slots round it (`padded()`), and **there is no zoom out
 to every board**: the paragraph below about `openOverview()` is history, the
 pinch zooms the board itself (`boardZoomBegin()` in gestures.js) and the
-crosses that take a tile away are on the board when it is zoomed out.
+crosses that took a tile away are gone (decision 275): an empty tile shows a
+faint minus zoomed out, a full one is taken away from Board settings' Tiles
+map. The zoom scales each tile with a transform, not CSS `zoom`, so a
+transform written on a tile is divided by the zoom (`data-zk` on the grid).
 
 The grid, the shelves and the cells; measuring, placing and windowing; the carcass, the rail and the knob; a list as a board.
 
