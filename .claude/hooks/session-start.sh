@@ -20,4 +20,11 @@ if [ -z "${BUREAU_CHROME:-}" ] && [ -n "${CLAUDE_ENV_FILE:-}" ]; then
   chrome=$(ls -d /opt/pw-browsers/chromium-*/chrome-linux/chrome 2>/dev/null | head -1 || true)
   [ -n "$chrome" ] && echo "export BUREAU_CHROME=\"$chrome\"" >> "$CLAUDE_ENV_FILE"
 fi
-echo "session-start: playwright installed; tests run with node test/smoke.mjs once scripts/serve.sh is up"
+# Safari's engine (2026-09-30): Timothy builds Bureau on his iPhone, in the
+# Safari PWA, so WebKit is where a change is looked at first. It is a download
+# and, in a new container, an apt install of its libraries, so it is started
+# in the background rather than waited for; `node test/safari.mjs` runs
+# scripts/webkit.sh itself and simply finishes the job if it is still going.
+mkdir -p "$HOME/.cache/bureau-webkit"
+nohup setsid scripts/webkit.sh > "$HOME/.cache/bureau-webkit/session.log" 2>&1 < /dev/null &
+echo "session-start: playwright installed; tests run with node test/smoke.mjs once scripts/serve.sh is up; WebKit installing in the background for node test/safari.mjs"

@@ -284,6 +284,13 @@ Built as decision 275 (v2.61).
 
 ## Worth knowing
 
+**He builds it on his phone.** 2026-09-30: *"I almost entirely am designing
+this app from my phone with a Safari PWA. So that's going to be your primary
+testing environment, less so desktop and less so Chrome, for now at least. It
+should still be functional with that, but right now the proof of concept is
+all being built through a Safari PWA."* Check a change in WebKit at iPhone
+size first (`node test/safari.mjs`); the Mac and Chrome are second.
+
 The smoke suite takes forty to ninety minutes in the nightly container, and
 **Timothy has explicitly accepted that cost** because the run happens at night.
 Do not water the suite down to save time.

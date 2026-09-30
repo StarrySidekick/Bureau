@@ -18,6 +18,19 @@ toolbar and no sidebar, only the grid.
 Comparables to keep in mind: Things 3 (for task feel), Bear (for writing feel),
 Obsidian (for what to avoid — infinite nesting and file soup).
 
+**Where it is used: an iPhone, in the installed Safari PWA** (Timothy,
+2026-09-30: "I almost entirely am designing this app from my phone with a
+Safari PWA… that's going to be your primary testing environment, less so
+desktop and less so Chrome, for now at least"). So **WebKit is the engine a
+change is checked in first**, at an iPhone's size, with touch; the Mac and
+Chromium still have to work, but they are second. This matters in practice:
+decision 275's bug (Safari zooming container units twice) passed every
+Chromium test and was obvious on the phone. `node test/safari.mjs` is that
+check; see *Running it*. When a change is about how something looks or
+feels, look at its WebKit screenshots before saying it is done, and write
+CSS and gestures for iOS Safari first (touch events, `-webkit-` prefixes
+where Safari still wants them, safe areas, no hover-only affordances).
+
 ## Current state
 
 A working, installable PWA in `web/`. Hand-written HTML/CSS/JS split into ES
@@ -336,7 +349,25 @@ node test/version.mjs         # CACHE, APP_VERSION and SHELL agree; the commit h
 node test/scale-probe.mjs     # what a render costs as the desk fills up
 node scripts/catalogue.mjs out.html   # the specimen book, to a file (Settings opens it too)
 node test/lived-in.mjs        # the lived-in desk, every board screenshotted on both devices
+scripts/webkit.sh             # Safari's engine for the tests, once per container
+node test/safari.mjs          # the app in WebKit at an iPhone's size: the first check
 ```
+
+**`test/safari.mjs` is the first check, the smoke suite the gate.** Timothy
+works on an iPhone in the Safari PWA, so a change is looked at in WebKit
+first: `test/safari.mjs` loads the app there at an iPhone 15's size and
+density with touch, asserts the things that have gone wrong in Safari and
+not in Chrome (a zoomed thing keeping its proportions, a zoomed drag landing
+under the finger, a rigid swipe, a new tile, a drawer opening, no page
+errors) and writes screenshots to `test/shots/safari/` — look at them. It
+takes about a minute. Add to it whenever a bug turns out to be Safari's. The
+container ships only Chromium, so `scripts/webkit.sh` downloads Playwright's
+WebKit into `~/.cache/bureau-webkit` and apt-installs its libraries; the
+session-start hook starts it in the background, and `safari.mjs` runs it
+itself if it has not finished. It is WebKit on Linux, not iOS: it cannot be
+*installed*, so `display-mode: standalone` and the home-screen app's safe
+areas are only approximated. The smoke suite still runs on Chromium (it
+drives touches through CDP, which WebKit has not got).
 
 Open it over http, never as a `file://` URL — the service worker won't register
 and the manifest won't load, so you'd be testing a different app than the one
@@ -350,7 +381,8 @@ across a reload, and an offline reload. **Run it after any non-trivial change an
 before saying you're done.** While you work, `test/smoke-only.mjs <word>` runs the
 blocks whose title has the word in it, plus whatever they read, in seconds rather
 than five minutes; it cuts the rest out of `smoke.mjs` as text and runs what is
-left, so the file is never changed and the full run is still the gate. It writes
+left, so the file is never changed and the full run is still the gate — and
+`test/safari.mjs` comes before both, since the phone is where it is used. It writes
 screenshots to `test/shots/` — look at
 them, this is a visual app and a passing assertion doesn't mean it looks right.
 
