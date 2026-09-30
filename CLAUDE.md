@@ -291,6 +291,18 @@ ways, the snap and the centring are both ways (`tileLeft()`, `tileUnder()`),
 the pager is only two fingers sideways inside a container, and a thing may
 cross any seam.
 
+**v2.56** (decision 274): **tiles are five by five** (`TILE`), the screen
+still eight cells across (`VIEW_COLS`, `WIDE`), a fresh desk two tiles by
+three (migration 51 re-cuts old boards, moving nothing); a **rigid swipe**
+option (`S.look.flow==='rigid'`, one tile per swipe, read in views.js) and
+the **swipe switch** tool (`tswipe`, `swipe` in the drawer front); **the
+board's own zoom** (`zoomOf()`/`setZoom()` in grid.js, a pinch or trackpad
+pinch, committed by `zoomCommit()`), which replaces the zoom out to every
+tile: far out is the whole board with a plus on each slot and a cross on
+each tile but the home one, and further out inside a container goes up a
+level; a Mac is drawn with the pad of slots round it too (`padded()`); and a
+board may give **each tile its own checkerboard** (`tilepaper:'each'`).
+
 **Start here each session:** `docs/SYSTEM.md` is the reference for what Bureau is
 made of — objects, attributes, types, drawers, the grid, the surfaces, storage.
 `docs/ROADMAP.md` holds the current plan in dependency order, and

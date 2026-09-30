@@ -10,14 +10,14 @@ import { S, KINDS, SHAPES, shapeChoices, SORTS, childrenOf, container, relate, d
   prioOf, repeatOf, repeatSaid, nextRepeat, boardLocked, BINDINGS, bindingOf, PANELS, panelOf,
   isHeld, heldObjects, tiltMode, READS, dz, ASPECT_KINDS } from './model.js';
 import { shelfRows, shelvesOf, shelfAt, setShelf, freeSpot, anySpot, roomFor, boxOk, innerOf, colsOf,
-  isBoard, boardsOf, addBoard, removeBoard, dimsOf, rangeOfKind, randomSizeOf, inRange, TILE, viewRows, flows } from './grid.js';
+  isBoard, boardsOf, addBoard, removeBoard, dimsOf, rangeOfKind, randomSizeOf, inRange, TILE, viewRows, flows, zoomOf, zoomRange, setZoom, startOf } from './grid.js';
 import { create, setBoardDims, setPin, togglePin, del, delMany, delDrawer, undo, redo, toggleDone, spawnNext, setGridSize,
   CONTROLS, ctlSaid, ctlIsOn, ctlPress,
   holdIt, unholdIt , toast, someKind, furnish, loadTexts } from './mutations.js';
 import { applyLook, applyStyle, STYLES, panelSlots, borderSlots, knobSlots, plateSlots, textureSlots,
   bindingSlots, stockSlots, famSlots, famAll, dress, styleKey, stockNow, randomLook,
   palNow, CHECKS } from './look.js';
-import { render, sizeGrid, viewHTML, reveal, settingsPanel, goShelf, goShelfTo, shelfShift, openOverview, closeOverview, overviewOn } from './views.js';
+import { render, sizeGrid, viewHTML, reveal, settingsPanel, goShelf, goShelfTo, shelfShift, openOverview, closeOverview, overviewOn, zoomCommit } from './views.js';
 import { openSetup, setupOpen, SETUPS, setupAnswer, closeSetup } from './setup.js';
 import { tileTap } from './tiles.js';
 import { setMinuteHandler, mindTheTime, checkAlarms, guttered,
@@ -266,6 +266,8 @@ window.BUREAU = {
   get shelfRows(){ return shelfRows(); }, shelvesOf, shelfAt, setShelf,
   // a board is tiles, every one eight by eight (decision 272)
   TILE, viewRows, flows, colsOf,
+  // the board's own zoom, and the tile a board opens on (decision 274)
+  zoomOf, zoomRange, setZoom, zoomCommit, startOf,
   shelfShift, goShelf, goShelfTo,
   // the boards a board is made of, and making or taking one (decision 219)
   isBoard, boardsOf, addBoard, removeBoard,

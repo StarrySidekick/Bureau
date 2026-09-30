@@ -12,14 +12,14 @@ import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, chi
   calViewOf, calShowOf, weekStartOf, calCols, borderOf, textureOf, marginOf, isFragmentKind, gravityOn,
   groupOf, sealOf, isSealed, habitPlan, habitPeriods, habitRun, relate, measureOf, amountSaid, inFront, countOf, countsOf, COUNTS, makesSmart, isHeld, habitOn } from './model.js';
 import { GRID, CELL, gridOf, drawCols, drawRows, lay, overlaps, boxOk, freeSpot, anySpot, roomFor, gridRows, sizeOfKind, sideways, innerOf,
-  ensureBox, shelfRows, viewRows, shelfOrigin, shelfAt, shelfOfBox, oneShelf, colsOf, flows, boardsOf, nearestBoard, isBoard, reachable, dimsOf, MEASURE } from './grid.js';
+  ensureBox, shelfRows, viewRows, shelfOrigin, shelfAt, shelfOfBox, oneShelf, colsOf, flows, boardsOf, nearestBoard, isBoard, reachable, dimsOf, MEASURE, VIEW_COLS, padded, zoomOf, startOf } from './grid.js';
 import { dealTop, create, toast, fits, toggleDone, someKind, furnish, ctlSpec, ctlSaid, ctlIsOn,
   ctlForm, ctlNum, ctlIndex, ctlPress, pushSet, reachedGoal, goalOf } from './mutations.js';
 import { DECOR, decorOf, decorEmits, flamePoint, decorSVG, LIFE_ART, lifeSVG } from './decor.js';
 import { isActive, activeArt, activeSay, activeName, activeFlame, actOf,
   metroGoing, activeTap, burning, faceUp, backHTML, cardFace, deckTapOf } from './active.js';
 import { paintTarget, artLayer } from './paint.js';
-import { hexOf, objColour, stringColour, dress, dressAs, OBJ0, OBJN, CHECKS, bestInk } from './look.js';
+import { hexOf, objColour, stringColour, dress, dressAs, OBJ0, OBJN, CHECKS, bestInk, randomBoard } from './look.js';
 import { render, reveal } from './views.js';
 import { openObj, openWriter, openRead, openViewer, openCard } from './sheet.js';
 import { objectPanel, schedulePanel } from './panels.js';
@@ -928,8 +928,13 @@ function trackerFace(o, box){
    short side, so a long tag is a long body and not a long point. Written on it
    is the tag it collects, read live, unless it has been given a name of its
    own. One cell square it is the silhouette and the hole — the mark. */
+/* The cell a tile is drawn inside, which since decision 274 is not the
+   cell on the screen: a zoomed board lays its boxes out at the zoomed cell
+   and gives each tile `zoom` (board.css), so inside one the cell is what it
+   is at no zoom and everything written in pixels is scaled with it. */
+const tileCell = dv => (CELL[dv || dev()] || 44) / zoomOf();
 function tagFace(o, box, sel, place, handles){
-  const cell = CELL[dev()] || 44;
+  const cell = tileCell();
   const upright = box.h > box.w;
   const mini = box.w<=1 && box.h<=1;
   const long = upright ? box.h : box.w, side = upright ? box.w : box.h;
@@ -1260,7 +1265,7 @@ const faceAt = (o, box) => {
 const PIGEON = {depth:0, frame:6};
 function pigeonBoard(o, box){
   if(PIGEON.depth) return '';
-  const dv = dev(), cell = CELL[dv] || 40;
+  const dv = dev(), cell = tileCell(dv);
   const g = gridOf(dv, o.id);
   const kids = childrenOf(o).slice(0, COLLAGE_MAX);
   if(!kids.length) return '';
@@ -3009,13 +3014,13 @@ function flowSorted(kids, cid){
     return (b && b.w && b.x) ? shelfOfBox(b, dv, cid) : here; };
   kids.forEach(o=>{
     let [w,h]=(o[dv]&&o[dv].w) ? [o[dv].w,o[dv].h] : sizeOfKind(o.kind, dv, cid);
-    w=Math.min(w, g.shelfW); h=Math.min(h, g.shelfH);
+    w=Math.min(w, g.maxW, g.cols); h=Math.min(h, g.maxH, g.rows);
     let put=null;
     const hs = homeOf(o);
     const order = [[hs.x, hs.y], ...shelves.filter(([sx,sy])=> sx!==hs.x || sy!==hs.y)];
     for(const [sx,sy] of order){
       const x0=sx*g.shelfW, y0=sy*g.shelfH;
-      for(let y=1;y<=g.shelfH-h+1 && !put;y++) for(let x=1;x<=g.shelfW-w+1;x++){
+      for(let y=1;y<=Math.min(g.shelfH, g.rows-y0-h+1) && !put;y++) for(let x=1;x<=Math.min(g.shelfW, g.cols-x0-w+1);x++){
         const b={x:x0+x, y:y0+y, w, h}; if(free(b)){ put=b; break; }
       }
       if(put) break;
@@ -3267,7 +3272,8 @@ function gridOfContainer(cid){
   const camOn = S.zoomOn && byId(S.zoomOn);
   const camHere = !!(camOn && camOn.parent===c.id);
   const windowed = dv==='phone';
-  let shift = windowed ? shelfOrigin(c.id, dv) : {x:0, y:0};
+  // a Mac is drawn with the pad round it too (decision 274), so it has a shift
+  let shift = windowed || padded(dv) ? shelfOrigin(c.id, dv) : {x:0, y:0};
   if(windowed && camHere){
     const cb = lay(camOn, dv, c.id);
     const fit = (want, span, all) =>
@@ -3338,9 +3344,12 @@ function gridOfContainer(cid){
      numbers off every tile's style attribute when nothing is standing proud —
      and that is its own setting, not the tilt's: the perspective reads with the
      phone flat on a table. See decision 117. */
-  PERSP.cols = standsProud() ? g.shelfW : 0;
+  // the screen, which since decision 274 is wider than a tile
+  const vcols = windowed && flows(dv) ? VIEW_COLS : g.shelfW;
+  PERSP.cols = standsProud() ? vcols : 0;
   PERSP.rows = standsProud() ? (windowed ? viewRows(dv) : g.shelfH) : 0;
-  PERSP.left = standsProud() && windowed && flows(dv) ? shelfAt(c.id).x*g.shelfW + (g.padX||0) : 0;
+  PERSP.left = standsProud() && windowed && flows(dv)
+    ? Math.max(0, shelfAt(c.id).x*g.shelfW + (g.padX||0) - Math.max(0, Math.floor((vcols - g.shelfW)/2))) : 0;
   PERSP.top = standsProud() && windowed
     ? Math.max(0, shelfAt(c.id).y*g.shelfH + (g.pad||0) - Math.max(0, Math.floor((viewRows(dv) - g.shelfH)/2))) : 0;
   /* Before the tiles, not after: gridTile() takes each box out of FLOW as it
@@ -3389,11 +3398,61 @@ function gridOfContainer(cid){
      on it, and when that is all there is the grid gives up its paper too. */
   const holes = vacancies(c.id, dv, g, shift, cols, rows, camHere);
   const vacant = holes.all;
-  return `<div class="grid g-${dv}${narrow?' narrowboard':''}${vacant?' vacant':''}${
+  const papers = vacant ? '' : tilePapers(c.id, g, shift, cols, rows);
+  const crosses = vacant ? '' : tileCrosses(c.id, g, shift, cols, rows);
+  const zk = zoomOf(c.id);
+  return `<div class="grid g-${dv}${zk!==1?' zoomed':''}${narrow?' narrowboard':''}${vacant?' vacant':''}${
       dv!=='phone' && cols > GRID.desk.cols ? ' wideboard' : ''}${arr===true?' arranging':''}${boardLocked()?' locked':''}${sorted?' sorted':''}${S.look.pinned?' pinboard':''}${gravityOn()?' falling':''}"
        id="drawergrid" data-gridfor="${c.id}"
-       style="${boardVars}--cols:${cols};--rowh:${g.rowh}px;--checkerx:${2*colw}px;--checkery:${2*g.rowh}px;grid-auto-rows:${g.rowh}px;grid-template-rows:repeat(${Math.max(rows,1)},${g.rowh}px)">${vacant?'':tiles+lights+strings}${holes.html}
+       style="${boardVars}${zk!==1 ? `--zk:${zk.toFixed(4)};--rowb:${(g.rowh/zk).toFixed(3)}px;` : ''}--cols:${cols};--rowh:${g.rowh}px;--checkerx:${2*colw}px;--checkery:${2*g.rowh}px;grid-auto-rows:${g.rowh}px;grid-template-rows:repeat(${Math.max(rows,1)},${g.rowh}px)">${papers}${vacant?'':tiles+lights+strings}${holes.html}${crosses}
   </div>`;
+}
+
+/* **Every tile its own checkerboard** (decision 274), when a board says so
+   (`tilepaper:'each'` on its config; the same squares on every tile is the
+   default). Each tile's two colours are rolled from where it is and the
+   board's `tileseed`, so they hold still across renders without being
+   stored, and a new seed is a new throw. Drawn under the things on it, the
+   way the one checkerboard is. */
+function tilePapers(cid, g, shift, cols, rows){
+  const cfg = cid===ROOT ? S.deskCfg : byId(cid);
+  if(!cfg || cfg.tilepaper!=='each' || (cid!==ROOT && innerOf(cid))) return '';
+  const x0 = Math.floor(shift.x / g.shelfW), y0 = Math.floor(shift.y / g.shelfH);
+  const nx = Math.max(1, Math.ceil(cols / g.shelfW)), ny = Math.max(1, Math.ceil(rows / g.shelfH));
+  let html = '';
+  for(let j=0; j<ny; j++) for(let i=0; i<nx; i++){
+    const x = x0+i, y = y0+j;
+    if(!isBoard(cid, x, y)) continue;
+    const [a, b] = randomBoard(seeded(`${cid}:${x}:${y}:${cfg.tileseed||0}`)).split('|');
+    html += `<i class="tilepaper" aria-hidden="true" style="--board-1:${a};--board-2:${b};grid-column:${
+      i*g.shelfW+1}/span ${Math.min(g.shelfW, cols-i*g.shelfW)};grid-row:${j*g.shelfH+1}/span ${Math.min(g.shelfH, rows-j*g.shelfH)}"></i>`;
+  }
+  return html;
+}
+/* **A cross on every tile but the desk's own, zoomed out** (decision 274):
+   what the zoom out to every tile used to offer, on the board itself. A tile
+   with things on it asks where they go first (decision 234). */
+function tileCrosses(cid, g, shift, cols, rows){
+  if(zoomOf(cid) > 0.95 || (cid!==ROOT && innerOf(cid)) || boardsOf(cid).length < 2) return '';
+  const cfg = cid===ROOT ? S.deskCfg : byId(cid);
+  const home = cfg && cfg.start && isBoard(cid, cfg.start.x, cfg.start.y) ? cfg.start : startOf(cid);
+  const x0 = Math.floor(shift.x / g.shelfW), y0 = Math.floor(shift.y / g.shelfH);
+  const nx = Math.max(1, Math.ceil(cols / g.shelfW)), ny = Math.max(1, Math.ceil(rows / g.shelfH));
+  let html = '';
+  for(let j=0; j<ny; j++) for(let i=0; i<nx; i++){
+    const x = x0+i, y = y0+j;
+    if(!isBoard(cid, x, y) || (x===home.x && y===home.y)) continue;
+    html += `<button class="tilecross" data-boardremove="${cid}:${x}:${y}" title="Take this tile away" aria-label="Take this tile away"
+      style="grid-column:${(i+1)*g.shelfW}/span 1;grid-row:${j*g.shelfH+1}/span 1">${ic('x',14)}</button>`;
+  }
+  return html;
+}
+// a small repeatable generator: the same words give the same throws
+function seeded(str){
+  let h = 2166136261;
+  for(let i=0; i<str.length; i++){ h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return ()=>{ h = Math.imul(h ^ (h>>>15), 2246822507); h = Math.imul(h ^ (h>>>13), 3266489909);
+    h ^= h>>>16; return (h>>>0) / 4294967296; };
 }
 
 /* Which drawn slots have no board, as overlays over the grid. A slot is

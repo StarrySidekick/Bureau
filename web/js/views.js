@@ -9,8 +9,8 @@ import { S, K, T, byId, has, isContainer, containers, container, childrenOf, cha
   URGES, workday, searchHits, sortOf, SORT_FACES, MANUAL } from './model.js';
 import { GRID, PHONE_GRIDS, CELL, COLW, MEASURE, sideways, colsOf, gridKeyOf, SHELVES, PAGES_MAX, shelvesOf,
   shelfRows, viewRows, shelfOfBox, shelfAt, setShelf, shelfOrigin, SHELF, drawCols, drawRows,
-  lay, gridOf, cellW, ensureBox, innerOf, PLACED, proportional, flows, byTile,
-  isBoard, boardsOf, reachable, boardHolds, removeBoard, SPAN, startOf, dimsOf, DIM_MIN, DIM_MAX, DIM_MAX_H } from './grid.js';
+  lay, gridOf, cellW, ensureBox, innerOf, PLACED, proportional, flows, byTile, rigidOn, rigidSwipe, padded, zoomOf, zoomRange, setZoom,
+  isBoard, boardsOf, reachable, boardHolds, removeBoard, SPAN, startOf, dimsOf, DIM_MIN, DIM_MAX, DIM_MAX_H, VIEW_COLS } from './grid.js';
 import { themeNow, applyLook, lookVal, STYLES, BACKDROPS, SURFACES, DARKMODES, darkMode, hasDark,
   palNow, styleNow, hexOf, objColour, slotName, OBJ0, CHECKS, dressAs } from './look.js';
 import { gridOfContainer, gridTile, listTile, boardVarsOf, bookView, calSpan, calFront } from './tiles.js';
@@ -23,6 +23,7 @@ import { openGuide } from './guide.js';
 import { sprayAt, SPRAYS, sprayNow, sprayMark, hopIntoCollector , applyZoom, zoomOut, zoomedIn, CAM_DIMS } from './motion.js';
 import { APP_VERSION, DATA_V, save, saveIfDirty, storeSize, install } from './persist.js';
 import { TOOLART } from './active.js';
+import { holdsFinger } from './gestures.js';
 
 /* The desk is nothing but the grid. There is no toolbar: New, Arrange and
    Settings are control objects sitting on it, so the grid is the whole page. */
@@ -165,9 +166,9 @@ function gridBar(c){
    front has always had; the spool of thread and the spiral coin are new, and
    each of the six is also an object a board can hold (`TOOLART`, the tool
    rows of `ACTIVE`). */
-const RAIL_TOOLS = ['glass','block','lock','gear','spool','coin'];
+const RAIL_TOOLS = ['glass','block','lock','gear','swipe','spool','coin'];
 const RAIL_NAMES = {glass:'Magnifying glass', block:'Letter block', lock:'Padlock',
-  gear:'Gear', spool:'Spool of thread', coin:'Spiral coin'};
+  gear:'Gear', swipe:'Swipe switch', spool:'Spool of thread', coin:'Spiral coin'};
 const RAIL_DEFAULT = {left:['glass','block'], right:['lock','gear']};
 function railToolsOf(cid){
   const r = (cfgOf(cid)||{}).rail;
@@ -220,6 +221,9 @@ function railTool(t, c){
   if(t==='spool') return railObj('spool', 'spool', c.id,
     S.threading ? 'Tying — press two things, or the spool to stop' : 'Spool of thread — press it, then two things to tie', !!S.threading);
   if(t==='coin') return railObj('coin', 'coinspin', c.id, 'Spiral coin — one of anything, anywhere on this board');
+  if(t==='swipe'){ const r = rigidOn();
+    return railObj('swipe', 'swipetoggle', c.id, r ? 'Rigid swipe, a tile at a time — tap for a smooth scroll'
+      : 'Smooth scroll — tap for a rigid swipe, a tile at a time', r, r); }
   return '';
 }
 /* The row in a board's settings that says which tools its drawer front
@@ -231,7 +235,7 @@ function railToolsField(cid){
     <div class="filterbar">${RAIL_TOOLS.map(t=>
       `<button class="fchip railchip${rt[k].includes(t)?' on':''}" data-railtool="${cid}:${k}:${t}"
         title="${esc(RAIL_NAMES[t])}"><svg viewBox="0 0 40 40" aria-hidden="true">${
-        (t==='lock'?TOOLART.lock(false):TOOLART[t](t==='block'?MANUAL:undefined))}</svg></button>`).join('')}</div></div>`;
+        (t==='lock'?TOOLART.lock(false):TOOLART[t](t==='block'?MANUAL:t==='swipe'?rigidOn():undefined))}</svg></button>`).join('')}</div></div>`;
   // what stands there besides the tools, each a press away from the board
   const things = ['left','right'].flatMap(k=>frontThings(cid, k));
   const stood = things.length ? `<div class="railpick"><span class="mini" style="--k:var(--brass)">Standing in it</span>
@@ -729,7 +733,7 @@ function shelfCountField(cid){
         ? 'A sorting drawer collects rather than holds, so it stays one tile.'
         : 'Pinch out to see every tile and press a plus to add one, in any direction — or scroll or swipe off the edge onto the empty space.'}${
         cid===ROOT ? '' : ' Two fingers sideways goes to the drawer beside this one.'}
-        <button class="fchip" data-act="overview" data-id="${cid}" style="margin-left:4px">See every tile</button></div>
+        <button class="fchip" data-act="zoomfit" data-id="${cid}" style="margin-left:4px">See every tile</button></div>
     </div>`;
   }
   const g = gridOf(dev(), cid), now = g.shelves;
@@ -911,6 +915,15 @@ function settingsBody(sec, cid){
           graph paper unlocked, the carcass locked — and that made the surface
           you look at all day change under a switch you flick all day. It is a
           thing you set once, so it is a row. See decision 192. */''}
+    ${/* Every tile the same squares, or each its own (decision 274). The
+          board's own, so a desk and a drawer can answer differently. */''}
+    <div class="field" style="margin-top:12px"><label>Tile Colours</label>
+      <div class="filterbar">${[['','The same on every tile'],['each','Each tile its own']].map(([v,n])=>
+        `<button class="fchip${((cfgOf(inside ? cid : ROOT)||{}).tilepaper==='each'?'each':'')===v?' on':''}" data-tilepaper="${v}" data-id="${inside ? cid : ROOT}">${n}</button>`).join('')}
+        ${(cfgOf(inside ? cid : ROOT)||{}).tilepaper==='each' ? `<button class="fchip" data-tilepaper="reroll" data-id="${inside ? cid : ROOT}">${ic('spiral',12)} Roll again</button>` : ''}</div>
+      <div class="mini" style="--k:var(--brass);margin-top:6px"><b>The same on every tile</b> is one checkerboard running through the whole board. <b>Each tile its own</b> gives every tile its own two quiet colours, picked at random and kept; <b>Roll again</b> picks a new set.</div>
+    </div>
+
     <div class="field" style="margin-top:12px"><label>Board Background Type</label>
       <div class="filterbar">${Object.entries(SURFACES).map(([v,n])=>
         `<button class="fchip${(S.look.surface||'grid')===v?' on':''}" data-surface="${v}">${n}</button>`).join('')}</div>
@@ -920,9 +933,9 @@ function settingsBody(sec, cid){
     ${/* How a phone gets down a board (decision 209): since decision 272
           scrolling is the default, and snaps to the cells when it stops. */''}
     <div class="field" style="margin-top:12px"><label>Moving Down a Board</label>
-      <div class="filterbar">${[['','Smooth scroll'],['page','A tile at a time']].map(([v,n])=>
-        `<button class="fchip${(S.look.flow==='page'?'page':'')===v?' on':''}" data-flow="${v}">${n}</button>`).join('')}</div>
-      <div class="mini" style="--k:var(--brass);margin-top:6px"><b>Smooth scroll</b> runs the tiles of a board together into one column, and when you stop it settles on the nearest row of cells. <b>A tile at a time</b> scrolls the same way and settles on a whole tile, centred. Sideways is a swipe to the next tile either way.</div>
+      <div class="filterbar">${[['','Smooth scroll'],['page','A tile at a time'],['rigid','Rigid swipe']].map(([v,n])=>
+        `<button class="fchip${(['page','rigid'].includes(S.look.flow)?S.look.flow:'')===v?' on':''}" data-flow="${v}">${n}</button>`).join('')}</div>
+      <div class="mini" style="--k:var(--brass);margin-top:6px"><b>Smooth scroll</b> runs the tiles of a board together, every way, and when you stop it settles on the nearest row of cells. <b>A tile at a time</b> scrolls the same way and settles on a whole tile, centred. <b>Rigid swipe</b> does not scroll at all: the board follows your finger and a swipe moves exactly one tile, up, down or sideways. The swipe switch, a tool for the drawer front or the board, flips between smooth and rigid.</div>
     </div>
 
     ${/* *How big a drawer is inside* was a row here (decisions 188 and 195)
@@ -1314,7 +1327,18 @@ function openOverview(cid){
   return true;
 }
 function refreshOverview(){ if(OVER.on) drawOverview().classList.add('open'); }
-function overAsk(a){ OVER.ask = a; refreshOverview(); }
+/* The question a full tile asks (decision 234). Since decision 274 it is
+   asked from the board itself, zoomed out, so with no zoom out to ask it
+   over it stands on its own over the board. */
+function overAsk(a){
+  OVER.ask = a;
+  if(a) OVER.cid = a.cid;
+  if(OVER.on) return refreshOverview();
+  let host = $('#overview');
+  if(!a){ if(host) host.remove(); return; }
+  if(!host){ $('#frame').insertAdjacentHTML('beforeend', '<div id="overview" class="overview askonly open"></div>'); host = $('#overview'); }
+  host.innerHTML = overviewHTML().replace(/<div class="ovhead">[\s\S]*$/, '');
+}
 const overCid = ()=> OVER.cid;
 function closeOverview(to){
   const host = $('#overview');
@@ -1430,6 +1454,37 @@ function scrollToShelf(cid, y, x, jump){
   try{ sc.scrollTo({top, left, behavior: still ? 'auto' : 'smooth'}); }
   catch(_){ sc.scrollTop = top; sc.scrollLeft = left; }
 }
+/* **Settle a zoom** (decision 274): the new cell is laid out by a render,
+   and the point that was under the fingers (`gx`,`gy`, the grid's own
+   pixels at the zoom it started from `z0`) is put back under them, at
+   `sx`,`sy` in the scroller's own box. Then which tile you are on is the
+   one in the middle of the screen, as after any scroll. Returns the zoom it
+   settled on, which the board's range may have held back. */
+function zoomCommit(cid, z, at){
+  const z0 = at ? at.z0 : zoomOf(cid);
+  const got = setZoom(cid, z);
+  render();
+  const sc = $('#app .scroll.deskscroll'), grid = sc && sc.querySelector('#drawergrid');
+  if(!sc || !grid || (grid.dataset.gridfor||ROOT)!==cid) return got;
+  if(at){
+    const k = got / Math.max(0.01, z0);
+    sc.scrollLeft = grid.offsetLeft + at.gx*k - at.sx;
+    sc.scrollTop  = grid.offsetTop  + at.gy*k - at.sy;
+  }
+  SCROLL.left = sc.scrollLeft; SCROLL.top = sc.scrollTop; GLIDE.at = Date.now();
+  const g = gridOf(dev(), cid), t = tileUnder(sc, grid, g);
+  if(isBoard(cid, t.x, t.y)) setShelf(cid, t.x, t.y);
+  litDots(cid);
+  return got;
+}
+/* Out as far as the whole board goes: what "See every tile" in a
+   container's Board settings does now there is no zoom out of its own. */
+function zoomFit(cid){
+  const id = cid || ROOT;
+  if(id!==((S.view==='drawer' && S.drawerId) || ROOT)){
+    S.view = id===ROOT ? 'desk' : 'drawer'; S.drawerId = id===ROOT ? null : id; render(); }
+  zoomCommit(id, zoomRange(id).min);
+}
 /* Stand on the tile you are on, now: after a render that moved the numbers
    under the scroll (a tile added to the left or above), the kept offset is
    somewhere else. A no-op on a board that does not scroll. */
@@ -1447,7 +1502,9 @@ function landOnShelf(cid){
    writes a box *onto* it, has to make the same conversion or it is a shelf
    out. On a Mac it is always zero: the whole board is drawn and scrolled
    rather than windowed, so there is nothing to shift. See decisions 102, 141. */
-const shelfShift = cid => S.device==='phone' ? shelfOrigin(cid) : {x:0, y:0};
+/* …and on a Mac too since decision 274, which is drawn with the pad of empty
+   slots round it the way a phone is: the shift is the pad, not zero. */
+const shelfShift = cid => (S.device==='phone' || padded()) ? shelfOrigin(cid) : {x:0, y:0};
 const shelfTop  = cid => shelfShift(cid).y;
 const shelfLeft = cid => shelfShift(cid).x;
 
@@ -1757,7 +1814,8 @@ function render(){
      See decision 108. */
   frame.className = (S.device==='desk' ? 'is-desk' : 'is-phone')
     + (S.device==='desk' ? '' : tiltClasses())
-    + (S.device!=='desk' && flows() ? ' flowscroll' : '');
+    + (S.device!=='desk' && flows() ? ' flowscroll' : '')
+    + (S.device!=='desk' && rigidSwipe() ? ' rigid' : '');
   document.documentElement.dataset.theme = themeNow();
   applyLook();          // the custom colours are per theme, so repaint them
   /* The wood is per desk, and it is the whole carcass rather than the rail: the
@@ -1859,8 +1917,18 @@ function tileTop(cid, y, sc, grid){
   const g = gridOf(dev(), cid), cell = CELL[dev()] + g.gap;
   const shows = sc ? Math.floor(sc.clientHeight / Math.max(1, cell)) : viewRows();
   const above = Math.max(0, Math.floor((shows - g.shelfH)/2));
-  const row = y*g.shelfH + (g.pad||0) - above;
+  const r0 = y*g.shelfH - above;
+  const row = (y>=0 && y<g.shelves.h ? inBoard(r0, shows, g.rows) : r0) + (g.pad||0);
   return Math.max(0, (grid ? grid.offsetTop : 0) + row*cell);
+}
+/* **A board wider or taller than the screen is not left half off it**
+   (decision 274): a tile of five centred on a screen eight wide showed a cell
+   and a half of the pad beside the desk's first tile. Where the board is
+   bigger than the screen, arriving stays inside it; the slots off its edge
+   are still a scroll away, and a slot off the edge is arrived at plainly.
+   In cells from the board's corner. */
+function inBoard(at, shows, span){
+  return span > shows ? Math.max(0, Math.min(span - shows, at)) : at;
 }
 /* …and across (2026-09-29): a phone scrolls sideways too, and a tile is the
    screen's width, so the tile you arrive at fills it edge to edge. */
@@ -1868,8 +1936,10 @@ function tileLeft(cid, x, sc, grid){
   const g = gridOf(dev(), cid), cell = CELL[dev()] + g.gap;
   // centred exactly: a tile inset by the cavity leaves the same wood either side
   const spare = sc ? Math.max(0, sc.clientWidth - g.shelfW*cell)/2 : 0;
-  const col = x*g.shelfW + (g.padX||0);
-  return Math.max(0, (grid ? grid.offsetLeft : 0) + col*cell - spare);
+  const shows = sc ? sc.clientWidth / Math.max(1, cell) : VIEW_COLS;
+  const col = x*g.shelfW - spare/cell;
+  const c = x>=0 && x<g.shelves.w ? inBoard(col, shows, g.cols) : col;
+  return Math.max(0, (grid ? grid.offsetLeft : 0) + (c + (g.padX||0))*cell);
 }
 // which tile the middle of the screen is over, each way
 function tileUnder(sc, grid, g){
@@ -1933,6 +2003,83 @@ function wireSnap(){
   const up = e=>{ FINGER.n = e.touches.length; FINGER.at = Date.now(); if(!FINGER.n && FINGER.sc) snapSoon(FINGER.sc); };
   document.addEventListener('touchend', up, {passive:true, capture:true});
   document.addEventListener('touchcancel', up, {passive:true, capture:true});
+  document.addEventListener('touchstart', rigidStart, {passive:true});
+  document.addEventListener('touchmove', rigidMove, {passive:false});
+  document.addEventListener('touchend', rigidEnd, {passive:true});
+  document.addEventListener('touchcancel', rigidBack, {passive:true});
+}
+/* ---- the rigid swipe — decision 274 ------------------------------------
+   With `S.look.flow==='rigid'` the phone's scroller does not pan (its
+   overflow is hidden and the grid refuses the touch, in chrome.css), and one
+   finger is read here instead: the board follows it along whichever axis it
+   set off on, and on letting go it glides to the next tile that way — past a
+   fifth of a tile, or thrown — or back to the one it left. Exactly one tile
+   per swipe, onto a slot too, where the plus is. Anything that is a Bureau
+   gesture first (a carried tile, a held cell, a menu) keeps the finger, and a
+   thing that scrolls inside a tile keeps its own scroll. */
+const RIGID = {on:false};
+function rigidStart(e){
+  RIGID.on = false;
+  if(!rigidSwipe() || !e.touches || e.touches.length!==1) return;
+  const sc = e.target.closest && e.target.closest('#app .scroll.deskscroll');
+  const grid = sc && sc.querySelector('#drawergrid');
+  if(!sc || !grid) return;
+  for(let n=e.target; n && n!==sc; n=n.parentElement){
+    if(n.scrollHeight > n.clientHeight+1 && /auto|scroll/.test(getComputedStyle(n).overflowY)) return;
+  }
+  const t = e.touches[0], cid = grid.dataset.gridfor || ROOT;
+  Object.assign(RIGID, {on:true, sc, cid, x0:t.clientX, y0:t.clientY, t0:Date.now(),
+    top:sc.scrollTop, left:sc.scrollLeft, axis:null, at:shelfAt(cid), d:0});
+}
+function rigidMove(e){
+  if(!RIGID.on) return;
+  if(!e.touches || e.touches.length!==1 || holdsFinger()){ rigidBack(); return; }
+  const t = e.touches[0], dx = t.clientX - RIGID.x0, dy = t.clientY - RIGID.y0;
+  if(!RIGID.axis){
+    if(Math.hypot(dx, dy) < 8) return;
+    RIGID.axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+  }
+  if(e.cancelable) e.preventDefault();
+  RIGID.d = RIGID.axis==='x' ? dx : dy;
+  GLIDE.at = Date.now();               // the tiles it passes are not where you are
+  if(RIGID.axis==='x') RIGID.sc.scrollLeft = RIGID.left - dx;
+  else RIGID.sc.scrollTop = RIGID.top - dy;
+}
+function rigidEnd(){
+  if(!RIGID.on) return;
+  RIGID.on = false;
+  if(!RIGID.axis || !RIGID.sc.isConnected) return;
+  const g = gridOf(dev(), RIGID.cid), cell = CELL[dev()] + g.gap;
+  const tile = (RIGID.axis==='x' ? g.shelfW : g.shelfH) * cell;
+  const v = RIGID.d / Math.max(1, Date.now() - RIGID.t0);
+  const go = Math.abs(RIGID.d) > tile/5 || Math.abs(v) > 0.35;
+  const step = go ? (RIGID.d < 0 ? 1 : -1) : 0;
+  /* Exactly one tile's width or height from where it set off, never a
+     centring: a board that fits the screen but for a row would otherwise
+     arrive at the next tile without moving. What is under the middle of the
+     screen then is the tile you are on, if there is one to be on. */
+  const sc = RIGID.sc, gr = sc.querySelector('#drawergrid');
+  const x = RIGID.axis==='x', from = x ? RIGID.left : RIGID.top;
+  const max = x ? sc.scrollWidth - sc.clientWidth : sc.scrollHeight - sc.clientHeight;
+  const want = Math.max(0, Math.min(max, from + step*tile));
+  const top = x ? RIGID.top : want, left = x ? want : RIGID.left;
+  SCROLL.top = top; SCROLL.left = left; GLIDE.at = Date.now();
+  const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  try{ sc.scrollTo({top, left, behavior: still ? 'auto' : 'smooth'}); }
+  catch(_){ sc.scrollTop = top; sc.scrollLeft = left; }
+  // `tileUnder()`'s sum, for where the glide is going rather than where it is
+  const t = gr ? {
+    x: Math.floor(((left - gr.offsetLeft + sc.clientWidth/2)/cell - (g.padX||0)) / g.shelfW),
+    y: Math.floor(((top - gr.offsetTop + sc.clientHeight/2)/cell - (g.pad||0)) / g.shelfH)} : RIGID.at;
+  if(reachable(RIGID.cid, t.x, t.y)) setShelf(RIGID.cid, t.x, t.y);
+  litDots(RIGID.cid);
+  if(step && want!==from && navigator.vibrate) navigator.vibrate(4);
+}
+function rigidBack(){
+  if(!RIGID.on) return;
+  const moved = !!RIGID.axis;
+  RIGID.on = false;
+  if(moved && RIGID.sc.isConnected){ RIGID.sc.scrollTop = RIGID.top; RIGID.sc.scrollLeft = RIGID.left; }
 }
 function snapSoon(sc){
   FINGER.sc = sc;
@@ -1941,6 +2088,7 @@ function snapSoon(sc){
 }
 function snapBoard(sc){
   if(!sc || !sc.isConnected || FINGER.n || $('#app .lifted, .pluckchip')) return;
+  if(rigidSwipe()) return;            // the rigid swipe lands on its own tile
   if(Date.now() - FINGER.at > USER_SCROLL_MS) return;
   const grid = sc.querySelector('#drawergrid'); if(!grid) return;
   const g = gridOf(dev(), grid.dataset.gridfor||ROOT), cell = CELL[dev()] + g.gap;
@@ -2049,9 +2197,11 @@ function sizeGrid(){
     /* The cavity's inset is a margin on the grid, so a tile that is to sit
        inside the opening is the screen less that margin either side. */
     const gm = flows('phone') ? 2*(parseFloat(getComputedStyle(grid).marginLeft)||0) : 0;
-    const boardW = dimsOf(cid) || flows('phone')
-      ? sc.clientWidth - (parseFloat(cs.paddingLeft)||0) - (parseFloat(cs.paddingRight)||0) - gm
-      : w * g.shelfW;
+    /* The scroller's side padding on a phone that scrolls is only ever the
+       zoom's centring (below), so it is not taken off the screen's width. */
+    const boardW = flows('phone') ? sc.clientWidth - gm
+      : dimsOf(cid) ? sc.clientWidth - (parseFloat(cs.paddingLeft)||0) - (parseFloat(cs.paddingRight)||0) - gm
+      : w * VIEW_COLS;
     /* The rows the **screen** shows (decision 272), which since a tile is
        eight is not a tile's height: fourteen on an iPhone, one tile and three
        rows of each neighbour. */
@@ -2063,7 +2213,11 @@ function sizeGrid(){
     /* A phone that scrolls sideways draws its grid as wide as its columns
        times the cell (2026-09-29), so the grid measures back whatever cell it
        was given: the cell is the screen's width over a tile's eight. */
-    if(flows('phone') && MEASURE.phone.w > 0) w = MEASURE.phone.w / g.shelfW;
+    /* …times the zoom (decision 274). `base` is the cell at no zoom, which
+       is what the furniture round the board is sized from, so zooming moves
+       the board and never the lip or the drawer front. */
+    const base = MEASURE.phone.w > 0 ? MEASURE.phone.w / VIEW_COLS : w;
+    if(flows('phone') && MEASURE.phone.w > 0) w = base * zoomOf(cid);
     if(rows!==was && !sizing){ sizing=true; try{ render(); } finally { sizing=false; } return; }
     /* Written only when they have actually changed. The markup already carries
        last render's numbers (see REVEAL), so on an ordinary render these agree
@@ -2100,7 +2254,9 @@ function sizeGrid(){
        front, so 8×14 stated and 8×14 by default are the same picture and a
        smaller board still has its name on top. */
     const short = !!innerOf(cid, 'phone') && drawn*w < room - 1;
-    const over = short ? 0 : Math.max(0, room - drawn*w);
+    // the window is the screen's rows at no zoom, whatever the zoom draws in it
+    const viewH = flows('phone') ? rows*base : drawn*w;
+    const over = short ? 0 : Math.max(0, room - viewH);
     /* With the name on the lip, the top half of the leftover is the lip's
        rather than a reveal under it: the wood above the board is one strip
        either way, and this way the name is in the middle of it (decision
@@ -2113,7 +2269,7 @@ function sizeGrid(){
        leftover shrank on the way into a small drawer, so the board jumped
        by the difference the moment it opened. A short board's scroller gives
        the lip its share instead. */
-    const lipTop = lip ? Math.floor(Math.max(0, room - rows*w)/2) : 0;
+    const lipTop = lip ? Math.floor(Math.max(0, room - rows*base)/2) : 0;
     const top = Math.floor(over/2), deep = railMin + (short ? 0 : Math.ceil(over/2));
     const gap = gapMin + (lip ? 0 : top), lipH = lip ? Math.round(barH + lipTop) : 0;
     if(lip && lipH!==REVEAL.lip){ REVEAL.lip=lipH; }
@@ -2126,7 +2282,17 @@ function sizeGrid(){
        as a string of its own and a string that differs by how it prints is a
        write, and a write is a second layout. `--flowh` is the same number for
        the sticky rim shading in chrome.css. */
-    const flowH = !short && flows('phone') ? drawn*w : 0;
+    const flowH = !short && flows('phone') ? viewH : 0;
+    /* **A board zoomed out smaller than the window sits in the middle of
+       it** (decision 274), by the scroller's padding, which `tileTop()` and
+       `tileLeft()` read through the grid's own offset. */
+    if(flowH){
+      const zx = Math.max(0, Math.floor((boardW - drawCols(g, 'phone')*w)/2));
+      const zy = Math.max(0, Math.floor((flowH - drawRows(g, 'phone')*w)/2));
+      const px = zx ? zx+'px' : '', py = zy ? zy+'px' : '';
+      if(sc.style.paddingLeft !== px){ sc.style.paddingLeft = px; sc.style.paddingRight = px; }
+      if(sc.style.paddingTop !== py){ sc.style.paddingTop = py; sc.style.paddingBottom = py; }
+    }
     if(flowH && Math.abs(flowH-REVEAL.h)>0.01) REVEAL.h = flowH;
     const tall = short ? Math.round(room - lipTop)+'px' : flowH ? flowH+'px' : '';
     const hNow = parseFloat(sc.style.height)||0, hWant = parseFloat(tall)||0;
@@ -2179,7 +2345,7 @@ function sizeGrid(){
      three times the size of the desk's. The element is then given that width
      explicitly (`.grid` is `width:calc(var(--cols)*var(--rowh))` on a Mac), so
      the measurement above agrees with it once the first pass has settled. */
-  const cell = dev()==='phone' ? w : deskCell();
+  const cell = dev()==='phone' ? w : deskCell() * zoomOf(cid);
   /* Same again, and this is the one that mattered: gridOfContainer() builds the
      board from the *last* measurement, so on any render where the window has
      not moved the measurement agrees with what is already on the element and
@@ -2223,12 +2389,12 @@ function sizeGrid(){
       const at = shelfAt(cid);
       SCROLL.top = tileTop(cid, at.y, sc, grid);
       sc.scrollTop = SCROLL.top;
-      if(dev()==='phone' && flows()){ SCROLL.left = tileLeft(cid, at.x, sc, grid); sc.scrollLeft = SCROLL.left; }
+      if(dev()!=='phone' || flows()){ SCROLL.left = tileLeft(cid, at.x, sc, grid); sc.scrollLeft = SCROLL.left; }
     }
   }
 }
 
-export { landOnShelf, wireSnap, render, renderSoon, sizeGrid, shelfTop, shelfLeft, shelfShift, centreDesk,
+export { zoomCommit, zoomFit, landOnShelf, wireSnap, render, renderSoon, sizeGrid, shelfTop, shelfLeft, shelfShift, centreDesk,
   reveal, openOverview, closeOverview, refreshOverview, overviewOn, overAsk, overCid, viewHTML, previewHTML,
   goShelf, goShelfTo, sideDrawer, goSideDrawer, boardDimsField, shelfCountField, railToolsField, railToolsOf, RAIL_TOOLS,
   settingsPanel, toggleSettings, railObj, flipBlock };

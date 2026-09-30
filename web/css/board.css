@@ -249,8 +249,8 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
    cell is square, and one fourteenth of the board on a phone, where the page is
    a stated 10 × 14 and the cell is very slightly taller than it is wide. */
 .grid{display:grid;gap:0;align-content:start;position:relative}
-.grid.g-desk{grid-template-columns:repeat(var(--cols,24),1fr);grid-auto-rows:var(--rowh,40px)}
-.grid.g-phone{grid-template-columns:repeat(var(--cols,10),1fr);grid-auto-rows:var(--rowh,44px)}
+.grid.g-desk{grid-template-columns:repeat(var(--cols,24),minmax(0,1fr));grid-auto-rows:var(--rowh,40px)}
+.grid.g-phone{grid-template-columns:repeat(var(--cols,10),minmax(0,1fr));grid-auto-rows:var(--rowh,44px)}
 /* Arranging the phone layout from a Mac. The phone grid is 10 fluid columns, so
    in a 1440px window a cell came out 175px across and the preview stopped
    resembling the thing being arranged. Cap it at a phone's width instead: the
@@ -2753,9 +2753,12 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
    twenty-four columns, so this is a no-op there and it fills the width the way
    it always has. A phone draws one shelf and fills the screen with it, so the
    rule is a Mac's alone. */
+/* No `max-width` since decision 274: a board zoomed in is wider than the
+   window and scrolls sideways, and a cap would squeeze its `1fr` columns out
+   from under the drag maths. */
 .is-desk .grid{
   width:calc(var(--cols) * var(--rowh));
-  max-width:100%;
+  max-width:none;
   margin-inline:auto;
 }
 /* **A phone constrains only the boards that are smaller than its screen**, and
@@ -2864,6 +2867,9 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
   opacity:0;transition:opacity .26s ease;overflow:hidden;
   -webkit-user-select:none;user-select:none}
 .overview.open{opacity:1}
+/* Since decision 274 the zoom is the board's own, and all that is left of
+   this is the question a full tile asks before it goes, over a dimmed board. */
+.overview.askonly{background:rgba(0,0,0,.35)}
 .ovhead{display:flex;align-items:baseline;gap:10px;width:100%;max-width:980px;color:#F4EBD8;
   margin-bottom:14px;min-height:30px}
 .ovhead b{font-family:var(--serif);font-size:22px;font-weight:600;white-space:nowrap;
@@ -3638,6 +3644,25 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
    paper away too). The plus is the only thing on it that does anything: a
    swipe that starts on the bare wood still walks the boards. */
 .grid.vacant::before{display:none}
+/* A tile's own checkerboard (decision 274): the grid's squares restated on
+   one tile in its own two colours, under the things on it. The surface still
+   decides what is drawn: plain is the colour alone, the carcass none. */
+/* **A zoomed board** (decision 274) lays its boxes out at the zoomed cell,
+   and each thing on it is given the same `zoom`, which fills the box it was
+   given and scales what is inside: the words, the borders, the shadows. So
+   standing closer makes a thing bigger rather than roomier. `--rowb` is the
+   cell at no zoom, which is what a tile's own sums are made in. */
+.grid.zoomed > *:not(.tilepaper):not(.lights):not(.strings):not(.tilecross){zoom:var(--zk,1);--rowh:var(--rowb)}
+.grid > .tilecross{z-index:5;align-self:start;justify-self:end;margin:3px;width:26px;height:26px;padding:0;
+  border-radius:50%;display:grid;place-items:center;cursor:pointer;
+  border:1px solid color-mix(in srgb,#fff 45%,transparent);background:rgba(40,24,12,.72);color:#fff;
+  box-shadow:0 2px 6px rgba(0,0,0,.4)}
+.grid > .tilepaper{z-index:1;pointer-events:none;display:block;
+  opacity:var(--board-alpha,1);background-color:var(--board-1);
+  background-image:conic-gradient(var(--board-2) 0 25%, transparent 0 50%, var(--board-2) 0 75%, transparent 0);
+  background-size:var(--checkerx,var(--checker,160px)) var(--checkery,var(--checker,160px))}
+html[data-surface="plain"] .grid > .tilepaper{background-image:none}
+html[data-surface="wood"] .grid > .tilepaper{display:none}
 .noboard{display:flex;align-items:center;justify-content:center;pointer-events:none;
   background:var(--wood);border-radius:var(--radius);
   box-shadow:inset 0 0 0 1px var(--wood-2),inset 0 8px 16px -10px rgba(0,0,0,.6)}

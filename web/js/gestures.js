@@ -2,13 +2,13 @@ import { $, $$, clamp, D, ROOT } from './util.js';
 import { blockHold, frontHold } from './wire.js';
 import { S, byId, dev, has, isContainer, isAncestor, childrenOf, container, gatherKind, spanOf,
   sortOf, boardLocked, heldCount, homeFor, attrsOf, travelWith, isMedia } from './model.js';
-import { CELL, gridOf, drawCols, drawRows, cellW, lay, boxOk, overlaps, sizeOfKind, keepSize, isBoard, boardsOf } from './grid.js';
+import { CELL, gridOf, drawCols, drawRows, cellW, lay, boxOk, overlaps, sizeOfKind, keepSize, isBoard, boardsOf, zoomOf, zoomRange } from './grid.js';
 import { toast, gather, del, pushSets, holdIt, unholdIt } from './mutations.js';
 import { pending, tileTap, fireButton, turnPage,
   scratchGrab, scratchTo, scratchGo } from './tiles.js';
 import { modalNewObject, shapeRing, holdPanel, openCtx, closeCtx, schedulePanel, refreshPanel,
   closePanel } from './panels.js';
-import { render, shelfShift, reveal, openOverview, closeOverview, overviewOn, overCid } from './views.js';
+import { render, shelfShift, reveal, openOverview, closeOverview, overviewOn, overCid, zoomCommit } from './views.js';
 import { gravityGrab, gravityDrag, gravityDrop } from './gravity.js';
 import { closeSheet, renderSheet } from './sheet.js';
 import { pagerBegin, pagerMove, pagerEnd, pagerCancel, pagerOn, leaveTile, toss, fileTo , zoomedIn,
@@ -2177,9 +2177,10 @@ function zoomBegin(){
     S.kindFilter = null; render(); Z = null;
     return true;
   }
-  if(S.view!=='drawer' || !S.drawerId){ openOverview(ROOT); Z=null; return true; }
-  if(boardsOf(S.drawerId).length > 1 && !has(byId(S.drawerId)||{}, 'magic')){
-    openOverview(S.drawerId); Z=null; return true; }
+  /* …until decision 274: a board zooms (`boardZoomBegin()`), so this is
+     only reached where there is no grid to zoom, a list or a book, and there
+     a squeeze is still the way up a level. The desk has none. */
+  if(S.view!=='drawer' || !S.drawerId) return false;
   const here=byId(S.drawerId);
   // a desk has no parent, which is exactly what makes it the top of the stack
   const up = here && here.parent;
@@ -2195,6 +2196,78 @@ function zoomBegin(){
   }, true);
   // no grip means it had no movement to give and has already gone there
   Z = grip ? {from, grip, at:0} : null;
+  return true;
+}
+/* ---- the zoom — decision 274 -------------------------------------------
+   Timothy: zoom in and out of a board smoothly, and far enough out it puts
+   you in the container it is in; there is no zoom out to every tile any
+   more, because out far enough the board is every tile, with the plus on
+   each empty slot round it. While the fingers are down the grid is scaled
+   by a transform about the point between them and follows them as they
+   move, which costs nothing; letting go commits the zoom, which lays the
+   board out again at the new cell (`zoomCommit()` in views.js) and puts the
+   same point back under the fingers. Out past the whole board inside a
+   container, the board fades, and letting go there goes up a level. */
+const BZ = {on:false};
+const EJECT = 0.72;         // how far past the furthest-out zoom lets go of a container
+function boardZoomBegin(mx, my){
+  if(zoomedIn()) return false;
+  const sc = $('#app .scroll.deskscroll'), grid = sc && sc.querySelector('#drawergrid');
+  if(!sc || !grid) return false;
+  const cid = grid.dataset.gridfor || ROOT;
+  const r = sc.getBoundingClientRect(), gr = grid.getBoundingClientRect();
+  const z0 = zoomOf(cid), rg = zoomRange(cid);
+  /* The point between the fingers, in the grid's own pixels. Read off its
+     rect, so a cavity's tilt or a scroller's padding are already in it. */
+  const gx = mx - gr.left, gy = my - gr.top;
+  Object.assign(BZ, {on:true, sc, grid, cid, r, z0, z:z0, min:rg.min, max:rg.max,
+    gx, gy, mx0:mx, my0:my, mx, my, out:false,
+    up: S.view==='drawer' && !!S.drawerId && cid===S.drawerId});
+  grid.style.transition = 'none';
+  grid.style.transformOrigin = `${gx}px ${gy}px`;
+  grid.style.willChange = 'transform';
+  onCancel();                       // nothing is carried through a zoom
+  return true;
+}
+function boardZoomMove(k, mx, my){
+  if(!BZ.on || !BZ.grid.isConnected) return;
+  const raw = BZ.z0 * k;
+  // a little give past either end, so the edge is felt rather than hit
+  const z = raw < BZ.min ? BZ.min * Math.pow(raw/BZ.min, 0.4)
+          : raw > BZ.max ? BZ.max * Math.pow(raw/BZ.max, 0.4) : raw;
+  BZ.z = z; BZ.mx = mx; BZ.my = my;
+  BZ.out = BZ.up && raw < BZ.min * EJECT;
+  BZ.grid.style.transform = `translate(${mx-BZ.mx0}px, ${my-BZ.my0}px) scale(${(z/BZ.z0).toFixed(4)})`;
+  BZ.grid.style.opacity = BZ.out ? '.55' : '';
+}
+function boardZoomEnd(){
+  if(!BZ.on) return;
+  BZ.on = false;
+  const grid = BZ.grid;
+  if(grid.isConnected){ grid.style.willChange = ''; }
+  if(BZ.out){
+    const from = BZ.cid, up = (byId(from)||{}).parent || ROOT;
+    if(navigator.vibrate) navigator.vibrate(6);
+    leaveTile(from, ()=>{
+      S.view = up===ROOT ? 'desk' : 'drawer';
+      S.drawerId = up===ROOT ? null : up;
+      S.kindFilter = null; render();
+    });
+    return;
+  }
+  zoomCommit(BZ.cid, Math.max(BZ.min, Math.min(BZ.max, BZ.z)),
+    {z0:BZ.z0, gx:BZ.gx, gy:BZ.gy, sx:BZ.mx - BZ.r.left, sy:BZ.my - BZ.r.top});
+}
+/* **A trackpad's pinch** is a wheel with the control key held: each event
+   is a step of the same zoom about the pointer, and it is committed once the
+   events stop. */
+let WZT = 0;
+function wheelZoom(e){
+  if(!BZ.on){ if(!boardZoomBegin(e.clientX, e.clientY)) return false; BZ.k = 1; }
+  BZ.k = (BZ.k||1) * Math.exp(-e.deltaY * 0.01);
+  boardZoomMove(BZ.k, BZ.mx0, BZ.my0);
+  clearTimeout(WZT);
+  WZT = setTimeout(boardZoomEnd, 180);
   return true;
 }
 function zoomMove(d){
@@ -2247,8 +2320,17 @@ function onTouchMove(e){
   /* One decision, taken once: whichever is winning when the squeeze passes the
      threshold is what this gesture is. A pager already under way keeps it —
      `mode` is set by then — so a swipe cannot turn into a pinch halfway. */
+  if(TWO.mode==='bzoom'){ boardZoomMove(apart(a,b)/Math.max(1, TWO.d0), mx, my); return; }
   if(!TWO.mode){
     const squeeze = TWO.d0 - apart(a,b);
+    /* **On a board, a pinch either way is the zoom** (decision 274); a
+       surface or the camera still only answers a squeeze, as a way out. */
+    if(Math.abs(squeeze) > PINCH_MIN && Math.abs(squeeze) > Math.hypot(mx-TWO.x, my-TWO.y)
+       && !sheetOpen() && !camScrubbable() && boardZoomBegin(TWO.x, TWO.y)){
+      TWO.mode='bzoom';
+      boardZoomMove(apart(a,b)/Math.max(1, TWO.d0), mx, my);
+      return;
+    }
     if(squeeze > PINCH_MIN && squeeze > Math.hypot(mx-TWO.x, my-TWO.y)){
       TWO.mode='pinch';
       if(zoomBegin()){ zoomMove(apart(a,b)); return; }
@@ -2269,6 +2351,7 @@ function onTouchEnd(e){
   if(e.touches && e.touches.length>=2) return;
   dropFingers();
   if(TWO.on && TWO.mode==='swipe') pagerEnd();
+  if(BZ.on) boardZoomEnd();
   /* Not gated on TWO.on: a third finger landing turns the two-finger gesture
      off, and without this the zoom it started would be left half-open with
      nothing to end it. */
@@ -2328,5 +2411,5 @@ function onCancel(){
                    G.el.classList.remove('lifted','dragging','invalid','plucked'); } G=null; }
 }
 
-export { onDown, onMove, onUp, onCancel, onTouchStart, onTouchMove, onTouchEnd,
+export { wheelZoom, onDown, onMove, onUp, onCancel, onTouchStart, onTouchMove, onTouchEnd,
   gestureFlags, dragArmed, holdsFinger, setCamEditor };

@@ -159,6 +159,24 @@ const TOOLART = {
       fill="none" stroke-linecap="round"/>`
 };
 TOOLART.unlock = ()=> TOOLART.lock(true);
+/* **The swipe switch** (decision 274): a brass toggle on a walnut plate, the
+   lever thrown to the wave for a smooth scroll or to the steps for a rigid
+   swipe, a tile at a time. What it shows is what a press changes to the
+   other. */
+TOOLART.swipe = rigid => `<defs>${BRASS('ro-sp')}
+      <linearGradient id="ro-sw2" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#7A4A22"/><stop offset="1" stop-color="#3A1F0B"/></linearGradient></defs>
+    <rect x="4" y="7.5" width="32" height="27" rx="4" fill="#000" fill-opacity=".28"/>
+    <rect x="4" y="6" width="32" height="27" rx="4" fill="url(#ro-sw2)"/>
+    <rect x="5" y="7" width="30" height="25" rx="3.2" fill="none" stroke="url(#ro-sp)" stroke-width="1.2"/>
+    <path d="M7.5 13.5c1.6-2.6 3.2-2.6 4.8 0s3.2 2.6 4.8 0" fill="none" stroke="#F6D36B"
+      stroke-opacity="${rigid?'.4':'1'}" stroke-width="1.5" stroke-linecap="round"/>
+    <path d="M23 15.5h3.3v-3.3h3.3v-3.3h3" fill="none" stroke="#F6D36B"
+      stroke-opacity="${rigid?'1':'.4'}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <ellipse cx="20" cy="25" rx="5.2" ry="3.4" fill="#1E1006"/>
+    <path d="M20 25 ${rigid?'27.5 16':'12.5 16'}" stroke="url(#ro-sp)" stroke-width="3.6" stroke-linecap="round"/>
+    <circle cx="${rigid?27.5:12.5}" cy="16" r="2.6" fill="url(#ro-sp)"/>
+    <circle cx="20" cy="25" r="2.4" fill="url(#ro-sp)"/>`;
 
 /* ---- the noise ---------------------------------------------------------- */
 let AC = null;
@@ -414,6 +432,7 @@ const ACTIVE = {
   tgear:  tool('gear',  'Gear', 'This board’s settings', ()=>null),
   spool:  tool('spool', 'Spool of thread', 'Tie one thing to another', ()=>null),
   coin:   tool('coin',  'Spiral coin', 'One of anything, anywhere', ()=>null),
+  tswipe: tool('swipe', 'Swipe switch', 'Smooth scroll or a rigid swipe', ()=>!!(S.look && S.look.flow==='rigid')),
   /* ---- the metronome ---------------------------------------------------
      A wedge with a scale up it and a bar that swings. The swing is a CSS
      animation whose duration is the beat, so the pendulum keeps time with the

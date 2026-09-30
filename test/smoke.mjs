@@ -2363,51 +2363,53 @@ const PROP_OFF = () => { const b = document.createElement('button');
     BUREAU.setPin(d.id, null); await nap(200);
     out.putsAStrandedOneBack = d.parent === stood;
 
-    /* **The name is only a name** (decision 227): the map it opened is the
-       zoom out now, which a pinch on the desk or a trackpad pinch opens —
-       every board laid out as it sits, a plus on every slot round them, a
-       cross on none of the ones holding something and never on the home
-       board, and pressing one walks into it. */
+    /* **The name is only a name** (decision 227), and since decision 274
+       there is no zoom out to every tile either: a pinch, or a trackpad
+       pinch, zooms the board itself, and far enough out the board is every
+       tile, with a plus on every slot round them and a cross on every tile
+       but the home one. */
     const nm = document.querySelector('.gridbar .deskname, .toplip .deskname');
     if(nm) nm.click(); await nap(200);
     out.theNameIsOnlyAName = !!nm && !document.querySelector('#overview') && !nm.dataset.act;
-    document.querySelector('#frame').dispatchEvent(new WheelEvent('wheel',
-      {deltaY:60, ctrlKey:true, bubbles:true, cancelable:true})); await nap(380);
-    out.aPinchZoomsOut = BUREAU.overviewOn() && !!document.querySelector('#overview.open');
-    out.zoomOutShowsEveryBoard = document.querySelectorAll('#overview .ovcard:not(.ovadd)').length === 9
-      && document.querySelectorAll('#overview .ovcard.ovadd').length === 12;
-    out.theHomeBoardStays = document.querySelectorAll('#overview .ovcard.home').length === 1
-      && !document.querySelector('#overview .ovcard.home .ovgo');
-    // a plus adds a board and the zoom stays out, so you see it arrive
+    const wheel = dy => document.querySelector('#frame').dispatchEvent(new WheelEvent('wheel',
+      {deltaY:dy, ctrlKey:true, clientX:innerWidth/2, clientY:innerHeight/2, bubbles:true, cancelable:true}));
+    const rowh = () => parseFloat(document.querySelector('#drawergrid').style.getPropertyValue('--rowh'));
+    const cell0 = rowh();
+    wheel(60); await nap(420);
+    out.aPinchZoomsTheBoard = !document.querySelector('#overview') && BUREAU.zoomOf('root') < 1
+      && rowh() < cell0 - 1 && !!document.querySelector('#drawergrid.zoomed');
+    BUREAU.zoomCommit('root', 0.01); await nap(200);
+    out.farOutIsEveryTile = document.querySelectorAll('#drawergrid .addboard').length === 12
+      && document.querySelectorAll('#drawergrid .tilecross').length === BUREAU.boardsOf('root').length - 1;
+    const st = S.deskCfg.start || BUREAU.startOf('root');
+    out.theHomeBoardStays = !document.querySelector(`#drawergrid .tilecross[data-boardremove="root:${st.x}:${st.y}"]`);
+    // a plus adds a tile, and the board stays zoomed out, so you see it arrive
     const had = BUREAU.boardsOf('root').length;
     // to the right, so no board's numbers move
-    document.querySelector('#overview .ovadd[data-addboard="root:3:0"]').click(); await nap(250);
-    out.aPlusAddsHere = BUREAU.boardsOf('root').length === had + 1 && BUREAU.overviewOn();
-    // …and its cross takes it away again, from the zoom
-    const cross = document.querySelector('#overview .ovgo[data-boardremove="root:3:0"]');
+    document.querySelector('#drawergrid .addboard[data-addboard="root:3:0"]').click(); await nap(250);
+    out.aPlusAddsHere = BUREAU.boardsOf('root').length === had + 1 && BUREAU.zoomOf('root') < 1;
+    // …and its cross takes it away again
+    const cross = document.querySelector('#drawergrid .tilecross[data-boardremove="root:3:0"]');
     if(cross) cross.click(); await nap(250);
-    out.aCrossTakesOneAway = BUREAU.boardsOf('root').length === had && BUREAU.overviewOn();
-    /* A board with something on it asks where it goes, and the Void Drawer
+    out.aCrossTakesOneAway = BUREAU.boardsOf('root').length === had;
+    /* A tile with something on it asks where it goes, and the Void Drawer
        keeps it (decision 234). */
-    document.querySelector('#overview .ovadd[data-addboard="root:3:0"]').click(); await nap(250);
+    document.querySelector('#drawergrid .addboard[data-addboard="root:3:0"]').click(); await nap(250);
     const dv = S.device==='desk' ? 'desk' : 'phone';
     const lodger = BUREAU.create('note', {parent:'root', title:'On the far board'});
     lodger[dv] = {x: 3*BUREAU.shelfW('root', dv) + 1, y:1, w:2, h:2};
-    BUREAU.render(); BUREAU.openOverview('root'); await nap(350);
-    document.querySelector('#overview .ovgo[data-boardremove="root:3:0"]').click(); await nap(250);
+    BUREAU.render(); await nap(200);
+    document.querySelector('#drawergrid .tilecross[data-boardremove="root:3:0"]').click(); await nap(250);
     out.aFullBoardAsks = !!document.querySelector('#overview .ovask')
       && BUREAU.boardsOf('root').length === had + 1;
     document.querySelector('#overview [data-act="ovremove"][data-mode="hold"]').click(); await nap(300);
     out.itsThingsGoToTheVoid = lodger.parent === '__hold' && BUREAU.boardsOf('root').length === had
-      && !document.querySelector('#overview .ovask');
+      && !document.querySelector('#overview');
     BUREAU.del(lodger.id);
-    const nine = document.querySelectorAll('#overview .ovcard:not(.ovadd)').length === 9;
-    document.querySelector('#overview .ovcard[data-shelfgo="root:2:0"]').click(); await nap(420);
-    /* The column: on a Mac the row you are on is where the scroller is, and
-       an earlier block can leave the page scrolled, so the row is not this
-       test's to assert. */
-    out.aCardJumps = nine && BUREAU.shelfAt('root').x === 2
-      && !BUREAU.overviewOn() && !document.querySelector('#overview');
+    // and spreading comes back in, as far as three times
+    wheel(-400); await nap(420);
+    out.spreadingZoomsIn = BUREAU.zoomOf('root') > 1 && BUREAU.zoomOf('root') <= 3;
+    BUREAU.setZoom('root', 1);
     BUREAU.goShelfTo('root', 1, 1); await nap(150);
     S.view='desk'; S.drawerId=null; BUREAU.render(); await nap(120);
     return out;
@@ -2575,7 +2577,7 @@ const PROP_OFF = () => { const b = document.createElement('button');
     /* Decision 272: a tile is eight rows, the column is drawn with an empty
        tile's pad above and below, and scrolling is how a phone always moves
        down it. The default stores nothing. */
-    const R = BUREAU.shelfRows, P = 8, V = BUREAU.viewRows('phone');
+    const R = BUREAU.shelfRows, P = BUREAU.TILE, V = BUREAU.viewRows('phone');
     press(''); await nap(250);
     out.stored = !('flow' in S.look);
     // the grid is every column now (273), so the cell is read, not divided out
@@ -2656,6 +2658,86 @@ const PROP_OFF = () => { const b = document.createElement('button');
     out.offIsPagesAgain = settled && !('flow' in S.look) && rows() === 3 * R + 2 * P;
     BUREAU.del(n.id);
     S.look.locked = wasLock;
+    BUREAU.goShelfTo('root', 1, 1); BUREAU.render(); await nap(150);
+    return out;
+  });
+
+  /* --- tiles of five, the rigid swipe, the swipe switch and each tile its
+     own colours — decision 274. A tile is five by five and the screen is
+     still eight across; a rigid swipe does not scroll natively and moves
+     exactly one tile; the swipe switch is the setting as a press, in the
+     drawer front or on the board; and a board can give every tile its own
+     checkerboard, which holds still across renders. */
+  await phone.bringToFront();
+  const fives = await phone.evaluate(async () => {
+    const nap = n => new Promise(r => setTimeout(r, n));
+    const out = {}, S = BUREAU.state;
+    document.querySelector('#frame').dispatchEvent(new MouseEvent('click', { bubbles:true }));
+    S.view = 'desk'; S.drawerId = null; BUREAU.goShelfTo('root', 1, 1); BUREAU.render(); await nap(200);
+    const g = () => document.querySelector('#drawergrid');
+    const sc = () => document.querySelector('#app .scroll.deskscroll');
+    const cell = () => parseFloat(g().style.getPropertyValue('--rowh'));
+    out.aTileIsFive = BUREAU.TILE === 5 && BUREAU.shelfW('root', 'phone') === 5 && BUREAU.shelfRows === 5;
+    // the screen is still eight cells across, whatever a tile is
+    out.theScreenIsEightAcross = Math.abs(sc().clientWidth / cell() - 8) < 0.2;
+    // and a thing may be as wide as the screen, across a seam
+    const wide = BUREAU.create('note', {parent:'root', title:'Eight wide'});
+    wide.phone = {x:1, y:1, w:8, h:1}; BUREAU.render(); await nap(120);
+    out.aThingCanBeEightWide = BUREAU.boxOk({x:1, y:1, w:8, h:1}, wide.id, 'phone', 'root');
+    BUREAU.del(wide.id); await nap(80);
+
+    /* The rigid swipe: the scroller does not pan, and a one-finger swipe up
+       moves the board exactly one tile down. */
+    const press = (k, v) => { const b = document.createElement('button');
+      b.dataset[k] = v; b.style.display = 'none';
+      document.querySelector('#frame').appendChild(b); b.click(); b.remove(); };
+    press('flow', 'rigid'); await nap(250);
+    out.rigidIsStored = S.look.flow === 'rigid' && document.querySelector('#frame').classList.contains('rigid');
+    out.nothingNativePans = getComputedStyle(sc()).overflowX === 'hidden' && getComputedStyle(g()).touchAction === 'none';
+    const top0 = sc().scrollTop;
+    const tgt = g();
+    const touch = (x,y) => new Touch({identifier:1, target:tgt, clientX:x, clientY:y, pageX:x, pageY:y});
+    const fire = (type, pts) => { const ts = pts.map(p => touch(p[0], p[1]));
+      tgt.dispatchEvent(new TouchEvent(type, {bubbles:true, cancelable:true, touches:ts, targetTouches:ts,
+        changedTouches: ts.length ? ts : [touch(200, 300)]})); };
+    fire('touchstart', [[200, 520]]);
+    for(let y=520; y>=380; y-=20){ fire('touchmove', [[200, y]]); await nap(16); }
+    fire('touchend', []); await nap(900);
+    out.aSwipeMovesOneTile = Math.abs(sc().scrollTop - top0 - 5*cell()) < 2
+      || Math.abs(sc().scrollTop - (sc().scrollHeight - sc().clientHeight)) < 2;
+    // a short drag puts it back where it was
+    const top1 = sc().scrollTop;
+    fire('touchstart', [[200, 400]]); fire('touchmove', [[200, 390]]); fire('touchmove', [[200, 385]]);
+    fire('touchend', []); await nap(900);
+    out.aNudgeGoesBack = Math.abs(sc().scrollTop - top1) < 2;
+
+    // the swipe switch, in the drawer front and as a thing on the board
+    const rt = JSON.parse(JSON.stringify(S.deskCfg.rail || {left:['glass','block'], right:['lock','gear']}));
+    S.deskCfg.rail = {left:['glass','swipe'], right:['lock','gear']}; BUREAU.render(); await nap(150);
+    const sw = document.querySelector('.railobj.ro-swipe');
+    out.theSwitchIsInTheFront = !!sw && sw.classList.contains('on');
+    sw.click(); await nap(250);
+    out.itFlipsToSmooth = !('flow' in S.look) && !document.querySelector('#frame').classList.contains('rigid');
+    S.deskCfg.rail = rt;
+    const tool = BUREAU.create('tswipe', {parent:'root'}); BUREAU.render(); await nap(150);
+    BUREAU.tap(tool.id); await nap(250);
+    out.theToolFlipsItBack = S.look.flow === 'rigid';
+    BUREAU.tap(tool.id); await nap(250);
+    out.andAgain = !('flow' in S.look);
+    BUREAU.del(tool.id); await nap(100);
+
+    // each tile its own colours, the same on every render, and a roll is new
+    press('tilepaper', 'each'); await nap(200);
+    const cols = () => [...document.querySelectorAll('#drawergrid .tilepaper')].map(e => e.style.cssText).join('|');
+    const c1 = cols();
+    out.everyTileHasPaper = document.querySelectorAll('#drawergrid .tilepaper').length === BUREAU.boardsOf('root').length;
+    BUREAU.render(); await nap(120);
+    out.itHoldsStill = cols() === c1 && c1.length > 0;
+    const b = document.createElement('button'); b.dataset.tilepaper = 'reroll'; b.dataset.id = 'root';
+    b.style.display = 'none'; document.querySelector('#frame').appendChild(b); b.click(); b.remove(); await nap(200);
+    out.aRollIsNew = cols() !== c1;
+    press('tilepaper', ''); await nap(200);
+    out.theSameIsTheDefault = !('tilepaper' in S.deskCfg) && !document.querySelector('.tilepaper');
     BUREAU.goShelfTo('root', 1, 1); BUREAU.render(); await nap(150);
     return out;
   });
@@ -4470,8 +4552,11 @@ const PROP_OFF = () => { const b = document.createElement('button');
       await nap(700); };
     const pinchTo = async (to) => { down(); await squeeze(to); await lift(); };
 
-    /* Mid-gesture: the movement exists, is paused, and is parked further
-       through its own timeline the further the fingers have come. */
+    /* **Where there is no grid to zoom** — a timeline, a list, a book — a
+       squeeze is still the tracked way up a level (decision 109), and this
+       half is about that. Mid-gesture: the movement exists, is paused, and
+       is parked further through its own timeline the further the fingers
+       have come. */
     down();
     await squeeze(0.65, 6);
     /* …and the render that commits has already happened, so the element these
@@ -4526,12 +4611,42 @@ const PROP_OFF = () => { const b = document.createElement('button');
     await lift();
     out.andThePinchStillLands = S.view==='drawer' && S.drawerId===parent;
 
-    // …and back down for the assertions below, which start where we started
-    S.view='drawer'; S.drawerId=startAt; BUREAU.render(); await nap(320);
 
-    // a real one goes up exactly one level, not out to the desk
-    await pinchTo(0.4);
+    /* ---- and on a board, the zoom — decision 274 ------------------------ */
+    const box = BUREAU.create('drawer', {parent:parent, title:'Zoom test'});
+    S.view='drawer'; S.drawerId=box.id; BUREAU.render(); await nap(320);
+    const zoomAt = box.id;
+    /* **On a board the pinch is the zoom** (decision 274). While the fingers
+       are down the grid is scaled under them and nothing renders, so the
+       element the touches go to stays in the document (the hazard decision
+       109 was about is the render, and there is none until they lift). */
+    down();
+    await squeeze(0.8, 6);
+    const grid = document.querySelector('#drawergrid');
+    const scaleOf = () => { const m = /scale\(([\d.]+)\)/.exec(document.querySelector('#drawergrid').style.transform||'');
+      return m ? +m[1] : 1; };
+    out.theTouchTargetStays = document.contains(tgt) && document.querySelector('#drawergrid') === grid;
+    const s1 = scaleOf();
+    await squeeze(0.65, 4);
+    const s2 = scaleOf();
+    out.theZoomTracksTheFingers = s1 < 1 && s2 < s1;
+    /* ---- the device interrupts, and it must not matter -----------------
+       iOS fires `pointercancel` for both pointers the moment it decides a
+       two-finger gesture is a gesture. The zoom is driven by touch events and
+       ends with them. See decision 109. */
+    document.querySelector('#frame').dispatchEvent(new PointerEvent('pointercancel',
+      {bubbles:true, pointerId:1, pointerType:'touch'}));
+    await nap(40);
+    await squeeze(0.55, 3);
+    out.theZoomKeepsFollowingAfterAnInterruption = scaleOf() < s2;
+    await lift();
+    out.lettingGoCommitsTheZoom = S.drawerId === zoomAt && BUREAU.zoomOf(zoomAt) < 1
+      && !!document.querySelector('#drawergrid.zoomed') && !document.querySelector('#drawergrid').style.transform;
+
+    // out past the whole board, a pinch goes up exactly one level, not out to the desk
+    await pinchTo(0.1);
     out.aRealOneGoesUpOne = S.view==='drawer' && S.drawerId===parent;
+    BUREAU.del(zoomAt);
     /* There is one desk and every drawer is on it (decision 141), so what a
        pinch used to stop at — a promoted desk part way up — no longer exists.
        Going up from a drawer on the desk arrives at the desk itself, which is
@@ -4540,10 +4655,13 @@ const PROP_OFF = () => { const b = document.createElement('button');
     // a drawer on the home desk arrives at the desk itself
     const onHome = S.objects.find(o => isC(o) && o.parent==='root' && !S.desks.includes(o.id));
     S.view='drawer'; S.drawerId=onHome.id; BUREAU.render(); await nap(320);
-    await pinchTo(0.4);
+    await pinchTo(0.1);
     out.fromTheHomeDeskYouArriveAtIt = S.view==='desk' && !S.drawerId;
-    await pinchTo(0.4);
-    out.theHomeDeskRefusesToo = S.view==='desk' && !S.drawerId;
+    BUREAU.setZoom(onHome.id, 1);
+    // and the desk, the top of the stack, only zooms out
+    await pinchTo(0.1);
+    out.theHomeDeskOnlyZooms = S.view==='desk' && !S.drawerId && BUREAU.zoomOf('root') < 1;
+    BUREAU.setZoom('root', 1); BUREAU.render(); await nap(200);
 
     // a surface is a thing you are inside, and answers the same gesture
     BUREAU.read(S.objects.find(o => BUREAU.has(o,'text') && !isC(o)).id);
@@ -10884,7 +11002,7 @@ const PROP_OFF = () => { const b = document.createElement('button');
   console.log(JSON.stringify({
     errors: errs, settingUp, shapes, v248, v249, v251, manifestOk, swReady, survived, styleSurvived, slotColours,
     newObjectSeen, inlineEdit, sortDefaults, taskLook,
-    shelfTools, homeKnob, gridSizes, keeping, versionShown, sampler, paging, scrolling, pageCoords, pagerGround, goingIn, comingOut,
+    shelfTools, homeKnob, gridSizes, keeping, versionShown, sampler, paging, scrolling, fives, pageCoords, pagerGround, goingIn, comingOut,
     makingOnAPhone, railDrawer, railIsFurniture, holding, holdingOut, reported, cavity, depth, windows, tossing, pinch, pagerLandsFlat, deskDots,
     listSwipe, shadows, textureDepth,
     gridClass, offlineWorks, railGone, tabsGone, shelfGone, tileNavigates,

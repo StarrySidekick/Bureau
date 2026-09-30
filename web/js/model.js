@@ -559,7 +559,7 @@ const BUILTIN_KINDS = {
      /* **The tools and the counter are doodads too** (decision 240): one
         place for the small things that do something when pressed. */
      family:['button','m_counter','metronome','hourglass','candle','bell','clock','die','deck',
-             'tglass','tblock','tlock','tgear','spool','coin','anything'],
+             'tglass','tblock','tlock','tgear','tswipe','spool','coin','anything'],
      famSub:'Which doodad?', master:true, lead:'clock',
      attrs:[], size:[3,4], onclick:'active', body:'' },
   /* **The Button** (decision 243): the Control, the Spawner and the old
@@ -602,7 +602,7 @@ const BUILTIN_KINDS = {
      tool is an instrument as far as the rest of the app is concerned. */
   tool:{cat:true, nm:'Tool', ic:'gear', c:12,
      ds:'The drawer front\u2019s tools, as things you can put on a board',
-     family:['tglass','tblock','tlock','tgear','spool','coin'],
+     family:['tglass','tblock','tlock','tgear','tswipe','spool','coin'],
      famSub:'Which tool?',
      attrs:[], size:[1,1], phoneSize:[1,1], onclick:'active', body:'' },
   tglass:{act:'tglass', nm:'Magnifying glass', ic:'search', c:12, ds:'Searches the board it lies on',
@@ -612,6 +612,10 @@ const BUILTIN_KINDS = {
   tlock: {act:'tlock',  nm:'Padlock', ic:'lock', c:12, ds:'Locks and unlocks every board',
      attrs:[], size:[1,1], phoneSize:[1,1], onclick:'active', body:'' },
   tgear: {act:'tgear',  nm:'Gear', ic:'gear', c:12, ds:'Opens the settings of the board it lies on',
+     attrs:[], size:[1,1], phoneSize:[1,1], onclick:'active', body:'' },
+  /* The swipe switch (decision 274): smooth scroll or a rigid swipe, a
+     tile at a time, for every board — the setting, as a thing to press. */
+  tswipe:{act:'tswipe', nm:'Swipe switch', ic:'grid', c:12, ds:'Flips every board between a smooth scroll and a rigid swipe, a tile at a time',
      attrs:[], size:[1,1], phoneSize:[1,1], onclick:'active', body:'' },
   spool: {act:'spool',  nm:'Spool of thread', ic:'pin', c:11, ds:'Press it, then two things, and they are tied with string',
      attrs:[], size:[1,1], phoneSize:[1,1], onclick:'active', body:'' },
@@ -1084,6 +1088,7 @@ const WORKSHOP_SIZES = {
   tblock:{size:[1,1], range:[[1,2],[1,2]], phone:null},
   tlock:{size:[1,1], range:[[1,2],[1,2]], phone:null},
   tgear:{size:[1,1], range:[[1,2],[1,2]], phone:null},
+  tswipe:{size:[1,1], range:[[1,2],[1,2]], phone:null},
   spool:{size:[1,1], range:[[1,2],[1,2]], phone:null},
   coin:{size:[1,1], range:[[1,2],[1,2]], phone:null},
   deck:{size:[2,3], range:[[2,4],[3,6]], phone:null},
@@ -1454,12 +1459,11 @@ function reset(){
     // viewId is the picture surface: what an object made of an image opens onto
     undo:[], redo:[], editing:false, sel:[], readId:null, writeId:null, viewId:null, editId:null, bookAt:0,
     // a desk you have arranged is one you want to look at, so it starts locked
-    /* **A fresh desk is three tiles, one above another** (decision 272), and
-       you stand on the middle one — the tile and three rows of each of its
-       neighbours, which is what an iPhone shows. The seed is written on the
-       first tile and `centreDesk()` moves it to the middle one on the first
-       measured render. */
-    deskCfg:{layout:'grid', sort:null, shelves:{w:1, h:3}},
+    /* **A fresh desk is two tiles across and three down** (decision 274),
+       ten cells by fifteen, and you stand on the middle row. The seed is
+       written on the first tile and `centreDesk()` moves it down to the
+       middle row on the first measured render. */
+    deskCfg:{layout:'grid', sort:null, shelves:{w:2, h:3}},
     look:defaultLook()
   };
   refreshKinds();

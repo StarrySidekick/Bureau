@@ -1452,7 +1452,7 @@ function randomThing(parentId){
   furnish(o);
   const g=gridOf(undefined, home), dv=dev();
   const w=1+Math.floor(Math.random()*8), h=1+Math.floor(Math.random()*8);
-  o[dv]=anySpot(Math.min(w,g.shelfW), h, dv, home);
+  o[dv]=anySpot(Math.min(w,g.maxW,g.cols), Math.min(h,g.maxH,g.rows), dv, home);
   return o;
 }
 

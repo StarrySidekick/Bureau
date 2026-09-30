@@ -40,7 +40,7 @@ import { S, K, T, byId, isContainer, container, childrenOf, has } from './model.
 import { uid, ROOT, clamp } from './util.js';
 import { GRID, INNER, SHELVES, ensureBox, boxOk, freeSpot, anySpot, gridOf, lay, overlaps,
          oneShelf, proportional, boardsOf, ensureBoards, shelfAt, setShelf, nearestBoard, startOf,
-         addBoard, colsOf, shelfRows, growDown, onBoards, TILE, PAGES_MAX } from './grid.js';
+         addBoard, colsOf, shelfRows, growDown, growsDown, onBoards, TILE, PAGES_MAX } from './grid.js';
 import { rescaleOneBoard } from './persist.js';
 import { randomLook } from './look.js';
 
@@ -331,6 +331,23 @@ function stampPlan(planId, intoId, at){
       o[dv] = {x: to.x*g.shelfW + Math.min(rx, Math.max(0, bw-w)) + 1,
                y: to.y*g.shelfH + Math.min(ry, Math.max(0, bh-h)) + 1, w, h};
     }));
+  }
+  /* **A flow is given the tiles it covers** (decision 274): its board was
+     written eight wide, and a tile is five, so a container that is one bare
+     tile is grown right and down, before anything is placed, to the block of
+     tiles its boxes reach. Right and down only, so nothing already counted
+     from the corner moves. */
+  if(!multi && home!==ROOT && !proportional() && growsDown(home)
+     && !S.objects.some(o=>o.parent===home)){
+    let mx = 0, my = 0;
+    made.filter(o=>o.parent===home).forEach(o=>['desk','phone'].forEach(dv=>{
+      const b = o[dv]; if(!b || !b.x || !b.w) return;
+      mx = Math.max(mx, b.x+b.w-1 + ((at && at.x) ? at.x-1 : 0));
+      my = Math.max(my, b.y+(b.h||1)-1 + ((at && at.y) ? at.y-1 : 0));
+    }));
+    const tw = Math.min(8, Math.ceil(mx/TILE)), th = Math.min(12, Math.ceil(my/TILE)), cells = [];
+    for(let j=0; j<th; j++) for(let i=0; i<tw; i++) cells.push({x:i, y:j});
+    if(cells.length > 1) ensureBoards(home, cells, {x:0, y:0});
   }
   S.objects.push(...made);
   /* A plan arranged on an eight-column phone put down on a ten-column one is

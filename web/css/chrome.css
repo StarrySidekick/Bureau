@@ -5097,6 +5097,10 @@ input,textarea,select,[contenteditable],
    the pad either side included, so the scroller has something to cross. Two
    fingers are still the app's (the drawer beside this one, the pinch). */
 .is-phone.flowscroll .grid{touch-action:pan-x pan-y}
+/* A rigid swipe (decision 274) is read by views.js, so nothing native pans:
+   the scroller still scrolls when told to, and the finger is the app's. */
+.is-phone.flowscroll.rigid .scroll.deskscroll{overflow:hidden}
+.is-phone.flowscroll.rigid .grid{touch-action:none}
 .is-phone.flowscroll .grid.g-phone{width:calc(var(--cols) * var(--rowh));max-width:none;flex:none}
 /* The rim's inset shading is an absolute box at `inset:0`, which inside a
    scroller covers the first screenful and scrolls away with it. Stuck to the

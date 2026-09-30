@@ -11481,3 +11481,82 @@ swipe was buggy.
   it said. A plus pressed beside the desk stands you on the new tile
   (`landOnShelf()`), because a tile added on the left moves every number
   under the kept scroll.
+
+## 274 · Tiles of five, a rigid swipe again, the board's own zoom, and each tile its own colours
+
+*2026-09-30.* Timothy: try tiles as 5×5, with the desk starting as two tiles
+across and three down (10×15), because it could help with tiling; now that
+smooth scrolling works, give the rigid swipe back as an option, with a tool
+object that flips between the two and can go in the drawer front or on a
+board; zoom in and out of a board smoothly, with no separate zoom out to
+every tile (far enough out is the whole board with its pluses, and further
+still puts you in the container it is in); and a board setting for random
+checkerboard colours per tile, the same colours on every tile staying the
+default.
+
+- **A tile is five** (`TILE = 5`). The screen did not change with it: a
+  phone is still eight cells across (`VIEW_COLS`), which is where the cell
+  comes from, and the widest a thing may be is the screen (`WIDE`, eight on
+  both devices), lying across a seam. `freeSpot()`, `randomSpot()`, the
+  sort and `sizeOfKind()` stopped reading "a tile wide" as "the widest a
+  thing can be": they ask for a box whose top-left cell is in a tile and let
+  it run on. A board one tile wide is five columns, so a container starts
+  five across and what goes in it is at most five; add a tile beside it for
+  more. A fresh desk is `shelves:{w:2, h:3}` and you stand on its middle row.
+- **Arriving stays on the board** (`inBoard()` in views.js): a tile of five
+  centred on a screen of eight showed a cell and a half of the pad beside the
+  desk's first tile, so where a board is bigger than the screen, arriving is
+  held inside it. A slot off the edge is arrived at plainly.
+- **Migration 51** re-cuts every board into tiles of five the way 50 re-cut
+  them into eight: nothing moves, every new tile an old one touched is kept,
+  and so is every tile a placed box stands on; where a board opens moves to
+  the tile its old middle is in. `SPAN` is 40 and `PAGES_MAX` 90.
+- **A flow is given the tiles it covers** (`stampPlan()`): a single-board
+  flow put into a bare container grows it right and down, before placing,
+  to the block of tiles its eight-wide boxes reach.
+- **The rigid swipe** (`S.look.flow==='rigid'`, `rigidSwipe()`): the phone's
+  scroller has its overflow hidden and the grid refuses the touch, and one
+  finger is read in views.js (`rigidStart/Move/End`): the board follows the
+  finger along the axis it set off on and, let go past a fifth of a tile or
+  thrown, glides exactly one tile's width or height; short of that it goes
+  back. A carried tile, a held cell or a menu keeps the finger, and a thing
+  that scrolls inside a tile keeps its own scroll. Board settings' *Moving
+  down a board* has it as a third answer.
+- **The swipe switch** (`tswipe`, a Tool; `swipe` in `RAIL_TOOLS`): a brass
+  toggle on walnut, the lever thrown to a wave or to steps. In the drawer
+  front or on a board, a press flips smooth and rigid (`swipetoggle`).
+- **The zoom is the cell's size** (`ZOOM`, `zoomOf()`, `zoomRange()`,
+  `setZoom()` in grid.js). `gridOf()` multiplies the cell by it, so the drag,
+  the drop, the snap and the checkerboard all measure the real cell and the
+  board is laid out again, never magnified. Each thing on a zoomed board is
+  given the same CSS `zoom` (`.grid.zoomed`), which fills the box it was given
+  and scales what is inside, so standing closer makes a thing bigger rather
+  than roomier; a tile's own pixel sums use the unzoomed cell (`tileCell()`,
+  `--rowb`). The columns are `minmax(0,1fr)` now, because a zoomed-out word
+  pushed a `1fr` column wider. Kept per board in memory, never stored.
+- **The pinch** (`boardZoomBegin/Move/End` in gestures.js): either way, on a
+  board; the grid is scaled by a transform about the point between the
+  fingers while they are down, and letting go commits (`zoomCommit()` in
+  views.js), putting the same point back under them. From out as far as the
+  whole board and its pads fit to three times in. Past the furthest out by
+  a quarter inside a container, the board fades, and letting go goes up a
+  level (`leaveTile()`). A trackpad pinch is the same zoom (`wheelZoom()`).
+  Where there is no grid (a timeline, a list, a book) a squeeze is still
+  decision 109's tracked way up. A surface still shrinks and closes.
+- **No zoom out to every tile.** Zoomed out, the board is every tile, the
+  plus on every slot round it adds one, and a **cross** on every tile but the
+  home one takes it away (`tileCrosses()`); a tile with things on it asks
+  where they go (decision 234's question, now over the board: `overAsk()`
+  draws it alone). A board zoomed smaller than the screen sits in the middle
+  of it. The overview's code is still there, unreached, and *See every tile*
+  in a container's Board settings zooms out as far as it goes (`zoomfit`).
+- **A Mac is drawn with the pad of slots round it** (`padded()`), since the
+  zoom out was its only way to add a tile; `shelfShift()` is the pad there
+  too, and `.is-desk .grid` has no `max-width`, so a zoomed-in board scrolls
+  sideways rather than being squeezed.
+- **Each tile its own colours** (`tilepaper:'each'` on a board's config,
+  `tileseed`; Board settings → *Tile Colours*): every tile is drawn with its
+  own two quiet colours (`tilePapers()`, `.tilepaper`), rolled by
+  `randomBoard()` from a generator seeded with where the tile is, so they
+  hold still without being stored; *Roll again* bumps the seed. The same
+  squares on every tile is the default and is deleted rather than stored.

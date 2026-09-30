@@ -252,6 +252,19 @@ hold should be the ring, their settings in Behaviour with a bigger preview;
 and random generation should really be able to make anything. Built as
 decisions 259–267 (v2.51).
 
+### Added 2026-09-30 — tiles of five, the rigid swipe back, and a real zoom
+
+Timothy: try tiles as 5×5, the desk starting as two tiles by three (10×15),
+because it could help with tiling; now that the smooth scroll works, give
+the rigid swipe back as an option, with a tool object that flips between the
+two, placeable in the drawer front or on a board; zoom in and out of a board
+smoothly and granularly, with no set zoom out to every tile (far enough out
+is the whole board with the pluses, and further still puts you in the
+container it is in); and a board setting for random checkerboard colours per
+tile, the same on every tile staying the default. Built as decision 274
+(v2.56). It is a trial: a container of one tile is five cells across now, so
+what goes in one is at most five wide until a tile is added beside it.
+
 ## Deliberately not next
 
 - **Sync between devices.** It is real and it is coming, *after* the feature set

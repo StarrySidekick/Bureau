@@ -19,7 +19,7 @@ import { plans, stampPlan } from './plans.js';
    Bureau is this phone running" is exactly the question you ask when a change
    appears not to have deployed. Shown in Settings, so it can be read off the
    device rather than guessed at. */
-const APP_VERSION = '2.55';
+const APP_VERSION = '2.56';
 const KEY = 'bureau.v1';
 const install = {deferred:null};   // the browser's install prompt, when one is on offer
 let saveTimer = null;
@@ -267,7 +267,7 @@ function rescalePhone(d, from, cols){
    skips all of them, an old backup replays only what it is missing. These
    used to be ad-hoc per-load mutations inside adopt(); a new repair that
    should run once belongs here, as the next numbered step. */
-const DATA_V = 50;
+const DATA_V = 51;
 const MIGRATIONS = [
   // Drawers and objects were two arrays and a drawer could not live inside
   // anything. foldDrawers also replays the old dense flow to give v1 drawers
@@ -1276,6 +1276,43 @@ const MIGRATIONS = [
     });
     delete look.grid;
     if(look.flow==='scroll') delete look.flow;
+  }},
+  /* ---- tiles are five by five (decision 274) -----------------------------
+     The same re-cut as 50 and for the same reason nothing moves: the cells
+     are the cells, and only which rectangles of them are called tiles
+     changes. Every new tile an old eight-by-eight one touched is kept, and
+     every one a placed box stands on. Where a board opens is carried to the
+     tile its old middle is in. */
+  {v:51, up(d){
+    const OLD = 8, T = 5;
+    const objs = d.objects || [];
+    if(d.look && d.look.proportional) return;
+    d.deskCfg = d.deskCfg || {layout:'grid', sort:null};
+    const cfg = id => id===ROOT ? d.deskCfg : objs.find(o=>o && o.id===id);
+    const ids = new Set([ROOT]);
+    objs.forEach(o=>{ if(!o) return;
+      if(o.parent && o.parent!=='__hold') ids.add(o.parent);
+      if(o.shelves || o.boards) ids.add(o.id); });
+    const span = (a, n) => { const out=[]; for(let t=Math.floor(a/T); t<=Math.floor((a+n-1)/T); t++) out.push(t); return out; };
+    ids.forEach(id=>{
+      const c = cfg(id); if(!c) return;
+      const kids = objs.filter(o=>o && (o.parent||ROOT)===id);
+      const r = c.shelves || {w:1, h:1}, rw = Math.max(1, r.w|0), rh = Math.max(1, r.h|0);
+      const list = Array.isArray(c.boards) && c.boards.length ? c.boards.map(k=>String(k).split(',').map(Number))
+        : Array.from({length:rw*rh}, (_,n)=>[n%rw, Math.floor(n/rw)]);
+      const tiles = new Set();
+      list.forEach(([i,j])=> span(i*OLD, OLD).forEach(tx=> span(j*OLD, OLD).forEach(ty=> tiles.add(tx+','+ty))));
+      kids.forEach(o=>['desk','phone'].forEach(dv=>{
+        const b = o[dv]; if(!b || !b.x || !b.w) return;
+        span(b.x-1, b.w).forEach(tx=> span(b.y-1, b.h||1).forEach(ty=> tiles.add(tx+','+ty)));
+      }));
+      const cells = [...tiles].map(k=>k.split(',').map(Number)).filter(([x,y])=>x>=0 && y>=0);
+      const w = Math.min(40, Math.max(1, ...cells.map(([x])=>x+1))), h = Math.min(40, Math.max(1, ...cells.map(([,y])=>y+1)));
+      const kept = cells.filter(([x,y])=>x<w && y<h);
+      c.shelves = {w, h};
+      if(kept.length===w*h) delete c.boards; else c.boards = kept.map(([x,y])=>x+','+y);
+      if(c.start) c.start = {x:Math.floor(((c.start.x||0)*OLD + OLD/2)/T), y:Math.floor(((c.start.y||0)*OLD + OLD/2)/T)};
+    });
   }},
 ];
 function migrate(d){

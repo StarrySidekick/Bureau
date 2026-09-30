@@ -16,7 +16,7 @@ import { keepStill, spinTo, pending, placeAtPending, tileTap, turnPage, clearPag
 import { paintKey, openPaint, wirePaint } from './paint.js';
 import { bpmOf, minsOf, burnOf, sidesOf, metroGoing, startMetro, mindTheTime, actOf, deckTop } from './active.js';
 import { DECOR, LIFE_ART } from './decor.js';
-import { wireSnap, render, renderSoon, sizeGrid, toggleSettings, settingsPanel, reveal, goShelf, goShelfTo, openOverview, closeOverview, refreshOverview, overviewOn, overAsk, overCid, flipBlock, railToolsOf, landOnShelf } from './views.js';
+import { wireSnap, render, renderSoon, sizeGrid, toggleSettings, settingsPanel, reveal, goShelf, goShelfTo, openOverview, closeOverview, refreshOverview, overviewOn, overAsk, overCid, flipBlock, railToolsOf, landOnShelf, zoomFit } from './views.js';
 import { closeGuide, guideOpen, saveGuide } from './guide.js';
 import { openObj, openWriter, openRead, openViewer, closeSheet, renderSheet, words,
   mdKey, mdTool, copyObject } from './sheet.js';
@@ -27,7 +27,7 @@ import { openPanel, closePanel, refreshPanel, panelKey, panelBack, draft, modalN
   schedulePanel, quickISO, SCHED, SCHED_PENS, plansPanel, tagFirstPanel,
   familyPanel, becomePanel, lifeFirstPanel, donePanel, ringInto, variantPatch } from './panels.js';
 import { onDown, onMove, onUp, onCancel, onTouchStart, onTouchMove, onTouchEnd,
-  gestureFlags, dragArmed, holdsFinger, setCamEditor } from './gestures.js';
+  gestureFlags, dragArmed, holdsFinger, setCamEditor, wheelZoom } from './gestures.js';
 import { enter, leaveTile, pagerOn, applyTilt, askTilt , zoomOut, zoomedIn } from './motion.js';
 import { gravityApply, gravityWake } from './gravity.js';
 import { plans, planFrom, stampPlan, planById, delPlan, planSize, renamePlan } from './plans.js';
@@ -598,6 +598,8 @@ function act(name, el){
     case 'pin': togglePin(el.dataset.id); break;
     // the name at the top left: every desk at once, small, to jump to
     case 'overview': openOverview(el.dataset.id || ROOT); break;
+    // out as far as the whole board goes (decision 274)
+    case 'zoomfit': closePanel(); zoomFit(el.dataset.id || ROOT); break;
     // the setup card's own buttons (decision 229)
     case 'setupnext': setupNext(!!el.dataset.empty); break;
     case 'setupback': setupBack(); break;
@@ -1120,6 +1122,14 @@ function act(name, el){
       break;
     }
     case 'coinspin': toolPress('coin', el.dataset.id, null); break;
+    /* The swipe switch (decision 274): the Board settings row as a press.
+       Smooth is the default and is deleted rather than stored. */
+    case 'swipetoggle': {
+      if(S.look.flow==='rigid') delete S.look.flow; else S.look.flow = 'rigid';
+      save(); render(); refreshPanel();
+      toast(S.look.flow==='rigid' ? 'Rigid swipe · a tile at a time' : 'Smooth scroll');
+      break;
+    }
     case 'randomobject': {
       const home = homeFor((S.view==='drawer' && S.drawerId) || ROOT);
       const kind = someKind();
@@ -1187,6 +1197,7 @@ function toolPress(tool, cid, el){
   if(tool==='gear')  return act('appsettings', as);
   if(tool==='spool') return act('spool', as);
   if(tool==='coin')  return coinToss(board, el);
+  if(tool==='swipe') return act('swipetoggle', as);
 }
 /* **The spiral coin** (decision 220): one of anything, somewhere on this
    board — a kind from the same bag the spiral button and a spawner set to
@@ -1653,7 +1664,16 @@ function wire(){
     // page by page or one smooth scroll down a phone board (decision 209):
     // the default is deleted, not stored
     const flw=t.closest('button[data-flow]');
-    if(flw){ if(flw.dataset.flow==='page') S.look.flow='page'; else delete S.look.flow;
+    if(flw){ const v = flw.dataset.flow; if(v==='page' || v==='rigid') S.look.flow=v; else delete S.look.flow;
+      save(); render(); refreshPanel(); return; }
+    /* A board's tiles each their own colours, or all the same (decision
+       274). The same is the default and is deleted rather than stored. */
+    const tpp=t.closest('button[data-tilepaper]');
+    if(tpp){ const cfg = cfgOf(tpp.dataset.id||ROOT); if(!cfg) return;
+      const v = tpp.dataset.tilepaper;
+      if(v==='reroll') cfg.tileseed = ((cfg.tileseed||0) + 1) % 100000;
+      else if(v==='each'){ cfg.tilepaper = 'each'; if(cfg.tileseed==null) cfg.tileseed = Math.floor(Math.random()*100000); }
+      else delete cfg.tilepaper;
       save(); render(); refreshPanel(); return; }
     const srf=t.closest('button[data-surface]');
     if(srf){ const v=srf.dataset.surface;
@@ -1744,7 +1764,7 @@ function wire(){
       const [cid,x,y]=rb.dataset.boardremove.split(':');
       /* A board with things on it asks where they go first (decision 234). */
       const on = onBoard(cid, +x, +y);
-      if(on.length && overviewOn()){ overAsk({cid, x:+x, y:+y, n:on.length}); return; }
+      if(on.length){ overAsk({cid, x:+x, y:+y, n:on.length}); return; }
       if(!removeBoard(cid, +x, +y)){ toast('Only an empty tile can be taken away, and never the last one'); return; }
       save(); render(); refreshPanel(); refreshOverview();
       toast('Tile taken away');
@@ -2792,10 +2812,8 @@ function wire(){
     PINCHW += e.deltaY;
     if(overviewOn()){ if(PINCHW < -40){ PINCHW = 0; closeOverview(); } return; }
     if(S.readId || S.writeId || S.viewId || S.cardId) return;
-    // a drawer of several boards zooms out to them; one of one board does not
-    const here = S.view==='drawer' && S.drawerId;
-    if(here && (boardsOf(here).length < 2 || has(byId(here)||{},'magic'))) return;
-    if(PINCHW > 40){ PINCHW = 0; openOverview(here || ROOT); }
+    // the board's own zoom, about the pointer (decision 274)
+    wheelZoom(e);
   }, {passive:false});
 
   document.addEventListener('keydown', e=>{

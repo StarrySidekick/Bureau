@@ -321,7 +321,11 @@ function randomLook(){
     knobtone: pickOf([sd.knobtone, sd.knobtone, sd.knobtone, null, 'light', 'dark'])
   };
 }
-function randomBoard(){
+/* `rnd` is Math.random unless a caller wants the same answer every time: a
+   tile's own checkerboard (decision 274) is rolled from its place, so it is
+   the same colour on every render without being stored. */
+function randomBoard(rnd){
+  const Math = Object.create(globalThis.Math); if(rnd) Math.random = rnd;
   const hue = Math.floor(Math.random()*360);
   const sat = 12 + Math.floor(Math.random()*10);          // 12–21%, never garish
   // a board is drawn on the desk it sits on: a white checkerboard inside a
