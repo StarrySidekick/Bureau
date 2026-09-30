@@ -335,6 +335,9 @@ the lane with room; a new Quote shows its name; a tick is undoable, with
 Undo on its toast; makers place through
 `fitSpot()` as `fits()` promised; and `smoke.mjs` runs to the end again
 (`holdTile()`).
+**v2.65** (decision 278): a **sorting drawer packs itself** (`flowSorted()`),
+reading and writing no box on what it collects, and a packed board steps sizes
+down rather than stacking things in the corner.
 
 **Start here each session:** `docs/SYSTEM.md` is the reference for what Bureau is
 made of — objects, attributes, types, drawers, the grid, the surfaces, storage.

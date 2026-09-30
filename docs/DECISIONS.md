@@ -11731,3 +11731,32 @@ rather than new tests except where a test was wrong.
   a tile. The spans block counted days from today, which on the 30th are next
   month's, and stood its calendar on whatever `anySpot()` put it on; it counts
   from the 10th and adds a column of tiles when there is no room.
+
+## 278. A sorting drawer packs itself (v2.65, 2026-09-30)
+
+Found in the same overnight pass, by a probe that asked for words broken
+across lines: after "Every object" had been opened, Open Questions drew every
+question twenty pixels wide, a letter to a line.
+
+A sorting drawer collects and does not hold (decision 17), so the box on
+anything it shows is in some other board's coordinate space. Its grid was
+drawn from those boxes anyway: the sample question's box from Every object
+said column seven, Open Questions has five, the grid grew implicit columns to
+reach it and the five real ones shrank to five pixels. The other way round
+was worse and silent: opened first, Open Questions' `ensureBox()` wrote a box
+*in its own space* onto a thing that lives in another drawer, which is where
+it then stood in its real home.
+
+- **A sorting drawer is drawn packed** — `sorted` is true for it in the grid
+  builder, so `flowSorted()` lays it out, render-only, reading no position and
+  writing none; and a thing it shows starts on the tile you are looking at,
+  never on the shelf its box names, which on a board that does not hold it
+  means nothing. On any board, a box naming a shelf the board has not got is
+  not a home shelf either.
+- **A packed board steps sizes down** before it gives up: `flowSorted()` put
+  everything after the first thing on a full board on top of it in the
+  corner. It tries the thing's size, then a step smaller at a time, the way
+  `fitSpot()` does, and the corner is the last resort.
+- **A drag on a sorting drawer writes nothing.** A drop there that is not a
+  filing, a date or a gathering has nowhere to be; it renders and stops, where
+  it used to write a box in this space onto a thing that lives elsewhere.

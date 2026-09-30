@@ -2062,6 +2062,10 @@ function onUp(e){
       toast(`Filed in ${into?into.title:'the drawer'}`, true);
       return;
     }
+    /* A sorting drawer packs itself and holds nothing (tiles.js), so a box
+       written here would be in its space on a thing that lives elsewhere. */
+    const packs = has(container(g.parent), 'magic');
+    if(packs){ render(); return; }
     if(d && g.moved && g.ok) g.moved.forEach(m=>{ const o=byId(m.id); if(o) o[dev()]={...m.box}; });
     else if(d && g.cand && g.ok) d[dev()]={...g.cand};
     save(); render();

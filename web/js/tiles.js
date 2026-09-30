@@ -3040,20 +3040,33 @@ function flowSorted(kids, cid){
      been placed), and only overflows to another when its own is full. A drawer
      is one shelf wide, so there it is the column of pages it always was. */
   const here = nearestBoard(cid, shelfAt(cid));
+  /* A box is only a place on the board whose space it is in, and only a
+     shelf this board has is somewhere to pack onto; a sorting drawer shows
+     nothing it holds, so there every thing starts where you are. */
+  const packs = has(container(cid), 'magic');
   const homeOf = o => { const b=o[dv];
-    return (b && b.w && b.x) ? shelfOfBox(b, dv, cid) : here; };
+    const s = (!packs && b && b.w && b.x) ? shelfOfBox(b, dv, cid) : null;
+    return (s && isBoard(cid, s.x, s.y)) ? s : here; };
   kids.forEach(o=>{
     let [w,h]=(o[dv]&&o[dv].w) ? [o[dv].w,o[dv].h] : sizeOfKind(o.kind, dv, cid);
     w=Math.min(w, g.maxW, g.cols); h=Math.min(h, g.maxH, g.rows);
     let put=null;
     const hs = homeOf(o);
     const order = [[hs.x, hs.y], ...shelves.filter(([sx,sy])=> sx!==hs.x || sy!==hs.y)];
-    for(const [sx,sy] of order){
-      const x0=sx*g.shelfW, y0=sy*g.shelfH;
-      for(let y=1;y<=Math.min(g.shelfH, g.rows-y0-h+1) && !put;y++) for(let x=1;x<=Math.min(g.shelfW, g.cols-x0-w+1);x++){
-        const b={x:x0+x, y:y0+y, w, h}; if(free(b)){ put=b; break; }
+    /* At its own size, and then a step smaller at a time, the way fitSpot()
+       steps down: a full board put everything after the first on top of it
+       in the corner (2026-09-30). The corner is still the last resort. */
+    const minW=Math.ceil(w/2), minH=Math.ceil(h/2);
+    for(let a=w, b=h; !put; ){
+      for(const [sx,sy] of order){
+        const x0=sx*g.shelfW, y0=sy*g.shelfH;
+        for(let y=1;y<=Math.min(g.shelfH, g.rows-y0-b+1) && !put;y++) for(let x=1;x<=Math.min(g.shelfW, g.cols-x0-a+1);x++){
+          const t={x:x0+x, y:y0+y, w:a, h:b}; if(free(t)){ put=t; break; }
+        }
+        if(put) break;
       }
-      if(put) break;
+      if(put || (a<=1 && b<=1)) break;
+      if(a>=b && a>minW) a--; else if(b>minH) b--; else if(a>1) a--; else b--;
     }
     put=put||{x:1,y:1,w,h};
     taken.push(put);
@@ -3278,7 +3291,15 @@ function gridOfContainer(cid){
      marks that say which objects the lock has let out; a sample draws
      neither, because it is a picture of a tile rather than a tile. */
   const arr = boardLocked() ? 'locked' : true;
-  const sorted=sortOf(c);
+  /* **A sorting drawer packs itself** (2026-09-30), as a sorted board does.
+     It collects and does not hold (decision 17), so a box on anything it
+     shows belongs to some other board's space: drawn by it, the sample
+     question from Every object sat at column seven of Open Questions' five,
+     the grid grew columns to reach it and every other tile was crushed to a
+     letter's width; and `ensureBox()` here wrote a box in this space onto a
+     thing that lives elsewhere. `flowSorted()` reads no position and writes
+     nothing. */
+  const sorted=sortOf(c) || (has(c,'magic') ? 'manual' : null);
   const dv=dev(), g=gridOf(dv, c.id);
   /* On a phone the board is **windowed** to one shelf; on a Mac the whole
      thing is drawn and the scroller reaches the rows you cannot see. So the
