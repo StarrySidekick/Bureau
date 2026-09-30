@@ -11560,3 +11560,10 @@ default.
   `randomBoard()` from a generator seeded with where the tile is, so they
   hold still without being stored; *Roll again* bumps the seed. The same
   squares on every tile is the default and is deleted rather than stored.
+- **v2.57, from the first full test run.** A tile holding only the right
+  half of an eight-wide thing counted as empty (`boardHolds()` and
+  `onBoard()` read a box's corner alone), so it could be taken away from
+  under it; they now ask every tile a box covers (`covers()`). And arriving
+  is held inside the board **sideways only**: held up and down too, a board
+  one row taller than the screen put the middle of the screen in the next
+  tile, which the snap then walked to.
