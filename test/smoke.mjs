@@ -2694,10 +2694,8 @@ const PROP_OFF = () => { const b = document.createElement('button');
     // the screen is still eight cells across, whatever a tile is
     out.theScreenIsEightAcross = Math.abs(sc().clientWidth / cell() - 8) < 0.2;
     // and a thing may be as wide as the screen, across a seam
-    const wide = BUREAU.create('note', {parent:'root', title:'Eight wide'});
-    wide.phone = {x:1, y:1, w:8, h:1}; BUREAU.render(); await nap(120);
-    out.aThingCanBeEightWide = BUREAU.boxOk({x:1, y:1, w:8, h:1}, wide.id, 'phone', 'root');
-    BUREAU.del(wide.id); await nap(80);
+    const room = BUREAU.free(8, 1, 'root');
+    out.aThingCanBeEightWide = !!room && room.w === 8 && BUREAU.boxOk(room, null, 'phone', 'root');
 
     /* The rigid swipe: the scroller does not pan, and a one-finger swipe up
        moves the board exactly one tile down. */
@@ -2997,14 +2995,14 @@ const PROP_OFF = () => { const b = document.createElement('button');
     const wasLock = S.look.locked; S.look.locked = false;
     const t = B.create('task', { parent:'root', title:'Alone' });
     B.render(); await nap(150);
-    const per = B.shelfRows, wide = 8;
+    const per = B.shelfRows, wide = B.TILE;
     t.phone = { x:wide + 1, y:per + 3, w:3, h:2 };
     B.render(); await nap(150);
     B.goShelfTo('root', 1, 1); await nap(250);
     out.onTheMiddleShelf = JSON.stringify(B.shelfAt('root')) === JSON.stringify({x:1,y:1});
     /* Since decision 272 the column is drawn whole with an empty tile's pad
        above it, so the shift up and down is minus the pad, not the tile. */
-    const pad = 8;
+    const pad = B.TILE;
     // …and to the side as well, since the phone scrolls sideways (273)
     out.shelfShiftIsTheOffset = B.shelfShift('root').y === -pad
                              && B.shelfShift('root').x === -pad;
@@ -3045,7 +3043,7 @@ const PROP_OFF = () => { const b = document.createElement('button');
     const gr = document.querySelector('.grid').getBoundingClientRect();
     const cw = parseFloat(getComputedStyle(document.querySelector('.grid')).getPropertyValue('--rowh'));
     const tileTop = gr.top + (pad + per) * cw, tileLeft = gr.left + (pad + wide) * cw;
-    const x = tileLeft + cw * 1.5, y = tileTop + cw * 5.5;
+    const x = tileLeft + cw * (wide - 0.5), y = tileTop + cw * (per - 1.5);
     out.aimedAtBareBoard = document.elementFromPoint(x, y) === document.querySelector('.grid');
     ev(document.querySelector('.grid'), 'pointerdown', x, y);
     await nap(420);                       // outlast the hold
