@@ -332,11 +332,17 @@ function boardHolds(id, x, y){
     if(!k || (k.parent||ROOT)!==id) return false;
     return ['desk','phone'].some(dv=>{
       const b = k[dv]; if(!b || !b.x || !b.w) return false;
-      const st = boardStep(id, dv);
-      return Math.floor((b.x-1)/st.w)===x && Math.floor((b.y-1)/st.h)===y;
+      return covers(b, boardStep(id, dv), x, y);
     });
   });
 }
+/* **Every tile a box lies on**, not only the one its corner is on: since a
+   thing may cross a seam (decisions 272–273) and a tile is five (274), the
+   right half of an eight-wide thing is on a tile of its own, and a tile
+   holding only that half is not empty. */
+const covers = (b, st, x, y) =>
+     Math.floor((b.x-1)/st.w) <= x && x <= Math.floor((b.x+b.w-2)/st.w)
+  && Math.floor((b.y-1)/st.h) <= y && y <= Math.floor((b.y+(b.h||1)-2)/st.h);
 /* Everything on a board, on either device, by id — what taking it away would
    take with it (decision 234). The same test `boardHolds()` makes. */
 function onBoard(id, x, y){
@@ -344,8 +350,7 @@ function onBoard(id, x, y){
     if(!k || (k.parent||ROOT)!==id) return false;
     return ['desk','phone'].some(dv=>{
       const b = k[dv]; if(!b || !b.x || !b.w) return false;
-      const st = boardStep(id, dv);
-      return Math.floor((b.x-1)/st.w)===x && Math.floor((b.y-1)/st.h)===y;
+      return covers(b, boardStep(id, dv), x, y);
     });
   }).map(k=>k.id);
 }

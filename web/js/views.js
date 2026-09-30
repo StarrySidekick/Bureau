@@ -1917,16 +1917,17 @@ function tileTop(cid, y, sc, grid){
   const g = gridOf(dev(), cid), cell = CELL[dev()] + g.gap;
   const shows = sc ? Math.floor(sc.clientHeight / Math.max(1, cell)) : viewRows();
   const above = Math.max(0, Math.floor((shows - g.shelfH)/2));
-  const r0 = y*g.shelfH - above;
-  const row = (y>=0 && y<g.shelves.h ? inBoard(r0, shows, g.rows) : r0) + (g.pad||0);
+  const row = y*g.shelfH - above + (g.pad||0);
   return Math.max(0, (grid ? grid.offsetTop : 0) + row*cell);
 }
-/* **A board wider or taller than the screen is not left half off it**
-   (decision 274): a tile of five centred on a screen eight wide showed a cell
-   and a half of the pad beside the desk's first tile. Where the board is
-   bigger than the screen, arriving stays inside it; the slots off its edge
-   are still a scroll away, and a slot off the edge is arrived at plainly.
-   In cells from the board's corner. */
+/* **A board wider than the screen is not left half off it** (decision
+   274): a tile of five centred on a screen eight wide showed a cell and a
+   half of the pad beside the desk's first tile. Where the board is wider
+   than the screen, arriving stays inside it; the slots off its edge are
+   still a scroll away, and a slot off the edge is arrived at plainly. Only
+   sideways: up and down a board is barely taller than the screen, and held
+   inside it the middle of the screen was in the next tile, which the snap
+   then walked to. In cells from the board's corner. */
 function inBoard(at, shows, span){
   return span > shows ? Math.max(0, Math.min(span - shows, at)) : at;
 }
