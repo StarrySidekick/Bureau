@@ -10366,6 +10366,8 @@ const PROP_OFF = () => { const b = document.createElement('button');
   const boardsYouAdd = await fresh.evaluate(async () => {
     const nap = n => new Promise(r => setTimeout(r, n));
     const out = {}, S = BUREAU.state, B = BUREAU;
+    // a fresh desk starts locked, and a locked board shows no plus (275)
+    S.look.locked = false; B.render(); await nap(150);
     // a fresh desk is two tiles across and three down (decision 274)
     out.startsAsOne = JSON.stringify(B.boardsOf('root')) === JSON.stringify(
       [{x:0,y:0},{x:1,y:0},{x:0,y:1},{x:1,y:1},{x:0,y:2},{x:1,y:2}]);
@@ -11048,6 +11050,8 @@ const PROP_OFF = () => { const b = document.createElement('button');
   const tiles272 = await t2.evaluate(async () => {
     const nap = n => new Promise(r => setTimeout(r, n));
     const out = {}, S = BUREAU.state, B = BUREAU;
+    // a fresh desk starts locked, and a locked board shows no plus (275)
+    S.look.locked = false; B.render(); await nap(150);
     const sc = () => document.querySelector('#app .deskscroll');
     const grid = () => document.querySelector('#drawergrid');
     const cell = () => parseFloat(getComputedStyle(grid()).getPropertyValue('--rowh'));
